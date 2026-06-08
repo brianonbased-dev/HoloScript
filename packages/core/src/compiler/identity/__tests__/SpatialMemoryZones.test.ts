@@ -903,11 +903,7 @@ describe('SpatialMemoryZones', () => {
         })
       );
 
-      enforcer.validateSpatialOperation(
-        'token',
-        [5, 5, 5],
-        SpatialPermission.SPATIAL_READ
-      );
+      enforcer.validateSpatialOperation('token', [5, 5, 5], SpatialPermission.SPATIAL_READ);
 
       const log = enforcer.getAuditLog();
       expect(log.length).toBeGreaterThanOrEqual(1);

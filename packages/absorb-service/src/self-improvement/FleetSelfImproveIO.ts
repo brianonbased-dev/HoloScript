@@ -92,7 +92,8 @@ export class FleetSelfImproveIO implements SelfImproveIO {
     this.rootDir = opts.rootDir;
     this.llm = opts.llmComplete;
     this.logger =
-      opts.log ?? ((level, message) => process.stderr.write(`[self-improve:${level}] ${message}\n`));
+      opts.log ??
+      ((level, message) => process.stderr.write(`[self-improve:${level}] ${message}\n`));
     this.toolTimeoutMs = opts.toolTimeoutMs ?? 60_000;
     this.excludeDirs = new Set(opts.excludeDirs ?? DEFAULT_EXCLUDES);
   }
@@ -110,10 +111,7 @@ export class FleetSelfImproveIO implements SelfImproveIO {
     const sourceFiles = this.collectSourceFiles(this.rootDir);
     const testFiles = this.collectTestFiles(this.rootDir);
 
-    const extractor = new GRPOPromptExtractor(
-      { rootDir: this.rootDir },
-      createNodeFS(),
-    );
+    const extractor = new GRPOPromptExtractor({ rootDir: this.rootDir }, createNodeFS());
     const prompts = await extractor.extractLowCoverageExports(sourceFiles, testFiles);
 
     return prompts.map((p) => ({
@@ -173,10 +171,11 @@ export class FleetSelfImproveIO implements SelfImproveIO {
     const abs = path.resolve(this.rootDir, testFilePath);
     const started = Date.now();
     try {
-      const { stdout, stderr } = await execAsync(
-        `npx vitest run --reporter=json "${abs}"`,
-        { cwd: this.rootDir, timeout: this.toolTimeoutMs, maxBuffer: 8 * 1024 * 1024 }
-      );
+      const { stdout, stderr } = await execAsync(`npx vitest run --reporter=json "${abs}"`, {
+        cwd: this.rootDir,
+        timeout: this.toolTimeoutMs,
+        maxBuffer: 8 * 1024 * 1024,
+      });
       const out = stdout + stderr;
       const parsed = this.parseVitestJson(out);
       // Mark the matching proposal as passed for the captured artifact.
@@ -199,7 +198,10 @@ export class FleetSelfImproveIO implements SelfImproveIO {
     // Bounded by default: callers set fullSuiteMetrics=false so this is not invoked.
     // If invoked, return a conservative zero-suite rather than running the (expensive,
     // shared-tree-unsafe) full project suite.
-    this.logger('warn', 'runFullVitest skipped (bounded fleet run) — returning empty suite metrics');
+    this.logger(
+      'warn',
+      'runFullVitest skipped (bounded fleet run) — returning empty suite metrics'
+    );
     return {
       passed: true,
       testsPassed: 0,
@@ -216,10 +218,11 @@ export class FleetSelfImproveIO implements SelfImproveIO {
     if (!last) return true;
     const abs = path.resolve(this.rootDir, last.testFilePath);
     try {
-      const { stdout, stderr } = await execAsync(
-        `npx tsc --noEmit --pretty false "${abs}"`,
-        { cwd: this.rootDir, timeout: this.toolTimeoutMs, maxBuffer: 8 * 1024 * 1024 }
-      );
+      const { stdout, stderr } = await execAsync(`npx tsc --noEmit --pretty false "${abs}"`, {
+        cwd: this.rootDir,
+        timeout: this.toolTimeoutMs,
+        maxBuffer: 8 * 1024 * 1024,
+      });
       return ((stdout + stderr).match(/error TS\d+/g) ?? []).length === 0;
     } catch (e: unknown) {
       const err = e as { stdout?: string; stderr?: string };
@@ -259,11 +262,17 @@ export class FleetSelfImproveIO implements SelfImproveIO {
 
   async gitAdd(_filePath: string): Promise<void> {
     // Propose-only: never stage. Guarded no-op (autoCommit must be false).
-    this.logger('warn', 'gitAdd ignored — FleetSelfImproveIO is propose-only (set autoCommit:false)');
+    this.logger(
+      'warn',
+      'gitAdd ignored — FleetSelfImproveIO is propose-only (set autoCommit:false)'
+    );
   }
 
   async gitCommit(_message: string): Promise<void> {
-    this.logger('warn', 'gitCommit ignored — FleetSelfImproveIO is propose-only (set autoCommit:false)');
+    this.logger(
+      'warn',
+      'gitCommit ignored — FleetSelfImproveIO is propose-only (set autoCommit:false)'
+    );
   }
 
   log(level: 'info' | 'warn' | 'error', message: string): void {
@@ -344,10 +353,7 @@ export class FleetSelfImproveIO implements SelfImproveIO {
         if (e.isDirectory()) {
           if (excludeForTests.has(e.name)) continue;
           walk(path.join(dir, e.name));
-        } else if (
-          e.isFile() &&
-          (e.name.endsWith('.test.ts') || e.name.endsWith('.spec.ts'))
-        ) {
+        } else if (e.isFile() && (e.name.endsWith('.test.ts') || e.name.endsWith('.spec.ts'))) {
           out.push(path.join(dir, e.name));
         }
       }

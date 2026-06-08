@@ -110,20 +110,20 @@ describe('RagdollController', () => {
   // Impulse
   it('applyImpulse changes velocity', () => {
     rc.addBone('spine', null, 5, 0.5);
-    rc.applyImpulse('spine', [10, 0, 0 ]);
+    rc.applyImpulse('spine', [10, 0, 0]);
     expect(rc.getBone('spine')!.velocity[0]).toBe(2); // 10/5
   });
 
   it('applyImpulse on unknown bone is no-op', () => {
-    rc.applyImpulse('nope', [10, 0, 0 ]); // no throw
+    rc.applyImpulse('nope', [10, 0, 0]); // no throw
   });
 
   // Joint limits
   it('rotation clamped to joint limits', () => {
     rc.addBone('spine', null, 5, 0.5);
     rc.addBone('arm', 'spine', 2, 0.4, {
-      min: [-0.5, -0.5, -0.5 ],
-      max: [0.5, 0.5, 0.5 ],
+      min: [-0.5, -0.5, -0.5],
+      max: [0.5, 0.5, 0.5],
     });
     rc.goRagdoll();
     rc.getBone('arm')!.rotation[0] = 10;

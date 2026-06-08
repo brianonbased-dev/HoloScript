@@ -50,7 +50,7 @@ describe('Citation coverage', () => {
     for (const name of cited) {
       const prov = getMaterialProvenance(name)!;
       expect(prov.uncertainty, `${name} uncertainty out of range`).toBeGreaterThanOrEqual(0.01);
-      expect(prov.uncertainty, `${name} uncertainty out of range`).toBeLessThanOrEqual(0.20);
+      expect(prov.uncertainty, `${name} uncertainty out of range`).toBeLessThanOrEqual(0.2);
     }
   });
 
@@ -101,7 +101,7 @@ describe('Property values are physically reasonable', () => {
     }
   });
 
-  it('structural materials have positive Young\'s modulus', () => {
+  it("structural materials have positive Young's modulus", () => {
     const structural = ['steel_a36', 'copper', 'aluminum', 'granite'];
     for (const name of structural) {
       const mat = getMaterial(name);
@@ -239,7 +239,9 @@ describe('Lookup operations', () => {
 
   it('custom materials override built-in', () => {
     registerMaterial('test_mat', {
-      conductivity: 999, specific_heat: 999, density: 999,
+      conductivity: 999,
+      specific_heat: 999,
+      density: 999,
     });
     const mat = getMaterial('test_mat');
     expect(mat.conductivity).toBe(999);

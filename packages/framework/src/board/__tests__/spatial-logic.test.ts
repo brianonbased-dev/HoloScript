@@ -37,20 +37,20 @@ describe('SLF predicates', () => {
 
   it('rejects missing id', () => {
     expect(validateSpatialPredicate({ ...basePredicate, id: '' })).toContain(
-      'SpatialPredicate.id is required.',
+      'SpatialPredicate.id is required.'
     );
   });
 
   it('rejects unsupported kind', () => {
-    expect(
-      validateSpatialPredicate({ ...basePredicate, kind: 'unknown' as any }),
-    ).toContain('SpatialPredicate.kind is unsupported: unknown.');
+    expect(validateSpatialPredicate({ ...basePredicate, kind: 'unknown' as any })).toContain(
+      'SpatialPredicate.kind is unsupported: unknown.'
+    );
   });
 
   it('rejects predicate-other without kindLabel', () => {
-    expect(
-      validateSpatialPredicate({ ...basePredicate, kind: 'predicate-other' }),
-    ).toContain('SpatialPredicate pred_01 kind=predicate-other requires kindLabel.');
+    expect(validateSpatialPredicate({ ...basePredicate, kind: 'predicate-other' })).toContain(
+      'SpatialPredicate pred_01 kind=predicate-other requires kindLabel.'
+    );
   });
 
   it('accepts predicate-other with kindLabel', () => {
@@ -59,49 +59,51 @@ describe('SLF predicates', () => {
         ...basePredicate,
         kind: 'predicate-other',
         kindLabel: 'custom_check',
-      }),
+      })
     ).toEqual([]);
   });
 
   it('rejects negative radius', () => {
     expect(
-      validateSpatialPredicate({ ...basePredicate, kind: 'entity_near', radius: -1 }),
+      validateSpatialPredicate({ ...basePredicate, kind: 'entity_near', radius: -1 })
     ).toContain('SpatialPredicate pred_01.radius must be a non-negative finite number.');
   });
 
   it('rejects invalid timeRange', () => {
     expect(
-      validateSpatialPredicate({ ...basePredicate, kind: 'time_of_day', timeRange: [18, 6] }),
-    ).toContain('SpatialPredicate pred_01.timeRange must be [start, end] with 0 <= start < end <= 24.');
+      validateSpatialPredicate({ ...basePredicate, kind: 'time_of_day', timeRange: [18, 6] })
+    ).toContain(
+      'SpatialPredicate pred_01.timeRange must be [start, end] with 0 <= start < end <= 24.'
+    );
   });
 
   it('accepts valid timeRange', () => {
     expect(
-      validateSpatialPredicate({ ...basePredicate, kind: 'time_of_day', timeRange: [6, 18] }),
+      validateSpatialPredicate({ ...basePredicate, kind: 'time_of_day', timeRange: [6, 18] })
     ).toEqual([]);
   });
 
   it('rejects chance out of bounds', () => {
     expect(
-      validateSpatialPredicate({ ...basePredicate, kind: 'probability', chance: 1.2 }),
+      validateSpatialPredicate({ ...basePredicate, kind: 'probability', chance: 1.2 })
     ).toContain('SpatialPredicate pred_01.chance must be a finite number in [0, 1].');
   });
 
   it('accepts chance in bounds', () => {
     expect(
-      validateSpatialPredicate({ ...basePredicate, kind: 'probability', chance: 0.5 }),
+      validateSpatialPredicate({ ...basePredicate, kind: 'probability', chance: 0.5 })
     ).toEqual([]);
   });
 
   it('rejects malformed position tuple', () => {
     expect(
-      validateSpatialPredicate({ ...basePredicate, kind: 'entity_near', position: [1, 2, NaN] }),
+      validateSpatialPredicate({ ...basePredicate, kind: 'entity_near', position: [1, 2, NaN] })
     ).toContain('SpatialPredicate pred_01.position must be a finite [x, y, z] tuple.');
   });
 
   it('accepts valid position tuple', () => {
     expect(
-      validateSpatialPredicate({ ...basePredicate, kind: 'entity_near', position: [1, 2, 3] }),
+      validateSpatialPredicate({ ...basePredicate, kind: 'entity_near', position: [1, 2, 3] })
     ).toEqual([]);
   });
 });
@@ -119,32 +121,32 @@ describe('SLF actions', () => {
 
   it('rejects missing id', () => {
     expect(validateSpatialAction({ ...baseAction, id: '' })).toContain(
-      'SpatialAction.id is required.',
+      'SpatialAction.id is required.'
     );
   });
 
   it('rejects unsupported kind', () => {
     expect(validateSpatialAction({ ...baseAction, kind: 'unknown' as any })).toContain(
-      'SpatialAction.kind is unsupported: unknown.',
+      'SpatialAction.kind is unsupported: unknown.'
     );
   });
 
   it('rejects action-other without kindLabel', () => {
-    expect(
-      validateSpatialAction({ ...baseAction, kind: 'action-other' }),
-    ).toContain('SpatialAction act_01 kind=action-other requires kindLabel.');
+    expect(validateSpatialAction({ ...baseAction, kind: 'action-other' })).toContain(
+      'SpatialAction act_01 kind=action-other requires kindLabel.'
+    );
   });
 
   it('accepts action-other with kindLabel', () => {
     expect(
-      validateSpatialAction({ ...baseAction, kind: 'action-other', kindLabel: 'custom_act' }),
+      validateSpatialAction({ ...baseAction, kind: 'action-other', kindLabel: 'custom_act' })
     ).toEqual([]);
   });
 
   it('rejects quantity < 1', () => {
-    expect(
-      validateSpatialAction({ ...baseAction, quantity: 0 }),
-    ).toContain('SpatialAction act_01.quantity must be a finite number >= 1.');
+    expect(validateSpatialAction({ ...baseAction, quantity: 0 })).toContain(
+      'SpatialAction act_01.quantity must be a finite number >= 1.'
+    );
   });
 
   it('accepts valid quantity', () => {
@@ -153,7 +155,7 @@ describe('SLF actions', () => {
 
   it('rejects malformed spawnPosition', () => {
     expect(
-      validateSpatialAction({ ...baseAction, kind: 'spawn_entity', spawnPosition: [0, 0] as any }),
+      validateSpatialAction({ ...baseAction, kind: 'spawn_entity', spawnPosition: [0, 0] as any })
     ).toContain('SpatialAction act_01.spawnPosition must be a finite [x, y, z] tuple.');
   });
 });
@@ -162,12 +164,8 @@ describe('SLF rules', () => {
   const baseRule: SpatialRule = {
     id: 'rule_01',
     name: 'Open Gate',
-    predicates: [
-      { id: 'p1', kind: 'has_item', targetId: 'item_key' },
-    ],
-    actions: [
-      { id: 'a1', kind: 'unlock_zone', targetId: 'zone_inner' },
-    ],
+    predicates: [{ id: 'p1', kind: 'has_item', targetId: 'item_key' }],
+    actions: [{ id: 'a1', kind: 'unlock_zone', targetId: 'zone_inner' }],
   };
 
   it('validates a well-formed rule', () => {
@@ -175,33 +173,31 @@ describe('SLF rules', () => {
   });
 
   it('rejects missing rule id', () => {
-    expect(validateSpatialRule({ ...baseRule, id: '' })).toContain(
-      'SpatialRule.id is required.',
-    );
+    expect(validateSpatialRule({ ...baseRule, id: '' })).toContain('SpatialRule.id is required.');
   });
 
   it('rejects missing rule name', () => {
     expect(validateSpatialRule({ ...baseRule, name: '' })).toContain(
-      'SpatialRule rule_01.name is required.',
+      'SpatialRule rule_01.name is required.'
     );
   });
 
   it('rejects non-array predicates', () => {
-    expect(
-      validateSpatialRule({ ...baseRule, predicates: null as any }),
-    ).toContain('SpatialRule rule_01.predicates must be an array.');
+    expect(validateSpatialRule({ ...baseRule, predicates: null as any })).toContain(
+      'SpatialRule rule_01.predicates must be an array.'
+    );
   });
 
   it('rejects non-array actions', () => {
-    expect(
-      validateSpatialRule({ ...baseRule, actions: null as any }),
-    ).toContain('SpatialRule rule_01.actions must be an array.');
+    expect(validateSpatialRule({ ...baseRule, actions: null as any })).toContain(
+      'SpatialRule rule_01.actions must be an array.'
+    );
   });
 
   it('rejects empty actions', () => {
-    expect(
-      validateSpatialRule({ ...baseRule, actions: [] }),
-    ).toContain('SpatialRule rule_01.actions must be non-empty.');
+    expect(validateSpatialRule({ ...baseRule, actions: [] })).toContain(
+      'SpatialRule rule_01.actions must be non-empty.'
+    );
   });
 
   it('validates nested predicate errors', () => {
@@ -210,7 +206,7 @@ describe('SLF rules', () => {
       predicates: [{ id: 'bad', kind: 'unknown' as any }],
     };
     expect(validateSpatialRule(badRule)).toContain(
-      'SpatialRule rule_01.predicates[bad]: SpatialPredicate.kind is unsupported: unknown.',
+      'SpatialRule rule_01.predicates[bad]: SpatialPredicate.kind is unsupported: unknown.'
     );
   });
 
@@ -220,14 +216,14 @@ describe('SLF rules', () => {
       actions: [{ id: 'bad', kind: 'unknown' as any }],
     };
     expect(validateSpatialRule(badRule)).toContain(
-      'SpatialRule rule_01.actions[bad]: SpatialAction.kind is unsupported: unknown.',
+      'SpatialRule rule_01.actions[bad]: SpatialAction.kind is unsupported: unknown.'
     );
   });
 
   it('rejects invalid predicateMode', () => {
-    expect(
-      validateSpatialRule({ ...baseRule, predicateMode: 'maybe' as any }),
-    ).toContain("SpatialRule rule_01.predicateMode must be 'all' or 'any'.");
+    expect(validateSpatialRule({ ...baseRule, predicateMode: 'maybe' as any })).toContain(
+      "SpatialRule rule_01.predicateMode must be 'all' or 'any'."
+    );
   });
 
   it('accepts valid predicateMode values', () => {
@@ -236,9 +232,9 @@ describe('SLF rules', () => {
   });
 
   it('rejects non-finite priority', () => {
-    expect(
-      validateSpatialRule({ ...baseRule, priority: NaN }),
-    ).toContain('SpatialRule rule_01.priority must be a finite number.');
+    expect(validateSpatialRule({ ...baseRule, priority: NaN })).toContain(
+      'SpatialRule rule_01.priority must be a finite number.'
+    );
   });
 });
 
@@ -275,12 +271,8 @@ describe('SLF clones', () => {
     const r: SpatialRule = {
       id: 'r1',
       name: 'Test',
-      predicates: [
-        { id: 'p1', kind: 'in_zone', targetId: 'z1' },
-      ],
-      actions: [
-        { id: 'a1', kind: 'broadcast_event', targetId: 'evt' },
-      ],
+      predicates: [{ id: 'p1', kind: 'in_zone', targetId: 'z1' }],
+      actions: [{ id: 'a1', kind: 'broadcast_event', targetId: 'evt' }],
       metadata: { key: 'val' },
     };
     const c = cloneSpatialRule(r);

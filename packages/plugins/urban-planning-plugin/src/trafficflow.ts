@@ -15,44 +15,41 @@
  *   Greenshields (1935) "A Study of Traffic Capacity." HRB Proceedings 14:448-477.
  */
 
-import {
-  DOMAIN_SIMULATION_RECEIPT_SCHEMA,
-  buildDomainSimulationReceipt,
-} from '@holoscript/core';
+import { DOMAIN_SIMULATION_RECEIPT_SCHEMA, buildDomainSimulationReceipt } from '@holoscript/core';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type LevelOfService = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
 export interface RoadSegment {
-  id:           string;
+  id: string;
   /** Free-flow speed (km/h) */
   freeFlowSpeedKph: number;
   /** Practical capacity (veh/h) */
-  capacityVeh:  number;
+  capacityVeh: number;
   /** Length (km) */
-  lengthKm:     number;
+  lengthKm: number;
   /** BPR alpha parameter (default 0.15) */
-  bprAlpha?:    number;
+  bprAlpha?: number;
   /** BPR beta parameter (default 4) */
-  bprBeta?:     number;
+  bprBeta?: number;
 }
 
 export interface SegmentResult {
-  segmentId:        string;
-  volume:           number;   // veh/h
-  travelTimeMin:    number;   // congested travel time
-  freeFlowTimeMin:  number;
-  vcRatio:          number;   // volume/capacity
-  los:              LevelOfService;
-  avgSpeedKph:      number;
+  segmentId: string;
+  volume: number; // veh/h
+  travelTimeMin: number; // congested travel time
+  freeFlowTimeMin: number;
+  vcRatio: number; // volume/capacity
+  los: LevelOfService;
+  avgSpeedKph: number;
 }
 
 /** Origin-Destination demand matrix entry */
 export interface ODPair {
-  originId:      string;
+  originId: string;
   destinationId: string;
-  demandVeh:     number; // veh/h
+  demandVeh: number; // veh/h
 }
 
 /** Network node */
@@ -62,54 +59,54 @@ export interface NetworkNode {
 
 /** Network link (directional) */
 export interface NetworkLink {
-  id:      string;
-  fromId:  string;
-  toId:    string;
+  id: string;
+  fromId: string;
+  toId: string;
   segment: RoadSegment;
 }
 
 export interface NetworkAssignmentResult {
-  linkFlows:      Record<string, number>; // linkId → flow (veh/h)
+  linkFlows: Record<string, number>; // linkId → flow (veh/h)
   segmentResults: SegmentResult[];
-  totalVMT:       number; // vehicle-miles traveled
-  totalVHT:       number; // vehicle-hours traveled
-  converged:      boolean;
-  iterations:     number;
+  totalVMT: number; // vehicle-miles traveled
+  totalVHT: number; // vehicle-hours traveled
+  converged: boolean;
+  iterations: number;
 }
 
 export interface GreenshieldsResult {
   /** Maximum flow (capacity) veh/h = u_f × k_j / 4 */
-  capacityVeh:    number;
+  capacityVeh: number;
   /** Speed at capacity km/h = u_f / 2 */
   speedAtCapacity: number;
   /** Density at capacity veh/km = k_j / 2 */
   densityAtCapacity: number;
   /** Flow at given density */
-  flowAtDensity:  (densityVehKm: number) => number;
+  flowAtDensity: (densityVehKm: number) => number;
   /** Speed at given density */
   speedAtDensity: (densityVehKm: number) => number;
 }
 
 export interface TrafficAnalysisResult {
-  segments:    SegmentResult[];
+  segments: SegmentResult[];
   networkAssignment?: NetworkAssignmentResult;
   greenshields?: GreenshieldsResult;
-  converged:   boolean;
+  converged: boolean;
 }
 
 export interface TrafficFlowReceipt {
-  plugin:        string;
-  runId:         string;
-  payloadHash:   string;
+  plugin: string;
+  runId: string;
+  payloadHash: string;
   hashAlgorithm: string;
-  cael:          { event: string; solverType: string; version: string };
-  acceptance:    { accepted: boolean; violations: Array<{ criterion: string; message: string }> };
+  cael: { event: string; solverType: string; version: string };
+  acceptance: { accepted: boolean; violations: Array<{ criterion: string; message: string }> };
   resultSummary: {
-    segmentCount:  number;
-    avgVCRatio:    number;
-    worstLOS:      LevelOfService;
-    totalVMT?:     number;
-    totalVHT?:     number;
+    segmentCount: number;
+    avgVCRatio: number;
+    worstLOS: LevelOfService;
+    totalVMT?: number;
+    totalVHT?: number;
   };
 }
 
@@ -123,14 +120,11 @@ export interface TrafficFlowReceipt {
  *
  * Default parameters: α = 0.15, β = 4 (calibrated to U.S. freeway data)
  */
-export function bprTravelTime(
-  segment: RoadSegment,
-  volumeVeh: number,
-): number {
-  const t0    = (segment.lengthKm / segment.freeFlowSpeedKph) * 60; // min
+export function bprTravelTime(segment: RoadSegment, volumeVeh: number): number {
+  const t0 = (segment.lengthKm / segment.freeFlowSpeedKph) * 60; // min
   const alpha = segment.bprAlpha ?? 0.15;
-  const beta  = segment.bprBeta  ?? 4;
-  const vc    = volumeVeh / segment.capacityVeh;
+  const beta = segment.bprBeta ?? 4;
+  const vc = volumeVeh / segment.capacityVeh;
   return t0 * (1 + alpha * Math.pow(vc, beta));
 }
 
@@ -155,7 +149,7 @@ export function levelOfService(vcRatio: number): LevelOfService {
   if (vcRatio <= 0.54) return 'B';
   if (vcRatio <= 0.77) return 'C';
   if (vcRatio <= 0.91) return 'D';
-  if (vcRatio <= 1.00) return 'E';
+  if (vcRatio <= 1.0) return 'E';
   return 'F';
 }
 
@@ -163,29 +157,29 @@ export function levelOfService(vcRatio: number): LevelOfService {
 
 /** Analyse an individual road segment under a given volume. */
 export function analyzeSegment(segment: RoadSegment, volumeVeh: number): SegmentResult {
-  if (volumeVeh < 0)          throw new Error('[traffic] volume must be ≥ 0');
+  if (volumeVeh < 0) throw new Error('[traffic] volume must be ≥ 0');
   if (segment.capacityVeh <= 0) throw new Error('[traffic] capacity must be > 0');
   if (segment.freeFlowSpeedKph <= 0) throw new Error('[traffic] freeFlowSpeedKph must be > 0');
 
   const freeFlowTimeMin = (segment.lengthKm / segment.freeFlowSpeedKph) * 60;
-  const travelTimeMin   = bprTravelTime(segment, volumeVeh);
-  const vcRatio         = volumeVeh / segment.capacityVeh;
-  const avgSpeedKph     = (segment.lengthKm / travelTimeMin) * 60;
+  const travelTimeMin = bprTravelTime(segment, volumeVeh);
+  const vcRatio = volumeVeh / segment.capacityVeh;
+  const avgSpeedKph = (segment.lengthKm / travelTimeMin) * 60;
 
   return {
-    segmentId:       segment.id,
-    volume:          volumeVeh,
+    segmentId: segment.id,
+    volume: volumeVeh,
     travelTimeMin,
     freeFlowTimeMin,
     vcRatio,
-    los:             levelOfService(vcRatio),
+    los: levelOfService(vcRatio),
     avgSpeedKph,
   };
 }
 
 /** Analyse multiple segments simultaneously. */
 export function analyzeSegments(
-  segments: Array<{ segment: RoadSegment; volume: number }>,
+  segments: Array<{ segment: RoadSegment; volume: number }>
 ): SegmentResult[] {
   return segments.map(({ segment, volume }) => analyzeSegment(segment, volume));
 }
@@ -202,21 +196,21 @@ export function analyzeSegments(
  */
 export function greenshieldsModel(
   freeFlowSpeedKph: number,
-  jamDensityVehKm:  number,
+  jamDensityVehKm: number
 ): GreenshieldsResult {
   if (freeFlowSpeedKph <= 0) throw new Error('[traffic] freeFlowSpeedKph must be > 0');
-  if (jamDensityVehKm  <= 0) throw new Error('[traffic] jamDensityVehKm must be > 0');
+  if (jamDensityVehKm <= 0) throw new Error('[traffic] jamDensityVehKm must be > 0');
 
   const uf = freeFlowSpeedKph;
   const kj = jamDensityVehKm;
 
   const speedAtDensity = (k: number): number => uf * (1 - k / kj);
-  const flowAtDensity  = (k: number): number => k * speedAtDensity(k);
+  const flowAtDensity = (k: number): number => k * speedAtDensity(k);
 
   return {
-    capacityVeh:        (uf * kj) / 4,   // q_max at k = k_j/2
-    speedAtCapacity:    uf / 2,
-    densityAtCapacity:  kj / 2,
+    capacityVeh: (uf * kj) / 4, // q_max at k = k_j/2
+    speedAtCapacity: uf / 2,
+    densityAtCapacity: kj / 2,
     flowAtDensity,
     speedAtDensity,
   };
@@ -237,18 +231,18 @@ export function greenshieldsModel(
  * @param tol       Convergence tolerance on relative gap (default 1e-4)
  */
 export function frankWolfeAssignment(
-  nodes:   NetworkNode[],
-  links:   NetworkLink[],
+  nodes: NetworkNode[],
+  links: NetworkLink[],
   odPairs: ODPair[],
   maxIter = 100,
-  tol     = 1e-4,
+  tol = 1e-4
 ): NetworkAssignmentResult {
-  if (links.length === 0)   throw new Error('[traffic] network must have at least one link');
+  if (links.length === 0) throw new Error('[traffic] network must have at least one link');
   if (odPairs.length === 0) throw new Error('[traffic] must have at least one OD pair');
 
   const nodeIds = nodes.map((n) => n.id);
   const nodeIdx = new Map(nodeIds.map((id, i) => [id, i]));
-  const nNodes  = nodes.length;
+  const nNodes = nodes.length;
 
   // Current link flows
   const flows: Record<string, number> = {};
@@ -267,11 +261,11 @@ export function frankWolfeAssignment(
    */
   const dijkstra = (
     originId: string,
-    times: Record<string, number>,
+    times: Record<string, number>
   ): Map<string, { node: string | null; linkId: string | null }> => {
     const dist = new Map<string, number>(nodeIds.map((id) => [id, Infinity]));
     const prev = new Map<string, { node: string | null; linkId: string | null }>(
-      nodeIds.map((id) => [id, { node: null, linkId: null }]),
+      nodeIds.map((id) => [id, { node: null, linkId: null }])
     );
     dist.set(originId, 0);
     const unvisited = new Set(nodeIds);
@@ -281,14 +275,17 @@ export function frankWolfeAssignment(
       let minD = Infinity;
       for (const id of unvisited) {
         const d = dist.get(id)!;
-        if (d < minD) { minD = d; u = id; }
+        if (d < minD) {
+          minD = d;
+          u = id;
+        }
       }
       if (u === null || minD === Infinity) break;
       unvisited.delete(u);
 
       for (const link of links) {
         if (link.fromId !== u) continue;
-        const v   = link.toId;
+        const v = link.toId;
         const alt = dist.get(u)! + times[link.id];
         if (alt < dist.get(v)!) {
           dist.set(v, alt);
@@ -324,7 +321,7 @@ export function frankWolfeAssignment(
   for (const link of links) flows[link.id] = aon0[link.id];
 
   let converged = false;
-  let iter      = 0;
+  let iter = 0;
 
   for (iter = 1; iter <= maxIter; iter++) {
     times = linkTimes();
@@ -335,12 +332,13 @@ export function frankWolfeAssignment(
     const objectiveAt = (lambda: number): number => {
       let total = 0;
       for (const link of links) {
-        const v  = (1 - lambda) * flows[link.id] + lambda * aon[link.id];
-        total   += bprTravelTime(link.segment, v) * v;
+        const v = (1 - lambda) * flows[link.id] + lambda * aon[link.id];
+        total += bprTravelTime(link.segment, v) * v;
       }
       return total;
     };
-    let a = 0, b = 1;
+    let a = 0,
+      b = 1;
     const gr = (Math.sqrt(5) + 1) / 2;
     let c = b - (b - a) / gr;
     let d = a + (b - a) / gr;
@@ -353,9 +351,10 @@ export function frankWolfeAssignment(
     const lambda = (a + b) / 2;
 
     // Check relative gap (convergence criterion)
-    let aonCost = 0, currentCost = 0;
+    let aonCost = 0,
+      currentCost = 0;
     for (const link of links) {
-      aonCost     += times[link.id] * aon[link.id];
+      aonCost += times[link.id] * aon[link.id];
       currentCost += times[link.id] * flows[link.id];
     }
     const relGap = currentCost > 0 ? Math.abs(currentCost - aonCost) / currentCost : 0;
@@ -365,20 +364,24 @@ export function frankWolfeAssignment(
       flows[link.id] = (1 - lambda) * flows[link.id] + lambda * aon[link.id];
     }
 
-    if (relGap < tol) { converged = true; break; }
+    if (relGap < tol) {
+      converged = true;
+      break;
+    }
   }
 
   // Build segment results
   const segmentResults: SegmentResult[] = links.map((link) =>
-    analyzeSegment(link.segment, flows[link.id]),
+    analyzeSegment(link.segment, flows[link.id])
   );
 
   // Compute VMT and VHT
-  let totalVMT = 0, totalVHT = 0;
+  let totalVMT = 0,
+    totalVHT = 0;
   for (const link of links) {
-    const res   = segmentResults.find((r) => r.segmentId === link.segment.id)!;
-    totalVMT   += flows[link.id] * link.segment.lengthKm;
-    totalVHT   += flows[link.id] * (res.travelTimeMin / 60);
+    const res = segmentResults.find((r) => r.segmentId === link.segment.id)!;
+    totalVMT += flows[link.id] * link.segment.lengthKm;
+    totalVHT += flows[link.id] * (res.travelTimeMin / 60);
   }
 
   return {
@@ -396,8 +399,8 @@ export function frankWolfeAssignment(
 const LOS_ORDER: LevelOfService[] = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 export function buildTrafficFlowReceipt(
-  result:  TrafficAnalysisResult,
-  options?: { runId?: string },
+  result: TrafficAnalysisResult,
+  options?: { runId?: string }
 ): TrafficFlowReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
@@ -405,38 +408,42 @@ export function buildTrafficFlowReceipt(
   if (losF.length > 0) {
     violations.push({
       criterion: 'los',
-      message:   `${losF.length} segment(s) at LOS F (v/c > 1.0): ${losF.map((s) => s.segmentId).join(', ')}`,
+      message: `${losF.length} segment(s) at LOS F (v/c > 1.0): ${losF.map((s) => s.segmentId).join(', ')}`,
     });
   }
   if (result.networkAssignment && !result.networkAssignment.converged) {
-    violations.push({ criterion: 'convergence', message: 'Frank-Wolfe UE assignment did not converge' });
+    violations.push({
+      criterion: 'convergence',
+      message: 'Frank-Wolfe UE assignment did not converge',
+    });
   }
 
-  const avgVCRatio = result.segments.reduce((s, r) => s + r.vcRatio, 0) / (result.segments.length || 1);
-  const worstLOS   = result.segments.reduce<LevelOfService>(
-    (worst, r) => LOS_ORDER.indexOf(r.los) > LOS_ORDER.indexOf(worst) ? r.los : worst,
-    'A',
+  const avgVCRatio =
+    result.segments.reduce((s, r) => s + r.vcRatio, 0) / (result.segments.length || 1);
+  const worstLOS = result.segments.reduce<LevelOfService>(
+    (worst, r) => (LOS_ORDER.indexOf(r.los) > LOS_ORDER.indexOf(worst) ? r.los : worst),
+    'A'
   );
 
   const raw = buildDomainSimulationReceipt({
-    plugin:        'urban-planning',
+    plugin: 'urban-planning',
     pluginVersion: '1.0.0',
-    runId:         options?.runId ?? `traffic-${Date.now().toString(36)}`,
+    runId: options?.runId ?? `traffic-${Date.now().toString(36)}`,
     solverConfig: {
-      solverType:    'bpr-frankwolfe',
-      scale:         'network',
-      segmentCount:  result.segments.length,
+      solverType: 'bpr-frankwolfe',
+      scale: 'network',
+      segmentCount: result.segments.length,
     },
     resultSummary: {
-      segmentCount:  result.segments.length,
-      avgVCRatio:    +avgVCRatio.toFixed(4),
+      segmentCount: result.segments.length,
+      avgVCRatio: +avgVCRatio.toFixed(4),
       worstLOS,
-      totalVMT:      result.networkAssignment?.totalVMT ?? null,
-      totalVHT:      result.networkAssignment?.totalVHT ?? null,
+      totalVMT: result.networkAssignment?.totalVMT ?? null,
+      totalVHT: result.networkAssignment?.totalVHT ?? null,
     },
     cael: {
-      version:    'cael.v1',
-      event:      'urban_planning.traffic_flow',
+      version: 'cael.v1',
+      event: 'urban_planning.traffic_flow',
       solverType: 'urban-planning.bpr-frankwolfe',
     },
     acceptance: { accepted: violations.length === 0, violations },

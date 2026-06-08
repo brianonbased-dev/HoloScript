@@ -85,9 +85,7 @@ function makeTimelineEntry(
   };
 }
 
-function makeRepairPath(
-  overrides: Partial<BrittneyFieldRepairPath> = {}
-): BrittneyFieldRepairPath {
+function makeRepairPath(overrides: Partial<BrittneyFieldRepairPath> = {}): BrittneyFieldRepairPath {
   return {
     repairKind: 'board_unclaim',
     description: 'Unclaim the task on the board, no local mutation to revert',
@@ -169,10 +167,21 @@ function makeReceiptPack(
 describe('Brittney field action type guards', () => {
   it('recognizes all valid action kinds', () => {
     for (const kind of [
-      'tool_call', 'claim_task', 'complete_task', 'send_message',
-      'knowledge_sync', 'file_read', 'file_write', 'file_delete',
-      'network_request', 'compile_target', 'absorb_codebase',
-      'board_operation', 'session_handoff', 'environment_change', 'agent-other',
+      'tool_call',
+      'claim_task',
+      'complete_task',
+      'send_message',
+      'knowledge_sync',
+      'file_read',
+      'file_write',
+      'file_delete',
+      'network_request',
+      'compile_target',
+      'absorb_codebase',
+      'board_operation',
+      'session_handoff',
+      'environment_change',
+      'agent-other',
     ]) {
       expect(isSupportedBrittneyFieldActionKind(kind)).toBe(true);
     }
@@ -183,25 +192,56 @@ describe('Brittney field action type guards', () => {
   });
 
   it('recognizes all valid permission envelopes', () => {
-    for (const env of ['read_only', 'session_scoped', 'guarded_execute', 'break_glass', 'break_glass_blocked']) {
+    for (const env of [
+      'read_only',
+      'session_scoped',
+      'guarded_execute',
+      'break_glass',
+      'break_glass_blocked',
+    ]) {
       expect(isSupportedBrittneyFieldPermissionEnvelope(env)).toBe(true);
     }
   });
 
   it('recognizes all valid outcomes', () => {
-    for (const outcome of ['success', 'partial', 'blocked_by_policy', 'blocked_by_consent', 'failed', 'rolled_back']) {
+    for (const outcome of [
+      'success',
+      'partial',
+      'blocked_by_policy',
+      'blocked_by_consent',
+      'failed',
+      'rolled_back',
+    ]) {
       expect(isSupportedBrittneyFieldOutcome(outcome)).toBe(true);
     }
   });
 
   it('recognizes all valid repair kinds', () => {
-    for (const kind of ['undo_command', 'git_revert', 'board_unclaim', 'board_reopen', 'manual_repair', 'not_repairable', 'auto_rolled_back']) {
+    for (const kind of [
+      'undo_command',
+      'git_revert',
+      'board_unclaim',
+      'board_reopen',
+      'manual_repair',
+      'not_repairable',
+      'auto_rolled_back',
+    ]) {
       expect(isSupportedBrittneyFieldRepairKind(kind)).toBe(true);
     }
   });
 
   it('recognizes all valid source kinds', () => {
-    for (const kind of ['auto_claim', 'auto_continue', 'auto_heal', 'auto_audit', 'hook_triggered', 'schedule_triggered', 'peer_delegation', 'founder_directive', 'cascade_from_parent']) {
+    for (const kind of [
+      'auto_claim',
+      'auto_continue',
+      'auto_heal',
+      'auto_audit',
+      'hook_triggered',
+      'schedule_triggered',
+      'peer_delegation',
+      'founder_directive',
+      'cascade_from_parent',
+    ]) {
       expect(isSupportedBrittneyFieldSourceKind(kind)).toBe(true);
     }
   });
@@ -290,9 +330,7 @@ describe('validateBrittneyFieldTimelineEntry', () => {
   });
 
   it('requires summary', () => {
-    const errors = validateBrittneyFieldTimelineEntry(
-      makeTimelineEntry({ summary: '' })
-    );
+    const errors = validateBrittneyFieldTimelineEntry(makeTimelineEntry({ summary: '' }));
     expect(errors.some((e) => e.includes('summary is required'))).toBe(true);
   });
 });
@@ -309,14 +347,18 @@ describe('validateBrittneyFieldRepairPath', () => {
     const errors = validateBrittneyFieldRepairPath(
       makeRepairPath({ repairKind: 'not_repairable', reversible: true })
     );
-    expect(errors.some((e) => e.includes('reversible must be false when repairKind is not_repairable'))).toBe(true);
+    expect(
+      errors.some((e) => e.includes('reversible must be false when repairKind is not_repairable'))
+    ).toBe(true);
   });
 
   it('requires undoReceiptId when autoRolledBack=true', () => {
     const errors = validateBrittneyFieldRepairPath(
       makeRepairPath({ autoRolledBack: true, undoReceiptId: undefined })
     );
-    expect(errors.some((e) => e.includes('undoReceiptId is required when autoRolledBack'))).toBe(true);
+    expect(errors.some((e) => e.includes('undoReceiptId is required when autoRolledBack'))).toBe(
+      true
+    );
   });
 
   it('accepts autoRolledBack with undoReceiptId', () => {
@@ -339,7 +381,9 @@ describe('validateBrittneyFieldActionReceipt', () => {
     const errors = validateBrittneyFieldActionReceipt(
       makeActionReceipt({ actionKind: 'agent-other', actionLabel: undefined })
     );
-    expect(errors.some((e) => e.includes('actionLabel is required when actionKind is agent-other'))).toBe(true);
+    expect(
+      errors.some((e) => e.includes('actionLabel is required when actionKind is agent-other'))
+    ).toBe(true);
   });
 
   it('accepts agent-other with actionLabel', () => {
@@ -372,7 +416,9 @@ describe('validateBrittneyFieldActionReceipt', () => {
         permissionEnvelope: makePermissionEnvelope({ envelopeKind: 'read_only' }),
       })
     );
-    expect(errors.some((e) => e.includes('read_only envelope cannot execute mutations'))).toBe(true);
+    expect(errors.some((e) => e.includes('read_only envelope cannot execute mutations'))).toBe(
+      true
+    );
   });
 
   it('accepts a read-only action with no mutation', () => {
@@ -392,7 +438,9 @@ describe('validateBrittneyFieldActionReceipt', () => {
       })
     );
     // Should not have the mutation-envelope conflict error
-    expect(errors.every((e) => !e.includes('read_only envelope cannot execute mutations'))).toBe(true);
+    expect(errors.every((e) => !e.includes('read_only envelope cannot execute mutations'))).toBe(
+      true
+    );
   });
 
   it('validates all check kinds', () => {
@@ -406,9 +454,7 @@ describe('validateBrittneyFieldActionReceipt', () => {
       { kind: 'no_hidden_automation', status: 'pass' },
       { kind: 'consent_gate_respected', status: 'pass' },
     ];
-    const errors = validateBrittneyFieldActionReceipt(
-      makeActionReceipt({ checks: allChecks })
-    );
+    const errors = validateBrittneyFieldActionReceipt(makeActionReceipt({ checks: allChecks }));
     expect(errors.every((e) => !e.includes('checks kind is unsupported'))).toBe(true);
   });
 
@@ -487,7 +533,11 @@ describe('validateHoloShellBrittneyActionReceiptPack', () => {
         action: makeActionReceipt({ id: '', target: '' }),
       })
     );
-    expect(errors.some((e) => e.includes('actionKind') || e.includes('action.id') || e.includes('target'))).toBe(true);
+    expect(
+      errors.some(
+        (e) => e.includes('actionKind') || e.includes('action.id') || e.includes('target')
+      )
+    ).toBe(true);
   });
 });
 
@@ -581,9 +631,7 @@ describe('clone functions', () => {
     });
     const cloned = cloneBrittneyFieldActionReceipt(original);
     expect(cloned.provenance).not.toBe(original.provenance);
-    expect(cloned.provenance!.parentArtifactIds).not.toBe(
-      original.provenance!.parentArtifactIds
-    );
+    expect(cloned.provenance!.parentArtifactIds).not.toBe(original.provenance!.parentArtifactIds);
   });
 });
 
@@ -596,10 +644,15 @@ describe('safety invariants', () => {
     const errors = validateBrittneyFieldActionReceipt(
       makeActionReceipt({
         mutationExecuted: true,
-        permissionEnvelope: makePermissionEnvelope({ envelopeKind: 'read_only', mutationAllowed: false }),
+        permissionEnvelope: makePermissionEnvelope({
+          envelopeKind: 'read_only',
+          mutationAllowed: false,
+        }),
       })
     );
-    expect(errors.some((e) => e.includes('read_only envelope cannot execute mutations'))).toBe(true);
+    expect(errors.some((e) => e.includes('read_only envelope cannot execute mutations'))).toBe(
+      true
+    );
   });
 
   it('accepts a full audit trail receipt pack with all safety checks passing', () => {

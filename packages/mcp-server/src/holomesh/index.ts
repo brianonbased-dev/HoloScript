@@ -22,10 +22,7 @@ export {
   handleAgentCapabilityTool,
   extractAgentCapabilities,
 } from './agent-capability-tools';
-export {
-  formTeam,
-  DEFAULT_FORMATION_CONFIG,
-} from './team-formation';
+export { formTeam, DEFAULT_FORMATION_CONFIG } from './team-formation';
 export type {
   RosterAgent,
   TeamRequirement,

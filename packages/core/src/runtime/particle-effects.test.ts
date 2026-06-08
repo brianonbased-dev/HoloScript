@@ -268,8 +268,7 @@ describe('createParticleEffect — TECHNIQUE (c) statistical characterization', 
     const particles = systems.get('s')!.particles;
 
     const mean = particles.reduce((acc, p) => acc + p[0], 0) / particles.length;
-    const variance =
-      particles.reduce((acc, p) => acc + (p[0] - mean) ** 2, 0) / particles.length;
+    const variance = particles.reduce((acc, p) => acc + (p[0] - mean) ** 2, 0) / particles.length;
 
     // Theoretical variance is 1/3 ≈ 0.333. With n=1000, sample variance
     // should be within ±0.05 of theoretical with high probability.
@@ -283,8 +282,7 @@ describe('createParticleEffect — TECHNIQUE (c) statistical characterization', 
       createParticleEffect(systems, 's', [0, 0, 0], '#fff', 2000, 10000);
       const ps = systems.get('s')!.particles;
       const mean = ps.reduce((acc, p) => acc + p[0], 0) / ps.length;
-      const variance =
-        ps.reduce((acc, p) => acc + (p[0] - mean) ** 2, 0) / ps.length;
+      const variance = ps.reduce((acc, p) => acc + (p[0] - mean) ** 2, 0) / ps.length;
       return { mean, variance };
     }
 

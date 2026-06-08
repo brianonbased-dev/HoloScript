@@ -171,11 +171,7 @@ export function aabbExtents(aabb: AABB): [number, number, number] {
  * Compute the full size of an AABB.
  */
 export function aabbSize(aabb: AABB): [number, number, number] {
-  return [
-    aabb.max[0] - aabb.min[0],
-    aabb.max[1] - aabb.min[1],
-    aabb.max[2] - aabb.min[2],
-  ];
+  return [aabb.max[0] - aabb.min[0], aabb.max[1] - aabb.min[1], aabb.max[2] - aabb.min[2]];
 }
 
 /**

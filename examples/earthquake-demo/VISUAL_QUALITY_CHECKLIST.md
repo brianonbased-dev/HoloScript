@@ -7,6 +7,7 @@
 ## ✅ Pre-Flight Checklist
 
 ### Environment Setup
+
 - [ ] WebGPU browser (Chrome/Edge 113+, Safari TP)
 - [ ] GPU acceleration enabled
 - [ ] 1920×1080 or higher resolution
@@ -18,6 +19,7 @@
 ## 🎮 Interactive Controls Testing
 
 ### UI Controls
+
 - [ ] **Trigger Button**
   - Click triggers earthquake
   - Button state changes appropriately
@@ -60,6 +62,7 @@
   - All metrics display correctly
 
 ### Keyboard Shortcuts
+
 - [ ] **Space** - Trigger earthquake
 - [ ] **R** - Reset simulation
 - [ ] **S** - Toggle slow motion
@@ -69,6 +72,7 @@
 - [ ] **4** - Cinematic camera
 
 ### Stats Display
+
 - [ ] FPS counter updates
 - [ ] Structural integrity percentage (0-100%)
 - [ ] Active debris count
@@ -81,6 +85,7 @@
 ## 📹 Camera System Testing
 
 ### Camera Presets
+
 - [ ] **Overview (Default)**
   - Position: [30, 20, 30]
   - Clear isometric view of building
@@ -112,6 +117,7 @@
   - No jarring transitions
 
 ### Camera Transitions
+
 - [ ] Smooth interpolation between presets
 - [ ] Ease-in-out motion (not linear)
 - [ ] FOV interpolates correctly
@@ -119,6 +125,7 @@
 - [ ] 1.5s default transition feels natural
 
 ### Camera Shake
+
 - [ ] **Shake Activation**
   - Starts immediately with earthquake
   - Intensity matches slider setting
@@ -148,6 +155,7 @@
 ## 🏗️ Building Appearance
 
 ### Structural Elements
+
 - [ ] **Foundation**
   - Visible at ground level
   - Appropriate size (full footprint)
@@ -173,6 +181,7 @@
   - Appropriate thickness (0.2m)
 
 ### Building Composition
+
 - [ ] **5-Floor Building** (Default)
   - Total height: ~15m
   - Proportions look realistic
@@ -192,6 +201,7 @@
   - Floor slabs different from beams
 
 ### Visual Defects to Check
+
 - [ ] No Z-fighting (flickering)
 - [ ] No gaps between elements
 - [ ] No overlapping geometry
@@ -204,6 +214,7 @@
 ## 🌊 Earthquake Visual Effects
 
 ### Ground Motion
+
 - [ ] **Initial Shake**
   - Starts immediately
   - Builds to full intensity quickly
@@ -223,6 +234,7 @@
   - Smooth transition
 
 ### Building Response
+
 - [ ] **Initial Stress**
   - Building begins to sway
   - No immediate failure (unless intensity 10)
@@ -252,6 +264,7 @@
 ## 💥 Debris Particle Effects
 
 ### Debris Spawning
+
 - [ ] **Spawn Location**
   - Originates from failed element
   - Spreads from failure point
@@ -271,6 +284,7 @@
   - Frame rate maintained
 
 ### Debris Motion
+
 - [ ] **Gravity**
   - Falls downward (9.8 m/s²)
   - Accelerates realistically
@@ -296,6 +310,7 @@
   - Natural chaotic motion
 
 ### Debris Collision
+
 - [ ] **Ground Collision**
   - Bounces on impact
   - Energy loss visible (0.3 restitution)
@@ -309,6 +324,7 @@
   - Ground contact maintained
 
 ### Debris Variety
+
 - [ ] **Size Variation**
   - Different particle sizes
   - Crush mode = smaller
@@ -322,6 +338,7 @@
   - Density affects motion (concrete: 2400, steel: 7850 kg/m³)
 
 ### Debris Performance
+
 - [ ] **Active Particle Count**
   - Decreases as debris settles
   - Stats show active vs total
@@ -339,6 +356,7 @@
 ## 🎨 Visual Quality Standards
 
 ### Frame Rate
+
 - [ ] **60 FPS Target**
   - Maintains 60 FPS during earthquake
   - No drops below 30 FPS
@@ -352,6 +370,7 @@
   - Smooth camera motion
 
 ### Visual Smoothness
+
 - [ ] **Camera Motion**
   - Buttery smooth transitions
   - No jitter or shake artifacts
@@ -371,6 +390,7 @@
   - Debris spawning seamless
 
 ### Visual Fidelity
+
 - [ ] **Lighting**
   - Consistent illumination
   - Shadows (if implemented)
@@ -394,6 +414,7 @@
 ## 🎯 User Experience
 
 ### First Impression
+
 - [ ] **Loading**
   - Loads within 2 seconds
   - No blank screen
@@ -407,6 +428,7 @@
   - Inviting to interact
 
 ### Interaction Flow
+
 - [ ] **Discoverability**
   - Trigger button obvious
   - Sliders clearly labeled
@@ -426,6 +448,7 @@
   - Clear cause-and-effect
 
 ### Educational Value
+
 - [ ] **Structural Behavior**
   - Stress distribution visible in stats
   - Lower floors fail first (realistic)
@@ -443,6 +466,7 @@
 ## 🧪 Edge Cases & Stress Tests
 
 ### Extreme Settings
+
 - [ ] **Intensity 1** (Minimal)
   - Building stays intact
   - Minor shaking visible
@@ -468,6 +492,7 @@
   - Still smooth
 
 ### Rapid Actions
+
 - [ ] Multiple quick triggers
 - [ ] Spam reset button
 - [ ] Rapid camera changes
@@ -475,6 +500,7 @@
 - [ ] Slider thrashing
 
 ### Browser Compatibility
+
 - [ ] **Chrome** (Recommended)
 - [ ] **Edge** (Chromium)
 - [ ] **Safari Technology Preview**
@@ -485,6 +511,7 @@
 ## 📸 Recording & Documentation
 
 ### Screenshots to Capture
+
 - [ ] Intact building (overview camera)
 - [ ] Earthquake in progress (cinematic)
 - [ ] Mid-collapse (street level)
@@ -494,6 +521,7 @@
 - [ ] Stats during collapse
 
 ### Video Recording Checklist
+
 - [ ] 60 FPS recording
 - [ ] Full HD (1920×1080) minimum
 - [ ] Show full UI
@@ -508,12 +536,14 @@
 ## 🐛 Known Issues to Document
 
 ### Expected Behaviors (Not Bugs)
+
 - [ ] Aspect ratio NaN with zero-size canvas (edge case)
 - [ ] No failures with very low intensity (realistic)
 - [ ] Debris capped at 500 per element (performance)
 - [ ] CPU-only physics (GPU integration separate)
 
 ### Potential Issues to Watch For
+
 - [ ] Z-fighting on overlapping geometry
 - [ ] WebGPU availability errors
 - [ ] Performance on integrated GPUs
@@ -525,6 +555,7 @@
 ## ✅ Final Approval Checklist
 
 ### Visual Quality
+
 - [ ] Building looks realistic
 - [ ] Collapse is spectacular
 - [ ] Debris motion convincing
@@ -533,6 +564,7 @@
 - [ ] No visual artifacts
 
 ### User Experience
+
 - [ ] Controls intuitive
 - [ ] Responsiveness excellent
 - [ ] Feedback clear
@@ -541,6 +573,7 @@
 - [ ] Worth sharing/demoing
 
 ### Technical Quality
+
 - [ ] No console errors
 - [ ] No memory leaks
 - [ ] Performance excellent
@@ -552,16 +585,17 @@
 
 ## 🎉 Sign-Off
 
-**Tested By**: _________________
-**Date**: _________________
-**Browser**: _________________
-**GPU**: _________________
+**Tested By**: ********\_********
+**Date**: ********\_********
+**Browser**: ********\_********
+**GPU**: ********\_********
 
 **Overall Rating**: ⭐⭐⭐⭐⭐
 
 **Production Ready**: [ ] YES [ ] NO
 
 **Notes**:
+
 ```
 _____________________________________________
 _____________________________________________

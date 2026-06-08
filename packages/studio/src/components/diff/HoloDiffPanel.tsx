@@ -13,15 +13,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import {
-  GitCompare,
-  X,
-  Copy,
-  Eye,
-  Code,
-  ArrowLeftRight,
-  FileText,
-} from 'lucide-react';
+import { GitCompare, X, Copy, Eye, Code, ArrowLeftRight, FileText } from 'lucide-react';
 import type { ViewMode } from './types';
 import { SAMPLE_A, SAMPLE_B } from './samples';
 import { parseHolo } from './parser';

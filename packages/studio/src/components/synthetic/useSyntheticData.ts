@@ -1,19 +1,14 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { 
-  SyntheticDataConfig, 
-  CameraConfig, 
-  LightingConfig, 
-  AugmentationConfig, 
-  BatchConfig, 
+import type {
+  SyntheticDataConfig,
+  CameraConfig,
+  LightingConfig,
+  AugmentationConfig,
+  BatchConfig,
   GenerationProgress,
-  AugmentationType
+  AugmentationType,
 } from './types';
-import { 
-  DEFAULT_CAMERA, 
-  DEFAULT_LIGHTING, 
-  DEFAULT_AUGMENTATION, 
-  DEFAULT_BATCH 
-} from './constants';
+import { DEFAULT_CAMERA, DEFAULT_LIGHTING, DEFAULT_AUGMENTATION, DEFAULT_BATCH } from './constants';
 
 export function useSyntheticData(
   onGenerate?: (config: SyntheticDataConfig) => void,
@@ -23,7 +18,7 @@ export function useSyntheticData(
   const [lighting, setLighting] = useState<LightingConfig>(DEFAULT_LIGHTING);
   const [augmentation, setAugmentation] = useState<AugmentationConfig>(DEFAULT_AUGMENTATION);
   const [batch, setBatch] = useState<BatchConfig>(DEFAULT_BATCH);
-  
+
   const [progress, setProgress] = useState<GenerationProgress>({
     status: 'idle',
     current: 0,
@@ -33,7 +28,9 @@ export function useSyntheticData(
     errors: [],
   });
 
-  const [activeTab, setActiveTab] = useState<'camera' | 'lighting' | 'augmentation' | 'batch'>('camera');
+  const [activeTab, setActiveTab] = useState<'camera' | 'lighting' | 'augmentation' | 'batch'>(
+    'camera'
+  );
 
   // Config assembly
   const config = useMemo<SyntheticDataConfig>(
@@ -123,16 +120,21 @@ export function useSyntheticData(
   }, []);
 
   return {
-    camera, setCamera,
-    lighting, setLighting,
-    augmentation, setAugmentation,
-    batch, setBatch,
+    camera,
+    setCamera,
+    lighting,
+    setLighting,
+    augmentation,
+    setAugmentation,
+    batch,
+    setBatch,
     progress,
-    activeTab, setActiveTab,
+    activeTab,
+    setActiveTab,
     splitSummary,
     estimatedSize,
     handleGenerate,
     handleExport,
-    toggleAugType
+    toggleAugType,
   };
 }

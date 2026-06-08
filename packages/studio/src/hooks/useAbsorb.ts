@@ -161,7 +161,9 @@ export function useAbsorb({
         });
 
         if (!res.ok) {
-          const body = await res.json().catch((e) => ({ error: res.statusText, _orig: handleError('useAbsorb:res.json', e) }));
+          const body = await res
+            .json()
+            .catch((e) => ({ error: res.statusText, _orig: handleError('useAbsorb:res.json', e) }));
           throw new Error(body.error ?? `HTTP ${res.status}`);
         }
 

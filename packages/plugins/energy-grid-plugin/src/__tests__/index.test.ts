@@ -28,9 +28,30 @@ function sampleGrid(): EnergyGridModel {
       { id: 'C', kind: 'load', nominalKv: 13.8, demandMw: 40 },
     ],
     lines: [
-      { id: 'AB', fromBusId: 'A', toBusId: 'B', reactancePu: 0.1, capacityMw: 100, resistancePu: 0.01 },
-      { id: 'AC', fromBusId: 'A', toBusId: 'C', reactancePu: 0.2, capacityMw: 100, resistancePu: 0.01 },
-      { id: 'BC', fromBusId: 'B', toBusId: 'C', reactancePu: 0.25, capacityMw: 40, resistancePu: 0.01 },
+      {
+        id: 'AB',
+        fromBusId: 'A',
+        toBusId: 'B',
+        reactancePu: 0.1,
+        capacityMw: 100,
+        resistancePu: 0.01,
+      },
+      {
+        id: 'AC',
+        fromBusId: 'A',
+        toBusId: 'C',
+        reactancePu: 0.2,
+        capacityMw: 100,
+        resistancePu: 0.01,
+      },
+      {
+        id: 'BC',
+        fromBusId: 'B',
+        toBusId: 'C',
+        reactancePu: 0.25,
+        capacityMw: 40,
+        resistancePu: 0.01,
+      },
     ],
     batteries: [
       {
@@ -149,8 +170,8 @@ describe('@holoscript/energy-grid-plugin', () => {
     const fixturePath = fileURLToPath(
       new URL(
         '../../../../../research/paper-26-artifacts/energy-grid-domain-plugin-receipt-2026-05-21.json',
-        import.meta.url,
-      ),
+        import.meta.url
+      )
     );
     const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
 

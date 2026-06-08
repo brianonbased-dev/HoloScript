@@ -61,30 +61,30 @@ describe('Feature 1A: SceneNode â€” constructor and transforms', () => {
     const n = new SceneNode('n');
     n.setPosition(1, 2, 3);
     const t = n.getLocalTransform();
-     expect(t.position).toEqual({ x: 1, y: 2, z: 3 });
+    expect(t.position).toEqual({ x: 1, y: 2, z: 3 });
   });
 
   it('setRotation updates local transform', () => {
     const n = new SceneNode('n');
     n.setRotation(10, 20, 30);
     const t = n.getLocalTransform();
-     expect(t.rotation).toEqual({ x: 10, y: 20, z: 30 });
+    expect(t.rotation).toEqual({ x: 10, y: 20, z: 30 });
   });
 
   it('setScale updates local transform', () => {
     const n = new SceneNode('n');
     n.setScale(2, 2, 2);
     const t = n.getLocalTransform();
-     expect(t.scale).toEqual({ x: 2, y: 2, z: 2 });
+    expect(t.scale).toEqual({ x: 2, y: 2, z: 2 });
   });
 
   it('getWorldPosition reflects setPosition for root node', () => {
     const n = new SceneNode('n');
     n.setPosition(5, 10, 15);
     const wp = n.getWorldPosition();
-     expect(wp.x).toBeCloseTo(5, 3);
-     expect(wp.y).toBeCloseTo(10, 3);
-     expect(wp.z).toBeCloseTo(15, 3);
+    expect(wp.x).toBeCloseTo(5, 3);
+    expect(wp.y).toBeCloseTo(10, 3);
+    expect(wp.z).toBeCloseTo(15, 3);
   });
 
   it('getWorldMatrix returns 16-element Float64Array', () => {

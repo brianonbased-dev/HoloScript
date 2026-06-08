@@ -9,11 +9,11 @@
 HoloMap weights are **content-addressed binary blobs** (raw tensors or a container format such as Safetensors).  
 The runtime identifies a weight blob by its **`weightCid`**: a SHA-256 digest in lowercase hex64, optionally prefixed with `sha256:`.
 
-| Field | Example | Purpose |
-|-------|---------|---------|
-| `weightCid` | `sha256:abc123…` (64 hex chars) | Replay-fingerprint key + integrity check |
-| `weightUrl` | `https://cdn.example.com/weights/abc123.bin` | Primary fetch URL |
-| `weightUrls` | `["https://fallback…", "https://mirror…"]` | Retry fallback chain |
+| Field        | Example                                      | Purpose                                  |
+| ------------ | -------------------------------------------- | ---------------------------------------- |
+| `weightCid`  | `sha256:abc123…` (64 hex chars)              | Replay-fingerprint key + integrity check |
+| `weightUrl`  | `https://cdn.example.com/weights/abc123.bin` | Primary fetch URL                        |
+| `weightUrls` | `["https://fallback…", "https://mirror…"]`   | Retry fallback chain                     |
 
 **Never embed weights inside `.holo` compositions.** The CID keeps compositions small and preserves provenance.
 
@@ -24,11 +24,13 @@ The runtime identifies a weight blob by its **`weightCid`**: a SHA-256 digest in
 Studio, MCP, and desktop runtimes fetch weights once, verify the CID, and cache locally.
 
 **CDN requirements:**
+
 - HTTPS with CORS headers (`Access-Control-Allow-Origin: *` or same-origin)
 - `Content-Type: application/octet-stream` recommended
 - Supports range requests (optional, for resume)
 
 **Upload checklist:**
+
 1. Compute SHA-256 of the blob: `sha256sum holomap-v1.bin`
 2. Upload to CDN path that includes the digest: `/weights/{digest}.bin`
 3. Register the URL in the model manifest (see §4)
@@ -46,6 +48,7 @@ await loadHoloMapWeightBlob({
 ```
 
 **Storage locations:**
+
 - Browser tests: `packages/core/src/reconstruction/__fixtures__/weights/`
 - Node / headless: any path readable by the process
 - Docker images: bake weights into the image at a known path
@@ -68,6 +71,7 @@ await loadHoloMapWeightBlob({
 ```
 
 **Platform resolver contract:**
+
 - Receives the normalized `weightCid` (lowercase hex64, no prefix)
 - Returns `ArrayBuffer` if the handle resolves, or `undefined` to fall through
 - The loader verifies the CID after resolution and writes to the local cache
@@ -85,6 +89,7 @@ loadHoloMapWeightBlob()
 ```
 
 **Cache directories:**
+
 - Browser: IndexedDB store `HoloMapWeightCache` / object store `weights`
 - Node: `$HOLOMAP_WEIGHT_CACHE_DIR` or `~/.cache/holoscript/holomap-weights/`
 - Files named `{cid}.bin`
@@ -100,9 +105,7 @@ When releasing a new weight checkpoint, register it in the model manifest so con
   "modelHash": "holomap-v1.0-generalist",
   "weightCid": "sha256:deadbeef…",
   "weightUrl": "https://cdn.holoscript.net/weights/deadbeef…/holomap-v1.bin",
-  "weightUrls": [
-    "https://mirror1.holoscript.net/weights/deadbeef…/holomap-v1.bin"
-  ],
+  "weightUrls": ["https://mirror1.holoscript.net/weights/deadbeef…/holomap-v1.bin"],
   "verticalProfile": "generalist",
   "sizeBytes": 2147483648,
   "releasedAt": "2026-04-29T00:00:00Z"
@@ -110,6 +113,7 @@ When releasing a new weight checkpoint, register it in the model manifest so con
 ```
 
 **Validation command:**
+
 ```bash
 node scripts/verify-weight-manifest.mjs --manifest path/to/manifest.json
 ```
@@ -122,12 +126,12 @@ node scripts/verify-weight-manifest.mjs --manifest path/to/manifest.json
 
 ## 6. Troubleshooting
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `digest mismatch` | Corrupted download or wrong CID in manifest | Re-compute SHA-256, update manifest |
-| `all sources exhausted` | CDN down + no cache + no local resolver | Check network, verify `weightUrls` |
-| IndexedDB quota error | Browser storage full | Clear old weights or increase quota |
-| `fetch is not available` | Node without fetch polyfill | Provide `fetchImpl` or use `file://` |
+| Symptom                  | Cause                                       | Fix                                  |
+| ------------------------ | ------------------------------------------- | ------------------------------------ |
+| `digest mismatch`        | Corrupted download or wrong CID in manifest | Re-compute SHA-256, update manifest  |
+| `all sources exhausted`  | CDN down + no cache + no local resolver     | Check network, verify `weightUrls`   |
+| IndexedDB quota error    | Browser storage full                        | Clear old weights or increase quota  |
+| `fetch is not available` | Node without fetch polyfill                 | Provide `fetchImpl` or use `file://` |
 
 ## 7. Related Docs
 

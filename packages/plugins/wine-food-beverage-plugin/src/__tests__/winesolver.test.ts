@@ -81,8 +81,16 @@ describe('foodWinePairing', () => {
    * rich beef steak (high fat/richness, low sweetness, low spice)
    */
   const cabernetBeef = {
-    wineBody: 8, wineTannin: 8, wineAcidity: 6, wineSweetness: 1, wineAlcohol: 8,
-    foodRichness: 9, foodAcidity: 3, foodSweetness: 1, foodSpice: 2, foodSaltiness: 5,
+    wineBody: 8,
+    wineTannin: 8,
+    wineAcidity: 6,
+    wineSweetness: 1,
+    wineAlcohol: 8,
+    foodRichness: 9,
+    foodAcidity: 3,
+    foodSweetness: 1,
+    foodSpice: 2,
+    foodSaltiness: 5,
   };
 
   it('Cabernet+steak is good or excellent pairing', () => {
@@ -93,8 +101,16 @@ describe('foodWinePairing', () => {
 
   it('identical wine/food profile → high affinity', () => {
     const perfect = {
-      wineBody: 5, wineTannin: 5, wineAcidity: 5, wineSweetness: 5, wineAlcohol: 5,
-      foodRichness: 5, foodAcidity: 5, foodSweetness: 5, foodSpice: 0, foodSaltiness: 5,
+      wineBody: 5,
+      wineTannin: 5,
+      wineAcidity: 5,
+      wineSweetness: 5,
+      wineAlcohol: 5,
+      foodRichness: 5,
+      foodAcidity: 5,
+      foodSweetness: 5,
+      foodSpice: 0,
+      foodSaltiness: 5,
     };
     const r = foodWinePairing(perfect);
     expect(r.affinityScore).toBeGreaterThan(60);
@@ -126,9 +142,9 @@ describe('foodWinePairing', () => {
   });
 
   it('high-spice + high-tannin → lower affinity than low-spice', () => {
-    const lowSpice  = { ...cabernetBeef, foodSpice: 1 };
+    const lowSpice = { ...cabernetBeef, foodSpice: 1 };
     const highSpice = { ...cabernetBeef, foodSpice: 9 };
-    const rLow  = foodWinePairing(lowSpice);
+    const rLow = foodWinePairing(lowSpice);
     const rHigh = foodWinePairing(highSpice);
     expect(rHigh.affinityScore).toBeLessThan(rLow.affinityScore);
   });
@@ -138,26 +154,50 @@ describe('foodWinePairing', () => {
 
 describe('cellarAgingOptimizer', () => {
   const vintages = [
-    { id: 'cab-2020', variety: 'Cabernet Sauvignon', vintage: 2020, peakStart: 2025, peakEnd: 2035, bottles: 12, purchasePricePerBottle: 50 },
-    { id: 'chard-2021', variety: 'Chardonnay',       vintage: 2021, peakStart: 2022, peakEnd: 2026, bottles: 6,  purchasePricePerBottle: 30 },
-    { id: 'old-cab',    variety: 'Cabernet',          vintage: 2005, peakStart: 2012, peakEnd: 2020, bottles: 4,  purchasePricePerBottle: 120 },
+    {
+      id: 'cab-2020',
+      variety: 'Cabernet Sauvignon',
+      vintage: 2020,
+      peakStart: 2025,
+      peakEnd: 2035,
+      bottles: 12,
+      purchasePricePerBottle: 50,
+    },
+    {
+      id: 'chard-2021',
+      variety: 'Chardonnay',
+      vintage: 2021,
+      peakStart: 2022,
+      peakEnd: 2026,
+      bottles: 6,
+      purchasePricePerBottle: 30,
+    },
+    {
+      id: 'old-cab',
+      variety: 'Cabernet',
+      vintage: 2005,
+      peakStart: 2012,
+      peakEnd: 2020,
+      bottles: 4,
+      purchasePricePerBottle: 120,
+    },
   ];
 
   it('wine before peakStart → too-young', () => {
     const r = cellarAgingOptimizer(vintages, 2024); // cab-2020 peaks 2025
-    const cab = r.vintages.find(v => v.id === 'cab-2020');
+    const cab = r.vintages.find((v) => v.id === 'cab-2020');
     expect(cab!.status).toBe('too-young');
   });
 
   it('wine within peak window → peak', () => {
     const r = cellarAgingOptimizer(vintages, 2024); // chard peaks 2022-2026
-    const chard = r.vintages.find(v => v.id === 'chard-2021');
+    const chard = r.vintages.find((v) => v.id === 'chard-2021');
     expect(chard!.status).toBe('peak');
   });
 
   it('wine past peakEnd → past-peak or declining', () => {
     const r = cellarAgingOptimizer(vintages, 2024); // old-cab peaked 2020
-    const oldCab = r.vintages.find(v => v.id === 'old-cab');
+    const oldCab = r.vintages.find((v) => v.id === 'old-cab');
     expect(['past-peak', 'declining']).toContain(oldCab!.status);
   });
 
@@ -169,13 +209,13 @@ describe('cellarAgingOptimizer', () => {
   it('bottle counts are consistent', () => {
     const r = cellarAgingOptimizer(vintages, 2024);
     expect(r.peakBottles + r.tooYoungBottles + r.pastPeakBottles).toBe(
-      vintages.reduce((s, v) => s + v.bottles, 0),
+      vintages.reduce((s, v) => s + v.bottles, 0)
     );
   });
 
   it('yearsToPeak is positive for too-young wine', () => {
     const r = cellarAgingOptimizer(vintages, 2024);
-    const cab = r.vintages.find(v => v.id === 'cab-2020');
+    const cab = r.vintages.find((v) => v.id === 'cab-2020');
     expect(cab!.yearsToPeak).toBeGreaterThan(0);
   });
 
@@ -188,9 +228,15 @@ describe('cellarAgingOptimizer', () => {
 
 describe('blendOptimization', () => {
   const components = [
-    { variety: 'Cabernet Sauvignon', quality: 92, costPerLiter: 15, availableLiters: 5000, minPct: 50 },
-    { variety: 'Merlot',            quality: 85, costPerLiter: 10, availableLiters: 3000, minPct: 10 },
-    { variety: 'Petit Verdot',      quality: 88, costPerLiter: 18, availableLiters: 1000, maxPct: 10 },
+    {
+      variety: 'Cabernet Sauvignon',
+      quality: 92,
+      costPerLiter: 15,
+      availableLiters: 5000,
+      minPct: 50,
+    },
+    { variety: 'Merlot', quality: 85, costPerLiter: 10, availableLiters: 3000, minPct: 10 },
+    { variety: 'Petit Verdot', quality: 88, costPerLiter: 18, availableLiters: 1000, maxPct: 10 },
   ];
 
   it('blend percentages sum to 100%', () => {
@@ -213,14 +259,14 @@ describe('blendOptimization', () => {
   it('litersUsed per component ≤ availableLiters', () => {
     const r = blendOptimization(components, 8000);
     for (const b of r.blend) {
-      const comp = components.find(c => c.variety === b.variety);
+      const comp = components.find((c) => c.variety === b.variety);
       expect(b.litersUsed).toBeLessThanOrEqual(comp!.availableLiters + 0.01);
     }
   });
 
   it('min% constraint is respected', () => {
     const r = blendOptimization(components, 8000);
-    const cab = r.blend.find(b => b.variety === 'Cabernet Sauvignon');
+    const cab = r.blend.find((b) => b.variety === 'Cabernet Sauvignon');
     expect(cab!.percentage).toBeGreaterThanOrEqual(50 - 0.01);
   });
 
@@ -261,8 +307,16 @@ describe('buildWineReceipt', () => {
   it('accepted=false for poor food-wine pairing', () => {
     // Sweet wine + spicy food + wrong body = poor pairing
     const pairing = foodWinePairing({
-      wineBody: 1, wineTannin: 9, wineAcidity: 1, wineSweetness: 1, wineAlcohol: 1,
-      foodRichness: 1, foodAcidity: 9, foodSweetness: 9, foodSpice: 9, foodSaltiness: 9,
+      wineBody: 1,
+      wineTannin: 9,
+      wineAcidity: 1,
+      wineSweetness: 1,
+      wineAlcohol: 1,
+      foodRichness: 1,
+      foodAcidity: 9,
+      foodSweetness: 9,
+      foodSpice: 9,
+      foodSaltiness: 9,
     });
     if (pairing.pairing === 'poor') {
       const receipt = buildWineReceipt({ pairing, converged: true });

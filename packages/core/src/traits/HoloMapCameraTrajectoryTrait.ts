@@ -58,7 +58,10 @@ export const holomapCameraTrajectoryHandler: TraitHandler<HoloMapCameraTrajector
     const pose = payload.pose as CameraPose | undefined;
     const trajectory =
       payload.trajectory && typeof payload.trajectory === 'object'
-        ? payload.trajectory as { keyframes?: TrajectoryKeyframe[]; estimatedDriftMeters?: number }
+        ? (payload.trajectory as {
+            keyframes?: TrajectoryKeyframe[];
+            estimatedDriftMeters?: number;
+          })
         : undefined;
     const frameIndex =
       typeof payload.frameIndex === 'number' && Number.isFinite(payload.frameIndex)

@@ -101,9 +101,7 @@ function qualifyPipelineWhere(expr: string): string {
       const next = j < trimmed.length ? trimmed[j] : '';
 
       const shouldKeep =
-        PIPELINE_WHERE_KEYWORDS.has(name) ||
-        prev === '.' ||
-        (name === 'r' && next === '.');
+        PIPELINE_WHERE_KEYWORDS.has(name) || prev === '.' || (name === 'r' && next === '.');
 
       out += shouldKeep ? name : `r.${name}`;
       i = j;
@@ -158,16 +156,24 @@ function genSource(source: PipelineSource): string {
     const connection = String(source.properties.connection || '${env.DATABASE_URL}');
     const query = String(source.properties.query || 'SELECT 1 as ok');
     lines.push(`const { Client } = await import('pg');`);
-    lines.push(`const ${source.name}_client = new Client({ connectionString: interpolate(\`${connection}\`) || process.env.DATABASE_URL });`);
+    lines.push(
+      `const ${source.name}_client = new Client({ connectionString: interpolate(\`${connection}\`) || process.env.DATABASE_URL });`
+    );
     lines.push(`await ${source.name}_client.connect();`);
     lines.push(`try {`);
-    lines.push(`  const ${source.name}_result = await ${source.name}_client.query(interpolate(\`${query}\`));`);
-    lines.push(`  if (Array.isArray(${source.name}_result.rows)) records.push(...${source.name}_result.rows);`);
+    lines.push(
+      `  const ${source.name}_result = await ${source.name}_client.query(interpolate(\`${query}\`));`
+    );
+    lines.push(
+      `  if (Array.isArray(${source.name}_result.rows)) records.push(...${source.name}_result.rows);`
+    );
     lines.push(`} finally {`);
     lines.push(`  await ${source.name}_client.end();`);
     lines.push(`}`);
   } else if (source.type === 'mcp') {
-    const mcpBase = String(source.properties.server || '${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}');
+    const mcpBase = String(
+      source.properties.server || '${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}'
+    );
     const toolName = String(source.properties.tool || source.name);
     const args = JSON.stringify(source.properties.args || {});
 
@@ -199,8 +205,12 @@ function genSource(source: PipelineSource): string {
     lines.push(`}`);
     lines.push(`const ${source.name}_json = await ${source.name}_response.json();`);
     lines.push(`const ${source.name}_content = ${source.name}_json?.result?.content;`);
-    lines.push(`if (Array.isArray(${source.name}_content)) records.push(...${source.name}_content);`);
-    lines.push(`else if (${source.name}_json?.result != null) records.push(${source.name}_json.result);`);
+    lines.push(
+      `if (Array.isArray(${source.name}_content)) records.push(...${source.name}_content);`
+    );
+    lines.push(
+      `else if (${source.name}_json?.result != null) records.push(${source.name}_json.result);`
+    );
     lines.push(`else records.push(${source.name}_json);`);
   } else if (source.type === 'list') {
     lines.push(`records.push(...${JSON.stringify(source.properties.items || [])});`);
@@ -216,18 +226,25 @@ function genSource(source: PipelineSource): string {
       if (source.auth.type === 'bearer') {
         streamHeaders['Authorization'] = `Bearer \${interpolate('${source.auth.token || ''}')}`;
       } else if (source.auth.type === 'api_key') {
-        streamHeaders[source.auth.header || 'x-api-key'] = `\${interpolate('${source.auth.key || source.auth.token || ''}')}`;
+        streamHeaders[source.auth.header || 'x-api-key'] =
+          `\${interpolate('${source.auth.key || source.auth.token || ''}')}`;
       }
     }
-    lines.push(`const ${source.name}_resp = await fetch(interpolate(\`${source.endpoint || ''}\`), {`);
+    lines.push(
+      `const ${source.name}_resp = await fetch(interpolate(\`${source.endpoint || ''}\`), {`
+    );
     lines.push(`  method: '${method}',`);
     lines.push(`  headers: ${JSON.stringify(streamHeaders)},`);
     lines.push(`});`);
-    lines.push(`if (!${source.name}_resp.ok) throw new Error(\`Stream source ${source.name} failed: \${${source.name}_resp.status} \${${source.name}_resp.statusText}\`);`);
+    lines.push(
+      `if (!${source.name}_resp.ok) throw new Error(\`Stream source ${source.name} failed: \${${source.name}_resp.status} \${${source.name}_resp.statusText}\`);`
+    );
     lines.push(`const ${source.name}_text = await ${source.name}_resp.text();`);
     lines.push(`// Parse SSE (data: ...) or NDJSON or JSON array`);
     lines.push(`if (${source.name}_text.trim().startsWith('[')) {`);
-    lines.push(`  try { const arr = JSON.parse(${source.name}_text); if (Array.isArray(arr)) records.push(...arr); } catch { /* fall through to line parsing */ }`);
+    lines.push(
+      `  try { const arr = JSON.parse(${source.name}_text); if (Array.isArray(arr)) records.push(...arr); } catch { /* fall through to line parsing */ }`
+    );
     lines.push(`}`);
     lines.push(`if (records.length === 0) {`);
     lines.push(`  for (const line of ${source.name}_text.split('\\n')) {`);
@@ -269,14 +286,18 @@ function genTransform(transform: PipelineTransform): string {
     lines.push(`  return out;`);
     lines.push(`});`);
   } else if (transform.type === 'mcp') {
-    const mcpBase = String(transform.server || '${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}');
+    const mcpBase = String(
+      transform.server || '${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}'
+    );
     const toolName = String(transform.tool || transform.name);
     const args = JSON.stringify(transform.args || {});
 
     lines.push(
       `const ${transform.name}_base = interpolate(\`${mcpBase}\`) || process.env.HOLOSCRIPT_MCP_URL || 'https://mcp.holoscript.net';`
     );
-    lines.push(`const ${transform.name}_url = ${transform.name}_base.replace(/\\/$/, '') + '/mcp';`);
+    lines.push(
+      `const ${transform.name}_url = ${transform.name}_base.replace(/\\/$/, '') + '/mcp';`
+    );
     lines.push(`const ${transform.name}_headers = { 'Content-Type': 'application/json' };`);
     lines.push(`if (process.env.HOLOSCRIPT_API_KEY) {`);
     lines.push(`  ${transform.name}_headers['x-mcp-api-key'] = process.env.HOLOSCRIPT_API_KEY;`);
@@ -301,9 +322,15 @@ function genTransform(transform: PipelineTransform): string {
     lines.push(`}`);
     lines.push(`const ${transform.name}_json = await ${transform.name}_response.json();`);
     lines.push(`const ${transform.name}_content = ${transform.name}_json?.result?.content;`);
-    lines.push(`if (Array.isArray(${transform.name}_content)) records = ${transform.name}_content;`);
-    lines.push(`else if (Array.isArray(${transform.name}_json?.result)) records = ${transform.name}_json.result;`);
-    lines.push(`else if (${transform.name}_content != null) records = [${transform.name}_content];`);
+    lines.push(
+      `if (Array.isArray(${transform.name}_content)) records = ${transform.name}_content;`
+    );
+    lines.push(
+      `else if (Array.isArray(${transform.name}_json?.result)) records = ${transform.name}_json.result;`
+    );
+    lines.push(
+      `else if (${transform.name}_content != null) records = [${transform.name}_content];`
+    );
   } else if (transform.type === 'llm') {
     // Call an OpenAI-compatible LLM on each record
     const model = transform.model || '${env.LLM_MODEL:-gpt-4o-mini}';
@@ -311,25 +338,47 @@ function genTransform(transform: PipelineTransform): string {
     const inputField = transform.input || '_text';
     const outputField = typeof transform.output === 'string' ? transform.output : '_llm_result';
 
-    lines.push(`const ${transform.name}_model = interpolate(\`${model}\`) || process.env.LLM_MODEL || 'gpt-4o-mini';`);
-    lines.push(`const ${transform.name}_apiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || '';`);
-    lines.push(`const ${transform.name}_base = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\\/$/, '');`);
+    lines.push(
+      `const ${transform.name}_model = interpolate(\`${model}\`) || process.env.LLM_MODEL || 'gpt-4o-mini';`
+    );
+    lines.push(
+      `const ${transform.name}_apiKey = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || '';`
+    );
+    lines.push(
+      `const ${transform.name}_base = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\\/$/, '');`
+    );
     lines.push(`const ${transform.name}_results = [];`);
     lines.push(`for (const r of records) {`);
-    lines.push(`  const ${transform.name}_input = String(r[${JSON.stringify(inputField)}] ?? JSON.stringify(r));`);
-    lines.push(`  const ${transform.name}_prompt = ${JSON.stringify(prompt)}.replace('{{input}}', ${transform.name}_input);`);
-    lines.push(`  const ${transform.name}_resp = await fetch(${transform.name}_base + '/chat/completions', {`);
+    lines.push(
+      `  const ${transform.name}_input = String(r[${JSON.stringify(inputField)}] ?? JSON.stringify(r));`
+    );
+    lines.push(
+      `  const ${transform.name}_prompt = ${JSON.stringify(prompt)}.replace('{{input}}', ${transform.name}_input);`
+    );
+    lines.push(
+      `  const ${transform.name}_resp = await fetch(${transform.name}_base + '/chat/completions', {`
+    );
     lines.push(`    method: 'POST',`);
-    lines.push(`    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ${transform.name}_apiKey },`);
-    lines.push(`    body: JSON.stringify({ model: ${transform.name}_model, messages: [{ role: 'user', content: ${transform.name}_prompt }] }),`);
+    lines.push(
+      `    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ${transform.name}_apiKey },`
+    );
+    lines.push(
+      `    body: JSON.stringify({ model: ${transform.name}_model, messages: [{ role: 'user', content: ${transform.name}_prompt }] }),`
+    );
     lines.push(`  });`);
     lines.push(`  if (!${transform.name}_resp.ok) {`);
-    lines.push(`    console.warn(\`LLM transform ${transform.name} failed: \${${transform.name}_resp.status}\`);`);
+    lines.push(
+      `    console.warn(\`LLM transform ${transform.name} failed: \${${transform.name}_resp.status}\`);`
+    );
     lines.push(`    ${transform.name}_results.push(r);`);
     lines.push(`  } else {`);
     lines.push(`    const ${transform.name}_json = await ${transform.name}_resp.json();`);
-    lines.push(`    const ${transform.name}_text = ${transform.name}_json?.choices?.[0]?.message?.content ?? '';`);
-    lines.push(`    ${transform.name}_results.push({ ...r, [${JSON.stringify(outputField)}]: ${transform.name}_text });`);
+    lines.push(
+      `    const ${transform.name}_text = ${transform.name}_json?.choices?.[0]?.message?.content ?? '';`
+    );
+    lines.push(
+      `    ${transform.name}_results.push({ ...r, [${JSON.stringify(outputField)}]: ${transform.name}_text });`
+    );
     lines.push(`  }`);
     lines.push(`}`);
     lines.push(`records = ${transform.name}_results;`);
@@ -346,7 +395,9 @@ function genTransform(transform: PipelineTransform): string {
     lines.push(`    body: '${method}' === 'GET' ? undefined : JSON.stringify(r),`);
     lines.push(`  });`);
     lines.push(`  if (!${transform.name}_resp.ok) {`);
-    lines.push(`    console.warn(\`HTTP transform ${transform.name} failed for record: \${${transform.name}_resp.status}\`);`);
+    lines.push(
+      `    console.warn(\`HTTP transform ${transform.name} failed for record: \${${transform.name}_resp.status}\`);`
+    );
     lines.push(`    ${transform.name}_results.push(r);`);
     lines.push(`  } else {`);
     lines.push(`    const ${transform.name}_data = await ${transform.name}_resp.json();`);
@@ -369,10 +420,7 @@ function genTransform(transform: PipelineTransform): string {
 
 function genFilter(filter: PipelineFilter): string {
   const body = qualifyPipelineWhere(filter.where);
-  return [
-    `// Filter: ${filter.name}`,
-    `records = records.filter((r) => (${body}));`,
-  ].join('\n');
+  return [`// Filter: ${filter.name}`, `records = records.filter((r) => (${body}));`].join('\n');
 }
 
 function genValidate(validate: PipelineValidate): string {
@@ -474,11 +522,15 @@ function genSink(sink: PipelineSink): string {
     const tableRaw = String(sink.properties.table || 'pipeline_records');
     const table = tableRaw.replace(/[^a-zA-Z0-9_]/g, '_');
     lines.push(`const { Client } = await import('pg');`);
-    lines.push(`const ${sink.name}_client = new Client({ connectionString: interpolate(\`${connection}\`) || process.env.DATABASE_URL });`);
+    lines.push(
+      `const ${sink.name}_client = new Client({ connectionString: interpolate(\`${connection}\`) || process.env.DATABASE_URL });`
+    );
     lines.push(`await ${sink.name}_client.connect();`);
     lines.push(`try {`);
     lines.push(`  for (const rec of records) {`);
-    lines.push(`    await ${sink.name}_client.query('INSERT INTO ${table} (payload) VALUES ($1)', [JSON.stringify(rec)]);`);
+    lines.push(
+      `    await ${sink.name}_client.query('INSERT INTO ${table} (payload) VALUES ($1)', [JSON.stringify(rec)]);`
+    );
     lines.push(`  }`);
     lines.push(`} finally {`);
     lines.push(`  await ${sink.name}_client.end();`);
@@ -547,9 +599,7 @@ function genSink(sink: PipelineSink): string {
     lines.push(`  const ${sink.name}_record = records[records.length - 1] ?? {};`);
     lines.push(`  // Template is a raw string with \${...} placeholders; resolve them`);
     lines.push(`  // against the record, env, and pipeline params.`);
-    lines.push(
-      `  const ${sink.name}_template = ${JSON.stringify(sink.template ?? '')};`
-    );
+    lines.push(`  const ${sink.name}_template = ${JSON.stringify(sink.template ?? '')};`);
     lines.push(`  const ${sink.name}_holo = ${sink.name}_template.replace(`);
     lines.push(`    /\\$\\{([^}]+)\\}/g,`);
     lines.push(`    (match, expr) => {`);
@@ -558,13 +608,9 @@ function genSink(sink: PipelineSink): string {
     lines.push(`      const parts = expr.trim().split('.');`);
     lines.push(`      let value;`);
     lines.push(`      if (parts[0] === 'env') {`);
-    lines.push(
-      `        value = process.env[parts.slice(1).join('.')];`
-    );
+    lines.push(`        value = process.env[parts.slice(1).join('.')];`);
     lines.push(`      } else if (parts[0] === 'params') {`);
-    lines.push(
-      `        value = params[parts.slice(1).join('.')];`
-    );
+    lines.push(`        value = params[parts.slice(1).join('.')];`);
     lines.push(`      } else {`);
     lines.push(`        value = ${sink.name}_record;`);
     lines.push(`        for (const p of parts) {`);

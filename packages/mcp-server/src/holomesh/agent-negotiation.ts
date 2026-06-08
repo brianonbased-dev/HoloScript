@@ -143,7 +143,7 @@ export interface TransitionResult {
 export function checkTransition(
   currentState: NegotiationState,
   action: NegotiationAction,
-  actorRole: NegotiationRole,
+  actorRole: NegotiationRole
 ): TransitionResult {
   if (TERMINAL_STATES.has(currentState) && action !== 'dispute') {
     return {
@@ -378,7 +378,11 @@ export interface AdvanceNegotiationResult {
 export function advanceNegotiation(input: AdvanceNegotiationInput): AdvanceNegotiationResult {
   const n = negotiations.get(input.negotiationId);
   if (!n) {
-    return { ok: false, reason: 'not-found', error: `negotiation ${input.negotiationId} not found` };
+    return {
+      ok: false,
+      reason: 'not-found',
+      error: `negotiation ${input.negotiationId} not found`,
+    };
   }
   const role = roleForAgent(n, input.authorAgentId);
   if (!role) {
@@ -394,7 +398,7 @@ export function advanceNegotiation(input: AdvanceNegotiationInput): AdvanceNegot
   }
   // Validate quote payload when responder is quoting
   if (input.action === 'quote') {
-    const q = (input.payload?.quote as NegotiationQuote | undefined);
+    const q = input.payload?.quote as NegotiationQuote | undefined;
     const v = validateQuote(q);
     if (!v.ok) return { ok: false, reason: 'illegal-transition', error: v.error };
     n.quote = q;
@@ -422,16 +426,24 @@ export function advanceNegotiation(input: AdvanceNegotiationInput): AdvanceNegot
 
 // ── Quote validation ──────────────────────────────────────────────────
 
-function validateQuote(q: NegotiationQuote | undefined): { ok: true } | { ok: false; error: string } {
+function validateQuote(
+  q: NegotiationQuote | undefined
+): { ok: true } | { ok: false; error: string } {
   if (!q || typeof q !== 'object') {
-    return { ok: false, error: 'quote payload required: { toolName, description, price, currency, slaSeconds, expiresAt }' };
+    return {
+      ok: false,
+      error:
+        'quote payload required: { toolName, description, price, currency, slaSeconds, expiresAt }',
+    };
   }
-  if (typeof q.toolName !== 'string' || !q.toolName) return { ok: false, error: 'quote.toolName required' };
+  if (typeof q.toolName !== 'string' || !q.toolName)
+    return { ok: false, error: 'quote.toolName required' };
   if (typeof q.description !== 'string') return { ok: false, error: 'quote.description required' };
   if (typeof q.price !== 'number' || q.price < 0 || !Number.isFinite(q.price)) {
     return { ok: false, error: 'quote.price must be a non-negative finite number' };
   }
-  if (typeof q.currency !== 'string' || !q.currency) return { ok: false, error: 'quote.currency required' };
+  if (typeof q.currency !== 'string' || !q.currency)
+    return { ok: false, error: 'quote.currency required' };
   if (typeof q.slaSeconds !== 'number' || q.slaSeconds < 0) {
     return { ok: false, error: 'quote.slaSeconds must be a non-negative number' };
   }
@@ -456,10 +468,7 @@ function validateQuote(q: NegotiationQuote | undefined): { ok: true } | { ok: fa
  * for one cycle; chain anchor is the durability layer for cross-restart
  * verification, which production deployments should add.
  */
-function applySettlement(
-  n: Negotiation,
-  input: AdvanceNegotiationInput,
-): AdvanceNegotiationResult {
+function applySettlement(n: Negotiation, input: AdvanceNegotiationInput): AdvanceNegotiationResult {
   const partial = input.payload?.partialReceipt as Partial<SettlementReceipt> | undefined;
   if (!partial || typeof partial !== 'object') {
     return {
@@ -543,7 +552,12 @@ export interface SettleNegotiationInput {
  */
 export function settleNegotiation(input: SettleNegotiationInput): AdvanceNegotiationResult {
   const n = negotiations.get(input.negotiationId);
-  if (!n) return { ok: false, reason: 'not-found', error: `negotiation ${input.negotiationId} not found` };
+  if (!n)
+    return {
+      ok: false,
+      reason: 'not-found',
+      error: `negotiation ${input.negotiationId} not found`,
+    };
   if (!n.quote) {
     return {
       ok: false,
@@ -616,9 +630,7 @@ export async function settleNegotiationWithAnchor(input: {
   resultHash?: string;
   signer: import('./signing/signer').Signer;
   domain?: import('./signing/chain-anchor').SettlementDomain;
-}): Promise<
-  AdvanceNegotiationResult & { anchor?: import('./signing/chain-anchor').AnchorResult }
-> {
+}): Promise<AdvanceNegotiationResult & { anchor?: import('./signing/chain-anchor').AnchorResult }> {
   // Build the receipt FIRST (without txHash) so we can hash it deterministically.
   const n = negotiations.get(input.negotiationId);
   if (!n) {

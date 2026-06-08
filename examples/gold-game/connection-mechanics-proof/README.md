@@ -2,7 +2,7 @@
 
 This directory holds the **retired abstract "Oasis Shard Zero" track**, kept for one
 reason only: its compass co-session is the cited proof that the **AI↔human connection
-*mechanics*** are real and reproducible.
+_mechanics_** are real and reproducible.
 
 It is **NOT the GOLD game flagship.** The canonical flagship is
 `../gold-vault-game.holo` (the GOLD knowledge-curation system turned into a game),
@@ -18,11 +18,11 @@ reports (see `../GATES.md` and GOLD entry W.GOLD.537). Always read `../GATES.md`
 
 ## What's here
 
-| File | What it proves |
-|------|----------------|
-| `oasis-shard-zero.holo` | the abstract compass world (parses clean) |
-| `gate-3-verify.mjs` | compass co-session: human (scripted input) + agent (value-selection) in ONE shared deterministic session, mutual effect, agent re-plan, WorldModelReceipts, both digests via the real `computeStateDigest` |
-| `GATE-3-cosession-receipt.json` | `sharedWorldDigest=a4c1072b…`, `wmrDigest=d7ee5d31…` (the values cited by W.GOLD.537) |
+| File                            | What it proves                                                                                                                                                                                             |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `oasis-shard-zero.holo`         | the abstract compass world (parses clean)                                                                                                                                                                  |
+| `gate-3-verify.mjs`             | compass co-session: human (scripted input) + agent (value-selection) in ONE shared deterministic session, mutual effect, agent re-plan, WorldModelReceipts, both digests via the real `computeStateDigest` |
+| `GATE-3-cosession-receipt.json` | `sharedWorldDigest=a4c1072b…`, `wmrDigest=d7ee5d31…` (the values cited by W.GOLD.537)                                                                                                                      |
 
 ## Why the rest of the Oasis track was deleted
 

@@ -20,11 +20,7 @@
  * task_1778186605462_2mlp (P1 holoscript-upstream)
  */
 
-import {
-  cloneShard,
-  validateShard,
-  type Shard,
-} from '@holoscript/framework';
+import { cloneShard, validateShard, type Shard } from '@holoscript/framework';
 
 /**
  * Build the canonical Frontier Shard 0 — the Oasis bootstrap shard.

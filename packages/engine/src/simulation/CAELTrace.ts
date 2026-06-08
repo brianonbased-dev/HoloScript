@@ -13,11 +13,7 @@
  * See: packages/engine/src/simulation/sha256.ts for the hash primitives.
  */
 
-import {
-  type HashMode,
-  HASH_MODE_DEFAULT,
-  hashShapeMatchesMode,
-} from './sha256';
+import { type HashMode, HASH_MODE_DEFAULT, hashShapeMatchesMode } from './sha256';
 import { constructTypedArray, isTypedArrayEnvelope, toCanonical } from './cael-canon';
 import { hashCAELEntry } from './hashes';
 export { hashCAELEntry };
@@ -95,7 +91,7 @@ export function parseCAELJSONL(jsonl: string): CAELTrace {
  */
 export function verifyCAELHashChain(
   trace: CAELTrace,
-  mode?: HashMode,
+  mode?: HashMode
 ): { valid: boolean; brokenAt?: number; reason?: string } {
   // Resolve mode: explicit > init payload > default
   let resolvedMode: HashMode;
@@ -140,7 +136,7 @@ export function verifyCAELHashChain(
         prevHash: entry.prevHash,
         payload: entry.payload,
       },
-      resolvedMode,
+      resolvedMode
     );
 
     if (entry.hash !== expected) {

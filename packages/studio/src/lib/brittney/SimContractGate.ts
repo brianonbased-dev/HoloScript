@@ -115,9 +115,7 @@ export function verifySceneMutation(
  */
 function parseDeclaredContractRef(sceneContext: string | undefined): string | null {
   if (!sceneContext) return null;
-  const traitMatch = sceneContext.match(
-    /@simulation_contract\s*\{[^}]*id\s*:\s*"([^"]+)"/
-  );
+  const traitMatch = sceneContext.match(/@simulation_contract\s*\{[^}]*id\s*:\s*"([^"]+)"/);
   if (traitMatch) return traitMatch[1];
   const topMatch = sceneContext.match(/^\s*simulation_contract\s*:\s*"([^"]+)"/m);
   if (topMatch) return topMatch[1];

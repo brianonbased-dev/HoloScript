@@ -63,19 +63,19 @@ pnpm --filter @holoscript/tauri-app build:debug
 
 ## IPC Commands
 
-| Command | Args | Returns | Description |
-|---------|------|---------|-------------|
-| `get_gpu_info` | - | `TauriGpuInfo` | GPU adapter info from wgpu |
-| `get_app_version` | - | `string` | App version from Cargo.toml |
-| `shader_preview_init` | `width`, `height`, `shader_code?` | `PipelineTimings` | Initialize wgpu shader preview |
-| `shader_preview_frame` | `mouse_x`, `mouse_y` | `FrameResult` | Render one frame, return base64 PNG |
-| `shader_preview_update` | `shader_code` | `PipelineTimings` | Hot-reload shader source |
-| `shader_preview_resize` | `width`, `height` | - | Resize render target |
-| `shader_preview_destroy` | - | - | Free GPU resources |
-| `shader_preview_benchmark` | `frame_count` | `BenchmarkResult` | Benchmark rendering |
-| `save_project` | `path`, `content` | `string` | Save file to disk |
-| `load_project` | `path` | `string` | Load file from disk |
-| `list_projects` | `directory` | `ProjectMeta[]` | List .holo/.hsplus files |
+| Command                    | Args                              | Returns           | Description                         |
+| -------------------------- | --------------------------------- | ----------------- | ----------------------------------- |
+| `get_gpu_info`             | -                                 | `TauriGpuInfo`    | GPU adapter info from wgpu          |
+| `get_app_version`          | -                                 | `string`          | App version from Cargo.toml         |
+| `shader_preview_init`      | `width`, `height`, `shader_code?` | `PipelineTimings` | Initialize wgpu shader preview      |
+| `shader_preview_frame`     | `mouse_x`, `mouse_y`              | `FrameResult`     | Render one frame, return base64 PNG |
+| `shader_preview_update`    | `shader_code`                     | `PipelineTimings` | Hot-reload shader source            |
+| `shader_preview_resize`    | `width`, `height`                 | -                 | Resize render target                |
+| `shader_preview_destroy`   | -                                 | -                 | Free GPU resources                  |
+| `shader_preview_benchmark` | `frame_count`                     | `BenchmarkResult` | Benchmark rendering                 |
+| `save_project`             | `path`, `content`                 | `string`          | Save file to disk                   |
+| `load_project`             | `path`                            | `string`          | Load file from disk                 |
+| `list_projects`            | `directory`                       | `ProjectMeta[]`   | List .holo/.hsplus files            |
 
 ## See Also
 

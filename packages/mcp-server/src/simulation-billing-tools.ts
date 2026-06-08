@@ -90,16 +90,20 @@ async function callPythonHarness(
     device?: string;
     dispatch_mode?: 'local' | 'fleet';
     solver_config?: Record<string, unknown>;
-  },
+  }
 ): Promise<SimOrderResult> {
   // The Python billing harness is the canonical implementation.
   // Call it as a subprocess with JSON stdin/stdout.
   const args = [
     'scripts/sim_solver_executor.py',
-    '--solver', params.solver,
-    '--estimate-seconds', String(params.estimate_seconds),
-    '--rate', String(params.rate),
-    '--customer', params.customer || 'mcp-caller',
+    '--solver',
+    params.solver,
+    '--estimate-seconds',
+    String(params.estimate_seconds),
+    '--rate',
+    String(params.rate),
+    '--customer',
+    params.customer || 'mcp-caller',
   ];
 
   if (params.buffer !== undefined) args.push('--buffer', String(params.buffer));
@@ -143,7 +147,7 @@ async function callPythonHarness(
 
   // Fallback: local computation (mirrors quantum_cost_quote.build_quote)
   const buffer = params.buffer ?? 0.15;
-  const margin = params.margin ?? 0.30;
+  const margin = params.margin ?? 0.3;
   const creditsPerUsd = 100.0;
   const capSeconds = Math.ceil(params.estimate_seconds * (1 + buffer));
   const priceUsd = capSeconds * params.rate * (1 + margin);
@@ -215,7 +219,7 @@ async function callPythonHarness(
         reason: 'billing harness unavailable and HOLO_TEST_CREDITS unset — refusing to charge',
       },
       'billing harness (scripts/sim_solver_executor.py) unavailable; paid order refused — no fabricated charge. ' +
-        'Set HOLO_TEST_CREDITS for a local test-ledger run, or ensure the Python harness + HOLOSCRIPT_API_KEY are present for real charging.',
+        'Set HOLO_TEST_CREDITS for a local test-ledger run, or ensure the Python harness + HOLOSCRIPT_API_KEY are present for real charging.'
     );
   }
 
@@ -232,7 +236,7 @@ async function callPythonHarness(
         needed: priceCredits,
         balance: testBal,
       },
-      `insufficient HOLO_TEST_CREDITS: need ${priceCredits} credits, have ${testBal}`,
+      `insufficient HOLO_TEST_CREDITS: need ${priceCredits} credits, have ${testBal}`
     );
   }
 
@@ -258,7 +262,8 @@ async function callPythonHarness(
       paid_seconds: capSeconds,
       actual_seconds: params.estimate_seconds * 0.8,
       within_cap: true,
-      refund_usd: Math.round((capSeconds - params.estimate_seconds * 0.8) * params.rate * 1e6) / 1e6,
+      refund_usd:
+        Math.round((capSeconds - params.estimate_seconds * 0.8) * params.rate * 1e6) / 1e6,
       refund_credits: 0,
     },
     refund: { backend: 'test-ledger', refunded_credits: 0, real_money: false },
@@ -307,7 +312,7 @@ export const simulationBillingTools: Tool[] = [
         margin: {
           type: 'number',
           description: 'Platform markup over GPU cost (default 0.30 = +30%).',
-          default: 0.30,
+          default: 0.3,
           minimum: 0,
         },
         customer: {
@@ -376,10 +381,10 @@ export const simulationBillingTools: Tool[] = [
           type: 'string',
           enum: ['local', 'fleet'],
           description: 'Execution target: local GPU or vast.ai fleet worker.',
-      // THIN (ratchet P4): vast.ai fleet dispatch is rule-only. No --yes auto-approval flag
-      // is wired. The billing harness attempts Python subprocess dispatch but falls through
-      // to local computation when Python is unavailable. Real fleet dispatch requires the
-      // compute_billing_harness.py script + vast.ai CLI credentials.
+          // THIN (ratchet P4): vast.ai fleet dispatch is rule-only. No --yes auto-approval flag
+          // is wired. The billing harness attempts Python subprocess dispatch but falls through
+          // to local computation when Python is unavailable. Real fleet dispatch requires the
+          // compute_billing_harness.py script + vast.ai CLI credentials.
           default: 'local',
         },
         buffer: {
@@ -390,7 +395,7 @@ export const simulationBillingTools: Tool[] = [
         margin: {
           type: 'number',
           description: 'Platform markup over GPU cost (default 0.30).',
-          default: 0.30,
+          default: 0.3,
         },
         customer: {
           type: 'string',
@@ -426,7 +431,7 @@ export const simulationBillingTools: Tool[] = [
 
 export async function handleSimulationBillingTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
     case 'sim_quote':
@@ -440,14 +445,12 @@ export async function handleSimulationBillingTool(
   }
 }
 
-async function handleSimQuote(
-  args: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+async function handleSimQuote(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const solver = args.solver as SolverKind;
   const estimateSeconds = Number(args.estimate_seconds);
   const rate = Number(args.rate);
   const buffer = args.buffer !== undefined ? Number(args.buffer) : 0.15;
-  const margin = args.margin !== undefined ? Number(args.margin) : 0.30;
+  const margin = args.margin !== undefined ? Number(args.margin) : 0.3;
   const customer = (args.customer as string) || 'mcp-caller';
   const dispatchMode = (args.dispatch_mode as 'local' | 'fleet') || 'local';
 
@@ -472,9 +475,7 @@ async function handleSimQuote(
   };
 }
 
-async function handleSimRunPaid(
-  args: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+async function handleSimRunPaid(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const solver = args.solver as SolverKind;
   const estimateSeconds = Number(args.estimate_seconds);
   const rate = Number(args.rate);
@@ -482,7 +483,7 @@ async function handleSimRunPaid(
   const device = (args.device as string) || 'GPU';
   const dispatchMode = (args.dispatch_mode as 'local' | 'fleet') || 'local';
   const buffer = args.buffer !== undefined ? Number(args.buffer) : 0.15;
-  const margin = args.margin !== undefined ? Number(args.margin) : 0.30;
+  const margin = args.margin !== undefined ? Number(args.margin) : 0.3;
   const customer = (args.customer as string) || 'mcp-caller';
   const solverConfig = args.solver_config as Record<string, unknown> | undefined;
 
@@ -521,7 +522,7 @@ async function handleSimRunPaid(
       const mcpConfig = solverConfig || buildDefaultConfig(solver, args);
       mcpResult = (await handleSimulationTool(
         solver === 'thermal' ? 'solve_thermal' : 'solve_structural',
-        { config: mcpConfig, steps },
+        { config: mcpConfig, steps }
       )) as Record<string, unknown>;
     } catch (err) {
       mcpResult = { success: false, error: err instanceof Error ? err.message : String(err) };
@@ -590,7 +591,7 @@ async function handleSimRunPaid(
 }
 
 async function handleSimFleetStatus(
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   const jobId = args.job_id as string;
 
@@ -635,7 +636,7 @@ async function handleSimFleetStatus(
 
 function buildDefaultConfig(
   solver: SolverKind,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Record<string, unknown> {
   if (solver === 'thermal') {
     const gridRes = args.grid_resolution as number[] | undefined;
@@ -666,10 +667,7 @@ function buildDefaultConfig(
   };
 }
 
-function extractFieldMin(
-  result: unknown,
-  fieldName: string,
-): number | null {
+function extractFieldMin(result: unknown, fieldName: string): number | null {
   if (!result || typeof result !== 'object') return null;
   const r = result as Record<string, unknown>;
   const field = r[fieldName];
@@ -687,10 +685,7 @@ function extractFieldMin(
   return null;
 }
 
-function extractFieldMax(
-  result: unknown,
-  fieldName: string,
-): number | null {
+function extractFieldMax(result: unknown, fieldName: string): number | null {
   if (!result || typeof result !== 'object') return null;
   const r = result as Record<string, unknown>;
   const field = r[fieldName];

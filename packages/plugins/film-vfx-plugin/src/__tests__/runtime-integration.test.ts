@@ -48,7 +48,7 @@ describe('film-vfx -> HoloScript runtime integration (cinematography_exposure)',
 
     // f/8, t = 1/250 s = 0.004, ISO 100.
     await runtime.executeNode(
-      exposureOrb({ aperture: 8, shutterSpeedS: 1 / 250, iso: 100 }) as never,
+      exposureOrb({ aperture: 8, shutterSpeedS: 1 / 250, iso: 100 }) as never
     );
     await flush();
 
@@ -81,7 +81,7 @@ describe('film-vfx -> HoloScript runtime integration (cinematography_exposure)',
 
     // f/2.8, t = 1/50 s = 0.02, ISO 800 — chosen so the ISO term is non-zero.
     await runtime.executeNode(
-      exposureOrb({ aperture: 2.8, shutterSpeedS: 1 / 50, iso: 800 }) as never,
+      exposureOrb({ aperture: 2.8, shutterSpeedS: 1 / 50, iso: 800 }) as never
     );
     await flush();
 
@@ -108,7 +108,7 @@ describe('film-vfx -> HoloScript runtime integration (cinematography_exposure)',
     runtime.on('cinematography_exposure_solved', (e: unknown) => solved.push(e));
 
     await runtime.executeNode(
-      exposureOrb({ aperture: 8, shutterSpeedS: 1 / 250, iso: 100 }) as never,
+      exposureOrb({ aperture: 8, shutterSpeedS: 1 / 250, iso: 100 }) as never
     );
     await flush();
 
@@ -120,7 +120,7 @@ describe('film-vfx -> HoloScript runtime integration (cinematography_exposure)',
     registerFilmVfxTraitHandlers(runtime);
 
     await runtime.executeNode(
-      exposureOrb({ aperture: 8, shutterSpeedS: 1 / 250, iso: 100 }) as never,
+      exposureOrb({ aperture: 8, shutterSpeedS: 1 / 250, iso: 100 }) as never
     );
     await flush();
 
@@ -147,7 +147,7 @@ describe('film-vfx -> HoloScript runtime integration (cinematography_exposure)',
     // and the registrar guard rejects it pre-solve); the handler's validation /
     // try-catch turns it into a cinematography_exposure_error rather than a throw.
     await runtime.executeNode(
-      exposureOrb({ aperture: 0, shutterSpeedS: 1 / 250, iso: 100 }) as never,
+      exposureOrb({ aperture: 0, shutterSpeedS: 1 / 250, iso: 100 }) as never
     );
     await flush();
 

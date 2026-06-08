@@ -92,7 +92,9 @@ describe('AINPCBrainTrait', () => {
 
         ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
-        const callArgs = (mockContext.emit as any).mock.calls.find((c: any) => c[0] === 'ainpc_init');
+        const callArgs = (mockContext.emit as any).mock.calls.find(
+          (c: any) => c[0] === 'ainpc_init'
+        );
         expect(callArgs).toBeDefined();
         expect(callArgs[1].personality).toBe(personality);
         expect(callArgs[1].systemPrompt).toContain(personality.toLowerCase());
@@ -100,7 +102,10 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should generate correct system prompt for helpful personality', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, personality: 'helpful' };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        personality: 'helpful',
+      };
       mockContext.emit?.mockClear();
 
       ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
@@ -111,7 +116,10 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should generate correct system prompt for sarcastic personality', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, personality: 'sarcastic' };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        personality: 'sarcastic',
+      };
       mockContext.emit?.mockClear();
 
       ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
@@ -122,7 +130,10 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should generate correct system prompt for wise personality', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, personality: 'wise' };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        personality: 'wise',
+      };
       mockContext.emit?.mockClear();
 
       ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
@@ -133,7 +144,10 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should generate correct system prompt for cheerful personality', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, personality: 'cheerful' };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        personality: 'cheerful',
+      };
       mockContext.emit?.mockClear();
 
       ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
@@ -144,7 +158,10 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should generate correct system prompt for mysterious personality', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, personality: 'mysterious' };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        personality: 'mysterious',
+      };
       mockContext.emit?.mockClear();
 
       ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
@@ -155,7 +172,10 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should emit init with custom dialogue range', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, dialogue_range: 10.0 };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        dialogue_range: 10.0,
+      };
       mockContext.emit?.mockClear();
 
       ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
@@ -165,7 +185,10 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should emit init with voice settings', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, voice_enabled: false };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        voice_enabled: false,
+      };
       mockContext.emit?.mockClear();
 
       ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
@@ -199,7 +222,12 @@ describe('AINPCBrainTrait', () => {
       const npcState = mockNode.__npcState as any;
       npcState.relationship_delta = 0.5;
 
-      ainpcBrainHandler.onUpdate?.(mockNode as HSPlusNode, config, mockContext as TraitContext, 0.016);
+      ainpcBrainHandler.onUpdate?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        0.016
+      );
 
       // Delta should decay by 99% (multiply by 0.99)
       expect(npcState.relationship_delta).toBeCloseTo(0.5 * 0.99, 5);
@@ -210,7 +238,12 @@ describe('AINPCBrainTrait', () => {
       const npcState = mockNode.__npcState as any;
       npcState.relationship_delta = 0;
 
-      ainpcBrainHandler.onUpdate?.(mockNode as HSPlusNode, config, mockContext as TraitContext, 0.016);
+      ainpcBrainHandler.onUpdate?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        0.016
+      );
 
       expect(npcState.relationship_delta).toBe(0);
     });
@@ -220,7 +253,12 @@ describe('AINPCBrainTrait', () => {
       const config = ainpcBrainHandler.defaultConfig as AINPCBrainConfig;
 
       expect(() => {
-        ainpcBrainHandler.onUpdate?.(mockNode as HSPlusNode, config, mockContext as TraitContext, 0.016);
+        ainpcBrainHandler.onUpdate?.(
+          mockNode as HSPlusNode,
+          config,
+          mockContext as TraitContext,
+          0.016
+        );
       }).not.toThrow();
     });
   });
@@ -393,7 +431,9 @@ describe('AINPCBrainTrait', () => {
 
         ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, {}, mockContext as TraitContext, event);
 
-        const callArgs = (mockContext.emit as any).mock.calls.find((c: any) => c[0] === 'on_dialogue_start');
+        const callArgs = (mockContext.emit as any).mock.calls.find(
+          (c: any) => c[0] === 'on_dialogue_start'
+        );
         expect(callArgs[1].conversationCount).toBe(i);
       }
     });
@@ -407,67 +447,104 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should update player_relationship by delta', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, player_relationship: 0.5 };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        player_relationship: 0.5,
+      };
 
       const event: TraitEvent = {
         type: 'relationship_change',
         delta: 0.2,
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(config.player_relationship).toBeCloseTo(0.7, 5);
     });
 
     it('should clamp relationship to [-1, 1] on positive overflow', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, player_relationship: 0.9 };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        player_relationship: 0.9,
+      };
 
       const event: TraitEvent = {
         type: 'relationship_change',
         delta: 0.5,
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(config.player_relationship).toBe(1);
     });
 
     it('should clamp relationship to [-1, 1] on negative overflow', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, player_relationship: -0.8 };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        player_relationship: -0.8,
+      };
 
       const event: TraitEvent = {
         type: 'relationship_change',
         delta: -0.5,
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(config.player_relationship).toBe(-1);
     });
 
     it('should set relationship_delta in state', () => {
       const npcState = mockNode.__npcState as any;
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig };
+      const config = { ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig) };
 
       const event: TraitEvent = {
         type: 'relationship_change',
         delta: -0.1,
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(npcState.relationship_delta).toBe(-0.1);
     });
 
     it('should emit on_relationship_updated event', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, player_relationship: 0.5 };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        player_relationship: 0.5,
+      };
 
       const event: TraitEvent = {
         type: 'relationship_change',
         delta: 0.25,
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('on_relationship_updated', {
         node: mockNode,
@@ -477,14 +554,22 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should handle negative relationship changes', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, player_relationship: 0.5 };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        player_relationship: 0.5,
+      };
 
       const event: TraitEvent = {
         type: 'relationship_change',
         delta: -0.3,
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(config.player_relationship).toBeCloseTo(0.2, 5);
       expect(mockContext.emit).toHaveBeenCalledWith(
@@ -517,11 +602,16 @@ describe('AINPCBrainTrait', () => {
         mockNode = {};
         mockContext.emit?.mockClear();
 
-        const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, dialogue_range: range };
+        const config = {
+          ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+          dialogue_range: range,
+        };
 
         ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
-        const callArgs = (mockContext.emit as any).mock.calls.find((c: any) => c[0] === 'ainpc_init');
+        const callArgs = (mockContext.emit as any).mock.calls.find(
+          (c: any) => c[0] === 'ainpc_init'
+        );
         expect(callArgs[1].dialogueRange).toBe(range);
       }
     });
@@ -531,11 +621,16 @@ describe('AINPCBrainTrait', () => {
         mockNode = {};
         mockContext.emit?.mockClear();
 
-        const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, voice_enabled: enabled };
+        const config = {
+          ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+          voice_enabled: enabled,
+        };
 
         ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
-        const callArgs = (mockContext.emit as any).mock.calls.find((c: any) => c[0] === 'ainpc_init');
+        const callArgs = (mockContext.emit as any).mock.calls.find(
+          (c: any) => c[0] === 'ainpc_init'
+        );
         expect(callArgs[1].voiceEnabled).toBe(enabled);
       }
     });
@@ -545,7 +640,10 @@ describe('AINPCBrainTrait', () => {
 
       for (const size of sizes) {
         mockNode = {};
-        const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, memory_size: size };
+        const config = {
+          ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+          memory_size: size,
+        };
 
         ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
@@ -556,7 +654,10 @@ describe('AINPCBrainTrait', () => {
     it('should support conversation history enabled/disabled', () => {
       for (const enabled of [true, false]) {
         mockNode = {};
-        const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, conversation_history: enabled };
+        const config = {
+          ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+          conversation_history: enabled,
+        };
 
         ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
@@ -569,7 +670,10 @@ describe('AINPCBrainTrait', () => {
 
       for (const behavior of behaviors) {
         mockNode = {};
-        const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, idle_behavior: behavior };
+        const config = {
+          ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+          idle_behavior: behavior,
+        };
 
         ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
@@ -582,7 +686,10 @@ describe('AINPCBrainTrait', () => {
 
       for (const rel of relationships) {
         mockNode = {};
-        const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, player_relationship: rel };
+        const config = {
+          ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+          player_relationship: rel,
+        };
 
         ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
@@ -605,7 +712,12 @@ describe('AINPCBrainTrait', () => {
         distance: 3.0,
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('on_player_nearby', expect.any(Object));
 
@@ -617,7 +729,12 @@ describe('AINPCBrainTrait', () => {
         playerId: 'player_1',
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('on_dialogue_start', expect.any(Object));
 
@@ -632,7 +749,12 @@ describe('AINPCBrainTrait', () => {
         delta: 0.2,
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('on_relationship_updated', expect.any(Object));
 
@@ -643,7 +765,12 @@ describe('AINPCBrainTrait', () => {
         type: 'player_exit_dialogue_range',
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('on_dialogue_end', expect.any(Object));
       expect(npcState.in_dialogue).toBe(false);
@@ -664,14 +791,22 @@ describe('AINPCBrainTrait', () => {
           playerId: `player_${i}`,
         };
 
-        ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+        ainpcBrainHandler.onEvent?.(
+          mockNode as HSPlusNode,
+          config,
+          mockContext as TraitContext,
+          event
+        );
 
         expect(npcState.conversation_count).toBe(i);
       }
     });
 
     it('should handle relationship decay workflow', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, player_relationship: 0.5 };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        player_relationship: 0.5,
+      };
       ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
       const npcState = mockNode.__npcState as any;
@@ -682,13 +817,23 @@ describe('AINPCBrainTrait', () => {
         delta: 0.3,
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(npcState.relationship_delta).toBeCloseTo(0.3, 5);
 
       // Update 50 times to simulate significant decay
       for (let i = 0; i < 50; i++) {
-        ainpcBrainHandler.onUpdate?.(mockNode as HSPlusNode, config, mockContext as TraitContext, 0.016);
+        ainpcBrainHandler.onUpdate?.(
+          mockNode as HSPlusNode,
+          config,
+          mockContext as TraitContext,
+          0.016
+        );
       }
 
       // Relationship delta should decay: 0.3 * (0.99^50) ≈ 0.18
@@ -698,7 +843,10 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should handle hostile relationship workflow', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, player_relationship: 0.5 };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        player_relationship: 0.5,
+      };
       ainpcBrainHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
       mockContext.emit?.mockClear();
@@ -709,7 +857,12 @@ describe('AINPCBrainTrait', () => {
         delta: -0.7,
       };
 
-      ainpcBrainHandler.onEvent?.(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      ainpcBrainHandler.onEvent?.(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       // Should be clamped to -1.0
       expect(config.player_relationship).toBeLessThanOrEqual(0.0);
@@ -777,7 +930,10 @@ describe('AINPCBrainTrait', () => {
     });
 
     it('should isolate relationship tracking per node', () => {
-      const config = { ...ainpcBrainHandler.defaultConfig as AINPCBrainConfig, player_relationship: 0.5 };
+      const config = {
+        ...(ainpcBrainHandler.defaultConfig as AINPCBrainConfig),
+        player_relationship: 0.5,
+      };
       const node1 = { ...config } as any;
       const node2 = { ...config } as any;
 

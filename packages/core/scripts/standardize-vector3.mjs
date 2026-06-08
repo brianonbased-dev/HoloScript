@@ -3,7 +3,7 @@ import path from 'path';
 
 const searchDirs = [
   'c:/Users/josep/Documents/GitHub/HoloScript/packages/core/src',
-  'c:/Users/josep/Documents/GitHub/HoloScript/packages/engine/src'
+  'c:/Users/josep/Documents/GitHub/HoloScript/packages/engine/src',
 ];
 
 function fixFile(filePath) {
@@ -23,7 +23,7 @@ function fixFile(filePath) {
 function walk(dir) {
   if (!fs.existsSync(dir)) return;
   const files = fs.readdirSync(dir);
-  files.forEach(file => {
+  files.forEach((file) => {
     const fullPath = path.join(dir, file);
     if (fs.statSync(fullPath).isDirectory()) {
       walk(fullPath);
@@ -33,4 +33,4 @@ function walk(dir) {
   });
 }
 
-searchDirs.forEach(dir => walk(dir));
+searchDirs.forEach((dir) => walk(dir));

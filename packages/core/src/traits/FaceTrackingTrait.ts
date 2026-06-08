@@ -1,5 +1,4 @@
-import type { Vector3 } from '../types';
-﻿/**
+import type { Vector3 } from '../types'; /**
  * FaceTracking Trait
  *
  * Face mesh and expression tracking for avatars and effects.
@@ -7,7 +6,6 @@ import type { Vector3 } from '../types';
  *
  * @version 2.0.0
  */
-
 import type { TraitHandler } from './TraitTypes';
 
 // =============================================================================

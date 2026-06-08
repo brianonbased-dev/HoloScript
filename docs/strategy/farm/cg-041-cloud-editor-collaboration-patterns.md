@@ -108,9 +108,9 @@ human UI feature.
 
 - HoloMesh room events should be queryable from Studio.
 - Agents should be able to add comments, propose scene patches, and attach
-verification evidence.
+  verification evidence.
 - Studio should expose stable event names for "presence joined", "comment
-added", "checkpoint signed", "preview launched", and "publish requested".
+  added", "checkpoint signed", "preview launched", and "publish requested".
 
 ## Not Product Work Yet
 

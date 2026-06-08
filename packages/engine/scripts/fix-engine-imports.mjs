@@ -9,7 +9,7 @@ function fixFile(filePath) {
 
   // Replace import from ../types or types to @holoscript/core
   content = content.replace(/from '\.?\.?\/types'/g, "from '@holoscript/core'");
-  
+
   // Also handle cases like import { Vector3 } from '../types/index'
   content = content.replace(/from '\.?\.?\/types\/index'/g, "from '@holoscript/core'");
 
@@ -23,7 +23,7 @@ function fixFile(filePath) {
 
 function walk(dir) {
   const files = fs.readdirSync(dir);
-  files.forEach(file => {
+  files.forEach((file) => {
     const fullPath = path.join(dir, file);
     if (fs.statSync(fullPath).isDirectory()) {
       walk(fullPath);

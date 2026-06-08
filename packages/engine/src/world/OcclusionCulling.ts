@@ -149,7 +149,8 @@ export class OcclusionCulling {
       const py = plane.normal[1] >= 0 ? bounds.max[1] : bounds.min[1];
       const pz = plane.normal[2] >= 0 ? bounds.max[2] : bounds.min[2];
 
-      const dot = plane.normal[0] * px + plane.normal[1] * py + plane.normal[2] * pz + plane.distance;
+      const dot =
+        plane.normal[0] * px + plane.normal[1] * py + plane.normal[2] * pz + plane.distance;
       if (dot < 0) return false; // Completely outside
     }
     return true;

@@ -12,11 +12,7 @@ import { redirect } from 'next/navigation';
 
 export const runtime = 'nodejs';
 
-export default async function GramAliasPage({
-  params,
-}: {
-  params: Promise<{ hash: string }>;
-}) {
+export default async function GramAliasPage({ params }: { params: Promise<{ hash: string }> }) {
   const { hash } = await params;
   redirect(`/g/${hash}`);
 }

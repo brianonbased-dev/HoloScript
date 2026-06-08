@@ -1,7 +1,4 @@
-import {
-  parseHolo,
-  type HoloComposition,
-} from '@holoscript/core';
+import { parseHolo, type HoloComposition } from '@holoscript/core';
 
 import { validateHoloOutput, type ValidationResult } from './holoValidator';
 

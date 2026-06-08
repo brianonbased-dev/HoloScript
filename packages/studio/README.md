@@ -251,17 +251,17 @@ src/
 
 ## Codebase at a Glance
 
-| Metric               | Verification                                      |
-| -------------------- | ------------------------------------------------- |
-| Pages                | `find src/app -name "page.tsx" | wc -l`           |
-| API routes           | `find src/app/api -name "route.ts" | wc -l`       |
-| Components           | `find src/components -name "*.tsx" | wc -l`       |
-| Hooks                | `find src/hooks -type f | wc -l`                  |
-| Lib modules          | `find src/lib -name "*.ts" | wc -l`               |
-| MCP tools accessible | `curl mcp.holoscript.net/health` → `tools`        |
-| Brittney tools       | See `packages/studio/src/lib/brittney/tools/`     |
-| Compilation targets  | Listed in capabilities manifest                   |
-| Total TS/TSX files   | `find src -name "*.ts" -o -name "*.tsx" | wc -l`  |
+| Metric               | Verification                                  |
+| -------------------- | --------------------------------------------- | ------ |
+| Pages                | `find src/app -name "page.tsx"                | wc -l` |
+| API routes           | `find src/app/api -name "route.ts"            | wc -l` |
+| Components           | `find src/components -name "\*.tsx"           | wc -l` |
+| Hooks                | `find src/hooks -type f                       | wc -l` |
+| Lib modules          | `find src/lib -name "\*.ts"                   | wc -l` |
+| MCP tools accessible | `curl mcp.holoscript.net/health` → `tools`    |
+| Brittney tools       | See `packages/studio/src/lib/brittney/tools/` |
+| Compilation targets  | Listed in capabilities manifest               |
+| Total TS/TSX files   | `find src -name "_.ts" -o -name "_.tsx"       | wc -l` |
 
 _(Run verification commands to get current live numbers.)_
 

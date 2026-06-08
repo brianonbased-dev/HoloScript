@@ -117,7 +117,9 @@ export class FrustumCuller {
   addVolume(volume: BoundingVolumeInput): void {
     const normalized: BoundingVolume = {
       ...volume,
-      center: volume.center ?? ([volume.centerX ?? 0, volume.centerY ?? 0, volume.centerZ ?? 0] as Vector3),
+      center:
+        volume.center ??
+        ([volume.centerX ?? 0, volume.centerY ?? 0, volume.centerZ ?? 0] as Vector3),
       halfExtents:
         volume.halfExtents ??
         (volume.halfExtentX !== undefined ||

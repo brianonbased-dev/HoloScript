@@ -18,10 +18,7 @@
 
 export type DaemonOwnerPolicy = 'private' | 'shared_household' | 'workspace';
 
-export type MemoryRetentionPolicy =
-  | 'session_only'
-  | 'persisted_local'
-  | 'persisted_with_absorb';
+export type MemoryRetentionPolicy = 'session_only' | 'persisted_local' | 'persisted_with_absorb';
 
 export type DispatchConfidence = 'autonomous' | 'confirm_before' | 'always_ask';
 
@@ -119,11 +116,7 @@ export interface ConversationDaemon {
 
 export type DaemonUrgencyLevel = 'low' | 'medium' | 'high' | 'immediate';
 
-export type DaemonConsentBoundary =
-  | 'no_action'
-  | 'read_only'
-  | 'propose'
-  | 'execute';
+export type DaemonConsentBoundary = 'no_action' | 'read_only' | 'propose' | 'execute';
 
 export interface ExtractedIntent {
   verb: string;
@@ -198,7 +191,10 @@ export class DaemonFieldSeparationError extends Error {
  * Call before persisting or dispatching any daemon configuration.
  */
 export function assertDaemonFieldSeparation(daemon: ConversationDaemon): void {
-  if (daemon.permissionProfile.breakGlassAllowed && daemon.permissionProfile.custodyScope.length === 0) {
+  if (
+    daemon.permissionProfile.breakGlassAllowed &&
+    daemon.permissionProfile.custodyScope.length === 0
+  ) {
     throw new DaemonFieldSeparationError(
       'break-glass requires an explicit custodyScope — a daemon must not hold global field authority'
     );
@@ -248,7 +244,7 @@ export function makeDefaultConversationDaemon(
   daemonId: string,
   ownerId: string,
   displayName: string,
-  careProfile: string,
+  careProfile: string
 ): ConversationDaemon {
   return {
     daemonId,
@@ -258,7 +254,12 @@ export function makeDefaultConversationDaemon(
     appearanceProfile: { characterClass: 'companion', scale: 'small' },
     voiceProfile: { enabled: false },
     careProfile,
-    toneProfile: { formality: 'balanced', verbosity: 'balanced', humor: 'light', patience: 'patient' },
+    toneProfile: {
+      formality: 'balanced',
+      verbosity: 'balanced',
+      humor: 'light',
+      patience: 'patient',
+    },
     permissionProfile: {
       readOnly: true,
       proposeMutations: true,

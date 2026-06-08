@@ -49,11 +49,16 @@ describe('timeoutGuardHandler', () => {
     const cfg = timeoutGuardHandler.defaultConfig!;
     timeoutGuardHandler.onAttach!(node, cfg, ctx as any);
 
-    timeoutGuardHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'timeout_guard:execute',
-      action: 'do_something',
-      timeout_ms: 1000,
-    } as any);
+    timeoutGuardHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'timeout_guard:execute',
+        action: 'do_something',
+        timeout_ms: 1000,
+      } as any
+    );
 
     const state = node.__timeoutGuardState;
     expect(state.operations.size).toBe(1);
@@ -67,14 +72,22 @@ describe('timeoutGuardHandler', () => {
     const cfg = timeoutGuardHandler.defaultConfig!;
     timeoutGuardHandler.onAttach!(node, cfg, ctx as any);
 
-    timeoutGuardHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'timeout_guard:execute',
-      action: 'my_action',
-    } as any);
+    timeoutGuardHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'timeout_guard:execute',
+        action: 'my_action',
+      } as any
+    );
 
-    expect(ctx.emit).toHaveBeenCalledWith('timeout_guard:started', expect.objectContaining({
-      action: 'my_action',
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'timeout_guard:started',
+      expect.objectContaining({
+        action: 'my_action',
+      })
+    );
   });
 
   it('fires timeout_guard:timed_out after timeout expires', () => {
@@ -83,11 +96,16 @@ describe('timeoutGuardHandler', () => {
     const cfg = { ...timeoutGuardHandler.defaultConfig!, default_timeout_ms: 500 };
     timeoutGuardHandler.onAttach!(node, cfg, ctx as any);
 
-    timeoutGuardHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'timeout_guard:execute',
-      action: 'slow_op',
-      timeout_ms: 500,
-    } as any);
+    timeoutGuardHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'timeout_guard:execute',
+        action: 'slow_op',
+        timeout_ms: 500,
+      } as any
+    );
 
     vi.advanceTimersByTime(501);
 
@@ -104,18 +122,28 @@ describe('timeoutGuardHandler', () => {
     const cfg = timeoutGuardHandler.defaultConfig!;
     timeoutGuardHandler.onAttach!(node, cfg, ctx as any);
 
-    timeoutGuardHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'timeout_guard:execute',
-      action: 'op_to_cancel',
-    } as any);
+    timeoutGuardHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'timeout_guard:execute',
+        action: 'op_to_cancel',
+      } as any
+    );
 
     const state = node.__timeoutGuardState;
     const [guardId] = [...state.operations.keys()];
 
-    timeoutGuardHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'timeout_guard:cancel',
-      guardId,
-    } as any);
+    timeoutGuardHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'timeout_guard:cancel',
+        guardId,
+      } as any
+    );
 
     expect(state.operations.has(guardId)).toBe(false);
     // Advance time — timer should NOT fire after cancel
@@ -132,9 +160,14 @@ describe('timeoutGuardHandler', () => {
     const cfg = timeoutGuardHandler.defaultConfig!;
     timeoutGuardHandler.onAttach!(node, cfg, ctx as any);
 
-    timeoutGuardHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'timeout_guard:get_status',
-    } as any);
+    timeoutGuardHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'timeout_guard:get_status',
+      } as any
+    );
 
     expect(ctx.emit).toHaveBeenCalledWith('timeout_guard:status', expect.anything());
   });
@@ -145,14 +178,24 @@ describe('timeoutGuardHandler', () => {
     const cfg = timeoutGuardHandler.defaultConfig!;
     timeoutGuardHandler.onAttach!(node, cfg, ctx as any);
 
-    timeoutGuardHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'timeout_guard:execute',
-      action: 'op1',
-    } as any);
-    timeoutGuardHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'timeout_guard:execute',
-      action: 'op2',
-    } as any);
+    timeoutGuardHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'timeout_guard:execute',
+        action: 'op1',
+      } as any
+    );
+    timeoutGuardHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'timeout_guard:execute',
+        action: 'op2',
+      } as any
+    );
 
     timeoutGuardHandler.onDetach!(node, cfg, ctx as any);
 

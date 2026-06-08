@@ -226,8 +226,18 @@ describe('LWWRegister', () => {
         const timestamp = 1_000_000;
 
         // Two operations from the same agent at the same millisecond
-        const appliedFirst = register1.applyRemoteOperation('op-alpha', 'burst-a', timestamp, sharedDid);
-        const appliedSecond = register1.applyRemoteOperation('op-zeta', 'burst-z', timestamp, sharedDid);
+        const appliedFirst = register1.applyRemoteOperation(
+          'op-alpha',
+          'burst-a',
+          timestamp,
+          sharedDid
+        );
+        const appliedSecond = register1.applyRemoteOperation(
+          'op-zeta',
+          'burst-z',
+          timestamp,
+          sharedDid
+        );
 
         // Second op has higher operationId ('op-zeta' > 'op-alpha') → should win
         expect(appliedFirst).toBe(true);
@@ -272,7 +282,7 @@ describe('LWWRegister', () => {
         const timestamp = Date.now();
         const ops = [
           { id: 'op-1', value: 'alpha', did: 'did:test:aaa' },
-          { id: 'op-2', value: 'beta',  did: 'did:test:bbb' },
+          { id: 'op-2', value: 'beta', did: 'did:test:bbb' },
           { id: 'op-3', value: 'gamma', did: 'did:test:ccc' },
         ] as const;
 

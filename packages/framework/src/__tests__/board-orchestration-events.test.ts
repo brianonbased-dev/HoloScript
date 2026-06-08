@@ -204,10 +204,7 @@ describe('board orchestration events', () => {
 
     expect(timeline.taskId).toBe('task_parent');
     expect(timeline.childTaskIds).toEqual(['task_child_api', 'task_child_verify']);
-    expect(timeline.waves.map((wave) => wave.childIds)).toEqual([
-      ['phase_api'],
-      ['phase_verify'],
-    ]);
+    expect(timeline.waves.map((wave) => wave.childIds)).toEqual([['phase_api'], ['phase_verify']]);
     expect(timeline.events.map((event) => event.type)).toEqual(['decompose', 'verify']);
   });
 

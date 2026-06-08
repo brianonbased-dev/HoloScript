@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-digital-twin",
-  name: "Digital Twin",
-  description: "Factory floor digital twin with machines, conveyors, and status indicators",
-  thumbnail: "🏭",
-  tags: ["iot","twin","factory","industrial"],
-  category: "iot",
+  id: 'wizard-digital-twin',
+  name: 'Digital Twin',
+  description: 'Factory floor digital twin with machines, conveyors, and status indicators',
+  thumbnail: '🏭',
+  tags: ['iot', 'twin', 'factory', 'industrial'],
+  category: 'iot',
   code: `composition "Factory Digital Twin" {
   environment {
     skybox: "studio"
@@ -92,7 +92,7 @@ export const template: SceneTemplate = {
     color: "#445544"
     label: "Output: 847 units"
   }
-}`
+}`,
 };
 
 export default template;

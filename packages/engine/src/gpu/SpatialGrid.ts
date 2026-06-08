@@ -87,7 +87,9 @@ export class SpatialGrid {
     };
 
     this.totalCells =
-      this.options.gridDimensions[0] * this.options.gridDimensions[1] * this.options.gridDimensions[2];
+      this.options.gridDimensions[0] *
+      this.options.gridDimensions[1] *
+      this.options.gridDimensions[2];
   }
 
   /**

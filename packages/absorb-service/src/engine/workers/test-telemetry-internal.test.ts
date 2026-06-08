@@ -34,12 +34,8 @@ describe('WorkerPool telemetry (internal)', () => {
       expect(telemetry.stats.failedJobs).toBe(0);
       expect(telemetry.stats.maxQueueDepth).toBeGreaterThanOrEqual(1);
       expect(telemetry.stats.avgJobDurationMs).toBeGreaterThanOrEqual(0);
-      expect(
-        telemetry.recentLogs.some((line) => line.includes('job-dispatched'))
-      ).toBe(true);
-      expect(
-        telemetry.recentLogs.some((line) => line.includes('job-complete'))
-      ).toBe(true);
+      expect(telemetry.recentLogs.some((line) => line.includes('job-dispatched'))).toBe(true);
+      expect(telemetry.recentLogs.some((line) => line.includes('job-complete'))).toBe(true);
     } finally {
       await pool.terminate();
     }

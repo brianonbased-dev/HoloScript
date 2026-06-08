@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-narupa-sim",
-  name: "Narupa MD Simulation",
-  description: "Interactive molecular dynamics with real-time force manipulation",
-  thumbnail: "🔬",
-  tags: ["science","narupa","molecular-dynamics","simulation"],
-  category: "science",
+  id: 'wizard-narupa-sim',
+  name: 'Narupa MD Simulation',
+  description: 'Interactive molecular dynamics with real-time force manipulation',
+  thumbnail: '🔬',
+  tags: ['science', 'narupa', 'molecular-dynamics', 'simulation'],
+  category: 'science',
   code: `composition "Narupa MD Session" {
   environment {
     skybox: "night"
@@ -123,7 +123,7 @@ export const template: SceneTemplate = {
       easing: "easeInOut"
     }
   }
-}`
+}`,
 };
 
 export default template;

@@ -123,7 +123,7 @@ export interface ZKVerificationResult {
 export function commitGeometry(
   geometryHash: string,
   salt?: string,
-  mode: HashMode = HASH_MODE_DEFAULT,
+  mode: HashMode = HASH_MODE_DEFAULT
 ): ZKGeometryCommitment {
   if (!geometryHash || geometryHash.length === 0) {
     throw new Error('commitGeometry: geometryHash must be non-empty');
@@ -146,7 +146,9 @@ function generateSalt(): string {
   if (typeof globalThis !== 'undefined' && globalThis.crypto?.getRandomValues) {
     const buf = new Uint8Array(16);
     globalThis.crypto.getRandomValues(buf);
-    return Array.from(buf).map((b) => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(buf)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
   }
   // Fallback for environments without Web Crypto (deterministic for tests).
   let s = '';
@@ -219,7 +221,7 @@ export function generateComplianceProof(params: {
  */
 export function verifyZKCompliance(
   proof: ZKComplianceProof,
-  options: { clockToleranceMs?: number } = {},
+  options: { clockToleranceMs?: number } = {}
 ): ZKVerificationResult {
   const violations: string[] = [];
   const notes: string[] = [];
@@ -233,7 +235,7 @@ export function verifyZKCompliance(
   // V2: stepCount matches digest array length
   if (proof.stepCount !== proof.stateDigests.length) {
     violations.push(
-      `V2: stepCount (${proof.stepCount}) does not match stateDigests.length (${proof.stateDigests.length})`,
+      `V2: stepCount (${proof.stepCount}) does not match stateDigests.length (${proof.stateDigests.length})`
     );
   }
 
@@ -252,9 +254,7 @@ export function verifyZKCompliance(
   // V5: no consecutive frozen steps (same digest twice in a row is suspicious)
   for (let i = 1; i < proof.stateDigests.length; i++) {
     if (proof.stateDigests[i] === proof.stateDigests[i - 1]) {
-      violations.push(
-        `V5: stateDigests[${i - 1}] === stateDigests[${i}] — solver may be frozen`,
-      );
+      violations.push(`V5: stateDigests[${i - 1}] === stateDigests[${i}] — solver may be frozen`);
     }
   }
 
@@ -267,20 +267,20 @@ export function verifyZKCompliance(
   const now = Date.now();
   if (proof.timestamp > now + tol) {
     violations.push(
-      `V7: proof timestamp ${proof.timestamp} is ${proof.timestamp - now} ms in the future`,
+      `V7: proof timestamp ${proof.timestamp} is ${proof.timestamp - now} ms in the future`
     );
   }
 
   // V8: GPU digest count consistency
   if (proof.gpuOutputDigests.length > 0 && proof.gpuOutputDigests.length !== proof.stepCount) {
     violations.push(
-      `V8: gpuOutputDigests.length (${proof.gpuOutputDigests.length}) !== stepCount (${proof.stepCount})`,
+      `V8: gpuOutputDigests.length (${proof.gpuOutputDigests.length}) !== stepCount (${proof.stepCount})`
     );
   }
 
   if (violations.length === 0) {
     notes.push(
-      `Compliance verified: ${proof.stepCount} steps, solver=${proof.solverType}, dt=${proof.fixedDt}`,
+      `Compliance verified: ${proof.stepCount} steps, solver=${proof.solverType}, dt=${proof.fixedDt}`
     );
     if (proof.gpuOutputDigests.length > 0) {
       notes.push(`GPU output verified: ${proof.gpuOutputDigests.length} readback digests`);
@@ -304,7 +304,7 @@ export function openCommitment(
   commitment: string,
   geometryHash: string,
   salt: string,
-  mode: HashMode = HASH_MODE_DEFAULT,
+  mode: HashMode = HASH_MODE_DEFAULT
 ): boolean {
   const preimage = `${geometryHash}:${salt}`;
   const enc = new TextEncoder();

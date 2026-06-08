@@ -10,7 +10,7 @@ describe('HoloMap strict WebGPU gate', () => {
         allowCpuFallback: false,
         modelHash: 'strict-test',
         seed: 1,
-      }),
+      })
     ).rejects.toThrow(/WebGPU/);
   });
 });

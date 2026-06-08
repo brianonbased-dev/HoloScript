@@ -34,11 +34,19 @@ beforeEach(() => clearProceduralTextures());
 
 /** Register the REAL botanical generators under the keys the core mapper emits. */
 function registerBotanicalGenerators(): void {
-  registerProceduralTexture('botanical_normal', (p) =>
-    generateBotanicalNormalMap(p as Parameters<typeof generateBotanicalNormalMap>[0]) as ProceduralPixelData
+  registerProceduralTexture(
+    'botanical_normal',
+    (p) =>
+      generateBotanicalNormalMap(
+        p as Parameters<typeof generateBotanicalNormalMap>[0]
+      ) as ProceduralPixelData
   );
-  registerProceduralTexture('botanical_roughness', (p) =>
-    generateBotanicalRoughnessMap(p as Parameters<typeof generateBotanicalRoughnessMap>[0]) as ProceduralPixelData
+  registerProceduralTexture(
+    'botanical_roughness',
+    (p) =>
+      generateBotanicalRoughnessMap(
+        p as Parameters<typeof generateBotanicalRoughnessMap>[0]
+      ) as ProceduralPixelData
   );
 }
 
@@ -76,12 +84,15 @@ describe('lotus compiled-material spec — core → renderer contract', () => {
 
     // Drive onBeforeCompile against a mock shader carrying the real splice points.
     const shader = {
-      vertexShader: '#include <common>\n#include <begin_vertex>\n#include <worldpos_vertex>\nvoid main(){}',
+      vertexShader:
+        '#include <common>\n#include <begin_vertex>\n#include <worldpos_vertex>\nvoid main(){}',
       fragmentShader:
         '#include <common>\n#include <normal_fragment_maps>\n#include <color_fragment>\n#include <emissivemap_fragment>\nvoid main(){}',
       uniforms: {} as Record<string, { value: unknown }>,
     };
-    (material as unknown as { onBeforeCompile: (s: typeof shader) => void }).onBeforeCompile(shader);
+    (material as unknown as { onBeforeCompile: (s: typeof shader) => void }).onBeforeCompile(
+      shader
+    );
 
     // A real petal fragment injection landed (vein field function is unmistakable).
     expect(shader.fragmentShader).toContain('lotusVeinField');
@@ -116,7 +127,9 @@ describe('lotus compiled-material spec — core → renderer contract', () => {
   it('honors dynamic uniform overrides (bud pose), leaving static PBR untouched', () => {
     const profile = createBotanicalLotusRenderProfile();
     const open = buildLotusPetalMaterialSpec(profile);
-    const bud = buildLotusPetalMaterialSpec(profile, { dynamic: { devTime: 0, growth: 0, bloom: 0 } });
+    const bud = buildLotusPetalMaterialSpec(profile, {
+      dynamic: { devTime: 0, growth: 0, bloom: 0 },
+    });
 
     expect(open.shaderChunks!.uniforms!.uPetalDevTime).toEqual({ value: 1 });
     expect(bud.shaderChunks!.uniforms!.uPetalDevTime).toEqual({ value: 0 });

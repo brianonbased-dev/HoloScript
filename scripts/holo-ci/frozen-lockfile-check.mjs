@@ -93,7 +93,11 @@ function workspaceManifests() {
     const depth = pat.includes('**') ? 2 : 1;
     const walk = (dir, d) => {
       let entries;
-      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
       for (const e of entries) {
         if (!e.isDirectory() || e.name === 'node_modules' || e.name.startsWith('.')) continue;
         const sub = path.join(dir, e.name);
@@ -147,7 +151,10 @@ function parseImporters(lockText) {
     }
     if (!curImporter) continue;
     // dep group header: "    dependencies:" (4-space) — skip, we don't need the group
-    if (col === 4 && /^\s*(dependencies|devDependencies|optionalDependencies|peerDependencies):\s*$/.test(line)) {
+    if (
+      col === 4 &&
+      /^\s*(dependencies|devDependencies|optionalDependencies|peerDependencies):\s*$/.test(line)
+    ) {
       curDepName = null;
       continue;
     }
@@ -161,7 +168,10 @@ function parseImporters(lockText) {
     const spec = line.match(/^ {8}specifier:\s*(.+?)\s*$/);
     if (col === 8 && spec && curDepName) {
       let val = spec[1];
-      if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith('"') && val.endsWith('"'))) {
+      if (
+        (val.startsWith("'") && val.endsWith("'")) ||
+        (val.startsWith('"') && val.endsWith('"'))
+      ) {
         val = val.slice(1, -1);
       }
       importers[curImporter][curDepName] = val;
@@ -224,14 +234,16 @@ function staticCheck() {
   const importers = parseImporters(lockText);
   const overrideTargets = parseOverrideTargets(lockText);
   const manifests = workspaceManifests();
-  const drift = [];   // hard
-  const soft = [];    // explainable / informational
+  const drift = []; // hard
+  const soft = []; // explainable / informational
 
   if (importers === null) {
     // No importers block: single-package lockfile. Compare root package.json against the
     // top-level dependency specs if present; otherwise we cannot statically verify — defer
     // to the pnpm probe.
-    console.log('  [info] lockfile has no importers: block — single-package layout; static layer deferred to pnpm probe');
+    console.log(
+      '  [info] lockfile has no importers: block — single-package layout; static layer deferred to pnpm probe'
+    );
     return { drift, soft, deferred: true };
   }
 
@@ -242,20 +254,28 @@ function staticCheck() {
     if (!lockDeps) {
       // Importer present in workspace but missing from lockfile entirely.
       if (Object.keys(manifestDeps).length > 0) {
-        drift.push(`${rel}: importer "${importerKey}" has ${Object.keys(manifestDeps).length} dep(s) but is ABSENT from pnpm-lock.yaml importers (lock never regenerated)`);
+        drift.push(
+          `${rel}: importer "${importerKey}" has ${Object.keys(manifestDeps).length} dep(s) but is ABSENT from pnpm-lock.yaml importers (lock never regenerated)`
+        );
       }
       continue;
     }
     for (const [name, spec] of Object.entries(manifestDeps)) {
       if (!(name in lockDeps)) {
         // THE deploy-bricking drift: a dep added to package.json, lock never regenerated.
-        drift.push(`${rel}: "${name}@${spec}" present in package.json but MISSING from pnpm-lock.yaml (run \`pnpm install --lockfile-only\` to regenerate)`);
+        drift.push(
+          `${rel}: "${name}@${spec}" present in package.json but MISSING from pnpm-lock.yaml (run \`pnpm install --lockfile-only\` to regenerate)`
+        );
       } else if (lockDeps[name] !== spec) {
         if (isExplainableMismatch(name, spec, lockDeps[name], overrideTargets)) {
-          soft.push(`${rel}: "${name}" specifier package.json="${spec}" lock="${lockDeps[name]}" (override/workspace rewrite — expected)`);
+          soft.push(
+            `${rel}: "${name}" specifier package.json="${spec}" lock="${lockDeps[name]}" (override/workspace rewrite — expected)`
+          );
         } else {
           // Unexplained specifier mismatch — treat as hard drift only when pnpm can't vouch.
-          soft.push(`${rel}: "${name}" specifier MISMATCH package.json="${spec}" lock="${lockDeps[name]}"`);
+          soft.push(
+            `${rel}: "${name}" specifier MISMATCH package.json="${spec}" lock="${lockDeps[name]}"`
+          );
         }
       }
     }
@@ -269,7 +289,10 @@ function pnpmProbe() {
   let out;
   try {
     out = execSync('pnpm install --frozen-lockfile --lockfile-only', {
-      cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 300000,
+      cwd: ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 300000,
     });
   } catch (e) {
     out = String(e.stdout || '') + String(e.stderr || '') + String(e.message || '');
@@ -286,7 +309,9 @@ console.log(`\n[frozen-lockfile] package.json ⇄ pnpm-lock.yaml drift check @ $
 
 const probe = pnpmProbe();
 if (probe.ran) {
-  console.log(`  ${probe.drift ? '[FAIL]' : '[ok]  '} pnpm --frozen-lockfile --lockfile-only probe: ${probe.reason}`);
+  console.log(
+    `  ${probe.drift ? '[FAIL]' : '[ok]  '} pnpm --frozen-lockfile --lockfile-only probe: ${probe.reason}`
+  );
 } else {
   console.log(`  [skip] pnpm probe (${probe.reason})`);
 }
@@ -309,15 +334,22 @@ const escalate = !probe.ran && unexplainedSoft.length > 0;
 if (stat.drift.length) {
   for (const d of stat.drift) fail(d);
 } else if (!stat.deferred) {
-  console.log(`  [ok]   static check: every package.json dependency is present in pnpm-lock.yaml (no MISSING-dep drift)`);
+  console.log(
+    `  [ok]   static check: every package.json dependency is present in pnpm-lock.yaml (no MISSING-dep drift)`
+  );
 }
 for (const s of soft) {
-  if (escalate && /specifier MISMATCH/.test(s)) fail(s + ' [pnpm probe unavailable — cannot confirm safe]');
+  if (escalate && /specifier MISMATCH/.test(s))
+    fail(s + ' [pnpm probe unavailable — cannot confirm safe]');
   else console.log(`  [warn] ${s}`);
 }
 
 const drifted = probe.drift || stat.drift.length > 0 || escalate;
-console.log(`\nRESULT: ${drifted
-  ? 'DRIFT — pnpm-lock.yaml is OUT OF SYNC with package.json. Run `pnpm install --lockfile-only` and commit the updated lockfile BEFORE merging (an unsynced lock bricks every deploy: ERR_PNPM_OUTDATED_LOCKFILE).'
-  : 'IN SYNC — pnpm-lock.yaml matches every package.json (overrides/workspace rewrites accounted for).'}`);
+console.log(
+  `\nRESULT: ${
+    drifted
+      ? 'DRIFT — pnpm-lock.yaml is OUT OF SYNC with package.json. Run `pnpm install --lockfile-only` and commit the updated lockfile BEFORE merging (an unsynced lock bricks every deploy: ERR_PNPM_OUTDATED_LOCKFILE).'
+      : 'IN SYNC — pnpm-lock.yaml matches every package.json (overrides/workspace rewrites accounted for).'
+  }`
+);
 process.exit(drifted ? 1 : 0);

@@ -16,10 +16,7 @@ import { renderHologramBundle } from './hologram-renderer';
 import { callHologramWorkerRender, isHologramWorkerConfigured } from './hologram-worker-client';
 import { publishHologramTeamFeed, sendHologramTeamMessage } from './hologram-holomesh-send';
 import { getHologramAsset, uploadHologramBundle } from './hologram-bundle-client';
-import {
-  resolveSecretWithLease,
-  VaultLeaseError,
-} from './holomesh/identity/vault-lease-registry';
+import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
 
 /**
  * Phase 2 wrapper around `process.env.HOLOMESH_API_KEY` for hot per-request
@@ -72,7 +69,7 @@ function assertBase64WithinLimit(b64: string, label = 'sourceBase64'): void {
   const cap = getMaxHologramBase64Bytes();
   if (b64.length > cap) {
     throw new Error(
-      `hologram: oversized hologram payload — ${label} length ${b64.length} exceeds cap ${cap} bytes (set HOLOGRAM_MCP_MAX_BASE64_BYTES to override)`,
+      `hologram: oversized hologram payload — ${label} length ${b64.length} exceeds cap ${cap} bytes (set HOLOGRAM_MCP_MAX_BASE64_BYTES to override)`
     );
   }
 }
@@ -100,7 +97,7 @@ function assertBase64WellFormed(b64: string, label = 'sourceBase64'): void {
   const stripped = b64.replace(/\s+/g, '');
   if (stripped.length === 0 || stripped.length % 4 === 1 || !BASE64_RE.test(stripped)) {
     throw new Error(
-      `hologram: malformed media payload — ${label} is not well-formed base64 (RFC 4648 alphabet A-Z a-z 0-9 + / = or URL-safe - _ only)`,
+      `hologram: malformed media payload — ${label} is not well-formed base64 (RFC 4648 alphabet A-Z a-z 0-9 + / = or URL-safe - _ only)`
     );
   }
 }
@@ -128,12 +125,12 @@ function assertInlineSourceWithinLimit(source: string): void {
   // kept as a pass-through in the non-base64 branch below.
   if (/^data:[^;]*;base64,?$/i.test(source)) {
     throw new Error(
-      'hologram: malformed media payload — data: URL is missing a base64 payload after ";base64,"',
+      'hologram: malformed media payload — data: URL is missing a base64 payload after ";base64,"'
     );
   }
   if (/^data:;base64,/i.test(source)) {
     throw new Error(
-      'hologram: malformed media payload — data: URL has empty MIME type before ";base64,"',
+      'hologram: malformed media payload — data: URL has empty MIME type before ";base64,"'
     );
   }
 }
@@ -158,7 +155,8 @@ export const hologramToolDefinitions: Tool[] = [
         },
         source: {
           type: 'string',
-          description: 'Media path, file URL, or remote URL (optional if sourceUrl or sourceBase64 is set).',
+          description:
+            'Media path, file URL, or remote URL (optional if sourceUrl or sourceBase64 is set).',
         },
         sourceUrl: {
           type: 'string',
@@ -195,7 +193,10 @@ export const hologramToolDefinitions: Tool[] = [
           type: 'string',
           enum: ['image', 'gif', 'video'],
         },
-        source: { type: 'string', description: 'Path or URL (optional if sourceUrl or sourceBase64).' },
+        source: {
+          type: 'string',
+          description: 'Path or URL (optional if sourceUrl or sourceBase64).',
+        },
         sourceUrl: { type: 'string' },
         sourceBase64: { type: 'string' },
         name: { type: 'string' },
@@ -223,7 +224,10 @@ export const hologramToolDefinitions: Tool[] = [
           type: 'string',
           enum: ['image', 'gif', 'video'],
         },
-        source: { type: 'string', description: 'Path or URL (optional if sourceUrl or sourceBase64).' },
+        source: {
+          type: 'string',
+          description: 'Path or URL (optional if sourceUrl or sourceBase64).',
+        },
         sourceUrl: { type: 'string' },
         sourceBase64: { type: 'string' },
         name: { type: 'string' },
@@ -251,7 +255,10 @@ export const hologramToolDefinitions: Tool[] = [
           type: 'string',
           enum: ['image', 'gif', 'video'],
         },
-        source: { type: 'string', description: 'Path or URL (optional if sourceUrl or sourceBase64).' },
+        source: {
+          type: 'string',
+          description: 'Path or URL (optional if sourceUrl or sourceBase64).',
+        },
         sourceUrl: { type: 'string' },
         sourceBase64: { type: 'string' },
         name: { type: 'string' },
@@ -295,7 +302,10 @@ export const hologramToolDefinitions: Tool[] = [
       type: 'object',
       properties: {
         hash: { type: 'string', description: 'Content hash from worker or local bundle.' },
-        shareUrl: { type: 'string', description: 'Public https share URL for the hologram viewer.' },
+        shareUrl: {
+          type: 'string',
+          description: 'Public https share URL for the hologram viewer.',
+        },
         teamId: {
           type: 'string',
           description: 'HoloMesh team id. Defaults to HOLOMESH_TEAM_ID when omitted.',
@@ -313,12 +323,18 @@ export const hologramToolDefinitions: Tool[] = [
       properties: {
         hash: { type: 'string', description: 'Content hash from worker or local bundle.' },
         shareUrl: { type: 'string', description: 'Public share URL for the hologram asset.' },
-        recipientAgentId: { type: 'string', description: 'Teammate agent id (must be on the team).' },
+        recipientAgentId: {
+          type: 'string',
+          description: 'Teammate agent id (must be on the team).',
+        },
         teamId: {
           type: 'string',
           description: 'HoloMesh team id. Defaults to HOLOMESH_TEAM_ID when omitted.',
         },
-        note: { type: 'string', description: 'Optional short note included in the message payload.' },
+        note: {
+          type: 'string',
+          description: 'Optional short note included in the message payload.',
+        },
       },
       required: ['hash', 'shareUrl', 'recipientAgentId'],
     },
@@ -332,7 +348,8 @@ export const hologramToolDefinitions: Tool[] = [
       properties: {
         meta: {
           type: 'string',
-          description: 'JSON-stringified HologramMeta (schemaVersion, width, height, frames, modelId, backend, inferenceMs, createdAt, sourceKind).',
+          description:
+            'JSON-stringified HologramMeta (schemaVersion, width, height, frames, modelId, backend, inferenceMs, createdAt, sourceKind).',
         },
         depthBinBase64: {
           type: 'string',
@@ -392,7 +409,10 @@ function assertMediaType(value: unknown): HologramMediaType {
   throw new Error('hologram: mediaType must be one of image|gif|video');
 }
 
-function resolveCompositionSource(args: Record<string, unknown>, mediaType: HologramMediaType): string {
+function resolveCompositionSource(
+  args: Record<string, unknown>,
+  mediaType: HologramMediaType
+): string {
   const s = typeof args.source === 'string' ? args.source.trim() : '';
   const u = typeof args.sourceUrl === 'string' ? args.sourceUrl.trim() : '';
   const b64 = typeof args.sourceBase64 === 'string' ? args.sourceBase64.trim() : '';
@@ -413,7 +433,7 @@ function resolveCompositionSource(args: Record<string, unknown>, mediaType: Holo
 
 async function buildWorkerMediaPayload(
   args: Record<string, unknown>,
-  mediaType: HologramMediaType,
+  mediaType: HologramMediaType
 ): Promise<{ sourceUrl?: string; sourceBase64?: string }> {
   const b64Field = typeof args.sourceBase64 === 'string' ? args.sourceBase64.trim() : '';
   if (b64Field) {
@@ -442,7 +462,7 @@ async function buildWorkerMediaPayload(
     // where `readFile('data:image/png')` would produce a misleading ENOENT.
     if (/^data:[^;]*;base64,?$/i.test(s) || /^data:;base64,/i.test(s) || /^data:[^,;]*$/i.test(s)) {
       throw new Error(
-        'hologram: malformed media payload — worker received a data: URL without a valid ";base64,<payload>" section',
+        'hologram: malformed media payload — worker received a data: URL without a valid ";base64,<payload>" section'
       );
     }
   }
@@ -501,7 +521,11 @@ function getMediaTraits(mediaType: HologramMediaType, source: string): HoloTrait
   ];
 }
 
-export function buildComposition(mediaType: HologramMediaType, source: string, name?: string): HoloComposition {
+export function buildComposition(
+  mediaType: HologramMediaType,
+  source: string,
+  name?: string
+): HoloComposition {
   const objectName = (name && name.trim()) || 'HologramMedia';
   const traits = getMediaTraits(mediaType, source);
 
@@ -566,7 +590,10 @@ export function toHoloCode(mediaType: HologramMediaType, source: string, name?: 
   return [header, ...base, ...body, '  }', '}'].join('\n');
 }
 
-export async function handleHologramTool(name: string, args: Record<string, unknown>): Promise<unknown> {
+export async function handleHologramTool(
+  name: string,
+  args: Record<string, unknown>
+): Promise<unknown> {
   if (name === 'holo_hologram_publish_feed') {
     const hash = typeof args.hash === 'string' ? args.hash.trim() : '';
     const shareUrl = typeof args.shareUrl === 'string' ? args.shareUrl.trim() : '';
@@ -587,7 +614,8 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
   if (name === 'holo_hologram_send') {
     const hash = typeof args.hash === 'string' ? args.hash.trim() : '';
     const shareUrl = typeof args.shareUrl === 'string' ? args.shareUrl.trim() : '';
-    const recipientAgentId = typeof args.recipientAgentId === 'string' ? args.recipientAgentId.trim() : '';
+    const recipientAgentId =
+      typeof args.recipientAgentId === 'string' ? args.recipientAgentId.trim() : '';
     const teamIdRaw = typeof args.teamId === 'string' ? args.teamId.trim() : '';
     const teamId = teamIdRaw || process.env.HOLOMESH_TEAM_ID?.trim() || '';
     const note = typeof args.note === 'string' ? args.note : undefined;
@@ -614,9 +642,12 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
     const meta = typeof args.meta === 'string' ? args.meta : '';
     const depthBinBase64 = typeof args.depthBinBase64 === 'string' ? args.depthBinBase64 : '';
     const normalBinBase64 = typeof args.normalBinBase64 === 'string' ? args.normalBinBase64 : '';
-    const quiltPngBase64 = typeof args.quiltPngBase64 === 'string' ? args.quiltPngBase64 : undefined;
-    const mvhevcMp4Base64 = typeof args.mvhevcMp4Base64 === 'string' ? args.mvhevcMp4Base64 : undefined;
-    const parallaxWebmBase64 = typeof args.parallaxWebmBase64 === 'string' ? args.parallaxWebmBase64 : undefined;
+    const quiltPngBase64 =
+      typeof args.quiltPngBase64 === 'string' ? args.quiltPngBase64 : undefined;
+    const mvhevcMp4Base64 =
+      typeof args.mvhevcMp4Base64 === 'string' ? args.mvhevcMp4Base64 : undefined;
+    const parallaxWebmBase64 =
+      typeof args.parallaxWebmBase64 === 'string' ? args.parallaxWebmBase64 : undefined;
     if (!meta) throw new Error('hologram upload_bundle: meta is required');
     if (!depthBinBase64) throw new Error('hologram upload_bundle: depthBinBase64 is required');
     if (!normalBinBase64) throw new Error('hologram upload_bundle: normalBinBase64 is required');
@@ -643,7 +674,7 @@ export async function handleHologramTool(name: string, args: Record<string, unkn
     if (!asset) throw new Error('hologram get_asset: asset is required');
     if (!HOLOGRAM_ASSETS.has(asset)) {
       throw new Error(
-        'hologram get_asset: asset must be one of depth.bin|normal.bin|quilt.png|mvhevc.mp4|parallax.webm',
+        'hologram get_asset: asset must be one of depth.bin|normal.bin|quilt.png|mvhevc.mp4|parallax.webm'
       );
     }
     const result = await getHologramAsset(hash, asset);

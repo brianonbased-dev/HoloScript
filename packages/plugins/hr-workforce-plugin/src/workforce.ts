@@ -108,12 +108,16 @@ function olsAdjusted(employees: Employee[]): Map<string, number> {
   const n = employees.length;
   // Design matrix columns: [1, yearsExperience, jobLevel]
   // Solve via normal equations for residuals
-  const X: number[][] = employees.map(e => [1, e.yearsExperience, e.jobLevel]);
-  const y = employees.map(e => e.salary);
+  const X: number[][] = employees.map((e) => [1, e.yearsExperience, e.jobLevel]);
+  const y = employees.map((e) => e.salary);
 
   // XtX and Xty (3×3)
-  const XtX = [[0,0,0],[0,0,0],[0,0,0]];
-  const Xty = [0,0,0];
+  const XtX = [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+  ];
+  const Xty = [0, 0, 0];
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < 3; j++) {
       Xty[j] += X[i][j] * y[i];
@@ -125,7 +129,8 @@ function olsAdjusted(employees: Employee[]): Map<string, number> {
   const M = XtX.map((row, i) => [...row, Xty[i]]);
   for (let col = 0; col < 3; col++) {
     let pivotRow = col;
-    for (let r = col + 1; r < 3; r++) if (Math.abs(M[r][col]) > Math.abs(M[pivotRow][col])) pivotRow = r;
+    for (let r = col + 1; r < 3; r++)
+      if (Math.abs(M[r][col]) > Math.abs(M[pivotRow][col])) pivotRow = r;
     [M[col], M[pivotRow]] = [M[pivotRow], M[col]];
     if (Math.abs(M[col][col]) < 1e-12) continue;
     const inv = 1 / M[col][col];
@@ -166,12 +171,16 @@ function welchPValue(t: number, n1: number, n2: number): number {
 
 function erf(x: number): number {
   // Abramowitz & Stegun approximation 7.1.26
-  const a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429;
-  const p=0.3275911;
+  const a1 = 0.254829592,
+    a2 = -0.284496736,
+    a3 = 1.421413741,
+    a4 = -1.453152027,
+    a5 = 1.061405429;
+  const p = 0.3275911;
   const sign = x >= 0 ? 1 : -1;
   x = Math.abs(x);
   const t = 1 / (1 + p * x);
-  const poly = ((((a5 * t + a4) * t) + a3) * t + a2) * t + a1;
+  const poly = (((a5 * t + a4) * t + a3) * t + a2) * t + a1;
   return sign * (1 - poly * t * Math.exp(-x * x));
 }
 
@@ -182,32 +191,34 @@ function erf(x: number): number {
 export function payEquityAnalysis(
   employees: Employee[],
   groupA: string,
-  groupB: string,
+  groupB: string
 ): PayEquityResult {
-  const ga = employees.filter(e => e.group === groupA);
-  const gb = employees.filter(e => e.group === groupB);
+  const ga = employees.filter((e) => e.group === groupA);
+  const gb = employees.filter((e) => e.group === groupB);
 
   if (ga.length < 2) throw new Error(`Group '${groupA}' needs at least 2 employees`);
   if (gb.length < 2) throw new Error(`Group '${groupB}' needs at least 2 employees`);
 
-  const meanA = mean(ga.map(e => e.salary));
-  const meanB = mean(gb.map(e => e.salary));
+  const meanA = mean(ga.map((e) => e.salary));
+  const meanB = mean(gb.map((e) => e.salary));
   const rawGapPct = ((meanA - meanB) / meanB) * 100;
 
   // Adjusted gap: residuals from pooled OLS
-  const pool = employees.filter(e => e.group === groupA || e.group === groupB);
+  const pool = employees.filter((e) => e.group === groupA || e.group === groupB);
   const residuals = olsAdjusted(pool);
 
-  const resA = ga.map(e => residuals.get(e.id) ?? 0);
-  const resB = gb.map(e => residuals.get(e.id) ?? 0);
+  const resA = ga.map((e) => residuals.get(e.id) ?? 0);
+  const resB = gb.map((e) => residuals.get(e.id) ?? 0);
   const meanResA = mean(resA);
   const meanResB = mean(resB);
   const adjustedGapPct = meanB > 0 ? ((meanResA - meanResB) / meanB) * 100 : 0;
 
   // Cohen's d (pooled SD)
-  const varA = variance(ga.map(e => e.salary));
-  const varB = variance(gb.map(e => e.salary));
-  const pooledSD = Math.sqrt(((ga.length - 1) * varA + (gb.length - 1) * varB) / (ga.length + gb.length - 2));
+  const varA = variance(ga.map((e) => e.salary));
+  const varB = variance(gb.map((e) => e.salary));
+  const pooledSD = Math.sqrt(
+    ((ga.length - 1) * varA + (gb.length - 1) * varB) / (ga.length + gb.length - 2)
+  );
   const cohensD = pooledSD > 0 ? (meanA - meanB) / pooledSD : 0;
 
   // Welch's t-test
@@ -217,7 +228,17 @@ export function payEquityAnalysis(
   const t = se > 0 ? (meanA - meanB) / se : 0;
   const pValue = welchPValue(t, ga.length, gb.length);
 
-  return { groupA, groupB, meanSalaryA: meanA, meanSalaryB: meanB, rawGapPct, adjustedGapPct, cohensD, pValue, significant: pValue < 0.05 };
+  return {
+    groupA,
+    groupB,
+    meanSalaryA: meanA,
+    meanSalaryB: meanB,
+    rawGapPct,
+    adjustedGapPct,
+    cohensD,
+    pValue,
+    significant: pValue < 0.05,
+  };
 }
 
 // ─── Merit increase modeling ──────────────────────────────────────────────────
@@ -230,27 +251,46 @@ export function payEquityAnalysis(
 export function meritBudgetAllocation(
   employees: Employee[],
   budgetFraction: number,
-  ratingWeights: Map<number, number> = new Map([[1,0.5],[2,1.0],[3,1.5],[4,2.0],[5,2.5]]),
+  ratingWeights: Map<number, number> = new Map([
+    [1, 0.5],
+    [2, 1.0],
+    [3, 1.5],
+    [4, 2.0],
+    [5, 2.5],
+  ])
 ): MeritBudgetResult {
-  if (budgetFraction <= 0 || budgetFraction > 0.5) throw new Error('budgetFraction must be in (0, 0.5]');
+  if (budgetFraction <= 0 || budgetFraction > 0.5)
+    throw new Error('budgetFraction must be in (0, 0.5]');
   if (employees.length === 0) throw new Error('No employees provided');
 
   const totalPayroll = employees.reduce((a, e) => a + e.salary, 0);
   const totalBudget = totalPayroll * budgetFraction;
 
-  const totalWeight = employees.reduce((acc, e) => acc + (ratingWeights.get(e.performanceRating) ?? 1), 0);
+  const totalWeight = employees.reduce(
+    (acc, e) => acc + (ratingWeights.get(e.performanceRating) ?? 1),
+    0
+  );
 
-  const allocations = employees.map(e => {
+  const allocations = employees.map((e) => {
     const weight = ratingWeights.get(e.performanceRating) ?? 1;
     const share = weight / totalWeight;
     const meritPct = (totalBudget * share) / e.salary;
     return { id: e.id, meritPct, newSalary: e.salary * (1 + meritPct) };
   });
 
-  const totalPaid = allocations.reduce((acc, a) => acc + (a.newSalary - employees.find(e => e.id === a.id)!.salary), 0);
+  const totalPaid = allocations.reduce(
+    (acc, a) => acc + (a.newSalary - employees.find((e) => e.id === a.id)!.salary),
+    0
+  );
   const budgetUsed = totalPaid / totalBudget;
 
-  return { budgetFraction, allocations, totalPaid, budgetUsed, withinBudget: Math.abs(budgetUsed - 1) < 1e-9 };
+  return {
+    budgetFraction,
+    allocations,
+    totalPaid,
+    budgetUsed,
+    withinBudget: Math.abs(budgetUsed - 1) < 1e-9,
+  };
 }
 
 // ─── Workforce demand forecasting (simple exponential smoothing) ─────────────
@@ -263,7 +303,7 @@ export function meritBudgetAllocation(
 export function workforceForecast(
   historical: number[],
   forecastPeriods: number,
-  alpha?: number,
+  alpha?: number
 ): ForecastResult {
   if (historical.length < 3) throw new Error('At least 3 historical data points required');
   if (forecastPeriods < 1) throw new Error('forecastPeriods must be ≥ 1');
@@ -287,7 +327,10 @@ export function workforceForecast(
     let bestRmse = Infinity;
     for (let a = 0.05; a <= 0.95; a += 0.05) {
       const r = rmseFor(a);
-      if (r < bestRmse) { bestRmse = r; bestAlpha = a; }
+      if (r < bestRmse) {
+        bestRmse = r;
+        bestAlpha = a;
+      }
     }
   }
 
@@ -311,36 +354,37 @@ export function workforceForecast(
  *  - Low performance: moderate risk
  *  - Below-market salary (approximated by below-median): higher risk
  */
-export function attritionRiskScoring(
-  employees: Employee[],
-): AttritionRiskResult {
+export function attritionRiskScoring(employees: Employee[]): AttritionRiskResult {
   if (employees.length === 0) throw new Error('No employees provided');
 
-  const medianSalary = [...employees].sort((a, b) => a.salary - b.salary)[Math.floor(employees.length / 2)].salary;
+  const medianSalary = [...employees].sort((a, b) => a.salary - b.salary)[
+    Math.floor(employees.length / 2)
+  ].salary;
 
   // Hand-calibrated logistic coefficients
   const b0 = -2.0;
-  const b_tenure = -0.15;    // more tenure → lower risk
-  const b_rating = -0.30;    // higher rating → lower risk
-  const b_salary = -0.5;     // salary as fraction of median, higher = lower risk
+  const b_tenure = -0.15; // more tenure → lower risk
+  const b_rating = -0.3; // higher rating → lower risk
+  const b_salary = -0.5; // salary as fraction of median, higher = lower risk
 
-  const scores = employees.map(e => {
+  const scores = employees.map((e) => {
     const salaryFrac = e.salary / medianSalary;
-    const logit = b0 + b_tenure * e.tenureYears + b_rating * e.performanceRating + b_salary * salaryFrac;
+    const logit =
+      b0 + b_tenure * e.tenureYears + b_rating * e.performanceRating + b_salary * salaryFrac;
     const riskScore = 1 / (1 + Math.exp(-logit));
     const riskCategory: 'low' | 'medium' | 'high' =
-      riskScore < 0.25 ? 'low' : riskScore < 0.50 ? 'medium' : 'high';
+      riskScore < 0.25 ? 'low' : riskScore < 0.5 ? 'medium' : 'high';
     return { id: e.id, riskScore, riskCategory };
   });
 
   const avgRisk = scores.reduce((a, s) => a + s.riskScore, 0) / scores.length;
 
   // AUC approximation (Wilcoxon-Mann-Whitney) if attrited labels available
-  const withLabels = employees.filter(e => e.attrited !== undefined);
+  const withLabels = employees.filter((e) => e.attrited !== undefined);
   let auc: number | null = null;
   if (withLabels.length > 0) {
     const attrite = scores.filter((_, i) => employees[i].attrited === 1);
-    const retain  = scores.filter((_, i) => employees[i].attrited === 0);
+    const retain = scores.filter((_, i) => employees[i].attrited === 0);
     if (attrite.length > 0 && retain.length > 0) {
       let concordant = 0;
       for (const a of attrite) for (const r of retain) if (a.riskScore > r.riskScore) concordant++;
@@ -357,22 +401,28 @@ export function headcountPlan(
   currentHeadcount: number,
   requiredHeadcount: number,
   annualAttritionRate: number,
-  monthlyHireRate: number,
+  monthlyHireRate: number
 ): HeadcountPlanResult {
   if (currentHeadcount < 0) throw new Error('currentHeadcount must be non-negative');
   if (requiredHeadcount < 0) throw new Error('requiredHeadcount must be non-negative');
-  if (annualAttritionRate < 0 || annualAttritionRate > 1) throw new Error('attritionRate must be in [0, 1]');
+  if (annualAttritionRate < 0 || annualAttritionRate > 1)
+    throw new Error('attritionRate must be in [0, 1]');
 
   const monthlyAttrition = annualAttritionRate / 12;
   // Attrition-adjusted requirement: need extra headcount to absorb ongoing losses
   const attritionAdjustedRequired = Math.ceil(requiredHeadcount / (1 - monthlyAttrition));
   const gap = attritionAdjustedRequired - currentHeadcount;
 
-  const timeToCloseMonths = gap <= 0
-    ? 0
-    : monthlyHireRate > 0 ? Math.ceil(gap / monthlyHireRate) : Infinity;
+  const timeToCloseMonths =
+    gap <= 0 ? 0 : monthlyHireRate > 0 ? Math.ceil(gap / monthlyHireRate) : Infinity;
 
-  return { current: currentHeadcount, required: requiredHeadcount, gap, timeToCloseMonths, attritionAdjustedRequired };
+  return {
+    current: currentHeadcount,
+    required: requiredHeadcount,
+    gap,
+    timeToCloseMonths,
+    attritionAdjustedRequired,
+  };
 }
 
 // ─── Unified analysis entry point ─────────────────────────────────────────────
@@ -401,7 +451,11 @@ export function analyzeWorkforce(input: WorkforceAnalysisInput): WorkforceAnalys
   };
 
   if (input.payEquity) {
-    result.payEquity = payEquityAnalysis(input.employees, input.payEquity.groupA, input.payEquity.groupB);
+    result.payEquity = payEquityAnalysis(
+      input.employees,
+      input.payEquity.groupA,
+      input.payEquity.groupB
+    );
   }
   if (input.meritBudget) {
     result.meritBudget = meritBudgetAllocation(input.employees, input.meritBudget.budgetFraction);
@@ -411,7 +465,12 @@ export function analyzeWorkforce(input: WorkforceAnalysisInput): WorkforceAnalys
   }
   if (input.headcount) {
     const h = input.headcount;
-    result.headcount = headcountPlan(input.employees.length, h.required, h.annualAttritionRate, h.monthlyHireRate);
+    result.headcount = headcountPlan(
+      input.employees.length,
+      h.required,
+      h.annualAttritionRate,
+      h.monthlyHireRate
+    );
   }
 
   return result;
@@ -421,7 +480,7 @@ export function analyzeWorkforce(input: WorkforceAnalysisInput): WorkforceAnalys
 
 export function buildWorkforceReceipt(
   result: WorkforceAnalysisResult,
-  options?: WorkforceReceiptOptions,
+  options?: WorkforceReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
@@ -431,7 +490,7 @@ export function buildWorkforceReceipt(
       message: `Significant adjusted pay gap of ${result.payEquity.adjustedGapPct.toFixed(1)}% between ${result.payEquity.groupA} and ${result.payEquity.groupB}`,
     });
   }
-  if (result.attritionRisk.avgRisk > 0.40) {
+  if (result.attritionRisk.avgRisk > 0.4) {
     violations.push({
       criterion: 'attrition_risk',
       message: `Average attrition risk ${(result.attritionRisk.avgRisk * 100).toFixed(1)}% is elevated (>40%)`,
@@ -449,7 +508,11 @@ export function buildWorkforceReceipt(
       payEquityGapPct: result.payEquity?.adjustedGapPct ?? null,
       payEquitySignificant: result.payEquity?.significant ?? null,
     },
-    cael: { version: 'cael.v1', event: 'hr_workforce.workforce_analysis', solverType: 'hr-workforce.analytics' },
+    cael: {
+      version: 'cael.v1',
+      event: 'hr_workforce.workforce_analysis',
+      solverType: 'hr-workforce.analytics',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

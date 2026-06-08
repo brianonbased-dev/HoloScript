@@ -34,10 +34,7 @@
  * @module @holoscript/core/compiler/identity/AgentRiskRegistry
  */
 
-import type {
-  ConfabulationValidationResult,
-  ConfabulationError,
-} from './ConfabulationValidator';
+import type { ConfabulationValidationResult, ConfabulationError } from './ConfabulationValidator';
 
 // =============================================================================
 // TYPES
@@ -219,10 +216,7 @@ export class AgentRiskRegistry {
       ring.shift();
     }
     this.events.set(event.agentId, ring);
-    this.lifetimeEvents.set(
-      event.agentId,
-      (this.lifetimeEvents.get(event.agentId) ?? 0) + 1
-    );
+    this.lifetimeEvents.set(event.agentId, (this.lifetimeEvents.get(event.agentId) ?? 0) + 1);
   }
 
   /**
@@ -234,10 +228,7 @@ export class AgentRiskRegistry {
    */
   recordSuccess(agentId: string): void {
     if (this.successCreditPerOp <= 0) {
-      this.lifetimeSuccesses.set(
-        agentId,
-        (this.lifetimeSuccesses.get(agentId) ?? 0) + 1
-      );
+      this.lifetimeSuccesses.set(agentId, (this.lifetimeSuccesses.get(agentId) ?? 0) + 1);
       return;
     }
     const ring = this.events.get(agentId) ?? [];
@@ -251,10 +242,7 @@ export class AgentRiskRegistry {
       ring.shift();
     }
     this.events.set(agentId, ring);
-    this.lifetimeSuccesses.set(
-      agentId,
-      (this.lifetimeSuccesses.get(agentId) ?? 0) + 1
-    );
+    this.lifetimeSuccesses.set(agentId, (this.lifetimeSuccesses.get(agentId) ?? 0) + 1);
   }
 
   /**

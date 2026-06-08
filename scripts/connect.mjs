@@ -333,8 +333,7 @@ function main() {
 // Use pathToFileURL so the comparison holds on Windows too — a bare
 // `file://${argv[1]}` builds `file://C:\…` which never equals Node's
 // `file:///C:/…` import.meta.url, silently no-opping the CLI on Windows.
-const invokedDirectly =
-  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (invokedDirectly) {
   try {
     main();

@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 
 const pluginDir = path.join(process.cwd(), 'packages', 'plugins');
-const plugins = fs.readdirSync(pluginDir).filter(f => fs.statSync(path.join(pluginDir, f)).isDirectory());
+const plugins = fs
+  .readdirSync(pluginDir)
+  .filter((f) => fs.statSync(path.join(pluginDir, f)).isDirectory());
 
 const config = `import { defineConfig } from 'vitest/config';
 
@@ -17,7 +19,7 @@ export default defineConfig({
 `;
 
 let count = 0;
-plugins.forEach(p => {
+plugins.forEach((p) => {
   fs.writeFileSync(path.join(pluginDir, p, 'vitest.config.ts'), config);
   count++;
 });

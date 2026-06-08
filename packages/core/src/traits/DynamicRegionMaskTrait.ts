@@ -39,11 +39,7 @@ import { extractPayload } from './TraitTypes';
  *   to a downstream consumer that runs inference per-frame. Trait stays
  *   model-agnostic; consumer registration is out of scope here.
  */
-export type DynamicRegionMaskSource =
-  | 'none'
-  | 'per_frame'
-  | 'scene_graph'
-  | 'segmentation_model';
+export type DynamicRegionMaskSource = 'none' | 'per_frame' | 'scene_graph' | 'segmentation_model';
 
 export interface DynamicRegionMaskConfig {
   /** Mask production strategy (default: `'none'`). */

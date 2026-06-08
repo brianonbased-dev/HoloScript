@@ -113,8 +113,8 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
       particleCount: 0,
       volume: 0,
       boundingBox: {
-        min: [-1, -1, -1 ],
-        max: [1, 1, 1 ],
+        min: [-1, -1, -1],
+        max: [1, 1, 1],
       },
       simulationHandle: null,
       emitters: new Map(),
@@ -195,7 +195,7 @@ export const fluidHandler: TraitHandler<FluidConfig> = {
       if (config.wind_sensitivity > 0 && weatherBlackboard.wind_speed > 0) {
         const s = config.wind_sensitivity;
         const wv = weatherBlackboard.wind_vector;
-        const windDir = wv ? [wv[0], wv[1], wv[2] ] : [0, 0, 0 ];
+        const windDir = wv ? [wv[0], wv[1], wv[2]] : [0, 0, 0];
         const windSpeed = weatherBlackboard.wind_speed;
         state.mlsMpm.setExternalForce(
           windDir[0] * windSpeed * s,

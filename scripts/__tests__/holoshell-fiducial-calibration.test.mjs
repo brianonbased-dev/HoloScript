@@ -34,7 +34,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -45,19 +47,38 @@ assertEq(calibrated.status, 'pass', 'pass status');
 assertEq(validateReceipt(calibrated).length, 0, 'calibration receipt validates');
 assertEq(calibrated.calibration.calibrationReady, true, 'calibration readiness recorded');
 assertEq(calibrated.calibration.cameraModelReady, true, 'camera model readiness recorded');
-assertEq(calibrated.calibration.calibratedAnchorReady, true, 'calibrated anchor readiness recorded');
+assertEq(
+  calibrated.calibration.calibratedAnchorReady,
+  true,
+  'calibrated anchor readiness recorded'
+);
 assertEq(calibrated.calibration.solvePnPReady, false, 'calibration does not claim solvePnP');
-assertEq(calibrated.cameraModel.intrinsics.source, 'explicit-pinhole-intrinsics', 'explicit intrinsics required');
+assertEq(
+  calibrated.cameraModel.intrinsics.source,
+  'explicit-pinhole-intrinsics',
+  'explicit intrinsics required'
+);
 assertEq(calibrated.cameraModel.distortion.known, true, 'distortion provenance recorded');
-assertEq(calibrated.cameraModel.distortion.declaredZero, true, 'zero distortion declaration recorded');
+assertEq(
+  calibrated.cameraModel.distortion.declaredZero,
+  true,
+  'zero distortion declaration recorded'
+);
 assertOk(calibrated.calibration.reprojection.rmsPixels <= 4, 'calibration RMS stays within gate');
 assertOk(calibrated.chain?.receipt?.hash?.startsWith('sha256:'), 'chain hash recorded');
 
 console.log('Test 2: estimated intrinsics block calibration');
 assertEq(blockedEstimated.status, 'blocked', 'estimated intrinsics blocked');
 assertEq(validateReceipt(blockedEstimated).length, 0, 'blocked estimated receipt validates');
-assertOk(blockedEstimated.calibration.blockers.includes('explicit-intrinsics-required'), 'explicit intrinsics blocker recorded');
-assertEq(blockedEstimated.calibration.calibrationReady, false, 'blocked estimated receipt is not calibration');
+assertOk(
+  blockedEstimated.calibration.blockers.includes('explicit-intrinsics-required'),
+  'explicit intrinsics blocker recorded'
+);
+assertEq(
+  blockedEstimated.calibration.calibrationReady,
+  false,
+  'blocked estimated receipt is not calibration'
+);
 
 console.log('Test 3: missing distortion declaration blocks calibration');
 assertEq(blockedNoDistortion.status, 'blocked', 'missing distortion blocked');
@@ -74,8 +95,16 @@ const explicitDistortion = calibrateFiducialAnchor({
   distortionCoefficients: [0.01, -0.002, 0.0001, -0.0002, 0],
 });
 assertEq(explicitDistortion.status, 'pass', 'explicit distortion pass');
-assertEq(explicitDistortion.cameraModel.distortion.model, 'opencv-radtan-k1-k2-p1-p2-k3', 'distortion model recorded');
-assertEq(explicitDistortion.cameraModel.distortion.declaredZero, false, 'nonzero distortion recorded');
+assertEq(
+  explicitDistortion.cameraModel.distortion.model,
+  'opencv-radtan-k1-k2-p1-p2-k3',
+  'distortion model recorded'
+);
+assertEq(
+  explicitDistortion.cameraModel.distortion.declaredZero,
+  false,
+  'nonzero distortion recorded'
+);
 
 console.log('Test 5: invalid receipts fail closed');
 const overclaim = {
@@ -85,7 +114,10 @@ const overclaim = {
     calibrationReady: true,
   },
 };
-assertOk(validateReceipt(overclaim).includes('blocked receipt must not claim calibration'), 'blocked calibration overclaim rejected');
+assertOk(
+  validateReceipt(overclaim).includes('blocked receipt must not claim calibration'),
+  'blocked calibration overclaim rejected'
+);
 
 console.log('Test 6: CLI self-test runs without hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {

@@ -81,9 +81,7 @@ async function parseHoloComposition(source: string): Promise<SceneNode[]> {
 
     // Parse scale
     const scaleMatch = objectBody.match(/scale:\s*\[([^\]]+)\]/);
-    const scale: [number, number, number] = scaleMatch
-      ? parseVector3(scaleMatch[1])
-      : [1, 1, 1];
+    const scale: [number, number, number] = scaleMatch ? parseVector3(scaleMatch[1]) : [1, 1, 1];
 
     // Parse geometry type
     const geometryMatch = objectBody.match(/@geometry\s*\{[^}]*type:\s*"([^"]+)"/);
@@ -91,10 +89,10 @@ async function parseHoloComposition(source: string): Promise<SceneNode[]> {
 
     // Determine node type based on traits
     let nodeType: SceneNode['type'] = 'mesh';
-    if (traits.some(t => t.name === 'character')) nodeType = 'gltfModel';
-    if (traits.some(t => t.name === 'light')) nodeType = 'light';
-    if (traits.some(t => t.name === 'camera')) nodeType = 'camera';
-    if (traits.some(t => t.name === 'environment')) nodeType = 'group';
+    if (traits.some((t) => t.name === 'character')) nodeType = 'gltfModel';
+    if (traits.some((t) => t.name === 'light')) nodeType = 'light';
+    if (traits.some((t) => t.name === 'camera')) nodeType = 'camera';
+    if (traits.some((t) => t.name === 'environment')) nodeType = 'group';
 
     const node: SceneNode = {
       id: makeId(),
@@ -150,7 +148,7 @@ function parseTraitProperties(propsStr: string): Record<string, unknown> {
   // Parse vector arrays: key: [1, 2, 3]
   const vectorRegex = /(\w+):\s*\[([^\]]+)\]/g;
   while ((match = vectorRegex.exec(propsStr)) !== null) {
-    const arr = match[2].split(',').map(s => parseFloat(s.trim()));
+    const arr = match[2].split(',').map((s) => parseFloat(s.trim()));
     props[match[1]] = arr;
   }
 
@@ -167,7 +165,7 @@ function parseTraitProperties(propsStr: string): Record<string, unknown> {
  * Parse a vector3 string like "1, 2, 3" into [number, number, number]
  */
 function parseVector3(str: string): [number, number, number] {
-  const parts = str.split(',').map(s => parseFloat(s.trim()));
+  const parts = str.split(',').map((s) => parseFloat(s.trim()));
   return [parts[0] || 0, parts[1] || 0, parts[2] || 0];
 }
 
@@ -206,11 +204,10 @@ export function useHoloFileDropHandler() {
           state: 'done',
           fileName: file.name,
           objectCount,
-          message: `Loaded ${objectCount} objects from ${file.name}`
+          message: `Loaded ${objectCount} objects from ${file.name}`,
         });
 
         setTimeout(() => setStatus({ state: 'idle' }), SAVE_FEEDBACK_DURATION * 2);
-
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to parse .holo file';
         setStatus({ state: 'error', fileName: file.name, message });
@@ -242,9 +239,10 @@ export function HoloFileDropHandler({ children, className = '' }: HoloFileDropHa
 
     // Only activate for .holo files
     const items = Array.from(e.dataTransfer.items);
-    const hasHoloFile = items.some(item =>
-      item.kind === 'file' &&
-      (item.type === 'text/plain' || item.type === 'application/x-holoscript')
+    const hasHoloFile = items.some(
+      (item) =>
+        item.kind === 'file' &&
+        (item.type === 'text/plain' || item.type === 'application/x-holoscript')
     );
 
     if (hasHoloFile) {
@@ -274,7 +272,7 @@ export function HoloFileDropHandler({ children, className = '' }: HoloFileDropHa
       dragCounterRef.current = 0;
 
       const files = Array.from(e.dataTransfer.files);
-      const holoFiles = files.filter(f => f.name.endsWith('.holo'));
+      const holoFiles = files.filter((f) => f.name.endsWith('.holo'));
 
       if (holoFiles.length === 0) {
         return;
@@ -312,7 +310,9 @@ export function HoloFileDropHandler({ children, className = '' }: HoloFileDropHa
       {status.state !== 'idle' && (
         <div className="fixed bottom-4 right-4 bg-studio-surface border border-studio-border rounded-lg p-3 shadow-lg z-50">
           <div className="flex items-center gap-2">
-            {status.state === 'parsing' && <Loader2 className="h-4 w-4 animate-spin text-studio-accent" />}
+            {status.state === 'parsing' && (
+              <Loader2 className="h-4 w-4 animate-spin text-studio-accent" />
+            )}
             {status.state === 'done' && <CheckCircle className="h-4 w-4 text-green-500" />}
             {status.state === 'error' && <FileText className="h-4 w-4 text-red-500" />}
             <div>

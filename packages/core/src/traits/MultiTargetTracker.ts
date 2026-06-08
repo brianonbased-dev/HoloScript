@@ -36,7 +36,13 @@ import type { ReidFeature } from './ReidEmbeddingTrait';
 /** 3D point [x, y, z] in meters. */
 export type Vec3 = [number, number, number];
 
-export type TrackingModality = 'spatial' | 'voice' | 'dm_stream' | 'intent' | 'multimodal' | 'custom';
+export type TrackingModality =
+  | 'spatial'
+  | 'voice'
+  | 'dm_stream'
+  | 'intent'
+  | 'multimodal'
+  | 'custom';
 
 /** A detection or non-spatial observation seen in a single frame. */
 export interface Detection {
@@ -183,7 +189,11 @@ export function stepTracker(
       updatedTracks[trackIdx] = updated;
       matchedTrackIds.add(updated.id);
       matchedDetectionIdx.add(detIdx);
-      associations.push({ track_id: updated.id, detection_index: detIdx, cost: cost[activeIdx][detIdx] });
+      associations.push({
+        track_id: updated.id,
+        detection_index: detIdx,
+        cost: cost[activeIdx][detIdx],
+      });
     } else {
       // Active track unmatched this frame: age it as occluded.
       updatedTracks[trackIdx] = ageOccludedTrack(activeTracks[activeIdx], state.config);
@@ -241,7 +251,10 @@ export function stepTracker(
 // VALIDATION
 // =============================================================================
 
-function validateDetections(detections: Detection[], config: Required<MultiTargetTrackingConfig>): void {
+function validateDetections(
+  detections: Detection[],
+  config: Required<MultiTargetTrackingConfig>
+): void {
   for (let i = 0; i < detections.length; i++) {
     const det = detections[i];
     if (det.position !== undefined) {
@@ -361,7 +374,8 @@ function kalmanUpdate(
   // State update: x_new = x + K*y
   const x_new = x.slice();
   for (let i = 0; i < STATE_DIM; i++) {
-    x_new[i] = x[i] + K[i * MEAS_DIM + 0] * y[0] + K[i * MEAS_DIM + 1] * y[1] + K[i * MEAS_DIM + 2] * y[2];
+    x_new[i] =
+      x[i] + K[i * MEAS_DIM + 0] * y[0] + K[i * MEAS_DIM + 1] * y[1] + K[i * MEAS_DIM + 2] * y[2];
   }
 
   // Covariance update: P_new = (I - K*H) * P
@@ -378,7 +392,11 @@ function kalmanUpdate(
   }
 
   // Update ReID embedding as running average (alpha=0.3 toward new observation).
-  const reid_normalized = blendEmbedding(predicted.reid_embedding, embeddingForDetection(detection), 0.3);
+  const reid_normalized = blendEmbedding(
+    predicted.reid_embedding,
+    embeddingForDetection(detection),
+    0.3
+  );
 
   return {
     ...predicted,
@@ -395,7 +413,12 @@ function kalmanUpdate(
   };
 }
 
-function mergeIdentityObservation(track: Track, detection: Detection, frame_index: number, alpha: number): Track {
+function mergeIdentityObservation(
+  track: Track,
+  detection: Detection,
+  frame_index: number,
+  alpha: number
+): Track {
   return {
     ...track,
     reid_embedding: blendEmbedding(track.reid_embedding, embeddingForDetection(detection), alpha),
@@ -466,9 +489,11 @@ function buildCostMatrix(
 
       const sim = cosineSimilarity(tracks[i].reid_embedding, embeddingForDetection(detections[j]));
       const reidCost = 1 - Math.max(0, sim); // similarity in [0,1] → cost in [0,1]
-      const total = detectionHasPosition(detections[j]) && tracks[i].has_position
-        ? wPos * normalizedPosCost(positionDistance(tracks[i].state, detections[j].position!)) + wReid * reidCost
-        : reidCost;
+      const total =
+        detectionHasPosition(detections[j]) && tracks[i].has_position
+          ? wPos * normalizedPosCost(positionDistance(tracks[i].state, detections[j].position!)) +
+            wReid * reidCost
+          : reidCost;
       row.push(total);
     }
     cost.push(row);
@@ -749,7 +774,8 @@ function spawnTrack(
 
 function ageOccludedTrack(track: Track, config: Required<MultiTargetTrackingConfig>): Track {
   const occluded_frames = track.occluded_frames + 1;
-  const status: Track['status'] = occluded_frames >= config.max_occluded_frames ? 'lost' : track.status;
+  const status: Track['status'] =
+    occluded_frames >= config.max_occluded_frames ? 'lost' : track.status;
   return { ...track, occluded_frames, status };
 }
 
@@ -834,9 +860,15 @@ function transpose(a: number[], rows: number, cols: number): number[] {
 }
 
 function invert3x3(m: number[]): number[] {
-  const a = m[0], b = m[1], c = m[2];
-  const d = m[3], e = m[4], f = m[5];
-  const g = m[6], h = m[7], i = m[8];
+  const a = m[0],
+    b = m[1],
+    c = m[2];
+  const d = m[3],
+    e = m[4],
+    f = m[5];
+  const g = m[6],
+    h = m[7],
+    i = m[8];
   const A = e * i - f * h;
   const B = -(d * i - f * g);
   const C = d * h - e * g;

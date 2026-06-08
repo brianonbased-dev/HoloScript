@@ -79,7 +79,15 @@ export interface IngestProvenance {
 export interface IngestExtractedChunk {
   id: string;
   text: string;
-  kind: 'text' | 'metadata' | 'table' | 'image' | 'geometry' | 'timeseries' | 'code' | 'binary-summary';
+  kind:
+    | 'text'
+    | 'metadata'
+    | 'table'
+    | 'image'
+    | 'geometry'
+    | 'timeseries'
+    | 'code'
+    | 'binary-summary';
   metadata: Record<string, unknown>;
   provenance: IngestProvenance;
 }
@@ -120,7 +128,9 @@ export interface IngestGraphFragment {
 export interface IngestAdapter {
   readonly id: string;
   readonly formatIds: string[];
-  probe(input: IngestAdapterProbeInput): IngestAdapterProbeResult | Promise<IngestAdapterProbeResult>;
+  probe(
+    input: IngestAdapterProbeInput
+  ): IngestAdapterProbeResult | Promise<IngestAdapterProbeResult>;
   extract(input: IngestSourceRef): Promise<IngestExtractedDocument>;
   normalize(document: IngestExtractedDocument): Promise<IngestNormalizedDocument>;
   toGraph(document: IngestNormalizedDocument): Promise<IngestGraphFragment>;

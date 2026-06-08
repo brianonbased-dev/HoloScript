@@ -45,13 +45,15 @@ describe('SpatialProofTrait.validate', () => {
   });
 
   it('rejects a missing attestation_contract', () => {
-    expect(() => SpatialProofTrait.validate({} as never)).toThrow(/attestation_contract is required/);
+    expect(() => SpatialProofTrait.validate({} as never)).toThrow(
+      /attestation_contract is required/
+    );
   });
 
   it('rejects a malformed attestation_contract', () => {
-    expect(() =>
-      SpatialProofTrait.validate({ attestation_contract: 'not-an-address' })
-    ).toThrow(/0x-prefixed 20-byte address/);
+    expect(() => SpatialProofTrait.validate({ attestation_contract: 'not-an-address' })).toThrow(
+      /0x-prefixed 20-byte address/
+    );
   });
 
   it('accepts the local-test-mock placeholder', () => {
@@ -152,7 +154,12 @@ describe('SpatialProofComposer round-trip', () => {
       evidence_pack_kind: 'physical-sensor-evidence',
       chain: 'base',
       attestation_contract: VALID_CONTRACT,
-      sensors: { gps: { lat: 1, lon: 1, accuracy_m: 5, captured_at: NOW }, imu: null, camera_anchor: null, wallclock: NOW },
+      sensors: {
+        gps: { lat: 1, lon: 1, accuracy_m: 5, captured_at: NOW },
+        imu: null,
+        camera_anchor: null,
+        wallclock: NOW,
+      },
       sensor_keys_present: ['gps', 'wallclock'],
     });
     const b = canonicalPayloadHash({
@@ -160,7 +167,12 @@ describe('SpatialProofComposer round-trip', () => {
       evidence_pack_kind: 'physical-sensor-evidence',
       chain: 'base',
       attestation_contract: VALID_CONTRACT,
-      sensors: { gps: { lat: 2, lon: 2, accuracy_m: 5, captured_at: NOW }, imu: null, camera_anchor: null, wallclock: NOW },
+      sensors: {
+        gps: { lat: 2, lon: 2, accuracy_m: 5, captured_at: NOW },
+        imu: null,
+        camera_anchor: null,
+        wallclock: NOW,
+      },
       sensor_keys_present: ['gps', 'wallclock'],
     });
     expect(a).not.toBe(b);
@@ -217,7 +229,12 @@ describe('SpatialProofComposer round-trip', () => {
         captured_at: NOW - 50,
       },
     };
-    const entry = await composeSpatialProof({ config: cfg, sensors: withImu, signer, nowMs: () => NOW });
+    const entry = await composeSpatialProof({
+      config: cfg,
+      sensors: withImu,
+      signer,
+      nowMs: () => NOW,
+    });
     expect(entry.payload.sensor_keys_present).toEqual(['gps', 'imu', 'wallclock']);
   });
 });

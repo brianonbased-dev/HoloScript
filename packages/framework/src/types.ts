@@ -6,11 +6,7 @@
 
 import { ProtocolPhase } from './protocol/implementations';
 import type { PhaseResult, ProtocolCycleResult } from './protocol/implementations';
-import type {
-  SubagentEvent,
-  TaskAction,
-  TaskDecompositionPlan,
-} from './board/board-types';
+import type { SubagentEvent, TaskAction, TaskDecompositionPlan } from './board/board-types';
 
 // Re-export protocol specs from canonical source (framework owns these now)
 export type {

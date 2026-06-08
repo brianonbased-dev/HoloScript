@@ -122,7 +122,9 @@ const POLL_INTERVAL_MS = 500;
 test.describe('Paper-6 WebGPU cross-backend matrix benchmark harness', () => {
   let artifact: Paper6WebGPUArtifact;
 
-  test('loads benchmark-paper6-webgpu.html, captures artifact, and writes JSON', async ({ page }) => {
+  test('loads benchmark-paper6-webgpu.html, captures artifact, and writes JSON', async ({
+    page,
+  }) => {
     const fileUrl = buildFileUrl();
 
     let settled = false;
@@ -201,14 +203,14 @@ test.describe('Paper-6 WebGPU cross-backend matrix benchmark harness', () => {
       if (!cell.hashEqual && cell.baselineHash !== 0) {
         console.warn(
           `[harness] Hash divergence detected: ` +
-          `hash=0x${cell.hash.toString(16).padStart(8, '0')} ` +
-          `baseline=0x${cell.baselineHash.toString(16).padStart(8, '0')}`
+            `hash=0x${cell.hash.toString(16).padStart(8, '0')} ` +
+            `baseline=0x${cell.baselineHash.toString(16).padStart(8, '0')}`
         );
       }
     } else {
       console.log(
         `[harness] Status "${artifact.status}" is not 'completed'. ` +
-        `Failures: ${JSON.stringify(artifact.failures)}`
+          `Failures: ${JSON.stringify(artifact.failures)}`
       );
       if (!boolEnv('BENCH_REQUIRE_COMPLETED')) {
         console.log('[harness] BENCH_REQUIRE_COMPLETED not set -- accepting non-completed status.');
@@ -245,13 +247,12 @@ test.describe('Paper-6 WebGPU cross-backend matrix benchmark harness', () => {
         if (prevHash !== currHash) {
           console.warn(
             `[drift-guard] Hash drift detected: ` +
-            `previous=0x${prevHash.toString(16).padStart(8, '0')} ` +
-            `current=0x${currHash.toString(16).padStart(8, '0')}`
+              `previous=0x${prevHash.toString(16).padStart(8, '0')} ` +
+              `current=0x${currHash.toString(16).padStart(8, '0')}`
           );
         } else {
           console.log(
-            `[drift-guard] Hash stable: ` +
-            `0x${currHash.toString(16).padStart(8, '0')}`
+            `[drift-guard] Hash stable: ` + `0x${currHash.toString(16).padStart(8, '0')}`
           );
         }
       }

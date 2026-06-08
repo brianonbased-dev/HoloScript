@@ -13,23 +13,23 @@ pnpm audit --json          # 3,280 total dependencies scanned
 
 ## Before
 
-| Severity | Count |
-|----------|-------|
-| critical | 1 |
-| high     | 8 |
-| moderate | 15 |
-| low      | 1 |
-| **total**| **25** |
+| Severity  | Count  |
+| --------- | ------ |
+| critical  | 1      |
+| high      | 8      |
+| moderate  | 15     |
+| low       | 1      |
+| **total** | **25** |
 
 ## After (this session's overrides)
 
-| Severity | Count |
-|----------|-------|
-| critical | **0** |
-| high     | 1 |
-| moderate | 11 |
-| low      | 1 |
-| **total**| **13** |
+| Severity  | Count  |
+| --------- | ------ |
+| critical  | **0**  |
+| high      | 1      |
+| moderate  | 11     |
+| low       | 1      |
+| **total** | **13** |
 
 **Net change:** 1 CRITICAL → 0, 8 HIGH → 1 (only the un-patchable transitive remains), 15 MODERATE → 11.
 
@@ -39,11 +39,11 @@ pnpm audit --json          # 3,280 total dependencies scanned
 {
   "pnpm": {
     "overrides": {
-      "next": ">=15.5.15",          // bumped from >=15.5.14 — GHSA DoS via Server Components
-      "protobufjs": ">=7.5.5",      // CRITICAL arbitrary code execution (CWE-94)
-      "vite": ">=7.3.2",            // 2× HIGH: server.fs.deny bypass + dev-server arbitrary file read
-      "drizzle-orm": ">=0.45.2",    // HIGH: SQL injection via improperly escaped SQL identifiers
-      "basic-ftp": ">=5.3.0"        // bumped from >=5.2.0 — 3× HIGH: CRLF cmd injection + DoS
+      "next": ">=15.5.15", // bumped from >=15.5.14 — GHSA DoS via Server Components
+      "protobufjs": ">=7.5.5", // CRITICAL arbitrary code execution (CWE-94)
+      "vite": ">=7.3.2", // 2× HIGH: server.fs.deny bypass + dev-server arbitrary file read
+      "drizzle-orm": ">=0.45.2", // HIGH: SQL injection via improperly escaped SQL identifiers
+      "basic-ftp": ">=5.3.0" // bumped from >=5.2.0 — 3× HIGH: CRLF cmd injection + DoS
     }
   }
 }
@@ -53,13 +53,13 @@ Verified by re-running `pnpm audit` after `pnpm install --no-frozen-lockfile`.
 
 ## Resolved HIGH+CRITICAL (8 of 9)
 
-| Package | CVE / CWE | Patched in |
-|---------|-----------|------------|
-| `protobufjs` | Arbitrary code execution (CWE-94) | `>=7.5.5` |
-| `vite` (x2) | `server.fs.deny` bypass + dev-server WS arbitrary file read (CWE-180/284/200/306) | `>=7.3.2` |
-| `drizzle-orm` | SQL injection (CWE-89) | `>=0.45.2` |
-| `next` | DoS with Server Components (CWE-770) | `>=15.5.15` |
-| `basic-ftp` (x3) | CRLF command injection + unbounded memory DoS (CWE-93/400/770) | `>=5.3.0` |
+| Package          | CVE / CWE                                                                         | Patched in  |
+| ---------------- | --------------------------------------------------------------------------------- | ----------- |
+| `protobufjs`     | Arbitrary code execution (CWE-94)                                                 | `>=7.5.5`   |
+| `vite` (x2)      | `server.fs.deny` bypass + dev-server WS arbitrary file read (CWE-180/284/200/306) | `>=7.3.2`   |
+| `drizzle-orm`    | SQL injection (CWE-89)                                                            | `>=0.45.2`  |
+| `next`           | DoS with Server Components (CWE-770)                                              | `>=15.5.15` |
+| `basic-ftp` (x3) | CRLF command injection + unbounded memory DoS (CWE-93/400/770)                    | `>=5.3.0`   |
 
 ## Remaining HIGH (1) — known-risk accepted
 
@@ -109,7 +109,7 @@ Commit message follows conventional format, scope `security`.
 
 ## Knowledge graduation
 
-One wisdom entry synced summarizing the pattern: *"pnpm.overrides is the primary supply-chain hardening knob for a pnpm monorepo. Each HIGH+CRITICAL advisory with a clean patch range should get an override line; bumps propagate to every workspace package without touching individual package.jsons."*
+One wisdom entry synced summarizing the pattern: _"pnpm.overrides is the primary supply-chain hardening knob for a pnpm monorepo. Each HIGH+CRITICAL advisory with a clean patch range should get an override line; bumps propagate to every workspace package without touching individual package.jsons."_
 
 ## Verification command (anyone can re-run)
 
@@ -124,13 +124,13 @@ pnpm audit --json | node -e "let d=''; process.stdin.on('data',c=>d+=c).on('end'
 
 Re-ran `pnpm audit` on 2026-04-24. Current posture:
 
-| Severity | 2026-04-20 (after) | 2026-04-24 | Net |
-|----------|-------------------:|-----------:|-----|
-| critical | 0                  | 0          | held |
-| high     | 1                  | 1          | held (same `bigint-buffer` transitive) |
-| moderate | 11                 | 12         | +1 new advisory (postcss GHSA-qx2v-qp2m-jg93, CVSS 6.1, XSS via dev-tooling transitive) |
-| low      | 1                  | 1          | held |
-| **total**| **13**             | **14**     | +1 |
+| Severity  | 2026-04-20 (after) | 2026-04-24 | Net                                                                                     |
+| --------- | -----------------: | ---------: | --------------------------------------------------------------------------------------- |
+| critical  |                  0 |          0 | held                                                                                    |
+| high      |                  1 |          1 | held (same `bigint-buffer` transitive)                                                  |
+| moderate  |                 11 |         12 | +1 new advisory (postcss GHSA-qx2v-qp2m-jg93, CVSS 6.1, XSS via dev-tooling transitive) |
+| low       |                  1 |          1 | held                                                                                    |
+| **total** |             **13** |     **14** | +1                                                                                      |
 
 The un-patchable `bigint-buffer` HIGH (GHSA-3gc7-fjrx-p6mg) is still the only HIGH. Dependency count 3280 → 3317 (+37) reflects normal active development, not supply-chain churn. No CRITICAL regression.
 
@@ -190,11 +190,11 @@ Zero advisories, zero warnings, zero informational flags. Advisory database was 
 
 **Combined 2026-04-24 posture** (both sides):
 
-| Side | critical | high | moderate | low | total |
-|------|---------:|-----:|---------:|----:|------:|
-| npm (pnpm audit) | 0 | 1 (bigint-buffer, un-patchable, Solana path narrowed by construction via 731cbd171) | 12 | 1 | 14 |
-| Rust (cargo audit) | 0 | 0 | 0 | 0 | **0** |
-| **combined critical path** | **0** | **1 (mitigated at type level)** | 12 (dev-tool transitives) | 1 | 14 |
+| Side                       | critical |                                                                                high |                  moderate | low | total |
+| -------------------------- | -------: | ----------------------------------------------------------------------------------: | ------------------------: | --: | ----: |
+| npm (pnpm audit)           |        0 | 1 (bigint-buffer, un-patchable, Solana path narrowed by construction via 731cbd171) |                        12 |   1 |    14 |
+| Rust (cargo audit)         |        0 |                                                                                   0 |                         0 |   0 | **0** |
+| **combined critical path** |    **0** |                                                     **1 (mitigated at type level)** | 12 (dev-tool transitives) |   1 |    14 |
 
 The Rust side is clean. The npm side has one un-patchable HIGH whose vulnerable call path is unreachable from HoloScript code by TypeScript's type system (731cbd171). Residual 12 moderates are dev-tool transitives (eslint, vitest, storybook, postcss) not on the critical path; quarterly sweep per `task_1777055403556_cv35`.
 

@@ -1066,11 +1066,7 @@ export interface ISkillMarketplaceAPI {
   getCategories(): Promise<{ category: SkillCategory; count: number; description: string }[]>;
 
   // Purchase & download
-  purchaseSkill(
-    skillId: string,
-    token: string,
-    paymentId?: string
-  ): Promise<SkillPurchaseResult>;
+  purchaseSkill(skillId: string, token: string, paymentId?: string): Promise<SkillPurchaseResult>;
   getDownloadUrl(
     skillId: string,
     token: string,

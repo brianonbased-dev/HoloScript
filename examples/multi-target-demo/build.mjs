@@ -64,7 +64,8 @@ async function compileOne(target, core, source) {
     const instance = new Compiler();
     // Compilers expose compile(source) -> string | { code, ... }
     const result = await instance.compile(source);
-    const code = typeof result === 'string' ? result : (result?.code ?? JSON.stringify(result, null, 2));
+    const code =
+      typeof result === 'string' ? result : (result?.code ?? JSON.stringify(result, null, 2));
     const outDir = path.join(OUT, target.name);
     fs.mkdirSync(outDir, { recursive: true });
     const outFile = path.join(outDir, target.outFile);
@@ -97,29 +98,33 @@ async function main() {
 
   const core = await loadCompilers();
   const source = parseSource();
-  const selected = targetFilter ? TARGETS.filter(t => t.name === targetFilter) : TARGETS;
+  const selected = targetFilter ? TARGETS.filter((t) => t.name === targetFilter) : TARGETS;
 
   const results = [];
   for (const t of selected) {
     const r = await compileOne(t, core, source);
     results.push(r);
     if (r.ok) {
-      console.log(`  OK   ${r.target.padEnd(8)} -> ${r.outFile.padEnd(36)} ${r.bytes} bytes  ${r.durationMs.toFixed(1)} ms`);
+      console.log(
+        `  OK   ${r.target.padEnd(8)} -> ${r.outFile.padEnd(36)} ${r.bytes} bytes  ${r.durationMs.toFixed(1)} ms`
+      );
     } else {
       console.log(`  FAIL ${r.target.padEnd(8)} -> ${r.error}`);
     }
   }
 
   if (timeMode) {
-    const ok = results.filter(r => r.ok);
+    const ok = results.filter((r) => r.ok);
     const total = ok.reduce((s, r) => s + r.durationMs, 0);
     console.log();
-    console.log(`Total compile time: ${total.toFixed(1)} ms across ${ok.length}/${selected.length} targets`);
+    console.log(
+      `Total compile time: ${total.toFixed(1)} ms across ${ok.length}/${selected.length} targets`
+    );
     console.log(`Average: ${(total / Math.max(1, ok.length)).toFixed(1)} ms per target`);
   }
 
   console.log();
-  const failed = results.filter(r => !r.ok);
+  const failed = results.filter((r) => !r.ok);
   if (failed.length > 0) {
     console.log(`${failed.length} target(s) failed. See errors above.`);
     process.exit(1);
@@ -127,7 +132,7 @@ async function main() {
   console.log(`All ${results.length} targets compiled successfully.`);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

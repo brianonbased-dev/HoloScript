@@ -33,17 +33,29 @@ const { inferDepthForRaster, resolveDepthModelPath } = await import(
 
 const W = 256;
 const H = 192;
-const IMG = process.argv[2] ?? join(repoRoot, 'examples', 'gold-game', 'assets', 'gold-vault-vista-wlNgg.jpg');
+const IMG =
+  process.argv[2] ??
+  join(repoRoot, 'examples', 'gold-game', 'assets', 'gold-vault-vista-wlNgg.jpg');
 
 function pearson(a, b) {
   const n = Math.min(a.length, b.length);
-  let sa = 0, sb = 0;
-  for (let i = 0; i < n; i++) { sa += a[i]; sb += b[i]; }
-  const ma = sa / n, mb = sb / n;
-  let cov = 0, va = 0, vb = 0;
+  let sa = 0,
+    sb = 0;
   for (let i = 0; i < n; i++) {
-    const da = a[i] - ma, db = b[i] - mb;
-    cov += da * db; va += da * da; vb += db * db;
+    sa += a[i];
+    sb += b[i];
+  }
+  const ma = sa / n,
+    mb = sb / n;
+  let cov = 0,
+    va = 0,
+    vb = 0;
+  for (let i = 0; i < n; i++) {
+    const da = a[i] - ma,
+      db = b[i] - mb;
+    cov += da * db;
+    va += da * da;
+    vb += db * db;
   }
   const denom = Math.sqrt(va * vb) || 1e-12;
   return cov / denom;
@@ -59,10 +71,19 @@ function mae(a, b) {
 async function main() {
   const modelPath = resolveDepthModelPath();
   const checks = [];
-  const check = (name, pass, detail) => { checks.push({ name, pass: !!pass, detail }); };
+  const check = (name, pass, detail) => {
+    checks.push({ name, pass: !!pass, detail });
+  };
 
-  check('Depth-Anything-V2 ONNX model is provisioned', !!modelPath, modelPath ?? 'NOT FOUND — run provision-depth-model.mjs');
-  if (!modelPath) { report(checks); process.exit(2); }
+  check(
+    'Depth-Anything-V2 ONNX model is provisioned',
+    !!modelPath,
+    modelPath ?? 'NOT FOUND — run provision-depth-model.mjs'
+  );
+  if (!modelPath) {
+    report(checks);
+    process.exit(2);
+  }
 
   // Normalize the input to a fixed PNG grid so both backends consume identical pixels.
   const tmp = mkdtempSync(join(tmpdir(), 'holo-depth-'));
@@ -79,15 +100,35 @@ async function main() {
   const m = mae(neural.depthMap, lum.depthMap);
   const r = pearson(neural.depthMap, lum.depthMap);
 
-  let nMin = Infinity, nMax = -Infinity;
-  for (const v of neural.depthMap) { if (v < nMin) nMin = v; if (v > nMax) nMax = v; }
+  let nMin = Infinity,
+    nMax = -Infinity;
+  for (const v of neural.depthMap) {
+    if (v < nMin) nMin = v;
+    if (v > nMax) nMax = v;
+  }
 
-  check('neural backend ran onnxruntime-node', neural.backend === 'onnxruntime-node', `backend=${neural.backend}`);
+  check(
+    'neural backend ran onnxruntime-node',
+    neural.backend === 'onnxruntime-node',
+    `backend=${neural.backend}`
+  );
   check('luminance control ran cpu backend', lum.backend === 'cpu', `backend=${lum.backend}`);
-  check('neural depth has real dynamic range', nMax - nMin > 0.05, `range=${(nMax - nMin).toFixed(4)}`);
+  check(
+    'neural depth has real dynamic range',
+    nMax - nMin > 0.05,
+    `range=${(nMax - nMin).toFixed(4)}`
+  );
   // FALSIFIABLE: a relabeled-luminance "neural" map would have MAE~0, corr~1.
-  check('neural depth MATERIALLY differs from luminance (MAE)', m > 0.02, `MAE=${m.toFixed(4)} (threshold 0.02)`);
-  check('neural depth is NOT a relabeled luminance map (corr < 0.98)', r < 0.98, `pearson=${r.toFixed(4)}`);
+  check(
+    'neural depth MATERIALLY differs from luminance (MAE)',
+    m > 0.02,
+    `MAE=${m.toFixed(4)} (threshold 0.02)`
+  );
+  check(
+    'neural depth is NOT a relabeled luminance map (corr < 0.98)',
+    r < 0.98,
+    `pearson=${r.toFixed(4)}`
+  );
 
   report(checks);
   process.exit(checks.every((c) => c.pass) ? 0 : 1);
@@ -96,13 +137,19 @@ async function main() {
 function report(checks) {
   process.stdout.write('\n  HoloGram neural depth verification\n\n');
   for (const c of checks) {
-    process.stdout.write(`  ${c.pass ? 'PASS' : 'FAIL'}  ${c.name}${c.detail ? ` — ${c.detail}` : ''}\n`);
+    process.stdout.write(
+      `  ${c.pass ? 'PASS' : 'FAIL'}  ${c.name}${c.detail ? ` — ${c.detail}` : ''}\n`
+    );
   }
   const passed = checks.filter((c) => c.pass).length;
-  process.stdout.write(`\n  ${passed}/${checks.length} checks pass — ${passed === checks.length ? 'NEURAL DEPTH REAL' : 'FAIL'}\n`);
+  process.stdout.write(
+    `\n  ${passed}/${checks.length} checks pass — ${passed === checks.length ? 'NEURAL DEPTH REAL' : 'FAIL'}\n`
+  );
 }
 
 main().catch((err) => {
-  process.stderr.write(`verify-neural-depth ERROR: ${err instanceof Error ? err.stack : String(err)}\n`);
+  process.stderr.write(
+    `verify-neural-depth ERROR: ${err instanceof Error ? err.stack : String(err)}\n`
+  );
   process.exit(1);
 });

@@ -51,21 +51,14 @@ interface ReachableState {
   pathLength: number;
 }
 
-function computeDistance3D(
-  a: Vector3,
-  b: Vector3
-): number {
+function computeDistance3D(a: Vector3, b: Vector3): number {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
   const dz = b[2] - a[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-function computeAxisDistance(
-  a: Vector3,
-  b: Vector3,
-  axis: string
-): number {
+function computeAxisDistance(a: Vector3, b: Vector3, axis: string): number {
   switch (axis) {
     case 'x':
       return Math.abs(b[0] - a[0]);
@@ -177,7 +170,7 @@ export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
     if (!state) return;
 
     // Get positions from context
-    const nodePos = node.position || [0, 0, 0 ];
+    const nodePos = node.position || [0, 0, 0];
     const targetPos = state.targetPosition;
     if (!targetPos) return;
 
@@ -241,7 +234,8 @@ export const spatialAdjacentHandler: TraitHandler<SpatialAdjacentConfig> = {
     ) {
       const state = context.getState().spatialAdjacent as AdjacentState | undefined;
       if (state) {
-        state.targetPosition = (event as Record<string, unknown>).position as AdjacentState['targetPosition'];
+        state.targetPosition = (event as Record<string, unknown>)
+          .position as AdjacentState['targetPosition'];
         context.setState({ spatialAdjacent: state });
       }
     }
@@ -310,7 +304,7 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
       | undefined;
     if (!nodeBounds) return;
 
-    const nodePos = node.position || [0, 0, 0 ];
+    const nodePos = node.position || [0, 0, 0];
     const margin = config.margin ?? 0;
 
     // Check each contained entity
@@ -318,7 +312,8 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
 
     for (const containedId of state.containedEntities) {
       const containedPos = context.getState()[`entity_pos_${containedId}`] as
-        [number, number, number] | undefined;
+        | [number, number, number]
+        | undefined;
       if (!containedPos) continue;
 
       let isInside = false;
@@ -355,16 +350,20 @@ export const spatialContainsHandler: TraitHandler<SpatialContainsConfig> = {
 
         // Enforcement: clamp position to container bounds
         if (config.enforcement === 'correct' && 'min' in nodeBounds && 'max' in nodeBounds) {
-          const clamped = [Math.max(
-            nodeBounds.min[0] + margin,
-            Math.min(nodeBounds.max[0] - margin, containedPos[0])
-          ), Math.max(
-            nodeBounds.min[1] + margin,
-            Math.min(nodeBounds.max[1] - margin, containedPos[1])
-          ), Math.max(
-            nodeBounds.min[2] + margin,
-            Math.min(nodeBounds.max[2] - margin, containedPos[2])
-          )];
+          const clamped = [
+            Math.max(
+              nodeBounds.min[0] + margin,
+              Math.min(nodeBounds.max[0] - margin, containedPos[0])
+            ),
+            Math.max(
+              nodeBounds.min[1] + margin,
+              Math.min(nodeBounds.max[1] - margin, containedPos[1])
+            ),
+            Math.max(
+              nodeBounds.min[2] + margin,
+              Math.min(nodeBounds.max[2] - margin, containedPos[2])
+            ),
+          ];
           context.setState({ [`entity_pos_${containedId}`]: clamped });
         }
       }
@@ -469,9 +468,10 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
     if (now - state.lastPathCheck < 500) return;
     state.lastPathCheck = now;
 
-    const nodePos = node.position || [0, 0, 0 ];
+    const nodePos = node.position || [0, 0, 0];
     const targetPos = context.getState()[`reachable_target_${config.target}`] as
-      [number, number, number] | undefined;
+      | [number, number, number]
+      | undefined;
     if (!targetPos) return;
 
     // Simple line-of-sight check (default algorithm)
@@ -491,13 +491,17 @@ export const spatialReachableHandler: TraitHandler<SpatialReachableConfig> = {
         const direction = [
           targetPos[0] - nodePos[0],
           targetPos[1] - nodePos[1],
-          targetPos[2] - nodePos[2]
+          targetPos[2] - nodePos[2],
         ];
         const len = Math.sqrt(
           direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]
         );
         if (len > 0) {
-          const normalized = [direction[0] / len, direction[1] / len, direction[2] / len] as Vector3;
+          const normalized = [
+            direction[0] / len,
+            direction[1] / len,
+            direction[2] / len,
+          ] as Vector3;
           const hit = context.physics.raycast(nodePos, normalized, dist);
           state.isReachable = !hit || hit.distance >= dist - 0.01;
         } else {

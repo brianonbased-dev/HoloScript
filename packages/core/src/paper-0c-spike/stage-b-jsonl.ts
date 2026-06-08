@@ -31,13 +31,18 @@ interface TraceEntryEnvelope {
 }
 
 /** Classify a field's value into float / vector3 / other. */
-function classifyField(
-  value: unknown
-): { kind: 'float' | 'vector3' | 'skip'; value?: number | [number, number, number] } {
+function classifyField(value: unknown): {
+  kind: 'float' | 'vector3' | 'skip';
+  value?: number | [number, number, number];
+} {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return { kind: 'float', value };
   }
-  if (Array.isArray(value) && value.length === 3 && value.every((v) => typeof v === 'number' && Number.isFinite(v))) {
+  if (
+    Array.isArray(value) &&
+    value.length === 3 &&
+    value.every((v) => typeof v === 'number' && Number.isFinite(v))
+  ) {
     return { kind: 'vector3', value: [value[0] as number, value[1] as number, value[2] as number] };
   }
   return { kind: 'skip' };

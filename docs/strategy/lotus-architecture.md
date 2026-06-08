@@ -117,7 +117,7 @@ The formats themselves, and the rendering synthesis that brings every petal toge
 
 ### Reading order for humans
 
-If you read one paper, read *Trust by Construction* (TVCG) — it establishes the provenance semiring as the architectural commitment. If you read three, add *Unified Sim+Anim* (SIGGRAPH '27) for the sync-bug-as-unrepresentability proof, and *Dumb Glass* (SIGGRAPH '28, not yet submitted) for the full lotus. Every other paper is a petal — important, but a specialization of what those three establish.
+If you read one paper, read _Trust by Construction_ (TVCG) — it establishes the provenance semiring as the architectural commitment. If you read three, add _Unified Sim+Anim_ (SIGGRAPH '27) for the sync-bug-as-unrepresentability proof, and _Dumb Glass_ (SIGGRAPH '28, not yet submitted) for the full lotus. Every other paper is a petal — important, but a specialization of what those three establish.
 
 ## What is not a paper
 
@@ -126,7 +126,7 @@ Several things in the stack are real, shipped, and deliberately not papers.
 - **The Absorb service** — a GraphRAG-backed codebase intelligence platform, live at `absorb.holoscript.net`. The codebase-intelligence paper (`Provenance-Backed Codebase Intelligence`) covers the theory; the service itself is product.
 - **HoloMesh** — a decentralized mesh for AI agent coordination, live at `mcp.holoscript.net/api/holomesh`. The CRDT collaboration paper covers the theory; the mesh is where agents actually coordinate.
 - **Studio** — the web-based authoring environment, live at `studio.holoscript.net`. Supports all four stalk formats; no single paper attempts to cover an entire authoring product.
-- **Bounty teams, spatial IDE, characters-as-code, games** — designed and partially implemented. Held behind the directive filter *"what ships now opens a door."* The first external human through Absorb and the first external agent through HoloMesh come first. These follow.
+- **Bounty teams, spatial IDE, characters-as-code, games** — designed and partially implemented. Held behind the directive filter _"what ships now opens a door."_ The first external human through Absorb and the first external agent through HoloMesh come first. These follow.
 
 ## What the lotus commits the program to
 
@@ -141,10 +141,10 @@ None of these applications is exotic. All of them are blocked today because the 
 This document publishes when Paper Program 2 Wave 1 (SCA / I3D / SIGGRAPH) accepts. Until then, the public narrative is `Trust by Construction` alone — a single simulation-contracts paper with a clear novelty claim and a working implementation. The full sixteen-paper architecture stays internal because publishing it now would:
 
 1. Advertise the pixel-provenance direction to groups who could scoop the P3-CENTER paper with an approximate-but-faster implementation.
-2. Dilute the *Trust by Construction* message by making it look like a small part of a sprawling program rather than the load-bearing first move.
+2. Dilute the _Trust by Construction_ message by making it look like a small part of a sprawling program rather than the load-bearing first move.
 3. Commit the team to a timeline that includes papers not yet submitted, creating unnecessary external accountability pressure on wave timing.
 
-After Wave 1 acceptance, the calculus inverts. Publishing the full architecture reinforces the *Trust by Construction* paper's academic weight (it becomes visibly the first paper of a coherent program) and makes subsequent submissions easier for reviewers to contextualize. The flower is most beautiful the moment after the first petal unfolds in public, not the moment it is still a bud.
+After Wave 1 acceptance, the calculus inverts. Publishing the full architecture reinforces the _Trust by Construction_ paper's academic weight (it becomes visibly the first paper of a coherent program) and makes subsequent submissions easier for reviewers to contextualize. The flower is most beautiful the moment after the first petal unfolds in public, not the moment it is still a bud.
 
 ## One line, again
 
@@ -154,18 +154,18 @@ After Wave 1 acceptance, the calculus inverts. Publishing the full architecture 
 
 ## Appendix: Current program state
 
-| Program | Papers | Stage | Venue timing |
-|---|---|---|---|
-| 1 | Trust by Construction | Submitted | IEEE TVCG 2026 |
-| 1 | 7 petal papers | Drafts ready | AAMAS / USENIX / NeurIPS / ECOOP / ICSE 2026–27 |
-| 1 | Capstone | Complete draft | UIST 2027 |
-| 2 | P2-0 Contracted Animation | Skeleton | SCA 2027 (submit Dec 2026) |
-| 2 | P2-1 IK Under Contract | Skeleton | SIGGRAPH 2027 short (submit Jan 2027) |
-| 2 | **P2-2 Unified Sim+Anim** | **Skeleton + intro + §2 drafted** | **SIGGRAPH 2027 (submit May 2027)** |
-| 2 | P2-3 Verifiable Motion | Skeleton | SIGGRAPH Asia 2027 |
-| 3 | P3-S1 `.hs` Core IR | Skeleton | PLDI 2027 (submit Nov 2026) |
-| 3 | P3-S2 `.hsplus` Traits | Skeleton | ECOOP 2027 (submit Feb 2027) |
-| 3 | P3-S3 `.holo` Composition | Skeleton | I3D 2027 (submit Nov 2026) |
-| 3 | **P3-CENTER Dumb Glass** | **Skeleton** | **SIGGRAPH 2028 (submit Jan 2028)** |
+| Program | Papers                    | Stage                             | Venue timing                                    |
+| ------- | ------------------------- | --------------------------------- | ----------------------------------------------- |
+| 1       | Trust by Construction     | Submitted                         | IEEE TVCG 2026                                  |
+| 1       | 7 petal papers            | Drafts ready                      | AAMAS / USENIX / NeurIPS / ECOOP / ICSE 2026–27 |
+| 1       | Capstone                  | Complete draft                    | UIST 2027                                       |
+| 2       | P2-0 Contracted Animation | Skeleton                          | SCA 2027 (submit Dec 2026)                      |
+| 2       | P2-1 IK Under Contract    | Skeleton                          | SIGGRAPH 2027 short (submit Jan 2027)           |
+| 2       | **P2-2 Unified Sim+Anim** | **Skeleton + intro + §2 drafted** | **SIGGRAPH 2027 (submit May 2027)**             |
+| 2       | P2-3 Verifiable Motion    | Skeleton                          | SIGGRAPH Asia 2027                              |
+| 3       | P3-S1 `.hs` Core IR       | Skeleton                          | PLDI 2027 (submit Nov 2026)                     |
+| 3       | P3-S2 `.hsplus` Traits    | Skeleton                          | ECOOP 2027 (submit Feb 2027)                    |
+| 3       | P3-S3 `.holo` Composition | Skeleton                          | I3D 2027 (submit Nov 2026)                      |
+| 3       | **P3-CENTER Dumb Glass**  | **Skeleton**                      | **SIGGRAPH 2028 (submit Jan 2028)**             |
 
 **Source of truth for paper state:** `.ai-ecosystem/research/` (all `.tex` files) and the three scoping memos dated 2026-04-12 and 2026-04-17. Grep for `\todo{` and `\stub{` to find what's drafted vs. scaffolded at any time.

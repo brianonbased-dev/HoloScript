@@ -564,7 +564,7 @@ export interface AgentTraitContext {
       price: number;
       asset: 'USDC' | 'ETH' | 'CLANKER';
     }) => Promise<{ transaction_hash: string }>;
-    
+
     trade: (from: string, to: string, amount: number) => Promise<void>;
     mint_nft: (metadata: Record<string, unknown>) => Promise<{ token_id: string }>;
     earn: (asset: string, amount: number) => Promise<void>;

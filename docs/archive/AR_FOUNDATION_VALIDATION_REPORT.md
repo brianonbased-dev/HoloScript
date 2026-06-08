@@ -20,11 +20,13 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 ## 1. Example Files Validation
 
 ### ✅ plane-detection.holo (386 lines)
+
 **Status**: PRODUCTION READY
 **Traits Used**: `@plane_detection`, `@anchor`, `@light_estimation`
 **Platform Support**: iOS ARKit ✅ | Android ARCore ✅
 
 **Features**:
+
 - Horizontal and vertical plane detection
 - Placement reticle with validation
 - PlaceableObject template with drag/scale/rotate
@@ -34,23 +36,27 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 - Analytics integration
 
 **Validation**:
+
 - ✅ Syntax: Valid HoloScript composition
 - ✅ Trait usage: Correctly uses `@plane_detection` with types: ["horizontal", "vertical"]
 - ✅ Platform compatibility: Environment config includes `ar_mode: true`, `plane_detection` block
 - ✅ Completeness: Full implementation with UI, gestures, state management
 
 **Platform Notes**:
+
 - iOS: Uses ARPlaneAnchor with planeDetection configuration ✅
 - Android: Uses ARCore Trackable with HORIZONTAL/VERTICAL types ✅
 
 ---
 
 ### ✅ geospatial-ar.holo (566 lines)
+
 **Status**: PRODUCTION READY (with platform limitations)
 **Traits Used**: `@geospatial`, `@geospatial_anchor`, `@vps`, `@terrain_anchor`, `@rooftop_anchor`
 **Platform Support**: iOS ARKit ⚠️ (limited) | Android ARCore ✅ (full)
 
 **Features**:
+
 - GPS-based AR content placement
 - ARCore Geospatial API with VPS (Visual Positioning System)
 - Terrain anchors (snap to terrain height)
@@ -60,6 +66,7 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 - Geospatial tracking states (initializing → localizing → tracking)
 
 **Validation**:
+
 - ✅ Syntax: Valid HoloScript composition
 - ✅ Trait usage: `@geospatial`, `@geospatial_anchor`, `@terrain_anchor`, `@rooftop_anchor`
 - ✅ VPS integration: `use_vps: true`, VPS availability check
@@ -67,11 +74,13 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 - ✅ Accuracy thresholds: 0.5m accuracy, 15° heading accuracy
 
 **Platform Notes**:
+
 - Android: Full support via ARCore Geospatial API ✅
 - iOS: Limited support (no VPS, GPS-only localization) ⚠️
 - **CRITICAL**: Requires Google Cloud Geospatial API key (paid service after quota)
 
 **Platform-Specific Issues**:
+
 1. **VPS Availability**: Android-only feature (iOS fallback to GPS)
 2. **Terrain Anchors**: Android ARCore Geospatial API exclusive
 3. **Rooftop Anchors**: Requires Google 3D building data (limited coverage)
@@ -79,11 +88,13 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 ---
 
 ### ✅ mesh-scanning.holo (482 lines)
+
 **Status**: PRODUCTION READY
 **Traits Used**: `@mesh_detection`, `@dynamic_mesh`, `@occlusion`
 **Platform Support**: iOS ARKit ✅ (ARMeshManager) | Android ARCore ✅ (Scene Depth API)
 
 **Features**:
+
 - Real-time environment mesh reconstruction
 - Semantic classification (wall, floor, ceiling, table, seat, window, door)
 - Mesh chunk visualization with color-coding
@@ -94,6 +105,7 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 - Interactive mesh querying via raycast
 
 **Validation**:
+
 - ✅ Syntax: Valid HoloScript composition
 - ✅ Trait usage: `@mesh_detection` with classification: true
 - ✅ Semantic classification: 8 classification types mapped to colors
@@ -101,6 +113,7 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 - ✅ Mesh export: Supports multiple formats with metadata
 
 **Platform Notes**:
+
 - iOS: ARMeshManager with sceneReconstruction (iOS 13.4+) ✅
 - Android: ARCore Scene Depth API with mesh reconstruction ✅
 - **Performance**: Medium LOD recommended (high LOD = 60-100ms overhead)
@@ -108,11 +121,13 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 ---
 
 ### ✅ light-estimation.holo (570 lines)
+
 **Status**: PRODUCTION READY
 **Traits Used**: `@light_estimation`
 **Platform Support**: iOS ARKit ✅ | Android ARCore ✅
 
 **Features**:
+
 - Environmental HDR light estimation
 - Ambient intensity (lumens), color, color temperature
 - Main light direction and intensity
@@ -123,6 +138,7 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 - Light probe visualization (debug)
 
 **Validation**:
+
 - ✅ Syntax: Valid HoloScript composition
 - ✅ Trait usage: `@light_estimation` with environmental_hdr mode
 - ✅ Light estimation modes: ambient_intensity, ambient_color, environmental_hdr
@@ -130,11 +146,13 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 - ✅ Shadow adaptation: Shadow intensity maps to main light intensity
 
 **Platform Notes**:
+
 - iOS: ARKit provides full environmental HDR estimation ✅
 - Android: ARCore environmental HDR (Android 11+) ✅
 - **Performance**: 100ms update interval recommended (balance accuracy vs battery)
 
 **Material Types**:
+
 - Metallic (roughness 0.1, reflectivity 0.9)
 - Glass (transparency 0.8, refraction 1.5)
 - Matte (roughness 0.9, reflectivity 0.1)
@@ -143,11 +161,13 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 ---
 
 ### ✅ persistent-anchors.holo (513 lines)
+
 **Status**: PRODUCTION READY (cloud service dependency)
 **Traits Used**: `@persistent_anchor`, `@cloud_anchor`, `@shared_anchor`
 **Platform Support**: iOS ARKit ✅ | Android ARCore ✅
 
 **Features**:
+
 - Cloud anchor hosting and resolving
 - Persistent anchors across sessions
 - Shared anchors across devices
@@ -157,6 +177,7 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 - Visual markers with status indication (hosted vs resolved)
 
 **Validation**:
+
 - ✅ Syntax: Valid HoloScript composition
 - ✅ Trait usage: `@persistent_anchor`, `@cloud_anchor`, `@shared_anchor`
 - ✅ Cloud provider: Supports Google Cloud, Azure Spatial Anchors, Immersal
@@ -164,11 +185,13 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 - ✅ Session management: UUID-based session tracking
 
 **Platform Notes**:
+
 - iOS: ARKit Cloud Anchors (requires ARKit 2.0+) ✅
 - Android: ARCore Cloud Anchors ✅
 - **CRITICAL**: Requires cloud service API key (paid after quota)
 
 **Platform-Specific Issues**:
+
 1. **Cloud Service Dependency**: Google Cloud Anchors = paid service (free tier: 5K anchors/month)
 2. **Azure Spatial Anchors**: Alternative provider (different pricing)
 3. **Immersal**: Visual positioning (premium service)
@@ -178,11 +201,13 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 ## 2. Missing Examples
 
 ### ❌ image-tracking.holo (NOT FOUND)
+
 **Status**: MISSING
 **Expected Traits**: `@image_tracking`, `@tracked_image`, `@image_database`
 **Platform Support**: iOS ARKit ✅ | Android ARCore ✅
 
 **Expected Features**:
+
 - 2D image recognition and tracking
 - Image database management
 - Tracked image state (tracking, limited, stopped)
@@ -191,12 +216,14 @@ The HoloScript AR Foundation examples demonstrate **production-ready AR capabili
 - Image quality metrics
 
 **Why Critical**: Image tracking is a **core AR Foundation feature** used in:
+
 - Product visualization (packaging, posters)
 - Museum/gallery experiences
 - Marketing/advertising AR
 - Educational AR (textbook augmentation)
 
 **Recommendation**: Create `image-tracking.holo` example with:
+
 ```holoscript
 composition "AR Image Tracking" {
   metadata {
@@ -220,11 +247,13 @@ composition "AR Image Tracking" {
 ---
 
 ### ❌ face-tracking.holo (NOT FOUND)
+
 **Status**: MISSING
 **Expected Traits**: `@face_tracking`, `@face_mesh`, `@blendshapes`
 **Platform Support**: iOS ARKit ✅ (TrueDepth) | Android ARCore ✅ (68 blendshapes)
 
 **Expected Features**:
+
 - Face detection and tracking
 - 68 ARKit blendshapes (eyeBlink, jawOpen, mouthSmile, etc.)
 - Face mesh with UVs
@@ -233,12 +262,14 @@ composition "AR Image Tracking" {
 - Face anchors
 
 **Why Critical**: Face tracking enables:
+
 - AR filters/effects (Snapchat/Instagram-style)
 - Avatar animation (VTuber, metaverse)
 - Accessibility (gaze control, expression-based UI)
 - Emotion detection
 
 **Recommendation**: Create `face-tracking.holo` example with:
+
 ```holoscript
 composition "AR Face Tracking & Filters" {
   metadata {
@@ -264,23 +295,24 @@ composition "AR Face Tracking & Filters" {
 
 ### Core AR Traits Coverage
 
-| Trait | Implementation Status | iOS | Android | Notes |
-|-------|----------------------|-----|---------|-------|
-| `@plane_detection` | ✅ Full | ✅ | ✅ | Horizontal + vertical planes |
-| `@mesh_detection` | ✅ Full | ✅ | ✅ | Semantic classification |
-| `@anchor` | ✅ Full | ✅ | ✅ | World anchors |
-| `@geospatial` | ⚠️ Partial | ⚠️ | ✅ | Android VPS only |
-| `@light_estimation` | ✅ Full | ✅ | ✅ | Environmental HDR |
-| `@occlusion` | ✅ Full | ✅ | ✅ | Depth-based occlusion |
-| `@vps` | ⚠️ Partial | ❌ | ✅ | Android ARCore Geospatial only |
-| `@persistent_anchor` | ✅ Full | ✅ | ✅ | Cloud anchors |
-| `@cloud_anchor` | ✅ Full | ✅ | ✅ | Google Cloud Anchors |
-| `@terrain_anchor` | ⚠️ Partial | ❌ | ✅ | Android Geospatial API only |
-| `@rooftop_anchor` | ⚠️ Partial | ❌ | ✅ | Android Geospatial API only |
-| `@image_tracking` | ❌ Missing | ✅ | ✅ | **No example provided** |
-| `@face_tracking` | ❌ Missing | ✅ | ✅ | **No example provided** |
+| Trait                | Implementation Status | iOS | Android | Notes                          |
+| -------------------- | --------------------- | --- | ------- | ------------------------------ |
+| `@plane_detection`   | ✅ Full               | ✅  | ✅      | Horizontal + vertical planes   |
+| `@mesh_detection`    | ✅ Full               | ✅  | ✅      | Semantic classification        |
+| `@anchor`            | ✅ Full               | ✅  | ✅      | World anchors                  |
+| `@geospatial`        | ⚠️ Partial            | ⚠️  | ✅      | Android VPS only               |
+| `@light_estimation`  | ✅ Full               | ✅  | ✅      | Environmental HDR              |
+| `@occlusion`         | ✅ Full               | ✅  | ✅      | Depth-based occlusion          |
+| `@vps`               | ⚠️ Partial            | ❌  | ✅      | Android ARCore Geospatial only |
+| `@persistent_anchor` | ✅ Full               | ✅  | ✅      | Cloud anchors                  |
+| `@cloud_anchor`      | ✅ Full               | ✅  | ✅      | Google Cloud Anchors           |
+| `@terrain_anchor`    | ⚠️ Partial            | ❌  | ✅      | Android Geospatial API only    |
+| `@rooftop_anchor`    | ⚠️ Partial            | ❌  | ✅      | Android Geospatial API only    |
+| `@image_tracking`    | ❌ Missing            | ✅  | ✅      | **No example provided**        |
+| `@face_tracking`     | ❌ Missing            | ✅  | ✅      | **No example provided**        |
 
 **Summary**:
+
 - ✅ **7 traits fully implemented** with examples
 - ⚠️ **4 traits platform-specific** (Android-only or limited iOS)
 - ❌ **2 traits missing examples** (image_tracking, face_tracking)
@@ -290,10 +322,12 @@ composition "AR Face Tracking & Filters" {
 ## 4. Compiler Support Validation
 
 ### iOS Compiler (IOSCompiler.ts)
+
 **File**: `packages/core/src/compiler/IOSCompiler.ts`
 **Status**: ✅ Production Ready
 
 **AR Foundation Support**:
+
 - ✅ ARKit integration via ARSCNView
 - ✅ Plane detection: `configuration.planeDetection = [.horizontal, .vertical]`
 - ✅ Scene reconstruction: `configuration.sceneReconstruction = .meshWithClassification` (iOS 17+)
@@ -302,22 +336,26 @@ composition "AR Face Tracking & Filters" {
 - ✅ Gesture recognizers (tap, pan, pinch, rotate)
 
 **Generated Code Structure**:
+
 - SwiftUI + ARKit integration
 - ARSCNView with SceneKit nodes
 - Coordinator pattern for AR session delegate
 - State management via @StateObject
 
 **Platform Version Support**:
+
 - iOS 15.0+ (basic AR)
 - iOS 17.0+ (mesh reconstruction, scene classification)
 
 ---
 
 ### Android Compiler (AndroidXRCompiler.ts)
+
 **File**: `packages/core/src/compiler/AndroidXRCompiler.ts`
 **Status**: ✅ Production Ready
 
 **AR Foundation Support**:
+
 - ✅ ARCore for Jetpack XR integration
 - ✅ Plane detection: `PlaneTrackable` with HORIZONTAL/VERTICAL types
 - ✅ Geospatial API: Full support with VPS
@@ -326,6 +364,7 @@ composition "AR Face Tracking & Filters" {
 - ✅ Cloud anchors: ARCore Cloud Anchor API
 
 **Trait Mapping** (AndroidXRTraitMap.ts):
+
 ```typescript
 plane_detection: {
   trait: 'plane_detection',
@@ -340,16 +379,19 @@ plane_detection: {
 ```
 
 **Platform Version Support**:
+
 - Android 13+ (Android XR SDK)
 - ARCore 1.30+ (Geospatial API, Scene Depth)
 
 ---
 
 ### Unity Compiler (UnityCompiler.ts)
+
 **File**: `packages/core/src/compiler/UnityCompiler.ts`
 **Status**: ✅ Production Ready
 
 **AR Foundation Support**:
+
 - ✅ AR Foundation package integration
 - ✅ ARPlaneManager for plane detection
 - ✅ ARMeshManager for mesh reconstruction
@@ -357,6 +399,7 @@ plane_detection: {
 - ✅ ARCameraManager for light estimation
 
 **Generated Components**:
+
 ```csharp
 // @plane_detection — AR Foundation: ARPlaneManager
 ARPlaneManager planeManager = arSessionOrigin.AddComponent<ARPlaneManager>();
@@ -371,6 +414,7 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 ```
 
 **Platform Support**:
+
 - iOS ARKit via AR Foundation
 - Android ARCore via AR Foundation
 - Cross-platform AR with feature parity
@@ -448,6 +492,7 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 
 3. **Compilation Testing**: ⚠️ NEEDS VERIFICATION
    Recommend running:
+
    ```bash
    # iOS compilation
    holoscript compile examples/ar-foundation/plane-detection.holo --target ios
@@ -470,6 +515,7 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 ### Manual Testing Checklist
 
 **Plane Detection** (`plane-detection.holo`):
+
 - [ ] Horizontal plane detection works (floors, tables)
 - [ ] Vertical plane detection works (walls)
 - [ ] Placement reticle tracks planes correctly
@@ -478,6 +524,7 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 - [ ] Light estimation adapts to environment
 
 **Geospatial AR** (`geospatial-ar.holo`):
+
 - [ ] VPS localization works (Android, supported cities)
 - [ ] GPS fallback works (iOS, unsupported areas)
 - [ ] POI markers appear at correct GPS coordinates
@@ -486,6 +533,7 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 - [ ] Terrain anchors snap to ground correctly (Android)
 
 **Mesh Scanning** (`mesh-scanning.holo`):
+
 - [ ] Environment mesh reconstructs in real-time
 - [ ] Semantic classification works (wall, floor, ceiling, etc.)
 - [ ] Mesh chunks update as user moves
@@ -494,6 +542,7 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 - [ ] Visualization modes work (classified, wireframe, solid)
 
 **Light Estimation** (`light-estimation.holo`):
+
 - [ ] Ambient intensity adapts to brightness
 - [ ] Ambient color adapts to environment
 - [ ] Main light direction matches sun/dominant light
@@ -502,6 +551,7 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 - [ ] Reflections match environment (HDR cubemap)
 
 **Persistent Anchors** (`persistent-anchors.holo`):
+
 - [ ] Cloud anchors can be hosted
 - [ ] Cloud anchors persist across app restarts
 - [ ] Cloud anchors can be resolved on different devices
@@ -571,6 +621,7 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 ### Overall Assessment: ✅ **PRODUCTION READY** (with gaps)
 
 **Strengths**:
+
 - Well-structured, comprehensive examples
 - Correct trait usage and platform configuration
 - Good coverage of core AR features (plane detection, mesh scanning, lighting, anchors)
@@ -578,12 +629,14 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 - Cross-platform support (iOS ARKit + Android ARCore)
 
 **Gaps**:
+
 - Missing 2 critical examples (image tracking, face tracking)
 - Limited iOS support for geospatial features (VPS, terrain anchors)
 - No device testing results documented
 - Limited error handling in examples
 
 **Production Readiness**: **7/10**
+
 - Examples are production-quality code ✅
 - Platform compatibility well-documented ✅
 - Missing critical features (image/face tracking) ❌
@@ -595,27 +648,27 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 
 ## Appendix A: Trait Implementation Matrix
 
-| Trait | Plane Detection | Geospatial AR | Mesh Scanning | Light Estimation | Persistent Anchors | Image Tracking | Face Tracking |
-|-------|----------------|---------------|---------------|------------------|--------------------|----------------|---------------|
-| `@plane_detection` | ✅ | - | - | - | - | - | - |
-| `@mesh_detection` | - | - | ✅ | - | - | - | - |
-| `@anchor` | ✅ | ✅ | - | - | ✅ | - | - |
-| `@geospatial` | - | ✅ | - | - | - | - | - |
-| `@geospatial_anchor` | - | ✅ | - | - | - | - | - |
-| `@vps` | - | ✅ | - | - | - | - | - |
-| `@terrain_anchor` | - | ✅ | - | - | - | - | - |
-| `@rooftop_anchor` | - | ✅ | - | - | - | - | - |
-| `@light_estimation` | ✅ | - | ✅ | ✅ | - | - | - |
-| `@occlusion` | - | - | ✅ | - | - | - | - |
-| `@persistent_anchor` | - | - | - | - | ✅ | - | - |
-| `@cloud_anchor` | - | - | - | - | ✅ | - | - |
-| `@shared_anchor` | - | - | - | - | ✅ | - | - |
-| `@image_tracking` | - | - | - | - | - | ❌ | - |
-| `@face_tracking` | - | - | - | - | - | - | ❌ |
-| `@face_mesh` | - | - | - | - | - | - | ❌ |
-| `@blendshapes` | - | - | - | - | - | - | ❌ |
-| `@tracked_image` | - | - | - | - | - | ❌ | - |
-| `@image_database` | - | - | - | - | - | ❌ | - |
+| Trait                | Plane Detection | Geospatial AR | Mesh Scanning | Light Estimation | Persistent Anchors | Image Tracking | Face Tracking |
+| -------------------- | --------------- | ------------- | ------------- | ---------------- | ------------------ | -------------- | ------------- |
+| `@plane_detection`   | ✅              | -             | -             | -                | -                  | -              | -             |
+| `@mesh_detection`    | -               | -             | ✅            | -                | -                  | -              | -             |
+| `@anchor`            | ✅              | ✅            | -             | -                | ✅                 | -              | -             |
+| `@geospatial`        | -               | ✅            | -             | -                | -                  | -              | -             |
+| `@geospatial_anchor` | -               | ✅            | -             | -                | -                  | -              | -             |
+| `@vps`               | -               | ✅            | -             | -                | -                  | -              | -             |
+| `@terrain_anchor`    | -               | ✅            | -             | -                | -                  | -              | -             |
+| `@rooftop_anchor`    | -               | ✅            | -             | -                | -                  | -              | -             |
+| `@light_estimation`  | ✅              | -             | ✅            | ✅               | -                  | -              | -             |
+| `@occlusion`         | -               | -             | ✅            | -                | -                  | -              | -             |
+| `@persistent_anchor` | -               | -             | -             | -                | ✅                 | -              | -             |
+| `@cloud_anchor`      | -               | -             | -             | -                | ✅                 | -              | -             |
+| `@shared_anchor`     | -               | -             | -             | -                | ✅                 | -              | -             |
+| `@image_tracking`    | -               | -             | -             | -                | -                  | ❌             | -             |
+| `@face_tracking`     | -               | -             | -             | -                | -                  | -              | ❌            |
+| `@face_mesh`         | -               | -             | -             | -                | -                  | -              | ❌            |
+| `@blendshapes`       | -               | -             | -             | -                | -                  | -              | ❌            |
+| `@tracked_image`     | -               | -             | -             | -                | -                  | ❌             | -             |
+| `@image_database`    | -               | -             | -             | -                | -                  | ❌             | -             |
 
 **Legend**: ✅ Implemented | ❌ Missing | - Not applicable
 
@@ -624,6 +677,7 @@ cameraManager.requestedLightEstimation = LightEstimationMode.AmbientSphericalHar
 ## Appendix B: Generated Code Samples
 
 ### iOS ARKit (plane-detection.holo)
+
 ```swift
 // ARViewContainer: UIViewRepresentable
 let configuration = ARWorldTrackingConfiguration()
@@ -640,6 +694,7 @@ func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: AR
 ```
 
 ### Android ARCore (plane-detection.holo)
+
 ```kotlin
 // @plane_detection -- ARCore plane detection (types: horizontal, vertical)
 val planeTypes = listOf(PlaneType.HORIZONTAL, PlaneType.VERTICAL)
@@ -652,6 +707,7 @@ session.getAllTrackables(Plane::class.java)
 ```
 
 ### Unity AR Foundation (plane-detection.holo)
+
 ```csharp
 // @plane_detection — AR Foundation: ARPlaneManager
 ARPlaneManager planeManager = arSessionOrigin.AddComponent<ARPlaneManager>();

@@ -52,9 +52,7 @@ describe('R3FCompiler.compileComposition — world blocks', () => {
         { type: 'WorldProperty', key: 'gravity', value: 9.8 },
       ],
     };
-    const root = compiler.compileComposition(
-      minimalComposition({ worlds: [world] })
-    );
+    const root = compiler.compileComposition(minimalComposition({ worlds: [world] }));
 
     expect(root.type).toBe('group');
     const ambient = findByType(root.children, 'ambientLight');
@@ -77,9 +75,7 @@ describe('R3FCompiler.compileComposition — world blocks', () => {
         },
       ],
     };
-    const root = compiler.compileComposition(
-      minimalComposition({ worlds: [world] })
-    );
+    const root = compiler.compileComposition(minimalComposition({ worlds: [world] }));
 
     expect(root.children?.length).toBe(1);
     const worldGroup = root.children![0];

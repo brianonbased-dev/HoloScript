@@ -80,12 +80,12 @@ export type OpenRouterModel = (typeof OPENROUTER_MODELS)[number];
  * without instantiating the adapter — single source of truth per W.GOLD.006.
  */
 export const OPENROUTER_CAPABILITIES: Capabilities = {
-  contextWindow: 0,              // per-upstream-model; 0 = use direct adapter for capability-sensitive routing
+  contextWindow: 0, // per-upstream-model; 0 = use direct adapter for capability-sensitive routing
   maxOutput: 0,
 
   streaming: true,
-  tools: true,                   // most upstream models support function calling
-  vision: false,                 // model-dependent — set per-deployment if needed
+  tools: true, // most upstream models support function calling
+  vision: false, // model-dependent — set per-deployment if needed
   bearerTokenAccess: true,
 
   // multimodal / reasoning / agentic: model-dependent — left
@@ -212,8 +212,7 @@ export class OpenRouterAdapter extends BaseLLMAdapter {
       if (status === 400 && err.message.includes('context_length')) {
         return new LLMContextLengthError('openrouter', 0);
       }
-      const isRetryableStatus =
-        typeof status === 'number' && status >= 500 && status < 600;
+      const isRetryableStatus = typeof status === 'number' && status >= 500 && status < 600;
       return new LLMProviderError(err.message, 'openrouter', status, isRetryableStatus);
     }
     return new LLMProviderError(String(err), 'openrouter');

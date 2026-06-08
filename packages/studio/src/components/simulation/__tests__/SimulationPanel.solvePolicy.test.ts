@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect } from 'vitest';
-import { simulationInputHash, shouldAutoSolve, type SimulationInputConfig } from '../SimulationPanel';
+import {
+  simulationInputHash,
+  shouldAutoSolve,
+  type SimulationInputConfig,
+} from '../SimulationPanel';
 
 const baseConfig: SimulationInputConfig = {
   sizeX: 1,
@@ -46,7 +50,7 @@ describe('SimulationPanel solve policy', () => {
         autoSolveOnPause: false,
         isDirty: true,
         status: 'idle',
-      }),
+      })
     ).toBe(false);
   });
 
@@ -57,7 +61,7 @@ describe('SimulationPanel solve policy', () => {
         autoSolveOnPause: true,
         isDirty: true,
         status: 'idle',
-      }),
+      })
     ).toBe(true);
 
     expect(
@@ -66,7 +70,7 @@ describe('SimulationPanel solve policy', () => {
         autoSolveOnPause: true,
         isDirty: true,
         status: 'solving',
-      }),
+      })
     ).toBe(false);
 
     expect(
@@ -75,7 +79,7 @@ describe('SimulationPanel solve policy', () => {
         autoSolveOnPause: true,
         isDirty: true,
         status: 'idle',
-      }),
+      })
     ).toBe(false);
   });
 });

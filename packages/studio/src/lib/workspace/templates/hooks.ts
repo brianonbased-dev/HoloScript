@@ -66,7 +66,7 @@ function fileExtensions(dna: ScaffoldDNA): string[] {
 function validateEditHook(dna: ScaffoldDNA): HookDefinition {
   const lintCmd = lintCommandForFile(dna);
   const exts = fileExtensions(dna);
-  const extCheck = exts.map(e => `filePath.endsWith('${e}')`).join(' || ');
+  const extCheck = exts.map((e) => `filePath.endsWith('${e}')`).join(' || ');
 
   return {
     name: 'validate-edit',
@@ -214,9 +214,5 @@ try {
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 export function generateHooks(dna: ScaffoldDNA): HookDefinition[] {
-  return [
-    validateEditHook(dna),
-    operationCounterHook(dna),
-    sessionReportHook(dna),
-  ];
+  return [validateEditHook(dna), operationCounterHook(dna), sessionReportHook(dna)];
 }

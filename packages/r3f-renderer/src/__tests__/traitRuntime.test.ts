@@ -21,7 +21,7 @@ import {
 
 const node = { id: 'n1' } as unknown as HSPlusNode;
 const h = (partial: Partial<TraitHandler>): TraitHandler =>
-  ({ name: 'mock', ...partial } as unknown as TraitHandler);
+  ({ name: 'mock', ...partial }) as unknown as TraitHandler;
 
 describe('traitRuntime — per-frame trait execution core', () => {
   it('attachTraits fires onAttach once per binding, in order', () => {
@@ -60,7 +60,12 @@ describe('traitRuntime — per-frame trait execution core', () => {
 
   it('falls back to handler.defaultConfig when binding config omitted', () => {
     let seen: unknown;
-    const handler = h({ defaultConfig: { rate: 0.5 }, onUpdate: (_n, c) => { seen = c; } });
+    const handler = h({
+      defaultConfig: { rate: 0.5 },
+      onUpdate: (_n, c) => {
+        seen = c;
+      },
+    });
     tickTraits(node, [{ handler }], createTraitContext(), 0.01);
     expect(seen).toEqual({ rate: 0.5 });
   });

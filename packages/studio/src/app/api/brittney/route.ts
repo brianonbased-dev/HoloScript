@@ -75,7 +75,11 @@ import {
   extractEvidencePaths,
   type SimContractCheck,
 } from '@/lib/brittney/cael';
-import { beginBrittneyMetric, endBrittneyMetric, estimateTokens } from '@/lib/brittney/fleetMetrics';
+import {
+  beginBrittneyMetric,
+  endBrittneyMetric,
+  estimateTokens,
+} from '@/lib/brittney/fleetMetrics';
 
 const MAX_REQUESTS_PER_MIN = 20;
 // SEC-T03: cap per-message input size to bound LLM spend from a single request.

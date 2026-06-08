@@ -101,10 +101,7 @@ describe('CLI E2E Workflow', () => {
   });
 
   it('suggest command suggests traits for description', async () => {
-    const opts = parseArgs([
-      'suggest',
-      'a multiplayer game with physics',
-    ]);
+    const opts = parseArgs(['suggest', 'a multiplayer game with physics']);
     const cli = new HoloScriptCLI(opts);
     const exitCode = await cli.run();
     expect(exitCode).toBe(0);

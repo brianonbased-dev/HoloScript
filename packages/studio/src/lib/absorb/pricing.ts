@@ -84,10 +84,19 @@ export const TIER_LIMITS: Record<
 // top-card at $25); Diamond launches invite-only; per-receipt needs a design-partner.
 export const SUBSCRIPTION_PRICING = {
   studioPro: { priceCentsMonthly: 1500, includedCredits: 500, label: 'Studio Pro' },
-  fleetSeat: { priceCentsMonthly: 2500, volumePriceCents5Plus: 2000, label: 'Fleet seat (durable agent)' },
+  fleetSeat: {
+    priceCentsMonthly: 2500,
+    volumePriceCents5Plus: 2000,
+    label: 'Fleet seat (durable agent)',
+  },
   vaultGold: { priceCentsMonthly: 3000, label: 'GOLD vault' },
   vaultDiamond: { priceCentsMonthly: 9900, inviteOnly: true, label: 'Diamond vault' },
-  regulatedReceipt: { minCents: 25, maxCents: 500, enterpriseFloorCentsMonthly: 200000, label: 'Verified receipt' },
+  regulatedReceipt: {
+    minCents: 25,
+    maxCents: 500,
+    enterpriseFloorCentsMonthly: 200000,
+    label: 'Verified receipt',
+  },
 } as const;
 
 // ─── LLM Markup ──────────────────────────────────────────────────────────────

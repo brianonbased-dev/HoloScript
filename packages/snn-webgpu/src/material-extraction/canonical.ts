@@ -1,14 +1,13 @@
-import type {
-  BotanicalMaterialExtraction,
-  BotanicalMaterialParams,
-} from './botanical-lotus.js';
+import type { BotanicalMaterialExtraction, BotanicalMaterialParams } from './botanical-lotus.js';
 import type {
   BotanicalExtractedColors,
   BotanicalMaterialExtractionResult,
   BotanicalMaterialUniforms,
 } from '../botanical-material-extractor.js';
 
-export type BotanicalExtractionInput = BotanicalMaterialExtraction | BotanicalMaterialExtractionResult;
+export type BotanicalExtractionInput =
+  | BotanicalMaterialExtraction
+  | BotanicalMaterialExtractionResult;
 
 export type CanonicalBotanicalExtractionStatus =
   | 'signed'
@@ -123,7 +122,9 @@ function normalizeMaterial(
   };
 }
 
-function isPixelExtraction(extraction: BotanicalExtractionInput): extraction is BotanicalMaterialExtraction {
+function isPixelExtraction(
+  extraction: BotanicalExtractionInput
+): extraction is BotanicalMaterialExtraction {
   return 'diagnostics' in extraction;
 }
 

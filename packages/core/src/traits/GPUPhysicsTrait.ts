@@ -5,7 +5,8 @@ import type { SoftBodyAdapter } from '@holoscript/engine/physics/SoftBodyAdapter
 // Lazy-loaded optional peers (@holoscript/engine)
 let _physicsEngineModule: typeof import('@holoscript/engine/runtime/PhysicsEngine') | null = null;
 let _islandDetectorModule: typeof import('@holoscript/engine/physics/IslandDetector') | null = null;
-let _softBodyAdapterModule: typeof import('@holoscript/engine/physics/SoftBodyAdapter') | null = null;
+let _softBodyAdapterModule: typeof import('@holoscript/engine/physics/SoftBodyAdapter') | null =
+  null;
 
 function extractPosition(node: HSPlusNode): [number, number, number] {
   const pos = node?.properties?.position ?? node?.position;

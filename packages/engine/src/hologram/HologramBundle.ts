@@ -192,9 +192,10 @@ async function sha256(bytes: Uint8Array): Promise<string> {
       'Web Crypto SubtleCrypto is unavailable in this runtime'
     );
   }
-  const ab: ArrayBuffer = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
-    ? (bytes.buffer as ArrayBuffer)
-    : bytes.slice().buffer;
+  const ab: ArrayBuffer =
+    bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
+      ? (bytes.buffer as ArrayBuffer)
+      : bytes.slice().buffer;
   const digest = await subtle.digest('SHA-256', ab);
   const hex = Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
@@ -218,10 +219,14 @@ export async function computeBundleHash(
     metaBytes.byteLength + 1 + depthBin.byteLength + 1 + normalBin.byteLength
   );
   let off = 0;
-  total.set(metaBytes, off); off += metaBytes.byteLength;
-  total.set(sep, off); off += 1;
-  total.set(depthBin, off); off += depthBin.byteLength;
-  total.set(sep, off); off += 1;
+  total.set(metaBytes, off);
+  off += metaBytes.byteLength;
+  total.set(sep, off);
+  off += 1;
+  total.set(depthBin, off);
+  off += depthBin.byteLength;
+  total.set(sep, off);
+  off += 1;
   total.set(normalBin, off);
   return sha256(total);
 }
@@ -233,11 +238,7 @@ export async function computeBundleHash(
  * corruption.
  */
 export async function verifyBundleHash(bundle: HologramBundle): Promise<void> {
-  const recomputed = await computeBundleHash(
-    bundle.meta,
-    bundle.depthBin,
-    bundle.normalBin
-  );
+  const recomputed = await computeBundleHash(bundle.meta, bundle.depthBin, bundle.normalBin);
   if (recomputed !== bundle.hash) {
     throw new HologramBundleError(
       'hash_mismatch',

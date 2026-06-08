@@ -7,15 +7,16 @@
 
 This directory contains three runnable plans:
 
-| File | Purpose | Time to execute |
-|---|---|---|
-| [a-quest3-feasibility-probe.md](./a-quest3-feasibility-probe.md) | Drop-in HTML page Joseph loads on his Quest browser to verify WebXR, hand tracking, passthrough, microphone, SpeechRecognition, SharedArrayBuffer, and Studio reachability. Produces a GREEN/YELLOW/RED score. | 20 min in-headset |
-| [b-voice-intent-grammar.md](./b-voice-intent-grammar.md) | Narrow subset of HoloScript the voice loop targets + full LLM system prompt for Claude Haiku 4.5 + verification step. Three worked examples, edit-mode prompt, hyperparameters. | Reference doc |
-| [c-studio-share-path-map.md](./c-studio-share-path-map.md) | Map of what's already shipped in Studio for share URLs (80% — `/api/share`, `/shared/[id]`, `useSceneShare`, Drizzle+Postgres) and the six concrete gaps (G1–G6) to reach in-headset publish + QR handoff. Two-day sprint plan. | Two-day engineering sprint |
+| File                                                             | Purpose                                                                                                                                                                                                                         | Time to execute            |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| [a-quest3-feasibility-probe.md](./a-quest3-feasibility-probe.md) | Drop-in HTML page Joseph loads on his Quest browser to verify WebXR, hand tracking, passthrough, microphone, SpeechRecognition, SharedArrayBuffer, and Studio reachability. Produces a GREEN/YELLOW/RED score.                  | 20 min in-headset          |
+| [b-voice-intent-grammar.md](./b-voice-intent-grammar.md)         | Narrow subset of HoloScript the voice loop targets + full LLM system prompt for Claude Haiku 4.5 + verification step. Three worked examples, edit-mode prompt, hyperparameters.                                                 | Reference doc              |
+| [c-studio-share-path-map.md](./c-studio-share-path-map.md)       | Map of what's already shipped in Studio for share URLs (80% — `/api/share`, `/shared/[id]`, `useSceneShare`, Drizzle+Postgres) and the six concrete gaps (G1–G6) to reach in-headset publish + QR handoff. Two-day sprint plan. | Two-day engineering sprint |
 
 ## The acceptance test these three plans unlock
 
 Joseph, from cold:
+
 1. Puts on Quest 3
 2. Opens `studio.holoscript.net`
 3. Speaks a scene into existence ("three torus rings of different colors spinning around a gold cube")
@@ -42,13 +43,13 @@ All seven steps without a keyboard, terminal, Unity install, or SDK. That is the
 
 ## Risk register (ordered by what would kill the plan)
 
-| Risk | Signal | Mitigation |
-|---|---|---|
-| Meta Browser blocks `SpeechRecognition` in immersive-vr sessions | probe (a) #6 fails OR works in 2D but not in VR | Ship wasm whisper.cpp (~30MB) as fallback. Decision point at probe-day. |
-| COOP/COEP breaks Studio's current third-party loads | probe (a) #7 YELLOW + Studio pages break after enabling headers | Audit third-party asset sources first; use `credentialless` COEP mode; host critical assets via Studio origin. |
-| Voice LLM returns fluent but unparseable .holo | any single user test | Already mitigated in plan (b) — narrow grammar + one-retry + trait allow-list. Keep the retry budget at 1; don't let it balloon. |
-| Latency from voice-to-render feels slow | Joseph says "it's fine" instead of "that's cool" on first use | Haiku + low max_tokens + compile-in-wasm keeps p50 under 1s. If still slow, cache prompt prefix via Anthropic prompt caching; the system prompt is fixed and long. |
-| Quest 3 browser crashes after N minutes in VR | probe (a) extended session time observation | Session-resume on crash via `sessionStorage` + quick auto-recreate. Known Meta Browser issue with no easy fix; live with it for v0. |
+| Risk                                                             | Signal                                                          | Mitigation                                                                                                                                                         |
+| ---------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Meta Browser blocks `SpeechRecognition` in immersive-vr sessions | probe (a) #6 fails OR works in 2D but not in VR                 | Ship wasm whisper.cpp (~30MB) as fallback. Decision point at probe-day.                                                                                            |
+| COOP/COEP breaks Studio's current third-party loads              | probe (a) #7 YELLOW + Studio pages break after enabling headers | Audit third-party asset sources first; use `credentialless` COEP mode; host critical assets via Studio origin.                                                     |
+| Voice LLM returns fluent but unparseable .holo                   | any single user test                                            | Already mitigated in plan (b) — narrow grammar + one-retry + trait allow-list. Keep the retry budget at 1; don't let it balloon.                                   |
+| Latency from voice-to-render feels slow                          | Joseph says "it's fine" instead of "that's cool" on first use   | Haiku + low max_tokens + compile-in-wasm keeps p50 under 1s. If still slow, cache prompt prefix via Anthropic prompt caching; the system prompt is fixed and long. |
+| Quest 3 browser crashes after N minutes in VR                    | probe (a) extended session time observation                     | Session-resume on crash via `sessionStorage` + quick auto-recreate. Known Meta Browser issue with no easy fix; live with it for v0.                                |
 
 ## Next decision
 

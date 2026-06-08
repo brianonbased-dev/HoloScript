@@ -36,7 +36,12 @@ describe('CacheTrait', () => {
       const node = makeNode();
       const ctx = makeContext();
       cacheHandler.onAttach!(node, defaultConfig, ctx);
-      const state = node.__cacheState as { entries: Map<string, unknown>; hits: number; misses: number; evictions: number };
+      const state = node.__cacheState as {
+        entries: Map<string, unknown>;
+        hits: number;
+        misses: number;
+        evictions: number;
+      };
       expect(state.entries).toBeInstanceOf(Map);
       expect(state.entries.size).toBe(0);
       expect(state.hits).toBe(0);

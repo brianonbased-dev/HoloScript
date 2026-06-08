@@ -157,10 +157,7 @@ export function empiricalLipschitzRatio(node: SDFNode): LipschitzResult {
   return { maxRatio, witness, pairsSampled };
 }
 
-function evaluateCandidate(
-  candidate: SdfConjectureCandidate,
-  tolerance: number,
-): SdfEvaluation {
+function evaluateCandidate(candidate: SdfConjectureCandidate, tolerance: number): SdfEvaluation {
   const { maxRatio, witness } = empiricalLipschitzRatio(candidate.node);
   const pass = maxRatio <= 1 + tolerance;
   return {
@@ -201,11 +198,15 @@ export function gyroidCandidate(scale: number): SdfConjectureCandidate {
   };
 }
 
-export function generateSphereFamily(radii: ReadonlyArray<number> = [0.5, 1, 1.5, 2]): ReadonlyArray<SdfConjectureCandidate> {
+export function generateSphereFamily(
+  radii: ReadonlyArray<number> = [0.5, 1, 1.5, 2]
+): ReadonlyArray<SdfConjectureCandidate> {
   return radii.map((r) => sphereCandidate(r));
 }
 
-export function generateGyroidFamily(scales: ReadonlyArray<number> = [3, 5, 8]): ReadonlyArray<SdfConjectureCandidate> {
+export function generateGyroidFamily(
+  scales: ReadonlyArray<number> = [3, 5, 8]
+): ReadonlyArray<SdfConjectureCandidate> {
   return scales.map((s) => gyroidCandidate(s));
 }
 
@@ -214,11 +215,14 @@ function buildScenario(
   role: 'survivor' | 'falsifier',
   statement: string,
   candidates: ReadonlyArray<SdfConjectureCandidate>,
-  tolerance: number,
+  tolerance: number
 ): SdfScenario {
   const evaluations = candidates.map((c) => evaluateCandidate(c, tolerance));
   const counterexamples: SdfCounterexample[] = evaluations
-    .filter((e): e is SdfEvaluation & { witness: LipschitzWitness } => e.status === 'fail' && e.witness !== null)
+    .filter(
+      (e): e is SdfEvaluation & { witness: LipschitzWitness } =>
+        e.status === 'fail' && e.witness !== null
+    )
     .map((e) => ({ candidateId: e.candidateId, family: e.family, witness: e.witness }));
 
   let status: SdfConjectureStatus;
@@ -239,7 +243,7 @@ function buildScenario(
  * yields at least one sound counterexample pair. Deterministic receipt key.
  */
 export function runProofCarryingSdfConjecture(
-  options: ProofCarryingSdfOptions = {},
+  options: ProofCarryingSdfOptions = {}
 ): ProofCarryingSdfReceipt {
   const tolerance = options.tolerance ?? LIPSCHITZ_TOLERANCE;
   if (!(tolerance >= 0) || !Number.isFinite(tolerance)) {
@@ -251,14 +255,14 @@ export function runProofCarryingSdfConjecture(
     'survivor',
     'Every true-distance sphere SDF is 1-Lipschitz (no violation found in the deterministic sample).',
     generateSphereFamily(),
-    tolerance,
+    tolerance
   );
   const falsifier = buildScenario(
     'proof-carrying-sdf.gyroids-are-1-lipschitz',
     'falsifier',
     'Every gyroid SDF is 1-Lipschitz (deliberately false — gyroid is an implicit surface, not a distance).',
     generateGyroidFamily(),
-    tolerance,
+    tolerance
   );
   const scenarios = [survivor, falsifier];
 

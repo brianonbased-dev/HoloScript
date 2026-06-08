@@ -132,49 +132,49 @@ describe('validateLocalCliAbsorptionReceipt', () => {
   it('requires id', () => {
     const receipt = { ...makeValidReceipt(), id: '' };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.id is required.',
+      'LocalCliAbsorptionReceipt.id is required.'
     );
   });
 
   it('requires projectPath', () => {
     const receipt = { ...makeValidReceipt(), projectPath: '' };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.projectPath is required.',
+      'LocalCliAbsorptionReceipt.projectPath is required.'
     );
   });
 
   it('requires binary', () => {
     const receipt = { ...makeValidReceipt(), binary: '' };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.binary is required.',
+      'LocalCliAbsorptionReceipt.binary is required.'
     );
   });
 
   it('requires valid startedAt', () => {
     const receipt = { ...makeValidReceipt(), startedAt: 'invalid' };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.startedAt is required and must be a valid ISO-8601 timestamp.',
+      'LocalCliAbsorptionReceipt.startedAt is required and must be a valid ISO-8601 timestamp.'
     );
   });
 
   it('requires valid endedAt', () => {
     const receipt = { ...makeValidReceipt(), endedAt: '' };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.endedAt is required and must be a valid ISO-8601 timestamp.',
+      'LocalCliAbsorptionReceipt.endedAt is required and must be a valid ISO-8601 timestamp.'
     );
   });
 
   it('requires exitCode as number', () => {
     const receipt = { ...makeValidReceipt(), exitCode: undefined as unknown as number };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.exitCode is required and must be a number.',
+      'LocalCliAbsorptionReceipt.exitCode is required and must be a number.'
     );
   });
 
   it('requires policy', () => {
     const receipt = { ...makeValidReceipt(), policy: undefined as unknown as LocalCliPolicy };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.policy is required.',
+      'LocalCliAbsorptionReceipt.policy is required.'
     );
   });
 
@@ -182,7 +182,7 @@ describe('validateLocalCliAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.policy = { ...receipt.policy, allowedBinaries: 'bad' as unknown as string[] };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.policy.allowedBinaries must be an array.',
+      'LocalCliAbsorptionReceipt.policy.allowedBinaries must be an array.'
     );
   });
 
@@ -190,7 +190,7 @@ describe('validateLocalCliAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.policy = { ...receipt.policy, maxDurationMs: -1 };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.policy.maxDurationMs must be a non-negative number.',
+      'LocalCliAbsorptionReceipt.policy.maxDurationMs must be a non-negative number.'
     );
   });
 
@@ -198,21 +198,21 @@ describe('validateLocalCliAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.policy = { ...receipt.policy, captureStdout: 'true' as unknown as boolean };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.policy.captureStdout must be a boolean.',
+      'LocalCliAbsorptionReceipt.policy.captureStdout must be a boolean.'
     );
   });
 
   it('requires hash', () => {
     const receipt = { ...makeValidReceipt(), hash: '' };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.hash is required.',
+      'LocalCliAbsorptionReceipt.hash is required.'
     );
   });
 
   it('requires hashAlgorithm', () => {
     const receipt = { ...makeValidReceipt(), hashAlgorithm: '' as unknown as 'sha256' };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.hashAlgorithm is required.',
+      'LocalCliAbsorptionReceipt.hashAlgorithm is required.'
     );
   });
 
@@ -220,7 +220,7 @@ describe('validateLocalCliAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.actions = [{ ...receipt.actions[0], kind: 'hack' as unknown as CliAction['kind'] }];
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'CliAction kind is unsupported: hack.',
+      'CliAction kind is unsupported: hack.'
     );
   });
 
@@ -228,7 +228,7 @@ describe('validateLocalCliAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.actions = [{ ...receipt.actions[0], step: -1 }];
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'CliAction step must be a non-negative integer.',
+      'CliAction step must be a non-negative integer.'
     );
   });
 
@@ -236,7 +236,7 @@ describe('validateLocalCliAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.actions = [{ ...receipt.actions[0], timestamp: 'not-a-date' }];
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'CliAction step 0 timestamp is invalid.',
+      'CliAction step 0 timestamp is invalid.'
     );
   });
 
@@ -244,14 +244,17 @@ describe('validateLocalCliAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.actions = [{ ...receipt.actions[0], durationMs: -100 }];
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'CliAction step 0 durationMs must be a non-negative number.',
+      'CliAction step 0 durationMs must be a non-negative number.'
     );
   });
 
   it('rejects unsupported outcome', () => {
-    const receipt = { ...makeValidReceipt(), outcome: 'cancelled' as unknown as LocalCliAbsorptionReceipt['outcome'] };
+    const receipt = {
+      ...makeValidReceipt(),
+      outcome: 'cancelled' as unknown as LocalCliAbsorptionReceipt['outcome'],
+    };
     expect(validateLocalCliAbsorptionReceipt(receipt)).toContain(
-      'LocalCliAbsorptionReceipt.outcome is unsupported: cancelled.',
+      'LocalCliAbsorptionReceipt.outcome is unsupported: cancelled.'
     );
   });
 });

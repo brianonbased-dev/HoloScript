@@ -112,11 +112,16 @@ function scoreKind(stats: AbsorbStats, paths: string[]): Record<ProjectKind, num
 
   // Storefront / retail / inventory signals
   if (pathStr.includes('product') || pathStr.includes('inventory')) scores.storefront += 3;
-  if (pathStr.includes('cart') || pathStr.includes('checkout') || pathStr.includes('payment')) scores.storefront += 3;
-  if (pathStr.includes('catalog') || pathStr.includes('menu') || pathStr.includes('sku')) scores.storefront += 2;
-  if (pathStr.includes('storefront') || pathStr.includes('shop') || pathStr.includes('store')) scores.storefront += 2;
-  if (pathStr.includes('pos') || pathStr.includes('point-of-sale') || pathStr.includes('register')) scores.storefront += 3;
-  if (pathStr.includes('strain') || pathStr.includes('dispensary') || pathStr.includes('cannabis')) scores.storefront += 4;
+  if (pathStr.includes('cart') || pathStr.includes('checkout') || pathStr.includes('payment'))
+    scores.storefront += 3;
+  if (pathStr.includes('catalog') || pathStr.includes('menu') || pathStr.includes('sku'))
+    scores.storefront += 2;
+  if (pathStr.includes('storefront') || pathStr.includes('shop') || pathStr.includes('store'))
+    scores.storefront += 2;
+  if (pathStr.includes('pos') || pathStr.includes('point-of-sale') || pathStr.includes('register'))
+    scores.storefront += 3;
+  if (pathStr.includes('strain') || pathStr.includes('dispensary') || pathStr.includes('cannabis'))
+    scores.storefront += 4;
   if (pathStr.includes('order') || pathStr.includes('fulfillment')) scores.storefront += 1;
 
   // Spatial signals

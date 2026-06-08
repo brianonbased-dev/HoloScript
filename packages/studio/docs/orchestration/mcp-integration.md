@@ -167,16 +167,16 @@ To add a custom server:
 
 Default servers in MCP Mesh Orchestrator:
 
-| Server                   | Purpose             | Tools                                    |
-| ------------------------ | ------------------- | ---------------------------------------- |
-| `mcp-filesystem`         | File operations     | read_file, write_file, list_directory    |
-| `mcp-git`                | Git version control | git_status, git_commit, git_push         |
-| `mcp-github`             | GitHub integration  | create_pr, list_issues, get_repo         |
-| `semantic-search-hub`    | Vector search       | search_knowledge, add_pattern, reindex   |
-| `holoscript-language`    | Language services   | parse_code, validate_syntax, generate    |
-| `hololand-substrate`      | AI agent (legacy name; conflates substrate with participant) | chat, generate_scene, optimize |
-| `ai-workspace-knowledge` | Knowledge base      | query_docs, add_insight, get_context     |
-| `uaa2-service`           | Authentication      | verify_token, get_user, check_permission |
+| Server                   | Purpose                                                      | Tools                                    |
+| ------------------------ | ------------------------------------------------------------ | ---------------------------------------- |
+| `mcp-filesystem`         | File operations                                              | read_file, write_file, list_directory    |
+| `mcp-git`                | Git version control                                          | git_status, git_commit, git_push         |
+| `mcp-github`             | GitHub integration                                           | create_pr, list_issues, get_repo         |
+| `semantic-search-hub`    | Vector search                                                | search_knowledge, add_pattern, reindex   |
+| `holoscript-language`    | Language services                                            | parse_code, validate_syntax, generate    |
+| `hololand-substrate`     | AI agent (legacy name; conflates substrate with participant) | chat, generate_scene, optimize           |
+| `ai-workspace-knowledge` | Knowledge base                                               | query_docs, add_insight, get_context     |
+| `uaa2-service`           | Authentication                                               | verify_token, get_user, check_permission |
 
 ---
 

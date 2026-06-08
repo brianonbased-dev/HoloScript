@@ -41,10 +41,7 @@ import { type SecretRef, type LeaseAdapter } from './types';
  * such as `rowCount`, which this contract simply ignores).
  */
 export interface LeaseQueryRunner {
-  query(
-    sql: string,
-    params: readonly unknown[]
-  ): Promise<{ rows: Array<Record<string, unknown>> }>;
+  query(sql: string, params: readonly unknown[]): Promise<{ rows: Array<Record<string, unknown>> }>;
 }
 
 /** Dependencies for {@link createPostgresLeaseAdapter}. */

@@ -22,15 +22,15 @@ import {
 describe('tableAssignment', () => {
   const tables = [
     { id: 'T1', capacity: 2, section: 'patio', available: true },
-    { id: 'T2', capacity: 4, section: 'main',  available: true },
-    { id: 'T3', capacity: 6, section: 'main',  available: true },
-    { id: 'T4', capacity: 8, section: 'bar',   available: true },
+    { id: 'T2', capacity: 4, section: 'main', available: true },
+    { id: 'T3', capacity: 6, section: 'main', available: true },
+    { id: 'T4', capacity: 8, section: 'bar', available: true },
   ];
 
   it('party of 2 assigned to smallest fitting table (best-fit)', () => {
     const parties = [{ id: 'P1', partySize: 2, priorityGuest: false }];
     const r = tableAssignment(tables, parties);
-    const assigned = r.assignments.find(a => a.partyId === 'P1');
+    const assigned = r.assignments.find((a) => a.partyId === 'P1');
     expect(assigned!.tableCapacity).toBeGreaterThanOrEqual(2);
     // Best-fit: should assign T1 (cap=2) over T2 (cap=4)
     expect(assigned!.tableCapacity).toBe(2);
@@ -39,11 +39,11 @@ describe('tableAssignment', () => {
   it('priority guests seated before regular guests', () => {
     const parties = [
       { id: 'Regular', partySize: 4, priorityGuest: false },
-      { id: 'VIP',     partySize: 4, priorityGuest: true  },
+      { id: 'VIP', partySize: 4, priorityGuest: true },
     ];
     const r = tableAssignment(tables, parties);
     // VIP should be assigned (both should fit since we have 2 4+ tables)
-    expect(r.assignments.some(a => a.partyId === 'VIP')).toBe(true);
+    expect(r.assignments.some((a) => a.partyId === 'VIP')).toBe(true);
   });
 
   it('party larger than any table goes to unassigned', () => {
@@ -55,14 +55,14 @@ describe('tableAssignment', () => {
   it('utilization = partySize / tableCapacity', () => {
     const parties = [{ id: 'P1', partySize: 3, priorityGuest: false }];
     const r = tableAssignment(tables, parties);
-    const assigned = r.assignments.find(a => a.partyId === 'P1');
+    const assigned = r.assignments.find((a) => a.partyId === 'P1');
     expect(assigned!.utilization).toBeCloseTo(assigned!.partySize / assigned!.tableCapacity, 4);
   });
 
   it('section preference respected when available', () => {
     const parties = [{ id: 'P1', partySize: 2, preferredSection: 'patio', priorityGuest: false }];
     const r = tableAssignment(tables, parties);
-    const assigned = r.assignments.find(a => a.partyId === 'P1');
+    const assigned = r.assignments.find((a) => a.partyId === 'P1');
     expect(assigned!.sectionMatch).toBe(true);
     expect(assigned!.tableId).toBe('T1');
   });
@@ -84,9 +84,9 @@ describe('tableAssignment', () => {
 describe('kitchenQueueScheduler', () => {
   const tickets = [
     { id: 'T1', estimatedMinutes: 15, priority: 2 as const, tableId: 'A', items: ['burger'] },
-    { id: 'T2', estimatedMinutes: 8,  priority: 1 as const, tableId: 'B', items: ['soup']   },
-    { id: 'T3', estimatedMinutes: 20, priority: 2 as const, tableId: 'C', items: ['steak']  },
-    { id: 'T4', estimatedMinutes: 5,  priority: 3 as const, tableId: 'D', items: ['dessert'] },
+    { id: 'T2', estimatedMinutes: 8, priority: 1 as const, tableId: 'B', items: ['soup'] },
+    { id: 'T3', estimatedMinutes: 20, priority: 2 as const, tableId: 'C', items: ['steak'] },
+    { id: 'T4', estimatedMinutes: 5, priority: 3 as const, tableId: 'D', items: ['dessert'] },
   ];
 
   it('priority 1 ticket scheduled first', () => {
@@ -115,8 +115,8 @@ describe('kitchenQueueScheduler', () => {
   it('within same priority: shorter job goes first (SJF)', () => {
     const r = kitchenQueueScheduler(tickets);
     // Priority 2 tickets: T1 (15min) and T3 (20min) → T1 before T3
-    const t1pos = r.sequence.findIndex(s => s.ticketId === 'T1');
-    const t3pos = r.sequence.findIndex(s => s.ticketId === 'T3');
+    const t1pos = r.sequence.findIndex((s) => s.ticketId === 'T1');
+    const t3pos = r.sequence.findIndex((s) => s.ticketId === 'T3');
     expect(t1pos).toBeLessThan(t3pos);
   });
 
@@ -140,33 +140,33 @@ describe('menuEngineering', () => {
    * Dogs: low popularity + low margin
    */
   const items = [
-    { id: 'burger', name: 'Burger',  popularity: 100, contributionMargin: 12.00 }, // star — avg margin = (12+4+25+3)/4 = 11; 12 > 11 → star
-    { id: 'pasta',  name: 'Pasta',   popularity: 80,  contributionMargin: 4.00 },   // plow-horse
-    { id: 'lobster',name: 'Lobster', popularity: 20,  contributionMargin: 25.00 },  // puzzle
-    { id: 'salad',  name: 'Salad',   popularity: 30,  contributionMargin: 3.00 },   // dog
+    { id: 'burger', name: 'Burger', popularity: 100, contributionMargin: 12.0 }, // star — avg margin = (12+4+25+3)/4 = 11; 12 > 11 → star
+    { id: 'pasta', name: 'Pasta', popularity: 80, contributionMargin: 4.0 }, // plow-horse
+    { id: 'lobster', name: 'Lobster', popularity: 20, contributionMargin: 25.0 }, // puzzle
+    { id: 'salad', name: 'Salad', popularity: 30, contributionMargin: 3.0 }, // dog
   ];
 
   it('burger (high pop, high margin) → star', () => {
     const r = menuEngineering(items);
-    const burger = r.items.find(i => i.id === 'burger');
+    const burger = r.items.find((i) => i.id === 'burger');
     expect(burger!.category).toBe('star');
   });
 
   it('pasta (high pop, low margin) → plow-horse', () => {
     const r = menuEngineering(items);
-    const pasta = r.items.find(i => i.id === 'pasta');
+    const pasta = r.items.find((i) => i.id === 'pasta');
     expect(pasta!.category).toBe('plow-horse');
   });
 
   it('lobster (low pop, high margin) → puzzle', () => {
     const r = menuEngineering(items);
-    const lobster = r.items.find(i => i.id === 'lobster');
+    const lobster = r.items.find((i) => i.id === 'lobster');
     expect(lobster!.category).toBe('puzzle');
   });
 
   it('salad (low pop, low margin) → dog', () => {
     const r = menuEngineering(items);
-    const salad = r.items.find(i => i.id === 'salad');
+    const salad = r.items.find((i) => i.id === 'salad');
     expect(salad!.category).toBe('dog');
   });
 
@@ -178,7 +178,11 @@ describe('menuEngineering', () => {
 
   it('categoryCount sums to total items', () => {
     const r = menuEngineering(items);
-    const total = r.categoryCount.star + r.categoryCount['plow-horse'] + r.categoryCount.puzzle + r.categoryCount.dog;
+    const total =
+      r.categoryCount.star +
+      r.categoryCount['plow-horse'] +
+      r.categoryCount.puzzle +
+      r.categoryCount.dog;
     expect(total).toBe(items.length);
   });
 
@@ -196,7 +200,7 @@ describe('foodCostAnalysis', () => {
    */
   const lines = [
     { item: 'burger', ingredientCostUSD: 3, sellingPriceUSD: 12, unitsSold: 100 },
-    { item: 'steak',  ingredientCostUSD: 15, sellingPriceUSD: 35, unitsSold: 50 },
+    { item: 'steak', ingredientCostUSD: 15, sellingPriceUSD: 35, unitsSold: 50 },
   ];
 
   it('per-item foodCostPct = ingredient / price', () => {
@@ -218,14 +222,16 @@ describe('foodCostAnalysis', () => {
 
   it('overTarget=true when blended cost exceeds target', () => {
     // Steak-heavy menu at 42.9% → over standard 30% target
-    const heavySteak = [{ item: 'steak', ingredientCostUSD: 15, sellingPriceUSD: 35, unitsSold: 200 }];
-    const r = foodCostAnalysis(heavySteak, 0.30);
+    const heavySteak = [
+      { item: 'steak', ingredientCostUSD: 15, sellingPriceUSD: 35, unitsSold: 200 },
+    ];
+    const r = foodCostAnalysis(heavySteak, 0.3);
     expect(r.overTarget).toBe(true);
   });
 
   it('overTarget=false when within target', () => {
     const lowCost = [{ item: 'drink', ingredientCostUSD: 1, sellingPriceUSD: 8, unitsSold: 100 }];
-    const r = foodCostAnalysis(lowCost, 0.30);
+    const r = foodCostAnalysis(lowCost, 0.3);
     expect(r.overTarget).toBe(false);
   });
 
@@ -238,14 +244,14 @@ describe('foodCostAnalysis', () => {
 
 describe('turnTimePredictor', () => {
   it('dinner base is longer than lunch', () => {
-    const lunch  = turnTimePredictor({ partySize: 2, mealPeriod: 'lunch',  specialEvent: false });
+    const lunch = turnTimePredictor({ partySize: 2, mealPeriod: 'lunch', specialEvent: false });
     const dinner = turnTimePredictor({ partySize: 2, mealPeriod: 'dinner', specialEvent: false });
     expect(dinner.predictedTurnMin).toBeGreaterThan(lunch.predictedTurnMin);
   });
 
   it('special event adds to turn time', () => {
-    const normal  = turnTimePredictor({ partySize: 2, mealPeriod: 'dinner', specialEvent: false });
-    const special = turnTimePredictor({ partySize: 2, mealPeriod: 'dinner', specialEvent: true  });
+    const normal = turnTimePredictor({ partySize: 2, mealPeriod: 'dinner', specialEvent: false });
+    const special = turnTimePredictor({ partySize: 2, mealPeriod: 'dinner', specialEvent: true });
     expect(special.predictedTurnMin).toBeGreaterThan(normal.predictedTurnMin);
   });
 
@@ -262,13 +268,15 @@ describe('turnTimePredictor', () => {
 
   it('confidenceInterval spans ±10% of predictedTurnMin', () => {
     const r = turnTimePredictor({ partySize: 4, mealPeriod: 'dinner', specialEvent: false });
-    const margin = r.predictedTurnMin * 0.10;
+    const margin = r.predictedTurnMin * 0.1;
     expect(r.confidenceInterval[0]).toBeCloseTo(r.predictedTurnMin - margin, 1);
     expect(r.confidenceInterval[1]).toBeCloseTo(r.predictedTurnMin + margin, 1);
   });
 
   it('throws for partySize < 1', () => {
-    expect(() => turnTimePredictor({ partySize: 0, mealPeriod: 'dinner', specialEvent: false })).toThrow();
+    expect(() =>
+      turnTimePredictor({ partySize: 0, mealPeriod: 'dinner', specialEvent: false })
+    ).toThrow();
   });
 });
 
@@ -276,7 +284,9 @@ describe('turnTimePredictor', () => {
 
 describe('buildRestaurantReceipt', () => {
   it('plugin=restaurant and CAEL event correct', () => {
-    const menu = menuEngineering([{ id: 'burger', name: 'Burger', popularity: 100, contributionMargin: 8 }]);
+    const menu = menuEngineering([
+      { id: 'burger', name: 'Burger', popularity: 100, contributionMargin: 8 },
+    ]);
     const receipt = buildRestaurantReceipt({ menuEngineering: menu, converged: true });
     expect(receipt.plugin).toBe('restaurant');
     expect(receipt.cael.event).toBe('restaurant.operations_analysis');
@@ -284,7 +294,9 @@ describe('buildRestaurantReceipt', () => {
   });
 
   it('accepted=true for efficient operation', () => {
-    const foodCost = foodCostAnalysis([{ item: 'drink', ingredientCostUSD: 1, sellingPriceUSD: 8, unitsSold: 100 }]);
+    const foodCost = foodCostAnalysis([
+      { item: 'drink', ingredientCostUSD: 1, sellingPriceUSD: 8, unitsSold: 100 },
+    ]);
     const receipt = buildRestaurantReceipt({ foodCost, converged: true });
     expect(receipt.acceptance.accepted).toBe(true);
   });
@@ -292,7 +304,7 @@ describe('buildRestaurantReceipt', () => {
   it('accepted=false when food cost over target', () => {
     const foodCost = foodCostAnalysis(
       [{ item: 'steak', ingredientCostUSD: 15, sellingPriceUSD: 35, unitsSold: 100 }],
-      0.30,  // 42.9% actual > 30% target
+      0.3 // 42.9% actual > 30% target
     );
     const receipt = buildRestaurantReceipt({ foodCost, converged: true });
     expect(receipt.acceptance.accepted).toBe(false);

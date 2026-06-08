@@ -168,14 +168,14 @@ async compile(source: string, target: CompileTarget): Promise<CompileResult>
 
 **Engine-Core Targets:**
 
-| Target | Output |
-| ------ | ------ |
-| `'threejs'` | Three.js scene JSON |
-| `'babylonjs'` | Babylon.js scene JSON |
-| `'aframe-html'` | A-Frame HTML markup |
-| `'gltf-json'` | glTF 2.0 JSON |
-| `'glb-binary'` | glTF Binary (GLB) |
-| `'json-ast'` | Raw AST JSON |
+| Target          | Output                |
+| --------------- | --------------------- |
+| `'threejs'`     | Three.js scene JSON   |
+| `'babylonjs'`   | Babylon.js scene JSON |
+| `'aframe-html'` | A-Frame HTML markup   |
+| `'gltf-json'`   | glTF 2.0 JSON         |
+| `'glb-binary'`  | glTF Binary (GLB)     |
+| `'json-ast'`    | Raw AST JSON          |
 
 #### `generateObject(description)`
 

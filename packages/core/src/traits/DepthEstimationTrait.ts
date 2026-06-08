@@ -127,7 +127,9 @@ async function detectBackend(): Promise<'webgpu' | 'wasm'> {
  * expected to be available as a dynamic import from 'npm:@xenova/transformers'
  * or a bundled alias. In Node.js test environments a graceful fallback is used.
  */
-async function loadTransformers(): Promise<{ pipeline: (task: string, model: string, opts?: unknown) => Promise<unknown> }> {
+async function loadTransformers(): Promise<{
+  pipeline: (task: string, model: string, opts?: unknown) => Promise<unknown>;
+}> {
   try {
     // Dynamic import keeps Transformers.js out of the main bundle unless this
     // trait is actually attached at runtime.
@@ -144,13 +146,22 @@ async function loadTransformers(): Promise<{ pipeline: (task: string, model: str
     // exactly as before. Verified 2026-04-25 against the 7th
     // deploy-blocker on Railway studio (run 24942699985).
     try {
-      const cdnUrl = ['https:', '', 'cdn.jsdelivr.net', 'npm', '@xenova', 'transformers@2', 'dist', 'transformers.min.js'].join('/');
+      const cdnUrl = [
+        'https:',
+        '',
+        'cdn.jsdelivr.net',
+        'npm',
+        '@xenova',
+        'transformers@2',
+        'dist',
+        'transformers.min.js',
+      ].join('/');
       const mod = await import(cdnUrl as any);
       return mod;
     } catch (e) {
       throw new Error(
         `[@depth_estimation] Could not load @xenova/transformers. ` +
-        `Add it to your project: pnpm add @xenova/transformers. Original error: ${String(e)}`
+          `Add it to your project: pnpm add @xenova/transformers. Original error: ${String(e)}`
       );
     }
   }
@@ -203,9 +214,9 @@ async function computeDepth(
   if (!imageSource) return;
 
   try {
-    const result = await (state.pipeline as any)(imageSource, {
+    const result = (await (state.pipeline as any)(imageSource, {
       size: { width: config.resolution.width, height: config.resolution.height },
-    }) as { depth: { data: Float32Array } };
+    })) as { depth: { data: Float32Array } };
 
     const depthMap: Float32Array = result.depth.data;
     (node as any).emit?.('depth:map', depthMap);
@@ -286,7 +297,9 @@ export const depthEstimationTraitHandler: TraitHandler<DepthEstimationConfig> = 
           if (backend === 'webgpu') {
             env.backends.onnx.wasm.proxy = false;
           }
-        } catch { /* environment config is best-effort */ }
+        } catch {
+          /* environment config is best-effort */
+        }
 
         state.pipeline = await pipeline('depth-estimation', cfg.modelId, {
           device: backend === 'webgpu' ? 'webgpu' : undefined,

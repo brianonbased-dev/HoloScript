@@ -348,9 +348,10 @@ export function buildHeadsetShareReceipt(options: {
     frameTiming: {
       serverStartupMs: options.serverStartupMs,
       urlReadyMs: options.urlReadyMs,
-      note: options.serverStartupMs != null
-        ? `Server ready in ${options.serverStartupMs}ms.`
-        : 'Server timing not captured (serve-on-demand mode).',
+      note:
+        options.serverStartupMs != null
+          ? `Server ready in ${options.serverStartupMs}ms.`
+          : 'Server timing not captured (serve-on-demand mode).',
     },
     artifacts: options.artifacts ?? [],
     overallStatus,
@@ -540,11 +541,18 @@ async function startAdbServer(
 
   // Start local server first (reusing LAN server logic)
   const localPort = options.port ?? 8420;
-  const lanServer = await startLanServer(code, name, author, shareId, {
-    ...options,
-    port: localPort,
-    transport: 'lan-https',
-  }, startMs);
+  const lanServer = await startLanServer(
+    code,
+    name,
+    author,
+    shareId,
+    {
+      ...options,
+      port: localPort,
+      transport: 'lan-https',
+    },
+    startMs
+  );
 
   // Set up ADB reverse forward
   const remotePort = localPort; // same port on Quest side
@@ -573,7 +581,11 @@ async function startAdbServer(
 
   const receiptDir = join(tmpdir(), 'hololand-headset-share');
   mkdirSync(receiptDir, { recursive: true });
-  writeFileSync(join(receiptDir, `headset-share-${shareId}.json`), JSON.stringify(receipt, null, 2) + '\n', 'utf8');
+  writeFileSync(
+    join(receiptDir, `headset-share-${shareId}.json`),
+    JSON.stringify(receipt, null, 2) + '\n',
+    'utf8'
+  );
 
   // Override close to also remove ADB forward
   const originalClose = lanServer.close.bind(lanServer);
@@ -601,11 +613,18 @@ async function startHoloTunnelServer(
   startMs: number
 ): Promise<HeadsetShareServer> {
   // Start a local LAN server on a random port, then punch through HoloTunnel
-  const lanServer = await startLanServer(code, name, author, shareId, {
-    ...options,
-    transport: 'lan-https',
-    host: '127.0.0.1',
-  }, startMs);
+  const lanServer = await startLanServer(
+    code,
+    name,
+    author,
+    shareId,
+    {
+      ...options,
+      transport: 'lan-https',
+      host: '127.0.0.1',
+    },
+    startMs
+  );
 
   const tunnel = await startHoloTunnel({
     localPort: lanServer.port,
@@ -613,7 +632,8 @@ async function startHoloTunnelServer(
     ...(options.holomeshHost ? { relayBase: options.holomeshHost } : {}),
     onRequest: (method, path) => {
       // surfaced to CLI only — no-op in library usage
-      void method; void path;
+      void method;
+      void path;
     },
   });
 
@@ -669,9 +689,7 @@ async function startRelayUpload(
 
   if (!response.ok) {
     const body = await response.text().catch(() => '');
-    throw new Error(
-      `HoloMesh relay upload failed (${response.status}): ${body}`
-    );
+    throw new Error(`HoloMesh relay upload failed (${response.status}): ${body}`);
   }
 
   const data = (await response.json()) as { url?: string; relayId?: string };

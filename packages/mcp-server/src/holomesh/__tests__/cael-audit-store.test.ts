@@ -24,7 +24,13 @@ function makeRecord(overrides: Partial<CaelAuditRecord> = {}): CaelAuditRecord {
   return {
     tick_iso: '2026-04-25T05:00:00.000Z',
     layer_hashes: [
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', // W.090 invariant: 7 layers
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'h7', // W.090 invariant: 7 layers
     ],
     operation: 'audit/trial.open',
     prev_hash: null,
@@ -86,18 +92,27 @@ describe('CAEL audit store helpers (gap-build task_..._d2jx)', () => {
   describe('queryCaelAuditRecords filters', () => {
     beforeEach(() => {
       // Seed 3 records at distinct timestamps
-      appendCaelAuditRecord(HANDLE, makeRecord({
-        tick_iso: '2026-04-25T05:00:00.000Z',
-        operation: 'audit/trial.open',
-      }));
-      appendCaelAuditRecord(HANDLE, makeRecord({
-        tick_iso: '2026-04-25T06:00:00.000Z',
-        operation: 'audit/sybil.vouch',
-      }));
-      appendCaelAuditRecord(HANDLE, makeRecord({
-        tick_iso: '2026-04-25T07:00:00.000Z',
-        operation: 'audit/trial.close',
-      }));
+      appendCaelAuditRecord(
+        HANDLE,
+        makeRecord({
+          tick_iso: '2026-04-25T05:00:00.000Z',
+          operation: 'audit/trial.open',
+        })
+      );
+      appendCaelAuditRecord(
+        HANDLE,
+        makeRecord({
+          tick_iso: '2026-04-25T06:00:00.000Z',
+          operation: 'audit/sybil.vouch',
+        })
+      );
+      appendCaelAuditRecord(
+        HANDLE,
+        makeRecord({
+          tick_iso: '2026-04-25T07:00:00.000Z',
+          operation: 'audit/trial.close',
+        })
+      );
     });
 
     it('filters by since (inclusive)', () => {

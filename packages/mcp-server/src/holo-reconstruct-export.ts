@@ -3,10 +3,7 @@
  * and run it through ExportManager (same path as holo_compile_to_target).
  */
 
-import {
-  getExportManager,
-  parseHolo,
-} from '@holoscript/core';
+import { getExportManager, parseHolo } from '@holoscript/core';
 import type { ExportTarget, HolomapPointCloudPayload } from '@holoscript/core/compiler';
 import type { ReconstructionManifest } from '@holoscript/core/reconstruction';
 import { Buffer } from 'node:buffer';
@@ -31,7 +28,7 @@ const TARGET_ALIASES: Record<string, ExportTarget> = {
   sdf: 'sdf',
   '3dgs': '3dgs',
   'gaussian-splatting': '3dgs',
-  'gaussian_splatting': '3dgs',
+  gaussian_splatting: '3dgs',
   'khr-gaussian-splatting': '3dgs',
 };
 
@@ -50,14 +47,14 @@ export function normalizeReconstructExportTarget(raw: string): ExportTarget {
   if (supported.includes(key as ExportTarget)) return key as ExportTarget;
 
   throw new Error(
-    `holo_reconstruct_export: unsupported target "${raw}". Common: r3f, unity, godot, usd, unreal, webgpu, vrr.`,
+    `holo_reconstruct_export: unsupported target "${raw}". Common: r3f, unity, godot, usd, unreal, webgpu, vrr.`
   );
 }
 
 /** Composition derived from manifest bounds, counts, and contract fingerprint (compilers emit provenance). */
 export function holoStubSourceFromManifest(
   m: ReconstructionManifest,
-  boundsOverride?: { min: [number, number, number]; max: [number, number, number] },
+  boundsOverride?: { min: [number, number, number]; max: [number, number, number] }
 ): string {
   const id = m.replayHash.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 48) || 'holomap';
   const b = boundsOverride ?? m.bounds;
@@ -94,7 +91,7 @@ composition "HoloMapExport_${id}_f${m.frameCount}_p${m.pointCount}" {
 /** Binary-packed cloud for r3f / Unity exporters (same cap as PLY aggregation). */
 export function holomapPayloadFromAggregatedPoints(
   positions: number[],
-  colors: number[],
+  colors: number[]
 ): HolomapPointCloudPayload | undefined {
   const n = Math.min(Math.floor(positions.length / 3), Math.floor(colors.length / 3));
   if (n < 1) return undefined;
@@ -120,14 +117,14 @@ export async function compileManifestToTarget(
   manifest: ReconstructionManifest,
   target: string,
   boundsOverride?: { min: [number, number, number]; max: [number, number, number] },
-  holomapPointCloud?: HolomapPointCloudPayload,
+  holomapPointCloud?: HolomapPointCloudPayload
 ): Promise<{ exportTarget: ExportTarget; output: string; usedFallback: boolean }> {
   const exportTarget = normalizeReconstructExportTarget(target);
   const src = holoStubSourceFromManifest(manifest, boundsOverride);
   const parsed = parseHolo(src);
   if (!parsed.success || !parsed.ast) {
     throw new Error(
-      `holo_reconstruct_export: internal parse failed: ${parsed.errors?.[0]?.message ?? 'unknown'}`,
+      `holo_reconstruct_export: internal parse failed: ${parsed.errors?.[0]?.message ?? 'unknown'}`
     );
   }
 

@@ -108,11 +108,7 @@ class BrittneyRehydrationChannelImpl {
   // Oldest deltas are evicted when the buffer exceeds this size.
   private static readonly MAX_BUFFER_SIZE = 100;
 
-  constructor(
-    config: DaemonBrittneyRehydrationChannel,
-    daemonId: string,
-    ownerId: string,
-  ) {
+  constructor(config: DaemonBrittneyRehydrationChannel, daemonId: string, ownerId: string) {
     this.channelConfig = config;
     this.daemonId = daemonId;
     this.ownerId = ownerId;
@@ -265,7 +261,7 @@ function toPersistedDelta(delta: ContextDelta): PersistedContextDelta {
       (c: ContextDelta['capabilityUpdates'][number]) => ({
         capability: c.capability,
         available: c.available,
-      }),
+      })
     ),
     careSignalHistory: [...delta.careSignalHistory],
     significanceScore: delta.significanceScore,
@@ -276,10 +272,12 @@ function toPersistedDelta(delta: ContextDelta): PersistedContextDelta {
 function fromPersistedDelta(p: PersistedContextDelta): ContextDelta {
   const base = makeEmptyContextDelta();
   return {
-    newIntentSignals: (p.newIntentSignals as ContextDelta['newIntentSignals']) ?? base.newIntentSignals,
+    newIntentSignals:
+      (p.newIntentSignals as ContextDelta['newIntentSignals']) ?? base.newIntentSignals,
     updatedPreferences: { ...p.updatedPreferences },
     newReceiptRefs: [...p.newReceiptRefs],
-    capabilityUpdates: (p.capabilityUpdates as ContextDelta['capabilityUpdates']) ?? base.capabilityUpdates,
+    capabilityUpdates:
+      (p.capabilityUpdates as ContextDelta['capabilityUpdates']) ?? base.capabilityUpdates,
     careSignalHistory: [...p.careSignalHistory],
     significanceScore: typeof p.significanceScore === 'number' ? p.significanceScore : 0,
   };
@@ -437,7 +435,11 @@ function composeDaemonFromContext(ownerId: string, displayName: string): Convers
 // learning) is preserved.
 
 /** Mutate a soul's in-memory accumulator from a delta (the observeSoul core, sans write-through). */
-function replayObservationIntoMemory(ownerId: string, delta: ContextDelta, observedAt: string): void {
+function replayObservationIntoMemory(
+  ownerId: string,
+  delta: ContextDelta,
+  observedAt: string
+): void {
   let obs = soulObservations.get(ownerId);
   if (!obs) {
     obs = {
@@ -462,9 +464,11 @@ function replayObservationIntoMemory(ownerId: string, delta: ContextDelta, obser
  * diagnostics. Call once at server startup (after stores are wired). Idempotent
  * for a fresh process; do not call mid-session (it appends to existing Maps).
  */
-export function hydrateEmergenceFromCorpus(
-  records: EmergenceRecord[] = readEmergenceRecords(),
-): { records: number; souls: number; emerged: number } {
+export function hydrateEmergenceFromCorpus(records: EmergenceRecord[] = readEmergenceRecords()): {
+  records: number;
+  souls: number;
+  emerged: number;
+} {
   let emergedCount = 0;
   for (const rec of records) {
     if (rec.kind === 'observation') {
@@ -519,8 +523,7 @@ export const daemonLifecycleTools: Tool[] = [
       properties: {
         daemonId: {
           type: 'string',
-          description:
-            'Unique identifier for the daemon. Auto-generated if omitted.',
+          description: 'Unique identifier for the daemon. Auto-generated if omitted.',
         },
         ownerId: {
           type: 'string',
@@ -647,7 +650,8 @@ export const daemonLifecycleTools: Tool[] = [
         },
         surfaceId: {
           type: 'string',
-          description: 'Surface the turn originated from (e.g. "holoshell", "studio", "hololand-npc"). Optional.',
+          description:
+            'Surface the turn originated from (e.g. "holoshell", "studio", "hololand-npc"). Optional.',
         },
         turnId: {
           type: 'string',
@@ -667,7 +671,7 @@ export const daemonLifecycleTools: Tool[] = [
       'Observe a soul (D.053 emergence): record a ContextDelta against a person BEFORE ' +
       'they have a daimōn. This is the latent learning substrate — the field accumulates ' +
       'who they are while they simply live. If the soul has already emerged a daimōn, the ' +
-      'delta is routed to that daimōn\'s rehydration channel instead. The daimōn is never ' +
+      "delta is routed to that daimōn's rehydration channel instead. The daimōn is never " +
       'granted at signup; call this as the person interacts, then holo_daemon_emergence_check ' +
       'to see if it is time for the daimōn to appear. ' +
       'Returns: observation progress (knowingScore, significantTurns, modelRichness, ready).',
@@ -690,7 +694,7 @@ export const daemonLifecycleTools: Tool[] = [
   {
     name: 'holo_daemon_emergence_check',
     description:
-      'Check whether a soul\'s accumulated knowing crosses the emergence threshold and, if so, ' +
+      "Check whether a soul's accumulated knowing crosses the emergence threshold and, if so, " +
       'MANIFEST the daimōn (D.053). The daimōn is composed from accumulated context — its ' +
       'rehydration channel is pre-seeded with everything the field learned, so it appears ' +
       'already knowing the person (recognition, not onboarding). If a daimōn has already ' +
@@ -706,7 +710,8 @@ export const daemonLifecycleTools: Tool[] = [
         },
         displayName: {
           type: 'string',
-          description: 'Name for the daimōn when it manifests. The person renames/shapes it after. Default: "Lumi".',
+          description:
+            'Name for the daimōn when it manifests. The person renames/shapes it after. Default: "Lumi".',
         },
       },
       required: ['ownerId'],
@@ -761,7 +766,7 @@ export const daemonLifecycleTools: Tool[] = [
 
 export async function handleDaemonLifecycleTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
     case 'holo_create_daemon':
@@ -802,8 +807,7 @@ function handleCreateDaemon(args: Record<string, unknown>): {
     throw new Error('holo_create_daemon: ownerId is required');
   }
 
-  const daemonId =
-    (args.daemonId as string) || `daemon_${ownerId}_${Date.now()}`;
+  const daemonId = (args.daemonId as string) || `daemon_${ownerId}_${Date.now()}`;
   const displayName = (args.displayName as string) || 'Lumi';
   const careProfile = (args.careProfile as string) || 'care-v1';
   const preset = args.preset as string | undefined;
@@ -817,11 +821,7 @@ function handleCreateDaemon(args: Record<string, unknown>): {
         `holo_create_daemon: invalid preset "${preset}". Valid: ${validPresets.join(', ')}`
       );
     }
-    profile = makePresetProfile(
-      preset as (typeof validPresets)[number],
-      daemonId,
-      ownerId,
-    );
+    profile = makePresetProfile(preset as (typeof validPresets)[number], daemonId, ownerId);
     // Override display name and care profile if provided
     if (args.displayName) {
       profile = mergeStyleUpdates(profile, { displayName: args.displayName as string });
@@ -835,7 +835,12 @@ function handleCreateDaemon(args: Record<string, unknown>): {
       } as Partial<DaemonStyleProfile>);
     }
   } else {
-    profile = makeDefaultCustomizationProfile(daemonId, ownerId, displayName, careProfile as DaemonCareProfile);
+    profile = makeDefaultCustomizationProfile(
+      daemonId,
+      ownerId,
+      displayName,
+      careProfile as DaemonCareProfile
+    );
     if (args.visualTheme) {
       profile = mergeStyleUpdates(profile, {
         visualTheme: args.visualTheme as string,
@@ -861,7 +866,7 @@ function handleCreateDaemon(args: Record<string, unknown>): {
   const channel = new BrittneyRehydrationChannelImpl(
     daemon.brittneyRehydrationChannel,
     daemon.daemonId,
-    daemon.ownerId,
+    daemon.ownerId
   );
   rehydrationChannels.set(daemonId, channel);
 
@@ -980,7 +985,9 @@ function handleUpdateDaemonRitual(args: Record<string, unknown>): {
     case 'remove':
       // Remove rituals whose names match
       const namesToRemove = new Set(parsedRituals.map((r: DaemonRitual) => r.name));
-      updatedRituals = profile.style.rituals.filter((r: DaemonRitual) => !namesToRemove.has(r.name));
+      updatedRituals = profile.style.rituals.filter(
+        (r: DaemonRitual) => !namesToRemove.has(r.name)
+      );
       break;
     default:
       updatedRituals = profile.style.rituals;

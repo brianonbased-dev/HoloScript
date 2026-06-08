@@ -33,10 +33,7 @@ export default defineConfig({
   retries: 0,
   workers: 1,
 
-  reporter: [
-    ['list'],
-    ['json', { outputFile: 'test-results/playwright-results.json' }],
-  ],
+  reporter: [['list'], ['json', { outputFile: 'test-results/playwright-results.json' }]],
 
   use: {
     headless: process.env.BENCH_HEADLESS !== '0',

@@ -13,12 +13,12 @@
  * Run via: node scripts/__tests__/d040-sovereign-trait-canary.test.mjs
  */
 
-import { readFileSync, existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync, existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, "..", "..");
+const REPO_ROOT = resolve(__dirname, '..', '..');
 
 let testsRun = 0;
 let testsFailed = 0;
@@ -42,11 +42,11 @@ function assertOk(value, name) {
 }
 
 function read(relPath) {
-  return readFileSync(join(REPO_ROOT, ...relPath.split("/")), "utf8");
+  return readFileSync(join(REPO_ROOT, ...relPath.split('/')), 'utf8');
 }
 
 function fileExists(relPath) {
-  return existsSync(join(REPO_ROOT, ...relPath.split("/")));
+  return existsSync(join(REPO_ROOT, ...relPath.split('/')));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -55,45 +55,45 @@ function fileExists(relPath) {
 
 const TRAITS = [
   {
-    name: "VerbalFingerprint",
-    file: "packages/core/src/traits/VerbalFingerprintTrait.ts",
-    test: "packages/core/src/traits/__tests__/VerbalFingerprintTrait.test.ts",
-    configType: "VerbalFingerprintConfig",
+    name: 'VerbalFingerprint',
+    file: 'packages/core/src/traits/VerbalFingerprintTrait.ts',
+    test: 'packages/core/src/traits/__tests__/VerbalFingerprintTrait.test.ts',
+    configType: 'VerbalFingerprintConfig',
     inItemManifest: true,
   },
   {
-    name: "AutonomousAgenda",
-    file: "packages/core/src/traits/AutonomousAgendaTrait.ts",
-    test: "packages/core/src/traits/__tests__/AutonomousAgendaTrait.test.ts",
-    configType: "AutonomousAgendaConfig",
+    name: 'AutonomousAgenda',
+    file: 'packages/core/src/traits/AutonomousAgendaTrait.ts',
+    test: 'packages/core/src/traits/__tests__/AutonomousAgendaTrait.test.ts',
+    configType: 'AutonomousAgendaConfig',
     inItemManifest: true,
   },
   {
-    name: "ReputationLedger",
-    file: "packages/core/src/traits/ReputationLedgerTrait.ts",
-    test: "packages/core/src/traits/__tests__/ReputationLedgerTrait.test.ts",
-    configType: "ReputationLedgerConfig",
+    name: 'ReputationLedger',
+    file: 'packages/core/src/traits/ReputationLedgerTrait.ts',
+    test: 'packages/core/src/traits/__tests__/ReputationLedgerTrait.test.ts',
+    configType: 'ReputationLedgerConfig',
     inItemManifest: true,
   },
   {
-    name: "VocabularyRegister",
-    file: "packages/core/src/traits/VocabularyRegisterTrait.ts",
-    test: "packages/core/src/traits/__tests__/VocabularyRegisterTrait.test.ts",
-    configType: "VocabularyRegisterConfig",
+    name: 'VocabularyRegister',
+    file: 'packages/core/src/traits/VocabularyRegisterTrait.ts',
+    test: 'packages/core/src/traits/__tests__/VocabularyRegisterTrait.test.ts',
+    configType: 'VocabularyRegisterConfig',
     inItemManifest: true,
   },
   {
-    name: "SpeechAwareEncounter",
-    file: "packages/core/src/traits/SpeechAwareEncounterTrait.ts",
-    test: "packages/core/src/traits/__tests__/SpeechAwareEncounterTrait.test.ts",
-    configType: "SpeechAwareEncounterConfig",
+    name: 'SpeechAwareEncounter',
+    file: 'packages/core/src/traits/SpeechAwareEncounterTrait.ts',
+    test: 'packages/core/src/traits/__tests__/SpeechAwareEncounterTrait.test.ts',
+    configType: 'SpeechAwareEncounterConfig',
     inItemManifest: true,
   },
   {
-    name: "AvatarIntent",
-    file: "packages/core/src/traits/AvatarIntentTrait.ts",
-    test: "packages/core/src/traits/__tests__/AvatarIntentTrait.test.ts",
-    configType: "AvatarIntentConfig",
+    name: 'AvatarIntent',
+    file: 'packages/core/src/traits/AvatarIntentTrait.ts',
+    test: 'packages/core/src/traits/__tests__/AvatarIntentTrait.test.ts',
+    configType: 'AvatarIntentConfig',
     inItemManifest: false, // avatar-specific, not applicable to items
   },
 ];
@@ -102,7 +102,7 @@ const TRAITS = [
 // GROUP 1: Source files exist and export config type
 // ═══════════════════════════════════════════════════════════════════════════════
 
-console.log("\n=== Group 1: Trait source files ===\n");
+console.log('\n=== Group 1: Trait source files ===\n');
 
 for (const trait of TRAITS) {
   assertOk(fileExists(trait.file), `${trait.name} source file exists`);
@@ -114,7 +114,7 @@ for (const trait of TRAITS) {
       `${trait.name} exports ${trait.configType}`
     );
     assertOk(
-      source.includes("export ") && source.includes("Handler"),
+      source.includes('export ') && source.includes('Handler'),
       `${trait.name} exports a handler`
     );
   }
@@ -124,7 +124,7 @@ for (const trait of TRAITS) {
 // GROUP 2: Test files exist
 // ═══════════════════════════════════════════════════════════════════════════════
 
-console.log("\n=== Group 2: Trait test files ===\n");
+console.log('\n=== Group 2: Trait test files ===\n');
 
 for (const trait of TRAITS) {
   assertOk(fileExists(trait.test), `${trait.name} test file exists`);
@@ -134,9 +134,9 @@ for (const trait of TRAITS) {
 // GROUP 3: traits/index.ts exports all 6 traits
 // ═══════════════════════════════════════════════════════════════════════════════
 
-console.log("\n=== Group 3: traits/index.ts exports ===\n");
+console.log('\n=== Group 3: traits/index.ts exports ===\n');
 
-const traitsIndex = read("packages/core/src/traits/index.ts");
+const traitsIndex = read('packages/core/src/traits/index.ts');
 for (const trait of TRAITS) {
   assertOk(
     traitsIndex.includes(`from './${trait.name}Trait'`) ||
@@ -149,9 +149,9 @@ for (const trait of TRAITS) {
 // GROUP 4: ItemManifest.ts imports all 5 item-applicable configs
 // ═══════════════════════════════════════════════════════════════════════════════
 
-console.log("\n=== Group 4: ItemManifest.ts integration ===\n");
+console.log('\n=== Group 4: ItemManifest.ts integration ===\n');
 
-const itemManifest = read("packages/core/src/hololand/ItemManifest.ts");
+const itemManifest = read('packages/core/src/hololand/ItemManifest.ts');
 for (const trait of TRAITS) {
   if (trait.inItemManifest) {
     assertOk(
@@ -168,55 +168,56 @@ for (const trait of TRAITS) {
 
 // Verify factory uses the configs
 assertOk(
-  itemManifest.includes("verbalFingerprint") && itemManifest.includes("VerbalFingerprintConfig"),
-  "ItemManifest factory wires verbalFingerprint"
+  itemManifest.includes('verbalFingerprint') && itemManifest.includes('VerbalFingerprintConfig'),
+  'ItemManifest factory wires verbalFingerprint'
 );
 assertOk(
-  itemManifest.includes("autonomousAgenda") && itemManifest.includes("AutonomousAgendaConfig"),
-  "ItemManifest factory wires autonomousAgenda"
+  itemManifest.includes('autonomousAgenda') && itemManifest.includes('AutonomousAgendaConfig'),
+  'ItemManifest factory wires autonomousAgenda'
 );
 assertOk(
-  itemManifest.includes("reputationLedger") && itemManifest.includes("ReputationLedgerConfig"),
-  "ItemManifest factory wires reputationLedger"
+  itemManifest.includes('reputationLedger') && itemManifest.includes('ReputationLedgerConfig'),
+  'ItemManifest factory wires reputationLedger'
 );
 assertOk(
-  itemManifest.includes("vocabularyRegister") && itemManifest.includes("VocabularyRegisterConfig"),
-  "ItemManifest factory wires vocabularyRegister"
+  itemManifest.includes('vocabularyRegister') && itemManifest.includes('VocabularyRegisterConfig'),
+  'ItemManifest factory wires vocabularyRegister'
 );
 assertOk(
-  itemManifest.includes("speechAwareEncounter") && itemManifest.includes("SpeechAwareEncounterConfig"),
-  "ItemManifest factory wires speechAwareEncounter"
+  itemManifest.includes('speechAwareEncounter') &&
+    itemManifest.includes('SpeechAwareEncounterConfig'),
+  'ItemManifest factory wires speechAwareEncounter'
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // GROUP 5: Documentation exists and has expected structure
 // ═══════════════════════════════════════════════════════════════════════════════
 
-console.log("\n=== Group 5: Documentation ===\n");
+console.log('\n=== Group 5: Documentation ===\n');
 
-assertOk(fileExists("docs/sovereign-traits.md"), "docs/sovereign-traits.md exists");
-if (fileExists("docs/sovereign-traits.md")) {
-  const doc = read("docs/sovereign-traits.md");
-  assertOk(doc.includes("# Sovereign Traits Developer Guide"), "doc has title");
-  assertOk(doc.includes("@verbalFingerprint"), "doc covers @verbalFingerprint");
-  assertOk(doc.includes("@autonomousAgenda"), "doc covers @autonomousAgenda");
-  assertOk(doc.includes("@reputationLedger"), "doc covers @reputationLedger");
-  assertOk(doc.includes("@vocabularyRegister"), "doc covers @vocabularyRegister");
-  assertOk(doc.includes("@speechAwareEncounter"), "doc covers @speechAwareEncounter");
-  assertOk(doc.includes("@avatarIntent"), "doc covers @avatarIntent");
-  assertOk(doc.includes("ItemManifest.ts"), "doc references ItemManifest.ts");
-  assertOk(doc.includes("CI Verification"), "doc has CI verification section");
+assertOk(fileExists('docs/sovereign-traits.md'), 'docs/sovereign-traits.md exists');
+if (fileExists('docs/sovereign-traits.md')) {
+  const doc = read('docs/sovereign-traits.md');
+  assertOk(doc.includes('# Sovereign Traits Developer Guide'), 'doc has title');
+  assertOk(doc.includes('@verbalFingerprint'), 'doc covers @verbalFingerprint');
+  assertOk(doc.includes('@autonomousAgenda'), 'doc covers @autonomousAgenda');
+  assertOk(doc.includes('@reputationLedger'), 'doc covers @reputationLedger');
+  assertOk(doc.includes('@vocabularyRegister'), 'doc covers @vocabularyRegister');
+  assertOk(doc.includes('@speechAwareEncounter'), 'doc covers @speechAwareEncounter');
+  assertOk(doc.includes('@avatarIntent'), 'doc covers @avatarIntent');
+  assertOk(doc.includes('ItemManifest.ts'), 'doc references ItemManifest.ts');
+  assertOk(doc.includes('CI Verification'), 'doc has CI verification section');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // GROUP 6: Compose templates exist and are structurally valid
 // ═══════════════════════════════════════════════════════════════════════════════
 
-console.log("\n=== Group 6: Compose templates ===\n");
+console.log('\n=== Group 6: Compose templates ===\n');
 
 const TEMPLATES = [
-  "examples/templates/d040-sovereign-npc.holo",
-  "examples/templates/d040-sovereign-item.holo",
+  'examples/templates/d040-sovereign-npc.holo',
+  'examples/templates/d040-sovereign-item.holo',
 ];
 
 for (const tpl of TEMPLATES) {
@@ -226,15 +227,18 @@ for (const tpl of TEMPLATES) {
     // Basic structural checks: balanced braces, no unclosed block comments
     const openBrace = (source.match(/\{/g) || []).length;
     const closeBrace = (source.match(/\}/g) || []).length;
-    assertOk(openBrace === closeBrace, `${tpl} has balanced braces (${openBrace} vs ${closeBrace})`);
+    assertOk(
+      openBrace === closeBrace,
+      `${tpl} has balanced braces (${openBrace} vs ${closeBrace})`
+    );
     const openComment = (source.match(/\/\*/g) || []).length;
     const closeComment = (source.match(/\*\//g) || []).length;
     assertOk(openComment === closeComment, `${tpl} has balanced block comments`);
-    assertOk(source.includes("@verbalFingerprint"), `${tpl} uses @verbalFingerprint`);
-    assertOk(source.includes("@autonomousAgenda"), `${tpl} uses @autonomousAgenda`);
-    assertOk(source.includes("@reputationLedger"), `${tpl} uses @reputationLedger`);
-    assertOk(source.includes("@vocabularyRegister"), `${tpl} uses @vocabularyRegister`);
-    assertOk(source.includes("D.040"), `${tpl} references D.040`);
+    assertOk(source.includes('@verbalFingerprint'), `${tpl} uses @verbalFingerprint`);
+    assertOk(source.includes('@autonomousAgenda'), `${tpl} uses @autonomousAgenda`);
+    assertOk(source.includes('@reputationLedger'), `${tpl} uses @reputationLedger`);
+    assertOk(source.includes('@vocabularyRegister'), `${tpl} uses @vocabularyRegister`);
+    assertOk(source.includes('D.040'), `${tpl} references D.040`);
   }
 }
 
@@ -242,7 +246,7 @@ for (const tpl of TEMPLATES) {
 // SUMMARY
 // ═══════════════════════════════════════════════════════════════════════════════
 
-console.log("\n" + "=".repeat(70));
+console.log('\n' + '='.repeat(70));
 if (testsFailed > 0) {
   console.error(`D.040 SOVEREIGN TRAIT CANARY FAILED: ${testsFailed}/${testsRun} checks failed`);
   process.exit(1);

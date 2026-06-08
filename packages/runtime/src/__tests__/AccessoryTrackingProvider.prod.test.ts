@@ -95,10 +95,13 @@ describe('AccessoryTrackingProvider — Pattern E wiring', () => {
     // …and node pose state updated via the write-back.
     expect(node.__spatialAccessoryState.lastPose).toEqual(RAW);
     // …and the trait surfaced it for the attach point.
-    expect(ctx.emit).toHaveBeenCalledWith('accessory_apply_pose', expect.objectContaining({
-      position: RAW.position,
-      rotation: RAW.rotation,
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'accessory_apply_pose',
+      expect.objectContaining({
+        position: RAW.position,
+        rotation: RAW.rotation,
+      })
+    );
   });
 
   it('honors trackingMode: rotation_only zeroes the written-back position', () => {

@@ -31,7 +31,7 @@ export const attackGraphHandler: TraitHandler<AttackGraphConfig> = {
 
       const score = Number(payload.riskScore ?? 0);
       riskScores.set(id, score);
-      
+
       ctx.emit?.('attack_graph:updated', {
         nodeId: id,
         graphId: config.graphId,

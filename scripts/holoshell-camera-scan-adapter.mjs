@@ -23,12 +23,20 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHoloMapRuntime } from '../packages/core/dist/reconstruction/index.js';
 import {
-  createHoloMapRuntime,
-} from '../packages/core/dist/reconstruction/index.js';
-import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+  chainReceipt,
+  sha256Bytes,
+  sha256Text,
+  stageReceipt,
+  withHash,
+} from './holoshell/chain/receipts.mjs';
 import { PREPROCESS_MODES, preprocessFrame } from './holoshell/image/preprocess.mjs';
-import { analyzeFrameQuality, round, summarizeQuality } from './holoshell/image/quality-metrics.mjs';
+import {
+  analyzeFrameQuality,
+  round,
+  summarizeQuality,
+} from './holoshell/image/quality-metrics.mjs';
 import { buildNativeTileCorrespondence } from './holoshell/tracking/tile-correspondence.mjs';
 
 export { buildNativeTileCorrespondence };
@@ -73,7 +81,15 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--') continue;
-    if (arg === 'capture' || arg === 'fixture' || arg === 'sweep' || arg === 'probe' || arg === 'list' || arg === 'self-test') args.command = arg;
+    if (
+      arg === 'capture' ||
+      arg === 'fixture' ||
+      arg === 'sweep' ||
+      arg === 'probe' ||
+      arg === 'list' ||
+      arg === 'self-test'
+    )
+      args.command = arg;
     else if (arg === '--self-test') args.command = 'self-test';
     else if (arg === '--out') args.out = argv[++i];
     else if (arg === '--date') args.date = argv[++i];
@@ -84,12 +100,10 @@ function parseArgs(argv) {
     else if (arg === '--frames') {
       args.frames = Number.parseInt(argv[++i], 10);
       framesProvided = true;
-    }
-    else if (arg === '--interval-ms') {
+    } else if (arg === '--interval-ms') {
       args.intervalMs = Number.parseInt(argv[++i], 10);
       intervalProvided = true;
-    }
-    else if (arg === '--duration-sec') args.durationSec = Number.parseFloat(argv[++i]);
+    } else if (arg === '--duration-sec') args.durationSec = Number.parseFloat(argv[++i]);
     else if (arg === '--fps') args.fps = Number.parseFloat(argv[++i]);
     else if (arg === '--tile-grid') args.tileGrid = Number.parseInt(argv[++i], 10);
     else if (arg === '--preprocess') args.preprocess = argv[++i];
@@ -108,10 +122,16 @@ function parseArgs(argv) {
   if (!Number.isInteger(args.height) || args.height < 2 || args.height > 480) {
     throw new Error('--height must be an integer from 2 to 480');
   }
-  if (args.fps !== undefined && (!Number.isFinite(args.fps) || args.fps < 0.2 || args.fps > DEFAULT_SESSION_FPS)) {
+  if (
+    args.fps !== undefined &&
+    (!Number.isFinite(args.fps) || args.fps < 0.2 || args.fps > DEFAULT_SESSION_FPS)
+  ) {
     throw new Error(`--fps must be a number from 0.2 to ${DEFAULT_SESSION_FPS}`);
   }
-  if (args.durationSec !== undefined && (!Number.isFinite(args.durationSec) || args.durationSec <= 0 || args.durationSec > 60)) {
+  if (
+    args.durationSec !== undefined &&
+    (!Number.isFinite(args.durationSec) || args.durationSec <= 0 || args.durationSec > 60)
+  ) {
     throw new Error('--duration-sec must be a number greater than 0 and at most 60');
   }
   if (!Number.isInteger(args.tileGrid) || args.tileGrid < 1 || args.tileGrid > MAX_TILE_GRID) {
@@ -213,7 +233,15 @@ function buildStageChain({ name, stages, metrics, honestScope }) {
   };
 }
 
-function buildCaptureStage({ args, plan, capture, outputPath, receiptFrames = [], videoHash, actualCapturedDurationMs }) {
+function buildCaptureStage({
+  args,
+  plan,
+  capture,
+  outputPath,
+  receiptFrames = [],
+  videoHash,
+  actualCapturedDurationMs,
+}) {
   return stageReceipt({
     name: 'capture.windows-winrt',
     input: {
@@ -373,7 +401,8 @@ function powershellJson(script) {
   }
   const jsonStart = text.indexOf('{');
   const jsonEnd = text.lastIndexOf('}');
-  const jsonText = jsonStart >= 0 && jsonEnd > jsonStart ? text.slice(jsonStart, jsonEnd + 1) : text;
+  const jsonText =
+    jsonStart >= 0 && jsonEnd > jsonStart ? text.slice(jsonStart, jsonEnd + 1) : text;
   try {
     return JSON.parse(jsonText);
   } catch (error) {
@@ -520,14 +549,16 @@ function captureViaWindowsWinRt(args, frameDir) {
       error: `WinRT capture is only available on Windows; current platform=${process.platform}`,
     };
   }
-  return powershellJson(winrtScript({
-    mode: args.command === 'list' ? 'list' : 'capture',
-    outputDir: frameDir,
-    framePrefix: `frame-${process.pid}`,
-    frameCount: args.frames,
-    intervalMs: args.intervalMs,
-    deviceIndex: args.deviceIndex,
-  }));
+  return powershellJson(
+    winrtScript({
+      mode: args.command === 'list' ? 'list' : 'capture',
+      outputDir: frameDir,
+      framePrefix: `frame-${process.pid}`,
+      frameCount: args.frames,
+      intervalMs: args.intervalMs,
+      deviceIndex: args.deviceIndex,
+    })
+  );
 }
 
 async function decodeImageToRgb(imagePath, width, height) {
@@ -677,7 +708,9 @@ function buildBridgeFrames(steps) {
     const pointCount = Math.max(0, Math.floor(step.pointCount ?? 0));
     if (!step.accepted || pointCount < 1) continue;
     const position = Array.isArray(step.posePosition)
-      ? step.posePosition.map((value) => (Number.isFinite(Number(value)) ? round(Number(value), 7) : 0))
+      ? step.posePosition.map((value) =>
+          Number.isFinite(Number(value)) ? round(Number(value), 7) : 0
+        )
       : undefined;
     const poseConfidence = Number(step.poseConfidence ?? 0);
     frames.push({
@@ -697,7 +730,14 @@ function buildBridgeFrames(steps) {
   return frames;
 }
 
-function buildHologramBridge({ manifest, assets, pointCloudHash, tileGrid, steps, frames: sourceFrames }) {
+function buildHologramBridge({
+  manifest,
+  assets,
+  pointCloudHash,
+  tileGrid,
+  steps,
+  frames: sourceFrames,
+}) {
   const frames = buildBridgeFrames(steps);
   const pointsPerFrame = frames[0]?.pointCount ?? tileGrid * tileGrid;
   const correspondence = buildNativeTileCorrespondence({
@@ -903,7 +943,15 @@ async function decodeCapturedFrames({ args, at, capture, outPath, frameDir }) {
   };
 }
 
-async function runProcessedMode({ args, mode, capture, outPath, decodedFrames, plan, actualCapturedDurationMs }) {
+async function runProcessedMode({
+  args,
+  mode,
+  capture,
+  outPath,
+  decodedFrames,
+  plan,
+  actualCapturedDurationMs,
+}) {
   const modeArgs = { ...args, preprocess: mode };
   const frames = [];
   const receiptFrames = [];
@@ -914,7 +962,12 @@ async function runProcessedMode({ args, mode, capture, outPath, decodedFrames, p
     const frameHash = sha256Bytes(processed.rgb);
     const quality = analyzeFrameQuality(processed);
     const keptFramePath = args.keepFrame
-      ? rel(resolve(dirname(outPath), `camera-frame-${decodedFrame.frameIndex.toString().padStart(3, '0')}-${decodedFrame.jpegHash.slice(0, 12)}.jpg`))
+      ? rel(
+          resolve(
+            dirname(outPath),
+            `camera-frame-${decodedFrame.frameIndex.toString().padStart(3, '0')}-${decodedFrame.jpegHash.slice(0, 12)}.jpg`
+          )
+        )
       : undefined;
 
     frames.push({
@@ -1043,13 +1096,17 @@ async function buildSweepReceipt(args) {
 
   const { decodedFrames } = decoded;
   const firstCapturedMs = Date.parse(decodedFrames[0]?.captured?.capturedAtIso ?? '');
-  const lastCapturedMs = Date.parse(decodedFrames[decodedFrames.length - 1]?.captured?.capturedAtIso ?? '');
+  const lastCapturedMs = Date.parse(
+    decodedFrames[decodedFrames.length - 1]?.captured?.capturedAtIso ?? ''
+  );
   const actualCapturedDurationMs =
     Number.isFinite(firstCapturedMs) && Number.isFinite(lastCapturedMs)
       ? Math.max(0, lastCapturedMs - firstCapturedMs)
       : undefined;
   const rawVideoHash = `holoshell-native-camera-raw:${sha256Text(
-    decodedFrames.map((frame) => `${frame.frameIndex}:sha256:${frame.jpegHash}:sha256:${frame.rawFrameHash}`).join('|')
+    decodedFrames
+      .map((frame) => `${frame.frameIndex}:sha256:${frame.jpegHash}:sha256:${frame.rawFrameHash}`)
+      .join('|')
   )}`;
   const rawReceiptFrames = decodedFrames.map((frame) => ({
     index: frame.frameIndex,
@@ -1087,7 +1144,8 @@ async function buildSweepReceipt(args) {
       hologramBridgeArtifactPath: result.hologramBridge?.artifactPath,
     }))
     .sort((a, b) => b.score - a.score || String(a.mode).localeCompare(String(b.mode)));
-  const winner = results.find((result) => result.preprocess.mode === ranking[0]?.mode) ?? results[0];
+  const winner =
+    results.find((result) => result.preprocess.mode === ranking[0]?.mode) ?? results[0];
   const captureStage = buildCaptureStage({
     args,
     plan,
@@ -1220,7 +1278,8 @@ async function buildCaptureReceipt(args) {
         name: 'holoshell-camera-inventory',
         stages: [inventoryStage],
         metrics: { status: capture.status },
-        honestScope: 'Camera inventory only; no frame capture or HoloMap reconstruction is attempted.',
+        honestScope:
+          'Camera inventory only; no frame capture or HoloMap reconstruction is attempted.',
       }),
       outputPath: rel(outPath),
     });
@@ -1280,7 +1339,12 @@ async function buildCaptureReceipt(args) {
     const frameHash = sha256Bytes(processed.rgb);
     const quality = analyzeFrameQuality(processed);
     const keptFramePath = args.keepFrame
-      ? rel(resolve(dirname(outPath), `camera-frame-${i.toString().padStart(3, '0')}-${jpegHash.slice(0, 12)}.jpg`))
+      ? rel(
+          resolve(
+            dirname(outPath),
+            `camera-frame-${i.toString().padStart(3, '0')}-${jpegHash.slice(0, 12)}.jpg`
+          )
+        )
       : undefined;
     const frameIndex = Number.isInteger(captured.index) ? captured.index : i;
     frames.push({
@@ -1397,8 +1461,11 @@ async function buildCaptureReceipt(args) {
     mkdirSync(dirname(outPath), { recursive: true });
     for (const frame of receiptFrames) {
       if (!frame.keptFramePath) continue;
-      const captured = capturedFrames.find((candidate) => candidate.index === frame.index) ?? capturedFrames[frame.index];
-      if (captured?.path) copyFileSync(resolve(captured.path), resolve(REPO_ROOT, frame.keptFramePath));
+      const captured =
+        capturedFrames.find((candidate) => candidate.index === frame.index) ??
+        capturedFrames[frame.index];
+      if (captured?.path)
+        copyFileSync(resolve(captured.path), resolve(REPO_ROOT, frame.keptFramePath));
     }
   }
   rmSync(frameDir, { recursive: true, force: true });
@@ -1411,31 +1478,47 @@ export function validateReceipt(receipt) {
   if (receipt.schemaVersion !== RECEIPT_VERSION) errors.push('schemaVersion mismatch');
   if (!['pass', 'blocked'].includes(receipt.status)) errors.push('status must be pass or blocked');
   if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
-  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
-  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1) errors.push('chain stages missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:'))
+    errors.push('chain receipt hash missing');
+  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1)
+    errors.push('chain stages missing');
   if (receipt.status === 'pass' && receipt.action !== 'direct-native-camera-inventory') {
-    if (!receipt.frame?.rgbHash?.startsWith('sha256:')) errors.push('pass receipt missing first frame rgb hash');
-    if (!Array.isArray(receipt.frames) || receipt.frames.length < 1) errors.push('pass receipt missing frames');
-    if (Array.isArray(receipt.frames) && receipt.frames.some((frame) => !frame.rgbHash?.startsWith('sha256:'))) {
+    if (!receipt.frame?.rgbHash?.startsWith('sha256:'))
+      errors.push('pass receipt missing first frame rgb hash');
+    if (!Array.isArray(receipt.frames) || receipt.frames.length < 1)
+      errors.push('pass receipt missing frames');
+    if (
+      Array.isArray(receipt.frames) &&
+      receipt.frames.some((frame) => !frame.rgbHash?.startsWith('sha256:'))
+    ) {
       errors.push('pass receipt has frame without rgb hash');
     }
-    if (Array.isArray(receipt.frames) && receipt.frames.some((frame) => !frame.rawRgbHash?.startsWith('sha256:'))) {
+    if (
+      Array.isArray(receipt.frames) &&
+      receipt.frames.some((frame) => !frame.rawRgbHash?.startsWith('sha256:'))
+    ) {
       errors.push('pass receipt has frame without raw rgb hash');
     }
     if (Array.isArray(receipt.frames) && receipt.frames.some((frame) => !frame.preprocess?.mode)) {
       errors.push('pass receipt has frame without preprocess summary');
     }
     if (!receipt.scanQuality?.status) errors.push('pass receipt missing scan quality summary');
-    if (!receipt.holomap?.replayFingerprint) errors.push('pass receipt missing HoloMap replay fingerprint');
+    if (!receipt.holomap?.replayFingerprint)
+      errors.push('pass receipt missing HoloMap replay fingerprint');
     if (!(receipt.holomap?.pointCount > 0)) errors.push('pass receipt missing point count');
     if (!receipt.holomap?.assets?.ply) errors.push('pass receipt missing HoloMap PLY asset');
-    if (receipt.hologramBridge?.status !== 'geometry-ready') errors.push('pass receipt missing HoloGram bridge');
+    if (receipt.hologramBridge?.status !== 'geometry-ready')
+      errors.push('pass receipt missing HoloGram bridge');
     if (receipt.action === 'direct-native-camera-preprocess-sweep') {
-      if (!receipt.sweep?.winner?.mode) errors.push('sweep receipt missing winning preprocess mode');
+      if (!receipt.sweep?.winner?.mode)
+        errors.push('sweep receipt missing winning preprocess mode');
       if (!Array.isArray(receipt.sweep?.ranking) || receipt.sweep.ranking.length < 1) {
         errors.push('sweep receipt missing ranking');
       }
-      if (!Array.isArray(receipt.sweep?.results) || receipt.sweep.results.length !== receipt.sweep.ranking?.length) {
+      if (
+        !Array.isArray(receipt.sweep?.results) ||
+        receipt.sweep.results.length !== receipt.sweep.ranking?.length
+      ) {
         errors.push('sweep receipt missing per-mode results');
       }
     }
@@ -1455,7 +1538,9 @@ export async function selfTest() {
       provider: 'windows-winrt-mediacapture',
       blockedReason: 'windows-camera-permission-denied',
       error: 'Access is denied.',
-      devices: [{ name: 'Integrated Webcam', id: 'device-id', isEnabled: true, kind: 'DeviceInterface' }],
+      devices: [
+        { name: 'Integrated Webcam', id: 'device-id', isEnabled: true, kind: 'DeviceInterface' },
+      ],
     },
     defaultOutput('2026-05-24')
   );
@@ -1476,23 +1561,35 @@ async function main() {
     return;
   }
 
-  const receipt = args.command === 'sweep' ? await buildSweepReceipt(args) : await buildCaptureReceipt(args);
+  const receipt =
+    args.command === 'sweep' ? await buildSweepReceipt(args) : await buildCaptureReceipt(args);
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(`Invalid receipt: ${errors.join('; ')}`);
   const out = writeJson(args.out ?? defaultOutput(args.date, args.command), receipt);
-  process.stdout.write(`${JSON.stringify({
-    receiptPath: rel(out),
-    status: receipt.status,
-    blockedReason: receipt.blockedReason,
-    holomap: receipt.holomap,
-    sweep: receipt.sweep ? { winner: receipt.sweep.winner, ranking: receipt.sweep.ranking } : undefined,
-  }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        receiptPath: rel(out),
+        status: receipt.status,
+        blockedReason: receipt.blockedReason,
+        holomap: receipt.holomap,
+        sweep: receipt.sweep
+          ? { winner: receipt.sweep.winner, ranking: receipt.sweep.ranking }
+          : undefined,
+      },
+      null,
+      2
+    )}\n`
+  );
   if (args.requireCapture && receipt.status !== 'pass') {
     process.exitCode = 2;
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('holoshell-camera-scan-adapter.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('holoshell-camera-scan-adapter.mjs')
+) {
   main().catch((error) => {
     process.stderr.write(`holoshell-camera-scan-adapter FAIL: ${error.stack ?? error.message}\n`);
     process.exitCode = 1;

@@ -93,12 +93,16 @@ describe('board artifact receipts', () => {
   });
 
   it('rejects malformed receipts during batch board task creation', () => {
-    const { added, skipped } = addTasksToBoard([], [], [
-      makeTask({
-        title: 'Create invalid artifact receipt',
-        artifacts: [makeArtifact({ hash: '' })],
-      }),
-    ]);
+    const { added, skipped } = addTasksToBoard(
+      [],
+      [],
+      [
+        makeTask({
+          title: 'Create invalid artifact receipt',
+          artifacts: [makeArtifact({ hash: '' })],
+        }),
+      ]
+    );
 
     expect(added).toHaveLength(0);
     expect(skipped).toEqual([

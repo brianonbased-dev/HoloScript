@@ -77,9 +77,7 @@ const GZIP_OPTS = {
  *     present in the dictionary (more matching entries → better compression
  *     → higher score), modulo gzip-window saturation (32 KB).
  */
-export function holoTaskKolmogorovScore(
-  input: KolmogorovScoreInput
-): KolmogorovScoreResult {
+export function holoTaskKolmogorovScore(input: KolmogorovScoreInput): KolmogorovScoreResult {
   const taskDescription = typeof input?.taskDescription === 'string' ? input.taskDescription : '';
 
   if (taskDescription.length === 0) {
@@ -115,10 +113,7 @@ export function holoTaskKolmogorovScore(
     const dictBuf = Buffer.from(dictionary, 'utf-8');
     // Separator newline so the task starts on its own line (helps LZ77 boundary).
     const sepBuf = Buffer.from('\n', 'utf-8');
-    const joinedBytes = gzipSync(
-      Buffer.concat([dictBuf, sepBuf, taskBuf]),
-      GZIP_OPTS
-    ).length;
+    const joinedBytes = gzipSync(Buffer.concat([dictBuf, sepBuf, taskBuf]), GZIP_OPTS).length;
     const dictAloneBytes = gzipSync(dictBuf, GZIP_OPTS).length;
     // Marginal bytes added by appending the task to the agent's dictionary.
     // Clamp to >= 1 to avoid div-by-zero pathology if the task is wholly
@@ -157,12 +152,14 @@ export const kolmogorovTaskScoreTools: Tool[] = [
         },
         agentContext: {
           type: 'object',
-          description: 'The candidate agent\'s context — done-log entries and optional capability tags.',
+          description:
+            "The candidate agent's context — done-log entries and optional capability tags.",
           properties: {
             recentDoneEntries: {
               type: 'array',
               items: { type: 'string' },
-              description: 'Recent done-log entries for this agent (most recent first works fine; order is not load-bearing).',
+              description:
+                'Recent done-log entries for this agent (most recent first works fine; order is not load-bearing).',
             },
             capabilityTags: {
               type: 'array',
@@ -184,18 +181,13 @@ export async function handleKolmogorovTaskScoreTool(
 ): Promise<KolmogorovScoreResult | null> {
   if (name !== 'holo_task_kolmogorov_score') return null;
 
-  const taskDescription =
-    typeof args.taskDescription === 'string' ? args.taskDescription : '';
+  const taskDescription = typeof args.taskDescription === 'string' ? args.taskDescription : '';
   const rawContext = isRecord(args.agentContext) ? args.agentContext : {};
   const recentDoneEntries = Array.isArray(rawContext.recentDoneEntries)
-    ? (rawContext.recentDoneEntries as unknown[]).filter(
-        (s): s is string => typeof s === 'string'
-      )
+    ? (rawContext.recentDoneEntries as unknown[]).filter((s): s is string => typeof s === 'string')
     : [];
   const capabilityTags = Array.isArray(rawContext.capabilityTags)
-    ? (rawContext.capabilityTags as unknown[]).filter(
-        (s): s is string => typeof s === 'string'
-      )
+    ? (rawContext.capabilityTags as unknown[]).filter((s): s is string => typeof s === 'string')
     : undefined;
 
   return holoTaskKolmogorovScore({

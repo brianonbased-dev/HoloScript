@@ -16,7 +16,6 @@ export interface UseReactiveStateReturn {
 }
 
 export function useReactiveState(): UseReactiveStateReturn {
-   
   const rs = useRef<ReactiveState>(new ReactiveState({}));
   const [state, setState] = useState<Record<string, unknown>>({});
   const [changes, setChanges] = useState(0);

@@ -142,8 +142,7 @@ export function validateHoloShellLocalCodebaseSnapshotReceipt(
   const errors: string[] = [];
 
   if (!receipt.id) errors.push('HoloShellLocalCodebaseSnapshotReceipt.id is required.');
-  if (!receipt.workflow)
-    errors.push('HoloShellLocalCodebaseSnapshotReceipt.workflow is required.');
+  if (!receipt.workflow) errors.push('HoloShellLocalCodebaseSnapshotReceipt.workflow is required.');
   if (!isIsoTimestamp(receipt.startedAt)) {
     errors.push(
       'HoloShellLocalCodebaseSnapshotReceipt.startedAt is required and must be a valid ISO-8601 timestamp.'
@@ -207,10 +206,7 @@ export function validateHoloShellLocalCodebaseSnapshotReceipt(
   return errors;
 }
 
-function validateRoots(
-  roots: LocalCodebaseSnapshotRoot[] | undefined,
-  errors: string[]
-): void {
+function validateRoots(roots: LocalCodebaseSnapshotRoot[] | undefined, errors: string[]): void {
   if (!Array.isArray(roots) || roots.length === 0) {
     errors.push('HoloShellLocalCodebaseSnapshotReceipt.roots must be a non-empty array.');
     return;
@@ -231,20 +227,21 @@ function validateRoots(
   }
 }
 
-function validateFiles(
-  files: LocalCodebaseSnapshotFile[] | undefined,
-  errors: string[]
-): void {
+function validateFiles(files: LocalCodebaseSnapshotFile[] | undefined, errors: string[]): void {
   if (!Array.isArray(files)) {
     errors.push('HoloShellLocalCodebaseSnapshotReceipt.files must be an array.');
     return;
   }
   for (const file of files) {
     if (!isRelativeSafePath(file.path)) {
-      errors.push(`LocalCodebaseSnapshotFile.path must be relative and safe: ${String(file.path)}.`);
+      errors.push(
+        `LocalCodebaseSnapshotFile.path must be relative and safe: ${String(file.path)}.`
+      );
     }
     if (!isNonNegativeInteger(file.sizeBytes)) {
-      errors.push(`LocalCodebaseSnapshotFile ${file.path || '<unknown>'}.sizeBytes must be a non-negative integer.`);
+      errors.push(
+        `LocalCodebaseSnapshotFile ${file.path || '<unknown>'}.sizeBytes must be a non-negative integer.`
+      );
     }
     if (!file.contentHash) {
       errors.push(`LocalCodebaseSnapshotFile ${file.path || '<unknown>'}.contentHash is required.`);
@@ -282,7 +279,9 @@ function validateSkippedFiles(
   }
   for (const skipped of skippedFiles) {
     if (skipped.path && !isRelativeSafePath(skipped.path)) {
-      errors.push(`LocalCodebaseSkippedFile.path must be relative and safe: ${String(skipped.path)}.`);
+      errors.push(
+        `LocalCodebaseSkippedFile.path must be relative and safe: ${String(skipped.path)}.`
+      );
     }
     if (!isOneOf(LOCAL_CODEBASE_SKIP_REASONS, String(skipped.reason))) {
       errors.push(`LocalCodebaseSkippedFile.reason is unsupported: ${String(skipped.reason)}.`);
@@ -305,7 +304,9 @@ function validateSourceFiles(
   const hashesByPath = new Map((files || []).map((file) => [file.path, file.contentHash]));
   for (const sourceFile of sourceFiles) {
     if (!isRelativeSafePath(sourceFile.path)) {
-      errors.push(`LocalCodebaseSourceFilePayload.path must be relative and safe: ${String(sourceFile.path)}.`);
+      errors.push(
+        `LocalCodebaseSourceFilePayload.path must be relative and safe: ${String(sourceFile.path)}.`
+      );
     }
     if (!sourceFile.contentHash) {
       errors.push(

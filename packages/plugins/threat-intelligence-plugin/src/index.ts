@@ -43,7 +43,11 @@ export const THREAT_INTELLIGENCE_KEYWORDS = [
   { term: 'ioc', traits: ['ioc_matching'], spatialRole: 'indicator' },
   { term: 'siem', traits: ['siem_integration'], spatialRole: 'pipeline' },
   { term: 'attack graph', traits: ['attack_graph'], spatialRole: 'graph' },
-  { term: 'threat intel', traits: ['threat_feed', 'ioc_matching', 'attack_graph'], spatialRole: 'analysis' },
+  {
+    term: 'threat intel',
+    traits: ['threat_feed', 'ioc_matching', 'attack_graph'],
+    spatialRole: 'analysis',
+  },
 ];
 
 export const VERSION = '1.0.0';

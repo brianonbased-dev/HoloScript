@@ -238,9 +238,7 @@ describe('HoloCompositionParser', () => {
         seed: '0x0000DEAD',
       });
       expect(petals?.traits[0].name).toBe('bloom_reactive');
-      expect(petals?.instanceMetadata?.traits[0].config.state_source).toBe(
-        'lotus.api.bloom_state'
-      );
+      expect(petals?.instanceMetadata?.traits[0].config.state_source).toBe('lotus.api.bloom_state');
       expect(generateHoloSource(result.ast!)).toContain('instanced_object "Petals"');
     });
   });
@@ -626,10 +624,7 @@ describe('HoloCompositionParser', () => {
 
     it('parses WebGPU rigid-body example', () => {
       const source = readFileSync(
-        new URL(
-          '../../../../examples/webgpu-compute/gpu-physics-rigid-body.holo',
-          import.meta.url
-        ),
+        new URL('../../../../examples/webgpu-compute/gpu-physics-rigid-body.holo', import.meta.url),
         'utf8'
       );
 

@@ -27,13 +27,13 @@ pnpm run eval:brain-intent:test
 
 ## Cases
 
-| Case | Purpose |
-| --- | --- |
-| `holoshell-room-marathon.case.json` | Measures Brittney/HoloShell workflow intent: guarded workflow, approval bundle, no mutation. |
-| `trait-inference-gate-refusal.case.json` | Measures a real brain file against an out-of-order ML paper request refusal. |
-| `fleet-trust-auditor-gate.case.json` | Adds a third brain family for trust/provenance gate decisions. |
-| `holoshell-prompt-only-baseline.control.case.json` | Negative control: generic prompt-only behavior should fail the runtime gate. |
-| `holoshell-mutation-before-approval.control.case.json` | Negative control: mutation before approval should fail the runtime gate. |
+| Case                                                   | Purpose                                                                                      |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `holoshell-room-marathon.case.json`                    | Measures Brittney/HoloShell workflow intent: guarded workflow, approval bundle, no mutation. |
+| `trait-inference-gate-refusal.case.json`               | Measures a real brain file against an out-of-order ML paper request refusal.                 |
+| `fleet-trust-auditor-gate.case.json`                   | Adds a third brain family for trust/provenance gate decisions.                               |
+| `holoshell-prompt-only-baseline.control.case.json`     | Negative control: generic prompt-only behavior should fail the runtime gate.                 |
+| `holoshell-mutation-before-approval.control.case.json` | Negative control: mutation before approval should fail the runtime gate.                     |
 
 ## Receipt
 

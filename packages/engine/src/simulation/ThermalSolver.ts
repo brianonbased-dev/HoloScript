@@ -68,15 +68,8 @@
  */
 
 import { RegularGrid3D } from './RegularGrid3D';
-import {
-  applyBoundaryConditions,
-  type BoundaryCondition,
-} from './BoundaryConditions';
-import {
-  getMaterial,
-  thermalDiffusivity,
-  type ThermalMaterial,
-} from './MaterialDatabase';
+import { applyBoundaryConditions, type BoundaryCondition } from './BoundaryConditions';
+import { getMaterial, thermalDiffusivity, type ThermalMaterial } from './MaterialDatabase';
 import { jacobiIteration } from './ConvergenceControl';
 import { RegularGridStencilSolver } from '../gpu/RegularGridStencilSolver';
 
@@ -244,10 +237,7 @@ export class ThermalSolver {
           const source = this.sourceField.get(i, j, k);
 
           const dT = dt * (this.alpha * lap + source / rhoCp);
-          this.temperature.set(
-            i, j, k,
-            this.tempPrev.get(i, j, k) + dT
-          );
+          this.temperature.set(i, j, k, this.tempPrev.get(i, j, k) + dT);
         }
       }
     }
@@ -273,7 +263,7 @@ export class ThermalSolver {
           dt,
           alpha: this.alpha,
           rhoCp,
-        },
+        }
       );
 
       if (!out) return false;
@@ -292,11 +282,7 @@ export class ThermalSolver {
         bc.k = this.material.conductivity;
       }
     }
-    applyBoundaryConditions(
-      this.temperature,
-      this.config.boundaryConditions,
-      dt
-    );
+    applyBoundaryConditions(this.temperature, this.config.boundaryConditions, dt);
   }
 
   /**
@@ -353,7 +339,10 @@ export class ThermalSolver {
       if (src.type === 'point' || !src.radius) {
         // Point source: all heat in one cell → W/m³
         if (this.inBounds(gi, gj, gk)) {
-          this.sourceField.set(gi, gj, gk,
+          this.sourceField.set(
+            gi,
+            gj,
+            gk,
             this.sourceField.get(gi, gj, gk) + src.heat_output / cellVolume
           );
         }
@@ -379,11 +368,11 @@ export class ThermalSolver {
           for (let dj = -r; dj <= r; dj++) {
             for (let di = -r; di <= r; di++) {
               if (di * di + dj * dj + dk * dk <= r * r) {
-                const ci = gi + di, cj = gj + dj, ck = gk + dk;
+                const ci = gi + di,
+                  cj = gj + dj,
+                  ck = gk + dk;
                 if (this.inBounds(ci, cj, ck)) {
-                  this.sourceField.set(ci, cj, ck,
-                    this.sourceField.get(ci, cj, ck) + heatPerCell
-                  );
+                  this.sourceField.set(ci, cj, ck, this.sourceField.get(ci, cj, ck) + heatPerCell);
                 }
               }
             }
@@ -395,9 +384,12 @@ export class ThermalSolver {
 
   private inBounds(i: number, j: number, k: number): boolean {
     return (
-      i >= 0 && i < this.temperature.nx &&
-      j >= 0 && j < this.temperature.ny &&
-      k >= 0 && k < this.temperature.nz
+      i >= 0 &&
+      i < this.temperature.nx &&
+      j >= 0 &&
+      j < this.temperature.ny &&
+      k >= 0 &&
+      k < this.temperature.nz
     );
   }
 
@@ -415,9 +407,7 @@ export class ThermalSolver {
 
   /** Point query: temperature at world position via trilinear interpolation */
   getTemperatureAt(x: number, y: number, z: number): number {
-    const result = this.temperature.sampleAtPositions(
-      new Float32Array([x, y, z])
-    );
+    const result = this.temperature.sampleAtPositions(new Float32Array([x, y, z]));
     return result[0];
   }
 
@@ -443,7 +433,9 @@ export class ThermalSolver {
   }
 
   getStats(): ThermalStats {
-    let min = Infinity, max = -Infinity, sum = 0;
+    let min = Infinity,
+      max = -Infinity,
+      sum = 0;
     const d = this.temperature.data;
     for (let i = 0; i < d.length; i++) {
       if (d[i] < min) min = d[i];

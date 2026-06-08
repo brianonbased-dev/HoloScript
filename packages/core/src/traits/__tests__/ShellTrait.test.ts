@@ -156,7 +156,7 @@ describe('onEvent – no state', () => {
     const node = makeNode();
     const { ctx } = makeCtx();
     expect(() =>
-      shellHandler.onEvent!(node, cfg, ctx, { type: 'shell:exec', payload: {} }),
+      shellHandler.onEvent!(node, cfg, ctx, { type: 'shell:exec', payload: {} })
     ).not.toThrow();
   });
 });
@@ -196,7 +196,7 @@ describe('onEvent – shell:exec – no command', () => {
 describe('onEvent – shell:exec – capabilities path', () => {
   function makeCapCtx(
     result: unknown = { stdout: 'ok', stderr: '', code: 0, signal: null },
-    rejectWith?: Error,
+    rejectWith?: Error
   ) {
     const emitted: Emitted = [];
     const exec = rejectWith
@@ -275,7 +275,10 @@ describe('onEvent – shell:exec – capabilities path', () => {
       payload: {},
     });
     await new Promise((r) => setTimeout(r, 20));
-    const exitEvt = emitted.find((e) => e.type === 'shell:exit')!.payload as Record<string, unknown>;
+    const exitEvt = emitted.find((e) => e.type === 'shell:exit')!.payload as Record<
+      string,
+      unknown
+    >;
     expect(exitEvt.code).toBe(0);
     expect(typeof exitEvt.elapsed).toBe('number');
   });
@@ -380,7 +383,10 @@ describe('onEvent – shell:exec – spawn path', () => {
     await waitFor(() => expect(emitted.some((e) => e.type === 'shell:stdout')).toBe(true), {
       timeout: 5000,
     });
-    const outEvt = emitted.find((e) => e.type === 'shell:stdout')!.payload as Record<string, unknown>;
+    const outEvt = emitted.find((e) => e.type === 'shell:stdout')!.payload as Record<
+      string,
+      unknown
+    >;
     expect(String(outEvt.data)).toContain('holoscript-out');
     expect(typeof outEvt.pid).toBe('number');
   });
@@ -391,18 +397,26 @@ describe('onEvent – shell:exec – spawn path', () => {
       node,
       { ...cfg, command: 'node', args: ['-e', "process.stderr.write('holoscript-err')"] },
       ctx,
-      { type: 'shell:exec', payload: {} },
+      { type: 'shell:exec', payload: {} }
     );
     await waitFor(() => expect(emitted.some((e) => e.type === 'shell:stderr')).toBe(true), {
       timeout: 5000,
     });
-    const errEvt = emitted.find((e) => e.type === 'shell:stderr')!.payload as Record<string, unknown>;
+    const errEvt = emitted.find((e) => e.type === 'shell:stderr')!.payload as Record<
+      string,
+      unknown
+    >;
     expect(String(errEvt.data)).toContain('holoscript-err');
   });
 
   it('does not emit shell:stdout when capture_output is false', async () => {
     const { node, ctx, emitted } = attachedNode();
-    const noCap: ShellConfig = { ...cfg, command: 'echo', args: ['ignored'], capture_output: false };
+    const noCap: ShellConfig = {
+      ...cfg,
+      command: 'echo',
+      args: ['ignored'],
+      capture_output: false,
+    };
     shellHandler.onEvent!(node, noCap, ctx, { type: 'shell:exec', payload: {} });
     await waitFor(() => expect(getState(node).activeProcesses.size).toBe(0), { timeout: 5000 });
     expect(emitted.some((e) => e.type === 'shell:stdout')).toBe(false);
@@ -417,7 +431,10 @@ describe('onEvent – shell:exec – spawn path', () => {
     await waitFor(() => expect(emitted.some((e) => e.type === 'shell:exit')).toBe(true), {
       timeout: 5000,
     });
-    const exitEvt = emitted.find((e) => e.type === 'shell:exit')!.payload as Record<string, unknown>;
+    const exitEvt = emitted.find((e) => e.type === 'shell:exit')!.payload as Record<
+      string,
+      unknown
+    >;
     expect(typeof exitEvt.pid).toBe('number');
     expect(exitEvt.code).toBe(0);
     expect(exitEvt.signal).toBeNull();
@@ -481,12 +498,20 @@ describe('onEvent – shell:exec – spawn path', () => {
 
   it('emits shell:stdout events when max_output_bytes is set', async () => {
     const { node, ctx, emitted } = attachedNode();
-    const limitCfg: ShellConfig = { ...cfg, command: 'echo', args: ['hello'], max_output_bytes: 1024 };
+    const limitCfg: ShellConfig = {
+      ...cfg,
+      command: 'echo',
+      args: ['hello'],
+      max_output_bytes: 1024,
+    };
     shellHandler.onEvent!(node, limitCfg, ctx, { type: 'shell:exec', payload: {} });
     await waitFor(() => expect(emitted.some((e) => e.type === 'shell:stdout')).toBe(true), {
       timeout: 5000,
     });
-    const outEvt = emitted.find((e) => e.type === 'shell:stdout')!.payload as Record<string, unknown>;
+    const outEvt = emitted.find((e) => e.type === 'shell:stdout')!.payload as Record<
+      string,
+      unknown
+    >;
     expect(typeof outEvt.data).toBe('string');
   });
 
@@ -529,7 +554,10 @@ describe('onEvent – shell:get_status', () => {
   it('reports zero active and zero executions on fresh node', () => {
     const { node, ctx, emitted } = attachedNode();
     shellHandler.onEvent!(node, cfg, ctx, { type: 'shell:get_status', payload: {} });
-    const status = emitted.find((e) => e.type === 'shell:status')!.payload as Record<string, unknown>;
+    const status = emitted.find((e) => e.type === 'shell:status')!.payload as Record<
+      string,
+      unknown
+    >;
     expect(status.active).toBe(0);
     expect(status.totalExecutions).toBe(0);
     expect(status.history).toEqual([]);
@@ -547,7 +575,10 @@ describe('onEvent – shell:get_status', () => {
       payload: {},
     });
     shellHandler.onEvent!(node, cfg, ctx, { type: 'shell:get_status', payload: {} });
-    const status = emitted.find((e) => e.type === 'shell:status')!.payload as Record<string, unknown>;
+    const status = emitted.find((e) => e.type === 'shell:status')!.payload as Record<
+      string,
+      unknown
+    >;
     expect(status.totalExecutions).toBe(2);
   });
 
@@ -558,7 +589,10 @@ describe('onEvent – shell:get_status', () => {
       state.history.push({ command: `cmd${i}`, exitCode: 0, elapsed: 1, timestamp: Date.now() });
     }
     shellHandler.onEvent!(node, cfg, ctx, { type: 'shell:get_status', payload: {} });
-    const status = emitted.find((e) => e.type === 'shell:status')!.payload as Record<string, unknown>;
+    const status = emitted.find((e) => e.type === 'shell:status')!.payload as Record<
+      string,
+      unknown
+    >;
     expect((status.history as unknown[]).length).toBe(10);
   });
 
@@ -570,7 +604,10 @@ describe('onEvent – shell:get_status', () => {
     });
     // Process is still active (no close event)
     shellHandler.onEvent!(node, cfg, ctx, { type: 'shell:get_status', payload: {} });
-    const status = emitted.find((e) => e.type === 'shell:status')!.payload as Record<string, unknown>;
+    const status = emitted.find((e) => e.type === 'shell:status')!.payload as Record<
+      string,
+      unknown
+    >;
     expect(status.active).toBe(1);
   });
 });
@@ -586,7 +623,7 @@ describe('onEvent – shell:kill', () => {
       shellHandler.onEvent!(node, cfg, ctx, {
         type: 'shell:kill',
         payload: { pid: 9999 },
-      }),
+      })
     ).not.toThrow();
   });
 
@@ -648,7 +685,7 @@ describe('onEvent – shell:kill', () => {
       shellHandler.onEvent!(node, cfg, ctx, {
         type: 'shell:kill',
         payload: { pid: 300 },
-      }),
+      })
     ).not.toThrow();
     vi.restoreAllMocks();
   });

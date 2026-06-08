@@ -42,8 +42,14 @@ function tryParse(filepath) {
   const ext = filepath.split('.').pop();
   const code = readFileSync(filepath, 'utf8');
   try {
-    if (ext === 'holo') { parseHolo(code); return { ok: true }; }
-    if (ext === 'hsplus') { parseHsPlus(code); return { ok: true }; }
+    if (ext === 'holo') {
+      parseHolo(code);
+      return { ok: true };
+    }
+    if (ext === 'hsplus') {
+      parseHsPlus(code);
+      return { ok: true };
+    }
     // .hs
     parse(code);
     return { ok: true };
@@ -57,9 +63,16 @@ const searchDirs = [
   join(ROOT, 'docs/examples'),
   join(ROOT, 'samples'),
 ].concat(
-  readdirSync(join(ROOT, 'packages')).map(p => join(ROOT, 'packages', p, 'examples')).filter(d => {
-    try { statSync(d); return true; } catch { return false; }
-  })
+  readdirSync(join(ROOT, 'packages'))
+    .map((p) => join(ROOT, 'packages', p, 'examples'))
+    .filter((d) => {
+      try {
+        statSync(d);
+        return true;
+      } catch {
+        return false;
+      }
+    })
 );
 
 const files = collectExamples(searchDirs);
@@ -72,7 +85,9 @@ for (const f of files) {
   else results.fail.push({ file: rel, error: r.error });
 }
 
-console.log(`Parsed ${files.length} examples: ${results.pass.length} pass, ${results.fail.length} fail`);
+console.log(
+  `Parsed ${files.length} examples: ${results.pass.length} pass, ${results.fail.length} fail`
+);
 if (results.fail.length) {
   console.log('\nFAILURES:');
   for (const f of results.fail) console.log(`  FAIL  ${f.file}\n        ${f.error}`);

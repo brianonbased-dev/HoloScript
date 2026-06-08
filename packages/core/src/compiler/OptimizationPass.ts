@@ -548,7 +548,7 @@ export class OptimizationPass {
       if (node.type !== 'mesh' && node.type !== 'gltfModel') return;
 
       const hsType = meshHsType(node);
-      const triEstimate = node.type === 'gltfModel' ? 5000 : TRI_ESTIMATES[hsType] ?? 12;
+      const triEstimate = node.type === 'gltfModel' ? 5000 : (TRI_ESTIMATES[hsType] ?? 12);
 
       // Only recommend LOD for high-poly objects
       if (triEstimate >= 500) {

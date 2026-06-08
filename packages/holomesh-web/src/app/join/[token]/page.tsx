@@ -1,22 +1,22 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Delivery = 'holomesh' | 'hololand' | 'studio'
+type Delivery = 'holomesh' | 'hololand' | 'studio';
 
 interface InviteInfo {
-  token: string
-  agentId: string
-  agentName: string
-  agentHandle?: string
-  delivery: Delivery | null   // null = user chooses
-  worldId?: string
-  worldLink?: string          // VRChat URL or .holo world ID (hololand delivery)
-  claimed: boolean
-  expiresAt: string
+  token: string;
+  agentId: string;
+  agentName: string;
+  agentHandle?: string;
+  delivery: Delivery | null; // null = user chooses
+  worldId?: string;
+  worldLink?: string; // VRChat URL or .holo world ID (hololand delivery)
+  claimed: boolean;
+  expiresAt: string;
 }
 
 type PageState =
@@ -26,7 +26,13 @@ type PageState =
   | { phase: 'choose'; invite: InviteInfo }
   | { phase: 'form'; invite: InviteInfo; delivery: Delivery }
   | { phase: 'entering'; delivery: Delivery }
-  | { phase: 'welcome'; playerName: string; agentName: string; delivery: Delivery; invite: InviteInfo }
+  | {
+      phase: 'welcome';
+      playerName: string;
+      agentName: string;
+      delivery: Delivery;
+      invite: InviteInfo;
+    };
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -34,9 +40,9 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   (typeof window !== 'undefined' && window.location.hostname === 'localhost'
     ? 'http://localhost:3001'
-    : 'https://mcp.holoscript.net')
+    : 'https://mcp.holoscript.net');
 
-const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net'
+const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net';
 
 // ── Pathway metadata ──────────────────────────────────────────────────────────
 
@@ -60,7 +66,8 @@ const PATHWAYS = {
     orb: 'bg-purple-800/40',
     orbText: 'text-purple-200',
     welcomeTag: 'text-purple-400/60',
-    welcomeBtn: 'bg-purple-900/30 hover:bg-purple-900/50 border-purple-500/30 hover:border-purple-500/60 text-purple-200',
+    welcomeBtn:
+      'bg-purple-900/30 hover:bg-purple-900/50 border-purple-500/30 hover:border-purple-500/60 text-purple-200',
     enteringText: 'joining the network…',
   },
   hololand: {
@@ -82,7 +89,8 @@ const PATHWAYS = {
     orb: 'bg-emerald-900/40',
     orbText: 'text-emerald-200',
     welcomeTag: 'text-emerald-400/60',
-    welcomeBtn: 'bg-emerald-900/20 hover:bg-emerald-900/40 border-emerald-500/30 hover:border-emerald-500/60 text-emerald-200',
+    welcomeBtn:
+      'bg-emerald-900/20 hover:bg-emerald-900/40 border-emerald-500/30 hover:border-emerald-500/60 text-emerald-200',
     enteringText: 'stepping through the portal…',
   },
   studio: {
@@ -104,74 +112,87 @@ const PATHWAYS = {
     orb: 'bg-cyan-900/40',
     orbText: 'text-cyan-200',
     welcomeTag: 'text-cyan-400/60',
-    welcomeBtn: 'bg-cyan-900/20 hover:bg-cyan-900/40 border-cyan-500/30 hover:border-cyan-500/60 text-cyan-200',
+    welcomeBtn:
+      'bg-cyan-900/20 hover:bg-cyan-900/40 border-cyan-500/30 hover:border-cyan-500/60 text-cyan-200',
     enteringText: 'opening studio…',
   },
-} as const
+} as const;
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function JoinPage() {
-  const params = useParams()
-  const token = params?.token as string
+  const params = useParams();
+  const token = params?.token as string;
 
-  const [state, setState] = useState<PageState>({ phase: 'loading' })
-  const [name, setName] = useState('')
-  const [wallet, setWallet] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [state, setState] = useState<PageState>({ phase: 'loading' });
+  const [name, setName] = useState('');
+  const [wallet, setWallet] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!token) return
+    if (!token) return;
     fetch(`${API_BASE}/api/hololand/invite/${token}`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.error) { setState({ phase: 'error', message: data.error }); return }
-        if (data.claimed) { setState({ phase: 'already-claimed' }); return }
-        const invite = data as InviteInfo
+        if (data.error) {
+          setState({ phase: 'error', message: data.error });
+          return;
+        }
+        if (data.claimed) {
+          setState({ phase: 'already-claimed' });
+          return;
+        }
+        const invite = data as InviteInfo;
         // If agent locked a delivery, skip the chooser
         if (invite.delivery) {
-          setState({ phase: 'form', invite, delivery: invite.delivery })
+          setState({ phase: 'form', invite, delivery: invite.delivery });
         } else {
-          setState({ phase: 'choose', invite })
+          setState({ phase: 'choose', invite });
         }
       })
-      .catch(() => setState({ phase: 'error', message: 'Could not reach the server.' }))
-  }, [token])
+      .catch(() => setState({ phase: 'error', message: 'Could not reach the server.' }));
+  }, [token]);
 
   function pickDelivery(delivery: Delivery) {
-    if (state.phase !== 'choose') return
-    setState({ phase: 'form', invite: state.invite, delivery })
+    if (state.phase !== 'choose') return;
+    setState({ phase: 'form', invite: state.invite, delivery });
   }
 
   function backToChoose() {
-    if (state.phase !== 'form') return
-    setState({ phase: 'choose', invite: state.invite })
+    if (state.phase !== 'form') return;
+    setState({ phase: 'choose', invite: state.invite });
   }
 
   async function handleClaim(e: React.FormEvent) {
-    e.preventDefault()
-    if (state.phase !== 'form' || !name.trim() || submitting) return
-    const { delivery, invite } = state
-    setSubmitting(true)
-    setState({ phase: 'entering', delivery })
+    e.preventDefault();
+    if (state.phase !== 'form' || !name.trim() || submitting) return;
+    const { delivery, invite } = state;
+    setSubmitting(true);
+    setState({ phase: 'entering', delivery });
 
     try {
       const r = await fetch(`${API_BASE}/api/hololand/invite/${token}/claim`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), walletAddress: wallet.trim() || undefined }),
-      })
-      const data = await r.json()
+      });
+      const data = await r.json();
       if (!data.success) {
-        setState({ phase: 'form', invite, delivery })
-        setSubmitting(false)
-        return
+        setState({ phase: 'form', invite, delivery });
+        setSubmitting(false);
+        return;
       }
-      await new Promise((res) => setTimeout(res, 1400))
-      setState({ phase: 'welcome', playerName: data.playerName, agentName: data.agentName, delivery, invite })
+      await new Promise((res) => setTimeout(res, 1400));
+      setState({
+        phase: 'welcome',
+        playerName: data.playerName,
+        agentName: data.agentName,
+        delivery,
+        invite,
+      });
     } catch {
-      setState({ phase: 'form', invite, delivery })
-      setSubmitting(false)
+      setState({ phase: 'form', invite, delivery });
+      setSubmitting(false);
     }
   }
 
@@ -183,11 +204,11 @@ export default function JoinPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-lg">
-        {state.phase === 'loading'         && <Loading />}
-        {state.phase === 'error'           && <ErrorState message={state.message} />}
+        {state.phase === 'loading' && <Loading />}
+        {state.phase === 'error' && <ErrorState message={state.message} />}
         {state.phase === 'already-claimed' && <AlreadyClaimed />}
-        {state.phase === 'choose'          && <Chooser invite={state.invite} onPick={pickDelivery} />}
-        {state.phase === 'form'            && (
+        {state.phase === 'choose' && <Chooser invite={state.invite} onPick={pickDelivery} />}
+        {state.phase === 'form' && (
           <Form
             invite={state.invite}
             delivery={state.delivery}
@@ -200,8 +221,8 @@ export default function JoinPage() {
             submitting={submitting}
           />
         )}
-        {state.phase === 'entering'        && <Entering delivery={state.delivery} />}
-        {state.phase === 'welcome'         && (
+        {state.phase === 'entering' && <Entering delivery={state.delivery} />}
+        {state.phase === 'welcome' && (
           <Welcome
             playerName={state.playerName}
             agentName={state.agentName}
@@ -211,12 +232,20 @@ export default function JoinPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 // ── Agent Badge ───────────────────────────────────────────────────────────────
 
-function AgentBadge({ name, handle, center = true }: { name: string; handle?: string; center?: boolean }) {
+function AgentBadge({
+  name,
+  handle,
+  center = true,
+}: {
+  name: string;
+  handle?: string;
+  center?: boolean;
+}) {
   return (
     <div className={`flex items-center gap-3 ${center ? 'justify-center' : ''}`}>
       <div className="w-9 h-9 rounded-lg bg-purple-900/40 border border-purple-500/30 flex items-center justify-center text-xs font-bold text-purple-300 flex-shrink-0">
@@ -227,7 +256,7 @@ function AgentBadge({ name, handle, center = true }: { name: string; handle?: st
         {handle && <div className="text-[10px] font-mono text-[#4a4a5a]">{handle}</div>}
       </div>
     </div>
-  )
+  );
 }
 
 // ── Loading / Error / Already Claimed ────────────────────────────────────────
@@ -238,7 +267,7 @@ function Loading() {
       <div className="w-1.5 h-1.5 rounded-full bg-purple-500/60 mx-auto animate-pulse" />
       <p className="text-xs text-[#3a3a4a] font-mono">opening portal…</p>
     </div>
-  )
+  );
 }
 
 function ErrorState({ message }: { message: string }) {
@@ -247,26 +276,30 @@ function ErrorState({ message }: { message: string }) {
       <p className="text-[10px] font-mono text-red-500/70">portal error</p>
       <p className="text-sm text-[#7a7a8a]">{message}</p>
     </div>
-  )
+  );
 }
 
 function AlreadyClaimed() {
   return (
     <div className="rounded border border-[#1e1e2a] bg-[#0d0d14] p-8 text-center space-y-3">
       <p className="text-sm text-[#7a7a8a]">This door has already been opened.</p>
-      <p className="text-[10px] text-[#3a3a4a] font-mono">Ask your agent to generate a new invite.</p>
+      <p className="text-[10px] text-[#3a3a4a] font-mono">
+        Ask your agent to generate a new invite.
+      </p>
     </div>
-  )
+  );
 }
 
 // ── Chooser ───────────────────────────────────────────────────────────────────
 
 function Chooser({ invite, onPick }: { invite: InviteInfo; onPick: (d: Delivery) => void }) {
-  const deliveries: Delivery[] = ['holomesh', 'hololand', 'studio']
+  const deliveries: Delivery[] = ['holomesh', 'hololand', 'studio'];
   return (
     <div className="space-y-8">
       <div className="text-center space-y-4">
-        <p className="text-[10px] font-mono text-[#3a3a4a] uppercase tracking-widest">agent invite</p>
+        <p className="text-[10px] font-mono text-[#3a3a4a] uppercase tracking-widest">
+          agent invite
+        </p>
         <AgentBadge name={invite.agentName} handle={invite.agentHandle} />
         <h1 className="text-xl font-bold text-[#e0e0ee] leading-snug">
           Choose how you want to enter
@@ -275,7 +308,7 @@ function Chooser({ invite, onPick }: { invite: InviteInfo; onPick: (d: Delivery)
 
       <div className="space-y-3">
         {deliveries.map((d) => {
-          const m = PATHWAYS[d]
+          const m = PATHWAYS[d];
           return (
             <button
               key={d}
@@ -289,21 +322,24 @@ function Chooser({ invite, onPick }: { invite: InviteInfo; onPick: (d: Delivery)
                     <span className="text-sm font-semibold text-[#c8c8d8] group-hover:text-white transition-colors">
                       {m.name}
                     </span>
-                    <span className={`text-[9px] font-mono text-[#2a2a3a] ${m.tagColor} uppercase tracking-widest transition-colors`}>
+                    <span
+                      className={`text-[9px] font-mono text-[#2a2a3a] ${m.tagColor} uppercase tracking-widest transition-colors`}
+                    >
                       {m.tag}
                     </span>
                   </div>
                   <p className="text-[10px] text-[#3a3a4a] leading-relaxed group-hover:text-[#5a5a6a] transition-colors">
-                    <span className="text-[#5a5a6a]">{m.tagline}</span>{' '}
-                    {m.body}
+                    <span className="text-[#5a5a6a]">{m.tagline}</span> {m.body}
                   </p>
                 </div>
-                <span className={`text-[10px] font-mono flex-shrink-0 mt-0.5 ${m.ctaColor} transition-colors`}>
+                <span
+                  className={`text-[10px] font-mono flex-shrink-0 mt-0.5 ${m.ctaColor} transition-colors`}
+                >
                   →
                 </span>
               </div>
             </button>
-          )
+          );
         })}
       </div>
 
@@ -311,33 +347,46 @@ function Chooser({ invite, onPick }: { invite: InviteInfo; onPick: (d: Delivery)
         expires {new Date(invite.expiresAt).toLocaleDateString()}
       </p>
     </div>
-  )
+  );
 }
 
 // ── Form ──────────────────────────────────────────────────────────────────────
 
 function Form({
-  invite, delivery, name, wallet,
-  onName, onWallet, onSubmit, onBack, submitting,
+  invite,
+  delivery,
+  name,
+  wallet,
+  onName,
+  onWallet,
+  onSubmit,
+  onBack,
+  submitting,
 }: {
-  invite: InviteInfo
-  delivery: Delivery
-  name: string
-  wallet: string
-  onName: (v: string) => void
-  onWallet: (v: string) => void
-  onSubmit: (e: React.FormEvent) => void
-  onBack?: () => void
-  submitting: boolean
+  invite: InviteInfo;
+  delivery: Delivery;
+  name: string;
+  wallet: string;
+  onName: (v: string) => void;
+  onWallet: (v: string) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onBack?: () => void;
+  submitting: boolean;
 }) {
-  const m = PATHWAYS[delivery]
+  const m = PATHWAYS[delivery];
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        {onBack
-          ? <button onClick={onBack} className="text-[10px] font-mono text-[#3a3a4a] hover:text-[#7a7a8a] transition-colors">← back</button>
-          : <span />
-        }
+        {onBack ? (
+          <button
+            onClick={onBack}
+            className="text-[10px] font-mono text-[#3a3a4a] hover:text-[#7a7a8a] transition-colors"
+          >
+            ← back
+          </button>
+        ) : (
+          <span />
+        )}
         <span className={`text-[10px] font-mono ${m.indicator} flex items-center gap-1.5`}>
           <span>{m.icon}</span> {m.name}
         </span>
@@ -353,7 +402,9 @@ function Form({
 
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-1">
-          <label className="text-[10px] font-mono text-[#3a3a4a] uppercase tracking-wider">your name</label>
+          <label className="text-[10px] font-mono text-[#3a3a4a] uppercase tracking-wider">
+            your name
+          </label>
           <input
             type="text"
             value={name}
@@ -388,13 +439,13 @@ function Form({
         </button>
       </form>
     </div>
-  )
+  );
 }
 
 // ── Entering ──────────────────────────────────────────────────────────────────
 
 function Entering({ delivery }: { delivery: Delivery }) {
-  const m = PATHWAYS[delivery]
+  const m = PATHWAYS[delivery];
   return (
     <div className="text-center space-y-6">
       <div className="relative w-24 h-24 mx-auto">
@@ -406,35 +457,43 @@ function Entering({ delivery }: { delivery: Delivery }) {
       </div>
       <p className="text-xs text-[#3a3a4a] font-mono">{m.enteringText}</p>
     </div>
-  )
+  );
 }
 
 // ── Welcome ───────────────────────────────────────────────────────────────────
 
 function Welcome({
-  playerName, agentName, delivery, invite,
+  playerName,
+  agentName,
+  delivery,
+  invite,
 }: {
-  playerName: string
-  agentName: string
-  delivery: Delivery
-  invite: InviteInfo
+  playerName: string;
+  agentName: string;
+  delivery: Delivery;
+  invite: InviteInfo;
 }) {
-  const m = PATHWAYS[delivery]
+  const m = PATHWAYS[delivery];
 
   // Determine the destination link
-  let destination = '/'
-  let destLabel = 'open holomesh'
-  if (delivery === 'studio') { destination = STUDIO_URL; destLabel = 'open studio' }
+  let destination = '/';
+  let destLabel = 'open holomesh';
+  if (delivery === 'studio') {
+    destination = STUDIO_URL;
+    destLabel = 'open studio';
+  }
   if (delivery === 'hololand') {
-    destination = invite.worldLink || '#'
-    destLabel = invite.worldLink ? 'enter world' : 'return to agent'
+    destination = invite.worldLink || '#';
+    destLabel = invite.worldLink ? 'enter world' : 'return to agent';
   }
 
   return (
     <div className="text-center space-y-8">
       <div className="relative w-20 h-20 mx-auto">
         <div className={`absolute inset-0 rounded-full ${m.glow} blur-xl`} />
-        <div className={`absolute inset-3 rounded-full ${m.orb} border ${m.ring} flex items-center justify-center`}>
+        <div
+          className={`absolute inset-3 rounded-full ${m.orb} border ${m.ring} flex items-center justify-center`}
+        >
           <span className={`text-xl ${m.orbText}`}>{m.icon}</span>
         </div>
       </div>
@@ -443,7 +502,7 @@ function Welcome({
         <p className={`text-[10px] font-mono uppercase tracking-widest ${m.welcomeTag}`}>
           {delivery === 'holomesh' && 'welcome to holomesh'}
           {delivery === 'hololand' && 'you are in the world'}
-          {delivery === 'studio'   && 'welcome to studio'}
+          {delivery === 'studio' && 'welcome to studio'}
         </p>
         <h2 className="text-2xl font-bold text-[#e8e8f0]">{playerName}</h2>
         <p className="text-sm text-[#5a5a6a]">{agentName} can see you now.</p>
@@ -478,5 +537,5 @@ function Welcome({
         {destLabel} →
       </a>
     </div>
-  )
+  );
 }

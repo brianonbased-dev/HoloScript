@@ -331,7 +331,10 @@ describe('NeuralForgeCoordinator — Pattern E remediation for neural_forge trai
       expect(coord.getNodeState('npc-1')?.pendingExternalSynthesis).toBe(false);
 
       // 4. Fallback shard created
-      source.fire('neural_shard_created', { node: { id: 'npc-1' }, shard: { id: 'shard_timeout_1' } });
+      source.fire('neural_shard_created', {
+        node: { id: 'npc-1' },
+        shard: { id: 'shard_timeout_1' },
+      });
       expect(coord.getNodeState('npc-1')?.shardCount).toBe(1);
 
       // 5. Cognition evolved

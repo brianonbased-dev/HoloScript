@@ -40,7 +40,10 @@ const registry = new Map<string, ProceduralTextureGenerator>();
 const dataCache = new Map<string, ProceduralPixelData>();
 
 /** Register a named procedural generator. Idempotent (last registration wins). */
-export function registerProceduralTexture(name: string, generator: ProceduralTextureGenerator): void {
+export function registerProceduralTexture(
+  name: string,
+  generator: ProceduralTextureGenerator
+): void {
   registry.set(name, generator);
 }
 
@@ -81,7 +84,7 @@ export function proceduralDataToTexture(data: ProceduralPixelData): THREE.DataTe
     data.width,
     data.height,
     THREE.RGBAFormat,
-    THREE.UnsignedByteType,
+    THREE.UnsignedByteType
   );
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;

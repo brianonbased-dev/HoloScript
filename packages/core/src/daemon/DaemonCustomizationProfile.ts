@@ -210,9 +210,7 @@ export class DaemonCustomizationSeparationError extends Error {
  * This is the customization-layer validator. For the daemon-level
  * invariant, use `assertDaemonFieldSeparation` from ConversationDaemon.
  */
-export function assertCustomizationSeparation(
-  profile: DaemonCustomizationProfile
-): void {
+export function assertCustomizationSeparation(profile: DaemonCustomizationProfile): void {
   // Invariant 1: displayName must not reference Brittney
   const forbiddenNames = ['brittney', 'britney', 'britt', 'field', 'substrate'];
   const lowerName = profile.style.displayName.toLowerCase();
@@ -220,7 +218,7 @@ export function assertCustomizationSeparation(
     if (lowerName.includes(forbidden)) {
       throw new DaemonCustomizationSeparationError(
         `displayName "${profile.style.displayName}" references "${forbidden}" — ` +
-        `the user shapes their local daemon, not the field. D.053.`
+          `the user shapes their local daemon, not the field. D.053.`
       );
     }
   }
@@ -231,7 +229,7 @@ export function assertCustomizationSeparation(
     if (profile.style.careProfile.startsWith(prefix)) {
       throw new DaemonCustomizationSeparationError(
         `careProfile "${profile.style.careProfile}" starts with "${prefix}" — ` +
-        `care is style, not permission. Use a care model name, not a capability URI.`
+          `care is style, not permission. Use a care model name, not a capability URI.`
       );
     }
   }
@@ -241,7 +239,7 @@ export function assertCustomizationSeparation(
     if (profile.permissions.permissions.custodyScope.length === 0) {
       throw new DaemonCustomizationSeparationError(
         'break-glass requires an explicit custodyScope — ' +
-        'a daemon must not hold global field authority'
+          'a daemon must not hold global field authority'
       );
     }
   }
@@ -251,7 +249,7 @@ export function assertCustomizationSeparation(
     if (!profile.permissions.dispatch.receiptRequired) {
       throw new DaemonCustomizationSeparationError(
         'autonomous mutations require receiptRequired:true — ' +
-        'HoloShell cannot prove field actions without receipts'
+          'HoloShell cannot prove field actions without receipts'
       );
     }
   }
@@ -276,7 +274,7 @@ export function assertCustomizationSeparation(
       if (ritual.trigger.startsWith(prefix)) {
         throw new DaemonCustomizationSeparationError(
           `ritual "${ritual.name}" trigger "${ritual.trigger}" starts with "${prefix}" — ` +
-          `rituals are personal patterns, not capability grants.`
+            `rituals are personal patterns, not capability grants.`
         );
       }
     }
@@ -288,7 +286,7 @@ export function assertCustomizationSeparation(
       if (wf.workflowId.startsWith(prefix)) {
         throw new DaemonCustomizationSeparationError(
           `workflow "${wf.name}" id "${wf.workflowId}" starts with "${prefix}" — ` +
-          `workflows are personal bookmarks, not capability grants.`
+            `workflows are personal bookmarks, not capability grants.`
         );
       }
     }
@@ -299,9 +297,7 @@ export function assertCustomizationSeparation(
  * Validates the structural shape of a customization profile.
  * Returns an array of validation errors (empty if valid).
  */
-export function validateCustomizationProfile(
-  profile: DaemonCustomizationProfile
-): string[] {
+export function validateCustomizationProfile(profile: DaemonCustomizationProfile): string[] {
   const errors: string[] = [];
 
   if (!profile.profileId) errors.push('profileId is required.');
@@ -451,11 +447,7 @@ export function makeDefaultPermissionConfig(
       absorb: true,
       holomesh: false,
     },
-    contextSources: [
-      'operator_brief',
-      'holoscript_surface_map',
-      'recent_receipts',
-    ],
+    contextSources: ['operator_brief', 'holoscript_surface_map', 'recent_receipts'],
     brittneyChannel: {
       enabled: true,
       channelId: `${ownerId}:${daemonId}`,
@@ -641,7 +633,12 @@ export function makePresetProfile(
         ...base.style,
         displayName: 'Kai',
         appearance: { characterClass: 'creative', scale: 'medium' },
-        tone: { formality: 'casual', verbosity: 'detailed', humor: 'moderate', patience: 'patient' },
+        tone: {
+          formality: 'casual',
+          verbosity: 'detailed',
+          humor: 'moderate',
+          patience: 'patient',
+        },
         careProfile: 'attentive',
         visualTheme: 'warm-sunset',
       };

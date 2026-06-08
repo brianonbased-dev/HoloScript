@@ -84,7 +84,9 @@ export function RegistryPanel({ onClose }: RegistryPanelProps) {
     async (pack: RegistryPack) => {
       setImporting(pack.packId);
       // Increment download count
-      await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch((err) => logger.warn('Swallowed error caught:', err));
+      await fetch(`/api/registry/${pack.packId}`, { method: 'POST' }).catch((err) =>
+        logger.warn('Swallowed error caught:', err)
+      );
 
       if (pack.previewCode) {
         // Append preview HoloScript to current code

@@ -38,15 +38,7 @@ describe('Performance & LOD', () => {
   describe('FrustumCuller', () => {
     it('Culls objects outside frustum via near/far planes', () => {
       const culler = new FrustumCuller();
-      culler.setFrustumFromPerspective(
-        [0, 0, 0],
-        [0, 0, -1],
-        [0, 1, 0],
-        Math.PI / 3,
-        1.0,
-        0.1,
-        50
-      );
+      culler.setFrustumFromPerspective([0, 0, 0], [0, 0, -1], [0, 1, 0], Math.PI / 3, 1.0, 0.1, 50);
 
       // In front, within far range → visible
       const inRange = { id: 'inRange', position: [0, 0, -10], radius: 1 };
@@ -59,15 +51,7 @@ describe('Performance & LOD', () => {
 
     it('Cull filters objects and tracks count', () => {
       const culler = new FrustumCuller();
-      culler.setFrustumFromPerspective(
-        [0, 0, 0],
-        [0, 0, -1],
-        [0, 1, 0],
-        Math.PI / 3,
-        1.0,
-        0.1,
-        20
-      );
+      culler.setFrustumFromPerspective([0, 0, 0], [0, 0, -1], [0, 1, 0], Math.PI / 3, 1.0, 0.1, 20);
 
       const objects = [
         { id: 'a', position: [0, 0, -5], radius: 1 }, // In range
@@ -79,7 +63,6 @@ describe('Performance & LOD', () => {
       expect(culler.getLastCullCount()).toBeGreaterThan(0);
     });
   });
-
 
   describe('LODSystem', () => {
     it('Selects LOD level by distance', () => {

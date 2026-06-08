@@ -85,20 +85,20 @@ describe('hologram mcp tools', () => {
     await expect(
       handleHologramTool('holo_hologram_from_media', {
         source: 'media/photo.jpg',
-      } as Record<string, unknown>),
+      } as Record<string, unknown>)
     ).rejects.toThrow('mediaType must be one of image|gif|video');
 
     await expect(
       handleHologramTool('holo_hologram_from_media', {
         mediaType: 'image',
-      } as Record<string, unknown>),
+      } as Record<string, unknown>)
     ).rejects.toThrow('one of source, sourceUrl, or sourceBase64');
 
     await expect(
       handleHologramTool('holo_hologram_send', {
         hash: 'h',
         shareUrl: 'https://x',
-      } as Record<string, unknown>),
+      } as Record<string, unknown>)
     ).rejects.toThrow('recipientAgentId');
   });
 
@@ -125,7 +125,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_from_media', {
           mediaType: 'image',
           sourceBase64: huge,
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/oversized hologram payload/);
     });
 
@@ -137,7 +137,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_compile_quilt', {
           mediaType: 'image',
           sourceBase64: huge,
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/oversized hologram payload/);
 
       // Critical: the worker must NOT be called for oversized payloads —
@@ -154,7 +154,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_render', {
           mediaType: 'image',
           sourceBase64: huge,
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/oversized hologram payload/);
 
       expect(callWorkerMock).not.toHaveBeenCalled();
@@ -176,7 +176,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_from_media', {
           mediaType: 'image',
           source: `data:image/png;base64,${huge}`,
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/oversized hologram payload/);
     });
   });
@@ -202,7 +202,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_from_media', {
           mediaType: 'image',
           sourceBase64: '!!!this is not base64!!!',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/malformed media payload/);
     });
 
@@ -213,7 +213,7 @@ describe('hologram mcp tools', () => {
           // Mojibake / utf-8 bytes that Node sometimes produces when a
           // caller forgets to base64-encode their buffer.
           sourceBase64: 'café☕️binary',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/malformed media payload/);
     });
 
@@ -222,7 +222,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_from_media', {
           mediaType: 'image',
           sourceBase64: 'A',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/malformed media payload/);
     });
 
@@ -231,7 +231,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_from_media', {
           mediaType: 'image',
           source: 'data:;base64,AAAA',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/malformed media payload/);
     });
 
@@ -241,7 +241,7 @@ describe('hologram mcp tools', () => {
           mediaType: 'image',
           // Valid MIME, `;base64,` present but payload after comma is empty.
           source: 'data:image/png;base64,',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/malformed media payload/);
     });
 
@@ -250,7 +250,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_from_media', {
           mediaType: 'image',
           source: 'data:image/png;base64,!!!not-base64***',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/malformed media payload/);
     });
 
@@ -261,7 +261,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_compile_quilt', {
           mediaType: 'image',
           sourceBase64: '*** not base64 ***',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/malformed media payload/);
 
       // Critical: the worker must NOT be called for a malformed payload —
@@ -277,7 +277,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_render', {
           mediaType: 'image',
           sourceBase64: 'spaces and !!! punctuation ???',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/malformed media payload/);
 
       expect(callWorkerMock).not.toHaveBeenCalled();
@@ -370,7 +370,7 @@ describe('hologram mcp tools', () => {
         targets: ['quilt'],
         mediaType: 'image',
         sourceUrl: 'https://example.com/x.png',
-      }),
+      })
     );
   });
 
@@ -476,7 +476,7 @@ describe('hologram mcp tools', () => {
         shareUrl: 'https://share',
         recipientAgentId: 'agent_z',
         teamId: 'team_t',
-      }),
+      })
     );
   });
 
@@ -493,7 +493,7 @@ describe('hologram mcp tools', () => {
         hash: 'hh2',
         shareUrl: 'https://studio.holoscript.net/g/hh2',
         teamId: 'team_tf',
-      }),
+      })
     );
   });
 
@@ -514,7 +514,7 @@ describe('hologram mcp tools', () => {
         new Response(JSON.stringify({ hash: 'abc123', written: true, url: '/g/abc123' }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
-        }),
+        })
       );
 
       const meta = JSON.stringify({
@@ -556,21 +556,23 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_upload_bundle', {
           depthBinBase64: 'AA==',
           normalBinBase64: 'AA==',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow('meta is required');
     });
 
     it('rejects malformed bundle base64 before Studio upload', async () => {
-      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
-        new Response(JSON.stringify({ hash: 'should-not-upload' }), { status: 200 }),
-      );
+      const fetchSpy = vi
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(
+          new Response(JSON.stringify({ hash: 'should-not-upload' }), { status: 200 })
+        );
 
       await expect(
         handleHologramTool('holo_hologram_upload_bundle', {
           meta: JSON.stringify({ schemaVersion: 1 }),
           depthBinBase64: 'A',
           normalBinBase64: 'AA==',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/malformed media payload/);
 
       expect(fetchSpy).not.toHaveBeenCalled();
@@ -582,7 +584,7 @@ describe('hologram mcp tools', () => {
         new Response(JSON.stringify({ error: 'Payload too large', code: 'payload_too_large' }), {
           status: 413,
           headers: { 'Content-Type': 'application/json' },
-        }),
+        })
       );
 
       const meta = JSON.stringify({
@@ -602,7 +604,7 @@ describe('hologram mcp tools', () => {
           meta,
           depthBinBase64: 'AA==',
           normalBinBase64: 'AA==',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow('Payload too large');
     });
   });
@@ -625,7 +627,7 @@ describe('hologram mcp tools', () => {
         new Response(bytes, {
           status: 200,
           headers: { 'Content-Type': 'application/octet-stream' },
-        }),
+        })
       );
 
       const out = (await handleHologramTool('holo_hologram_get_asset', {
@@ -646,7 +648,7 @@ describe('hologram mcp tools', () => {
       await expect(
         handleHologramTool('holo_hologram_get_asset', {
           asset: 'depth.bin',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow('hash is required');
     });
 
@@ -659,7 +661,7 @@ describe('hologram mcp tools', () => {
         handleHologramTool('holo_hologram_get_asset', {
           hash: 'abc123',
           asset: '../../secrets.env',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow(/asset must be one of/);
 
       expect(fetchSpy).not.toHaveBeenCalled();
@@ -671,14 +673,14 @@ describe('hologram mcp tools', () => {
         new Response(JSON.stringify({ error: 'Not found', code: 'not_found' }), {
           status: 404,
           headers: { 'Content-Type': 'application/json' },
-        }),
+        })
       );
 
       await expect(
         handleHologramTool('holo_hologram_get_asset', {
           hash: 'missing',
           asset: 'depth.bin',
-        } as Record<string, unknown>),
+        } as Record<string, unknown>)
       ).rejects.toThrow('Not found');
     });
   });

@@ -82,7 +82,13 @@ const routeExpectations = [
   },
   {
     file: 'skillRoutes.ts',
-    routeLiterals: ["'/publish'", "'/search'", "'/:id/purchase'", "'/:id/download'", "'/:id/install'"],
+    routeLiterals: [
+      "'/publish'",
+      "'/search'",
+      "'/:id/purchase'",
+      "'/:id/download'",
+      "'/:id/install'",
+    ],
     skillLiterals: [
       '/api/v1/skills/publish',
       '/api/v1/skills/search',
@@ -131,11 +137,7 @@ const routeExpectations = [
   },
   {
     file: path.join('economy', 'ast-licensing-middleware.ts'),
-    routeLiterals: [
-      "'/ast-assets'",
-      "'/ast-assets/:assetId/manifest'",
-      "'/ast-assets/:assetId'",
-    ],
+    routeLiterals: ["'/ast-assets'", "'/ast-assets/:assetId/manifest'", "'/ast-assets/:assetId'"],
     skillLiterals: [
       '/api/v1/ast-assets',
       '/api/v1/ast-assets/<asset-id>/manifest',

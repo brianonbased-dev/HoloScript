@@ -59,7 +59,14 @@ const CANTILEVER: Frame2DModel = {
     { id: 'B', x: L, y: 0 },
   ],
   elements: [
-    { id: 'e1', fromNodeId: 'A', toNodeId: 'B', elasticModulusGPa: E_GPa, momentOfInertiaM4: I_m4, areaM2: A_m2 },
+    {
+      id: 'e1',
+      fromNodeId: 'A',
+      toNodeId: 'B',
+      elasticModulusGPa: E_GPa,
+      momentOfInertiaM4: I_m4,
+      areaM2: A_m2,
+    },
   ],
   supports: [
     { nodeId: 'A', ux: true, uy: true, theta: true }, // fixed
@@ -77,7 +84,14 @@ const UNDER_CONSTRAINED: Frame2DModel = {
     { id: 'B', x: L, y: 0 },
   ],
   elements: [
-    { id: 'e1', fromNodeId: 'A', toNodeId: 'B', elasticModulusGPa: E_GPa, momentOfInertiaM4: I_m4, areaM2: A_m2 },
+    {
+      id: 'e1',
+      fromNodeId: 'A',
+      toNodeId: 'B',
+      elasticModulusGPa: E_GPa,
+      momentOfInertiaM4: I_m4,
+      areaM2: A_m2,
+    },
   ],
   supports: [{ nodeId: 'A', ux: true }], // only 1 DOF restrained
   nodalLoads: [{ nodeId: 'B', Fy: -P }],
@@ -119,7 +133,12 @@ describe('civil-engineering -> HoloScript runtime integration (dsm_frame_2d)', (
 
     // Hand-checked against global static equilibrium of the cantilever:
     //   Ry_A = +P = +50 kN ; |Mz_A| = P·L = 200 kN·m ; Rx_A = 0.
-    const reactions = summary.reactions as Array<{ nodeId: string; Rx: number; Ry: number; Mz: number }>;
+    const reactions = summary.reactions as Array<{
+      nodeId: string;
+      Rx: number;
+      Ry: number;
+      Mz: number;
+    }>;
     const rA = reactions.find((r) => r.nodeId === 'A')!;
     expect(rA.Rx).toBeCloseTo(0, 1);
     expect(rA.Ry).toBeCloseTo(EXPECTED_RY, 1); // +50 kN
@@ -165,7 +184,11 @@ describe('civil-engineering -> HoloScript runtime integration (dsm_frame_2d)', (
 
     const state = runtime.getState() as Record<string, unknown>;
     const persisted = state['dsm_frame_2d:frame'] as
-      | { converged?: boolean; nodeCount?: number; reactions?: Array<{ nodeId: string; Ry: number }> }
+      | {
+          converged?: boolean;
+          nodeCount?: number;
+          reactions?: Array<{ nodeId: string; Ry: number }>;
+        }
       | undefined;
     expect(persisted).toBeDefined();
     expect(persisted?.converged).toBe(true);

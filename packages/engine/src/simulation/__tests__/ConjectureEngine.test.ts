@@ -129,7 +129,8 @@ describe('ConjectureEngine (conjecture.v1)', () => {
         ...CLAIM,
         id: 'C.PHYSICS.OUT_OF_SCOPE.EMPTY',
         kind: 'impossibility.boundary',
-        statement: 'A physics claim with no accessible observations is not a receipt-tier conjecture.',
+        statement:
+          'A physics claim with no accessible observations is not a receipt-tier conjecture.',
         falsifiability: {
           status: 'out-of-scope',
           reason: 'No accessible observations were supplied.',
@@ -171,7 +172,8 @@ describe('ConjectureEngine (conjecture.v1)', () => {
         id: 'C.GEOM.UNDECIDED',
         falsifiability: {
           status: 'falsifiable-in-principle',
-          reason: 'The predicate can be refuted by a finite counterexample, but this run is budget-limited.',
+          reason:
+            'The predicate can be refuted by a finite counterexample, but this run is budget-limited.',
           accessiblePredictions: ['geometry.budget_limited'],
         },
       },
@@ -213,10 +215,10 @@ describe('ConjectureEngine (conjecture.v1)', () => {
     expect(receipt.evaluations[0].status).toBe('rediscovered');
     expect(receipt.evaluations[0].novelty.status).toBe('near-duplicate');
     expect(receipt.evaluations[0].novelty.nearest?.priorArtId).toBe(
-      'prior.square-sheet.non-degenerate',
+      'prior.square-sheet.non-degenerate'
     );
     expect(receipt.evaluations[0].novelty.nearest?.similarity).toBeGreaterThanOrEqual(
-      CONJECTURE_NOVELTY_THRESHOLD,
+      CONJECTURE_NOVELTY_THRESHOLD
     );
   });
 
@@ -245,7 +247,7 @@ describe('ConjectureEngine (conjecture.v1)', () => {
     expect(receipt.evaluations[0].status).toBe('survived');
     expect(receipt.evaluations[0].novelty.status).toBe('novel');
     expect(receipt.evaluations[0].novelty.nearest?.similarity).toBeLessThan(
-      CONJECTURE_NOVELTY_THRESHOLD,
+      CONJECTURE_NOVELTY_THRESHOLD
     );
   });
 
@@ -265,7 +267,7 @@ describe('ConjectureEngine (conjecture.v1)', () => {
     expect(receipt.status).toBe('falsified');
     expect(receipt.counterexamples[0].candidateId).toBe('tetrahedron-surface');
     expect(receipt.counterexamples[0].failedProbes[0].probeId).toBe(
-      'geometry.hash_order_invariant',
+      'geometry.hash_order_invariant'
     );
   });
 
@@ -276,10 +278,7 @@ describe('ConjectureEngine (conjecture.v1)', () => {
         id: 'C.GEOM.002',
         statement: 'Every generated triangle candidate is non-degenerate.',
       },
-      candidates: [
-        createTetrahedronSurfaceCandidate(),
-        createDegenerateTriangleCandidate(),
-      ],
+      candidates: [createTetrahedronSurfaceCandidate(), createDegenerateTriangleCandidate()],
       probes: [nonDegenerateGeometryProbe()],
       hashMode: 'sha256',
     });
@@ -289,7 +288,7 @@ describe('ConjectureEngine (conjecture.v1)', () => {
     expect(receipt.counterexamples[0].candidateId).toBe('degenerate-triangle');
     expect(receipt.counterexamples[0].failedProbes[0].probeId).toBe('geometry.non_degenerate');
     expect(receipt.counterexamples[0].failedProbes[0].predicate.failMeaning).toContain(
-      'collapsed below tolerance',
+      'collapsed below tolerance'
     );
   });
 
@@ -300,10 +299,7 @@ describe('ConjectureEngine (conjecture.v1)', () => {
         id: 'C.GEOM.003',
         statement: 'Every proof-carrying triangle surface in this suite is closed.',
       },
-      candidates: [
-        createTetrahedronSurfaceCandidate(),
-        createSquareSheetCandidate(),
-      ],
+      candidates: [createTetrahedronSurfaceCandidate(), createSquareSheetCandidate()],
       probes: [eulerCharacteristicProbe(2)],
       hashMode: 'sha256',
     });
@@ -344,7 +340,7 @@ describe('ConjectureEngine (conjecture.v1)', () => {
         },
         candidates: [createTetrahedronSurfaceCandidate()],
         probes: [nonDegenerateGeometryProbe()],
-      }),
+      })
     ).toThrow(/evidenceRefs/);
   });
 
@@ -362,7 +358,7 @@ describe('ConjectureEngine (conjecture.v1)', () => {
           },
         ],
         probes: [nonDegenerateGeometryProbe()],
-      }),
+      })
     ).toThrow(/out-of-range index/);
   });
 });

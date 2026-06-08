@@ -14,8 +14,10 @@ import type { ScaffoldDNA } from '../scaffolder';
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 function testCmd(dna: ScaffoldDNA): string {
-  if (dna.techStack.includes('vitest')) return dna.techStack.includes('pnpm') ? 'pnpm vitest' : 'npx vitest';
-  if (dna.techStack.includes('jest')) return dna.techStack.includes('pnpm') ? 'pnpm jest' : 'npx jest';
+  if (dna.techStack.includes('vitest'))
+    return dna.techStack.includes('pnpm') ? 'pnpm vitest' : 'npx vitest';
+  if (dna.techStack.includes('jest'))
+    return dna.techStack.includes('pnpm') ? 'pnpm jest' : 'npx jest';
   if (dna.languages.includes('py')) return 'pytest';
   if (dna.languages.includes('go')) return 'go test ./...';
   if (dna.languages.includes('rs')) return 'cargo test';
@@ -23,7 +25,8 @@ function testCmd(dna: ScaffoldDNA): string {
 }
 
 function lintCmd(dna: ScaffoldDNA): string {
-  if (dna.techStack.includes('eslint')) return dna.techStack.includes('pnpm') ? 'pnpm lint' : 'npx eslint .';
+  if (dna.techStack.includes('eslint'))
+    return dna.techStack.includes('pnpm') ? 'pnpm lint' : 'npx eslint .';
   if (dna.languages.includes('py')) return 'ruff check .';
   if (dna.languages.includes('go')) return 'golangci-lint run';
   if (dna.languages.includes('rs')) return 'cargo clippy';
@@ -50,7 +53,7 @@ function stackRules(dna: ScaffoldDNA): string {
   }
 
   if (dna.frameworks.includes('next.js')) {
-    rules.push('- Use Server Components by default. Only add `\'use client\'` when needed.');
+    rules.push("- Use Server Components by default. Only add `'use client'` when needed.");
     rules.push('- App Router: pages in app/, API routes in app/api/.');
   }
 

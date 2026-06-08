@@ -129,9 +129,13 @@ export interface AuditSummary {
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const clean = hex.replace('#', '');
-  const full = clean.length === 3
-    ? clean.split('').map((c) => c + c).join('')
-    : clean;
+  const full =
+    clean.length === 3
+      ? clean
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : clean;
   return {
     r: parseInt(full.slice(0, 2), 16),
     g: parseInt(full.slice(2, 4), 16),
@@ -324,8 +328,14 @@ function checkAction(comp: ComponentDescriptor): AlignmentIssue[] {
   }
 
   // 2.1.1 Keyboard + 4.1.2 — focusable element without keyboard handler
-  if (action.isFocusable && action.tabIndex !== undefined && action.tabIndex >= 0
-      && !action.hasKeyboardHandler && language.role && language.role !== 'link') {
+  if (
+    action.isFocusable &&
+    action.tabIndex !== undefined &&
+    action.tabIndex >= 0 &&
+    !action.hasKeyboardHandler &&
+    language.role &&
+    language.role !== 'link'
+  ) {
     issues.push({
       modalities: ['action', 'language'],
       wcagCriterion: '2.1.1',
@@ -443,7 +453,7 @@ export function checkAlignment(comp: ComponentDescriptor): ComponentAuditResult 
   };
 
   const alignmentScore = Math.round(
-    (modalityScores.vision + modalityScores.language + modalityScores.action) / 3,
+    (modalityScores.vision + modalityScores.language + modalityScores.action) / 3
   );
 
   return {

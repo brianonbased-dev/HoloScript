@@ -39,7 +39,13 @@ export function beginBrittneyMetric(): BrittneyMetricHandle {
  */
 export function endBrittneyMetric(
   handle: BrittneyMetricHandle,
-  info: { source: string; provider: string; promptTokens: number; completionTokens: number; error?: boolean }
+  info: {
+    source: string;
+    provider: string;
+    promptTokens: number;
+    completionTokens: number;
+    error?: boolean;
+  }
 ): void {
   if (active > 0) active -= 1;
   const latencyMs = Date.now() - handle.startMs;

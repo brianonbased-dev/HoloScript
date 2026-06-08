@@ -25,9 +25,11 @@ Phase 13 successfully added comprehensive test coverage for 5 additional hooks, 
 ## Phase 13 Hooks Added
 
 ### 1. useSceneOutliner (31 tests)
+
 **File**: `src/hooks/__tests__/useSceneOutliner.test.ts`
 
 Tests scene hierarchy parsing from HoloScript code:
+
 - Scene/object/light/camera/group node parsing
 - Nesting and depth tracking
 - Trait collection from decorator syntax
@@ -37,15 +39,18 @@ Tests scene hierarchy parsing from HoloScript code:
 - Edge cases (malformed syntax, null code, empty blocks)
 
 **Key Testing Patterns**:
+
 - Multi-line HoloScript format for regex matching
 - Zustand store mocking (useSceneStore, useEditorStore)
 - Memoization testing
 - Complex nesting validation
 
 ### 2. useSceneProfiler (28 tests)
+
 **File**: `src/hooks/__tests__/useSceneProfiler.test.ts`
 
 Tests performance metrics computation:
+
 - Node count and mesh count calculation
 - Draw call estimation
 - Complexity scoring (0-100 scale)
@@ -54,14 +59,17 @@ Tests performance metrics computation:
 - Memoization and optimization recommendations
 
 **Key Testing Patterns**:
+
 - Scene graph mock with variable complexity
 - Threshold testing for complexity tiers
 - Findings validation by level
 
 ### 3. useNodeGraphHistory (21 tests)
+
 **File**: `src/hooks/__tests__/useNodeGraphHistory.test.ts`
 
 Tests undo/redo stack for visual node graph:
+
 - Recording snapshots (nodes + edges)
 - Undo/redo operations
 - Stack management (50 snapshot cap)
@@ -70,6 +78,7 @@ Tests undo/redo stack for visual node graph:
 - Edge cases (empty history, multiple cycles)
 
 **Key Testing Patterns**:
+
 - act() block usage for synchronous returns
 - Snapshot-based history validation
 - Capacity limit testing (50 snapshots)
@@ -77,9 +86,11 @@ Tests undo/redo stack for visual node graph:
 **Bug Fixed**: act() wrapping synchronous return values → capture values inside act blocks
 
 ### 4. useScriptConsole (24 tests)
+
 **File**: `src/hooks/__tests__/useScriptConsole.test.ts`
 
 Tests JavaScript REPL with console capture:
+
 - Expression evaluation with scene proxy
 - Console method interception (log/warn/error)
 - Safe stringify for complex objects
@@ -88,15 +99,18 @@ Tests JavaScript REPL with console capture:
 - Error handling for invalid syntax
 
 **Key Testing Patterns**:
+
 - Store mocking for code context
 - Scene proxy validation
 - Console method capture
 - Array/object truncation testing
 
 ### 5. useSceneShare (18 tests)
+
 **File**: `src/hooks/__tests__/useSceneShare.test.ts`
 
 Tests scene publishing and gallery loading:
+
 - Publishing scenes to API
 - Gallery loading on mount
 - Default author handling ("Anonymous")
@@ -105,6 +119,7 @@ Tests scene publishing and gallery loading:
 - URL generation with origin
 
 **Key Testing Patterns**:
+
 - fetch API mocking
 - Async operations with waitFor
 - Promise resolution control
@@ -133,10 +148,12 @@ The following 15 hooks still need test coverage to reach higher percentages:
 ## Progress Tracking
 
 ### Phase 11 (Starting Point)
+
 - Coverage: 55.6% (25 hooks)
 - Tests: ~1,356 passing
 
 ### Phase 13 (Current)
+
 - Coverage: 66.67% (30 hooks)
 - Tests: 1,478 passing (+122 tests)
 - Improvement: +11.07 percentage points
@@ -144,22 +161,26 @@ The following 15 hooks still need test coverage to reach higher percentages:
 ## Testing Patterns Established
 
 ### React Hook Testing
+
 - `renderHook()` for hook initialization
 - `act()` for state updates
 - `waitFor()` for async effects
 - `rerender()` for prop/context changes
 
 ### Store Mocking
+
 - Zustand store mocking with `vi.fn()`
 - Selector-based state injection
 - `beforeEach()` reset patterns
 
 ### Async Testing
+
 - Promise resolution control
 - Mock fetch API setup
 - Error simulation (network, HTTP, JSON parse)
 
 ### Edge Case Coverage
+
 - Null/undefined inputs
 - Empty arrays/objects
 - Capacity limits
@@ -173,20 +194,18 @@ The following 15 hooks still need test coverage to reach higher percentages:
 To reach **75% coverage** (34 hooks), add tests for:
 
 **Priority 1 (Core Features)**:
+
 1. `useNodeSelection` - Critical for editor interaction
 2. `useNodeInspector` - Visual debugging
 3. `useShaderCompilation` - Shader pipeline
 4. `useLivePreview` - Real-time updates
 
-**Priority 2 (Advanced Features)**:
-5. `useMonacoAutocomplete` - Editor enhancement
-6. `useSceneVersions` - Version control
-7. `useGlobalHotkeys` - Keyboard shortcuts
-8. `useShaderGraph` - Visual programming
+**Priority 2 (Advanced Features)**: 5. `useMonacoAutocomplete` - Editor enhancement 6. `useSceneVersions` - Version control 7. `useGlobalHotkeys` - Keyboard shortcuts 8. `useShaderGraph` - Visual programming
 
 **Phase 14 Target**: +4 hooks = 75.56% coverage (34/45)
 
 ### Quality Improvements
+
 - Address act() warnings in existing tests
 - Add integration tests for hook interactions
 - Document testing patterns in CONTRIBUTING.md

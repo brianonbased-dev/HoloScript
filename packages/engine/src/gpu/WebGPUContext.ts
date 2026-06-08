@@ -39,7 +39,7 @@ async function ensureNodeWebGpu(): Promise<boolean> {
 
   try {
     const dynamicImport = new Function('specifier', 'return import(specifier)') as (
-      specifier: string,
+      specifier: string
     ) => Promise<unknown>;
     const mod = (await dynamicImport('webgpu')) as WebGpuBindingModule;
     const gpu = typeof mod.create === 'function' ? mod.create([]) : undefined;

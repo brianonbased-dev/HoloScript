@@ -21,8 +21,8 @@ import {
 
 describe('hologram-content-tools - tool definitions', () => {
   it('registers visualize_query_result with a valid input schema', () => {
-    const tool = hologramContentToolDefinitions.find((candidate) =>
-      candidate.name === 'visualize_query_result'
+    const tool = hologramContentToolDefinitions.find(
+      (candidate) => candidate.name === 'visualize_query_result'
     );
     expect(tool).toBeDefined();
     const inputSchema = tool?.inputSchema as { required?: string[] } | undefined;
@@ -78,16 +78,16 @@ describe('handleHologramContentTool - visualize_query_result', () => {
   });
 
   it('rejects empty rows', async () => {
-    await expect(
-      handleHologramContentTool('visualize_query_result', { rows: [] }),
-    ).rejects.toThrow(/at least one row/);
+    await expect(handleHologramContentTool('visualize_query_result', { rows: [] })).rejects.toThrow(
+      /at least one row/
+    );
   });
 
   it('rejects malformed row entries', async () => {
     await expect(
       handleHologramContentTool('visualize_query_result', {
         rows: [{ label: '', value: 1 }],
-      }),
+      })
     ).rejects.toThrow(/non-empty string/);
   });
 
@@ -105,7 +105,7 @@ describe('handleHologramContentTool - visualize_query_result', () => {
 
   it('rejects unknown tool names', async () => {
     await expect(
-      handleHologramContentTool('not-a-tool' as string, { rows: [{ label: 'x', value: 1 }] }),
+      handleHologramContentTool('not-a-tool' as string, { rows: [{ label: 'x', value: 1 }] })
     ).rejects.toThrow(/Unknown hologram-content tool/);
   });
 });
@@ -130,7 +130,7 @@ describe('hologram MCP envelope wrap + detect roundtrip', () => {
     expect(detectHologramContent(result)).toBe(result);
     expect(detectHologramContent(envelope)).toBe(result);
     expect(
-      detectHologramContent({ content: [{ type: 'text', text: JSON.stringify(result) }] }),
+      detectHologramContent({ content: [{ type: 'text', text: JSON.stringify(result) }] })
     ).toBeTruthy();
   });
 
@@ -139,7 +139,7 @@ describe('hologram MCP envelope wrap + detect roundtrip', () => {
     expect(detectHologramContent('hello')).toBeNull();
     expect(detectHologramContent({ content: [{ type: 'text', text: 'plain text' }] })).toBeNull();
     expect(
-      detectHologramContent({ content: [{ type: 'text', text: '{"foo":"bar"}' }] }),
+      detectHologramContent({ content: [{ type: 'text', text: '{"foo":"bar"}' }] })
     ).toBeNull();
   });
 });
@@ -152,7 +152,7 @@ describe('buildVisualizeQueryResultHolo - composition output', () => {
         { label: 'b', value: 20 },
       ],
       'Test',
-      0.02,
+      0.02
     );
     expect(code).toMatch(/^composition "QueryResult - Test" \{/);
     expect(code).toContain('object "QueryFloor"');

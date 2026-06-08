@@ -15,7 +15,7 @@ export interface MixamoClipMetadata {
   duration_seconds: number;
   fps: number;
   bone_names: string[]; // expected Mixamo standard skeleton
-  in_place: boolean;    // in-place (on-spot) vs with-root-motion
+  in_place: boolean; // in-place (on-spot) vs with-root-motion
 }
 
 export interface HoloAnimClipEmission {

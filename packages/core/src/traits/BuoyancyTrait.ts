@@ -85,7 +85,7 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
   },
 
   onAttach(node, _config, _context) {
-    const position = node.position || [0, 0, 0 ];
+    const position = node.position || [0, 0, 0];
     const state: BuoyancyState = {
       isSubmerged: false,
       submersionRatio: 0,
@@ -105,8 +105,8 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
     const state = node.__buoyancyState as BuoyancyState;
     if (!state) return;
 
-    const position = node.position || [0, 0, 0 ];
-    const scale = node.scale || [1, 1, 1 ];
+    const position = node.position || [0, 0, 0];
+    const scale = node.scale || [1, 1, 1];
     const objectHeight = scale[1];
 
     // Calculate velocity from position change
@@ -145,7 +145,7 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
         force: [
           -state.velocity[0] * dragCoeff,
           -state.velocity[1] * dragCoeff,
-          -state.velocity[2] * dragCoeff
+          -state.velocity[2] * dragCoeff,
         ],
       });
 
@@ -156,7 +156,7 @@ export const buoyancyHandler: TraitHandler<BuoyancyConfig> = {
           force: [
             config.flow_direction[0] * config.flow_strength * state.submersionRatio,
             config.flow_direction[1] * config.flow_strength * state.submersionRatio,
-            config.flow_direction[2] * config.flow_strength * state.submersionRatio
+            config.flow_direction[2] * config.flow_strength * state.submersionRatio,
           ],
         });
       }

@@ -41,7 +41,8 @@ describe('makeCommitHook', () => {
     const calls: Array<{ cmd: string; args: string[] }> = [];
     const spawn = vi.fn((cmd: string, args: string[]) => {
       calls.push({ cmd, args });
-      if (args[0] === 'rev-parse') return { status: 0, stdout: 'abc1234567890\n', stderr: '' } as never;
+      if (args[0] === 'rev-parse')
+        return { status: 0, stdout: 'abc1234567890\n', stderr: '' } as never;
       return { status: 0, stdout: '', stderr: '' } as never;
     });
 
@@ -63,7 +64,9 @@ describe('makeCommitHook', () => {
     expect(memo).toContain('Layer 1: …');
 
     const addCall = calls.find((c) => c.args[0] === 'add');
-    expect(addCall?.args[1]).toMatch(/agent-out\/2026-04-24_task_g10_threat_model_security-auditor\.md/);
+    expect(addCall?.args[1]).toMatch(
+      /agent-out\/2026-04-24_task_g10_threat_model_security-auditor\.md/
+    );
     const commitCall = calls.find((c) => c.args[0] === 'commit');
     expect(commitCall?.args).toContain('-m');
     const msg = commitCall?.args[commitCall.args.indexOf('-m') + 1] ?? '';
@@ -80,12 +83,10 @@ describe('makeCommitHook', () => {
       workingDir: mkdtempSync(join(tmpdir(), 'commit-hook-')),
       spawn: vi.fn(() => ({ status: 0, stdout: '', stderr: '' })) as never,
     });
-    await expect(
-      hook(RESULT, TASK, { ...IDENTITY, handle: 'security; rm -rf /' })
-    ).rejects.toThrow(/handle/);
-    await expect(
-      hook(RESULT, TASK, { ...IDENTITY, handle: 'a/../b' })
-    ).rejects.toThrow(/handle/);
+    await expect(hook(RESULT, TASK, { ...IDENTITY, handle: 'security; rm -rf /' })).rejects.toThrow(
+      /handle/
+    );
+    await expect(hook(RESULT, TASK, { ...IDENTITY, handle: 'a/../b' })).rejects.toThrow(/handle/);
   });
 
   it('throws (does not silently swallow) when git add fails', async () => {
@@ -103,7 +104,8 @@ describe('makeCommitHook', () => {
     const cwd = mkdtempSync(join(tmpdir(), 'commit-hook-'));
     const spawn = vi.fn((cmd: string, args: string[]) => {
       if (args[0] === 'add') return { status: 0, stdout: '', stderr: '' } as never;
-      if (args[0] === 'commit') return { status: 1, stdout: '', stderr: 'pre-commit: lint failed' } as never;
+      if (args[0] === 'commit')
+        return { status: 1, stdout: '', stderr: 'pre-commit: lint failed' } as never;
       return { status: 0, stdout: '', stderr: '' } as never;
     });
     const hook = makeCommitHook({ outputDir: 'agent-out', workingDir: cwd, spawn: spawn as never });

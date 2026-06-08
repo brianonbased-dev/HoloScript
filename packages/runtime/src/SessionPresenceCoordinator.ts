@@ -156,9 +156,7 @@ export class SessionPresenceCoordinator {
 
     // SharePlay
     this.unsubscribers.push(
-      this.bus.on<SharePlayEvent>('shareplay:session_started', (e) =>
-        this.onSessionStarted(e)
-      )
+      this.bus.on<SharePlayEvent>('shareplay:session_started', (e) => this.onSessionStarted(e))
     );
     this.unsubscribers.push(
       this.bus.on<SharePlayEvent>('shareplay:peer_joined', (e) => this.handlePeerJoined(e))
@@ -167,26 +165,18 @@ export class SessionPresenceCoordinator {
       this.bus.on<SharePlayEvent>('shareplay:peer_left', (e) => this.handlePeerLeft(e))
     );
     this.unsubscribers.push(
-      this.bus.on<SharePlayEvent>('shareplay:session_ended', (e) =>
-        this.onSessionEnded(e)
-      )
+      this.bus.on<SharePlayEvent>('shareplay:session_ended', (e) => this.onSessionEnded(e))
     );
 
     // SpatialVoice
     this.unsubscribers.push(
-      this.bus.on<SpatialVoiceEvent>('spatial_voice:started', (e) =>
-        this.onVoiceChange(e, true)
-      )
+      this.bus.on<SpatialVoiceEvent>('spatial_voice:started', (e) => this.onVoiceChange(e, true))
     );
     this.unsubscribers.push(
-      this.bus.on<SpatialVoiceEvent>('spatial_voice:stopped', (e) =>
-        this.onVoiceChange(e, false)
-      )
+      this.bus.on<SpatialVoiceEvent>('spatial_voice:stopped', (e) => this.onVoiceChange(e, false))
     );
     this.unsubscribers.push(
-      this.bus.on<SpatialVoiceEvent>('spatial_voice:peer_speaking', (e) =>
-        this.onPeerSpeaking(e)
-      )
+      this.bus.on<SpatialVoiceEvent>('spatial_voice:peer_speaking', (e) => this.onPeerSpeaking(e))
     );
 
     // WorldHeartbeat
@@ -197,9 +187,7 @@ export class SessionPresenceCoordinator {
       this.bus.on<HeartbeatEvent>('world_heartbeat:pong', (e) => this.onPong(e))
     );
     this.unsubscribers.push(
-      this.bus.on<HeartbeatEvent>('world_heartbeat:timeout', (e) =>
-        this.handleHeartbeatTimeout(e)
-      )
+      this.bus.on<HeartbeatEvent>('world_heartbeat:timeout', (e) => this.handleHeartbeatTimeout(e))
     );
 
     // Messaging
@@ -210,9 +198,7 @@ export class SessionPresenceCoordinator {
       this.bus.on<MessagingEvent>('messaging:receive', (e) => this.onMessageReceive(e))
     );
     this.unsubscribers.push(
-      this.bus.on<MessagingEvent>('messaging:delivered', (e) =>
-        this.onMessageDelivered(e)
-      )
+      this.bus.on<MessagingEvent>('messaging:delivered', (e) => this.onMessageDelivered(e))
     );
 
     // Heartbeat watchdog

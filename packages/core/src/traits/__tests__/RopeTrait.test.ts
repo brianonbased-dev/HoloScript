@@ -132,9 +132,9 @@ describe('RopeTrait', () => {
       sendEvent(ropeHandler, node, {}, ctx, {
         type: 'rope_segment_update',
         positions: [
-          [0, 0, 0 ],
-          [0, -0.2, 0 ],
-          [0, -0.4, 0 ],
+          [0, 0, 0],
+          [0, -0.2, 0],
+          [0, -0.4, 0],
         ],
         tension: 5.0,
       });
@@ -193,7 +193,7 @@ describe('RopeTrait', () => {
       sendEvent(ropeHandler, node, {}, ctx, {
         type: 'rope_apply_force',
         segmentIndex: 5,
-        force: [2, 0, 0 ],
+        force: [2, 0, 0],
       });
 
       expect(getEventCount(ctx, 'rope_external_force')).toBe(1);

@@ -14,272 +14,272 @@
 
 ## Compiler Trait Coverage
 
-| Compiler | Type | Traits Mapped | Source |
-|----------|------|--------------|--------|
-| AIGlasses | dedicated-map | 77 | `AIGlassesTraitMap.ts` |
-| AndroidXR | dedicated-map | 17 | `AndroidXRTraitMap.ts` |
-| AndroidXR.d | dedicated-map | 0 | `AndroidXRTraitMap.d.ts` |
-| BabylonCompiler | inline | 59 | `BabylonCompiler.ts` |
-| ContextCompiler | inline | 35 | `ContextCompiler.ts` |
-| HolobCompiler | inline | 12 | `HolobCompiler.ts` |
-| LLMProviderCapabilitiesCompiler | inline | 11 | `LLMProviderCapabilitiesCompiler.ts` |
-| MCPConfigCompiler | inline | 6 | `MCPConfigCompiler.ts` |
-| NIR | dedicated-map | 31 | `NIRTraitMap.ts` |
-| NIR.d | dedicated-map | 12 | `NIRTraitMap.d.ts` |
-| Native2DCompiler | inline | 6 | `Native2DCompiler.ts` |
-| OpenXRCompiler | inline | 13 | `OpenXRCompiler.ts` |
-| PhoneSleeveVRCompiler | inline | 3 | `PhoneSleeveVRCompiler.ts` |
-| PipelineNodeCompiler | inline | 7 | `PipelineNodeCompiler.ts` |
-| PlayCanvasCompiler | inline | 34 | `PlayCanvasCompiler.ts` |
-| R3FCompiler | inline | 16 | `R3FCompiler.ts` |
-| SDFCompiler | inline | 9 | `SDFCompiler.ts` |
-| SDFRayMarchCompiler | inline | 16 | `SDFRayMarchCompiler.ts` |
-| TSLCompiler | inline | 4 | `TSLCompiler.ts` |
-| ThreeJSCompiler | inline | 45 | `ThreeJSCompiler.ts` |
-| URDFCompiler | inline | 32 | `URDFCompiler.ts` |
-| USDPhysicsCompiler | inline | 14 | `USDPhysicsCompiler.ts` |
-| UnityCompiler | inline | 60 | `UnityCompiler.ts` |
-| UnrealCompiler | inline | 9 | `UnrealCompiler.ts` |
-| VRRCompiler | inline | 5 | `VRRCompiler.ts` |
-| VisionOS | dedicated-map | 113 | `VisionOSTraitMap.ts` |
-| VisionOS.d | dedicated-map | 4 | `VisionOSTraitMap.d.ts` |
-| WASMCompiler | inline | 4 | `WASMCompiler.ts` |
+| Compiler                        | Type          | Traits Mapped | Source                               |
+| ------------------------------- | ------------- | ------------- | ------------------------------------ |
+| AIGlasses                       | dedicated-map | 77            | `AIGlassesTraitMap.ts`               |
+| AndroidXR                       | dedicated-map | 17            | `AndroidXRTraitMap.ts`               |
+| AndroidXR.d                     | dedicated-map | 0             | `AndroidXRTraitMap.d.ts`             |
+| BabylonCompiler                 | inline        | 59            | `BabylonCompiler.ts`                 |
+| ContextCompiler                 | inline        | 35            | `ContextCompiler.ts`                 |
+| HolobCompiler                   | inline        | 12            | `HolobCompiler.ts`                   |
+| LLMProviderCapabilitiesCompiler | inline        | 11            | `LLMProviderCapabilitiesCompiler.ts` |
+| MCPConfigCompiler               | inline        | 6             | `MCPConfigCompiler.ts`               |
+| NIR                             | dedicated-map | 31            | `NIRTraitMap.ts`                     |
+| NIR.d                           | dedicated-map | 12            | `NIRTraitMap.d.ts`                   |
+| Native2DCompiler                | inline        | 6             | `Native2DCompiler.ts`                |
+| OpenXRCompiler                  | inline        | 13            | `OpenXRCompiler.ts`                  |
+| PhoneSleeveVRCompiler           | inline        | 3             | `PhoneSleeveVRCompiler.ts`           |
+| PipelineNodeCompiler            | inline        | 7             | `PipelineNodeCompiler.ts`            |
+| PlayCanvasCompiler              | inline        | 34            | `PlayCanvasCompiler.ts`              |
+| R3FCompiler                     | inline        | 16            | `R3FCompiler.ts`                     |
+| SDFCompiler                     | inline        | 9             | `SDFCompiler.ts`                     |
+| SDFRayMarchCompiler             | inline        | 16            | `SDFRayMarchCompiler.ts`             |
+| TSLCompiler                     | inline        | 4             | `TSLCompiler.ts`                     |
+| ThreeJSCompiler                 | inline        | 45            | `ThreeJSCompiler.ts`                 |
+| URDFCompiler                    | inline        | 32            | `URDFCompiler.ts`                    |
+| USDPhysicsCompiler              | inline        | 14            | `USDPhysicsCompiler.ts`              |
+| UnityCompiler                   | inline        | 60            | `UnityCompiler.ts`                   |
+| UnrealCompiler                  | inline        | 9             | `UnrealCompiler.ts`                  |
+| VRRCompiler                     | inline        | 5             | `VRRCompiler.ts`                     |
+| VisionOS                        | dedicated-map | 113           | `VisionOSTraitMap.ts`                |
+| VisionOS.d                      | dedicated-map | 4             | `VisionOSTraitMap.d.ts`              |
+| WASMCompiler                    | inline        | 4             | `WASMCompiler.ts`                    |
 
 ## Categories (231)
 
-| Category | Traits | Sample | Compiler Coverage |
-|----------|--------|--------|-------------------|
-| accessibility | 10 | `accessible`, `alt_text`, `spatial_audio_cue` +7 | AIGlasses(40%), VisionOS(40%), Babylon(10%), Native2D(10%), PlayCanvas(10%), Unity(10%) |
-| accessibility-extended | 27 | `cognitive_assist`, `sensory_substitution`, `one_handed` +24 | Babylon(4%), PlayCanvas(4%) |
-| accessibility-extended.d | 0 |  | — |
-| accessibility.d | 0 |  | — |
-| age-condition | 30 | `pristine`, `worn`, `rusted` +27 | — |
-| age-condition.d | 0 |  | — |
-| analytics-observability | 16 | `analytics`, `perf_monitor`, `frame_profiler` +13 | — |
-| analytics-observability.d | 0 |  | — |
-| animals | 48 | `cat`, `dog`, `wolf` +45 | — |
-| animals.d | 0 |  | — |
-| api-gateway | 3 | `graphql`, `rest_endpoint`, `rpc` | — |
-| api-gateway.d | 0 |  | — |
-| architecture-realestate | 37 | `floor_plan`, `room_layout`, `furniture_placement` +34 | — |
-| architecture-realestate.d | 0 |  | — |
-| atmosphere-sky | 18 | `atmosphere_bruneton`, `atmosphere_gradient`, `atmosphere_hdri` +15 | — |
-| audio | 10 | `spatial_audio`, `voice`, `reactive_audio` +7 | AIGlasses(20%), VisionOS(50%), Holob(10%), Unity(70%) |
-| audio.d | 0 |  | — |
-| audit-trail | 2 | `change_tracking`, `data_lineage` | — |
-| audit-trail.d | 0 |  | — |
-| auth-identity | 6 | `jwt`, `oauth`, `api_key` +3 | — |
-| auth-identity.d | 0 |  | — |
-| character-materials | 34 | `skin_subsurface`, `skin_scatter_distance`, `skin_scatter_color` +31 | — |
-| character-materials.d | 0 |  | — |
-| character-pipeline | 51 | `character_sculpt`, `sculpt_region`, `sculpt_fill_volumetric` +48 | — |
-| character-pipeline.d | 0 |  | — |
-| communication | 7 | `email`, `sms`, `push_notification` +4 | — |
-| communication.d | 0 |  | — |
-| compliance-governance | 3 | `gdpr`, `data_retention`, `consent_management` | — |
-| compliance-governance.d | 0 |  | — |
-| concurrency | 4 | `actor`, `csp_channel`, `temporal_guard` +1 | — |
-| concurrency.d | 0 |  | — |
-| connector-integration | 10 | `connector`, `env`, `deploy` +7 | MCPConfig(20%) |
-| connector-integration.d | 0 |  | — |
-| construction-building | 25 | `buildable`, `placeable`, `alignable` +22 | — |
-| construction-building.d | 0 |  | — |
-| containers-storage | 30 | `container`, `drawer`, `shelf` +27 | — |
-| containers-storage.d | 0 |  | — |
-| cooking-food | 39 | `ingredient`, `recipe`, `chopping_board` +36 | — |
-| cooking-food.d | 0 |  | — |
-| core-vr-interaction | 13 | `grabbable`, `throwable`, `pointable` +10 | AIGlasses(46%), VisionOS(46%), Babylon(15%), Holob(8%), OpenXR(8%), PlayCanvas(15%), ThreeJS(15%), Unity(8%), Unreal(23%) |
-| core-vr-interaction.d | 0 |  | — |
-| creatures-mythical | 42 | `dragon`, `phoenix`, `unicorn` +39 | — |
-| creatures-mythical.d | 0 |  | — |
-| data-pipeline | 5 | `etl`, `batch_job`, `data_transform` +2 | — |
-| data-pipeline.d | 0 |  | — |
-| data-storage | 7 | `database`, `snapshot`, `migrate` +4 | PipelineNode(14%) |
-| data-storage.d | 0 |  | — |
-| data-visualization | 45 | `chart`, `graph`, `dashboard` +42 | — |
-| data-visualization.d | 0 |  | — |
-| database-persistence | 4 | `sql_query`, `orm_entity`, `offline_sync` +1 | — |
-| database-persistence.d | 0 |  | — |
-| debug-cinematic | 4 | `time_travel_debug`, `spatial_profiler`, `cinematic_seq` +1 | — |
-| debug-cinematic.d | 0 |  | — |
-| devops-ci | 6 | `deploy`, `rollback`, `canary` +3 | — |
-| devops-ci.d | 0 |  | — |
-| education-learning | 39 | `lesson`, `quiz`, `flashcard` +36 | — |
-| education-learning.d | 0 |  | — |
-| emotion-mood | 20 | `happy`, `sad`, `angry` +17 | — |
-| emotion-mood.d | 0 |  | — |
-| enterprise-multitenancy | 19 | `tenant`, `tenant_boundary`, `tenant_registry` +16 | — |
-| enterprise-multitenancy.d | 0 |  | — |
-| environment-input | 15 | `plane_detection`, `mesh_detection`, `anchor` +12 | AIGlasses(40%), VisionOS(53%), OpenXR(13%), Unity(80%) |
-| environment-input.d | 0 |  | — |
-| environmental-biome | 33 | `weather_source`, `day_night`, `seasonal` +30 | — |
-| environmental-biome.d | 0 |  | — |
-| fabric-cloth | 30 | `curtain`, `banner`, `flag` +27 | — |
-| fabric-cloth.d | 0 |  | — |
-| fabrication-devices | 10 | `sculpt_volume`, `printable`, `fdm_target` +7 | — |
-| fabrication-devices.d | 0 |  | — |
-| facial-expression | 75 | `facs_au01_inner_brow_raise`, `facs_au02_outer_brow_raise`, `facs_au04_brow_lowerer` +72 | — |
-| facial-expression.d | 0 |  | — |
-| feature-flags | 2 | `abtest`, `rollout` | — |
-| feature-flags.d | 0 |  | — |
-| ffi-os | 4 | `ffi`, `native_call`, `wasm_bridge` +1 | — |
-| ffi-os.d | 0 |  | — |
-| file-storage | 3 | `s3_upload`, `file_system`, `blob_store` | — |
-| file-storage.d | 0 |  | — |
-| furniture-decor | 36 | `chair`, `table`, `desk` +33 | — |
-| furniture-decor.d | 0 |  | — |
-| game-mechanics | 31 | `collectible`, `spawnable`, `destructible` +28 | — |
-| game-mechanics.d | 0 |  | — |
-| gaps-physics | 17 | `fluid`, `fluid_simulation`, `soft_body_pro` +14 | AIGlasses(6%), VisionOS(6%), Unity(6%) |
-| gaps-physics.d | 0 |  | — |
-| gems-minerals | 31 | `diamond_gem`, `ruby_gem`, `emerald_gem` +28 | — |
-| gems-minerals.d | 0 |  | — |
-| geospatial | 0 |  | — |
-| geospatial-web3 | 10 | `geospatial_anchor`, `terrain_anchor`, `rooftop_anchor` +7 | Unity(30%) |
-| geospatial-web3.d | 0 |  | — |
-| global-illumination | 16 | `global_illumination`, `ssgi`, `radiance_cascades` +13 | — |
-| global-illumination.d | 0 |  | — |
-| gpu-compute | 4 | `compute_shader`, `render_pipeline`, `post_process` +1 | — |
-| gpu-compute.d | 0 |  | — |
-| healthcare-medical | 31 | `patient`, `vital_signs`, `x_ray_scan` +28 | — |
-| healthcare-medical.d | 0 |  | — |
-| hologram-media | 13 | `depth_estimation`, `displacement`, `segment` +10 | AIGlasses(8%), VisionOS(8%) |
-| hologram-media.d | 0 |  | — |
-| holomap-reconstruction | 20 | `holomap_reconstruct`, `holomap_camera_trajectory`, `holomap_anchor_context` +17 | — |
-| holomap-reconstruction.d | 6 | `reconstruction_source`, `drift_corrected`, `holomap_reconstruct` +3 | — |
-| holomesh-social | 13 | `agent_profile`, `profile_theme`, `status_mood` +10 | — |
-| humanoid-avatar | 16 | `skeleton`, `body`, `face` +13 | AIGlasses(13%), VisionOS(19%), Babylon(13%), OpenXR(6%), ThreeJS(6%), Unity(19%) |
-| humanoid-avatar.d | 0 |  | — |
-| i18n-localization | 4 | `locale`, `translation`, `rtl` +1 | — |
-| i18n-localization.d | 0 |  | — |
-| index.d | 0 |  | — |
-| instancing-geometry | 35 | `shape_pool`, `shape_pool_box`, `shape_pool_sphere` +32 | — |
-| instancing-geometry.d | 0 |  | — |
-| intelligence-behavior | 41 | `autonomous`, `scripted`, `adaptive` +38 | — |
-| intelligence-behavior.d | 0 |  | — |
-| interop-copresence | 16 | `usd`, `gltf`, `fbx` +13 | — |
-| interop-copresence.d | 0 |  | — |
-| iot-autonomous-agents | 35 | `sensor`, `digital_twin`, `twin_sync` +32 | — |
-| iot-autonomous-agents.d | 0 |  | — |
-| lighting | 29 | `global_illumination`, `shadow_caster`, `light_source` +26 | AIGlasses(3%), VisionOS(3%) |
-| lighting.d | 0 |  | — |
-| locomotion-movement | 14 | `rideable`, `driveable`, `mountable` +11 | — |
-| locomotion-movement.d | 0 |  | — |
-| magic-fantasy | 37 | `enchantable`, `cursed`, `blessed` +34 | MCPConfig(3%) |
-| magic-fantasy.d | 0 |  | — |
-| maritime-naval | 30 | `ship`, `boat`, `submarine` +27 | — |
-| maritime-naval.d | 0 |  | — |
-| material-properties | 33 | `wooden`, `stone_material`, `brick` +30 | NIR.d(3%), NIR(3%) |
-| material-properties.d | 0 |  | — |
-| measurement-sensing | 17 | `measurable`, `weighable`, `thermometer` +14 | — |
-| measurement-sensing.d | 0 |  | — |
-| media-analytics | 8 | `recordable`, `streamable`, `camera` +5 | URDF(13%) |
-| media-analytics.d | 0 |  | — |
-| media-content | 4 | `image_resize`, `video_transcode`, `pdf_generate` +1 | — |
-| media-content.d | 0 |  | — |
-| ml-inference | 7 | `model_load`, `fine_tune`, `inference` +4 | — |
-| ml-inference.d | 0 |  | — |
-| ml-tensor | 3 | `tensor_op`, `onnx_runtime`, `training_loop` | — |
-| ml-tensor.d | 0 |  | — |
-| multisensory-haptic | 16 | `scented`, `tasteable`, `temperature` +13 | — |
-| multisensory-haptic.d | 0 |  | — |
-| music-performance | 37 | `piano`, `guitar`, `drums` +34 | — |
-| music-performance.d | 0 |  | — |
-| musical-sound | 10 | `musical`, `ambient_sound`, `voice_activated` +7 | — |
-| musical-sound.d | 0 |  | — |
-| narrative-storytelling | 12 | `narrator_trigger`, `cutscene`, `flashback` +9 | — |
-| narrative-storytelling.d | 0 |  | — |
-| nature-life | 27 | `growable`, `witherable`, `bloomable` +24 | — |
-| nature-life.d | 0 |  | — |
-| networking-ai | 28 | `networked`, `http`, `proactive` +25 | AIGlasses(7%), VisionOS(39%), Babylon(11%), Holob(4%), ThreeJS(4%), Unity(39%) |
-| networking-ai.d | 0 |  | — |
-| notification-alerting | 3 | `webhook_out`, `pagerduty`, `slack_alert` | — |
-| notification-alerting.d | 0 |  | — |
-| npc-roles | 62 | `relationship`, `reputation`, `schedule` +59 | Context(2%) |
-| npc-roles.d | 0 |  | — |
-| object-interaction | 25 | `openable`, `closable`, `lockable` +22 | — |
-| object-interaction.d | 0 |  | — |
-| observability | 6 | `alert`, `incident`, `healthcheck` +3 | — |
-| observability.d | 0 |  | — |
-| parser-core-ui | 18 | `physics`, `draggable`, `static` +15 | AIGlasses(72%), AndroidXR(11%), VisionOS(72%), Babylon(6%), Holob(17%), OpenXR(6%), PlayCanvas(6%), ThreeJS(6%), Unity(11%), Unreal(11%) |
-| parser-core-ui.d | 0 |  | — |
-| payment | 8 | `stripe`, `invoice`, `subscription` +5 | — |
-| payment.d | 0 |  | — |
-| physical-affordances | 22 | `knob`, `dial`, `crank` +19 | URDF(5%), USDPhysics(5%) |
-| physical-affordances.d | 0 |  | — |
-| physics-expansion | 12 | `stretchable`, `cloth`, `fluid` +9 | AIGlasses(25%), VisionOS(25%), Unity(67%) |
-| physics-expansion.d | 0 |  | — |
-| post-processing | 20 | `bloom`, `depth_of_field`, `motion_blur` +17 | Babylon(25%), PlayCanvas(20%) |
-| procedural-generation | 27 | `draft`, `procedural_terrain`, `procedural_city` +24 | — |
-| procedural-generation.d | 0 |  | — |
-| rendering | 26 | `advanced_pbr`, `clearcoat`, `anisotropy` +23 | Babylon(12%), PlayCanvas(8%) |
-| rendering.d | 0 |  | — |
-| resource-gathering | 8 | `plantable`, `harvestable`, `mineable` +5 | — |
-| resource-gathering.d | 0 |  | — |
-| robotics-industrial | 243 | `joint_revolute`, `joint_prismatic`, `joint_continuous` +240 | URDF(1%) |
-| robotics-industrial.d | 0 |  | — |
-| safety-boundaries | 14 | `safe_zone`, `hazard`, `boundary` +11 | — |
-| safety-boundaries.d | 0 |  | — |
-| scientific-computing | 28 | `narupa_integration`, `molecular_dynamics`, `energy_minimization` +25 | — |
-| scientific-computing.d | 0 |  | — |
-| scifi-technology | 24 | `hologram`, `force_field_tech`, `cloaking` +21 | URDF(4%) |
-| scifi-technology.d | 0 |  | — |
-| scripting-automation | 14 | `cron`, `scheduler`, `pipeline` +11 | PipelineNode(7%) |
-| scripting-automation.d | 0 |  | — |
-| search | 3 | `full_text_search`, `faceted_search`, `autocomplete` | — |
-| search.d | 0 |  | — |
-| security-crypto | 78 | `encryption`, `tls_1_3`, `tls_1_2` +75 | — |
-| security-crypto.d | 0 |  | — |
-| shape-form | 32 | `round`, `square`, `triangular` +29 | — |
-| shape-form.d | 0 |  | — |
-| signs-communication | 28 | `sign`, `label`, `plaque` +25 | — |
-| signs-communication.d | 0 |  | — |
-| simple-modifiers | 8 | `animated`, `billboard`, `rotating` +5 | AIGlasses(63%), VisionOS(63%), Babylon(13%), Holob(13%), PlayCanvas(13%), ThreeJS(13%), Unity(13%), Unreal(25%) |
-| simple-modifiers.d | 0 |  | — |
-| simulation-domains | 33 | `thermal_simulation`, `thermal_conduction`, `thermal_convection` +30 | — |
-| simulation-domains.d | 0 |  | — |
-| size-scale | 18 | `tiny`, `small`, `medium` +15 | AIGlasses(6%) |
-| size-scale.d | 0 |  | — |
-| social-commerce | 12 | `tradeable`, `giftable`, `rentable` +9 | — |
-| social-commerce.d | 0 |  | — |
-| social-effects | 8 | `shareable`, `embeddable`, `qr` +5 | — |
-| social-effects.d | 0 |  | — |
-| spatial-algorithms | 3 | `astar`, `navmesh_solver`, `optimization` | — |
-| spatial-algorithms.d | 0 |  | — |
-| sports-fitness | 37 | `throwable_ball`, `kickable`, `hittable` +34 | — |
-| sports-fitness.d | 0 |  | — |
-| state-persistence | 17 | `saveable`, `restorable`, `timer` +14 | — |
-| state-persistence.d | 0 |  | — |
-| surface-texture | 30 | `furry`, `feathered`, `scaled` +27 | — |
-| surface-texture.d | 0 |  | — |
-| terrain-ocean | 20 | `terrain_heightmap`, `terrain_fbm_noise`, `terrain_hydraulic_erosion` +17 | — |
-| testing-qa | 5 | `mock`, `fixture`, `snapshot_test` +2 | — |
-| testing-qa.d | 0 |  | — |
-| time-period | 23 | `prehistoric`, `ancient_era`, `classical` +20 | — |
-| time-period.d | 0 |  | — |
-| transportation-vehicles | 12 | `dockable`, `launchable`, `landable` +9 | — |
-| transportation-vehicles.d | 0 |  | — |
-| universal-service | 239 | `service`, `endpoint`, `route` +236 | NIR(0%), VisionOS(0%), Babylon(0%), PipelineNode(0%), PlayCanvas(0%), ThreeJS(0%), Unity(0%) |
-| universal-service.d | 0 |  | — |
-| v43-ai-xr | 23 | `spatial_persona`, `shareplay`, `object_tracking` +20 | AIGlasses(17%), VisionOS(100%), Babylon(35%), ThreeJS(13%), Unity(87%) |
-| v43-ai-xr.d | 0 |  | — |
-| vfx-audio | 20 | `vfx_particle_fire`, `vfx_particle_smoke`, `vfx_particle_sparks` +17 | — |
-| vfx-audio.d | 0 |  | — |
-| visual-effects | 31 | `transparent`, `reflective`, `emissive` +28 | VisionOS(3%), Babylon(3%), PlayCanvas(3%), ThreeJS(3%), Unreal(6%), URDF(3%) |
-| visual-effects.d | 0 |  | — |
-| volumetric-webgpu | 13 | `gaussian_splat`, `nerf`, `volumetric_video` +10 | Babylon(8%), Holob(8%), ThreeJS(8%), Unity(38%) |
-| volumetric-webgpu.d | 0 |  | — |
-| water-fluid | 19 | `submersible`, `waterproof`, `sinkable` +16 | — |
-| water-fluid.d | 0 |  | — |
-| weather-particles | 12 | `rain_emitter`, `snow_emitter`, `fog_emitter` +9 | — |
-| weather-particles.d | 0 |  | — |
-| weather-phenomena | 28 | `lightning_bolt`, `tornado`, `earthquake` +25 | — |
-| weather-phenomena.d | 0 |  | — |
-| webxr | 0 |  | — |
-| workflow-bpm | 4 | `workflow`, `approval`, `state_machine` +1 | — |
-| workflow-bpm.d | 0 |  | — |
-| xr-platform | 35 | `passthrough`, `room_scale`, `world_scale` +32 | AIGlasses(3%), VisionOS(23%), Babylon(6%), ThreeJS(3%), Unity(14%) |
-| xr-platform.d | 0 |  | — |
+| Category                  | Traits | Sample                                                                                   | Compiler Coverage                                                                                                                        |
+| ------------------------- | ------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| accessibility             | 10     | `accessible`, `alt_text`, `spatial_audio_cue` +7                                         | AIGlasses(40%), VisionOS(40%), Babylon(10%), Native2D(10%), PlayCanvas(10%), Unity(10%)                                                  |
+| accessibility-extended    | 27     | `cognitive_assist`, `sensory_substitution`, `one_handed` +24                             | Babylon(4%), PlayCanvas(4%)                                                                                                              |
+| accessibility-extended.d  | 0      |                                                                                          | —                                                                                                                                        |
+| accessibility.d           | 0      |                                                                                          | —                                                                                                                                        |
+| age-condition             | 30     | `pristine`, `worn`, `rusted` +27                                                         | —                                                                                                                                        |
+| age-condition.d           | 0      |                                                                                          | —                                                                                                                                        |
+| analytics-observability   | 16     | `analytics`, `perf_monitor`, `frame_profiler` +13                                        | —                                                                                                                                        |
+| analytics-observability.d | 0      |                                                                                          | —                                                                                                                                        |
+| animals                   | 48     | `cat`, `dog`, `wolf` +45                                                                 | —                                                                                                                                        |
+| animals.d                 | 0      |                                                                                          | —                                                                                                                                        |
+| api-gateway               | 3      | `graphql`, `rest_endpoint`, `rpc`                                                        | —                                                                                                                                        |
+| api-gateway.d             | 0      |                                                                                          | —                                                                                                                                        |
+| architecture-realestate   | 37     | `floor_plan`, `room_layout`, `furniture_placement` +34                                   | —                                                                                                                                        |
+| architecture-realestate.d | 0      |                                                                                          | —                                                                                                                                        |
+| atmosphere-sky            | 18     | `atmosphere_bruneton`, `atmosphere_gradient`, `atmosphere_hdri` +15                      | —                                                                                                                                        |
+| audio                     | 10     | `spatial_audio`, `voice`, `reactive_audio` +7                                            | AIGlasses(20%), VisionOS(50%), Holob(10%), Unity(70%)                                                                                    |
+| audio.d                   | 0      |                                                                                          | —                                                                                                                                        |
+| audit-trail               | 2      | `change_tracking`, `data_lineage`                                                        | —                                                                                                                                        |
+| audit-trail.d             | 0      |                                                                                          | —                                                                                                                                        |
+| auth-identity             | 6      | `jwt`, `oauth`, `api_key` +3                                                             | —                                                                                                                                        |
+| auth-identity.d           | 0      |                                                                                          | —                                                                                                                                        |
+| character-materials       | 34     | `skin_subsurface`, `skin_scatter_distance`, `skin_scatter_color` +31                     | —                                                                                                                                        |
+| character-materials.d     | 0      |                                                                                          | —                                                                                                                                        |
+| character-pipeline        | 51     | `character_sculpt`, `sculpt_region`, `sculpt_fill_volumetric` +48                        | —                                                                                                                                        |
+| character-pipeline.d      | 0      |                                                                                          | —                                                                                                                                        |
+| communication             | 7      | `email`, `sms`, `push_notification` +4                                                   | —                                                                                                                                        |
+| communication.d           | 0      |                                                                                          | —                                                                                                                                        |
+| compliance-governance     | 3      | `gdpr`, `data_retention`, `consent_management`                                           | —                                                                                                                                        |
+| compliance-governance.d   | 0      |                                                                                          | —                                                                                                                                        |
+| concurrency               | 4      | `actor`, `csp_channel`, `temporal_guard` +1                                              | —                                                                                                                                        |
+| concurrency.d             | 0      |                                                                                          | —                                                                                                                                        |
+| connector-integration     | 10     | `connector`, `env`, `deploy` +7                                                          | MCPConfig(20%)                                                                                                                           |
+| connector-integration.d   | 0      |                                                                                          | —                                                                                                                                        |
+| construction-building     | 25     | `buildable`, `placeable`, `alignable` +22                                                | —                                                                                                                                        |
+| construction-building.d   | 0      |                                                                                          | —                                                                                                                                        |
+| containers-storage        | 30     | `container`, `drawer`, `shelf` +27                                                       | —                                                                                                                                        |
+| containers-storage.d      | 0      |                                                                                          | —                                                                                                                                        |
+| cooking-food              | 39     | `ingredient`, `recipe`, `chopping_board` +36                                             | —                                                                                                                                        |
+| cooking-food.d            | 0      |                                                                                          | —                                                                                                                                        |
+| core-vr-interaction       | 13     | `grabbable`, `throwable`, `pointable` +10                                                | AIGlasses(46%), VisionOS(46%), Babylon(15%), Holob(8%), OpenXR(8%), PlayCanvas(15%), ThreeJS(15%), Unity(8%), Unreal(23%)                |
+| core-vr-interaction.d     | 0      |                                                                                          | —                                                                                                                                        |
+| creatures-mythical        | 42     | `dragon`, `phoenix`, `unicorn` +39                                                       | —                                                                                                                                        |
+| creatures-mythical.d      | 0      |                                                                                          | —                                                                                                                                        |
+| data-pipeline             | 5      | `etl`, `batch_job`, `data_transform` +2                                                  | —                                                                                                                                        |
+| data-pipeline.d           | 0      |                                                                                          | —                                                                                                                                        |
+| data-storage              | 7      | `database`, `snapshot`, `migrate` +4                                                     | PipelineNode(14%)                                                                                                                        |
+| data-storage.d            | 0      |                                                                                          | —                                                                                                                                        |
+| data-visualization        | 45     | `chart`, `graph`, `dashboard` +42                                                        | —                                                                                                                                        |
+| data-visualization.d      | 0      |                                                                                          | —                                                                                                                                        |
+| database-persistence      | 4      | `sql_query`, `orm_entity`, `offline_sync` +1                                             | —                                                                                                                                        |
+| database-persistence.d    | 0      |                                                                                          | —                                                                                                                                        |
+| debug-cinematic           | 4      | `time_travel_debug`, `spatial_profiler`, `cinematic_seq` +1                              | —                                                                                                                                        |
+| debug-cinematic.d         | 0      |                                                                                          | —                                                                                                                                        |
+| devops-ci                 | 6      | `deploy`, `rollback`, `canary` +3                                                        | —                                                                                                                                        |
+| devops-ci.d               | 0      |                                                                                          | —                                                                                                                                        |
+| education-learning        | 39     | `lesson`, `quiz`, `flashcard` +36                                                        | —                                                                                                                                        |
+| education-learning.d      | 0      |                                                                                          | —                                                                                                                                        |
+| emotion-mood              | 20     | `happy`, `sad`, `angry` +17                                                              | —                                                                                                                                        |
+| emotion-mood.d            | 0      |                                                                                          | —                                                                                                                                        |
+| enterprise-multitenancy   | 19     | `tenant`, `tenant_boundary`, `tenant_registry` +16                                       | —                                                                                                                                        |
+| enterprise-multitenancy.d | 0      |                                                                                          | —                                                                                                                                        |
+| environment-input         | 15     | `plane_detection`, `mesh_detection`, `anchor` +12                                        | AIGlasses(40%), VisionOS(53%), OpenXR(13%), Unity(80%)                                                                                   |
+| environment-input.d       | 0      |                                                                                          | —                                                                                                                                        |
+| environmental-biome       | 33     | `weather_source`, `day_night`, `seasonal` +30                                            | —                                                                                                                                        |
+| environmental-biome.d     | 0      |                                                                                          | —                                                                                                                                        |
+| fabric-cloth              | 30     | `curtain`, `banner`, `flag` +27                                                          | —                                                                                                                                        |
+| fabric-cloth.d            | 0      |                                                                                          | —                                                                                                                                        |
+| fabrication-devices       | 10     | `sculpt_volume`, `printable`, `fdm_target` +7                                            | —                                                                                                                                        |
+| fabrication-devices.d     | 0      |                                                                                          | —                                                                                                                                        |
+| facial-expression         | 75     | `facs_au01_inner_brow_raise`, `facs_au02_outer_brow_raise`, `facs_au04_brow_lowerer` +72 | —                                                                                                                                        |
+| facial-expression.d       | 0      |                                                                                          | —                                                                                                                                        |
+| feature-flags             | 2      | `abtest`, `rollout`                                                                      | —                                                                                                                                        |
+| feature-flags.d           | 0      |                                                                                          | —                                                                                                                                        |
+| ffi-os                    | 4      | `ffi`, `native_call`, `wasm_bridge` +1                                                   | —                                                                                                                                        |
+| ffi-os.d                  | 0      |                                                                                          | —                                                                                                                                        |
+| file-storage              | 3      | `s3_upload`, `file_system`, `blob_store`                                                 | —                                                                                                                                        |
+| file-storage.d            | 0      |                                                                                          | —                                                                                                                                        |
+| furniture-decor           | 36     | `chair`, `table`, `desk` +33                                                             | —                                                                                                                                        |
+| furniture-decor.d         | 0      |                                                                                          | —                                                                                                                                        |
+| game-mechanics            | 31     | `collectible`, `spawnable`, `destructible` +28                                           | —                                                                                                                                        |
+| game-mechanics.d          | 0      |                                                                                          | —                                                                                                                                        |
+| gaps-physics              | 17     | `fluid`, `fluid_simulation`, `soft_body_pro` +14                                         | AIGlasses(6%), VisionOS(6%), Unity(6%)                                                                                                   |
+| gaps-physics.d            | 0      |                                                                                          | —                                                                                                                                        |
+| gems-minerals             | 31     | `diamond_gem`, `ruby_gem`, `emerald_gem` +28                                             | —                                                                                                                                        |
+| gems-minerals.d           | 0      |                                                                                          | —                                                                                                                                        |
+| geospatial                | 0      |                                                                                          | —                                                                                                                                        |
+| geospatial-web3           | 10     | `geospatial_anchor`, `terrain_anchor`, `rooftop_anchor` +7                               | Unity(30%)                                                                                                                               |
+| geospatial-web3.d         | 0      |                                                                                          | —                                                                                                                                        |
+| global-illumination       | 16     | `global_illumination`, `ssgi`, `radiance_cascades` +13                                   | —                                                                                                                                        |
+| global-illumination.d     | 0      |                                                                                          | —                                                                                                                                        |
+| gpu-compute               | 4      | `compute_shader`, `render_pipeline`, `post_process` +1                                   | —                                                                                                                                        |
+| gpu-compute.d             | 0      |                                                                                          | —                                                                                                                                        |
+| healthcare-medical        | 31     | `patient`, `vital_signs`, `x_ray_scan` +28                                               | —                                                                                                                                        |
+| healthcare-medical.d      | 0      |                                                                                          | —                                                                                                                                        |
+| hologram-media            | 13     | `depth_estimation`, `displacement`, `segment` +10                                        | AIGlasses(8%), VisionOS(8%)                                                                                                              |
+| hologram-media.d          | 0      |                                                                                          | —                                                                                                                                        |
+| holomap-reconstruction    | 20     | `holomap_reconstruct`, `holomap_camera_trajectory`, `holomap_anchor_context` +17         | —                                                                                                                                        |
+| holomap-reconstruction.d  | 6      | `reconstruction_source`, `drift_corrected`, `holomap_reconstruct` +3                     | —                                                                                                                                        |
+| holomesh-social           | 13     | `agent_profile`, `profile_theme`, `status_mood` +10                                      | —                                                                                                                                        |
+| humanoid-avatar           | 16     | `skeleton`, `body`, `face` +13                                                           | AIGlasses(13%), VisionOS(19%), Babylon(13%), OpenXR(6%), ThreeJS(6%), Unity(19%)                                                         |
+| humanoid-avatar.d         | 0      |                                                                                          | —                                                                                                                                        |
+| i18n-localization         | 4      | `locale`, `translation`, `rtl` +1                                                        | —                                                                                                                                        |
+| i18n-localization.d       | 0      |                                                                                          | —                                                                                                                                        |
+| index.d                   | 0      |                                                                                          | —                                                                                                                                        |
+| instancing-geometry       | 35     | `shape_pool`, `shape_pool_box`, `shape_pool_sphere` +32                                  | —                                                                                                                                        |
+| instancing-geometry.d     | 0      |                                                                                          | —                                                                                                                                        |
+| intelligence-behavior     | 41     | `autonomous`, `scripted`, `adaptive` +38                                                 | —                                                                                                                                        |
+| intelligence-behavior.d   | 0      |                                                                                          | —                                                                                                                                        |
+| interop-copresence        | 16     | `usd`, `gltf`, `fbx` +13                                                                 | —                                                                                                                                        |
+| interop-copresence.d      | 0      |                                                                                          | —                                                                                                                                        |
+| iot-autonomous-agents     | 35     | `sensor`, `digital_twin`, `twin_sync` +32                                                | —                                                                                                                                        |
+| iot-autonomous-agents.d   | 0      |                                                                                          | —                                                                                                                                        |
+| lighting                  | 29     | `global_illumination`, `shadow_caster`, `light_source` +26                               | AIGlasses(3%), VisionOS(3%)                                                                                                              |
+| lighting.d                | 0      |                                                                                          | —                                                                                                                                        |
+| locomotion-movement       | 14     | `rideable`, `driveable`, `mountable` +11                                                 | —                                                                                                                                        |
+| locomotion-movement.d     | 0      |                                                                                          | —                                                                                                                                        |
+| magic-fantasy             | 37     | `enchantable`, `cursed`, `blessed` +34                                                   | MCPConfig(3%)                                                                                                                            |
+| magic-fantasy.d           | 0      |                                                                                          | —                                                                                                                                        |
+| maritime-naval            | 30     | `ship`, `boat`, `submarine` +27                                                          | —                                                                                                                                        |
+| maritime-naval.d          | 0      |                                                                                          | —                                                                                                                                        |
+| material-properties       | 33     | `wooden`, `stone_material`, `brick` +30                                                  | NIR.d(3%), NIR(3%)                                                                                                                       |
+| material-properties.d     | 0      |                                                                                          | —                                                                                                                                        |
+| measurement-sensing       | 17     | `measurable`, `weighable`, `thermometer` +14                                             | —                                                                                                                                        |
+| measurement-sensing.d     | 0      |                                                                                          | —                                                                                                                                        |
+| media-analytics           | 8      | `recordable`, `streamable`, `camera` +5                                                  | URDF(13%)                                                                                                                                |
+| media-analytics.d         | 0      |                                                                                          | —                                                                                                                                        |
+| media-content             | 4      | `image_resize`, `video_transcode`, `pdf_generate` +1                                     | —                                                                                                                                        |
+| media-content.d           | 0      |                                                                                          | —                                                                                                                                        |
+| ml-inference              | 7      | `model_load`, `fine_tune`, `inference` +4                                                | —                                                                                                                                        |
+| ml-inference.d            | 0      |                                                                                          | —                                                                                                                                        |
+| ml-tensor                 | 3      | `tensor_op`, `onnx_runtime`, `training_loop`                                             | —                                                                                                                                        |
+| ml-tensor.d               | 0      |                                                                                          | —                                                                                                                                        |
+| multisensory-haptic       | 16     | `scented`, `tasteable`, `temperature` +13                                                | —                                                                                                                                        |
+| multisensory-haptic.d     | 0      |                                                                                          | —                                                                                                                                        |
+| music-performance         | 37     | `piano`, `guitar`, `drums` +34                                                           | —                                                                                                                                        |
+| music-performance.d       | 0      |                                                                                          | —                                                                                                                                        |
+| musical-sound             | 10     | `musical`, `ambient_sound`, `voice_activated` +7                                         | —                                                                                                                                        |
+| musical-sound.d           | 0      |                                                                                          | —                                                                                                                                        |
+| narrative-storytelling    | 12     | `narrator_trigger`, `cutscene`, `flashback` +9                                           | —                                                                                                                                        |
+| narrative-storytelling.d  | 0      |                                                                                          | —                                                                                                                                        |
+| nature-life               | 27     | `growable`, `witherable`, `bloomable` +24                                                | —                                                                                                                                        |
+| nature-life.d             | 0      |                                                                                          | —                                                                                                                                        |
+| networking-ai             | 28     | `networked`, `http`, `proactive` +25                                                     | AIGlasses(7%), VisionOS(39%), Babylon(11%), Holob(4%), ThreeJS(4%), Unity(39%)                                                           |
+| networking-ai.d           | 0      |                                                                                          | —                                                                                                                                        |
+| notification-alerting     | 3      | `webhook_out`, `pagerduty`, `slack_alert`                                                | —                                                                                                                                        |
+| notification-alerting.d   | 0      |                                                                                          | —                                                                                                                                        |
+| npc-roles                 | 62     | `relationship`, `reputation`, `schedule` +59                                             | Context(2%)                                                                                                                              |
+| npc-roles.d               | 0      |                                                                                          | —                                                                                                                                        |
+| object-interaction        | 25     | `openable`, `closable`, `lockable` +22                                                   | —                                                                                                                                        |
+| object-interaction.d      | 0      |                                                                                          | —                                                                                                                                        |
+| observability             | 6      | `alert`, `incident`, `healthcheck` +3                                                    | —                                                                                                                                        |
+| observability.d           | 0      |                                                                                          | —                                                                                                                                        |
+| parser-core-ui            | 18     | `physics`, `draggable`, `static` +15                                                     | AIGlasses(72%), AndroidXR(11%), VisionOS(72%), Babylon(6%), Holob(17%), OpenXR(6%), PlayCanvas(6%), ThreeJS(6%), Unity(11%), Unreal(11%) |
+| parser-core-ui.d          | 0      |                                                                                          | —                                                                                                                                        |
+| payment                   | 8      | `stripe`, `invoice`, `subscription` +5                                                   | —                                                                                                                                        |
+| payment.d                 | 0      |                                                                                          | —                                                                                                                                        |
+| physical-affordances      | 22     | `knob`, `dial`, `crank` +19                                                              | URDF(5%), USDPhysics(5%)                                                                                                                 |
+| physical-affordances.d    | 0      |                                                                                          | —                                                                                                                                        |
+| physics-expansion         | 12     | `stretchable`, `cloth`, `fluid` +9                                                       | AIGlasses(25%), VisionOS(25%), Unity(67%)                                                                                                |
+| physics-expansion.d       | 0      |                                                                                          | —                                                                                                                                        |
+| post-processing           | 20     | `bloom`, `depth_of_field`, `motion_blur` +17                                             | Babylon(25%), PlayCanvas(20%)                                                                                                            |
+| procedural-generation     | 27     | `draft`, `procedural_terrain`, `procedural_city` +24                                     | —                                                                                                                                        |
+| procedural-generation.d   | 0      |                                                                                          | —                                                                                                                                        |
+| rendering                 | 26     | `advanced_pbr`, `clearcoat`, `anisotropy` +23                                            | Babylon(12%), PlayCanvas(8%)                                                                                                             |
+| rendering.d               | 0      |                                                                                          | —                                                                                                                                        |
+| resource-gathering        | 8      | `plantable`, `harvestable`, `mineable` +5                                                | —                                                                                                                                        |
+| resource-gathering.d      | 0      |                                                                                          | —                                                                                                                                        |
+| robotics-industrial       | 243    | `joint_revolute`, `joint_prismatic`, `joint_continuous` +240                             | URDF(1%)                                                                                                                                 |
+| robotics-industrial.d     | 0      |                                                                                          | —                                                                                                                                        |
+| safety-boundaries         | 14     | `safe_zone`, `hazard`, `boundary` +11                                                    | —                                                                                                                                        |
+| safety-boundaries.d       | 0      |                                                                                          | —                                                                                                                                        |
+| scientific-computing      | 28     | `narupa_integration`, `molecular_dynamics`, `energy_minimization` +25                    | —                                                                                                                                        |
+| scientific-computing.d    | 0      |                                                                                          | —                                                                                                                                        |
+| scifi-technology          | 24     | `hologram`, `force_field_tech`, `cloaking` +21                                           | URDF(4%)                                                                                                                                 |
+| scifi-technology.d        | 0      |                                                                                          | —                                                                                                                                        |
+| scripting-automation      | 14     | `cron`, `scheduler`, `pipeline` +11                                                      | PipelineNode(7%)                                                                                                                         |
+| scripting-automation.d    | 0      |                                                                                          | —                                                                                                                                        |
+| search                    | 3      | `full_text_search`, `faceted_search`, `autocomplete`                                     | —                                                                                                                                        |
+| search.d                  | 0      |                                                                                          | —                                                                                                                                        |
+| security-crypto           | 78     | `encryption`, `tls_1_3`, `tls_1_2` +75                                                   | —                                                                                                                                        |
+| security-crypto.d         | 0      |                                                                                          | —                                                                                                                                        |
+| shape-form                | 32     | `round`, `square`, `triangular` +29                                                      | —                                                                                                                                        |
+| shape-form.d              | 0      |                                                                                          | —                                                                                                                                        |
+| signs-communication       | 28     | `sign`, `label`, `plaque` +25                                                            | —                                                                                                                                        |
+| signs-communication.d     | 0      |                                                                                          | —                                                                                                                                        |
+| simple-modifiers          | 8      | `animated`, `billboard`, `rotating` +5                                                   | AIGlasses(63%), VisionOS(63%), Babylon(13%), Holob(13%), PlayCanvas(13%), ThreeJS(13%), Unity(13%), Unreal(25%)                          |
+| simple-modifiers.d        | 0      |                                                                                          | —                                                                                                                                        |
+| simulation-domains        | 33     | `thermal_simulation`, `thermal_conduction`, `thermal_convection` +30                     | —                                                                                                                                        |
+| simulation-domains.d      | 0      |                                                                                          | —                                                                                                                                        |
+| size-scale                | 18     | `tiny`, `small`, `medium` +15                                                            | AIGlasses(6%)                                                                                                                            |
+| size-scale.d              | 0      |                                                                                          | —                                                                                                                                        |
+| social-commerce           | 12     | `tradeable`, `giftable`, `rentable` +9                                                   | —                                                                                                                                        |
+| social-commerce.d         | 0      |                                                                                          | —                                                                                                                                        |
+| social-effects            | 8      | `shareable`, `embeddable`, `qr` +5                                                       | —                                                                                                                                        |
+| social-effects.d          | 0      |                                                                                          | —                                                                                                                                        |
+| spatial-algorithms        | 3      | `astar`, `navmesh_solver`, `optimization`                                                | —                                                                                                                                        |
+| spatial-algorithms.d      | 0      |                                                                                          | —                                                                                                                                        |
+| sports-fitness            | 37     | `throwable_ball`, `kickable`, `hittable` +34                                             | —                                                                                                                                        |
+| sports-fitness.d          | 0      |                                                                                          | —                                                                                                                                        |
+| state-persistence         | 17     | `saveable`, `restorable`, `timer` +14                                                    | —                                                                                                                                        |
+| state-persistence.d       | 0      |                                                                                          | —                                                                                                                                        |
+| surface-texture           | 30     | `furry`, `feathered`, `scaled` +27                                                       | —                                                                                                                                        |
+| surface-texture.d         | 0      |                                                                                          | —                                                                                                                                        |
+| terrain-ocean             | 20     | `terrain_heightmap`, `terrain_fbm_noise`, `terrain_hydraulic_erosion` +17                | —                                                                                                                                        |
+| testing-qa                | 5      | `mock`, `fixture`, `snapshot_test` +2                                                    | —                                                                                                                                        |
+| testing-qa.d              | 0      |                                                                                          | —                                                                                                                                        |
+| time-period               | 23     | `prehistoric`, `ancient_era`, `classical` +20                                            | —                                                                                                                                        |
+| time-period.d             | 0      |                                                                                          | —                                                                                                                                        |
+| transportation-vehicles   | 12     | `dockable`, `launchable`, `landable` +9                                                  | —                                                                                                                                        |
+| transportation-vehicles.d | 0      |                                                                                          | —                                                                                                                                        |
+| universal-service         | 239    | `service`, `endpoint`, `route` +236                                                      | NIR(0%), VisionOS(0%), Babylon(0%), PipelineNode(0%), PlayCanvas(0%), ThreeJS(0%), Unity(0%)                                             |
+| universal-service.d       | 0      |                                                                                          | —                                                                                                                                        |
+| v43-ai-xr                 | 23     | `spatial_persona`, `shareplay`, `object_tracking` +20                                    | AIGlasses(17%), VisionOS(100%), Babylon(35%), ThreeJS(13%), Unity(87%)                                                                   |
+| v43-ai-xr.d               | 0      |                                                                                          | —                                                                                                                                        |
+| vfx-audio                 | 20     | `vfx_particle_fire`, `vfx_particle_smoke`, `vfx_particle_sparks` +17                     | —                                                                                                                                        |
+| vfx-audio.d               | 0      |                                                                                          | —                                                                                                                                        |
+| visual-effects            | 31     | `transparent`, `reflective`, `emissive` +28                                              | VisionOS(3%), Babylon(3%), PlayCanvas(3%), ThreeJS(3%), Unreal(6%), URDF(3%)                                                             |
+| visual-effects.d          | 0      |                                                                                          | —                                                                                                                                        |
+| volumetric-webgpu         | 13     | `gaussian_splat`, `nerf`, `volumetric_video` +10                                         | Babylon(8%), Holob(8%), ThreeJS(8%), Unity(38%)                                                                                          |
+| volumetric-webgpu.d       | 0      |                                                                                          | —                                                                                                                                        |
+| water-fluid               | 19     | `submersible`, `waterproof`, `sinkable` +16                                              | —                                                                                                                                        |
+| water-fluid.d             | 0      |                                                                                          | —                                                                                                                                        |
+| weather-particles         | 12     | `rain_emitter`, `snow_emitter`, `fog_emitter` +9                                         | —                                                                                                                                        |
+| weather-particles.d       | 0      |                                                                                          | —                                                                                                                                        |
+| weather-phenomena         | 28     | `lightning_bolt`, `tornado`, `earthquake` +25                                            | —                                                                                                                                        |
+| weather-phenomena.d       | 0      |                                                                                          | —                                                                                                                                        |
+| webxr                     | 0      |                                                                                          | —                                                                                                                                        |
+| workflow-bpm              | 4      | `workflow`, `approval`, `state_machine` +1                                               | —                                                                                                                                        |
+| workflow-bpm.d            | 0      |                                                                                          | —                                                                                                                                        |
+| xr-platform               | 35     | `passthrough`, `room_scale`, `world_scale` +32                                           | AIGlasses(3%), VisionOS(23%), Babylon(6%), ThreeJS(3%), Unity(14%)                                                                       |
+| xr-platform.d             | 0      |                                                                                          | —                                                                                                                                        |
 
 ---
 

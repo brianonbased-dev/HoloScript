@@ -121,17 +121,17 @@ Only the first available provider is used.
 
 Reconstruction scan tokens are **in-memory** unless Redis is configured. For multiple Studio instances or restarts, set Upstash (or compatible) Redis:
 
-| Variable | Purpose |
-| -------- | ------- |
-| `UPSTASH_REDIS_URL` | Redis REST URL |
+| Variable              | Purpose          |
+| --------------------- | ---------------- |
+| `UPSTASH_REDIS_URL`   | Redis REST URL   |
 | `UPSTASH_REDIS_TOKEN` | Redis REST token |
 
 **CORS** for `/api/reconstruction/session`: by default only the same deployment origin and `NEXT_PUBLIC_STUDIO_URL` (if set) may call the API from a browser.
 
-| Variable | Purpose |
-| -------- | ------- |
+| Variable                           | Purpose                                                                                                                         |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `STUDIO_SCAN_SESSION_CORS_ORIGINS` | Comma-separated `Origin` values allowed (e.g. `https://studio.example.com`). Use `*` only for public, non-credentialed tooling. |
-| `STUDIO_SCAN_SESSION_REQUIRE_AUTH` | Set to `1` in production to require sign-in for creating sessions (unless `STUDIO_SCAN_SESSION_PUBLIC_POST=1`). |
+| `STUDIO_SCAN_SESSION_REQUIRE_AUTH` | Set to `1` in production to require sign-in for creating sessions (unless `STUDIO_SCAN_SESSION_PUBLIC_POST=1`).                 |
 
 **Operations:** session keys expire when the scan session TTL ends (see route/store). Monitor Redis key volume and 429 rate-limit responses if you expose the API broadly.
 
@@ -139,16 +139,16 @@ Reconstruction scan tokens are **in-memory** unless Redis is configured. For mul
 
 When running `@holoscript/mcp-server` for `holo_reconstruct_*` tools, optional limits:
 
-| Variable | Default | Purpose |
-| -------- | ------- | ------- |
-| `HOLOMAP_MCP_MAX_VIDEO_BYTES` | 256 MiB | Cap download / file read size |
-| `HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS` | 120000 | HTTP(S) fetch timeout |
-| `HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION` | `5000000` | Demuxer analyze duration (µs); lower to fail faster on bad files |
-| `HOLOMAP_MCP_FFMPEG_PROBE_SIZE` | `32M` | Demuxer probe size |
-| `HOLOMAP_MCP_EXPORT_MAX_POINTS` | 250000 | Max points aggregated into `pointCloudPly` on export |
-| `FFPROBE_PATH` | `ffprobe` on `PATH` | Override ffprobe binary for ingest validation |
-| `HOLOMAP_MCP_FFPROBE_TIMEOUT_MS` | 15000 | ffprobe timeout per file |
-| `HOLOSCRIPT_MCP_AGENT_TOKEN` | _(empty)_ | When empty, MCP reconstruction export skips compiler RBAC; set a real agent JWT in locked-down deployments |
+| Variable                              | Default             | Purpose                                                                                                    |
+| ------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `HOLOMAP_MCP_MAX_VIDEO_BYTES`         | 256 MiB             | Cap download / file read size                                                                              |
+| `HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS`  | 120000              | HTTP(S) fetch timeout                                                                                      |
+| `HOLOMAP_MCP_FFMPEG_ANALYZE_DURATION` | `5000000`           | Demuxer analyze duration (µs); lower to fail faster on bad files                                           |
+| `HOLOMAP_MCP_FFMPEG_PROBE_SIZE`       | `32M`               | Demuxer probe size                                                                                         |
+| `HOLOMAP_MCP_EXPORT_MAX_POINTS`       | 250000              | Max points aggregated into `pointCloudPly` on export                                                       |
+| `FFPROBE_PATH`                        | `ffprobe` on `PATH` | Override ffprobe binary for ingest validation                                                              |
+| `HOLOMAP_MCP_FFPROBE_TIMEOUT_MS`      | 15000               | ffprobe timeout per file                                                                                   |
+| `HOLOSCRIPT_MCP_AGENT_TOKEN`          | _(empty)_           | When empty, MCP reconstruction export skips compiler RBAC; set a real agent JWT in locked-down deployments |
 
 ## Security Notes
 
@@ -176,11 +176,11 @@ To enable GitHub OAuth sign-in on `https://holoscript.studio`:
 
 In the HoloScript repo, go to **Settings > Secrets and variables > Actions > New repository secret**:
 
-| Secret name | Value |
-|-------------|-------|
-| `STUDIO_GITHUB_CLIENT_ID` | Client ID from step 1 |
-| `STUDIO_GITHUB_CLIENT_SECRET` | Client secret from step 1 |
-| `STUDIO_NEXTAUTH_SECRET` | Run `openssl rand -base64 32` and paste the output |
+| Secret name                   | Value                                              |
+| ----------------------------- | -------------------------------------------------- |
+| `STUDIO_GITHUB_CLIENT_ID`     | Client ID from step 1                              |
+| `STUDIO_GITHUB_CLIENT_SECRET` | Client secret from step 1                          |
+| `STUDIO_NEXTAUTH_SECRET`      | Run `openssl rand -base64 32` and paste the output |
 
 ### 3. Deploy
 
@@ -193,8 +193,8 @@ After deploy, visit `https://holoscript.studio/auth/signin` and confirm the "Con
 ### 5. (Optional) Google OAuth
 
 Follow the same pattern for Google OAuth:
+
 1. Create credentials at [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
 2. Add authorized redirect URI: `https://holoscript.studio/api/auth/callback/google`
 3. Add repository secrets `STUDIO_GOOGLE_CLIENT_ID` and `STUDIO_GOOGLE_CLIENT_SECRET`
 4. Update `deploy-railway.yml` to inject them (copy the GitHub pattern in `deploy-studio`)
-

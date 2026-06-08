@@ -15,36 +15,36 @@ import { useEffect, useRef, useState } from 'react';
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface PopulationMetrics {
-  tick:             number;
-  medianGamma:      number;
-  p90Gamma:         number;
-  meanTotalLoss:    number;
-  stdTotalLoss:     number;
-  meanDiversity:    number;
+  tick: number;
+  medianGamma: number;
+  p90Gamma: number;
+  meanTotalLoss: number;
+  stdTotalLoss: number;
+  meanDiversity: number;
   lifecycleDistrib: Record<string, number>;
 }
 
 interface SimReceipt {
-  tick:       number;
-  hash:       string;
-  signature:  string;
-  issuedAt:   string;
+  tick: number;
+  hash: string;
+  signature: string;
+  issuedAt: string;
   baseBlock?: string;
-  baseTxHash?:string;
+  baseTxHash?: string;
 }
 
 interface SimState {
-  label:          string;
-  agents:         number;
-  targetTicks:    number;
-  currentTick:    number;
-  running:        boolean;
-  startedAt:      string | null;
-  lastPushAt:     string | null;
-  elapsedMs:      number;
-  population:     PopulationMetrics[];
-  latestMetrics:  PopulationMetrics | null;
-  receipts:       SimReceipt[];
+  label: string;
+  agents: number;
+  targetTicks: number;
+  currentTick: number;
+  running: boolean;
+  startedAt: string | null;
+  lastPushAt: string | null;
+  elapsedMs: number;
+  population: PopulationMetrics[];
+  latestMetrics: PopulationMetrics | null;
+  receipts: SimReceipt[];
   config: { innerFreq: number; latentDim: number; sycophancyFrac: number } | null;
 }
 
@@ -52,7 +52,12 @@ interface SimState {
 // Mini SVG line chart
 // ─────────────────────────────────────────────────────────────────────────────
 
-function LineChart({ data, color, label, formatY = (v: number) => v.toFixed(3) }: {
+function LineChart({
+  data,
+  color,
+  label,
+  formatY = (v: number) => v.toFixed(3),
+}: {
   data: number[];
   color: string;
   label: string;
@@ -66,16 +71,20 @@ function LineChart({ data, color, label, formatY = (v: number) => v.toFixed(3) }
     );
   }
 
-  const W = 400; const H = 80; const PAD = 4;
+  const W = 400;
+  const H = 80;
+  const PAD = 4;
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
 
-  const pts = data.map((v, i) => {
-    const x = PAD + (i / (data.length - 1)) * (W - 2 * PAD);
-    const y = H - PAD - ((v - min) / range) * (H - 2 * PAD);
-    return `${x},${y}`;
-  }).join(' ');
+  const pts = data
+    .map((v, i) => {
+      const x = PAD + (i / (data.length - 1)) * (W - 2 * PAD);
+      const y = H - PAD - ((v - min) / range) * (H - 2 * PAD);
+      return `${x},${y}`;
+    })
+    .join(' ');
 
   const latest = data[data.length - 1]!;
 
@@ -83,9 +92,16 @@ function LineChart({ data, color, label, formatY = (v: number) => v.toFixed(3) }
     <div>
       <div className="flex justify-between items-baseline mb-1">
         <span className="text-mesh-dim text-xs">{label}</span>
-        <span className="font-bold text-sm" style={{ color }}>{formatY(latest)}</span>
+        <span className="font-bold text-sm" style={{ color }}>
+          {formatY(latest)}
+        </span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none" style={{ height: 80 }}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        preserveAspectRatio="none"
+        style={{ height: 80 }}
+      >
         <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" />
         <line x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} stroke="#2a2a4a" strokeWidth="1" />
       </svg>
@@ -98,12 +114,12 @@ function LineChart({ data, color, label, formatY = (v: number) => v.toFixed(3) }
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LIFECYCLE_COLORS: Record<string, string> = {
-  init:         '#475569',
-  active:       '#3b82f6',
+  init: '#475569',
+  active: '#3b82f6',
   steady_state: '#a855f7',
-  stable:       '#22c55e',
-  edge_case:    '#eab308',
-  shutdown:     '#ef4444',
+  stable: '#22c55e',
+  edge_case: '#eab308',
+  shutdown: '#ef4444',
 };
 
 function LifecycleBar({ distrib }: { distrib: Record<string, number> }) {
@@ -116,7 +132,10 @@ function LifecycleBar({ distrib }: { distrib: Record<string, number> }) {
           <div className="flex-1 bg-mesh-card rounded-full h-2 overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${(frac * 100).toFixed(1)}%`, backgroundColor: LIFECYCLE_COLORS[state] ?? '#475569' }}
+              style={{
+                width: `${(frac * 100).toFixed(1)}%`,
+                backgroundColor: LIFECYCLE_COLORS[state] ?? '#475569',
+              }}
             />
           </div>
           <span className="text-mesh-muted w-10 text-right">{(frac * 100).toFixed(1)}%</span>
@@ -146,11 +165,14 @@ function BenchmarkTable() {
         </thead>
         <tbody className="text-mesh-text">
           {[
-            ['50 sym / 10 events',   '0.79', '287.7',  '364×',  '100%', '12.5%'],
-            ['500 sym / 50 events',  '3.63', '2,114',  '583×',  '100%', '2.5%' ],
-            ['2000 sym / 100 events','14.0', '8,400',  '~600×', '100%', '<1%'  ],
+            ['50 sym / 10 events', '0.79', '287.7', '364×', '100%', '12.5%'],
+            ['500 sym / 50 events', '3.63', '2,114', '583×', '100%', '2.5%'],
+            ['2000 sym / 100 events', '14.0', '8,400', '~600×', '100%', '<1%'],
           ].map(([corpus, hg, emb, spd, hgr, embr]) => (
-            <tr key={corpus as string} className="border-b border-mesh-border/40 hover:bg-mesh-surface/50">
+            <tr
+              key={corpus as string}
+              className="border-b border-mesh-border/40 hover:bg-mesh-surface/50"
+            >
               <td className="py-2 pr-4 text-mesh-muted">{corpus}</td>
               <td className="py-2 px-3 text-right text-mesh-cyan-bright">{hg}</td>
               <td className="py-2 px-3 text-right">{emb}</td>
@@ -162,8 +184,9 @@ function BenchmarkTable() {
         </tbody>
       </table>
       <p className="text-mesh-dim text-xs mt-2">
-        HoloGraph = O(1) EventEdge traversal. Embedding = cosine scan over dense vectors (Xenova all-MiniLM-L6-v2 / StructuralEmbeddingProvider).
-        Both embedding providers achieve identical recall — semantic training adds nothing for structural code queries.
+        HoloGraph = O(1) EventEdge traversal. Embedding = cosine scan over dense vectors (Xenova
+        all-MiniLM-L6-v2 / StructuralEmbeddingProvider). Both embedding providers achieve identical
+        recall — semantic training adds nothing for structural code queries.
       </p>
     </div>
   );
@@ -199,7 +222,7 @@ function ReceiptStrip({ receipts }: { receipts: SimReceipt[] }) {
       <div className="text-mesh-dim">
         {receipts.length} receipt{receipts.length !== 1 ? 's' : ''} issued
         {' · '}
-        {receipts.filter(r => r.baseBlock).length} anchored to Base
+        {receipts.filter((r) => r.baseBlock).length} anchored to Base
       </div>
     </div>
   );
@@ -212,21 +235,21 @@ function ReceiptStrip({ receipts }: { receipts: SimReceipt[] }) {
 export default function Paper26SimPage() {
   const [state, setState] = useState<SimState | null>(null);
   const [connected, setConnected] = useState(false);
-  const gammaHistory    = useRef<number[]>([]);
-  const lossHistory     = useRef<number[]>([]);
-  const diversityHistory= useRef<number[]>([]);
+  const gammaHistory = useRef<number[]>([]);
+  const lossHistory = useRef<number[]>([]);
+  const diversityHistory = useRef<number[]>([]);
   const [chartTick, setChartTick] = useState(0); // forces re-render
 
   // Load initial state
   useEffect(() => {
     fetch('/sim/paper26/api/status')
-      .then(r => r.json())
+      .then((r) => r.json())
       .then((s: SimState) => {
         setState(s);
-        gammaHistory.current     = s.population.map(p => p.medianGamma);
-        lossHistory.current      = s.population.map(p => p.meanTotalLoss);
-        diversityHistory.current = s.population.map(p => p.meanDiversity);
-        setChartTick(t => t + 1);
+        gammaHistory.current = s.population.map((p) => p.medianGamma);
+        lossHistory.current = s.population.map((p) => p.meanTotalLoss);
+        diversityHistory.current = s.population.map((p) => p.meanDiversity);
+        setChartTick((t) => t + 1);
       })
       .catch(() => {});
   }, []);
@@ -247,19 +270,25 @@ export default function Paper26SimPage() {
         diversityHistory.current.push(metrics.meanDiversity);
         // Keep last 500 points
         if (gammaHistory.current.length > 500) {
-          gammaHistory.current     = gammaHistory.current.slice(-500);
-          lossHistory.current      = lossHistory.current.slice(-500);
+          gammaHistory.current = gammaHistory.current.slice(-500);
+          lossHistory.current = lossHistory.current.slice(-500);
           diversityHistory.current = diversityHistory.current.slice(-500);
         }
-        setState(prev => prev ? {
-          ...prev,
-          currentTick:   metrics.tick,
-          running:       true,
-          latestMetrics: metrics,
-          receipts:      [...(prev.receipts.slice(-199)), receipt],
-        } : prev);
-        setChartTick(t => t + 1);
-      } catch { /* ignore malformed */ }
+        setState((prev) =>
+          prev
+            ? {
+                ...prev,
+                currentTick: metrics.tick,
+                running: true,
+                latestMetrics: metrics,
+                receipts: [...prev.receipts.slice(-199), receipt],
+              }
+            : prev
+        );
+        setChartTick((t) => t + 1);
+      } catch {
+        /* ignore malformed */
+      }
     };
     return () => es.close();
   }, []);
@@ -270,34 +299,37 @@ export default function Paper26SimPage() {
 
   return (
     <div className="space-y-8 max-w-5xl">
-
       {/* ── Hero ── */}
       <div className="space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold text-mesh-purple-bright text-glow-purple">
             Paper 26 — Live Simulation
           </h1>
-          <span className={`text-xs px-2 py-0.5 rounded-full border font-mono ${
-            state?.running
-              ? 'border-mesh-green text-mesh-green'
-              : state?.currentTick === 0
-                ? 'border-mesh-dim text-mesh-dim'
-                : 'border-mesh-muted text-mesh-muted'
-          }`}>
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full border font-mono ${
+              state?.running
+                ? 'border-mesh-green text-mesh-green'
+                : state?.currentTick === 0
+                  ? 'border-mesh-dim text-mesh-dim'
+                  : 'border-mesh-muted text-mesh-muted'
+            }`}
+          >
             {state?.running ? '● RUNNING' : state?.currentTick === 0 ? '○ AWAITING' : '◼ COMPLETE'}
           </span>
-          <span className={`text-xs px-2 py-0.5 rounded-full border ${
-            connected ? 'border-mesh-cyan text-mesh-cyan' : 'border-mesh-dim text-mesh-dim'
-          }`}>
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full border ${
+              connected ? 'border-mesh-cyan text-mesh-cyan' : 'border-mesh-dim text-mesh-dim'
+            }`}
+          >
             {connected ? 'LIVE' : 'CONNECTING…'}
           </span>
         </div>
 
         <p className="text-mesh-muted text-sm max-w-2xl">
-          100 uAAL agents running the Pillar-Slice dual-loop cognitive architecture
-          ({state?.config?.innerFreq ?? 10} inner ticks per outer tick, latent dim {state?.config?.latentDim ?? 32}).
-          Target: {state?.targetTicks ?? 1000} outer ticks. Every checkpoint is signed
-          and anchored to Base.{' '}
+          100 uAAL agents running the Pillar-Slice dual-loop cognitive architecture (
+          {state?.config?.innerFreq ?? 10} inner ticks per outer tick, latent dim{' '}
+          {state?.config?.latentDim ?? 32}). Target: {state?.targetTicks ?? 1000} outer ticks. Every
+          checkpoint is signed and anchored to Base.{' '}
           <a
             href="https://holoscript.net"
             target="_blank"
@@ -311,7 +343,9 @@ export default function Paper26SimPage() {
         {/* Progress bar */}
         <div className="space-y-1">
           <div className="flex justify-between text-xs text-mesh-dim">
-            <span>tick {state?.currentTick ?? 0} / {state?.targetTicks ?? 1000}</span>
+            <span>
+              tick {state?.currentTick ?? 0} / {state?.targetTicks ?? 1000}
+            </span>
             <span>{pct}%</span>
           </div>
           <div className="h-1.5 bg-mesh-card rounded-full overflow-hidden">
@@ -327,14 +361,36 @@ export default function Paper26SimPage() {
       {pm ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'γ median', value: (pm.medianGamma * 100).toFixed(1) + '%', color: '#a855f7', note: 'hemisphere agreement' },
-            { label: 'γ p90',    value: (pm.p90Gamma    * 100).toFixed(1) + '%', color: '#22d3ee', note: 'top 10% agents' },
-            { label: 'loss',     value: pm.meanTotalLoss.toFixed(4),              color: '#f87171', note: 'mean total loss' },
-            { label: 'diversity',value: (pm.meanDiversity * 100).toFixed(1) + '%',color: '#22c55e', note: 'slice diversity ρ' },
+            {
+              label: 'γ median',
+              value: (pm.medianGamma * 100).toFixed(1) + '%',
+              color: '#a855f7',
+              note: 'hemisphere agreement',
+            },
+            {
+              label: 'γ p90',
+              value: (pm.p90Gamma * 100).toFixed(1) + '%',
+              color: '#22d3ee',
+              note: 'top 10% agents',
+            },
+            {
+              label: 'loss',
+              value: pm.meanTotalLoss.toFixed(4),
+              color: '#f87171',
+              note: 'mean total loss',
+            },
+            {
+              label: 'diversity',
+              value: (pm.meanDiversity * 100).toFixed(1) + '%',
+              color: '#22c55e',
+              note: 'slice diversity ρ',
+            },
           ].map(({ label, value, color, note }) => (
             <div key={label} className="bg-mesh-card border border-mesh-border rounded-lg p-3">
               <div className="text-mesh-dim text-xs mb-1">{label}</div>
-              <div className="text-xl font-bold" style={{ color }}>{value}</div>
+              <div className="text-xl font-bold" style={{ color }}>
+                {value}
+              </div>
               <div className="text-mesh-dim text-xs mt-1">{note}</div>
             </div>
           ))}
@@ -348,9 +404,24 @@ export default function Paper26SimPage() {
       {/* ── Charts ── */}
       <div className="grid md:grid-cols-3 gap-4">
         {[
-          { data: gammaHistory.current,     color: '#a855f7', label: 'Hemisphere Agreement γ', formatY: (v: number) => (v*100).toFixed(1)+'%' },
-          { data: lossHistory.current,      color: '#f87171', label: 'Total Loss',              formatY: (v: number) => v.toFixed(4) },
-          { data: diversityHistory.current, color: '#22c55e', label: 'Slice Diversity ρ',       formatY: (v: number) => (v*100).toFixed(1)+'%' },
+          {
+            data: gammaHistory.current,
+            color: '#a855f7',
+            label: 'Hemisphere Agreement γ',
+            formatY: (v: number) => (v * 100).toFixed(1) + '%',
+          },
+          {
+            data: lossHistory.current,
+            color: '#f87171',
+            label: 'Total Loss',
+            formatY: (v: number) => v.toFixed(4),
+          },
+          {
+            data: diversityHistory.current,
+            color: '#22c55e',
+            label: 'Slice Diversity ρ',
+            formatY: (v: number) => (v * 100).toFixed(1) + '%',
+          },
         ].map(({ data, color, label, formatY }) => (
           <div key={label} className="bg-mesh-card border border-mesh-border rounded-lg p-4">
             <LineChart data={data} color={color} label={label} formatY={formatY} key={chartTick} />
@@ -385,8 +456,8 @@ export default function Paper26SimPage() {
         <div className="space-y-2">
           <h2 className="text-sm font-bold text-mesh-text">Verifiable Checkpoints</h2>
           <p className="text-mesh-dim text-xs">
-            Every metric snapshot is signed with ECDSA P-256 and anchored to Base mainnet.
-            Claims are not self-reported — they are cryptographically timestamped.
+            Every metric snapshot is signed with ECDSA P-256 and anchored to Base mainnet. Claims
+            are not self-reported — they are cryptographically timestamped.
           </p>
           <ReceiptStrip receipts={state.receipts} />
         </div>
@@ -395,8 +466,8 @@ export default function Paper26SimPage() {
       {/* ── Footer context ── */}
       <div className="border-t border-mesh-border pt-6 text-xs text-mesh-dim space-y-1">
         <p>
-          <span className="text-mesh-muted">Paper 26</span> — Pillar-Slice Framework for
-          uAAL Cognitive VMs · ICLR 2027 target ·{' '}
+          <span className="text-mesh-muted">Paper 26</span> — Pillar-Slice Framework for uAAL
+          Cognitive VMs · ICLR 2027 target ·{' '}
           <a
             href="https://arxiv.org/abs/2604.25917"
             target="_blank"
@@ -407,12 +478,10 @@ export default function Paper26SimPage() {
           </a>
         </p>
         <p>
-          Simulation runs on Vast.ai · checkpoints anchored to Base mainnet ·
-          source in <code className="text-mesh-cyan">@holoscript/core</code> (open source)
+          Simulation runs on Vast.ai · checkpoints anchored to Base mainnet · source in{' '}
+          <code className="text-mesh-cyan">@holoscript/core</code> (open source)
         </p>
-        {state?.startedAt && (
-          <p>Started {new Date(state.startedAt).toUTCString()}</p>
-        )}
+        {state?.startedAt && <p>Started {new Date(state.startedAt).toUTCString()}</p>}
       </div>
     </div>
   );

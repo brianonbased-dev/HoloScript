@@ -39,19 +39,11 @@ describe('Cycle 151: Collision Queries', () => {
     });
 
     // Layer 1 mask — should miss
-    const miss = rc.raycast(
-      { origin: [0, 0, 0], direction: [1, 0, 0] },
-      Infinity,
-      1
-    );
+    const miss = rc.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] }, Infinity, 1);
     expect(miss).toBeNull();
 
     // Layer 2 mask — should hit
-    const hit = rc.raycast(
-      { origin: [0, 0, 0], direction: [1, 0, 0] },
-      Infinity,
-      2
-    );
+    const hit = rc.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] }, Infinity, 2);
     expect(hit).not.toBeNull();
     expect(hit!.entityId).toBe('box');
   });

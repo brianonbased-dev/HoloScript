@@ -116,7 +116,7 @@ describe('5A: SimSolver Adapters', () => {
   it('TET10SolverAdapter exposes GPU-backed readback contract', async () => {
     const tet10 = tet4ToTet10(
       new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
-      new Uint32Array([0, 1, 2, 3]),
+      new Uint32Array([0, 1, 2, 3])
     );
     const solver = new StructuralSolverTET10({
       vertices: tet10.vertices,
@@ -150,12 +150,14 @@ describe('5A: SimSolver Adapters', () => {
     };
 
     const thermal = new ThermalGpuStencilSolverAdapter(new ThermalSolver(thermalConfig));
-    const acoustic = new AcousticGpuStencilSolverAdapter(new AcousticSolver({
-      gridResolution: [4, 4, 4],
-      domainSize: [1, 1, 1],
-      sources: [],
-      useGPU: true,
-    }));
+    const acoustic = new AcousticGpuStencilSolverAdapter(
+      new AcousticSolver({
+        gridResolution: [4, 4, 4],
+        domainSize: [1, 1, 1],
+        sources: [],
+        useGPU: true,
+      })
+    );
 
     expect(isGpuBackedSolver(thermal)).toBe(true);
     expect(isGpuBackedSolver(acoustic)).toBe(true);
@@ -243,9 +245,7 @@ describe('5C: ParameterSpace', () => {
   });
 
   it('grid search with range mode', () => {
-    const space = new ParameterSpace([
-      { path: 'E', min: 100, max: 200, steps: 3 },
-    ]);
+    const space = new ParameterSpace([{ path: 'E', min: 100, max: 200, steps: 3 }]);
 
     expect(space.gridSize).toBe(3);
     const samples = space.gridSearch();
@@ -295,7 +295,9 @@ describe('5C: ExperimentOrchestrator', () => {
     const factory = (_type: string, config: Record<string, unknown>): SolverHandle => {
       const E = (config as { E?: number }).E ?? 100;
       return {
-        solve: () => { runCount++; },
+        solve: () => {
+          runCount++;
+        },
         getStats: () => ({ converged: true, maxStress: 1000 / E, solveTimeMs: 1 }),
         dispose: () => {},
       };

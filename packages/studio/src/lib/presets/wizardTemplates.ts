@@ -11,20 +11,20 @@ import { logger } from '@/lib/logger';
 // Registry maps subcategory IDs to their respective chunk files
 const TEMPLATE_REGISTRY: Record<string, () => Promise<{ default: SceneTemplate }>> = {
   'vr-game': () => import('./templates/vr-game'),
-  'platformer': () => import('./templates/platformer'),
-  'rpg': () => import('./templates/rpg'),
-  'puzzle': () => import('./templates/puzzle'),
+  platformer: () => import('./templates/platformer'),
+  rpg: () => import('./templates/rpg'),
+  puzzle: () => import('./templates/puzzle'),
   'social-vr': () => import('./templates/social-vr'),
   'short-film': () => import('./templates/short-film'),
   'music-video': () => import('./templates/music-video'),
   'product-viz': () => import('./templates/product-viz'),
-  'cutscene': () => import('./templates/cutscene'),
+  cutscene: () => import('./templates/cutscene'),
   'character-design': () => import('./templates/character-design'),
   'environment-art': () => import('./templates/environment-art'),
   'material-study': () => import('./templates/material-study'),
   'music-visualizer': () => import('./templates/music-visualizer'),
   'ai-composer': () => import('./templates/ai-composer'),
-  'portfolio': () => import('./templates/portfolio'),
+  portfolio: () => import('./templates/portfolio'),
   'interactive-story': () => import('./templates/interactive-story'),
   'data-dashboard': () => import('./templates/data-dashboard'),
   'product-configurator': () => import('./templates/product-configurator'),
@@ -61,7 +61,7 @@ const TEMPLATE_REGISTRY: Record<string, () => Promise<{ default: SceneTemplate }
   'live-stage': () => import('./templates/live-stage'),
   'holographic-gallery': () => import('./templates/holographic-gallery'),
   'memory-wall': () => import('./templates/memory-wall'),
-  'video-portal': () => import('./templates/video-portal')
+  'video-portal': () => import('./templates/video-portal'),
 };
 
 /** Get the starter template for a given wizard sub-category ID asynchronously. */
@@ -85,6 +85,6 @@ export function getAvailableTemplateIds(): string[] {
 /** Get all wizard templates as a flat array (for merging into template galleries). */
 export async function getAllWizardTemplates(): Promise<SceneTemplate[]> {
   const ids = getAvailableTemplateIds();
-  const templates = await Promise.all(ids.map(id => getWizardTemplate(id)));
+  const templates = await Promise.all(ids.map((id) => getWizardTemplate(id)));
   return templates.filter((t): t is SceneTemplate => t !== null);
 }

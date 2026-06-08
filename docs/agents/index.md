@@ -25,16 +25,16 @@ HoloScript is an **AI-native semantic platform** built to host autonomous intell
 
 Every HoloScript agent follows the canonical 8-phase cognitive lifecycle (0-7):
 
-| Phase | Name           | Purpose                                  |
-| ----- | -------------- | ---------------------------------------- |
-| 0     | **INTAKE**     | Gather raw spatial data and context      |
-| 1     | **REFLECT**    | Analyze and understand the environment   |
-| 2     | **EXECUTE**    | Take action (move, speak, trade)         |
-| 3     | **COMPRESS**   | Store knowledge efficiently (PWG format) |
+| Phase | Name           | Purpose                                                            |
+| ----- | -------------- | ------------------------------------------------------------------ |
+| 0     | **INTAKE**     | Gather raw spatial data and context                                |
+| 1     | **REFLECT**    | Analyze and understand the environment                             |
+| 2     | **EXECUTE**    | Take action (move, speak, trade)                                   |
+| 3     | **COMPRESS**   | Store knowledge efficiently (PWG format)                           |
 | 4     | **DREAMING**   | Validate and re-evaluate compressed knowledge (`REINTAKE` API key) |
-| 5     | **GROW**       | Learn new patterns, wisdom, and gotchas  |
-| 6     | **EVOLVE**     | Adapt and optimize internal models       |
-| 7     | **AUTONOMIZE** | Self-directed goal synthesis             |
+| 5     | **GROW**       | Learn new patterns, wisdom, and gotchas                            |
+| 6     | **EVOLVE**     | Adapt and optimize internal models                                 |
+| 7     | **AUTONOMIZE** | Self-directed goal synthesis                                       |
 
 ```hs
 composition "AutonomousAgent" {

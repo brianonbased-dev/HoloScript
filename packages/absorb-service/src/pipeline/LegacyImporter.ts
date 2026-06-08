@@ -23,7 +23,7 @@ export const LEGACY_FLAT_TRAIT_TO_NAMESPACED: Readonly<Record<string, string>> =
   virtual_production: 'FilmVFXPlugin.virtual_production',
   text_to_universe: 'FilmVFXPlugin.text_to_universe',
   // Legacy absorb ROS stub — RoboticsPlugin namespace in core
-  robotic_joint: 'RoboticsPlugin.robotic_joint'
+  robotic_joint: 'RoboticsPlugin.robotic_joint',
 };
 
 /**
@@ -81,8 +81,10 @@ export class LegacyImporter {
   }
 
   static async importProject(options: ImportOptions): Promise<string> {
-    console.log(`[HoloMesh:Absorb] Starting one-click legacy import from ${options.engineType} project at ${options.sourcePath}`);
-    
+    console.log(
+      `[HoloMesh:Absorb] Starting one-click legacy import from ${options.engineType} project at ${options.sourcePath}`
+    );
+
     // Abstract extraction logic
     let extractedObjects: HoloObjectDecl[] = [];
     if (options.engineType === 'unity') {
@@ -93,9 +95,11 @@ export class LegacyImporter {
       extractedObjects = this.parseROS2URDF(options.sourcePath);
     }
 
-    const ast = holoFactory.composition(`imported_${options.engineType}_project`, [], [
-      holoFactory.spatialGroup('root', extractedObjects)
-    ]);
+    const ast = holoFactory.composition(
+      `imported_${options.engineType}_project`,
+      [],
+      [holoFactory.spatialGroup('root', extractedObjects)]
+    );
 
     let holoContent = generateHoloSource(ast);
     holoContent = `\n# .holo (Auto-imported from ${options.engineType})\n` + holoContent;
@@ -141,7 +145,11 @@ export class LegacyImporter {
    * If `p` is a directory, uses the first `.unity` file found.
    */
   private static parseUnityYaml(p: string): HoloObjectDecl[] {
-    const defaultObj = [holoFactory.node('transform', [], { properties: [{ type: 'ObjectProperty', key: 'position', value: [0, 0, 0] }] })];
+    const defaultObj = [
+      holoFactory.node('transform', [], {
+        properties: [{ type: 'ObjectProperty', key: 'position', value: [0, 0, 0] }],
+      }),
+    ];
     try {
       let file = p;
       const st = fs.statSync(p);
@@ -162,9 +170,11 @@ export class LegacyImporter {
         const x = parseFloat(m[1]);
         const y = parseFloat(m[2]);
         const z = parseFloat(m[3]);
-        objs.push(holoFactory.node(`transform_${count++}`, [], {
-           properties: [{ type: 'ObjectProperty', key: 'position', value: [x, y, z] }]
-        }));
+        objs.push(
+          holoFactory.node(`transform_${count++}`, [], {
+            properties: [{ type: 'ObjectProperty', key: 'position', value: [x, y, z] }],
+          })
+        );
       }
       if (objs.length === 0) {
         return defaultObj;
@@ -181,21 +191,33 @@ export class LegacyImporter {
    */
   private static parseUnrealUAsset(p: string): HoloObjectDecl[] {
     const defaultObj = holoFactory.node('unreal_placeholder', [], {
-      properties: [{ type: 'ObjectProperty', key: 'position', value: [0, 0, 0] }]
+      properties: [{ type: 'ObjectProperty', key: 'position', value: [0, 0, 0] }],
     });
     try {
       const buf = fs.readFileSync(p);
       const nul = buf.indexOf(0);
       if (nul !== -1 && nul < 64) {
-        return [holoFactory.node('binary_unreal_asset', [], {
-           properties: [{ type: 'ObjectProperty', key: 'mesh', value: 'assets/unreal_import_placeholder.glb' }]
-        }), defaultObj];
+        return [
+          holoFactory.node('binary_unreal_asset', [], {
+            properties: [
+              {
+                type: 'ObjectProperty',
+                key: 'mesh',
+                value: 'assets/unreal_import_placeholder.glb',
+              },
+            ],
+          }),
+          defaultObj,
+        ];
       }
       const head = buf.slice(0, 4096).toString('utf-8');
       if (head.includes('/Script/Engine') || head.includes('Begin Map')) {
-        return [holoFactory.node('text_unreal_asset', [], {
-           properties: [{ type: 'ObjectProperty', key: 'mesh', value: 'assets/unreal_mesh.glb' }]
-        }), defaultObj];
+        return [
+          holoFactory.node('text_unreal_asset', [], {
+            properties: [{ type: 'ObjectProperty', key: 'mesh', value: 'assets/unreal_mesh.glb' }],
+          }),
+          defaultObj,
+        ];
       }
       return [defaultObj];
     } catch (e) {
@@ -212,17 +234,21 @@ export class LegacyImporter {
       const joints = [...xml.matchAll(/<joint[^>]*\bname="([^"]+)"[^>]*\btype="([^"]+)"/g)].map(
         (x) => ({ name: x[1], type: x[2] })
       );
-      
+
       const objs: HoloObjectDecl[] = [];
       for (const name of links) {
         objs.push(holoFactory.node('link_' + LegacyImporter.escapeXmlAttr(name)));
       }
       for (const j of joints) {
-        objs.push(holoFactory.node('joint_' + LegacyImporter.escapeXmlAttr(j.name), [], {
-          properties: [{ type: 'ObjectProperty', key: 'type', value: LegacyImporter.escapeXmlAttr(j.type) }]
-        }));
+        objs.push(
+          holoFactory.node('joint_' + LegacyImporter.escapeXmlAttr(j.name), [], {
+            properties: [
+              { type: 'ObjectProperty', key: 'type', value: LegacyImporter.escapeXmlAttr(j.type) },
+            ],
+          })
+        );
       }
-      
+
       if (objs.length === 0) {
         return [defaultObj];
       }

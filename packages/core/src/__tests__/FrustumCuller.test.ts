@@ -72,9 +72,9 @@ describe('FrustumCuller', () => {
       centerX: 0,
       centerY: 0,
       centerZ: 10,
-        halfExtentX: 2,
-        halfExtentY: 2,
-        halfExtentZ: 2,
+      halfExtentX: 2,
+      halfExtentY: 2,
+      halfExtentZ: 2,
     });
     const visible = fc.cullAll();
     expect(visible).toContain('box');

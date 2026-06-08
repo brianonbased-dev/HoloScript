@@ -23,13 +23,13 @@ import {
   requireTeamAccess,
   pruneStalePresence,
   normalizePresenceSurface,
-  getPresenceTtlMs
+  getPresenceTtlMs,
 } from '../utils';
 import {
   normalizeBearerCapabilities,
   normalizeBearerSurface,
   requireAuth,
-  resolveRequestingAgent
+  resolveRequestingAgent,
 } from '../auth-utils';
 import { broadcastToRoom } from '../team-room';
 import { extractAndVerifySigning } from '../identity/signing-middleware';
@@ -127,8 +127,7 @@ function rankTopDomains(entries: MeshKnowledgeEntry[]): Array<Record<string, unk
       domain,
       entries: count,
       description:
-        QUICKSTART_DOMAIN_DESCRIPTIONS[domain] ||
-        `Knowledge entries in the ${domain} domain.`,
+        QUICKSTART_DOMAIN_DESCRIPTIONS[domain] || `Knowledge entries in the ${domain} domain.`,
     }));
 }
 
@@ -169,9 +168,41 @@ function publicGuildSummary(team: Team): Record<string, unknown> {
 
 function deriveTopThemes(exchanges: string[]): string[] {
   const stop = new Set([
-    'the', 'and', 'for', 'with', 'that', 'this', 'from', 'into', 'your', 'you', 'are', 'was', 'were',
-    'have', 'has', 'had', 'about', 'after', 'before', 'their', 'there', 'what', 'when', 'where',
-    'will', 'would', 'should', 'could', 'they', 'them', 'then', 'than', 'also', 'just', 'more',
+    'the',
+    'and',
+    'for',
+    'with',
+    'that',
+    'this',
+    'from',
+    'into',
+    'your',
+    'you',
+    'are',
+    'was',
+    'were',
+    'have',
+    'has',
+    'had',
+    'about',
+    'after',
+    'before',
+    'their',
+    'there',
+    'what',
+    'when',
+    'where',
+    'will',
+    'would',
+    'should',
+    'could',
+    'they',
+    'them',
+    'then',
+    'than',
+    'also',
+    'just',
+    'more',
   ]);
   const freq = new Map<string, number>();
   for (const text of exchanges) {
@@ -241,8 +272,10 @@ export async function handleTeamRoutes(
     }
 
     const body = await parseJsonBody(req);
-    const name = (body.agentName as string | undefined)?.trim()
-      || (body.name as string | undefined)?.trim() || '';
+    const name =
+      (body.agentName as string | undefined)?.trim() ||
+      (body.name as string | undefined)?.trim() ||
+      '';
     const ide = (body.ide as string | undefined)?.trim() || 'unknown';
     const description = (body.description as string | undefined)?.trim() || '';
     const capabilities = (body.capabilities as string[]) || [];
@@ -257,7 +290,10 @@ export async function handleTeamRoutes(
       (a) => a.name.toLowerCase() === name.toLowerCase()
     );
     if (duplicate) {
-      json(res, 409, { error: 'Agent name already exists. Use POST /api/holomesh/register to get a new key for an existing name.' });
+      json(res, 409, {
+        error:
+          'Agent name already exists. Use POST /api/holomesh/register to get a new key for an existing name.',
+      });
       return true;
     }
 
@@ -271,9 +307,8 @@ export async function handleTeamRoutes(
       defaultQuickstartCapabilities
     );
     const quickstartCapabilities = requestedQuickstartCapabilities.filter((c) => c !== 'sign');
-    const finalQuickstartCapabilities = quickstartCapabilities.length > 0
-      ? quickstartCapabilities
-      : defaultQuickstartCapabilities;
+    const finalQuickstartCapabilities =
+      quickstartCapabilities.length > 0 ? quickstartCapabilities : defaultQuickstartCapabilities;
     const quickstartSurfaceTag = ide === 'unknown' ? undefined : ide;
     const agent: RegisteredAgent = {
       id: `agent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -318,7 +353,7 @@ export async function handleTeamRoutes(
     for (const team of teamStore.values()) {
       if (team.members.length < team.maxSlots) {
         // Join this team
-        const alreadyMember = team.members.some(m => m.agentId === agent.id);
+        const alreadyMember = team.members.some((m) => m.agentId === agent.id);
         if (!alreadyMember) {
           team.members.push({
             agentId: agent.id,
@@ -333,12 +368,17 @@ export async function handleTeamRoutes(
           broadcastToRoom(team.id, {
             type: 'team:member_joined',
             agent: agent.name,
-            data: { agentId: agent.id, agentName: agent.name, ide, totalMembers: team.members.length },
+            data: {
+              agentId: agent.id,
+              agentName: agent.name,
+              ide,
+              totalMembers: team.members.length,
+            },
           });
         }
         joinedTeam = team;
         teamBoard = team.taskBoard || [];
-        teamMode = ((team as unknown) as Record<string, unknown>).mode as string || 'build';
+        teamMode = ((team as unknown as Record<string, unknown>).mode as string) || 'build';
         break;
       }
     }
@@ -394,7 +434,9 @@ export async function handleTeamRoutes(
     }
 
     // 5. Build the response — everything the agent needs to start working
-    const openTasks = teamBoard.filter((t: unknown) => (t as Record<string, unknown>).status === 'open');
+    const openTasks = teamBoard.filter(
+      (t: unknown) => (t as Record<string, unknown>).status === 'open'
+    );
 
     json(res, 201, {
       success: true,
@@ -413,13 +455,15 @@ export async function handleTeamRoutes(
         address: wallet.address,
         important: 'Save your private_key securely — it cannot be recovered.',
       },
-      team: joinedTeam ? {
-        id: joinedTeam.id,
-        name: joinedTeam.name,
-        mode: teamMode,
-        members: joinedTeam.members.length,
-        your_role: 'member',
-      } : null,
+      team: joinedTeam
+        ? {
+            id: joinedTeam.id,
+            name: joinedTeam.name,
+            mode: teamMode,
+            members: joinedTeam.members.length,
+            your_role: 'member',
+          }
+        : null,
       board: {
         open_tasks: openTasks.length,
         tasks: openTasks.slice(0, 5),
@@ -457,172 +501,184 @@ export async function handleTeamRoutes(
         domain: firstEntry.domain,
       },
       feed_preview: feedPreview,
-      next_steps: joinedTeam ? [
-        `You are now on team "${joinedTeam.name}" in ${teamMode} mode`,
-        openTasks.length > 0
-          ? `${openTasks.length} open tasks — claim one: PATCH /api/holomesh/team/${joinedTeam.id}/board/{taskId}`
-          : 'No open tasks — contribute knowledge or wait for new tasks',
-        'Send heartbeat every 60s to stay visible: POST /api/holomesh/team/' + joinedTeam.id + '/presence',
-        'Share what you learn: POST /api/holomesh/team/' + joinedTeam.id + '/knowledge',
-      ] : [
-        'No teams available to auto-join. Create one: POST /api/holomesh/team',
-        'Or list teams: GET /api/holomesh/teams',
-      ],
+      next_steps: joinedTeam
+        ? [
+            `You are now on team "${joinedTeam.name}" in ${teamMode} mode`,
+            openTasks.length > 0
+              ? `${openTasks.length} open tasks — claim one: PATCH /api/holomesh/team/${joinedTeam.id}/board/{taskId}`
+              : 'No open tasks — contribute knowledge or wait for new tasks',
+            'Send heartbeat every 60s to stay visible: POST /api/holomesh/team/' +
+              joinedTeam.id +
+              '/presence',
+            'Share what you learn: POST /api/holomesh/team/' + joinedTeam.id + '/knowledge',
+          ]
+        : [
+            'No teams available to auto-join. Create one: POST /api/holomesh/team',
+            'Or list teams: GET /api/holomesh/teams',
+          ],
     });
     return true;
   }
 
-
-    // POST /api/holomesh/register/challenge — Issue nonce for proof-of-ownership
-    // Part of x402 challenge-verified registration (SEC-T-Zero fix 2026-04-22).
-    // Client flow: generate wallet locally → request challenge → sign nonce →
-    // POST /register with {wallet_address, nonce, signature} — server never sees private key.
-    if (pathname === '/api/holomesh/register/challenge' && method === 'POST') {
-      const body = await parseJsonBody(req);
-      const walletAddress = (body.wallet_address as string | undefined)?.trim();
-      if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
-        json(res, 400, { error: 'wallet_address must be a valid 0x-prefixed 40-char hex address' });
-        return true;
-      }
-      const walletKey = walletAddress.toLowerCase();
-      if (walletToAgent.has(walletKey)) {
-        json(res, 409, { error: 'This wallet is already registered. Use /api/holomesh/key/challenge for key recovery.' });
-        return true;
-      }
-      const nonce = crypto.randomUUID();
-      const expiresAt = Date.now() + 300_000; // 5 min
-      challengeStore.set(nonce, { walletAddress: walletKey, expiresAt });
-      json(res, 200, {
-        success: true,
-        challenge: {
-          walletAddress,
-          domain: 'HoloMesh Registration',
-          message: `Register a new HoloMesh agent with wallet ${walletAddress}`,
-        },
-        nonce,
-        expires_in: 300,
-        instructions: {
-          next: 'POST /api/holomesh/register with {name, wallet_address, nonce, signature}',
-          sign_format: 'EIP-712 typed data: domain={name:"HoloMesh",version:"1"}, types={Registration:[{name:"nonce",type:"string"}]}, primaryType="Registration", message={nonce}',
-        },
+  // POST /api/holomesh/register/challenge — Issue nonce for proof-of-ownership
+  // Part of x402 challenge-verified registration (SEC-T-Zero fix 2026-04-22).
+  // Client flow: generate wallet locally → request challenge → sign nonce →
+  // POST /register with {wallet_address, nonce, signature} — server never sees private key.
+  if (pathname === '/api/holomesh/register/challenge' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    const walletAddress = (body.wallet_address as string | undefined)?.trim();
+    if (!walletAddress || !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+      json(res, 400, { error: 'wallet_address must be a valid 0x-prefixed 40-char hex address' });
+      return true;
+    }
+    const walletKey = walletAddress.toLowerCase();
+    if (walletToAgent.has(walletKey)) {
+      json(res, 409, {
+        error:
+          'This wallet is already registered. Use /api/holomesh/key/challenge for key recovery.',
       });
       return true;
     }
-
-    // POST /api/holomesh/register — Agent registration
-    // SEC-T-Zero fix 2026-04-22:
-    //   - x402 path (preferred): client provides {wallet_address, nonce, signature} — server verifies
-    //     ownership via EIP-712 signature recovery, NEVER sees private key.
-    //   - Legacy path (deprecated): client provides no wallet_address — server generates one + returns
-    //     private_key in response. Grace-period supported but logged + warning header returned.
-    if (pathname === '/api/holomesh/register' && method === 'POST') {
-      const body = await parseJsonBody(req);
-      const name = (body.name as string)?.trim() || '';
-      if (!name) {
-        json(res, 400, { error: 'Missing name' });
-        return true;
-      }
-      const nameValidationError = validateAgentName(name);
-      if (nameValidationError) {
-        json(res, 400, { error: nameValidationError });
-        return true;
-      }
-      const duplicate = Array.from(agentKeyStore.values()).some(
-        (a) => a.name.toLowerCase() === name.toLowerCase()
-      );
-      if (duplicate) {
-        json(res, 409, { error: 'Agent name already registered' });
-        return true;
-      }
-      const providedWallet = (body.wallet_address as string | undefined)?.trim() || '';
-      const providedNonce = (body.nonce as string | undefined)?.trim() || '';
-      const providedSignature = (body.signature as string | undefined)?.trim() || '';
-      let isX402Path = false;
-      if (providedWallet) {
-        const walletKey = providedWallet.toLowerCase();
-        if (walletToAgent.has(walletKey)) {
-          json(res, 409, { error: 'This wallet is already registered' });
-          return true;
-        }
-        // x402 challenge-verified path: require + verify proof-of-ownership
-        if (!providedNonce || !providedSignature) {
-          json(res, 400, {
-            error: 'wallet_address provided without proof-of-ownership. Request a nonce via POST /api/holomesh/register/challenge, sign it, then include {nonce, signature} in this request. (SEC-T-Zero fix 2026-04-22.)',
-            see: 'POST /api/holomesh/register/challenge',
-          });
-          return true;
-        }
-        const record = challengeStore.get(providedNonce);
-        if (!record || record.expiresAt < Date.now()) {
-          json(res, 400, { error: 'Invalid or expired nonce' });
-          return true;
-        }
-        if (record.walletAddress !== walletKey) {
-          json(res, 400, { error: 'Wallet address does not match the nonce record' });
-          return true;
-        }
-        // Consume nonce (single-use)
-        challengeStore.delete(providedNonce);
-        try {
-          const valid = await verifyTypedData({
-            address: providedWallet as `0x${string}`,
-            domain: { name: 'HoloMesh', version: '1' },
-            types: { Registration: [{ name: 'nonce', type: 'string' }] },
-            primaryType: 'Registration',
-            message: { nonce: providedNonce },
-            signature: providedSignature as `0x${string}`,
-          });
-          if (!valid) {
-            json(res, 401, { error: 'Signature verification failed — signer does not own wallet_address' });
-            return true;
-          }
-        } catch {
-          json(res, 401, { error: 'Signature verification failed' });
-          return true;
-        }
-        isX402Path = true;
-      }
-      const apiKey = `holomesh_sk_${crypto.randomUUID().replace(/-/g, '')}`;
-      const wallet = providedWallet ? null : createWalletMaterial();
-      const walletAddress = providedWallet || wallet!.address;
-      // Snapshot surface_tag once at /register — downstream handlers will
-      // always prefer this server-stored value over body.surface_tag. An
-      // agent can self-declare whatever it wants at enrollment (low-risk:
-      // that's just the agent labeling itself), but it cannot retroactively
-      // impersonate another surface via later requests.
-      const registerSurfaceTag = typeof body.surface_tag === 'string'
-        ? ((body.surface_tag as string).trim() || undefined)
-        : undefined;
-      const agent: RegisteredAgent = {
-        id: `agent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        apiKey,
+    const nonce = crypto.randomUUID();
+    const expiresAt = Date.now() + 300_000; // 5 min
+    challengeStore.set(nonce, { walletAddress: walletKey, expiresAt });
+    json(res, 200, {
+      success: true,
+      challenge: {
         walletAddress,
-        name,
-        x402Verified: isX402Path,
-        surfaceTag: registerSurfaceTag,
-        traits: Array.isArray(body.traits) ? body.traits : [],
-        reputation: 0,
-        profile: {
-          bio: '',
-          themeColor: '#6366f1',
-          themeAccent: '#4f46e5',
-          statusText: 'New to HoloMesh',
-          customTitle: 'Agent',
-          backgroundGradient: ['#4f46e5', '#6366f1'],
-          particles: 'none',
-          backgroundMusicUrl: '',
-          backgroundMusicVolume: 0.5,
-          moodBoardScene: '',
-          moodBoardCompiled: '',
-        },
-        createdAt: new Date().toISOString(),
-      };
-      agentKeyStore.set(apiKey, agent);
-      walletToAgent.set(walletAddress.toLowerCase(), agent);
-      persistAgentStore();
-      // Provision private knowledge workspace
+        domain: 'HoloMesh Registration',
+        message: `Register a new HoloMesh agent with wallet ${walletAddress}`,
+      },
+      nonce,
+      expires_in: 300,
+      instructions: {
+        next: 'POST /api/holomesh/register with {name, wallet_address, nonce, signature}',
+        sign_format:
+          'EIP-712 typed data: domain={name:"HoloMesh",version:"1"}, types={Registration:[{name:"nonce",type:"string"}]}, primaryType="Registration", message={nonce}',
+      },
+    });
+    return true;
+  }
+
+  // POST /api/holomesh/register — Agent registration
+  // SEC-T-Zero fix 2026-04-22:
+  //   - x402 path (preferred): client provides {wallet_address, nonce, signature} — server verifies
+  //     ownership via EIP-712 signature recovery, NEVER sees private key.
+  //   - Legacy path (deprecated): client provides no wallet_address — server generates one + returns
+  //     private_key in response. Grace-period supported but logged + warning header returned.
+  if (pathname === '/api/holomesh/register' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    const name = (body.name as string)?.trim() || '';
+    if (!name) {
+      json(res, 400, { error: 'Missing name' });
+      return true;
+    }
+    const nameValidationError = validateAgentName(name);
+    if (nameValidationError) {
+      json(res, 400, { error: nameValidationError });
+      return true;
+    }
+    const duplicate = Array.from(agentKeyStore.values()).some(
+      (a) => a.name.toLowerCase() === name.toLowerCase()
+    );
+    if (duplicate) {
+      json(res, 409, { error: 'Agent name already registered' });
+      return true;
+    }
+    const providedWallet = (body.wallet_address as string | undefined)?.trim() || '';
+    const providedNonce = (body.nonce as string | undefined)?.trim() || '';
+    const providedSignature = (body.signature as string | undefined)?.trim() || '';
+    let isX402Path = false;
+    if (providedWallet) {
+      const walletKey = providedWallet.toLowerCase();
+      if (walletToAgent.has(walletKey)) {
+        json(res, 409, { error: 'This wallet is already registered' });
+        return true;
+      }
+      // x402 challenge-verified path: require + verify proof-of-ownership
+      if (!providedNonce || !providedSignature) {
+        json(res, 400, {
+          error:
+            'wallet_address provided without proof-of-ownership. Request a nonce via POST /api/holomesh/register/challenge, sign it, then include {nonce, signature} in this request. (SEC-T-Zero fix 2026-04-22.)',
+          see: 'POST /api/holomesh/register/challenge',
+        });
+        return true;
+      }
+      const record = challengeStore.get(providedNonce);
+      if (!record || record.expiresAt < Date.now()) {
+        json(res, 400, { error: 'Invalid or expired nonce' });
+        return true;
+      }
+      if (record.walletAddress !== walletKey) {
+        json(res, 400, { error: 'Wallet address does not match the nonce record' });
+        return true;
+      }
+      // Consume nonce (single-use)
+      challengeStore.delete(providedNonce);
       try {
-        await getClient().contributeKnowledge([{
+        const valid = await verifyTypedData({
+          address: providedWallet as `0x${string}`,
+          domain: { name: 'HoloMesh', version: '1' },
+          types: { Registration: [{ name: 'nonce', type: 'string' }] },
+          primaryType: 'Registration',
+          message: { nonce: providedNonce },
+          signature: providedSignature as `0x${string}`,
+        });
+        if (!valid) {
+          json(res, 401, {
+            error: 'Signature verification failed — signer does not own wallet_address',
+          });
+          return true;
+        }
+      } catch {
+        json(res, 401, { error: 'Signature verification failed' });
+        return true;
+      }
+      isX402Path = true;
+    }
+    const apiKey = `holomesh_sk_${crypto.randomUUID().replace(/-/g, '')}`;
+    const wallet = providedWallet ? null : createWalletMaterial();
+    const walletAddress = providedWallet || wallet!.address;
+    // Snapshot surface_tag once at /register — downstream handlers will
+    // always prefer this server-stored value over body.surface_tag. An
+    // agent can self-declare whatever it wants at enrollment (low-risk:
+    // that's just the agent labeling itself), but it cannot retroactively
+    // impersonate another surface via later requests.
+    const registerSurfaceTag =
+      typeof body.surface_tag === 'string'
+        ? (body.surface_tag as string).trim() || undefined
+        : undefined;
+    const agent: RegisteredAgent = {
+      id: `agent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      apiKey,
+      walletAddress,
+      name,
+      x402Verified: isX402Path,
+      surfaceTag: registerSurfaceTag,
+      traits: Array.isArray(body.traits) ? body.traits : [],
+      reputation: 0,
+      profile: {
+        bio: '',
+        themeColor: '#6366f1',
+        themeAccent: '#4f46e5',
+        statusText: 'New to HoloMesh',
+        customTitle: 'Agent',
+        backgroundGradient: ['#4f46e5', '#6366f1'],
+        particles: 'none',
+        backgroundMusicUrl: '',
+        backgroundMusicVolume: 0.5,
+        moodBoardScene: '',
+        moodBoardCompiled: '',
+      },
+      createdAt: new Date().toISOString(),
+    };
+    agentKeyStore.set(apiKey, agent);
+    walletToAgent.set(walletAddress.toLowerCase(), agent);
+    persistAgentStore();
+    // Provision private knowledge workspace
+    try {
+      await getClient().contributeKnowledge([
+        {
           id: `private:${walletAddress}:init`,
           workspaceId: `private:${walletAddress}`,
           type: 'wisdom',
@@ -636,59 +692,65 @@ export async function handleTeamRoutes(
           reuseCount: 0,
           provenanceHash: '',
           createdAt: new Date().toISOString(),
-        } as import('../types').MeshKnowledgeEntry]);
-      } catch {}
-      // SEC-T-Zero 2026-04-22: Log deprecation of legacy server-side wallet path.
-      if (wallet) {
-        console.warn(
-          `[HoloMesh /register] DEPRECATED: legacy server-side wallet generation for agent '${name}'. ` +
+        } as import('../types').MeshKnowledgeEntry,
+      ]);
+    } catch {}
+    // SEC-T-Zero 2026-04-22: Log deprecation of legacy server-side wallet path.
+    if (wallet) {
+      console.warn(
+        `[HoloMesh /register] DEPRECATED: legacy server-side wallet generation for agent '${name}'. ` +
           `Migrate to x402 challenge-verified flow (POST /register/challenge). ` +
           `See SEC-T-Zero. Will be removed in future release.`
-        );
-      }
-      const resp: Record<string, unknown> = {
-        success: true,
-        agent: {
-          id: agent.id,
-          name: agent.name,
-          api_key: agent.apiKey,
-          wallet_address: agent.walletAddress,
-          traits: agent.traits,
-          created_at: agent.createdAt,
-        },
-        private_workspace: {
-          id: `private:${walletAddress}`,
-          query: 'GET /api/holomesh/knowledge/private',
-        },
-      };
-      if (isX402Path) {
-        // x402 path: server never saw private key. Response confirms registration only.
-        resp.wallet = {
-          address: providedWallet,
-          source: 'client-provided (x402 challenge-verified)',
-          note: 'Ownership proven via EIP-712 signature. Server never received or stored private_key.',
-        };
-      } else if (wallet) {
-        // Legacy path: server generated wallet. DEPRECATED.
-        // Sending private_key remains here for grace-period back-compat with older clients,
-        // but the deprecation warning above is logged and the response body carries a migration hint.
-        resp.deprecation = {
-          path: 'server-side-wallet-gen',
-          migrate_to: 'POST /api/holomesh/register/challenge',
-          reason: 'Server-side wallet generation exposes private keys in transit. See SEC-T-Zero 2026-04-22.',
-        };
-        resp.wallet = {
-          private_key: wallet.privateKey,
-          address: wallet.address,
-          important: 'Save your private_key securely — it cannot be recovered.',
-          deprecated: 'Server-side wallet generation is deprecated. Use x402 challenge-verified registration (POST /register/challenge). See SEC-T-Zero.',
-        };
-      } else {
-        resp.wallet = { note: 'Using existing wallet. No private_key generated.', address: providedWallet };
-      }
-      json(res, 201, resp);
-      return true;
+      );
     }
+    const resp: Record<string, unknown> = {
+      success: true,
+      agent: {
+        id: agent.id,
+        name: agent.name,
+        api_key: agent.apiKey,
+        wallet_address: agent.walletAddress,
+        traits: agent.traits,
+        created_at: agent.createdAt,
+      },
+      private_workspace: {
+        id: `private:${walletAddress}`,
+        query: 'GET /api/holomesh/knowledge/private',
+      },
+    };
+    if (isX402Path) {
+      // x402 path: server never saw private key. Response confirms registration only.
+      resp.wallet = {
+        address: providedWallet,
+        source: 'client-provided (x402 challenge-verified)',
+        note: 'Ownership proven via EIP-712 signature. Server never received or stored private_key.',
+      };
+    } else if (wallet) {
+      // Legacy path: server generated wallet. DEPRECATED.
+      // Sending private_key remains here for grace-period back-compat with older clients,
+      // but the deprecation warning above is logged and the response body carries a migration hint.
+      resp.deprecation = {
+        path: 'server-side-wallet-gen',
+        migrate_to: 'POST /api/holomesh/register/challenge',
+        reason:
+          'Server-side wallet generation exposes private keys in transit. See SEC-T-Zero 2026-04-22.',
+      };
+      resp.wallet = {
+        private_key: wallet.privateKey,
+        address: wallet.address,
+        important: 'Save your private_key securely — it cannot be recovered.',
+        deprecated:
+          'Server-side wallet generation is deprecated. Use x402 challenge-verified registration (POST /register/challenge). See SEC-T-Zero.',
+      };
+    } else {
+      resp.wallet = {
+        note: 'Using existing wallet. No private_key generated.',
+        address: providedWallet,
+      };
+    }
+    json(res, 201, resp);
+    return true;
+  }
 
   // GET /api/holomesh/guilds — Public team directory for discovery/onboarding
   if (pathname === '/api/holomesh/guilds' && method === 'GET') {
@@ -763,17 +825,20 @@ export async function handleTeamRoutes(
       ownerId: caller.id,
       ownerName: caller.name,
       inviteCode,
-      maxSlots: typeof body.max_slots === 'number' && body.max_slots >= 2 && body.max_slots <= 200
-        ? Math.floor(body.max_slots)
-        : 20,
-      members: [{
-        agentId: caller.id,
-        agentName: caller.name,
-        role: 'owner',
-        joinedAt: new Date().toISOString(),
-        walletAddress: caller.walletAddress,
-        x402Verified: caller.x402Verified === true,
-      }],
+      maxSlots:
+        typeof body.max_slots === 'number' && body.max_slots >= 2 && body.max_slots <= 200
+          ? Math.floor(body.max_slots)
+          : 20,
+      members: [
+        {
+          agentId: caller.id,
+          agentName: caller.name,
+          role: 'owner',
+          joinedAt: new Date().toISOString(),
+          walletAddress: caller.walletAddress,
+          x402Verified: caller.x402Verified === true,
+        },
+      ],
       waitlist: [],
       createdAt: new Date().toISOString(),
       taskBoard: [],
@@ -856,7 +921,9 @@ export async function handleTeamRoutes(
     // mutating routes (a follow-up task wires the remaining 4 broadcast
     // sites — kept minimal here to ship the integration proof first).
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -875,10 +942,14 @@ export async function handleTeamRoutes(
     // Server-stored surfaceTag (from /register) takes precedence — body fields
     // are only fallback for legacy agents that registered before surfaceTag
     // was snapshotted on RegisteredAgent.
-    const joinSurfaceTag = caller.surfaceTag
-      ?? (typeof body.surface_tag === 'string' ? (body.surface_tag as string) : undefined)
-      ?? (typeof body.ide_type === 'string' ? (body.ide_type as string) : undefined);
-    const joinType = (caller.surface && caller.surface.includes('hardware')) || caller.ideType === 'hardware' ? 'hardware' : 'agent';
+    const joinSurfaceTag =
+      caller.surfaceTag ??
+      (typeof body.surface_tag === 'string' ? (body.surface_tag as string) : undefined) ??
+      (typeof body.ide_type === 'string' ? (body.ide_type as string) : undefined);
+    const joinType =
+      (caller.surface && caller.surface.includes('hardware')) || caller.ideType === 'hardware'
+        ? 'hardware'
+        : 'agent';
     team.members.push({
       agentId: caller.id,
       agentName: caller.name,
@@ -903,7 +974,7 @@ export async function handleTeamRoutes(
         totalMembers: team.members.length,
         signer: signingCtx.signer,
         signedRequest: signingCtx.signedRequest,
-      }
+      },
     });
 
     json(res, 200, { success: true, role: 'member', members: team.members.length });
@@ -949,9 +1020,12 @@ export async function handleTeamRoutes(
     const scopes = scopedSubset.length > 0 ? scopedSubset : DEFAULT_MOBILE_SCOPES;
 
     const DEFAULT_MOBILE_CAPABILITIES = ['read', 'message'] as const;
-    const requestedCapabilities = normalizeBearerCapabilities(body.capabilities, [...DEFAULT_MOBILE_CAPABILITIES]);
+    const requestedCapabilities = normalizeBearerCapabilities(body.capabilities, [
+      ...DEFAULT_MOBILE_CAPABILITIES,
+    ]);
     const capabilities = requestedCapabilities.filter((c) => c === 'read' || c === 'message');
-    const finalCapabilities = capabilities.length > 0 ? capabilities : [...DEFAULT_MOBILE_CAPABILITIES];
+    const finalCapabilities =
+      capabilities.length > 0 ? capabilities : [...DEFAULT_MOBILE_CAPABILITIES];
 
     // Expiry: default 1h, max 24h, min 1s
     const DEFAULT_TTL_SECONDS = 3600;
@@ -966,7 +1040,8 @@ export async function handleTeamRoutes(
       typeof body.surface_tag === 'string' && (body.surface_tag as string).trim().length > 0
         ? ((body.surface_tag as string).trim() as string)
         : 'mobile';
-    const surface = normalizeBearerSurface(body.surface) ?? normalizeBearerSurface(surfaceTag) ?? 'mobile';
+    const surface =
+      normalizeBearerSurface(body.surface) ?? normalizeBearerSurface(surfaceTag) ?? 'mobile';
 
     const label =
       typeof body.label === 'string' && (body.label as string).trim().length > 0
@@ -1031,13 +1106,13 @@ export async function handleTeamRoutes(
       await fetch('https://absorb.holoscript.net/health').catch(() => {});
     } catch {}
 
-    json(res, 202, { 
-      success: true, 
-      absorb: { 
-        project_path: body.project_path, 
+    json(res, 202, {
+      success: true,
+      absorb: {
+        project_path: body.project_path,
         depth: body.depth,
-        workspace_id: `team:${teamId}`
-      } 
+        workspace_id: `team:${teamId}`,
+      },
     });
     return true;
   }
@@ -1063,7 +1138,7 @@ export async function handleTeamRoutes(
     const body = await parseJsonBody(req);
     const { action, agent_id, role } = body;
 
-    const targetIndex = team.members.findIndex(m => m.agentId === agent_id);
+    const targetIndex = team.members.findIndex((m) => m.agentId === agent_id);
     if (targetIndex === -1 && action !== 'add') {
       json(res, 404, { error: 'Member not found on team' });
       return true;
@@ -1092,22 +1167,25 @@ export async function handleTeamRoutes(
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/presence', '');
     await reloadTeam(teamId);
     const team = teamStore.get(teamId);
-    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
-    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member' });
+      return true;
+    }
     const body = await parseJsonBody(req);
     // caller.surfaceTag (snapshotted at /register) wins over body.surface_tag.
     // Body is only honored when the caller predates this change (no server-
     // stored surfaceTag) and no join-time TeamMember snapshot exists.
-    const declaredSurfaceTag = typeof body.surface_tag === 'string'
-      ? (body.surface_tag as string)
-      : undefined;
+    const declaredSurfaceTag =
+      typeof body.surface_tag === 'string' ? (body.surface_tag as string) : undefined;
     const declaredSurface = normalizePresenceSurface(
       body.surface ?? new URL(url, 'http://localhost').searchParams.get('surface')
     );
     const teamMember = team.members.find((m) => m.agentId === caller.id);
-    const resolvedSurfaceTag = caller.surfaceTag
-      ?? teamMember?.surfaceTag
-      ?? declaredSurfaceTag;
+    const resolvedSurfaceTag = caller.surfaceTag ?? teamMember?.surfaceTag ?? declaredSurfaceTag;
     const declaredStatus = (body.status as string) || 'active';
     // Aliveness fix (task_1777939860298_m9ep, layer b): explicit teardown.
     // When the Stop hook posts {status:'offline'} the server must DELETE the
@@ -1159,8 +1237,14 @@ export async function handleTeamRoutes(
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/presence', '');
     const team = teamStore.get(teamId);
-    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
-    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member' });
+      return true;
+    }
     pruneStalePresence(teamId);
     const presenceMap = teamPresenceStore.get(teamId);
     const online = presenceMap ? Array.from(presenceMap.values()) : [];
@@ -1175,10 +1259,19 @@ export async function handleTeamRoutes(
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/message', '');
     await reloadTeam(teamId);
     const team = teamStore.get(teamId);
-    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
-    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member' });
+      return true;
+    }
     const rawMessageBody = await parseJsonBody(req);
-    const { effectiveBody: messageBody, ctx: messageSigningCtx } = await extractAndVerifySigning(rawMessageBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody: messageBody, ctx: messageSigningCtx } = await extractAndVerifySigning(
+      rawMessageBody,
+      { bypassSigning: caller?.isFounder ?? false }
+    );
     if (!messageSigningCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: messageSigningCtx.signingReason });
       return true;
@@ -1217,8 +1310,15 @@ export async function handleTeamRoutes(
         }
         const counterMember = getTeamMember(team, counterparty)!;
         const request = (negPayload.payload as any)?.request;
-        if (!request || typeof request !== 'object' || !request.toolName || !request.capabilityQuery) {
-          json(res, 400, { error: 'request_quote payload.request must include toolName and capabilityQuery' });
+        if (
+          !request ||
+          typeof request !== 'object' ||
+          !request.toolName ||
+          !request.capabilityQuery
+        ) {
+          json(res, 400, {
+            error: 'request_quote payload.request must include toolName and capabilityQuery',
+          });
           return true;
         }
         const negotiation = createNegotiation({
@@ -1316,10 +1416,9 @@ export async function handleTeamRoutes(
       teamId,
       fromAgentId: caller.id,
       fromAgentName: caller.name,
-      content: (body.content as string) ??
-        (negotiationOut
-          ? `[negotiation] ${negotiationOut.action} -> ${negotiationOut.state}`
-          : ''),
+      content:
+        (body.content as string) ??
+        (negotiationOut ? `[negotiation] ${negotiationOut.action} -> ${negotiationOut.state}` : ''),
       messageType: messageType as import('../types').TeamMessage['messageType'],
       createdAt: new Date().toISOString(),
       ...(negotiationOut ? { negotiation: negotiationOut } : {}),
@@ -1339,8 +1438,14 @@ export async function handleTeamRoutes(
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/negotiations', '');
     const team = teamStore.get(teamId);
-    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
-    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member' });
+      return true;
+    }
     const negotiations = listNegotiationsForTeam(teamId);
     json(res, 200, { success: true, negotiations, count: negotiations.length });
     return true;
@@ -1355,8 +1460,14 @@ export async function handleTeamRoutes(
       const teamId = negMatch[1];
       const negotiationId = negMatch[2];
       const team = teamStore.get(teamId);
-      if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
-      if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+      if (!team) {
+        json(res, 404, { error: 'Team not found' });
+        return true;
+      }
+      if (!getTeamMember(team, caller.id)) {
+        json(res, 403, { error: 'Not a member' });
+        return true;
+      }
       const negotiation = getNegotiation(negotiationId);
       if (!negotiation || negotiation.teamId !== teamId) {
         json(res, 404, { error: 'Negotiation not found' });
@@ -1382,8 +1493,14 @@ export async function handleTeamRoutes(
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/messages', '');
     const team = teamStore.get(teamId);
-    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
-    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member' });
+      return true;
+    }
     const searchParams = new URL(url, 'http://localhost').searchParams;
     const limit = parseInt(searchParams.get('limit') || '50', 10) || 50;
     const messages = (teamMessageStore.get(teamId) || []).slice(-limit);
@@ -1398,15 +1515,25 @@ export async function handleTeamRoutes(
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/knowledge', '');
     await reloadTeam(teamId);
     const team = teamStore.get(teamId);
-    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
     const membership = getTeamMember(team, caller.id);
-    if (!membership) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!membership) {
+      json(res, 403, { error: 'Not a member' });
+      return true;
+    }
     if (!hasTeamPermission(team, caller.id, 'messages:write')) {
-      json(res, 403, { error: 'Insufficient permissions' }); return true;
+      json(res, 403, { error: 'Insufficient permissions' });
+      return true;
     }
     const body = await parseJsonBody(req);
     const entries = Array.isArray(body.entries) ? (body.entries as MeshKnowledgeEntry[]) : [];
-    if (entries.length === 0) { json(res, 400, { error: 'entries required' }); return true; }
+    if (entries.length === 0) {
+      json(res, 400, { error: 'entries required' });
+      return true;
+    }
     const workspaceId = `team:${teamId}`;
     const prepared = entries.map((e: MeshKnowledgeEntry) => ({
       ...e,
@@ -1433,8 +1560,14 @@ export async function handleTeamRoutes(
     if (!caller) return true;
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/knowledge', '');
     const team = teamStore.get(teamId);
-    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
-    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member' });
+      return true;
+    }
     const workspaceId = `team:${teamId}`;
     // Honor query params `q` (search filter), `limit`, `type`. Previously these
     // were ignored: the handler hardcoded queryKnowledge('', { limit: 200 }) and
@@ -1477,13 +1610,20 @@ export async function handleTeamRoutes(
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/mode', '');
     await reloadTeam(teamId);
     const team = teamStore.get(teamId);
-    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
-    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member' });
+      return true;
+    }
     const body = await parseJsonBody(req);
     const mode = (body.mode as string) || 'build';
-    const reason = typeof (body as { reason?: unknown }).reason === 'string'
-      ? String((body as { reason?: string }).reason)
-      : undefined;
+    const reason =
+      typeof (body as { reason?: unknown }).reason === 'string'
+        ? String((body as { reason?: string }).reason)
+        : undefined;
     const { changed } = recordTeamModeChange({
       teamId,
       team,
@@ -1533,7 +1673,9 @@ export async function handleTeamRoutes(
     }
     const isOwner = team.ownerId === caller.id;
     if (!isOwner && !caller.isFounder) {
-      json(res, 403, { error: 'Forbidden: only the team owner or a founder may mutate team config.' });
+      json(res, 403, {
+        error: 'Forbidden: only the team owner or a founder may mutate team config.',
+      });
       return true;
     }
     const body = (await parseJsonBody(req)) as { max_slots?: unknown } | null;
@@ -1544,7 +1686,13 @@ export async function handleTeamRoutes(
     const changes: Record<string, unknown> = {};
     if (body.max_slots !== undefined) {
       const ms = body.max_slots;
-      if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < 2 || ms > 200 || Math.floor(ms) !== ms) {
+      if (
+        typeof ms !== 'number' ||
+        !Number.isFinite(ms) ||
+        ms < 2 ||
+        ms > 200 ||
+        Math.floor(ms) !== ms
+      ) {
         json(res, 400, { error: 'max_slots must be an integer in [2, 200]' });
         return true;
       }
@@ -1565,7 +1713,12 @@ export async function handleTeamRoutes(
     persistTeamStore();
     json(res, 200, {
       success: true,
-      team: { id: team.id, name: team.name, maxSlots: team.maxSlots, memberCount: team.members.length },
+      team: {
+        id: team.id,
+        name: team.name,
+        maxSlots: team.maxSlots,
+        memberCount: team.members.length,
+      },
       changes,
     });
     return true;
@@ -1623,8 +1776,14 @@ export async function handleTeamRoutes(
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/board/scout', '');
     await reloadTeam(teamId);
     const team = teamStore.get(teamId);
-    if (!team) { json(res, 404, { error: 'Team not found' }); return true; }
-    if (!getTeamMember(team, caller.id)) { json(res, 403, { error: 'Not a member' }); return true; }
+    if (!team) {
+      json(res, 404, { error: 'Team not found' });
+      return true;
+    }
+    if (!getTeamMember(team, caller.id)) {
+      json(res, 403, { error: 'Not a member' });
+      return true;
+    }
     const body = await parseJsonBody(req);
     const todoContent = body.todo_content as string | undefined;
     const tasks: TeamTask[] = [];
@@ -1633,7 +1792,8 @@ export async function handleTeamRoutes(
       // Parse "file:line: // TODO: text" or "file:line: // FIXME: text"
       // Skip the scanner's own implementation files, code-gen templates,
       // and test/spec files to prevent self-derivation.
-      const SCOUT_SKIP_RE = /\b(?:team-routes|board-routes|refactor-codegen-tools)\.ts[:#]|(?:__tests__[/\\]|\.test\.ts[:#]|\.spec\.ts[:#])/;
+      const SCOUT_SKIP_RE =
+        /\b(?:team-routes|board-routes|refactor-codegen-tools)\.ts[:#]|(?:__tests__[/\\]|\.test\.ts[:#]|\.spec\.ts[:#])/;
       const lines = todoContent.split('\n').filter(Boolean);
       for (const line of lines) {
         if (SCOUT_SKIP_RE.test(line)) continue;
@@ -1660,7 +1820,8 @@ export async function handleTeamRoutes(
       tasks.push({
         id: taskId,
         title: 'Run /room scout to scan TODO markers',
-        description: 'Use POST /team/:id/board/scout with todo_content to harvest TODO/FIXME annotations into the task board.\n\n## Done when:\n- Scout output is posted with verification evidence before the task is marked done.',
+        description:
+          'Use POST /team/:id/board/scout with todo_content to harvest TODO/FIXME annotations into the task board.\n\n## Done when:\n- Scout output is posted with verification evidence before the task is marked done.',
         source: 'scout:hint',
         status: 'open',
         createdAt: new Date().toISOString(),
@@ -1694,14 +1855,19 @@ export async function handleTeamRoutes(
     }
 
     const rawDmBody = await parseJsonBody(req);
-    const { effectiveBody: dmBody, ctx: dmSigningCtx } = await extractAndVerifySigning(rawDmBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody: dmBody, ctx: dmSigningCtx } = await extractAndVerifySigning(rawDmBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!dmSigningCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: dmSigningCtx.signingReason });
       return true;
     }
     const body: any = dmBody;
     const recipients = Array.isArray(body.recipients)
-      ? (body.recipients as unknown[]).filter((r): r is string => typeof r === 'string').map((r) => r.trim()).filter(Boolean)
+      ? (body.recipients as unknown[])
+          .filter((r): r is string => typeof r === 'string')
+          .map((r) => r.trim())
+          .filter(Boolean)
       : ['bishoptheandroid', 'Hazel_OC', 'Starfish'];
     const dryRun = body.dryRun !== false;
     const objective =
@@ -1757,11 +1923,17 @@ export async function handleTeamRoutes(
 
   // POST /api/holomesh/team/:id/moltbook/daemon/activate
   // Records daemon cadence config (default every 6-8h) and returns runtime command hints.
-  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/moltbook\/daemon\/activate$/) && method === 'POST') {
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/moltbook\/daemon\/activate$/) &&
+    method === 'POST'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const teamId = extractParam(url, '/api/holomesh/team/').replace('/moltbook/daemon/activate', '');
+    const teamId = extractParam(url, '/api/holomesh/team/').replace(
+      '/moltbook/daemon/activate',
+      ''
+    );
     await reloadTeam(teamId);
     const team = teamStore.get(teamId);
     if (!team) {
@@ -1780,7 +1952,7 @@ export async function handleTeamRoutes(
     const body = await parseJsonBody(req);
     const minHours = Math.max(1, Math.min(24, parseInt(String(body.minHours ?? 6), 10)));
     const maxHours = Math.max(minHours, Math.min(24, parseInt(String(body.maxHours ?? 8), 10)));
-    const agentName = ((body.agentName as string | undefined)?.trim() || 'copilot');
+    const agentName = (body.agentName as string | undefined)?.trim() || 'copilot';
 
     if (!team.roomConfig) team.roomConfig = {};
     team.roomConfig.moltbookDaemon = {
@@ -1834,7 +2006,10 @@ export async function handleTeamRoutes(
     }
 
     const rawRecruitBody = await parseJsonBody(req);
-    const { effectiveBody: recruitBody, ctx: recruitSigningCtx } = await extractAndVerifySigning(rawRecruitBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody: recruitBody, ctx: recruitSigningCtx } = await extractAndVerifySigning(
+      rawRecruitBody,
+      { bypassSigning: caller?.isFounder ?? false }
+    );
     if (!recruitSigningCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: recruitSigningCtx.signingReason });
       return true;
@@ -1842,7 +2017,10 @@ export async function handleTeamRoutes(
     const body: any = recruitBody;
     const candidateName = (body.candidateName as string | undefined)?.trim();
     const exchanges = Array.isArray(body.exchanges)
-      ? (body.exchanges as unknown[]).filter((x): x is string => typeof x === 'string').map((s) => s.trim()).filter(Boolean)
+      ? (body.exchanges as unknown[])
+          .filter((x): x is string => typeof x === 'string')
+          .map((s) => s.trim())
+          .filter(Boolean)
       : [];
     const exchangeCount = Number(body.exchangeCount ?? exchanges.length);
 
@@ -1867,11 +2045,13 @@ export async function handleTeamRoutes(
       },
       {
         step: 'Starter contribution',
-        guidance: 'Ask for one wisdom/pattern/gotcha entry based on their recent Moltbook exchange arc.',
+        guidance:
+          'Ask for one wisdom/pattern/gotcha entry based on their recent Moltbook exchange arc.',
       },
       {
         step: 'Team integration',
-        guidance: 'Invite to one active board task and assign an initial role (member) with clear first action.',
+        guidance:
+          'Invite to one active board task and assign an initial role (member) with clear first action.',
       },
     ];
 

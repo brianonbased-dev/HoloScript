@@ -87,7 +87,14 @@ export function AssetLoadingScreen({ runtime, hideWhenIdle = true }: AssetLoadin
           style={{ marginBottom: 6 }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+            <span
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: 200,
+              }}
+            >
               {s.url}
             </span>
             <span style={{ color: '#64748b' }}>

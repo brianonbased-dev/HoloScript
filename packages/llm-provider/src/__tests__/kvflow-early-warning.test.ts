@@ -12,15 +12,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  KVFlowCarouselDetector,
-  checkCarouselEarlyWarning,
-} from '../kvflow/KVFlowEarlyWarning';
-import type {
-  KVFlowTelemetry,
-  KVFlowScope,
-  StepNodeId,
-} from '../kvflow/types';
+import { KVFlowCarouselDetector, checkCarouselEarlyWarning } from '../kvflow/KVFlowEarlyWarning';
+import type { KVFlowTelemetry, KVFlowScope, StepNodeId } from '../kvflow/types';
 
 // =============================================================================
 // Test Fixtures
@@ -211,10 +204,7 @@ describe('KVFlowCarouselDetector carousel patterns', () => {
     const detector = new KVFlowCarouselDetector({ minSampleSize: 5 });
 
     // Only 2 events — below minSampleSize
-    const telemetry: KVFlowTelemetry[] = [
-      makeHit('claude:0'),
-      makeMiss('claude:0'),
-    ];
+    const telemetry: KVFlowTelemetry[] = [makeHit('claude:0'), makeMiss('claude:0')];
 
     const report = detector.checkCarouselEarlyWarning(telemetry, {
       brainEntries: [],
@@ -257,9 +247,9 @@ describe('KVFlowCarouselDetector prefetch effectiveness', () => {
 
     // Prefetch for gemini's brain completed before it was needed
     const telemetry: KVFlowTelemetry[] = [
-      makePrefetch('gemini:0'),  // Prefetched gemini's KV
-      makeHit('gemini:0'),       // Hit because prefetch loaded it
-      makeMiss('claude:0'),      // Claude had a miss (no prefetch)
+      makePrefetch('gemini:0'), // Prefetched gemini's KV
+      makeHit('gemini:0'), // Hit because prefetch loaded it
+      makeMiss('claude:0'), // Claude had a miss (no prefetch)
     ];
 
     const report = detector.checkCarouselEarlyWarning(telemetry, {
@@ -278,9 +268,7 @@ describe('KVFlowCarouselDetector prefetch effectiveness', () => {
     const detector = new KVFlowCarouselDetector();
 
     // Claude has a miss with no prefetch = stall observed
-    const telemetry: KVFlowTelemetry[] = [
-      makeMiss('claude:0'),
-    ];
+    const telemetry: KVFlowTelemetry[] = [makeMiss('claude:0')];
 
     const report = detector.checkCarouselEarlyWarning(telemetry, {
       brainEntries: [],
@@ -297,7 +285,7 @@ describe('KVFlowCarouselDetector prefetch effectiveness', () => {
     const telemetry: KVFlowTelemetry[] = [
       makePrefetch('gemini:0'),
       makePrefetch('copilot:0'),
-      makeMiss('claude:0'),  // Only 1 miss
+      makeMiss('claude:0'), // Only 1 miss
     ];
 
     const report = detector.checkCarouselEarlyWarning(telemetry, {
@@ -419,10 +407,7 @@ describe('KVFlowCarouselDetector overall metrics', () => {
   });
 
   it('convenience function checkCarouselEarlyWarning matches instance method', () => {
-    const telemetry: KVFlowTelemetry[] = [
-      makeHit('claude:0'),
-      makeMiss('claude:0'),
-    ];
+    const telemetry: KVFlowTelemetry[] = [makeHit('claude:0'), makeMiss('claude:0')];
 
     const report = checkCarouselEarlyWarning(telemetry, {
       brainEntries: [],
@@ -457,10 +442,7 @@ describe('KVFlowCarouselDetector status line', () => {
   it('reports at-risk when hit rate is low', () => {
     const detector = new KVFlowCarouselDetector({ minSampleSize: 2 });
 
-    const telemetry: KVFlowTelemetry[] = [
-      makeMiss('claude:0'),
-      makeMiss('claude:0'),
-    ];
+    const telemetry: KVFlowTelemetry[] = [makeMiss('claude:0'), makeMiss('claude:0')];
 
     const report = detector.checkCarouselEarlyWarning(telemetry, {
       brainEntries: [],

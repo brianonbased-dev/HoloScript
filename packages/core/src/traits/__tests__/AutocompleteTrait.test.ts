@@ -48,9 +48,15 @@ describe('AutocompleteTrait — onEvent', () => {
   it('ac:add_term appends a term and emits ac:term_added', () => {
     const node = makeNode();
     autocompleteHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    autocompleteHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'ac:add_term', term: 'hello',
-    } as never);
+    autocompleteHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'ac:add_term',
+        term: 'hello',
+      } as never
+    );
     const state = node.__acState as { terms: string[] };
     expect(state.terms).toContain('hello');
     expect(node.emit).toHaveBeenCalledWith('ac:term_added', { term: 'hello', total: 1 });
@@ -60,30 +66,57 @@ describe('AutocompleteTrait — onEvent', () => {
     const node = makeNode();
     autocompleteHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     ['apple', 'application', 'apex', 'banana'].forEach((term) => {
-      autocompleteHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-        type: 'ac:add_term', term,
-      } as never);
+      autocompleteHandler.onEvent!(
+        node as never,
+        defaultConfig,
+        makeCtx(node) as never,
+        {
+          type: 'ac:add_term',
+          term,
+        } as never
+      );
     });
     node.emit.mockClear();
-    autocompleteHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'ac:suggest', query: 'ap',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('ac:suggestions', expect.objectContaining({
-      query: 'ap',
-      suggestions: expect.arrayContaining(['apple', 'application', 'apex']),
-    }));
+    autocompleteHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'ac:suggest',
+        query: 'ap',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'ac:suggestions',
+      expect.objectContaining({
+        query: 'ap',
+        suggestions: expect.arrayContaining(['apple', 'application', 'apex']),
+      })
+    );
   });
 
   it('ac:suggest returns empty for query shorter than min_chars', () => {
     const node = makeNode();
     autocompleteHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    autocompleteHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'ac:add_term', term: 'abc',
-    } as never);
+    autocompleteHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'ac:add_term',
+        term: 'abc',
+      } as never
+    );
     node.emit.mockClear();
-    autocompleteHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'ac:suggest', query: 'a',
-    } as never);
+    autocompleteHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'ac:suggest',
+        query: 'a',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('ac:suggestions', { suggestions: [] });
   });
 
@@ -92,14 +125,26 @@ describe('AutocompleteTrait — onEvent', () => {
     const cfg = { max_suggestions: 3, min_chars: 1 };
     autocompleteHandler.onAttach!(node as never, cfg, makeCtx(node) as never);
     ['aa', 'ab', 'ac', 'ad', 'ae'].forEach((term) => {
-      autocompleteHandler.onEvent!(node as never, cfg, makeCtx(node) as never, {
-        type: 'ac:add_term', term,
-      } as never);
+      autocompleteHandler.onEvent!(
+        node as never,
+        cfg,
+        makeCtx(node) as never,
+        {
+          type: 'ac:add_term',
+          term,
+        } as never
+      );
     });
     node.emit.mockClear();
-    autocompleteHandler.onEvent!(node as never, cfg, makeCtx(node) as never, {
-      type: 'ac:suggest', query: 'a',
-    } as never);
+    autocompleteHandler.onEvent!(
+      node as never,
+      cfg,
+      makeCtx(node) as never,
+      {
+        type: 'ac:suggest',
+        query: 'a',
+      } as never
+    );
     const call = node.emit.mock.calls.find((c) => c[0] === 'ac:suggestions');
     expect((call![1] as { suggestions: string[] }).suggestions).toHaveLength(3);
   });
@@ -107,13 +152,25 @@ describe('AutocompleteTrait — onEvent', () => {
   it('ac:suggest is case-insensitive', () => {
     const node = makeNode();
     autocompleteHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    autocompleteHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'ac:add_term', term: 'TypeScript',
-    } as never);
+    autocompleteHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'ac:add_term',
+        term: 'TypeScript',
+      } as never
+    );
     node.emit.mockClear();
-    autocompleteHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'ac:suggest', query: 'ty',
-    } as never);
+    autocompleteHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'ac:suggest',
+        query: 'ty',
+      } as never
+    );
     const call = node.emit.mock.calls.find((c) => c[0] === 'ac:suggestions');
     expect((call![1] as { suggestions: string[] }).suggestions).toContain('TypeScript');
   });

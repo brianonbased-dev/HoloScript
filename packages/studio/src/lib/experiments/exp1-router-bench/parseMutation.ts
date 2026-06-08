@@ -23,11 +23,7 @@ export function parseMutation(raw: string): SceneMutation | null {
   if (!obj) return null;
 
   const tool =
-    typeof obj.tool === 'string'
-      ? obj.tool
-      : typeof obj.name === 'string'
-        ? obj.name
-        : null;
+    typeof obj.tool === 'string' ? obj.tool : typeof obj.name === 'string' ? obj.name : null;
   if (!tool) return null;
 
   const input =

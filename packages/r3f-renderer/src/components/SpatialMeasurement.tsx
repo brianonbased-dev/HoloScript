@@ -74,42 +74,49 @@ export function SpatialMeasurement({
   const [hoverPos, setHoverPos] = useState<[number, number, number] | null>(null);
   const measureIdRef = useRef(0);
 
-  const handleClick = useCallback((e: ThreeEvent<MouseEvent>) => {
-    if (!active) return;
-    e.stopPropagation();
+  const handleClick = useCallback(
+    (e: ThreeEvent<MouseEvent>) => {
+      if (!active) return;
+      e.stopPropagation();
 
-    const pos: [number, number, number] = [e.point.x, e.point.y, e.point.z];
-    const value = probeField(pos, scalarField, gridDims, domainSize);
+      const pos: [number, number, number] = [e.point.x, e.point.y, e.point.z];
+      const value = probeField(pos, scalarField, gridDims, domainSize);
 
-    const point: MeasurementPoint = { position: pos, value, fieldName };
+      const point: MeasurementPoint = { position: pos, value, fieldName };
 
-    if (!pointA) {
-      setPointA(point);
-    } else {
-      const dist = Math.sqrt(
-        (pos[0] - pointA.position[0]) ** 2 +
-        (pos[1] - pointA.position[1]) ** 2 +
-        (pos[2] - pointA.position[2]) ** 2,
-      );
+      if (!pointA) {
+        setPointA(point);
+      } else {
+        const dist = Math.sqrt(
+          (pos[0] - pointA.position[0]) ** 2 +
+            (pos[1] - pointA.position[1]) ** 2 +
+            (pos[2] - pointA.position[2]) ** 2
+        );
 
-      const measurement: Measurement = {
-        id: `m-${measureIdRef.current++}`,
-        pointA: pointA,
-        pointB: point,
-        distance: dist,
-        deltaValue: value !== undefined && pointA.value !== undefined ? value - pointA.value : undefined,
-        unit,
-      };
+        const measurement: Measurement = {
+          id: `m-${measureIdRef.current++}`,
+          pointA: pointA,
+          pointB: point,
+          distance: dist,
+          deltaValue:
+            value !== undefined && pointA.value !== undefined ? value - pointA.value : undefined,
+          unit,
+        };
 
-      onMeasure?.(measurement);
-      setPointA(null);
-    }
-  }, [active, pointA, scalarField, gridDims, domainSize, fieldName, unit, onMeasure]);
+        onMeasure?.(measurement);
+        setPointA(null);
+      }
+    },
+    [active, pointA, scalarField, gridDims, domainSize, fieldName, unit, onMeasure]
+  );
 
-  const handlePointerMove = useCallback((e: ThreeEvent<PointerEvent>) => {
-    if (!active) return;
-    setHoverPos([e.point.x, e.point.y, e.point.z]);
-  }, [active]);
+  const handlePointerMove = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      if (!active) return;
+      setHoverPos([e.point.x, e.point.y, e.point.z]);
+    },
+    [active]
+  );
 
   if (!active && measurements.length === 0) return null;
 
@@ -117,11 +124,7 @@ export function SpatialMeasurement({
     <group>
       {/* Click target — invisible plane covering the scene */}
       {active && (
-        <mesh
-          visible={false}
-          onClick={handleClick}
-          onPointerMove={handlePointerMove}
-        >
+        <mesh visible={false} onClick={handleClick} onPointerMove={handlePointerMove}>
           <planeGeometry args={[1000, 1000]} />
           <meshBasicMaterial transparent opacity={0} />
         </mesh>
@@ -150,12 +153,7 @@ export function SpatialMeasurement({
 
       {/* Preview line to cursor */}
       {pointA && hoverPos && active && (
-        <DimensionLine
-          from={pointA.position}
-          to={hoverPos}
-          color={color}
-          opacity={0.4}
-        />
+        <DimensionLine from={pointA.position} to={hoverPos} color={color} opacity={0.4} />
       )}
 
       {/* Completed measurements */}
@@ -168,16 +166,18 @@ export function SpatialMeasurement({
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function DimensionLine({ from, to, color, opacity = 1 }: {
+function DimensionLine({
+  from,
+  to,
+  color,
+  opacity = 1,
+}: {
   from: [number, number, number];
   to: [number, number, number];
   color: string;
   opacity?: number;
 }) {
-  const points = useMemo(() => [
-    new THREE.Vector3(...from),
-    new THREE.Vector3(...to),
-  ], [from, to]);
+  const points = useMemo(() => [new THREE.Vector3(...from), new THREE.Vector3(...to)], [from, to]);
 
   const lineObj = useMemo(() => {
     const geo = new THREE.BufferGeometry().setFromPoints(points);
@@ -188,7 +188,11 @@ function DimensionLine({ from, to, color, opacity = 1 }: {
   return <primitive object={lineObj} />;
 }
 
-function CompletedMeasurement({ measurement: m, color, fieldUnit }: {
+function CompletedMeasurement({
+  measurement: m,
+  color,
+  fieldUnit,
+}: {
   measurement: Measurement;
   color: string;
   fieldUnit: string;
@@ -199,11 +203,12 @@ function CompletedMeasurement({ measurement: m, color, fieldUnit }: {
     (m.pointA.position[2] + m.pointB.position[2]) / 2,
   ];
 
-  const distLabel = m.distance < 0.01
-    ? `${(m.distance * 1000).toFixed(2)} mm`
-    : m.distance < 1
-      ? `${(m.distance * 100).toFixed(1)} cm`
-      : `${m.distance.toFixed(3)} ${m.unit ?? 'm'}`;
+  const distLabel =
+    m.distance < 0.01
+      ? `${(m.distance * 1000).toFixed(2)} mm`
+      : m.distance < 1
+        ? `${(m.distance * 100).toFixed(1)} cm`
+        : `${m.distance.toFixed(3)} ${m.unit ?? 'm'}`;
 
   return (
     <group>
@@ -281,7 +286,10 @@ export interface SpatialAnnotationsProps {
 function PinLine({ color }: { color: string }) {
   const lineObj = useMemo(() => {
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([0, 0, 0, 0, -0.05, 0]), 3));
+    geo.setAttribute(
+      'position',
+      new THREE.BufferAttribute(new Float32Array([0, 0, 0, 0, -0.05, 0]), 3)
+    );
     return new THREE.Line(geo, new THREE.LineBasicMaterial({ color }));
   }, [color]);
   return <primitive object={lineObj} />;
@@ -312,12 +320,7 @@ export function SpatialAnnotations({ annotations, onRemove }: SpatialAnnotations
           </Text>
           {/* Value readout */}
           {a.value !== undefined && (
-            <Text
-              position={[0, 0.015, 0]}
-              fontSize={0.015}
-              color="#ffffff"
-              anchorX="center"
-            >
+            <Text position={[0, 0.015, 0]} fontSize={0.015} color="#ffffff" anchorX="center">
               {formatValue(a.value, a.fieldUnit ?? '')}
             </Text>
           )}
@@ -368,7 +371,10 @@ export function CoordinateOverlay({
 // ── Coordinate Transforms ────────────────────────────────────────────────────
 
 /** Engineering coordinates (meters with mm/cm display) */
-export function engineeringTransform(pos: [number, number, number]): { label: string; coords: string } {
+export function engineeringTransform(pos: [number, number, number]): {
+  label: string;
+  coords: string;
+} {
   return {
     label: 'World',
     coords: `(${(pos[0] * 1000).toFixed(1)}mm, ${(pos[1] * 1000).toFixed(1)}mm, ${(pos[2] * 1000).toFixed(1)}mm)`,
@@ -377,7 +383,9 @@ export function engineeringTransform(pos: [number, number, number]): { label: st
 
 /** Astronomical WCS transform (RA/Dec/Freq from FITS header) */
 export function astronomicalTransform(
-  crpix: number[], crval: number[], cdelt: number[],
+  crpix: number[],
+  crval: number[],
+  cdelt: number[]
 ): (pos: [number, number, number]) => { label: string; coords: string } {
   return (pos) => {
     const ra = crval[0] + (pos[0] - crpix[0]) * cdelt[0];
@@ -392,9 +400,10 @@ export function astronomicalTransform(
 }
 
 /** Geophysical transform (depth + distance) */
-export function geophysicalTransform(
-  pos: [number, number, number],
-): { label: string; coords: string } {
+export function geophysicalTransform(pos: [number, number, number]): {
+  label: string;
+  coords: string;
+} {
   return {
     label: 'Geo',
     coords: `Offset: ${pos[0].toFixed(1)}m, Depth: ${pos[2].toFixed(1)}m`,
@@ -407,7 +416,7 @@ function probeField(
   pos: [number, number, number],
   field?: Float32Array,
   dims?: [number, number, number],
-  domain?: [number, number, number],
+  domain?: [number, number, number]
 ): number | undefined {
   if (!field || !dims || !domain) return undefined;
 

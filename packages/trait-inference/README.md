@@ -99,14 +99,15 @@ matching public key registered on the Vast.ai account; requires
 ---
 
 ## Cost estimate (per
+
 `ai-ecosystem/research/paper-19-trait-inference/README.md` Phase 2-4 task table + GPU-claim ticket `_mrr3`)
 
-| Job | GPU | Hours | Cost |
-|---|---|---:|---:|
-| Smoke test | RTX 4090 | 0.1 | $0.03 |
-| Baselines (CPU-bound) | RTX 4090 | 0.2 | $0.06 |
-| Single training cell | RTX 4090 | ~6 | ~$1.80 |
-| Full sweep (30 cells × N=5 reseed = 150 runs) | RTX 4090 | ~900 (parallel: 30 GPUs × 30hr) | ~$240 |
+| Job                                           | GPU      |                           Hours |   Cost |
+| --------------------------------------------- | -------- | ------------------------------: | -----: |
+| Smoke test                                    | RTX 4090 |                             0.1 |  $0.03 |
+| Baselines (CPU-bound)                         | RTX 4090 |                             0.2 |  $0.06 |
+| Single training cell                          | RTX 4090 |                              ~6 | ~$1.80 |
+| Full sweep (30 cells × N=5 reseed = 150 runs) | RTX 4090 | ~900 (parallel: 30 GPUs × 30hr) |  ~$240 |
 
 (A100 estimates are roughly 4-8× higher; A100 supply is also tighter.
 4090 is sufficient for ≤1B-param decoder per spec §3.1.)
@@ -115,27 +116,28 @@ matching public key registered on the Vast.ai account; requires
 
 ## Per-spec deliverable map
 
-| Spec section | Module | Status |
-|---|---|---|
-| §1.1 Sourcing 3-source mix | `dataset.py` Pair + Source | done (loader; data construction is Phase 2 task) |
-| §1.2 Schema | `dataset.py` Pair dataclass | done |
-| §1.3 Splits (train/val/indist/novel) | `dataset.py` make_splits | done |
-| §1.4 Audit protocol | `dataset.py` audit + AuditReport | done |
-| §2.1 Keyword baseline | `baselines.py` KeywordBaseline | done |
-| §2.2 TF-IDF + LogReg baseline | `baselines.py` TfidfLogregBaseline | done |
-| §2.3 Brittney few-shot baseline | `baselines.py` BrittneyFewShotBaseline | stub (real impl needs Brittney API integration) |
-| §3.1 Constrained-decoder model | `model/` (Phase 2 commit) | pending |
-| §3.2 Conditioning fields | `model/` (Phase 2 commit) | pending |
-| §3.3 Hyperparameter sweep | `model/sweep.py` (Phase 2 commit) | pending |
-| §4.1 Metric definitions | `metrics.py` f1_macro, f1_micro, exact_match_rate, bootstrap_ci | done |
-| §4.2 Statistical protocol | `metrics.py` bootstrap_ci, evaluate_headline | done |
-| §4.3 Ablation matrix | `eval/ablations.py` (Phase 2 commit) | pending |
-| §4.4 Required user study | (separate UX-research task) | pending |
-| §4.5 Pre-registration freeze | `ai-ecosystem/research/paper-19-trait-inference/preregistration.md` | FROZEN (do not edit) |
+| Spec section                         | Module                                                              | Status                                           |
+| ------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------ |
+| §1.1 Sourcing 3-source mix           | `dataset.py` Pair + Source                                          | done (loader; data construction is Phase 2 task) |
+| §1.2 Schema                          | `dataset.py` Pair dataclass                                         | done                                             |
+| §1.3 Splits (train/val/indist/novel) | `dataset.py` make_splits                                            | done                                             |
+| §1.4 Audit protocol                  | `dataset.py` audit + AuditReport                                    | done                                             |
+| §2.1 Keyword baseline                | `baselines.py` KeywordBaseline                                      | done                                             |
+| §2.2 TF-IDF + LogReg baseline        | `baselines.py` TfidfLogregBaseline                                  | done                                             |
+| §2.3 Brittney few-shot baseline      | `baselines.py` BrittneyFewShotBaseline                              | stub (real impl needs Brittney API integration)  |
+| §3.1 Constrained-decoder model       | `model/` (Phase 2 commit)                                           | pending                                          |
+| §3.2 Conditioning fields             | `model/` (Phase 2 commit)                                           | pending                                          |
+| §3.3 Hyperparameter sweep            | `model/sweep.py` (Phase 2 commit)                                   | pending                                          |
+| §4.1 Metric definitions              | `metrics.py` f1_macro, f1_micro, exact_match_rate, bootstrap_ci     | done                                             |
+| §4.2 Statistical protocol            | `metrics.py` bootstrap_ci, evaluate_headline                        | done                                             |
+| §4.3 Ablation matrix                 | `eval/ablations.py` (Phase 2 commit)                                | pending                                          |
+| §4.4 Required user study             | (separate UX-research task)                                         | pending                                          |
+| §4.5 Pre-registration freeze         | `ai-ecosystem/research/paper-19-trait-inference/preregistration.md` | FROZEN (do not edit)                             |
 
 ---
 
 ## Anti-pattern guards (binding — inherited from
+
 `compositions/trait-inference-brain.hsplus`)
 
 - **No train-set evaluation.** Headline metric on novel-combination split only.

@@ -105,17 +105,13 @@ export const WaterSurface: React.FC<WaterSurfaceProps> = ({
       const seed = i * 17.3;
       const angleX = ((seed % 7) - 3.5) * 0.08;
       const angleZ = ((seed % 5) - 2.5) * 0.06;
-      const x = (seed % 9 - 4) * 0.55;
+      const x = ((seed % 9) - 4) * 0.55;
       const z = -0.8 + ((seed * 3) % 7) * 0.18;
       const height = 3.2 + (seed % 4) * 0.4;
       const radius = 0.18 + (seed % 6) * 0.04;
 
       rays.push(
-        <mesh
-          key={i}
-          position={[x, height * 0.5 - 0.4, z]}
-          rotation={[angleX, 0, angleZ]}
-        >
+        <mesh key={i} position={[x, height * 0.5 - 0.4, z]} rotation={[angleX, 0, angleZ]}>
           <cylinderGeometry args={[radius * 0.6, radius, height, 5, 1, true]} />
           <meshBasicMaterial
             color="#c8e8ff"
@@ -156,12 +152,7 @@ export const WaterSurface: React.FC<WaterSurfaceProps> = ({
       {/* Subtle surface highlight line (specular) */}
       <mesh position={[0, 0.01, 0]} rotation={[Math.PI * -0.5, 0, 0]}>
         <planeGeometry args={[8.5, 6.5]} />
-        <meshBasicMaterial
-          color="#ffffff"
-          transparent
-          opacity={0.06}
-          side={THREE.DoubleSide}
-        />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.06} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );

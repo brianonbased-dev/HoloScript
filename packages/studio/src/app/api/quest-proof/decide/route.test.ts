@@ -54,12 +54,14 @@ describe('decide POST — founder console decide-all proxy', () => {
   });
 
   it('mutates task state by PATCHing each taskId upstream', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({ success: true, task: { id: 'task_1', status: 'done' } }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ success: true, task: { id: 'task_1', status: 'done' } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
     vi.stubGlobal('fetch', fetchMock);
 
     const POST = await loadPOST();
@@ -85,9 +87,7 @@ describe('decide POST — founder console decide-all proxy', () => {
   it('FAILING-IF-BROKEN: surfaces partial failure when one upstream PATCH errors', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true }), { status: 200 })
-      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true }), { status: 200 }))
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ error: 'signing-rejected' }), { status: 401 })
       );

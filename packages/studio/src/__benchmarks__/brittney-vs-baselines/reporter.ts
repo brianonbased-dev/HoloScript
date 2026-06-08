@@ -55,10 +55,7 @@ export function renderResultsMarkdown(run: BenchmarkRun): string {
     errorOutcomes.length === 0
       ? '_(none)_'
       : errorOutcomes
-          .map(
-            (o) =>
-              `- task=${o.task_id} config=${o.config} trial=${o.trial} → ${o.error}`
-          )
+          .map((o) => `- task=${o.task_id} config=${o.config} trial=${o.trial} → ${o.error}`)
           .join('\n'),
     ``,
   ].join('\n');

@@ -101,7 +101,10 @@ export interface CredibilityDashboardProps {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const LEVEL_CONFIG: Record<CredibilityLevel, { color: string; bg: string; border: string; label: string; description: string }> = {
+const LEVEL_CONFIG: Record<
+  CredibilityLevel,
+  { color: string; bg: string; border: string; label: string; description: string }
+> = {
   0: {
     color: 'text-red-400',
     bg: 'bg-red-500/15',
@@ -208,8 +211,10 @@ function ConvergencePlot({ data }: { data: ConvergenceData }) {
     const padH = rangeH * 0.1;
     const padE = rangeE * 0.1;
 
-    const scaleX = (v: number) => PAD.left + ((v - (minLogH - padH)) / (rangeH + 2 * padH)) * innerW;
-    const scaleY = (v: number) => PAD.top + (1 - (v - (minLogE - padE)) / (rangeE + 2 * padE)) * innerH;
+    const scaleX = (v: number) =>
+      PAD.left + ((v - (minLogH - padH)) / (rangeH + 2 * padH)) * innerW;
+    const scaleY = (v: number) =>
+      PAD.top + (1 - (v - (minLogE - padE)) / (rangeE + 2 * padE)) * innerH;
 
     const svgPoints = points.map((p, i) => ({
       x: scaleX(logH[i]),
@@ -280,14 +285,23 @@ function ConvergencePlot({ data }: { data: ConvergenceData }) {
         {/* Data points */}
         {plotData.svgPoints.map((p, i) => (
           <circle key={i} cx={p.x} cy={p.y} r={3} fill="#3b82f6" stroke="#1e3a5f" strokeWidth={1}>
-            <title>h={p.h.toFixed(4)}, L2={p.e.toExponential(3)}</title>
+            <title>
+              h={p.h.toFixed(4)}, L2={p.e.toExponential(3)}
+            </title>
           </circle>
         ))}
 
         {/* X-axis ticks */}
         {plotData.xTicks.map((t, i) => (
           <g key={`xt-${i}`}>
-            <line x1={t.x} y1={PAD.top + innerH} x2={t.x} y2={PAD.top + innerH + 4} stroke="#6b7280" strokeWidth={0.5} />
+            <line
+              x1={t.x}
+              y1={PAD.top + innerH}
+              x2={t.x}
+              y2={PAD.top + innerH + 4}
+              stroke="#6b7280"
+              strokeWidth={0.5}
+            />
             <text x={t.x} y={PAD.top + innerH + 14} textAnchor="middle" fill="#9ca3af" fontSize={8}>
               {t.label}
             </text>
@@ -297,7 +311,14 @@ function ConvergencePlot({ data }: { data: ConvergenceData }) {
         {/* Y-axis ticks */}
         {plotData.yTicks.map((t, i) => (
           <g key={`yt-${i}`}>
-            <line x1={PAD.left - 4} y1={t.y} x2={PAD.left} y2={t.y} stroke="#6b7280" strokeWidth={0.5} />
+            <line
+              x1={PAD.left - 4}
+              y1={t.y}
+              x2={PAD.left}
+              y2={t.y}
+              stroke="#6b7280"
+              strokeWidth={0.5}
+            />
             <text x={PAD.left - 6} y={t.y + 3} textAnchor="end" fill="#9ca3af" fontSize={8}>
               {t.label}
             </text>
@@ -305,7 +326,13 @@ function ConvergencePlot({ data }: { data: ConvergenceData }) {
         ))}
 
         {/* Axis labels */}
-        <text x={PAD.left + innerW / 2} y={PLOT_H - 2} textAnchor="middle" fill="#9ca3af" fontSize={9}>
+        <text
+          x={PAD.left + innerW / 2}
+          y={PLOT_H - 2}
+          textAnchor="middle"
+          fill="#9ca3af"
+          fontSize={9}
+        >
           Mesh size (h)
         </text>
         <text
@@ -331,9 +358,7 @@ function ConvergencePlot({ data }: { data: ConvergenceData }) {
           {data.richardsonEstimate !== undefined && (
             <span>Richardson: {data.richardsonEstimate.toExponential(4)}</span>
           )}
-          {data.gci !== undefined && (
-            <span>GCI: {(data.gci * 100).toFixed(2)}%</span>
-          )}
+          {data.gci !== undefined && <span>GCI: {(data.gci * 100).toFixed(2)}%</span>}
         </div>
       )}
     </div>
@@ -342,7 +367,13 @@ function ConvergencePlot({ data }: { data: ConvergenceData }) {
 
 // ── Solver Card ──────────────────────────────────────────────────────────────
 
-function SolverCard({ solver, onSelect }: { solver: SolverCredibility; onSelect?: (s: SolverType) => void }) {
+function SolverCard({
+  solver,
+  onSelect,
+}: {
+  solver: SolverCredibility;
+  onSelect?: (s: SolverType) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [showConvergence, setShowConvergence] = useState(false);
   const config = LEVEL_CONFIG[solver.level];
@@ -412,7 +443,9 @@ function SolverCard({ solver, onSelect }: { solver: SolverCredibility; onSelect?
                     <tr key={i} className="border-b border-studio-border/10">
                       <td className="py-1 pr-2 text-studio-text">{b.name}</td>
                       <td className="py-1 pr-2 text-studio-muted">{b.errorMetric}</td>
-                      <td className="py-1 pr-2 text-right font-mono">{b.errorValue.toExponential(3)}</td>
+                      <td className="py-1 pr-2 text-right font-mono">
+                        {b.errorValue.toExponential(3)}
+                      </td>
                       <td className="py-1 pr-2 text-right font-mono text-studio-muted">
                         {b.tolerance.toExponential(3)}
                       </td>
@@ -530,7 +563,9 @@ export function CredibilityDashboard({
           <div className="flex flex-col items-center justify-center py-8 text-studio-muted">
             <Shield className="h-8 w-8 mb-2 opacity-30" />
             <span className="text-[11px]">No solver credibility data available</span>
-            <span className="text-[10px] mt-1">Run verification benchmarks to populate this dashboard</span>
+            <span className="text-[10px] mt-1">
+              Run verification benchmarks to populate this dashboard
+            </span>
           </div>
         ) : (
           solvers.map((solver) => (

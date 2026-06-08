@@ -25,10 +25,7 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-const EXAMPLE_PATH = path.resolve(
-  __dirname,
-  '../../../../../examples/platforms/visionos-app.holo'
-);
+const EXAMPLE_PATH = path.resolve(__dirname, '../../../../../examples/platforms/visionos-app.holo');
 
 describe('VisionOSCompiler — Smoke Suite (CG-005)', () => {
   let source: string;

@@ -75,9 +75,7 @@ export function Step2ProjectSpecifics({
                     >
                       {opt.emoji && <span className="text-sm">{opt.emoji}</span>}
                       <span className="text-[11px] font-medium">{opt.label}</span>
-                      {platforms.has(opt.value) && (
-                        <Check className="h-3 w-3 text-emerald-400" />
-                      )}
+                      {platforms.has(opt.value) && <Check className="h-3 w-3 text-emerald-400" />}
                     </button>
                   ))}
                 </div>

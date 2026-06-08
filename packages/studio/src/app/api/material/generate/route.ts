@@ -212,7 +212,6 @@ async function tryOllamaFallback(fullPrompt: string, model?: string): Promise<st
   }
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

@@ -100,7 +100,7 @@ const CITED_DB: Record<string, CitedMaterial> = {
     },
     provenance: {
       source: 'Incropera 7th ed., Table A.3 (soda-lime glass)',
-      uncertainty: 0.10,
+      uncertainty: 0.1,
       temperatureRange: [temperature(250), temperature(500)],
     },
   },
@@ -114,7 +114,8 @@ const CITED_DB: Record<string, CitedMaterial> = {
       source: 'Incropera 7th ed., Table A.4 (dry air at 300K, 1 atm)',
       uncertainty: 0.02,
       temperatureRange: [temperature(200), temperature(400)],
-      notes: 'Properties at 300K, 1 atm. Highly temperature-dependent — use MaterialProperties for T > 350K.',
+      notes:
+        'Properties at 300K, 1 atm. Highly temperature-dependent — use MaterialProperties for T > 350K.',
     },
   },
   insulation: {
@@ -185,7 +186,7 @@ const CITED_DB: Record<string, CitedMaterial> = {
     },
     provenance: {
       source: 'Engineering Toolbox (PVC pipe); Incropera 7th ed., Table A.3',
-      uncertainty: 0.10,
+      uncertainty: 0.1,
       temperatureRange: [temperature(250), temperature(340)],
       notes: 'PVC Schedule 40. Max service temperature ~60°C (333K).',
     },
@@ -200,7 +201,8 @@ const CITED_DB: Record<string, CitedMaterial> = {
       source: 'NIST Chemistry WebBook, SRD 69 (liquid water at 293K, 1 atm)',
       uncertainty: 0.01,
       temperatureRange: [temperature(273), temperature(373)],
-      notes: 'Liquid water at 20°C. Highly T-dependent — use MaterialProperties for other temperatures.',
+      notes:
+        'Liquid water at 20°C. Highly T-dependent — use MaterialProperties for other temperatures.',
     },
   },
   copper: {
@@ -256,7 +258,7 @@ const CITED_DB: Record<string, CitedMaterial> = {
     },
     provenance: {
       source: 'Incropera 7th ed., Table A.3 (common building brick)',
-      uncertainty: 0.10,
+      uncertainty: 0.1,
       temperatureRange: [temperature(250), temperature(400)],
     },
   },
@@ -268,7 +270,7 @@ const CITED_DB: Record<string, CitedMaterial> = {
     },
     provenance: {
       source: 'de Vries (1963) via Incropera 7th ed., Table A.3',
-      uncertainty: 0.20,
+      uncertainty: 0.2,
       temperatureRange: [temperature(250), temperature(350)],
       notes: 'Dry sandy soil. Highly variable (0.15-2.0) with moisture content.',
     },
@@ -281,7 +283,7 @@ const CITED_DB: Record<string, CitedMaterial> = {
     },
     provenance: {
       source: 'de Vries (1963) via Incropera 7th ed., Table A.3',
-      uncertainty: 0.20,
+      uncertainty: 0.2,
       temperatureRange: [temperature(273), temperature(350)],
       notes: 'Saturated sandy soil. Highly variable with soil type and saturation.',
     },
@@ -297,7 +299,7 @@ const CITED_DB: Record<string, CitedMaterial> = {
     },
     provenance: {
       source: 'Incropera 7th ed., Table A.3; USGS data sheets',
-      uncertainty: 0.10,
+      uncertainty: 0.1,
       temperatureRange: [temperature(250), temperature(600)],
       notes: 'Granite. Yield strength is compressive strength (tensile ~10x lower).',
     },
@@ -326,8 +328,9 @@ export function getMaterial(name: string, sigma: number = 0): SimulationMaterial
   if (cited) {
     const base = cited.properties;
     const factor = 1 + sigma * cited.provenance.uncertainty;
-    const origin = sigma === 0 ? cited.provenance.source : `${cited.provenance.source} (σ=${sigma})`;
-    
+    const origin =
+      sigma === 0 ? cited.provenance.source : `${cited.provenance.source} (σ=${sigma})`;
+
     const mat: SimulationMaterial = {
       ...base,
       conductivity: thermalConductivity(base.conductivity * factor),
@@ -336,18 +339,19 @@ export function getMaterial(name: string, sigma: number = 0): SimulationMaterial
       simulation_origin: origin,
       uncertainty_margin: cited.provenance.uncertainty,
     };
-    
-    if (base.youngs_modulus !== undefined) mat.youngs_modulus = youngsModulus(base.youngs_modulus * factor);
-    if (base.poisson_ratio !== undefined) mat.poisson_ratio = poissonRatio(base.poisson_ratio * factor);
-    if (base.yield_strength !== undefined) mat.yield_strength = yieldStrength(base.yield_strength * factor);
+
+    if (base.youngs_modulus !== undefined)
+      mat.youngs_modulus = youngsModulus(base.youngs_modulus * factor);
+    if (base.poisson_ratio !== undefined)
+      mat.poisson_ratio = poissonRatio(base.poisson_ratio * factor);
+    if (base.yield_strength !== undefined)
+      mat.yield_strength = yieldStrength(base.yield_strength * factor);
     if (base.roughness !== undefined) mat.roughness = roughness(base.roughness * factor);
-    
+
     return mat;
   }
 
-  throw new Error(
-    `Unknown material: "${name}". Available: ${listMaterials().join(', ')}`
-  );
+  throw new Error(`Unknown material: "${name}". Available: ${listMaterials().join(', ')}`);
 }
 
 /**
@@ -363,10 +367,7 @@ export function findMaterial(name: string, sigma: number = 0): SimulationMateria
 /**
  * Register a custom material (overrides built-in if same name).
  */
-export function registerMaterial(
-  name: string,
-  props: SimulationMaterial
-): void {
+export function registerMaterial(name: string, props: SimulationMaterial): void {
   customMaterials.set(name, props);
 }
 
@@ -374,9 +375,7 @@ export function registerMaterial(
  * List all available material names.
  */
 export function listMaterials(): string[] {
-  return [
-    ...new Set([...Object.keys(MATERIAL_DB), ...customMaterials.keys()]),
-  ];
+  return [...new Set([...Object.keys(MATERIAL_DB), ...customMaterials.keys()])];
 }
 
 /**

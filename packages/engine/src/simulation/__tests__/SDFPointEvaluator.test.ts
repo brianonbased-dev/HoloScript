@@ -119,10 +119,10 @@ describe('SDFPointEvaluator', () => {
 
   it('rejects malformed trees before a probe can treat them as evidence', () => {
     expect(() =>
-      evaluateSDFNode({ type: 'csg', operation: 'union', children: [] }, [0, 0, 0]),
+      evaluateSDFNode({ type: 'csg', operation: 'union', children: [] }, [0, 0, 0])
     ).toThrow(/at least two children/);
     expect(() =>
-      evaluateSDFNode({ type: 'primitive', primitive: 'sphere', scale: [1, 0, 1] }, [0, 0, 0]),
+      evaluateSDFNode({ type: 'primitive', primitive: 'sphere', scale: [1, 0, 1] }, [0, 0, 0])
     ).toThrow(/scale entries/);
   });
 });

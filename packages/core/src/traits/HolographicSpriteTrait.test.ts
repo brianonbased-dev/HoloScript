@@ -3,13 +3,18 @@ import { holographicSpriteTraitHandler } from './HolographicSpriteTrait';
 import type { HolographicSpriteConfig } from './HolographicSpriteTrait';
 import type { HSPlusNode } from './TraitTypes';
 
-const createMockNode = (): HSPlusNode => ({
-  __typename: 'HSPlusNode',
-  id: 'hologram-node',
-  userData: { imageSource: { /* mock */ } },
-  emit: vi.fn(),
-  on: vi.fn(),
-} as any);
+const createMockNode = (): HSPlusNode =>
+  ({
+    __typename: 'HSPlusNode',
+    id: 'hologram-node',
+    userData: {
+      imageSource: {
+        /* mock */
+      },
+    },
+    emit: vi.fn(),
+    on: vi.fn(),
+  }) as any;
 
 describe('HolographicSpriteTrait', () => {
   describe('handler properties', () => {
@@ -99,12 +104,7 @@ describe('HolographicSpriteTrait', () => {
 
     it('should emit frame-update through TraitContext in continuous mode', () => {
       const context = { emit: vi.fn() };
-      holographicSpriteTraitHandler.onUpdate(
-        node,
-        { depthMode: 'continuous' },
-        context,
-        0.016
-      );
+      holographicSpriteTraitHandler.onUpdate(node, { depthMode: 'continuous' }, context, 0.016);
       expect(context.emit).toHaveBeenCalledWith(
         'holographic:frame-update',
         expect.objectContaining({ delta: 0.016, nodeId: 'hologram-node' })
@@ -114,27 +114,14 @@ describe('HolographicSpriteTrait', () => {
     it('should skip update if not compositeReady', () => {
       const context = { emit: vi.fn() };
       (node as any).__holographicSpriteState.compositeReady = false;
-      holographicSpriteTraitHandler.onUpdate(
-        node,
-        { depthMode: 'continuous' },
-        context,
-        0.016
-      );
+      holographicSpriteTraitHandler.onUpdate(node, { depthMode: 'continuous' }, context, 0.016);
       expect(context.emit).not.toHaveBeenCalled();
     });
 
     it('should skip on-demand mode updates', () => {
       const context = { emit: vi.fn() };
-      holographicSpriteTraitHandler.onUpdate(
-        node,
-        { depthMode: 'on-demand' },
-        context,
-        0.016
-      );
-      expect(context.emit).not.toHaveBeenCalledWith(
-        'holographic:frame-update',
-        expect.anything()
-      );
+      holographicSpriteTraitHandler.onUpdate(node, { depthMode: 'on-demand' }, context, 0.016);
+      expect(context.emit).not.toHaveBeenCalledWith('holographic:frame-update', expect.anything());
     });
   });
 
@@ -409,10 +396,10 @@ describe('HolographicSpriteTrait', () => {
       const maskListener = (node.on as any).mock.calls.find(
         (c: any[]) => c[0] === 'segment:mask'
       )[1];
-      
+
       const testMask = new Uint8ClampedArray(1024);
       maskListener(testMask);
-      
+
       expect(node.emit).toHaveBeenCalledWith(
         'holographic:mask-updated',
         expect.any(Uint8ClampedArray)
@@ -421,17 +408,12 @@ describe('HolographicSpriteTrait', () => {
 
     it('should handle depth:map events', async () => {
       await holographicSpriteTraitHandler.onAttach(node, {}, undefined);
-      const depthListener = (node.on as any).mock.calls.find(
-        (c: any[]) => c[0] === 'depth:map'
-      )[1];
-      
+      const depthListener = (node.on as any).mock.calls.find((c: any[]) => c[0] === 'depth:map')[1];
+
       const testDepth = new Float32Array(1024);
       depthListener(testDepth);
-      
-      expect(node.emit).toHaveBeenCalledWith(
-        'holographic:displacement',
-        expect.any(Float32Array)
-      );
+
+      expect(node.emit).toHaveBeenCalledWith('holographic:displacement', expect.any(Float32Array));
     });
   });
 

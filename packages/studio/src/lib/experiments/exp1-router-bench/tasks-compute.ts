@@ -151,8 +151,12 @@ export const EXP1_COMPUTE_SUITE: BenchTask[] = [
   {
     id: 'compute-lerp40-11',
     domain: 'contract-bounds',
-    sceneContext: 'simulation_contract: "opacity-lerp-v1"\npane#glass {\n  @material(opacity: 0.1)\n}',
-    contract: { id: 'opacity-lerp-v1', propertyBounds: { material: { opacity: { min: 0.5, max: 5.5 } } } },
+    sceneContext:
+      'simulation_contract: "opacity-lerp-v1"\npane#glass {\n  @material(opacity: 0.1)\n}',
+    contract: {
+      id: 'opacity-lerp-v1',
+      propertyBounds: { material: { opacity: { min: 0.5, max: 5.5 } } },
+    },
     acceptableTools: ['set_trait_property'],
     accept: expectValue(2.5),
     prompt: {
@@ -163,8 +167,12 @@ export const EXP1_COMPUTE_SUITE: BenchTask[] = [
   {
     id: 'compute-third-12',
     domain: 'contract-bounds',
-    sceneContext: 'simulation_contract: "friction-frac-v1"\ntile#floor {\n  @surface(friction: 0.9)\n}',
-    contract: { id: 'friction-frac-v1', propertyBounds: { surface: { friction: { min: 0, max: 9 } } } },
+    sceneContext:
+      'simulation_contract: "friction-frac-v1"\ntile#floor {\n  @surface(friction: 0.9)\n}',
+    contract: {
+      id: 'friction-frac-v1',
+      propertyBounds: { surface: { friction: { min: 0, max: 9 } } },
+    },
     acceptableTools: ['set_trait_property'],
     accept: expectValue(3.0),
     prompt: {

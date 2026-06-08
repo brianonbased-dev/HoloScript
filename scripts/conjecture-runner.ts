@@ -23,12 +23,12 @@ const DEFAULT_SEMANTIC_CORPUS = resolve(
   REPO_ROOT,
   'scripts',
   'conjecture-corpus',
-  'corpus.arxiv.v2.json',
+  'corpus.arxiv.v2.json'
 );
 const SUPPORTED_SUITES = [
   PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
   GENERATED_GEOMETRY_FAMILY_SUITE,
-// RATCHET: NUMERIC_SEQUENCE_SMOKE_SUITE and PROOF_CARRYING_SDF_SUITE removed — never exported
+  // RATCHET: NUMERIC_SEQUENCE_SMOKE_SUITE and PROOF_CARRYING_SDF_SUITE removed — never exported
 ] as const;
 
 interface CliOptions {
@@ -86,7 +86,7 @@ function parseArgs(argv: ReadonlyArray<string>): CliOptions {
           '  --semantic-corpus <path>            Build an advisory index from a corpus JSON entries array',
           '  --semantic-index <path>             Use a prebuilt serialized SemanticCorpusIndex',
           '  --semantic-threshold <0..1>         Override advisory near-duplicate threshold',
-        ].join('\n'),
+        ].join('\n')
       );
       process.exit(0);
     } else {
@@ -118,9 +118,11 @@ function keyPreview(key: string | null): string | null {
 }
 
 function readPriorArtCorpus(path: string): ReadonlyArray<ConjecturePriorArtEntry> {
-  const parsed = JSON.parse(readFileSync(path, 'utf8').replace(/^\uFEFF/u, '')) as {
-    entries?: unknown;
-  } | unknown[];
+  const parsed = JSON.parse(readFileSync(path, 'utf8').replace(/^\uFEFF/u, '')) as
+    | {
+        entries?: unknown;
+      }
+    | unknown[];
   const entries = Array.isArray(parsed) ? parsed : parsed.entries;
   if (!Array.isArray(entries)) {
     throw new Error(`Semantic corpus must be an array or { entries: [...] }: ${path}`);
@@ -160,7 +162,7 @@ async function main(): Promise<void> {
     const wrapped = await attachSemanticAdvisoriesToRunnerResult(
       result,
       await loadSemanticIndex(options),
-      options.semanticThreshold === undefined ? {} : { threshold: options.semanticThreshold },
+      options.semanticThreshold === undefined ? {} : { threshold: options.semanticThreshold }
     );
     output = wrapped;
     semanticAdvisorySummary = wrapped.semanticAdvisorySummary;
@@ -186,8 +188,8 @@ async function main(): Promise<void> {
         out: options.out.replace(/\\/g, '/'),
       },
       null,
-      2,
-    ),
+      2
+    )
   );
 
   if (!result.gate.passed) {

@@ -70,7 +70,8 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'create_object',
-      description: 'Add a new object to the scene. Supports full transform (position, rotation, scale), geometry (primitive, radius, major/minor radius for torus), material (color), light direction, and camera look-at target. Prefer setting all relevant properties in a single call rather than follow-up tools.',
+      description:
+        'Add a new object to the scene. Supports full transform (position, rotation, scale), geometry (primitive, radius, major/minor radius for torus), material (color), light direction, and camera look-at target. Prefer setting all relevant properties in a single call rather than follow-up tools.',
       parameters: {
         type: 'object',
         properties: {
@@ -91,7 +92,8 @@ export const BRITTNEY_TOOLS = [
           },
           color: {
             type: 'string',
-            description: 'Color as CSS color name (e.g. "red", "blue") or hex string (e.g. "#ff0000")',
+            description:
+              'Color as CSS color name (e.g. "red", "blue") or hex string (e.g. "#ff0000")',
           },
           scale: {
             type: 'array',
@@ -164,11 +166,15 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'mount_scenario_panel',
-      description: 'Mount a specific industry scenario panel in the Studio UI dynamically based on the user request. Known scenarios: astro-radio, soc, v6-swarm, etc',
+      description:
+        'Mount a specific industry scenario panel in the Studio UI dynamically based on the user request. Known scenarios: astro-radio, soc, v6-swarm, etc',
       parameters: {
         type: 'object',
         properties: {
-          scenario_id: { type: 'string', description: 'The exact string ID of the scenario to mount.' },
+          scenario_id: {
+            type: 'string',
+            description: 'The exact string ID of the scenario to mount.',
+          },
         },
         required: ['scenario_id'],
       },
@@ -178,7 +184,8 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'delete_object',
-      description: 'Remove an object from the scene by name. Deletes both the store node and the corresponding HoloScript code block.',
+      description:
+        'Remove an object from the scene by name. Deletes both the store node and the corresponding HoloScript code block.',
       parameters: {
         type: 'object',
         properties: {
@@ -192,7 +199,8 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'move_object',
-      description: 'Set the position of an object in the scene. Provide [x, y, z] world-space coordinates.',
+      description:
+        'Set the position of an object in the scene. Provide [x, y, z] world-space coordinates.',
       parameters: {
         type: 'object',
         properties: {
@@ -211,7 +219,8 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'rotate_object',
-      description: 'Set the rotation of an object in the scene. Provide [x, y, z] Euler angles in radians.',
+      description:
+        'Set the rotation of an object in the scene. Provide [x, y, z] Euler angles in radians.',
       parameters: {
         type: 'object',
         properties: {
@@ -264,7 +273,8 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'duplicate_object',
-      description: 'Clone an existing scene object with a new name. Copies all traits, position, rotation, and scale.',
+      description:
+        'Clone an existing scene object with a new name. Copies all traits, position, rotation, and scale.',
       parameters: {
         type: 'object',
         properties: {
@@ -279,7 +289,8 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'list_objects',
-      description: 'Return a list of all objects currently in the scene, including each object\'s name, type, traits, and position.',
+      description:
+        "Return a list of all objects currently in the scene, including each object's name, type, traits, and position.",
       parameters: {
         type: 'object',
         properties: {},
@@ -290,7 +301,8 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'get_object',
-      description: 'Get the full details of a specific object in the scene by name, including type, traits, position, rotation, and scale.',
+      description:
+        'Get the full details of a specific object in the scene by name, including type, traits, position, rotation, and scale.',
       parameters: {
         type: 'object',
         properties: {
@@ -570,7 +582,10 @@ function previewTool(
   };
 }
 
-function createDraftStore(store: StoreActions): { draftStore: StoreActions; draftNodes: SceneNode[] } {
+function createDraftStore(store: StoreActions): {
+  draftStore: StoreActions;
+  draftNodes: SceneNode[];
+} {
   const draftNodes = store.nodes.map(cloneSceneNode);
   let draftCode = store.getCode();
   const draftStore: StoreActions = {
@@ -645,7 +660,8 @@ function summarizeDraftChanges(
     }
   }
   for (const after of afterNodes) {
-    if (!beforeNodes.some((node) => node.id === after.id)) changes.push(`Add object "${after.name}"`);
+    if (!beforeNodes.some((node) => node.id === after.id))
+      changes.push(`Add object "${after.name}"`);
   }
   return changes.length > 0 ? changes : ['No visible scene change'];
 }
@@ -725,7 +741,7 @@ function applyTool(
             success: false,
             message: `Object "${objName}" not found in scene`,
           };
-          
+
         setToolHistoryLabel(`Add @${traitName} to "${node.name}"`, recordHistory);
         store.addTrait(node.id, { name: traitName, properties });
         // Patch source code
@@ -739,7 +755,7 @@ function applyTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
-          
+
         setToolHistoryLabel(`Remove @${traitName} from "${node.name}"`, recordHistory);
         store.removeTrait(node.id, traitName);
         store.setCode(codeRemoveTrait(store.getCode(), node.name, traitName));
@@ -758,7 +774,7 @@ function applyTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
-          
+
         setToolHistoryLabel(`Update ${traitName}.${key} on "${node.name}"`, recordHistory);
         store.setTraitProperty(node.id, traitName, key, value);
         store.setCode(codeSetTraitProperty(store.getCode(), node.name, traitName, key, value));
@@ -804,7 +820,8 @@ function applyTool(
         if (direction) traits.push({ name: 'direction', properties: { vector: direction } });
         if (lookAt) traits.push({ name: 'camera_target', properties: { target: lookAt } });
         if (lightType) traits.push({ name: 'light_type', properties: { type: lightType } });
-        if (projectionType) traits.push({ name: 'projection', properties: { type: projectionType } });
+        if (projectionType)
+          traits.push({ name: 'projection', properties: { type: projectionType } });
 
         setToolHistoryLabel(`Create "${name}"`, recordHistory);
         store.addNode({
@@ -841,8 +858,11 @@ function applyTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
-          
-        setToolHistoryLabel(`Compose [${traitNames.map(t => `@${t}`).join(', ')}] on "${node.name}"`, recordHistory);
+
+        setToolHistoryLabel(
+          `Compose [${traitNames.map((t) => `@${t}`).join(', ')}] on "${node.name}"`,
+          recordHistory
+        );
         let patchedCode = store.getCode();
         for (const name of traitNames) {
           store.addTrait(node.id, { name, properties: {} });
@@ -860,9 +880,17 @@ function applyTool(
         const scenarioId = args.scenario_id as string;
         if (store.mountScenario) {
           store.mountScenario(scenarioId);
-          return { tool: toolName, success: true, message: `Successfully mapped Studio to Scenario: ${scenarioId}` };
+          return {
+            tool: toolName,
+            success: true,
+            message: `Successfully mapped Studio to Scenario: ${scenarioId}`,
+          };
         } else {
-          return { tool: toolName, success: false, message: `No mount function bound to Brittney session.` };
+          return {
+            tool: toolName,
+            success: false,
+            message: `No mount function bound to Brittney session.`,
+          };
         }
       }
 
@@ -871,7 +899,7 @@ function applyTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
-          
+
         setToolHistoryLabel(`Delete "${node.name}"`, recordHistory);
         store.removeNode(node.id);
         store.setCode(codeDeleteObject(store.getCode(), node.name));
@@ -884,7 +912,7 @@ function applyTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
-          
+
         setToolHistoryLabel(`Move "${node.name}"`, recordHistory);
         store.updateNode(node.id, { position });
         store.setCode(codeSetTransform(store.getCode(), node.name, 'position', position));
@@ -901,7 +929,7 @@ function applyTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
-          
+
         setToolHistoryLabel(`Rotate "${node.name}"`, recordHistory);
         store.updateNode(node.id, { rotation });
         store.setCode(codeSetTransform(store.getCode(), node.name, 'rotation', rotation));
@@ -918,7 +946,7 @@ function applyTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
-          
+
         setToolHistoryLabel(`Scale "${node.name}"`, recordHistory);
         store.updateNode(node.id, { scale });
         store.setCode(codeSetTransform(store.getCode(), node.name, 'scale', scale));
@@ -935,7 +963,7 @@ function applyTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
-          
+
         const previousName = node.name;
         setToolHistoryLabel(`Rename "${previousName}" to "${newName}"`, recordHistory);
         store.setCode(codeRenameObject(store.getCode(), previousName, newName));
@@ -953,7 +981,7 @@ function applyTool(
         const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
-          
+
         const cloneId = `obj-${Date.now()}`;
         setToolHistoryLabel(`Duplicate "${node.name}"`, recordHistory);
         const clonedNode: SceneNode = {

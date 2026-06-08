@@ -57,10 +57,15 @@ function cpuSpmv(A: CSRMatrix, x: Float32Array): Float32Array {
 }
 
 // ── Helper: CPU-side CG solver for ground truth comparison ─────────
-function cpuCG(A: CSRMatrix, b: Float32Array, maxIter: number = 1000, tol: number = 1e-10): Float32Array {
+function cpuCG(
+  A: CSRMatrix,
+  b: Float32Array,
+  maxIter: number = 1000,
+  tol: number = 1e-10
+): Float32Array {
   const n = A.num_rows;
   const x = new Float32Array(n); // zero initial guess
-  let r = new Float32Array(b);   // r = b - A*0 = b
+  let r = new Float32Array(b); // r = b - A*0 = b
   let p = new Float32Array(r);
   let rDotR = r.reduce((acc, v) => acc + v * v, 0);
 
@@ -256,8 +261,8 @@ describe('SparseLinearSolver GPU Integration', () => {
 
     const n = 10;
     const A = buildTridiagonalCSR(n);
-    const b = new Float32Array(n);       // b = 0
-    const xGuess = new Float32Array(n);  // x = 0
+    const b = new Float32Array(n); // b = 0
+    const xGuess = new Float32Array(n); // x = 0
 
     const result = await solver.solveCG(A, b, xGuess);
 

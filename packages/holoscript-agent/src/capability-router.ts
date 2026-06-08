@@ -182,9 +182,7 @@ export function pickProvider(opts: {
         picked: candidates[0]!.name,
         reason: 'open-routing-default',
         unsatisfiedRequires: [],
-        matchedPrefers: brain.prefers.filter((p) =>
-          satisfies(candidates[0]!.capabilities, p)
-        ),
+        matchedPrefers: brain.prefers.filter((p) => satisfies(candidates[0]!.capabilities, p)),
         excludedByAvoids,
         alternatives: candidates.slice(1).map((c) => c.name),
       };
@@ -201,7 +199,9 @@ export function pickProvider(opts: {
 
   // ─── Capability-aware path (has requires) ──────────────────────────
   // Filter to candidates that satisfy ALL requires (and aren't avoided)
-  const eligible = notAvoided.filter((c) => unsatisfiedKeys(c.capabilities, brain.requires).length === 0);
+  const eligible = notAvoided.filter(
+    (c) => unsatisfiedKeys(c.capabilities, brain.requires).length === 0
+  );
 
   if (eligible.length === 0) {
     // No candidate satisfies. If env is set, founder ruling says env

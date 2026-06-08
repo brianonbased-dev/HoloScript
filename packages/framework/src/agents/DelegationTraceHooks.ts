@@ -307,9 +307,7 @@ export class DelegationTraceStore {
 
     // DFS traversal from root
     const visited = new Set<string>();
-    const stack: Array<{ eventId: string; depth: number }> = [
-      { eventId: trace.rootId, depth: 0 },
-    ];
+    const stack: Array<{ eventId: string; depth: number }> = [{ eventId: trace.rootId, depth: 0 }];
 
     while (stack.length > 0) {
       const { eventId, depth } = stack.pop()!;

@@ -139,7 +139,7 @@ export function derivePetalBloomState(evidence: PetalEvidence): BloomDerivation 
     if (!evidence.baseAnchored) missing.push('baseAnchored');
     return {
       state: 'blooming',
-      reason: `Content complete (no stubs, no benchmark-pending); awaiting ${missing.map((m) => m === 'otsAnchored' ? 'OpenTimestamps' : 'Base L2').join(' + ')} anchor for full bloom.`,
+      reason: `Content complete (no stubs, no benchmark-pending); awaiting ${missing.map((m) => (m === 'otsAnchored' ? 'OpenTimestamps' : 'Base L2')).join(' + ')} anchor for full bloom.`,
       blockedBy: missing,
     };
   }
@@ -159,9 +159,7 @@ export function derivePetalBloomState(evidence: PetalEvidence): BloomDerivation 
  * (`scripts/plant-seed.mjs`) STILL requires Trezor confirmation; Brittney
  * never fires it autonomously (per I.007 trigger spec).
  */
-export function deriveLotusGenesisReadiness(
-  evidenceByPaperId: Map<string, PetalEvidence>,
-): {
+export function deriveLotusGenesisReadiness(evidenceByPaperId: Map<string, PetalEvidence>): {
   ready: boolean;
   fullPetals: number;
   totalPetals: number;

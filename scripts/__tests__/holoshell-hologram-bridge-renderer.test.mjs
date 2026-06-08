@@ -36,7 +36,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -51,7 +53,10 @@ assertOk(receipt.quilt.path.includes(receipt.quilt.variant), 'quilt path include
 assertOk(receipt.quilt.style.exposure >= 1, 'receipt records exposure');
 assertOk(receipt.quilt.style.pointRadius >= 1, 'receipt records point radius');
 assertOk(receipt.quilt.quality.score >= 0, 'receipt records quilt quality score');
-assertOk(['excellent', 'good', 'usable', 'weak', 'poor'].includes(receipt.quilt.quality.grade), 'receipt records quilt quality grade');
+assertOk(
+  ['excellent', 'good', 'usable', 'weak', 'poor'].includes(receipt.quilt.quality.grade),
+  'receipt records quilt quality grade'
+);
 assertOk(receipt.chain?.receipt?.hash?.startsWith('sha256:'), 'receipt carries chain hash');
 assertEq(receipt.chain?.receipt?.stageCount, 3, 'receipt has ingest, temporal, and render stages');
 
@@ -171,7 +176,11 @@ try {
   assertEq(temporalReceipt.source.pointCount, 4, 'tracked fused point count');
   assertEq(temporalReceipt.source.originalPointCount, 8, 'original point count retained');
   assertEq(temporalReceipt.source.temporalSelection.fusedFrameCount, 2, 'both frames fused');
-  assertEq(temporalReceipt.source.temporalSelection.referenceFrameIndex, 1, 'latest frame is alignment reference');
+  assertEq(
+    temporalReceipt.source.temporalSelection.referenceFrameIndex,
+    1,
+    'latest frame is alignment reference'
+  );
   assertEq(
     temporalReceipt.source.temporalSelection.alignmentMethod,
     'tile-flow-correspondence+pose-centroid-translation',
@@ -182,11 +191,29 @@ try {
     'native-tile-flow-v1',
     'correspondence method recorded'
   );
-  assertEq(temporalReceipt.source.temporalSelection.trackedFrameCount, 2, 'tracked frame count recorded');
-  assertEq(temporalReceipt.chain?.stages?.[1]?.name, 'temporal.selection', 'temporal stage recorded');
-  assertEq(temporalReceipt.chain?.stages?.[2]?.name, 'render.quilt-preview', 'render stage recorded');
-  assertOk(temporalReceipt.quilt.quality.viewDeltaMean >= 0, 'temporal quilt records view delta quality');
-  assertOk(temporalReceipt.quilt.style.parallaxScale > 1, 'tracked quilt applies adaptive parallax scale');
+  assertEq(
+    temporalReceipt.source.temporalSelection.trackedFrameCount,
+    2,
+    'tracked frame count recorded'
+  );
+  assertEq(
+    temporalReceipt.chain?.stages?.[1]?.name,
+    'temporal.selection',
+    'temporal stage recorded'
+  );
+  assertEq(
+    temporalReceipt.chain?.stages?.[2]?.name,
+    'render.quilt-preview',
+    'render stage recorded'
+  );
+  assertOk(
+    temporalReceipt.quilt.quality.viewDeltaMean >= 0,
+    'temporal quilt records view delta quality'
+  );
+  assertOk(
+    temporalReceipt.quilt.style.parallaxScale > 1,
+    'tracked quilt applies adaptive parallax scale'
+  );
   const png = readFileSync(resolve(REPO_ROOT, temporalReceipt.quilt.path));
   assertOk(png[0] === 0x89 && png[1] === 0x50, 'temporal quilt is PNG');
 } finally {

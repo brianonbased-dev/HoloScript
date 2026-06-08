@@ -69,7 +69,7 @@ describe('executeFunction', () => {
     const ctx = makeCtx();
     await executeFunction(
       { type: 'method', name: 'f', parameters: [] } as unknown as MethodNode,
-      ctx,
+      ctx
     );
     const holo = ctx.hologramState.get('f');
     expect(holo).toMatchObject({
@@ -88,7 +88,7 @@ describe('executeFunction', () => {
         parameters: [],
         hologram: { color: '#ff0000', size: 9 },
       } as unknown as MethodNode,
-      ctx,
+      ctx
     );
     expect(ctx.hologramState.get('f')!.color).toBe('#ff0000');
     expect(ctx.hologramState.get('f')!.size).toBe(9);
@@ -102,7 +102,7 @@ describe('executeFunction', () => {
         name: 'bar',
         parameters: [{ name: 'a' }, { name: 'b' }, { name: 'c' }],
       } as unknown as MethodNode,
-      ctx,
+      ctx
     );
     expect(result.output).toBe("Function 'bar' defined with 3 parameter(s)");
   });
@@ -127,10 +127,14 @@ describe('executeConnection', () => {
     ctx.spatialMemory.set('b', [10, 0, 0]);
     await executeConnection(
       { type: 'connection', from: 'a', to: 'b', dataType: 'number' } as ConnectionNode,
-      ctx,
+      ctx
     );
     expect(ctx.createConnectionStream).toHaveBeenCalledWith(
-      'a', 'b', [0, 0, 0], [10, 0, 0], 'number',
+      'a',
+      'b',
+      [0, 0, 0],
+      [10, 0, 0],
+      'number'
     );
   });
 
@@ -140,7 +144,7 @@ describe('executeConnection', () => {
     // 'b' has no position
     await executeConnection(
       { type: 'connection', from: 'a', to: 'b', dataType: 'x' } as ConnectionNode,
-      ctx,
+      ctx
     );
     expect(ctx.createConnectionStream).not.toHaveBeenCalled();
   });
@@ -149,7 +153,7 @@ describe('executeConnection', () => {
     const ctx = makeCtx();
     await executeConnection(
       { type: 'connection', from: 'a', to: 'b', dataType: 'x' } as ConnectionNode,
-      ctx,
+      ctx
     );
     expect(ctx.on).not.toHaveBeenCalled();
   });
@@ -164,7 +168,7 @@ describe('executeConnection', () => {
         dataType: 'x',
         bidirectional: true,
       } as ConnectionNode,
-      ctx,
+      ctx
     );
     expect(ctx.on).toHaveBeenCalledTimes(2);
     expect((ctx.on as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('a.changed');
@@ -175,9 +179,13 @@ describe('executeConnection', () => {
     const ctx = makeCtx();
     await executeConnection(
       {
-        type: 'connection', from: 'a', to: 'b', dataType: 'x', bidirectional: true,
+        type: 'connection',
+        from: 'a',
+        to: 'b',
+        dataType: 'x',
+        bidirectional: true,
       } as ConnectionNode,
-      ctx,
+      ctx
     );
     const [, aChangedHandler] = (ctx.on as ReturnType<typeof vi.fn>).mock.calls[0];
     await aChangedHandler({ new: 42 });
@@ -189,7 +197,7 @@ describe('executeConnection', () => {
     const ctx = makeCtx({ getDataTypeColor: vi.fn(() => '#4ecdc4') });
     const result = await executeConnection(
       { type: 'connection', from: 'a', to: 'b', dataType: 'number' } as ConnectionNode,
-      ctx,
+      ctx
     );
     expect(result.hologram).toMatchObject({
       shape: 'cylinder',
@@ -216,7 +224,7 @@ describe('executeGate', () => {
         truePath: [{ type: 'a' }],
         falsePath: [{ type: 'b' }],
       } as unknown as GateNode,
-      ctx,
+      ctx
     );
     expect(result.output).toContain('took true path');
     // Hologram color for true = green
@@ -235,7 +243,7 @@ describe('executeGate', () => {
         truePath: [{ type: 'a' }],
         falsePath: [{ type: 'b' }],
       } as unknown as GateNode,
-      ctx,
+      ctx
     );
     expect(result.output).toContain('took false path');
     expect((result.hologram as HologramProperties).color).toBe('#ff0000');
@@ -245,9 +253,12 @@ describe('executeGate', () => {
     const ctx = makeCtx({ evaluateCondition: vi.fn(() => true) });
     const result = await executeGate(
       {
-        type: 'gate', condition: 'x', truePath: [], falsePath: [{ type: 'b' }],
+        type: 'gate',
+        condition: 'x',
+        truePath: [],
+        falsePath: [{ type: 'b' }],
       } as unknown as GateNode,
-      ctx,
+      ctx
     );
     expect(ctx.executeProgram).not.toHaveBeenCalled();
     expect(result.success).toBe(true);
@@ -266,7 +277,7 @@ describe('executeGate', () => {
         truePath: [{ type: 'exec' }, { type: 'return' }],
         falsePath: [],
       } as unknown as GateNode,
-      ctx,
+      ctx
     );
     // The sub-program's last result bubbled up (not the gate's envelope)
     expect(result).toBe(bubble);
@@ -280,9 +291,12 @@ describe('executeGate', () => {
     });
     const result = await executeGate(
       {
-        type: 'gate', condition: 'c', truePath: [], falsePath: [],
+        type: 'gate',
+        condition: 'c',
+        truePath: [],
+        falsePath: [],
       } as unknown as GateNode,
-      ctx,
+      ctx
     );
     expect(result.success).toBe(false);
     expect(result.error).toContain('Gate execution failed');
@@ -296,9 +310,12 @@ describe('executeGate', () => {
     });
     await executeGate(
       {
-        type: 'gate', condition: 'c', truePath: [{ type: 's' }], falsePath: [],
+        type: 'gate',
+        condition: 'c',
+        truePath: [{ type: 's' }],
+        falsePath: [],
       } as unknown as GateNode,
-      ctx,
+      ctx
     );
     expect(ctx.executeProgram).toHaveBeenCalled();
     expect((ctx.executeProgram as ReturnType<typeof vi.fn>).mock.calls[0][1]).toBe(6);
@@ -314,9 +331,12 @@ describe('executeStream', () => {
     const ctx = makeCtx({ getVariable: vi.fn(() => [1, 2, 3]) });
     await executeStream(
       {
-        type: 'stream', name: 's', source: 'input', transformations: [],
+        type: 'stream',
+        name: 's',
+        source: 'input',
+        transformations: [],
       } as unknown as StreamNode,
-      ctx,
+      ctx
     );
     expect(ctx.getVariable).toHaveBeenCalledWith('input');
   });
@@ -337,9 +357,12 @@ describe('executeStream', () => {
     ];
     await executeStream(
       {
-        type: 'stream', name: 'p', source: 'i', transformations: transforms,
+        type: 'stream',
+        name: 'p',
+        source: 'i',
+        transformations: transforms,
       } as unknown as StreamNode,
-      ctx,
+      ctx
     );
     expect(callOrder).toHaveLength(3);
     expect((callOrder[0] as { operation: string }).operation).toBe('first');
@@ -353,10 +376,12 @@ describe('executeStream', () => {
     });
     await executeStream(
       {
-        type: 'stream', name: 'myStream', source: 'src',
+        type: 'stream',
+        name: 'myStream',
+        source: 'src',
         transformations: [{ type: 'transformation', operation: 'x' }],
       } as unknown as StreamNode,
-      ctx,
+      ctx
     );
     expect(ctx.setVariable).toHaveBeenCalledWith('myStream_result', 'transformed');
   });
@@ -365,10 +390,13 @@ describe('executeStream', () => {
     const ctx = makeCtx({ getVariable: vi.fn(() => [1, 2]) });
     await executeStream(
       {
-        type: 'stream', name: 'st', source: 's', transformations: [],
+        type: 'stream',
+        name: 'st',
+        source: 's',
+        transformations: [],
         position: [10, 20, 30],
       } as unknown as StreamNode,
-      ctx,
+      ctx
     );
     expect(ctx.createFlowingStream).toHaveBeenCalledWith('st', [10, 20, 30], [1, 2]);
   });
@@ -377,11 +405,16 @@ describe('executeStream', () => {
     const ctx = makeCtx({ getVariable: vi.fn(() => null) });
     await executeStream(
       {
-        type: 'stream', name: 's', source: 'x', transformations: [],
+        type: 'stream',
+        name: 's',
+        source: 'x',
+        transformations: [],
       } as unknown as StreamNode,
-      ctx,
+      ctx
     );
-    expect((ctx.createFlowingStream as ReturnType<typeof vi.fn>).mock.calls[0][1]).toEqual([0, 0, 0]);
+    expect((ctx.createFlowingStream as ReturnType<typeof vi.fn>).mock.calls[0][1]).toEqual([
+      0, 0, 0,
+    ]);
   });
 
   it('output message reports item count for arrays', async () => {
@@ -391,10 +424,12 @@ describe('executeStream', () => {
     });
     const result = await executeStream(
       {
-        type: 'stream', name: 's', source: 'i',
+        type: 'stream',
+        name: 's',
+        source: 'i',
         transformations: [{ type: 'transformation' }],
       } as unknown as StreamNode,
-      ctx,
+      ctx
     );
     expect(result.output).toContain('3 item(s)');
   });
@@ -403,9 +438,12 @@ describe('executeStream', () => {
     const ctx = makeCtx({ getVariable: vi.fn(() => 42) });
     const result = await executeStream(
       {
-        type: 'stream', name: 's', source: 'i', transformations: [],
+        type: 'stream',
+        name: 's',
+        source: 'i',
+        transformations: [],
       } as unknown as StreamNode,
-      ctx,
+      ctx
     );
     expect(result.output).toContain('1 item(s)');
   });

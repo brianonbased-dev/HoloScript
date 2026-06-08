@@ -47,4 +47,6 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log('[verify-internal-workspace-protocol] OK — internal deps use workspace:* or workspace:^');
+console.log(
+  '[verify-internal-workspace-protocol] OK — internal deps use workspace:* or workspace:^'
+);

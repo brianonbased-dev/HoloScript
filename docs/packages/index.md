@@ -6,14 +6,14 @@ HoloScript currently ships as a monorepo with **real packages** under `packages/
 
 ## Language & Runtime Core
 
-| Package                                                | Purpose                                                |
-| ------------------------------------------------------ | ------------------------------------------------------ |
-| [**@holoscript/core**](./core.md)                      | Core parser, AST, validation, compilers, and traits  |
-| [**@holoscript/runtime**](./runtime.md)                | Scene execution runtime                                |
-| [**@holoscript/engine**](./engine.md)                  | Lower-level spatial engine systems                     |
-| [**@holoscript/std**](./std.md)                        | Standard library utilities and shared types            |
-| [**@holoscript/holo-vm**](./holo-vm.md)                | VM-oriented execution runtime                          |
-| [**@holoscript/wasm**](./compiler-wasm.md)             | WebAssembly parser and compilation surface             |
+| Package                                    | Purpose                                             |
+| ------------------------------------------ | --------------------------------------------------- |
+| [**@holoscript/core**](./core.md)          | Core parser, AST, validation, compilers, and traits |
+| [**@holoscript/runtime**](./runtime.md)    | Scene execution runtime                             |
+| [**@holoscript/engine**](./engine.md)      | Lower-level spatial engine systems                  |
+| [**@holoscript/std**](./std.md)            | Standard library utilities and shared types         |
+| [**@holoscript/holo-vm**](./holo-vm.md)    | VM-oriented execution runtime                       |
+| [**@holoscript/wasm**](./compiler-wasm.md) | WebAssembly parser and compilation surface          |
 
 > `@holoscript/parser`, `@holoscript/compiler`, and `@holoscript/traits` were merged into `@holoscript/core` (2026-04-29). `@holoscript/fs` was merged into `@holoscript/std/fs`. See the [deletion ledger](../cross-language-deletion-ledger.md).
 

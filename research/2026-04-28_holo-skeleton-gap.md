@@ -7,6 +7,7 @@
 ## Scope
 
 Compare HoloScript's current skeleton/rig interoperability surface with the standards referenced in Cascadeur docs/research tasking:
+
 - UE4/UE5 Mannequin
 - MetaHuman
 - Mixamo
@@ -26,16 +27,16 @@ Compare HoloScript's current skeleton/rig interoperability surface with the stan
 
 ## Current support matrix
 
-| Standard | Current status | Evidence | Notes |
-|---|---|---|---|
-| VRM | ✅ Strong | `HumanoidLoader` has `AvatarFormat` values `vrm|vrm0|vrm1`, `VRMBoneName`, `VRMExpressionName` | Best-supported named standard in code |
-| Ready Player Me | ✅ Strong | `HumanoidLoader` docs + `AvatarFormat` includes `rpm`; `RPMMetadata` exists; assets barrel exports RPM/VRM types | Explicit RPM pipeline present |
-| Mixamo | 🟡 Partial | `HumanoidLoader.BONE_NAME_MAP` includes many `mixamorig:*` remaps to VRM bone names | Bone-name normalization exists; no explicit end-to-end Mixamo validation fixture |
-| UE4/UE5 Mannequin | 🟡 Partial | `BONE_NAME_MAP` includes common aliases (`pelvis`, `spine_01`, `clavicle_l`, etc.) compatible with Unreal-like naming | Not explicitly labeled "UE Mannequin" and no dedicated conformance tests |
-| MetaHuman | ❌ Gap | No explicit `metahuman` mapping/type/tag surfaced in audited files | Needs canonical mapping profile + round-trip tests |
-| Daz Genesis 8/9 | ❌ Gap | No explicit `daz`/`genesis` profile in audited files | Needs schema adapter + naming map |
-| AutoRig Pro | ❌ Gap | No explicit `autorig` profile in audited files | Needs profile + validation suite |
-| Character Creator 3 (CC3) | ❌ Gap | No explicit `cc3`/`character creator` profile in audited files | Needs profile + import/export validation |
+| Standard                  | Current status | Evidence                                                                                                              | Notes                                                                            |
+| ------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------- |
+| VRM                       | ✅ Strong      | `HumanoidLoader` has `AvatarFormat` values `vrm                                                                       | vrm0                                                                             | vrm1`, `VRMBoneName`, `VRMExpressionName` | Best-supported named standard in code |
+| Ready Player Me           | ✅ Strong      | `HumanoidLoader` docs + `AvatarFormat` includes `rpm`; `RPMMetadata` exists; assets barrel exports RPM/VRM types      | Explicit RPM pipeline present                                                    |
+| Mixamo                    | 🟡 Partial     | `HumanoidLoader.BONE_NAME_MAP` includes many `mixamorig:*` remaps to VRM bone names                                   | Bone-name normalization exists; no explicit end-to-end Mixamo validation fixture |
+| UE4/UE5 Mannequin         | 🟡 Partial     | `BONE_NAME_MAP` includes common aliases (`pelvis`, `spine_01`, `clavicle_l`, etc.) compatible with Unreal-like naming | Not explicitly labeled "UE Mannequin" and no dedicated conformance tests         |
+| MetaHuman                 | ❌ Gap         | No explicit `metahuman` mapping/type/tag surfaced in audited files                                                    | Needs canonical mapping profile + round-trip tests                               |
+| Daz Genesis 8/9           | ❌ Gap         | No explicit `daz`/`genesis` profile in audited files                                                                  | Needs schema adapter + naming map                                                |
+| AutoRig Pro               | ❌ Gap         | No explicit `autorig` profile in audited files                                                                        | Needs profile + validation suite                                                 |
+| Character Creator 3 (CC3) | ❌ Gap         | No explicit `cc3`/`character creator` profile in audited files                                                        | Needs profile + import/export validation                                         |
 
 ## Key structural findings
 
@@ -58,7 +59,9 @@ Compare HoloScript's current skeleton/rig interoperability surface with the stan
 ## Gap list (design backlog)
 
 ### G1 — Skeleton Standard Profiles
+
 Add explicit profile constants + mapping packs for:
+
 - `ue_mannequin`
 - `metahuman`
 - `mixamo` (promote from implicit map to explicit profile)
@@ -70,23 +73,30 @@ Add explicit profile constants + mapping packs for:
 - `vrm`
 
 ### G2 — Standard-tagged metadata
+
 Extend asset metadata to include source skeleton standard, e.g.:
+
 - `skeletonStandard`
 - `skeletonVersion`
 - `mappingConfidence`
 
 ### G3 — Round-trip conformance fixtures
+
 For each standard, add a canonical fixture and test:
+
 - Input avatar + expected normalized bone set
 - `.holo` import → normalized skeleton map
 - export path (FBX/USD/GLB where applicable) preserves semantic bone identity
 
 ### G4 — MCP tooling for operator-facing mapping
+
 Design `rig_match_skeleton(input_skeleton, candidate_templates)` MCP tool:
+
 - Returns ranked candidates + confidence + unresolved bones
 - Emits a **refusable diff** patch (D.027) instead of mutating source
 
 ### G5 — `physics_validate_animation` and `pose.predict` integration hooks
+
 Both tools should consume normalized skeleton profiles and reject unknown/unmapped critical bones with actionable guidance.
 
 ## Suggested execution order

@@ -1,6 +1,6 @@
 # Upstash Connector - Agent Guide
 
-**Quick Reference**: [see NUMBERS.md]  for Redis caching, Vector search, and QStash scheduling
+**Quick Reference**: [see NUMBERS.md] for Redis caching, Vector search, and QStash scheduling
 
 ---
 

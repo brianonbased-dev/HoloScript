@@ -182,7 +182,10 @@ export function useAbsorbService() {
    * Publish knowledge entries to the marketplace (HoloMesh).
    */
   const publishKnowledge = useCallback(
-    async (entries: Array<{ id: string; type: string; content: string; is_premium?: boolean }>, workspaceId: string) => {
+    async (
+      entries: Array<{ id: string; type: string; content: string; is_premium?: boolean }>,
+      workspaceId: string
+    ) => {
       const res = await absorbFetch('/api/absorb/knowledge/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -30,7 +30,7 @@ describe('economicOrderQuantity', () => {
    */
   it('EOQ = √(2DS/H)', () => {
     const r = economicOrderQuantity(1000, 10, 2.5);
-    expect(r.eoq).toBeCloseTo(Math.sqrt(2 * 1000 * 10 / 2.5), 1);
+    expect(r.eoq).toBeCloseTo(Math.sqrt((2 * 1000 * 10) / 2.5), 1);
   });
 
   it('ordersPerYear = demand / EOQ', () => {
@@ -150,12 +150,12 @@ describe('customerLifetimeValue', () => {
    * Discounted CLV = Σ_{t=1}^{5} 400 / 1.1^t ≈ 400 × 3.791 ≈ $1516
    */
   it('simpleCLV = AOV × frequency × lifespan', () => {
-    const r = customerLifetimeValue(100, 4, 5, 0.10);
+    const r = customerLifetimeValue(100, 4, 5, 0.1);
     expect(r.simpleCLV).toBeCloseTo(2000, 4);
   });
 
   it('discountedCLV < simpleCLV for positive discount rate', () => {
-    const r = customerLifetimeValue(100, 4, 5, 0.10);
+    const r = customerLifetimeValue(100, 4, 5, 0.1);
     expect(r.discountedCLV).toBeLessThan(r.simpleCLV);
   });
 
@@ -165,18 +165,18 @@ describe('customerLifetimeValue', () => {
   });
 
   it('CLV:CAC ratio computed when CAC provided', () => {
-    const r = customerLifetimeValue(100, 4, 5, 0.10, 200);
+    const r = customerLifetimeValue(100, 4, 5, 0.1, 200);
     expect(r.clvToCac).not.toBeNull();
     expect(r.clvToCac!).toBeCloseTo(r.discountedCLV / 200, 4);
   });
 
   it('CLV:CAC null when CAC not provided', () => {
-    const r = customerLifetimeValue(100, 4, 5, 0.10);
+    const r = customerLifetimeValue(100, 4, 5, 0.1);
     expect(r.clvToCac).toBeNull();
   });
 
   it('throws for zero AOV', () => {
-    expect(() => customerLifetimeValue(0, 4, 5, 0.10)).toThrow();
+    expect(() => customerLifetimeValue(0, 4, 5, 0.1)).toThrow();
   });
 });
 
@@ -194,9 +194,9 @@ describe('conversionFunnelAnalysis', () => {
 
   it('step conversions correct', () => {
     const r = conversionFunnelAnalysis(stages, counts, 75);
-    expect(r.stepConversions[0]).toBeCloseTo(0.20, 4);
+    expect(r.stepConversions[0]).toBeCloseTo(0.2, 4);
     expect(r.stepConversions[1]).toBeCloseTo(0.25, 4);
-    expect(r.stepConversions[2]).toBeCloseTo(0.50, 4);
+    expect(r.stepConversions[2]).toBeCloseTo(0.5, 4);
   });
 
   it('overall conversion = final / first', () => {
@@ -222,9 +222,9 @@ describe('conversionFunnelAnalysis', () => {
 
 describe('abcClassification', () => {
   const items = [
-    { id: 'SKU-1', annualVolume: 100, unitCost: 500 },  // $50k — A
-    { id: 'SKU-2', annualVolume: 500, unitCost: 20  },  // $10k — A/B
-    { id: 'SKU-3', annualVolume: 1000, unitCost: 5  },  // $5k  — B
+    { id: 'SKU-1', annualVolume: 100, unitCost: 500 }, // $50k — A
+    { id: 'SKU-2', annualVolume: 500, unitCost: 20 }, // $10k — A/B
+    { id: 'SKU-3', annualVolume: 1000, unitCost: 5 }, // $5k  — B
     { id: 'SKU-4', annualVolume: 5000, unitCost: 0.5 }, // $2.5k — C
     { id: 'SKU-5', annualVolume: 2000, unitCost: 0.2 }, // $400  — C
   ];
@@ -303,13 +303,13 @@ describe('buildRetailReceipt', () => {
   });
 
   it('accepted=true for healthy metrics', () => {
-    const clv = customerLifetimeValue(200, 5, 3, 0.10, 150); // CLV:CAC ≈ 3+
+    const clv = customerLifetimeValue(200, 5, 3, 0.1, 150); // CLV:CAC ≈ 3+
     const receipt = buildRetailReceipt({ clv, converged: true });
     expect(receipt.acceptance.accepted).toBe(true);
   });
 
   it('accepted=false when CLV:CAC < 3', () => {
-    const clv = customerLifetimeValue(50, 1, 1, 0.10, 500); // poor CLV:CAC
+    const clv = customerLifetimeValue(50, 1, 1, 0.1, 500); // poor CLV:CAC
     const receipt = buildRetailReceipt({ clv, converged: true });
     if (clv.clvToCac! < 3) {
       expect(receipt.acceptance.accepted).toBe(false);

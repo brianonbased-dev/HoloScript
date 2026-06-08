@@ -33,8 +33,11 @@ import { execSync } from 'node:child_process';
 function detectGpuName() {
   try {
     const out = execSync('nvidia-smi --query-gpu=name --format=csv,noheader,nounits', {
-      timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'],
-    }).toString().trim();
+      timeout: 5000,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim();
     return out.split('\n')[0].trim() || 'unknown-gpu';
   } catch {
     return 'unknown-gpu';
@@ -44,13 +47,13 @@ const DETECTED_GPU = detectGpuName();
 console.log(`[sweep] Detected GPU: ${DETECTED_GPU}`);
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
-const REPO_ROOT  = join(__dirname, '..');
+const __dirname = dirname(__filename);
+const REPO_ROOT = join(__dirname, '..');
 
 const args = process.argv.slice(2);
-const REPEATS    = Number(args.find(a => a.startsWith('--repeats='))?.split('=')[1] ?? 2);
+const REPEATS = Number(args.find((a) => a.startsWith('--repeats='))?.split('=')[1] ?? 2);
 const SKIP_LARGE = args.includes('--skip-large');
-const today      = new Date().toISOString().slice(0, 10);
+const today = new Date().toISOString().slice(0, 10);
 
 const ENGINE_SIM = join(REPO_ROOT, 'packages', 'engine', 'dist', 'simulation', 'index.js');
 if (!existsSync(ENGINE_SIM)) {
@@ -63,40 +66,46 @@ const { StructuralSolverTET10, tet4ToTet10 } = sim;
 
 // ── Mesh builder (bar: 1×1×5 domain, elongated for cantilever) ──────────────
 function buildBarMesh(nx, ny, nz) {
-  const lx = 1, ly = 1, lz = 5;
+  const lx = 1,
+    ly = 1,
+    lz = 5;
   const pts = [];
   for (let k = 0; k <= nz; k++)
     for (let j = 0; j <= ny; j++)
-      for (let i = 0; i <= nx; i++)
-        pts.push((i * lx) / nx, (j * ly) / ny, (k * lz) / nz);
+      for (let i = 0; i <= nx; i++) pts.push((i * lx) / nx, (j * ly) / ny, (k * lz) / nz);
 
   const idx = (i, j, k) => k * (nx + 1) * (ny + 1) + j * (nx + 1) + i;
   const tets = [];
   for (let k = 0; k < nz; k++)
     for (let j = 0; j < ny; j++)
       for (let i = 0; i < nx; i++) {
-        const v0 = idx(i,   j,   k),   v1 = idx(i+1, j,   k);
-        const v2 = idx(i+1, j+1, k),   v3 = idx(i,   j+1, k);
-        const v4 = idx(i,   j,   k+1), v5 = idx(i+1, j,   k+1);
-        const v6 = idx(i+1, j+1, k+1), v7 = idx(i,   j+1, k+1);
-        tets.push(v0,v1,v3,v4, v1,v2,v3,v6, v4,v5,v6,v1, v4,v6,v7,v3, v1,v4,v6,v3);
+        const v0 = idx(i, j, k),
+          v1 = idx(i + 1, j, k);
+        const v2 = idx(i + 1, j + 1, k),
+          v3 = idx(i, j + 1, k);
+        const v4 = idx(i, j, k + 1),
+          v5 = idx(i + 1, j, k + 1);
+        const v6 = idx(i + 1, j + 1, k + 1),
+          v7 = idx(i, j + 1, k + 1);
+        tets.push(v0, v1, v3, v4, v1, v2, v3, v6, v4, v5, v6, v1, v4, v6, v7, v3, v1, v4, v6, v3);
       }
 
   const mesh = tet4ToTet10(new Float64Array(pts), new Uint32Array(tets));
   const nc = mesh.vertices.length / 3;
-  const fixedNodes = [], tipNodes = [];
+  const fixedNodes = [],
+    tipNodes = [];
   for (let n = 0; n < nc; n++) {
     const z = mesh.vertices[n * 3 + 2];
-    if (Math.abs(z) < 1e-8)  fixedNodes.push(n);
+    if (Math.abs(z) < 1e-8) fixedNodes.push(n);
     if (Math.abs(z - lz) < 1e-8) tipNodes.push(n);
   }
   const lptn = 100 / Math.max(1, tipNodes.length);
   return {
-    vertices:  mesh.vertices,
+    vertices: mesh.vertices,
     tetrahedra: mesh.tetrahedra,
-    dofCount:  nc * 3,
-    nNodes:    nc,
-    nElements: (tets.length / 4) * 5 / 5, // 5 tets per hex
+    dofCount: nc * 3,
+    nNodes: nc,
+    nElements: ((tets.length / 4) * 5) / 5, // 5 tets per hex
     fixedNodes,
     tipNodes,
     loadPerTipNode: lptn,
@@ -105,12 +114,14 @@ function buildBarMesh(nx, ny, nz) {
 
 function makeConfig(mesh, useGPU) {
   return {
-    vertices:    mesh.vertices,
-    tetrahedra:  mesh.tetrahedra,
-    material:    'steel_a36',
+    vertices: mesh.vertices,
+    tetrahedra: mesh.tetrahedra,
+    material: 'steel_a36',
     constraints: [{ id: 'fix-z0', type: 'fixed', nodes: mesh.fixedNodes }],
     loads: mesh.tipNodes.map((ni, i) => ({
-      id: `tip-${i}`, type: 'point', nodeIndex: ni,
+      id: `tip-${i}`,
+      type: 'point',
+      nodeIndex: ni,
       force: [0, mesh.loadPerTipNode, 0],
     })),
     maxIterations: 2000,
@@ -126,44 +137,56 @@ async function timeSolve(config) {
   const elapsedMs = performance.now() - t0;
   const displacements = new Float64Array(solver.getDisplacements());
   solver.dispose();
-  return { elapsedMs, converged: result.converged, iterations: result.iterations,
-           residual: result.residual, displacements };
+  return {
+    elapsedMs,
+    converged: result.converged,
+    iterations: result.iterations,
+    residual: result.residual,
+    displacements,
+  };
 }
 
 function maxAbsDiff(a, b) {
   let d = 0;
-  for (let i = 0; i < Math.min(a.length, b.length); i++)
-    d = Math.max(d, Math.abs(a[i] - b[i]));
+  for (let i = 0; i < Math.min(a.length, b.length); i++) d = Math.max(d, Math.abs(a[i] - b[i]));
   return d;
 }
 
 // ── Sweep targets ─────────────────────────────────────────────────────────────
 const SIZES = [
-  { label: '~1.4k DOF',  nx: 2, ny: 2, nz:  8 },
-  { label: '~9k DOF',    nx: 4, ny: 4, nz: 16 },
-  { label: '~29k DOF',   nx: 6, ny: 6, nz: 24 },
-  { label: '~67k DOF',   nx: 8, ny: 8, nz: 32 },
+  { label: '~1.4k DOF', nx: 2, ny: 2, nz: 8 },
+  { label: '~9k DOF', nx: 4, ny: 4, nz: 16 },
+  { label: '~29k DOF', nx: 6, ny: 6, nz: 24 },
+  { label: '~67k DOF', nx: 8, ny: 8, nz: 32 },
 ];
 
 if (SKIP_LARGE) SIZES.splice(2); // keep first 2 only
 
-console.log(`\nTET10 GPU-CG Crossover Sweep  repeats=${REPEATS}${SKIP_LARGE ? ' (skip-large)' : ''}`);
+console.log(
+  `\nTET10 GPU-CG Crossover Sweep  repeats=${REPEATS}${SKIP_LARGE ? ' (skip-large)' : ''}`
+);
 console.log(`Engine: ${ENGINE_SIM}`);
-console.log(`Host: ${os.hostname()}  CPUs: ${os.cpus().length}  RAM: ${(os.totalmem()/1e9).toFixed(1)}GB\n`);
+console.log(
+  `Host: ${os.hostname()}  CPUs: ${os.cpus().length}  RAM: ${(os.totalmem() / 1e9).toFixed(1)}GB\n`
+);
 
 const sweepResults = [];
 
 for (const sz of SIZES) {
   console.log(`── ${sz.label} (nx=${sz.nx} ny=${sz.ny} nz=${sz.nz}) ──`);
   const mesh = buildBarMesh(sz.nx, sz.ny, sz.nz);
-  console.log(`   DOF=${mesh.dofCount}  nodes=${mesh.nNodes}  fixed=${mesh.fixedNodes.length}  tip=${mesh.tipNodes.length}`);
+  console.log(
+    `   DOF=${mesh.dofCount}  nodes=${mesh.nNodes}  fixed=${mesh.fixedNodes.length}  tip=${mesh.tipNodes.length}`
+  );
 
   // CPU repeats
   const cpuTimings = [];
   for (let r = 0; r < REPEATS; r++) {
     const t = await timeSolve(makeConfig(mesh, false));
     cpuTimings.push(t);
-    process.stdout.write(`   CPU rep${r+1}: ${t.elapsedMs.toFixed(0)}ms  iters=${t.iterations}  converged=${t.converged}\n`);
+    process.stdout.write(
+      `   CPU rep${r + 1}: ${t.elapsedMs.toFixed(0)}ms  iters=${t.iterations}  converged=${t.converged}\n`
+    );
   }
 
   // GPU repeats
@@ -171,20 +194,28 @@ for (const sz of SIZES) {
   for (let r = 0; r < REPEATS; r++) {
     const t = await timeSolve(makeConfig(mesh, true));
     gpuTimings.push(t);
-    process.stdout.write(`   GPU rep${r+1}: ${t.elapsedMs.toFixed(0)}ms  iters=${t.iterations}  converged=${t.converged}\n`);
+    process.stdout.write(
+      `   GPU rep${r + 1}: ${t.elapsedMs.toFixed(0)}ms  iters=${t.iterations}  converged=${t.converged}\n`
+    );
   }
 
-  const cpuMedian = [...cpuTimings.map(t => t.elapsedMs)].sort((a,b)=>a-b)[Math.floor(REPEATS/2)];
-  const gpuMedian = [...gpuTimings.map(t => t.elapsedMs)].sort((a,b)=>a-b)[Math.floor(REPEATS/2)];
-  const speedup   = +(cpuMedian / gpuMedian).toFixed(3);
+  const cpuMedian = [...cpuTimings.map((t) => t.elapsedMs)].sort((a, b) => a - b)[
+    Math.floor(REPEATS / 2)
+  ];
+  const gpuMedian = [...gpuTimings.map((t) => t.elapsedMs)].sort((a, b) => a - b)[
+    Math.floor(REPEATS / 2)
+  ];
+  const speedup = +(cpuMedian / gpuMedian).toFixed(3);
 
   // Correctness diff between last CPU and last GPU run
   const diff = maxAbsDiff(
     cpuTimings[cpuTimings.length - 1].displacements,
-    gpuTimings[gpuTimings.length - 1].displacements,
+    gpuTimings[gpuTimings.length - 1].displacements
   );
 
-  console.log(`   CPU median ${cpuMedian.toFixed(0)}ms  GPU median ${gpuMedian.toFixed(0)}ms  speedup ${speedup}×  |diff| ${diff.toExponential(2)}\n`);
+  console.log(
+    `   CPU median ${cpuMedian.toFixed(0)}ms  GPU median ${gpuMedian.toFixed(0)}ms  speedup ${speedup}×  |diff| ${diff.toExponential(2)}\n`
+  );
 
   sweepResults.push({
     label: sz.label,
@@ -192,20 +223,20 @@ for (const sz of SIZES) {
     repeats: REPEATS,
     cpu: {
       medianMs: +cpuMedian.toFixed(2),
-      timings: cpuTimings.map(t => ({
-        elapsedMs:  +t.elapsedMs.toFixed(2),
-        converged:  t.converged,
+      timings: cpuTimings.map((t) => ({
+        elapsedMs: +t.elapsedMs.toFixed(2),
+        converged: t.converged,
         iterations: t.iterations,
-        residual:   t.residual,
+        residual: t.residual,
       })),
     },
     gpu: {
       medianMs: +gpuMedian.toFixed(2),
-      timings: gpuTimings.map(t => ({
-        elapsedMs:  +t.elapsedMs.toFixed(2),
-        converged:  t.converged,
+      timings: gpuTimings.map((t) => ({
+        elapsedMs: +t.elapsedMs.toFixed(2),
+        converged: t.converged,
         iterations: t.iterations,
-        residual:   t.residual,
+        residual: t.residual,
       })),
     },
     speedupGpuOverCpu: speedup,
@@ -231,8 +262,9 @@ const receipt = {
   solverSettings: { maxIterations: 2000, tolerance: 1e-8 },
   sweep: sweepResults,
   crossoverObservation: (() => {
-    const crossoverIdx = sweepResults.findIndex(r => r.speedupGpuOverCpu >= 1.0);
-    if (crossoverIdx < 0) return 'No crossover observed in this sweep range — GPU slower at all measured sizes';
+    const crossoverIdx = sweepResults.findIndex((r) => r.speedupGpuOverCpu >= 1.0);
+    if (crossoverIdx < 0)
+      return 'No crossover observed in this sweep range — GPU slower at all measured sizes';
     return `Crossover between ${sweepResults[crossoverIdx - 1]?.label ?? 'below sweep start'} and ${sweepResults[crossoverIdx].label} (speedup crossed 1.0×)`;
   })(),
   auditNote: [

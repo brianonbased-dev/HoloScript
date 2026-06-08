@@ -32,7 +32,7 @@ export const ALLOWED_ABSORB_HOSTS: ReadonlySet<string> = new Set<string>([
  */
 export function validateAbsorbBaseUrl(
   base: string,
-  extraAllowedHosts: readonly string[] = [],
+  extraAllowedHosts: readonly string[] = []
 ): URL {
   let parsed: URL;
   try {
@@ -47,7 +47,7 @@ export function validateAbsorbBaseUrl(
   if (!allowed.has(parsed.hostname)) {
     throw new Error(
       `ABSORB_SERVICE host '${parsed.hostname}' is not in the trusted-host allowlist. ` +
-        `Set ABSORB_SERVICE_ALLOWED_HOSTS=${parsed.hostname} to override.`,
+        `Set ABSORB_SERVICE_ALLOWED_HOSTS=${parsed.hostname} to override.`
     );
   }
   return parsed;

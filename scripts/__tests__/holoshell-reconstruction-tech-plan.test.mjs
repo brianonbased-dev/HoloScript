@@ -34,7 +34,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -43,13 +45,37 @@ const receipt = await selfTest();
 assertEq(receipt.schemaVersion, RECEIPT_VERSION, 'schema version');
 assertEq(receipt.status, 'pass', 'pass status');
 assertEq(validateReceipt(receipt).length, 0, 'receipt validates');
-assertEq(receipt.plan.recommendations[0].id, 'fiducial-calibration', 'fiducial calibration is first');
-assertOk(receipt.plan.recommendedNow.includes('fiducial-calibration'), 'fiducial calibration recommended now');
-assertOk(receipt.plan.sources.some((source) => source.id === 'opencv-aruco'), 'OpenCV ArUco source carried');
-assertOk(receipt.plan.sources.some((source) => source.id === 'colmap'), 'COLMAP source carried');
-assertOk(receipt.plan.sources.some((source) => source.id === 'apple-mvhevc'), 'MV-HEVC source carried');
-assertOk(receipt.plan.nextActions.some((action) => action.id === 'detect-generated-target-in-control-frame'), 'target detection next action carried');
-assertOk(receipt.plan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'), 'fiducial corner recovery next action carried');
+assertEq(
+  receipt.plan.recommendations[0].id,
+  'fiducial-calibration',
+  'fiducial calibration is first'
+);
+assertOk(
+  receipt.plan.recommendedNow.includes('fiducial-calibration'),
+  'fiducial calibration recommended now'
+);
+assertOk(
+  receipt.plan.sources.some((source) => source.id === 'opencv-aruco'),
+  'OpenCV ArUco source carried'
+);
+assertOk(
+  receipt.plan.sources.some((source) => source.id === 'colmap'),
+  'COLMAP source carried'
+);
+assertOk(
+  receipt.plan.sources.some((source) => source.id === 'apple-mvhevc'),
+  'MV-HEVC source carried'
+);
+assertOk(
+  receipt.plan.nextActions.some(
+    (action) => action.id === 'detect-generated-target-in-control-frame'
+  ),
+  'target detection next action carried'
+);
+assertOk(
+  receipt.plan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'),
+  'fiducial corner recovery next action carried'
+);
 assertOk(receipt.chain?.receipt?.hash?.startsWith('sha256:'), 'chain hash recorded');
 
 console.log('Test 2: planner keeps direct Holoshell path ahead of browser workarounds');
@@ -63,12 +89,33 @@ const plan = buildTechnologyPlan({
     render: { quality: { score: 0.44, grade: 'weak' } },
   },
 });
-assertEq(plan.recommendations[0].id, 'fiducial-calibration', 'low-quality workflow starts with fiducials');
-assertOk(plan.recommendations.every((recommendation) => !recommendation.backend.toLowerCase().includes('browser')), 'no browser backend recommended');
-assertOk(plan.recommendations.some((recommendation) => recommendation.id === 'mobile-native-depth'), 'mobile native depth remains on ladder');
-assertOk(plan.nextActions.some((action) => action.id === 'place-target-in-camera-view'), 'missing target visibility becomes operator action');
-assertOk(plan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'), 'fiducial board advances to marker detector action');
-assertOk(!plan.nextActions.some((action) => action.id === 'replace-chart-with-fiducial-board'), 'fiducial board is not re-requested');
+assertEq(
+  plan.recommendations[0].id,
+  'fiducial-calibration',
+  'low-quality workflow starts with fiducials'
+);
+assertOk(
+  plan.recommendations.every(
+    (recommendation) => !recommendation.backend.toLowerCase().includes('browser')
+  ),
+  'no browser backend recommended'
+);
+assertOk(
+  plan.recommendations.some((recommendation) => recommendation.id === 'mobile-native-depth'),
+  'mobile native depth remains on ladder'
+);
+assertOk(
+  plan.nextActions.some((action) => action.id === 'place-target-in-camera-view'),
+  'missing target visibility becomes operator action'
+);
+assertOk(
+  plan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'),
+  'fiducial board advances to marker detector action'
+);
+assertOk(
+  !plan.nextActions.some((action) => action.id === 'replace-chart-with-fiducial-board'),
+  'fiducial board is not re-requested'
+);
 
 console.log('Test 3: planner advances to pose solve once marker corners exist');
 const cornerPlan = buildTechnologyPlan({
@@ -91,8 +138,14 @@ const cornerPlan = buildTechnologyPlan({
   },
 });
 assertOk(cornerPlan.signals.hasFiducialMarkerCorners, 'marker corner signal recorded');
-assertOk(cornerPlan.nextActions.some((action) => action.id === 'solve-fiducial-board-pose'), 'pose solve is next after marker recovery');
-assertOk(!cornerPlan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'), 'marker recovery is not re-requested');
+assertOk(
+  cornerPlan.nextActions.some((action) => action.id === 'solve-fiducial-board-pose'),
+  'pose solve is next after marker recovery'
+);
+assertOk(
+  !cornerPlan.nextActions.some((action) => action.id === 'recover-fiducial-marker-corners'),
+  'marker recovery is not re-requested'
+);
 
 console.log('Test 4: planner advances to pose seed once homography exists');
 const homographyPlan = buildTechnologyPlan({
@@ -220,9 +273,15 @@ const calibrationPlan = buildTechnologyPlan({
   },
 });
 assertOk(calibrationPlan.signals.hasFiducialCalibration, 'fiducial calibration signal recorded');
-assertEq(calibrationPlan.signals.fiducialCalibrationRms, 0.61, 'fiducial calibration RMS signal recorded');
+assertEq(
+  calibrationPlan.signals.fiducialCalibrationRms,
+  0.61,
+  'fiducial calibration RMS signal recorded'
+);
 assertOk(
-  !calibrationPlan.nextActions.some((action) => action.id === 'calibrate-camera-intrinsics-distortion'),
+  !calibrationPlan.nextActions.some(
+    (action) => action.id === 'calibrate-camera-intrinsics-distortion'
+  ),
   'camera calibration is not re-requested after calibrated anchor'
 );
 

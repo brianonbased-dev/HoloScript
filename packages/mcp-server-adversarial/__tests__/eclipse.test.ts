@@ -15,8 +15,7 @@ function mockTargetTrustContext(targetTrustSeries: number[]): AttackContext {
   let i = 0;
   return {
     // Reinterpreted per Eclipse: returns TARGET's trust, not attacker's own.
-    observeOwnTrust: () =>
-      targetTrustSeries[Math.min(i++, targetTrustSeries.length - 1)] ?? 0,
+    observeOwnTrust: () => targetTrustSeries[Math.min(i++, targetTrustSeries.length - 1)] ?? 0,
     trustFormulaSpec: 'mock-paper-1-trust',
     sandboxId: 'test-sandbox-eclipse',
   };

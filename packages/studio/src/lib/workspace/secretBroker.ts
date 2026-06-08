@@ -262,7 +262,9 @@ export function createSecretGrant(input: SecretGrantInput): SecretGrantReceipt {
     plaintextReturned: false,
     policyDecisionId: input.policyDecisionId ?? null,
     policyOutcome:
-      input.policyOutcome === 'allow' || input.policyOutcome === 'warn' ? input.policyOutcome : null,
+      input.policyOutcome === 'allow' || input.policyOutcome === 'warn'
+        ? input.policyOutcome
+        : null,
     auditTags: [
       'agent-secret-grant',
       'handles-only',

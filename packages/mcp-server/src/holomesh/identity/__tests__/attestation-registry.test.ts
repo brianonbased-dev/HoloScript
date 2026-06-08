@@ -121,11 +121,12 @@ describe('AttestationRegistry — onRetire callback (SSE-broadcast hook)', () =>
   });
 
   it('does not throw when the onRetire callback throws (broadcast failure tolerance)', () => {
-    const onRetire = vi.fn(() => { throw new Error('SSE down'); });
+    const onRetire = vi.fn(() => {
+      throw new Error('SSE down');
+    });
     const r = new AttestationRegistry({ onRetire });
     r.attest(buildAtt());
-    expect(() => r.retire('0xCAFEBABEcafebabeCAFEBABEcafebabeCAFEBABE', 'reason'))
-      .not.toThrow();
+    expect(() => r.retire('0xCAFEBABEcafebabeCAFEBABEcafebabeCAFEBABE', 'reason')).not.toThrow();
     expect(r.isRetired('0xCAFEBABEcafebabeCAFEBABEcafebabeCAFEBABE')).toBe(true);
   });
 
@@ -191,11 +192,12 @@ describe('createBroadcastingRegistry — SSE wiring helper', () => {
   });
 
   it('continues working when broadcaster throws (registry state still authoritative)', () => {
-    const broadcaster = vi.fn(() => { throw new Error('SSE refused'); });
+    const broadcaster = vi.fn(() => {
+      throw new Error('SSE refused');
+    });
     const r = createBroadcastingRegistry('team_xxx', broadcaster);
     r.attest(buildAtt());
-    expect(() => r.retire('0xCAFEBABEcafebabeCAFEBABEcafebabeCAFEBABE', 'reason'))
-      .not.toThrow();
+    expect(() => r.retire('0xCAFEBABEcafebabeCAFEBABEcafebabeCAFEBABE', 'reason')).not.toThrow();
     expect(r.isRetired('0xCAFEBABEcafebabeCAFEBABEcafebabeCAFEBABE')).toBe(true);
   });
 });

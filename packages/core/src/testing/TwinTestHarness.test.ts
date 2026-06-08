@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  runTwinTest,
-  expectTwinEquivalent,
-  defaultEquivalent,
-} from './TwinTestHarness';
+import { runTwinTest, expectTwinEquivalent, defaultEquivalent } from './TwinTestHarness';
 
 describe('TwinTestHarness', () => {
   describe('runTwinTest', () => {
@@ -21,8 +17,7 @@ describe('TwinTestHarness', () => {
               xs.length === 0 ? 0 : xs[0] + xs.slice(1).reduce((s, x) => s + x, 0),
           },
         },
-        generate: (seed, iter) =>
-          Array.from({ length: 5 }, (_, i) => (seed + iter + i) % 10),
+        generate: (seed, iter) => Array.from({ length: 5 }, (_, i) => (seed + iter + i) % 10),
         iterations: 50,
       });
       expect(result.passed).toBe(true);
@@ -63,8 +58,7 @@ describe('TwinTestHarness', () => {
           xs[0] = -1;
           return xs;
         },
-        shrink: (xs) =>
-          xs.length > 1 ? xs.map((_, i) => xs.filter((_x, j) => j !== i)) : [],
+        shrink: (xs) => (xs.length > 1 ? xs.map((_, i) => xs.filter((_x, j) => j !== i)) : []),
         iterations: 1,
         stopOnFirstDivergence: true,
       });
@@ -188,9 +182,10 @@ describe('TwinTestHarness', () => {
         implementations: {
           a: {
             name: 'hanger',
-            run: () => new Promise<number>(() => {
-              /* never resolves */
-            }),
+            run: () =>
+              new Promise<number>(() => {
+                /* never resolves */
+              }),
           },
           b: { name: 'fast', run: () => 0 },
         },

@@ -30,7 +30,7 @@ export class MarketplacePanel {
         height: 0.6,
         color: '#1a1a1a',
         position: [-0.8, 1.5, -0.5],
-        rotation: [0, 0.5, 0 ],
+        rotation: [0, 0.5, 0],
         borderRadius: 0.02,
       },
     });

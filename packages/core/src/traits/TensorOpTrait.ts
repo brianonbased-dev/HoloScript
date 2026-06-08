@@ -5,7 +5,12 @@
  */
 import type { TraitHandler, TraitContext, TraitEvent } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import { createTensor, add as tensorAdd, matmul as tensorMatmul, type DenseTensor } from './engines/tensor-ops';
+import {
+  createTensor,
+  add as tensorAdd,
+  matmul as tensorMatmul,
+  type DenseTensor,
+} from './engines/tensor-ops';
 export interface TensorOpConfig {
   max_dimensions: number;
 }

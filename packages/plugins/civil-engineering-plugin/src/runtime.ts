@@ -88,7 +88,7 @@ export interface RuntimeTraitHandler {
     node: unknown,
     config: DsmFrame2dTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -120,7 +120,7 @@ function resolveModel(config: DsmFrame2dTraitConfig | undefined): Frame2DModel |
 function solveOntoNode(
   node: unknown,
   config: DsmFrame2dTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as DsmFrame2dNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

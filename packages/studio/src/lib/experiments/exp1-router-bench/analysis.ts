@@ -73,12 +73,7 @@ function pairByTask(outcomes: TaskArmOutcome[]): Map<string, Partial<Record<Arm,
 }
 
 /** Paired pass-rate difference CI between two arms (e.g. B−A for C1, C−A for C2). */
-export function passRateDiffCI(
-  report: BenchReport,
-  armX: Arm,
-  armY: Arm,
-  seed = 0xc0ffee
-): CI {
+export function passRateDiffCI(report: BenchReport, armX: Arm, armY: Arm, seed = 0xc0ffee): CI {
   const byTask = pairByTask(report.outcomes);
   const diffs: number[] = [];
   for (const row of byTask.values()) {

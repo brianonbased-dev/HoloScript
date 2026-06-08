@@ -64,7 +64,7 @@ export interface KitchenQueueResult {
     endMin: number;
     tableId: string;
   }>;
-  makespan: number;  // total completion time minutes
+  makespan: number; // total completion time minutes
   avgWaitMin: number;
   avgFlowMin: number;
 }
@@ -86,8 +86,8 @@ export interface MenuEngineeringResult {
     name: string;
     popularity: number;
     contributionMargin: number;
-    popularityIndex: number;   // vs average popularity
-    marginIndex: number;       // vs average margin
+    popularityIndex: number; // vs average popularity
+    marginIndex: number; // vs average margin
     category: MenuCategory;
   }>;
   averagePopularity: number;
@@ -134,12 +134,12 @@ export interface RestaurantReceiptOptions {
  */
 export function tableAssignment(
   tables: RestaurantTable[],
-  parties: PartyRequest[],
+  parties: PartyRequest[]
 ): TableAssignmentResult {
   if (tables.length === 0) throw new Error('No tables available');
   if (parties.length === 0) throw new Error('No parties to seat');
 
-  const available = tables.map(t => ({ ...t }));
+  const available = tables.map((t) => ({ ...t }));
   const sorted = [...parties].sort((a, b) => {
     // Priority guests first, then by descending party size
     if (a.priorityGuest !== b.priorityGuest) return a.priorityGuest ? -1 : 1;
@@ -151,11 +151,16 @@ export function tableAssignment(
 
   for (const party of sorted) {
     // Best-fit: find smallest available table that fits
-    const candidates = available.filter(t => t.available && t.capacity >= party.partySize);
-    if (candidates.length === 0) { unassigned.push(party.id); continue; }
+    const candidates = available.filter((t) => t.available && t.capacity >= party.partySize);
+    if (candidates.length === 0) {
+      unassigned.push(party.id);
+      continue;
+    }
 
     // Prefer preferred section, then smallest-capacity table
-    const sectionMatch = candidates.filter(t => !party.preferredSection || t.section === party.preferredSection);
+    const sectionMatch = candidates.filter(
+      (t) => !party.preferredSection || t.section === party.preferredSection
+    );
     const pool = sectionMatch.length > 0 ? sectionMatch : candidates;
     pool.sort((a, b) => a.capacity - b.capacity);
     const table = pool[0];
@@ -174,7 +179,11 @@ export function tableAssignment(
   const seatedSeats = assignments.reduce((a, x) => a + x.partySize, 0);
   const totalSeats = tables.reduce((a, t) => a + t.capacity, 0);
 
-  return { assignments, unassigned, overallUtilization: totalSeats > 0 ? seatedSeats / totalSeats : 0 };
+  return {
+    assignments,
+    unassigned,
+    overallUtilization: totalSeats > 0 ? seatedSeats / totalSeats : 0,
+  };
 }
 
 // ─── Kitchen Queue (SJF with priority) ───────────────────────────────────────
@@ -188,12 +197,13 @@ export function kitchenQueueScheduler(tickets: KitchenTicket[]): KitchenQueueRes
 
   // Sort: priority level first, then shortest cook time
   const sorted = [...tickets].sort((a, b) =>
-    a.priority !== b.priority ? a.priority - b.priority : a.estimatedMinutes - b.estimatedMinutes,
+    a.priority !== b.priority ? a.priority - b.priority : a.estimatedMinutes - b.estimatedMinutes
   );
 
   const sequence: KitchenQueueResult['sequence'] = [];
   let time = 0;
-  let totalWait = 0, totalFlow = 0;
+  let totalWait = 0,
+    totalFlow = 0;
 
   for (const ticket of sorted) {
     const start = time;
@@ -225,47 +235,75 @@ export function menuEngineering(items: MenuItem[]): MenuEngineeringResult {
   if (items.length === 0) throw new Error('No menu items');
 
   const avgPopularity = items.reduce((s, i) => s + i.popularity, 0) / items.length;
-  const avgMargin     = items.reduce((s, i) => s + i.contributionMargin, 0) / items.length;
+  const avgMargin = items.reduce((s, i) => s + i.contributionMargin, 0) / items.length;
 
-  const analyzed = items.map(item => {
+  const analyzed = items.map((item) => {
     const popularityIndex = item.popularity / avgPopularity;
-    const marginIndex     = item.contributionMargin / avgMargin;
+    const marginIndex = item.contributionMargin / avgMargin;
     const category: MenuCategory =
-      popularityIndex >= 1 && marginIndex >= 1 ? 'star' :
-      popularityIndex >= 1 && marginIndex <  1 ? 'plow-horse' :
-      popularityIndex <  1 && marginIndex >= 1 ? 'puzzle' : 'dog';
-    return { id: item.id, name: item.name, popularity: item.popularity, contributionMargin: item.contributionMargin, popularityIndex, marginIndex, category };
+      popularityIndex >= 1 && marginIndex >= 1
+        ? 'star'
+        : popularityIndex >= 1 && marginIndex < 1
+          ? 'plow-horse'
+          : popularityIndex < 1 && marginIndex >= 1
+            ? 'puzzle'
+            : 'dog';
+    return {
+      id: item.id,
+      name: item.name,
+      popularity: item.popularity,
+      contributionMargin: item.contributionMargin,
+      popularityIndex,
+      marginIndex,
+      category,
+    };
   });
 
-  const categoryCount: Record<MenuCategory, number> = { star: 0, 'plow-horse': 0, puzzle: 0, dog: 0 };
+  const categoryCount: Record<MenuCategory, number> = {
+    star: 0,
+    'plow-horse': 0,
+    puzzle: 0,
+    dog: 0,
+  };
   for (const a of analyzed) categoryCount[a.category]++;
 
-  return { items: analyzed, averagePopularity: avgPopularity, averageMargin: avgMargin, categoryCount };
+  return {
+    items: analyzed,
+    averagePopularity: avgPopularity,
+    averageMargin: avgMargin,
+    categoryCount,
+  };
 }
 
 // ─── Food Cost Optimizer ──────────────────────────────────────────────────────
 
-export function foodCostAnalysis(
-  lines: FoodCostLine[],
-  targetFoodCostPct = 0.30,
-): FoodCostResult {
+export function foodCostAnalysis(lines: FoodCostLine[], targetFoodCostPct = 0.3): FoodCostResult {
   if (lines.length === 0) throw new Error('No food cost lines');
-  if (targetFoodCostPct <= 0 || targetFoodCostPct >= 1) throw new Error('targetFoodCostPct must be in (0,1)');
+  if (targetFoodCostPct <= 0 || targetFoodCostPct >= 1)
+    throw new Error('targetFoodCostPct must be in (0,1)');
 
-  const analyzed = lines.map(l => {
-    const revenueUSD    = l.sellingPriceUSD * l.unitsSold;
-    const costUSD       = l.ingredientCostUSD * l.unitsSold;
+  const analyzed = lines.map((l) => {
+    const revenueUSD = l.sellingPriceUSD * l.unitsSold;
+    const costUSD = l.ingredientCostUSD * l.unitsSold;
     const grossProfitUSD = revenueUSD - costUSD;
-    const foodCostPct   = l.sellingPriceUSD > 0 ? l.ingredientCostUSD / l.sellingPriceUSD : 0;
+    const foodCostPct = l.sellingPriceUSD > 0 ? l.ingredientCostUSD / l.sellingPriceUSD : 0;
     return { ...l, foodCostPct, revenueUSD, costUSD, grossProfitUSD };
   });
 
   const totalRevenue = analyzed.reduce((s, l) => s + l.revenueUSD, 0);
-  const totalCost    = analyzed.reduce((s, l) => s + l.costUSD,    0);
+  const totalCost = analyzed.reduce((s, l) => s + l.costUSD, 0);
   const blendedFoodCostPct = totalRevenue > 0 ? totalCost / totalRevenue : 0;
   const variance = blendedFoodCostPct - targetFoodCostPct;
 
-  return { lines: analyzed, totalRevenue, totalCost, blendedFoodCostPct, targetFoodCostPct, variance, overTarget: variance > 0 };
+  return {
+    lines: analyzed,
+    totalRevenue,
+    totalCost,
+    blendedFoodCostPct,
+    targetFoodCostPct,
+    variance,
+    overTarget: variance > 0,
+  };
 }
 
 // ─── Turn Time Predictor ──────────────────────────────────────────────────────
@@ -296,11 +334,14 @@ export function turnTimePredictor(input: TurnTimePredictorInput): TurnTimeResult
 
   const periodBase = input.mealPeriod === 'lunch' ? 45 : input.mealPeriod === 'brunch' ? 55 : 75;
   const predictedTurnMin = periodBase + 5 * input.partySize + (input.specialEvent ? 15 : 0);
-  const turnsPerEvening = 480 / predictedTurnMin;  // 8hr service / turn time
+  const turnsPerEvening = 480 / predictedTurnMin; // 8hr service / turn time
 
   // ±10% CI (simplified residual from regression)
-  const margin = predictedTurnMin * 0.10;
-  const confidenceInterval: [number, number] = [predictedTurnMin - margin, predictedTurnMin + margin];
+  const margin = predictedTurnMin * 0.1;
+  const confidenceInterval: [number, number] = [
+    predictedTurnMin - margin,
+    predictedTurnMin + margin,
+  ];
 
   return { predictedTurnMin, turnsPerEvening, confidenceInterval };
 }
@@ -318,18 +359,27 @@ export interface RestaurantAnalysisResult {
 
 export function buildRestaurantReceipt(
   result: RestaurantAnalysisResult,
-  options?: RestaurantReceiptOptions,
+  options?: RestaurantReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.tableAssign && result.tableAssign.unassigned.length > 0) {
-    violations.push({ criterion: 'unseated_parties', message: `${result.tableAssign.unassigned.length} party/parties could not be seated` });
+    violations.push({
+      criterion: 'unseated_parties',
+      message: `${result.tableAssign.unassigned.length} party/parties could not be seated`,
+    });
   }
   if (result.foodCost?.overTarget) {
-    violations.push({ criterion: 'food_cost', message: `Blended food cost ${(result.foodCost.blendedFoodCostPct * 100).toFixed(1)}% exceeds ${(result.foodCost.targetFoodCostPct * 100).toFixed(0)}% target` });
+    violations.push({
+      criterion: 'food_cost',
+      message: `Blended food cost ${(result.foodCost.blendedFoodCostPct * 100).toFixed(1)}% exceeds ${(result.foodCost.targetFoodCostPct * 100).toFixed(0)}% target`,
+    });
   }
   if (result.queue && result.queue.makespan > 60) {
-    violations.push({ criterion: 'kitchen_throughput', message: `Kitchen makespan ${result.queue.makespan.toFixed(0)} min exceeds 60 min service standard` });
+    violations.push({
+      criterion: 'kitchen_throughput',
+      message: `Kitchen makespan ${result.queue.makespan.toFixed(0)} min exceeds 60 min service standard`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -344,7 +394,11 @@ export function buildRestaurantReceipt(
       blendedFoodCostPct: result.foodCost?.blendedFoodCostPct ?? null,
       menuStarCount: result.menuEngineering?.categoryCount.star ?? null,
     },
-    cael: { version: 'cael.v1', event: 'restaurant.operations_analysis', solverType: 'restaurant.table-assignment' },
+    cael: {
+      version: 'cael.v1',
+      event: 'restaurant.operations_analysis',
+      solverType: 'restaurant.table-assignment',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

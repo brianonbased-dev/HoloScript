@@ -47,12 +47,7 @@ import type { LotusAggregateBloomState } from './LotusRootTrait';
  * Format identifier — which file format tier this stalk segment represents.
  * Maps 1:1 to the four Stalk: <format> nodes in garden.seedable.holo.
  */
-export type LotusStalkFormat =
-  | 'hs'
-  | 'hsplus'
-  | 'holo'
-  | 'hs_md'
-  | (string & {});
+export type LotusStalkFormat = 'hs' | 'hsplus' | 'holo' | 'hs_md' | (string & {});
 
 interface LotusStalkConfig {
   /** Which format this stalk segment represents. */
@@ -164,9 +159,8 @@ export const lotusStalkHandler: TraitHandler<LotusStalkConfig> = {
 
   onAttach(node, config, context) {
     const ctxState = context.getState?.() ?? {};
-    const initialBloomRaw = (ctxState[config.bloom_state_source] as
-      | LotusAggregateBloomState
-      | undefined) ?? 'sealed';
+    const initialBloomRaw =
+      (ctxState[config.bloom_state_source] as LotusAggregateBloomState | undefined) ?? 'sealed';
     const posture = deriveLotusStalkPosture(initialBloomRaw, config);
 
     const state: LotusStalkState = {

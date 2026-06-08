@@ -23,10 +23,7 @@ import {
   ZONE_BIOMES,
   validateShard,
 } from '@holoscript/framework';
-import {
-  buildFrontierShardZero,
-  validateFrontierShardZero,
-} from './frontier-shard-zero';
+import { buildFrontierShardZero, validateFrontierShardZero } from './frontier-shard-zero';
 
 describe('Frontier Shard 0 — HoloLand consumption', () => {
   it('builds and validates clean against framework validators', () => {
@@ -97,7 +94,7 @@ describe('Frontier Shard 0 — HoloLand consumption', () => {
     const shard = buildFrontierShardZero();
     // Cast through unknown to bypass compile-time gate — we explicitly want
     // to prove the runtime validator catches this.
-    shard.skills[0].rarity = 'godlike' as unknown as typeof shard.skills[0]['rarity'];
+    shard.skills[0].rarity = 'godlike' as unknown as (typeof shard.skills)[0]['rarity'];
     const errors = validateShard(shard);
     expect(errors.some((e) => e.includes('Skill.rarity is unsupported: godlike'))).toBe(true);
   });

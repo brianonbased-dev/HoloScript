@@ -23,7 +23,12 @@ import type {
   LLMStreamChunk,
   TokenUsage,
 } from '../types';
-import { LLMProviderError, LLMRateLimitError, LLMAuthenticationError, messageContentAsString } from '../types';
+import {
+  LLMProviderError,
+  LLMRateLimitError,
+  LLMAuthenticationError,
+  messageContentAsString,
+} from '../types';
 
 // =============================================================================
 // Configuration
@@ -59,7 +64,7 @@ export type BrittneyCloudModel = (typeof BRITTNEY_CLOUD_MODELS)[number];
 // =============================================================================
 
 export const BRITTNEY_CLOUD_CAPABILITIES: Capabilities = {
-  contextWindow: 128000,      // Kimi K2.5 / Fireworks Llama 3.1 8B range
+  contextWindow: 128000, // Kimi K2.5 / Fireworks Llama 3.1 8B range
   maxOutput: 8192,
   streaming: true,
   tools: true,
@@ -110,8 +115,11 @@ export class BrittneyCloudAdapter extends BaseLLMAdapter {
       timeoutMs: config.timeoutMs ?? 300000,
     });
 
-    this.baseURL = (config.baseURL ?? process.env.BRITTNEY_SERVICE_URL ?? 'http://localhost:8000')
-      .replace(/\/$/, '');
+    this.baseURL = (
+      config.baseURL ??
+      process.env.BRITTNEY_SERVICE_URL ??
+      'http://localhost:8000'
+    ).replace(/\/$/, '');
     this.tier = config.tier ?? 'standard';
     this.defaultHoloScriptModel = config.defaultModel ?? 'brittney-standard';
   }
@@ -131,7 +139,10 @@ export class BrittneyCloudAdapter extends BaseLLMAdapter {
     const url = `${this.baseURL}/api/chat`;
 
     const body = JSON.stringify({
-      messages: request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) })),
+      messages: request.messages.map((m) => ({
+        role: m.role,
+        content: messageContentAsString(m.content),
+      })),
       model: model === 'brittney-standard' || model === 'brittney-pro' ? undefined : model,
       tier: this.tier,
       temperature: request.temperature ?? 0.7,
@@ -201,7 +212,11 @@ export class BrittneyCloudAdapter extends BaseLLMAdapter {
 
         if (event.type === 'text' && typeof event.payload === 'string') {
           fullText += event.payload;
-        } else if (event.type === 'tool_call' && event.payload && typeof event.payload === 'object') {
+        } else if (
+          event.type === 'tool_call' &&
+          event.payload &&
+          typeof event.payload === 'object'
+        ) {
           const tc = event.payload as Record<string, unknown>;
           toolUses.push({
             name: (tc.name as string) || 'unknown',
@@ -245,17 +260,18 @@ export class BrittneyCloudAdapter extends BaseLLMAdapter {
           name: tu.name,
           input: tu.arguments,
         })),
-        assistantBlocks: toolUses.length > 0
-          ? [
-              { type: 'text', text: fullText },
-              ...toolUses.map((tu, i) => ({
-                type: 'tool_use' as const,
-                id: `call_${i}`,
-                name: tu.name,
-                input: tu.arguments,
-              })),
-            ]
-          : undefined,
+        assistantBlocks:
+          toolUses.length > 0
+            ? [
+                { type: 'text', text: fullText },
+                ...toolUses.map((tu, i) => ({
+                  type: 'tool_use' as const,
+                  id: `call_${i}`,
+                  name: tu.name,
+                  input: tu.arguments,
+                })),
+              ]
+            : undefined,
       };
     });
   }
@@ -271,7 +287,10 @@ export class BrittneyCloudAdapter extends BaseLLMAdapter {
     const url = `${this.baseURL}/api/chat`;
 
     const body = JSON.stringify({
-      messages: request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) })),
+      messages: request.messages.map((m) => ({
+        role: m.role,
+        content: messageContentAsString(m.content),
+      })),
       model: model === 'brittney-standard' || model === 'brittney-pro' ? undefined : model,
       tier: this.tier,
       temperature: request.temperature ?? 0.7,
@@ -357,7 +376,11 @@ export class BrittneyCloudAdapter extends BaseLLMAdapter {
 
           if (event.type === 'text' && typeof event.payload === 'string') {
             yield { type: 'text_delta', text: event.payload };
-          } else if (event.type === 'tool_call' && event.payload && typeof event.payload === 'object') {
+          } else if (
+            event.type === 'tool_call' &&
+            event.payload &&
+            typeof event.payload === 'object'
+          ) {
             hadToolCalls = true;
             const tc = event.payload as Record<string, unknown>;
             const id = `call_${toolCallIndex++}`;

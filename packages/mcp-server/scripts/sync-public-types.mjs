@@ -17,7 +17,9 @@ if (packageTypes !== './dist/index.d.ts') {
 }
 
 if (exportTypes !== './dist/index.d.ts') {
-  throw new Error(`package.json exports["."].types must be ./dist/index.d.ts, found ${String(exportTypes)}`);
+  throw new Error(
+    `package.json exports["."].types must be ./dist/index.d.ts, found ${String(exportTypes)}`
+  );
 }
 
 if (!existsSync(source)) {
@@ -31,7 +33,9 @@ if (checkOnly) {
   const sourceText = readFileSync(source, 'utf8');
   const targetText = readFileSync(target, 'utf8');
   if (sourceText !== targetText) {
-    throw new Error('Generated public type artifact is stale; run npm run build in packages/mcp-server.');
+    throw new Error(
+      'Generated public type artifact is stale; run npm run build in packages/mcp-server.'
+    );
   }
   console.log('mcp-server public types are present and current');
 } else {

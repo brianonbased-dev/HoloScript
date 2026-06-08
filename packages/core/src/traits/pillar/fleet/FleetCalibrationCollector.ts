@@ -35,32 +35,29 @@ import * as path from 'node:path';
 import * as https from 'node:https';
 import * as os from 'node:os';
 
-import {
-  LatentByzantineDetector,
-  LatentSycophancyProbe,
-} from '../LatentIntegrityLayer';
+import { LatentByzantineDetector, LatentSycophancyProbe } from '../LatentIntegrityLayer';
 import type { PillarSlice } from '../SemanticCollaborationContract';
 import type { RecursiveLinkMessage } from '../RecursiveLinkTrait';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
-const POLL_INTERVAL_MS  = Number(process.env['FLEET_CAL_POLL_MS']  ?? 60_000);
+const POLL_INTERVAL_MS = Number(process.env['FLEET_CAL_POLL_MS'] ?? 60_000);
 const FLEET_DURATION_MS = Number(process.env['FLEET_CAL_DURATION_MS'] ?? 168 * 60 * 60 * 1000);
-const BYZANTINE_SIGMA   = Number(process.env['FLEET_CAL_B_SIGMA']  ?? 2.0);
-const SYCO_THRESHOLD    = Number(process.env['FLEET_CAL_S_THRESH'] ?? 0.2);
+const BYZANTINE_SIGMA = Number(process.env['FLEET_CAL_B_SIGMA'] ?? 2.0);
+const SYCO_THRESHOLD = Number(process.env['FLEET_CAL_S_THRESH'] ?? 0.2);
 const TARGET_AGENT_HOURS = Number(process.env['FLEET_CAL_TARGET_AH'] ?? 6048);
 
-const MCP_ENDPOINT = process.env['MCP_ORCHESTRATOR_URL']
-  ?? 'https://mcp-orchestrator-production-45f9.up.railway.app';
+const MCP_ENDPOINT =
+  process.env['MCP_ORCHESTRATOR_URL'] ?? 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const API_KEY = process.env['HOLOSCRIPT_API_KEY'] ?? '';
 
 const OUT_DIR = path.resolve(
-  process.env['FLEET_CAL_OUT_DIR']
-  ?? path.join(os.homedir(), '.ai-ecosystem', 'research', 'paper-22-ati'),
+  process.env['FLEET_CAL_OUT_DIR'] ??
+    path.join(os.homedir(), '.ai-ecosystem', 'research', 'paper-22-ati')
 );
 const RUN_TAG = new Date().toISOString().slice(0, 10);
-const OUT_FILE = process.env['FLEET_CAL_OUT']
-  ?? path.join(OUT_DIR, `fleet-calibration-${RUN_TAG}.jsonl`);
+const OUT_FILE =
+  process.env['FLEET_CAL_OUT'] ?? path.join(OUT_DIR, `fleet-calibration-${RUN_TAG}.jsonl`);
 
 // ─── JSONL record format ──────────────────────────────────────────────────────
 
@@ -92,8 +89,8 @@ export interface CalibrationRecord {
 // ─── Detector pool — one detector per agent_id ────────────────────────────────
 
 const byzantineDetectors = new Map<string, LatentByzantineDetector>();
-const sycophancyProbes   = new Map<string, LatentSycophancyProbe>();
-const agentHistories     = new Map<string, PillarSlice[]>();
+const sycophancyProbes = new Map<string, LatentSycophancyProbe>();
+const agentHistories = new Map<string, PillarSlice[]>();
 
 function getDetectors(agentId: string): {
   byz: LatentByzantineDetector;
@@ -101,23 +98,29 @@ function getDetectors(agentId: string): {
   history: PillarSlice[];
 } {
   if (!byzantineDetectors.has(agentId)) {
-    byzantineDetectors.set(agentId, new LatentByzantineDetector({
-      sigmaThreshold: BYZANTINE_SIGMA,
-      minHistory: 10,
-    }));
+    byzantineDetectors.set(
+      agentId,
+      new LatentByzantineDetector({
+        sigmaThreshold: BYZANTINE_SIGMA,
+        minHistory: 10,
+      })
+    );
   }
   if (!sycophancyProbes.has(agentId)) {
-    sycophancyProbes.set(agentId, new LatentSycophancyProbe({
-      driftThreshold: SYCO_THRESHOLD,
-      minSamples: 5,
-    }));
+    sycophancyProbes.set(
+      agentId,
+      new LatentSycophancyProbe({
+        driftThreshold: SYCO_THRESHOLD,
+        minSamples: 5,
+      })
+    );
   }
   if (!agentHistories.has(agentId)) {
     agentHistories.set(agentId, []);
   }
   return {
-    byz:     byzantineDetectors.get(agentId)!,
-    syco:    sycophancyProbes.get(agentId)!,
+    byz: byzantineDetectors.get(agentId)!,
+    syco: sycophancyProbes.get(agentId)!,
     history: agentHistories.get(agentId)!,
   };
 }
@@ -126,8 +129,8 @@ function getDetectors(agentId: string): {
 
 const agentHourSeen = new Set<string>(); // agent_id+":"+hourBucket
 let totalObservations = 0;
-let totalByzantine    = 0;
-let totalSycophantic  = 0;
+let totalByzantine = 0;
+let totalSycophantic = 0;
 let totalAxis1MissAxis2Catch = 0;
 
 // ─── HTTP helper (no external deps) ──────────────────────────────────────────
@@ -165,7 +168,7 @@ function mcpPost(toolName: string, args: Record<string, unknown>): Promise<unkno
             reject(e);
           }
         });
-      },
+      }
     );
     req.on('error', reject);
     req.write(body);
@@ -183,7 +186,7 @@ interface GossipMessage {
 
 async function pollGossip(): Promise<GossipMessage[]> {
   try {
-    const result = await mcpPost('holomesh_gossip_sync', { limit: 100 }) as {
+    const result = (await mcpPost('holomesh_gossip_sync', { limit: 100 })) as {
       messages?: GossipMessage[];
     };
     return result?.messages ?? [];
@@ -212,7 +215,7 @@ function extractLinkMessage(raw: unknown): RecursiveLinkMessage | null {
   }
 
   // Shape 3: wrapped in payload.slice directly
-  if (r['payload'] && typeof (r['payload'] as Record<string,unknown>)['slice'] === 'object') {
+  if (r['payload'] && typeof (r['payload'] as Record<string, unknown>)['slice'] === 'object') {
     const p = r['payload'] as Record<string, unknown>;
     return {
       from: (r['from'] as string) ?? 'unknown',
@@ -236,7 +239,7 @@ function processMessage(msg: GossipMessage): CalibrationRecord | null {
   const { byz, syco, history } = getDetectors(agentId);
 
   // Byzantine check
-  const byzResult  = byz.check(linkMsg, history);
+  const byzResult = byz.check(linkMsg, history);
   // Sycophancy: only fires on truth_approval domain — observe all, probe relevant
   syco.observe(linkMsg);
   const sycoResult = syco.probe(linkMsg);
@@ -247,10 +250,10 @@ function processMessage(msg: GossipMessage): CalibrationRecord | null {
 
   // Scores
   const byzZScore = (byzResult as unknown as Record<string, number | undefined>)['zScore'];
-  const B_score = byzResult.isAnomalous ? byzZScore ?? 1.0 : byzZScore ?? 0.0;
+  const B_score = byzResult.isAnomalous ? (byzZScore ?? 1.0) : (byzZScore ?? 0.0);
   const S_score = sycoResult.driftScore ?? 0.0;
-  const is_byzantine    = byzResult.isAnomalous;
-  const is_sycophantic  = sycoResult.isDrifting;
+  const is_byzantine = byzResult.isAnomalous;
+  const is_sycophantic = sycoResult.isDrifting;
   const axis1_pass_axis2_catch = !is_byzantine && is_sycophantic;
 
   // Agent-hour accounting
@@ -274,7 +277,7 @@ function processMessage(msg: GossipMessage): CalibrationRecord | null {
 
   // Accumulate
   totalObservations++;
-  if (is_byzantine)   totalByzantine++;
+  if (is_byzantine) totalByzantine++;
   if (is_sycophantic) totalSycophantic++;
   if (axis1_pass_axis2_catch) totalAxis1MissAxis2Catch++;
 
@@ -290,26 +293,28 @@ function appendRecord(record: CalibrationRecord): void {
 // ─── Progress report ──────────────────────────────────────────────────────────
 
 function reportProgress(elapsedMs: number): void {
-  const elapsedH   = (elapsedMs / 3_600_000).toFixed(1);
+  const elapsedH = (elapsedMs / 3_600_000).toFixed(1);
   const agentHours = agentHourSeen.size;
-  const pctAH      = ((agentHours / TARGET_AGENT_HOURS) * 100).toFixed(1);
-  const byzRate    = totalObservations > 0
-    ? ((totalByzantine / totalObservations) * 100).toFixed(2) : '—';
-  const sycoRate   = totalObservations > 0
-    ? ((totalSycophantic / totalObservations) * 100).toFixed(2) : '—';
-  const fnRate     = totalObservations > 0
-    ? ((totalAxis1MissAxis2Catch / totalObservations) * 100).toFixed(2) : '—';
+  const pctAH = ((agentHours / TARGET_AGENT_HOURS) * 100).toFixed(1);
+  const byzRate =
+    totalObservations > 0 ? ((totalByzantine / totalObservations) * 100).toFixed(2) : '—';
+  const sycoRate =
+    totalObservations > 0 ? ((totalSycophantic / totalObservations) * 100).toFixed(2) : '—';
+  const fnRate =
+    totalObservations > 0 ? ((totalAxis1MissAxis2Catch / totalObservations) * 100).toFixed(2) : '—';
 
-  console.log([
-    `[FleetCal ${new Date().toISOString()}]`,
-    `elapsed=${elapsedH}h`,
-    `agent-hours=${agentHours}/${TARGET_AGENT_HOURS}(${pctAH}%)`,
-    `obs=${totalObservations}`,
-    `byz=${byzRate}%`,
-    `syco=${sycoRate}%`,
-    `axis1-false-neg=${fnRate}%`,
-    `out=${OUT_FILE}`,
-  ].join('  '));
+  console.log(
+    [
+      `[FleetCal ${new Date().toISOString()}]`,
+      `elapsed=${elapsedH}h`,
+      `agent-hours=${agentHours}/${TARGET_AGENT_HOURS}(${pctAH}%)`,
+      `obs=${totalObservations}`,
+      `byz=${byzRate}%`,
+      `syco=${sycoRate}%`,
+      `axis1-false-neg=${fnRate}%`,
+      `out=${OUT_FILE}`,
+    ].join('  ')
+  );
 }
 
 // ─── Main loop ────────────────────────────────────────────────────────────────
@@ -342,8 +347,12 @@ async function main(): Promise<void> {
 
   // Graceful shutdown
   let running = true;
-  process.on('SIGINT',  () => { running = false; });
-  process.on('SIGTERM', () => { running = false; });
+  process.on('SIGINT', () => {
+    running = false;
+  });
+  process.on('SIGTERM', () => {
+    running = false;
+  });
 
   while (running) {
     const elapsed = Date.now() - startMs;
@@ -380,7 +389,7 @@ async function main(): Promise<void> {
     }
 
     // Wait for next poll
-    await new Promise<void>(r => setTimeout(r, POLL_INTERVAL_MS));
+    await new Promise<void>((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
 
   // Final report
@@ -388,7 +397,7 @@ async function main(): Promise<void> {
   console.log('[FleetCal] Run complete. Analyze with FleetCalibrationAnalyzer.ts');
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error('[FleetCal] Fatal:', e);
   process.exit(1);
 });

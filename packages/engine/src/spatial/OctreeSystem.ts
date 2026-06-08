@@ -75,7 +75,8 @@ export class OctreeSystem {
   }
 
   private insertIntoNode(node: OctreeNode, entry: OctreeEntry): boolean {
-    if (!this.containsPoint(node, entry.position[0], entry.position[1], entry.position[2])) return false;
+    if (!this.containsPoint(node, entry.position[0], entry.position[1], entry.position[2]))
+      return false;
 
     if (node.children === null) {
       node.entries.push(entry);
@@ -178,11 +179,7 @@ export class OctreeSystem {
       for (let y = -1; y <= 1; y += 2) {
         for (let z = -1; z <= 1; z += 2) {
           node.children.push({
-            center: [
-              node.center[0] + x * hs,
-              node.center[1] + y * hs,
-              node.center[2] + z * hs,
-            ],
+            center: [node.center[0] + x * hs, node.center[1] + y * hs, node.center[2] + z * hs],
             halfSize: hs,
             entries: [],
             children: null,

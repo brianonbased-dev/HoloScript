@@ -7,7 +7,7 @@
 
 - **Specification:** [W3C Accessibility Guidelines (WCAG) 3.0](https://www.w3.org/TR/wcag-3.0/) — **Working Draft** (spec evolves; check TR date on the page you cite in papers).
 - **Relationship to WCAG 2:** W3C positions WCAG 3 as **not a drop-in replacement** for 2.x in the near term — **both coexist** while WCAG 3 matures; legal/compliance text still often references **2.x** until adopting bodies update.
-- **Implication for HoloScript:** ship **WCAG 2.2–oriented** behavior where customers require compliance *today*; use WCAG 3 **outcome** language for **forward-looking** XR research narrative.
+- **Implication for HoloScript:** ship **WCAG 2.2–oriented** behavior where customers require compliance _today_; use WCAG 3 **outcome** language for **forward-looking** XR research narrative.
 
 ## XR + “emerging standards”
 
@@ -17,12 +17,12 @@ See: `benchmarks/cross-compilation/WISDOM.md` (section **S.020**).
 
 ## HoloScript anchors (existing code)
 
-| Concern | Location | Notes |
-|---------|----------|--------|
-| Reduced motion / vestibular safety | `packages/core/src/traits/MotionReducedTrait.ts` | Emit / register / restore hooks for motion policy |
-| Accessibility trait constants | `packages/core/src/traits/constants/accessibility.ts`, `accessibility-extended.ts` | Vocabulary for manifests + tooling |
-| Dwell / gaze UX (privacy-aware) | `packages/core/src/traits/SpatialInputTraits.ts` | Dwell progress without raw gaze exfiltration |
-| Studio / runtime context | `packages/core/src/traits/TraitTypes.ts` (`accessibility` on context) | Wire for inspectors / validators |
+| Concern                            | Location                                                                           | Notes                                             |
+| ---------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Reduced motion / vestibular safety | `packages/core/src/traits/MotionReducedTrait.ts`                                   | Emit / register / restore hooks for motion policy |
+| Accessibility trait constants      | `packages/core/src/traits/constants/accessibility.ts`, `accessibility-extended.ts` | Vocabulary for manifests + tooling                |
+| Dwell / gaze UX (privacy-aware)    | `packages/core/src/traits/SpatialInputTraits.ts`                                   | Dwell progress without raw gaze exfiltration      |
+| Studio / runtime context           | `packages/core/src/traits/TraitTypes.ts` (`accessibility` on context)              | Wire for inspectors / validators                  |
 
 ## Next steps (when productized)
 

@@ -29,7 +29,9 @@ const {
   mcpReconstructExport,
   __resetHoloReconstructSessionsForTests,
 } = await imp(join(repo, 'packages', 'mcp-server', 'src', 'holo-reconstruct-sessions.ts'));
-const { computeStateDigest } = await imp(join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'));
+const { computeStateDigest } = await imp(
+  join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts')
+);
 
 const receiptPath = join(here, 'GATE-33-HOLOMAP-SCAN-receipt.json');
 const artifactPath = join(here, 'gold-vault-holomap-room.json');
@@ -48,7 +50,11 @@ try {
     configurable: true,
   });
 } catch {
-  try { if (globalThis.navigator) globalThis.navigator.gpu = undefined; } catch { /* ignore */ }
+  try {
+    if (globalThis.navigator) globalThis.navigator.gpu = undefined;
+  } catch {
+    /* ignore */
+  }
 }
 const originalModuleLoad = Module._load;
 Module._load = function gate33CpuOnlyModuleLoad(request, parent, isMain) {
@@ -181,7 +187,10 @@ function digestSpace(stable) {
       ...(stable.anchor.anchorDescriptor || []).map(q),
       stable.anchor.revision,
     ]),
-    drift: Float32Array.from([Math.round((stable.driftMetersRaw ?? 0) * 100000), stable.lastLoopClosureFrame ?? -1]),
+    drift: Float32Array.from([
+      Math.round((stable.driftMetersRaw ?? 0) * 100000),
+      stable.lastLoopClosureFrame ?? -1,
+    ]),
     trajectory: Float32Array.from(trajectory),
     export: Float32Array.from([
       stable.manifest.frameCount,
@@ -190,24 +199,30 @@ function digestSpace(stable) {
       ...hexFloats(stable.export.compiledOutputHash).slice(0, 16),
     ]),
   };
-  return computeStateDigest({ fieldNames: Object.keys(fields), getField: (name) => fields[name] }, HASH);
+  return computeStateDigest(
+    { fieldNames: Object.keys(fields), getField: (name) => fields[name] },
+    HASH
+  );
 }
 
 async function reconstruct(tamper = false) {
   __resetHoloReconstructSessionsForTests();
   const capture = makeCapture(tamper);
-  const start = await mcpStartReconstructFromVideo('gold-game://gate33/deterministic-room-capture', {
-    ingestVideo: false,
-    captureProfile: 'room',
-    inputResolution: { width: WIDTH, height: HEIGHT },
-    targetFPS: 60,
-    maxSequenceLength: 64,
-    seed: 33,
-    modelHash: 'gold-game-holomap-room-fixture-v1',
-    videoHash: capture.captureDigest,
-    allowCpuFallback: true,
-    weightStrategy: 'distill',
-  });
+  const start = await mcpStartReconstructFromVideo(
+    'gold-game://gate33/deterministic-room-capture',
+    {
+      ingestVideo: false,
+      captureProfile: 'room',
+      inputResolution: { width: WIDTH, height: HEIGHT },
+      targetFPS: 60,
+      maxSequenceLength: 64,
+      seed: 33,
+      modelHash: 'gold-game-holomap-room-fixture-v1',
+      videoHash: capture.captureDigest,
+      allowCpuFallback: true,
+      weightStrategy: 'distill',
+    }
+  );
 
   const steps = [];
   for (const frame of capture.frames) {
@@ -293,15 +308,52 @@ const tampered = await reconstruct(true);
 const checks = [];
 const check = (name, pass, detail) => checks.push({ name, pass: !!pass, detail });
 
-check('HoloMap session starts in room profile', clean.stable.session.captureProfile === 'room', clean.stable.session.replayFingerprint.slice(0, 16));
-check('all deterministic capture frames step through the runtime', clean.stable.steps.length === FRAME_COUNT && clean.stable.steps.every((s) => s.pointCount > 0), `${clean.stable.steps.length}/${FRAME_COUNT}`);
-check('anchor is emitted with revision and pose', clean.stable.anchor.revision >= FRAME_COUNT && clean.stable.anchor.anchorPose.position.length === 3, `rev=${clean.stable.anchor.revision}`);
-check('export compiles through the shipped HoloMap export path', clean.stable.export.compileStatus === 'COMPILED' && clean.stable.export.compiledOutputBytes > 0, `${clean.stable.export.target}/${clean.stable.export.compileStatus}`);
-check('point cloud + trajectory sidecars are materialized', clean.stable.export.exportPointCount > 0 && clean.stable.trajectory.poses.length === FRAME_COUNT, `points=${clean.stable.export.exportPointCount}, poses=${clean.stable.trajectory.poses.length}`);
-check('manifest carries deterministic replay identity', clean.stable.manifest.replayHash === clean.stable.session.replayFingerprint, clean.stable.manifest.replayHash.slice(0, 16));
-check('one-byte capture tamper changes the capture digest', clean.stable.sourceCapture.captureDigest !== tampered.stable.sourceCapture.captureDigest, 'negative control');
-check('one-byte capture tamper changes the HoloMap replay identity', clean.stable.session.replayFingerprint !== tampered.stable.session.replayFingerprint, 'negative control');
-check('one-byte capture tamper changes the GOLD room digest', clean.stable.contract.spaceDigest !== tampered.stable.contract.spaceDigest, 'negative control');
+check(
+  'HoloMap session starts in room profile',
+  clean.stable.session.captureProfile === 'room',
+  clean.stable.session.replayFingerprint.slice(0, 16)
+);
+check(
+  'all deterministic capture frames step through the runtime',
+  clean.stable.steps.length === FRAME_COUNT && clean.stable.steps.every((s) => s.pointCount > 0),
+  `${clean.stable.steps.length}/${FRAME_COUNT}`
+);
+check(
+  'anchor is emitted with revision and pose',
+  clean.stable.anchor.revision >= FRAME_COUNT &&
+    clean.stable.anchor.anchorPose.position.length === 3,
+  `rev=${clean.stable.anchor.revision}`
+);
+check(
+  'export compiles through the shipped HoloMap export path',
+  clean.stable.export.compileStatus === 'COMPILED' && clean.stable.export.compiledOutputBytes > 0,
+  `${clean.stable.export.target}/${clean.stable.export.compileStatus}`
+);
+check(
+  'point cloud + trajectory sidecars are materialized',
+  clean.stable.export.exportPointCount > 0 && clean.stable.trajectory.poses.length === FRAME_COUNT,
+  `points=${clean.stable.export.exportPointCount}, poses=${clean.stable.trajectory.poses.length}`
+);
+check(
+  'manifest carries deterministic replay identity',
+  clean.stable.manifest.replayHash === clean.stable.session.replayFingerprint,
+  clean.stable.manifest.replayHash.slice(0, 16)
+);
+check(
+  'one-byte capture tamper changes the capture digest',
+  clean.stable.sourceCapture.captureDigest !== tampered.stable.sourceCapture.captureDigest,
+  'negative control'
+);
+check(
+  'one-byte capture tamper changes the HoloMap replay identity',
+  clean.stable.session.replayFingerprint !== tampered.stable.session.replayFingerprint,
+  'negative control'
+);
+check(
+  'one-byte capture tamper changes the GOLD room digest',
+  clean.stable.contract.spaceDigest !== tampered.stable.contract.spaceDigest,
+  'negative control'
+);
 
 // ── E4: anchor pose + drift are SCAN-DERIVED (falsifiable) ──────────────────
 // The anchor pose is the center of the observed point volume and the drift is
@@ -310,7 +362,8 @@ check('one-byte capture tamper changes the GOLD room digest', clean.stable.contr
 // old constants ([0,0,0] / 0), these negative controls would FAIL.
 check(
   'one-byte capture tamper changes the scan-derived anchor pose',
-  JSON.stringify(clean.stable.anchor.anchorPose.position) !== JSON.stringify(tampered.stable.anchor.anchorPose.position),
+  JSON.stringify(clean.stable.anchor.anchorPose.position) !==
+    JSON.stringify(tampered.stable.anchor.anchorPose.position),
   `clean=[${clean.stable.anchor.anchorPose.position.join(',')}] tampered=[${tampered.stable.anchor.anchorPose.position.join(',')}]`
 );
 // Descriptor = [extentX, extentY, extentZ, globalMeanConfidence] — a coarse
@@ -322,7 +375,8 @@ check(
   const desc = clean.stable.anchor.anchorDescriptor;
   const bnd = clean.stable.manifest.bounds;
   const ext = [bnd.max[0] - bnd.min[0], bnd.max[1] - bnd.min[1], bnd.max[2] - bnd.min[2]];
-  const extentMatches = desc.length === 4 && [0, 1, 2].every((i) => Math.abs(desc[i] - round(ext[i])) < 1e-3);
+  const extentMatches =
+    desc.length === 4 && [0, 1, 2].every((i) => Math.abs(desc[i] - round(ext[i])) < 1e-3);
   check(
     'anchor descriptor is scan-derived volume extent + confidence (not the [1,0,0,1] stub)',
     extentMatches && JSON.stringify(desc) !== JSON.stringify([1, 0, 0, 1]),
@@ -361,18 +415,29 @@ const goldRoom = {
     target: 'GOLD Scanned Room Exhibit',
   },
   proves: {
-    importPath: 'RGB device-capture frames feed the shipped HoloMap session API, not a mocked room JSON.',
-    anchor: 'mcpReconstructAnchor returns a SCAN-DERIVED anchor: the pose is the center of the observed point volume, the descriptor carries its extent + mean confidence, and the GOLD room uses it as its placement anchor.',
-    drift: 'trajectory.estimatedDriftMeters is the registration residual (camera-pose deviation from a constant-velocity prediction) accumulated over the capture; loop closure fires on a keyframe revisit.',
-    export: 'mcpReconstructExport compiles the reconstruction manifest to an r3f target and emits sidecars.',
-    loadBearing: 'negative control flips one byte of capture data and changes capture, replay, room digest, AND the scan-derived anchor pose and estimated drift. The descriptor (coarse volume extent + confidence) equals the observed bounds extent but is below 6-decimal sensitivity to a single-point nudge.',
+    importPath:
+      'RGB device-capture frames feed the shipped HoloMap session API, not a mocked room JSON.',
+    anchor:
+      'mcpReconstructAnchor returns a SCAN-DERIVED anchor: the pose is the center of the observed point volume, the descriptor carries its extent + mean confidence, and the GOLD room uses it as its placement anchor.',
+    drift:
+      'trajectory.estimatedDriftMeters is the registration residual (camera-pose deviation from a constant-velocity prediction) accumulated over the capture; loop closure fires on a keyframe revisit.',
+    export:
+      'mcpReconstructExport compiles the reconstruction manifest to an r3f target and emits sidecars.',
+    loadBearing:
+      'negative control flips one byte of capture data and changes capture, replay, room digest, AND the scan-derived anchor pose and estimated drift. The descriptor (coarse volume extent + confidence) equals the observed bounds extent but is below 6-decimal sensitivity to a single-point nudge.',
   },
-  honestScope: 'Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an anchored GOLD space/portal artifact through the real HoloMap session/runtime/export code.',
-  anchorScope: 'The reconstructed POINTS, the ANCHOR pose/descriptor, and the DRIFT estimate are all scan-derived (E4, 2026-05-24): anchor pose = observed-volume center, descriptor = [extentX, extentY, extentZ, meanConfidence], drift = accumulated constant-velocity registration residual. A one-byte capture tamper changes all of them (negative controls below). NOT yet derived: a true physical-room video scan (this uses a deterministic fixture) and full bundle-adjustment loop-closure correction (revisit detection only).',
+  honestScope:
+    'Offline data-integrity proof for the HoloMap import/export path using a deterministic room-shaped capture fixture. A live physical-room scan video was not present locally, so this gate does not claim new physical capture; it proves that captured frames become an anchored GOLD space/portal artifact through the real HoloMap session/runtime/export code.',
+  anchorScope:
+    'The reconstructed POINTS, the ANCHOR pose/descriptor, and the DRIFT estimate are all scan-derived (E4, 2026-05-24): anchor pose = observed-volume center, descriptor = [extentX, extentY, extentZ, meanConfidence], drift = accumulated constant-velocity registration residual. A one-byte capture tamper changes all of them (negative controls below). NOT yet derived: a true physical-room video scan (this uses a deterministic fixture) and full bundle-adjustment loop-closure correction (revisit detection only).',
   contract: clean.stable.contract,
 };
 
-check('GOLD room artifact has a portal and HoloMap anchor', goldRoom.portal.id === 'HoloMapRoomPortal' && goldRoom.holomap.anchor.revision >= FRAME_COUNT, goldRoom.portal.label);
+check(
+  'GOLD room artifact has a portal and HoloMap anchor',
+  goldRoom.portal.id === 'HoloMapRoomPortal' && goldRoom.holomap.anchor.revision >= FRAME_COUNT,
+  goldRoom.portal.label
+);
 
 let receiptMatches = true;
 let artifactMatches = true;
@@ -385,8 +450,16 @@ if (!process.argv.includes('--emit')) {
   const oldArtifact = JSON.parse(readFileSync(artifactPath, 'utf8'));
   receiptMatches = oldReceipt.contract?.spaceDigest === clean.stable.contract.spaceDigest;
   artifactMatches = oldArtifact.contract?.spaceDigest === clean.stable.contract.spaceDigest;
-  check('receipt digest reproduces', receiptMatches, (oldReceipt.contract?.spaceDigest || '').slice(0, 16));
-  check('artifact digest reproduces', artifactMatches, (oldArtifact.contract?.spaceDigest || '').slice(0, 16));
+  check(
+    'receipt digest reproduces',
+    receiptMatches,
+    (oldReceipt.contract?.spaceDigest || '').slice(0, 16)
+  );
+  check(
+    'artifact digest reproduces',
+    artifactMatches,
+    (oldArtifact.contract?.spaceDigest || '').slice(0, 16)
+  );
 }
 
 const passed = checks.filter((c) => c.pass).length;
@@ -394,7 +467,8 @@ const total = checks.length;
 const allPass = passed === total;
 
 console.log('\nTHE GOLD GAME - Gate 33: HoloMap scanned-space import\n');
-for (const c of checks) console.log(`  ${c.pass ? 'PASS' : 'FAIL'}  ${c.name}${c.detail ? ' - ' + c.detail : ''}`);
+for (const c of checks)
+  console.log(`  ${c.pass ? 'PASS' : 'FAIL'}  ${c.name}${c.detail ? ' - ' + c.detail : ''}`);
 console.log(`\n  ${passed}/${total} checks pass - ${allPass ? 'GATE 33 PASS' : 'GATE 33 FAIL'}\n`);
 
 if (process.argv.includes('--emit') && allPass) {
@@ -422,9 +496,12 @@ if (process.argv.includes('--emit') && allPass) {
       manifest: clean.stable.manifest,
     },
     negativeControl: {
-      oneByteCaptureTamperChangesCaptureDigest: clean.stable.sourceCapture.captureDigest !== tampered.stable.sourceCapture.captureDigest,
-      oneByteCaptureTamperChangesReplayFingerprint: clean.stable.session.replayFingerprint !== tampered.stable.session.replayFingerprint,
-      oneByteCaptureTamperChangesRoomDigest: clean.stable.contract.spaceDigest !== tampered.stable.contract.spaceDigest,
+      oneByteCaptureTamperChangesCaptureDigest:
+        clean.stable.sourceCapture.captureDigest !== tampered.stable.sourceCapture.captureDigest,
+      oneByteCaptureTamperChangesReplayFingerprint:
+        clean.stable.session.replayFingerprint !== tampered.stable.session.replayFingerprint,
+      oneByteCaptureTamperChangesRoomDigest:
+        clean.stable.contract.spaceDigest !== tampered.stable.contract.spaceDigest,
     },
     contract: clean.stable.contract,
     honestScope: goldRoom.honestScope,

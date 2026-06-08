@@ -134,10 +134,7 @@ export interface AudioService {
   setListenerPosition(position: [number, number, number]): void;
 
   /** Set listener orientation */
-  setListenerOrientation(
-    forward: [number, number, number],
-    up: [number, number, number]
-  ): void;
+  setListenerOrientation(forward: [number, number, number], up: [number, number, number]): void;
 
   /** Set master volume */
   setMasterVolume(volume: number): void;
@@ -653,8 +650,8 @@ export class HololandClient {
           setVelocity: () => {},
           applyForce: () => {},
           applyImpulse: () => {},
-          getPosition: () => ([config.position[0], config.position[1], config.position[2]]),
-          getVelocity: () => ([0, 0, 0]),
+          getPosition: () => [config.position[0], config.position[1], config.position[2]],
+          getVelocity: () => [0, 0, 0],
           destroy: () => {},
         };
       },
@@ -815,7 +812,9 @@ export class HololandClient {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch world "${worldId}": ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch world "${worldId}": ${response.status} ${response.statusText}`
+        );
       }
 
       return (await response.json()) as WorldDefinition;

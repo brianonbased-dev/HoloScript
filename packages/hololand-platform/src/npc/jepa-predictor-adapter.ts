@@ -21,7 +21,10 @@ export interface WorldModelReceipt {
 }
 
 export interface PredictorPlanFn {
-  plan(currentState: string, candidateActions: string[]): {
+  plan(
+    currentState: string,
+    candidateActions: string[]
+  ): {
     action: string;
     predicted: Float32Array;
     confidence: number;
@@ -29,8 +32,8 @@ export interface PredictorPlanFn {
 }
 
 export interface NPCControlInput {
-  currentState: string;           // string snapshot of NPC's current world state / observation
-  candidateActions: string[];     // possible actions the NPC can take right now
+  currentState: string; // string snapshot of NPC's current world state / observation
+  candidateActions: string[]; // possible actions the NPC can take right now
   worldId: string;
 }
 
@@ -53,7 +56,10 @@ export interface NPCControlOutput {
  */
 export function planAndAnchorNPCAction(
   input: NPCControlInput,
-  planFn: (currentState: string, candidateActions: string[]) => { action: string; predicted: Float32Array; confidence: number }
+  planFn: (
+    currentState: string,
+    candidateActions: string[]
+  ) => { action: string; predicted: Float32Array; confidence: number }
 ): NPCControlOutput {
   if (!input.candidateActions || input.candidateActions.length === 0) {
     throw new Error('NPC control loop requires at least one candidate action');

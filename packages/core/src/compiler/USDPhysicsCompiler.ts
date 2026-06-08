@@ -586,11 +586,12 @@ export class USDPhysicsCompiler extends CompilerBase {
   // ===========================================================================
 
   private emitHeader(name: string): void {
-    const runtimeLabel = this.options.targetContext === 'isaac_sim'
-      ? 'NVIDIA Isaac Sim / Isaac Lab'
-      : this.options.targetContext === 'omniverse'
-        ? 'NVIDIA Omniverse'
-        : 'Generic USD Runtime';
+    const runtimeLabel =
+      this.options.targetContext === 'isaac_sim'
+        ? 'NVIDIA Isaac Sim / Isaac Lab'
+        : this.options.targetContext === 'omniverse'
+          ? 'NVIDIA Omniverse'
+          : 'Generic USD Runtime';
 
     // Note: gravity is emitted in PhysicsScene, not in header
     this.emit(`#usda 1.0`);
@@ -1087,7 +1088,11 @@ export class USDPhysicsCompiler extends CompilerBase {
           collisionApi.collisionRadius = geometry.radius;
         }
         // For cylinder/capsule/cone, extract height from scale Y axis
-        if (geometry.type === 'Cylinder' || geometry.type === 'Capsule' || geometry.type === 'Cone') {
+        if (
+          geometry.type === 'Cylinder' ||
+          geometry.type === 'Capsule' ||
+          geometry.type === 'Cone'
+        ) {
           collisionApi.collisionHeight = scale[1]; // Y-axis height
         }
       }
@@ -1119,9 +1124,9 @@ export class USDPhysicsCompiler extends CompilerBase {
       const rawParentBody = String(jointConfig.connectedBody || '');
       const articulationRoot = `/${this.compositionName}`;
       const body0Path = rawParentBody
-        ? (rawParentBody.startsWith('/')
+        ? rawParentBody.startsWith('/')
           ? rawParentBody
-          : `${articulationRoot}/${this.sanitizeName(rawParentBody)}`)
+          : `${articulationRoot}/${this.sanitizeName(rawParentBody)}`
         : articulationRoot;
       const body1Path = `/${this.compositionName}/${this.sanitizeName(name)}`;
       const axis = this.mapAxis(jointConfig.axis);
@@ -1236,12 +1241,14 @@ export class USDPhysicsCompiler extends CompilerBase {
     this.indentLevel++;
 
     this.emit(`string holoscript:version = "6.0"`);
-    this.emit(`string holoscript:compositionName = "${this.escapeStringValue(composition.name, 'USD')}"`);
+    this.emit(
+      `string holoscript:compositionName = "${this.escapeStringValue(composition.name, 'USD')}"`
+    );
 
     // Emit object manifest
-    const objectNames = (composition.objects || []).map(o => o.name);
+    const objectNames = (composition.objects || []).map((o) => o.name);
     if (objectNames.length > 0) {
-      const namesStr = objectNames.map(n => `"${this.escapeStringValue(n, 'USD')}"`).join(', ');
+      const namesStr = objectNames.map((n) => `"${this.escapeStringValue(n, 'USD')}"`).join(', ');
       this.emit(`string[] holoscript:objects = [${namesStr}]`);
     }
 
@@ -1254,14 +1261,16 @@ export class USDPhysicsCompiler extends CompilerBase {
       }
     }
     if (allTraits.size > 0) {
-      const traitsStr = [...allTraits].map(t => `"${this.escapeStringValue(t, 'USD')}"`).join(', ');
+      const traitsStr = [...allTraits]
+        .map((t) => `"${this.escapeStringValue(t, 'USD')}"`)
+        .join(', ');
       this.emit(`string[] holoscript:traits = [${traitsStr}]`);
     }
 
     // Emit spatial group manifest
-    const groupNames = (composition.spatialGroups || []).map(g => g.name);
+    const groupNames = (composition.spatialGroups || []).map((g) => g.name);
     if (groupNames.length > 0) {
-      const groupsStr = groupNames.map(n => `"${this.escapeStringValue(n, 'USD')}"`).join(', ');
+      const groupsStr = groupNames.map((n) => `"${this.escapeStringValue(n, 'USD')}"`).join(', ');
       this.emit(`string[] holoscript:spatialGroups = [${groupsStr}]`);
     }
 
@@ -1287,9 +1296,7 @@ export class USDPhysicsCompiler extends CompilerBase {
 
     // Pitch (Y)
     const sinp = 2 * (w * y - z * x);
-    const pitch = (Math.abs(sinp) >= 1
-      ? Math.sign(sinp) * 90
-      : Math.asin(sinp) * RAD2DEG);
+    const pitch = Math.abs(sinp) >= 1 ? Math.sign(sinp) * 90 : Math.asin(sinp) * RAD2DEG;
 
     // Yaw (Z)
     const siny_cosp = 2 * (w * z + x * y);

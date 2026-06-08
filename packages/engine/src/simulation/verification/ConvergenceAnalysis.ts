@@ -17,7 +17,10 @@
 /**
  * L2 error norm: sqrt(sum((numerical - exact)^2) / N)
  */
-export function errorL2(numerical: Float32Array | number[], exact: Float32Array | number[]): number {
+export function errorL2(
+  numerical: Float32Array | number[],
+  exact: Float32Array | number[]
+): number {
   let sumSq = 0;
   const n = numerical.length;
   for (let i = 0; i < n; i++) {
@@ -30,7 +33,10 @@ export function errorL2(numerical: Float32Array | number[], exact: Float32Array 
 /**
  * L-infinity error norm: max(|numerical - exact|)
  */
-export function errorLinf(numerical: Float32Array | number[], exact: Float32Array | number[]): number {
+export function errorLinf(
+  numerical: Float32Array | number[],
+  exact: Float32Array | number[]
+): number {
   let maxErr = 0;
   for (let i = 0; i < numerical.length; i++) {
     const err = Math.abs(Number(numerical[i]) - Number(exact[i]));
@@ -42,7 +48,10 @@ export function errorLinf(numerical: Float32Array | number[], exact: Float32Arra
 /**
  * Relative L2 error norm: L2(numerical - exact) / L2(exact)
  */
-export function relativeErrorL2(numerical: Float32Array | number[], exact: Float32Array | number[]): number {
+export function relativeErrorL2(
+  numerical: Float32Array | number[],
+  exact: Float32Array | number[]
+): number {
   const exactNorm = Math.sqrt(
     (exact as number[]).reduce((s, v) => s + Number(v) * Number(v), 0) / exact.length
   );
@@ -66,7 +75,8 @@ export function relativeErrorL2(numerical: Float32Array | number[], exact: Float
  */
 export function computeObservedOrder(meshSizes: number[], errors: number[]): number {
   if (meshSizes.length < 2) throw new Error('Need at least 2 data points for convergence order');
-  if (meshSizes.length !== errors.length) throw new Error('meshSizes and errors must have same length');
+  if (meshSizes.length !== errors.length)
+    throw new Error('meshSizes and errors must have same length');
 
   const logH = meshSizes.map(Math.log);
   const logE = errors.map(Math.log);
@@ -154,7 +164,7 @@ export function gridConvergenceIndex(
 ): number {
   if (Math.abs(fFine) < 1e-30) return NaN;
   const epsilon = (fFine - fCoarse) / fFine;
-  return safetyFactor * Math.abs(epsilon) / (Math.pow(r, p) - 1);
+  return (safetyFactor * Math.abs(epsilon)) / (Math.pow(r, p) - 1);
 }
 
 // ── Convergence Study Runner ─────────────────────────────────────────────────
@@ -215,12 +225,7 @@ export function runConvergenceStudy(
       r,
       observedOrderL2
     );
-    result.gci = gridConvergenceIndex(
-      scalarValues[n - 2],
-      scalarValues[n - 1],
-      r,
-      observedOrderL2
-    );
+    result.gci = gridConvergenceIndex(scalarValues[n - 2], scalarValues[n - 1], r, observedOrderL2);
   }
 
   return result;

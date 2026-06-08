@@ -53,7 +53,9 @@ const imp = (p) => import(pathToFileURL(p).href);
 const mesh = await imp(join(repo, 'packages', 'mesh', 'dist', 'index.js'));
 const { EntityAuthority, ReplicationManager } = mesh;
 // REAL receipt spine.
-const { computeStateDigest } = await imp(join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'));
+const { computeStateDigest } = await imp(
+  join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts')
+);
 
 const receiptPath = join(here, 'GATE-43-SOCKET-TRANSPORT-receipt.json');
 const HASH = 'sha256';
@@ -84,8 +86,12 @@ function makeDecoder(onFrame, onCorrupt) {
       const payload = buf.subarray(4, 4 + len);
       buf = buf.subarray(4 + len);
       let obj;
-      try { obj = JSON.parse(payload.toString('utf8')); }
-      catch { onCorrupt && onCorrupt(); continue; } // damaged wire bytes — drop frame
+      try {
+        obj = JSON.parse(payload.toString('utf8'));
+      } catch {
+        onCorrupt && onCorrupt();
+        continue;
+      } // damaged wire bytes — drop frame
       onFrame(obj);
     }
   };
@@ -110,10 +116,16 @@ async function main() {
 
   // Build a genuine full-snapshot delta for a (re)joining client from the server's
   // current authoritative replicated snapshot — the real state, serialized.
-  const snapshotDeltas = () => ENTRIES.map((e) => {
-    const key = `entry:${e}`;
-    return { entityId: key, timestamp: clock, fields: serverRep.getEntity(key).snapshot, isFullSnapshot: true };
-  });
+  const snapshotDeltas = () =>
+    ENTRIES.map((e) => {
+      const key = `entry:${e}`;
+      return {
+        entityId: key,
+        timestamp: clock,
+        fields: serverRep.getEntity(key).snapshot,
+        isFullSnapshot: true,
+      };
+    });
 
   // Connected client registry (server side): conn = { id, name, sock }.
   const conns = [];
@@ -129,7 +141,9 @@ async function main() {
         // valid length prefix, garbage payload → JSON.parse throws on the client.
         const good = encodeFrame({ t: 'delta', delta });
         const bad = Buffer.from(good); // copy
-        bad[8] = 0x00; bad[9] = 0x01; bad[10] = 0xff; // corrupt JSON bytes after the 4-byte prefix
+        bad[8] = 0x00;
+        bad[9] = 0x01;
+        bad[10] = 0xff; // corrupt JSON bytes after the 4-byte prefix
         c.sock.write(bad);
       } else {
         c.sock.write(clean);
@@ -140,7 +154,8 @@ async function main() {
   // Server-side message handling.
   function onServerMessage(conn, msg) {
     if (msg.t === 'join') {
-      conn.id = msg.id; conn.name = msg.name;
+      conn.id = msg.id;
+      conn.name = msg.name;
       connById.set(conn.id, conn);
       if (!conns.includes(conn)) conns.push(conn);
       // send the full authoritative snapshot OVER THE WIRE (5 frames, one write →
@@ -164,7 +179,8 @@ async function main() {
       clock += 100;
       // authoritative lock check (a conflicting grad on a held entry is denied).
       const owner = serverAuth.getOwner(key);
-      const lockedByOther = serverAuth.isLocked(key) && msg.t === 'grad' && conn.holds !== msg.entry;
+      const lockedByOther =
+        serverAuth.isLocked(key) && msg.t === 'grad' && conn.holds !== msg.entry;
       if (lockedByOther) {
         log.push(`DENY ${conn.name} ${msg.entry} (locked)`);
         conn.sock.write(encodeFrame({ t: 'ack', rid: msg.rid, result: 'denied' }));
@@ -215,8 +231,17 @@ async function main() {
         view[e] = 'Bronze';
       }
       const client = {
-        id, name, rep, view, sock: null, pending: new Map(),
-        framesDecoded: 0, snapFramesDecoded: 0, applyFailures: 0, loopback: false, joined: false,
+        id,
+        name,
+        rep,
+        view,
+        sock: null,
+        pending: new Map(),
+        framesDecoded: 0,
+        snapFramesDecoded: 0,
+        applyFailures: 0,
+        loopback: false,
+        joined: false,
       };
       const applyDelta = (delta) => {
         const key = delta.entityId;
@@ -226,20 +251,35 @@ async function main() {
       };
       const onFrame = (m) => {
         client.framesDecoded++;
-        if (m.t === 'snap1') { client.snapFramesDecoded++; applyDelta(m.delta); }
-        else if (m.t === 'delta') { applyDelta(m.delta); }
-        else if (m.t === 'joined') { client.joined = true; }
-        else if (m.t === 'ack') {
+        if (m.t === 'snap1') {
+          client.snapFramesDecoded++;
+          applyDelta(m.delta);
+        } else if (m.t === 'delta') {
+          applyDelta(m.delta);
+        } else if (m.t === 'joined') {
+          client.joined = true;
+        } else if (m.t === 'ack') {
           if (m.result === 'granted' && m.delta) applyDelta(m.delta);
-          const p = client.pending.get(m.rid); if (p) { client.pending.delete(m.rid); p(m); }
+          const p = client.pending.get(m.rid);
+          if (p) {
+            client.pending.delete(m.rid);
+            p(m);
+          }
         } else if (m.t === 'pong') {
-          const p = client.pending.get(m.rid); if (p) { client.pending.delete(m.rid); p(m); }
+          const p = client.pending.get(m.rid);
+          if (p) {
+            client.pending.delete(m.rid);
+            p(m);
+          }
         }
       };
-      const onCorrupt = () => { client.applyFailures++; };
+      const onCorrupt = () => {
+        client.applyFailures++;
+      };
       const dec = makeDecoder(onFrame, onCorrupt);
       const sock = net.connect(port, '127.0.0.1', () => {
-        client.loopback = sock.remoteAddress === '127.0.0.1' || sock.remoteAddress === '::ffff:127.0.0.1';
+        client.loopback =
+          sock.remoteAddress === '127.0.0.1' || sock.remoteAddress === '::ffff:127.0.0.1';
         sock.setNoDelay(true);
         sock.write(encodeFrame({ t: 'join', id, name }));
       });
@@ -248,17 +288,21 @@ async function main() {
       client.sock = sock;
       // resolve once the join snapshot + 'joined' marker have arrived.
       const waitJoin = setInterval(() => {
-        if (client.joined && client.snapFramesDecoded >= ENTRIES.length) { clearInterval(waitJoin); resolve(client); }
+        if (client.joined && client.snapFramesDecoded >= ENTRIES.length) {
+          clearInterval(waitJoin);
+          resolve(client);
+        }
       }, 2);
     });
   }
 
   let rid = 0;
-  const req = (client, payload) => new Promise((resolve) => {
-    const id = ++rid;
-    client.pending.set(id, resolve);
-    client.sock.write(encodeFrame({ ...payload, rid: id }));
-  });
+  const req = (client, payload) =>
+    new Promise((resolve) => {
+      const id = ++rid;
+      client.pending.set(id, resolve);
+      client.sock.write(encodeFrame({ ...payload, rid: id }));
+    });
   // ordering barrier: TCP is ordered per-connection, so once the pong returns every
   // earlier broadcast frame on that client's stream has already been applied.
   const barrier = (client) => req(client, { t: 'ping' });
@@ -267,16 +311,26 @@ async function main() {
   const alice = await connectClient('alice', 'Alice');
   const bob = await connectClient('bob', 'Bob');
   const cara = await connectClient('cara', 'Cara');
-  const mute = await connectClient('mute', 'Mute');       // NEG-B: excluded from all broadcasts
+  const mute = await connectClient('mute', 'Mute'); // NEG-B: excluded from all broadcasts
   const corrupt = await connectClient('corrupt', 'Corrupt'); // NEG-A: gets a corrupted W.005 frame
 
   const trio = [alice, bob, cara];
   const allConnectedLoopback = [alice, bob, cara, mute, corrupt].every((c) => c.loopback);
   const baselineConverged = [alice, bob, cara, mute, corrupt].every(
-    (c) => JSON.stringify(c.view) === JSON.stringify({ 'W.001': 'Bronze', 'W.002': 'Bronze', 'W.003': 'Bronze', 'W.004': 'Bronze', 'W.005': 'Bronze' }),
+    (c) =>
+      JSON.stringify(c.view) ===
+      JSON.stringify({
+        'W.001': 'Bronze',
+        'W.002': 'Bronze',
+        'W.003': 'Bronze',
+        'W.004': 'Bronze',
+        'W.005': 'Bronze',
+      })
   );
   // framing proof: each client reassembled the coalesced 5-frame snapshot segment.
-  const framingReassembled = [alice, bob, cara, mute, corrupt].every((c) => c.snapFramesDecoded === ENTRIES.length);
+  const framingReassembled = [alice, bob, cara, mute, corrupt].every(
+    (c) => c.snapFramesDecoded === ENTRIES.length
+  );
 
   // g1: Alice graduates W.001 over the wire → broadcast to all except Mute (NEG-B).
   await req(alice, { t: 'grad', entry: 'W.001', exclude: ['mute'] });
@@ -286,7 +340,15 @@ async function main() {
   // late joiner Dave connects NOW — his join snapshot must carry W.001/W.002 = Silver
   // OVER THE WIRE (persistent shared world synced to a late entrant via the socket).
   const dave = await connectClient('dave', 'Dave');
-  const daveSnapshotSynced = JSON.stringify(dave.view) === JSON.stringify({ 'W.001': 'Silver', 'W.002': 'Silver', 'W.003': 'Bronze', 'W.004': 'Bronze', 'W.005': 'Bronze' });
+  const daveSnapshotSynced =
+    JSON.stringify(dave.view) ===
+    JSON.stringify({
+      'W.001': 'Silver',
+      'W.002': 'Silver',
+      'W.003': 'Bronze',
+      'W.004': 'Bronze',
+      'W.005': 'Bronze',
+    });
 
   // conflict over the wire: Alice holds the W.003 lock; Bob's grad is DENIED; Alice commits.
   await req(alice, { t: 'gradHold', entry: 'W.003' });
@@ -304,26 +366,58 @@ async function main() {
   await Promise.all([alice, bob, cara, dave, mute, corrupt].map(barrier));
 
   // ── ASSERTIONS ───────────────────────────────────────────────────────────────
-  const expectedFinal = { 'W.001': 'Silver', 'W.002': 'Silver', 'W.003': 'Silver', 'W.004': 'Silver', 'W.005': 'Silver' };
+  const expectedFinal = {
+    'W.001': 'Silver',
+    'W.002': 'Silver',
+    'W.003': 'Silver',
+    'W.004': 'Silver',
+    'W.005': 'Silver',
+  };
   const serverFinal = JSON.stringify(serverVault) === JSON.stringify(expectedFinal);
 
   const conflictDenied = bobDenied.result === 'denied';
-  const noDoubleGraduate = log.filter((l) => l.startsWith('GRAD') && l.includes('W.003')).length === 1;
+  const noDoubleGraduate =
+    log.filter((l) => l.startsWith('GRAD') && l.includes('W.003')).length === 1;
 
   // the live trio + the late joiner converge to the authoritative end-state OVER THE WIRE.
-  const liveConverged = [alice, bob, cara, dave].every((c) => JSON.stringify(c.view) === JSON.stringify(serverVault));
+  const liveConverged = [alice, bob, cara, dave].every(
+    (c) => JSON.stringify(c.view) === JSON.stringify(serverVault)
+  );
 
   // NEG-B: Mute was excluded from every broadcast → stays at baseline (socket is the only channel).
-  const muteStaysBaseline = JSON.stringify(mute.view) === JSON.stringify({ 'W.001': 'Bronze', 'W.002': 'Bronze', 'W.003': 'Bronze', 'W.004': 'Bronze', 'W.005': 'Bronze' });
+  const muteStaysBaseline =
+    JSON.stringify(mute.view) ===
+    JSON.stringify({
+      'W.001': 'Bronze',
+      'W.002': 'Bronze',
+      'W.003': 'Bronze',
+      'W.004': 'Bronze',
+      'W.005': 'Bronze',
+    });
   // NEG-A: Corrupt got g1..g4 clean but a damaged W.005 frame → diverges on W.005 only.
-  const corruptDiverges = JSON.stringify(corrupt.view) !== JSON.stringify(serverVault) && corrupt.view['W.005'] === 'Bronze' && corrupt.applyFailures > 0;
+  const corruptDiverges =
+    JSON.stringify(corrupt.view) !== JSON.stringify(serverVault) &&
+    corrupt.view['W.005'] === 'Bronze' &&
+    corrupt.applyFailures > 0;
 
   // ── DETERMINISTIC DIGEST via REAL computeStateDigest. ───────────────────────
-  const vaultField = (v) => Float32Array.from(Object.keys(v).sort().map((e) => tierIdx(v[e])));
-  const digestOf = (v) => computeStateDigest({ fieldNames: ['vault'], getField: () => vaultField(v) }, HASH);
+  const vaultField = (v) =>
+    Float32Array.from(
+      Object.keys(v)
+        .sort()
+        .map((e) => tierIdx(v[e]))
+    );
+  const digestOf = (v) =>
+    computeStateDigest({ fieldNames: ['vault'], getField: () => vaultField(v) }, HASH);
   const serverDigest = digestOf(serverVault);
-  const clientDigests = { alice: digestOf(alice.view), bob: digestOf(bob.view), cara: digestOf(cara.view), dave: digestOf(dave.view) };
-  const digestsAgree = Object.values(clientDigests).every((d) => d === serverDigest) && serverDigest.length > 0;
+  const clientDigests = {
+    alice: digestOf(alice.view),
+    bob: digestOf(bob.view),
+    cara: digestOf(cara.view),
+    dave: digestOf(dave.view),
+  };
+  const digestsAgree =
+    Object.values(clientDigests).every((d) => d === serverDigest) && serverDigest.length > 0;
   const reproducible = digestOf(serverVault) === serverDigest;
   const muteDigest = digestOf(mute.view);
   const corruptDigest = digestOf(corrupt.view);
@@ -338,17 +432,26 @@ async function main() {
     track: 'flagship',
     name: 'real socket transport — genuine ReplicationManager deltas over actual loopback TCP (wire codec + framing), N socket-connected clients converge; late joiner syncs over the wire; authority lock denies a conflict over the socket',
     verifier: 'examples/gold-game/gate-43-socket-transport-verify.mjs',
-    builtOn: 'Gate 17 (in-process co-presence) + Gate 26 (MMO-answer) — closes the ONE axis both explicitly scoped out: REAL network transport over a socket',
+    builtOn:
+      'Gate 17 (in-process co-presence) + Gate 26 (MMO-answer) — closes the ONE axis both explicitly scoped out: REAL network transport over a socket',
     classification: {
-      answer: 'REAL OS SOCKET TRANSPORT over the genuine replication primitive — deltas cross the kernel network stack, not an in-process function call.',
-      advance: 'Gate 17/26 agreement was over the real replication API but in ONE process (shared authoritative order, no socket). Gate 43 puts an actual node:net TCP server on an OS-assigned ephemeral port; five (then six) clients connect over real 127.0.0.1 sockets; every replicated delta is JSON-serialized, framed with a 4-byte length prefix, written to the socket, read back off the byte stream, reassembled, and applied via the GENUINE applyRemoteUpdate. A coalesced TCP segment carrying the 5-entry join snapshot is correctly split into 5 frames (framing is load-bearing). A late joiner (Dave) receives the persistent world state (W.001/W.002 already Silver) OVER THE WIRE. A conflicting graduation is DENIED by the server EntityAuthority lock across the socket. Two negative controls prove the wire is the only channel: a CORRUPTED frame fails to apply (client diverges) and an EXCLUDED client stays at baseline (no shared-memory backchannel).',
-      notYet: 'NOT claimed: cross-host networking (this is loopback 127.0.0.1, same machine), massive concurrency / load (6 clients, not a fleet under load), horizontal shard fanout or interest management, a durable persistence backend (the authoritative state is in-process server memory, not a DB), TLS/auth/anti-cheat, or NAT traversal. This is the transport leg — real sockets + a real wire codec + framing + genuine replication over them. "MMO" is still earned by a later shard-fleet + DB + cross-host load gate; Gate 43 advances exactly the transport axis Gate 17/26 named.',
+      answer:
+        'REAL OS SOCKET TRANSPORT over the genuine replication primitive — deltas cross the kernel network stack, not an in-process function call.',
+      advance:
+        'Gate 17/26 agreement was over the real replication API but in ONE process (shared authoritative order, no socket). Gate 43 puts an actual node:net TCP server on an OS-assigned ephemeral port; five (then six) clients connect over real 127.0.0.1 sockets; every replicated delta is JSON-serialized, framed with a 4-byte length prefix, written to the socket, read back off the byte stream, reassembled, and applied via the GENUINE applyRemoteUpdate. A coalesced TCP segment carrying the 5-entry join snapshot is correctly split into 5 frames (framing is load-bearing). A late joiner (Dave) receives the persistent world state (W.001/W.002 already Silver) OVER THE WIRE. A conflicting graduation is DENIED by the server EntityAuthority lock across the socket. Two negative controls prove the wire is the only channel: a CORRUPTED frame fails to apply (client diverges) and an EXCLUDED client stays at baseline (no shared-memory backchannel).',
+      notYet:
+        'NOT claimed: cross-host networking (this is loopback 127.0.0.1, same machine), massive concurrency / load (6 clients, not a fleet under load), horizontal shard fanout or interest management, a durable persistence backend (the authoritative state is in-process server memory, not a DB), TLS/auth/anti-cheat, or NAT traversal. This is the transport leg — real sockets + a real wire codec + framing + genuine replication over them. "MMO" is still earned by a later shard-fleet + DB + cross-host load gate; Gate 43 advances exactly the transport axis Gate 17/26 named.',
     },
     meshClasses: {
-      ReplicationManager: 'REAL — packages/mesh/dist/index.js; generateUpdates delta + applyRemoteUpdate convergence driven over the socket',
-      EntityAuthority: 'REAL — server-authoritative lock; conflicting graduation denied over the wire',
+      ReplicationManager:
+        'REAL — packages/mesh/dist/index.js; generateUpdates delta + applyRemoteUpdate convergence driven over the socket',
+      EntityAuthority:
+        'REAL — server-authoritative lock; conflicting graduation denied over the wire',
       computeStateDigest: 'REAL — packages/engine/src/simulation/hashes.ts',
-      transport: 'REAL node:net TCP on 127.0.0.1:' + port + ' (OS-assigned ephemeral port); 4-byte big-endian length-prefixed JSON wire codec; stream decoder reassembles coalesced/partial frames',
+      transport:
+        'REAL node:net TCP on 127.0.0.1:' +
+        port +
+        ' (OS-assigned ephemeral port); 4-byte big-endian length-prefixed JSON wire codec; stream decoder reassembles coalesced/partial frames',
     },
     session: {
       port,
@@ -356,7 +459,11 @@ async function main() {
       lateJoiner: { name: 'Dave', snapshotView: dave.view },
       conflict: { entry: 'W.003', holder: 'Alice', contender: 'Bob', result: bobDenied.result },
       finalVault: serverVault,
-      negControls: { muteView: mute.view, corruptView: corrupt.view, corruptApplyFailures: corrupt.applyFailures },
+      negControls: {
+        muteView: mute.view,
+        corruptView: corrupt.view,
+        corruptApplyFailures: corrupt.applyFailures,
+      },
       eventLog: log,
     },
     contract: {
@@ -382,41 +489,95 @@ async function main() {
     console.log('  finalVault:', JSON.stringify(serverVault));
     console.log('  late joiner Dave (synced over wire):', JSON.stringify(dave.view));
     console.log('  NEG-B Mute (excluded):', JSON.stringify(mute.view));
-    console.log('  NEG-A Corrupt (damaged frame):', JSON.stringify(corrupt.view), 'applyFailures=' + corrupt.applyFailures);
+    console.log(
+      '  NEG-A Corrupt (damaged frame):',
+      JSON.stringify(corrupt.view),
+      'applyFailures=' + corrupt.applyFailures
+    );
     console.log('  serverDigest=' + serverDigest);
     process.exit(0);
   }
 
   let existing;
-  try { existing = JSON.parse(readFileSync(receiptPath, 'utf8')); }
-  catch { console.error('No Gate-43 receipt. Run --emit first.'); process.exit(2); }
+  try {
+    existing = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  } catch {
+    console.error('No Gate-43 receipt. Run --emit first.');
+    process.exit(2);
+  }
 
   const checks = [
-    ['real ReplicationManager + EntityAuthority loaded from @holoscript/mesh dist (genuine, not a mock)',
-      typeof ReplicationManager === 'function' && typeof EntityAuthority === 'function'],
-    ['a REAL node:net TCP server is listening on an OS-assigned ephemeral port', serverListening === true],
-    ['five clients connected over REAL loopback (127.0.0.1) sockets', allConnectedLoopback === true],
-    ['on join, each client converged to the all-Bronze baseline from a snapshot delivered OVER THE WIRE', baselineConverged === true],
-    ['length-prefixed framing reassembled the coalesced 5-frame snapshot segment (TCP framing is load-bearing)', framingReassembled === true],
-    ['a graduation crosses the socket, the server broadcasts the delta, and the live trio converges via genuine applyRemoteUpdate', liveConverged === true],
-    ['authority conflict over the wire: the second curator on a held entry is DENIED (no double-graduate)', conflictDenied === true && noDoubleGraduate === true],
-    ['a late joiner (Dave) receives the already-advanced persistent world OVER THE WIRE', daveSnapshotSynced === true],
+    [
+      'real ReplicationManager + EntityAuthority loaded from @holoscript/mesh dist (genuine, not a mock)',
+      typeof ReplicationManager === 'function' && typeof EntityAuthority === 'function',
+    ],
+    [
+      'a REAL node:net TCP server is listening on an OS-assigned ephemeral port',
+      serverListening === true,
+    ],
+    [
+      'five clients connected over REAL loopback (127.0.0.1) sockets',
+      allConnectedLoopback === true,
+    ],
+    [
+      'on join, each client converged to the all-Bronze baseline from a snapshot delivered OVER THE WIRE',
+      baselineConverged === true,
+    ],
+    [
+      'length-prefixed framing reassembled the coalesced 5-frame snapshot segment (TCP framing is load-bearing)',
+      framingReassembled === true,
+    ],
+    [
+      'a graduation crosses the socket, the server broadcasts the delta, and the live trio converges via genuine applyRemoteUpdate',
+      liveConverged === true,
+    ],
+    [
+      'authority conflict over the wire: the second curator on a held entry is DENIED (no double-graduate)',
+      conflictDenied === true && noDoubleGraduate === true,
+    ],
+    [
+      'a late joiner (Dave) receives the already-advanced persistent world OVER THE WIRE',
+      daveSnapshotSynced === true,
+    ],
     ['converged world matches the expected authoritative end-state', serverFinal === true],
-    ['converged-world digest is identical across the server and all live clients (real computeStateDigest)', digestsAgree === true],
-    ['world digest reproduces (deterministic) and matches the committed receipt',
-      reproducible === true && serverDigest === existing.contract.serverDigest],
-    ['[neg-A] a CORRUPTED frame fails to apply → that client diverges (wire bytes are load-bearing)', corruptDiverges === true],
-    ['[neg-B] a client EXCLUDED from broadcasts stays at baseline → the socket is the only channel (no shared memory)', muteStaysBaseline === true],
-    ['both negative-control digests diverge from the authoritative server digest', negDigestsDiverge === true],
-    ['classification is the HONEST transport-leg answer (real socket; not a cross-host/fleet/DB MMO overclaim)',
-      existing.classification.answer.includes('REAL OS SOCKET TRANSPORT') && existing.classification.notYet.includes('NOT claimed')],
+    [
+      'converged-world digest is identical across the server and all live clients (real computeStateDigest)',
+      digestsAgree === true,
+    ],
+    [
+      'world digest reproduces (deterministic) and matches the committed receipt',
+      reproducible === true && serverDigest === existing.contract.serverDigest,
+    ],
+    [
+      '[neg-A] a CORRUPTED frame fails to apply → that client diverges (wire bytes are load-bearing)',
+      corruptDiverges === true,
+    ],
+    [
+      '[neg-B] a client EXCLUDED from broadcasts stays at baseline → the socket is the only channel (no shared memory)',
+      muteStaysBaseline === true,
+    ],
+    [
+      'both negative-control digests diverge from the authoritative server digest',
+      negDigestsDiverge === true,
+    ],
+    [
+      'classification is the HONEST transport-leg answer (real socket; not a cross-host/fleet/DB MMO overclaim)',
+      existing.classification.answer.includes('REAL OS SOCKET TRANSPORT') &&
+        existing.classification.notYet.includes('NOT claimed'),
+    ],
   ];
   let ok = true;
   console.log('GATE-43 (REAL SOCKET TRANSPORT) VERIFICATION:');
-  for (const [label, pass] of checks) { console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label); ok = ok && pass; }
+  for (const [label, pass] of checks) {
+    console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label);
+    ok = ok && pass;
+  }
   console.log('  transport: real node:net TCP on 127.0.0.1:' + port);
   console.log('  => GATE 43', ok ? 'VERIFIED' : 'BROKEN');
   process.exit(ok ? 0 : 1);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

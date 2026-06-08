@@ -21,31 +21,45 @@ export class ThermalSolverAdapter implements SimSolver {
   readonly mode: SolverMode = 'transient';
   readonly fieldNames = ['temperature', 'temperature_grid'] as const;
   constructor(private s: ThermalSolver) {}
-  step(dt: number): void { this.s.step(dt); }
+  step(dt: number): void {
+    this.s.step(dt);
+  }
   solve(): void {}
   getField(name: string): FieldData | null {
     if (name === 'temperature') return this.s.getTemperatureField();
     if (name === 'temperature_grid') return this.s.getTemperatureGrid();
     return null;
   }
-  getStats() { return stats(this.s); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }
 
 export class ThermalGpuStencilSolverAdapter implements GpuBackedSolver {
   readonly mode: SolverMode = 'transient';
   readonly fieldNames = ['temperature', 'temperature_grid'] as const;
   constructor(private s: ThermalSolver) {}
-  async step(dt: number): Promise<void> { await this.s.stepAsync(dt); }
+  async step(dt: number): Promise<void> {
+    await this.s.stepAsync(dt);
+  }
   solve(): void {}
   getField(name: string): FieldData | null {
     if (name === 'temperature') return this.s.getTemperatureField();
     if (name === 'temperature_grid') return this.s.getTemperatureGrid();
     return null;
   }
-  getStats() { return stats(this.s); }
-  async readbackOutput(): Promise<Float32Array> { return new Float32Array(this.s.getTemperatureField()); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  async readbackOutput(): Promise<Float32Array> {
+    return new Float32Array(this.s.getTemperatureField());
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }
 
 export class StructuralSolverAdapter implements SimSolver {
@@ -53,15 +67,21 @@ export class StructuralSolverAdapter implements SimSolver {
   readonly fieldNames = ['von_mises_stress', 'safety_factor', 'displacements'] as const;
   constructor(private s: StructuralSolver) {}
   step(): void {}
-  solve(): void { this.s.solve(); }
+  solve(): void {
+    this.s.solve();
+  }
   getField(name: string): FieldData | null {
     if (name === 'von_mises_stress') return this.s.getVonMisesStress();
     if (name === 'safety_factor') return this.s.getSafetyFactor();
     if (name === 'displacements') return this.s.getDisplacements();
     return null;
   }
-  getStats() { return stats(this.s); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }
 
 export class StructuralGpuCgSolverAdapter implements GpuBackedSolver {
@@ -69,16 +89,24 @@ export class StructuralGpuCgSolverAdapter implements GpuBackedSolver {
   readonly fieldNames = ['von_mises_stress', 'safety_factor', 'displacements'] as const;
   constructor(private s: StructuralSolver) {}
   step(): void {}
-  async solve(): Promise<void> { await this.s.solveAsync(); }
+  async solve(): Promise<void> {
+    await this.s.solveAsync();
+  }
   getField(name: string): FieldData | null {
     if (name === 'von_mises_stress') return this.s.getVonMisesStress();
     if (name === 'safety_factor') return this.s.getSafetyFactor();
     if (name === 'displacements') return this.s.getDisplacements();
     return null;
   }
-  getStats() { return stats(this.s); }
-  readbackOutput(): Promise<Float32Array> { return this.s.readbackOutput(); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  readbackOutput(): Promise<Float32Array> {
+    return this.s.readbackOutput();
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }
 
 export class TET10SolverAdapter implements GpuBackedSolver {
@@ -86,16 +114,24 @@ export class TET10SolverAdapter implements GpuBackedSolver {
   readonly fieldNames = ['von_mises_stress', 'safety_factor', 'displacements'] as const;
   constructor(private s: StructuralSolverTET10) {}
   step(): void {}
-  async solve(): Promise<void> { await this.s.solve(); }
+  async solve(): Promise<void> {
+    await this.s.solve();
+  }
   getField(name: string): FieldData | null {
     if (name === 'von_mises_stress') return this.s.getVonMisesStress();
     if (name === 'safety_factor') return this.s.getSafetyFactor();
     if (name === 'displacements') return this.s.getDisplacements();
     return null;
   }
-  getStats() { return stats(this.s); }
-  readbackOutput(): Promise<Float32Array> { return this.s.readbackOutput(); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  readbackOutput(): Promise<Float32Array> {
+    return this.s.readbackOutput();
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }
 
 export class HydraulicSolverAdapter implements SimSolver {
@@ -103,60 +139,86 @@ export class HydraulicSolverAdapter implements SimSolver {
   readonly fieldNames = ['pressure', 'flow_rates'] as const;
   constructor(private s: HydraulicSolver) {}
   step(): void {}
-  solve(): void { this.s.solve(); }
+  solve(): void {
+    this.s.solve();
+  }
   getField(name: string): FieldData | null {
     if (name === 'pressure') return this.s.getPressureField();
     if (name === 'flow_rates') return this.s.getFlowRates();
     return null;
   }
-  getStats() { return stats(this.s); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }
 
 export class AcousticSolverAdapter implements SimSolver {
   readonly mode: SolverMode = 'transient';
   readonly fieldNames = ['pressure', 'pressure_grid'] as const;
   constructor(private s: AcousticSolver) {}
-  step(dt: number): void { this.s.step(dt); }
+  step(dt: number): void {
+    this.s.step(dt);
+  }
   solve(): void {}
   getField(name: string): FieldData | null {
     if (name === 'pressure') return this.s.getPressureField();
     if (name === 'pressure_grid') return this.s.getPressureGrid();
     return null;
   }
-  getStats() { return stats(this.s); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }
 
 export class AcousticGpuStencilSolverAdapter implements GpuBackedSolver {
   readonly mode: SolverMode = 'transient';
   readonly fieldNames = ['pressure', 'pressure_grid'] as const;
   constructor(private s: AcousticSolver) {}
-  async step(dt: number): Promise<void> { await this.s.stepAsync(dt); }
+  async step(dt: number): Promise<void> {
+    await this.s.stepAsync(dt);
+  }
   solve(): void {}
   getField(name: string): FieldData | null {
     if (name === 'pressure') return this.s.getPressureField();
     if (name === 'pressure_grid') return this.s.getPressureGrid();
     return null;
   }
-  getStats() { return stats(this.s); }
-  async readbackOutput(): Promise<Float32Array> { return new Float32Array(this.s.getPressureField()); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  async readbackOutput(): Promise<Float32Array> {
+    return new Float32Array(this.s.getPressureField());
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }
 
 export class FDTDSolverAdapter implements SimSolver {
   readonly mode: SolverMode = 'transient';
   readonly fieldNames = ['E_magnitude', 'H_magnitude'] as const;
   constructor(private s: FDTDSolver) {}
-  step(): void { this.s.step(); }
+  step(): void {
+    this.s.step();
+  }
   solve(): void {}
   getField(name: string): FieldData | null {
     if (name === 'E_magnitude') return this.s.getEFieldMagnitude();
     if (name === 'H_magnitude') return this.s.getHFieldMagnitude();
     return null;
   }
-  getStats() { return stats(this.s); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }
 
 export class ReactionDiffusionSolverAdapter implements SimSolver {
@@ -172,7 +234,9 @@ export class ReactionDiffusionSolverAdapter implements SimSolver {
     names.push('heat_source', 'heat_source_grid', 'temperature_grid');
     this.fieldNames = names;
   }
-  step(dt: number): void { this.s.step(dt); }
+  step(dt: number): void {
+    this.s.step(dt);
+  }
   solve(): void {}
   getField(name: string): FieldData | null {
     const speciesNames = this.s.getSpeciesNames();
@@ -186,15 +250,28 @@ export class ReactionDiffusionSolverAdapter implements SimSolver {
     if (name === 'temperature_grid') return this.s.getTemperatureGrid();
     return null;
   }
-  getStats() { return stats(this.s); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }
 
 export class AffinityODESolverAdapter implements SimSolver {
   readonly mode: SolverMode = 'transient';
-  readonly fieldNames = ['state_vector', 'feelings_R', 'feelings_J', 'intimacy', 'passion', 'commitment'] as const;
+  readonly fieldNames = [
+    'state_vector',
+    'feelings_R',
+    'feelings_J',
+    'intimacy',
+    'passion',
+    'commitment',
+  ] as const;
   constructor(private s: AffinityODESolver) {}
-  step(dt: number): void { this.s.step(dt); }
+  step(dt: number): void {
+    this.s.step(dt);
+  }
   solve(): void {}
   getField(name: string): FieldData | null {
     if (name === 'state_vector') return this.s.getStateVector();
@@ -203,9 +280,14 @@ export class AffinityODESolverAdapter implements SimSolver {
     if (name === 'feelings_J') return new Float32Array([st.J]);
     if (name === 'intimacy') return new Float32Array([Number.isNaN(st.intimacy) ? 0 : st.intimacy]);
     if (name === 'passion') return new Float32Array([Number.isNaN(st.passion) ? 0 : st.passion]);
-    if (name === 'commitment') return new Float32Array([Number.isNaN(st.commitment) ? 0 : st.commitment]);
+    if (name === 'commitment')
+      return new Float32Array([Number.isNaN(st.commitment) ? 0 : st.commitment]);
     return null;
   }
-  getStats() { return stats(this.s); }
-  dispose(): void { this.s.dispose(); }
+  getStats() {
+    return stats(this.s);
+  }
+  dispose(): void {
+    this.s.dispose();
+  }
 }

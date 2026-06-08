@@ -228,7 +228,10 @@ describe('CompositionParser — .holo parsing', () => {
         {
           name: 'cube1',
           template: null,
-          properties: [{ key: 'geometry', value: 'cube' }, { key: 'position', value: [1, 2, 3] }],
+          properties: [
+            { key: 'geometry', value: 'cube' },
+            { key: 'position', value: [1, 2, 3] },
+          ],
           children: [],
         },
       ],
@@ -303,9 +306,7 @@ describe('CompositionParser — .holo parsing', () => {
     const ast = {
       ...makeMinimalHoloAST('Test'),
       logic: {
-        actions: [
-          { name: 'jump', parameters: [{ name: 'height' }], body: {} },
-        ],
+        actions: [{ name: 'jump', parameters: [{ name: 'height' }], body: {} }],
         handlers: [],
       },
     };

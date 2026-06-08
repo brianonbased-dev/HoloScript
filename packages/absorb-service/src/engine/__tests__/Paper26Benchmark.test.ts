@@ -75,7 +75,7 @@ function measureLatencyUs(fn: () => void, iterations = 1000): number {
  */
 function recallAtK(predicted: string[], truth: EventGroundTruth, k: number): number {
   const topK = new Set(predicted.slice(0, k));
-  const hits = truth.allFiles.filter(f => topK.has(f)).length;
+  const hits = truth.allFiles.filter((f) => topK.has(f)).length;
   return hits / truth.allFiles.length;
 }
 
@@ -102,7 +102,7 @@ interface BenchResult {
 async function runScenario(
   numFiles: number,
   numEvents: number,
-  providerOverride?: EmbeddingProvider,
+  providerOverride?: EmbeddingProvider
 ): Promise<BenchResult> {
   // ── Build synthetic graph ────────────────────────────────────────────────
   const factory = new SyntheticGraphFactory({
@@ -120,20 +120,21 @@ async function runScenario(
 
   // Build time: buildIndexes() includes buildEventEdges(); already called.
   // Measure incremental query latency only.
-  const hgQueryUs = measureLatencyUs(() => {
-    for (const eventName of queryEvents) {
-      const chain = graph.getEventChain(eventName);
-      void chain; // prevent optimization
-    }
-  }, 500) / queryEvents.length; // per-event latency
+  const hgQueryUs =
+    measureLatencyUs(() => {
+      for (const eventName of queryEvents) {
+        const chain = graph.getEventChain(eventName);
+        void chain; // prevent optimization
+      }
+    }, 500) / queryEvents.length; // per-event latency
 
   // HoloGraph recall: by construction, 100% — verify it
   let hgRecallSum = 0;
   for (const eventName of queryEvents) {
     const chain = graph.getEventChain(eventName);
     const resultFiles = [
-      ...chain.emitters.map(e => e.filePath),
-      ...chain.listeners.map(l => l.filePath),
+      ...chain.emitters.map((e) => e.filePath),
+      ...chain.listeners.map((l) => l.filePath),
     ];
     const gt = groundTruth.get(eventName)!;
     hgRecallSum += recallAtK(resultFiles, gt, resultFiles.length);
@@ -170,7 +171,7 @@ async function runScenario(
   for (const eventName of queryEvents) {
     const query = `handler for event ${eventName}`;
     const results = await index.search(query, 10);
-    const resultFiles = results.map(r => r.file);
+    const resultFiles = results.map((r) => r.file);
     const gt = groundTruth.get(eventName)!;
     embRecallSum += recallAtK(resultFiles, gt, 10);
   }
@@ -202,14 +203,18 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
    * This is a mathematical guarantee — EventEdge lookup is exact by construction.
    */
   it('HoloGraph recall is exactly 1.0 for all event queries', () => {
-    const factory = new SyntheticGraphFactory({ numFiles: 100, numEvents: 20, listenersPerEvent: 3 });
+    const factory = new SyntheticGraphFactory({
+      numFiles: 100,
+      numEvents: 20,
+      listenersPerEvent: 3,
+    });
     const { graph, eventNames, groundTruth } = factory.build();
 
     for (const eventName of eventNames) {
       const chain = graph.getEventChain(eventName);
       const resultFiles = new Set([
-        ...chain.emitters.map(e => e.filePath),
-        ...chain.listeners.map(l => l.filePath),
+        ...chain.emitters.map((e) => e.filePath),
+        ...chain.listeners.map((l) => l.filePath),
       ]);
       const gt = groundTruth.get(eventName)!;
 
@@ -225,14 +230,18 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
    * genuinely participate in the event chain.
    */
   it('HoloGraph returns no phantom files (precision = 1.0)', () => {
-    const factory = new SyntheticGraphFactory({ numFiles: 100, numEvents: 20, listenersPerEvent: 2 });
+    const factory = new SyntheticGraphFactory({
+      numFiles: 100,
+      numEvents: 20,
+      listenersPerEvent: 2,
+    });
     const { graph, eventNames, groundTruth } = factory.build();
 
     for (const eventName of eventNames) {
       const chain = graph.getEventChain(eventName);
       const resultFiles = [
-        ...chain.emitters.map(e => e.filePath),
-        ...chain.listeners.map(l => l.filePath),
+        ...chain.emitters.map((e) => e.filePath),
+        ...chain.listeners.map((l) => l.filePath),
       ];
       const gt = groundTruth.get(eventName)!;
       const gtSet = new Set(gt.allFiles);
@@ -248,7 +257,11 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
    * Validates that 1×M fan-out is handled correctly (not just 1×1).
    */
   it('resolves 1×M fan-out events correctly (3 listeners per event)', () => {
-    const factory = new SyntheticGraphFactory({ numFiles: 50, numEvents: 10, listenersPerEvent: 3 });
+    const factory = new SyntheticGraphFactory({
+      numFiles: 50,
+      numEvents: 10,
+      listenersPerEvent: 3,
+    });
     const { graph, eventNames } = factory.build();
 
     for (const eventName of eventNames) {
@@ -265,7 +278,11 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
    * e.g., `snn:spike` does not return files for `pillar:spike`.
    */
   it('event namespace isolation — no cross-namespace bleed', () => {
-    const factory = new SyntheticGraphFactory({ numFiles: 100, numEvents: 20, listenersPerEvent: 2 });
+    const factory = new SyntheticGraphFactory({
+      numFiles: 100,
+      numEvents: 20,
+      listenersPerEvent: 2,
+    });
     const { graph, eventNames, groundTruth } = factory.build();
 
     for (let i = 0; i < eventNames.length - 1; i++) {
@@ -275,8 +292,14 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
 
       const chainA = graph.getEventChain(evA);
       const chainB = graph.getEventChain(evB);
-      const filesA = new Set([...chainA.emitters.map(e => e.filePath), ...chainA.listeners.map(l => l.filePath)]);
-      const filesB = new Set([...chainB.emitters.map(e => e.filePath), ...chainB.listeners.map(l => l.filePath)]);
+      const filesA = new Set([
+        ...chainA.emitters.map((e) => e.filePath),
+        ...chainA.listeners.map((l) => l.filePath),
+      ]);
+      const filesB = new Set([
+        ...chainB.emitters.map((e) => e.filePath),
+        ...chainB.listeners.map((l) => l.filePath),
+      ]);
 
       // Ground-truth files for evA must not appear in evB's results AND vice versa
       // (unless they genuinely participate in both events, which doesn't happen in this fixture)
@@ -311,8 +334,8 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
     for (const eventName of eventNames) {
       const chain = graph.getEventChain(eventName);
       const resultFiles = [
-        ...chain.emitters.map(e => e.filePath),
-        ...chain.listeners.map(l => l.filePath),
+        ...chain.emitters.map((e) => e.filePath),
+        ...chain.listeners.map((l) => l.filePath),
       ];
       const gt = groundTruth.get(eventName)!;
       totalRecall += recallAtK(resultFiles, gt, resultFiles.length);
@@ -331,7 +354,11 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
     const results: BenchResult[] = [];
 
     // Run three graph sizes for Table 1
-    for (const [numFiles, numEvents] of [[50, 10], [500, 50], [2000, 100]] as const) {
+    for (const [numFiles, numEvents] of [
+      [50, 10],
+      [500, 50],
+      [2000, 100],
+    ] as const) {
       const r = await runScenario(numFiles, numEvents);
       results.push(r);
     }
@@ -355,10 +382,11 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
       '% ------|-------|--------|---------|---------|-----------|---------------|--------',
     ].join('\n');
 
-    const rows = results.map(r =>
-      `%  ${String(r.numFiles).padStart(5)} | ${String(r.numSymbols).padStart(5)} | ${String(r.numEvents).padStart(6)} | ` +
-      `${fmt(r.holoGraphQueryUs, 3).padStart(7)} | ${fmt(r.embeddingQueryUs, 1).padStart(7)} | ` +
-      `${fmt(r.holoGraphRecall, 3).padStart(9)} | ${fmt(r.embeddingRecallAt10, 3).padStart(13)} | ${fmt(r.speedupRatio, 1).padStart(7)}×`
+    const rows = results.map(
+      (r) =>
+        `%  ${String(r.numFiles).padStart(5)} | ${String(r.numSymbols).padStart(5)} | ${String(r.numEvents).padStart(6)} | ` +
+        `${fmt(r.holoGraphQueryUs, 3).padStart(7)} | ${fmt(r.embeddingQueryUs, 1).padStart(7)} | ` +
+        `${fmt(r.holoGraphRecall, 3).padStart(9)} | ${fmt(r.embeddingRecallAt10, 3).padStart(13)} | ${fmt(r.speedupRatio, 1).padStart(7)}×`
     );
 
     console.log('\n' + header);
@@ -400,54 +428,58 @@ describe('Paper 26: HoloGraph EventEdge O(1) vs Embedding O(N·D)', () => {
 // shows they are equal on this corpus (12.5% each, both near-random).
 
 describe('Paper 26 Ablation: Xenova semantic baseline vs HoloGraph', () => {
-  it(
-    'Xenova O(N·D) latency > HoloGraph O(1) latency regardless of embedding quality (latency ablation)',
-    async () => {
-      // ── Probe Xenova availability ────────────────────────────────────────
-      let xenovaProvider: EmbeddingProvider;
-      try {
-        xenovaProvider = new XenovaEmbeddingProvider('Xenova/all-MiniLM-L6-v2');
-        // Warm the model (triggers download + WASM init if needed)
-        await xenovaProvider.getEmbeddings(['warmup']);
-      } catch {
-        console.warn('[Paper26 Ablation] @huggingface/transformers unavailable — skipping Xenova row.');
-        return; // graceful skip without marking test as failed
-      }
+  it('Xenova O(N·D) latency > HoloGraph O(1) latency regardless of embedding quality (latency ablation)', async () => {
+    // ── Probe Xenova availability ────────────────────────────────────────
+    let xenovaProvider: EmbeddingProvider;
+    try {
+      xenovaProvider = new XenovaEmbeddingProvider('Xenova/all-MiniLM-L6-v2');
+      // Warm the model (triggers download + WASM init if needed)
+      await xenovaProvider.getEmbeddings(['warmup']);
+    } catch {
+      console.warn(
+        '[Paper26 Ablation] @huggingface/transformers unavailable — skipping Xenova row.'
+      );
+      return; // graceful skip without marking test as failed
+    }
 
-      // Run 50-file scenario with Xenova
-      const r = await runScenario(50, 10, xenovaProvider);
+    // Run 50-file scenario with Xenova
+    const r = await runScenario(50, 10, xenovaProvider);
 
-      // ── Assertions ──────────────────────────────────────────────────────
-      // HoloGraph must still win on recall
-      expect(r.holoGraphRecall).toBe(1.0);
-      // HoloGraph must still win on latency (O(1) < O(N·D) regardless of embedding quality)
-      expect(r.holoGraphQueryUs).toBeLessThan(r.embeddingQueryUs);
-      // NOTE: Xenova recall ≈ Structural recall on this corpus (both ~12.5%, near-random).
-      // Reason: synthetic symbols are named fn0/fn1/fn2/fn3 — no semantic signal.
-      // Do NOT assert Xenova > Structural here; the data does not support it.
-      // NL→code recall comparison lives in Paper26Table2NLRecall.test.ts.
+    // ── Assertions ──────────────────────────────────────────────────────
+    // HoloGraph must still win on recall
+    expect(r.holoGraphRecall).toBe(1.0);
+    // HoloGraph must still win on latency (O(1) < O(N·D) regardless of embedding quality)
+    expect(r.holoGraphQueryUs).toBeLessThan(r.embeddingQueryUs);
+    // NOTE: Xenova recall ≈ Structural recall on this corpus (both ~12.5%, near-random).
+    // Reason: synthetic symbols are named fn0/fn1/fn2/fn3 — no semantic signal.
+    // Do NOT assert Xenova > Structural here; the data does not support it.
+    // NL→code recall comparison lives in Paper26Table2NLRecall.test.ts.
 
-      // ── Paper 26 Table 1 Ablation row ───────────────────────────────────
-      console.log('\n% Paper 26 Table 1 — Ablation: Xenova/all-MiniLM-L6-v2 semantic baseline');
-      console.log('%');
-      console.log('% Files | Syms  | Events | HG µs   | Emb µs  | HG recall | Emb recall@10 | Speedup | Provider');
-      console.log('% ------|-------|--------|---------|---------|-----------|---------------|---------|----------');
-      const fmt = (n: number, d = 2) => n.toFixed(d);
-      console.log(
-        `%  ${String(r.numFiles).padStart(5)} | ${String(r.numSymbols).padStart(5)} | ${String(r.numEvents).padStart(6)} | ` +
+    // ── Paper 26 Table 1 Ablation row ───────────────────────────────────
+    console.log('\n% Paper 26 Table 1 — Ablation: Xenova/all-MiniLM-L6-v2 semantic baseline');
+    console.log('%');
+    console.log(
+      '% Files | Syms  | Events | HG µs   | Emb µs  | HG recall | Emb recall@10 | Speedup | Provider'
+    );
+    console.log(
+      '% ------|-------|--------|---------|---------|-----------|---------------|---------|----------'
+    );
+    const fmt = (n: number, d = 2) => n.toFixed(d);
+    console.log(
+      `%  ${String(r.numFiles).padStart(5)} | ${String(r.numSymbols).padStart(5)} | ${String(r.numEvents).padStart(6)} | ` +
         `${fmt(r.holoGraphQueryUs, 3).padStart(7)} | ${fmt(r.embeddingQueryUs, 1).padStart(7)} | ` +
         `${fmt(r.holoGraphRecall, 3).padStart(9)} | ${fmt(r.embeddingRecallAt10, 3).padStart(13)} | ` +
         `${fmt(r.speedupRatio, 1).padStart(7)}× | Xenova/all-MiniLM-L6-v2`
-      );
-      console.log('%');
-      console.log('% Xenova is a real semantic model (384-dim, trained on natural language).');
-      console.log('% Measured: Xenova recall = StructuralEmbeddingProvider recall (both ~12.5%).');
-      console.log('% Cause: synthetic corpus uses generic symbol names (fn0/fn1/fn2/fn3) with');
-      console.log('%   no semantic link to event names — both models are near-random on this corpus.');
-      console.log('% Ablation claim: O(1) latency advantage holds regardless of embedding quality.');
-      console.log('% NL→code recall comparison: see Paper26Table2NLRecall.test.ts (named symbols).');
-      console.log('% Latency: Xenova includes model-inference time per query.\n');
-    },
-    180_000, // Allow 3 min for model download + inference
-  );
+    );
+    console.log('%');
+    console.log('% Xenova is a real semantic model (384-dim, trained on natural language).');
+    console.log('% Measured: Xenova recall = StructuralEmbeddingProvider recall (both ~12.5%).');
+    console.log('% Cause: synthetic corpus uses generic symbol names (fn0/fn1/fn2/fn3) with');
+    console.log(
+      '%   no semantic link to event names — both models are near-random on this corpus.'
+    );
+    console.log('% Ablation claim: O(1) latency advantage holds regardless of embedding quality.');
+    console.log('% NL→code recall comparison: see Paper26Table2NLRecall.test.ts (named symbols).');
+    console.log('% Latency: Xenova includes model-inference time per query.\n');
+  }, 180_000); // Allow 3 min for model download + inference
 });

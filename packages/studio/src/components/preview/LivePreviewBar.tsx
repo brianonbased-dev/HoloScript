@@ -54,7 +54,7 @@ export function LivePreviewBar({
   const handleBroadcast = useCallback(async () => {
     setBroadcasting(true);
     await broadcast(code);
-      setTimeout(() => setBroadcasting(false), ANIM_WIZARD_STEP);
+    setTimeout(() => setBroadcasting(false), ANIM_WIZARD_STEP);
   }, [broadcast, code]);
 
   const relSync = lastSync ? `${Math.round((Date.now() - lastSync) / 1000)}s ago` : 'never';

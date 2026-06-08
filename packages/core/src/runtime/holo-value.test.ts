@@ -44,8 +44,14 @@ describe('resolveHoloValue — arrays', () => {
   });
 
   it('recurses into nested arrays', () => {
-    const input = [[1, 2], [3, [4, 5]]] as unknown as HoloValue;
-    expect(resolveHoloValue(input)).toEqual([[1, 2], [3, [4, 5]]]);
+    const input = [
+      [1, 2],
+      [3, [4, 5]],
+    ] as unknown as HoloValue;
+    expect(resolveHoloValue(input)).toEqual([
+      [1, 2],
+      [3, [4, 5]],
+    ]);
   });
 
   it('preserves array ORDER', () => {

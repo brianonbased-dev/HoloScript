@@ -26,7 +26,12 @@ describe('AutonomousAgendaTrait', () => {
   });
 
   it('emits ready with budget and class', () => {
-    attachTrait(autonomousAgendaHandler, node, { agent_class: 'teammate', daily_budget_usd: 5 }, ctx);
+    attachTrait(
+      autonomousAgendaHandler,
+      node,
+      { agent_class: 'teammate', daily_budget_usd: 5 },
+      ctx
+    );
     const ev = getLastEvent(ctx, 'autonomous_agenda_ready');
     expect(ev.agentClass).toBe('teammate');
     expect(ev.dailyBudgetUsd).toBe(5);

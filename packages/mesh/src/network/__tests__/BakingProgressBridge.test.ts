@@ -50,7 +50,9 @@ describe('projectStateToPacket', () => {
   });
 
   it('FALSE: non-error projection omits error field', () => {
-    const state = makeState({ error: { stage: 'training', message: 'OOM', code: 'OOM', retryable: false } });
+    const state = makeState({
+      error: { stage: 'training', message: 'OOM', code: 'OOM', retryable: false },
+    });
     const packet = projectStateToPacket(state, { now: 1000 });
     expect(packet.terminal).toBeUndefined();
     expect(packet.error).toBeUndefined();
@@ -89,7 +91,9 @@ describe('projectStateToPacket', () => {
   });
 
   it('TRUE: terminal=complete omits error field even when error exists', () => {
-    const state = makeState({ error: { stage: 'training', message: 'X', code: 'Y', retryable: false } });
+    const state = makeState({
+      error: { stage: 'training', message: 'X', code: 'Y', retryable: false },
+    });
     const packet = projectStateToPacket(state, { now: 1000, terminal: 'complete' });
     expect(packet.terminal).toBe('complete');
     expect(packet.error).toBeUndefined();
@@ -158,7 +162,12 @@ describe('createBakingProgressBridge', () => {
     };
     const state = makeState({
       stage: 'failed',
-      error: { stage: errInfo.stage, message: errInfo.message, code: errInfo.code, retryable: errInfo.retryable },
+      error: {
+        stage: errInfo.stage,
+        message: errInfo.message,
+        code: errInfo.code,
+        retryable: errInfo.retryable,
+      },
     });
     bridge.onError(errInfo, state);
     expect(transport.sent).toHaveLength(1);

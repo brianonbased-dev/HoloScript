@@ -67,7 +67,9 @@ export function emitHapticSetup(compiler: AndroidCompiler, composition: HoloComp
     compiler.emit('');
   }
   if (compiler.compositionHasTrait(composition, 'haptic_intensity')) {
-    compiler.emit('fun setIntensity(value: Float) { intensityMultiplier = value.coerceIn(0f, 1f) }');
+    compiler.emit(
+      'fun setIntensity(value: Float) { intensityMultiplier = value.coerceIn(0f, 1f) }'
+    );
     compiler.emit('');
   }
 
@@ -85,7 +87,9 @@ export function emitHapticSetup(compiler: AndroidCompiler, composition: HoloComp
     compiler.emit(
       'val amplitude = ((1.0f - distance.coerceIn(0f, 1f)) * 255 * intensityMultiplier).toInt()'
     );
-    compiler.emit('vibrator.vibrate(VibrationEffect.createOneShot(50, amplitude.coerceIn(1, 255)))');
+    compiler.emit(
+      'vibrator.vibrate(VibrationEffect.createOneShot(50, amplitude.coerceIn(1, 255)))'
+    );
     compiler.indentLevel--;
     compiler.emit('}');
     compiler.emit('');
@@ -157,7 +161,9 @@ export function emitNearbySetup(compiler: AndroidCompiler, composition: HoloComp
   compiler.indentLevel++;
   compiler.emit('override fun onConnectionInitiated(endpointId: String, info: ConnectionInfo) {');
   compiler.indentLevel++;
-  compiler.emit('Nearby.getConnectionsClient(context).acceptConnection(endpointId, payloadCallback)');
+  compiler.emit(
+    'Nearby.getConnectionsClient(context).acceptConnection(endpointId, payloadCallback)'
+  );
   compiler.indentLevel--;
   compiler.emit('}');
   compiler.emit(
@@ -211,7 +217,9 @@ export function emitNearbySetup(compiler: AndroidCompiler, composition: HoloComp
       'Nearby.getConnectionsClient(context).startDiscovery(SERVICE_ID, object : EndpointDiscoveryCallback() {'
     );
     compiler.indentLevel++;
-    compiler.emit('override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {');
+    compiler.emit(
+      'override fun onEndpointFound(endpointId: String, info: DiscoveredEndpointInfo) {'
+    );
     compiler.indentLevel++;
     compiler.emit(
       'Nearby.getConnectionsClient(context).requestConnection("HoloDevice", endpointId, connectionCallback)'

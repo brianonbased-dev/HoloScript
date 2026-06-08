@@ -11,9 +11,15 @@
 
 export type Vec3 = { x: number; y: number; z: number } | [number, number, number];
 
-function v3x(v: Vec3): number { return Array.isArray(v) ? v[0] : v.x; }
-function v3y(v: Vec3): number { return Array.isArray(v) ? v[1] : v.y; }
-function v3z(v: Vec3): number { return Array.isArray(v) ? v[2] : v.z; }
+function v3x(v: Vec3): number {
+  return Array.isArray(v) ? v[0] : v.x;
+}
+function v3y(v: Vec3): number {
+  return Array.isArray(v) ? v[1] : v.y;
+}
+function v3z(v: Vec3): number {
+  return Array.isArray(v) ? v[2] : v.z;
+}
 
 export type ComplianceLevel = 'pass' | 'warning' | 'fail';
 export type WCAGLevel = 'A' | 'AA' | 'AAA';

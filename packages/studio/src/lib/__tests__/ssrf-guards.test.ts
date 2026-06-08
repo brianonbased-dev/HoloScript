@@ -13,10 +13,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { validateAudioUrl, TRUSTED_AUDIO_HOSTS } from '../animation/audioSync';
-import {
-  assertTrustedImageUrl,
-  TRUSTED_IMAGE_HOSTS,
-} from '../character/aiCharacterGeneration';
+import { assertTrustedImageUrl, TRUSTED_IMAGE_HOSTS } from '../character/aiCharacterGeneration';
 import { assertRelativeSameOriginPath } from '../character/sketchfabIntegration';
 
 const SAME_ORIGIN = { href: 'https://app.holoscript.net/', host: 'app.holoscript.net' };
@@ -26,25 +23,25 @@ describe('audioSync — validateAudioUrl', () => {
     expect(() => validateAudioUrl('file:///etc/passwd', SAME_ORIGIN)).toThrow(
       /Unsafe URL protocol/i
     );
-    expect(() =>
-      validateAudioUrl('ftp://example.com/audio.wav', SAME_ORIGIN)
-    ).toThrow(/Unsafe URL protocol/i);
+    expect(() => validateAudioUrl('ftp://example.com/audio.wav', SAME_ORIGIN)).toThrow(
+      /Unsafe URL protocol/i
+    );
     // javascript: must throw (either at protocol or host check).
     expect(() => validateAudioUrl('javascript:alert(1)', SAME_ORIGIN)).toThrow();
   });
 
   it('rejects cross-origin hosts not on the allowlist', () => {
-    expect(() =>
-      validateAudioUrl('https://attacker.example/audio.wav', SAME_ORIGIN)
-    ).toThrow(/not in the trusted-host allowlist/i);
+    expect(() => validateAudioUrl('https://attacker.example/audio.wav', SAME_ORIGIN)).toThrow(
+      /not in the trusted-host allowlist/i
+    );
     // Cloud metadata endpoint — classic SSRF pivot.
-    expect(() =>
-      validateAudioUrl('http://169.254.169.254/latest/meta-data/', SAME_ORIGIN)
-    ).toThrow(/not in the trusted-host allowlist/i);
+    expect(() => validateAudioUrl('http://169.254.169.254/latest/meta-data/', SAME_ORIGIN)).toThrow(
+      /not in the trusted-host allowlist/i
+    );
     // Internal services
-    expect(() =>
-      validateAudioUrl('http://localhost:6379/', SAME_ORIGIN)
-    ).toThrow(/not in the trusted-host allowlist/i);
+    expect(() => validateAudioUrl('http://localhost:6379/', SAME_ORIGIN)).toThrow(
+      /not in the trusted-host allowlist/i
+    );
   });
 
   it('accepts same-origin URLs', () => {
@@ -53,10 +50,7 @@ describe('audioSync — validateAudioUrl', () => {
   });
 
   it('accepts blob: URLs (same-origin by spec)', () => {
-    const u = validateAudioUrl(
-      'blob:https://app.holoscript.net/uuid-here',
-      SAME_ORIGIN
-    );
+    const u = validateAudioUrl('blob:https://app.holoscript.net/uuid-here', SAME_ORIGIN);
     expect(u.protocol).toBe('blob:');
   });
 
@@ -68,10 +62,7 @@ describe('audioSync — validateAudioUrl', () => {
   });
 
   it('accepts subdomains of allowlisted hosts', () => {
-    const u = validateAudioUrl(
-      'https://media.cdn.holoscript.net/track.mp3',
-      SAME_ORIGIN
-    );
+    const u = validateAudioUrl('https://media.cdn.holoscript.net/track.mp3', SAME_ORIGIN);
     expect(u.hostname).toBe('media.cdn.holoscript.net');
   });
 });
@@ -90,51 +81,45 @@ describe('aiCharacterGeneration — assertTrustedImageUrl', () => {
   });
 
   it('rejects cross-origin hosts not on the allowlist', () => {
-    expect(() =>
-      assertTrustedImageUrl('https://attacker.example/payload.png')
-    ).toThrow(/not in the trusted-host allowlist/i);
-    expect(() =>
-      assertTrustedImageUrl('https://169.254.169.254/meta-data/')
-    ).toThrow(/not in the trusted-host allowlist/i);
+    expect(() => assertTrustedImageUrl('https://attacker.example/payload.png')).toThrow(
+      /not in the trusted-host allowlist/i
+    );
+    expect(() => assertTrustedImageUrl('https://169.254.169.254/meta-data/')).toThrow(
+      /not in the trusted-host allowlist/i
+    );
   });
 
   it('accepts data: URLs (inline base64, no host)', () => {
     expect(() =>
-      assertTrustedImageUrl(
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ'
-      )
+      assertTrustedImageUrl('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ')
     ).not.toThrow();
   });
 
   it('accepts hosts on the trusted-image allowlist', () => {
     for (const host of TRUSTED_IMAGE_HOSTS) {
-      expect(() =>
-        assertTrustedImageUrl(`https://${host}/img.png`)
-      ).not.toThrow();
+      expect(() => assertTrustedImageUrl(`https://${host}/img.png`)).not.toThrow();
     }
   });
 });
 
 describe('sketchfabIntegration — assertRelativeSameOriginPath', () => {
   it('rejects absolute URLs (open-redirect / SSRF risk)', () => {
-    expect(() =>
-      assertRelativeSameOriginPath('https://attacker.example/api', 'Sketchfab')
-    ).toThrow(/relative same-origin path/i);
-    expect(() =>
-      assertRelativeSameOriginPath('http://localhost:9000/api', 'Sketchfab')
-    ).toThrow(/relative same-origin path/i);
+    expect(() => assertRelativeSameOriginPath('https://attacker.example/api', 'Sketchfab')).toThrow(
+      /relative same-origin path/i
+    );
+    expect(() => assertRelativeSameOriginPath('http://localhost:9000/api', 'Sketchfab')).toThrow(
+      /relative same-origin path/i
+    );
   });
 
   it('rejects protocol-relative URLs (// attacker.example)', () => {
-    expect(() =>
-      assertRelativeSameOriginPath('//attacker.example/api', 'Sketchfab')
-    ).toThrow(/relative same-origin path/i);
+    expect(() => assertRelativeSameOriginPath('//attacker.example/api', 'Sketchfab')).toThrow(
+      /relative same-origin path/i
+    );
   });
 
   it('accepts relative paths', () => {
-    expect(() =>
-      assertRelativeSameOriginPath('/api/proxy/sketchfab', 'Sketchfab')
-    ).not.toThrow();
+    expect(() => assertRelativeSameOriginPath('/api/proxy/sketchfab', 'Sketchfab')).not.toThrow();
   });
 });
 
@@ -147,16 +132,16 @@ import { validateAbsorbBaseUrl } from '../absorb-host-validator';
 describe('creditGate — validateAbsorbBaseUrl', () => {
   it('rejects unsafe protocols and untrusted hosts', () => {
     expect(() => validateAbsorbBaseUrl('ftp://absorb.holoscript.net/')).toThrow(
-      /must be an http\/https URL/i,
+      /must be an http\/https URL/i
     );
     expect(() => validateAbsorbBaseUrl('https://attacker.example/')).toThrow(
-      /not in the trusted-host allowlist/i,
+      /not in the trusted-host allowlist/i
     );
     expect(() => validateAbsorbBaseUrl('https://absorb.holoscript.net/')).not.toThrow();
     expect(() => validateAbsorbBaseUrl('http://localhost:8080/')).not.toThrow();
     // Override path
     expect(() =>
-      validateAbsorbBaseUrl('https://staging.example/', ['staging.example']),
+      validateAbsorbBaseUrl('https://staging.example/', ['staging.example'])
     ).not.toThrow();
   });
 });

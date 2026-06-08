@@ -53,10 +53,7 @@ function makeRow(overrides = {}) {
 
 describe('analyzeCoverageGap', () => {
   it('is deterministic', () => {
-    const rows = [
-      makeRow({ pair_id: 'a', shape: 's1' }),
-      makeRow({ pair_id: 'b', shape: 's2' }),
-    ];
+    const rows = [makeRow({ pair_id: 'a', shape: 's1' }), makeRow({ pair_id: 'b', shape: 's2' })];
     const r1 = analyzeCoverageGap(rows, { now: 0 });
     const r2 = analyzeCoverageGap(rows, { now: 0 });
     expect(r1).toEqual(r2);
@@ -101,7 +98,7 @@ describe('analyzeCoverageGap', () => {
 
   it('detects duplicate composition shapes when >3 repeats', () => {
     const rows = Array.from({ length: 5 }, (_, i) =>
-      makeRow({ pair_id: `d${i}`, shape: 'same-shape', kind: 'synth', novel_combination: true }),
+      makeRow({ pair_id: `d${i}`, shape: 'same-shape', kind: 'synth', novel_combination: true })
     );
     const r = analyzeCoverageGap(rows);
     // First 3 are allowed, extras 4+5 are hacks
@@ -120,10 +117,7 @@ describe('analyzeCoverageGap', () => {
   });
 
   it('classifies no-trace rows', () => {
-    const rows = [
-      makeRow({ pair_id: 'ok' }),
-      makeRow({ pair_id: 'bad', cael_trace: null }),
-    ];
+    const rows = [makeRow({ pair_id: 'ok' }), makeRow({ pair_id: 'bad', cael_trace: null })];
     const r = analyzeCoverageGap(rows);
     expect(r.noTraceRows).toBe(1);
     expect(r.runtimeEligible).toBe(1);
@@ -148,11 +142,21 @@ describe('analyzeCoverageGap', () => {
       makeRow({ pair_id: 'ok' }),
       makeRow({
         pair_id: 'fail1',
-        simContractCheck: { passed: false, contractId: 'cid', solverType: 'thermal', violations: 2 },
+        simContractCheck: {
+          passed: false,
+          contractId: 'cid',
+          solverType: 'thermal',
+          violations: 2,
+        },
       }),
       makeRow({
         pair_id: 'fail2',
-        simContractCheck: { passed: false, contractId: 'cid', solverType: 'thermal', violations: 3 },
+        simContractCheck: {
+          passed: false,
+          contractId: 'cid',
+          solverType: 'thermal',
+          violations: 3,
+        },
       }),
     ];
     const r = analyzeCoverageGap(rows);
@@ -192,7 +196,7 @@ describe('analyzeCoverageGap', () => {
           shape: `hack-${i}`,
           kind: 'verbatim',
           trait_family_set: ['structural'],
-        }),
+        })
       );
     }
     for (let i = 0; i < 300; i++) {
@@ -203,7 +207,7 @@ describe('analyzeCoverageGap', () => {
           kind: 'synth',
           novel_combination: false,
           trait_family_set: ['interaction'],
-        }),
+        })
       );
     }
 
@@ -215,7 +219,7 @@ describe('analyzeCoverageGap', () => {
           shape: `notrace-${i}`,
           cael_trace: null,
           trait_family_set: ['visual'],
-        }),
+        })
       );
     }
 
@@ -227,7 +231,7 @@ describe('analyzeCoverageGap', () => {
           shape: `static-${i}`,
           simContractCheck: { passed: false, contractId: 'cid', solverType: '', violations: 0 },
           trait_family_set: ['audio'],
-        }),
+        })
       );
     }
 
@@ -244,7 +248,7 @@ describe('analyzeCoverageGap', () => {
             violations: 1 + (i % 3),
           },
           trait_family_set: ['physics'],
-        }),
+        })
       );
     }
 
@@ -257,7 +261,7 @@ describe('analyzeCoverageGap', () => {
           kind: 'synth',
           novel_combination: true,
           trait_family_set: ['structural', 'interaction'],
-        }),
+        })
       );
     }
 

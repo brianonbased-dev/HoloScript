@@ -250,12 +250,7 @@ export class ViralPoseTrait {
 
     this.activeClipAction = action;
 
-    logger.debug(
-      '[ViralPoseTrait] Playing clip:',
-      clipName,
-      'speed:', speed,
-      'loop:', loop
-    );
+    logger.debug('[ViralPoseTrait] Playing clip:', clipName, 'speed:', speed, 'loop:', loop);
 
     return true;
   }

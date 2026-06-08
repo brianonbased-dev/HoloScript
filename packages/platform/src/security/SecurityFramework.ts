@@ -337,12 +337,24 @@ export function hasPermission(userRole: string, permission: Permission | string)
   // Check workspace ROLE_PERMISSIONS (dot-notation strings like 'package.publish')
   const workspacePerms: Record<string, string[]> = {
     owner: [
-      'workspace.delete', 'workspace.settings', 'billing.manage', 'members.manage',
-      'package.publish', 'workspace.read', 'package.read', 'secrets.manage', 'secrets.read',
+      'workspace.delete',
+      'workspace.settings',
+      'billing.manage',
+      'members.manage',
+      'package.publish',
+      'workspace.read',
+      'package.read',
+      'secrets.manage',
+      'secrets.read',
     ],
     admin: [
-      'workspace.settings', 'members.manage', 'package.publish',
-      'workspace.read', 'package.read', 'secrets.manage', 'secrets.read',
+      'workspace.settings',
+      'members.manage',
+      'package.publish',
+      'workspace.read',
+      'package.read',
+      'secrets.manage',
+      'secrets.read',
     ],
     developer: ['package.publish', 'workspace.read', 'package.read', 'secrets.read'],
     viewer: ['workspace.read', 'package.read'],

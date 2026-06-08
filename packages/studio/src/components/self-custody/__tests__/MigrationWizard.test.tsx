@@ -17,8 +17,7 @@ import type {
 
 // ── Test fixtures ──────────────────────────────────────────────────────────
 
-const TEST_NONCE =
-  'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
+const TEST_NONCE = 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
 
 function makePrepareOk(): PrepareResponse {
   return {
@@ -47,8 +46,7 @@ function makeExportPackage(): ExportPackage {
       nonce: 'bm9uY2Vub25jZW5v',
     },
     payload: 'ZmFrZXBheWxvYWQ=',
-    manifest_hash:
-      'sha256:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+    manifest_hash: 'sha256:deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
     signature: 'ZmFrZXNpZw==',
   };
 }
@@ -118,10 +116,8 @@ vi.mock('@/lib/self-custody-client', async (importOriginal) => {
     prepare: (...args: unknown[]) => mockPrepare(...args),
     packageExport: (...args: unknown[]) => mockPackageExport(...args),
     finalize: (...args: unknown[]) => mockFinalize(...args),
-    verifyPackageLocally: (...args: unknown[]) =>
-      mockVerifyPackageLocally(...args),
-    generateBrowserWalletKeypair: (...args: unknown[]) =>
-      mockGenerateBrowserWalletKeypair(...args),
+    verifyPackageLocally: (...args: unknown[]) => mockVerifyPackageLocally(...args),
+    generateBrowserWalletKeypair: (...args: unknown[]) => mockGenerateBrowserWalletKeypair(...args),
     signServerNonce: (...args: unknown[]) => mockSignServerNonce(...args),
   };
 });
@@ -144,7 +140,9 @@ beforeEach(() => {
       writable: true,
     });
   } else if (!globalThis.crypto.getRandomValues) {
-    (globalThis.crypto as Crypto & { getRandomValues: typeof crypto.getRandomValues }).getRandomValues = ((arr: Uint8Array) => {
+    (
+      globalThis.crypto as Crypto & { getRandomValues: typeof crypto.getRandomValues }
+    ).getRandomValues = ((arr: Uint8Array) => {
       for (let i = 0; i < arr.length; i++) arr[i] = i;
       return arr;
     }) as unknown as typeof crypto.getRandomValues;
@@ -175,9 +173,7 @@ afterEach(() => {
 
 describe('MigrationWizard', () => {
   it('renders Step 1 (2FA) by default with devSkipBanner', () => {
-    render(
-      <MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />
-    );
+    render(<MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />);
     expect(screen.getByText(/Verify it.+you/i)).toBeInTheDocument();
     expect(screen.getByLabelText('dev-banner')).toBeInTheDocument();
   });
@@ -202,14 +198,10 @@ describe('MigrationWizard', () => {
   it('Step 2 blocks advance with weak password', async () => {
     render(<MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />);
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('recovery-password')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('recovery-password')).toBeInTheDocument());
 
     const pw = screen.getByLabelText('recovery-password') as HTMLInputElement;
-    const pwc = screen.getByLabelText(
-      'recovery-password-confirm'
-    ) as HTMLInputElement;
+    const pwc = screen.getByLabelText('recovery-password-confirm') as HTMLInputElement;
     fireEvent.change(pw, { target: { value: 'weak' } });
     fireEvent.change(pwc, { target: { value: 'weak' } });
 
@@ -223,41 +215,8 @@ describe('MigrationWizard', () => {
 
     render(<MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />);
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('recovery-password')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('recovery-password')).toBeInTheDocument());
 
-    const strong = 'CorrectHorseBatteryStaple-42!';
-    fireEvent.change(screen.getByLabelText('recovery-password'), {
-      target: { value: strong },
-    });
-    fireEvent.change(screen.getByLabelText('recovery-password-confirm'), {
-      target: { value: strong },
-    });
-    fireEvent.click(
-      screen.getByRole('button', { name: /generate package/i })
-    );
-
-    await waitFor(() => {
-      expect(mockPrepare).toHaveBeenCalledTimes(1);
-      expect(mockPackageExport).toHaveBeenCalledTimes(1);
-    });
-
-    // Step 3 (Package) should now be showing.
-    await waitFor(() =>
-      expect(screen.getByLabelText('package-summary')).toBeInTheDocument()
-    );
-  });
-
-  it('Step 3 shows countdown + download button + requires download before continue', async () => {
-    mockPrepare.mockResolvedValue(makePrepareOk());
-    mockPackageExport.mockResolvedValue(makePackageOk(makeExportPackage()));
-
-    render(<MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />);
-    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('recovery-password')).toBeInTheDocument()
-    );
     const strong = 'CorrectHorseBatteryStaple-42!';
     fireEvent.change(screen.getByLabelText('recovery-password'), {
       target: { value: strong },
@@ -267,9 +226,32 @@ describe('MigrationWizard', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /generate package/i }));
 
-    await waitFor(() =>
-      expect(screen.getByLabelText('package-summary')).toBeInTheDocument()
-    );
+    await waitFor(() => {
+      expect(mockPrepare).toHaveBeenCalledTimes(1);
+      expect(mockPackageExport).toHaveBeenCalledTimes(1);
+    });
+
+    // Step 3 (Package) should now be showing.
+    await waitFor(() => expect(screen.getByLabelText('package-summary')).toBeInTheDocument());
+  });
+
+  it('Step 3 shows countdown + download button + requires download before continue', async () => {
+    mockPrepare.mockResolvedValue(makePrepareOk());
+    mockPackageExport.mockResolvedValue(makePackageOk(makeExportPackage()));
+
+    render(<MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />);
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+    await waitFor(() => expect(screen.getByLabelText('recovery-password')).toBeInTheDocument());
+    const strong = 'CorrectHorseBatteryStaple-42!';
+    fireEvent.change(screen.getByLabelText('recovery-password'), {
+      target: { value: strong },
+    });
+    fireEvent.change(screen.getByLabelText('recovery-password-confirm'), {
+      target: { value: strong },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /generate package/i }));
+
+    await waitFor(() => expect(screen.getByLabelText('package-summary')).toBeInTheDocument());
 
     expect(screen.getByLabelText('countdown')).toBeInTheDocument();
     const continueBtn = screen.getByRole('button', {
@@ -291,9 +273,7 @@ describe('MigrationWizard', () => {
 
     render(<MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />);
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('recovery-password')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('recovery-password')).toBeInTheDocument());
     const strong = 'CorrectHorseBatteryStaple-42!';
     fireEvent.change(screen.getByLabelText('recovery-password'), {
       target: { value: strong },
@@ -303,23 +283,17 @@ describe('MigrationWizard', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /generate package/i }));
 
-    await waitFor(() =>
-      expect(screen.getByLabelText('package-summary')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('package-summary')).toBeInTheDocument());
 
     // Download (required) and continue to Step 4.
     const downloadBtn = screen.getByRole('button', { name: /download package file/i });
     // jsdom blob/url shims
-    const createObjSpy = vi
-      .spyOn(URL, 'createObjectURL')
-      .mockReturnValue('blob:stub');
+    const createObjSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:stub');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     fireEvent.click(downloadBtn);
     createObjSpy.mockRestore();
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /saved it.+continue/i })
-    );
+    fireEvent.click(screen.getByRole('button', { name: /saved it.+continue/i }));
 
     await waitFor(() =>
       expect(screen.getByLabelText('recovery-password-verify')).toBeInTheDocument()
@@ -330,9 +304,7 @@ describe('MigrationWizard', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /verify locally/i }));
 
-    await waitFor(() =>
-      expect(screen.getByLabelText('verify-wrong-password')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('verify-wrong-password')).toBeInTheDocument());
   });
 
   it('full happy path: Step 1 → 2 → 3 → 4 → 5 → finalize → success', async () => {
@@ -345,9 +317,7 @@ describe('MigrationWizard', () => {
     // Step 1
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
     // Step 2
-    await waitFor(() =>
-      expect(screen.getByLabelText('recovery-password')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('recovery-password')).toBeInTheDocument());
     const strong = 'CorrectHorseBatteryStaple-42!';
     fireEvent.change(screen.getByLabelText('recovery-password'), {
       target: { value: strong },
@@ -358,9 +328,7 @@ describe('MigrationWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: /generate package/i }));
 
     // Step 3
-    await waitFor(() =>
-      expect(screen.getByLabelText('package-summary')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('package-summary')).toBeInTheDocument());
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:stub');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     fireEvent.click(screen.getByRole('button', { name: /download package file/i }));
@@ -374,24 +342,16 @@ describe('MigrationWizard', () => {
       target: { value: strong },
     });
     fireEvent.click(screen.getByRole('button', { name: /verify locally/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('verify-success')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('verify-success')).toBeInTheDocument());
     const step4Continue = screen.getAllByRole('button', { name: /continue/i });
     fireEvent.click(step4Continue[step4Continue.length - 1]);
 
     // Step 5 — wait for keypair to be ready
-    await waitFor(() =>
-      expect(screen.getByLabelText('wallet-address')).toBeInTheDocument()
-    );
-    fireEvent.click(
-      screen.getByRole('button', { name: /finalize migration/i })
-    );
+    await waitFor(() => expect(screen.getByLabelText('wallet-address')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /finalize migration/i }));
 
     // Step 6
-    await waitFor(() =>
-      expect(screen.getByText(/Migration complete/i)).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText(/Migration complete/i)).toBeInTheDocument());
     expect(mockFinalize).toHaveBeenCalledTimes(1);
   });
 
@@ -403,9 +363,7 @@ describe('MigrationWizard', () => {
 
     render(<MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />);
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('recovery-password')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('recovery-password')).toBeInTheDocument());
     const strong = 'CorrectHorseBatteryStaple-42!';
     fireEvent.change(screen.getByLabelText('recovery-password'), {
       target: { value: strong },
@@ -415,9 +373,7 @@ describe('MigrationWizard', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /generate package/i }));
 
-    await waitFor(() =>
-      expect(screen.getByLabelText('package-summary')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('package-summary')).toBeInTheDocument());
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:stub');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     fireEvent.click(screen.getByRole('button', { name: /download package file/i }));
@@ -430,22 +386,14 @@ describe('MigrationWizard', () => {
       target: { value: strong },
     });
     fireEvent.click(screen.getByRole('button', { name: /verify locally/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('verify-success')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('verify-success')).toBeInTheDocument());
     const step4Continue = screen.getAllByRole('button', { name: /continue/i });
     fireEvent.click(step4Continue[step4Continue.length - 1]);
 
-    await waitFor(() =>
-      expect(screen.getByLabelText('wallet-address')).toBeInTheDocument()
-    );
-    fireEvent.click(
-      screen.getByRole('button', { name: /finalize migration/i })
-    );
+    await waitFor(() => expect(screen.getByLabelText('wallet-address')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /finalize migration/i }));
 
-    await waitFor(() =>
-      expect(screen.getByText(/Migration complete/i)).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText(/Migration complete/i)).toBeInTheDocument());
     // Replay banner appears.
     expect(screen.getByText(/server reported this as a replay/i)).toBeInTheDocument();
   });
@@ -455,9 +403,7 @@ describe('MigrationWizard', () => {
 
     render(<MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />);
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('recovery-password')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('recovery-password')).toBeInTheDocument());
     const strong = 'CorrectHorseBatteryStaple-42!';
     fireEvent.change(screen.getByLabelText('recovery-password'), {
       target: { value: strong },
@@ -468,9 +414,7 @@ describe('MigrationWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: /generate package/i }));
 
     await waitFor(() =>
-      expect(
-        screen.getByLabelText('self-custody-error-session_expired')
-      ).toBeInTheDocument()
+      expect(screen.getByLabelText('self-custody-error-session_expired')).toBeInTheDocument()
     );
     expect(screen.getByText(/Session expired/i)).toBeInTheDocument();
   });
@@ -480,9 +424,7 @@ describe('MigrationWizard', () => {
 
     render(<MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />);
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('recovery-password')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('recovery-password')).toBeInTheDocument());
     const strong = 'CorrectHorseBatteryStaple-42!';
     fireEvent.change(screen.getByLabelText('recovery-password'), {
       target: { value: strong },
@@ -493,9 +435,7 @@ describe('MigrationWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: /generate package/i }));
 
     await waitFor(() =>
-      expect(
-        screen.getByLabelText('self-custody-error-already_self_custody')
-      ).toBeInTheDocument()
+      expect(screen.getByLabelText('self-custody-error-already_self_custody')).toBeInTheDocument()
     );
     expect(screen.getByText(/Already migrated/i)).toBeInTheDocument();
   });
@@ -512,9 +452,7 @@ describe('MigrationWizard', () => {
 
     render(<MigrationWizard bearerToken="test-bearer" devSkipBanner={true} />);
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('recovery-password')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('recovery-password')).toBeInTheDocument());
     const strong = 'CorrectHorseBatteryStaple-42!';
     fireEvent.change(screen.getByLabelText('recovery-password'), {
       target: { value: strong },
@@ -524,9 +462,7 @@ describe('MigrationWizard', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /generate package/i }));
 
-    await waitFor(() =>
-      expect(screen.getByLabelText('package-summary')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('package-summary')).toBeInTheDocument());
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:stub');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     fireEvent.click(screen.getByRole('button', { name: /download package file/i }));
@@ -539,18 +475,12 @@ describe('MigrationWizard', () => {
       target: { value: strong },
     });
     fireEvent.click(screen.getByRole('button', { name: /verify locally/i }));
-    await waitFor(() =>
-      expect(screen.getByLabelText('verify-success')).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByLabelText('verify-success')).toBeInTheDocument());
     const step4Continue = screen.getAllByRole('button', { name: /continue/i });
     fireEvent.click(step4Continue[step4Continue.length - 1]);
 
-    await waitFor(() =>
-      expect(screen.getByLabelText('wallet-address')).toBeInTheDocument()
-    );
-    fireEvent.click(
-      screen.getByRole('button', { name: /finalize migration/i })
-    );
+    await waitFor(() => expect(screen.getByLabelText('wallet-address')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /finalize migration/i }));
 
     await waitFor(() =>
       expect(

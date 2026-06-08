@@ -28,7 +28,7 @@ vi.mock('remotion', () => ({
     React.createElement(
       'div',
       { 'data-testid': 'sequence', 'data-from': from, 'data-duration': durationInFrames },
-      children,
+      children
     ),
   Composition: ({
     id,
@@ -60,7 +60,7 @@ vi.mock('remotion', () => ({
     frame: number,
     inputRange: number[],
     outputRange: number[],
-    _options?: Record<string, unknown>,
+    _options?: Record<string, unknown>
   ) => {
     // Simplified linear interpolation for tests
     const [inStart, inEnd] = inputRange;
@@ -186,22 +186,28 @@ describe('compiler walkthrough data', () => {
     (_name, data) => {
       expect(data.compilerTarget.length).toBeGreaterThan(0);
       expect(data.outputLanguage.length).toBeGreaterThan(0);
-    },
+    }
   );
 
-  it.each(allCompilerData)('%s data should have at least one holo step and one output step', (_name, data) => {
-    expect(data.holoSteps.length).toBeGreaterThanOrEqual(1);
-    expect(data.outputSteps.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it.each(allCompilerData)('%s data steps should have non-empty titles and lines', (_name, data) => {
-    const allSteps = [...data.holoSteps, ...data.outputSteps];
-    for (const step of allSteps) {
-      expect(step.title.length).toBeGreaterThan(0);
-      expect(step.description.length).toBeGreaterThan(0);
-      expect(step.lines.length).toBeGreaterThan(0);
+  it.each(allCompilerData)(
+    '%s data should have at least one holo step and one output step',
+    (_name, data) => {
+      expect(data.holoSteps.length).toBeGreaterThanOrEqual(1);
+      expect(data.outputSteps.length).toBeGreaterThanOrEqual(1);
     }
-  });
+  );
+
+  it.each(allCompilerData)(
+    '%s data steps should have non-empty titles and lines',
+    (_name, data) => {
+      const allSteps = [...data.holoSteps, ...data.outputSteps];
+      for (const step of allSteps) {
+        expect(step.title.length).toBeGreaterThan(0);
+        expect(step.description.length).toBeGreaterThan(0);
+        expect(step.lines.length).toBeGreaterThan(0);
+      }
+    }
+  );
 
   it.each(allCompilerData)('%s data lines should have valid type values', (_name, data) => {
     const allSteps = [...data.holoSteps, ...data.outputSteps];
@@ -234,9 +240,7 @@ describe('TitleCard component', () => {
   });
 
   it('should render with title text', () => {
-    const html = renderToString(
-      React.createElement(TitleCard, { title: 'Test Video Title' }),
-    );
+    const html = renderToString(React.createElement(TitleCard, { title: 'Test Video Title' }));
     expect(html).toContain('Test Video Title');
   });
 
@@ -245,7 +249,7 @@ describe('TitleCard component', () => {
       React.createElement(TitleCard, {
         title: 'Main',
         subtitle: 'A subtitle description',
-      }),
+      })
     );
     expect(html).toContain('A subtitle description');
   });
@@ -255,7 +259,7 @@ describe('TitleCard component', () => {
       React.createElement(TitleCard, {
         title: 'Demo',
         tag: 'Beginner',
-      }),
+      })
     );
     expect(html).toContain('Beginner');
   });
@@ -265,7 +269,7 @@ describe('TitleCard component', () => {
       React.createElement(TitleCard, {
         title: 'HoloScript →',
         compilerTarget: 'Unity',
-      }),
+      })
     );
     expect(html).toContain('Unity');
     expect(html).toContain(theme.accent);
@@ -284,7 +288,7 @@ describe('CodeStep component', () => {
         title: 'Define a Scene',
         description: 'Start with a scene block',
         lines: [{ content: 'scene MyScene {' }],
-      }),
+      })
     );
     expect(html).toContain('Define a Scene');
     expect(html).toContain('Start with a scene block');
@@ -295,7 +299,7 @@ describe('CodeStep component', () => {
       React.createElement(CodeStep, {
         title: 'Code',
         lines: [{ content: 'line one' }, { content: 'line two' }],
-      }),
+      })
     );
     // Line numbers 1 and 2 should appear
     expect(html).toContain('>1<');
@@ -308,7 +312,7 @@ describe('CodeStep component', () => {
         title: 'Code',
         lines: [{ content: 'no numbers' }],
         showLineNumbers: false,
-      }),
+      })
     );
     // The tokenizer splits words, so check for individual tokens
     expect(html).toContain('no');
@@ -322,7 +326,7 @@ describe('CodeStep component', () => {
       React.createElement(CodeStep, {
         title: 'Annotated',
         lines: [{ content: 'scene Test {', annotation: 'scene keyword' }],
-      }),
+      })
     );
     expect(html).toContain('scene keyword');
   });
@@ -335,7 +339,7 @@ describe('CodeStep component', () => {
           { content: 'added line', type: 'added' },
           { content: 'removed line', type: 'removed' },
         ],
-      }),
+      })
     );
     expect(html).toContain('+');
     // U+2212 MINUS SIGN used in the component
@@ -349,7 +353,7 @@ describe('CodeStep component', () => {
         lines: [{ content: 'code' }],
         stepNumber: 3,
         totalSteps: 7,
-      }),
+      })
     );
     expect(html).toContain('3 / 7');
   });
@@ -360,7 +364,7 @@ describe('CodeStep component', () => {
         title: 'Lang',
         language: 'tsx',
         lines: [{ content: 'code' }],
-      }),
+      })
     );
     expect(html).toContain('scene.tsx');
   });
@@ -375,9 +379,7 @@ describe('CompilerWalkthroughTemplate', () => {
   });
 
   it('should render title card and sequences for all steps', () => {
-    const html = renderToString(
-      React.createElement(CompilerWalkthroughTemplate, r3fData),
-    );
+    const html = renderToString(React.createElement(CompilerWalkthroughTemplate, r3fData));
     // Title card content
     expect(html).toContain('React Three Fiber');
     // Sequences: 1 title + 3 steps + 1 summary = 5
@@ -393,7 +395,7 @@ describe('CompilerWalkthroughTemplate', () => {
       outputSteps: [{ title: 'Output', description: 'Desc', lines: [{ content: 'out' }] }],
     };
     const html = renderToString(
-      React.createElement(CompilerWalkthroughTemplate, dataWithoutSummary),
+      React.createElement(CompilerWalkthroughTemplate, dataWithoutSummary)
     );
     expect(html).toContain('TestTargetCompiler.compile(composition)');
     expect(html).toContain('production-ready JS output');

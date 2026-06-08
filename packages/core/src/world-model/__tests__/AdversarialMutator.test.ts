@@ -23,7 +23,11 @@ import {
 
 describe('mutateTrace', () => {
   it('TRUE case: perturb-positions mutates object centers deterministically', () => {
-    const profile: MutatorProfile = { name: 'test-perturb', strategy: 'perturb-positions', intensity: 0.2 };
+    const profile: MutatorProfile = {
+      name: 'test-perturb',
+      strategy: 'perturb-positions',
+      intensity: 0.2,
+    };
     const a = mutateTrace(DEFAULT_DETERMINISTIC_FAILURE_ACTIONS, profile, 42);
     const b = mutateTrace(DEFAULT_DETERMINISTIC_FAILURE_ACTIONS, profile, 42);
 
@@ -56,14 +60,22 @@ describe('mutateTrace', () => {
   });
 
   it('TRUE case: duplicate-step increases trace length', () => {
-    const profile: MutatorProfile = { name: 'test-dup', strategy: 'duplicate-step', intensity: 0.3 };
+    const profile: MutatorProfile = {
+      name: 'test-dup',
+      strategy: 'duplicate-step',
+      intensity: 0.3,
+    };
     const mutated = mutateTrace(DEFAULT_DETERMINISTIC_FAILURE_ACTIONS, profile, 9);
 
     expect(mutated.actions.length).toBeGreaterThan(DEFAULT_DETERMINISTIC_FAILURE_ACTIONS.length);
   });
 
   it('TRUE case: swap-consecutive preserves length', () => {
-    const profile: MutatorProfile = { name: 'test-swap', strategy: 'swap-consecutive', intensity: 0.3 };
+    const profile: MutatorProfile = {
+      name: 'test-swap',
+      strategy: 'swap-consecutive',
+      intensity: 0.3,
+    };
     const mutated = mutateTrace(DEFAULT_DETERMINISTIC_FAILURE_ACTIONS, profile, 3);
 
     expect(mutated.actions.length).toBe(DEFAULT_DETERMINISTIC_FAILURE_ACTIONS.length);
@@ -78,7 +90,11 @@ describe('mutateTrace', () => {
   });
 
   it('TRUE case: different seeds produce different mutations', () => {
-    const profile: MutatorProfile = { name: 'test-diff', strategy: 'perturb-positions', intensity: 0.5 };
+    const profile: MutatorProfile = {
+      name: 'test-diff',
+      strategy: 'perturb-positions',
+      intensity: 0.5,
+    };
     const a = mutateTrace(DEFAULT_DETERMINISTIC_FAILURE_ACTIONS, profile, 1);
     const b = mutateTrace(DEFAULT_DETERMINISTIC_FAILURE_ACTIONS, profile, 2);
 
@@ -130,9 +146,7 @@ describe('exploreAdversarialTraces', () => {
       baseActions: DEFAULT_DETERMINISTIC_FAILURE_ACTIONS,
       seed: 9999,
       maxTraces: 4,
-      profiles: [
-        { name: 'extreme-perturb', strategy: 'perturb-positions', intensity: 2.0 },
-      ],
+      profiles: [{ name: 'extreme-perturb', strategy: 'perturb-positions', intensity: 2.0 }],
     });
 
     for (const t of traces) {

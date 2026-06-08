@@ -22,7 +22,11 @@ export interface AcousticBusEmit {
 }
 
 /** Trait names this module models with real DSP. Others stay comments (honest: not modeled). */
-export const MODELED_ACOUSTIC_TRAITS = ['audio_material', 'audio_occlusion', 'audio_portal'] as const;
+export const MODELED_ACOUSTIC_TRAITS = [
+  'audio_material',
+  'audio_occlusion',
+  'audio_portal',
+] as const;
 
 const num = (v: unknown, fallback: number): number =>
   typeof v === 'number' && Number.isFinite(v) ? v : fallback;
@@ -34,7 +38,7 @@ const num = (v: unknown, fallback: number): number =>
 export function compileAcousticTrait(
   traitName: string,
   config: Record<string, unknown>,
-  varName: string,
+  varName: string
 ): AcousticBusEmit | null {
   const bus = `${varName}_acoustic_bus`;
   const effects: string[] = [];

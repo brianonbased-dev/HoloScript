@@ -26,9 +26,7 @@ function accumulateUsage(target: TokenUsage, src: Anthropic.Usage): void {
   }
 }
 
-export async function runWithFsTools(
-  opts: RunWithFsOptions
-): Promise<ConfigRunResult> {
+export async function runWithFsTools(opts: RunWithFsOptions): Promise<ConfigRunResult> {
   const { client, model, systemPrompt, task, signal } = opts;
   const maxRounds = opts.maxToolRounds ?? MAX_TOOL_ROUNDS_DEFAULT;
   const sandbox = new InMemoryFsSandbox();

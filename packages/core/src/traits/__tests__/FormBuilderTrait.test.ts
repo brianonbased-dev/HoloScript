@@ -46,10 +46,18 @@ describe('FormBuilderTrait — onEvent', () => {
   it('form:create creates a form and emits form:created', () => {
     const node = makeNode();
     formBuilderHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    formBuilderHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'form:create', formId: 'contact-form',
-    } as never);
-    const state = node.__formState as { forms: Map<string, { fields: unknown[]; submitted: boolean }> };
+    formBuilderHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'form:create',
+        formId: 'contact-form',
+      } as never
+    );
+    const state = node.__formState as {
+      forms: Map<string, { fields: unknown[]; submitted: boolean }>;
+    };
     expect(state.forms.has('contact-form')).toBe(true);
     expect(node.emit).toHaveBeenCalledWith('form:created', { formId: 'contact-form' });
   });
@@ -57,15 +65,32 @@ describe('FormBuilderTrait — onEvent', () => {
   it('form:add_field adds a field and emits form:field_added', () => {
     const node = makeNode();
     formBuilderHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    formBuilderHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'form:create', formId: 'signup',
-    } as never);
+    formBuilderHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'form:create',
+        formId: 'signup',
+      } as never
+    );
     node.emit.mockClear();
-    formBuilderHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'form:add_field', formId: 'signup', name: 'email', fieldType: 'email', required: true,
-    } as never);
+    formBuilderHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'form:add_field',
+        formId: 'signup',
+        name: 'email',
+        fieldType: 'email',
+        required: true,
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('form:field_added', { formId: 'signup', name: 'email' });
-    const state = node.__formState as { forms: Map<string, { fields: { name: string; type: string; required: boolean }[] }> };
+    const state = node.__formState as {
+      forms: Map<string, { fields: { name: string; type: string; required: boolean }[] }>;
+    };
     const field = state.forms.get('signup')?.fields[0];
     expect(field?.type).toBe('email');
     expect(field?.required).toBe(true);
@@ -74,19 +99,42 @@ describe('FormBuilderTrait — onEvent', () => {
   it('form:submit marks form as submitted and emits form:submitted', () => {
     const node = makeNode();
     formBuilderHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    formBuilderHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'form:create', formId: 'order',
-    } as never);
-    formBuilderHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'form:add_field', formId: 'order', name: 'qty',
-    } as never);
+    formBuilderHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'form:create',
+        formId: 'order',
+      } as never
+    );
+    formBuilderHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'form:add_field',
+        formId: 'order',
+        name: 'qty',
+      } as never
+    );
     node.emit.mockClear();
-    formBuilderHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'form:submit', formId: 'order',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('form:submitted', expect.objectContaining({
-      formId: 'order', fields: 1,
-    }));
+    formBuilderHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'form:submit',
+        formId: 'order',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'form:submitted',
+      expect.objectContaining({
+        formId: 'order',
+        fields: 1,
+      })
+    );
     const state = node.__formState as { forms: Map<string, { submitted: boolean }> };
     expect(state.forms.get('order')?.submitted).toBe(true);
   });

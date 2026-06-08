@@ -35,20 +35,20 @@ composition "<name>" {
 
 ### Allowed traits (v0, most magical first)
 
-| Trait | What voice phrases trigger it | Emits for VRChat target |
-|---|---|---|
-| `@grabbable` | "pickup-able", "can grab", "hold it" | `VRCPickup` |
-| `@networked` | "synced", "shared", "everyone sees" | `VRCObjectSync` |
-| `@glowing(intensity: 0.5)` | "glows", "emissive", "shines" | emission keyword |
-| `@spinning(speed: 1, axis: 'y')` | "spins", "rotates" | Update-loop rotation |
-| `@floating(amplitude: 0.2, speed: 1)` | "floats", "bobs" | sin-wave Y translation |
-| `@billboard` | "always faces me" | look-at-head in Update |
-| `@transparent(opacity: 0.5)` | "see-through" | standard transparency |
-| `@collidable` | "solid", "can touch" | collider ensure |
-| `@physics(mass: 1)` | "has physics", "falls" | Rigidbody |
-| `@clickable` | "pressable", "interactable" | Interact stub |
-| `@pulse(minScale: 0.9, maxScale: 1.1)` | "pulses", "breathes" | scale oscillation |
-| `@proximity(radius: 3)` | "near me triggers", "nearby" | proximity trigger |
+| Trait                                  | What voice phrases trigger it        | Emits for VRChat target |
+| -------------------------------------- | ------------------------------------ | ----------------------- |
+| `@grabbable`                           | "pickup-able", "can grab", "hold it" | `VRCPickup`             |
+| `@networked`                           | "synced", "shared", "everyone sees"  | `VRCObjectSync`         |
+| `@glowing(intensity: 0.5)`             | "glows", "emissive", "shines"        | emission keyword        |
+| `@spinning(speed: 1, axis: 'y')`       | "spins", "rotates"                   | Update-loop rotation    |
+| `@floating(amplitude: 0.2, speed: 1)`  | "floats", "bobs"                     | sin-wave Y translation  |
+| `@billboard`                           | "always faces me"                    | look-at-head in Update  |
+| `@transparent(opacity: 0.5)`           | "see-through"                        | standard transparency   |
+| `@collidable`                          | "solid", "can touch"                 | collider ensure         |
+| `@physics(mass: 1)`                    | "has physics", "falls"               | Rigidbody               |
+| `@clickable`                           | "pressable", "interactable"          | Interact stub           |
+| `@pulse(minScale: 0.9, maxScale: 1.1)` | "pulses", "breathes"                 | scale oscillation       |
+| `@proximity(radius: 3)`                | "near me triggers", "nearby"         | proximity trigger       |
 
 Everything outside this list is rejected in v0. Adding more traits is adding rows to this table — cheap, incremental, testable.
 
@@ -184,12 +184,12 @@ complementary colors, and add subtle @pulse or @floating where it makes sense.)
 
 ### Hyperparameters
 
-| Field | Value | Why |
-|---|---|---|
-| model | `claude-haiku-4-5-20251001` | <500ms is non-negotiable for voice UX |
-| temperature | 0.2 | deterministic outputs, reduces parse failures |
-| max_tokens | 600 | one scene is usually ~200-400 tokens |
-| stop_sequences | `["\n\nUser:", "```"]` | guards against model drift |
+| Field          | Value                       | Why                                           |
+| -------------- | --------------------------- | --------------------------------------------- |
+| model          | `claude-haiku-4-5-20251001` | <500ms is non-negotiable for voice UX         |
+| temperature    | 0.2                         | deterministic outputs, reduces parse failures |
+| max_tokens     | 600                         | one scene is usually ~200-400 tokens          |
+| stop_sequences | `["\n\nUser:", "```"]`      | guards against model drift                    |
 
 ---
 
@@ -209,6 +209,7 @@ Fix and re-emit. Output ONLY the corrected HoloScript source.
 If the retry also fails, speak back to the user: "I couldn't figure that one out — try rephrasing." The voice loop NEVER shows raw error text — the user doesn't need to know what went wrong, only that they should rephrase.
 
 **Parse success is not enough.** Also check:
+
 - At least 1 `object` block
 - All `color:` values are valid hex (regex `^#[0-9a-fA-F]{6}$`)
 - All traits are on the allowed list (scan for `@<word>`, reject if not in table)
@@ -264,6 +265,6 @@ The client keeps a stack of previous compositions for `undo`. The LLM is statele
 
 Once (a) the probe passes and (c) the share pipeline is ready, the v0 voice loop acceptance test is a single utterance:
 
-> *"Three torus rings of different colors spinning around a gold cube."*
+> _"Three torus rings of different colors spinning around a gold cube."_
 
 If the LLM produces the third example above, the parser accepts it, the WebXR scene renders it, and the user can walk around it — that is the iPhone moment's first sentence.

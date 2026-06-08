@@ -45,7 +45,7 @@ function output(label: string, content: string, maxLines = 20) {
 async function pause(msg: string) {
   if (FAST) return;
   console.log(`\x1b[33m${msg}\x1b[0m`);
-  await new Promise(r => setTimeout(r, 2000));
+  await new Promise((r) => setTimeout(r, 2000));
 }
 
 async function compileAPI(code: string, target: string): Promise<string> {
@@ -91,8 +91,15 @@ const HOLO_SOURCE = `composition "Demo" {
 // ─── Sample Dispensary CSV ────────────────────────────────────────────────────
 
 const DISPENSARY_HEADERS = [
-  'product_name', 'strain_type', 'thc_percent', 'cbd_percent',
-  'price', 'in_stock', 'image_url', 'description', 'category'
+  'product_name',
+  'strain_type',
+  'thc_percent',
+  'cbd_percent',
+  'price',
+  'in_stock',
+  'image_url',
+  'description',
+  'category',
 ];
 
 const DISPENSARY_SAMPLE = {
@@ -140,7 +147,9 @@ async function step3() {
   const node = await compileAPI(HOLO_SOURCE, 'node-service');
   output('Node.js Output (Express skeleton)', node, 25);
 
-  console.log('\x1b[32m✓ Same input → Express backend with routes, middleware, package.json\x1b[0m\n');
+  console.log(
+    '\x1b[32m✓ Same input → Express backend with routes, middleware, package.json\x1b[0m\n'
+  );
 }
 
 async function step4() {
@@ -158,7 +167,9 @@ async function step4() {
     });
     output('Absorb Result', JSON.stringify(result, null, 2), 15);
   } catch (_e) {
-    console.log(`\x1b[33m⚠ Absorb requires auth — in live demo, use Studio UI at absorb page\x1b[0m`);
+    console.log(
+      `\x1b[33m⚠ Absorb requires auth — in live demo, use Studio UI at absorb page\x1b[0m`
+    );
     console.log(`  The Absorb service is live at absorb.holoscript.net`);
     console.log(`  28 MCP tools available for codebase intelligence\n`);
   }
@@ -176,24 +187,33 @@ async function step5() {
   await pause('Mapping CSV to HoloScript traits...');
 
   try {
-    const result = await mcpCall('holoscript_map_csv', {
+    const result = (await mcpCall('holoscript_map_csv', {
       headers: DISPENSARY_HEADERS,
       name: 'dispensary_menu',
       domain: 'retail',
       description: 'Cannabis dispensary product catalog',
       sample_row: DISPENSARY_SAMPLE,
-    }) as any;
+    })) as any;
 
     const content = result?.content?.[0]?.text;
     if (content) {
       const parsed = JSON.parse(content);
-      output('Trait Mappings', parsed.mappings?.map((m: any) =>
-        `  ${m.field.name} → [${m.traits.join(', ')}] (${m.spatialRole}, ${Math.round(m.confidence * 100)}%)`
-      ).join('\n') || 'N/A', 15);
+      output(
+        'Trait Mappings',
+        parsed.mappings
+          ?.map(
+            (m: any) =>
+              `  ${m.field.name} → [${m.traits.join(', ')}] (${m.spatialRole}, ${Math.round(m.confidence * 100)}%)`
+          )
+          .join('\n') || 'N/A',
+        15
+      );
 
       output('Generated .holo Composition', parsed.holoSource || 'N/A', 30);
 
-      console.log(`\x1b[32mStats: ${parsed.stats?.fieldsMapped}/${parsed.stats?.fieldsTotal} fields mapped, ${parsed.stats?.traitsUsed} traits used, ${Math.round((parsed.stats?.averageConfidence || 0) * 100)}% avg confidence\x1b[0m\n`);
+      console.log(
+        `\x1b[32mStats: ${parsed.stats?.fieldsMapped}/${parsed.stats?.fieldsTotal} fields mapped, ${parsed.stats?.traitsUsed} traits used, ${Math.round((parsed.stats?.averageConfidence || 0) * 100)}% avg confidence\x1b[0m\n`
+      );
 
       // Compile the generated .holo to R3F
       if (parsed.holoSource) {
@@ -202,15 +222,21 @@ async function step5() {
           const storefront = await compileAPI(parsed.holoSource, 'r3f');
           output('Compiled Storefront (R3F)', storefront, 15);
         } catch {
-          console.log('\x1b[33m⚠ Storefront compilation requires template resolution — works in full pipeline\x1b[0m');
+          console.log(
+            '\x1b[33m⚠ Storefront compilation requires template resolution — works in full pipeline\x1b[0m'
+          );
         }
       }
     } else {
       output('Raw Result', JSON.stringify(result, null, 2), 20);
     }
   } catch (_e) {
-    console.log(`\x1b[33m⚠ MCP tool call failed — holoscript_map_csv may need direct REST call\x1b[0m`);
-    console.log(`  The schema mapper is registered and tested locally (11/11 fields, 88% confidence)`);
+    console.log(
+      `\x1b[33m⚠ MCP tool call failed — holoscript_map_csv may need direct REST call\x1b[0m`
+    );
+    console.log(
+      `  The schema mapper is registered and tested locally (11/11 fields, 88% confidence)`
+    );
   }
 
   console.log('\x1b[32m✓ CSV inventory → spatial storefront. No code written.\x1b[0m\n');
@@ -219,7 +245,9 @@ async function step5() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('\n\x1b[1m╔══════════════════════════════════════════════════════════════════╗\x1b[0m');
+  console.log(
+    '\n\x1b[1m╔══════════════════════════════════════════════════════════════════╗\x1b[0m'
+  );
   console.log('\x1b[1m║          HoloScript — University & Investor Demo                ║\x1b[0m');
   console.log('\x1b[1m║          40 compilers. One input. Every platform.               ║\x1b[0m');
   console.log('\x1b[1m╚══════════════════════════════════════════════════════════════════╝\x1b[0m');

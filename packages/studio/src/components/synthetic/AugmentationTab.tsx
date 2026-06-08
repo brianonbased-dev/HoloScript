@@ -7,7 +7,11 @@ interface AugmentationTabProps {
   toggleAugType: (type: AugmentationType) => void;
 }
 
-export function AugmentationTab({ augmentation, setAugmentation, toggleAugType }: AugmentationTabProps) {
+export function AugmentationTab({
+  augmentation,
+  setAugmentation,
+  toggleAugType,
+}: AugmentationTabProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">

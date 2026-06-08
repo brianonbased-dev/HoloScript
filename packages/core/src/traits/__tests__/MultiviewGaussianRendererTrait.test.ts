@@ -8,7 +8,13 @@ import {
   LOCAL_WEBCAM_VIEW_ID,
   multiviewGaussianRendererHandler,
 } from '../MultiviewGaussianRendererTrait';
-import { attachTrait, createMockContext, createMockNode, getLastEvent, sendEvent } from './traitTestHelpers';
+import {
+  attachTrait,
+  createMockContext,
+  createMockNode,
+  getLastEvent,
+  sendEvent,
+} from './traitTestHelpers';
 
 const makeView = (userId: string) => ({
   userId,

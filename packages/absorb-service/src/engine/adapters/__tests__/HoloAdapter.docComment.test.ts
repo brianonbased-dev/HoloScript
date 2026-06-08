@@ -33,8 +33,16 @@ describe('HoloAdapter trait-config → docComment', () => {
           type: 'Object',
           name: 'dev-value',
           traits: [
-            { type: 'ObjectTrait', name: 'label', config: { text: 'developers are won by verifiable value not anti-dev voice' } },
-            { type: 'ObjectTrait', name: 'note', config: { body: 'skepticism is temporary; prove it ran and compiled' } },
+            {
+              type: 'ObjectTrait',
+              name: 'label',
+              config: { text: 'developers are won by verifiable value not anti-dev voice' },
+            },
+            {
+              type: 'ObjectTrait',
+              name: 'note',
+              config: { body: 'skepticism is temporary; prove it ran and compiled' },
+            },
           ],
           children: [],
         },

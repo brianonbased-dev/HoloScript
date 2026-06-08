@@ -16,10 +16,7 @@ export {
   DEFAULT_QUALITY_POLICY,
 } from './QualityManager';
 
-export {
-  HololandRenderer,
-  type HololandRendererOptions,
-} from './HololandRenderer';
+export { HololandRenderer, type HololandRendererOptions } from './HololandRenderer';
 
 export {
   RenderSafeInferenceReader,

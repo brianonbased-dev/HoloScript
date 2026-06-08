@@ -11,9 +11,9 @@ import {
 } from './traitTestHelpers';
 
 const waypoints = [
-  [0, 0, 0 ],
-  [10, 0, 0 ],
-  [10, 0, 10 ],
+  [0, 0, 0],
+  [10, 0, 0],
+  [10, 0, 10],
 ];
 
 describe('PatrolTrait', () => {
@@ -22,7 +22,7 @@ describe('PatrolTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('patrol-guard');
-    node.position = [0, 0, 0 ];
+    node.position = [0, 0, 0];
     ctx = createMockContext();
   });
 
@@ -47,7 +47,7 @@ describe('PatrolTrait', () => {
 
   describe('movement', () => {
     it('moves toward current waypoint', () => {
-      node.position = [0, 0, 0 ];
+      node.position = [0, 0, 0];
       attachTrait(patrolHandler, node, { waypoints, speed: 100 }, ctx);
       ctx.clearEvents();
 
@@ -56,7 +56,7 @@ describe('PatrolTrait', () => {
     });
 
     it('emits patrol_waypoint_reached on arrival', () => {
-      node.position = [9.95, 0, 0 ]; // Very close to wp[1]
+      node.position = [9.95, 0, 0]; // Very close to wp[1]
       attachTrait(patrolHandler, node, { waypoints, speed: 10 }, ctx);
       const state = (node as any).__patrolState;
       state.currentIndex = 1;

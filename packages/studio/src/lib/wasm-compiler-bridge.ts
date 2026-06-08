@@ -293,7 +293,12 @@ export class CompilerBridge {
       // works across environments that publish either .js, .component.wasm, or .wasm.
       const initCandidates = wasmUrl.endsWith('.js')
         ? [wasmUrl, wasmUrl.replace(/\.js$/, '.component.wasm'), wasmUrl.replace(/\.js$/, '.wasm')]
-        : [wasmUrl, '/wasm/holoscript.js', '/wasm/holoscript.component.wasm', '/wasm/holoscript.wasm'];
+        : [
+            wasmUrl,
+            '/wasm/holoscript.js',
+            '/wasm/holoscript.component.wasm',
+            '/wasm/holoscript.wasm',
+          ];
 
       let lastInitError: unknown;
       let result: CompilerBridgeStatus | null = null;
@@ -670,20 +675,44 @@ export class CompilerBridge {
     const traits: TraitDef[] = [];
     const desc = description.toLowerCase();
     if (desc.includes('grab') || desc.includes('pick up') || desc.includes('interact')) {
-      traits.push({ name: 'grabbable', category: 'interaction', description: 'Object can be grabbed by user' });
+      traits.push({
+        name: 'grabbable',
+        category: 'interaction',
+        description: 'Object can be grabbed by user',
+      });
     }
     if (desc.includes('throw') || desc.includes('toss')) {
-      traits.push({ name: 'throwable', category: 'interaction', description: 'Object can be thrown after grabbing' });
+      traits.push({
+        name: 'throwable',
+        category: 'interaction',
+        description: 'Object can be thrown after grabbing',
+      });
     }
     if (desc.includes('physics') || desc.includes('fall') || desc.includes('bounce')) {
-      traits.push({ name: 'physics', category: 'physics', description: 'Object has physics simulation' });
-      traits.push({ name: 'collidable', category: 'physics', description: 'Object participates in collision detection' });
+      traits.push({
+        name: 'physics',
+        category: 'physics',
+        description: 'Object has physics simulation',
+      });
+      traits.push({
+        name: 'collidable',
+        category: 'physics',
+        description: 'Object participates in collision detection',
+      });
     }
     if (desc.includes('glow') || desc.includes('light') || desc.includes('emit')) {
-      traits.push({ name: 'glowing', category: 'visual', description: 'Object emits a glow effect' });
+      traits.push({
+        name: 'glowing',
+        category: 'visual',
+        description: 'Object emits a glow effect',
+      });
     }
     if (desc.includes('network') || desc.includes('multiplayer') || desc.includes('sync')) {
-      traits.push({ name: 'networked', category: 'networking', description: 'Object state synced across network' });
+      traits.push({
+        name: 'networked',
+        category: 'networking',
+        description: 'Object state synced across network',
+      });
     }
     return traits;
   }
@@ -727,7 +756,16 @@ export class CompilerBridge {
 function categorizeTrait(traitName: string): string {
   const name = traitName.replace(/^@/, '');
   const categories: Record<string, string[]> = {
-    interaction: ['grabbable', 'throwable', 'clickable', 'hoverable', 'draggable', 'scalable', 'pointable', 'holdable'],
+    interaction: [
+      'grabbable',
+      'throwable',
+      'clickable',
+      'hoverable',
+      'draggable',
+      'scalable',
+      'pointable',
+      'holdable',
+    ],
     physics: ['physics', 'collidable', 'gravity', 'trigger'],
     visual: ['glowing', 'emissive', 'transparent', 'reflective', 'animated', 'billboard'],
     networking: ['networked', 'synced', 'persistent', 'owned', 'host_only'],

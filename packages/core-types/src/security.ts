@@ -977,7 +977,6 @@ export interface AssetImportReceipt {
   };
 }
 
-
 /**
  * Standard HoloScript capability action namespace values.
  *

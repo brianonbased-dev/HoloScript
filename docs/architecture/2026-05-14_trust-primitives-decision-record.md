@@ -12,11 +12,11 @@
 
 The 2026-05-14 trust-spine survey found that HoloScript, ai-ecosystem, and HoloShell each have real trust machinery, but the product-level trust model is triplicated:
 
-| Surface | Existing trust machinery | Gap |
-|---|---|---|
+| Surface         | Existing trust machinery                                                                                                                      | Gap                                                                                           |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | HoloScript core | `AgentPassport` DID, Agentic JWT / PoP, Ed25519 signatures, UCAN capability chains, audit events, provenance, SimulationContract replay hooks | Identity, permission, and receipt primitives are not the shared cross-surface vocabulary yet. |
-| ai-ecosystem | per-window seat identity, secp256k1 x402 seat wallets, EIP-191 request envelopes, append-only audit-log scaffold | Signed attribution and receipts are not yet a single queryable local ledger. |
-| HoloShell | shell objects, `read_only` / `guarded_execute` / `break_glass` policies, approval bundles, action/run receipts | Receipt forms remain local to HoloShell and need upstream schema convergence. |
+| ai-ecosystem    | per-window seat identity, secp256k1 x402 seat wallets, EIP-191 request envelopes, append-only audit-log scaffold                              | Signed attribution and receipts are not yet a single queryable local ledger.                  |
+| HoloShell       | shell objects, `read_only` / `guarded_execute` / `break_glass` policies, approval bundles, action/run receipts                                | Receipt forms remain local to HoloShell and need upstream schema convergence.                 |
 
 The systems are independently useful but not composable. This record chooses the primitives that downstream tasks must use so the digital-twin promotion, HoloShell upstream candidates, trust keystone ledger, and trust-system convergence work can proceed without re-opening the same architectural question.
 
@@ -34,11 +34,11 @@ Seat wallets and HoloShell `actorLaneId` values are bindings to the Passport DID
 
 The canonical user-facing permission vocabulary is:
 
-| Envelope | Meaning |
-|---|---|
-| `read_only` | Inspection or classification. Must still emit a receipt. |
-| `guarded_execute` | Staged mutation. Requires explicit approval before external or local state changes. |
-| `break_glass` | High-risk mutation. Requires high-friction approval plus rollback, witness, or refusal evidence. |
+| Envelope          | Meaning                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| `read_only`       | Inspection or classification. Must still emit a receipt.                                         |
+| `guarded_execute` | Staged mutation. Requires explicit approval before external or local state changes.              |
+| `break_glass`     | High-risk mutation. Requires high-friction approval plus rollback, witness, or refusal evidence. |
 
 HoloScript RBAC, UCAN, RiskRegistry, route signing, shell-object risk state, and adapter-specific policy are enforcement engines beneath this vocabulary. They do not create parallel user-facing permission words.
 
@@ -75,11 +75,11 @@ TrustReceipt
 
 The Algebraic Trust reduction is mandatory:
 
-| W.GOLD.189 layer | Receipt field | Requirement |
-|---|---|---|
-| Layer 1 - algebra | `algebraicTrust.layer1Strategy` | Name the reducer: `authority_weighted`, `domain_override`, `strict_error`, `min_plus`, `max_plus`, or a documented successor. |
-| Layer 2 - history | `algebraicTrust.layer2HistoryRef` | Point to an append-only history entry: CAEL event, audit-log sequence, git trailer, or ledger hash-chain node. |
-| Layer 3 - oracle | `algebraicTrust.layer3OracleRef` | Point to the replay/witness oracle. Simulation and digital-twin receipts must use SimulationContract replay evidence; UI/hardware receipts may use visual witness or approval-bundle oracle but must not overclaim physics replay. |
+| W.GOLD.189 layer  | Receipt field                     | Requirement                                                                                                                                                                                                                        |
+| ----------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Layer 1 - algebra | `algebraicTrust.layer1Strategy`   | Name the reducer: `authority_weighted`, `domain_override`, `strict_error`, `min_plus`, `max_plus`, or a documented successor.                                                                                                      |
+| Layer 2 - history | `algebraicTrust.layer2HistoryRef` | Point to an append-only history entry: CAEL event, audit-log sequence, git trailer, or ledger hash-chain node.                                                                                                                     |
+| Layer 3 - oracle  | `algebraicTrust.layer3OracleRef`  | Point to the replay/witness oracle. Simulation and digital-twin receipts must use SimulationContract replay evidence; UI/hardware receipts may use visual witness or approval-bundle oracle but must not overclaim physics replay. |
 
 This keeps W.GOLD.189 sharp: tropical or other semiring strategy is only Layer 1. A receipt cannot claim the full trust spine unless it names history and oracle evidence too.
 
@@ -87,10 +87,10 @@ This keeps W.GOLD.189 sharp: tropical or other semiring strategy is only Layer 1
 
 Do not unify the curves.
 
-| Curve | Canonical use |
-|---|---|
-| Ed25519 | Agent Passport verification methods, Agentic JWT / PoP, UCAN capability chains, agent code-signing, SSH-style git signing. |
-| secp256k1 | x402 seat wallets, EVM/EIP-191 request signing, EIP-712 typed-data when safe, payment and chain-attestation receipts. |
+| Curve     | Canonical use                                                                                                              |
+| --------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Ed25519   | Agent Passport verification methods, Agentic JWT / PoP, UCAN capability chains, agent code-signing, SSH-style git signing. |
+| secp256k1 | x402 seat wallets, EVM/EIP-191 request signing, EIP-712 typed-data when safe, payment and chain-attestation receipts.      |
 
 The Passport DID is the join-key that binds both verification families. A receipt that uses secp256k1 must include the wallet binding under `actor.bindings[]` and keep `actor.passportDid` as the subject. A receipt that uses Ed25519 must include the DID verification method or signing key id. Neither curve replaces the other.
 
@@ -114,14 +114,14 @@ The first implementation may use NDJSON, SQLite, or an equivalent append-only lo
 
 These paths are explicitly rejected:
 
-| Rejected path | Reason |
-|---|---|
-| Replace Ed25519 with secp256k1 everywhere | Breaks existing Passport, PoP, UCAN, and git-signing assumptions. |
-| Replace secp256k1 wallets with Ed25519 everywhere | Breaks x402/EVM/payment paths and ignores G.GOLD.016 wallet identity. |
-| Treat HoloShell `actorLaneId` as identity root | Lane ids are routing and presence hints, not durable identity. |
-| Create a cloud-only receipt ledger | Violates the local-hardware trust promise and makes optional sync authoritative. |
-| Let each surface keep its own receipt format | Keeps the exact triplication this ADR resolves. |
-| Claim Algebraic Trust from a receipt with only Layer 1 | W.GOLD.189 requires algebra, history, and oracle to be named separately. |
+| Rejected path                                          | Reason                                                                           |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| Replace Ed25519 with secp256k1 everywhere              | Breaks existing Passport, PoP, UCAN, and git-signing assumptions.                |
+| Replace secp256k1 wallets with Ed25519 everywhere      | Breaks x402/EVM/payment paths and ignores G.GOLD.016 wallet identity.            |
+| Treat HoloShell `actorLaneId` as identity root         | Lane ids are routing and presence hints, not durable identity.                   |
+| Create a cloud-only receipt ledger                     | Violates the local-hardware trust promise and makes optional sync authoritative. |
+| Let each surface keep its own receipt format           | Keeps the exact triplication this ADR resolves.                                  |
+| Claim Algebraic Trust from a receipt with only Layer 1 | W.GOLD.189 requires algebra, history, and oracle to be named separately.         |
 
 ---
 
@@ -154,12 +154,12 @@ Add a HoloScript-owned `TrustReceipt` type, parser, and validator. The validator
 
 Map existing local formats into the canonical schema:
 
-| Existing source | Adapter obligation |
-|---|---|
-| HoloScript audit/provenance/SimulationContract | Emit `TrustReceipt` directly and attach SimulationContract replay references when available. |
-| ai-ecosystem audit log and HoloMesh request signing | Bind actor to Passport DID plus secp256k1 wallet binding; preserve sequence number or hash-chain ref. |
-| HoloShell action/run receipts | Preserve approval nonce, command hash, witness references, and shell-object id while reducing permission to the three envelopes. |
-| Git commits | Treat commit hash and signing key as receipt links, not as the only receipt. |
+| Existing source                                     | Adapter obligation                                                                                                               |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| HoloScript audit/provenance/SimulationContract      | Emit `TrustReceipt` directly and attach SimulationContract replay references when available.                                     |
+| ai-ecosystem audit log and HoloMesh request signing | Bind actor to Passport DID plus secp256k1 wallet binding; preserve sequence number or hash-chain ref.                            |
+| HoloShell action/run receipts                       | Preserve approval nonce, command hash, witness references, and shell-object id while reducing permission to the three envelopes. |
+| Git commits                                         | Treat commit hash and signing key as receipt links, not as the only receipt.                                                     |
 
 ### Phase 3 - Local ledger
 
@@ -173,13 +173,13 @@ Add sync only after local append/query works. Remote stores, HoloMesh knowledge,
 
 ## 6. Risks and Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|
-| DID binding becomes a label with no verification | Medium | High | Require each binding to name proof type, verifier, and last verified timestamp. |
-| Three envelopes hide enforcement nuance | Medium | Medium | Keep RBAC/UCAN/RiskRegistry below the envelope as machine-readable enforcement metadata. |
-| Receipt schema becomes too broad to implement | Medium | High | Start with the minimal fields in this ADR and adapters for three existing sources. |
-| Local-first ledger conflicts with team coordination | Low | Medium | Sync receipt hashes and redacted summaries; keep raw local ledger authoritative. |
-| UI receipts overclaim SimulationContract trust | Medium | High | Validator distinguishes witness or approval oracle from SimulationContract replay oracle. |
+| Risk                                                | Likelihood | Impact | Mitigation                                                                                |
+| --------------------------------------------------- | ---------- | ------ | ----------------------------------------------------------------------------------------- |
+| DID binding becomes a label with no verification    | Medium     | High   | Require each binding to name proof type, verifier, and last verified timestamp.           |
+| Three envelopes hide enforcement nuance             | Medium     | Medium | Keep RBAC/UCAN/RiskRegistry below the envelope as machine-readable enforcement metadata.  |
+| Receipt schema becomes too broad to implement       | Medium     | High   | Start with the minimal fields in this ADR and adapters for three existing sources.        |
+| Local-first ledger conflicts with team coordination | Low        | Medium | Sync receipt hashes and redacted summaries; keep raw local ledger authoritative.          |
+| UI receipts overclaim SimulationContract trust      | Medium     | High   | Validator distinguishes witness or approval oracle from SimulationContract replay oracle. |
 
 ---
 
@@ -232,13 +232,13 @@ git diff --check -- docs/architecture/2026-05-14_trust-primitives-decision-recor
 
 ## 9. Decision Summary
 
-| Question | Answer |
-|---|---|
-| What is the canonical identity join-key? | Passport DID. |
-| What is the canonical permission vocabulary? | `read_only`, `guarded_execute`, `break_glass`. |
-| What is the canonical receipt shape? | One `TrustReceipt` extending audit events and reducible to W.GOLD.189 layers. |
-| Should Ed25519 and secp256k1 unify? | No. They coexist under Passport DID. |
-| Where does the receipt ledger live? | Local-first on the user's hardware, with optional sync. |
-| What work is unblocked? | Digital-twin promotion, HoloShell upstream candidates, trust keystone ledger, and trust-system convergence. |
+| Question                                     | Answer                                                                                                      |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| What is the canonical identity join-key?     | Passport DID.                                                                                               |
+| What is the canonical permission vocabulary? | `read_only`, `guarded_execute`, `break_glass`.                                                              |
+| What is the canonical receipt shape?         | One `TrustReceipt` extending audit events and reducible to W.GOLD.189 layers.                               |
+| Should Ed25519 and secp256k1 unify?          | No. They coexist under Passport DID.                                                                        |
+| Where does the receipt ledger live?          | Local-first on the user's hardware, with optional sync.                                                     |
+| What work is unblocked?                      | Digital-twin promotion, HoloShell upstream candidates, trust keystone ledger, and trust-system convergence. |
 
 **Next review date:** After the first `TrustReceipt` validator and local ledger implementation land, or when a downstream task needs a new envelope or curve binding.

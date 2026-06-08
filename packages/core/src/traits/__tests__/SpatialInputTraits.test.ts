@@ -87,7 +87,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       joints: {
         wrist: {
           position: [0, 1, 0],
-          rotation: [0, 0, 0, 1 ],
+          rotation: [0, 0, 0, 1],
           radius: 0.02,
         },
       },
@@ -242,7 +242,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       joints: {
         wrist: {
           position: [0, 0, 0],
-          rotation: [0, 0, 0, 1 ],
+          rotation: [0, 0, 0, 1],
           radius: 0.02,
         },
       },
@@ -258,7 +258,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       joints: {
         wrist: {
           position: [1, 1, 1],
-          rotation: [0, 0, 0, 1 ],
+          rotation: [0, 0, 0, 1],
           radius: 0.02,
         },
       },
@@ -281,7 +281,7 @@ describe('SpatialInputHandTrackingTrait', () => {
       joints: {
         wrist: {
           position: [0.5, 1.2, -0.3],
-          rotation: [0, 0, 0, 1 ],
+          rotation: [0, 0, 0, 1],
           radius: 0.02,
         },
       },
@@ -299,7 +299,7 @@ describe('SpatialInputHandTrackingTrait', () => {
     state.left.tracked = true;
     state.left.joints.set('wrist', {
       position: [0, 0, 0],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
       radius: 0.02,
     });
 
@@ -355,7 +355,7 @@ describe('SpatialInputGazeTransientPointerTrait', () => {
     const state = (node as any).__gazeTransientPointerState as GazeTransientPointerState;
     state.active = true;
     state.isCommitted = true;
-    state.commitPoint = [1, 2, 3 ];
+    state.commitPoint = [1, 2, 3];
     state._dwellAccum = 500;
 
     sendEvent(gazeTransientPointerHandler, node, defaultCfg, ctx, {
@@ -377,14 +377,14 @@ describe('SpatialInputGazeTransientPointerTrait', () => {
 
     sendEvent(gazeTransientPointerHandler, node, defaultCfg, ctx, {
       type: 'gaze_transient_pinch_commit',
-      point: [1.5, 0.8, -2.0 ],
-      normal: [0, 1, 0 ],
+      point: [1.5, 0.8, -2.0],
+      normal: [0, 1, 0],
       targetId: 'target-button-42',
     });
 
     expect(state.isCommitted).toBe(true);
-    expect(state.commitPoint).toEqual([1.5, 0.8, -2.0 ]);
-    expect(state.commitNormal).toEqual([0, 1, 0 ]);
+    expect(state.commitPoint).toEqual([1.5, 0.8, -2.0]);
+    expect(state.commitNormal).toEqual([0, 1, 0]);
     expect(state.commitTargetId).toBe('target-button-42');
     expect(state.lastCommitTime).toBeGreaterThan(0);
 
@@ -401,7 +401,7 @@ describe('SpatialInputGazeTransientPointerTrait', () => {
 
     sendEvent(gazeTransientPointerHandler, node, defaultCfg, ctx, {
       type: 'gaze_transient_pinch_commit',
-      point: [0, 0, 0 ],
+      point: [0, 0, 0],
     });
 
     expect(getEventCount(ctx, 'haptic_pulse')).toBe(1);
@@ -413,7 +413,7 @@ describe('SpatialInputGazeTransientPointerTrait', () => {
     const state = (node as any).__gazeTransientPointerState as GazeTransientPointerState;
     state.active = true;
     state.isCommitted = true;
-    state.commitPoint = [1, 1, 1 ];
+    state.commitPoint = [1, 1, 1];
     state.commitTargetId = 'btn';
 
     sendEvent(gazeTransientPointerHandler, node, defaultCfg, ctx, {
@@ -567,7 +567,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
       type: 'shared_anchor_resolved',
       pose: {
         position: [1, 0, -2],
-        rotation: [0, 0, 0, 1 ],
+        rotation: [0, 0, 0, 1],
         confidence: 0.95,
       },
       cloudAnchorId: 'cloud-xyz-456',
@@ -610,7 +610,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
       type: 'shared_anchor_joined',
       pose: {
         position: [2, 1, -1],
-        rotation: [0, 0, 0, 1 ],
+        rotation: [0, 0, 0, 1],
         confidence: 0.9,
       },
     });
@@ -707,7 +707,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     state.resolveState = 'resolved';
     state.localPose = {
       position: [3, 0, -5],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
       confidence: 0.9,
     };
 
@@ -724,7 +724,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
       type: 'shared_anchor_pose_update',
       pose: {
         position: [5, 1, -3],
-        rotation: [0, 0, 0, 1 ],
+        rotation: [0, 0, 0, 1],
         confidence: 0.8,
       },
     });
@@ -736,7 +736,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     const state = (node as any).__spatialAnchorSharedState as SpatialAnchorSharedState;
     state.localPose = {
       position: [0, 0, 0],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
       confidence: 0.9,
     };
 
@@ -744,7 +744,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
       type: 'shared_anchor_pose_update',
       pose: {
         position: [99, 99, 99],
-        rotation: [0, 0, 0, 1 ],
+        rotation: [0, 0, 0, 1],
         confidence: 0.2,
       },
     });
@@ -758,7 +758,7 @@ describe('SpatialInputAnchorSharedTrait', () => {
     sendEvent(spatialAnchorSharedHandler, node, defaultCfg, ctx, {
       type: 'shared_anchor_transform_sync',
       peerId: 'peer-charlie',
-      transform: { position: [10, 0, -10], rotation: [0, 0, 0, 1 ] },
+      transform: { position: [10, 0, -10], rotation: [0, 0, 0, 1] },
     });
 
     expect(getEventCount(ctx, 'shared_anchor_peer_transform')).toBe(1);
@@ -981,7 +981,7 @@ describe('SpatialInputControllerTrait', () => {
       connected: true,
       pose: {
         position: [-0.3, 1.0, -0.5],
-        rotation: [0, 0, 0, 1 ],
+        rotation: [0, 0, 0, 1],
         confidence: 1.0,
       },
       thumbstick: { x: 0, y: 0 },

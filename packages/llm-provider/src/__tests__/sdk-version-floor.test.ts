@@ -152,7 +152,10 @@ describe('code generator emits up-to-date SDK dep', () => {
     // Match the literal string the generator writes into package.json,
     // e.g. `'@anthropic-ai/sdk': '^0.88.0',`
     const match = source.match(/['"]@anthropic-ai\/sdk['"]\s*:\s*['"]([^'"]+)['"]/);
-    expect(match, 'codegen does not declare @anthropic-ai/sdk in emitted package.json').not.toBeNull();
+    expect(
+      match,
+      'codegen does not declare @anthropic-ai/sdk in emitted package.json'
+    ).not.toBeNull();
 
     const emittedRange = match![1];
     expect(

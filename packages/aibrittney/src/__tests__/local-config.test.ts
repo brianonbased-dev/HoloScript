@@ -36,7 +36,7 @@ describe('aibrittney local config', () => {
         toolsEnabled: true,
         channels: [],
       },
-      path,
+      path
     );
 
     const config = readLocalConfig(path);
@@ -75,7 +75,7 @@ describe('aibrittney local config', () => {
 
   it('uses AIBRITTNEY_CONFIG when resolving the default path', () => {
     expect(defaultConfigPath({ AIBRITTNEY_CONFIG: 'C:/tmp/aibrittney.json' })).toBe(
-      'C:/tmp/aibrittney.json',
+      'C:/tmp/aibrittney.json'
     );
   });
 });

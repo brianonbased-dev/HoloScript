@@ -53,10 +53,7 @@ interface PerceptionConfig {
 // HELPERS
 // =============================================================================
 
-function distance3D(
-  a: [number, number, number],
-  b: [number, number, number]
-): number {
+function distance3D(a: [number, number, number], b: [number, number, number]): number {
   return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
 }
 
@@ -122,10 +119,7 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
     const now = Date.now();
     const position = node.position || [0, 0, 0];
     const rotation = node.rotation || [0, 0, 0];
-    const forward: [number, number] = [
-      Math.sin(rotation[1]),
-      Math.cos(rotation[1]),
-    ];
+    const forward: [number, number] = [Math.sin(rotation[1]), Math.cos(rotation[1])];
 
     // Decay confidence and remove forgotten entities
     const toRemove: string[] = [];
@@ -198,10 +192,7 @@ export const perceptionHandler: TraitHandler<PerceptionConfig> = {
 
     const position = node.position || [0, 0, 0];
     const rotation = node.rotation || [0, 0, 0];
-    const forward: [number, number] = [
-      Math.sin(rotation[1]),
-      Math.cos(rotation[1]),
-    ];
+    const forward: [number, number] = [Math.sin(rotation[1]), Math.cos(rotation[1])];
 
     if (event.type === 'perception_detect') {
       // External system reports a detected entity

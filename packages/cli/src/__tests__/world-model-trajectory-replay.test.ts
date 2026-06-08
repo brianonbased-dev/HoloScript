@@ -79,12 +79,7 @@ describe('world-model trajectory-replay CLI', { timeout: 120000 }, () => {
   });
 
   it('parses --task flag for task id binding', () => {
-    const options = parseArgs([
-      'world-model',
-      'trajectory-generate',
-      '--task',
-      'task_xyz',
-    ]);
+    const options = parseArgs(['world-model', 'trajectory-generate', '--task', 'task_xyz']);
 
     expect(options.taskId).toBe('task_xyz');
   });
@@ -94,8 +89,8 @@ describe('world-model trajectory-replay CLI', { timeout: 120000 }, () => {
       execFileAsync(
         process.execPath,
         [tsxCli, cliSource, 'world-model', 'trajectory-replay', '--report', 'nonexistent.json'],
-        { cwd: packageRoot, maxBuffer: 1024 * 1024 },
-      ),
+        { cwd: packageRoot, maxBuffer: 1024 * 1024 }
+      )
     ).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining('[E003]'),
@@ -107,8 +102,8 @@ describe('world-model trajectory-replay CLI', { timeout: 120000 }, () => {
       execFileAsync(
         process.execPath,
         [tsxCli, cliSource, 'world-model', 'trajectory-replay', '--trajectory', 'traj_001'],
-        { cwd: packageRoot, maxBuffer: 1024 * 1024 },
-      ),
+        { cwd: packageRoot, maxBuffer: 1024 * 1024 }
+      )
     ).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining('[E003]'),
@@ -129,8 +124,8 @@ describe('world-model trajectory-replay CLI', { timeout: 120000 }, () => {
           '--report',
           '/nonexistent/path/report.json',
         ],
-        { cwd: packageRoot, maxBuffer: 1024 * 1024 },
-      ),
+        { cwd: packageRoot, maxBuffer: 1024 * 1024 }
+      )
     ).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining('[E003]'),
@@ -153,7 +148,7 @@ describe('world-model trajectory-generate CLI', { timeout: 120000 }, () => {
         'test-seed-cli',
         '--json',
       ],
-      { cwd: packageRoot, maxBuffer: 1024 * 1024 },
+      { cwd: packageRoot, maxBuffer: 1024 * 1024 }
     );
 
     const report = JSON.parse(stdout);
@@ -183,7 +178,7 @@ describe('world-model trajectory-generate CLI', { timeout: 120000 }, () => {
         '--seed',
         'test-seed-text',
       ],
-      { cwd: packageRoot, maxBuffer: 1024 * 1024 },
+      { cwd: packageRoot, maxBuffer: 1024 * 1024 }
     );
 
     expect(stdout).toContain('Generated 20 trajectories');
@@ -206,7 +201,7 @@ describe('world-model replay includes predicate deltas', { timeout: 120000 }, ()
         '4242',
         '--json',
       ],
-      { cwd: packageRoot, maxBuffer: 1024 * 1024 },
+      { cwd: packageRoot, maxBuffer: 1024 * 1024 }
     );
 
     const payload = JSON.parse(stdout);
@@ -245,7 +240,7 @@ describe('world-model replay includes predicate deltas', { timeout: 120000 }, ()
         '--seed',
         '4242',
       ],
-      { cwd: packageRoot, maxBuffer: 1024 * 1024 },
+      { cwd: packageRoot, maxBuffer: 1024 * 1024 }
     );
 
     expect(stdout).toContain('Predicate deltas:');

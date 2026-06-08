@@ -35,13 +35,25 @@ export interface GateDecision {
 
 function exceedsBudget(observed: RuntimeBudget | undefined, budget: RuntimeBudget): string | null {
   if (!observed) return null;
-  if (budget.max_vram_mb !== undefined && observed.max_vram_mb !== undefined && observed.max_vram_mb > budget.max_vram_mb) {
+  if (
+    budget.max_vram_mb !== undefined &&
+    observed.max_vram_mb !== undefined &&
+    observed.max_vram_mb > budget.max_vram_mb
+  ) {
     return `vram ${observed.max_vram_mb}MB exceeds budget ${budget.max_vram_mb}MB`;
   }
-  if (budget.max_latency_ms !== undefined && observed.max_latency_ms !== undefined && observed.max_latency_ms > budget.max_latency_ms) {
+  if (
+    budget.max_latency_ms !== undefined &&
+    observed.max_latency_ms !== undefined &&
+    observed.max_latency_ms > budget.max_latency_ms
+  ) {
     return `latency ${observed.max_latency_ms}ms exceeds budget ${budget.max_latency_ms}ms`;
   }
-  if (budget.max_tokens !== undefined && observed.max_tokens !== undefined && observed.max_tokens > budget.max_tokens) {
+  if (
+    budget.max_tokens !== undefined &&
+    observed.max_tokens !== undefined &&
+    observed.max_tokens > budget.max_tokens
+  ) {
     return `tokens ${observed.max_tokens} exceeds budget ${budget.max_tokens}`;
   }
   return null;
@@ -126,9 +138,14 @@ export async function gateResolve(
   }
 
   const metrics = await comparator.measureView(first, manifest.asset_id);
-  const psnr_fail = bounds.psnr_min !== undefined && metrics.psnr !== undefined && metrics.psnr < bounds.psnr_min;
-  const ssim_fail = bounds.ssim_min !== undefined && metrics.ssim !== undefined && metrics.ssim < bounds.ssim_min;
-  const depth_fail = bounds.depth_l1_max !== undefined && metrics.depth_l1 !== undefined && metrics.depth_l1 > bounds.depth_l1_max;
+  const psnr_fail =
+    bounds.psnr_min !== undefined && metrics.psnr !== undefined && metrics.psnr < bounds.psnr_min;
+  const ssim_fail =
+    bounds.ssim_min !== undefined && metrics.ssim !== undefined && metrics.ssim < bounds.ssim_min;
+  const depth_fail =
+    bounds.depth_l1_max !== undefined &&
+    metrics.depth_l1 !== undefined &&
+    metrics.depth_l1 > bounds.depth_l1_max;
 
   if (psnr_fail || ssim_fail || depth_fail) {
     if (manifest.upgrade_path) {

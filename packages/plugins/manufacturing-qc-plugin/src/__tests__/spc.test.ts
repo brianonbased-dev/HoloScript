@@ -7,12 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  buildSPCChart,
-  computeCapability,
-  buildSPCReceipt,
-  type Subgroup,
-} from '../spc';
+import { buildSPCChart, computeCapability, buildSPCReceipt, type Subgroup } from '../spc';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,8 +82,7 @@ describe('buildSPCChart — xbar_r', () => {
     expect(result.primaryChart.ucl).toBeGreaterThan(result.primaryChart.centerLine);
     expect(result.primaryChart.lcl).toBeLessThan(result.primaryChart.centerLine);
     // At least 80% of subgroups should be in control for a stable reference process
-    const inControlFraction =
-      1 - result.outOfControlCount / result.subgroupCount;
+    const inControlFraction = 1 - result.outOfControlCount / result.subgroupCount;
     expect(inControlFraction).toBeGreaterThanOrEqual(0.8);
   });
 
@@ -158,7 +152,7 @@ describe('buildSPCChart — p', () => {
       buildSPCChart('p', [
         { index: 1, values: [1, 2, 3] },
         { index: 2, values: [1, 2, 3] },
-      ]),
+      ])
     ).toThrow();
   });
 });
@@ -191,11 +185,12 @@ describe('buildSPCChart — c', () => {
 
 describe('computeCapability', () => {
   // Centred process: mean=50, σ≈1, LSL=44, USL=56 → Cpk≈2.0
-  const centredValues: number[] = Array.from({ length: 100 }, (_, i) =>
-    50 + Math.sin(i * 0.7) * 0.8,
+  const centredValues: number[] = Array.from(
+    { length: 100 },
+    (_, i) => 50 + Math.sin(i * 0.7) * 0.8
   );
   const centredSubgroups = makeSubgroups(
-    Array.from({ length: 20 }, (_, i) => centredValues.slice(i * 5, i * 5 + 5)),
+    Array.from({ length: 20 }, (_, i) => centredValues.slice(i * 5, i * 5 + 5))
   );
 
   it('computes Cp, Cpk, Pp, Ppk with correct ordering (Cpk ≤ Cp)', () => {

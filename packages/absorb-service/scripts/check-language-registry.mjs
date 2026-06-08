@@ -70,7 +70,7 @@ const allDeps = {
   ...(pkgJson.peerDependencies || {}),
 };
 for (const l of langs) {
-  if ((l.status === 'implemented') && l.grammarPackage && !(l.grammarPackage in allDeps)) {
+  if (l.status === 'implemented' && l.grammarPackage && !(l.grammarPackage in allDeps)) {
     errors.push(
       `Language "${l.id}" is "implemented" with grammar "${l.grammarPackage}", but that package is NOT in absorb-service deps. Install it or downgrade status to "declared".`
     );
@@ -81,9 +81,7 @@ for (const l of langs) {
 const typesSrc = read(typesPath);
 const typeBlock = typesSrc.match(/export type SupportedLanguage\s*=([\s\S]*?);/);
 if (typeBlock) {
-  const typeMembers = new Set(
-    [...typeBlock[1].matchAll(/'([a-z]+)'/g)].map((m) => m[1])
-  );
+  const typeMembers = new Set([...typeBlock[1].matchAll(/'([a-z]+)'/g)].map((m) => m[1]));
   for (const m of typeMembers) {
     if (!byId.has(m)) {
       errors.push(
@@ -99,7 +97,9 @@ if (typeBlock) {
     }
   }
 } else {
-  warnings.push('Could not locate the SupportedLanguage type union in types.ts — skipped type-vs-registry check.');
+  warnings.push(
+    'Could not locate the SupportedLanguage type union in types.ts — skipped type-vs-registry check.'
+  );
 }
 
 // ── Report ────────────────────────────────────────────────────────────────────
@@ -110,7 +110,9 @@ console.log(
     `${langs.length - implemented.length - declared.length} other.`
 );
 if (declared.length) {
-  console.log(`[language-registry] build targets (declared, no adapter): ${declared.map((l) => l.id).join(', ')}`);
+  console.log(
+    `[language-registry] build targets (declared, no adapter): ${declared.map((l) => l.id).join(', ')}`
+  );
 }
 for (const w of warnings) console.warn(`  ⚠ ${w}`);
 

@@ -46,7 +46,12 @@ const STATUSES = new Set([
   'blocked',
 ]);
 
-const ENVELOPES = new Set(['read_only', 'guarded_registration', 'break_glass_register', 'revoke_only']);
+const ENVELOPES = new Set([
+  'read_only',
+  'guarded_registration',
+  'break_glass_register',
+  'revoke_only',
+]);
 
 const VERIFICATION_METHODS = new Set([
   'startup_folder_exists',
@@ -205,12 +210,18 @@ function defaultVerificationMethod(platform) {
 }
 
 function defaultRollbackInstruction(platform) {
-  if (platform === 'windows_startup_folder') return 'Delete the HoloShell shortcut from the Windows Startup folder.';
-  if (platform === 'windows_task_scheduler') return 'Open Task Scheduler and disable or delete the HoloShell task.';
-  if (platform === 'macos_login_item') return 'Open System Settings > General > Login Items and remove HoloShell.';
-  if (platform === 'macos_launchd') return 'Remove the LaunchAgent plist from ~/Library/LaunchAgents and run launchctl bootout.';
-  if (platform === 'linux_xdg_autostart') return 'Remove the .desktop file from ~/.config/autostart/.';
-  if (platform === 'linux_systemd_user') return 'Run systemctl --user disable holoshell.service and remove the unit file.';
+  if (platform === 'windows_startup_folder')
+    return 'Delete the HoloShell shortcut from the Windows Startup folder.';
+  if (platform === 'windows_task_scheduler')
+    return 'Open Task Scheduler and disable or delete the HoloShell task.';
+  if (platform === 'macos_login_item')
+    return 'Open System Settings > General > Login Items and remove HoloShell.';
+  if (platform === 'macos_launchd')
+    return 'Remove the LaunchAgent plist from ~/Library/LaunchAgents and run launchctl bootout.';
+  if (platform === 'linux_xdg_autostart')
+    return 'Remove the .desktop file from ~/.config/autostart/.';
+  if (platform === 'linux_systemd_user')
+    return 'Run systemctl --user disable holoshell.service and remove the unit file.';
   return 'Remove the HoloShell startup entry via OS settings.';
 }
 
@@ -231,7 +242,16 @@ function probeStartupRegistration(platformId) {
   let placedByHoloShell = false;
 
   if (platformId === 'windows_startup_folder') {
-    const startupDir = join(home, 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
+    const startupDir = join(
+      home,
+      'AppData',
+      'Roaming',
+      'Microsoft',
+      'Windows',
+      'Start Menu',
+      'Programs',
+      'Startup'
+    );
     const lnkPath = join(startupDir, 'HoloShell.lnk');
     registered = existsSync(lnkPath);
     if (registered) {
@@ -265,14 +285,20 @@ function probeStartupRegistration(platformId) {
 function buildPlanPack(input, args = {}) {
   const at = nowIso(args, input);
   const platformId = input.platform ?? args.platform;
-  const purpose = input.purpose ?? args.purpose ?? 'Register HoloShell as a startup application for automatic launch.';
+  const purpose =
+    input.purpose ??
+    args.purpose ??
+    'Register HoloShell as a startup application for automatic launch.';
   const startupAction = input.startupAction ?? args.startupAction ?? 'launch_holoshell';
-  const permissionEnvelope = input.permissionEnvelope ?? args.permissionEnvelope ?? 'guarded_registration';
+  const permissionEnvelope =
+    input.permissionEnvelope ?? args.permissionEnvelope ?? 'guarded_registration';
   const commandPreview = redactAbsolutePath(input.commandPreview ?? args.commandPreview ?? '');
-  const rollbackInstruction = input.rollbackInstruction ?? args.rollbackInstruction ?? defaultRollbackInstruction(platformId);
+  const rollbackInstruction =
+    input.rollbackInstruction ?? args.rollbackInstruction ?? defaultRollbackInstruction(platformId);
 
   if (!STARTUP_PLATFORMS.has(platformId)) throw new Error(`Unsupported platform: ${platformId}`);
-  if (!ENVELOPES.has(permissionEnvelope)) throw new Error(`Unsupported permissionEnvelope: ${permissionEnvelope}`);
+  if (!ENVELOPES.has(permissionEnvelope))
+    throw new Error(`Unsupported permissionEnvelope: ${permissionEnvelope}`);
 
   // Probe current state
   const probe = probeStartupRegistration(platformId);
@@ -308,7 +334,12 @@ function buildPlanPack(input, args = {}) {
     status: 'registration_planned',
     registrationStateReceiptId: currentState.id,
     requestReceiptId: request.id,
-    replayKey: hashValue({ workflow: WORKFLOW, state: currentState.hash, request: request.hash, adapterVersion: VERSION }),
+    replayKey: hashValue({
+      workflow: WORKFLOW,
+      state: currentState.hash,
+      request: request.hash,
+      adapterVersion: VERSION,
+    }),
     rawCredentialCaptured: false,
     overbroadScopeAccepted: false,
     readyForHoloLand: false,
@@ -358,7 +389,9 @@ function buildVerifiedPack(pack, input, args = {}) {
     freshUserGestureCaptured: true,
     hiddenAutomationUsed: false,
     approvalViaRoomCard: input.approvalViaRoomCard ?? true,
-    approvedCommandHash: pack.request.commandPreview ? hashValue(pack.request.commandPreview) : hashValue('approved-command'),
+    approvedCommandHash: pack.request.commandPreview
+      ? hashValue(pack.request.commandPreview)
+      : hashValue('approved-command'),
     approvedAt: at,
   });
 
@@ -383,7 +416,12 @@ function buildVerifiedPack(pack, input, args = {}) {
     requestReceiptId: pack.request.id,
     approvalReceiptId: approval.id,
     verificationReceiptId: verification.id,
-    replayKey: hashValue({ previousReplayKey: pack.replay.replayKey, approval: approval.hash, verification: verification.hash, adapterVersion: VERSION }),
+    replayKey: hashValue({
+      previousReplayKey: pack.replay.replayKey,
+      approval: approval.hash,
+      verification: verification.hash,
+      adapterVersion: VERSION,
+    }),
     rawCredentialCaptured: false,
     overbroadScopeAccepted: false,
     readyForHoloLand: true,
@@ -407,7 +445,8 @@ function buildRevokedPack(pack, input, args = {}) {
 
   // Re-probe — should now be unregistered
   const probe = probeStartupRegistration(pack.platform);
-  const removalVerificationMethod = input.removalVerificationMethod ?? defaultVerificationMethod(pack.platform);
+  const removalVerificationMethod =
+    input.removalVerificationMethod ?? defaultVerificationMethod(pack.platform);
 
   const unregistration = withHash({
     id: `startup-unregistration-${digest({ verification: pack.verification.hash, at }).slice(0, 12)}`,
@@ -416,7 +455,8 @@ function buildRevokedPack(pack, input, args = {}) {
     removalConfirmed: !probe.registered,
     removalVerificationMethod,
     residualArtifacts: input.residualArtifacts ?? false,
-    rollbackNote: input.rollbackNote ?? 'Startup entry removed. Residual OS caches may expire asynchronously.',
+    rollbackNote:
+      input.rollbackNote ?? 'Startup entry removed. Residual OS caches may expire asynchronously.',
     unregisteredAt: at,
   });
 
@@ -430,7 +470,11 @@ function buildRevokedPack(pack, input, args = {}) {
     approvalReceiptId: pack.approval?.id,
     verificationReceiptId: pack.verification.id,
     unregistrationReceiptId: unregistration.id,
-    replayKey: hashValue({ previousReplayKey: pack.replay.replayKey, unregistration: unregistration.hash, adapterVersion: VERSION }),
+    replayKey: hashValue({
+      previousReplayKey: pack.replay.replayKey,
+      unregistration: unregistration.hash,
+      adapterVersion: VERSION,
+    }),
     rawCredentialCaptured: false,
     overbroadScopeAccepted: false,
     readyForHoloLand: false,
@@ -452,24 +496,36 @@ function validatePack(pack) {
   // Lightweight structural validation (full validator lives in the TS receipt module)
   const errors = [];
   if (!pack || typeof pack !== 'object') return ['HoloShellStartupGateReceiptPack is required.'];
-  if (pack.schemaVersion !== RECEIPT_VERSION) errors.push(`schemaVersion must be ${RECEIPT_VERSION}`);
+  if (pack.schemaVersion !== RECEIPT_VERSION)
+    errors.push(`schemaVersion must be ${RECEIPT_VERSION}`);
   if (pack.workflow !== WORKFLOW) errors.push(`workflow must be ${WORKFLOW}`);
   if (!STATUSES.has(pack.status)) errors.push(`unsupported status: ${pack.status}`);
   if (pack.replay?.status !== pack.status) errors.push('pack status must match replay status');
-  if (pack.replay?.rawCredentialCaptured !== false) errors.push('replay rawCredentialCaptured must be false');
-  if (pack.replay?.overbroadScopeAccepted !== false) errors.push('replay overbroadScopeAccepted must be false');
+  if (pack.replay?.rawCredentialCaptured !== false)
+    errors.push('replay rawCredentialCaptured must be false');
+  if (pack.replay?.overbroadScopeAccepted !== false)
+    errors.push('replay overbroadScopeAccepted must be false');
   // Check absolute paths not in redacted markers
   const packJson = JSON.stringify(pack);
-  const absolutePathLeak = /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(packJson) && !/<absolute-path-redacted>/.test(packJson);
+  const absolutePathLeak =
+    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(packJson) &&
+    !/<absolute-path-redacted>/.test(packJson);
   if (absolutePathLeak) errors.push('Receipt pack contains absolute path leakage');
-  if (/\b(access_token|refresh_token|client_secret|id_token)=([A-Za-z0-9._~+/=-]+)/i.test(packJson)) {
+  if (
+    /\b(access_token|refresh_token|client_secret|id_token)=([A-Za-z0-9._~+/=-]+)/i.test(packJson)
+  ) {
     errors.push('Receipt pack contains raw credential material');
   }
   return errors;
 }
 
 function defaultOutput(command, date) {
-  return join('.bench-logs', 'holoshell-human-os-frontier', date, `startup-gate-${command}-receipt.json`);
+  return join(
+    '.bench-logs',
+    'holoshell-human-os-frontier',
+    date,
+    `startup-gate-${command}-receipt.json`
+  );
 }
 
 function readInput(args) {
@@ -477,7 +533,12 @@ function readInput(args) {
 }
 
 function runCommand(args) {
-  if (!args.command || args.command === '--help' || args.command === '-h' || args.command === 'help') {
+  if (
+    !args.command ||
+    args.command === '--help' ||
+    args.command === '-h' ||
+    args.command === 'help'
+  ) {
     printHelp();
     return { ok: true };
   }
@@ -514,15 +575,20 @@ function runCommand(args) {
   }
 
   const validationErrors = validatePack(pack);
-  if (validationErrors.length > 0) throw new Error(`adapter produced invalid receipt: ${validationErrors.join('; ')}`);
+  if (validationErrors.length > 0)
+    throw new Error(`adapter produced invalid receipt: ${validationErrors.join('; ')}`);
 
   if (args.dryRun) {
-    process.stdout.write(`${JSON.stringify({ ok: true, dryRun: true, status: pack.status, receiptId: pack.id }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ ok: true, dryRun: true, status: pack.status, receiptId: pack.id }, null, 2)}\n`
+    );
     return { ok: true, pack };
   }
   const out = args.out ?? defaultOutput(args.command, args.date);
   const written = writeJson(out, pack);
-  process.stdout.write(`${JSON.stringify({ ok: true, out: written, status: pack.status, receiptId: pack.id }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ ok: true, out: written, status: pack.status, receiptId: pack.id }, null, 2)}\n`
+  );
   return { ok: true, pack, out: written };
 }
 
@@ -551,7 +617,17 @@ function runSelfTest() {
     verificationMethod: 'startup_folder_exists',
     approvalViaRoomCard: true,
   });
-  runCommand(parseArgs(['verify', '--pack', verifiedPath + '.plan', '--input', verifyPath, '--out', verifiedPath]));
+  runCommand(
+    parseArgs([
+      'verify',
+      '--pack',
+      verifiedPath + '.plan',
+      '--input',
+      verifyPath,
+      '--out',
+      verifiedPath,
+    ])
+  );
 
   writeJson(revokePath, {
     now: '2026-05-21T00:02:00.000Z',
@@ -559,23 +635,27 @@ function runSelfTest() {
     residualArtifacts: false,
     rollbackNote: 'Startup entry removed. Residual OS caches may expire asynchronously.',
   });
-  runCommand(parseArgs(['revoke', '--pack', verifiedPath, '--input', revokePath, '--out', revokedPath]));
+  runCommand(
+    parseArgs(['revoke', '--pack', verifiedPath, '--input', revokePath, '--out', revokedPath])
+  );
 
   const verified = readJson(verifiedPath);
   const revoked = readJson(revokedPath);
-  const errors = [
-    ...validatePack(plan),
-    ...validatePack(verified),
-    ...validatePack(revoked),
-  ];
+  const errors = [...validatePack(plan), ...validatePack(verified), ...validatePack(revoked)];
 
   // Check absolute paths are redacted
   const publicJson = JSON.stringify({ plan, verified, revoked });
-  if (publicJson.includes('C:\\Users\\joseph')) errors.push('absolute path leaked in command preview');
-  if (/\b(access_token|refresh_token|client_secret)=/.test(publicJson)) errors.push('raw credential leaked');
+  if (publicJson.includes('C:\\Users\\joseph'))
+    errors.push('absolute path leaked in command preview');
+  if (/\b(access_token|refresh_token|client_secret)=/.test(publicJson))
+    errors.push('raw credential leaked');
 
-  if (revoked.status !== 'unregistered_confirmed') errors.push('revoked status is not unregistered_confirmed');
-  if (revoked.unregistration?.removalConfirmed !== false && revoked.unregistration?.removalConfirmed !== true) {
+  if (revoked.status !== 'unregistered_confirmed')
+    errors.push('revoked status is not unregistered_confirmed');
+  if (
+    revoked.unregistration?.removalConfirmed !== false &&
+    revoked.unregistration?.removalConfirmed !== true
+  ) {
     // On a machine where the entry doesn't exist, removalConfirmed is false (nothing to remove)
     // On a machine where it does exist and was removed, it's true
     // Both are valid — just check the field exists
@@ -583,8 +663,10 @@ function runSelfTest() {
       errors.push('removalConfirmed must be a boolean');
     }
   }
-  if (revoked.replay?.rawCredentialCaptured !== false) errors.push('revoked replay rawCredentialCaptured must be false');
-  if (revoked.replay?.overbroadScopeAccepted !== false) errors.push('revoked replay overbroadScopeAccepted must be false');
+  if (revoked.replay?.rawCredentialCaptured !== false)
+    errors.push('revoked replay rawCredentialCaptured must be false');
+  if (revoked.replay?.overbroadScopeAccepted !== false)
+    errors.push('revoked replay overbroadScopeAccepted must be false');
 
   // Overbroad: try to verify with a wrong method
   try {
@@ -592,7 +674,16 @@ function runSelfTest() {
       now: '2026-05-21T00:03:00.000Z',
       verificationMethod: 'invalid_method',
     });
-    runCommand(parseArgs(['verify', '--pack', verifiedPath + '.plan', '--input', join(dir, 'bad-method.json'), '--dry-run']));
+    runCommand(
+      parseArgs([
+        'verify',
+        '--pack',
+        verifiedPath + '.plan',
+        '--input',
+        join(dir, 'bad-method.json'),
+        '--dry-run',
+      ])
+    );
     errors.push('overbroad verification method unexpectedly accepted');
   } catch (error) {
     if (!String(error.message).includes('Unsupported verificationMethod')) {
@@ -601,11 +692,16 @@ function runSelfTest() {
   }
 
   if (errors.length > 0) throw new Error(`Self-test failures:\n${errors.join('\n')}`);
-  process.stdout.write(`${JSON.stringify({ ok: true, adapter: 'holoshell-startup-gate-adapter', version: VERSION }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ ok: true, adapter: 'holoshell-startup-gate-adapter', version: VERSION }, null, 2)}\n`
+  );
   return { ok: true };
 }
 
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || process.argv[1]?.endsWith('holoshell-startup-gate-adapter.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` ||
+  process.argv[1]?.endsWith('holoshell-startup-gate-adapter.mjs')
+) {
   try {
     runCommand(parseArgs(process.argv.slice(2)));
   } catch (error) {

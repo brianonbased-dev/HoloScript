@@ -28,7 +28,14 @@ describe('provisionBrokeredSession', () => {
   });
 
   it('throws when adapter returns an unexpected status', async () => {
-    const badResult = { status: 'dry-run', handle: 'x', surface: 'mobile', seatId: 's', walletAddress: '0x0', envVarLines: [] } as unknown as DeviceFlowProvisionResult;
+    const badResult = {
+      status: 'dry-run',
+      handle: 'x',
+      surface: 'mobile',
+      seatId: 's',
+      walletAddress: '0x0',
+      envVarLines: [],
+    } as unknown as DeviceFlowProvisionResult;
     const adapter = localFileProvisionAdapter(async () => badResult);
 
     await expect(

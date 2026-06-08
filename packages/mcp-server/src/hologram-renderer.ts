@@ -292,7 +292,13 @@ function dataUrlToBuffer(dataUrl: string): Buffer {
   return Buffer.from(match[2], 'base64');
 }
 
-async function writeArtifact(bundleDir: string, filename: string, buffer: Buffer, mimeType: string, includeBase64 = false): Promise<RenderArtifact> {
+async function writeArtifact(
+  bundleDir: string,
+  filename: string,
+  buffer: Buffer,
+  mimeType: string,
+  includeBase64 = false
+): Promise<RenderArtifact> {
   const filePath = join(bundleDir, filename);
   await fs.writeFile(filePath, buffer);
   return {
@@ -304,11 +310,19 @@ async function writeArtifact(bundleDir: string, filename: string, buffer: Buffer
   };
 }
 
-async function renderBrowserArtifacts(options: RenderBundleOptions, injectedDepth?: { data: Float32Array; backend: string }): Promise<BrowserRenderResult> {
+async function renderBrowserArtifacts(
+  options: RenderBundleOptions,
+  injectedDepth?: { data: Float32Array; backend: string }
+): Promise<BrowserRenderResult> {
   const executableResolution = resolveChromiumExecutable();
   const launchOptions: Parameters<typeof chromium.launch>[0] = {
     headless: true,
-    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--allow-file-access-from-files'],
+    args: [
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--allow-file-access-from-files',
+    ],
   };
   if (executableResolution.executablePath) {
     launchOptions.executablePath = executableResolution.executablePath;
@@ -332,43 +346,85 @@ async function renderBrowserArtifacts(options: RenderBundleOptions, injectedDept
     if (injectedDepth) {
       const mapArray = Array.from(injectedDepth.data);
       const backend = injectedDepth.backend;
-      await page.addInitScript(({ map, depthBackend }) => {
-        (window as unknown as Record<string, unknown>).__INJECTED_DEPTH_MAP = new Float32Array(map);
-        (window as unknown as Record<string, unknown>).__INJECTED_DEPTH_BACKEND = depthBackend;
-      }, { map: mapArray, depthBackend: backend });
+      await page.addInitScript(
+        ({ map, depthBackend }) => {
+          (window as unknown as Record<string, unknown>).__INJECTED_DEPTH_MAP = new Float32Array(
+            map
+          );
+          (window as unknown as Record<string, unknown>).__INJECTED_DEPTH_BACKEND = depthBackend;
+        },
+        { map: mapArray, depthBackend: backend }
+      );
     }
 
     await page.setContent(buildRenderHtml(normalizeSourceUrl(options.source), options.mediaType), {
       waitUntil: 'domcontentloaded',
     });
 
-    await page.waitForFunction(() => {
-      const ready = (window as unknown as { __HOLOGRAM_READY?: boolean; __HOLOGRAM_RENDER_ERROR?: string }).__HOLOGRAM_READY;
-      const error = (window as unknown as { __HOLOGRAM_RENDER_ERROR?: string }).__HOLOGRAM_RENDER_ERROR;
-      if (error) throw new Error(error);
-      return ready === true;
-    }, { timeout: 30_000 });
+    await page.waitForFunction(
+      () => {
+        const ready = (
+          window as unknown as { __HOLOGRAM_READY?: boolean; __HOLOGRAM_RENDER_ERROR?: string }
+        ).__HOLOGRAM_READY;
+        const error = (window as unknown as { __HOLOGRAM_RENDER_ERROR?: string })
+          .__HOLOGRAM_RENDER_ERROR;
+        if (error) throw new Error(error);
+        return ready === true;
+      },
+      { timeout: 30_000 }
+    );
 
-    const maxAbsOffset = options.quilt.tiles.reduce((max, tile) => Math.max(max, Math.abs(tile.cameraOffset)), 0.0001);
-    const stereoMax = options.mvhevc.views.reduce((max, view) => Math.max(max, Math.abs(view.cameraOffset)), 0.0001);
+    const maxAbsOffset = options.quilt.tiles.reduce(
+      (max, tile) => Math.max(max, Math.abs(tile.cameraOffset)),
+      0.0001
+    );
+    const stereoMax = options.mvhevc.views.reduce(
+      (max, view) => Math.max(max, Math.abs(view.cameraOffset)),
+      0.0001
+    );
 
     return await page.evaluate(
       ({ quiltWidth, quiltHeight, tileWidth, tileHeight, tiles, stereoViews }) => {
-        const runtime = (window as unknown as {
-          __HOLOGRAM_RT: {
-            width: number;
-            height: number;
-            depthBackend: string;
-            renderViewDataUrl(offset?: number, shear?: number): string;
-            renderQuiltDataUrl(tileSpecs: Array<{ column: number; row: number; normalizedOffset: number; viewShear: number }>, quiltWidth: number, quiltHeight: number, tileWidth: number, tileHeight: number): string;
-          };
-        }).__HOLOGRAM_RT;
+        const runtime = (
+          window as unknown as {
+            __HOLOGRAM_RT: {
+              width: number;
+              height: number;
+              depthBackend: string;
+              renderViewDataUrl(offset?: number, shear?: number): string;
+              renderQuiltDataUrl(
+                tileSpecs: Array<{
+                  column: number;
+                  row: number;
+                  normalizedOffset: number;
+                  viewShear: number;
+                }>,
+                quiltWidth: number,
+                quiltHeight: number,
+                tileWidth: number,
+                tileHeight: number
+              ): string;
+            };
+          }
+        ).__HOLOGRAM_RT;
 
         return {
           previewPngDataUrl: runtime.renderViewDataUrl(0, 0),
-          quiltPngDataUrl: runtime.renderQuiltDataUrl(tiles, quiltWidth, quiltHeight, tileWidth, tileHeight),
-          leftPngDataUrl: runtime.renderViewDataUrl(stereoViews.left.offset, stereoViews.left.shear),
-          rightPngDataUrl: runtime.renderViewDataUrl(stereoViews.right.offset, stereoViews.right.shear),
+          quiltPngDataUrl: runtime.renderQuiltDataUrl(
+            tiles,
+            quiltWidth,
+            quiltHeight,
+            tileWidth,
+            tileHeight
+          ),
+          leftPngDataUrl: runtime.renderViewDataUrl(
+            stereoViews.left.offset,
+            stereoViews.left.shear
+          ),
+          rightPngDataUrl: runtime.renderViewDataUrl(
+            stereoViews.right.offset,
+            stereoViews.right.shear
+          ),
           width: runtime.width,
           height: runtime.height,
           depthBackend: runtime.depthBackend,
@@ -387,11 +443,15 @@ async function renderBrowserArtifacts(options: RenderBundleOptions, injectedDept
         })),
         stereoViews: {
           left: {
-            offset: (options.mvhevc.views.find((view) => view.eye === 'left')?.cameraOffset ?? -0.5) / stereoMax,
+            offset:
+              (options.mvhevc.views.find((view) => view.eye === 'left')?.cameraOffset ?? -0.5) /
+              stereoMax,
             shear: options.mvhevc.views.find((view) => view.eye === 'left')?.viewShear ?? 0,
           },
           right: {
-            offset: (options.mvhevc.views.find((view) => view.eye === 'right')?.cameraOffset ?? 0.5) / stereoMax,
+            offset:
+              (options.mvhevc.views.find((view) => view.eye === 'right')?.cameraOffset ?? 0.5) /
+              stereoMax,
             shear: options.mvhevc.views.find((view) => view.eye === 'right')?.viewShear ?? 0,
           },
         },
@@ -402,7 +462,13 @@ async function renderBrowserArtifacts(options: RenderBundleOptions, injectedDept
   }
 }
 
-async function encodeStereoVideo(bundleDir: string, leftPath: string, rightPath: string, fps: number, durationSeconds: number): Promise<{ path: string; codec: string } | null> {
+async function encodeStereoVideo(
+  bundleDir: string,
+  leftPath: string,
+  rightPath: string,
+  fps: number,
+  durationSeconds: number
+): Promise<{ path: string; codec: string } | null> {
   if (!ffmpegAvailableSync()) return null;
 
   const ffmpegPath = resolveFfmpegBinary();
@@ -469,7 +535,9 @@ async function encodeStereoVideo(bundleDir: string, leftPath: string, rightPath:
   }
 }
 
-export async function renderHologramBundle(options: RenderBundleOptions): Promise<RenderBundleResult> {
+export async function renderHologramBundle(
+  options: RenderBundleOptions
+): Promise<RenderBundleResult> {
   const hash = encodeBundleHash(options);
   const storeRoot = resolveStoreRoot();
   const bundleDir = join(storeRoot, hash);
@@ -494,17 +562,41 @@ export async function renderHologramBundle(options: RenderBundleOptions): Promis
   const holoCodePath = join(bundleDir, 'scene.holo');
   await fs.writeFile(holoCodePath, options.holoCode, 'utf8');
 
-  const previewPng = await writeArtifact(bundleDir, 'preview.png', previewBuffer, 'image/png', options.includeBase64);
-  const quiltPng = await writeArtifact(bundleDir, 'quilt.png', quiltBuffer, 'image/png', options.includeBase64);
-  const stereoLeftPng = await writeArtifact(bundleDir, 'left-eye.png', leftBuffer, 'image/png', options.includeBase64);
-  const stereoRightPng = await writeArtifact(bundleDir, 'right-eye.png', rightBuffer, 'image/png', options.includeBase64);
+  const previewPng = await writeArtifact(
+    bundleDir,
+    'preview.png',
+    previewBuffer,
+    'image/png',
+    options.includeBase64
+  );
+  const quiltPng = await writeArtifact(
+    bundleDir,
+    'quilt.png',
+    quiltBuffer,
+    'image/png',
+    options.includeBase64
+  );
+  const stereoLeftPng = await writeArtifact(
+    bundleDir,
+    'left-eye.png',
+    leftBuffer,
+    'image/png',
+    options.includeBase64
+  );
+  const stereoRightPng = await writeArtifact(
+    bundleDir,
+    'right-eye.png',
+    rightBuffer,
+    'image/png',
+    options.includeBase64
+  );
 
   const stereoVideoInfo = await encodeStereoVideo(
     bundleDir,
     stereoLeftPng.path,
     stereoRightPng.path,
     options.mvhevc.config.fps,
-    options.durationSeconds ?? 2,
+    options.durationSeconds ?? 2
   );
 
   const stereoVideo = stereoVideoInfo
@@ -514,7 +606,7 @@ export async function renderHologramBundle(options: RenderBundleOptions): Promis
           'stereo-preview.mp4',
           await fs.readFile(stereoVideoInfo.path),
           'video/mp4',
-          false,
+          false
         )),
         codec: stereoVideoInfo.codec,
         stereoMode: 'side-by-side-hevc-preview',
@@ -541,7 +633,13 @@ export async function renderHologramBundle(options: RenderBundleOptions): Promis
   };
 
   const manifestBuffer = Buffer.from(JSON.stringify(manifestPayload, null, 2), 'utf8');
-  const manifest = await writeArtifact(bundleDir, 'manifest.json', manifestBuffer, 'application/json', false);
+  const manifest = await writeArtifact(
+    bundleDir,
+    'manifest.json',
+    manifestBuffer,
+    'application/json',
+    false
+  );
 
   return {
     hash,

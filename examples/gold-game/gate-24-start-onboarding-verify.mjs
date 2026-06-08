@@ -18,7 +18,7 @@ const source = join(here, 'drive-build.mjs');
 
 const checks = [];
 const ok = (name, pass, detail = '') => checks.push({ name, pass: Boolean(pass), detail });
-const read = (path) => existsSync(path) ? readFileSync(path) : null;
+const read = (path) => (existsSync(path) ? readFileSync(path) : null);
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 const assetBytes = read(asset);
@@ -31,14 +31,42 @@ const receipt = receiptBytes ? JSON.parse(receiptBytes.toString('utf8')) : {};
 const assetHash = assetBytes ? hash(assetBytes) : '';
 
 ok('concept art asset exists', assetBytes && assetBytes.length > 250000, asset);
-ok('concept art hash recorded', receipt.startOnboarding?.openingVista?.sha256 === assetHash, assetHash);
-ok('offline HTML embeds the concept art data URL', html.includes('window.__GOLD_GAME_CONCEPT_ART__="data:image/jpeg;base64,'), 'embedded, not loose-linked');
-ok('start screen exists', html.includes('id="startScreen"') && html.includes('data-gate24="start-onboarding"'));
-ok('first objective visible in game UI', html.includes('First objective:') && html.includes('Graduate one glowing entry'));
-ok('retry path visible in game UI', html.includes('id="retryStart"') && html.includes('Return to Overlook'));
-ok('begin event enters the game', html.includes("new CustomEvent('gold-game-start')") && sourceText.includes("window.addEventListener('gold-game-start'"));
-ok('retry event resets the player', html.includes("new CustomEvent('gold-game-reset-to-overlook')") && sourceText.includes('resetToOverlook()'));
-ok('receipt records Gate 24', receipt.startOnboarding?.enabled === true && receipt.startOnboarding?.gate === 24);
+ok(
+  'concept art hash recorded',
+  receipt.startOnboarding?.openingVista?.sha256 === assetHash,
+  assetHash
+);
+ok(
+  'offline HTML embeds the concept art data URL',
+  html.includes('window.__GOLD_GAME_CONCEPT_ART__="data:image/jpeg;base64,'),
+  'embedded, not loose-linked'
+);
+ok(
+  'start screen exists',
+  html.includes('id="startScreen"') && html.includes('data-gate24="start-onboarding"')
+);
+ok(
+  'first objective visible in game UI',
+  html.includes('First objective:') && html.includes('Graduate one glowing entry')
+);
+ok(
+  'retry path visible in game UI',
+  html.includes('id="retryStart"') && html.includes('Return to Overlook')
+);
+ok(
+  'begin event enters the game',
+  html.includes("new CustomEvent('gold-game-start')") &&
+    sourceText.includes("window.addEventListener('gold-game-start'")
+);
+ok(
+  'retry event resets the player',
+  html.includes("new CustomEvent('gold-game-reset-to-overlook')") &&
+    sourceText.includes('resetToOverlook()')
+);
+ok(
+  'receipt records Gate 24',
+  receipt.startOnboarding?.enabled === true && receipt.startOnboarding?.gate === 24
+);
 
 const failed = checks.filter((c) => !c.pass);
 for (const c of checks) {
@@ -48,4 +76,6 @@ if (failed.length) {
   console.error('\nGate 24 failed: ' + failed.map((c) => c.name).join(', '));
   process.exit(1);
 }
-console.log('\nGate 24 PASS — opening art vista, first objective, and retry path are in the playable build.');
+console.log(
+  '\nGate 24 PASS — opening art vista, first objective, and retry path are in the playable build.'
+);

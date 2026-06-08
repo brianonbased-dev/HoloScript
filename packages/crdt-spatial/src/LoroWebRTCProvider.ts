@@ -39,7 +39,7 @@ export class LoroWebRTCProvider {
       signalingServerUrl: config?.signalingServerUrl || 'wss://signaling.holoscript.net',
       iceServers: config?.iceServers || [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' },
       ],
       syncIntervalMs: config?.syncIntervalMs || 50,
     };
@@ -58,7 +58,7 @@ export class LoroWebRTCProvider {
     // Subscribe to Loro local changes to broadcast
     this.doc.subscribe((batch: LoroEventBatch) => {
       if (batch.by === 'local') {
-        const update = this.doc.export({ mode: "update" }); // Send full state or deltas if tracked
+        const update = this.doc.export({ mode: 'update' }); // Send full state or deltas if tracked
         if (!isWithinVolumetricWebRtcSyncBudget(update.byteLength)) {
           console.warn(
             `[LoroWebRTC] Skipping outbound sync: ${update.byteLength} bytes exceeds volumetric WebRTC cap (${MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES}); split volumetrics with chunk APIs`
@@ -73,7 +73,9 @@ export class LoroWebRTCProvider {
   }
 
   public connect() {
-    console.log(`[LoroWebRTC] Connecting to signaling server: ${this.config.signalingServerUrl}...`);
+    console.log(
+      `[LoroWebRTC] Connecting to signaling server: ${this.config.signalingServerUrl}...`
+    );
     this.signalingWs = new WebSocket(this.config.signalingServerUrl);
 
     this.signalingWs.onopen = () => {
@@ -84,7 +86,7 @@ export class LoroWebRTCProvider {
 
     this.signalingWs.onmessage = async (e) => {
       const msg = JSON.parse(e.data);
-      switch(msg.type) {
+      switch (msg.type) {
         case 'peer-joined':
           await this.createPeerConnection(msg.peerId, true);
           break;
@@ -115,7 +117,12 @@ export class LoroWebRTCProvider {
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        this.sendMessage({ type: 'ice-candidate', peerId, room: this.room, candidate: event.candidate });
+        this.sendMessage({
+          type: 'ice-candidate',
+          peerId,
+          room: this.room,
+          candidate: event.candidate,
+        });
       }
     };
 
@@ -141,7 +148,7 @@ export class LoroWebRTCProvider {
     dc.onopen = () => {
       console.log(`[LoroWebRTC] Data channel to ${peerId} open.`);
       this.dataChannels.set(peerId, dc);
-      const state = this.doc.export({ mode: "update" }); // Full sync on connect
+      const state = this.doc.export({ mode: 'update' }); // Full sync on connect
       if (state.length > 0) {
         if (!isWithinVolumetricWebRtcSyncBudget(state.byteLength)) {
           console.warn(
@@ -223,14 +230,17 @@ export class LoroWebRTCProvider {
     this.isProcessingBuffer = true;
 
     // Use requestAnimationFrame to yield to the renderer, preserving 11.1ms frame budget
-    const scheduler = typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame : (cb: Function) => setTimeout(cb, 16);
-    
+    const scheduler =
+      typeof requestAnimationFrame !== 'undefined'
+        ? requestAnimationFrame
+        : (cb: Function) => setTimeout(cb, 16);
+
     scheduler(() => {
       // Process a limited batch per frame to prevent stutter
-      const batchSize = Math.min(this.incomingUpdateBuffer.length, 5); 
+      const batchSize = Math.min(this.incomingUpdateBuffer.length, 5);
       const batch = this.incomingUpdateBuffer.splice(0, batchSize);
 
-      batch.forEach(updateBytes => {
+      batch.forEach((updateBytes) => {
         try {
           this.doc.import(updateBytes);
 
@@ -238,15 +248,14 @@ export class LoroWebRTCProvider {
           const timestamp = new Date().toISOString();
           const hashMap = this.doc.version().toJSON();
           const documentId = `provenance_receipt_${this.room}`;
-          
+
           this.appendLegalAuditEvent(documentId, {
             id: `sync_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
             actor: peerId || 'system_network',
             action: 'spatial_consensus_achieved',
             timestamp,
-            hash: JSON.stringify(hashMap)
+            hash: JSON.stringify(hashMap),
           });
-          
         } catch (err) {
           console.error(`[LoroWebRTC] Update rejection/conflict parsing: `, err);
         }
@@ -268,7 +277,7 @@ export class LoroWebRTCProvider {
 
   private healthCheck() {
     // Keep-alive or periodic full state hash checks
-    if(this.signalingWs && this.signalingWs.readyState === WebSocket.CLOSED) {
+    if (this.signalingWs && this.signalingWs.readyState === WebSocket.CLOSED) {
       this.connect();
     }
   }
@@ -329,20 +338,27 @@ export class LoroWebRTCProvider {
    * Typically called on session-end or upon explicit 'capture proof' gestures
    * to avoid monotonic log bloat.
    */
-  public commitXrProofSession(metrics: Record<string, unknown>, manifestReferencePath?: string): void {
+  public commitXrProofSession(
+    metrics: Record<string, unknown>,
+    manifestReferencePath?: string
+  ): void {
     const proofRoot = this.doc.getMap('xr_ambient_proof');
     const commitId = `xr_proof_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-    
+
     // Write explicit fields that auditors can unpack without accessing Gists
     const record = {
       captured_at: new Date().toISOString(),
-      summary_hash: JSON.stringify(this.doc.version().toJSON() as unknown as Record<string, unknown>),
+      summary_hash: JSON.stringify(
+        this.doc.version().toJSON() as unknown as Record<string, unknown>
+      ),
       manifest_cid: manifestReferencePath ?? '',
-      ...metrics
+      ...metrics,
     };
-    
+
     proofRoot.set(commitId, JSON.stringify(record));
     this.doc.commit();
-    console.log(`[LoroWebRTC] Bound verifiable XR proof (${commitId}) parametrically to CRDT graph.`);
+    console.log(
+      `[LoroWebRTC] Bound verifiable XR proof (${commitId}) parametrically to CRDT graph.`
+    );
   }
 }

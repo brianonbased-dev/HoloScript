@@ -218,10 +218,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       const message = error instanceof Error ? error.message : String(error);
       session.lastError = message;
       await store.set(token, session);
-      return withCors(
-        request,
-        NextResponse.json({ error: message, session }, { status: 400 })
-      );
+      return withCors(request, NextResponse.json({ error: message, session }, { status: 400 }));
     }
   }
 

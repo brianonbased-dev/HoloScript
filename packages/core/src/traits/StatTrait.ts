@@ -97,19 +97,19 @@ function initState(node: HSPlusNode, config: StatConfig): StatState {
   const state: StatState = {
     baseValue: config.value,
     modifiers: Array.isArray(config.modifiers) ? [...config.modifiers] : [],
-    lastEffective: applyStatModifiers(
-      config.value,
-      config.modifiers ?? [],
-      config.min,
-      config.max
-    ),
+    lastEffective: applyStatModifiers(config.value, config.modifiers ?? [], config.min, config.max),
   };
   node.__statState = state;
   return state;
 }
 
 function recompute(state: StatState, config: StatConfig): number {
-  state.lastEffective = applyStatModifiers(state.baseValue, state.modifiers, config.min, config.max);
+  state.lastEffective = applyStatModifiers(
+    state.baseValue,
+    state.modifiers,
+    config.min,
+    config.max
+  );
   return state.lastEffective;
 }
 
@@ -164,9 +164,8 @@ export const statHandler: TraitHandler<StatConfig> = {
     if (event.type === 'stat:modify') {
       const payload = extractPayload(event);
       const source = typeof payload.source === 'string' ? payload.source : '';
-      const delta = typeof payload.delta === 'number' && !Number.isNaN(payload.delta)
-        ? payload.delta
-        : NaN;
+      const delta =
+        typeof payload.delta === 'number' && !Number.isNaN(payload.delta) ? payload.delta : NaN;
       if (!source || Number.isNaN(delta)) return;
       state.modifiers.push({ source, delta });
       const effective = recompute(state, config);

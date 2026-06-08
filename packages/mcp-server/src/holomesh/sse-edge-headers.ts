@@ -16,8 +16,14 @@
 import type http from 'http';
 
 export function applyEdgeSafeSseHeaders(res: http.ServerResponse): void {
-  res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0, no-transform');
-  res.setHeader('CDN-Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0, no-transform');
+  res.setHeader(
+    'Cache-Control',
+    'private, no-store, no-cache, must-revalidate, max-age=0, no-transform'
+  );
+  res.setHeader(
+    'CDN-Cache-Control',
+    'private, no-store, no-cache, must-revalidate, max-age=0, no-transform'
+  );
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('X-Accel-Buffering', 'no');
   res.setHeader('Surrogate-Control', 'no-store');

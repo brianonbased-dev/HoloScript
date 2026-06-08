@@ -102,7 +102,13 @@ describe('HoloMapRuntime Sprint-3 — determinism', () => {
 describe('HoloMapRuntime Sprint-3 — memory bounds', () => {
   it('enforces maxSequenceLength via FIFO eviction', async () => {
     const r = createHoloMapRuntime();
-    await r.init({ ...HOLOMAP_DEFAULTS, seed: 1, modelHash: 'm', maxSequenceLength: 3, targetFPS: 10000 });
+    await r.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 1,
+      modelHash: 'm',
+      maxSequenceLength: 3,
+      targetFPS: 10000,
+    });
 
     const frames = [makeFrame(0), makeFrame(1), makeFrame(2), makeFrame(3), makeFrame(4)];
     const steps = await stepAll(r, frames);
@@ -118,7 +124,13 @@ describe('HoloMapRuntime Sprint-3 — memory bounds', () => {
 
   it('evicts oldest frames first (FIFO order)', async () => {
     const r = createHoloMapRuntime();
-    await r.init({ ...HOLOMAP_DEFAULTS, seed: 1, modelHash: 'm', maxSequenceLength: 2, targetFPS: 10000 });
+    await r.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 1,
+      modelHash: 'm',
+      maxSequenceLength: 2,
+      targetFPS: 10000,
+    });
 
     const frames = [makeFrame(0), makeFrame(1), makeFrame(2)];
     await stepAll(r, frames);
@@ -132,7 +144,13 @@ describe('HoloMapRuntime Sprint-3 — memory bounds', () => {
 
   it('point count tracks correctly after eviction', async () => {
     const r = createHoloMapRuntime();
-    await r.init({ ...HOLOMAP_DEFAULTS, seed: 1, modelHash: 'm', maxSequenceLength: 2, targetFPS: 10000 });
+    await r.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 1,
+      modelHash: 'm',
+      maxSequenceLength: 2,
+      targetFPS: 10000,
+    });
 
     const frames = [makeFrame(0, 4, 4), makeFrame(1, 4, 4), makeFrame(2, 4, 4)];
     await stepAll(r, frames);
@@ -216,7 +234,13 @@ describe('HoloMapRuntime Sprint-3 — running bounds', () => {
 
   it('bounds survive eviction', async () => {
     const r = createHoloMapRuntime();
-    await r.init({ ...HOLOMAP_DEFAULTS, seed: 1, modelHash: 'm', maxSequenceLength: 1, targetFPS: 10000 });
+    await r.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 1,
+      modelHash: 'm',
+      maxSequenceLength: 1,
+      targetFPS: 10000,
+    });
 
     const frames = [makeFrame(0), makeFrame(1), makeFrame(2)];
     await stepAll(r, frames);
@@ -260,7 +284,13 @@ describe('HoloMapRuntime Sprint-3 — performance metrics', () => {
 describe('HoloMapRuntime Sprint-3 — reset determinism', () => {
   it('resets state cleanly after dispose', async () => {
     const r = createHoloMapRuntime();
-    await r.init({ ...HOLOMAP_DEFAULTS, seed: 1, modelHash: 'm', maxSequenceLength: 2, targetFPS: 10000 });
+    await r.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 1,
+      modelHash: 'm',
+      maxSequenceLength: 2,
+      targetFPS: 10000,
+    });
 
     await stepAll(r, [makeFrame(0), makeFrame(1)]);
     await r.dispose();

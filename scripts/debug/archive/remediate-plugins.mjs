@@ -13,29 +13,31 @@ const corePkg = JSON.parse(fs.readFileSync(corePkgPath, 'utf8').replace(/^\uFEFF
 let traitsIndex = fs.readFileSync(traitsIndexPath, 'utf8');
 const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8').replace(/^\uFEFF/, ''));
 
-const pluginFolders = fs.readdirSync(pluginsDir).filter(f => fs.statSync(path.join(pluginsDir, f)).isDirectory());
+const pluginFolders = fs
+  .readdirSync(pluginsDir)
+  .filter((f) => fs.statSync(path.join(pluginsDir, f)).isDirectory());
 
 let injectedCount = 0;
 
 for (const folder of pluginFolders) {
   const pkgFile = path.join(pluginsDir, folder, 'package.json');
   if (!fs.existsSync(pkgFile)) continue;
-  
+
   const pkgData = JSON.parse(fs.readFileSync(pkgFile, 'utf8').replace(/^\uFEFF/, ''));
   const pkgName = pkgData.name;
-  
+
   // 1. Dependency
   if (!corePkg.dependencies[pkgName]) {
     corePkg.dependencies[pkgName] = 'workspace:*';
     injectedCount++;
   }
-  
+
   // 2. Export
   const exportStmt = `export * from '${pkgName}';`;
   if (!traitsIndex.includes(exportStmt)) {
     traitsIndex += `\n${exportStmt}`;
   }
-  
+
   // 3. Registry (Just a basic stub to show it in UI)
   const safeId = pkgName.replace('@holoscript/plugin-', '').replace('@holoscript/', '');
   if (!registry[safeId]) {
@@ -46,7 +48,7 @@ for (const folder of pluginFolders) {
       properties: [],
       compileHints: [],
       composable: [],
-      conflicts: []
+      conflicts: [],
     };
   }
 }
@@ -55,7 +57,9 @@ for (const folder of pluginFolders) {
 fs.writeFileSync(corePkgPath, JSON.stringify(corePkg, null, 2) + '\n');
 fs.writeFileSync(traitsIndexPath, traitsIndex + '\n');
 fs.writeFileSync(registryPath, JSON.stringify(registry, null, 4) + '\n');
-console.log(`[Ghost Remediation] Wired ${injectedCount} unregistered plugins into Core dependencies, traits/index, and registry.`);
+console.log(
+  `[Ghost Remediation] Wired ${injectedCount} unregistered plugins into Core dependencies, traits/index, and registry.`
+);
 
 // Studio Scenarios Generator
 console.log('[Ghost Remediation] Generating Studio Scenario mappings...');
@@ -72,8 +76,18 @@ const crawlStr = (dir) => {
       if (item !== '__tests__' && item !== 'types') {
         crawlStr(fullPath);
       }
-    } else if (stat.isFile() && fullPath.endsWith('.ts') && !fullPath.endsWith('.test.ts') && !fullPath.endsWith('index.ts') && !fullPath.endsWith('.d.ts')) {
-      const relPath = fullPath.replace(studioRoot, '').replace(/\\/g, '/').replace('.ts', '').replace('.tsx', '');
+    } else if (
+      stat.isFile() &&
+      fullPath.endsWith('.ts') &&
+      !fullPath.endsWith('.test.ts') &&
+      !fullPath.endsWith('index.ts') &&
+      !fullPath.endsWith('.d.ts')
+    ) {
+      const relPath = fullPath
+        .replace(studioRoot, '')
+        .replace(/\\/g, '/')
+        .replace('.ts', '')
+        .replace('.tsx', '');
       const exportName = item.replace('.ts', '').replace(/[^a-zA-Z0-9]/g, '_');
       scenariosIdx += `export * as ${exportName} from '..${relPath}';\n`;
     }

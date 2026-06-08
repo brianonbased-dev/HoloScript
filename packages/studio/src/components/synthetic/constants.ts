@@ -1,18 +1,19 @@
-import type { 
-  AnnotationFormat, 
-  CameraPlacement, 
-  LightingMode, 
-  CameraConfig, 
-  LightingConfig, 
-  AugmentationConfig, 
-  BatchConfig 
+import type {
+  AnnotationFormat,
+  CameraPlacement,
+  LightingMode,
+  CameraConfig,
+  LightingConfig,
+  AugmentationConfig,
+  BatchConfig,
 } from './types';
 
-export const FORMAT_INFO: Record<AnnotationFormat, { label: string; icon: string; desc: string }> = {
-  coco: { label: 'COCO', icon: '🎯', desc: 'JSON annotations, instance segmentation' },
-  yolo: { label: 'YOLO', icon: '⚡', desc: 'TXT labels, bounding boxes per image' },
-  'pascal-voc': { label: 'Pascal VOC', icon: '📋', desc: 'XML annotations, per-image files' },
-};
+export const FORMAT_INFO: Record<AnnotationFormat, { label: string; icon: string; desc: string }> =
+  {
+    coco: { label: 'COCO', icon: '🎯', desc: 'JSON annotations, instance segmentation' },
+    yolo: { label: 'YOLO', icon: '⚡', desc: 'TXT labels, bounding boxes per image' },
+    'pascal-voc': { label: 'Pascal VOC', icon: '📋', desc: 'XML annotations, per-image files' },
+  };
 
 export const PLACEMENT_INFO: Record<CameraPlacement, { label: string; icon: string }> = {
   grid: { label: 'Grid', icon: '▦' },

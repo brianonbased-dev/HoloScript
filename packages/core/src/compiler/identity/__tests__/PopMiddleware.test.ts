@@ -183,11 +183,7 @@ describe('requirePermission', () => {
   it('rejects when no agent identity is attached (401)', () => {
     const res = mockRes();
     const next = mockNext();
-    requirePermission(AgentPermission.WRITE_CODE)(
-      baseReq(),
-      res as unknown as HttpResponse,
-      next
-    );
+    requirePermission(AgentPermission.WRITE_CODE)(baseReq(), res as unknown as HttpResponse, next);
     expect(res.statusCode).toBe(401);
     expect(next.called).toBe(false);
   });
@@ -222,7 +218,9 @@ describe('requireWorkflowStep', () => {
   it('rejects on a workflow-step mismatch (403)', () => {
     const res = mockRes();
     const next = mockNext();
-    const req = baseReq({ agent: payload({ intent: { workflow_step: 'parse_ast' } } as Partial<IntentTokenPayload>) });
+    const req = baseReq({
+      agent: payload({ intent: { workflow_step: 'parse_ast' } } as Partial<IntentTokenPayload>),
+    });
     requireWorkflowStep('generate_code')(req, res as unknown as HttpResponse, next);
     expect(res.statusCode).toBe(403);
     expect((res.body as { code: string }).code).toBe('WORKFLOW_VIOLATION');

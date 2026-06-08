@@ -1,5 +1,4 @@
-import type { Vector3 } from '../types';
-﻿/**
+import type { Vector3 } from '../types'; /**
  * Cloth Trait — DEPRECATED EVENT-EMIT STUB.
  *
  * /critic batch-6 (2026-04-27 review of commit 1c3487425) flagged this file
@@ -26,7 +25,6 @@ import type { Vector3 } from '../types';
  * @deprecated since 2026-04-27 — use cloth-verlet engine + runtime ClothTrait
  * @version 2.0.0 (frozen)
  */
-
 import type { TraitHandler } from './TraitTypes';
 
 // =============================================================================
@@ -69,7 +67,9 @@ interface ClothConfig {
   pin_vertices: Array<[number, number]>; // Grid coordinates to pin
 }
 
-function vecToTuple(v: [number, number, number] | [number, number, number]): [number, number, number] {
+function vecToTuple(
+  v: [number, number, number] | [number, number, number]
+): [number, number, number] {
   if (Array.isArray(v)) return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0];
   return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0];
 }
@@ -101,7 +101,7 @@ export const clothHandler: TraitHandler<ClothConfig> = {
       isTorn: false,
       vertices: [],
       constraints: [],
-      windForce: [0, 0, 0 ],
+      windForce: [0, 0, 0],
       simulationHandle: null,
     };
     node.__clothState = state;
@@ -161,7 +161,9 @@ export const clothHandler: TraitHandler<ClothConfig> = {
 
     if (event.type === 'cloth_vertex_update') {
       // Update vertex positions from physics
-      const positions = event.positions as Array<[number, number, number] | [number, number, number]>;
+      const positions = event.positions as Array<
+        [number, number, number] | [number, number, number]
+      >;
       const res = config.resolution;
 
       for (let i = 0; i < res && i < positions.length / res; i++) {
@@ -180,7 +182,9 @@ export const clothHandler: TraitHandler<ClothConfig> = {
         vertices: state.vertices,
       });
     } else if (event.type === 'wind_update') {
-      state.windForce = vecToTuple(event.direction as [number, number, number] | [number, number, number]);
+      state.windForce = vecToTuple(
+        event.direction as [number, number, number] | [number, number, number]
+      );
     } else if (event.type === 'cloth_apply_force') {
       const force = event.force as [number, number, number];
       const position = event.position as [number, number, number] | undefined;
@@ -270,8 +274,8 @@ function initializeClothMesh(state: ClothState, config: ClothConfig): void {
 
       state.vertices[i][j] = {
         position: [j / res, 0, i / res],
-        prevPosition: [j / res, 0, i / res ],
-        velocity: [0, 0, 0 ],
+        prevPosition: [j / res, 0, i / res],
+        velocity: [0, 0, 0],
         isPinned,
         mass: config.mass / (res * res),
       };

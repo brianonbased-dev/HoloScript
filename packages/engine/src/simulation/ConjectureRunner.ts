@@ -39,10 +39,7 @@ import type { SemanticCorpusIndex } from './SemanticCorpusIndex';
 import type { SemanticNoveltyAssessment } from './SemanticNoveltyEncoder';
 import { stableStringify } from './equivalenceRecord';
 import type { HashMode } from './hashes';
-import {
-  renderManifoldFromReceipts,
-  type RenderManifoldArtifact,
-} from './RenderManifold';
+import { renderManifoldFromReceipts, type RenderManifoldArtifact } from './RenderManifold';
 
 export const CONJECTURE_RUNNER_V1 = 'conjecture.runner.v1' as const;
 export const PROOF_CARRYING_GEOMETRY_SMOKE_SUITE = 'proof-carrying-geometry-smoke' as const;
@@ -53,7 +50,13 @@ export type ConjectureRunnerSuite =
   | typeof PROOF_CARRYING_GEOMETRY_SMOKE_SUITE
   | typeof GENERATED_GEOMETRY_FAMILY_SUITE;
 export type ConjectureRunnerStatus = 'completed' | 'failed';
-export type ConjectureRunnerPhase = 'GENERATE' | 'EXECUTE' | 'FALSIFY' | 'CLASSIFY' | 'GRADUATE' | 'RENDER';
+export type ConjectureRunnerPhase =
+  | 'GENERATE'
+  | 'EXECUTE'
+  | 'FALSIFY'
+  | 'CLASSIFY'
+  | 'GRADUATE'
+  | 'RENDER';
 export type ConjectureScenarioRole = 'survivor' | 'falsifier' | 'boundary';
 export type ConjectureGraduationTarget =
   | 'receipt-carrying.geometry'
@@ -501,7 +504,8 @@ function buildStages(
     {
       phase: 'CLASSIFY',
       status: 'completed',
-      summary: 'Classified each receipt as out-of-scope, undecided, survived, rediscovered, or falsified.',
+      summary:
+        'Classified each receipt as out-of-scope, undecided, survived, rediscovered, or falsified.',
       evidence: classifications.map(
         (classification) => `${classification.scenarioId}:${classification.status}`
       ),
@@ -518,7 +522,8 @@ function buildStages(
     {
       phase: 'RENDER',
       status: 'completed',
-      summary: 'Rendered receipt-carrying manifold surfaces with deterministic invariant-probe hash.',
+      summary:
+        'Rendered receipt-carrying manifold surfaces with deterministic invariant-probe hash.',
       evidence: renderManifold.surfaces.map(
         (surface) => `${surface.candidateId}:${surface.surfaceDigest}`
       ),
@@ -559,8 +564,7 @@ function runScenarioCycle(
         .filter(
           (scenario, index) =>
             (scenario.role === 'survivor' || scenario.role === 'boundary') &&
-            (receipts[index]?.status === 'survived' ||
-              receipts[index]?.status === 'rediscovered')
+            (receipts[index]?.status === 'survived' || receipts[index]?.status === 'rediscovered')
         )
         .map((scenario) => scenario.graduationTarget)
     )
@@ -645,7 +649,13 @@ export function runConjectureRunner(input: ConjectureRunnerInput = {}): Conjectu
 export function runConjectureCostCell(
   input: ConjectureRunnerInput & { candidateScale: number }
 ): ConjectureCostCellResult {
-  const { suite = PROOF_CARRYING_GEOMETRY_SMOKE_SUITE, proposedBy = DEFAULT_PROPOSED_BY, hashMode = 'sha256', includeHashBoundary = true, candidateScale } = input;
+  const {
+    suite = PROOF_CARRYING_GEOMETRY_SMOKE_SUITE,
+    proposedBy = DEFAULT_PROPOSED_BY,
+    hashMode = 'sha256',
+    includeHashBoundary = true,
+    candidateScale,
+  } = input;
   const scenarios =
     suite === GENERATED_GEOMETRY_FAMILY_SUITE
       ? buildGeneratedGeometryFamilyScenarios(proposedBy)
@@ -661,12 +671,13 @@ export function runConjectureCostCell(
 
   for (const scenario of scenarios) {
     for (let copyIdx = 0; copyIdx < candidateScale; copyIdx++) {
-      const scaledCandidate: GeometryConjectureCandidate = copyIdx === 0
-        ? scenario.candidates[0]
-        : {
-            ...scenario.candidates[0],
-            id: `${scenario.candidates[0].id}-scale-${copyIdx}`,
-          };
+      const scaledCandidate: GeometryConjectureCandidate =
+        copyIdx === 0
+          ? scenario.candidates[0]
+          : {
+              ...scenario.candidates[0],
+              id: `${scenario.candidates[0].id}-scale-${copyIdx}`,
+            };
 
       const probeTimings: ConjectureProbeTiming[] = [];
       let totalProbeMs = 0;
@@ -714,15 +725,16 @@ export function runConjectureCostCell(
   const totalRunnerMs = performance.now() - runnerStart;
   const totalProbeMs = candidateCosts.reduce((sum, c) => sum + c.totalProbeMs, 0);
   const candidateProbeTimes = candidateCosts.map((c) => c.totalProbeMs).sort((a, b) => a - b);
-  const meanCandidateProbeMs = candidateProbeTimes.length > 0
-    ? candidateProbeTimes.reduce((s, v) => s + v, 0) / candidateProbeTimes.length
-    : 0;
-  const medianCandidateProbeMs = candidateProbeTimes.length > 0
-    ? candidateProbeTimes[Math.floor(candidateProbeTimes.length / 2)]
-    : 0;
-  const maxCandidateProbeMs = candidateProbeTimes.length > 0
-    ? candidateProbeTimes[candidateProbeTimes.length - 1]
-    : 0;
+  const meanCandidateProbeMs =
+    candidateProbeTimes.length > 0
+      ? candidateProbeTimes.reduce((s, v) => s + v, 0) / candidateProbeTimes.length
+      : 0;
+  const medianCandidateProbeMs =
+    candidateProbeTimes.length > 0
+      ? candidateProbeTimes[Math.floor(candidateProbeTimes.length / 2)]
+      : 0;
+  const maxCandidateProbeMs =
+    candidateProbeTimes.length > 0 ? candidateProbeTimes[candidateProbeTimes.length - 1] : 0;
 
   const probeTypeAggregate = [...probeTypeMap.entries()]
     .map(([probeId, agg]) => ({
@@ -734,7 +746,8 @@ export function runConjectureCostCell(
     .sort((a, b) => a.probeId.localeCompare(b.probeId));
 
   const totalCandidates = candidateCosts.length;
-  const candidatesPerAcceptedConjecture = survivedCount > 0 ? totalCandidates / survivedCount : null;
+  const candidatesPerAcceptedConjecture =
+    survivedCount > 0 ? totalCandidates / survivedCount : null;
 
   return {
     solverType: CONJECTURE_RUNNER_V1,
@@ -777,7 +790,8 @@ export async function attachSemanticAdvisoriesToRunnerResult(
       claimId: receipt.claim.id,
       receiptKey: receipt.receiptKey,
       receiptStatus: receipt.status,
-      receiptKeyPreserved: wrapped.receipt === receipt && wrapped.receipt.receiptKey === receiptKeyBefore,
+      receiptKeyPreserved:
+        wrapped.receipt === receipt && wrapped.receipt.receiptKey === receiptKeyBefore,
       semanticAdvisory: wrapped.semanticAdvisory,
       ...(wrapped.advisorySkippedReason
         ? { advisorySkippedReason: wrapped.advisorySkippedReason }
@@ -796,7 +810,8 @@ export async function attachSemanticAdvisoriesToRunnerResult(
       nearDuplicateCount: semanticAdvisories.filter(
         (advisory) => advisory.semanticAdvisory?.status === 'near-duplicate'
       ).length,
-      skippedCount: semanticAdvisories.filter((advisory) => advisory.semanticAdvisory === null).length,
+      skippedCount: semanticAdvisories.filter((advisory) => advisory.semanticAdvisory === null)
+        .length,
     },
     semanticAdvisories,
   };

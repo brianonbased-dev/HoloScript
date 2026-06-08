@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  mergeSocialCausalModels,
-  type SocialMergeOptions,
-} from '../social-causality';
+import { mergeSocialCausalModels, type SocialMergeOptions } from '../social-causality';
 import type { SCMDAG, SCMEdge, SCMNode } from '../SCMCompiler';
 
 const node = (id: string, do_capable = false): SCMNode => ({
@@ -16,7 +13,7 @@ const edge = (
   source: string,
   target: string,
   weight: number,
-  relation = 'dictates_context',
+  relation = 'dictates_context'
 ): SCMEdge => ({ source, target, relation, weight });
 
 const dag = (nodes: SCMNode[], edges: SCMEdge[], name = 'agent'): SCMDAG => ({
@@ -37,22 +34,15 @@ describe('mergeSocialCausalModels — Cycle 12: Causal Social Memory', () => {
   it('keeps nodes/edges observed by a strict majority and drops the rest', () => {
     const agentA = dag(
       [node('Player'), node('Goblin', true), node('Cloud_Hallucination')],
-      [edge('Player', 'Goblin', 1.0)],
+      [edge('Player', 'Goblin', 1.0)]
     );
     const agentB = dag(
       [node('Player'), node('Goblin', true), node('Phantom_Light')],
-      [edge('Player', 'Goblin', 1.0)],
+      [edge('Player', 'Goblin', 1.0)]
     );
-    const agentC = dag(
-      [node('Player'), node('Goblin', true)],
-      [edge('Player', 'Goblin', 1.0)],
-    );
+    const agentC = dag([node('Player'), node('Goblin', true)], [edge('Player', 'Goblin', 1.0)]);
 
-    const { dag: merged, report } = mergeSocialCausalModels([
-      agentA,
-      agentB,
-      agentC,
-    ]);
+    const { dag: merged, report } = mergeSocialCausalModels([agentA, agentB, agentC]);
 
     const ids = merged.nodes.map((n) => n.id).sort();
     expect(ids).toEqual(['Goblin', 'Player']);
@@ -70,15 +60,15 @@ describe('mergeSocialCausalModels — Cycle 12: Causal Social Memory', () => {
   it('averages disagreeing edge weights instead of dropping (correlation smoothing)', () => {
     const dangerousButton = dag(
       [node('Agent1', true), node('Button', true)],
-      [edge('Agent1', 'Button', 5.0, 'fears')],
+      [edge('Agent1', 'Button', 5.0, 'fears')]
     );
     const safeButton = dag(
       [node('Agent2', true), node('Button', true), node('Agent1', true)],
-      [edge('Agent1', 'Button', 1.0, 'fears')],
+      [edge('Agent1', 'Button', 1.0, 'fears')]
     );
     const indifferentButton = dag(
       [node('Agent1', true), node('Button', true)],
-      [edge('Agent1', 'Button', 3.0, 'fears')],
+      [edge('Agent1', 'Button', 3.0, 'fears')]
     );
 
     const { dag: merged, report } = mergeSocialCausalModels([
@@ -97,19 +87,14 @@ describe('mergeSocialCausalModels — Cycle 12: Causal Social Memory', () => {
   it('drops edges whose endpoints did not survive node consensus', () => {
     const a = dag(
       [node('Anchor'), node('Anchor2'), node('Loner')],
-      [edge('Anchor', 'Loner', 1.0), edge('Anchor', 'Anchor2', 1.0)],
+      [edge('Anchor', 'Loner', 1.0), edge('Anchor', 'Anchor2', 1.0)]
     );
-    const b = dag(
-      [node('Anchor'), node('Anchor2')],
-      [edge('Anchor', 'Anchor2', 1.0)],
-    );
+    const b = dag([node('Anchor'), node('Anchor2')], [edge('Anchor', 'Anchor2', 1.0)]);
 
     const { dag: merged, report } = mergeSocialCausalModels([a, b]);
 
     expect(merged.nodes.map((n) => n.id).sort()).toEqual(['Anchor', 'Anchor2']);
-    expect(merged.edges.map((e) => `${e.source}->${e.target}`)).toEqual([
-      'Anchor->Anchor2',
-    ]);
+    expect(merged.edges.map((e) => `${e.source}->${e.target}`)).toEqual(['Anchor->Anchor2']);
     expect(report.nodes.dropped).toBe(1);
     expect(report.edges.dropped).toBe(1); // Anchor->Loner
   });
@@ -131,7 +116,7 @@ describe('mergeSocialCausalModels — Cycle 12: Causal Social Memory', () => {
   it('counts a node observed twice within one agent only once', () => {
     const a = dag(
       [node('X'), node('X')], // duplicate inside one agent
-      [],
+      []
     );
     const b = dag([node('Y')], []);
 
@@ -145,19 +130,12 @@ describe('mergeSocialCausalModels — Cycle 12: Causal Social Memory', () => {
   });
 
   it('rejects out-of-range thresholds', () => {
-    expect(() =>
-      mergeSocialCausalModels([], { consensusThreshold: 0 }),
-    ).toThrow(RangeError);
-    expect(() =>
-      mergeSocialCausalModels([], { consensusThreshold: 1.5 }),
-    ).toThrow(RangeError);
+    expect(() => mergeSocialCausalModels([], { consensusThreshold: 0 })).toThrow(RangeError);
+    expect(() => mergeSocialCausalModels([], { consensusThreshold: 1.5 })).toThrow(RangeError);
   });
 
   it('does not mutate input DAGs', () => {
-    const original = dag(
-      [node('A'), node('B')],
-      [edge('A', 'B', 7.0)],
-    );
+    const original = dag([node('A'), node('B')], [edge('A', 'B', 7.0)]);
     const beforeNodes = JSON.stringify(original.nodes);
     const beforeEdges = JSON.stringify(original.edges);
 

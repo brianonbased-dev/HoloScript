@@ -14,7 +14,10 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGpuSplatSort } from '../hooks/useGpuSplatSort';
 import { useVolumetricRenderUpdate } from '../hooks/useVolumetricRenderUpdate';
-import { reorderByIndices, type VolumetricEventBus } from '../volumetric/VolumetricRenderUpdateConsumer';
+import {
+  reorderByIndices,
+  type VolumetricEventBus,
+} from '../volumetric/VolumetricRenderUpdateConsumer';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -235,7 +238,11 @@ export function GaussianSplatViewer({
       frustumCulled={false}
     >
       <sphereGeometry args={[0.005, 4, 4]} />
-      <meshBasicMaterial transparent opacity={volumetricUpdate.hasUpdate ? volumetricUpdate.opacity : 0.85} vertexColors />
+      <meshBasicMaterial
+        transparent
+        opacity={volumetricUpdate.hasUpdate ? volumetricUpdate.opacity : 0.85}
+        vertexColors
+      />
     </instancedMesh>
   );
 }

@@ -21,7 +21,7 @@ function makeRM() {
   return new ReplicationManager();
 }
 
-const pos0 = () => ([0, 0, 0]);
+const pos0 = () => [0, 0, 0];
 const quat0 = () => ({ x: 0, y: 0, z: 0, w: 1 });
 
 function makeSnapshot(
@@ -209,7 +209,7 @@ describe('ReplicationManager â€” applyRemoteUpdate', () => {
     const delta: DeltaUpdate = {
       entityId: 'e1',
       timestamp: Date.now(),
-      fields: { velocity: [3, 0, 0 ] },
+      fields: { velocity: [3, 0, 0] },
       isFullSnapshot: false,
     };
     rm.applyRemoteUpdate(delta);

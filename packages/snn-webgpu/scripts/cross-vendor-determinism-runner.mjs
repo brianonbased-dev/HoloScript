@@ -66,7 +66,13 @@ async function probeOnAdapter(powerPreference) {
   console.log(`Size   : ${bytes.byteLength} bytes (${floats.length} floats)`);
 
   ctx.destroy();
-  return { powerPreference, vendor: info.vendor, arch: info.architecture, hash: `sha256:${hash}`, floats };
+  return {
+    powerPreference,
+    vendor: info.vendor,
+    arch: info.architecture,
+    hash: `sha256:${hash}`,
+    floats,
+  };
 }
 
 async function sha256Hex(bytes) {
@@ -118,7 +124,9 @@ async function main() {
       console.log(`  Mean absolute diff: ${v.meanAbsDiff.toExponential(4)}`);
       console.log(`  Max relative diff : ${(v.maxRelDiff * 100).toFixed(4)}%`);
       console.log('\nWARNING: Cross-vendor hash divergence detected.');
-      console.log('Paper #2 determinism claim requires deterministic-float WGSL mode or downgrade to probabilistic.');
+      console.log(
+        'Paper #2 determinism claim requires deterministic-float WGSL mode or downgrade to probabilistic.'
+      );
     }
   }
   console.log('==========================================');

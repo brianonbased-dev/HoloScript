@@ -67,7 +67,9 @@ describe('buildCompiledMaterial — render-side primitive assembly', () => {
         uniforms: { uTest: { value: 1 } },
       },
     });
-    expect(typeof (material as unknown as { onBeforeCompile: unknown }).onBeforeCompile).toBe('function');
+    expect(typeof (material as unknown as { onBeforeCompile: unknown }).onBeforeCompile).toBe(
+      'function'
+    );
     expect(chunkHandle).toBeDefined();
     expect(chunkHandle!.compiled).toBe(false); // not yet compiled by GPU
 
@@ -77,7 +79,9 @@ describe('buildCompiledMaterial — render-side primitive assembly', () => {
       fragmentShader: '#include <color_fragment>\nvoid main(){}',
       uniforms: {} as Record<string, { value: unknown }>,
     };
-    (material as unknown as { onBeforeCompile: (s: typeof shader) => void }).onBeforeCompile(shader);
+    (material as unknown as { onBeforeCompile: (s: typeof shader) => void }).onBeforeCompile(
+      shader
+    );
     expect(shader.fragmentShader).toContain('#include <color_fragment>\nINJECT;');
     expect(shader.uniforms.uTest).toEqual({ value: 1 });
   });

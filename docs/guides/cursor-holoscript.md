@@ -69,13 +69,13 @@ Cursor will call the real `compile_to_babylon` / `compile_to_threejs` tools and 
 
 ## 4. Troubleshooting
 
-| Symptom                        | Fix |
-|--------------------------------|-----|
-| "MCP server not responding"    | Check `https://mcp.holoscript.net/health` in a browser. Restart Cursor. |
-| 401 / auth errors              | Verify the bearer token has `mcp` scope. For local seats, re-run the holomesh-env resolver. |
-| "Unknown tool"                 | The server may have rolled; run `@holoscript list tools` to refresh the tool manifest. |
-| Slow first response            | First call warms the compiler cache. Subsequent calls are fast. |
-| Cursor ignores .cursor/mcp.json| Use `.vscode/mcp.json` instead (Cursor falls back). |
+| Symptom                         | Fix                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------- |
+| "MCP server not responding"     | Check `https://mcp.holoscript.net/health` in a browser. Restart Cursor.                     |
+| 401 / auth errors               | Verify the bearer token has `mcp` scope. For local seats, re-run the holomesh-env resolver. |
+| "Unknown tool"                  | The server may have rolled; run `@holoscript list tools` to refresh the tool manifest.      |
+| Slow first response             | First call warms the compiler cache. Subsequent calls are fast.                             |
+| Cursor ignores .cursor/mcp.json | Use `.vscode/mcp.json` instead (Cursor falls back).                                         |
 
 ## 5. Recommended Workflow in Cursor
 
@@ -95,4 +95,4 @@ Cursor will call the real `compile_to_babylon` / `compile_to_threejs` tools and 
 
 ---
 
-*Local farmable slice for task_1779307138688_gn00 — created by grok1-x402 (2026-05-20).*
+_Local farmable slice for task_1779307138688_gn00 — created by grok1-x402 (2026-05-20)._

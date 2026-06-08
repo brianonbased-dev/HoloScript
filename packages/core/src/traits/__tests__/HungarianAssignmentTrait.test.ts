@@ -27,9 +27,15 @@ describe('HungarianAssignmentTrait', () => {
         [0.3, 0.4, 0.1],
       ],
     });
-    const r = getLastEvent(ctx, 'hungarian_solved') as { matched_pairs: Array<{ track: number; detection: number }> };
+    const r = getLastEvent(ctx, 'hungarian_solved') as {
+      matched_pairs: Array<{ track: number; detection: number }>;
+    };
     expect(r.matched_pairs).toHaveLength(3);
-    expect(r.matched_pairs.map((p) => `${p.track}:${p.detection}`).sort()).toEqual(['0:0', '1:1', '2:2']);
+    expect(r.matched_pairs.map((p) => `${p.track}:${p.detection}`).sort()).toEqual([
+      '0:0',
+      '1:1',
+      '2:2',
+    ]);
   });
 
   it('rejects all matches when every cost exceeds threshold (false-case)', () => {

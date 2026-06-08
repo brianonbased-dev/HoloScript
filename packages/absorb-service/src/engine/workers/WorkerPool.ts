@@ -22,11 +22,7 @@ import { Worker } from 'worker_threads';
 import * as os from 'os';
 
 function isReadySignal(msg: unknown): msg is { type: 'ready' } {
-  return (
-    typeof msg === 'object' &&
-    msg !== null &&
-    (msg as { type?: unknown }).type === 'ready'
-  );
+  return typeof msg === 'object' && msg !== null && (msg as { type?: unknown }).type === 'ready';
 }
 
 function isWorkerJobMessage(msg: unknown): msg is { jobId: string } {

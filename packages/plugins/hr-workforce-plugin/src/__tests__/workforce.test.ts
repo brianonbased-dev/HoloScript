@@ -28,19 +28,35 @@ const makeEmployee = (
   exp = 5,
   perf = 3,
   level = 2,
-  tenure = 3,
-): Employee => ({ id, group, salary, yearsExperience: exp, performanceRating: perf, jobLevel: level, tenureYears: tenure });
+  tenure = 3
+): Employee => ({
+  id,
+  group,
+  salary,
+  yearsExperience: exp,
+  performanceRating: perf,
+  jobLevel: level,
+  tenureYears: tenure,
+});
 
 // 10 male employees, 10 female employees — equal pay by design
 const equalPayEmployees: Employee[] = [
-  ...Array.from({ length: 5 }, (_, i) => makeEmployee(`m${i}`, 'male',   60000 + i * 1000, 5, 3, 2, 3)),
-  ...Array.from({ length: 5 }, (_, i) => makeEmployee(`f${i}`, 'female', 60000 + i * 1000, 5, 3, 2, 3)),
+  ...Array.from({ length: 5 }, (_, i) =>
+    makeEmployee(`m${i}`, 'male', 60000 + i * 1000, 5, 3, 2, 3)
+  ),
+  ...Array.from({ length: 5 }, (_, i) =>
+    makeEmployee(`f${i}`, 'female', 60000 + i * 1000, 5, 3, 2, 3)
+  ),
 ];
 
 // Unequal pay: males earn 20% more than females (same experience/level)
 const unequalPayEmployees: Employee[] = [
-  ...Array.from({ length: 5 }, (_, i) => makeEmployee(`m${i}`, 'male',   72000 + i * 1000, 5, 3, 2, 3)),
-  ...Array.from({ length: 5 }, (_, i) => makeEmployee(`f${i}`, 'female', 60000 + i * 1000, 5, 3, 2, 3)),
+  ...Array.from({ length: 5 }, (_, i) =>
+    makeEmployee(`m${i}`, 'male', 72000 + i * 1000, 5, 3, 2, 3)
+  ),
+  ...Array.from({ length: 5 }, (_, i) =>
+    makeEmployee(`f${i}`, 'female', 60000 + i * 1000, 5, 3, 2, 3)
+  ),
 ];
 
 // ─── Pay equity analysis ──────────────────────────────────────────────────────
@@ -66,15 +82,19 @@ describe('payEquityAnalysis', () => {
   it('significant gap → p-value < 0.05', () => {
     // Need more employees for significance — create larger dataset
     const big: Employee[] = [
-      ...Array.from({ length: 20 }, (_, i) => makeEmployee(`m${i}`, 'male',   70000 + i * 200, 5, 3, 2, 3)),
-      ...Array.from({ length: 20 }, (_, i) => makeEmployee(`f${i}`, 'female', 55000 + i * 200, 5, 3, 2, 3)),
+      ...Array.from({ length: 20 }, (_, i) =>
+        makeEmployee(`m${i}`, 'male', 70000 + i * 200, 5, 3, 2, 3)
+      ),
+      ...Array.from({ length: 20 }, (_, i) =>
+        makeEmployee(`f${i}`, 'female', 55000 + i * 200, 5, 3, 2, 3)
+      ),
     ];
     const r = payEquityAnalysis(big, 'male', 'female');
     expect(r.pValue).toBeLessThan(0.05);
     expect(r.significant).toBe(true);
   });
 
-  it('Cohen\'s d is non-negative for positive gap', () => {
+  it("Cohen's d is non-negative for positive gap", () => {
     const r = payEquityAnalysis(unequalPayEmployees, 'male', 'female');
     expect(r.cohensD).toBeGreaterThan(0);
   });
@@ -101,15 +121,15 @@ describe('meritBudgetAllocation', () => {
 
   it('high performer gets higher merit % than low performer', () => {
     const r = meritBudgetAllocation(emps, 0.03);
-    const highPerfAlloc = r.allocations.find(a => a.id === 'a')!;
-    const lowPerfAlloc  = r.allocations.find(a => a.id === 'c')!;
+    const highPerfAlloc = r.allocations.find((a) => a.id === 'a')!;
+    const lowPerfAlloc = r.allocations.find((a) => a.id === 'c')!;
     expect(highPerfAlloc.meritPct).toBeGreaterThan(lowPerfAlloc.meritPct);
   });
 
   it('new salary = old salary × (1 + meritPct)', () => {
     const r = meritBudgetAllocation(emps, 0.03);
     for (const alloc of r.allocations) {
-      const emp = emps.find(e => e.id === alloc.id)!;
+      const emp = emps.find((e) => e.id === alloc.id)!;
       expect(alloc.newSalary).toBeCloseTo(emp.salary * (1 + alloc.meritPct), 4);
     }
   });
@@ -158,13 +178,13 @@ describe('workforceForecast', () => {
 // ─── Attrition risk ───────────────────────────────────────────────────────────
 
 describe('attritionRiskScoring', () => {
-  const newHire = makeEmployee('new', 'all', 40000, 0, 2, 1, 0.5);  // short tenure, low salary, low perf
-  const veteran = makeEmployee('vet', 'all', 80000, 10, 5, 4, 8);    // long tenure, high salary, high perf
+  const newHire = makeEmployee('new', 'all', 40000, 0, 2, 1, 0.5); // short tenure, low salary, low perf
+  const veteran = makeEmployee('vet', 'all', 80000, 10, 5, 4, 8); // long tenure, high salary, high perf
 
   it('new hire has higher risk than veteran', () => {
     const r = attritionRiskScoring([newHire, veteran]);
-    const newScore = r.scores.find(s => s.id === 'new')!.riskScore;
-    const vetScore = r.scores.find(s => s.id === 'vet')!.riskScore;
+    const newScore = r.scores.find((s) => s.id === 'new')!.riskScore;
+    const vetScore = r.scores.find((s) => s.id === 'vet')!.riskScore;
     expect(newScore).toBeGreaterThan(vetScore);
   });
 
@@ -209,12 +229,12 @@ describe('attritionRiskScoring', () => {
 
 describe('headcountPlan', () => {
   it('gap = required - current (adjusted for attrition)', () => {
-    const r = headcountPlan(80, 100, 0.10, 5);
+    const r = headcountPlan(80, 100, 0.1, 5);
     expect(r.gap).toBeGreaterThan(0); // need to hire
   });
 
   it('no gap when current ≥ attrition-adjusted required', () => {
-    const r = headcountPlan(150, 100, 0.10, 5);
+    const r = headcountPlan(150, 100, 0.1, 5);
     expect(r.gap).toBeLessThanOrEqual(0);
     expect(r.timeToCloseMonths).toBe(0);
   });
@@ -226,12 +246,12 @@ describe('headcountPlan', () => {
   });
 
   it('attrition-adjusted required > plain required', () => {
-    const r = headcountPlan(80, 100, 0.10, 5);
+    const r = headcountPlan(80, 100, 0.1, 5);
     expect(r.attritionAdjustedRequired).toBeGreaterThan(100);
   });
 
   it('throws for negative current headcount', () => {
-    expect(() => headcountPlan(-1, 100, 0.10, 5)).toThrow();
+    expect(() => headcountPlan(-1, 100, 0.1, 5)).toThrow();
   });
 });
 

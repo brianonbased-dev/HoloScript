@@ -44,7 +44,7 @@ const agent = await fetch('/api/agent/register', {
 });
 
 const { agentId } = await agent.json();
-console.log('Agent registered:', agentId);`
+console.log('Agent registered:', agentId);`,
   };
 }
 
@@ -106,7 +106,7 @@ await fetch('/api/agent/complete', {
       duration: Date.now() - startTime
     }
   })
-});`
+});`,
   };
 }
 
@@ -118,12 +118,17 @@ for (let i = 0; i < 5000; i++) {
 // MCP TOOL CALL PATTERNS (5,000 examples)
 // ============================================================================
 
-const MCP_SERVERS = ['hololand-substrate', 'holoscript-language', 'uaa2-service', 'semantic-search-hub'];
+const MCP_SERVERS = [
+  'hololand-substrate',
+  'holoscript-language',
+  'uaa2-service',
+  'semantic-search-hub',
+];
 const MCP_TOOLS = {
   'hololand-substrate': ['generate_scene', 'validate_holoscript', 'render_preview'],
   'holoscript-language': ['parse', 'compile', 'analyze'],
   'uaa2-service': ['register_agent', 'execute_task', 'get_metrics'],
-  'semantic-search-hub': ['search_knowledge', 'add_pattern', 'get_session_context']
+  'semantic-search-hub': ['search_knowledge', 'add_pattern', 'get_session_context'],
 };
 
 function generateMCPToolCall(): TrainingExample {
@@ -155,7 +160,7 @@ const result = await fetch('http://localhost:5567/tools/call', {
 });
 
 const data = await result.json();
-console.log('Tool result:', data);`
+console.log('Tool result:', data);`,
   };
 }
 
@@ -177,7 +182,10 @@ function generateMonitoring(): TrainingExample {
     output: `// Monitoring Service: ${metric}
 import { EventEmitter } from 'events';
 
-class ${metric.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join('')}Monitor extends EventEmitter {
+class ${metric
+      .split('_')
+      .map((w) => w[0].toUpperCase() + w.slice(1))
+      .join('')}Monitor extends EventEmitter {
   private metrics: number[] = [];
   private threshold = { warning: 80, critical: 95 };
 
@@ -223,7 +231,10 @@ class ${metric.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join('')}Mon
   }
 }
 
-export const monitor = new ${metric.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join('')}Monitor();`
+export const monitor = new ${metric
+      .split('_')
+      .map((w) => w[0].toUpperCase() + w.slice(1))
+      .join('')}Monitor();`,
   };
 }
 
@@ -348,13 +359,13 @@ async function withFallback<T>(
       throw new Error('Both primary and fallback failed');
     }
   }
-}`
+}`,
   };
 
   return {
     instruction: `Implement ${pattern.replace('_', ' ')} pattern for uAA2 service`,
     input: '',
-    output: code[pattern]
+    output: code[pattern],
   };
 }
 

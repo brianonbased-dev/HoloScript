@@ -83,9 +83,7 @@ function assertNonEmpty(value: string, name: string): void {
   }
 }
 
-function makeEntry(
-  base: Omit<VerdictEntry, 'entryKey'>,
-): VerdictEntry {
+function makeEntry(base: Omit<VerdictEntry, 'entryKey'>): VerdictEntry {
   const entryKey = buildConjectureStableKey('conjecture.verdict-ledger.entry', {
     claimId: base.claimId,
     status: base.status,
@@ -151,7 +149,7 @@ export function reopenVerdict(ledger: VerdictLedger, input: ReopenVerdictInput):
   const current = ledger.current;
   if (!current.assumptions.includes(input.overturnedAssumption)) {
     throw new Error(
-      `verdict-ledger: cannot overturn assumption "${input.overturnedAssumption}" — the current verdict did not depend on it`,
+      `verdict-ledger: cannot overturn assumption "${input.overturnedAssumption}" — the current verdict did not depend on it`
     );
   }
 
@@ -208,7 +206,7 @@ export function conjectureStatusToVerdict(status: ConjectureStatus): VerdictStat
  */
 export function verdictFromConjectureReceipt(
   receipt: ConjectureReceipt,
-  timestamp: string,
+  timestamp: string
 ): VerdictLedger {
   return recordVerdict({
     claimId: receipt.claim.id,
@@ -234,6 +232,6 @@ export function verdictHistory(ledger: VerdictLedger): ReadonlyArray<string> {
   return ledger.entries.map((e) =>
     e.reopenedBecause
       ? `${e.status} @ ${e.timestamp} (re-opened: assumption "${e.reopenedBecause}" overturned)`
-      : `${e.status} @ ${e.timestamp} (under: ${e.assumptions.join(', ') || 'no stated assumptions'})`,
+      : `${e.status} @ ${e.timestamp} (under: ${e.assumptions.join(', ') || 'no stated assumptions'})`
   );
 }

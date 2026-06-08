@@ -92,9 +92,7 @@ export function UserMenu({ setShowSetupWizard, setShowImportWizard }: UserMenuPr
                 <span className="text-base shrink-0">{preset.emoji}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-medium truncate">{preset.label}</p>
-                  <p className="text-[9px] text-studio-muted/70 truncate">
-                    {preset.description}
-                  </p>
+                  <p className="text-[9px] text-studio-muted/70 truncate">{preset.description}</p>
                 </div>
                 {activePresetId === preset.id && (
                   <CheckCircle className="h-3.5 w-3.5 text-emerald-400 shrink-0" />

@@ -52,19 +52,19 @@ describe('ChainTrait', () => {
       type: 'chain_link_update',
       linkIndex: 2,
       position: [1, 2, 3],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
     });
-    expect((node as any).__chainState.links[2].position).toEqual([1, 2, 3 ]);
+    expect((node as any).__chainState.links[2].position).toEqual([1, 2, 3]);
   });
 
   it('updates all links via chain_full_update', () => {
-    const positions = Array.from({ length: 5 }, (_, i) => ([i, 0, 0 ]));
+    const positions = Array.from({ length: 5 }, (_, i) => [i, 0, 0]);
     sendEvent(chainHandler, node, cfg, ctx, {
       type: 'chain_full_update',
       positions,
       rotations: [],
     });
-    expect((node as any).__chainState.links[3].position).toEqual([3, 0, 0 ]);
+    expect((node as any).__chainState.links[3].position).toEqual([3, 0, 0]);
   });
 
   it('breaks chain when breakable', () => {

@@ -67,9 +67,11 @@ export function makeChunkInjector(set: ShaderChunkSet): (shader: InjectableShade
       if (!src.includes(token)) continue; // splice point absent → skip, don't corrupt
       const pos = chunk.position ?? 'after';
       const replacement =
-        pos === 'after' ? `${token}\n${chunk.code}`
-        : pos === 'before' ? `${chunk.code}\n${token}`
-        : chunk.code;
+        pos === 'after'
+          ? `${token}\n${chunk.code}`
+          : pos === 'before'
+            ? `${chunk.code}\n${token}`
+            : chunk.code;
       shader[key] = src.replace(token, replacement);
     }
   };
@@ -90,13 +92,13 @@ export interface ShaderChunkHandle {
  */
 export function attachShaderChunks(
   material: THREE.Material,
-  set: ShaderChunkSet,
+  set: ShaderChunkSet
 ): ShaderChunkHandle {
   const inject = makeChunkInjector(set);
   let live: InjectableShader | null = null;
   // three.js Material.onBeforeCompile: (shader, renderer) => void
   (material as unknown as { onBeforeCompile: (s: InjectableShader) => void }).onBeforeCompile = (
-    shader: InjectableShader,
+    shader: InjectableShader
   ) => {
     inject(shader);
     live = shader;

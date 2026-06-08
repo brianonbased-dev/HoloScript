@@ -171,7 +171,13 @@ export function AvatarPreview() {
             <div className="mt-2 space-y-1 text-xs text-studio-muted">
               <div className="flex justify-between">
                 <span>Base parts</span>
-                <span>{[config.head, config.body, config.hair, config.eyes, config.mouth].filter(Boolean).length}</span>
+                <span>
+                  {
+                    [config.head, config.body, config.hair, config.eyes, config.mouth].filter(
+                      Boolean
+                    ).length
+                  }
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Clothing</span>
@@ -184,7 +190,9 @@ export function AvatarPreview() {
               <div className="flex justify-between border-t border-studio-border pt-1">
                 <span className="text-white">Total</span>
                 <span className="text-white">
-                  {[config.head, config.body, config.hair, config.eyes, config.mouth].filter(Boolean).length +
+                  {[config.head, config.body, config.hair, config.eyes, config.mouth].filter(
+                    Boolean
+                  ).length +
                     config.clothing.length +
                     config.accessories.length}
                 </span>

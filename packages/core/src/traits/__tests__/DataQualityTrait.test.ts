@@ -48,20 +48,40 @@ describe('DataQualityTrait — onEvent', () => {
   it('quality:check passes and emits quality:result with valid=true', () => {
     const node = makeNode();
     dataQualityHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    dataQualityHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'quality:check', rule: 'not_null', valid: true,
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('quality:result', expect.objectContaining({
-      rule: 'not_null', valid: true, checks: 1, passRate: 1,
-    }));
+    dataQualityHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'quality:check',
+        rule: 'not_null',
+        valid: true,
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'quality:result',
+      expect.objectContaining({
+        rule: 'not_null',
+        valid: true,
+        checks: 1,
+        passRate: 1,
+      })
+    );
   });
 
   it('quality:check fails and increments failed count', () => {
     const node = makeNode();
     dataQualityHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    dataQualityHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'quality:check', rule: 'range_check', valid: false,
-    } as never);
+    dataQualityHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'quality:check',
+        rule: 'range_check',
+        valid: false,
+      } as never
+    );
     const state = node.__dqState as { checks: number; passed: number; failed: number };
     expect(state.failed).toBe(1);
     expect(state.passed).toBe(0);
@@ -70,9 +90,24 @@ describe('DataQualityTrait — onEvent', () => {
   it('passRate is accurate across mixed results', () => {
     const node = makeNode();
     dataQualityHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    dataQualityHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'quality:check', rule: 'r', valid: true } as never);
-    dataQualityHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'quality:check', rule: 'r', valid: true } as never);
-    dataQualityHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'quality:check', rule: 'r', valid: false } as never);
+    dataQualityHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'quality:check', rule: 'r', valid: true } as never
+    );
+    dataQualityHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'quality:check', rule: 'r', valid: true } as never
+    );
+    dataQualityHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'quality:check', rule: 'r', valid: false } as never
+    );
     const calls = node.emit.mock.calls;
     const lastResult = calls[calls.length - 1][1] as { passRate: number };
     expect(lastResult.passRate).toBeCloseTo(2 / 3);

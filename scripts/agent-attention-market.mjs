@@ -23,7 +23,7 @@ const WEIGHTS = {
   priority: 0.55,
   urgency: 0.15,
   claim_history: 0.15,
-  tag_match: 0.10,
+  tag_match: 0.1,
   scope_size: 0.05,
 };
 
@@ -93,9 +93,7 @@ export function scoreTask(task, agentTags = []) {
 }
 
 export function rankTasks(tasks, agentTags = []) {
-  return tasks
-    .map((t) => scoreTask(t, agentTags))
-    .sort((a, b) => b.score - a.score);
+  return tasks.map((t) => scoreTask(t, agentTags)).sort((a, b) => b.score - a.score);
 }
 
 async function fetchBoard(teamId) {
@@ -129,8 +127,12 @@ async function main() {
     const board = await fetchBoard(args.team);
     tasks = board.tasks?.filter((t) => t.status === 'open') || [];
   } else {
-    console.error('Usage: node scripts/agent-attention-market.mjs --team <teamId> [--tags tag1,tag2]');
-    console.error('   or: cat board.json | node scripts/agent-attention-market.mjs --dump [--tags tag1,tag2]');
+    console.error(
+      'Usage: node scripts/agent-attention-market.mjs --team <teamId> [--tags tag1,tag2]'
+    );
+    console.error(
+      '   or: cat board.json | node scripts/agent-attention-market.mjs --dump [--tags tag1,tag2]'
+    );
     process.exit(1);
   }
 

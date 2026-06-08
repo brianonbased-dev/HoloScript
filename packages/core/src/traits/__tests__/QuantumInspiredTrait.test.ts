@@ -22,12 +22,7 @@ import {
   type SnnAcceleratorLike,
   type SnnAcceleratorProvider,
 } from '../QuantumInspiredTrait';
-import {
-  createMockContext,
-  createMockNode,
-  attachTrait,
-  sendEvent,
-} from './traitTestHelpers';
+import { createMockContext, createMockNode, attachTrait, sendEvent } from './traitTestHelpers';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -365,33 +360,23 @@ describe('QuantumInspiredTrait', () => {
       );
 
       // First optimize — initialize called once.
-      sendEvent(
-        quantumInspiredHandler,
-        node,
-        { acceleratorProvider: () => mockAccelerator },
-        ctx,
-        { type: 'qi:optimize', payload: { input: makeInput(128) } }
-      );
+      sendEvent(quantumInspiredHandler, node, { acceleratorProvider: () => mockAccelerator }, ctx, {
+        type: 'qi:optimize',
+        payload: { input: makeInput(128) },
+      });
       await flushAsync();
       expect(initSpy).toHaveBeenCalledTimes(1);
 
       // Reset.
-      sendEvent(
-        quantumInspiredHandler,
-        node,
-        { acceleratorProvider: () => mockAccelerator },
-        ctx,
-        { type: 'qi:reset' }
-      );
+      sendEvent(quantumInspiredHandler, node, { acceleratorProvider: () => mockAccelerator }, ctx, {
+        type: 'qi:reset',
+      });
 
       // Second optimize after reset — initialize called again.
-      sendEvent(
-        quantumInspiredHandler,
-        node,
-        { acceleratorProvider: () => mockAccelerator },
-        ctx,
-        { type: 'qi:optimize', payload: { input: makeInput(128) } }
-      );
+      sendEvent(quantumInspiredHandler, node, { acceleratorProvider: () => mockAccelerator }, ctx, {
+        type: 'qi:optimize',
+        payload: { input: makeInput(128) },
+      });
       await flushAsync();
       expect(initSpy).toHaveBeenCalledTimes(2);
     });
@@ -442,13 +427,10 @@ describe('QuantumInspiredTrait', () => {
         ctx
       );
 
-      sendEvent(
-        quantumInspiredHandler,
-        node,
-        { acceleratorProvider: () => mockAccelerator },
-        ctx,
-        { type: 'qi:optimize', payload: { input: makeInput(128) } }
-      );
+      sendEvent(quantumInspiredHandler, node, { acceleratorProvider: () => mockAccelerator }, ctx, {
+        type: 'qi:optimize',
+        payload: { input: makeInput(128) },
+      });
       await flushAsync();
 
       const result = ctx.emittedEvents.find((e) => e.event === 'qi:result');
@@ -470,13 +452,10 @@ describe('QuantumInspiredTrait', () => {
         ctx
       );
 
-      sendEvent(
-        quantumInspiredHandler,
-        node,
-        { acceleratorProvider: () => mockAccelerator },
-        ctx,
-        { type: 'qi:optimize', payload: { input: makeInput(128), requestId: 'fail-1' } }
-      );
+      sendEvent(quantumInspiredHandler, node, { acceleratorProvider: () => mockAccelerator }, ctx, {
+        type: 'qi:optimize',
+        payload: { input: makeInput(128), requestId: 'fail-1' },
+      });
       await flushAsync();
 
       const err = ctx.emittedEvents.find((e) => e.event === 'qi:error');

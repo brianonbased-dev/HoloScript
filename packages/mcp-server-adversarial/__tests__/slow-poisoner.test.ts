@@ -31,11 +31,7 @@ function makeAttack(overrides: Partial<SlowPoisonerConfig> = {}): SlowPoisonerAt
 }
 
 // Helper: run N rounds against a context that returns the same trust each round.
-function runRounds(
-  attack: SlowPoisonerAttack,
-  trustValue: number,
-  rounds: number
-): AttackResult[] {
+function runRounds(attack: SlowPoisonerAttack, trustValue: number, rounds: number): AttackResult[] {
   const ctx = mockContext(Array(rounds).fill(trustValue));
   const history: AttackResult[] = [];
   for (let r = 1; r <= rounds; r++) {
@@ -52,9 +48,7 @@ describe('SlowPoisonerAttack — constructor validation', () => {
 
   it('rejects non-finite biasPerCall', () => {
     expect(() => makeAttack({ biasPerCall: Number.NaN })).toThrow(RangeError);
-    expect(() => makeAttack({ biasPerCall: Number.POSITIVE_INFINITY })).toThrow(
-      RangeError
-    );
+    expect(() => makeAttack({ biasPerCall: Number.POSITIVE_INFINITY })).toThrow(RangeError);
   });
 
   it('rejects aggregateBiasThreshold <= 0', () => {

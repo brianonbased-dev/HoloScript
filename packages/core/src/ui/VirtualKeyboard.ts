@@ -70,4 +70,3 @@ export function createVirtualKeyboard(id: string, config: VirtualKeyboardConfig)
 
   return keyboard;
 }
-

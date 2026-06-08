@@ -235,7 +235,8 @@ export const ANSCapabilityPath = {
   BABYLON: '/compile/web3d/babylon',
   WEBGPU: '/compile/web3d/webgpu',
   R3F: '/compile/web3d/r3f',
-  PLAYCANVAS: '/compile/web3d/playcanvas',  THREEJS: '/compile/web3d/threejs',
+  PLAYCANVAS: '/compile/web3d/playcanvas',
+  THREEJS: '/compile/web3d/threejs',
   // ── runtime ──────────────────────────────────────────────────────────
   WASM: '/compile/runtime/wasm',
   NODE_SERVICE: '/compile/runtime/node-service',

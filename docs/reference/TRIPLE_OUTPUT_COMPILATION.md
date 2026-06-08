@@ -273,7 +273,7 @@ cd packages/core
 pnpm vitest run CompilerDocumentationGenerator.test.ts
 ```
 
-**Result:** ✅ 27/[see NUMBERS.md]  pass
+**Result:** ✅ 27/[see NUMBERS.md] pass
 
 ### Test Coverage
 

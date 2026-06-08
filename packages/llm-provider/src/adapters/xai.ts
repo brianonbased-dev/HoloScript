@@ -70,7 +70,7 @@ export const XAI_MODEL_CAPABILITIES = {
   // Source: docs.x.ai/developers/models/grok-4-0709 (verified 2026-06-08)
   'grok-4-0709': {
     contextWindow: 256_000,
-    maxOutput: 0,          // not published by xAI as of 2026-06-08
+    maxOutput: 0, // not published by xAI as of 2026-06-08
     costPerMillion: {
       input: 3.0,
       inputAbove128K: 6.0, // xAI higher-context tier above 128K tokens
@@ -84,9 +84,9 @@ export const XAI_MODEL_CAPABILITIES = {
   // Source: x.ai/news/grok-4-fast (verified 2026-06-08)
   'grok-4-fast-reasoning': {
     contextWindow: 2_000_000,
-    maxOutput: 0,          // not published by xAI as of 2026-06-08
+    maxOutput: 0, // not published by xAI as of 2026-06-08
     costPerMillion: {
-      input: 0,            // pricing not published as of 2026-06-08
+      input: 0, // pricing not published as of 2026-06-08
       inputAbove128K: 0,
       cachedInput: 0,
       output: 0,
@@ -96,9 +96,9 @@ export const XAI_MODEL_CAPABILITIES = {
   },
   'grok-4-fast-non-reasoning': {
     contextWindow: 2_000_000,
-    maxOutput: 0,          // not published by xAI as of 2026-06-08
+    maxOutput: 0, // not published by xAI as of 2026-06-08
     costPerMillion: {
-      input: 0,            // pricing not published as of 2026-06-08
+      input: 0, // pricing not published as of 2026-06-08
       inputAbove128K: 0,
       cachedInput: 0,
       output: 0,
@@ -176,13 +176,13 @@ export const XAI_CAPABILITIES: Capabilities = {
   },
 
   streaming: true,
-  tools: true,                   // OpenAI-compatible function calling
-  vision: true,                  // text + image input
+  tools: true, // OpenAI-compatible function calling
+  vision: true, // text + image input
 
   visibleReasoning: true,
-  adjustableEffort: true,        // Grok 4 supports reasoning effort controls
-  liveWebSearch: true,           // Live Search (real-time web + X-platform)
-  promptCaching: true,           // cached-token pricing
+  adjustableEffort: true, // Grok 4 supports reasoning effort controls
+  liveWebSearch: true, // Live Search (real-time web + X-platform)
+  promptCaching: true, // cached-token pricing
   structuredOutputs: true,
   bearerTokenAccess: true,
 };
@@ -289,16 +289,12 @@ export class XAIAdapter extends BaseLLMAdapter {
         const retryAfter = (err as { headers?: { 'retry-after'?: string } }).headers?.[
           'retry-after'
         ];
-        return new LLMRateLimitError(
-          'xai',
-          retryAfter ? parseInt(retryAfter) * 1000 : undefined
-        );
+        return new LLMRateLimitError('xai', retryAfter ? parseInt(retryAfter) * 1000 : undefined);
       }
       if (status === 400 && err.message.includes('context_length')) {
         return new LLMContextLengthError('xai', 0);
       }
-      const isRetryableStatus =
-        typeof status === 'number' && status >= 500 && status < 600;
+      const isRetryableStatus = typeof status === 'number' && status >= 500 && status < 600;
       return new LLMProviderError(err.message, 'xai', status, isRetryableStatus);
     }
     return new LLMProviderError(String(err), 'xai');

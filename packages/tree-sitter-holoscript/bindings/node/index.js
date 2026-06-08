@@ -96,8 +96,8 @@ if (nativeBinding) {
   // Async consumers should use loadHoloScript() or initWasm().
   console.warn(
     '[tree-sitter-holoscript] Native binding not found. ' +
-    'WASM fallback available via: require("tree-sitter-holoscript").initWasm() ' +
-    'or require("tree-sitter-holoscript/wasm")'
+      'WASM fallback available via: require("tree-sitter-holoscript").initWasm() ' +
+      'or require("tree-sitter-holoscript/wasm")'
   );
   module.exports = null;
 }
@@ -114,7 +114,7 @@ if (module.exports !== null) {
   module.exports = {
     initWasm,
     loadHoloScript,
-    isWasm: null,  // null = not yet determined (native failed, WASM not tried)
+    isWasm: null, // null = not yet determined (native failed, WASM not tried)
     language: null,
     name: 'holoscript',
   };

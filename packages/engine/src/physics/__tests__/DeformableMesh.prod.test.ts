@@ -12,10 +12,10 @@ describe('DeformableMesh — Production', () => {
   function mkMesh() {
     const m = new DeformableMesh();
     m.setVertices([
-      [0, 0, 0 ],
-      [1, 0, 0 ],
-      [2, 0, 0 ],
-      [0, 1, 0 ],
+      [0, 0, 0],
+      [1, 0, 0],
+      [2, 0, 0],
+      [0, 1, 0],
     ]);
     return m;
   }
@@ -57,7 +57,7 @@ describe('DeformableMesh — Production', () => {
     // applyImpact modifies velocity, not position directly.
     // Also dist===0 is skipped, so use a center offset from actual vertex.
     const m = mkMesh();
-    m.applyImpact([0.5, 0, 0 ], 2, 10);
+    m.applyImpact([0.5, 0, 0], 2, 10);
     // Vertices at (0,0,0) and (1,0,0) are within radius 2, and dist != 0
     const v0 = m.getVertex(0)!;
     const velMag = Math.abs(v0.velocity[0]) + Math.abs(v0.velocity[1]) + Math.abs(v0.velocity[2]);
@@ -67,10 +67,10 @@ describe('DeformableMesh — Production', () => {
   it('applyImpact does not affect far vertices', () => {
     const m = new DeformableMesh();
     m.setVertices([
-      [0, 0, 0 ],
-      [100, 0, 0 ],
+      [0, 0, 0],
+      [100, 0, 0],
     ]);
-    m.applyImpact([0.1, 0, 0 ], 1, 10);
+    m.applyImpact([0.1, 0, 0], 1, 10);
     // vertex at 100 should have zero velocity
     const v1 = m.getVertex(1)!;
     expect(v1.velocity[0]).toBe(0);
@@ -79,7 +79,7 @@ describe('DeformableMesh — Production', () => {
   // ─── Simulation ───────────────────────────────────────────────────
   it('update moves vertices with velocity', () => {
     const m = mkMesh();
-    m.applyImpact([0.5, 0, 0 ], 2, 10);
+    m.applyImpact([0.5, 0, 0], 2, 10);
     m.update(1 / 60);
     // After update, displacement should be > 0
     expect(m.getMaxDisplacement()).toBeGreaterThan(0);
@@ -89,7 +89,7 @@ describe('DeformableMesh — Production', () => {
     const m = mkMesh();
     m.addSpring(0, 1);
     m.addSpring(1, 2);
-    m.applyImpact([0.5, 0, 0 ], 2, 5);
+    m.applyImpact([0.5, 0, 0], 2, 5);
     for (let i = 0; i < 200; i++) m.update(1 / 60);
     // Springs should prevent unbounded growth
     const disp = m.getMaxDisplacement();
@@ -107,7 +107,7 @@ describe('DeformableMesh — Production', () => {
     const m = mkMesh();
     const v = m.getVertex(0)!;
     v.locked = true;
-    m.applyImpact([0.5, 0, 0 ], 2, 10);
+    m.applyImpact([0.5, 0, 0], 2, 10);
     expect(m.getDisplacement(0)).toBe(0);
   });
 });

@@ -71,9 +71,11 @@ export async function handleHoloMeshRoute(
   // 1. Real-time SSE Room (V7)
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/room\/live$/)) {
     const teamId = extractParam(url, '/api/holomesh/team/').replace('/room/live', '');
-    console.log(`[holomesh] SSE connection attempt for team ${teamId} from ${req.headers['user-agent'] || 'unknown'}`);
+    console.log(
+      `[holomesh] SSE connection attempt for team ${teamId} from ${req.headers['user-agent'] || 'unknown'}`
+    );
     const searchParams = new URL(url, 'http://localhost').searchParams;
-    
+
     const agentId = searchParams.get('agent_id') || 'anonymous';
     // Hook SSE peer discovery into Gossip network
     meshGossip.shareWisdom(agentId, { teamId, status: 'sse_live', ts: Date.now() });
@@ -160,8 +162,7 @@ export async function handleHoloMeshRoute(
       json(res, 400, { success: false, error: 'frame { frameId, probes, ... } is required' });
       return true;
     }
-    const publisherAgentId =
-      typeof body.agent_id === 'string' ? body.agent_id : undefined;
+    const publisherAgentId = typeof body.agent_id === 'string' ? body.agent_id : undefined;
     const result = publishTtuFrame(sessionId, frame, publisherAgentId);
     json(res, 200, { success: true, sessionId, ...result });
     return true;
@@ -225,8 +226,8 @@ export async function handleHoloMeshRoute(
 
   // 3. Fallback/Uncached routes
   if (pathname === '/api/holomesh/health' && method === 'GET') {
-    json(res, 200, { 
-      status: 'operational', 
+    json(res, 200, {
+      status: 'operational',
       version: '6.1.0',
       orchestrator: getClient().getAgentId() ? 'connected' : 'disconnected',
       contracts: {

@@ -75,13 +75,13 @@ The `solverType` family has five instances. Adding a sixth (`industrial.witness.
 
 Recent research validates the market need and technical feasibility:
 
-| Paper / Framework | Key Claim | HoloScript Parity |
-|---|---|---|
-| Pietri et al., IEEE CCNC 2026 | Blockchain dynamic certification for industrial DT lifecycle | We have Base anchoring + drift detection; they use generic blockchain |
-| Lutz & Reich, AIBB 2025 | Digital machine passport in AAS with tamper-proof audit trail | Our provenance manifest is the passport; AAS mapping is the gap |
-| Ali et al., Frontiers 2025 | Hyperledger + TPM attestation for IIoT DT access control | ZKPrivateTrait circuits + selective disclosure match the access-control need |
-| Rinieri et al., arXiv 2511.10248 | IOTA + programmable data plane for OPC UA certificate validation | Our bridge would sit at the application layer, not the certificate layer |
-| Siemens/NVIDIA industrial metaverse | OpenUSD as universal exchange | HoloScript's `@usd` trait (`ECOSYSTEM_EXPANSION_ROADMAP.md:222`) aligns |
+| Paper / Framework                   | Key Claim                                                        | HoloScript Parity                                                            |
+| ----------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Pietri et al., IEEE CCNC 2026       | Blockchain dynamic certification for industrial DT lifecycle     | We have Base anchoring + drift detection; they use generic blockchain        |
+| Lutz & Reich, AIBB 2025             | Digital machine passport in AAS with tamper-proof audit trail    | Our provenance manifest is the passport; AAS mapping is the gap              |
+| Ali et al., Frontiers 2025          | Hyperledger + TPM attestation for IIoT DT access control         | ZKPrivateTrait circuits + selective disclosure match the access-control need |
+| Rinieri et al., arXiv 2511.10248    | IOTA + programmable data plane for OPC UA certificate validation | Our bridge would sit at the application layer, not the certificate layer     |
+| Siemens/NVIDIA industrial metaverse | OpenUSD as universal exchange                                    | HoloScript's `@usd` trait (`ECOSYSTEM_EXPANSION_ROADMAP.md:222`) aligns      |
 
 **Signal strength:** 4+ peer-reviewed venues in 6 months covering blockchain + OPC UA + digital twins. This is not a speculative idea — it is an **emerging standard** that HoloScript can define the reference implementation for.
 
@@ -135,46 +135,46 @@ Physical Device (OPC UA / Modbus / MQTT)
 
 ### 4.1 New Components
 
-| Component | Location | Size Estimate | Risk |
-|---|---|---|---|
-| `IndustrialWitnessAdapter` | `packages/engine/src/simulation/industrialWitnessAdapter.ts` | ~300 LOC | Medium — depends on `node-opcua` availability |
-| `industrial.witness.v1` wire format | `packages/engine/src/simulation/industrialWitnessRecord.ts` | ~150 LOC | Low — follows `network.event.v1` pattern |
-| `threshold_exceeded` ZK circuit | `packages/core/src/traits/ZKPrivateTrait.ts` | ~30 LOC | Low — direct `price_range_proof` analog |
-| Smart-factory scenario update | `packages/studio/src/__tests__/scenarios/industrial-plant-designer.scenario.ts` | ~100 LOC | Low — extends existing scenario |
+| Component                           | Location                                                                        | Size Estimate | Risk                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------- | ------------- | --------------------------------------------- |
+| `IndustrialWitnessAdapter`          | `packages/engine/src/simulation/industrialWitnessAdapter.ts`                    | ~300 LOC      | Medium — depends on `node-opcua` availability |
+| `industrial.witness.v1` wire format | `packages/engine/src/simulation/industrialWitnessRecord.ts`                     | ~150 LOC      | Low — follows `network.event.v1` pattern      |
+| `threshold_exceeded` ZK circuit     | `packages/core/src/traits/ZKPrivateTrait.ts`                                    | ~30 LOC       | Low — direct `price_range_proof` analog       |
+| Smart-factory scenario update       | `packages/studio/src/__tests__/scenarios/industrial-plant-designer.scenario.ts` | ~100 LOC      | Low — extends existing scenario               |
 
 ### 4.2 Re-used Components (No New Code)
 
-| Component | Evidence |
-|---|---|
-| `stableStringify` / wire key | `equivalenceRecord.ts` |
-| Base L2 anchoring | `scripts/build-provenance-manifest.mjs` |
-| Provenance explorer UI | `docs/.vitepress/theme/ProvenanceExplorer.vue` |
-| Courtroom evidence engine | `packages/studio/src/lib/courtroomEvidence.ts` |
-| Selective disclosure | `ZkPrivateTrait.ts:458-489` |
-| Digital twin trait | `packages/core/src/traits/DigitalTwinTrait.ts` |
+| Component                    | Evidence                                       |
+| ---------------------------- | ---------------------------------------------- |
+| `stableStringify` / wire key | `equivalenceRecord.ts`                         |
+| Base L2 anchoring            | `scripts/build-provenance-manifest.mjs`        |
+| Provenance explorer UI       | `docs/.vitepress/theme/ProvenanceExplorer.vue` |
+| Courtroom evidence engine    | `packages/studio/src/lib/courtroomEvidence.ts` |
+| Selective disclosure         | `ZkPrivateTrait.ts:458-489`                    |
+| Digital twin trait           | `packages/core/src/traits/DigitalTwinTrait.ts` |
 
 ---
 
 ## 5. Gap Analysis
 
-| Gap | Severity | Blocker For | Resolution |
-|---|---|---|---|
-| OPC UA runtime handler missing | **High** | Ingestion from real PLCs | Validate `node-opcua` or native adapter; fallback to MQTT Sparkplug B |
-| No `industrial.witness.v1` solverType | **Medium** | Canonical witness records | Follow `network.event.v1` pattern; ~1 session |
-| No `threshold_exceeded` ZK circuit | **Low** | Privacy-preserving compliance | Copy `price_range_proof` structure; ~1 session |
-| No AAS (Asset Administration Shell) mapping | **Medium** | Siemens/Industry 4.0 interoperability | Research task; map AAS submodel to `@dtdl_interface` |
-| No TPM attestation integration | **Low** | Hardware-rooted trust | Defer; Ali et al. 2025 shows this is research-grade, not production-ready |
+| Gap                                         | Severity   | Blocker For                           | Resolution                                                                |
+| ------------------------------------------- | ---------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| OPC UA runtime handler missing              | **High**   | Ingestion from real PLCs              | Validate `node-opcua` or native adapter; fallback to MQTT Sparkplug B     |
+| No `industrial.witness.v1` solverType       | **Medium** | Canonical witness records             | Follow `network.event.v1` pattern; ~1 session                             |
+| No `threshold_exceeded` ZK circuit          | **Low**    | Privacy-preserving compliance         | Copy `price_range_proof` structure; ~1 session                            |
+| No AAS (Asset Administration Shell) mapping | **Medium** | Siemens/Industry 4.0 interoperability | Research task; map AAS submodel to `@dtdl_interface`                      |
+| No TPM attestation integration              | **Low**    | Hardware-rooted trust                 | Defer; Ali et al. 2025 shows this is research-grade, not production-ready |
 
 ---
 
 ## 6. Risk Register
 
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| `node-opcua` dependency breaks WASM edge target | Medium | High | Use MQTT Sparkplug B as primary protocol for edge; OPC UA for cloud/factory-floor |
-| Sensor data volume overwhelms Base L2 anchor cadence | Medium | Medium | Batch witness records (batch interval + batch size, mirroring `DIGITAL_TWINS.md:317-322`); anchor batches, not individual readings |
-| ZK proof latency too high for real-time safety systems | Low | High | ZK is for **audit/post-hoc liability**, not real-time control. Keep control loops in OPC UA; witness bridge is asynchronous. |
-| Legal admissibility of blockchain-anchored sensor data untested | Medium | Medium | Partner with legal-tech pilot; document chain-of-custody rigorously. Courtroom evidence engine (`courtroomEvidence.ts`) is the right UX layer. |
+| Risk                                                            | Likelihood | Impact | Mitigation                                                                                                                                     |
+| --------------------------------------------------------------- | ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `node-opcua` dependency breaks WASM edge target                 | Medium     | High   | Use MQTT Sparkplug B as primary protocol for edge; OPC UA for cloud/factory-floor                                                              |
+| Sensor data volume overwhelms Base L2 anchor cadence            | Medium     | Medium | Batch witness records (batch interval + batch size, mirroring `DIGITAL_TWINS.md:317-322`); anchor batches, not individual readings             |
+| ZK proof latency too high for real-time safety systems          | Low        | High   | ZK is for **audit/post-hoc liability**, not real-time control. Keep control loops in OPC UA; witness bridge is asynchronous.                   |
+| Legal admissibility of blockchain-anchored sensor data untested | Medium     | Medium | Partner with legal-tech pilot; document chain-of-custody rigorously. Courtroom evidence engine (`courtroomEvidence.ts`) is the right UX layer. |
 
 ---
 

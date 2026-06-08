@@ -57,7 +57,7 @@ VERIFICATION STEP — before finishing, mentally verify:
 - A10: dist(large_gear, small_gear) == 1.0 + 0.4 ?
 - A09: 64 tiles + 8 white + 8 black pawns = 80 objects total?
 - A04: Start (0,0) connects to Goal (4,4) through exactly one path?
-- A08: 3 cars, each centered in a distinct 2.5x5m space?`
+- A08: 3 cars, each centered in a distinct 2.5x5m space?`;
 
 export function buildAllConfigs(opts: BuildConfigsOptions): ConfigRunner[] {
   const client = new Anthropic({ apiKey: opts.anthropicApiKey });
@@ -92,9 +92,4 @@ export const ALL_CONFIG_NAMES: ConfigName[] = [
   'ollama-baseline',
 ];
 
-export {
-  makeBrittneyProd,
-  makeCursorBaseline,
-  makeClaudeCodeBaseline,
-  makeVanillaBaseline,
-};
+export { makeBrittneyProd, makeCursorBaseline, makeClaudeCodeBaseline, makeVanillaBaseline };

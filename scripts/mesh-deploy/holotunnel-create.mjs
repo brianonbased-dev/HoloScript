@@ -35,17 +35,17 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const { values } = parseArgs({
   allowPositionals: false,
   options: {
-    port:           { type: 'string', default: '4426' },
+    port: { type: 'string', default: '4426' },
     'session-name': { type: 'string', default: 'paper26-sim' },
-    'local-host':   { type: 'string', default: 'localhost' },
-    'expires-at':   { type: 'string', default: '' },
+    'local-host': { type: 'string', default: 'localhost' },
+    'expires-at': { type: 'string', default: '' },
   },
 });
 
-const port        = parseInt(values['port'], 10);
+const port = parseInt(values['port'], 10);
 const sessionName = values['session-name'];
-const localHost   = values['local-host'];
-const expiresAt   = values['expires-at'] || undefined;
+const localHost = values['local-host'];
+const expiresAt = values['expires-at'] || undefined;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Load env (try .env in repo root)
@@ -53,7 +53,7 @@ const expiresAt   = values['expires-at'] || undefined;
 
 function loadEnv() {
   const roots = [
-    join(__dirname, '../../.env'),    // HoloScript/.env
+    join(__dirname, '../../.env'), // HoloScript/.env
     join(__dirname, '../../../.env'), // parent
   ];
   for (const envPath of roots) {
@@ -66,13 +66,15 @@ function loadEnv() {
         }
       }
       break;
-    } catch { /* not found */ }
+    } catch {
+      /* not found */
+    }
   }
 }
 
 loadEnv();
 
-const apiKey  = process.env.HOLOSCRIPT_API_KEY;
+const apiKey = process.env.HOLOSCRIPT_API_KEY;
 const mcpBase = process.env.MCP_BASE_URL || 'https://mcp.holoscript.net';
 
 if (!apiKey) {
@@ -86,10 +88,10 @@ if (!apiKey) {
 
 const body = JSON.stringify({
   jsonrpc: '2.0',
-  id:      1,
-  method:  'tools/call',
-  params:  {
-    name:      'holo_tunnel_create',
+  id: 1,
+  method: 'tools/call',
+  params: {
+    name: 'holo_tunnel_create',
     arguments: {
       port,
       localHost,
@@ -102,9 +104,9 @@ const body = JSON.stringify({
 
 try {
   const resp = await fetch(`${mcpBase}/mcp`, {
-    method:  'POST',
+    method: 'POST',
     headers: {
-      'Content-Type':  'application/json',
+      'Content-Type': 'application/json',
       'x-mcp-api-key': apiKey,
     },
     body,
@@ -133,7 +135,6 @@ try {
   const result = JSON.parse(rawText);
   process.stdout.write(JSON.stringify(result) + '\n');
   process.exit(0);
-
 } catch (err) {
   process.stderr.write(`ERROR: ${err.message}\n`);
   process.exit(1);

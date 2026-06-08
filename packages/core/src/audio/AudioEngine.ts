@@ -49,7 +49,7 @@ export class AudioEngine {
       id,
       soundId,
       volume: options.volume ?? 1,
-      spatialize: options.spatialize ?? (options.position !== undefined),
+      spatialize: options.spatialize ?? options.position !== undefined,
       position: toTuple(options.position),
       refDistance: options.refDistance ?? 1,
       maxDistance: options.maxDistance ?? 10000,
@@ -142,7 +142,7 @@ export class AudioEngine {
             const clamped = Math.min(Math.max(distance, src.refDistance), src.maxDistance);
             const range = src.maxDistance - src.refDistance;
             if (range > 0) {
-              vol *= 1 - src.rolloffFactor * (clamped - src.refDistance) / range;
+              vol *= 1 - (src.rolloffFactor * (clamped - src.refDistance)) / range;
             }
           }
 

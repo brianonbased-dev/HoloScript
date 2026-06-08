@@ -69,9 +69,7 @@ describe('createTrial', () => {
   });
 
   it('assigns unique trial IDs', () => {
-    const ids = new Set(
-      Array.from({ length: 50 }, () => createTrial('p', 'a', 'b').trialId),
-    );
+    const ids = new Set(Array.from({ length: 50 }, () => createTrial('p', 'a', 'b').trialId));
     expect(ids.size).toBe(50);
   });
 });
@@ -111,7 +109,7 @@ describe('aggregateResults', () => {
     const trials: ABTrial[] = Array.from({ length: 40 }, (_, i) => {
       const t = createTrial('p', 'a', 'b');
       // Force LSC win on first 30
-      return recordChoice(t, i < 30 ? t.lscSide : (t.lscSide === 'left' ? 'right' : 'left'), 3);
+      return recordChoice(t, i < 30 ? t.lscSide : t.lscSide === 'left' ? 'right' : 'left', 3);
     });
     const r = aggregateResults(trials);
     expect(r.trialCount).toBe(40);
@@ -119,15 +117,15 @@ describe('aggregateResults', () => {
     expect(r.baselineWins).toBe(10);
     expect(r.preferenceRate).toBeCloseTo(0.75, 4);
     expect(r.ci95[0]).toBeCloseTo(0.598, 3); // Wilson lower bound for 30/40
-    expect(r.ci95[1]).toBeLessThan(0.9);    // upper bound ~0.858
-    expect(r.passesGate).toBe(false);       // 0.598 < 0.65
+    expect(r.ci95[1]).toBeLessThan(0.9); // upper bound ~0.858
+    expect(r.passesGate).toBe(false); // 0.598 < 0.65
     expect(r.binomialP).toBeLessThan(0.005);
   });
 
   it('passes gate at n=100 with 75% preference', () => {
     const trials: ABTrial[] = Array.from({ length: 100 }, (_, i) => {
       const t = createTrial('p', 'a', 'b');
-      return recordChoice(t, i < 75 ? t.lscSide : (t.lscSide === 'left' ? 'right' : 'left'), 3);
+      return recordChoice(t, i < 75 ? t.lscSide : t.lscSide === 'left' ? 'right' : 'left', 3);
     });
     const r = aggregateResults(trials);
     expect(r.preferenceRate).toBeCloseTo(0.75, 4);
@@ -138,7 +136,7 @@ describe('aggregateResults', () => {
   it('fails gate when preference is only 55%', () => {
     const trials: ABTrial[] = Array.from({ length: 40 }, (_, i) => {
       const t = createTrial('p', 'a', 'b');
-      return recordChoice(t, i < 22 ? t.lscSide : (t.lscSide === 'left' ? 'right' : 'left'), 3);
+      return recordChoice(t, i < 22 ? t.lscSide : t.lscSide === 'left' ? 'right' : 'left', 3);
     });
     const r = aggregateResults(trials);
     expect(r.preferenceRate).toBeCloseTo(0.55, 4);

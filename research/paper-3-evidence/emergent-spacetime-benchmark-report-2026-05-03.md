@@ -10,15 +10,16 @@ This benchmark establishes a **CPU baseline** for the Emergent Spacetime trait. 
 
 ## Paper 3 §7.8 Claims
 
-| Metric | Claim | CPU Result | GPU Target |
-|--------|-------|------------|------------|
-| 500 voxels | <16ms/frame | 16.37ms ✗ | <10ms |
-| 1000 voxels | <33ms/frame | 142.10ms ✗ | <20ms |
-| Ricci computation | <10μs/voxel | 35.21μs ✗ | <5μs |
+| Metric            | Claim       | CPU Result | GPU Target |
+| ----------------- | ----------- | ---------- | ---------- |
+| 500 voxels        | <16ms/frame | 16.37ms ✗  | <10ms      |
+| 1000 voxels       | <33ms/frame | 142.10ms ✗ | <20ms      |
+| Ricci computation | <10μs/voxel | 35.21μs ✗  | <5μs       |
 
 ## Benchmark Results (CPU Baseline)
 
 ### 500 Voxels
+
 - **Average Frame Time:** 16.37ms (61.1 FPS)
 - **Median Frame Time:** 16.44ms
 - **P95 Frame Time:** 18.53ms
@@ -26,6 +27,7 @@ This benchmark establishes a **CPU baseline** for the Emergent Spacetime trait. 
 - **Status:** Marginally misses 60 FPS target
 
 ### 1000 Voxels
+
 - **Average Frame Time:** 142.10ms (7.0 FPS)
 - **Median Frame Time:** 137.76ms
 - **P95 Frame Time:** 190.52ms
@@ -47,7 +49,7 @@ The WebGPU implementation (`packages/snn-webgpu/src/emergent-spacetime/`) provid
 
 1. **Massive Parallelism:** 256-thread workgroups process voxels concurrently
 2. **GPU Memory:** High-bandwidth VRAM (48GB+ on target GPUs)
-3. **Compute Shaders:** 
+3. **Compute Shaders:**
    - `forceLayout` shader: parallel spring/repulsion forces
    - `computeRicci` shader: parallel curvature computation
 4. **Instanced Rendering:** Single draw call for all voxels
@@ -56,12 +58,12 @@ The WebGPU implementation (`packages/snn-webgpu/src/emergent-spacetime/`) provid
 
 RTX 6000 Ada was not available on Vast.ai at time of testing. Equivalent alternatives:
 
-| GPU | VRAM | $/hr | Expected Performance |
-|-----|------|------|---------------------|
-| RTX PRO 6000 S | 96GB | $1.01-2.40 | Meets all claims |
-| RTX 4090 | 48GB | $0.67 | Meets all claims |
-| H100 NVL | 94GB | $1.76 | Exceeds claims |
-| H200 | 140GB | $3.36 | Best option |
+| GPU            | VRAM  | $/hr       | Expected Performance |
+| -------------- | ----- | ---------- | -------------------- |
+| RTX PRO 6000 S | 96GB  | $1.01-2.40 | Meets all claims     |
+| RTX 4090       | 48GB  | $0.67      | Meets all claims     |
+| H100 NVL       | 94GB  | $1.76      | Exceeds claims       |
+| H200           | 140GB | $3.36      | Best option          |
 
 ## Next Steps
 

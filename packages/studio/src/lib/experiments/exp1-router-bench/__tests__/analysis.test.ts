@@ -1,16 +1,19 @@
 import { describe, it, expect } from 'vitest';
 
-import {
-  bootstrapDiffCI,
-  passRateDiffCI,
-  analyzeReport,
-  buildExp1Receipt,
-} from '../analysis';
+import { bootstrapDiffCI, passRateDiffCI, analyzeReport, buildExp1Receipt } from '../analysis';
 import type { Arm, BenchDomain, BenchReport, TaskArmOutcome } from '../types';
 import type { KillVerdict } from '../metrics';
 
 function outcome(taskId: string, arm: Arm, passed: boolean, inputTokens = 100): TaskArmOutcome {
-  return { taskId, arm, passed, inputTokens, outputTokens: 10, provenanceCoverage: 1, oracleContractId: 'c' };
+  return {
+    taskId,
+    arm,
+    passed,
+    inputTokens,
+    outputTokens: 10,
+    provenanceCoverage: 1,
+    oracleContractId: 'c',
+  };
 }
 
 function synthReport(rows: TaskArmOutcome[]): BenchReport {
@@ -74,9 +77,15 @@ describe('passRateDiffCI — paired by task', () => {
 describe('analyzeReport — per-domain + C1/C2 CIs', () => {
   it('breaks results down by domain and computes both effect CIs', () => {
     const rows: TaskArmOutcome[] = [
-      outcome('bounds-1', 'A', false), outcome('bounds-1', 'B', true), outcome('bounds-1', 'C', true),
-      outcome('bounds-2', 'A', false), outcome('bounds-2', 'B', true), outcome('bounds-2', 'C', true),
-      outcome('trait-1', 'A', true), outcome('trait-1', 'B', true), outcome('trait-1', 'C', false),
+      outcome('bounds-1', 'A', false),
+      outcome('bounds-1', 'B', true),
+      outcome('bounds-1', 'C', true),
+      outcome('bounds-2', 'A', false),
+      outcome('bounds-2', 'B', true),
+      outcome('bounds-2', 'C', true),
+      outcome('trait-1', 'A', true),
+      outcome('trait-1', 'B', true),
+      outcome('trait-1', 'C', false),
     ];
     const domainByTask = new Map<string, BenchDomain>([
       ['bounds-1', 'contract-bounds'],
@@ -100,7 +109,9 @@ describe('analyzeReport — per-domain + C1/C2 CIs', () => {
 describe('buildExp1Receipt — replayable audit artifact', () => {
   it('captures models, providers, verdict, analysis, timestamp', () => {
     const report = synthReport([
-      outcome('t0', 'A', true), outcome('t0', 'B', true), outcome('t0', 'C', true),
+      outcome('t0', 'A', true),
+      outcome('t0', 'B', true),
+      outcome('t0', 'C', true),
     ]);
     const verdict = { thesisDead: false } as KillVerdict;
     const analysis = analyzeReport(report, new Map([['t0', 'holo-authoring' as BenchDomain]]), 1);

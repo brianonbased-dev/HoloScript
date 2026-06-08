@@ -48,9 +48,7 @@ describe('self-custody-client helpers', () => {
 
   describe('isApiError', () => {
     it('accepts success:false envelopes', () => {
-      expect(isApiError({ success: false, error: 'x', http_status: 400 })).toBe(
-        true
-      );
+      expect(isApiError({ success: false, error: 'x', http_status: 400 })).toBe(true);
     });
     it('rejects success:true envelopes', () => {
       expect(isApiError({ success: true })).toBe(false);
@@ -69,9 +67,7 @@ describe('self-custody-client helpers', () => {
     });
 
     it('bad_ownership_proof resumes at ownership', () => {
-      expect(recoveryTargetForError('bad_ownership_proof', 400)).toBe(
-        'awaiting-ownership'
-      );
+      expect(recoveryTargetForError('bad_ownership_proof', 400)).toBe('awaiting-ownership');
     });
 
     it('session_expired routes to idle', () => {

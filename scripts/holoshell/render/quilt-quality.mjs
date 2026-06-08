@@ -19,7 +19,7 @@ function stdDev(values) {
 }
 
 function lumaAt(rgba, offset) {
-  return ((0.2126 * rgba[offset] + 0.7152 * rgba[offset + 1] + 0.0722 * rgba[offset + 2]) || 0) / 255;
+  return (0.2126 * rgba[offset] + 0.7152 * rgba[offset + 1] + 0.0722 * rgba[offset + 2] || 0) / 255;
 }
 
 function isForeground(rgba, offset) {
@@ -104,17 +104,29 @@ function gradeFor(score) {
   return 'poor';
 }
 
-export function analyzeQuiltQuality({ rgba, width, height, tileWidth, tileHeight, columns, rows, views }) {
+export function analyzeQuiltQuality({
+  rgba,
+  width,
+  height,
+  tileWidth,
+  tileHeight,
+  columns,
+  rows,
+  views,
+}) {
   if (!(rgba instanceof Uint8Array)) throw new Error('rgba must be a Uint8Array');
-  if (rgba.length !== width * height * 4) throw new Error('rgba length does not match width/height');
+  if (rgba.length !== width * height * 4)
+    throw new Error('rgba length does not match width/height');
   const tileCount = Math.min(views, columns * rows);
   const stats = [];
   for (let i = 0; i < tileCount; i += 1) {
-    stats.push(tileStats({
-      rgba,
-      width,
-      bounds: tileBounds(i, columns, tileWidth, tileHeight),
-    }));
+    stats.push(
+      tileStats({
+        rgba,
+        width,
+        bounds: tileBounds(i, columns, tileWidth, tileHeight),
+      })
+    );
   }
 
   const coverageValues = stats.map((stat) => stat.foregroundCoverage);
@@ -123,12 +135,14 @@ export function analyzeQuiltQuality({ rgba, width, height, tileWidth, tileHeight
   const lumaValues = stats.map((stat) => stat.meanLuminance);
   const deltas = [];
   for (let i = 1; i < tileCount; i += 1) {
-    deltas.push(tileDifference({
-      rgba,
-      width,
-      a: tileBounds(i - 1, columns, tileWidth, tileHeight),
-      b: tileBounds(i, columns, tileWidth, tileHeight),
-    }));
+    deltas.push(
+      tileDifference({
+        rgba,
+        width,
+        a: tileBounds(i - 1, columns, tileWidth, tileHeight),
+        b: tileBounds(i, columns, tileWidth, tileHeight),
+      })
+    );
   }
 
   const foregroundCoverage = average(coverageValues);
@@ -142,12 +156,19 @@ export function analyzeQuiltQuality({ rgba, width, height, tileWidth, tileHeight
   const contrastScore = clamp01(contrast / 0.35);
   const detailScore = clamp01(edgeScore * 0.72 + contrastScore * 0.28);
   const consistencyScore = clamp01(1 - coverageStdDev / 0.18);
-  const viewDeltaScore = clamp01(viewDeltaMean < 0.06 ? viewDeltaMean / 0.06 : 1 - Math.max(0, viewDeltaMean - 0.18) / 0.32);
+  const viewDeltaScore = clamp01(
+    viewDeltaMean < 0.06 ? viewDeltaMean / 0.06 : 1 - Math.max(0, viewDeltaMean - 0.18) / 0.32
+  );
   const brightnessScore = clamp01(1 - Math.abs(average(lumaValues) - 0.32) / 0.32);
-  const fragmentationPenalty = edgeEnergy > 0.07 && contrast > 0.26 ? clamp01((edgeEnergy - 0.07) / 0.05) * 0.28 : 0;
+  const fragmentationPenalty =
+    edgeEnergy > 0.07 && contrast > 0.26 ? clamp01((edgeEnergy - 0.07) / 0.05) * 0.28 : 0;
   const score = clamp01(
-    coverageScore * 0.18 + detailScore * 0.34 + consistencyScore * 0.1 + viewDeltaScore * 0.28 + brightnessScore * 0.1
-    - fragmentationPenalty
+    coverageScore * 0.18 +
+      detailScore * 0.34 +
+      consistencyScore * 0.1 +
+      viewDeltaScore * 0.28 +
+      brightnessScore * 0.1 -
+      fragmentationPenalty
   );
   const warnings = [];
   if (foregroundCoverage < 0.16) warnings.push('low-foreground-coverage');

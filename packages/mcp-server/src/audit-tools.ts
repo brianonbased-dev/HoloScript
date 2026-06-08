@@ -137,11 +137,11 @@ export function countCompilerFiles(root: string = HOLOSCRIPT_ROOT): string {
 export function countTraitCategoryFiles(root: string = HOLOSCRIPT_ROOT): string {
   const constantsDir = path.join(root, 'packages', 'core', 'src', 'traits', 'constants');
   if (!fs.existsSync(constantsDir)) return '0';
-  const count = fs.readdirSync(constantsDir, { withFileTypes: true }).filter((entry) => (
-    entry.isFile() &&
-    entry.name.endsWith('.ts') &&
-    !entry.name.endsWith('.d.ts')
-  )).length;
+  const count = fs
+    .readdirSync(constantsDir, { withFileTypes: true })
+    .filter(
+      (entry) => entry.isFile() && entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')
+    ).length;
   return String(count);
 }
 
@@ -295,7 +295,8 @@ export async function handleAuditNumbers(_args: Record<string, unknown>): Promis
 export const auditTools: Tool[] = [
   {
     name: 'holoscript_audit_numbers',
-    description: 'Audit all ecosystem metrics against live ground truth. Collects live metrics ' +
+    description:
+      'Audit all ecosystem metrics against live ground truth. Collects live metrics ' +
       '(compiler count, trait categories, knowledge entries), scans all docs/configs/skills ' +
       'for each metric, and reports mismatches. Replaces manual re-audit loops.',
     inputSchema: {

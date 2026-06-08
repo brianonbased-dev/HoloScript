@@ -111,7 +111,6 @@ export async function POST(
   return proxyStream(req, projectId, effectiveBody);
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

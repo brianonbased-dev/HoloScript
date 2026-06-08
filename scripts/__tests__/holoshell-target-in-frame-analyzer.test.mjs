@@ -33,7 +33,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -43,29 +45,74 @@ assertEq(detected.schemaVersion, RECEIPT_VERSION, 'schema version');
 assertEq(detected.status, 'pass', 'analyzer status pass');
 assertEq(validateReceipt(detected).length, 0, 'detected receipt validates');
 assertEq(detected.detection.status, 'detected', 'target PNG detected');
-assertOk(detected.detection.score >= detected.detection.threshold, 'detected score clears threshold');
-assertOk(detected.detection.cornerCandidates.length >= 4, 'detected receipt provides bounds corners');
-assertEq(detected.detection.calibrationReady, false, 'detected receipt does not claim calibration readiness');
+assertOk(
+  detected.detection.score >= detected.detection.threshold,
+  'detected score clears threshold'
+);
+assertOk(
+  detected.detection.cornerCandidates.length >= 4,
+  'detected receipt provides bounds corners'
+);
+assertEq(
+  detected.detection.calibrationReady,
+  false,
+  'detected receipt does not claim calibration readiness'
+);
 assertEq(validateReceipt(fiducialDetected).length, 0, 'fiducial board receipt validates');
 assertEq(fiducialDetected.target.profile, 'fiducial-board', 'fiducial board profile recorded');
 assertEq(fiducialDetected.target.markerCount, 9, 'fiducial marker count recorded');
 assertEq(fiducialDetected.detection.status, 'detected', 'fiducial board PNG detected');
-assertEq(fiducialDetected.detection.detectionMode, 'fiducial-marker-corners', 'fiducial marker corner mode recorded');
+assertEq(
+  fiducialDetected.detection.detectionMode,
+  'fiducial-marker-corners',
+  'fiducial marker corner mode recorded'
+);
 assertEq(fiducialDetected.detection.recoveredMarkerCount, 9, 'all fiducial markers recovered');
 assertEq(fiducialDetected.detection.markerCornerCount, 36, 'all fiducial marker corners recovered');
-assertEq(fiducialDetected.detection.poseSolveInputReady, true, 'fiducial corners are pose-solve inputs');
-assertEq(fiducialDetected.detection.calibrationReady, false, 'fiducial marker recovery is not calibration');
-assertEq(fiducialDetected.detection.boardPose.status, 'homography-estimated', 'board homography estimated');
-assertEq(fiducialDetected.detection.boardHomographyReady, true, 'board homography readiness recorded');
-assertOk(fiducialDetected.detection.boardPose.reprojection.rmsPixels <= 1.5, 'board homography RMS is low');
+assertEq(
+  fiducialDetected.detection.poseSolveInputReady,
+  true,
+  'fiducial corners are pose-solve inputs'
+);
+assertEq(
+  fiducialDetected.detection.calibrationReady,
+  false,
+  'fiducial marker recovery is not calibration'
+);
+assertEq(
+  fiducialDetected.detection.boardPose.status,
+  'homography-estimated',
+  'board homography estimated'
+);
+assertEq(
+  fiducialDetected.detection.boardHomographyReady,
+  true,
+  'board homography readiness recorded'
+);
 assertOk(
-  fiducialDetected.detection.boardPose.reprojection.residuals.every((residual) => residual.source && residual.observed),
+  fiducialDetected.detection.boardPose.reprojection.rmsPixels <= 1.5,
+  'board homography RMS is low'
+);
+assertOk(
+  fiducialDetected.detection.boardPose.reprojection.residuals.every(
+    (residual) => residual.source && residual.observed
+  ),
   'board homography residuals carry source and observed corners'
 );
-assertEq(fiducialDetected.detection.boardPose.calibrationReady, false, 'board homography is not camera calibration');
-assertEq(fiducialDetected.detection.boardPose.solvePnPReady, false, 'homography does not claim solvePnP');
+assertEq(
+  fiducialDetected.detection.boardPose.calibrationReady,
+  false,
+  'board homography is not camera calibration'
+);
+assertEq(
+  fiducialDetected.detection.boardPose.solvePnPReady,
+  false,
+  'homography does not claim solvePnP'
+);
 assertOk(
-  fiducialDetected.detection.fiducialMarkers.every((marker) => marker.corners.length === 4 && marker.confidence >= 0.76),
+  fiducialDetected.detection.fiducialMarkers.every(
+    (marker) => marker.corners.length === 4 && marker.confidence >= 0.76
+  ),
   'each recovered marker carries four high-confidence corners'
 );
 assertOk(
@@ -84,7 +131,10 @@ const bad = {
     calibrationReady: true,
   },
 };
-assertOk(validateReceipt(bad).includes('calibrationReady must be false for heuristic detector'), 'calibration overclaim rejected');
+assertOk(
+  validateReceipt(bad).includes('calibrationReady must be false for heuristic detector'),
+  'calibration overclaim rejected'
+);
 
 console.log('Test 3: CLI self-test runs without hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {

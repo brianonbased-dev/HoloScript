@@ -3,7 +3,10 @@ import { HoloCompositionParser } from '../parser/HoloCompositionParser';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const FILE_PATH = path.resolve(process.cwd(), '../../examples/traits/throwable-breakable-stackable.holo');
+const FILE_PATH = path.resolve(
+  process.cwd(),
+  '../../examples/traits/throwable-breakable-stackable.holo'
+);
 
 describe('throwable example parse contract', () => {
   test('parses with zero fatal errors', () => {

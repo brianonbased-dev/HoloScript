@@ -65,9 +65,9 @@ function readLog(name) {
 }
 
 const packages = {
-  core:       readLog('core.log'),
-  studio:     readLog('studio.log'),
-  snnWebgpu:  readLog('snn.log'),
+  core: readLog('core.log'),
+  studio: readLog('studio.log'),
+  snnWebgpu: readLog('snn.log'),
 };
 
 const summary = {};
@@ -87,10 +87,10 @@ for (const [pkg, text] of Object.entries(packages)) {
     continue;
   }
   summary[pkg] = { status: 'ok', ...parsed };
-  totalPassed  += parsed.passed;
-  totalFailed  += parsed.failed;
+  totalPassed += parsed.passed;
+  totalFailed += parsed.failed;
   totalSkipped += parsed.skipped;
-  totalAll     += parsed.total;
+  totalAll += parsed.total;
 }
 
 const passRate = totalAll > 0 ? (totalPassed / totalAll) * 100 : 0;
@@ -99,14 +99,14 @@ const snapshot = {
   schemaVersion: 1,
   generatedAt: new Date().toISOString(),
   ci: {
-    runId:  process.env.GH_RUN_ID  || null,
+    runId: process.env.GH_RUN_ID || null,
     runUrl: process.env.GH_RUN_URL || null,
   },
   totals: {
-    passed:  totalPassed,
-    failed:  totalFailed,
+    passed: totalPassed,
+    failed: totalFailed,
     skipped: totalSkipped,
-    total:   totalAll,
+    total: totalAll,
     passRate: Number(passRate.toFixed(2)),
   },
   packages: summary,
@@ -125,7 +125,9 @@ mkdirSync(dirname(resolve(outPath)), { recursive: true });
 writeFileSync(resolve(outPath), JSON.stringify(snapshot, null, 2) + '\n', 'utf-8');
 
 console.log(`[snapshot] wrote ${outPath}`);
-console.log(`[snapshot] totals: ${totalPassed} pass / ${totalFailed} fail / ${totalAll} (${passRate.toFixed(2)}%)`);
+console.log(
+  `[snapshot] totals: ${totalPassed} pass / ${totalFailed} fail / ${totalAll} (${passRate.toFixed(2)}%)`
+);
 for (const [pkg, s] of Object.entries(summary)) {
   console.log(`[snapshot]   ${pkg}: ${JSON.stringify(s)}`);
 }

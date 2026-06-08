@@ -10,7 +10,11 @@ import {
   type OutcomeValidationResult,
 } from '../OutcomeLoop';
 import { createAnthropicProvider } from '@holoscript/llm-provider';
-import type { LLMCompletionRequest, LLMCompletionResponse, TokenUsage } from '@holoscript/llm-provider';
+import type {
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+  TokenUsage,
+} from '@holoscript/llm-provider';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -44,9 +48,22 @@ HoloScript supports 1,800+ VR traits out of the box.`,
 
 const SHARED_RUBRIC: OutcomeCriterion[] = [
   { id: 'no-any', description: 'Artifact must not use the any type.', weight: 1 },
-  { id: 'no-hardcoded', description: 'Artifact must not contain hardcoded ecosystem counts (e.g. "1,800+"). Reference a verification command instead.', weight: 1 },
-  { id: 'type-safety', description: 'Code must have explicit return types and avoid implicit any.', weight: 1 },
-  { id: 'provenance', description: 'Docs must cite a source or verification command for every quantitative claim.', weight: 1 },
+  {
+    id: 'no-hardcoded',
+    description:
+      'Artifact must not contain hardcoded ecosystem counts (e.g. "1,800+"). Reference a verification command instead.',
+    weight: 1,
+  },
+  {
+    id: 'type-safety',
+    description: 'Code must have explicit return types and avoid implicit any.',
+    weight: 1,
+  },
+  {
+    id: 'provenance',
+    description: 'Docs must cite a source or verification command for every quantitative claim.',
+    weight: 1,
+  },
 ];
 
 // ── JSON extraction helper ─────────────────────────────────────────────────
@@ -74,7 +91,10 @@ function addUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
 
 // ── Anthropic helpers ──────────────────────────────────────────────────────
 
-async function callAnthropic(system: string, user: string): Promise<{ text: string; usage: TokenUsage }> {
+async function callAnthropic(
+  system: string,
+  user: string
+): Promise<{ text: string; usage: TokenUsage }> {
   if (!provider) throw new Error('Provider not available');
   const request: LLMCompletionRequest = {
     messages: [
@@ -88,7 +108,10 @@ async function callAnthropic(system: string, user: string): Promise<{ text: stri
   return { text: response.content, usage: response.usage };
 }
 
-async function gradeArtifact(artifact: OutcomeArtifact, rubric: OutcomeCriterion[]): Promise<{ result: OutcomeGraderResult; usage: TokenUsage }> {
+async function gradeArtifact(
+  artifact: OutcomeArtifact,
+  rubric: OutcomeCriterion[]
+): Promise<{ result: OutcomeGraderResult; usage: TokenUsage }> {
   const system = `You are a brutal honest critic. Grade the artifact against the rubric. Respond ONLY with valid JSON matching this shape:
 {
   "criteria": [
@@ -98,7 +121,10 @@ async function gradeArtifact(artifact: OutcomeArtifact, rubric: OutcomeCriterion
 }`;
   const user = `Rubric:\n${JSON.stringify(rubric, null, 2)}\n\nArtifact (${artifact.path}):\n\n\`\`\`${artifact.kind}\n${artifact.content}\n\`\`\``;
   const { text, usage } = await callAnthropic(system, user);
-  const parsed = extractJson<{ criteria: Array<{ criterionId: string; score: number; passed: boolean; gap?: string }>; summary?: string }>(text);
+  const parsed = extractJson<{
+    criteria: Array<{ criterionId: string; score: number; passed: boolean; gap?: string }>;
+    summary?: string;
+  }>(text);
   const result: OutcomeGraderResult = {
     criteria: parsed.criteria.map((c) => ({
       criterionId: c.criterionId,
@@ -111,7 +137,10 @@ async function gradeArtifact(artifact: OutcomeArtifact, rubric: OutcomeCriterion
   return { result, usage };
 }
 
-async function fixArtifact(artifact: OutcomeArtifact, gaps: string[]): Promise<{ artifact: OutcomeArtifact; usage: TokenUsage }> {
+async function fixArtifact(
+  artifact: OutcomeArtifact,
+  gaps: string[]
+): Promise<{ artifact: OutcomeArtifact; usage: TokenUsage }> {
   const system = `You are a senior engineer. Fix the gaps in the artifact. Respond ONLY with valid JSON matching this shape:
 {
   "content": "the complete fixed artifact content",
@@ -126,7 +155,14 @@ async function fixArtifact(artifact: OutcomeArtifact, gaps: string[]): Promise<{
 
 // ── Direct Anthropic path ──────────────────────────────────────────────────
 
-async function runDirectAnthropic(spec: OutcomeSpec): Promise<{ artifact: OutcomeArtifact; result: OutcomeGraderResult; usage: TokenUsage; wallMs: number }> {
+async function runDirectAnthropic(
+  spec: OutcomeSpec
+): Promise<{
+  artifact: OutcomeArtifact;
+  result: OutcomeGraderResult;
+  usage: TokenUsage;
+  wallMs: number;
+}> {
   const system = `You are a senior engineer and critic. Given the artifact and rubric, produce a fixed version of the artifact AND grade yourself against the rubric. Respond ONLY with valid JSON matching this shape:
 {
   "content": "the complete fixed artifact content",
@@ -163,7 +199,14 @@ async function runDirectAnthropic(spec: OutcomeSpec): Promise<{ artifact: Outcom
 
 // ── OutcomeLoop path ─────────────────────────────────────────────────────────
 
-async function runOutcomeLoop(spec: OutcomeSpec): Promise<{ receipt: import('../OutcomeLoop').OutcomeReceipt; finalArtifact: OutcomeArtifact; usage: TokenUsage; wallMs: number }> {
+async function runOutcomeLoop(
+  spec: OutcomeSpec
+): Promise<{
+  receipt: import('../OutcomeLoop').OutcomeReceipt;
+  finalArtifact: OutcomeArtifact;
+  usage: TokenUsage;
+  wallMs: number;
+}> {
   let totalUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
   let finalArtifact: OutcomeArtifact = spec.artifacts[0];
 
@@ -173,7 +216,10 @@ async function runOutcomeLoop(spec: OutcomeSpec): Promise<{ receipt: import('../
       const { artifact: fixed, usage } = await fixArtifact(input.artifacts[0], gaps);
       totalUsage = addUsage(totalUsage, usage);
       finalArtifact = fixed;
-      return { artifacts: [fixed], notes: gaps.length > 0 ? 'Applied grader gaps.' : 'No gaps remaining.' };
+      return {
+        artifacts: [fixed],
+        notes: gaps.length > 0 ? 'Applied grader gaps.' : 'No gaps remaining.',
+      };
     },
     async grader(input): Promise<OutcomeGraderResult> {
       const { result, usage } = await gradeArtifact(input.artifacts[0], input.spec.rubric);
@@ -194,23 +240,28 @@ async function runOutcomeLoop(spec: OutcomeSpec): Promise<{ receipt: import('../
 
 // ── Fair re-grade ──────────────────────────────────────────────────────────
 
-async function fairReGrade(artifact: OutcomeArtifact, rubric: OutcomeCriterion[]): Promise<{ result: OutcomeGraderResult; usage: TokenUsage }> {
+async function fairReGrade(
+  artifact: OutcomeArtifact,
+  rubric: OutcomeCriterion[]
+): Promise<{ result: OutcomeGraderResult; usage: TokenUsage }> {
   return gradeArtifact(artifact, rubric);
 }
 
 // ── Markdown reporter ───────────────────────────────────────────────────────
 
-function renderArtifact(rows: Array<{
-  fixture: string;
-  path: string;
-  approach: string;
-  score: number;
-  passed: boolean;
-  iterations: number;
-  wallMs: number;
-  promptTokens: number;
-  completionTokens: number;
-}>): string {
+function renderArtifact(
+  rows: Array<{
+    fixture: string;
+    path: string;
+    approach: string;
+    score: number;
+    passed: boolean;
+    iterations: number;
+    wallMs: number;
+    promptTokens: number;
+    completionTokens: number;
+  }>
+): string {
   const lines: string[] = [];
   lines.push('# Benchmark: Anthropic Outcomes vs /critic quality loop');
   lines.push('');
@@ -218,8 +269,12 @@ function renderArtifact(rows: Array<{
   lines.push(`- Model: ${model}`);
   lines.push(`- Env gate: ANTHROPIC_API_KEY + BENCHMARK_CRITIC_LOOP=1`);
   lines.push('');
-  lines.push('| Fixture | Approach | Score | Passed | Iterations | Wall (ms) | Prompt TOK | Completion TOK |');
-  lines.push('|---------|----------|-------|--------|------------|-----------|------------|----------------|');
+  lines.push(
+    '| Fixture | Approach | Score | Passed | Iterations | Wall (ms) | Prompt TOK | Completion TOK |'
+  );
+  lines.push(
+    '|---------|----------|-------|--------|------------|-----------|------------|----------------|'
+  );
   for (const r of rows) {
     lines.push(
       `| ${r.fixture} | ${r.approach} | ${r.score.toFixed(4)} | ${r.passed} | ${r.iterations} | ${r.wallMs.toFixed(1)} | ${r.promptTokens} | ${r.completionTokens} |`

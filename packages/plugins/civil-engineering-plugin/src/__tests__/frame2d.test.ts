@@ -18,9 +18,9 @@ import {
 } from '../frame2d';
 
 // ─── Steel W-section defaults used across tests ────────────────────────────────
-const E_GPa = 200;   // GPa (structural steel)
-const I_m4  = 1e-4;  // m⁴  (moderate W-section)
-const A_m2  = 5e-3;  // m²  (moderate W-section area)
+const E_GPa = 200; // GPa (structural steel)
+const I_m4 = 1e-4; // m⁴  (moderate W-section)
+const A_m2 = 5e-3; // m²  (moderate W-section area)
 
 // ─── Simply-supported beam ─────────────────────────────────────────────────────
 
@@ -47,15 +47,29 @@ describe('simply-supported beam under point load', () => {
       { id: 'B', x: 6, y: 0 },
     ],
     elements: [
-      { id: 'e1', fromNodeId: 'A', toNodeId: 'M', elasticModulusGPa: E_GPa, momentOfInertiaM4: I_m4, areaM2: A_m2 },
-      { id: 'e2', fromNodeId: 'M', toNodeId: 'B', elasticModulusGPa: E_GPa, momentOfInertiaM4: I_m4, areaM2: A_m2 },
+      {
+        id: 'e1',
+        fromNodeId: 'A',
+        toNodeId: 'M',
+        elasticModulusGPa: E_GPa,
+        momentOfInertiaM4: I_m4,
+        areaM2: A_m2,
+      },
+      {
+        id: 'e2',
+        fromNodeId: 'M',
+        toNodeId: 'B',
+        elasticModulusGPa: E_GPa,
+        momentOfInertiaM4: I_m4,
+        areaM2: A_m2,
+      },
     ],
     supports: [
-      { nodeId: 'A', ux: true, uy: true },  // pin
-      { nodeId: 'B', uy: true },              // roller
+      { nodeId: 'A', ux: true, uy: true }, // pin
+      { nodeId: 'B', uy: true }, // roller
     ],
     nodalLoads: [
-      { nodeId: 'M', Fy: -P },               // downward
+      { nodeId: 'M', Fy: -P }, // downward
     ],
   };
 
@@ -107,14 +121,19 @@ describe('cantilever beam under tip load', () => {
       { id: 'B', x: L, y: 0 },
     ],
     elements: [
-      { id: 'e1', fromNodeId: 'A', toNodeId: 'B', elasticModulusGPa: E_GPa, momentOfInertiaM4: I_m4, areaM2: A_m2 },
+      {
+        id: 'e1',
+        fromNodeId: 'A',
+        toNodeId: 'B',
+        elasticModulusGPa: E_GPa,
+        momentOfInertiaM4: I_m4,
+        areaM2: A_m2,
+      },
     ],
     supports: [
       { nodeId: 'A', ux: true, uy: true, theta: true }, // fixed
     ],
-    nodalLoads: [
-      { nodeId: 'B', Fy: -P },
-    ],
+    nodalLoads: [{ nodeId: 'B', Fy: -P }],
   };
 
   it('tip deflection matches closed-form PL³/(3EI) within 1%', () => {
@@ -158,14 +177,17 @@ describe('inclined element — coordinate transformation', () => {
       { id: 'B', x: 3, y: 4 },
     ],
     elements: [
-      { id: 'e1', fromNodeId: 'A', toNodeId: 'B', elasticModulusGPa: E_GPa, momentOfInertiaM4: I_m4, areaM2: A_m2 },
+      {
+        id: 'e1',
+        fromNodeId: 'A',
+        toNodeId: 'B',
+        elasticModulusGPa: E_GPa,
+        momentOfInertiaM4: I_m4,
+        areaM2: A_m2,
+      },
     ],
-    supports: [
-      { nodeId: 'A', ux: true, uy: true, theta: true },
-    ],
-    nodalLoads: [
-      { nodeId: 'B', Fx: 100 },
-    ],
+    supports: [{ nodeId: 'A', ux: true, uy: true, theta: true }],
+    nodalLoads: [{ nodeId: 'B', Fx: 100 }],
   };
 
   it('converges for inclined element', () => {
@@ -203,8 +225,22 @@ describe('simply-supported beam under UDL', () => {
       { id: 'B', x: 6, y: 0 },
     ],
     elements: [
-      { id: 'e1', fromNodeId: 'A', toNodeId: 'M', elasticModulusGPa: E_GPa, momentOfInertiaM4: I_m4, areaM2: A_m2 },
-      { id: 'e2', fromNodeId: 'M', toNodeId: 'B', elasticModulusGPa: E_GPa, momentOfInertiaM4: I_m4, areaM2: A_m2 },
+      {
+        id: 'e1',
+        fromNodeId: 'A',
+        toNodeId: 'M',
+        elasticModulusGPa: E_GPa,
+        momentOfInertiaM4: I_m4,
+        areaM2: A_m2,
+      },
+      {
+        id: 'e2',
+        fromNodeId: 'M',
+        toNodeId: 'B',
+        elasticModulusGPa: E_GPa,
+        momentOfInertiaM4: I_m4,
+        areaM2: A_m2,
+      },
     ],
     supports: [
       { nodeId: 'A', ux: true, uy: true },
@@ -240,8 +276,20 @@ describe('validateFrame2DModel', () => {
   it('returns valid for a well-formed model', () => {
     const model: Frame2DModel = {
       id: 'valid',
-      nodes: [{ id: 'A', x: 0, y: 0 }, { id: 'B', x: 5, y: 0 }],
-      elements: [{ id: 'e1', fromNodeId: 'A', toNodeId: 'B', elasticModulusGPa: 200, momentOfInertiaM4: 1e-4, areaM2: 5e-3 }],
+      nodes: [
+        { id: 'A', x: 0, y: 0 },
+        { id: 'B', x: 5, y: 0 },
+      ],
+      elements: [
+        {
+          id: 'e1',
+          fromNodeId: 'A',
+          toNodeId: 'B',
+          elasticModulusGPa: 200,
+          momentOfInertiaM4: 1e-4,
+          areaM2: 5e-3,
+        },
+      ],
       supports: [{ nodeId: 'A', ux: true, uy: true, theta: true }],
     };
     const v = validateFrame2DModel(model);
@@ -253,7 +301,16 @@ describe('validateFrame2DModel', () => {
     const model: Frame2DModel = {
       id: 'bad-elem',
       nodes: [{ id: 'A', x: 0, y: 0 }],
-      elements: [{ id: 'e1', fromNodeId: 'A', toNodeId: 'MISSING', elasticModulusGPa: 200, momentOfInertiaM4: 1e-4, areaM2: 5e-3 }],
+      elements: [
+        {
+          id: 'e1',
+          fromNodeId: 'A',
+          toNodeId: 'MISSING',
+          elasticModulusGPa: 200,
+          momentOfInertiaM4: 1e-4,
+          areaM2: 5e-3,
+        },
+      ],
       supports: [{ nodeId: 'A', ux: true, uy: true, theta: true }],
     };
     const v = validateFrame2DModel(model);
@@ -264,8 +321,20 @@ describe('validateFrame2DModel', () => {
   it('errors when fewer than 3 DOF are restrained', () => {
     const model: Frame2DModel = {
       id: 'unstable',
-      nodes: [{ id: 'A', x: 0, y: 0 }, { id: 'B', x: 5, y: 0 }],
-      elements: [{ id: 'e1', fromNodeId: 'A', toNodeId: 'B', elasticModulusGPa: 200, momentOfInertiaM4: 1e-4, areaM2: 5e-3 }],
+      nodes: [
+        { id: 'A', x: 0, y: 0 },
+        { id: 'B', x: 5, y: 0 },
+      ],
+      elements: [
+        {
+          id: 'e1',
+          fromNodeId: 'A',
+          toNodeId: 'B',
+          elasticModulusGPa: 200,
+          momentOfInertiaM4: 1e-4,
+          areaM2: 5e-3,
+        },
+      ],
       supports: [{ nodeId: 'A', ux: true }], // only 1 DOF
     };
     const v = validateFrame2DModel(model);
@@ -276,8 +345,20 @@ describe('validateFrame2DModel', () => {
   it('solver throws for invalid model', () => {
     const model: Frame2DModel = {
       id: 'invalid',
-      nodes: [{ id: 'A', x: 0, y: 0 }, { id: 'B', x: 5, y: 0 }],
-      elements: [{ id: 'e1', fromNodeId: 'A', toNodeId: 'B', elasticModulusGPa: 200, momentOfInertiaM4: 1e-4, areaM2: 5e-3 }],
+      nodes: [
+        { id: 'A', x: 0, y: 0 },
+        { id: 'B', x: 5, y: 0 },
+      ],
+      elements: [
+        {
+          id: 'e1',
+          fromNodeId: 'A',
+          toNodeId: 'B',
+          elasticModulusGPa: 200,
+          momentOfInertiaM4: 1e-4,
+          areaM2: 5e-3,
+        },
+      ],
       supports: [], // no supports
     };
     expect(() => solveFrame2D(model)).toThrow();
@@ -295,14 +376,17 @@ describe('buildFrame2DReceipt', () => {
     ],
     elements: [
       {
-        id: 'e1', fromNodeId: 'A', toNodeId: 'B',
-        elasticModulusGPa: E_GPa, momentOfInertiaM4: I_m4, areaM2: A_m2,
-        plasticModulusM3: 5e-4, yieldStrengthMPa: 250,
+        id: 'e1',
+        fromNodeId: 'A',
+        toNodeId: 'B',
+        elasticModulusGPa: E_GPa,
+        momentOfInertiaM4: I_m4,
+        areaM2: A_m2,
+        plasticModulusM3: 5e-4,
+        yieldStrengthMPa: 250,
       },
     ],
-    supports: [
-      { nodeId: 'A', ux: true, uy: true, theta: true },
-    ],
+    supports: [{ nodeId: 'A', ux: true, uy: true, theta: true }],
     nodalLoads: [{ nodeId: 'B', Fy: -10 }],
   };
 

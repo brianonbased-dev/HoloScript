@@ -166,9 +166,7 @@ export function VoiceAuthoringButton({
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 13, color: stateColor(), fontWeight: 600 }}>
-              {stateLabel()}
-            </div>
+            <div style={{ fontSize: 13, color: stateColor(), fontWeight: 600 }}>{stateLabel()}</div>
             <button
               onClick={() => setPanelOpen(false)}
               style={{

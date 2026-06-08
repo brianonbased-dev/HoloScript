@@ -82,7 +82,12 @@ function createStorageBuffer(device: GPUDevice, data: Float32Array): GPUBuffer {
   return buf;
 }
 
-function createParamsBuffer(device: GPUDevice, rows: number, dModel: number, eps: number): GPUBuffer {
+function createParamsBuffer(
+  device: GPUDevice,
+  rows: number,
+  dModel: number,
+  eps: number
+): GPUBuffer {
   const paramsBytes = new ArrayBuffer(16);
   const view = new DataView(paramsBytes);
   view.setUint32(0, rows, true);

@@ -221,10 +221,7 @@ function readFarmSource(relativePath: string, maxLines = 300): string {
 
 // ── LLM Client (delegated to @holoscript/llm-provider — withRetry on 429/5xx) ──
 
-import {
-  AnthropicAdapter,
-  OpenRouterAdapter,
-} from '@holoscript/llm-provider';
+import { AnthropicAdapter, OpenRouterAdapter } from '@holoscript/llm-provider';
 
 let _openrouterAdapter: OpenRouterAdapter | null = null;
 let _anthropicAdapter: AnthropicAdapter | null = null;

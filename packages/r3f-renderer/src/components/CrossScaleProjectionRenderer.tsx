@@ -106,7 +106,8 @@ export function buildCrossScaleProjection(
 
   const nodes = partition.anchors.map((anchor) => {
     const projectionPath = buildProjectionPath(partition, anchor);
-    const provenanceHash = projectionPath[projectionPath.length - 1]?.provenanceHash ?? anchor.provenanceHash;
+    const provenanceHash =
+      projectionPath[projectionPath.length - 1]?.provenanceHash ?? anchor.provenanceHash;
     const pixelProxyId = `px_${sanitizeId(anchor.id)}_${provenanceHash.slice(0, 12)}`;
 
     return {
@@ -242,8 +243,7 @@ function buildProjectionPath(
 
 function stableProjectionHash(input: string): string {
   const seeds = [
-    0x811c9dc5, 0x01000193, 0x9e3779b9, 0x85ebca6b,
-    0xc2b2ae35, 0x27d4eb2f, 0x165667b1, 0xd3a2646c,
+    0x811c9dc5, 0x01000193, 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35, 0x27d4eb2f, 0x165667b1, 0xd3a2646c,
   ];
 
   return seeds.map((seed) => hashWord(input, seed)).join('');
@@ -281,9 +281,10 @@ function materialForAnchor(
   colorBy: CrossScaleProjectionColorMode
 ): CrossScaleProjectionMaterial {
   const importance = clamp01(anchor.importance);
-  const colorIndex = colorBy === 'importance'
-    ? Math.round(importance * (LOD_COLORS.length - 1))
-    : Math.abs(anchor.lodLevel) % LOD_COLORS.length;
+  const colorIndex =
+    colorBy === 'importance'
+      ? Math.round(importance * (LOD_COLORS.length - 1))
+      : Math.abs(anchor.lodLevel) % LOD_COLORS.length;
   const color = LOD_COLORS[colorIndex] ?? LOD_COLORS[0];
 
   return {

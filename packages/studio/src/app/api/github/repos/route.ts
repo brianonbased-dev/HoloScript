@@ -44,10 +44,7 @@ export async function GET(req: NextRequest) {
     // Prefer the authenticated user's OAuth token; fall back to env var for dev/CI
     const token = await getGitHubToken(req);
     if (!token) {
-      return NextResponse.json(
-        { error: getGitHubAuthRequiredMessage() },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: getGitHubAuthRequiredMessage() }, { status: 401 });
     }
 
     // Parse query params
@@ -117,7 +114,6 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

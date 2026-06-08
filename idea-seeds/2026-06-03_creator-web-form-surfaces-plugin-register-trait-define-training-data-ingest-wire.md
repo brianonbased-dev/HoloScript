@@ -8,7 +8,7 @@
 
 ## What Might Be Valuable
 
-Three polished form UIs (zod schema + react-hook-form + embedded HoloScriptEditor/AIGeneratorWizard) for creator onboarding: register a plugin, define a semantic trait, ingest a training dataset. The *front-end* work is genuinely good and reusable. If/when the team wants browser-based creator onboarding, these are a head start on the form layer — recover from git history (the removing commit) rather than rebuilding the UI.
+Three polished form UIs (zod schema + react-hook-form + embedded HoloScriptEditor/AIGeneratorWizard) for creator onboarding: register a plugin, define a semantic trait, ingest a training dataset. The _front-end_ work is genuinely good and reusable. If/when the team wants browser-based creator onboarding, these are a head start on the form layer — recover from git history (the removing commit) rather than rebuilding the UI.
 
 ## Why Not Now
 

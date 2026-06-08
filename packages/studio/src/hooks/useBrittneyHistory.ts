@@ -30,7 +30,8 @@ function legacyStorageKey(projectId: string): string {
 function readFromStorage(projectId: string): ChatMessage[] {
   try {
     const raw =
-      localStorage.getItem(storageKey(projectId)) ?? localStorage.getItem(legacyStorageKey(projectId));
+      localStorage.getItem(storageKey(projectId)) ??
+      localStorage.getItem(legacyStorageKey(projectId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];

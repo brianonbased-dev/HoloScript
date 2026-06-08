@@ -57,7 +57,7 @@ export interface GraphExecutorContext {
     to: string,
     fromPos: SpatialPosition,
     toPos: SpatialPosition,
-    dataType: string,
+    dataType: string
   ) => void;
   /** Flowing stream creation (executeStream particles). */
   createFlowingStream: (name: string, position: SpatialPosition, data: unknown) => void;
@@ -77,7 +77,8 @@ export interface GraphExecutorContext {
 // Default hologram / cosmetic constants
 // ──────────────────────────────────────────────────────────────────
 
-const FUNCTION_DEFAULT_HOLOGRAM: Omit<HologramProperties, 'shape' | 'size' | 'color'> & Partial<HologramProperties> = {
+const FUNCTION_DEFAULT_HOLOGRAM: Omit<HologramProperties, 'shape' | 'size' | 'color'> &
+  Partial<HologramProperties> = {
   shape: 'cube',
   color: '#ff6b35',
   size: 1.5,
@@ -94,7 +95,7 @@ const GATE_HOLOGRAM_SIZE = 1;
  */
 export async function executeFunction(
   node: MethodNode,
-  ctx: GraphExecutorContext,
+  ctx: GraphExecutorContext
 ): Promise<ExecutionResult> {
   ctx.functions.set(node.name, node);
 
@@ -126,7 +127,7 @@ export async function executeFunction(
  */
 export async function executeConnection(
   node: ConnectionNode,
-  ctx: GraphExecutorContext,
+  ctx: GraphExecutorContext
 ): Promise<ExecutionResult> {
   ctx.connections.push(node);
 
@@ -172,7 +173,7 @@ export async function executeConnection(
  */
 export async function executeGate(
   node: GateNode,
-  ctx: GraphExecutorContext,
+  ctx: GraphExecutorContext
 ): Promise<ExecutionResult> {
   try {
     const condition = ctx.evaluateCondition(node.condition);
@@ -218,7 +219,7 @@ export async function executeGate(
  */
 export async function executeStream(
   node: StreamNode,
-  ctx: GraphExecutorContext,
+  ctx: GraphExecutorContext
 ): Promise<ExecutionResult> {
   let data = ctx.getVariable(node.source);
 

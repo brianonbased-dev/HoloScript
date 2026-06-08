@@ -102,11 +102,7 @@ export class NodeGraphCompiler {
       connectedIds.add(conn.toNode);
     }
     for (const node of nodes) {
-      if (
-        !connectedIds.has(node.id) &&
-        node.type !== 'OnEvent' &&
-        node.type !== 'Timer'
-      ) {
+      if (!connectedIds.has(node.id) && node.type !== 'OnEvent' && node.type !== 'Timer') {
         warnings.push(`Node "${node.id}" (${node.type}) is disconnected.`);
       }
     }

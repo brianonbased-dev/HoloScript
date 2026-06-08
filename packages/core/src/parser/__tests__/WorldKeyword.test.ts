@@ -10,7 +10,7 @@ describe('HoloScriptPlusParser - World Keyword', () => {
     `;
     const parser = new HoloScriptPlusParser();
     const result = parser.parse(code);
-    
+
     expect(result.success).toBe(true);
     expect(result.ast.children[0].type).toBe('world');
     expect(result.ast.children[0].traits.has('world_generator')).toBe(true);
@@ -29,14 +29,14 @@ describe('HoloScriptPlusParser - World Keyword', () => {
     `;
     const parser = new HoloScriptPlusParser();
     const result = parser.parse(code);
-    
+
     if (!result.success) {
       console.log('Parser errors:', JSON.stringify(result.errors, null, 2));
     }
     expect(result.success).toBe(true);
     const composition = result.ast.children[0];
     expect(composition.type).toBe('composition');
-    const world = composition.children.find(c => c.type === 'world');
+    const world = composition.children.find((c) => c.type === 'world');
     expect(world).toBeDefined();
     expect(world?.traits.has('world_generator')).toBe(true);
   });

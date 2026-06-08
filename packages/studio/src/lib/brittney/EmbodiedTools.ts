@@ -45,9 +45,7 @@ const readEmbodiedStatus: StudioToolDefinition = {
 
 export const EMBODIED_TOOLS: StudioToolDefinition[] = [readEmbodiedStatus];
 
-export const EMBODIED_TOOL_NAMES: Set<string> = new Set(
-  EMBODIED_TOOLS.map((t) => t.function.name),
-);
+export const EMBODIED_TOOL_NAMES: Set<string> = new Set(EMBODIED_TOOLS.map((t) => t.function.name));
 
 // ─── Executor ────────────────────────────────────────────────────────────
 
@@ -66,7 +64,7 @@ export interface EmbodiedToolResult {
  */
 export async function executeEmbodiedTool(
   toolName: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<EmbodiedToolResult> {
   if (toolName !== 'read_embodied_status') {
     return {
@@ -79,9 +77,7 @@ export async function executeEmbodiedTool(
 
   const verbose = args['verbose'] === true;
   const baseUrl =
-    process.env.NEXT_PUBLIC_STUDIO_URL ||
-    process.env.STUDIO_URL ||
-    'http://localhost:3000';
+    process.env.NEXT_PUBLIC_STUDIO_URL || process.env.STUDIO_URL || 'http://localhost:3000';
 
   try {
     const ctrl = new AbortController();
@@ -156,7 +152,9 @@ export async function executeEmbodiedTool(
       tool: toolName,
       success: false,
       data: null,
-      error: isTimeout ? 'embodied composite fetch timeout' : `embodied composite fetch failed: ${(e as Error).message}`,
+      error: isTimeout
+        ? 'embodied composite fetch timeout'
+        : `embodied composite fetch failed: ${(e as Error).message}`,
     };
   }
 }
@@ -258,7 +256,9 @@ async function fetchHealthFallback(baseUrl: string): Promise<Record<string, unkn
     if (health === 'ok') {
       voice = 'Studio is healthy — AI and task board are both up.';
     } else if (health === 'warn') {
-      const issue = !aiConnected ? 'AI provider is not connected.' : 'Task board is running in-memory.';
+      const issue = !aiConnected
+        ? 'AI provider is not connected.'
+        : 'Task board is running in-memory.';
       voice = `Studio is mostly up but ${issue}`;
     } else {
       voice = 'Studio health is unclear. Some services may be starting up.';
@@ -267,8 +267,8 @@ async function fetchHealthFallback(baseUrl: string): Promise<Record<string, unkn
     const summary: string =
       health === 'ok'
         ? 'all systems ok (via /api/health)'
-        : skills.find((s) => s.urgency && Number(s.urgency) > 0)?.summary as string ??
-          'some services degraded';
+        : ((skills.find((s) => s.urgency && Number(s.urgency) > 0)?.summary as string) ??
+          'some services degraded');
 
     return {
       health,

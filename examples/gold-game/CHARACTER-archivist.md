@@ -11,16 +11,16 @@
 **Substrate verified live 2026-05-21** in canonical repo `C:/Users/Josep/Documents/GitHub/HoloScript`.
 Every trait cited below is a real handler file, not an aspiration:
 
-| Trait | Handler `name` | File |
-|-------|----------------|------|
-| `@reputationLedger` | `reputation_ledger` | `packages/core/src/traits/ReputationLedgerTrait.ts` |
-| `@autonomousAgenda` | `autonomous_agenda` | `packages/core/src/traits/AutonomousAgendaTrait.ts` |
-| `@verbalFingerprint` | `verbal_fingerprint` | `packages/core/src/traits/VerbalFingerprintTrait.ts` |
-| `@vocabularyRegister` | `vocabulary_register` | `packages/core/src/traits/VocabularyRegisterTrait.ts` |
+| Trait                   | Handler `name`           | File                                                    |
+| ----------------------- | ------------------------ | ------------------------------------------------------- |
+| `@reputationLedger`     | `reputation_ledger`      | `packages/core/src/traits/ReputationLedgerTrait.ts`     |
+| `@autonomousAgenda`     | `autonomous_agenda`      | `packages/core/src/traits/AutonomousAgendaTrait.ts`     |
+| `@verbalFingerprint`    | `verbal_fingerprint`     | `packages/core/src/traits/VerbalFingerprintTrait.ts`    |
+| `@vocabularyRegister`   | `vocabulary_register`    | `packages/core/src/traits/VocabularyRegisterTrait.ts`   |
 | `@speechAwareEncounter` | `speech_aware_encounter` | `packages/core/src/traits/SpeechAwareEncounterTrait.ts` |
-| `@avatarIntent` | `avatar_intent` | `packages/core/src/traits/AvatarIntentTrait.ts` |
-| `@dialogue` | `dialogue` | `packages/core/src/traits/DialogueTrait.ts` |
-| `HoloQuest` (AST) | `Quest` | `packages/core/src/parser/HoloCompositionTypes.ts:920` |
+| `@avatarIntent`         | `avatar_intent`          | `packages/core/src/traits/AvatarIntentTrait.ts`         |
+| `@dialogue`             | `dialogue`               | `packages/core/src/traits/DialogueTrait.ts`             |
+| `HoloQuest` (AST)       | `Quest`                  | `packages/core/src/parser/HoloCompositionTypes.ts:920`  |
 
 ---
 
@@ -36,7 +36,7 @@ Most first entries get **sent back** — not as cruelty, but because a thing tha
 does not deserve a SHA-256 anchor and a permanent slot.
 
 She is not a quest-marker. She is the **friction that makes permanence mean something.** Her entire
-character is the difference between *I wrote this down* and *this earned its place in the vault.*
+character is the difference between _I wrote this down_ and _this earned its place in the vault._
 Over time, if you keep bringing her work that holds — work that gets cited, that does not collide,
 that ages without rotting — her stance toward you shifts. Not because a flag flipped, but because
 the **accumulation of what you actually did** (her `@reputationLedger`) now says you are someone
@@ -48,17 +48,17 @@ re-reviewing entries whose lineage links have grown stale, and walking down from
 Bronze entries nobody has touched in ninety days. Her day has its own shape (`@autonomousAgenda`).
 
 **Intent for /look-dev + /audio:** weary the way a librarian is weary — not tired of you, tired of
-*slop*. Regal only in the sense that she has authority she did not ask for and will not abdicate.
+_slop_. Regal only in the sense that she has authority she did not ask for and will not abdicate.
 Voice should be dry, exact, unhurried. She never raises it; the verdict is the weight.
 
 ---
 
 ## Voice: `@verbalFingerprint` + `@vocabularyRegister`
 
-The Archivist must sound like *herself* even when the LLM underneath is swapped (Opus → a local
+The Archivist must sound like _herself_ even when the LLM underneath is swapped (Opus → a local
 model → whatever ships next). `VerbalFingerprintTrait` enforces this **over the generated text**
-(not by injecting into the prompt — see the file header, lines 5-9), so drift is *caught* rather
-than merely *hoped against*. Config maps directly to the real `StyleConstraint` interface
+(not by injecting into the prompt — see the file header, lines 5-9), so drift is _caught_ rather
+than merely _hoped against_. Config maps directly to the real `StyleConstraint` interface
 (`VerbalFingerprintTrait.ts:29-42`):
 
 ```hsplus
@@ -81,7 +81,7 @@ than merely *hoped against*. Config maps directly to the real `StyleConstraint` 
 ```
 
 Register comes from the **shipped** `scholarly-archaic` default in `VocabularyRegisterTrait.ts:112-119`
-(real entries: *aporia*, *palimpsest*; toneHint "Speak as a philologian of the Third Academy"). We
+(real entries: _aporia_, _palimpsest_; toneHint "Speak as a philologian of the Third Academy"). We
 extend it at runtime with vault-native terms via the real `vocabulary_register_load` event
 (`VocabularyRegisterTrait.ts:269`):
 
@@ -130,14 +130,14 @@ accumulation, not a flag.**
 The facts she records about the player (emitted as `reputation_observe_action`,
 `ReputationLedgerTrait.ts:485`):
 
-| Player action | `action` | `trustDelta` | What it means to her |
-|---------------|----------|-------------:|----------------------|
-| Submitted an entry with a real file:line citation | `entry_cited` | +6 | Honored F.017 |
-| Submitted slop (no cite, no defensibility) | `entry_uncited` | −8 | Wasted her review |
-| Resolved a vault collision instead of forcing a write | `collision_resolved` | +10 | Respected the guard |
-| Graduated an entry that later got cited by another | `entry_proved` | +12 | The entry *held* |
-| Tried to graduate over a known collision | `collision_forced` | −15 | The cardinal sin |
-| Brought an entry whose lineage she could verify | `lineage_forged` | +5 | Strengthened the graph |
+| Player action                                         | `action`             | `trustDelta` | What it means to her   |
+| ----------------------------------------------------- | -------------------- | -----------: | ---------------------- |
+| Submitted an entry with a real file:line citation     | `entry_cited`        |           +6 | Honored F.017          |
+| Submitted slop (no cite, no defensibility)            | `entry_uncited`      |           −8 | Wasted her review      |
+| Resolved a vault collision instead of forcing a write | `collision_resolved` |          +10 | Respected the guard    |
+| Graduated an entry that later got cited by another    | `entry_proved`       |          +12 | The entry _held_       |
+| Tried to graduate over a known collision              | `collision_forced`   |          −15 | The cardinal sin       |
+| Brought an entry whose lineage she could verify       | `lineage_forged`     |           +5 | Strengthened the graph |
 
 Her opening line, her available dialogue branches, and whether she offers the deeper quests are all
 driven by accumulated trust — read into the dialogue blackboard as `reputation` (queried via
@@ -187,7 +187,7 @@ in priority order (1 = highest):
    count has drifted; the vault's graph must stay true (`auto_link`).
 3. **Hold the Peak** (priority 3) — guard the Diamond entry `P_GOLD_001` ("failure-knowledge-decays-slower");
    she will not let anything ascend that cannot survive beside it.
-4. **Hear a petition** (priority 4) — if a curator is waiting with an entry, review it. *You* are
+4. **Hear a petition** (priority 4) — if a curator is waiting with an entry, review it. _You_ are
    only priority 4 to her. She has a vault to keep.
 
 When you arrive mid-prune, she finishes the row she is on before she turns to you. That is the
@@ -314,15 +314,15 @@ supports `reputation > 0.3`, `!flag`, `key == value`).
 
 **Where the LLM fills:** every `[LLM ...]` node above is generated live and **passed through
 `verbal_fingerprint_verify` before display** — so the model can vary the words but cannot break her
-voice (gush, go casual, drop "the vault"). The *spine* (which verdicts exist, which branches unlock)
-is authored; the *texture* is emergent-but-constrained. That is the SLF trick.
+voice (gush, go casual, drop "the vault"). The _spine_ (which verdicts exist, which branches unlock)
+is authored; the _texture_ is emergent-but-constrained. That is the SLF trick.
 
 ---
 
 ## First quest: "Graduate your first entry to GOLD" (`HoloQuest`)
 
 Authored on the real `HoloQuest` AST (`HoloCompositionTypes.ts:920-964`). The core game verb —
-shepherd an entry up the tiers — *is* a real vault op (graduating in-game graduates for real;
+shepherd an entry up the tiers — _is_ a real vault op (graduating in-game graduates for real;
 write-back stays governance-gated per `gold-vault-game.holo:18-20`).
 
 ```hsplus
@@ -396,7 +396,7 @@ quest "FirstGraduation" {
 
 The quest's branches read the same trust the dialogue reads — so a player who forces collisions early
 finds the Archivist colder, her optional branches locked, and `SilverAscent` harder to earn. **The
-story bends to the history.** (Quest *economy/balance* — XP curves, reward sinks — is `/game-design`'s
+story bends to the history.** (Quest _economy/balance_ — XP curves, reward sinks — is `/game-design`'s
 call, not this spec's.)
 
 ---
@@ -408,7 +408,7 @@ call, not this spec's.)
   that history. Not a flag.
 - **wants ✓** — `@autonomousAgenda` gives her a 4-item prioritized daily loop (prune, re-review,
   hold the Peak, hear petitions) on the shipped $0.50/day NPC budget. She curates whether you visit
-  or not; *you* are priority 4 to her.
+  or not; _you_ are priority 4 to her.
 - **invariant voice ✓** — `@verbalFingerprint` (`enforce: true`, key `the-archivist-v1`, forbidden
   filler, required "the vault") + `@vocabularyRegister` (`scholarly-archaic` + vault lexicon) keep
   her sounding like herself across LLM swaps; CI gate is ≥80% attribution across ≥3 backends.
@@ -420,6 +420,7 @@ call, not this spec's.)
 ## Build vs substrate — honest line
 
 **Wired today (real, shipped, verified handlers — drop the config in and it runs):**
+
 - All six D.040 traits attach, hold state, prune, tick, and emit events as configured above
   (`onAttach`/`onUpdate`/`onEvent` are implemented in each file cited).
 - `@dialogue` branches, evaluates `condition` blackboard expressions, runs `onEnter`/`onExit`
@@ -429,7 +430,8 @@ call, not this spec's.)
 - The `Archivist` template object already exists in the game `.holo` (lines 96-102, 162-165).
 
 **Build target — the emergent depth I must wire (NOT claimed as present, per skill §"Honest gap"):**
-1. **Memory → behavior loop.** The traits hold state independently today. Nothing yet *reads* the
+
+1. **Memory → behavior loop.** The traits hold state independently today. Nothing yet _reads_ the
    `reputation_ledger_snapshot` into the dialogue blackboard automatically — that bridge (a small
    adapter that pipes `reputation_query` results into `set_dialogue_var` before `start_dialogue`)
    must be authored. Until then, branch gating like `reputation > 0.4` won't fire from real history.
@@ -437,10 +439,10 @@ call, not this spec's.)
    can reject it, but the **retry-on-reject** wiring (catch `verbal_fingerprint_rejected`, regenerate,
    re-verify) is not yet connected for this NPC. Must build, or off-voice lines slip through.
 3. **Quest branch ← ledger.** The `branches[].condition` here references `obj_resolve_completed`
-   (quest-local, works) but the *richer* intent — branches that read accumulated cross-session trust —
+   (quest-local, works) but the _richer_ intent — branches that read accumulated cross-session trust —
    needs the same snapshot→blackboard bridge as (1).
 4. **Multi-session growth.** ReID gives recognition; what does NOT yet exist is the Archivist
-   *changing* — new dialogue nodes or a softened opening that unlock permanently because of long
+   _changing_ — new dialogue nodes or a softened opening that unlock permanently because of long
    history. That's authored content gated on a persisted trust threshold, plus the bridge.
 5. **Real vault read-through.** `knowledge_base: "gold-vault-index"` names the intent to read the
    real `D:/GOLD/INDEX.md` as dialogue content; the loader that surfaces a live entry's tier/lineage

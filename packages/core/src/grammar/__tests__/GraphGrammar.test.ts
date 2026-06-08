@@ -44,14 +44,10 @@ describe('GraphGrammar', () => {
     });
 
     it('should create anchor nodes with bounds', () => {
-      const node = createAnchor(
-        'spawn',
-        [0, 0, 0],
-        {
-          min: [-10, 0, -10],
-          max: [10, 5, 10],
-        }
-      );
+      const node = createAnchor('spawn', [0, 0, 0], {
+        min: [-10, 0, -10],
+        max: [10, 5, 10],
+      });
 
       expect(node.type).toBe(NodeType.ANCHOR);
       expect(node.transform.positionMode).toBe('random_in_bounds');
@@ -355,7 +351,11 @@ describe('GraphGrammar', () => {
     it('should serialize grammar metadata', () => {
       const grammar = createVillageGrammar();
       const serialized = grammar.serialize();
-      const parsed = readJson(serialized) as { version: number; startSymbol: string; rules: unknown[] };
+      const parsed = readJson(serialized) as {
+        version: number;
+        startSymbol: string;
+        rules: unknown[];
+      };
 
       expect(parsed.version).toBe(1);
       expect(parsed.startSymbol).toBe('Village');

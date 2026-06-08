@@ -38,30 +38,59 @@ export const ACTUATION_PLAN_PACK_VERSION = 'holoscript-actuation-plan-pack/v1';
 export const ACTUATION_SIMULATION_RECEIPT_VERSION = 'holoscript-actuation-simulation-receipt/v1';
 export const SENSOR_FRESHNESS_RECEIPT_VERSION = 'holoscript-sensor-freshness-receipt/v1';
 export const SAFE_STOP_RECEIPT_VERSION = 'holoscript-safe-stop-receipt/v1';
-export const PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION = 'holoscript-physical-rollback-limit-receipt/v1';
+export const PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION =
+  'holoscript-physical-rollback-limit-receipt/v1';
 
 // ── Enum sets ──
 const DEVICE_CATEGORIES = new Set([
-  'headset', 'phone', 'webcam', 'gpu', 'robot',
-  'printer', 'wallet', 'sensor', 'display', 'audio', 'input', 'other',
+  'headset',
+  'phone',
+  'webcam',
+  'gpu',
+  'robot',
+  'printer',
+  'wallet',
+  'sensor',
+  'display',
+  'audio',
+  'input',
+  'other',
 ]);
 
 const DEVICE_IDENTITY_SOURCES = new Set([
-  'pnP_device_id', 'bluetooth_mac', 'usb_serial',
-  'webgpu_adapter', 'openxr_instance', 'network_hostname', 'custom',
+  'pnP_device_id',
+  'bluetooth_mac',
+  'usb_serial',
+  'webgpu_adapter',
+  'openxr_instance',
+  'network_hostname',
+  'custom',
 ]);
 
 const DEVICE_ACTION_CLASSES = new Set([
-  'read', 'pair', 'command', 'haptic', 'xr_session',
-  'sensor_read', 'camera', 'microphone', 'calibration',
-  'firmware_update', 'factory_reset',
+  'read',
+  'pair',
+  'command',
+  'haptic',
+  'xr_session',
+  'sensor_read',
+  'camera',
+  'microphone',
+  'calibration',
+  'firmware_update',
+  'factory_reset',
 ]);
 
 const DEVICE_ACTION_RISK_LEVELS = new Set(['low', 'medium', 'high', 'critical']);
 
 const SAFE_STOP_TRIGGERS = new Set([
-  'operator_request', 'sensor_limit_exceeded', 'consent_expired',
-  'simulation_divergence', 'hardware_fault', 'timeout', 'envelope_violation',
+  'operator_request',
+  'sensor_limit_exceeded',
+  'consent_expired',
+  'simulation_divergence',
+  'hardware_fault',
+  'timeout',
+  'envelope_violation',
 ]);
 
 const PACK_STATUSES = new Set(['planned', 'simulated', 'approved', 'executed', 'aborted']);
@@ -119,14 +148,14 @@ function printHelp() {
   const v = VERSION;
   process.stdout.write(
     `HoloShell Actuation Plan Adapter ${v}\n` +
-    '\nUsage:\n' +
-    '  node scripts/holoshell-actuation-plan-adapter.mjs plan --input request.json [--out pack.json]\n' +
-    '  node scripts/holoshell-actuation-plan-adapter.mjs simulate --pack pack.json [--out pack.json]\n' +
-    '  node scripts/holoshell-actuation-plan-adapter.mjs approve --pack pack.json --approve-nonce <nonce> [--out pack.json]\n' +
-    '  node scripts/holoshell-actuation-plan-adapter.mjs abort --pack pack.json [--abort-reason "reason"] [--out pack.json]\n' +
-    '  node scripts/holoshell-actuation-plan-adapter.mjs --self-test\n' +
-    '\nSafety: execution is DISABLED by default.\n' +
-    'Use `approve --approve-nonce <nonce>` from the plan receipt only after reviewing the simulation.\n'
+      '\nUsage:\n' +
+      '  node scripts/holoshell-actuation-plan-adapter.mjs plan --input request.json [--out pack.json]\n' +
+      '  node scripts/holoshell-actuation-plan-adapter.mjs simulate --pack pack.json [--out pack.json]\n' +
+      '  node scripts/holoshell-actuation-plan-adapter.mjs approve --pack pack.json --approve-nonce <nonce> [--out pack.json]\n' +
+      '  node scripts/holoshell-actuation-plan-adapter.mjs abort --pack pack.json [--abort-reason "reason"] [--out pack.json]\n' +
+      '  node scripts/holoshell-actuation-plan-adapter.mjs --self-test\n' +
+      '\nSafety: execution is DISABLED by default.\n' +
+      'Use `approve --approve-nonce <nonce>` from the plan receipt only after reviewing the simulation.\n'
   );
 }
 
@@ -202,7 +231,8 @@ function buildDeviceInventoryEntry(input, args) {
 
   if (!rawDeviceId?.trim()) throw new Error('deviceId is required');
   if (!DEVICE_CATEGORIES.has(category)) throw new Error(`Unsupported deviceCategory: ${category}`);
-  if (!DEVICE_IDENTITY_SOURCES.has(identitySource)) throw new Error(`Unsupported identitySource: ${identitySource}`);
+  if (!DEVICE_IDENTITY_SOURCES.has(identitySource))
+    throw new Error(`Unsupported identitySource: ${identitySource}`);
 
   const providedLabel = input.deviceLabel ?? args.deviceLabel ?? `${category} device`;
 
@@ -230,8 +260,10 @@ function buildActuationPlanPack(input, args = {}) {
   const riskLevel = input.riskLevel ?? args.riskLevel ?? 'medium';
   const commandPreview = input.commandPreview ?? args.commandPreview ?? '';
 
-  if (!DEVICE_ACTION_CLASSES.has(actionClass)) throw new Error(`Unsupported actionClass: ${actionClass}`);
-  if (!DEVICE_ACTION_RISK_LEVELS.has(riskLevel)) throw new Error(`Unsupported riskLevel: ${riskLevel}`);
+  if (!DEVICE_ACTION_CLASSES.has(actionClass))
+    throw new Error(`Unsupported actionClass: ${actionClass}`);
+  if (!DEVICE_ACTION_RISK_LEVELS.has(riskLevel))
+    throw new Error(`Unsupported riskLevel: ${riskLevel}`);
 
   const safeRanges = input.safeRanges ?? [];
   const maxSensorAgeMs = input.maxSensorAgeMs ?? 5000;
@@ -240,7 +272,12 @@ function buildActuationPlanPack(input, args = {}) {
   const irreversibleScope = input.irreversibleScope ?? null;
   const rollbackWindowMs = input.rollbackWindowMs ?? 0;
 
-  const actionId = shortId('actuation-action', { deviceIdHash: device.deviceIdHash, actionClass, commandPreview, at });
+  const actionId = shortId('actuation-action', {
+    deviceIdHash: device.deviceIdHash,
+    actionClass,
+    commandPreview,
+    at,
+  });
   const nonce = input.nonce ?? mintNonce();
 
   // Inventory receipt (plan-mode probe — read-only, no hardware call)
@@ -337,12 +374,15 @@ function buildActuationPlanPack(input, args = {}) {
 
 function buildSimulatedPack(pack, input, args = {}) {
   const at = nowIso(args, input);
-  if (pack.status !== 'planned') throw new Error(`simulate requires status=planned; got ${pack.status}`);
+  if (pack.status !== 'planned')
+    throw new Error(`simulate requires status=planned; got ${pack.status}`);
 
   const actionId = pack.actionId;
   const targetDeviceId = pack.envelope.device.deviceIdHash;
-  const simulationEngine = input.simulationEngine ?? args.simulationEngine ?? 'holoshell-builtin-physics-stub';
-  const predictedOutcome = input.predictedOutcome ?? args.predictedOutcome ?? 'bounded actuation within safe ranges';
+  const simulationEngine =
+    input.simulationEngine ?? args.simulationEngine ?? 'holoshell-builtin-physics-stub';
+  const predictedOutcome =
+    input.predictedOutcome ?? args.predictedOutcome ?? 'bounded actuation within safe ranges';
   const durationMs = input.durationMs ?? args.durationMs ?? 0;
   const peakForceEstimate = input.peakForceEstimate;
   const peakDisplacementMm = input.peakDisplacementMm;
@@ -359,11 +399,17 @@ function buildSimulatedPack(pack, input, args = {}) {
     }
   }
   const simulationPassed = violations.length === 0;
-  if (!simulationPassed && !(input.allowFailedSimulation)) {
+  if (!simulationPassed && !input.allowFailedSimulation) {
     throw new Error(`Simulation failed safe-range constraints: ${violations.join('; ')}`);
   }
 
-  const stateSnapshotHash = hashValue({ actionId, at, simulationEngine, predictedOutcome, durationMs });
+  const stateSnapshotHash = hashValue({
+    actionId,
+    at,
+    simulationEngine,
+    predictedOutcome,
+    durationMs,
+  });
 
   const simulation = withHash({
     schemaVersion: ACTUATION_SIMULATION_RECEIPT_VERSION,
@@ -407,7 +453,7 @@ function buildApprovedPack(pack, input, args = {}) {
   if (approveNonce !== pack.nonce) {
     throw new Error(
       `Nonce mismatch: supplied nonce does not match plan pack nonce. ` +
-      `The nonce must be copied from the plan receipt to prove the caller reviewed it.`
+        `The nonce must be copied from the plan receipt to prove the caller reviewed it.`
     );
   }
 
@@ -453,7 +499,12 @@ function buildApprovedPack(pack, input, args = {}) {
   });
   delete updatedEnvelope.hash;
   delete updatedEnvelope.hashAlgorithm;
-  const envelopeWithHash = withHash({ ...pack.envelope, deviceMutationAllowed: true, approvedAt: at, approvalNonceHash: hashValue(approveNonce) });
+  const envelopeWithHash = withHash({
+    ...pack.envelope,
+    deviceMutationAllowed: true,
+    approvedAt: at,
+    approvalNonceHash: hashValue(approveNonce),
+  });
 
   const updatedPack = {
     ...pack,
@@ -509,7 +560,8 @@ function buildAbortedPack(pack, input, args = {}) {
 export function validateActuationPlanPack(pack) {
   const errors = [];
   if (!pack || typeof pack !== 'object') return ['ActuationPlanPack is required.'];
-  if (pack.schemaVersion !== ACTUATION_PLAN_PACK_VERSION) errors.push(`schemaVersion must be ${ACTUATION_PLAN_PACK_VERSION}`);
+  if (pack.schemaVersion !== ACTUATION_PLAN_PACK_VERSION)
+    errors.push(`schemaVersion must be ${ACTUATION_PLAN_PACK_VERSION}`);
   if (pack.workflow !== WORKFLOW) errors.push(`workflow must be ${WORKFLOW}`);
   if (!PACK_STATUSES.has(pack.status)) errors.push(`unsupported status: ${pack.status}`);
   if (!pack.actionId) errors.push('actionId is required');
@@ -527,13 +579,18 @@ export function validateActuationPlanPack(pack) {
     if (!pack.executionEnabled) errors.push('executionEnabled must be true after approve');
     if (!pack.approvedAt) errors.push('approvedAt is required after approve');
     if (!pack.approvalNonceHash) errors.push('approvalNonceHash is required after approve');
-    if (!pack.sensorFreshness?.fresh) errors.push('sensorFreshness.fresh must be true after approve');
+    if (!pack.sensorFreshness?.fresh)
+      errors.push('sensorFreshness.fresh must be true after approve');
   }
   if (pack.status === 'aborted') {
     if (!pack.safeStop) errors.push('safeStop receipt is required after abort');
     if (pack.executionEnabled) errors.push('executionEnabled must be false after abort');
   }
-  if (JSON.stringify(pack).match(/\b(access_token|refresh_token|client_secret)=([A-Za-z0-9._~+/=-]+)/i)) {
+  if (
+    JSON.stringify(pack).match(
+      /\b(access_token|refresh_token|client_secret)=([A-Za-z0-9._~+/=-]+)/i
+    )
+  ) {
     errors.push('pack contains raw credential material');
   }
   return errors;
@@ -560,12 +617,20 @@ function consentScopesFor(actionClass) {
 
 function redactCommandPreview(preview) {
   return (preview ?? '')
-    .replace(/(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/g, (_m, pre) => `${pre}<path-redacted>`)
+    .replace(
+      /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/g,
+      (_m, pre) => `${pre}<path-redacted>`
+    )
     .replace(/\bBearer\s+(?!<redacted>)[A-Za-z0-9._~+/=-]+/gi, 'Bearer <redacted>');
 }
 
 function defaultOutput(command, date) {
-  return join('.bench-logs', 'holoshell-actuation-plan', date, `actuation-plan-${command}-receipt.json`);
+  return join(
+    '.bench-logs',
+    'holoshell-actuation-plan',
+    date,
+    `actuation-plan-${command}-receipt.json`
+  );
 }
 
 // ── Command runner ──
@@ -592,7 +657,9 @@ function runCommand(args) {
     if (!args.pack) throw new Error('abort requires --pack');
     pack = buildAbortedPack(readJson(args.pack), input, args);
   } else {
-    throw new Error(`Unknown command: ${args.command}. Valid: plan, simulate, approve, abort, help, --self-test`);
+    throw new Error(
+      `Unknown command: ${args.command}. Valid: plan, simulate, approve, abort, help, --self-test`
+    );
   }
 
   const validationErrors = validateActuationPlanPack(pack);
@@ -601,13 +668,17 @@ function runCommand(args) {
   }
 
   if (args.dryRun) {
-    process.stdout.write(`${JSON.stringify({ ok: true, dryRun: true, status: pack.status, receiptId: pack.id, nonce: pack.nonce }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ ok: true, dryRun: true, status: pack.status, receiptId: pack.id, nonce: pack.nonce }, null, 2)}\n`
+    );
     return { ok: true, pack };
   }
 
   const out = args.out ?? defaultOutput(args.command, args.date);
   const written = writeJson(out, pack);
-  process.stdout.write(`${JSON.stringify({ ok: true, out: written, status: pack.status, receiptId: pack.id, nonce: args.command === 'plan' ? pack.nonce : undefined }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ ok: true, out: written, status: pack.status, receiptId: pack.id, nonce: args.command === 'plan' ? pack.nonce : undefined }, null, 2)}\n`
+  );
   return { ok: true, pack, out: written };
 }
 
@@ -639,7 +710,14 @@ function runSelfTest() {
     riskLevel: 'low',
     commandPreview: 'haptic pulse 200ms left-controller',
     safeRanges: [
-      { parameter: 'pulse_duration_ms', unit: 'ms', min: 0, max: 500, defaultValue: 100, autoStopOnViolation: true },
+      {
+        parameter: 'pulse_duration_ms',
+        unit: 'ms',
+        min: 0,
+        max: 500,
+        defaultValue: 100,
+        autoStopOnViolation: true,
+      },
     ],
     maxSensorAgeMs: 5000,
     maxApprovalAgeMs: 30000,
@@ -655,12 +733,14 @@ function runSelfTest() {
   const planErrors = validateActuationPlanPack(planPack);
   if (planErrors.length > 0) throw new Error(`Plan validation failed: ${planErrors.join('; ')}`);
   if (planPack.status !== 'planned') throw new Error('Plan pack status is not planned');
-  if (planPack.executionEnabled !== false) throw new Error('executionEnabled must be false in plan');
+  if (planPack.executionEnabled !== false)
+    throw new Error('executionEnabled must be false in plan');
   if (!planPack.nonce) throw new Error('nonce is missing from plan pack');
 
   // Check no raw device ID in pack
   const planJson = JSON.stringify(planPack);
-  if (planJson.includes('aabbcc1122')) throw new Error('raw device ID fragment leaked into public receipt');
+  if (planJson.includes('aabbcc1122'))
+    throw new Error('raw device ID fragment leaked into public receipt');
 
   // Simulate
   writeJson(simulatePath, {
@@ -670,12 +750,17 @@ function runSelfTest() {
     durationMs: 200,
     paramValues: { pulse_duration_ms: 200 },
   });
-  runCommand(parseArgs(['simulate', '--pack', planPath, '--input', simulatePath, '--out', simulatedPath]));
+  runCommand(
+    parseArgs(['simulate', '--pack', planPath, '--input', simulatePath, '--out', simulatedPath])
+  );
   const simulatedPack = readJson(simulatedPath);
 
-  if (simulatedPack.status !== 'simulated') throw new Error('Simulated pack status is not simulated');
-  if (!simulatedPack.simulation?.simulationPassed) throw new Error('simulation.simulationPassed must be true');
-  if (validateActuationPlanPack(simulatedPack).length > 0) throw new Error('Simulated pack fails validation');
+  if (simulatedPack.status !== 'simulated')
+    throw new Error('Simulated pack status is not simulated');
+  if (!simulatedPack.simulation?.simulationPassed)
+    throw new Error('simulation.simulationPassed must be true');
+  if (validateActuationPlanPack(simulatedPack).length > 0)
+    throw new Error('Simulated pack fails validation');
 
   // Test: safe-range violation is rejected
   const violationPath = join(dir, 'violation.json');
@@ -700,13 +785,18 @@ function runSelfTest() {
     now: '2026-05-20T00:00:20.000Z',
     approveNonce: planPack.nonce,
   });
-  runCommand(parseArgs(['approve', '--pack', simulatedPath, '--input', approvePath, '--out', approvedPath]));
+  runCommand(
+    parseArgs(['approve', '--pack', simulatedPath, '--input', approvePath, '--out', approvedPath])
+  );
   const approvedPack = readJson(approvedPath);
 
   if (approvedPack.status !== 'approved') throw new Error('Approved pack status is not approved');
-  if (!approvedPack.executionEnabled) throw new Error('executionEnabled must be true after approve');
-  if (!approvedPack.sensorFreshness?.fresh) throw new Error('sensorFreshness.fresh must be true after approve');
-  if (validateActuationPlanPack(approvedPack).length > 0) throw new Error('Approved pack fails validation');
+  if (!approvedPack.executionEnabled)
+    throw new Error('executionEnabled must be true after approve');
+  if (!approvedPack.sensorFreshness?.fresh)
+    throw new Error('sensorFreshness.fresh must be true after approve');
+  if (validateActuationPlanPack(approvedPack).length > 0)
+    throw new Error('Approved pack fails validation');
 
   // Test: wrong nonce is rejected
   const wrongNoncePath = join(dir, 'wrong-nonce.json');
@@ -722,14 +812,19 @@ function runSelfTest() {
 
   // Abort from simulated (should always work regardless of simulation status)
   writeJson(abortPath, { now: '2026-05-20T00:03:00.000Z', abortReason: 'operator_request' });
-  runCommand(parseArgs(['abort', '--pack', simulatedPath, '--input', abortPath, '--out', abortedPath]));
+  runCommand(
+    parseArgs(['abort', '--pack', simulatedPath, '--input', abortPath, '--out', abortedPath])
+  );
   const abortedPack = readJson(abortedPath);
 
   if (abortedPack.status !== 'aborted') throw new Error('Aborted pack status is not aborted');
-  if (abortedPack.executionEnabled !== false) throw new Error('executionEnabled must be false after abort');
+  if (abortedPack.executionEnabled !== false)
+    throw new Error('executionEnabled must be false after abort');
   if (!abortedPack.safeStop) throw new Error('safeStop receipt is missing after abort');
-  if (abortedPack.safeStop.safeCategoryReached !== true) throw new Error('safeCategoryReached must be true');
-  if (validateActuationPlanPack(abortedPack).length > 0) throw new Error('Aborted pack fails validation');
+  if (abortedPack.safeStop.safeCategoryReached !== true)
+    throw new Error('safeCategoryReached must be true');
+  if (validateActuationPlanPack(abortedPack).length > 0)
+    throw new Error('Aborted pack fails validation');
 
   // Test: stale approval rejected
   const stalePlanPath = join(dir, 'stale-plan.json');
@@ -754,7 +849,10 @@ function runSelfTest() {
   writeJson(staleApprovePath, { now: '2026-05-20T12:00:00.000Z', approveNonce: stalePlan.nonce });
   let caughtStale = false;
   try {
-    buildApprovedPack(staleSimPack, { approveNonce: stalePlan.nonce, now: '2026-05-20T12:00:00.000Z' });
+    buildApprovedPack(staleSimPack, {
+      approveNonce: stalePlan.nonce,
+      now: '2026-05-20T12:00:00.000Z',
+    });
   } catch (error) {
     if (String(error.message).includes('Freshness gate')) caughtStale = true;
     else throw new Error(`Stale approval threw unexpected error: ${error.message}`);
@@ -768,12 +866,7 @@ function runSelfTest() {
 }
 
 // ── Exports ──
-export {
-  buildActuationPlanPack,
-  buildSimulatedPack,
-  buildApprovedPack,
-  buildAbortedPack,
-};
+export { buildActuationPlanPack, buildSimulatedPack, buildApprovedPack, buildAbortedPack };
 
 // ── Entry point ──
 if (

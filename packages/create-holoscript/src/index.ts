@@ -62,9 +62,13 @@ async function main(): Promise<void> {
       console.error(
         `  ${pc.dim('Run non-interactively by passing the project name and')} ${pc.bold('--yes')}${pc.dim(':')}`
       );
-      console.error(`    ${pc.cyan('npx create-holoscript')} ${pc.bold('my-app')} ${pc.cyan('--yes')}`);
+      console.error(
+        `    ${pc.cyan('npx create-holoscript')} ${pc.bold('my-app')} ${pc.cyan('--yes')}`
+      );
       console.error(`  ${pc.dim('or use the one-step --go mode:')}`);
-      console.error(`    ${pc.cyan('npx create-holoscript')} ${pc.bold('my-app')} ${pc.cyan('--go')}\n`);
+      console.error(
+        `    ${pc.cyan('npx create-holoscript')} ${pc.bold('my-app')} ${pc.cyan('--go')}\n`
+      );
       process.exit(1);
     }
   }
@@ -220,9 +224,7 @@ async function main(): Promise<void> {
     }
     console.log(`    ${pc.cyan(devCommand(pm))}`);
     console.log();
-    console.log(
-      `  ${pc.dim('Your scene will open at')} ${pc.bold('http://localhost:5173')}`
-    );
+    console.log(`  ${pc.dim('Your scene will open at')} ${pc.bold('http://localhost:5173')}`);
   }
 
   console.log();

@@ -52,7 +52,7 @@ interface TimeControllable {
 export function broadcast(
   wss: WebSocketServer | null | undefined,
   type: string,
-  payload: unknown,
+  payload: unknown
 ): void {
   if (!wss) return;
   const message = JSON.stringify({ type, payload });
@@ -73,7 +73,7 @@ export function broadcast(
 export function handleTimeControl(
   timeManager: TimeControllable | null | undefined,
   command: string,
-  value?: unknown,
+  value?: unknown
 ): void {
   if (!timeManager) return;
 

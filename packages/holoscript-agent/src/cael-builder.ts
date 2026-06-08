@@ -97,7 +97,18 @@ function brainClassOf(brain: { brainPath?: string; domain?: string }): string {
 }
 
 export function buildCaelRecord(input: BuildCaelRecordInput): CaelAuditRecord {
-  const { identity, brain, task, messages, finalText, usage, costUsd, spentUsd, prevChain, runtimeVersion } = input;
+  const {
+    identity,
+    brain,
+    task,
+    messages,
+    finalText,
+    usage,
+    costUsd,
+    spentUsd,
+    prevChain,
+    runtimeVersion,
+  } = input;
 
   const l0 = sha(brain.systemPrompt);
   const l1 = sha(`${task.id}|${task.title}|${task.description ?? ''}`);

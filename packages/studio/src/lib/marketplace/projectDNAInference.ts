@@ -31,13 +31,15 @@ export function inferProjectDNA(file: File): DaemonProjectDNA {
     detectedStack.push('HoloScript');
     confidence = 0.95;
     recommendedProfile = 'balanced';
-    note = 'HoloScript composition detected. Will validate syntax and check for optimization opportunities.';
+    note =
+      'HoloScript composition detected. Will validate syntax and check for optimization opportunities.';
   } else if (name.endsWith('.hsplus')) {
     kind = 'spatial';
     detectedStack.push('HoloScript', 'Traits');
     confidence = 0.95;
     recommendedProfile = 'deep';
-    note = 'HoloScript component with traits detected. Deep analysis recommended for trait optimization.';
+    note =
+      'HoloScript component with traits detected. Deep analysis recommended for trait optimization.';
   } else if (name.endsWith('.hs')) {
     kind = 'data';
     detectedStack.push('HoloScript', 'Data');
@@ -66,7 +68,12 @@ export function inferProjectDNA(file: File): DaemonProjectDNA {
     note = 'FBX file detected. Will convert to glTF and optimize for web.';
   }
   // Archives
-  else if (name.endsWith('.zip') || name.endsWith('.tar') || name.endsWith('.tar.gz') || name.endsWith('.tgz')) {
+  else if (
+    name.endsWith('.zip') ||
+    name.endsWith('.tar') ||
+    name.endsWith('.tar.gz') ||
+    name.endsWith('.tgz')
+  ) {
     kind = 'unknown';
     detectedStack.push('Archive');
     confidence = 0.8;
@@ -96,7 +103,12 @@ export function inferProjectDNA(file: File): DaemonProjectDNA {
       : 'Python script detected. Will analyze dependencies and code quality.';
   }
   // Frontend/Code
-  else if (name.endsWith('.ts') || name.endsWith('.tsx') || name.endsWith('.js') || name.endsWith('.jsx')) {
+  else if (
+    name.endsWith('.ts') ||
+    name.endsWith('.tsx') ||
+    name.endsWith('.js') ||
+    name.endsWith('.jsx')
+  ) {
     kind = 'frontend';
     detectedStack.push('TypeScript/JavaScript', 'Frontend');
     confidence = 0.85;

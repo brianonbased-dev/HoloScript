@@ -106,7 +106,10 @@ export interface DeviceLabWarningAction {
 /**
  * Known warning patterns with pre-defined why-it-matters text.
  */
-const KNOWN_WARNING_PATTERNS: Record<string, { title: string; whyItMatters: string; severity: WarningSeverity }> = {
+const KNOWN_WARNING_PATTERNS: Record<
+  string,
+  { title: string; whyItMatters: string; severity: WarningSeverity }
+> = {
   'G.HW.HEADSET_REPORT': {
     title: 'Quest/headset probe report missing',
     whyItMatters:
@@ -215,7 +218,8 @@ function buildSkippedCheckToken(check: ProbeCheck): DeviceLabWarningToken | null
     return null;
   }
 
-  const pattern = KNOWN_WARNING_PATTERNS[`G.HW.${check.id.toUpperCase().replace(/-/g, '_')}`] || null;
+  const pattern =
+    KNOWN_WARNING_PATTERNS[`G.HW.${check.id.toUpperCase().replace(/-/g, '_')}`] || null;
 
   return {
     id: `warn_${check.id.toLowerCase().replace(/-/g, '_')}_skipped`,
@@ -234,10 +238,7 @@ function buildSkippedCheckToken(check: ProbeCheck): DeviceLabWarningToken | null
 /**
  * Build available actions for a warning.
  */
-function buildWarningActions(
-  warningId: string,
-  check?: ProbeCheck
-): DeviceLabWarningAction[] {
+function buildWarningActions(warningId: string, check?: ProbeCheck): DeviceLabWarningAction[] {
   const actions: DeviceLabWarningAction[] = [];
 
   // Attach action - tells user how to provide the missing evidence
@@ -277,11 +278,11 @@ function buildWarningActions(
  */
 function getAttachDescription(warningId: string): string {
   const descriptions: Record<string, string> = {
-    'g_hw_headset_report': 'Export observations.md from Studio /quest-probe and attach',
-    'g_hw_replay_receipt': 'Pass --replay with a scene replay, trace, or validation receipt',
-    'g_hw_webgpu_browser': 'Run scripts/probe-webgpu.mjs or pass --webgpu-report',
-    'g_hw_wasm_simd': 'Upgrade Node.js to enable WASM SIMD support',
-    'g_hw_gpu_inventory': 'Ensure GPU drivers are installed and accessible',
+    g_hw_headset_report: 'Export observations.md from Studio /quest-probe and attach',
+    g_hw_replay_receipt: 'Pass --replay with a scene replay, trace, or validation receipt',
+    g_hw_webgpu_browser: 'Run scripts/probe-webgpu.mjs or pass --webgpu-report',
+    g_hw_wasm_simd: 'Upgrade Node.js to enable WASM SIMD support',
+    g_hw_gpu_inventory: 'Ensure GPU drivers are installed and accessible',
   };
   return descriptions[warningId] || 'Attach the required evidence file';
 }
@@ -291,11 +292,11 @@ function getAttachDescription(warningId: string): string {
  */
 function getExpectedArtifact(warningId: string): string {
   const artifacts: Record<string, string> = {
-    'g_hw_headset_report': 'observations.md (QuestProbe markdown)',
-    'g_hw_replay_receipt': 'scene-replay.json or validation-receipt.json',
-    'g_hw_webgpu_browser': 'webgpu-report.json',
-    'g_hw_wasm_simd': 'N/A (hardware capability)',
-    'g_hw_gpu_inventory': 'N/A (hardware detection)',
+    g_hw_headset_report: 'observations.md (QuestProbe markdown)',
+    g_hw_replay_receipt: 'scene-replay.json or validation-receipt.json',
+    g_hw_webgpu_browser: 'webgpu-report.json',
+    g_hw_wasm_simd: 'N/A (hardware capability)',
+    g_hw_gpu_inventory: 'N/A (hardware detection)',
   };
   return artifacts[warningId] || 'evidence file';
 }
@@ -305,11 +306,11 @@ function getExpectedArtifact(warningId: string): string {
  */
 function getAttachCommand(warningId: string): string {
   const commands: Record<string, string> = {
-    'g_hw_headset_report': 'hololand-device-lab --headset-report ./observations.md',
-    'g_hw_replay_receipt': 'hololand-device-lab --replay ./scene-replay.json',
-    'g_hw_webgpu_browser': 'node scripts/probe-webgpu.mjs --output webgpu-report.json',
-    'g_hw_wasm_simd': 'N/A',
-    'g_hw_gpu_inventory': 'N/A',
+    g_hw_headset_report: 'hololand-device-lab --headset-report ./observations.md',
+    g_hw_replay_receipt: 'hololand-device-lab --replay ./scene-replay.json',
+    g_hw_webgpu_browser: 'node scripts/probe-webgpu.mjs --output webgpu-report.json',
+    g_hw_wasm_simd: 'N/A',
+    g_hw_gpu_inventory: 'N/A',
   };
   return commands[warningId] || 'hololand-device-lab --attach <file>';
 }
@@ -362,7 +363,9 @@ export function summarizeWarningTokens(tokens: DeviceLabWarningToken[]): string 
     return 'All evidence attached';
   }
 
-  const highOrCritical = tokens.filter((t) => t.severity === 'high' || t.severity === 'critical').length;
+  const highOrCritical = tokens.filter(
+    (t) => t.severity === 'high' || t.severity === 'critical'
+  ).length;
   const medium = tokens.filter((t) => t.severity === 'medium').length;
   const low = tokens.filter((t) => t.severity === 'low').length;
 

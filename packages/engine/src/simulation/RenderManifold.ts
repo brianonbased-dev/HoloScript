@@ -68,7 +68,7 @@ export interface RenderManifoldArtifact {
 export function renderManifoldFromReceipts(
   receipts: ReadonlyArray<ConjectureReceipt>,
   candidates: ReadonlyArray<ReadonlyArray<GeometryConjectureCandidate>>,
-  hashMode: HashMode = 'sha256',
+  hashMode: HashMode = 'sha256'
 ): RenderManifoldArtifact {
   const surfaces: RenderedSurface[] = [];
 
@@ -78,9 +78,7 @@ export function renderManifoldFromReceipts(
 
     for (const evaluation of receipt.evaluations) {
       // Find the matching candidate for geometry data
-      const candidate = receiptCandidates.find(
-        (c) => c.id === evaluation.candidateId,
-      );
+      const candidate = receiptCandidates.find((c) => c.id === evaluation.candidateId);
 
       // For surviving/falsified candidates with geometry, build a rendered surface
       if (
@@ -163,13 +161,15 @@ export function renderManifoldFromReceipts(
 export function verifyRenderManifoldReplay(
   receipts: ReadonlyArray<ConjectureReceipt>,
   candidates: ReadonlyArray<ReadonlyArray<GeometryConjectureCandidate>>,
-  hashMode: HashMode = 'sha256',
+  hashMode: HashMode = 'sha256'
 ): { passed: boolean; firstHash: string; secondHash: string } {
   const first = renderManifoldFromReceipts(receipts, candidates, hashMode);
   const second = renderManifoldFromReceipts(receipts, candidates, hashMode);
 
   return {
-    passed: first.invariantProbeHash === second.invariantProbeHash && first.receiptKey === second.receiptKey,
+    passed:
+      first.invariantProbeHash === second.invariantProbeHash &&
+      first.receiptKey === second.receiptKey,
     firstHash: first.invariantProbeHash,
     secondHash: second.invariantProbeHash,
   };

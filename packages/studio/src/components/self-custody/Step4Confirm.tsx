@@ -65,9 +65,8 @@ export function Step4Confirm({ pkg, onContinue, onBack }: Step4Props) {
     <div>
       <h2 style={{ fontSize: 18, marginBottom: 12 }}>Step 4 — Confirm recoverability</h2>
       <p style={{ color: '#aaa', fontSize: 13, marginBottom: 16 }}>
-        Re-enter your password. We&apos;ll decrypt the package locally to prove
-        you can recover your secret. Nothing is sent to the identity server in
-        this step.
+        Re-enter your password. We&apos;ll decrypt the package locally to prove you can recover your
+        secret. Nothing is sent to the identity server in this step.
       </p>
 
       <label style={{ display: 'block', marginBottom: 12 }}>
@@ -125,8 +124,8 @@ export function Step4Confirm({ pkg, onContinue, onBack }: Step4Props) {
           role="status"
           aria-label="verify-success"
         >
-          <strong>Recoverable.</strong> Package integrity verified and
-          payload decrypted successfully. You can continue.
+          <strong>Recoverable.</strong> Package integrity verified and payload decrypted
+          successfully. You can continue.
         </div>
       )}
 
@@ -143,9 +142,8 @@ export function Step4Confirm({ pkg, onContinue, onBack }: Step4Props) {
           role="alert"
           aria-label="verify-wrong-password"
         >
-          <strong>Password didn&apos;t decrypt.</strong> Double-check the
-          password you used in Step 2. The manifest hash verified — only the
-          password is off.
+          <strong>Password didn&apos;t decrypt.</strong> Double-check the password you used in Step
+          2. The manifest hash verified — only the password is off.
         </div>
       )}
 
@@ -162,8 +160,8 @@ export function Step4Confirm({ pkg, onContinue, onBack }: Step4Props) {
           role="alert"
           aria-label="verify-manifest-bad"
         >
-          <strong>Package appears corrupted.</strong> Manifest hash does not
-          match. Restart the migration flow.
+          <strong>Package appears corrupted.</strong> Manifest hash does not match. Restart the
+          migration flow.
         </div>
       )}
 

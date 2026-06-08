@@ -28,7 +28,10 @@ describe('parseFounderInboxEntries', () => {
   });
 
   it('FAILING-IF-BROKEN: a non-founderInbox feed entry is NOT rendered', () => {
-    const ordinary = { id: 'x', content: JSON.stringify({ kind: 'intelligence', content: 'board report' }) };
+    const ordinary = {
+      id: 'x',
+      content: JSON.stringify({ kind: 'intelligence', content: 'board report' }),
+    };
     expect(parseFounderInboxEntries([ordinary])).toHaveLength(0);
   });
 
@@ -43,7 +46,7 @@ describe('parseFounderInboxEntries', () => {
         push({ id: 'a', label: 'older', ts: '2026-05-26T10:00:00.000Z' }),
         push({ id: 'b', label: 'newer', ts: '2026-05-26T22:00:00.000Z' }),
       ],
-      1,
+      1
     );
     expect(items).toHaveLength(1);
     expect(items[0].label).toBe('newer');
@@ -97,8 +100,20 @@ describe('parseFounderInboxEntries', () => {
 
   it('SAME STATE: ties broken by newest ts', () => {
     const items = parseFounderInboxEntries([
-      push({ id: 'old', dedupKey: 'k1', state: 'ready', label: 'old', ts: '2026-05-26T10:00:00.000Z' }),
-      push({ id: 'new', dedupKey: 'k1', state: 'ready', label: 'new', ts: '2026-05-26T11:00:00.000Z' }),
+      push({
+        id: 'old',
+        dedupKey: 'k1',
+        state: 'ready',
+        label: 'old',
+        ts: '2026-05-26T10:00:00.000Z',
+      }),
+      push({
+        id: 'new',
+        dedupKey: 'k1',
+        state: 'ready',
+        label: 'new',
+        ts: '2026-05-26T11:00:00.000Z',
+      }),
     ]);
     expect(items).toHaveLength(1);
     expect(items[0].label).toBe('new');
@@ -129,9 +144,7 @@ describe('parseFounderInboxEntries', () => {
       classes: ['spend'],
       express: false,
     };
-    const items = parseFounderInboxEntries([
-      push({ id: 'f1', preVetted: true, vetting }),
-    ]);
+    const items = parseFounderInboxEntries([push({ id: 'f1', preVetted: true, vetting })]);
     expect(items).toHaveLength(1);
     expect(items[0].preVetted).toBe(true);
     expect(items[0].vetting).not.toBeNull();
@@ -151,9 +164,7 @@ describe('parseFounderInboxEntries', () => {
       classes: [],
       express: true,
     };
-    const items = parseFounderInboxEntries([
-      push({ id: 'f1', preVetted: true, vetting }),
-    ]);
+    const items = parseFounderInboxEntries([push({ id: 'f1', preVetted: true, vetting })]);
     expect(items[0].vetting!.express).toBe(true);
   });
 

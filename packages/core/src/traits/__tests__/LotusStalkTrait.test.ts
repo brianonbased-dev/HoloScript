@@ -139,7 +139,11 @@ describe('LotusStalkTrait — handler lifecycle', () => {
     const node = createMockNode('stalk-test');
     attachTrait(lotusStalkHandler, node, { format: 'hs' }, ctx);
     ctx.clearEvents();
-    lotusStalkHandler.onDetach?.(node as never, lotusStalkHandler.defaultConfig as never, ctx as never);
+    lotusStalkHandler.onDetach?.(
+      node as never,
+      lotusStalkHandler.defaultConfig as never,
+      ctx as never
+    );
     expect(getEventCount(ctx, 'lotus_stalk_detached')).toBe(1);
   });
 
@@ -149,7 +153,12 @@ describe('LotusStalkTrait — handler lifecycle', () => {
     attachTrait(lotusStalkHandler, node, { format: 'hs' }, ctx);
     ctx.clearEvents();
     for (let i = 0; i < 100; i++) {
-      lotusStalkHandler.onUpdate?.(node as never, lotusStalkHandler.defaultConfig as never, ctx as never, 0.016);
+      lotusStalkHandler.onUpdate?.(
+        node as never,
+        lotusStalkHandler.defaultConfig as never,
+        ctx as never,
+        0.016
+      );
     }
     expect(ctx.emittedEvents.length).toBe(0);
   });

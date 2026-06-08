@@ -2,11 +2,7 @@
  * SchedulerTrait — comprehensive tests
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  schedulerHandler,
-  type SchedulerConfig,
-  type SchedulerJob,
-} from '../SchedulerTrait';
+import { schedulerHandler, type SchedulerConfig, type SchedulerJob } from '../SchedulerTrait';
 import type { HSPlusNode, TraitContext } from '../TraitTypes';
 
 // ---------------------------------------------------------------------------
@@ -122,13 +118,13 @@ describe('add/remove jobs', () => {
     const { node, config, context, emitted } = setup();
     addJob(node, config, context, { id: 'j1', action: 'act' });
     expect(node.__schedulerState.jobs.has('j1')).toBe(true);
-    expect(emitted.some(e => e.type === 'scheduler:job_added')).toBe(true);
+    expect(emitted.some((e) => e.type === 'scheduler:job_added')).toBe(true);
   });
 
   it('job_added payload includes interval and mode', () => {
     const { node, config, context, emitted } = setup();
     addJob(node, config, context, { id: 'j1', interval_ms: 2500, mode: 'once', action: 'act' });
-    const ev = emitted.find(e => e.type === 'scheduler:job_added');
+    const ev = emitted.find((e) => e.type === 'scheduler:job_added');
     expect((ev!.payload as any).interval).toBe(2500);
     expect((ev!.payload as any).mode).toBe('once');
   });
@@ -156,7 +152,7 @@ describe('add/remove jobs', () => {
     addJob(node, config, context, { id: 'j1', action: 'a1' });
     addJob(node, config, context, { id: 'j2', action: 'a2' });
     expect(node.__schedulerState.jobs.size).toBe(1);
-    expect(emitted.some(e => e.type === 'scheduler:job_error')).toBe(true);
+    expect(emitted.some((e) => e.type === 'scheduler:job_error')).toBe(true);
   });
 
   it('remove_job clears timer and emits scheduler:job_removed', () => {
@@ -168,7 +164,7 @@ describe('add/remove jobs', () => {
       payload: { jobId: 'j1' },
     } as any);
     expect(node.__schedulerState.jobs.has('j1')).toBe(false);
-    expect(emitted.some(e => e.type === 'scheduler:job_removed')).toBe(true);
+    expect(emitted.some((e) => e.type === 'scheduler:job_removed')).toBe(true);
   });
 
   it('remove_job accepts payload.id alias', () => {
@@ -198,7 +194,7 @@ describe('pause/resume', () => {
     const js = node.__schedulerState.jobs.get('j1');
     expect(js.paused).toBe(true);
     expect(js.timer).toBeNull();
-    expect(emitted.some(e => e.type === 'scheduler:job_paused')).toBe(true);
+    expect(emitted.some((e) => e.type === 'scheduler:job_paused')).toBe(true);
   });
 
   it('resume_job resumes paused job and emits event', () => {
@@ -212,7 +208,7 @@ describe('pause/resume', () => {
     const js = node.__schedulerState.jobs.get('j1');
     expect(js.paused).toBe(false);
     expect(js.timer).not.toBeNull();
-    expect(emitted.some(e => e.type === 'scheduler:job_resumed')).toBe(true);
+    expect(emitted.some((e) => e.type === 'scheduler:job_resumed')).toBe(true);
   });
 
   it('pause_job accepts payload.id alias', () => {
@@ -254,8 +250,8 @@ describe('job triggering behavior', () => {
 
     vi.advanceTimersByTime(1000);
 
-    expect(emitted.some(e => e.type === 'scheduler:job_triggered')).toBe(true);
-    expect(emitted.some(e => e.type === 'do_work')).toBe(true);
+    expect(emitted.some((e) => e.type === 'scheduler:job_triggered')).toBe(true);
+    expect(emitted.some((e) => e.type === 'do_work')).toBe(true);
     expect(node.__schedulerState.totalTriggered).toBe(1);
   });
 
@@ -271,7 +267,7 @@ describe('job triggering behavior', () => {
 
     vi.advanceTimersByTime(500);
 
-    const ev = emitted.find(e => e.type === 'perform');
+    const ev = emitted.find((e) => e.type === 'perform');
     expect((ev!.payload as any).foo).toBe('bar');
     expect((ev!.payload as any).__schedulerJobId).toBe('j2');
   });
@@ -318,7 +314,7 @@ describe('job triggering behavior', () => {
     emitted.length = 0;
 
     vi.advanceTimersByTime(900);
-    expect(emitted.some(e => e.type === 'hit')).toBe(false);
+    expect(emitted.some((e) => e.type === 'hit')).toBe(false);
 
     schedulerHandler.onEvent?.(node, config, context, {
       type: 'scheduler:resume_job',
@@ -326,7 +322,7 @@ describe('job triggering behavior', () => {
     } as any);
 
     vi.advanceTimersByTime(300);
-    expect(emitted.some(e => e.type === 'hit')).toBe(true);
+    expect(emitted.some((e) => e.type === 'hit')).toBe(true);
   });
 });
 
@@ -344,7 +340,7 @@ describe('status and detach', () => {
       payload: {},
     } as any);
 
-    const status = emitted.find(e => e.type === 'scheduler:status');
+    const status = emitted.find((e) => e.type === 'scheduler:status');
     expect(status).toBeDefined();
     expect((status!.payload as any).jobCount).toBe(1);
     expect(Array.isArray((status!.payload as any).jobs)).toBe(true);
@@ -360,7 +356,7 @@ describe('status and detach', () => {
       payload: {},
     } as any);
 
-    const status = emitted.find(e => e.type === 'scheduler:status');
+    const status = emitted.find((e) => e.type === 'scheduler:status');
     expect((status!.payload as any).totalTriggered).toBeGreaterThanOrEqual(1);
   });
 
@@ -389,7 +385,9 @@ describe('status and detach', () => {
     const node = makeNode();
     const { context } = makeContext();
     expect(() =>
-      schedulerHandler.onEvent?.(node, BASE_CONFIG, context, { type: 'scheduler:get_status' } as any)
+      schedulerHandler.onEvent?.(node, BASE_CONFIG, context, {
+        type: 'scheduler:get_status',
+      } as any)
     ).not.toThrow();
   });
 });

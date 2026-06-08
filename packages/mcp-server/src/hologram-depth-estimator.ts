@@ -36,14 +36,19 @@ async function loadDepthPipeline(): Promise<unknown> {
     // Dynamic import — @huggingface/transformers is an optional peer dep.
     const transformers = await import('@huggingface/transformers');
     // Disable browser cache and local model lookup (Railway/server environment).
-    const envObj = (transformers as unknown as Record<string, unknown>).env as Record<string, unknown>;
+    const envObj = (transformers as unknown as Record<string, unknown>).env as Record<
+      string,
+      unknown
+    >;
     if (envObj) {
       envObj.useBrowserCache = false;
       envObj.allowLocalModels = false;
     }
-    cachedPipeline = await (transformers as unknown as {
-      pipeline(task: string, model: string, opts: Record<string, unknown>): Promise<unknown>;
-    }).pipeline('depth-estimation', 'Xenova/depth-anything-v2-small-hf', { dtype: 'fp32' });
+    cachedPipeline = await (
+      transformers as unknown as {
+        pipeline(task: string, model: string, opts: Record<string, unknown>): Promise<unknown>;
+      }
+    ).pipeline('depth-estimation', 'Xenova/depth-anything-v2-small-hf', { dtype: 'fp32' });
     return cachedPipeline;
   } catch {
     return null;
@@ -59,7 +64,7 @@ export function bilinearResize(
   srcW: number,
   srcH: number,
   dstW: number,
-  dstH: number,
+  dstH: number
 ): Float32Array {
   const dst = new Float32Array(dstW * dstH);
   const xScale = srcW / dstW;
@@ -108,7 +113,7 @@ export function bilinearResize(
 export async function estimateDepthFromUrl(
   imageUrl: string,
   targetWidth: number,
-  targetHeight: number,
+  targetHeight: number
 ): Promise<DepthEstimateResult> {
   const forceBackend = process.env.HOLOGRAM_DEPTH_BACKEND?.trim();
   if (forceBackend === 'luminance-proxy') {
@@ -121,7 +126,8 @@ export async function estimateDepthFromUrl(
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: any = await (pipe as (url: string) => Promise<unknown>)(imageUrl);
-    const tensor = (result as { predicted_depth: { data: Float32Array; dims: [number, number] } }).predicted_depth;
+    const tensor = (result as { predicted_depth: { data: Float32Array; dims: [number, number] } })
+      .predicted_depth;
     const rawData = tensor.data;
     const [srcH, srcW] = tensor.dims;
 

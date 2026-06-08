@@ -101,7 +101,8 @@ export const toolingDiscoveryTools: Tool[] = [
         },
         stopOnError: {
           type: 'boolean',
-          description: 'If true, stop executing remaining calls after first error. Defaults to false.',
+          description:
+            'If true, stop executing remaining calls after first error. Defaults to false.',
         },
       },
       required: ['calls'],
@@ -115,7 +116,7 @@ export const toolingDiscoveryTools: Tool[] = [
       'returns a stub/empty payload), or "stub" (handler not wired / unconditionally throws). ' +
       'Use this before relying on any tool to avoid overclaiming that a scaffold path is ' +
       'production-ready. Root cause of the W.122 fictional-route pattern — always call this ' +
-      'first when uncertain about a tool\'s backing implementation.',
+      "first when uncertain about a tool's backing implementation.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -256,10 +257,13 @@ function inferCategory(name: string): string {
   if (name.startsWith('hs_')) return 'ide';
   if (name.startsWith('holomesh_')) return 'holomesh';
   if (name.startsWith('browser_')) return 'browser';
-  if (name.includes('trace') || name.includes('metrics') || name.includes('health')) return 'observability';
+  if (name.includes('trace') || name.includes('metrics') || name.includes('health'))
+    return 'observability';
   if (name.includes('plugin')) return 'plugins';
-  if (name.includes('budget') || name.includes('earnings') || name.includes('usage')) return 'economy';
-  if (name.includes('simulation') || name.startsWith('solve_') || name.includes('cael')) return 'simulation';
+  if (name.includes('budget') || name.includes('earnings') || name.includes('usage'))
+    return 'economy';
+  if (name.includes('simulation') || name.startsWith('solve_') || name.includes('cael'))
+    return 'simulation';
   return 'core';
 }
 
@@ -309,7 +313,29 @@ function inferTags(name: string, description?: string): string[] {
   const desc = (description || '').toLowerCase();
   const n = name.toLowerCase();
 
-  for (const t of ['parse', 'validate', 'compile', 'render', 'share', 'graph', 'ide', 'ai', 'simulation', 'cael', 'plugin', 'economy', 'observability', 'mcp', 'rest', 'a2a', 'cli', 'control', 'discovery', 'health', 'canary']) {
+  for (const t of [
+    'parse',
+    'validate',
+    'compile',
+    'render',
+    'share',
+    'graph',
+    'ide',
+    'ai',
+    'simulation',
+    'cael',
+    'plugin',
+    'economy',
+    'observability',
+    'mcp',
+    'rest',
+    'a2a',
+    'cli',
+    'control',
+    'discovery',
+    'health',
+    'canary',
+  ]) {
     if (desc.includes(t) || n.includes(t)) tags.add(t);
   }
 
@@ -318,14 +344,22 @@ function inferTags(name: string, description?: string): string[] {
 
 function inferExamples(name: string): Array<{ args: Record<string, unknown> }> {
   if (name === 'parse_hs') return [{ args: { code: 'object Cube { geometry: "cube" }' } }];
-  if (name === 'validate_holoscript') return [{ args: { code: 'composition "S" { object "C" { geometry: "cube" } }' } }];
-  if (name === 'compile_holoscript') return [{ args: { code: 'composition "S" { object "C" { geometry: "cube" } }', target: 'r3f' } }];
+  if (name === 'validate_holoscript')
+    return [{ args: { code: 'composition "S" { object "C" { geometry: "cube" } }' } }];
+  if (name === 'compile_holoscript')
+    return [
+      { args: { code: 'composition "S" { object "C" { geometry: "cube" } }', target: 'r3f' } },
+    ];
   return [];
 }
 
 export function buildToolManifest(
   allTools: Tool[],
-  opts: { includeInputSchema?: boolean; includeOutputSchema?: boolean; includeExamples?: boolean } = {}
+  opts: {
+    includeInputSchema?: boolean;
+    includeOutputSchema?: boolean;
+    includeExamples?: boolean;
+  } = {}
 ): ToolManifestEntry[] {
   const includeInputSchema = opts.includeInputSchema !== false;
   const includeOutputSchema = opts.includeOutputSchema !== false;
@@ -365,7 +399,8 @@ export function suggestToolsForGoal(
 
   const scored = manifest
     .map((tool) => {
-      const haystack = `${tool.name} ${tool.description || ''} ${tool.tags.join(' ')}`.toLowerCase();
+      const haystack =
+        `${tool.name} ${tool.description || ''} ${tool.tags.join(' ')}`.toLowerCase();
       const haystackWords = getWordTokens(haystack);
       let score = 0;
       for (const token of queryTokens) {
@@ -374,19 +409,82 @@ export function suggestToolsForGoal(
       }
 
       if (q.includes('compile') && tool.name.startsWith('compile_')) score += 3;
-      if ((q.includes('validate') || q.includes('lint')) && tool.name.includes('validate')) score += 3;
+      if ((q.includes('validate') || q.includes('lint')) && tool.name.includes('validate'))
+        score += 3;
       if ((q.includes('parse') || q.includes('ast')) && tool.name.startsWith('parse_')) score += 3;
       if (q.includes('graph') && tool.name.startsWith('holo_')) score += 2;
-      if (q.includes('simulate') && (tool.tags.includes('simulation') || tool.name.startsWith('solve_'))) score += 3;
+      if (
+        q.includes('simulate') &&
+        (tool.tags.includes('simulation') || tool.name.startsWith('solve_'))
+      )
+        score += 3;
 
       // MCP, REST, A2A, CLI, control-plane, discovery, health, canary
-      if ((q.includes('mcp') || q.includes('tool manifest')) && (tool.name === 'get_tool_manifest' || tool.name === 'suggest_tools_for_goal' || tool.name === 'batch_tool_call' || tool.name === 'get_tool_health' || tool.name === 'holoscript_discover_tools' || tool.name === 'compile_to_mcp_config')) score += 4;
-      if ((q.includes('rest') || q.includes('api') || q.includes('control') || q.includes('rcp')) && (tool.name === 'get_api_reference' || tool.name === 'get_circuit_breaker_status' || tool.name === 'fetch_authoritative_state' || tool.name === 'get_dev_dashboard_state' || tool.name === 'holo_service_scaffold')) score += 4;
-      if (q.includes('a2a') && (tool.name === 'compile_to_a2a_agent_card' || tool.name === 'discover_agents' || tool.name === 'discover_plugins')) score += 4;
-      if ((q.includes('cli') || q.includes('command line')) && (tool.name === 'holoscript_batch_execute' || tool.name === 'execute_holotest' || tool.name === 'holo_run_tests_targeted' || tool.name === 'holo_run_related_tests')) score += 4;
-      if (q.includes('discovery') && (tool.name.startsWith('discover_') || tool.name === 'holoscript_discover_tools' || tool.name === 'holo_oracle_discover')) score += 4;
-      if ((q.includes('health') || q.includes('diagnostic')) && (tool.name === 'get_agent_health' || tool.name === 'holoscript_code_health' || tool.name === 'holo_self_diagnose' || tool.name === 'get_telemetry_metrics' || tool.name === 'get_metrics_prometheus')) score += 4;
-      if ((q.includes('canary') || q.includes('gap') || q.includes('wired') || q.includes('scaffold') || q.includes('stub')) && (tool.name === 'get_tool_health' || tool.name === 'execute_holotest' || tool.name === 'holo_run_tests_targeted' || tool.name === 'holo_run_related_tests' || tool.name === 'holoscript_code_health' || tool.name === 'holo_self_diagnose' || tool.name === 'get_circuit_breaker_status')) score += 4;
+      if (
+        (q.includes('mcp') || q.includes('tool manifest')) &&
+        (tool.name === 'get_tool_manifest' ||
+          tool.name === 'suggest_tools_for_goal' ||
+          tool.name === 'batch_tool_call' ||
+          tool.name === 'get_tool_health' ||
+          tool.name === 'holoscript_discover_tools' ||
+          tool.name === 'compile_to_mcp_config')
+      )
+        score += 4;
+      if (
+        (q.includes('rest') || q.includes('api') || q.includes('control') || q.includes('rcp')) &&
+        (tool.name === 'get_api_reference' ||
+          tool.name === 'get_circuit_breaker_status' ||
+          tool.name === 'fetch_authoritative_state' ||
+          tool.name === 'get_dev_dashboard_state' ||
+          tool.name === 'holo_service_scaffold')
+      )
+        score += 4;
+      if (
+        q.includes('a2a') &&
+        (tool.name === 'compile_to_a2a_agent_card' ||
+          tool.name === 'discover_agents' ||
+          tool.name === 'discover_plugins')
+      )
+        score += 4;
+      if (
+        (q.includes('cli') || q.includes('command line')) &&
+        (tool.name === 'holoscript_batch_execute' ||
+          tool.name === 'execute_holotest' ||
+          tool.name === 'holo_run_tests_targeted' ||
+          tool.name === 'holo_run_related_tests')
+      )
+        score += 4;
+      if (
+        q.includes('discovery') &&
+        (tool.name.startsWith('discover_') ||
+          tool.name === 'holoscript_discover_tools' ||
+          tool.name === 'holo_oracle_discover')
+      )
+        score += 4;
+      if (
+        (q.includes('health') || q.includes('diagnostic')) &&
+        (tool.name === 'get_agent_health' ||
+          tool.name === 'holoscript_code_health' ||
+          tool.name === 'holo_self_diagnose' ||
+          tool.name === 'get_telemetry_metrics' ||
+          tool.name === 'get_metrics_prometheus')
+      )
+        score += 4;
+      if (
+        (q.includes('canary') ||
+          q.includes('gap') ||
+          q.includes('wired') ||
+          q.includes('scaffold') ||
+          q.includes('stub')) &&
+        (tool.name === 'get_tool_health' ||
+          tool.name === 'execute_holotest' ||
+          tool.name === 'holo_run_tests_targeted' ||
+          tool.name === 'holo_run_related_tests' ||
+          tool.name === 'holoscript_code_health' ||
+          tool.name === 'holo_self_diagnose' ||
+          tool.name === 'get_circuit_breaker_status')
+      )
+        score += 4;
 
       return {
         name: tool.name,
@@ -416,17 +514,39 @@ export function suggestToolsForGoal(
     });
   }
 
-  if (q.includes('mcp') || q.includes('rest') || q.includes('a2a') || q.includes('cli') || q.includes('control') || q.includes('discovery') || q.includes('health') || q.includes('canary')) {
+  if (
+    q.includes('mcp') ||
+    q.includes('rest') ||
+    q.includes('a2a') ||
+    q.includes('cli') ||
+    q.includes('control') ||
+    q.includes('discovery') ||
+    q.includes('health') ||
+    q.includes('canary')
+  ) {
     suggestedBundles.push({
       name: 'control-plane-and-surface-audit',
-      tools: ['get_tool_health', 'get_tool_manifest', 'get_api_reference', 'get_circuit_breaker_status', 'get_agent_health', 'holoscript_code_health', 'discover_agents', 'execute_holotest'],
-      reason: 'Audit MCP, REST, A2A, and CLI surfaces: tool wiring health, manifest discovery, API docs, circuit breakers, health checks, and canary tests.',
+      tools: [
+        'get_tool_health',
+        'get_tool_manifest',
+        'get_api_reference',
+        'get_circuit_breaker_status',
+        'get_agent_health',
+        'holoscript_code_health',
+        'discover_agents',
+        'execute_holotest',
+      ],
+      reason:
+        'Audit MCP, REST, A2A, and CLI surfaces: tool wiring health, manifest discovery, API docs, circuit breakers, health checks, and canary tests.',
     });
   }
 
-  const noToolExplanation = scored.length === 0
-    ? `No tools matched for goal: "${goal}". Analyzed tokens: ${Array.from(queryTokens).filter((t) => t.length >= 2).join(', ')}. Try rephrasing or use get_tool_manifest for a full listing.`
-    : undefined;
+  const noToolExplanation =
+    scored.length === 0
+      ? `No tools matched for goal: "${goal}". Analyzed tokens: ${Array.from(queryTokens)
+          .filter((t) => t.length >= 2)
+          .join(', ')}. Try rephrasing or use get_tool_manifest for a full listing.`
+      : undefined;
 
   return {
     goal,
@@ -451,20 +571,20 @@ export function suggestToolsForGoal(
  * surface area.
  */
 const REPRESENTATIVE_TOOLS: Record<string, string[]> = {
-  'parsing': ['parse_hs', 'parse_holo', 'parse_hs', 'parse_pipeline'],
-  'validation': ['validate_holoscript'],
-  'compiler': ['compile_holoscript', 'compile_to_r3f'],
+  parsing: ['parse_hs', 'parse_holo', 'parse_hs', 'parse_pipeline'],
+  validation: ['validate_holoscript'],
+  compiler: ['compile_holoscript', 'compile_to_r3f'],
   'graph/codebase': ['holo_graph_status'],
   'ai-assistant': ['hs_ai_explain_error'],
-  'ide': ['hs_diagnostics'],
-  'holomesh': ['holomesh_status'],
-  'browser': ['browser_screenshot'],
-  'observability': ['get_agent_health', 'holoscript_code_health'],
-  'plugins': ['list_plugins'],
-  'economy': ['get_creator_earnings'],
-  'simulation': ['verify_cael_trace'],
-  'discovery': ['get_tool_manifest', 'suggest_tools_for_goal'],
-  'tooling': ['batch_tool_call', 'get_tool_health'],
+  ide: ['hs_diagnostics'],
+  holomesh: ['holomesh_status'],
+  browser: ['browser_screenshot'],
+  observability: ['get_agent_health', 'holoscript_code_health'],
+  plugins: ['list_plugins'],
+  economy: ['get_creator_earnings'],
+  simulation: ['verify_cael_trace'],
+  discovery: ['get_tool_manifest', 'suggest_tools_for_goal'],
+  tooling: ['batch_tool_call', 'get_tool_health'],
 };
 
 /**
@@ -476,13 +596,16 @@ const CANARY_ARGS: Record<string, Record<string, unknown>> = {
   parse_holo: { code: 'composition "S" { object "C" { geometry: "cube" } }' },
   parse_pipeline: { source: 'step "a" { tool: "parse_hs" }' },
   validate_holoscript: { code: 'composition "S" { object "C" { geometry: "cube" } }' },
-  compile_holoscript: { code: 'composition "S" { object "C" { geometry: "cube" } }', target: 'r3f' },
+  compile_holoscript: {
+    code: 'composition "S" { object "C" { geometry: "cube" } }',
+    target: 'r3f',
+  },
   compile_to_r3f: { code: 'composition "S" { object "C" { geometry: "cube" } }' },
   holo_graph_status: {},
   hs_ai_explain_error: { code: 'object Cube { geometry: "cube" }', errors: [] },
   hs_diagnostics: { code: 'object Cube { geometry: "cube" }' },
   holomesh_status: {},
-  browser_screenshot: {},   // will stub — no real browser in probe
+  browser_screenshot: {}, // will stub — no real browser in probe
   get_agent_health: {},
   holoscript_code_health: { code: 'object Cube { geometry: "cube" }' },
   list_plugins: {},
@@ -646,7 +769,13 @@ export async function handleToolingDiscoveryTool(
       noToolExplanation?: string;
     }
   | {
-      results: Array<{ index: number; name: string; ok: boolean; result?: unknown; error?: string }>;
+      results: Array<{
+        index: number;
+        name: string;
+        ok: boolean;
+        result?: unknown;
+        error?: string;
+      }>;
       summary: { total: number; succeeded: number; failed: number; stoppedEarly: boolean };
     }
   | ToolHealthReport
@@ -717,7 +846,13 @@ export async function handleBatchToolCall(
   const calls = Array.isArray(args.calls) ? args.calls : [];
   const stopOnError = args.stopOnError === true;
 
-  const results: Array<{ index: number; name: string; ok: boolean; result?: unknown; error?: string }> = [];
+  const results: Array<{
+    index: number;
+    name: string;
+    ok: boolean;
+    result?: unknown;
+    error?: string;
+  }> = [];
   let stoppedEarly = false;
 
   for (let i = 0; i < calls.length; i++) {
@@ -725,7 +860,12 @@ export async function handleBatchToolCall(
     const name = call?.name;
 
     if (!name || typeof name !== 'string') {
-      results.push({ index: i, name: '(invalid)', ok: false, error: 'Missing or invalid call.name' });
+      results.push({
+        index: i,
+        name: '(invalid)',
+        ok: false,
+        error: 'Missing or invalid call.name',
+      });
       if (stopOnError) {
         stoppedEarly = true;
         break;

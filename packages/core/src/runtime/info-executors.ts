@@ -39,11 +39,7 @@ export interface InfoExecutorContext {
   /** Variable read for visualize target. */
   getVariable: (name: string) => unknown;
   /** Data-viz particle creator. */
-  createDataVisualization: (
-    name: string,
-    data: unknown,
-    position: SpatialPosition,
-  ) => void;
+  createDataVisualization: (name: string, data: unknown, position: SpatialPosition) => void;
   /** UI element registry (executeUIElement). */
   uiElements: Map<string, UIElementState>;
   /** Event registration (executeUIElement event handlers). */
@@ -72,7 +68,7 @@ const VISUALIZE_HOLOGRAM: HologramProperties = {
  */
 export async function executeVisualize(
   node: ASTNode & { target?: string },
-  ctx: InfoExecutorContext,
+  ctx: InfoExecutorContext
 ): Promise<ExecutionResult> {
   const target = node.target || '';
   const data = ctx.getVariable(target);
@@ -105,7 +101,7 @@ export async function executeVisualize(
  */
 export async function executeUIElement(
   node: UI2DNode,
-  ctx: InfoExecutorContext,
+  ctx: InfoExecutorContext
 ): Promise<ExecutionResult> {
   const element: UIElementState = {
     type: node.elementType,

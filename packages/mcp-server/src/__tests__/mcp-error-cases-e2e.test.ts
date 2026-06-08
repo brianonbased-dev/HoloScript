@@ -51,7 +51,9 @@ describe('MCP Tool Error Cases', () => {
     expect(result.valid).toBe(false);
     expect(result.error).toBeUndefined();
     expect((result.errors as Array<Record<string, unknown>>)[0].code).toBe('missing-code');
-    expect((result.errors as Array<Record<string, unknown>>)[0].message).toContain('requires a string `code` argument');
+    expect((result.errors as Array<Record<string, unknown>>)[0].message).toContain(
+      'requires a string `code` argument'
+    );
   });
 
   it('validate_holoscript returns a local fallback receipt when sandbox gating denies source', async () => {
@@ -135,13 +137,15 @@ describe('MCP Tool Error Cases', () => {
       platform: 'generic',
     })) as Record<string, unknown>;
     expect(typeof result.playgroundUrl).toBe('string');
-    expect((result.playgroundUrl as string)).toMatch(/^https?:\/\//);
+    expect(result.playgroundUrl as string).toMatch(/^https?:\/\//);
   });
 
   it('render_preview fails without code', async () => {
-    await expect(handleTool('render_preview', {
-      format: 'html',
-    })).rejects.toThrow();
+    await expect(
+      handleTool('render_preview', {
+        format: 'html',
+      })
+    ).rejects.toThrow();
   });
 
   it('edit_holo returns error shape for unsupported operation', async () => {

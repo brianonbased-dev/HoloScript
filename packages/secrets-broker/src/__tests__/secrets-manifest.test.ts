@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { compileSecretsManifest, SecretsManifestError, type SecretsManifest } from '../secrets-manifest';
+import {
+  compileSecretsManifest,
+  SecretsManifestError,
+  type SecretsManifest,
+} from '../secrets-manifest';
 
 const m: SecretsManifest = {
   app: 'brittney',
@@ -32,9 +36,9 @@ describe('secrets-manifest compile (one spec → many backends)', () => {
   });
 
   it('throws on a non-UPPER_SNAKE name', () => {
-    expect(() => compileSecretsManifest({ app: 'x', secrets: [{ name: 'lower' }] }, 'env-template')).toThrow(
-      SecretsManifestError
-    );
+    expect(() =>
+      compileSecretsManifest({ app: 'x', secrets: [{ name: 'lower' }] }, 'env-template')
+    ).toThrow(SecretsManifestError);
   });
 
   it('throws on duplicate names', () => {
@@ -44,6 +48,8 @@ describe('secrets-manifest compile (one spec → many backends)', () => {
   });
 
   it('throws on an empty manifest', () => {
-    expect(() => compileSecretsManifest({ app: 'x', secrets: [] }, 'env-template')).toThrow(SecretsManifestError);
+    expect(() => compileSecretsManifest({ app: 'x', secrets: [] }, 'env-template')).toThrow(
+      SecretsManifestError
+    );
   });
 });

@@ -129,10 +129,7 @@ describe('SplatChunkStore', () => {
       store.register(makeResult([makeAnchor('A', 0, 100)]));
       expect(store.size).toBe(1);
 
-      store.register(makeResult([
-        makeAnchor('B', 1, 200),
-        makeAnchor('C', 2, 300),
-      ]));
+      store.register(makeResult([makeAnchor('B', 1, 200), makeAnchor('C', 2, 300)]));
       expect(store.size).toBe(2);
       expect(store.has('spa_A_l0')).toBe(false);
       expect(store.has('spa_B_l1')).toBe(true);
@@ -153,11 +150,13 @@ describe('SplatChunkStore', () => {
 
   describe('queryByLOD', () => {
     it('returns chunks at the specified LOD levels', () => {
-      store.register(makeResult([
-        makeAnchor('Coarse', 0, 2_000_000),
-        makeAnchor('Medium', 2, 50_000),
-        makeAnchor('Fine', 4, 1_000),
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Coarse', 0, 2_000_000),
+          makeAnchor('Medium', 2, 50_000),
+          makeAnchor('Fine', 4, 1_000),
+        ])
+      );
 
       const result = store.queryByLOD([0, 2]);
       expect(result.entries).toHaveLength(2);
@@ -172,11 +171,13 @@ describe('SplatChunkStore', () => {
     });
 
     it('sorts results coarsest-first', () => {
-      store.register(makeResult([
-        makeAnchor('Fine', 4, 100),
-        makeAnchor('Coarse', 0, 2_000_000),
-        makeAnchor('Medium', 2, 50_000),
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Fine', 4, 100),
+          makeAnchor('Coarse', 0, 2_000_000),
+          makeAnchor('Medium', 2, 50_000),
+        ])
+      );
 
       const result = store.queryByLOD([0, 2, 4]);
       expect(result.entries[0]!.lodLevel).toBe(0);
@@ -185,10 +186,7 @@ describe('SplatChunkStore', () => {
     });
 
     it('computes total Gaussians and bytes', () => {
-      store.register(makeResult([
-        makeAnchor('A', 0, 1000),
-        makeAnchor('B', 2, 2000),
-      ]));
+      store.register(makeResult([makeAnchor('A', 0, 1000), makeAnchor('B', 2, 2000)]));
 
       const result = store.queryByLOD([0, 2]);
       expect(result.totalGaussians).toBe(3000);
@@ -257,10 +255,12 @@ describe('SplatChunkStore', () => {
 
   describe('queryByBounds', () => {
     it('returns chunks within the AABB', () => {
-      store.register(makeResult([
-        makeAnchor('Near', 0, 100, [5, 5, 5]),
-        makeAnchor('Far', 0, 100, [500, 500, 500]),
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Near', 0, 100, [5, 5, 5]),
+          makeAnchor('Far', 0, 100, [500, 500, 500]),
+        ])
+      );
 
       const result = store.queryByBounds(-10, -10, -10, 10, 10, 10);
       expect(result.entries).toHaveLength(1);
@@ -268,18 +268,14 @@ describe('SplatChunkStore', () => {
     });
 
     it('returns empty for non-overlapping bounds', () => {
-      store.register(makeResult([
-        makeAnchor('A', 0, 100, [100, 100, 100]),
-      ]));
+      store.register(makeResult([makeAnchor('A', 0, 100, [100, 100, 100])]));
 
       const result = store.queryByBounds(-10, -10, -10, 10, 10, 10);
       expect(result.entries).toHaveLength(0);
     });
 
     it('includes origin-anchored chunks in bounds around origin', () => {
-      store.register(makeResult([
-        makeAnchor('Origin', 0, 100, [0, 0, 0]),
-      ]));
+      store.register(makeResult([makeAnchor('Origin', 0, 100, [0, 0, 0])]));
 
       const result = store.queryByBounds(-1, -1, -1, 1, 1, 1);
       expect(result.entries).toHaveLength(1);
@@ -292,21 +288,22 @@ describe('SplatChunkStore', () => {
 
   describe('queryByDistance', () => {
     it('returns chunks within maxDistance of the camera', () => {
-      store.register(makeResult([
-        makeAnchor('Close', 0, 100, [3, 0, 0]),   // distance 3
-        makeAnchor('Mid', 0, 100, [10, 0, 0]),     // distance 10
-        makeAnchor('Far', 0, 100, [100, 0, 0]),     // distance 100
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Close', 0, 100, [3, 0, 0]), // distance 3
+          makeAnchor('Mid', 0, 100, [10, 0, 0]), // distance 10
+          makeAnchor('Far', 0, 100, [100, 0, 0]), // distance 100
+        ])
+      );
 
       const result = store.queryByDistance(0, 0, 0, 15);
       expect(result.entries).toHaveLength(2); // Close (3) + Mid (10), not Far (100)
     });
 
     it('sorts by distance nearest-first', () => {
-      store.register(makeResult([
-        makeAnchor('Far', 0, 100, [50, 0, 0]),
-        makeAnchor('Close', 0, 100, [1, 0, 0]),
-      ]));
+      store.register(
+        makeResult([makeAnchor('Far', 0, 100, [50, 0, 0]), makeAnchor('Close', 0, 100, [1, 0, 0])])
+      );
 
       const result = store.queryByDistance(0, 0, 0, 100);
       expect(result.entries[0]!.nodeId).toContain('Close');
@@ -314,9 +311,7 @@ describe('SplatChunkStore', () => {
     });
 
     it('returns empty for very small maxDistance', () => {
-      store.register(makeResult([
-        makeAnchor('A', 0, 100, [10, 0, 0]),
-      ]));
+      store.register(makeResult([makeAnchor('A', 0, 100, [10, 0, 0])]));
 
       const result = store.queryByDistance(0, 0, 0, 1);
       expect(result.entries).toHaveLength(0);
@@ -329,26 +324,28 @@ describe('SplatChunkStore', () => {
 
   describe('queryByImportance', () => {
     it('returns chunks with importance >= threshold', () => {
-      store.register(makeResult([
-        makeAnchor('Critical', 0, 100, [0, 0, 0], 0.9),
-        makeAnchor('Normal', 0, 100, [0, 0, 0], 0.5),
-        makeAnchor('Low', 0, 100, [0, 0, 0], 0.1),
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Critical', 0, 100, [0, 0, 0], 0.9),
+          makeAnchor('Normal', 0, 100, [0, 0, 0], 0.5),
+          makeAnchor('Low', 0, 100, [0, 0, 0], 0.1),
+        ])
+      );
 
       const result = store.queryByImportance(0.5);
       expect(result.entries).toHaveLength(2); // Critical + Normal
     });
 
     it('sorts by importance descending', () => {
-      store.register(makeResult([
-        makeAnchor('Normal', 0, 100, [0, 0, 0], 0.5),
-        makeAnchor('Critical', 0, 100, [0, 0, 0], 0.9),
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Normal', 0, 100, [0, 0, 0], 0.5),
+          makeAnchor('Critical', 0, 100, [0, 0, 0], 0.9),
+        ])
+      );
 
       const result = store.queryByImportance(0.0);
-      expect(result.entries[0]!.importance).toBeGreaterThanOrEqual(
-        result.entries[1]!.importance
-      );
+      expect(result.entries[0]!.importance).toBeGreaterThanOrEqual(result.entries[1]!.importance);
     });
   });
 
@@ -358,11 +355,13 @@ describe('SplatChunkStore', () => {
 
   describe('selectForBudget', () => {
     it('selects chunks within a Gaussian budget prioritised by importance', () => {
-      store.register(makeResult([
-        makeAnchor('Critical', 0, 100, [0, 0, 0], 0.9),
-        makeAnchor('Normal', 2, 200, [0, 0, 0], 0.5),
-        makeAnchor('Low', 4, 300, [0, 0, 0], 0.1),
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Critical', 0, 100, [0, 0, 0], 0.9),
+          makeAnchor('Normal', 2, 200, [0, 0, 0], 0.5),
+          makeAnchor('Low', 4, 300, [0, 0, 0], 0.1),
+        ])
+      );
 
       // Budget: 300 Gaussians
       const result = store.selectForBudget(300);
@@ -380,10 +379,12 @@ describe('SplatChunkStore', () => {
 
   describe('selectForByteBudget', () => {
     it('selects chunks within a byte budget prioritised by importance', () => {
-      store.register(makeResult([
-        makeAnchor('Critical', 0, 100, [0, 0, 0], 0.9),   // 100 * 56 = 5,600 bytes
-        makeAnchor('Normal', 2, 200, [0, 0, 0], 0.5),       // 200 * 56 = 11,200 bytes
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Critical', 0, 100, [0, 0, 0], 0.9), // 100 * 56 = 5,600 bytes
+          makeAnchor('Normal', 2, 200, [0, 0, 0], 0.5), // 200 * 56 = 11,200 bytes
+        ])
+      );
 
       // Budget: 10,000 bytes — Critical fits (5,600), Normal doesn't (11,200)
       const result = store.selectForByteBudget(10_000);
@@ -426,10 +427,7 @@ describe('SplatChunkStore', () => {
     });
 
     it('deregister removes a single anchor', () => {
-      store.register(makeResult([
-        makeAnchor('A', 0, 100),
-        makeAnchor('B', 1, 200),
-      ]));
+      store.register(makeResult([makeAnchor('A', 0, 100), makeAnchor('B', 1, 200)]));
       expect(store.size).toBe(2);
 
       store.deregister('spa_A_l0');
@@ -439,10 +437,7 @@ describe('SplatChunkStore', () => {
     });
 
     it('deregister removes from LOD index', () => {
-      store.register(makeResult([
-        makeAnchor('A', 0, 100),
-        makeAnchor('B', 0, 200),
-      ]));
+      store.register(makeResult([makeAnchor('A', 0, 100), makeAnchor('B', 0, 200)]));
 
       store.deregister('spa_A_l0');
       const level0 = store.queryByLOD([0]);
@@ -473,10 +468,7 @@ describe('SplatChunkStore', () => {
       store.register(makeResult([makeAnchor('Old', 0, 100)]));
       expect(store.size).toBe(1);
 
-      store.register(makeResult([
-        makeAnchor('New1', 1, 200),
-        makeAnchor('New2', 2, 300),
-      ]));
+      store.register(makeResult([makeAnchor('New1', 1, 200), makeAnchor('New2', 2, 300)]));
       expect(store.size).toBe(2);
       expect(store.has('spa_Old_l0')).toBe(false);
     });
@@ -488,11 +480,13 @@ describe('SplatChunkStore', () => {
 
   describe('getMetrics', () => {
     it('returns correct metrics', () => {
-      store.register(makeResult([
-        makeAnchor('Coarse', 0, 2_000_000),
-        makeAnchor('Medium', 2, 50_000),
-        makeAnchor('Fine', 4, 1_000),
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Coarse', 0, 2_000_000),
+          makeAnchor('Medium', 2, 50_000),
+          makeAnchor('Fine', 4, 1_000),
+        ])
+      );
 
       const metrics = store.getMetrics();
       expect(metrics.totalChunks).toBe(3);
@@ -510,11 +504,13 @@ describe('SplatChunkStore', () => {
 
   describe('getAll', () => {
     it('returns all entries sorted coarsest-first', () => {
-      store.register(makeResult([
-        makeAnchor('Fine', 4, 100),
-        makeAnchor('Coarse', 0, 2_000_000),
-        makeAnchor('Medium', 2, 50_000),
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Fine', 4, 100),
+          makeAnchor('Coarse', 0, 2_000_000),
+          makeAnchor('Medium', 2, 50_000),
+        ])
+      );
 
       const result = store.getAll();
       expect(result.entries).toHaveLength(3);
@@ -526,11 +522,13 @@ describe('SplatChunkStore', () => {
 
   describe('getAvailableLevels', () => {
     it('returns sorted distinct levels', () => {
-      store.register(makeResult([
-        makeAnchor('A', 0, 100),
-        makeAnchor('B', 2, 200),
-        makeAnchor('C', 0, 300), // same level as A
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('A', 0, 100),
+          makeAnchor('B', 2, 200),
+          makeAnchor('C', 0, 300), // same level as A
+        ])
+      );
 
       expect(store.getAvailableLevels()).toEqual([0, 2]);
     });
@@ -586,19 +584,19 @@ describe('SplatChunkStore', () => {
 
   describe('SpatialPartitionPass anchor ID format', () => {
     it('stores anchors with spa_<name>_l<level> ID format', () => {
-      store.register(makeResult([
-        makeAnchor('Terrain_Mesh', 0, 2_000_000, [0, 0, 0]),
-        makeAnchor('Detail_Obj', 3, 500, [10, 5, -3]),
-      ]));
+      store.register(
+        makeResult([
+          makeAnchor('Terrain_Mesh', 0, 2_000_000, [0, 0, 0]),
+          makeAnchor('Detail_Obj', 3, 500, [10, 5, -3]),
+        ])
+      );
 
       expect(store.has('spa_Terrain_Mesh_l0')).toBe(true);
       expect(store.has('spa_Detail_Obj_l3')).toBe(true);
     });
 
     it('generates fleet-rail URLs compatible with GET /chunk/{nodeId}', () => {
-      store.register(makeResult([
-        makeAnchor('Building', 0, 2_000_000),
-      ]));
+      store.register(makeResult([makeAnchor('Building', 0, 2_000_000)]));
 
       const entry = store.get('spa_Building_l0')!;
       expect(entry.url).toContain('/chunk/spa_Building_l0');
@@ -613,18 +611,14 @@ describe('SplatChunkStore', () => {
 
   describe('sourceFile propagation', () => {
     it('stores sourceFile when provided', () => {
-      store.register(makeResult([
-        makeAnchor('WithSrc', 0, 100, [0, 0, 0], 0.5, 'scene.ply'),
-      ]));
+      store.register(makeResult([makeAnchor('WithSrc', 0, 100, [0, 0, 0], 0.5, 'scene.ply')]));
 
       const entry = store.get('spa_WithSrc_l0')!;
       expect(entry.sourceFile).toBe('scene.ply');
     });
 
     it('sourceFile is undefined when not provided', () => {
-      store.register(makeResult([
-        makeAnchor('NoSrc', 0, 100),
-      ]));
+      store.register(makeResult([makeAnchor('NoSrc', 0, 100)]));
 
       const entry = store.get('spa_NoSrc_l0')!;
       expect(entry.sourceFile).toBeUndefined();

@@ -29,10 +29,14 @@ describe('textToUniverseShareHost', () => {
   it('handleTtuRenderSnippetShareEvent ignores other events', async () => {
     const fetchImpl = vi.fn();
     await expect(
-      handleTtuRenderSnippetShareEvent('other', {}, {
-        renderServiceUrl: 'http://127.0.0.1:9',
-        fetchImpl,
-      })
+      handleTtuRenderSnippetShareEvent(
+        'other',
+        {},
+        {
+          renderServiceUrl: 'http://127.0.0.1:9',
+          fetchImpl,
+        }
+      )
     ).resolves.toBeNull();
     expect(fetchImpl).not.toHaveBeenCalled();
   });

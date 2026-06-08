@@ -140,7 +140,6 @@ test.describe('Studio editor page', () => {
 
     const annotationRequest = await annotationPostPromise;
     expect(annotationRequest.postData()).toContain('annotations');
-
   });
   test('UXCommandPalette opens on Command+K without console errors', async ({ page }) => {
     // Array to catch errors specifically during the palette interactions
@@ -157,7 +156,9 @@ test.describe('Studio editor page', () => {
     }
 
     // Wait for the main UI to appear indicating the layout is fully mounted
-    await expect(page.getByRole('button', { name: /add/i }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: /add/i }).first()).toBeVisible({
+      timeout: 15_000,
+    });
 
     // The UXCommandPalette listens to Ctrl+K or Meta+K globally. Focus body first.
     await page.locator('body').click();
@@ -179,7 +180,10 @@ test.describe('Studio editor page', () => {
     await expect(palette).toBeHidden({ timeout: 5_000 });
 
     const meaningfulErrors = caughtErrors.filter(
-      (e) => !e.includes('favicon') && !e.includes('Yjs was already imported') && !e.includes('Failed to load resource')
+      (e) =>
+        !e.includes('favicon') &&
+        !e.includes('Yjs was already imported') &&
+        !e.includes('Failed to load resource')
     );
     if (meaningfulErrors.length > 0) {
       require('fs').writeFileSync('ERRORS.txt', meaningfulErrors.join('\n'));

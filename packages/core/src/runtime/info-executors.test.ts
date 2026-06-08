@@ -9,11 +9,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import {
-  executeVisualize,
-  executeUIElement,
-  type InfoExecutorContext,
-} from './info-executors';
+import { executeVisualize, executeUIElement, type InfoExecutorContext } from './info-executors';
 import type { ASTNode, ExecutionResult, UI2DNode, UIElementState } from '../types';
 
 function makeCtx(overrides: Partial<InfoExecutorContext> = {}): InfoExecutorContext {
@@ -36,7 +32,7 @@ describe('executeVisualize — target lookup', () => {
     const ctx = makeCtx({ getVariable: vi.fn(() => undefined) });
     const result = await executeVisualize(
       { type: 'visualize', target: 'missing' } as ASTNode & { target?: string },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(false);
     expect(result.error).toContain("No data found for 'missing'");
@@ -51,29 +47,24 @@ describe('executeVisualize — target lookup', () => {
         target: 'arr',
         position: [5, 10, 15],
       } as ASTNode & { target?: string },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
-    expect(ctx.createDataVisualization).toHaveBeenCalledWith(
-      'arr', [1, 2, 3], [5, 10, 15],
-    );
+    expect(ctx.createDataVisualization).toHaveBeenCalledWith('arr', [1, 2, 3], [5, 10, 15]);
   });
 
   it('defaults position to [0,0,0] when absent', async () => {
     const ctx = makeCtx({ getVariable: vi.fn(() => 'data') });
     await executeVisualize(
       { type: 'visualize', target: 'x' } as ASTNode & { target?: string },
-      ctx,
+      ctx
     );
     expect(ctx.createDataVisualization).toHaveBeenCalledWith('x', 'data', [0, 0, 0]);
   });
 
   it('defaults target to empty string when absent (still fails lookup)', async () => {
     const ctx = makeCtx({ getVariable: vi.fn(() => undefined) });
-    const result = await executeVisualize(
-      { type: 'visualize' } as ASTNode,
-      ctx,
-    );
+    const result = await executeVisualize({ type: 'visualize' } as ASTNode, ctx);
     expect(result.success).toBe(false);
     expect(result.error).toContain("No data found for ''");
   });
@@ -82,7 +73,7 @@ describe('executeVisualize — target lookup', () => {
     const ctx = makeCtx({ getVariable: vi.fn(() => 'hello') });
     const result = await executeVisualize(
       { type: 'visualize', target: 'greeting' } as ASTNode & { target?: string },
-      ctx,
+      ctx
     );
     expect(result.output).toEqual({ visualizing: 'greeting', data: 'hello' });
   });
@@ -91,7 +82,7 @@ describe('executeVisualize — target lookup', () => {
     const ctx = makeCtx({ getVariable: vi.fn(() => 1) });
     const result = await executeVisualize(
       { type: 'visualize', target: 't' } as ASTNode & { target?: string },
-      ctx,
+      ctx
     );
     expect(result.hologram).toMatchObject({
       shape: 'cylinder',
@@ -105,9 +96,30 @@ describe('executeVisualize — target lookup', () => {
     const ctx0 = makeCtx({ getVariable: vi.fn(() => 0) });
     const ctxEmpty = makeCtx({ getVariable: vi.fn(() => '') });
     const ctxNull = makeCtx({ getVariable: vi.fn(() => null) });
-    expect((await executeVisualize({ type: 'visualize', target: 'a' } as ASTNode & { target?: string }, ctx0)).success).toBe(true);
-    expect((await executeVisualize({ type: 'visualize', target: 'a' } as ASTNode & { target?: string }, ctxEmpty)).success).toBe(true);
-    expect((await executeVisualize({ type: 'visualize', target: 'a' } as ASTNode & { target?: string }, ctxNull)).success).toBe(true);
+    expect(
+      (
+        await executeVisualize(
+          { type: 'visualize', target: 'a' } as ASTNode & { target?: string },
+          ctx0
+        )
+      ).success
+    ).toBe(true);
+    expect(
+      (
+        await executeVisualize(
+          { type: 'visualize', target: 'a' } as ASTNode & { target?: string },
+          ctxEmpty
+        )
+      ).success
+    ).toBe(true);
+    expect(
+      (
+        await executeVisualize(
+          { type: 'visualize', target: 'a' } as ASTNode & { target?: string },
+          ctxNull
+        )
+      ).success
+    ).toBe(true);
   });
 });
 
@@ -153,7 +165,7 @@ describe('executeUIElement — initial value defaults by elementType', () => {
     const ctx = makeCtx();
     await executeUIElement(
       { type: 'ui2d', name: 'ti', elementType: 'textinput', properties: {} } as unknown as UI2DNode,
-      ctx,
+      ctx
     );
     expect(ctx.uiElements.get('ti')!.value).toBe('');
   });
@@ -161,8 +173,13 @@ describe('executeUIElement — initial value defaults by elementType', () => {
   it('textinput honors explicit value', async () => {
     const ctx = makeCtx();
     await executeUIElement(
-      { type: 'ui2d', name: 'ti', elementType: 'textinput', properties: { value: 'preset' } } as unknown as UI2DNode,
-      ctx,
+      {
+        type: 'ui2d',
+        name: 'ti',
+        elementType: 'textinput',
+        properties: { value: 'preset' },
+      } as unknown as UI2DNode,
+      ctx
     );
     expect(ctx.uiElements.get('ti')!.value).toBe('preset');
   });
@@ -170,8 +187,13 @@ describe('executeUIElement — initial value defaults by elementType', () => {
   it('slider defaults to properties.min when value absent', async () => {
     const ctx = makeCtx();
     await executeUIElement(
-      { type: 'ui2d', name: 's', elementType: 'slider', properties: { min: 5, max: 100 } } as unknown as UI2DNode,
-      ctx,
+      {
+        type: 'ui2d',
+        name: 's',
+        elementType: 'slider',
+        properties: { min: 5, max: 100 },
+      } as unknown as UI2DNode,
+      ctx
     );
     expect(ctx.uiElements.get('s')!.value).toBe(5);
   });
@@ -180,7 +202,7 @@ describe('executeUIElement — initial value defaults by elementType', () => {
     const ctx = makeCtx();
     await executeUIElement(
       { type: 'ui2d', name: 's', elementType: 'slider', properties: {} } as unknown as UI2DNode,
-      ctx,
+      ctx
     );
     expect(ctx.uiElements.get('s')!.value).toBe(0);
   });
@@ -189,7 +211,7 @@ describe('executeUIElement — initial value defaults by elementType', () => {
     const ctx = makeCtx();
     await executeUIElement(
       { type: 'ui2d', name: 'tg', elementType: 'toggle', properties: {} } as unknown as UI2DNode,
-      ctx,
+      ctx
     );
     expect(ctx.uiElements.get('tg')!.value).toBe(false);
   });
@@ -197,8 +219,13 @@ describe('executeUIElement — initial value defaults by elementType', () => {
   it('toggle honors explicit checked: true', async () => {
     const ctx = makeCtx();
     await executeUIElement(
-      { type: 'ui2d', name: 'tg', elementType: 'toggle', properties: { checked: true } } as unknown as UI2DNode,
-      ctx,
+      {
+        type: 'ui2d',
+        name: 'tg',
+        elementType: 'toggle',
+        properties: { checked: true },
+      } as unknown as UI2DNode,
+      ctx
     );
     expect(ctx.uiElements.get('tg')!.value).toBe(true);
   });
@@ -207,7 +234,7 @@ describe('executeUIElement — initial value defaults by elementType', () => {
     const ctx = makeCtx();
     await executeUIElement(
       { type: 'ui2d', name: 'b', elementType: 'button', properties: {} } as unknown as UI2DNode,
-      ctx,
+      ctx
     );
     // No .value set for unrecognized elementTypes
     expect(ctx.uiElements.get('b')!.value).toBeUndefined();
@@ -225,7 +252,7 @@ describe('executeUIElement — event handler registration', () => {
         properties: {},
         events: { click: 'onSubmit', focus: 'onFocus' },
       } as unknown as UI2DNode,
-      ctx,
+      ctx
     );
     expect(ctx.on).toHaveBeenCalledTimes(2);
     // First argument (event name) is composed from name + event
@@ -243,7 +270,7 @@ describe('executeUIElement — event handler registration', () => {
         properties: {},
         events: { click: 'onClick' },
       } as unknown as UI2DNode,
-      ctx,
+      ctx
     );
     // Get the registered handler, invoke it, verify callFunction
     const [, registeredHandler] = (ctx.on as ReturnType<typeof vi.fn>).mock.calls[0];
@@ -255,7 +282,7 @@ describe('executeUIElement — event handler registration', () => {
     const ctx = makeCtx();
     await executeUIElement(
       { type: 'ui2d', name: 'x', elementType: 'button', properties: {} } as unknown as UI2DNode,
-      ctx,
+      ctx
     );
     expect(ctx.on).not.toHaveBeenCalled();
   });
@@ -263,8 +290,14 @@ describe('executeUIElement — event handler registration', () => {
   it('empty events object → no handlers registered', async () => {
     const ctx = makeCtx();
     await executeUIElement(
-      { type: 'ui2d', name: 'x', elementType: 'button', properties: {}, events: {} } as unknown as UI2DNode,
-      ctx,
+      {
+        type: 'ui2d',
+        name: 'x',
+        elementType: 'button',
+        properties: {},
+        events: {},
+      } as unknown as UI2DNode,
+      ctx
     );
     expect(ctx.on).not.toHaveBeenCalled();
   });
@@ -274,8 +307,13 @@ describe('executeUIElement — return envelope', () => {
   it('output is the UIElementState instance that was registered', async () => {
     const ctx = makeCtx();
     const result = await executeUIElement(
-      { type: 'ui2d', name: 'r', elementType: 'button', properties: { x: 1 } } as unknown as UI2DNode,
-      ctx,
+      {
+        type: 'ui2d',
+        name: 'r',
+        elementType: 'button',
+        properties: { x: 1 },
+      } as unknown as UI2DNode,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(result.output).toBe(ctx.uiElements.get('r'));

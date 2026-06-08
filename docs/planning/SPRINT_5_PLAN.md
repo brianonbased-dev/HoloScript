@@ -32,7 +32,7 @@ Sprint 5 implements the **Autonomous Agent Swarms** capability, building on Spri
 | 7        | Messaging & Events         | 78    | ✅ Complete |
 | 8        | Analytics & Monitoring     | 57    | ✅ Complete |
 
-**Total: [see NUMBERS.md]  across 19 test files**
+**Total: [see NUMBERS.md] across 19 test files**
 
 ### Priority 1: SwarmCoordinator Implementation
 

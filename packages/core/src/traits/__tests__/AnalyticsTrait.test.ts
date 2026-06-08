@@ -54,7 +54,11 @@ function attachAnalytics(
   node = makeNode(),
   config = makeConfig(),
   ctx = makeContext()
-): { node: ReturnType<typeof makeNode>; config: AnalyticsConfig; ctx: ReturnType<typeof makeContext> } {
+): {
+  node: ReturnType<typeof makeNode>;
+  config: AnalyticsConfig;
+  ctx: ReturnType<typeof makeContext>;
+} {
   analyticsHandler.onAttach!(node, config, ctx);
   return { node, config, ctx };
 }
@@ -116,8 +120,7 @@ describe('AnalyticsTrait', () => {
       const n2 = makeNode();
       const c2 = makeContext();
       analyticsHandler.onAttach!(n2, config, c2);
-      const s1 = (ctx.byType('analytics_attached')[0].payload as Record<string, unknown>)
-        .sessionId;
+      const s1 = (ctx.byType('analytics_attached')[0].payload as Record<string, unknown>).sessionId;
       const s2 = (c2.byType('analytics_attached')[0].payload as Record<string, unknown>).sessionId;
       expect(s1).not.toBe(s2);
     });
@@ -342,7 +345,9 @@ describe('AnalyticsTrait', () => {
       analyticsHandler.onDetach!(n, cfg, c);
       const flush = c.byType('analytics_dashboard_flush');
       const allPoints = flush
-        .flatMap((f) => (f.payload as Record<string, unknown>).dataPoints as Array<Record<string, unknown>>)
+        .flatMap(
+          (f) => (f.payload as Record<string, unknown>).dataPoints as Array<Record<string, unknown>>
+        )
         .filter((p) => p.metricName === 'scene.load_time');
       expect(allPoints.length).toBeGreaterThan(0);
     });

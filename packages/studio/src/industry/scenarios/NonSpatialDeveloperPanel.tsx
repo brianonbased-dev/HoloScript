@@ -53,14 +53,20 @@ export function NonSpatialDeveloperPanel() {
   const [architecture] = useState<ArchitectureType>('serverless');
   const [concurrentUsers] = useState<number>(1500);
 
-  const endpoints: RouteEndpoint[] = useMemo(() => [
-    { path: '/api/v1/auth', method: 'POST', dataPayloadKb: 1.2 },
-    { path: '/api/v1/user/inventory', method: 'GET', dataPayloadKb: 45.0 },
-    { path: '/api/v1/game/worldState', method: 'GET', dataPayloadKb: 6000.0 }, // Huge payload warning
-    { path: 'ws://game-server', method: 'WS', dataPayloadKb: 0.5 },
-  ], []);
+  const endpoints: RouteEndpoint[] = useMemo(
+    () => [
+      { path: '/api/v1/auth', method: 'POST', dataPayloadKb: 1.2 },
+      { path: '/api/v1/user/inventory', method: 'GET', dataPayloadKb: 45.0 },
+      { path: '/api/v1/game/worldState', method: 'GET', dataPayloadKb: 6000.0 }, // Huge payload warning
+      { path: 'ws://game-server', method: 'WS', dataPayloadKb: 0.5 },
+    ],
+    []
+  );
 
-  const latency = useMemo(() => calculateSpatialSyncLatency(architecture, concurrentUsers), [architecture, concurrentUsers]);
+  const latency = useMemo(
+    () => calculateSpatialSyncLatency(architecture, concurrentUsers),
+    [architecture, concurrentUsers]
+  );
   const mutationCost = useMemo(() => estimateStateMutationCost(endpoints), [endpoints]);
   const validation = useMemo(() => validateSpatialMapping(endpoints), [endpoints]);
 
@@ -76,16 +82,49 @@ export function NonSpatialDeveloperPanel() {
       <div style={s.section}>
         <div style={s.sectionTitle}>🌐 Network Sync Analysis</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          <div style={{ padding: 10, background: 'rgba(168, 85, 247, 0.05)', borderRadius: 6, textAlign: 'center' }}>
-            <div style={{ fontSize: 18, color: latency > 500 ? '#ef4444' : '#a855f7', fontWeight: 'bold' }}>{latency.toFixed(0)} ms</div>
+          <div
+            style={{
+              padding: 10,
+              background: 'rgba(168, 85, 247, 0.05)',
+              borderRadius: 6,
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 18,
+                color: latency > 500 ? '#ef4444' : '#a855f7',
+                fontWeight: 'bold',
+              }}
+            >
+              {latency.toFixed(0)} ms
+            </div>
             <div style={{ fontSize: 10, color: '#9ca3af' }}>P99 Sync Latency</div>
           </div>
-          <div style={{ padding: 10, background: 'rgba(56, 189, 248, 0.05)', borderRadius: 6, textAlign: 'center' }}>
-            <div style={{ fontSize: 18, color: '#38bdf8', fontWeight: 'bold' }}>{concurrentUsers}</div>
+          <div
+            style={{
+              padding: 10,
+              background: 'rgba(56, 189, 248, 0.05)',
+              borderRadius: 6,
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 18, color: '#38bdf8', fontWeight: 'bold' }}>
+              {concurrentUsers}
+            </div>
             <div style={{ fontSize: 10, color: '#9ca3af' }}>Concurrent Conn.</div>
           </div>
-          <div style={{ padding: 10, background: 'rgba(236, 72, 153, 0.05)', borderRadius: 6, textAlign: 'center' }}>
-            <div style={{ fontSize: 18, color: '#ec4899', fontWeight: 'bold' }}>{mutationCost.toFixed(0)}</div>
+          <div
+            style={{
+              padding: 10,
+              background: 'rgba(236, 72, 153, 0.05)',
+              borderRadius: 6,
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: 18, color: '#ec4899', fontWeight: 'bold' }}>
+              {mutationCost.toFixed(0)}
+            </div>
             <div style={{ fontSize: 10, color: '#9ca3af' }}>Mutation Cost Index</div>
           </div>
         </div>
@@ -94,10 +133,31 @@ export function NonSpatialDeveloperPanel() {
       <div style={s.section}>
         <div style={s.sectionTitle}>⚙️ Endpoints & Traffic Profile</div>
         {endpoints.map((ep, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 10px', background: 'rgba(255,255,255,0.02)', marginBottom: 4, borderRadius: 4, fontSize: 12 }}>
-            <span style={{ fontWeight: 600, width: 60, color: ep.method === 'WS' ? '#34d399' : (ep.method === 'GET' ? '#60a5fa' : '#f59e0b') }}>{ep.method}</span>
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '6px 10px',
+              background: 'rgba(255,255,255,0.02)',
+              marginBottom: 4,
+              borderRadius: 4,
+              fontSize: 12,
+            }}
+          >
+            <span
+              style={{
+                fontWeight: 600,
+                width: 60,
+                color: ep.method === 'WS' ? '#34d399' : ep.method === 'GET' ? '#60a5fa' : '#f59e0b',
+              }}
+            >
+              {ep.method}
+            </span>
             <span style={{ flex: 1, fontFamily: 'monospace', color: '#e2e8f0' }}>{ep.path}</span>
-            <span style={{ color: ep.dataPayloadKb > 500 ? '#ef4444' : '#9ca3af' }}>{ep.dataPayloadKb} KB</span>
+            <span style={{ color: ep.dataPayloadKb > 500 ? '#ef4444' : '#9ca3af' }}>
+              {ep.dataPayloadKb} KB
+            </span>
           </div>
         ))}
       </div>
@@ -105,11 +165,23 @@ export function NonSpatialDeveloperPanel() {
       <div style={s.section}>
         <div style={s.sectionTitle}>🛡️ Spatial Readiness Audit</div>
         {validation.valid ? (
-          <div style={{ color: '#34d399', fontSize: 12, fontWeight: 'bold' }}>✅ All endpoints spatially optimized!</div>
+          <div style={{ color: '#34d399', fontSize: 12, fontWeight: 'bold' }}>
+            ✅ All endpoints spatially optimized!
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {validation.warnings.map((warn, i) => (
-              <div key={i} style={{ padding: 8, background: 'rgba(239, 68, 68, 0.1)', borderLeft: '3px solid #ef4444', borderRadius: 4, fontSize: 12, color: '#fca5a5' }}>
+              <div
+                key={i}
+                style={{
+                  padding: 8,
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  borderLeft: '3px solid #ef4444',
+                  borderRadius: 4,
+                  fontSize: 12,
+                  color: '#fca5a5',
+                }}
+              >
                 ⚠️ {warn}
               </div>
             ))}

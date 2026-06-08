@@ -104,34 +104,16 @@ export function hasDefinitionOfDone(description: string | undefined): boolean {
 export function stripInjectionPatterns(text: string): string {
   // Phase 1: Remove XML-style system-reminder blocks (opening tag through closing tag)
   // Handles multi-line blocks: <system-reminder ...>...content...</system-reminder>
-  let sanitized = text.replace(
-    /<system-reminder[\s>][\s\S]*?<\/system-reminder>/gi,
-    '',
-  );
+  let sanitized = text.replace(/<system-reminder[\s>][\s\S]*?<\/system-reminder>/gi, '');
   // Phase 2: Remove self-closing system-reminder tags
-  sanitized = sanitized.replace(
-    /<system-reminder[^>]*\/>/gi,
-    '',
-  );
+  sanitized = sanitized.replace(/<system-reminder[^>]*\/>/gi, '');
   // Phase 3: Remove unclosed <system-reminder ...> tags (the opening tag alone)
-  sanitized = sanitized.replace(
-    /<system-reminder[^>]*>/gi,
-    '',
-  );
+  sanitized = sanitized.replace(/<system-reminder[^>]*>/gi, '');
   // Phase 4: Remove <system>...</system> blocks and <system-*> tags (broad harness surface)
-  sanitized = sanitized.replace(
-    /<system[\s>][\s\S]*?<\/system>/gi,
-    '',
-  );
-  sanitized = sanitized.replace(
-    /<system-[^>]*>/gi,
-    '',
-  );
+  sanitized = sanitized.replace(/<system[\s>][\s\S]*?<\/system>/gi, '');
+  sanitized = sanitized.replace(/<system-[^>]*>/gi, '');
   // Phase 5: Remove bare "system-reminder" at line start (plain-text form)
-  sanitized = sanitized.replace(
-    /^system-reminder\b.*$/gim,
-    '',
-  );
+  sanitized = sanitized.replace(/^system-reminder\b.*$/gim, '');
   // Collapse multiple blank lines left by removals
   sanitized = sanitized.replace(/\n{3,}/g, '\n\n');
   return sanitized.trim();
@@ -180,7 +162,8 @@ export function claimTask(
   if (!hasDefinitionOfDone(task.description)) {
     return {
       success: false,
-      error: 'Definition-of-Done required: task description must include a "## Done when:" section with at least one bullet.',
+      error:
+        'Definition-of-Done required: task description must include a "## Done when:" section with at least one bullet.',
     };
   }
 
@@ -317,14 +300,18 @@ export function completeTask(
     summary: opts.summary || task.title,
     ...(artifacts.length ? { artifacts: artifacts.map(cloneArtifactReceipt) } : {}),
     ...(task.environment ? { environment: cloneTaskEnvironmentProfile(task.environment) } : {}),
-    ...(environmentReceipt ? { environmentReceipt: cloneTaskEnvironmentReceipt(environmentReceipt) } : {}),
+    ...(environmentReceipt
+      ? { environmentReceipt: cloneTaskEnvironmentReceipt(environmentReceipt) }
+      : {}),
     ...(task.policy ? { policy: cloneTaskPolicyProfile(task.policy) } : {}),
     ...(task.policyEvents?.length
       ? { policyEvents: task.policyEvents.map(cloneTaskPolicyEvent) }
       : {}),
     ...(task.parentTaskId ? { parentTaskId: task.parentTaskId } : {}),
     ...(task.childTaskIds?.length ? { childTaskIds: [...task.childTaskIds] } : {}),
-    ...(task.decomposition ? { decomposition: cloneTaskDecompositionPlan(task.decomposition) } : {}),
+    ...(task.decomposition
+      ? { decomposition: cloneTaskDecompositionPlan(task.decomposition) }
+      : {}),
     ...(task.subagentEvents?.length
       ? { subagentEvents: task.subagentEvents.map(cloneSubagentEvent) }
       : {}),
@@ -633,7 +620,9 @@ export type TaskDedupMode = 'normalized' | 'exact';
  */
 export function dedupKeyForTitle(title: string, mode: TaskDedupMode = 'normalized'): string {
   if (mode === 'exact') {
-    return String(title || '').toLowerCase().trim();
+    return String(title || '')
+      .toLowerCase()
+      .trim();
   }
   return normalizeTitle(String(title || ''));
 }
@@ -848,7 +837,9 @@ export function voteSuggestion(
     promotedTask = {
       id: generateTaskId(),
       title: suggestion.title,
-      description: normalizeTaskDescription(`${suggestion.description}\n\n[Auto-promoted from suggestion by ${suggestion.proposedByName} with ${suggestion.score} votes]`),
+      description: normalizeTaskDescription(
+        `${suggestion.description}\n\n[Auto-promoted from suggestion by ${suggestion.proposedByName} with ${suggestion.score} votes]`
+      ),
       status: 'open',
       source: `suggestion:${suggestion.id}`,
       priority:
@@ -888,7 +879,9 @@ export function promoteSuggestion(
   const task: TeamTask = {
     id: generateTaskId(),
     title: suggestion.title,
-    description: normalizeTaskDescription(`${suggestion.description}\n\n[Promoted by ${promoterName} from suggestion by ${suggestion.proposedByName}]`),
+    description: normalizeTaskDescription(
+      `${suggestion.description}\n\n[Promoted by ${promoterName} from suggestion by ${suggestion.proposedByName}]`
+    ),
     status: 'open',
     source: `suggestion:${suggestion.id}`,
     priority: opts.priority || 3,

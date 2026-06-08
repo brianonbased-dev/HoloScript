@@ -106,7 +106,9 @@ export function resolveChromiumExecutablePath(): string | undefined {
 
 export function isMissingChromiumExecutableError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /Executable doesn't exist|browser executable|playwright install|chromium_headless_shell|chrome-headless-shell/i.test(message);
+  return /Executable doesn't exist|browser executable|playwright install|chromium_headless_shell|chrome-headless-shell/i.test(
+    message
+  );
 }
 
 export function createChromiumLaunchError(

@@ -67,11 +67,11 @@ describe('twin-earth-substrate contract', () => {
 
     const errors = validateTwinEarthIdentity(identity);
     expect(errors.length).toBeGreaterThanOrEqual(5);
-    expect(errors).toContain("TwinEarthIdentity.agentId is required.");
-    expect(errors).toContain("TwinEarthIdentity.walletAddress is required.");
-    expect(errors).toContain("TwinEarthIdentity.role is unsupported: unknown-role.");
-    expect(errors).toContain("TwinEarthIdentity.mode is unsupported: unknown-mode.");
-    expect(errors).toContain("TwinEarthIdentity.kind is unsupported: unknown-kind.");
+    expect(errors).toContain('TwinEarthIdentity.agentId is required.');
+    expect(errors).toContain('TwinEarthIdentity.walletAddress is required.');
+    expect(errors).toContain('TwinEarthIdentity.role is unsupported: unknown-role.');
+    expect(errors).toContain('TwinEarthIdentity.mode is unsupported: unknown-mode.');
+    expect(errors).toContain('TwinEarthIdentity.kind is unsupported: unknown-kind.');
   });
 
   // ── Permission Grant ───────────────────────────────────────────────────────
@@ -138,7 +138,9 @@ describe('twin-earth-substrate contract', () => {
     const errors = validateSafetyEnvelope(envelope);
     expect(errors).toContain('SafetyEnvelope.maxTickDurationMs must be a non-negative number.');
     expect(errors).toContain('SafetyEnvelope.maxMemoryBytes must be a non-negative number.');
-    expect(errors).toContain('SafetyEnvelope.maxNetworkCallsPerMinute must be a non-negative number.');
+    expect(errors).toContain(
+      'SafetyEnvelope.maxNetworkCallsPerMinute must be a non-negative number.'
+    );
   });
 
   it('rejects safety envelope when substrateEnforced is false', () => {
@@ -351,48 +353,92 @@ describe('twin-earth-substrate contract', () => {
         baseGrant,
         baseEnvelope,
         'actuator:command',
-        'shard_1',
+        'shard_1'
       );
       expect(result.allowed).toBe(true);
-      expect(result.reason).toContain("permitted");
+      expect(result.reason).toContain('permitted');
       expect(result.blockingRule).toBeUndefined();
     });
 
     it('permits actuation with wildcard scope grant', () => {
       const grant: PermissionGrant = { ...baseGrant, scope: '*' };
-      const result = evaluateActuation(baseIdentity, grant, baseEnvelope, 'actuator:command', 'any_scope');
+      const result = evaluateActuation(
+        baseIdentity,
+        grant,
+        baseEnvelope,
+        'actuator:command',
+        'any_scope'
+      );
       expect(result.allowed).toBe(true);
     });
 
     it('denies actuation when identity is invalid', () => {
-      const badIdentity: TwinEarthIdentity = { ...baseIdentity, agentId: '', role: 'unknown-role' as TwinEarthIdentity['role'] };
-      const result = evaluateActuation(badIdentity, baseGrant, baseEnvelope, 'actuator:command', 'shard_1');
+      const badIdentity: TwinEarthIdentity = {
+        ...baseIdentity,
+        agentId: '',
+        role: 'unknown-role' as TwinEarthIdentity['role'],
+      };
+      const result = evaluateActuation(
+        badIdentity,
+        baseGrant,
+        baseEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('Identity invalid');
     });
 
     it('denies actuation when grant is invalid', () => {
-      const badGrant: PermissionGrant = { ...baseGrant, granteeId: '', action: '' as TwinEarthAction };
-      const result = evaluateActuation(baseIdentity, badGrant, baseEnvelope, 'actuator:command', 'shard_1');
+      const badGrant: PermissionGrant = {
+        ...baseGrant,
+        granteeId: '',
+        action: '' as TwinEarthAction,
+      };
+      const result = evaluateActuation(
+        baseIdentity,
+        badGrant,
+        baseEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('Grant invalid');
     });
 
     it('denies actuation when grant action does not match', () => {
-      const result = evaluateActuation(baseIdentity, baseGrant, baseEnvelope, 'sensor:read', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        baseEnvelope,
+        'sensor:read',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
-      expect(result.reason).toContain("mismatch");
+      expect(result.reason).toContain('mismatch');
     });
 
     it('denies actuation when grant scope does not match', () => {
-      const result = evaluateActuation(baseIdentity, baseGrant, baseEnvelope, 'actuator:command', 'shard_99');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        baseEnvelope,
+        'actuator:command',
+        'shard_99'
+      );
       expect(result.allowed).toBe(false);
-      expect(result.reason).toContain("scope mismatch");
+      expect(result.reason).toContain('scope mismatch');
     });
 
     it('denies actuation when grant is expired', () => {
       const expiredGrant: PermissionGrant = { ...baseGrant, expiresAt: '2020-01-01T00:00:00Z' };
-      const result = evaluateActuation(baseIdentity, expiredGrant, baseEnvelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        expiredGrant,
+        baseEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('expired_grant');
       expect(result.reason).toContain('expired');
@@ -400,7 +446,13 @@ describe('twin-earth-substrate contract', () => {
 
     it('denies actuation when grant is revoked', () => {
       const revokedGrant: PermissionGrant = { ...baseGrant, revocationSignature: '0xrevoked' };
-      const result = evaluateActuation(baseIdentity, revokedGrant, baseEnvelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        revokedGrant,
+        baseEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('revoked_grant');
       expect(result.reason).toContain('revoked');
@@ -408,28 +460,52 @@ describe('twin-earth-substrate contract', () => {
 
     it('denies actuation when safety envelope is invalid', () => {
       const badEnvelope: SafetyEnvelope = { ...baseEnvelope, maxTickDurationMs: -1 };
-      const result = evaluateActuation(baseIdentity, baseGrant, badEnvelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        badEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('Safety envelope invalid');
     });
 
     it('denies actuation when safety envelope is not substrate-enforced', () => {
       const weakEnvelope: SafetyEnvelope = { ...baseEnvelope, substrateEnforced: false };
-      const result = evaluateActuation(baseIdentity, baseGrant, weakEnvelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        weakEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('not_substrate_enforced');
     });
 
     it('denies actuation when safety envelope belongs to a different agent', () => {
       const wrongEnvelope: SafetyEnvelope = { ...baseEnvelope, agentId: 'agent_999' };
-      const result = evaluateActuation(baseIdentity, baseGrant, wrongEnvelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        wrongEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('belongs to');
     });
 
     it('denies actuation when action is not in allowedActions whitelist', () => {
       const moveGrant: PermissionGrant = { ...baseGrant, action: 'robot:move' };
-      const result = evaluateActuation(baseIdentity, moveGrant, baseEnvelope, 'robot:move', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        moveGrant,
+        baseEnvelope,
+        'robot:move',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('not_allowed');
       expect(result.reason).toContain('not in the safety envelope allowedActions');
@@ -437,7 +513,13 @@ describe('twin-earth-substrate contract', () => {
 
     it('allows actuation when allowedActions is empty (dangerous but explicit)', () => {
       const openEnvelope: SafetyEnvelope = { ...baseEnvelope, allowedActions: [] };
-      const result = evaluateActuation(baseIdentity, baseGrant, openEnvelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        openEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(true);
     });
 
@@ -449,7 +531,13 @@ describe('twin-earth-substrate contract', () => {
       };
       // We need a grant that matches the blocked action
       const badGrant: PermissionGrant = { ...baseGrant, action: 'identity:revoke' };
-      const result = evaluateActuation(baseIdentity, badGrant, blockedEnvelope, 'identity:revoke', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        badGrant,
+        blockedEnvelope,
+        'identity:revoke',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('blocked_actions');
       expect(result.reason).toContain('blocked');
@@ -461,7 +549,13 @@ describe('twin-earth-substrate contract', () => {
         allowedActions: ['actuator:command'],
         blockedActions: ['actuator:command'],
       };
-      const result = evaluateActuation(baseIdentity, baseGrant, mixedEnvelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        mixedEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('blocked_actions');
     });

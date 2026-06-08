@@ -12,7 +12,10 @@ import { RegularGrid3D } from '../RegularGrid3D';
  * Import a CSV scalar field (x,y,z,value format) into a RegularGrid3D.
  * Auto-detects grid resolution and domain size from coordinate data.
  */
-export function importScalarFieldCSV(csv: string): { grid: RegularGrid3D; range: [number, number] } {
+export function importScalarFieldCSV(csv: string): {
+  grid: RegularGrid3D;
+  range: [number, number];
+} {
   const lines = csv.trim().split('\n');
   if (lines.length < 2) throw new Error('CSV: Need at least header + 1 data row');
 
@@ -50,7 +53,8 @@ export function importScalarFieldCSV(csv: string): { grid: RegularGrid3D; range:
   const yMap = new Map(ys.map((v, i) => [v, i]));
   const zMap = new Map(zs.map((v, i) => [v, i]));
 
-  let min = Infinity, max = -Infinity;
+  let min = Infinity,
+    max = -Infinity;
 
   for (const p of points) {
     const i = xMap.get(round6(p.x));

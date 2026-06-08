@@ -93,10 +93,16 @@ export const SpatialProofTrait: TraitHandler<SpatialProofConfig> = {
   name: 'spatial_proof',
 
   validate(config: SpatialProofConfig): boolean {
-    if (typeof config.attestation_contract !== 'string' || config.attestation_contract.trim() === '') {
+    if (
+      typeof config.attestation_contract !== 'string' ||
+      config.attestation_contract.trim() === ''
+    ) {
       throw new Error('SpatialProofTrait: attestation_contract is required');
     }
-    if (config.attestation_contract !== 'local-test-mock' && !/^0x[a-fA-F0-9]{40}$/.test(config.attestation_contract)) {
+    if (
+      config.attestation_contract !== 'local-test-mock' &&
+      !/^0x[a-fA-F0-9]{40}$/.test(config.attestation_contract)
+    ) {
       throw new Error(
         `SpatialProofTrait: attestation_contract must be a 0x-prefixed 20-byte address, got '${config.attestation_contract}'`
       );
@@ -108,7 +114,9 @@ export const SpatialProofTrait: TraitHandler<SpatialProofConfig> = {
     const sensors = config.required_sensors;
     if (sensors !== undefined) {
       if (!Array.isArray(sensors) || sensors.length === 0) {
-        throw new Error('SpatialProofTrait: required_sensors must be a non-empty array if provided');
+        throw new Error(
+          'SpatialProofTrait: required_sensors must be a non-empty array if provided'
+        );
       }
       const allowed: SpatialProofRequiredSensor[] = ['gps', 'imu', 'camera_anchor', 'wallclock'];
       for (const sensor of sensors) {

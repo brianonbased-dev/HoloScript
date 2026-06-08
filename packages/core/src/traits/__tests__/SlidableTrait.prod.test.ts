@@ -65,7 +65,7 @@ describe('SlidableTrait.onAttach', () => {
     const ctx = makeCtx();
     trait.onAttach(node, ctx as any);
     const arg = ctx.emit.mock.calls[0][1];
-    expect(arg.axis).toEqual([1, 0, 0 ]);
+    expect(arg.axis).toEqual([1, 0, 0]);
   });
 
   it("axis='y' produces axisVec (0,1,0)", () => {
@@ -74,7 +74,7 @@ describe('SlidableTrait.onAttach', () => {
     const ctx = makeCtx();
     trait.onAttach(node, ctx as any);
     const arg = ctx.emit.mock.calls[0][1];
-    expect(arg.axis).toEqual([0, 1, 0 ]);
+    expect(arg.axis).toEqual([0, 1, 0]);
   });
 
   it("axis='z' produces axisVec (0,0,1)", () => {
@@ -83,7 +83,7 @@ describe('SlidableTrait.onAttach', () => {
     const ctx = makeCtx();
     trait.onAttach(node, ctx as any);
     const arg = ctx.emit.mock.calls[0][1];
-    expect(arg.axis).toEqual([0, 0, 1 ]);
+    expect(arg.axis).toEqual([0, 0, 1]);
   });
 
   it('min = -length/2 (default length=0.1 → min=-0.05)', () => {
@@ -131,7 +131,7 @@ describe('SlidableTrait.onUpdate — initialPos capture', () => {
     const trait = new SlidableTrait();
     const node = makeNode({ position: [0, 0, 0] });
     // First call with physics at initial pos (value should be 0.5 — centre)
-    const ctx = makeCtx([0, 0, 0 ]);
+    const ctx = makeCtx([0, 0, 0]);
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
     trait.onUpdate(node, ctx as any, 0.016);
@@ -149,7 +149,7 @@ describe('SlidableTrait.onUpdate — value normalisation (axis=x, length=0.1)', 
   function make(physicsX: number) {
     const trait = new SlidableTrait();
     const node = makeNode({ axis: 'x', length: 0.1, position: [0, 0, 0] });
-    const ctx = makeCtx([physicsX, 0, 0 ]);
+    const ctx = makeCtx([physicsX, 0, 0]);
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
     return { trait, node, ctx };
@@ -202,7 +202,7 @@ describe('SlidableTrait.onUpdate — value normalisation (axis=x, length=0.1)', 
     // Simulate two frames with nearly-identical positions → no duplicate event
     const trait = new SlidableTrait();
     const node = makeNode({ axis: 'x', length: 0.1, position: [0, 0, 0] });
-    const ctx = makeCtx([0, 0, 0 ]);
+    const ctx = makeCtx([0, 0, 0]);
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
     trait.onUpdate(node, ctx as any, 0.016); // emits value=0.5
@@ -222,7 +222,7 @@ describe('SlidableTrait.onUpdate — value normalisation (axis=x, length=0.1)', 
   it('uses y-axis displacement when axis=y', () => {
     const trait = new SlidableTrait();
     const node = makeNode({ axis: 'y', length: 0.2, position: [0, 0, 0] });
-    const ctx = makeCtx([0, 0.1, 0 ]); // +length/2 → value=1
+    const ctx = makeCtx([0, 0.1, 0]); // +length/2 → value=1
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
     trait.onUpdate(node, ctx as any, 0.016);
@@ -233,7 +233,7 @@ describe('SlidableTrait.onUpdate — value normalisation (axis=x, length=0.1)', 
   it('uses z-axis displacement when axis=z', () => {
     const trait = new SlidableTrait();
     const node = makeNode({ axis: 'z', length: 0.2, position: [0, 0, 0] });
-    const ctx = makeCtx([0, 0, -0.1 ]); // -length/2 → value=0; no emit (diff=0 from lastValue)
+    const ctx = makeCtx([0, 0, -0.1]); // -length/2 → value=0; no emit (diff=0 from lastValue)
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
     trait.onUpdate(node, ctx as any, 0.016);
@@ -251,7 +251,7 @@ describe('SlidableTrait.onUpdate — haptic ticks', () => {
     const node = makeNode({ axis: 'x', length: 1.0, position: [0, 0, 0] });
     // length=1.0 → min=-0.5, max=+0.5
     // To get value=0.15: delta = value*length - length/2 = 0.15 - 0.5 = -0.35
-    const ctx = makeCtx([-0.35, 0, 0 ]);
+    const ctx = makeCtx([-0.35, 0, 0]);
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
     (ctx.haptics.rumble as ReturnType<typeof vi.fn>).mockClear();
@@ -264,7 +264,7 @@ describe('SlidableTrait.onUpdate — haptic ticks', () => {
     const trait = new SlidableTrait();
     const node = makeNode({ axis: 'x', length: 1.0, position: [0, 0, 0] });
     // Start at value≈0.52 (first frame sets lastValue)
-    const ctx = makeCtx([0.02, 0, 0 ]);
+    const ctx = makeCtx([0.02, 0, 0]);
     trait.onAttach(node, ctx as any);
     ctx.emit.mockClear();
     trait.onUpdate(node, ctx as any, 0.016); // sets lastValue ≈ 0.52

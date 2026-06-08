@@ -6,7 +6,9 @@ const { pathToFileURL } = require('node:url');
 const target = join(__dirname, '..', 'dist', 'cli.js');
 
 if (!existsSync(target)) {
-  console.error('[aibrittney] build output is missing. Run `pnpm --filter @holoscript/aibrittney run build` first.');
+  console.error(
+    '[aibrittney] build output is missing. Run `pnpm --filter @holoscript/aibrittney run build` first.'
+  );
   process.exit(1);
 }
 

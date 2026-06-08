@@ -46,7 +46,10 @@ function keyframe(
   time: number,
   position: [number, number, number],
   rotation: [number, number, number, number] = [0, 0, 0, 1]
-): ClipKeyframe & { position: [number, number, number]; rotation: [number, number, number, number] } {
+): ClipKeyframe & {
+  position: [number, number, number];
+  rotation: [number, number, number, number];
+} {
   return { time, value: 0, position, rotation };
 }
 
@@ -100,7 +103,10 @@ function cloneTrack(track: ClipTrack): ClipTrack {
 
 function sortedClone(clip: AnimClip, id: string, name: string): AnimClip {
   const out = new AnimClip(id, name, clip.getDuration());
-  for (const track of clip.getTracks().map(cloneTrack).sort((a, b) => a.id.localeCompare(b.id))) {
+  for (const track of clip
+    .getTracks()
+    .map(cloneTrack)
+    .sort((a, b) => a.id.localeCompare(b.id))) {
     out.addTrack(track);
   }
   return out;
@@ -108,11 +114,14 @@ function sortedClone(clip: AnimClip, id: string, name: string): AnimClip {
 
 function applyPublicationConstraintSolver(clip: AnimClip): AnimClip {
   const out = new AnimClip(`${clip.id}-solved`, `${clip.name} solved`, clip.getDuration());
-  for (const track of clip.getTracks().map(cloneTrack).sort((a, b) => a.id.localeCompare(b.id))) {
+  for (const track of clip
+    .getTracks()
+    .map(cloneTrack)
+    .sort((a, b) => a.id.localeCompare(b.id))) {
     const isFootPlantY =
-      track.property === 'position'
-      && track.component === 'y'
-      && /(?:left|right)Foot/i.test(track.targetPath);
+      track.property === 'position' &&
+      track.component === 'y' &&
+      /(?:left|right)Foot/i.test(track.targetPath);
 
     if (isFootPlantY) {
       track.keyframes = track.keyframes.map((kf) => {
@@ -202,7 +211,11 @@ function measurePerFrameUs(clip: AnimClip): number {
 export function runPaper6AblationBenchmark(): Paper6AblationArtifact {
   const source = makeSource();
   const retargeter = new MixamoRetargeter();
-  const solverless = sortedClone(retargeter.retarget(source, vrmRetargetConfig()), 'paper-6-solverless', 'Paper 6 solverless');
+  const solverless = sortedClone(
+    retargeter.retarget(source, vrmRetargetConfig()),
+    'paper-6-solverless',
+    'Paper 6 solverless'
+  );
   const full = applyPublicationConstraintSolver(retargetToVRM(source));
   const baseline = baselineNoPipeline(source);
 

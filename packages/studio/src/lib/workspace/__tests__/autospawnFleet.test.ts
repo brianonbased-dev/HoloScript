@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildAgentGenesisPlan } from '../agentGenesis';
-import {
-  autospawnGenesisFleet,
-  type FleetAgentRegistration,
-} from '../autospawnFleet';
+import { autospawnGenesisFleet, type FleetAgentRegistration } from '../autospawnFleet';
 
 describe('autospawnGenesisFleet', () => {
   it('registers every autospawn:true agent except the companion, highest priority first', async () => {
@@ -26,7 +23,9 @@ describe('autospawnGenesisFleet', () => {
     expect(missions).not.toContain('companion');
     expect(result.excluded).toContain('companion');
     // the resident ops crew came up
-    expect(missions).toEqual(expect.arrayContaining(['holoheal', 'secret-custodian', 'fleet-auditor']));
+    expect(missions).toEqual(
+      expect.arrayContaining(['holoheal', 'secret-custodian', 'fleet-auditor'])
+    );
     // descending priority order
     const priorities = result.spawned.map((a) => a.priority);
     expect([...priorities].sort((a, b) => b - a)).toEqual(priorities);
@@ -51,7 +50,12 @@ describe('autospawnGenesisFleet', () => {
     });
 
     expect(result.deferred).toEqual(
-      expect.arrayContaining(['builder', 'research-oracle', 'spatial-worldbuilder', 'launch-operator'])
+      expect.arrayContaining([
+        'builder',
+        'research-oracle',
+        'spatial-worldbuilder',
+        'launch-operator',
+      ])
     );
     expect(result.spawned.map((a) => a.missionProfile)).not.toContain('builder');
   });

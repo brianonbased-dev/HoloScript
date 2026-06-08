@@ -74,14 +74,14 @@ const imp = (p) => import(pathToFileURL(p).href);
 
 // ── REAL contract spine: computeStateDigest from the engine source ───────────
 const { computeStateDigest } = await imp(
-  join(repoRoot, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'),
+  join(repoRoot, 'packages', 'engine', 'src', 'simulation', 'hashes.ts')
 );
 
 // ── Core: parse the .holo and read the real environment ──────────────────────
 const core = await imp(join(repoRoot, 'packages', 'core', 'dist', 'index.js'));
 const { parseHolo } = core;
 const coreVersion = JSON.parse(
-  readFileSync(join(repoRoot, 'packages', 'core', 'package.json'), 'utf8'),
+  readFileSync(join(repoRoot, 'packages', 'core', 'package.json'), 'utf8')
 ).version;
 
 const HASH_MODE = 'sha256';
@@ -89,7 +89,7 @@ const FIXED_DT = 1 / 60;
 const TICKS = 300; // 5 simulated seconds
 const GRAB_RANGE = 0.6;
 const GREET_RANGE = 1.2; // agent "follows the prize-holder" success threshold post-replan
-const MOVE_SPEED = 1.5;  // both bodies move at the same speed (fair)
+const MOVE_SPEED = 1.5; // both bodies move at the same speed (fair)
 
 // ── Parse the shared world (authoritative positions come from the .holo) ──────
 const src = readFileSync(holoPath, 'utf8');
@@ -133,7 +133,8 @@ function makeSharedWorld() {
 
 const dist2 = (ax, az, bx, bz) => Math.hypot(bx - ax, bz - az);
 const unit = (ax, az, bx, bz) => {
-  const dx = bx - ax, dz = bz - az;
+  const dx = bx - ax,
+    dz = bz - az;
   const len = Math.hypot(dx, dz) || 1;
   return [dx / len, dz / len];
 };
@@ -147,9 +148,9 @@ const unit = (ax, az, bx, bz) => {
 // greet cannot be trivially satisfied by both being clustered at the compass.
 const DEPOSIT = { x: -4, z: 5 };
 const HUMAN_TRACE = [
-  [12, [1, 0]],     // brief drift right (exploring the market) — NOT a beeline
-  [20, [-1, 0.2]],  // double back toward the compass line
-  [TICKS, null],    // null = commit toward compass; after grabbing, carry to DEPOSIT
+  [12, [1, 0]], // brief drift right (exploring the market) — NOT a beeline
+  [20, [-1, 0.2]], // double back toward the compass line
+  [TICKS, null], // null = commit toward compass; after grabbing, carry to DEPOSIT
 ];
 function humanIntent(tick, w) {
   for (const [until, vec] of HUMAN_TRACE) {
@@ -191,10 +192,10 @@ const wmr = []; // agent WorldModelReceipts (sensed -> action -> predicted delta
 let humanGrabbedTick = -1;
 let agentGrabbedTick = -1;
 let agentReplanTick = -1;
-let agentFollowedTick = -1;       // agent within follow range of the moving prize-holder
+let agentFollowedTick = -1; // agent within follow range of the moving prize-holder
 let agentHeadingPreReplan = null; // [dx,dz] aim the tick before re-plan (toward compass)
-let agentHeadingPostReplan = null;// [dx,dz] aim at re-plan (toward the human)
-let headingTurnDeg = 0;           // angle between them — proof the re-plan turned the agent
+let agentHeadingPostReplan = null; // [dx,dz] aim at re-plan (toward the human)
+let headingTurnDeg = 0; // angle between them — proof the re-plan turned the agent
 
 for (let t = 0; t < TICKS; t++) {
   const f = world._f;
@@ -233,14 +234,19 @@ for (let t = 0; t < TICKS; t++) {
       const humanWins = hIn && (!aIn || hd <= ad);
       f.compass_taken[0] = 1;
       f.compass_taken_by[0] = humanWins ? 1 : 2;
-      if (humanWins) humanGrabbedTick = t; else agentGrabbedTick = t;
+      if (humanWins) humanGrabbedTick = t;
+      else agentGrabbedTick = t;
     }
   }
 
   // --- agent WorldModelReceipt (JEPA loop output for THIS action) ---
   wmr.push({
     tick: t,
-    sensed: { compassTaken: f.compass_taken[0] === 1, humanX: Number(f.h_pos_x[0].toFixed(4)), humanZ: Number(f.h_pos_z[0].toFixed(4)) },
+    sensed: {
+      compassTaken: f.compass_taken[0] === 1,
+      humanX: Number(f.h_pos_x[0].toFixed(4)),
+      humanZ: Number(f.h_pos_z[0].toFixed(4)),
+    },
     action: { type: action.type, target: action.target },
     predictedDelta: [
       Number((f.a_pos_x[0] - beforeA.x).toFixed(6)),
@@ -273,10 +279,10 @@ const wmrDigest = computeStateDigest(
           w.action.type === 'approach:human' ? 2 : 1,
           ...w.predictedDelta,
           w.sensed.compassTaken ? 1 : 0,
-        ]),
+        ])
       ),
   },
-  HASH_MODE,
+  HASH_MODE
 );
 
 // Did the agent's plan actually change in-session? (the re-plan is the proof)
@@ -289,7 +295,8 @@ const receipt = {
   name: 'AI<->human connection — co-session, mutual effect, genuine policy divergence',
   artifact: 'examples/gold-game/connection-mechanics-proof/oasis-shard-zero.holo',
   verifier: 'examples/gold-game/connection-mechanics-proof/gate-3-verify.mjs',
-  fixtureNote: 'connection-mechanics proof fixture (retired Oasis track) — NOT the flagship; cited by W.GOLD.537',
+  fixtureNote:
+    'connection-mechanics proof fixture (retired Oasis track) — NOT the flagship; cited by W.GOLD.537',
   target: 'r3f',
   session: {
     kind: 'single shared deterministic session (one fixed-dt loop, one world solver)',
@@ -302,23 +309,29 @@ const receipt = {
   },
   policies: {
     human: {
-      driver: 'ControllerInput path — scripted thumbstick input trace (recorded human input), NOT a beeline',
+      driver:
+        'ControllerInput path — scripted thumbstick input trace (recorded human input), NOT a beeline',
       trace: HUMAN_TRACE.map(([until, vec]) => ({ untilTick: until, stick: vec })),
     },
     agent: {
-      driver: 'AINPCBrain / JEPA value-selection — no script; senses shared world each tick, picks highest-value action',
-      valueModel: 'grab compass while available; once taken, value(compass)=0 → re-plan to approach/follow the human (the prize-holder)',
+      driver:
+        'AINPCBrain / JEPA value-selection — no script; senses shared world each tick, picks highest-value action',
+      valueModel:
+        'grab compass while available; once taken, value(compass)=0 → re-plan to approach/follow the human (the prize-holder)',
       moveSpeed: MOVE_SPEED,
-      speedNote: 'both bodies move at the same MOVE_SPEED (fair). The proof of genuine re-plan is the agent HEADING TURN (compass -> human), not a speed advantage.',
+      speedNote:
+        'both bodies move at the same MOVE_SPEED (fair). The proof of genuine re-plan is the agent HEADING TURN (compass -> human), not a speed advantage.',
     },
     genuinelyDifferent: true,
   },
   mutualEffect: {
-    sharedResource: 'item_compass_brass — single shared compass; first to grab range claims it, denying the other',
+    sharedResource:
+      'item_compass_brass — single shared compass; first to grab range claims it, denying the other',
     humanTookCompass,
     humanGrabbedTick,
     agentGrabbedTick,
-    proof: "each body's choice set depends on the other's live state: human motion can deny the agent the compass; the agent re-targets the human in response. Neither is a scripted dummy to the other.",
+    proof:
+      "each body's choice set depends on the other's live state: human motion can deny the agent the compass; the agent re-targets the human in response. Neither is a scripted dummy to the other.",
   },
   agentReplan: {
     replanned,
@@ -326,25 +339,39 @@ const receipt = {
     actionTypesObserved: actionTypes,
     followedHumanTick: agentFollowedTick,
     followRange: GREET_RANGE,
-    headingPreReplan: agentHeadingPreReplan ? agentHeadingPreReplan.map((n) => Number(n.toFixed(4))) : null,
-    headingPostReplan: agentHeadingPostReplan ? agentHeadingPostReplan.map((n) => Number(n.toFixed(4))) : null,
+    headingPreReplan: agentHeadingPreReplan
+      ? agentHeadingPreReplan.map((n) => Number(n.toFixed(4)))
+      : null,
+    headingPostReplan: agentHeadingPostReplan
+      ? agentHeadingPostReplan.map((n) => Number(n.toFixed(4)))
+      : null,
     headingTurnDeg: Number(headingTurnDeg.toFixed(2)),
     note: "the agent's action stream switches target in-session (compass -> human) BECAUSE the shared resource was taken. The human carries the compass toward a deposit (a MOVING target), so the agent's post-replan heading genuinely DIFFERS from its pre-replan compass heading (headingTurnDeg) — proof the re-plan turned the agent toward a new goal, not a no-op — and it then follows the moving prize-holder within followRange.",
   },
   contract: {
-    spine: 'REAL computeStateDigest from packages/engine/src/simulation/hashes.ts (imported via tsx) — same fn SimulationContract pushes on solve()',
+    spine:
+      'REAL computeStateDigest from packages/engine/src/simulation/hashes.ts (imported via tsx) — same fn SimulationContract pushes on solve()',
     function: 'computeStateDigest(solver, hashMode)',
     algorithm: HASH_MODE,
     sharedWorldDigest,
     sharedWorldFields: world.fieldNames,
-    finalHumanPos: [Number(world._f.h_pos_x[0].toFixed(6)), Number(world._f.h_pos_y[0].toFixed(6)), Number(world._f.h_pos_z[0].toFixed(6))],
-    finalAgentPos: [Number(world._f.a_pos_x[0].toFixed(6)), Number(world._f.a_pos_y[0].toFixed(6)), Number(world._f.a_pos_z[0].toFixed(6))],
+    finalHumanPos: [
+      Number(world._f.h_pos_x[0].toFixed(6)),
+      Number(world._f.h_pos_y[0].toFixed(6)),
+      Number(world._f.h_pos_z[0].toFixed(6)),
+    ],
+    finalAgentPos: [
+      Number(world._f.a_pos_x[0].toFixed(6)),
+      Number(world._f.a_pos_y[0].toFixed(6)),
+      Number(world._f.a_pos_z[0].toFixed(6)),
+    ],
     reproducible: 'run `node_modules/.bin/tsx examples/gold-game/gate-3-verify.mjs` to re-derive',
   },
   worldModelReceipts: {
     count: wmr.length,
     digest: wmrDigest,
-    schema: 'cael-jepa-wmr-v1 (tick, sensed{compassTaken,humanX,humanZ}, action{type,target}, predictedDelta)',
+    schema:
+      'cael-jepa-wmr-v1 (tick, sensed{compassTaken,humanX,humanZ}, action{type,target}, predictedDelta)',
     note: 'one WorldModelReceipt per agent action; the AI population emits provenance the human population does not — both hashed by the contract fn.',
   },
   aiHumanConnection: {
@@ -353,8 +380,10 @@ const receipt = {
     sameReceiptSpine: true,
     genuinePolicyDivergence: true,
     mutualEffect: true,
-    proof: 'one shared contracted session: human (scripted input) and agent (JEPA value-selection) act on ONE compass; whoever reaches it first denies the other; the agent re-plans toward the human in response. The relationship is real (mutual, reactive) and not faked (single solver, real contract digest, agent WorldModelReceipts).',
-    honestScope: 'The human input is a RECORDED/scripted trace (deterministic stand-in for live ControllerInput) and the agent value-model is a hand-authored two-action policy (compass vs greet) — NOT a learned JEPA network or a live headset. What is PROVEN here: two genuinely different decision policies, in one shared deterministic session, affecting each other through a shared resource, with the agent re-planning in response and emitting WorldModelReceipts, all under the real contract digest. What is NOT yet proven: a live human headset session and a trained V-JEPA policy (those compose at Gate 5 via /embodied + JEPANPCController). This gate proves the CONNECTION mechanics are real and reproducible, not that the agent cognition is a trained model.',
+    proof:
+      'one shared contracted session: human (scripted input) and agent (JEPA value-selection) act on ONE compass; whoever reaches it first denies the other; the agent re-plans toward the human in response. The relationship is real (mutual, reactive) and not faked (single solver, real contract digest, agent WorldModelReceipts).',
+    honestScope:
+      'The human input is a RECORDED/scripted trace (deterministic stand-in for live ControllerInput) and the agent value-model is a hand-authored two-action policy (compass vs greet) — NOT a learned JEPA network or a live headset. What is PROVEN here: two genuinely different decision policies, in one shared deterministic session, affecting each other through a shared resource, with the agent re-planning in response and emitting WorldModelReceipts, all under the real contract digest. What is NOT yet proven: a live human headset session and a trained V-JEPA policy (those compose at Gate 5 via /embodied + JEPANPCController). This gate proves the CONNECTION mechanics are real and reproducible, not that the agent cognition is a trained model.',
   },
   core: coreVersion,
   verifiedAt: new Date().toISOString(),
@@ -364,8 +393,17 @@ const emit = process.argv.includes('--emit');
 if (emit) {
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n');
   console.log('GATE-3 RECEIPT EMITTED →', receiptPath);
-  console.log('  humanTookCompass=' + humanTookCompass, 'humanGrabTick=' + humanGrabbedTick, 'agentGrabTick=' + agentGrabbedTick);
-  console.log('  agent replanned=' + replanned, 'replanTick=' + agentReplanTick, 'followedTick=' + agentFollowedTick, 'headingTurnDeg=' + headingTurnDeg.toFixed(1));
+  console.log(
+    '  humanTookCompass=' + humanTookCompass,
+    'humanGrabTick=' + humanGrabbedTick,
+    'agentGrabTick=' + agentGrabbedTick
+  );
+  console.log(
+    '  agent replanned=' + replanned,
+    'replanTick=' + agentReplanTick,
+    'followedTick=' + agentFollowedTick,
+    'headingTurnDeg=' + headingTurnDeg.toFixed(1)
+  );
   console.log('  sharedWorldDigest=' + sharedWorldDigest);
   console.log('  wmrCount=' + wmr.length, 'wmrDigest=' + wmrDigest);
 } else {
@@ -387,8 +425,14 @@ if (emit) {
     ['follow happened AT/AFTER the replan (not before)', agentFollowedTick >= agentReplanTick],
     ['two distinct agent action types observed', new Set(wmr.map((w) => w.action.type)).size === 2],
     ['shared-world digest reproduces', sharedWorldDigest === existing.contract.sharedWorldDigest],
-    ['agent WorldModelReceipt-stream digest reproduces', wmrDigest === existing.worldModelReceipts.digest],
-    ['real computeStateDigest produced non-empty digests', sharedWorldDigest.length > 0 && wmrDigest.length > 0],
+    [
+      'agent WorldModelReceipt-stream digest reproduces',
+      wmrDigest === existing.worldModelReceipts.digest,
+    ],
+    [
+      'real computeStateDigest produced non-empty digests',
+      sharedWorldDigest.length > 0 && wmrDigest.length > 0,
+    ],
   ];
   let ok = true;
   console.log('GATE-3 RECEIPT VERIFICATION (independent re-derive, REAL contract fn):');

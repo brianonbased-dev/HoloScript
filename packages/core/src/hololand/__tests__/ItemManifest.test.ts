@@ -97,7 +97,11 @@ describe('ItemManifest (W.506)', () => {
 
   it('linkItems wires lore chain correctly', () => {
     const colossusDrop = createHoloLandItem('drop_001', 'Arctus Regalecus Material', {
-      ancestry: { originType: 'boss_summon', originId: 'ctarnidd', originName: 'Ctarnidd of the Abyss' },
+      ancestry: {
+        originType: 'boss_summon',
+        originId: 'ctarnidd',
+        originName: 'Ctarnidd of the Abyss',
+      },
       chainDepth: 0,
     });
 

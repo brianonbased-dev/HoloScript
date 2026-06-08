@@ -295,10 +295,7 @@ export function deriveSkillTags(toolName: string): string[] {
     tags.push('generation', 'ai', 'codegen');
   }
   // Receipt capability query (must come before the holo_query catch-all)
-  else if (
-    toolName.startsWith('holo_query_receipts') ||
-    toolName.startsWith('holo_list_receipt')
-  ) {
+  else if (toolName.startsWith('holo_query_receipts') || toolName.startsWith('holo_list_receipt')) {
     tags.push('receipts', 'capability', 'query');
   }
   // Codebase intelligence
@@ -486,8 +483,12 @@ function deriveSkillExamples(tool: Tool): string[] {
   } else if (name === 'render_preview') {
     examples.push('Render a preview of my 3D scene as PNG');
   } else if (name === 'holo_absorb_repo') {
-    examples.push('Scan and index this repository for code intelligence (call this before holo_ask_codebase)');
-    examples.push('holo_absorb_repo with rootDir set to the monorepo root, then run holo_semantic_search');
+    examples.push(
+      'Scan and index this repository for code intelligence (call this before holo_ask_codebase)'
+    );
+    examples.push(
+      'holo_absorb_repo with rootDir set to the monorepo root, then run holo_semantic_search'
+    );
   } else if (name === 'holo_ask_codebase') {
     examples.push('After holo_absorb_repo: how does the compiler pipeline work?');
   }

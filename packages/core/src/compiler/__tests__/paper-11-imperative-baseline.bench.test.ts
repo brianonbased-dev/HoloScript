@@ -97,7 +97,13 @@ function shuffle<T>(arr: T[], rng: () => number): T[] {
  * Generate scenario traits deterministically.
  * Each trait contributes a random value in [1, 10] to a subset of properties.
  */
-function makeScenario(name: string, paper: string, numTraits: number, numProps: number, seed: number): Scenario {
+function makeScenario(
+  name: string,
+  paper: string,
+  numTraits: number,
+  numProps: number,
+  seed: number
+): Scenario {
   const rng = mulberry32(seed);
   const propKeys = Array.from({ length: numProps }, (_, i) => `prop_${i}`);
   const traits: TraitContribution[] = [];
@@ -115,10 +121,10 @@ function makeScenario(name: string, paper: string, numTraits: number, numProps: 
 }
 
 const SCENARIOS: Scenario[] = [
-  makeScenario('S1 minimal     (3 traits,  2 props)', 'paper-11 §6.1', 3,  2,  0xdeadbeef),
-  makeScenario('S2 typical     (8 traits,  5 props)', 'paper-11 §6.2', 8,  5,  0xcafebabe),
-  makeScenario('S3 dense      (16 traits, 10 props)', 'paper-11 §7',   16, 10, 0x8badf00d),
-  makeScenario('S4 degenerate (32 traits,  1 prop)',  'paper-11 §7',   32, 1,  0xfeedface),
+  makeScenario('S1 minimal     (3 traits,  2 props)', 'paper-11 §6.1', 3, 2, 0xdeadbeef),
+  makeScenario('S2 typical     (8 traits,  5 props)', 'paper-11 §6.2', 8, 5, 0xcafebabe),
+  makeScenario('S3 dense      (16 traits, 10 props)', 'paper-11 §7', 16, 10, 0x8badf00d),
+  makeScenario('S4 degenerate (32 traits,  1 prop)', 'paper-11 §7', 32, 1, 0xfeedface),
 ];
 
 // =============================================================================
@@ -129,9 +135,7 @@ const SCENARIOS: Scenario[] = [
  * Unity/Unreal model: last-write-wins (each trait overwrites previous value).
  * Simulates `component.Update()` where the last component to write wins.
  */
-function imperativeLastWriteWins(
-  traits: TraitContribution[],
-): Record<string, number> {
+function imperativeLastWriteWins(traits: TraitContribution[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const trait of traits) {
     Object.assign(out, trait);
@@ -143,9 +147,7 @@ function imperativeLastWriteWins(
  * A-Frame model: first-write-wins (component init; later writes no-op if key present).
  * Simulates A-Frame component `init()` where the first component to setAttribute wins.
  */
-function imperativeFirstWriteWins(
-  traits: TraitContribution[],
-): Record<string, number> {
+function imperativeFirstWriteWins(traits: TraitContribution[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const trait of traits) {
     for (const [k, v] of Object.entries(trait)) {
@@ -159,9 +161,7 @@ function imperativeFirstWriteWins(
  * Generic imperative (accumulate-last): assign into acc, later traits accumulate.
  * Same as last-write-wins for per-key scalar, but documented separately.
  */
-function imperativeGenericAccumulate(
-  traits: TraitContribution[],
-): Record<string, number> {
+function imperativeGenericAccumulate(traits: TraitContribution[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const trait of traits) {
     for (const [k, v] of Object.entries(trait)) {
@@ -177,7 +177,7 @@ function imperativeGenericAccumulate(
  */
 function semiringCompose(
   traits: TraitContribution[],
-  strategy: 'sum' | 'max-plus' | 'min-plus',
+  strategy: 'sum' | 'max-plus' | 'min-plus'
 ): Record<string, number> {
   const S =
     strategy === 'sum'
@@ -215,7 +215,7 @@ function resultKey(obj: Record<string, number>): string {
 function measureVariance(
   traits: TraitContribution[],
   fn: (t: TraitContribution[]) => Record<string, number>,
-  rngSeed: number,
+  rngSeed: number
 ): { distinctOutputs: number; totalPermutations: number } {
   const rng = mulberry32(rngSeed);
   const seen = new Set<string>();
@@ -231,7 +231,7 @@ function measureVariance(
 /** Measure median time per call over TIMING_RUNS iterations (µs). */
 function measureTimeUs(
   traits: TraitContribution[],
-  fn: (t: TraitContribution[]) => Record<string, number>,
+  fn: (t: TraitContribution[]) => Record<string, number>
 ): number {
   // Warmup
   for (let i = 0; i < WARMUP; i++) fn(traits);
@@ -250,80 +250,105 @@ function measureTimeUs(
 // =============================================================================
 
 describe('Paper-11 — Imperative baseline vs trait semiring overhead', () => {
-  it(
-    'output variance: semiring always 1 distinct output; imperative > 1 for conflicting traits',
-    () => {
-      console.log('\n[paper-11][Table 1] Output variance under handler order permutation (2,000 shuffles)');
+  it('output variance: semiring always 1 distinct output; imperative > 1 for conflicting traits', () => {
+    console.log(
+      '\n[paper-11][Table 1] Output variance under handler order permutation (2,000 shuffles)'
+    );
+    console.log(
+      'scenario                              paper           model                  distinct/2000'
+    );
+    console.log('─'.repeat(95));
+
+    for (const s of SCENARIOS) {
+      const seed = s.name.charCodeAt(0) * 0x1337;
+
+      const lwwV = measureVariance(s.traits, imperativeLastWriteWins, seed);
+      const fwwV = measureVariance(s.traits, imperativeFirstWriteWins, seed + 1);
+      const genV = measureVariance(s.traits, imperativeGenericAccumulate, seed + 2);
+      const sumV = measureVariance(s.traits, (t) => semiringCompose(t, 'sum'), seed + 3);
+      const maxV = measureVariance(s.traits, (t) => semiringCompose(t, 'max-plus'), seed + 4);
+      const minV = measureVariance(s.traits, (t) => semiringCompose(t, 'min-plus'), seed + 5);
+
+      const pad = (n: number) => String(n).padStart(4);
+      const label = s.name.padEnd(37);
+      const paper = s.paper.padEnd(15);
       console.log(
-        'scenario                              paper           model                  distinct/2000',
+        `  ${label} ${paper} Unity/Unreal (last-write-wins)  ${pad(lwwV.distinctOutputs)}/2000`
       );
       console.log(
-        '─'.repeat(95),
+        `  ${' '.repeat(53)} A-Frame     (first-write-wins)  ${pad(fwwV.distinctOutputs)}/2000`
       );
+      console.log(
+        `  ${' '.repeat(53)} Generic JS  (Object.assign)     ${pad(genV.distinctOutputs)}/2000`
+      );
+      console.log(
+        `  ${' '.repeat(53)} Semiring    (sum ⊕)             ${pad(sumV.distinctOutputs)}/2000`
+      );
+      console.log(
+        `  ${' '.repeat(53)} Semiring    (max-plus ⊕)        ${pad(maxV.distinctOutputs)}/2000`
+      );
+      console.log(
+        `  ${' '.repeat(53)} Semiring    (min-plus ⊕)        ${pad(minV.distinctOutputs)}/2000`
+      );
+      console.log();
 
-      for (const s of SCENARIOS) {
-        const seed = s.name.charCodeAt(0) * 0x1337;
-
-        const lwwV  = measureVariance(s.traits, imperativeLastWriteWins,   seed);
-        const fwwV  = measureVariance(s.traits, imperativeFirstWriteWins,  seed + 1);
-        const genV  = measureVariance(s.traits, imperativeGenericAccumulate, seed + 2);
-        const sumV  = measureVariance(s.traits, (t) => semiringCompose(t, 'sum'),      seed + 3);
-        const maxV  = measureVariance(s.traits, (t) => semiringCompose(t, 'max-plus'), seed + 4);
-        const minV  = measureVariance(s.traits, (t) => semiringCompose(t, 'min-plus'), seed + 5);
-
-        const pad = (n: number) => String(n).padStart(4);
-        const label = s.name.padEnd(37);
-        const paper = s.paper.padEnd(15);
-        console.log(`  ${label} ${paper} Unity/Unreal (last-write-wins)  ${pad(lwwV.distinctOutputs)}/2000`);
-        console.log(`  ${' '.repeat(53)} A-Frame     (first-write-wins)  ${pad(fwwV.distinctOutputs)}/2000`);
-        console.log(`  ${' '.repeat(53)} Generic JS  (Object.assign)     ${pad(genV.distinctOutputs)}/2000`);
-        console.log(`  ${' '.repeat(53)} Semiring    (sum ⊕)             ${pad(sumV.distinctOutputs)}/2000`);
-        console.log(`  ${' '.repeat(53)} Semiring    (max-plus ⊕)        ${pad(maxV.distinctOutputs)}/2000`);
-        console.log(`  ${' '.repeat(53)} Semiring    (min-plus ⊕)        ${pad(minV.distinctOutputs)}/2000`);
-        console.log();
-
-        // The semiring guarantee: commutativity → exactly one distinct output.
-        expect(sumV.distinctOutputs).toBe(1);
-        expect(maxV.distinctOutputs).toBe(1);
-        expect(minV.distinctOutputs).toBe(1);
-      }
-    },
-  );
+      // The semiring guarantee: commutativity → exactly one distinct output.
+      expect(sumV.distinctOutputs).toBe(1);
+      expect(maxV.distinctOutputs).toBe(1);
+      expect(minV.distinctOutputs).toBe(1);
+    }
+  });
 
   it(
     'timing overhead: semiring vs imperative baselines (µs per composition)',
     { timeout: 60_000 },
     () => {
-      console.log('\n[paper-11][Table 2] Composition wall-time per call (µs, median over 2,000 iterations)');
       console.log(
-        'scenario                              paper           model                   µs/call   ratio vs lww',
+        '\n[paper-11][Table 2] Composition wall-time per call (µs, median over 2,000 iterations)'
+      );
+      console.log(
+        'scenario                              paper           model                   µs/call   ratio vs lww'
       );
       console.log('─'.repeat(100));
 
       for (const s of SCENARIOS) {
-        const lwwUs  = measureTimeUs(s.traits, imperativeLastWriteWins);
-        const fwwUs  = measureTimeUs(s.traits, imperativeFirstWriteWins);
-        const genUs  = measureTimeUs(s.traits, imperativeGenericAccumulate);
-        const sumUs  = measureTimeUs(s.traits, (t) => semiringCompose(t, 'sum'));
-        const maxUs  = measureTimeUs(s.traits, (t) => semiringCompose(t, 'max-plus'));
-        const minUs  = measureTimeUs(s.traits, (t) => semiringCompose(t, 'min-plus'));
+        const lwwUs = measureTimeUs(s.traits, imperativeLastWriteWins);
+        const fwwUs = measureTimeUs(s.traits, imperativeFirstWriteWins);
+        const genUs = measureTimeUs(s.traits, imperativeGenericAccumulate);
+        const sumUs = measureTimeUs(s.traits, (t) => semiringCompose(t, 'sum'));
+        const maxUs = measureTimeUs(s.traits, (t) => semiringCompose(t, 'max-plus'));
+        const minUs = measureTimeUs(s.traits, (t) => semiringCompose(t, 'min-plus'));
 
         const fmt = (us: number) => us.toFixed(3).padStart(8);
         const ratio = (us: number) => (us / lwwUs).toFixed(2).padStart(5);
         const label = s.name.padEnd(37);
         const paper = s.paper.padEnd(15);
-        console.log(`  ${label} ${paper} Unity/Unreal (last-write-wins)  ${fmt(lwwUs)}   ${ratio(lwwUs)}×`);
-        console.log(`  ${' '.repeat(53)} A-Frame     (first-write-wins)  ${fmt(fwwUs)}   ${ratio(fwwUs)}×`);
-        console.log(`  ${' '.repeat(53)} Generic JS  (Object.assign)     ${fmt(genUs)}   ${ratio(genUs)}×`);
-        console.log(`  ${' '.repeat(53)} Semiring    (sum ⊕)             ${fmt(sumUs)}   ${ratio(sumUs)}×`);
-        console.log(`  ${' '.repeat(53)} Semiring    (max-plus ⊕)        ${fmt(maxUs)}   ${ratio(maxUs)}×`);
-        console.log(`  ${' '.repeat(53)} Semiring    (min-plus ⊕)        ${fmt(minUs)}   ${ratio(minUs)}×`);
+        console.log(
+          `  ${label} ${paper} Unity/Unreal (last-write-wins)  ${fmt(lwwUs)}   ${ratio(lwwUs)}×`
+        );
+        console.log(
+          `  ${' '.repeat(53)} A-Frame     (first-write-wins)  ${fmt(fwwUs)}   ${ratio(fwwUs)}×`
+        );
+        console.log(
+          `  ${' '.repeat(53)} Generic JS  (Object.assign)     ${fmt(genUs)}   ${ratio(genUs)}×`
+        );
+        console.log(
+          `  ${' '.repeat(53)} Semiring    (sum ⊕)             ${fmt(sumUs)}   ${ratio(sumUs)}×`
+        );
+        console.log(
+          `  ${' '.repeat(53)} Semiring    (max-plus ⊕)        ${fmt(maxUs)}   ${ratio(maxUs)}×`
+        );
+        console.log(
+          `  ${' '.repeat(53)} Semiring    (min-plus ⊕)        ${fmt(minUs)}   ${ratio(minUs)}×`
+        );
         console.log();
       }
 
       console.log('  ratio < 2× = semiring overhead is in the noise for typical scenarios.');
-      console.log('  Semiring models add a commutativity guarantee without proportional wall-time cost.');
-    },
+      console.log(
+        '  Semiring models add a commutativity guarantee without proportional wall-time cost.'
+      );
+    }
   );
 
   it('semiring addition is commutative on all scenario traits', () => {

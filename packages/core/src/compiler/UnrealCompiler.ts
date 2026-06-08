@@ -95,9 +95,10 @@ export class UnrealCompiler extends CompilerBase {
       platformTarget: options.platformTarget ?? '',
     };
     if (options.platformTarget) {
-      this._platformTarget = typeof options.platformTarget === 'string'
-        ? createPlatformTarget(options.platformTarget as any)
-        : options.platformTarget;
+      this._platformTarget =
+        typeof options.platformTarget === 'string'
+          ? createPlatformTarget(options.platformTarget as any)
+          : options.platformTarget;
     }
   }
 
@@ -558,35 +559,47 @@ export class UnrealCompiler extends CompilerBase {
         break;
       case 'grabbable':
         this.emitS(`// @grabbable — implement via GrabComponent or VR interaction framework`);
-        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@grabbable on %s — trait stubbed, needs GrabComponent implementation"), *GetName());`);
+        this.emitS(
+          `UE_LOG(LogTemp, Warning, TEXT("@grabbable on %s — trait stubbed, needs GrabComponent implementation"), *GetName());`
+        );
         break;
       case 'pointable':
       case 'hoverable':
         this.emitS(
           `// @${this.escapeStringValue(trait.name as string, 'TypeScript')} — implement via line trace interaction`
         );
-        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@%s on %s — trait stubbed, needs line trace interaction"), TEXT("${this.escapeStringValue(trait.name as string, 'TypeScript')}"), *GetName());`);
+        this.emitS(
+          `UE_LOG(LogTemp, Warning, TEXT("@%s on %s — trait stubbed, needs line trace interaction"), TEXT("${this.escapeStringValue(trait.name as string, 'TypeScript')}"), *GetName());`
+        );
         break;
       case 'portal':
         this.emitS(`// @portal — destination: "${trait.config?.destination || 'unknown'}"`);
-        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@portal on %s — trait stubbed, needs level streaming/teleport implementation"), *GetName());`);
+        this.emitS(
+          `UE_LOG(LogTemp, Warning, TEXT("@portal on %s — trait stubbed, needs level streaming/teleport implementation"), *GetName());`
+        );
         break;
       case 'emissive':
       case 'glowing':
         this.emitS(
           `// @${this.escapeStringValue(trait.name as string, 'TypeScript')} — apply emissive material`
         );
-        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@%s on %s — trait stubbed, needs emissive material"), TEXT("${this.escapeStringValue(trait.name as string, 'TypeScript')}"), *GetName());`);
+        this.emitS(
+          `UE_LOG(LogTemp, Warning, TEXT("@%s on %s — trait stubbed, needs emissive material"), TEXT("${this.escapeStringValue(trait.name as string, 'TypeScript')}"), *GetName());`
+        );
         break;
       case 'transparent':
         this.emitS(`// @transparent — set material blend mode`);
-        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@transparent on %s — trait stubbed, needs translucent material"), *GetName());`);
+        this.emitS(
+          `UE_LOG(LogTemp, Warning, TEXT("@transparent on %s — trait stubbed, needs translucent material"), *GetName());`
+        );
         break;
       default:
         this.emitS(
           `// @${this.escapeStringValue(trait.name as string, 'TypeScript')} — custom trait implementation required`
         );
-        this.emitS(`UE_LOG(LogTemp, Warning, TEXT("@%s on %s — unhandled trait, needs custom implementation"), TEXT("${this.escapeStringValue(trait.name as string, 'TypeScript')}"), *GetName());`);
+        this.emitS(
+          `UE_LOG(LogTemp, Warning, TEXT("@%s on %s — unhandled trait, needs custom implementation"), TEXT("${this.escapeStringValue(trait.name as string, 'TypeScript')}"), *GetName());`
+        );
     }
   }
 

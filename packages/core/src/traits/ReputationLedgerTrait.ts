@@ -136,7 +136,10 @@ function createFactId(subjectId: string, observerId: string, occurredAt: number)
 }
 
 function effectiveMaxFacts(config: ReputationLedgerConfig): number {
-  return Math.max(1, Math.floor(finiteNumber(config.max_behavior_facts, DEFAULT_REPUTATION_LEDGER_MAX_FACTS)));
+  return Math.max(
+    1,
+    Math.floor(finiteNumber(config.max_behavior_facts, DEFAULT_REPUTATION_LEDGER_MAX_FACTS))
+  );
 }
 
 function effectiveTtlDays(config: ReputationLedgerConfig): number {
@@ -291,7 +294,10 @@ function recordBehaviorFact(
   state.trustByObserver.set(observerId, trust);
 
   const fact: BehaviorFact = {
-    id: typeof payload.id === 'string' ? payload.id : createFactId(config.subject_id, observerId, occurredAt),
+    id:
+      typeof payload.id === 'string'
+        ? payload.id
+        : createFactId(config.subject_id, observerId, occurredAt),
     observerId,
     subjectId: config.subject_id,
     action,
@@ -364,7 +370,8 @@ function deleteBehaviorLog(
     scope,
     ...(scope === 'npc' ? { observerId } : {}),
     deletedCount,
-    requestedBy: typeof payload.requestedBy === 'string' ? payload.requestedBy : observerId || undefined,
+    requestedBy:
+      typeof payload.requestedBy === 'string' ? payload.requestedBy : observerId || undefined,
     at: Date.now(),
   };
   state.deletions.push(record);
@@ -434,12 +441,15 @@ export const reputationLedgerHandler: TraitHandler<ReputationLedgerConfig> = {
       generate(ctx: PillarContext): PillarSlice {
         const state = (node as any).__reputationLedgerState as ReputationLedgerState | undefined;
         const allFacts = state ? Array.from(state.factsByObserver.values()).flat() : [];
-        const avgTrust = state && state.trustByObserver.size > 0
-          ? Array.from(state.trustByObserver.values()).reduce((a, b) => a + b, 0) / state.trustByObserver.size
-          : ((ctx.metadata as Record<string, number> | undefined)?.trust_level ?? 0.75);
-        const retention = allFacts.length > 0
-          ? Math.min(1, allFacts.length / 20)
-          : ((ctx.metadata as Record<string, number> | undefined)?.fact_retention ?? 0.65);
+        const avgTrust =
+          state && state.trustByObserver.size > 0
+            ? Array.from(state.trustByObserver.values()).reduce((a, b) => a + b, 0) /
+              state.trustByObserver.size
+            : ((ctx.metadata as Record<string, number> | undefined)?.trust_level ?? 0.75);
+        const retention =
+          allFacts.length > 0
+            ? Math.min(1, allFacts.length / 20)
+            : ((ctx.metadata as Record<string, number> | undefined)?.fact_retention ?? 0.65);
         return {
           axis_1_id: 'trust_level',
           axis_2_id: 'fact_retention',
@@ -466,9 +476,13 @@ export const reputationLedgerHandler: TraitHandler<ReputationLedgerConfig> = {
     // trust_level averaged from observers; fact_retention = total facts vs max cap.
     // Feeds Pillar-Slice for agent social layer dispatch and training.
     const allFacts = Array.from(state.factsByObserver.values()).flat();
-    const avgTrust = allFacts.length > 0
-      ? allFacts.reduce((s, f) => s + (f.trustDelta || 0), 0) / allFacts.length
-      : (state.trustByObserver.size > 0 ? Array.from(state.trustByObserver.values()).reduce((a,b)=>a+b,0) / state.trustByObserver.size : 0.5);
+    const avgTrust =
+      allFacts.length > 0
+        ? allFacts.reduce((s, f) => s + (f.trustDelta || 0), 0) / allFacts.length
+        : state.trustByObserver.size > 0
+          ? Array.from(state.trustByObserver.values()).reduce((a, b) => a + b, 0) /
+            state.trustByObserver.size
+          : 0.5;
     const retention = Math.min(1, allFacts.length / Math.max(1, effectiveMaxFacts(config)));
     context.emit?.('pillar:slice', {
       slice: {

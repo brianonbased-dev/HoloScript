@@ -31,15 +31,24 @@ describe('CONTRACT: msf-3d-plugin adapter', () => {
   });
 
   it('unit meter → unit_scale_factor 1', () => {
-    expect(importMsf(asset({ header: { version: '1', unit: 'meter', semantic_tags: [] } })).unit_scale_factor).toBe(1);
+    expect(
+      importMsf(asset({ header: { version: '1', unit: 'meter', semantic_tags: [] } }))
+        .unit_scale_factor
+    ).toBe(1);
   });
 
   it('unit millimeter → unit_scale_factor 0.001', () => {
-    expect(importMsf(asset({ header: { version: '1', unit: 'millimeter', semantic_tags: [] } })).unit_scale_factor).toBe(0.001);
+    expect(
+      importMsf(asset({ header: { version: '1', unit: 'millimeter', semantic_tags: [] } }))
+        .unit_scale_factor
+    ).toBe(0.001);
   });
 
   it('unit inch → unit_scale_factor 0.0254', () => {
-    expect(importMsf(asset({ header: { version: '1', unit: 'inch', semantic_tags: [] } })).unit_scale_factor).toBe(0.0254);
+    expect(
+      importMsf(asset({ header: { version: '1', unit: 'inch', semantic_tags: [] } }))
+        .unit_scale_factor
+    ).toBe(0.0254);
   });
 
   it('part_annotations length = input.annotations length', () => {

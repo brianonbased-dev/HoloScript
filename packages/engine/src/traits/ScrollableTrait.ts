@@ -110,12 +110,11 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
 
     if (event.type === 'ui_press_start') {
       state.isDragging = true;
-      state.lastY =
-        (() => {
-          const p = (event as Record<string, unknown>).position as Vector3 | undefined;
-          if (!p) return 0;
-          return Array.isArray(p) ? Number(p[1]) || 0 : p[1];
-        })();
+      state.lastY = (() => {
+        const p = (event as Record<string, unknown>).position as Vector3 | undefined;
+        if (!p) return 0;
+        return Array.isArray(p) ? Number(p[1]) || 0 : p[1];
+      })();
       state.velocity = 0;
     } else if (event.type === 'ui_press_end') {
       state.isDragging = false;

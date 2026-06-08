@@ -10,13 +10,13 @@
 
 ## Quick Overview
 
-| | |
-|---|---|
-| **Tagline** | "Re-Engineering Engineering" |
-| **Backer** | Synopsys (acquisition closed 2025) |
-| **Audience** | Fortune 500 aerospace / automotive / semiconductor / defense / medical device |
-| **Pricing** | Mechanical Enterprise ~$40K/year/seat; Fluent similar; HPC packs extra; SimAI Premium per-usage SaaS |
-| **Latest** | 2026 R1 (March 11, 2026) |
+|              |                                                                                                      |
+| ------------ | ---------------------------------------------------------------------------------------------------- |
+| **Tagline**  | "Re-Engineering Engineering"                                                                         |
+| **Backer**   | Synopsys (acquisition closed 2025)                                                                   |
+| **Audience** | Fortune 500 aerospace / automotive / semiconductor / defense / medical device                        |
+| **Pricing**  | Mechanical Enterprise ~$40K/year/seat; Fluent similar; HPC packs extra; SimAI Premium per-usage SaaS |
+| **Latest**   | 2026 R1 (March 11, 2026)                                                                             |
 
 ## Their Pitch (2026 R1)
 
@@ -49,25 +49,25 @@
 
 ## Our Differentiators (vs ANSYS)
 
-| Differentiator | Why it matters | Proof |
-|---|---|---|
-| **Browser-native WebGPU simulation** | Zero install, anywhere, any device | TVCG paper benchmarks, NAFEMS LE1 at 1.5% |
-| **Hash-verified deterministic replay** | Court-admissible, FDA-auditable | SimulationContract 6 guarantees |
-| **Solver + renderer share same object** | Trust by Construction (Tier 3) vs ANSYS Tier 1 (discipline) | W.GOLD.013 |
-| **Contract-verified AI** (not surrogate) | Correctness bounds enforced, not predicted | paper-benchmarks.test.ts, `<2%` overhead |
-| **Free-to-prototype** | No license procurement delay | — |
-| **Ship simulation as URL** | Customer clicks link, runs replay | Browser + deterministic |
-| **Cross-domain** | Physics + molecular + agent + cellular in one IR | `.holo` semantic layer |
+| Differentiator                           | Why it matters                                              | Proof                                     |
+| ---------------------------------------- | ----------------------------------------------------------- | ----------------------------------------- |
+| **Browser-native WebGPU simulation**     | Zero install, anywhere, any device                          | TVCG paper benchmarks, NAFEMS LE1 at 1.5% |
+| **Hash-verified deterministic replay**   | Court-admissible, FDA-auditable                             | SimulationContract 6 guarantees           |
+| **Solver + renderer share same object**  | Trust by Construction (Tier 3) vs ANSYS Tier 1 (discipline) | W.GOLD.013                                |
+| **Contract-verified AI** (not surrogate) | Correctness bounds enforced, not predicted                  | paper-benchmarks.test.ts, `<2%` overhead  |
+| **Free-to-prototype**                    | No license procurement delay                                | —                                         |
+| **Ship simulation as URL**               | Customer clicks link, runs replay                           | Browser + deterministic                   |
+| **Cross-domain**                         | Physics + molecular + agent + cellular in one IR            | `.holo` semantic layer                    |
 
 ## Objection Handling
 
-| Prospect says... | Respond with... |
-|---|---|
-| "ANSYS is FDA-certified" | "For 40 years of existing workflows, yes. For new submissions where byte-identical replay is the evidence, FDA is actively interested in our approach. We're in conversations with medical device teams now." |
-| "ANSYS has more physics breadth" | "True — we don't compete in nonlinear aerospace crash. We compete in emerging domains: molecular, surgical, legal, education, AV replay. Different fights." |
-| "SimAI and GeomAI already bring AI to simulation" | "They bring *surrogate* AI — predict from training data, with confidence scores. We bring *contracted* AI — enforce correctness bounds, hash-verified replay. Their trust is statistical; ours is algebraic." |
-| "ANSYS has Omniverse integration" | "Their Omniverse integration is AVxcelerate for AV validation. We integrate differently: `.holo → USD → any USD consumer including Omniverse`. We're USD-upstream; they're an Omniverse application." |
-| "We're locked into ANSYS for compliance reasons" | "Then HoloScript is your *next* simulation, not your *current* one. Our wedge is the domain ANSYS doesn't serve — your team's emerging problems: replayable demos for juries, browser-shared FEA for reviewers, agents-in-simulation for research." |
+| Prospect says...                                  | Respond with...                                                                                                                                                                                                                                     |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "ANSYS is FDA-certified"                          | "For 40 years of existing workflows, yes. For new submissions where byte-identical replay is the evidence, FDA is actively interested in our approach. We're in conversations with medical device teams now."                                       |
+| "ANSYS has more physics breadth"                  | "True — we don't compete in nonlinear aerospace crash. We compete in emerging domains: molecular, surgical, legal, education, AV replay. Different fights."                                                                                         |
+| "SimAI and GeomAI already bring AI to simulation" | "They bring _surrogate_ AI — predict from training data, with confidence scores. We bring _contracted_ AI — enforce correctness bounds, hash-verified replay. Their trust is statistical; ours is algebraic."                                       |
+| "ANSYS has Omniverse integration"                 | "Their Omniverse integration is AVxcelerate for AV validation. We integrate differently: `.holo → USD → any USD consumer including Omniverse`. We're USD-upstream; they're an Omniverse application."                                               |
+| "We're locked into ANSYS for compliance reasons"  | "Then HoloScript is your _next_ simulation, not your _current_ one. Our wedge is the domain ANSYS doesn't serve — your team's emerging problems: replayable demos for juries, browser-shared FEA for reviewers, agents-in-simulation for research." |
 
 ## Landmines to Set
 

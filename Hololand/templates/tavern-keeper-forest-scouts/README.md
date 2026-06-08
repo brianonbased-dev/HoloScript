@@ -24,6 +24,7 @@ This is the canonical lightweight reference example for Hololand creators who wa
 ## Assets
 
 All assets are explicit lightweight placeholders (no external GLB required for the reference build):
+
 - `sphere` for character bodies
 - `box` + `panel` for tavern counter and sign
 - `orb` for campfire / lantern

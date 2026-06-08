@@ -15,7 +15,7 @@ describe('DomainSimulationReceipt', () => {
 
     expect(a).toBe(b);
     expect(stableDomainReceiptHash({ value: 1, job_id: 'job-1' })).toBe(
-      stableDomainReceiptHash({ job_id: 'job-1', value: 1 }),
+      stableDomainReceiptHash({ job_id: 'job-1', value: 1 })
     );
   });
 
@@ -75,7 +75,9 @@ describe('DomainSimulationReceipt', () => {
 
   it('rejects non-finite receipt payload values', () => {
     expect(() => stableDomainReceiptHash({ value: Number.NaN })).toThrow('Non-finite');
-    expect(() => stableDomainReceiptHash({ value: Number.POSITIVE_INFINITY })).toThrow('Non-finite');
+    expect(() => stableDomainReceiptHash({ value: Number.POSITIVE_INFINITY })).toThrow(
+      'Non-finite'
+    );
   });
 
   it('rejects BigInt values in receipt payloads', () => {
@@ -83,7 +85,9 @@ describe('DomainSimulationReceipt', () => {
   });
 
   it('rejects Date objects in receipt payloads', () => {
-    expect(() => stableDomainReceiptHash({ ts: new Date('2026-01-01') })).toThrow('Date objects are not receipt-safe');
+    expect(() => stableDomainReceiptHash({ ts: new Date('2026-01-01') })).toThrow(
+      'Date objects are not receipt-safe'
+    );
   });
 
   it('rejects deeply nested receipt payloads exceeding max depth', () => {
@@ -119,7 +123,7 @@ describe('DomainSimulationReceipt', () => {
         solverConfig: { solverType: 'test', scale: 'object' },
         resultSummary: {},
         acceptance: { accepted: true, violations: [] },
-      }),
+      })
     ).toThrow('plugin is required');
   });
 
@@ -132,7 +136,7 @@ describe('DomainSimulationReceipt', () => {
         solverConfig: { solverType: 'test', scale: 'object' },
         resultSummary: {},
         acceptance: { accepted: true, violations: [] },
-      }),
+      })
     ).toThrow('pluginVersion is required');
   });
 
@@ -145,7 +149,7 @@ describe('DomainSimulationReceipt', () => {
         solverConfig: { solverType: 'test', scale: 'object' },
         resultSummary: {},
         acceptance: { accepted: true, violations: [] },
-      }),
+      })
     ).toThrow('runId is required');
   });
 
@@ -163,7 +167,9 @@ describe('DomainSimulationReceipt', () => {
 
     const missingPlugin = { ...receipt, plugin: '' };
     expect(verifyDomainSimulationReceipt(missingPlugin).valid).toBe(false);
-    expect(verifyDomainSimulationReceipt(missingPlugin).errors.join('\n')).toContain('plugin is required');
+    expect(verifyDomainSimulationReceipt(missingPlugin).errors.join('\n')).toContain(
+      'plugin is required'
+    );
 
     const missingVersion = { ...receipt, pluginVersion: '  ' };
     expect(verifyDomainSimulationReceipt(missingVersion).valid).toBe(false);
@@ -173,7 +179,9 @@ describe('DomainSimulationReceipt', () => {
 
     const badTimestamp = { ...receipt, createdAt: 'not-a-date' };
     expect(verifyDomainSimulationReceipt(badTimestamp).valid).toBe(false);
-    expect(verifyDomainSimulationReceipt(badTimestamp).errors.join('\n')).toContain('not a valid ISO timestamp');
+    expect(verifyDomainSimulationReceipt(badTimestamp).errors.join('\n')).toContain(
+      'not a valid ISO timestamp'
+    );
   });
 
   it('produces consistent hashes for non-BMP Unicode characters (emoji)', () => {

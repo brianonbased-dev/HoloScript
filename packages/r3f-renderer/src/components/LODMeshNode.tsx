@@ -110,7 +110,9 @@ function LODLevel({
     return {
       ...matProps,
       userData: {
-        ...(typeof matProps.userData === 'object' && matProps.userData !== null ? matProps.userData : {}),
+        ...(typeof matProps.userData === 'object' && matProps.userData !== null
+          ? matProps.userData
+          : {}),
         holoscriptDisplacementPlaneSegments: { width: dsp[0], height: dsp[1] },
       },
     };

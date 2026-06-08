@@ -46,11 +46,17 @@ function migrateLegacyJsonToLoro(): void {
       loroDoc.commit();
       // Persist the Loro snapshot and remove the legacy JSON file
       persistLoroToDisk();
-      try { fs.renameSync(STATE_AUTHORITY_FILE, STATE_AUTHORITY_FILE + '.migrated'); } catch { /* best-effort */ }
+      try {
+        fs.renameSync(STATE_AUTHORITY_FILE, STATE_AUTHORITY_FILE + '.migrated');
+      } catch {
+        /* best-effort */
+      }
       console.info('[networking] Migrated legacy state-authority.json → Loro CRDT');
     }
   } catch (err) {
-    console.warn(`[networking] Legacy JSON migration failed: ${err instanceof Error ? err.message : String(err)}`);
+    console.warn(
+      `[networking] Legacy JSON migration failed: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 }
 
@@ -63,7 +69,9 @@ function loadLoroFromDisk(): void {
       return;
     }
   } catch (err) {
-    console.warn(`[CacheDebug][networking] Loro load miss: ${err instanceof Error ? err.message : String(err)}`);
+    console.warn(
+      `[CacheDebug][networking] Loro load miss: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
   // No .loro file → try legacy JSON migration
   migrateLegacyJsonToLoro();
@@ -92,7 +100,12 @@ loadLoroFromDisk();
 // fan-out seam (WebRTC peer transport is a later perf upgrade).
 // Board task: task_1779436414662_8b0d (transport edge).
 // ---------------------------------------------------------------------------
-interface StateDelta { entityId: string; field: string; oldValue: unknown; newValue: unknown }
+interface StateDelta {
+  entityId: string;
+  field: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
 type DeltaSubscriber = (deltas: StateDelta[]) => void;
 const deltaSubscribers = new Set<DeltaSubscriber>();
 
@@ -114,7 +127,9 @@ function broadcastDeltas(deltas: StateDelta[]): void {
     try {
       sub(deltas);
     } catch (err) {
-      console.warn(`[networking] delta subscriber threw: ${err instanceof Error ? err.message : String(err)}`);
+      console.warn(
+        `[networking] delta subscriber threw: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 }
@@ -158,7 +173,9 @@ export interface WebRTCTransportConfig {
  * @param config WebRTC configuration (signaling server URL, ICE servers, room).
  * @returns the active LoroWebRTCProvider instance.
  */
-export async function enableWebRTCTransport(config?: WebRTCTransportConfig): Promise<LoroWebRTCProviderLike> {
+export async function enableWebRTCTransport(
+  config?: WebRTCTransportConfig
+): Promise<LoroWebRTCProviderLike> {
   if (webrtcProvider) {
     console.warn('[networking] WebRTC transport already enabled — returning existing provider.');
     return webrtcProvider;
@@ -179,7 +196,7 @@ export async function enableWebRTCTransport(config?: WebRTCTransportConfig): Pro
   } catch (err) {
     throw new Error(
       `Failed to enable WebRTC transport: ${err instanceof Error ? err.message : String(err)}. ` +
-      `Ensure @holoscript/crdt-spatial is installed.`
+        `Ensure @holoscript/crdt-spatial is installed.`
     );
   }
 }
@@ -209,7 +226,10 @@ export function isWebRTCTransportEnabled(): boolean {
  * push_portal_intent. Loro CRDT converges concurrent writes without clobbering
  * (unlike the prior deep-merge LWW path). Board task: task_1779438040591_o53t.
  */
-function commitState(entityId: string, payload: Record<string, unknown>): {
+function commitState(
+  entityId: string,
+  payload: Record<string, unknown>
+): {
   status: 'success' | 'skipped';
   deltaCount: number;
 } {
@@ -275,7 +295,8 @@ function computeDeltas(
 export const networkingTools: Tool[] = [
   {
     name: 'push_state_delta',
-    description: 'Push a raw spatial or semantic state delta securely to the Global Sync Mesh. ' +
+    description:
+      'Push a raw spatial or semantic state delta securely to the Global Sync Mesh. ' +
       'Automatically performs Server-Authoritative Conflict Resolution (Last-Write-Wins) and diff compression.',
     inputSchema: {
       type: 'object',
@@ -286,7 +307,8 @@ export const networkingTools: Tool[] = [
         },
         payload: {
           type: 'object',
-          description: 'A JSON object containing only the fields that have been modified (new values).',
+          description:
+            'A JSON object containing only the fields that have been modified (new values).',
         },
       },
       required: ['entityId', 'payload'],
@@ -294,7 +316,8 @@ export const networkingTools: Tool[] = [
   },
   {
     name: 'fetch_authoritative_state',
-    description: 'Pull the current absolute truth for an Entity from the StateAuthority layer safely bypassing out-of-sync local caches.',
+    description:
+      'Pull the current absolute truth for an Entity from the StateAuthority layer safely bypassing out-of-sync local caches.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -322,7 +345,8 @@ export const networkingTools: Tool[] = [
         requestedScope: {
           type: 'string',
           enum: ['read-only', 'mutate-zone', 'drive-avatar'],
-          description: 'Scope the portal granted this entrant. Defaults to the policy defaultScope.',
+          description:
+            'Scope the portal granted this entrant. Defaults to the policy defaultScope.',
         },
         spatialPolicy: {
           type: 'object',
@@ -331,7 +355,8 @@ export const networkingTools: Tool[] = [
         },
         driveAvatarActiveCount: {
           type: 'number',
-          description: 'Avatars this entrant already drives (for drive-avatar maxEntities enforcement). Default 0.',
+          description:
+            'Avatars this entrant already drives (for drive-avatar maxEntities enforcement). Default 0.',
         },
       },
       required: ['intent'],
@@ -363,7 +388,8 @@ export async function handleNetworkingTool(name: string, args: any): Promise<any
 
       const policy = args?.spatialPolicy as SpatialPolicy | undefined;
       const requestedScope = args?.requestedScope as SpatialScope | undefined;
-      const activeCount = typeof args?.driveAvatarActiveCount === 'number' ? args.driveAvatarActiveCount : 0;
+      const activeCount =
+        typeof args?.driveAvatarActiveCount === 'number' ? args.driveAvatarActiveCount : 0;
 
       const verdict = validatePortalIntent(intent, policy, requestedScope, activeCount);
       if (!verdict.allowed) {

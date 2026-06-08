@@ -118,7 +118,7 @@ describe('coLocatedHandler.onEvent — co_located_aligned', () => {
     coLocatedHandler.onEvent!(node, config, ctx, {
       type: 'co_located_aligned',
       anchorId: 'anc-1',
-      transform: { position: [0, 0, 0], rotation: [0, 0, 0, 1 ] },
+      transform: { position: [0, 0, 0], rotation: [0, 0, 0, 1] },
       quality: 0.9,
       ...overrides,
     });

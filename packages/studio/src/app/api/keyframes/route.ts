@@ -114,7 +114,6 @@ export async function DELETE(request: NextRequest) {
   return Response.json({ error: 'Not found' }, { status: 404 });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

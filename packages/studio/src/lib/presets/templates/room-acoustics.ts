@@ -1,12 +1,20 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-room-acoustics",
-  name: "Room Acoustics Twin",
-  description: "HoloAcoustics verifiable room-acoustics twin — reverberation (RT60), speech intelligibility (STI), and background noise, each certified against ANSI/ASA S12.60 and IEC 60268-16 with a tamper-evident receipt",
-  thumbnail: "🔊",
-  tags: ["architecture", "acoustics", "reverberation", "speech-intelligibility", "digital-twin", "verifiable"],
-  category: "architecture",
+  id: 'wizard-room-acoustics',
+  name: 'Room Acoustics Twin',
+  description:
+    'HoloAcoustics verifiable room-acoustics twin — reverberation (RT60), speech intelligibility (STI), and background noise, each certified against ANSI/ASA S12.60 and IEC 60268-16 with a tamper-evident receipt',
+  thumbnail: '🔊',
+  tags: [
+    'architecture',
+    'acoustics',
+    'reverberation',
+    'speech-intelligibility',
+    'digital-twin',
+    'verifiable',
+  ],
+  category: 'architecture',
   code: `composition "Room Acoustics Twin" {
   environment {
     skybox: "day"
@@ -67,7 +75,7 @@ export const template: SceneTemplate = {
     color: "#0a1414"
     label: "HoloAcoustics receipt — RT60 0.24 s PASS (<=0.6 ANSI) | STI 0.83 Good | Noise 33 dBA PASS"
   }
-}`
+}`,
 };
 
 export default template;

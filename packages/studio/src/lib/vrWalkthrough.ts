@@ -18,9 +18,15 @@ export interface Vec3 {
 
 type Vec3Like = Vec3 | [number, number, number] | { x: number; y: number; z: number };
 
-function vx(v: Vec3Like): number { return (v as Vec3).x ?? (v as [number, number, number])[0] ?? 0; }
-function vy(v: Vec3Like): number { return (v as Vec3).y ?? (v as [number, number, number])[1] ?? 0; }
-function vz(v: Vec3Like): number { return (v as Vec3).z ?? (v as [number, number, number])[2] ?? 0; }
+function vx(v: Vec3Like): number {
+  return (v as Vec3).x ?? (v as [number, number, number])[0] ?? 0;
+}
+function vy(v: Vec3Like): number {
+  return (v as Vec3).y ?? (v as [number, number, number])[1] ?? 0;
+}
+function vz(v: Vec3Like): number {
+  return (v as Vec3).z ?? (v as [number, number, number])[2] ?? 0;
+}
 function vec3(x: number, y: number, z: number): Vec3 {
   const v = { x, y, z } as Vec3;
   Object.defineProperty(v, '0', { value: x, enumerable: false });

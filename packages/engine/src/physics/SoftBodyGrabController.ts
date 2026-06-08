@@ -98,7 +98,11 @@ export class SoftBodyGrabController {
     const grabPoints: GrabPoint[] = [];
     for (const { index, dist } of selected) {
       // Compute local offset (vertex position relative to hand)
-      const localOffset: IVector3 = [positions[index * 3] - handPosition[0], positions[index * 3 + 1] - handPosition[1], positions[index * 3 + 2] - handPosition[2], ];
+      const localOffset: IVector3 = [
+        positions[index * 3] - handPosition[0],
+        positions[index * 3 + 1] - handPosition[1],
+        positions[index * 3 + 2] - handPosition[2],
+      ];
 
       // Compliance weighted by distance: closer = stiffer
       const distRatio = dist / grabRadius;
@@ -107,11 +111,7 @@ export class SoftBodyGrabController {
       // Create attachment constraint with XPBD compliance for soft grab
       solver.pinVertex(
         index,
-        [
-          positions[index * 3],
-          positions[index * 3 + 1],
-          positions[index * 3 + 2],
-        ],
+        [positions[index * 3], positions[index * 3 + 1], positions[index * 3 + 2]],
         compliance
       );
 
@@ -122,7 +122,7 @@ export class SoftBodyGrabController {
       handId,
       solver,
       grabPoints,
-      handPosition: [...handPosition  ],
+      handPosition: [...handPosition],
     });
   }
 
@@ -134,10 +134,14 @@ export class SoftBodyGrabController {
     const grab = this.activeGrabs.get(handId);
     if (!grab) return;
 
-    grab.handPosition = [...handPosition  ];
+    grab.handPosition = [...handPosition];
 
     for (const gp of grab.grabPoints) {
-      const target: IVector3 = [handPosition[0] + gp.localOffset[0], handPosition[1] + gp.localOffset[1], handPosition[2] + gp.localOffset[2], ];
+      const target: IVector3 = [
+        handPosition[0] + gp.localOffset[0],
+        handPosition[1] + gp.localOffset[1],
+        handPosition[2] + gp.localOffset[2],
+      ];
       grab.solver.updateAttachmentTarget(gp.vertexIndex, target);
     }
   }

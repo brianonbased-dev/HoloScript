@@ -77,9 +77,18 @@ describe('measure-sesl-information-gain', () => {
     const report = run(['--seed', seedPath, '--generated', genPath, '--json']);
     assert.strictEqual(report.comparison.infoGain > 0, true, 'expected positive info gain');
     assert.strictEqual(report.comparison.collapseFlag, false, 'expected no collapse');
-    assert.ok(report.comparison.verdict.includes('GAIN'), `verdict was: ${report.comparison.verdict}`);
+    assert.ok(
+      report.comparison.verdict.includes('GAIN'),
+      `verdict was: ${report.comparison.verdict}`
+    );
 
-    for (const f of filesToClean) { try { fs.unlinkSync(f); } catch { /* ignore */ } }
+    for (const f of filesToClean) {
+      try {
+        fs.unlinkSync(f);
+      } catch {
+        /* ignore */
+      }
+    }
     filesToClean.length = 0;
   });
 
@@ -116,9 +125,18 @@ describe('measure-sesl-information-gain', () => {
     assert.strictEqual(report.comparison.infoGain < 0, true, 'expected negative info gain');
     assert.strictEqual(report.comparison.collapseFlag, true, 'expected collapse flagged');
     assert.ok(report.comparison.collapseReasons.length > 0, 'expected collapse reasons');
-    assert.ok(report.comparison.verdict.includes('COLLAPSE'), `verdict was: ${report.comparison.verdict}`);
+    assert.ok(
+      report.comparison.verdict.includes('COLLAPSE'),
+      `verdict was: ${report.comparison.verdict}`
+    );
 
-    for (const f of filesToClean) { try { fs.unlinkSync(f); } catch { /* ignore */ } }
+    for (const f of filesToClean) {
+      try {
+        fs.unlinkSync(f);
+      } catch {
+        /* ignore */
+      }
+    }
     filesToClean.length = 0;
   });
 
@@ -133,14 +151,26 @@ describe('measure-sesl-information-gain', () => {
       seedRecord(3, ['interaction']),
     ];
     writeJsonl(seedPath, records);
-    writeJsonl(genPath, records.map((r, i) => generatedRecord(i + 10, r.trait_family_set, r.composition_shape_hash)));
+    writeJsonl(
+      genPath,
+      records.map((r, i) => generatedRecord(i + 10, r.trait_family_set, r.composition_shape_hash))
+    );
 
     const report = run(['--seed', seedPath, '--generated', genPath, '--json']);
     assert.strictEqual(report.comparison.infoGain, 0, 'expected zero info gain');
     assert.strictEqual(report.comparison.collapseFlag, false, 'expected no collapse');
-    assert.ok(report.comparison.verdict.includes('FLAT'), `verdict was: ${report.comparison.verdict}`);
+    assert.ok(
+      report.comparison.verdict.includes('FLAT'),
+      `verdict was: ${report.comparison.verdict}`
+    );
 
-    for (const f of filesToClean) { try { fs.unlinkSync(f); } catch { /* ignore */ } }
+    for (const f of filesToClean) {
+      try {
+        fs.unlinkSync(f);
+      } catch {
+        /* ignore */
+      }
+    }
     filesToClean.length = 0;
   });
 
@@ -154,7 +184,7 @@ describe('measure-sesl-information-gain', () => {
 
     const md = execSync(
       `node "${SCRIPT}" --seed "${seedPath}" --generated "${genPath}" --markdown`,
-      { encoding: 'utf8', cwd: REPO_ROOT },
+      { encoding: 'utf8', cwd: REPO_ROOT }
     );
     assert.ok(md.includes('# SESL Information-Gain Measurement'));
     assert.ok(md.includes('## Seed corpus'));
@@ -162,7 +192,13 @@ describe('measure-sesl-information-gain', () => {
     assert.ok(md.includes('## Comparison'));
     assert.ok(md.includes('Verdict:'));
 
-    for (const f of filesToClean) { try { fs.unlinkSync(f); } catch { /* ignore */ } }
+    for (const f of filesToClean) {
+      try {
+        fs.unlinkSync(f);
+      } catch {
+        /* ignore */
+      }
+    }
     filesToClean.length = 0;
   });
 
@@ -171,27 +207,27 @@ describe('measure-sesl-information-gain', () => {
     const genPath = tmpFile('gen-fail.jsonl');
     filesToClean.push(seedPath, genPath);
 
-    writeJsonl(seedPath, [
-      seedRecord(1, ['structural']),
-      seedRecord(2, ['physics']),
-    ]);
-    writeJsonl(genPath, [
-      generatedRecord(1, ['structural']),
-      generatedRecord(2, ['structural']),
-    ]);
+    writeJsonl(seedPath, [seedRecord(1, ['structural']), seedRecord(2, ['physics'])]);
+    writeJsonl(genPath, [generatedRecord(1, ['structural']), generatedRecord(2, ['structural'])]);
 
     let exitCode = 0;
     try {
       execSync(
         `node "${SCRIPT}" --seed "${seedPath}" --generated "${genPath}" --json --fail-gate`,
-        { encoding: 'utf8', cwd: REPO_ROOT },
+        { encoding: 'utf8', cwd: REPO_ROOT }
       );
     } catch (err) {
       exitCode = err.status;
     }
     assert.strictEqual(exitCode, 2, 'expected exit code 2 on collapse with --fail-gate');
 
-    for (const f of filesToClean) { try { fs.unlinkSync(f); } catch { /* ignore */ } }
+    for (const f of filesToClean) {
+      try {
+        fs.unlinkSync(f);
+      } catch {
+        /* ignore */
+      }
+    }
     filesToClean.length = 0;
   });
 });

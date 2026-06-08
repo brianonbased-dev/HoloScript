@@ -162,11 +162,7 @@ export class Vec3SpringAnimator {
   }
 
   update(delta: number): [number, number, number] {
-    return [
-      this.x.update(delta),
-      this.y.update(delta),
-      this.z.update(delta),
-    ];
+    return [this.x.update(delta), this.y.update(delta), this.z.update(delta)];
   }
 
   getValue(): [number, number, number] {

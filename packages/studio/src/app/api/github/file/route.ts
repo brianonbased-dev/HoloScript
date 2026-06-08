@@ -30,10 +30,7 @@ export async function GET(req: NextRequest) {
   try {
     const token = await getGitHubToken(req);
     if (!token) {
-      return NextResponse.json(
-        { error: getGitHubAuthRequiredMessage() },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: getGitHubAuthRequiredMessage() }, { status: 401 });
     }
 
     const searchParams = req.nextUrl.searchParams;
@@ -107,10 +104,7 @@ export async function PUT(req: NextRequest) {
   try {
     const token = await getGitHubToken(req);
     if (!token) {
-      return NextResponse.json(
-        { error: getGitHubAuthRequiredMessage() },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: getGitHubAuthRequiredMessage() }, { status: 401 });
     }
 
     const body = (await req.json()) as {
@@ -178,10 +172,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const token = await getGitHubToken(req);
     if (!token) {
-      return NextResponse.json(
-        { error: getGitHubAuthRequiredMessage() },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: getGitHubAuthRequiredMessage() }, { status: 401 });
     }
 
     const body = (await req.json()) as {
@@ -229,7 +220,6 @@ export async function DELETE(req: NextRequest) {
     );
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

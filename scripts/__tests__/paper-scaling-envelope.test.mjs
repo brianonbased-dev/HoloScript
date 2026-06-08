@@ -8,10 +8,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  buildPaper12ScalingEnvelope,
-  renderScalingMemo,
-} from '../paper-scaling-envelope.mjs';
+import { buildPaper12ScalingEnvelope, renderScalingMemo } from '../paper-scaling-envelope.mjs';
 
 let testsRun = 0;
 let testsFailed = 0;
@@ -21,7 +18,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -48,7 +47,7 @@ writeFileSync(
     '| HoloScript warm parse (ms) | 0.2 | 0.1 | 0.3 | 0.4 |',
     '| OpenUSD plugin export (ms) | 0.3 | 0.2 | 0.4 | 0.5 |',
   ].join('\n'),
-  'utf8',
+  'utf8'
 );
 
 const envelope = buildPaper12ScalingEnvelope({
@@ -61,7 +60,10 @@ assertEq(envelope.bottleneckModel.asymptoticClass, 'O(o * a)', 'asymptotic class
 assertEq(envelope.measuredBaseline.peakScene.objects, 20, 'peak scene object count');
 assertEq(envelope.growthModel.targets[0].objects, 50, 'first target object count');
 assertEq(envelope.growthModel.targets[0].projectedRuntimeMs, 2.1, 'first runtime projection');
-assertOk(renderScalingMemo(envelope).includes('research/paper-12-hololand-scaling.md'), 'memo citation path');
+assertOk(
+  renderScalingMemo(envelope).includes('research/paper-12-hololand-scaling.md'),
+  'memo citation path'
+);
 
 if (testsFailed > 0) {
   console.error(`paper-scaling-envelope tests failed: ${testsFailed}/${testsRun}`);

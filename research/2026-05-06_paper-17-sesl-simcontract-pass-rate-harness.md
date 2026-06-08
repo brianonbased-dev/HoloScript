@@ -4,8 +4,8 @@ research_phase: base
 status: active
 last_verified: 2026-05-06
 canonical_for: paper-17-sesl-simcontract-pass-rate-harness
-supersedes: ""
-extends: ""
+supersedes: ''
+extends: ''
 ---
 
 ### Machine summary (uAA2 COMPRESS)
@@ -33,12 +33,12 @@ extends: ""
 
 The harness reads either a JSONL corpus or an INDEX-style JSON summary. For JSONL records it counts a pair as measurable only when it carries one of these explicit proof fields:
 
-| Field shape | Interpretation |
-|-------------|----------------|
-| `simContractCheck.passed` | Direct pair-level SimulationContract result |
-| `sim_contract_passed` or `simContractPassed` | Direct pair-level boolean result |
-| `verification.simContractCheck.result` | Pair-level `pass` or `fail` result |
-| `scene_mutations[].sim_contract_passed` | Per-mutation results; a pair passes only if every measured mutation passes |
+| Field shape                                  | Interpretation                                                             |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| `simContractCheck.passed`                    | Direct pair-level SimulationContract result                                |
+| `sim_contract_passed` or `simContractPassed` | Direct pair-level boolean result                                           |
+| `verification.simContractCheck.result`       | Pair-level `pass` or `fail` result                                         |
+| `scene_mutations[].sim_contract_passed`      | Per-mutation results; a pair passes only if every measured mutation passes |
 
 It does not count `outcome=success` as a SimContract pass. That outcome can mean "static seed pair accepted into Phase 0 corpus," which is not the Phase 1 gate.
 
@@ -54,11 +54,11 @@ pnpm exec tsx scripts/build-paper17-sesl-phase1-pair.ts
 
 The command consumes `research/paper-17-sesl-pairs/fixtures/phase1-seed.jsonl`, runs the deterministic `CAELRecorder` smoke solver, verifies the SHA-256 `cael.v1` hash chain, scores the row, and writes:
 
-| Artifact | Purpose |
-|----------|---------|
-| `research/paper-17-sesl-pairs/phase-1-corpus.jsonl` | Phase 1 training row with `(prompt, .holo, cael_trace, score)` |
-| `research/paper-17-sesl-pairs/cael-traces/<hash>.json` | Full content-addressed CAEL trace |
-| `research/paper-17-sesl-pairs/INDEX.json` | Gate summary read by the paper scheduler |
+| Artifact                                               | Purpose                                                        |
+| ------------------------------------------------------ | -------------------------------------------------------------- |
+| `research/paper-17-sesl-pairs/phase-1-corpus.jsonl`    | Phase 1 training row with `(prompt, .holo, cael_trace, score)` |
+| `research/paper-17-sesl-pairs/cael-traces/<hash>.json` | Full content-addressed CAEL trace                              |
+| `research/paper-17-sesl-pairs/INDEX.json`              | Gate summary read by the paper scheduler                       |
 
 Observed local result on 2026-05-06:
 
@@ -79,13 +79,13 @@ This clears the reproducible Phase 1 emission path. It does not clear the full p
 
 The committed smoke corpus has five records:
 
-| Pair class | Count | Measured? |
-|------------|------:|-----------|
-| Direct pass | 1 | yes |
-| Per-mutation pass | 1 | yes |
-| Result-string pass | 1 | yes |
-| Per-mutation fail | 1 | yes |
-| Static unmeasured seed | 1 | no |
+| Pair class             | Count | Measured? |
+| ---------------------- | ----: | --------- |
+| Direct pass            |     1 | yes       |
+| Per-mutation pass      |     1 | yes       |
+| Result-string pass     |     1 | yes       |
+| Per-mutation fail      |     1 | yes       |
+| Static unmeasured seed |     1 | no        |
 
 Command:
 

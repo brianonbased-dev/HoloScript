@@ -19,10 +19,7 @@ import type { TargetPosition } from '@/components/locomotion/LocomotionDemoPanel
 const DEMO_NODE_ID = 'playground-locomotion-capsule';
 
 /** Build a synthetic 12-frame trajectory arc toward the target. */
-function buildDemoTrajectory(
-  target: TargetPosition,
-  frames = 12,
-): Array<[number, number, number]> {
+function buildDemoTrajectory(target: TargetPosition, frames = 12): Array<[number, number, number]> {
   return Array.from({ length: frames }, (_, i) => {
     const t = i / (frames - 1);
     return [target.x * t, 0, target.z * t] as [number, number, number];
@@ -50,8 +47,8 @@ export default function LocomotionPlaygroundPage() {
             NeuralAnimationTrait — Locomotion demo
           </h1>
           <p className="mt-1 text-sm text-studio-muted">
-            Drag the target puck, choose a gait, then click Simulate to push a synthetic
-            12-frame trajectory into the panel via{' '}
+            Drag the target puck, choose a gait, then click Simulate to push a synthetic 12-frame
+            trajectory into the panel via{' '}
             <code className="font-mono text-[11px]">emitTraitStateUpdate</code>.
           </p>
         </div>
@@ -89,8 +86,7 @@ export default function LocomotionPlaygroundPage() {
             </button>
 
             <p className="text-[11px] text-studio-muted">
-              Node ID:{' '}
-              <span className="font-mono">{DEMO_NODE_ID}</span>
+              Node ID: <span className="font-mono">{DEMO_NODE_ID}</span>
             </p>
           </div>
 

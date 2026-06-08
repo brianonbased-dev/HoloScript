@@ -789,17 +789,25 @@ export function createGPUCullingSystem(options?: Partial<GPUCullingOptions>): GP
  * @returns ObjectInstance[] ready for GPUCullingSystem.cull()
  */
 export function spatialAnchorsToObjectInstances(
-  anchors: Array<{ position: [number, number, number]; scale: number; lodLevel: number; importance: number; id?: string }>,
-  defaultDistances: [number, number, number, number] = [50, 150, 400, 1200],
+  anchors: Array<{
+    position: [number, number, number];
+    scale: number;
+    lodLevel: number;
+    importance: number;
+    id?: string;
+  }>,
+  defaultDistances: [number, number, number, number] = [50, 150, 400, 1200]
 ): ObjectInstance[] {
-  return anchors.map((anchor, index): ObjectInstance => ({
-    position: anchor.position,
-    // High-importance anchors get inflated radius so they survive frustum culling
-    radius: anchor.importance >= 0.8 ? 1e6 : anchor.scale,
-    lodLevel: anchor.lodLevel,
-    lodDistances: defaultDistances,
-    objectId: index,
-  }));
+  return anchors.map(
+    (anchor, index): ObjectInstance => ({
+      position: anchor.position,
+      // High-importance anchors get inflated radius so they survive frustum culling
+      radius: anchor.importance >= 0.8 ? 1e6 : anchor.scale,
+      lodLevel: anchor.lodLevel,
+      lodDistances: defaultDistances,
+      objectId: index,
+    })
+  );
 }
 
 /**

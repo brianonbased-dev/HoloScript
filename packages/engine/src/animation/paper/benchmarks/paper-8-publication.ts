@@ -72,10 +72,12 @@ export interface Paper8FullLoopPublication {
 
 // ─── Runners ──────────────────────────────────────────────────────────────────
 
-export function runPaper8DeterminismBenchmark(opts: {
-  taskCount?: number;
-  seed?: number;
-} = {}): Paper8DeterminismPublication {
+export function runPaper8DeterminismBenchmark(
+  opts: {
+    taskCount?: number;
+    seed?: number;
+  } = {}
+): Paper8DeterminismPublication {
   const task_count = opts.taskCount ?? 10_000;
   const seed = opts.seed ?? 1337;
 
@@ -99,11 +101,13 @@ export function runPaper8DeterminismBenchmark(opts: {
   };
 }
 
-export function runPaper8FullLoopDemoBenchmark(opts: {
-  agentCount?: number;
-  frameCount?: number;
-  seed?: number;
-} = {}): Paper8FullLoopPublication {
+export function runPaper8FullLoopDemoBenchmark(
+  opts: {
+    agentCount?: number;
+    frameCount?: number;
+    seed?: number;
+  } = {}
+): Paper8FullLoopPublication {
   const agent_count = opts.agentCount ?? 100;
   const frame_count = opts.frameCount ?? 60;
   const seed = opts.seed ?? 1337;
@@ -130,7 +134,7 @@ export function runPaper8FullLoopDemoBenchmark(opts: {
 
 export function writePaper8DeterminismArtifact(
   pub: Paper8DeterminismPublication,
-  out_path: string,
+  out_path: string
 ): void {
   mkdirSync(dirname(out_path), { recursive: true });
   writeFileSync(out_path, JSON.stringify(pub, null, 2), 'utf8');
@@ -138,7 +142,7 @@ export function writePaper8DeterminismArtifact(
 
 export function writePaper8FullLoopArtifact(
   pub: Paper8FullLoopPublication,
-  out_path: string,
+  out_path: string
 ): void {
   mkdirSync(dirname(out_path), { recursive: true });
   writeFileSync(out_path, JSON.stringify(pub, null, 2), 'utf8');
@@ -181,7 +185,11 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   // Full Loop Demo v2
   // eslint-disable-next-line no-console
   console.log('\n[paper-8-full-loop-demo] running 100-agent × 60-frame harness…');
-  const fl_pub = runPaper8FullLoopDemoBenchmark({ agentCount: agent_count, frameCount: frame_count, seed });
+  const fl_pub = runPaper8FullLoopDemoBenchmark({
+    agentCount: agent_count,
+    frameCount: frame_count,
+    seed,
+  });
   writePaper8FullLoopArtifact(fl_pub, resolve(process.cwd(), fl_path));
   // eslint-disable-next-line no-console
   console.log(

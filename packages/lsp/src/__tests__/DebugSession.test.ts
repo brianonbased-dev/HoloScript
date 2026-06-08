@@ -27,21 +27,45 @@ vi.mock('@holoscript/core', () => ({
       (this._listeners[event] || []).forEach((l) => l(...args));
       return true;
     }
-    load() { return { success: true }; }
-    start() { return Promise.resolve(); }
+    load() {
+      return { success: true };
+    }
+    start() {
+      return Promise.resolve();
+    }
     stop() {}
     pause() {}
-    continue() { return Promise.resolve(); }
-    stepOver() { return Promise.resolve(); }
-    stepInto() { return Promise.resolve(); }
-    stepOut() { return Promise.resolve(); }
-    setBreakpoint(line: number) { return { id: `bp-${line}`, line }; }
+    continue() {
+      return Promise.resolve();
+    }
+    stepOver() {
+      return Promise.resolve();
+    }
+    stepInto() {
+      return Promise.resolve();
+    }
+    stepOut() {
+      return Promise.resolve();
+    }
+    setBreakpoint(line: number) {
+      return { id: `bp-${line}`, line };
+    }
     clearBreakpoints() {}
-    evaluate() { return Promise.resolve({ value: 'undefined' }); }
-    getCallStack() { return []; }
-    getVariables() { return new Map(); }
-    getState() { return { status: 'idle', currentLine: 0, currentColumn: 0 }; }
-    getRuntime() { return { getContext: () => ({ variables: new Map() }) }; }
+    evaluate() {
+      return Promise.resolve({ value: 'undefined' });
+    }
+    getCallStack() {
+      return [];
+    }
+    getVariables() {
+      return new Map();
+    }
+    getState() {
+      return { status: 'idle', currentLine: 0, currentColumn: 0 };
+    }
+    getRuntime() {
+      return { getContext: () => ({ variables: new Map() }) };
+    }
   },
 }));
 

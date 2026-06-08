@@ -82,7 +82,9 @@ vi.mock('@holoscript/engine/choreography/ChoreographyPlanner', () => {
   const mockPlanBuilder = { step: vi.fn().mockReturnThis(), build: vi.fn() };
   return {
     ChoreographyPlanner: MockPlanner,
-    PlanBuilder: vi.fn().mockImplementation(function () { return mockPlanBuilder; }),
+    PlanBuilder: vi.fn().mockImplementation(function () {
+      return mockPlanBuilder;
+    }),
     plan: vi.fn().mockReturnValue(mockPlanBuilder),
   };
 });

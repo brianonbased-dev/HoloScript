@@ -30,27 +30,25 @@ describe('hologram-worker-client', () => {
     process.env.HOLOGRAM_WORKER_URL = 'https://worker.test/base/';
     process.env.HOLOGRAM_WORKER_INGRESS_TOKEN = 'secret';
 
-    globalThis.fetch = vi.fn(
-      async (url: string | URL, init?: RequestInit) => {
-        expect(String(url)).toBe('https://worker.test/base/render');
-        expect(init?.method).toBe('POST');
-        const headers = init?.headers as Record<string, string>;
-        expect(headers.Authorization).toBe('Bearer secret');
-        const body = JSON.parse((init?.body as string) ?? '{}');
-        expect(body.mediaType).toBe('image');
-        expect(body.targets).toEqual(['quilt']);
-        return new Response(
-          JSON.stringify({
-            hash: 'abc',
-            shareUrl: 'https://x/s',
-            quiltUrl: 'https://x/q',
-            mvhevcUrl: 'https://x/m',
-            targets: ['quilt'],
-          }),
-          { status: 200 },
-        );
-      },
-    ) as typeof fetch;
+    globalThis.fetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      expect(String(url)).toBe('https://worker.test/base/render');
+      expect(init?.method).toBe('POST');
+      const headers = init?.headers as Record<string, string>;
+      expect(headers.Authorization).toBe('Bearer secret');
+      const body = JSON.parse((init?.body as string) ?? '{}');
+      expect(body.mediaType).toBe('image');
+      expect(body.targets).toEqual(['quilt']);
+      return new Response(
+        JSON.stringify({
+          hash: 'abc',
+          shareUrl: 'https://x/s',
+          quiltUrl: 'https://x/q',
+          mvhevcUrl: 'https://x/m',
+          targets: ['quilt'],
+        }),
+        { status: 200 }
+      );
+    }) as typeof fetch;
 
     const r = await callHologramWorkerRender({
       sourceUrl: 'https://src/img.png',
@@ -68,7 +66,7 @@ describe('hologram-worker-client', () => {
         sourceBase64: 'QQ==',
         mediaType: 'image',
         targets: ['quilt'],
-      }),
+      })
     ).rejects.toThrow('HOLOGRAM_WORKER_URL');
   });
 });

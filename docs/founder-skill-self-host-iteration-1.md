@@ -21,26 +21,26 @@ The emitted file has a valid YAML frontmatter (`name`, `description`, `allowed-t
 
 ## Coverage (vocabulary v1 + v2 traits round-tripped)
 
-| Trait | Count in source | Notes |
-| --- | --- | --- |
-| `@identity` | 1 | name + role + domain + surface + no_monopoly + description + allowed_tools |
-| `@authority_order` | 1 | 7 tiers |
-| `@vision_pillar` | 4 | 3 with citations to W.GOLD.* |
-| `@refusal` | 4 | bandaid / workaround / demote / wait-for-founder (the Four Refusals) |
-| `@default` | 8 | repo / package / mcp-vs-cli / commit-cadence / git-staging / test-db / typescript-any / decide-or-ask |
-| `@output_shape` | 1 | silent_to + loud_to + no_meta_output + surface_hint |
-| `@production_rule` | 1 | no_dev_no_mock_no_localhost + exception |
-| `@escalation` | 1 | trigger + do_action + recipient + refuse_to_escalate_when |
-| `@citation_rule` | 1 | F.017 fluent-prose discipline |
-| `@graduated_wisdom` | 2 | W.GOLD.001 + P.GOLD.001 |
-| `@feedback` | 2 | F.014 + F.027 |
-| `@domain_preference` | 6 | legal / brand / capital / customer-vendor / governance / public-representation |
-| `@authority` | 11 | Track-B mutable targets + founder-ratification-required targets |
-| `@date_discipline` | 1 | W.317 date refusal contract |
-| `@invocation_mode` | 3 | auto-fire / explicit / wrap-other-skill |
-| `@embodied_projection` | 2 | Quest 3 interactive review + spatial-photo evidence |
-| `@editorial_default` | 7 | paper-program editorial defaults |
-| `@research_default` | 6 | paper-program research-decision defaults |
+| Trait                  | Count in source | Notes                                                                                                 |
+| ---------------------- | --------------- | ----------------------------------------------------------------------------------------------------- |
+| `@identity`            | 1               | name + role + domain + surface + no_monopoly + description + allowed_tools                            |
+| `@authority_order`     | 1               | 7 tiers                                                                                               |
+| `@vision_pillar`       | 4               | 3 with citations to W.GOLD.\*                                                                         |
+| `@refusal`             | 4               | bandaid / workaround / demote / wait-for-founder (the Four Refusals)                                  |
+| `@default`             | 8               | repo / package / mcp-vs-cli / commit-cadence / git-staging / test-db / typescript-any / decide-or-ask |
+| `@output_shape`        | 1               | silent_to + loud_to + no_meta_output + surface_hint                                                   |
+| `@production_rule`     | 1               | no_dev_no_mock_no_localhost + exception                                                               |
+| `@escalation`          | 1               | trigger + do_action + recipient + refuse_to_escalate_when                                             |
+| `@citation_rule`       | 1               | F.017 fluent-prose discipline                                                                         |
+| `@graduated_wisdom`    | 2               | W.GOLD.001 + P.GOLD.001                                                                               |
+| `@feedback`            | 2               | F.014 + F.027                                                                                         |
+| `@domain_preference`   | 6               | legal / brand / capital / customer-vendor / governance / public-representation                        |
+| `@authority`           | 11              | Track-B mutable targets + founder-ratification-required targets                                       |
+| `@date_discipline`     | 1               | W.317 date refusal contract                                                                           |
+| `@invocation_mode`     | 3               | auto-fire / explicit / wrap-other-skill                                                               |
+| `@embodied_projection` | 2               | Quest 3 interactive review + spatial-photo evidence                                                   |
+| `@editorial_default`   | 7               | paper-program editorial defaults                                                                      |
+| `@research_default`    | 6               | paper-program research-decision defaults                                                              |
 
 ## Iteration 1 gaps (named, with close targets)
 
@@ -69,23 +69,23 @@ The `@trait(...)` form remains supported and `compositions/founder-core.hs` can 
 
 The live `~/.claude/skills/founder/SKILL.md` includes structural blocks beyond the original vocabulary v1:
 
-| Live SKILL.md block | Coverage in v1 | Iteration 2 dependency |
-| --- | --- | --- |
-| Authority order | ✅ via `@authority_order` | none |
-| The Four Refusals | ✅ via `@refusal` × 4 | none |
-| Date discipline (W.317) | ✅ via `@date_discipline` (G-3 next slice closed) | none — refusal_contract + required_components + shape_template + cross_references all round-trip |
-| Known founder defaults | ✅ via `@default` × 8 (subset) | More entries (full table is ~25 rows) |
-| Domain preferences (per-domain table) | ✅ via `@domain_preference` × 6 (G-3 third slice closed) | none — list-shaped (one trait per dispatch row) instead of nested rows; matches @vision_pillar/@refusal/@invocation_mode pattern |
-| Self-edit + tier-write authority (Track B) | ✅ via `@authority` × 11 (G-3 Track-B slice closed) | none — target / action_type / requires / founder_ratification_required all round-trip |
-| Vision pillars | ✅ via `@vision_pillar` | none |
-| Production-only rule | ✅ via `@production_rule` | none |
-| Gap = build | ❌ no trait | Existing `@gap_rule` from vocabulary v1 covers this; just not used in iteration 1 source |
-| Papers program | ✅ via `@editorial_default` × 7 + `@research_default` × 6 (G-3 paper defaults slice closed) | none — paper_id / paper_phase scoped defaults round-trip |
-| Citation discipline | ✅ via `@citation_rule` | none |
-| Output shape | ✅ via `@output_shape` | none |
-| Invocation modes | ✅ via `@invocation_mode` × 3 (G-3 first slice closed) | none — auto-fire / explicit / wrap-other-skill all round-trip via the founder-core source |
-| Embodied projection layer | ✅ via `@embodied_projection` × 2 (G-3 embodied slice closed) | none — interactive Quest 3 review and read-only spatial evidence round-trip through the four Phase 1 emitters |
-| Escape hatch | ✅ via `@escalation` | none (G-1 closed) |
+| Live SKILL.md block                        | Coverage in v1                                                                              | Iteration 2 dependency                                                                                                           |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Authority order                            | ✅ via `@authority_order`                                                                   | none                                                                                                                             |
+| The Four Refusals                          | ✅ via `@refusal` × 4                                                                       | none                                                                                                                             |
+| Date discipline (W.317)                    | ✅ via `@date_discipline` (G-3 next slice closed)                                           | none — refusal_contract + required_components + shape_template + cross_references all round-trip                                 |
+| Known founder defaults                     | ✅ via `@default` × 8 (subset)                                                              | More entries (full table is ~25 rows)                                                                                            |
+| Domain preferences (per-domain table)      | ✅ via `@domain_preference` × 6 (G-3 third slice closed)                                    | none — list-shaped (one trait per dispatch row) instead of nested rows; matches @vision_pillar/@refusal/@invocation_mode pattern |
+| Self-edit + tier-write authority (Track B) | ✅ via `@authority` × 11 (G-3 Track-B slice closed)                                         | none — target / action_type / requires / founder_ratification_required all round-trip                                            |
+| Vision pillars                             | ✅ via `@vision_pillar`                                                                     | none                                                                                                                             |
+| Production-only rule                       | ✅ via `@production_rule`                                                                   | none                                                                                                                             |
+| Gap = build                                | ❌ no trait                                                                                 | Existing `@gap_rule` from vocabulary v1 covers this; just not used in iteration 1 source                                         |
+| Papers program                             | ✅ via `@editorial_default` × 7 + `@research_default` × 6 (G-3 paper defaults slice closed) | none — paper_id / paper_phase scoped defaults round-trip                                                                         |
+| Citation discipline                        | ✅ via `@citation_rule`                                                                     | none                                                                                                                             |
+| Output shape                               | ✅ via `@output_shape`                                                                      | none                                                                                                                             |
+| Invocation modes                           | ✅ via `@invocation_mode` × 3 (G-3 first slice closed)                                      | none — auto-fire / explicit / wrap-other-skill all round-trip via the founder-core source                                        |
+| Embodied projection layer                  | ✅ via `@embodied_projection` × 2 (G-3 embodied slice closed)                               | none — interactive Quest 3 review and read-only spatial evidence round-trip through the four Phase 1 emitters                    |
+| Escape hatch                               | ✅ via `@escalation`                                                                        | none (G-1 closed)                                                                                                                |
 
 Track-B authority now round-trips as list-shaped `@authority` traits. The emitted section splits mutable targets from founder-ratification-required targets and preserves the action type, mutation requirements, ratification boolean, and notes for each row. The remaining work is no longer vocabulary coverage; it is the explicit cutover/ratification step before replacing the live SKILL.md.
 

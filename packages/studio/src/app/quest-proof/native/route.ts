@@ -25,7 +25,10 @@ export const dynamic = 'force-dynamic';
 function loadHoloSource(): string {
   // Authored .holo lives beside this route. Read at request time (dev/proof env);
   // fail LOUD if missing rather than silently serving a stale fallback.
-  return readFileSync(join(process.cwd(), 'src/app/quest-proof/native/founder-console.holo'), 'utf8');
+  return readFileSync(
+    join(process.cwd(), 'src/app/quest-proof/native/founder-console.holo'),
+    'utf8'
+  );
 }
 
 export async function GET() {

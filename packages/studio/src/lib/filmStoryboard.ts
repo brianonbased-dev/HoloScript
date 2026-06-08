@@ -249,8 +249,10 @@ export function previsCamera(
 
     // Linear interpolation between keyframes
     const lerp = (a: number, b: number) => a + (b - a) * frac;
-    const getComp = (v: [number, number, number] | { x: number; y: number; z: number }, i: 0 | 1 | 2): number =>
-      Array.isArray(v) ? v[i] : i === 0 ? v.x : i === 1 ? v.y : v.z;
+    const getComp = (
+      v: [number, number, number] | { x: number; y: number; z: number },
+      i: 0 | 1 | 2
+    ): number => (Array.isArray(v) ? v[i] : i === 0 ? v.x : i === 1 ? v.y : v.z);
 
     result.push({
       time: t,

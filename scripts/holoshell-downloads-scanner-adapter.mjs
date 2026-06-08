@@ -19,23 +19,8 @@
  */
 
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-  readdirSync,
-  writeFileSync,
-} from 'node:fs';
-import {
-  basename,
-  dirname,
-  extname,
-  isAbsolute,
-  join,
-  resolve,
-  relative,
-} from 'node:path';
+import { existsSync, mkdirSync, readFileSync, statSync, readdirSync, writeFileSync } from 'node:fs';
+import { basename, dirname, extname, isAbsolute, join, resolve, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 
 const VERSION = '0.1.0';
@@ -112,41 +97,122 @@ function sha256Text(text) {
 // ── MIME / Extension Classification ──
 
 const EXECUTABLE_EXTENSIONS = new Set([
-  '.exe', '.msi', '.bat', '.cmd', '.ps1', '.vbs', '.wsf', '.scr', '.com',
-  '.app', '.dmg', '.pkg', '.deb', '.rpm', '.sh', '.bash', '.run',
-  '.appimage', '.jar', '.war', '.pyc', '.dll', '.so', '.dylib',
+  '.exe',
+  '.msi',
+  '.bat',
+  '.cmd',
+  '.ps1',
+  '.vbs',
+  '.wsf',
+  '.scr',
+  '.com',
+  '.app',
+  '.dmg',
+  '.pkg',
+  '.deb',
+  '.rpm',
+  '.sh',
+  '.bash',
+  '.run',
+  '.appimage',
+  '.jar',
+  '.war',
+  '.pyc',
+  '.dll',
+  '.so',
+  '.dylib',
 ]);
 
 const ARCHIVE_EXTENSIONS = new Set([
-  '.zip', '.tar', '.gz', '.tgz', '.bz2', '.xz', '.7z', '.rar',
-  '.zst', '.lz4', '.cab', '.iso', '.dmg',
+  '.zip',
+  '.tar',
+  '.gz',
+  '.tgz',
+  '.bz2',
+  '.xz',
+  '.7z',
+  '.rar',
+  '.zst',
+  '.lz4',
+  '.cab',
+  '.iso',
+  '.dmg',
 ]);
 
-const PARTIAL_DOWNLOAD_EXTENSIONS = new Set([
-  '.crdownload', '.part', '.download', '.tmp',
-]);
+const PARTIAL_DOWNLOAD_EXTENSIONS = new Set(['.crdownload', '.part', '.download', '.tmp']);
 
 const MEDIA_EXTENSIONS = new Set([
-  '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp', '.ico', '.tiff',
-  '.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm',
-  '.mp3', '.wav', '.flac', '.aac', '.ogg', '.wma', '.m4a',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.bmp',
+  '.svg',
+  '.webp',
+  '.ico',
+  '.tiff',
+  '.mp4',
+  '.avi',
+  '.mov',
+  '.mkv',
+  '.wmv',
+  '.flv',
+  '.webm',
+  '.mp3',
+  '.wav',
+  '.flac',
+  '.aac',
+  '.ogg',
+  '.wma',
+  '.m4a',
 ]);
 
 const DOCUMENT_EXTENSIONS = new Set([
-  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-  '.odt', '.ods', '.odp', '.rtf', '.txt', '.csv', '.tsv',
-  '.md', '.html', '.htm',
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.xls',
+  '.xlsx',
+  '.ppt',
+  '.pptx',
+  '.odt',
+  '.ods',
+  '.odp',
+  '.rtf',
+  '.txt',
+  '.csv',
+  '.tsv',
+  '.md',
+  '.html',
+  '.htm',
 ]);
 
 const CODE_EXTENSIONS = new Set([
-  '.js', '.ts', '.py', '.rb', '.go', '.rs', '.java', '.c', '.cpp',
-  '.h', '.hpp', '.cs', '.swift', '.kt', '.scala', '.json', '.xml',
-  '.yaml', '.yml', '.toml', '.ini', '.cfg',
+  '.js',
+  '.ts',
+  '.py',
+  '.rb',
+  '.go',
+  '.rs',
+  '.java',
+  '.c',
+  '.cpp',
+  '.h',
+  '.hpp',
+  '.cs',
+  '.swift',
+  '.kt',
+  '.scala',
+  '.json',
+  '.xml',
+  '.yaml',
+  '.yml',
+  '.toml',
+  '.ini',
+  '.cfg',
 ]);
 
-const FONT_EXTENSIONS = new Set([
-  '.ttf', '.otf', '.woff', '.woff2', '.eot',
-]);
+const FONT_EXTENSIONS = new Set(['.ttf', '.otf', '.woff', '.woff2', '.eot']);
 
 function classifyCategory(extension) {
   const ext = extension.toLowerCase();
@@ -154,7 +220,8 @@ function classifyCategory(extension) {
   if (ARCHIVE_EXTENSIONS.has(ext)) return 'archive';
   if (PARTIAL_DOWNLOAD_EXTENSIONS.has(ext)) return 'other';
   if (MEDIA_EXTENSIONS.has(ext)) {
-    if (['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp', '.ico', '.tiff'].includes(ext)) return 'image';
+    if (['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp', '.ico', '.tiff'].includes(ext))
+      return 'image';
     if (['.mp3', '.wav', '.flac', '.aac', '.ogg', '.wma', '.m4a'].includes(ext)) return 'audio';
     return 'video';
   }
@@ -197,7 +264,9 @@ function scanFile(absolutePath, rootDir) {
   // Check for absolute path leakage in file content (basic heuristic)
   let containsPrivateData = false;
   if (category === 'document' || category === 'code') {
-    const sample = bytes.subarray(0, Math.min(bytes.length, 64 * 1024)).toString('utf8', 0, Math.min(bytes.length, 64 * 1024));
+    const sample = bytes
+      .subarray(0, Math.min(bytes.length, 64 * 1024))
+      .toString('utf8', 0, Math.min(bytes.length, 64 * 1024));
     containsPrivateData = /[A-Z]:\\[Uu]sers\\/.test(sample) || /\/home\/[a-z]+\//.test(sample);
   }
 
@@ -359,7 +428,11 @@ function buildExecutableBlockReceipts(files) {
         permissionEnvelope: 'preview_only',
       },
       blockedAt: new Date().toISOString(),
-      blockReason: f.isInstaller ? 'executable_detected' : f.isArchive ? 'archive_contains_executable' : 'executable_detected',
+      blockReason: f.isInstaller
+        ? 'executable_detected'
+        : f.isArchive
+          ? 'archive_contains_executable'
+          : 'executable_detected',
       executionAttempted: false,
       executableLaunched: false,
       previewShown: true,
@@ -531,7 +604,13 @@ function buildFullReceiptPack(rootDir, source, privacyClass) {
   // Determine overall status
   const hasExecutable = files.some((f) => f.isExecutable);
   const hasPartial = files.some((f) => f.isPartial);
-  const status = hasExecutable ? 'blocked' : hasPartial ? 'quarantined' : files.length > 0 ? 'scanning' : 'planned';
+  const status = hasExecutable
+    ? 'blocked'
+    : hasPartial
+      ? 'quarantined'
+      : files.length > 0
+        ? 'scanning'
+        : 'planned';
 
   // Build the composite receipt pack
   const packWithoutHash = {
@@ -625,7 +704,11 @@ function buildDownloadShelfReceiptPack(rootDir, source, privacyClass) {
     schemaVersion: 'holoscript-download-shelf-consent-receipt/v1',
     shelfId: shelfIdentity.shelfId,
     consentedScopes: ['allowPreviewImport'],
-    riskLevel: files.some((f) => f.isExecutable) ? 'high' : files.some((f) => f.isPartial) ? 'medium' : 'low',
+    riskLevel: files.some((f) => f.isExecutable)
+      ? 'high'
+      : files.some((f) => f.isPartial)
+        ? 'medium'
+        : 'low',
     consentedAt: new Date().toISOString(),
     freshUserGesture: true,
     hiddenAutomationUsed: false,
@@ -643,7 +726,12 @@ function buildDownloadShelfReceiptPack(rootDir, source, privacyClass) {
   if (files.some((f) => f.isExecutable)) actionSet.push('block_executable');
   if (files.some((f) => f.isPartial)) actionSet.push('mark_partial');
 
-  const replayKey = buildReplayKey(rootHash, files.map((f) => f.contentHash), POLICY_VERSION, actionSet);
+  const replayKey = buildReplayKey(
+    rootHash,
+    files.map((f) => f.contentHash),
+    POLICY_VERSION,
+    actionSet
+  );
 
   const replayWithoutHash = {
     id: `replay_${rootHash.slice(0, 12)}_${Date.now().toString(36)}`,
@@ -651,24 +739,29 @@ function buildDownloadShelfReceiptPack(rootDir, source, privacyClass) {
     sourceImportReceiptId: quarantineWithoutHash.id,
     shelf: shelfIdentity,
     lessons: files.some((f) => f.isExecutable)
-      ? [{
-          lesson: 'Executable detected in Downloads; default policy blocks execution without fresh gesture.',
-          kind: 'blocked_action',
-          sourceOutcome: 'quarantine_blocked',
-          autoDerived: true,
-          showToNonDevelopers: true,
-          insight: 'Executables require nonce-bound import approval before running.',
-          recommendedAction: 'Review and approve via import shelf with fresh gesture.',
-        }]
-      : [{
-          lesson: 'Downloads scanned successfully; no executables detected.',
-          kind: 'import_success',
-          sourceOutcome: 'success',
-          autoDerived: true,
-          showToNonDevelopers: false,
-          insight: 'All files classified; safe for preview-only import.',
-          recommendedAction: 'Proceed with import if desired.',
-        }],
+      ? [
+          {
+            lesson:
+              'Executable detected in Downloads; default policy blocks execution without fresh gesture.',
+            kind: 'blocked_action',
+            sourceOutcome: 'quarantine_blocked',
+            autoDerived: true,
+            showToNonDevelopers: true,
+            insight: 'Executables require nonce-bound import approval before running.',
+            recommendedAction: 'Review and approve via import shelf with fresh gesture.',
+          },
+        ]
+      : [
+          {
+            lesson: 'Downloads scanned successfully; no executables detected.',
+            kind: 'import_success',
+            sourceOutcome: 'success',
+            autoDerived: true,
+            showToNonDevelopers: false,
+            insight: 'All files classified; safe for preview-only import.',
+            recommendedAction: 'Proceed with import if desired.',
+          },
+        ],
     generatedAt: new Date().toISOString(),
     replayable: true,
     replayKey,
@@ -726,25 +819,42 @@ function runSelfTest() {
 
   // Test Downloads Shelf receipt pack (task_1779150614671_ndha receipt types)
   try {
-    const { publicReceipt: dlPack, privateReceipt: dlPriv } = buildFullReceiptPack(fixtureDir, 'browser', 'local-private');
+    const { publicReceipt: dlPack, privateReceipt: dlPriv } = buildFullReceiptPack(
+      fixtureDir,
+      'browser',
+      'local-private'
+    );
 
     if (!dlPack.id) errors.push('shelf pack id missing');
     if (!dlPack.inventory) errors.push('shelf pack inventory missing');
-    if (dlPack.inventory.fileCount !== 5) errors.push(`expected 5 files, got ${dlPack.inventory.fileCount}`);
-    if (dlPack.inventory.anyFileContainsAbsolutePath !== false) errors.push('anyFileContainsAbsolutePath must be false');
-    if (dlPack.inventory.anyFileExecutable !== true) errors.push('expected anyFileExecutable=true (has .exe)');
-    if (dlPack.inventory.anyFilePartial !== true) errors.push('expected anyFilePartial=true (has .crdownload)');
-    if (dlPack.inventory.importMode !== 'preview_only') errors.push('importMode must be preview_only');
-    if (dlPack.executableBlocks.length !== 1) errors.push(`expected 1 executable block, got ${dlPack.executableBlocks.length}`);
-    if (dlPack.executableBlocks[0]?.blockReason !== 'executable_detected') errors.push('expected executable_detected block reason');
-    if (dlPack.executableBlocks[0]?.executionAttempted !== false) errors.push('executionAttempted must be false');
-    if (dlPack.executableBlocks[0]?.executableLaunched !== false) errors.push('executableLaunched must be false');
-    if (dlPack.replay.workflow !== 'downloads-import-shelf') errors.push('replay workflow must be downloads-import-shelf');
-    if (dlPack.replay.importOutsidePreviewOnly !== false) errors.push('replay importOutsidePreviewOnly must be false');
-    if (dlPack.replay.deleteWithoutFreshUserGesture !== false) errors.push('replay deleteWithoutFreshUserGesture must be false');
+    if (dlPack.inventory.fileCount !== 5)
+      errors.push(`expected 5 files, got ${dlPack.inventory.fileCount}`);
+    if (dlPack.inventory.anyFileContainsAbsolutePath !== false)
+      errors.push('anyFileContainsAbsolutePath must be false');
+    if (dlPack.inventory.anyFileExecutable !== true)
+      errors.push('expected anyFileExecutable=true (has .exe)');
+    if (dlPack.inventory.anyFilePartial !== true)
+      errors.push('expected anyFilePartial=true (has .crdownload)');
+    if (dlPack.inventory.importMode !== 'preview_only')
+      errors.push('importMode must be preview_only');
+    if (dlPack.executableBlocks.length !== 1)
+      errors.push(`expected 1 executable block, got ${dlPack.executableBlocks.length}`);
+    if (dlPack.executableBlocks[0]?.blockReason !== 'executable_detected')
+      errors.push('expected executable_detected block reason');
+    if (dlPack.executableBlocks[0]?.executionAttempted !== false)
+      errors.push('executionAttempted must be false');
+    if (dlPack.executableBlocks[0]?.executableLaunched !== false)
+      errors.push('executableLaunched must be false');
+    if (dlPack.replay.workflow !== 'downloads-import-shelf')
+      errors.push('replay workflow must be downloads-import-shelf');
+    if (dlPack.replay.importOutsidePreviewOnly !== false)
+      errors.push('replay importOutsidePreviewOnly must be false');
+    if (dlPack.replay.deleteWithoutFreshUserGesture !== false)
+      errors.push('replay deleteWithoutFreshUserGesture must be false');
     if (!dlPack.replay.replayKey) errors.push('replay key missing');
     if (!dlPriv.handle) errors.push('private receipt handle missing');
-    if (dlPack.status !== 'blocked') errors.push(`expected blocked status (has executable), got ${dlPack.status}`);
+    if (dlPack.status !== 'blocked')
+      errors.push(`expected blocked status (has executable), got ${dlPack.status}`);
 
     // Verify no absolute paths leaked into public receipt
     const publicJson = JSON.stringify(dlPack);
@@ -757,7 +867,11 @@ function runSelfTest() {
 
   // Test generic Download Shelf receipt pack
   try {
-    const { publicReceipt: dsPack } = buildDownloadShelfReceiptPack(fixtureDir, 'user_downloads', 'local-private');
+    const { publicReceipt: dsPack } = buildDownloadShelfReceiptPack(
+      fixtureDir,
+      'user_downloads',
+      'local-private'
+    );
 
     if (!dsPack.id) errors.push('download shelf pack id missing');
     if (!dsPack.shelfIdentity) errors.push('download shelf shelfIdentity missing');
@@ -765,14 +879,20 @@ function runSelfTest() {
       errors.push('osPathPolicy must be absolute_path_kept_in_private_receipt_only');
     }
     if (!dsPack.quarantine) errors.push('download shelf quarantine missing');
-    if (dsPack.quarantine.downloadedFilesExecutable !== false) errors.push('downloadedFilesExecutable must be false');
-    if (dsPack.quarantine.rawPrivateDataPublished !== false) errors.push('rawPrivateDataPublished must be false');
-    if (dsPack.quarantine.sourceFileMutationPerformed !== false) errors.push('sourceFileMutationPerformed must be false');
+    if (dsPack.quarantine.downloadedFilesExecutable !== false)
+      errors.push('downloadedFilesExecutable must be false');
+    if (dsPack.quarantine.rawPrivateDataPublished !== false)
+      errors.push('rawPrivateDataPublished must be false');
+    if (dsPack.quarantine.sourceFileMutationPerformed !== false)
+      errors.push('sourceFileMutationPerformed must be false');
     if (!dsPack.consent) errors.push('download shelf consent missing');
-    if (dsPack.consent.freshUserGesture !== true) errors.push('consent freshUserGesture must be true');
-    if (dsPack.consent.hiddenAutomationUsed !== false) errors.push('consent hiddenAutomationUsed must be false');
+    if (dsPack.consent.freshUserGesture !== true)
+      errors.push('consent freshUserGesture must be true');
+    if (dsPack.consent.hiddenAutomationUsed !== false)
+      errors.push('consent hiddenAutomationUsed must be false');
     if (!dsPack.replay) errors.push('download shelf replay missing');
-    if (dsPack.replay.originalMutationPerformed !== false) errors.push('replay originalMutationPerformed must be false');
+    if (dsPack.replay.originalMutationPerformed !== false)
+      errors.push('replay originalMutationPerformed must be false');
   } catch (err) {
     errors.push(`download shelf pack error: ${err.message}`);
   }
@@ -786,7 +906,8 @@ function runSelfTest() {
   if (classifyCategory('.mp4') !== 'video') errors.push('classify .mp4 should be video');
   if (classifyCategory('.js') !== 'code') errors.push('classify .js should be code');
   if (classifyCategory('.ttf') !== 'font') errors.push('classify .ttf should be font');
-  if (classifyCategory('.crdownload') !== 'other') errors.push('classify .crdownload should be other (partial)');
+  if (classifyCategory('.crdownload') !== 'other')
+    errors.push('classify .crdownload should be other (partial)');
   if (!isPartialDownload('video.mp4.crdownload')) errors.push('crdownload should be partial');
   if (!isExecutableExtension('.exe')) errors.push('.exe should be executable');
 
@@ -808,7 +929,8 @@ function runSelfTest() {
     }
     const groups = detectDuplicates(dupeFiles);
     if (groups.length === 0) errors.push('expected duplicate group for identical content');
-    if (groups[0]?.entries?.length !== 2) errors.push(`expected entries.length 2, got ${groups[0]?.entries?.length}`);
+    if (groups[0]?.entries?.length !== 2)
+      errors.push(`expected entries.length 2, got ${groups[0]?.entries?.length}`);
   } catch (err) {
     errors.push(`duplicate detection error: ${err.message}`);
   }
@@ -817,18 +939,15 @@ function runSelfTest() {
     throw new Error(`Self-test failures:\n${errors.join('\n')}`);
   }
 
-  process.stdout.write(`${JSON.stringify({ ok: true, adapter: 'holoshell-downloads-scanner-adapter', version: VERSION }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ ok: true, adapter: 'holoshell-downloads-scanner-adapter', version: VERSION }, null, 2)}\n`
+  );
 }
 
 // ── Output ──
 
 function defaultOutputPath(date) {
-  return join(
-    '.bench-logs',
-    'holoshell-downloads-scanner',
-    date,
-    'scanner-adapter-receipt.json'
-  );
+  return join('.bench-logs', 'holoshell-downloads-scanner', date, 'scanner-adapter-receipt.json');
 }
 
 function writeReceipt(receipt, outPath) {
@@ -877,9 +996,13 @@ try {
     if (!args.dryRun) {
       const outPath = args.out ?? defaultOutputPath(args.date);
       const written = writeReceipt(result, outPath);
-      process.stdout.write(`${JSON.stringify({ ok: true, out: written, receiptId: dlPack.id }, null, 2)}\n`);
+      process.stdout.write(
+        `${JSON.stringify({ ok: true, out: written, receiptId: dlPack.id }, null, 2)}\n`
+      );
     } else {
-      process.stdout.write(`${JSON.stringify({ ok: true, dryRun: true, receiptId: dlPack.id, fileCount: dlPack.inventory.fileCount }, null, 2)}\n`);
+      process.stdout.write(
+        `${JSON.stringify({ ok: true, dryRun: true, receiptId: dlPack.id, fileCount: dlPack.inventory.fileCount }, null, 2)}\n`
+      );
     }
   }
 } catch (error) {

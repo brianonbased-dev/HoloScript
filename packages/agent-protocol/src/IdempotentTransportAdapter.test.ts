@@ -1,8 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  IdempotentTransportAdapter,
-  type A2ATransportLike,
-} from './IdempotentTransportAdapter';
+import { IdempotentTransportAdapter, type A2ATransportLike } from './IdempotentTransportAdapter';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -15,9 +12,7 @@ function mockTransport(fn?: (input: unknown) => Promise<unknown>): A2ATransportL
 }
 
 function makeFetchFn() {
-  return vi.fn(async (_url: string, _init?: RequestInit) =>
-    new Response('ok', { status: 200 })
-  );
+  return vi.fn(async (_url: string, _init?: RequestInit) => new Response('ok', { status: 200 }));
 }
 
 function makeInput(key = 'key-1', body: Record<string, unknown> = { data: 1 }) {
@@ -182,7 +177,10 @@ describe('IdempotentTransportAdapter', () => {
   it('coalesces concurrent requests with the same key', async () => {
     let resolvePromise: (v: unknown) => void;
     const base = mockTransport(
-      () => new Promise((resolve) => { resolvePromise = resolve; })
+      () =>
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        })
     );
 
     const adapter = new IdempotentTransportAdapter(base);
@@ -298,7 +296,9 @@ describe('IdempotentTransportAdapter', () => {
   });
 
   it('sendWithStatus returns error status on failure', async () => {
-    const base = mockTransport(async () => { throw new Error('boom'); });
+    const base = mockTransport(async () => {
+      throw new Error('boom');
+    });
     const adapter = new IdempotentTransportAdapter(base);
 
     const result = await adapter.sendWithStatus(makeInput('status-err'));

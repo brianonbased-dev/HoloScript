@@ -10,6 +10,7 @@
 ## 1. HoloLand-Specific Packages / Code Still in HoloScript
 
 ### 1.1 `packages/hololand-platform/` — `@holoscript/hololand-platform`
+
 - **Package name:** `@holoscript/hololand-platform` (version `6.0.5`)
 - **Description:** "Hololand VR Platform Services (Affective Memory, State, etc)"
 - **Source modules:**
@@ -24,6 +25,7 @@
 - **Status:** This is **HoloLand domain code** living inside the HoloScript repo. The package name prefix (`@holoscript/`) suggests it has not been migrated.
 
 ### 1.2 `packages/core/src/hololand/` — Core HoloLand Integration
+
 - **Modules:**
   - `WorldDefinitionSchema.ts` — world definition AST/schema
   - `HololandIntegration.ts` — runtime service interfaces (assets, networking, audio, physics, input, analytics, voice, storage)
@@ -35,17 +37,20 @@
 - **Impact:** Any consumer of `@holoscript/core` receives the full HoloLand integration surface as part of the core public API.
 
 ### 1.3 `packages/runtime/src/traits/HoloLandTraits.ts`
+
 - **Exports:** Runtime-side trait handlers for `@stat`, `@luck`, `@encounter`, `@drop_table`
 - **Public exposure:** Re-exported from `packages/runtime/src/index.ts:299`
 - **Status:** HoloLand-specific game trait adapters in the generic runtime.
 
 ### 1.4 `packages/react-agent-sdk/` — `@hololand/react-agent-sdk`
+
 - **Package name:** `@hololand/react-agent-sdk` (version `0.1.1`)
 - **Anomaly:** This package is **published under the `@hololand/` namespace** but physically lives in the **HoloScript repo**.
 - **Repo metadata:** Repository URL points to `brianonbased-dev/HoloScript.git`, directory `packages/react-agent-sdk`.
 - **Impact:** Cross-repo naming collision. If HoloLand repo ever adds its own `packages/react-agent-sdk`, this will clash.
 
 ### 1.5 `packages/framework/src/board/hololand-receipts.ts`
+
 - **Purpose:** Domain-extension receipt types for HoloLand hardware validation, replay determinism, and agent steward actions.
 - **Consumers:**
   - `packages/framework/src/board/frontier-shard.ts:30`
@@ -55,11 +60,13 @@
 - **Status:** HoloLand-specific domain model embedded in the generic framework board layer.
 
 ### 1.6 `packages/marketplace-api/src/hololandRoutes.ts`
+
 - **Purpose:** Express routes for HoloLand-specific services (VRR twin creation, quest generation, StoryWeaver minting).
 - **Consumer:** `packages/marketplace-api/src/server.ts:15`
 - **Status:** HoloLand business-logic routes in the generic marketplace API.
 
 ### 1.7 `packages/vscode-extension/docs/HOLOLAND_QUICK_START.md` + `HOLOLAND_PLATFORM_GUIDE.md`
+
 - **Status:** HoloLand-specific documentation inside the HoloScript VSCode extension package.
 
 ---
@@ -68,49 +75,50 @@
 
 Verified packages under `C:\Users\Josep\Documents\GitHub\HoloLand\packages\`:
 
-| Package | Path |
-|---|---|
-| `@hololand/base-token-viz` | `packages/base-token-viz` |
-| `@hololand/components` | `packages/components` |
-| `@hololand/creation-tools` | `packages/creation-tools` |
-| `@hololand/playground` | `packages/playground` |
-| `@hololand/spatial-builder` | `packages/spatial-builder` |
-| `@hololand/traits` | `packages/traits` |
-| `@hololand/accessibility` | `packages/platform/accessibility` |
-| `@hololand/animation` | `packages/platform/animation` |
-| `@hololand/audio` | `packages/platform/audio` |
-| `@hololand/auth` | `packages/platform/auth` |
-| `@hololand/core` | `packages/platform/core` |
-| `@hololand/gestures` | `packages/platform/gestures` |
-| `@hololand/haptics` | `packages/platform/haptics` |
-| `@hololand/holofilter` | `packages/platform/holofilter` |
-| `@hololand/library` | `packages/platform/library` |
-| `@hololand/lod` | `packages/platform/lod` |
-| `@hololand/logger` | `packages/platform/logger` |
-| `@hololand/mobile` | `packages/platform/mobile` |
-| `@hololand/navigation` | `packages/platform/navigation` |
-| `@hololand/network` | `packages/platform/network` |
-| `@hololand/pcg` | `packages/platform/pcg` |
-| `@hololand/portals` | `packages/platform/portals` |
+| Package                      | Path                                 |
+| ---------------------------- | ------------------------------------ |
+| `@hololand/base-token-viz`   | `packages/base-token-viz`            |
+| `@hololand/components`       | `packages/components`                |
+| `@hololand/creation-tools`   | `packages/creation-tools`            |
+| `@hololand/playground`       | `packages/playground`                |
+| `@hololand/spatial-builder`  | `packages/spatial-builder`           |
+| `@hololand/traits`           | `packages/traits`                    |
+| `@hololand/accessibility`    | `packages/platform/accessibility`    |
+| `@hololand/animation`        | `packages/platform/animation`        |
+| `@hololand/audio`            | `packages/platform/audio`            |
+| `@hololand/auth`             | `packages/platform/auth`             |
+| `@hololand/core`             | `packages/platform/core`             |
+| `@hololand/gestures`         | `packages/platform/gestures`         |
+| `@hololand/haptics`          | `packages/platform/haptics`          |
+| `@hololand/holofilter`       | `packages/platform/holofilter`       |
+| `@hololand/library`          | `packages/platform/library`          |
+| `@hololand/lod`              | `packages/platform/lod`              |
+| `@hololand/logger`           | `packages/platform/logger`           |
+| `@hololand/mobile`           | `packages/platform/mobile`           |
+| `@hololand/navigation`       | `packages/platform/navigation`       |
+| `@hololand/network`          | `packages/platform/network`          |
+| `@hololand/pcg`              | `packages/platform/pcg`              |
+| `@hololand/portals`          | `packages/platform/portals`          |
 | `@hololand/quality-profiles` | `packages/platform/quality-profiles` |
-| `@hololand/renderer` | `packages/platform/renderer` |
-| `@hololand/services` | `packages/platform/services` |
-| `@hololand/social` | `packages/platform/social` |
-| `@hololand/spatial` | `packages/platform/spatial` |
-| `@hololand/streaming` | `packages/platform/streaming` |
-| `@hololand/three-plains` | `packages/platform/three-plains` |
-| `@hololand/ui` | `packages/platform/ui` |
-| `@hololand/voice` | `packages/platform/voice` |
-| `@hololand/world` | `packages/platform/world` |
-| `@hololand/three-adapter` | `packages/adapters/three` |
-| `@hololand/react-three` | `packages/adapters/react-three` |
-| `@hololand/ai-bridge` | `packages/brittney/ai-bridge` |
+| `@hololand/renderer`         | `packages/platform/renderer`         |
+| `@hololand/services`         | `packages/platform/services`         |
+| `@hololand/social`           | `packages/platform/social`           |
+| `@hololand/spatial`          | `packages/platform/spatial`          |
+| `@hololand/streaming`        | `packages/platform/streaming`        |
+| `@hololand/three-plains`     | `packages/platform/three-plains`     |
+| `@hololand/ui`               | `packages/platform/ui`               |
+| `@hololand/voice`            | `packages/platform/voice`            |
+| `@hololand/world`            | `packages/platform/world`            |
+| `@hololand/three-adapter`    | `packages/adapters/three`            |
+| `@hololand/react-three`      | `packages/adapters/react-three`      |
+| `@hololand/ai-bridge`        | `packages/brittney/ai-bridge`        |
 
 ---
 
 ## 3. Stale / Broken References
 
 ### 3.1 Runtime Import: `@hololand/gpu` — **DOES NOT EXIST**
+
 - **File:** `packages/engine/src/runtime/BuiltinRegistry.ts:173`
 - **Code:**
   ```ts
@@ -124,24 +132,28 @@ Verified packages under `C:\Users\Josep\Documents\GitHub\HoloLand\packages\`:
 - **Impact:** Runtime failure when `FlowFieldCompute` or `GPUContext` builtins are instantiated. The GPU compute functionality either belongs in `@hololand/core`, `@hololand/renderer`, or needs a new package.
 
 ### 3.2 JSDoc / Package Name Mismatch: `@hololand/holoscript-linter`
+
 - **File:** `packages/linter/src/index.ts:7`
 - **Claimed name in JSDoc:** `@hololand/holoscript-linter`
 - **Actual package.json name:** `@holoscript/linter` (version `7.0.0`)
 - **Impact:** Documentation drift. Downstream consumers searching npm for `@hololand/holoscript-linter` will not find the package.
 
 ### 3.3 JSDoc / Package Name Mismatch: `@hololand/holoscript-formatter`
+
 - **File:** `packages/formatter/src/index.ts:7`
 - **Claimed name in JSDoc:** `@hololand/holoscript-formatter`
 - **Actual package.json name:** `@holoscript/formatter` (version `3.1.0`)
 - **Impact:** Same as above — documentation drift.
 
 ### 3.4 `@hololand/react-agent-sdk` Naming Anomaly
+
 - **File:** `packages/react-agent-sdk/package.json:2`
 - **Name:** `@hololand/react-agent-sdk`
 - **Physical location:** HoloScript repo
 - **Impact:** The package is published under HoloLand's namespace but maintained in HoloScript's repo. If HoloLand ever creates its own `react-agent-sdk`, there will be a namespace collision. This is an architectural boundary violation.
 
 ### 3.5 `@hololand/world` Externalized but Not Declared as Dependency
+
 - **File:** `packages/runtime/tsup.config.ts:24`
 - **Config:** `@hololand/world` is listed in `external` array.
 - **File:** `packages/runtime/src/browser/BrowserRuntime.ts:112`
@@ -152,19 +164,19 @@ Verified packages under `C:\Users\Josep\Documents\GitHub\HoloLand\packages\`:
 
 ## 4. Equivalence Mapping: HoloScript References vs. HoloLand Reality
 
-| HoloScript Reference | HoloLand Package Exists? | Notes |
-|---|---|---|
-| `@hololand/world` | Yes (`packages/platform/world`) | Legitimate cross-repo dependency |
-| `@hololand/voice` | Yes (`packages/platform/voice`) | Legitimate |
-| `@hololand/gestures` | Yes (`packages/platform/gestures`) | Legitimate |
-| `@hololand/navigation` | Yes (`packages/platform/navigation`) | Legitimate |
-| `@hololand/three-adapter` | Yes (`packages/adapters/three`) | Legitimate |
-| `@hololand/react-three` | Yes (`packages/adapters/react-three`) | Legitimate |
-| `@hololand/ai-bridge` | Yes (`packages/brittney/ai-bridge`) | Legitimate |
-| `@hololand/gpu` | **NO** | **Stale / broken** |
-| `@hololand/holoscript-linter` | **NO** | Misdocumented; actual name `@holoscript/linter` |
-| `@hololand/holoscript-formatter` | **NO** | Misdocumented; actual name `@holoscript/formatter` |
-| `@hololand/react-agent-sdk` | **NO** (lives in HoloScript repo) | Naming anomaly |
+| HoloScript Reference             | HoloLand Package Exists?              | Notes                                              |
+| -------------------------------- | ------------------------------------- | -------------------------------------------------- |
+| `@hololand/world`                | Yes (`packages/platform/world`)       | Legitimate cross-repo dependency                   |
+| `@hololand/voice`                | Yes (`packages/platform/voice`)       | Legitimate                                         |
+| `@hololand/gestures`             | Yes (`packages/platform/gestures`)    | Legitimate                                         |
+| `@hololand/navigation`           | Yes (`packages/platform/navigation`)  | Legitimate                                         |
+| `@hololand/three-adapter`        | Yes (`packages/adapters/three`)       | Legitimate                                         |
+| `@hololand/react-three`          | Yes (`packages/adapters/react-three`) | Legitimate                                         |
+| `@hololand/ai-bridge`            | Yes (`packages/brittney/ai-bridge`)   | Legitimate                                         |
+| `@hololand/gpu`                  | **NO**                                | **Stale / broken**                                 |
+| `@hololand/holoscript-linter`    | **NO**                                | Misdocumented; actual name `@holoscript/linter`    |
+| `@hololand/holoscript-formatter` | **NO**                                | Misdocumented; actual name `@holoscript/formatter` |
+| `@hololand/react-agent-sdk`      | **NO** (lives in HoloScript repo)     | Naming anomaly                                     |
 
 ---
 
@@ -189,7 +201,7 @@ This means a breaking change to HoloLand's world schema or streaming protocol be
    The world schema, streaming protocol, and integration interfaces in `core/src/hololand/` should either:
    - Move to a new `@hololand/core-contracts` package in the HoloLand repo, or
    - Stay in HoloScript as `@holoscript/hololand-contracts` but **must not** be part of the generic `@holoscript/core` barrel.
-   Remove the `export * from './hololand-runtime'` from `packages/core/src/barrel/index.ts`.
+     Remove the `export * from './hololand-runtime'` from `packages/core/src/barrel/index.ts`.
 
 3. **Move `packages/runtime/src/traits/HoloLandTraits.ts` to HoloLand**
    These are game-specific runtime adapters. They belong in HoloLand's trait or runtime packages, not in the generic HoloScript runtime.

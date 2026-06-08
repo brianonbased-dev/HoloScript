@@ -116,7 +116,7 @@ export class MolecularDynamicsSolver {
   /** Velocity Verlet integration step. */
   step(dt: number): void {
     const N3 = this.N * 3;
-    const halfDtOverM = 0.5 * dt / this.mass;
+    const halfDtOverM = (0.5 * dt) / this.mass;
 
     // v(t + dt/2) = v(t) + F(t)/(2m) · dt
     for (let i = 0; i < N3; i++) {
@@ -179,7 +179,7 @@ export class MolecularDynamicsSolver {
         const sr12 = sr6 * sr6;
 
         // Force magnitude: F = 24ε/r · [2(σ/r)¹² - (σ/r)⁶]
-        const fMag = 24 * eps * (2 * sr12 - sr6) / r2;
+        const fMag = (24 * eps * (2 * sr12 - sr6)) / r2;
 
         const fx = fMag * dx;
         const fy = fMag * dy;
@@ -226,7 +226,12 @@ export class MolecularDynamicsSolver {
     const nSide = Math.ceil(Math.cbrt(this.N / 4));
     const a = Math.min(Lx, Ly, Lz) / nSide;
 
-    const basis = [[0, 0, 0], [0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5]];
+    const basis = [
+      [0, 0, 0],
+      [0.5, 0.5, 0],
+      [0.5, 0, 0.5],
+      [0, 0.5, 0.5],
+    ];
     let idx = 0;
 
     for (let iz = 0; iz < nSide && idx < this.N; iz++) {
@@ -267,13 +272,17 @@ export class MolecularDynamicsSolver {
     }
 
     // Remove center-of-mass velocity
-    let cmx = 0, cmy = 0, cmz = 0;
+    let cmx = 0,
+      cmy = 0,
+      cmz = 0;
     for (let i = 0; i < this.N; i++) {
       cmx += this.velocities[i * 3];
       cmy += this.velocities[i * 3 + 1];
       cmz += this.velocities[i * 3 + 2];
     }
-    cmx /= this.N; cmy /= this.N; cmz /= this.N;
+    cmx /= this.N;
+    cmy /= this.N;
+    cmz /= this.N;
     for (let i = 0; i < this.N; i++) {
       this.velocities[i * 3] -= cmx;
       this.velocities[i * 3 + 1] -= cmy;
@@ -293,8 +302,12 @@ export class MolecularDynamicsSolver {
 
   // ── Public API ──────────────────────────────────────────────────────────
 
-  getPositions(): Float64Array { return this.positions; }
-  getVelocities(): Float64Array { return this.velocities; }
+  getPositions(): Float64Array {
+    return this.positions;
+  }
+  getVelocities(): Float64Array {
+    return this.velocities;
+  }
 
   getStats(): MDStats {
     let ke = 0;

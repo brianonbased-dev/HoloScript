@@ -23,7 +23,7 @@ export function computeOrbitalPoints(
   longitudeAscending: number,
   argumentPeriapsis: number,
   scale: number,
-  numPoints: number = 120,
+  numPoints: number = 120
 ): Array<[number, number, number]> {
   const a = semiMajorAxis;
   const e = eccentricity;

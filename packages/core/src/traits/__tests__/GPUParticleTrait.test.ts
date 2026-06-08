@@ -90,9 +90,9 @@ describe('GPUParticleTrait', () => {
     sendEvent(gpuParticleHandler, node, cfg, ctx, {
       type: 'particle_set_emitter',
       position: [1, 2, 3],
-      velocity: [0, 1, 0 ],
+      velocity: [0, 1, 0],
     });
-    expect((node as any).__gpuParticleState.emitterPosition).toEqual([1, 2, 3 ]);
+    expect((node as any).__gpuParticleState.emitterPosition).toEqual([1, 2, 3]);
   });
 
   it('add/remove force', () => {

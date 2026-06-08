@@ -172,11 +172,7 @@ export default function AgentDirectoryPage() {
       </div>
 
       {/* States */}
-      {loading && (
-        <div className="text-center p-12 text-studio-muted">
-          Loading agents...
-        </div>
-      )}
+      {loading && <div className="text-center p-12 text-studio-muted">Loading agents...</div>}
 
       {!loading && error && (
         <div

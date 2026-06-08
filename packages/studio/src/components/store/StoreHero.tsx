@@ -21,14 +21,17 @@ export function StoreHero({ onSearch }: StoreHeroProps) {
           <Sparkles className="h-3 w-3" />
           The HoloScript Ecosystem
         </div>
-        
+
         <h1 className="text-4xl lg:text-6xl font-black text-white tracking-tight mb-6 leading-tight">
-          One Registry. <span className="text-transparent bg-clip-text bg-gradient-to-r from-studio-accent to-purple-400">Infinite Realms.</span>
+          One Registry.{' '}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-studio-accent to-purple-400">
+            Infinite Realms.
+          </span>
         </h1>
-        
+
         <p className="text-lg text-studio-muted mb-10 max-w-2xl mx-auto leading-relaxed">
-          Welcome to the HoloScript AI-native store. Discover high-fidelity scenes,
-          agentic workflows, and the scripts that turn any machine into HoloScript Hardware.
+          Welcome to the HoloScript AI-native store. Discover high-fidelity scenes, agentic
+          workflows, and the scripts that turn any machine into HoloScript Hardware.
         </p>
 
         {/* Semantic Search Bar */}
@@ -47,8 +50,8 @@ export function StoreHero({ onSearch }: StoreHeroProps) {
             </button>
           </div>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {['Character', 'PQC Assets', 'Multiplayer Template', 'AI Workflows'].map(tag => (
-              <button 
+            {['Character', 'PQC Assets', 'Multiplayer Template', 'AI Workflows'].map((tag) => (
+              <button
                 key={tag}
                 onClick={() => onSearch(tag)}
                 className="text-[10px] px-3 py-1 rounded-full bg-white/5 border border-white/10 text-studio-muted hover:text-white hover:bg-white/10 transition-all"

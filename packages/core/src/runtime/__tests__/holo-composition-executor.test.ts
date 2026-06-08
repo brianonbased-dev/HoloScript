@@ -5,7 +5,10 @@ vi.mock('../simple-executors.js', () => ({
   executeHoloTemplate: vi.fn().mockResolvedValue({ success: true, output: 'template ok' }),
 }));
 
-import { executeHoloComposition, type HoloCompositionContext } from '../holo-composition-executor.js';
+import {
+  executeHoloComposition,
+  type HoloCompositionContext,
+} from '../holo-composition-executor.js';
 import { executeHoloTemplate } from '../simple-executors.js';
 
 // ──────────────────────────────────────────────────────────────────
@@ -18,7 +21,9 @@ function makeCtx(overrides: Partial<HoloCompositionContext> = {}): HoloCompositi
     simpleExecutorContext: {} as never,
     executeHoloObject: vi.fn().mockResolvedValue({ success: true, output: 'obj ok' }),
     getEnvironment: vi.fn().mockImplementation(() => ({ ...env })),
-    setEnvironment: vi.fn().mockImplementation((newEnv) => { env = newEnv; }),
+    setEnvironment: vi.fn().mockImplementation((newEnv) => {
+      env = newEnv;
+    }),
     ...overrides,
   };
 }

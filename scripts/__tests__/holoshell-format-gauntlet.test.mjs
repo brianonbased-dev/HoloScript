@@ -79,10 +79,19 @@ try {
   assertOk(contactSheet.includes('Format Gauntlet Contact Sheet'), 'contact sheet has title');
   assertOk(contactSheet.includes('00_scene_loaded'), 'contact sheet lists segments');
 
-  const dashboardReport = readFileSync(resolve(REPO_ROOT, summary.artifacts.dashboardReport), 'utf8');
-  assertOk(dashboardReport.includes('non-quality'), 'dashboard report mentions non-quality evidence');
+  const dashboardReport = readFileSync(
+    resolve(REPO_ROOT, summary.artifacts.dashboardReport),
+    'utf8'
+  );
+  assertOk(
+    dashboardReport.includes('non-quality'),
+    'dashboard report mentions non-quality evidence'
+  );
   assertOk(dashboardReport.includes('dry-run'), 'dashboard report mentions dry-run mode');
-  assertOk(dashboardReport.includes('Evidence'), 'dashboard report has Evidence column in delta table');
+  assertOk(
+    dashboardReport.includes('Evidence'),
+    'dashboard report has Evidence column in delta table'
+  );
 
   const taskBundle = JSON.parse(
     readFileSync(resolve(REPO_ROOT, summary.artifacts.dedupedBoardTasks), 'utf8')
@@ -110,7 +119,9 @@ function assertEq(actual, expected, name) {
     console.log(`  ok - ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  not ok - ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  not ok - ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -123,4 +134,3 @@ function assertOk(value, name) {
     console.error(`  not ok - ${name}`);
   }
 }
-

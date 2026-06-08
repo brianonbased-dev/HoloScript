@@ -28,11 +28,11 @@ That's a cliff HoloScript can push them off.
 
 ## The Trust Ladder (from W.GOLD.013)
 
-| Tier | Name | Mechanism | Who offers this today |
-|---|---|---|---|
-| **1** | Trust by discipline | Manual tool-chain matching (ANSYS → export → ParaView) | ANSYS, Dassault, all legacy CAE |
-| **2** | Trust by co-location | In-situ viz (Catalyst/SENSEI) — same process, different objects | ParaView/LLNL, Omniverse |
-| **3** | **Trust by construction** | Solver + renderer share same hash-verified object | **HoloScript only** |
+| Tier  | Name                      | Mechanism                                                       | Who offers this today           |
+| ----- | ------------------------- | --------------------------------------------------------------- | ------------------------------- |
+| **1** | Trust by discipline       | Manual tool-chain matching (ANSYS → export → ParaView)          | ANSYS, Dassault, all legacy CAE |
+| **2** | Trust by co-location      | In-situ viz (Catalyst/SENSEI) — same process, different objects | ParaView/LLNL, Omniverse        |
+| **3** | **Trust by construction** | Solver + renderer share same hash-verified object               | **HoloScript only**             |
 
 Competitors operate at Tier 1 and 2. HoloScript is the only Tier 3 offering.
 
@@ -90,8 +90,8 @@ Competitors operate at Tier 1 and 2. HoloScript is the only Tier 3 offering.
 
 1. **Already agent-native** — ChEMBL + bioRxiv + Open Targets exposed as MCP tools (2026-04-17). The data-ingestion side is a solved problem before we ship; no partner needed for the demo.
 2. **HoloScript already has the biology compile target** — `packages/plugins/alphafold-plugin` provides `@protein_structure`, `@binding_site`, `@confidence_map` traits. Zero new code needed for Tier 3 trust on bio workloads.
-3. **Pharma has a named reproducibility crisis** — see Begley & Ellis (2012) *Nature*; Baker (2016) *Nature* "1,500 scientists lift the lid on reproducibility." The problem is spoken aloud in the industry. Our pitch lands without education.
-4. **Regulatory pull exists** — FDA's *Model-Informed Drug Development (MIDD)* program is actively soliciting "computational evidence that supports independent verification." Our architecture is literally what they're asking for.
+3. **Pharma has a named reproducibility crisis** — see Begley & Ellis (2012) _Nature_; Baker (2016) _Nature_ "1,500 scientists lift the lid on reproducibility." The problem is spoken aloud in the industry. Our pitch lands without education.
+4. **Regulatory pull exists** — FDA's _Model-Informed Drug Development (MIDD)_ program is actively soliciting "computational evidence that supports independent verification." Our architecture is literally what they're asking for.
 5. **Winner-take-all per submission class** — byte-identical replay of an IND filing is a moat that compounds with every approved drug that cites it.
 
 **End-to-end pipeline validated (2026-04-17, logged in `docs/strategy/drug-discovery-flagship.md`)**:
@@ -114,24 +114,28 @@ All stages executed against production endpoints with real data. No mocks.
 ## Messaging Pillars
 
 ### Pillar 1: Hash-Verified Replay
+
 - Every simulation produces a hash chain (input + solver + output)
 - Any third party reproduces bit-identical results
 - No "trust our cloud" — trust the hash
 - **Proof**: `paper-benchmarks.test.ts`, NAFEMS LE1 at 1.5% error, 6 SimulationContract guarantees
 
 ### Pillar 2: Shared Object, Not Shared File
-- Solver and renderer operate on the *same* object, not converted representations
+
+- Solver and renderer operate on the _same_ object, not converted representations
 - No data adaptor loss between compute and visualization
 - FNV-1a hash match enforced between solver mesh and render mesh
 - **Proof**: Trust by Construction TVCG paper (submitted 2026-04-12)
 
 ### Pillar 3: Contract-Enforced Correctness
+
 - Units validated, geometry integrity checked, stepping deterministic
 - Every interaction is logged with simulation time
 - Every solve() records config + results + timing
 - **Proof**: 6 SimulationContract guarantees at <2% overhead
 
 ### Pillar 4: Browser-Native Delivery
+
 - Replay works on any device with a modern browser
 - No license, no install, no RTX floor
 - URL-shareable artifacts
@@ -143,34 +147,37 @@ All stages executed against production endpoints with real data. No mocks.
 
 From W.GOLD.015 ("When Trust Is Free"), ranked by moat strength:
 
-| Vertical | Today's cost of trust | With Verifiable Digital Twin | Winner-take-all? |
-|---|---|---|---|
-| **Legal discovery / forensic sim** | Dueling experts, jury decides who to trust | Both submit provenance records; judge replays both; divergence visible | ✅ Yes |
-| **Surgical planning** | Surgeon mentally simulates from CT | AI lives inside patient-specific FEA; drill paths with provenance | ✅ Yes |
-| **🎯 Drug discovery (FLAGSHIP)** | $2.6B per drug; hundreds of millions in validation; acknowledged reproducibility crisis | ChEMBL + AlphaFold + `.holo` in one contract. FDA MIDD = replay-by-hash. Pipeline validated 2026-04-17. | ✅ Yes |
-| **Climate policy** | Models are black boxes on HPC | Policy maker clicks link, simulates | ⚠️ Large moat |
-| **Autonomous vehicles** | Billions of sim miles, only Waymo can replay | Every decision has provenance; regulator replays failure | ⚠️ Large moat |
-| **Education** | Read about stress concentration in textbook | Live inside stress field; lab report = provenance chain | ⚠️ Large moat |
-| **Manufacturing QC** | Part fails → months-long RCA | Replay manufacturing sim, fork with failure, RC in hours | ⚠️ Medium moat |
-| **Structural engineering** | Engineer runs ANSYS → report → reviewer trusts report | Simulation IS the certification; inspector replays | ⚠️ Medium (ANSYS moats) |
+| Vertical                           | Today's cost of trust                                                                   | With Verifiable Digital Twin                                                                            | Winner-take-all?        |
+| ---------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------- |
+| **Legal discovery / forensic sim** | Dueling experts, jury decides who to trust                                              | Both submit provenance records; judge replays both; divergence visible                                  | ✅ Yes                  |
+| **Surgical planning**              | Surgeon mentally simulates from CT                                                      | AI lives inside patient-specific FEA; drill paths with provenance                                       | ✅ Yes                  |
+| **🎯 Drug discovery (FLAGSHIP)**   | $2.6B per drug; hundreds of millions in validation; acknowledged reproducibility crisis | ChEMBL + AlphaFold + `.holo` in one contract. FDA MIDD = replay-by-hash. Pipeline validated 2026-04-17. | ✅ Yes                  |
+| **Climate policy**                 | Models are black boxes on HPC                                                           | Policy maker clicks link, simulates                                                                     | ⚠️ Large moat           |
+| **Autonomous vehicles**            | Billions of sim miles, only Waymo can replay                                            | Every decision has provenance; regulator replays failure                                                | ⚠️ Large moat           |
+| **Education**                      | Read about stress concentration in textbook                                             | Live inside stress field; lab report = provenance chain                                                 | ⚠️ Large moat           |
+| **Manufacturing QC**               | Part fails → months-long RCA                                                            | Replay manufacturing sim, fork with failure, RC in hours                                                | ⚠️ Medium moat          |
+| **Structural engineering**         | Engineer runs ANSYS → report → reviewer trusts report                                   | Simulation IS the certification; inspector replays                                                      | ⚠️ Medium (ANSYS moats) |
 
 ---
 
 ## Sales Motion
 
 ### Entry question
+
 > "If your simulation is audited by a regulator, a jury, an insurer, or a customer — can they reproduce your result without your license and your machine?"
 
 Every competitor's answer is "no, but here's our confidence score."
 HoloScript's answer is "yes, bit-identically, in their browser, via a URL."
 
 ### Qualifying questions
+
 1. Do you have use cases where simulation IS the evidence (not just an input)?
 2. Do you share simulations with non-specialists (regulators, juries, policy makers, students)?
 3. Do you have reproducibility requirements (FDA, peer review, compliance)?
 4. Does your current tool's output need to survive independent reproduction?
 
 ### Demo arc
+
 1. Show a `.holo` simulation running in browser
 2. Copy the URL
 3. Open on a different machine (different OS, different browser, different GPU driver)
@@ -192,11 +199,13 @@ HoloScript's answer is "yes, bit-identically, in their browser, via a URL."
 5. **"Legal Forensic Simulation"** — Second vertical. Emphasize court admissibility.
 
 ### Video assets
+
 - 60-sec: "Replay any simulation by URL" — the browser demo
 - 3-min: "Trust by Construction explained"
 - 10-min: TVCG paper walkthrough
 
 ### Analyst briefings (once claimed)
+
 - Gartner (Hype Cycle for Simulation)
 - Forrester (Digital Twin Wave)
 - IDC (Simulation Software Market)
@@ -207,7 +216,7 @@ HoloScript's answer is "yes, bit-identically, in their browser, via a URL."
 
 **Risk 1**: "Verifiable" is a weak differentiator if customers don't value it.
 
-**Counter**: They value it the moment a regulator, lawyer, or journalist asks "can you prove it?" Enter target markets *after* a compliance event, not before.
+**Counter**: They value it the moment a regulator, lawyer, or journalist asks "can you prove it?" Enter target markets _after_ a compliance event, not before.
 
 **Risk 2**: Incumbents claim "verifiable" with marketing spin.
 

@@ -329,7 +329,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
     // reject the answer if zero citations survive (F.069, task cykp).
     const guard = validateCitations(
       answer.citations as Citation[],
-      (engine as GraphRAGEngine).graph,
+      (engine as GraphRAGEngine).graph
     );
 
     const filteredCitations = guard.passed
@@ -338,14 +338,22 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
 
     return {
       question,
-      answer: guard.passed ? answer.answer : `[Provenance guard rejected: ${guard.rejectionReason}]`,
+      answer: guard.passed
+        ? answer.answer
+        : `[Provenance guard rejected: ${guard.rejectionReason}]`,
       citations: filteredCitations,
       provenanceGuard: {
         resolvedCount: guard.resolvedCount,
         unresolvedCount: guard.unresolvedCount,
         passed: guard.passed,
         ...(guard.unresolvedCount > 0
-          ? { unresolvedCitations: guard.unresolved.map(({ name, file, line }) => ({ name, file, line })) }
+          ? {
+              unresolvedCitations: guard.unresolved.map(({ name, file, line }) => ({
+                name,
+                file,
+                line,
+              })),
+            }
           : {}),
       },
       context: answer.context.slice(0, 5).map((r: EnrichedResult) => ({
@@ -412,7 +420,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
           // Provenance integrity guard (same as primary path)
           const fbGuard = validateCitations(
             fbAnswer.citations as Citation[],
-            cachedGraphRAGEngine.graph,
+            cachedGraphRAGEngine.graph
           );
           const fbFilteredCitations = fbGuard.passed
             ? fbGuard.resolved.map(({ name, file, line }) => ({ name, file, line }))
@@ -420,14 +428,22 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
 
           return {
             question,
-            answer: fbGuard.passed ? fbAnswer.answer : `[Provenance guard rejected: ${fbGuard.rejectionReason}]`,
+            answer: fbGuard.passed
+              ? fbAnswer.answer
+              : `[Provenance guard rejected: ${fbGuard.rejectionReason}]`,
             citations: fbFilteredCitations,
             provenanceGuard: {
               resolvedCount: fbGuard.resolvedCount,
               unresolvedCount: fbGuard.unresolvedCount,
               passed: fbGuard.passed,
               ...(fbGuard.unresolvedCount > 0
-                ? { unresolvedCitations: fbGuard.unresolved.map(({ name, file, line }) => ({ name, file, line })) }
+                ? {
+                    unresolvedCitations: fbGuard.unresolved.map(({ name, file, line }) => ({
+                      name,
+                      file,
+                      line,
+                    })),
+                  }
                 : {}),
             },
             context: fbAnswer.context.slice(0, 5).map((r: EnrichedResult) => ({

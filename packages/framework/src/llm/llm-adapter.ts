@@ -61,7 +61,10 @@ async function callAnthropic(
     defaultModel: config.model,
   });
   const result = await adapter.complete({
-    messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+    messages: messages.map((m) => ({
+      role: m.role as 'system' | 'user' | 'assistant',
+      content: m.content,
+    })),
     maxTokens,
     temperature,
   });
@@ -86,7 +89,10 @@ async function callOpenAICompatible(
   if (isXAI) {
     const adapter = new XAIAdapter({ apiKey, defaultModel: config.model });
     const result = await adapter.complete({
-      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      messages: messages.map((m) => ({
+        role: m.role as 'system' | 'user' | 'assistant',
+        content: m.content,
+      })),
       maxTokens,
       temperature,
     });
@@ -103,7 +109,10 @@ async function callOpenAICompatible(
     defaultModel: config.model,
   });
   const result = await adapter.complete({
-    messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+    messages: messages.map((m) => ({
+      role: m.role as 'system' | 'user' | 'assistant',
+      content: m.content,
+    })),
     maxTokens,
     temperature,
   });
@@ -126,7 +135,10 @@ async function callOpenRouter(
     defaultModel: config.model,
   });
   const result = await adapter.complete({
-    messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+    messages: messages.map((m) => ({
+      role: m.role as 'system' | 'user' | 'assistant',
+      content: m.content,
+    })),
     maxTokens,
     temperature,
   });

@@ -235,10 +235,10 @@ describe('runFullLoopDemoV2', () => {
     // one scheduler pause into a publication-regression failure.
     runFullLoopDemoV2({ agentCount: 10, frameCount: 5, seed: 76 });
     const samples = Array.from({ length: 5 }, (_, i) =>
-      runFullLoopDemoV2({ agentCount: 10, frameCount: 5, seed: 77 + i }),
+      runFullLoopDemoV2({ agentCount: 10, frameCount: 5, seed: 77 + i })
     );
     const best = samples.reduce((min, sample) =>
-      sample.meanTotalMs < min.meanTotalMs ? sample : min,
+      sample.meanTotalMs < min.meanTotalMs ? sample : min
     );
     const sampleSummary = samples.map((sample) => sample.meanTotalMs.toFixed(4)).join(', ');
     expect(best.meetsTarget, `sample meanTotalMs values: ${sampleSummary}`).toBe(true);

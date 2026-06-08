@@ -174,7 +174,7 @@ export const hapticCueHandler: TraitHandler<HapticCueConfig> = {
         const pos = node.position;
         const len = Math.sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]);
         if (len > 0) {
-          direction = [pos[0] / len, pos[1] / len, pos[2] / len ];
+          direction = [pos[0] / len, pos[1] / len, pos[2] / len];
         }
       }
 

@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-token-forge",
-  name: "Token Forge",
-  description: "Spinning 3D token with customizable material and branding",
-  thumbnail: "🔥",
-  tags: ["creator","token","crypto","mint"],
-  category: "creator",
+  id: 'wizard-token-forge',
+  name: 'Token Forge',
+  description: 'Spinning 3D token with customizable material and branding',
+  thumbnail: '🔥',
+  tags: ['creator', 'token', 'crypto', 'mint'],
+  category: 'creator',
   code: `composition "Token Forge" {
   environment {
     skybox: "studio"
@@ -59,7 +59,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 1.5
     material: { opacity: 0.4 }
   }
-}`
+}`,
 };
 
 export default template;

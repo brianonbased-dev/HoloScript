@@ -74,20 +74,14 @@ function computeAttenuation(
   }
 }
 
-function vec3Dist(
-  a: Vec3,
-  b: Vec3
-): number {
+function vec3Dist(a: Vec3, b: Vec3): number {
   const dx = a[0] - b[0];
   const dy = a[1] - b[1];
   const dz = a[2] - b[2];
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-function computePan(
-  listener: ListenerState,
-  sourcePos: Vec3
-): number {
+function computePan(listener: ListenerState, sourcePos: Vec3): number {
   // Project source position onto listener's left-right axis
   // Right = cross(forward, up)
   const rx = listener.forward[1] * listener.up[2] - listener.forward[2] * listener.up[1];
@@ -114,9 +108,9 @@ function computePan(
 export class AudioEngine {
   private sources: Map<string, AudioSource> = new Map();
   private listener: ListenerState = {
-    position: [0, 0, 0 ],
-    forward: [0, 0, -1 ],
-    up: [0, 1, 0 ],
+    position: [0, 0, 0],
+    forward: [0, 0, -1],
+    up: [0, 1, 0],
   };
   private masterVolume: number = 1.0;
   private muted: boolean = false;
@@ -125,22 +119,19 @@ export class AudioEngine {
    * Update the listener position (typically from VR headset).
    */
   setListenerPosition(pos: Vec3): void {
-    this.listener.position = [...pos ];
+    this.listener.position = [...pos];
   }
 
-  setListenerOrientation(
-    forward: Vec3,
-    up: Vec3
-  ): void {
-    this.listener.forward = [...forward ];
-    this.listener.up = [...up ];
+  setListenerOrientation(forward: Vec3, up: Vec3): void {
+    this.listener.forward = [...forward];
+    this.listener.up = [...up];
   }
 
   getListener(): ListenerState {
     return {
-      position: [...this.listener.position ],
-      forward: [...this.listener.forward ],
-      up: [...this.listener.up ],
+      position: [...this.listener.position],
+      forward: [...this.listener.forward],
+      up: [...this.listener.up],
     };
   }
 
@@ -152,7 +143,7 @@ export class AudioEngine {
 
     const fullConfig: AudioSourceConfig = {
       id,
-      position: [0, 0, 0 ],
+      position: [0, 0, 0],
       volume: 1,
       pitch: 1,
       loop: false,
@@ -194,7 +185,7 @@ export class AudioEngine {
    */
   setSourcePosition(sourceId: string, pos: Vec3): void {
     const source = this.sources.get(sourceId);
-    if (source) source.config.position = [...pos ];
+    if (source) source.config.position = [...pos];
   }
 
   /**

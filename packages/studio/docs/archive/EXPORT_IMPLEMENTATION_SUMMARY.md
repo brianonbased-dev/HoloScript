@@ -11,9 +11,11 @@
 ## Files Created
 
 ### 1. Core Implementation
+
 **File:** `src/lib/exporters.ts` (5,733 bytes)
 
 **Functions Implemented:**
+
 - ✅ `exportWorkflow()` - JSON export for workflows
 - ✅ `exportWorkflowAsTS()` - TypeScript module export for workflows
 - ✅ `exportBehaviorTree()` - JSON export for behavior trees
@@ -29,24 +31,29 @@
 **Total Functions:** 11 export/download functions
 
 ### 2. Test & Examples
+
 **File:** `src/lib/exporters.test.ts` (6,592 bytes)
 
 **Contents:**
+
 - Complete sample data for all export types
 - Working examples for all export functions
 - React component integration examples
 - Console output demonstrations
 
 **Run Tests:**
+
 ```bash
 cd packages/studio
 npx tsx src/lib/exporters.test.ts
 ```
 
 ### 3. Documentation
+
 **File:** `src/lib/EXPORTERS_README.md` (9,947 bytes)
 
 **Sections:**
+
 - API reference for all functions
 - Integration examples with orchestrationStore
 - UI component patterns
@@ -61,7 +68,9 @@ npx tsx src/lib/exporters.test.ts
 ## Implementation Details
 
 ### Type Safety
+
 All functions properly typed with imports from `orchestrationStore.ts`:
+
 ```typescript
 import type { AgentWorkflow, BTNode, AgentEvent } from './orchestrationStore';
 ```
@@ -69,7 +78,9 @@ import type { AgentWorkflow, BTNode, AgentEvent } from './orchestrationStore';
 ### Export Formats
 
 #### 1. Workflow Export
+
 **JSON Format:**
+
 ```json
 {
   "id": "workflow_123",
@@ -83,6 +94,7 @@ import type { AgentWorkflow, BTNode, AgentEvent } from './orchestrationStore';
 ```
 
 **TypeScript Format:**
+
 ```typescript
 import { AgentWorkflow } from '@/lib/orchestrationStore';
 
@@ -92,7 +104,9 @@ export const workflow_123Workflow: AgentWorkflow = {
 ```
 
 #### 2. Behavior Tree Export
+
 **JSON Format:**
+
 ```json
 [
   {
@@ -107,13 +121,16 @@ export const workflow_123Workflow: AgentWorkflow = {
 ```
 
 #### 3. Event Log Export
+
 **CSV Format:**
+
 ```csv
 timestamp,topic,senderId,receivedBy,payload
 1772271967567,"scene.created","art-director","animator;physics","{""sceneId"":""scene_001""}"
 ```
 
 **JSON Format:**
+
 ```json
 [
   {
@@ -129,25 +146,27 @@ timestamp,topic,senderId,receivedBy,payload
 
 ### File Naming Conventions
 
-| Export Type | Pattern | Example |
-|------------|---------|---------|
-| Workflow (JSON) | `{name}-{id}.json` | `Scene Pipeline-workflow_123.json` |
-| Workflow (TS) | `{name}-{id}.ts` | `Scene Pipeline-workflow_123.ts` |
-| Behavior Tree | `behavior-tree-{treeId}.json` | `behavior-tree-main.json` |
-| Events (CSV) | `agent-events-{timestamp}.csv` | `agent-events-2026-02-28T12-30-45.csv` |
-| Events (JSON) | `agent-events-{timestamp}.json` | `agent-events-2026-02-28T12-30-45.json` |
+| Export Type     | Pattern                         | Example                                 |
+| --------------- | ------------------------------- | --------------------------------------- |
+| Workflow (JSON) | `{name}-{id}.json`              | `Scene Pipeline-workflow_123.json`      |
+| Workflow (TS)   | `{name}-{id}.ts`                | `Scene Pipeline-workflow_123.ts`        |
+| Behavior Tree   | `behavior-tree-{treeId}.json`   | `behavior-tree-main.json`               |
+| Events (CSV)    | `agent-events-{timestamp}.csv`  | `agent-events-2026-02-28T12-30-45.csv`  |
+| Events (JSON)   | `agent-events-{timestamp}.json` | `agent-events-2026-02-28T12-30-45.json` |
 
 ---
 
 ## Testing & Verification
 
 ### TypeScript Compilation ✅
+
 ```bash
 $ npx tsc --noEmit --skipLibCheck src/lib/exporters.ts
 # No errors - compilation successful
 ```
 
 ### Runtime Testing ✅
+
 ```bash
 $ npx tsx src/lib/exporters.test.ts
 === Export Utility Function Examples ===
@@ -200,11 +219,13 @@ function ExportButton() {
 ## Browser Compatibility
 
 ### APIs Used
+
 - ✅ `Blob` - All modern browsers
 - ✅ `URL.createObjectURL()` - All modern browsers
 - ✅ `document.createElement()` - Universal support
 
 ### No External Dependencies
+
 All functionality implemented using native browser APIs.
 
 ---
@@ -212,6 +233,7 @@ All functionality implemented using native browser APIs.
 ## Usage Examples
 
 ### 1. Export Workflow as JSON
+
 ```typescript
 import { exportWorkflow, downloadWorkflowJSON } from './exporters';
 
@@ -225,6 +247,7 @@ downloadWorkflowJSON(workflow, 'my-workflow.json');
 ```
 
 ### 2. Export Workflow as TypeScript
+
 ```typescript
 import { exportWorkflowAsTS, downloadWorkflowTS } from './exporters';
 
@@ -236,6 +259,7 @@ downloadWorkflowTS(workflow);
 ```
 
 ### 3. Export Behavior Tree
+
 ```typescript
 import { downloadBehaviorTreeJSON } from './exporters';
 
@@ -244,6 +268,7 @@ downloadBehaviorTreeJSON(tree.nodes, activeBehaviorTree);
 ```
 
 ### 4. Export Events
+
 ```typescript
 import { downloadEventsCSV, downloadEventsJSON } from './exporters';
 
@@ -304,26 +329,31 @@ import { downloadWorkflowJSON, downloadWorkflowTS } from '@/lib/exporters';
 ## Features & Benefits
 
 ### ✅ Multi-Format Support
+
 - JSON for data interchange
 - TypeScript for code integration
 - CSV for spreadsheet analysis
 
 ### ✅ Type Safety
+
 - Full TypeScript type annotations
 - Import types from orchestrationStore
 - IntelliSense support in IDE
 
 ### ✅ User-Friendly
+
 - Auto-generated meaningful filenames
 - Timestamped event exports
 - Custom filename support
 
 ### ✅ Excel Compatibility
+
 - Proper CSV quoting
 - JSON payload escaping
 - Semicolon-separated arrays
 
 ### ✅ No Dependencies
+
 - Native browser APIs only
 - Lightweight implementation
 - No external libraries
@@ -343,11 +373,7 @@ export function exportEventsAsCSV(events: AgentEvent[]): string;
 export function exportEventsAsJSON(events: AgentEvent[]): string;
 
 // Download Helper
-export function downloadFile(
-  content: string,
-  filename: string,
-  mimeType?: string
-): void;
+export function downloadFile(content: string, filename: string, mimeType?: string): void;
 
 // Convenience Wrappers
 export function downloadWorkflowJSON(workflow: AgentWorkflow, filename?: string): void;
@@ -359,11 +385,11 @@ export function downloadEventsJSON(events: AgentEvent[], filename?: string): voi
 
 ### MIME Types Used
 
-| Format | MIME Type |
-|--------|-----------|
-| JSON | `application/json` |
-| TypeScript | `text/typescript` |
-| CSV | `text/csv` |
+| Format     | MIME Type          |
+| ---------- | ------------------ |
+| JSON       | `application/json` |
+| TypeScript | `text/typescript`  |
+| CSV        | `text/csv`         |
 
 ---
 
@@ -421,6 +447,7 @@ The export utility implementation is **complete and ready for integration** into
 ---
 
 **For questions or support, refer to:**
+
 - `src/lib/EXPORTERS_README.md` - Complete API documentation
 - `src/lib/exporters.test.ts` - Working code examples
 - `src/lib/orchestrationStore.ts` - Type definitions

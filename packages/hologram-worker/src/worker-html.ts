@@ -4,7 +4,7 @@ export function buildWorkerRenderHtml(
   sourceUrl: string,
   mediaType: 'image' | 'gif' | 'video',
   internalWidth: number,
-  internalHeight: number,
+  internalHeight: number
 ): string {
   const escapedSource = JSON.stringify(sourceUrl);
   const escapedMediaType = JSON.stringify(mediaType);

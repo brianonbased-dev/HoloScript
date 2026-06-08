@@ -32,7 +32,7 @@ export type LocomotionPosition = [number, number, number] & {
 
 export class VRLocomotion {
   private config: LocomotionConfig;
-  private position: [number, number, number] = [0, 0, 0 ];
+  private position: [number, number, number] = [0, 0, 0];
   private rotation: number = 0; // yaw in degrees
   private teleportHistory: TeleportTarget[] = [];
   private boundaryDistance: number = Infinity;

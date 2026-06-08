@@ -102,13 +102,12 @@ interface Rng {
 }
 
 function makeRng(seed: number): Rng {
-  let state = (seed >>> 0) || 1;
+  let state = seed >>> 0 || 1;
   const float = (): number => {
     state = (state * 1664525 + 1013904223) >>> 0;
     return state / 0x100000000;
   };
-  const int = (min: number, max: number): number =>
-    min + Math.floor(float() * (max - min + 1));
+  const int = (min: number, max: number): number => min + Math.floor(float() * (max - min + 1));
   const bool = (bias = 0.5): boolean => float() < bias;
   return { float, int, bool };
 }
@@ -359,8 +358,7 @@ function makeSoftAnchors(result: DeterministicFailureSceneResult): readonly Soft
     {
       id: 'target-contact',
       description: 'contact with target pad',
-      evaluate: () =>
-        result.events.some((e) => e.type === 'target_contact') ? 0.5 : 0,
+      evaluate: () => (result.events.some((e) => e.type === 'target_contact') ? 0.5 : 0),
     },
     {
       id: 'invalid-action-rate',

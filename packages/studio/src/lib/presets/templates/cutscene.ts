@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-cutscene",
-  name: "Game Cutscene",
-  description: "In-game cinematic with character marks, cameras, and mood lighting",
-  thumbnail: "🎭",
-  tags: ["film","cutscene","game","cinematic"],
-  category: "film",
+  id: 'wizard-cutscene',
+  name: 'Game Cutscene',
+  description: 'In-game cinematic with character marks, cameras, and mood lighting',
+  thumbnail: '🎭',
+  tags: ['film', 'cutscene', 'game', 'cinematic'],
+  category: 'film',
   code: `composition "Game Cutscene" {
   environment {
     skybox: "night"
@@ -67,7 +67,7 @@ export const template: SceneTemplate = {
     position: [0, 4, 8]
     rotation: [-20, 0, 0]
   }
-}`
+}`,
 };
 
 export default template;

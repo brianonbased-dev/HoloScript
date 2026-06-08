@@ -60,15 +60,15 @@ export function buildClipFromFrames(
     // Check if bone actually moved (skip static bones to save memory)
     if (boneFrames.length < 2) return;
     const first = boneFrames[0];
-    
+
     // Support both quaternion access patterns: { qx, qy, qz, qw } and { rotation: [...] }
     const getQuat = (f: BoneFrame) => [
-      f.qx ?? (f.rotation?.[0] ?? 0),
-      f.qy ?? (f.rotation?.[1] ?? 0),
-      f.qz ?? (f.rotation?.[2] ?? 0),
-      f.qw ?? (f.rotation?.[3] ?? 1),
+      f.qx ?? f.rotation?.[0] ?? 0,
+      f.qy ?? f.rotation?.[1] ?? 0,
+      f.qz ?? f.rotation?.[2] ?? 0,
+      f.qw ?? f.rotation?.[3] ?? 1,
     ];
-    
+
     const firstQuat = getQuat(first);
     const moved = boneFrames.some((f) => {
       const q = getQuat(f);

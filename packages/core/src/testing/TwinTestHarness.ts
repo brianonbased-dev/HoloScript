@@ -98,11 +98,7 @@ export interface TwinTestSpec<I, O, S = O> {
   stopOnFirstDivergence?: boolean;
 }
 
-export type TwinDivergenceReason =
-  | 'syndrome-mismatch'
-  | 'a-threw'
-  | 'b-threw'
-  | 'timeout';
+export type TwinDivergenceReason = 'syndrome-mismatch' | 'a-threw' | 'b-threw' | 'timeout';
 
 export interface TwinTestDivergence<I, O, S> {
   iteration: number;
@@ -187,8 +183,7 @@ export async function runTwinTest<I, O, S = O>(
   const iterations = spec.iterations ?? DEFAULT_ITERATIONS;
   const seed = spec.seed ?? DEFAULT_SEED;
   const maxShrinkSteps = spec.maxShrinkSteps ?? DEFAULT_MAX_SHRINK_STEPS;
-  const perIterationTimeoutMs =
-    spec.perIterationTimeoutMs ?? DEFAULT_PER_ITERATION_TIMEOUT_MS;
+  const perIterationTimeoutMs = spec.perIterationTimeoutMs ?? DEFAULT_PER_ITERATION_TIMEOUT_MS;
   const oracle = spec.oracle ?? ((o: O) => o as unknown as S);
   const equivalent = spec.equivalent ?? defaultEquivalent;
   const stopOnFirstDivergence = spec.stopOnFirstDivergence ?? false;
@@ -199,14 +194,7 @@ export async function runTwinTest<I, O, S = O>(
 
   for (let iter = 0; iter < iterations; iter++) {
     const input = spec.generate(seed, iter);
-    const div = await compareOnce(
-      input,
-      iter,
-      spec,
-      oracle,
-      equivalent,
-      perIterationTimeoutMs
-    );
+    const div = await compareOnce(input, iter, spec, oracle, equivalent, perIterationTimeoutMs);
     iterationsRun++;
     if (div) {
       const minimal = spec.shrink
@@ -236,8 +224,7 @@ export async function runTwinTest<I, O, S = O>(
     durationMs: Date.now() - startedAt,
     divergences,
     counts: {
-      syndromeMismatches: divergences.filter((d) => d.reason === 'syndrome-mismatch')
-        .length,
+      syndromeMismatches: divergences.filter((d) => d.reason === 'syndrome-mismatch').length,
       aThrew: divergences.filter((d) => d.reason === 'a-threw').length,
       bThrew: divergences.filter((d) => d.reason === 'b-threw').length,
       timeouts: divergences.filter((d) => d.reason === 'timeout').length,
@@ -253,16 +240,8 @@ async function compareOnce<I, O, S>(
   equivalent: (a: S, b: S) => boolean,
   perIterationTimeoutMs: number
 ): Promise<TwinTestDivergence<I, O, S> | null> {
-  const a = await runWithTimeout(
-    spec.implementations.a.run,
-    input,
-    perIterationTimeoutMs
-  );
-  const b = await runWithTimeout(
-    spec.implementations.b.run,
-    input,
-    perIterationTimeoutMs
-  );
+  const a = await runWithTimeout(spec.implementations.a.run, input, perIterationTimeoutMs);
+  const b = await runWithTimeout(spec.implementations.b.run, input, perIterationTimeoutMs);
 
   if (a.kind === 'timeout' || b.kind === 'timeout') {
     return {
@@ -441,9 +420,7 @@ export async function expectTwinEquivalent<I, O, S = O>(
     `  Syndrome B: ${formatPreview(first.syndromeB)}`,
   ];
   if (result.divergences.length > 1) {
-    lines.push(
-      `  ... and ${result.divergences.length - 1} additional divergences`
-    );
+    lines.push(`  ... and ${result.divergences.length - 1} additional divergences`);
   }
   lines.push(`  Iterations run: ${result.iterationsRun}/${result.iterationsTotal}`);
   lines.push(

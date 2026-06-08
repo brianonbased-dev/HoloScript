@@ -61,7 +61,7 @@ const FIXTURE_PATH = resolve(
   'benchmarks',
   'scenarios',
   '05-holomap-reconstruction',
-  'holomap-reconstruction.holo',
+  'holomap-reconstruction.holo'
 );
 
 function loadFixture(): string {
@@ -174,13 +174,13 @@ describe('HoloMap decorator fixture — parser/runtime/export round-trip', () =>
       original.ast!.objects.map((o) => [
         o.name,
         new Set(o.traits.map((t) => stripDecoratorPrefix(t.name))),
-      ]),
+      ])
     );
     const secondByName = new Map(
       second.ast!.objects.map((o) => [
         o.name,
         new Set(o.traits.map((t) => stripDecoratorPrefix(t.name))),
-      ]),
+      ])
     );
 
     expect([...secondByName.keys()].sort()).toEqual([...originalByName.keys()].sort());

@@ -44,7 +44,9 @@ import { dirname, join } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, '..', '..');
 const imp = (p) => import(pathToFileURL(p).href);
-const { computeStateDigest } = await imp(join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'));
+const { computeStateDigest } = await imp(
+  join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts')
+);
 
 const receiptPath = join(here, 'GATE-44-COMPOSED-TERRAIN-receipt.json');
 const vistaPath = join(here, 'gold-vault-vista-world.json');
@@ -54,14 +56,23 @@ const g33ReceiptPath = join(here, 'GATE-33-HOLOMAP-SCAN-receipt.json');
 const HASH = 'sha256';
 
 const q = (v) => Math.round(v * 1e4); // 1e-4 quantum — SAME as Gate 32's posField
-const hexFloats = (hex) => { const o = []; for (let i = 0; i < hex.length; i += 2) o.push(parseInt(hex.slice(i, i + 2), 16)); return o; };
+const hexFloats = (hex) => {
+  const o = [];
+  for (let i = 0; i < hex.length; i += 2) o.push(parseInt(hex.slice(i, i + 2), 16));
+  return o;
+};
 
 // ── Reconstruct the EXACT Gate-32 vista vertex positions from the committed
 //    depthGrid + backdrop (identical formula to gate-32's posField). ──────────
 function reconstructVista(depthGrid) {
   const { width: dW, height: dH, depths, backdrop: B } = depthGrid;
   const pos = []; // quantized [x,y,z] per vertex (the world SOURCE geometry)
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    maxX = -Infinity,
+    minY = Infinity,
+    maxY = -Infinity,
+    minZ = Infinity,
+    maxZ = -Infinity;
   for (let y = 0; y < dH; y++) {
     for (let x = 0; x < dW; x++) {
       const u = dW > 1 ? x / (dW - 1) : 0;
@@ -71,9 +82,12 @@ function reconstructVista(depthGrid) {
       const d = depths[y * dW + x];
       const wz = B.originZ - (1 - d) * B.depthScale;
       pos.push(q(wx), q(wy), q(wz));
-      if (wx < minX) minX = wx; if (wx > maxX) maxX = wx;
-      if (wy < minY) minY = wy; if (wy > maxY) maxY = wy;
-      if (wz < minZ) minZ = wz; if (wz > maxZ) maxZ = wz;
+      if (wx < minX) minX = wx;
+      if (wx > maxX) maxX = wx;
+      if (wy < minY) minY = wy;
+      if (wy > maxY) maxY = wy;
+      if (wz < minZ) minZ = wz;
+      if (wz > maxZ) maxZ = wz;
     }
   }
   return { pos, bounds: { minX, maxX, minY, maxY, minZ, maxZ }, vertexCount: pos.length / 3 };
@@ -86,17 +100,32 @@ function reconstructVista(depthGrid) {
 //    within the backdrop's lateral (x,y) footprint.
 function coherence(vistaBounds, portalPos) {
   const [px, py, pz] = portalPos;
-  const clearance = pz - vistaBounds.maxZ;           // >0 ⇒ portal is in front of nearest backdrop plane
-  const inFront = clearance > 0.5;                    // require a real foreground gap (≥0.5 world units)
+  const clearance = pz - vistaBounds.maxZ; // >0 ⇒ portal is in front of nearest backdrop plane
+  const inFront = clearance > 0.5; // require a real foreground gap (≥0.5 world units)
   const withinLateralX = px >= vistaBounds.minX && px <= vistaBounds.maxX;
   const withinLateralY = py >= vistaBounds.minY && py <= vistaBounds.maxY;
-  const zDisjoint = pz > vistaBounds.maxZ;            // room/backdrop Z extents do not overlap (no z-fighting)
-  return { clearance, inFront, withinLateralX, withinLateralY, zDisjoint, ok: inFront && withinLateralX && withinLateralY && zDisjoint };
+  const zDisjoint = pz > vistaBounds.maxZ; // room/backdrop Z extents do not overlap (no z-fighting)
+  return {
+    clearance,
+    inFront,
+    withinLateralX,
+    withinLateralY,
+    zDisjoint,
+    ok: inFront && withinLateralX && withinLateralY && zDisjoint,
+  };
 }
 
 function main() {
-  for (const [p, n] of [[vistaPath, 'vista world'], [roomPath, 'holomap room'], [g32ReceiptPath, 'Gate-32 receipt'], [g33ReceiptPath, 'Gate-33 receipt']]) {
-    if (!existsSync(p)) { console.error(`Gate-44: missing ${n} (${p}). Run the upstream gate --emit first.`); process.exit(2); }
+  for (const [p, n] of [
+    [vistaPath, 'vista world'],
+    [roomPath, 'holomap room'],
+    [g32ReceiptPath, 'Gate-32 receipt'],
+    [g33ReceiptPath, 'Gate-33 receipt'],
+  ]) {
+    if (!existsSync(p)) {
+      console.error(`Gate-44: missing ${n} (${p}). Run the upstream gate --emit first.`);
+      process.exit(2);
+    }
   }
   const vista = JSON.parse(readFileSync(vistaPath, 'utf8'));
   const room = JSON.parse(readFileSync(roomPath, 'utf8'));
@@ -105,8 +134,8 @@ function main() {
 
   const grp = vista.generated_group;
   const depthGrid = grp.depthGrid;
-  const worldDigest = g32.contract.worldDigest;     // sealed Gate-32 vista geometry digest
-  const spaceDigest = g33.contract.spaceDigest;     // sealed Gate-33 scanned-room digest
+  const worldDigest = g32.contract.worldDigest; // sealed Gate-32 vista geometry digest
+  const spaceDigest = g33.contract.spaceDigest; // sealed Gate-33 scanned-room digest
 
   // ── provenance: the consumed artifacts are the COMMITTED, sealed ones. ──────
   // Gate-33 room artifact must carry the same spaceDigest the Gate-33 receipt sealed.
@@ -114,26 +143,27 @@ function main() {
   // Gate-32 vista artifact's depthGrid must equal the Gate-32 receipt's emitted source
   // (anti-stale: a hand-edited world.json no longer matches the sealed receipt source).
   const receiptGrid = g32.generatedWorld?.generated_group?.depthGrid;
-  const vistaMatchesReceipt = !!receiptGrid && JSON.stringify(receiptGrid) === JSON.stringify(depthGrid);
+  const vistaMatchesReceipt =
+    !!receiptGrid && JSON.stringify(receiptGrid) === JSON.stringify(depthGrid);
 
-  const gridShapeOk = depthGrid.width === 48 && depthGrid.height === 32 && Array.isArray(depthGrid.depths) && depthGrid.depths.length === depthGrid.width * depthGrid.height;
+  const gridShapeOk =
+    depthGrid.width === 48 &&
+    depthGrid.height === 32 &&
+    Array.isArray(depthGrid.depths) &&
+    depthGrid.depths.length === depthGrid.width * depthGrid.height;
 
   // ── reconstruct the real vista geometry + compose with the room. ───────────
   const v = reconstructVista(depthGrid);
-  const reconstructedVista = v.vertexCount === depthGrid.depths.length && v.vertexCount === grp.vertexCount;
+  const reconstructedVista =
+    v.vertexCount === depthGrid.depths.length && v.vertexCount === grp.vertexCount;
 
-  const bounds = room.holomap.manifest.bounds;          // scan-derived room volume
+  const bounds = room.holomap.manifest.bounds; // scan-derived room volume
   const anchor = room.holomap.anchor.anchorPose.position; // scan-derived anchor
-  const portal = room.portal.position;                  // room portal placement in the world
+  const portal = room.portal.position; // room portal placement in the world
   const portalScale = room.portal.scale;
 
   // room geometry placed in the world frame (the values the terrain seal binds).
-  const roomGeom = [
-    ...bounds.min, ...bounds.max,
-    ...anchor,
-    ...portal,
-    ...portalScale,
-  ].map(q);
+  const roomGeom = [...bounds.min, ...bounds.max, ...anchor, ...portal, ...portalScale].map(q);
 
   // ── the composed terrain seal: REAL computeStateDigest over BOTH geometries
   //    + provenance binding to the upstream sealed digests. ───────────────────
@@ -143,13 +173,21 @@ function main() {
     provenance: Float32Array.from([...hexFloats(wDig), ...hexFloats(sDig)]),
   });
   const sealTerrain = (vistaPos, roomVals, wDig, sDig) =>
-    computeStateDigest({ fieldNames: ['vista_pos', 'room_geom', 'provenance'], getField: (n) => terrainFields(vistaPos, roomVals, wDig, sDig)[n] }, HASH);
+    computeStateDigest(
+      {
+        fieldNames: ['vista_pos', 'room_geom', 'provenance'],
+        getField: (n) => terrainFields(vistaPos, roomVals, wDig, sDig)[n],
+      },
+      HASH
+    );
 
   const composedTerrainDigest = sealTerrain(v.pos, roomGeom, worldDigest, spaceDigest);
   // reproduce independently (rebuild the arrays from scratch) → determinism property.
   const v2 = reconstructVista(depthGrid);
   const composedTerrainDigest2 = sealTerrain(v2.pos, roomGeom.slice(), worldDigest, spaceDigest);
-  const deterministic = composedTerrainDigest === composedTerrainDigest2 && /^[a-f0-9]{64}$/.test(composedTerrainDigest);
+  const deterministic =
+    composedTerrainDigest === composedTerrainDigest2 &&
+    /^[a-f0-9]{64}$/.test(composedTerrainDigest);
 
   // ── spatial coherence between the surfaces. ─────────────────────────────────
   const coh = coherence(v.bounds, portal);
@@ -181,20 +219,30 @@ function main() {
     track: 'flagship',
     name: 'composed terrain seal — Gate-32 vista + Gate-33 holomap room into one spatially-coherent world',
     verifier: 'examples/gold-game/gate-44-composed-terrain-verify.mjs',
-    builtOn: 'Gate 32 (vista world source) + Gate 33 (holomap room/portal); deepens past Gate 35 receipt-trace join to GEOMETRY composition + a real spatial-coherence predicate',
+    builtOn:
+      'Gate 32 (vista world source) + Gate 33 (holomap room/portal); deepens past Gate 35 receipt-trace join to GEOMETRY composition + a real spatial-coherence predicate',
     consumes: {
-      vistaArtifact: 'examples/gold-game/gold-vault-vista-world.json (Gate-32 depthGrid + backdrop)',
-      roomArtifact: 'examples/gold-game/gold-vault-holomap-room.json (Gate-33 bounds/anchor/portal)',
+      vistaArtifact:
+        'examples/gold-game/gold-vault-vista-world.json (Gate-32 depthGrid + backdrop)',
+      roomArtifact:
+        'examples/gold-game/gold-vault-holomap-room.json (Gate-33 bounds/anchor/portal)',
       sealedWorldDigest: worldDigest,
       sealedSpaceDigest: spaceDigest,
     },
     composition: {
       vista: { group: grp.spatial_group, vertexCount: v.vertexCount, worldBounds: v.bounds },
-      room: { portal: room.portal.id, portalPosition: portal, portalScale, anchor, scanBounds: bounds },
+      room: {
+        portal: room.portal.id,
+        portalPosition: portal,
+        portalScale,
+        anchor,
+        scanBounds: bounds,
+      },
       sharedFrame: 'camera looks down -Z; larger z is closer to the viewer',
     },
     coherence: {
-      predicate: 'room portal is IN FRONT of the vista backdrop nearest plane (positive clearance, no interpenetration) AND within its lateral (x,y) footprint AND Z-disjoint (no z-fighting volume overlap)',
+      predicate:
+        'room portal is IN FRONT of the vista backdrop nearest plane (positive clearance, no interpenetration) AND within its lateral (x,y) footprint AND Z-disjoint (no z-fighting volume overlap)',
       vistaNearestPlaneZ: +v.bounds.maxZ.toFixed(4),
       vistaFarthestPlaneZ: +v.bounds.minZ.toFixed(4),
       portalZ: portal[2],
@@ -221,48 +269,118 @@ function main() {
   };
 
   const checks = [
-    ['committed vista world artifact present with a 48x32 (1536-cell) depthGrid', gridShapeOk === true],
-    ['vista artifact depthGrid equals the sealed Gate-32 receipt source (anti-stale)', vistaMatchesReceipt === true],
-    ['committed holomap room artifact spaceDigest equals the sealed Gate-33 receipt', roomMatchesReceipt === true],
-    ['exact Gate-32 vista geometry reconstructs from the committed depthGrid (1536 vertices)', reconstructedVista === true],
-    ['composed terrain seal binds BOTH geometries + provenance and is sha256-shaped + deterministic', deterministic === true],
-    ['SPATIAL COHERENCE: room portal is in front of the vista backdrop (positive clearance, no interpenetration)', coh.inFront === true && coh.clearance > 0.5],
-    ['SPATIAL COHERENCE: room portal is within the vista backdrop lateral (x,y) footprint', coh.withinLateralX === true && coh.withinLateralY === true],
-    ['room and backdrop Z extents are disjoint (room foreground, backdrop background — no z-fighting)', coh.zDisjoint === true],
+    [
+      'committed vista world artifact present with a 48x32 (1536-cell) depthGrid',
+      gridShapeOk === true,
+    ],
+    [
+      'vista artifact depthGrid equals the sealed Gate-32 receipt source (anti-stale)',
+      vistaMatchesReceipt === true,
+    ],
+    [
+      'committed holomap room artifact spaceDigest equals the sealed Gate-33 receipt',
+      roomMatchesReceipt === true,
+    ],
+    [
+      'exact Gate-32 vista geometry reconstructs from the committed depthGrid (1536 vertices)',
+      reconstructedVista === true,
+    ],
+    [
+      'composed terrain seal binds BOTH geometries + provenance and is sha256-shaped + deterministic',
+      deterministic === true,
+    ],
+    [
+      'SPATIAL COHERENCE: room portal is in front of the vista backdrop (positive clearance, no interpenetration)',
+      coh.inFront === true && coh.clearance > 0.5,
+    ],
+    [
+      'SPATIAL COHERENCE: room portal is within the vista backdrop lateral (x,y) footprint',
+      coh.withinLateralX === true && coh.withinLateralY === true,
+    ],
+    [
+      'room and backdrop Z extents are disjoint (room foreground, backdrop background — no z-fighting)',
+      coh.zDisjoint === true,
+    ],
     ['the composed terrain is coherent overall', coh.ok === true],
-    ['[neg-A] tampering ONE vista depth cell flips the composed terrain seal (vista geometry load-bearing)', negADepthFlips === true],
-    ['[neg-B] nudging the room placement flips the composed terrain seal (room placement load-bearing)', negBRoomFlips === true],
-    ['[neg-C] placing the room BEHIND the backdrop FAILS the coherence predicate (not a tautology)', negCCoherenceFails === true],
+    [
+      '[neg-A] tampering ONE vista depth cell flips the composed terrain seal (vista geometry load-bearing)',
+      negADepthFlips === true,
+    ],
+    [
+      '[neg-B] nudging the room placement flips the composed terrain seal (room placement load-bearing)',
+      negBRoomFlips === true,
+    ],
+    [
+      '[neg-C] placing the room BEHIND the backdrop FAILS the coherence predicate (not a tautology)',
+      negCCoherenceFails === true,
+    ],
   ];
 
   const emit = process.argv.includes('--emit');
   if (emit) {
-    let ok = true; for (const [, p] of checks) ok = ok && p;
-    if (!ok) { console.error('Gate-44: refusing to emit — a check failed.'); for (const [l, p] of checks) console.error('  ' + (p ? 'PASS' : 'FAIL') + '  ' + l); process.exit(1); }
+    let ok = true;
+    for (const [, p] of checks) ok = ok && p;
+    if (!ok) {
+      console.error('Gate-44: refusing to emit — a check failed.');
+      for (const [l, p] of checks) console.error('  ' + (p ? 'PASS' : 'FAIL') + '  ' + l);
+      process.exit(1);
+    }
     writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n');
     console.log('GATE-44 RECEIPT EMITTED ->', receiptPath);
     console.log('  vista bounds:', JSON.stringify(receipt.composition.vista.worldBounds));
-    console.log('  room portal z=' + portal[2] + ' vs backdrop nearest z=' + (+v.bounds.maxZ.toFixed(4)) + ' → clearance=' + (+coh.clearance.toFixed(4)));
-    console.log('  coherent=' + coh.ok, 'composedTerrainDigest=' + composedTerrainDigest.slice(0, 24));
-    console.log('  neg: depthFlips=' + negADepthFlips, 'roomFlips=' + negBRoomFlips, 'behindFailsCoherence=' + negCCoherenceFails);
+    console.log(
+      '  room portal z=' +
+        portal[2] +
+        ' vs backdrop nearest z=' +
+        +v.bounds.maxZ.toFixed(4) +
+        ' → clearance=' +
+        +coh.clearance.toFixed(4)
+    );
+    console.log(
+      '  coherent=' + coh.ok,
+      'composedTerrainDigest=' + composedTerrainDigest.slice(0, 24)
+    );
+    console.log(
+      '  neg: depthFlips=' + negADepthFlips,
+      'roomFlips=' + negBRoomFlips,
+      'behindFailsCoherence=' + negCCoherenceFails
+    );
     process.exit(0);
   }
 
   let existing;
-  try { existing = JSON.parse(readFileSync(receiptPath, 'utf8')); }
-  catch { console.error('No Gate-44 receipt. Run --emit first.'); process.exit(2); }
+  try {
+    existing = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  } catch {
+    console.error('No Gate-44 receipt. Run --emit first.');
+    process.exit(2);
+  }
   const allChecks = [
     ...checks,
-    ['composed terrain digest reproduces vs the committed receipt', composedTerrainDigest === existing.contract.composedTerrainDigest],
-    ['terrain provenance is bound to the sealed Gate-32 worldDigest + Gate-33 spaceDigest',
-      existing.contract.provenanceBoundTo.gate32WorldDigest === worldDigest && existing.contract.provenanceBoundTo.gate33SpaceDigest === spaceDigest],
-    ['classification is the HONEST composition/coherence answer (not a re-prove of G32/33 or a new render)',
-      existing.honestScope.includes('does NOT re-prove') && existing.honestScope.includes('NOT a new rasterized')],
+    [
+      'composed terrain digest reproduces vs the committed receipt',
+      composedTerrainDigest === existing.contract.composedTerrainDigest,
+    ],
+    [
+      'terrain provenance is bound to the sealed Gate-32 worldDigest + Gate-33 spaceDigest',
+      existing.contract.provenanceBoundTo.gate32WorldDigest === worldDigest &&
+        existing.contract.provenanceBoundTo.gate33SpaceDigest === spaceDigest,
+    ],
+    [
+      'classification is the HONEST composition/coherence answer (not a re-prove of G32/33 or a new render)',
+      existing.honestScope.includes('does NOT re-prove') &&
+        existing.honestScope.includes('NOT a new rasterized'),
+    ],
   ];
   let ok = true;
   console.log('GATE-44 (COMPOSED TERRAIN SEAL) VERIFICATION:');
-  for (const [label, pass] of allChecks) { console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label); ok = ok && pass; }
-  console.log('  composedTerrainDigest=' + composedTerrainDigest.slice(0, 24) + ' coherent=' + coh.ok);
+  for (const [label, pass] of allChecks) {
+    console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label);
+    ok = ok && pass;
+  }
+  console.log(
+    '  composedTerrainDigest=' + composedTerrainDigest.slice(0, 24) + ' coherent=' + coh.ok
+  );
   console.log('  => GATE 44', ok ? 'VERIFIED' : 'BROKEN');
   process.exit(ok ? 0 : 1);
 }

@@ -52,17 +52,23 @@ export class FluidSim {
       gasConstant: 2000,
       viscosity: 200,
       surfaceTension: 0.5,
-      gravity: [0, -9.81, 0 ],
+      gravity: [0, -9.81, 0],
       smoothingRadius: 1,
       timeStep: 0.016,
-      boundaryMin: [-10, -10, -10 ],
-      boundaryMax: [10, 10, 10 ],
+      boundaryMin: [-10, -10, -10],
+      boundaryMax: [10, 10, 10],
       boundaryDamping: 0.3,
       ...config,
     };
-    this.config.gravity = this.toArr3(this.config.gravity as Vector3 | { x: number; y: number; z: number });
-    this.config.boundaryMin = this.toArr3(this.config.boundaryMin as Vector3 | { x: number; y: number; z: number });
-    this.config.boundaryMax = this.toArr3(this.config.boundaryMax as Vector3 | { x: number; y: number; z: number });
+    this.config.gravity = this.toArr3(
+      this.config.gravity as Vector3 | { x: number; y: number; z: number }
+    );
+    this.config.boundaryMin = this.toArr3(
+      this.config.boundaryMin as Vector3 | { x: number; y: number; z: number }
+    );
+    this.config.boundaryMax = this.toArr3(
+      this.config.boundaryMax as Vector3 | { x: number; y: number; z: number }
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -252,8 +258,14 @@ export class FluidSim {
   }
   setConfig(config: Partial<FluidConfig>): void {
     Object.assign(this.config, config);
-    this.config.gravity = this.toArr3(this.config.gravity as Vector3 | { x: number; y: number; z: number });
-    this.config.boundaryMin = this.toArr3(this.config.boundaryMin as Vector3 | { x: number; y: number; z: number });
-    this.config.boundaryMax = this.toArr3(this.config.boundaryMax as Vector3 | { x: number; y: number; z: number });
+    this.config.gravity = this.toArr3(
+      this.config.gravity as Vector3 | { x: number; y: number; z: number }
+    );
+    this.config.boundaryMin = this.toArr3(
+      this.config.boundaryMin as Vector3 | { x: number; y: number; z: number }
+    );
+    this.config.boundaryMax = this.toArr3(
+      this.config.boundaryMax as Vector3 | { x: number; y: number; z: number }
+    );
   }
 }

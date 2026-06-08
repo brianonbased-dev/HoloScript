@@ -153,9 +153,8 @@ export class DestructionToGranularConverter {
         continue;
       }
 
-      const fragmentVolume = Number.isFinite(fragment.volume) && fragment.volume > 0
-        ? fragment.volume
-        : 0.064;
+      const fragmentVolume =
+        Number.isFinite(fragment.volume) && fragment.volume > 0 ? fragment.volume : 0.064;
 
       // Skip fragments that are too small
       if (fragmentVolume < this.config.minFragmentSize) {
@@ -168,7 +167,8 @@ export class DestructionToGranularConverter {
       // Calculate particle radius from fragment volume
       // Volume of sphere: V = (4/3) * π * r³
       // r = ³√(3V / 4π)
-      const radius = Math.cbrt((3 * fragmentVolume) / (4 * Math.PI)) * this.config.particleSizeScale;
+      const radius =
+        Math.cbrt((3 * fragmentVolume) / (4 * Math.PI)) * this.config.particleSizeScale;
 
       // Add particle at fragment centroid
       const particleId = granularSystem.addParticle(fragment.position as any, radius);
@@ -223,9 +223,8 @@ export class DestructionToGranularConverter {
     let totalParticleSize = 0;
 
     for (const fragment of destroyedFragments) {
-      const fragmentVolume = Number.isFinite(fragment.volume) && fragment.volume > 0
-        ? fragment.volume
-        : 0.064;
+      const fragmentVolume =
+        Number.isFinite(fragment.volume) && fragment.volume > 0 ? fragment.volume : 0.064;
 
       if (fragmentVolume < this.config.minFragmentSize) {
         if (recycleFragments) {
@@ -233,7 +232,8 @@ export class DestructionToGranularConverter {
         }
         continue;
       }
-      const radius = Math.cbrt((3 * fragmentVolume) / (4 * Math.PI)) * this.config.particleSizeScale;
+      const radius =
+        Math.cbrt((3 * fragmentVolume) / (4 * Math.PI)) * this.config.particleSizeScale;
 
       // Calculate direction from explosion center
       const fx = coordX(fragment.position as unknown as Coordish);

@@ -37,13 +37,20 @@ function proofRunId(): string {
   return `${new Date().toISOString().slice(0, 10)}-quest-proof`;
 }
 
-async function withTimeout<T>(promise: Promise<T>, label: string, timeoutMs = PROBE_TIMEOUT_MS): Promise<T> {
+async function withTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  timeoutMs = PROBE_TIMEOUT_MS
+): Promise<T> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       promise,
       new Promise<T>((_, reject) => {
-        timeout = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+        timeout = setTimeout(
+          () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+          timeoutMs
+        );
       }),
     ]);
   } finally {
@@ -143,7 +150,11 @@ interface XRSystemLike {
   isSessionSupported(mode: string): Promise<boolean>;
   requestSession(
     mode: string,
-    opts?: { requiredFeatures?: string[]; optionalFeatures?: string[]; domOverlay?: { root: Element } }
+    opts?: {
+      requiredFeatures?: string[];
+      optionalFeatures?: string[];
+      domOverlay?: { root: Element };
+    }
   ): Promise<XRSessionLike>;
 }
 interface XRSessionLike extends QuestXRSessionLike {
@@ -215,10 +226,14 @@ export function QuestProbe() {
     if (!xr) {
       push('WebXR API', 'FAIL', 'navigator.xr missing — old browser');
     } else {
-      const vr = await withTimeout(xr.isSessionSupported('immersive-vr'), 'immersive-vr support')
-        .catch(() => false);
-      const ar = await withTimeout(xr.isSessionSupported('immersive-ar'), 'immersive-ar support')
-        .catch(() => false);
+      const vr = await withTimeout(
+        xr.isSessionSupported('immersive-vr'),
+        'immersive-vr support'
+      ).catch(() => false);
+      const ar = await withTimeout(
+        xr.isSessionSupported('immersive-ar'),
+        'immersive-ar support'
+      ).catch(() => false);
       const vrShimmed = xrCapabilityShimmed();
       push(
         'WebXR immersive-vr',
@@ -450,9 +465,10 @@ export function QuestProbe() {
   const recordNPC = (r: NPCObservabilityReceipt) => {
     setNpcEvents((es) => [r, ...es].slice(0, 8));
     const label = r.trait === 'ai_npc_brain' ? 'AI NPC Dialogue Received' : 'Caveman Drive Action';
-    const detail = r.trait === 'ai_npc_brain'
-      ? `${r.id} (${r.personality ?? 'neutral'}) responded at ${r.distance?.toFixed(1) ?? '?'}m; relationship ${r.relationshipDelta ?? 0 >= 0 ? '+' : ''}${r.relationshipDelta ?? 0}`
-      : `${r.id} executed drive verb: ${r.action ?? 'unknown'}`;
+    const detail =
+      r.trait === 'ai_npc_brain'
+        ? `${r.id} (${r.personality ?? 'neutral'}) responded at ${r.distance?.toFixed(1) ?? '?'}m; relationship ${(r.relationshipDelta ?? 0 >= 0) ? '+' : ''}${r.relationshipDelta ?? 0}`
+        : `${r.id} executed drive verb: ${r.action ?? 'unknown'}`;
     push(label, 'OK', detail);
     // posts the exact envelope the spec requires (runId, pageId, label, status, detail + npc sub-object via context)
     void postProofReceipt(label, 'OK', detail);
@@ -465,7 +481,8 @@ export function QuestProbe() {
       if (detail?.id && detail.trait) recordNPC(detail);
     };
     window.addEventListener('holoscript:npc-observability', handler as EventListener);
-    return () => window.removeEventListener('holoscript:npc-observability', handler as EventListener);
+    return () =>
+      window.removeEventListener('holoscript:npc-observability', handler as EventListener);
   }, []);
 
   // Demo trigger (immediate proof that the receipt path works on Quest hardware)
@@ -558,14 +575,29 @@ export function QuestProbe() {
       </div>
 
       {/* Live NPC Observability panel — receipts flow to the same /api/quest-proof tunnel path */}
-      <div style={{ margin: '8px 0 12px', padding: '8px 10px', border: '1px solid #334155', borderRadius: 6, background: '#0b0f14' }}>
-        <div style={{ color: '#93c5fd', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>AI NPCs (Quest-proof receipts)</div>
+      <div
+        style={{
+          margin: '8px 0 12px',
+          padding: '8px 10px',
+          border: '1px solid #334155',
+          borderRadius: 6,
+          background: '#0b0f14',
+        }}
+      >
+        <div style={{ color: '#93c5fd', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+          AI NPCs (Quest-proof receipts)
+        </div>
         {npcEvents.length === 0 ? (
-          <div style={{ color: '#64748b', fontSize: 12 }}>No NPC events yet — tap button 9 for demo, or real @ai_npc_brain / @caveman_drive events will appear here during Hololand Quest sessions.</div>
+          <div style={{ color: '#64748b', fontSize: 12 }}>
+            No NPC events yet — tap button 9 for demo, or real @ai_npc_brain / @caveman_drive events
+            will appear here during Hololand Quest sessions.
+          </div>
         ) : (
           npcEvents.map((e, i) => (
             <div key={i} style={{ fontSize: 12, color: '#cbd5e1', margin: '2px 0' }}>
-              {e.trait === 'ai_npc_brain' ? '🗣️' : '🐾'} {e.id} — {e.trait === 'ai_npc_brain' ? e.personality : e.action} {e.distance != null ? `@ ${e.distance.toFixed(1)}m` : ''}
+              {e.trait === 'ai_npc_brain' ? '🗣️' : '🐾'} {e.id} —{' '}
+              {e.trait === 'ai_npc_brain' ? e.personality : e.action}{' '}
+              {e.distance != null ? `@ ${e.distance.toFixed(1)}m` : ''}
             </div>
           ))
         )}

@@ -8,7 +8,13 @@
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 export type WisdomSeverity = 'info' | 'warning' | 'error' | 'suggestion';
-export type WisdomDomain = 'performance' | 'security' | 'correctness' | 'style' | 'compatibility' | 'architecture';
+export type WisdomDomain =
+  | 'performance'
+  | 'security'
+  | 'correctness'
+  | 'style'
+  | 'compatibility'
+  | 'architecture';
 
 export interface WisdomConfig {
   id: string;
@@ -30,31 +36,62 @@ export interface WisdomState {
   suppressedByUser: boolean;
 }
 
-const defaultConfig: WisdomConfig = { id: '', message: '', severity: 'info', domain: 'correctness', autoFix: false, appliesTo: [], references: [], confidence: 0.9 };
+const defaultConfig: WisdomConfig = {
+  id: '',
+  message: '',
+  severity: 'info',
+  domain: 'correctness',
+  autoFix: false,
+  appliesTo: [],
+  references: [],
+  confidence: 0.9,
+};
 
 export function createWisdomHandler(): TraitHandler<WisdomConfig> {
-  return { name: 'wisdom', defaultConfig,
+  return {
+    name: 'wisdom',
+    defaultConfig,
     onAttach(n: HSPlusNode, c: WisdomConfig, ctx: TraitContext) {
-      n.__wisdomState = { triggered: false, triggeredAt: null, fixApplied: false, suppressedByUser: false };
+      n.__wisdomState = {
+        triggered: false,
+        triggeredAt: null,
+        fixApplied: false,
+        suppressedByUser: false,
+      };
       ctx.emit?.('wisdom:registered', { id: c.id, severity: c.severity, domain: c.domain });
     },
-    onDetach(n: HSPlusNode, _c: WisdomConfig, ctx: TraitContext) { delete n.__wisdomState; ctx.emit?.('wisdom:unregistered'); },
+    onDetach(n: HSPlusNode, _c: WisdomConfig, ctx: TraitContext) {
+      delete n.__wisdomState;
+      ctx.emit?.('wisdom:unregistered');
+    },
     onUpdate() {},
     onEvent(n: HSPlusNode, c: WisdomConfig, ctx: TraitContext, e: TraitEvent) {
-      const s = n.__wisdomState as WisdomState | undefined; if (!s) return;
+      const s = n.__wisdomState as WisdomState | undefined;
+      if (!s) return;
       if (e.type === 'wisdom:check') {
-        const context = e.payload?.context as string ?? '';
-        const matches = c.appliesTo.length === 0 || c.appliesTo.some(pattern => context.includes(pattern));
+        const context = (e.payload?.context as string) ?? '';
+        const matches =
+          c.appliesTo.length === 0 || c.appliesTo.some((pattern) => context.includes(pattern));
         if (matches && !s.suppressedByUser) {
-          s.triggered = true; s.triggeredAt = Date.now();
-          ctx.emit?.('wisdom:triggered', { id: c.id, severity: c.severity, message: c.message, autoFix: c.autoFix, fixDescription: c.fixDescription });
+          s.triggered = true;
+          s.triggeredAt = Date.now();
+          ctx.emit?.('wisdom:triggered', {
+            id: c.id,
+            severity: c.severity,
+            message: c.message,
+            autoFix: c.autoFix,
+            fixDescription: c.fixDescription,
+          });
         }
       }
       if (e.type === 'wisdom:apply_fix' && c.autoFix && s.triggered) {
         s.fixApplied = true;
         ctx.emit?.('wisdom:fix_applied', { id: c.id, transform: c.fixTransform });
       }
-      if (e.type === 'wisdom:suppress') { s.suppressedByUser = true; ctx.emit?.('wisdom:suppressed', { id: c.id }); }
+      if (e.type === 'wisdom:suppress') {
+        s.suppressedByUser = true;
+        ctx.emit?.('wisdom:suppressed', { id: c.id });
+      }
     },
   };
 }

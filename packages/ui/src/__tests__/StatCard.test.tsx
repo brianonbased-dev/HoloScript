@@ -31,9 +31,7 @@ describe('StatCard', () => {
   });
 
   it('renders loading skeleton when loading', () => {
-    const { container } = render(
-      <StatCard title="Users" value={0} format="number" loading />
-    );
+    const { container } = render(<StatCard title="Users" value={0} format="number" loading />);
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
     // Should not render the value text when loading
     expect(screen.queryByText('0')).not.toBeInTheDocument();

@@ -19,13 +19,13 @@ The matrix doesn't surface `\stub{}` markers directly. The parser uses the
 Staleness column's `<N> todo` count as the stubCount proxy (W.103 — matrix
 captures \todo{} markers, not \stub{}). For human baselines I apply the SAME
 proxy: if matrix shows N>0 todos, treat as stubCount=N. The Gate 3 question
-isn't whether the proxy is *correct* — it's whether the *parser implements
-the same proxy as a human reader would*.
+isn't whether the proxy is _correct_ — it's whether the _parser implements
+the same proxy as a human reader would_.
 
 For older 11-column snapshots (pre-2026-04-19) there is no Staleness column
 and stubCount falls back to 0; the baseline applies the same fallback.
 
-For `trust-by-construction` (TVCG, off-matrix): default per fixture _note —
+For `trust-by-construction` (TVCG, off-matrix): default per fixture \_note —
 `blooming` (drafted, intentionally not anchored per I.009).
 
 For Paper 7 / `p2-1-ik`: 2026-04-24+ matrix marks it RETIRED -> wilted.

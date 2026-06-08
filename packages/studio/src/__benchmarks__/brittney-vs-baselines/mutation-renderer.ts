@@ -64,14 +64,18 @@ function describeObject(obj: RenderedObject): string {
     parts.push(`  radius: ${obj.radius.toFixed(2)}`);
   }
   if (obj.major_radius !== undefined) {
-    parts.push(`  major radius: ${obj.major_radius.toFixed(2)}, minor: ${obj.minor_radius?.toFixed(2) ?? '?'}`);
+    parts.push(
+      `  major radius: ${obj.major_radius.toFixed(2)}, minor: ${obj.minor_radius?.toFixed(2) ?? '?'}`
+    );
   }
 
   // Transform
   parts.push(`  position: ${formatPosition(obj.position)}`);
   if (obj.rotation && obj.rotation.length >= 3) {
     const isQuaternion = obj.rotation.length === 4;
-    parts.push(`  rotation: [${obj.rotation.map((n) => Number(n).toFixed(3)).join(', ')}]${isQuaternion ? ' (quaternion)' : ''}`);
+    parts.push(
+      `  rotation: [${obj.rotation.map((n) => Number(n).toFixed(3)).join(', ')}]${isQuaternion ? ' (quaternion)' : ''}`
+    );
   }
   if (obj.scale) {
     const scaleStr = formatScale(obj.scale);
@@ -110,11 +114,12 @@ export function renderMutationsToProse(mutations: SceneMutation[]): string {
     if (m.tool_name === 'create_object') {
       createObjects.push(parseCreateObject(m.input));
     } else {
-      const status = m.sim_contract_passed === true
-        ? 'passed'
-        : m.sim_contract_passed === false
-          ? 'rejected'
-          : 'unknown';
+      const status =
+        m.sim_contract_passed === true
+          ? 'passed'
+          : m.sim_contract_passed === false
+            ? 'rejected'
+            : 'unknown';
       otherMutations.push(`- ${m.tool_name}: ${JSON.stringify(m.input)} [${status}]`);
     }
   }

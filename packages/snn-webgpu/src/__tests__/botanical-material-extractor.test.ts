@@ -120,8 +120,8 @@ describe('botanical material extractor', () => {
     expect(result.source.signed_anchor_count).toBe(0);
     expect(result.confidence.provenance).toBeLessThan(1);
     expect(result.confidence.overall).toBeLessThan(0.9);
-    expect(result.provenance.anchor_receipts.every((receipt) => !receipt.wallet_signature_present)).toBe(
-      true
-    );
+    expect(
+      result.provenance.anchor_receipts.every((receipt) => !receipt.wallet_signature_present)
+    ).toBe(true);
   });
 });

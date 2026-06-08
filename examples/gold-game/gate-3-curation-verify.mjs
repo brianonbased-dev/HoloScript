@@ -45,14 +45,14 @@ const require = createRequire(import.meta.url);
 
 // ── REAL contract spine: computeStateDigest from the engine source ───────────
 const { computeStateDigest } = await imp(
-  join(repoRoot, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'),
+  join(repoRoot, 'packages', 'engine', 'src', 'simulation', 'hashes.ts')
 );
 
 // ── Core: parse the flagship .holo (the world the curation happens in) ────────
 const core = await imp(join(repoRoot, 'packages', 'core', 'dist', 'index.js'));
 const { parseHolo } = core;
 const coreVersion = JSON.parse(
-  readFileSync(join(repoRoot, 'packages', 'core', 'package.json'), 'utf8'),
+  readFileSync(join(repoRoot, 'packages', 'core', 'package.json'), 'utf8')
 ).version;
 
 // ── The REAL curation verb (same primitive Gate 2 + server.cjs use) ───────────
@@ -92,11 +92,13 @@ function graduatableBronze() {
   const st = V.readState(sandboxDir);
   // value = lineage_links read from disk; descending value, id tiebreak (deterministic)
   const ids = st.tiers.bronze.slice();
-  const withVal = ids.map((id) => {
-    const f = V.findEntry(sandboxDir, id);
-    return { id, value: (f && f.entry.lineage_links) || 0 };
-  }).filter((x) => x.value >= 1);
-  withVal.sort((a, b) => (b.value - a.value) || (a.id < b.id ? -1 : 1));
+  const withVal = ids
+    .map((id) => {
+      const f = V.findEntry(sandboxDir, id);
+      return { id, value: (f && f.entry.lineage_links) || 0 };
+    })
+    .filter((x) => x.value >= 1);
+  withVal.sort((a, b) => b.value - a.value || (a.id < b.id ? -1 : 1));
   return withVal;
 }
 
@@ -133,7 +135,7 @@ function vaultToSolver() {
   for (let ti = 0; ti < V.ALL_TIERS.length; ti++) {
     for (const id of st.tiers[V.ALL_TIERS[ti]]) pairs.push([idToInt(id), ti]);
   }
-  pairs.sort((a, b) => (a[0] - b[0]) || (a[1] - b[1])); // order-independent
+  pairs.sort((a, b) => a[0] - b[0] || a[1] - b[1]); // order-independent
   return { fieldNames: ['vault'], getField: () => Float32Array.from(pairs.flat()) };
 }
 
@@ -141,11 +143,11 @@ function vaultToSolver() {
 const wmr = []; // agent WorldModelReceipts (sensed pool -> chosen action -> result)
 const humanGraduations = [];
 const agentGraduations = [];
-let humanTookTopTargetRound = -1;  // round the human graduated the agent's intended top
-let agentDeniedTopTarget = false;  // agent could not get its intended top target
-let firstAgentTarget = null;       // what the agent actually graduated first (the re-plan)
-let agentReplanned = false;        // intended top != first actual target (denied -> re-plan)
-let mutualEffectRound = -1;        // a round where a human grad reduced the agent's pool
+let humanTookTopTargetRound = -1; // round the human graduated the agent's intended top
+let agentDeniedTopTarget = false; // agent could not get its intended top target
+let firstAgentTarget = null; // what the agent actually graduated first (the re-plan)
+let agentReplanned = false; // intended top != first actual target (denied -> re-plan)
+let mutualEffectRound = -1; // a round where a human grad reduced the agent's pool
 
 for (let r = 0; r < ROUNDS; r++) {
   // --- HUMAN acts first (scripted) ---
@@ -154,7 +156,12 @@ for (let r = 0; r < ROUNDS; r++) {
   if (hTarget && poolBeforeHuman.includes(hTarget)) {
     const hr = V.graduate(sandboxDir, hTarget, 'human-curator');
     if (hr.ok) {
-      humanGraduations.push({ round: r, id: hTarget, fromTier: hr.receipt.fromTier, toTier: hr.receipt.toTier });
+      humanGraduations.push({
+        round: r,
+        id: hTarget,
+        fromTier: hr.receipt.fromTier,
+        toTier: hr.receipt.toTier,
+      });
       if (hTarget === intendedTopTarget && humanTookTopTargetRound < 0) humanTookTopTargetRound = r;
     }
   }
@@ -163,16 +170,25 @@ for (let r = 0; r < ROUNDS; r++) {
   const poolAfterHuman = graduatableBronze().map((x) => x.id);
   const aTarget = agentSelectTarget(); // reacts to what the human just did
   // mutual effect: the human's action this round shrank the agent's options
-  if (mutualEffectRound < 0 && poolBeforeHuman.length > poolAfterHuman.length) mutualEffectRound = r;
+  if (mutualEffectRound < 0 && poolBeforeHuman.length > poolAfterHuman.length)
+    mutualEffectRound = r;
 
   let action;
   if (aTarget) {
     const ar = V.graduate(sandboxDir, aTarget, 'ai-agent-curator');
     if (ar.ok) {
-      agentGraduations.push({ round: r, id: aTarget, fromTier: ar.receipt.fromTier, toTier: ar.receipt.toTier });
+      agentGraduations.push({
+        round: r,
+        id: aTarget,
+        fromTier: ar.receipt.fromTier,
+        toTier: ar.receipt.toTier,
+      });
       if (firstAgentTarget === null) {
         firstAgentTarget = aTarget;
-        if (firstAgentTarget !== intendedTopTarget) { agentReplanned = true; agentDeniedTopTarget = true; }
+        if (firstAgentTarget !== intendedTopTarget) {
+          agentReplanned = true;
+          agentDeniedTopTarget = true;
+        }
       }
       action = { type: 'graduate', target: aTarget };
     } else {
@@ -198,11 +214,15 @@ for (let r = 0; r < ROUNDS; r++) {
 
 // helper: the top of an already-sensed pool snapshot (no re-read; deterministic)
 function agentSelectTargetSnapshot(poolIds) {
-  let best = null, bestVal = -1;
+  let best = null,
+    bestVal = -1;
   for (const id of poolIds) {
     const f = V.findEntry(sandboxDir, id);
     const v = (f && f.entry.lineage_links) || 0;
-    if (v > bestVal || (v === bestVal && best && id < best)) { best = id; bestVal = v; }
+    if (v > bestVal || (v === bestVal && best && id < best)) {
+      best = id;
+      bestVal = v;
+    }
   }
   return best;
 }
@@ -222,20 +242,27 @@ const wmrDigest = computeStateDigest(
           w.action.target ? idToInt(w.action.target) : 0,
           w.sensed.poolSize,
           w.sensed.intendedTopAvailable ? 1 : 0,
-        ]),
+        ])
       ),
   },
-  HASH_MODE,
+  HASH_MODE
 );
 
 const actionTypes = [...new Set(wmr.map((w) => w.action.type))];
 const finalState = V.readState(sandboxDir);
-const allContestGraduated = [...CONTEST.map((e) => e.id), 'B.GRADUATE.001']
-  .every((id) => finalState.tiers.gold.includes(id));
+const allContestGraduated = [...CONTEST.map((e) => e.id), 'B.GRADUATE.001'].every((id) =>
+  finalState.tiers.gold.includes(id)
+);
 
 // false case (variational gate of curation): the verb refuses an ungraduatable entry
-const diamondRefused = (() => { const r = V.graduate(sandboxDir, 'P.GOLD.001'); return !r.ok && /top tier/.test(r.error); })();
-const unknownRefused = (() => { const r = V.graduate(sandboxDir, 'NOPE.999'); return !r.ok; })();
+const diamondRefused = (() => {
+  const r = V.graduate(sandboxDir, 'P.GOLD.001');
+  return !r.ok && /top tier/.test(r.error);
+})();
+const unknownRefused = (() => {
+  const r = V.graduate(sandboxDir, 'NOPE.999');
+  return !r.ok;
+})();
 
 const receipt = {
   gate: 3,
@@ -253,21 +280,34 @@ const receipt = {
   },
   pool: {
     seedVaultDigest,
-    contest: [...CONTEST.map((e) => ({ id: e.id, value: e.lineage_links })), { id: 'B.GRADUATE.001', value: 1 }],
+    contest: [
+      ...CONTEST.map((e) => ({ id: e.id, value: e.lineage_links })),
+      { id: 'B.GRADUATE.001', value: 1 },
+    ],
     valueSignal: 'lineage_links (mirrors farm.py lineage-detection promotion)',
   },
   policies: {
-    human: { driver: 'scripted curation trace (recorded human picks), idiosyncratic order — NOT value-sorted', trace: HUMAN_TRACE },
-    agent: { driver: 'value selection — no script; senses live bronze pool each round, graduates highest-lineage entry', intendedTopTarget },
+    human: {
+      driver:
+        'scripted curation trace (recorded human picks), idiosyncratic order — NOT value-sorted',
+      trace: HUMAN_TRACE,
+    },
+    agent: {
+      driver:
+        'value selection — no script; senses live bronze pool each round, graduates highest-lineage entry',
+      intendedTopTarget,
+    },
     genuinelyDifferent: true,
   },
   mutualEffect: {
-    sharedPool: 'one bronze pool; the human acts first each round and a graduation removes the entry, shrinking the agent value set',
+    sharedPool:
+      'one bronze pool; the human acts first each round and a graduation removes the entry, shrinking the agent value set',
     humanTookAgentTopTarget: humanTookTopTargetRound >= 0,
     humanTookTopTargetRound,
     mutualEffectRound,
     humanGraduations,
-    proof: "the agent's pre-session intended top target (highest-value entry) was graduated by the human first, denying it; the agent then graduated the next-best available entry — its choice set is causally reduced by the human on the REAL curation verb.",
+    proof:
+      "the agent's pre-session intended top target (highest-value entry) was graduated by the human first, denying it; the agent then graduated the next-best available entry — its choice set is causally reduced by the human on the REAL curation verb.",
   },
   agentReplan: {
     replanned: agentReplanned,
@@ -276,20 +316,23 @@ const receipt = {
     firstActualTarget: firstAgentTarget,
     agentGraduations,
     actionTypesObserved: actionTypes,
-    note: "intendedTopTarget != firstActualTarget proves the agent re-planned BECAUSE the shared entry was taken — the curation analog of the compass denial+re-plan, on graduate().",
+    note: 'intendedTopTarget != firstActualTarget proves the agent re-planned BECAUSE the shared entry was taken — the curation analog of the compass denial+re-plan, on graduate().',
   },
   contract: {
-    spine: 'REAL computeStateDigest from packages/engine/src/simulation/hashes.ts (imported via tsx) — same fn SimulationContract pushes on solve()',
+    spine:
+      'REAL computeStateDigest from packages/engine/src/simulation/hashes.ts (imported via tsx) — same fn SimulationContract pushes on solve()',
     function: 'computeStateDigest(solver, hashMode)',
     algorithm: HASH_MODE,
     sharedVaultDigest,
     finalTiers: { gold: finalState.tiers.gold, bronze: finalState.tiers.bronze },
-    reproducible: 'run `node_modules/.bin/tsx examples/gold-game/gate-3-curation-verify.mjs` to re-derive',
+    reproducible:
+      'run `node_modules/.bin/tsx examples/gold-game/gate-3-curation-verify.mjs` to re-derive',
   },
   worldModelReceipts: {
     count: wmr.length,
     digest: wmrDigest,
-    schema: 'cael-curation-wmr-v1 (round, sensed{poolSize,topAvailable,intendedTop,intendedTopAvailable}, action{type,target}, result{graduated})',
+    schema:
+      'cael-curation-wmr-v1 (round, sensed{poolSize,topAvailable,intendedTop,intendedTopAvailable}, action{type,target}, result{graduated})',
     note: 'one WorldModelReceipt per agent curation decision; the AI population emits provenance the human population does not — both hashed by the contract fn.',
   },
   aiHumanConnection: {
@@ -299,8 +342,10 @@ const receipt = {
     sameReceiptSpine: true,
     genuinePolicyDivergence: true,
     mutualEffect: true,
-    proof: 'one shared session: human (scripted curation trace) and agent (value selection) graduate from ONE shared bronze pool via the real graduate() verb; the human takes the agent’s top-value entry first, denying it; the agent re-plans to the next-best. Real file moves + sealed receipts; both digests via the real contract fn.',
-    honestScope: 'The human picks are a RECORDED/scripted trace (deterministic stand-in for live curation input) and the agent value-model is a hand-authored lineage-descending policy — NOT a learned model or a live operator session. Graduations write to a SANDBOX vault; promotion to the governed D:/GOLD stays founder-gated. What is PROVEN: two genuinely different curation policies, in one shared deterministic session, affecting each other through a shared pool on the REAL graduate verb, with the agent re-planning in response and emitting WorldModelReceipts under the real contract digest. What is NOT yet proven: a live human operator session and a trained curation policy (Gate 5 scope via /embodied). This re-grounds the connection mechanics (proven generically on the Oasis compass, commit 7cf8ef3eb) onto the flagship’s real curation verb.',
+    proof:
+      'one shared session: human (scripted curation trace) and agent (value selection) graduate from ONE shared bronze pool via the real graduate() verb; the human takes the agent’s top-value entry first, denying it; the agent re-plans to the next-best. Real file moves + sealed receipts; both digests via the real contract fn.',
+    honestScope:
+      'The human picks are a RECORDED/scripted trace (deterministic stand-in for live curation input) and the agent value-model is a hand-authored lineage-descending policy — NOT a learned model or a live operator session. Graduations write to a SANDBOX vault; promotion to the governed D:/GOLD stays founder-gated. What is PROVEN: two genuinely different curation policies, in one shared deterministic session, affecting each other through a shared pool on the REAL graduate verb, with the agent re-planning in response and emitting WorldModelReceipts under the real contract digest. What is NOT yet proven: a live human operator session and a trained curation policy (Gate 5 scope via /embodied). This re-grounds the connection mechanics (proven generically on the Oasis compass, commit 7cf8ef3eb) onto the flagship’s real curation verb.',
   },
   core: coreVersion,
   verifiedAt: new Date().toISOString(),
@@ -310,9 +355,20 @@ const emit = process.argv.includes('--emit');
 if (emit) {
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n');
   console.log('GATE-3 (CURATION) RECEIPT EMITTED →', receiptPath);
-  console.log('  intendedTop=' + intendedTopTarget, 'firstActual=' + firstAgentTarget, 'replanned=' + agentReplanned);
-  console.log('  humanTookTopRound=' + humanTookTopTargetRound, 'mutualEffectRound=' + mutualEffectRound);
-  console.log('  humanGrads=' + humanGraduations.length, 'agentGrads=' + agentGraduations.length, 'allGraduated=' + allContestGraduated);
+  console.log(
+    '  intendedTop=' + intendedTopTarget,
+    'firstActual=' + firstAgentTarget,
+    'replanned=' + agentReplanned
+  );
+  console.log(
+    '  humanTookTopRound=' + humanTookTopTargetRound,
+    'mutualEffectRound=' + mutualEffectRound
+  );
+  console.log(
+    '  humanGrads=' + humanGraduations.length,
+    'agentGrads=' + agentGraduations.length,
+    'allGraduated=' + allContestGraduated
+  );
   console.log('  sharedVaultDigest=' + sharedVaultDigest);
   console.log('  wmrCount=' + wmr.length, 'wmrDigest=' + wmrDigest);
 } else {
@@ -326,22 +382,39 @@ if (emit) {
   const checks = [
     ['flagship .holo parses (0 errors)', (parsed.errors || []).length === 0],
     ['single shared session ran all rounds', wmr.length === ROUNDS],
-    ['human took the agent’s intended top target first (mutual effect: denied the agent)', humanTookTopTargetRound >= 0],
+    [
+      'human took the agent’s intended top target first (mutual effect: denied the agent)',
+      humanTookTopTargetRound >= 0,
+    ],
     ['agent did NOT get its intended top target (was denied)', agentDeniedTopTarget === true],
     ['agent re-planned (intendedTop != first actual target)', agentReplanned === true],
-    ['agent first actual target is the next-best available (real value re-plan)', firstAgentTarget === 'C.CURATE.002'],
+    [
+      'agent first actual target is the next-best available (real value re-plan)',
+      firstAgentTarget === 'C.CURATE.002',
+    ],
     ['mutual effect: a human graduation shrank the agent value set', mutualEffectRound >= 0],
     ['real curation happened: >=2 agent graduations (bronze->gold)', agentGraduations.length >= 2],
     ['every contest entry ended in gold on disk (real file moves)', allContestGraduated === true],
-    ['two distinct agent action types observed (graduate, pass)', new Set(wmr.map((w) => w.action.type)).size === 2],
+    [
+      'two distinct agent action types observed (graduate, pass)',
+      new Set(wmr.map((w) => w.action.type)).size === 2,
+    ],
     ['variational gate: verb refuses a top-tier (Diamond) entry', diamondRefused === true],
     ['variational gate: verb refuses an unknown entry', unknownRefused === true],
     ['shared-vault digest reproduces', sharedVaultDigest === existing.contract.sharedVaultDigest],
-    ['agent WorldModelReceipt-stream digest reproduces', wmrDigest === existing.worldModelReceipts.digest],
-    ['real computeStateDigest produced non-empty digests', sharedVaultDigest.length > 0 && wmrDigest.length > 0],
+    [
+      'agent WorldModelReceipt-stream digest reproduces',
+      wmrDigest === existing.worldModelReceipts.digest,
+    ],
+    [
+      'real computeStateDigest produced non-empty digests',
+      sharedVaultDigest.length > 0 && wmrDigest.length > 0,
+    ],
   ];
   let ok = true;
-  console.log('GATE-3 (FLAGSHIP CURATION) RECEIPT VERIFICATION (independent re-derive, REAL contract fn):');
+  console.log(
+    'GATE-3 (FLAGSHIP CURATION) RECEIPT VERIFICATION (independent re-derive, REAL contract fn):'
+  );
   for (const [label, pass] of checks) {
     console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label);
     ok = ok && pass;

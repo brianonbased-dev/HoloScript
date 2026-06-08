@@ -52,9 +52,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log(
-    `[verify-claude-plugin-skills] OK — ${listedSet.size} skill(s) in sync (${ROOT})`
-  );
+  console.log(`[verify-claude-plugin-skills] OK — ${listedSet.size} skill(s) in sync (${ROOT})`);
 }
 
 main();

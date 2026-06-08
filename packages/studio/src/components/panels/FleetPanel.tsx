@@ -97,7 +97,11 @@ function loadSettings(): DispatchSettings {
 }
 
 function saveSettings(s: DispatchSettings) {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch {
+    /* ignore */
+  }
 }
 
 // ─── Dispatch result types ───────────────────────────────────────────────────
@@ -148,17 +152,28 @@ export function FleetPanel() {
   const settingsLoaded = useRef(false);
 
   // Server-side config (caps, executor status)
-  const [serverConfig, setServerConfig] = useState<{ executorEnabled: boolean; spend: { capUsd: number; spentUsd: number; remainingUsd: number } } | null>(null);
+  const [serverConfig, setServerConfig] = useState<{
+    executorEnabled: boolean;
+    spend: { capUsd: number; spentUsd: number; remainingUsd: number };
+  } | null>(null);
 
   // Mission schedules from /api/agents/fleet/schedules
-  interface MissionSchedule { id: string; name: string; description: string; skills: string[]; schedules: string[] }
+  interface MissionSchedule {
+    id: string;
+    name: string;
+    description: string;
+    skills: string[];
+    schedules: string[];
+  }
   const [missionSchedules, setMissionSchedules] = useState<MissionSchedule[]>([]);
   const [schedulesOpen, setSchedulesOpen] = useState(false);
 
   const refreshServerConfig = useCallback(() => {
     fetch('/api/agents/fleet/dispatch')
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setServerConfig(d); })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d) setServerConfig(d);
+      })
       .catch(() => {});
   }, []);
 
@@ -170,8 +185,10 @@ export function FleetPanel() {
     }
     refreshServerConfig();
     fetch('/api/agents/fleet/schedules')
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d?.schedules) setMissionSchedules(d.schedules); })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.schedules) setMissionSchedules(d.schedules);
+      })
       .catch(() => {});
   }, [refreshServerConfig]);
 
@@ -230,7 +247,7 @@ export function FleetPanel() {
           setData({
             team_id: fleetJson.teamId || membersJson.teamId || teamId,
             snapshot_iso: snapshotIso,
-            online_count: membersJson.online_count || agents.filter(a => a.online).length,
+            online_count: membersJson.online_count || agents.filter((a) => a.online).length,
             agents,
             hardware,
             fleet_health: health.status,
@@ -247,39 +264,45 @@ export function FleetPanel() {
 
     load();
     const id = setInterval(load, 15000); // live refresh
-    return () => { cancelled = true; clearInterval(id); };
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [teamId]);
 
-  const runDispatch = useCallback(async (overrideDryRun?: boolean) => {
-    setDispatching(true);
-    setDispatchResult(null);
-    setDispatchError(null);
-    const isDry = overrideDryRun ?? settings.dryRun;
-    try {
-      const res = await fetch('/api/agents/fleet/dispatch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          teamId: settings.teamId,
-          maxDispatches: settings.maxDispatches,
-          capUsd: settings.capUsd,
-          dryRun: isDry,
-          executeAfterClaim: !isDry && settings.executeAfterClaim,
-        }),
-      });
-      const json = await res.json() as DispatchResult;
-      if (!res.ok) {
-        setDispatchError((json as unknown as { error?: string }).error ?? `HTTP ${res.status}`);
-      } else {
-        setDispatchResult(json);
+  const runDispatch = useCallback(
+    async (overrideDryRun?: boolean) => {
+      setDispatching(true);
+      setDispatchResult(null);
+      setDispatchError(null);
+      const isDry = overrideDryRun ?? settings.dryRun;
+      try {
+        const res = await fetch('/api/agents/fleet/dispatch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teamId: settings.teamId,
+            maxDispatches: settings.maxDispatches,
+            capUsd: settings.capUsd,
+            dryRun: isDry,
+            executeAfterClaim: !isDry && settings.executeAfterClaim,
+          }),
+        });
+        const json = (await res.json()) as DispatchResult;
+        if (!res.ok) {
+          setDispatchError((json as unknown as { error?: string }).error ?? `HTTP ${res.status}`);
+        } else {
+          setDispatchResult(json);
+        }
+      } catch (e: unknown) {
+        setDispatchError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setDispatching(false);
+        refreshServerConfig();
       }
-    } catch (e: unknown) {
-      setDispatchError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setDispatching(false);
-      refreshServerConfig();
-    }
-  }, [settings, refreshServerConfig]);
+    },
+    [settings, refreshServerConfig]
+  );
 
   if (loading && !data) return <div className="p-3 text-xs text-studio-muted">Loading fleet…</div>;
   if (error) return <div className="p-3 text-xs text-red-400">Error: {error}</div>;
@@ -305,20 +328,43 @@ export function FleetPanel() {
           <span className="text-[9px] text-studio-muted">({data.agents.length})</span>
         </div>
         <div className="space-y-1">
-          {data.agents.length === 0 && <div className="text-studio-muted italic">No agents reported</div>}
+          {data.agents.length === 0 && (
+            <div className="text-studio-muted italic">No agents reported</div>
+          )}
           {data.agents.map((a) => (
-            <div key={a.handle} className="border border-studio-border/40 rounded px-1.5 py-0.5 bg-studio-panel/30">
+            <div
+              key={a.handle}
+              className="border border-studio-border/40 rounded px-1.5 py-0.5 bg-studio-panel/30"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
                   <span className={a.online ? 'text-emerald-400' : 'text-red-400'}>●</span>
                   <span className="font-mono text-[10px]">{a.handle}</span>
-                  {a.surface_tag && <span className="text-[8px] bg-studio-border/30 px-0.5 rounded">{a.surface_tag}</span>}
+                  {a.surface_tag && (
+                    <span className="text-[8px] bg-studio-border/30 px-0.5 rounded">
+                      {a.surface_tag}
+                    </span>
+                  )}
                 </div>
-                <div className="text-[8px] text-studio-muted">{a.last_heartbeat ? new Date(a.last_heartbeat).toLocaleTimeString() : '—'}</div>
+                <div className="text-[8px] text-studio-muted">
+                  {a.last_heartbeat ? new Date(a.last_heartbeat).toLocaleTimeString() : '—'}
+                </div>
               </div>
-              {a.current_task && <div className="text-[9px] text-studio-accent truncate">→ {a.current_task}</div>}
+              {a.current_task && (
+                <div className="text-[9px] text-studio-accent truncate">→ {a.current_task}</div>
+              )}
               <div className="flex gap-1 mt-0.5">
-                <button className="text-[8px] underline hover:text-studio-accent" onClick={() => window.open(`https://holomesh.net/room/${data.team_id}?agent=${a.handle}`, '_blank')}>HoloRoom</button>
+                <button
+                  className="text-[8px] underline hover:text-studio-accent"
+                  onClick={() =>
+                    window.open(
+                      `https://holomesh.net/room/${data.team_id}?agent=${a.handle}`,
+                      '_blank'
+                    )
+                  }
+                >
+                  HoloRoom
+                </button>
                 <button
                   className="text-[8px] underline hover:text-studio-accent"
                   onClick={async () => {
@@ -356,16 +402,27 @@ export function FleetPanel() {
           <span>🖥️ HARDWARE (GPUs + WASM + CPU)</span>
         </div>
         <div className="space-y-1">
-          {data.hardware.length === 0 && <div className="text-studio-muted italic">No hardware telemetry yet (sync_hardware_loop)</div>}
+          {data.hardware.length === 0 && (
+            <div className="text-studio-muted italic">
+              No hardware telemetry yet (sync_hardware_loop)
+            </div>
+          )}
           {data.hardware.map((h) => (
-            <div key={h.device_id} className="border border-studio-border/40 rounded px-1.5 py-0.5 bg-studio-panel/30">
+            <div
+              key={h.device_id}
+              className="border border-studio-border/40 rounded px-1.5 py-0.5 bg-studio-panel/30"
+            >
               <div className="flex justify-between">
                 <span className="font-mono text-[10px]">{h.name}</span>
                 <span className="text-[9px]">{h.utilization ?? '—'}%</span>
               </div>
-              <div className="text-[9px] text-studio-muted">{h.vram_or_memory || ''} • used by {h.used_by_agent || 'idle'}</div>
+              <div className="text-[9px] text-studio-muted">
+                {h.vram_or_memory || ''} • used by {h.used_by_agent || 'idle'}
+              </div>
               {h.jobs && h.jobs.length > 0 && (
-                <div className="text-[8px] text-studio-accent truncate">jobs: {h.jobs.join(', ')}</div>
+                <div className="text-[8px] text-studio-accent truncate">
+                  jobs: {h.jobs.join(', ')}
+                </div>
               )}
             </div>
           ))}
@@ -381,21 +438,32 @@ export function FleetPanel() {
             onClick={() => setSchedulesOpen((v) => !v)}
           >
             <span>🗓 SCHEDULES</span>
-            <span className="text-[8px] text-studio-muted">{schedulesOpen ? '▲' : '▼'} {missionSchedules.length} missions</span>
+            <span className="text-[8px] text-studio-muted">
+              {schedulesOpen ? '▲' : '▼'} {missionSchedules.length} missions
+            </span>
           </button>
           {schedulesOpen && (
             <div className="space-y-1">
               {missionSchedules.map((m) => (
-                <div key={m.id} className="border border-studio-border/30 rounded px-1.5 py-0.5 bg-studio-panel/20">
+                <div
+                  key={m.id}
+                  className="border border-studio-border/30 rounded px-1.5 py-0.5 bg-studio-panel/20"
+                >
                   <div className="flex justify-between items-start">
                     <span className="font-medium text-[9px]">{m.name}</span>
-                    <span className="text-[8px] text-studio-muted ml-1 shrink-0">{m.schedules.join(', ')}</span>
+                    <span className="text-[8px] text-studio-muted ml-1 shrink-0">
+                      {m.schedules.join(', ')}
+                    </span>
                   </div>
                   <div className="text-[8px] text-studio-muted truncate">{m.description}</div>
-                  <div className="text-[7px] text-studio-muted/70 mt-0.5">{m.skills.join(' · ')}</div>
+                  <div className="text-[7px] text-studio-muted/70 mt-0.5">
+                    {m.skills.join(' · ')}
+                  </div>
                 </div>
               ))}
-              <div className="text-[7px] text-studio-muted">Schedules execute via HoloShell Team registry → board tasks → daemon claim</div>
+              <div className="text-[7px] text-studio-muted">
+                Schedules execute via HoloShell Team registry → board tasks → daemon claim
+              </div>
             </div>
           )}
         </div>
@@ -412,26 +480,33 @@ export function FleetPanel() {
         </button>
 
         {/* Persistent spend bar — always visible */}
-        {serverConfig && (() => {
-          const spend = dispatchResult?.spend ?? serverConfig.spend;
-          const pct = Math.min(100, (spend.spentUsd / spend.capUsd) * 100);
-          const color = pct >= 90 ? 'bg-red-400' : pct >= 60 ? 'bg-amber-400' : 'bg-emerald-400';
-          return (
-            <div className="mb-2">
-              <div className="flex justify-between text-[8px] text-studio-muted mb-0.5">
-                <span>Spend today</span>
-                <span>${spend.spentUsd.toFixed(2)} / ${spend.capUsd}
-                  {serverConfig.executorEnabled
-                    ? <span className="ml-1 text-emerald-400">• executor ON</span>
-                    : <span className="ml-1 text-studio-muted/60">• claim only</span>}
-                </span>
+        {serverConfig &&
+          (() => {
+            const spend = dispatchResult?.spend ?? serverConfig.spend;
+            const pct = Math.min(100, (spend.spentUsd / spend.capUsd) * 100);
+            const color = pct >= 90 ? 'bg-red-400' : pct >= 60 ? 'bg-amber-400' : 'bg-emerald-400';
+            return (
+              <div className="mb-2">
+                <div className="flex justify-between text-[8px] text-studio-muted mb-0.5">
+                  <span>Spend today</span>
+                  <span>
+                    ${spend.spentUsd.toFixed(2)} / ${spend.capUsd}
+                    {serverConfig.executorEnabled ? (
+                      <span className="ml-1 text-emerald-400">• executor ON</span>
+                    ) : (
+                      <span className="ml-1 text-studio-muted/60">• claim only</span>
+                    )}
+                  </span>
+                </div>
+                <div className="h-1 w-full rounded-full bg-studio-border/30 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${color}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-1 w-full rounded-full bg-studio-border/30 overflow-hidden">
-                <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {settingsOpen && (
           <div className="space-y-1.5 mb-2 bg-studio-panel/40 rounded p-1.5 border border-studio-border/30">
@@ -446,7 +521,9 @@ export function FleetPanel() {
             </label>
             <div className="flex gap-2">
               <label className="flex flex-col gap-0.5 flex-1">
-                <span className="text-[8px] text-studio-muted uppercase tracking-wider">Daily cap ($)</span>
+                <span className="text-[8px] text-studio-muted uppercase tracking-wider">
+                  Daily cap ($)
+                </span>
                 <input
                   type="number"
                   min={1}
@@ -458,14 +535,20 @@ export function FleetPanel() {
                 />
               </label>
               <label className="flex flex-col gap-0.5 flex-1">
-                <span className="text-[8px] text-studio-muted uppercase tracking-wider">Max tasks</span>
+                <span className="text-[8px] text-studio-muted uppercase tracking-wider">
+                  Max tasks
+                </span>
                 <input
                   type="number"
                   min={1}
                   max={10}
                   className="bg-studio-panel border border-studio-border/50 rounded px-1 py-0.5 text-[9px] w-full"
                   value={settings.maxDispatches}
-                  onChange={(e) => updateSettings({ maxDispatches: Math.min(10, Math.max(1, Number(e.target.value))) })}
+                  onChange={(e) =>
+                    updateSettings({
+                      maxDispatches: Math.min(10, Math.max(1, Number(e.target.value))),
+                    })
+                  }
                 />
               </label>
             </div>
@@ -488,7 +571,9 @@ export function FleetPanel() {
               />
               <span className={`text-[9px] ${settings.dryRun ? 'opacity-40' : ''}`}>
                 Execute after claim (LLM works the task)
-                {serverConfig?.executorEnabled && <span className="ml-1 text-emerald-400">• server ON</span>}
+                {serverConfig?.executorEnabled && (
+                  <span className="ml-1 text-emerald-400">• server ON</span>
+                )}
               </span>
             </label>
           </div>
@@ -520,36 +605,60 @@ export function FleetPanel() {
         {dispatchResult && (
           <div className="mt-1.5 space-y-1">
             <div className="text-[8px] text-studio-muted flex justify-between">
-              <span>{dispatchResult.dryRun ? 'Plan (dry run)' : 'Dispatched'} • {dispatchResult.teamId}</span>
+              <span>
+                {dispatchResult.dryRun ? 'Plan (dry run)' : 'Dispatched'} • {dispatchResult.teamId}
+              </span>
               {dispatchResult.spend && (
-                <span>${dispatchResult.spend.spentUsd.toFixed(2)} / ${dispatchResult.spend.capUsd} today</span>
+                <span>
+                  ${dispatchResult.spend.spentUsd.toFixed(2)} / ${dispatchResult.spend.capUsd} today
+                </span>
               )}
             </div>
 
             {/* Plan decisions */}
             {(dispatchResult.plan?.decisions ?? []).map((d, i) => (
-              <div key={i} className="border border-studio-border/30 rounded px-1.5 py-0.5 bg-studio-panel/20">
+              <div
+                key={i}
+                className="border border-studio-border/30 rounded px-1.5 py-0.5 bg-studio-panel/20"
+              >
                 <div className="flex justify-between">
-                  <span className="font-medium text-[9px] truncate max-w-[140px]">{d.taskTitle}</span>
-                  <span className="text-[8px] text-studio-muted">${d.estimatedSpendUsd.toFixed(2)}</span>
+                  <span className="font-medium text-[9px] truncate max-w-[140px]">
+                    {d.taskTitle}
+                  </span>
+                  <span className="text-[8px] text-studio-muted">
+                    ${d.estimatedSpendUsd.toFixed(2)}
+                  </span>
                 </div>
-                <div className="text-[8px] text-studio-muted">→ {d.agentHandle} • {d.reason}</div>
+                <div className="text-[8px] text-studio-muted">
+                  → {d.agentHandle} • {d.reason}
+                </div>
               </div>
             ))}
 
             {/* Executed dispatches */}
             {(dispatchResult.dispatched ?? []).map((d, i) => (
-              <div key={i} className={`border rounded px-1.5 py-0.5 ${d.success ? 'border-emerald-400/30 bg-emerald-400/5' : 'border-red-400/30 bg-red-400/5'}`}>
+              <div
+                key={i}
+                className={`border rounded px-1.5 py-0.5 ${d.success ? 'border-emerald-400/30 bg-emerald-400/5' : 'border-red-400/30 bg-red-400/5'}`}
+              >
                 <div className="flex justify-between">
-                  <span className="font-medium text-[9px] truncate max-w-[140px]">{d.taskTitle}</span>
-                  <span className={`text-[8px] ${d.success ? 'text-emerald-400' : 'text-red-400'}`}>{d.success ? 'claimed' : 'failed'}</span>
+                  <span className="font-medium text-[9px] truncate max-w-[140px]">
+                    {d.taskTitle}
+                  </span>
+                  <span className={`text-[8px] ${d.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {d.success ? 'claimed' : 'failed'}
+                  </span>
                 </div>
                 <div className="text-[8px] text-studio-muted">→ {d.agentHandle}</div>
                 {d.error && <div className="text-[8px] text-red-400">{d.error}</div>}
                 {d.executionRecord && (
                   <details className="mt-0.5">
-                    <summary className="text-[8px] text-studio-muted cursor-pointer">execution record ▶</summary>
-                    <pre className="text-[7px] text-studio-muted whitespace-pre-wrap mt-0.5 max-h-24 overflow-y-auto">{d.executionRecord}</pre>
+                    <summary className="text-[8px] text-studio-muted cursor-pointer">
+                      execution record ▶
+                    </summary>
+                    <pre className="text-[7px] text-studio-muted whitespace-pre-wrap mt-0.5 max-h-24 overflow-y-auto">
+                      {d.executionRecord}
+                    </pre>
                   </details>
                 )}
               </div>
@@ -561,7 +670,9 @@ export function FleetPanel() {
               </div>
             ) : null}
             {dispatchResult.plan?.capReached && (
-              <div className="text-[8px] text-amber-400">Daily cap reached — raise cap to dispatch more</div>
+              <div className="text-[8px] text-amber-400">
+                Daily cap reached — raise cap to dispatch more
+              </div>
             )}
             {dispatchResult.taskCount !== undefined && (
               <div className="text-[8px] text-studio-muted">

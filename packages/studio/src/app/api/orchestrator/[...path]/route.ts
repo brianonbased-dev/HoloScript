@@ -33,10 +33,7 @@ const ALLOWED_PATHS = new Set<string>([
   'serve/status', // serving autoscaler endpoints + demand (agent role)
 ]);
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
   const joined = (path || []).join('/');
 

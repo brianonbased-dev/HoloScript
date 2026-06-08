@@ -79,9 +79,7 @@ function uniqueMemSlug(ownerId: string, desired: string, excludeId?: string): st
   let slug = desired;
   let n = 1;
   const taken = (s: string) =>
-    [...store.values()].some(
-      (p) => p.ownerId === ownerId && p.slug === s && p.id !== excludeId
-    );
+    [...store.values()].some((p) => p.ownerId === ownerId && p.slug === s && p.id !== excludeId);
   while (taken(slug)) {
     slug = `${desired}-${++n}`;
   }

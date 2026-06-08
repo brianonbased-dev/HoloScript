@@ -11,11 +11,7 @@
 
 import { describe, it, expect } from 'vitest';
 
-import {
-  isHashLike,
-  isStrictHologramMeta,
-  sanitizeMetaForRender,
-} from '../hologramMetaSanitizer';
+import { isHashLike, isStrictHologramMeta, sanitizeMetaForRender } from '../hologramMetaSanitizer';
 
 const VALID_HASH = 'a'.repeat(64);
 

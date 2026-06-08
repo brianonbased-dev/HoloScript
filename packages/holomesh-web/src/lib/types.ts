@@ -7,198 +7,198 @@ export type ReputationTier =
   | 'silver'
   | 'gold'
   | 'platinum'
-  | 'diamond'
+  | 'diamond';
 
 export interface AgentTeam {
-  id: string
-  name: string
-  type: string
-  role?: string
+  id: string;
+  name: string;
+  type: string;
+  role?: string;
 }
 
 export interface PublicProfileSummary {
-  bio?: string
-  title?: string
-  handle?: string
-  avatar?: string
-  theme?: string
-  customTitle?: string
-  statusText?: string
-  music?: string
-  links?: Record<string, string>
-  mood?: string
-  location?: string
-  pronouns?: string
-  founded?: string
-  [key: string]: unknown
+  bio?: string;
+  title?: string;
+  handle?: string;
+  avatar?: string;
+  theme?: string;
+  customTitle?: string;
+  statusText?: string;
+  music?: string;
+  links?: Record<string, string>;
+  mood?: string;
+  location?: string;
+  pronouns?: string;
+  founded?: string;
+  [key: string]: unknown;
 }
 
 export interface AgentDirectoryEntry {
-  id: string
-  name: string
-  handle: string
-  walletAddress: string
-  traits: string[]
-  reputation: number
-  tier: ReputationTier
-  online: boolean
-  lastHeartbeat: string | null
-  activeTeamId: string | null
-  contributionCount: number
-  topDomains: string[]
-  topTags: string[]
-  reuseCount: number
-  queryCount: number
-  teams: AgentTeam[]
-  profile: PublicProfileSummary
+  id: string;
+  name: string;
+  handle: string;
+  walletAddress: string;
+  traits: string[];
+  reputation: number;
+  tier: ReputationTier;
+  online: boolean;
+  lastHeartbeat: string | null;
+  activeTeamId: string | null;
+  contributionCount: number;
+  topDomains: string[];
+  topTags: string[];
+  reuseCount: number;
+  queryCount: number;
+  teams: AgentTeam[];
+  profile: PublicProfileSummary;
   links: {
-    profile: string
-    knowledge: string
-  }
+    profile: string;
+    knowledge: string;
+  };
 }
 
 export interface DirectoryResponse {
-  success: boolean
-  agents: AgentDirectoryEntry[]
-  count: number
+  success: boolean;
+  agents: AgentDirectoryEntry[];
+  count: number;
   summary: {
-    registered: number
-    online: number
-    publicEntries: number
-    publicTeams: number
-  }
+    registered: number;
+    online: number;
+    publicEntries: number;
+    publicTeams: number;
+  };
 }
 
 export interface KnowledgeEntry {
-  id: string
-  type: 'wisdom' | 'pattern' | 'gotcha'
-  content: string
-  domain: string
-  tags: string[]
-  confidence: number
-  price: number
-  voteCount: number
-  commentCount: number
-  premium: boolean
-  paid: boolean
-  authorId?: string
-  authorName?: string
-  createdAt?: string
+  id: string;
+  type: 'wisdom' | 'pattern' | 'gotcha';
+  content: string;
+  domain: string;
+  tags: string[];
+  confidence: number;
+  price: number;
+  voteCount: number;
+  commentCount: number;
+  premium: boolean;
+  paid: boolean;
+  authorId?: string;
+  authorName?: string;
+  createdAt?: string;
 }
 
 export interface ActiveTask {
-  id: string
-  title: string
-  teamId: string
-  teamName: string
-  priority: number
+  id: string;
+  title: string;
+  teamId: string;
+  teamName: string;
+  priority: number;
 }
 
 export interface FleetMember {
-  id: string
-  name: string
-  handle: string
-  traits: string[]
-  tier: ReputationTier
-  online: boolean
-  lastHeartbeat: string | null
+  id: string;
+  name: string;
+  handle: string;
+  traits: string[];
+  tier: ReputationTier;
+  online: boolean;
+  lastHeartbeat: string | null;
 }
 
 export interface AgentProfile {
-  success: boolean
+  success: boolean;
   agent: {
-    id: string
-    name: string
-    handle?: string
-    walletAddress: string
-    traits: string[]
-    reputation: number
-    tier: ReputationTier
-    createdAt: string
-    familyLineage?: AgentFamilyLineage
-  }
-  profile: PublicProfileSummary
-  teams: AgentTeam[]
-  activeTasks: ActiveTask[]
-  fleet: FleetMember[]
-  contributions: KnowledgeEntry[]
+    id: string;
+    name: string;
+    handle?: string;
+    walletAddress: string;
+    traits: string[];
+    reputation: number;
+    tier: ReputationTier;
+    createdAt: string;
+    familyLineage?: AgentFamilyLineage;
+  };
+  profile: PublicProfileSummary;
+  teams: AgentTeam[];
+  activeTasks: ActiveTask[];
+  fleet: FleetMember[];
+  contributions: KnowledgeEntry[];
 }
 
 export interface AgentFamilyLineageNode {
-  family: string
-  handle: string
-  relation: string
+  family: string;
+  handle: string;
+  relation: string;
 }
 
 export interface AgentFamilyLineage {
-  family: string
-  seat: string
-  surface: string
-  model?: string
-  ancestors: AgentFamilyLineageNode[]
+  family: string;
+  seat: string;
+  surface: string;
+  model?: string;
+  ancestors: AgentFamilyLineageNode[];
 }
 
 export interface DoneLogEntry {
-  taskId: string
-  title: string
-  completedBy: string
-  completedAt: string
-  taskType: string
-  summary?: string
-  commit?: string | null
-  teamId?: string
-  teamName?: string
+  taskId: string;
+  title: string;
+  completedBy: string;
+  completedAt: string;
+  taskType: string;
+  summary?: string;
+  commit?: string | null;
+  teamId?: string;
+  teamName?: string;
 }
 
 export interface DoneLogResponse {
-  success: boolean
-  agentId: string
-  receipts: DoneLogEntry[]
-  count: number
+  success: boolean;
+  agentId: string;
+  receipts: DoneLogEntry[];
+  count: number;
 }
 
 export interface PublicAgentProfileApiFixture {
-  directory: DirectoryResponse
-  profile: AgentProfile
-  receipts: DoneLogResponse
+  directory: DirectoryResponse;
+  profile: AgentProfile;
+  receipts: DoneLogResponse;
 }
 
 export interface GraduatedKnowledgeCounts {
-  total: number
-  wisdom: number
-  pattern: number
-  gotcha: number
+  total: number;
+  wisdom: number;
+  pattern: number;
+  gotcha: number;
 }
 
 export interface PublicAgentProfileView {
-  agent: AgentProfile['agent'] & { handle: string; familyLineage: AgentFamilyLineage }
-  profile: PublicProfileSummary
-  teams: AgentTeam[]
-  currentClaims: ActiveTask[]
-  recentDoneLog: DoneLogEntry[]
-  graduatedKnowledge: KnowledgeEntry[]
-  graduatedKnowledgeCounts: GraduatedKnowledgeCounts
+  agent: AgentProfile['agent'] & { handle: string; familyLineage: AgentFamilyLineage };
+  profile: PublicProfileSummary;
+  teams: AgentTeam[];
+  currentClaims: ActiveTask[];
+  recentDoneLog: DoneLogEntry[];
+  graduatedKnowledge: KnowledgeEntry[];
+  graduatedKnowledgeCounts: GraduatedKnowledgeCounts;
   stats: {
-    currentClaims: number
-    recentDoneLog: number
-    graduatedKnowledge: number
-  }
-  jsonLd: Record<string, unknown>
+    currentClaims: number;
+    recentDoneLog: number;
+    graduatedKnowledge: number;
+  };
+  jsonLd: Record<string, unknown>;
 }
 
 export interface TeamEntry {
-  id: string
-  name: string
-  type: string
-  memberCount?: number
-  openSlots?: number
-  description?: string
-  domains?: string[]
-  bountyCount?: number
+  id: string;
+  name: string;
+  type: string;
+  memberCount?: number;
+  openSlots?: number;
+  description?: string;
+  domains?: string[];
+  bountyCount?: number;
 }
 
 export interface TeamsResponse {
-  success: boolean
-  teams: TeamEntry[]
-  count: number
+  success: boolean;
+  teams: TeamEntry[];
+  count: number;
 }

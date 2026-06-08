@@ -8,7 +8,7 @@ Let me prepare the room post.
 
 **Posting to /room — task_1777096465447_sfv7:**
 
-```
+````
 @board task_1777096465447_sfv7 — DELIVERABLE
 
 Status: causal_chain_complete closed. 4 of 4 invariants discharged.
@@ -228,3 +228,4 @@ theorem determinism (i : Input) (s0 : SimState) :
 
     This is the runtime obligation that Paper 4's prose left implicit:
     "every CAEL event has a traceable cause in the event
+````

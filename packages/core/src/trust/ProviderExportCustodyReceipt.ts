@@ -60,12 +60,7 @@ export type ProviderDeliveryMethod =
   | 'push_to_service'
   | 'unknown';
 
-export type ProviderArchiveFormat =
-  | 'zip'
-  | 'tar_gz'
-  | 'json'
-  | 'mbox'
-  | 'unknown';
+export type ProviderArchiveFormat = 'zip' | 'tar_gz' | 'json' | 'mbox' | 'unknown';
 
 // ─── Provider Export Custody Receipt Payload ──────────────────────────────────
 
@@ -189,7 +184,7 @@ export interface ProviderExportCustodyAdapterOptions {
  */
 export function providerExportToReceiptInput(
   payload: ProviderExportCustodyPayload,
-  options: ProviderExportCustodyAdapterOptions,
+  options: ProviderExportCustodyAdapterOptions
 ): TrustReceiptInput {
   const permissionEnvelope: TrustPermissionEnvelope =
     options.permissionEnvelope ?? phaseToEnvelope(payload.phase);
@@ -322,7 +317,7 @@ export interface ProviderExportCustodyValidationResult {
  * - If deliveryMethod involves a link, linkExpiry should be present
  */
 export function validateProviderExportCustody(
-  payload: ProviderExportCustodyPayload,
+  payload: ProviderExportCustodyPayload
 ): ProviderExportCustodyValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -351,7 +346,9 @@ export function validateProviderExportCustody(
 
   // Custody invariants — these must ALWAYS be false
   if (payload.accountMutationPerformed) {
-    errors.push('accountMutationPerformed must be false — account mutation is not allowed without explicit approval');
+    errors.push(
+      'accountMutationPerformed must be false — account mutation is not allowed without explicit approval'
+    );
   }
   if (payload.sourceFileMutationPerformed) {
     errors.push('sourceFileMutationPerformed must be false — source file mutation is not allowed');
@@ -360,7 +357,9 @@ export function validateProviderExportCustody(
     errors.push('rawPrivateDataPublished must be false — raw private data must not be published');
   }
   if (payload.privatePathLeakedToPublicReceipt) {
-    errors.push('privatePathLeakedToPublicReceipt must be false — private paths must not leak into public receipts');
+    errors.push(
+      'privatePathLeakedToPublicReceipt must be false — private paths must not leak into public receipts'
+    );
   }
 
   // Conditional fields
@@ -372,8 +371,13 @@ export function validateProviderExportCustody(
   }
 
   // Wait state consistency
-  if ((payload.waitState === 'expired' || payload.waitState === 'blocked') && payload.blockers.length === 0) {
-    warnings.push(`waitState is ${payload.waitState} but no blockers are recorded — expected at least one blocker`);
+  if (
+    (payload.waitState === 'expired' || payload.waitState === 'blocked') &&
+    payload.blockers.length === 0
+  ) {
+    warnings.push(
+      `waitState is ${payload.waitState} but no blockers are recorded — expected at least one blocker`
+    );
   }
 
   // Link expiry warning for link-based delivery
@@ -388,7 +392,11 @@ export function validateProviderExportCustody(
   if (payload.phase === 'verify_files' && !payload.archiveHash) {
     errors.push('archiveHash is required for verify_files phase');
   }
-  if (payload.phase === 'download_quarantine' && payload.fileCount === 0 && payload.archiveSizeBytes > 0) {
+  if (
+    payload.phase === 'download_quarantine' &&
+    payload.fileCount === 0 &&
+    payload.archiveSizeBytes > 0
+  ) {
     warnings.push('fileCount is 0 but archiveSizeBytes is non-zero — possible data inconsistency');
   }
 
@@ -397,7 +405,9 @@ export function validateProviderExportCustody(
     (payload.phase === 'intent_classification' || payload.phase === 'boundary_check') &&
     payload.selectedProducts.length === 0
   ) {
-    warnings.push('selectedProducts is empty for classification phase — provider export scope is unspecified');
+    warnings.push(
+      'selectedProducts is empty for classification phase — provider export scope is unspecified'
+    );
   }
 
   return {

@@ -59,9 +59,9 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
       state: 'unresolved',
       isResolved: false,
       terrainHeight: 0,
-      surfaceNormal: [0, 1, 0 ],
-      localPosition: [0, 0, 0 ],
-      localRotation: [0, 0, 0, 1 ],
+      surfaceNormal: [0, 1, 0],
+      localPosition: [0, 0, 0],
+      localRotation: [0, 0, 0, 1],
       confidence: 0,
       anchorHandle: null,
     };
@@ -150,7 +150,7 @@ export const terrainAnchorHandler: TraitHandler<TerrainAnchorConfig> = {
           const up = state.surfaceNormal;
           // Simple rotation calculation - align Y axis with surface normal
           const angle = Math.acos(up[1]);
-          const axis = [-up[2], 0, up[0] ];
+          const axis = [-up[2], 0, up[0]];
           const len = Math.sqrt(axis[0] * axis[0] + axis[2] * axis[2]);
 
           if (len > 0.001) {

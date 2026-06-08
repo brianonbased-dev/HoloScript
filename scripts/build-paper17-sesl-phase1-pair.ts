@@ -25,10 +25,7 @@ import {
   type CAELTrace,
   type CAELTraceEntry,
 } from '../packages/engine/src/simulation/CAELTrace';
-import {
-  type FieldData,
-  type SimSolver,
-} from '../packages/engine/src/simulation/SimSolver';
+import { type FieldData, type SimSolver } from '../packages/engine/src/simulation/SimSolver';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
@@ -123,7 +120,11 @@ class SeslSmokeSolver implements SimSolver {
       return new Float32Array([293.15 + this.time, 293.2 + this.time, 293.25 + this.time]);
     }
     if (name === 'stress') {
-      return new Float32Array([1000 + this.time * 100, 1005 + this.time * 100, 1010 + this.time * 100]);
+      return new Float32Array([
+        1000 + this.time * 100,
+        1005 + this.time * 100,
+        1010 + this.time * 100,
+      ]);
     }
     return null;
   }
@@ -239,10 +240,14 @@ function resolveInputPath(explicit?: string): string {
     const resolved = path.resolve(String(candidate));
     if (fs.existsSync(resolved)) return resolved;
   }
-  throw new Error(`No Phase 0 seed corpus found. Checked: ${candidates.map((c) => path.resolve(String(c))).join('; ')}`);
+  throw new Error(
+    `No Phase 0 seed corpus found. Checked: ${candidates.map((c) => path.resolve(String(c))).join('; ')}`
+  );
 }
 
-async function* readJsonl(filePath: string): AsyncGenerator<{ record?: JsonRecord; error?: Error; lineNumber: number }> {
+async function* readJsonl(
+  filePath: string
+): AsyncGenerator<{ record?: JsonRecord; error?: Error; lineNumber: number }> {
   const input = fs.createReadStream(filePath, 'utf8');
   const rl = readline.createInterface({ input, crlfDelay: Infinity });
   let lineNumber = 0;
@@ -295,19 +300,28 @@ function traitFamilySet(record: JsonRecord, holo: string): string[] {
   return [...traits].sort();
 }
 
-function staticContractCheck(record: JsonRecord, holo: string): { passed: boolean; objectCount: number; traitCount: number; propertyCount: number } {
+function staticContractCheck(
+  record: JsonRecord,
+  holo: string
+): { passed: boolean; objectCount: number; traitCount: number; propertyCount: number } {
   const objectCount = (holo.match(/\bobject\s+"/g) || []).length;
   const traitCount = (holo.match(/@[A-Za-z0-9_-]+/g) || []).length;
   const propertyCount = (holo.match(/^\s*[A-Za-z_][A-Za-z0-9_]*\s*:/gm) || []).length;
   return {
-    passed: record.outcome === 'success' && holo.trim().length > 0 && (objectCount > 0 || traitCount > 0),
+    passed:
+      record.outcome === 'success' && holo.trim().length > 0 && (objectCount > 0 || traitCount > 0),
     objectCount,
     traitCount,
     propertyCount,
   };
 }
 
-function normalizePayload(payload: Record<string, unknown>, sourcePairId: string, createdAt: string, baseTimestamp: number): Record<string, unknown> {
+function normalizePayload(
+  payload: Record<string, unknown>,
+  sourcePairId: string,
+  createdAt: string,
+  baseTimestamp: number
+): Record<string, unknown> {
   const out = JSON.parse(JSON.stringify(payload)) as Record<string, unknown>;
   const provenance = out.provenance as Record<string, unknown> | undefined;
   if (provenance) {
@@ -346,8 +360,12 @@ function normalizeTrace(trace: CAELTrace, sourcePairId: string, createdAt: strin
   });
 }
 
-function buildPair(record: JsonRecord, createdAt: string): { pair: HarnessPair; trace: CAELTrace; traceHash: string } {
-  const sourcePairId = asString(record.pair_id) || `seed-${sha256Hex(stableJson(record)).slice(0, 12)}`;
+function buildPair(
+  record: JsonRecord,
+  createdAt: string
+): { pair: HarnessPair; trace: CAELTrace; traceHash: string } {
+  const sourcePairId =
+    asString(record.pair_id) || `seed-${sha256Hex(stableJson(record)).slice(0, 12)}`;
   const promptText = asString(record.prompt_text);
   const holo = sourceHolo(record);
   const traits = traitFamilySet(record, holo);
@@ -367,7 +385,7 @@ function buildPair(record: JsonRecord, createdAt: string): { pair: HarnessPair; 
       fixedDt: 0.01,
       adapterFingerprint: ADAPTER_FINGERPRINT,
       useCryptographicHash: true,
-    },
+    }
   );
 
   recorder.logInteraction('sesl.prompt_sampled', {
@@ -377,7 +395,10 @@ function buildPair(record: JsonRecord, createdAt: string): { pair: HarnessPair; 
   });
   recorder.step(0.03);
   const provenance = recorder.finalize();
-  const violations = recorder.getContractedSimulation().getViolations().filter((v) => v.severity === 'error').length;
+  const violations = recorder
+    .getContractedSimulation()
+    .getViolations()
+    .filter((v) => v.severity === 'error').length;
   recorder.dispose();
 
   const trace = normalizeTrace(recorder.getTrace(), sourcePairId, createdAt);
@@ -390,7 +411,13 @@ function buildPair(record: JsonRecord, createdAt: string): { pair: HarnessPair; 
     caelHashChain: verification.valid ? 1 : 0,
     structuralDiversity: Math.min(1, (gate.objectCount + gate.traitCount + gate.propertyCount) / 6),
   };
-  const score = Number((components.simContract * 0.6 + components.caelHashChain * 0.3 + components.structuralDiversity * 0.1).toFixed(6));
+  const score = Number(
+    (
+      components.simContract * 0.6 +
+      components.caelHashChain * 0.3 +
+      components.structuralDiversity * 0.1
+    ).toFixed(6)
+  );
 
   return {
     pair: {
@@ -417,7 +444,10 @@ function buildPair(record: JsonRecord, createdAt: string): { pair: HarnessPair; 
         finalHash,
         hashChain: verification,
         hash_chain_valid: verification.valid,
-        simContractCheck: { passed: simContractPassed, contractId: provenance.contractId || CONTRACT_ID },
+        simContractCheck: {
+          passed: simContractPassed,
+          contractId: provenance.contractId || CONTRACT_ID,
+        },
       },
       cael_hash_chain_valid: verification.valid,
       score,
@@ -446,7 +476,9 @@ function writeIndex(options: ResolvedOptions, pairs: HarnessPair[]): JsonRecord 
   const total = pairs.length;
   const passed = pairs.filter((pair) => pair.simContractCheck.passed).length;
   const failed = total - passed;
-  const caelVerifiedPairs = pairs.filter((pair) => pair.cael_hash_chain_valid && pair.outcome === 'success').length;
+  const caelVerifiedPairs = pairs.filter(
+    (pair) => pair.cael_hash_chain_valid && pair.outcome === 'success'
+  ).length;
   const passRate = total > 0 ? Number((passed / total).toFixed(6)) : null;
   const gateTarget = 5000;
   const targetPassRate = 0.6;
@@ -468,7 +500,8 @@ function writeIndex(options: ResolvedOptions, pairs: HarnessPair[]): JsonRecord 
       pass_rate: passRate,
       pass_rate_ok: passRate !== null && passRate >= targetPassRate,
       volume_ok: caelVerifiedPairs >= gateTarget,
-      gate_cleared: passRate !== null && passRate >= targetPassRate && caelVerifiedPairs >= gateTarget,
+      gate_cleared:
+        passRate !== null && passRate >= targetPassRate && caelVerifiedPairs >= gateTarget,
       gate_gap_cael_verified: Math.max(0, gateTarget - caelVerifiedPairs),
     },
     pairs: pairs.map((pair) => ({
@@ -483,7 +516,9 @@ function writeIndex(options: ResolvedOptions, pairs: HarnessPair[]): JsonRecord 
   };
 }
 
-export async function runHarness(rawOptions: HarnessOptions = {}): Promise<{ summary: JsonRecord; emitted: HarnessPair[] }> {
+export async function runHarness(
+  rawOptions: HarnessOptions = {}
+): Promise<{ summary: JsonRecord; emitted: HarnessPair[] }> {
   const options = resolveOptions(rawOptions);
   const emitted: HarnessPair[] = [];
   const traces: Array<{ traceHash: string; trace: CAELTrace }> = [];
@@ -514,7 +549,9 @@ export async function runHarness(rawOptions: HarnessOptions = {}): Promise<{ sum
   }
 
   if (emitted.length === 0) {
-    throw new Error(`No CAEL-verified pairs emitted from ${readRecords} records (${skippedRecords} skipped).`);
+    throw new Error(
+      `No CAEL-verified pairs emitted from ${readRecords} records (${skippedRecords} skipped).`
+    );
   }
 
   const summary = writeIndex(options, emitted);
@@ -526,9 +563,17 @@ export async function runHarness(rawOptions: HarnessOptions = {}): Promise<{ sum
   if (!options.dryRun) {
     fs.mkdirSync(path.dirname(options.output), { recursive: true });
     fs.mkdirSync(options.traceDir, { recursive: true });
-    fs.writeFileSync(options.output, `${emitted.map((pair) => JSON.stringify(pair)).join('\n')}\n`, 'utf8');
+    fs.writeFileSync(
+      options.output,
+      `${emitted.map((pair) => JSON.stringify(pair)).join('\n')}\n`,
+      'utf8'
+    );
     for (const { traceHash, trace } of traces) {
-      fs.writeFileSync(path.join(options.traceDir, `${traceHash}.json`), `${JSON.stringify(trace, null, 2)}\n`, 'utf8');
+      fs.writeFileSync(
+        path.join(options.traceDir, `${traceHash}.json`),
+        `${JSON.stringify(trace, null, 2)}\n`,
+        'utf8'
+      );
     }
     fs.writeFileSync(options.index, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
   }

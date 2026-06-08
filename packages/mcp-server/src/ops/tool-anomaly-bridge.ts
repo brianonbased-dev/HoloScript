@@ -50,7 +50,11 @@ async function postSlackAlert(reason: string, detail: Record<string, unknown>): 
       body: JSON.stringify({ text }),
     });
     if (!res.ok) {
-      console.warn('[MCP Anomaly] Slack webhook returned', res.status, await res.text().catch(() => ''));
+      console.warn(
+        '[MCP Anomaly] Slack webhook returned',
+        res.status,
+        await res.text().catch(() => '')
+      );
     }
   } catch (e) {
     console.warn('[MCP Anomaly] Slack webhook failed:', e);

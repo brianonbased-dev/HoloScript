@@ -14,10 +14,7 @@ function makeEmbedding(dim: number, value = 0.5): Float64Array {
   return new Float64Array(dim).fill(value);
 }
 
-function makeTrait(
-  name: string,
-  overrides: Partial<TraitDescriptor> = {},
-): TraitDescriptor {
+function makeTrait(name: string, overrides: Partial<TraitDescriptor> = {}): TraitDescriptor {
   return {
     name,
     embedding: makeEmbedding(64, Math.random()),
@@ -165,7 +162,9 @@ describe('ContinualTraitLearner', () => {
   });
 
   it('adds a trait and returns learning result', async () => {
-    const result = await learner.addTrait(makeTrait('grabbable', { embedding: makeEmbedding(16, 0.5) }));
+    const result = await learner.addTrait(
+      makeTrait('grabbable', { embedding: makeEmbedding(16, 0.5) })
+    );
     expect(result.traitName).toBe('grabbable');
     expect(result.iterations).toBeGreaterThan(0);
     expect(typeof result.forgettingScore).toBe('number');
@@ -229,8 +228,14 @@ describe('ContinualTraitLearner', () => {
   });
 
   it('EWC lambda=0 behaves like unconstrained learning', async () => {
-    const unconstrained = new ContinualTraitLearner({ ewcLambda: 0, embeddingDim: 16, maxIterations: 5 });
-    const r = await unconstrained.addTrait(makeTrait('free_trait', { embedding: makeEmbedding(16, 0.5) }));
+    const unconstrained = new ContinualTraitLearner({
+      ewcLambda: 0,
+      embeddingDim: 16,
+      maxIterations: 5,
+    });
+    const r = await unconstrained.addTrait(
+      makeTrait('free_trait', { embedding: makeEmbedding(16, 0.5) })
+    );
     expect(r.ewcPenalty).toBe(0);
   });
 });

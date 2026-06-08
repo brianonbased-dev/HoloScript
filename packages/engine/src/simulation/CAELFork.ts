@@ -93,10 +93,7 @@ export type SolverFactory = (config: Record<string, unknown>) => SimSolver;
  * Evaluates a branch outcome and returns a scalar utility.
  * Used by forkAndChoose to compare branches automatically.
  */
-export type BranchEvaluator = (
-  branch: CAELForkBranch,
-  solver: SimSolver,
-) => number;
+export type BranchEvaluator = (branch: CAELForkBranch, solver: SimSolver) => number;
 
 // ── Fork Operations ─────────────────────────────────────────────────────────
 
@@ -118,11 +115,9 @@ export function forkTrace(
   parentTrace: CAELTrace | string,
   forkIndex: number,
   solverFactory: SolverFactory,
-  contractConfig?: ContractConfig,
+  contractConfig?: ContractConfig
 ): { recorder: CAELRecorder; forkPoint: CAELForkPoint } {
-  const trace = typeof parentTrace === 'string'
-    ? parseCAELJSONL(parentTrace)
-    : parentTrace;
+  const trace = typeof parentTrace === 'string' ? parseCAELJSONL(parentTrace) : parentTrace;
 
   // Validate the trace up to the fork point
   const prefixValid = verifyCAELHashChain(trace.slice(0, forkIndex + 1));
@@ -153,7 +148,7 @@ export function forkTrace(
   const recorder: CAELRecorder = new RecorderClass(
     solver,
     config,
-    contractConfig ?? (initEntry.payload.contractConfig as ContractConfig) ?? {},
+    contractConfig ?? (initEntry.payload.contractConfig as ContractConfig) ?? {}
   );
 
   // Record the fork provenance link
@@ -212,7 +207,7 @@ export async function forkAndChoose(
   solverFactory: SolverFactory,
   evaluator: BranchEvaluator,
   agentConfig?: CAELAgentConfig,
-  contractConfig?: ContractConfig,
+  contractConfig?: ContractConfig
 ): Promise<CAELForkResult> {
   const branches: CAELForkBranch[] = [];
   let forkPoint: CAELForkPoint | null = null;
@@ -220,7 +215,10 @@ export async function forkAndChoose(
   for (let i = 0; i < alternatives.length; i++) {
     const alt = alternatives[i];
     const { recorder, forkPoint: fp } = forkTrace(
-      parentTrace, forkIndex, solverFactory, contractConfig,
+      parentTrace,
+      forkIndex,
+      solverFactory,
+      contractConfig
     );
     if (!forkPoint) forkPoint = fp;
 
@@ -367,7 +365,7 @@ function perturbConfig(
   config: Record<string, unknown>,
   fields: string[],
   magnitude: number,
-  rng: () => number,
+  rng: () => number
 ): { perturbed: Record<string, unknown>; perturbations: DreamPerturbation[] } {
   const perturbed = structuredClone(config);
   const perturbations: DreamPerturbation[] = [];
@@ -426,7 +424,7 @@ export async function dream(
   dreamConfig: DreamConfig,
   solverFactory: SolverFactory,
   agentConfig?: CAELAgentConfig,
-  contractConfig?: ContractConfig,
+  contractConfig?: ContractConfig
 ): Promise<DreamSession> {
   const wakingTrace = parseCAELJSONL(wakingJSONL);
   const initEntry = wakingTrace.find((e) => e.event === 'init');
@@ -443,7 +441,7 @@ export async function dream(
       originalConfig,
       dreamConfig.perturbableFields,
       dreamConfig.maxPerturbation,
-      rng,
+      rng
     );
 
     try {
@@ -452,7 +450,7 @@ export async function dream(
       const recorder: CAELRecorder = new RecorderClass(
         solver,
         perturbed,
-        contractConfig ?? (initEntry.payload.contractConfig as ContractConfig) ?? {},
+        contractConfig ?? (initEntry.payload.contractConfig as ContractConfig) ?? {}
       );
 
       // Record dream provenance
@@ -503,9 +501,9 @@ export async function dream(
   }
 
   const completedCount = episodes.filter((e) => e.completed).length;
-  const avgPerturbation = episodes
-    .flatMap((e) => e.perturbations.map((p) => p.magnitude))
-    .reduce((a, b) => a + b, 0) / Math.max(1, episodes.flatMap((e) => e.perturbations).length);
+  const avgPerturbation =
+    episodes.flatMap((e) => e.perturbations.map((p) => p.magnitude)).reduce((a, b) => a + b, 0) /
+    Math.max(1, episodes.flatMap((e) => e.perturbations).length);
 
   return {
     wakingRunId,

@@ -55,7 +55,7 @@ export type StateDeclarationNode = ASTNode & {
  */
 export async function executeStateDeclaration(
   node: StateDeclarationNode,
-  ctx: DeclarationContext,
+  ctx: DeclarationContext
 ): Promise<ExecutionResult> {
   const stateDirective = node.directives?.find((d: DirectiveLike) => d.type === 'state');
   if (stateDirective) {
@@ -82,7 +82,7 @@ export interface MemoryDefinitionNodeLike {
  */
 export async function executeMemoryDefinition(
   node: MemoryDefinitionNodeLike,
-  ctx: DeclarationContext,
+  ctx: DeclarationContext
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
   const config: Record<string, HoloScriptValue> = {};

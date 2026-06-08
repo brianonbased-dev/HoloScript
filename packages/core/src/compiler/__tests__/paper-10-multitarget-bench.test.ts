@@ -23,7 +23,7 @@ describe('Paper 10 Benchmark: Multi-Target Provenance Preservation', () => {
   it('compiles single HoloScript source to multiple targets preserving provenance', () => {
     const N = 200;
     const parser = new HoloCompositionParser();
-    
+
     const sourceHolo = `
       composition "Paper10Scene" {
         environment {
@@ -50,7 +50,7 @@ describe('Paper 10 Benchmark: Multi-Target Provenance Preservation', () => {
 
     const parseResult = parser.parse(sourceHolo);
     expect(parseResult.success).toBe(true);
-    
+
     const astJson = JSON.stringify(parseResult.ast, null, 2);
     const astProvenanceHash = computeProvenanceHash(astJson);
 
@@ -83,9 +83,13 @@ describe('Paper 10 Benchmark: Multi-Target Provenance Preservation', () => {
 
     console.log('[multitarget-bench] === RESULTS ===');
     console.log(`[multitarget-bench] Iterations: ${N}`);
-    console.log(`[multitarget-bench] WebGPU Compile latency | Median: ${webGpuMedian.toFixed(2)} ms | p99: ${webGpuP99.toFixed(2)} ms`);
-    console.log(`[multitarget-bench] VRChat Compile latency | Median: ${vrChatMedian.toFixed(2)} ms | p99: ${vrChatP99.toFixed(2)} ms`);
-    
+    console.log(
+      `[multitarget-bench] WebGPU Compile latency | Median: ${webGpuMedian.toFixed(2)} ms | p99: ${webGpuP99.toFixed(2)} ms`
+    );
+    console.log(
+      `[multitarget-bench] VRChat Compile latency | Median: ${vrChatMedian.toFixed(2)} ms | p99: ${vrChatP99.toFixed(2)} ms`
+    );
+
     // Provenance verification: the AST hash MUST be embedded in the output.
     expect(lastWebGpuOutput).toContain(`// Provenance Hash: ${astProvenanceHash}`);
     expect(lastVrChatOutput).toContain(`// Provenance Hash: ${astProvenanceHash}`);

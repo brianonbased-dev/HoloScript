@@ -82,7 +82,7 @@ export class TraitCommunityDetector {
   constructor(options: TraitCommunityOptions = {}) {
     this.options = {
       minCommunitySize: options.minCommunitySize ?? 1,
-      louvainFallback:  options.louvainFallback  ?? true,
+      louvainFallback: options.louvainFallback ?? true,
     };
     this.louvain = new CommunityDetector();
   }
@@ -94,8 +94,9 @@ export class TraitCommunityDetector {
   detect(graph: CodebaseGraph): Map<string, string[]> {
     // Collect all file paths
     const stats = graph.getStats();
-    const allFiles = graph.getAllSymbols()
-      .map(s => s.filePath)
+    const allFiles = graph
+      .getAllSymbols()
+      .map((s) => s.filePath)
       .filter((v, i, a) => a.indexOf(v) === i); // unique
 
     const assigned = new Map<string, string>(); // filePath → communityName
@@ -159,7 +160,7 @@ export class TraitCommunityDetector {
     }
 
     // ── Pass 6: Louvain fallback for remaining files ──────────────────────────
-    const remaining = allFiles.filter(f => !assigned.has(f));
+    const remaining = allFiles.filter((f) => !assigned.has(f));
     if (remaining.length > 0 && this.options.louvainFallback) {
       // Build stub import/call lists for just the remaining files
       const remainingSet = new Set(remaining);
@@ -223,9 +224,7 @@ export class TraitCommunityDetector {
     // *Compiler.ts pattern
     const compilerMatch = /^(.+?)Compiler$/.exec(base);
     if (compilerMatch?.[1]) {
-      return compilerMatch[1]
-        .replace(/([a-z])([A-Z])/g, '$1-$2')
-        .toLowerCase();
+      return compilerMatch[1].replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
     }
 
     // compile_to_* function pattern (check file name for convention)
@@ -267,7 +266,10 @@ export class TraitCommunityDetector {
     let best = '';
     let bestCount = 0;
     for (const [ns, count] of counts) {
-      if (count > bestCount) { best = ns; bestCount = count; }
+      if (count > bestCount) {
+        best = ns;
+        bestCount = count;
+      }
     }
     // Require at least 2 events or clear majority to assign namespace community
     return bestCount >= 1 && best ? best : null;
@@ -275,9 +277,11 @@ export class TraitCommunityDetector {
 
   private _isTestFile(filePath: string): boolean {
     const normalized = filePath.replace(/\\/g, '/');
-    return normalized.includes('__tests__') ||
-           normalized.includes('.test.') ||
-           normalized.includes('.spec.');
+    return (
+      normalized.includes('__tests__') ||
+      normalized.includes('.test.') ||
+      normalized.includes('.spec.')
+    );
   }
 
   /**
@@ -287,7 +291,8 @@ export class TraitCommunityDetector {
   private _testSubject(testFile: string, allFiles: string[]): string | null {
     const normalized = testFile.replace(/\\/g, '/');
     // Strip test suffixes: Foo.test.ts → Foo, __tests__/Foo.ts → Foo
-    const base = path.basename(normalized)
+    const base = path
+      .basename(normalized)
       .replace(/\.(test|spec)\.(ts|tsx|js|jsx)$/, '')
       .replace(/\.(ts|tsx|js|jsx)$/, '');
 

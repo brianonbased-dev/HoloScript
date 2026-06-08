@@ -30,9 +30,7 @@ import {
   type BuildBrittneyCaelInput,
 } from '@/lib/brittney/cael';
 
-function baseInput(
-  overrides: Partial<BuildBrittneyCaelInput> = {}
-): BuildBrittneyCaelInput {
+function baseInput(overrides: Partial<BuildBrittneyCaelInput> = {}): BuildBrittneyCaelInput {
   return {
     sessionId: 'sess-test',
     round: 0,
@@ -76,9 +74,7 @@ describe('buildBrittneyCaelRecord', () => {
 
   it('subsequent record extends the chain — fnv1a depends on prevChain', () => {
     const r1 = buildBrittneyCaelRecord(baseInput({ round: 0, prevChain: null }));
-    const r2 = buildBrittneyCaelRecord(
-      baseInput({ round: 1, prevChain: r1.fnv1a_chain })
-    );
+    const r2 = buildBrittneyCaelRecord(baseInput({ round: 1, prevChain: r1.fnv1a_chain }));
     expect(r2.prev_hash).toBe(r1.fnv1a_chain);
     expect(r2.fnv1a_chain).not.toBe(r1.fnv1a_chain);
   });
@@ -195,7 +191,9 @@ describe('replay determinism — fnv1a_chain is identical across replays of the 
 describe('persistence sink (BRITTNEY_AUDIT_ROOT)', () => {
   it('writes one NDJSON line per commit to brittney-${sessionId}.ndjson', () => {
     const a = attachChain('sess-sink');
-    const r1 = buildBrittneyCaelRecord(baseInput({ sessionId: 'sess-sink', prevChain: a.prevChain }));
+    const r1 = buildBrittneyCaelRecord(
+      baseInput({ sessionId: 'sess-sink', prevChain: a.prevChain })
+    );
     commitRound('sess-sink', r1);
 
     const path = join(tmpRoot, 'brittney-sess-sink.ndjson');
@@ -209,7 +207,9 @@ describe('persistence sink (BRITTNEY_AUDIT_ROOT)', () => {
 
   it('appends terminator line on closeChain', () => {
     const a = attachChain('sess-close-sink');
-    const r1 = buildBrittneyCaelRecord(baseInput({ sessionId: 'sess-close-sink', prevChain: a.prevChain }));
+    const r1 = buildBrittneyCaelRecord(
+      baseInput({ sessionId: 'sess-close-sink', prevChain: a.prevChain })
+    );
     commitRound('sess-close-sink', r1);
     closeChain('sess-close-sink', { stopReason: 'session-end' });
 
@@ -230,7 +230,13 @@ describe('extractEvidencePaths', () => {
       { name: 'c', input: { paths: ['/tmp/c1', '/tmp/c2'] } },
       { name: 'd', input: { nested: { filename: '/tmp/d.json' } } },
     ]);
-    expect(paths.sort()).toEqual(['/tmp/a.holo', '/tmp/b.txt', '/tmp/c1', '/tmp/c2', '/tmp/d.json']);
+    expect(paths.sort()).toEqual([
+      '/tmp/a.holo',
+      '/tmp/b.txt',
+      '/tmp/c1',
+      '/tmp/c2',
+      '/tmp/d.json',
+    ]);
   });
 
   it('returns empty array when no path-shaped fields are present', () => {

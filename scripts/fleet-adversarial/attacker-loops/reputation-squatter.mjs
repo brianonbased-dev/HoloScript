@@ -113,7 +113,16 @@ export async function runReputationSquatter(opts) {
       route: `${AUDIT_PREFIX_LOCAL}trial`,
       target_handle,
       policy: effectiveDryRun ? 'dry-run' : 'production',
-      payload: { phase, trial, duration_ms, defense_state, strategy, legitimate_name, squat_handle: squatHandle, run_id },
+      payload: {
+        phase,
+        trial,
+        duration_ms,
+        defense_state,
+        strategy,
+        legitimate_name,
+        squat_handle: squatHandle,
+        run_id,
+      },
     },
   });
 
@@ -121,7 +130,9 @@ export async function runReputationSquatter(opts) {
   await audit.emit({
     agentHandle: attacker_handle,
     operation: {
-      kind: effectiveDryRun ? 'reputation-squatter.provision.synthetic' : 'reputation-squatter.provision',
+      kind: effectiveDryRun
+        ? 'reputation-squatter.provision.synthetic'
+        : 'reputation-squatter.provision',
       route: `${AUDIT_PREFIX_LOCAL}provision`,
       target_handle,
       policy: effectiveDryRun ? 'dry-run' : 'production',
@@ -231,7 +242,8 @@ if (isMainModule) {
     else if (argv[i] === '--duration-ms') args.duration_ms = Number(argv[++i]);
     else if (argv[i] === '--trial') args.trial = Number(argv[++i]);
     else if (argv[i] === '--no-dry-run') args.dry_run = false;
-    else if (argv[i] === '--i-acknowledge-blockers-d2jx-8bav-open') args.acknowledge_blockers = true;
+    else if (argv[i] === '--i-acknowledge-blockers-d2jx-8bav-open')
+      args.acknowledge_blockers = true;
     else if (argv[i] === '--strategy') args.strategy = argv[++i];
     else if (argv[i] === '--legitimate-name') args.legitimate_name = argv[++i];
   }
@@ -239,11 +251,13 @@ if (isMainModule) {
     console.error('[reputation-squatter] FATAL: --target required');
     process.exit(2);
   }
-  runReputationSquatter(args).then((result) => {
-    console.log(JSON.stringify(result, null, 2));
-    process.exit(result.status.startsWith('OK') ? 0 : 1);
-  }).catch((err) => {
-    console.error(`[reputation-squatter] FATAL: ${err.stack || err.message}`);
-    process.exit(1);
-  });
+  runReputationSquatter(args)
+    .then((result) => {
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(result.status.startsWith('OK') ? 0 : 1);
+    })
+    .catch((err) => {
+      console.error(`[reputation-squatter] FATAL: ${err.stack || err.message}`);
+      process.exit(1);
+    });
 }

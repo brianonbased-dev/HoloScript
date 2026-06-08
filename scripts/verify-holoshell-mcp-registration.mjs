@@ -27,7 +27,13 @@ const EXPECTED_TOOLS = [
 ];
 
 const STDIO_SERVER = path.join(__dirname, 'holoshell-mcp-stdio.mjs');
-const CONFIG_PATH = path.join(os.homedir(), 'AppData', 'Roaming', 'Claude', 'claude_desktop_config.json');
+const CONFIG_PATH = path.join(
+  os.homedir(),
+  'AppData',
+  'Roaming',
+  'Claude',
+  'claude_desktop_config.json'
+);
 
 function extractToolNames(source) {
   // Matches name: 'holoshell_foo' or name: "holoshell_foo"

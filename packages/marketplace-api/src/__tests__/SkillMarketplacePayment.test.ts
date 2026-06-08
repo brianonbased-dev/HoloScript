@@ -95,11 +95,14 @@ describe('SkillMarketplace paid x402 flow', () => {
     const paymentResponder = {
       verifyPayment: paymentVerifier.verifyPayment,
       return402Response: vi.fn((res: express.Response, request: { payment_id: string }) => {
-        res.status(402).header('WWW-Authenticate', 'x402').json({
-          success: false,
-          error: { code: 'PAYMENT_REQUIRED', message: 'Payment required' },
-          payment_id: request.payment_id,
-        });
+        res
+          .status(402)
+          .header('WWW-Authenticate', 'x402')
+          .json({
+            success: false,
+            error: { code: 'PAYMENT_REQUIRED', message: 'Payment required' },
+            payment_id: request.payment_id,
+          });
       }),
     } as unknown as x402PaymentService;
 
@@ -164,9 +167,7 @@ describe('SkillMarketplace paid x402 flow', () => {
       paymentVerifier
     );
     const published = await service.publishSkill(makePublishRequest(), 'creator-token');
-    vi.mocked(paymentVerifier.verifyPayment).mockResolvedValue(
-      makeReceipt('skill-someone-else')
-    );
+    vi.mocked(paymentVerifier.verifyPayment).mockResolvedValue(makeReceipt('skill-someone-else'));
 
     await expect(
       service.purchaseSkill(published.skillId, 'buyer-token', 'pay_skill_001')

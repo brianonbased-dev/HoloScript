@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-rehab-sim",
-  name: "Rehabilitation Simulator",
-  description: "Physical rehab exercises with guided movement targets",
-  thumbnail: "🏋️",
-  tags: ["healthcare","rehab","exercise","vr"],
-  category: "healthcare",
+  id: 'wizard-rehab-sim',
+  name: 'Rehabilitation Simulator',
+  description: 'Physical rehab exercises with guided movement targets',
+  thumbnail: '🏋️',
+  tags: ['healthcare', 'rehab', 'exercise', 'vr'],
+  category: 'healthcare',
   code: `composition "Rehab Simulator" {
   environment {
     skybox: "studio"
@@ -55,7 +55,7 @@ export const template: SceneTemplate = {
     color: "#1a1a2e"
     label: "Session Progress: 0 / 10 reps"
   }
-}`
+}`,
 };
 
 export default template;

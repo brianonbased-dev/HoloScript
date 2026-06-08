@@ -17,8 +17,12 @@ import type { HSPlusNode, TraitContext } from '../traits/types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNode(): HSPlusNode { return { id: 'n1', traits: [], state: {}, position: [0, 0, 0] }; }
-function makeCtx(): TraitContext { return { emit: vi.fn(), scene: {} }; }
+function makeNode(): HSPlusNode {
+  return { id: 'n1', traits: [], state: {}, position: [0, 0, 0] };
+}
+function makeCtx(): TraitContext {
+  return { emit: vi.fn(), scene: {} };
+}
 
 // ── Plugin metadata ───────────────────────────────────────────────────────────
 
@@ -77,9 +81,15 @@ describe('PermitTrait', () => {
     const node = makeNode();
     const ctx = makeCtx();
     handler.onAttach(node, cfg, ctx);
-    handler.onEvent(node, cfg, ctx, { type: 'permit:update_status', payload: { status: 'approved' } });
+    handler.onEvent(node, cfg, ctx, {
+      type: 'permit:update_status',
+      payload: { status: 'approved' },
+    });
     expect((node.__permitState as { status: string }).status).toBe('approved');
-    expect(ctx.emit).toHaveBeenCalledWith('permit:status_changed', expect.objectContaining({ to: 'approved' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'permit:status_changed',
+      expect.objectContaining({ to: 'approved' })
+    );
   });
 
   it('cleans up on detach', () => {
@@ -106,7 +116,13 @@ describe('PublicMeetingTrait', () => {
     publicCommentMinutesPerSpeaker: 3,
     agenda: [
       { id: '1', title: 'Call to Order', type: 'action', durationMinutes: 5, requiresVote: false },
-      { id: '2', title: 'Public Comment', type: 'public_comment', durationMinutes: 30, requiresVote: false },
+      {
+        id: '2',
+        title: 'Public Comment',
+        type: 'public_comment',
+        durationMinutes: 30,
+        requiresVote: false,
+      },
     ],
     accessibilityFeatures: ['captioning'],
   };
@@ -221,7 +237,10 @@ describe('VotingRecordTrait', () => {
     const ctx = makeCtx();
     handler.onAttach(node, cfg, ctx);
     handler.onEvent(node, cfg, ctx, { type: 'vote:open' });
-    handler.onEvent(node, cfg, ctx, { type: 'vote:cast', payload: { memberId: 'CM-A', memberName: 'Councilmember A', vote: 'aye' } });
+    handler.onEvent(node, cfg, ctx, {
+      type: 'vote:cast',
+      payload: { memberId: 'CM-A', memberName: 'Councilmember A', vote: 'aye' },
+    });
     expect((node.__votingState as { ayeCount: number }).ayeCount).toBe(1);
   });
 
@@ -232,14 +251,23 @@ describe('VotingRecordTrait', () => {
     handler.onAttach(node, cfg, ctx);
     handler.onEvent(node, cfg, ctx, { type: 'vote:open' });
     for (const id of ['CM-A', 'CM-B', 'CM-C']) {
-      handler.onEvent(node, cfg, ctx, { type: 'vote:cast', payload: { memberId: id, memberName: id, vote: 'aye' } });
+      handler.onEvent(node, cfg, ctx, {
+        type: 'vote:cast',
+        payload: { memberId: id, memberName: id, vote: 'aye' },
+      });
     }
     for (const id of ['CM-D', 'Mayor']) {
-      handler.onEvent(node, cfg, ctx, { type: 'vote:cast', payload: { memberId: id, memberName: id, vote: 'nay' } });
+      handler.onEvent(node, cfg, ctx, {
+        type: 'vote:cast',
+        payload: { memberId: id, memberName: id, vote: 'nay' },
+      });
     }
     handler.onEvent(node, cfg, ctx, { type: 'vote:close' });
     expect((node.__votingState as { outcome: string }).outcome).toBe('passed');
-    expect(ctx.emit).toHaveBeenCalledWith('vote:closed', expect.objectContaining({ outcome: 'passed' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'vote:closed',
+      expect.objectContaining({ outcome: 'passed' })
+    );
   });
 });
 
@@ -273,9 +301,15 @@ describe('CivicComplianceTrait', () => {
     handler.onAttach(node, cfg, ctx);
     const s = node.__complianceState as { checks: Array<{ id: string; status: string }> };
     const checkId = s.checks[0]!.id;
-    handler.onEvent(node, cfg, ctx, { type: 'compliance:update_check', payload: { checkId, status: 'compliant' } });
+    handler.onEvent(node, cfg, ctx, {
+      type: 'compliance:update_check',
+      payload: { checkId, status: 'compliant' },
+    });
     expect(s.checks[0]!.status).toBe('compliant');
-    expect(ctx.emit).toHaveBeenCalledWith('compliance:check_updated', expect.objectContaining({ status: 'compliant' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'compliance:check_updated',
+      expect.objectContaining({ status: 'compliant' })
+    );
   });
 
   it('compliance:foia_received creates a pending FOIA request', () => {
@@ -283,11 +317,17 @@ describe('CivicComplianceTrait', () => {
     const node = makeNode();
     const ctx = makeCtx();
     handler.onAttach(node, cfg, ctx);
-    handler.onEvent(node, cfg, ctx, { type: 'compliance:foia_received', payload: { requestId: 'FOIA-001', description: 'Budget docs' } });
+    handler.onEvent(node, cfg, ctx, {
+      type: 'compliance:foia_received',
+      payload: { requestId: 'FOIA-001', description: 'Budget docs' },
+    });
     const s = node.__complianceState as { foiaRequests: unknown[]; openFoiaCount: number };
     expect(s.foiaRequests).toHaveLength(1);
     expect(s.openFoiaCount).toBe(1);
-    expect(ctx.emit).toHaveBeenCalledWith('compliance:foia_received', expect.objectContaining({ requestId: 'FOIA-001' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'compliance:foia_received',
+      expect.objectContaining({ requestId: 'FOIA-001' })
+    );
   });
 
   it('audit log entry is stored', () => {
@@ -295,7 +335,10 @@ describe('CivicComplianceTrait', () => {
     const node = makeNode();
     const ctx = makeCtx();
     handler.onAttach(node, cfg, ctx);
-    handler.onEvent(node, cfg, ctx, { type: 'compliance:audit_log', payload: { action: 'page_view', actor: 'user-99', details: 'Viewed homepage' } });
+    handler.onEvent(node, cfg, ctx, {
+      type: 'compliance:audit_log',
+      payload: { action: 'page_view', actor: 'user-99', details: 'Viewed homepage' },
+    });
     const s = node.__complianceState as { auditLog: unknown[] };
     expect(s.auditLog).toHaveLength(1);
   });

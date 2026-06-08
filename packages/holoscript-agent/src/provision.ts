@@ -35,7 +35,9 @@ export interface ProvisionExecuted {
   bearer?: string;
   agentId?: string;
   envVarLines: string[];
-  joinedTeam?: { teamId: string; role: string; members: number } | { teamId: string; error: string };
+  joinedTeam?:
+    | { teamId: string; role: string; members: number }
+    | { teamId: string; error: string };
 }
 
 export type ProvisionResult = ProvisionDryRun | ProvisionExecuted;
@@ -53,10 +55,15 @@ export async function provisionAgent(
     throw new Error(`handle "${req.handle}" must match ${HANDLE_PATTERN}`);
   }
   if (!req.founderBearer || req.founderBearer.trim().length === 0) {
-    throw new Error('founderBearer is required (HOLOMESH_API_KEY of an agent that can call /register)');
+    throw new Error(
+      'founderBearer is required (HOLOMESH_API_KEY of an agent that can call /register)'
+    );
   }
 
-  const meshApiBase = (req.meshApiBase ?? 'https://mcp.holoscript.net/api/holomesh').replace(/\/$/, '');
+  const meshApiBase = (req.meshApiBase ?? 'https://mcp.holoscript.net/api/holomesh').replace(
+    /\/$/,
+    ''
+  );
   const seatsRoot = req.seatsRoot ?? defaultSeatsRoot();
   const surface = req.handle;
   const seatId = makeSeatId(surface);
@@ -72,10 +79,7 @@ export async function provisionAgent(
       seatId,
       seatDir,
       willGenerateWallet: !existsSync(walletPath),
-      willCallEndpoints: [
-        `POST ${meshApiBase}/register/challenge`,
-        `POST ${meshApiBase}/register`,
-      ],
+      willCallEndpoints: [`POST ${meshApiBase}/register/challenge`, `POST ${meshApiBase}/register`],
     };
   }
 
@@ -107,7 +111,9 @@ export async function provisionAgent(
     source: 'holoscript-agent.provision',
   };
   writeFileSync(walletPath, JSON.stringify(encryptedBlob, null, 2), 'utf8');
-  try { chmodSync(walletPath, 0o600); } catch {}
+  try {
+    chmodSync(walletPath, 0o600);
+  } catch {}
 
   const fetchImpl = req.fetchImpl ?? fetch;
 
@@ -121,35 +127,45 @@ export async function provisionAgent(
     throw new Error(`/register/challenge returned no nonce: ${JSON.stringify(challenge)}`);
   }
 
-  const signature = await wallet.signTypedData(EIP712_DOMAIN, EIP712_TYPES, { nonce: challenge.nonce });
+  const signature = await wallet.signTypedData(EIP712_DOMAIN, EIP712_TYPES, {
+    nonce: challenge.nonce,
+  });
 
   const registration = await postJson<{
     agent?: { id: string; api_key: string };
     wallet?: { private_key?: string };
-  }>(
-    fetchImpl,
-    `${meshApiBase}/register`,
-    req.founderBearer,
-    {
-      name: req.handle,
-      wallet_address: wallet.address,
-      nonce: challenge.nonce,
-      signature,
-    }
-  );
+  }>(fetchImpl, `${meshApiBase}/register`, req.founderBearer, {
+    name: req.handle,
+    wallet_address: wallet.address,
+    nonce: challenge.nonce,
+    signature,
+  });
   writeFileSync(
     regPath,
-    JSON.stringify({ status: 201, response: registration, registered_at: new Date().toISOString(), flow: 'x402' }, null, 2),
+    JSON.stringify(
+      {
+        status: 201,
+        response: registration,
+        registered_at: new Date().toISOString(),
+        flow: 'x402',
+      },
+      null,
+      2
+    ),
     'utf8'
   );
 
   const agentId = registration.agent?.id;
   const bearer = registration.agent?.api_key;
   if (!agentId || !bearer) {
-    throw new Error(`/register did not return agent.id + agent.api_key: ${JSON.stringify(registration).slice(0, 400)}`);
+    throw new Error(
+      `/register did not return agent.id + agent.api_key: ${JSON.stringify(registration).slice(0, 400)}`
+    );
   }
   if (registration.wallet?.private_key) {
-    console.warn('[provision] WARN — server returned private_key despite x402 flow; ignoring (using local key).');
+    console.warn(
+      '[provision] WARN — server returned private_key despite x402 flow; ignoring (using local key).'
+    );
   }
 
   let joinedTeam: ProvisionExecuted['joinedTeam'];
@@ -189,12 +205,14 @@ export async function provisionAgent(
 }
 
 function defaultSeatsRoot(): string {
-  return process.env.HOLOSCRIPT_AGENT_SEATS_ROOT
-    ?? join(homedir(), '.holoscript-agent', 'seats');
+  return process.env.HOLOSCRIPT_AGENT_SEATS_ROOT ?? join(homedir(), '.holoscript-agent', 'seats');
 }
 
 function makeSeatId(surface: string): string {
-  const fp = createHash('sha256').update(hostname() + homedir()).digest('hex').slice(0, 8);
+  const fp = createHash('sha256')
+    .update(hostname() + homedir())
+    .digest('hex')
+    .slice(0, 8);
   return `holoscript-${surface}-${fp}-x402`;
 }
 
@@ -204,7 +222,9 @@ function ensureMasterKey(seatsRoot: string): Buffer {
   if (!existsSync(keyPath)) {
     const k = randomBytes(32);
     writeFileSync(keyPath, k);
-    try { chmodSync(keyPath, 0o600); } catch {}
+    try {
+      chmodSync(keyPath, 0o600);
+    } catch {}
   }
   return readFileSync(keyPath);
 }
@@ -216,7 +236,12 @@ function encryptPrivateKey(
   const iv = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', masterKey, iv);
   const ct = Buffer.concat([cipher.update(privKey, 'utf8'), cipher.final()]);
-  return { iv: iv.toString('base64'), ct: ct.toString('base64'), tag: cipher.getAuthTag().toString('base64'), alg: 'aes-256-gcm' };
+  return {
+    iv: iv.toString('base64'),
+    ct: ct.toString('base64'),
+    tag: cipher.getAuthTag().toString('base64'),
+    alg: 'aes-256-gcm',
+  };
 }
 
 async function postJson<T>(

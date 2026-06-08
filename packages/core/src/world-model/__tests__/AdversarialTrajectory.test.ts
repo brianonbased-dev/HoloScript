@@ -24,14 +24,10 @@ const CONTRACT: SimulationContractReference = {
   hashMode: 'sha256',
   adapterFingerprint: 'adapter-test-001',
   replayDigestMode: 'strict-same-adapter',
-  fieldQuantization: [
-    { fieldPattern: 'position', quantum: 1e-5, units: 'm' },
-  ],
+  fieldQuantization: [{ fieldPattern: 'position', quantum: 1e-5, units: 'm' }],
 };
 
-function buildTrajectory(
-  overrides: Partial<AdversarialTrajectory> = {}
-): AdversarialTrajectory {
+function buildTrajectory(overrides: Partial<AdversarialTrajectory> = {}): AdversarialTrajectory {
   const score: SemanticPredicateScore = {
     violation: 0.5,
     novelty: 0.5,

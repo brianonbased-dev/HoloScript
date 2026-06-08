@@ -35,7 +35,7 @@ const FLAGS = {
   fix: args.includes('--fix'),
   json: args.includes('--json'),
   checks: (() => {
-    const c = args.find(a => a.startsWith('--check='));
+    const c = args.find((a) => a.startsWith('--check='));
     return c ? c.split('=')[1].split(',') : null;
   })(),
 };
@@ -43,12 +43,12 @@ const FLAGS = {
 // ── Colors ──────────────────────────────────────────────────────────────────
 
 const C = {
-  red: s => `\x1b[31m${s}\x1b[0m`,
-  green: s => `\x1b[32m${s}\x1b[0m`,
-  yellow: s => `\x1b[33m${s}\x1b[0m`,
-  cyan: s => `\x1b[36m${s}\x1b[0m`,
-  bold: s => `\x1b[1m${s}\x1b[0m`,
-  dim: s => `\x1b[2m${s}\x1b[0m`,
+  red: (s) => `\x1b[31m${s}\x1b[0m`,
+  green: (s) => `\x1b[32m${s}\x1b[0m`,
+  yellow: (s) => `\x1b[33m${s}\x1b[0m`,
+  cyan: (s) => `\x1b[36m${s}\x1b[0m`,
+  bold: (s) => `\x1b[1m${s}\x1b[0m`,
+  dim: (s) => `\x1b[2m${s}\x1b[0m`,
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -56,9 +56,12 @@ const C = {
 function getChangedFiles() {
   try {
     const unstaged = execSync('git diff --name-only HEAD', { cwd: ROOT, encoding: 'utf8' }).trim();
-    const staged = execSync('git diff --cached --name-only', { cwd: ROOT, encoding: 'utf8' }).trim();
+    const staged = execSync('git diff --cached --name-only', {
+      cwd: ROOT,
+      encoding: 'utf8',
+    }).trim();
     const all = [...new Set([...unstaged.split('\n'), ...staged.split('\n')].filter(Boolean))];
-    return all.filter(f => f.endsWith('.ts') || f.endsWith('.tsx'));
+    return all.filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
   } catch {
     return [];
   }
@@ -79,12 +82,20 @@ function walkTs(dir, files = []) {
   if (!existsSync(dir)) return files;
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
-    if (entry === 'node_modules' || entry === 'dist' || entry === '__tests__' || entry.includes('.test.')) continue;
+    if (
+      entry === 'node_modules' ||
+      entry === 'dist' ||
+      entry === '__tests__' ||
+      entry.includes('.test.')
+    )
+      continue;
     try {
       const stat = statSync(full);
       if (stat.isDirectory()) walkTs(full, files);
       else if (entry.endsWith('.ts') || entry.endsWith('.tsx')) files.push(full);
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
   return files;
 }
@@ -152,7 +163,9 @@ function parseJsonFromOutput(output) {
     if (first >= 0 && last > first) {
       try {
         return JSON.parse(trimmed.slice(first, last + 1));
-      } catch { /* fall through */ }
+      } catch {
+        /* fall through */
+      }
     }
   }
   return null;
@@ -161,12 +174,16 @@ function parseJsonFromOutput(output) {
 function checkDependencyAudit() {
   const start = Date.now();
   const script = join(__dirname, 'bounded-pnpm-audit.mjs');
-  const result = spawnSync(process.execPath, [script, '--timeout-ms=25000', '--cache-ttl-ms=86400000'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-    timeout: 30_000,
-    stdio: 'pipe',
-  });
+  const result = spawnSync(
+    process.execPath,
+    [script, '--timeout-ms=25000', '--cache-ttl-ms=86400000'],
+    {
+      cwd: ROOT,
+      encoding: 'utf8',
+      timeout: 30_000,
+      stdio: 'pipe',
+    }
+  );
   const duration = Date.now() - start;
   const combined = `${result.stdout || ''}\n${result.stderr || ''}`.trim();
   const audit = parseJsonFromOutput(combined);
@@ -184,7 +201,13 @@ function checkDependencyAudit() {
 
   const reason = audit.reason ? ` (${audit.reason})` : '';
   if (audit.status === 'skip') {
-    record('dependency_audit', 'skip', `pnpm audit skipped${reason}`, [{ file: audit.command, reason: audit.reason }], duration);
+    record(
+      'dependency_audit',
+      'skip',
+      `pnpm audit skipped${reason}`,
+      [{ file: audit.command, reason: audit.reason }],
+      duration
+    );
     return;
   }
 
@@ -195,14 +218,27 @@ function checkDependencyAudit() {
       'dependency_audit',
       status,
       `Used cached pnpm audit (${audit.cached_status}, ${ageSeconds}s old)${reason}`,
-      audit.summary ? [{ file: audit.command, reason: JSON.stringify(audit.summary.vulnerabilities || audit.summary) }] : [],
+      audit.summary
+        ? [
+            {
+              file: audit.command,
+              reason: JSON.stringify(audit.summary.vulnerabilities || audit.summary),
+            },
+          ]
+        : [],
       duration
     );
     return;
   }
 
   if (audit.status === 'pass') {
-    record('dependency_audit', 'pass', 'pnpm audit found no moderate+ vulnerabilities', [], duration);
+    record(
+      'dependency_audit',
+      'pass',
+      'pnpm audit found no moderate+ vulnerabilities',
+      [],
+      duration
+    );
     return;
   }
 
@@ -210,7 +246,14 @@ function checkDependencyAudit() {
     'dependency_audit',
     'fail',
     'pnpm audit found moderate+ vulnerabilities',
-    audit.summary ? [{ file: audit.command, reason: JSON.stringify(audit.summary.vulnerabilities || audit.summary) }] : [],
+    audit.summary
+      ? [
+          {
+            file: audit.command,
+            reason: JSON.stringify(audit.summary.vulnerabilities || audit.summary),
+          },
+        ]
+      : [],
     duration
   );
 }
@@ -220,16 +263,17 @@ function checkDependencyAudit() {
 const PREFIXED_ALLOWLIST = new Set([
   '_TemplateInstance', // deliberate rename alias
   '_HSPlusExpression', // deliberate rename alias
-  '_RegistryClient',   // deliberate rename in .d.ts
+  '_RegistryClient', // deliberate rename in .d.ts
 ]);
 
 function checkPrefixedImports() {
   const start = Date.now();
   const issues = [];
-  const pattern = /import\s+(?:type\s+)?{([^}]+)}\s+from\s+['"](@holoscript\/[^'"]+|\.\.?\/[^'"]+)['"]/g;
+  const pattern =
+    /import\s+(?:type\s+)?{([^}]+)}\s+from\s+['"](@holoscript\/[^'"]+|\.\.?\/[^'"]+)['"]/g;
   const prefixPattern = /\b(_[A-Z][a-zA-Z0-9]*)\b/g;
 
-  const dirs = readdirSync(join(ROOT, 'packages')).map(d => join(ROOT, 'packages', d, 'src'));
+  const dirs = readdirSync(join(ROOT, 'packages')).map((d) => join(ROOT, 'packages', d, 'src'));
   const files = [];
   for (const dir of dirs) walkTs(dir, files);
 
@@ -254,7 +298,9 @@ function checkPrefixedImports() {
           }
         }
       }
-    } catch { /* skip unreadable files */ }
+    } catch {
+      /* skip unreadable files */
+    }
   }
 
   const duration = Date.now() - start;
@@ -272,15 +318,30 @@ function checkPrefixedImports() {
     for (const [file, fileIssues] of Object.entries(fileGroups)) {
       let content = readFileSync(join(ROOT, file), 'utf8');
       for (const issue of fileIssues) {
-        const regex = new RegExp(`\\b${issue.import.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
+        const regex = new RegExp(
+          `\\b${issue.import.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
+          'g'
+        );
         content = content.replace(regex, issue.suggestion);
         fixCount++;
       }
       writeFileSync(join(ROOT, file), content);
     }
-    record('prefixed_imports', 'pass', `Fixed ${fixCount} prefixed imports in ${Object.keys(fileGroups).length} files`, [], Date.now() - start);
+    record(
+      'prefixed_imports',
+      'pass',
+      `Fixed ${fixCount} prefixed imports in ${Object.keys(fileGroups).length} files`,
+      [],
+      Date.now() - start
+    );
   } else {
-    record('prefixed_imports', 'fail', `${issues.length} prefixed type imports found`, issues.slice(0, 10), duration);
+    record(
+      'prefixed_imports',
+      'fail',
+      `${issues.length} prefixed type imports found`,
+      issues.slice(0, 10),
+      duration
+    );
   }
 }
 
@@ -291,7 +352,7 @@ function checkLoaderImports() {
   const issues = [];
   const loaderPattern = /from\s+['"]([^'"]+\.(wgsl|glsl|vert|frag|wasm)\?raw)['"]/g;
 
-  const dirs = readdirSync(join(ROOT, 'packages')).map(d => join(ROOT, 'packages', d, 'src'));
+  const dirs = readdirSync(join(ROOT, 'packages')).map((d) => join(ROOT, 'packages', d, 'src'));
   const files = [];
   for (const dir of dirs) walkTs(dir, files);
 
@@ -311,14 +372,19 @@ function checkLoaderImports() {
         let hasLoader = false;
         if (hasConfig) {
           const configContent = readFileSync(tsupConfig, 'utf8');
-          hasLoader = configContent.includes('wgsl') || configContent.includes('loader') || configContent.includes('raw');
+          hasLoader =
+            configContent.includes('wgsl') ||
+            configContent.includes('loader') ||
+            configContent.includes('raw');
         }
 
         // Check for type declaration
         const srcDir = join(ROOT, 'packages', pkg, 'src');
         let hasTypeDecl = false;
         if (existsSync(srcDir)) {
-          const declFiles = readdirSync(srcDir).filter(f => f.includes('module') || f.includes('wgsl'));
+          const declFiles = readdirSync(srcDir).filter(
+            (f) => f.includes('module') || f.includes('wgsl')
+          );
           for (const df of declFiles) {
             const dc = readFileSync(join(srcDir, df), 'utf8');
             if (dc.includes('.wgsl')) hasTypeDecl = true;
@@ -334,7 +400,9 @@ function checkLoaderImports() {
           });
         }
       }
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
 
   const duration = Date.now() - start;
@@ -342,7 +410,13 @@ function checkLoaderImports() {
   if (issues.length === 0) {
     record('loader_imports', 'pass', 'All loader imports have configs', [], duration);
   } else {
-    record('loader_imports', 'warn', `${issues.length} loader imports without configs`, issues, duration);
+    record(
+      'loader_imports',
+      'warn',
+      `${issues.length} loader imports without configs`,
+      issues,
+      duration
+    );
   }
 }
 
@@ -363,7 +437,8 @@ function checkTypeScript() {
   const issues = [];
   const checked = [];
 
-  for (const pkg of changedPkgs.slice(0, 8)) { // max 8 packages
+  for (const pkg of changedPkgs.slice(0, 8)) {
+    // max 8 packages
     const tsconfig = join(ROOT, 'packages', pkg, 'tsconfig.json');
     if (!existsSync(tsconfig)) continue;
 
@@ -383,22 +458,24 @@ function checkTypeScript() {
       const combined = `${result.stdout || ''}\n${result.stderr || ''}`;
       const errors = combined
         .split('\n')
-        .filter(l => l.includes('error TS'))
-        .map(l => {
+        .filter((l) => l.includes('error TS'))
+        .map((l) => {
           const m = l.match(/(.+)\((\d+),(\d+)\): error (TS\d+): (.+)/);
           return m ? { file: m[1], line: m[2], code: m[4], message: m[5] } : { raw: l };
         })
-        .filter(e => {
+        .filter((e) => {
           // Suppress known wgsl?raw resolution errors
           if (e.code === 'TS2307' && e.message && e.message.includes('.wgsl')) return false;
           return true;
         });
 
       if (errors.length > 0) {
-        issues.push(...errors.slice(0, 5).map(e => ({
-          ...e,
-          package: pkg,
-        })));
+        issues.push(
+          ...errors.slice(0, 5).map((e) => ({
+            ...e,
+            package: pkg,
+          }))
+        );
       } else if (combined.trim()) {
         issues.push({
           package: pkg,
@@ -420,9 +497,21 @@ function checkTypeScript() {
   const duration = Date.now() - start;
 
   if (issues.length === 0) {
-    record('typescript', 'pass', `Checked ${checked.length} packages: ${checked.join(', ')}`, [], duration);
+    record(
+      'typescript',
+      'pass',
+      `Checked ${checked.length} packages: ${checked.join(', ')}`,
+      [],
+      duration
+    );
   } else {
-    record('typescript', 'fail', `${issues.length} TypeScript errors in ${checked.length} packages`, issues.slice(0, 10), duration);
+    record(
+      'typescript',
+      'fail',
+      `${issues.length} TypeScript errors in ${checked.length} packages`,
+      issues.slice(0, 10),
+      duration
+    );
   }
 }
 
@@ -434,7 +523,7 @@ function checkDTS() {
   const changedFiles = getChangedFiles();
   const changedPkgs = FLAGS.full
     ? criticalDTS
-    : getChangedPackages(changedFiles).filter(p => criticalDTS.includes(p));
+    : getChangedPackages(changedFiles).filter((p) => criticalDTS.includes(p));
 
   if (changedPkgs.length === 0) {
     record('dts', 'skip', 'No critical DTS packages changed', [], 0);
@@ -455,7 +544,10 @@ function checkDTS() {
 
     if (result.status !== 0) {
       const raw = `${result.stderr || ''}\n${result.stdout || ''}`.trim();
-      const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+      const lines = raw
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
       const errorsFromTs = lines.filter((l) => l.includes('error TS')).slice(0, 4);
       const errorsHint = lines
         .filter((l) => /error|Error|ERR_|failed|Cannot find|TS\d+|DTS/i.test(l))
@@ -468,7 +560,11 @@ function checkDTS() {
             ? errorsHint
             : fallback.length > 0
               ? fallback
-              : ['DTS build failed (no output — try: cd packages/' + pkg + ' && npx tsup --dts-only)'];
+              : [
+                  'DTS build failed (no output — try: cd packages/' +
+                    pkg +
+                    ' && npx tsup --dts-only)',
+                ];
       issues.push({
         package: pkg,
         errors,
@@ -495,13 +591,17 @@ function checkCircular() {
 
   const start = Date.now();
   try {
-    const result = spawnSync('npx', ['madge', '--circular', '--extensions', 'ts', 'packages/core/src/index.ts'], {
-      cwd: ROOT,
-      encoding: 'utf8',
-      timeout: 15000,
-      stdio: 'pipe',
-      ...WIN32_SPAWN,
-    });
+    const result = spawnSync(
+      'npx',
+      ['madge', '--circular', '--extensions', 'ts', 'packages/core/src/index.ts'],
+      {
+        cwd: ROOT,
+        encoding: 'utf8',
+        timeout: 15000,
+        stdio: 'pipe',
+        ...WIN32_SPAWN,
+      }
+    );
 
     const duration = Date.now() - start;
     const output = (result.stdout || '').trim();
@@ -509,8 +609,14 @@ function checkCircular() {
     if (output.includes('No circular dependency')) {
       record('circular', 'pass', 'No circular dependencies in core', [], duration);
     } else {
-      const lines = output.split('\n').filter(l => l.includes('→'));
-      record('circular', 'warn', `${lines.length} circular dependency chains`, lines.slice(0, 5).map(l => ({ chain: l })), duration);
+      const lines = output.split('\n').filter((l) => l.includes('→'));
+      record(
+        'circular',
+        'warn',
+        `${lines.length} circular dependency chains`,
+        lines.slice(0, 5).map((l) => ({ chain: l })),
+        duration
+      );
     }
   } catch {
     record('circular', 'skip', 'madge not available', [], 0);
@@ -522,7 +628,7 @@ function checkCircular() {
 function checkSimulationContracts() {
   const start = Date.now();
   const changedFiles = getChangedFiles();
-  const simFiles = changedFiles.filter(f => f.endsWith('.holo') || f.endsWith('.hsplus'));
+  const simFiles = changedFiles.filter((f) => f.endsWith('.holo') || f.endsWith('.hsplus'));
 
   if (simFiles.length === 0) {
     record('simulation_contract', 'skip', 'No simulation files changed', [], 0);
@@ -533,9 +639,10 @@ function checkSimulationContracts() {
   for (const file of simFiles) {
     try {
       const content = readFileSync(join(ROOT, file), 'utf8');
-      
+
       // Basic heuristic: does it use physical traits or solver blocks?
-      const hasPhysics = content.includes('@physics') || content.includes('solver') || content.includes('@material');
+      const hasPhysics =
+        content.includes('@physics') || content.includes('solver') || content.includes('@material');
       if (!hasPhysics) continue;
 
       // 1. Check for basic unit validation (simple regex for common patterns)
@@ -546,7 +653,7 @@ function checkSimulationContracts() {
         issues.push({
           file,
           reason: 'Simulation contains raw large numbers without explicit unit labels (@units).',
-          suggestion: 'Annotate physical constants with @units(kg/m3) or equivalent.'
+          suggestion: 'Annotate physical constants with @units(kg/m3) or equivalent.',
         });
       }
 
@@ -555,19 +662,32 @@ function checkSimulationContracts() {
         issues.push({
           file,
           reason: 'Solver block lacks fixed_dt. Deterministic replay will fail.',
-          suggestion: 'Add fixed_dt: 0.001 (or appropriate) to the solver configuration.'
+          suggestion: 'Add fixed_dt: 0.001 (or appropriate) to the solver configuration.',
         });
       }
-
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
 
   const duration = Date.now() - start;
 
   if (issues.length === 0) {
-    record('simulation_contract', 'pass', `SimulationContract checks passed for ${simFiles.length} files`, [], duration);
+    record(
+      'simulation_contract',
+      'pass',
+      `SimulationContract checks passed for ${simFiles.length} files`,
+      [],
+      duration
+    );
   } else {
-    record('simulation_contract', 'fail', `${issues.length} contract violations found`, issues, duration);
+    record(
+      'simulation_contract',
+      'fail',
+      `${issues.length} contract violations found`,
+      issues,
+      duration
+    );
   }
 }
 
@@ -577,8 +697,9 @@ function checkMetrics() {
   const start = Date.now();
   const issues = [];
   // Catch 2+ digit numbers (or comma separated) followed by metrics
-  const metricsPattern = /\b([0-9]{2,}(?:,[0-9]{3})*)\s+(MCP tools|compilers|traits|tests|knowledge entries|domain plugins)\b/ig;
-  
+  const metricsPattern =
+    /\b([0-9]{2,}(?:,[0-9]{3})*)\s+(MCP tools|compilers|traits|tests|knowledge entries|domain plugins)\b/gi;
+
   function walkMd(dir, files = []) {
     if (!existsSync(dir)) return files;
     for (const entry of readdirSync(dir)) {
@@ -588,16 +709,18 @@ function checkMetrics() {
         const stat = statSync(full);
         if (stat.isDirectory()) walkMd(full, files);
         else if (entry.endsWith('.md') && entry !== 'NUMBERS.md') files.push(full);
-      } catch { /* skip */ }
+      } catch {
+        /* skip */
+      }
     }
     return files;
   }
-  
+
   const filesToCheck = [
     join(ROOT, 'README.md'),
     join(ROOT, 'FULL_README.md'),
-    ...walkMd(join(ROOT, 'docs'))
-  ].filter(f => existsSync(f));
+    ...walkMd(join(ROOT, 'docs')),
+  ].filter((f) => existsSync(f));
 
   for (const file of filesToCheck) {
     try {
@@ -613,19 +736,33 @@ function checkMetrics() {
             file: relative(ROOT, file),
             line: i + 1,
             reason: `Hardcoded metric found: "${match[0]}"`,
-            suggestion: 'Reference docs/NUMBERS.md or use the live verification command instead.'
+            suggestion: 'Reference docs/NUMBERS.md or use the live verification command instead.',
           });
         }
       }
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
 
   const duration = Date.now() - start;
 
   if (issues.length === 0) {
-    record('metrics', 'pass', `Metrics checks passed for ${filesToCheck.length} files`, [], duration);
+    record(
+      'metrics',
+      'pass',
+      `Metrics checks passed for ${filesToCheck.length} files`,
+      [],
+      duration
+    );
   } else {
-    record('metrics', 'fail', `${issues.length} hardcoded metrics found in active docs`, issues, duration);
+    record(
+      'metrics',
+      'fail',
+      `${issues.length} hardcoded metrics found in active docs`,
+      issues,
+      duration
+    );
   }
 }
 
@@ -635,7 +772,7 @@ const totalStart = Date.now();
 
 if (!FLAGS.json) {
   console.log(C.bold('\\nHOLOSCRIPT PRE-FLIGHT DIAGNOSTIC'));
-  console.log(C.dim('=' .repeat(50)));
+  console.log(C.dim('='.repeat(50)));
 }
 
 function checkPackageSrcEmitAllowlist() {
@@ -650,7 +787,13 @@ function checkPackageSrcEmitAllowlist() {
   const duration = Date.now() - start;
   const out = `${result.stderr || ''}${result.stdout || ''}`.trim();
   if (result.status === 0) {
-    record('package_src_emit', 'pass', 'packages/*/src/ emit artifacts match allowlist', [], duration);
+    record(
+      'package_src_emit',
+      'pass',
+      'packages/*/src/ emit artifacts match allowlist',
+      [],
+      duration
+    );
   } else {
     record(
       'package_src_emit',
@@ -663,7 +806,11 @@ function checkPackageSrcEmitAllowlist() {
 }
 
 if (shouldRun('lockfile')) checkLockfile();
-if (FLAGS.full || (FLAGS.checks && FLAGS.checks.some(c => ['dependency_audit', 'audit', 'deps'].includes(c)))) checkDependencyAudit();
+if (
+  FLAGS.full ||
+  (FLAGS.checks && FLAGS.checks.some((c) => ['dependency_audit', 'audit', 'deps'].includes(c)))
+)
+  checkDependencyAudit();
 if (shouldRun('package_src_emit') || shouldRun('src_emit')) checkPackageSrcEmitAllowlist();
 if (shouldRun('imports') || shouldRun('prefixed_imports')) checkPrefixedImports();
 if (shouldRun('loaders') || shouldRun('loader_imports')) checkLoaderImports();
@@ -683,10 +830,10 @@ if (FLAGS.json) {
     duration_ms: totalDuration,
     checks: results,
     summary: {
-      pass: results.filter(r => r.status === 'pass').length,
-      warn: results.filter(r => r.status === 'warn').length,
-      fail: results.filter(r => r.status === 'fail').length,
-      skip: results.filter(r => r.status === 'skip').length,
+      pass: results.filter((r) => r.status === 'pass').length,
+      warn: results.filter((r) => r.status === 'warn').length,
+      fail: results.filter((r) => r.status === 'fail').length,
+      skip: results.filter((r) => r.status === 'skip').length,
     },
   };
   console.log(JSON.stringify(output, null, 2));
@@ -696,15 +843,21 @@ if (FLAGS.json) {
 } else {
   console.log('');
   for (const r of results) {
-    const icon = r.status === 'pass' ? C.green('✓ PASS')
-      : r.status === 'warn' ? C.yellow('⚠ WARN')
-      : r.status === 'fail' ? C.red('✗ FAIL')
-      : C.dim('○ SKIP');
+    const icon =
+      r.status === 'pass'
+        ? C.green('✓ PASS')
+        : r.status === 'warn'
+          ? C.yellow('⚠ WARN')
+          : r.status === 'fail'
+            ? C.red('✗ FAIL')
+            : C.dim('○ SKIP');
     const time = r.duration_ms > 0 ? C.dim(` (${(r.duration_ms / 1000).toFixed(1)}s)`) : '';
     console.log(`  ${icon}  ${r.name.padEnd(20)} ${r.message}${time}`);
     if (r.details.length > 0 && r.status !== 'pass') {
       for (const d of r.details.slice(0, 3)) {
-        const detail = d.file ? `${d.file}: ${d.import || d.message || d.reason}` : JSON.stringify(d);
+        const detail = d.file
+          ? `${d.file}: ${d.import || d.message || d.reason}`
+          : JSON.stringify(d);
         console.log(`         ${C.dim(detail)}`);
       }
       if (r.details.length > 3) {
@@ -713,13 +866,15 @@ if (FLAGS.json) {
     }
   }
 
-  const pass = results.filter(r => r.status === 'pass').length;
-  const warn = results.filter(r => r.status === 'warn').length;
-  const fail = results.filter(r => r.status === 'fail').length;
-  const skip = results.filter(r => r.status === 'skip').length;
+  const pass = results.filter((r) => r.status === 'pass').length;
+  const warn = results.filter((r) => r.status === 'warn').length;
+  const fail = results.filter((r) => r.status === 'fail').length;
+  const skip = results.filter((r) => r.status === 'skip').length;
 
   console.log(C.dim('\n' + '─'.repeat(50)));
-  console.log(`  ${C.bold(`${pass} passed`)}  ${warn > 0 ? C.yellow(`${warn} warnings`) : ''}  ${fail > 0 ? C.red(`${fail} failed`) : ''}  ${skip > 0 ? C.dim(`${skip} skipped`) : ''}  ${C.dim(`(${(totalDuration / 1000).toFixed(1)}s)`)}`);
+  console.log(
+    `  ${C.bold(`${pass} passed`)}  ${warn > 0 ? C.yellow(`${warn} warnings`) : ''}  ${fail > 0 ? C.red(`${fail} failed`) : ''}  ${skip > 0 ? C.dim(`${skip} skipped`) : ''}  ${C.dim(`(${(totalDuration / 1000).toFixed(1)}s)`)}`
+  );
 
   if (fail > 0) {
     console.log(C.red('\n  Pre-flight FAILED. Fix issues before pushing.'));
@@ -729,4 +884,4 @@ if (FLAGS.json) {
   }
 }
 
-process.exit(results.some(r => r.status === 'fail') ? 1 : 0);
+process.exit(results.some((r) => r.status === 'fail') ? 1 : 0);

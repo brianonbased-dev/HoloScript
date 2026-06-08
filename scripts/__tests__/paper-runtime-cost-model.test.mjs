@@ -8,10 +8,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  buildRuntimeCostModelReport,
-  renderMarkdownTable,
-} from '../paper-runtime-cost-model.mjs';
+import { buildRuntimeCostModelReport, renderMarkdownTable } from '../paper-runtime-cost-model.mjs';
 
 let testsRun = 0;
 let testsFailed = 0;
@@ -22,7 +19,9 @@ function assertEq(actual, expected, name) {
     console.log(`  PASS ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -69,7 +68,7 @@ function writeFixture(root) {
       '| HoloScript warm parse (ms) | 0.2 | 0.1 | 0.3 | 0.4 |',
       '| OpenUSD plugin export (ms) | 0.3 | 0.2 | 0.4 | 0.5 |',
     ].join('\n'),
-    'utf8',
+    'utf8'
   );
 }
 
@@ -94,7 +93,10 @@ assertEq(paper12?.baseline.value, 0.2, 'paper 12 warm parse aggregate');
 assertEq(paper12?.measured.value, 0.3, 'paper 12 USD export aggregate');
 
 const table = renderMarkdownTable(report);
-assertOk(table.includes('| 11 HSPlus | trait semiring resolution | O(t) |'), 'markdown table includes paper 11');
+assertOk(
+  table.includes('| 11 HSPlus | trait semiring resolution | O(t) |'),
+  'markdown table includes paper 11'
+);
 
 if (testsFailed > 0) {
   console.error(`paper-runtime-cost-model tests failed: ${testsFailed}/${testsRun}`);

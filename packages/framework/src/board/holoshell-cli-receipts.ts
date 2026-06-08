@@ -168,7 +168,9 @@ export function validateLocalCliAbsorptionReceipt(receipt: LocalCliAbsorptionRec
     receipt.startedAt === '' ||
     Number.isNaN(Date.parse(receipt.startedAt))
   ) {
-    errors.push('LocalCliAbsorptionReceipt.startedAt is required and must be a valid ISO-8601 timestamp.');
+    errors.push(
+      'LocalCliAbsorptionReceipt.startedAt is required and must be a valid ISO-8601 timestamp.'
+    );
   }
   if (
     receipt.endedAt === undefined ||
@@ -176,7 +178,9 @@ export function validateLocalCliAbsorptionReceipt(receipt: LocalCliAbsorptionRec
     receipt.endedAt === '' ||
     Number.isNaN(Date.parse(receipt.endedAt))
   ) {
-    errors.push('LocalCliAbsorptionReceipt.endedAt is required and must be a valid ISO-8601 timestamp.');
+    errors.push(
+      'LocalCliAbsorptionReceipt.endedAt is required and must be a valid ISO-8601 timestamp.'
+    );
   }
 
   if (typeof receipt.exitCode !== 'number') {
@@ -200,7 +204,11 @@ export function validateLocalCliAbsorptionReceipt(receipt: LocalCliAbsorptionRec
     if (!Array.isArray(p.blockedPaths)) {
       errors.push('LocalCliAbsorptionReceipt.policy.blockedPaths must be an array.');
     }
-    if (p.maxDurationMs === undefined || typeof p.maxDurationMs !== 'number' || p.maxDurationMs < 0) {
+    if (
+      p.maxDurationMs === undefined ||
+      typeof p.maxDurationMs !== 'number' ||
+      p.maxDurationMs < 0
+    ) {
       errors.push('LocalCliAbsorptionReceipt.policy.maxDurationMs must be a non-negative number.');
     }
     if (p.maxMemoryMb !== undefined && (typeof p.maxMemoryMb !== 'number' || p.maxMemoryMb < 0)) {
@@ -254,8 +262,13 @@ export function validateLocalCliAbsorptionReceipt(receipt: LocalCliAbsorptionRec
       ) {
         errors.push(`CliAction step ${action.step ?? '?'} timestamp is invalid.`);
       }
-      if (action.durationMs !== undefined && (typeof action.durationMs !== 'number' || action.durationMs < 0)) {
-        errors.push(`CliAction step ${action.step ?? '?'} durationMs must be a non-negative number.`);
+      if (
+        action.durationMs !== undefined &&
+        (typeof action.durationMs !== 'number' || action.durationMs < 0)
+      ) {
+        errors.push(
+          `CliAction step ${action.step ?? '?'} durationMs must be a non-negative number.`
+        );
       }
       if (action.exitCode !== undefined && typeof action.exitCode !== 'number') {
         errors.push(`CliAction step ${action.step ?? '?'} exitCode must be a number.`);
@@ -269,7 +282,9 @@ export function validateLocalCliAbsorptionReceipt(receipt: LocalCliAbsorptionRec
 
   for (const command of receipt.verificationCommands ?? []) {
     if (!command.command) {
-      errors.push(`LocalCliAbsorptionReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`);
+      errors.push(
+        `LocalCliAbsorptionReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`
+      );
     }
   }
 
@@ -285,7 +300,7 @@ export function isSupportedCliActionKind(kind: string): kind is CliActionKind {
 const CLI_ABSORPTION_OUTCOMES = ['success', 'failure', 'timeout', 'blocked_by_policy'] as const;
 
 export function isSupportedCliAbsorptionOutcome(
-  outcome: string,
+  outcome: string
 ): outcome is LocalCliAbsorptionReceipt['outcome'] {
   return (CLI_ABSORPTION_OUTCOMES as readonly string[]).includes(outcome);
 }
@@ -307,7 +322,7 @@ function cloneCliPolicy(policy: LocalCliPolicy): LocalCliPolicy {
 }
 
 function cloneVerificationCommands(
-  commands: ArtifactVerificationCommand[] | undefined,
+  commands: ArtifactVerificationCommand[] | undefined
 ): ArtifactVerificationCommand[] | undefined {
   if (!commands) return undefined;
   return commands.map((command) => ({
@@ -317,7 +332,7 @@ function cloneVerificationCommands(
 }
 
 function cloneProvenance(
-  provenance: ArtifactProvenanceLink | undefined,
+  provenance: ArtifactProvenanceLink | undefined
 ): ArtifactProvenanceLink | undefined {
   if (!provenance) return undefined;
   return {
@@ -329,7 +344,7 @@ function cloneProvenance(
 }
 
 export function cloneLocalCliAbsorptionReceipt(
-  receipt: LocalCliAbsorptionReceipt,
+  receipt: LocalCliAbsorptionReceipt
 ): LocalCliAbsorptionReceipt {
   return {
     ...receipt,

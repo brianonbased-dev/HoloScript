@@ -21,11 +21,7 @@ const SCHEMA = 'holoscript.paper-runtime-cost-model.v1';
 export function buildRuntimeCostModelReport(options = {}) {
   const root = resolve(options.root ?? REPO_ROOT);
   const generatedAt = options.generatedAt ?? new Date().toISOString();
-  const rows = [
-    buildPaper6Row(root),
-    buildPaper11Row(root),
-    buildPaper12Row(root),
-  ].filter(Boolean);
+  const rows = [buildPaper6Row(root), buildPaper11Row(root), buildPaper12Row(root)].filter(Boolean);
 
   const reportBody = {
     schemaVersion: SCHEMA,
@@ -87,7 +83,8 @@ function buildPaper6Row(root) {
     paperTitle: 'Verifiable Animation',
     surface: 'retargeting solver runtime',
     asymptoticClass: 'O(f * k)',
-    asymptoticRationale: 'Sampling f frames across k animation tracks; publication solver is a deterministic post-pass.',
+    asymptoticRationale:
+      'Sampling f frames across k animation tracks; publication solver is a deterministic post-pass.',
     inputScale: `${json.frames} frames x ${json.iterations} iterations`,
     baseline: metric('baseline-no-pipeline', baseline.per_frame_us, 'us/frame'),
     measured: metric('full-solver', full.per_frame_us, 'us/frame'),
@@ -104,14 +101,26 @@ function buildPaper11Row(root) {
   const semiring = readJson(root, semiringArtifact);
   const baseline = readJson(root, baselineArtifact);
   if (!semiring || !baseline) {
-    return missingRow('11', 'HSPlus', 'trait semiring resolution', semiringArtifact, baselineArtifact);
+    return missingRow(
+      '11',
+      'HSPlus',
+      'trait semiring resolution',
+      semiringArtifact,
+      baselineArtifact
+    );
   }
 
   const batchSize = 100;
   const semiringRow = semiring.byBatchSize?.find((row) => row.batchSize === batchSize);
   const baselineRow = baseline.byBatchSize?.find((row) => row.batchSize === batchSize);
   if (!semiringRow || !baselineRow) {
-    return missingRow('11', 'HSPlus', 'trait semiring resolution', semiringArtifact, baselineArtifact);
+    return missingRow(
+      '11',
+      'HSPlus',
+      'trait semiring resolution',
+      semiringArtifact,
+      baselineArtifact
+    );
   }
 
   return measuredRow({
@@ -120,7 +129,8 @@ function buildPaper11Row(root) {
     paperTitle: 'HSPlus',
     surface: 'trait semiring resolution',
     asymptoticClass: 'O(t)',
-    asymptoticRationale: 'ProvenanceSemiring.add walks t trait applications once; the paired imperative baseline uses the same t.',
+    asymptoticRationale:
+      'ProvenanceSemiring.add walks t trait applications once; the paired imperative baseline uses the same t.',
     inputScale: `${batchSize} trait applications; ${semiring.iterations} measured iterations`,
     baseline: metric('imperative direct write', baselineRow.perCallMedianUs, 'us/call'),
     measured: metric('ProvenanceSemiring.add', semiringRow.perCallMedianUs, 'us/call'),
@@ -137,7 +147,8 @@ function buildPaper12Row(root) {
   const artifact = '.bench-logs/2026-04-27-paper-12-scene-suite-overhead.md';
   const text = readText(root, artifact);
   const aggregate = text ? parsePaper12Aggregate(text) : undefined;
-  if (!aggregate) return missingRow('12', 'HoloLand', 'scene-suite parser/export overhead', artifact);
+  if (!aggregate)
+    return missingRow('12', 'HoloLand', 'scene-suite parser/export overhead', artifact);
 
   return measuredRow({
     root,
@@ -151,7 +162,8 @@ function buildPaper12Row(root) {
     baseline: metric('HoloScript warm parse mean', aggregate.warmParseMeanMs, 'ms'),
     measured: metric('OpenUSD plugin export mean', aggregate.usdExportMeanMs, 'ms'),
     artifact,
-    harness: 'packages/comparative-benchmarks/src/__tests__/paper-12-scene-suite-overhead.bench.test.ts',
+    harness:
+      'packages/comparative-benchmarks/src/__tests__/paper-12-scene-suite-overhead.bench.test.ts',
     interpretation:
       'Paper 12 has measured runtime/export overhead evidence; the paper still needs to cite it in a Runtime/Cost heading to flip decoderCost.',
     paperStatusDecoderCostCandidate: true,
@@ -160,9 +172,10 @@ function buildPaper12Row(root) {
 
 function measuredRow(input) {
   const overheadValue = Number((input.measured.value - input.baseline.value).toFixed(6));
-  const overheadRatio = input.baseline.value === 0
-    ? null
-    : Number((input.measured.value / input.baseline.value).toFixed(4));
+  const overheadRatio =
+    input.baseline.value === 0
+      ? null
+      : Number((input.measured.value / input.baseline.value).toFixed(4));
   const artifacts = [input.artifact, ...(input.additionalArtifacts ?? [])];
   return {
     paperId: input.paperId,
@@ -225,7 +238,10 @@ function parsePaper12Aggregate(markdown) {
 function parseAggregateValue(lines, label) {
   const line = lines.find((candidate) => candidate.includes(`| ${label} |`));
   if (!line) return Number.NaN;
-  const cells = line.split('|').map((cell) => cell.trim()).filter(Boolean);
+  const cells = line
+    .split('|')
+    .map((cell) => cell.trim())
+    .filter(Boolean);
   return Number.parseFloat(cells[1]);
 }
 
@@ -261,7 +277,9 @@ function hashFileIfPresent(path) {
 }
 
 function sha256Canonical(value) {
-  return createHash('sha256').update(JSON.stringify(sortForJson(value))).digest('hex');
+  return createHash('sha256')
+    .update(JSON.stringify(sortForJson(value)))
+    .digest('hex');
 }
 
 function sortForJson(value) {
@@ -284,7 +302,8 @@ function parseArgs(argv) {
     else if (arg === '--out') args.out = argv[++i];
     else if (arg.startsWith('--out=')) args.out = arg.slice('--out='.length);
     else if (arg === '--generated-at') args.generatedAt = argv[++i];
-    else if (arg.startsWith('--generated-at=')) args.generatedAt = arg.slice('--generated-at='.length);
+    else if (arg.startsWith('--generated-at='))
+      args.generatedAt = arg.slice('--generated-at='.length);
     else if (arg === '--markdown') args.markdown = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -294,7 +313,9 @@ function parseArgs(argv) {
 if (process.argv[1] && import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    console.log('Usage: node scripts/paper-runtime-cost-model.mjs --out docs/public/evidence/paper-runtime-cost-model.json [--markdown]');
+    console.log(
+      'Usage: node scripts/paper-runtime-cost-model.mjs --out docs/public/evidence/paper-runtime-cost-model.json [--markdown]'
+    );
     process.exit(0);
   }
   const report = buildRuntimeCostModelReport({ generatedAt: args.generatedAt });

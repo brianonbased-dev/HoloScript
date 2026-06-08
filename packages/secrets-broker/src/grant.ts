@@ -60,7 +60,9 @@ function hashPolicyDecision(value: Omit<PolicyDecision, 'receiptHash'>): string 
 }
 
 function list(value: string[] | undefined): string[] {
-  return Array.isArray(value) ? value.filter((item): boolean => typeof item === 'string' && item.length > 0) : [];
+  return Array.isArray(value)
+    ? value.filter((item): boolean => typeof item === 'string' && item.length > 0)
+    : [];
 }
 
 function hasPrefix(value: string, prefixes: string[]): boolean {
@@ -211,7 +213,9 @@ export function createSecretGrant(input: SecretGrantInput): SecretGrantReceipt {
     plaintextReturned: false,
     policyDecisionId: input.policyDecisionId ?? null,
     policyOutcome:
-      input.policyOutcome === 'allow' || input.policyOutcome === 'warn' ? input.policyOutcome : null,
+      input.policyOutcome === 'allow' || input.policyOutcome === 'warn'
+        ? input.policyOutcome
+        : null,
     auditTags: [
       'agent-secret-grant',
       'handles-only',

@@ -75,19 +75,19 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
       {
         id: 'upper',
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
+        rotation: [0, 0, 0, 1],
         length: 5,
       },
       {
         id: 'lower',
         position: [5, 0, 0],
-        rotation: [0, 0, 0, 1 ],
+        rotation: [0, 0, 0, 1],
         length: 5,
       },
       {
         id: 'end',
         position: [10, 0, 0],
-        rotation: [0, 0, 0, 1 ],
+        rotation: [0, 0, 0, 1],
         length: 0,
       },
     ];
@@ -109,7 +109,7 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
         id: `bone${i}`,
         length: 2,
         position: [i * 2, 0, 0],
-        rotation: [0, 0, 0, 1 ],
+        rotation: [0, 0, 0, 1],
       });
     }
 
@@ -138,9 +138,9 @@ describe('Cycle 137: AnimationClip & IKSolver', () => {
   it('should solve all chains at once', () => {
     const solver = new IKSolver();
     const makeBones = (): IKBone[] => [
-      { id: 'a', position: [0, 0, 0], rotation: [0, 0, 0, 1 ], length: 3 },
-      { id: 'b', position: [3, 0, 0], rotation: [0, 0, 0, 1 ], length: 3 },
-      { id: 'c', position: [6, 0, 0], rotation: [0, 0, 0, 1 ], length: 0 },
+      { id: 'a', position: [0, 0, 0], rotation: [0, 0, 0, 1], length: 3 },
+      { id: 'b', position: [3, 0, 0], rotation: [0, 0, 0, 1], length: 3 },
+      { id: 'c', position: [6, 0, 0], rotation: [0, 0, 0, 1], length: 0 },
     ];
 
     solver.addChain({

@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
   });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

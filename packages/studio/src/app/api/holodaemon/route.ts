@@ -69,7 +69,12 @@ async function loadCompositionSource(): Promise<{
       const code = await readFile(sourcePath, 'utf8');
       return { code, sourcePath, compositionName: candidate.compositionName, available: true };
     } catch {
-      return { code: '', sourcePath: '', compositionName: candidate.compositionName, available: false };
+      return {
+        code: '',
+        sourcePath: '',
+        compositionName: candidate.compositionName,
+        available: false,
+      };
     }
   }
 
@@ -210,7 +215,13 @@ export async function POST(request: Request) {
       projectDna: {
         kind: 'spatial',
         confidence: 0.95,
-        detectedStack: ['typescript', 'react', 'holoscript', 'three.js', `daemon:${daemonAgent.missionProfile}`],
+        detectedStack: [
+          'typescript',
+          'react',
+          'holoscript',
+          'three.js',
+          `daemon:${daemonAgent.missionProfile}`,
+        ],
         recommendedProfile: profile,
         notes: [
           `HoloDaemon mission: ${daemonAgent.missionProfile}`,
@@ -246,7 +257,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ error: `Unknown action: ${body.action}` }, { status: 400 });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

@@ -32,7 +32,10 @@ export interface HoloCinematicEmission {
   frame_count: number;
 }
 
-export function bindRemotionR3F(comp: RemotionComposition, capture: R3FCaptureConfig): HoloCinematicEmission {
+export function bindRemotionR3F(
+  comp: RemotionComposition,
+  capture: R3FCaptureConfig
+): HoloCinematicEmission {
   const duration_seconds = comp.duration_frames / Math.max(1, comp.fps);
   return {
     trait: {

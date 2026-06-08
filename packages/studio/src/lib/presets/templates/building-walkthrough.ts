@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-building-walkthrough",
-  name: "Building Walkthrough",
-  description: "First-person architectural walkthrough with rooms and corridors",
-  thumbnail: "🏗️",
-  tags: ["architecture","walkthrough","building","interior"],
-  category: "architecture",
+  id: 'wizard-building-walkthrough',
+  name: 'Building Walkthrough',
+  description: 'First-person architectural walkthrough with rooms and corridors',
+  thumbnail: '🏗️',
+  tags: ['architecture', 'walkthrough', 'building', 'interior'],
+  category: 'architecture',
   code: `composition "Building Walkthrough" {
   environment {
     skybox: "studio"
@@ -68,7 +68,7 @@ export const template: SceneTemplate = {
     emissive: "#ffffee"
     emissiveIntensity: 2.0
   }
-}`
+}`,
 };
 
 export default template;

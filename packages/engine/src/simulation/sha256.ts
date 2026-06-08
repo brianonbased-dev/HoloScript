@@ -116,8 +116,7 @@ function rotr32(x: number, n: number): number {
 export function sha256Bytes(bytes: Uint8Array): string {
   // Initial hash values (FIPS 180-4 §5.3.3)
   const H = new Uint32Array([
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
   ]);
 
   // Pre-processing: padding to 512-bit block alignment with 64-bit length
@@ -141,7 +140,8 @@ export function sha256Bytes(bytes: Uint8Array): string {
   for (let off = 0; off < paddedLen; off += 64) {
     for (let t = 0; t < 16; t++) {
       const b = off + t * 4;
-      W[t] = ((padded[b] << 24) | (padded[b + 1] << 16) | (padded[b + 2] << 8) | padded[b + 3]) >>> 0;
+      W[t] =
+        ((padded[b] << 24) | (padded[b + 1] << 16) | (padded[b + 2] << 8) | padded[b + 3]) >>> 0;
     }
     for (let t = 16; t < 64; t++) {
       const s0 = rotr32(W[t - 15], 7) ^ rotr32(W[t - 15], 18) ^ (W[t - 15] >>> 3);
@@ -149,23 +149,38 @@ export function sha256Bytes(bytes: Uint8Array): string {
       W[t] = (W[t - 16] + s0 + W[t - 7] + s1) >>> 0;
     }
 
-    let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+    let a = H[0],
+      b = H[1],
+      c = H[2],
+      d = H[3],
+      e = H[4],
+      f = H[5],
+      g = H[6],
+      h = H[7];
     for (let t = 0; t < 64; t++) {
       const S1 = rotr32(e, 6) ^ rotr32(e, 11) ^ rotr32(e, 25);
-      const ch = (e & f) ^ ((~e) & g);
+      const ch = (e & f) ^ (~e & g);
       const T1 = (h + S1 + ch + SHA256_K[t] + W[t]) >>> 0;
       const S0 = rotr32(a, 2) ^ rotr32(a, 13) ^ rotr32(a, 22);
       const mj = (a & b) ^ (a & c) ^ (b & c);
       const T2 = (S0 + mj) >>> 0;
-      h = g; g = f; f = e;
+      h = g;
+      g = f;
+      f = e;
       e = (d + T1) >>> 0;
-      d = c; c = b; b = a;
+      d = c;
+      c = b;
+      b = a;
       a = (T1 + T2) >>> 0;
     }
-    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0;
-    H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
-    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0;
-    H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+    H[0] = (H[0] + a) >>> 0;
+    H[1] = (H[1] + b) >>> 0;
+    H[2] = (H[2] + c) >>> 0;
+    H[3] = (H[3] + d) >>> 0;
+    H[4] = (H[4] + e) >>> 0;
+    H[5] = (H[5] + f) >>> 0;
+    H[6] = (H[6] + g) >>> 0;
+    H[7] = (H[7] + h) >>> 0;
   }
 
   let hex = '';

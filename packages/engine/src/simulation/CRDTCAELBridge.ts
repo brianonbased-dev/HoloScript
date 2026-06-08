@@ -88,11 +88,7 @@ export class CRDTCAELBridge {
    * @param fromPeer  Peer ID that produced the update.
    * @param extra     Optional additional metadata to attach to the event.
    */
-  mergeSpatial(
-    bytes: Uint8Array,
-    fromPeer: string,
-    extra?: Record<string, unknown>,
-  ): void {
+  mergeSpatial(bytes: Uint8Array, fromPeer: string, extra?: Record<string, unknown>): void {
     if (!this.spatial) {
       throw new Error('CRDTCAELBridge: no SpatialCRDTBridge configured');
     }
@@ -126,7 +122,7 @@ export class CRDTCAELBridge {
   mergeWorld(
     remote: Uint8Array | WorldState,
     fromPeer: string,
-    extra?: Record<string, unknown>,
+    extra?: Record<string, unknown>
   ): void {
     if (!this.world) {
       throw new Error('CRDTCAELBridge: no WorldState configured');

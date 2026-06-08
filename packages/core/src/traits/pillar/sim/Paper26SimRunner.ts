@@ -76,61 +76,65 @@ import type { HSPlusNode, TraitContext } from '../../TraitTypes.js';
 const { values: args } = parseArgs({
   allowPositionals: false,
   options: {
-    agents:            { type: 'string', default: '100' },
-    ticks:             { type: 'string', default: '1000' },
-    'inner-freq':      { type: 'string', default: '10' },
-    port:              { type: 'string', default: '4426' },
-    'checkpoint-dir':  { type: 'string', default: './sim-checkpoints' },
-    'checkpoint-every':{ type: 'string', default: '100' },
+    agents: { type: 'string', default: '100' },
+    ticks: { type: 'string', default: '1000' },
+    'inner-freq': { type: 'string', default: '10' },
+    port: { type: 'string', default: '4426' },
+    'checkpoint-dir': { type: 'string', default: './sim-checkpoints' },
+    'checkpoint-every': { type: 'string', default: '100' },
     'sycophancy-frac': { type: 'string', default: '0' },
-    'latent-dim':      { type: 'string', default: '32' },
-    label:             { type: 'string', default: 'paper26' },
-    'knowledge-push':  { type: 'boolean', default: false },
-    'knowledge-url':   { type: 'string', default: 'https://mcp-orchestrator-production-45f9.up.railway.app' },
-    'knowledge-key':   { type: 'string', default: '' },
-    'holomesh-push':   { type: 'boolean', default: false },
-    'holomesh-url':    { type: 'string', default: 'https://sim.holoscript.studio' },
-    'holomesh-key':    { type: 'string', default: '' },
+    'latent-dim': { type: 'string', default: '32' },
+    label: { type: 'string', default: 'paper26' },
+    'knowledge-push': { type: 'boolean', default: false },
+    'knowledge-url': {
+      type: 'string',
+      default: 'https://mcp-orchestrator-production-45f9.up.railway.app',
+    },
+    'knowledge-key': { type: 'string', default: '' },
+    'holomesh-push': { type: 'boolean', default: false },
+    'holomesh-url': { type: 'string', default: 'https://sim.holoscript.studio' },
+    'holomesh-key': { type: 'string', default: '' },
   },
 });
 
-const NUM_AGENTS       = parseInt(args['agents']!,             10);
-const OUTER_TICKS      = parseInt(args['ticks']!,              10);
-const INNER_FREQ       = parseInt(args['inner-freq']!,         10);
-const HTTP_PORT        = parseInt(args['port']!,               10);
-const CHECKPOINT_DIR   = args['checkpoint-dir']!;
-const CHECKPOINT_EVERY = parseInt(args['checkpoint-every']!,   10);
-const SYCO_FRAC        = parseFloat(args['sycophancy-frac']!);
-const LATENT_DIM       = parseInt(args['latent-dim']!,         10);
-const RUN_LABEL        = args['label']!;
-const KNOWLEDGE_PUSH   = args['knowledge-push']!;
-const KNOWLEDGE_URL    = args['knowledge-url']!;
-const KNOWLEDGE_KEY    = args['knowledge-key'] || process.env['HOLOSCRIPT_API_KEY'] || '';
-const HOLOMESH_PUSH    = args['holomesh-push']!;
-const HOLOMESH_URL     = args['holomesh-url']!;
-const HOLOMESH_KEY     = args['holomesh-key'] || process.env['SIM_PUSH_TOKEN'] || process.env['HOLOSCRIPT_API_KEY'] || '';
+const NUM_AGENTS = parseInt(args['agents']!, 10);
+const OUTER_TICKS = parseInt(args['ticks']!, 10);
+const INNER_FREQ = parseInt(args['inner-freq']!, 10);
+const HTTP_PORT = parseInt(args['port']!, 10);
+const CHECKPOINT_DIR = args['checkpoint-dir']!;
+const CHECKPOINT_EVERY = parseInt(args['checkpoint-every']!, 10);
+const SYCO_FRAC = parseFloat(args['sycophancy-frac']!);
+const LATENT_DIM = parseInt(args['latent-dim']!, 10);
+const RUN_LABEL = args['label']!;
+const KNOWLEDGE_PUSH = args['knowledge-push']!;
+const KNOWLEDGE_URL = args['knowledge-url']!;
+const KNOWLEDGE_KEY = args['knowledge-key'] || process.env['HOLOSCRIPT_API_KEY'] || '';
+const HOLOMESH_PUSH = args['holomesh-push']!;
+const HOLOMESH_URL = args['holomesh-url']!;
+const HOLOMESH_KEY =
+  args['holomesh-key'] || process.env['SIM_PUSH_TOKEN'] || process.env['HOLOSCRIPT_API_KEY'] || '';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AgentTickRecord {
-  outerTick:           number;
+  outerTick: number;
   hemisphereAgreement: number;
-  totalLoss:           number;
-  conservationLoss:    number;
-  bilateralLoss:       number;
-  diversityRatio:      number;
-  lifecycle:           string;
+  totalLoss: number;
+  conservationLoss: number;
+  bilateralLoss: number;
+  diversityRatio: number;
+  lifecycle: string;
 }
 
 interface AgentState {
-  node:      HSPlusNode;
-  config:    UAALAgentConfig;
-  ctx:       TraitContext;
-  history:   AgentTickRecord[];
+  node: HSPlusNode;
+  config: UAALAgentConfig;
+  ctx: TraitContext;
+  history: AgentTickRecord[];
   /** Latest jepa:loss payload captured from event bus */
-  lastLoss:  { totalLoss: number; conservationLoss: number; bilateralLoss: number } | null;
+  lastLoss: { totalLoss: number; conservationLoss: number; bilateralLoss: number } | null;
   /** Latest hemisphere agreement (γ), captured from the pillarjepa:loss event */
   lastHemisphere: number;
   /** Latest diversity_ratio captured from emitter:diversity_stats */
@@ -149,11 +153,11 @@ interface AgentState {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface PillarSlice {
-  axis_1_id:     string;
-  axis_2_id:     string;
-  pos_1:         number;
-  pos_2:         number;
-  pillar_id:     string;
+  axis_1_id: string;
+  axis_2_id: string;
+  pos_1: number;
+  pos_2: number;
+  pillar_id: string;
   pillar_domain: string;
 }
 
@@ -170,11 +174,11 @@ interface PhysicsFrame {
   /** Normalised displacement energy: ~1.0 for a well-converged, fully-loaded system */
   energyConservation: number;
   /** Spatial displacement gradient — proxy for unbalanced momentum */
-  momentumViolation:  number;
+  momentumViolation: number;
   /** Mean local displacement magnitude — spatial entropy of the strain field */
-  entropyLevel:       number;
+  entropyLevel: number;
   /** z-component displacement fraction — axial "pressure" analogue */
-  angularPressure:    number;
+  angularPressure: number;
 }
 
 /** Null = engine unavailable; fallback to synthetic signal with warning. */
@@ -198,10 +202,23 @@ async function loadPhysicsFrames(nFrames: number): Promise<void> {
     // tsx run from packages/core/
     path.join(process.cwd(), '..', 'engine', 'dist', 'simulation', 'index.js'),
     // relative to this source file (6 levels up to monorepo root)
-    path.join(fileURLToPath(import.meta.url), '..', '..', '..', '..', '..', '..', '..', 'engine', 'dist', 'simulation', 'index.js'),
+    path.join(
+      fileURLToPath(import.meta.url),
+      '..',
+      '..',
+      '..',
+      '..',
+      '..',
+      '..',
+      '..',
+      'engine',
+      'dist',
+      'simulation',
+      'index.js'
+    ),
   ];
 
-  const enginePath = candidates.find(p => fs.existsSync(p)) ?? null;
+  const enginePath = candidates.find((p) => fs.existsSync(p)) ?? null;
   if (!enginePath) {
     console.warn('[sim] §7.4 engine not found — using synthetic conservation signal');
     console.warn('[sim]   (run `pnpm build` to enable solver-grounded physics stream)');
@@ -210,36 +227,69 @@ async function loadPhysicsFrames(nFrames: number): Promise<void> {
 
   try {
     // Dynamic import so the engine is optional (not a hard dep of core at build time)
-    const sim = await import(pathToFileURL(enginePath).href) as Record<string, unknown>;
+    const sim = (await import(pathToFileURL(enginePath).href)) as Record<string, unknown>;
     type SolverCtor = new (cfg: unknown) => {
       solve(): Promise<{ converged: boolean; iterations: number; residual: number }>;
       getDisplacements(): ArrayLike<number>;
       dispose(): void;
     };
-    type Tet4ToTet10 = (v: Float64Array, t: Uint32Array) => {
-      vertices: Float64Array; tetrahedra: Uint32Array;
+    type Tet4ToTet10 = (
+      v: Float64Array,
+      t: Uint32Array
+    ) => {
+      vertices: Float64Array;
+      tetrahedra: Uint32Array;
     };
     const StructuralSolverTET10 = sim['StructuralSolverTET10'] as SolverCtor;
     const tet4ToTet10 = sim['tet4ToTet10'] as Tet4ToTet10;
 
     // ── tiny cantilever bar mesh (2×2×4 hex → 5 tet / hex → ~1.4k DOF) ──────
-    const nx = 2, ny = 2, nz = 4, lz = 2;
+    const nx = 2,
+      ny = 2,
+      nz = 4,
+      lz = 2;
     const pts: number[] = [];
     for (let k = 0; k <= nz; k++)
       for (let j = 0; j <= ny; j++)
-        for (let i = 0; i <= nx; i++)
-          pts.push(i / nx, j / ny, k * lz / nz);
+        for (let i = 0; i <= nx; i++) pts.push(i / nx, j / ny, (k * lz) / nz);
 
-    const idxFn = (i: number, j: number, k: number) =>
-      k * (nx + 1) * (ny + 1) + j * (nx + 1) + i;
+    const idxFn = (i: number, j: number, k: number) => k * (nx + 1) * (ny + 1) + j * (nx + 1) + i;
     const rawTets: number[] = [];
     for (let k = 0; k < nz; k++)
       for (let j = 0; j < ny; j++)
         for (let i = 0; i < nx; i++) {
-          const v = [idxFn(i,j,k),idxFn(i+1,j,k),idxFn(i+1,j+1,k),idxFn(i,j+1,k),
-                     idxFn(i,j,k+1),idxFn(i+1,j,k+1),idxFn(i+1,j+1,k+1),idxFn(i,j+1,k+1)];
-          rawTets.push(v[0],v[1],v[3],v[4], v[1],v[2],v[3],v[6],
-                       v[4],v[5],v[6],v[1], v[4],v[6],v[7],v[3], v[1],v[4],v[6],v[3]);
+          const v = [
+            idxFn(i, j, k),
+            idxFn(i + 1, j, k),
+            idxFn(i + 1, j + 1, k),
+            idxFn(i, j + 1, k),
+            idxFn(i, j, k + 1),
+            idxFn(i + 1, j, k + 1),
+            idxFn(i + 1, j + 1, k + 1),
+            idxFn(i, j + 1, k + 1),
+          ];
+          rawTets.push(
+            v[0],
+            v[1],
+            v[3],
+            v[4],
+            v[1],
+            v[2],
+            v[3],
+            v[6],
+            v[4],
+            v[5],
+            v[6],
+            v[1],
+            v[4],
+            v[6],
+            v[7],
+            v[3],
+            v[1],
+            v[4],
+            v[6],
+            v[3]
+          );
         }
 
     const mesh = tet4ToTet10(new Float64Array(pts), new Uint32Array(rawTets));
@@ -247,25 +297,28 @@ async function loadPhysicsFrames(nFrames: number): Promise<void> {
     SOLVER_DOF_COUNT = nNodes * 3;
 
     const fixedNodes: number[] = [];
-    const tipNodes:   number[] = [];
+    const tipNodes: number[] = [];
     for (let n = 0; n < nNodes; n++) {
       const z = mesh.vertices[n * 3 + 2];
-      if (Math.abs(z) < 1e-8)       fixedNodes.push(n);
-      if (Math.abs(z - lz) < 1e-8)  tipNodes.push(n);
+      if (Math.abs(z) < 1e-8) fixedNodes.push(n);
+      if (Math.abs(z - lz) < 1e-8) tipNodes.push(n);
     }
     const lptn = 100 / Math.max(1, tipNodes.length);
 
     const solver = new StructuralSolverTET10({
-      vertices:    mesh.vertices,
-      tetrahedra:  mesh.tetrahedra,
-      material:    'steel_a36',
+      vertices: mesh.vertices,
+      tetrahedra: mesh.tetrahedra,
+      material: 'steel_a36',
       constraints: [{ id: 'fix', type: 'fixed', nodes: fixedNodes }],
-      loads:       tipNodes.map((ni, li) => ({
-        id: `tip-${li}`, type: 'point', nodeIndex: ni, force: [0, lptn, 0],
+      loads: tipNodes.map((ni, li) => ({
+        id: `tip-${li}`,
+        type: 'point',
+        nodeIndex: ni,
+        force: [0, lptn, 0],
       })),
       maxIterations: 2000,
-      tolerance:     1e-8,
-      useGPU:        false,
+      tolerance: 1e-8,
+      useGPU: false,
     });
     const result = await solver.solve();
     const u = new Float64Array(solver.getDisplacements() as ArrayLike<number>);
@@ -273,15 +326,17 @@ async function loadPhysicsFrames(nFrames: number): Promise<void> {
 
     console.log(
       `[sim] §7.4 physics stream: TET10 solved — DOF=${SOLVER_DOF_COUNT} ` +
-      `iters=${result.iterations} residual=${result.residual.toExponential(2)} ` +
-      `converged=${result.converged}`,
+        `iters=${result.iterations} residual=${result.residual.toExponential(2)} ` +
+        `converged=${result.converged}`
     );
 
     // ── per-node displacement magnitudes ─────────────────────────────────────
     const uMag = new Float64Array(nNodes);
     let uMagMax = 0;
     for (let n = 0; n < nNodes; n++) {
-      const ux = u[n * 3], uy = u[n * 3 + 1], uz = u[n * 3 + 2];
+      const ux = u[n * 3],
+        uy = u[n * 3 + 1],
+        uz = u[n * 3 + 2];
       uMag[n] = Math.sqrt(ux * ux + uy * uy + uz * uz);
       if (uMag[n] > uMagMax) uMagMax = uMag[n];
     }
@@ -292,31 +347,36 @@ async function loadPhysicsFrames(nFrames: number): Promise<void> {
     const W = 4; // window width
     for (let f = 0; f < nFrames; f++) {
       const base = Math.floor((f / nFrames) * nNodes);
-      let sumMag = 0, sumMagSq = 0, sumZ = 0;
+      let sumMag = 0,
+        sumMagSq = 0,
+        sumZ = 0;
       for (let d = 0; d < W; d++) {
-        const ni  = (base + d) % nNodes;
+        const ni = (base + d) % nNodes;
         const mag = uMag[ni] / uMagMax;
-        sumMag   += mag;
+        sumMag += mag;
         sumMagSq += mag * mag;
-        sumZ     += Math.abs(u[ni * 3 + 2]) / uMagMax;
+        sumZ += Math.abs(u[ni * 3 + 2]) / uMagMax;
       }
       const meanMag = sumMag / W;
-      const varMag  = Math.max(0, sumMagSq / W - meanMag * meanMag);
+      const varMag = Math.max(0, sumMagSq / W - meanMag * meanMag);
 
       PHYSICS_FRAMES.push({
-        energyConservation: 1.0 + 0.05 * (meanMag - 0.5),        // ±0.025 around 1.0
-        momentumViolation:  Math.sqrt(varMag),                    // local strain gradient
-        entropyLevel:       0.3 + 0.5 * meanMag,                  // spatial disorder
-        angularPressure:    0.2 * (sumZ / W),                     // axial displacement
+        energyConservation: 1.0 + 0.05 * (meanMag - 0.5), // ±0.025 around 1.0
+        momentumViolation: Math.sqrt(varMag), // local strain gradient
+        entropyLevel: 0.3 + 0.5 * meanMag, // spatial disorder
+        angularPressure: 0.2 * (sumZ / W), // axial displacement
       });
     }
 
     console.log(
       `[sim] §7.4 physics stream: ${nFrames} frames from ` +
-      `${nNodes}-node TET10 displacement field (uMax=${uMagMax.toExponential(3)} m)`,
+        `${nNodes}-node TET10 displacement field (uMax=${uMagMax.toExponential(3)} m)`
     );
   } catch (err) {
-    console.warn('[sim] §7.4 physics frame build failed — using synthetic fallback:', (err as Error).message);
+    console.warn(
+      '[sim] §7.4 physics frame build failed — using synthetic fallback:',
+      (err as Error).message
+    );
   }
 }
 
@@ -362,21 +422,21 @@ class LatentRouter {
     if (source.pendingSlices.length === 0) return;
 
     const srcIdx = this.agentIds.indexOf(source.config.agent_id);
-    const n      = allAgents.length;
+    const n = allAgents.length;
 
     for (const outbound of source.pendingSlices) {
       // Route to fanOut clockwise neighbours in the ring
       for (let k = 1; k <= Math.min(this.fanOut, n - 1); k++) {
         const peerIdx = (srcIdx + k) % n;
-        const peer    = allAgents[peerIdx];
+        const peer = allAgents[peerIdx];
         if (!peer) continue;
 
         // Deliver to peer as a recursive_link:receive event
         peer.ctx.emit('recursive_link:receive', {
-          from:         outbound.from,
-          to:           peer.config.agent_id,
-          loop:         outbound.loop,
-          slice:        outbound.slice,
+          from: outbound.from,
+          to: peer.config.agent_id,
+          loop: outbound.loop,
+          slice: outbound.slice,
           timestamp_ms: Date.now(),
         });
 
@@ -401,56 +461,55 @@ class LatentRouter {
     tokenReductionPct: number;
   } {
     const latentTokenEquiv = Math.ceil(this.latentBytesActual / 4);
-    const reduction = this.textTokensBaseline > 0
-      ? (1 - latentTokenEquiv / this.textTokensBaseline) * 100
-      : 0;
+    const reduction =
+      this.textTokensBaseline > 0 ? (1 - latentTokenEquiv / this.textTokensBaseline) * 100 : 0;
     return {
-      slicesRouted:       this.slicesRouted,
+      slicesRouted: this.slicesRouted,
       textTokensBaseline: this.textTokensBaseline,
-      latentBytesActual:  this.latentBytesActual,
-      tokenReductionPct:  +reduction.toFixed(1),
+      latentBytesActual: this.latentBytesActual,
+      tokenReductionPct: +reduction.toFixed(1),
     };
   }
 }
 
 interface PopulationMetrics {
-  tick:             number;
+  tick: number;
   /** Median hemisphere agreement across agents */
-  medianGamma:      number;
+  medianGamma: number;
   /** 90th percentile gamma */
-  p90Gamma:         number;
+  p90Gamma: number;
   /** Mean total loss */
-  meanTotalLoss:    number;
+  meanTotalLoss: number;
   /** Std total loss */
-  stdTotalLoss:     number;
+  stdTotalLoss: number;
   /** Mean diversity ratio */
-  meanDiversity:    number;
+  meanDiversity: number;
   /** Fraction of agents per lifecycle state */
   lifecycleDistrib: Record<string, number>;
 }
 
 interface SimSnapshot {
-  label:          string;
-  agents:         number;
-  targetTicks:    number;
-  currentTick:    number;
-  elapsedMs:      number;
-  population:     PopulationMetrics[];
-  finalPopulation:PopulationMetrics | null;
+  label: string;
+  agents: number;
+  targetTicks: number;
+  currentTick: number;
+  elapsedMs: number;
+  population: PopulationMetrics[];
+  finalPopulation: PopulationMetrics | null;
   config: {
-    innerFreq:       number;
-    latentDim:       number;
-    sycophancyFrac:  number;
+    innerFreq: number;
+    latentDim: number;
+    sycophancyFrac: number;
   };
   /**
    * Cross-agent LatentRouter statistics (§7.3 RQ2).
    * Populated incrementally; present on every checkpoint and final snapshot.
    */
   latentRouting?: {
-    slicesRouted:       number;
+    slicesRouted: number;
     textTokensBaseline: number;
-    latentBytesActual:  number;
-    tokenReductionPct:  number;
+    latentBytesActual: number;
+    tokenReductionPct: number;
   };
 }
 
@@ -464,14 +523,16 @@ function makeNode(): HSPlusNode {
 
 function makeCtx(onEmit?: (name: string, payload: unknown) => void): TraitContext {
   return {
-    emit(name: string, payload: unknown) { onEmit?.(name, payload); },
-    getState:           () => ({}),
-    setState:           () => {},
+    emit(name: string, payload: unknown) {
+      onEmit?.(name, payload);
+    },
+    getState: () => ({}),
+    setState: () => {},
     getScaleMultiplier: () => 1,
-    setScaleContext:    () => {},
-    vr:      null,
+    setScaleContext: () => {},
+    vr: null,
     physics: null,
-    audio:   null,
+    audio: null,
     haptics: null,
   } as unknown as TraitContext;
 }
@@ -484,34 +545,36 @@ function createAgent(agentIdx: number, isSycophantic: boolean): AgentState {
   const agent_id = `sim_agent_${String(agentIdx).padStart(3, '0')}`;
   const config: UAALAgentConfig = {
     agent_id,
-    inner_frequency:  INNER_FREQ,
-    emit_to_peers:    true,
-    jepa_latent_dim:  LATENT_DIM,
+    inner_frequency: INNER_FREQ,
+    emit_to_peers: true,
+    jepa_latent_dim: LATENT_DIM,
   };
 
   const state: AgentState = {
-    node:          makeNode(),
+    node: makeNode(),
     config,
-    ctx:           makeCtx() /* overwritten below */,
-    history:        [],
-    lastLoss:       null,
+    ctx: makeCtx() /* overwritten below */,
+    history: [],
+    lastLoss: null,
     lastHemisphere: 0,
-    lastDiversity:  1.0,
+    lastDiversity: 1.0,
     isSycophantic,
-    pendingSlices:  [],
+    pendingSlices: [],
   };
 
   // Wire event listener to capture metrics AND outbound latent slices
   state.ctx = makeCtx((name, payload) => {
     if (name === 'pillarjepa:loss') {
       const p = payload as {
-        totalLoss?: number; conservationLoss?: number; bilateralLoss?: number;
+        totalLoss?: number;
+        conservationLoss?: number;
+        bilateralLoss?: number;
         hemisphereAgreement?: number;
       };
       state.lastLoss = {
-        totalLoss:        p.totalLoss        ?? 0,
+        totalLoss: p.totalLoss ?? 0,
         conservationLoss: p.conservationLoss ?? 0,
-        bilateralLoss:    p.bilateralLoss    ?? 0,
+        bilateralLoss: p.bilateralLoss ?? 0,
       };
       // γ (M1) is emitted in the loss event, NOT exposed on the agent snapshot.
       if (typeof p.hemisphereAgreement === 'number') {
@@ -527,12 +590,14 @@ function createAgent(agentIdx: number, isSycophantic: boolean): AgentState {
     // a slice.  LatentRouter.route() drains this queue after each tickAgent().
     if (name === 'recursive_link:send') {
       const msg = payload as {
-        from?: string; loop?: 'inner' | 'outer'; slice?: PillarSlice;
+        from?: string;
+        loop?: 'inner' | 'outer';
+        slice?: PillarSlice;
       };
       if (msg.slice) {
         state.pendingSlices.push({
-          from:  msg.from ?? state.config.agent_id,
-          loop:  msg.loop ?? 'outer',
+          from: msg.from ?? state.config.agent_id,
+          loop: msg.loop ?? 'outer',
           slice: msg.slice,
         });
       }
@@ -548,7 +613,7 @@ function createAgent(agentIdx: number, isSycophantic: boolean): AgentState {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function tickAgent(agent: AgentState): void {
-  const t = agent.history.length;                       // 0-indexed outer tick
+  const t = agent.history.length; // 0-indexed outer tick
   // Convergence rises toward 1 over the first 80% of the run, driving the
   // TEMPORAL pillar (and hence the lifecycle init→active→steady_state→stable).
   // maturity starts at 0.5 (agent already knows its trait vocabulary) while
@@ -557,37 +622,35 @@ function tickAgent(agent: AgentState): void {
   // (γ → 1.0 by end) — producing the rising convergence curve §7.3 expects.
   const progress = Math.min(1, t / Math.max(1, OUTER_TICKS * 0.8));
   // Per-agent phase offset so the population's slices (and γ) are not identical.
-  const idx   = parseInt(agent.config.agent_id.slice(-3), 10) || 0;
+  const idx = parseInt(agent.config.agent_id.slice(-3), 10) || 0;
   const phase = idx * 0.6;
 
   for (let i = 0; i < INNER_FREQ; i++) {
-    const s = t * INNER_FREQ + i;                       // global inner step
+    const s = t * INNER_FREQ + i; // global inner step
 
     // §7.4 Physics stream: sample TET10 solver displacement field.
     // PHYSICS_FRAMES is populated at startup by loadPhysicsFrames(); when the
     // engine is unavailable it remains null and we fall back to Math.sin/cos
     // (documented synthetic stand-in, logged once at startup).
-    const pf = PHYSICS_FRAMES
-      ? PHYSICS_FRAMES[s % PHYSICS_FRAMES.length]
-      : null;
+    const pf = PHYSICS_FRAMES ? PHYSICS_FRAMES[s % PHYSICS_FRAMES.length] : null;
 
     // Fallback wobble only used when engine is unavailable.
     const wobble = pf ? 0 : Math.sin(0.15 * s + phase);
 
     const metadata = {
-      tick:                      t,
-      convergence:               progress,
-      maturity:                  0.5 + 0.5 * progress,
-      phase:                     progress < 0.6 ? 'transient' : 'steady_state',
+      tick: t,
+      convergence: progress,
+      maturity: 0.5 + 0.5 * progress,
+      phase: progress < 0.6 ? 'transient' : 'steady_state',
       // Solver-derived signals (real FEM) or synthetic fallback:
-      energy_conservation:       pf?.energyConservation ?? (1.0 + 0.05 * wobble),
-      momentum_violation:        pf
-        ? pf.momentumViolation * (1 - progress)           // decays as system converges
+      energy_conservation: pf?.energyConservation ?? 1.0 + 0.05 * wobble,
+      momentum_violation: pf
+        ? pf.momentumViolation * (1 - progress) // decays as system converges
         : 0.1 * (1 - progress) * Math.abs(wobble),
-      entropy_level:             pf?.entropyLevel ?? (0.5 + 0.3 * Math.sin(0.07 * s + phase)),
-      angular_momentum_pressure: pf?.angularPressure ?? (0.2 * Math.cos(0.11 * s + phase)),
+      entropy_level: pf?.entropyLevel ?? 0.5 + 0.3 * Math.sin(0.07 * s + phase),
+      angular_momentum_pressure: pf?.angularPressure ?? 0.2 * Math.cos(0.11 * s + phase),
       // Source tag for §7.4 provenance — present in every snapshot.
-      physics_source:            pf ? 'tet10_structural_solver' : 'synthetic_standin',
+      physics_source: pf ? 'tet10_structural_solver' : 'synthetic_standin',
     };
     uAALComposedAgentHandler.onEvent?.(agent.node, agent.config, agent.ctx, {
       type: 'cogvm:tick',
@@ -604,11 +667,11 @@ function captureAgentMetrics(agent: AgentState, outerTick: number): AgentTickRec
     // γ comes from the pillarjepa:loss event (captured in the listener), not the
     // snapshot; lifecycle lives on the nested CognitiveVM snapshot, not the top level.
     hemisphereAgreement: agent.lastHemisphere,
-    totalLoss:           agent.lastLoss?.totalLoss        ?? 0,
-    conservationLoss:    agent.lastLoss?.conservationLoss ?? 0,
-    bilateralLoss:       agent.lastLoss?.bilateralLoss    ?? 0,
-    diversityRatio:      agent.lastDiversity,
-    lifecycle:           snap?.cogvm?.lifecycle ?? 'init',
+    totalLoss: agent.lastLoss?.totalLoss ?? 0,
+    conservationLoss: agent.lastLoss?.conservationLoss ?? 0,
+    bilateralLoss: agent.lastLoss?.bilateralLoss ?? 0,
+    diversityRatio: agent.lastDiversity,
+    lifecycle: snap?.cogvm?.lifecycle ?? 'init',
   };
 }
 
@@ -623,13 +686,15 @@ function percentile(sorted: number[], p: number): number {
 }
 
 function computePopulationMetrics(agents: AgentState[], tick: number): PopulationMetrics {
-  const gammas        = agents.map(a => a.history[a.history.length - 1]?.hemisphereAgreement ?? 0).sort((a, b) => a - b);
-  const losses        = agents.map(a => a.history[a.history.length - 1]?.totalLoss ?? 0);
-  const diversities   = agents.map(a => a.history[a.history.length - 1]?.diversityRatio ?? 1);
-  const lifecycles    = agents.map(a => a.history[a.history.length - 1]?.lifecycle ?? 'init');
+  const gammas = agents
+    .map((a) => a.history[a.history.length - 1]?.hemisphereAgreement ?? 0)
+    .sort((a, b) => a - b);
+  const losses = agents.map((a) => a.history[a.history.length - 1]?.totalLoss ?? 0);
+  const diversities = agents.map((a) => a.history[a.history.length - 1]?.diversityRatio ?? 1);
+  const lifecycles = agents.map((a) => a.history[a.history.length - 1]?.lifecycle ?? 'init');
 
   const meanLoss = losses.reduce((s, v) => s + v, 0) / losses.length;
-  const varLoss  = losses.reduce((s, v) => s + (v - meanLoss) ** 2, 0) / losses.length;
+  const varLoss = losses.reduce((s, v) => s + (v - meanLoss) ** 2, 0) / losses.length;
 
   const lifecycleDistrib: Record<string, number> = {};
   for (const lc of lifecycles) {
@@ -638,10 +703,10 @@ function computePopulationMetrics(agents: AgentState[], tick: number): Populatio
 
   return {
     tick,
-    medianGamma:   percentile(gammas, 0.5),
-    p90Gamma:      percentile(gammas, 0.9),
+    medianGamma: percentile(gammas, 0.5),
+    p90Gamma: percentile(gammas, 0.9),
     meanTotalLoss: meanLoss,
-    stdTotalLoss:  Math.sqrt(varLoss),
+    stdTotalLoss: Math.sqrt(varLoss),
     meanDiversity: diversities.reduce((s, v) => s + v, 0) / diversities.length,
     lifecycleDistrib,
   };
@@ -651,11 +716,11 @@ function computePopulationMetrics(agents: AgentState[], tick: number): Populatio
 // Simulation state (module-level for HTTP access)
 // ─────────────────────────────────────────────────────────────────────────────
 
-let AGENTS: AgentState[]         = [];
+let AGENTS: AgentState[] = [];
 let POPULATION_METRICS: PopulationMetrics[] = [];
-let CURRENT_TICK   = 0;
-let START_TIME_MS  = Date.now();
-let SIM_RUNNING    = false;
+let CURRENT_TICK = 0;
+let START_TIME_MS = Date.now();
+let SIM_RUNNING = false;
 let SSE_CLIENTS: http.ServerResponse[] = [];
 
 /** Cross-agent latent router (fan-out K=3 ring topology) */
@@ -663,19 +728,19 @@ const LATENT_ROUTER = new LatentRouter(3);
 
 function buildSnapshot(): SimSnapshot {
   return {
-    label:           RUN_LABEL,
-    agents:          NUM_AGENTS,
-    targetTicks:     OUTER_TICKS,
-    currentTick:     CURRENT_TICK,
-    elapsedMs:       Date.now() - START_TIME_MS,
-    population:      POPULATION_METRICS,
+    label: RUN_LABEL,
+    agents: NUM_AGENTS,
+    targetTicks: OUTER_TICKS,
+    currentTick: CURRENT_TICK,
+    elapsedMs: Date.now() - START_TIME_MS,
+    population: POPULATION_METRICS,
     finalPopulation: POPULATION_METRICS[POPULATION_METRICS.length - 1] ?? null,
     config: {
-      innerFreq:       INNER_FREQ,
-      latentDim:       LATENT_DIM,
-      sycophancyFrac:  SYCO_FRAC,
+      innerFreq: INNER_FREQ,
+      latentDim: LATENT_DIM,
+      sycophancyFrac: SYCO_FRAC,
     },
-    latentRouting:   LATENT_ROUTER.stats(),
+    latentRouting: LATENT_ROUTER.stats(),
   };
 }
 
@@ -686,7 +751,10 @@ function buildSnapshot(): SimSnapshot {
 function writeCheckpoint(tag: string): void {
   try {
     fs.mkdirSync(CHECKPOINT_DIR, { recursive: true });
-    const file = path.join(CHECKPOINT_DIR, `${RUN_LABEL}-tick${String(CURRENT_TICK).padStart(5, '0')}-${tag}.json`);
+    const file = path.join(
+      CHECKPOINT_DIR,
+      `${RUN_LABEL}-tick${String(CURRENT_TICK).padStart(5, '0')}-${tag}.json`
+    );
     fs.writeFileSync(file, JSON.stringify(buildSnapshot(), null, 2), 'utf8');
     console.log(`[checkpoint] ${file}`);
   } catch (e) {
@@ -704,15 +772,15 @@ async function pushToKnowledge(tick: number): Promise<void> {
   if (!pm) return;
   try {
     const body = JSON.stringify({
-      id:           `paper26.sim.${RUN_LABEL}.tick${tick}`,
-      type:         'sim_snapshot',
-      domain:       'paper26',
-      content:      JSON.stringify(pm),
+      id: `paper26.sim.${RUN_LABEL}.tick${tick}`,
+      type: 'sim_snapshot',
+      domain: 'paper26',
+      content: JSON.stringify(pm),
       workspace_id: 'ai-ecosystem',
-      access:       'shared',
+      access: 'shared',
     });
     await fetch(`${KNOWLEDGE_URL}/knowledge/sync`, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'x-mcp-api-key': KNOWLEDGE_KEY, 'Content-Type': 'application/json' },
       body,
     });
@@ -731,23 +799,23 @@ async function pushToHoloMesh(tick: number, running: boolean): Promise<void> {
   if (!pm) return;
   try {
     const body = JSON.stringify({
-      metrics:     pm,
-      label:       RUN_LABEL,
-      agents:      NUM_AGENTS,
+      metrics: pm,
+      label: RUN_LABEL,
+      agents: NUM_AGENTS,
       targetTicks: OUTER_TICKS,
       running,
-      elapsedMs:   Date.now() - START_TIME_MS,
+      elapsedMs: Date.now() - START_TIME_MS,
       config: {
-        innerFreq:      INNER_FREQ,
-        latentDim:      LATENT_DIM,
+        innerFreq: INNER_FREQ,
+        latentDim: LATENT_DIM,
         sycophancyFrac: SYCO_FRAC,
       },
     });
     const resp = await fetch(`${HOLOMESH_URL}/sim/paper26/api/push`, {
-      method:  'POST',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(HOLOMESH_KEY ? { 'Authorization': `Bearer ${HOLOMESH_KEY}` } : {}),
+        ...(HOLOMESH_KEY ? { Authorization: `Bearer ${HOLOMESH_KEY}` } : {}),
       },
       body,
     });
@@ -767,9 +835,13 @@ async function pushToHoloMesh(tick: number, running: boolean): Promise<void> {
 
 function broadcastSSE(pm: PopulationMetrics): void {
   const data = `data: ${JSON.stringify(pm)}\n\n`;
-  SSE_CLIENTS = SSE_CLIENTS.filter(res => {
-    try { res.write(data); return true; }
-    catch { return false; }
+  SSE_CLIENTS = SSE_CLIENTS.filter((res) => {
+    try {
+      res.write(data);
+      return true;
+    } catch {
+      return false;
+    }
   });
 }
 
@@ -853,13 +925,15 @@ function startHttpServer(): void {
 
     if (url === '/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        ok:       true,
-        running:  SIM_RUNNING,
-        tick:     CURRENT_TICK,
-        agents:   NUM_AGENTS,
-        elapsed_h: ((Date.now() - START_TIME_MS) / 3_600_000).toFixed(2),
-      }));
+      res.end(
+        JSON.stringify({
+          ok: true,
+          running: SIM_RUNNING,
+          tick: CURRENT_TICK,
+          agents: NUM_AGENTS,
+          elapsed_h: ((Date.now() - START_TIME_MS) / 3_600_000).toFixed(2),
+        })
+      );
       return;
     }
 
@@ -871,24 +945,26 @@ function startHttpServer(): void {
 
     if (url === '/metrics/stream') {
       res.writeHead(200, {
-        'Content-Type':  'text/event-stream',
+        'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection':    'keep-alive',
+        Connection: 'keep-alive',
         'Access-Control-Allow-Origin': '*',
       });
       res.write(': connected\n\n');
       SSE_CLIENTS.push(res);
       req.on('close', () => {
-        SSE_CLIENTS = SSE_CLIENTS.filter(c => c !== res);
+        SSE_CLIENTS = SSE_CLIENTS.filter((c) => c !== res);
       });
       return;
     }
 
     if (url.startsWith('/metrics/agent/')) {
       const id = url.slice('/metrics/agent/'.length);
-      const agent = AGENTS.find(a => a.config.agent_id === id);
+      const agent = AGENTS.find((a) => a.config.agent_id === id);
       if (!agent) {
-        res.writeHead(404); res.end('not found'); return;
+        res.writeHead(404);
+        res.end('not found');
+        return;
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(agent.history));
@@ -915,7 +991,9 @@ function startHttpServer(): void {
 
 async function runSimulation(): Promise<void> {
   console.log(`[sim] Paper 26 multi-agent simulation`);
-  console.log(`[sim] agents=${NUM_AGENTS} outer_ticks=${OUTER_TICKS} inner_freq=${INNER_FREQ} latent_dim=${LATENT_DIM}`);
+  console.log(
+    `[sim] agents=${NUM_AGENTS} outer_ticks=${OUTER_TICKS} inner_freq=${INNER_FREQ} latent_dim=${LATENT_DIM}`
+  );
   if (SYCO_FRAC > 0) {
     console.log(`[sim] secondary eval: sycophancy_frac=${SYCO_FRAC}`);
   }
@@ -925,17 +1003,15 @@ async function runSimulation(): Promise<void> {
 
   // Initialise agents
   const numSycophantic = Math.round(NUM_AGENTS * SYCO_FRAC);
-  AGENTS = Array.from({ length: NUM_AGENTS }, (_, i) =>
-    createAgent(i, i < numSycophantic),
-  );
+  AGENTS = Array.from({ length: NUM_AGENTS }, (_, i) => createAgent(i, i < numSycophantic));
   console.log(`[sim] ${NUM_AGENTS} agents initialised (${numSycophantic} sycophantic)`);
 
   // Register agent IDs with the LatentRouter for ring-topology routing
-  LATENT_ROUTER.registerAgents(AGENTS.map(a => a.config.agent_id));
+  LATENT_ROUTER.registerAgents(AGENTS.map((a) => a.config.agent_id));
   console.log(`[sim] LatentRouter registered (fan-out K=${LATENT_ROUTER.fanOut}, ring topology)`);
 
   START_TIME_MS = Date.now();
-  SIM_RUNNING   = true;
+  SIM_RUNNING = true;
 
   for (let outerTick = 1; outerTick <= OUTER_TICKS; outerTick++) {
     CURRENT_TICK = outerTick;
@@ -959,9 +1035,9 @@ async function runSimulation(): Promise<void> {
     if (outerTick % 100 === 0 || outerTick === 1) {
       const elapsed_h = ((Date.now() - START_TIME_MS) / 3_600_000).toFixed(2);
       console.log(
-        `[sim] tick=${outerTick}/${OUTER_TICKS} γ_med=${(pm.medianGamma*100).toFixed(1)}% ` +
-        `γ_p90=${(pm.p90Gamma*100).toFixed(1)}% loss=${pm.meanTotalLoss.toFixed(4)} ` +
-        `ρ=${(pm.meanDiversity*100).toFixed(1)}% elapsed=${elapsed_h}h`,
+        `[sim] tick=${outerTick}/${OUTER_TICKS} γ_med=${(pm.medianGamma * 100).toFixed(1)}% ` +
+          `γ_p90=${(pm.p90Gamma * 100).toFixed(1)}% loss=${pm.meanTotalLoss.toFixed(4)} ` +
+          `ρ=${(pm.meanDiversity * 100).toFixed(1)}% elapsed=${elapsed_h}h`
       );
     }
 
@@ -974,7 +1050,7 @@ async function runSimulation(): Promise<void> {
 
     // Yield to event loop every 10 ticks so HTTP stays responsive
     if (outerTick % 10 === 0) {
-      await new Promise<void>(r => setImmediate(r));
+      await new Promise<void>((r) => setImmediate(r));
     }
   }
 
@@ -985,15 +1061,19 @@ async function runSimulation(): Promise<void> {
 
   console.log('[sim] COMPLETE');
   const final = POPULATION_METRICS[POPULATION_METRICS.length - 1]!;
-  console.log(`[sim] Final γ_med=${(final.medianGamma*100).toFixed(1)}% γ_p90=${(final.p90Gamma*100).toFixed(1)}%`);
-  console.log(`[sim] Final loss=${final.meanTotalLoss.toFixed(4)} ρ=${(final.meanDiversity*100).toFixed(1)}%`);
+  console.log(
+    `[sim] Final γ_med=${(final.medianGamma * 100).toFixed(1)}% γ_p90=${(final.p90Gamma * 100).toFixed(1)}%`
+  );
+  console.log(
+    `[sim] Final loss=${final.meanTotalLoss.toFixed(4)} ρ=${(final.meanDiversity * 100).toFixed(1)}%`
+  );
   console.log('[sim] Lifecycle distribution:', JSON.stringify(final.lifecycleDistrib, null, 2));
   const routeStats = LATENT_ROUTER.stats();
   console.log(
     `[sim] LatentRouter: ${routeStats.slicesRouted} slices routed` +
-    ` | B1-text-tokens=${routeStats.textTokensBaseline}` +
-    ` | latent-bytes=${routeStats.latentBytesActual}` +
-    ` | token-reduction=${routeStats.tokenReductionPct}%`,
+      ` | B1-text-tokens=${routeStats.textTokensBaseline}` +
+      ` | latent-bytes=${routeStats.latentBytesActual}` +
+      ` | token-reduction=${routeStats.tokenReductionPct}%`
   );
 }
 
@@ -1015,7 +1095,7 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-runSimulation().catch(err => {
+runSimulation().catch((err) => {
   console.error('[sim] FATAL:', err);
   writeCheckpoint('fatal');
   process.exit(1);

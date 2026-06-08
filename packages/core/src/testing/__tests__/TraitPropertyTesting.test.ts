@@ -15,7 +15,11 @@ import {
 
 describe('property()', () => {
   it('returns a TraitProperty with the provided name', () => {
-    const p = property('my prop', (gen) => gen.int(0, 10), (n) => n >= 0);
+    const p = property(
+      'my prop',
+      (gen) => gen.int(0, 10),
+      (n) => n >= 0
+    );
     expect(p.name).toBe('my prop');
   });
 
@@ -32,13 +36,22 @@ describe('property()', () => {
   });
 
   it('shrink is undefined when not provided', () => {
-    const p = property('no-shrink', (gen) => gen.int(0, 5), (n) => n >= 0);
+    const p = property(
+      'no-shrink',
+      (gen) => gen.int(0, 5),
+      (n) => n >= 0
+    );
     expect(p.shrink).toBeUndefined();
   });
 
   it('stores optional shrink function', () => {
     const shrink = (n: number) => (n > 0 ? [n - 1] : []);
-    const p = property('shrinkable', (gen) => gen.int(0, 100), (n) => n < 50, shrink);
+    const p = property(
+      'shrinkable',
+      (gen) => gen.int(0, 100),
+      (n) => n < 50,
+      shrink
+    );
     expect(p.shrink).toBe(shrink);
   });
 });
@@ -80,14 +93,26 @@ describe('traitPropertyTest() – empty properties', () => {
 
 describe('traitPropertyTest() – passing properties', () => {
   it('passes when predicate always returns true', () => {
-    const p = property('always pass', (gen) => gen.int(0, 100), (n) => n >= 0);
+    const p = property(
+      'always pass',
+      (gen) => gen.int(0, 100),
+      (n) => n >= 0
+    );
     const r = traitPropertyTest('t', [p], { numCases: 50, seed: 42 });
     expect(r.passed).toBe(true);
   });
 
   it('result.properties has one entry per property', () => {
-    const p1 = property('p1', (gen) => gen.int(0, 10), () => true);
-    const p2 = property('p2', (gen) => gen.bool(), () => true);
+    const p1 = property(
+      'p1',
+      (gen) => gen.int(0, 10),
+      () => true
+    );
+    const p2 = property(
+      'p2',
+      (gen) => gen.bool(),
+      () => true
+    );
     const r = traitPropertyTest('t', [p1, p2], { numCases: 10, seed: 1 });
     expect(r.properties).toHaveLength(2);
     expect(r.properties[0].name).toBe('p1');
@@ -95,21 +120,37 @@ describe('traitPropertyTest() – passing properties', () => {
   });
 
   it('each PropertyResult shows correct casesRun', () => {
-    const p = property('p', (gen) => gen.int(0, 10), () => true);
+    const p = property(
+      'p',
+      (gen) => gen.int(0, 10),
+      () => true
+    );
     const r = traitPropertyTest('t', [p], { numCases: 30, seed: 5 });
     expect(r.properties[0].casesRun).toBe(30);
     expect(r.totalCases).toBe(30);
   });
 
   it('totalCases sums across all properties', () => {
-    const p1 = property('p1', (gen) => gen.int(0, 10), () => true);
-    const p2 = property('p2', (gen) => gen.int(0, 10), () => true);
+    const p1 = property(
+      'p1',
+      (gen) => gen.int(0, 10),
+      () => true
+    );
+    const p2 = property(
+      'p2',
+      (gen) => gen.int(0, 10),
+      () => true
+    );
     const r = traitPropertyTest('t', [p1, p2], { numCases: 20, seed: 1 });
     expect(r.totalCases).toBe(40);
   });
 
   it('passed PropertyResult has no counterexample or error', () => {
-    const p = property('clean', (gen) => gen.float(0, 1), (v) => v >= 0 && v <= 1);
+    const p = property(
+      'clean',
+      (gen) => gen.float(0, 1),
+      (v) => v >= 0 && v <= 1
+    );
     const r = traitPropertyTest('t', [p], { numCases: 50, seed: 10 });
     expect(r.properties[0].passed).toBe(true);
     expect(r.properties[0].counterexample).toBeUndefined();
@@ -117,7 +158,11 @@ describe('traitPropertyTest() – passing properties', () => {
   });
 
   it('is deterministic with the same seed', () => {
-    const p = property('det', (gen) => gen.float(0, 1), () => true);
+    const p = property(
+      'det',
+      (gen) => gen.float(0, 1),
+      () => true
+    );
     const r1 = traitPropertyTest('t', [p], { numCases: 100, seed: 777 });
     const r2 = traitPropertyTest('t', [p], { numCases: 100, seed: 777 });
     expect(r1.totalCases).toBe(r2.totalCases);
@@ -131,40 +176,68 @@ describe('traitPropertyTest() – passing properties', () => {
 
 describe('traitPropertyTest() – failing properties', () => {
   it('fails when predicate always returns false', () => {
-    const p = property('always fail', (gen) => gen.int(0, 100), () => false);
+    const p = property(
+      'always fail',
+      (gen) => gen.int(0, 100),
+      () => false
+    );
     const r = traitPropertyTest('t', [p], { numCases: 10, seed: 1 });
     expect(r.passed).toBe(false);
   });
 
   it('result shows passed=false for the failing property', () => {
-    const p = property('fail-prop', (gen) => gen.int(0, 5), () => false);
+    const p = property(
+      'fail-prop',
+      (gen) => gen.int(0, 5),
+      () => false
+    );
     const r = traitPropertyTest('t', [p], { numCases: 5, seed: 2 });
     expect(r.properties[0].passed).toBe(false);
   });
 
   it('provides an error message describing which case failed', () => {
-    const p = property('failing', (gen) => gen.int(0, 10), () => false);
+    const p = property(
+      'failing',
+      (gen) => gen.int(0, 10),
+      () => false
+    );
     const r = traitPropertyTest('t', [p], { numCases: 10, seed: 3 });
     expect(r.properties[0].error).toContain('failed on case');
     expect(r.properties[0].error).toContain('failing');
   });
 
   it('provides a counterexample', () => {
-    const p = property('needs-counterex', (gen) => gen.int(5, 10), (n) => n < 3);
+    const p = property(
+      'needs-counterex',
+      (gen) => gen.int(5, 10),
+      (n) => n < 3
+    );
     const r = traitPropertyTest('t', [p], { numCases: 5, seed: 4 });
     expect(r.properties[0].counterexample).toBeDefined();
   });
 
   it('stops early on first failure — casesRun < numCases', () => {
-    const p = property('early-stop', (gen) => gen.int(0, 10), () => false);
+    const p = property(
+      'early-stop',
+      (gen) => gen.int(0, 10),
+      () => false
+    );
     const r = traitPropertyTest('t', [p], { numCases: 100, seed: 5 });
     // Fails on case 1
     expect(r.properties[0].casesRun).toBeLessThan(100);
   });
 
   it('all-passed is false when any property fails', () => {
-    const good = property('good', (gen) => gen.int(0, 10), () => true);
-    const bad = property('bad', (gen) => gen.int(0, 10), () => false);
+    const good = property(
+      'good',
+      (gen) => gen.int(0, 10),
+      () => true
+    );
+    const bad = property(
+      'bad',
+      (gen) => gen.int(0, 10),
+      () => false
+    );
     const r = traitPropertyTest('t', [good, bad], { numCases: 10, seed: 6 });
     expect(r.passed).toBe(false);
   });
@@ -173,7 +246,9 @@ describe('traitPropertyTest() – failing properties', () => {
     const p = property(
       'throws',
       (gen) => gen.int(0, 10),
-      () => { throw new Error('predicate boom'); }
+      () => {
+        throw new Error('predicate boom');
+      }
     );
     const r = traitPropertyTest('t', [p], { numCases: 5, seed: 7 });
     expect(r.passed).toBe(false);
@@ -201,7 +276,11 @@ describe('traitPropertyTest() – shrinking', () => {
   });
 
   it('shrunkCounterexample is undefined when no shrink function', () => {
-    const p = property('no-shrink-fn', (gen) => gen.int(0, 10), () => false);
+    const p = property(
+      'no-shrink-fn',
+      (gen) => gen.int(0, 10),
+      () => false
+    );
     const r = traitPropertyTest('t', [p], { numCases: 3, seed: 1 });
     expect(r.properties[0].shrunkCounterexample).toBeUndefined();
   });
@@ -212,7 +291,10 @@ describe('traitPropertyTest() – shrinking', () => {
       'shrink-count',
       (gen) => gen.int(10, 100),
       (n) => n < 10,
-      (n) => { shrinkCalls++; return n > 1 ? [n - 1] : []; }
+      (n) => {
+        shrinkCalls++;
+        return n > 1 ? [n - 1] : [];
+      }
     );
     const r = traitPropertyTest('t', [p], {
       numCases: 5,
@@ -230,7 +312,11 @@ describe('traitPropertyTest() – shrinking', () => {
 
 describe('ValueGenerator.int', () => {
   it('generates integers in [min, max]', () => {
-    const p = property('int range', (gen) => gen.int(3, 7), (n) => n >= 3 && n <= 7);
+    const p = property(
+      'int range',
+      (gen) => gen.int(3, 7),
+      (n) => n >= 3 && n <= 7
+    );
     const r = traitPropertyTest('t', [p], { numCases: 100, seed: 1 });
     expect(r.passed).toBe(true);
   });
@@ -238,7 +324,11 @@ describe('ValueGenerator.int', () => {
 
 describe('ValueGenerator.float', () => {
   it('generates floats in [min, max]', () => {
-    const p = property('float range', (gen) => gen.float(0.5, 1.5), (n) => n >= 0.5 && n <= 1.5);
+    const p = property(
+      'float range',
+      (gen) => gen.float(0.5, 1.5),
+      (n) => n >= 0.5 && n <= 1.5
+    );
     const r = traitPropertyTest('t', [p], { numCases: 100, seed: 2 });
     expect(r.passed).toBe(true);
   });
@@ -246,7 +336,11 @@ describe('ValueGenerator.float', () => {
 
 describe('ValueGenerator.bool', () => {
   it('generates only booleans', () => {
-    const p = property('is boolean', (gen) => gen.bool(), (b) => typeof b === 'boolean');
+    const p = property(
+      'is boolean',
+      (gen) => gen.bool(),
+      (b) => typeof b === 'boolean'
+    );
     const r = traitPropertyTest('t', [p], { numCases: 50, seed: 3 });
     expect(r.passed).toBe(true);
   });
@@ -255,7 +349,11 @@ describe('ValueGenerator.bool', () => {
 describe('ValueGenerator.oneOf', () => {
   it('always picks from the provided values', () => {
     const choices = ['alpha', 'beta', 'gamma'];
-    const p = property('oneOf', (gen) => gen.oneOf(choices), (v) => choices.includes(v));
+    const p = property(
+      'oneOf',
+      (gen) => gen.oneOf(choices),
+      (v) => choices.includes(v)
+    );
     const r = traitPropertyTest('t', [p], { numCases: 100, seed: 4 });
     expect(r.passed).toBe(true);
   });
@@ -263,13 +361,21 @@ describe('ValueGenerator.oneOf', () => {
 
 describe('ValueGenerator.string', () => {
   it('generates strings of exactly the given length', () => {
-    const p = property('string length', (gen) => gen.string(8), (s) => s.length === 8);
+    const p = property(
+      'string length',
+      (gen) => gen.string(8),
+      (s) => s.length === 8
+    );
     const r = traitPropertyTest('t', [p], { numCases: 50, seed: 5 });
     expect(r.passed).toBe(true);
   });
 
   it('generates strings of default length 8', () => {
-    const p = property('default len', (gen) => gen.string(), (s) => s.length === 8);
+    const p = property(
+      'default len',
+      (gen) => gen.string(),
+      (s) => s.length === 8
+    );
     const r = traitPropertyTest('t', [p], { numCases: 20, seed: 6 });
     expect(r.passed).toBe(true);
   });
@@ -289,7 +395,11 @@ describe('ValueGenerator.color', () => {
 
 describe('ValueGenerator.vector3', () => {
   it('generates 3-element tuples', () => {
-    const p = property('length 3', (gen) => gen.vector3(-10, 10), (v) => v.length === 3);
+    const p = property(
+      'length 3',
+      (gen) => gen.vector3(-10, 10),
+      (v) => v.length === 3
+    );
     const r = traitPropertyTest('t', [p], { numCases: 50, seed: 8 });
     expect(r.passed).toBe(true);
   });
@@ -320,7 +430,11 @@ describe('ValueGenerator.quaternion', () => {
   });
 
   it('generates 4-element tuples', () => {
-    const p = property('length 4', (gen) => gen.quaternion(), (q) => q.length === 4);
+    const p = property(
+      'length 4',
+      (gen) => gen.quaternion(),
+      (q) => q.length === 4
+    );
     const r = traitPropertyTest('t', [p], { numCases: 50, seed: 11 });
     expect(r.passed).toBe(true);
   });

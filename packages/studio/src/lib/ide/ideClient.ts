@@ -46,7 +46,7 @@ export async function getCompletions(
   code: string,
   line: number,
   column: number,
-  triggerCharacter?: string,
+  triggerCharacter?: string
 ): Promise<LspCompletion[]> {
   const args: Record<string, unknown> = { code, line, column };
   if (triggerCharacter) args['triggerCharacter'] = triggerCharacter;
@@ -65,7 +65,7 @@ export interface LspHover {
 export async function getHover(
   code: string,
   line: number,
-  column: number,
+  column: number
 ): Promise<LspHover | null> {
   const result = await callIdeTool<{ content: LspHover | null }>('hs_hover', {
     code,

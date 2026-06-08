@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 
 /**
  * Store Semantic Search Proxy
- * 
+ *
  * Powered by Absorb Service.
  * Translates natural language queries into ranked marketplace results.
  */
@@ -13,23 +13,23 @@ export async function POST(request: NextRequest) {
 
     if (!apiKey) {
       // Fallback or early exit if key is missing in dev
-      return NextResponse.json({ 
-        results: [], 
-        warning: 'Semantic Search disabled (ABSORB_API_KEY missing)' 
+      return NextResponse.json({
+        results: [],
+        warning: 'Semantic Search disabled (ABSORB_API_KEY missing)',
       });
     }
 
     const response = await fetch('https://absorb.holoscript.net/api/query', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         question: `High-fidelity semantic search for HoloScript assets: ${query}`,
         rootDir: 'packages/studio/src/lib/marketplace',
         limit: 10,
-        context: 'market'
+        context: 'market',
       }),
     });
 

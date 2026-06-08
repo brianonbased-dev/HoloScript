@@ -61,8 +61,7 @@ function applyToFace(
       break;
     case 'x+':
       for (let k = 0; k < nz; k++)
-        for (let j = 0; j < ny; j++)
-          applyAtCell(grid, nx - 1, j, k, face, bc, c);
+        for (let j = 0; j < ny; j++) applyAtCell(grid, nx - 1, j, k, face, bc, c);
       break;
     case 'y-':
       for (let k = 0; k < nz; k++)
@@ -70,8 +69,7 @@ function applyToFace(
       break;
     case 'y+':
       for (let k = 0; k < nz; k++)
-        for (let i = 0; i < nx; i++)
-          applyAtCell(grid, i, ny - 1, k, face, bc, c);
+        for (let i = 0; i < nx; i++) applyAtCell(grid, i, ny - 1, k, face, bc, c);
       break;
     case 'z-':
       for (let j = 0; j < ny; j++)
@@ -79,8 +77,7 @@ function applyToFace(
       break;
     case 'z+':
       for (let j = 0; j < ny; j++)
-        for (let i = 0; i < nx; i++)
-          applyAtCell(grid, i, j, nz - 1, face, bc, c);
+        for (let i = 0; i < nx; i++) applyAtCell(grid, i, j, nz - 1, face, bc, c);
       break;
   }
 }
@@ -142,12 +139,18 @@ function interiorNeighbor(
   grid: RegularGrid3D
 ): [number, number, number] {
   switch (face) {
-    case 'x-': return [Math.min(i + 1, grid.nx - 1), j, k];
-    case 'x+': return [Math.max(i - 1, 0), j, k];
-    case 'y-': return [i, Math.min(j + 1, grid.ny - 1), k];
-    case 'y+': return [i, Math.max(j - 1, 0), k];
-    case 'z-': return [i, j, Math.min(k + 1, grid.nz - 1)];
-    case 'z+': return [i, j, Math.max(k - 1, 0)];
+    case 'x-':
+      return [Math.min(i + 1, grid.nx - 1), j, k];
+    case 'x+':
+      return [Math.max(i - 1, 0), j, k];
+    case 'y-':
+      return [i, Math.min(j + 1, grid.ny - 1), k];
+    case 'y+':
+      return [i, Math.max(j - 1, 0), k];
+    case 'z-':
+      return [i, j, Math.min(k + 1, grid.nz - 1)];
+    case 'z+':
+      return [i, j, Math.max(k - 1, 0)];
   }
 }
 

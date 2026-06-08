@@ -18,11 +18,7 @@
  * decisions require a qualified mental health professional.
  */
 import { registerPluginTraits } from '@holoscript/core/runtime';
-import {
-  phq9Score,
-  type LikertResponse,
-  type PHQ9Result,
-} from './therapysolver';
+import { phq9Score, type LikertResponse, type PHQ9Result } from './therapysolver';
 
 /** Stable id for this plugin's trait ownership tagging. */
 export const THERAPY_PLUGIN_ID = 'therapy' as const;
@@ -68,7 +64,7 @@ export interface RuntimeTraitHandler {
     node: unknown,
     config: Phq9ScreenTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -83,7 +79,7 @@ interface Phq9ScreenNode {
 function solveOntoNode(
   node: unknown,
   config: Phq9ScreenTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as Phq9ScreenNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

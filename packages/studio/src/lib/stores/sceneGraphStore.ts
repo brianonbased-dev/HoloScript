@@ -142,33 +142,50 @@ export const useSceneGraphStore = create<SceneGraphState>()(
         set((s) => {
           const ref = s.nodeRefs[id];
           if (ref) {
-            ref.traverse((child: { isMesh?: boolean; material?: Record<string, unknown> | Record<string, unknown>[] }) => {
-              if (child.isMesh && child.material) {
-                const applyProps = (mat: Record<string, unknown> & { color?: { set: (v: unknown) => void }; emissive?: { set: (v: unknown) => void }; roughness?: number; metalness?: number; opacity?: number; transparent?: boolean; depthWrite?: boolean; emissiveIntensity?: number }) => {
-                  if (materialProps.albedo !== undefined) mat.color?.set(materialProps.albedo);
-                  if (materialProps.roughness !== undefined)
-                    mat.roughness = materialProps.roughness;
-                  if (materialProps.metallic !== undefined) mat.metalness = materialProps.metallic;
-                  if (materialProps.opacity !== undefined) {
-                    mat.opacity = materialProps.opacity;
-                    mat.transparent = materialProps.opacity < 1;
-                    mat.depthWrite = materialProps.opacity >= 1;
-                  }
-                  if (materialProps.emissive !== undefined)
-                    mat.emissive?.set(materialProps.emissive);
-                  if (materialProps.emissiveIntensity !== undefined)
-                    mat.emissiveIntensity = materialProps.emissiveIntensity;
-                  if (materialProps.tint !== undefined) mat.color?.set(materialProps.tint);
-                  mat.needsUpdate = true;
-                };
+            ref.traverse(
+              (child: {
+                isMesh?: boolean;
+                material?: Record<string, unknown> | Record<string, unknown>[];
+              }) => {
+                if (child.isMesh && child.material) {
+                  const applyProps = (
+                    mat: Record<string, unknown> & {
+                      color?: { set: (v: unknown) => void };
+                      emissive?: { set: (v: unknown) => void };
+                      roughness?: number;
+                      metalness?: number;
+                      opacity?: number;
+                      transparent?: boolean;
+                      depthWrite?: boolean;
+                      emissiveIntensity?: number;
+                    }
+                  ) => {
+                    if (materialProps.albedo !== undefined) mat.color?.set(materialProps.albedo);
+                    if (materialProps.roughness !== undefined)
+                      mat.roughness = materialProps.roughness;
+                    if (materialProps.metallic !== undefined)
+                      mat.metalness = materialProps.metallic;
+                    if (materialProps.opacity !== undefined) {
+                      mat.opacity = materialProps.opacity;
+                      mat.transparent = materialProps.opacity < 1;
+                      mat.depthWrite = materialProps.opacity >= 1;
+                    }
+                    if (materialProps.emissive !== undefined)
+                      mat.emissive?.set(materialProps.emissive);
+                    if (materialProps.emissiveIntensity !== undefined)
+                      mat.emissiveIntensity = materialProps.emissiveIntensity;
+                    if (materialProps.tint !== undefined) mat.color?.set(materialProps.tint);
+                    mat.needsUpdate = true;
+                  };
 
-                if (Array.isArray(child.material)) {
-                  child.material.forEach(applyProps);
-                } else {
-                  applyProps(child.material);
+                  if (Array.isArray(child.material)) {
+                    child.material.forEach(applyProps);
+                  } else {
+                    applyProps(child.material);
+                  }
                 }
               }
-            });
+            );
           }
 
           return {

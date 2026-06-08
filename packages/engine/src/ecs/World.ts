@@ -133,7 +133,9 @@ export class World {
 
   private attachLegacyVectorAliases(data: Record<string | number, unknown>): void {
     const hasXYZ =
-      typeof data['x'] === 'number' || typeof data['y'] === 'number' || typeof data['z'] === 'number';
+      typeof data['x'] === 'number' ||
+      typeof data['y'] === 'number' ||
+      typeof data['z'] === 'number';
     if (!hasXYZ) return;
 
     if (!(0 in data)) {

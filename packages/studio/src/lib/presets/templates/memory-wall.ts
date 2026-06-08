@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-memory-wall",
-  name: "Memory Wall",
-  description: "Grid of personal photos as mini-holograms on interactive wall",
-  thumbnail: "🧱",
-  tags: ["hologram","photo","grid","memory","interactive"],
-  category: "hologram",
+  id: 'wizard-memory-wall',
+  name: 'Memory Wall',
+  description: 'Grid of personal photos as mini-holograms on interactive wall',
+  thumbnail: '🧱',
+  tags: ['hologram', 'photo', 'grid', 'memory', 'interactive'],
+  category: 'hologram',
   code: `composition "Memory Wall" {
   environment {
     skybox: "dusk"
@@ -115,7 +115,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 4.0
     material: { opacity: 0 }
   }
-}`
+}`,
 };
 
 export default template;

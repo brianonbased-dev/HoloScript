@@ -155,7 +155,17 @@ describe('VRHand', () => {
 
 describe('HSPlusType', () => {
   it('covers all known primitive type strings', () => {
-    const types: HSPlusType[] = ['float', 'int', 'bool', 'string', 'vec2', 'vec3', 'vec4', 'color', 'unknown'];
+    const types: HSPlusType[] = [
+      'float',
+      'int',
+      'bool',
+      'string',
+      'vec2',
+      'vec3',
+      'vec4',
+      'color',
+      'unknown',
+    ];
     expect(types).toHaveLength(9);
     types.forEach((t) => expect(typeof t).toBe('string'));
   });
@@ -459,7 +469,12 @@ describe('PatrolTrait', () => {
 describe('ZKPrivateTrait', () => {
   it('accepts all predicate values', () => {
     const predicates: Array<ZKPrivateTrait['predicate']> = [
-      'proximity', 'in_region', 'has_attribute', 'is_inside_zone', 'owns_asset', 'has_permission',
+      'proximity',
+      'in_region',
+      'has_attribute',
+      'is_inside_zone',
+      'owns_asset',
+      'has_permission',
     ];
     predicates.forEach((pred) => {
       const t: ZKPrivateTrait = { predicate: pred };
@@ -551,8 +566,12 @@ describe('LifecycleHook', () => {
 describe('CoPresenceLifecycleHook', () => {
   it('extends LifecycleHook with onUserJoin/onUserLeave', () => {
     const hook: CoPresenceLifecycleHook = {
-      onUserJoin: (id) => { expect(typeof id).toBe('string'); },
-      onUserLeave: (id) => { expect(typeof id).toBe('string'); },
+      onUserJoin: (id) => {
+        expect(typeof id).toBe('string');
+      },
+      onUserLeave: (id) => {
+        expect(typeof id).toBe('string');
+      },
     };
     hook.onUserJoin?.('user-1');
     hook.onUserLeave?.('user-1');
@@ -583,7 +602,9 @@ describe('HSPlusRuntime', () => {
         events.get(event)?.forEach((h) => h(payload));
       },
       getHologramStates: () => hologramStates,
-      setState: (updates) => { state = { ...state, ...updates }; },
+      setState: (updates) => {
+        state = { ...state, ...updates };
+      },
       getState: () => state,
     };
 
@@ -591,7 +612,9 @@ describe('HSPlusRuntime', () => {
     expect(runtime.getState()['x']).toBe(1);
 
     let received: unknown;
-    runtime.on('tick', (p) => { received = p; });
+    runtime.on('tick', (p) => {
+      received = p;
+    });
     runtime.emit('tick', 42);
     expect(received).toBe(42);
   });

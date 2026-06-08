@@ -24,7 +24,14 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-const SHELF_DIR = process.env.HOLOSHELL_DOWNLOAD_SHELF || path.join(process.env.HOME || process.env.USERPROFILE || '.', '.ai-ecosystem', 'holoshell', 'downloads');
+const SHELF_DIR =
+  process.env.HOLOSHELL_DOWNLOAD_SHELF ||
+  path.join(
+    process.env.HOME || process.env.USERPROFILE || '.',
+    '.ai-ecosystem',
+    'holoshell',
+    'downloads'
+  );
 
 function ensureShelf() {
   if (!fs.existsSync(SHELF_DIR)) fs.mkdirSync(SHELF_DIR, { recursive: true });
@@ -32,34 +39,47 @@ function ensureShelf() {
 
 function loadReceipts(filterStatus?: string[]) {
   ensureShelf();
-  const files = fs.readdirSync(SHELF_DIR).filter(f => f.endsWith('.json'));
-  return files.map(f => {
-    try {
-      const data = JSON.parse(fs.readFileSync(path.join(SHELF_DIR, f), 'utf8'));
-      return { ...data, _file: f };
-    } catch { return null; }
-  }).filter(Boolean).filter((r: any) => !filterStatus || filterStatus.includes(r.status));
+  const files = fs.readdirSync(SHELF_DIR).filter((f) => f.endsWith('.json'));
+  return files
+    .map((f) => {
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(SHELF_DIR, f), 'utf8'));
+        return { ...data, _file: f };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean)
+    .filter((r: any) => !filterStatus || filterStatus.includes(r.status));
 }
 
 function writeReceipt(receipt: any) {
   ensureShelf();
   const id = receipt.id || `rec-${Date.now()}`;
   const file = path.join(SHELF_DIR, `${id}.json`);
-  fs.writeFileSync(file, JSON.stringify({ ...receipt, id, updatedAt: new Date().toISOString() }, null, 2));
+  fs.writeFileSync(
+    file,
+    JSON.stringify({ ...receipt, id, updatedAt: new Date().toISOString() }, null, 2)
+  );
   return { id, file };
 }
 
 function freshGestureGuard(input: any) {
   if (!input.freshUserGesture) {
-    throw new Error('freshUserGesture=true is required for this mutating action (user consent gate)');
+    throw new Error(
+      'freshUserGesture=true is required for this mutating action (user consent gate)'
+    );
   }
 }
 
 export const holoshellDownloadRecoveryList = {
   name: 'holoshell_download_recovery_list',
-  description: 'List interrupted, quarantined, pending_consent, or complete downloads from the local HoloShell shelf. Returns receipt envelopes with substrateMetadata for hardware custody proofs.',
+  description:
+    'List interrupted, quarantined, pending_consent, or complete downloads from the local HoloShell shelf. Returns receipt envelopes with substrateMetadata for hardware custody proofs.',
   inputSchema: z.object({
-    statusFilter: z.array(z.enum(['interrupted', 'quarantined', 'pending_consent', 'complete'])).optional(),
+    statusFilter: z
+      .array(z.enum(['interrupted', 'quarantined', 'pending_consent', 'complete']))
+      .optional(),
   }),
   handler: async (input: any) => {
     const receipts = loadReceipts(input.statusFilter);
@@ -74,7 +94,8 @@ export const holoshellDownloadRecoveryList = {
 
 export const holoshellDownloadRecoveryResume = {
   name: 'holoshell_download_recovery_resume',
-  description: 'Resume an interrupted download. Requires freshUserGesture. Produces ResumeReceipt + updates the shelf entry.',
+  description:
+    'Resume an interrupted download. Requires freshUserGesture. Produces ResumeReceipt + updates the shelf entry.',
   inputSchema: z.object({
     id: z.string(),
     freshUserGesture: z.boolean(),
@@ -99,7 +120,10 @@ export const holoshellDownloadRecoveryResume = {
       downloadId: rec.id,
       offset: input.offset ?? rec.bytesReceived,
       consentTimestamp: new Date().toISOString(),
-      substrateMetadata: { hardwareSeat: 'grok-hardware', witnessHash: crypto.randomBytes(8).toString('hex') },
+      substrateMetadata: {
+        hardwareSeat: 'grok-hardware',
+        witnessHash: crypto.randomBytes(8).toString('hex'),
+      },
     };
 
     return { success: true, resumeReceipt, updatedShelfEntry: updated };
@@ -108,7 +132,8 @@ export const holoshellDownloadRecoveryResume = {
 
 export const holoshellDownloadRecoveryQuarantine = {
   name: 'holoshell_download_recovery_quarantine',
-  description: 'Quarantine a suspect download. Requires freshUserGesture. Writes QuarantineReceipt with reason.',
+  description:
+    'Quarantine a suspect download. Requires freshUserGesture. Writes QuarantineReceipt with reason.',
   inputSchema: z.object({
     id: z.string(),
     freshUserGesture: z.boolean(),
@@ -137,7 +162,8 @@ export const holoshellDownloadRecoveryQuarantine = {
 
 export const holoshellDownloadRecoveryForensicExport = {
   name: 'holoshell_download_recovery_forensic_export',
-  description: 'Export a quarantined download (or any) for forensic replay. Produces a signed bundle path + hash.',
+  description:
+    'Export a quarantined download (or any) for forensic replay. Produces a signed bundle path + hash.',
   inputSchema: z.object({
     id: z.string(),
     includeFullTrace: z.boolean().default(false),
@@ -173,7 +199,8 @@ export const holoshellDownloadRecoveryForensicExport = {
 
 export const holoshellDownloadRecoveryImportHandoff = {
   name: 'holoshell_download_recovery_import_handoff',
-  description: 'Move a green/complete download to the main Import Shelf. Requires freshUserGesture. Produces ImportHandoffReceipt + witness.',
+  description:
+    'Move a green/complete download to the main Import Shelf. Requires freshUserGesture. Produces ImportHandoffReceipt + witness.',
   inputSchema: z.object({
     id: z.string(),
     freshUserGesture: z.boolean(),

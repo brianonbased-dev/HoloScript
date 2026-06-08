@@ -41,7 +41,9 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const REFERENCE_DIR = join(ROOT, 'reference');
 const ANCHORS_PATH = join(ROOT, 'reference.anchors.json');
 const EXTRACT_PATH = join(ROOT, 'reference.material-extract.json');
-const ANCHOR_BASE_PY = resolve(join(ROOT, '..', '..', '..', '.ai-ecosystem', 'scripts', 'anchor_base.py'));
+const ANCHOR_BASE_PY = resolve(
+  join(ROOT, '..', '..', '..', '.ai-ecosystem', 'scripts', 'anchor_base.py')
+);
 
 const ANCHOR_IDS = [
   'lotus-reference-2026-05-06-01',
@@ -120,11 +122,7 @@ async function generateUnsignedTxs(ingested) {
 
     if (usePython) {
       try {
-        await execFileAsync('python', [
-          ANCHOR_BASE_PY,
-          item.absolutePath,
-          '--save-unsigned',
-        ]);
+        await execFileAsync('python', [ANCHOR_BASE_PY, item.absolutePath, '--save-unsigned']);
       } catch (err) {
         console.error(`ERROR: anchor_base.py failed for ${item.localPath}: ${err.message}`);
         process.exit(1);
@@ -182,7 +180,9 @@ function updateAnchorsManifest(anchors, ingested) {
   });
 
   const allSigned = updatedAnchors.every((a) => a.status === 'wallet_signed');
-  const allHashed = updatedAnchors.every((a) => a.status === 'hashed' || a.status === 'wallet_signed');
+  const allHashed = updatedAnchors.every(
+    (a) => a.status === 'hashed' || a.status === 'wallet_signed'
+  );
 
   return {
     ...anchors,
@@ -223,7 +223,9 @@ function updateExtractManifest(extract, ingested) {
             ? 'pipeline_ready_pending_cael_anchor'
             : extract.renderer_mapping.photo_to_material_extractor.status,
       },
-      photorealism_status: allSigned ? 'extractor_available' : 'extractor_available_pending_cael_anchor',
+      photorealism_status: allSigned
+        ? 'extractor_available'
+        : 'extractor_available_pending_cael_anchor',
     },
   };
 }
@@ -360,7 +362,9 @@ async function main() {
   console.log(`  ${EXTRACT_PATH} -> ${updatedExtract.status}`);
   console.log('');
   console.log('Next steps:');
-  console.log('  1. Founder: broadcast each unsigned tx via Trezor/Rabby (see .base-unsigned.json files)');
+  console.log(
+    '  1. Founder: broadcast each unsigned tx via Trezor/Rabby (see .base-unsigned.json files)'
+  );
   console.log('  2. Record tx hashes:');
   console.log(
     `     node examples/lotus-flower/sign-lotus-references.mjs --record 0x<tx1> 0x<tx2> 0x<tx3>`

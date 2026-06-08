@@ -113,7 +113,8 @@ export function compileMaterialBlock(block: HoloDomainBlock): CompiledMaterial {
     specularIntensity: (otherProps.specular_intensity ?? otherProps.specularIntensity) as number,
     iridescence: otherProps.iridescence as number,
     attenuationColor: (otherProps.attenuation_color ?? otherProps.attenuationColor) as string,
-    attenuationDistance: (otherProps.attenuation_distance ?? otherProps.attenuationDistance) as number,
+    attenuationDistance: (otherProps.attenuation_distance ??
+      otherProps.attenuationDistance) as number,
     textureMaps,
     traits: block.traits || [],
   };
@@ -559,7 +560,9 @@ export function materialToR3F(mat: CompiledMaterial, tier?: TierContext): string
       mat.specularIntensity !== undefined ? `specularIntensity={${mat.specularIntensity}}` : '',
       mat.iridescence !== undefined ? `iridescence={${mat.iridescence}}` : '',
       mat.attenuationColor ? `attenuationColor="${mat.attenuationColor}"` : '',
-      mat.attenuationDistance !== undefined ? `attenuationDistance={${mat.attenuationDistance}}` : '',
+      mat.attenuationDistance !== undefined
+        ? `attenuationDistance={${mat.attenuationDistance}}`
+        : '',
     ]
       .filter(Boolean)
       .join(' ');
@@ -3598,18 +3601,10 @@ export function compileDataVizBlock(block: HoloDomainBlock): CompiledDataViz {
   const props = block.properties || {};
   let axes: CompiledDataViz['axes'];
   if (props.x_axis || props.y_axis || props.z_axis) {
-    axes = [
-      String(props.x_axis ?? ''),
-      String(props.y_axis ?? ''),
-      String(props.z_axis ?? ''),
-    ];
+    axes = [String(props.x_axis ?? ''), String(props.y_axis ?? ''), String(props.z_axis ?? '')];
   } else if (props.axes && typeof props.axes === 'object') {
     const a = props.axes as Record<string, unknown>;
-    axes = [
-      String(a[0] ?? ''),
-      String(a[1] ?? ''),
-      String(a[2] ?? ''),
-    ];
+    axes = [String(a[0] ?? ''), String(a[1] ?? ''), String(a[2] ?? '')];
   }
   let dimensions: CompiledDataViz['dimensions'];
   if (props.width != null || props.height != null) {
@@ -4716,7 +4711,8 @@ function parseSimulationEnvironment(block: HoloDomainBlock): SimulationEnvironme
 
     if (kw === 'skybox' || kw === 'environment_sky' || kw === 'hdri') {
       if (typeof cp.preset === 'string' && cp.preset.trim()) env.skyboxPreset = cp.preset.trim();
-      if (cp.color != null && String(cp.color).trim() !== '') env.skyboxColor = String(cp.color).trim();
+      if (cp.color != null && String(cp.color).trim() !== '')
+        env.skyboxColor = String(cp.color).trim();
     }
     if (kw === 'gravity' || kw === 'world_gravity') {
       const g = parseGravityVector(cp);
@@ -4785,9 +4781,7 @@ function simulationEnvironmentToR3FChunks(env?: SimulationEnvironment): {
     visualLines.push(`<color attach="background" args={['${hex}']} />`);
   }
   if (env.skyboxPreset) {
-    visualLines.push(
-      `<Environment preset={${JSON.stringify(env.skyboxPreset)}} background />`
-    );
+    visualLines.push(`<Environment preset={${JSON.stringify(env.skyboxPreset)}} background />`);
   }
 
   const meta: Record<string, unknown> = {};
@@ -4795,8 +4789,7 @@ function simulationEnvironmentToR3FChunks(env?: SimulationEnvironment): {
   if (env.physicsOverrides && Object.keys(env.physicsOverrides).length > 0) {
     meta.physicsOverrides = env.physicsOverrides;
   }
-  const userDataExpr =
-    Object.keys(meta).length > 0 ? JSON.stringify({ holoscript: meta }) : null;
+  const userDataExpr = Object.keys(meta).length > 0 ? JSON.stringify({ holoscript: meta }) : null;
 
   return { visualLines, userDataExpr };
 }
@@ -4823,9 +4816,7 @@ export function simulationToR3F(sim: CompiledSimulation): string {
       ${wrapWithGroup(body)}`;
   }
 
-  const providerInner = overlayJSX
-    ? `\n        ${overlayJSX}\n      `
-    : '\n      ';
+  const providerInner = overlayJSX ? `\n        ${overlayJSX}\n      ` : '\n      ';
   const provider = `${envVisual}<SimulationProvider type="${sim.simulationType}" config={${configExpr}}>${providerInner}</SimulationProvider>`;
 
   return `{/* Simulation: ${sim.name} (${sim.simulationType}) */}

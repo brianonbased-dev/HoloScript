@@ -56,7 +56,8 @@ export function createScopedSecretKeyring(deps: ScopedSecretKeyringDeps = {}): K
   const currentKekId = (): string => {
     const id = env[currentVar];
     if (!id) throw new ScopedSecretKeyringError(`${currentVar} is not set`);
-    if (!KEK_ID_RE.test(id)) throw new ScopedSecretKeyringError(`invalid kekId "${id}" (allowed: [A-Za-z0-9_])`);
+    if (!KEK_ID_RE.test(id))
+      throw new ScopedSecretKeyringError(`invalid kekId "${id}" (allowed: [A-Za-z0-9_])`);
     return id;
   };
 
@@ -68,7 +69,9 @@ export function createScopedSecretKeyring(deps: ScopedSecretKeyringDeps = {}): K
       if (!raw) throw new ScopedSecretKeyringError(`${kekVar(kekId)} is not set`);
       const buf = Buffer.from(raw, 'base64');
       if (buf.length !== KEK_BYTES) {
-        throw new ScopedSecretKeyringError(`${kekVar(kekId)} must be base64 of ${KEK_BYTES} bytes (got ${buf.length})`);
+        throw new ScopedSecretKeyringError(
+          `${kekVar(kekId)} must be base64 of ${KEK_BYTES} bytes (got ${buf.length})`
+        );
       }
       return buf;
     },

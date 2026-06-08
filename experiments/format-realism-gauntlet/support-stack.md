@@ -4,30 +4,30 @@ The gauntlet is not only `.holo`, `.hsplus`, and `.hs`. Those files define the e
 
 ## Core Experiment Formats
 
-| Format | Role | Current file |
-| --- | --- | --- |
-| `.holo` | Spatial stage, objects, lighting, capture markers, physical affordances | `humanoid-rock-throw.holo` |
+| Format    | Role                                                                       | Current file                 |
+| --------- | -------------------------------------------------------------------------- | ---------------------------- |
+| `.holo`   | Spatial stage, objects, lighting, capture markers, physical affordances    | `humanoid-rock-throw.holo`   |
 | `.hsplus` | Behavior contract, state transitions, interaction events, segment receipts | `humanoid-rock-throw.hsplus` |
-| `.hs` | Pipeline contract for gathering artifacts, scoring, and task filing | `humanoid-rock-throw.hs` |
+| `.hs`     | Pipeline contract for gathering artifacts, scoring, and task filing        | `humanoid-rock-throw.hs`     |
 
 ## Support Languages
 
-| Support type | Why it matters | First needed artifacts |
-| --- | --- | --- |
-| `.ts` | Main repo/runtime support: CLI harnesses, parser/compile tests, scorecard generation, HoloMesh task seeding, Three.js/R3F capture integration, deterministic replay orchestration | `run-gauntlet.ts`, `scorecard-writer.ts`, CLI integration tests |
-| `.py` | Offline analysis where Python libraries are strongest: image comparison, contact-sheet generation, simple pose/trajectory scoring, report assembly, optional OpenCV/NumPy checks | `analyze_stills.py`, `make_contact_sheet.py`, `trajectory_score.py` |
-| `.rs` | Deterministic and high-performance kernels: reference ballistic solver, collision/trajectory hash, WASM physics probes, future hot-loop validation | `trajectory_kernel.rs`, `replay_hash.rs`, optional WASM package |
-| `.wgsl` / `.glsl` | Rendering stress and visual realness: trajectory glow, impact particles, debug overlays, post-processing checks | trajectory/impact shaders after screenshot path works |
-| `.json` | Stable machine contracts: manifests, scorecards, event receipts, segment metadata, baseline comparisons | `manifest.json`, `scorecard.schema.json`, per-run scorecards |
-| `.md` | Human/agent runbooks and interpretation: what worked, what failed, what to improve next | `README.md`, `setup-validation.md`, run reports |
-| `.gltf` / `.glb` | Real avatar and prop assets: replace proxy primitives with inspectable humanoid, hands, rock, and target | avatar rig, hand mesh, rock mesh, target mesh |
-| `.wav` / `.mp3` | Embodied feedback: grab, release, impact, failure cues | small local fixtures once audio checks begin |
+| Support type      | Why it matters                                                                                                                                                                    | First needed artifacts                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `.ts`             | Main repo/runtime support: CLI harnesses, parser/compile tests, scorecard generation, HoloMesh task seeding, Three.js/R3F capture integration, deterministic replay orchestration | `run-gauntlet.ts`, `scorecard-writer.ts`, CLI integration tests     |
+| `.py`             | Offline analysis where Python libraries are strongest: image comparison, contact-sheet generation, simple pose/trajectory scoring, report assembly, optional OpenCV/NumPy checks  | `analyze_stills.py`, `make_contact_sheet.py`, `trajectory_score.py` |
+| `.rs`             | Deterministic and high-performance kernels: reference ballistic solver, collision/trajectory hash, WASM physics probes, future hot-loop validation                                | `trajectory_kernel.rs`, `replay_hash.rs`, optional WASM package     |
+| `.wgsl` / `.glsl` | Rendering stress and visual realness: trajectory glow, impact particles, debug overlays, post-processing checks                                                                   | trajectory/impact shaders after screenshot path works               |
+| `.json`           | Stable machine contracts: manifests, scorecards, event receipts, segment metadata, baseline comparisons                                                                           | `manifest.json`, `scorecard.schema.json`, per-run scorecards        |
+| `.md`             | Human/agent runbooks and interpretation: what worked, what failed, what to improve next                                                                                           | `README.md`, `setup-validation.md`, run reports                     |
+| `.gltf` / `.glb`  | Real avatar and prop assets: replace proxy primitives with inspectable humanoid, hands, rock, and target                                                                          | avatar rig, hand mesh, rock mesh, target mesh                       |
+| `.wav` / `.mp3`   | Embodied feedback: grab, release, impact, failure cues                                                                                                                            | small local fixtures once audio checks begin                        |
 
 ## Legacy Bridge Only
 
-| Support type | Why it is not primary | Use only when |
-| --- | --- | --- |
-| `.tsx` | It pulls review back into React component surfaces instead of proving the HoloScript/HoloLand spatial surface. For this gauntlet, `.holo` should be the canonical visual review environment. | An existing Studio or HoloLand React shell already owns a needed panel, and the `.tsx` component is only a temporary bridge around the `.holo` evidence room. |
+| Support type | Why it is not primary                                                                                                                                                                        | Use only when                                                                                                                                                 |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.tsx`       | It pulls review back into React component surfaces instead of proving the HoloScript/HoloLand spatial surface. For this gauntlet, `.holo` should be the canonical visual review environment. | An existing Studio or HoloLand React shell already owns a needed panel, and the `.tsx` component is only a temporary bridge around the `.holo` evidence room. |
 
 ## Support Work By Phase
 

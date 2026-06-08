@@ -159,7 +159,11 @@ describe('UnrealCompiler', () => {
               properties: [{ key: 'geometry', value: 'cylinder' }],
               traits: [],
               children: [
-                { name: 'grandchild', properties: [{ key: 'geometry', value: 'cone' }], traits: [] },
+                {
+                  name: 'grandchild',
+                  properties: [{ key: 'geometry', value: 'cone' }],
+                  traits: [],
+                },
               ],
             },
           ],
@@ -185,11 +189,7 @@ describe('UnrealCompiler', () => {
         {
           name: 'interactive_obj',
           properties: [{ key: 'geometry', value: 'box' }],
-          traits: [
-            { name: 'grabbable' },
-            { name: 'pointable' },
-            { name: 'hoverable' },
-          ],
+          traits: [{ name: 'grabbable' }, { name: 'pointable' }, { name: 'hoverable' }],
         } as any,
       ],
     });

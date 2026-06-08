@@ -10,8 +10,16 @@ const proxyHandler = {
   },
   apply(target, thisArg, argumentsList) {
     // If called as a decorator (target, propertyKey, descriptor)
-    if (argumentsList.length === 3 && typeof argumentsList[2] === 'object' && argumentsList[2] !== null) {
-      if ('value' in argumentsList[2] || 'get' in argumentsList[2] || 'writable' in argumentsList[2]) {
+    if (
+      argumentsList.length === 3 &&
+      typeof argumentsList[2] === 'object' &&
+      argumentsList[2] !== null
+    ) {
+      if (
+        'value' in argumentsList[2] ||
+        'get' in argumentsList[2] ||
+        'writable' in argumentsList[2]
+      ) {
         return argumentsList[2]; // Return the original descriptor unmodified
       }
     }
@@ -19,11 +27,11 @@ const proxyHandler = {
   },
   construct() {
     return buildOmni();
-  }
+  },
 };
 
 function buildOmni() {
-  const f = function() {};
+  const f = function () {};
   return new Proxy(f, proxyHandler);
 }
 

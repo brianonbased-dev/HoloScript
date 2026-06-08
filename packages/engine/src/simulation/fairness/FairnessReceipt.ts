@@ -74,7 +74,7 @@ export type DeterminismGrade = 'exact' | 'quantized' | 'statistical';
  */
 export function computeDecisionDigest(
   decisions: readonly boolean[],
-  mode: HashMode = HASH_MODE_DEFAULT,
+  mode: HashMode = HASH_MODE_DEFAULT
 ): string {
   let bits = '';
   for (const d of decisions) bits += d ? '1' : '0';
@@ -111,7 +111,7 @@ export interface FairnessReplayKey {
 
 export function computeReplayFingerprint(
   key: FairnessReplayKey,
-  mode: HashMode = HASH_MODE_DEFAULT,
+  mode: HashMode = HASH_MODE_DEFAULT
 ): string {
   return hashContent(key, mode);
 }
@@ -170,8 +170,13 @@ export interface EmitFairnessReceiptParams {
 export function emitFairnessReceipt(p: EmitFairnessReceiptParams): FairnessReceipt {
   const mode = p.hashMode ?? HASH_MODE_DEFAULT;
   const replayFingerprint = computeReplayFingerprint(
-    { modelHash: p.modelHash, seed: p.seed, inputHash: p.inputHash, weightStrategy: p.weightStrategy },
-    mode,
+    {
+      modelHash: p.modelHash,
+      seed: p.seed,
+      inputHash: p.inputHash,
+      weightStrategy: p.weightStrategy,
+    },
+    mode
   );
   const body: Omit<FairnessReceipt, 'receiptHash'> = {
     kind: 'fairness.receipt.v1',
@@ -246,8 +251,13 @@ export interface EmitRobustnessReceiptParams {
 export function emitRobustnessReceipt(p: EmitRobustnessReceiptParams): FairnessRobustnessReceipt {
   const mode = p.hashMode ?? HASH_MODE_DEFAULT;
   const replayFingerprint = computeReplayFingerprint(
-    { modelHash: p.modelHash, seed: p.seed, inputHash: p.baseInputHash, weightStrategy: p.weightStrategy },
-    mode,
+    {
+      modelHash: p.modelHash,
+      seed: p.seed,
+      inputHash: p.baseInputHash,
+      weightStrategy: p.weightStrategy,
+    },
+    mode
   );
   const body: Omit<FairnessRobustnessReceipt, 'receiptHash'> = {
     kind: 'fairness.robustness.v1',
@@ -278,7 +288,7 @@ export type ReplayVerdict = 'MATCH' | 'DRIFT';
  * post-hoc tamper of the receipt itself).
  */
 export function verifyReceiptIntegrity(
-  receipt: FairnessReceipt | FairnessRobustnessReceipt,
+  receipt: FairnessReceipt | FairnessRobustnessReceipt
 ): boolean {
   const { receiptHash, ...body } = receipt;
   return hashContent(body, receipt.hashMode) === receiptHash;
@@ -292,7 +302,7 @@ export function verifyReceiptIntegrity(
  */
 export function replayFairnessReceipt(
   receipt: { replayFingerprint: string; hashMode: HashMode },
-  observedKey: FairnessReplayKey,
+  observedKey: FairnessReplayKey
 ): ReplayVerdict {
   return computeReplayFingerprint(observedKey, receipt.hashMode) === receipt.replayFingerprint
     ? 'MATCH'
@@ -314,7 +324,7 @@ export function verifyReplayExecution(
     FairnessReceipt,
     'decisionDigest' | 'metrics' | 'replayDeterminism' | 'replayTolerance'
   >,
-  rerun: { decisionDigest: string; adverseImpactRatio: number },
+  rerun: { decisionDigest: string; adverseImpactRatio: number }
 ): ReplayVerdict {
   if (receipt.replayDeterminism === 'exact') {
     return rerun.decisionDigest === receipt.decisionDigest ? 'MATCH' : 'DRIFT';

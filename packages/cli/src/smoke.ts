@@ -182,9 +182,7 @@ async function validateFile(
   const astObjects = result.ast?.objects || [];
   for (const node of astObjects) {
     const directives = node.traits || node.directives || [];
-    const hasGrabHook = directives.some(
-      (d: any) => d.hook === 'on_grab' || d.name === 'on_grab'
-    );
+    const hasGrabHook = directives.some((d: any) => d.hook === 'on_grab' || d.name === 'on_grab');
     const hasGrabbableTrait = directives.some(
       (d: any) => d.type === 'trait' && d.name === 'grabbable'
     );
@@ -244,9 +242,21 @@ async function compileDemo(
 
     // Only attempt compilation for targets we can reasonably validate
     const validTargets = [
-      'threejs', 'unity', 'vrchat', 'babylon', 'aframe', 'webxr',
-      'unreal', 'ios', 'android', 'godot', 'visionos', 'openxr',
-      'androidxr', 'webgpu', 'web-2d',
+      'threejs',
+      'unity',
+      'vrchat',
+      'babylon',
+      'aframe',
+      'webxr',
+      'unreal',
+      'ios',
+      'android',
+      'godot',
+      'visionos',
+      'openxr',
+      'androidxr',
+      'webgpu',
+      'web-2d',
     ];
 
     if (!validTargets.includes(target)) {
@@ -444,8 +454,12 @@ export function printSmokeReceipt(receipt: PhysicsSmokeReceipt): void {
 
   console.log('');
   for (const demo of receipt.demos) {
-    const icon = demo.status === 'passed' ? '\x1b[32m✓\x1b[0m' :
-                 demo.status === 'failed' ? '\x1b[31m✗\x1b[0m' : '\x1b[33m-\x1b[0m';
+    const icon =
+      demo.status === 'passed'
+        ? '\x1b[32m✓\x1b[0m'
+        : demo.status === 'failed'
+          ? '\x1b[31m✗\x1b[0m'
+          : '\x1b[33m-\x1b[0m';
     const title = demo.title ? ` — ${demo.title}` : '';
     console.log(`  ${icon} ${path.basename(demo.file)}${title} (${demo.durationMs}ms)`);
     if (demo.physicsTraits.length > 0) {

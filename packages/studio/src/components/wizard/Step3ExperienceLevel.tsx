@@ -7,12 +7,13 @@ interface Step3ExperienceLevelProps {
   setExperienceLevel: (l: ExperienceLevel) => void;
 }
 
-export function Step3ExperienceLevel({ experienceLevel, setExperienceLevel }: Step3ExperienceLevelProps) {
+export function Step3ExperienceLevel({
+  experienceLevel,
+  setExperienceLevel,
+}: Step3ExperienceLevelProps) {
   return (
     <>
-      <p className="mb-4 text-sm text-studio-muted">
-        How familiar are you with 3D creation tools?
-      </p>
+      <p className="mb-4 text-sm text-studio-muted">How familiar are you with 3D creation tools?</p>
       <div className="flex flex-col gap-3">
         {LEVELS.map((l) => (
           <button
@@ -29,9 +30,7 @@ export function Step3ExperienceLevel({ experienceLevel, setExperienceLevel }: St
               <span className="text-sm font-medium text-studio-text">{l.label}</span>
               <p className="text-[11px] text-studio-muted mt-0.5">{l.description}</p>
             </div>
-            {experienceLevel === l.id && (
-              <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-            )}
+            {experienceLevel === l.id && <Check className="h-4 w-4 text-emerald-400 shrink-0" />}
           </button>
         ))}
       </div>

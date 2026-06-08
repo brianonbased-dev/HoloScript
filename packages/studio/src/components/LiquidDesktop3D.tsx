@@ -7,7 +7,7 @@ import * as THREE from 'three';
 
 /**
  * LiquidDesktop3D — 3D stationary "fish tank" view for HoloShell.
- * 
+ *
  * Replaces the previous flat 2D desktop with true depth-layered 3D:
  * - Fixed perspective camera (stationary user, like looking into a tank).
  * - Objects have real Z depth.
@@ -31,7 +31,7 @@ function TiltParallaxGroup({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleOrientation = (event: DeviceOrientationEvent) => {
       if (!groupRef.current) return;
-      const beta = (event.beta || 0) * (Math.PI / 180) * 0.6;   // pitch
+      const beta = (event.beta || 0) * (Math.PI / 180) * 0.6; // pitch
       const gamma = (event.gamma || 0) * (Math.PI / 180) * 0.6; // roll
 
       groupRef.current.rotation.x = THREE.MathUtils.lerp(
@@ -77,7 +77,11 @@ function TiltParallaxGroup({ children }: { children: React.ReactNode }) {
   return <group ref={groupRef}>{children}</group>;
 }
 
-function DepthRaycaster({ onSelect }: { onSelect: (id: string | null, point: THREE.Vector3) => void }) {
+function DepthRaycaster({
+  onSelect,
+}: {
+  onSelect: (id: string | null, point: THREE.Vector3) => void;
+}) {
   const { camera, scene, raycaster, pointer } = useThree();
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
@@ -108,15 +112,18 @@ export function LiquidDesktop3D({ children, onObjectSelect, reaction }: LiquidDe
   };
 
   return (
-    <div className="w-full h-full relative" style={{ background: 'linear-gradient(#0a0f1a, #05080f)' }}>
+    <div
+      className="w-full h-full relative"
+      style={{ background: 'linear-gradient(#0a0f1a, #05080f)' }}
+    >
       <Canvas
         camera={{ position: [0, 0, 18], fov: 48, near: 0.1, far: 200 }}
         style={{ background: 'transparent' }}
-        gl={{ 
-          alpha: true, 
-          antialias: true, 
+        gl={{
+          alpha: true,
+          antialias: true,
           preserveDrawingBuffer: true,
-          powerPreference: 'high-performance'
+          powerPreference: 'high-performance',
         }}
       >
         <Suspense fallback={null}>
@@ -133,10 +140,10 @@ export function LiquidDesktop3D({ children, onObjectSelect, reaction }: LiquidDe
             {/* Desktop "water/floor" at real depth — reacts to actions (environmental feedback P2) */}
             <mesh position={[0, -5.5, -2]} rotation={[-Math.PI * 0.42, 0, 0]}>
               <planeGeometry args={[42, 28]} />
-              <meshPhongMaterial 
-                color="#1a2a4a" 
-                shininess={80} 
-                transparent 
+              <meshPhongMaterial
+                color="#1a2a4a"
+                shininess={80}
+                transparent
                 opacity={0.65 - (reaction ?? 0) * 0.35} // clearer when reaction high (Brittney acted)
               />
             </mesh>
@@ -152,19 +159,21 @@ export function LiquidDesktop3D({ children, onObjectSelect, reaction }: LiquidDe
             </mesh>
 
             {/* Subtle "bubble/leaf" particles as instanced hints (react to Brittney actions — environmental feedback P2) */}
-            {Array.from({ length: Math.max(4, Math.floor(18 * (1 - (reaction ?? 0) * 0.7))) }).map((_, i) => (
-              <mesh
-                key={i}
-                position={[
-                  (i % 6 - 2.5) * 3.2 + (i % 3) * 0.4,
-                  -2.5 - (i % 4) * 0.8,
-                  -3 - Math.floor(i / 6) * 1.5,
-                ]}
-              >
-                <sphereGeometry args={[0.18 + (i % 3) * 0.06]} />
-                <meshBasicMaterial color="#64748b" transparent opacity={0.35 + (i % 2) * 0.15} />
-              </mesh>
-            ))}
+            {Array.from({ length: Math.max(4, Math.floor(18 * (1 - (reaction ?? 0) * 0.7))) }).map(
+              (_, i) => (
+                <mesh
+                  key={i}
+                  position={[
+                    ((i % 6) - 2.5) * 3.2 + (i % 3) * 0.4,
+                    -2.5 - (i % 4) * 0.8,
+                    -3 - Math.floor(i / 6) * 1.5,
+                  ]}
+                >
+                  <sphereGeometry args={[0.18 + (i % 3) * 0.06]} />
+                  <meshBasicMaterial color="#64748b" transparent opacity={0.35 + (i % 2) * 0.15} />
+                </mesh>
+              )
+            )}
 
             {/* The actual desktop content (agents, windows, etc.) lives at real Z depths inside this group */}
             {children}

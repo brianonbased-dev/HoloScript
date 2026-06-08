@@ -10,19 +10,10 @@ import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { AttackContext, AttackResult } from '../types.js';
-import {
-  WhitewasherAttack,
-  type WhitewasherConfig,
-} from '../whitewasher.js';
+import { WhitewasherAttack, type WhitewasherConfig } from '../whitewasher.js';
 import { SybilAttack, type SybilConfig } from '../sybil.js';
-import {
-  ScoreManipulatorAttack,
-  type ScoreManipulatorConfig,
-} from '../score-manipulator.js';
-import {
-  SlowPoisonerAttack,
-  type SlowPoisonerConfig,
-} from '../slow-poisoner.js';
+import { ScoreManipulatorAttack, type ScoreManipulatorConfig } from '../score-manipulator.js';
+import { SlowPoisonerAttack, type SlowPoisonerConfig } from '../slow-poisoner.js';
 import { EclipseAttack, type EclipseConfig } from '../eclipse.js';
 import {
   validateAttackOutput,
@@ -170,15 +161,13 @@ export function runTrial(
   if (spec.id === 'sybil') {
     metrics.inflation =
       history.length > 0
-        ? history[history.length - 1].trustAtAttack /
-          (spec.config.baselineTrust || 1)
+        ? history[history.length - 1].trustAtAttack / (spec.config.baselineTrust || 1)
         : 0;
   }
   if (spec.id === 'eclipse') {
     metrics.trustReduction =
       history.length > 0
-        ? history[history.length - 1].trustAtAttack /
-          (spec.config.preEclipseTargetTrust || 1)
+        ? history[history.length - 1].trustAtAttack / (spec.config.preEclipseTargetTrust || 1)
         : 0;
   }
 

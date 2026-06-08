@@ -45,7 +45,10 @@ export async function POST(req: NextRequest) {
     );
   }
   const action = rawAction;
-  const summary = typeof payload?.summary === 'string' ? payload.summary.slice(0, 500) : 'founder-console decide-all';
+  const summary =
+    typeof payload?.summary === 'string'
+      ? payload.summary.slice(0, 500)
+      : 'founder-console decide-all';
   const verificationEvidence = 'founder-console decide-all';
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };

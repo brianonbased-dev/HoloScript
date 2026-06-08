@@ -483,7 +483,9 @@ function validateGeneratedCode(
   // verdict alone is insufficient; require a real composition/object/template root too.
   // This is the existing usability heuristic, now ANDed with a true parse.
   const structurallyUseful =
-    targetFormat === 'holo' ? isUsableSceneCode(toParse) : isUsableObjectCode(toParse, targetFormat);
+    targetFormat === 'holo'
+      ? isUsableSceneCode(toParse)
+      : isUsableObjectCode(toParse, targetFormat);
   if (!structurallyUseful) {
     return {
       code,
@@ -790,9 +792,7 @@ export async function generateWorldNative(
     ...(options.input_image ? { input_image: options.input_image } : {}),
     ...(options.input_images?.length ? { input_images: options.input_images } : {}),
     ...(options.navEnabled !== undefined ? { navEnabled: options.navEnabled } : {}),
-    ...(options.interactiveMode !== undefined
-      ? { interactiveMode: options.interactiveMode }
-      : {}),
+    ...(options.interactiveMode !== undefined ? { interactiveMode: options.interactiveMode } : {}),
     ...(options.seed !== undefined ? { seed: options.seed } : {}),
   });
 
@@ -800,9 +800,7 @@ export async function generateWorldNative(
   const safePrompt = prompt.replace(/"/g, '\\"').replace(/\n/g, ' ');
 
   // Build a companion .holo composition that references the generated asset
-  const navLine = result.navmeshUrl
-    ? `\n  navmesh { url: "${result.navmeshUrl}" }`
-    : '';
+  const navLine = result.navmeshUrl ? `\n  navmesh { url: "${result.navmeshUrl}" }` : '';
   const interactiveLine = options.interactiveMode
     ? `\n  physics { enabled: true, collisions: true }`
     : '';

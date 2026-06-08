@@ -16,10 +16,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { DeterminismHarness } from '@holoscript/core';
-import {
-  runAnimationSamplingProbe,
-  PAPER_P2_0_CANONICAL_SPEC,
-} from '../AnimationSamplingProbe';
+import { runAnimationSamplingProbe, PAPER_P2_0_CANONICAL_SPEC } from '../AnimationSamplingProbe';
 
 describe('AnimationSamplingProbe (P2-0 substrate)', () => {
   it('produces a stable, well-formed hash for the canonical spec', async () => {

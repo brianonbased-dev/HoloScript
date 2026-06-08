@@ -51,11 +51,7 @@ const UNMERGED_TTL_DAYS = Number(process.env.WT_UNMERGED_TTL_DAYS ?? 30); // unm
 const DAY_MS = 86400000;
 
 const PRIMARY = 'c:/users/josep/documents/github/holoscript';
-const PROTECT = [
-  PRIMARY,
-  '/c/tmp/holoscript-deploy',
-  'c:/tmp/holoscript-deploy',
-];
+const PROTECT = [PRIMARY, '/c/tmp/holoscript-deploy', 'c:/tmp/holoscript-deploy'];
 // Scratch roots scanned for de-registered orphans (immediate children only).
 const DEFAULT_ROOTS = [
   'C:/Users/josep/Documents/GitHub/HoloScript/.scratch',
@@ -268,9 +264,7 @@ function run(argv) {
 
   const reapable = classified.filter((c) => c.bucket === 'REGISTERED_REAPABLE');
   const unmergedStale = classified.filter((c) => c.bucket === 'UNMERGED_STALE');
-  const orphanReapable = orphans.filter(
-    (o) => o.ageDays !== null && o.ageDays >= ORPHAN_TTL_DAYS
-  );
+  const orphanReapable = orphans.filter((o) => o.ageDays !== null && o.ageDays >= ORPHAN_TTL_DAYS);
 
   const wantReap = args.command === 'reap' && args.commit;
   const freeBefore = wantReap ? freeBytes() : null;
@@ -280,18 +274,37 @@ function run(argv) {
     for (const c of reapable) {
       try {
         reapRegistered(c);
-        actions.push({ ...pathRef(c.wt.path), bucket: c.bucket, branchHash: hashValue(c.wt.branch), result: 'reaped' });
+        actions.push({
+          ...pathRef(c.wt.path),
+          bucket: c.bucket,
+          branchHash: hashValue(c.wt.branch),
+          result: 'reaped',
+        });
       } catch (err) {
-        actions.push({ ...pathRef(c.wt.path), bucket: c.bucket, result: 'error', error: String(err.message || err) });
+        actions.push({
+          ...pathRef(c.wt.path),
+          bucket: c.bucket,
+          result: 'error',
+          error: String(err.message || err),
+        });
       }
     }
     if (args.reapOrphans) {
       for (const o of orphanReapable) {
         try {
           reapOrphanDir(o.path);
-          actions.push({ ...pathRef(o.path), bucket: o.bucket, result: existsSync(o.path) ? 'partial' : 'reaped' });
+          actions.push({
+            ...pathRef(o.path),
+            bucket: o.bucket,
+            result: existsSync(o.path) ? 'partial' : 'reaped',
+          });
         } catch (err) {
-          actions.push({ ...pathRef(o.path), bucket: o.bucket, result: 'error', error: String(err.message || err) });
+          actions.push({
+            ...pathRef(o.path),
+            bucket: o.bucket,
+            result: 'error',
+            error: String(err.message || err),
+          });
         }
       }
     }
@@ -307,7 +320,12 @@ function run(argv) {
     workflow: WORKFLOW,
     mode: wantReap ? 'reap' : 'scan',
     observedAt,
-    policy: { ttlDays: TTL_DAYS, orphanTtlDays: ORPHAN_TTL_DAYS, unmergedTtlDays: UNMERGED_TTL_DAYS, reapOrphans: args.reapOrphans },
+    policy: {
+      ttlDays: TTL_DAYS,
+      orphanTtlDays: ORPHAN_TTL_DAYS,
+      unmergedTtlDays: UNMERGED_TTL_DAYS,
+      reapOrphans: args.reapOrphans,
+    },
     registeredCount: registered.length,
     counts: {
       registeredReapable: reapable.length,
@@ -315,9 +333,22 @@ function run(argv) {
       deregisteredOrphanReapable: orphanReapable.length,
       unmergedStale: unmergedStale.length,
     },
-    registeredReapable: reapable.map((c) => ({ ...pathRef(c.wt.path), branchHash: hashValue(c.wt.branch), ageDays: c.ageDays })),
-    deregisteredOrphans: orphans.map((o) => ({ ...pathRef(o.path), ageDays: o.ageDays, reapable: o.ageDays !== null && o.ageDays >= ORPHAN_TTL_DAYS })),
-    unmergedStale: unmergedStale.map((c) => ({ ...pathRef(c.wt.path), branchHash: hashValue(c.wt.branch), ageDays: c.ageDays, note: 'unpushed work — flag only, never auto-reaped' })),
+    registeredReapable: reapable.map((c) => ({
+      ...pathRef(c.wt.path),
+      branchHash: hashValue(c.wt.branch),
+      ageDays: c.ageDays,
+    })),
+    deregisteredOrphans: orphans.map((o) => ({
+      ...pathRef(o.path),
+      ageDays: o.ageDays,
+      reapable: o.ageDays !== null && o.ageDays >= ORPHAN_TTL_DAYS,
+    })),
+    unmergedStale: unmergedStale.map((c) => ({
+      ...pathRef(c.wt.path),
+      branchHash: hashValue(c.wt.branch),
+      ageDays: c.ageDays,
+      note: 'unpushed work — flag only, never auto-reaped',
+    })),
     actions,
     reclaimedBytes,
     publicReceiptMayContainAbsolutePath: false,
@@ -335,17 +366,30 @@ function run(argv) {
 
   // Human summary
   const L = [];
-  L.push(`HoloShell worktree-reap ${VERSION} — mode=${receipt.mode}  (TTL ${TTL_DAYS}d / orphan ${ORPHAN_TTL_DAYS}d / unmerged ${UNMERGED_TTL_DAYS}d)`);
+  L.push(
+    `HoloShell worktree-reap ${VERSION} — mode=${receipt.mode}  (TTL ${TTL_DAYS}d / orphan ${ORPHAN_TTL_DAYS}d / unmerged ${UNMERGED_TTL_DAYS}d)`
+  );
   L.push(`registered worktrees: ${registered.length}`);
-  L.push(`  REGISTERED_REAPABLE (merged+clean+stale): ${reapable.length}${reapable.length ? ' — ' + reapable.map((c) => `${c.wt.branch}(${c.ageDays}d)`).join(', ') : ''}`);
-  L.push(`  DEREGISTERED_ORPHAN: ${orphans.length} (${orphanReapable.length} past ${ORPHAN_TTL_DAYS}d, reaped only with --reap-orphans)`);
+  L.push(
+    `  REGISTERED_REAPABLE (merged+clean+stale): ${reapable.length}${reapable.length ? ' — ' + reapable.map((c) => `${c.wt.branch}(${c.ageDays}d)`).join(', ') : ''}`
+  );
+  L.push(
+    `  DEREGISTERED_ORPHAN: ${orphans.length} (${orphanReapable.length} past ${ORPHAN_TTL_DAYS}d, reaped only with --reap-orphans)`
+  );
   for (const o of orphans) L.push(`      ${o.path}  (${o.ageDays ?? '?'}d)`);
-  L.push(`  UNMERGED_STALE (flag only — unpushed work preserved): ${unmergedStale.length}${unmergedStale.length ? ' — ' + unmergedStale.map((c) => `${c.wt.branch}(${c.ageDays}d)`).join(', ') : ''}`);
+  L.push(
+    `  UNMERGED_STALE (flag only — unpushed work preserved): ${unmergedStale.length}${unmergedStale.length ? ' — ' + unmergedStale.map((c) => `${c.wt.branch}(${c.ageDays}d)`).join(', ') : ''}`
+  );
   if (wantReap) {
-    L.push(`reaped ${actions.filter((a) => a.result === 'reaped').length} / attempted ${actions.length}`);
-    if (reclaimedBytes !== null) L.push(`reclaimed ≈ ${(reclaimedBytes / 1024 / 1024 / 1024).toFixed(2)} GB`);
+    L.push(
+      `reaped ${actions.filter((a) => a.result === 'reaped').length} / attempted ${actions.length}`
+    );
+    if (reclaimedBytes !== null)
+      L.push(`reclaimed ≈ ${(reclaimedBytes / 1024 / 1024 / 1024).toFixed(2)} GB`);
   } else {
-    L.push(`DRY-RUN. Re-run with: reap --commit  (add --reap-orphans to also remove de-registered orphans past TTL)`);
+    L.push(
+      `DRY-RUN. Re-run with: reap --commit  (add --reap-orphans to also remove de-registered orphans past TTL)`
+    );
   }
   L.push(`receipt ${receipt.hash}${args.out ? ` → ${args.out}` : ''}`);
   process.stdout.write(L.join('\n') + '\n');
@@ -383,15 +427,27 @@ function selfTest() {
   assert(r1.hash === r2.hash, 'canonical hash must be key-order independent');
   assert(r1.hash.startsWith('sha256:'), 'hash must be sha256-prefixed');
   const tampered = { ...r1, a: 2 };
-  assert(hashValue({ ...tampered, hash: undefined, hashAlgorithm: undefined }) !== r1.hash, 'tamper must change hash');
+  assert(
+    hashValue({ ...tampered, hash: undefined, hashAlgorithm: undefined }) !== r1.hash,
+    'tamper must change hash'
+  );
   // pathRef must not leak absolute path
   const pr = pathRef('C:/Users/josep/.ai-ecosystem/.scratch/worktrees/holoscript-foo');
-  assert(pr.pathHash.startsWith('sha256:') && pr.leaf === 'holoscript-foo', 'pathRef redacts to hash+leaf');
-  assert(!JSON.stringify(pr).toLowerCase().includes('users/josep'), 'pathRef must not contain absolute path');
+  assert(
+    pr.pathHash.startsWith('sha256:') && pr.leaf === 'holoscript-foo',
+    'pathRef redacts to hash+leaf'
+  );
+  assert(
+    !JSON.stringify(pr).toLowerCase().includes('users/josep'),
+    'pathRef must not contain absolute path'
+  );
   // protect list
   assert(protectedPath(PRIMARY), 'primary must be protected');
   assert(protectedPath('c:/tmp/holoscript-deploy'), 'deploy must be protected');
-  assert(!protectedPath('c:/users/josep/.ai-ecosystem/.scratch/worktrees/x'), 'scratch tree not protected');
+  assert(
+    !protectedPath('c:/users/josep/.ai-ecosystem/.scratch/worktrees/x'),
+    'scratch tree not protected'
+  );
   // arg parsing
   const a = parseArgs(['reap', '--commit', '--reap-orphans']);
   assert(a.command === 'reap' && a.commit && a.reapOrphans, 'arg parse reap/commit/reap-orphans');
@@ -399,7 +455,9 @@ function selfTest() {
   assert(s.command === 'scan' && !s.commit, 'scan defaults to dry-run');
 
   if (failures.length) {
-    process.stdout.write(`SELF-TEST FAILED (${failures.length}):\n${failures.map((f) => `  - ${f}`).join('\n')}\n`);
+    process.stdout.write(
+      `SELF-TEST FAILED (${failures.length}):\n${failures.map((f) => `  - ${f}`).join('\n')}\n`
+    );
     process.exitCode = 1;
     return false;
   }
@@ -408,7 +466,9 @@ function selfTest() {
 }
 
 // ESM entry guard
-const isMain = import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('holoshell-worktree-reap-adapter.mjs');
+const isMain =
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith('holoshell-worktree-reap-adapter.mjs');
 if (isMain) {
   try {
     run(process.argv.slice(2));

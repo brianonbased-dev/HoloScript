@@ -63,9 +63,10 @@ registry.register('holoscript_validate', async (params) => {
 registry.register('holoscript_suggest', async (params) => {
   // Simulate trait suggestion — list lookup
   const context = String(params.context ?? '');
-  const suggestions = context.length > 10
-    ? ['@grabbable', '@collidable', '@networked', '@physics', '@animated']
-    : ['@glowing', '@transparent'];
+  const suggestions =
+    context.length > 10
+      ? ['@grabbable', '@collidable', '@networked', '@physics', '@animated']
+      : ['@glowing', '@transparent'];
   return {
     content: [{ type: 'text', text: JSON.stringify({ suggestions }) }],
   };

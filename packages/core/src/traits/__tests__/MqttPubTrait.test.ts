@@ -4,8 +4,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mqttPubHandler } from '../MqttPubTrait';
 
-const makeNode = () => ({ id: 'n1', traits: new Set<string>(), emit: vi.fn(), __mqttPubState: undefined as unknown });
-const makeCtx = (node: ReturnType<typeof makeNode>) => ({ emit: (type: string, data: unknown) => node.emit(type, data) });
+const makeNode = () => ({
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
+  __mqttPubState: undefined as unknown,
+});
+const makeCtx = (node: ReturnType<typeof makeNode>) => ({
+  emit: (type: string, data: unknown) => node.emit(type, data),
+});
 const defaultConfig = { broker_url: 'mqtt://localhost', default_qos: 1 as 0 | 1 | 2 };
 
 describe('MqttPubTrait', () => {
@@ -26,10 +33,20 @@ describe('MqttPubTrait', () => {
   it('mqtt:publish increments counter and emits mqtt:published', () => {
     const node = makeNode();
     mqttPubHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    mqttPubHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'mqtt:publish', topic: 'sensors/temp', payload: { t: 22 },
-    } as never);
+    mqttPubHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'mqtt:publish',
+        topic: 'sensors/temp',
+        payload: { t: 22 },
+      } as never
+    );
     expect((node.__mqttPubState as { published: number }).published).toBe(1);
-    expect(node.emit).toHaveBeenCalledWith('mqtt:published', expect.objectContaining({ topic: 'sensors/temp' }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'mqtt:published',
+      expect.objectContaining({ topic: 'sensors/temp' })
+    );
   });
 });

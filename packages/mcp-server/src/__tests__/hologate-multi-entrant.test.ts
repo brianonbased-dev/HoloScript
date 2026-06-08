@@ -33,10 +33,7 @@ import {
   __resetNetworkingState,
 } from '../networking-tools.js';
 
-import {
-  validatePortalIntent,
-  type SpatialPolicy,
-} from '../holo-portal-intent.js';
+import { validatePortalIntent, type SpatialPolicy } from '../holo-portal-intent.js';
 
 // ---------------------------------------------------------------------------
 // Shared world / tunnel fixtures
@@ -83,7 +80,7 @@ function buildEntrantReceipt(entrant: PortalEntrant, now: string): PortalEntryRe
   const acceptedFormats = defaultAcceptedFormatsFor(lane);
 
   const spatialPermission =
-    entrant.surfaceKind === 'agent-semantic' ? ['mutate', 'read'] as const : ['read'] as const;
+    entrant.surfaceKind === 'agent-semantic' ? (['mutate', 'read'] as const) : (['read'] as const);
 
   return buildPortalEntryReceipt({
     sharePacket: SHARED_SHARE_PACKET,
@@ -226,7 +223,11 @@ describe('HoloGate multi-entrant portal (task_1779439734598_t3o2)', () => {
     it('humans are denied all mutating intents under read-only scope', () => {
       for (let i = 0; i < HUMAN_COUNT; i++) {
         const humanId = humanEntrants[i].agentId;
-        const moveIntent = { kind: 'move' as const, entityId: humanId, position: { x: 0, y: 0, z: 0 } };
+        const moveIntent = {
+          kind: 'move' as const,
+          entityId: humanId,
+          position: { x: 0, y: 0, z: 0 },
+        };
         const sayIntent = { kind: 'say' as const, entityId: humanId, utterance: 'hi' };
         const grabIntent = { kind: 'grab' as const, entityId: humanId, targetId: 'some-object' };
 
@@ -314,7 +315,9 @@ describe('HoloGate multi-entrant portal (task_1779439734598_t3o2)', () => {
     it('every agent receipt references its A2A card', () => {
       for (let i = 0; i < AGENT_COUNT; i++) {
         const receipt = agentReceipts[i];
-        expect(receipt.entrant.a2aAgentCardRef).toContain(`agent_${String(i + 1).padStart(3, '0')}`);
+        expect(receipt.entrant.a2aAgentCardRef).toContain(
+          `agent_${String(i + 1).padStart(3, '0')}`
+        );
       }
     });
 
@@ -452,7 +455,9 @@ describe('HoloGate multi-entrant portal (task_1779439734598_t3o2)', () => {
     it('broadcast is delivered to multiple simultaneous subscribers', async () => {
       const counts = [0, 0, 0]; // three independent subscribers
       const unsubs = counts.map((_, idx) =>
-        subscribeToStateDeltas(() => { counts[idx]++; })
+        subscribeToStateDeltas(() => {
+          counts[idx]++;
+        })
       );
 
       // One agent push to verify fan-out
@@ -462,7 +467,11 @@ describe('HoloGate multi-entrant portal (task_1779439734598_t3o2)', () => {
       };
 
       await handleNetworkingTool('push_portal_intent', {
-        intent: { kind: 'move', entityId: agentEntrants[0].agentId, position: { x: 1, y: 0, z: 0 } },
+        intent: {
+          kind: 'move',
+          entityId: agentEntrants[0].agentId,
+          position: { x: 1, y: 0, z: 0 },
+        },
         requestedScope: 'drive-avatar',
         spatialPolicy: agentPolicy,
       });
@@ -518,7 +527,11 @@ describe('HoloGate multi-entrant portal (task_1779439734598_t3o2)', () => {
       await Promise.all(
         agentEntrants.map((e, i) =>
           handleNetworkingTool('push_portal_intent', {
-            intent: { kind: 'move', entityId: e.agentId, position: { x: (i + 1) * 10, y: 0, z: 0 } },
+            intent: {
+              kind: 'move',
+              entityId: e.agentId,
+              position: { x: (i + 1) * 10, y: 0, z: 0 },
+            },
             requestedScope: 'drive-avatar',
             spatialPolicy: agentPolicy,
           })
@@ -599,14 +612,16 @@ describe('HoloGate multi-entrant portal (task_1779439734598_t3o2)', () => {
       for (const e of agentEntrants) {
         const v = validatePortalIntent(
           { kind: 'say', entityId: e.agentId, utterance: 'hi' },
-          agentPolicy, 'drive-avatar'
+          agentPolicy,
+          'drive-avatar'
         );
         expect(v.allowed).toBe(true);
       }
       for (const e of humanEntrants) {
         const v = validatePortalIntent(
           { kind: 'move', entityId: e.agentId, position: { x: 0, y: 0, z: 0 } },
-          humanPolicy, 'read-only'
+          humanPolicy,
+          'read-only'
         );
         expect(v.allowed).toBe(false);
       }

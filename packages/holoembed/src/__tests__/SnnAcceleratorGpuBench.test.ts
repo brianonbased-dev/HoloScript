@@ -26,7 +26,9 @@ await accel.initialize({ enableSnn: true, snnTimesteps: 50 });
 const gpu = accel.available;
 if (!gpu) {
   const hasWindow = typeof (globalThis as { window?: unknown }).window !== 'undefined';
-  console.warn(`[snn-bench] WebGPU device unavailable; GPU tests skipped. (window defined: ${hasWindow})`);
+  console.warn(
+    `[snn-bench] WebGPU device unavailable; GPU tests skipped. (window defined: ${hasWindow})`
+  );
 }
 
 function randHist(n = 128): Float32Array {
@@ -81,7 +83,7 @@ describe('SnnAccelerator GPU path', () => {
     const gpuRate = N / (gpuMs / 1000);
     console.log(
       `[snn-bench] CPU ${cpuRate.toFixed(0)} hist/s | fused-GPU ${gpuRate.toFixed(0)} hist/s | ` +
-      `GPU/CPU ratio ${(gpuRate / cpuRate).toFixed(2)}x (fused batch dispatch)`,
+        `GPU/CPU ratio ${(gpuRate / cpuRate).toFixed(2)}x (fused batch dispatch)`
     );
     // Soft correctness gate only; perf is environment-sensitive, so we assert
     // the GPU produced the right COUNT, not a wall-clock threshold.

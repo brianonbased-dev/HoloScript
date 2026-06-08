@@ -42,12 +42,14 @@ describe('next-actions POST — founder one-tap approval proxy', () => {
   });
 
   it('forwards taskId to the founder-approval route and returns ok on upstream 201', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({ success: true, approval: { id: 'approval_1', status: 'approved' } }),
-        { status: 201 }
-      )
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ success: true, approval: { id: 'approval_1', status: 'approved' } }),
+          { status: 201 }
+        )
+      );
     vi.stubGlobal('fetch', fetchMock);
 
     const POST = await loadPOST();

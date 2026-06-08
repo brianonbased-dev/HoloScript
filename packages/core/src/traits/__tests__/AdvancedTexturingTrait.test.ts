@@ -73,7 +73,9 @@ describe('AdvancedTexturingTrait — validate', () => {
 
   it('throws for invalid mode', () => {
     expect(() =>
-      AdvancedTexturingTrait.validate!({ mode: 'holographic' } as unknown as AdvancedTexturingConfig)
+      AdvancedTexturingTrait.validate!({
+        mode: 'holographic',
+      } as unknown as AdvancedTexturingConfig)
     ).toThrow('Invalid texturing mode');
   });
 
@@ -82,7 +84,9 @@ describe('AdvancedTexturingTrait — validate', () => {
       mode: 'displacement',
       displacement: { heightMap: 'h.png', scale: 0, bias: 0 },
     };
-    expect(() => AdvancedTexturingTrait.validate!(config)).toThrow('displacement.scale must not be 0');
+    expect(() => AdvancedTexturingTrait.validate!(config)).toThrow(
+      'displacement.scale must not be 0'
+    );
   });
 
   it('throws for pom.steps < 1', () => {
@@ -142,7 +146,10 @@ describe('AdvancedTexturingTrait — compile', () => {
   });
 
   it('compiles webgpu target', () => {
-    const result = AdvancedTexturingTrait.compile!({ mode: 'displacement', displacement: { heightMap: 'h.png', scale: 0.5, bias: 0 } }, 'webgpu');
+    const result = AdvancedTexturingTrait.compile!(
+      { mode: 'displacement', displacement: { heightMap: 'h.png', scale: 0.5, bias: 0 } },
+      'webgpu'
+    );
     expect(typeof result).toBe('string');
   });
 

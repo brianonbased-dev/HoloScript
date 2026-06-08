@@ -22,10 +22,7 @@ export function aggregateByConfig(run: BenchmarkRun): ConfigAggregate[] {
     const completed = outcomes.filter((o) => o.creation_completion).length;
     const totalCost = outcomes.reduce((s, o) => s + o.token_cost_usd, 0);
     const totalWall = outcomes.reduce((s, o) => s + o.wall_clock_seconds, 0);
-    const sumRounds = outcomes.reduce(
-      (s, o) => s + (o.tool_rounds_to_completion ?? 0),
-      0
-    );
+    const sumRounds = outcomes.reduce((s, o) => s + (o.tool_rounds_to_completion ?? 0), 0);
     const sumSc = outcomes.reduce((s, o) => s + o.sim_contract_pass_rate, 0);
     out.push({
       config,

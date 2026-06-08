@@ -14,13 +14,13 @@
 
 ## The Problem (Enterprise Pain)
 
-| Pain | Current state without HoloScript |
-|------|----------------------------------|
-| Multi-format asset fragmentation | USD for Omniverse, URDF for ROS 2, glTF for web — three separate authoring tools, three diverging assets |
-| CAD → simulation friction | Raw CAD → URDF/USD conversion tools introduce schema gaps, manually patched per project |
-| No audit trail on simulation | No proof that the USD file fed to Isaac Sim matches the design intent — compliance teams struggle |
-| Locked into one runtime | Robot description written for Isaac Sim can't run in a browser for training visualization or customer demos |
-| Simulation setup overhead | Isaac Sim scene setup (PhysicsScene, gravity, solver settings, xformOp ordering) is manual and error-prone |
+| Pain                             | Current state without HoloScript                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Multi-format asset fragmentation | USD for Omniverse, URDF for ROS 2, glTF for web — three separate authoring tools, three diverging assets    |
+| CAD → simulation friction        | Raw CAD → URDF/USD conversion tools introduce schema gaps, manually patched per project                     |
+| No audit trail on simulation     | No proof that the USD file fed to Isaac Sim matches the design intent — compliance teams struggle           |
+| Locked into one runtime          | Robot description written for Isaac Sim can't run in a browser for training visualization or customer demos |
+| Simulation setup overhead        | Isaac Sim scene setup (PhysicsScene, gravity, solver settings, xformOp ordering) is manual and error-prone  |
 
 ---
 
@@ -42,15 +42,15 @@ Robot arm described once in .holo
 
 ## Key Differentiators vs Raw USD Authoring
 
-| Capability | Raw USD / DCC tools | HoloScript USDPhysicsCompiler |
-|-----------|---------------------|-------------------------------|
-| Physics schema application | Manual `prepend apiSchemas`, per-prim | Automatic from `@physics` / `@robot` traits |
-| Isaac Lab `ArticulationView` compat | Manual xformOp ordering required | Enforced automatically on `targetContext=isaac_sim` |
-| GPU dynamics hints | Manually add `physxScene:enableGPUDynamics` | Auto-emitted for Isaac Sim context |
-| Audit / provenance | No standard | SHA-256 provenance hash in USDA comment; `SimulationContract` receipt linkage |
-| Multi-target | One tool per target | One `.holo` source, all targets |
-| Semantic metadata | USD has no semantic layer | HoloScript AST embedded in `customData` (Metaverse Standards Forum model) |
-| Open source | DCC tools are proprietary | MIT, self-hosted, no licensing dependencies |
+| Capability                          | Raw USD / DCC tools                         | HoloScript USDPhysicsCompiler                                                 |
+| ----------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------- |
+| Physics schema application          | Manual `prepend apiSchemas`, per-prim       | Automatic from `@physics` / `@robot` traits                                   |
+| Isaac Lab `ArticulationView` compat | Manual xformOp ordering required            | Enforced automatically on `targetContext=isaac_sim`                           |
+| GPU dynamics hints                  | Manually add `physxScene:enableGPUDynamics` | Auto-emitted for Isaac Sim context                                            |
+| Audit / provenance                  | No standard                                 | SHA-256 provenance hash in USDA comment; `SimulationContract` receipt linkage |
+| Multi-target                        | One tool per target                         | One `.holo` source, all targets                                               |
+| Semantic metadata                   | USD has no semantic layer                   | HoloScript AST embedded in `customData` (Metaverse Standards Forum model)     |
+| Open source                         | DCC tools are proprietary                   | MIT, self-hosted, no licensing dependencies                                   |
 
 ---
 
@@ -109,14 +109,14 @@ for scene_variant in parameterized_scenes:
 
 ## Competitive Positioning
 
-| Scenario | Who wins |
-|----------|----------|
-| Pure Omniverse enterprise (RTX cluster, $9K+ budget) | Omniverse wins; HoloScript is upstream feeder |
-| Multi-runtime teams (Isaac Sim + ROS 2 + web) | HoloScript wins — one source, all targets |
-| Teams without GPU floor | HoloScript wins — browser-native alternative path |
-| Academic / education robotics | HoloScript wins — free, open source, `npx` install |
-| Compliance-driven simulation (audit trails) | HoloScript wins — provenance hash + SimulationContract |
-| Teams already on Isaac Sim wanting authoring improvement | HoloScript as upstream USD author — both can coexist |
+| Scenario                                                 | Who wins                                               |
+| -------------------------------------------------------- | ------------------------------------------------------ |
+| Pure Omniverse enterprise (RTX cluster, $9K+ budget)     | Omniverse wins; HoloScript is upstream feeder          |
+| Multi-runtime teams (Isaac Sim + ROS 2 + web)            | HoloScript wins — one source, all targets              |
+| Teams without GPU floor                                  | HoloScript wins — browser-native alternative path      |
+| Academic / education robotics                            | HoloScript wins — free, open source, `npx` install     |
+| Compliance-driven simulation (audit trails)              | HoloScript wins — provenance hash + SimulationContract |
+| Teams already on Isaac Sim wanting authoring improvement | HoloScript as upstream USD author — both can coexist   |
 
 **Key message**: HoloScript and Omniverse are NOT direct competitors in the enterprise segment. HoloScript is the authoring layer; Omniverse is the runtime. Positioning: **"HoloScript upstream, Omniverse downstream."**
 
@@ -124,11 +124,11 @@ for scene_variant in parameterized_scenes:
 
 ## Pricing Comparison for Enterprise Buyers
 
-| Tool | Entry price | GPU requirement | Install |
-|------|------------|-----------------|---------|
-| NVIDIA Omniverse Enterprise | $9,000/year | RTX GPU required | Multi-hour |
-| HoloScript (open source) | Free (MIT) | None (WebGPU optional) | `npx create-holoscript` (30 sec) |
-| HoloScript + Omniverse (combined) | $9,000/year + OSS | RTX for Omniverse runtime | HoloScript adds no cost |
+| Tool                              | Entry price       | GPU requirement           | Install                          |
+| --------------------------------- | ----------------- | ------------------------- | -------------------------------- |
+| NVIDIA Omniverse Enterprise       | $9,000/year       | RTX GPU required          | Multi-hour                       |
+| HoloScript (open source)          | Free (MIT)        | None (WebGPU optional)    | `npx create-holoscript` (30 sec) |
+| HoloScript + Omniverse (combined) | $9,000/year + OSS | RTX for Omniverse runtime | HoloScript adds no cost          |
 
 For enterprise buyers: HoloScript reduces total cost of ownership by eliminating multi-format authoring toolchains while adding to, not replacing, existing Omniverse investments.
 
@@ -136,13 +136,13 @@ For enterprise buyers: HoloScript reduces total cost of ownership by eliminating
 
 ## Objection Handling
 
-| Objection | Response |
-|-----------|----------|
-| "We already author USD directly in DCC tools" | HoloScript compiles _to_ USD. You can adopt it as an authoring layer without changing your Omniverse or Isaac Sim setup. The question is whether your DCC tools also output URDF, WebXR, and glTF from the same source — HoloScript does. |
-| "Is this production-ready for Isaac Sim?" | The compiler enforces Isaac Lab `ArticulationView` xformOp ordering, emits TGS solver hints, and has a dedicated prod test suite. The output is valid USD that imports cleanly into Isaac Sim 2023.1.1+. |
-| "Can you show a benchmark against ANSYS/CAD pipelines?" | Yes — see `docs/benchmark-artifacts/usd-physics-isaac-sim-comparison.md` for the CAD → USD vs HoloScript → USD throughput comparison. |
-| "What's the support model?" | MIT open source + commercial support via `mcp.holoscript.net` enterprise tier. SLA options available. |
+| Objection                                               | Response                                                                                                                                                                                                                                  |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "We already author USD directly in DCC tools"           | HoloScript compiles _to_ USD. You can adopt it as an authoring layer without changing your Omniverse or Isaac Sim setup. The question is whether your DCC tools also output URDF, WebXR, and glTF from the same source — HoloScript does. |
+| "Is this production-ready for Isaac Sim?"               | The compiler enforces Isaac Lab `ArticulationView` xformOp ordering, emits TGS solver hints, and has a dedicated prod test suite. The output is valid USD that imports cleanly into Isaac Sim 2023.1.1+.                                  |
+| "Can you show a benchmark against ANSYS/CAD pipelines?" | Yes — see `docs/benchmark-artifacts/usd-physics-isaac-sim-comparison.md` for the CAD → USD vs HoloScript → USD throughput comparison.                                                                                                     |
+| "What's the support model?"                             | MIT open source + commercial support via `mcp.holoscript.net` enterprise tier. SLA options available.                                                                                                                                     |
 
 ---
 
-*Last updated: 2026-05-20. Maintained by the HoloScript agent team.*
+_Last updated: 2026-05-20. Maintained by the HoloScript agent team._

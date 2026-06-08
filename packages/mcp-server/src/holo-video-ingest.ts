@@ -35,7 +35,7 @@ export function resolveFfprobeBinary(): string {
  */
 export function ffprobeVideoCodecSync(
   videoPath: string,
-  timeoutMs?: number,
+  timeoutMs?: number
 ): { ok: true; codec: string } | { ok: false; error: string } {
   const t = timeoutMs ?? Number(process.env.HOLOMAP_MCP_FFPROBE_TIMEOUT_MS ?? 15_000);
   const ffprobe = resolveFfprobeBinary();
@@ -53,7 +53,7 @@ export function ffprobeVideoCodecSync(
         'default=nw=1:nk=1',
         videoPath,
       ],
-      { encoding: 'utf8', timeout: t },
+      { encoding: 'utf8', timeout: t }
     );
     if (r.status !== 0) {
       return {
@@ -90,7 +90,9 @@ export async function fetchVideoToTempFile(videoUrl: string): Promise<{
   cleanup: () => Promise<void>;
 }> {
   const maxBytes = Number(process.env.HOLOMAP_MCP_MAX_VIDEO_BYTES ?? DEFAULT_MAX_VIDEO_BYTES);
-  const timeoutMs = Number(process.env.HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS ?? DEFAULT_FETCH_TIMEOUT_MS);
+  const timeoutMs = Number(
+    process.env.HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS ?? DEFAULT_FETCH_TIMEOUT_MS
+  );
 
   const dir = await fs.mkdtemp(join(tmpdir(), 'holomap-mcp-'));
   const destPath = join(dir, `in-${randomBytes(8).toString('hex')}.bin`);
@@ -106,7 +108,7 @@ export async function fetchVideoToTempFile(videoUrl: string): Promise<{
     if (buf.length > maxBytes) {
       await cleanup();
       throw new Error(
-        `holo_reconstruct_from_video: file exceeds HOLOMAP_MCP_MAX_VIDEO_BYTES (${maxBytes})`,
+        `holo_reconstruct_from_video: file exceeds HOLOMAP_MCP_MAX_VIDEO_BYTES (${maxBytes})`
       );
     }
     hash.update(buf);
@@ -124,7 +126,7 @@ export async function fetchVideoToTempFile(videoUrl: string): Promise<{
     await cleanup();
     if (e instanceof Error && e.name === 'AbortError') {
       throw new Error(
-        `holo_reconstruct_from_video: fetch timed out after ${timeoutMs}ms (HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS)`,
+        `holo_reconstruct_from_video: fetch timed out after ${timeoutMs}ms (HOLOMAP_MCP_FETCH_VIDEO_TIMEOUT_MS)`
       );
     }
     throw e;
@@ -134,7 +136,9 @@ export async function fetchVideoToTempFile(videoUrl: string): Promise<{
 
   if (!res.ok) {
     await cleanup();
-    throw new Error(`holo_reconstruct_from_video: failed to fetch video (${res.status} ${res.statusText})`);
+    throw new Error(
+      `holo_reconstruct_from_video: failed to fetch video (${res.status} ${res.statusText})`
+    );
   }
   if (!res.body) {
     await cleanup();
@@ -154,7 +158,7 @@ export async function fetchVideoToTempFile(videoUrl: string): Promise<{
         ws.destroy();
         await cleanup();
         throw new Error(
-          `holo_reconstruct_from_video: download exceeds HOLOMAP_MCP_MAX_VIDEO_BYTES (${maxBytes})`,
+          `holo_reconstruct_from_video: download exceeds HOLOMAP_MCP_MAX_VIDEO_BYTES (${maxBytes})`
         );
       }
       hash.update(c);
@@ -187,7 +191,7 @@ export async function ingestVideoRgbFrames(options: {
   const probe = ffprobeVideoCodecSync(options.videoPath);
   if (!probe.ok) {
     throw new Error(
-      `holo_reconstruct_from_video: ffprobe failed (${probe.error}). Install ffmpeg/ffprobe or fix the input file.`,
+      `holo_reconstruct_from_video: ffprobe failed (${probe.error}). Install ffmpeg/ffprobe or fix the input file.`
     );
   }
 
@@ -240,8 +244,8 @@ export async function ingestVideoRgbFrames(options: {
       if (code !== 0 && frames.length === 0) {
         rejectPromise(
           new Error(
-            `ffmpeg exited ${code}: ${stderr.join('').slice(-800) || 'no stderr — is ffmpeg installed?'}`,
-          ),
+            `ffmpeg exited ${code}: ${stderr.join('').slice(-800) || 'no stderr — is ffmpeg installed?'}`
+          )
         );
         return;
       }

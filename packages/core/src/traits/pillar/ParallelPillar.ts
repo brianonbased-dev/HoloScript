@@ -79,26 +79,26 @@ export type Hemisphere = 'left' | 'right' | 'bilateral';
 /** Canonical hemisphere assignment per PillarDomain. */
 export const HEMISPHERE_MAP: Readonly<Record<PillarDomain, Hemisphere>> = {
   // Left hemisphere (sequential / analytical)
-  language:         'left',
-  compiler:         'left',
-  accuracy_speed:   'left',
-  economics:        'left',
+  language: 'left',
+  compiler: 'left',
+  accuracy_speed: 'left',
+  economics: 'left',
   // Right hemisphere (spatial / holistic)
-  physics:          'right',
-  rendering:        'right',
-  coordination:     'right',
-  truth_approval:   'right',
+  physics: 'right',
+  rendering: 'right',
+  coordination: 'right',
+  truth_approval: 'right',
   safety_exploration: 'right',
   // Bilateral (shared)
-  steady_state:     'bilateral',
-  solver:           'bilateral',
-  trait:            'bilateral',
-  storage:          'bilateral',
-  agent:            'bilateral',
-  init:             'bilateral',
-  edge_case:        'bilateral',
-  shutdown:         'bilateral',
-  d040:             'bilateral',
+  steady_state: 'bilateral',
+  solver: 'bilateral',
+  trait: 'bilateral',
+  storage: 'bilateral',
+  agent: 'bilateral',
+  init: 'bilateral',
+  edge_case: 'bilateral',
+  shutdown: 'bilateral',
+  d040: 'bilateral',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -181,7 +181,7 @@ export type ParallelPillarErrorCode =
 /** Compute the tropical geometry bounding box from two PillarSlices. */
 export function computeParallelBounds(
   left: PillarSlice,
-  right: PillarSlice,
+  right: PillarSlice
 ): Pick<ParallelPillarSlice, 'bounds' | 'box_area' | 'hemisphere_agreement'> {
   const pos_1_min = Math.min(left.pos_1, right.pos_1);
   const pos_1_max = Math.max(left.pos_1, right.pos_1);
@@ -189,9 +189,9 @@ export function computeParallelBounds(
   const pos_2_max = Math.max(left.pos_2, right.pos_2);
 
   // Area of the bounding box in the unit square
-  const width  = pos_1_max - pos_1_min;  // ∈ [0, 1]
-  const height = pos_2_max - pos_2_min;  // ∈ [0, 1]
-  const box_area = width * height;        // ∈ [0, 1]
+  const width = pos_1_max - pos_1_min; // ∈ [0, 1]
+  const height = pos_2_max - pos_2_min; // ∈ [0, 1]
+  const box_area = width * height; // ∈ [0, 1]
 
   return {
     bounds: { pos_1_min, pos_1_max, pos_2_min, pos_2_max },
@@ -201,21 +201,20 @@ export function computeParallelBounds(
 }
 
 /** Factory to create a concrete ParallelPillar from two Pillar instances. */
-export function makeParallelPillar(
-  id: string,
-  left: Pillar,
-  right: Pillar,
-): ParallelPillar {
+export function makeParallelPillar(id: string, left: Pillar, right: Pillar): ParallelPillar {
   return {
     id,
     left,
     right,
     generateParallel(context: PillarContext): ParallelPillarSlice {
-      const leftSlice  = left.generate(context);
+      const leftSlice = left.generate(context);
       const rightSlice = right.generate(context);
-      const { bounds, box_area, hemisphere_agreement } = computeParallelBounds(leftSlice, rightSlice);
+      const { bounds, box_area, hemisphere_agreement } = computeParallelBounds(
+        leftSlice,
+        rightSlice
+      );
       return {
-        left:  leftSlice,
+        left: leftSlice,
         right: rightSlice,
         bounds,
         box_area,
@@ -246,8 +245,8 @@ export const LEFT_PHYSICS_PILLAR: Pillar = {
       axis_1_id: 'energy',
       axis_2_id: 'momentum',
       pos_1: meta?.energy_conservation ?? 1.0,
-      pos_2: meta?.momentum_violation   ?? 0.0,
-      pillar_id:     this.id,
+      pos_2: meta?.momentum_violation ?? 0.0,
+      pillar_id: this.id,
       pillar_domain: this.domain,
     };
   },
@@ -268,9 +267,9 @@ export const RIGHT_PHYSICS_PILLAR: Pillar = {
     return {
       axis_1_id: 'entropy',
       axis_2_id: 'angular_momentum',
-      pos_1: meta?.entropy_level            ?? 0.5,
+      pos_1: meta?.entropy_level ?? 0.5,
       pos_2: meta?.angular_momentum_pressure ?? 0.0,
-      pillar_id:     this.id,
+      pillar_id: this.id,
       pillar_domain: this.domain,
     };
   },
@@ -288,14 +287,14 @@ export const LEFT_TEMPORAL_PILLAR: Pillar = {
   axis_vocabulary: ['init', 'steady_state', 'edge_case', 'shutdown', 'transient'] as const,
   generate(context: PillarContext): PillarSlice {
     const meta = context.metadata as Record<string, unknown> | undefined;
-    const phase   = (meta?.phase   as string | undefined) ?? 'steady_state';
+    const phase = (meta?.phase as string | undefined) ?? 'steady_state';
     const maturity = (meta?.maturity as number | undefined) ?? 1.0;
     return {
       axis_1_id: phase,
       axis_2_id: 'transient',
       pos_1: maturity,
-      pos_2: 1.0 - maturity,  // inverse of maturity = transience
-      pillar_id:     this.id,
+      pos_2: 1.0 - maturity, // inverse of maturity = transience
+      pillar_id: this.id,
       pillar_domain: this.domain,
     };
   },
@@ -319,7 +318,7 @@ export const RIGHT_TEMPORAL_PILLAR: Pillar = {
       axis_2_id: 'steady_state',
       pos_1: convergence,
       pos_2: convergence,
-      pillar_id:     this.id,
+      pillar_id: this.id,
       pillar_domain: this.domain,
     };
   },
@@ -342,7 +341,7 @@ export const RIGHT_TEMPORAL_PILLAR: Pillar = {
 export const ENERGY_ENTROPY_PARALLEL: ParallelPillar = makeParallelPillar(
   'energy_entropy_parallel',
   LEFT_PHYSICS_PILLAR,
-  RIGHT_PHYSICS_PILLAR,
+  RIGHT_PHYSICS_PILLAR
 );
 
 /**
@@ -360,8 +359,8 @@ export const ENERGY_ENTROPY_PARALLEL: ParallelPillar = makeParallelPillar(
  */
 export const TRUTH_PHYSICS_PARALLEL: ParallelPillar = makeParallelPillar(
   'truth_physics_parallel',
-  INTENT_TRUTH_APPROVAL_PILLAR,   // left: analytical truth axis
-  PHYSICS_CONSERVATION_PILLAR,    // right: spatial conservation axis
+  INTENT_TRUTH_APPROVAL_PILLAR, // left: analytical truth axis
+  PHYSICS_CONSERVATION_PILLAR // right: spatial conservation axis
 );
 
 /**
@@ -377,7 +376,7 @@ export const TRUTH_PHYSICS_PARALLEL: ParallelPillar = makeParallelPillar(
 export const TEMPORAL_LATERAL_PARALLEL: ParallelPillar = makeParallelPillar(
   'temporal_lateral_parallel',
   LEFT_TEMPORAL_PILLAR,
-  RIGHT_TEMPORAL_PILLAR,
+  RIGHT_TEMPORAL_PILLAR
 );
 
 /** All seed ParallelPillars registered by default on attach. */
@@ -446,7 +445,7 @@ export const parallelPillarHandler: TraitHandler<ParallelPillarConfig> = {
     node: HSPlusNode,
     config: ParallelPillarConfig,
     context: TraitContext,
-    event: TraitEvent,
+    event: TraitEvent
   ): void {
     const state = node.__parallelPillarState as ParallelPillarRegistryState | undefined;
     if (!state) return;
@@ -457,7 +456,8 @@ export const parallelPillarHandler: TraitHandler<ParallelPillarConfig> = {
       if (!parallel?.id || !parallel.left || !parallel.right || !parallel.generateParallel) {
         context.emit?.('pillar:parallel_error', {
           code: 'INVALID_PARALLEL' as ParallelPillarErrorCode,
-          message: 'pillar:register_parallel requires a valid ParallelPillar with id, left, right, generateParallel()',
+          message:
+            'pillar:register_parallel requires a valid ParallelPillar with id, left, right, generateParallel()',
         });
         return;
       }
@@ -523,10 +523,10 @@ export const parallelPillarHandler: TraitHandler<ParallelPillarConfig> = {
       const summaries: ParallelPillarSummary[] = [];
       for (const [, pp] of state.parallels) {
         summaries.push({
-          id:           pp.id,
-          left_id:      pp.left.id,
-          right_id:     pp.right.id,
-          left_domain:  pp.left.domain,
+          id: pp.id,
+          left_id: pp.left.id,
+          right_id: pp.right.id,
+          left_domain: pp.left.domain,
           right_domain: pp.right.domain,
         });
       }
@@ -548,7 +548,7 @@ export const parallelPillarHandler: TraitHandler<ParallelPillarConfig> = {
  *   |x| ≤ 10mm → bilateral (midline)
  */
 export function hemisphereFromMniX(mni_x: number): Hemisphere {
-  if (mni_x >  10) return 'left';
+  if (mni_x > 10) return 'left';
   if (mni_x < -10) return 'right';
   return 'bilateral';
 }
@@ -560,7 +560,7 @@ export function hemisphereFromMniX(mni_x: number): Hemisphere {
  *   bilateral → 0mm (corpus callosum midline)
  */
 export function mniXForHemisphere(h: Hemisphere): number {
-  if (h === 'left')     return  45;
-  if (h === 'right')    return -45;
+  if (h === 'left') return 45;
+  if (h === 'right') return -45;
   return 0;
 }

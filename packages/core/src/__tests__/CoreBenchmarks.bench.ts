@@ -91,13 +91,13 @@ describe('Skeletal & IK Performance', () => {
           {
             id: `b1-${c}`,
             position: [0, 0, 0],
-            rotation: [0, 0, 0, 1 ],
+            rotation: [0, 0, 0, 1],
             length: 0.3,
           },
           {
             id: `b2-${c}`,
             position: [0.3, 0, 0],
-            rotation: [0, 0, 0, 1 ],
+            rotation: [0, 0, 0, 1],
             length: 0.3,
           },
         ],

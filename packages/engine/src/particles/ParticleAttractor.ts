@@ -79,7 +79,11 @@ export class ParticleAttractorSystem {
           let ty = 0;
           let tz = nx;
           // Fall back to (1,0,0) cross if n is near vertical
-          if (Math.abs(ny) > 0.99) { tx = nz; ty = 0; tz = -nx; }
+          if (Math.abs(ny) > 0.99) {
+            tx = nz;
+            ty = 0;
+            tz = -nx;
+          }
           const tLen = Math.sqrt(tx * tx + tz * tz) || 1;
           tx /= tLen;
           tz /= tLen;

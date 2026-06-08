@@ -50,7 +50,9 @@ describe('actorHandler — onUpdate', () => {
   it('is a no-op', () => {
     const node = makeNode();
     actorHandler.onAttach!(node as never);
-    expect(() => actorHandler.onUpdate!(node as never, makeConfig(), makeContext() as never)).not.toThrow();
+    expect(() =>
+      actorHandler.onUpdate!(node as never, makeConfig(), makeContext() as never)
+    ).not.toThrow();
   });
 });
 
@@ -59,11 +61,16 @@ describe('actorHandler — actor:send', () => {
     const node = makeNode();
     actorHandler.onAttach!(node as never);
     const ctx = makeContext();
-    actorHandler.onEvent!(node as never, makeConfig(), ctx as never, {
-      type: 'actor:send',
-      message: 'hello',
-      from: 'sender1',
-    } as never);
+    actorHandler.onEvent!(
+      node as never,
+      makeConfig(),
+      ctx as never,
+      {
+        type: 'actor:send',
+        message: 'hello',
+        from: 'sender1',
+      } as never
+    );
     const state = node.__actorState as { mailbox: unknown[]; processed: number };
     expect(state.mailbox).toEqual(['hello']);
     expect(ctx.emit).toHaveBeenCalledWith('actor:received', { from: 'sender1', queueSize: 1 });
@@ -73,12 +80,26 @@ describe('actorHandler — actor:send', () => {
     const node = makeNode();
     actorHandler.onAttach!(node as never);
     const ctx = makeContext();
-    actorHandler.onEvent!(node as never, makeConfig(), ctx as never, {
-      type: 'actor:send', message: 'msg1', from: 'a',
-    } as never);
-    actorHandler.onEvent!(node as never, makeConfig(), ctx as never, {
-      type: 'actor:send', message: 'msg2', from: 'b',
-    } as never);
+    actorHandler.onEvent!(
+      node as never,
+      makeConfig(),
+      ctx as never,
+      {
+        type: 'actor:send',
+        message: 'msg1',
+        from: 'a',
+      } as never
+    );
+    actorHandler.onEvent!(
+      node as never,
+      makeConfig(),
+      ctx as never,
+      {
+        type: 'actor:send',
+        message: 'msg2',
+        from: 'b',
+      } as never
+    );
     const state = node.__actorState as { mailbox: unknown[] };
     expect(state.mailbox).toEqual(['msg1', 'msg2']);
   });
@@ -88,16 +109,37 @@ describe('actorHandler — actor:send', () => {
     actorHandler.onAttach!(node as never);
     const config = makeConfig({ mailbox_size: 2 });
     const ctx = makeContext();
-    actorHandler.onEvent!(node as never, config, ctx as never, {
-      type: 'actor:send', message: 'a', from: 'x',
-    } as never);
-    actorHandler.onEvent!(node as never, config, ctx as never, {
-      type: 'actor:send', message: 'b', from: 'x',
-    } as never);
+    actorHandler.onEvent!(
+      node as never,
+      config,
+      ctx as never,
+      {
+        type: 'actor:send',
+        message: 'a',
+        from: 'x',
+      } as never
+    );
+    actorHandler.onEvent!(
+      node as never,
+      config,
+      ctx as never,
+      {
+        type: 'actor:send',
+        message: 'b',
+        from: 'x',
+      } as never
+    );
     // Mailbox full (size=2) — next send should overflow
-    actorHandler.onEvent!(node as never, config, ctx as never, {
-      type: 'actor:send', message: 'c', from: 'x',
-    } as never);
+    actorHandler.onEvent!(
+      node as never,
+      config,
+      ctx as never,
+      {
+        type: 'actor:send',
+        message: 'c',
+        from: 'x',
+      } as never
+    );
     expect(ctx.emit).toHaveBeenCalledWith('actor:overflow', { mailboxSize: 2 });
     const state = node.__actorState as { mailbox: unknown[] };
     expect(state.mailbox.length).toBe(2);
@@ -108,9 +150,16 @@ describe('actorHandler — actor:send', () => {
     actorHandler.onAttach!(node as never);
     const config = makeConfig({ mailbox_size: 1 });
     const ctx = makeContext();
-    actorHandler.onEvent!(node as never, config, ctx as never, {
-      type: 'actor:send', message: 'x', from: 'a',
-    } as never);
+    actorHandler.onEvent!(
+      node as never,
+      config,
+      ctx as never,
+      {
+        type: 'actor:send',
+        message: 'x',
+        from: 'a',
+      } as never
+    );
     expect(ctx.emit).toHaveBeenCalledWith('actor:received', expect.anything());
     expect(ctx.emit).not.toHaveBeenCalledWith('actor:overflow', expect.anything());
   });
@@ -122,14 +171,33 @@ describe('actorHandler — actor:process', () => {
     actorHandler.onAttach!(node as never);
     const ctx = makeContext();
     // Fill mailbox
-    actorHandler.onEvent!(node as never, makeConfig(), ctx as never, {
-      type: 'actor:send', message: 'task1', from: 'a',
-    } as never);
-    actorHandler.onEvent!(node as never, makeConfig(), ctx as never, {
-      type: 'actor:send', message: 'task2', from: 'b',
-    } as never);
+    actorHandler.onEvent!(
+      node as never,
+      makeConfig(),
+      ctx as never,
+      {
+        type: 'actor:send',
+        message: 'task1',
+        from: 'a',
+      } as never
+    );
+    actorHandler.onEvent!(
+      node as never,
+      makeConfig(),
+      ctx as never,
+      {
+        type: 'actor:send',
+        message: 'task2',
+        from: 'b',
+      } as never
+    );
     ctx.emit.mockClear();
-    actorHandler.onEvent!(node as never, makeConfig(), ctx as never, { type: 'actor:process' } as never);
+    actorHandler.onEvent!(
+      node as never,
+      makeConfig(),
+      ctx as never,
+      { type: 'actor:process' } as never
+    );
     const state = node.__actorState as { mailbox: unknown[]; processed: number };
     expect(state.mailbox).toEqual(['task2']);
     expect(state.processed).toBe(1);
@@ -140,7 +208,12 @@ describe('actorHandler — actor:process', () => {
     const node = makeNode();
     actorHandler.onAttach!(node as never);
     const ctx = makeContext();
-    actorHandler.onEvent!(node as never, makeConfig(), ctx as never, { type: 'actor:process' } as never);
+    actorHandler.onEvent!(
+      node as never,
+      makeConfig(),
+      ctx as never,
+      { type: 'actor:process' } as never
+    );
     const state = node.__actorState as { processed: number };
     expect(state.processed).toBe(0);
     expect(ctx.emit).not.toHaveBeenCalledWith('actor:processed', expect.anything());
@@ -151,12 +224,24 @@ describe('actorHandler — actor:process', () => {
     actorHandler.onAttach!(node as never);
     const ctx = makeContext();
     for (let i = 0; i < 3; i++) {
-      actorHandler.onEvent!(node as never, makeConfig(), ctx as never, {
-        type: 'actor:send', message: `m${i}`, from: 'src',
-      } as never);
+      actorHandler.onEvent!(
+        node as never,
+        makeConfig(),
+        ctx as never,
+        {
+          type: 'actor:send',
+          message: `m${i}`,
+          from: 'src',
+        } as never
+      );
     }
     for (let i = 0; i < 3; i++) {
-      actorHandler.onEvent!(node as never, makeConfig(), ctx as never, { type: 'actor:process' } as never);
+      actorHandler.onEvent!(
+        node as never,
+        makeConfig(),
+        ctx as never,
+        { type: 'actor:process' } as never
+      );
     }
     const state = node.__actorState as { processed: number };
     expect(state.processed).toBe(3);
@@ -169,7 +254,12 @@ describe('actorHandler — edge cases', () => {
     actorHandler.onAttach!(node as never);
     const ctx = makeContext();
     expect(() =>
-      actorHandler.onEvent!(node as never, makeConfig(), ctx as never, { type: 'actor:unknown' } as never)
+      actorHandler.onEvent!(
+        node as never,
+        makeConfig(),
+        ctx as never,
+        { type: 'actor:unknown' } as never
+      )
     ).not.toThrow();
     expect(ctx.emit).not.toHaveBeenCalled();
   });
@@ -187,7 +277,12 @@ describe('actorHandler — edge cases', () => {
     const node = makeNode();
     const ctx = makeContext();
     expect(() =>
-      actorHandler.onEvent!(node as never, makeConfig(), ctx as never, { type: 'actor:send', message: 'x', from: 'a' } as never)
+      actorHandler.onEvent!(
+        node as never,
+        makeConfig(),
+        ctx as never,
+        { type: 'actor:send', message: 'x', from: 'a' } as never
+      )
     ).not.toThrow();
     expect(ctx.emit).not.toHaveBeenCalled();
   });

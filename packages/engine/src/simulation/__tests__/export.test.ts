@@ -65,10 +65,7 @@ describe('VTK Structured Points export', () => {
     // Header: 10 lines, then data rows
     const dataLines = lines.slice(10);
     // Count total values across data lines
-    const totalValues = dataLines.reduce(
-      (sum, line) => sum + line.trim().split(/\s+/).length,
-      0
-    );
+    const totalValues = dataLines.reduce((sum, line) => sum + line.trim().split(/\s+/).length, 0);
     expect(totalValues).toBe(24);
   });
 
@@ -114,7 +111,10 @@ describe('VTK Unstructured Grid export', () => {
 describe('VTK PolyData export', () => {
   it('produces valid pipe network output', () => {
     const positions = new Float32Array([0, 0, 0, 10, 0, 0, 10, 10, 0]);
-    const pipes: [number, number][] = [[0, 1], [1, 2]];
+    const pipes: [number, number][] = [
+      [0, 1],
+      [1, 2],
+    ];
     const pressure = new Float32Array([100, 90, 80]);
     const flowRate = new Float32Array([0.05, 0.03]);
 
@@ -188,7 +188,13 @@ describe('CSV scalar field', () => {
 describe('CSV material table', () => {
   it('exports with unit-annotated headers', () => {
     const csv = exportMaterialTable([
-      { name: 'steel', conductivity: 50, specific_heat: 490, density: 7850, source: 'ASM Handbook' },
+      {
+        name: 'steel',
+        conductivity: 50,
+        specific_heat: 490,
+        density: 7850,
+        source: 'ASM Handbook',
+      },
     ]);
 
     expect(csv).toContain('conductivity [W/(m*K)]');
@@ -204,7 +210,10 @@ describe('CSV generic table', () => {
   it('exports headers and rows', () => {
     const csv = exportTable(
       ['mesh_size', 'error_L2', 'order'],
-      [[0.1, 1e-4, 2.01], [0.05, 2.5e-5, 1.98]],
+      [
+        [0.1, 1e-4, 2.01],
+        [0.05, 2.5e-5, 1.98],
+      ],
       { comment: 'Convergence study' }
     );
 

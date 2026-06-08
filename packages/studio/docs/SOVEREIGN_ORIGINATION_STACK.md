@@ -27,10 +27,10 @@ Short map of how **Studio (visual graph)**, **publication manifests (dual digest
 
 Two concepts coexist on purpose:
 
-| Field | Role |
-|--------|------|
+| Field                            | Role                                                                                                                                                                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`provenance_semiring_digest`** | **v0 canonical binding:** scheme `sha256_canonical_v0` — SHA-256 over sorted-key JSON of `room`, `loro_doc_version`, and optional `xr_metrics`. Stable for tooling and disclosure; **not** tropical matrix math. Controlled by `includeSemiringDigest` (default on). |
-| **`tropical_semiring_digest`** | **Optional 3×3 numeric matrix** (`TropicalSemiringDigest`), supplied via `tropicalSemiringDigest` in build params when callers have computed it (e.g. from a Loro doc). |
+| **`tropical_semiring_digest`**   | **Optional 3×3 numeric matrix** (`TropicalSemiringDigest`), supplied via `tropicalSemiringDigest` in build params when callers have computed it (e.g. from a Loro doc).                                                                                              |
 
 **Honest boundary (semiring vs merge semantics):**
 

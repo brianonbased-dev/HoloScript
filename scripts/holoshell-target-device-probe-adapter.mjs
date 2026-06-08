@@ -33,14 +33,23 @@ export const VERSION = '0.1.0';
 export const SCHEMA_VERSION = 'holoshell-target-device-proof-receipt/v1';
 
 const TARGET_DEVICE_KINDS = new Set([
-  'webxr-headset', 'openxr-headset', 'android-xr-device',
-  'ios-device', 'browser', 'robot',
+  'webxr-headset',
+  'openxr-headset',
+  'android-xr-device',
+  'ios-device',
+  'browser',
+  'robot',
 ]);
 
 const PROOF_STATUSES = new Set(['pass', 'blocked', 'fail']);
 
 const CHECK_KINDS = new Set([
-  'compile', 'browser-acceleration', 'device-presence', 'frame-capture', 'timing', 'provenance',
+  'compile',
+  'browser-acceleration',
+  'device-presence',
+  'frame-capture',
+  'timing',
+  'provenance',
 ]);
 
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
@@ -81,12 +90,12 @@ function parseArgs(argv) {
 function printHelp() {
   process.stdout.write(
     `HoloShell Target Device Probe Adapter ${VERSION}\n` +
-    '\nUsage:\n' +
-    '  node scripts/holoshell-target-device-probe-adapter.mjs probe \\\n' +
-    '    --target-kind <kind> --device-label <label> [--scenario <name>] [--out path.json]\n' +
-    '  node scripts/holoshell-target-device-probe-adapter.mjs --self-test\n' +
-    '\nTarget kinds: webxr-headset, openxr-headset, android-xr-device, ios-device, browser, robot\n' +
-    '\nA blocked receipt (device absent) is VALID evidence — not a failure.\n'
+      '\nUsage:\n' +
+      '  node scripts/holoshell-target-device-probe-adapter.mjs probe \\\n' +
+      '    --target-kind <kind> --device-label <label> [--scenario <name>] [--out path.json]\n' +
+      '  node scripts/holoshell-target-device-probe-adapter.mjs --self-test\n' +
+      '\nTarget kinds: webxr-headset, openxr-headset, android-xr-device, ios-device, browser, robot\n' +
+      '\nA blocked receipt (device absent) is VALID evidence — not a failure.\n'
   );
 }
 
@@ -138,7 +147,12 @@ function shortId(prefix, seed) {
 }
 
 function defaultOutput(date) {
-  return join('.bench-logs', 'holoshell-target-device-probe', date, 'target-device-proof-receipt.json');
+  return join(
+    '.bench-logs',
+    'holoshell-target-device-probe',
+    date,
+    'target-device-proof-receipt.json'
+  );
 }
 
 // ── Check builders ──
@@ -188,8 +202,9 @@ function runBrowserAccelerationCheck(targetKind, at) {
     id: checkId,
     kind: 'browser-acceleration',
     status: 'blocked',
-    detail: 'Non-browser execution context: WebGPU/WebXR cannot be probed from Node. ' +
-            'Run this adapter from the HoloLand WebXR context for hardware-level check.',
+    detail:
+      'Non-browser execution context: WebGPU/WebXR cannot be probed from Node. ' +
+      'Run this adapter from the HoloLand WebXR context for hardware-level check.',
   };
 }
 
@@ -200,8 +215,7 @@ function runBrowserAccelerationCheck(targetKind, at) {
  */
 function runDevicePresenceCheck(targetKind, deviceLabel, at) {
   const checkId = shortId('check-device-presence', { targetKind, deviceLabel, at });
-  const isWebXrContext =
-    typeof navigator !== 'undefined' && typeof navigator.xr !== 'undefined';
+  const isWebXrContext = typeof navigator !== 'undefined' && typeof navigator.xr !== 'undefined';
 
   if (isWebXrContext) {
     // In browser: would actually call navigator.xr.isSessionSupported() etc.
@@ -210,8 +224,9 @@ function runDevicePresenceCheck(targetKind, deviceLabel, at) {
       id: checkId,
       kind: 'device-presence',
       status: 'blocked',
-      detail: `WebXR API present but async session check not resolved in sync probe. ` +
-              `Subscribe to live receipt via subscriptionSource for hardware gate.`,
+      detail:
+        `WebXR API present but async session check not resolved in sync probe. ` +
+        `Subscribe to live receipt via subscriptionSource for hardware gate.`,
     };
   }
 
@@ -219,8 +234,9 @@ function runDevicePresenceCheck(targetKind, deviceLabel, at) {
     id: checkId,
     kind: 'device-presence',
     status: 'blocked',
-    detail: `No ${deviceLabel} detected in this execution context (Node, no WebXR runtime). ` +
-            `Physical target-device proof requires HoloLand WebXR capture session.`,
+    detail:
+      `No ${deviceLabel} detected in this execution context (Node, no WebXR runtime). ` +
+      `Physical target-device proof requires HoloLand WebXR capture session.`,
   };
 }
 
@@ -235,8 +251,9 @@ function runFrameCaptureCheck(targetKind, deviceLabel, devicePresenceStatus, at)
       id: checkId,
       kind: 'frame-capture',
       status: 'blocked',
-      detail: `Frame capture gated on device-presence (status=${devicePresenceStatus}). ` +
-              `Connect ${deviceLabel} and run from HoloLand WebXR context.`,
+      detail:
+        `Frame capture gated on device-presence (status=${devicePresenceStatus}). ` +
+        `Connect ${deviceLabel} and run from HoloLand WebXR context.`,
     };
   }
   return {
@@ -256,7 +273,9 @@ export function buildTargetDeviceProofReceipt(args) {
   const scenario = args.scenario ?? `holoshell-probe/${targetKind}`;
 
   if (!TARGET_DEVICE_KINDS.has(targetKind)) {
-    throw new Error(`Unsupported targetKind: ${targetKind}. Valid: ${[...TARGET_DEVICE_KINDS].join(', ')}`);
+    throw new Error(
+      `Unsupported targetKind: ${targetKind}. Valid: ${[...TARGET_DEVICE_KINDS].join(', ')}`
+    );
   }
 
   const compileCheck = runCompileCheck(targetKind, at);
@@ -273,9 +292,8 @@ export function buildTargetDeviceProofReceipt(args) {
   const overallStatus = anyFail ? 'fail' : allPass ? 'pass' : 'blocked';
 
   const blockedChecks = checks.filter((c) => c.status === 'blocked');
-  const blockedReason = overallStatus === 'blocked'
-    ? blockedChecks.map((c) => c.detail).join(' | ')
-    : undefined;
+  const blockedReason =
+    overallStatus === 'blocked' ? blockedChecks.map((c) => c.detail).join(' | ') : undefined;
 
   const receiptId = shortId('target-device-proof', { scenario, targetKind, at });
 
@@ -287,21 +305,25 @@ export function buildTargetDeviceProofReceipt(args) {
     target: {
       kind: targetKind,
       label: deviceLabel,
-      transport: targetKind.startsWith('webxr') ? 'webxr'
-        : targetKind.startsWith('openxr') ? 'openxr'
-        : targetKind === 'android-xr-device' ? 'adb'
-        : 'manual',
+      transport: targetKind.startsWith('webxr')
+        ? 'webxr'
+        : targetKind.startsWith('openxr')
+          ? 'openxr'
+          : targetKind === 'android-xr-device'
+            ? 'adb'
+            : 'manual',
     },
     status: overallStatus,
     checks,
     ...(overallStatus === 'pass' ? { frames: [] } : {}),
     ...(blockedReason ? { blockedReason } : {}),
-    summary: overallStatus === 'blocked'
-      ? `Target device (${deviceLabel}) not present in this execution context. ` +
-        `Blocked receipt is valid evidence. Re-run from HoloLand WebXR session when device is connected.`
-      : overallStatus === 'pass'
-      ? `All ${checks.length} checks passed for ${deviceLabel}.`
-      : `One or more checks failed for ${deviceLabel}.`,
+    summary:
+      overallStatus === 'blocked'
+        ? `Target device (${deviceLabel}) not present in this execution context. ` +
+          `Blocked receipt is valid evidence. Re-run from HoloLand WebXR session when device is connected.`
+        : overallStatus === 'pass'
+          ? `All ${checks.length} checks passed for ${deviceLabel}.`
+          : `One or more checks failed for ${deviceLabel}.`,
     adapterVersion: VERSION,
     verificationCommands: [
       {
@@ -338,7 +360,8 @@ export function validateTargetDeviceProofReceipt(receipt) {
     for (const check of receipt.checks) {
       if (!check.id) errors.push('check.id is required');
       if (!CHECK_KINDS.has(check.kind)) errors.push(`check.kind unsupported: ${check.kind}`);
-      if (!PROOF_STATUSES.has(check.status)) errors.push(`check.status unsupported: ${check.status}`);
+      if (!PROOF_STATUSES.has(check.status))
+        errors.push(`check.status unsupported: ${check.status}`);
     }
   }
   if (receipt.status === 'pass' && (!receipt.frames || receipt.frames.length === 0)) {
@@ -447,12 +470,16 @@ function runSelfTest() {
 
   // Test 4: hash stability (deterministic given fixed now)
   const r1 = buildTargetDeviceProofReceipt({
-    targetKind: 'webxr-headset', deviceLabel: 'Quest 3',
-    scenario: 'hash-test', now: '2026-05-20T00:00:00.000Z',
+    targetKind: 'webxr-headset',
+    deviceLabel: 'Quest 3',
+    scenario: 'hash-test',
+    now: '2026-05-20T00:00:00.000Z',
   });
   const r2 = buildTargetDeviceProofReceipt({
-    targetKind: 'webxr-headset', deviceLabel: 'Quest 3',
-    scenario: 'hash-test', now: '2026-05-20T00:00:00.000Z',
+    targetKind: 'webxr-headset',
+    deviceLabel: 'Quest 3',
+    scenario: 'hash-test',
+    now: '2026-05-20T00:00:00.000Z',
   });
   if (r1.hash !== r2.hash) throw new Error('Receipt hash not deterministic');
 

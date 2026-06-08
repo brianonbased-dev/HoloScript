@@ -48,9 +48,15 @@ describe('ApprovalTrait — onEvent', () => {
   it('approval:request stores pending request and emits approval:requested', () => {
     const node = makeNode();
     approvalHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    approvalHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'approval:request', requestId: 'req-1',
-    } as never);
+    approvalHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'approval:request',
+        requestId: 'req-1',
+      } as never
+    );
     const state = node.__approvalState as { requests: Map<string, { status: string }> };
     expect(state.requests.get('req-1')?.status).toBe('pending');
     expect(node.emit).toHaveBeenCalledWith('approval:requested', { requestId: 'req-1' });
@@ -59,13 +65,25 @@ describe('ApprovalTrait — onEvent', () => {
   it('approval:approve sets status to approved', () => {
     const node = makeNode();
     approvalHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    approvalHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'approval:request', requestId: 'req-2',
-    } as never);
+    approvalHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'approval:request',
+        requestId: 'req-2',
+      } as never
+    );
     node.emit.mockClear();
-    approvalHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'approval:approve', requestId: 'req-2',
-    } as never);
+    approvalHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'approval:approve',
+        requestId: 'req-2',
+      } as never
+    );
     const state = node.__approvalState as { requests: Map<string, { status: string }> };
     expect(state.requests.get('req-2')?.status).toBe('approved');
     expect(node.emit).toHaveBeenCalledWith('approval:approved', { requestId: 'req-2' });
@@ -74,17 +92,31 @@ describe('ApprovalTrait — onEvent', () => {
   it('approval:reject sets status to rejected with reason', () => {
     const node = makeNode();
     approvalHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    approvalHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'approval:request', requestId: 'req-3',
-    } as never);
+    approvalHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'approval:request',
+        requestId: 'req-3',
+      } as never
+    );
     node.emit.mockClear();
-    approvalHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'approval:reject', requestId: 'req-3', reason: 'policy violation',
-    } as never);
+    approvalHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'approval:reject',
+        requestId: 'req-3',
+        reason: 'policy violation',
+      } as never
+    );
     const state = node.__approvalState as { requests: Map<string, { status: string }> };
     expect(state.requests.get('req-3')?.status).toBe('rejected');
     expect(node.emit).toHaveBeenCalledWith('approval:rejected', {
-      requestId: 'req-3', reason: 'policy violation',
+      requestId: 'req-3',
+      reason: 'policy violation',
     });
   });
 
@@ -92,9 +124,15 @@ describe('ApprovalTrait — onEvent', () => {
     const node = makeNode();
     approvalHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    approvalHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'approval:approve', requestId: 'does-not-exist',
-    } as never);
+    approvalHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'approval:approve',
+        requestId: 'does-not-exist',
+      } as never
+    );
     // Still emits approval:approved but state has no entry
     const state = node.__approvalState as { requests: Map<string, unknown> };
     expect(state.requests.has('does-not-exist')).toBe(false);
@@ -103,15 +141,33 @@ describe('ApprovalTrait — onEvent', () => {
   it('multiple requests tracked independently', () => {
     const node = makeNode();
     approvalHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    approvalHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'approval:request', requestId: 'r-a',
-    } as never);
-    approvalHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'approval:request', requestId: 'r-b',
-    } as never);
-    approvalHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'approval:approve', requestId: 'r-a',
-    } as never);
+    approvalHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'approval:request',
+        requestId: 'r-a',
+      } as never
+    );
+    approvalHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'approval:request',
+        requestId: 'r-b',
+      } as never
+    );
+    approvalHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'approval:approve',
+        requestId: 'r-a',
+      } as never
+    );
     const state = node.__approvalState as { requests: Map<string, { status: string }> };
     expect(state.requests.get('r-a')?.status).toBe('approved');
     expect(state.requests.get('r-b')?.status).toBe('pending');

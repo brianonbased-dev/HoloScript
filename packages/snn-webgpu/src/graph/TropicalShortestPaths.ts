@@ -142,7 +142,9 @@ export class TropicalShortestPaths {
 
   static computeAPSPCPU(adjacencyMatrix: Float32Array, n: number): Float32Array {
     if (adjacencyMatrix.length !== n * n) {
-      throw new Error(`adjacencyMatrix length (${adjacencyMatrix.length}) must equal n*n (${n * n})`);
+      throw new Error(
+        `adjacencyMatrix length (${adjacencyMatrix.length}) must equal n*n (${n * n})`
+      );
     }
 
     const dist = new Float32Array(adjacencyMatrix);
@@ -240,7 +242,9 @@ export class TropicalShortestPaths {
 
   async computeAPSP(adjacencyMatrix: Float32Array, n: number): Promise<Float32Array> {
     if (adjacencyMatrix.length !== n * n) {
-      throw new Error(`adjacencyMatrix length (${adjacencyMatrix.length}) must equal n*n (${n * n})`);
+      throw new Error(
+        `adjacencyMatrix length (${adjacencyMatrix.length}) must equal n*n (${n * n})`
+      );
     }
 
     if (!this.preferGPU || n < this.denseCpuThreshold) {

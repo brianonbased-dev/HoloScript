@@ -13,10 +13,7 @@ import {
   persistAgentStore,
 } from '../../state';
 import { resolveRequestingAgent } from '../../auth-utils';
-import {
-  getCapabilityRegistry,
-  resetCapabilityRegistry,
-} from '../../identity/signing-middleware';
+import { getCapabilityRegistry, resetCapabilityRegistry } from '../../identity/signing-middleware';
 import type { KeyRecord, Team } from '../../types';
 import { mintCapabilityToken, storeCapabilityToken } from '@holoscript/secrets-broker';
 
@@ -178,7 +175,11 @@ async function callBoard(
 }
 
 function seedCapabilityToken(
-  overrides: { handle?: string; capabilities?: ('mesh:read' | 'mesh:message')[]; ttlSeconds?: number } = {}
+  overrides: {
+    handle?: string;
+    capabilities?: ('mesh:read' | 'mesh:message')[];
+    ttlSeconds?: number;
+  } = {}
 ): { tokenId: string; tokenSecret: string; raw: string } {
   const token = mintCapabilityToken({
     handle: (overrides.handle ?? 'mobile1') as `${string}${number}`,
@@ -262,11 +263,9 @@ describe('Team Routes — Mobile Handoff', () => {
   });
 
   it('mobile-handoff respects custom scopes within defaults', async () => {
-    const res = await callTeam(
-      'POST',
-      '/api/holomesh/team/team_test_mobile/mobile-handoff',
-      { scopes: ['holomesh:read'] }
-    );
+    const res = await callTeam('POST', '/api/holomesh/team/team_test_mobile/mobile-handoff', {
+      scopes: ['holomesh:read'],
+    });
 
     expect(res._status).toBe(201);
     expect(res._body.scopes).toEqual(['holomesh:read']);
@@ -274,22 +273,18 @@ describe('Team Routes — Mobile Handoff', () => {
   });
 
   it('mobile-handoff falls back to default scopes when empty array provided', async () => {
-    const res = await callTeam(
-      'POST',
-      '/api/holomesh/team/team_test_mobile/mobile-handoff',
-      { scopes: [] }
-    );
+    const res = await callTeam('POST', '/api/holomesh/team/team_test_mobile/mobile-handoff', {
+      scopes: [],
+    });
 
     expect(res._status).toBe(201);
     expect(res._body.scopes).toEqual(['holomesh:read', 'team:read', 'team:message']);
   });
 
   it('mobile-handoff clamps requested capabilities to assistant-safe grants', async () => {
-    const res = await callTeam(
-      'POST',
-      '/api/holomesh/team/team_test_mobile/mobile-handoff',
-      { capabilities: ['read', 'claim', 'sign', 'message'] }
-    );
+    const res = await callTeam('POST', '/api/holomesh/team/team_test_mobile/mobile-handoff', {
+      capabilities: ['read', 'claim', 'sign', 'message'],
+    });
 
     expect(res._status).toBe(201);
     expect(res._body.capabilities).toEqual(['read', 'message']);
@@ -298,22 +293,19 @@ describe('Team Routes — Mobile Handoff', () => {
   });
 
   it('mobile-handoff clamps expires_in to max 86400', async () => {
-    const res = await callTeam(
-      'POST',
-      '/api/holomesh/team/team_test_mobile/mobile-handoff',
-      { expires_in: 200000 }
-    );
+    const res = await callTeam('POST', '/api/holomesh/team/team_test_mobile/mobile-handoff', {
+      expires_in: 200000,
+    });
 
     expect(res._status).toBe(201);
     expect(res._body.expires_in).toBe(86400);
   });
 
   it('mobile-handoff respects custom surface_tag and label', async () => {
-    const res = await callTeam(
-      'POST',
-      '/api/holomesh/team/team_test_mobile/mobile-handoff',
-      { surface_tag: 'ios', label: 'My iPhone' }
-    );
+    const res = await callTeam('POST', '/api/holomesh/team/team_test_mobile/mobile-handoff', {
+      surface_tag: 'ios',
+      label: 'My iPhone',
+    });
 
     expect(res._status).toBe(201);
     expect(res._body.surface_tag).toBe('ios');
@@ -325,11 +317,9 @@ describe('Team Routes — Mobile Handoff', () => {
 
   it('mobile-handoff rejects expired keys at auth time', async () => {
     // Create a key that expires in 1 second
-    const res1 = await callTeam(
-      'POST',
-      '/api/holomesh/team/team_test_mobile/mobile-handoff',
-      { expires_in: 1 }
-    );
+    const res1 = await callTeam('POST', '/api/holomesh/team/team_test_mobile/mobile-handoff', {
+      expires_in: 1,
+    });
     expect(res1._status).toBe(201);
     const mobileKey = res1._body.api_key;
 
@@ -368,14 +358,16 @@ describe('Team Routes — Mobile Handoff', () => {
     const mobileKey = mobile._body.api_key;
 
     const team = teamStore.get('team_test_mobile')!;
-    team.taskBoard = [{
-      id: 'task_mobile_claim',
-      title: 'mobile claim target',
-      description: 'mobile must not claim',
-      status: 'open',
-      priority: 1,
-      createdAt: new Date().toISOString(),
-    } as any];
+    team.taskBoard = [
+      {
+        id: 'task_mobile_claim',
+        title: 'mobile claim target',
+        description: 'mobile must not claim',
+        status: 'open',
+        priority: 1,
+        createdAt: new Date().toISOString(),
+      } as any,
+    ];
     persistTeamStore();
 
     const message = await callBoard(
@@ -403,16 +395,18 @@ describe('Team Routes — Mobile Handoff', () => {
     const mobileKey = mobile._body.api_key;
 
     const team = teamStore.get('team_test_mobile')!;
-    team.taskBoard = [{
-      id: 'task_mobile_done',
-      title: 'mobile done target',
-      description: 'mobile must not close',
-      status: 'claimed',
-      priority: 1,
-      claimedBy: PARENT_ID,
-      claimedByName: 'ParentAgent',
-      createdAt: new Date().toISOString(),
-    } as any];
+    team.taskBoard = [
+      {
+        id: 'task_mobile_done',
+        title: 'mobile done target',
+        description: 'mobile must not close',
+        status: 'claimed',
+        priority: 1,
+        claimedBy: PARENT_ID,
+        claimedByName: 'ParentAgent',
+        createdAt: new Date().toISOString(),
+      } as any,
+    ];
     persistTeamStore();
 
     const done = await callBoard(
@@ -450,16 +444,18 @@ describe('Team Routes — Mobile Handoff', () => {
     });
 
     const team = teamStore.get('team_test_mobile')!;
-    team.taskBoard = [{
-      id: 'task_limited_done',
-      title: 'limited done target',
-      description: 'read-message bearer must not close',
-      status: 'claimed',
-      priority: 1,
-      claimedBy: PARENT_ID,
-      claimedByName: 'ParentAgent',
-      createdAt: new Date().toISOString(),
-    } as any];
+    team.taskBoard = [
+      {
+        id: 'task_limited_done',
+        title: 'limited done target',
+        description: 'read-message bearer must not close',
+        status: 'claimed',
+        priority: 1,
+        claimedBy: PARENT_ID,
+        claimedByName: 'ParentAgent',
+        createdAt: new Date().toISOString(),
+      } as any,
+    ];
     persistTeamStore();
 
     const done = await callBoard(
@@ -482,16 +478,18 @@ describe('Team Routes — Mobile Handoff', () => {
 
   it('desktop relay records mobile-origin provenance on board done', async () => {
     const team = teamStore.get('team_test_mobile')!;
-    team.taskBoard = [{
-      id: 'task_mobile_relay_done',
-      title: 'mobile relay done target',
-      description: 'desktop signs a mobile-originated draft',
-      status: 'claimed',
-      priority: 1,
-      claimedBy: PARENT_ID,
-      claimedByName: 'ParentAgent',
-      createdAt: new Date().toISOString(),
-    } as any];
+    team.taskBoard = [
+      {
+        id: 'task_mobile_relay_done',
+        title: 'mobile relay done target',
+        description: 'desktop signs a mobile-originated draft',
+        status: 'claimed',
+        priority: 1,
+        claimedBy: PARENT_ID,
+        claimedByName: 'ParentAgent',
+        createdAt: new Date().toISOString(),
+      } as any,
+    ];
     persistTeamStore();
 
     const done = await callBoard(

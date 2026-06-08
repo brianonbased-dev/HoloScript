@@ -63,7 +63,7 @@ describe('HeadTrackedAudioTrait', () => {
   it('head_rotation_update stores rotation', () => {
     sendEvent(headTrackedAudioHandler, node, cfg, ctx, {
       type: 'head_rotation_update',
-      rotation: [0.1, 0.2, 0.3, 0.9 ],
+      rotation: [0.1, 0.2, 0.3, 0.9],
     });
     expect((node as any).__headTrackedAudioState.headRotation[1]).toBe(0.2);
   });

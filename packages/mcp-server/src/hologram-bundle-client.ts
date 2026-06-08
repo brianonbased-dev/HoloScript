@@ -62,7 +62,7 @@ function base64ToBlob(b64: string): Blob {
  * Studio and MCP server share a cookie jar (same-origin deploy).
  */
 export async function uploadHologramBundle(
-  input: HologramBundleUploadInput,
+  input: HologramBundleUploadInput
 ): Promise<HologramBundleUploadResult> {
   const fd = new FormData();
   fd.append('meta', input.meta);
@@ -100,10 +100,7 @@ export async function uploadHologramBundle(
   }
 
   if (!res.ok) {
-    const err =
-      typeof body.error === 'string'
-        ? body.error
-        : `hologram upload: HTTP ${res.status}`;
+    const err = typeof body.error === 'string' ? body.error : `hologram upload: HTTP ${res.status}`;
     throw new Error(err);
   }
 
@@ -122,7 +119,7 @@ export async function uploadHologramBundle(
  */
 export async function getHologramAsset(
   hash: string,
-  asset: string,
+  asset: string
 ): Promise<HologramAssetGetResult> {
   const res = await fetch(buildAssetUrl(hash, asset));
 
@@ -135,9 +132,7 @@ export async function getHologramAsset(
       // ignore
     }
     const err =
-      typeof body.error === 'string'
-        ? body.error
-        : `hologram get asset: HTTP ${res.status}`;
+      typeof body.error === 'string' ? body.error : `hologram get asset: HTTP ${res.status}`;
     throw new Error(err);
   }
 

@@ -2736,11 +2736,7 @@ export class HoloScriptCodeParser {
    */
   private parsePosition(value: unknown): SpatialPosition {
     if (Array.isArray(value)) {
-      return [
-        Number(value[0]) || 0,
-        Number(value[1]) || 0,
-        Number(value[2]) || 0,
-      ];
+      return [Number(value[0]) || 0, Number(value[1]) || 0, Number(value[2]) || 0];
     }
     if (typeof value === 'object' && value !== null) {
       const v = value as any;

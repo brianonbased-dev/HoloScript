@@ -4,8 +4,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { migrateHandler } from '../MigrateTrait';
 
-const makeNode = () => ({ id: 'n1', traits: new Set<string>(), emit: vi.fn(), __migrateState: undefined as unknown });
-const makeCtx = (node: ReturnType<typeof makeNode>) => ({ emit: (type: string, data: unknown) => node.emit(type, data) });
+const makeNode = () => ({
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
+  __migrateState: undefined as unknown,
+});
+const makeCtx = (node: ReturnType<typeof makeNode>) => ({
+  emit: (type: string, data: unknown) => node.emit(type, data),
+});
 const defaultConfig = { current_version: 0, auto_run: false };
 
 describe('MigrateTrait', () => {
@@ -28,9 +35,16 @@ describe('MigrateTrait', () => {
   it('migrate:register adds a step', () => {
     const node = makeNode();
     migrateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    migrateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'migrate:register', version: 1, description: 'Add users table',
-    } as never);
+    migrateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'migrate:register',
+        version: 1,
+        description: 'Add users table',
+      } as never
+    );
     const state = node.__migrateState as { steps: { version: number }[] };
     expect(state.steps.length).toBe(1);
     expect(state.steps[0].version).toBe(1);
@@ -39,18 +53,43 @@ describe('MigrateTrait', () => {
   it('migrate:run applies steps and emits migrate:complete', () => {
     const node = makeNode();
     migrateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    migrateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'migrate:register', version: 1, description: 'Step 1',
-    } as never);
-    migrateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'migrate:register', version: 2, description: 'Step 2',
-    } as never);
+    migrateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'migrate:register',
+        version: 1,
+        description: 'Step 1',
+      } as never
+    );
+    migrateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'migrate:register',
+        version: 2,
+        description: 'Step 2',
+      } as never
+    );
     node.emit.mockClear();
-    migrateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'migrate:run', targetVersion: 2,
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('migrate:complete', expect.objectContaining({
-      fromVersion: 0, toVersion: 2, stepsRun: 2,
-    }));
+    migrateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'migrate:run',
+        targetVersion: 2,
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'migrate:complete',
+      expect.objectContaining({
+        fromVersion: 0,
+        toVersion: 2,
+        stepsRun: 2,
+      })
+    );
   });
 });

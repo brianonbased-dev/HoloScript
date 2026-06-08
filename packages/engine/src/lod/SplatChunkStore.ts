@@ -247,8 +247,8 @@ export class SplatChunkStore {
     if (this.options.debug) {
       console.log(
         `[SplatChunkStore] Registered ${result.anchors.length} anchors ` +
-        `for composition "${result.compositionName}" ` +
-        `(total Gaussians: ${result.totalGaussians})`
+          `for composition "${result.compositionName}" ` +
+          `(total Gaussians: ${result.totalGaussians})`
       );
     }
   }
@@ -357,11 +357,7 @@ export class SplatChunkStore {
 
     for (const entry of this.entries.values()) {
       const [x, y, z] = entry.position;
-      if (
-        x >= minX && x <= maxX &&
-        y >= minY && y <= maxY &&
-        z >= minZ && z <= maxZ
-      ) {
+      if (x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
         entries.push(entry);
       }
     }
@@ -395,12 +391,14 @@ export class SplatChunkStore {
 
     // Sort by distance (nearest first)
     entries.sort((a, b) => {
-      const da2 = (a.position[0] - cameraX) ** 2 +
-                   (a.position[1] - cameraY) ** 2 +
-                   (a.position[2] - cameraZ) ** 2;
-      const db2 = (b.position[0] - cameraX) ** 2 +
-                   (b.position[1] - cameraY) ** 2 +
-                   (b.position[2] - cameraZ) ** 2;
+      const da2 =
+        (a.position[0] - cameraX) ** 2 +
+        (a.position[1] - cameraY) ** 2 +
+        (a.position[2] - cameraZ) ** 2;
+      const db2 =
+        (b.position[0] - cameraX) ** 2 +
+        (b.position[1] - cameraY) ** 2 +
+        (b.position[2] - cameraZ) ** 2;
       return da2 - db2;
     });
 
@@ -664,9 +662,7 @@ export class SplatChunkStore {
 /**
  * Create a SplatChunkStore with default options.
  */
-export function createSplatChunkStore(
-  options?: Partial<SplatChunkStoreOptions>
-): SplatChunkStore {
+export function createSplatChunkStore(options?: Partial<SplatChunkStoreOptions>): SplatChunkStore {
   return new SplatChunkStore(options);
 }
 

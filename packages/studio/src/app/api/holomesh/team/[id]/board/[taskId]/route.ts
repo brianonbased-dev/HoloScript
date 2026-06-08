@@ -119,7 +119,6 @@ export async function GET(
   return proxyHoloMesh(`/api/holomesh/team/${id}/board/${taskId}`, proxyReq as NextRequest);
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

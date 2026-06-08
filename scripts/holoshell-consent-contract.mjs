@@ -19,10 +19,10 @@ const TOKEN_TTL_MS = 5 * 60 * 1000;
 // Operation → lane map. Unknown operations default to founder_required (fail-safe).
 const LANE_MAP = {
   stale_process_cleanup: 'agent_reversible',
-  stale_file_cleanup:    'agent_reversible',
-  process_terminate:     'express_reversible',
-  delete_file:           'express_reversible',
-  legacy_app_mutation:   'founder_required',
+  stale_file_cleanup: 'agent_reversible',
+  process_terminate: 'express_reversible',
+  delete_file: 'express_reversible',
+  legacy_app_mutation: 'founder_required',
 };
 
 /**
@@ -61,7 +61,7 @@ export function verifyConsentToken(rawToken, { operation, preflightId }) {
   if (dotIdx === -1) return { valid: false, reason: 'malformed_token' };
 
   const b64 = rawToken.slice(0, dotIdx);
-  const sig  = rawToken.slice(dotIdx + 1);
+  const sig = rawToken.slice(dotIdx + 1);
 
   let payloadStr;
   try {
@@ -72,10 +72,13 @@ export function verifyConsentToken(rawToken, { operation, preflightId }) {
 
   const expectedSig = createHmac('sha256', CONSENT_SECRET).update(payloadStr).digest('hex');
   // Constant-time comparison
-  if (sig.length !== expectedSig.length ||
-      !createHmac('sha256', CONSENT_SECRET).update(sig).digest().equals(
-        createHmac('sha256', CONSENT_SECRET).update(expectedSig).digest()
-      )) {
+  if (
+    sig.length !== expectedSig.length ||
+    !createHmac('sha256', CONSENT_SECRET)
+      .update(sig)
+      .digest()
+      .equals(createHmac('sha256', CONSENT_SECRET).update(expectedSig).digest())
+  ) {
     return { valid: false, reason: 'tampered' };
   }
 
@@ -87,7 +90,7 @@ export function verifyConsentToken(rawToken, { operation, preflightId }) {
   }
 
   if (Date.now() > payload.expiresAt) return { valid: false, reason: 'expired' };
-  if (payload.operation !== operation)   return { valid: false, reason: 'operation_mismatch' };
+  if (payload.operation !== operation) return { valid: false, reason: 'operation_mismatch' };
   if (payload.preflightId !== preflightId) return { valid: false, reason: 'preflight_mismatch' };
 
   return { valid: true, lane: payload.lane, payload };

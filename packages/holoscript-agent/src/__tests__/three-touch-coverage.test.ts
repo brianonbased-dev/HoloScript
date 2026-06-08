@@ -48,12 +48,12 @@ const ROUTES_DIR = resolve(REPO_ROOT, 'packages', 'mcp-server', 'src', 'holomesh
  * but normalize regex `[^/]+` → `:param`.
  */
 const CRITICAL_RUNTIME_ROUTES: ReadonlyArray<string> = [
-  'POST /api/holomesh/team/:teamId/presence',         // heartbeat — alive signal
-  'GET /api/holomesh/team/:teamId/board',             // task discovery
-  'PATCH /api/holomesh/team/:teamId/board/:taskId',   // claim + markDone
-  'POST /api/holomesh/team/:teamId/join',             // self-rejoin on 403
-  'POST /api/holomesh/team/:teamId/message',          // task response posting
-  'POST /api/holomesh/agent/:handle/audit',           // CAEL records (W.098)
+  'POST /api/holomesh/team/:teamId/presence', // heartbeat — alive signal
+  'GET /api/holomesh/team/:teamId/board', // task discovery
+  'PATCH /api/holomesh/team/:teamId/board/:taskId', // claim + markDone
+  'POST /api/holomesh/team/:teamId/join', // self-rejoin on 403
+  'POST /api/holomesh/team/:teamId/message', // task response posting
+  'POST /api/holomesh/agent/:handle/audit', // CAEL records (W.098)
 ];
 
 /**
@@ -66,14 +66,14 @@ const CRITICAL_RUNTIME_ROUTES: ReadonlyArray<string> = [
  * gap (the same shape as W.098 empty-CAEL-audit).
  */
 const OPT_OUT_NOT_RUNTIME = new Set<string>([
-  'whoAmI',           // called from provision.ts + identity flows, not runner tick loop
-  'getTeamMessages',  // called from DelegatedAuthorityHandler (E4), not directly from runner
-  'sendTeamMessage',  // called from DelegatedAuthorityHandler (E4), not directly from runner
-  'setTeamMode',      // called from DelegatedAuthorityHandler (E4), not directly from runner
-  'patchRoomPrefs',   // called from DelegatedAuthorityHandler (E4), not directly from runner
-  'updateTask',       // called from DelegatedAuthorityHandler (E4), not directly from runner
-  'deleteTask',       // called from DelegatedAuthorityHandler (E4), not directly from runner
-  'delegateTask',     // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'whoAmI', // called from provision.ts + identity flows, not runner tick loop
+  'getTeamMessages', // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'sendTeamMessage', // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'setTeamMode', // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'patchRoomPrefs', // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'updateTask', // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'deleteTask', // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'delegateTask', // called from DelegatedAuthorityHandler (E4), not directly from runner
 ]);
 
 // ─── Parsers ─────────────────────────────────────────────────────────────
@@ -174,15 +174,11 @@ function extractReqCalls(
 ): ClientMethod[] {
   // `[\s\S]*?` allows newlines between the method-string and the path
   // template — without that the regex stops at the first newline.
-  const reqReBack =
-    /this\.req(?:<[\s\S]*?>)?\(\s*['"]([^'"]+)['"]\s*,\s*`([^`]+)`/g;
-  const reqReStr =
-    /this\.req(?:<[\s\S]*?>)?\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]/g;
+  const reqReBack = /this\.req(?:<[\s\S]*?>)?\(\s*['"]([^'"]+)['"]\s*,\s*`([^`]+)`/g;
+  const reqReStr = /this\.req(?:<[\s\S]*?>)?\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]/g;
 
   for (const r of ranges) {
-    const body = lines
-      .slice(r.startLine, (r.endLine < 0 ? lines.length : r.endLine + 1))
-      .join('\n');
+    const body = lines.slice(r.startLine, r.endLine < 0 ? lines.length : r.endLine + 1).join('\n');
     let m: RegExpExecArray | null;
     reqReBack.lastIndex = 0;
     while ((m = reqReBack.exec(body))) {
@@ -302,7 +298,10 @@ function parseServerRoutes(): Set<string> {
     while ((m = regexRe.exec(src))) {
       // Convert the regex pathname source to a template form.
       // E.g. `\/api\/holomesh\/team\/[^/]+\/join` → `/api/holomesh/team/:param/join`
-      const raw = m[1].replace(/\\\//g, '/').replace(/\[\^\/\]\+/g, ':param').replace(/\(\[\^\/\]\+\)/g, ':param');
+      const raw = m[1]
+        .replace(/\\\//g, '/')
+        .replace(/\[\^\/\]\+/g, ':param')
+        .replace(/\(\[\^\/\]\+\)/g, ':param');
       const path = raw.startsWith('/') ? raw : `/${raw}`;
       routes.add(`${m[2]} ${path}`);
     }
@@ -321,7 +320,8 @@ function parseServerRoutes(): Set<string> {
       varToRegex.set(m[1], m[2]);
     }
     if (varToRegex.size > 0) {
-      const ifCheckRe = /if\s*\(\s*(\w+)\s*&&\s*method\s*===\s*['"](GET|POST|PATCH|PUT|DELETE)['"]/g;
+      const ifCheckRe =
+        /if\s*\(\s*(\w+)\s*&&\s*method\s*===\s*['"](GET|POST|PATCH|PUT|DELETE)['"]/g;
       ifCheckRe.lastIndex = 0;
       while ((m = ifCheckRe.exec(src))) {
         const regexSrc = varToRegex.get(m[1]);

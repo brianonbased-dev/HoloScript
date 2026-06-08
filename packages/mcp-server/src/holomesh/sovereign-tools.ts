@@ -12,7 +12,8 @@ import type { HoloMeshOrchestratorClient } from './orchestrator-client';
 export const sovereignTools: Tool[] = [
   {
     name: 'holomesh_sovereign_topology',
-    description: 'Get the graph topology view for sovereign HoloVM clusters. OVERCLAIMED: requires orchestrator endpoint which does not exist - returns error if called without a live HoloMesh orchestrator. No local fallback topology is generated.',
+    description:
+      'Get the graph topology view for sovereign HoloVM clusters. OVERCLAIMED: requires orchestrator endpoint which does not exist - returns error if called without a live HoloMesh orchestrator. No local fallback topology is generated.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -29,7 +30,8 @@ export const sovereignTools: Tool[] = [
   },
   {
     name: 'holomesh_sovereign_lifepod_snapshot',
-    description: 'Create a signed LifePod snapshot metadata representation for agent state migration.',
+    description:
+      'Create a signed LifePod snapshot metadata representation for agent state migration.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -68,7 +70,8 @@ export const sovereignTools: Tool[] = [
         },
         snapshot: {
           type: 'object',
-          description: 'Optional signed LifePod snapshot object to verify instead of looking up by lifePodId.',
+          description:
+            'Optional signed LifePod snapshot object to verify instead of looking up by lifePodId.',
         },
       },
       required: ['lifePodId'],
@@ -85,7 +88,7 @@ export async function handleSovereignTool(
   if (!client) {
     return { error: 'HoloMesh orchestrator client is required for Sovereign tools.' };
   }
-  
+
   const baseUrl = (client as any).config.orchestratorUrl;
   const apiKey = (client as any).config.apiKey;
 

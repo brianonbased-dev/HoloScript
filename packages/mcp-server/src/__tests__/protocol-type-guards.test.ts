@@ -53,7 +53,10 @@ describe('ATK-C1: Type confusion guards in protocol-tools', () => {
 
     it('rejects null author', async () => {
       const handle = await getHandler();
-      const result = await handle('holo_protocol_publish', { code: 'composition "T" {}', author: null });
+      const result = await handle('holo_protocol_publish', {
+        code: 'composition "T" {}',
+        author: null,
+      });
       expect(result).toMatchObject({ status: 'error', error: 'INVALID_PARAMS' });
     });
 
@@ -234,9 +237,7 @@ describe('ATK-C1: Type confusion guards in protocol-tools', () => {
       const result = await handle('holo_protocol_revenue', {
         price: '0.1',
         author: 'test-author',
-        imports: [
-          { contentHash: 'a'.repeat(64), author: 'upstream', depth: 1 },
-        ],
+        imports: [{ contentHash: 'a'.repeat(64), author: 'upstream', depth: 1 }],
       });
       // Should not crash or return INVALID_PARAMS for type reasons
       if (result && typeof result === 'object' && 'status' in result) {

@@ -92,7 +92,9 @@ export interface CarbonResult {
   totalCo2Tonnes: number;
 }
 
-export interface EnergyReceiptOptions { runId?: string; }
+export interface EnergyReceiptOptions {
+  runId?: string;
+}
 
 export interface EnergyAnalysisResult {
   loadFlow?: LoadFlowResult;
@@ -112,19 +114,19 @@ export interface EnergyAnalysisResult {
  */
 export function dcLoadFlow(buses: GridBus[], branches: GridBranch[]): LoadFlowResult {
   if (buses.length === 0) throw new Error('No buses provided');
-  const slack = buses.find(b => b.isSlack);
+  const slack = buses.find((b) => b.isSlack);
   if (!slack) throw new Error('No slack bus defined');
 
   const angles: Record<string, number> = {};
   for (const b of buses) angles[b.id] = 0;
 
   // Build adjacency: compute angle differences from slack propagation
-  const busMap = Object.fromEntries(buses.map(b => [b.id, b]));
+  const busMap = Object.fromEntries(buses.map((b) => [b.id, b]));
   const flows: LoadFlowResult['flows'] = [];
 
   for (const br of branches) {
     const from = busMap[br.fromBusId];
-    const to   = busMap[br.toBusId];
+    const to = busMap[br.toBusId];
     if (!from || !to) throw new Error(`Unknown bus in branch ${br.fromBusId}→${br.toBusId}`);
     // DC: flow = (θ_from - θ_to) / X; for radial grids propagate from known angle
     const injectedMW = from.isSlack ? 0 : from.powerMW;
@@ -133,8 +135,8 @@ export function dcLoadFlow(buses: GridBus[], branches: GridBranch[]): LoadFlowRe
     flows.push({ fromBusId: br.fromBusId, toBusId: br.toBusId, flowMW });
   }
 
-  const totalGenerationMW = buses.filter(b => b.powerMW > 0).reduce((s, b) => s + b.powerMW, 0);
-  const totalLoadMW = buses.filter(b => b.powerMW < 0).reduce((s, b) => s - b.powerMW, 0);
+  const totalGenerationMW = buses.filter((b) => b.powerMW > 0).reduce((s, b) => s + b.powerMW, 0);
+  const totalLoadMW = buses.filter((b) => b.powerMW < 0).reduce((s, b) => s - b.powerMW, 0);
 
   return { angles, flows, totalGenerationMW, totalLoadMW };
 }
@@ -160,7 +162,12 @@ export function renewableDispatch(generators: Generator[], demandMW: number): Di
       continue;
     }
     const dispatch = Math.min(gen.capacityMW, remaining);
-    dispatched.push({ id: gen.id, type: gen.type, dispatchedMW: dispatch, costPerMWh: gen.marginalCostPerMWh });
+    dispatched.push({
+      id: gen.id,
+      type: gen.type,
+      dispatchedMW: dispatch,
+      costPerMWh: gen.marginalCostPerMWh,
+    });
     totalCost += dispatch * gen.marginalCostPerMWh;
     remaining -= dispatch;
   }
@@ -179,7 +186,7 @@ export function batterySoC(
   initialSoC: number,
   /** Positive = charge (MWh/h), negative = discharge (MWh/h) */
   hourlyNetMWh: number[],
-  efficiencyRoundTrip = 0.90,
+  efficiencyRoundTrip = 0.9
 ): BatterySoCResult {
   if (capacityMWh <= 0) throw new Error('Capacity must be positive');
   if (initialSoC < 0 || initialSoC > 1) throw new Error('initialSoC must be in [0,1]');
@@ -220,9 +227,10 @@ export interface OutageEvent {
 export function gridReliability(events: OutageEvent[], totalCustomers: number): ReliabilityResult {
   if (totalCustomers <= 0) throw new Error('totalCustomers must be positive');
 
-  const saidi = events.reduce((s, e) => s + e.customersAffected * e.durationHours, 0) / totalCustomers;
+  const saidi =
+    events.reduce((s, e) => s + e.customersAffected * e.durationHours, 0) / totalCustomers;
   const saifi = events.reduce((s, e) => s + e.customersAffected, 0) / totalCustomers;
-  const asai  = 1 - saidi / 8760;
+  const asai = 1 - saidi / 8760;
 
   return { saidi, saifi, asai: Math.max(0, asai) };
 }
@@ -236,7 +244,7 @@ export function carbonIntensity(generators: Generator[], dispatch: DispatchResul
   const totalMWh = dispatch.dispatched.reduce((s, d) => s + d.dispatchedMW, 0);
   if (totalMWh === 0) return { intensityGco2Kwh: 0, totalCo2Tonnes: 0 };
 
-  const genMap = Object.fromEntries(generators.map(g => [g.id, g]));
+  const genMap = Object.fromEntries(generators.map((g) => [g.id, g]));
   let weightedCo2 = 0;
   for (const d of dispatch.dispatched) {
     const g = genMap[d.id];
@@ -251,21 +259,33 @@ export function carbonIntensity(generators: Generator[], dispatch: DispatchResul
 
 export function buildEnergyReceipt(
   result: EnergyAnalysisResult,
-  options?: EnergyReceiptOptions,
+  options?: EnergyReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.dispatch && result.dispatch.unmetDemandMW > 0) {
-    violations.push({ criterion: 'unmet_demand', message: `${result.dispatch.unmetDemandMW.toFixed(1)} MW demand unmet` });
+    violations.push({
+      criterion: 'unmet_demand',
+      message: `${result.dispatch.unmetDemandMW.toFixed(1)} MW demand unmet`,
+    });
   }
   if (result.reliability && result.reliability.saidi > 2.5) {
-    violations.push({ criterion: 'saidi', message: `SAIDI ${result.reliability.saidi.toFixed(2)} h exceeds 2.5 h target` });
+    violations.push({
+      criterion: 'saidi',
+      message: `SAIDI ${result.reliability.saidi.toFixed(2)} h exceeds 2.5 h target`,
+    });
   }
-  if (result.battery && result.battery.finalSoC < 0.10) {
-    violations.push({ criterion: 'battery_soc', message: `Battery SoC ${(result.battery.finalSoC * 100).toFixed(1)}% below 10% minimum` });
+  if (result.battery && result.battery.finalSoC < 0.1) {
+    violations.push({
+      criterion: 'battery_soc',
+      message: `Battery SoC ${(result.battery.finalSoC * 100).toFixed(1)}% below 10% minimum`,
+    });
   }
   if (result.carbon && result.carbon.intensityGco2Kwh > 400) {
-    violations.push({ criterion: 'carbon_intensity', message: `Carbon intensity ${result.carbon.intensityGco2Kwh.toFixed(0)} gCO₂/kWh exceeds 400 target` });
+    violations.push({
+      criterion: 'carbon_intensity',
+      message: `Carbon intensity ${result.carbon.intensityGco2Kwh.toFixed(0)} gCO₂/kWh exceeds 400 target`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -280,7 +300,11 @@ export function buildEnergyReceipt(
       finalSoC: result.battery?.finalSoC ?? null,
       carbonIntensityGco2Kwh: result.carbon?.intensityGco2Kwh ?? null,
     },
-    cael: { version: 'cael.v1', event: 'energy_grid.grid_analysis', solverType: 'energy-grid.merit-order-dispatch' },
+    cael: {
+      version: 'cael.v1',
+      event: 'energy_grid.grid_analysis',
+      solverType: 'energy-grid.merit-order-dispatch',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

@@ -188,11 +188,11 @@ export function deriveGameSpec(
       } else if (role === 'goal') {
         goal = { X, Y: topTierY };
       } else if (role === 'npc') {
-        npcs.push({ X, Y: bandY((origin[1] || 0)) , c: color, ai: true });
+        npcs.push({ X, Y: bandY(origin[1] || 0), c: color, ai: true });
       } else if (role === 'hazard') {
         hazards.push({
           X,
-          Y: bandY((origin[1] || 0)),
+          Y: bandY(origin[1] || 0),
           c: color,
           damage: numCfg(cfg('collidable').damage, 1),
           patrolSpeed: numCfg(cfg('collidable').patrolSpeed, 0.6),

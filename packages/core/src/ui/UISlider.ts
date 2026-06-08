@@ -44,7 +44,7 @@ export function createUISlider(id: string, config: UISliderConfig): HSPlusNode {
         properties: {
           position: [0, 0, 0], // Center of track (0.5 value)
           geometry: 'sphere',
-          scale: [0.03, 0.03, 0.03 ],
+          scale: [0.03, 0.03, 0.03],
           color: config.handleColor || '#FFFFFF',
           physics: { type: 'dynamic', mass: 0.1 },
           axis: axis,
@@ -61,4 +61,3 @@ export function createUISlider(id: string, config: UISliderConfig): HSPlusNode {
     ],
   };
 }
-

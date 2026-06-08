@@ -4,7 +4,7 @@ import path from 'path';
 // Read .env file
 const envPath = 'C:/Users/josep/.ai-ecosystem/.env';
 const envContent = fs.readFileSync(envPath, 'utf8');
-envContent.split('\n').forEach(line => {
+envContent.split('\n').forEach((line) => {
   const match = line.match(/^([^=]+)=(.*)$/);
   if (match) {
     process.env[match[1]] = match[2];
@@ -38,24 +38,24 @@ const payload = {
 
 **Agent Handoff Instructions:**
 - **@Cursor:** Bridge the Hololand integrations from \`marketplace-api\` into \`core\` and implement the missing PostgreSQL connectivity in \`export-api\`.
-- **@Claude:** Execute the \`deploy-multi-agents.ts\` run and assimilate the 7 resulting architecture reports into the unified plan.`
-    }
-  ]
+- **@Claude:** Execute the \`deploy-multi-agents.ts\` run and assimilate the 7 resulting architecture reports into the unified plan.`,
+    },
+  ],
 };
 
 fetch('https://mcp-orchestrator-production-45f9.up.railway.app/knowledge/sync', {
   method: 'POST',
   headers: {
     'x-mcp-api-key': process.env.HOLOSCRIPT_API_KEY || '',
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
   },
-  body: JSON.stringify(payload)
+  body: JSON.stringify(payload),
 })
-.then(async res => {
-  if (!res.ok) throw new Error(await res.text());
-  console.log('Knowledge published successfully');
-  console.log(await res.json());
-})
-.catch(err => {
-  console.error('Failed to publish knowledge:', err.message);
-});
+  .then(async (res) => {
+    if (!res.ok) throw new Error(await res.text());
+    console.log('Knowledge published successfully');
+    console.log(await res.json());
+  })
+  .catch((err) => {
+    console.error('Failed to publish knowledge:', err.message);
+  });

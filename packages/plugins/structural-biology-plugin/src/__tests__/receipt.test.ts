@@ -258,7 +258,7 @@ describe('runDrugDiscoveryPipeline', () => {
       sampleDockingConfig,
       sampleDockingResult,
       sampleAdmetConfig,
-      sampleAdmetResult,
+      sampleAdmetResult
     );
 
     expect(receipt.receiptId).toMatch(/^drug-/);
@@ -417,10 +417,16 @@ describe('End-to-end drug-discovery pipeline', () => {
       backend: 'rdkit',
       predictions: [
         { property: 'hia', value: 95, unit: '%', confidence: 0.88, modelVersion: 'v1' },
-        { property: 'bbb_permeability', value: 0.75, unit: 'binary', confidence: 0.85, modelVersion: 'v1' },
+        {
+          property: 'bbb_permeability',
+          value: 0.75,
+          unit: 'binary',
+          confidence: 0.85,
+          modelVersion: 'v1',
+        },
         { property: 'ames', value: 0.05, unit: 'binary', confidence: 0.92, modelVersion: 'v1' },
         { property: 'hht', value: 0.08, unit: 'binary', confidence: 0.87, modelVersion: 'v1' },
-        { property: 'half_life', value: 12, unit: 'hours', confidence: 0.80, modelVersion: 'v1' },
+        { property: 'half_life', value: 12, unit: 'hours', confidence: 0.8, modelVersion: 'v1' },
       ],
       drugLikenessScore: 0.85,
       lipinskiViolations: 0,
@@ -428,7 +434,12 @@ describe('End-to-end drug-discovery pipeline', () => {
     };
 
     // Pipeline
-    const receipt = runDrugDiscoveryPipeline(dockingConfig, dockingResult, admetConfig, admetResult);
+    const receipt = runDrugDiscoveryPipeline(
+      dockingConfig,
+      dockingResult,
+      admetConfig,
+      admetResult
+    );
 
     // Verify chain integrity
     expect(receipt.docking.backend).toBe('autodock-gpu');
@@ -470,7 +481,7 @@ describe('End-to-end drug-discovery pipeline', () => {
       sampleDockingConfig,
       sampleDockingResult,
       sampleAdmetConfig,
-      failedAdmetResult,
+      failedAdmetResult
     );
 
     expect(receipt.admet.verified).toBe(false);

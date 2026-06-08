@@ -27,7 +27,7 @@ describe('MagnifiableTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('magnify');
-    node.scale = [1, 1, 1 ];
+    node.scale = [1, 1, 1];
     ctx = createMockContext();
     attachTrait(magnifiableHandler, node, cfg, ctx);
   });
@@ -87,7 +87,7 @@ describe('MagnifiableTrait', () => {
   });
 
   it('cleans up and restores scale on detach', () => {
-    node.scale = [2, 2, 2 ];
+    node.scale = [2, 2, 2];
     magnifiableHandler.onDetach?.(node as any, cfg as any, ctx as any);
     expect((node as any).__magnifiableState).toBeUndefined();
     // Scale restored to original (1,1,1)

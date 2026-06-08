@@ -7,9 +7,15 @@
 
 export type Vec3 = [number, number, number] | { x: number; y: number; z: number };
 
-function cx(v: Vec3): number { return Array.isArray(v) ? v[0] : v.x; }
-function cy(v: Vec3): number { return Array.isArray(v) ? v[1] : v.y; }
-function cz(v: Vec3): number { return Array.isArray(v) ? v[2] : v.z; }
+function cx(v: Vec3): number {
+  return Array.isArray(v) ? v[0] : v.x;
+}
+function cy(v: Vec3): number {
+  return Array.isArray(v) ? v[1] : v.y;
+}
+function cz(v: Vec3): number {
+  return Array.isArray(v) ? v[2] : v.z;
+}
 
 export interface BrushParameters {
   radius: number;

@@ -97,7 +97,10 @@ On older PowerShell without \`utf8NoBOM\`, run this script after export; it stri
 writeFileSync(summaryPath, md, 'utf8');
 // Normalize JSON without BOM for reliable tooling
 writeFileSync(snapshotPath, JSON.stringify(byLicense, null, 2) + '\n', 'utf8');
-console.error('Wrote', summaryPath, 'and normalized', snapshotPath, { packageCount, licenses: licenseKeys.length });
+console.error('Wrote', summaryPath, 'and normalized', snapshotPath, {
+  packageCount,
+  licenses: licenseKeys.length,
+});
 
 function escapeMdCell(s) {
   return String(s).replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');

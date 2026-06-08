@@ -417,8 +417,8 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
                 setXrError(null);
                 Promise.resolve(xrStore.enterAR()).catch(() =>
                   setXrError(
-                    'Could not start an AR session — this device or browser may not support immersive AR.',
-                  ),
+                    'Could not start an AR session — this device or browser may not support immersive AR.'
+                  )
                 );
               }}
               className="flex items-center gap-1.5 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 text-xs font-medium text-studio-muted backdrop-blur transition hover:border-studio-accent hover:text-studio-accent"
@@ -441,8 +441,8 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
                 setXrError(null);
                 Promise.resolve(xrStore.enterVR()).catch(() =>
                   setXrError(
-                    'Could not start a VR session — this device or browser may not support immersive VR (a headset/runtime is required).',
-                  ),
+                    'Could not start a VR session — this device or browser may not support immersive VR (a headset/runtime is required).'
+                  )
                 );
               }}
               className="flex items-center gap-1.5 rounded-lg border border-studio-accent/60 bg-studio-accent/10 px-3 py-1.5 text-xs font-medium text-studio-accent backdrop-blur transition hover:bg-studio-accent hover:text-white"

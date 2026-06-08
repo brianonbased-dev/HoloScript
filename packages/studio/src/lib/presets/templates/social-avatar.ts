@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-social-avatar",
-  name: "Social Avatar Creator",
-  description: "Customizable avatar display with accessory slots",
-  thumbnail: "🧑‍🎤",
-  tags: ["creator","avatar","social","character"],
-  category: "creator",
+  id: 'wizard-social-avatar',
+  name: 'Social Avatar Creator',
+  description: 'Customizable avatar display with accessory slots',
+  thumbnail: '🧑‍🎤',
+  tags: ['creator', 'avatar', 'social', 'character'],
+  category: 'creator',
   code: `composition "Avatar Creator" {
   environment {
     skybox: "studio"
@@ -67,7 +67,7 @@ export const template: SceneTemplate = {
     color: "#1a1a2e"
     label: "Customize Your Avatar"
   }
-}`
+}`,
 };
 
 export default template;

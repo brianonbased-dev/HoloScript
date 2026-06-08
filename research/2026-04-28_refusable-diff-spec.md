@@ -110,6 +110,7 @@ export interface RefusableDiffProps<T = unknown> extends RefusableDiffData<T> {
 ## 4. Visualization Modes
 
 ### 4.1 Side-by-side (default for pose/schema)
+
 ```
 ┌─────────────────────────────────────────────────┐
 │  ⚠ Brittney pose suggestion   Δ 12.4°           │
@@ -123,9 +124,11 @@ export interface RefusableDiffProps<T = unknown> extends RefusableDiffData<T> {
 ```
 
 ### 4.2 Overlay (for 3D viewport / animation curves)
+
 Renders original in full opacity, suggested as a ghost layer (50% opacity, distinct color). Toggle button to flip visibility. Accept/Reject in floating toolbar.
 
 ### 4.3 Slider-blend (for continuous interpolation)
+
 ```
 ┌─────────────────────────────────────────────────┐
 │  ⚠ Physics validation result   Δ 8.1°           │
@@ -136,10 +139,13 @@ Renders original in full opacity, suggested as a ghost layer (50% opacity, disti
 │         [✓ Accept blend]   [✗ Reject]           │
 └─────────────────────────────────────────────────┘
 ```
+
 Slider position drives `onPartialBlend(t)` in real-time during drag. Commit on Accept. Reject always restores t=0 (original).
 
 ### 4.4 Table (fallback for schema/field diffs)
+
 Row-per-field diff table:
+
 ```
 Field              Original       Suggested      Δ
 ─────────────────────────────────────────────────
@@ -147,19 +153,20 @@ root.position.y    0.0            0.12           +0.12
 spine.rotation.x   0.0            -0.04          -0.04
 ...
 ```
+
 Changed fields highlighted. Added fields shown with `+` badge. Removed fields shown with `−` badge.
 
 ---
 
 ## 5. Consumers
 
-| Consumer | `renderHints` | `deviation_metric` | Notes |
-|----------|--------------|-------------------|-------|
-| `pose.predict` trait | `['side-by-side', 'slider-blend', 'blend']` | avg joint angular deviation (rad) | renderSlot uses 3D rig viewport |
-| `physics_validate_animation` | `['side-by-side', 'slider-blend', 'blend']` | per-frame RMSE | renderSlot uses animation curve view |
-| schema-mapper | `['table', 'side-by-side']` | weighted field-diff count | renderSlot uses JSON tree |
-| scene-composer | `['side-by-side']` | object-count diff | renderSlot uses .holo AST diff |
-| Brittney diff (D.027) | `['side-by-side']` | line-diff count | renderSlot uses code diff viewer |
+| Consumer                     | `renderHints`                               | `deviation_metric`                | Notes                                |
+| ---------------------------- | ------------------------------------------- | --------------------------------- | ------------------------------------ |
+| `pose.predict` trait         | `['side-by-side', 'slider-blend', 'blend']` | avg joint angular deviation (rad) | renderSlot uses 3D rig viewport      |
+| `physics_validate_animation` | `['side-by-side', 'slider-blend', 'blend']` | per-frame RMSE                    | renderSlot uses animation curve view |
+| schema-mapper                | `['table', 'side-by-side']`                 | weighted field-diff count         | renderSlot uses JSON tree            |
+| scene-composer               | `['side-by-side']`                          | object-count diff                 | renderSlot uses .holo AST diff       |
+| Brittney diff (D.027)        | `['side-by-side']`                          | line-diff count                   | renderSlot uses code diff viewer     |
 
 ---
 
@@ -175,6 +182,7 @@ Changed fields highlighted. Added fields shown with `+` badge. Removed fields sh
 ## 7. Audit / Provenance Display
 
 Per D.027, every diff rendered through this component should surface:
+
 - **Source** — which system produced it (e.g. "Brittney v2.1 / fireworks/qwen3-235b")
 - **Timestamp** — when the suggestion was generated
 - **Session ID** — CAEL trace ID if available (for replay)
@@ -197,6 +205,7 @@ packages/studio/
 ```
 
 Export from `packages/studio/src/index.ts`:
+
 ```typescript
 export { RefusableDiff } from './components/RefusableDiff';
 export type { RefusableDiffProps, RefusableDiffData } from './types/refusable-diff';

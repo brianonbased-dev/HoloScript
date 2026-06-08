@@ -7,13 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  onEvent,
-  offEvent,
-  emit,
-  forwardToTraits,
-  triggerUIEvent,
-} from '../event-system.js';
+import { onEvent, offEvent, emit, forwardToTraits, triggerUIEvent } from '../event-system.js';
 import type { EventSystemContext } from '../event-system.js';
 import type {
   AgentRuntime,
@@ -227,7 +221,9 @@ describe('emit – stage 4: local handlers', () => {
   it('continues dispatch even if one handler throws', async () => {
     const { logger } = await import('../../logger.js');
     const ctx = makeCtx();
-    const h1: EventHandler = vi.fn(async () => { throw new Error('boom'); });
+    const h1: EventHandler = vi.fn(async () => {
+      throw new Error('boom');
+    });
     const h2: EventHandler = vi.fn(async () => {});
     onEvent('click', h1, ctx);
     onEvent('click', h2, ctx);
@@ -309,7 +305,10 @@ describe('forwardToTraits', () => {
 
   it('skips trait handler that has no onEvent method', async () => {
     const ctx = makeCtx();
-    ctx.traitHandlers.set('noEventTrait' as VRTraitName, {} as TraitHandler<Record<string, unknown>>);
+    ctx.traitHandlers.set(
+      'noEventTrait' as VRTraitName,
+      {} as TraitHandler<Record<string, unknown>>
+    );
     const orb = {
       directives: [{ type: 'trait', name: 'noEventTrait', config: {} }],
     };

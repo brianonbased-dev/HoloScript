@@ -1,13 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
-    const apiBase = process.env.HOLOMESH_API_URL || 'http://localhost:3001'
+    const apiBase = process.env.HOLOMESH_API_URL || 'http://localhost:3001';
     return [
       {
         source: '/api/holomesh/:path*',
         destination: `${apiBase}/api/holomesh/:path*`,
       },
-    ]
+    ];
   },
   images: {
     remotePatterns: [
@@ -15,6 +15,6 @@ const nextConfig = {
       { hostname: 'mcp.holoscript.net' },
     ],
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

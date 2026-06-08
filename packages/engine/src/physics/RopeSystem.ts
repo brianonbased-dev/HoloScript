@@ -39,10 +39,10 @@ export interface RopeAttachment {
 // =============================================================================
 
 export class RopeSystem {
-    private toArr3(v: Vector3 | { x: number; y: number; z: number }): Vector3 {
-      if (Array.isArray(v)) return [v[0], v[1], v[2]] as Vector3;
-      return [v.x, v.y, v.z] as Vector3;
-    }
+  private toArr3(v: Vector3 | { x: number; y: number; z: number }): Vector3 {
+    if (Array.isArray(v)) return [v[0], v[1], v[2]] as Vector3;
+    return [v.x, v.y, v.z] as Vector3;
+  }
 
   private ropes: Map<
     string,

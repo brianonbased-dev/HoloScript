@@ -20,16 +20,68 @@ export interface PrimitiveMesh {
 function cube(): PrimitiveMesh {
   const h = 0.5;
   const positions = new Float32Array([
-    -h, -h, -h,  h, -h, -h,  h,  h, -h, -h,  h, -h, // back  (z = -h): 0,1,2,3
-    -h, -h,  h,  h, -h,  h,  h,  h,  h, -h,  h,  h, // front (z = +h): 4,5,6,7
+    -h,
+    -h,
+    -h,
+    h,
+    -h,
+    -h,
+    h,
+    h,
+    -h,
+    -h,
+    h,
+    -h, // back  (z = -h): 0,1,2,3
+    -h,
+    -h,
+    h,
+    h,
+    -h,
+    h,
+    h,
+    h,
+    h,
+    -h,
+    h,
+    h, // front (z = +h): 4,5,6,7
   ]);
   const indices = new Uint32Array([
-    4, 5, 6, 4, 6, 7, // front
-    1, 0, 3, 1, 3, 2, // back
-    0, 4, 7, 0, 7, 3, // left
-    5, 1, 2, 5, 2, 6, // right
-    3, 7, 6, 3, 6, 2, // top
-    0, 1, 5, 0, 5, 4, // bottom
+    4,
+    5,
+    6,
+    4,
+    6,
+    7, // front
+    1,
+    0,
+    3,
+    1,
+    3,
+    2, // back
+    0,
+    4,
+    7,
+    0,
+    7,
+    3, // left
+    5,
+    1,
+    2,
+    5,
+    2,
+    6, // right
+    3,
+    7,
+    6,
+    3,
+    6,
+    2, // top
+    0,
+    1,
+    5,
+    0,
+    5,
+    4, // bottom
   ]);
   return { positions, indices, vertexCount: positions.length / 3 };
 }
@@ -37,9 +89,7 @@ function cube(): PrimitiveMesh {
 /** Unit plane on the XZ plane (y = 0), extent ±0.5 — 4 verts, 2 triangles. */
 function plane(): PrimitiveMesh {
   const h = 0.5;
-  const positions = new Float32Array([
-    -h, 0, -h,  h, 0, -h,  h, 0,  h, -h, 0,  h,
-  ]);
+  const positions = new Float32Array([-h, 0, -h, h, 0, -h, h, 0, h, -h, 0, h]);
   const indices = new Uint32Array([0, 1, 2, 0, 2, 3]);
   return { positions, indices, vertexCount: 4 };
 }
@@ -53,7 +103,8 @@ function sphere(params?: Record<string, number>): PrimitiveMesh {
   for (let y = 0; y <= lat; y++) {
     const v = y / lat;
     const theta = v * Math.PI; // 0..pi
-    const sinT = Math.sin(theta), cosT = Math.cos(theta);
+    const sinT = Math.sin(theta),
+      cosT = Math.cos(theta);
     for (let x = 0; x <= lon; x++) {
       const u = x / lon;
       const phi = u * Math.PI * 2; // 0..2pi
@@ -69,7 +120,11 @@ function sphere(params?: Record<string, number>): PrimitiveMesh {
       idx.push(a, b, a + 1, a + 1, b, b + 1);
     }
   }
-  return { positions: new Float32Array(pos), indices: new Uint32Array(idx), vertexCount: pos.length / 3 };
+  return {
+    positions: new Float32Array(pos),
+    indices: new Uint32Array(idx),
+    vertexCount: pos.length / 3,
+  };
 }
 
 /**
@@ -78,12 +133,19 @@ function sphere(params?: Record<string, number>): PrimitiveMesh {
  * the returned kind in DrawSpec). `mesh` (asset geometry) is NOT handled here — it loads
  * externally; callers must branch on kind === 'mesh' before calling this.
  */
-export function primitiveToMesh(kind: GeometryKind, params?: Record<string, number>): PrimitiveMesh {
+export function primitiveToMesh(
+  kind: GeometryKind,
+  params?: Record<string, number>
+): PrimitiveMesh {
   switch (kind) {
-    case 'cube': return cube();
-    case 'plane': return plane();
-    case 'sphere': return sphere(params);
+    case 'cube':
+      return cube();
+    case 'plane':
+      return plane();
+    case 'sphere':
+      return sphere(params);
     // cylinder/cone/torus/capsule: TODO — fall back to cube placeholder until built.
-    default: return cube();
+    default:
+      return cube();
   }
 }

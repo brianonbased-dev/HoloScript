@@ -15,7 +15,7 @@ import React, { useEffect, useState } from 'react';
  */
 
 const MODES = ['build', 'audit', 'research', 'review'] as const;
-type Mode = typeof MODES[number];
+type Mode = (typeof MODES)[number];
 
 interface ModeData {
   mode: Mode;
@@ -57,7 +57,10 @@ export function ModePanel() {
       if (!cancelled) setLoading(false);
     })();
     const id = setInterval(fetchMode, 30000);
-    return () => { cancelled = true; clearInterval(id); };
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [teamId]);
 
   const switchMode = async (newMode: Mode) => {
@@ -89,7 +92,9 @@ export function ModePanel() {
     <div className="p-2 text-[11px] text-studio-text space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-wider text-studio-muted">TEAM MODE</span>
-        <span className="text-[8px] bg-studio-accent/20 text-studio-accent px-1 rounded">{current}</span>
+        <span className="text-[8px] bg-studio-accent/20 text-studio-accent px-1 rounded">
+          {current}
+        </span>
       </div>
 
       <div className="text-[10px] text-studio-text">
@@ -111,9 +116,11 @@ export function ModePanel() {
               onClick={() => switchMode(m)}
               disabled={switching || data.mode === m}
               className={`text-[9px] px-2 py-0.5 rounded border transition
-                ${data.mode === m 
-                  ? 'bg-studio-accent text-white border-studio-accent' 
-                  : 'border-studio-border hover:bg-studio-panel/50 hover:border-studio-accent/50'}
+                ${
+                  data.mode === m
+                    ? 'bg-studio-accent text-white border-studio-accent'
+                    : 'border-studio-border hover:bg-studio-panel/50 hover:border-studio-accent/50'
+                }
                 ${switching ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {m.toUpperCase()}

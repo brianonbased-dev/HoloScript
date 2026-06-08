@@ -75,9 +75,7 @@ export class SpatialVoiceCoordinator {
     if (this._started) return;
     this._started = true;
     this.unsubscribers.push(
-      this.bus.on<SpatialVoicePositionEvent>('spatial_voice_position', (e) =>
-        this.onPosition(e)
-      )
+      this.bus.on<SpatialVoicePositionEvent>('spatial_voice_position', (e) => this.onPosition(e))
     );
     this.unsubscribers.push(
       this.bus.on<SpatialVoiceDestroyEvent>('spatial_voice_destroy', (e) =>

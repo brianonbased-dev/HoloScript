@@ -1,12 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import type {
-  ConfigRunner,
-  ConfigRunResult,
-  RubricCriterion,
-  Task,
-} from '../types';
+import type { ConfigRunner, ConfigRunResult, RubricCriterion, Task } from '../types';
 import { CostTracker, costOf } from '../cost-tracker';
 import { aggregateByConfig, paretoFrontier, renderParetoMarkdown } from '../pareto';
 import { runBenchmark } from '../runner';
@@ -52,7 +47,9 @@ function fakeAnthropicForJudge(
     messages: {
       create: vi.fn(async (req: { messages: { content: string }[] }) => {
         const userContent = req.messages[0].content;
-        const taskMatch = userContent.match(/CANDIDATE OUTPUT:\n--- BEGIN OUTPUT ---\n([\s\S]*?)\n--- END OUTPUT ---/);
+        const taskMatch = userContent.match(
+          /CANDIDATE OUTPUT:\n--- BEGIN OUTPUT ---\n([\s\S]*?)\n--- END OUTPUT ---/
+        );
         const candidate = taskMatch?.[1] ?? '';
         const rubricBlock = userContent.split('RUBRIC:\n')[1]?.split('\n\nCANDIDATE')[0] ?? '';
         const idLines = rubricBlock.match(/id=([\w]+)/g) ?? [];
@@ -86,10 +83,7 @@ function fakeAnthropicForJudge(
 
 describe('cost-tracker', () => {
   it('sums standard input + output costs by model pricing', () => {
-    const cost = costOf(
-      { input_tokens: 1_000_000, output_tokens: 1_000_000 },
-      'claude-opus-4-7'
-    );
+    const cost = costOf({ input_tokens: 1_000_000, output_tokens: 1_000_000 }, 'claude-opus-4-7');
     expect(cost).toBeCloseTo(15 + 75, 5);
   });
 
@@ -201,7 +195,10 @@ describe('rubric judge consistency on golden cases', () => {
       return criteria.map((c) => {
         const desc = c.id.toLowerCase();
         if (desc.includes('count') && /4 white spheres/.test(candidate)) return false;
-        if (desc.includes('color') && !/red|blue|green|white|yellow|gray|pink|orange|brown|black/i.test(candidate))
+        if (
+          desc.includes('color') &&
+          !/red|blue|green|white|yellow|gray|pink|orange|brown|black/i.test(candidate)
+        )
           return false;
         if (desc.includes('color_red') && !/red/i.test(candidate)) return false;
         if (desc.includes('object_is_cube') && !/cube/i.test(candidate)) return false;
@@ -211,7 +208,10 @@ describe('rubric judge consistency on golden cases', () => {
         if (desc.includes('five_spheres') && !/5\s+(?:white\s+)?spheres/i.test(candidate))
           return false;
         if (desc.includes('all_white') && !/white/i.test(candidate)) return false;
-        if (desc.includes('x_spacing') && !/\(0,0,0\).*\(1,0,0\).*\(2,0,0\).*\(3,0,0\).*\(4,0,0\)/s.test(candidate))
+        if (
+          desc.includes('x_spacing') &&
+          !/\(0,0,0\).*\(1,0,0\).*\(2,0,0\).*\(3,0,0\).*\(4,0,0\)/s.test(candidate)
+        )
           return false;
         if (desc.includes('y_z_zero') && !/0,\s*0,\s*0/.test(candidate)) return false;
         return true;
@@ -378,8 +378,7 @@ describe('brittney-prod SSE parsing + token-usage fallback', () => {
   });
 
   it('reports http error without throwing', async () => {
-    const fetchImpl = async (): Promise<Response> =>
-      new Response('boom', { status: 500 });
+    const fetchImpl = async (): Promise<Response> => new Response('boom', { status: 500 });
     const cfg = makeBrittneyProd({
       endpoint: 'https://example.test/api/brittney',
       fetchImpl: fetchImpl as never,

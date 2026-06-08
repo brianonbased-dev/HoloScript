@@ -216,8 +216,16 @@ describe('F. getMergedHash', () => {
 
   it('is the same on two nodes that have exchanged states', () => {
     const now = Date.now();
-    const stateA: NodeTransformState = makeState({ nodeId: 'A', stateHash: 'sa', wallClockMs: now });
-    const stateB: NodeTransformState = makeState({ nodeId: 'B', stateHash: 'sb', wallClockMs: now });
+    const stateA: NodeTransformState = makeState({
+      nodeId: 'A',
+      stateHash: 'sa',
+      wallClockMs: now,
+    });
+    const stateB: NodeTransformState = makeState({
+      nodeId: 'B',
+      stateHash: 'sb',
+      wallClockMs: now,
+    });
 
     // Node A knows A and B
     const gA = new DistributedTransformGraph({ nodeId: 'A' });

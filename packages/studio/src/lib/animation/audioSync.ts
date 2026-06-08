@@ -106,9 +106,7 @@ export function validateAudioUrl(
       (h) => parsed.hostname === h || parsed.hostname.endsWith(`.${h}`)
     );
     if (!hostAllowed) {
-      throw new Error(
-        `Audio URL host '${parsed.hostname}' is not in the trusted-host allowlist`
-      );
+      throw new Error(`Audio URL host '${parsed.hostname}' is not in the trusted-host allowlist`);
     }
   }
   return parsed;
@@ -136,7 +134,9 @@ export class AudioSyncManager {
   private updateCallbacks: Array<(currentTime: number) => void> = [];
 
   constructor(config: AudioSyncConfig = {}) {
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtx) throw new Error('AudioContext not supported');
     this.audioContext = new AudioCtx();
 

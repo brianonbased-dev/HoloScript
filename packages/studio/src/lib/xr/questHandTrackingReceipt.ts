@@ -112,7 +112,11 @@ export function countQuestHandJoints(hand: unknown): number {
   return handEntries(hand).length;
 }
 
-function countPosedJoints(frame: QuestXRFrameLike | null | undefined, referenceSpace: unknown, hand: unknown): number {
+function countPosedJoints(
+  frame: QuestXRFrameLike | null | undefined,
+  referenceSpace: unknown,
+  hand: unknown
+): number {
   if (!frame?.getJointPose || !referenceSpace || !hand) return 0;
 
   let count = 0;

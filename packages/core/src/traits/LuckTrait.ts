@@ -137,9 +137,10 @@ export const luckHandler: TraitHandler<LuckConfig> = {
 
     if (event.type === 'luck:roll') {
       const payload = extractPayload(event);
-      const rawThreshold = typeof payload.threshold === 'number' && !Number.isNaN(payload.threshold)
-        ? payload.threshold
-        : config.baseChance;
+      const rawThreshold =
+        typeof payload.threshold === 'number' && !Number.isNaN(payload.threshold)
+          ? payload.threshold
+          : config.baseChance;
       const luckBonus = typeof config.luckBonus === 'number' ? config.luckBonus : 0;
       const finalThreshold = modifiedThreshold(rawThreshold, luckBonus);
       // Advance PRNG and draw.

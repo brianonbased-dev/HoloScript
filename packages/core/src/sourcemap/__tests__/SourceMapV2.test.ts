@@ -579,10 +579,7 @@ describe('combineSourceMapsV2', () => {
   });
 
   it('combined map has non-empty mappings string for non-empty input', () => {
-    const combined = combineSourceMapsV2(
-      [makeMapWithMapping('a.js', 'x.hs')],
-      'out.js',
-    );
+    const combined = combineSourceMapsV2([makeMapWithMapping('a.js', 'x.hs')], 'out.js');
     expect(combined.mappings.length).toBeGreaterThan(0);
   });
 });

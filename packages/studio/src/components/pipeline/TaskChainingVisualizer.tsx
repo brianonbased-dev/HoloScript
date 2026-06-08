@@ -15,7 +15,7 @@ export function TaskChainingVisualizer() {
   const [nodes, setNodes] = useState<ChainNode[]>([
     { id: 'start', type: 'connector', label: 'Absorb Data', position: { x: 50, y: 150 } },
     { id: 'node_1', type: 'agent', label: 'Synthesize Schema', position: { x: 300, y: 150 } },
-    { id: 'end', type: 'connector', label: 'Emit Knowledge', position: { x: 550, y: 150 } }
+    { id: 'end', type: 'connector', label: 'Emit Knowledge', position: { x: 550, y: 150 } },
   ]);
 
   const [activeNode, setActiveNode] = useState<string | null>('node_1');
@@ -23,17 +23,20 @@ export function TaskChainingVisualizer() {
   const addNode = () => {
     const newId = `node_${Date.now()}`;
     const xBase = nodes.reduce((max, n) => Math.max(max, n.position.x), 0) + 250;
-    setNodes([...nodes, {
-      id: newId,
-      type: 'agent',
-      label: 'New Task',
-      position: { x: xBase, y: 150 }
-    }]);
+    setNodes([
+      ...nodes,
+      {
+        id: newId,
+        type: 'agent',
+        label: 'New Task',
+        position: { x: xBase, y: 150 },
+      },
+    ]);
     setActiveNode(newId);
   };
 
   const removeNode = (id: string) => {
-    setNodes(nodes.filter(n => n.id !== id));
+    setNodes(nodes.filter((n) => n.id !== id));
     if (activeNode === id) setActiveNode(null);
   };
 
@@ -42,14 +45,17 @@ export function TaskChainingVisualizer() {
       {/* Visual Canvas Area */}
       <div className="flex-1 bg-zinc-950 relative overflow-hidden pattern-grid">
         {/* Subtle grid background */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none opacity-20"
-          style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+            backgroundSize: '40px 40px',
+          }}
         />
 
         {/* Toolbar */}
         <div className="absolute top-4 left-4 flex gap-2 z-10">
-          <button 
+          <button
             onClick={addNode}
             className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-sm px-4 py-2 rounded-md transition-colors border border-zinc-700 shadow-sm"
           >
@@ -81,7 +87,15 @@ export function TaskChainingVisualizer() {
                 );
               })}
               <defs>
-                <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <marker
+                  id="arrow"
+                  viewBox="0 0 10 10"
+                  refX="5"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto-start-reverse"
+                >
                   <path d="M 0 0 L 10 5 L 0 10 z" fill="#3f3f46" />
                 </marker>
               </defs>
@@ -93,21 +107,35 @@ export function TaskChainingVisualizer() {
                 key={node.id}
                 onClick={() => setActiveNode(node.id)}
                 className={`absolute p-4 rounded-lg w-[180px] cursor-pointer transition-all border-2 z-10 shadow-lg
-                  ${activeNode === node.id 
-                    ? 'border-emerald-500 bg-zinc-800' 
-                    : 'border-zinc-700 bg-zinc-900 hover:border-zinc-500'}
+                  ${
+                    activeNode === node.id
+                      ? 'border-emerald-500 bg-zinc-800'
+                      : 'border-zinc-700 bg-zinc-900 hover:border-zinc-500'
+                  }
                 `}
                 style={{
                   left: `${node.position.x}px`,
-                  top: `${node.position.y}px`
+                  top: `${node.position.y}px`,
                 }}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <div className={`p-1.5 rounded-md ${node.type === 'connector' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
-                    {node.type === 'connector' ? <Network className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
+                  <div
+                    className={`p-1.5 rounded-md ${node.type === 'connector' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}
+                  >
+                    {node.type === 'connector' ? (
+                      <Network className="w-4 h-4" />
+                    ) : (
+                      <Activity className="w-4 h-4" />
+                    )}
                   </div>
                   {activeNode === node.id && (
-                    <button onClick={(e) => { e.stopPropagation(); removeNode(node.id); }} className="text-zinc-500 hover:text-red-400">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeNode(node.id);
+                      }}
+                      className="text-zinc-500 hover:text-red-400"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
@@ -126,58 +154,72 @@ export function TaskChainingVisualizer() {
           <h2 className="text-sm font-semibold flex items-center gap-2">
             <Settings2 className="w-4 h-4" /> Node Configuration
           </h2>
-          <button className="text-zinc-400 hover:text-zinc-100"><Save className="w-4 h-4" /></button>
+          <button className="text-zinc-400 hover:text-zinc-100">
+            <Save className="w-4 h-4" />
+          </button>
         </div>
-        
-        {activeNode ? (() => {
-          const node = nodes.find(n => n.id === activeNode);
-          if (!node) return null;
-          return (
-            <div className="p-4 flex-1 overflow-auto">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1">Node Label</label>
-                  <input 
-                    type="text" 
-                    value={node.label}
-                    onChange={(e) => {
-                      setNodes(nodes.map(n => n.id === node.id ? { ...n, label: e.target.value } : n));
-                    }}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1">Execution Core</label>
-                  <select className="w-full bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100">
-                    <option>HoloScript Runtime (V8)</option>
-                    <option>Native Orchestrator</option>
-                    <option>WASM Engine Fast-Path</option>
-                  </select>
-                </div>
-                {node.type === 'agent' && (
+
+        {activeNode ? (
+          (() => {
+            const node = nodes.find((n) => n.id === activeNode);
+            if (!node) return null;
+            return (
+              <div className="p-4 flex-1 overflow-auto">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1">Assigned Agent</label>
-                    <div className="p-3 bg-zinc-950 border border-zinc-800 rounded flex justify-between items-center cursor-pointer hover:border-zinc-700 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                          <span className="text-xs text-indigo-400 font-bold">A</span>
-                        </div>
-                        <span className="text-sm">Analyst Bot 3.0</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-zinc-500" />
-                    </div>
+                    <label className="block text-xs font-medium text-zinc-400 mb-1">
+                      Node Label
+                    </label>
+                    <input
+                      type="text"
+                      value={node.label}
+                      onChange={(e) => {
+                        setNodes(
+                          nodes.map((n) => (n.id === node.id ? { ...n, label: e.target.value } : n))
+                        );
+                      }}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500"
+                    />
                   </div>
-                )}
-                <div className="pt-4 border-t border-zinc-800">
-                  <label className="block text-xs font-medium text-zinc-400 mb-2">Input Mapping Schema</label>
-                  <div className="bg-zinc-950 p-3 rounded font-mono text-xs text-zinc-300 overflow-hidden border border-zinc-900">
-                    {`{\n  "sourceContext": "$nodes[${nodes.findIndex(n => n.id === activeNode) - 1}].output",\n  "failPolicy": "halt"\n}`}
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-400 mb-1">
+                      Execution Core
+                    </label>
+                    <select className="w-full bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100">
+                      <option>HoloScript Runtime (V8)</option>
+                      <option>Native Orchestrator</option>
+                      <option>WASM Engine Fast-Path</option>
+                    </select>
+                  </div>
+                  {node.type === 'agent' && (
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-400 mb-1">
+                        Assigned Agent
+                      </label>
+                      <div className="p-3 bg-zinc-950 border border-zinc-800 rounded flex justify-between items-center cursor-pointer hover:border-zinc-700 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                            <span className="text-xs text-indigo-400 font-bold">A</span>
+                          </div>
+                          <span className="text-sm">Analyst Bot 3.0</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-zinc-500" />
+                      </div>
+                    </div>
+                  )}
+                  <div className="pt-4 border-t border-zinc-800">
+                    <label className="block text-xs font-medium text-zinc-400 mb-2">
+                      Input Mapping Schema
+                    </label>
+                    <div className="bg-zinc-950 p-3 rounded font-mono text-xs text-zinc-300 overflow-hidden border border-zinc-900">
+                      {`{\n  "sourceContext": "$nodes[${nodes.findIndex((n) => n.id === activeNode) - 1}].output",\n  "failPolicy": "halt"\n}`}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })() : (
+            );
+          })()
+        ) : (
           <div className="p-8 text-center text-zinc-500 text-sm">
             Select a node to inspect and configure its execution parameters.
           </div>

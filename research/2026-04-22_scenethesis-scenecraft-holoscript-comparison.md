@@ -8,7 +8,7 @@
 - **Scenethesis** (arXiv:2505.02836, “A Language and Vision Agentic Framework for 3D Scene Generation”) uses an **LLM for coarse layout**, **vision-guided refinement**, **optimization** for plausibility, and a **judge** for repairs—**training-free** in the paper’s framing for flexible scene diversity.
 - **Relevance to HoloScript:** both address **turning language into a structured world**, but Scenethesis is **end-to-end generative** with learned/vision components; HoloScript emphasizes **authoring-time** constraints, **compiler targets**, and **repeatable** `.holo` / trait semantics.
 
-*Venue in internal backlog items may have drifted; always cite the arXiv or official proceedings entry when tracking literature.*
+_Venue in internal backlog items may have drifted; always cite the arXiv or official proceedings entry when tracking literature._
 
 ## SceneCraft (two different papers, same name)
 
@@ -29,6 +29,6 @@
 
 ## References
 
-- Scenethesis: https://arxiv.org/abs/2505.02836  
-- SceneCraft (Blender agent): https://arxiv.org/abs/2403.01248  
-- SceneCraft (layout-guided): https://arxiv.org/abs/2410.09049  
+- Scenethesis: https://arxiv.org/abs/2505.02836
+- SceneCraft (Blender agent): https://arxiv.org/abs/2403.01248
+- SceneCraft (layout-guided): https://arxiv.org/abs/2410.09049

@@ -89,7 +89,10 @@ import process from 'node:process';
  * staging dry-runs only — never for live attacks.
  */
 // Bare base; URL builders append /api/holomesh/... See _base.mjs for canonical.
-const DEFAULT_API_BASE = (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(/\/api\/holomesh\/?$/, '');
+const DEFAULT_API_BASE = (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(
+  /\/api\/holomesh\/?$/,
+  ''
+);
 
 /**
  * The audit/ prefix is the ONLY route this loop is permitted to write to.
@@ -146,7 +149,11 @@ function buildCaelRecord({ agentHandle, operation, prevHash, vvFingerprint }) {
   return {
     tick_iso: tickIso,
     layer_hashes: layerHashes, // 7 layers
-    operation: { kind: operation.kind, route: operation.route, target_handle: operation.target_handle },
+    operation: {
+      kind: operation.kind,
+      route: operation.route,
+      target_handle: operation.target_handle,
+    },
     prev_hash: prevHash || null,
     fnv1a_chain: fnv.toString(16),
     version_vector_fingerprint: vvFingerprint || null,
@@ -209,15 +216,15 @@ class AuditEmitter {
         const op = record.operation;
         const flatRecord = {
           ...record,
-          operation: typeof op === 'string'
-            ? op
-            : `${op.route || 'audit/'}${op.kind || 'unknown'}`,
+          operation: typeof op === 'string' ? op : `${op.route || 'audit/'}${op.kind || 'unknown'}`,
           attack_class: 'sybil-cross-vouch',
-          ...(typeof op === 'object' && op !== null ? {
-            target_handle: op.target_handle,
-            defense_state: op.defense_state,
-            trial: op.trial,
-          } : {}),
+          ...(typeof op === 'object' && op !== null
+            ? {
+                target_handle: op.target_handle,
+                defense_state: op.defense_state,
+                trial: op.trial,
+              }
+            : {}),
         };
         const response = await fetch(url, {
           method: 'POST',
@@ -267,7 +274,9 @@ class AuditEmitter {
  */
 async function provisionSybils({ k, attackerHandle, apiBase, attackerBearer, dryRun, audit }) {
   if (k < SYBIL_K_MIN || k > SYBIL_K_MAX) {
-    throw new Error(`Sybil K=${k} out of bounds [${SYBIL_K_MIN}, ${SYBIL_K_MAX}] (Paper 21 §4.2 measures K∈{2,5,10}; harness uses K=3..5 within global $50/day cap).`);
+    throw new Error(
+      `Sybil K=${k} out of bounds [${SYBIL_K_MIN}, ${SYBIL_K_MAX}] (Paper 21 §4.2 measures K∈{2,5,10}; harness uses K=3..5 within global $50/day cap).`
+    );
   }
 
   const sybils = [];
@@ -306,13 +315,18 @@ async function provisionSybils({ k, attackerHandle, apiBase, attackerBearer, dry
     const challengeRes = await fetch(`${apiBase}/register/challenge`, {
       method: 'POST',
       headers: {
-        'authorization': `Bearer ${attackerBearer}`,
+        authorization: `Bearer ${attackerBearer}`,
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ name: synthAgentId, description: `paper-21 sybil ${i} via ${attackerHandle}` }),
+      body: JSON.stringify({
+        name: synthAgentId,
+        description: `paper-21 sybil ${i} via ${attackerHandle}`,
+      }),
     });
     if (!challengeRes.ok) {
-      throw new Error(`Sybil ${i} challenge failed: ${challengeRes.status} ${await challengeRes.text()}`);
+      throw new Error(
+        `Sybil ${i} challenge failed: ${challengeRes.status} ${await challengeRes.text()}`
+      );
     }
     const challenge = await challengeRes.json();
 
@@ -440,7 +454,15 @@ async function crossVouchRound({ sybils, target, apiBase, dryRun, audit, roundId
  * replace this with a real GET /api/holomesh/agent/<target>/audit?since=...
  * call and a parse of the trust-formula outputs in those tick records.
  */
-async function measureInflation({ target, sybils, apiBase, attackerBearer, dryRun, audit, sinceIso }) {
+async function measureInflation({
+  target,
+  sybils,
+  apiBase,
+  attackerBearer,
+  dryRun,
+  audit,
+  sinceIso,
+}) {
   if (dryRun) {
     // Deterministic synthetic inflation: K-linear per Paper 21 §4.2 expected
     // efficacy. Returns a structurally-valid result so the runner can score
@@ -475,7 +497,7 @@ async function measureInflation({ target, sybils, apiBase, attackerBearer, dryRu
   const since = encodeURIComponent(sinceIso);
   const auditUrl = `${apiBase}/agent/${encodeURIComponent(target)}/audit?since=${since}`;
   const res = await fetch(auditUrl, {
-    headers: { 'authorization': `Bearer ${attackerBearer}` },
+    headers: { authorization: `Bearer ${attackerBearer}` },
   });
   if (!res.ok) {
     // _d2jx not yet shipped; fall back to dry-run measurement so the trial
@@ -502,9 +524,10 @@ async function measureInflation({ target, sybils, apiBase, attackerBearer, dryRu
       if (sybilIds.has(peer)) routingDecisionsTouchingSybils += 1;
     }
   }
-  const inflationFactor = totalRoutingDecisions === 0
-    ? 1.0
-    : 1 + (routingDecisionsTouchingSybils / Math.max(totalRoutingDecisions, 1));
+  const inflationFactor =
+    totalRoutingDecisions === 0
+      ? 1.0
+      : 1 + routingDecisionsTouchingSybils / Math.max(totalRoutingDecisions, 1);
   const success = inflationFactor > 1.5;
 
   await audit.emit({
@@ -561,10 +584,10 @@ export async function runSybilCrossVouch(opts) {
   const liveAllowed = !dry_run && acknowledge_blockers === true;
   if (!dry_run && !acknowledge_blockers) {
     throw new Error(
-      `[sybil-cross-vouch] live-mode refused: tasks _d2jx (agent audit GET) `
-      + `and _8bav (agent defense PATCH) are open. Pass --i-acknowledge-blockers-d2jx-8bav-open `
-      + `if you accept that the trial will run with stubbed inflation measurement and stubbed `
-      + `defense-state toggling. Recommended: keep dry_run=true until both endpoints land.`
+      `[sybil-cross-vouch] live-mode refused: tasks _d2jx (agent audit GET) ` +
+        `and _8bav (agent defense PATCH) are open. Pass --i-acknowledge-blockers-d2jx-8bav-open ` +
+        `if you accept that the trial will run with stubbed inflation measurement and stubbed ` +
+        `defense-state toggling. Recommended: keep dry_run=true until both endpoints land.`
     );
   }
 
@@ -613,9 +636,7 @@ export async function runSybilCrossVouch(opts) {
   const phase0MaxRounds = 1; // single round for smoke
   const phase1MaxRounds = 3; // class-coverage smoke
   const phase2MaxRounds = Math.max(1, Math.floor(duration_ms / VOUCH_ROUND_INTERVAL_MS));
-  const maxRounds = phase === 0 ? phase0MaxRounds
-                  : phase === 1 ? phase1MaxRounds
-                  : phase2MaxRounds;
+  const maxRounds = phase === 0 ? phase0MaxRounds : phase === 1 ? phase1MaxRounds : phase2MaxRounds;
 
   let roundIdx = 0;
   const allVouches = [];
@@ -660,8 +681,12 @@ export async function runSybilCrossVouch(opts) {
       target_handle,
       policy: effectiveDryRun ? 'dry-run' : 'production',
       payload: {
-        phase, trial, rounds_completed: roundIdx, vouches_emitted: allVouches.length,
-        inflation_factor: inflation.inflation_factor, success: inflation.success,
+        phase,
+        trial,
+        rounds_completed: roundIdx,
+        vouches_emitted: allVouches.length,
+        inflation_factor: inflation.inflation_factor,
+        success: inflation.success,
       },
     },
   });
@@ -679,7 +704,8 @@ export async function runSybilCrossVouch(opts) {
     started_at: trialStartIso,
     finished_at: new Date().toISOString(),
     status: effectiveDryRun ? 'OK_DRY_RUN' : 'OK_LIVE',
-    divergence_observed: inflation.success === true ? true : (inflation.success === false ? false : null),
+    divergence_observed:
+      inflation.success === true ? true : inflation.success === false ? false : null,
     inflation_factor: inflation.inflation_factor,
     sybil_count: inflation.sybil_count,
     rounds_completed: roundIdx,
@@ -736,9 +762,13 @@ function parseCliArgs(argv) {
 
 async function cliMain() {
   const args = parseCliArgs(process.argv.slice(2));
-  console.log(`[sybil-cross-vouch] phase=${args.phase} target=${args.target_handle} k=${args.k} dry_run=${args.dry_run}`);
+  console.log(
+    `[sybil-cross-vouch] phase=${args.phase} target=${args.target_handle} k=${args.k} dry_run=${args.dry_run}`
+  );
   if (!args.dry_run && !args.acknowledge_blockers) {
-    console.error(`[sybil-cross-vouch] FATAL: live mode requested but blocker acknowledgement missing.`);
+    console.error(
+      `[sybil-cross-vouch] FATAL: live mode requested but blocker acknowledgement missing.`
+    );
     console.error(`  Pass --i-acknowledge-blockers-d2jx-8bav-open to override (operator only).`);
     process.exit(2);
   }
@@ -749,7 +779,9 @@ async function cliMain() {
   await writeFile(rowPath, JSON.stringify(result, null, 2), 'utf8');
   console.log(`[sybil-cross-vouch] wrote ${rowPath}`);
   if (result.foreign_route_writes !== 0) {
-    console.error(`[sybil-cross-vouch] INVARIANT VIOLATED: foreign_route_writes=${result.foreign_route_writes} (must be 0)`);
+    console.error(
+      `[sybil-cross-vouch] INVARIANT VIOLATED: foreign_route_writes=${result.foreign_route_writes} (must be 0)`
+    );
     process.exit(3);
   }
 }

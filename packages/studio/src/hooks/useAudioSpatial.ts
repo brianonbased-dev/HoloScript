@@ -67,7 +67,9 @@ export interface UseAudioSpatialReturn {
 }
 
 export function useAudioSpatial(): UseAudioSpatialReturn {
-  const engineRef = useRef<AudioEngineInstance>(new AudioEngine() as unknown as AudioEngineInstance);
+  const engineRef = useRef<AudioEngineInstance>(
+    new AudioEngine() as unknown as AudioEngineInstance
+  );
   const [sources, setSources] = useState<AudioSource[]>([]);
   const [listener, setListener] = useState<ListenerState>({
     position: { x: 0, y: 0, z: 0 },

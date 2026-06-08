@@ -52,11 +52,7 @@ export const SumProductSemiring: MergeSemiring<number> = {
 
 // ── Capability Classes ─────────────────────────────────────────────────────────
 
-export type CapabilityClass =
-  | 'network'
-  | 'file'
-  | 'compute'
-  | 'nested';
+export type CapabilityClass = 'network' | 'file' | 'compute' | 'nested';
 
 // ── Sandbox Policy ─────────────────────────────────────────────────────────────
 
@@ -81,10 +77,14 @@ export class TrustSandboxPolicy {
 
   permits(cap: CapabilityClass): boolean {
     switch (cap) {
-      case 'network': return this.config.permitsNetwork;
-      case 'file': return this.config.permitsFile;
-      case 'compute': return this.config.permitsCompute;
-      case 'nested': return this.config.permitsNested;
+      case 'network':
+        return this.config.permitsNetwork;
+      case 'file':
+        return this.config.permitsFile;
+      case 'compute':
+        return this.config.permitsCompute;
+      case 'nested':
+        return this.config.permitsNested;
     }
   }
 
@@ -151,7 +151,7 @@ export interface MergedCost {
 export function mergeAdd(
   a: MergedCost,
   b: MergedCost,
-  strategy: MergeSemiring<number>,
+  strategy: MergeSemiring<number>
 ): MergedCost {
   return {
     sandboxCost: strategy.add(a.sandboxCost, b.sandboxCost),
@@ -162,7 +162,7 @@ export function mergeAdd(
 export function mergeMul(
   a: MergedCost,
   b: MergedCost,
-  strategy: MergeSemiring<number>,
+  strategy: MergeSemiring<number>
 ): MergedCost {
   return {
     sandboxCost: strategy.mul(a.sandboxCost, b.sandboxCost),
@@ -196,7 +196,7 @@ export type ExecutionResult =
 export class ComposedPolicy {
   constructor(
     public readonly sandbox: TrustSandboxPolicy,
-    public readonly costGuard: CostGuard,
+    public readonly costGuard: CostGuard
   ) {}
 
   /**
@@ -236,10 +236,7 @@ export class ComposedPolicy {
  *
  * Lean: theorem sandbox_preservation
  */
-export function verifySandboxPreservation(
-  composed: ComposedPolicy,
-  cap: CapabilityClass,
-): boolean {
+export function verifySandboxPreservation(composed: ComposedPolicy, cap: CapabilityClass): boolean {
   // composition_preserves_both ⟹ (composed.permits cap → sandbox.permits cap)
   if (composed.permits(cap)) {
     return composed.sandbox.permits(cap);
@@ -253,10 +250,7 @@ export function verifySandboxPreservation(
  *
  * Lean: theorem budget_preservation
  */
-export function verifyBudgetPreservation(
-  composed: ComposedPolicy,
-  _cap: CapabilityClass,
-): boolean {
+export function verifyBudgetPreservation(composed: ComposedPolicy, _cap: CapabilityClass): boolean {
   if (composed.permits(_cap)) {
     return composed.costGuard.permits;
   }
@@ -273,7 +267,7 @@ export function verifyBudgetPreservation(
 export function verifyCompositionPreservesBoth(
   sandbox: TrustSandboxPolicy,
   costGuard: CostGuard,
-  cap: CapabilityClass,
+  cap: CapabilityClass
 ): boolean {
   const composed = new ComposedPolicy(sandbox, costGuard);
   const composedResult = composed.permits(cap);

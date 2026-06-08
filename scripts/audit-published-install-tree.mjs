@@ -33,7 +33,8 @@
 const REGISTRY = process.env.npm_config_registry || 'https://registry.npmjs.org';
 const TOKEN = process.env.NPM_TOKEN || process.env.npm_token || '';
 const JSON_OUT = process.argv.includes('--json');
-const ROOT_SPEC = process.argv.find((a, i) => i >= 2 && !a.startsWith('--')) || '@holoscript/cli@latest';
+const ROOT_SPEC =
+  process.argv.find((a, i) => i >= 2 && !a.startsWith('--')) || '@holoscript/cli@latest';
 
 const DEP_FIELDS = ['dependencies', 'peerDependencies', 'optionalDependencies'];
 
@@ -55,12 +56,18 @@ async function packument(name) {
   let pk = null;
   for (let attempt = 0; attempt <= PROPAGATION_RETRY_COUNT; attempt++) {
     if (attempt > 0) {
-      if (!JSON_OUT) process.stderr.write(`[audit-published-install-tree] ${name} not yet visible; retrying in ${PROPAGATION_RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${PROPAGATION_RETRY_COUNT})...\n`);
+      if (!JSON_OUT)
+        process.stderr.write(
+          `[audit-published-install-tree] ${name} not yet visible; retrying in ${PROPAGATION_RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${PROPAGATION_RETRY_COUNT})...\n`
+        );
       await new Promise((r) => setTimeout(r, PROPAGATION_RETRY_DELAY_MS));
     }
     try {
       const r = await fetch(url, { headers: headers() });
-      if (r.ok) { pk = await r.json(); break; }
+      if (r.ok) {
+        pk = await r.json();
+        break;
+      }
       if (r.status !== 404) break; // non-404 error — don't retry
     } catch {
       break; // network error — treated as unresolvable below
@@ -124,7 +131,12 @@ async function main() {
     }
     const ver = resolveVersion(pk, spec);
     if (!ver || !pk.versions[ver]) {
-      if (isInternal(name)) phantoms.push({ pkg: `${name}@${spec}`, reason: 'version-not-published', available: Object.keys(pk.versions || {}) });
+      if (isInternal(name))
+        phantoms.push({
+          pkg: `${name}@${spec}`,
+          reason: 'version-not-published',
+          available: Object.keys(pk.versions || {}),
+        });
       continue;
     }
     const key = `${name}@${ver}`;
@@ -162,18 +174,33 @@ async function main() {
   const ok = leaks.length === 0 && phantoms.length === 0;
 
   if (JSON_OUT) {
-    console.log(JSON.stringify({ root: `${rootName}@${rootSpec}`, scanned, ok, leaks, phantoms }, null, 2));
+    console.log(
+      JSON.stringify({ root: `${rootName}@${rootSpec}`, scanned, ok, leaks, phantoms }, null, 2)
+    );
   } else {
-    console.log(`[audit-published-install-tree] root=${rootName}@${rootSpec} scanned=${scanned} packages`);
+    console.log(
+      `[audit-published-install-tree] root=${rootName}@${rootSpec} scanned=${scanned} packages`
+    );
     if (leaks.length) {
-      console.error(`\n  WORKSPACE LEAKS (${leaks.length}) — these cause EUNSUPPORTEDPROTOCOL on public install:`);
+      console.error(
+        `\n  WORKSPACE LEAKS (${leaks.length}) — these cause EUNSUPPORTEDPROTOCOL on public install:`
+      );
       for (const l of leaks) console.error(`    ${l.pkg}  ${l.field}.${l.dep} = ${l.spec}`);
     }
     if (phantoms.length) {
-      console.error(`\n  PHANTOM PINS (${phantoms.length}) — these cause ETARGET/404 on public install:`);
-      for (const p of phantoms) console.error(`    ${p.pkg}  (${p.reason}${p.available ? `; published: ${p.available.join(', ')}` : ''})`);
+      console.error(
+        `\n  PHANTOM PINS (${phantoms.length}) — these cause ETARGET/404 on public install:`
+      );
+      for (const p of phantoms)
+        console.error(
+          `    ${p.pkg}  (${p.reason}${p.available ? `; published: ${p.available.join(', ')}` : ''})`
+        );
     }
-    console.log(ok ? '\n[audit-published-install-tree] OK — published tree is installable.' : '\n[audit-published-install-tree] FAIL — published tree is broken for public users.');
+    console.log(
+      ok
+        ? '\n[audit-published-install-tree] OK — published tree is installable.'
+        : '\n[audit-published-install-tree] FAIL — published tree is broken for public users.'
+    );
   }
 
   process.exit(ok ? 0 : 1);

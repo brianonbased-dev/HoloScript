@@ -33,8 +33,7 @@ function computeCheck(
         object_name: overrides.object_name ?? 'Lamp',
         trait_name: overrides.trait_name ?? 'glow',
         property_key: overrides.property_key ?? 'intensity',
-        property_value:
-          'property_value' in overrides ? overrides.property_value : 0.75,
+        property_value: 'property_value' in overrides ? overrides.property_value : 0.75,
       },
     },
   };
@@ -106,9 +105,7 @@ describe('buildGradePayload', () => {
       contractId: 'unscoped',
       mutation: { tool: 'delete_object', input: { object_name: 'Box' } },
     };
-    expect(
-      buildGradePayload({ sessionId: 's', instruction: 'i', scene: '', check })
-    ).toBeNull();
+    expect(buildGradePayload({ sessionId: 's', instruction: 'i', scene: '', check })).toBeNull();
   });
 });
 

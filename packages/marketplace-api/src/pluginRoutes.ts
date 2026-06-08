@@ -462,14 +462,20 @@ export function createPluginMarketplaceRoutes(
           if (!receipt || !receipt.access_granted) {
             return res.status(402).json({
               success: false,
-              error: { code: 'PAYMENT_REQUIRED', message: 'Valid payment receipt required for this plugin' },
+              error: {
+                code: 'PAYMENT_REQUIRED',
+                message: 'Valid payment receipt required for this plugin',
+              },
               pricing: plugin.manifest.pricing,
             });
           }
         } else {
           return res.status(402).json({
             success: false,
-            error: { code: 'PAYMENT_REQUIRED', message: 'Payment required. Use POST /plugins/:id/purchase to initiate payment.' },
+            error: {
+              code: 'PAYMENT_REQUIRED',
+              message: 'Payment required. Use POST /plugins/:id/purchase to initiate payment.',
+            },
             pricing: plugin.manifest.pricing,
           });
         }
@@ -543,7 +549,9 @@ export function createPluginMarketplaceRoutes(
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { id } = req.params as { id: string };
-        const { version, targetStudioVersion, targetPlatform, installDependencies } = (req as AuthenticatedRequest).validated as {
+        const { version, targetStudioVersion, targetPlatform, installDependencies } = (
+          req as AuthenticatedRequest
+        ).validated as {
           version?: string;
           targetStudioVersion?: string;
           targetPlatform?: string;
@@ -554,7 +562,9 @@ export function createPluginMarketplaceRoutes(
         const manifest = plugin.manifest;
 
         // Resolve dependencies if requested
-        let dependencies: { resolved: Array<{ pluginId: string; version: string }>; conflicts: string[] } | undefined;
+        let dependencies:
+          | { resolved: Array<{ pluginId: string; version: string }>; conflicts: string[] }
+          | undefined;
         if (installDependencies) {
           dependencies = await marketplace.resolvePluginDependencies(id, version);
         }
@@ -591,7 +601,9 @@ export function createPluginMarketplaceRoutes(
         }
 
         // Signature status
-        const signatureStatus = plugin.versions.find((v) => v.version === manifest.version)?.signatureStatus ?? 'unsigned';
+        const signatureStatus =
+          plugin.versions.find((v) => v.version === manifest.version)?.signatureStatus ??
+          'unsigned';
 
         // Provenance summary
         const provenance = await marketplace.getPluginProvenance(id);
@@ -682,39 +694,42 @@ export function createPluginMarketplaceRoutes(
   });
 
   /** GET /plugins/:id/purchase-status - Check whether a payer has an active purchase */
-  router.get('/plugins/:id/purchase-status', async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { id } = req.params as { id: string };
-      const payerAddress = req.query.payerAddress as string | undefined;
+  router.get(
+    '/plugins/:id/purchase-status',
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { id } = req.params as { id: string };
+        const payerAddress = req.query.payerAddress as string | undefined;
 
-      if (!payerAddress) {
-        res.status(400).json({
-          success: false,
-          error: { code: 'MISSING_PAYER', message: 'Query parameter payerAddress is required.' },
+        if (!payerAddress) {
+          res.status(400).json({
+            success: false,
+            error: { code: 'MISSING_PAYER', message: 'Query parameter payerAddress is required.' },
+          });
+          return;
+        }
+
+        if (!paymentService) {
+          res.status(503).json({
+            success: false,
+            error: { code: 'PAYMENT_UNAVAILABLE', message: 'Payment service is not configured.' },
+          });
+          return;
+        }
+
+        const subscription = await paymentService.checkSubscription(payerAddress, id);
+        res.json({
+          success: true,
+          data: {
+            purchased: subscription !== null,
+            subscription: subscription ?? null,
+          },
         });
-        return;
+      } catch (err) {
+        next(err);
       }
-
-      if (!paymentService) {
-        res.status(503).json({
-          success: false,
-          error: { code: 'PAYMENT_UNAVAILABLE', message: 'Payment service is not configured.' },
-        });
-        return;
-      }
-
-      const subscription = await paymentService.checkSubscription(payerAddress, id);
-      res.json({
-        success: true,
-        data: {
-          purchased: subscription !== null,
-          subscription: subscription ?? null,
-        },
-      });
-    } catch (err) {
-      next(err);
     }
-  });
+  );
 
   // ── Ratings & Reviews ───────────────────────────────────────────────────
 
@@ -739,7 +754,10 @@ export function createPluginMarketplaceRoutes(
       try {
         const token = (req as AuthenticatedRequest).token;
         const { id } = req.params as { id: string };
-        const { rating, review } = (req as AuthenticatedRequest).validated as { rating: number; review?: { title?: string; body?: string } };
+        const { rating, review } = (req as AuthenticatedRequest).validated as {
+          rating: number;
+          review?: { title?: string; body?: string };
+        };
         await marketplace.ratePlugin(id, rating, review, token);
         res.status(201).json({ success: true, data: { rated: true } });
       } catch (err) {
@@ -771,7 +789,10 @@ export function createPluginMarketplaceRoutes(
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         const token = (req as AuthenticatedRequest).token;
-        const { publicKey } = (req as AuthenticatedRequest).validated as { publicKey: string; label?: string };
+        const { publicKey } = (req as AuthenticatedRequest).validated as {
+          publicKey: string;
+          label?: string;
+        };
         const result = await marketplace.registerSigningKey(publicKey, token!);
         res.status(201).json({ success: true, data: result });
       } catch (err) {

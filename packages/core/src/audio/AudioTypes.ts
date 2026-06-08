@@ -4,8 +4,15 @@
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
-export interface Vec3 { x: number; y: number; z: number }
-export interface Orientation { forward: Vec3; up: Vec3 }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+export interface Orientation {
+  forward: Vec3;
+  up: Vec3;
+}
 
 export interface SourceConfig {
   id: string;
@@ -107,11 +114,7 @@ export function bufferSource(id: string, url: string): SourceConfig {
   return { id, type: 'buffer', url };
 }
 
-export function oscillatorSource(
-  id: string,
-  waveform: string,
-  frequency: number,
-): SourceConfig {
+export function oscillatorSource(id: string, waveform: string, frequency: number): SourceConfig {
   return { id, type: 'oscillator', waveform, frequency };
 }
 
@@ -127,11 +130,7 @@ export function delayEffect(id: string, delayTime: number, feedback: number): Au
   return { id, type: 'delay', delayTime, feedback };
 }
 
-export function filterEffect(
-  id: string,
-  filterType: string,
-  frequency: number,
-): AudioEffect {
+export function filterEffect(id: string, filterType: string, frequency: number): AudioEffect {
   return { id, type: 'filter', filterType, frequency };
 }
 
@@ -139,7 +138,7 @@ export function createNote(
   pitch: number,
   startTime: number,
   duration: number,
-  velocity = 100,
+  velocity = 100
 ): AudioNote {
   return { pitch, startTime, duration, velocity };
 }

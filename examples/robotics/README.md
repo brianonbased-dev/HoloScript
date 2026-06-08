@@ -69,7 +69,7 @@ HoloScript production pipeline with stage orchestration, safety
 envelopes, performance budgets, and multi-target export.
 
 - Fleet mission planning with priority queues
-- Dynamic navmesh + A* pathfinding
+- Dynamic navmesh + A\* pathfinding
 - Sensor-fusion perception (LiDAR, camera, IMU)
 - Pick/place gripper orchestration
 - Safety monitoring (collision avoidance, emergency stop)

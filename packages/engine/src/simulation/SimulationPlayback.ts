@@ -126,14 +126,14 @@ export class SimulationPlayback {
     const [start, end] = this.recorder.timeRange;
     if (this.currentTime > end) {
       if (this.loop) {
-        this.currentTime = start + (this.currentTime - end) % (end - start || 1);
+        this.currentTime = start + ((this.currentTime - end) % (end - start || 1));
       } else {
         this.currentTime = end;
         this.state = 'paused';
       }
     } else if (this.currentTime < start) {
       if (this.loop) {
-        this.currentTime = end - (start - this.currentTime) % (end - start || 1);
+        this.currentTime = end - ((start - this.currentTime) % (end - start || 1));
       } else {
         this.currentTime = start;
         this.state = 'paused';
@@ -163,17 +163,27 @@ export class SimulationPlayback {
 
   // ── Accessors ──────────────────────────────────────────────────
 
-  getState(): PlaybackState { return this.state; }
-  getCurrentTime(): number { return this.currentTime; }
-  getSpeed(): number { return this.speed; }
+  getState(): PlaybackState {
+    return this.state;
+  }
+  getCurrentTime(): number {
+    return this.currentTime;
+  }
+  getSpeed(): number {
+    return this.speed;
+  }
 
   getCurrentFrame(): number {
     const { before } = this.recorder.findBracket(this.currentTime);
     return before;
   }
 
-  getTotalFrames(): number { return this.recorder.frameCount; }
-  getTimeRange(): [number, number] { return this.recorder.timeRange; }
+  getTotalFrames(): number {
+    return this.recorder.frameCount;
+  }
+  getTimeRange(): [number, number] {
+    return this.recorder.timeRange;
+  }
 
   getProgress(): number {
     const [start, end] = this.recorder.timeRange;
@@ -181,17 +191,23 @@ export class SimulationPlayback {
     return (this.currentTime - start) / (end - start);
   }
 
-  getMemoryUsage(): number { return this.recorder.memoryUsage; }
+  getMemoryUsage(): number {
+    return this.recorder.memoryUsage;
+  }
 
-  setSpeed(speed: number): void { this.speed = speed; }
-  setLoop(loop: boolean): void { this.loop = loop; }
+  setSpeed(speed: number): void {
+    this.speed = speed;
+  }
+  setLoop(loop: boolean): void {
+    this.loop = loop;
+  }
 
   // ── Interpolation ──────────────────────────────────────────────
 
   private interpolateFields(
     a: FieldSnapshot,
     b: FieldSnapshot,
-    alpha: number,
+    alpha: number
   ): Map<string, Float32Array> {
     const result = new Map<string, Float32Array>();
     const oneMinusAlpha = 1 - alpha;

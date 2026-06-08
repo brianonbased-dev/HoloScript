@@ -264,7 +264,9 @@ async function handleInit(payload: Record<string, unknown>): Promise<unknown> {
       try {
         const response = await fetch(rawUrl);
         if (!response.ok) {
-          throw new Error(`Failed to fetch WASM: ${response.status} ${response.statusText} (${rawUrl})`);
+          throw new Error(
+            `Failed to fetch WASM: ${response.status} ${response.statusText} (${rawUrl})`
+          );
         }
         const wasmBytes = await response.arrayBuffer();
         binarySize = wasmBytes.byteLength;

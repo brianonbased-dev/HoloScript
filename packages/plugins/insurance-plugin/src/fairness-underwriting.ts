@@ -100,7 +100,7 @@ export interface HomeownersModelWeights {
  */
 export function createHomeownersModel(
   weights: HomeownersModelWeights,
-  modelId = 'homeowners-underwriting-scorer',
+  modelId = 'homeowners-underwriting-scorer'
 ): FairnessModel {
   return {
     id: modelId,
@@ -129,10 +129,10 @@ export function createHomeownersModel(
 export const BIASED_WEIGHTS: HomeownersModelWeights = {
   prior_claims: 0.45,
   credit_tier: 0.55,
-  zip_risk: 0.60, // over-penalises high-decile (the bias lever)
-  age_band: 0.10,
-  bias: 0.70,
-  threshold: 0.50,
+  zip_risk: 0.6, // over-penalises high-decile (the bias lever)
+  age_band: 0.1,
+  bias: 0.7,
+  threshold: 0.5,
 };
 
 /**
@@ -147,12 +147,12 @@ export const BIASED_WEIGHTS: HomeownersModelWeights = {
  * constraint; the higher bias provides the margin).
  */
 export const REMEDIATED_WEIGHTS: HomeownersModelWeights = {
-  prior_claims: 0.40,
+  prior_claims: 0.4,
   credit_tier: 0.55,
-  zip_risk: 0.00, // zeroed out — D.057 remediation
+  zip_risk: 0.0, // zeroed out — D.057 remediation
   age_band: 0.08,
   bias: 0.55,
-  threshold: 0.50,
+  threshold: 0.5,
 };
 
 // ── Synthetic cohort generator ───────────────────────────────────────────────
@@ -185,18 +185,18 @@ export function makeInsuranceCohort(seed: number, n = 400): FairnessRecord[] {
     // ZIP-risk proxy: the bias trap — high-decile draws from higher range
     const zip_risk =
       group === 'high-decile'
-        ? clamp01(0.55 + 0.40 * rng()) // [0.55, 0.95]
+        ? clamp01(0.55 + 0.4 * rng()) // [0.55, 0.95]
         : clamp01(0.05 + 0.45 * rng()); // [0.05, 0.50]
 
     // Credit tier: slightly lower for high-decile (systemic disparity)
     const credit_tier =
       group === 'high-decile'
-        ? clamp01(0.30 + 0.55 * rng()) // mean ~0.575
-        : clamp01(0.40 + 0.55 * rng()); // mean ~0.675
+        ? clamp01(0.3 + 0.55 * rng()) // mean ~0.575
+        : clamp01(0.4 + 0.55 * rng()); // mean ~0.675
 
     // Prior claims and age band: comparable across groups
     const prior_claims = clamp01(0.05 + 0.45 * rng()); // [0.05, 0.50]
-    const age_band = clamp01(0.20 + 0.60 * rng()); // [0.20, 0.80]
+    const age_band = clamp01(0.2 + 0.6 * rng()); // [0.20, 0.80]
 
     rows.push({
       group,
@@ -227,7 +227,7 @@ export function makeInsuranceCohort(seed: number, n = 400): FairnessRecord[] {
  */
 export const insuranceUnderwritingPerturber: CohortPerturber = (
   cohort: readonly FairnessRecord[],
-  { driftShift, noiseScale, rng }: FairnessPerturbation,
+  { driftShift, noiseScale, rng }: FairnessPerturbation
 ): FairnessRecord[] => {
   const n = cohort.length;
   const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
@@ -242,16 +242,12 @@ export const insuranceUnderwritingPerturber: CohortPerturber = (
         zip_risk: clamp01(
           src.features.zip_risk +
             (isHighDecile ? driftShift : 0) + // directed drift for high-decile
-            (rng() - 0.5) * 0.5 * noiseScale, // symmetric noise for both
+            (rng() - 0.5) * 0.5 * noiseScale // symmetric noise for both
         ),
         // Credit bureau measurement noise (both groups)
-        credit_tier: clamp01(
-          src.features.credit_tier + (rng() - 0.5) * 2 * noiseScale,
-        ),
+        credit_tier: clamp01(src.features.credit_tier + (rng() - 0.5) * 2 * noiseScale),
         // Prior claims: low noise (claim history is more stable)
-        prior_claims: clamp01(
-          src.features.prior_claims + (rng() - 0.5) * noiseScale,
-        ),
+        prior_claims: clamp01(src.features.prior_claims + (rng() - 0.5) * noiseScale),
         // Age band: stable (no drift)
         age_band: src.features.age_band,
       },

@@ -91,24 +91,24 @@ export interface PillarSlice {
 
 /** Taxonomy of Pillar domains (maps to Paper 32 §3 Pillar Taxonomy) */
 export type PillarDomain =
-  | 'physics'        // conservation law axes, symmetry group axes, dimensionality invariants
-  | 'rendering'      // LOD, material, lighting
-  | 'agent'          // autonomy, goal, memory
-  | 'language'       // semantics, pragmatics, syntax
-  | 'economics'      // cost, value, risk
-  | 'compiler'       // target, optimisation level, safety
-  | 'solver'         // convergence, precision, timestep
-  | 'trait'          // composition depth, hot/cold, activation
-  | 'coordination'   // consensus, routing, trust
-  | 'storage'        // retrieval, compression, locality
+  | 'physics' // conservation law axes, symmetry group axes, dimensionality invariants
+  | 'rendering' // LOD, material, lighting
+  | 'agent' // autonomy, goal, memory
+  | 'language' // semantics, pragmatics, syntax
+  | 'economics' // cost, value, risk
+  | 'compiler' // target, optimisation level, safety
+  | 'solver' // convergence, precision, timestep
+  | 'trait' // composition depth, hot/cold, activation
+  | 'coordination' // consensus, routing, trust
+  | 'storage' // retrieval, compression, locality
   | 'accuracy_speed' // intent axis pair
   | 'safety_exploration'
   | 'truth_approval' // sycophancy axis — mirrors P.620.02 probe
-  | 'init'           // temporal
+  | 'init' // temporal
   | 'steady_state'
   | 'edge_case'
   | 'shutdown'
-  | 'd040';            // three-population trait fidelity / sovereign alignment
+  | 'd040'; // three-population trait fidelity / sovereign alignment
 
 /**
  * MNI152 standard-space brain coordinate.
@@ -300,12 +300,12 @@ export interface SemanticCollaborationMessage {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type IntegrityFailReason =
-  | 'missing_provenance'         // No x402 attestation
+  | 'missing_provenance' // No x402 attestation
   | 'confidence_without_receipt' // confidence < 0.5 and no receipt for A-step claim
-  | 'invalid_pillar_slice'       // axis_ids empty or pos out of expected range
-  | 'invalid_brain_coord'        // MNI coords outside anatomically plausible range
-  | 'cosine_anomaly'             // Byzantine: latent vector cosine similarity anomaly
-  | 'centroid_drift';            // Sycophancy: embedding centroid drifted toward approval attractor
+  | 'invalid_pillar_slice' // axis_ids empty or pos out of expected range
+  | 'invalid_brain_coord' // MNI coords outside anatomically plausible range
+  | 'cosine_anomaly' // Byzantine: latent vector cosine similarity anomaly
+  | 'centroid_drift'; // Sycophancy: embedding centroid drifted toward approval attractor
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Trait config
@@ -373,7 +373,9 @@ export const semanticCollabHandler: TraitHandler<SemanticCollabConfig> = {
     const type = typeof event === 'string' ? event : event.type;
 
     if (type === 'semcol:receive') {
-      const msg = ((event as Record<string, unknown>).message ?? event.payload?.message) as SemanticCollaborationMessage | undefined;
+      const msg = ((event as Record<string, unknown>).message ?? event.payload?.message) as
+        | SemanticCollaborationMessage
+        | undefined;
       if (!msg) return;
 
       const fail = validateMessage(msg, config, state);
@@ -389,7 +391,9 @@ export const semanticCollabHandler: TraitHandler<SemanticCollabConfig> = {
     }
 
     if (type === 'semcol:send') {
-      const msg = ((event as Record<string, unknown>).message ?? event.payload?.message) as SemanticCollaborationMessage | undefined;
+      const msg = ((event as Record<string, unknown>).message ?? event.payload?.message) as
+        | SemanticCollaborationMessage
+        | undefined;
       const to = ((event as Record<string, unknown>).to ?? event.payload?.to) as string | undefined;
       if (!msg || !to) return;
 
@@ -433,9 +437,13 @@ function validateMessage(
   // Brain coord plausibility (MNI152 bounding box ~90x130x90mm)
   const { mni_x, mni_y, mni_z } = msg.brain_coord ?? {};
   if (
-    typeof mni_x !== 'number' || Math.abs(mni_x) > 90 ||
-    typeof mni_y !== 'number' || (mni_y < -130 || mni_y > 80) ||
-    typeof mni_z !== 'number' || Math.abs(mni_z) > 90
+    typeof mni_x !== 'number' ||
+    Math.abs(mni_x) > 90 ||
+    typeof mni_y !== 'number' ||
+    mni_y < -130 ||
+    mni_y > 80 ||
+    typeof mni_z !== 'number' ||
+    Math.abs(mni_z) > 90
   ) {
     return 'invalid_brain_coord';
   }
@@ -460,7 +468,10 @@ function updateCentroid(state: SemanticCollabState, slice: PillarSlice): void {
   state.centroid_n++;
 }
 
-function computeApprovalBias(centroid: [number, number, number, number], slice: PillarSlice): number {
+function computeApprovalBias(
+  centroid: [number, number, number, number],
+  slice: PillarSlice
+): number {
   // On the truth_approval axis, pos_2 = approval pressure (1.0 = max approval seeking).
   // Bias = distance of current centroid pos_2 from neutral (0.5).
   const approvalComponent = centroid[3];

@@ -26,8 +26,8 @@ export default function LotusSlicePage() {
     <main style={{ minHeight: '100vh', background: '#0a0a12', color: '#eee', padding: 24 }}>
       <h1 style={{ fontSize: 18, marginBottom: 4 }}>I.007 — lotus petal compiled from .holo</h1>
       <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 16 }}>
-        Material built by R3FCompiler from <code>@botanical_lotus</code> → CompiledTraitMesh.
-        No hand-authored material.
+        Material built by R3FCompiler from <code>@botanical_lotus</code> → CompiledTraitMesh. No
+        hand-authored material.
       </p>
       <LotusCanvas />
     </main>

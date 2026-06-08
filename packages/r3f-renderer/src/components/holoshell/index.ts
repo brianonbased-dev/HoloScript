@@ -36,11 +36,7 @@ export type { HoloShellRouterProps } from './HoloShellRouter';
 export { HoloShellScene } from './HoloShellScene';
 export type { HoloShellSceneProps } from './types';
 
-export {
-  HoloShellProvider,
-  useHoloShell,
-  useSceneNavigation,
-} from './useHoloShell';
+export { HoloShellProvider, useHoloShell, useSceneNavigation } from './useHoloShell';
 
 // =============================================================================
 // SCENES (direct import for advanced usage / testing)
@@ -89,11 +85,7 @@ export type {
   SceneComponentProps,
 } from './types';
 
-export {
-  seededRandom,
-  lerp,
-  hexToRgb,
-} from './types';
+export { seededRandom, lerp, hexToRgb } from './types';
 
 // =============================================================================
 // DEFAULT EXPORT — most common entry point

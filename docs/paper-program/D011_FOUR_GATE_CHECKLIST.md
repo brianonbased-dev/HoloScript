@@ -2,12 +2,12 @@
 
 Use when a paper claims benchmark numbers or user-facing performance. Each **claiming** paper should eventually show **all four** rows as ✅ in the program tracker.
 
-| Gate | Meaning | Artifact |
-|------|---------|----------|
-| **G1 Hardware** | Fixed machine class (e.g. RTX 3060) + driver note | `benchmarks/HARDWARE.md` row or env capture |
-| **G2 N=12** | User study protocol + n≥12 **or** explicit waiver | Study packet / IRB summary link |
-| **G3 Full loop demo** | Scripted walkthrough + recording | `docs/demos/…` or video hash |
-| **G4 Ablation** | At least one controlled ablation or alternate venue package | `experiments/…` or appendix |
+| Gate                  | Meaning                                                     | Artifact                                    |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------- |
+| **G1 Hardware**       | Fixed machine class (e.g. RTX 3060) + driver note           | `benchmarks/HARDWARE.md` row or env capture |
+| **G2 N=12**           | User study protocol + n≥12 **or** explicit waiver           | Study packet / IRB summary link             |
+| **G3 Full loop demo** | Scripted walkthrough + recording                            | `docs/demos/…` or video hash                |
+| **G4 Ablation**       | At least one controlled ablation or alternate venue package | `experiments/…` or appendix                 |
 
 **Process:** Copy this table into the paper’s internal tracker; link commits that add harness JSON/logs. Do not paste hardcoded ecosystem counts into prose (W.030).
 
@@ -21,16 +21,16 @@ Use when a paper claims benchmark numbers or user-facing performance. Each **cla
 
 Replace ☐ with ✅ (or link to a PR / artifact) when a gate is satisfied. Gate definitions: see the table at the top of this file.
 
-| Slot | Paper ref | Theme (short) | Primary venue target | Program status | G1 | G2 | G3 | G4 | Notes / artifacts |
-|------|-----------|---------------|----------------------|----------------|----|----|----|----|---------------------|
-| 1 | P0b | Structural / per-DOF BCs (TVCG track) | TVCG / journals | Drafting | ☐ | ☐ | ☐ | ☐ | Solver path + tests; board: structural tasks |
-| 2 | P1 | MCP trust / tool use | USENIX Sec | Living draft | ☐ | ☐ | ☐ | ☐ | MCP + gate tooling |
-| 3 | P2 | SNN / spatial neural | NeurIPS-class | Living draft | ☐ | ☐ | ☐ | ☐ | Harness + variance |
-| 4 | P3 | Spatial CRDT | ECOOP-class | Living draft | ☐ | ☐ | ☐ | ☐ | |
-| 5 | P4 | Sandbox contract | USENIX Sec | Living draft | ☐ | ☐ | ☐ | ☐ | `packages/security-sandbox`, SEC-01 |
-| 6 | P10 | HoloScript core | PLDI-class | Living draft | ☐ | ☐ | ☐ | ☐ | |
-| 7 | P12 | HoloLand ecosystem | I3D-class | Living draft | ☐ | ☐ | ☐ | ☐ | |
-| 8 | P13 | Dumbglass / display | SIGGRAPH-class | Living draft | ☐ | ☐ | ☐ | ☐ | |
+| Slot | Paper ref | Theme (short)                         | Primary venue target | Program status | G1  | G2  | G3  | G4  | Notes / artifacts                            |
+| ---- | --------- | ------------------------------------- | -------------------- | -------------- | --- | --- | --- | --- | -------------------------------------------- |
+| 1    | P0b       | Structural / per-DOF BCs (TVCG track) | TVCG / journals      | Drafting       | ☐   | ☐   | ☐   | ☐   | Solver path + tests; board: structural tasks |
+| 2    | P1        | MCP trust / tool use                  | USENIX Sec           | Living draft   | ☐   | ☐   | ☐   | ☐   | MCP + gate tooling                           |
+| 3    | P2        | SNN / spatial neural                  | NeurIPS-class        | Living draft   | ☐   | ☐   | ☐   | ☐   | Harness + variance                           |
+| 4    | P3        | Spatial CRDT                          | ECOOP-class          | Living draft   | ☐   | ☐   | ☐   | ☐   |                                              |
+| 5    | P4        | Sandbox contract                      | USENIX Sec           | Living draft   | ☐   | ☐   | ☐   | ☐   | `packages/security-sandbox`, SEC-01          |
+| 6    | P10       | HoloScript core                       | PLDI-class           | Living draft   | ☐   | ☐   | ☐   | ☐   |                                              |
+| 7    | P12       | HoloLand ecosystem                    | I3D-class            | Living draft   | ☐   | ☐   | ☐   | ☐   |                                              |
+| 8    | P13       | Dumbglass / display                   | SIGGRAPH-class       | Living draft   | ☐   | ☐   | ☐   | ☐   |                                              |
 
 **Linked protocols**
 
@@ -41,4 +41,4 @@ Replace ☐ with ✅ (or link to a PR / artifact) when a gate is satisfied. Gate
 - **Metrics discipline:** [NUMBERS.md](../NUMBERS.md) — verification commands, no stray hardcoded counts in prose.
 - **Product / release north star:** [ROADMAP.md](../strategy/ROADMAP.md).
 
-**Board sync habit:** When a row moves to *submitted*, *camera-ready*, or *withdrawn*, add the **commit or artifact IDs** on the relevant HoloMesh task (or knowledge entry) the same day.
+**Board sync habit:** When a row moves to _submitted_, _camera-ready_, or _withdrawn_, add the **commit or artifact IDs** on the relevant HoloMesh task (or knowledge entry) the same day.

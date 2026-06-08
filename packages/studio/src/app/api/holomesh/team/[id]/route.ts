@@ -9,7 +9,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   return proxyHoloMesh(`/api/holomesh/team/${id}`, req);
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

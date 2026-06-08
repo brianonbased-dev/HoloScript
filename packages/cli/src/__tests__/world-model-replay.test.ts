@@ -169,7 +169,9 @@ describe('world-model replay CLI', { timeout: 120000 }, () => {
     expect(stdout).toContain('Contacts: 2');
     expect(stdout).toContain('Predicate violations: 1');
     expect(stdout).toContain('status=unresolved');
-    expect(stdout).toContain('Replay command: holoscript world-model replay --scene deterministic-contact-v1');
+    expect(stdout).toContain(
+      'Replay command: holoscript world-model replay --scene deterministic-contact-v1'
+    );
   });
 
   it('rejects unknown world-model scenes', async () => {

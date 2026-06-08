@@ -288,12 +288,15 @@ function anchorFixtureRegions(
 
 function provenanceConfidence(anchors: readonly BotanicalPhotoAnchor[]): number {
   if (anchors.length === 0) return 0;
-  const signed = anchors.filter((anchor) => Boolean(anchor.wallet_signature)).length / anchors.length;
+  const signed =
+    anchors.filter((anchor) => Boolean(anchor.wallet_signature)).length / anchors.length;
   const hashed = anchors.filter((anchor) => Boolean(anchor.content_hash)).length / anchors.length;
   return round(signed * 0.72 + hashed * 0.28);
 }
 
-function extractionStatus(anchors: readonly BotanicalPhotoAnchor[]): BotanicalMaterialExtractionResult['status'] {
+function extractionStatus(
+  anchors: readonly BotanicalPhotoAnchor[]
+): BotanicalMaterialExtractionResult['status'] {
   if (anchors.length > 0 && anchors.every((anchor) => Boolean(anchor.wallet_signature))) {
     return 'extracted-from-signed-anchors';
   }
@@ -326,28 +329,64 @@ export function extractBotanicalMaterialFromPhotoFixtures(
   const shadowLuma = luminance(petalShadow);
   const petalSat = saturation(petalMid);
   const petalContrast = colorDistance(petalRim, petalShadow);
-  const veinContrast = Math.max(colorDistance(vein, petalMid), Math.abs(luminance(vein) - petalLuma));
+  const veinContrast = Math.max(
+    colorDistance(vein, petalMid),
+    Math.abs(luminance(vein) - petalLuma)
+  );
   const silhouetteContrast = colorDistance(silhouetteEdge, petalBase);
   const coverage = regionCoverage(input.fixtures);
   const provConfidence = provenanceConfidence(input.anchors);
 
   const subsurfaceScattering = round(
-    clamp(0.48 + petalSat * 0.18 + Math.max(0, edgeLuma - shadowLuma) * 0.2 + coverage * 0.09, 0.28, 0.92)
+    clamp(
+      0.48 + petalSat * 0.18 + Math.max(0, edgeLuma - shadowLuma) * 0.2 + coverage * 0.09,
+      0.28,
+      0.92
+    )
   );
-  const translucencyBase = round(clamp(0.34 + luminance(petalBase) * 0.28 + coverage * 0.08, 0.2, 0.82));
-  const translucencyEdge = round(clamp(translucencyBase * (0.48 + petalContrast * 0.34), 0.14, 0.72));
-  const translucencyTip = round(clamp(translucencyEdge + Math.max(0, edgeLuma - petalLuma) * 0.16, 0.16, 0.78));
+  const translucencyBase = round(
+    clamp(0.34 + luminance(petalBase) * 0.28 + coverage * 0.08, 0.2, 0.82)
+  );
+  const translucencyEdge = round(
+    clamp(translucencyBase * (0.48 + petalContrast * 0.34), 0.14, 0.72)
+  );
+  const translucencyTip = round(
+    clamp(translucencyEdge + Math.max(0, edgeLuma - petalLuma) * 0.16, 0.16, 0.78)
+  );
   const roughness = round(clamp(0.84 - petalSat * 0.16 - petalContrast * 0.18, 0.46, 0.88));
   const ior = round(clamp(1.31 + petalLuma * 0.06 + petalSat * 0.045, 1.31, 1.44), 2);
-  const veinNormalIntensity = round(clamp(0.018 + veinContrast * 0.095 + coverage * 0.012, 0.012, 0.12));
-  const edgeCurlIntensity = round(clamp(0.34 + silhouetteContrast * 0.46 + petalContrast * 0.18, 0.24, 0.82));
-  const gravitySagOuter = round(clamp(0.12 + (1 - luminance(leafDark)) * 0.16 + silhouetteContrast * 0.08, 0.1, 0.42));
+  const veinNormalIntensity = round(
+    clamp(0.018 + veinContrast * 0.095 + coverage * 0.012, 0.012, 0.12)
+  );
+  const edgeCurlIntensity = round(
+    clamp(0.34 + silhouetteContrast * 0.46 + petalContrast * 0.18, 0.24, 0.82)
+  );
+  const gravitySagOuter = round(
+    clamp(0.12 + (1 - luminance(leafDark)) * 0.16 + silhouetteContrast * 0.08, 0.1, 0.42)
+  );
 
   const sssConfidence = round(clamp(coverage * 0.6 + provConfidence * 0.4, 0, 1));
-  const translucencyConfidence = round(clamp((coverage + (collectRegionPixels(input.fixtures, 'petal_rim').length ? 1 : 0)) / 2, 0, 1));
-  const veinConfidence = round(clamp((collectRegionPixels(input.fixtures, 'vein').length ? 0.64 : 0.22) + provConfidence * 0.36, 0, 1));
-  const roughnessConfidence = round(clamp(coverage * 0.5 + provConfidence * 0.28 + (input.fixtures.length > 0 ? 0.22 : 0), 0, 1));
-  const overall = round((sssConfidence + translucencyConfidence + veinConfidence + roughnessConfidence + provConfidence) / 5);
+  const translucencyConfidence = round(
+    clamp((coverage + (collectRegionPixels(input.fixtures, 'petal_rim').length ? 1 : 0)) / 2, 0, 1)
+  );
+  const veinConfidence = round(
+    clamp(
+      (collectRegionPixels(input.fixtures, 'vein').length ? 0.64 : 0.22) + provConfidence * 0.36,
+      0,
+      1
+    )
+  );
+  const roughnessConfidence = round(
+    clamp(coverage * 0.5 + provConfidence * 0.28 + (input.fixtures.length > 0 ? 0.22 : 0), 0, 1)
+  );
+  const overall = round(
+    (sssConfidence +
+      translucencyConfidence +
+      veinConfidence +
+      roughnessConfidence +
+      provConfidence) /
+      5
+  );
 
   return {
     schema: 'holoscript.botanical.material-extract.v1',
@@ -358,8 +397,10 @@ export function extractBotanicalMaterialFromPhotoFixtures(
       captured_at: input.capturedAt ?? null,
       generated_by: input.generatedBy ?? '@holoscript/snn-webgpu',
       anchor_ids: input.anchors.map((anchor) => anchor.id),
-      signed_anchor_count: input.anchors.filter((anchor) => Boolean(anchor.wallet_signature)).length,
-      content_hashed_anchor_count: input.anchors.filter((anchor) => Boolean(anchor.content_hash)).length,
+      signed_anchor_count: input.anchors.filter((anchor) => Boolean(anchor.wallet_signature))
+        .length,
+      content_hashed_anchor_count: input.anchors.filter((anchor) => Boolean(anchor.content_hash))
+        .length,
       fixture_count: input.fixtures.length,
     },
     material: {

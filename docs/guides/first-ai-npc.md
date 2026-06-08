@@ -403,17 +403,18 @@ on_llm_response("Shopkeeper", (response) => {
 **Greeting:**
 
 ```yaml
-Player: "Hello"
+Player: 'Hello'
 Elara: "Welcome, traveler! I'm Elara, purveyor of the finest potions in the realm.
-        Looking for something to restore your vitality, or perhaps bolster your magical reserves?"
+  Looking for something to restore your vitality, or perhaps bolster your magical reserves?"
 ```
 
 **Asking for Info:**
 
 ```yaml
-Player: "What do you sell?"
-Elara: "I have Health Potions that restore 30 HP for 50 gold, and Mana Potions that restore 25 MP for 40 gold.
-        Both are freshly brewed this morning!"
+Player: 'What do you sell?'
+Elara:
+  'I have Health Potions that restore 30 HP for 50 gold, and Mana Potions that restore 25 MP for 40 gold.
+  Both are freshly brewed this morning!'
 ```
 
 **Making a Purchase:**

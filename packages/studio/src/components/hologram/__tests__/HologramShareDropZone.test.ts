@@ -103,12 +103,8 @@ describe('buildShareUploadFormData', () => {
 
 describe('isValidUploadResponse', () => {
   it('accepts a well-formed response', () => {
-    expect(
-      isValidUploadResponse({ hash: 'a'.repeat(64), written: true })
-    ).toBe(true);
-    expect(
-      isValidUploadResponse({ hash: 'a'.repeat(64), written: false, url: '/g/a' })
-    ).toBe(true);
+    expect(isValidUploadResponse({ hash: 'a'.repeat(64), written: true })).toBe(true);
+    expect(isValidUploadResponse({ hash: 'a'.repeat(64), written: false, url: '/g/a' })).toBe(true);
   });
 
   it('rejects malformed hash', () => {

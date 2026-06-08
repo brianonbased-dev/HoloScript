@@ -21,7 +21,7 @@ function prune(bucket: Bucket, windowMs: number, now: number): void {
 export function takeRateLimitToken(
   key: string,
   maxPerWindow: number,
-  windowMs: number,
+  windowMs: number
 ): { ok: true } | { ok: false; retryAfterSec: number } {
   const now = Date.now();
   let bucket = buckets.get(key);

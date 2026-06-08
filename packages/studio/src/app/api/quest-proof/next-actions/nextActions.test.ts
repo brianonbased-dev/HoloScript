@@ -12,26 +12,42 @@ describe('buildProposedActions', () => {
   it('maps an open board task to a proposed action with a clean label', () => {
     const a = buildProposedActions([task()]);
     expect(a).toHaveLength(1);
-    expect(a[0]).toMatchObject({ status: 'proposed', taskId: 't1', actionType: 'code', reversible: true });
+    expect(a[0]).toMatchObject({
+      status: 'proposed',
+      taskId: 't1',
+      actionType: 'code',
+      reversible: true,
+    });
     expect(a[0].label).toBe('Add the inbox tile'); // bracket prefixes stripped
   });
 
   it('FAILING-IF-BROKEN: only OPEN tasks are anticipatable (claimed/blocked/done excluded)', () => {
-    const tasks = [task({ id: 'o', status: 'open' }), task({ id: 'c', status: 'claimed' }), task({ id: 'd', status: 'done' })];
+    const tasks = [
+      task({ id: 'o', status: 'open' }),
+      task({ id: 'c', status: 'claimed' }),
+      task({ id: 'd', status: 'done' }),
+    ];
     const a = buildProposedActions(tasks, 10);
     expect(a.map((x) => x.taskId)).toEqual(['o']);
   });
 
   it('SAFETY: irreversible / spend / rental tasks are flagged NOT one-tap (reversible=false)', () => {
-    expect(buildProposedActions([task({ title: 'Deploy studio to Railway' })])[0].reversible).toBe(false);
-    expect(buildProposedActions([task({ title: 'Rent a vast.ai GPU for the fine-tune' })])[0].reversible).toBe(false);
+    expect(buildProposedActions([task({ title: 'Deploy studio to Railway' })])[0].reversible).toBe(
+      false
+    );
+    expect(
+      buildProposedActions([task({ title: 'Rent a vast.ai GPU for the fine-tune' })])[0].reversible
+    ).toBe(false);
     expect(buildProposedActions([task({ title: 'force-push main' })])[0].reversible).toBe(false);
   });
 
   it('ranks by priority ascending and caps by limit', () => {
     const a = buildProposedActions(
-      [task({ id: 'lo', priority: 3, title: 'low' }), task({ id: 'hi', priority: 1, title: 'high' })],
-      1,
+      [
+        task({ id: 'lo', priority: 3, title: 'low' }),
+        task({ id: 'hi', priority: 1, title: 'high' }),
+      ],
+      1
     );
     expect(a).toHaveLength(1);
     expect(a[0].taskId).toBe('hi');
@@ -47,7 +63,9 @@ describe('buildProposedActions', () => {
     // "route" in an API/code context is NOT a mobility trip — regression from
     // the over-broad MOBILITY_RE that matched bare "route".
     expect(inferActionType('Add the founder-approval route')).toBe('code');
-    expect(buildProposedActions([task({ title: 'Add the founder-approval route' })])[0].reversible).toBe(true);
+    expect(
+      buildProposedActions([task({ title: 'Add the founder-approval route' })])[0].reversible
+    ).toBe(true);
   });
 
   it('still classifies actual mobility coordination correctly', () => {

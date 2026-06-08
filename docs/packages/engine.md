@@ -33,6 +33,7 @@ The engine provides a narrow MVP for importing structured meshes into the simula
 - **Error contract**: Malformed/unsupported inputs reliably throw `MeshImportError` (codes: GMSH_INVALID, GMSH_UNSUPPORTED).
 - **Detection**: `detectFormat()` by extension or content heuristic (binary STL size, $MeshFormat, solid/endsolid, etc.).
 - **Usage (solver pipeline)**:
+
   ```ts
   import { importMeshSync, importMesh, MeshImportError } from '@holoscript/engine/simulation/import';
   import { StructuralSolver } from '@holoscript/engine/simulation';

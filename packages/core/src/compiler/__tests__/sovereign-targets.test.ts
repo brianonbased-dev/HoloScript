@@ -47,7 +47,10 @@ describe('sovereign-targets registry', () => {
   it('every registered engine file exists on disk (registry stays honest as files move)', () => {
     for (const e of SOVEREIGN_ENGINES) {
       const abs = resolve(REPO_ROOT, e.file);
-      expect(existsSync(abs), `${e.name}: ${e.file} not found — reconcile sovereign-targets.ts`).toBe(true);
+      expect(
+        existsSync(abs),
+        `${e.name}: ${e.file} not found — reconcile sovereign-targets.ts`
+      ).toBe(true);
     }
   });
 

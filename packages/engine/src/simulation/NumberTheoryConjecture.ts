@@ -100,7 +100,7 @@ export function verifyErdosStraus(n: number, x: number, y: number, z: number): b
  */
 export function findErdosStrausDecomposition(
   n: number,
-  searchBound = 4000,
+  searchBound = 4000
 ): UnitFractionDecomposition | null {
   if (!Number.isInteger(n) || n < 2) return null;
 
@@ -148,7 +148,7 @@ export function findEqualUnitFraction(n: number): number | null {
 function buildSurvivorScenario(
   minN: number,
   maxN: number,
-  searchBound: number,
+  searchBound: number
 ): NumberConjectureScenario {
   const evaluations: NumberConjectureEvaluation[] = [];
   for (let n = minN; n <= maxN; n++) {

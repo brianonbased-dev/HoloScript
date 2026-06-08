@@ -7,10 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type {
-  ReactionTriggerConfig,
-  AnimationEvent,
-} from '../traits/reactionTriggerTrait';
+import type { ReactionTriggerConfig, AnimationEvent } from '../traits/reactionTriggerTrait';
 import type { ViralPose } from '../character/poseLibrary';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
@@ -22,7 +19,18 @@ const mockTriggerPose = vi.fn((poseId: string) => {
   // Simulate pose completion after a tick
   setTimeout(() => {
     poseChangeCallbacks.forEach((cb) =>
-      cb({ id: poseId, name: poseId, emoji: '', description: '', category: 'viral', popularity: 1, difficulty: 'easy', duration: 1000, bones: [], tags: [] })
+      cb({
+        id: poseId,
+        name: poseId,
+        emoji: '',
+        description: '',
+        category: 'viral',
+        popularity: 1,
+        difficulty: 'easy',
+        duration: 1000,
+        bones: [],
+        tags: [],
+      })
     );
   }, 0);
 });

@@ -217,7 +217,10 @@ describe('prepareFederatedUpdate', () => {
 describe('aggregateUpdates', () => {
   const config: FederationConfig = { epsilon: 0.5, sensitivity: 1.0, minParticipants: 3 };
 
-  function makeUpdate(participantId: string, delta: number[]): ReturnType<typeof prepareFederatedUpdate> {
+  function makeUpdate(
+    participantId: string,
+    delta: number[]
+  ): ReturnType<typeof prepareFederatedUpdate> {
     return {
       participantId,
       traitId: '@grabbable',
@@ -277,11 +280,7 @@ describe('aggregateUpdates', () => {
   });
 
   it('reports cumulative epsilon correctly', () => {
-    const updates = [
-      makeUpdate('p1', [1.0]),
-      makeUpdate('p2', [1.0]),
-      makeUpdate('p3', [1.0]),
-    ];
+    const updates = [makeUpdate('p1', [1.0]), makeUpdate('p2', [1.0]), makeUpdate('p3', [1.0])];
     const result = aggregateUpdates(updates, config);
     expect(result.totalEpsilonBudget).toBeCloseTo(1.5, 10); // 3 × 0.5
   });
@@ -444,7 +443,7 @@ describe('TraitShareRegistry', () => {
 describe('federated sharing end-to-end (10 participants)', () => {
   it('improves trait weights after one federation round', () => {
     const config: FederationConfig = {
-      epsilon: 100.0,  // High epsilon = low noise, signal clearly dominates
+      epsilon: 100.0, // High epsilon = low noise, signal clearly dominates
       sensitivity: 1.0,
       minParticipants: 10,
     };
@@ -457,7 +456,10 @@ describe('federated sharing end-to-end (10 participants)', () => {
         epsilon: config.epsilon,
         sensitivity: config.sensitivity,
       });
-      const improved = makeWeights('@physics', baseline.weights.map((w) => w + 0.1 + i * 0.01));
+      const improved = makeWeights(
+        '@physics',
+        baseline.weights.map((w) => w + 0.1 + i * 0.01)
+      );
       return prepareFederatedUpdate(session, baseline, improved);
     });
 

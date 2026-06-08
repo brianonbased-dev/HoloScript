@@ -69,10 +69,7 @@ describe('dispatchReconstructionFromDecorators — Sprint-3 trait→MCP wiring',
   });
 
   it('@reconstruction_source + @drift_corrected → video session with drift', () => {
-    const d = dispatchReconstructionFromDecorators([
-      'reconstruction_source',
-      'drift_corrected',
-    ]);
+    const d = dispatchReconstructionFromDecorators(['reconstruction_source', 'drift_corrected']);
     expect(d.kind).toBe('video-session');
     if (d.kind !== 'video-session') return;
     expect(d.sessionFlags).toEqual({

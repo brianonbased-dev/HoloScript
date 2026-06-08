@@ -3,16 +3,17 @@
 **Date run**: 2026-05-20 (first slice)  
 **Corpus size (this run)**: 30 episodes (synthetic Gazebo-style TurtleBot + UR5 navigation loops from generate_small_corpus.py)  
 **Predictors compared**:
+
 - Verified: JEPAPredictor + JEPAObjective + SimulationContract receipts (physics-grounded)
 - Baseline: Same architecture, no receipt anchoring / no physics regularizer
 
 ## Results (first slice — 30 episodes)
 
-| Metric                        | Verified JEPA | Baseline | Delta |
-|-------------------------------|---------------|----------|-------|
+| Metric                        | Verified JEPA | Baseline | Delta  |
+| ----------------------------- | ------------- | -------- | ------ |
 | Latent prediction error (val) | 0.0074        | 0.0149   | -50.1% |
-| % steps < 3% ground-truth err | 100.0%        | ~52%     | +48pp |
-| Valid anchored receipts       | 100%          | N/A      | —     |
+| % steps < 3% ground-truth err | 100.0%        | ~52%     | +48pp  |
+| Valid anchored receipts       | 100%          | N/A      | —      |
 
 **Receipt validity**: 100% (all 30 episodes produced cryptographically structured receipts with valid signatures and ground-truth hashes).
 
@@ -58,6 +59,7 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 **Using**: Actual JEPAPredictor.plan() (latentDim=16, condDim=4) + real receipt generation + durable checkpoints with dimension guard + full backprop through both layers
 
 **Results** (first real bridge-sourced data + real sovereign objective):
+
 - Corpus: 40 episodes (2,641 steps) generated from the ingestion script that mimics real ROS 2 / Gazebo bridge output (dense lidar, contacts, effort, correlated motion)
 - Loss: real `JEPAObjective` formulation (MSE + SIGReg)
 - Verification on real latent targets: 2,641 steps measured
@@ -66,6 +68,7 @@ Scale to 1,500–3,000 episodes across 2–3 robot morphologies + multi-physics 
 **Loss curve file**: research/paper26/results/loss-curve-slice-001.json
 
 **Repro**:
+
 ```bash
 npx tsx research/paper26/train_jepa_real.ts
 ```

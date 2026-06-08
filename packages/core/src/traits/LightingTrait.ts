@@ -23,7 +23,6 @@ export interface Color {
  * Vector3 position or direction
  */
 
-
 /**
  * Shadow configuration
  */

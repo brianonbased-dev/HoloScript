@@ -42,7 +42,9 @@ export function StudioHeader() {
     setShowTutorial(false);
     try {
       localStorage.setItem('holoscript-studio-tutorial-complete', 'true');
-    } catch (err) { logger.warn('[StudioHeader] saving tutorial state to localStorage failed:', err); }
+    } catch (err) {
+      logger.warn('[StudioHeader] saving tutorial state to localStorage failed:', err);
+    }
   };
 
   // Keyboard shortcut: Ctrl+Shift+B => toggle blame overlay

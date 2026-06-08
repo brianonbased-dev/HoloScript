@@ -8,7 +8,7 @@ const CORPUS_PATH = join(
   'research',
   'paper-19',
   'datasets',
-  'phase-3-trait-inference-production.jsonl',
+  'phase-3-trait-inference-production.jsonl'
 );
 
 function readJsonl(path: string) {
@@ -65,7 +65,7 @@ describe('Paper-19 Production Trait-Inference Corpus', () => {
 
   it('has at least 300 novel-combination test rows', () => {
     const novelTest = rows.filter(
-      (r) => r.split === 'test' && r.metadata?.split_role === 'novel-combination-test',
+      (r) => r.split === 'test' && r.metadata?.split_role === 'novel-combination-test'
     );
     expect(novelTest.length).toBeGreaterThanOrEqual(300);
   });

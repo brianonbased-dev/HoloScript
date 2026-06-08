@@ -43,7 +43,9 @@ export class HolomeshClient {
   }
 
   async claim(taskId: string): Promise<BoardTask> {
-    return this.req<BoardTask>('PATCH', `/team/${this.teamId}/board/${taskId}`, { action: 'claim' });
+    return this.req<BoardTask>('PATCH', `/team/${this.teamId}/board/${taskId}`, {
+      action: 'claim',
+    });
   }
 
   async joinTeam(): Promise<{ success: boolean; role?: string; members?: number }> {
@@ -76,7 +78,10 @@ export class HolomeshClient {
   // handle owner so this resolves correctly. Records that fail shape
   // validation (layer_hashes != 7 elements, missing tick_iso/operation/
   // fnv1a_chain) are silently dropped server-side, not rejected as a batch.
-  async postAuditRecords(handle: string, records: CaelAuditRecord[]): Promise<{ appended: number; rejected: number }> {
+  async postAuditRecords(
+    handle: string,
+    records: CaelAuditRecord[]
+  ): Promise<{ appended: number; rejected: number }> {
     return this.req<{ appended: number; rejected: number }>(
       'POST',
       `/agent/${encodeURIComponent(handle)}/audit`,

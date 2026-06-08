@@ -81,12 +81,12 @@ export class Supervisor {
   status(): SupervisorStatus {
     const agents = [...this.agents.values()].map((m) => ({ ...m.status }));
     const globalSpentUsd = agents.reduce((s, a) => s + a.spentUsd, 0);
-    const globalBudgetExhausted = this.globalBudgetUsdPerDay != null
-      ? globalSpentUsd >= this.globalBudgetUsdPerDay
-      : false;
-    const globalRemainingUsd = this.globalBudgetUsdPerDay != null
-      ? Math.max(0, this.globalBudgetUsdPerDay - globalSpentUsd)
-      : Infinity;
+    const globalBudgetExhausted =
+      this.globalBudgetUsdPerDay != null ? globalSpentUsd >= this.globalBudgetUsdPerDay : false;
+    const globalRemainingUsd =
+      this.globalBudgetUsdPerDay != null
+        ? Math.max(0, this.globalBudgetUsdPerDay - globalSpentUsd)
+        : Infinity;
     return { globalSpentUsd, globalRemainingUsd, globalBudgetExhausted, agents };
   }
 
@@ -189,7 +189,9 @@ export class Supervisor {
     }
     const wallet = process.env[spec.walletEnvKey];
     if (!wallet || !/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
-      throw new Error(`Missing or malformed wallet env var "${spec.walletEnvKey}" for agent "${spec.handle}"`);
+      throw new Error(
+        `Missing or malformed wallet env var "${spec.walletEnvKey}" for agent "${spec.handle}"`
+      );
     }
     return {
       handle: spec.handle,
@@ -206,9 +208,8 @@ export class Supervisor {
   }
 
   private async spawnLoop(managed: ManagedAgent): Promise<void> {
-    const interval = managed.spec.tickIntervalMs
-      ?? this.opts.config.defaultTickIntervalMs
-      ?? 60_000;
+    const interval =
+      managed.spec.tickIntervalMs ?? this.opts.config.defaultTickIntervalMs ?? 60_000;
     while (!this.stopped) {
       try {
         await this.runOneTick(managed);

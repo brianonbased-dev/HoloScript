@@ -51,17 +51,17 @@ function detectLanguages(dir: string): string[] {
   const langs: string[] = [];
   const entries = listFilesShallow(dir, 3);
 
-  if (entries.some(e => e.endsWith('.ts') || e.endsWith('.tsx'))) langs.push('ts');
-  if (entries.some(e => e.endsWith('.js') || e.endsWith('.jsx'))) langs.push('js');
-  if (entries.some(e => e.endsWith('.py'))) langs.push('py');
-  if (entries.some(e => e.endsWith('.go'))) langs.push('go');
-  if (entries.some(e => e.endsWith('.rs'))) langs.push('rs');
-  if (entries.some(e => e.endsWith('.java'))) langs.push('java');
-  if (entries.some(e => e.endsWith('.rb'))) langs.push('rb');
-  if (entries.some(e => e.endsWith('.php'))) langs.push('php');
-  if (entries.some(e => e.endsWith('.cs'))) langs.push('cs');
-  if (entries.some(e => e.endsWith('.swift'))) langs.push('swift');
-  if (entries.some(e => e.endsWith('.kt') || e.endsWith('.kts'))) langs.push('kotlin');
+  if (entries.some((e) => e.endsWith('.ts') || e.endsWith('.tsx'))) langs.push('ts');
+  if (entries.some((e) => e.endsWith('.js') || e.endsWith('.jsx'))) langs.push('js');
+  if (entries.some((e) => e.endsWith('.py'))) langs.push('py');
+  if (entries.some((e) => e.endsWith('.go'))) langs.push('go');
+  if (entries.some((e) => e.endsWith('.rs'))) langs.push('rs');
+  if (entries.some((e) => e.endsWith('.java'))) langs.push('java');
+  if (entries.some((e) => e.endsWith('.rb'))) langs.push('rb');
+  if (entries.some((e) => e.endsWith('.php'))) langs.push('php');
+  if (entries.some((e) => e.endsWith('.cs'))) langs.push('cs');
+  if (entries.some((e) => e.endsWith('.swift'))) langs.push('swift');
+  if (entries.some((e) => e.endsWith('.kt') || e.endsWith('.kts'))) langs.push('kotlin');
 
   return langs;
 }
@@ -72,7 +72,15 @@ function listFilesShallow(dir: string, maxDepth: number, current: number = 0): s
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'build' || entry.name === '__pycache__' || entry.name === 'vendor') continue;
+      if (
+        entry.name.startsWith('.') ||
+        entry.name === 'node_modules' ||
+        entry.name === 'dist' ||
+        entry.name === 'build' ||
+        entry.name === '__pycache__' ||
+        entry.name === 'vendor'
+      )
+        continue;
       const full = path.join(dir, entry.name);
       if (entry.isFile()) {
         results.push(full);
@@ -81,7 +89,9 @@ function listFilesShallow(dir: string, maxDepth: number, current: number = 0): s
       }
       if (results.length > 500) break; // cap for performance
     }
-  } catch { /* permission errors, etc */ }
+  } catch {
+    /* permission errors, etc */
+  }
   return results;
 }
 
@@ -109,7 +119,9 @@ function detectFrameworks(dir: string, pkg: PkgJson | null): string[] {
       if (reqs.includes('fastapi')) fws.push('fastapi');
       if (reqs.includes('flask')) fws.push('flask');
       if (reqs.includes('django') && !fws.includes('django')) fws.push('django');
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
   }
   if (fs.existsSync(path.join(dir, 'pyproject.toml'))) {
     try {
@@ -117,7 +129,9 @@ function detectFrameworks(dir: string, pkg: PkgJson | null): string[] {
       if (pyproj.includes('fastapi')) fws.push('fastapi');
       if (pyproj.includes('flask')) fws.push('flask');
       if (pyproj.includes('django') && !fws.includes('django')) fws.push('django');
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
   }
 
   // Go
@@ -127,7 +141,9 @@ function detectFrameworks(dir: string, pkg: PkgJson | null): string[] {
       if (gomod.includes('gin-gonic')) fws.push('gin');
       if (gomod.includes('labstack/echo')) fws.push('echo');
       if (gomod.includes('gofiber')) fws.push('fiber');
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
   }
 
   // Rust
@@ -137,7 +153,9 @@ function detectFrameworks(dir: string, pkg: PkgJson | null): string[] {
       if (cargo.includes('actix-web')) fws.push('actix');
       if (cargo.includes('axum')) fws.push('axum');
       if (cargo.includes('rocket')) fws.push('rocket');
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
   }
 
   return [...new Set(fws)];
@@ -150,7 +168,10 @@ function detectTechStack(dir: string, pkg: PkgJson | null, langs: string[]): str
   const allDeps = { ...(pkg?.dependencies ?? {}), ...(pkg?.devDependencies ?? {}) };
 
   // Package manager
-  if (fs.existsSync(path.join(dir, 'pnpm-lock.yaml')) || fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))) {
+  if (
+    fs.existsSync(path.join(dir, 'pnpm-lock.yaml')) ||
+    fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))
+  ) {
     stack.push('pnpm');
   } else if (fs.existsSync(path.join(dir, 'yarn.lock'))) {
     stack.push('yarn');
@@ -199,11 +220,14 @@ function countPackages(dir: string, pkg: PkgJson | null): number {
         // Count actual dirs matching the first pattern
         const packagesDir = path.join(dir, 'packages');
         if (fs.existsSync(packagesDir)) {
-          return fs.readdirSync(packagesDir, { withFileTypes: true })
-            .filter(d => d.isDirectory() && !d.name.startsWith('.')).length;
+          return fs
+            .readdirSync(packagesDir, { withFileTypes: true })
+            .filter((d) => d.isDirectory() && !d.name.startsWith('.')).length;
         }
       }
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
   }
 
   // npm/yarn workspaces
@@ -212,8 +236,9 @@ function countPackages(dir: string, pkg: PkgJson | null): number {
     if (ws && ws.length > 0) {
       const packagesDir = path.join(dir, 'packages');
       if (fs.existsSync(packagesDir)) {
-        return fs.readdirSync(packagesDir, { withFileTypes: true })
-          .filter(d => d.isDirectory() && !d.name.startsWith('.')).length;
+        return fs
+          .readdirSync(packagesDir, { withFileTypes: true })
+          .filter((d) => d.isDirectory() && !d.name.startsWith('.')).length;
       }
       return ws.length;
     }

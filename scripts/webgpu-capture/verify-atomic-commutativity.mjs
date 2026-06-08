@@ -102,7 +102,7 @@ const OP_CATALOG = {
   min: { call: 'atomicMin(&slot, OPERAND)', op_a: 12, op_b: 9 },
   max: { call: 'atomicMax(&slot, OPERAND)', op_a: 11, op_b: 20 },
   and: { call: 'atomicAnd(&slot, OPERAND)', op_a: 0xff, op_b: 0x0f },
-  or:  { call: 'atomicOr(&slot, OPERAND)',  op_a: 0x01, op_b: 0x10 },
+  or: { call: 'atomicOr(&slot, OPERAND)', op_a: 0x01, op_b: 0x10 },
 };
 
 for (const op of ops) {
@@ -165,7 +165,9 @@ function detectHardware() {
   const cpuModel = cpuInfo[0]?.model ?? 'unknown';
   const cpuCount = cpuInfo.length;
   const ramGb = Math.round((os.totalmem() / 1024 / 1024 / 1024) * 10) / 10;
-  let tier = 'H1', label, tierConfidence = 'fallback';
+  let tier = 'H1',
+    label,
+    tierConfidence = 'fallback';
   if (envTier === 'H1' || envTier === 'H2' || envTier === 'H3') {
     tier = envTier;
     label = envLabel ?? `${envTier} (HOLOSCRIPT_HW_TIER=${envTier})`;
@@ -178,17 +180,26 @@ function detectHardware() {
     label = 'H1 (fallback)';
   }
   return {
-    tier, label,
+    tier,
+    label,
     gpu: envGpu ?? 'unspecified (read from adapter_info)',
-    cpu: cpuModel, cpuCount, ramGb,
-    platform: process.platform, release: os.release(),
-    arch: process.arch, node: process.version, tierConfidence,
+    cpu: cpuModel,
+    cpuCount,
+    ramGb,
+    platform: process.platform,
+    release: os.release(),
+    arch: process.arch,
+    node: process.version,
+    tierConfidence,
   };
 }
 
 function gitHeadHash(repoRoot) {
-  try { return execSync('git rev-parse HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim(); }
-  catch { return null; }
+  try {
+    return execSync('git rev-parse HEAD', { cwd: repoRoot, encoding: 'utf8' }).trim();
+  } catch {
+    return null;
+  }
 }
 
 function findRepoRoot(start) {
@@ -207,7 +218,8 @@ async function runAllPairs() {
   const pairs = enumeratePairs();
   const probes = pairs.map(([a, b]) => ({
     name: `${a}×${b}`,
-    op_a: a, op_b: b,
+    op_a: a,
+    op_b: b,
     wgsl: buildProbeWGSL(a, b),
     wgsl_sha256: null,
   }));
@@ -217,7 +229,9 @@ async function runAllPairs() {
   const executablePath =
     process.env.WEBGPU_PROBE_CHROME && existsSync(process.env.WEBGPU_PROBE_CHROME)
       ? process.env.WEBGPU_PROBE_CHROME
-      : existsSync(DEFAULT_CHROME_WIN) ? DEFAULT_CHROME_WIN : undefined;
+      : existsSync(DEFAULT_CHROME_WIN)
+        ? DEFAULT_CHROME_WIN
+        : undefined;
   const headless = process.env.WEBGPU_PROBE_HEADLESS !== '0';
   const baseArgs = [
     '--enable-unsafe-webgpu',
@@ -269,11 +283,21 @@ async function runAllPairs() {
 // ── Page-context driver ──────────────────────────────────────────────────
 async function runInPage(input) {
   if (!navigator.gpu) {
-    return { adapterInfo: null, userAgent: navigator.userAgent, perPair: [], notes: ['no navigator.gpu'] };
+    return {
+      adapterInfo: null,
+      userAgent: navigator.userAgent,
+      perPair: [],
+      notes: ['no navigator.gpu'],
+    };
   }
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
   if (!adapter) {
-    return { adapterInfo: null, userAgent: navigator.userAgent, perPair: [], notes: ['requestAdapter null'] };
+    return {
+      adapterInfo: null,
+      userAgent: navigator.userAgent,
+      perPair: [],
+      notes: ['requestAdapter null'],
+    };
   }
   const adapterInfo = adapter.requestAdapterInfo
     ? await adapter.requestAdapterInfo()
@@ -294,7 +318,8 @@ async function runInPage(input) {
     if (errs.length > 0) {
       perPair.push({
         pair: probe.name,
-        op_a: probe.op_a, op_b: probe.op_b,
+        op_a: probe.op_a,
+        op_b: probe.op_b,
         compiled: false,
         compile_errors: errs.map((m) => `${m.lineNum}:${m.linePos} ${m.message}`),
       });
@@ -308,17 +333,29 @@ async function runInPage(input) {
       });
     } catch (e) {
       perPair.push({
-        pair: probe.name, op_a: probe.op_a, op_b: probe.op_b,
-        compiled: false, compile_errors: [`pipeline: ${e?.message ?? e}`],
+        pair: probe.name,
+        op_a: probe.op_a,
+        op_b: probe.op_b,
+        compiled: false,
+        compile_errors: [`pipeline: ${e?.message ?? e}`],
       });
       continue;
     }
 
     // Slot buffer (atomic<u32>) + sink (array<u32,64>) — sink keeps the
     // compiler from optimizing away the workgroup branches.
-    const slotBuf = device.createBuffer({ size: 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC });
-    const sinkBuf = device.createBuffer({ size: 256, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC });
-    const staging = device.createBuffer({ size: 4, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+    const slotBuf = device.createBuffer({
+      size: 4,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+    });
+    const sinkBuf = device.createBuffer({
+      size: 256,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+    });
+    const staging = device.createBuffer({
+      size: 4,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
     const bg = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries: [
@@ -387,7 +424,8 @@ async function runInPage(input) {
     notes: [
       'Workgroup-level interleaving probe; intra-workgroup races are NOT exercised (only thread 0 of each WG touches the slot).',
       'commutative_observed === true means under THIS hardware/ICD, ' +
-        input.trials + ' trials produced one final value. It is a falsification tool, not a proof of commutativity.',
+        input.trials +
+        ' trials produced one final value. It is a falsification tool, not a proof of commutativity.',
       ...notes,
     ],
   };
@@ -436,29 +474,40 @@ const receipt = {
     dispatch_size: [2, 1, 1],
   },
   protocol_commit: gitHeadHash(repoRoot),
-  results: [{
-    op: 'pairwise_atomic_probe',
-    scale: `${ops.length} ops × ${ops.length} pairs (symmetric) = ${enumeratePairs().length} probes`,
-    n: ops.length,
-    trials: trials,
-    median_us: 0,
-    p95_us: 0,
-    min_us: 0,
-    max_us: 0,
-  }],
+  results: [
+    {
+      op: 'pairwise_atomic_probe',
+      scale: `${ops.length} ops × ${ops.length} pairs (symmetric) = ${enumeratePairs().length} probes`,
+      n: ops.length,
+      trials: trials,
+      median_us: 0,
+      p95_us: 0,
+      min_us: 0,
+      max_us: 0,
+    },
+  ],
   pairwise_matrix: matrix,
   notes: [
     'Verifies the W.GOLD.554 finding (mixed atomicXor + atomicAdd on overlapping slots breaks bit-identical replay) generalizes.',
     'Pair (a,b) NON-COMMUTATIVE  → mixing a and b on the same atomic slot will break same-adapter bit-identical replay claims.',
-    'Pair (a,b) COMMUTATIVE      → at this operand pair, ' + trials + ' trials yielded a single final value. Necessary but not sufficient for general commutativity (different operands may falsify).',
+    'Pair (a,b) COMMUTATIVE      → at this operand pair, ' +
+      trials +
+      ' trials yielded a single final value. Necessary but not sufficient for general commutativity (different operands may falsify).',
     ...captured.notes,
   ],
   ots_proof_path: null,
   anchor_chain: null,
 };
 
-const summary = Object.entries(matrix).map(([k, v]) => `  ${k.padEnd(10)} compiled=${v.compiled} unique=${v.unique_final_values ?? '?'} commutes=${v.commutative_observed ?? '?'}`).join('\n');
-console.log(`[verify-atomic-commutativity] adapter: ${captured.adapterInfo?.device || '?'} / ${captured.adapterInfo?.architecture || '?'}`);
+const summary = Object.entries(matrix)
+  .map(
+    ([k, v]) =>
+      `  ${k.padEnd(10)} compiled=${v.compiled} unique=${v.unique_final_values ?? '?'} commutes=${v.commutative_observed ?? '?'}`
+  )
+  .join('\n');
+console.log(
+  `[verify-atomic-commutativity] adapter: ${captured.adapterInfo?.device || '?'} / ${captured.adapterInfo?.architecture || '?'}`
+);
 console.log(`[verify-atomic-commutativity] pairwise results (${trials} trials each):\n${summary}`);
 
 const benchDir = path.join(repoRoot, '.bench-logs', capturedAt.replace(/[:.]/g, '-'));

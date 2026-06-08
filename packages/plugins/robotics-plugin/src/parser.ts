@@ -6,7 +6,13 @@
  */
 
 import { Token, TokenType } from './lexer';
-import { CompositionNode, ObjectNode, PropertyValue, DomainRandomizationConfig, ActuatorGroupConfig } from './ast';
+import {
+  CompositionNode,
+  ObjectNode,
+  PropertyValue,
+  DomainRandomizationConfig,
+  ActuatorGroupConfig,
+} from './ast';
 
 export class Parser {
   private tokens: Token[];
@@ -74,8 +80,10 @@ export class Parser {
       this.currentToken().type !== TokenType.EOF
     ) {
       // Check for domain_randomization block at composition level
-      if (this.currentToken().type === TokenType.IDENTIFIER &&
-          this.currentToken().value === 'domain_randomization') {
+      if (
+        this.currentToken().type === TokenType.IDENTIFIER &&
+        this.currentToken().value === 'domain_randomization'
+      ) {
         this.advance();
         this.expect(TokenType.COLON);
         domainRandomization = this.parseDomainRandomizationBlock();
@@ -125,15 +133,19 @@ export class Parser {
         }
       }
       // Check for domain_randomization block
-      else if (this.currentToken().type === TokenType.IDENTIFIER &&
-          this.currentToken().value === 'domain_randomization') {
+      else if (
+        this.currentToken().type === TokenType.IDENTIFIER &&
+        this.currentToken().value === 'domain_randomization'
+      ) {
         this.advance();
         this.expect(TokenType.COLON);
         domainRandomization = this.parseDomainRandomizationBlock();
       }
       // Check for actuator_group block
-      else if (this.currentToken().type === TokenType.IDENTIFIER &&
-               this.currentToken().value === 'actuator_group') {
+      else if (
+        this.currentToken().type === TokenType.IDENTIFIER &&
+        this.currentToken().value === 'actuator_group'
+      ) {
         this.advance();
         this.expect(TokenType.COLON);
         const group = this.parseActuatorGroupBlock();

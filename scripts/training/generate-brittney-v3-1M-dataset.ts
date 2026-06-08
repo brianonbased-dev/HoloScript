@@ -27,128 +27,407 @@ const allExamples: TrainingExample[] = [];
 // Enhanced arrays with pop culture theme support
 const GEOMETRIES = [
   // Basic shapes
-  'box', 'sphere', 'cylinder', 'plane', 'torus', 'cone', 'capsule',
+  'box',
+  'sphere',
+  'cylinder',
+  'plane',
+  'torus',
+  'cone',
+  'capsule',
   // Creative shapes
-  'heart', 'crystal', 'gear', 'lightning', 'diamond', 'star',
-  'helix', 'knot', 'mobius', 'klein_bottle', 'fractal',
+  'heart',
+  'crystal',
+  'gear',
+  'lightning',
+  'diamond',
+  'star',
+  'helix',
+  'knot',
+  'mobius',
+  'klein_bottle',
+  'fractal',
   // Medical
-  'organ', 'bone', 'tissue', 'cell', 'molecule', 'dna_helix',
-  'artery', 'vein', 'neuron', 'synapse',
+  'organ',
+  'bone',
+  'tissue',
+  'cell',
+  'molecule',
+  'dna_helix',
+  'artery',
+  'vein',
+  'neuron',
+  'synapse',
   // Architectural
-  'wall', 'column', 'beam', 'arch', 'dome', 'roof',
-  'window', 'door', 'stairs', 'bridge',
+  'wall',
+  'column',
+  'beam',
+  'arch',
+  'dome',
+  'roof',
+  'window',
+  'door',
+  'stairs',
+  'bridge',
   // IoT/Robotics
-  'sensor', 'actuator', 'servo', 'motor', 'circuit',
-  'robot_arm', 'drone', 'rover', 'manipulator',
+  'sensor',
+  'actuator',
+  'servo',
+  'motor',
+  'circuit',
+  'robot_arm',
+  'drone',
+  'rover',
+  'manipulator',
   // VR/Gaming
-  'weapon', 'shield', 'armor', 'projectile', 'pickup',
-  'portal', 'waypoint', 'spawn_point', 'checkpoint',
+  'weapon',
+  'shield',
+  'armor',
+  'projectile',
+  'pickup',
+  'portal',
+  'waypoint',
+  'spawn_point',
+  'checkpoint',
   // Abstract
-  'voxel', 'point_cloud', 'mesh', 'spline', 'nurbs',
-  'procedural', 'parametric', 'implicit_surface',
+  'voxel',
+  'point_cloud',
+  'mesh',
+  'spline',
+  'nurbs',
+  'procedural',
+  'parametric',
+  'implicit_surface',
   // Medieval Fantasy (Skyrim)
-  'sword', 'axe', 'bow', 'staff', 'wand', 'dagger', 'mace',
-  'castle', 'tower', 'fortress', 'dungeon', 'throne', 'altar',
-  'dragon', 'creature', 'beast', 'monster',
-  'torch', 'brazier', 'cauldron', 'scroll', 'book', 'potion',
+  'sword',
+  'axe',
+  'bow',
+  'staff',
+  'wand',
+  'dagger',
+  'mace',
+  'castle',
+  'tower',
+  'fortress',
+  'dungeon',
+  'throne',
+  'altar',
+  'dragon',
+  'creature',
+  'beast',
+  'monster',
+  'torch',
+  'brazier',
+  'cauldron',
+  'scroll',
+  'book',
+  'potion',
   // Vehicles (BTTF, RPO)
-  'car', 'delorean', 'hoverboard', 'vehicle', 'automobile',
-  'spaceship', 'starship', 'shuttle', 'fighter', 'cruiser',
-  'motorcycle', 'bike', 'skateboard',
+  'car',
+  'delorean',
+  'hoverboard',
+  'vehicle',
+  'automobile',
+  'spaceship',
+  'starship',
+  'shuttle',
+  'fighter',
+  'cruiser',
+  'motorcycle',
+  'bike',
+  'skateboard',
   // Retro Gaming (Ready Player One)
-  'arcade_cabinet', 'game_console', 'joystick', 'controller',
-  'coin', 'token', 'pixel_art', 'sprite', 'pac_dot',
-  'retro_screen', 'crt_monitor', 'cassette',
+  'arcade_cabinet',
+  'game_console',
+  'joystick',
+  'controller',
+  'coin',
+  'token',
+  'pixel_art',
+  'sprite',
+  'pac_dot',
+  'retro_screen',
+  'crt_monitor',
+  'cassette',
   // Sci-Fi (Star Trek, RPO)
-  'panel', 'console', 'terminal', 'display', 'interface',
-  'phaser', 'tricorder', 'communicator', 'transporter_pad',
-  'computer_core', 'warp_core', 'deflector', 'sensor_array',
+  'panel',
+  'console',
+  'terminal',
+  'display',
+  'interface',
+  'phaser',
+  'tricorder',
+  'communicator',
+  'transporter_pad',
+  'computer_core',
+  'warp_core',
+  'deflector',
+  'sensor_array',
 
   // Storybook Elements (Harry Potter, Narnia, Alice, Where the Wild Things Are)
-  'tree', 'bush', 'flower', 'grass', 'river', 'mountain', 'rock', 'cliff',
-  'cloud', 'rainbow', 'moon', 'sun', 'rain', 'snow', 'fog',
-  'treasure_chest', 'map', 'compass', 'lantern', 'key', 'lock',
-  'table', 'chair', 'bed', 'wardrobe', 'mirror', 'painting', 'rug',
-  'teacup', 'plate', 'goblet', 'chalice', 'bowl',
-  'playing_card', 'chess_piece', 'die', 'hourglass',
-  'crown', 'scepter', 'orb', 'ring', 'amulet', 'pendant',
-  'rabbit', 'cat', 'owl', 'rat', 'fox', 'wolf', 'bear',
-  'mushroom', 'toadstool', 'vine', 'ivy', 'root'
+  'tree',
+  'bush',
+  'flower',
+  'grass',
+  'river',
+  'mountain',
+  'rock',
+  'cliff',
+  'cloud',
+  'rainbow',
+  'moon',
+  'sun',
+  'rain',
+  'snow',
+  'fog',
+  'treasure_chest',
+  'map',
+  'compass',
+  'lantern',
+  'key',
+  'lock',
+  'table',
+  'chair',
+  'bed',
+  'wardrobe',
+  'mirror',
+  'painting',
+  'rug',
+  'teacup',
+  'plate',
+  'goblet',
+  'chalice',
+  'bowl',
+  'playing_card',
+  'chess_piece',
+  'die',
+  'hourglass',
+  'crown',
+  'scepter',
+  'orb',
+  'ring',
+  'amulet',
+  'pendant',
+  'rabbit',
+  'cat',
+  'owl',
+  'rat',
+  'fox',
+  'wolf',
+  'bear',
+  'mushroom',
+  'toadstool',
+  'vine',
+  'ivy',
+  'root',
 ];
 
 const MATERIALS = [
   // Physical
-  'standard', 'pbr', 'physical', 'basic', 'lambert', 'phong',
+  'standard',
+  'pbr',
+  'physical',
+  'basic',
+  'lambert',
+  'phong',
   // Metallic
-  'metallic', 'chrome', 'gold', 'silver', 'copper', 'bronze',
-  'iron', 'steel', 'titanium', 'aluminum',
+  'metallic',
+  'chrome',
+  'gold',
+  'silver',
+  'copper',
+  'bronze',
+  'iron',
+  'steel',
+  'titanium',
+  'aluminum',
   // Transparent
-  'glass', 'transparent', 'frosted', 'translucent',
+  'glass',
+  'transparent',
+  'frosted',
+  'translucent',
   // Special
-  'emissive', 'glowing', 'hologram', 'neon', 'plasma',
-  'wireframe', 'toon', 'cel_shaded',
+  'emissive',
+  'glowing',
+  'hologram',
+  'neon',
+  'plasma',
+  'wireframe',
+  'toon',
+  'cel_shaded',
   // Surface types
-  'matte', 'glossy', 'shiny', 'rough', 'smooth',
+  'matte',
+  'glossy',
+  'shiny',
+  'rough',
+  'smooth',
   // Medical
-  'tissue', 'bone_material', 'blood', 'organ_material',
+  'tissue',
+  'bone_material',
+  'blood',
+  'organ_material',
   // Functional
-  'unlit', 'normal', 'depth', 'uv_debug',
+  'unlit',
+  'normal',
+  'depth',
+  'uv_debug',
   // Natural (Skyrim)
-  'stone', 'wood', 'leather', 'fabric', 'cloth',
-  'marble', 'granite', 'brick', 'cobblestone',
-  'fur', 'hide', 'scale', 'feather',
+  'stone',
+  'wood',
+  'leather',
+  'fabric',
+  'cloth',
+  'marble',
+  'granite',
+  'brick',
+  'cobblestone',
+  'fur',
+  'hide',
+  'scale',
+  'feather',
   // Sci-Fi (Star Trek, RPO)
-  'energy', 'force_field', 'holographic', 'digital',
-  'lcars', 'duranium', 'tritanium', 'transparent_aluminum',
-  'plasma_field', 'photonic', 'subspace',
+  'energy',
+  'force_field',
+  'holographic',
+  'digital',
+  'lcars',
+  'duranium',
+  'tritanium',
+  'transparent_aluminum',
+  'plasma_field',
+  'photonic',
+  'subspace',
   // Retro (BTTF, RPO)
-  'chrome_80s', 'brushed_metal', 'vinyl', 'plastic_retro',
-  'neon_tube', 'led_matrix', 'pixel_shader',
+  'chrome_80s',
+  'brushed_metal',
+  'vinyl',
+  'plastic_retro',
+  'neon_tube',
+  'led_matrix',
+  'pixel_shader',
 
   // Storybook/Magical (Harry Potter, Narnia, Fairy Tales)
-  'magical', 'enchanted', 'mystical', 'ethereal', 'shimmering',
-  'ancient', 'weathered', 'worn', 'aged', 'antique',
-  'living_wood', 'petrified', 'fossilized', 'crystalline',
-  'gossamer', 'silken', 'velvet', 'satin',
-  'parchment', 'papyrus', 'vellum',
-  'ice', 'frost', 'snow_material', 'water', 'liquid'
+  'magical',
+  'enchanted',
+  'mystical',
+  'ethereal',
+  'shimmering',
+  'ancient',
+  'weathered',
+  'worn',
+  'aged',
+  'antique',
+  'living_wood',
+  'petrified',
+  'fossilized',
+  'crystalline',
+  'gossamer',
+  'silken',
+  'velvet',
+  'satin',
+  'parchment',
+  'papyrus',
+  'vellum',
+  'ice',
+  'frost',
+  'snow_material',
+  'water',
+  'liquid',
 ];
 
 const COLORS = [
   // Named colors
-  'red', 'blue', 'green', 'yellow', 'orange', 'purple',
-  'cyan', 'magenta', 'white', 'black', 'gray',
+  'red',
+  'blue',
+  'green',
+  'yellow',
+  'orange',
+  'purple',
+  'cyan',
+  'magenta',
+  'white',
+  'black',
+  'gray',
   // Hex colors
-  '"#ff0000"', '"#00ff00"', '"#0000ff"', '"#ffff00"',
-  '"#ff00ff"', '"#00ffff"', '"#ff6600"', '"#3498db"',
-  '"#e74c3c"', '"#2ecc71"', '"#f39c12"', '"#9b59b6"',
+  '"#ff0000"',
+  '"#00ff00"',
+  '"#0000ff"',
+  '"#ffff00"',
+  '"#ff00ff"',
+  '"#00ffff"',
+  '"#ff6600"',
+  '"#3498db"',
+  '"#e74c3c"',
+  '"#2ecc71"',
+  '"#f39c12"',
+  '"#9b59b6"',
   // Semantic colors
-  'primary', 'secondary', 'accent', 'background',
+  'primary',
+  'secondary',
+  'accent',
+  'background',
   // Domain-specific
-  'tissue_pink', 'blood_red', 'bone_white',
-  'warning_yellow', 'danger_red', 'safe_green',
-  'metal_gray', 'rust_orange', 'earth', 'sky', 'ocean'
+  'tissue_pink',
+  'blood_red',
+  'bone_white',
+  'warning_yellow',
+  'danger_red',
+  'safe_green',
+  'metal_gray',
+  'rust_orange',
+  'earth',
+  'sky',
+  'ocean',
 ];
 
 const ANIMATION_TYPES = [
   // Basic
-  'spin', 'rotate', 'orbit', 'revolve',
+  'spin',
+  'rotate',
+  'orbit',
+  'revolve',
   // Motion
-  'float', 'hover', 'bounce', 'sway', 'wobble',
-  'shake', 'vibrate', 'oscillate',
+  'float',
+  'hover',
+  'bounce',
+  'sway',
+  'wobble',
+  'shake',
+  'vibrate',
+  'oscillate',
   // Pulsing
-  'pulse', 'breathe', 'throb', 'beat', 'heartbeat',
+  'pulse',
+  'breathe',
+  'throb',
+  'beat',
+  'heartbeat',
   // Lighting
-  'blink', 'flicker', 'glow', 'flash', 'strobe',
+  'blink',
+  'flicker',
+  'glow',
+  'flash',
+  'strobe',
   // Transformation
-  'scale', 'grow', 'shrink', 'morph',
+  'scale',
+  'grow',
+  'shrink',
+  'morph',
   // Advanced
-  'spiral', 'wave', 'ripple', 'flow',
+  'spiral',
+  'wave',
+  'ripple',
+  'flow',
   // Special effects
-  'materialize', 'dematerialize', 'fade', 'dissolve',
-  'particle_emit', 'trail', 'afterimage',
+  'materialize',
+  'dematerialize',
+  'fade',
+  'dissolve',
+  'particle_emit',
+  'trail',
+  'afterimage',
   // Cyclical
-  'color_cycle', 'color_shift', 'rainbow'
+  'color_cycle',
+  'color_shift',
+  'rainbow',
 ];
 
 function randomChoice<T>(arr: T[]): T {
@@ -157,21 +436,17 @@ function randomChoice<T>(arr: T[]): T {
 
 function randomPosition(): [number, number, number] {
   return [
-    Math.random() * 10 - 5,  // x: -5 to 5
-    Math.random() * 3,       // y: 0 to 3
-    Math.random() * 10 - 5   // z: -5 to 5
+    Math.random() * 10 - 5, // x: -5 to 5
+    Math.random() * 3, // y: 0 to 3
+    Math.random() * 10 - 5, // z: -5 to 5
   ];
 }
 
 function randomScale(): number | [number, number, number] {
   if (Math.random() > 0.5) {
-    return Math.random() * 2 + 0.5;  // 0.5 to 2.5
+    return Math.random() * 2 + 0.5; // 0.5 to 2.5
   } else {
-    return [
-      Math.random() * 2 + 0.5,
-      Math.random() * 2 + 0.5,
-      Math.random() * 2 + 0.5
-    ];
+    return [Math.random() * 2 + 0.5, Math.random() * 2 + 0.5, Math.random() * 2 + 0.5];
   }
 }
 
@@ -185,7 +460,9 @@ console.log(`  Materials: ${MATERIALS.length} (medieval, sci-fi, retro)`);
 console.log(`  Colors: ${COLORS.length}`);
 console.log(`  Animations: ${ANIMATION_TYPES.length}`);
 console.log();
-console.log(`Theoretical max: ${169 * GEOMETRIES.length * MATERIALS.length * COLORS.length * 2} combinations`);
+console.log(
+  `Theoretical max: ${169 * GEOMETRIES.length * MATERIALS.length * COLORS.length * 2} combinations`
+);
 console.log();
 
 // ============================================================================
@@ -193,9 +470,10 @@ console.log();
 // ============================================================================
 
 const TRAITS_DIR = path.join(__dirname, '../packages/core/src/traits');
-const traitFiles = readdirSync(TRAITS_DIR).filter(f => f.endsWith('Trait.ts'));
-const traitNames = traitFiles.map(f =>
-  f.replace('Trait.ts', '')
+const traitFiles = readdirSync(TRAITS_DIR).filter((f) => f.endsWith('Trait.ts'));
+const traitNames = traitFiles.map((f) =>
+  f
+    .replace('Trait.ts', '')
     .toLowerCase()
     .replace(/([A-Z])/g, '_$1')
     .replace(/^_/, '')
@@ -250,7 +528,7 @@ function generateTraitExample(traitName: string): TrainingExample {
   return {
     instruction: `Create a HoloScript object with @${traitName} trait`,
     input: '',
-    output: code
+    output: code,
   };
 }
 
@@ -268,7 +546,9 @@ for (let i = 0; i < traitNames.length; i++) {
 
   if ((i + 1) % 30 === 0) {
     const elapsed = ((Date.now() - START_TIME) / 1000 / 60).toFixed(1);
-    console.log(`  Progress: ${i + 1}/${traitNames.length} traits | ${allExamples.length.toLocaleString()} examples | ${elapsed}min`);
+    console.log(
+      `  Progress: ${i + 1}/${traitNames.length} traits | ${allExamples.length.toLocaleString()} examples | ${elapsed}min`
+    );
   }
 }
 
@@ -290,17 +570,37 @@ const PHASES = [
   { name: 'COMPRESS', duration: '5-8min', desc: 'Compress learnings into wisdom/patterns/gotchas' },
   { name: 'GROW', duration: '2-3min', desc: 'Expand knowledge into adjacent domains' },
   { name: 'RE-INTAKE', duration: '2min', desc: 'Absorb own work immediately' },
-  { name: 'EVOLVE', duration: '1-2min', desc: 'System optimization & next cycle planning' }
+  { name: 'EVOLVE', duration: '1-2min', desc: 'System optimization & next cycle planning' },
 ];
 
 const TASK_TYPES = [
-  'research', 'build', 'test', 'deploy', 'analyze', 'debug', 'refactor',
-  'design', 'implement', 'optimize', 'document', 'review', 'plan', 'monitor'
+  'research',
+  'build',
+  'test',
+  'deploy',
+  'analyze',
+  'debug',
+  'refactor',
+  'design',
+  'implement',
+  'optimize',
+  'document',
+  'review',
+  'plan',
+  'monitor',
 ];
 
 const CONTEXTS = [
-  'web_app', 'mobile_app', 'api_service', 'database', 'frontend', 'backend',
-  'infrastructure', 'security', 'performance', 'scalability'
+  'web_app',
+  'mobile_app',
+  'api_service',
+  'database',
+  'frontend',
+  'backend',
+  'infrastructure',
+  'security',
+  'performance',
+  'scalability',
 ];
 
 for (let i = 0; i < 100000; i++) {
@@ -337,7 +637,7 @@ async function ${phase.name.toLowerCase()}Phase(context: Context): Promise<Phase
     duration,
     output: result
   };
-}`
+}`,
   });
 
   if ((i + 1) % 10000 === 0) {
@@ -357,8 +657,20 @@ console.log('[PHASE 3] Generating Knowledge Compression examples...');
 console.log(`  Target: 50,000 examples (Wisdom, Patterns, Gotchas)`);
 console.log();
 
-const DOMAINS = ['ARCH', 'PERF', 'SECURITY', 'AI', 'WEB3', 'VR', 'DEPLOY',
-                 'DATABASE', 'NETWORK', 'UI', 'API', 'TESTING'];
+const DOMAINS = [
+  'ARCH',
+  'PERF',
+  'SECURITY',
+  'AI',
+  'WEB3',
+  'VR',
+  'DEPLOY',
+  'DATABASE',
+  'NETWORK',
+  'UI',
+  'API',
+  'TESTING',
+];
 
 // Wisdom (25,000)
 for (let i = 0; i < 25000; i++) {
@@ -370,7 +682,7 @@ for (let i = 0; i < 25000; i++) {
     instruction: `Compress a ${domain.toLowerCase()} learning into uAA2++ wisdom format`,
     input: '',
     output: `W.${id} | ${domain} System Best Practice | ⚡${confidence}
-When implementing ${domain.toLowerCase()} systems, always validate inputs at boundaries and use fail-fast patterns. This prevents cascade failures and makes debugging significantly easier. Pattern observed across 15+ production deployments with 40% reduction in MTTR.`
+When implementing ${domain.toLowerCase()} systems, always validate inputs at boundaries and use fail-fast patterns. This prevents cascade failures and makes debugging significantly easier. Pattern observed across 15+ production deployments with 40% reduction in MTTR.`,
   });
 }
 
@@ -386,7 +698,7 @@ for (let i = 0; i < 15000; i++) {
 **Pattern:** Use layered architecture with clear separation of concerns
 **Why:** Enables independent scaling and testing of each layer
 **When:** Building complex ${domain.toLowerCase()} systems with multiple responsibilities
-**Result:** Maintainable codebase with 50% faster iteration speed`
+**Result:** Maintainable codebase with 50% faster iteration speed`,
   });
 }
 
@@ -402,7 +714,7 @@ for (let i = 0; i < 10000; i++) {
 **Issue:** Forgetting to handle edge cases in ${domain.toLowerCase()} logic
 **Impact:** 60% of production bugs stem from this oversight
 **Solution:** Always test with null, empty, and boundary values
-**Prevention:** Add automated edge case test generation to CI pipeline`
+**Prevention:** Add automated edge case test generation to CI pipeline`,
   });
 }
 
@@ -417,7 +729,7 @@ async function writeDataset() {
   console.log('[EXPORT] Writing 1M dataset...');
 
   const outputFile = path.join(__dirname, '../datasets/brittney-v3.0-1M.jsonl');
-  const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
+  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
 
   await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 

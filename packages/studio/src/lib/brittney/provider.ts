@@ -98,10 +98,10 @@ export function resolveBrittneyProvider(): ResolvedBrittneyProvider {
 
   throw new Error(
     'No Brittney provider configured. Brittney runs native by default — set ' +
-    'BRITTNEY_PROVIDER=cloud (with BRITTNEY_SERVICE_URL, the sovereign serving endpoint) ' +
-    'or BRITTNEY_PROVIDER=ollama (with OLLAMA_HOST). For a BYOK frontier fallback, set ' +
-    'BRITTNEY_PROVIDER=anthropic (with ANTHROPIC_API_KEY). Downloaded apps configure ' +
-    'OLLAMA_HOST to the on-device Brittney model.'
+      'BRITTNEY_PROVIDER=cloud (with BRITTNEY_SERVICE_URL, the sovereign serving endpoint) ' +
+      'or BRITTNEY_PROVIDER=ollama (with OLLAMA_HOST). For a BYOK frontier fallback, set ' +
+      'BRITTNEY_PROVIDER=anthropic (with ANTHROPIC_API_KEY). Downloaded apps configure ' +
+      'OLLAMA_HOST to the on-device Brittney model.'
   );
 }
 
@@ -109,7 +109,7 @@ function resolveAnthropic(apiKey: string | undefined): ResolvedBrittneyProvider 
   if (!apiKey) {
     throw new Error(
       'BRITTNEY_PROVIDER=anthropic requires ANTHROPIC_API_KEY. ' +
-      'Set ANTHROPIC_API_KEY or switch to BRITTNEY_PROVIDER=cloud or BRITTNEY_PROVIDER=ollama.'
+        'Set ANTHROPIC_API_KEY or switch to BRITTNEY_PROVIDER=cloud or BRITTNEY_PROVIDER=ollama.'
     );
   }
   const provider = new AnthropicAdapter({
@@ -128,7 +128,7 @@ function resolveCloud(baseURL: string | undefined): ResolvedBrittneyProvider {
   if (!baseURL) {
     throw new Error(
       'BRITTNEY_PROVIDER=cloud requires BRITTNEY_SERVICE_URL. ' +
-      'Set BRITTNEY_SERVICE_URL or switch to another provider.'
+        'Set BRITTNEY_SERVICE_URL or switch to another provider.'
     );
   }
   const apiKey = process.env.BRITTNEY_API_KEY ?? '';
@@ -186,7 +186,9 @@ const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.
  */
 async function resolveFleet(): Promise<ResolvedBrittneyProvider> {
   const orch = (
-    process.env.BRITTNEY_FLEET_ORCH_URL || process.env.MCP_ORCHESTRATOR_URL || FLEET_DEFAULT_ORCH
+    process.env.BRITTNEY_FLEET_ORCH_URL ||
+    process.env.MCP_ORCHESTRATOR_URL ||
+    FLEET_DEFAULT_ORCH
   ).replace(/\/$/, '');
   const model = process.env.BRITTNEY_FLEET_MODEL || FLEET_DEFAULT_MODEL;
   const bearer = process.env.FLEET_INFERENCE_KEY || process.env.SERVE_INFERENCE_KEY;
@@ -208,8 +210,8 @@ async function resolveFleet(): Promise<ResolvedBrittneyProvider> {
   if (!warmUrl) {
     throw new Error(
       `Brittney fleet endpoint is cold for model "${model}". The resolve bumped demand; the ` +
-      `serving autoscaler will warm a box shortly. Falling back to a configured provider for ` +
-      `this request (set ANTHROPIC_API_KEY for a BYOK fallback, or OLLAMA_HOST for local).`
+        `serving autoscaler will warm a box shortly. Falling back to a configured provider for ` +
+        `this request (set ANTHROPIC_API_KEY for a BYOK fallback, or OLLAMA_HOST for local).`
     );
   }
 

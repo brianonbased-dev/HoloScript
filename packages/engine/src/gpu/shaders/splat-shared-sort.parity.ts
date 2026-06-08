@@ -51,9 +51,7 @@ export interface ParityResult {
  * Mirror of the WGSL `safeNormalize` helper. Returns the zero vector for
  * degenerate inputs (matches the CPU ref's `Math.hypot || 1` clamp).
  */
-function safeNormalize(
-  v: readonly [number, number, number]
-): [number, number, number] {
+function safeNormalize(v: readonly [number, number, number]): [number, number, number] {
   const len2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
   if (len2 < 1e-12) return [0, 0, 0];
   const inv = 1 / Math.sqrt(len2);

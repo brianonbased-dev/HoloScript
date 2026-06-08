@@ -125,9 +125,9 @@ export interface GyriSulciConfig {
 
 const DEFAULT_CONFIG: GyriSulciConfig = {
   unknown_threshold_mm: 40,
-  gyral_priority:       0.8,
-  sulcal_priority:      0.3,
-  unknown_priority:     0.5,
+  gyral_priority: 0.8,
+  sulcal_priority: 0.3,
+  unknown_priority: 0.5,
 };
 
 // ─── Core classification function ─────────────────────────────────────────────
@@ -144,23 +144,23 @@ const DEFAULT_CONFIG: GyriSulciConfig = {
  */
 export function classifyCoord(
   coord: Pick<BrainCoord, 'mni_x' | 'mni_y' | 'mni_z'>,
-  config: GyriSulciConfig = DEFAULT_CONFIG,
+  config: GyriSulciConfig = DEFAULT_CONFIG
 ): CacheRoute {
   const entries = getAllEntries();
 
-  let bestDist   = Infinity;
+  let bestDist = Infinity;
   let bestDomain = 'unknown';
   let bestType: SurfaceType = 'unknown';
 
   for (const { domain, entry } of entries) {
     const dist = mniDistance(
       { mni_x: coord.mni_x, mni_y: coord.mni_y, mni_z: coord.mni_z, cortical_depth: 1 },
-      entry,
+      entry
     );
     if (dist < bestDist) {
-      bestDist   = dist;
+      bestDist = dist;
       bestDomain = domain;
-      bestType   = (entry.surface_type as SurfaceType | undefined) ?? 'unknown';
+      bestType = (entry.surface_type as SurfaceType | undefined) ?? 'unknown';
     }
   }
 
@@ -170,9 +170,11 @@ export function classifyCoord(
   const tier: StorageTier = surface_type === 'gyrus' ? 'hot' : 'cold';
 
   const priority =
-    surface_type === 'gyrus'  ? config.gyral_priority :
-    surface_type === 'sulcus' ? config.sulcal_priority :
-    config.unknown_priority;
+    surface_type === 'gyrus'
+      ? config.gyral_priority
+      : surface_type === 'sulcus'
+        ? config.sulcal_priority
+        : config.unknown_priority;
 
   return {
     surface_type,
@@ -187,10 +189,7 @@ export function classifyCoord(
 /**
  * Classify a full BrainCoord (uses only the (x,y,z) components).
  */
-export function classifyBrainCoord(
-  coord: BrainCoord,
-  config?: GyriSulciConfig,
-): CacheRoute {
+export function classifyBrainCoord(coord: BrainCoord, config?: GyriSulciConfig): CacheRoute {
   return classifyCoord(coord, config);
 }
 
@@ -202,7 +201,7 @@ export function classifyBrainCoord(
  */
 export function classifyBatch(
   coords: Array<Pick<BrainCoord, 'mni_x' | 'mni_y' | 'mni_z'>>,
-  config?: GyriSulciConfig,
+  config?: GyriSulciConfig
 ): Map<string, CacheRoute> {
   const result = new Map<string, CacheRoute>();
   for (const c of coords) {
@@ -225,7 +224,7 @@ export class GyriSulciPartitioner {
 
   constructor(config: Partial<GyriSulciConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.cache  = new Map();
+    this.cache = new Map();
   }
 
   /**
@@ -271,9 +270,11 @@ export class GyriSulciPartitioner {
    * Statistics over all cached classifications.
    */
   stats(): { hot: number; cold: number; unknown: number; total: number } {
-    let hot = 0, cold = 0, unknown = 0;
+    let hot = 0,
+      cold = 0,
+      unknown = 0;
     for (const route of this.cache.values()) {
-      if (route.surface_type === 'gyrus')   hot++;
+      if (route.surface_type === 'gyrus') hot++;
       else if (route.surface_type === 'sulcus') cold++;
       else unknown++;
     }

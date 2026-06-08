@@ -50,8 +50,7 @@ const REPO_ROOT = join(__dirname, '..');
 //   node scripts/anchor-founder-settlement-receipt.mjs
 //
 const FOUNDER_ANCHOR =
-  process.env.HOLOMESH_FOUNDER_ANCHOR?.trim() ||
-  '0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3';
+  process.env.HOLOMESH_FOUNDER_ANCHOR?.trim() || '0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3';
 const BASE_CHAIN_ID = 8453;
 const BASE_CHAIN_ID_HEX = '0x2105';
 
@@ -404,8 +403,7 @@ async function verifyTx(txHash, expectedHash) {
   // S-02 fix: cap each RPC call with an AbortController so the process
   // cannot hang indefinitely on an unresponsive node.
   const RPC_TIMEOUT_MS = Number(process.env.HOLOMESH_RPC_TIMEOUT_MS ?? 15_000);
-  const body = (method, params) =>
-    JSON.stringify({ jsonrpc: '2.0', id: 1, method, params });
+  const body = (method, params) => JSON.stringify({ jsonrpc: '2.0', id: 1, method, params });
 
   async function rpc(method, params) {
     const controller = new AbortController();
@@ -445,16 +443,11 @@ async function verifyTx(txHash, expectedHash) {
   }
 
   const checks = {
-    'tx.from == FOUNDER_ANCHOR':
-      tx.from.toLowerCase() === FOUNDER_ANCHOR.toLowerCase(),
-    'tx.to == tx.from (self-tx)':
-      tx.to && tx.to.toLowerCase() === tx.from.toLowerCase(),
-    'tx.input == eip712_hash':
-      tx.input.toLowerCase() === expectedHash.toLowerCase(),
-    'receipt.status == 0x1':
-      receipt.status === '0x1',
-    'tx.chainId == 8453 (Base)':
-      Number.parseInt(tx.chainId ?? '0x0', 16) === BASE_CHAIN_ID,
+    'tx.from == FOUNDER_ANCHOR': tx.from.toLowerCase() === FOUNDER_ANCHOR.toLowerCase(),
+    'tx.to == tx.from (self-tx)': tx.to && tx.to.toLowerCase() === tx.from.toLowerCase(),
+    'tx.input == eip712_hash': tx.input.toLowerCase() === expectedHash.toLowerCase(),
+    'receipt.status == 0x1': receipt.status === '0x1',
+    'tx.chainId == 8453 (Base)': Number.parseInt(tx.chainId ?? '0x0', 16) === BASE_CHAIN_ID,
   };
 
   console.log('CHAIN-ANCHOR VERIFICATION');

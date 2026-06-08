@@ -39,7 +39,7 @@
 - **Threading** in WASM is constrained by cross-origin isolation (COOP/COEP) if you want shared memory; many stacks stay single-threaded.
 - Exporters and some importers are trimmed or differ from native; **validation** against known golden assets is required.
 
-**Fit for HoloScript Studio:** use WASM only for *small* drag-and-drop probes; default heavy FBX to **server** conversion and cache glTF by content hash.
+**Fit for HoloScript Studio:** use WASM only for _small_ drag-and-drop probes; default heavy FBX to **server** conversion and cache glTF by content hash.
 
 ## Option C: “Not Assimp”
 
@@ -54,8 +54,8 @@
 
 ## References
 
-- Assimp: https://github.com/assimp/assimp  
-- glTF: https://www.khronos.org/gltf/  
+- Assimp: https://github.com/assimp/assimp
+- glTF: https://www.khronos.org/gltf/
 - `packages/core/src/assets/ModelImporter.ts` — current TypeScript import surface and format routing.
 
 ## Follow-ups (engineering, not this note)

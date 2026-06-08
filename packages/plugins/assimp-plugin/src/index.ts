@@ -34,7 +34,12 @@ export interface HoloSceneEmission {
   format: AssimpScene['source_format'];
 }
 
-function walk(node: AssimpNode, depth: number, out: HoloSceneEmission['traits'], stats: HoloSceneEmission['stats']): void {
+function walk(
+  node: AssimpNode,
+  depth: number,
+  out: HoloSceneEmission['traits'],
+  stats: HoloSceneEmission['stats']
+): void {
   stats.total_nodes++;
   if (depth > stats.max_depth) stats.max_depth = depth;
   if (node.mesh_indices?.length) {

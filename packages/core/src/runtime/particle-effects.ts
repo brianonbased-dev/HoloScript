@@ -110,7 +110,7 @@ export function createParticleEffect(
   position: SpatialPosition,
   color: string,
   count: number,
-  maxParticlesPerSystem: number,
+  maxParticlesPerSystem: number
 ): void {
   const limitedCount = Math.min(count, maxParticlesPerSystem);
   const particles: SpatialPosition[] = [];
@@ -143,7 +143,7 @@ export function createConnectionStream(
   to: string,
   fromPos: SpatialPosition,
   toPos: SpatialPosition,
-  dataType: string,
+  dataType: string
 ): void {
   const streamName = `connection_${from}_${to}`;
   const particles: SpatialPosition[] = [];
@@ -175,7 +175,7 @@ export function createFlowingStream(
   name: string,
   position: SpatialPosition,
   data: unknown,
-  maxParticlesPerSystem: number,
+  maxParticlesPerSystem: number
 ): void {
   const count = Array.isArray(data)
     ? Math.min(data.length, FLOW_STREAM_MAX_COUNT)
@@ -186,7 +186,7 @@ export function createFlowingStream(
     position,
     FLOW_STREAM_COLOR,
     count,
-    maxParticlesPerSystem,
+    maxParticlesPerSystem
   );
 }
 
@@ -195,7 +195,7 @@ export function createExecutionEffect(
   particleSystems: Map<string, ParticleSystem>,
   name: string,
   position: SpatialPosition,
-  maxParticlesPerSystem: number,
+  maxParticlesPerSystem: number
 ): void {
   createParticleEffect(
     particleSystems,
@@ -203,7 +203,7 @@ export function createExecutionEffect(
     position,
     EXECUTION_EFFECT_COLOR,
     EXECUTION_EFFECT_COUNT,
-    maxParticlesPerSystem,
+    maxParticlesPerSystem
   );
 }
 
@@ -217,7 +217,7 @@ export function createExecutionEffect(
  */
 export function updateParticles(
   particleSystems: Map<string, ParticleSystem>,
-  deltaTime: number,
+  deltaTime: number
 ): void {
   for (const [name, system] of particleSystems) {
     system.lifetime -= deltaTime;
@@ -242,7 +242,7 @@ export function createDataVisualization(
   name: string,
   data: unknown,
   position: SpatialPosition,
-  maxParticlesPerSystem: number,
+  maxParticlesPerSystem: number
 ): void {
   let count = DATAVIZ_DEFAULT_COUNT;
   if (Array.isArray(data)) {
@@ -256,6 +256,6 @@ export function createDataVisualization(
     position,
     DATAVIZ_COLOR,
     count,
-    maxParticlesPerSystem,
+    maxParticlesPerSystem
   );
 }

@@ -22,7 +22,7 @@ const IDENTITY_ROT: readonly [number, number, number, number] = [0, 0, 0, 1];
 function pose(
   boneId: string,
   position: readonly [number, number, number],
-  rotation: readonly [number, number, number, number] = IDENTITY_ROT,
+  rotation: readonly [number, number, number, number] = IDENTITY_ROT
 ): MotionBonePose {
   return { boneId, position, rotation };
 }
@@ -38,11 +38,7 @@ function baseFrame(): MotionBonePose[] {
   ];
 }
 
-function clip(
-  id: string,
-  category: MotionCategory,
-  frames: MotionBonePose[][],
-): MotionClip {
+function clip(id: string, category: MotionCategory, frames: MotionBonePose[][]): MotionClip {
   return { id, category, frames, dt: 0.05 };
 }
 
@@ -51,20 +47,14 @@ function quatAngle(rotation: readonly [number, number, number, number]): number 
   return 2 * Math.acos(Math.abs(w));
 }
 
-function dist2(
-  a: readonly [number, number, number],
-  b: readonly [number, number, number],
-): number {
+function dist2(a: readonly [number, number, number], b: readonly [number, number, number]): number {
   const dx = a[0] - b[0];
   const dy = a[1] - b[1];
   const dz = a[2] - b[2];
   return dx * dx + dy * dy + dz * dz;
 }
 
-function dist(
-  a: readonly [number, number, number],
-  b: readonly [number, number, number],
-): number {
+function dist(a: readonly [number, number, number], b: readonly [number, number, number]): number {
   return Math.sqrt(dist2(a, b));
 }
 
@@ -76,7 +66,7 @@ function fail(
   clipToCheck: MotionClip,
   violatedConstraint: string,
   frameIndex: number,
-  boneId: string,
+  boneId: string
 ): PlausibilityResult {
   return {
     pass: false,
@@ -112,7 +102,7 @@ function divergentReferenceWithoutZmp(clipToCheck: MotionClip): PlausibilityResu
 
 function referenceLocomotion(
   clipToCheck: MotionClip,
-  includeZmpClause: boolean,
+  includeZmpClause: boolean
 ): PlausibilityResult {
   for (let fi = 0; fi < clipToCheck.frames.length; fi++) {
     const frame = clipToCheck.frames[fi]!;
@@ -216,7 +206,7 @@ function referenceBatchCheck(clips: MotionClip[]): Omit<PlausibilityBatchResult,
 function withBone(
   frame: MotionBonePose[],
   boneId: string,
-  patch: Partial<Pick<MotionBonePose, 'position' | 'rotation'>>,
+  patch: Partial<Pick<MotionBonePose, 'position' | 'rotation'>>
 ): MotionBonePose[] {
   return frame.map((bone) => (bone.boneId === boneId ? { ...bone, ...patch } : bone));
 }

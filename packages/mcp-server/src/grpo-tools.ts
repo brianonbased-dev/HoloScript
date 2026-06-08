@@ -24,7 +24,10 @@ import {
   type OrchestratorResult,
   type OrchestratorStats,
 } from '@holoscript/absorb-service/self-improvement';
-import type { RewardToolRunner, RewardFunctionOptions } from '@holoscript/absorb-service/self-improvement';
+import type {
+  RewardToolRunner,
+  RewardFunctionOptions,
+} from '@holoscript/absorb-service/self-improvement';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -147,10 +150,11 @@ const realToolRunner: RewardToolRunner = {
     const timeout = options?.timeout ?? 30_000;
     const workDir = path.dirname(filePath);
     try {
-      const { stdout, stderr } = await execAsync(
-        `npx eslint "${filePath}" --format json 2>&1`,
-        { cwd: workDir, timeout, maxBuffer: 5 * 1024 * 1024 }
-      );
+      const { stdout, stderr } = await execAsync(`npx eslint "${filePath}" --format json 2>&1`, {
+        cwd: workDir,
+        timeout,
+        maxBuffer: 5 * 1024 * 1024,
+      });
       const output = stdout + stderr;
       try {
         const result = JSON.parse(output);
@@ -201,8 +205,7 @@ export const grpoTools: Tool[] = [
       properties: {
         rootDir: {
           type: 'string',
-          description:
-            'Root directory of the monorepo to scan. Defaults to process.cwd().',
+          description: 'Root directory of the monorepo to scan. Defaults to process.cwd().',
         },
         glob: {
           type: 'string',
@@ -220,8 +223,7 @@ export const grpoTools: Tool[] = [
         },
         maxPrompts: {
           type: 'number',
-          description:
-            'Maximum number of prompts to extract before stopping. Defaults to 100.',
+          description: 'Maximum number of prompts to extract before stopping. Defaults to 100.',
         },
         maxRougeLSimilarity: {
           type: 'number',
@@ -245,8 +247,7 @@ export const grpoTools: Tool[] = [
         },
         parallel: {
           type: 'boolean',
-          description:
-            'Run reward functions in parallel. Defaults to true.',
+          description: 'Run reward functions in parallel. Defaults to true.',
         },
         batchTimeout: {
           type: 'number',
@@ -283,8 +284,7 @@ export const grpoTools: Tool[] = [
         },
         glob: {
           type: 'string',
-          description:
-            'File glob pattern to filter source files. Defaults to all .ts files.',
+          description: 'File glob pattern to filter source files. Defaults to all .ts files.',
         },
         maxPrompts: {
           type: 'number',

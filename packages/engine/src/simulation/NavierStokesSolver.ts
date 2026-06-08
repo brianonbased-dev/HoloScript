@@ -167,9 +167,9 @@ export class NavierStokesSolver {
           const w = vz.get(i, j, k);
 
           // Backtrace position in grid coordinates
-          const srcX = i - u * dt / dx;
-          const srcY = j - v * dt / dy;
-          const srcZ = k - w * dt / dz;
+          const srcX = i - (u * dt) / dx;
+          const srcY = j - (v * dt) / dy;
+          const srcZ = k - (w * dt) / dz;
 
           // Clamp to domain
           const ci = Math.max(0.5, Math.min(nx - 1.5, srcX));
@@ -298,50 +298,56 @@ export class NavierStokesSolver {
 
       switch (face) {
         case 'x-':
-          for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++)
-            setVel(0, j, k, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
+          for (let k = 0; k < nz; k++)
+            for (let j = 0; j < ny; j++)
+              setVel(0, j, k, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
           break;
         case 'x+':
-          for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) {
-            if (bc.type === 'outflow') {
-              // Zero-gradient: copy interior
-              vx.set(nx - 1, j, k, vx.get(nx - 2, j, k));
-              vy.set(nx - 1, j, k, vy.get(nx - 2, j, k));
-              vz.set(nx - 1, j, k, vz.get(nx - 2, j, k));
-            } else {
-              setVel(nx - 1, j, k, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
+          for (let k = 0; k < nz; k++)
+            for (let j = 0; j < ny; j++) {
+              if (bc.type === 'outflow') {
+                // Zero-gradient: copy interior
+                vx.set(nx - 1, j, k, vx.get(nx - 2, j, k));
+                vy.set(nx - 1, j, k, vy.get(nx - 2, j, k));
+                vz.set(nx - 1, j, k, vz.get(nx - 2, j, k));
+              } else {
+                setVel(nx - 1, j, k, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
+              }
             }
-          }
           break;
         case 'y-':
-          for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++)
-            setVel(i, 0, k, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
+          for (let k = 0; k < nz; k++)
+            for (let i = 0; i < nx; i++)
+              setVel(i, 0, k, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
           break;
         case 'y+':
-          for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) {
-            if (bc.type === 'outflow') {
-              vx.set(i, ny - 1, k, vx.get(i, ny - 2, k));
-              vy.set(i, ny - 1, k, vy.get(i, ny - 2, k));
-              vz.set(i, ny - 1, k, vz.get(i, ny - 2, k));
-            } else {
-              setVel(i, ny - 1, k, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
+          for (let k = 0; k < nz; k++)
+            for (let i = 0; i < nx; i++) {
+              if (bc.type === 'outflow') {
+                vx.set(i, ny - 1, k, vx.get(i, ny - 2, k));
+                vy.set(i, ny - 1, k, vy.get(i, ny - 2, k));
+                vz.set(i, ny - 1, k, vz.get(i, ny - 2, k));
+              } else {
+                setVel(i, ny - 1, k, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
+              }
             }
-          }
           break;
         case 'z-':
-          for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++)
-            setVel(i, j, 0, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
+          for (let j = 0; j < ny; j++)
+            for (let i = 0; i < nx; i++)
+              setVel(i, j, 0, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
           break;
         case 'z+':
-          for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
-            if (bc.type === 'outflow') {
-              vx.set(i, j, nz - 1, vx.get(i, j, nz - 2));
-              vy.set(i, j, nz - 1, vy.get(i, j, nz - 2));
-              vz.set(i, j, nz - 1, vz.get(i, j, nz - 2));
-            } else {
-              setVel(i, j, nz - 1, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
+          for (let j = 0; j < ny; j++)
+            for (let i = 0; i < nx; i++) {
+              if (bc.type === 'outflow') {
+                vx.set(i, j, nz - 1, vx.get(i, j, nz - 2));
+                vy.set(i, j, nz - 1, vy.get(i, j, nz - 2));
+                vz.set(i, j, nz - 1, vz.get(i, j, nz - 2));
+              } else {
+                setVel(i, j, nz - 1, bc.type === 'lid' || bc.type === 'inflow' ? vel : [0, 0, 0]);
+              }
             }
-          }
           break;
       }
     }
@@ -351,12 +357,27 @@ export class NavierStokesSolver {
       if (!this.bcMap.has(face)) {
         // Apply no-slip (u=0) on this face
         switch (face) {
-          case 'x-': for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) setVel(0, j, k, [0, 0, 0]); break;
-          case 'x+': for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) setVel(nx - 1, j, k, [0, 0, 0]); break;
-          case 'y-': for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) setVel(i, 0, k, [0, 0, 0]); break;
-          case 'y+': for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) setVel(i, ny - 1, k, [0, 0, 0]); break;
-          case 'z-': for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) setVel(i, j, 0, [0, 0, 0]); break;
-          case 'z+': for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) setVel(i, j, nz - 1, [0, 0, 0]); break;
+          case 'x-':
+            for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) setVel(0, j, k, [0, 0, 0]);
+            break;
+          case 'x+':
+            for (let k = 0; k < nz; k++)
+              for (let j = 0; j < ny; j++) setVel(nx - 1, j, k, [0, 0, 0]);
+            break;
+          case 'y-':
+            for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) setVel(i, 0, k, [0, 0, 0]);
+            break;
+          case 'y+':
+            for (let k = 0; k < nz; k++)
+              for (let i = 0; i < nx; i++) setVel(i, ny - 1, k, [0, 0, 0]);
+            break;
+          case 'z-':
+            for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) setVel(i, j, 0, [0, 0, 0]);
+            break;
+          case 'z+':
+            for (let j = 0; j < ny; j++)
+              for (let i = 0; i < nx; i++) setVel(i, j, nz - 1, [0, 0, 0]);
+            break;
         }
       }
     }
@@ -397,13 +418,14 @@ export class NavierStokesSolver {
   }
 
   getStats(): NavierStokesStats {
-    let maxV = 0, maxDiv = 0;
+    let maxV = 0,
+      maxDiv = 0;
     const { nx, ny, nz } = this.vx;
     for (let k = 0; k < nz; k++) {
       for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
           const v = Math.sqrt(
-            this.vx.get(i, j, k) ** 2 + this.vy.get(i, j, k) ** 2 + this.vz.get(i, j, k) ** 2,
+            this.vx.get(i, j, k) ** 2 + this.vy.get(i, j, k) ** 2 + this.vz.get(i, j, k) ** 2
           );
           if (v > maxV) maxV = v;
           const d = Math.abs(this.divergence.get(i, j, k));
@@ -427,9 +449,15 @@ export class NavierStokesSolver {
 
 /** Trilinear interpolation at fractional grid coordinates. */
 function trilinearSample(grid: RegularGrid3D, fi: number, fj: number, fk: number): number {
-  const i0 = Math.floor(fi), j0 = Math.floor(fj), k0 = Math.floor(fk);
-  const i1 = Math.min(i0 + 1, grid.nx - 1), j1 = Math.min(j0 + 1, grid.ny - 1), k1 = Math.min(k0 + 1, grid.nz - 1);
-  const si = fi - i0, sj = fj - j0, sk = fk - k0;
+  const i0 = Math.floor(fi),
+    j0 = Math.floor(fj),
+    k0 = Math.floor(fk);
+  const i1 = Math.min(i0 + 1, grid.nx - 1),
+    j1 = Math.min(j0 + 1, grid.ny - 1),
+    k1 = Math.min(k0 + 1, grid.nz - 1);
+  const si = fi - i0,
+    sj = fj - j0,
+    sk = fk - k0;
 
   return (
     grid.get(i0, j0, k0) * (1 - si) * (1 - sj) * (1 - sk) +

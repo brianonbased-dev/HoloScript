@@ -52,9 +52,7 @@ function isPaidSkill(skill: SkillPackage): boolean {
 
 function getSkillPriceDollars(skill: SkillPackage): number {
   const cents =
-    skill.pricingModel === 'subscription'
-      ? skill.subscriptionPrice ?? skill.price
-      : skill.price;
+    skill.pricingModel === 'subscription' ? (skill.subscriptionPrice ?? skill.price) : skill.price;
   return cents / 100;
 }
 
@@ -66,11 +64,7 @@ function skillPricingPayload(skill: SkillPackage) {
   };
 }
 
-function handleSkillPaymentError(
-  res: Response,
-  error: unknown,
-  skill?: SkillPackage
-): boolean {
+function handleSkillPaymentError(res: Response, error: unknown, skill?: SkillPackage): boolean {
   if (!(error instanceof SkillMarketplacePaymentError)) {
     return false;
   }

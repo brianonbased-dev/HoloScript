@@ -40,8 +40,8 @@ export const DEFAULT_BUDGET_CONFIG: BudgetConfig = {
   allocations: {
     render: 0.45,
     inference: 0.25,
-    gpu: 0.20,
-    cpu: 0.10,
+    gpu: 0.2,
+    cpu: 0.1,
   },
   historyWindow: 60,
 };

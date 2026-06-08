@@ -50,7 +50,9 @@ describe('boardTools definitions', () => {
 
   it('all tool names use expected holomesh prefixes', () => {
     for (const tool of boardTools) {
-      expect(tool.name).toMatch(/^holomesh_(board_|slot_|mode_|scout|suggest|heartbeat|knowledge_)/);
+      expect(tool.name).toMatch(
+        /^holomesh_(board_|slot_|mode_|scout|suggest|heartbeat|knowledge_)/
+      );
     }
   });
 
@@ -391,7 +393,7 @@ describe('handleBoardTool with in-memory store', () => {
     // A line where TODO appears inside a string/code, not as a comment — must not become a task.
     const codeLines = [
       "src/api.ts:55:    if (l.includes('TODO:')) { /* in a string */ }",
-      "src/types.ts:12:  // format-doc: TODO: message format",
+      'src/types.ts:12:  // format-doc: TODO: message format',
     ].join('\n');
 
     const result = (await handleBoardTool('holomesh_scout', {

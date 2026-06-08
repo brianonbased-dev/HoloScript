@@ -15,9 +15,9 @@ Only **1 of the expected `@hololand/*` packages** exists in the `HoloScript` mon
 
 ### Live Package (1)
 
-| Package | Directory | Typecheck | Tests | Build | Docs |
-|---------|-----------|-----------|-------|-------|------|
-| `@hololand/react-agent-sdk` | `packages/react-agent-sdk/` | ✅ clean | ✅ 11/11 pass | `tsup` configured | README, Storybook, examples |
+| Package                     | Directory                   | Typecheck | Tests         | Build             | Docs                        |
+| --------------------------- | --------------------------- | --------- | ------------- | ----------------- | --------------------------- |
+| `@hololand/react-agent-sdk` | `packages/react-agent-sdk/` | ✅ clean  | ✅ 11/11 pass | `tsup` configured | README, Storybook, examples |
 
 **Verdict: LIVE.** Fully scaffolded with source (`src/`), tests (`src/__tests__/`), build pipeline, type declarations, Storybook stories, and migration guides. No gaps.
 
@@ -25,30 +25,31 @@ Only **1 of the expected `@hololand/*` packages** exists in the `HoloScript` mon
 
 Sources: `.claude/settings.local.json` build commands + `docs/guides/FEATURE_MIGRATION.md` migration targets.
 
-| Package | Expected Location | Status |
-|---------|-----------------|--------|
+| Package                        | Expected Location              | Status     |
+| ------------------------------ | ------------------------------ | ---------- |
 | `@hololand/playcanvas-adapter` | `packages/playcanvas-adapter/` | ❌ Missing |
-| `@hololand/babylon-adapter` | `packages/babylon-adapter/` | ❌ Missing |
-| `@hololand/vrchat-export` | `packages/vrchat-export/` | ❌ Missing |
-| `@hololand/brittney-service` | `packages/brittney-service/` | ❌ Missing |
-| `@hololand/accessibility` | `packages/accessibility/` | ❌ Missing |
-| `@hololand/audio` | `packages/audio/` | ❌ Missing |
-| `@hololand/voice` | `packages/voice/` | ❌ Missing |
-| `@hololand/network` | `packages/network/` | ❌ Missing |
-| `@hololand/renderer` | `packages/renderer/` | ❌ Missing |
-| `@hololand/lod` | `packages/lod/` | ❌ Missing |
-| `@hololand/streaming` | `packages/streaming/` | ❌ Missing |
-| `@hololand/world` | `packages/world/` | ❌ Missing |
-| `@hololand/animation` | `packages/animation/` | ❌ Missing |
-| `@hololand/haptics` | `packages/haptics/` | ❌ Missing |
-| `@hololand/navigation` | `packages/navigation/` | ❌ Missing |
-| `@hololand/portals` | `packages/portals/` | ❌ Missing |
-| `@hololand/pcg` | `packages/pcg/` | ❌ Missing |
-| `@hololand/ai` | `packages/ai/` | ❌ Missing |
-| `@hololand/three-adapter` | `packages/three-adapter/` | ❌ Missing |
-| `@hololand/unity-adapter` | `packages/unity-adapter/` | ❌ Missing |
+| `@hololand/babylon-adapter`    | `packages/babylon-adapter/`    | ❌ Missing |
+| `@hololand/vrchat-export`      | `packages/vrchat-export/`      | ❌ Missing |
+| `@hololand/brittney-service`   | `packages/brittney-service/`   | ❌ Missing |
+| `@hololand/accessibility`      | `packages/accessibility/`      | ❌ Missing |
+| `@hololand/audio`              | `packages/audio/`              | ❌ Missing |
+| `@hololand/voice`              | `packages/voice/`              | ❌ Missing |
+| `@hololand/network`            | `packages/network/`            | ❌ Missing |
+| `@hololand/renderer`           | `packages/renderer/`           | ❌ Missing |
+| `@hololand/lod`                | `packages/lod/`                | ❌ Missing |
+| `@hololand/streaming`          | `packages/streaming/`          | ❌ Missing |
+| `@hololand/world`              | `packages/world/`              | ❌ Missing |
+| `@hololand/animation`          | `packages/animation/`          | ❌ Missing |
+| `@hololand/haptics`            | `packages/haptics/`            | ❌ Missing |
+| `@hololand/navigation`         | `packages/navigation/`         | ❌ Missing |
+| `@hololand/portals`            | `packages/portals/`            | ❌ Missing |
+| `@hololand/pcg`                | `packages/pcg/`                | ❌ Missing |
+| `@hololand/ai`                 | `packages/ai/`                 | ❌ Missing |
+| `@hololand/three-adapter`      | `packages/three-adapter/`      | ❌ Missing |
+| `@hololand/unity-adapter`      | `packages/unity-adapter/`      | ❌ Missing |
 
 **Verification method:**
+
 1. `find packages/ -name package.json | xargs grep '"@hololand/'` → only `react-agent-sdk` matched.
 2. `pnpm-workspace.yaml` contains no `@hololand/*` entries.
 3. Root `package.json` workspaces: `packages/*` and `packages/plugins/*` — no `hololand` directories found.

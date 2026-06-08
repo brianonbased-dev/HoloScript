@@ -33,11 +33,11 @@ function mkChar(overrides: ConstructorParameters<typeof CharacterTrait>[0] = {})
 describe('CharacterTrait — constructor', () => {
   it('starts with zero position', () => {
     const c = mkChar();
-    expect(c.getPosition()).toEqual([0, 0, 0 ]);
+    expect(c.getPosition()).toEqual([0, 0, 0]);
   });
 
   it('starts with zero velocity', () => {
-    expect(mkChar().getVelocity()).toEqual([0, 0, 0 ]);
+    expect(mkChar().getVelocity()).toEqual([0, 0, 0]);
   });
 
   it('movementMode defaults to walking', () => {
@@ -88,19 +88,19 @@ describe('CharacterTrait — constructor', () => {
 describe('CharacterTrait — position / velocity', () => {
   it('setPosition updates getPosition', () => {
     const c = mkChar();
-    c.setPosition([5, 2, -3 ]);
-    expect(c.getPosition()).toEqual([5, 2, -3 ]);
+    c.setPosition([5, 2, -3]);
+    expect(c.getPosition()).toEqual([5, 2, -3]);
   });
 
   it('setVelocity updates getVelocity', () => {
     const c = mkChar();
-    c.setVelocity([1, 2, 3 ]);
-    expect(c.getVelocity()).toEqual([1, 2, 3 ]);
+    c.setVelocity([1, 2, 3]);
+    expect(c.getVelocity()).toEqual([1, 2, 3]);
   });
 
   it('setPosition makes a copy (mutation does not bleed through)', () => {
     const c = mkChar();
-    const pos = [1, 0, 0 ];
+    const pos = [1, 0, 0];
     c.setPosition(pos);
     pos[0] = 999;
     expect(c.getPosition()[0]).toBe(1);
@@ -210,7 +210,7 @@ describe('CharacterTrait — tryJump', () => {
 
   it('cancelJump does nothing when y velocity <= 0', () => {
     const c = mkChar();
-    c.setVelocity([0, 0, 0 ]);
+    c.setVelocity([0, 0, 0]);
     c.cancelJump();
     expect(c.getVelocity()[1]).toBe(0);
   });
@@ -403,7 +403,7 @@ describe('CharacterTrait — collision', () => {
     const c = mkChar();
     const events: string[] = [];
     c.on('collision', (e) => events.push(e.type));
-    c.onCollision([1, 0, 0 ], [-1, 0, 0 ]);
+    c.onCollision([1, 0, 0], [-1, 0, 0]);
     expect(events).toContain('collision');
   });
 
@@ -413,9 +413,9 @@ describe('CharacterTrait — collision', () => {
     c.on('collision', (e) => {
       col = e.collision;
     });
-    c.onCollision([2, 1, 0 ], [0, 1, 0 ], 'wall');
-    expect(col.point).toEqual([2, 1, 0 ]);
-    expect(col.normal).toEqual([0, 1, 0 ]);
+    c.onCollision([2, 1, 0], [0, 1, 0], 'wall');
+    expect(col.point).toEqual([2, 1, 0]);
+    expect(col.normal).toEqual([0, 1, 0]);
     expect(col.other).toBe('wall');
   });
 });

@@ -60,15 +60,15 @@ function makeCtx() {
 }
 
 const DEFAULT_CONFIG: CognitiveVMConfig = {
-  agent_id:                'test_agent',
-  inner_frequency:         4,   // outer fires every 4 inner ticks
-  outer_parallel_id:       'temporal_lateral_parallel',
-  inner_parallel_id:       'energy_entropy_parallel',
-  edge_case_threshold:     0.35,
+  agent_id: 'test_agent',
+  inner_frequency: 4, // outer fires every 4 inner ticks
+  outer_parallel_id: 'temporal_lateral_parallel',
+  inner_parallel_id: 'energy_entropy_parallel',
+  edge_case_threshold: 0.35,
   lifecycle_auto_transition: true,
-  emit_to_peers:           true,
-  emit_jepa_step:          false,
-  jepa_latent_dim:         16,
+  emit_to_peers: true,
+  emit_jepa_step: false,
+  jepa_latent_dim: 16,
 };
 
 /** Fire N cogvm:tick events. */
@@ -77,7 +77,7 @@ function tick(
   node: HSPlusNode,
   config: CognitiveVMConfig,
   ctx: TraitContext,
-  metadata?: Record<string, unknown>,
+  metadata?: Record<string, unknown>
 ) {
   for (let i = 0; i < n; i++) {
     cognitiveVMHandler.onEvent?.(node, config, ctx, {
@@ -111,29 +111,29 @@ describe('CognitiveVMTrait', () => {
   // ── 1. Inner tick emitted every cogvm:tick ──────────────────────────────────
   it('emits cogvm:inner_tick on every tick', () => {
     tick(3, node, DEFAULT_CONFIG, ctx);
-    const innerTicks = events.filter(e => e.name === 'cogvm:inner_tick');
+    const innerTicks = events.filter((e) => e.name === 'cogvm:inner_tick');
     expect(innerTicks).toHaveLength(3);
   });
 
   // ── 2. Outer tick emitted every inner_frequency ticks ──────────────────────
   it('emits cogvm:outer_tick every inner_frequency ticks', () => {
     tick(DEFAULT_CONFIG.inner_frequency, node, DEFAULT_CONFIG, ctx);
-    const outerTicks = events.filter(e => e.name === 'cogvm:outer_tick');
+    const outerTicks = events.filter((e) => e.name === 'cogvm:outer_tick');
     expect(outerTicks).toHaveLength(1);
   });
 
   // ── 3. No outer tick before frequency reached ───────────────────────────────
   it('does NOT emit cogvm:outer_tick before inner_frequency ticks', () => {
     tick(DEFAULT_CONFIG.inner_frequency - 1, node, DEFAULT_CONFIG, ctx);
-    expect(events.filter(e => e.name === 'cogvm:outer_tick')).toHaveLength(0);
+    expect(events.filter((e) => e.name === 'cogvm:outer_tick')).toHaveLength(0);
   });
 
   // ── 4. Inner tick counter increments monotonically ─────────────────────────
   it('inner step counter increments monotonically', () => {
     tick(5, node, DEFAULT_CONFIG, ctx);
     const steps = events
-      .filter(e => e.name === 'cogvm:inner_tick')
-      .map(e => (e.payload as { step: number }).step);
+      .filter((e) => e.name === 'cogvm:inner_tick')
+      .map((e) => (e.payload as { step: number }).step);
     expect(steps).toEqual([1, 2, 3, 4, 5]);
   });
 
@@ -141,8 +141,8 @@ describe('CognitiveVMTrait', () => {
   it('outer step counter increments once per inner_frequency inner ticks', () => {
     tick(DEFAULT_CONFIG.inner_frequency * 3, node, DEFAULT_CONFIG, ctx);
     const outerSteps = events
-      .filter(e => e.name === 'cogvm:outer_tick')
-      .map(e => (e.payload as { step: number }).step);
+      .filter((e) => e.name === 'cogvm:outer_tick')
+      .map((e) => (e.payload as { step: number }).step);
     expect(outerSteps).toEqual([1, 2, 3]);
   });
 
@@ -151,8 +151,8 @@ describe('CognitiveVMTrait', () => {
     cognitiveVMHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, { type: 'cogvm:freeze' });
     events.length = 0;
     tick(DEFAULT_CONFIG.inner_frequency * 2, node, DEFAULT_CONFIG, ctx);
-    expect(events.filter(e => e.name === 'cogvm:inner_tick')).toHaveLength(0);
-    expect(events.filter(e => e.name === 'cogvm:outer_tick')).toHaveLength(0);
+    expect(events.filter((e) => e.name === 'cogvm:inner_tick')).toHaveLength(0);
+    expect(events.filter((e) => e.name === 'cogvm:outer_tick')).toHaveLength(0);
   });
 
   // ── 7. Unfreeze resumes ────────────────────────────────────────────────────
@@ -161,7 +161,7 @@ describe('CognitiveVMTrait', () => {
     cognitiveVMHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, { type: 'cogvm:unfreeze' });
     events.length = 0;
     tick(1, node, DEFAULT_CONFIG, ctx);
-    expect(events.filter(e => e.name === 'cogvm:inner_tick')).toHaveLength(1);
+    expect(events.filter((e) => e.name === 'cogvm:inner_tick')).toHaveLength(1);
   });
 
   // ── 8. cogvm:set_lifecycle ─────────────────────────────────────────────────
@@ -171,7 +171,7 @@ describe('CognitiveVMTrait', () => {
       state: 'shutdown',
       reason: 'manual test',
     });
-    const transition = events.find(e => e.name === 'cogvm:lifecycle_transition');
+    const transition = events.find((e) => e.name === 'cogvm:lifecycle_transition');
     expect(transition).toBeDefined();
     const p = transition!.payload as { from: LifecycleState; to: LifecycleState; reason: string };
     expect(p.to).toBe('shutdown');
@@ -187,7 +187,9 @@ describe('CognitiveVMTrait', () => {
   it('auto-transitions to stable when convergence=1 outer tick fires', () => {
     // Force to active first (escape init stickiness by sending init→something)
     cognitiveVMHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
-      type: 'cogvm:set_lifecycle', state: 'active', reason: 'test setup',
+      type: 'cogvm:set_lifecycle',
+      state: 'active',
+      reason: 'test setup',
     });
     events.length = 0;
 
@@ -230,7 +232,10 @@ describe('CognitiveVMTrait', () => {
     cognitiveVMHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
       type: 'cogvm:register_dispatch',
       domain: 'physics' as PillarDomain,
-      handler: (_slice, cur) => { called = true; return { solver_precision: 0.42 }; },
+      handler: (_slice, cur) => {
+        called = true;
+        return { solver_precision: 0.42 };
+      },
     });
 
     tick(1, node, DEFAULT_CONFIG, ctx);
@@ -272,9 +277,9 @@ describe('CognitiveVMTrait', () => {
   // ── 15. Inner ticks emit recursive_link:send with loop='inner' ────────────
   it('inner ticks emit recursive_link:send with loop=inner when emit_to_peers=true', () => {
     tick(1, node, DEFAULT_CONFIG, ctx);
-    const rlEvents = events.filter(e => e.name === 'recursive_link:send');
+    const rlEvents = events.filter((e) => e.name === 'recursive_link:send');
     expect(rlEvents.length).toBeGreaterThan(0);
-    const innerRl = rlEvents.find(e => (e.payload as { loop: string }).loop === 'inner');
+    const innerRl = rlEvents.find((e) => (e.payload as { loop: string }).loop === 'inner');
     expect(innerRl).toBeDefined();
   });
 
@@ -282,7 +287,7 @@ describe('CognitiveVMTrait', () => {
   it('outer ticks emit recursive_link:send with loop=outer when emit_to_peers=true', () => {
     tick(DEFAULT_CONFIG.inner_frequency, node, DEFAULT_CONFIG, ctx);
     const outerRl = events.filter(
-      e => e.name === 'recursive_link:send' && (e.payload as { loop: string }).loop === 'outer'
+      (e) => e.name === 'recursive_link:send' && (e.payload as { loop: string }).loop === 'outer'
     );
     expect(outerRl.length).toBeGreaterThan(0);
   });
@@ -296,7 +301,7 @@ describe('CognitiveVMTrait', () => {
     jepaEvents.length = 0;
 
     tick(DEFAULT_CONFIG.inner_frequency, jepaNode, jepaCfg, jepaCtx);
-    expect(jepaEvents.find(e => e.name === 'pillarjepa:step')).toBeDefined();
+    expect(jepaEvents.find((e) => e.name === 'pillarjepa:step')).toBeDefined();
     cognitiveVMHandler.onDetach?.(jepaNode, jepaCfg, jepaCtx);
   });
 
@@ -309,7 +314,7 @@ describe('CognitiveVMTrait', () => {
     e2.length = 0;
 
     tick(DEFAULT_CONFIG.inner_frequency, n2, noPeerCfg, c2);
-    expect(e2.filter(e => e.name === 'recursive_link:send')).toHaveLength(0);
+    expect(e2.filter((e) => e.name === 'recursive_link:send')).toHaveLength(0);
     cognitiveVMHandler.onDetach?.(n2, noPeerCfg, c2);
   });
 
@@ -328,7 +333,7 @@ describe('CognitiveVMTrait', () => {
       state: 'active',
       reason: 'test reason',
     });
-    const evt = events.find(e => e.name === 'cogvm:lifecycle_transition');
+    const evt = events.find((e) => e.name === 'cogvm:lifecycle_transition');
     expect(evt).toBeDefined();
     const p = evt!.payload as { from: string; to: string; reason: string; step: number };
     expect(p.from).toBe('init');

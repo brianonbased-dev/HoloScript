@@ -18,7 +18,8 @@ const checks = [
   },
   {
     id: 'A3',
-    description: 'Legacy implementation-status/version language removed from active research roadmap',
+    description:
+      'Legacy implementation-status/version language removed from active research roadmap',
     file: 'docs/research/ECOSYSTEM_EXPANSION_ROADMAP.md',
     forbidden: [
       /implementation\s*status\s*\(\s*as\s*of\s*v(?:3\.42\.0|5\.0\.0)\s*\)/i,

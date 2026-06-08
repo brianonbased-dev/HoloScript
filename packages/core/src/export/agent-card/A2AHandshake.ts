@@ -219,13 +219,22 @@ export function validateA2AAgentCard(card: A2AAgentCard | null): CardValidationR
     if (typeof card.capabilities !== 'object') {
       errors.push('Field "capabilities" must be an object');
     } else {
-      if (typeof card.capabilities.streaming !== 'undefined' && typeof card.capabilities.streaming !== 'boolean') {
+      if (
+        typeof card.capabilities.streaming !== 'undefined' &&
+        typeof card.capabilities.streaming !== 'boolean'
+      ) {
         warnings.push('Field "capabilities.streaming" should be boolean');
       }
-      if (typeof card.capabilities.pushNotifications !== 'undefined' && typeof card.capabilities.pushNotifications !== 'boolean') {
+      if (
+        typeof card.capabilities.pushNotifications !== 'undefined' &&
+        typeof card.capabilities.pushNotifications !== 'boolean'
+      ) {
         warnings.push('Field "capabilities.pushNotifications" should be boolean');
       }
-      if (typeof card.capabilities.stateTransitionHistory !== 'undefined' && typeof card.capabilities.stateTransitionHistory !== 'boolean') {
+      if (
+        typeof card.capabilities.stateTransitionHistory !== 'undefined' &&
+        typeof card.capabilities.stateTransitionHistory !== 'boolean'
+      ) {
         warnings.push('Field "capabilities.stateTransitionHistory" should be boolean');
       }
     }
@@ -235,7 +244,10 @@ export function validateA2AAgentCard(card: A2AAgentCard | null): CardValidationR
   if (card.authentication !== undefined && card.authentication !== null) {
     if (typeof card.authentication !== 'object') {
       errors.push('Field "authentication" must be an object');
-    } else if (!Array.isArray(card.authentication.schemes) || card.authentication.schemes.length === 0) {
+    } else if (
+      !Array.isArray(card.authentication.schemes) ||
+      card.authentication.schemes.length === 0
+    ) {
       errors.push('Field "authentication.schemes" must be a non-empty array');
     }
   }
@@ -338,11 +350,13 @@ export function deriveScopesFromCard(
   }
 
   // Derive max scope from rank
-  const maxScope = (Object.entries(SCOPE_RANK).find(([, r]) => r === maxRank)?.[0] ?? 'read-only') as SpatialScope;
+  const maxScope = (Object.entries(SCOPE_RANK).find(([, r]) => r === maxRank)?.[0] ??
+    'read-only') as SpatialScope;
 
   // Build scopes array (all levels up to max)
-  const allScopes: SpatialScope[] = (['read-only', 'mutate-zone', 'drive-avatar'] as SpatialScope[])
-    .filter((s) => SCOPE_RANK[s] <= maxRank);
+  const allScopes: SpatialScope[] = (
+    ['read-only', 'mutate-zone', 'drive-avatar'] as SpatialScope[]
+  ).filter((s) => SCOPE_RANK[s] <= maxRank);
 
   // Clamp to portal's maxScopes
   const maxAllowedRank = Math.max(...maxScopes.map((s) => SCOPE_RANK[s]), 0);
@@ -434,9 +448,10 @@ export function executeA2AHandshake(options: A2AHandshakeOptions): A2AHandshakeR
   } else {
     scopeDerivation = {
       scopes: options.defaultScopes.length > 0 ? options.defaultScopes : ['read-only'],
-      maxScope: options.defaultScopes.length > 0
-        ? options.defaultScopes[options.defaultScopes.length - 1]
-        : 'read-only',
+      maxScope:
+        options.defaultScopes.length > 0
+          ? options.defaultScopes[options.defaultScopes.length - 1]
+          : 'read-only',
       contributingTags: [],
     };
   }
@@ -445,7 +460,7 @@ export function executeA2AHandshake(options: A2AHandshakeOptions): A2AHandshakeR
   const representation = negotiateRepresentation(
     agentCardPresent,
     options.defaultRepresentation,
-    options.requireAgentCard,
+    options.requireAgentCard
   );
 
   // Step 4: Determine if handshake succeeds

@@ -147,12 +147,17 @@ describe('structural-biology-plugin v0.2.0 bridge traits', () => {
       .filter((t) => BRIDGE_TRAITS.includes(t.name as (typeof BRIDGE_TRAITS)[number]))
       .map((t) => t.name)
       .sort();
-    expect(bridgeNames).toEqual(['admet_prediction', 'admet_result', 'auto_dock', 'binding_affinity']);
+    expect(bridgeNames).toEqual([
+      'admet_prediction',
+      'admet_result',
+      'auto_dock',
+      'binding_affinity',
+    ]);
     // All bridge traits are attributed to structural-biology plugin
     expect(
       traits
         .filter((t) => BRIDGE_TRAITS.includes(t.name as (typeof BRIDGE_TRAITS)[number]))
-        .every((t) => t.plugin === 'structural-biology'),
+        .every((t) => t.plugin === 'structural-biology')
     ).toBe(true);
   });
 
@@ -242,10 +247,20 @@ describe('docking bridge', () => {
 
     it('produces different hash for different results', () => {
       const r1: DockingResult = {
-        status: 'success', bestAffinity: -8.3, poses: [], receptorId: '3I4L', ligandId: 'aspirin', backend: 'autodock-vina',
+        status: 'success',
+        bestAffinity: -8.3,
+        poses: [],
+        receptorId: '3I4L',
+        ligandId: 'aspirin',
+        backend: 'autodock-vina',
       };
       const r2: DockingResult = {
-        status: 'success', bestAffinity: -12.1, poses: [], receptorId: '3I4L', ligandId: 'imatinib', backend: 'autodock-vina',
+        status: 'success',
+        bestAffinity: -12.1,
+        poses: [],
+        receptorId: '3I4L',
+        ligandId: 'imatinib',
+        backend: 'autodock-vina',
       };
       expect(dockingProvenance(r1)).not.toBe(dockingProvenance(r2));
     });
@@ -340,7 +355,13 @@ describe('ADMET bridge', () => {
   describe('computeDrugLikeness', () => {
     it('returns 1.0 for no violations and favorable ADMET', () => {
       const predictions: AdmetPrediction[] = [
-        { property: 'bbb_permeability', value: 0.8, unit: 'binary', confidence: 0.9, modelVersion: 'v1' },
+        {
+          property: 'bbb_permeability',
+          value: 0.8,
+          unit: 'binary',
+          confidence: 0.9,
+          modelVersion: 'v1',
+        },
         { property: 'hia', value: 95, unit: '%', confidence: 0.85, modelVersion: 'v1' },
         { property: 'half_life', value: 8, unit: 'hours', confidence: 0.8, modelVersion: 'v1' },
       ];
@@ -372,7 +393,7 @@ describe('ADMET bridge', () => {
           { property: 'hht', value: 0.9, unit: 'binary', confidence: 0.9, modelVersion: 'v1' },
           { property: 'dili', value: 0.9, unit: 'binary', confidence: 0.9, modelVersion: 'v1' },
         ],
-        3,
+        3
       );
       expect(manyTox).toBeGreaterThanOrEqual(0);
     });
@@ -412,8 +433,22 @@ describe('ADMET bridge', () => {
     });
 
     it('produces different hash for different SMILES', () => {
-      const r1: AdmetResult = { status: 'success', smiles: 'CC(=O)Oc1ccccc1C(=O)O', backend: 'rdkit', predictions: [], drugLikenessScore: 0.72, lipinskiViolations: 1 };
-      const r2: AdmetResult = { status: 'success', smiles: 'CC(C)CC1=CC=C(C=C1)C(=O)O', backend: 'rdkit', predictions: [], drugLikenessScore: 0.72, lipinskiViolations: 1 };
+      const r1: AdmetResult = {
+        status: 'success',
+        smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+        backend: 'rdkit',
+        predictions: [],
+        drugLikenessScore: 0.72,
+        lipinskiViolations: 1,
+      };
+      const r2: AdmetResult = {
+        status: 'success',
+        smiles: 'CC(C)CC1=CC=C(C=C1)C(=O)O',
+        backend: 'rdkit',
+        predictions: [],
+        drugLikenessScore: 0.72,
+        lipinskiViolations: 1,
+      };
       expect(admetProvenance(r1)).not.toBe(admetProvenance(r2));
     });
   });
@@ -544,10 +579,36 @@ describe('cross-bridge integration (AlphaFold → Docking → ADMET)', () => {
 
   it('drug pipeline: protein → docking → ADMET composition compiles to .holo', () => {
     const traits = [
-      { trait: 'auto_dock' as const, backend: 'autodock-vina' as const, receptor: 'EGFR', ligand: 'aspirin', searchCenter: { x: 10, y: 20, z: 30 }, searchSize: { x: 20, y: 20, z: 20 } },
-      { trait: 'binding_affinity' as const, bestAffinity: -9.1, poseCount: 5, bestRmsdRange: [0.0, 1.8] as [number, number], backend: 'autodock-vina' as const },
-      { trait: 'admet_prediction' as const, smiles: 'CC(=O)Oc1ccccc1C(=O)O', properties: ['hia', 'bbb_permeability', 'ames'] as const, backend: 'rdkit' as const },
-      { trait: 'admet_result' as const, smiles: 'CC(=O)Oc1ccccc1C(=O)O', drugLikenessScore: 0.72, lipinskiViolations: 1, propertyCount: 25, backend: 'rdkit' as const, passes: true },
+      {
+        trait: 'auto_dock' as const,
+        backend: 'autodock-vina' as const,
+        receptor: 'EGFR',
+        ligand: 'aspirin',
+        searchCenter: { x: 10, y: 20, z: 30 },
+        searchSize: { x: 20, y: 20, z: 20 },
+      },
+      {
+        trait: 'binding_affinity' as const,
+        bestAffinity: -9.1,
+        poseCount: 5,
+        bestRmsdRange: [0.0, 1.8] as [number, number],
+        backend: 'autodock-vina' as const,
+      },
+      {
+        trait: 'admet_prediction' as const,
+        smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+        properties: ['hia', 'bbb_permeability', 'ames'] as const,
+        backend: 'rdkit' as const,
+      },
+      {
+        trait: 'admet_result' as const,
+        smiles: 'CC(=O)Oc1ccccc1C(=O)O',
+        drugLikenessScore: 0.72,
+        lipinskiViolations: 1,
+        propertyCount: 25,
+        backend: 'rdkit' as const,
+        passes: true,
+      },
     ];
 
     // Docking compiles

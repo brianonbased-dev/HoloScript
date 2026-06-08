@@ -129,9 +129,7 @@ describe('NIRCompiler', () => {
     });
 
     it('includes source name in metadata', () => {
-      const result = readJson(
-        compiler.compile(makeComposition({ name: 'MyBrain' }), 'test-token')
-      );
+      const result = readJson(compiler.compile(makeComposition({ name: 'MyBrain' }), 'test-token'));
       expect(result.metadata.source).toBe('MyBrain');
     });
 

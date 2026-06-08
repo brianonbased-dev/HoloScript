@@ -19,7 +19,7 @@ const defaultConfig: ProgrammableLawConfig = {
   jurisdiction: 'GlobalSovereignMesh',
   enforceContractLaw: true,
   strictLiability: true,
-  maxLiabilityCapX402: 1000000
+  maxLiabilityCapX402: 1000000,
 };
 
 export function createProgrammableLawHandler(): TraitHandler<ProgrammableLawConfig> {
@@ -31,7 +31,7 @@ export function createProgrammableLawHandler(): TraitHandler<ProgrammableLawConf
         complianceStatus: 'compliant',
         activeContracts: [],
         incurredLiabilityX402: 0,
-        breachLog: []
+        breachLog: [],
       };
       ctx.emit?.('programmable_law:bound', { jurisdiction: c.jurisdiction });
     },
@@ -43,18 +43,18 @@ export function createProgrammableLawHandler(): TraitHandler<ProgrammableLawConf
     onEvent(n: HSPlusNode, c: ProgrammableLawConfig, ctx: TraitContext, e: TraitEvent) {
       const s = n.__lawState as ProgrammableLawState | undefined;
       if (!s) return;
-      
+
       if (e.type === 'programmable_law:evaluate_action') {
         const actionCode = e.payload?.actionCode as string;
-        
+
         // Semantic checking bounds
         if (actionCode === 'UNAUTHORIZED_DATA_ACCESS' || actionCode === 'VIOLENCE') {
-           s.complianceStatus = 'breach';
-           s.breachLog.push(`Breach detected: ${actionCode} under ${c.jurisdiction}`);
-           s.incurredLiabilityX402 += 50000;
-           ctx.emit?.('programmable_law:breach', { liability: s.incurredLiabilityX402 });
+          s.complianceStatus = 'breach';
+          s.breachLog.push(`Breach detected: ${actionCode} under ${c.jurisdiction}`);
+          s.incurredLiabilityX402 += 50000;
+          ctx.emit?.('programmable_law:breach', { liability: s.incurredLiabilityX402 });
         } else {
-           ctx.emit?.('programmable_law:cleared');
+          ctx.emit?.('programmable_law:cleared');
         }
       }
     },

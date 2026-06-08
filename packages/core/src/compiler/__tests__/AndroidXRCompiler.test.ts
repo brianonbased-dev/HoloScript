@@ -189,7 +189,12 @@ describe('AndroidXRCompiler', () => {
           children: [],
           platformConstraint: { include: ['visionos'], exclude: [] },
         },
-        { name: 'sharedPanel', properties: [{ key: 'mesh', value: 'box' }], traits: [], children: [] },
+        {
+          name: 'sharedPanel',
+          properties: [{ key: 'mesh', value: 'box' }],
+          traits: [],
+          children: [],
+        },
       ],
     });
 
@@ -608,8 +613,18 @@ describe('AndroidXRCompiler', () => {
     it('combined occlusion_mesh + environment_probe emits camera.ar manifest feature', () => {
       const comp = minimalComposition({
         objects: [
-          { name: 'soundstage_occlusion', properties: [], traits: [{ name: 'occlusion_mesh', config: {} }], children: [] },
-          { name: 'hdr_environment', properties: [], traits: [{ name: 'environment_probe', config: {} }], children: [] },
+          {
+            name: 'soundstage_occlusion',
+            properties: [],
+            traits: [{ name: 'occlusion_mesh', config: {} }],
+            children: [],
+          },
+          {
+            name: 'hdr_environment',
+            properties: [],
+            traits: [{ name: 'environment_probe', config: {} }],
+            children: [],
+          },
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -619,7 +634,12 @@ describe('AndroidXRCompiler', () => {
     it('occlusion_mesh emits depth guard code (isDepthSupported + DepthMode.AUTOMATIC) in activity', () => {
       const comp = minimalComposition({
         objects: [
-          { name: 'soundstage_occlusion', properties: [], traits: [{ name: 'occlusion_mesh', config: {} }], children: [] },
+          {
+            name: 'soundstage_occlusion',
+            properties: [],
+            traits: [{ name: 'occlusion_mesh', config: {} }],
+            children: [],
+          },
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -631,7 +651,12 @@ describe('AndroidXRCompiler', () => {
     it('environment_probe emits createEnvironmentProbe + addComponent in activity', () => {
       const comp = minimalComposition({
         objects: [
-          { name: 'hdr_environment', properties: [], traits: [{ name: 'environment_probe', config: {} }], children: [] },
+          {
+            name: 'hdr_environment',
+            properties: [],
+            traits: [{ name: 'environment_probe', config: {} }],
+            children: [],
+          },
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -642,9 +667,24 @@ describe('AndroidXRCompiler', () => {
     it('FILM3D_XR triple (occlusion_mesh + environment_probe + gaze_interactable) emits all grounding code', () => {
       const comp = minimalComposition({
         objects: [
-          { name: 'soundstage_occlusion', properties: [], traits: [{ name: 'occlusion_mesh', config: {} }], children: [] },
-          { name: 'hdr_environment', properties: [], traits: [{ name: 'environment_probe', config: {} }], children: [] },
-          { name: 'director_hud', properties: [], traits: [{ name: 'gaze_interactable', config: {} }], children: [] },
+          {
+            name: 'soundstage_occlusion',
+            properties: [],
+            traits: [{ name: 'occlusion_mesh', config: {} }],
+            children: [],
+          },
+          {
+            name: 'hdr_environment',
+            properties: [],
+            traits: [{ name: 'environment_probe', config: {} }],
+            children: [],
+          },
+          {
+            name: 'director_hud',
+            properties: [],
+            traits: [{ name: 'gaze_interactable', config: {} }],
+            children: [],
+          },
         ],
       });
       const result = compiler.compile(comp, 'test-token');
@@ -657,12 +697,23 @@ describe('AndroidXRCompiler', () => {
     it('combined traits add camera.ar manifest entry only once (deduplication)', () => {
       const comp = minimalComposition({
         objects: [
-          { name: 'soundstage_occlusion', properties: [], traits: [{ name: 'occlusion_mesh', config: {} }], children: [] },
-          { name: 'hdr_environment', properties: [], traits: [{ name: 'environment_probe', config: {} }], children: [] },
+          {
+            name: 'soundstage_occlusion',
+            properties: [],
+            traits: [{ name: 'occlusion_mesh', config: {} }],
+            children: [],
+          },
+          {
+            name: 'hdr_environment',
+            properties: [],
+            traits: [{ name: 'environment_probe', config: {} }],
+            children: [],
+          },
         ],
       });
       const result = compiler.compile(comp, 'test-token');
-      const occurrences = (result.manifestFile.match(/android\.hardware\.camera\.ar/g) ?? []).length;
+      const occurrences = (result.manifestFile.match(/android\.hardware\.camera\.ar/g) ?? [])
+        .length;
       expect(occurrences).toBe(1);
     });
   });

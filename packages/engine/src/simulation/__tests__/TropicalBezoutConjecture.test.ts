@@ -42,7 +42,7 @@ describe('Tropical-Bézout (BKK) string-math conjecture sub-class', () => {
     for (let d1 = 1; d1 <= 8; d1++) {
       for (let d2 = 1; d2 <= 8; d2++) {
         expect(mixedVolume2D(degreeTriangle(d1), degreeTriangle(d2)), `MV(${d1},${d2})`).toBe(
-          d1 * d2,
+          d1 * d2
         );
       }
     }

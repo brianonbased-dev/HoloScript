@@ -4,12 +4,7 @@
 import { describe, it, expect } from 'vitest';
 // CollaborationSession (mesh) moved to the /runtime subpath (cold-consume fix); the rest stay cold.
 import { CollaborationSession } from '../runtime';
-import {
-  CinematicDirector,
-  createSandbox,
-  executeSandbox,
-  destroySandbox,
-} from '../index';
+import { CinematicDirector, createSandbox, executeSandbox, destroySandbox } from '../index';
 import { createDefaultPolicy, createStrictPolicy } from '@holoscript/platform';
 
 describe('CinematicDirector exports', () => {
@@ -21,7 +16,7 @@ describe('CinematicDirector exports', () => {
     dir.addActorMark('s1', {
       actorId: 'hero',
       position: [0, 0, 0],
-      rotation: [0, 0, 0 ],
+      rotation: [0, 0, 0],
     });
     expect(dir.getScene('s1')?.actors.length).toBe(1);
   });

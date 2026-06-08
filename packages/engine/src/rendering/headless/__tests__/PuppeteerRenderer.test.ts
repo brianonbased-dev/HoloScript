@@ -11,12 +11,14 @@ describe('PuppeteerRenderer', () => {
 
   it('does not let page cleanup failures mask render failures', async () => {
     const renderer = new PuppeteerRenderer();
-    const releasePage = (renderer as unknown as {
-      releasePage: (page: {
-        goto: (url: string) => Promise<void>;
-        close: () => Promise<void>;
-      }) => Promise<void>;
-    }).releasePage.bind(renderer);
+    const releasePage = (
+      renderer as unknown as {
+        releasePage: (page: {
+          goto: (url: string) => Promise<void>;
+          close: () => Promise<void>;
+        }) => Promise<void>;
+      }
+    ).releasePage.bind(renderer);
 
     const page = {
       goto: vi.fn().mockRejectedValue(new Error('detached frame')),
@@ -30,9 +32,11 @@ describe('PuppeteerRenderer', () => {
 
   it('generates render HTML with nested object parsing and a ready signal', () => {
     const renderer = new PuppeteerRenderer();
-    const generateRenderHTML = (renderer as unknown as {
-      generateRenderHTML: (code: string) => string;
-    }).generateRenderHTML.bind(renderer);
+    const generateRenderHTML = (
+      renderer as unknown as {
+        generateRenderHTML: (code: string) => string;
+      }
+    ).generateRenderHTML.bind(renderer);
 
     const html = generateRenderHTML(`
       object "Panel" {
@@ -42,16 +46,18 @@ describe('PuppeteerRenderer', () => {
       }
     `);
 
-    expect(html).toContain("__HOLOSCRIPT_RENDER_READY__");
+    expect(html).toContain('__HOLOSCRIPT_RENDER_READY__');
     expect(html).toContain("extractBlocks(code, 'object')");
     expect(html).toContain("extractVector(body, 'position')");
   });
 
   it('generates readable label sprites for object labels', () => {
     const renderer = new PuppeteerRenderer();
-    const generateRenderHTML = (renderer as unknown as {
-      generateRenderHTML: (code: string) => string;
-    }).generateRenderHTML.bind(renderer);
+    const generateRenderHTML = (
+      renderer as unknown as {
+        generateRenderHTML: (code: string) => string;
+      }
+    ).generateRenderHTML.bind(renderer);
 
     const html = generateRenderHTML(`
       object "MCP Trace Overlay" {

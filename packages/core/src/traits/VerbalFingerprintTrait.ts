@@ -167,8 +167,13 @@ export const verbalFingerprintHandler: TraitHandler<VerbalFingerprintConfig> = {
       axis_vocabulary: ['style_consistency', 'fingerprint_stability'] as const,
       generate(ctx: PillarContext): PillarSlice {
         const state = (node as any).__verbalFingerprintState as VerbalFingerprintState | undefined;
-        const consistency = state?.rollingAccuracy ?? (ctx.metadata as Record<string, number> | undefined)?.style_consistency ?? 0.82;
-        const stability = state?.records?.length ? 0.97 : ((ctx.metadata as Record<string, number> | undefined)?.fingerprint_stability ?? 0.65);
+        const consistency =
+          state?.rollingAccuracy ??
+          (ctx.metadata as Record<string, number> | undefined)?.style_consistency ??
+          0.82;
+        const stability = state?.records?.length
+          ? 0.97
+          : ((ctx.metadata as Record<string, number> | undefined)?.fingerprint_stability ?? 0.65);
         return {
           axis_1_id: 'style_consistency',
           axis_2_id: 'fingerprint_stability',

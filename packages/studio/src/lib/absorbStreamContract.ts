@@ -54,7 +54,9 @@ function normalizePhase(rawType: string): AbsorbProgressPhase {
 /**
  * Normalizes arbitrary absorb SSE payloads into a stable Studio UI contract.
  */
-export function toAbsorbProgressContractEvent(payload: unknown): AbsorbProgressContractEvent | null {
+export function toAbsorbProgressContractEvent(
+  payload: unknown
+): AbsorbProgressContractEvent | null {
   if (!payload || typeof payload !== 'object') return null;
 
   const record = payload as Record<string, unknown>;

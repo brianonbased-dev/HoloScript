@@ -37,7 +37,9 @@ describe('extractTextToolCalls', () => {
   });
 
   it('accepts `parameters` as an alias for `arguments`', () => {
-    const calls = extractTextToolCalls('{"name": "explain_trait", "parameters": {"trait": "physics"}}');
+    const calls = extractTextToolCalls(
+      '{"name": "explain_trait", "parameters": {"trait": "physics"}}'
+    );
     expect(calls).toHaveLength(1);
     expect(calls[0].function.arguments).toEqual({ trait: 'physics' });
   });

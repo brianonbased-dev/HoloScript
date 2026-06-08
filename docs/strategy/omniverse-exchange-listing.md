@@ -28,16 +28,16 @@ HoloScript's `USDPhysicsCompiler` exports physics-bearing USD ASCII (`.usda`) fi
 
 ### Key capabilities
 
-| Feature | Detail |
-|---------|--------|
-| Target contexts | `isaac_sim`, `omniverse`, `generic` |
-| Up-axis enforcement | Z-up (Isaac Sim default), Y-up (Omniverse) |
+| Feature              | Detail                                                   |
+| -------------------- | -------------------------------------------------------- |
+| Target contexts      | `isaac_sim`, `omniverse`, `generic`                      |
+| Up-axis enforcement  | Z-up (Isaac Sim default), Y-up (Omniverse)               |
 | Articulation support | Full `PhysicsArticulationRootAPI` with multi-link robots |
-| Joint types | revolute, prismatic, spherical, fixed, D6 |
-| Drive types | `PhysicsDriveAPI` (angular/linear, stiffness/damping) |
-| Semantic metadata | MSF-aligned `customData` embedding |
-| Provenance | SHA-256 hash in USDA comment for audit trails |
-| MCP integration | `compile_to_usd` MCP tool at `mcp.holoscript.net` |
+| Joint types          | revolute, prismatic, spherical, fixed, D6                |
+| Drive types          | `PhysicsDriveAPI` (angular/linear, stiffness/damping)    |
+| Semantic metadata    | MSF-aligned `customData` embedding                       |
+| Provenance           | SHA-256 hash in USDA comment for audit trails            |
+| MCP integration      | `compile_to_usd` MCP tool at `mcp.holoscript.net`        |
 
 ### Use cases
 
@@ -84,13 +84,13 @@ MIT (open source — see `packages/core/` in the HoloScript repository)
 
 ## Links
 
-| Resource | URL |
-|----------|-----|
-| Documentation | https://holoscript.net/docs/targets/usd-omniverse |
-| Source code | https://github.com/holoscript/holoscript/tree/main/packages/core/src/compiler/USDPhysicsCompiler.ts |
-| MCP endpoint | https://mcp.holoscript.net |
-| npm package | `@holoscript/core` |
-| Quick start | `npx create-holoscript` |
+| Resource      | URL                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| Documentation | https://holoscript.net/docs/targets/usd-omniverse                                                   |
+| Source code   | https://github.com/holoscript/holoscript/tree/main/packages/core/src/compiler/USDPhysicsCompiler.ts |
+| MCP endpoint  | https://mcp.holoscript.net                                                                          |
+| npm package   | `@holoscript/core`                                                                                  |
+| Quick start   | `npx create-holoscript`                                                                             |
 
 ---
 
@@ -112,7 +112,7 @@ A few things that might be relevant:
 
 1. **Omniverse Exchange**: We'd like to list the HoloScript USD Physics Bridge on the Exchange. The listing copy is at `docs/strategy/omniverse-exchange-listing.md` in our repo. Can you point us to the submission process?
 
-2. **Ecosystem positioning**: HoloScript is *upstream* of USD — a semantic authoring layer that compiles to USD among many targets. We're happy to position as "Omniverse for everyone else" (browser-native, zero GPU floor, open source) and drive devs to your platform for the enterprise/on-prem use cases.
+2. **Ecosystem positioning**: HoloScript is _upstream_ of USD — a semantic authoring layer that compiles to USD among many targets. We're happy to position as "Omniverse for everyone else" (browser-native, zero GPU floor, open source) and drive devs to your platform for the enterprise/on-prem use cases.
 
 3. **Benchmark collaboration**: We have a benchmark comparing HoloScript → USD → Isaac Sim simulation throughput against legacy CAD/CAE pipelines. If NVIDIA has interest in co-publishing or validating, we'd welcome that.
 
@@ -125,4 +125,4 @@ HoloScript
 
 ---
 
-*This file is maintained by the agent team. Update contact details and benchmark links as they become available.*
+_This file is maintained by the agent team. Update contact details and benchmark links as they become available._

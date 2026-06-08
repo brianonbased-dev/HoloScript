@@ -11,13 +11,13 @@
 
 ## Engineering gates (checklist)
 
-| Gate | Status | Owner |
-|------|--------|-------|
-| WebGPU forward pass on acceptance video (not micro-encoder only) | Open | core/reconstruction |
-| Weight blob + GPU bind (beyond fetch+verify) | Open | core/reconstruction |
-| `.holo` export from manifest (trait composition) | Open | core + studio |
-| HoloLand ingest of emitted composition | Open | hololand |
-| Quest-native capture **or** one-tap “send to HoloMap tab” | Open | product |
+| Gate                                                             | Status | Owner               |
+| ---------------------------------------------------------------- | ------ | ------------------- |
+| WebGPU forward pass on acceptance video (not micro-encoder only) | Open   | core/reconstruction |
+| Weight blob + GPU bind (beyond fetch+verify)                     | Open   | core/reconstruction |
+| `.holo` export from manifest (trait composition)                 | Open   | core + studio       |
+| HoloLand ingest of emitted composition                           | Open   | hololand            |
+| Quest-native capture **or** one-tap “send to HoloMap tab”        | Open   | product             |
 
 ## Demo risks
 

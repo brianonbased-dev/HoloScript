@@ -255,14 +255,33 @@ export async function processAttestationViaTx(
   const seatPubkey = env.typedData?.message?.seat_pubkey ?? '<unknown>';
 
   // Shape checks first — cheaper than RPC.
-  if (!env.typedData?.message || !env.typedData.domain || env.typedData.primaryType !== 'Attestation') {
-    return { seat_id: seatId, seat_pubkey: seatPubkey, status: 'rejected', reason: 'malformed-typed-data' };
+  if (
+    !env.typedData?.message ||
+    !env.typedData.domain ||
+    env.typedData.primaryType !== 'Attestation'
+  ) {
+    return {
+      seat_id: seatId,
+      seat_pubkey: seatPubkey,
+      status: 'rejected',
+      reason: 'malformed-typed-data',
+    };
   }
   if (!isHexHash(env.eip712_hash)) {
-    return { seat_id: seatId, seat_pubkey: seatPubkey, status: 'rejected', reason: 'malformed-eip712-hash' };
+    return {
+      seat_id: seatId,
+      seat_pubkey: seatPubkey,
+      status: 'rejected',
+      reason: 'malformed-eip712-hash',
+    };
   }
   if (!isHexHash(env.tx_hash)) {
-    return { seat_id: seatId, seat_pubkey: seatPubkey, status: 'rejected', reason: 'malformed-tx-hash' };
+    return {
+      seat_id: seatId,
+      seat_pubkey: seatPubkey,
+      status: 'rejected',
+      reason: 'malformed-tx-hash',
+    };
   }
   if (env.chain_id !== expectedDomain.chainId) {
     return {
@@ -273,14 +292,29 @@ export async function processAttestationViaTx(
     };
   }
   if (env.typedData.domain.chainId !== expectedDomain.chainId) {
-    return { seat_id: seatId, seat_pubkey: seatPubkey, status: 'rejected', reason: 'typed-data-chain-id-mismatch' };
+    return {
+      seat_id: seatId,
+      seat_pubkey: seatPubkey,
+      status: 'rejected',
+      reason: 'typed-data-chain-id-mismatch',
+    };
   }
   const message = env.typedData.message;
   if (!isHexAddress(message.seat_pubkey)) {
-    return { seat_id: seatId, seat_pubkey: seatPubkey, status: 'rejected', reason: 'malformed-seat-pubkey' };
+    return {
+      seat_id: seatId,
+      seat_pubkey: seatPubkey,
+      status: 'rejected',
+      reason: 'malformed-seat-pubkey',
+    };
   }
   if (!isHexAddress(message.authorized_by)) {
-    return { seat_id: seatId, seat_pubkey: seatPubkey, status: 'rejected', reason: 'malformed-authorized-by' };
+    return {
+      seat_id: seatId,
+      seat_pubkey: seatPubkey,
+      status: 'rejected',
+      reason: 'malformed-authorized-by',
+    };
   }
   if (message.authorized_by.toLowerCase() !== founderAnchor) {
     return {
@@ -481,7 +515,12 @@ export async function processAttestation(
   const domain = options.domain ?? attestationDomain();
   const sigResult = await verifyAttestationSignature(env, founderAnchor, domain);
   if (!sigResult.valid) {
-    return { seat_id: env.seat_id, seat_pubkey: env.seat_pubkey, status: 'rejected', reason: sigResult.reason };
+    return {
+      seat_id: env.seat_id,
+      seat_pubkey: env.seat_pubkey,
+      status: 'rejected',
+      reason: sigResult.reason,
+    };
   }
   const registry = options.registry ?? getAttestationRegistry();
   const att: Attestation = {
@@ -573,7 +612,11 @@ export async function handleAttestationRoutes(
           broadcastToRoom(teamId, {
             type: 'attestation:approve',
             agent: caller.name,
-            data: { seat_id: env.seat_id, seat_pubkey: env.seat_pubkey, attested_at: env.issued_at },
+            data: {
+              seat_id: env.seat_id,
+              seat_pubkey: env.seat_pubkey,
+              attested_at: env.issued_at,
+            },
           });
         } catch {
           // Broadcast failure must not roll back the attest — registry state is authoritative.

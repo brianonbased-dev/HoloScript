@@ -10,7 +10,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import {
+  chainReceipt,
+  sha256Bytes,
+  sha256Text,
+  stageReceipt,
+  withHash,
+} from './holoshell/chain/receipts.mjs';
 import { generateFiducialBoard } from './holoshell-fiducial-board.mjs';
 import { generateTarget } from './holoshell-geometric-control-target.mjs';
 
@@ -119,7 +125,11 @@ async function decodeImage(path) {
 
 function uniquePaletteColor(palette, candidate) {
   if (!Array.isArray(candidate.rgb) || candidate.rgb.length < 3) return;
-  if (candidate.rgb.every((channel) => channel < 40) || candidate.rgb.every((channel) => channel > 215)) return;
+  if (
+    candidate.rgb.every((channel) => channel < 40) ||
+    candidate.rgb.every((channel) => channel > 215)
+  )
+    return;
   const key = candidate.rgb.slice(0, 3).join(',');
   if (palette.some((entry) => entry.key === key)) return;
   palette.push({
@@ -134,10 +144,18 @@ function paletteFromTarget(targetReceipt) {
   const target = targetReceipt?.target ?? targetReceipt;
   const palette = [];
   for (const primitive of target?.primitives ?? []) {
-    uniquePaletteColor(palette, { id: primitive.id, kind: primitive.kind, rgb: primitive.rgb ?? primitive.color });
+    uniquePaletteColor(palette, {
+      id: primitive.id,
+      kind: primitive.kind,
+      rgb: primitive.rgb ?? primitive.color,
+    });
   }
   for (const fiducial of target?.fiducials ?? []) {
-    uniquePaletteColor(palette, { id: fiducial.id, kind: 'fiducial-accent', rgb: fiducial.accentRgb ?? fiducial.accent });
+    uniquePaletteColor(palette, {
+      id: fiducial.id,
+      kind: 'fiducial-accent',
+      rgb: fiducial.accentRgb ?? fiducial.accent,
+    });
   }
   for (const axis of target?.axes ?? []) {
     uniquePaletteColor(palette, { id: axis.id, kind: 'axis', rgb: axis.color });
@@ -259,12 +277,7 @@ function connectedDarkComponents(decoded) {
       const x = index % width;
       const y = Math.floor(index / width);
       updateBounds(bounds, x, y);
-      const neighbors = [
-        index - 1,
-        index + 1,
-        index - width,
-        index + width,
-      ];
+      const neighbors = [index - 1, index + 1, index - width, index + width];
       for (const next of neighbors) {
         if (next < 0 || next >= mask.length || visited[next] || !mask[next]) continue;
         const nx = next % width;
@@ -411,7 +424,8 @@ function buildBoardCorrespondences(recoveredMarkers, targetMarkers) {
   const correspondences = [];
   for (const marker of recoveredMarkers) {
     const targetMarker = targetById.get(marker.id);
-    if (!targetMarker || !Array.isArray(targetMarker.corners) || targetMarker.corners.length < 4) continue;
+    if (!targetMarker || !Array.isArray(targetMarker.corners) || targetMarker.corners.length < 4)
+      continue;
     for (let i = 0; i < 4; i += 1) {
       const source = targetMarker.corners[i];
       const image = marker.corners[i];
@@ -461,8 +475,12 @@ function estimateBoardHomography(markers, target) {
       error: round(error, 6),
     };
   });
-  const finiteErrors = residuals.map((residual) => residual.error).filter((error) => Number.isFinite(error));
-  const rmsError = Math.sqrt(finiteErrors.reduce((sum, error) => sum + error * error, 0) / Math.max(1, finiteErrors.length));
+  const finiteErrors = residuals
+    .map((residual) => residual.error)
+    .filter((error) => Number.isFinite(error));
+  const rmsError = Math.sqrt(
+    finiteErrors.reduce((sum, error) => sum + error * error, 0) / Math.max(1, finiteErrors.length)
+  );
   const maxError = finiteErrors.length > 0 ? Math.max(...finiteErrors) : Infinity;
   return {
     status: Number.isFinite(rmsError) ? 'homography-estimated' : 'solve-failed',
@@ -534,12 +552,19 @@ function recoverFiducialMarkers(decoded, target) {
       source: 'native-dark-component-payload-match',
     };
     const previous = byId.get(markerId);
-    if (!previous || candidate.hammingDistance < previous.hammingDistance || candidate.confidence > previous.confidence) {
+    if (
+      !previous ||
+      candidate.hammingDistance < previous.hammingDistance ||
+      candidate.confidence > previous.confidence
+    ) {
       byId.set(markerId, candidate);
     }
   }
-  const markers = Array.from(byId.values()).sort((a, b) => (a.row ?? 0) - (b.row ?? 0) || (a.col ?? 0) - (b.col ?? 0));
-  const poseSolveInputReady = markers.length >= 4 && markers.every((marker) => marker.corners.length === 4);
+  const markers = Array.from(byId.values()).sort(
+    (a, b) => (a.row ?? 0) - (b.row ?? 0) || (a.col ?? 0) - (b.col ?? 0)
+  );
+  const poseSolveInputReady =
+    markers.length >= 4 && markers.every((marker) => marker.corners.length === 4);
   const homography = estimateBoardHomography(markers, target);
   return {
     status: poseSolveInputReady ? 'markers-detected' : 'markers-not-detected',
@@ -647,7 +672,8 @@ function analyzePixels(decoded, palette, options = {}) {
       edgeScore * 0.14 +
       contrastScore * 0.08
   );
-  const isFiducialBoard = options.targetProfile === 'fiducial-board' || Number(options.markerCount ?? 0) >= 4;
+  const isFiducialBoard =
+    options.targetProfile === 'fiducial-board' || Number(options.markerCount ?? 0) >= 4;
   const chartDetected =
     score >= 0.64 &&
     paletteHits.length >= 4 &&
@@ -661,12 +687,17 @@ function analyzePixels(decoded, palette, options = {}) {
     Math.min(darkRatio, lightRatio) >= 0.08 &&
     Math.sqrt(variance) >= 0.22;
   const detected = chartDetected || fiducialBoardDetected;
-  const bounds = materializeBounds(fiducialBoardDetected ? darkBbox : colorBbox) ?? materializeBounds(colorBbox);
+  const bounds =
+    materializeBounds(fiducialBoardDetected ? darkBbox : colorBbox) ?? materializeBounds(colorBbox);
 
   return {
     status: detected ? 'detected' : 'not-detected',
     detected,
-    detectionMode: fiducialBoardDetected ? 'fiducial-board-structure' : chartDetected ? 'palette-chart' : 'none',
+    detectionMode: fiducialBoardDetected
+      ? 'fiducial-board-structure'
+      : chartDetected
+        ? 'palette-chart'
+        : 'none',
     score: round(score),
     threshold: 0.64,
     paletteHitCount: paletteHits.length,
@@ -704,23 +735,36 @@ function analyzePixels(decoded, palette, options = {}) {
 function workflowInputs(workflow) {
   const framePath = workflow?.control?.frame?.path ?? workflow?.sweep?.control?.frame?.path;
   const targetPath = workflow?.target?.path;
-  const inlineTarget = workflow?.target ? { hash: workflow.target.receiptHash, target: workflow.target } : undefined;
+  const inlineTarget = workflow?.target
+    ? { hash: workflow.target.receiptHash, target: workflow.target }
+    : undefined;
   return { framePath, targetPath, inlineTarget };
 }
 
-export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, framePath, targetReceipt, targetPath, out } = {}) {
+export async function analyzeTargetInFrame({
+  workflowReceipt,
+  workflowPath,
+  framePath,
+  targetReceipt,
+  targetPath,
+  out,
+} = {}) {
   const workflow = workflowReceipt ?? (workflowPath ? readJson(workflowPath) : undefined);
   const workflowDerived = workflowInputs(workflow);
   const resolvedFramePath = framePath ?? workflowDerived.framePath;
   const resolvedTargetPath = targetPath ?? workflowDerived.targetPath;
   const resolvedTargetReceipt =
-    targetReceipt ?? (resolvedTargetPath ? readJson(resolvedTargetPath) : workflowDerived.inlineTarget);
-  if (!resolvedFramePath) throw new Error('--frame is required when --workflow does not provide a control frame');
-  if (!resolvedTargetReceipt) throw new Error('--target is required when --workflow does not provide a target receipt');
+    targetReceipt ??
+    (resolvedTargetPath ? readJson(resolvedTargetPath) : workflowDerived.inlineTarget);
+  if (!resolvedFramePath)
+    throw new Error('--frame is required when --workflow does not provide a control frame');
+  if (!resolvedTargetReceipt)
+    throw new Error('--target is required when --workflow does not provide a target receipt');
 
   const decoded = await decodeImage(resolvedFramePath);
   const palette = paletteFromTarget(resolvedTargetReceipt);
-  if (palette.length < 4) throw new Error('Target receipt does not provide enough colored palette entries');
+  if (palette.length < 4)
+    throw new Error('Target receipt does not provide enough colored palette entries');
   const target = resolvedTargetReceipt?.target ?? resolvedTargetReceipt;
   const detection = analyzePixels(decoded, palette, {
     targetProfile: target?.profile,
@@ -732,7 +776,9 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
     detection.detected = true;
     detection.detectionMode = 'fiducial-marker-corners';
     detection.bounds = markerRecovery.bounds ?? detection.bounds;
-    detection.cornerCandidates = detection.bounds ? cornersFromBounds('target-bounds', detection.bounds) : detection.cornerCandidates;
+    detection.cornerCandidates = detection.bounds
+      ? cornersFromBounds('target-bounds', detection.bounds)
+      : detection.cornerCandidates;
   }
   detection.fiducialMarkers = markerRecovery.markers;
   detection.recoveredMarkerCount = markerRecovery.recoveredMarkerCount;
@@ -820,7 +866,9 @@ export async function analyzeTargetInFrame({ workflowReceipt, workflowPath, fram
       dictionary: resolvedTargetReceipt.target?.dictionary,
       pngPath: resolvedTargetReceipt.target?.pngPath,
       pngHash: resolvedTargetReceipt.target?.pngHash,
-      markerCount: Array.isArray(resolvedTargetReceipt.target?.markers) ? resolvedTargetReceipt.target.markers.length : undefined,
+      markerCount: Array.isArray(resolvedTargetReceipt.target?.markers)
+        ? resolvedTargetReceipt.target.markers.length
+        : undefined,
       palette,
     },
     detection,
@@ -842,28 +890,42 @@ export function validateReceipt(receipt) {
   if (receipt.status !== 'pass') errors.push('status must be pass');
   if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
   if (!receipt.frame?.fileHash?.startsWith('sha256:')) errors.push('frame hash missing');
-  if (!(receipt.frame?.width > 0) || !(receipt.frame?.height > 0)) errors.push('frame dimensions missing');
-  if (!Array.isArray(receipt.target?.palette) || receipt.target.palette.length < 4) errors.push('target palette missing');
-  if (!['detected', 'not-detected'].includes(receipt.detection?.status)) errors.push('detection status mismatch');
+  if (!(receipt.frame?.width > 0) || !(receipt.frame?.height > 0))
+    errors.push('frame dimensions missing');
+  if (!Array.isArray(receipt.target?.palette) || receipt.target.palette.length < 4)
+    errors.push('target palette missing');
+  if (!['detected', 'not-detected'].includes(receipt.detection?.status))
+    errors.push('detection status mismatch');
   if (!(receipt.detection?.score >= 0)) errors.push('detection score missing');
   if (!Array.isArray(receipt.detection?.cornerCandidates)) errors.push('corner candidates missing');
   if (receipt.detection?.status === 'detected' && receipt.detection.cornerCandidates.length < 4) {
     errors.push('detected target must provide bounds corner candidates');
   }
   if (receipt.detection?.poseSolveInputReady === true) {
-    if (!(receipt.detection?.recoveredMarkerCount >= 4)) errors.push('poseSolveInputReady requires recovered markers');
-    if (!(receipt.detection?.markerCornerCount >= 16)) errors.push('poseSolveInputReady requires marker corners');
-    if (!receipt.detection?.fiducialMarkers?.every((marker) => Array.isArray(marker.corners) && marker.corners.length === 4)) {
+    if (!(receipt.detection?.recoveredMarkerCount >= 4))
+      errors.push('poseSolveInputReady requires recovered markers');
+    if (!(receipt.detection?.markerCornerCount >= 16))
+      errors.push('poseSolveInputReady requires marker corners');
+    if (
+      !receipt.detection?.fiducialMarkers?.every(
+        (marker) => Array.isArray(marker.corners) && marker.corners.length === 4
+      )
+    ) {
       errors.push('poseSolveInputReady requires four corners per marker');
     }
   }
   if (receipt.detection?.boardHomographyReady === true) {
-    if (receipt.detection?.boardPose?.status !== 'homography-estimated') errors.push('board homography status mismatch');
-    if (!(receipt.detection?.boardPose?.reprojection?.rmsPixels >= 0)) errors.push('board homography reprojection RMS missing');
-    if (receipt.detection?.boardPose?.calibrationReady !== false) errors.push('board homography must not claim camera calibration');
+    if (receipt.detection?.boardPose?.status !== 'homography-estimated')
+      errors.push('board homography status mismatch');
+    if (!(receipt.detection?.boardPose?.reprojection?.rmsPixels >= 0))
+      errors.push('board homography reprojection RMS missing');
+    if (receipt.detection?.boardPose?.calibrationReady !== false)
+      errors.push('board homography must not claim camera calibration');
   }
-  if (receipt.detection?.calibrationReady !== false) errors.push('calibrationReady must be false for heuristic detector');
-  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
+  if (receipt.detection?.calibrationReady !== false)
+    errors.push('calibrationReady must be false for heuristic detector');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:'))
+    errors.push('chain receipt hash missing');
   return errors;
 }
 
@@ -876,7 +938,9 @@ async function writeSolidPng(path, width, height, rgb) {
     data[i + 2] = rgb[2];
   }
   mkdirSync(dirname(resolve(REPO_ROOT, path)), { recursive: true });
-  await sharp(data, { raw: { width, height, channels: 3 } }).png({ compressionLevel: 9 }).toFile(resolve(REPO_ROOT, path));
+  await sharp(data, { raw: { width, height, channels: 3 } })
+    .png({ compressionLevel: 9 })
+    .toFile(resolve(REPO_ROOT, path));
 }
 
 export async function selfTest() {
@@ -892,7 +956,8 @@ export async function selfTest() {
     targetPath: targetReceipt.outputPath,
     out: join(dir, 'detected-receipt.json'),
   });
-  if (detected.detection.status !== 'detected') throw new Error('self-test target PNG should be detected');
+  if (detected.detection.status !== 'detected')
+    throw new Error('self-test target PNG should be detected');
   const fiducialReceipt = await generateFiducialBoard({
     out: join(dir, 'fiducial-board-receipt.json'),
     png: join(dir, 'fiducial-board.png'),
@@ -904,8 +969,10 @@ export async function selfTest() {
     targetPath: fiducialReceipt.outputPath,
     out: join(dir, 'fiducial-detected-receipt.json'),
   });
-  if (fiducialDetected.detection.status !== 'detected') throw new Error('self-test fiducial board PNG should be detected');
-  if (fiducialDetected.detection.recoveredMarkerCount !== 9) throw new Error('self-test fiducial board should recover nine markers');
+  if (fiducialDetected.detection.status !== 'detected')
+    throw new Error('self-test fiducial board PNG should be detected');
+  if (fiducialDetected.detection.recoveredMarkerCount !== 9)
+    throw new Error('self-test fiducial board should recover nine markers');
   if (fiducialDetected.detection.boardPose?.status !== 'homography-estimated') {
     throw new Error('self-test fiducial board should estimate a board homography');
   }
@@ -915,7 +982,8 @@ export async function selfTest() {
     targetPath: targetReceipt.outputPath,
     out: join(dir, 'missing-receipt.json'),
   });
-  if (missing.detection.status !== 'not-detected') throw new Error('self-test blank image should not detect target');
+  if (missing.detection.status !== 'not-detected')
+    throw new Error('self-test blank image should not detect target');
   return { detected, fiducialDetected, missing };
 }
 
@@ -927,7 +995,9 @@ async function main() {
   }
   if (args.selfTest) {
     const { detected, fiducialDetected, missing } = await selfTest();
-    process.stdout.write(`holoshell-target-in-frame self-test PASS ${detected.hash} ${fiducialDetected.hash} ${missing.hash}\n`);
+    process.stdout.write(
+      `holoshell-target-in-frame self-test PASS ${detected.hash} ${fiducialDetected.hash} ${missing.hash}\n`
+    );
     return;
   }
   const workflowPath = args.workflow ? resolve(REPO_ROOT, args.workflow) : undefined;
@@ -938,27 +1008,36 @@ async function main() {
     targetPath: args.target,
     out: outPath,
   });
-  process.stdout.write(`${JSON.stringify({
-    status: receipt.status,
-    receiptPath: receipt.outputPath,
-    detection: {
-      status: receipt.detection.status,
-      score: receipt.detection.score,
-      paletteHitCount: receipt.detection.paletteHitCount,
-      paletteCoverage: receipt.detection.paletteCoverage,
-      detectionMode: receipt.detection.detectionMode,
-      recoveredMarkerCount: receipt.detection.recoveredMarkerCount,
-      markerCornerCount: receipt.detection.markerCornerCount,
-      poseSolveInputReady: receipt.detection.poseSolveInputReady,
-      boardHomographyStatus: receipt.detection.boardPose?.status,
-      boardHomographyReady: receipt.detection.boardHomographyReady,
-      bounds: receipt.detection.bounds,
-      calibrationReady: receipt.detection.calibrationReady,
-    },
-  }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        status: receipt.status,
+        receiptPath: receipt.outputPath,
+        detection: {
+          status: receipt.detection.status,
+          score: receipt.detection.score,
+          paletteHitCount: receipt.detection.paletteHitCount,
+          paletteCoverage: receipt.detection.paletteCoverage,
+          detectionMode: receipt.detection.detectionMode,
+          recoveredMarkerCount: receipt.detection.recoveredMarkerCount,
+          markerCornerCount: receipt.detection.markerCornerCount,
+          poseSolveInputReady: receipt.detection.poseSolveInputReady,
+          boardHomographyStatus: receipt.detection.boardPose?.status,
+          boardHomographyReady: receipt.detection.boardHomographyReady,
+          bounds: receipt.detection.bounds,
+          calibrationReady: receipt.detection.calibrationReady,
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('holoshell-target-in-frame-analyzer.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('holoshell-target-in-frame-analyzer.mjs')
+) {
   main().catch((error) => {
     process.stderr.write(`holoshell-target-in-frame FAIL: ${error.stack ?? error.message}\n`);
     process.exitCode = 1;

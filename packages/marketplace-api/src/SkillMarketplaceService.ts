@@ -693,10 +693,7 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
       receipt.access_expires_at !== undefined &&
       receipt.access_expires_at < Math.floor(Date.now() / 1000)
     ) {
-      throw new SkillMarketplacePaymentError(
-        'PAYMENT_EXPIRED',
-        'Payment receipt has expired'
-      );
+      throw new SkillMarketplacePaymentError('PAYMENT_EXPIRED', 'Payment receipt has expired');
     }
 
     const requiredAmount = this.getRequiredSkillPaymentAmount(skill);
@@ -724,7 +721,7 @@ export class SkillMarketplaceService implements ISkillMarketplaceAPI {
   private getRequiredSkillPaymentAmount(skill: SkillPackage): number {
     const cents =
       skill.pricingModel === 'subscription'
-        ? skill.subscriptionPrice ?? skill.price
+        ? (skill.subscriptionPrice ?? skill.price)
         : skill.price;
     return cents / 100;
   }

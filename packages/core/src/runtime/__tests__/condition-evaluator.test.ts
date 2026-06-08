@@ -80,27 +80,27 @@ describe('evaluateCondition', () => {
 
   describe('comparison operators', () => {
     it('=== strict equality: equal values', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'x' ? 5 : 5;
+      const ev: ExpressionEvaluator = (e) => (e === 'x' ? 5 : 5);
       expect(evaluateCondition('x === x', ev)).toBe(true);
     });
 
     it('=== strict equality: unequal values', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? 1 : 2;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? 1 : 2);
       expect(evaluateCondition('a === b', ev)).toBe(false);
     });
 
     it('!== strict inequality', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? 1 : 2;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? 1 : 2);
       expect(evaluateCondition('a !== b', ev)).toBe(true);
     });
 
     it('== loose equality', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? '1' : 1;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? '1' : 1);
       expect(evaluateCondition('a == b', ev)).toBe(true); // '1' == 1
     });
 
     it('!= loose inequality', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? 1 : 2;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? 1 : 2);
       expect(evaluateCondition('a != b', ev)).toBe(true);
     });
 
@@ -110,27 +110,27 @@ describe('evaluateCondition', () => {
     });
 
     it('>= greater or equal: greater case', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? 6 : 5;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? 6 : 5);
       expect(evaluateCondition('a >= b', ev)).toBe(true);
     });
 
     it('>= greater or equal: less case', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? 4 : 5;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? 4 : 5);
       expect(evaluateCondition('a >= b', ev)).toBe(false);
     });
 
     it('<= less or equal', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? 4 : 5;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? 4 : 5);
       expect(evaluateCondition('a <= b', ev)).toBe(true);
     });
 
     it('> strictly greater', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? 6 : 5;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? 6 : 5);
       expect(evaluateCondition('a > b', ev)).toBe(true);
     });
 
     it('< strictly less', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? 4 : 5;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? 4 : 5);
       expect(evaluateCondition('a < b', ev)).toBe(true);
     });
   });
@@ -142,22 +142,22 @@ describe('evaluateCondition', () => {
     });
 
     it('&& returns false when left side is falsy', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? false : true;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? false : true);
       expect(evaluateCondition('a && b', ev)).toBe(false);
     });
 
     it('&& returns false when right side is falsy', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'b' ? false : true;
+      const ev: ExpressionEvaluator = (e) => (e === 'b' ? false : true);
       expect(evaluateCondition('a && b', ev)).toBe(false);
     });
 
     it('|| returns true when left side is truthy', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'a' ? true : false;
+      const ev: ExpressionEvaluator = (e) => (e === 'a' ? true : false);
       expect(evaluateCondition('a || b', ev)).toBe(true);
     });
 
     it('|| returns true when right side is truthy', () => {
-      const ev: ExpressionEvaluator = (e) => e === 'b' ? true : false;
+      const ev: ExpressionEvaluator = (e) => (e === 'b' ? true : false);
       expect(evaluateCondition('a || b', ev)).toBe(true);
     });
 
@@ -201,7 +201,9 @@ describe('evaluateCondition', () => {
 
   describe('error handling', () => {
     it('returns false when evaluate throws', () => {
-      const ev: ExpressionEvaluator = () => { throw new Error('evaluation failed'); };
+      const ev: ExpressionEvaluator = () => {
+        throw new Error('evaluation failed');
+      };
       expect(evaluateCondition('badExpr', ev)).toBe(false);
     });
   });

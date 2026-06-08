@@ -26,11 +26,7 @@ import { generateHololandDataset, datasetToJsonl, TrainingCategory } from './tra
 import { renderPreview, createShareLink } from './renderer';
 import { handleEditHoloTool } from './edit-holo-tools';
 import { TRAIT_DOCS, SYNTAX_DOCS, EXAMPLES } from './documentation';
-import {
-  EXAMPLE_CATALOG,
-  EXAMPLE_INVENTORY,
-  PUBLIC_LINK_POLICIES,
-} from './examples-catalog';
+import { EXAMPLE_CATALOG, EXAMPLE_INVENTORY, PUBLIC_LINK_POLICIES } from './examples-catalog';
 import { handleCodebaseTool } from '@holoscript/absorb-service/mcp';
 import { handleGraphTool } from './graph-tools';
 import { handleIDETool } from './ide-tools';
@@ -347,8 +343,7 @@ export async function handleTool(
   }
 
   // For tools that ingest HoloScript code, additionally gate the code payload
-  const codePayload =
-    args.code ?? args.content ?? args.holoscript ?? args.source;
+  const codePayload = args.code ?? args.content ?? args.holoscript ?? args.source;
   if (typeof codePayload === 'string' && codePayload.length > 0) {
     const codeGate = await gateHoloScriptCode(codePayload, {
       source: 'unknown',
@@ -420,7 +415,9 @@ export async function handleTool(
     case 'edit_holo': {
       const result = await handleEditHoloTool(name, args);
       if (result !== null) return result;
-      throw new Error(`[edit_holo] Handler returned null for tool '${name}' with args: ${JSON.stringify(args).slice(0, 200)}. The edit_holo handler could not process this input — check that the .holo source is valid and the edit operation is supported.`);
+      throw new Error(
+        `[edit_holo] Handler returned null for tool '${name}' with args: ${JSON.stringify(args).slice(0, 200)}. The edit_holo handler could not process this input — check that the .holo source is valid and the edit operation is supported.`
+      );
     }
 
     // Browser control tools
@@ -435,11 +432,8 @@ export async function handleTool(
     case 'batch_tool_call':
     case 'get_tool_health': {
       const { tools: allTools } = await import('./tools');
-      const result = await handleToolingDiscoveryTool(
-        name,
-        args,
-        allTools,
-        (toolName, toolArgs) => handleTool(toolName, toolArgs, signingCtx)
+      const result = await handleToolingDiscoveryTool(name, args, allTools, (toolName, toolArgs) =>
+        handleTool(toolName, toolArgs, signingCtx)
       );
       if (result !== null) return result;
       break;
@@ -759,7 +753,6 @@ export async function handleTool(
   if (pluginResult !== null) {
     return pluginResult;
   }
-
 
   // HoloMap reconstruction tools
   if (isHoloMapToolName(name)) {
@@ -1191,7 +1184,10 @@ async function handleGetExamples(args: Record<string, unknown>) {
     .split(/\s+/)
     .filter(Boolean);
   const overlaps = (slug: string) => {
-    const slugWords = slug.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    const slugWords = slug
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean);
     return queryWords.filter((q) => slugWords.some((s) => s.includes(q) || q.includes(s))).length;
   };
 

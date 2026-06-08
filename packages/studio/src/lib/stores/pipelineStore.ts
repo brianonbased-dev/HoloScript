@@ -249,7 +249,9 @@ export const usePipelineStore = create<PipelineState>()(
             const layers = { ...s.activePipeline.layers };
             layers[targetLayer] = {
               ...layers[targetLayer],
-              feedbackBuffer: [...layers[targetLayer].feedbackBuffer, signal].slice(-MAX_FEEDBACK_BUFFER),
+              feedbackBuffer: [...layers[targetLayer].feedbackBuffer, signal].slice(
+                -MAX_FEEDBACK_BUFFER
+              ),
             };
             return { activePipeline: { ...s.activePipeline, layers } };
           });

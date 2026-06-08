@@ -47,7 +47,11 @@ export class NavMesh {
   // Polygon Management
   // ---------------------------------------------------------------------------
 
-  addPolygon(vertices: Array<NavPoint | { x: number; y: number; z: number }>, walkable = true, cost = 1): NavPolygon {
+  addPolygon(
+    vertices: Array<NavPoint | { x: number; y: number; z: number }>,
+    walkable = true,
+    cost = 1
+  ): NavPolygon {
     const normalized = vertices.map((v) => this.toArr3(v));
     const center = this.computeCenter(normalized);
     const poly: NavPolygon = {
@@ -179,22 +183,22 @@ export class NavMesh {
     return [c[0] / n, c[1] / n, c[2] / n];
   }
 
-  private isPointInPolygon2D(point: NavPoint | { x: number; y: number; z: number }, vertices: Array<NavPoint | { x: number; y: number; z: number }>): boolean {
+  private isPointInPolygon2D(
+    point: NavPoint | { x: number; y: number; z: number },
+    vertices: Array<NavPoint | { x: number; y: number; z: number }>
+  ): boolean {
     const p = this.toArr3(point);
     let inside = false;
     const n = vertices.length;
     for (let i = 0, j = n - 1; i < n; j = i++) {
-        // Projecting to X/Z plane (ground plane in HoloScript standard)
+      // Projecting to X/Z plane (ground plane in HoloScript standard)
       const vi = this.toArr3(vertices[i]);
       const vj = this.toArr3(vertices[j]);
       const xi = vi[0],
         zi = vi[2];
       const xj = vj[0],
         zj = vj[2];
-      if (
-        zi > p[2] !== zj > p[2] &&
-        p[0] < ((xj - xi) * (p[2] - zi)) / (zj - zi) + xi
-      ) {
+      if (zi > p[2] !== zj > p[2] && p[0] < ((xj - xi) * (p[2] - zi)) / (zj - zi) + xi) {
         inside = !inside;
       }
     }

@@ -56,7 +56,11 @@ describe('DepthEstimationTrait — metadata', () => {
 describe('DepthEstimationTrait — sync lifecycle', () => {
   it('onAttach emits depth:ready with false synchronously', async () => {
     const node = makeNode();
-    await depthEstimationTraitHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
+    await depthEstimationTraitHandler.onAttach!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never
+    );
     // depth:ready false must be called (at minimum once) from onAttach
     const readyCalls = node.emit.mock.calls.filter(([t]) => t === 'depth:ready');
     expect(readyCalls.length).toBeGreaterThan(0);
@@ -65,22 +69,42 @@ describe('DepthEstimationTrait — sync lifecycle', () => {
 
   it('onAttach stores __depthEstimationState on node', async () => {
     const node = makeNode();
-    await depthEstimationTraitHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
+    await depthEstimationTraitHandler.onAttach!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never
+    );
     expect(node.__depthEstimationState).toBeTruthy();
   });
 
   it('onDetach clears __depthEstimationState', async () => {
     const node = makeNode();
-    await depthEstimationTraitHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    await depthEstimationTraitHandler.onDetach!(node as never, defaultConfig, makeCtx(node) as never);
+    await depthEstimationTraitHandler.onAttach!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never
+    );
+    await depthEstimationTraitHandler.onDetach!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never
+    );
     expect(node.__depthEstimationState).toBeUndefined();
   });
 
   it('onDetach emits depth:ready with false', async () => {
     const node = makeNode();
-    await depthEstimationTraitHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
+    await depthEstimationTraitHandler.onAttach!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never
+    );
     node.emit.mockClear();
-    await depthEstimationTraitHandler.onDetach!(node as never, defaultConfig, makeCtx(node) as never);
+    await depthEstimationTraitHandler.onDetach!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never
+    );
     const readyCalls = node.emit.mock.calls.filter(([t]) => t === 'depth:ready');
     expect(readyCalls.length).toBeGreaterThan(0);
     expect(readyCalls[readyCalls.length - 1][1]).toBe(false);

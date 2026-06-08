@@ -25,7 +25,14 @@ export interface ReadabilityResult {
   /** Flesch-Kincaid Grade Level */
   gradeLevel: number;
   /** Interpretation */
-  difficulty: 'very-easy' | 'easy' | 'fairly-easy' | 'standard' | 'fairly-difficult' | 'difficult' | 'very-difficult';
+  difficulty:
+    | 'very-easy'
+    | 'easy'
+    | 'fairly-easy'
+    | 'standard'
+    | 'fairly-difficult'
+    | 'difficult'
+    | 'very-difficult';
   /** Word count */
   wordCount: number;
   /** Sentence count */
@@ -121,8 +128,8 @@ function countSyllables(word: string): number {
 export function fleschKincaid(text: string): ReadabilityResult {
   if (!text || text.trim().length === 0) throw new Error('Text must not be empty');
 
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 3);
-  const words = text.split(/\s+/).filter(w => w.match(/[a-zA-Z]/));
+  const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 3);
+  const words = text.split(/\s+/).filter((w) => w.match(/[a-zA-Z]/));
 
   if (words.length === 0) throw new Error('Text contains no words');
   const sentenceCount = Math.max(1, sentences.length);
@@ -132,18 +139,26 @@ export function fleschKincaid(text: string): ReadabilityResult {
   const avgSyllablesPerWord = totalSyllables / wordCount;
   const avgWordsPerSentence = wordCount / sentenceCount;
 
-  const readingEase = Math.min(100, Math.max(0,
-    206.835 - 1.015 * avgWordsPerSentence - 84.6 * avgSyllablesPerWord,
-  ));
+  const readingEase = Math.min(
+    100,
+    Math.max(0, 206.835 - 1.015 * avgWordsPerSentence - 84.6 * avgSyllablesPerWord)
+  );
   const gradeLevel = Math.max(0, 0.39 * avgWordsPerSentence + 11.8 * avgSyllablesPerWord - 15.59);
 
   const difficulty: ReadabilityResult['difficulty'] =
-    readingEase >= 90 ? 'very-easy' :
-    readingEase >= 80 ? 'easy' :
-    readingEase >= 70 ? 'fairly-easy' :
-    readingEase >= 60 ? 'standard' :
-    readingEase >= 50 ? 'fairly-difficult' :
-    readingEase >= 30 ? 'difficult' : 'very-difficult';
+    readingEase >= 90
+      ? 'very-easy'
+      : readingEase >= 80
+        ? 'easy'
+        : readingEase >= 70
+          ? 'fairly-easy'
+          : readingEase >= 60
+            ? 'standard'
+            : readingEase >= 50
+              ? 'fairly-difficult'
+              : readingEase >= 30
+                ? 'difficult'
+                : 'very-difficult';
 
   return { readingEase, gradeLevel, difficulty, wordCount, sentenceCount, avgSyllablesPerWord };
 }
@@ -152,31 +167,32 @@ export function fleschKincaid(text: string): ReadabilityResult {
 
 const RISK_TERMS: Array<{ term: string; weight: number; category: string }> = [
   // High risk
-  { term: 'indemnify',          weight: 15, category: 'indemnification' },
-  { term: 'indemnification',    weight: 15, category: 'indemnification' },
+  { term: 'indemnify', weight: 15, category: 'indemnification' },
+  { term: 'indemnification', weight: 15, category: 'indemnification' },
   { term: 'unlimited liability', weight: 20, category: 'liability' },
-  { term: 'sole discretion',    weight: 12, category: 'control' },
+  { term: 'sole discretion', weight: 12, category: 'control' },
   { term: 'liquidated damages', weight: 10, category: 'penalties' },
-  { term: 'penalty',            weight: 8,  category: 'penalties' },
+  { term: 'penalty', weight: 8, category: 'penalties' },
   { term: 'terminate immediately', weight: 10, category: 'termination' },
-  { term: 'without cause',      weight: 8,  category: 'termination' },
-  { term: 'waiver',             weight: 6,  category: 'rights' },
-  { term: 'assign',             weight: 5,  category: 'assignment' },
+  { term: 'without cause', weight: 8, category: 'termination' },
+  { term: 'waiver', weight: 6, category: 'rights' },
+  { term: 'assign', weight: 5, category: 'assignment' },
   // Medium risk
-  { term: 'non-compete',        weight: 7,  category: 'restraint' },
-  { term: 'non-solicitation',   weight: 5,  category: 'restraint' },
-  { term: 'perpetual',          weight: 6,  category: 'term' },
-  { term: 'irrevocable',        weight: 5,  category: 'term' },
-  { term: 'confidential',       weight: 3,  category: 'confidentiality' },
-  { term: 'arbitration',        weight: 4,  category: 'dispute' },
-  { term: 'governing law',      weight: 2,  category: 'jurisdiction' },
+  { term: 'non-compete', weight: 7, category: 'restraint' },
+  { term: 'non-solicitation', weight: 5, category: 'restraint' },
+  { term: 'perpetual', weight: 6, category: 'term' },
+  { term: 'irrevocable', weight: 5, category: 'term' },
+  { term: 'confidential', weight: 3, category: 'confidentiality' },
+  { term: 'arbitration', weight: 4, category: 'dispute' },
+  { term: 'governing law', weight: 2, category: 'jurisdiction' },
   // Protective (reduce score)
   { term: 'limitation of liability', weight: -5, category: 'protection' },
-  { term: 'mutual',             weight: -3, category: 'fairness' },
+  { term: 'mutual', weight: -3, category: 'fairness' },
 ];
 
 export function clauseRiskScorer(contractText: string): ClauseRiskResult {
-  if (!contractText || contractText.trim().length === 0) throw new Error('Contract text must not be empty');
+  if (!contractText || contractText.trim().length === 0)
+    throw new Error('Contract text must not be empty');
 
   const lower = contractText.toLowerCase();
   let riskScore = 0;
@@ -196,23 +212,44 @@ export function clauseRiskScorer(contractText: string): ClauseRiskResult {
   riskScore = Math.max(0, Math.min(100, riskScore));
 
   const riskCategory: ClauseRiskResult['riskCategory'] =
-    riskScore >= 70 ? 'critical' :
-    riskScore >= 50 ? 'high' :
-    riskScore >= 25 ? 'medium' : 'low';
+    riskScore >= 70 ? 'critical' : riskScore >= 50 ? 'high' : riskScore >= 25 ? 'medium' : 'low';
 
   const recommendations: string[] = [];
-  const highWeight = flaggedTerms.filter(t => t.weight >= 10);
-  if (highWeight.length > 0) recommendations.push(`Review high-risk clauses: ${highWeight.map(t => t.term).join(', ')}`);
-  if (flaggedTerms.some(t => t.term === 'unlimited liability')) recommendations.push('Negotiate cap on liability — unlimited liability exposure detected');
-  if (flaggedTerms.some(t => t.term === 'sole discretion')) recommendations.push('"Sole discretion" clauses grant unilateral power — seek mutual consent provisions');
+  const highWeight = flaggedTerms.filter((t) => t.weight >= 10);
+  if (highWeight.length > 0)
+    recommendations.push(`Review high-risk clauses: ${highWeight.map((t) => t.term).join(', ')}`);
+  if (flaggedTerms.some((t) => t.term === 'unlimited liability'))
+    recommendations.push('Negotiate cap on liability — unlimited liability exposure detected');
+  if (flaggedTerms.some((t) => t.term === 'sole discretion'))
+    recommendations.push(
+      '"Sole discretion" clauses grant unilateral power — seek mutual consent provisions'
+    );
 
-  return { riskScore, riskCategory, flaggedTerms: flaggedTerms.sort((a, b) => b.weight - a.weight), recommendations };
+  return {
+    riskScore,
+    riskCategory,
+    flaggedTerms: flaggedTerms.sort((a, b) => b.weight - a.weight),
+    recommendations,
+  };
 }
 
 // ─── Obligation Extractor ─────────────────────────────────────────────────────
 
 const SHALL_PATTERN = /([A-Z][^.]*?)\s+(shall\s+not|must\s+not|shall|must|will)\s+([^.]+\.)/gi;
-const PARTY_WORDS = ['vendor', 'client', 'supplier', 'customer', 'buyer', 'seller', 'licensor', 'licensee', 'contractor', 'company', 'party', 'parties'];
+const PARTY_WORDS = [
+  'vendor',
+  'client',
+  'supplier',
+  'customer',
+  'buyer',
+  'seller',
+  'licensor',
+  'licensee',
+  'contractor',
+  'company',
+  'party',
+  'parties',
+];
 
 export function extractObligations(contractText: string): Obligation[] {
   if (!contractText) return [];
@@ -221,17 +258,23 @@ export function extractObligations(contractText: string): Obligation[] {
   let match: RegExpExecArray | null;
   let clauseIndex = 0;
 
-  const re = /([A-Z][a-zA-Z\s,]*?)\s+(shall\s+not|must\s+not|shall|must|will)\s+([^.!?]{5,200}[.!?])/gi;
+  const re =
+    /([A-Z][a-zA-Z\s,]*?)\s+(shall\s+not|must\s+not|shall|must|will)\s+([^.!?]{5,200}[.!?])/gi;
   while ((match = re.exec(contractText)) !== null) {
     const [, subject, modal, action] = match;
     const lowerSubject = subject.toLowerCase().trim();
-    const isParty = PARTY_WORDS.some(p => lowerSubject.includes(p));
+    const isParty = PARTY_WORDS.some((p) => lowerSubject.includes(p));
     const obligor = isParty ? subject.trim() : 'unspecified';
 
-    const type: Obligation['type'] =
-      modal.toLowerCase().includes('not') ? (modal.toLowerCase().startsWith('shall') ? 'shall-not' : 'must-not') :
-      modal.toLowerCase() === 'shall' ? 'shall' :
-      modal.toLowerCase() === 'must' ? 'must' : 'will';
+    const type: Obligation['type'] = modal.toLowerCase().includes('not')
+      ? modal.toLowerCase().startsWith('shall')
+        ? 'shall-not'
+        : 'must-not'
+      : modal.toLowerCase() === 'shall'
+        ? 'shall'
+        : modal.toLowerCase() === 'must'
+          ? 'must'
+          : 'will';
 
     obligations.push({
       text: match[0].trim(),
@@ -246,10 +289,25 @@ export function extractObligations(contractText: string): Obligation[] {
 
 // ─── Deadline Calendar ────────────────────────────────────────────────────────
 
-const ABS_DATE_RE = /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b|\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b|\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/gi;
-const REL_DATE_RE = /\bwithin\s+(\d+)\s+(days?|weeks?|months?)\b|\b(\d+)\s+(days?|weeks?|months?)\s+(?:after|from|following)\b/gi;
+const ABS_DATE_RE =
+  /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b|\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b|\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/gi;
+const REL_DATE_RE =
+  /\bwithin\s+(\d+)\s+(days?|weeks?|months?)\b|\b(\d+)\s+(days?|weeks?|months?)\s+(?:after|from|following)\b/gi;
 
-const MONTH_MAP: Record<string, number> = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
+const MONTH_MAP: Record<string, number> = {
+  January: 1,
+  February: 2,
+  March: 3,
+  April: 4,
+  May: 5,
+  June: 6,
+  July: 7,
+  August: 8,
+  September: 9,
+  October: 10,
+  November: 11,
+  December: 12,
+};
 
 function daysBetween(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / 86400000);
@@ -266,11 +324,14 @@ export function buildDeadlineCalendar(contractText: string): ContractDeadline[] 
   const absRe = new RegExp(ABS_DATE_RE.source, 'gi');
   while ((m = absRe.exec(contractText)) !== null) {
     let d: Date | null = null;
-    if (m[7] && m[8] && m[9]) { // Month DD, YYYY
+    if (m[7] && m[8] && m[9]) {
+      // Month DD, YYYY
       d = new Date(+m[9], MONTH_MAP[m[7]] - 1, +m[8]);
-    } else if (m[4] && m[5] && m[6]) { // YYYY-MM-DD
+    } else if (m[4] && m[5] && m[6]) {
+      // YYYY-MM-DD
       d = new Date(+m[4], +m[5] - 1, +m[6]);
-    } else if (m[1] && m[2] && m[3]) { // MM/DD/YYYY
+    } else if (m[1] && m[2] && m[3]) {
+      // MM/DD/YYYY
       d = new Date(+m[3], +m[1] - 1, +m[2]);
     }
     if (d && !isNaN(d.getTime())) {
@@ -305,18 +366,28 @@ export function buildDeadlineCalendar(contractText: string): ContractDeadline[] 
 // ─── Contract Similarity ──────────────────────────────────────────────────────
 
 function tokenize(text: string): Set<string> {
-  return new Set(text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2));
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .split(/\s+/)
+      .filter((w) => w.length > 2)
+  );
 }
 
 function bigrams(text: string): Set<string> {
-  const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
   const set = new Set<string>();
-  for (let i = 0; i < words.length - 1; i++) set.add(`${words[i]} ${words[i+1]}`);
+  for (let i = 0; i < words.length - 1; i++) set.add(`${words[i]} ${words[i + 1]}`);
   return set;
 }
 
 function jaccardSets(a: Set<string>, b: Set<string>): number {
-  const intersection = new Set([...a].filter(x => b.has(x)));
+  const intersection = new Set([...a].filter((x) => b.has(x)));
   const union = new Set([...a, ...b]);
   return union.size > 0 ? intersection.size / union.size : 0;
 }
@@ -325,11 +396,11 @@ export function contractSimilarity(
   docAId: string,
   docAText: string,
   docBId: string,
-  docBText: string,
+  docBText: string
 ): SimilarityResult {
   const unigramJaccard = jaccardSets(tokenize(docAText), tokenize(docBText));
-  const bigramJaccard  = jaccardSets(bigrams(docAText), bigrams(docBText));
-  const combinedSimilarity = 0.60 * unigramJaccard + 0.40 * bigramJaccard;
+  const bigramJaccard = jaccardSets(bigrams(docAText), bigrams(docBText));
+  const combinedSimilarity = 0.6 * unigramJaccard + 0.4 * bigramJaccard;
 
   return {
     documentA: docAId,
@@ -344,11 +415,12 @@ export function contractSimilarity(
 // ─── Penalty Exposure Estimator ───────────────────────────────────────────────
 
 const PENALTY_AMOUNT_RE = /\$\s?([\d,]+(?:\.\d{2})?)\s?(?:USD|dollars?)?/gi;
-const PENALTY_CLAUSE_RE = /(?:liquidated damages|penalty|penalties|late fee|termination fee)[^.]{0,200}\./gi;
+const PENALTY_CLAUSE_RE =
+  /(?:liquidated damages|penalty|penalties|late fee|termination fee)[^.]{0,200}\./gi;
 
 export function penaltyExposure(
   contractText: string,
-  defaultProbability = 0.10,
+  defaultProbability = 0.1
 ): PenaltyExposureResult {
   const penalties: PenaltyExposureResult['penalties'] = [];
   let m: RegExpExecArray | null;
@@ -402,7 +474,12 @@ export function analyzeLegalDocument(input: LegalAnalysisInput): LegalAnalysisRe
     converged: true,
   };
   if (input.compareWithText) {
-    result.similarity = contractSimilarity('doc-a', input.text, input.compareWithText.id, input.compareWithText.text);
+    result.similarity = contractSimilarity(
+      'doc-a',
+      input.text,
+      input.compareWithText.id,
+      input.compareWithText.text
+    );
   }
   return result;
 }
@@ -411,18 +488,27 @@ export function analyzeLegalDocument(input: LegalAnalysisInput): LegalAnalysisRe
 
 export function buildLegalReceipt(
   result: LegalAnalysisResult,
-  options?: LegalReceiptOptions,
+  options?: LegalReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.readability.gradeLevel > 16) {
-    violations.push({ criterion: 'readability', message: `Reading grade level ${result.readability.gradeLevel.toFixed(1)} exceeds 16 — consider plain language revision` });
+    violations.push({
+      criterion: 'readability',
+      message: `Reading grade level ${result.readability.gradeLevel.toFixed(1)} exceeds 16 — consider plain language revision`,
+    });
   }
   if (result.risk.riskScore > 70) {
-    violations.push({ criterion: 'risk', message: `Contract risk score ${result.risk.riskScore.toFixed(0)}/100 is ${result.risk.riskCategory} — legal review recommended` });
+    violations.push({
+      criterion: 'risk',
+      message: `Contract risk score ${result.risk.riskScore.toFixed(0)}/100 is ${result.risk.riskCategory} — legal review recommended`,
+    });
   }
   if (result.penaltyExposure.maxExposureUSD > 100_000) {
-    violations.push({ criterion: 'penalty_exposure', message: `Maximum penalty exposure $${result.penaltyExposure.maxExposureUSD.toLocaleString()} requires executive sign-off` });
+    violations.push({
+      criterion: 'penalty_exposure',
+      message: `Maximum penalty exposure $${result.penaltyExposure.maxExposureUSD.toLocaleString()} requires executive sign-off`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -437,7 +523,11 @@ export function buildLegalReceipt(
       deadlineCount: result.deadlines.length,
       maxPenaltyExposureUSD: result.penaltyExposure.maxExposureUSD,
     },
-    cael: { version: 'cael.v1', event: 'legal_document.contract_analysis', solverType: 'legal-document.flesch-kincaid' },
+    cael: {
+      version: 'cael.v1',
+      event: 'legal_document.contract_analysis',
+      solverType: 'legal-document.flesch-kincaid',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

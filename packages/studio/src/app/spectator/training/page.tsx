@@ -184,7 +184,9 @@ export default function TrainingSpectatorPage() {
       <main className="flex flex-1 flex-col gap-6 px-6 py-6">
         {/* Stage timeline */}
         <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
-          <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-slate-400">Pipeline Stage</h2>
+          <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-slate-400">
+            Pipeline Stage
+          </h2>
           <div className="relative flex items-center justify-between">
             {STAGES.filter((s) => s !== 'failed').map((stage, i) => {
               const idx = stageIndex(currentStage);
@@ -262,7 +264,9 @@ export default function TrainingSpectatorPage() {
             <div className="mb-1 flex items-center gap-2 text-sm text-slate-400">
               <Activity className="h-4 w-4" /> Status
             </div>
-            <p className="text-lg font-medium text-slate-200">{packet?.message ?? 'Waiting for first packet…'}</p>
+            <p className="text-lg font-medium text-slate-200">
+              {packet?.message ?? 'Waiting for first packet…'}
+            </p>
           </div>
 
           <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
@@ -296,7 +300,9 @@ export default function TrainingSpectatorPage() {
               {metrics.map((m) => (
                 <div key={m.label} className="rounded-lg bg-slate-800/50 p-3">
                   <div className="text-xs text-slate-500">{m.label}</div>
-                  <div className="mt-1 font-mono text-sm font-semibold text-slate-200">{m.value}</div>
+                  <div className="mt-1 font-mono text-sm font-semibold text-slate-200">
+                    {m.value}
+                  </div>
                 </div>
               ))}
             </div>

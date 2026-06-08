@@ -149,9 +149,9 @@ describe('QuestProofPanel', () => {
     expect(explicitFallbacks[0].getAttribute('href')).toContain('runId=quest-run');
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
-    const receiptCall = vi.mocked(globalThis.fetch).mock.calls.find((c) =>
-      String(c[0]).includes('/api/quest-proof?runId=')
-    );
+    const receiptCall = vi
+      .mocked(globalThis.fetch)
+      .mock.calls.find((c) => String(c[0]).includes('/api/quest-proof?runId='));
     expect(receiptCall).toBeDefined();
   });
 
@@ -166,10 +166,18 @@ describe('QuestProofPanel', () => {
     expect(strip).toBeInTheDocument();
 
     // Reversible chip appears as an Approve button (TapTarget renders <button>).
-    const approveBtn = await screen.findByRole('button', { name: /Approve: Wire the tap-chip strip/ }, { timeout: 10000 });
+    const approveBtn = await screen.findByRole(
+      'button',
+      { name: /Approve: Wire the tap-chip strip/ },
+      { timeout: 10000 }
+    );
     expect(approveBtn).toBeInTheDocument();
     // Gated (irreversible) chip renders as a navigation link (review path).
-    const reviewLink = await screen.findByRole('link', { name: /Review: Deploy studio to Railway/ }, { timeout: 10000 });
+    const reviewLink = await screen.findByRole(
+      'link',
+      { name: /Review: Deploy studio to Railway/ },
+      { timeout: 10000 }
+    );
     expect(reviewLink).toBeInTheDocument();
   }, 15000);
 
@@ -200,9 +208,9 @@ describe('QuestProofPanel', () => {
 
     // Assert the board API was actually called (not hardcoded).
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
-    const boardCall = vi.mocked(globalThis.fetch).mock.calls.find((c) =>
-      String(c[0]).includes('/api/quest-proof/board')
-    );
+    const boardCall = vi
+      .mocked(globalThis.fetch)
+      .mock.calls.find((c) => String(c[0]).includes('/api/quest-proof/board'));
     expect(boardCall).toBeDefined();
   }, 15000);
 
@@ -234,11 +242,15 @@ describe('QuestProofPanel', () => {
     decideBtn.click();
 
     await waitFor(() => {
-      const decideCall = fetchMock.mock.calls.find((c) => String(c[0]).includes('/api/quest-proof/decide'));
+      const decideCall = fetchMock.mock.calls.find((c) =>
+        String(c[0]).includes('/api/quest-proof/decide')
+      );
       expect(decideCall).toBeDefined();
     });
 
-    const decideCall = fetchMock.mock.calls.find((c) => String(c[0]).includes('/api/quest-proof/decide'));
+    const decideCall = fetchMock.mock.calls.find((c) =>
+      String(c[0]).includes('/api/quest-proof/decide')
+    );
     const init = decideCall?.[1] as RequestInit;
     expect(init?.method).toBe('POST');
     const body = JSON.parse((init?.body as string) ?? '{}');

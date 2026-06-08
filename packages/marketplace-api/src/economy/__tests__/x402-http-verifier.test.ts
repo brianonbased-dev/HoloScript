@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  X402HttpVerifier,
-  createX402HttpVerifierFromEnv,
-} from '../x402-http-verifier';
+import { X402HttpVerifier, createX402HttpVerifierFromEnv } from '../x402-http-verifier';
 
 describe('X402HttpVerifier', () => {
   afterEach(() => {

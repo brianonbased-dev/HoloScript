@@ -51,10 +51,7 @@ import type http from 'http';
 import * as crypto from 'crypto';
 import { json, parseJsonBody } from '../utils';
 import { requireAuth } from '../auth-utils';
-import {
-  exportSessionStore,
-  persistExportSessionStore,
-} from '../state';
+import { exportSessionStore, persistExportSessionStore } from '../state';
 import {
   createExportSession,
   isExportSessionExpired,
@@ -63,11 +60,7 @@ import {
   pruneExpiredExportSessions,
   registerIdempotencyKey,
 } from '../export-session';
-import {
-  buildExportPackage,
-  generatePlatformKeypair,
-  type ExportPackage,
-} from '../export-package';
+import { buildExportPackage, generatePlatformKeypair, type ExportPackage } from '../export-package';
 import type { ExportSession } from '../types';
 import {
   retireCustodialSigner as registryRetireCustodialSigner,
@@ -106,10 +99,7 @@ export type CustodyMode = RegistryCustodyMode;
  * New code should import `isSelfCustodyActive` / `requireCustodial` /
  * `_setUserCustodyModeForTests` from custody-registry directly.
  */
-export const userCustodyMode: Pick<
-  Map<string, CustodyMode>,
-  'get' | 'set' | 'clear' | 'has'
-> = {
+export const userCustodyMode: Pick<Map<string, CustodyMode>, 'get' | 'set' | 'clear' | 'has'> = {
   get: (userId: string) => _getUserCustodyModeForTests(userId),
   set: (userId: string, mode: CustodyMode) => {
     _setUserCustodyModeForTests(userId, mode);
@@ -221,10 +211,7 @@ export function retireCustodialSigner(
 
 // ── Handler: prepare ─────────────────────────────────────────────────────────
 
-async function handlePrepare(
-  req: http.IncomingMessage,
-  res: http.ServerResponse
-): Promise<void> {
+async function handlePrepare(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const agent = requireAuth(req, res);
   if (!agent) return;
 
@@ -243,8 +230,10 @@ async function handlePrepare(
   }
 
   const body = await parseJsonBody(req).catch(() => ({}));
-  const twoFactorToken = typeof body?.two_factor_token === 'string' ? body.two_factor_token : undefined;
-  const idempotencyKey = typeof body?.idempotency_key === 'string' ? body.idempotency_key.trim() : '';
+  const twoFactorToken =
+    typeof body?.two_factor_token === 'string' ? body.two_factor_token : undefined;
+  const idempotencyKey =
+    typeof body?.idempotency_key === 'string' ? body.idempotency_key.trim() : '';
 
   // Step-up auth (Invariant #4)
   if (twoFactorRequired()) {
@@ -335,16 +324,14 @@ async function handlePrepare(
 
 // ── Handler: package ─────────────────────────────────────────────────────────
 
-async function handlePackage(
-  req: http.IncomingMessage,
-  res: http.ServerResponse
-): Promise<void> {
+async function handlePackage(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const agent = requireAuth(req, res);
   if (!agent) return;
 
   const body = await parseJsonBody(req).catch(() => ({}));
   const sessionId = typeof body?.export_session_id === 'string' ? body.export_session_id : '';
-  const recoveryPassword = typeof body?.recovery_password === 'string' ? body.recovery_password : '';
+  const recoveryPassword =
+    typeof body?.recovery_password === 'string' ? body.recovery_password : '';
   const recoveryBytesB64 =
     typeof body?.recovery_bytes_b64 === 'string' ? body.recovery_bytes_b64 : '';
 
@@ -432,10 +419,7 @@ async function handlePackage(
 
 // ── Handler: finalize ────────────────────────────────────────────────────────
 
-async function handleFinalize(
-  req: http.IncomingMessage,
-  res: http.ServerResponse
-): Promise<void> {
+async function handleFinalize(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const agent = requireAuth(req, res);
   if (!agent) return;
 
@@ -588,8 +572,7 @@ async function handleFinalize(
     json(res, 500, {
       success: false,
       error: 'registry_transaction_failed',
-      message:
-        'Custody registration could not be committed; retry is safe (no partial state).',
+      message: 'Custody registration could not be committed; retry is safe (no partial state).',
       code: 'registry_error',
     });
     return;
@@ -671,10 +654,7 @@ export async function handleIdentityExportRoutes(
  * contract is satisfied. Route-level regression tests live in:
  *   `routes/__tests__/custodial-wallet-routes.test.ts`
  */
-export function rejectIfMigratedToSelfCustody(
-  userId: string,
-  res: http.ServerResponse
-): boolean {
+export function rejectIfMigratedToSelfCustody(userId: string, res: http.ServerResponse): boolean {
   if (isSelfCustodyActive(userId)) {
     json(res, 403, {
       success: false,

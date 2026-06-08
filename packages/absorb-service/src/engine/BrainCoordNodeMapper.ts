@@ -71,22 +71,106 @@ export interface DomainBrainCoord {
 
 /** Mirrors BrainCoordMapper seed table (10 domains). Source of truth: BrainCoordMapper.ts */
 const DOMAIN_SEED_TABLE: DomainBrainCoord[] = [
-  { domain: 'physics',        mni_x: 30,  mni_y: -50, mni_z: 60,  surface_type: 'gyrus',  tier: 'hot',  brodmann_area: 7  },
-  { domain: 'compiler',       mni_x: 44,  mni_y: 36,  mni_z: 20,  surface_type: 'gyrus',  tier: 'hot',  brodmann_area: 46 },
-  { domain: 'language',       mni_x: -52, mni_y: -32, mni_z: 8,   surface_type: 'gyrus',  tier: 'hot',  brodmann_area: 22 },
-  { domain: 'rendering',      mni_x: -45, mni_y: -68, mni_z: 5,   surface_type: 'gyrus',  tier: 'hot',  brodmann_area: 19 },
-  { domain: 'agent',          mni_x: -54, mni_y: -56, mni_z: 22,  surface_type: 'gyrus',  tier: 'hot',  brodmann_area: 39 },
-  { domain: 'coordination',   mni_x: 0,   mni_y: 25,  mni_z: 30,  surface_type: 'sulcus', tier: 'cold', brodmann_area: 24 },
-  { domain: 'storage',        mni_x: 28,  mni_y: -22, mni_z: -14, surface_type: 'sulcus', tier: 'cold', brodmann_area: 28 },
-  { domain: 'truth_approval', mni_x: 0,   mni_y: 20,  mni_z: 30,  surface_type: 'sulcus', tier: 'cold', brodmann_area: 24 },
-  { domain: 'init',           mni_x: 8,   mni_y: -12, mni_z: 4,   surface_type: 'sulcus', tier: 'cold', brodmann_area: 37 },
-  { domain: 'shutdown',       mni_x: 0,   mni_y: -28, mni_z: -8,  surface_type: 'sulcus', tier: 'cold', brodmann_area: 35 },
+  {
+    domain: 'physics',
+    mni_x: 30,
+    mni_y: -50,
+    mni_z: 60,
+    surface_type: 'gyrus',
+    tier: 'hot',
+    brodmann_area: 7,
+  },
+  {
+    domain: 'compiler',
+    mni_x: 44,
+    mni_y: 36,
+    mni_z: 20,
+    surface_type: 'gyrus',
+    tier: 'hot',
+    brodmann_area: 46,
+  },
+  {
+    domain: 'language',
+    mni_x: -52,
+    mni_y: -32,
+    mni_z: 8,
+    surface_type: 'gyrus',
+    tier: 'hot',
+    brodmann_area: 22,
+  },
+  {
+    domain: 'rendering',
+    mni_x: -45,
+    mni_y: -68,
+    mni_z: 5,
+    surface_type: 'gyrus',
+    tier: 'hot',
+    brodmann_area: 19,
+  },
+  {
+    domain: 'agent',
+    mni_x: -54,
+    mni_y: -56,
+    mni_z: 22,
+    surface_type: 'gyrus',
+    tier: 'hot',
+    brodmann_area: 39,
+  },
+  {
+    domain: 'coordination',
+    mni_x: 0,
+    mni_y: 25,
+    mni_z: 30,
+    surface_type: 'sulcus',
+    tier: 'cold',
+    brodmann_area: 24,
+  },
+  {
+    domain: 'storage',
+    mni_x: 28,
+    mni_y: -22,
+    mni_z: -14,
+    surface_type: 'sulcus',
+    tier: 'cold',
+    brodmann_area: 28,
+  },
+  {
+    domain: 'truth_approval',
+    mni_x: 0,
+    mni_y: 20,
+    mni_z: 30,
+    surface_type: 'sulcus',
+    tier: 'cold',
+    brodmann_area: 24,
+  },
+  {
+    domain: 'init',
+    mni_x: 8,
+    mni_y: -12,
+    mni_z: 4,
+    surface_type: 'sulcus',
+    tier: 'cold',
+    brodmann_area: 37,
+  },
+  {
+    domain: 'shutdown',
+    mni_x: 0,
+    mni_y: -28,
+    mni_z: -8,
+    surface_type: 'sulcus',
+    tier: 'cold',
+    brodmann_area: 35,
+  },
 ];
 
 /** Default coordinate for unrecognized domains — thalamic origin */
 const UNKNOWN_COORD: DomainBrainCoord = {
-  domain: 'unknown', mni_x: 0, mni_y: -12, mni_z: 4,
-  surface_type: 'unknown', tier: 'cold',
+  domain: 'unknown',
+  mni_x: 0,
+  mni_y: -12,
+  mni_z: 4,
+  surface_type: 'unknown',
+  tier: 'cold',
 };
 
 // =============================================================================
@@ -141,7 +225,9 @@ export class BrainCoordNodeMapper {
   populate(graph: CodebaseGraph): PopulateResult {
     this.nodeMeta.clear();
     const domainCounts: Record<string, number> = {};
-    let hot = 0, cold = 0, unknown = 0;
+    let hot = 0,
+      cold = 0,
+      unknown = 0;
 
     const symbols = graph.getAllSymbols();
     for (const sym of symbols) {
@@ -150,20 +236,20 @@ export class BrainCoordNodeMapper {
       const key = this.makeKey(sym);
 
       const meta: NodeBrainCoord = {
-        symbolKey:          key,
-        mni_x:              coord.mni_x,
-        mni_y:              coord.mni_y,
-        mni_z:              coord.mni_z,
-        surface_type:       coord.surface_type,
-        tier:               coord.tier,
-        domain:             coord.domain,
+        symbolKey: key,
+        mni_x: coord.mni_x,
+        mni_y: coord.mni_y,
+        mni_z: coord.mni_z,
+        surface_type: coord.surface_type,
+        tier: coord.tier,
+        domain: coord.domain,
         nearest_distance_mm: 0, // exact match for domain lookup
       };
       this.nodeMeta.set(key, meta);
       graph.nodePositions.set(key, [coord.mni_x, coord.mni_y, coord.mni_z]);
 
       domainCounts[coord.domain] = (domainCounts[coord.domain] ?? 0) + 1;
-      if (coord.surface_type === 'gyrus')   hot++;
+      if (coord.surface_type === 'gyrus') hot++;
       else if (coord.surface_type === 'sulcus') cold++;
       else unknown++;
     }
@@ -199,8 +285,8 @@ export class BrainCoordNodeMapper {
    */
   hotKeys(): string[] {
     return Array.from(this.nodeMeta.values())
-      .filter(m => m.tier === 'hot')
-      .map(m => m.symbolKey);
+      .filter((m) => m.tier === 'hot')
+      .map((m) => m.symbolKey);
   }
 
   /**
@@ -208,8 +294,8 @@ export class BrainCoordNodeMapper {
    */
   coldKeys(): string[] {
     return Array.from(this.nodeMeta.values())
-      .filter(m => m.tier === 'cold')
-      .map(m => m.symbolKey);
+      .filter((m) => m.tier === 'cold')
+      .map((m) => m.symbolKey);
   }
 
   /**
@@ -237,71 +323,190 @@ export class BrainCoordNodeMapper {
     const segments = f.split('/');
 
     // ── Physics: solvers, WASM, simulation, brain-geo spatial ──────────────
-    if (this._match(f, ['/physics', '/solver', '/wasm', '/snn', '/webgpu',
-                        '/simulation', 'brain-geo', '/mni', '/cortical',
-                        'gyri', 'sulci', 'braincoord'])) return 'physics';
+    if (
+      this._match(f, [
+        '/physics',
+        '/solver',
+        '/wasm',
+        '/snn',
+        '/webgpu',
+        '/simulation',
+        'brain-geo',
+        '/mni',
+        '/cortical',
+        'gyri',
+        'sulci',
+        'braincoord',
+      ])
+    )
+      return 'physics';
 
     // ── Compiler: compilation, AST, code generation ─────────────────────────
-    if (this._match(f, ['/compiler', 'compiler.ts', '/compilers/', 'compile_to',
-                        '/ast', '/codegen', '/transpil', '/lsp', '/formatter',
-                        '/linter', '/parser'])) return 'compiler';
+    if (
+      this._match(f, [
+        '/compiler',
+        'compiler.ts',
+        '/compilers/',
+        'compile_to',
+        '/ast',
+        '/codegen',
+        '/transpil',
+        '/lsp',
+        '/formatter',
+        '/linter',
+        '/parser',
+      ])
+    )
+      return 'compiler';
 
     // ── Language: NLP, text processing, tokenization ─────────────────────────
-    if (this._match(f, ['/language', '/nlp', '/tokeniz', '/embedding',
-                        '/inference', '/llm', '/model'])) return 'language';
+    if (
+      this._match(f, [
+        '/language',
+        '/nlp',
+        '/tokeniz',
+        '/embedding',
+        '/inference',
+        '/llm',
+        '/model',
+      ])
+    )
+      return 'language';
 
     // ── Rendering: visual output, R3F, hologram, 3D ──────────────────────────
-    if (this._match(f, ['/render', '/r3f', '/visual', '/hologram', '/hologr',
-                        '/3d', '/canvas', '/scene', '/three', '/studio',
-                        '/animation', '/preview', '/hololand'])) return 'rendering';
+    if (
+      this._match(f, [
+        '/render',
+        '/r3f',
+        '/visual',
+        '/hologram',
+        '/hologr',
+        '/3d',
+        '/canvas',
+        '/scene',
+        '/three',
+        '/studio',
+        '/animation',
+        '/preview',
+        '/hololand',
+      ])
+    )
+      return 'rendering';
 
     // ── Agent: orchestration, MCP, HoloMesh ──────────────────────────────────
-    if (this._match(f, ['/agent', '/mcp', '/holomesh', '/orchestrat',
-                        '/uaa2', '/trait', '/holoscript'])) return 'agent';
+    if (
+      this._match(f, [
+        '/agent',
+        '/mcp',
+        '/holomesh',
+        '/orchestrat',
+        '/uaa2',
+        '/trait',
+        '/holoscript',
+      ])
+    )
+      return 'agent';
 
     // ── Storage: absorb, knowledge, vault ────────────────────────────────────
-    if (this._match(f, ['/absorb', '/knowledge', '/vault', '/gold',
-                        '/database', '/db/', '/storage', '/cache',
-                        '/repository', '/persist'])) return 'storage';
+    if (
+      this._match(f, [
+        '/absorb',
+        '/knowledge',
+        '/vault',
+        '/gold',
+        '/database',
+        '/db/',
+        '/storage',
+        '/cache',
+        '/repository',
+        '/persist',
+      ])
+    )
+      return 'storage';
 
     // ── Truth/integrity: security, audit, sandbox ────────────────────────────
-    if (this._match(f, ['/integrity', '/security', '/sandbox', '/audit',
-                        '/byzantine', '/sycoph', '/validity', '/verify',
-                        '/attestat', '/receipt'])) return 'truth_approval';
+    if (
+      this._match(f, [
+        '/integrity',
+        '/security',
+        '/sandbox',
+        '/audit',
+        '/byzantine',
+        '/sycoph',
+        '/validity',
+        '/verify',
+        '/attestat',
+        '/receipt',
+      ])
+    )
+      return 'truth_approval';
 
     // ── Coordination: pillar, slice, planning ────────────────────────────────
-    if (this._match(f, ['/pillar', '/slice', '/coordinat', '/planning',
-                        '/schedule', '/dispatch', '/routing', '/index'])) return 'coordination';
+    if (
+      this._match(f, [
+        '/pillar',
+        '/slice',
+        '/coordinat',
+        '/planning',
+        '/schedule',
+        '/dispatch',
+        '/routing',
+        '/index',
+      ])
+    )
+      return 'coordination';
 
     // ── Init: startup, bootstrap, config ────────────────────────────────────
-    if (this._match(f, ['/init', '/bootstrap', '/startup', '/config',
-                        '/setup', '/register', '/plugin', '/hook'])) return 'init';
+    if (
+      this._match(f, [
+        '/init',
+        '/bootstrap',
+        '/startup',
+        '/config',
+        '/setup',
+        '/register',
+        '/plugin',
+        '/hook',
+      ])
+    )
+      return 'init';
 
     // ── Shutdown: teardown, lifecycle end ────────────────────────────────────
     if (this._match(f, ['/shutdown', '/teardown', '/cleanup', '/lifecycle'])) return 'shutdown';
 
     // ── Monitoring: tests, benchmarks, metrics ───────────────────────────────
-    if (this._match(f, ['/__tests__', '.test.', '.spec.', '/bench',
-                        '/monitor', '/metric', '/telemetry', '/log'])) return 'agent'; // monitoring → agent domain
+    if (
+      this._match(f, [
+        '/__tests__',
+        '.test.',
+        '.spec.',
+        '/bench',
+        '/monitor',
+        '/metric',
+        '/telemetry',
+        '/log',
+      ])
+    )
+      return 'agent'; // monitoring → agent domain
 
     // ── Package-level defaults ───────────────────────────────────────────────
-    if (f.includes('packages/core'))         return 'compiler';   // core = language/compiler
-    if (f.includes('packages/mcp-server'))   return 'coordination';
-    if (f.includes('packages/studio'))       return 'rendering';
+    if (f.includes('packages/core')) return 'compiler'; // core = language/compiler
+    if (f.includes('packages/mcp-server')) return 'coordination';
+    if (f.includes('packages/studio')) return 'rendering';
     if (f.includes('packages/r3f-renderer')) return 'rendering';
-    if (f.includes('packages/plugins'))      return 'init';
-    if (f.includes('packages/snn'))          return 'physics';
+    if (f.includes('packages/plugins')) return 'init';
+    if (f.includes('packages/snn')) return 'physics';
 
     return 'coordination'; // default
   }
 
   /** Find the nearest seed entry for a domain string */
   private lookupCoord(domain: string): DomainBrainCoord {
-    const exact = DOMAIN_SEED_TABLE.find(d => d.domain === domain);
+    const exact = DOMAIN_SEED_TABLE.find((d) => d.domain === domain);
     if (exact) return exact;
 
     // Partial match: 'physics-ext' → 'physics'
-    const partial = DOMAIN_SEED_TABLE.find(d => domain.startsWith(d.domain));
+    const partial = DOMAIN_SEED_TABLE.find((d) => domain.startsWith(d.domain));
     if (partial) return partial;
 
     return UNKNOWN_COORD;
@@ -309,14 +514,20 @@ export class BrainCoordNodeMapper {
 
   /** Check if any of the pattern strings appear in the file path */
   private _match(filePath: string, patterns: string[]): boolean {
-    return patterns.some(p => filePath.includes(p));
+    return patterns.some((p) => filePath.includes(p));
   }
 
   /**
    * Stable symbol key matching CodebaseGraph's makeSymbolId format.
    * "type:owner.name:filePath:line" — we reconstruct the same key.
    */
-  private makeKey(sym: { type: string; name: string; owner?: string; filePath: string; line: number }): string {
+  private makeKey(sym: {
+    type: string;
+    name: string;
+    owner?: string;
+    filePath: string;
+    line: number;
+  }): string {
     const owner = sym.owner ? `${sym.owner}.` : '';
     return `${sym.type}:${owner}${sym.name}:${sym.filePath}:${sym.line}`;
   }

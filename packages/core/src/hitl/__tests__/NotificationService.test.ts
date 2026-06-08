@@ -22,8 +22,7 @@ import type { ApprovalRequest } from '../HITLBackendService';
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-const FAKE_SLACK_WEBHOOK_URL =
-  'https://example.invalid/slack-webhook-test';
+const FAKE_SLACK_WEBHOOK_URL = 'https://example.invalid/slack-webhook-test';
 
 describe('HITLNotificationService', () => {
   let service: HITLNotificationService;

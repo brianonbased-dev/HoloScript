@@ -309,8 +309,8 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
           allow_transitive_invocation: true,
         },
         { agentId: BRITTNEY_ID, name: BRITTNEY_NAME },
-        new Date('2026-05-07T00:00:00.000Z'),
-      ),
+        new Date('2026-05-07T00:00:00.000Z')
+      )
     );
     expect(verifyMeshToolAttestation(manifest)).toBe(true);
 
@@ -391,7 +391,7 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
     // ── [3b/5] NEGOTIATION: accepted -> executed ───────────────────
     // Brittney executes the tool. Result hash is recorded for the
     // settlement receipt.
-    const toolResult = await invokePublishedMeshTool(
+    const toolResult = (await invokePublishedMeshTool(
       manifest,
       {
         organism: 'human',
@@ -427,8 +427,8 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
           };
         },
         allowHighRisk: true,
-      },
-    ) as { success: boolean; result: unknown };
+      }
+    )) as { success: boolean; result: unknown };
     expect(toolResult.success).toBe(true);
     // Assert the real-fetch path delivered a recognisable AlphaFold result —
     // confirms the runtime path actually went through the fetch chain.
@@ -547,7 +547,7 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
     const hop: MeshToolInvocationHop = createMeshToolInvocationHop(
       manifest,
       { spatialCtx, negotiationId: negotiation.id },
-      { callerAgentId: VR_USER_ID, previousHash: null },
+      { callerAgentId: VR_USER_ID, previousHash: null }
     );
     const verification = verifyMeshToolInvocationChain([hop]);
     expect(verification.verified).toBe(true);
@@ -580,7 +580,7 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
         tool_name: 'alphafold_fetch_structure',
         capability_tags: ['alphafold', 'hologram'],
       },
-      { agentId: BRITTNEY_ID, name: BRITTNEY_NAME },
+      { agentId: BRITTNEY_ID, name: BRITTNEY_NAME }
     );
     expect(verifyMeshToolAttestation(manifest)).toBe(true);
     const tampered = { ...manifest, capabilityTags: [...manifest.capabilityTags, 'leaked'] };
@@ -727,11 +727,11 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
     vi.stubGlobal('fetch', failingFetch);
 
     await expect(alphaFoldFetchStructure('Q99999')).rejects.toThrow(
-      /AlphaFold metadata fetch failed: 404/,
+      /AlphaFold metadata fetch failed: 404/
     );
     expect(failingFetch).toHaveBeenCalledWith(
       'https://alphafold.ebi.ac.uk/api/prediction/Q99999',
-      expect.objectContaining({ headers: { Accept: 'application/json' } }),
+      expect.objectContaining({ headers: { Accept: 'application/json' } })
     );
   });
 
@@ -812,7 +812,7 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
         responderSignature: '0xrespondersig_demo',
         responderAddress: BRITTNEY_ADDR,
         signer: failingSigner,
-      }),
+      })
     ).rejects.toThrow(/rpc-rejected/);
 
     // Failure invariant: state is still 'executed', no receipt, no tx hash.
@@ -832,8 +832,8 @@ describe('agentic-internet composition demo (task_1778125252148_qe2i)', () => {
           capability_tags: ['alphafold'],
           allow_transitive_invocation: true,
         },
-        { agentId: BRITTNEY_ID, name: BRITTNEY_NAME },
-      ),
+        { agentId: BRITTNEY_ID, name: BRITTNEY_NAME }
+      )
     );
     const hop = createMeshToolInvocationHop(manifest, { foo: 1 }, { callerAgentId: VR_USER_ID });
     // Mutate the hop body — now the recomputed hopHash should not match.

@@ -300,15 +300,41 @@ export interface ArchiveVerificationGuard {
 // ─── Known executable extensions ────────────────────────────────────────────
 
 export const EXECUTABLE_EXTENSIONS = new Set([
-  '.exe', '.bat', '.cmd', '.ps1', '.vbs', '.vbe', '.wsf', '.wsh',
-  '.msi', '.msp', '.mst',
-  '.sh', '.bash', '.zsh', '.fish', '.ksh',
-  '.app', '.dmg', '.pkg', '.deb', '.rpm', '.apk',
-  '.com', '.scr', '.pif', '.gadget',
-  '.jar', '.war', // Java executables
-  '.pyc', '.pyo', // Python compiled (can be executable in context)
-  '.dll', '.so', '.dylib', // Shared libraries (loadable code)
-  '.sys', '.drv', // Windows drivers
+  '.exe',
+  '.bat',
+  '.cmd',
+  '.ps1',
+  '.vbs',
+  '.vbe',
+  '.wsf',
+  '.wsh',
+  '.msi',
+  '.msp',
+  '.mst',
+  '.sh',
+  '.bash',
+  '.zsh',
+  '.fish',
+  '.ksh',
+  '.app',
+  '.dmg',
+  '.pkg',
+  '.deb',
+  '.rpm',
+  '.apk',
+  '.com',
+  '.scr',
+  '.pif',
+  '.gadget',
+  '.jar',
+  '.war', // Java executables
+  '.pyc',
+  '.pyo', // Python compiled (can be executable in context)
+  '.dll',
+  '.so',
+  '.dylib', // Shared libraries (loadable code)
+  '.sys',
+  '.drv', // Windows drivers
 ]);
 
 // ─── Known sensitivity patterns ──────────────────────────────────────────────
@@ -329,59 +355,234 @@ export interface SensitivityPattern {
 
 export const DEFAULT_SENSITIVITY_PATTERNS: SensitivityPattern[] = [
   // Credentials
-  { pattern: 'password', level: 'restricted', categories: ['credentials'], flags: ['contains_credentials', 'auto_detected'] },
-  { pattern: 'secret', level: 'restricted', categories: ['credentials'], flags: ['contains_credentials', 'auto_detected'] },
-  { pattern: 'token', level: 'restricted', categories: ['credentials'], flags: ['contains_credentials', 'auto_detected'] },
-  { pattern: 'api_key', level: 'restricted', categories: ['credentials'], flags: ['contains_credentials', 'auto_detected'] },
-  { pattern: 'credential', level: 'restricted', categories: ['credentials'], flags: ['contains_credentials', 'auto_detected'] },
-  { pattern: 'oauth', level: 'sensitive', categories: ['credentials'], flags: ['contains_credentials', 'auto_detected'] },
-  { pattern: 'cookie', level: 'sensitive', categories: ['credentials', 'browsing_history'], flags: ['contains_credentials', 'auto_detected'] },
-  { pattern: 'session', level: 'sensitive', categories: ['credentials'], flags: ['contains_credentials', 'auto_detected'] },
+  {
+    pattern: 'password',
+    level: 'restricted',
+    categories: ['credentials'],
+    flags: ['contains_credentials', 'auto_detected'],
+  },
+  {
+    pattern: 'secret',
+    level: 'restricted',
+    categories: ['credentials'],
+    flags: ['contains_credentials', 'auto_detected'],
+  },
+  {
+    pattern: 'token',
+    level: 'restricted',
+    categories: ['credentials'],
+    flags: ['contains_credentials', 'auto_detected'],
+  },
+  {
+    pattern: 'api_key',
+    level: 'restricted',
+    categories: ['credentials'],
+    flags: ['contains_credentials', 'auto_detected'],
+  },
+  {
+    pattern: 'credential',
+    level: 'restricted',
+    categories: ['credentials'],
+    flags: ['contains_credentials', 'auto_detected'],
+  },
+  {
+    pattern: 'oauth',
+    level: 'sensitive',
+    categories: ['credentials'],
+    flags: ['contains_credentials', 'auto_detected'],
+  },
+  {
+    pattern: 'cookie',
+    level: 'sensitive',
+    categories: ['credentials', 'browsing_history'],
+    flags: ['contains_credentials', 'auto_detected'],
+  },
+  {
+    pattern: 'session',
+    level: 'sensitive',
+    categories: ['credentials'],
+    flags: ['contains_credentials', 'auto_detected'],
+  },
 
   // Financial
-  { pattern: 'bank', level: 'restricted', categories: ['financial'], flags: ['contains_financial', 'auto_detected'] },
-  { pattern: 'credit', level: 'restricted', categories: ['financial'], flags: ['contains_financial', 'auto_detected'] },
-  { pattern: 'payment', level: 'restricted', categories: ['financial'], flags: ['contains_financial', 'auto_detected'] },
-  { pattern: 'invoice', level: 'sensitive', categories: ['financial'], flags: ['contains_financial', 'auto_detected'] },
-  { pattern: 'transaction', level: 'sensitive', categories: ['financial'], flags: ['contains_financial', 'auto_detected'] },
-  { pattern: 'financial', level: 'sensitive', categories: ['financial'], flags: ['contains_financial', 'auto_detected'] },
+  {
+    pattern: 'bank',
+    level: 'restricted',
+    categories: ['financial'],
+    flags: ['contains_financial', 'auto_detected'],
+  },
+  {
+    pattern: 'credit',
+    level: 'restricted',
+    categories: ['financial'],
+    flags: ['contains_financial', 'auto_detected'],
+  },
+  {
+    pattern: 'payment',
+    level: 'restricted',
+    categories: ['financial'],
+    flags: ['contains_financial', 'auto_detected'],
+  },
+  {
+    pattern: 'invoice',
+    level: 'sensitive',
+    categories: ['financial'],
+    flags: ['contains_financial', 'auto_detected'],
+  },
+  {
+    pattern: 'transaction',
+    level: 'sensitive',
+    categories: ['financial'],
+    flags: ['contains_financial', 'auto_detected'],
+  },
+  {
+    pattern: 'financial',
+    level: 'sensitive',
+    categories: ['financial'],
+    flags: ['contains_financial', 'auto_detected'],
+  },
 
   // Health
-  { pattern: 'health', level: 'restricted', categories: ['health'], flags: ['contains_health', 'auto_detected'] },
-  { pattern: 'medical', level: 'restricted', categories: ['health'], flags: ['contains_health', 'auto_detected'] },
-  { pattern: 'prescription', level: 'restricted', categories: ['health'], flags: ['contains_health', 'auto_detected'] },
-  { pattern: 'diagnosis', level: 'restricted', categories: ['health'], flags: ['contains_health', 'auto_detected'] },
+  {
+    pattern: 'health',
+    level: 'restricted',
+    categories: ['health'],
+    flags: ['contains_health', 'auto_detected'],
+  },
+  {
+    pattern: 'medical',
+    level: 'restricted',
+    categories: ['health'],
+    flags: ['contains_health', 'auto_detected'],
+  },
+  {
+    pattern: 'prescription',
+    level: 'restricted',
+    categories: ['health'],
+    flags: ['contains_health', 'auto_detected'],
+  },
+  {
+    pattern: 'diagnosis',
+    level: 'restricted',
+    categories: ['health'],
+    flags: ['contains_health', 'auto_detected'],
+  },
 
   // Communications
-  { pattern: 'mail', level: 'sensitive', categories: ['communications'], flags: ['contains_communications', 'auto_detected'] },
-  { pattern: 'message', level: 'sensitive', categories: ['communications'], flags: ['contains_communications', 'auto_detected'] },
-  { pattern: 'chat', level: 'sensitive', categories: ['communications'], flags: ['contains_communications', 'auto_detected'] },
-  { pattern: 'inbox', level: 'sensitive', categories: ['communications'], flags: ['contains_communications', 'auto_detected'] },
+  {
+    pattern: 'mail',
+    level: 'sensitive',
+    categories: ['communications'],
+    flags: ['contains_communications', 'auto_detected'],
+  },
+  {
+    pattern: 'message',
+    level: 'sensitive',
+    categories: ['communications'],
+    flags: ['contains_communications', 'auto_detected'],
+  },
+  {
+    pattern: 'chat',
+    level: 'sensitive',
+    categories: ['communications'],
+    flags: ['contains_communications', 'auto_detected'],
+  },
+  {
+    pattern: 'inbox',
+    level: 'sensitive',
+    categories: ['communications'],
+    flags: ['contains_communications', 'auto_detected'],
+  },
 
   // Location
-  { pattern: 'location', level: 'sensitive', categories: ['location'], flags: ['contains_location', 'auto_detected'] },
-  { pattern: 'gps', level: 'sensitive', categories: ['location'], flags: ['contains_location', 'auto_detected'] },
-  { pattern: 'geolocation', level: 'sensitive', categories: ['location'], flags: ['contains_location', 'auto_detected'] },
+  {
+    pattern: 'location',
+    level: 'sensitive',
+    categories: ['location'],
+    flags: ['contains_location', 'auto_detected'],
+  },
+  {
+    pattern: 'gps',
+    level: 'sensitive',
+    categories: ['location'],
+    flags: ['contains_location', 'auto_detected'],
+  },
+  {
+    pattern: 'geolocation',
+    level: 'sensitive',
+    categories: ['location'],
+    flags: ['contains_location', 'auto_detected'],
+  },
 
   // Identity
-  { pattern: 'profile', level: 'personal', categories: ['identity'], flags: ['contains_pii', 'auto_detected'] },
-  { pattern: 'contact', level: 'personal', categories: ['identity'], flags: ['contains_pii', 'auto_detected'] },
-  { pattern: 'address', level: 'sensitive', categories: ['identity'], flags: ['contains_pii', 'auto_detected'] },
-  { pattern: 'ssn', level: 'restricted', categories: ['identity'], flags: ['contains_pii', 'auto_detected'] },
+  {
+    pattern: 'profile',
+    level: 'personal',
+    categories: ['identity'],
+    flags: ['contains_pii', 'auto_detected'],
+  },
+  {
+    pattern: 'contact',
+    level: 'personal',
+    categories: ['identity'],
+    flags: ['contains_pii', 'auto_detected'],
+  },
+  {
+    pattern: 'address',
+    level: 'sensitive',
+    categories: ['identity'],
+    flags: ['contains_pii', 'auto_detected'],
+  },
+  {
+    pattern: 'ssn',
+    level: 'restricted',
+    categories: ['identity'],
+    flags: ['contains_pii', 'auto_detected'],
+  },
 
   // Browsing
-  { pattern: 'history', level: 'personal', categories: ['browsing_history'], flags: ['auto_detected'] },
-  { pattern: 'bookmark', level: 'personal', categories: ['browsing_history'], flags: ['auto_detected'] },
-  { pattern: 'cache', level: 'personal', categories: ['browsing_history'], flags: ['auto_detected'] },
+  {
+    pattern: 'history',
+    level: 'personal',
+    categories: ['browsing_history'],
+    flags: ['auto_detected'],
+  },
+  {
+    pattern: 'bookmark',
+    level: 'personal',
+    categories: ['browsing_history'],
+    flags: ['auto_detected'],
+  },
+  {
+    pattern: 'cache',
+    level: 'personal',
+    categories: ['browsing_history'],
+    flags: ['auto_detected'],
+  },
 
   // Media
   { pattern: 'photo', level: 'personal', categories: ['media_personal'], flags: ['auto_detected'] },
   { pattern: 'video', level: 'personal', categories: ['media_personal'], flags: ['auto_detected'] },
-  { pattern: 'camera', level: 'personal', categories: ['media_personal'], flags: ['auto_detected'] },
+  {
+    pattern: 'camera',
+    level: 'personal',
+    categories: ['media_personal'],
+    flags: ['auto_detected'],
+  },
 
   // Device
-  { pattern: 'device', level: 'internal', categories: ['device_metadata'], flags: ['auto_detected'] },
-  { pattern: 'system', level: 'internal', categories: ['device_metadata'], flags: ['auto_detected'] },
+  {
+    pattern: 'device',
+    level: 'internal',
+    categories: ['device_metadata'],
+    flags: ['auto_detected'],
+  },
+  {
+    pattern: 'system',
+    level: 'internal',
+    categories: ['device_metadata'],
+    flags: ['auto_detected'],
+  },
 ];
 
 // ─── MIME type detection (simplified) ────────────────────────────────────────
@@ -433,7 +634,7 @@ export function isExecutableFile(filePath: string): { executable: boolean; exten
  */
 export function classifyFileSensitivity(
   filePath: string,
-  patterns: SensitivityPattern[] = DEFAULT_SENSITIVITY_PATTERNS,
+  patterns: SensitivityPattern[] = DEFAULT_SENSITIVITY_PATTERNS
 ): {
   level: SensitivityLevel;
   categories: SensitivityCategory[];
@@ -444,12 +645,22 @@ export function classifyFileSensitivity(
   const categories = new Set<SensitivityCategory>();
   const flags = new Set<FileSensitivityFlag>();
 
-  const levelOrder: SensitivityLevel[] = ['general', 'public', 'internal', 'personal', 'sensitive', 'restricted'];
+  const levelOrder: SensitivityLevel[] = [
+    'general',
+    'public',
+    'internal',
+    'personal',
+    'sensitive',
+    'restricted',
+  ];
   const levelIndex = (l: SensitivityLevel) => levelOrder.indexOf(l);
 
   for (const pattern of patterns) {
     if (lowerPath.includes(pattern.pattern)) {
-      if (levelOrder.includes(pattern.level) && levelIndex(pattern.level) > levelIndex(highestLevel)) {
+      if (
+        levelOrder.includes(pattern.level) &&
+        levelIndex(pattern.level) > levelIndex(highestLevel)
+      ) {
         highestLevel = pattern.level;
       }
       for (const cat of pattern.categories) {
@@ -489,7 +700,7 @@ export function detectMimeType(filePath: string): string {
  */
 export function archiveVerificationToReceiptInput(
   payload: AccountExportArchivePayload,
-  options: AccountExportArchiveAdapterOptions,
+  options: AccountExportArchiveAdapterOptions
 ): TrustReceiptInput {
   const permissionEnvelope: TrustPermissionEnvelope =
     options.permissionEnvelope ?? phaseToEnvelope(payload.verificationResult);
@@ -497,9 +708,7 @@ export function archiveVerificationToReceiptInput(
   const actionName = `account_export_archive_verify`;
   const resource = `holoshell/${payload.workflow}/${payload.provider}/archive`;
 
-  const outcome = payload.verificationResult.startsWith('verified')
-    ? 'success'
-    : 'denied';
+  const outcome = payload.verificationResult.startsWith('verified') ? 'success' : 'denied';
 
   const payloadHash = stableArchiveHash(payload);
 
@@ -524,10 +733,7 @@ export function archiveVerificationToReceiptInput(
       hashes: [payloadHash],
       nonce: `archive_verify_${payload.workflow}_${payload.provider}_${Date.now()}`,
       commandHash: payload.archiveHash || undefined,
-      witnessRefs: [
-        ...payload.errors,
-        ...payload.warnings,
-      ],
+      witnessRefs: [...payload.errors, ...payload.warnings],
     },
     algebraicTrust: {
       layer1Strategy: 'strict_error',
@@ -617,7 +823,7 @@ export interface ArchiveVerificationResult {
  * - No part should have status 'missing' when partsComplete is true
  */
 export function validateArchiveVerification(
-  payload: AccountExportArchivePayload,
+  payload: AccountExportArchivePayload
 ): ArchiveVerificationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -631,13 +837,17 @@ export function validateArchiveVerification(
 
   // Custody invariants — must always be false
   if (payload.sourceFileMutationPerformed) {
-    errors.push('sourceFileMutationPerformed must be false — verification must not mutate source files');
+    errors.push(
+      'sourceFileMutationPerformed must be false — verification must not mutate source files'
+    );
   }
   if (payload.rawPrivateDataPublished) {
     errors.push('rawPrivateDataPublished must be false — raw private data must not be published');
   }
   if (payload.privatePathLeakedToPublicReceipt) {
-    errors.push('privatePathLeakedToPublicReceipt must be false — private paths must not leak into public receipts');
+    errors.push(
+      'privatePathLeakedToPublicReceipt must be false — private paths must not leak into public receipts'
+    );
   }
 
   // Consistency checks
@@ -650,7 +860,9 @@ export function validateArchiveVerification(
 
   // Part integrity
   if (payload.parts.length !== payload.totalParts) {
-    errors.push(`parts.length (${payload.parts.length}) does not match totalParts (${payload.totalParts})`);
+    errors.push(
+      `parts.length (${payload.parts.length}) does not match totalParts (${payload.totalParts})`
+    );
   }
 
   const missingParts = payload.parts.filter((p) => p.status === 'missing');
@@ -661,32 +873,44 @@ export function validateArchiveVerification(
     errors.push('partsComplete is true but some parts have status "missing"');
   }
   if (corruptParts.length > 0) {
-    errors.push(`${corruptParts.length} part(s) have status "present_corrupt" — archive is corrupt`);
+    errors.push(
+      `${corruptParts.length} part(s) have status "present_corrupt" — archive is corrupt`
+    );
   }
   if (sizeMismatchParts.length > 0) {
-    warnings.push(`${sizeMismatchParts.length} part(s) have status "present_size_mismatch" — sizes don't match expected`);
+    warnings.push(
+      `${sizeMismatchParts.length} part(s) have status "present_size_mismatch" — sizes don't match expected`
+    );
   }
 
   // Manifest consistency
   if (payload.manifestExtracted && payload.fileManifest.length !== payload.fileCount) {
-    warnings.push(`fileManifest has ${payload.fileManifest.length} entries but fileCount is ${payload.fileCount}`);
+    warnings.push(
+      `fileManifest has ${payload.fileManifest.length} entries but fileCount is ${payload.fileCount}`
+    );
   }
 
   // Executable flagging
   if (payload.executablesDetected && !payload.executableBlockImport) {
-    errors.push('executablesDetected is true but executableBlockImport is false — executables must block imports');
+    errors.push(
+      'executablesDetected is true but executableBlockImport is false — executables must block imports'
+    );
   }
 
   // Sensitivity blocking
   const hasRestrictedFiles = payload.restrictedFiles.length > 0;
   const hasSensitiveFiles = payload.sensitiveFiles.length > 0;
   if ((hasRestrictedFiles || hasSensitiveFiles) && !payload.sensitivityBlockShare) {
-    warnings.push('restricted or sensitive files detected but sensitivityBlockShare is false — sharing may leak sensitive data');
+    warnings.push(
+      'restricted or sensitive files detected but sensitivityBlockShare is false — sharing may leak sensitive data'
+    );
   }
 
   // Verification result consistency
   if (payload.verificationResult === 'verified' && errors.length > 0) {
-    warnings.push('verificationResult is "verified" but payload has validation errors — consider verificationResult "verified_with_warnings" or "failed_*"');
+    warnings.push(
+      'verificationResult is "verified" but payload has validation errors — consider verificationResult "verified_with_warnings" or "failed_*"'
+    );
   }
 
   // Every file in fileManifest should have a proper sensitivity classification
@@ -708,10 +932,11 @@ export function validateArchiveVerification(
  * This guard blocks import/delete/share until the archive is verified.
  */
 export function createArchiveVerificationGuard(
-  payload: AccountExportArchivePayload,
+  payload: AccountExportArchivePayload
 ): ArchiveVerificationGuard {
-  const isVerified = payload.verificationResult === 'verified'
-    || payload.verificationResult === 'verified_with_warnings';
+  const isVerified =
+    payload.verificationResult === 'verified' ||
+    payload.verificationResult === 'verified_with_warnings';
 
   const blockReasons: string[] = [];
 

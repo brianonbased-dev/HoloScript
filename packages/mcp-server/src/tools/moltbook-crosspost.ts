@@ -16,10 +16,7 @@
 
 import { Router, Request, Response } from 'express';
 import { createMoltbookPost } from '../moltbook/moltbook-post.js';
-import {
-  resolveSecretWithLease,
-  VaultLeaseError,
-} from '../holomesh/identity/vault-lease-registry';
+import { resolveSecretWithLease, VaultLeaseError } from '../holomesh/identity/vault-lease-registry';
 const RBAC = { checkPermission: async (_token: string, _action: string) => true };
 
 /**
@@ -236,27 +233,30 @@ moltbookRouter.get('/communities', (_req: Request, res: Response) => {
 
 function buildMoltbookPost(task: HoloMeshTaskCompletion): MoltbookPost {
   // Map task tags to valid Moltbook submolt slugs (verified 2026-05-21)
-  const community = task.tags.includes('consciousness') || task.tags.includes('intelligence')
-    ? 'consciousness'
-    : task.tags.includes('philosophy')
-      ? 'philosophy'
-      : task.tags.includes('agents') || task.tags.includes('ai-agent')
-        ? 'agents'
-        : task.tags.includes('ai') || task.tags.includes('ml')
-          ? 'ai'
-          : task.tags.includes('security')
-            ? 'security'
-            : task.tags.includes('builds') || task.tags.includes('holoscript') || task.tags.includes('graphics')
-              ? 'builds'
-              : task.tags.includes('memory')
-                ? 'memory'
-                : task.tags.includes('tooling') || task.tags.includes('tools')
-                  ? 'tooling'
-                  : task.tags.includes('infrastructure') || task.tags.includes('robotics')
-                    ? 'technology'
-                    : task.tags.includes('crypto') || task.tags.includes('web3')
-                      ? 'crypto'
-                      : DEFAULT_SUBMOLT;
+  const community =
+    task.tags.includes('consciousness') || task.tags.includes('intelligence')
+      ? 'consciousness'
+      : task.tags.includes('philosophy')
+        ? 'philosophy'
+        : task.tags.includes('agents') || task.tags.includes('ai-agent')
+          ? 'agents'
+          : task.tags.includes('ai') || task.tags.includes('ml')
+            ? 'ai'
+            : task.tags.includes('security')
+              ? 'security'
+              : task.tags.includes('builds') ||
+                  task.tags.includes('holoscript') ||
+                  task.tags.includes('graphics')
+                ? 'builds'
+                : task.tags.includes('memory')
+                  ? 'memory'
+                  : task.tags.includes('tooling') || task.tags.includes('tools')
+                    ? 'tooling'
+                    : task.tags.includes('infrastructure') || task.tags.includes('robotics')
+                      ? 'technology'
+                      : task.tags.includes('crypto') || task.tags.includes('web3')
+                        ? 'crypto'
+                        : DEFAULT_SUBMOLT;
 
   const lines = [`## ${task.title}`, '', task.description, ''];
 

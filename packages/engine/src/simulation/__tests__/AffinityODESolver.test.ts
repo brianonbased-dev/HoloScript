@@ -78,7 +78,7 @@ describe('AffinityODESolver', () => {
     // R has zero self-dynamics, J has strong positive coupling to R
     const solver = new AffinityODESolver({
       agents: [
-        { id: 'R', dampingRate: 0, couplingToPartner: 0 },  // R feels nothing from J
+        { id: 'R', dampingRate: 0, couplingToPartner: 0 }, // R feels nothing from J
         { id: 'J', dampingRate: -0.2, couplingToPartner: 1.0 }, // J feels R strongly
       ],
       initialFeelings: [1.0, 0.0],
@@ -98,9 +98,9 @@ describe('AffinityODESolver', () => {
       agents: [
         {
           id: 'R',
-          dampingRate: 0.2,  // positive damping = self-decay (forgetting)
+          dampingRate: 0.2, // positive damping = self-decay (forgetting)
           couplingToPartner: 0.5,
-          forcing: (t: number) => t < 0.5 ? 2.0 : 0, // strong impulse in first half
+          forcing: (t: number) => (t < 0.5 ? 2.0 : 0), // strong impulse in first half
         },
         { id: 'J', dampingRate: 0.2, couplingToPartner: 0.5 },
       ],
@@ -213,7 +213,13 @@ describe('AffinityODESolver', () => {
     const solver = new AffinityODESolver({
       ...baseConfig,
       enableSternberg: true,
-      nashEffort: { enabled: true, wellBeingWeight: 0.5, relationalWeight: 0.5, maxEffort: 1.0, adaptationRate: 0.1 },
+      nashEffort: {
+        enabled: true,
+        wellBeingWeight: 0.5,
+        relationalWeight: 0.5,
+        maxEffort: 1.0,
+        adaptationRate: 0.1,
+      },
     });
 
     const vec = solver.getStateVector();

@@ -49,9 +49,15 @@ describe('ApiKeyTrait — onEvent', () => {
   it('apikey:generate creates a key with the configured prefix', () => {
     const node = makeNode();
     apiKeyHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    apiKeyHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'apikey:generate', name: 'my-key',
-    } as never);
+    apiKeyHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'apikey:generate',
+        name: 'my-key',
+      } as never
+    );
     const state = node.__apiKeyState as { keys: Map<string, { name: string }> };
     expect(state.keys.size).toBe(1);
     const [key] = [...state.keys.keys()];
@@ -64,9 +70,15 @@ describe('ApiKeyTrait — onEvent', () => {
     const cfg = { prefix: 'sk_', max_keys: 2 };
     apiKeyHandler.onAttach!(node as never, cfg, makeCtx(node) as never);
     for (let i = 0; i < 5; i++) {
-      apiKeyHandler.onEvent!(node as never, cfg, makeCtx(node) as never, {
-        type: 'apikey:generate', name: `key-${i}`,
-      } as never);
+      apiKeyHandler.onEvent!(
+        node as never,
+        cfg,
+        makeCtx(node) as never,
+        {
+          type: 'apikey:generate',
+          name: `key-${i}`,
+        } as never
+      );
     }
     const state = node.__apiKeyState as { keys: Map<string, unknown> };
     expect(state.keys.size).toBe(2);
@@ -75,38 +87,71 @@ describe('ApiKeyTrait — onEvent', () => {
   it('apikey:validate returns true for existing key', () => {
     const node = makeNode();
     apiKeyHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    apiKeyHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'apikey:generate', name: 'v-key',
-    } as never);
+    apiKeyHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'apikey:generate',
+        name: 'v-key',
+      } as never
+    );
     const state = node.__apiKeyState as { keys: Map<string, unknown> };
     const [key] = [...state.keys.keys()];
     node.emit.mockClear();
-    apiKeyHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'apikey:validate', key,
-    } as never);
+    apiKeyHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'apikey:validate',
+        key,
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('apikey:validated', { key, valid: true });
   });
 
   it('apikey:validate returns false for unknown key', () => {
     const node = makeNode();
     apiKeyHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    apiKeyHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'apikey:validate', key: 'sk_fake_key',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('apikey:validated', { key: 'sk_fake_key', valid: false });
+    apiKeyHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'apikey:validate',
+        key: 'sk_fake_key',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith('apikey:validated', {
+      key: 'sk_fake_key',
+      valid: false,
+    });
   });
 
   it('apikey:revoke removes the key', () => {
     const node = makeNode();
     apiKeyHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    apiKeyHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'apikey:generate', name: 'r-key',
-    } as never);
+    apiKeyHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'apikey:generate',
+        name: 'r-key',
+      } as never
+    );
     const state = node.__apiKeyState as { keys: Map<string, unknown> };
     const [key] = [...state.keys.keys()];
-    apiKeyHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'apikey:revoke', key,
-    } as never);
+    apiKeyHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'apikey:revoke',
+        key,
+      } as never
+    );
     expect(state.keys.size).toBe(0);
     expect(node.emit).toHaveBeenCalledWith('apikey:revoked', { key });
   });

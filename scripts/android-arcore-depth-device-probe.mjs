@@ -11,7 +11,13 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chainReceipt, hashValue, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import {
+  chainReceipt,
+  hashValue,
+  sha256Text,
+  stageReceipt,
+  withHash,
+} from './holoshell/chain/receipts.mjs';
 
 export const VERSION = '0.1.0';
 export const RECEIPT_VERSION = 'holomap-android-arcore-depth-device-probe/v1';
@@ -134,8 +140,12 @@ function adbCandidates() {
     process.env.ADB,
     join(REPO_ROOT, '.scratch', 'android-platform-tools', 'extracted', 'platform-tools', exe),
     process.env.ANDROID_HOME ? join(process.env.ANDROID_HOME, 'platform-tools', exe) : undefined,
-    process.env.ANDROID_SDK_ROOT ? join(process.env.ANDROID_SDK_ROOT, 'platform-tools', exe) : undefined,
-    process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'Android', 'Sdk', 'platform-tools', exe) : undefined,
+    process.env.ANDROID_SDK_ROOT
+      ? join(process.env.ANDROID_SDK_ROOT, 'platform-tools', exe)
+      : undefined,
+    process.env.LOCALAPPDATA
+      ? join(process.env.LOCALAPPDATA, 'Android', 'Sdk', 'platform-tools', exe)
+      : undefined,
     lookupPathCommand(process.platform === 'win32' ? 'adb.exe' : 'adb'),
     lookupPathCommand('adb'),
   ];
@@ -147,7 +157,8 @@ function resolveAdbPath(args) {
   for (const candidate of candidates) {
     const absolute = isAbsolute(candidate) ? candidate : resolve(REPO_ROOT, candidate);
     if (existsSync(absolute)) return absolute;
-    if (!candidate.includes('\\') && !candidate.includes('/') && lookupPathCommand(candidate)) return candidate;
+    if (!candidate.includes('\\') && !candidate.includes('/') && lookupPathCommand(candidate))
+      return candidate;
   }
   return undefined;
 }
@@ -193,10 +204,12 @@ function redactAdbDevice(device) {
 
 function selectDevice(devices, requestedSerial) {
   if (requestedSerial) {
-    return devices.find((device) => device.serial === requestedSerial) ?? {
-      serial: requestedSerial,
-      status: 'missing',
-    };
+    return (
+      devices.find((device) => device.serial === requestedSerial) ?? {
+        serial: requestedSerial,
+        status: 'missing',
+      }
+    );
   }
   return devices.find((device) => device.status === 'device') ?? devices[0];
 }
@@ -242,18 +255,21 @@ export function parseFeatureList(text) {
     .map((line) => line.trim().replace(/^feature:/, ''))
     .filter((line) => line.startsWith('android.hardware.') || line.startsWith('android.software.'));
   const set = new Set(features);
-  const relevant = features.filter((feature) =>
-    feature.includes('camera') ||
-    feature.includes('sensor') ||
-    feature.includes('vulkan') ||
-    feature.includes('opengles')
+  const relevant = features.filter(
+    (feature) =>
+      feature.includes('camera') ||
+      feature.includes('sensor') ||
+      feature.includes('vulkan') ||
+      feature.includes('opengles')
   );
   return {
     selected: [...new Set(relevant)].sort(),
     hasCamera: set.has('android.hardware.camera') || set.has('android.hardware.camera.any'),
-    hasBackOrAnyCamera: set.has('android.hardware.camera') || set.has('android.hardware.camera.any'),
+    hasBackOrAnyCamera:
+      set.has('android.hardware.camera') || set.has('android.hardware.camera.any'),
     hasAutofocus: set.has('android.hardware.camera.autofocus'),
-    hasRaw: set.has('android.hardware.camera.raw') || set.has('android.hardware.camera.capability.raw'),
+    hasRaw:
+      set.has('android.hardware.camera.raw') || set.has('android.hardware.camera.capability.raw'),
     hasManualSensor: set.has('android.hardware.camera.capability.manual_sensor'),
     hasGyroscope: set.has('android.hardware.sensor.gyroscope'),
     hasAccelerometer: set.has('android.hardware.sensor.accelerometer'),
@@ -271,7 +287,9 @@ export function parseResolveActivity(text) {
   if (componentLine) return componentLine;
 
   const activityName = lines.find((line) => line.startsWith('name='))?.slice('name='.length);
-  const packageName = lines.find((line) => line.startsWith('packageName='))?.slice('packageName='.length);
+  const packageName = lines
+    .find((line) => line.startsWith('packageName='))
+    ?.slice('packageName='.length);
   if (activityName && packageName) {
     if (activityName.startsWith(`${packageName}.`)) {
       return `${packageName}/.${activityName.slice(packageName.length + 1)}`;
@@ -284,7 +302,9 @@ export function parseResolveActivity(text) {
 
 export function parseCameraDump(text) {
   const dump = String(text ?? '');
-  const depthMetadataKeys = [...new Set(dump.match(/android\.depth\.[A-Za-z0-9._]+/g) ?? [])].sort();
+  const depthMetadataKeys = [
+    ...new Set(dump.match(/android\.depth\.[A-Za-z0-9._]+/g) ?? []),
+  ].sort();
   const capabilityNames = [
     'BACKWARD_COMPATIBLE',
     'CONSTRAINED_HIGH_SPEED_VIDEO',
@@ -299,13 +319,17 @@ export function parseCameraDump(text) {
     'DYNAMIC_RANGE_TEN_BIT',
     'LOGICAL_MULTI_CAMERA',
   ];
-  const capabilities = capabilityNames.filter((capability) => new RegExp(`\\b${capability}\\b`).test(dump));
+  const capabilities = capabilityNames.filter((capability) =>
+    new RegExp(`\\b${capability}\\b`).test(dump)
+  );
   return {
     dumpHash: hashValue(dump),
     backCameraPresent: /Facing:\s*Back/i.test(dump) || /LENS_FACING_BACK/.test(dump),
     frontCameraPresent: /Facing:\s*Front/i.test(dump) || /LENS_FACING_FRONT/.test(dump),
     depthMetadataPresent: depthMetadataKeys.length > 0,
-    depthStreamConfigurationPresent: depthMetadataKeys.some((key) => key.includes('availableDepthStreamConfigurations')),
+    depthStreamConfigurationPresent: depthMetadataKeys.some((key) =>
+      key.includes('availableDepthStreamConfigurations')
+    ),
     depthMetadataKeys,
     capabilities,
     logicalMultiCamera: capabilities.includes('LOGICAL_MULTI_CAMERA'),
@@ -344,9 +368,10 @@ function localAndroidToolchainProbe() {
     },
     gradleWrapperPresent,
     apkBuildReady: java.available && sdkConfigured && (gradle.available || gradleWrapperPresent),
-    blockedReason: java.available && sdkConfigured && (gradle.available || gradleWrapperPresent)
-      ? undefined
-      : 'android-build-toolchain-missing',
+    blockedReason:
+      java.available && sdkConfigured && (gradle.available || gradleWrapperPresent)
+        ? undefined
+        : 'android-build-toolchain-missing',
   };
 }
 
@@ -362,7 +387,8 @@ function buildStages(receiptBase) {
       deviceCount: receiptBase.adb.devices.length,
     },
     metrics: {
-      authorizedDeviceCount: receiptBase.adb.devices.filter((device) => device.status === 'device').length,
+      authorizedDeviceCount: receiptBase.adb.devices.filter((device) => device.status === 'device')
+        .length,
     },
     honestScope: 'USB ADB enumeration only. Raw ADB serials are hashed in the receipt.',
   });
@@ -372,7 +398,8 @@ function buildStages(receiptBase) {
       package: 'com.google.ar.core',
     },
     output: receiptBase.arCore,
-    honestScope: 'Package presence and version metadata only. This does not start an ARCore Session.',
+    honestScope:
+      'Package presence and version metadata only. This does not start an ARCore Session.',
   });
   const cameraStage = stageReceipt({
     name: 'android.camera2-depth-metadata',
@@ -381,12 +408,14 @@ function buildStages(receiptBase) {
       camera: receiptBase.camera,
       activities: receiptBase.activities,
     },
-    honestScope: 'Camera2 and Android intent metadata from ADB. This does not acquire image or depth frames.',
+    honestScope:
+      'Camera2 and Android intent metadata from ADB. This does not acquire image or depth frames.',
   });
   const toolchainStage = stageReceipt({
     name: 'local.android-build-toolchain',
     output: receiptBase.localToolchain,
-    honestScope: 'Host-side APK build readiness check. Missing tools block the next native depth-frame proof, not this hardware-readiness probe.',
+    honestScope:
+      'Host-side APK build readiness check. Missing tools block the next native depth-frame proof, not this hardware-readiness probe.',
   });
   const runtimeStage = stageReceipt({
     name: 'arcore.depth-frame-acquisition',
@@ -434,7 +463,8 @@ export function buildAndroidArCoreDepthProbeReceipt(input) {
   const failures = [];
   if (!input.adbAvailable) blockers.push('adb-not-found');
   if (!selectedRaw) blockers.push('adb-device-not-found');
-  if (selectedRaw && selectedRaw.status !== 'device') blockers.push(`adb-device-${selectedRaw.status}`);
+  if (selectedRaw && selectedRaw.status !== 'device')
+    blockers.push(`adb-device-${selectedRaw.status}`);
   if (!arCore.installed) failures.push('arcore-package-missing');
   if (!androidFeatures.hasCamera) failures.push('android-camera-feature-missing');
   if (!androidFeatures.hasGyroscope) failures.push('android-gyroscope-feature-missing');
@@ -486,7 +516,9 @@ export function buildAndroidArCoreDepthProbeReceipt(input) {
       productDevice: properties.device ?? selected?.device,
       androidRelease: properties.androidRelease,
       androidSdk: properties.androidSdk ? Number.parseInt(properties.androidSdk, 10) : undefined,
-      fingerprintHash: properties.fingerprint ? `sha256:${sha256Text(properties.fingerprint)}` : undefined,
+      fingerprintHash: properties.fingerprint
+        ? `sha256:${sha256Text(properties.fingerprint)}`
+        : undefined,
     },
     arCore,
     androidFeatures,
@@ -495,11 +527,12 @@ export function buildAndroidArCoreDepthProbeReceipt(input) {
     localToolchain,
     runtimeDepthCapture,
     evidenceHashes,
-    summary: status === 'pass'
-      ? 'Connected Android device is ADB-authorized with ARCore, camera/motion features, and Camera2 depth metadata visible. Native ARCore depth-frame capture is still a separate APK proof.'
-      : failures.length > 0
-        ? `Connected Android depth readiness failed: ${failures.join(', ')}.`
-        : `Android depth readiness blocked: ${blockers.join(', ')}.`,
+    summary:
+      status === 'pass'
+        ? 'Connected Android device is ADB-authorized with ARCore, camera/motion features, and Camera2 depth metadata visible. Native ARCore depth-frame capture is still a separate APK proof.'
+        : failures.length > 0
+          ? `Connected Android depth readiness failed: ${failures.join(', ')}.`
+          : `Android depth readiness blocked: ${blockers.join(', ')}.`,
     verificationCommands: [
       {
         command: 'pnpm holomap:android-arcore-device-probe',
@@ -524,27 +557,44 @@ export function validateReceipt(receipt) {
   if (receipt.schemaVersion !== RECEIPT_VERSION) errors.push('schemaVersion mismatch');
   if (!STATUS_VALUES.has(receipt.status)) errors.push(`status unsupported: ${receipt.status}`);
   if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
-  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
-  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1) errors.push('chain stages missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:'))
+    errors.push('chain receipt hash missing');
+  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1)
+    errors.push('chain stages missing');
   if (receipt.status === 'pass') {
     if (!receipt.device?.model) errors.push('pass receipt missing device model');
     if (!receipt.arCore?.installed) errors.push('pass receipt missing ARCore installation');
-    if (!receipt.androidFeatures?.hasCamera) errors.push('pass receipt missing Android camera feature');
-    if (!receipt.androidFeatures?.hasGyroscope) errors.push('pass receipt missing gyroscope feature');
-    if (!receipt.androidFeatures?.hasAccelerometer) errors.push('pass receipt missing accelerometer feature');
-    if (!receipt.camera?.backCameraPresent) errors.push('pass receipt missing back camera metadata');
-    if (!receipt.camera?.depthMetadataPresent) errors.push('pass receipt missing Camera2 depth metadata');
+    if (!receipt.androidFeatures?.hasCamera)
+      errors.push('pass receipt missing Android camera feature');
+    if (!receipt.androidFeatures?.hasGyroscope)
+      errors.push('pass receipt missing gyroscope feature');
+    if (!receipt.androidFeatures?.hasAccelerometer)
+      errors.push('pass receipt missing accelerometer feature');
+    if (!receipt.camera?.backCameraPresent)
+      errors.push('pass receipt missing back camera metadata');
+    if (!receipt.camera?.depthMetadataPresent)
+      errors.push('pass receipt missing Camera2 depth metadata');
     if (receipt.runtimeDepthCapture?.status !== 'blocked') {
       errors.push('readiness probe must not claim ARCore depth frames were acquired');
     }
-    if (!String(receipt.runtimeDepthCapture?.honestScope ?? '').includes('does not acquire depth frames')) {
+    if (
+      !String(receipt.runtimeDepthCapture?.honestScope ?? '').includes(
+        'does not acquire depth frames'
+      )
+    ) {
       errors.push('runtimeDepthCapture honest scope must state no depth frames were acquired');
     }
   }
-  if (receipt.status === 'blocked' && (!Array.isArray(receipt.blockers) || receipt.blockers.length < 1)) {
+  if (
+    receipt.status === 'blocked' &&
+    (!Array.isArray(receipt.blockers) || receipt.blockers.length < 1)
+  ) {
     errors.push('blocked receipt missing blockers');
   }
-  if (receipt.status === 'fail' && (!Array.isArray(receipt.failures) || receipt.failures.length < 1)) {
+  if (
+    receipt.status === 'fail' &&
+    (!Array.isArray(receipt.failures) || receipt.failures.length < 1)
+  ) {
     errors.push('fail receipt missing failures');
   }
   return errors;
@@ -580,14 +630,31 @@ async function collectProbe(args) {
     });
   }
 
-  const prop = (name) => trimOutput(runAdbForDevice(adbPath, selected.serial, ['shell', 'getprop', name]));
-  const packageList = runAdbForDevice(adbPath, selected.serial, ['shell', 'pm', 'list', 'packages', 'com.google.ar.core']);
-  const packageDump = runAdbForDevice(adbPath, selected.serial, ['shell', 'dumpsys', 'package', 'com.google.ar.core'], {
-    maxBuffer: 1024 * 1024 * 8,
-  });
-  const featureList = runAdbForDevice(adbPath, selected.serial, ['shell', 'pm', 'list', 'features'], {
-    maxBuffer: 1024 * 1024 * 8,
-  });
+  const prop = (name) =>
+    trimOutput(runAdbForDevice(adbPath, selected.serial, ['shell', 'getprop', name]));
+  const packageList = runAdbForDevice(adbPath, selected.serial, [
+    'shell',
+    'pm',
+    'list',
+    'packages',
+    'com.google.ar.core',
+  ]);
+  const packageDump = runAdbForDevice(
+    adbPath,
+    selected.serial,
+    ['shell', 'dumpsys', 'package', 'com.google.ar.core'],
+    {
+      maxBuffer: 1024 * 1024 * 8,
+    }
+  );
+  const featureList = runAdbForDevice(
+    adbPath,
+    selected.serial,
+    ['shell', 'pm', 'list', 'features'],
+    {
+      maxBuffer: 1024 * 1024 * 8,
+    }
+  );
   const imageActivity = runAdbForDevice(
     adbPath,
     selected.serial,
@@ -600,10 +667,15 @@ async function collectProbe(args) {
     ['shell', 'cmd', 'package', 'resolve-activity', '-a', 'android.media.action.VIDEO_CAPTURE'],
     { maxBuffer: 1024 * 1024 }
   );
-  const cameraDump = runAdbForDevice(adbPath, selected.serial, ['shell', 'dumpsys', 'media.camera'], {
-    timeoutMs: 30000,
-    maxBuffer: 1024 * 1024 * 64,
-  });
+  const cameraDump = runAdbForDevice(
+    adbPath,
+    selected.serial,
+    ['shell', 'dumpsys', 'media.camera'],
+    {
+      timeoutMs: 30000,
+      maxBuffer: 1024 * 1024 * 64,
+    }
+  );
 
   return buildAndroidArCoreDepthProbeReceipt({
     generatedAt,
@@ -688,7 +760,8 @@ feature:android.hardware.vulkan.level
     },
   });
   const errors = validateReceipt(receipt);
-  if (errors.length > 0) throw new Error(`self-test pass receipt failed validation: ${errors.join('; ')}`);
+  if (errors.length > 0)
+    throw new Error(`self-test pass receipt failed validation: ${errors.join('; ')}`);
   if (receipt.status !== 'pass') throw new Error(`expected pass receipt, got ${receipt.status}`);
   if (!receipt.camera.depthMetadataKeys.includes('android.depth.maxDepthSamples')) {
     throw new Error('depth metadata key was not parsed');
@@ -703,10 +776,12 @@ feature:android.hardware.vulkan.level
     arCorePackageListText: packageListText,
     arCorePackageDumpText: packageDumpText,
     featureListText,
-    cameraDumpText: 'Camera ID: 0\n  Facing: Back\n  Available capabilities: BACKWARD_COMPATIBLE RAW MANUAL_SENSOR\n',
+    cameraDumpText:
+      'Camera ID: 0\n  Facing: Back\n  Available capabilities: BACKWARD_COMPATIBLE RAW MANUAL_SENSOR\n',
     localToolchain: { apkBuildReady: false, blockedReason: 'android-build-toolchain-missing' },
   });
-  if (noDepth.status !== 'blocked') throw new Error(`expected missing depth metadata to block, got ${noDepth.status}`);
+  if (noDepth.status !== 'blocked')
+    throw new Error(`expected missing depth metadata to block, got ${noDepth.status}`);
   if (!noDepth.blockers.includes('camera2-depth-metadata-not-observed')) {
     throw new Error('missing depth metadata blocker was not recorded');
   }
@@ -718,7 +793,11 @@ feature:android.hardware.vulkan.level
       status: 'pass',
     },
   };
-  if (!validateReceipt(overclaim).includes('readiness probe must not claim ARCore depth frames were acquired')) {
+  if (
+    !validateReceipt(overclaim).includes(
+      'readiness probe must not claim ARCore depth frames were acquired'
+    )
+  ) {
     throw new Error('depth-frame overclaim was not rejected');
   }
 
@@ -768,12 +847,19 @@ async function main() {
     blockers: receipt.blockers,
     failures: receipt.failures,
   };
-  process.stdout.write(args.json ? `${JSON.stringify(summary, null, 2)}\n` : `${summary.status} ${out}\n`);
+  process.stdout.write(
+    args.json ? `${JSON.stringify(summary, null, 2)}\n` : `${summary.status} ${out}\n`
+  );
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('android-arcore-depth-device-probe.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('android-arcore-depth-device-probe.mjs')
+) {
   main().catch((error) => {
-    process.stderr.write(`android-arcore-depth-device-probe FAIL: ${error.stack ?? error.message}\n`);
+    process.stderr.write(
+      `android-arcore-depth-device-probe FAIL: ${error.stack ?? error.message}\n`
+    );
     process.exitCode = 1;
   });
 }

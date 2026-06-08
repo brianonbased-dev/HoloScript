@@ -4,11 +4,11 @@
 
 ## Markdown table (draft)
 
-| Ingest path | Scene hash stable | Replay fingerprint (HoloMap) | Anchor hash (OTS / Base) | Notes |
-|-------------|-------------------|------------------------------|----------------------------|--------|
-| `marble` | ✓ (compat) | — (Marble manifest) | — | Baseline for reviewer trust |
-| `holomap` | ✓ | ✓ `computeHoloMapReplayFingerprint` | ✓ when manifest merged via `mergeAnchoredProvenance` | Native path |
-| `both` | ✓ | Side-by-side rows | HoloMap column only | **Paper figure** default |
+| Ingest path | Scene hash stable | Replay fingerprint (HoloMap)        | Anchor hash (OTS / Base)                             | Notes                       |
+| ----------- | ----------------- | ----------------------------------- | ---------------------------------------------------- | --------------------------- |
+| `marble`    | ✓ (compat)        | — (Marble manifest)                 | —                                                    | Baseline for reviewer trust |
+| `holomap`   | ✓                 | ✓ `computeHoloMapReplayFingerprint` | ✓ when manifest merged via `mergeAnchoredProvenance` | Native path                 |
+| `both`      | ✓                 | Side-by-side rows                   | HoloMap column only                                  | **Paper figure** default    |
 
 ## LaTeX `tabular` snippet (paste into Paper 2 or 4)
 

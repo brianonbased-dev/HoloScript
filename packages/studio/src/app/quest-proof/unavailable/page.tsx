@@ -1,7 +1,7 @@
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 function firstParam(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? value[0] ?? '' : value ?? '';
+  return Array.isArray(value) ? (value[0] ?? '') : (value ?? '');
 }
 
 export default async function QuestProofUnavailablePage({
@@ -70,7 +70,9 @@ export default async function QuestProofUnavailablePage({
         >
           <div>
             <dt style={{ color: '#e2e8f0', fontWeight: 700 }}>Route</dt>
-            <dd style={{ margin: '4px 0 0', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
+            <dd
+              style={{ margin: '4px 0 0', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}
+            >
               {target}
             </dd>
           </div>

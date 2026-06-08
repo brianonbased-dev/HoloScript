@@ -83,11 +83,7 @@ export interface EventSystemContext {
  * Register an event handler. Appends to the handlers array for
  * `event` (creates the array if absent).
  */
-export function onEvent(
-  event: string,
-  handler: EventHandler,
-  ctx: EventSystemContext,
-): void {
+export function onEvent(event: string, handler: EventHandler, ctx: EventSystemContext): void {
   const handlers = ctx.eventHandlers.get(event) || [];
   handlers.push(handler);
   ctx.eventHandlers.set(event, handlers);
@@ -100,7 +96,7 @@ export function onEvent(
 export function offEvent(
   event: string,
   handler: EventHandler | undefined,
-  ctx: EventSystemContext,
+  ctx: EventSystemContext
 ): void {
   if (!handler) {
     ctx.eventHandlers.delete(event);
@@ -108,7 +104,7 @@ export function offEvent(
     const handlers = ctx.eventHandlers.get(event) || [];
     ctx.eventHandlers.set(
       event,
-      handlers.filter((h) => h !== handler),
+      handlers.filter((h) => h !== handler)
     );
   }
 }
@@ -126,11 +122,7 @@ export function offEvent(
  *      bus; if data.id is present, state-machine interpreter
  *      receives the event.
  */
-export async function emit(
-  event: string,
-  data: unknown,
-  ctx: EventSystemContext,
-): Promise<void> {
+export async function emit(event: string, data: unknown, ctx: EventSystemContext): Promise<void> {
   logger.info(`[Runtime] Emitting event: ${event}`, data as Record<string, unknown>);
 
   // Stage 1: dotted routing
@@ -149,7 +141,7 @@ export async function emit(
 
   // Stage 2 + 3: broadcast to agents and orbs
   const orbs = Array.from(ctx.variables.values()).filter(
-    (v) => v && typeof v === 'object' && (v as Record<string, unknown>).__type === 'orb',
+    (v) => v && typeof v === 'object' && (v as Record<string, unknown>).__type === 'orb'
   );
   for (const agent of ctx.agentRuntimes.values()) {
     await agent.onEvent(event, data);
@@ -187,7 +179,7 @@ export async function forwardToTraits(
   orb: Record<string, unknown>,
   event: string,
   data: unknown,
-  ctx: EventSystemContext,
+  ctx: EventSystemContext
 ): Promise<void> {
   if (!orb.directives) return;
 
@@ -209,7 +201,7 @@ export async function forwardToTraits(
         emit: async (e: string, p: HoloScriptValue) => await emit(e, p, ctx),
         getScaleMultiplier: () => ctx.getCurrentScale() || 1,
       } as unknown as TraitContext,
-      eventPayload,
+      eventPayload
     );
   }
 }
@@ -223,7 +215,7 @@ export async function triggerUIEvent(
   elementName: string,
   eventType: string,
   data: unknown,
-  ctx: EventSystemContext,
+  ctx: EventSystemContext
 ): Promise<void> {
   const element = ctx.uiElements.get(elementName);
   if (!element) {

@@ -219,9 +219,7 @@ describe('HoloShell legacy app reconstruction schema', () => {
     reconstruction.redaction.primaryModel = 'screenshot_overlay' as never;
     const errors = validateHoloShellLegacyAppReconstruction(reconstruction);
     expect(errors).toEqual(
-      expect.arrayContaining([
-        'redaction.primaryModel must be "geometry_nodes_with_semantics".',
-      ])
+      expect.arrayContaining(['redaction.primaryModel must be "geometry_nodes_with_semantics".'])
     );
   });
 
@@ -230,9 +228,7 @@ describe('HoloShell legacy app reconstruction schema', () => {
     reconstruction.geometryNodes[0].type = 'holographic_display' as never;
     const errors = validateHoloShellLegacyAppReconstruction(reconstruction);
     expect(errors).toEqual(
-      expect.arrayContaining([
-        'geometryNodes[0].type is unsupported: holographic_display.',
-      ])
+      expect.arrayContaining(['geometryNodes[0].type is unsupported: holographic_display.'])
     );
   });
 
@@ -241,9 +237,7 @@ describe('HoloShell legacy app reconstruction schema', () => {
     reconstruction.geometryNodes[0].confidence = 'ultra' as never;
     const errors = validateHoloShellLegacyAppReconstruction(reconstruction);
     expect(errors).toEqual(
-      expect.arrayContaining([
-        'geometryNodes[0].confidence is unsupported: ultra.',
-      ])
+      expect.arrayContaining(['geometryNodes[0].confidence is unsupported: ultra.'])
     );
   });
 
@@ -281,9 +275,7 @@ describe('HoloShell legacy app reconstruction schema', () => {
     reconstruction.controlGroups[0].semantic = 'floating' as never;
     const errors = validateHoloShellLegacyAppReconstruction(reconstruction);
     expect(errors).toEqual(
-      expect.arrayContaining([
-        'controlGroups[0].semantic is unsupported: floating.',
-      ])
+      expect.arrayContaining(['controlGroups[0].semantic is unsupported: floating.'])
     );
   });
 
@@ -292,9 +284,7 @@ describe('HoloShell legacy app reconstruction schema', () => {
     reconstruction.witnessPlaceholders[0].type = 'video_recording' as never;
     const errors = validateHoloShellLegacyAppReconstruction(reconstruction);
     expect(errors).toEqual(
-      expect.arrayContaining([
-        'witnessPlaceholders[0].type is unsupported: video_recording.',
-      ])
+      expect.arrayContaining(['witnessPlaceholders[0].type is unsupported: video_recording.'])
     );
   });
 
@@ -391,7 +381,12 @@ describe('HoloShell legacy app reconstruction schema', () => {
     it('generates confidence distribution that matches actual node counts', () => {
       const fixture = generateDenseReconstructionFixture(100);
       const dist = fixture.summary.confidenceDistribution;
-      const sum = (dist.high ?? 0) + (dist.medium ?? 0) + (dist.low ?? 0) + (dist.inferred ?? 0) + (dist.unresolved ?? 0);
+      const sum =
+        (dist.high ?? 0) +
+        (dist.medium ?? 0) +
+        (dist.low ?? 0) +
+        (dist.inferred ?? 0) +
+        (dist.unresolved ?? 0);
       expect(sum).toBe(fixture.geometryNodes.length);
     });
 

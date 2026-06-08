@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-20T20:47:31.545Z",
+  "generatedAt": "2026-06-08T22:08:40.414Z",
   "source": "packages/core/src/traits/constants/__tests__/paper-trait-inventory.test.ts",
-  "categoryFileCount": 120,
+  "categoryFileCount": 121,
   "categoryFiles": [
     "accessibility-extended.ts",
     "accessibility.ts",
@@ -103,6 +103,7 @@
     "size-scale.ts",
     "social-commerce.ts",
     "social-effects.ts",
+    "solver-profiles.ts",
     "spatial-algorithms.ts",
     "sports-fitness.ts",
     "state-persistence.ts",

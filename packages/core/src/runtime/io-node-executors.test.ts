@@ -81,10 +81,7 @@ describe('runtime/io-node-executors', () => {
     it('succeeds in non-public mode, logs fetch URL, passes through hologram', async () => {
       const ctx = mkCtx(false);
       const hologram = { shape: 'pyramid' };
-      const res = await executeFetchNode(
-        { url: 'https://holoscript.net/health', hologram },
-        ctx,
-      );
+      const res = await executeFetchNode({ url: 'https://holoscript.net/health', hologram }, ctx);
       expect(res.success).toBe(true);
       expect(res.output).toBe('Fetched data from https://holoscript.net/health');
       expect(res.hologram).toBe(hologram);
@@ -107,7 +104,7 @@ describe('runtime/io-node-executors', () => {
       }
     });
 
-    it("hologram is undefined when not provided (type boundary)", async () => {
+    it('hologram is undefined when not provided (type boundary)', async () => {
       const ctx = mkCtx(false);
       const res = await executeServerNode({ port: 1 }, ctx);
       expect(res.hologram).toBeUndefined();

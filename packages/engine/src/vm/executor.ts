@@ -563,7 +563,7 @@ export class HoloVM {
       }
 
       // ── Spatial Operations ──────────────────────────────────────────────
-    case HoloOpCode.TRANSFORM: {
+      case HoloOpCode.TRANSFORM: {
         const entityId = operands[0] as number;
         const transform: TransformComponent = {
           position: [operands[1] as number, operands[2] as number, operands[3] as number],
@@ -680,18 +680,14 @@ export class HoloVM {
         const entityId = operands[0] as number;
         const rb = this.world.getComponent<RigidBodyComponent>(entityId, ComponentType.RigidBody);
         if (rb) {
-          rb.velocity = [
-            operands[1] as number,
-            operands[2] as number,
-            operands[3] as number,
-          ];
+          rb.velocity = [operands[1] as number, operands[2] as number, operands[3] as number];
           this.world.setComponent(entityId, ComponentType.RigidBody, rb);
         }
         break;
       }
       case HoloOpCode.SET_GRAVITY: {
         // Store as world-level metadata
-        this.world.setComponent(0, 0xff, [operands[0], operands[1], operands[2] ]);
+        this.world.setComponent(0, 0xff, [operands[0], operands[1], operands[2]]);
         break;
       }
 

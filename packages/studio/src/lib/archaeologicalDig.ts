@@ -7,9 +7,15 @@
 
 export type Vec3 = [number, number, number] | { x: number; y: number; z: number };
 
-function vx(v: Vec3): number { return Array.isArray(v) ? v[0] : v.x; }
-function vy(v: Vec3): number { return Array.isArray(v) ? v[1] : v.y; }
-function vz(v: Vec3): number { return Array.isArray(v) ? v[2] : v.z; }
+function vx(v: Vec3): number {
+  return Array.isArray(v) ? v[0] : v.x;
+}
+function vy(v: Vec3): number {
+  return Array.isArray(v) ? v[1] : v.y;
+}
+function vz(v: Vec3): number {
+  return Array.isArray(v) ? v[2] : v.z;
+}
 
 export type ArtifactMaterial =
   | 'ceramic'

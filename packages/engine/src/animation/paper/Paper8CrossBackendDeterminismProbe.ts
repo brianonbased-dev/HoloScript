@@ -41,7 +41,7 @@ export function hashFloat32Array(data: Float32Array, seed = 0x9747_b28c): number
 
   for (let i = 0; i < data.length; i++) {
     const bits = new DataView(data.buffer, data.byteOffset + i * 4, 4).getUint32(0, true);
-    h = (Math.imul(h ^ bits, PRIME3) >>> 0);
+    h = Math.imul(h ^ bits, PRIME3) >>> 0;
     h = ((h << 17) | (h >>> 15)) >>> 0;
     h = Math.imul(h, PRIME4) >>> 0;
   }
@@ -94,7 +94,7 @@ function buildChain(chainLength: number, mode: IKSolveMode): IKChain {
 function buildTargetCorpus(
   chainLength: number,
   taskCount: number,
-  seed: number,
+  seed: number
 ): Array<[number, number, number]> {
   const rand = mulberry32(seed);
   const reach = Math.max(1, chainLength - 0.25);
@@ -157,7 +157,7 @@ function runSingleCell(
   mode: IKSolveMode,
   chainLength: number,
   taskCount: number,
-  seed: number,
+  seed: number
 ): { hash: number; elapsed: number } {
   const chain = buildChain(chainLength, mode);
   const corpus = buildTargetCorpus(chainLength, taskCount, seed);
@@ -178,7 +178,9 @@ function runSingleCell(
       output[idx++] = tip.position[1];
       output[idx++] = tip.position[2];
     } else {
-      output[idx++] = 0; output[idx++] = 0; output[idx++] = 0;
+      output[idx++] = 0;
+      output[idx++] = 0;
+      output[idx++] = 0;
     }
   }
 
@@ -190,10 +192,12 @@ function runSingleCell(
  * Run the full 3-mode × 4-chain-length = 12-cell determinism matrix.
  * Each cell executes the IK corpus twice (run A + run B) and compares hashes.
  */
-export function runCrossBackendDeterminismMatrix(options: {
-  taskCount?: number;
-  seed?: number;
-} = {}): DeterminismMatrixResult {
+export function runCrossBackendDeterminismMatrix(
+  options: {
+    taskCount?: number;
+    seed?: number;
+  } = {}
+): DeterminismMatrixResult {
   const taskCount = options.taskCount ?? PAPER_8_TASK_COUNT_DEFAULT;
   const seed = options.seed ?? PAPER_8_SEED_DEFAULT;
 
@@ -230,8 +234,9 @@ export function formatDeterminismMarkdown(result: DeterminismMatrixResult): stri
     '| Mode | Chain | Tasks | Hash A | Hash B | Match | A ms | B ms |',
     '|------|-------|-------|--------|--------|-------|------|------|',
   ];
-  const rows = result.cells.map((c) =>
-    `| ${c.mode} | ${c.chainLength} | ${c.taskCount} | ${c.hashA.toString(16).padStart(8, '0')} | ${c.hashB.toString(16).padStart(8, '0')} | ${c.passed ? '✓' : '✗'} | ${c.runAMs.toFixed(1)} | ${c.runBMs.toFixed(1)} |`
+  const rows = result.cells.map(
+    (c) =>
+      `| ${c.mode} | ${c.chainLength} | ${c.taskCount} | ${c.hashA.toString(16).padStart(8, '0')} | ${c.hashB.toString(16).padStart(8, '0')} | ${c.passed ? '✓' : '✗'} | ${c.runAMs.toFixed(1)} | ${c.runBMs.toFixed(1)} |`
   );
   const summary = `\nPass rate: ${result.passCount}/${result.totalCount} (${result.overallPassed ? 'ALL PASS' : 'FAILURES DETECTED'})`;
   return [...header, ...rows, summary].join('\n');
@@ -281,7 +286,7 @@ const FULL_LOOP_FRAME_COUNT = 60; // 1 second at 60Hz
 function simulateAgentFrame(
   agentId: number,
   frameIndex: number,
-  rand: () => number,
+  rand: () => number
 ): FullLoopDemoAgentFrame {
   // Each subsystem computes a tiny float buffer then hashes it —
   // this models the per-frame hash composition overhead.
@@ -297,7 +302,7 @@ function simulateAgentFrame(
 
   const composedHash = composeHashes(
     composeHashes(composeHashes(physicsHash, animHash), ikHash),
-    clothHash,
+    clothHash
   );
 
   return { agentId, physicsHash, animHash, ikHash, clothHash, composedHash };
@@ -309,11 +314,13 @@ function simulateAgentFrame(
  * latencies and computes the per-frame overhead against the 0.34ms target
  * from Table `tab:perf`.
  */
-export function runFullLoopDemoV2(options: {
-  agentCount?: number;
-  frameCount?: number;
-  seed?: number;
-} = {}): FullLoopDemoResult {
+export function runFullLoopDemoV2(
+  options: {
+    agentCount?: number;
+    frameCount?: number;
+    seed?: number;
+  } = {}
+): FullLoopDemoResult {
   const agentCount = options.agentCount ?? FULL_LOOP_AGENT_COUNT;
   const frameCount = options.frameCount ?? FULL_LOOP_FRAME_COUNT;
   const rand = mulberry32(options.seed ?? PAPER_8_SEED_DEFAULT);
@@ -343,7 +350,7 @@ export function runFullLoopDemoV2(options: {
     const spot = agents[0]!;
     const reComposed = composeHashes(
       composeHashes(composeHashes(spot.physicsHash, spot.animHash), spot.ikHash),
-      spot.clothHash,
+      spot.clothHash
     );
     const verifyOk = reComposed === spot.composedHash;
     void verifyOk; // pass/fail is in hash equality; not throwing is the contract
@@ -369,10 +376,10 @@ export function runFullLoopDemoV2(options: {
     agentCount,
     frameCount,
     frames,
-    meanPhysicsMs: meanOf((f) => f.writeMs * 0.29),   // ~Physics fraction from tab:perf ratios
-    meanAnimMs: meanOf((f) => f.writeMs * 0.44),       // ~Animation fraction
-    meanIKMs: meanOf((f) => f.writeMs * 0.15),         // ~IK fraction
-    meanClothMs: meanOf((f) => f.writeMs * 0.12),      // ~Cloth fraction
+    meanPhysicsMs: meanOf((f) => f.writeMs * 0.29), // ~Physics fraction from tab:perf ratios
+    meanAnimMs: meanOf((f) => f.writeMs * 0.44), // ~Animation fraction
+    meanIKMs: meanOf((f) => f.writeMs * 0.15), // ~IK fraction
+    meanClothMs: meanOf((f) => f.writeMs * 0.12), // ~Cloth fraction
     meanTotalMs,
     meetsTarget: meanTotalMs <= FULL_LOOP_TARGET_MS,
     targetMs: FULL_LOOP_TARGET_MS,

@@ -308,14 +308,22 @@ export class SDFCompiler extends CompilerBase {
     this.emit('<render_engine>ogre2</render_engine>');
     this.indentLevel--;
     this.emit('</plugin>');
-    this.emit('<plugin name="gz::sim::systems::SceneBroadcaster" filename="gz-sim-scene-broadcaster-system" />');
+    this.emit(
+      '<plugin name="gz::sim::systems::SceneBroadcaster" filename="gz-sim-scene-broadcaster-system" />'
+    );
     this.emit('<plugin name="gz::sim::systems::Contact" filename="gz-sim-contact-system" />');
     this.emit('<plugin name="gz::sim::systems::Imu" filename="gz-sim-imu-system" />');
-    this.emit('<plugin name="gz::sim::systems::JointStatePublisher" filename="gz-sim-joint-state-publisher-system" />');
+    this.emit(
+      '<plugin name="gz::sim::systems::JointStatePublisher" filename="gz-sim-joint-state-publisher-system" />'
+    );
     this.emit('');
   }
 
-  private calculateInertia(geometry: string, mass: number, scale: number): { ixx: number; ixy: number; ixz: number; iyy: number; iyz: number; izz: number } {
+  private calculateInertia(
+    geometry: string,
+    mass: number,
+    scale: number
+  ): { ixx: number; ixy: number; ixz: number; iyy: number; iyz: number; izz: number } {
     switch (geometry) {
       case 'sphere': {
         const r = scale / 2;

@@ -93,7 +93,9 @@ export class CombatManager {
     if (hb) hb.active = active;
   }
 
-  private toArr3(v: Vector3 | [number, number, number] | { x: number; y: number; z: number }): [number, number, number] {
+  private toArr3(
+    v: Vector3 | [number, number, number] | { x: number; y: number; z: number }
+  ): [number, number, number] {
     if (Array.isArray(v)) return [v[0], v[1], v[2]];
     const o = v as { x: number; y: number; z: number };
     return [o.x, o.y, o.z];
@@ -118,16 +120,19 @@ export class CombatManager {
     return hits;
   }
 
-  private aabbOverlap(
-    posA: Vector3,
-    sizeA: Vector3,
-    posB: Vector3,
-    sizeB: Vector3
-  ): boolean {
-    const pa = this.toArr3(posA as unknown as [number, number, number] | { x: number; y: number; z: number });
-    const sa = this.toArr3(sizeA as unknown as [number, number, number] | { x: number; y: number; z: number });
-    const pb = this.toArr3(posB as unknown as [number, number, number] | { x: number; y: number; z: number });
-    const sb = this.toArr3(sizeB as unknown as [number, number, number] | { x: number; y: number; z: number });
+  private aabbOverlap(posA: Vector3, sizeA: Vector3, posB: Vector3, sizeB: Vector3): boolean {
+    const pa = this.toArr3(
+      posA as unknown as [number, number, number] | { x: number; y: number; z: number }
+    );
+    const sa = this.toArr3(
+      sizeA as unknown as [number, number, number] | { x: number; y: number; z: number }
+    );
+    const pb = this.toArr3(
+      posB as unknown as [number, number, number] | { x: number; y: number; z: number }
+    );
+    const sb = this.toArr3(
+      sizeB as unknown as [number, number, number] | { x: number; y: number; z: number }
+    );
     return (
       Math.abs(pa[0] - pb[0]) < (sa[0] + sb[0]) / 2 &&
       Math.abs(pa[1] - pb[1]) < (sa[1] + sb[1]) / 2 &&

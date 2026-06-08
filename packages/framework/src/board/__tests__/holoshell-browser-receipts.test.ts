@@ -137,42 +137,45 @@ describe('validateBrowserAbsorptionReceipt', () => {
   it('requires id', () => {
     const receipt = { ...makeValidReceipt(), id: '' };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.id is required.',
+      'BrowserAbsorptionReceipt.id is required.'
     );
   });
 
   it('requires domain', () => {
     const receipt = { ...makeValidReceipt(), domain: '' };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.domain is required.',
+      'BrowserAbsorptionReceipt.domain is required.'
     );
   });
 
   it('requires url', () => {
     const receipt = { ...makeValidReceipt(), url: '' };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.url is required.',
+      'BrowserAbsorptionReceipt.url is required.'
     );
   });
 
   it('requires valid startedAt', () => {
     const receipt = { ...makeValidReceipt(), startedAt: 'invalid' };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.startedAt is required and must be a valid ISO-8601 timestamp.',
+      'BrowserAbsorptionReceipt.startedAt is required and must be a valid ISO-8601 timestamp.'
     );
   });
 
   it('requires valid endedAt', () => {
     const receipt = { ...makeValidReceipt(), endedAt: '' };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.endedAt is required and must be a valid ISO-8601 timestamp.',
+      'BrowserAbsorptionReceipt.endedAt is required and must be a valid ISO-8601 timestamp.'
     );
   });
 
   it('requires policy', () => {
-    const receipt = { ...makeValidReceipt(), policy: undefined as unknown as BrowserAbsorptionPolicy };
+    const receipt = {
+      ...makeValidReceipt(),
+      policy: undefined as unknown as BrowserAbsorptionPolicy,
+    };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.policy is required.',
+      'BrowserAbsorptionReceipt.policy is required.'
     );
   });
 
@@ -180,7 +183,7 @@ describe('validateBrowserAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.policy = { ...receipt.policy, allowedDomains: 'bad' as unknown as string[] };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.policy.allowedDomains must be an array.',
+      'BrowserAbsorptionReceipt.policy.allowedDomains must be an array.'
     );
   });
 
@@ -188,7 +191,7 @@ describe('validateBrowserAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.policy = { ...receipt.policy, maxDurationMs: -1 };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.policy.maxDurationMs must be a non-negative number.',
+      'BrowserAbsorptionReceipt.policy.maxDurationMs must be a non-negative number.'
     );
   });
 
@@ -196,7 +199,7 @@ describe('validateBrowserAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.policy = { ...receipt.policy, headless: 'true' as unknown as boolean };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.policy.headless must be a boolean.',
+      'BrowserAbsorptionReceipt.policy.headless must be a boolean.'
     );
   });
 
@@ -204,7 +207,7 @@ describe('validateBrowserAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.policy = { ...receipt.policy, userVisible: 'true' as unknown as boolean };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.policy.userVisible must be a boolean.',
+      'BrowserAbsorptionReceipt.policy.userVisible must be a boolean.'
     );
   });
 
@@ -212,42 +215,42 @@ describe('validateBrowserAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.policy = { ...receipt.policy, allowedActions: ['navigate', 'hack'] as string[] };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.policy.allowedActions contains unsupported kind: hack.',
+      'BrowserAbsorptionReceipt.policy.allowedActions contains unsupported kind: hack.'
     );
   });
 
   it('requires screenshotHash', () => {
     const receipt = { ...makeValidReceipt(), screenshotHash: '' };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.screenshotHash is required.',
+      'BrowserAbsorptionReceipt.screenshotHash is required.'
     );
   });
 
   it('requires screenshotHashAlgorithm', () => {
     const receipt = { ...makeValidReceipt(), screenshotHashAlgorithm: '' };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.screenshotHashAlgorithm is required.',
+      'BrowserAbsorptionReceipt.screenshotHashAlgorithm is required.'
     );
   });
 
   it('requires hash', () => {
     const receipt = { ...makeValidReceipt(), hash: '' };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.hash is required.',
+      'BrowserAbsorptionReceipt.hash is required.'
     );
   });
 
   it('requires hashAlgorithm', () => {
     const receipt = { ...makeValidReceipt(), hashAlgorithm: '' };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.hashAlgorithm is required.',
+      'BrowserAbsorptionReceipt.hashAlgorithm is required.'
     );
   });
 
   it('requires actions as array', () => {
     const receipt = { ...makeValidReceipt(), actions: 'bad' as unknown as BrowserAction[] };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.actions must be an array.',
+      'BrowserAbsorptionReceipt.actions must be an array.'
     );
   });
 
@@ -255,7 +258,7 @@ describe('validateBrowserAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.actions = [{ ...receipt.actions[0], step: -1 }];
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAction step must be a non-negative number.',
+      'BrowserAction step must be a non-negative number.'
     );
   });
 
@@ -263,7 +266,7 @@ describe('validateBrowserAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.actions = [{ ...receipt.actions[0], kind: 'hack' as unknown as BrowserAction['kind'] }];
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAction kind is unsupported: hack.',
+      'BrowserAction kind is unsupported: hack.'
     );
   });
 
@@ -271,7 +274,7 @@ describe('validateBrowserAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.actions = [{ ...receipt.actions[0], timestamp: 'not-a-date' }];
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAction step 0 timestamp is invalid.',
+      'BrowserAction step 0 timestamp is invalid.'
     );
   });
 
@@ -279,14 +282,17 @@ describe('validateBrowserAbsorptionReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.actions = [{ ...receipt.actions[0], durationMs: -100 }];
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAction step 0 durationMs must be a non-negative number.',
+      'BrowserAction step 0 durationMs must be a non-negative number.'
     );
   });
 
   it('rejects unsupported outcome', () => {
-    const receipt = { ...makeValidReceipt(), outcome: 'cancelled' as unknown as BrowserAbsorptionReceipt['outcome'] };
+    const receipt = {
+      ...makeValidReceipt(),
+      outcome: 'cancelled' as unknown as BrowserAbsorptionReceipt['outcome'],
+    };
     expect(validateBrowserAbsorptionReceipt(receipt)).toContain(
-      'BrowserAbsorptionReceipt.outcome is unsupported: cancelled.',
+      'BrowserAbsorptionReceipt.outcome is unsupported: cancelled.'
     );
   });
 });

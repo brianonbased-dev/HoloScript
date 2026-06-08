@@ -32,7 +32,7 @@ const projectRoot = join(__dirname, '..');
 // Parse arguments
 const args = process.argv.slice(2);
 const parseArg = (name, defaultValue) => {
-  const arg = args.find(a => a.startsWith(`--${name}=`));
+  const arg = args.find((a) => a.startsWith(`--${name}=`));
   return arg ? arg.split('=')[1] : defaultValue;
 };
 
@@ -55,7 +55,14 @@ Configuration:
 
 // Dynamic import (needs to run after Node.js environment is confirmed)
 const { runEmergentSpacetimeBenchmark } = await import(
-  join(projectRoot, 'packages', 'studio', 'src', '__benchmarks__', 'emergent-spacetime-rtx-benchmark.ts')
+  join(
+    projectRoot,
+    'packages',
+    'studio',
+    'src',
+    '__benchmarks__',
+    'emergent-spacetime-rtx-benchmark.ts'
+  )
 );
 
 async function main() {
@@ -93,7 +100,13 @@ async function main() {
 
   // JSON output
   if (outputFormat === 'json' || outputFormat === 'both') {
-    const output = outputFile || join(projectRoot, 'benchmark-results', `emergent-spacetime-${voxelCount}voxels-${Date.now()}.json`);
+    const output =
+      outputFile ||
+      join(
+        projectRoot,
+        'benchmark-results',
+        `emergent-spacetime-${voxelCount}voxels-${Date.now()}.json`
+      );
 
     const outputDir = dirname(output);
     if (!existsSync(outputDir)) {
@@ -114,7 +127,7 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Benchmark error:', err);
   process.exit(1);
 });

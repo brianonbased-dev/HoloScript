@@ -40,7 +40,7 @@ export const TRAIT_OWNER_KEY = '__pluginOwner' as const;
 export function registerPluginTraits(
   target: TraitRegistrarTarget,
   pluginId: string,
-  handlers: readonly PluginTraitHandler[],
+  handlers: readonly PluginTraitHandler[]
 ): void {
   for (const handler of handlers) {
     (handler as Record<string, unknown>)[TRAIT_OWNER_KEY] = pluginId;

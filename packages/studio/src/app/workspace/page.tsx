@@ -510,13 +510,16 @@ export default function WorkspaceWorkbenchPage() {
     }
   }, []);
 
-  const handlePaperOptIn = useCallback((workspaceId: string, paperUnlockState: PaperUnlockState) => {
-    setWorkspaces((current) =>
-      current.map((workspace) =>
-        workspace.id === workspaceId ? { ...workspace, paperUnlockState } : workspace
-      )
-    );
-  }, []);
+  const handlePaperOptIn = useCallback(
+    (workspaceId: string, paperUnlockState: PaperUnlockState) => {
+      setWorkspaces((current) =>
+        current.map((workspace) =>
+          workspace.id === workspaceId ? { ...workspace, paperUnlockState } : workspace
+        )
+      );
+    },
+    []
+  );
 
   const loadWorkspaceRuntime = useCallback(async (workspace: WorkspaceSummary) => {
     if (!workspace.localPath) return;
@@ -1053,9 +1056,7 @@ export default function WorkspaceWorkbenchPage() {
                       teamId={teamId}
                       onOptIn={handlePaperOptIn}
                     />
-                    <ResearchLaneArtifacts
-                      paperUnlockState={activeWorkspace.paperUnlockState}
-                    />
+                    <ResearchLaneArtifacts paperUnlockState={activeWorkspace.paperUnlockState} />
                   </div>
                 )}
 

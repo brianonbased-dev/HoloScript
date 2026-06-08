@@ -28,7 +28,6 @@ import type { Vector3 } from '../types';
  * 3D Vector
  */
 
-
 /**
  * Quaternion rotation — canonical 4-tuple definition lives at
  * packages/core/src/types/HoloScriptPlus.ts:26. Founder ruling (2026-04-28):

@@ -48,7 +48,11 @@ import type { UAALBytecode } from '@holoscript/uaal';
 import { ECSWorld, ComponentType } from '@holoscript/holo-vm';
 
 // vm-bridge
-import { SpatialCognitiveAgent, captureSceneSnapshot, applyActions } from '@holoscript/engine/vm-bridge';
+import {
+  SpatialCognitiveAgent,
+  captureSceneSnapshot,
+  applyActions,
+} from '@holoscript/engine/vm-bridge';
 import type { SceneSnapshot, AgentAction } from '@holoscript/engine/vm-bridge';
 
 // =============================================================================
@@ -579,15 +583,15 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       const id1 = world.spawn('Player');
       world.setComponent(id1, ComponentType.Transform, {
         position: [1, 2, 3],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
 
       const id2 = world.spawn('Enemy');
       world.setComponent(id2, ComponentType.Transform, {
         position: [10, 0, 5],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
 
       const snapshot = captureSceneSnapshot(world);
@@ -607,8 +611,8 @@ describe('Integration: Agent Protocol Message Flow (agent-sdk -> agent-protocol 
       const existingId = world.spawn('Existing');
       world.setComponent(existingId, ComponentType.Transform, {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
 
       const actions: AgentAction[] = [

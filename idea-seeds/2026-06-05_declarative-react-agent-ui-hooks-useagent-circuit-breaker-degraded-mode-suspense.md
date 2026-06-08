@@ -1,4 +1,4 @@
-# Declarative React agent-UI hooks (useAgent/circuit-breaker/degraded-mode/suspense-task)  rebuild HoloScript-native
+# Declarative React agent-UI hooks (useAgent/circuit-breaker/degraded-mode/suspense-task) rebuild HoloScript-native
 
 **Date:** 2026-06-05
 **Class:** deleted-work

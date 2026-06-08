@@ -20,19 +20,19 @@ The candidate set is the family map's `trait_to_families` keys (2564 traits deri
 
 ## LOCKED NUMBERS
 
-| Metric | Value | Notes |
-|---|---|---|
-| Eval rows | 300 | `split_role == "novel-combination-test"` |
-| **Row-macro F1 (headline)** | **0.5541** | Mean per-row F1 — what /ml-experiments §F1 calls "macro-average across the rows" |
-| Row-macro precision | 0.5750 | Mean per-row precision |
-| Row-macro recall | 0.5732 | Mean per-row recall |
-| Label-macro F1 | 0.4217 | Per-label F1 averaged over the 208-label space |
-| Label-macro precision | 0.4127 | |
-| Label-macro recall | 0.4424 | |
-| Micro F1 | 0.6567 | Pooled TP / FP / FN across all rows |
-| Distinct trait labels in gold | 208 | |
-| Distinct trait predictions | 125 | |
-| Out-of-family-map gold rows | 160 / 300 | Lower bound on the floor — these rows are unreachable for keyword match by design |
+| Metric                        | Value      | Notes                                                                             |
+| ----------------------------- | ---------- | --------------------------------------------------------------------------------- |
+| Eval rows                     | 300        | `split_role == "novel-combination-test"`                                          |
+| **Row-macro F1 (headline)**   | **0.5541** | Mean per-row F1 — what /ml-experiments §F1 calls "macro-average across the rows"  |
+| Row-macro precision           | 0.5750     | Mean per-row precision                                                            |
+| Row-macro recall              | 0.5732     | Mean per-row recall                                                               |
+| Label-macro F1                | 0.4217     | Per-label F1 averaged over the 208-label space                                    |
+| Label-macro precision         | 0.4127     |                                                                                   |
+| Label-macro recall            | 0.4424     |                                                                                   |
+| Micro F1                      | 0.6567     | Pooled TP / FP / FN across all rows                                               |
+| Distinct trait labels in gold | 208        |                                                                                   |
+| Distinct trait predictions    | 125        |                                                                                   |
+| Out-of-family-map gold rows   | 160 / 300  | Lower bound on the floor — these rows are unreachable for keyword match by design |
 
 ## Classifier gate (+15pp margin)
 
@@ -40,44 +40,44 @@ Per the v2 dataset pre-registration:
 
 > F1 (macro) ≥ 0.80 on the novel-combination test split, with ≥ 15 percentage-point margin over the keyword-match baseline.
 
-| Quantity | Value |
-|---|---|
-| Pre-registration floor | 0.8000 |
-| Margin requirement | +15pp over keyword-match baseline |
-| **Classifier must clear (row-macro F1)** | **≥ 0.7041** |
-| Effective floor (max of pre-reg vs +15pp) | 0.8000 |
+| Quantity                                  | Value                             |
+| ----------------------------------------- | --------------------------------- |
+| Pre-registration floor                    | 0.8000                            |
+| Margin requirement                        | +15pp over keyword-match baseline |
+| **Classifier must clear (row-macro F1)**  | **≥ 0.7041**                      |
+| Effective floor (max of pre-reg vs +15pp) | 0.8000                            |
 
 The classifier must beat **0.7041** row-macro F1 to clear the +15pp gate. If it lands below the pre-registration floor (0.80) it fails regardless of the margin.
 
 ## Top-10 hits (where keyword match works)
 
-| Label | Precision | Recall | F1 | TP / FP / FN |
-|---|---|---|---|---|
-| `@networked` | 1.0000 | 1.0000 | 1.0000 | 12 / 0 / 0 |
-| `@llm_agent` | 1.0000 | 1.0000 | 1.0000 | 10 / 0 / 0 |
-| `@collidable` | 1.0000 | 1.0000 | 1.0000 | 10 / 0 / 0 |
-| `@anchor` | 1.0000 | 1.0000 | 1.0000 | 9 / 0 / 0 |
-| `@animated` | 1.0000 | 1.0000 | 1.0000 | 8 / 0 / 0 |
-| `@throwable` | 1.0000 | 1.0000 | 1.0000 | 7 / 0 / 0 |
-| `@spawn_point` | 1.0000 | 1.0000 | 1.0000 | 6 / 0 / 0 |
-| `@stackable` | 1.0000 | 1.0000 | 1.0000 | 6 / 0 / 0 |
-| `@gpu_particle` | 1.0000 | 1.0000 | 1.0000 | 5 / 0 / 0 |
-| `@draggable` | 1.0000 | 1.0000 | 1.0000 | 5 / 0 / 0 |
+| Label           | Precision | Recall | F1     | TP / FP / FN |
+| --------------- | --------- | ------ | ------ | ------------ |
+| `@networked`    | 1.0000    | 1.0000 | 1.0000 | 12 / 0 / 0   |
+| `@llm_agent`    | 1.0000    | 1.0000 | 1.0000 | 10 / 0 / 0   |
+| `@collidable`   | 1.0000    | 1.0000 | 1.0000 | 10 / 0 / 0   |
+| `@anchor`       | 1.0000    | 1.0000 | 1.0000 | 9 / 0 / 0    |
+| `@animated`     | 1.0000    | 1.0000 | 1.0000 | 8 / 0 / 0    |
+| `@throwable`    | 1.0000    | 1.0000 | 1.0000 | 7 / 0 / 0    |
+| `@spawn_point`  | 1.0000    | 1.0000 | 1.0000 | 6 / 0 / 0    |
+| `@stackable`    | 1.0000    | 1.0000 | 1.0000 | 6 / 0 / 0    |
+| `@gpu_particle` | 1.0000    | 1.0000 | 1.0000 | 5 / 0 / 0    |
+| `@draggable`    | 1.0000    | 1.0000 | 1.0000 | 5 / 0 / 0    |
 
 ## Top-10 misses (where keyword match has zero recall)
 
-| Label | Gold support | TP / FN | Notes |
-|---|---|---|---|
-| `@state` | 7 | 0 / 7 | recall=0.0000 |
-| `@experience` | 6 | 0 / 6 | recall=0.0000 |
-| `@health` | 6 | 0 / 6 | recall=0.0000 |
-| `@mana` | 6 | 0 / 6 | recall=0.0000 |
-| `@stamina` | 6 | 0 / 6 | recall=0.0000 |
-| `@level` | 5 | 0 / 5 | recall=0.0000 |
-| `@cultural_memory` | 5 | 0 / 5 | recall=0.0000 |
-| `@holdable` | 5 | 0 / 5 | recall=0.0000 |
-| `@npc` | 4 | 0 / 4 | recall=0.0000 |
-| `@carriable` | 4 | 0 / 4 | recall=0.0000 |
+| Label              | Gold support | TP / FN | Notes         |
+| ------------------ | ------------ | ------- | ------------- |
+| `@state`           | 7            | 0 / 7   | recall=0.0000 |
+| `@experience`      | 6            | 0 / 6   | recall=0.0000 |
+| `@health`          | 6            | 0 / 6   | recall=0.0000 |
+| `@mana`            | 6            | 0 / 6   | recall=0.0000 |
+| `@stamina`         | 6            | 0 / 6   | recall=0.0000 |
+| `@level`           | 5            | 0 / 5   | recall=0.0000 |
+| `@cultural_memory` | 5            | 0 / 5   | recall=0.0000 |
+| `@holdable`        | 5            | 0 / 5   | recall=0.0000 |
+| `@npc`             | 4            | 0 / 4   | recall=0.0000 |
+| `@carriable`       | 4            | 0 / 4   | recall=0.0000 |
 
 These are the labels with the most gold support that the baseline never recovers — typically registry-drift traits not declared in any `*_TRAITS` constant array (see dataset README §"Known limitations"). The classifier must close these gaps.
 

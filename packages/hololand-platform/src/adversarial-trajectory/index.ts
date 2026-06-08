@@ -4,12 +4,7 @@ export const ADVERSARIAL_TRAJECTORY_SCHEMA = 'holoscript.adversarial-trajectory.
 export const ADVERSARIAL_TRAJECTORY_GENERATOR =
   '@holoscript/hololand-platform/adversarial-trajectory' as const;
 
-export type PredicateName =
-  | 'violation'
-  | 'novelty'
-  | 'learnability'
-  | 'regression'
-  | 'invalidity';
+export type PredicateName = 'violation' | 'novelty' | 'learnability' | 'regression' | 'invalidity';
 
 export type TrajectoryStatus = 'solved' | 'unresolved' | 'invalid';
 export type AdversarialActionKind = 'move' | 'rotateCamera' | 'interact';
@@ -280,7 +275,7 @@ const MUTATORS: MutatorProfile[] = [
 ];
 
 export function createAdversarialTrajectoryReport(
-  options: AdversarialTrajectoryReportOptions = {},
+  options: AdversarialTrajectoryReportOptions = {}
 ): AdversarialTrajectoryReport {
   const count = Math.max(20, Math.trunc(options.count ?? 20));
   const seed = options.seed ?? DEFAULT_SEED;
@@ -288,10 +283,10 @@ export function createAdversarialTrajectoryReport(
   const reportPath = options.reportPath ?? DEFAULT_REPORT_PATH;
   const scene = createDeterministicFailureScene(seed);
   const drafts = Array.from({ length: count }, (_, index) =>
-    buildTrajectoryDraft(scene, seed, index),
+    buildTrajectoryDraft(scene, seed, index)
   );
   const ranked = rankTrajectoryDrafts(drafts).map((draft) =>
-    finalizeTrajectoryDraft(draft, reportPath),
+    finalizeTrajectoryDraft(draft, reportPath)
   );
 
   const body = {
@@ -324,10 +319,38 @@ export function createDeterministicFailureScene(seed: string = DEFAULT_SEED): De
     cameraStart: vector(-0.25, 1.55, -0.2),
     target: vector(8.4, 0, 0),
     objects: [
-      sceneObject('pillar-a', 'Entry pillar', 'obstacle', vector(2.1, 0, 0.12), vector(0.68, 1.8, 0.68), 'avoid'),
-      sceneObject('protected-console', 'Protected console', 'protected', vector(4.35, 0, -0.32), vector(0.72, 1.2, 0.72), 'avoid'),
-      sceneObject('occlusion-gate', 'Camera occlusion gate', 'occluder', vector(6.15, 0, 0.46), vector(0.9, 1.7, 0.62), 'avoid'),
-      sceneObject('target-beacon', 'Target beacon', 'goal', vector(8.4, 0, 0), vector(0.65, 1, 0.65), 'goal'),
+      sceneObject(
+        'pillar-a',
+        'Entry pillar',
+        'obstacle',
+        vector(2.1, 0, 0.12),
+        vector(0.68, 1.8, 0.68),
+        'avoid'
+      ),
+      sceneObject(
+        'protected-console',
+        'Protected console',
+        'protected',
+        vector(4.35, 0, -0.32),
+        vector(0.72, 1.2, 0.72),
+        'avoid'
+      ),
+      sceneObject(
+        'occlusion-gate',
+        'Camera occlusion gate',
+        'occluder',
+        vector(6.15, 0, 0.46),
+        vector(0.9, 1.7, 0.62),
+        'avoid'
+      ),
+      sceneObject(
+        'target-beacon',
+        'Target beacon',
+        'goal',
+        vector(8.4, 0, 0),
+        vector(0.65, 1, 0.65),
+        'goal'
+      ),
     ],
     contract: {
       invariant:
@@ -349,7 +372,7 @@ export function createDeterministicFailureScene(seed: string = DEFAULT_SEED): De
 
 export function simulateScene(
   scene: DeterministicScene,
-  actionTrace: AdversarialAction[],
+  actionTrace: AdversarialAction[]
 ): AdversarialObservation[] {
   let agentPosition = { ...scene.agentStart };
   let cameraYaw = 0;
@@ -454,7 +477,7 @@ export function simulateScene(
 
 export function replayTrajectory(
   report: AdversarialTrajectoryReport,
-  trajectoryId: string,
+  trajectoryId: string
 ): AdversarialTrajectoryReplayResult {
   const index = report.trajectories.findIndex((trajectory) => trajectory.id === trajectoryId);
   if (index < 0) {
@@ -535,42 +558,48 @@ export function scoreTrajectory(input: {
   trajectoryIndex: number;
 }): SemanticPredicateScore[] {
   const events = input.observationTrace.flatMap((observation) => observation.eventLog);
-  const contactIds = unique(events.filter((event) => event.type === 'contact').map((event) => event.object ?? 'unknown'));
+  const contactIds = unique(
+    events.filter((event) => event.type === 'contact').map((event) => event.object ?? 'unknown')
+  );
   const collisions = events.filter((event) => event.type === 'collision');
   const protectedHits = events.filter((event) => event.object === 'protected-console');
   const semanticViolations = events.filter((event) => event.type === 'semantic-violation');
   const cameraMotions = events.filter((event) => event.type === 'camera-motion');
-  const outOfBoundsCount = input.observationTrace.filter((observation) => observation.outOfBounds).length;
-  const highSpeedMoves = input.actionTrace.filter(
-    (action) => action.delta && vectorMagnitude(action.delta) > 1.25,
+  const outOfBoundsCount = input.observationTrace.filter(
+    (observation) => observation.outOfBounds
   ).length;
-  const minDistance = Math.min(...input.observationTrace.map((observation) => observation.distanceToTarget));
+  const highSpeedMoves = input.actionTrace.filter(
+    (action) => action.delta && vectorMagnitude(action.delta) > 1.25
+  ).length;
+  const minDistance = Math.min(
+    ...input.observationTrace.map((observation) => observation.distanceToTarget)
+  );
   const zSpread = Math.max(
-    ...input.observationTrace.map((observation) => Math.abs(observation.agentPosition.z)),
+    ...input.observationTrace.map((observation) => Math.abs(observation.agentPosition.z))
   );
 
   const invalidity = clamp(
-    outOfBoundsCount * 0.3 + highSpeedMoves * 0.16 + (zSpread > 1.65 ? 0.22 : 0),
+    outOfBoundsCount * 0.3 + highSpeedMoves * 0.16 + (zSpread > 1.65 ? 0.22 : 0)
   );
   const violation = clamp(
     collisions.length * 0.18 +
       protectedHits.length * 0.16 +
       semanticViolations.length * 0.14 +
-      (minDistance < 1.25 ? 0.12 : 0),
+      (minDistance < 1.25 ? 0.12 : 0)
   );
   const novelty = clamp(
     0.18 +
       contactIds.length * 0.17 +
       zSpread * 0.14 +
       (Math.abs(input.trajectoryIndex % 7) / 7) * 0.18 +
-      (cameraMotions.length > 2 ? 0.08 : 0),
+      (cameraMotions.length > 2 ? 0.08 : 0)
   );
   const learnability = clamp(
     0.28 +
       Math.min(input.actionTrace.length / 14, 1) * 0.32 +
       (semanticViolations.length > 0 ? 0.18 : 0) +
       (contactIds.length <= 3 ? 0.08 : 0) -
-      invalidity * 0.42,
+      invalidity * 0.42
   );
   const regression = clamp(
     protectedHits.length > 0
@@ -579,7 +608,7 @@ export function scoreTrajectory(input: {
         ? 0.58
         : contactIds.includes('pillar-a')
           ? 0.42
-          : 0.18,
+          : 0.18
   );
 
   const scores: Record<PredicateName, number> = {
@@ -599,7 +628,7 @@ export function scoreTrajectory(input: {
       outOfBoundsCount,
       highSpeedMoves,
       minDistance,
-    }),
+    })
   );
 }
 
@@ -614,7 +643,7 @@ export function canonicalJson(value: unknown): string {
 function buildTrajectoryDraft(
   scene: DeterministicScene,
   seed: string,
-  trajectoryIndex: number,
+  trajectoryIndex: number
 ): TrajectoryDraft {
   const profile = MUTATORS[trajectoryIndex % MUTATORS.length];
   if (!profile) throw new Error(`Missing mutator profile for index ${trajectoryIndex}`);
@@ -653,7 +682,7 @@ function buildTrajectoryDraft(
 
 function finalizeTrajectoryDraft(
   draft: TrajectoryDraft & { priorityRank: number },
-  reportPath: string,
+  reportPath: string
 ): AdversarialTrajectory {
   const actionTraceHash = hashValue(draft.actionTrace);
   const observationTraceHash = hashValue(draft.observationTrace);
@@ -737,7 +766,7 @@ function finalizeTrajectoryDraft(
 function buildActionTrace(
   seed: string,
   trajectoryIndex: number,
-  profile: MutatorProfile,
+  profile: MutatorProfile
 ): AdversarialAction[] {
   const steps = 11 + (trajectoryIndex % 4);
   const actions: AdversarialAction[] = [];
@@ -773,7 +802,7 @@ function buildActionTrace(
     const delta = vector(
       roundNumber((profile.baseStepX + jitter(seed, `x:${step}`, -0.08, 0.1)) * burst),
       0,
-      roundNumber(laneOffset + jitter(seed, `z:${step}`, -0.18, 0.18)),
+      roundNumber(laneOffset + jitter(seed, `z:${step}`, -0.18, 0.18))
     );
     actions.push({
       step,
@@ -823,7 +852,7 @@ function calculatePriority(predicateScores: SemanticPredicateScore[]): {
       scores.novelty * 0.2 +
       scores.learnability * 0.2 +
       scores.regression * 0.18 -
-      scores.invalidity * 0.4,
+      scores.invalidity * 0.4
   );
   const reason =
     scores.invalidity >= predicateThreshold('invalidity')
@@ -838,10 +867,14 @@ function calculatePriority(predicateScores: SemanticPredicateScore[]): {
   };
 }
 
-function rankTrajectoryDrafts(drafts: TrajectoryDraft[]): Array<TrajectoryDraft & { priorityRank: number }> {
+function rankTrajectoryDrafts(
+  drafts: TrajectoryDraft[]
+): Array<TrajectoryDraft & { priorityRank: number }> {
   const ranks = new Map<string, number>();
   [...drafts]
-    .sort((left, right) => right.priorityScore - left.priorityScore || left.id.localeCompare(right.id))
+    .sort(
+      (left, right) => right.priorityScore - left.priorityScore || left.id.localeCompare(right.id)
+    )
     .forEach((draft, index) => ranks.set(draft.id, index + 1));
 
   return drafts.map((draft) => ({
@@ -851,7 +884,7 @@ function rankTrajectoryDrafts(drafts: TrajectoryDraft[]): Array<TrajectoryDraft 
 }
 
 function summarizeTrajectories(
-  trajectories: AdversarialTrajectory[],
+  trajectories: AdversarialTrajectory[]
 ): AdversarialTrajectorySummary {
   const solved = trajectories.filter((trajectory) => trajectory.status === 'solved').length;
   const unresolved = trajectories.filter((trajectory) => trajectory.status === 'unresolved').length;
@@ -883,7 +916,7 @@ function buildPredicate(
     outOfBoundsCount: number;
     highSpeedMoves: number;
     minDistance: number;
-  },
+  }
 ): SemanticPredicateScore {
   return {
     name,
@@ -905,7 +938,7 @@ function evidenceForPredicate(
     outOfBoundsCount: number;
     highSpeedMoves: number;
     minDistance: number;
-  },
+  }
 ): string[] {
   if (name === 'violation') {
     return [
@@ -955,7 +988,9 @@ function predicateWeight(name: PredicateName): number {
   return -0.4;
 }
 
-function predicateComponents(predicateScores: SemanticPredicateScore[]): Record<PredicateName, number> {
+function predicateComponents(
+  predicateScores: SemanticPredicateScore[]
+): Record<PredicateName, number> {
   const components = {
     violation: 0,
     novelty: 0,
@@ -1025,7 +1060,7 @@ function sceneObject(
   semanticRole: SceneObject['semanticRole'],
   position: Vector3,
   size: Vector3,
-  contactPolicy: SceneObject['contactPolicy'],
+  contactPolicy: SceneObject['contactPolicy']
 ): SceneObject {
   return {
     id,

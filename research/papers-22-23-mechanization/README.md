@@ -34,19 +34,19 @@ ordering, a missing `MSC.lean` library root, non-`Inhabited` opaque codomains, a
 parameter/index mismatch in `Run`, and a literally-`False` "completeness"
 theorem). All fixed; `lake build` and `lake exe kernelcheck` now pass.
 
-| File | Theorems | Axioms (own) | `sorry` | Status |
-|------|----------|--------------|---------|--------|
-| `MSC.Basic` | 0 | 2 (`SimState.nonempty`, `Frame.nonempty`) | 0 | Definitions + non-emptiness witnesses for opaque types |
-| `MSC.Invariants` | 4 | 2 (`solver_functional`, `cael_causal_well_formed`) | 0 | #1/#2 DERIVED (`rfl`); #3/#4 CONDITIONAL on the axioms |
-| `MSC.AcceptanceGate` | 12 | 0 | 0 | All derivable from definitions (incl. corrected `evidence_pack_complete` + guarded `dispatch_default_tier_iff_accepted`) |
-| `KernelCheck` | — | — | — | `#print axioms` gate; fails on `sorryAx` |
+| File                 | Theorems | Axioms (own)                                       | `sorry` | Status                                                                                                                   |
+| -------------------- | -------- | -------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `MSC.Basic`          | 0        | 2 (`SimState.nonempty`, `Frame.nonempty`)          | 0       | Definitions + non-emptiness witnesses for opaque types                                                                   |
+| `MSC.Invariants`     | 4        | 2 (`solver_functional`, `cael_causal_well_formed`) | 0       | #1/#2 DERIVED (`rfl`); #3/#4 CONDITIONAL on the axioms                                                                   |
+| `MSC.AcceptanceGate` | 12       | 0                                                  | 0       | All derivable from definitions (incl. corrected `evidence_pack_complete` + guarded `dispatch_default_tier_iff_accepted`) |
+| `KernelCheck`        | —        | —                                                  | —       | `#print axioms` gate; fails on `sorryAx`                                                                                 |
 
 **What is genuinely proved vs assumed:**
 
-1. **Render=Solver** — DERIVED by `rfl` (`renderFrame` *is* `deriveFrame`)
-2. **Geometry hash consistency** — DERIVED by `rfl` (both hashes *are* `geometryHash`)
+1. **Render=Solver** — DERIVED by `rfl` (`renderFrame` _is_ `deriveFrame`)
+2. **Geometry hash consistency** — DERIVED by `rfl` (both hashes _are_ `geometryHash`)
 3. **Determinism** — CONDITIONAL: a one-line application of the `solver_functional`
-   axiom, whose statement equals the theorem goal. A *runtime obligation*, not a
+   axiom, whose statement equals the theorem goal. A _runtime obligation_, not a
    derivation from primitives (`execute` is opaque).
 4. **Causal chain completeness** — CONDITIONAL: same pattern on
    `cael_causal_well_formed`. A runtime obligation (`cael` is opaque).
@@ -95,6 +95,7 @@ acceptance-gate theorems add **zero** runtime-obligation axioms.
 ## Paper 22 context
 
 Paper 22 (Mechanized SimulationContract, target CAV/FM) requires:
+
 - Lean encoding of the simulation runtime model
 - ≥3 invariant proofs with no `sorry`
 - Formal statements linked to named runtime obligations
@@ -108,6 +109,7 @@ proved from primitives. The 12 acceptance-gate theorems are fully derived.
 ## Paper 23 context
 
 Paper 23 (Formal Semantics, target POPL/TyDe) will extend `MSC.Basic` with:
+
 - Type system for `.holo` trait contracts
 - Operational semantics for trait dispatch
 - Soundness of the trait inference algorithm

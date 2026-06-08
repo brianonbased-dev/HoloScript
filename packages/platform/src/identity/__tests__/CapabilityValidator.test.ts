@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  CapabilityValidator,
-  type CapabilityToken,
-  type CapabilityScope,
-} from '@holoscript/core';
+import { CapabilityValidator, type CapabilityToken, type CapabilityScope } from '@holoscript/core';
 
 describe('CapabilityValidator', () => {
   let validator: CapabilityValidator;

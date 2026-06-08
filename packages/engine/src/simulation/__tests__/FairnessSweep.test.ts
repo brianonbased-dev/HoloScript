@@ -36,7 +36,7 @@ import {
 /** Transparent linear scorer; `weights` is the lever remediation varies. */
 function linearScorer(
   id: string,
-  weights: { income: number; zip_risk: number; bias: number; threshold: number },
+  weights: { income: number; zip_risk: number; bias: number; threshold: number }
 ): FairnessModel {
   return {
     id,
@@ -87,11 +87,14 @@ describe('FairnessSweep — Claim 1: one receipt, many regulators', () => {
   it('emits one receipt mapping to the full crosswalk and flags the biased model', async () => {
     const cohort = makeCohort(SEED);
     const model = linearScorer('insurer-underwriting-scorer', biasedWeights);
-    const { receipt, metrics } = await runFairnessSweep(model, cohort, { seed: SEED, issuedAt: ISSUED });
+    const { receipt, metrics } = await runFairnessSweep(model, cohort, {
+      seed: SEED,
+      issuedAt: ISSUED,
+    });
 
     expect(receipt.kind).toBe('fairness.receipt.v1');
     expect(Object.keys(receipt.regulatoryMapping)).toHaveLength(
-      Object.keys(DEFAULT_FAIRNESS_CROSSWALK).length,
+      Object.keys(DEFAULT_FAIRNESS_CROSSWALK).length
     );
     expect(Object.keys(receipt.regulatoryMapping).length).toBeGreaterThanOrEqual(7);
     expect(metrics.adverseImpactRatio).toBeLessThan(0.8);
@@ -118,7 +121,7 @@ describe('FairnessSweep — Claim 2: offline replay + tamper detection', () => {
         seed: SEED,
         inputHash: b.inputHash,
         weightStrategy: b.weightStrategy,
-      }),
+      })
     ).toBe('MATCH');
   });
 
@@ -128,7 +131,9 @@ describe('FairnessSweep — Claim 2: offline replay + tamper detection', () => {
     const a = await runFairnessSweep(model, cohort, { seed: SEED, issuedAt: ISSUED });
 
     const tampered = cohort.map((r, i) =>
-      i === 0 ? { group: r.group, features: { ...r.features, income: r.features.income + 1e-4 } } : r,
+      i === 0
+        ? { group: r.group, features: { ...r.features, income: r.features.income + 1e-4 } }
+        : r
     );
     const t = await runFairnessSweep(model, tampered, { seed: SEED, issuedAt: ISSUED });
 
@@ -139,7 +144,7 @@ describe('FairnessSweep — Claim 2: offline replay + tamper detection', () => {
         seed: SEED,
         inputHash: t.inputHash,
         weightStrategy: t.weightStrategy,
-      }),
+      })
     ).toBe('DRIFT');
   });
 
@@ -224,7 +229,11 @@ describe('FairnessSweep — determinism mode', () => {
   it('exact model: decisionDigest re-runs byte-identical and re-execution MATCHes', async () => {
     const cohort = makeCohort(SEED);
     const model = linearScorer('insurer-underwriting-scorer', biasedWeights);
-    const a = await runFairnessSweep(model, cohort, { seed: SEED, issuedAt: ISSUED, verifyDeterminism: true });
+    const a = await runFairnessSweep(model, cohort, {
+      seed: SEED,
+      issuedAt: ISSUED,
+      verifyDeterminism: true,
+    });
 
     expect(a.replayDeterminism).toBe('exact');
     expect(a.receipt.replayDeterminism).toBe('exact');
@@ -237,18 +246,21 @@ describe('FairnessSweep — determinism mode', () => {
       verifyReplayExecution(a.receipt, {
         decisionDigest: rerunDigest,
         adverseImpactRatio: a.metrics.adverseImpactRatio,
-      }),
+      })
     ).toBe('MATCH');
   });
 
   it('verifyReplayExecution returns DRIFT for an exact receipt when the re-run digest differs', async () => {
     const cohort = makeCohort(SEED);
-    const a = await runFairnessSweep(linearScorer('m', biasedWeights), cohort, { seed: SEED, issuedAt: ISSUED });
+    const a = await runFairnessSweep(linearScorer('m', biasedWeights), cohort, {
+      seed: SEED,
+      issuedAt: ISSUED,
+    });
     expect(
       verifyReplayExecution(a.receipt, {
         decisionDigest: 'not-the-recorded-digest',
         adverseImpactRatio: a.metrics.adverseImpactRatio,
-      }),
+      })
     ).toBe('DRIFT');
   });
 
@@ -271,7 +283,11 @@ describe('FairnessSweep — determinism mode', () => {
       determinism: { grade: 'exact' }, // deliberate over-claim
     };
 
-    const r = await runFairnessSweep(flaky, cohort, { seed: SEED, issuedAt: ISSUED, verifyDeterminism: true });
+    const r = await runFairnessSweep(flaky, cohort, {
+      seed: SEED,
+      issuedAt: ISSUED,
+      verifyDeterminism: true,
+    });
     expect(r.replayDeterminism).toBe('quantized');
     expect(r.receipt.replayDeterminism).toBe('quantized');
     expect(r.receipt.replayTolerance).toBeGreaterThan(0);

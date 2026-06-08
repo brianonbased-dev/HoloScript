@@ -36,7 +36,12 @@ export interface PackagePermission {
 }
 
 export class AccessControl {
-  async grantAccess(packageName: string, userId: string, access: PackageAccess, grantedBy: string): Promise<PackagePermission> {
+  async grantAccess(
+    packageName: string,
+    userId: string,
+    access: PackageAccess,
+    grantedBy: string
+  ): Promise<PackagePermission> {
     throw new Error('AccessControl not available in CLI context');
   }
   revokeAccess(packageName: string, userId: string): boolean {
@@ -110,7 +115,10 @@ export class AccessCommand {
         return {
           success: true,
           message: `${perms.length} user(s) have access to ${opts.packageName}`,
-          permissions: perms.map((p: PackagePermission) => ({ userId: p.userId, access: p.access })),
+          permissions: perms.map((p: PackagePermission) => ({
+            userId: p.userId,
+            access: p.access,
+          })),
         };
       }
 

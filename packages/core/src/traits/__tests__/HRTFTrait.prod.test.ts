@@ -205,8 +205,8 @@ describe('hrtfHandler.onEvent', () => {
 
   it('listener_update stores position and orientation, emits hrtf_listener_update', () => {
     const { node, ctx, config } = attach();
-    const pos = [1, 2, 3 ];
-    const orient = { forward: [0, 0, -1 ], up: [0, 1, 0 ] };
+    const pos = [1, 2, 3];
+    const orient = { forward: [0, 0, -1], up: [0, 1, 0] };
     ctx.emit.mockClear();
     hrtfHandler.onEvent!(node as any, config, ctx as any, {
       type: 'listener_update',

@@ -67,9 +67,16 @@ export interface RiskStratificationResult {
   recommendedAction: string;
 }
 
-export type StageOfChange = 'precontemplation' | 'contemplation' | 'preparation' | 'action' | 'maintenance';
+export type StageOfChange =
+  | 'precontemplation'
+  | 'contemplation'
+  | 'preparation'
+  | 'action'
+  | 'maintenance';
 
-export interface TherapyReceiptOptions { runId?: string; }
+export interface TherapyReceiptOptions {
+  runId?: string;
+}
 
 export interface TherapyAnalysisResult {
   phq9?: PHQ9Result;
@@ -96,11 +103,11 @@ export function phq9Score(responses: LikertResponse[]): PHQ9Result {
   const item9Score = responses[8];
 
   let severity: DepressionSeverity;
-  if (totalScore <= 4)       severity = 'none';
-  else if (totalScore <= 9)  severity = 'mild';
+  if (totalScore <= 4) severity = 'none';
+  else if (totalScore <= 9) severity = 'mild';
   else if (totalScore <= 14) severity = 'moderate';
   else if (totalScore <= 19) severity = 'moderately-severe';
-  else                       severity = 'severe';
+  else severity = 'severe';
 
   return { totalScore, severity, item9Score, positiveScreening: totalScore >= 10 };
 }
@@ -121,10 +128,10 @@ export function gad7Score(responses: LikertResponse[]): GAD7Result {
   const totalScore = responses.reduce<number>((s, r) => s + r, 0);
 
   let severity: AnxietySeverity;
-  if (totalScore <= 4)       severity = 'minimal';
-  else if (totalScore <= 9)  severity = 'mild';
+  if (totalScore <= 4) severity = 'minimal';
+  else if (totalScore <= 9) severity = 'mild';
   else if (totalScore <= 14) severity = 'moderate';
-  else                       severity = 'severe';
+  else severity = 'severe';
 
   return { totalScore, severity, positiveScreening: totalScore >= 10 };
 }
@@ -143,7 +150,7 @@ export function treatmentOutcome(
   postScore: number,
   sdPre: number,
   testRetestReliability: number,
-  clinicalCutoff: number,
+  clinicalCutoff: number
 ): TreatmentOutcomeResult {
   if (sdPre <= 0) throw new Error('sdPre must be positive');
   if (testRetestReliability < 0 || testRetestReliability > 1)
@@ -155,14 +162,15 @@ export function treatmentOutcome(
 
   const reliableChange = Math.abs(rci) >= 1.96;
   // Clinically significant if score moved from dysfunctional to functional range
-  const crossedCutoff = (preScore >= clinicalCutoff && postScore < clinicalCutoff) ||
-                        (preScore < clinicalCutoff && postScore >= clinicalCutoff);
+  const crossedCutoff =
+    (preScore >= clinicalCutoff && postScore < clinicalCutoff) ||
+    (preScore < clinicalCutoff && postScore >= clinicalCutoff);
   const clinicallySignificant = reliableChange && crossedCutoff;
 
   let direction: TreatmentOutcomeResult['direction'];
-  if (!reliableChange)     direction = 'no-change';
+  if (!reliableChange) direction = 'no-change';
   else if (scoreDelta < 0) direction = 'improved';
-  else                     direction = 'deteriorated';
+  else direction = 'deteriorated';
 
   return { scoreDelta, rci, reliableChange, clinicallySignificant, direction };
 }
@@ -190,11 +198,25 @@ export function riskStratification(input: RiskInput): RiskStratificationResult {
   const riskFactors: string[] = [];
   let riskScore = 0;
 
-  if (input.suicidalIdeationScore >= 3) { riskScore += 40; riskFactors.push('active suicidal ideation'); }
-  else if (input.suicidalIdeationScore >= 1) { riskScore += 20; riskFactors.push('passive suicidal ideation'); }
-  if (input.recentSelfHarm)    { riskScore += 25; riskFactors.push('recent self-harm'); }
-  if (input.hasPlan)           { riskScore += 20; riskFactors.push('specific plan'); }
-  if (input.hasAccess)         { riskScore += 15; riskFactors.push('access to means'); }
+  if (input.suicidalIdeationScore >= 3) {
+    riskScore += 40;
+    riskFactors.push('active suicidal ideation');
+  } else if (input.suicidalIdeationScore >= 1) {
+    riskScore += 20;
+    riskFactors.push('passive suicidal ideation');
+  }
+  if (input.recentSelfHarm) {
+    riskScore += 25;
+    riskFactors.push('recent self-harm');
+  }
+  if (input.hasPlan) {
+    riskScore += 20;
+    riskFactors.push('specific plan');
+  }
+  if (input.hasAccess) {
+    riskScore += 15;
+    riskFactors.push('access to means');
+  }
   riskScore -= Math.min(input.protectiveFactors * 5, 20);
   riskScore = Math.max(0, Math.min(100, riskScore));
 
@@ -225,7 +247,8 @@ export function riskStratification(input: RiskInput): RiskStratificationResult {
  * 61-80 → action, 81-100 → maintenance
  */
 export function stageOfChange(readinessScore: number): StageOfChange {
-  if (readinessScore < 0 || readinessScore > 100) throw new Error('readinessScore must be in [0,100]');
+  if (readinessScore < 0 || readinessScore > 100)
+    throw new Error('readinessScore must be in [0,100]');
   if (readinessScore <= 20) return 'precontemplation';
   if (readinessScore <= 40) return 'contemplation';
   if (readinessScore <= 60) return 'preparation';
@@ -237,21 +260,33 @@ export function stageOfChange(readinessScore: number): StageOfChange {
 
 export function buildTherapyReceipt(
   result: TherapyAnalysisResult,
-  options?: TherapyReceiptOptions,
+  options?: TherapyReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.phq9?.positiveScreening) {
-    violations.push({ criterion: 'phq9_screen', message: `PHQ-9 score ${result.phq9.totalScore} — positive depression screening (≥10)` });
+    violations.push({
+      criterion: 'phq9_screen',
+      message: `PHQ-9 score ${result.phq9.totalScore} — positive depression screening (≥10)`,
+    });
   }
   if (result.gad7?.positiveScreening) {
-    violations.push({ criterion: 'gad7_screen', message: `GAD-7 score ${result.gad7.totalScore} — positive anxiety screening (≥10)` });
+    violations.push({
+      criterion: 'gad7_screen',
+      message: `GAD-7 score ${result.gad7.totalScore} — positive anxiety screening (≥10)`,
+    });
   }
   if (result.risk && (result.risk.riskLevel === 'high' || result.risk.riskLevel === 'crisis')) {
-    violations.push({ criterion: 'risk_level', message: `${result.risk.riskLevel.toUpperCase()} risk — ${result.risk.recommendedAction}` });
+    violations.push({
+      criterion: 'risk_level',
+      message: `${result.risk.riskLevel.toUpperCase()} risk — ${result.risk.recommendedAction}`,
+    });
   }
   if (result.phq9 && result.phq9.item9Score > 0) {
-    violations.push({ criterion: 'suicidal_ideation', message: `PHQ-9 item 9 score ${result.phq9.item9Score} — suicidal ideation present` });
+    violations.push({
+      criterion: 'suicidal_ideation',
+      message: `PHQ-9 item 9 score ${result.phq9.item9Score} — suicidal ideation present`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -265,7 +300,11 @@ export function buildTherapyReceipt(
       gad7Score: result.gad7?.totalScore ?? null,
       riskLevel: result.risk?.riskLevel ?? null,
     },
-    cael: { version: 'cael.v1', event: 'therapy.clinical_analysis', solverType: 'therapy.phq9-gad7' },
+    cael: {
+      version: 'cael.v1',
+      event: 'therapy.clinical_analysis',
+      solverType: 'therapy.phq9-gad7',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

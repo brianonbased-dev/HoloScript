@@ -9,9 +9,7 @@ import {
   queryLeases,
   _resetVaultLeaseRegistryForTests,
 } from '../../identity/vault-lease-registry';
-import {
-  _resetAuditLogForTests,
-} from '../../identity/audit-log';
+import { _resetAuditLogForTests } from '../../identity/audit-log';
 
 const AGENT_KEY = 'vault-agent-key';
 const FOUNDER_KEY = 'vault-founder-key';
@@ -127,11 +125,9 @@ describe('handleVaultLeaseRoutes', () => {
     expect(issued._body.lease.agentId).toBe(AGENT_ID);
     const leaseId = issued._body.lease.leaseId;
 
-    const resolved = await callRoute(
-      'POST',
-      `/api/identity/vault/lease/${leaseId}/resolve`,
-      { secretRef: 'env:HOLOSCRIPT_API_KEY' }
-    );
+    const resolved = await callRoute('POST', `/api/identity/vault/lease/${leaseId}/resolve`, {
+      secretRef: 'env:HOLOSCRIPT_API_KEY',
+    });
     expect(resolved._status).toBe(200);
     expect(resolved._body).toMatchObject({
       ok: true,
@@ -156,11 +152,9 @@ describe('handleVaultLeaseRoutes', () => {
       scope: ['env:KEY_A'],
     });
     const leaseId = issued._body.lease.leaseId;
-    const deniedResolve = await callRoute(
-      'POST',
-      `/api/identity/vault/lease/${leaseId}/resolve`,
-      { secretRef: 'env:KEY_B' }
-    );
+    const deniedResolve = await callRoute('POST', `/api/identity/vault/lease/${leaseId}/resolve`, {
+      secretRef: 'env:KEY_B',
+    });
     expect(deniedResolve._status).toBe(403);
     expect(deniedResolve._body.error).toBe('lease_scope_violation');
   });

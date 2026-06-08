@@ -13,12 +13,14 @@ HoloScript compiles `.holo` compositions to VRChat SDK3 + UdonSharp automaticall
 ## Why HoloScript for VRChat Physics?
 
 Standard VRChat workflow:
+
 - Write UdonSharp C# manually
 - Wire up Rigidbody, Collider, VRC_Pickup, network sync by hand
 - Physics interactions require deep Unity + PhysX knowledge
 - Cloth/fluid simulation needs external plugins or baked caches
 
 HoloScript workflow:
+
 - Describe your world in `.holo` (HoloScript's domain language)
 - `compile_to_vrchat` generates all UdonSharp, prefab hierarchy, and world descriptor
 - Real multi-domain physics solvers: structural, cloth, fluid, acoustic
@@ -299,15 +301,15 @@ world PhysicsGallery {
 
 ## Physics Traits Reference
 
-| Trait | VRChat output | Notes |
-|-------|--------------|-------|
-| `@physics { mass, restitution, friction }` | Rigidbody + PhysicsMaterial | `mass: 0, static: true` → Static Collider |
-| `@interaction { pickup: true }` | VRC_Pickup + Udon | `throwable: true` → EnableGravity on drop |
-| `@sync { networked: true }` | UdonSynced fields + VRC_ObjectSync | Sync interval configurable |
-| `@cloth { stiffness, damping, pinTopEdge }` | Unity Cloth component + constraints | Pre-baked from HoloScript solver |
-| `@structural { material, yieldStrength }` | Voronoi fractured mesh + Udon state machine | Fracture pre-baked at compile |
-| `domain fluid { ... }` | Particle System + Udon fluid sim | 8K particles ≈ real-time in VRChat |
-| `domain audio { ReverbZone }` | VRC_SpatialAudioSource zone | Maps to VRC reverb zones |
+| Trait                                       | VRChat output                               | Notes                                     |
+| ------------------------------------------- | ------------------------------------------- | ----------------------------------------- |
+| `@physics { mass, restitution, friction }`  | Rigidbody + PhysicsMaterial                 | `mass: 0, static: true` → Static Collider |
+| `@interaction { pickup: true }`             | VRC_Pickup + Udon                           | `throwable: true` → EnableGravity on drop |
+| `@sync { networked: true }`                 | UdonSynced fields + VRC_ObjectSync          | Sync interval configurable                |
+| `@cloth { stiffness, damping, pinTopEdge }` | Unity Cloth component + constraints         | Pre-baked from HoloScript solver          |
+| `@structural { material, yieldStrength }`   | Voronoi fractured mesh + Udon state machine | Fracture pre-baked at compile             |
+| `domain fluid { ... }`                      | Particle System + Udon fluid sim            | 8K particles ≈ real-time in VRChat        |
+| `domain audio { ReverbZone }`               | VRC_SpatialAudioSource zone                 | Maps to VRC reverb zones                  |
 
 ---
 
@@ -315,13 +317,13 @@ world PhysicsGallery {
 
 ```typescript
 interface VRChatCompilerOptions {
-  worldName?: string;         // VRC world display name
-  sdkVersion?: '3.0' | '3.1' | '3.2' | '3.3' | '3.4' | '3.5';  // default: '3.5'
+  worldName?: string; // VRC world display name
+  sdkVersion?: '3.0' | '3.1' | '3.2' | '3.3' | '3.4' | '3.5'; // default: '3.5'
   outputFormat?: 'udonsharp-csharp' | 'udon-assembly' | 'udon-bytecode';
-  useUdonSharp?: boolean;     // legacy alias; false is gated until Byte/Udon output lands
-  namespace?: string;         // C# namespace — default: 'HoloWorld'
-  className?: string;         // World controller class — default: 'GeneratedWorld'
-  provenanceHash?: string;    // For SimulationContract receipt linkage
+  useUdonSharp?: boolean; // legacy alias; false is gated until Byte/Udon output lands
+  namespace?: string; // C# namespace — default: 'HoloWorld'
+  className?: string; // World controller class — default: 'GeneratedWorld'
+  provenanceHash?: string; // For SimulationContract receipt linkage
 }
 ```
 
@@ -350,6 +352,7 @@ holoscript compile --target vrchat --validate my-world.holo
 ```
 
 Common issues:
+
 - **Cloth pinning wrong edges**: verify `pinTopEdge` / `pinBottomEdge` / `pinCorners` in the `@cloth` trait
 - **Object not syncing**: add `@sync { networked: true }` to any pickup you want networked
 - **Fluid too expensive**: reduce `particleCount` or add `maxParticles` budget to the domain block

@@ -92,9 +92,7 @@ export interface UseVoiceAuthoringReturn {
   reset: () => void;
 }
 
-export function useVoiceAuthoring(
-  options: UseVoiceAuthoringOptions = {}
-): UseVoiceAuthoringReturn {
+export function useVoiceAuthoring(options: UseVoiceAuthoringOptions = {}): UseVoiceAuthoringReturn {
   const [state, setState] = useState<VoiceState>('idle');
   const [transcript, setTranscript] = useState('');
   const [holoSource, setHoloSource] = useState<string | null>(null);

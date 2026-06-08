@@ -41,7 +41,7 @@ export class ProphecyOrchestrator {
 
   constructor(
     private readonly ctx: GPUContext,
-    private readonly config: ProphecyConfig,
+    private readonly config: ProphecyConfig
   ) {
     this.validateConfig(config);
   }
@@ -53,32 +53,30 @@ export class ProphecyOrchestrator {
   private validateConfig(config: ProphecyConfig): void {
     if (!Number.isInteger(config.probeCount) || config.probeCount <= 0) {
       throw new Error(
-        `ProphecyOrchestrator: probeCount must be a positive integer, got ${config.probeCount}`,
+        `ProphecyOrchestrator: probeCount must be a positive integer, got ${config.probeCount}`
       );
     }
     if (config.probeCount % WORKGROUP_SIZE !== 0) {
       throw new Error(
-        `ProphecyOrchestrator: probeCount must be a multiple of ${WORKGROUP_SIZE}, got ${config.probeCount}`,
+        `ProphecyOrchestrator: probeCount must be a multiple of ${WORKGROUP_SIZE}, got ${config.probeCount}`
       );
     }
     const expectedPositions = config.probeCount * 3;
     if (config.probePositions.length !== expectedPositions) {
       throw new Error(
         `ProphecyOrchestrator: probePositions length ${config.probePositions.length} ` +
-          `does not match probeCount*3 (${expectedPositions})`,
+          `does not match probeCount*3 (${expectedPositions})`
       );
     }
     if (config.albedo && config.albedo.length !== expectedPositions) {
       throw new Error(
         `ProphecyOrchestrator: albedo length ${config.albedo.length} ` +
-          `does not match probeCount*3 (${expectedPositions})`,
+          `does not match probeCount*3 (${expectedPositions})`
       );
     }
     const floor = config.confidenceFloor ?? 0.05;
     if (floor < 0 || floor > 1) {
-      throw new Error(
-        `ProphecyOrchestrator: confidenceFloor must be in [0,1], got ${floor}`,
-      );
+      throw new Error(`ProphecyOrchestrator: confidenceFloor must be in [0,1], got ${floor}`);
     }
   }
 
@@ -112,7 +110,7 @@ export class ProphecyOrchestrator {
       0,
       this.config.probePositions.buffer,
       this.config.probePositions.byteOffset,
-      this.config.probePositions.byteLength,
+      this.config.probePositions.byteLength
     );
 
     this.probeAlbedoBuffer = device.createBuffer({
@@ -126,16 +124,13 @@ export class ProphecyOrchestrator {
       0,
       albedo.buffer,
       albedo.byteOffset,
-      albedo.byteLength,
+      albedo.byteLength
     );
 
     this.probesOutBuffer = device.createBuffer({
       label: 'prophecy:probes_out',
       size: probeCount * PROBE_STRIDE_BYTES,
-      usage:
-        GPUBufferUsage.STORAGE |
-        GPUBufferUsage.COPY_SRC |
-        GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
     });
 
     this.readbackBuffer = device.createBuffer({
@@ -183,7 +178,7 @@ export class ProphecyOrchestrator {
     if (spikeRates.length !== this.config.probeCount) {
       throw new Error(
         `ProphecyOrchestrator.uploadSpikeRates: expected length ` +
-          `${this.config.probeCount}, got ${spikeRates.length}`,
+          `${this.config.probeCount}, got ${spikeRates.length}`
       );
     }
     this.ctx.device.queue.writeBuffer(
@@ -191,7 +186,7 @@ export class ProphecyOrchestrator {
       0,
       spikeRates.buffer,
       spikeRates.byteOffset,
-      spikeRates.byteLength,
+      spikeRates.byteLength
     );
   }
 
@@ -274,11 +269,7 @@ export class ProphecyOrchestrator {
 
       out[i] = {
         index: i,
-        position: [
-          positions[i * 3 + 0],
-          positions[i * 3 + 1],
-          positions[i * 3 + 2],
-        ],
+        position: [positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2]],
         rgb: [r, g, b],
         confidence,
       };
@@ -295,8 +286,7 @@ export class ProphecyOrchestrator {
   primeSpikeRatesShadow(rates: Float32Array): void {
     if (rates.length !== this.config.probeCount) {
       throw new Error(
-        `primeSpikeRatesShadow: expected length ${this.config.probeCount}, ` +
-          `got ${rates.length}`,
+        `primeSpikeRatesShadow: expected length ${this.config.probeCount}, ` + `got ${rates.length}`
       );
     }
     this.lastSpikeRatesShadow = new Float32Array(rates);

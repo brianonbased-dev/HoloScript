@@ -1,12 +1,10 @@
-import type { Vector3 } from '../types';
-﻿/**
+import type { Vector3 } from '../types'; /**
  * Destruction Trait
  *
  * Physics-based destruction with fragmentation, chain reactions, and debris
  *
  * @version 2.0.0
  */
-
 import type { TraitHandler, TraitContext } from './TraitTypes';
 
 // =============================================================================
@@ -55,10 +53,7 @@ interface DestructionConfig {
 // FRAGMENTATION HELPERS
 // =============================================================================
 
-function generateVoronoiPoints(
-  count: number,
-  bounds: Vector3
-): Vector3[] {
+function generateVoronoiPoints(count: number, bounds: Vector3): Vector3[] {
   const points: Vector3[] = [];
   for (let i = 0; i < count; i++) {
     points.push([
@@ -81,7 +76,7 @@ function generateFragments(
 
   for (let i = 0; i < points.length; i++) {
     // Direction from center (or impact point)
-    const center = impactPoint || [0, 0, 0 ];
+    const center = impactPoint || [0, 0, 0];
     const dx = points[i][0] - center[0];
     const dy = points[i][1] - center[1];
     const dz = points[i][2] - center[2];
@@ -92,7 +87,11 @@ function generateFragments(
 
     fragments.push({
       id: `fragment_${i}_${Date.now()}`,
-      position: [position[0] + points[i][0], position[1] + points[i][1], position[2] + points[i][2]],
+      position: [
+        position[0] + points[i][0],
+        position[1] + points[i][1],
+        position[2] + points[i][2],
+      ],
       velocity: [
         (dx / dist) * explosionScale,
         (dy / dist) * explosionScale + Math.random() * 2, // Slight upward bias
@@ -342,11 +341,7 @@ function triggerDestruction(
     position,
     scale,
     impactPoint
-      ? [
-          impactPoint[0] - position[0],
-          impactPoint[1] - position[1],
-          impactPoint[2] - position[2],
-        ]
+      ? [impactPoint[0] - position[0], impactPoint[1] - position[1], impactPoint[2] - position[2]]
       : null,
     config
   );

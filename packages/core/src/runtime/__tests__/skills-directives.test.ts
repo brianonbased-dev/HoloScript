@@ -137,7 +137,8 @@ describe('applyDirectives', () => {
     const onAttach = vi.fn();
     ctx.traitHandlers.set('physics' as never, { onAttach } as never);
     const node = {
-      type: 'orb', name: 'ball',
+      type: 'orb',
+      name: 'ball',
       directives: [{ type: 'trait', name: 'physics', config: { mass: 2 } }],
     };
     applyDirectives(node as never, ctx);
@@ -150,7 +151,8 @@ describe('applyDirectives', () => {
   it('does not throw when trait handler is absent', () => {
     const ctx = makeApplyCtx();
     const node = {
-      type: 'orb', name: 'x',
+      type: 'orb',
+      name: 'x',
       directives: [{ type: 'trait', name: 'nonexistent' }],
     };
     expect(() => applyDirectives(node as never, ctx)).not.toThrow();
@@ -159,7 +161,8 @@ describe('applyDirectives', () => {
   it('emits show-chat for chat trait', () => {
     const ctx = makeApplyCtx();
     const node = {
-      type: 'orb', name: 'npc',
+      type: 'orb',
+      name: 'npc',
       directives: [{ type: 'trait', name: 'chat', config: { channel: 'main' } }],
     };
     applyDirectives(node as never, ctx);
@@ -169,7 +172,8 @@ describe('applyDirectives', () => {
   it('calls state.update for a state directive', () => {
     const ctx = makeApplyCtx();
     const node = {
-      type: 'orb', name: 'x',
+      type: 'orb',
+      name: 'x',
       directives: [{ type: 'state', body: { health: 100 } }],
     };
     applyDirectives(node as never, ctx);
@@ -179,7 +183,8 @@ describe('applyDirectives', () => {
   it('evaluates expression for on_mount lifecycle hook', () => {
     const ctx = makeApplyCtx();
     const node = {
-      type: 'orb', name: 'x',
+      type: 'orb',
+      name: 'x',
       directives: [{ type: 'lifecycle', hook: 'on_mount', body: 'init()' }],
     };
     applyDirectives(node as never, ctx);
@@ -189,7 +194,8 @@ describe('applyDirectives', () => {
   it('evaluates expression for mount lifecycle hook', () => {
     const ctx = makeApplyCtx();
     const node = {
-      type: 'orb', name: 'x',
+      type: 'orb',
+      name: 'x',
       directives: [{ type: 'lifecycle', hook: 'mount', body: 'setup()' }],
     };
     applyDirectives(node as never, ctx);
@@ -199,7 +205,8 @@ describe('applyDirectives', () => {
   it('does not evaluate expression for non-mount lifecycle hooks', () => {
     const ctx = makeApplyCtx();
     const node = {
-      type: 'orb', name: 'x',
+      type: 'orb',
+      name: 'x',
       directives: [{ type: 'lifecycle', hook: 'on_destroy', body: 'cleanup()' }],
     };
     applyDirectives(node as never, ctx);
@@ -211,7 +218,8 @@ describe('applyDirectives', () => {
     const onAttach = vi.fn();
     ctx.traitHandlers.set('grabbable' as never, { onAttach } as never);
     const node = {
-      type: 'orb', name: 'item',
+      type: 'orb',
+      name: 'item',
       directives: [
         { type: 'trait', name: 'grabbable' },
         { type: 'state', body: { color: 'red' } },
@@ -254,7 +262,10 @@ describe('updateTraits', () => {
     const ctx = makeUpdateCtx();
     const onUpdate = vi.fn();
     ctx.traitHandlers.set('physics' as never, { onUpdate } as never);
-    ctx.variables.set('ball', makeOrbValue([{ type: 'trait', name: 'physics', config: {} }]) as never);
+    ctx.variables.set(
+      'ball',
+      makeOrbValue([{ type: 'trait', name: 'physics', config: {} }]) as never
+    );
     updateTraits(2451545.0, ctx);
     expect(onUpdate).toHaveBeenCalledTimes(1);
   });
@@ -330,7 +341,9 @@ describe('updateTraits', () => {
     const ctx = makeUpdateCtx();
     ctx.getState.mockReturnValue({ score: 10 });
     let capturedCtx: Record<string, unknown> | undefined;
-    const onUpdate = vi.fn().mockImplementation((_n, _c, tc) => { capturedCtx = tc; });
+    const onUpdate = vi.fn().mockImplementation((_n, _c, tc) => {
+      capturedCtx = tc;
+    });
     ctx.traitHandlers.set('state-trait' as never, { onUpdate } as never);
     ctx.variables.set('x', makeOrbValue([{ type: 'trait', name: 'state-trait' }]) as never);
     updateTraits(2451545.0, ctx);
@@ -345,10 +358,13 @@ describe('updateTraits', () => {
     const onUpdateGlow = vi.fn();
     ctx.traitHandlers.set('physics' as never, { onUpdate: onUpdatePhysics } as never);
     ctx.traitHandlers.set('glow' as never, { onUpdate: onUpdateGlow } as never);
-    ctx.variables.set('a', makeOrbValue([
-      { type: 'trait', name: 'physics' },
-      { type: 'trait', name: 'glow' },
-    ]) as never);
+    ctx.variables.set(
+      'a',
+      makeOrbValue([
+        { type: 'trait', name: 'physics' },
+        { type: 'trait', name: 'glow' },
+      ]) as never
+    );
     ctx.variables.set('b', makeOrbValue([{ type: 'trait', name: 'physics' }]) as never);
     updateTraits(2451545.0, ctx);
     expect(onUpdatePhysics).toHaveBeenCalledTimes(2);

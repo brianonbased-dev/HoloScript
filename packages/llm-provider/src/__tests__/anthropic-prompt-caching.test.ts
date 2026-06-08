@@ -40,8 +40,12 @@ vi.mock('@anthropic-ai/sdk', () => {
             model: (args.model as string) ?? 'claude-opus-4-7',
             stop_reason: 'end_turn',
           }),
-          get request_id() { return 'req_caching_test'; },
-          get response() { return { headers: new Headers() }; },
+          get request_id() {
+            return 'req_caching_test';
+          },
+          get response() {
+            return { headers: new Headers() };
+          },
         };
       },
     };
@@ -76,7 +80,11 @@ describe('AnthropicAdapter prompt caching', () => {
     // call ships `system` in array form with cache_control. This pins
     // the new default; if anyone reverts to false silently this fails.
     expect(Array.isArray(args.system)).toBe(true);
-    const systemArr = args.system as Array<{ type: string; text: string; cache_control?: { type: string } }>;
+    const systemArr = args.system as Array<{
+      type: string;
+      text: string;
+      cache_control?: { type: string };
+    }>;
     expect(systemArr).toHaveLength(1);
     expect(systemArr[0].text).toBe('You are a HoloScript code generator.');
     expect(systemArr[0].cache_control).toEqual({ type: 'ephemeral' });
@@ -97,7 +105,11 @@ describe('AnthropicAdapter prompt caching', () => {
     expect(streamCalls).toHaveLength(1);
     const args = streamCalls[0];
     expect(Array.isArray(args.system)).toBe(true);
-    const systemArr = args.system as Array<{ type: string; text: string; cache_control?: { type: string } }>;
+    const systemArr = args.system as Array<{
+      type: string;
+      text: string;
+      cache_control?: { type: string };
+    }>;
     expect(systemArr).toHaveLength(1);
     expect(systemArr[0].type).toBe('text');
     expect(systemArr[0].text).toBe('You are a security-auditor brain.');
@@ -343,7 +355,11 @@ describe('AnthropicAdapter prompt caching', () => {
         {
           name: 'read_file',
           description: 'Read a file',
-          input_schema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+          input_schema: {
+            type: 'object',
+            properties: { path: { type: 'string' } },
+            required: ['path'],
+          },
         },
       ],
     });

@@ -106,7 +106,9 @@ function canonicalEvent(event: NetworkEvent): Record<string, unknown> {
  * feed (W.087-class identity collision) and should be caught at canonicalization,
  * not silently coalesced.
  */
-export function canonicalNetworkEventSnapshot(source: NetworkEventWireInput): Record<string, unknown> {
+export function canonicalNetworkEventSnapshot(
+  source: NetworkEventWireInput
+): Record<string, unknown> {
   const events = source.events.map(canonicalEvent);
   events.sort((a, b) => {
     const ad = a.chainDepth as number;
@@ -148,7 +150,7 @@ export function networkEventWireKey(source: NetworkEventWireInput): string {
  */
 export function wireFormatEquivalentNetworkEvent(
   a: NetworkEventWireInput,
-  b: NetworkEventWireInput,
+  b: NetworkEventWireInput
 ): boolean {
   return networkEventWireKey(a) === networkEventWireKey(b);
 }
@@ -156,7 +158,7 @@ export function wireFormatEquivalentNetworkEvent(
 /** Build a `network.event.v1` witness record (for logging, CAEL init, or sidecar files). */
 export function buildNetworkEventV1Record(
   source: NetworkEventWireInput,
-  options: { label?: string } = {},
+  options: { label?: string } = {}
 ): NetworkEventV1Record {
   return {
     solverType: NETWORK_EVENT_V1,

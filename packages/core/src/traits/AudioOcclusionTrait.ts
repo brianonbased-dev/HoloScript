@@ -93,8 +93,8 @@ export const audioOcclusionHandler: TraitHandler<AudioOcclusionConfig> = {
       targetLowPass: config.low_pass_max_freq,
       occludingObjects: [],
       lastRaycastTime: 0,
-      sourcePosition: [0, 0, 0 ],
-      listenerPosition: [0, 0, 0 ],
+      sourcePosition: [0, 0, 0],
+      listenerPosition: [0, 0, 0],
     };
     node.__audioOcclusionState = state;
 

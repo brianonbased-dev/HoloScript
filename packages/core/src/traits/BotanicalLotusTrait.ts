@@ -27,10 +27,7 @@ import type { TraitHandler } from './TraitTypes';
 // TYPES
 // =============================================================================
 
-export type BotanicalLotusAnchorStatus =
-  | 'pending_media_ingest'
-  | 'hashed'
-  | 'wallet_signed';
+export type BotanicalLotusAnchorStatus = 'pending_media_ingest' | 'hashed' | 'wallet_signed';
 
 export type BotanicalLotusAnchorRole =
   | 'material'
@@ -219,8 +216,7 @@ export const DEFAULT_BOTANICAL_LOTUS_CONFIG: BotanicalLotusConfig = {
     count: 3,
     content_hash_status: 'pending_media_ingest',
     wallet_signature_status: 'pending_cael_anchor',
-    note:
-      'Derived from three pink lotus reference images provided in-thread; raw media ingest is pending.',
+    note: 'Derived from three pink lotus reference images provided in-thread; raw media ingest is pending.',
   },
   reference_anchors: [
     {
@@ -471,29 +467,11 @@ export function validateBotanicalLotusConfig(
   material.subsurface_radius_rgb.forEach((value, index) =>
     addRangeError(errors, `material.subsurface_radius_rgb[${index}]`, value, 0, 2)
   );
-  addRangeError(
-    errors,
-    'material.petal_translucency_base',
-    material.petal_translucency_base,
-    0,
-    1
-  );
-  addRangeError(
-    errors,
-    'material.petal_translucency_edge',
-    material.petal_translucency_edge,
-    0,
-    1
-  );
+  addRangeError(errors, 'material.petal_translucency_base', material.petal_translucency_base, 0, 1);
+  addRangeError(errors, 'material.petal_translucency_edge', material.petal_translucency_edge, 0, 1);
   addRangeError(errors, 'material.roughness', material.roughness, 0, 1);
   addRangeError(errors, 'material.ior', material.ior, 1, 2.5);
-  addRangeError(
-    errors,
-    'material.vein_normal_intensity',
-    material.vein_normal_intensity,
-    0,
-    0.25
-  );
+  addRangeError(errors, 'material.vein_normal_intensity', material.vein_normal_intensity, 0, 0.25);
   addRangeError(errors, 'material.edge_curl_intensity', material.edge_curl_intensity, 0, 1);
   addRangeError(errors, 'material.gravity_sag_outer', material.gravity_sag_outer, 0, 1);
   addRangeError(errors, 'material.sheen', material.sheen, 0, 1);
@@ -514,13 +492,7 @@ export function validateBotanicalLotusConfig(
       errors.push(`geometry.petal_rings[${index}].count must be a positive integer`);
     }
     addRangeError(errors, `geometry.petal_rings[${index}].cup`, ring.cup, 0, 1);
-    addRangeError(
-      errors,
-      `geometry.petal_rings[${index}].gravity_sag`,
-      ring.gravity_sag,
-      0,
-      1
-    );
+    addRangeError(errors, `geometry.petal_rings[${index}].gravity_sag`, ring.gravity_sag, 0, 1);
   });
   if (!Number.isInteger(geometry.stamen_filament_count) || geometry.stamen_filament_count <= 0) {
     errors.push('geometry.stamen_filament_count must be a positive integer');
@@ -561,9 +533,7 @@ export function deriveBotanicalLotusAnchorStatus(
   return 'pending_media_ingest';
 }
 
-export function getBotanicalLotusPetalCount(
-  input: BotanicalLotusConfigInput = {}
-): number {
+export function getBotanicalLotusPetalCount(input: BotanicalLotusConfigInput = {}): number {
   const config = normalizeBotanicalLotusConfig(input);
   return config.geometry.petal_rings.reduce((sum, ring) => sum + ring.count, 0);
 }
@@ -719,7 +689,11 @@ export const botanicalLotusHandler: TraitHandler<BotanicalLotusConfigInput> = {
         reference_anchors: updatedAnchors,
       });
       state.config = updatedConfig;
-      state.profile = createBotanicalLotusRenderProfile(updatedConfig, state.placement, state.lighting);
+      state.profile = createBotanicalLotusRenderProfile(
+        updatedConfig,
+        state.placement,
+        state.lighting
+      );
 
       context.emit?.('botanical_lotus_reference_updated', {
         node,
@@ -734,9 +708,14 @@ export const botanicalLotusHandler: TraitHandler<BotanicalLotusConfigInput> = {
     // HoloMap surface anchor placement
     if (event.type === 'holomap:surface_anchor_placed') {
       const payload = event.payload ?? {};
-      const surfaceAnchorId = typeof payload.surfaceAnchorId === 'string' ? payload.surfaceAnchorId : undefined;
-      const surfaceNormal = Array.isArray(payload.surfaceNormal) ? payload.surfaceNormal as [number, number, number] : undefined;
-      const worldPosition = Array.isArray(payload.worldPosition) ? payload.worldPosition as [number, number, number] : undefined;
+      const surfaceAnchorId =
+        typeof payload.surfaceAnchorId === 'string' ? payload.surfaceAnchorId : undefined;
+      const surfaceNormal = Array.isArray(payload.surfaceNormal)
+        ? (payload.surfaceNormal as [number, number, number])
+        : undefined;
+      const worldPosition = Array.isArray(payload.worldPosition)
+        ? (payload.worldPosition as [number, number, number])
+        : undefined;
       if (!surfaceAnchorId) return;
 
       state.placement = {
@@ -744,7 +723,11 @@ export const botanicalLotusHandler: TraitHandler<BotanicalLotusConfigInput> = {
         surface_normal: surfaceNormal,
         world_position: worldPosition,
       };
-      state.profile = createBotanicalLotusRenderProfile(state.config, state.placement, state.lighting);
+      state.profile = createBotanicalLotusRenderProfile(
+        state.config,
+        state.placement,
+        state.lighting
+      );
 
       context.emit?.('botanical_lotus_surface_bound', {
         node,
@@ -759,9 +742,17 @@ export const botanicalLotusHandler: TraitHandler<BotanicalLotusConfigInput> = {
     if (event.type === 'holomap:lighting_update') {
       const payload = event.payload ?? {};
       const referenceId = typeof payload.referenceId === 'string' ? payload.referenceId : undefined;
-      const estimatedLux = typeof payload.estimatedLux === 'number' && Number.isFinite(payload.estimatedLux) ? payload.estimatedLux : undefined;
-      const colorTemperatureK = typeof payload.colorTemperatureK === 'number' && Number.isFinite(payload.colorTemperatureK) ? payload.colorTemperatureK : undefined;
-      const dominantDirection = Array.isArray(payload.dominantDirection) ? payload.dominantDirection as [number, number, number] : undefined;
+      const estimatedLux =
+        typeof payload.estimatedLux === 'number' && Number.isFinite(payload.estimatedLux)
+          ? payload.estimatedLux
+          : undefined;
+      const colorTemperatureK =
+        typeof payload.colorTemperatureK === 'number' && Number.isFinite(payload.colorTemperatureK)
+          ? payload.colorTemperatureK
+          : undefined;
+      const dominantDirection = Array.isArray(payload.dominantDirection)
+        ? (payload.dominantDirection as [number, number, number])
+        : undefined;
       if (!referenceId) return;
 
       state.lighting = {
@@ -770,7 +761,11 @@ export const botanicalLotusHandler: TraitHandler<BotanicalLotusConfigInput> = {
         color_temperature_k: colorTemperatureK,
         dominant_direction: dominantDirection,
       };
-      state.profile = createBotanicalLotusRenderProfile(state.config, state.placement, state.lighting);
+      state.profile = createBotanicalLotusRenderProfile(
+        state.config,
+        state.placement,
+        state.lighting
+      );
 
       context.emit?.('botanical_lotus_lighting_updated', {
         node,
@@ -785,7 +780,8 @@ export const botanicalLotusHandler: TraitHandler<BotanicalLotusConfigInput> = {
     // HoloMap anchor state change (drift / reanchor)
     if (event.type === 'holomap:anchor_state_changed') {
       const payload = event.payload ?? {};
-      const anchorFrameIndex = typeof payload.anchorFrameIndex === 'number' ? payload.anchorFrameIndex : undefined;
+      const anchorFrameIndex =
+        typeof payload.anchorFrameIndex === 'number' ? payload.anchorFrameIndex : undefined;
       if (state.placement?.surface_anchor_id && anchorFrameIndex !== undefined) {
         context.emit?.('botanical_lotus_anchor_drift', {
           node,
@@ -1147,9 +1143,21 @@ export const LOTUS_PETAL_CHUNK_ENTRIES: readonly LotusShaderChunkEntry[] = [
   { stage: 'vertex', include: 'begin_vertex', code: LOTUS_PETAL_SHADER_CHUNKS.vertexBend },
   { stage: 'vertex', include: 'worldpos_vertex', code: LOTUS_PETAL_SHADER_CHUNKS.vertexWorld },
   { stage: 'fragment', include: 'common', code: LOTUS_PETAL_SHADER_CHUNKS.fragmentHeader },
-  { stage: 'fragment', include: 'normal_fragment_maps', code: LOTUS_PETAL_SHADER_CHUNKS.fragmentNormalInjection },
-  { stage: 'fragment', include: 'color_fragment', code: LOTUS_PETAL_SHADER_CHUNKS.fragmentColorInjection },
-  { stage: 'fragment', include: 'emissivemap_fragment', code: LOTUS_PETAL_SHADER_CHUNKS.fragmentEmissiveInjection },
+  {
+    stage: 'fragment',
+    include: 'normal_fragment_maps',
+    code: LOTUS_PETAL_SHADER_CHUNKS.fragmentNormalInjection,
+  },
+  {
+    stage: 'fragment',
+    include: 'color_fragment',
+    code: LOTUS_PETAL_SHADER_CHUNKS.fragmentColorInjection,
+  },
+  {
+    stage: 'fragment',
+    include: 'emissivemap_fragment',
+    code: LOTUS_PETAL_SHADER_CHUNKS.fragmentEmissiveInjection,
+  },
 ] as const;
 
 // =============================================================================
@@ -1472,7 +1480,7 @@ export function generateBotanicalNormalMap(opts: {
       const i = (y * size + x) * 4;
       data[i] = Math.round((nx * 0.5 + 0.5) * 255);
       data[i + 1] = Math.round((ny * 0.5 + 0.5) * 255);
-      data[i + 2] = Math.round((nz / len * 0.5 + 0.5) * 255);
+      data[i + 2] = Math.round(((nz / len) * 0.5 + 0.5) * 255);
       data[i + 3] = 255;
     }
   }
@@ -2078,7 +2086,7 @@ export function simulateLotusMorphogenesis(
     nDelta += 1;
   }
   const meanDelta = nDelta > 0 ? Math.atan2(sumSin / nDelta, sumCos / nDelta) : 0;
-  const meanDeg = (((meanDelta * 180) / Math.PI) + 360) % 360;
+  const meanDeg = ((meanDelta * 180) / Math.PI + 360) % 360;
   const resultant = nDelta > 0 ? Math.hypot(sumCos / nDelta, sumSin / nDelta) : 1;
   const spreadDeg = (Math.sqrt(Math.max(0, -2 * Math.log(Math.min(1, resultant)))) * 180) / Math.PI;
 
@@ -2086,7 +2094,14 @@ export function simulateLotusMorphogenesis(
     primordia,
     emergentDivergenceDeg: meanDeg,
     divergenceSpreadDeg: spreadDeg,
-    resolvedParams: { count, seed, apexRadius, radialVelocity, inhibitionExponent: s, angularSamples: samples },
+    resolvedParams: {
+      count,
+      seed,
+      apexRadius,
+      radialVelocity,
+      inhibitionExponent: s,
+      angularSamples: samples,
+    },
   };
 }
 
@@ -2217,10 +2232,20 @@ export function stepLotusMeristem(m: LotusMeristem): boolean {
   }
   let off = bestK;
   if (bestK > 0 && bestK < m.samples) {
-    const y0 = lotusInhibitionAt(m.last + m.wMin + m.step * (bestK - 1), m.primordia, m.range, m.apexRadius);
-    const y2 = lotusInhibitionAt(m.last + m.wMin + m.step * (bestK + 1), m.primordia, m.range, m.apexRadius);
+    const y0 = lotusInhibitionAt(
+      m.last + m.wMin + m.step * (bestK - 1),
+      m.primordia,
+      m.range,
+      m.apexRadius
+    );
+    const y2 = lotusInhibitionAt(
+      m.last + m.wMin + m.step * (bestK + 1),
+      m.primordia,
+      m.range,
+      m.apexRadius
+    );
     const den = y0 - 2 * bestI + y2;
-    if (Math.abs(den) > 1e-12) off = bestK + 0.5 * (y0 - y2) / den;
+    if (Math.abs(den) > 1e-12) off = bestK + (0.5 * (y0 - y2)) / den;
   }
   if (bestI < m.threshold) {
     const theta = m.last + m.wMin + m.step * off;
@@ -2262,7 +2287,7 @@ export function simulateLotusPhyllotaxis(params: LotusPhyllotaxisParams): LotusP
     nDelta += 1;
   }
   const meanDelta = nDelta > 0 ? Math.atan2(sumSin / nDelta, sumCos / nDelta) : 0;
-  const emergentDivergenceDeg = (((meanDelta * 180) / Math.PI) + 360) % 360;
+  const emergentDivergenceDeg = ((meanDelta * 180) / Math.PI + 360) % 360;
   const resultant = nDelta > 0 ? Math.hypot(sumCos / nDelta, sumSin / nDelta) : 1;
   const divergenceSpreadDeg =
     (Math.sqrt(Math.max(0, -2 * Math.log(Math.min(1, resultant)))) * 180) / Math.PI;
@@ -2556,7 +2581,7 @@ export function createLotusMorphogen(params: LotusMorphogenParams = {}): LotusMo
   const seed = (params.seed ?? 0xdead) >>> 0;
   const dx = 1 / size;
   // CFL for explicit Euler on this grid: d*dt/dx^2 < 0.5.
-  const dt = 0.4 * (dx * dx) / Math.max(1, d);
+  const dt = (0.4 * (dx * dx)) / Math.max(1, d);
   const us = a + b;
   const vs = b / (us * us);
   const rand = lotusMulberry32(seed);
@@ -2674,7 +2699,7 @@ export function createLotusMorphogen2D(params: LotusMorphogen2DParams = {}): Lot
   const seed = (params.seed ?? 0xdead) >>> 0;
   const dx = 1 / size;
   // CFL for explicit Euler on a 2-D grid: d*dt/dx^2 < 0.25 (2 dims). Use 0.2 for margin.
-  const dt = 0.2 * (dx * dx) / Math.max(1, d);
+  const dt = (0.2 * (dx * dx)) / Math.max(1, d);
   const us = a + b;
   const vs = b / (us * us);
   const rand = lotusMulberry32(seed);
@@ -2782,7 +2807,11 @@ export function lotusMorphogen2DPeaks(field: LotusMorphogen2DField): LotusMorpho
 }
 
 /** Sample the normalised activator value at disk coordinate (x, y) in [-1, 1]. */
-export function lotusMorphogen2DSampleAt(field: LotusMorphogen2DField, x: number, y: number): number {
+export function lotusMorphogen2DSampleAt(
+  field: LotusMorphogen2DField,
+  x: number,
+  y: number
+): number {
   const { size, u, mask } = field;
   const c = (size - 1) / 2;
   const i = Math.round(x * c + c);
@@ -2877,7 +2906,11 @@ export function stepLotusPetalTurgor(
   const rate = state.turgorStiffness * state.turgor * dt;
   for (let i = 0; i < state.segments; i += 1) {
     const s = (i + 0.5) / state.segments;
-    const maturity = lotusSmoothstep01(0, 1, (t - state.matureStart - s * state.acropetalDelay) / state.matureSpan);
+    const maturity = lotusSmoothstep01(
+      0,
+      1,
+      (t - state.matureStart - s * state.acropetalDelay) / state.matureSpan
+    );
     const kappaRest = state.budCurl * (1 - maturity) + state.openCurl * maturity;
     state.kappaActual[i] += rate * (kappaRest - state.kappaActual[i]);
   }

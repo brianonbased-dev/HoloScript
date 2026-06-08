@@ -125,7 +125,14 @@ describe('getTraitsByCategory', () => {
 
   it('returns empty array or array for categories that may be empty', () => {
     const allCats: TraitDoc['category'][] = [
-      'physics', 'animation', 'rendering', 'networking', 'input', 'ai', 'utility', 'hololand',
+      'physics',
+      'animation',
+      'rendering',
+      'networking',
+      'input',
+      'ai',
+      'utility',
+      'hololand',
     ];
     for (const cat of allCats) {
       const traits = getTraitsByCategory(cat);
@@ -145,7 +152,14 @@ describe('getTraitsByCategory', () => {
 
   it('total traits across all categories equals TRAIT_DOCS size', () => {
     const allCats: TraitDoc['category'][] = [
-      'physics', 'animation', 'rendering', 'networking', 'input', 'ai', 'utility', 'hololand',
+      'physics',
+      'animation',
+      'rendering',
+      'networking',
+      'input',
+      'ai',
+      'utility',
+      'hololand',
     ];
     const total = allCats.reduce((sum, cat) => sum + getTraitsByCategory(cat).length, 0);
     expect(total).toBe(Object.keys(TRAIT_DOCS).length);

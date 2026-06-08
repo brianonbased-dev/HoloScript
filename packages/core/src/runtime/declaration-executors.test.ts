@@ -33,11 +33,9 @@ describe('runtime/declaration-executors', () => {
       const res = await executeStateDeclaration(
         {
           type: 'state-declaration',
-          directives: [
-            { type: 'state', body: { health: 100, level: 1 } },
-          ],
+          directives: [{ type: 'state', body: { health: 100, level: 1 } }],
         } as never,
-        ctx,
+        ctx
       );
       expect(res.success).toBe(true);
       expect(res.output).toBe('State updated');
@@ -56,7 +54,7 @@ describe('runtime/declaration-executors', () => {
             { type: 'state', body: { score: 999 } }, // ignored
           ],
         } as never,
-        ctx,
+        ctx
       );
       expect(ctx.__updates).toHaveLength(1);
       expect(ctx.__updates[0]).toEqual({ score: 42 });
@@ -69,7 +67,7 @@ describe('runtime/declaration-executors', () => {
           type: 'state-declaration',
           directives: [{ type: 'unrelated', body: { x: 1 } }],
         } as never,
-        ctx,
+        ctx
       );
       expect(res.success).toBe(true);
       expect(res.output).toBe('State updated');
@@ -78,10 +76,7 @@ describe('runtime/declaration-executors', () => {
 
     it('no-ops (but still succeeds) when directives array missing entirely', async () => {
       const ctx = mkCtx();
-      const res = await executeStateDeclaration(
-        { type: 'state-declaration' } as never,
-        ctx,
-      );
+      const res = await executeStateDeclaration({ type: 'state-declaration' } as never, ctx);
       expect(res.success).toBe(true);
       expect(ctx.__updates).toHaveLength(0);
     });
@@ -95,14 +90,14 @@ describe('runtime/declaration-executors', () => {
         {
           type: 'semantic-memory',
           properties: {
-            summary: 'last 5 actions',  // string → evaluated
-            maxItems: 100,              // number → pass-through
-            enabled: true,              // boolean → pass-through
-            tags: ['a', 'b'],           // array → pass-through
-            nested: { k: 'v' },         // object → pass-through
+            summary: 'last 5 actions', // string → evaluated
+            maxItems: 100, // number → pass-through
+            enabled: true, // boolean → pass-through
+            tags: ['a', 'b'], // array → pass-through
+            nested: { k: 'v' }, // object → pass-through
           },
         },
-        ctx,
+        ctx
       );
       expect(res.success).toBe(true);
       const output = res.output as unknown as {
@@ -125,10 +120,7 @@ describe('runtime/declaration-executors', () => {
     it('preserves node.type in output (semantic / episodic / procedural)', async () => {
       const ctx = mkCtx();
       for (const type of ['semantic-memory', 'episodic-memory', 'procedural-memory']) {
-        const res = await executeMemoryDefinition(
-          { type, properties: {} },
-          ctx,
-        );
+        const res = await executeMemoryDefinition({ type, properties: {} }, ctx);
         expect((res.output as { type: string }).type).toBe(type);
       }
     });
@@ -145,7 +137,7 @@ describe('runtime/declaration-executors', () => {
       const ctx = mkCtx();
       const res = await executeMemoryDefinition(
         { type: 'semantic-memory', properties: { a: 'x' } },
-        ctx,
+        ctx
       );
       expect(res.executionTime).toBeGreaterThanOrEqual(0);
     });

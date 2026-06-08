@@ -133,14 +133,14 @@ export function sensitivity(result: ExperimentResult): SensitivityResult[] {
 export function paretoFront(
   result: ExperimentResult,
   objective1: string,
-  objective2: string,
+  objective2: string
 ): ParetoPoint[] {
   const points: { index: number; o1: number; o2: number; overrides: Map<string, number> }[] = [];
 
   for (let i = 0; i < result.runs.length; i++) {
     const stats = result.runs[i].stats;
-    const o1 = typeof stats[objective1] === 'number' ? stats[objective1] as number : undefined;
-    const o2 = typeof stats[objective2] === 'number' ? stats[objective2] as number : undefined;
+    const o1 = typeof stats[objective1] === 'number' ? (stats[objective1] as number) : undefined;
+    const o2 = typeof stats[objective2] === 'number' ? (stats[objective2] as number) : undefined;
     if (o1 !== undefined && o2 !== undefined) {
       points.push({ index: i, o1, o2, overrides: result.runs[i].sample.overrides });
     }
@@ -184,7 +184,12 @@ export function exportSweepCSV(result: ExperimentResult): string {
 
   const rows = result.runs.map((run) => {
     const paramValues = params.map((p) => run.sample.overrides.get(p) ?? '');
-    return [...paramValues, run.converged ? 1 : 0, run.objectiveValue ?? '', run.timeMs.toFixed(1)].join(',');
+    return [
+      ...paramValues,
+      run.converged ? 1 : 0,
+      run.objectiveValue ?? '',
+      run.timeMs.toFixed(1),
+    ].join(',');
   });
 
   return [header, ...rows].join('\n');
@@ -194,7 +199,11 @@ export function exportSweepCSV(result: ExperimentResult): string {
 
 function pearsonCorrelation(pairs: [number, number][]): number {
   const n = pairs.length;
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+  let sumX = 0,
+    sumY = 0,
+    sumXY = 0,
+    sumX2 = 0,
+    sumY2 = 0;
 
   for (const [x, y] of pairs) {
     sumX += x;

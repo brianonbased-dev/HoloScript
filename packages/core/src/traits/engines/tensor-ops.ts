@@ -17,7 +17,11 @@ function sizeOf(shape: number[]): number {
 }
 
 export function createTensor(shape: number[], data?: ArrayLike<number>): DenseTensor {
-  if (!Array.isArray(shape) || shape.length === 0 || shape.some((d) => !Number.isInteger(d) || d <= 0)) {
+  if (
+    !Array.isArray(shape) ||
+    shape.length === 0 ||
+    shape.some((d) => !Number.isInteger(d) || d <= 0)
+  ) {
     throw new Error(`tensor-ops: invalid shape ${JSON.stringify(shape)}`);
   }
   const size = sizeOf(shape);

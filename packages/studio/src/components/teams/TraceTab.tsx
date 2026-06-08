@@ -143,22 +143,67 @@ interface TraceData {
 // Constants
 // ---------------------------------------------------------------------------
 
-const KIND_META: Record<
-  TraceKind,
-  { label: string; color: string; icon: React.ReactNode }
-> = {
-  task_created: { label: 'Task Created', color: 'bg-blue-500/15 text-blue-400 border-blue-500/20', icon: <FileText size={14} /> },
-  task_claimed: { label: 'Claimed', color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20', icon: <Clock size={14} /> },
-  task_done: { label: 'Done', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20', icon: <CheckCircle size={14} /> },
-  task_blocked: { label: 'Blocked', color: 'bg-red-500/15 text-red-400 border-red-500/20', icon: <AlertCircle size={14} /> },
-  message: { label: 'Message', color: 'bg-purple-500/15 text-purple-400 border-purple-500/20', icon: <MessageSquare size={14} /> },
-  mode_change: { label: 'Mode Change', color: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20', icon: <Layers size={14} /> },
-  feed: { label: 'Feed', color: 'bg-pink-500/15 text-pink-400 border-pink-500/20', icon: <Radio size={14} /> },
-  subagent: { label: 'Subagent', color: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20', icon: <Bot size={14} /> },
-  policy: { label: 'Policy', color: 'bg-orange-500/15 text-orange-400 border-orange-500/20', icon: <Shield size={14} /> },
-  artifact: { label: 'Artifact', color: 'bg-teal-500/15 text-teal-400 border-teal-500/20', icon: <Package size={14} /> },
-  presence: { label: 'Presence', color: 'bg-slate-500/15 text-slate-400 border-slate-500/20', icon: <User size={14} /> },
-  suggestion: { label: 'Suggestion', color: 'bg-amber-500/15 text-amber-400 border-amber-500/20', icon: <Lightbulb size={14} /> },
+const KIND_META: Record<TraceKind, { label: string; color: string; icon: React.ReactNode }> = {
+  task_created: {
+    label: 'Task Created',
+    color: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
+    icon: <FileText size={14} />,
+  },
+  task_claimed: {
+    label: 'Claimed',
+    color: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
+    icon: <Clock size={14} />,
+  },
+  task_done: {
+    label: 'Done',
+    color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+    icon: <CheckCircle size={14} />,
+  },
+  task_blocked: {
+    label: 'Blocked',
+    color: 'bg-red-500/15 text-red-400 border-red-500/20',
+    icon: <AlertCircle size={14} />,
+  },
+  message: {
+    label: 'Message',
+    color: 'bg-purple-500/15 text-purple-400 border-purple-500/20',
+    icon: <MessageSquare size={14} />,
+  },
+  mode_change: {
+    label: 'Mode Change',
+    color: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/20',
+    icon: <Layers size={14} />,
+  },
+  feed: {
+    label: 'Feed',
+    color: 'bg-pink-500/15 text-pink-400 border-pink-500/20',
+    icon: <Radio size={14} />,
+  },
+  subagent: {
+    label: 'Subagent',
+    color: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20',
+    icon: <Bot size={14} />,
+  },
+  policy: {
+    label: 'Policy',
+    color: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
+    icon: <Shield size={14} />,
+  },
+  artifact: {
+    label: 'Artifact',
+    color: 'bg-teal-500/15 text-teal-400 border-teal-500/20',
+    icon: <Package size={14} />,
+  },
+  presence: {
+    label: 'Presence',
+    color: 'bg-slate-500/15 text-slate-400 border-slate-500/20',
+    icon: <User size={14} />,
+  },
+  suggestion: {
+    label: 'Suggestion',
+    color: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+    icon: <Lightbulb size={14} />,
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -279,7 +324,9 @@ function TraceRow({ entry }: { entry: TraceEntry }) {
     <div className="group relative flex gap-3 py-2 pl-3 pr-2 transition-colors hover:bg-studio-panel/30">
       {/* Timeline line */}
       <div className="flex flex-col items-center">
-        <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${meta.color}`}>
+        <div
+          className={`flex h-6 w-6 items-center justify-center rounded-full border ${meta.color}`}
+        >
           {meta.icon}
         </div>
         <div className="w-px flex-1 bg-studio-border/40 group-last:h-2" />
@@ -346,7 +393,9 @@ function TraceRow({ entry }: { entry: TraceEntry }) {
             </span>
           )}
           {entry.eventType && (
-            <span className="rounded bg-slate-800/50 px-1 py-0.5 text-[10px]">{entry.eventType}</span>
+            <span className="rounded bg-slate-800/50 px-1 py-0.5 text-[10px]">
+              {entry.eventType}
+            </span>
           )}
           {entry.status && entry.kind !== 'task_created' && (
             <span className="rounded bg-slate-800/50 px-1 py-0.5 text-[10px]">{entry.status}</span>
@@ -366,7 +415,9 @@ function TraceRow({ entry }: { entry: TraceEntry }) {
         {entry.modeChange && (
           <div className="mt-1 text-[11px] text-indigo-300">
             {entry.modeChange.previousMode} {'->'} {entry.modeChange.newMode}
-            {entry.modeChange.reason && <span className="text-slate-500"> ({entry.modeChange.reason})</span>}
+            {entry.modeChange.reason && (
+              <span className="text-slate-500"> ({entry.modeChange.reason})</span>
+            )}
           </div>
         )}
 
@@ -460,9 +511,7 @@ export function TraceTab({ teamId }: { teamId: string }) {
     if (taskFilter) {
       out = out.filter(
         (e) =>
-          e.taskId === taskFilter ||
-          e.parentTaskId === taskFilter ||
-          e.childTaskId === taskFilter
+          e.taskId === taskFilter || e.parentTaskId === taskFilter || e.childTaskId === taskFilter
       );
     }
     if (statusFilter) {
@@ -564,7 +613,10 @@ export function TraceTab({ teamId }: { teamId: string }) {
           </select>
 
           <div className="relative ml-auto">
-            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-studio-muted" />
+            <Search
+              size={12}
+              className="absolute left-2 top-1/2 -translate-y-1/2 text-studio-muted"
+            />
             <input
               type="text"
               value={searchText}
@@ -597,7 +649,10 @@ export function TraceTab({ teamId }: { teamId: string }) {
         {loading ? (
           <div className="flex flex-col gap-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-16 rounded-xl border border-studio-border bg-[#111827] animate-pulse" />
+              <div
+                key={i}
+                className="h-16 rounded-xl border border-studio-border bg-[#111827] animate-pulse"
+              />
             ))}
           </div>
         ) : error ? (
@@ -608,7 +663,9 @@ export function TraceTab({ teamId }: { teamId: string }) {
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-sm text-studio-muted">No trace entries</p>
             <p className="mt-1 text-xs text-studio-muted/60">
-              {hasFilters ? 'Try relaxing your filters' : 'Team activity will appear here as agents work'}
+              {hasFilters
+                ? 'Try relaxing your filters'
+                : 'Team activity will appear here as agents work'}
             </p>
           </div>
         ) : (

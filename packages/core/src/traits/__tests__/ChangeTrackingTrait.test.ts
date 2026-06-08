@@ -48,22 +48,31 @@ describe('ChangeTrackingTrait — onEvent', () => {
   it('change:record adds entry and emits change:recorded', () => {
     const node = makeNode();
     changeTrackingHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    changeTrackingHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'change:record',
-      entityId: 'e1',
-      field: 'color',
-      oldValue: 'red',
-      newValue: 'blue',
-    } as never);
+    changeTrackingHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'change:record',
+        entityId: 'e1',
+        field: 'color',
+        oldValue: 'red',
+        newValue: 'blue',
+      } as never
+    );
     const state = node.__changeState as { history: Array<Record<string, unknown>> };
     expect(state.history.length).toBe(1);
     expect(state.history[0].entityId).toBe('e1');
     expect(state.history[0].field).toBe('color');
     expect(state.history[0].oldValue).toBe('red');
     expect(state.history[0].newValue).toBe('blue');
-    expect(node.emit).toHaveBeenCalledWith('change:recorded', expect.objectContaining({
-      entityId: 'e1', field: 'color',
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'change:recorded',
+      expect.objectContaining({
+        entityId: 'e1',
+        field: 'color',
+      })
+    );
   });
 
   it('history is capped at max_history', () => {
@@ -71,13 +80,18 @@ describe('ChangeTrackingTrait — onEvent', () => {
     const cfg = { max_history: 3 };
     changeTrackingHandler.onAttach!(node as never, cfg, makeCtx(node) as never);
     for (let i = 0; i < 5; i++) {
-      changeTrackingHandler.onEvent!(node as never, cfg, makeCtx(node) as never, {
-        type: 'change:record',
-        entityId: 'e1',
-        field: `f${i}`,
-        oldValue: i - 1,
-        newValue: i,
-      } as never);
+      changeTrackingHandler.onEvent!(
+        node as never,
+        cfg,
+        makeCtx(node) as never,
+        {
+          type: 'change:record',
+          entityId: 'e1',
+          field: `f${i}`,
+          oldValue: i - 1,
+          newValue: i,
+        } as never
+      );
     }
     const state = node.__changeState as { history: Array<Record<string, unknown>> };
     expect(state.history.length).toBe(3);
@@ -88,33 +102,67 @@ describe('ChangeTrackingTrait — onEvent', () => {
   it('change:query returns filtered history for entity', () => {
     const node = makeNode();
     changeTrackingHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    changeTrackingHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'change:record', entityId: 'e1', field: 'x', oldValue: 0, newValue: 1,
-    } as never);
-    changeTrackingHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'change:record', entityId: 'e2', field: 'y', oldValue: 0, newValue: 2,
-    } as never);
+    changeTrackingHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'change:record',
+        entityId: 'e1',
+        field: 'x',
+        oldValue: 0,
+        newValue: 1,
+      } as never
+    );
+    changeTrackingHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'change:record',
+        entityId: 'e2',
+        field: 'y',
+        oldValue: 0,
+        newValue: 2,
+      } as never
+    );
     node.emit.mockClear();
-    changeTrackingHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'change:query', entityId: 'e1',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('change:history', expect.objectContaining({
-      entityId: 'e1',
-      changes: expect.arrayContaining([
-        expect.objectContaining({ entityId: 'e1', field: 'x' }),
-      ]),
-    }));
+    changeTrackingHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'change:query',
+        entityId: 'e1',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'change:history',
+      expect.objectContaining({
+        entityId: 'e1',
+        changes: expect.arrayContaining([expect.objectContaining({ entityId: 'e1', field: 'x' })]),
+      })
+    );
   });
 
   it('change:query returns empty array for unknown entity', () => {
     const node = makeNode();
     changeTrackingHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    changeTrackingHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'change:query', entityId: 'nobody',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('change:history', expect.objectContaining({
-      entityId: 'nobody',
-      changes: [],
-    }));
+    changeTrackingHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'change:query',
+        entityId: 'nobody',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'change:history',
+      expect.objectContaining({
+        entityId: 'nobody',
+        changes: [],
+      })
+    );
   });
 });

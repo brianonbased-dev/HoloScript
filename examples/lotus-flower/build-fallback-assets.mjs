@@ -89,7 +89,7 @@ function makeOggCrcTable() {
   for (let i = 0; i < 256; i++) {
     let r = i << 24;
     for (let j = 0; j < 8; j++) {
-      r = r & 0x80000000 ? ((r << 1) ^ 0x04c11db7) : r << 1;
+      r = r & 0x80000000 ? (r << 1) ^ 0x04c11db7 : r << 1;
     }
     table[i] = r >>> 0;
   }
@@ -276,7 +276,9 @@ function encodeWav({ samples, sampleRate }) {
 
 async function buildOgg(name, sampleSpec) {
   if (!ffmpegPath) {
-    throw new Error('ffmpeg-static did not resolve; cannot generate deterministic OGG fallback audio');
+    throw new Error(
+      'ffmpeg-static did not resolve; cannot generate deterministic OGG fallback audio'
+    );
   }
   await mkdir(AUDIO_DIR, { recursive: true });
   const tempWav = path.join(AUDIO_DIR, `.${name}.tmp.wav`);
@@ -304,7 +306,7 @@ async function buildOgg(name, sampleSpec) {
   ]);
   const ogg = canonicalizeOggPages(
     await readFile(tempOgg),
-    createHash('sha256').update(`${SEED_LABEL}:${name}`).digest().readUInt32LE(0),
+    createHash('sha256').update(`${SEED_LABEL}:${name}`).digest().readUInt32LE(0)
   );
   await rm(tempWav, { force: true });
   await rm(tempOgg, { force: true });
@@ -365,11 +367,15 @@ async function checkManifest() {
         failures.push(`${asset.path}: byte length mismatch ${info.size} != ${asset.byte_length}`);
       }
     } catch (err) {
-      failures.push(`${asset.path}: missing or unreadable (${err instanceof Error ? err.message : String(err)})`);
+      failures.push(
+        `${asset.path}: missing or unreadable (${err instanceof Error ? err.message : String(err)})`
+      );
     }
   }
   if (failures.length > 0) {
-    throw new Error(`Lotus fallback asset check failed:\n${failures.map((f) => `- ${f}`).join('\n')}`);
+    throw new Error(
+      `Lotus fallback asset check failed:\n${failures.map((f) => `- ${f}`).join('\n')}`
+    );
   }
   return manifest;
 }

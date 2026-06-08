@@ -12,17 +12,24 @@ function mockFetch(handlers: {
     const u = String(url);
     const body = init?.body ? JSON.parse(String(init.body)) : {};
     if (u.endsWith('/register/challenge')) {
-      const h = handlers.challenge ?? ((b: unknown) => ({ status: 200, json: { nonce: `nonce-for-${(b as { wallet_address: string }).wallet_address}` } }));
+      const h =
+        handlers.challenge ??
+        ((b: unknown) => ({
+          status: 200,
+          json: { nonce: `nonce-for-${(b as { wallet_address: string }).wallet_address}` },
+        }));
       const r = h(body);
       return new Response(JSON.stringify(r.json), { status: r.status });
     }
     if (u.endsWith('/register')) {
-      const h = handlers.register ?? (() => ({
-        status: 201,
-        json: {
-          agent: { id: 'agent_test_123', api_key: 'test-api-key-44chars-aaaaaaaaaaaaaaaaaaaaa' },
-        },
-      }));
+      const h =
+        handlers.register ??
+        (() => ({
+          status: 201,
+          json: {
+            agent: { id: 'agent_test_123', api_key: 'test-api-key-44chars-aaaaaaaaaaaaaaaaaaaaa' },
+          },
+        }));
       const r = h(body);
       return new Response(JSON.stringify(r.json), { status: r.status });
     }

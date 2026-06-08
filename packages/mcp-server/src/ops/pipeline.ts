@@ -130,7 +130,8 @@ export class PredictiveLoadBalancer {
   private weights = new Map<string, number>();
 
   constructor(backends: string[]) {
-    if (backends.length === 0) throw new Error('PredictiveLoadBalancer requires at least one backend');
+    if (backends.length === 0)
+      throw new Error('PredictiveLoadBalancer requires at least one backend');
     this.backends = [...backends];
     const w = 1 / backends.length;
     for (const b of backends) this.weights.set(b, w);

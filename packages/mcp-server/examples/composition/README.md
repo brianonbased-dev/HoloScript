@@ -22,20 +22,22 @@ A composition demo proves that multiple primitives shipped independently **compo
 **Shipped**: 2026-05-07
 **Primitives composed**: 5
 
-| Step | Primitive | Source Commit | Purpose |
-|------|-----------|---------------|---------|
-| [1/5] | `SpatialMCPContext` | `jira 57fae81ba+ed284b32f+e134ee1c6` | VR user emits gaze + hands + room context |
-| [2/5] | `MeshToolRegistry` | `yqll e9942dc9e+1419cce6d` | Discover + invoke tools via capability tags |
-| [3/5] | `AgentNegotiation` | `xsp6 cbdab1387` | Quote → accept → execute → settle cycle |
-| [4/5] | `VaultLease` | `u8q2 16f5014be` | Task-scoped credential resolution |
-| [5/5] | `HologramMcpResponse` | `zp7u 642ab1d75` | Return typed hologram envelope to chat |
+| Step  | Primitive             | Source Commit                        | Purpose                                     |
+| ----- | --------------------- | ------------------------------------ | ------------------------------------------- |
+| [1/5] | `SpatialMCPContext`   | `jira 57fae81ba+ed284b32f+e134ee1c6` | VR user emits gaze + hands + room context   |
+| [2/5] | `MeshToolRegistry`    | `yqll e9942dc9e+1419cce6d`           | Discover + invoke tools via capability tags |
+| [3/5] | `AgentNegotiation`    | `xsp6 cbdab1387`                     | Quote → accept → execute → settle cycle     |
+| [4/5] | `VaultLease`          | `u8q2 16f5014be`                     | Task-scoped credential resolution           |
+| [5/5] | `HologramMcpResponse` | `zp7u 642ab1d75`                     | Return typed hologram envelope to chat      |
 
 **Phases**:
+
 - **Phase 1** (task_1778125252148_qe2i): Initial composition with local invoker stub
 - **Phase 2** (task_1778132217125_nme4): Real AlphaFold fetch against EBI API
 - **Phase 3** (task_1778144945320_979p): Chain-anchor settlement via `eth_sendTransaction`
 
 **Run the test**:
+
 ```bash
 cd packages/mcp-server
 pnpm test examples/composition/agentic-internet-demo.test.ts
@@ -68,6 +70,7 @@ pnpm test examples/composition/agentic-internet-demo.test.ts
 ## CI Coverage
 
 All composition examples run in GitHub Actions:
+
 - **Workflow**: `.github/workflows/mcp-quality-gate.yml`
 - **Trigger**: Push/PR to `main` touching `packages/mcp-server/**`
 - **Job**: `pnpm --filter @holoscript/mcp-server test`

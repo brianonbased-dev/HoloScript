@@ -55,9 +55,11 @@ export function attachTrait<T>(
   ctx: MockContext
 ): void | Promise<void> {
   const fullConfig = { ...handler.defaultConfig, ...config } as T;
-  return handler.onAttach?.(node as unknown as HSPlusNode, fullConfig, ctx as any) as
-    | void
-    | Promise<void>;
+  return handler.onAttach?.(
+    node as unknown as HSPlusNode,
+    fullConfig,
+    ctx as any
+  ) as void | Promise<void>;
 }
 
 export function sendEvent<T>(
@@ -68,9 +70,12 @@ export function sendEvent<T>(
   event: { type: string; [key: string]: unknown }
 ): void | Promise<void> {
   const fullConfig = { ...handler.defaultConfig, ...config } as T;
-  return handler.onEvent?.(node as unknown as HSPlusNode, fullConfig, ctx as any, event) as
-    | void
-    | Promise<void>;
+  return handler.onEvent?.(
+    node as unknown as HSPlusNode,
+    fullConfig,
+    ctx as any,
+    event
+  ) as void | Promise<void>;
 }
 
 export function updateTrait<T>(
@@ -81,7 +86,10 @@ export function updateTrait<T>(
   delta: number
 ): void | Promise<void> {
   const fullConfig = { ...handler.defaultConfig, ...config } as T;
-  return handler.onUpdate?.(node as unknown as HSPlusNode, fullConfig, ctx as any, delta) as
-    | void
-    | Promise<void>;
+  return handler.onUpdate?.(
+    node as unknown as HSPlusNode,
+    fullConfig,
+    ctx as any,
+    delta
+  ) as void | Promise<void>;
 }

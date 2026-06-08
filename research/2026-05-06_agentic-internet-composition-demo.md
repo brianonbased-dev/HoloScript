@@ -7,11 +7,11 @@
 
 ## What landed
 
-| File | Purpose |
-|------|---------|
-| `packages/mcp-server/examples/composition/agentic-internet-demo.holo` | Single `.holo` that names every node in the chain (VR user → spatial context → mesh tool routing → negotiation → vault lease → hologram). Reads as a contract, not a renderable scene. |
-| `packages/mcp-server/examples/composition/agentic-internet-demo.test.ts` | Runnable headless wiring. Imports the real primitives, exercises one happy-path cycle end-to-end, and pairs every computed assertion with a G.GOLD.013 false-case test. |
-| `research/2026-05-06_agentic-internet-composition-demo.md` (this file) | Memo + screen-recordable script. |
+| File                                                                     | Purpose                                                                                                                                                                                |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/mcp-server/examples/composition/agentic-internet-demo.holo`    | Single `.holo` that names every node in the chain (VR user → spatial context → mesh tool routing → negotiation → vault lease → hologram). Reads as a contract, not a renderable scene. |
+| `packages/mcp-server/examples/composition/agentic-internet-demo.test.ts` | Runnable headless wiring. Imports the real primitives, exercises one happy-path cycle end-to-end, and pairs every computed assertion with a G.GOLD.013 false-case test.                |
+| `research/2026-05-06_agentic-internet-composition-demo.md` (this file)   | Memo + screen-recordable script.                                                                                                                                                       |
 
 **Path note (intentional placement).** The task description names `examples/composition/...`, but the root vitest config excludes `**/examples/**`. Only `packages/mcp-server/vitest.config.ts` includes `examples/**/*.test.ts`. Files therefore live under `packages/mcp-server/examples/composition/` so the test actually runs in the repo's standard CI lane. The relative path inside the package matches the task spec; the `packages/mcp-server/` prefix exists only to land in vitest's discovery scope.
 
@@ -83,15 +83,15 @@ $ cd packages/mcp-server && npx vitest run examples/composition/agentic-internet
 
 **8 tests = 1 happy-path full-cycle + 7 G.GOLD.013 false-case pairs:**
 
-| Happy-path assertion | Paired false-case |
-|----------------------|-------------------|
-| `validateSpatialContext(ctx).ok === true` | non-unit gaze direction `[1,1,1]` rejected with `gaze.direction` error |
-| `verifyMeshToolAttestation(manifest) === true` | tampered `capabilityTags` flips verification false |
-| `advanceNegotiation('accept', initiator).ok === true` | responder accepting own quote returns `wrong-actor` |
-| `issueLease(env:ALPHAFOLD_API_KEY).ok === true` | `env:HOLOMESH_WALLET_KEY` returns `wallet_unleasable` (G.GOLD.016) |
-| `resolveSecret(in-scope-ref).resolved === true` | out-of-scope ref returns `lease_scope_violation` |
-| `detectHologramContent(envelope) !== null` | plain text envelope / null / random object all return null |
-| `verifyMeshToolInvocationChain([hop]).verified === true` | tampered `argsHash` breaks chain verification |
+| Happy-path assertion                                     | Paired false-case                                                      |
+| -------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `validateSpatialContext(ctx).ok === true`                | non-unit gaze direction `[1,1,1]` rejected with `gaze.direction` error |
+| `verifyMeshToolAttestation(manifest) === true`           | tampered `capabilityTags` flips verification false                     |
+| `advanceNegotiation('accept', initiator).ok === true`    | responder accepting own quote returns `wrong-actor`                    |
+| `issueLease(env:ALPHAFOLD_API_KEY).ok === true`          | `env:HOLOMESH_WALLET_KEY` returns `wallet_unleasable` (G.GOLD.016)     |
+| `resolveSecret(in-scope-ref).resolved === true`          | out-of-scope ref returns `lease_scope_violation`                       |
+| `detectHologramContent(envelope) !== null`               | plain text envelope / null / random object all return null             |
+| `verifyMeshToolInvocationChain([hop]).verified === true` | tampered `argsHash` breaks chain verification                          |
 
 The false-case discipline matters: if any of these primitives regressed to "always returns success," the happy-path tests would still pass but the paired false-case tests would flip red. That's the whole point of G.GOLD.013.
 
@@ -106,6 +106,7 @@ For a Loom / Quest 3 capture demonstrating the chain:
 **00:20–00:30** — Switch to terminal. Run `npx vitest run examples/composition/agentic-internet-demo.test.ts`. Show "8 passed" + duration.
 
 **00:30–00:55** — Walk the cycle in `agentic-internet-demo.test.ts` from top to bottom, reading the `// ── [N/5]` headers aloud:
+
 - [1/5] SPATIAL — `validateSpatialContext` ok, `pickPlacement` returns `'gaze-hit'` at `[0, 1.65, -0.5]`.
 - [2/5] ROUTING — `publishMeshToolManifest` → `discoverMeshTools('hologram alphafold')` finds 1 manifest.
 - [3/5] NEGOTIATION (a/b/c) — `open` → `quoted` (0.05 USDC) → `accepted` → `executed` → `settled` with co-signed receipt + `resultHash` matching `0x[0-9a-f]{64}`.
@@ -131,6 +132,7 @@ The substrate posture (D.022 Absorb = user-facing GOLD storage; D.026 HoloScript
 ## Stacks on / superseded by
 
 **Stacks on:**
+
 - jira `57fae81ba`+`ed284b32f`+`e134ee1c6` — SpatialMCPContext schema + spatial-mcp tool + spec.
 - yqll `e9942dc9e`+`1419cce6d` — mesh-native tool registry + invocation chain verification.
 - xsp6 `cbdab1387` — agent negotiation primitives + signed message channel.
@@ -138,6 +140,7 @@ The substrate posture (D.022 Absorb = user-facing GOLD storage; D.026 HoloScript
 - zp7u `642ab1d75` — hologram content_type protocol for MCP tools.
 
 **Stacked beneath (next steps, not this commit):**
+
 - Real AlphaFold HTTP hop instead of local invoker stub.
 - Chain-anchor settlement (W.GOLD.514 EIP-712-via-tx pattern).
 - Phase-2 `resolveSecretWithLease` adapter wrapping critical .env reads (Phase 1 issue noted in `vault-lease-registry.ts:60`).

@@ -43,7 +43,13 @@ describe('AuditLog', () => {
   it('appends one JSON-per-line event with full provenance for a task execution', () => {
     const path = tmpLog();
     const log = new AuditLog({ logPath: path });
-    log.recordTaskExecuted({ identity: IDENTITY, task: TASK, result: RESULT, commitHash: 'abc123', filePath: 'agent-out/memo.md' });
+    log.recordTaskExecuted({
+      identity: IDENTITY,
+      task: TASK,
+      result: RESULT,
+      commitHash: 'abc123',
+      filePath: 'agent-out/memo.md',
+    });
     const lines = readFileSync(path, 'utf8').split('\n').filter(Boolean);
     expect(lines).toHaveLength(1);
     const e = JSON.parse(lines[0]);
@@ -138,7 +144,11 @@ describe('AuditLog', () => {
     const path = tmpLog();
     const log = new AuditLog({ logPath: path, maxBytes: 100 });
     for (let i = 0; i < 5; i++) {
-      log.recordTaskExecuted({ identity: IDENTITY, task: { ...TASK, id: `t${i}` }, result: RESULT });
+      log.recordTaskExecuted({
+        identity: IDENTITY,
+        task: { ...TASK, id: `t${i}` },
+        result: RESULT,
+      });
     }
     const finalSize = statSync(path).size;
     expect(finalSize).toBeGreaterThan(0);

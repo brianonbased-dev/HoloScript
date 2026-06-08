@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-farm-twin",
-  name: "Farm Digital Twin",
-  description: "Real-time farm monitoring with crop health and weather data",
-  thumbnail: "🚜",
-  tags: ["agriculture","farm","digital-twin","monitoring"],
-  category: "agriculture",
+  id: 'wizard-farm-twin',
+  name: 'Farm Digital Twin',
+  description: 'Real-time farm monitoring with crop health and weather data',
+  thumbnail: '🚜',
+  tags: ['agriculture', 'farm', 'digital-twin', 'monitoring'],
+  category: 'agriculture',
   code: `composition "Farm Twin" {
   environment {
     skybox: "day"
@@ -68,7 +68,7 @@ export const template: SceneTemplate = {
     color: "#0a1a2e"
     label: "Farm Dashboard — All Systems Normal"
   }
-}`
+}`,
 };
 
 export default template;

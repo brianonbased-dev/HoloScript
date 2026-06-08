@@ -61,14 +61,7 @@ export function quaternionToMatrix3(q: Quaternion): Matrix {
  * P helper for the recursion. `i` in {-1,0,1} indexes the l=1 block columns;
  * the previous-order block `Rprev` (degree l-1) is read with a (l-1) offset.
  */
-function P(
-  i: number,
-  l: number,
-  a: number,
-  b: number,
-  R1: Matrix,
-  Rprev: Matrix
-): number {
+function P(i: number, l: number, a: number, b: number, R1: Matrix, Rprev: Matrix): number {
   const ri1 = R1[i + 1][2]; // column m=+1
   const rim1 = R1[i + 1][0]; // column m=-1
   const ri0 = R1[i + 1][1]; // column m=0
@@ -93,15 +86,11 @@ function V(l: number, m: number, n: number, R1: Matrix, Rprev: Matrix): number {
   if (m > 0) {
     const d = m === 1 ? 1 : 0;
     return (
-      P(1, l, m - 1, n, R1, Rprev) * Math.sqrt(1 + d) -
-      P(-1, l, -m + 1, n, R1, Rprev) * (1 - d)
+      P(1, l, m - 1, n, R1, Rprev) * Math.sqrt(1 + d) - P(-1, l, -m + 1, n, R1, Rprev) * (1 - d)
     );
   }
   const d = m === -1 ? 1 : 0;
-  return (
-    P(1, l, m + 1, n, R1, Rprev) * (1 - d) +
-    P(-1, l, -m - 1, n, R1, Rprev) * Math.sqrt(1 + d)
-  );
+  return P(1, l, m + 1, n, R1, Rprev) * (1 - d) + P(-1, l, -m - 1, n, R1, Rprev) * Math.sqrt(1 + d);
 }
 
 function W(l: number, m: number, n: number, R1: Matrix, Rprev: Matrix): number {
@@ -142,10 +131,7 @@ export function realSHRotationBlocks(R3: Matrix, order: number): Matrix[] {
           0.5 *
           Math.sqrt(((1 + d) * (l + Math.abs(m) - 1) * (l + Math.abs(m))) / denom) *
           (1 - 2 * d);
-        const w =
-          -0.5 *
-          Math.sqrt(((l - Math.abs(m) - 1) * (l - Math.abs(m))) / denom) *
-          (1 - d);
+        const w = -0.5 * Math.sqrt(((l - Math.abs(m) - 1) * (l - Math.abs(m))) / denom) * (1 - d);
         let val = 0;
         if (u !== 0) val += u * U(l, m, n, R1, Rprev);
         if (v !== 0) val += v * V(l, m, n, R1, Rprev);
@@ -164,9 +150,7 @@ export function realSHRotationBlocks(R3: Matrix, order: number): Matrix[] {
  */
 export function blocksToChannelMatrix(blocks: Matrix[], order: number): Matrix {
   const channels = (order + 1) * (order + 1);
-  const M: Matrix = Array.from({ length: channels }, () =>
-    new Array<number>(channels).fill(0)
-  );
+  const M: Matrix = Array.from({ length: channels }, () => new Array<number>(channels).fill(0));
   let base = 0;
   for (let l = 0; l <= order; l++) {
     const block = blocks[l];

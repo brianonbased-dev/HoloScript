@@ -469,17 +469,20 @@ export class PluginSandboxRunner {
       ...SAFE_GLOBALS,
       console: this.createSafeConsole(),
       // Plugin API surface
-      registerTool: this.testAblation.disableCapabilityChecks || this.hasPermission('tool:register')
-        ? (name: string, desc: string, handler: (...args: unknown[]) => unknown) =>
-            this.registerTool(name, desc, handler)
-        : undefined,
-      registerHandler: this.testAblation.disableCapabilityChecks || this.hasPermission('handler:register')
-        ? (event: string, handler: (...args: unknown[]) => void) =>
-            this.registerHandler(event, handler)
-        : undefined,
-      emitEvent: this.testAblation.disableCapabilityChecks || this.hasPermission('event:emit')
-        ? (event: string, payload?: unknown) => this.emitEvent(event, payload)
-        : undefined,
+      registerTool:
+        this.testAblation.disableCapabilityChecks || this.hasPermission('tool:register')
+          ? (name: string, desc: string, handler: (...args: unknown[]) => unknown) =>
+              this.registerTool(name, desc, handler)
+          : undefined,
+      registerHandler:
+        this.testAblation.disableCapabilityChecks || this.hasPermission('handler:register')
+          ? (event: string, handler: (...args: unknown[]) => void) =>
+              this.registerHandler(event, handler)
+          : undefined,
+      emitEvent:
+        this.testAblation.disableCapabilityChecks || this.hasPermission('event:emit')
+          ? (event: string, payload?: unknown) => this.emitEvent(event, payload)
+          : undefined,
       ...syscallSurface,
     });
 

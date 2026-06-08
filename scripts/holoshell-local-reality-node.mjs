@@ -21,7 +21,8 @@ import {
 export const VERSION = '0.1.0';
 export const WORKFLOW = 'holoshell-local-reality-node';
 export const SCHEMA_VERSION = 'holoscript.holoshell.local-reality-node.receipt.v0.1.0';
-export const DEFAULT_SOURCE = 'experiments/holoshell-human-os-frontier/flagship-readiness-room.holo';
+export const DEFAULT_SOURCE =
+  'experiments/holoshell-human-os-frontier/flagship-readiness-room.holo';
 export const DEFAULT_OUT = '.scratch/holoshell-local-reality-node/local-reality-node-receipt.json';
 
 const DEFAULT_OPERATION = 'inspect';
@@ -99,9 +100,7 @@ function nowIso(args = {}) {
 }
 
 function stripComments(source) {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
 function extractCompositionName(source) {
@@ -305,7 +304,9 @@ export function projectShellObject({ sourcePath, sourceHash, compositionName, ob
 }
 
 function isNonEmptyObject(value) {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0);
+  return Boolean(
+    value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0
+  );
 }
 
 export function validateLocalRealityNodeReceipt(receipt) {
@@ -319,7 +320,8 @@ export function validateLocalRealityNodeReceipt(receipt) {
   }
   if (!receipt?.projectedState?.id) errors.push('projected state id missing');
   if (!receipt?.projectedState?.objectName) errors.push('projected state objectName missing');
-  if (!isNonEmptyObject(receipt?.projectedState?.state)) errors.push('projected shell-object runtime state is empty');
+  if (!isNonEmptyObject(receipt?.projectedState?.state))
+    errors.push('projected shell-object runtime state is empty');
   if (receipt?.operation?.mutationExecuted !== false) {
     errors.push('local reality node proof must not execute mutations');
   }
@@ -341,10 +343,9 @@ export function buildLocalRealityNodeReceipt(options = {}) {
   const objects = extractHoloObjects(sourceText);
   if (objects.length === 0) throw new Error(`No object declarations found in ${sourceRepoPath}`);
 
-  const selectedObject =
-    options.object
-      ? objects.find((object) => object.name === options.object)
-      : objects[0];
+  const selectedObject = options.object
+    ? objects.find((object) => object.name === options.object)
+    : objects[0];
   if (!selectedObject) {
     throw new Error(`Object not found in ${sourceRepoPath}: ${options.object}`);
   }

@@ -277,7 +277,11 @@ export async function dream(
   const wakingTrace = parseCAELJSONL(wakingJSONL);
   assertValidTrace(wakingTrace);
 
-  const { config: wakingConfig, contractConfig: wakingContract, parentRunId } = readInit(wakingTrace);
+  const {
+    config: wakingConfig,
+    contractConfig: wakingContract,
+    parentRunId,
+  } = readInit(wakingTrace);
   const rng = mulberry32(dreamConfig.seed);
 
   const episodes: DreamEpisodeResult[] = [];
@@ -299,7 +303,11 @@ export async function dream(
     }
 
     const contractConfig = dreamConfig.contractConfigOverride ?? wakingContract;
-    const recorder = new CAELRecorder(solverFactory(perturbedConfig), perturbedConfig, contractConfig);
+    const recorder = new CAELRecorder(
+      solverFactory(perturbedConfig),
+      perturbedConfig,
+      contractConfig
+    );
 
     recorder.logInteraction('cael.dream', {
       wakingRunId: parentRunId,

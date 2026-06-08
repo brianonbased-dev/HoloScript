@@ -125,13 +125,22 @@ export const autonomousAgendaHandler: TraitHandler<AutonomousAgendaConfig> = {
         const pending = state?.items?.filter((i: any) => !i.completedAt).length ?? 0;
         const actionsToday = state?.actionsToday ?? 0;
         const spentToday = state?.spentToday ?? 0;
-        const actionPriority = Math.min(1, (pending * 0.15) + (actionsToday / Math.max(1, config.max_actions_per_day)) * 0.5);
+        const actionPriority = Math.min(
+          1,
+          pending * 0.15 + (actionsToday / Math.max(1, config.max_actions_per_day)) * 0.5
+        );
         const budgetPressure = Math.min(1, spentToday / Math.max(1, config.daily_budget_usd));
         return {
           axis_1_id: 'action_priority',
           axis_2_id: 'budget_pressure',
-          pos_1: state !== undefined ? actionPriority : ((ctx.metadata as Record<string, number> | undefined)?.action_priority ?? 0.6),
-          pos_2: state !== undefined ? budgetPressure : ((ctx.metadata as Record<string, number> | undefined)?.budget_pressure ?? 0.3),
+          pos_1:
+            state !== undefined
+              ? actionPriority
+              : ((ctx.metadata as Record<string, number> | undefined)?.action_priority ?? 0.6),
+          pos_2:
+            state !== undefined
+              ? budgetPressure
+              : ((ctx.metadata as Record<string, number> | undefined)?.budget_pressure ?? 0.3),
           pillar_id: this.id,
           pillar_domain: this.domain,
         };
@@ -157,7 +166,10 @@ export const autonomousAgendaHandler: TraitHandler<AutonomousAgendaConfig> = {
     state.lastTick = now;
 
     // Cost-ceiling check BEFORE proposing actions
-    if (state.spentToday >= config.daily_budget_usd || state.actionsToday >= config.max_actions_per_day) {
+    if (
+      state.spentToday >= config.daily_budget_usd ||
+      state.actionsToday >= config.max_actions_per_day
+    ) {
       if (config.pause_on_ceiling) {
         state.paused = true;
         state.pauseReason = 'daily_budget_or_action_ceiling';
@@ -185,7 +197,10 @@ export const autonomousAgendaHandler: TraitHandler<AutonomousAgendaConfig> = {
     // action_priority derived from pending items + recency pressure; budget_pressure from spend vs daily ceiling.
     // Feeds the Pillar-Slice Framework / GRPO / RecursiveMAS with authentic runtime coordinates.
     const pending = state.items.filter((i) => !i.completedAt).length;
-    const actionPriority = Math.min(1, (pending * 0.15) + (state.actionsToday / Math.max(1, config.max_actions_per_day)) * 0.5);
+    const actionPriority = Math.min(
+      1,
+      pending * 0.15 + (state.actionsToday / Math.max(1, config.max_actions_per_day)) * 0.5
+    );
     const budgetPressure = Math.min(1, state.spentToday / Math.max(1, config.daily_budget_usd));
     context.emit?.('pillar:slice', {
       slice: {
@@ -211,7 +226,8 @@ export const autonomousAgendaHandler: TraitHandler<AutonomousAgendaConfig> = {
         id: String(payload.id ?? `item_${Date.now()}`),
         title: String(payload.title ?? 'Untitled'),
         priority: typeof payload.priority === 'number' ? payload.priority : 5,
-        estimatedCostUsd: typeof payload.estimatedCostUsd === 'number' ? payload.estimatedCostUsd : 0,
+        estimatedCostUsd:
+          typeof payload.estimatedCostUsd === 'number' ? payload.estimatedCostUsd : 0,
         deadlineMs: typeof payload.deadlineMs === 'number' ? payload.deadlineMs : undefined,
       };
       state.items.push(item);

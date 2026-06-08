@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { bilinearResize, estimateDepthFromUrl, _resetDepthPipelineCache } from '../hologram-depth-estimator';
+import {
+  bilinearResize,
+  estimateDepthFromUrl,
+  _resetDepthPipelineCache,
+} from '../hologram-depth-estimator';
 
 // ---------------------------------------------------------------------------
 // bilinearResize — pure function tests (no mocking needed)

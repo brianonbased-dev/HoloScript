@@ -94,16 +94,18 @@ export class WorldGeneratorService {
   }
 
   /**
-  * Register the built-in sovereign adapter (SovereignWorldAdapter — Brittney v43+).
+   * Register the built-in sovereign adapter (SovereignWorldAdapter — Brittney v43+).
    * Call once during scene/runtime bootstrap.
    */
   registerDefaultAdapters(): void {
     if (this.defaultAdaptersRegistered) return;
-    this.registry.register(new Sovereign3DAdapter({
-      // HOLOSCRIPT_SOVEREIGN_MOCK=true enables deterministic mock output when the
-      // live sovereign service (wss://api.hololand.io) is offline or not yet deployed.
-      mockMode: Boolean(process.env.HOLOSCRIPT_SOVEREIGN_MOCK),
-    }));
+    this.registry.register(
+      new Sovereign3DAdapter({
+        // HOLOSCRIPT_SOVEREIGN_MOCK=true enables deterministic mock output when the
+        // live sovereign service (wss://api.hololand.io) is offline or not yet deployed.
+        mockMode: Boolean(process.env.HOLOSCRIPT_SOVEREIGN_MOCK),
+      })
+    );
     this.defaultAdaptersRegistered = true;
   }
 
@@ -129,10 +131,7 @@ export class WorldGeneratorService {
   // CORE HANDLER
   // ---------------------------------------------------------------------------
 
-  async handleGenerateEvent(
-    emitter: WorldEventEmitter,
-    event: WorldGenerateEvent
-  ): Promise<void> {
+  async handleGenerateEvent(emitter: WorldEventEmitter, event: WorldGenerateEvent): Promise<void> {
     const { nodeId, engine } = event;
 
     // Validate adapter availability
@@ -154,9 +153,7 @@ export class WorldGeneratorService {
       ...(event.input_images ? { input_images: event.input_images } : {}),
       ...(event.seed !== undefined ? { seed: event.seed } : {}),
       ...(event.navEnabled !== undefined ? { navEnabled: event.navEnabled } : {}),
-      ...(event.interactiveMode !== undefined
-        ? { interactiveMode: event.interactiveMode }
-        : {}),
+      ...(event.interactiveMode !== undefined ? { interactiveMode: event.interactiveMode } : {}),
     };
 
     try {

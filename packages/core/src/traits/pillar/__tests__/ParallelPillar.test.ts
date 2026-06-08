@@ -83,7 +83,7 @@ function makeSlice(pos_1: number, pos_2: number, pillar_id = 'test'): PillarSlic
 
 describe('computeParallelBounds', () => {
   it('produces correct box when left < right', () => {
-    const left  = makeSlice(0.2, 0.1);
+    const left = makeSlice(0.2, 0.1);
     const right = makeSlice(0.8, 0.9);
     const result = computeParallelBounds(left, right);
 
@@ -98,7 +98,7 @@ describe('computeParallelBounds', () => {
   });
 
   it('produces correct box when right < left (symmetric)', () => {
-    const left  = makeSlice(0.9, 0.8);
+    const left = makeSlice(0.9, 0.8);
     const right = makeSlice(0.1, 0.2);
     const result = computeParallelBounds(left, right);
 
@@ -117,7 +117,7 @@ describe('computeParallelBounds', () => {
   });
 
   it('box_area ∈ [0, 1]', () => {
-    const left  = makeSlice(0.0, 0.0);
+    const left = makeSlice(0.0, 0.0);
     const right = makeSlice(1.0, 1.0);
     const result = computeParallelBounds(left, right);
 
@@ -219,11 +219,11 @@ describe('parallelPillarHandler', () => {
       type: 'pillar:list_parallel',
     });
 
-    const listEvent = events.find(e => e.name === 'pillar:parallel_registry');
+    const listEvent = events.find((e) => e.name === 'pillar:parallel_registry');
     expect(listEvent).toBeDefined();
     const { parallels } = listEvent!.payload as { parallels: ParallelPillarSummary[] };
     expect(parallels.length).toBe(SEED_PARALLEL_PILLARS.length);
-    const ids = parallels.map(p => p.id);
+    const ids = parallels.map((p) => p.id);
     expect(ids).toContain('energy_entropy_parallel');
     expect(ids).toContain('truth_physics_parallel');
     expect(ids).toContain('temporal_lateral_parallel');
@@ -236,7 +236,7 @@ describe('parallelPillarHandler', () => {
       context: DEFAULT_CONTEXT,
     });
 
-    const sliceEvent = events.find(e => e.name === 'pillar:parallel_slice');
+    const sliceEvent = events.find((e) => e.name === 'pillar:parallel_slice');
     expect(sliceEvent).toBeDefined();
     const { slice } = sliceEvent!.payload as { slice: ParallelPillarSlice };
     expect(slice.parallel_id).toBe('energy_entropy_parallel');
@@ -253,8 +253,9 @@ describe('parallelPillarHandler', () => {
       context: DEFAULT_CONTEXT,
     });
 
-    const { slice } = (events.find(e => e.name === 'pillar:parallel_slice')?.payload) as
-      { slice: ParallelPillarSlice };
+    const { slice } = events.find((e) => e.name === 'pillar:parallel_slice')?.payload as {
+      slice: ParallelPillarSlice;
+    };
     expect(slice.left.pillar_domain).toBe('truth_approval');
     expect(slice.right.pillar_domain).toBe('physics');
   });
@@ -266,8 +267,9 @@ describe('parallelPillarHandler', () => {
       context: DEFAULT_CONTEXT,
     });
 
-    const { slice } = (events.find(e => e.name === 'pillar:parallel_slice')?.payload) as
-      { slice: ParallelPillarSlice };
+    const { slice } = events.find((e) => e.name === 'pillar:parallel_slice')?.payload as {
+      slice: ParallelPillarSlice;
+    };
     expect(slice.left.pillar_domain).toBe('steady_state');
     expect(slice.right.pillar_domain).toBe('steady_state');
   });
@@ -277,7 +279,7 @@ describe('parallelPillarHandler', () => {
       type: 'pillar:generate_parallel',
     });
 
-    const err = events.find(e => e.name === 'pillar:parallel_error');
+    const err = events.find((e) => e.name === 'pillar:parallel_error');
     expect(err).toBeDefined();
     expect((err!.payload as { code: string }).code).toBe('PARALLEL_NOT_FOUND');
   });
@@ -288,7 +290,7 @@ describe('parallelPillarHandler', () => {
       parallel_id: 'does_not_exist',
     });
 
-    const err = events.find(e => e.name === 'pillar:parallel_error');
+    const err = events.find((e) => e.name === 'pillar:parallel_error');
     expect(err).toBeDefined();
     expect((err!.payload as { code: string }).code).toBe('PARALLEL_NOT_FOUND');
   });
@@ -298,7 +300,7 @@ describe('parallelPillarHandler', () => {
     const customPP = makeParallelPillar(
       'custom_test_parallel',
       LEFT_PHYSICS_PILLAR,
-      RIGHT_PHYSICS_PILLAR,
+      RIGHT_PHYSICS_PILLAR
     );
 
     parallelPillarHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
@@ -306,7 +308,7 @@ describe('parallelPillarHandler', () => {
       parallel: customPP,
     });
 
-    const registered = events.find(e => e.name === 'pillar:parallel_registered');
+    const registered = events.find((e) => e.name === 'pillar:parallel_registered');
     expect(registered).toBeDefined();
     expect((registered!.payload as { id: string }).id).toBe('custom_test_parallel');
 
@@ -318,7 +320,7 @@ describe('parallelPillarHandler', () => {
       context: DEFAULT_CONTEXT,
     });
 
-    const sliceEvent = events.find(e => e.name === 'pillar:parallel_slice');
+    const sliceEvent = events.find((e) => e.name === 'pillar:parallel_slice');
     expect(sliceEvent).toBeDefined();
   });
 
@@ -345,8 +347,9 @@ describe('parallelPillarHandler', () => {
       context: sameValCtx,
     });
 
-    const { slice } = (events.find(e => e.name === 'pillar:parallel_slice')?.payload) as
-      { slice: ParallelPillarSlice };
+    const { slice } = events.find((e) => e.name === 'pillar:parallel_slice')?.payload as {
+      slice: ParallelPillarSlice;
+    };
 
     // pos_1: left=0.5, right=0.5 → width=0
     // pos_2: left=0.3, right=0.3 → height=0 → box_area=0 → agreement=1

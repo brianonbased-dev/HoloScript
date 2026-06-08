@@ -60,9 +60,9 @@ export class JointSystem {
       type,
       bodyA,
       bodyB,
-      anchorA: config?.anchorA ?? [0, 0, 0 ],
-      anchorB: config?.anchorB ?? [0, 0, 0 ],
-      axis: config?.axis ?? [0, 1, 0 ],
+      anchorA: config?.anchorA ?? [0, 0, 0],
+      anchorB: config?.anchorB ?? [0, 0, 0],
+      axis: config?.axis ?? [0, 1, 0],
       limits: config?.limits,
       breakForce: config?.breakForce ?? Infinity,
       stiffness: config?.stiffness ?? 1,
@@ -207,10 +207,7 @@ export class JointSystem {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private distance3D(
-    a: Vector3,
-    b: Vector3
-  ): number {
+  private distance3D(a: Vector3, b: Vector3): number {
     const dx = b[0] - a[0],
       dy = b[1] - a[1],
       dz = b[2] - a[2];

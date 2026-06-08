@@ -363,15 +363,13 @@ function parseArgs(argv: string[]): CLIOptions {
  *
  * Phase B1d of task_1777429131189_5d74.
  */
-async function createDaemonLLMProvider(opts: CLIOptions): Promise<import('@holoscript/absorb-service/daemon').LLMProvider> {
+async function createDaemonLLMProvider(
+  opts: CLIOptions
+): Promise<import('@holoscript/absorb-service/daemon').LLMProvider> {
   // Dynamic import for ESM compatibility — adapters are loaded only when
   // a daemon session actually needs LLM, not at CLI startup.
-  const {
-    AnthropicAdapter,
-    XAIAdapter,
-    OpenAIAdapter,
-    LocalLLMAdapter,
-  } = await import('@holoscript/llm-provider');
+  const { AnthropicAdapter, XAIAdapter, OpenAIAdapter, LocalLLMAdapter } =
+    await import('@holoscript/llm-provider');
 
   if (opts.provider === 'anthropic') {
     const adapter = new AnthropicAdapter({
@@ -451,7 +449,7 @@ async function createDaemonLLMProvider(opts: CLIOptions): Promise<import('@holos
   if (!ollamaUrl) {
     throw new Error(
       'Ollama selected but OLLAMA_BASE_URL/OLLAMA_URL not set. ' +
-      'Use --provider anthropic|xai|openai or set OLLAMA_BASE_URL in .env'
+        'Use --provider anthropic|xai|openai or set OLLAMA_BASE_URL in .env'
     );
   }
   const adapter = new LocalLLMAdapter({
@@ -724,19 +722,19 @@ async function runDaemon(runtime: DaemonRuntime, opts: CLIOptions): Promise<void
     close();
   });
 
-interface DaemonCommand {
-  op: string;
-  count?: number;
-  event?: string;
-  payload?: any;
-  key?: string;
-  value?: any;
-  name?: string;
-  timeoutMs?: number;
-  actionRequestId?: string;
-  status?: string;
-  success?: boolean;
-}
+  interface DaemonCommand {
+    op: string;
+    count?: number;
+    event?: string;
+    payload?: any;
+    key?: string;
+    value?: any;
+    name?: string;
+    timeoutMs?: number;
+    actionRequestId?: string;
+    status?: string;
+    success?: boolean;
+  }
 
   rl.on('line', (line: string) => {
     const raw = line.trim();
@@ -940,9 +938,8 @@ async function runScript(opts: CLIOptions): Promise<void> {
   const { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } = await loadEngineRuntime();
 
   // Create runtime
-  const profile = opts.profile === 'headless'
-    ? HEADLESS_PROFILE
-    : getProfile(opts.profile as EngineProfileName);
+  const profile =
+    opts.profile === 'headless' ? HEADLESS_PROFILE : getProfile(opts.profile as EngineProfileName);
   const runtime = createHeadlessRuntime(ast as unknown as EngineAST, {
     profile,
     tickRate: 10,
@@ -1074,7 +1071,11 @@ async function testScript(opts: CLIOptions): Promise<void> {
   const ast = parseResult.ast as HSPlusAST;
   const { createHeadlessRuntime, HEADLESS_PROFILE } = await loadEngineRuntime();
   const profile = HEADLESS_PROFILE;
-  const runtime = createHeadlessRuntime(ast as unknown as EngineAST, { profile, tickRate: 10, debug: opts.debug });
+  const runtime = createHeadlessRuntime(ast as unknown as EngineAST, {
+    profile,
+    tickRate: 10,
+    debug: opts.debug,
+  });
   runtime.start();
   // Note: getState() with no args is implemented on HeadlessRuntimeImpl but not exposed
   // on the HeadlessRuntime interface. Use a typed accessor via unknown to bridge.
@@ -1590,9 +1591,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 /** Extract @economy trait config from composition AST (walks body/children). */
-function extractEconomyConfig(
-  ast: Record<string, unknown>
-):
+function extractEconomyConfig(ast: Record<string, unknown>):
   | {
       budget?: number;
       default_spend_limit?: number;
@@ -1712,8 +1711,8 @@ function loadRuntimeSkillActions(
         }
 
         const runtimeArgs = Array.isArray(params.args)
-          // @ts-expect-error During migration
-          ? params.args.filter((v): v is string => typeof v === 'string')
+          ? // @ts-expect-error During migration
+            params.args.filter((v): v is string => typeof v === 'string')
           : [];
         const timeoutMs =
           typeof params.timeoutMs === 'number' && Number.isFinite(params.timeoutMs)
@@ -1755,7 +1754,8 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   }
 
   // Lazy-load absorb-service daemon (not a dependency of core — avoids module-load failures in tests)
-  const { createDaemonActions, getDaemonFileState } = await import('@holoscript/absorb-service/daemon');
+  const { createDaemonActions, getDaemonFileState } =
+    await import('@holoscript/absorb-service/daemon');
 
   const repoRoot = findGitRoot(path.dirname(filePath));
   const source = fs.readFileSync(filePath, 'utf-8');
@@ -1890,12 +1890,24 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
     fs.mkdirSync(skillsDirAbs, { recursive: true });
   }
 
-  let runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host as Parameters<typeof loadRuntimeSkillActions>[2], repoRoot, opts.debug);
+  let runtimeSkillActions = loadRuntimeSkillActions(
+    skillsDirAbs,
+    opts,
+    host as Parameters<typeof loadRuntimeSkillActions>[2],
+    repoRoot,
+    opts.debug
+  );
   let activeRuntime: { registerAction: (name: string, handler: ActionHandler) => void } | null =
     null;
 
   const reloadRuntimeSkills = () => {
-    runtimeSkillActions = loadRuntimeSkillActions(skillsDirAbs, opts, host as Parameters<typeof loadRuntimeSkillActions>[2], repoRoot, opts.debug);
+    runtimeSkillActions = loadRuntimeSkillActions(
+      skillsDirAbs,
+      opts,
+      host as Parameters<typeof loadRuntimeSkillActions>[2],
+      repoRoot,
+      opts.debug
+    );
     if (activeRuntime) {
       for (const [name, handler] of Object.entries(runtimeSkillActions)) {
         activeRuntime.registerAction(name, handler);
@@ -2002,7 +2014,10 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   let daemonState: DaemonPersistedState = { ...daemonStateDefaults };
   if (fs.existsSync(stateFile)) {
     try {
-      daemonState = { ...daemonState, ...(readJson(fs.readFileSync(stateFile, 'utf-8')) as Record<string, unknown>) };
+      daemonState = {
+        ...daemonState,
+        ...(readJson(fs.readFileSync(stateFile, 'utf-8')) as Record<string, unknown>),
+      };
     } catch {
       /* use defaults */
     }
@@ -2013,7 +2028,10 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
   const fileStateFile = path.join(stateDir, 'daemon-file-state.json');
   if (fs.existsSync(fileStateFile)) {
     try {
-      const fileState = readJson(fs.readFileSync(fileStateFile, 'utf-8')) as Record<string, unknown>;
+      const fileState = readJson(fs.readFileSync(fileStateFile, 'utf-8')) as Record<
+        string,
+        unknown
+      >;
       config.committedFiles = fileState.committed || [];
       config.failedFiles = fileState.failures || {};
     } catch {
@@ -2061,7 +2079,10 @@ export async function daemonScript(opts: CLIOptions): Promise<void> {
       let wisdomEntries: Array<{ focus?: string; delta?: number }> = [];
       try {
         if (fs.existsSync(wisdomFile)) {
-          wisdomEntries = readJson(fs.readFileSync(wisdomFile, 'utf-8')) as Array<{ focus?: string; delta?: number }>;
+          wisdomEntries = readJson(fs.readFileSync(wisdomFile, 'utf-8')) as Array<{
+            focus?: string;
+            delta?: number;
+          }>;
         }
       } catch {
         /* ignore */

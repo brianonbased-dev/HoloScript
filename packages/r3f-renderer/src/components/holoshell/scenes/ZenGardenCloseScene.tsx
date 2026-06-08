@@ -72,7 +72,9 @@ const ZenGardenCloseScene: React.FC<ZenGardenCloseSceneProps> = ({
     const stops: Array<() => void> = [];
     const timers: Array<ReturnType<typeof setTimeout>> = [];
     try {
-      const audioCtx: AudioContext = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
+      const audioCtx: AudioContext = new (
+        (window as any).AudioContext || (window as any).webkitAudioContext
+      )();
       ctx = audioCtx;
       const master = audioCtx.createGain();
       master.gain.value = 0.014; // extremely faint zen bed
@@ -115,7 +117,12 @@ const ZenGardenCloseScene: React.FC<ZenGardenCloseSceneProps> = ({
       dG.connect(master);
       dew.start();
       dLfo.start();
-      stops.push(() => { try { dew.stop(); dLfo.stop(); } catch {} });
+      stops.push(() => {
+        try {
+          dew.stop();
+          dLfo.stop();
+        } catch {}
+      });
 
       // extremely faint single wind chime tones — sparse metallic rings, long decay, very occasional
       const scheduleChime = () => {
@@ -142,25 +149,36 @@ const ZenGardenCloseScene: React.FC<ZenGardenCloseSceneProps> = ({
         cG.gain.setValueAtTime(0.0001, now);
         cG.gain.linearRampToValueAtTime(0.65, now + 0.08);
         cG.gain.linearRampToValueAtTime(0.00001, now + 2.85 + Math.random() * 0.6);
-        setTimeout(() => { try { chime.stop(); } catch {} }, 4200);
+        setTimeout(() => {
+          try {
+            chime.stop();
+          } catch {}
+        }, 4200);
         // occasional 2nd softer overtone for realism
         if (Math.random() < 0.45) {
-          setTimeout(() => {
-            if (!audioCtx) return;
-            const n2 = audioCtx.currentTime;
-            const ch2 = audioCtx.createOscillator();
-            ch2.type = 'sine';
-            ch2.frequency.value = chime.frequency.value * 2.02 + Math.random() * 30;
-            const ch2G = audioCtx.createGain();
-            ch2G.gain.value = 0.0;
-            ch2.connect(ch2G);
-            ch2G.connect(master);
-            ch2.start(n2);
-            ch2G.gain.setValueAtTime(0.0001, n2);
-            ch2G.gain.linearRampToValueAtTime(0.18, n2 + 0.05);
-            ch2G.gain.linearRampToValueAtTime(0.00001, n2 + 1.9);
-            setTimeout(() => { try { ch2.stop(); } catch {} }, 2800);
-          }, 90 + Math.random() * 40);
+          setTimeout(
+            () => {
+              if (!audioCtx) return;
+              const n2 = audioCtx.currentTime;
+              const ch2 = audioCtx.createOscillator();
+              ch2.type = 'sine';
+              ch2.frequency.value = chime.frequency.value * 2.02 + Math.random() * 30;
+              const ch2G = audioCtx.createGain();
+              ch2G.gain.value = 0.0;
+              ch2.connect(ch2G);
+              ch2G.connect(master);
+              ch2.start(n2);
+              ch2G.gain.setValueAtTime(0.0001, n2);
+              ch2G.gain.linearRampToValueAtTime(0.18, n2 + 0.05);
+              ch2G.gain.linearRampToValueAtTime(0.00001, n2 + 1.9);
+              setTimeout(() => {
+                try {
+                  ch2.stop();
+                } catch {}
+              }, 2800);
+            },
+            90 + Math.random() * 40
+          );
         }
         timers.push(setTimeout(scheduleChime, 9200 + Math.random() * 11500));
       };

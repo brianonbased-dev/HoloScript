@@ -11,13 +11,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const runner = resolve(
-  root,
-  'packages',
-  'absorb-service',
-  'scripts',
-  'bench-paper-5-accuracy.mjs'
-);
+const runner = resolve(root, 'packages', 'absorb-service', 'scripts', 'bench-paper-5-accuracy.mjs');
 
 if (!existsSync(runner)) {
   console.error(`[paper-5-accuracy-bench] missing package runner: ${runner}`);

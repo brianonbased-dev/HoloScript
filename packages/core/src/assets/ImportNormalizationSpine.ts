@@ -54,18 +54,20 @@ export async function normalizeLegacyToGLTF(
   const isDirectGltf = ext === 'gltf' || ext === 'glb';
 
   const inputSize =
-    typeof data === 'string'
-      ? data.length
-      : data instanceof ArrayBuffer
-        ? data.byteLength
-        : 0;
+    typeof data === 'string' ? data.length : data instanceof ArrayBuffer ? data.byteLength : 0;
 
   const source: SourceImportReceipt = {
     sourceHash: `sha256:ph-${filename}-${inputSize}`,
     sourceFormat: ext || 'unknown',
     sourceUri: opts.sourceUri,
-    converter: isDirectGltf ? 'direct-gltf' : (opts.preferNativeAssimp ? 'native-assimp' : 'assimpjs'),
-    warnings: isDirectGltf ? [] : ['Phase-1 stub: real Assimp/MSF conversion pending; using placeholder receipts'],
+    converter: isDirectGltf
+      ? 'direct-gltf'
+      : opts.preferNativeAssimp
+        ? 'native-assimp'
+        : 'assimpjs',
+    warnings: isDirectGltf
+      ? []
+      : ['Phase-1 stub: real Assimp/MSF conversion pending; using placeholder receipts'],
     inputSizeBytes: inputSize,
     convertedAt: now,
   };

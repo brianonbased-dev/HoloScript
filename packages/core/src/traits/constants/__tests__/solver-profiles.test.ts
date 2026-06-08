@@ -54,7 +54,7 @@ describe('SESL Solver Profiles', () => {
         expect(profile.version).toMatch(/^\d+\.\d+\.\d+$/);
         expect(profile.tags).toBeInstanceOf(Array);
         expect(profile.tags.length).toBeGreaterThan(0);
-      },
+      }
     );
 
     it.each(ALL_PROFILES.map((p) => ({ profile: p, id: p.id })))(
@@ -62,7 +62,7 @@ describe('SESL Solver Profiles', () => {
       ({ profile }) => {
         const requiredFields = profile.evidenceFields.filter((f) => f.required);
         expect(requiredFields.length).toBeGreaterThan(0);
-      },
+      }
     );
 
     it.each(ALL_PROFILES.map((p) => ({ profile: p, id: p.id })))(
@@ -75,14 +75,14 @@ describe('SESL Solver Profiles', () => {
           expect(typeof field.required).toBe('boolean');
           expect(field.description).toBeTruthy();
         }
-      },
+      }
     );
 
     it.each(ALL_PROFILES.map((p) => ({ profile: p, id: p.id })))(
       '$id has at least one tag containing "sesl"',
       ({ profile }) => {
         expect(profile.tags).toContain('sesl');
-      },
+      }
     );
   });
 
@@ -225,7 +225,9 @@ describe('SESL Solver Profiles', () => {
     });
 
     it('getSolverProfile throws for unknown profile', () => {
-      expect(() => getSolverProfile('unknown-domain')).toThrow('Unknown solver profile: unknown-domain');
+      expect(() => getSolverProfile('unknown-domain')).toThrow(
+        'Unknown solver profile: unknown-domain'
+      );
     });
 
     it('getSolverProfileIds returns all 5 profile IDs', () => {
@@ -329,7 +331,7 @@ describe('SESL Solver Profiles', () => {
         expect(profile.caelTrace.eventPattern).toBeTruthy();
         expect(profile.caelTrace.eventPattern).toContain(profile.id.split('-')[0]);
         expect(typeof profile.caelTrace.required).toBe('boolean');
-      },
+      }
     );
   });
 });

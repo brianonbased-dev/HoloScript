@@ -85,7 +85,8 @@ export function extractChannel(fits: FITSFile, channel: number): Float32Array {
  * Useful for colormap normalization.
  */
 export function fitsDataRange(fits: FITSFile): [number, number] {
-  let min = Infinity, max = -Infinity;
+  let min = Infinity,
+    max = -Infinity;
   for (let i = 0; i < fits.data.length; i++) {
     const v = fits.data[i];
     if (v < min) min = v;

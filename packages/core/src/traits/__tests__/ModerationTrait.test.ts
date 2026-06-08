@@ -5,7 +5,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { moderationHandler } from '../ModerationTrait';
 
 const makeNode = () => ({
-  id: 'n1', traits: new Set<string>(), emit: vi.fn(),
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
   __moderationState: undefined as unknown,
 });
 const makeCtx = (node: ReturnType<typeof makeNode>) => ({
@@ -34,20 +36,34 @@ describe('ModerationTrait', () => {
   it('onAttach emits moderation_create', () => {
     const node = makeNode();
     moderationHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    expect(node.emit).toHaveBeenCalledWith('moderation_create', expect.objectContaining({
-      sensitivity: 'medium',
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'moderation_create',
+      expect.objectContaining({
+        sensitivity: 'medium',
+      })
+    );
   });
 
   it('moderation_check emits moderation_analyze', () => {
     const node = makeNode();
     moderationHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    moderationHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'moderation_check', userId: 'u1', content: 'hello world', contentType: 'text',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('moderation_analyze', expect.objectContaining({
-      userId: 'u1',
-    }));
+    moderationHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'moderation_check',
+        userId: 'u1',
+        content: 'hello world',
+        contentType: 'text',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'moderation_analyze',
+      expect.objectContaining({
+        userId: 'u1',
+      })
+    );
   });
 });

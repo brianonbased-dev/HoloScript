@@ -93,12 +93,7 @@ export function resolveTtuEndpoint(
     const rest = endpoint.slice('crdt://'.length);
     // Expect: holomesh/feed/ttu/<sessionId>
     const parts = rest.split('/').filter(Boolean);
-    if (
-      parts.length < 4 ||
-      parts[0] !== 'holomesh' ||
-      parts[1] !== 'feed' ||
-      parts[2] !== 'ttu'
-    ) {
+    if (parts.length < 4 || parts[0] !== 'holomesh' || parts[1] !== 'feed' || parts[2] !== 'ttu') {
       throw new Error(
         `HoloMeshProphecyTransport: unsupported CRDT URI shape: ${endpoint} ` +
           `(expected crdt://holomesh/feed/ttu/<sessionId>)`
@@ -113,9 +108,7 @@ export function resolveTtuEndpoint(
     const rest = endpoint.slice('ttu://'.length);
     const parts = rest.split('/').filter(Boolean);
     if (parts.length < 2) {
-      throw new Error(
-        `HoloMeshProphecyTransport: unsupported ttu URI shape: ${endpoint}`
-      );
+      throw new Error(`HoloMeshProphecyTransport: unsupported ttu URI shape: ${endpoint}`);
     }
     const targetHost = parts[0].includes('://') ? parts[0] : `https://${parts[0]}`;
     const sessionId = parts.slice(1).join('/');
@@ -172,10 +165,7 @@ export class HoloMeshProphecyTransport implements ProphecyTransport {
   async initialize(config: ProphecyConfig): Promise<void> {
     // Resolve up-front so a malformed endpoint surfaces at construction-
     // adjacent time rather than first frame.
-    this.resolved = resolveTtuEndpoint(
-      this.options.endpoint,
-      this.options.holomeshHost
-    );
+    this.resolved = resolveTtuEndpoint(this.options.endpoint, this.options.holomeshHost);
 
     if (this.options.fallback && !this.initializedFallback) {
       await this.options.fallback.initialize(config);
@@ -249,8 +239,7 @@ export class HoloMeshProphecyTransport implements ProphecyTransport {
       return tagged;
     }
 
-    const reason =
-      lastError instanceof Error ? lastError.message : String(lastError ?? 'unknown');
+    const reason = lastError instanceof Error ? lastError.message : String(lastError ?? 'unknown');
     throw new ProphecyNotImplementedError(
       `holomesh@${this.options.endpoint} (no fallback configured; last error: ${reason})`
     );

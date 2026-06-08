@@ -19,10 +19,10 @@ function makeSimpleConfig(overrides?: Partial<ReactionDiffusionConfig>): Reactio
     {
       label: 'A + B → C',
       stoichiometry: { A: -1, B: -1, C: 1 },
-      preExponential: 1e3,       // 1/s (for 2nd order, m³/(mol·s))
-      activationEnergy: 20000,   // 20 kJ/mol
+      preExponential: 1e3, // 1/s (for 2nd order, m³/(mol·s))
+      activationEnergy: 20000, // 20 kJ/mol
       orders: { A: 1, B: 1 },
-      enthalpy: -50000,          // -50 kJ/mol (exothermic)
+      enthalpy: -50000, // -50 kJ/mol (exothermic)
     },
   ];
 
@@ -51,14 +51,16 @@ describe('ReactionDiffusionSolver', () => {
   });
 
   it('conserves total moles during reaction (A+B → C)', () => {
-    const solver = new ReactionDiffusionSolver(makeSimpleConfig({
-      // Disable diffusion to isolate reaction
-      species: [
-        { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
-      ],
-    }));
+    const solver = new ReactionDiffusionSolver(
+      makeSimpleConfig({
+        // Disable diffusion to isolate reaction
+        species: [
+          { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
+        ],
+      })
+    );
 
     // Step forward
     for (let i = 0; i < 10; i++) solver.step(0.001);
@@ -81,24 +83,28 @@ describe('ReactionDiffusionSolver', () => {
 
   it('Arrhenius rate increases with temperature', () => {
     // Low temperature → slow reaction
-    const solverLow = new ReactionDiffusionSolver(makeSimpleConfig({
-      referenceTemperature: 300,
-      species: [
-        { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
-      ],
-    }));
+    const solverLow = new ReactionDiffusionSolver(
+      makeSimpleConfig({
+        referenceTemperature: 300,
+        species: [
+          { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
+        ],
+      })
+    );
 
     // High temperature → fast reaction
-    const solverHigh = new ReactionDiffusionSolver(makeSimpleConfig({
-      referenceTemperature: 500,
-      species: [
-        { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
-      ],
-    }));
+    const solverHigh = new ReactionDiffusionSolver(
+      makeSimpleConfig({
+        referenceTemperature: 500,
+        species: [
+          { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
+        ],
+      })
+    );
 
     for (let i = 0; i < 5; i++) {
       solverLow.step(0.001);
@@ -113,13 +119,15 @@ describe('ReactionDiffusionSolver', () => {
   });
 
   it('produces positive heat release for exothermic reaction', () => {
-    const solver = new ReactionDiffusionSolver(makeSimpleConfig({
-      species: [
-        { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
-      ],
-    }));
+    const solver = new ReactionDiffusionSolver(
+      makeSimpleConfig({
+        species: [
+          { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
+        ],
+      })
+    );
 
     solver.step(0.001);
 
@@ -136,9 +144,7 @@ describe('ReactionDiffusionSolver', () => {
   it('diffusion spreads concentration', () => {
     // Set up a species with high concentration in center, zero elsewhere
     const config = makeSimpleConfig({
-      species: [
-        { name: 'A', diffusivity: 0.1, initialConcentration: 0.0 },
-      ],
+      species: [{ name: 'A', diffusivity: 0.1, initialConcentration: 0.0 }],
       reactions: [], // No reactions, pure diffusion
     });
 
@@ -161,13 +167,15 @@ describe('ReactionDiffusionSolver', () => {
   });
 
   it('concentrations stay non-negative', () => {
-    const solver = new ReactionDiffusionSolver(makeSimpleConfig({
-      species: [
-        { name: 'A', diffusivity: 0, initialConcentration: 0.01 }, // Small amount
-        { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
-      ],
-    }));
+    const solver = new ReactionDiffusionSolver(
+      makeSimpleConfig({
+        species: [
+          { name: 'A', diffusivity: 0, initialConcentration: 0.01 }, // Small amount
+          { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
+        ],
+      })
+    );
 
     // Many steps — A should deplete but never go negative
     for (let i = 0; i < 100; i++) solver.step(0.001);
@@ -208,15 +216,17 @@ describe('ReactionDiffusionSolver', () => {
 
   it('couples to ThermalSolver via CouplingManagerV2', () => {
     // Create reaction-diffusion solver
-    const rdSolver = new ReactionDiffusionSolver(makeSimpleConfig({
-      gridResolution: [5, 5, 5],
-      domainSize: [1, 1, 1],
-      species: [
-        { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
-      ],
-    }));
+    const rdSolver = new ReactionDiffusionSolver(
+      makeSimpleConfig({
+        gridResolution: [5, 5, 5],
+        domainSize: [1, 1, 1],
+        species: [
+          { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
+        ],
+      })
+    );
 
     // Create thermal solver
     const thermalSolver = new ThermalSolver({
@@ -266,13 +276,15 @@ describe('ReactionDiffusionSolver', () => {
   });
 
   it('adaptive RK tracks substep statistics', () => {
-    const solver = new ReactionDiffusionSolver(makeSimpleConfig({
-      species: [
-        { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
-      ],
-    }));
+    const solver = new ReactionDiffusionSolver(
+      makeSimpleConfig({
+        species: [
+          { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
+        ],
+      })
+    );
 
     solver.step(0.01);
 
@@ -282,14 +294,16 @@ describe('ReactionDiffusionSolver', () => {
   });
 
   it('handles zero-rate reaction (no activation energy bypass)', () => {
-    const solver = new ReactionDiffusionSolver(makeSimpleConfig({
-      referenceTemperature: 1, // Very low T → exp(-Ea/(R*T)) ≈ 0
-      species: [
-        { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
-        { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
-      ],
-    }));
+    const solver = new ReactionDiffusionSolver(
+      makeSimpleConfig({
+        referenceTemperature: 1, // Very low T → exp(-Ea/(R*T)) ≈ 0
+        species: [
+          { name: 'A', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'B', diffusivity: 0, initialConcentration: 1.0 },
+          { name: 'C', diffusivity: 0, initialConcentration: 0.0 },
+        ],
+      })
+    );
 
     solver.step(0.001);
 

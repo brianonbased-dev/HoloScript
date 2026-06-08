@@ -42,7 +42,10 @@ export function listSkillResources(): SkillResource[] {
       const raw = fs.readFileSync(skillPath, 'utf-8');
       const firstLine = raw.split(/\r?\n/).find((l) => l.trim().length > 0);
       if (firstLine) {
-        description = firstLine.trim().replace(/^#+\s*/, '').slice(0, 200);
+        description = firstLine
+          .trim()
+          .replace(/^#+\s*/, '')
+          .slice(0, 200);
       }
     } catch {
       // ignore read errors, fall back to generic description

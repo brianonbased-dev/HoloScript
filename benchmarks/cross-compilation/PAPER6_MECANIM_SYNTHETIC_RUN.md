@@ -19,10 +19,10 @@ pnpm run benchmark:paper6:mecanim-matrix
 
 ## Captured run (regenerate for camera-ready)
 
-| Field | Value |
-|-------|--------|
-| **Host OS** | win32 x64 |
-| **Node** | v22.22.0 |
+| Field        | Value      |
+| ------------ | ---------- |
+| **Host OS**  | win32 x64  |
+| **Node**     | v22.22.0   |
 | **Captured** | 2026-04-21 |
 
 ### `[paper-6][gpu-matrix]` (max L1 per cell, tab-separated)
@@ -38,8 +38,8 @@ Row labels = layer counts `[3,4,5,6,7,8]`; column seeds = `[11,22,33,44,55,66]`.
 4.219	4.317	3.399	4.254	5.255	4.833
 ```
 
-- **cells** = 36  
-- **wallMs** (one local run) ≈ 10.8 ms  
+- **cells** = 36
+- **wallMs** (one local run) ≈ 10.8 ms
 
 Code: `packages/core/src/compiler/__tests__/paper-6-mecanim-divergence-matrix.bench.test.ts`  
 Narrative: `memory/paper-6-mecanim-divergence-harness.md` (if present in checkout).

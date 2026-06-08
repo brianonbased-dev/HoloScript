@@ -280,11 +280,17 @@ export async function runEmergentSpacetimeBenchmark(
   // Measure force-layout overhead
   const frameWithoutGuardStart = performance.now();
   for (let i = 0; i < 10; i++) {
-    emergentSpacetimeHandler.onUpdate(nodeWithoutGuard, configWithoutGuard, {} as any, 16.67 / 1000);
+    emergentSpacetimeHandler.onUpdate(
+      nodeWithoutGuard,
+      configWithoutGuard,
+      {} as any,
+      16.67 / 1000
+    );
   }
   const avgFrameWithoutGuard = (performance.now() - frameWithoutGuardStart) / 10;
   const avgFrameWithGuard = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
-  const forceLayoutOverhead = ((avgFrameWithGuard - avgFrameWithoutGuard) / avgFrameWithoutGuard) * 100;
+  const forceLayoutOverhead =
+    ((avgFrameWithGuard - avgFrameWithoutGuard) / avgFrameWithoutGuard) * 100;
 
   // ═══════════════════════════════════════════════════════════════
   // Phase 3: Statistics
@@ -412,13 +418,26 @@ if (typeof process !== 'undefined' && process.argv) {
   const args = process.argv.slice(2);
   if (args.includes('--run')) {
     runEmergentSpacetimeBenchmark({
-      voxelCount: parseInt(args.find(a => a.startsWith('--voxels='))?.split('=')[1] || '1000', 10),
-      frameSamples: parseInt(args.find(a => a.startsWith('--frames='))?.split('=')[1] || '300', 10),
-    }).then(results => {
+      voxelCount: parseInt(
+        args.find((a) => a.startsWith('--voxels='))?.split('=')[1] || '1000',
+        10
+      ),
+      frameSamples: parseInt(
+        args.find((a) => a.startsWith('--frames='))?.split('=')[1] || '300',
+        10
+      ),
+    }).then((results) => {
       console.log('\n=== EmergentSpacetime RTX 6000 Ada Benchmark ===\n');
       console.table(results.summary);
       console.log('\nHardware:', results.hardware.gpu);
-      console.log('Budget OK:', results.budgetCheck.within60fpsBudget ? '✓ 60 FPS' : results.budgetCheck.within30fpsBudget ? '✓ 30 FPS' : '✗');
+      console.log(
+        'Budget OK:',
+        results.budgetCheck.within60fpsBudget
+          ? '✓ 60 FPS'
+          : results.budgetCheck.within30fpsBudget
+            ? '✓ 30 FPS'
+            : '✗'
+      );
       if (results.budgetCheck.violations.length > 0) {
         console.log('Violations:', results.budgetCheck.violations);
       }

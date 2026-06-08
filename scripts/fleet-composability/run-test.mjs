@@ -51,7 +51,10 @@ function parseArgs(argv) {
     source: 'cael',
     allowSynthetic: false,
     allowObservationGaps: false,
-    apiBase: (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(/\/api\/holomesh\/?$/, ''),
+    apiBase: (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(
+      /\/api\/holomesh\/?$/,
+      ''
+    ),
     apiKey: process.env.HOLOMESH_API_KEY || null,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -71,10 +74,14 @@ function parseArgs(argv) {
     throw new Error(`--source must be synthetic|cael (got "${args.source}")`);
   }
   if (args.source === 'synthetic' && !args.allowSynthetic) {
-    throw new Error('--source synthetic requires --allow-synthetic; scaffold output is not paper evidence');
+    throw new Error(
+      '--source synthetic requires --allow-synthetic; scaffold output is not paper evidence'
+    );
   }
   if (args.source === 'cael' && !args.apiKey) {
-    throw new Error('--source cael requires HOLOMESH_API_KEY env var (read access to /api/holomesh/agent/:handle/audit)');
+    throw new Error(
+      '--source cael requires HOLOMESH_API_KEY env var (read access to /api/holomesh/agent/:handle/audit)'
+    );
   }
   return args;
 }
@@ -135,7 +142,9 @@ function composeChain(chain) {
   if (filtered.length === 0) return null;
   if (filtered.length === 1) return filtered[0];
   const sorted = filtered.slice().sort();
-  return createHash('sha256').update(`⊗:${sorted.join(':')}`).digest('hex');
+  return createHash('sha256')
+    .update(`⊗:${sorted.join(':')}`)
+    .digest('hex');
 }
 
 // ---------------------------------------------------------------------------
@@ -172,14 +181,15 @@ async function fetchCaelRecords(args, handle, sinceIso, untilIso) {
   return body.records || [];
 }
 
-function evidenceProvenance(args, { handle, sinceIso = null, untilIso = null, recordsObserved = 0, error = null }) {
+function evidenceProvenance(
+  args,
+  { handle, sinceIso = null, untilIso = null, recordsObserved = 0, error = null }
+) {
   return {
     source: args.source,
     scaffold: args.source === 'synthetic',
     paper_evidence_eligible: args.source === 'cael' && recordsObserved > 0 && !error,
-    endpoint: args.source === 'cael'
-      ? `/api/holomesh/agent/${handle}/audit`
-      : null,
+    endpoint: args.source === 'cael' ? `/api/holomesh/agent/${handle}/audit` : null,
     api_base: args.source === 'cael' ? args.apiBase : null,
     since: sinceIso,
     until: untilIso,
@@ -270,9 +280,7 @@ async function captureAgentChain(agent, tickIso, args) {
   const layers = [];
   for (let j = 1; j <= 7; j++) {
     // Synthetic: deterministic per (handle, tick, layer). Real impl reads CAEL.
-    const h = createHash('sha256')
-      .update(`${agent.handle}:${tickIso}:layer${j}`)
-      .digest('hex');
+    const h = createHash('sha256').update(`${agent.handle}:${tickIso}:layer${j}`).digest('hex');
     layers.push(h);
   }
   return {
@@ -311,7 +319,9 @@ function composeCrossAgentTests(perAgentChains) {
 
   if (intraComposes.length === 0) {
     return {
-      fwd: null, rev: null, rand: null,
+      fwd: null,
+      rev: null,
+      rand: null,
       associativity_pass: false,
       permutation_invariance_pass: false,
       idempotency_pass: false,
@@ -331,7 +341,9 @@ function composeCrossAgentTests(perAgentChains) {
   const idempotency_pass = idempotentJoin(fwd, fwd) === fwd;
 
   return {
-    fwd, rev, rand,
+    fwd,
+    rev,
+    rand,
     associativity_pass,
     permutation_invariance_pass,
     idempotency_pass,
@@ -352,7 +364,7 @@ function planTickWindows(n, windowSizeMs) {
   const stepMs = (24 * 60 * 60 * 1000) / n;
   const windows = [];
   for (let i = 0; i < n; i++) {
-    const startMs = now - (24 * 60 * 60 * 1000) + i * stepMs;
+    const startMs = now - 24 * 60 * 60 * 1000 + i * stepMs;
     const start = new Date(startMs).toISOString();
     windows.push({ window_index: i, start, window_size_ms: windowSizeMs });
   }
@@ -403,10 +415,14 @@ async function main() {
 
   console.log(`[fleet-composability] run-id=${args.runId}`);
   console.log(`[fleet-composability] fleet size=${fleet.length}`);
-  console.log(`[fleet-composability] tick windows=${args.tickWindows} window-size-ms=${args.windowSizeMs}`);
-  console.log(args.source === 'cael'
-    ? `[fleet-composability] STATUS: live CAEL read mode`
-    : `[fleet-composability] STATUS: scaffold synthetic mode (explicit opt-in; not paper evidence)`);
+  console.log(
+    `[fleet-composability] tick windows=${args.tickWindows} window-size-ms=${args.windowSizeMs}`
+  );
+  console.log(
+    args.source === 'cael'
+      ? `[fleet-composability] STATUS: live CAEL read mode`
+      : `[fleet-composability] STATUS: scaffold synthetic mode (explicit opt-in; not paper evidence)`
+  );
 
   if (fleet.length === 0) {
     console.error(`[fleet-composability] FATAL: empty fleet (agents.json had no enabled agents)`);
@@ -420,51 +436,72 @@ async function main() {
     const r = await runWindow(w, fleet, args);
     results.push(r);
     const { associativity_pass: a, permutation_invariance_pass: p, idempotency_pass: i } = r.tests;
-    console.log(`assoc=${a ? 'PASS' : 'FAIL'} perm=${p ? 'PASS' : 'FAIL'} idem=${i ? 'PASS' : 'FAIL'} (${r.elapsed_ms}ms)`);
+    console.log(
+      `assoc=${a ? 'PASS' : 'FAIL'} perm=${p ? 'PASS' : 'FAIL'} idem=${i ? 'PASS' : 'FAIL'} (${r.elapsed_ms}ms)`
+    );
   }
 
   // Aggregate pass/fail across windows
   const summary = {
     associativity_passes: results.filter((r) => r.tests.associativity_pass).length,
-    permutation_invariance_passes: results.filter((r) => r.tests.permutation_invariance_pass).length,
+    permutation_invariance_passes: results.filter((r) => r.tests.permutation_invariance_pass)
+      .length,
     idempotency_passes: results.filter((r) => r.tests.idempotency_pass).length,
     total_windows: results.length,
     tractability_pass: results.every((r) => r.elapsed_ms < 10_000),
     fleet_n: fleet.length,
     evidence_source: args.source,
     scaffold_mode: args.source === 'synthetic',
-    records_observed: results.reduce((sum, r) => sum + (r.evidence_provenance?.records_observed || 0), 0),
-    observation_gap_windows: results.filter((r) => r.evidence_provenance?.observation_gaps?.length > 0).length,
-    paper_evidence_eligible: args.source === 'cael'
-      && results.every((r) => r.evidence_provenance?.paper_evidence_eligible),
+    records_observed: results.reduce(
+      (sum, r) => sum + (r.evidence_provenance?.records_observed || 0),
+      0
+    ),
+    observation_gap_windows: results.filter(
+      (r) => r.evidence_provenance?.observation_gaps?.length > 0
+    ).length,
+    paper_evidence_eligible:
+      args.source === 'cael' &&
+      results.every((r) => r.evidence_provenance?.paper_evidence_eligible),
   };
 
   const resultsDir = join(__dirname, 'results');
   if (!existsSync(resultsDir)) await mkdir(resultsDir, { recursive: true });
 
   const outPath = join(resultsDir, `${args.runId}.json`);
-  await writeFile(outPath, JSON.stringify({
-    run_id: args.runId,
-    started_at: new Date().toISOString(),
-    evidence_provenance: {
-      source: args.source,
-      scaffold: args.source === 'synthetic',
-      paper_evidence_eligible: summary.paper_evidence_eligible,
-      api_base: args.source === 'cael' ? args.apiBase : null,
-      synthetic_opt_in: args.allowSynthetic,
-      observation_gaps_allowed: args.allowObservationGaps,
-    },
-    fleet_n: fleet.length,
-    tick_windows_planned: args.tickWindows,
-    window_size_ms: args.windowSizeMs,
-    summary,
-    windows: results,
-  }, null, 2), 'utf8');
+  await writeFile(
+    outPath,
+    JSON.stringify(
+      {
+        run_id: args.runId,
+        started_at: new Date().toISOString(),
+        evidence_provenance: {
+          source: args.source,
+          scaffold: args.source === 'synthetic',
+          paper_evidence_eligible: summary.paper_evidence_eligible,
+          api_base: args.source === 'cael' ? args.apiBase : null,
+          synthetic_opt_in: args.allowSynthetic,
+          observation_gaps_allowed: args.allowObservationGaps,
+        },
+        fleet_n: fleet.length,
+        tick_windows_planned: args.tickWindows,
+        window_size_ms: args.windowSizeMs,
+        summary,
+        windows: results,
+      },
+      null,
+      2
+    ),
+    'utf8'
+  );
 
   console.log(`[fleet-composability] wrote ${outPath}`);
   console.log(`[fleet-composability] SUMMARY:`);
-  console.log(`  Associativity:           ${summary.associativity_passes}/${summary.total_windows}`);
-  console.log(`  Permutation invariance:  ${summary.permutation_invariance_passes}/${summary.total_windows}`);
+  console.log(
+    `  Associativity:           ${summary.associativity_passes}/${summary.total_windows}`
+  );
+  console.log(
+    `  Permutation invariance:  ${summary.permutation_invariance_passes}/${summary.total_windows}`
+  );
   console.log(`  Idempotency:             ${summary.idempotency_passes}/${summary.total_windows}`);
   console.log(`  Tractability (<10s):     ${summary.tractability_pass ? 'PASS' : 'FAIL'}`);
   console.log(`  Fleet N:                 ${summary.fleet_n}`);
@@ -473,27 +510,38 @@ async function main() {
   console.log(`  Paper evidence eligible: ${summary.paper_evidence_eligible ? 'YES' : 'NO'}`);
 
   if (args.source === 'synthetic') {
-    console.log(`[fleet-composability] OUTCOME: Scaffold smoke only — synthetic output is not paper evidence.`);
+    console.log(
+      `[fleet-composability] OUTCOME: Scaffold smoke only — synthetic output is not paper evidence.`
+    );
     return;
   }
 
   if (summary.observation_gap_windows > 0 && !args.allowObservationGaps) {
-    console.error(`[fleet-composability] FATAL: live CAEL observation gaps in ${summary.observation_gap_windows}/${summary.total_windows} windows; no paper outcome reported.`);
-    console.error(`[fleet-composability] Re-run with --allow-observation-gaps only for diagnostics, not paper evidence.`);
+    console.error(
+      `[fleet-composability] FATAL: live CAEL observation gaps in ${summary.observation_gap_windows}/${summary.total_windows} windows; no paper outcome reported.`
+    );
+    console.error(
+      `[fleet-composability] Re-run with --allow-observation-gaps only for diagnostics, not paper evidence.`
+    );
     process.exit(2);
   }
 
   // Determine outcome class per spec §4
-  const allTestsPass = summary.associativity_passes === summary.total_windows
-    && summary.permutation_invariance_passes >= Math.ceil(summary.total_windows * 0.75)
-    && summary.idempotency_passes === summary.total_windows;
+  const allTestsPass =
+    summary.associativity_passes === summary.total_windows &&
+    summary.permutation_invariance_passes >= Math.ceil(summary.total_windows * 0.75) &&
+    summary.idempotency_passes === summary.total_windows;
 
   if (allTestsPass && summary.tractability_pass) {
-    console.log(`[fleet-composability] OUTCOME: Case A — W.GOLD.189 empirically defended at N=${fleet.length}`);
+    console.log(
+      `[fleet-composability] OUTCOME: Case A — W.GOLD.189 empirically defended at N=${fleet.length}`
+    );
   } else if (allTestsPass && !summary.tractability_pass) {
     console.log(`[fleet-composability] OUTCOME: Case C — composability holds, tractability fails`);
   } else {
-    console.log(`[fleet-composability] OUTCOME: Case B — algebraic identity has a structural limit at fleet scale`);
+    console.log(
+      `[fleet-composability] OUTCOME: Case B — algebraic identity has a structural limit at fleet scale`
+    );
   }
 }
 

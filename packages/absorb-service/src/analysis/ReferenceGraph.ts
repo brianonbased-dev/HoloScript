@@ -509,7 +509,7 @@ export class ReferenceGraph {
             line: func.loc?.start.line || node.loc?.start.line || 1,
             column: func.loc?.start.column || node.loc?.start.column || 1,
             loc: asSymbolLocation(func.loc || node.loc),
-            provenance: asSymbolProvenance(func.provenance as any || node.provenance as any),
+            provenance: asSymbolProvenance((func.provenance as any) || (node.provenance as any)),
             parent: parent ?? undefined,
             metadata: { fromAST: true, provenance: func.provenance || node.provenance },
           });

@@ -11,7 +11,7 @@ import { validateTrustReceipt } from '../TrustReceipt';
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 function makeValidPayload(
-  overrides: Partial<ProviderExportCustodyPayload> = {},
+  overrides: Partial<ProviderExportCustodyPayload> = {}
 ): ProviderExportCustodyPayload {
   return {
     workflow: 'browser_account_export',
@@ -42,7 +42,7 @@ function makeValidPayload(
 }
 
 function makeValidOptions(
-  overrides: Partial<ProviderExportCustodyAdapterOptions> = {},
+  overrides: Partial<ProviderExportCustodyAdapterOptions> = {}
 ): ProviderExportCustodyAdapterOptions {
   return {
     passportDid: 'did:holoscript:test_actor',
@@ -78,31 +78,41 @@ describe('validateProviderExportCustody', () => {
   });
 
   it('rejects invalid phase', () => {
-    const result = validateProviderExportCustody(makeValidPayload({ phase: 'invalid_phase' as never }));
+    const result = validateProviderExportCustody(
+      makeValidPayload({ phase: 'invalid_phase' as never })
+    );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('Invalid phase'))).toBe(true);
   });
 
   it('rejects accountMutationPerformed=true', () => {
-    const result = validateProviderExportCustody(makeValidPayload({ accountMutationPerformed: true }));
+    const result = validateProviderExportCustody(
+      makeValidPayload({ accountMutationPerformed: true })
+    );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('accountMutationPerformed'))).toBe(true);
   });
 
   it('rejects sourceFileMutationPerformed=true', () => {
-    const result = validateProviderExportCustody(makeValidPayload({ sourceFileMutationPerformed: true }));
+    const result = validateProviderExportCustody(
+      makeValidPayload({ sourceFileMutationPerformed: true })
+    );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('sourceFileMutationPerformed'))).toBe(true);
   });
 
   it('rejects rawPrivateDataPublished=true', () => {
-    const result = validateProviderExportCustody(makeValidPayload({ rawPrivateDataPublished: true }));
+    const result = validateProviderExportCustody(
+      makeValidPayload({ rawPrivateDataPublished: true })
+    );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('rawPrivateDataPublished'))).toBe(true);
   });
 
   it('rejects privatePathLeakedToPublicReceipt=true', () => {
-    const result = validateProviderExportCustody(makeValidPayload({ privatePathLeakedToPublicReceipt: true }));
+    const result = validateProviderExportCustody(
+      makeValidPayload({ privatePathLeakedToPublicReceipt: true })
+    );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('privatePathLeakedToPublicReceipt'))).toBe(true);
   });
@@ -115,14 +125,14 @@ describe('validateProviderExportCustody', () => {
 
   it('accepts managedAccount=true with managedAccountType', () => {
     const result = validateProviderExportCustody(
-      makeValidPayload({ managedAccount: true, managedAccountType: 'enterprise' }),
+      makeValidPayload({ managedAccount: true, managedAccountType: 'enterprise' })
     );
     expect(result.valid).toBe(true);
   });
 
   it('requires archiveHash for verify_files phase', () => {
     const result = validateProviderExportCustody(
-      makeValidPayload({ phase: 'verify_files', archiveHash: '' }),
+      makeValidPayload({ phase: 'verify_files', archiveHash: '' })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('archiveHash'))).toBe(true);
@@ -130,14 +140,14 @@ describe('validateProviderExportCustody', () => {
 
   it('accepts verify_files phase with archiveHash', () => {
     const result = validateProviderExportCustody(
-      makeValidPayload({ phase: 'verify_files', archiveHash: 'sha256:abc123' }),
+      makeValidPayload({ phase: 'verify_files', archiveHash: 'sha256:abc123' })
     );
     expect(result.valid).toBe(true);
   });
 
   it('warns when waitState=expired with no blockers', () => {
     const result = validateProviderExportCustody(
-      makeValidPayload({ waitState: 'expired', blockers: [] }),
+      makeValidPayload({ waitState: 'expired', blockers: [] })
     );
     expect(result.warnings.some((w) => w.includes('expired'))).toBe(true);
   });
@@ -147,44 +157,42 @@ describe('validateProviderExportCustody', () => {
       makeValidPayload({
         waitState: 'blocked',
         blockers: [{ reason: 'managed_account_restriction' }],
-      }),
+      })
     );
     expect(result.warnings.some((w) => w.includes('blocker'))).toBe(false);
   });
 
   it('warns about missing linkExpiry for email_link delivery', () => {
     const result = validateProviderExportCustody(
-      makeValidPayload({ deliveryMethod: 'email_link', linkExpiry: undefined }),
+      makeValidPayload({ deliveryMethod: 'email_link', linkExpiry: undefined })
     );
     expect(result.warnings.some((w) => w.includes('linkExpiry'))).toBe(true);
   });
 
   it('does not warn about linkExpiry when provided', () => {
     const result = validateProviderExportCustody(
-      makeValidPayload({ deliveryMethod: 'email_link', linkExpiry: '2026-06-01T00:00:00Z' }),
+      makeValidPayload({ deliveryMethod: 'email_link', linkExpiry: '2026-06-01T00:00:00Z' })
     );
     expect(result.warnings.some((w) => w.includes('linkExpiry'))).toBe(false);
   });
 
   it('warns about missing cloudHandoffDestination when cloudHandoff=true', () => {
-    const result = validateProviderExportCustody(
-      makeValidPayload({ cloudHandoff: true }),
-    );
-    expect(result.warnings.some((w => w.includes('cloudHandoffDestination')))).toBe(true);
+    const result = validateProviderExportCustody(makeValidPayload({ cloudHandoff: true }));
+    expect(result.warnings.some((w) => w.includes('cloudHandoffDestination'))).toBe(true);
   });
 
   it('accepts cloudHandoff=true with cloudHandoffDestination', () => {
     const result = validateProviderExportCustody(
-      makeValidPayload({ cloudHandoff: true, cloudHandoffDestination: 'Google Drive' }),
+      makeValidPayload({ cloudHandoff: true, cloudHandoffDestination: 'Google Drive' })
     );
-    expect(result.warnings.some((w => w.includes('cloudHandoffDestination')))).toBe(false);
+    expect(result.warnings.some((w) => w.includes('cloudHandoffDestination'))).toBe(false);
   });
 
   it('warns about empty selectedProducts for classification phase', () => {
     const result = validateProviderExportCustody(
-      makeValidPayload({ phase: 'intent_classification', selectedProducts: [] }),
+      makeValidPayload({ phase: 'intent_classification', selectedProducts: [] })
     );
-    expect(result.warnings.some((w => w.includes('selectedProducts')))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('selectedProducts'))).toBe(true);
   });
 
   it('accepts all valid phases', () => {
@@ -228,7 +236,7 @@ describe('validateProviderExportCustody', () => {
 
   it('accepts custom provider types (extensible)', () => {
     const result = validateProviderExportCustody(
-      makeValidPayload({ provider: 'custom_crm_export' }),
+      makeValidPayload({ provider: 'custom_crm_export' })
     );
     expect(result.valid).toBe(true);
   });
@@ -280,10 +288,7 @@ describe('providerExportToReceiptInput', () => {
     ];
 
     for (const [phase, expectedEnvelope] of phaseEnvelope) {
-      const input = providerExportToReceiptInput(
-        makeValidPayload({ phase }),
-        makeValidOptions(),
-      );
+      const input = providerExportToReceiptInput(makeValidPayload({ phase }), makeValidOptions());
       expect(input.permissionEnvelope).toBe(expectedEnvelope);
     }
   });
@@ -291,7 +296,7 @@ describe('providerExportToReceiptInput', () => {
   it('passes taskId and commit through links', () => {
     const input = providerExportToReceiptInput(
       makeValidPayload(),
-      makeValidOptions({ taskId: 'task_123', commit: 'abc1234' }),
+      makeValidOptions({ taskId: 'task_123', commit: 'abc1234' })
     );
     expect(input.links?.taskId).toBe('task_123');
     expect(input.links?.commit).toBe('abc1234');
@@ -300,7 +305,7 @@ describe('providerExportToReceiptInput', () => {
   it('passes parentReceiptIds through links', () => {
     const input = providerExportToReceiptInput(
       makeValidPayload(),
-      makeValidOptions({ parentReceiptIds: ['rec_001', 'rec_002'] }),
+      makeValidOptions({ parentReceiptIds: ['rec_001', 'rec_002'] })
     );
     expect(input.links?.parentReceiptIds).toEqual(['rec_001', 'rec_002']);
   });
@@ -308,7 +313,7 @@ describe('providerExportToReceiptInput', () => {
   it('allows permission envelope override', () => {
     const input = providerExportToReceiptInput(
       makeValidPayload({ phase: 'intent_classification' }),
-      makeValidOptions({ permissionEnvelope: 'break_glass' }),
+      makeValidOptions({ permissionEnvelope: 'break_glass' })
     );
     expect(input.permissionEnvelope).toBe('break_glass');
   });
@@ -316,7 +321,7 @@ describe('providerExportToReceiptInput', () => {
   it('includes archiveHash as commandHash when present', () => {
     const input = providerExportToReceiptInput(
       makeValidPayload({ archiveHash: 'sha256:deadbeef' }),
-      makeValidOptions(),
+      makeValidOptions()
     );
     expect(input.evidence.commandHash).toBe('sha256:deadbeef');
   });
@@ -324,7 +329,7 @@ describe('providerExportToReceiptInput', () => {
   it('omits commandHash when archiveHash is empty', () => {
     const input = providerExportToReceiptInput(
       makeValidPayload({ archiveHash: '' }),
-      makeValidOptions(),
+      makeValidOptions()
     );
     expect(input.evidence.commandHash).toBeUndefined();
   });
@@ -364,7 +369,7 @@ describe('providerExportToReceiptInput', () => {
     for (const deliveryMethod of methods) {
       const input = providerExportToReceiptInput(
         makeValidPayload({ deliveryMethod }),
-        makeValidOptions(),
+        makeValidOptions()
       );
       expect(input).toBeDefined();
     }
@@ -382,7 +387,7 @@ describe('providerExportToReceiptInput', () => {
     for (const waitState of states) {
       const input = providerExportToReceiptInput(
         makeValidPayload({ waitState }),
-        makeValidOptions(),
+        makeValidOptions()
       );
       expect(input).toBeDefined();
     }
@@ -410,9 +415,15 @@ describe('stableProviderExportHash', () => {
 
   it('is key-order independent', () => {
     // Two payloads with the same content but constructed differently should hash the same
-    const payload1 = makeValidPayload({ provider: 'google_takeout', phase: 'intent_classification' });
+    const payload1 = makeValidPayload({
+      provider: 'google_takeout',
+      phase: 'intent_classification',
+    });
     // Reconstruct the same data via spread to ensure key order doesn't matter
-    const payload2 = makeValidPayload({ phase: 'intent_classification', provider: 'google_takeout' });
+    const payload2 = makeValidPayload({
+      phase: 'intent_classification',
+      provider: 'google_takeout',
+    });
     const hash1 = stableProviderExportHash(payload1);
     const hash2 = stableProviderExportHash(payload2);
     expect(hash1).toBe(hash2);

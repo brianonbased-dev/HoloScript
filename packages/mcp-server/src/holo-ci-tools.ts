@@ -559,15 +559,12 @@ export async function postGithubStatuses(
   sha: string,
   contexts: string[],
   state: 'pending' | 'success' | 'failure' | 'error',
-  description: string,
+  description: string
 ): Promise<void> {
   // GITHUB_TOKEN is a known-invalid ambient token on this machine (lib.mjs note).
   // Use PERSONAL_ACCESS_TOKEN or PAT_TOKEN — the real credentials in .env.
   const token =
-    process.env.PERSONAL_ACCESS_TOKEN ||
-    process.env.PAT_TOKEN ||
-    process.env.GITHUB_TOKEN ||
-    '';
+    process.env.PERSONAL_ACCESS_TOKEN || process.env.PAT_TOKEN || process.env.GITHUB_TOKEN || '';
   if (!token) return;
   const targetUrl = `https://github.com/${repo}/commit/${sha}`;
   await Promise.allSettled(
@@ -582,7 +579,9 @@ export async function postGithubStatuses(
         },
         body: JSON.stringify({ state, context, description, target_url: targetUrl }),
         signal: AbortSignal.timeout(10_000),
-      }).catch(() => { /* non-fatal */ })
+      }).catch(() => {
+        /* non-fatal */
+      })
     )
   );
 }
@@ -597,8 +596,13 @@ export async function postGithubStatuses(
  * the order of workload.jobs) — same approach as dispatch.mjs.
  */
 export async function submitWorkload(
-  workload: HoloCiWorkload['workload'],
-): Promise<{ ok: boolean; workloadId?: string; jobIdToGate?: Record<string, string>; error?: string }> {
+  workload: HoloCiWorkload['workload']
+): Promise<{
+  ok: boolean;
+  workloadId?: string;
+  jobIdToGate?: Record<string, string>;
+  error?: string;
+}> {
   const apiKey = readOrchestratorKey();
   if (!apiKey) {
     return {
@@ -619,9 +623,7 @@ export async function submitWorkload(
     if (!res.ok) {
       return { ok: false, error: `orchestrator /gpu/workload → ${res.status}` };
     }
-    const parsed = await res
-      .json()
-      .catch(() => ({}) as Record<string, unknown>);
+    const parsed = await res.json().catch(() => ({}) as Record<string, unknown>);
     const wlId =
       (parsed as { id?: string; workload_id?: string })?.id ??
       (parsed as { workload_id?: string })?.workload_id ??
@@ -681,28 +683,34 @@ export async function pollWorkloadAndReport(opts: {
         signal: AbortSignal.timeout(10_000),
       });
       if (res.ok) {
-        status = await res.json() as WorkloadStatusResponse;
-        if ((status.queued + status.blocked + status.running) === 0) break;
+        status = (await res.json()) as WorkloadStatusResponse;
+        if (status.queued + status.blocked + status.running === 0) break;
       }
-    } catch { /* transient error — keep polling */ }
+    } catch {
+      /* transient error — keep polling */
+    }
     if (Date.now() >= deadline) break;
     await new Promise<void>((r) => setTimeout(r, POLL_MS));
   }
 
   if (!status) return;
 
-  const terminal = (status.queued + status.blocked + status.running) === 0;
+  const terminal = status.queued + status.blocked + status.running === 0;
 
   // Per-gate statuses
   for (const job of status.jobs ?? []) {
     const gate = jobIdToGate[job.id] ?? job.id;
     const state: 'success' | 'failure' | null =
-      job.status === 'done' && !job.error ? 'success' :
-      (job.status === 'failed' || job.error) ? 'failure' : null;
+      job.status === 'done' && !job.error
+        ? 'success'
+        : job.status === 'failed' || job.error
+          ? 'failure'
+          : null;
     if (!state) continue;
-    const desc = state === 'success'
-      ? `passed on ${job.gpu_seat ?? 'fleet'}`
-      : (job.error ?? 'gate failed').slice(0, 140);
+    const desc =
+      state === 'success'
+        ? `passed on ${job.gpu_seat ?? 'fleet'}`
+        : (job.error ?? 'gate failed').slice(0, 140);
     await postGithubStatuses(repo, sha, [`holo-ci/${gate}`], state, desc);
   }
 

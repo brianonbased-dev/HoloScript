@@ -49,14 +49,16 @@ export class TetGenWasmMesher implements WasmMesher {
     const reason = lastError instanceof Error ? lastError.message : String(lastError);
     throw new Error(
       `TetGen initialization failed. Could not load tetgen.wasm from any configured path (${attempted}). ` +
-      `Place the binary in Studio public/wasm or public/assets. Last error: ${reason}`,
+        `Place the binary in Studio public/wasm or public/assets. Last error: ${reason}`
     );
   }
 
   async tetrahedralize(surface: SurfaceMesh, options: any = {}): Promise<TetMesh> {
     if (!cachedWasm) await this.init();
 
-    console.log(`TetGen meshing surface with ${surface.vertices.length / 3} vertices and ${surface.triangles.length / 3} triangles...`);
+    console.log(
+      `TetGen meshing surface with ${surface.vertices.length / 3} vertices and ${surface.triangles.length / 3} triangles...`
+    );
 
     // In a real implementation, we would:
     // 1. Allocate memory in WASM heap

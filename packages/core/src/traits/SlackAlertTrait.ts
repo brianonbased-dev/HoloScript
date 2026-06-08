@@ -50,7 +50,11 @@ export const slackAlertHandler: TraitHandler<SlackAlertConfig> = {
               status: res.status,
             });
           } else {
-            context.emit?.('slack_alert:error', { channel, status: res.status, error: 'HTTP error' });
+            context.emit?.('slack_alert:error', {
+              channel,
+              status: res.status,
+              error: 'HTTP error',
+            });
           }
         })
         .catch((err: unknown) => {

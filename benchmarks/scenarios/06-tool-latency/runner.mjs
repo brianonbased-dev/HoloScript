@@ -25,42 +25,44 @@
  *   HOLO_PERF_REGRESSION_REPO_ROOT — override for repo root (used in tests)
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
-import { join, resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(
-  process.env.HOLO_PERF_REGRESSION_REPO_ROOT || resolve(__dirname, "..", "..", ".."),
+  process.env.HOLO_PERF_REGRESSION_REPO_ROOT || resolve(__dirname, '..', '..', '..')
 );
 
-const TARGET_BASE =
-  (process.env.HOLO_TOOL_LATENCY_TARGET || "https://mcp.holoscript.net").replace(/\/$/, "");
-const API_KEY = process.env.HOLOSCRIPT_API_KEY || "";
-const SCENARIO_ID = "06-tool-latency";
+const TARGET_BASE = (process.env.HOLO_TOOL_LATENCY_TARGET || 'https://mcp.holoscript.net').replace(
+  /\/$/,
+  ''
+);
+const API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
+const SCENARIO_ID = '06-tool-latency';
 const SAMPLES_PER_TOOL = 3;
 const TIMEOUT_MS = 30_000;
 
 /** Minimal representative arguments per tool. Kept small to avoid cache-busting. */
 const TOOL_CALLS = [
   {
-    platform: "holo_query_codebase",
-    body: { name: "holo_query_codebase", arguments: { query: "HoloScriptParser" } },
+    platform: 'holo_query_codebase',
+    body: { name: 'holo_query_codebase', arguments: { query: 'HoloScriptParser' } },
   },
   {
-    platform: "holo_impact_analysis",
+    platform: 'holo_impact_analysis',
     body: {
-      name: "holo_impact_analysis",
-      arguments: { symbol: "HoloScriptParser", file: "packages/core/src/parser/index.ts" },
+      name: 'holo_impact_analysis',
+      arguments: { symbol: 'HoloScriptParser', file: 'packages/core/src/parser/index.ts' },
     },
   },
   {
-    platform: "holo_ask_codebase",
-    body: { name: "holo_ask_codebase", arguments: { question: "What is HoloScriptParser?" } },
+    platform: 'holo_ask_codebase',
+    body: { name: 'holo_ask_codebase', arguments: { question: 'What is HoloScriptParser?' } },
   },
   {
-    platform: "holo_semantic_search",
-    body: { name: "holo_semantic_search", arguments: { query: "trait grab physics" } },
+    platform: 'holo_semantic_search',
+    body: { name: 'holo_semantic_search', arguments: { query: 'trait grab physics' } },
   },
 ];
 
@@ -75,7 +77,7 @@ function todayIso() {
 async function callTool(toolBody) {
   const url = `${TARGET_BASE}/tools/call`;
   const headers = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
     ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
   };
 
@@ -85,14 +87,14 @@ async function callTool(toolBody) {
   const start = performance.now();
   try {
     const response = await fetch(url, {
-      method: "POST",
+      method: 'POST',
       headers,
       body: JSON.stringify(toolBody),
       signal: controller.signal,
     });
     const latencyMs = Math.round(performance.now() - start);
     const text = await response.text();
-    const outputSizeBytes = Buffer.byteLength(text, "utf-8");
+    const outputSizeBytes = Buffer.byteLength(text, 'utf-8');
     if (!response.ok) {
       console.warn(`  [warn] ${toolBody.name}: HTTP ${response.status} (${latencyMs} ms)`);
       return { latencyMs, outputSizeBytes, success: false };
@@ -100,7 +102,7 @@ async function callTool(toolBody) {
     return { latencyMs, outputSizeBytes, success: true };
   } catch (err) {
     const latencyMs = Math.round(performance.now() - start);
-    const label = err.name === "AbortError" ? "timeout" : err.message;
+    const label = err.name === 'AbortError' ? 'timeout' : err.message;
     console.warn(`  [warn] ${toolBody.name}: ${label} (${latencyMs} ms)`);
     return { latencyMs: TIMEOUT_MS, outputSizeBytes: 0, success: false };
   } finally {
@@ -111,9 +113,7 @@ async function callTool(toolBody) {
 function median(nums) {
   const sorted = [...nums].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1
-    ? sorted[mid]
-    : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+  return sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
 }
 
 async function main() {
@@ -144,7 +144,9 @@ async function main() {
   const successfulResults = results.filter((r) => r.success);
   const avgLatencyMs =
     successfulResults.length > 0
-      ? Math.round(successfulResults.reduce((s, r) => s + r.latencyMs, 0) / successfulResults.length)
+      ? Math.round(
+          successfulResults.reduce((s, r) => s + r.latencyMs, 0) / successfulResults.length
+        )
       : 0;
   const failedTools = results.filter((r) => !r.success).length;
 
@@ -155,24 +157,26 @@ async function main() {
   };
 
   const date = todayIso();
-  const outDir = join(REPO_ROOT, "benchmarks", "results", date);
+  const outDir = join(REPO_ROOT, 'benchmarks', 'results', date);
   mkdirSync(outDir, { recursive: true });
   const outPath = join(outDir, `${SCENARIO_ID}.json`);
-  writeFileSync(outPath, JSON.stringify(output, null, 2) + "\n", "utf-8");
+  writeFileSync(outPath, JSON.stringify(output, null, 2) + '\n', 'utf-8');
 
   console.log(`[06-tool-latency] wrote results → ${outPath}`);
-  console.log(`[06-tool-latency] summary: avgLatencyMs=${avgLatencyMs} failedTools=${failedTools}/${results.length}`);
+  console.log(
+    `[06-tool-latency] summary: avgLatencyMs=${avgLatencyMs} failedTools=${failedTools}/${results.length}`
+  );
 
   if (failedTools === results.length) {
     console.warn(
-      "[06-tool-latency] all tools failed — likely missing auth or offline target. " +
-        "Results recorded as success:false; perf-regression-check will skip this scenario " +
-        "if no baseline entry exists.",
+      '[06-tool-latency] all tools failed — likely missing auth or offline target. ' +
+        'Results recorded as success:false; perf-regression-check will skip this scenario ' +
+        'if no baseline entry exists.'
     );
   }
 }
 
 main().catch((err) => {
-  console.error("[06-tool-latency] fatal:", err);
+  console.error('[06-tool-latency] fatal:', err);
   process.exit(2);
 });

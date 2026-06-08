@@ -1,21 +1,26 @@
 /**
  * Connector Integration Traits
- * 
+ *
  * Traits for connecting HoloScript compositions to external services,
  * managing environment variables, and defining deployment targets.
  */
 
 export const CONNECTOR_INTEGRATION_TRAITS = [
-  'connector',           // @connector(moltbook)
-  'env',                 // @env(GITHUB_TOKEN, required: true)
-  'deploy',              // @deploy(railway, service: "mcp-server")
-  'on_connector_event',  // Event subscription for connector events
+  'connector', // @connector(moltbook)
+  'env', // @env(GITHUB_TOKEN, required: true)
+  'deploy', // @deploy(railway, service: "mcp-server")
+  'on_connector_event', // Event subscription for connector events
 ] as const;
 
 export type ConnectorIntegrationTraitName = (typeof CONNECTOR_INTEGRATION_TRAITS)[number];
 
 export const KNOWN_CONNECTORS = [
-  'railway', 'github', 'moltbook', 'upstash', 'appstore', 'vscode',
+  'railway',
+  'github',
+  'moltbook',
+  'upstash',
+  'appstore',
+  'vscode',
 ] as const;
 
 export type KnownConnector = (typeof KNOWN_CONNECTORS)[number];

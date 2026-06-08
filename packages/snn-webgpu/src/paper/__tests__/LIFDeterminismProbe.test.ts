@@ -24,10 +24,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { DeterminismHarness } from '@holoscript/core/testing';
 import { GPUContext } from '../../gpu-context.js';
 import { GPU_LIVE } from '../../__tests__/setup.js';
-import {
-  runLIFDeterminismProbe,
-  PAPER_2_CANONICAL_CONFIG,
-} from '../LIFDeterminismProbe.js';
+import { runLIFDeterminismProbe, PAPER_2_CANONICAL_CONFIG } from '../LIFDeterminismProbe.js';
 
 describe('LIFDeterminismProbe (Paper #2 same-backend baseline)', () => {
   let ctx: GPUContext;

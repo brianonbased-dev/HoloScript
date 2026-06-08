@@ -9,7 +9,8 @@ describe('marketplace server startup', () => {
   it('constructs the Express app with paid marketplace routes mounted', () => {
     vi.useFakeTimers();
 
-    expect(() => createApp(undefined, undefined, { corsOrigins: ['http://localhost:3000'] }))
-      .not.toThrow();
+    expect(() =>
+      createApp(undefined, undefined, { corsOrigins: ['http://localhost:3000'] })
+    ).not.toThrow();
   });
 });

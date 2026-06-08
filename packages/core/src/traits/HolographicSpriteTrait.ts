@@ -181,7 +181,11 @@ function smoothDepthFrame(
 }
 
 /** Apply edge-aware smoothing to segmentation mask using simple morphological ops */
-function smoothMaskEdges(mask: Uint8ClampedArray, width: number, height: number): Uint8ClampedArray {
+function smoothMaskEdges(
+  mask: Uint8ClampedArray,
+  width: number,
+  height: number
+): Uint8ClampedArray {
   const smoothed = new Uint8ClampedArray(mask.length);
   const kernel = 3; // 3x3 kernel
 
@@ -261,7 +265,8 @@ export const holographicSpriteTraitHandler: TraitHandler<HolographicSpriteConfig
       displacementScale: config.displacementScale ?? DEFAULT_DISPLACEMENT_SCALE,
       billboardType: config.billboardType ?? DEFAULT_BILLBOARD_TYPE,
       mode: config.mode ?? DEFAULT_MODE,
-      cacheDb: config.cacheDb !== undefined ? config.cacheDb : 'holoscript-holographic-sprite-cache',
+      cacheDb:
+        config.cacheDb !== undefined ? config.cacheDb : 'holoscript-holographic-sprite-cache',
       smoothMaskEdges: config.smoothMaskEdges ?? true,
       smoothDepthTemporal: config.smoothDepthTemporal ?? true,
       parallaxIntensity: config.parallaxIntensity ?? DEFAULT_PARALLAX_INTENSITY,

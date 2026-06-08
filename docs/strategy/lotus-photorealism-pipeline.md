@@ -21,16 +21,16 @@ text token.
 
 Token-only generation fails in exactly the places a real lotus is alive:
 
-| Token-only lotus | CAEL-grounded lotus |
-| --- | --- |
-| Starts from the word "lotus" | Starts from wallet-signed reference photos |
-| Guesses geometry | Reads a botanical trait contract |
-| Flat petal material | Uses extracted SSS and translucency |
-| Uniform color | Uses photo-derived base, mid, and edge gradients |
-| Repeated identical petals | Uses seeded organic variance |
-| Plastic-looking surfaces | Uses biological tissue scattering |
-| No water relationship | Binds to water and HoloMap spatial context |
-| No audit trail | Carries source photo and extraction provenance |
+| Token-only lotus             | CAEL-grounded lotus                              |
+| ---------------------------- | ------------------------------------------------ |
+| Starts from the word "lotus" | Starts from wallet-signed reference photos       |
+| Guesses geometry             | Reads a botanical trait contract                 |
+| Flat petal material          | Uses extracted SSS and translucency              |
+| Uniform color                | Uses photo-derived base, mid, and edge gradients |
+| Repeated identical petals    | Uses seeded organic variance                     |
+| Plastic-looking surfaces     | Uses biological tissue scattering                |
+| No water relationship        | Binds to water and HoloMap spatial context       |
+| No audit trail               | Carries source photo and extraction provenance   |
 
 The repository scan did not find the uploaded lotus reference photos in git.
 Until they are ingested, this document treats them as external provenance
@@ -81,20 +81,20 @@ anchors that the pipeline must bind later.
 
 The repo already has most of the lower layers needed for this pipeline:
 
-| Layer | Files read in this pass |
-| --- | --- |
-| Current lotus proof surface | `services/holoscript-net/src/components/LotusProgram.tsx` |
-| Advanced PBR config | `packages/core/src/traits/AdvancedPBRTrait.ts` |
-| Subsurface scattering | `packages/core/src/traits/SubsurfaceScatteringTrait.ts` |
-| Vein-style subsurface detail | `packages/core/src/traits/SubsurfaceVeinsTrait.ts` |
+| Layer                                | Files read in this pass                                                 |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| Current lotus proof surface          | `services/holoscript-net/src/components/LotusProgram.tsx`               |
+| Advanced PBR config                  | `packages/core/src/traits/AdvancedPBRTrait.ts`                          |
+| Subsurface scattering                | `packages/core/src/traits/SubsurfaceScatteringTrait.ts`                 |
+| Vein-style subsurface detail         | `packages/core/src/traits/SubsurfaceVeinsTrait.ts`                      |
 | Organic/translucent material presets | `packages/core/src/traits/visual/presets/material-properties.visual.ts` |
-| Shader material graph presets | `packages/studio/src/features/shader-editor/MaterialLibrary.ts` |
-| R3F material property mapping | `packages/r3f-renderer/src/utils/materialUtils.tsx` |
-| HoloMap reconstruction binding | `packages/core/src/traits/HoloMapReconstructionTrait.ts` |
-| HoloMap splat output binding | `packages/core/src/traits/HoloMapSplatOutputTrait.ts` |
-| HoloMap scan render asset | `packages/studio/src/lib/holomap-scan-render.ts` |
-| Wallet/manifest signing pattern | `packages/mcp-server/src/holomesh/export-package.ts` |
-| SNN WebGPU compute substrate | `packages/snn-webgpu/README.md` and package references |
+| Shader material graph presets        | `packages/studio/src/features/shader-editor/MaterialLibrary.ts`         |
+| R3F material property mapping        | `packages/r3f-renderer/src/utils/materialUtils.tsx`                     |
+| HoloMap reconstruction binding       | `packages/core/src/traits/HoloMapReconstructionTrait.ts`                |
+| HoloMap splat output binding         | `packages/core/src/traits/HoloMapSplatOutputTrait.ts`                   |
+| HoloMap scan render asset            | `packages/studio/src/lib/holomap-scan-render.ts`                        |
+| Wallet/manifest signing pattern      | `packages/mcp-server/src/holomesh/export-package.ts`                    |
+| SNN WebGPU compute substrate         | `packages/snn-webgpu/README.md` and package references                  |
 
 ## Implementation Slice Landed 2026-05-06
 

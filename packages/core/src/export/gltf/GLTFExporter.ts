@@ -593,7 +593,8 @@ export class GLTFExporter {
       transform.rotation.y !== 0 ||
       transform.rotation.z !== 0 ||
       transform.rotation.w !== 1;
-    const hasScale = transform.scale[0] !== 1 || transform.scale[1] !== 1 || transform.scale[2] !== 1;
+    const hasScale =
+      transform.scale[0] !== 1 || transform.scale[1] !== 1 || transform.scale[2] !== 1;
 
     if (hasTranslation)
       node.translation = [transform.position[0], transform.position[1], transform.position[2]];

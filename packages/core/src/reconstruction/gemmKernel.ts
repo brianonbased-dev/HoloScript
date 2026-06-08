@@ -96,7 +96,7 @@ export function createGemmKernel(device: GPUDevice): GemmKernel {
       B: Float32Array,
       M: number,
       N: number,
-      K: number,
+      K: number
     ): Promise<Float32Array> {
       if (A.length !== M * K) throw new Error(`GEMM: A.length=${A.length} != M*K=${M * K}`);
       if (B.length !== K * N) throw new Error(`GEMM: B.length=${B.length} != K*N=${K * N}`);
@@ -111,7 +111,9 @@ export function createGemmKernel(device: GPUDevice): GemmKernel {
 
       const paramAB = new ArrayBuffer(16);
       const pu = new Uint32Array(paramAB);
-      pu[0] = M; pu[1] = N; pu[2] = K;
+      pu[0] = M;
+      pu[1] = N;
+      pu[2] = K;
       const paramsBuf = device.createBuffer({
         size: paramAB.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,

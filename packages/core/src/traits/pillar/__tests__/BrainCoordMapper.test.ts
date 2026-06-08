@@ -115,7 +115,9 @@ describe('BrainCoordMapper', () => {
     beforeEach(() => {
       // Register a custom domain before each test in this block
       const customEntry: DomainCoordEntry = {
-        mni_x: 10, mni_y: -10, mni_z: 20,
+        mni_x: 10,
+        mni_y: -10,
+        mni_z: 20,
         cortical_depth: 2,
         surface_type: 'gyrus',
         source_note: 'Test custom domain',
@@ -133,7 +135,9 @@ describe('BrainCoordMapper', () => {
 
     it('override takes precedence over a built-in domain', () => {
       const override: DomainCoordEntry = {
-        mni_x: 99, mni_y: 0, mni_z: 0,
+        mni_x: 99,
+        mni_y: 0,
+        mni_z: 0,
         cortical_depth: 1,
         surface_type: 'sulcus',
         source_note: 'Override of physics',
@@ -165,8 +169,12 @@ describe('BrainCoordMapper', () => {
     });
 
     it('rejects cortical_depth 0 or 7', () => {
-      expect(validateCoord({ mni_x: 0, mni_y: 0, mni_z: 0, cortical_depth: 0 as never })).toBe(false);
-      expect(validateCoord({ mni_x: 0, mni_y: 0, mni_z: 0, cortical_depth: 7 as never })).toBe(false);
+      expect(validateCoord({ mni_x: 0, mni_y: 0, mni_z: 0, cortical_depth: 0 as never })).toBe(
+        false
+      );
+      expect(validateCoord({ mni_x: 0, mni_y: 0, mni_z: 0, cortical_depth: 7 as never })).toBe(
+        false
+      );
     });
 
     it('accepts boundary values', () => {

@@ -13,18 +13,18 @@ Diversity ratio ρ = unique_fingerprints / total, fingerprint =
 
 ## Result 1 — Diversity guarantee (mode-collapse guard)
 
-| Stream | total | unique | ρ (lifetime) | alert fired | first alert step |
-|--------|------:|-------:|----:|:-----------:|:----------------:|
-| healthy | 1000 | 371 | 0.3710 | true | 3 |
-| collapsed | 1000 | 1 | 0.0010 | true | 1 |
+| Stream    | total | unique | ρ (lifetime) | alert fired | first alert step |
+| --------- | ----: | -----: | -----------: | :---------: | :--------------: |
+| healthy   |  1000 |    371 |       0.3710 |    true     |        3         |
+| collapsed |  1000 |      1 |       0.0010 |    true     |        1         |
 
 ρ at checkpoints (unique / N):
 
-| N | healthy ρ | collapsed ρ |
-|--:|----------:|------------:|
-| 10 | 0.8000 | 0.1000 |
-| 100 | 0.5300 | 0.0100 |
-| 1000 | 0.3710 | 0.0010 |
+|    N | healthy ρ | collapsed ρ |
+| ---: | --------: | ----------: |
+|   10 |    0.8000 |      0.1000 |
+|  100 |    0.5300 |      0.0100 |
+| 1000 |    0.3710 |      0.0010 |
 
 **Collapse detected: true** — the collapsed agent's
 ρ drops to 0.0010 and the alert fires (true positive; the mode-collapse
@@ -39,7 +39,7 @@ SliceEmitter's `diversity_ratio` is a **lifetime cumulative** ratio: the
 ρ → 0 as total → ∞. Consequently the **healthy** stream also trips the fixed
 0.8 threshold over a long run (ρ_healthy = 0.371 at N=1000), so the
 static-threshold guard **over-alerts on healthy long-running streams** — a real
-mis-tuning, not a pass. The *robust* collapse signal is the discrimination ratio
+mis-tuning, not a pass. The _robust_ collapse signal is the discrimination ratio
 and the unique-count growth rate (healthy unique keeps climbing; collapsed
 plateaus at 1), not absolute ρ vs a static threshold. Recommended fix
 for SliceEmitter: compute ρ over a true rolling window of the last W slices, or
@@ -50,10 +50,10 @@ evict fingerprints alongside the buffer eviction it already does.
 Reward r = −L_total = −‖(p1,p2)−target‖². GRPO advantage A_i = (r_i − mean)/(std+ε).
 Within-group reward variance drives the policy-gradient signal magnitude.
 
-| Stream | mean within-group reward variance | mean |advantage| |
-|--------|---------------------------------:|----------------:|
-| healthy | 4.151e-2 | 0.8902 |
-| collapsed | 1.813e-7 | 0.8500 |
+| Stream    | mean within-group reward variance |   mean | advantage |     |
+| --------- | --------------------------------: | -----: | --------- | --- |
+| healthy   |                          4.151e-2 | 0.8902 |
+| collapsed |                          1.813e-7 | 0.8500 |
 
 Variance ratio (healthy / collapsed): **2.290e+5** —
 diverse groups carry a non-zero gradient signal; collapsed groups carry ≈0.

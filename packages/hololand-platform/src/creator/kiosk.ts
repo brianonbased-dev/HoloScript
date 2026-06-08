@@ -98,11 +98,7 @@ export interface KioskGrid {
 /**
  * Slice a flat card list into a paginated KioskGrid.
  */
-export function paginateKioskCards(
-  cards: KioskCard[],
-  page: number,
-  pageSize: number,
-): KioskGrid {
+export function paginateKioskCards(cards: KioskCard[], page: number, pageSize: number): KioskGrid {
   if (page < 1) page = 1;
   if (pageSize < 1) pageSize = 1;
   const start = (page - 1) * pageSize;

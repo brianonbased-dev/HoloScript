@@ -81,9 +81,7 @@ describe('encodePngRgba — determinism', () => {
 
 describe('encodePngRgba — input validation', () => {
   it('throws on byte-length mismatch', () => {
-    expect(() => encodePngRgba(new Uint8Array(16), 4, 4)).toThrowError(
-      /16 bytes, expected 64/
-    );
+    expect(() => encodePngRgba(new Uint8Array(16), 4, 4)).toThrowError(/16 bytes, expected 64/);
   });
 
   it('throws on zero width', () => {

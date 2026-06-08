@@ -44,9 +44,7 @@ export interface SettlementDomain {
 }
 
 /** Build the EIP-712 domain. */
-export function settlementDomain(
-  env: NodeJS.ProcessEnv = process.env
-): SettlementDomain {
+export function settlementDomain(env: NodeJS.ProcessEnv = process.env): SettlementDomain {
   const chainId = Number.parseInt(
     env.HOLOMESH_NEGOTIATION_CHAIN_ID ?? String(DEFAULT_CHAIN_ID),
     10
@@ -116,14 +114,9 @@ export interface HashableReceipt {
  *
  * @throws {Error} if price is negative or not finite.
  */
-export function priceToUint256(
-  price: number,
-  scaleFactor = 1_000_000
-): bigint {
+export function priceToUint256(price: number, scaleFactor = 1_000_000): bigint {
   if (!Number.isFinite(price) || price < 0) {
-    throw new Error(
-      `priceToUint256: price must be a non-negative finite number, got ${price}`
-    );
+    throw new Error(`priceToUint256: price must be a non-negative finite number, got ${price}`);
   }
   // Round to nearest integer after scaling to avoid floating-point noise
   // (e.g. 0.05 * 1_000_000 = 49999.99999... → rounds to 50_000).

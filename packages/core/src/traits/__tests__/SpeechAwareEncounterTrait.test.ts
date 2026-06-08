@@ -26,42 +26,64 @@ describe('SpeechAwareEncounterTrait', () => {
   });
 
   it('falls back to text on low-confidence ReID', () => {
-    attachTrait(speechAwareEncounterHandler, node, {
-      voice_enabled: true,
-      reid_confidence_threshold: 0.8,
-      fallback_to_text: true,
-    }, ctx);
-    sendEvent(speechAwareEncounterHandler, node, {
-      voice_enabled: true,
-      reid_confidence_threshold: 0.8,
-      fallback_to_text: true,
-    }, ctx, {
-      type: 'speech_detected',
-      text: 'Hello there',
-      speakerId: 'player_1',
-      reidEmbeddingId: 'emb_1',
-      confidence: 0.5,
-    });
+    attachTrait(
+      speechAwareEncounterHandler,
+      node,
+      {
+        voice_enabled: true,
+        reid_confidence_threshold: 0.8,
+        fallback_to_text: true,
+      },
+      ctx
+    );
+    sendEvent(
+      speechAwareEncounterHandler,
+      node,
+      {
+        voice_enabled: true,
+        reid_confidence_threshold: 0.8,
+        fallback_to_text: true,
+      },
+      ctx,
+      {
+        type: 'speech_detected',
+        text: 'Hello there',
+        speakerId: 'player_1',
+        reidEmbeddingId: 'emb_1',
+        confidence: 0.5,
+      }
+    );
     expect(getEventCount(ctx, 'speech_channel_switched')).toBe(1);
     const turn = getLastEvent(ctx, 'encounter_turn_recorded');
     expect(turn.channel).toBe('text');
   });
 
   it('retains high-confidence voice attribution', () => {
-    attachTrait(speechAwareEncounterHandler, node, {
-      voice_enabled: true,
-      reid_confidence_threshold: 0.75,
-    }, ctx);
-    sendEvent(speechAwareEncounterHandler, node, {
-      voice_enabled: true,
-      reid_confidence_threshold: 0.75,
-    }, ctx, {
-      type: 'speech_detected',
-      text: 'Greetings',
-      speakerId: 'npc_alpha',
-      reidEmbeddingId: 'emb_alpha',
-      confidence: 0.92,
-    });
+    attachTrait(
+      speechAwareEncounterHandler,
+      node,
+      {
+        voice_enabled: true,
+        reid_confidence_threshold: 0.75,
+      },
+      ctx
+    );
+    sendEvent(
+      speechAwareEncounterHandler,
+      node,
+      {
+        voice_enabled: true,
+        reid_confidence_threshold: 0.75,
+      },
+      ctx,
+      {
+        type: 'speech_detected',
+        text: 'Greetings',
+        speakerId: 'npc_alpha',
+        reidEmbeddingId: 'emb_alpha',
+        confidence: 0.92,
+      }
+    );
     expect(getEventCount(ctx, 'encounter_turn_recorded')).toBe(1);
     const turn = getLastEvent(ctx, 'encounter_turn_recorded');
     expect(turn.channel).toBe('voice');

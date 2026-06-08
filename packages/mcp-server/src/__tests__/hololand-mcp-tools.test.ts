@@ -8,12 +8,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { handleHololandMcpTool, clearHololandRegistries } from '../hololand-mcp-tools';
 import { emergentDaemonId } from '../daemon-lifecycle-tools';
-import {
-  type Shard,
-  type Zone,
-  validateShard,
-  validateZone,
-} from '@holoscript/framework';
+import { type Shard, type Zone, validateShard, validateZone } from '@holoscript/framework';
 
 describe('hololand-mcp-tools', () => {
   beforeEach(() => {
@@ -227,7 +222,10 @@ describe('hololand-mcp-tools', () => {
 
   it('get_shard returns stored shard', async () => {
     await handleHololandMcpTool('create_shard', { id: 'gs', name: 'GS' });
-    const result = (await handleHololandMcpTool('get_shard', { shardId: 'gs' })) as Record<string, unknown>;
+    const result = (await handleHololandMcpTool('get_shard', { shardId: 'gs' })) as Record<
+      string,
+      unknown
+    >;
     expect(result.success).toBe(true);
     expect((result.shard as Shard).name).toBe('GS');
   });
@@ -252,7 +250,10 @@ describe('hololand-mcp-tools', () => {
     for (let i = 0; i < 2; i++) {
       await handleHololandMcpTool('create_shard', { id: `ls-${i}`, name: `LS ${i}` });
     }
-    const result = (await handleHololandMcpTool('list_shards', { limit: 1 })) as Record<string, unknown>;
+    const result = (await handleHololandMcpTool('list_shards', { limit: 1 })) as Record<
+      string,
+      unknown
+    >;
     expect((result.shards as unknown[]).length).toBe(1);
   });
 
@@ -286,7 +287,10 @@ describe('hololand-mcp-tools', () => {
 
   it('get_zone returns stored zone', async () => {
     await handleHololandMcpTool('create_zone', { id: 'gz', name: 'GZ', biome: 'urban' });
-    const result = (await handleHololandMcpTool('get_zone', { zoneId: 'gz' })) as Record<string, unknown>;
+    const result = (await handleHololandMcpTool('get_zone', { zoneId: 'gz' })) as Record<
+      string,
+      unknown
+    >;
     expect(result.success).toBe(true);
     expect((result.zone as Zone).name).toBe('GZ');
   });
@@ -335,7 +339,10 @@ describe('hololand-mcp-tools', () => {
 
   it('get_place returns stored place', async () => {
     await handleHololandMcpTool('create_place', { id: 'gp', name: 'GP' });
-    const result = (await handleHololandMcpTool('get_place', { placeId: 'gp' })) as Record<string, unknown>;
+    const result = (await handleHololandMcpTool('get_place', { placeId: 'gp' })) as Record<
+      string,
+      unknown
+    >;
     expect(result.success).toBe(true);
     expect((result.place as Record<string, unknown>).name).toBe('GP');
   });
@@ -359,13 +366,29 @@ describe('hololand-mcp-tools', () => {
   });
 
   it('list_places filters by social and tag', async () => {
-    await handleHololandMcpTool('create_place', { id: 'lp1', name: 'LP1', social: true, tags: ['food'] });
-    await handleHololandMcpTool('create_place', { id: 'lp2', name: 'LP2', social: false, tags: ['food'] });
+    await handleHololandMcpTool('create_place', {
+      id: 'lp1',
+      name: 'LP1',
+      social: true,
+      tags: ['food'],
+    });
+    await handleHololandMcpTool('create_place', {
+      id: 'lp2',
+      name: 'LP2',
+      social: false,
+      tags: ['food'],
+    });
 
-    const socialTrue = (await handleHololandMcpTool('list_places', { social: true })) as Record<string, unknown>;
+    const socialTrue = (await handleHololandMcpTool('list_places', { social: true })) as Record<
+      string,
+      unknown
+    >;
     expect((socialTrue.places as unknown[]).length).toBeGreaterThanOrEqual(1);
 
-    const tagged = (await handleHololandMcpTool('list_places', { tag: 'food' })) as Record<string, unknown>;
+    const tagged = (await handleHololandMcpTool('list_places', { tag: 'food' })) as Record<
+      string,
+      unknown
+    >;
     expect((tagged.places as unknown[]).length).toBeGreaterThanOrEqual(2);
   });
 
@@ -394,7 +417,10 @@ describe('hololand-mcp-tools', () => {
 
   it('get_location_quest returns stored quest', async () => {
     await handleHololandMcpTool('create_location_quest', { id: 'gq', name: 'GQ', placeId: 'gp' });
-    const result = (await handleHololandMcpTool('get_location_quest', { questId: 'gq' })) as Record<string, unknown>;
+    const result = (await handleHololandMcpTool('get_location_quest', { questId: 'gq' })) as Record<
+      string,
+      unknown
+    >;
     expect(result.success).toBe(true);
     expect((result.quest as Record<string, unknown>).name).toBe('GQ');
   });
@@ -418,13 +444,27 @@ describe('hololand-mcp-tools', () => {
   });
 
   it('list_location_quests filters by placeId and trigger', async () => {
-    await handleHololandMcpTool('create_location_quest', { id: 'lq1', name: 'LQ1', placeId: 'gp', trigger: 'radius' });
-    await handleHololandMcpTool('create_location_quest', { id: 'lq2', name: 'LQ2', placeId: 'gp', trigger: 'checkin' });
+    await handleHololandMcpTool('create_location_quest', {
+      id: 'lq1',
+      name: 'LQ1',
+      placeId: 'gp',
+      trigger: 'radius',
+    });
+    await handleHololandMcpTool('create_location_quest', {
+      id: 'lq2',
+      name: 'LQ2',
+      placeId: 'gp',
+      trigger: 'checkin',
+    });
 
-    const byPlace = (await handleHololandMcpTool('list_location_quests', { placeId: 'gp' })) as Record<string, unknown>;
+    const byPlace = (await handleHololandMcpTool('list_location_quests', {
+      placeId: 'gp',
+    })) as Record<string, unknown>;
     expect((byPlace.quests as unknown[]).length).toBeGreaterThanOrEqual(2);
 
-    const byTrigger = (await handleHololandMcpTool('list_location_quests', { trigger: 'radius' })) as Record<string, unknown>;
+    const byTrigger = (await handleHololandMcpTool('list_location_quests', {
+      trigger: 'radius',
+    })) as Record<string, unknown>;
     expect((byTrigger.quests as unknown[]).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -441,7 +481,9 @@ describe('hololand-mcp-tools', () => {
       quests: [{ id: 'q1', name: 'Quest 1', steps: [{ id: 's1', objective: 'Find item' }] }],
       items: [{ id: 'i1', name: 'Item 1', category: 'equipment' }],
       skills: [{ id: 'sk1', name: 'Skill 1', rarity: 'common' }],
-      lootTables: [{ id: 'lt1', name: 'Loot 1', entries: [{ id: 'lte1', itemId: 'i1', weight: 1 }] }],
+      lootTables: [
+        { id: 'lt1', name: 'Loot 1', entries: [{ id: 'lte1', itemId: 'i1', weight: 1 }] },
+      ],
     });
 
     const result = (await handleHololandMcpTool('hololand_shard_status', {
@@ -484,7 +526,11 @@ describe('hololand-mcp-tools', () => {
   // ---------------------------------------------------------------------------
 
   it('hololand_publish_zone publishes a zone', async () => {
-    await handleHololandMcpTool('create_zone', { id: 'pub-zone', name: 'Pub Zone', biome: 'urban' });
+    await handleHololandMcpTool('create_zone', {
+      id: 'pub-zone',
+      name: 'Pub Zone',
+      biome: 'urban',
+    });
 
     const result = (await handleHololandMcpTool('hololand_publish_zone', {
       zoneId: 'pub-zone',
@@ -639,7 +685,9 @@ describe('hololand-mcp-tools', () => {
   });
 
   it('hololand_capture_runtime_receipt returns error for missing shard', async () => {
-    const result = await handleHololandMcpTool('hololand_capture_runtime_receipt', { shardId: 'nope' });
+    const result = await handleHololandMcpTool('hololand_capture_runtime_receipt', {
+      shardId: 'nope',
+    });
     expect(result).toMatchObject({ error: expect.stringContaining('not found') });
   });
 
@@ -682,7 +730,10 @@ describe('hololand-mcp-tools', () => {
 
   it('hololand_get_npc returns stored npc', async () => {
     await handleHololandMcpTool('hololand_create_npc', { id: 'gn', name: 'GN', role: 'guide' });
-    const result = (await handleHololandMcpTool('hololand_get_npc', { npcId: 'gn' })) as Record<string, unknown>;
+    const result = (await handleHololandMcpTool('hololand_get_npc', { npcId: 'gn' })) as Record<
+      string,
+      unknown
+    >;
     expect(result.success).toBe(true);
     expect((result.npc as Record<string, unknown>).name).toBe('GN');
   });
@@ -693,7 +744,11 @@ describe('hololand-mcp-tools', () => {
   });
 
   it('hololand_update_npc mutates fields', async () => {
-    await handleHololandMcpTool('hololand_create_npc', { id: 'un', name: 'UN', behavior: 'passive' });
+    await handleHololandMcpTool('hololand_create_npc', {
+      id: 'un',
+      name: 'UN',
+      behavior: 'passive',
+    });
     const updated = (await handleHololandMcpTool('hololand_update_npc', {
       npcId: 'un',
       name: 'Updated',
@@ -714,13 +769,27 @@ describe('hololand-mcp-tools', () => {
   });
 
   it('hololand_list_npcs filters by role and behavior', async () => {
-    await handleHololandMcpTool('hololand_create_npc', { id: 'ln1', name: 'LN1', role: 'merchant', behavior: 'friendly' });
-    await handleHololandMcpTool('hololand_create_npc', { id: 'ln2', name: 'LN2', role: 'enemy', behavior: 'aggressive' });
+    await handleHololandMcpTool('hololand_create_npc', {
+      id: 'ln1',
+      name: 'LN1',
+      role: 'merchant',
+      behavior: 'friendly',
+    });
+    await handleHololandMcpTool('hololand_create_npc', {
+      id: 'ln2',
+      name: 'LN2',
+      role: 'enemy',
+      behavior: 'aggressive',
+    });
 
-    const byRole = (await handleHololandMcpTool('hololand_list_npcs', { role: 'merchant' })) as Record<string, unknown>;
+    const byRole = (await handleHololandMcpTool('hololand_list_npcs', {
+      role: 'merchant',
+    })) as Record<string, unknown>;
     expect((byRole.npcs as unknown[]).length).toBe(1);
 
-    const byBehavior = (await handleHololandMcpTool('hololand_list_npcs', { behavior: 'aggressive' })) as Record<string, unknown>;
+    const byBehavior = (await handleHololandMcpTool('hololand_list_npcs', {
+      behavior: 'aggressive',
+    })) as Record<string, unknown>;
     expect((byBehavior.npcs as unknown[]).length).toBe(1);
 
     const all = (await handleHololandMcpTool('hololand_list_npcs', {})) as Record<string, unknown>;
@@ -761,7 +830,10 @@ describe('hololand-mcp-tools', () => {
   // ---------------------------------------------------------------------------
 
   it('hololand_npc_byok_status reports provider state', async () => {
-    const result = (await handleHololandMcpTool('hololand_npc_byok_status', {})) as Record<string, unknown>;
+    const result = (await handleHololandMcpTool('hololand_npc_byok_status', {})) as Record<
+      string,
+      unknown
+    >;
     expect(result.success).toBe(true);
     expect(typeof result.activeProvider).toBe('string');
     expect(typeof result.localAvailable).toBe('boolean');

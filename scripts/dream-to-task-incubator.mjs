@@ -15,32 +15,38 @@ import { readFileSync, existsSync } from 'fs';
 const PHASES = [
   {
     suffix: 'Research & Discovery',
-    template: 'Survey existing work, identify gaps, and compile evidence for "{title}". Deliver a findings memo.',
+    template:
+      'Survey existing work, identify gaps, and compile evidence for "{title}". Deliver a findings memo.',
     tags: ['research'],
   },
   {
     suffix: 'Architecture & Contract',
-    template: 'Design the type contract, public API surface, and integration points for "{title}". Include trait/compiler impact analysis.',
+    template:
+      'Design the type contract, public API surface, and integration points for "{title}". Include trait/compiler impact analysis.',
     tags: ['architecture'],
   },
   {
     suffix: 'Prototype Implementation',
-    template: 'Ship a runnable prototype of "{title}" with core happy-path working. Include 1-2 integration tests.',
+    template:
+      'Ship a runnable prototype of "{title}" with core happy-path working. Include 1-2 integration tests.',
     tags: ['implement'],
   },
   {
     suffix: 'Test Hardening & Edge Cases',
-    template: 'Add false-case tests, stress the prototype, fix pre-existing failures for "{title}". Target >80% branch coverage.',
+    template:
+      'Add false-case tests, stress the prototype, fix pre-existing failures for "{title}". Target >80% branch coverage.',
     tags: ['test'],
   },
   {
     suffix: 'Integration & Wiring',
-    template: 'Wire the prototype into the real pipeline (ImportPipeline, compiler dispatch, studio UI, etc.) for "{title}". Verify end-to-end.',
+    template:
+      'Wire the prototype into the real pipeline (ImportPipeline, compiler dispatch, studio UI, etc.) for "{title}". Verify end-to-end.',
     tags: ['integrate'],
   },
   {
     suffix: 'Documentation & Handoff',
-    template: 'Write the skill memo, update NORTH_STAR if architecture changed, and post a handoff for "{title}".',
+    template:
+      'Write the skill memo, update NORTH_STAR if architecture changed, and post a handoff for "{title}".',
     tags: ['docs'],
   },
 ];
@@ -85,10 +91,9 @@ export function incubate(dream) {
 
   const tasks = phases.map((phase, idx) => {
     const title = `${baseTitle} — ${phase.suffix}`;
-    const description = phase.template
-      .replace('{title}', baseTitle)
-      .replace('{vision}', baseVision)
-      + (constraints.length ? `\n\nConstraints: ${constraints.join(', ')}` : '');
+    const description =
+      phase.template.replace('{title}', baseTitle).replace('{vision}', baseVision) +
+      (constraints.length ? `\n\nConstraints: ${constraints.join(', ')}` : '');
 
     return {
       title,
@@ -136,7 +141,9 @@ async function main() {
 
   if (args.post) {
     const result = await postToBoard(tasks);
-    console.log(JSON.stringify({ success: true, added: result.added || tasks.length, tasks }, null, 2));
+    console.log(
+      JSON.stringify({ success: true, added: result.added || tasks.length, tasks }, null, 2)
+    );
   } else {
     console.log(JSON.stringify(tasks, null, 2));
   }

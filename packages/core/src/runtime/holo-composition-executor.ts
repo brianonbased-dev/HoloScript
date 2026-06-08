@@ -53,13 +53,13 @@ export interface HoloCompositionContext {
  */
 export async function executeHoloComposition(
   node: HoloComposition,
-  ctx: HoloCompositionContext,
+  ctx: HoloCompositionContext
 ): Promise<ExecutionResult> {
   // Phase 1: register templates
   for (const template of node.templates) {
     await executeHoloTemplate(
       template as unknown as { name: string } & Record<string, unknown>,
-      ctx.simpleExecutorContext,
+      ctx.simpleExecutorContext
     );
   }
 

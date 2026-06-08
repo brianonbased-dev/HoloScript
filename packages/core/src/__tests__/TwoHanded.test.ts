@@ -12,8 +12,8 @@ describe('Two-Handed Interactions', () => {
       id: 'test_node',
       properties: {
         position: [0, 0, 0],
-        rotation: [0, 0, 0 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
       },
     };
 
@@ -49,12 +49,12 @@ describe('Two-Handed Interactions', () => {
     // Left at -0.5, Right at 0.5
     context.vr.hands.left = {
       position: [-0.5, 0, 0],
-      rotation: [0, 0, 0 ],
+      rotation: [0, 0, 0],
       pinchStrength: 1,
     } as any;
     context.vr.hands.right = {
       position: [0.5, 0, 0],
-      rotation: [0, 0, 0 ],
+      rotation: [0, 0, 0],
       pinchStrength: 1,
     } as any;
 
@@ -79,12 +79,12 @@ describe('Two-Handed Interactions', () => {
     // Setup initial grab (Horizontal)
     context.vr.hands.left = {
       position: [-0.5, 0, 0],
-      rotation: [0, 0, 0 ],
+      rotation: [0, 0, 0],
       pinchStrength: 1,
     } as any;
     context.vr.hands.right = {
       position: [0.5, 0, 0],
-      rotation: [0, 0, 0 ],
+      rotation: [0, 0, 0],
       pinchStrength: 1,
     } as any;
 
@@ -113,8 +113,8 @@ describe('Two-Handed Interactions', () => {
     // Delta angle = -90 - 0 = -90.
     // Object rotation Y = 0 - (-90) = +90 ? (Depends on sign logic in trait)
 
-    context.vr.hands.left.position = [0, 0, 0.5 ];
-    context.vr.hands.right.position = [0, 0, -0.5 ];
+    context.vr.hands.left.position = [0, 0, 0.5];
+    context.vr.hands.right.position = [0, 0, -0.5];
 
     trait.onUpdate(node, context, 0.016);
 

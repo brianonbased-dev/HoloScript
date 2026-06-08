@@ -76,7 +76,10 @@ export function rank(rating: ImpossibilityRating): number {
 export type RatingDirection = 'upgrade' | 'downgrade' | 'lateral';
 
 /** Compute the direction between two ratings (no side-effects, no opinion on which is correct). */
-export function direction(prior: ImpossibilityRating, current: ImpossibilityRating): RatingDirection {
+export function direction(
+  prior: ImpossibilityRating,
+  current: ImpossibilityRating
+): RatingDirection {
   const d = rank(current) - rank(prior);
   if (d > 0) return 'upgrade';
   if (d < 0) return 'downgrade';
@@ -194,7 +197,8 @@ export function validateEvidence(raw: unknown): ImpossibilityEvidence | { error:
   }
   if (!Array.isArray(o.evidenceRefs) || o.evidenceRefs.length === 0) {
     return {
-      error: 'evidence.evidenceRefs must be a non-empty array (F.017: every claim needs a citation)',
+      error:
+        'evidence.evidenceRefs must be a non-empty array (F.017: every claim needs a citation)',
     };
   }
   for (const ref of o.evidenceRefs) {
@@ -238,7 +242,7 @@ export function evidenceWireKey(ev: ImpossibilityEvidence): string {
  */
 export function buildImpossibilityV1Record(
   evidence: ImpossibilityEvidence,
-  options: { label?: string; cursorAt?: { chain: string; depth: number } } = {},
+  options: { label?: string; cursorAt?: { chain: string; depth: number } } = {}
 ): ImpossibilityV1Record {
   const v = validateEvidence(evidence);
   if ('error' in v) {
@@ -278,9 +282,7 @@ export interface EvidenceCohort {
   inDispute: boolean;
 }
 
-export function aggregateEvidence(
-  records: ReadonlyArray<ImpossibilityV1Record>,
-): EvidenceCohort {
+export function aggregateEvidence(records: ReadonlyArray<ImpossibilityV1Record>): EvidenceCohort {
   if (records.length === 0) {
     throw new Error('impossibility.v1: aggregateEvidence requires at least one record');
   }
@@ -288,7 +290,7 @@ export function aggregateEvidence(
   for (const r of records) {
     if (r.evidence.id !== id) {
       throw new Error(
-        `impossibility.v1: aggregateEvidence requires uniform id; got ${id} and ${r.evidence.id}`,
+        `impossibility.v1: aggregateEvidence requires uniform id; got ${id} and ${r.evidence.id}`
       );
     }
   }
@@ -304,7 +306,7 @@ export function aggregateEvidence(
     agentsSet.add(r.evidence.filedBy);
   }
   const presentRatings = (Object.keys(byRating) as ImpossibilityRating[]).filter(
-    (k) => byRating[k].length > 0,
+    (k) => byRating[k].length > 0
   );
   const ranked = presentRatings.map((r) => ({ r, n: rank(r) }));
   ranked.sort((a, b) => b.n - a.n);

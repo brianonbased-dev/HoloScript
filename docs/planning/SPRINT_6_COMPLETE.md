@@ -12,7 +12,7 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 
 ### Achievements
 
-- **4,[see NUMBERS.md]  passing** across 168 test files
+- **4,[see NUMBERS.md] passing** across 168 test files
 - **Universal export pipeline** supporting GLB, GLTF, USD, USDZ formats
 - **Distributed rendering** via Render Network integration
 - **Volumetric support** with Gaussian Splatting and volumetric video
@@ -236,21 +236,21 @@ Sprint 6 successfully delivered **Spatial Export & Rendering** capabilities, ena
 
 - **Location**: `packages/core/src/render/postprocess/`
 - **Files**: 5 modules (672+ lines)
-- **Tests**: [see NUMBERS.md]  in `PostProcess.test.ts`
+- **Tests**: [see NUMBERS.md] in `PostProcess.test.ts`
 - **Features**: Bloom, tonemap, FXAA, vignette, color grading
 
 ### Audio System ✅
 
 - **Location**: `packages/core/src/audio/`
 - **Files**: 4 modules
-- **Tests**: [see NUMBERS.md]  in `Audio.test.ts`
+- **Tests**: [see NUMBERS.md] in `Audio.test.ts`
 - **Features**: Spatial audio, sequencer, effects, voice
 
 ### Streaming Protocol ✅
 
 - **Location**: `packages/core/src/hololand/StreamingProtocol.ts`
 - **Size**: 935 lines
-- **Tests**: [see NUMBERS.md]  in `StreamingProtocol.test.ts` (NEW)
+- **Tests**: [see NUMBERS.md] in `StreamingProtocol.test.ts` (NEW)
 - **Features**: WebSocket protocol, reliable messaging, entity sync
 
 ---

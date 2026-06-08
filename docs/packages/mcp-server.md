@@ -55,7 +55,7 @@ Add to `.cursor_rules`:
 
 ```yaml
 # Enable HoloScript MCP Server
-MCP_SERVERS: ["holoscript"]
+MCP_SERVERS: ['holoscript']
 ```
 
 ### Custom Usage
@@ -172,17 +172,13 @@ The server implements the official [Model Context Protocol](https://modelcontext
 ### parse_holo
 
 ```yaml
-
 Input:
-
-- code: string (HoloScript code)
+  - code: string (HoloScript code)
 
 Output:
-
-- ast: AST object
-- diagnostics: Diagnostic[]
-- metadata: { linesOfCode, complexity, traits }
-
+  - ast: AST object
+  - diagnostics: Diagnostic[]
+  - metadata: { linesOfCode, complexity, traits }
 ```
 
 ### suggest_traits
@@ -203,18 +199,14 @@ Output:
 ### generate_object
 
 ```yaml
-
 Input:
-
-- description: string
-- traits: string[] (optional)
+  - description: string
+  - traits: string[] (optional)
 
 Output:
-
-- code: string (HoloScript object code)
-- template: string (suggested template)
-- confidence: number
-
+  - code: string (HoloScript object code)
+  - template: string (suggested template)
+  - confidence: number
 ```
 
 ### compile_holo

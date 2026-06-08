@@ -99,7 +99,11 @@ describe('AICompanionTrait', () => {
     });
 
     it('should support all idle behaviors on attach', () => {
-      const behaviors: Array<'wander' | 'patrol' | 'stationary'> = ['wander', 'patrol', 'stationary'];
+      const behaviors: Array<'wander' | 'patrol' | 'stationary'> = [
+        'wander',
+        'patrol',
+        'stationary',
+      ];
 
       for (const behavior of behaviors) {
         mockContext.emit.mockClear();
@@ -140,7 +144,9 @@ describe('AICompanionTrait', () => {
       const config = aiCompanionHandler.defaultConfig;
       mockNode.__aiCompanionState = undefined;
 
-      expect(() => aiCompanionHandler.onDetach(mockNode as HSPlusNode, config, mockContext)).not.toThrow();
+      expect(() =>
+        aiCompanionHandler.onDetach(mockNode as HSPlusNode, config, mockContext)
+      ).not.toThrow();
     });
   });
 
@@ -239,16 +245,11 @@ describe('AICompanionTrait', () => {
       const config = aiCompanionHandler.defaultConfig;
       const state = mockNode.__aiCompanionState as any;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_interact',
-          playerId: 'player123',
-          message: 'Hello companion!',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_interact',
+        playerId: 'player123',
+        message: 'Hello companion!',
+      });
 
       expect(state.interactingWith).toBe('player123');
       expect(state.currentAction).toBe('interacting');
@@ -259,16 +260,11 @@ describe('AICompanionTrait', () => {
       const state = mockNode.__aiCompanionState as any;
       state.emotion.curiosity = 0.3;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_interact',
-          playerId: 'player123',
-          message: 'Hello!',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_interact',
+        playerId: 'player123',
+        message: 'Hello!',
+      });
 
       expect(state.emotion.curiosity).toBe(0.5); // 0.3 + 0.2, clamped to max 1.0
     });
@@ -276,16 +272,11 @@ describe('AICompanionTrait', () => {
     it('should emit ai_companion_response_start', () => {
       const config = aiCompanionHandler.defaultConfig;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_interact',
-          playerId: 'player456',
-          message: 'How are you?',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_interact',
+        playerId: 'player456',
+        message: 'How are you?',
+      });
 
       expect(mockContext.emit).toHaveBeenCalledWith(
         'ai_companion_response_start',
@@ -301,16 +292,11 @@ describe('AICompanionTrait', () => {
       const config = aiCompanionHandler.defaultConfig;
       const state = mockNode.__aiCompanionState as any;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_interact',
-          playerId: null,
-          message: 'Test',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_interact',
+        playerId: null,
+        message: 'Test',
+      });
 
       expect(state.interactingWith).toBeNull();
     });
@@ -327,15 +313,10 @@ describe('AICompanionTrait', () => {
       const config = aiCompanionHandler.defaultConfig;
       const state = mockNode.__aiCompanionState as any;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_response',
-          text: 'I am doing well!',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_response',
+        text: 'I am doing well!',
+      });
 
       expect(state.memoryCount).toBe(1);
     });
@@ -345,15 +326,10 @@ describe('AICompanionTrait', () => {
       const state = mockNode.__aiCompanionState as any;
       state.memoryCount = 5;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_response',
-          text: 'Response text',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_response',
+        text: 'Response text',
+      });
 
       expect(state.memoryCount).toBe(5); // Should not exceed capacity
     });
@@ -361,15 +337,10 @@ describe('AICompanionTrait', () => {
     it('should emit on_ai_companion_speak event', () => {
       const config = aiCompanionHandler.defaultConfig;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_response',
-          text: 'Hello player!',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_response',
+        text: 'Hello player!',
+      });
 
       expect(mockContext.emit).toHaveBeenCalledWith(
         'on_ai_companion_speak',
@@ -385,15 +356,10 @@ describe('AICompanionTrait', () => {
       const state = mockNode.__aiCompanionState as any;
       const before = Date.now();
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_response',
-          text: 'Test',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_response',
+        text: 'Test',
+      });
 
       const after = Date.now();
       expect(state.lastResponseTime).toBeGreaterThanOrEqual(before);
@@ -413,15 +379,10 @@ describe('AICompanionTrait', () => {
       const state = mockNode.__aiCompanionState as any;
       const initialHappiness = state.emotion.happiness;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_emotion_stimulus',
-          happiness: 0.2,
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_emotion_stimulus',
+        happiness: 0.2,
+      });
 
       expect(state.emotion.happiness).toBe(initialHappiness + 0.2);
     });
@@ -430,15 +391,10 @@ describe('AICompanionTrait', () => {
       const config = aiCompanionHandler.defaultConfig;
       const state = mockNode.__aiCompanionState as any;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_emotion_stimulus',
-          fear: 0.3,
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_emotion_stimulus',
+        fear: 0.3,
+      });
 
       expect(state.emotion.fear).toBe(0.3);
     });
@@ -447,15 +403,10 @@ describe('AICompanionTrait', () => {
       const config = aiCompanionHandler.defaultConfig;
       const state = mockNode.__aiCompanionState as any;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_emotion_stimulus',
-          trust: 0.15,
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_emotion_stimulus',
+        trust: 0.15,
+      });
 
       expect(state.emotion.trust).toBe(0.65); // 0.5 + 0.15
     });
@@ -464,17 +415,12 @@ describe('AICompanionTrait', () => {
       const config = aiCompanionHandler.defaultConfig;
       const state = mockNode.__aiCompanionState as any;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_emotion_stimulus',
-          happiness: 2.0,
-          fear: -1.0,
-          trust: 0.5,
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_emotion_stimulus',
+        happiness: 2.0,
+        fear: -1.0,
+        trust: 0.5,
+      });
 
       expect(state.emotion.happiness).toBe(1.0); // Clamped to max
       expect(state.emotion.fear).toBe(0); // Clamped to min
@@ -486,16 +432,11 @@ describe('AICompanionTrait', () => {
       const state = mockNode.__aiCompanionState as any;
       const originalCuriosity = state.emotion.curiosity;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_emotion_stimulus',
-          happiness: 0.1,
-          // curiosity not specified, should remain unchanged
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_emotion_stimulus',
+        happiness: 0.1,
+        // curiosity not specified, should remain unchanged
+      });
 
       expect(state.emotion.curiosity).toBe(originalCuriosity);
     });
@@ -512,15 +453,10 @@ describe('AICompanionTrait', () => {
       const config = aiCompanionHandler.defaultConfig;
       const state = mockNode.__aiCompanionState as any;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_set_action',
-          action: 'dancing',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_set_action',
+        action: 'dancing',
+      });
 
       expect(state.currentAction).toBe('dancing');
     });
@@ -529,15 +465,10 @@ describe('AICompanionTrait', () => {
       const config = aiCompanionHandler.defaultConfig;
       const state = mockNode.__aiCompanionState as any;
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_set_action',
-          action: null,
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_set_action',
+        action: null,
+      });
 
       expect(state.currentAction).toBe('idle');
     });
@@ -555,14 +486,9 @@ describe('AICompanionTrait', () => {
       const state = mockNode.__aiCompanionState as any;
       state.interactingWith = 'player123';
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_end_interaction',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_end_interaction',
+      });
 
       expect(state.interactingWith).toBeNull();
     });
@@ -572,14 +498,9 @@ describe('AICompanionTrait', () => {
       const state = mockNode.__aiCompanionState as any;
       state.currentAction = 'interacting';
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_end_interaction',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_end_interaction',
+      });
 
       expect(state.currentAction).toBe('wander');
     });
@@ -589,14 +510,9 @@ describe('AICompanionTrait', () => {
       const state = mockNode.__aiCompanionState as any;
       state.currentAction = 'interacting';
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_end_interaction',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_end_interaction',
+      });
 
       expect(state.currentAction).toBe('patrol');
     });
@@ -606,14 +522,9 @@ describe('AICompanionTrait', () => {
       const state = mockNode.__aiCompanionState as any;
       state.currentAction = 'interacting';
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_end_interaction',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_end_interaction',
+      });
 
       expect(state.currentAction).toBe('idle');
     });
@@ -631,14 +542,9 @@ describe('AICompanionTrait', () => {
       const state = mockNode.__aiCompanionState as any;
       const stateSnapshot = JSON.parse(JSON.stringify(state));
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'unknown_event_type',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'unknown_event_type',
+      });
 
       expect(state).toEqual(stateSnapshot);
       expect(mockContext.emit).not.toHaveBeenCalled();
@@ -677,15 +583,10 @@ describe('AICompanionTrait', () => {
       // Simulate rapid interactions: start at 0.5, add 0.05 each time
       // 10 iterations: 0.5 + (10 * 0.05) = 1.0
       for (let i = 0; i < 10; i++) {
-        aiCompanionHandler.onEvent(
-          mockNode as HSPlusNode,
-          config,
-          mockContext,
-          {
-            type: 'ai_companion_emotion_stimulus',
-            happiness: 0.05,
-          }
-        );
+        aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+          type: 'ai_companion_emotion_stimulus',
+          happiness: 0.05,
+        });
       }
 
       expect(state.emotion.happiness).toBeCloseTo(1.0, 5); // Clamped to max after 10 iterations
@@ -698,16 +599,11 @@ describe('AICompanionTrait', () => {
       aiCompanionHandler.onAttach(mockNode as HSPlusNode, config, mockContext);
       mockContext.emit.mockClear();
 
-      aiCompanionHandler.onEvent(
-        mockNode as HSPlusNode,
-        config,
-        mockContext,
-        {
-          type: 'ai_companion_interact',
-          playerId: 'player',
-          message: 'Hi',
-        }
-      );
+      aiCompanionHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
+        type: 'ai_companion_interact',
+        playerId: 'player',
+        message: 'Hi',
+      });
 
       expect(mockContext.emit).toHaveBeenCalledWith(
         'ai_companion_response_start',

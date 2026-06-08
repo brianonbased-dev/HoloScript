@@ -45,7 +45,7 @@ function pascalToSnake(name) {
 function snakeToPascal(name) {
   return name
     .split('_')
-    .map(s => s.charAt(0).toUpperCase() + s.slice(1))
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
     .join('');
 }
 
@@ -75,7 +75,7 @@ function readAll(paths) {
 
 const traitMap = new Map(); // trait -> { category, categoryFile }
 const categoryFiles = readdirSync(CONSTANTS_DIR)
-  .filter(f => f.endsWith('.ts') && !f.endsWith('.d.ts') && f !== 'index.ts')
+  .filter((f) => f.endsWith('.ts') && !f.endsWith('.d.ts') && f !== 'index.ts')
   .sort();
 
 for (const cf of categoryFiles) {
@@ -85,7 +85,7 @@ for (const cf of categoryFiles) {
   if (!match) continue;
   const categoryName = cf.replace(/\.ts$/, '');
   const rawList = match[2];
-  const names = [...rawList.matchAll(/'([^']+)'/g)].map(m => m[1]);
+  const names = [...rawList.matchAll(/'([^']+)'/g)].map((m) => m[1]);
   for (const name of names) {
     if (!traitMap.has(name)) {
       traitMap.set(name, { category: categoryName, categoryFile: cf, handlers: [], tests: [] });
@@ -97,11 +97,13 @@ const allTraits = Array.from(traitMap.keys()).sort();
 
 // ─── Step 2: Map handlers and tests from filenames ────────────────────────
 
-const handlerFiles = [...walkDir(TRAITS_DIR, n => n.endsWith('Trait.ts') && !n.includes('.test.'))];
-const testFiles = [...walkDir(TRAITS_DIR, n => n.endsWith('.test.ts'))];
+const handlerFiles = [
+  ...walkDir(TRAITS_DIR, (n) => n.endsWith('Trait.ts') && !n.includes('.test.')),
+];
+const testFiles = [...walkDir(TRAITS_DIR, (n) => n.endsWith('.test.ts'))];
 
 const handlerMap = new Map(); // snake_case stem -> full path
-const testMap = new Map();    // snake_case stem -> full path
+const testMap = new Map(); // snake_case stem -> full path
 
 for (const f of handlerFiles) {
   const stem = basename(f, 'Trait.ts');
@@ -123,8 +125,10 @@ for (const f of testFiles) {
 
 // ─── Step 3: Bulk read examples & docs for substring search ────────────────
 
-const examplePaths = [...walkDir(EXAMPLES_DIR, n => n.endsWith('.holo') || n.endsWith('.hsplus'))];
-const docPaths = [...walkDir(DOCS_DIR, n => n.endsWith('.md'))];
+const examplePaths = [
+  ...walkDir(EXAMPLES_DIR, (n) => n.endsWith('.holo') || n.endsWith('.hsplus')),
+];
+const docPaths = [...walkDir(DOCS_DIR, (n) => n.endsWith('.md'))];
 
 // Build a combined string per type for fast membership testing
 const exampleChunks = readAll(examplePaths);
@@ -137,7 +141,13 @@ function appearsIn(chunks, name) {
   const needle4 = '"' + name + '"';
   const needle5 = "'" + name + "'";
   for (const chunk of chunks) {
-    if (chunk.includes(needle1) || chunk.includes(needle2) || chunk.includes(needle3) || chunk.includes(needle4) || chunk.includes(needle5)) {
+    if (
+      chunk.includes(needle1) ||
+      chunk.includes(needle2) ||
+      chunk.includes(needle3) ||
+      chunk.includes(needle4) ||
+      chunk.includes(needle5)
+    ) {
       return true;
     }
   }
@@ -179,7 +189,15 @@ for (const name of allTraits) {
 const categoryStats = new Map();
 for (const r of results) {
   if (!categoryStats.has(r.category)) {
-    categoryStats.set(r.category, { total: 0, covered: 0, zero: 0, withHandler: 0, withTest: 0, withExample: 0, withDoc: 0 });
+    categoryStats.set(r.category, {
+      total: 0,
+      covered: 0,
+      zero: 0,
+      withHandler: 0,
+      withTest: 0,
+      withExample: 0,
+      withDoc: 0,
+    });
   }
   const s = categoryStats.get(r.category);
   s.total++;
@@ -193,7 +211,9 @@ for (const r of results) {
 }
 
 const totalTraits = results.length;
-const coveredTraits = results.filter(r => r.hasHandler || r.hasTest || r.hasExample || r.hasDoc).length;
+const coveredTraits = results.filter(
+  (r) => r.hasHandler || r.hasTest || r.hasExample || r.hasDoc
+).length;
 const zeroTraits = totalTraits - coveredTraits;
 const overallPct = ((coveredTraits / totalTraits) * 100).toFixed(2);
 
@@ -241,14 +261,18 @@ const mdLines = [
 
 const sortedCats = Array.from(categoryStats.entries()).sort((a, b) => b[1].zero - a[1].zero);
 for (const [cat, s] of sortedCats) {
-  mdLines.push(`| ${cat} | ${s.total} | ${s.covered} | ${s.zero} | ${s.withHandler} | ${s.withTest} | ${s.withExample} | ${s.withDoc} |`);
+  mdLines.push(
+    `| ${cat} | ${s.total} | ${s.covered} | ${s.zero} | ${s.withHandler} | ${s.withTest} | ${s.withExample} | ${s.withDoc} |`
+  );
 }
 
 mdLines.push('', '---', '', '## Zero-Coverage Traits Detail', '');
 for (const [cat, s] of sortedCats) {
   if (s.zero === 0) continue;
   mdLines.push(`### ${cat} (${s.zero} uncovered)`);
-  const uncovered = results.filter(r => r.category === cat && !r.hasHandler && !r.hasTest && !r.hasExample && !r.hasDoc);
+  const uncovered = results.filter(
+    (r) => r.category === cat && !r.hasHandler && !r.hasTest && !r.hasExample && !r.hasDoc
+  );
   mdLines.push('');
   for (const u of uncovered) {
     mdLines.push(`- \`${u.name}\``);
@@ -274,7 +298,9 @@ const backlogLines = [
 
 for (const [cat, s] of sortedCats) {
   if (s.zero === 0) continue;
-  const uncovered = results.filter(r => r.category === cat && !r.hasHandler && !r.hasTest && !r.hasExample && !r.hasDoc);
+  const uncovered = results.filter(
+    (r) => r.category === cat && !r.hasHandler && !r.hasTest && !r.hasExample && !r.hasDoc
+  );
   backlogLines.push(`## ${cat}`);
   backlogLines.push(`**Count:** ${s.zero}  **Total in category:** ${s.total}`);
   backlogLines.push('');

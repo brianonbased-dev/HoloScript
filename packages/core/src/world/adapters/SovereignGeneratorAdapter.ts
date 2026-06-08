@@ -104,7 +104,8 @@ const DEFAULT_LOCAL_ENDPOINT =
 export const BRITTNEY_SOVEREIGN_DEFAULT_MODEL = 'qwen2.5-coder:7b';
 
 const DEFAULT_LOCAL_MODEL =
-  (typeof process !== 'undefined' && process.env.BRITTNEY_MODEL) || BRITTNEY_SOVEREIGN_DEFAULT_MODEL;
+  (typeof process !== 'undefined' && process.env.BRITTNEY_MODEL) ||
+  BRITTNEY_SOVEREIGN_DEFAULT_MODEL;
 
 const DEFAULT_CLOUD_ENDPOINT =
   (typeof process !== 'undefined' && process.env.BRITTNEY_SERVICE_URL) || '';

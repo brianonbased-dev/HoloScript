@@ -32,7 +32,11 @@ export function makeCommitHook(opts: CommitHookOptions) {
   const now = opts.now ?? (() => new Date());
   const scope = opts.scope ?? 'agent';
 
-  return async (result: ExecutionResult, task: BoardTask, identity: AgentIdentity): Promise<CommitHookResult> => {
+  return async (
+    result: ExecutionResult,
+    task: BoardTask,
+    identity: AgentIdentity
+  ): Promise<CommitHookResult> => {
     if (!SAFE_HANDLE.test(identity.handle)) {
       throw new Error(`Refusing to commit: handle "${identity.handle}" must match ${SAFE_HANDLE}`);
     }
@@ -47,7 +51,9 @@ export function makeCommitHook(opts: CommitHookOptions) {
     const relPath = relativeTo(cwd, filePath);
     const addRes = spawn('git', ['add', relPath], { cwd, encoding: 'utf8' });
     if (addRes.status !== 0) {
-      throw new Error(`git add failed: ${addRes.stderr || addRes.stdout || `exit ${addRes.status}`}`);
+      throw new Error(
+        `git add failed: ${addRes.stderr || addRes.stdout || `exit ${addRes.status}`}`
+      );
     }
 
     const message = renderCommitMessage({ scope, task, identity, result });
@@ -57,7 +63,9 @@ export function makeCommitHook(opts: CommitHookOptions) {
     }
     const commitRes = spawn('git', commitArgs, { cwd, encoding: 'utf8' });
     if (commitRes.status !== 0) {
-      throw new Error(`git commit failed: ${commitRes.stderr || commitRes.stdout || `exit ${commitRes.status}`}`);
+      throw new Error(
+        `git commit failed: ${commitRes.stderr || commitRes.stdout || `exit ${commitRes.status}`}`
+      );
     }
 
     const hashRes = spawn('git', ['rev-parse', 'HEAD'], { cwd, encoding: 'utf8' });
@@ -67,7 +75,12 @@ export function makeCommitHook(opts: CommitHookOptions) {
   };
 }
 
-function renderMemo(result: ExecutionResult, task: BoardTask, identity: AgentIdentity, date: string): string {
+function renderMemo(
+  result: ExecutionResult,
+  task: BoardTask,
+  identity: AgentIdentity,
+  date: string
+): string {
   return [
     '---',
     `title: "${task.title.replace(/"/g, "'")}"`,

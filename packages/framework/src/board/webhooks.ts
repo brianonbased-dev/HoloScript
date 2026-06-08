@@ -156,7 +156,9 @@ export function validateBoardWebhookSubscription(subscription: BoardWebhookSubsc
     }
   }
   if (subscription.signing && subscription.signing.algorithm !== 'hmac-sha256') {
-    errors.push(`BoardWebhookSubscription.signing.algorithm is unsupported: ${subscription.signing.algorithm}.`);
+    errors.push(
+      `BoardWebhookSubscription.signing.algorithm is unsupported: ${subscription.signing.algorithm}.`
+    );
   }
   if (subscription.retry) {
     if (subscription.retry.maxAttempts < 1) {
@@ -193,7 +195,10 @@ export function shouldDeliverBoardWebhook(
   subscription: BoardWebhookSubscription,
   type: BoardWebhookEventType
 ): boolean {
-  return subscription.enabled !== false && (subscription.events.includes('*') || subscription.events.includes(type));
+  return (
+    subscription.enabled !== false &&
+    (subscription.events.includes('*') || subscription.events.includes(type))
+  );
 }
 
 export async function signBoardWebhookEnvelope(
@@ -222,7 +227,10 @@ export async function verifyBoardWebhookSignature(
     return false;
   }
 
-  const expected = await signBoardWebhookEnvelope({ ...envelope, timestamp: parsed.timestamp }, secret);
+  const expected = await signBoardWebhookEnvelope(
+    { ...envelope, timestamp: parsed.timestamp },
+    secret
+  );
   const expectedValue = parseSignatureHeader(expected).value;
   return expectedValue ? constantTimeEqual(expectedValue, parsed.value) : false;
 }
@@ -300,7 +308,7 @@ export function cloneBoardWebhookEnvelope<TPayload = Record<string, unknown>>(
     ...envelope,
     payload:
       envelope.payload && typeof envelope.payload === 'object' && !Array.isArray(envelope.payload)
-        ? { ...envelope.payload } as TPayload
+        ? ({ ...envelope.payload } as TPayload)
         : envelope.payload,
     fetchById: envelope.fetchById ? { ...envelope.fetchById } : undefined,
   };

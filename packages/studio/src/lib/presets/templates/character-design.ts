@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-character-design",
-  name: "Character Design Studio",
-  description: "Rigging-ready character template with T-pose reference and lighting",
-  thumbnail: "🧑‍🎨",
-  tags: ["art","character","design","avatar"],
-  category: "art",
+  id: 'wizard-character-design',
+  name: 'Character Design Studio',
+  description: 'Rigging-ready character template with T-pose reference and lighting',
+  thumbnail: '🧑‍🎨',
+  tags: ['art', 'character', 'design', 'avatar'],
+  category: 'art',
   code: `composition "Character Studio" {
   environment {
     skybox: "studio"
@@ -84,7 +84,7 @@ export const template: SceneTemplate = {
     intensity: 1.5
     angle: 0.5
   }
-}`
+}`,
 };
 
 export default template;

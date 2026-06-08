@@ -1,7 +1,7 @@
 # Milestone digest — YYYY-MM-DD
 
-* **Program / theme:** {name} (e.g. Lane B SSE, D.011, worker isolation)
-* **PR / commit:** {PR URL} or `{abc1234}`
+- **Program / theme:** {name} (e.g. Lane B SSE, D.011, worker isolation)
+- **PR / commit:** {PR URL} or `{abc1234}`
 
 ## Three bullets (numbers required where possible)
 

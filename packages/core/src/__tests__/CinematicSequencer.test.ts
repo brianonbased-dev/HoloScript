@@ -31,7 +31,7 @@ describe('CinematicDirector', () => {
     dir.addActorMark('s1', {
       actorId: 'hero',
       position: [0, 0, 0],
-      rotation: [0, 0, 0 ],
+      rotation: [0, 0, 0],
     });
     const scene = dir.getScene('s1')!;
     expect(scene.actors).toHaveLength(1);

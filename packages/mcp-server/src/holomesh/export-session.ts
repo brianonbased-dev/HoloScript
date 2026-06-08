@@ -24,7 +24,10 @@ function getNow(config?: ExportSessionConfig): number {
   return config?.now ? config.now() : Date.now();
 }
 
-export function createExportSession(userId: string, config: ExportSessionConfig = {}): ExportSession {
+export function createExportSession(
+  userId: string,
+  config: ExportSessionConfig = {}
+): ExportSession {
   const now = getNow(config);
   const ttlMs = normalizeTtlMs(config.ttlMs);
 
@@ -56,7 +59,10 @@ export function markExportSessionPackaged(
   return session;
 }
 
-export function markExportSessionFinalized(session: ExportSession, now = Date.now()): ExportSession {
+export function markExportSessionFinalized(
+  session: ExportSession,
+  now = Date.now()
+): ExportSession {
   session.status = 'finalized';
   session.consumedAt = now;
   return session;
@@ -111,12 +117,17 @@ export function deserializeExportSession(raw: unknown): ExportSession | null {
 
   if (!candidate.sessionId || !candidate.userId || !candidate.serverNonce) return null;
   if (!Number.isFinite(candidate.createdAt) || !Number.isFinite(candidate.expiresAt)) return null;
-  if (!candidate.status || !['prepared', 'packaged', 'finalized', 'expired'].includes(candidate.status)) {
+  if (
+    !candidate.status ||
+    !['prepared', 'packaged', 'finalized', 'expired'].includes(candidate.status)
+  ) {
     return null;
   }
 
   const idempotencyKeys = Array.isArray(candidate.idempotencyKeys)
-    ? candidate.idempotencyKeys.filter((k): k is string => typeof k === 'string' && k.trim().length > 0)
+    ? candidate.idempotencyKeys.filter(
+        (k): k is string => typeof k === 'string' && k.trim().length > 0
+      )
     : [];
 
   return {

@@ -12,11 +12,11 @@ That's it. Whatever copy surrounds it, the video has to do the work.
 
 ## What's Here
 
-| File | Purpose |
-|---|---|
-| `scene.holo` | The single source of truth. One rotating cube, one glow orb, one ground plane, one light, one camera. |
-| `build.mjs` | Compiles `scene.holo` to all 5 targets. Produces `out/threejs/`, `out/r3f/`, `out/unity/`, `out/unreal/`, `out/usd/`. |
-| `README.md` | This file. Storyboard + recording directions. |
+| File         | Purpose                                                                                                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `scene.holo` | The single source of truth. One rotating cube, one glow orb, one ground plane, one light, one camera.                 |
+| `build.mjs`  | Compiles `scene.holo` to all 5 targets. Produces `out/threejs/`, `out/r3f/`, `out/unity/`, `out/unreal/`, `out/usd/`. |
+| `README.md`  | This file. Storyboard + recording directions.                                                                         |
 
 ## Running the Build
 
@@ -51,17 +51,20 @@ All 5 targets compiled successfully.
 Total runtime: **60 seconds** (45s visual + 15s voiceover wrap)
 
 ### 0:00 – 0:05 — Hook
+
 - **Visual**: Text-only title card: "One .holo file. Five runtimes." — 3 seconds
 - **Visual**: Cut to editor showing `scene.holo` open, highlighted — 2 seconds
 - **VO**: "Here is one HoloScript file."
 
 ### 0:05 – 0:15 — Build
+
 - **Visual**: Terminal. Type `node build.mjs --time`. Hit enter.
 - **Visual**: Lines appear as each compiler finishes. Five OKs.
 - **Visual**: "All 5 targets compiled in X ms" line bolds.
 - **VO**: "One command. Five compile targets. Three.js, React Three Fiber, Unity, Unreal, and USD."
 
 ### 0:15 – 0:45 — The Proof (the money shot)
+
 - **Visual**: 5-way split screen:
   - Top-left: Three.js in Chrome
   - Top-right: R3F in Chrome (different route)
@@ -73,12 +76,14 @@ Total runtime: **60 seconds** (45s visual + 15s voiceover wrap)
 - **VO**: "Same scene. Same camera. Same lighting. Five different runtimes, no configuration. The .holo file is the source of truth — everything else is a target."
 
 ### 0:45 – 0:55 — The Edit
+
 - **Visual**: Cut back to `scene.holo`. Change `color: "#7b2ffa"` to `color: "#ff4136"`.
 - **Visual**: Re-run build (or show hot reload in each viewer).
 - **Visual**: All 5 windows turn red simultaneously.
 - **VO**: "Edit the source. All five targets update."
 
 ### 0:55 – 1:00 — The Ask
+
 - **Visual**: Text card: "Try it: npx create-holoscript my-world --go"
 - **Visual**: Smaller text: "HoloScript — Spatial Sovereignty"
 - **VO**: "Spatial Sovereignty, compiled. Try it in 30 seconds."
@@ -97,12 +102,14 @@ To record the video, a real operator needs:
 - [ ] Terminal with dark theme + large font (18pt+)
 
 ### Recording order
+
 1. Record the build step (terminal) separately — easier to compose
 2. Record each runtime independently showing the same scene
 3. Composite the 5-way split in post
 4. Voice-over last
 
 ### Quality bar
+
 - 4K capture source, 1080p or 720p final
 - No stuttering in any runtime — pre-warm all of them
 - All 5 runtimes visible simultaneously in the money shot
@@ -115,6 +122,7 @@ From the competitive brief (2026-04-17):
 > **Babylon.js is a destination. HoloScript is a source that reaches every destination including Babylon.**
 
 This video makes that abstract claim concrete. No competitor can produce a comparable video because:
+
 - Babylon → Babylon only
 - Three.js → Three.js only
 - Unity → Unity only

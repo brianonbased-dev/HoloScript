@@ -13,7 +13,7 @@ function mhaCpu(
   qLen: number,
   kLen: number,
   dHead: number,
-  vHead: number = dHead,
+  vHead: number = dHead
 ): Float32Array {
   const out = new Float32Array(numHeads * qLen * vHead);
   const scale = 1 / Math.sqrt(dHead);
@@ -32,7 +32,10 @@ function mhaCpu(
       let maxS = scores[0];
       for (let ki = 1; ki < kLen; ki++) maxS = Math.max(maxS, scores[ki]);
       let sumExp = 0;
-      for (let ki = 0; ki < kLen; ki++) { scores[ki] = Math.exp(scores[ki] - maxS); sumExp += scores[ki]; }
+      for (let ki = 0; ki < kLen; ki++) {
+        scores[ki] = Math.exp(scores[ki] - maxS);
+        sumExp += scores[ki];
+      }
       for (let ki = 0; ki < kLen; ki++) scores[ki] /= sumExp;
       // Weighted V
       const oBase = (h * qLen + qi) * vHead;
@@ -85,11 +88,14 @@ describe('FusedMHA — CPU reference', () => {
 
   it('identity attention: uniform scores → average of V rows', () => {
     // Q · K^T all equal → uniform softmax → output = mean(V)
-    const numHeads = 1, qLen = 1, kLen = 4, dHead = 2;
+    const numHeads = 1,
+      qLen = 1,
+      kLen = 4,
+      dHead = 2;
     // All K rows same → all scores equal
-    const K = new Float32Array([1,0, 1,0, 1,0, 1,0]);
-    const Q = new Float32Array([1,0]);
-    const V = new Float32Array([1,2, 3,4, 5,6, 7,8]);
+    const K = new Float32Array([1, 0, 1, 0, 1, 0, 1, 0]);
+    const Q = new Float32Array([1, 0]);
+    const V = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
     const out = mhaCpu(Q, K, V, numHeads, qLen, kLen, dHead);
     // mean of each vHead dim: (1+3+5+7)/4=4, (2+4+6+8)/4=5
     expect(out[0]).toBeCloseTo(4, 4);
@@ -98,7 +104,10 @@ describe('FusedMHA — CPU reference', () => {
 
   it('2 heads independence: each head operates on its own QKV', () => {
     const rng = mulberry32(7);
-    const numHeads = 2, qLen = 2, kLen = 3, dHead = 4;
+    const numHeads = 2,
+      qLen = 2,
+      kLen = 3,
+      dHead = 4;
     const Q = new Float32Array(numHeads * qLen * dHead).map(() => rng());
     const K = new Float32Array(numHeads * kLen * dHead).map(() => rng());
     const V = new Float32Array(numHeads * kLen * dHead).map(() => rng());
@@ -133,7 +142,10 @@ describe('FusedMHA — WebGPU', () => {
     const device = await adapter.requestDevice();
 
     const rng = mulberry32(42);
-    const numHeads = 1, qLen = 4, kLen = 4, dHead = 8;
+    const numHeads = 1,
+      qLen = 4,
+      kLen = 4,
+      dHead = 8;
     const Q = new Float32Array(numHeads * qLen * dHead).map(() => rng() - 0.5);
     const K = new Float32Array(numHeads * kLen * dHead).map(() => rng() - 0.5);
     const V = new Float32Array(numHeads * kLen * dHead).map(() => rng() - 0.5);
@@ -153,7 +165,10 @@ describe('FusedMHA — WebGPU', () => {
     const device = await adapter.requestDevice();
 
     const rng = mulberry32(13);
-    const numHeads = 2, qLen = 2, kLen = 4, dHead = 8;
+    const numHeads = 2,
+      qLen = 2,
+      kLen = 4,
+      dHead = 8;
     const Q = new Float32Array(numHeads * qLen * dHead).map(() => rng() - 0.5);
     const K = new Float32Array(numHeads * kLen * dHead).map(() => rng() - 0.5);
     const V = new Float32Array(numHeads * kLen * dHead).map(() => rng() - 0.5);
@@ -174,12 +189,12 @@ describe('FusedMHA — WebGPU', () => {
 
     const kernel = createFusedMHAKernel(device);
     await expect(
-      kernel.run(
-        new Float32Array(4),
-        new Float32Array(4 * 1025),
-        new Float32Array(4 * 1025),
-        { numHeads: 1, qLen: 1, kLen: 1025, dHead: 4 },
-      ),
+      kernel.run(new Float32Array(4), new Float32Array(4 * 1025), new Float32Array(4 * 1025), {
+        numHeads: 1,
+        qLen: 1,
+        kLen: 1025,
+        dHead: 4,
+      })
     ).rejects.toThrow('1024');
     device.destroy();
   });

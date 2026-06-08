@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // ─── Allowlist — only IDE tools are proxied here ──────────────────────────────
-const IDE_TOOLS = new Set([
-  'hs_diagnostics',
-  'hs_autocomplete',
-  'hs_hover',
-  'hs_go_to_definition',
-]);
+const IDE_TOOLS = new Set(['hs_diagnostics', 'hs_autocomplete', 'hs_hover', 'hs_go_to_definition']);
 
 function getMCPUrl(): string {
   return process.env['HOLOSCRIPT_MCP'] ?? 'https://mcp.holoscript.net';
@@ -74,7 +69,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let data: unknown = result;
   if (result && Array.isArray(result['content'])) {
     const textItem = (result['content'] as Array<{ type: string; text?: string }>).find(
-      (c) => c.type === 'text' && typeof c.text === 'string',
+      (c) => c.type === 'text' && typeof c.text === 'string'
     );
     if (textItem?.text) {
       try {

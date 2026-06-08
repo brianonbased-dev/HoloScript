@@ -25,10 +25,7 @@ export interface UnderwaterSceneProps extends SceneComponentProps {}
  * The default scene every new user sees.
  * Camera looks into the glass-panel "porthole" of an underwater world.
  */
-const UnderwaterScene: React.FC<UnderwaterSceneProps> = ({
-  onNavigateRequest,
-  onInteraction,
-}) => {
+const UnderwaterScene: React.FC<UnderwaterSceneProps> = ({ onNavigateRequest, onInteraction }) => {
   const { camera } = useThree();
 
   // Slight downward look into the scene (matches .holo spirit)
@@ -71,7 +68,12 @@ const UnderwaterScene: React.FC<UnderwaterSceneProps> = ({
       flowG.connect(master);
       flow.start();
       lfo.start();
-      stops.push(() => { try { flow.stop(); lfo.stop(); } catch {} });
+      stops.push(() => {
+        try {
+          flow.stop();
+          lfo.stop();
+        } catch {}
+      });
 
       // underwater_ambience — soft filtered noise wash (bubbles/current)
       const nBuf = ctx.createBuffer(1, ctx.sampleRate * 2.8, ctx.sampleRate);
@@ -94,17 +96,29 @@ const UnderwaterScene: React.FC<UnderwaterSceneProps> = ({
       nlp.connect(nG);
       nG.connect(master);
       noise.start();
-      stops.push(() => { try { noise.stop(); } catch {} });
+      stops.push(() => {
+        try {
+          noise.stop();
+        } catch {}
+      });
 
       // bridge hook: notify phenomena bus (audio started for this scene)
       // consumers (haptics, recording, remote) can listen via context
-      (window as any).__holoShellAudio = { scene: 'underwater', tracks: ['underwater_ambience', 'soft_current_flow'], stop: () => stops.forEach(f => f()) };
+      (window as any).__holoShellAudio = {
+        scene: 'underwater',
+        tracks: ['underwater_ambience', 'soft_current_flow'],
+        stop: () => stops.forEach((f) => f()),
+      };
     } catch {
       // blocked until gesture or no WebAudio
     }
     return () => {
       stops.forEach((f) => f());
-      if (ctx) { try { ctx.close(); } catch {} }
+      if (ctx) {
+        try {
+          ctx.close();
+        } catch {}
+      }
     };
   }, []);
 
@@ -145,12 +159,7 @@ const UnderwaterScene: React.FC<UnderwaterSceneProps> = ({
       {/* Soft vignette ring to reinforce frame edges */}
       <mesh position={[0, 0, 2.33]} renderOrder={11}>
         <ringGeometry args={[5.8, 7.2, 64]} />
-        <meshBasicMaterial
-          color="#334466"
-          transparent
-          opacity={0.18}
-          side={2}
-        />
+        <meshBasicMaterial color="#334466" transparent opacity={0.18} side={2} />
       </mesh>
 
       {/* === SAND FLOOR (with rake ripples, underwater wetness) === */}

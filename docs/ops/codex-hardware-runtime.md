@@ -7,13 +7,13 @@ installed.
 
 Canonical runtime for this machine:
 
-| Tool | Path |
-| ---- | ---- |
-| Node.js | `C:\Program Files\nodejs\node.exe` |
-| Corepack | `C:\Program Files\nodejs\corepack.cmd` |
-| pnpm shim | `%APPDATA%\npm\pnpm.cmd` |
+| Tool            | Path                                              |
+| --------------- | ------------------------------------------------- |
+| Node.js         | `C:\Program Files\nodejs\node.exe`                |
+| Corepack        | `C:\Program Files\nodejs\corepack.cmd`            |
+| pnpm shim       | `%APPDATA%\npm\pnpm.cmd`                          |
 | node-gyp Python | Python 3.12 or 3.11 with `setuptools`/`distutils` |
-| Codex shims | `%USERPROFILE%\.codex\hardware-bin` |
+| Codex shims     | `%USERPROFILE%\.codex\hardware-bin`               |
 
 Repair command:
 

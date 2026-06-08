@@ -211,8 +211,12 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     path: '/api/agents/fleet/dispatch',
     buildBody: (args) => ({
       ...(args['teamId'] ? { teamId: args['teamId'] } : {}),
-      ...(args['maxDispatches'] !== undefined ? { maxDispatches: Number(args['maxDispatches']) } : {}),
-      ...(args['dryRun'] !== undefined ? { dryRun: args['dryRun'] === 'true' || args['dryRun'] === true } : {}),
+      ...(args['maxDispatches'] !== undefined
+        ? { maxDispatches: Number(args['maxDispatches']) }
+        : {}),
+      ...(args['dryRun'] !== undefined
+        ? { dryRun: args['dryRun'] === 'true' || args['dryRun'] === true }
+        : {}),
     }),
   },
 
@@ -222,7 +226,8 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     path: '/api/daemon/jobs',
     buildBody: (args) => {
       const config = objectValue(args['config']) ?? {};
-      const missionProfile = stringValue(args['missionProfile']) ?? stringValue(config['missionProfile']);
+      const missionProfile =
+        stringValue(args['missionProfile']) ?? stringValue(config['missionProfile']);
       const mission = getHoloDaemonMission(missionProfile);
       const profile = daemonProfileValue(args['profile'] ?? config['profile'], mission.defaultMode);
       const jobType = stringValue(args['type']) ?? 'improve';

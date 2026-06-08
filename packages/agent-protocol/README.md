@@ -42,16 +42,16 @@ const result = await agent.runCycle('Analyze spatial layout');
 
 ## 8-Phase Protocol
 
-| Phase         | ID  | Purpose                               |
-| ------------- | --- | ------------------------------------- |
-| 0. INTAKE     | `0` | Gather data and context               |
-| 1. REFLECT    | `1` | Analyze and understand                |
-| 2. EXECUTE    | `2` | Take action                           |
-| 3. COMPRESS   | `3` | Store knowledge efficiently           |
+| Phase         | ID  | Purpose                                                            |
+| ------------- | --- | ------------------------------------------------------------------ |
+| 0. INTAKE     | `0` | Gather data and context                                            |
+| 1. REFLECT    | `1` | Analyze and understand                                             |
+| 2. EXECUTE    | `2` | Take action                                                        |
+| 3. COMPRESS   | `3` | Store knowledge efficiently                                        |
 | 4. DREAMING   | `4` | Validate and re-evaluate compressed knowledge (`REINTAKE` API key) |
-| 5. GROW       | `5` | Learn patterns, wisdom, gotchas       |
-| 6. EVOLVE     | `6` | Adapt and optimize                    |
-| 7. AUTONOMIZE | `7` | Self-directed goal synthesis          |
+| 5. GROW       | `5` | Learn patterns, wisdom, gotchas                                    |
+| 6. EVOLVE     | `6` | Adapt and optimize                                                 |
+| 7. AUTONOMIZE | `7` | Self-directed goal synthesis                                       |
 
 ## PWG Knowledge Format
 

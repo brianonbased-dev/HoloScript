@@ -2,8 +2,7 @@ import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 
 const IS_COVERAGE_RUN =
-  process.argv.includes('--coverage') ||
-  process.env.HOLOSCRIPT_CORE_COVERAGE === '1';
+  process.argv.includes('--coverage') || process.env.HOLOSCRIPT_CORE_COVERAGE === '1';
 
 // Only apply the heavy-suite quarantine on CI runners (limited memory).
 // Local hardware (RTX-class, 32 GB+) can run the full coverage suite without OOM.
@@ -35,30 +34,72 @@ export default defineConfig({
       // barrel to this subpath (cold-consume fix). Resolve it to source for tests, like the
       // main barrel. Must precede the exact-match '@holoscript/core' rule below.
       { find: /^@holoscript\/core\/runtime$/, replacement: resolve(__dirname, 'src/runtime.ts') },
-      { find: '@holoscript/core/reconstruction', replacement: resolve(__dirname, 'src/reconstruction/index.ts') },
-      { find: '@holoscript/core/paper-0c-spike', replacement: resolve(__dirname, 'src/paper-0c-spike/index.ts') },
+      {
+        find: '@holoscript/core/reconstruction',
+        replacement: resolve(__dirname, 'src/reconstruction/index.ts'),
+      },
+      {
+        find: '@holoscript/core/paper-0c-spike',
+        replacement: resolve(__dirname, 'src/paper-0c-spike/index.ts'),
+      },
       // Allow sibling packages that import @holoscript/core to resolve it locally
       // Use exact-match regex to prevent prefix-matching subpath imports (e.g. @holoscript/core/trait-docs)
       { find: /^@holoscript\/core$/, replacement: resolve(__dirname, 'src/index.ts') },
       // Cross-package aliases for integration tests
       // agent-sdk shim removed — imports now resolve to @holoscript/framework directly
-      { find: '@holoscript/agent-protocol', replacement: resolve(__dirname, '../agent-protocol/src/index.ts') },
+      {
+        find: '@holoscript/agent-protocol',
+        replacement: resolve(__dirname, '../agent-protocol/src/index.ts'),
+      },
       { find: '@holoscript/uaal', replacement: resolve(__dirname, '../uaal/src/index.ts') },
       { find: '@holoscript/holo-vm', replacement: resolve(__dirname, '../holo-vm/src/index.ts') },
       // @holoscript/vm-bridge alias removed — package archived 2026-04-29
       // (A.011.01k merged it into @holoscript/engine). Imports now resolve
       // via the @holoscript/engine alias below as @holoscript/engine/vm-bridge.
-      { find: '@holoscript/framework/ai', replacement: resolve(__dirname, '../framework/src/ai/index.ts') },
-      { find: '@holoscript/framework/agents', replacement: resolve(__dirname, '../framework/src/agents/index.ts') },
-      { find: '@holoscript/framework/behavior', replacement: resolve(__dirname, '../framework/src/behavior.ts') },
-      { find: '@holoscript/framework/economy', replacement: resolve(__dirname, '../framework/src/economy/index.ts') },
-      { find: '@holoscript/framework/learning', replacement: resolve(__dirname, '../framework/src/learning/index.ts') },
-      { find: '@holoscript/framework/negotiation', replacement: resolve(__dirname, '../framework/src/negotiation/index.ts') },
-      { find: '@holoscript/framework/skills', replacement: resolve(__dirname, '../framework/src/skills/index.ts') },
-      { find: '@holoscript/framework/swarm', replacement: resolve(__dirname, '../framework/src/swarm/index.ts') },
-      { find: '@holoscript/framework/training', replacement: resolve(__dirname, '../framework/src/training/index.ts') },
-      { find: '@holoscript/framework', replacement: resolve(__dirname, '../framework/src/index.ts') },
-      { find: '@holoscript/engine/materials', replacement: resolve(__dirname, '../engine/src/materials/index.ts') },
+      {
+        find: '@holoscript/framework/ai',
+        replacement: resolve(__dirname, '../framework/src/ai/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/agents',
+        replacement: resolve(__dirname, '../framework/src/agents/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/behavior',
+        replacement: resolve(__dirname, '../framework/src/behavior.ts'),
+      },
+      {
+        find: '@holoscript/framework/economy',
+        replacement: resolve(__dirname, '../framework/src/economy/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/learning',
+        replacement: resolve(__dirname, '../framework/src/learning/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/negotiation',
+        replacement: resolve(__dirname, '../framework/src/negotiation/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/skills',
+        replacement: resolve(__dirname, '../framework/src/skills/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/swarm',
+        replacement: resolve(__dirname, '../framework/src/swarm/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/training',
+        replacement: resolve(__dirname, '../framework/src/training/index.ts'),
+      },
+      {
+        find: '@holoscript/framework',
+        replacement: resolve(__dirname, '../framework/src/index.ts'),
+      },
+      {
+        find: '@holoscript/engine/materials',
+        replacement: resolve(__dirname, '../engine/src/materials/index.ts'),
+      },
       { find: '@holoscript/engine', replacement: resolve(__dirname, '../engine/src') },
       { find: '@holoscript/platform', replacement: resolve(__dirname, '../platform/src/index.ts') },
     ],

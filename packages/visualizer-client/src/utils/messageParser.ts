@@ -70,7 +70,7 @@ export function parseMessage(raw: string): ParsedMessage | null {
  */
 export function applyOrbUpdate(
   current: Map<string, OrbData>,
-  message: ParsedMessage,
+  message: ParsedMessage
 ): Map<string, OrbData> | null {
   if (message.type === 'init') {
     return message.orbs;

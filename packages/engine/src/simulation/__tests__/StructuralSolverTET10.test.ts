@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  StructuralSolverTET10,
-  tet4ToTet10,
-  type TET10Config,
-} from '../StructuralSolverTET10';
+import { StructuralSolverTET10, tet4ToTet10, type TET10Config } from '../StructuralSolverTET10';
 
 // ── Mesh Helpers ──────────────────────────────────────────────────────────────
 
@@ -16,8 +12,12 @@ import {
  * Corner node indices are preserved during tet4ToTet10 conversion.
  */
 function buildCubeGridTET10(
-  nx: number, ny: number, nz: number,
-  lx: number, ly: number, lz: number,
+  nx: number,
+  ny: number,
+  nz: number,
+  lx: number,
+  ly: number,
+  lz: number
 ) {
   // Build TET4 vertices
   const pts: number[] = [];
@@ -50,21 +50,9 @@ function buildCubeGridTET10(
         const v7 = idx(i, j + 1, k + 1);
 
         if ((i + j + k) % 2 === 0) {
-          tets.push(
-            v0, v1, v3, v4,
-            v1, v2, v3, v6,
-            v4, v5, v6, v1,
-            v4, v6, v7, v3,
-            v1, v4, v6, v3,
-          );
+          tets.push(v0, v1, v3, v4, v1, v2, v3, v6, v4, v5, v6, v1, v4, v6, v7, v3, v1, v4, v6, v3);
         } else {
-          tets.push(
-            v1, v0, v5, v2,
-            v3, v2, v0, v7,
-            v4, v5, v7, v0,
-            v6, v7, v5, v2,
-            v0, v2, v5, v7,
-          );
+          tets.push(v1, v0, v5, v2, v3, v2, v0, v7, v4, v5, v7, v0, v6, v7, v5, v2, v0, v2, v5, v7);
         }
       }
     }
@@ -86,7 +74,7 @@ function buildCubeGridTET10(
 function findCornerNodesAtZ(
   mesh: { nx: number; ny: number; nz: number; idx: (i: number, j: number, k: number) => number },
   lz: number,
-  zTarget: number,
+  zTarget: number
 ): number[] {
   const nodes: number[] = [];
   const kTarget = Math.round((zTarget / lz) * mesh.nz);
@@ -104,7 +92,7 @@ function findCornerNodesAtZ(
 function findNodesAtZ(
   vertices: Float64Array | Float32Array,
   zTarget: number,
-  tol = 1e-8,
+  tol = 1e-8
 ): number[] {
   const nodes: number[] = [];
   const nodeCount = vertices.length / 3;
@@ -133,11 +121,21 @@ describe('StructuralSolverTET10', () => {
     it('shares mid-edge nodes between adjacent elements', () => {
       // Two tets sharing edge 0→1
       const verts = new Float64Array([
-        0, 0, 0,  // 0
-        1, 0, 0,  // 1
-        0, 1, 0,  // 2
-        0, 0, 1,  // 3
-        1, 1, 0,  // 4
+        0,
+        0,
+        0, // 0
+        1,
+        0,
+        0, // 1
+        0,
+        1,
+        0, // 2
+        0,
+        0,
+        1, // 3
+        1,
+        1,
+        0, // 4
       ]);
       const tets = new Uint32Array([0, 1, 2, 3, 0, 1, 4, 3]);
 
@@ -181,12 +179,7 @@ describe('StructuralSolverTET10', () => {
   describe('Quadratic face traction integration', () => {
     it('distributes pressure traction to 6-node face with correct total force', () => {
       // Single reference tetrahedron
-      const tet4Verts = new Float64Array([
-        0, 0, 0,
-        1, 0, 0,
-        0, 1, 0,
-        0, 0, 1,
-      ]);
+      const tet4Verts = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
       const tet4Tets = new Uint32Array([0, 1, 2, 3]);
       const { vertices, tetrahedra } = tet4ToTet10(tet4Verts, tet4Tets);
 
@@ -196,7 +189,13 @@ describe('StructuralSolverTET10', () => {
         vertices,
         tetrahedra,
         material: { density: 1000, youngs_modulus: 1e6, poisson_ratio: 0.3, yield_strength: 1e8 },
-        constraints: [{ id: 'fix-all', type: 'fixed', nodes: Array.from({ length: vertices.length / 3 }, (_, i) => i) }],
+        constraints: [
+          {
+            id: 'fix-all',
+            type: 'fixed',
+            nodes: Array.from({ length: vertices.length / 3 }, (_, i) => i),
+          },
+        ],
         loads: [
           {
             id: 'pressure-face0',
@@ -211,7 +210,9 @@ describe('StructuralSolverTET10', () => {
       const solver = new StructuralSolverTET10(config);
       const f = solver.getExternalForces();
 
-      let fx = 0, fy = 0, fz = 0;
+      let fx = 0,
+        fy = 0,
+        fz = 0;
       for (let i = 0; i < f.length / 3; i++) {
         fx += f[i * 3];
         fy += f[i * 3 + 1];
@@ -225,7 +226,10 @@ describe('StructuralSolverTET10', () => {
 
       // Midside nodes on face 0 are local 4,5,6 in TET10 map and should carry non-zero traction.
       const mids = [tetrahedra[4], tetrahedra[5], tetrahedra[6]];
-      const midsTotal = mids.reduce((acc, n) => acc + Math.abs(f[n * 3]) + Math.abs(f[n * 3 + 1]) + Math.abs(f[n * 3 + 2]), 0);
+      const midsTotal = mids.reduce(
+        (acc, n) => acc + Math.abs(f[n * 3]) + Math.abs(f[n * 3 + 1]) + Math.abs(f[n * 3 + 2]),
+        0
+      );
       expect(midsTotal).toBeGreaterThan(0);
     });
   });
@@ -307,7 +311,9 @@ describe('StructuralSolverTET10', () => {
 
   describe('Benchmark: Uniform bar axial load', () => {
     it('converges to analytical solution u=FL/(AE)', () => {
-      const lx = 1, ly = 1, lz = 10;
+      const lx = 1,
+        ly = 1,
+        lz = 10;
       const mesh = buildCubeGridTET10(1, 1, 3, lx, ly, lz);
 
       // Fix ALL nodes at z=0 (corner + mid-edge)
@@ -356,13 +362,15 @@ describe('StructuralSolverTET10', () => {
       // TET10 should be significantly more accurate than TET4
       // Expect within 40% for this coarse mesh with point loads at corners
       const relError = Math.abs(avgUz - expectedUz) / expectedUz;
-      expect(relError).toBeLessThan(0.40);
+      expect(relError).toBeLessThan(0.4);
     });
   });
 
   describe('Benchmark: Cantilever bending', () => {
     it('captures bending deflection without shear locking', () => {
-      const lx = 1, ly = 1, lz = 10;
+      const lx = 1,
+        ly = 1,
+        lz = 10;
       const mesh = buildCubeGridTET10(1, 1, 5, lx, ly, lz);
 
       const fixedNodes = findNodesAtZ(mesh.vertices, 0);
@@ -538,7 +546,9 @@ describe('StructuralSolverTET10', () => {
 
       const u = solver.getDisplacements();
       const dofCount = u.length;
-      const constrained = new Set<number>(Array.from(fixedNodes).flatMap((n) => [n * 3, n * 3 + 1, n * 3 + 2]));
+      const constrained = new Set<number>(
+        Array.from(fixedNodes).flatMap((n) => [n * 3, n * 3 + 1, n * 3 + 2])
+      );
 
       for (let i = 0; i < dofCount; i++) {
         if (constrained.has(i)) {

@@ -29,11 +29,11 @@ Parent umbrella task on the board: **Ship ML motion pipeline** (paper-9) — rem
 
 **Shipped in HoloScript (engine)**
 
-| Area | Location |
-|------|----------|
-| Five-category physics contract | `packages/engine/src/animation/paper/PhysicsPlausibilityContract.ts` |
-| Full benchmark matrix (5 categories × 4 systems) | `packages/engine/src/animation/paper/MotionPlausibilityBenchmark.ts` |
-| Vitest gate + measured pass rates | `packages/engine/src/animation/paper/__tests__/MotionPlausibilityBenchmark.test.ts` |
+| Area                                             | Location                                                                            |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Five-category physics contract                   | `packages/engine/src/animation/paper/PhysicsPlausibilityContract.ts`                |
+| Full benchmark matrix (5 categories × 4 systems) | `packages/engine/src/animation/paper/MotionPlausibilityBenchmark.ts`                |
+| Vitest gate + measured pass rates                | `packages/engine/src/animation/paper/__tests__/MotionPlausibilityBenchmark.test.ts` |
 
 Integration with **DeterminismHarness** and paper probes is already the intended “deterministic evaluation harness” layer; extend with richer **rejection diagnostics** (per-clip failure codes) when camera-ready tables need them.
 

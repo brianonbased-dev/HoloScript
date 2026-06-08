@@ -67,7 +67,15 @@ const s = {
 };
 
 export function SurgicalRehearsalPanel() {
-  const procedure: { id: string; name: string; type: string; bodyRegion: string; steps: DemoStep[]; estimatedDurationMin: number; riskLevel: string } = {
+  const procedure: {
+    id: string;
+    name: string;
+    type: string;
+    bodyRegion: string;
+    steps: DemoStep[];
+    estimatedDurationMin: number;
+    riskLevel: string;
+  } = {
     id: 'proc1',
     name: 'Laparoscopic Cholecystectomy',
     type: 'laparoscopic',
@@ -118,7 +126,17 @@ export function SurgicalRehearsalPanel() {
     riskLevel: 'moderate',
   };
 
-  const patient: { id: string; age: number; weight: number; height: number; bmi: number; allergies: string[]; bloodType: string; conditions: string[]; asaScore: number } = {
+  const patient: {
+    id: string;
+    age: number;
+    weight: number;
+    height: number;
+    bmi: number;
+    allergies: string[];
+    bloodType: string;
+    conditions: string[];
+    asaScore: number;
+  } = {
     id: 'pat1',
     age: 55,
     weight: 82,
@@ -143,7 +161,8 @@ export function SurgicalRehearsalPanel() {
       order: idx + 1,
       name: s.name,
       description: s.description,
-      instrumentRequired: (s.tools[0] as import('@/lib/surgicalRehearsal').InstrumentType) ?? 'scalpel',
+      instrumentRequired:
+        (s.tools[0] as import('@/lib/surgicalRehearsal').InstrumentType) ?? 'scalpel',
       targetLandmark: 'unknown',
       durationMinutes: s.durationMin,
       riskLevel: (s.critical ? 'high' : 'low') as 'high' | 'low' | 'moderate' | 'critical',

@@ -58,12 +58,12 @@ AI should show: browser_launch, browser_execute, browser_screenshot
 ### Test 1: Launch Scene
 
 ```yaml
-You: "Launch examples/hello-world.hs in browser"
+You: 'Launch examples/hello-world.hs in browser'
 
 Expected:
-- Browser opens automatically (Chrome)
-- Shows 3D cyan cube
-- AI reports session ID
+  - Browser opens automatically (Chrome)
+  - Shows 3D cyan cube
+  - AI reports session ID
 ```
 
 ### Test 2: Inspect Scene

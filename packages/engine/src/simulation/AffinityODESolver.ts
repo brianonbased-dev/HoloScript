@@ -190,10 +190,10 @@ const ARCHETYPE_PARAMS: Record<string, { dampingRate: number; couplingToPartner:
   //
   // The naming in Strogatz refers to the SIGN of the LINEAR coefficients,
   // but for simulation we want physically meaningful defaults:
-  eager_beaver:     { dampingRate: 0.2,  couplingToPartner: 0.5 },
-  cautious_lover:   { dampingRate: 0.1,  couplingToPartner: 0.8 },  // slow forgetting, strong attraction
-  narcissistic:     { dampingRate: 0.3,  couplingToPartner: -0.2 }, // forgets but repelled
-  hermit:           { dampingRate: 0.5,  couplingToPartner: -0.1 }, // strong forgetting, slight repulsion
+  eager_beaver: { dampingRate: 0.2, couplingToPartner: 0.5 },
+  cautious_lover: { dampingRate: 0.1, couplingToPartner: 0.8 }, // slow forgetting, strong attraction
+  narcissistic: { dampingRate: 0.3, couplingToPartner: -0.2 }, // forgets but repelled
+  hermit: { dampingRate: 0.5, couplingToPartner: -0.1 }, // strong forgetting, slight repulsion
 };
 
 // ── Default Sternberg parameters ─────────────────────────────────────────────
@@ -220,10 +220,10 @@ const DEFAULT_NASH: NashEffortParams = {
 
 export class AffinityODESolver {
   // Agent parameters (resolved from archetypes)
-  private aR: number;   // R damping rate
-  private bRJ: number;  // R coupling to J
-  private aJ: number;   // J damping rate
-  private bJR: number;  // J coupling to R
+  private aR: number; // R damping rate
+  private bRJ: number; // R coupling to J
+  private aJ: number; // J damping rate
+  private bJR: number; // J coupling to R
 
   // Sternberg extension
   private sternberg: SternbergParams;
@@ -236,9 +236,9 @@ export class AffinityODESolver {
   // Current state
   private R: number;
   private J: number;
-  private I: number;  // Intimacy
-  private P: number;  // Passion
-  private C: number;  // Commitment
+  private I: number; // Intimacy
+  private P: number; // Passion
+  private C: number; // Commitment
   private effortR: number;
   private effortJ: number;
 
@@ -259,10 +259,14 @@ export class AffinityODESolver {
     const agent0 = config.agents[0];
     const agent1 = config.agents[1];
 
-    const resolveParams = (agent: AgentParams): { dampingRate: number; couplingToPartner: number } => {
+    const resolveParams = (
+      agent: AgentParams
+    ): { dampingRate: number; couplingToPartner: number } => {
       if (agent.archetype && agent.archetype !== 'custom') {
         const preset = ARCHETYPE_PARAMS[agent.archetype];
-        return preset ?? { dampingRate: agent.dampingRate, couplingToPartner: agent.couplingToPartner };
+        return (
+          preset ?? { dampingRate: agent.dampingRate, couplingToPartner: agent.couplingToPartner }
+        );
       }
       return { dampingRate: agent.dampingRate, couplingToPartner: agent.couplingToPartner };
     };
@@ -319,8 +323,11 @@ export class AffinityODESolver {
    * dC/dt = -decay_C * C + coupling_C * commitment(I, P)
    */
   private sternbergDerivatives(
-    I: number, P: number, C: number,
-    R: number, J: number,
+    I: number,
+    P: number,
+    C: number,
+    R: number,
+    J: number
   ): [number, number, number] {
     const sp = this.sternberg;
 
@@ -328,7 +335,7 @@ export class AffinityODESolver {
     const reaction = Math.sqrt(Math.abs(R * J) + 1e-10) * Math.sign(R * J + 1e-10);
 
     // Arousal function: intensity of emotional interaction
-    const arousal = sp.passionArousal * (R * R + J * J) / (1 + Math.abs(R) + Math.abs(J));
+    const arousal = (sp.passionArousal * (R * R + J * J)) / (1 + Math.abs(R) + Math.abs(J));
 
     // Commitment function: weighted sum of intimacy and passion
     const commitment = I * 0.6 + P * 0.4;
@@ -354,18 +361,18 @@ export class AffinityODESolver {
 
     // Marginal payoff: well-being from personal state + relational contribution
     // Best response for R given J's effort
-    const payoffR = wellBeingWeight * Math.abs(R) / (1 + effortR)
-      + relationalWeight * effortJ * effortR / (1 + effortJ);
+    const payoffR =
+      (wellBeingWeight * Math.abs(R)) / (1 + effortR) +
+      (relationalWeight * effortJ * effortR) / (1 + effortJ);
 
     // Best response for J given R's effort
-    const payoffJ = wellBeingWeight * Math.abs(J) / (1 + effortJ)
-      + relationalWeight * effortR * effortJ / (1 + effortR);
+    const payoffJ =
+      (wellBeingWeight * Math.abs(J)) / (1 + effortJ) +
+      (relationalWeight * effortR * effortJ) / (1 + effortR);
 
     // Gradient ascent with projection to [0, maxEffort]
-    const newEffortR = Math.max(0, Math.min(maxEffort,
-      effortR + adaptationRate * payoffR));
-    const newEffortJ = Math.max(0, Math.min(maxEffort,
-      effortJ + adaptationRate * payoffJ));
+    const newEffortR = Math.max(0, Math.min(maxEffort, effortR + adaptationRate * payoffR));
+    const newEffortJ = Math.max(0, Math.min(maxEffort, effortJ + adaptationRate * payoffJ));
 
     return [newEffortR, newEffortJ];
   }
@@ -399,7 +406,7 @@ export class AffinityODESolver {
     const k2R_J = this.feelingDerivatives(
       this.R + 0.5 * effectiveDt * k1R,
       this.J + 0.5 * effectiveDt * k1J,
-      t + 0.5 * effectiveDt,
+      t + 0.5 * effectiveDt
     );
     const k2R = k2R_J[0];
     const k2J = k2R_J[1];
@@ -407,7 +414,7 @@ export class AffinityODESolver {
     const k3R_J = this.feelingDerivatives(
       this.R + 0.5 * effectiveDt * k2R,
       this.J + 0.5 * effectiveDt * k2J,
-      t + 0.5 * effectiveDt,
+      t + 0.5 * effectiveDt
     );
     const k3R = k3R_J[0];
     const k3J = k3R_J[1];
@@ -415,7 +422,7 @@ export class AffinityODESolver {
     const k4R_J = this.feelingDerivatives(
       this.R + effectiveDt * k3R,
       this.J + effectiveDt * k3J,
-      t + effectiveDt,
+      t + effectiveDt
     );
     const k4R = k4R_J[0];
     const k4J = k4R_J[1];
@@ -437,19 +444,22 @@ export class AffinityODESolver {
         this.I + 0.5 * effectiveDt * sk1[0],
         this.P + 0.5 * effectiveDt * sk1[1],
         this.C + 0.5 * effectiveDt * sk1[2],
-        this.R, this.J,
+        this.R,
+        this.J
       );
       const sk3 = this.sternbergDerivatives(
         this.I + 0.5 * effectiveDt * sk2[0],
         this.P + 0.5 * effectiveDt * sk2[1],
         this.C + 0.5 * effectiveDt * sk2[2],
-        this.R, this.J,
+        this.R,
+        this.J
       );
       const sk4 = this.sternbergDerivatives(
         this.I + effectiveDt * sk3[0],
         this.P + effectiveDt * sk3[1],
         this.C + effectiveDt * sk3[2],
-        this.R, this.J,
+        this.R,
+        this.J
       );
 
       this.I += (effectiveDt / 6) * (sk1[0] + 2 * sk2[0] + 2 * sk3[0] + sk4[0]);

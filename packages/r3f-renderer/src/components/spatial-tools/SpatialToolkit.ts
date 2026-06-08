@@ -127,7 +127,7 @@ const TOOLKITS: Record<string, SpatialToolkitConfig> = {
     description: 'Radio observation analysis with WCS coordinates and spectral cube navigation.',
   },
 
-  'acoustics': {
+  acoustics: {
     id: 'acoustics',
     name: 'Acoustics',
     coordinateSystem: 'engineering',
@@ -153,7 +153,7 @@ const TOOLKITS: Record<string, SpatialToolkitConfig> = {
     description: 'Room acoustics and sound propagation with pressure field animation.',
   },
 
-  'electromagnetic': {
+  electromagnetic: {
     id: 'electromagnetic',
     name: 'Electromagnetics',
     coordinateSystem: 'engineering',
@@ -206,7 +206,7 @@ const TOOLKITS: Record<string, SpatialToolkitConfig> = {
     description: 'CFD flow visualization with velocity and pressure fields.',
   },
 
-  'geophysics': {
+  geophysics: {
     id: 'geophysics',
     name: 'Geophysics / Seismic',
     coordinateSystem: 'geophysical',
@@ -259,7 +259,7 @@ const TOOLKITS: Record<string, SpatialToolkitConfig> = {
     description: 'Atomic-scale simulation with particle trajectories and phase visualization.',
   },
 
-  'general': {
+  general: {
     id: 'general',
     name: 'General Purpose',
     coordinateSystem: 'scene',
@@ -292,14 +292,63 @@ export function getSpatialToolkit(domain: string): SpatialToolkitConfig {
 export function inferToolkit(keywords: string[]): SpatialToolkitConfig {
   const kw = keywords.map((k) => k.toLowerCase()).join(' ');
 
-  if (kw.includes('structural') || kw.includes('stress') || kw.includes('fem') || kw.includes('bridge')) return TOOLKITS['structural-engineering'];
-  if (kw.includes('thermal') || kw.includes('heat') || kw.includes('hvac') || kw.includes('temperature')) return TOOLKITS['thermal-engineering'];
-  if (kw.includes('radio') || kw.includes('telescope') || kw.includes('fits') || kw.includes('astro')) return TOOLKITS['radio-astronomy'];
-  if (kw.includes('acoustic') || kw.includes('sound') || kw.includes('audio') || kw.includes('noise')) return TOOLKITS['acoustics'];
-  if (kw.includes('electromagnetic') || kw.includes('antenna') || kw.includes('radar') || kw.includes('fdtd')) return TOOLKITS['electromagnetic'];
-  if (kw.includes('fluid') || kw.includes('cfd') || kw.includes('navier') || kw.includes('flow') || kw.includes('aerodynamic')) return TOOLKITS['fluid-dynamics'];
-  if (kw.includes('seismic') || kw.includes('geophys') || kw.includes('earthquake') || kw.includes('subsurface')) return TOOLKITS['geophysics'];
-  if (kw.includes('molecular') || kw.includes('atom') || kw.includes('lennard') || kw.includes('md')) return TOOLKITS['molecular-dynamics'];
+  if (
+    kw.includes('structural') ||
+    kw.includes('stress') ||
+    kw.includes('fem') ||
+    kw.includes('bridge')
+  )
+    return TOOLKITS['structural-engineering'];
+  if (
+    kw.includes('thermal') ||
+    kw.includes('heat') ||
+    kw.includes('hvac') ||
+    kw.includes('temperature')
+  )
+    return TOOLKITS['thermal-engineering'];
+  if (
+    kw.includes('radio') ||
+    kw.includes('telescope') ||
+    kw.includes('fits') ||
+    kw.includes('astro')
+  )
+    return TOOLKITS['radio-astronomy'];
+  if (
+    kw.includes('acoustic') ||
+    kw.includes('sound') ||
+    kw.includes('audio') ||
+    kw.includes('noise')
+  )
+    return TOOLKITS['acoustics'];
+  if (
+    kw.includes('electromagnetic') ||
+    kw.includes('antenna') ||
+    kw.includes('radar') ||
+    kw.includes('fdtd')
+  )
+    return TOOLKITS['electromagnetic'];
+  if (
+    kw.includes('fluid') ||
+    kw.includes('cfd') ||
+    kw.includes('navier') ||
+    kw.includes('flow') ||
+    kw.includes('aerodynamic')
+  )
+    return TOOLKITS['fluid-dynamics'];
+  if (
+    kw.includes('seismic') ||
+    kw.includes('geophys') ||
+    kw.includes('earthquake') ||
+    kw.includes('subsurface')
+  )
+    return TOOLKITS['geophysics'];
+  if (
+    kw.includes('molecular') ||
+    kw.includes('atom') ||
+    kw.includes('lennard') ||
+    kw.includes('md')
+  )
+    return TOOLKITS['molecular-dynamics'];
 
   return TOOLKITS['general'];
 }

@@ -86,7 +86,10 @@ export {
 } from './textToUniverseShareHost';
 
 /** Push VP metadata into the CRDT root shared with `LoroWebRTCProvider` (crdt-spatial). */
-export { syncVirtualProductionToVolumetricCrdt, FILM3D_VOLUMETRICS_ROOT } from './volumetricLoroBridge';
+export {
+  syncVirtualProductionToVolumetricCrdt,
+  FILM3D_VOLUMETRICS_ROOT,
+} from './volumetricLoroBridge';
 
 // Runtime integration — behavioral trait handler + registrar that wire the
 // deterministic exposure-value solver into HoloScriptRuntime's dispatch. Closes
@@ -276,7 +279,9 @@ function compileToHolo(traits: FilmVFXTrait[]): string {
       }
       case 'dmx_lighting': {
         const d = t as DMXLightingTrait;
-        lines.push(`  object "${d.label ?? `Fixture_U${d.universe}_CH${d.channel}`}" @dmx_lighting {`);
+        lines.push(
+          `  object "${d.label ?? `Fixture_U${d.universe}_CH${d.channel}`}" @dmx_lighting {`
+        );
         lines.push(`    universe: ${d.universe}`);
         lines.push(`    channel: ${d.channel}`);
         lines.push(`    fixtureType: "${d.fixtureType}"`);
@@ -344,7 +349,9 @@ function compileToEDL(traits: FilmVFXTrait[]): string {
         `AX       V     C        ` +
         `${tcIn} ${tcOut} ${tcIn} ${tcOut}`
     );
-    lines.push(`* SHOT: ${shot.shotId} | ${shot.shotType} | ${shot.movement} | ${shot.lens.focalLength}mm`);
+    lines.push(
+      `* SHOT: ${shot.shotId} | ${shot.shotType} | ${shot.movement} | ${shot.lens.focalLength}mm`
+    );
     if (shot.description) lines.push(`* NOTE: ${shot.description}`);
     lines.push('');
     tcOffset += shot.duration;
@@ -435,8 +442,17 @@ export const pluginMeta = {
   id: 'film-vfx',
   name: 'Film/VFX',
   version: VERSION,
-  description: 'Shot lists, color grading, DMX lighting, director AI, and virtual production for HoloScript',
-  traits: ['shot_list', 'color_grade', 'dmx_lighting', 'director_ai', 'virtual_production', 'text_to_universe', 'cinematography_exposure'],
+  description:
+    'Shot lists, color grading, DMX lighting, director AI, and virtual production for HoloScript',
+  traits: [
+    'shot_list',
+    'color_grade',
+    'dmx_lighting',
+    'director_ai',
+    'virtual_production',
+    'text_to_universe',
+    'cinematography_exposure',
+  ],
   compileFormats: ['holo', 'edl', 'otio', 'json'],
 } as const;
 

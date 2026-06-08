@@ -614,7 +614,7 @@ export class SNNvsBackpropExperiment {
       const pin = this.config.caelExperiment1HoloMapBuildPin;
       console.log(
         `[SNNvsBackpropExperiment] CAEL Experiment 1 scene axis: ${this.config.caelExperiment1SceneAxis}` +
-          (pin ? ` (HoloMap build pin: ${pin})` : ''),
+          (pin ? ` (HoloMap build pin: ${pin})` : '')
       );
     }
 

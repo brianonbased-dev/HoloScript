@@ -19,7 +19,11 @@
 
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
-import type { HoloComposition, HoloObjectDecl, HoloObjectTrait } from '../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+} from '../parser/HoloCompositionTypes';
 import type { GLTFExportResult, GLTFExportStats } from './CompilerTypes';
 
 // =============================================================================
@@ -135,15 +139,14 @@ export interface GaussianSplattingExtendedResult {
  * (and the test suite) can verify the compiler points at the right artifact
  * without hard-coding the string at each call site.
  */
-export const SHARED_SORT_SHADER_PATH =
-  'packages/engine/src/gpu/shaders/splat-shared-sort.wgsl';
+export const SHARED_SORT_SHADER_PATH = 'packages/engine/src/gpu/shaders/splat-shared-sort.wgsl';
 
 interface GaussianData {
-  positions: Float32Array;   // N × 3
-  scales: Float32Array;      // N × 3
-  rotations: Float32Array;   // N × 4 (quaternion)
-  colors: Float32Array;      // N × 4 (RGBA)
-  opacities: Float32Array;   // N
+  positions: Float32Array; // N × 3
+  scales: Float32Array; // N × 3
+  rotations: Float32Array; // N × 4 (quaternion)
+  colors: Float32Array; // N × 4 (RGBA)
+  opacities: Float32Array; // N
   shCoefficients?: Float32Array;
   count: number;
 }
@@ -222,7 +225,10 @@ export class GaussianSplattingCompiler extends CompilerBase {
 
   // ─── Data extraction ────────────────────────────────────────────────────────
 
-  private extractGaussianData(composition: HoloComposition): { data: GaussianData; warnings?: string[] } {
+  private extractGaussianData(composition: HoloComposition): {
+    data: GaussianData;
+    warnings?: string[];
+  } {
     for (const obj of composition.objects ?? []) {
       const trait = obj.traits?.find((t: HoloObjectTrait) => t.name === 'gaussian_splat');
       if (trait && trait.config) {
@@ -334,7 +340,9 @@ export class GaussianSplattingCompiler extends CompilerBase {
       const neighbours = this.findKNearestNeighbours(grid, positions, n, px, py, pz, k, i);
 
       // Compute covariance matrix of neighbour set
-      let meanX = 0, meanY = 0, meanZ = 0;
+      let meanX = 0,
+        meanY = 0,
+        meanZ = 0;
       for (const idx of neighbours) {
         meanX += positions[idx * 3];
         meanY += positions[idx * 3 + 1];
@@ -345,7 +353,12 @@ export class GaussianSplattingCompiler extends CompilerBase {
       meanY *= invM;
       meanZ *= invM;
 
-      let c00 = 0, c01 = 0, c02 = 0, c11 = 0, c12 = 0, c22 = 0;
+      let c00 = 0,
+        c01 = 0,
+        c02 = 0,
+        c11 = 0,
+        c12 = 0,
+        c22 = 0;
       for (const idx of neighbours) {
         const dx = positions[idx * 3] - meanX;
         const dy = positions[idx * 3 + 1] - meanY;
@@ -358,15 +371,15 @@ export class GaussianSplattingCompiler extends CompilerBase {
         c22 += dz * dz;
       }
       const invLen = 1.0 / (neighbours.length - 1 || 1);
-      c00 *= invLen; c01 *= invLen; c02 *= invLen;
-      c11 *= invLen; c12 *= invLen; c22 *= invLen;
+      c00 *= invLen;
+      c01 *= invLen;
+      c02 *= invLen;
+      c11 *= invLen;
+      c12 *= invLen;
+      c22 *= invLen;
 
       // Eigen-decompose 3x3 symmetric covariance via Jacobi
-      const ev = this.jacobiEigenvalues3([
-        c00, c01, c02,
-        c01, c11, c12,
-        c02, c12, c22,
-      ]);
+      const ev = this.jacobiEigenvalues3([c00, c01, c02, c01, c11, c12, c02, c12, c22]);
 
       // Scales = sqrt(eigenvalues), clamped to isotropic minimum
       const minScale = 0.001;
@@ -395,13 +408,14 @@ export class GaussianSplattingCompiler extends CompilerBase {
   }
 
   /** Simple uniform-grid spatial hash for k-NN acceleration. */
-  private buildSpatialGrid(
-    positions: Float32Array,
-    n: number
-  ): Map<string, number[]> {
+  private buildSpatialGrid(positions: Float32Array, n: number): Map<string, number[]> {
     // Compute bounding box
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      minZ = Infinity;
+    let maxX = -Infinity,
+      maxY = -Infinity,
+      maxZ = -Infinity;
     for (let i = 0; i < n; i++) {
       const x = positions[i * 3];
       const y = positions[i * 3 + 1];
@@ -585,9 +599,15 @@ export class GaussianSplattingCompiler extends CompilerBase {
     return {
       values: [vals[order[0]], vals[order[1]], vals[order[2]]],
       vectors: [
-        cols[order[0]][0], cols[order[1]][0], cols[order[2]][0],
-        cols[order[0]][1], cols[order[1]][1], cols[order[2]][1],
-        cols[order[0]][2], cols[order[1]][2], cols[order[2]][2],
+        cols[order[0]][0],
+        cols[order[1]][0],
+        cols[order[2]][0],
+        cols[order[0]][1],
+        cols[order[1]][1],
+        cols[order[2]][1],
+        cols[order[0]][2],
+        cols[order[1]][2],
+        cols[order[2]][2],
       ],
     };
   }
@@ -754,7 +774,9 @@ export class GaussianSplattingCompiler extends CompilerBase {
     return buf;
   }
 
-  private buildBufferViews(N: number): Array<{ buffer: number; byteOffset: number; byteLength: number }> {
+  private buildBufferViews(
+    N: number
+  ): Array<{ buffer: number; byteOffset: number; byteLength: number }> {
     let off = 0;
     const views: Array<{ buffer: number; byteOffset: number; byteLength: number }> = [];
     const add = (len: number) => {
@@ -765,22 +787,25 @@ export class GaussianSplattingCompiler extends CompilerBase {
     add(N * 3 * 4); // POSITION
     add(N * 4 * 4); // _ROTATION
     add(N * 3 * 4); // _SCALE
-    add(N * 4);     // _OPACITY
+    add(N * 4); // _OPACITY
     add(N * 4 * 4); // COLOR_0
     return views;
   }
 
-  private buildAccessors(N: number): Array<{ bufferView: number; componentType: number; count: number; type: string }> {
+  private buildAccessors(
+    N: number
+  ): Array<{ bufferView: number; componentType: number; count: number; type: string }> {
     let bv = 0;
-    const accs: Array<{ bufferView: number; componentType: number; count: number; type: string }> = [];
+    const accs: Array<{ bufferView: number; componentType: number; count: number; type: string }> =
+      [];
     const add = (type: string, compType: number, count: number) => {
       accs.push({ bufferView: bv++, componentType: compType, count, type });
     };
-    add('VEC3', 5126, N);  // POSITION
-    add('VEC4', 5126, N);  // _ROTATION
-    add('VEC3', 5126, N);  // _SCALE
+    add('VEC3', 5126, N); // POSITION
+    add('VEC4', 5126, N); // _ROTATION
+    add('VEC3', 5126, N); // _SCALE
     add('SCALAR', 5126, N); // _OPACITY
-    add('VEC4', 5126, N);  // COLOR_0
+    add('VEC4', 5126, N); // COLOR_0
     return accs;
   }
 

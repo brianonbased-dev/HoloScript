@@ -26,7 +26,8 @@ const filesToCheck = [
 
 const suspicious = /\b\d+\+?\s*(tools|traits|compilers|targets|entries)\b/i;
 const inlineListSuspicious = /\b(any of the\s+\d+\s+targets|all\s+\d+\+?\s+targets)\b/i;
-const allowHint = /(verify|live|ssot|from \/health|health endpoint|authoritative|pricing\.ts|historical|example)/i;
+const allowHint =
+  /(verify|live|ssot|from \/health|health endpoint|authoritative|pricing\.ts|historical|example)/i;
 
 const violations = [];
 
@@ -49,7 +50,9 @@ if (violations.length > 0) {
   for (const v of violations) {
     console.error(`- ${v.file}:${v.line} -> ${v.text}`);
   }
-  console.error('\nUse SSOT phrasing with verification links/commands instead of hardcoded mutable counts.');
+  console.error(
+    '\nUse SSOT phrasing with verification links/commands instead of hardcoded mutable counts.'
+  );
   process.exit(1);
 }
 

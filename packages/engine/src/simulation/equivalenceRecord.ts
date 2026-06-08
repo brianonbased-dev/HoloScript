@@ -114,7 +114,9 @@ export function stableStringify(value: unknown): string {
  * Strips per-run fields (`id`, `timestamp` on interactions) and sorts
  * interactions by `simTime` then `type` for a deterministic ordering.
  */
-export function canonicalWireSnapshot(source: EquivalenceWireInput | SimulationProvenance): Record<string, unknown> {
+export function canonicalWireSnapshot(
+  source: EquivalenceWireInput | SimulationProvenance
+): Record<string, unknown> {
   const r = toEquivalenceWireInput(source);
   const sortedInteractions = r.interactions
     .map((ev) => ({

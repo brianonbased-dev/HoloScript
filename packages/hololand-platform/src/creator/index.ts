@@ -17,10 +17,7 @@ export {
   getKioskSlice,
 } from './template-pipeline';
 
-export type {
-  CompileOptions,
-  KioskSlice,
-} from './template-pipeline';
+export type { CompileOptions, KioskSlice } from './template-pipeline';
 
 export {
   // Kiosk presentation
@@ -30,7 +27,4 @@ export {
   kioskFeatured,
 } from './kiosk';
 
-export type {
-  KioskCard,
-  KioskGrid,
-} from './kiosk';
+export type { KioskCard, KioskGrid } from './kiosk';

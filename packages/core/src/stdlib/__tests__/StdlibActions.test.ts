@@ -290,7 +290,10 @@ describe('device_probe', () => {
     const result = await actions.device_probe({ scope: 'frame-capture' }, bb, ctx);
     expect(result).toBe(false);
     expect(bb.device_probe_error).toContain('not allowlisted');
-    expect(bb.device_probe_denial_receipt).toMatchObject({ scope: 'frame-capture', reason: 'scope_not_allowlisted' });
+    expect(bb.device_probe_denial_receipt).toMatchObject({
+      scope: 'frame-capture',
+      reason: 'scope_not_allowlisted',
+    });
   });
 });
 

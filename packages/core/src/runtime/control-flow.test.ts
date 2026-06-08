@@ -55,7 +55,7 @@ describe('executeForLoop', () => {
     });
     const result = await executeForLoop(
       { variable: 'x', iterable: 'arr', body: [{ type: 'stmt' } as ASTNode] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(seenItems).toEqual([10, 20, 30]);
@@ -65,10 +65,7 @@ describe('executeForLoop', () => {
     const ctx = makeCtx({
       evaluateExpression: vi.fn(() => [1, 2]),
     });
-    await executeForLoop(
-      { variable: 'i', iterable: 'arr', body: [{ type: 's' } as ASTNode] },
-      ctx,
-    );
+    await executeForLoop({ variable: 'i', iterable: 'arr', body: [{ type: 's' } as ASTNode] }, ctx);
     expect(ctx.variables.has('i')).toBe(false);
   });
 
@@ -81,21 +78,18 @@ describe('executeForLoop', () => {
         return { success: true };
       }),
     });
-    await executeForLoop(
-      { variable: 'e', iterable: 'obj', body: [{ type: 's' } as ASTNode] },
-      ctx,
-    );
-    expect(entries).toEqual([['a', 1], ['b', 2]]);
+    await executeForLoop({ variable: 'e', iterable: 'obj', body: [{ type: 's' } as ASTNode] }, ctx);
+    expect(entries).toEqual([
+      ['a', 1],
+      ['b', 2],
+    ]);
   });
 
   it('returns error when iterable is non-iterable primitive', async () => {
     const ctx = makeCtx({
       evaluateExpression: vi.fn(() => 42),
     });
-    const result = await executeForLoop(
-      { variable: 'x', iterable: '42', body: [] },
-      ctx,
-    );
+    const result = await executeForLoop({ variable: 'x', iterable: '42', body: [] }, ctx);
     expect(result.success).toBe(false);
     expect(result.error).toContain('Cannot iterate');
   });
@@ -111,7 +105,7 @@ describe('executeForLoop', () => {
     });
     const result = await executeForLoop(
       { variable: 'x', iterable: 'arr', body: [{ type: 's' } as ASTNode] },
-      ctx,
+      ctx
     );
     expect(calls.length).toBe(2); // short-circuited at 2nd
     expect(result.success).toBe(true); // loop itself succeeded overall
@@ -123,10 +117,7 @@ describe('executeForLoop', () => {
         throw new Error('evaluator blew up');
       }),
     });
-    const result = await executeForLoop(
-      { variable: 'x', iterable: 'bad', body: [] },
-      ctx,
-    );
+    const result = await executeForLoop({ variable: 'x', iterable: 'bad', body: [] }, ctx);
     expect(result.success).toBe(false);
     expect(result.error).toContain('For loop error');
   });
@@ -139,7 +130,7 @@ describe('executeForEachLoop', () => {
     });
     const result = await executeForEachLoop(
       { variable: 'x', collection: 'coll', body: [{ type: 's' } as ASTNode] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
   });
@@ -161,7 +152,7 @@ describe('executeWhileLoop — basic semantics', () => {
     });
     const result = await executeWhileLoop(
       { condition: 'i < 3', body: [{ type: 's' } as ASTNode] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(i).toBe(3);
@@ -173,10 +164,7 @@ describe('executeWhileLoop — basic semantics', () => {
       evaluateCondition: vi.fn(() => false),
       executeNode: bodyCalls,
     });
-    await executeWhileLoop(
-      { condition: 'false', body: [{ type: 's' } as ASTNode] },
-      ctx,
-    );
+    await executeWhileLoop({ condition: 'false', body: [{ type: 's' } as ASTNode] }, ctx);
     expect(bodyCalls).not.toHaveBeenCalled();
   });
 
@@ -189,10 +177,7 @@ describe('executeWhileLoop — basic semantics', () => {
         return { success: iterations < 3 };
       }),
     });
-    await executeWhileLoop(
-      { condition: 'true', body: [{ type: 's' } as ASTNode] },
-      ctx,
-    );
+    await executeWhileLoop({ condition: 'true', body: [{ type: 's' } as ASTNode] }, ctx);
     expect(iterations).toBe(3);
   });
 
@@ -202,10 +187,7 @@ describe('executeWhileLoop — basic semantics', () => {
         throw new Error('cond error');
       }),
     });
-    const result = await executeWhileLoop(
-      { condition: 'bad', body: [] },
-      ctx,
-    );
+    const result = await executeWhileLoop({ condition: 'bad', body: [] }, ctx);
     expect(result.success).toBe(false);
     expect(result.error).toContain('While loop error');
   });
@@ -236,7 +218,7 @@ describe('executeWhileLoop — TECHNIQUE (d) property-based — WHILE_MAX_ITERAT
     });
     const result = await executeWhileLoop(
       { condition: 'true', body: [{ type: 's' } as ASTNode] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/exceeded maximum iterations \(10000\)/);
@@ -258,7 +240,7 @@ describe('executeWhileLoop — TECHNIQUE (d) property-based — WHILE_MAX_ITERAT
     });
     const result = await executeWhileLoop(
       { condition: 'hidden >= 0', body: [{ type: 's' } as ASTNode] },
-      ctx,
+      ctx
     );
     // Safety cap still trips — module's `iterations` is private to the function
     expect(result.success).toBe(false);
@@ -278,7 +260,7 @@ describe('executeWhileLoop — TECHNIQUE (d) property-based — WHILE_MAX_ITERAT
     });
     const result = await executeWhileLoop(
       { condition: `counter < ${TARGET}`, body: [{ type: 's' } as ASTNode] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(counter).toBe(TARGET);
@@ -293,7 +275,7 @@ describe('executeWhileLoop — TECHNIQUE (d) property-based — WHILE_MAX_ITERAT
     });
     const result = await executeWhileLoop(
       { condition: 'true', body: [{ type: 's' } as ASTNode] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(false);
     // Either the cap tripped OR the exception path fired — both are failure
@@ -315,7 +297,7 @@ describe('executeIfStatement', () => {
     });
     await executeIfStatement(
       { condition: 'true', body: [{ type: 'b' } as ASTNode], elseBody: [{ type: 'e' } as ASTNode] },
-      ctx,
+      ctx
     );
     expect(bodyCalled).toHaveBeenCalledTimes(1);
   });
@@ -335,7 +317,7 @@ describe('executeIfStatement', () => {
         body: [{ type: 'body-branch' } as ASTNode],
         elseBody: [{ type: 'else-branch' } as ASTNode],
       },
-      ctx,
+      ctx
     );
     expect(executedType).toBe('else-branch');
   });
@@ -344,7 +326,7 @@ describe('executeIfStatement', () => {
     const ctx = makeCtx({ evaluateCondition: vi.fn(() => false) });
     const result = await executeIfStatement(
       { condition: 'false', body: [{ type: 'b' } as ASTNode] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(ctx.executeNode).not.toHaveBeenCalled();
@@ -356,10 +338,7 @@ describe('executeIfStatement', () => {
         throw new Error('cond error');
       }),
     });
-    const result = await executeIfStatement(
-      { condition: 'bad', body: [] },
-      ctx,
-    );
+    const result = await executeIfStatement({ condition: 'bad', body: [] }, ctx);
     expect(result.success).toBe(false);
     expect(result.error).toContain('If statement error');
   });
@@ -372,7 +351,7 @@ describe('executeIfStatement', () => {
 describe('executeMatch', () => {
   it('returns first matching case body result', async () => {
     const ctx = makeCtx({
-      evaluateExpression: vi.fn((e: string) => e === 'subject' ? 5 : Number(e)),
+      evaluateExpression: vi.fn((e: string) => (e === 'subject' ? 5 : Number(e))),
       executeNode: vi.fn(async () => ({ success: true, output: 'matched' })),
     });
     const result = await executeMatch(
@@ -384,7 +363,7 @@ describe('executeMatch', () => {
           { pattern: '10', body: [{ type: 'no' } as ASTNode] },
         ],
       },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(result.output).toBe('matched');
@@ -404,7 +383,7 @@ describe('executeMatch', () => {
           { pattern: '5', guard: 'ok', body: [{ type: 'second' } as ASTNode] },
         ],
       },
-      ctx,
+      ctx
     );
     expect(result.output).toBe('second-case');
   });
@@ -424,7 +403,7 @@ describe('executeMatch', () => {
           { pattern: '2', body: [] },
         ],
       },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(false);
     expect(result.error).toBe('No pattern matched');
@@ -439,7 +418,7 @@ describe('executeMatch', () => {
         subject: '5',
         cases: [{ pattern: '5', body: 'result' as unknown as ASTNode[] }],
       },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(result.output).toBe(42);
@@ -451,10 +430,7 @@ describe('executeMatch', () => {
         throw new Error('expr error');
       }),
     });
-    const result = await executeMatch(
-      { subject: 'bad', cases: [] },
-      ctx,
-    );
+    const result = await executeMatch({ subject: 'bad', cases: [] }, ctx);
     expect(result.success).toBe(false);
     expect(result.error).toContain('Match expression error');
   });

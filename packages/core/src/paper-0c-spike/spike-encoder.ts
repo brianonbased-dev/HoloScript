@@ -60,7 +60,10 @@ export function fieldToNeuronBase(field: string): number {
     h = Math.imul(h, 0x01000193) >>> 0;
   }
   // Quantize to stride; keep below ACTION_SPACE_BASE.
-  return ((h >>> 0) % ACTION_SPACE_BASE) * 0 + ((h >>> 0) % (ACTION_SPACE_BASE / FIELD_NEURON_STRIDE)) * FIELD_NEURON_STRIDE;
+  return (
+    ((h >>> 0) % ACTION_SPACE_BASE) * 0 +
+    ((h >>> 0) % (ACTION_SPACE_BASE / FIELD_NEURON_STRIDE)) * FIELD_NEURON_STRIDE
+  );
 }
 
 /** Encode a float value as a rate-coded spike train within the window. */

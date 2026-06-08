@@ -24,10 +24,19 @@ export * from './emergencysolver';
 // ─── Trait Handlers ────────────────────────────────────────────────────────────
 
 export { triageHandler, TRIAGE_TRAIT } from './traits/TriageTrait';
-export type { TriageConfig, TriagePriority, AssessmentMethod, TriageStatistics } from './traits/TriageTrait';
+export type {
+  TriageConfig,
+  TriagePriority,
+  AssessmentMethod,
+  TriageStatistics,
+} from './traits/TriageTrait';
 
 export { evacuationZoneHandler, EVACUATION_ZONE_TRAIT } from './traits/EvacuationZoneTrait';
-export type { EvacuationZoneConfig, ZoneStatus, EvacuationRoute } from './traits/EvacuationZoneTrait';
+export type {
+  EvacuationZoneConfig,
+  ZoneStatus,
+  EvacuationRoute,
+} from './traits/EvacuationZoneTrait';
 
 export { resourceDispatchHandler, RESOURCE_DISPATCH_TRAIT } from './traits/ResourceDispatchTrait';
 export type { ResourceDispatchConfig, DispatchStatus } from './traits/ResourceDispatchTrait';
@@ -43,7 +52,15 @@ export type {
 
 // ─── Shared Types ──────────────────────────────────────────────────────────────
 
-export type { HSPlusNode, TraitHandler, TraitContext, TraitEvent, GeoCoordinate, UnitType, IncidentSeverity } from './traits/types';
+export type {
+  HSPlusNode,
+  TraitHandler,
+  TraitContext,
+  TraitEvent,
+  GeoCoordinate,
+  UnitType,
+  IncidentSeverity,
+} from './traits/types';
 
 // ─── Plugin Registration ───────────────────────────────────────────────────────
 
@@ -65,18 +82,78 @@ export const EMERGENCY_RESPONSE_TRAITS: TraitHandler[] = [
 
 /** Domain keywords for the schema mapper */
 export const EMERGENCY_RESPONSE_KEYWORDS = [
-  { term: 'triage', traits: ['triage'], spatialRole: 'zone', description: 'Mass casualty triage classification' },
-  { term: 'evacuate', traits: ['evacuation_zone'], spatialRole: 'zone', description: 'Evacuation zone management' },
-  { term: 'evacuation', traits: ['evacuation_zone'], spatialRole: 'zone', description: 'Evacuation zone management' },
-  { term: 'dispatch', traits: ['resource_dispatch'], spatialRole: 'unit', description: 'Emergency unit dispatch' },
-  { term: 'ambulance', traits: ['resource_dispatch'], spatialRole: 'unit', description: 'EMS ambulance unit' },
-  { term: 'fire truck', traits: ['resource_dispatch'], spatialRole: 'unit', description: 'Fire apparatus' },
-  { term: 'incident command', traits: ['incident_command'], spatialRole: 'command_post', description: 'ICS command structure' },
-  { term: 'staging area', traits: ['incident_command'], spatialRole: 'zone', description: 'Resource staging area' },
-  { term: 'hazmat', traits: ['resource_dispatch', 'evacuation_zone'], spatialRole: 'zone', description: 'Hazardous materials incident' },
-  { term: 'mass casualty', traits: ['triage', 'incident_command'], spatialRole: 'zone', description: 'Mass casualty incident' },
-  { term: 'perimeter', traits: ['evacuation_zone'], spatialRole: 'boundary', description: 'Incident perimeter' },
-  { term: 'sector', traits: ['incident_command'], spatialRole: 'zone', description: 'ICS operational sector' },
+  {
+    term: 'triage',
+    traits: ['triage'],
+    spatialRole: 'zone',
+    description: 'Mass casualty triage classification',
+  },
+  {
+    term: 'evacuate',
+    traits: ['evacuation_zone'],
+    spatialRole: 'zone',
+    description: 'Evacuation zone management',
+  },
+  {
+    term: 'evacuation',
+    traits: ['evacuation_zone'],
+    spatialRole: 'zone',
+    description: 'Evacuation zone management',
+  },
+  {
+    term: 'dispatch',
+    traits: ['resource_dispatch'],
+    spatialRole: 'unit',
+    description: 'Emergency unit dispatch',
+  },
+  {
+    term: 'ambulance',
+    traits: ['resource_dispatch'],
+    spatialRole: 'unit',
+    description: 'EMS ambulance unit',
+  },
+  {
+    term: 'fire truck',
+    traits: ['resource_dispatch'],
+    spatialRole: 'unit',
+    description: 'Fire apparatus',
+  },
+  {
+    term: 'incident command',
+    traits: ['incident_command'],
+    spatialRole: 'command_post',
+    description: 'ICS command structure',
+  },
+  {
+    term: 'staging area',
+    traits: ['incident_command'],
+    spatialRole: 'zone',
+    description: 'Resource staging area',
+  },
+  {
+    term: 'hazmat',
+    traits: ['resource_dispatch', 'evacuation_zone'],
+    spatialRole: 'zone',
+    description: 'Hazardous materials incident',
+  },
+  {
+    term: 'mass casualty',
+    traits: ['triage', 'incident_command'],
+    spatialRole: 'zone',
+    description: 'Mass casualty incident',
+  },
+  {
+    term: 'perimeter',
+    traits: ['evacuation_zone'],
+    spatialRole: 'boundary',
+    description: 'Incident perimeter',
+  },
+  {
+    term: 'sector',
+    traits: ['incident_command'],
+    spatialRole: 'zone',
+    description: 'ICS operational sector',
+  },
 ];
 
 /**

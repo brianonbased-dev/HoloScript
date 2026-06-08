@@ -63,12 +63,16 @@ export interface TraitDispatchContext {
 
 export interface RuntimeTraitHandler {
   name: string;
-  onAttach?: (node: unknown, config: LegalAnalysisTraitConfig, context: TraitDispatchContext) => void;
+  onAttach?: (
+    node: unknown,
+    config: LegalAnalysisTraitConfig,
+    context: TraitDispatchContext
+  ) => void;
   onUpdate?: (
     node: unknown,
     config: LegalAnalysisTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -83,7 +87,7 @@ interface LegalAnalysisNode {
 function analyzeOntoNode(
   node: unknown,
   config: LegalAnalysisTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as LegalAnalysisNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

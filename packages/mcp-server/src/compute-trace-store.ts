@@ -58,10 +58,7 @@ import * as os from 'os';
 
 const DATA_ROOT =
   process.env.HOLOMESH_DATA_DIR ||
-  path.join(
-    process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript'),
-    'holomesh',
-  );
+  path.join(process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript'), 'holomesh');
 
 const COMPUTE_DIR = path.join(DATA_ROOT, 'compute-traces');
 const TRACE_PATH = path.join(COMPUTE_DIR, 'compute-traces.jsonl');
@@ -143,7 +140,10 @@ export interface ComputeTraceRecord {
 // hiccup never blocks (or changes) the grading path.
 
 interface PgLike {
-  query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<{ data: ComputeTraceRecord }> }>;
+  query: (
+    sql: string,
+    params?: unknown[]
+  ) => Promise<{ rows: Array<{ data: ComputeTraceRecord }> }>;
 }
 
 const COMPUTE_SCHEMA_SQL = `
@@ -190,8 +190,8 @@ function pgAppend(record: ComputeTraceRecord): void {
     .then(() =>
       pgPool!.query(
         `INSERT INTO compute_trace_corpus (session_id, contract_id, passed, data) VALUES ($1, $2, $3, $4)`,
-        [record.sessionId, record.contractId, record.passed, JSON.stringify(record)],
-      ),
+        [record.sessionId, record.contractId, record.passed, JSON.stringify(record)]
+      )
     )
     .catch((e: unknown) => {
       console.warn('[ComputeTraceStore] pg append failed:', e);
@@ -231,9 +231,7 @@ export function appendComputeTrace(record: ComputeTraceRecord): void {
     ensureDir();
     fs.appendFileSync(TRACE_PATH, `${JSON.stringify(record)}\n`, 'utf8');
   } catch (err) {
-    console.warn(
-      `[ComputeTraceStore] JSONL append failed: ${(err as Error).message}`,
-    );
+    console.warn(`[ComputeTraceStore] JSONL append failed: ${(err as Error).message}`);
   }
   pgAppend(record);
 }
@@ -308,8 +306,8 @@ export interface NormalizedComputeRow {
  * lesson).
  */
 export const SYSTEM_COMPUTE =
-  'You are editing a HoloScript scene. Apply the user\'s instruction as a SINGLE ' +
-  'scene mutation that RESPECTS the scene\'s declared SimulationContract — honor ' +
+  "You are editing a HoloScript scene. Apply the user's instruction as a SINGLE " +
+  "scene mutation that RESPECTS the scene's declared SimulationContract — honor " +
   'property bounds. Respond with ONLY a JSON object and no prose: ' +
   '{"tool":"<tool>","input":{...}}. Property mutations use input ' +
   '{object_name, trait_name, property_key, property_value}.';
@@ -352,7 +350,7 @@ function buildTarget(rec: ComputeTraceRecord): string {
  * `records` defaults to the on-disk corpus.
  */
 export function buildNormalizedRows(
-  records: ComputeTraceRecord[] = readComputeTraces(),
+  records: ComputeTraceRecord[] = readComputeTraces()
 ): NormalizedComputeRow[] {
   const rows: NormalizedComputeRow[] = [];
   const seqBySession = new Map<string, number>();
@@ -395,14 +393,13 @@ export function buildNormalizedRows(
  */
 export function exportTracesJsonl(
   outPath?: string,
-  opts: { passedOnly?: boolean } = {},
+  opts: { passedOnly?: boolean } = {}
 ): { path: string; rows: number; bytes: number } {
   let rows = buildNormalizedRows();
   if (opts.passedOnly) {
     rows = rows.filter((r) => r.grader.passed);
   }
-  const target =
-    outPath || path.join(COMPUTE_DIR, 'compute-corpus.normalized.jsonl');
+  const target = outPath || path.join(COMPUTE_DIR, 'compute-corpus.normalized.jsonl');
   ensureDir();
   const body = rows.map((r) => JSON.stringify(r)).join('\n') + (rows.length ? '\n' : '');
   fs.writeFileSync(target, body, 'utf8');

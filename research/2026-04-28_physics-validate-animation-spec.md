@@ -52,20 +52,20 @@ interface PhysicsValidateAnimationInput {
   // Physics constraints. If omitted, defaults are applied (Earth gravity,
   // unit mass distribution, no external contacts).
   physics_constraints?: {
-    gravity?: [number, number, number];       // default: [0, -9.81, 0]
-    mass_distribution?: BoneMassMap;          // per-bone kg values
-    contact_set?: ContactPoint[];             // world contact surfaces
-    solver_substeps?: number;                 // default: 8
-    sim_duration_seconds?: number;            // default: full clip duration
+    gravity?: [number, number, number]; // default: [0, -9.81, 0]
+    mass_distribution?: BoneMassMap; // per-bone kg values
+    contact_set?: ContactPoint[]; // world contact surfaces
+    solver_substeps?: number; // default: 8
+    sim_duration_seconds?: number; // default: full clip duration
   };
 
   // Optional: which deviation types to check. Default: all.
   checks?: Array<
-    | 'balance'         // center-of-mass outside support polygon?
-    | 'momentum'        // velocity discontinuities across keyframes?
-    | 'contact_force'   // contact penetration / foot skating?
-    | 'joint_torque'    // torques exceeding anatomical limits?
-    | 'secondary'       // secondary motion (hair, cloth) missing?
+    | 'balance' // center-of-mass outside support polygon?
+    | 'momentum' // velocity discontinuities across keyframes?
+    | 'contact_force' // contact penetration / foot skating?
+    | 'joint_torque' // torques exceeding anatomical limits?
+    | 'secondary' // secondary motion (hair, cloth) missing?
   >;
 }
 ```
@@ -110,11 +110,11 @@ interface PhysicsValidateAnimationOutput {
 }
 
 interface PhysicsViolation {
-  check: string;                     // e.g. 'balance'
-  severity: 'warning' | 'error';    // warning = fixable, error = unfixable with min-patch
-  frame_range: [number, number];     // inclusive frame indices where violation occurs
-  description: string;               // human-readable, e.g. "CoM exits support polygon at frame 14"
-  suggested_fix?: string;            // optional: NL description of the correction applied
+  check: string; // e.g. 'balance'
+  severity: 'warning' | 'error'; // warning = fixable, error = unfixable with min-patch
+  frame_range: [number, number]; // inclusive frame indices where violation occurs
+  description: string; // human-readable, e.g. "CoM exits support polygon at frame 14"
+  suggested_fix?: string; // optional: NL description of the correction applied
 }
 
 interface AnimationPatch {
@@ -129,7 +129,7 @@ interface FrameDelta {
 
 interface BoneDelta {
   bone_name: string;
-  delta_rotation?: [number, number, number, number];  // quaternion
+  delta_rotation?: [number, number, number, number]; // quaternion
   delta_position?: [number, number, number];
 }
 ```
@@ -231,13 +231,13 @@ Merged result written to scene — only at this point, first write to user data
 
 ### 4.3 Operator Composition Table
 
-| NL Phrase | Checks Activated | Expected deviation_metric | Typical UX |
-| --------- | --------------- | ------------------------ | --------- |
-| "make this jump physically plausible" | balance, momentum, contact_force | 0.1–0.4 rad | show deviation + blend slider |
-| "fix the foot sliding" | contact_force | 0.05–0.2 rad | targeted fix, high acceptance rate |
-| "tighten the physics on this fight clip" | all | 0.3–1.0 rad | warning if > 0.5 |
-| "does this look real?" | all, check-only | 0 (no patch) | display violations list only |
-| "auto-fix all physics issues" | all | varies | FULL ACCEPT ONLY with explicit confirm |
+| NL Phrase                                | Checks Activated                 | Expected deviation_metric | Typical UX                             |
+| ---------------------------------------- | -------------------------------- | ------------------------- | -------------------------------------- |
+| "make this jump physically plausible"    | balance, momentum, contact_force | 0.1–0.4 rad               | show deviation + blend slider          |
+| "fix the foot sliding"                   | contact_force                    | 0.05–0.2 rad              | targeted fix, high acceptance rate     |
+| "tighten the physics on this fight clip" | all                              | 0.3–1.0 rad               | warning if > 0.5                       |
+| "does this look real?"                   | all, check-only                  | 0 (no patch)              | display violations list only           |
+| "auto-fix all physics issues"            | all                              | varies                    | FULL ACCEPT ONLY with explicit confirm |
 
 The last row is a special case: "auto-fix all" bypasses the diff UI and applies the
 full correction automatically. This requires an explicit secondary confirmation dialog
@@ -274,7 +274,7 @@ simulationContract = {
   intervention_event: {
     type: 'physics_validate_animation',
     deviation: output.deviation_metric,
-    accepted: false,  // until user acts
+    accepted: false, // until user acts
   },
 
   // Evidence truth: CAEL provenance
@@ -392,10 +392,10 @@ This section is informational for whoever executes the implementation task:
 
 ## 8. Open Questions (not resolved in this memo)
 
-| Question | Impact | Owner |
-| -------- | ------ | ----- |
-| Which local physics solver is viable for offline batch (Rapier, Bullet, custom)? | determines MinPatch complexity | engine team |
-| Should the tool expose a `streaming` mode (SSE per-frame progress)? | UX for long clips | mcp-server team |
-| What is the max clip duration before the tool should return a "too large, batch instead" error? | latency SLA | product |
-| Is `deviation_metric` in radians the right unit for a UX label (most animators think in degrees)? | display only, not contract-breaking | studio team |
-| Should `suggested_patch` be stored in CAEL as an artifact, or only the `_provenance` metadata? | evidence layer scope | CAEL team |
+| Question                                                                                          | Impact                              | Owner           |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------- | --------------- |
+| Which local physics solver is viable for offline batch (Rapier, Bullet, custom)?                  | determines MinPatch complexity      | engine team     |
+| Should the tool expose a `streaming` mode (SSE per-frame progress)?                               | UX for long clips                   | mcp-server team |
+| What is the max clip duration before the tool should return a "too large, batch instead" error?   | latency SLA                         | product         |
+| Is `deviation_metric` in radians the right unit for a UX label (most animators think in degrees)? | display only, not contract-breaking | studio team     |
+| Should `suggested_patch` be stored in CAEL as an artifact, or only the `_provenance` metadata?    | evidence layer scope                | CAEL team       |

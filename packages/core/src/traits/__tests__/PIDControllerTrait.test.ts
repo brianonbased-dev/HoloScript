@@ -523,7 +523,9 @@ describe('pIDControllerHandler', () => {
     const node = makeNode();
     const ctx = makeCtx();
     pIDControllerHandler.onAttach(node as never, {}, ctx as never);
-    expect(() => pIDControllerHandler.onUpdate(node as never, {}, ctx as never, 0.016)).not.toThrow();
+    expect(() =>
+      pIDControllerHandler.onUpdate(node as never, {}, ctx as never, 0.016)
+    ).not.toThrow();
   });
 
   it('should handle onEvent without throwing', () => {

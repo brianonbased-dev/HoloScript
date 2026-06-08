@@ -52,9 +52,19 @@ describe('dispatch health check', () => {
   // These are tested via their dedicated handlers below, not via handleTool.
   const cascadeHandled = new Set([
     // handleAbsorbServiceTool (index.ts)
-    ...['absorb_query', 'absorb_diff', 'absorb_list_projects', 'absorb_create_project',
-      'absorb_delete_project', 'absorb_check_credits', 'absorb_run_absorb', 'absorb_run_improve',
-      'absorb_run_query_ai', 'absorb_run_render', 'absorb_run_pipeline'],
+    ...[
+      'absorb_query',
+      'absorb_diff',
+      'absorb_list_projects',
+      'absorb_create_project',
+      'absorb_delete_project',
+      'absorb_check_credits',
+      'absorb_run_absorb',
+      'absorb_run_improve',
+      'absorb_run_query_ai',
+      'absorb_run_render',
+      'absorb_run_pipeline',
+    ],
     // handleGltfTool (index.ts)
     ...['import_gltf', 'compile_to_gltf'],
     // handleCompilerTool (index.ts) — audit tool dispatched via compiler handler
@@ -117,14 +127,34 @@ describe('dispatch health check', () => {
   });
 
   describe('dedicated handler dispatch', () => {
-    const handlerMap: Array<{ tools: typeof compilerTools; importPath: string; handlerKey: string }> = [
+    const handlerMap: Array<{
+      tools: typeof compilerTools;
+      importPath: string;
+      handlerKey: string;
+    }> = [
       { tools: compilerTools, importPath: '../compiler-tools', handlerKey: 'handleCompilerTool' },
-      { tools: networkingTools, importPath: '../networking-tools', handlerKey: 'handleNetworkingTool' },
+      {
+        tools: networkingTools,
+        importPath: '../networking-tools',
+        handlerKey: 'handleNetworkingTool',
+      },
       { tools: snapshotTools, importPath: '../snapshot-tools', handlerKey: 'handleSnapshotTool' },
-      { tools: monitoringTools, importPath: '../monitoring-tools', handlerKey: 'handleMonitoringTool' },
+      {
+        tools: monitoringTools,
+        importPath: '../monitoring-tools',
+        handlerKey: 'handleMonitoringTool',
+      },
       { tools: holotestTools, importPath: '../holotest-tools', handlerKey: 'handleHolotestTool' },
-      { tools: refactorCodegenTools, importPath: '../refactor-codegen-tools', handlerKey: 'handleRefactorCodegenTool' },
-      { tools: hologramToolDefinitions, importPath: '../hologram-mcp-tools', handlerKey: 'handleHologramTool' },
+      {
+        tools: refactorCodegenTools,
+        importPath: '../refactor-codegen-tools',
+        handlerKey: 'handleRefactorCodegenTool',
+      },
+      {
+        tools: hologramToolDefinitions,
+        importPath: '../hologram-mcp-tools',
+        handlerKey: 'handleHologramTool',
+      },
     ];
 
     for (const { tools: toolSet, importPath, handlerKey } of handlerMap) {

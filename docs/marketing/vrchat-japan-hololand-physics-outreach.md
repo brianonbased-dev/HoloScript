@@ -48,14 +48,14 @@ VRMMO world, not a clone.
 
 ## Channel Map
 
-| Channel | Post type | First action |
-|---------|-----------|--------------|
-| VRChat Ask Forum: Tutorials, Tools, and Resources | Japanese tutorial/resource post | Publish the tutorial link and ask for world-creator feedback |
-| VRChat Ask Forum: Creator Hub / Worlds / Udon | Technical discussion post | Ask what physics workflows are currently painful in Unity/Udon |
-| Official VRChat Discord `#world-dev` if available after joining | Short Japanese intro + link | Ask for feedback from world gimmick creators |
-| r/VRChat | Use weekly thread if self-promotion rules are strict | Share as Japanese/English creator resource, not an ad |
-| BOOTH / VRCFinder discovery | Creator research, not mass posting | Identify public creators selling Udon/world gimmick assets |
-| X/Twitter JP | Thread with demo GIF/video when available | Use only after there is a visual HoloTunnel or VRChat demo |
+| Channel                                                         | Post type                                            | First action                                                   |
+| --------------------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| VRChat Ask Forum: Tutorials, Tools, and Resources               | Japanese tutorial/resource post                      | Publish the tutorial link and ask for world-creator feedback   |
+| VRChat Ask Forum: Creator Hub / Worlds / Udon                   | Technical discussion post                            | Ask what physics workflows are currently painful in Unity/Udon |
+| Official VRChat Discord `#world-dev` if available after joining | Short Japanese intro + link                          | Ask for feedback from world gimmick creators                   |
+| r/VRChat                                                        | Use weekly thread if self-promotion rules are strict | Share as Japanese/English creator resource, not an ad          |
+| BOOTH / VRCFinder discovery                                     | Creator research, not mass posting                   | Identify public creators selling Udon/world gimmick assets     |
+| X/Twitter JP                                                    | Thread with demo GIF/video when available            | Use only after there is a visual HoloTunnel or VRChat demo     |
 
 ## Creator Discovery Queries
 
@@ -216,10 +216,10 @@ Acceptance criteria:
 
 Do not mark public outreach as posted until these are filled:
 
-| Target | URL | Posted by | Date | Notes |
-|--------|-----|-----------|------|-------|
-| VRChat Ask Forum tutorial/resource | | | | |
-| VRChat Creator Hub / Worlds / Udon | | | | |
-| Reddit / weekly thread | | | | |
-| Direct creator outreach 1 | private receipt only | | | |
-| Direct creator outreach 2 | private receipt only | | | |
+| Target                             | URL                  | Posted by | Date | Notes |
+| ---------------------------------- | -------------------- | --------- | ---- | ----- |
+| VRChat Ask Forum tutorial/resource |                      |           |      |       |
+| VRChat Creator Hub / Worlds / Udon |                      |           |      |       |
+| Reddit / weekly thread             |                      |           |      |       |
+| Direct creator outreach 1          | private receipt only |           |      |       |
+| Direct creator outreach 2          | private receipt only |           |      |       |

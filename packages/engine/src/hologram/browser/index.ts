@@ -16,10 +16,7 @@ export {
   type ImageDecoder,
 } from './BrowserDepthProvider';
 
-export {
-  BrowserQuiltRenderer,
-  type BrowserQuiltRendererConfig,
-} from './BrowserQuiltRenderer';
+export { BrowserQuiltRenderer, type BrowserQuiltRendererConfig } from './BrowserQuiltRenderer';
 
 export { encodePngRgba } from './pngEncoder';
 

@@ -150,7 +150,7 @@ function tensorTypeProto(elemType, dims) {
   // TypeProto.Tensor: elem_type(1, int32), shape(2: TensorShapeProto)
   const shapeDims = dims.map((d) =>
     // TensorShapeProto.Dimension: dim_value(1, int64)
-    lenField(1, varintField(1, d)),
+    lenField(1, varintField(1, d))
   );
   const shape = Buffer.concat(shapeDims); // TensorShapeProto: dim(1, repeated)
   const tensorT = Buffer.concat([varintField(1, elemType), lenField(2, shape)]);

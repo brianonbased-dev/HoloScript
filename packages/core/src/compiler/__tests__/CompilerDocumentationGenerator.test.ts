@@ -96,7 +96,8 @@ describe('CompilerDocumentationGenerator', () => {
       const result = generator.generate(mockComposition, 'r3f', 'const scene = 1;', {
         compilationDigest: 'abc123deadbeef',
       });
-      const hs = (result.wellKnownMcp._meta as { holoscript?: Record<string, unknown> })?.holoscript;
+      const hs = (result.wellKnownMcp._meta as { holoscript?: Record<string, unknown> })
+        ?.holoscript;
       expect(hs).toMatchObject({
         compiler_target: 'r3f',
         compilation_digest: 'abc123deadbeef',

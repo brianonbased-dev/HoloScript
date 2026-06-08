@@ -3,13 +3,13 @@ import { LoroDoc } from 'loro-crdt';
 import {
   loroBatchTouchesEconomicTrait,
   loroEventTouchesEconomicTrait,
-  isEconomicTraitName
+  isEconomicTraitName,
 } from './loroSpatialTraitEvents.js';
 import {
   FILM3D_VOLUMETRICS_ROOT,
   registerVolumetricNode,
   setVolumetricVoxelPayload,
-  unregisterVolumetricNode
+  unregisterVolumetricNode,
 } from './film3dVolumetricCrdt.js';
 
 describe('loroSpatialTraitEvents (Loro v1.x batch shape)', () => {

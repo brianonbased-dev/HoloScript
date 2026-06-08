@@ -43,9 +43,13 @@ function parseArgs(argv) {
   for (const arg of argv) {
     if (arg === '--generate-benchmarks') out.generateBenchmarks = true;
     else if (arg === '--prepare-training-data') out.prepareTrainingData = true;
-    else if (arg === '--baseline') { out.baseline = true; out.model = argv[argv.indexOf(arg) + 1]; }
-    else if (arg === '--finetuned') { out.finetuned = true; out.model = argv[argv.indexOf(arg) + 1]; }
-    else if (arg === '--dry-run') out.dryRun = true;
+    else if (arg === '--baseline') {
+      out.baseline = true;
+      out.model = argv[argv.indexOf(arg) + 1];
+    } else if (arg === '--finetuned') {
+      out.finetuned = true;
+      out.model = argv[argv.indexOf(arg) + 1];
+    } else if (arg === '--dry-run') out.dryRun = true;
     else if (arg === '--json') out.json = true;
     else if (arg.startsWith('--model=')) out.model = arg.split('=')[1];
     else if (!arg.startsWith('--')) out._.push(arg);
@@ -56,7 +60,8 @@ function parseArgs(argv) {
 // ── Benchmark generation ──────────────────────────────────────────────
 
 function loadSeedPairs() {
-  return fs.readFileSync(SEED_PATH, 'utf8')
+  return fs
+    .readFileSync(SEED_PATH, 'utf8')
     .trim()
     .split('\n')
     .filter(Boolean)
@@ -108,7 +113,9 @@ function generateBenchmarks() {
   writeJsonl(path.join(BENCH_DIR, 'information-gain.jsonl'), infoBench);
   fs.writeFileSync(path.join(BENCH_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
-  console.log(`Generated ${traitBench.length + compBench.length + infoBench.length} benchmark entries`);
+  console.log(
+    `Generated ${traitBench.length + compBench.length + infoBench.length} benchmark entries`
+  );
   console.log(`Manifest: ${path.join(BENCH_DIR, 'manifest.json')}`);
 }
 
@@ -217,7 +224,9 @@ function evaluate(model, modelLabel) {
   if (args.dryRun) {
     console.log(`[dry-run] Would evaluate model: ${model} (${modelLabel})`);
     console.log(`[dry-run] Benchmarks: ${BENCHMARKS.join(', ')}`);
-    console.log(`[dry-run] Gate: >= ${GATE_MIN_BENCHMARKS}/${BENCHMARKS.length} benchmarks with >= ${(GATE_MIN_DELTA * 100).toFixed(0)}% delta`);
+    console.log(
+      `[dry-run] Gate: >= ${GATE_MIN_BENCHMARKS}/${BENCHMARKS.length} benchmarks with >= ${(GATE_MIN_DELTA * 100).toFixed(0)}% delta`
+    );
     return null;
   }
 
@@ -249,16 +258,28 @@ function computeGate(baselineResults, finetunedResults) {
     const baseScores = (baselineResults[name] || []).map((r) => r.score);
     const ftScores = (finetunedResults[name] || []).map((r) => r.score);
 
-    const baseAvg = baseScores.length > 0 ? baseScores.reduce((a, b) => a + b, 0) / baseScores.length : 0;
+    const baseAvg =
+      baseScores.length > 0 ? baseScores.reduce((a, b) => a + b, 0) / baseScores.length : 0;
     const ftAvg = ftScores.length > 0 ? ftScores.reduce((a, b) => a + b, 0) / ftScores.length : 0;
     const delta = ftAvg - baseAvg;
 
-    deltas[name] = { baselineAvg: baseAvg, finetunedAvg: ftAvg, delta, pass: delta >= GATE_MIN_DELTA };
+    deltas[name] = {
+      baselineAvg: baseAvg,
+      finetunedAvg: ftAvg,
+      delta,
+      pass: delta >= GATE_MIN_DELTA,
+    };
     if (delta >= GATE_MIN_DELTA) passingBenchmarks++;
   }
 
   const verdict = passingBenchmarks >= GATE_MIN_BENCHMARKS ? 'PASS' : 'FAIL';
-  return { verdict, passingBenchmarks, totalBenchmarks: BENCHMARKS.length, deltas, gate: `${GATE_MIN_BENCHMARKS}/${BENCHMARKS.length} benchmarks >= ${(GATE_MIN_DELTA * 100).toFixed(0)}% delta` };
+  return {
+    verdict,
+    passingBenchmarks,
+    totalBenchmarks: BENCHMARKS.length,
+    deltas,
+    gate: `${GATE_MIN_BENCHMARKS}/${BENCHMARKS.length} benchmarks >= ${(GATE_MIN_DELTA * 100).toFixed(0)}% delta`,
+  };
 }
 
 // ── I/O helpers ───────────────────────────────────────────────────────

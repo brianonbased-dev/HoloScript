@@ -19,10 +19,7 @@
  * @see ../UncertaintyQuantification — the real seeded-LHS robustness engine
  */
 
-import {
-  ExperimentOrchestrator,
-  type SolverHandle,
-} from '../experiment/ExperimentOrchestrator';
+import { ExperimentOrchestrator, type SolverHandle } from '../experiment/ExperimentOrchestrator';
 import { UncertaintyQuantification, type UQSolverHandle } from '../UncertaintyQuantification';
 import {
   emitFairnessReceipt,
@@ -80,7 +77,7 @@ export interface FairnessPerturbation {
  */
 export type CohortPerturber = (
   cohort: readonly FairnessRecord[],
-  p: FairnessPerturbation,
+  p: FairnessPerturbation
 ) => FairnessRecord[];
 
 // ── Deterministic RNG (mulberry32 — matches ParameterSpace's seeded PRNG) ────────
@@ -129,7 +126,7 @@ export const defaultPerturber: CohortPerturber = (cohort, { noiseScale, rng }) =
  * per-group approval rates; demographic-parity diff = max − min.
  */
 export function analyzeDisparity(
-  decisions: ReadonlyArray<{ group: string; approved: boolean }>,
+  decisions: ReadonlyArray<{ group: string; approved: boolean }>
 ): FairnessMetrics {
   const counts = new Map<string, { n: number; approved: number }>();
   for (const d of decisions) {
@@ -172,7 +169,7 @@ const round = (x: number): number => Math.round(x * 1e4) / 1e4;
  */
 function fairnessSolverHandle(
   model: FairnessModel,
-  cohort: readonly FairnessRecord[],
+  cohort: readonly FairnessRecord[]
 ): SolverHandle {
   let metrics: FairnessMetrics | null = null;
   let decisions: boolean[] = [];
@@ -180,7 +177,7 @@ function fairnessSolverHandle(
     solve: () => {
       decisions = cohort.map((r) => model.decide(r.features));
       metrics = analyzeDisparity(
-        cohort.map((r, i) => ({ group: r.group, approved: decisions[i] })),
+        cohort.map((r, i) => ({ group: r.group, approved: decisions[i] }))
       );
     },
     getStats: () => {
@@ -244,7 +241,7 @@ export interface FairnessSweepResult {
 export async function runFairnessSweep(
   model: FairnessModel,
   cohort: readonly FairnessRecord[],
-  options: FairnessSweepOptions = {},
+  options: FairnessSweepOptions = {}
 ): Promise<FairnessSweepResult> {
   const mode = options.hashMode;
   const inputHash = hashContent(cohort, mode);
@@ -281,7 +278,7 @@ export async function runFairnessSweep(
       replayTolerance = 0;
     } else {
       const metrics2 = analyzeDisparity(
-        cohort.map((r, i) => ({ group: r.group, approved: decisions2[i] })),
+        cohort.map((r, i) => ({ group: r.group, approved: decisions2[i] }))
       );
       const delta = Math.abs(metrics2.adverseImpactRatio - metrics.adverseImpactRatio);
       // Cannot be 'exact' once the double-run diverges; keep a declared
@@ -308,7 +305,15 @@ export async function runFairnessSweep(
     hashMode: mode,
   });
 
-  return { receipt, metrics, inputHash, modelHash, weightStrategy, decisionDigest, replayDeterminism };
+  return {
+    receipt,
+    metrics,
+    inputHash,
+    modelHash,
+    weightStrategy,
+    decisionDigest,
+    replayDeterminism,
+  };
 }
 
 // ── Robustness sweep (Claims 4–5) ──────────────────────────────────────────────────────
@@ -344,7 +349,7 @@ export interface FairnessRobustnessResult {
 export async function runFairnessRobustness(
   model: FairnessModel,
   cohort: readonly FairnessRecord[],
-  options: FairnessRobustnessOptions = {},
+  options: FairnessRobustnessOptions = {}
 ): Promise<FairnessRobustnessResult> {
   const mode = options.hashMode;
   const replicates = options.replicates ?? 200;
@@ -378,13 +383,16 @@ export async function runFairnessRobustness(
           const resampleU = (cfg.resampleU as number) ?? 0;
           const rng = mulberry32(Math.floor(resampleU * 2 ** 31) >>> 0);
           const pop = perturber(cohort, { driftShift, noiseScale, rng });
-          const decisions = pop.map((r) => ({ group: r.group, approved: model.decide(r.features) }));
+          const decisions = pop.map((r) => ({
+            group: r.group,
+            approved: model.decide(r.features),
+          }));
           ratio = analyzeDisparity(decisions).adverseImpactRatio;
         },
         getStats: () => ({ adverseImpactRatio: ratio, converged: true }),
         dispose: () => {},
       };
-    },
+    }
   );
 
   await uq.solve();

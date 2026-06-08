@@ -195,7 +195,12 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
   route('/holomesh/agent/[id]', 'holomesh-public', 'direct', 'HoloMesh agent profile.'),
   route('/holomesh/contribute', 'holomesh-public', 'direct', 'HoloMesh contribution flow.'),
   route('/holomesh/dashboard', 'holomesh-public', 'direct', 'HoloMesh user dashboard.'),
-  route('/holomesh/discover', 'holomesh-public', 'direct', 'HoloMesh public cold-entry discovery surface (crawlable, no auth).'),
+  route(
+    '/holomesh/discover',
+    'holomesh-public',
+    'direct',
+    'HoloMesh public cold-entry discovery surface (crawlable, no auth).'
+  ),
   route('/holomesh/entry/[id]', 'holomesh-public', 'direct', 'HoloMesh knowledge entry.'),
   route('/holomesh/leaderboard', 'holomesh-public', 'direct', 'HoloMesh ranking surface.'),
   route('/holomesh/marketplace', 'holomesh-public', 'direct', 'HoloMesh marketplace.'),
@@ -205,7 +210,12 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
   route('/holomesh/team/[id]/board', 'holomesh-public', 'direct', 'HoloMesh team board.'),
   route('/holomesh/teams', 'holomesh-public', 'direct', 'HoloMesh teams redirect.'),
   route('/holomesh/transactions', 'holomesh-public', 'direct', 'HoloMesh wallet activity.'),
-  route('/operations', 'lab', 'primary', 'Operate surface: live fleet/CI/Lotus/board telemetry (D.081).'),
+  route(
+    '/operations',
+    'lab',
+    'primary',
+    'Operate surface: live fleet/CI/Lotus/board telemetry (D.081).'
+  ),
   route(
     '/integrations',
     'account-workspace',
@@ -213,8 +223,18 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
     'Connector hub reachable when labs are shown.'
   ),
   route('/learn', 'archive', 'direct', 'Redirects to academy content.'),
-  route('/lotus-slice', 'lab', 'direct', 'I.007 lotus render proof — botanical_lotus compiled from .holo to R3F pixels.'),
-  route('/p043-quest-capture', 'lab', 'direct', 'P043 Quest 3 capture surface for SKU matrix artifacts.'),
+  route(
+    '/lotus-slice',
+    'lab',
+    'direct',
+    'I.007 lotus render proof — botanical_lotus compiled from .holo to R3F pixels.'
+  ),
+  route(
+    '/p043-quest-capture',
+    'lab',
+    'direct',
+    'P043 Quest 3 capture surface for SKU matrix artifacts.'
+  ),
   route('/pipeline', 'lab', 'direct', 'Pipeline playground route.'),
   route('/pipeline/chaining', 'lab', 'direct', 'Pipeline chaining playground route.'),
   route('/pipeline/choreography', 'lab', 'direct', 'Pipeline choreography playground route.'),

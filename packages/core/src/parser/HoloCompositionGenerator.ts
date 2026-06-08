@@ -10,7 +10,7 @@ import type {
   HoloExpression,
   HoloValue,
   PlatformConstraint,
-  SourceRange
+  SourceRange,
 } from './HoloCompositionTypes';
 
 export function generateHoloSource(ast: HoloComposition): string {
@@ -44,17 +44,20 @@ export function generateHoloSource(ast: HoloComposition): string {
   if (ast.logic && ast.logic.handlers.length > 0) {
     lines.push(`  logic {`);
     for (const handler of ast.logic.handlers) {
-      lines.push(`    ${handler.event}(${handler.parameters.map(p => escapeString(p.name)).join(', ')}) {`);
+      lines.push(
+        `    ${handler.event}(${handler.parameters.map((p) => escapeString(p.name)).join(', ')}) {`
+      );
       // Since it's a simple AST-to-string for our current use-case, we emit minimal logic bodies or raw statements if we had a string
       // The current LegacyImporter/absorb tools don't generate complex logic bodies yet.
       for (const stmt of handler.body) {
         if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {
-           // Basic serialization for method calls (e.g., used in codebase-tools logic edges)
-           const callee = stmt.expression.callee.type === 'Identifier' ? stmt.expression.callee.name : 'call';
-           lines.push(`      ${callee}();`);
+          // Basic serialization for method calls (e.g., used in codebase-tools logic edges)
+          const callee =
+            stmt.expression.callee.type === 'Identifier' ? stmt.expression.callee.name : 'call';
+          lines.push(`      ${callee}();`);
         } else {
-           // For simplicity in this migration, fallback to a comment or generic representation
-           lines.push(`      // unsupported statement: ${stmt.type}`);
+          // For simplicity in this migration, fallback to a comment or generic representation
+          lines.push(`      // unsupported statement: ${stmt.type}`);
         }
       }
       lines.push(`    }`);
@@ -100,11 +103,11 @@ function emitTrait(trait: HoloObjectTrait): string {
 
   const entries = Object.entries(trait.config);
   if (entries.length > 0) {
-     const args = entries.map(([k, v]) => `${k}: ${emitValue(v)}`);
-     res += `(${args.join(', ')})`;
+    const args = entries.map(([k, v]) => `${k}: ${emitValue(v)}`);
+    res += `(${args.join(', ')})`;
   } else if (trait.args && trait.args.length > 0) {
-     const args = trait.args.map(v => emitValue(v));
-     res += `(${args.join(', ')})`;
+    const args = trait.args.map((v) => emitValue(v));
+    res += `(${args.join(', ')})`;
   }
   return res;
 }

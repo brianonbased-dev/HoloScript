@@ -50,12 +50,14 @@ interface MintFixture {
   plaintextSecret: string;
 }
 
-function mintFixture(opts: {
-  handle?: Handle;
-  surface?: 'claude' | 'mobile';
-  rngSeed?: number;
-  ttlSeconds?: number;
-} = {}): MintFixture {
+function mintFixture(
+  opts: {
+    handle?: Handle;
+    surface?: 'claude' | 'mobile';
+    rngSeed?: number;
+    ttlSeconds?: number;
+  } = {}
+): MintFixture {
   const token = mintCapabilityToken({
     handle: opts.handle ?? ('claude1' as Handle),
     surface: opts.surface ?? 'claude',
@@ -97,7 +99,15 @@ describe('isCapabilityEnvelopeBody', () => {
     expect(isCapabilityEnvelopeBody(null)).toBe(false);
     expect(isCapabilityEnvelopeBody(42)).toBe(false);
     expect(isCapabilityEnvelopeBody('capability')).toBe(false);
-    expect(isCapabilityEnvelopeBody({ body: {}, signature: '0xaa', signer_address: '0xbb', nonce: 'n', timestamp: 't' })).toBe(false);
+    expect(
+      isCapabilityEnvelopeBody({
+        body: {},
+        signature: '0xaa',
+        signer_address: '0xbb',
+        nonce: 'n',
+        timestamp: 't',
+      })
+    ).toBe(false);
   });
 
   it('FALSE: capability-like shape missing token_id', () => {
@@ -260,7 +270,10 @@ describe('verifyCapabilityEnvelopeRequest — failure reasons', () => {
   it('FALSE: capability not in token (mobile asking for mesh:claim) → capability-not-granted', async () => {
     const reg = new CapabilityTokenRegistry();
     // Mobile defaults to reduced trust, which DOES NOT include mesh:claim.
-    const { token, plaintextSecret } = mintFixture({ handle: 'mobile1' as Handle, surface: 'mobile' });
+    const { token, plaintextSecret } = mintFixture({
+      handle: 'mobile1' as Handle,
+      surface: 'mobile',
+    });
     reg.put(storeCapabilityToken(token));
 
     const result = await extractAndVerifySigning(

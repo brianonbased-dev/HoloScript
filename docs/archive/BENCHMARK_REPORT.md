@@ -8,7 +8,6 @@
 
 **Success Rate:** 0.0%
 
-
 ---
 
 ## Executive Summary
@@ -22,7 +21,6 @@ This benchmark suite tests HoloScript's cross-compilation capabilities by compil
 - **Average Output Size:** 0 B
 - **Average Feature Parity:** 0.0%
 
-
 ---
 
 ## Results by Vertical
@@ -33,10 +31,10 @@ This benchmark suite tests HoloScript's cross-compilation capabilities by compil
 
 **Target Platforms:** unity, unreal, webxr, babylonjs, r3f, openxr, dtdl
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                         |
+| ------ | ------ | --------- | ---- | -------- | -------------------------------------------------------------------------------------------------------- |
+| unity  | ❌     | -         | -    | -        | [UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| unity | ❌ | - | - | - | [UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | unreal | ❌ | - | - | - | [UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -58,17 +56,16 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
 ### Architecture
 
 **Compilation Success:** 0/7 targets (0%)
 
 **Target Platforms:** unity, unreal, webxr, babylonjs, r3f, visionos, openxr
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                         |
+| ------ | ------ | --------- | ---- | -------- | -------------------------------------------------------------------------------------------------------- |
+| unity  | ❌     | -         | -    | -        | [UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| unity | ❌ | - | - | - | [UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | unreal | ❌ | - | - | - | [UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -89,7 +86,6 @@ Required Permission: unknown |
 | openxr | ❌ | - | - | - | [OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
-
 
 ### Art
 
@@ -97,10 +93,10 @@ Required Permission: unknown |
 
 **Target Platforms:** webxr, babylonjs, r3f, visionos, openxr, unity, unreal
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                       |
+| ------ | ------ | --------- | ---- | -------- | ------------------------------------------------------------------------------------------------------ |
+| webxr  | ❌     | -         | -    | -        | [R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| webxr | ❌ | - | - | - | [R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | babylonjs | ❌ | - | - | - | [BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -122,17 +118,16 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
 ### Automotive
 
 **Compilation Success:** 0/9 targets (0%)
 
 **Target Platforms:** ar, ios, android, visionos, webxr, babylonjs, r3f, unity, unreal
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                      |
+| ------ | ------ | --------- | ---- | -------- | ----------------------------------------------------------------------------------------------------- |
+| ar     | ❌     | -         | -    | -        | [ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| ar | ❌ | - | - | - | [ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | ios | ❌ | - | - | - | [IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -160,17 +155,16 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
 ### Education
 
 **Compilation Success:** 0/8 targets (0%)
 
 **Target Platforms:** webxr, babylonjs, r3f, playcanvas, aframe, openxr, unity, unreal
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                       |
+| ------ | ------ | --------- | ---- | -------- | ------------------------------------------------------------------------------------------------------ |
+| webxr  | ❌     | -         | -    | -        | [R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| webxr | ❌ | - | - | - | [R3FCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | babylonjs | ❌ | - | - | - | [BabylonCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -193,17 +187,16 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
 ### Entertainment
 
 **Compilation Success:** 0/7 targets (0%)
 
 **Target Platforms:** unity, unreal, webxr, vrchat, babylonjs, r3f, visionos
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                         |
+| ------ | ------ | --------- | ---- | -------- | -------------------------------------------------------------------------------------------------------- |
+| unity  | ❌     | -         | -    | -        | [UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| unity | ❌ | - | - | - | [UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | unreal | ❌ | - | - | - | [UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -225,17 +218,16 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
 ### Fitness
 
 **Compilation Success:** 0/7 targets (0%)
 
 **Target Platforms:** openxr, visionos, ar, webxr, babylonjs, r3f, unity
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                          |
+| ------ | ------ | --------- | ---- | -------- | --------------------------------------------------------------------------------------------------------- |
+| openxr | ❌     | -         | -    | -        | [OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| openxr | ❌ | - | - | - | [OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | visionos | ❌ | - | - | - | [VisionOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -257,17 +249,16 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
 ### Gaming
 
 **Compilation Success:** 0/8 targets (0%)
 
 **Target Platforms:** unity, unreal, godot, vrchat, webxr, r3f, babylonjs, playcanvas
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                         |
+| ------ | ------ | --------- | ---- | -------- | -------------------------------------------------------------------------------------------------------- |
+| unity  | ❌     | -         | -    | -        | [UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| unity | ❌ | - | - | - | [UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | unreal | ❌ | - | - | - | [UnrealCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -290,17 +281,16 @@ Agent Role: unknown
 Required Permission: unknown |
 | playcanvas | ❌ | - | - | - | No compiler found for target: playcanvas |
 
-
 ### Healthcare
 
 **Compilation Success:** 0/8 targets (0%)
 
 **Target Platforms:** ios, android, openxr, visionos, ar, webxr, babylonjs, r3f
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                       |
+| ------ | ------ | --------- | ---- | -------- | ------------------------------------------------------------------------------------------------------ |
+| ios    | ❌     | -         | -    | -        | [IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| ios | ❌ | - | - | - | [IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | android | ❌ | - | - | - | [AndroidCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -325,17 +315,16 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
 ### Manufacturing
 
 **Compilation Success:** 0/7 targets (0%)
 
 **Target Platforms:** openxr, unity, unreal, dtdl, urdf, sdf, webgpu
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                          |
+| ------ | ------ | --------- | ---- | -------- | --------------------------------------------------------------------------------------------------------- |
+| openxr | ❌     | -         | -    | -        | [OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| openxr | ❌ | - | - | - | [OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | unity | ❌ | - | - | - | [UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -357,17 +346,16 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
 ### Real-estate
 
 **Compilation Success:** 0/8 targets (0%)
 
 **Target Platforms:** ar, ios, android, visionos, webxr, babylonjs, r3f, unity
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                      |
+| ------ | ------ | --------- | ---- | -------- | ----------------------------------------------------------------------------------------------------- |
+| ar     | ❌     | -         | -    | -        | [ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| ar | ❌ | - | - | - | [ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | ios | ❌ | - | - | - | [IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -391,7 +379,6 @@ Required Permission: unknown |
 | unity | ❌ | - | - | - | [UnityCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
-
 
 ### Retail
 
@@ -399,10 +386,10 @@ Required Permission: unknown |
 
 **Target Platforms:** ar, ios, android, webxr, babylonjs, r3f, visionos
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                      |
+| ------ | ------ | --------- | ---- | -------- | ----------------------------------------------------------------------------------------------------- |
+| ar     | ❌     | -         | -    | -        | [ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| ar | ❌ | - | - | - | [ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | ios | ❌ | - | - | - | [IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -424,17 +411,16 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
 ### Social
 
 **Compilation Success:** 0/7 targets (0%)
 
 **Target Platforms:** vrchat, openxr, webxr, babylonjs, r3f, unity, visionos
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                          |
+| ------ | ------ | --------- | ---- | -------- | --------------------------------------------------------------------------------------------------------- |
+| vrchat | ❌     | -         | -    | -        | [VRChatCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| vrchat | ❌ | - | - | - | [VRChatCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | openxr | ❌ | - | - | - | [OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -456,17 +442,16 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
 ### Tourism
 
 **Compilation Success:** 0/8 targets (0%)
 
 **Target Platforms:** ar, ios, android, visionos, webxr, babylonjs, r3f, openxr
 
+| Target | Status | Time (ms) | Size | Parity % | Missing Features                                                                                      |
+| ------ | ------ | --------- | ---- | -------- | ----------------------------------------------------------------------------------------------------- |
+| ar     | ❌     | -         | -    | -        | [ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
 
-| Target | Status | Time (ms) | Size | Parity % | Missing Features |
-|--------|--------|-----------|------|----------|------------------|
-| ar | ❌ | - | - | - | [ARCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
 | ios | ❌ | - | - | - | [IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -491,12 +476,9 @@ Required Permission: unknown |
 Agent Role: unknown
 Required Permission: unknown |
 
-
-
 ---
 
 ## Results by Target Platform
-
 
 ---
 
@@ -505,17 +487,17 @@ Required Permission: unknown |
 ### Fastest Compilation Times
 
 | Rank | Vertical | Target | Time (ms) |
-|------|----------|--------|-----------|
+| ---- | -------- | ------ | --------- |
 
 ### Smallest Output Sizes
 
 | Rank | Vertical | Target | Size |
-|------|----------|--------|------|
+| ---- | -------- | ------ | ---- |
 
 ### Highest Feature Parity
 
 | Rank | Vertical | Target | Parity % | Supported/Total |
-|------|----------|--------|----------|-----------------|
+| ---- | -------- | ------ | -------- | --------------- |
 
 ---
 
@@ -523,9 +505,10 @@ Required Permission: unknown |
 
 **Total Failures:** 105
 
-| Vertical | Target | Error |
-|----------|--------|-------|
-| healthcare | ios | [IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
+| Vertical   | Target | Error                                                                                                  |
+| ---------- | ------ | ------------------------------------------------------------------------------------------------------ |
+| healthcare | ios    | [IOSCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token |
+
 Agent Role: unknown
 Required Permission: unknown |
 | healthcare | android | [AndroidCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
@@ -836,8 +819,6 @@ Required Permission: unknown |
 | tourism | openxr | [OpenXRCompiler] Unauthorized AST access: Token verification failed: Invalid signature or malformed token
 Agent Role: unknown
 Required Permission: unknown |
-
-
 
 ---
 

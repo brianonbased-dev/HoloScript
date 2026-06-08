@@ -41,7 +41,7 @@ const ARC_MIN_DISTANCE = 0.1;
 export function calculateArc(
   start: SpatialPosition,
   end: SpatialPosition,
-  speed: number,
+  speed: number
 ): [number, number, number] {
   const dx = end[0] - start[0];
   const dz = end[2] - start[2];
@@ -118,26 +118,13 @@ function loveDeriv(state: LoveState, params: Required<LoveParams>): LoveState {
  * One RK4 step of the romantic dynamics ODE.
  * Returns the new state after time dt (seconds or abstract steps).
  */
-export function stepLoveRK4(
-  state: LoveState,
-  dt: number,
-  params: LoveParams = {}
-): LoveState {
+export function stepLoveRK4(state: LoveState, dt: number, params: LoveParams = {}): LoveState {
   const p = { ...DEFAULT_LOVE_PARAMS, ...params };
 
   const k1 = loveDeriv(state, p);
-  const k2 = loveDeriv(
-    state.map((v, i) => v + (dt / 2) * k1[i]) as LoveState,
-    p
-  );
-  const k3 = loveDeriv(
-    state.map((v, i) => v + (dt / 2) * k2[i]) as LoveState,
-    p
-  );
-  const k4 = loveDeriv(
-    state.map((v, i) => v + dt * k3[i]) as LoveState,
-    p
-  );
+  const k2 = loveDeriv(state.map((v, i) => v + (dt / 2) * k1[i]) as LoveState, p);
+  const k3 = loveDeriv(state.map((v, i) => v + (dt / 2) * k2[i]) as LoveState, p);
+  const k4 = loveDeriv(state.map((v, i) => v + dt * k3[i]) as LoveState, p);
 
   return state.map((v, i) => v + (dt / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i])) as LoveState;
 }

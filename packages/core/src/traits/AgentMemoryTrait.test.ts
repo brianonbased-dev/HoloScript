@@ -51,7 +51,10 @@ describe('AgentMemoryTrait', () => {
       const config = agentMemoryHandler.defaultConfig as AgentMemoryConfig;
       await agentMemoryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
-      expect(mockContext.emit).toHaveBeenCalledWith('memory_ready', expect.objectContaining({ node: mockNode }));
+      expect(mockContext.emit).toHaveBeenCalledWith(
+        'memory_ready',
+        expect.objectContaining({ node: mockNode })
+      );
     });
 
     it('should set totalStored to initial value', async () => {
@@ -138,13 +141,24 @@ describe('AgentMemoryTrait', () => {
     });
 
     it('should emit memory_closed event', () => {
-      agentMemoryHandler.onDetach(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext);
+      agentMemoryHandler.onDetach(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext
+      );
 
-      expect(mockContext.emit).toHaveBeenCalledWith('memory_closed', expect.objectContaining({ node: mockNode }));
+      expect(mockContext.emit).toHaveBeenCalledWith(
+        'memory_closed',
+        expect.objectContaining({ node: mockNode })
+      );
     });
 
     it('should clean up state reference', () => {
-      agentMemoryHandler.onDetach(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext);
+      agentMemoryHandler.onDetach(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext
+      );
 
       expect(mockNode.__agentMemoryState).toBeUndefined();
     });
@@ -152,7 +166,11 @@ describe('AgentMemoryTrait', () => {
     it('should handle detach without prior attach', () => {
       const node = {} as any;
       expect(() => {
-        agentMemoryHandler.onDetach(node, agentMemoryHandler.defaultConfig, mockContext as TraitContext);
+        agentMemoryHandler.onDetach(
+          node,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext
+        );
       }).not.toThrow();
     });
   });
@@ -165,27 +183,47 @@ describe('AgentMemoryTrait', () => {
 
     it('should accept delta time parameter', () => {
       expect(() => {
-        agentMemoryHandler.onUpdate(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, 0.016);
+        agentMemoryHandler.onUpdate(
+          mockNode,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          0.016
+        );
       }).not.toThrow();
     });
 
     it('should handle zero delta time', () => {
       expect(() => {
-        agentMemoryHandler.onUpdate(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, 0);
+        agentMemoryHandler.onUpdate(
+          mockNode,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          0
+        );
       }).not.toThrow();
     });
 
     it('should handle missing state gracefully', () => {
       const node = {} as any;
       expect(() => {
-        agentMemoryHandler.onUpdate(node, agentMemoryHandler.defaultConfig, mockContext as TraitContext, 0.016);
+        agentMemoryHandler.onUpdate(
+          node,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          0.016
+        );
       }).not.toThrow();
     });
 
     it('should support repeated updates', () => {
       for (let i = 0; i < 10; i++) {
         expect(() => {
-          agentMemoryHandler.onUpdate(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, 0.016);
+          agentMemoryHandler.onUpdate(
+            mockNode,
+            agentMemoryHandler.defaultConfig,
+            mockContext as TraitContext,
+            0.016
+          );
         }).not.toThrow();
       }
     });
@@ -207,9 +245,17 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
-      expect(mockContext.emit).toHaveBeenCalledWith('memory_stored', expect.objectContaining({ node: mockNode }));
+      expect(mockContext.emit).toHaveBeenCalledWith(
+        'memory_stored',
+        expect.objectContaining({ node: mockNode })
+      );
     });
 
     it('should store memory with tags', () => {
@@ -222,7 +268,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_stored', expect.any(Object));
     });
@@ -237,7 +288,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_stored', expect.any(Object));
     });
@@ -252,7 +308,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_stored', expect.any(Object));
     });
@@ -267,7 +328,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_stored', expect.any(Object));
     });
@@ -280,7 +346,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).not.toHaveBeenCalledWith('memory_stored', expect.any(Object));
     });
@@ -293,7 +364,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).not.toHaveBeenCalledWith('memory_stored', expect.any(Object));
     });
@@ -315,9 +391,19 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event1);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event1
+      );
       (mockContext.emit as any)?.mockClear();
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event2);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event2
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_stored', expect.any(Object));
     });
@@ -332,7 +418,12 @@ describe('AgentMemoryTrait', () => {
       };
 
       const before = mockNode.__agentMemoryState.totalStored;
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
       const after = mockNode.__agentMemoryState.totalStored;
 
       expect(after).toBeGreaterThan(before);
@@ -364,9 +455,17 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
-      expect(mockContext.emit).toHaveBeenCalledWith('memory_recalled', expect.objectContaining({ node: mockNode }));
+      expect(mockContext.emit).toHaveBeenCalledWith(
+        'memory_recalled',
+        expect.objectContaining({ node: mockNode })
+      );
     });
 
     it('should recall memory by embedding', () => {
@@ -377,7 +476,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_recalled', expect.any(Object));
     });
@@ -391,7 +495,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_recalled', expect.any(Object));
     });
@@ -405,7 +514,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_recalled', expect.any(Object));
     });
@@ -420,7 +534,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
       const after = mockNode.__agentMemoryState.totalRecalled;
 
       expect(after).toBeGreaterThan(before);
@@ -434,7 +553,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_recalled', expect.any(Object));
     });
@@ -445,7 +569,12 @@ describe('AgentMemoryTrait', () => {
         payload: {},
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).not.toHaveBeenCalledWith('memory_recalled', expect.any(Object));
     });
@@ -476,7 +605,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_forgotten', expect.any(Object));
     });
@@ -489,7 +623,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_forgotten', expect.any(Object));
     });
@@ -502,7 +641,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_forgotten', expect.any(Object));
     });
@@ -534,7 +678,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_compressed', expect.any(Object));
     });
@@ -548,7 +697,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_compressed', expect.any(Object));
     });
@@ -561,7 +715,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_compressed', expect.any(Object));
     });
@@ -575,7 +734,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_compressed', expect.any(Object));
     });
@@ -590,7 +754,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
       const after = mockNode.__agentMemoryState.totalCompressed;
 
       expect(after).toBeGreaterThanOrEqual(before);
@@ -619,7 +788,12 @@ describe('AgentMemoryTrait', () => {
         payload: {},
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_listed', expect.any(Object));
     });
@@ -632,7 +806,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_listed', expect.any(Object));
     });
@@ -645,7 +824,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_listed', expect.any(Object));
     });
@@ -658,7 +842,12 @@ describe('AgentMemoryTrait', () => {
         },
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_listed', expect.any(Object));
     });
@@ -676,7 +865,12 @@ describe('AgentMemoryTrait', () => {
         type: 'memory_stats',
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('memory_stats', expect.any(Object));
     });
@@ -686,7 +880,12 @@ describe('AgentMemoryTrait', () => {
         type: 'memory_stats',
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       const call = (mockContext.emit as any).mock.calls.find((c: any) => c[0] === 'memory_stats');
       expect(call[1]).toHaveProperty('count');
@@ -697,7 +896,12 @@ describe('AgentMemoryTrait', () => {
         type: 'memory_stats',
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       const call = (mockContext.emit as any).mock.calls.find((c: any) => c[0] === 'memory_stats');
       expect(call[1]).toHaveProperty('totalStored');
@@ -708,7 +912,12 @@ describe('AgentMemoryTrait', () => {
         type: 'memory_stats',
       };
 
-      agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+      agentMemoryHandler.onEvent(
+        mockNode,
+        agentMemoryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       const call = (mockContext.emit as any).mock.calls.find((c: any) => c[0] === 'memory_stats');
       expect(call[1]).toHaveProperty('totalRecalled');
@@ -727,7 +936,12 @@ describe('AgentMemoryTrait', () => {
       };
 
       expect(() => {
-        agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+        agentMemoryHandler.onEvent(
+          mockNode,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          event
+        );
       }).not.toThrow();
     });
 
@@ -735,7 +949,12 @@ describe('AgentMemoryTrait', () => {
       const event = {} as any;
 
       expect(() => {
-        agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+        agentMemoryHandler.onEvent(
+          mockNode,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          event
+        );
       }).not.toThrow();
     });
 
@@ -745,7 +964,12 @@ describe('AgentMemoryTrait', () => {
       };
 
       expect(() => {
-        agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+        agentMemoryHandler.onEvent(
+          mockNode,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          event
+        );
       }).not.toThrow();
     });
   });
@@ -785,7 +1009,9 @@ describe('AgentMemoryTrait', () => {
 
       agentMemoryHandler.onEvent(node1, config, mockContext as TraitContext, event);
 
-      expect(node1.__agentMemoryState.totalStored).toBeGreaterThan(node2.__agentMemoryState.totalStored);
+      expect(node1.__agentMemoryState.totalStored).toBeGreaterThan(
+        node2.__agentMemoryState.totalStored
+      );
     });
 
     it('should not share totalRecalled between nodes', async () => {
@@ -808,7 +1034,9 @@ describe('AgentMemoryTrait', () => {
       };
       agentMemoryHandler.onEvent(node1, config, mockContext as TraitContext, recallEvent);
 
-      expect(node1.__agentMemoryState.totalRecalled).toBeGreaterThan(node2.__agentMemoryState.totalRecalled);
+      expect(node1.__agentMemoryState.totalRecalled).toBeGreaterThan(
+        node2.__agentMemoryState.totalRecalled
+      );
     });
   });
 
@@ -985,7 +1213,12 @@ describe('AgentMemoryTrait', () => {
       };
 
       expect(() => {
-        agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+        agentMemoryHandler.onEvent(
+          mockNode,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          event
+        );
       }).not.toThrow();
     });
 
@@ -999,7 +1232,12 @@ describe('AgentMemoryTrait', () => {
       };
 
       expect(() => {
-        agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+        agentMemoryHandler.onEvent(
+          mockNode,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          event
+        );
       }).not.toThrow();
     });
 
@@ -1014,7 +1252,12 @@ describe('AgentMemoryTrait', () => {
       };
 
       expect(() => {
-        agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+        agentMemoryHandler.onEvent(
+          mockNode,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          event
+        );
       }).not.toThrow();
     });
 
@@ -1027,7 +1270,12 @@ describe('AgentMemoryTrait', () => {
       };
 
       expect(() => {
-        agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+        agentMemoryHandler.onEvent(
+          mockNode,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          event
+        );
       }).not.toThrow();
     });
 
@@ -1042,17 +1290,27 @@ describe('AgentMemoryTrait', () => {
       };
 
       expect(() => {
-        agentMemoryHandler.onEvent(mockNode, agentMemoryHandler.defaultConfig, mockContext as TraitContext, event);
+        agentMemoryHandler.onEvent(
+          mockNode,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          event
+        );
       }).not.toThrow();
     });
 
     it('should handle state not ready before onAttach completes', () => {
       const node = {} as any;
       expect(() => {
-        agentMemoryHandler.onEvent(node, agentMemoryHandler.defaultConfig, mockContext as TraitContext, {
-          type: 'memory_store',
-          payload: { key: 'test', content: 'test' },
-        });
+        agentMemoryHandler.onEvent(
+          node,
+          agentMemoryHandler.defaultConfig,
+          mockContext as TraitContext,
+          {
+            type: 'memory_store',
+            payload: { key: 'test', content: 'test' },
+          }
+        );
       }).not.toThrow();
     });
   });

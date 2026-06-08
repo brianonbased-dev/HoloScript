@@ -114,7 +114,11 @@ export async function GET(request: NextRequest) {
   const hash = request.nextUrl.searchParams.get('hash')?.trim() ?? '';
 
   if (!hash || !HASH_PATTERN.test(hash)) {
-    return jsonError(400, '`hash` query parameter must be a 64-char lowercase hex string', 'invalid_hash');
+    return jsonError(
+      400,
+      '`hash` query parameter must be a 64-char lowercase hex string',
+      'invalid_hash'
+    );
   }
 
   const registry = getShareRegistry();

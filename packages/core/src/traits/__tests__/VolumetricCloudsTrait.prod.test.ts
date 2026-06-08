@@ -35,7 +35,11 @@ describe('volumetricCloudsHandler — onAttach', () => {
   it('emits volumetric_clouds_create with config values', async () => {
     const node = mkNode();
     const ctx = mkCtx();
-    await volumetricCloudsHandler.onAttach!(node, mkCfg({ altitude: 800, max_steps: 128 }), ctx as any);
+    await volumetricCloudsHandler.onAttach!(
+      node,
+      mkCfg({ altitude: 800, max_steps: 128 }),
+      ctx as any
+    );
     const ev = ctx.emitted.find((e: any) => e.type === 'volumetric_clouds_create');
     expect(ev?.payload.altitude).toBe(800);
     expect(ev?.payload.maxSteps).toBe(128);

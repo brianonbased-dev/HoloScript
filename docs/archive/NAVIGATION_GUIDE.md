@@ -2,7 +2,7 @@
 
 > **Status:** ARCHIVE — reflects Phase 6-8 planning circa 2024.  
 > **Staleness:** `packages/creator-tools/` and `packages/demo-apps/` were deleted; see `docs/cross-language-deletion-ledger.md`.  
-> **Current surface:** `packages/studio/`, `packages/framework/`, `examples/`, `docs/demos/`.  
+> **Current surface:** `packages/studio/`, `packages/framework/`, `examples/`, `docs/demos/`.
 
 ## 🗂️ Table of Contents - All Phase 6-8 Work
 
@@ -23,10 +23,10 @@
 
 > Migrated to Hololand platform repo (commit `284b55757`). Current creator surface: `packages/studio/`, `packages/studio-plugin-sdk/`, `packages/studio-ui-graph/`, `packages/create-holoscript/`, `packages/framework/src/board/creator-template.ts`.
 
-- ~~`packages/creator-tools/src/TraitAnnotationEditor.ts`~~ (500 LOC) — *migrated*
+- ~~`packages/creator-tools/src/TraitAnnotationEditor.ts`~~ (500 LOC) — _migrated_
   - Visual trait editor for non-programmers
   - 4 material presets, full validation, undo/redo
-- ~~`packages/creator-tools/src/RealtimePreviewEngine.ts`~~ (600 LOC) — *migrated*
+- ~~`packages/creator-tools/src/RealtimePreviewEngine.ts`~~ (600 LOC) — _migrated_
   - Multi-device preview with live metrics
   - 6 pre-configured devices, performance recommendations
 
@@ -34,20 +34,20 @@
 
 > Deleted as unfinished (commit `d0a5317e0`). Current demo surface: `examples/` (100+ `.holo`/`.hs` examples), `docs/demos/`, `packages/core/src/demos.ts`.
 
-- ~~`packages/demo-apps/src/MedicalVRTraining.ts`~~ (400 LOC) — *deleted*
+- ~~`packages/demo-apps/src/MedicalVRTraining.ts`~~ (400 LOC) — _deleted_
   - Healthcare domain: 99% code reduction (50 vs 8,000 LOC)
-- ~~`packages/demo-apps/src/ArchitecturalVisualization.ts`~~ (400 LOC) — *deleted*
+- ~~`packages/demo-apps/src/ArchitecturalVisualization.ts`~~ (400 LOC) — _deleted_
   - Real estate domain: building walkthroughs, lighting simulation
-- ~~`packages/demo-apps/src/ManufacturingDesign.ts`~~ (400 LOC) — *deleted*
+- ~~`packages/demo-apps/src/ManufacturingDesign.ts`~~ (400 LOC) — _deleted_
   - Industrial domain: assembly procedures, stress visualization
-- ~~`packages/demo-apps/src/CollaborativeVR.ts`~~ (400 LOC) — *deleted*
+- ~~`packages/demo-apps/src/CollaborativeVR.ts`~~ (400 LOC) — _deleted_
   - Enterprise domain: multi-user collaboration, gestures
-- ~~`packages/demo-apps/src/ARVRUnified.ts`~~ (400 LOC) — *deleted*
+- ~~`packages/demo-apps/src/ARVRUnified.ts`~~ (400 LOC) — _deleted_
   - Consumer domain: seamless AR/VR transitions
 
 ### Master Showcase
 
-- ~~`packages/demo-apps/src/MasterShowcase.ts`~~ (600 LOC) — *archived at `docs/archive/demos/MasterShowcase.ts`*
+- ~~`packages/demo-apps/src/MasterShowcase.ts`~~ (600 LOC) — _archived at `docs/archive/demos/MasterShowcase.ts`_
   - Unified demonstration, aggregate analysis, reports
 
 ### Documentation

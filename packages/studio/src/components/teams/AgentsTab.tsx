@@ -81,7 +81,11 @@ const DEFAULT_AGENTS: AgentSlot[] = [
 const STATUS_CONFIG: Record<string, { dot: string; label: string; bg: string }> = {
   online: { dot: 'bg-green-400', label: 'Online', bg: 'bg-green-500/10 text-green-400' },
   offline: { dot: 'bg-gray-500', label: 'Offline', bg: 'bg-studio-panel text-studio-muted' },
-  busy: { dot: 'bg-yellow-400 animate-pulse', label: 'Busy', bg: 'bg-yellow-500/10 text-yellow-400' },
+  busy: {
+    dot: 'bg-yellow-400 animate-pulse',
+    label: 'Busy',
+    bg: 'bg-yellow-500/10 text-yellow-400',
+  },
   error: { dot: 'bg-red-400', label: 'Error', bg: 'bg-red-500/10 text-red-400' },
 };
 
@@ -112,13 +116,16 @@ function timeSince(dateStr: string): string {
 
 function AgentCard({ agent }: { agent: AgentSlot }) {
   const statusCfg = STATUS_CONFIG[agent.status];
-  const colorClass = AGENT_COLORS[agent.name] || 'bg-studio-panel text-studio-muted border-studio-border';
+  const colorClass =
+    AGENT_COLORS[agent.name] || 'bg-studio-panel text-studio-muted border-studio-border';
 
   return (
     <div className="rounded-xl border border-studio-border bg-[#111827] p-5 transition-all hover:border-studio-accent/20">
       <div className="flex items-start gap-4">
         {/* Agent avatar */}
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border text-lg font-bold ${colorClass}`}>
+        <div
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border text-lg font-bold ${colorClass}`}
+        >
           {agent.icon}
         </div>
 
@@ -141,7 +148,9 @@ function AgentCard({ agent }: { agent: AgentSlot }) {
       {/* Current task & last action */}
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-lg bg-[#0f172a] p-3">
-          <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">Current Task</div>
+          <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+            Current Task
+          </div>
           {agent.currentTask ? (
             <div className="text-xs text-studio-text line-clamp-2">{agent.currentTask}</div>
           ) : (
@@ -149,12 +158,16 @@ function AgentCard({ agent }: { agent: AgentSlot }) {
           )}
         </div>
         <div className="rounded-lg bg-[#0f172a] p-3">
-          <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">Last Action</div>
+          <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+            Last Action
+          </div>
           {agent.lastAction ? (
             <>
               <div className="text-xs text-studio-text line-clamp-1">{agent.lastAction}</div>
               {agent.lastActionAt && (
-                <div className="mt-0.5 text-[10px] text-studio-muted">{timeSince(agent.lastActionAt)}</div>
+                <div className="mt-0.5 text-[10px] text-studio-muted">
+                  {timeSince(agent.lastActionAt)}
+                </div>
               )}
             </>
           ) : (
@@ -182,7 +195,9 @@ export function AgentsTab({ teamId }: { teamId: string }) {
       try {
         const res = await fetch(`/api/holomesh/team/${teamId}`);
         if (!res.ok) return;
-        const data: { team?: { members?: Array<{ agentName: string; role: string; online: boolean }> } } = await res.json();
+        const data: {
+          team?: { members?: Array<{ agentName: string; role: string; online: boolean }> };
+        } = await res.json();
         const members = data.team?.members || [];
 
         if (!cancelled && members.length > 0) {
@@ -194,7 +209,7 @@ export function AgentsTab({ teamId }: { teamId: string }) {
               if (member) {
                 return {
                   ...agent,
-                  status: member.online ? 'online' as const : 'offline' as const,
+                  status: member.online ? ('online' as const) : ('offline' as const),
                   role: member.role || agent.role,
                 };
               }
@@ -206,7 +221,9 @@ export function AgentsTab({ teamId }: { teamId: string }) {
         /* team fetch failed, use defaults */
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [teamId]);
 
   const handleLoadAgents = useCallback(async () => {
@@ -222,9 +239,7 @@ export function AgentsTab({ teamId }: { teamId: string }) {
         const data: { message?: string } = await res.json();
         setLoadResult(data.message || 'Agents loaded successfully');
         // Update status for all agents to online
-        setAgents((prev) =>
-          prev.map((a) => ({ ...a, status: 'online' as const }))
-        );
+        setAgents((prev) => prev.map((a) => ({ ...a, status: 'online' as const })));
       } else {
         const errData: { error?: string } = await res.json().catch(() => ({}));
         setLoadResult(errData.error || `Failed (${res.status})`);
@@ -250,7 +265,9 @@ export function AgentsTab({ teamId }: { teamId: string }) {
         </div>
         <div className="flex items-center gap-2">
           {loadResult && (
-            <span className={`text-[10px] ${loadResult.includes('Failed') || loadResult.includes('Error') ? 'text-red-400' : 'text-green-400'}`}>
+            <span
+              className={`text-[10px] ${loadResult.includes('Failed') || loadResult.includes('Error') ? 'text-red-400' : 'text-green-400'}`}
+            >
               {loadResult}
             </span>
           )}

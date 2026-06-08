@@ -245,7 +245,11 @@ export class ParticleEmitter {
     // Emit position and direction from shape
     const { position, direction } = this.sampleShape();
     p.position = position;
-    p.velocity = [direction[0] * p.startSpeed, direction[1] * p.startSpeed, direction[2] * p.startSpeed];
+    p.velocity = [
+      direction[0] * p.startSpeed,
+      direction[1] * p.startSpeed,
+      direction[2] * p.startSpeed,
+    ];
 
     this.state.totalEmitted++;
   }

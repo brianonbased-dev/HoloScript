@@ -48,7 +48,8 @@ export class BrowserPool {
 
     // Use system Chromium when available (Railway/Docker/CI)
     const executableResolution = resolveChromiumExecutable();
-    const isServer = !!executableResolution.executablePath || process.env.CI === 'true' || !process.env.DISPLAY;
+    const isServer =
+      !!executableResolution.executablePath || process.env.CI === 'true' || !process.env.DISPLAY;
     const launchOptions: Parameters<typeof chromium.launch>[0] = {
       headless: isServer ? true : mergedConfig.headless,
       args: [

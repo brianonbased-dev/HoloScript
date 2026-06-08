@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-rpg",
-  name: "RPG World Starter",
-  description: "Fantasy RPG scene with NPC, tavern, and quest marker",
-  thumbnail: "⚔️",
-  tags: ["game","rpg","fantasy","npc"],
-  category: "game",
+  id: 'wizard-rpg',
+  name: 'RPG World Starter',
+  description: 'Fantasy RPG scene with NPC, tavern, and quest marker',
+  thumbnail: '⚔️',
+  tags: ['game', 'rpg', 'fantasy', 'npc'],
+  category: 'game',
   code: `composition "RPG Village" {
   environment {
     skybox: "sunset"
@@ -85,7 +85,7 @@ export const template: SceneTemplate = {
     emissive: "#ff6600"
     emissiveIntensity: 1.5
   }
-}`
+}`,
 };
 
 export default template;

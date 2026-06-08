@@ -5,10 +5,7 @@ import {
   compileNodeToy,
   transpileGLSLToWGSL,
 } from '../index';
-import type {
-  NodeToyGraph,
-  NodeToyCompileResult,
-} from '../index';
+import type { NodeToyGraph, NodeToyCompileResult } from '../index';
 import type {
   NodeToyGraph as CoreNodeToyGraph,
   NodeToyNode as CoreNodeToyNode,
@@ -124,9 +121,7 @@ function makeFixtureGraph(): CoreNodeToyGraph {
         id: 'out1',
         type: 'FragColor',
         label: 'Output',
-        inputs: [
-          { name: 'color', type: 'vec4', connection: 'mix1' },
-        ],
+        inputs: [{ name: 'color', type: 'vec4', connection: 'mix1' }],
         outputs: [],
       },
     ],
@@ -177,9 +172,7 @@ function makeMathGraph(): CoreNodeToyGraph {
         id: 'out1',
         type: 'FragColor',
         label: 'Output',
-        inputs: [
-          { name: 'color', type: 'float', connection: 'mul1' },
-        ],
+        inputs: [{ name: 'color', type: 'float', connection: 'mul1' }],
         outputs: [],
       },
     ],
@@ -286,9 +279,7 @@ describe('compileNodeToy — end-to-end fixture tests', () => {
           outputs: [],
         },
       ],
-      edges: [
-        { id: 'e1', fromNode: 'weird1', fromPort: 'out', toNode: 'out1', toPort: 'color' },
-      ],
+      edges: [{ id: 'e1', fromNode: 'weird1', fromPort: 'out', toNode: 'out1', toPort: 'color' }],
     };
 
     const result = compileNodeToy(graph);
@@ -316,9 +307,33 @@ describe('compileNodeToy — end-to-end fixture tests', () => {
     const graph: CoreNodeToyGraph = {
       name: 'cycle',
       nodes: [
-        { id: 'a', type: 'Add', label: 'A', inputs: [{ name: 'a', type: 'float', connection: 'b' }, { name: 'b', type: 'float', default: 1.0 }], outputs: [{ name: 'out', type: 'float' }] },
-        { id: 'b', type: 'Multiply', label: 'B', inputs: [{ name: 'a', type: 'float', connection: 'a' }, { name: 'b', type: 'float', default: 2.0 }], outputs: [{ name: 'out', type: 'float' }] },
-        { id: 'out1', type: 'FragColor', label: 'Output', inputs: [{ name: 'color', type: 'float', connection: 'a' }], outputs: [] },
+        {
+          id: 'a',
+          type: 'Add',
+          label: 'A',
+          inputs: [
+            { name: 'a', type: 'float', connection: 'b' },
+            { name: 'b', type: 'float', default: 1.0 },
+          ],
+          outputs: [{ name: 'out', type: 'float' }],
+        },
+        {
+          id: 'b',
+          type: 'Multiply',
+          label: 'B',
+          inputs: [
+            { name: 'a', type: 'float', connection: 'a' },
+            { name: 'b', type: 'float', default: 2.0 },
+          ],
+          outputs: [{ name: 'out', type: 'float' }],
+        },
+        {
+          id: 'out1',
+          type: 'FragColor',
+          label: 'Output',
+          inputs: [{ name: 'color', type: 'float', connection: 'a' }],
+          outputs: [],
+        },
       ],
       edges: [
         { id: 'e1', fromNode: 'b', fromPort: 'out', toNode: 'a', toPort: 'a' },

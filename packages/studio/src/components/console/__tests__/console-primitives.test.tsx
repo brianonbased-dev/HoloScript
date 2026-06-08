@@ -55,7 +55,12 @@ describe('every interactive primitive is >=64px tap size', () => {
   });
 
   it('StatusStrip interactive cell', () => {
-    render(<StatusStrip cells={[{ label: 'OK', value: 3, tone: 'ok', onTap: () => {} }]} testId="strip" />);
+    render(
+      <StatusStrip
+        cells={[{ label: 'OK', value: 3, tone: 'ok', onTap: () => {} }]}
+        testId="strip"
+      />
+    );
     const cell = screen.getByLabelText('OK: 3');
     expect(tapMinPx(cell)).toBeGreaterThanOrEqual(64);
   });

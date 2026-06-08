@@ -62,7 +62,7 @@ function makeTrialId(): string {
 export function createTrial(
   prompt: string,
   lscComposition: string,
-  baselineComposition: string,
+  baselineComposition: string
 ): ABTrial {
   const lscSide: 'left' | 'right' = Math.random() < 0.5 ? 'left' : 'right';
   const left: Composition = {
@@ -89,7 +89,7 @@ export function createTrial(
 export function recordChoice(
   trial: ABTrial,
   chosenSide: 'left' | 'right',
-  strength: number,
+  strength: number
 ): ABTrial {
   if (trial.chosenSide !== null) {
     throw new Error(`Trial ${trial.trialId} already has a recorded choice`);
@@ -153,9 +153,7 @@ export function aggregateResults(trials: ABTrial[]): ABResult {
       passesGate: false,
     };
   }
-  const lscWins = completed.filter(
-    (t) => t.chosenSide === t.lscSide,
-  ).length;
+  const lscWins = completed.filter((t) => t.chosenSide === t.lscSide).length;
   const baselineWins = n - lscWins;
   const rate = lscWins / n;
   const ci = wilsonCI(lscWins, n);

@@ -26,7 +26,15 @@
 // The receipt is VERIFIED only if every required artifact materialized and matched.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, statSync, copyFileSync } from 'node:fs';
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+  existsSync,
+  statSync,
+  copyFileSync,
+} from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -41,7 +49,8 @@ const sha256hex = (s) => createHash('sha256').update(s).digest('hex');
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const destIdx = args.indexOf('--dest');
-const DEST = destIdx >= 0 ? resolve(args[destIdx + 1]) : (process.env.GOLD_GAME_DEST || 'D:/GOLD-GAME');
+const DEST =
+  destIdx >= 0 ? resolve(args[destIdx + 1]) : process.env.GOLD_GAME_DEST || 'D:/GOLD-GAME';
 
 // Gate 30b — the GOLD product home (D.063: GOLD owns the product, HoloScript is the
 // engine the game consumes). The portable Drive release at DEST is one consumer; the
@@ -63,7 +72,9 @@ const PRODUCT_HOME = noProductHome
 // a user's customized cloud budget cap / tier toggles are never clobbered.
 // Set GOLD_FLEET_BOOT_HOME='' (or --no-fleet-boot) to skip.
 const noFleetBoot = args.includes('--no-fleet-boot');
-const FLEET_BOOT_HOME = noFleetBoot ? null : (process.env.GOLD_FLEET_BOOT_HOME ?? 'D:/GOLD/fleet-boot');
+const FLEET_BOOT_HOME = noFleetBoot
+  ? null
+  : (process.env.GOLD_FLEET_BOOT_HOME ?? 'D:/GOLD/fleet-boot');
 
 // tsx for the TypeScript-importing 2D builder; node for the 3D builder.
 // Invoke tsx through node + its CLI entry (avoids the Windows .CMD spawnSync EINVAL).
@@ -89,7 +100,8 @@ run('retro 2D    (gold-2d-build.mjs)', 'gold-2d-build.mjs', true);
 function materializeTo(targetDir, label) {
   if (!dryRun) {
     // Clean the regenerable subtrees only (never a sibling D:/GOLD vault dir).
-    for (const sub of ['3d', '2d', 'setup']) rmSync(join(targetDir, sub), { recursive: true, force: true });
+    for (const sub of ['3d', '2d', 'setup'])
+      rmSync(join(targetDir, sub), { recursive: true, force: true });
     mkdirSync(targetDir, { recursive: true });
   }
   const m = [];
@@ -102,25 +114,43 @@ function materializeTo(targetDir, label) {
 
     if (item.kind === 'build') {
       const srcPath = join(here, item.from);
-      if (!existsSync(srcPath)) { miss.push(`${item.rel} (builder ${item.builder} did not emit ${item.from})`); continue; }
+      if (!existsSync(srcPath)) {
+        miss.push(`${item.rel} (builder ${item.builder} did not emit ${item.from})`);
+        continue;
+      }
       sourceBytes = readFileSync(srcPath);
     } else if (item.kind === 'copy') {
       const srcPath = join(here, item.from);
-      if (!existsSync(srcPath)) { miss.push(`${item.rel} (source ${item.from} absent)`); continue; }
+      if (!existsSync(srcPath)) {
+        miss.push(`${item.rel} (source ${item.from} absent)`);
+        continue;
+      }
       sourceBytes = readFileSync(srcPath);
     } else if (item.kind === 'static') {
       const content = STATIC_CONTENT[item.content];
-      if (content == null) { miss.push(`${item.rel} (static content ${item.content} undefined)`); continue; }
+      if (content == null) {
+        miss.push(`${item.rel} (static content ${item.content} undefined)`);
+        continue;
+      }
       sourceBytes = Buffer.from(content, 'utf8');
     } else if (item.kind === 'prebuilt') {
       // Verified present + digested, never regenerated.
       if (!existsSync(destPath)) {
         m.push({ rel: item.rel, kind: item.kind, present: false, note: item.note });
-        miss.push(`${item.rel} (pre-built binary not present in ${label} — run the SEA build once)`);
+        miss.push(
+          `${item.rel} (pre-built binary not present in ${label} — run the SEA build once)`
+        );
         continue;
       }
       const bytes = readFileSync(destPath);
-      m.push({ rel: item.rel, kind: item.kind, present: true, bytes: bytes.length, sha256: sha256(bytes), note: item.note });
+      m.push({
+        rel: item.rel,
+        kind: item.kind,
+        present: true,
+        bytes: bytes.length,
+        sha256: sha256(bytes),
+        note: item.note,
+      });
       continue;
     }
 
@@ -132,13 +162,37 @@ function materializeTo(targetDir, label) {
       const deployedBytes = readFileSync(destPath);
       const deployedDigest = sha256(deployedBytes);
       if (deployedDigest !== srcDigest) mism.push(`${item.rel} (deployed digest != source digest)`);
-      m.push({ rel: item.rel, kind: item.kind, bytes: sourceBytes.length, sha256: srcDigest, deployedMatches: deployedDigest === srcDigest });
+      m.push({
+        rel: item.rel,
+        kind: item.kind,
+        bytes: sourceBytes.length,
+        sha256: srcDigest,
+        deployedMatches: deployedDigest === srcDigest,
+      });
     } else {
-      m.push({ rel: item.rel, kind: item.kind, bytes: sourceBytes.length, sha256: srcDigest, deployedMatches: null });
+      m.push({
+        rel: item.rel,
+        kind: item.kind,
+        bytes: sourceBytes.length,
+        sha256: srcDigest,
+        deployedMatches: null,
+      });
     }
   }
-  const digest = sha256hex(m.map((x) => `${x.rel}:${x.sha256 || 'absent'}`).sort().join('|'));
-  return { manifest: m, missing: miss, mismatched: mism, packageDigest: digest, dir: targetDir, label };
+  const digest = sha256hex(
+    m
+      .map((x) => `${x.rel}:${x.sha256 || 'absent'}`)
+      .sort()
+      .join('|')
+  );
+  return {
+    manifest: m,
+    missing: miss,
+    mismatched: mism,
+    packageDigest: digest,
+    dir: targetDir,
+    label,
+  };
 }
 
 // Primary target: the portable Drive release.
@@ -157,13 +211,22 @@ if (PRODUCT_HOME && existsSync(dirname(PRODUCT_HOME))) {
   // Parity across targets: the product home must reproduce the SAME packageDigest as
   // the Drive release (identical canonical bytes, modulo the optional prebuilt .exe
   // which lives only on the Drive). Compare the non-prebuilt digest.
-  const nonExeDigest = (mf) => sha256hex(
-    mf.manifest.filter((x) => x.kind !== 'prebuilt').map((x) => `${x.rel}:${x.sha256 || 'absent'}`).sort().join('|'),
-  );
+  const nonExeDigest = (mf) =>
+    sha256hex(
+      mf.manifest
+        .filter((x) => x.kind !== 'prebuilt')
+        .map((x) => `${x.rel}:${x.sha256 || 'absent'}`)
+        .sort()
+        .join('|')
+    );
   productHome.contentDigest = nonExeDigest(productHome);
   productHome.matchesDriveContent = nonExeDigest(primary) === productHome.contentDigest;
 } else if (PRODUCT_HOME) {
-  productHome = { skipped: true, dir: PRODUCT_HOME, reason: `product-home root ${dirname(PRODUCT_HOME)} absent (no D: vault on this machine)` };
+  productHome = {
+    skipped: true,
+    dir: PRODUCT_HOME,
+    reason: `product-home root ${dirname(PRODUCT_HOME)} absent (no D: vault on this machine)`,
+  };
 }
 
 // Gate 40 — sync the plug-in fleet-boot ignition to the drive (code byte-proven;
@@ -172,11 +235,16 @@ let fleetBoot = null;
 if (FLEET_BOOT_HOME && existsSync(dirname(resolve(FLEET_BOOT_HOME)))) {
   const src = join(here, 'fleet-boot');
   const codeFiles = ['gold-fleet-boot.mjs', 'PLUG-IN-START.bat'];
-  const synced = []; const fbMiss = []; const fbMism = [];
+  const synced = [];
+  const fbMiss = [];
+  const fbMism = [];
   if (!dryRun) mkdirSync(FLEET_BOOT_HOME, { recursive: true });
   for (const f of codeFiles) {
     const sp = join(src, f);
-    if (!existsSync(sp)) { fbMiss.push(`${f} (source absent)`); continue; }
+    if (!existsSync(sp)) {
+      fbMiss.push(`${f} (source absent)`);
+      continue;
+    }
     const bytes = readFileSync(sp);
     if (!dryRun) {
       const dp = join(FLEET_BOOT_HOME, f);
@@ -193,27 +261,49 @@ if (FLEET_BOOT_HOME && existsSync(dirname(resolve(FLEET_BOOT_HOME)))) {
     if (!dryRun) writeFileSync(manDst, readFileSync(join(src, 'fleet-manifest.json')));
     manifestAction = dryRun ? 'would seed (absent)' : 'seeded (was absent)';
   }
-  fleetBoot = { dir: FLEET_BOOT_HOME, synced, manifest: manifestAction, missing: fbMiss, mismatched: fbMism };
+  fleetBoot = {
+    dir: FLEET_BOOT_HOME,
+    synced,
+    manifest: manifestAction,
+    missing: fbMiss,
+    mismatched: fbMism,
+  };
 } else if (FLEET_BOOT_HOME) {
-  fleetBoot = { skipped: true, dir: FLEET_BOOT_HOME, reason: `drive root ${dirname(resolve(FLEET_BOOT_HOME))} absent` };
+  fleetBoot = {
+    skipped: true,
+    dir: FLEET_BOOT_HOME,
+    reason: `drive root ${dirname(resolve(FLEET_BOOT_HOME))} absent`,
+  };
 }
 const fbMismatch = fleetBoot && !fleetBoot.skipped ? fleetBoot.mismatched : [];
 const fbMissing = fleetBoot && !fleetBoot.skipped ? fleetBoot.missing : [];
 
 // ── 5. Overall result + receipt ───────────────────────────────────────────────
-const phMismatch = productHome && !productHome.skipped
-  ? [...productHome.mismatched, ...(productHome.matchesDriveContent ? [] : ['product-home content digest != Drive release content digest'])]
-  : [];
-const phMissing = productHome && !productHome.skipped
-  ? productHome.missing.filter((m) => !m.includes('pre-built binary'))
-  : [];
+const phMismatch =
+  productHome && !productHome.skipped
+    ? [
+        ...productHome.mismatched,
+        ...(productHome.matchesDriveContent
+          ? []
+          : ['product-home content digest != Drive release content digest']),
+      ]
+    : [];
+const phMissing =
+  productHome && !productHome.skipped
+    ? productHome.missing.filter((m) => !m.includes('pre-built binary'))
+    : [];
 
 const requiredOk = missing.filter((m) => !m.includes('pre-built binary')); // exe is optional for VERIFIED-on-this-machine
 const exeMissing = missing.some((m) => m.includes('pre-built binary'));
-const result = (requiredOk.length === 0 && mismatched.length === 0 && phMissing.length === 0 && phMismatch.length === 0
-  && fbMissing.length === 0 && fbMismatch.length === 0)
-  ? 'VERIFIED'
-  : 'FAILED';
+const result =
+  requiredOk.length === 0 &&
+  mismatched.length === 0 &&
+  phMissing.length === 0 &&
+  phMismatch.length === 0 &&
+  fbMissing.length === 0 &&
+  fbMismatch.length === 0
+    ? 'VERIFIED'
+    : 'FAILED';
 
 const receipt = {
   schema: 'cael-ship-packaging-v1',
@@ -224,7 +314,11 @@ const receipt = {
   dest: DEST,
   dryRun,
   builders: [
-    { artifact: '3d/', from: 'drive-build.mjs', note: 'walks the parsed gold-vault-game.holo (R3F/three.js)' },
+    {
+      artifact: '3d/',
+      from: 'drive-build.mjs',
+      note: 'walks the parsed gold-vault-game.holo (R3F/three.js)',
+    },
     { artifact: '2d/', from: 'gold-2d-build.mjs', note: 'same .holo, retro 2D modality' },
   ],
   artifacts: manifest,
@@ -236,39 +330,56 @@ const receipt = {
   missing,
   mismatched,
   productHome: productHome
-    ? (productHome.skipped
-        ? { synced: false, dir: productHome.dir, skipped: true, reason: productHome.reason }
-        : {
-            synced: !dryRun,
-            dir: productHome.dir,
-            note: 'D.063 GOLD product home — GOLD owns the product, HoloScript is the engine. Synced from the same canonical manifest; a GOLD project dir (F.078), not a governed wisdom tier.',
-            artifactCount: productHome.manifest.length,
-            contentDigest: productHome.contentDigest,
-            matchesDriveContent: productHome.matchesDriveContent,
-            missing: phMissing,
-            mismatched: phMismatch,
-          })
-    : { synced: false, dir: null, skipped: true, reason: '--no-product-home / GOLD_PRODUCT_HOME empty' },
+    ? productHome.skipped
+      ? { synced: false, dir: productHome.dir, skipped: true, reason: productHome.reason }
+      : {
+          synced: !dryRun,
+          dir: productHome.dir,
+          note: 'D.063 GOLD product home — GOLD owns the product, HoloScript is the engine. Synced from the same canonical manifest; a GOLD project dir (F.078), not a governed wisdom tier.',
+          artifactCount: productHome.manifest.length,
+          contentDigest: productHome.contentDigest,
+          matchesDriveContent: productHome.matchesDriveContent,
+          missing: phMissing,
+          mismatched: phMismatch,
+        }
+    : {
+        synced: false,
+        dir: null,
+        skipped: true,
+        reason: '--no-product-home / GOLD_PRODUCT_HOME empty',
+      },
   fleetBoot: fleetBoot
-    ? (fleetBoot.skipped
-        ? { synced: false, dir: fleetBoot.dir, skipped: true, reason: fleetBoot.reason }
-        : {
-            synced: !dryRun,
-            dir: fleetBoot.dir,
-            note: 'Gate 40 plug-in ignition kept in sync with the gated source; code byte-proven, fleet-manifest.json seeded only if absent (user budget-cap config preserved).',
-            codeFiles: fleetBoot.synced,
-            manifest: fleetBoot.manifest,
-            missing: fbMissing,
-            mismatched: fbMismatch,
-          })
-    : { synced: false, dir: null, skipped: true, reason: '--no-fleet-boot / GOLD_FLEET_BOOT_HOME empty' },
-  deployedMatchesSource: !dryRun && mismatched.length === 0 && requiredOk.length === 0
-    && phMissing.length === 0 && phMismatch.length === 0 && fbMissing.length === 0 && fbMismatch.length === 0,
+    ? fleetBoot.skipped
+      ? { synced: false, dir: fleetBoot.dir, skipped: true, reason: fleetBoot.reason }
+      : {
+          synced: !dryRun,
+          dir: fleetBoot.dir,
+          note: 'Gate 40 plug-in ignition kept in sync with the gated source; code byte-proven, fleet-manifest.json seeded only if absent (user budget-cap config preserved).',
+          codeFiles: fleetBoot.synced,
+          manifest: fleetBoot.manifest,
+          missing: fbMissing,
+          mismatched: fbMismatch,
+        }
+    : {
+        synced: false,
+        dir: null,
+        skipped: true,
+        reason: '--no-fleet-boot / GOLD_FLEET_BOOT_HOME empty',
+      },
+  deployedMatchesSource:
+    !dryRun &&
+    mismatched.length === 0 &&
+    requiredOk.length === 0 &&
+    phMissing.length === 0 &&
+    phMismatch.length === 0 &&
+    fbMissing.length === 0 &&
+    fbMismatch.length === 0,
   exeNote: exeMissing
     ? 'GOLD-GAME-Server.exe absent on this machine — the offline launcher (index.html + .bat) is fully functional without it; the .exe only adds the optional live-vault-count server. Run the Node-SEA build once to add it.'
     : 'GOLD-GAME-Server.exe present (pre-built Node-SEA binary; digested, not regenerated).',
   packageDigest,
-  readOnly: 'Regenerates the deployed COPY at the dest; D:/GOLD vault is never written. Source of truth stays examples/gold-game/.',
+  readOnly:
+    'Regenerates the deployed COPY at the dest; D:/GOLD vault is never written. Source of truth stays examples/gold-game/.',
   result,
   timestamp: new Date().toISOString(),
 };
@@ -277,19 +388,27 @@ receipt.payloadHash = sha256hex(JSON.stringify({ ...receipt, payloadHash: undefi
 const receiptPath = join(here, 'GATE-30-SHIP-PACKAGING-receipt.json');
 writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n');
 
-console.log(`\n  artifacts: ${manifest.length} (${receipt.builtArtifacts} built, ${receipt.staticArtifacts} static, ${receipt.copiedArtifacts} copied)`);
+console.log(
+  `\n  artifacts: ${manifest.length} (${receipt.builtArtifacts} built, ${receipt.staticArtifacts} static, ${receipt.copiedArtifacts} copied)`
+);
 console.log(`  packageDigest: ${packageDigest.slice(0, 16)}...`);
 if (missing.length) console.log('  missing:', missing.join('; '));
 if (mismatched.length) console.log('  MISMATCH:', mismatched.join('; '));
 if (productHome) {
   if (productHome.skipped) console.log(`  product home: SKIPPED (${productHome.reason})`);
-  else console.log(`  product home: ${dryRun ? 'WOULD SYNC' : 'SYNCED'} ${productHome.dir} (content ${productHome.matchesDriveContent ? 'MATCHES' : 'DIFFERS FROM'} Drive release)`);
+  else
+    console.log(
+      `  product home: ${dryRun ? 'WOULD SYNC' : 'SYNCED'} ${productHome.dir} (content ${productHome.matchesDriveContent ? 'MATCHES' : 'DIFFERS FROM'} Drive release)`
+    );
   if (phMissing.length) console.log('  product-home missing:', phMissing.join('; '));
   if (phMismatch.length) console.log('  product-home MISMATCH:', phMismatch.join('; '));
 }
 if (fleetBoot) {
   if (fleetBoot.skipped) console.log(`  fleet-boot: SKIPPED (${fleetBoot.reason})`);
-  else console.log(`  fleet-boot: ${dryRun ? 'WOULD SYNC' : 'SYNCED'} ${fleetBoot.dir} (code byte-proven; manifest ${fleetBoot.manifest})`);
+  else
+    console.log(
+      `  fleet-boot: ${dryRun ? 'WOULD SYNC' : 'SYNCED'} ${fleetBoot.dir} (code byte-proven; manifest ${fleetBoot.manifest})`
+    );
   if (fbMissing.length) console.log('  fleet-boot missing:', fbMissing.join('; '));
   if (fbMismatch.length) console.log('  fleet-boot MISMATCH:', fbMismatch.join('; '));
 }

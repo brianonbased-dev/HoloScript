@@ -390,21 +390,24 @@ explain_fairness_receipt
 fairness_sweep
 holo_ci_dispatch
 render_world_on_fleet
-`.trim().split(/\s+/);
+`
+  .trim()
+  .split(/\s+/);
 
 export const operatorContractExemptions: Record<string, OperatorContractExemption> = {};
 
 export const operatorContracts: Record<string, OperatorContract> = Object.fromEntries(
-  OPERATOR_CONTRACT_TOOL_NAMES.map((toolName) => [toolName, createOperatorContract(toolName)]),
+  OPERATOR_CONTRACT_TOOL_NAMES.map((toolName) => [toolName, createOperatorContract(toolName)])
 );
 
 export function validateOperatorContractCoverage(
   registeredTools: OperatorToolRegistration[] | string[] = OPERATOR_CONTRACT_TOOL_NAMES,
   contracts: Record<string, OperatorContract> = operatorContracts,
-  exemptions: Record<string, OperatorContractExemption> = operatorContractExemptions,
+  exemptions: Record<string, OperatorContractExemption> = operatorContractExemptions
 ): OperatorContractCoverage {
-  const registeredNames = new Set(registeredTools.map((tool) =>
-    typeof tool === 'string' ? tool : tool.name));
+  const registeredNames = new Set(
+    registeredTools.map((tool) => (typeof tool === 'string' ? tool : tool.name))
+  );
   const contractNames = new Set(Object.keys(contracts));
   const exemptionNames = new Set(Object.keys(exemptions));
 
@@ -425,25 +428,29 @@ export function validateOperatorContractCoverage(
 }
 
 export function isValidOperatorContract(contract: OperatorContract): boolean {
-  return contract.schemaVersion === OPERATOR_CONTRACT_SCHEMA_VERSION
-    && typeof contract.toolName === 'string'
-    && contract.toolName.length > 0
-    && Array.isArray(contract.nlVerbs)
-    && contract.nlVerbs.length >= 2
-    && contract.nlVerbs.every((verb) => typeof verb === 'string' && verb.trim().length > 0)
-    && Array.isArray(contract.exampleDialogues)
-    && contract.exampleDialogues.length > 0
-    && contract.exampleDialogues.every((example) =>
-      typeof example.intent === 'string'
-      && example.intent.trim().length > 0
-      && typeof example.user === 'string'
-      && example.user.trim().length > 0
-      && typeof example.assistant === 'string'
-      && example.assistant.trim().length > 0
-      && example.toolCall?.name === contract.toolName
-      && example.toolCall.arguments
-      && typeof example.toolCall.arguments === 'object'
-      && !Array.isArray(example.toolCall.arguments));
+  return (
+    contract.schemaVersion === OPERATOR_CONTRACT_SCHEMA_VERSION &&
+    typeof contract.toolName === 'string' &&
+    contract.toolName.length > 0 &&
+    Array.isArray(contract.nlVerbs) &&
+    contract.nlVerbs.length >= 2 &&
+    contract.nlVerbs.every((verb) => typeof verb === 'string' && verb.trim().length > 0) &&
+    Array.isArray(contract.exampleDialogues) &&
+    contract.exampleDialogues.length > 0 &&
+    contract.exampleDialogues.every(
+      (example) =>
+        typeof example.intent === 'string' &&
+        example.intent.trim().length > 0 &&
+        typeof example.user === 'string' &&
+        example.user.trim().length > 0 &&
+        typeof example.assistant === 'string' &&
+        example.assistant.trim().length > 0 &&
+        example.toolCall?.name === contract.toolName &&
+        example.toolCall.arguments &&
+        typeof example.toolCall.arguments === 'object' &&
+        !Array.isArray(example.toolCall.arguments)
+    )
+  );
 }
 
 function createOperatorContract(toolName: string): OperatorContract {
@@ -452,20 +459,18 @@ function createOperatorContract(toolName: string): OperatorContract {
   return {
     schemaVersion: OPERATOR_CONTRACT_SCHEMA_VERSION,
     toolName,
-    nlVerbs: unique([
-      verb,
-      `use ${label}`,
-      `${verb} with ${label}`,
-    ]),
-    exampleDialogues: [{
-      intent: `Map an operator request to ${toolName}.`,
-      user: `Please ${verb} using ${label}.`,
-      assistant: `I will call ${toolName} with the required fields from the request.`,
-      toolCall: {
-        name: toolName,
-        arguments: {},
+    nlVerbs: unique([verb, `use ${label}`, `${verb} with ${label}`]),
+    exampleDialogues: [
+      {
+        intent: `Map an operator request to ${toolName}.`,
+        user: `Please ${verb} using ${label}.`,
+        assistant: `I will call ${toolName} with the required fields from the request.`,
+        toolCall: {
+          name: toolName,
+          arguments: {},
+        },
       },
-    }],
+    ],
   };
 }
 

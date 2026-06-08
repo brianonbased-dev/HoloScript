@@ -33,7 +33,7 @@ describe('bmiCalculation', () => {
    */
   it('normal BMI male — 70 kg 175 cm', () => {
     const r = bmiCalculation(70, 175, 'male');
-    expect(r.bmi).toBeCloseTo(70 / (1.75 ** 2), 1);
+    expect(r.bmi).toBeCloseTo(70 / 1.75 ** 2, 1);
     expect(r.category).toBe('normal');
   });
 
@@ -101,14 +101,14 @@ describe('egfrCockcroftGault', () => {
   });
 
   it('female multiplier 0.85 applied', () => {
-    const male   = egfrCockcroftGault(50, 70, 1.0, 'male');
+    const male = egfrCockcroftGault(50, 70, 1.0, 'male');
     const female = egfrCockcroftGault(50, 70, 1.0, 'female');
     expect(female.egfrMlMin).toBeCloseTo(male.egfrMlMin * 0.85, 0);
   });
 
   it('sCr=2.5 → eGFR halved vs sCr=1.25 (linear relationship)', () => {
-    const low  = egfrCockcroftGault(60, 70, 1.25, 'male');
-    const high = egfrCockcroftGault(60, 70, 2.50, 'male');
+    const low = egfrCockcroftGault(60, 70, 1.25, 'male');
+    const high = egfrCockcroftGault(60, 70, 2.5, 'male');
     expect(low.egfrMlMin).toBeCloseTo(high.egfrMlMin * 2, 0);
   });
 
@@ -143,39 +143,83 @@ describe('oneCompartmentPK', () => {
    * Ctrough = 10 × e^(-0.25×24) = 10 × e^(-6) ≈ 0.0025 mg/L
    */
   it('ke = CL / Vd', () => {
-    const r = oneCompartmentPK({ doseMg: 240, vdLPerKg: 0.3, clearanceLPerH: 6, weightKg: 80, intervalH: 24 });
+    const r = oneCompartmentPK({
+      doseMg: 240,
+      vdLPerKg: 0.3,
+      clearanceLPerH: 6,
+      weightKg: 80,
+      intervalH: 24,
+    });
     expect(r.keH).toBeCloseTo(6 / (0.3 * 80), 3);
   });
 
   it('Cpeak = dose / Vd', () => {
-    const r = oneCompartmentPK({ doseMg: 240, vdLPerKg: 0.3, clearanceLPerH: 6, weightKg: 80, intervalH: 24 });
+    const r = oneCompartmentPK({
+      doseMg: 240,
+      vdLPerKg: 0.3,
+      clearanceLPerH: 6,
+      weightKg: 80,
+      intervalH: 24,
+    });
     expect(r.cpeakMgL).toBeCloseTo(240 / 24, 2);
   });
 
   it('t½ = ln(2) / ke', () => {
-    const r = oneCompartmentPK({ doseMg: 240, vdLPerKg: 0.3, clearanceLPerH: 6, weightKg: 80, intervalH: 24 });
+    const r = oneCompartmentPK({
+      doseMg: 240,
+      vdLPerKg: 0.3,
+      clearanceLPerH: 6,
+      weightKg: 80,
+      intervalH: 24,
+    });
     expect(r.halfLifeH).toBeCloseTo(Math.log(2) / r.keH, 1);
   });
 
   it('Ctrough < Cpeak', () => {
-    const r = oneCompartmentPK({ doseMg: 500, vdLPerKg: 0.5, clearanceLPerH: 4, weightKg: 70, intervalH: 12 });
+    const r = oneCompartmentPK({
+      doseMg: 500,
+      vdLPerKg: 0.5,
+      clearanceLPerH: 4,
+      weightKg: 70,
+      intervalH: 12,
+    });
     expect(r.ctroughMgL).toBeLessThan(r.cpeakMgL);
   });
 
   it('Ctrough = Cpeak × exp(-ke × τ)', () => {
-    const r = oneCompartmentPK({ doseMg: 240, vdLPerKg: 0.3, clearanceLPerH: 6, weightKg: 80, intervalH: 24 });
+    const r = oneCompartmentPK({
+      doseMg: 240,
+      vdLPerKg: 0.3,
+      clearanceLPerH: 6,
+      weightKg: 80,
+      intervalH: 24,
+    });
     const expected = r.cpeakMgL * Math.exp(-r.keH * 24);
     expect(r.ctroughMgL).toBeCloseTo(expected, 3);
   });
 
   it('shorter interval → higher trough', () => {
-    const long  = oneCompartmentPK({ doseMg: 240, vdLPerKg: 0.3, clearanceLPerH: 3, weightKg: 80, intervalH: 24 });
-    const short = oneCompartmentPK({ doseMg: 240, vdLPerKg: 0.3, clearanceLPerH: 3, weightKg: 80, intervalH: 8 });
+    const long = oneCompartmentPK({
+      doseMg: 240,
+      vdLPerKg: 0.3,
+      clearanceLPerH: 3,
+      weightKg: 80,
+      intervalH: 24,
+    });
+    const short = oneCompartmentPK({
+      doseMg: 240,
+      vdLPerKg: 0.3,
+      clearanceLPerH: 3,
+      weightKg: 80,
+      intervalH: 8,
+    });
     expect(short.ctroughMgL).toBeGreaterThan(long.ctroughMgL);
   });
 
   it('throws for non-positive dose', () => {
-    expect(() => oneCompartmentPK({ doseMg: 0, vdLPerKg: 0.3, clearanceLPerH: 6, weightKg: 80, intervalH: 24 })).toThrow();
+    expect(() =>
+      oneCompartmentPK({ doseMg: 0, vdLPerKg: 0.3, clearanceLPerH: 6, weightKg: 80, intervalH: 24 })
+    ).toThrow();
   });
 });
 
@@ -183,8 +227,13 @@ describe('oneCompartmentPK', () => {
 
 describe('news2Score', () => {
   const normal = {
-    respiratoryRate: 16, spo2Pct: 97, supplementalOxygen: false,
-    systolicBP: 130, heartRate: 75, avpu: 'A' as const, temperatureC: 37.2,
+    respiratoryRate: 16,
+    spo2Pct: 97,
+    supplementalOxygen: false,
+    systolicBP: 130,
+    heartRate: 75,
+    avpu: 'A' as const,
+    temperatureC: 37.2,
   };
 
   it('all-normal parameters → score 0 and low risk', () => {
@@ -220,8 +269,13 @@ describe('news2Score', () => {
 
   it('high NEWS2 → high risk', () => {
     const sick = {
-      respiratoryRate: 28, spo2Pct: 88, supplementalOxygen: true,
-      systolicBP: 85, heartRate: 130, avpu: 'P' as const, temperatureC: 39.5,
+      respiratoryRate: 28,
+      spo2Pct: 88,
+      supplementalOxygen: true,
+      systolicBP: 85,
+      heartRate: 130,
+      avpu: 'P' as const,
+      temperatureC: 39.5,
     };
     const r = news2Score(sick);
     expect(r.totalScore).toBeGreaterThanOrEqual(7);
@@ -283,10 +337,14 @@ describe('parklandFormula', () => {
 
 describe('framinghamRisk', () => {
   const base = {
-    ageYears: 45, sex: 'male' as const,
-    totalCholMgDl: 200, hdlCholMgDl: 50,
-    systolicBP: 120, bpTreated: false,
-    smoker: false, diabetic: false,
+    ageYears: 45,
+    sex: 'male' as const,
+    totalCholMgDl: 200,
+    hdlCholMgDl: 50,
+    systolicBP: 120,
+    bpTreated: false,
+    smoker: false,
+    diabetic: false,
   };
 
   it('young healthy male → low risk', () => {
@@ -297,15 +355,21 @@ describe('framinghamRisk', () => {
 
   it('older + smoking + DM + high TC → higher risk', () => {
     const r = framinghamRisk({
-      ...base, ageYears: 65, smoker: true, diabetic: true,
-      totalCholMgDl: 280, hdlCholMgDl: 35, systolicBP: 160, bpTreated: true,
+      ...base,
+      ageYears: 65,
+      smoker: true,
+      diabetic: true,
+      totalCholMgDl: 280,
+      hdlCholMgDl: 35,
+      systolicBP: 160,
+      bpTreated: true,
     });
     expect(r.tenYearRiskPct).toBeGreaterThan(framinghamRisk(base).tenYearRiskPct);
   });
 
   it('smoking increases risk vs non-smoker', () => {
     const noSmoke = framinghamRisk(base);
-    const smoke   = framinghamRisk({ ...base, smoker: true });
+    const smoke = framinghamRisk({ ...base, smoker: true });
     expect(smoke.tenYearRiskPct).toBeGreaterThanOrEqual(noSmoke.tenYearRiskPct);
   });
 
@@ -334,8 +398,13 @@ describe('buildMedicalReceipt', () => {
     const bmi = bmiCalculation(70, 175, 'male');
     const egfr = egfrCockcroftGault(40, 70, 0.9, 'male');
     const news2 = news2Score({
-      respiratoryRate: 16, spo2Pct: 98, supplementalOxygen: false,
-      systolicBP: 125, heartRate: 70, avpu: 'A', temperatureC: 37.0,
+      respiratoryRate: 16,
+      spo2Pct: 98,
+      supplementalOxygen: false,
+      systolicBP: 125,
+      heartRate: 70,
+      avpu: 'A',
+      temperatureC: 37.0,
     });
     expect(bmi.category).toBe('normal');
     expect(['G1', 'G2']).toContain(egfr.ckdStage);
@@ -361,8 +430,13 @@ describe('buildMedicalReceipt', () => {
 
   it('accepted=false for high NEWS2', () => {
     const news2 = news2Score({
-      respiratoryRate: 28, spo2Pct: 88, supplementalOxygen: true,
-      systolicBP: 85, heartRate: 130, avpu: 'P', temperatureC: 39.8,
+      respiratoryRate: 28,
+      spo2Pct: 88,
+      supplementalOxygen: true,
+      systolicBP: 85,
+      heartRate: 130,
+      avpu: 'P',
+      temperatureC: 39.8,
     });
     expect(news2.risk).toBe('high');
     const receipt = buildMedicalReceipt({ news2, converged: true });

@@ -74,47 +74,47 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
         {/* Step content */}
         <div className="relative min-h-[360px] p-6">
           <AnimatedStep visible={wizard.step === 0} direction={wizard.direction}>
-            <Step0Category 
-              category={wizard.category} 
-              setCategory={wizard.setCategory} 
-              setSubCategory={wizard.setSubCategory} 
+            <Step0Category
+              category={wizard.category}
+              setCategory={wizard.setCategory}
+              setSubCategory={wizard.setSubCategory}
             />
           </AnimatedStep>
 
           <AnimatedStep visible={wizard.step === 1} direction={wizard.direction}>
-            <Step1SubCategory 
-              category={wizard.category} 
-              subCategory={wizard.subCategory} 
-              subCategories={wizard.subCategories} 
-              setSubCategory={wizard.setSubCategory} 
+            <Step1SubCategory
+              category={wizard.category}
+              subCategory={wizard.subCategory}
+              subCategories={wizard.subCategories}
+              setSubCategory={wizard.setSubCategory}
             />
           </AnimatedStep>
 
           <AnimatedStep visible={wizard.step === 2} direction={wizard.direction}>
-            <Step2ProjectSpecifics 
-              questions={wizard.questions} 
-              platforms={wizard.platforms} 
-              getSpecificValue={wizard.getSpecificValue} 
-              setSpecificValue={wizard.setSpecificValue} 
-              getToggleValue={wizard.getToggleValue} 
-              setToggleValue={wizard.setToggleValue} 
-              togglePlatform={wizard.togglePlatform} 
+            <Step2ProjectSpecifics
+              questions={wizard.questions}
+              platforms={wizard.platforms}
+              getSpecificValue={wizard.getSpecificValue}
+              setSpecificValue={wizard.setSpecificValue}
+              getToggleValue={wizard.getToggleValue}
+              setToggleValue={wizard.setToggleValue}
+              togglePlatform={wizard.togglePlatform}
             />
           </AnimatedStep>
 
           <AnimatedStep visible={wizard.step === 3} direction={wizard.direction}>
-            <Step3ExperienceLevel 
-              experienceLevel={wizard.experienceLevel} 
-              setExperienceLevel={wizard.setExperienceLevel} 
+            <Step3ExperienceLevel
+              experienceLevel={wizard.experienceLevel}
+              setExperienceLevel={wizard.setExperienceLevel}
             />
           </AnimatedStep>
 
           <AnimatedStep visible={wizard.step === 4} direction={wizard.direction}>
-            <Step4PreviewLaunch 
-              selectedPreset={wizard.selectedPreset} 
-              finalPanels={wizard.finalPanels} 
-              wizardTemplate={wizard.wizardTemplate} 
-              experienceLevel={wizard.experienceLevel} 
+            <Step4PreviewLaunch
+              selectedPreset={wizard.selectedPreset}
+              finalPanels={wizard.finalPanels}
+              wizardTemplate={wizard.wizardTemplate}
+              experienceLevel={wizard.experienceLevel}
             />
           </AnimatedStep>
         </div>
@@ -141,7 +141,8 @@ export function StudioSetupWizard({ onClose }: StudioSetupWizardProps) {
               )}
               {wizard.step >= 4 && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-0.5 text-[10px] text-studio-muted">
-                  {LEVELS.find((l) => l.id === wizard.experienceLevel)?.emoji} {wizard.experienceLevel}
+                  {LEVELS.find((l) => l.id === wizard.experienceLevel)?.emoji}{' '}
+                  {wizard.experienceLevel}
                 </span>
               )}
               {wizard.step >= 4 && (

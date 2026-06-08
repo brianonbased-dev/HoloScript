@@ -221,7 +221,8 @@ export const DEFAULT_SENSITIVE_POLICY: SandboxPolicy = {
 export const DEFAULT_BENIGN_POLICY: SandboxPolicy = {
   ...DEFAULT_SENSITIVE_POLICY,
   policyId: 'holoscript-benign-default-v1',
-  description: 'Relaxed policy for read-only or computation-only subjects with no sensitive-state access.',
+  description:
+    'Relaxed policy for read-only or computation-only subjects with no sensitive-state access.',
   capabilityManifest: {
     required: false,
     attestationRequired: false,

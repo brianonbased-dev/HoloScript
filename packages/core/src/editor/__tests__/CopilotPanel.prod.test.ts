@@ -272,7 +272,12 @@ describe('CopilotPanel — sendMessage', () => {
   });
 
   it('returns BUSY when sendMessage is called while a request is already in-flight', async () => {
-    const hold = deferred<{ holoScript: string; confidence: number; objectCount: number; warnings: string[] }>();
+    const hold = deferred<{
+      holoScript: string;
+      confidence: number;
+      objectCount: number;
+      warnings: string[];
+    }>();
     const adapter = makeAdapter();
     adapter.generateHoloScript = vi.fn().mockReturnValue(hold.promise) as any;
     const panel = new CopilotPanel(new AICopilot(adapter));

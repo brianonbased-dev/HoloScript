@@ -7,7 +7,11 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { createProviderManager, type LLMProviderName, type MessageRole } from '@holoscript/llm-provider';
+import {
+  createProviderManager,
+  type LLMProviderName,
+  type MessageRole,
+} from '@holoscript/llm-provider';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -238,9 +242,7 @@ function buildCriticPrompt(
     );
   } else if (mode === 'full') {
     parts.push('MODE: full');
-    parts.push(
-      'Return the union of code critique AND pitch critique formats. Be exhaustive.'
-    );
+    parts.push('Return the union of code critique AND pitch critique formats. Be exhaustive.');
   } else {
     parts.push('MODE: code');
     parts.push('Return the code/architecture critique format: VERDICT + findings only.');
@@ -272,7 +274,11 @@ async function tryCompleteWithAI(request: {
   messages: Array<{ role: MessageRole; content: string }>;
   maxTokens: number;
   temperature: number;
-}): Promise<{ content: string; provider: LLMProviderName | undefined; attemptedProviders: LLMProviderName[] }> {
+}): Promise<{
+  content: string;
+  provider: LLMProviderName | undefined;
+  attemptedProviders: LLMProviderName[];
+}> {
   let manager;
 
   try {
@@ -281,7 +287,8 @@ async function tryCompleteWithAI(request: {
     return {
       content: JSON.stringify({
         verdict: 'NOT_READY',
-        summary: 'No LLM providers are configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or another supported provider.',
+        summary:
+          'No LLM providers are configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or another supported provider.',
         findings: [
           {
             category: 'Critical',
@@ -361,7 +368,7 @@ function parseCriticOutput(raw: string): {
     const verdict = normalizeVerdict(parsed.verdict);
     const summary = typeof parsed.summary === 'string' ? parsed.summary : 'No summary provided.';
     const findings = Array.isArray(parsed.findings)
-      ? parsed.findings.map(normalizeFinding).filter(Boolean) as CriticFinding[]
+      ? (parsed.findings.map(normalizeFinding).filter(Boolean) as CriticFinding[])
       : [];
 
     const pitchExtras: CriticResult['pitchExtras'] = {};
@@ -458,15 +465,33 @@ function heuristicParse(
   const findings: CriticFinding[] = [];
 
   // Extract verdict from markdown header
-  const verdictMatch = raw.match(/VERDICT[:\s]+(NOT READY|FRAGILE|ADEQUATE|WOULD LAND|WOULDN'T SHIP)/i);
+  const verdictMatch = raw.match(
+    /VERDICT[:\s]+(NOT READY|FRAGILE|ADEQUATE|WOULD LAND|WOULDN'T SHIP)/i
+  );
   const verdict = verdictMatch ? normalizeVerdict(verdictMatch[1]) : fallbackVerdict;
 
   // Extract findings from markdown sections
   const sections = [
-    { pattern: /###?\s*Critical[\s\S]*?(?=###?\s*(Serious|Annoying|Nitpick|Lines that|Claims|What a skeptic|What would|$))/i, category: 'Critical' as const },
-    { pattern: /###?\s*Serious[\s\S]*?(?=###?\s*(Critical|Annoying|Nitpick|Lines that|Claims|What a skeptic|What would|$))/i, category: 'Serious' as const },
-    { pattern: /###?\s*Annoying[\s\S]*?(?=###?\s*(Critical|Serious|Nitpick|Lines that|Claims|What a skeptic|What would|$))/i, category: 'Annoying' as const },
-    { pattern: /###?\s*Nitpick[\s\S]*?(?=###?\s*(Critical|Serious|Annoying|Lines that|Claims|What a skeptic|What would|$))/i, category: 'Nitpick' as const },
+    {
+      pattern:
+        /###?\s*Critical[\s\S]*?(?=###?\s*(Serious|Annoying|Nitpick|Lines that|Claims|What a skeptic|What would|$))/i,
+      category: 'Critical' as const,
+    },
+    {
+      pattern:
+        /###?\s*Serious[\s\S]*?(?=###?\s*(Critical|Annoying|Nitpick|Lines that|Claims|What a skeptic|What would|$))/i,
+      category: 'Serious' as const,
+    },
+    {
+      pattern:
+        /###?\s*Annoying[\s\S]*?(?=###?\s*(Critical|Serious|Nitpick|Lines that|Claims|What a skeptic|What would|$))/i,
+      category: 'Annoying' as const,
+    },
+    {
+      pattern:
+        /###?\s*Nitpick[\s\S]*?(?=###?\s*(Critical|Serious|Annoying|Lines that|Claims|What a skeptic|What would|$))/i,
+      category: 'Nitpick' as const,
+    },
   ];
 
   for (const section of sections) {

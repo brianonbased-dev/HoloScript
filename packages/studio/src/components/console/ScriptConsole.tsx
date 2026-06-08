@@ -57,7 +57,10 @@ export function ScriptConsole() {
             return nextArr.slice(-1000);
           }
         }
-        return [...prev, { id: nextId++, level, message, timestamp: Date.now(), source, count: 1 }].slice(-1000);
+        return [
+          ...prev,
+          { id: nextId++, level, message, timestamp: Date.now(), source, count: 1 },
+        ].slice(-1000);
       });
     },
     [collapsed]

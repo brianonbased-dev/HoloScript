@@ -64,9 +64,11 @@ export async function POST(request: Request) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
-  const body = (await request.json().catch(() => null)) as
-    | { name?: string; cycles?: number; alwaysOn?: boolean }
-    | null;
+  const body = (await request.json().catch(() => null)) as {
+    name?: string;
+    cycles?: number;
+    alwaysOn?: boolean;
+  } | null;
   const name = body?.name?.trim();
 
   if (!name || !body) {
@@ -76,10 +78,7 @@ export async function POST(request: Request) {
   // SEC-T05: slug-only skill names (blocks path traversal, shell metacharacters,
   // and anything that would make the resolved path escape COMPOSITIONS_ROOT).
   if (!SKILL_NAME_RE.test(name)) {
-    return NextResponse.json(
-      { error: 'name must match /^[a-z0-9-]{1,64}$/' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'name must match /^[a-z0-9-]{1,64}$/' }, { status: 400 });
   }
 
   // Check if already running
@@ -239,10 +238,7 @@ export async function DELETE(request: Request) {
   }
 
   if (!SKILL_NAME_RE.test(name)) {
-    return NextResponse.json(
-      { error: 'name must match /^[a-z0-9-]{1,64}$/' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'name must match /^[a-z0-9-]{1,64}$/' }, { status: 400 });
   }
 
   const entry = runningSkills.get(name);
@@ -270,7 +266,6 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json({ stopped: true, name, pid: entry.pid });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

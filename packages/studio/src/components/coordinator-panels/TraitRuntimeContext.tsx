@@ -43,7 +43,9 @@ export interface TraitRuntimeProviderProps {
 }
 
 export function TraitRuntimeProvider({ runtime, children }: TraitRuntimeProviderProps) {
-  return <TraitRuntimeContextImpl.Provider value={runtime}>{children}</TraitRuntimeContextImpl.Provider>;
+  return (
+    <TraitRuntimeContextImpl.Provider value={runtime}>{children}</TraitRuntimeContextImpl.Provider>
+  );
 }
 
 /**
@@ -63,7 +65,9 @@ export function useTraitRuntime(): TraitRuntimeIntegration | null {
  * Subscribe to AssetLoadCoordinator state. Returns the current snapshot
  * of all tracked assets, refreshed on every state change.
  */
-export function useAssetLoadStates(runtimeOverride?: TraitRuntimeIntegration | null): AssetLoadState[] {
+export function useAssetLoadStates(
+  runtimeOverride?: TraitRuntimeIntegration | null
+): AssetLoadState[] {
   const ctxRuntime = useTraitRuntime();
   const runtime = runtimeOverride ?? ctxRuntime;
   const [states, setStates] = useState<AssetLoadState[]>(() =>
@@ -112,12 +116,17 @@ const EMPTY_SECURITY: SecurityViewState = {
  * audit-log buffer. The bus already coalesces per-domain state; this
  * hook just snapshots both on every observed envelope.
  */
-export function useSecurityPresence(runtimeOverride?: TraitRuntimeIntegration | null): SecurityViewState {
+export function useSecurityPresence(
+  runtimeOverride?: TraitRuntimeIntegration | null
+): SecurityViewState {
   const ctxRuntime = useTraitRuntime();
   const runtime = runtimeOverride ?? ctxRuntime;
   const [view, setView] = useState<SecurityViewState>(() =>
     runtime
-      ? { stats: runtime.securityEventBus.getStats(), auditLog: runtime.securityEventBus.getAuditLog() }
+      ? {
+          stats: runtime.securityEventBus.getStats(),
+          auditLog: runtime.securityEventBus.getAuditLog(),
+        }
       : EMPTY_SECURITY
   );
 
@@ -155,22 +164,55 @@ const EMPTY_JOBS: GenerativeJobsView = {
   stats: {
     total: 0,
     byKind: {
-      inpainting: { queued: 0, running: 0, completed: 0, cancelled: 0, errored: 0, meanLatencyMs: 0 },
-      texture_gen: { queued: 0, running: 0, completed: 0, cancelled: 0, errored: 0, meanLatencyMs: 0 },
-      controlnet: { queued: 0, running: 0, completed: 0, cancelled: 0, errored: 0, meanLatencyMs: 0 },
-      diffusion_rt: { queued: 0, running: 0, completed: 0, cancelled: 0, errored: 0, meanLatencyMs: 0 },
+      inpainting: {
+        queued: 0,
+        running: 0,
+        completed: 0,
+        cancelled: 0,
+        errored: 0,
+        meanLatencyMs: 0,
+      },
+      texture_gen: {
+        queued: 0,
+        running: 0,
+        completed: 0,
+        cancelled: 0,
+        errored: 0,
+        meanLatencyMs: 0,
+      },
+      controlnet: {
+        queued: 0,
+        running: 0,
+        completed: 0,
+        cancelled: 0,
+        errored: 0,
+        meanLatencyMs: 0,
+      },
+      diffusion_rt: {
+        queued: 0,
+        running: 0,
+        completed: 0,
+        cancelled: 0,
+        errored: 0,
+        meanLatencyMs: 0,
+      },
     },
     anyReady: false,
   },
   jobs: [],
 };
 
-export function useGenerativeJobs(runtimeOverride?: TraitRuntimeIntegration | null): GenerativeJobsView {
+export function useGenerativeJobs(
+  runtimeOverride?: TraitRuntimeIntegration | null
+): GenerativeJobsView {
   const ctxRuntime = useTraitRuntime();
   const runtime = runtimeOverride ?? ctxRuntime;
   const [view, setView] = useState<GenerativeJobsView>(() =>
     runtime
-      ? { stats: runtime.generativeJobMonitor.getStats(), jobs: runtime.generativeJobMonitor.getAllJobs() }
+      ? {
+          stats: runtime.generativeJobMonitor.getStats(),
+          jobs: runtime.generativeJobMonitor.getAllJobs(),
+        }
       : EMPTY_JOBS
   );
 
@@ -220,7 +262,9 @@ const EMPTY_PRESENCE: SessionPresenceView = {
   heartbeats: [],
 };
 
-export function useSessionPresence(runtimeOverride?: TraitRuntimeIntegration | null): SessionPresenceView {
+export function useSessionPresence(
+  runtimeOverride?: TraitRuntimeIntegration | null
+): SessionPresenceView {
   const ctxRuntime = useTraitRuntime();
   const runtime = runtimeOverride ?? ctxRuntime;
   const [view, setView] = useState<SessionPresenceView>(() =>

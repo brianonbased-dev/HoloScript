@@ -29,5 +29,5 @@
 
 ## References
 
-- URDFormer paper: https://arxiv.org/abs/2405.11656  
-- Code (community): see paper / project page for the canonical repository.  
+- URDFormer paper: https://arxiv.org/abs/2405.11656
+- Code (community): see paper / project page for the canonical repository.

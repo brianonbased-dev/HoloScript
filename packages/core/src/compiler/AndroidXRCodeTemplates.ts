@@ -706,10 +706,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'controlnet',
     components: [],
     level: 'full',
-    imports: [
-      'org.tensorflow.lite.Interpreter',
-      'org.tensorflow.lite.support.image.TensorImage',
-    ],
+    imports: ['org.tensorflow.lite.Interpreter', 'org.tensorflow.lite.support.image.TensorImage'],
     generate: (varName, config) => {
       const model = String(config.model || 'controlnet_canny');
       const endpoint = String(config.endpoint || '');
@@ -819,10 +816,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'diffusion_realtime',
     components: [],
     level: 'full',
-    imports: [
-      'org.tensorflow.lite.Interpreter',
-      'android.opengl.GLES31',
-    ],
+    imports: ['org.tensorflow.lite.Interpreter', 'android.opengl.GLES31'],
     generate: (varName, config) => {
       const backend = String(config.backend || 'tflite');
       const steps = Number(config.steps || 4);
@@ -1169,7 +1163,11 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         ``,
         `fun ${varName}VdbUpsert(id: String, embedding: FloatArray, metadata: Map<String, String> = emptyMap()) {`,
         `    val vectors = embedding.joinToString(",")`,
-        `    val meta = metadata.entries.joinToString(",") { "\\"` + `\${it.key}` + `\\":\\"` + `\${it.value}` + `\\"" }`,
+        `    val meta = metadata.entries.joinToString(",") { "\\"` +
+          `\${it.key}` +
+          `\\":\\"` +
+          `\${it.value}` +
+          `\\"" }`,
         ...(isPinecone
           ? [
               `    val body = """{"vectors":[{"id":"$id","values":[$vectors],"metadata":{$meta}}]}"""`,
@@ -1261,10 +1259,7 @@ export const V43_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
         ],
       };
       const lines = mlkitSetup[task] ?? mlkitSetup['classification']!;
-      return [
-        `// @vision -- ML Kit Vision (task: ${task})`,
-        ...lines,
-      ];
+      return [`// @vision -- ML Kit Vision (task: ${task})`, ...lines];
     },
   },
 
@@ -1809,4 +1804,3 @@ export const AI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
 // =============================================================================
 // COMBINED TRAIT MAP
 // =============================================================================
-

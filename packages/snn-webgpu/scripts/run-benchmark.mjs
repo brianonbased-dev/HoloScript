@@ -41,7 +41,8 @@ function resolveOptions() {
   //                              Real RTX/H100 numbers come from this path.
   const vulkanBackend = process.env.BENCH_VULKAN_BACKEND ?? 'swiftshader';
   const outputPath =
-    process.env.BENCH_OUTPUT_PATH ?? path.join(repoRoot, '.bench-logs', 'paper-2-lif-throughput-automated.json');
+    process.env.BENCH_OUTPUT_PATH ??
+    path.join(repoRoot, '.bench-logs', 'paper-2-lif-throughput-automated.json');
 
   return {
     target,
@@ -71,7 +72,7 @@ async function main() {
     '--enable-webgpu-developer-features',
     `--use-vulkan=${options.vulkanBackend}`,
     '--disable-vulkan-fallback-to-gl-for-testing',
-    '--ignore-gpu-blocklist'
+    '--ignore-gpu-blocklist',
   ];
   if (options.forceHighPerformanceGpu) {
     chromiumArgs.push('--force_high_performance_gpu');
@@ -79,7 +80,7 @@ async function main() {
 
   const browser = await chromium.launch({
     headless: options.headless,
-    args: chromiumArgs
+    args: chromiumArgs,
   });
 
   const page = await browser.newPage();
@@ -91,11 +92,11 @@ async function main() {
   page.on('pageerror', (err) => {
     console.log(`[browser:pageerror] ${err.message}`);
   });
-  
+
   // Expose a binding so the page can report when done
   let benchmarkPromiseResolve;
   let settled = false;
-  const benchmarkPromise = new Promise(resolve => {
+  const benchmarkPromise = new Promise((resolve) => {
     benchmarkPromiseResolve = resolve;
   });
 
@@ -127,19 +128,24 @@ async function main() {
     `&driver=${encodeURIComponent(options.driver)}` +
     `&outputPath=${encodeURIComponent(options.outputPath)}`;
   console.log(`[SNN-WebGPU Benchmark] Navigating to ${fileUrl}`);
-  
+
   await page.goto(fileUrl);
-  
-  console.log('[SNN-WebGPU Benchmark] Waiting for benchmark to complete (this may take a while)...');
-  
+
+  console.log(
+    '[SNN-WebGPU Benchmark] Waiting for benchmark to complete (this may take a while)...'
+  );
+
   // Wait for the benchmark to report completion
   const artifact = await Promise.race([
     benchmarkPromise,
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Benchmark timed out after ${options.timeoutMs} ms`)), options.timeoutMs)
-    )
+      setTimeout(
+        () => reject(new Error(`Benchmark timed out after ${options.timeoutMs} ms`)),
+        options.timeoutMs
+      )
+    ),
   ]);
-  
+
   await browser.close();
 
   const outPath = path.resolve(options.outputPath);
@@ -149,21 +155,28 @@ async function main() {
 
   const isCompleted = artifact?.status === 'completed';
   if (!isCompleted) {
-    console.error('[SNN-WebGPU Benchmark] Benchmark finished with non-completed status:', artifact?.status);
+    console.error(
+      '[SNN-WebGPU Benchmark] Benchmark finished with non-completed status:',
+      artifact?.status
+    );
     console.error('Failures:', JSON.stringify(artifact?.failures ?? [], null, 2));
     if (options.requireCompleted) {
       process.exit(1);
     }
-    console.log('[SNN-WebGPU Benchmark] Non-completed status accepted (BENCH_REQUIRE_COMPLETED=false).');
+    console.log(
+      '[SNN-WebGPU Benchmark] Non-completed status accepted (BENCH_REQUIRE_COMPLETED=false).'
+    );
     return;
   }
 
   console.log('[SNN-WebGPU Benchmark] Benchmark completed successfully.');
-  
+
   // Print summary
   if (artifact.lif && artifact.lif.peak) {
     console.log(`\n=== RESULTS ===`);
-    console.log(`Peak Throughput: ${artifact.lif.peak.throughput_M_per_s} M neurons/s (N=${artifact.lif.peak.neurons})`);
+    console.log(
+      `Peak Throughput: ${artifact.lif.peak.throughput_M_per_s} M neurons/s (N=${artifact.lif.peak.neurons})`
+    );
     if (artifact.tropical?.peak) {
       console.log(
         `Peak Tropical GEMM: ${artifact.tropical.peak.gflops} GFLOP/s (N=${artifact.tropical.peak.n})`
@@ -172,7 +185,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

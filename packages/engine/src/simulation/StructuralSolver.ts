@@ -154,7 +154,7 @@ export interface StructuralStats {
 function buildTET4CSRPattern(
   nodeCount: number,
   elementCount: number,
-  tetrahedra: Uint32Array,
+  tetrahedra: Uint32Array
 ): { rowPtr: Uint32Array; colInd: Uint32Array; dofToCSR: Map<number, Map<number, number>> } {
   const dofCount = nodeCount * 3;
   const nodeAdj = new Array<Set<number>>(nodeCount);
@@ -413,7 +413,7 @@ export class StructuralSolver {
           maxIterations: this.config.maxIterations ?? 1000,
           toleranceSq: (this.config.tolerance ?? 1e-8) ** 2,
           xExtraUsage: GPUBufferUsage.VERTEX,
-        },
+        }
       );
 
       if (this.gpuDisplacementBuffer) this.gpuDisplacementBuffer.destroy();
@@ -438,7 +438,7 @@ export class StructuralSolver {
     const { rowPtr, colInd, dofToCSR } = buildTET4CSRPattern(
       this.nodeCount,
       this.elementCount,
-      this.config.tetrahedra,
+      this.config.tetrahedra
     );
 
     const val = new Float64Array(rowPtr[this.dofCount]);
@@ -513,21 +513,27 @@ export class StructuralSolver {
     this.elementStiffness = new Array(this.elementCount);
 
     for (let e = 0; e < this.elementCount; e++) {
-      const n0 = tets[e * 4], n1 = tets[e * 4 + 1];
-      const n2 = tets[e * 4 + 2], n3 = tets[e * 4 + 3];
+      const n0 = tets[e * 4],
+        n1 = tets[e * 4 + 1];
+      const n2 = tets[e * 4 + 2],
+        n3 = tets[e * 4 + 3];
 
       // Vertex positions
-      const x0 = verts[n0 * 3], y0 = verts[n0 * 3 + 1], z0 = verts[n0 * 3 + 2];
-      const x1 = verts[n1 * 3], y1 = verts[n1 * 3 + 1], z1 = verts[n1 * 3 + 2];
-      const x2 = verts[n2 * 3], y2 = verts[n2 * 3 + 1], z2 = verts[n2 * 3 + 2];
-      const x3 = verts[n3 * 3], y3 = verts[n3 * 3 + 1], z3 = verts[n3 * 3 + 2];
+      const x0 = verts[n0 * 3],
+        y0 = verts[n0 * 3 + 1],
+        z0 = verts[n0 * 3 + 2];
+      const x1 = verts[n1 * 3],
+        y1 = verts[n1 * 3 + 1],
+        z1 = verts[n1 * 3 + 2];
+      const x2 = verts[n2 * 3],
+        y2 = verts[n2 * 3 + 1],
+        z2 = verts[n2 * 3 + 2];
+      const x3 = verts[n3 * 3],
+        y3 = verts[n3 * 3 + 1],
+        z3 = verts[n3 * 3 + 2];
 
       // Jacobian of isoparametric mapping
-      const J = [
-        x1 - x0, y1 - y0, z1 - z0,
-        x2 - x0, y2 - y0, z2 - z0,
-        x3 - x0, y3 - y0, z3 - z0,
-      ];
+      const J = [x1 - x0, y1 - y0, z1 - z0, x2 - x0, y2 - y0, z2 - z0, x3 - x0, y3 - y0, z3 - z0];
 
       const detJ =
         J[0] * (J[4] * J[8] - J[5] * J[7]) -
@@ -558,24 +564,35 @@ export class StructuralSolver {
       // Shape function gradients (constant in linear tet)
       // dN/dx for nodes 1,2,3 (node 0 is derived: dN0 = -sum of others)
       const dN = new Float64Array(12); // 4 nodes × 3 components
-      dN[3] = Ji[0]; dN[4] = Ji[1]; dN[5] = Ji[2]; // node 1
-      dN[6] = Ji[3]; dN[7] = Ji[4]; dN[8] = Ji[5]; // node 2
-      dN[9] = Ji[6]; dN[10] = Ji[7]; dN[11] = Ji[8]; // node 3
-      dN[0] = -(dN[3] + dN[6] + dN[9]);   // node 0
+      dN[3] = Ji[0];
+      dN[4] = Ji[1];
+      dN[5] = Ji[2]; // node 1
+      dN[6] = Ji[3];
+      dN[7] = Ji[4];
+      dN[8] = Ji[5]; // node 2
+      dN[9] = Ji[6];
+      dN[10] = Ji[7];
+      dN[11] = Ji[8]; // node 3
+      dN[0] = -(dN[3] + dN[6] + dN[9]); // node 0
       dN[1] = -(dN[4] + dN[7] + dN[10]);
       dN[2] = -(dN[5] + dN[8] + dN[11]);
 
       // B matrix (6×12): strain = B * u
       const B = new Float64Array(72); // 6 rows × 12 cols
       for (let a = 0; a < 4; a++) {
-        const dnx = dN[a * 3], dny = dN[a * 3 + 1], dnz = dN[a * 3 + 2];
+        const dnx = dN[a * 3],
+          dny = dN[a * 3 + 1],
+          dnz = dN[a * 3 + 2];
         const col = a * 3;
-        B[0 * 12 + col] = dnx;                          // εxx
-        B[1 * 12 + col + 1] = dny;                      // εyy
-        B[2 * 12 + col + 2] = dnz;                      // εzz
-        B[3 * 12 + col] = dny; B[3 * 12 + col + 1] = dnx; // γxy
-        B[4 * 12 + col + 1] = dnz; B[4 * 12 + col + 2] = dny; // γyz
-        B[5 * 12 + col] = dnz; B[5 * 12 + col + 2] = dnx; // γxz
+        B[0 * 12 + col] = dnx; // εxx
+        B[1 * 12 + col + 1] = dny; // εyy
+        B[2 * 12 + col + 2] = dnz; // εzz
+        B[3 * 12 + col] = dny;
+        B[3 * 12 + col + 1] = dnx; // γxy
+        B[4 * 12 + col + 1] = dnz;
+        B[4 * 12 + col + 2] = dny; // γyz
+        B[5 * 12 + col] = dnz;
+        B[5 * 12 + col + 2] = dnx; // γxz
       }
 
       // Ke = V * Bᵀ * D * B (12×12)
@@ -616,7 +633,11 @@ export class StructuralSolver {
     for (const load of this.config.loads) {
       switch (load.type) {
         case 'gravity': {
-          const [ax, ay, az] = load.acceleration ?? [acceleration(0), acceleration(-9.81), acceleration(0)];
+          const [ax, ay, az] = load.acceleration ?? [
+            acceleration(0),
+            acceleration(-9.81),
+            acceleration(0),
+          ];
           // Distribute gravity force to all nodes
           // For simplicity: lumped mass (element volume / 4 per node)
           const tets = this.config.tetrahedra;
@@ -624,15 +645,25 @@ export class StructuralSolver {
           for (let e = 0; e < this.elementCount; e++) {
             const nodes = [tets[e * 4], tets[e * 4 + 1], tets[e * 4 + 2], tets[e * 4 + 3]];
             // Compute element volume
-            const n0 = nodes[0], n1 = nodes[1], n2 = nodes[2], n3 = nodes[3];
-            const dx1 = verts[n1 * 3] - verts[n0 * 3], dy1 = verts[n1 * 3 + 1] - verts[n0 * 3 + 1], dz1 = verts[n1 * 3 + 2] - verts[n0 * 3 + 2];
-            const dx2 = verts[n2 * 3] - verts[n0 * 3], dy2 = verts[n2 * 3 + 1] - verts[n0 * 3 + 1], dz2 = verts[n2 * 3 + 2] - verts[n0 * 3 + 2];
-            const dx3 = verts[n3 * 3] - verts[n0 * 3], dy3 = verts[n3 * 3 + 1] - verts[n0 * 3 + 1], dz3 = verts[n3 * 3 + 2] - verts[n0 * 3 + 2];
-            const vol = Math.abs(
-              dx1 * (dy2 * dz3 - dz2 * dy3) -
-              dy1 * (dx2 * dz3 - dz2 * dx3) +
-              dz1 * (dx2 * dy3 - dy2 * dx3)
-            ) / 6;
+            const n0 = nodes[0],
+              n1 = nodes[1],
+              n2 = nodes[2],
+              n3 = nodes[3];
+            const dx1 = verts[n1 * 3] - verts[n0 * 3],
+              dy1 = verts[n1 * 3 + 1] - verts[n0 * 3 + 1],
+              dz1 = verts[n1 * 3 + 2] - verts[n0 * 3 + 2];
+            const dx2 = verts[n2 * 3] - verts[n0 * 3],
+              dy2 = verts[n2 * 3 + 1] - verts[n0 * 3 + 1],
+              dz2 = verts[n2 * 3 + 2] - verts[n0 * 3 + 2];
+            const dx3 = verts[n3 * 3] - verts[n0 * 3],
+              dy3 = verts[n3 * 3 + 1] - verts[n0 * 3 + 1],
+              dz3 = verts[n3 * 3 + 2] - verts[n0 * 3 + 2];
+            const vol =
+              Math.abs(
+                dx1 * (dy2 * dz3 - dz2 * dy3) -
+                  dy1 * (dx2 * dz3 - dz2 * dx3) +
+                  dz1 * (dx2 * dy3 - dy2 * dx3)
+              ) / 6;
 
             const massPerNode = (density * vol) / 4;
             for (const n of nodes) {
@@ -659,11 +690,19 @@ export class StructuralSolver {
               // Each surface element is a triangle face of a tet
               const tets = this.config.tetrahedra;
               const verts = this.config.vertices;
-              const n0 = tets[faceIdx * 4], n1 = tets[faceIdx * 4 + 1], n2 = tets[faceIdx * 4 + 2];
+              const n0 = tets[faceIdx * 4],
+                n1 = tets[faceIdx * 4 + 1],
+                n2 = tets[faceIdx * 4 + 2];
               // Triangle area and normal
-              const ax = verts[n1 * 3] - verts[n0 * 3], ay = verts[n1 * 3 + 1] - verts[n0 * 3 + 1], az = verts[n1 * 3 + 2] - verts[n0 * 3 + 2];
-              const bx = verts[n2 * 3] - verts[n0 * 3], by = verts[n2 * 3 + 1] - verts[n0 * 3 + 1], bz = verts[n2 * 3 + 2] - verts[n0 * 3 + 2];
-              const nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+              const ax = verts[n1 * 3] - verts[n0 * 3],
+                ay = verts[n1 * 3 + 1] - verts[n0 * 3 + 1],
+                az = verts[n1 * 3 + 2] - verts[n0 * 3 + 2];
+              const bx = verts[n2 * 3] - verts[n0 * 3],
+                by = verts[n2 * 3 + 1] - verts[n0 * 3 + 1],
+                bz = verts[n2 * 3 + 2] - verts[n0 * 3 + 2];
+              const nx = ay * bz - az * by,
+                ny = az * bx - ax * bz,
+                nz = ax * by - ay * bx;
               const area = 0.5 * Math.sqrt(nx * nx + ny * ny + nz * nz);
               if (area < 1e-20) continue;
               const scale = (load.pressure * area) / (3 * Math.sqrt(nx * nx + ny * ny + nz * nz));
@@ -697,15 +736,25 @@ export class StructuralSolver {
     D[21] = D[28] = D[35] = mu;
 
     for (let e = 0; e < this.elementCount; e++) {
-      const n0 = tets[e * 4], n1 = tets[e * 4 + 1];
-      const n2 = tets[e * 4 + 2], n3 = tets[e * 4 + 3];
+      const n0 = tets[e * 4],
+        n1 = tets[e * 4 + 1];
+      const n2 = tets[e * 4 + 2],
+        n3 = tets[e * 4 + 3];
 
       // Recompute B for this element (same as in assembleStiffness)
-      const x0 = verts[n0 * 3], y0 = verts[n0 * 3 + 1], z0 = verts[n0 * 3 + 2];
+      const x0 = verts[n0 * 3],
+        y0 = verts[n0 * 3 + 1],
+        z0 = verts[n0 * 3 + 2];
       const J = [
-        verts[n1 * 3] - x0, verts[n1 * 3 + 1] - y0, verts[n1 * 3 + 2] - z0,
-        verts[n2 * 3] - x0, verts[n2 * 3 + 1] - y0, verts[n2 * 3 + 2] - z0,
-        verts[n3 * 3] - x0, verts[n3 * 3 + 1] - y0, verts[n3 * 3 + 2] - z0,
+        verts[n1 * 3] - x0,
+        verts[n1 * 3 + 1] - y0,
+        verts[n1 * 3 + 2] - z0,
+        verts[n2 * 3] - x0,
+        verts[n2 * 3 + 1] - y0,
+        verts[n2 * 3 + 2] - z0,
+        verts[n3 * 3] - x0,
+        verts[n3 * 3 + 1] - y0,
+        verts[n3 * 3 + 2] - z0,
       ];
       const detJ =
         J[0] * (J[4] * J[8] - J[5] * J[7]) -
@@ -732,9 +781,15 @@ export class StructuralSolver {
       ];
 
       const dN = new Float64Array(12);
-      dN[3] = Ji[0]; dN[4] = Ji[1]; dN[5] = Ji[2];
-      dN[6] = Ji[3]; dN[7] = Ji[4]; dN[8] = Ji[5];
-      dN[9] = Ji[6]; dN[10] = Ji[7]; dN[11] = Ji[8];
+      dN[3] = Ji[0];
+      dN[4] = Ji[1];
+      dN[5] = Ji[2];
+      dN[6] = Ji[3];
+      dN[7] = Ji[4];
+      dN[8] = Ji[5];
+      dN[9] = Ji[6];
+      dN[10] = Ji[7];
+      dN[11] = Ji[8];
       dN[0] = -(dN[3] + dN[6] + dN[9]);
       dN[1] = -(dN[4] + dN[7] + dN[10]);
       dN[2] = -(dN[5] + dN[8] + dN[11]);
@@ -743,13 +798,15 @@ export class StructuralSolver {
       const nodes = [n0, n1, n2, n3];
       const strain = new Float64Array(6);
       for (let a = 0; a < 4; a++) {
-        const dnx = dN[a * 3], dny = dN[a * 3 + 1], dnz = dN[a * 3 + 2];
+        const dnx = dN[a * 3],
+          dny = dN[a * 3 + 1],
+          dnz = dN[a * 3 + 2];
         const ux = this.displacements[nodes[a] * 3];
         const uy = this.displacements[nodes[a] * 3 + 1];
         const uz = this.displacements[nodes[a] * 3 + 2];
-        strain[0] += dnx * ux;           // εxx
-        strain[1] += dny * uy;           // εyy
-        strain[2] += dnz * uz;           // εzz
+        strain[0] += dnx * ux; // εxx
+        strain[1] += dny * uy; // εyy
+        strain[2] += dnz * uz; // εzz
         strain[3] += dny * ux + dnx * uy; // γxy
         strain[4] += dnz * uy + dny * uz; // γyz
         strain[5] += dnz * ux + dnx * uz; // γxz
@@ -764,12 +821,20 @@ export class StructuralSolver {
       }
 
       // Von Mises stress
-      const sxx = stress[0], syy = stress[1], szz = stress[2];
-      const txy = stress[3], tyz = stress[4], txz = stress[5];
+      const sxx = stress[0],
+        syy = stress[1],
+        szz = stress[2];
+      const txy = stress[3],
+        tyz = stress[4],
+        txz = stress[5];
       const vm = Math.sqrt(
-        sxx * sxx + syy * syy + szz * szz -
-        sxx * syy - syy * szz - szz * sxx +
-        3 * (txy * txy + tyz * tyz + txz * txz)
+        sxx * sxx +
+          syy * syy +
+          szz * szz -
+          sxx * syy -
+          syy * szz -
+          szz * sxx +
+          3 * (txy * txy + tyz * tyz + txz * txz)
       );
 
       this.vonMisesStress[e] = vm;
@@ -836,7 +901,8 @@ export class StructuralSolver {
   }
 
   getStats(): StructuralStats {
-    let maxVM = 0, minSF = Infinity;
+    let maxVM = 0,
+      minSF = Infinity;
     for (let e = 0; e < this.elementCount; e++) {
       if (this.vonMisesStress[e] > maxVM) maxVM = this.vonMisesStress[e];
       if (this.safetyFactors[e] < minSF) minSF = this.safetyFactors[e];

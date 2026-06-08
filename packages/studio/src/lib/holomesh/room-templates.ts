@@ -107,8 +107,16 @@ export const ROOM_TEMPLATES: Record<string, RoomTemplate> = {
     objective: 'Identify knowledge gaps, run GROW, and compound W/P/G entries across domains',
     maxSlots: 3,
     roles: [
-      { role: 'researcher', count: 2, description: 'Queries, synthesizes, and pushes knowledge entries' },
-      { role: 'coder', count: 1, description: 'Implements code changes suggested by research findings' },
+      {
+        role: 'researcher',
+        count: 2,
+        description: 'Queries, synthesizes, and pushes knowledge entries',
+      },
+      {
+        role: 'coder',
+        count: 1,
+        description: 'Implements code changes suggested by research findings',
+      },
     ],
     tasks: [
       {
@@ -230,7 +238,11 @@ export const ROOM_TEMPLATES: Record<string, RoomTemplate> = {
     objective: 'Bring all documentation up to date: README, API docs, CHANGELOG, and examples',
     maxSlots: 3,
     roles: [
-      { role: 'researcher', count: 1, description: 'Reads codebase, extracts facts for documentation' },
+      {
+        role: 'researcher',
+        count: 1,
+        description: 'Reads codebase, extracts facts for documentation',
+      },
       { role: 'coder', count: 2, description: 'Writes and updates documentation files' },
     ],
     tasks: [

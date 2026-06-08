@@ -21,7 +21,7 @@ interface DesktopAgentEnsembleProps {
 
 export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
   const registryAgents = useAgentRegistryStore((s) => s.agents);
-  
+
   // Local state for 2D canvas positions
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [dragging, setDragging] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
       registryAgents.forEach((agent, i) => {
         if (!next[agent.id]) {
           next[agent.id] = {
-            x: 100 + (i * 200) % 800,
+            x: 100 + ((i * 200) % 800),
             y: 150 + Math.floor(i / 4) * 150,
           };
           changed = true;
@@ -48,18 +48,21 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
     setDragging(agentId);
   }, []);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!dragging) return;
-    const svg = e.currentTarget;
-    const rect = svg.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (!dragging) return;
+      const svg = e.currentTarget;
+      const rect = svg.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-    setPositions((prev) => ({
-      ...prev,
-      [dragging]: { x, y },
-    }));
-  }, [dragging]);
+      setPositions((prev) => ({
+        ...prev,
+        [dragging]: { x, y },
+      }));
+    },
+    [dragging]
+  );
 
   const handleMouseUp = useCallback(() => {
     setDragging(null);
@@ -75,11 +78,16 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
     if (configEmoji) return configEmoji;
     if (status === 'error') return '⚠️';
     switch (type) {
-      case 'physics': return '🔵';
-      case 'animator': return '🟡';
-      case 'sound': return '🔴';
-      case 'art': return '🟣';
-      default: return '🤖';
+      case 'physics':
+        return '🔵';
+      case 'animator':
+        return '🟡';
+      case 'sound':
+        return '🔴';
+      case 'art':
+        return '🟣';
+      default:
+        return '🤖';
     }
   };
 
@@ -96,8 +104,13 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
         <div className="flex shrink-0 items-center gap-2 border-b border-studio-border px-3 py-2.5">
           <Users className="h-4 w-4 text-studio-accent" />
           <span className="text-[12px] font-semibold">Agent Ensemble (3D Stationary View)</span>
-          <span className="text-[10px] text-studio-muted ml-2">[{registryAgents.length} active]</span>
-          <button onClick={onClose} className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text">
+          <span className="text-[10px] text-studio-muted ml-2">
+            [{registryAgents.length} active]
+          </span>
+          <button
+            onClick={onClose}
+            className="ml-auto rounded p-1 text-studio-muted hover:text-studio-text"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -122,9 +135,9 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
                 <group
                   key={agent.id}
                   position={[
-                    (pos.x - 400) * 0.017, 
-                    (200 - pos.y) * 0.017, 
-                    selectedAgentId === agent.id ? z + 1.2 : z   // pop selected agent forward in depth
+                    (pos.x - 400) * 0.017,
+                    (200 - pos.y) * 0.017,
+                    selectedAgentId === agent.id ? z + 1.2 : z, // pop selected agent forward in depth
                   ]}
                   scale={selectedAgentId === agent.id ? [1.25, 1.25, 1.25] : [1, 1, 1]} // highlight on depth selection
                 >
@@ -139,9 +152,13 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
                     <sphereGeometry args={[0.55]} />
                     <meshPhongMaterial
                       color={getColorForStatus(agent.status)}
-                      emissive={selectedAgentId === agent.id 
-                        ? '#ffffff' 
-                        : (agent.status === 'running' ? '#22c55e' : '#111111')}
+                      emissive={
+                        selectedAgentId === agent.id
+                          ? '#ffffff'
+                          : agent.status === 'running'
+                            ? '#22c55e'
+                            : '#111111'
+                      }
                       shininess={selectedAgentId === agent.id ? 90 : 50}
                     />
                   </mesh>
@@ -174,7 +191,12 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
                   {/* Depth cue ring */}
                   <mesh position={[0, -0.7, 0]} rotation={[Math.PI / 2, 0, 0]}>
                     <ringGeometry args={[0.68, 0.78, 32]} />
-                    <meshBasicMaterial color={getColorForStatus(agent.status)} side={2} transparent opacity={0.55} />
+                    <meshBasicMaterial
+                      color={getColorForStatus(agent.status)}
+                      side={2}
+                      transparent
+                      opacity={0.55}
+                    />
                   </mesh>
                 </group>
               );
@@ -239,7 +261,12 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
                 style={{ cursor: dragging === agent.id ? 'grabbing' : 'grab' }}
               >
                 {/* Status Glow */}
-                <circle r="35" fill={color} opacity={agent.status === 'running' ? '0.25' : '0.1'} className="transition-opacity duration-300" />
+                <circle
+                  r="35"
+                  fill={color}
+                  opacity={agent.status === 'running' ? '0.25' : '0.1'}
+                  className="transition-opacity duration-300"
+                />
                 {/* Core Blob */}
                 <circle
                   r="24"
@@ -253,7 +280,18 @@ export function DesktopAgentEnsemble({ onClose }: DesktopAgentEnsembleProps) {
                   {emoji} {agent.name}
                 </text>
                 {/* Status indicator bubble */}
-                <circle r="5" cx="16" cy="-16" fill={agent.status === 'running' ? '#22c55e' : agent.status === 'error' ? '#ef4444' : '#71717a'} />
+                <circle
+                  r="5"
+                  cx="16"
+                  cy="-16"
+                  fill={
+                    agent.status === 'running'
+                      ? '#22c55e'
+                      : agent.status === 'error'
+                        ? '#ef4444'
+                        : '#71717a'
+                  }
+                />
               </g>
             );
           })}

@@ -111,7 +111,7 @@ function makeValidation(overrides: Partial<ValidationReceipt> = {}): ValidationR
 }
 
 function makeCrossHardwareCompilation(
-  overrides: Partial<CrossHardwareCompilationReceipt> = {},
+  overrides: Partial<CrossHardwareCompilationReceipt> = {}
 ): CrossHardwareCompilationReceipt {
   return {
     id: 'hwc_jetson_001',
@@ -150,7 +150,10 @@ function makeCrossHardwareCompilation(
 describe('HoloLand HardwareReceipt', () => {
   it('accepts every supported hardware kind', () => {
     for (const kind of HARDWARE_RECEIPT_KINDS) {
-      const receipt = makeHardware({ kind, deviceModel: kind === 'hardware-other' ? 'custom-rig' : undefined });
+      const receipt = makeHardware({
+        kind,
+        deviceModel: kind === 'hardware-other' ? 'custom-rig' : undefined,
+      });
       expect(validateHardwareReceipt(receipt)).toEqual([]);
     }
   });
@@ -165,7 +168,7 @@ describe('HoloLand HardwareReceipt', () => {
     const receipt = makeHardware({ kind: 'hardware-other', deviceModel: undefined });
     const errors = validateHardwareReceipt(receipt);
     expect(errors).toContain(
-      'HardwareReceipt hw_quest3_001 kind=hardware-other requires deviceModel.',
+      'HardwareReceipt hw_quest3_001 kind=hardware-other requires deviceModel.'
     );
   });
 
@@ -183,7 +186,7 @@ describe('HoloLand HardwareReceipt', () => {
         'HardwareReceipt.hash is required.',
         'HardwareReceipt.hashAlgorithm is required.',
         'HardwareReceipt.capturedAt is required.',
-      ]),
+      ])
     );
   });
 
@@ -193,7 +196,7 @@ describe('HoloLand HardwareReceipt', () => {
     });
     const errors = validateHardwareReceipt(receipt);
     expect(errors).toContain(
-      'HardwareReceipt hw_quest3_001 has a verification command without command text.',
+      'HardwareReceipt hw_quest3_001 has a verification command without command text.'
     );
   });
 
@@ -227,7 +230,7 @@ describe('HoloLand ReplayInput', () => {
         'ReplayInput.id is required.',
         'ReplayInput.source is required.',
         'ReplayInput.at is required.',
-      ]),
+      ])
     );
   });
 
@@ -255,7 +258,7 @@ describe('HoloLand ReplayOutcome', () => {
   it('rejects unsupported status', () => {
     const outcome = makeReplayOutcome({ status: 'half-baked' as never });
     expect(validateReplayOutcome(outcome)).toContain(
-      'ReplayOutcome.status is unsupported: half-baked.',
+      'ReplayOutcome.status is unsupported: half-baked.'
     );
   });
 
@@ -263,17 +266,14 @@ describe('HoloLand ReplayOutcome', () => {
     const outcome = makeReplayOutcome({ id: '', at: '' });
     const errors = validateReplayOutcome(outcome);
     expect(errors).toEqual(
-      expect.arrayContaining([
-        'ReplayOutcome.id is required.',
-        'ReplayOutcome.at is required.',
-      ]),
+      expect.arrayContaining(['ReplayOutcome.id is required.', 'ReplayOutcome.at is required.'])
     );
   });
 
   it('rejects stateHash without stateHashAlgorithm (paired-field rule)', () => {
     const outcome = makeReplayOutcome({ stateHash: 'b'.repeat(64), stateHashAlgorithm: undefined });
     expect(validateReplayOutcome(outcome)).toContain(
-      'ReplayOutcome rout_001.stateHashAlgorithm is required when stateHash is set.',
+      'ReplayOutcome rout_001.stateHashAlgorithm is required when stateHash is set.'
     );
   });
 
@@ -301,14 +301,14 @@ describe('HoloLand AgentActionReceipt', () => {
   it('rejects unsupported kind', () => {
     const receipt = makeAgentAction({ kind: 'eat-pizza' as never });
     expect(validateAgentActionReceipt(receipt)).toContain(
-      'AgentActionReceipt.kind is unsupported: eat-pizza.',
+      'AgentActionReceipt.kind is unsupported: eat-pizza.'
     );
   });
 
   it('rejects agent-other without actionLabel (kind/discriminator coupling)', () => {
     const receipt = makeAgentAction({ kind: 'agent-other', actionLabel: undefined });
     expect(validateAgentActionReceipt(receipt)).toContain(
-      'AgentActionReceipt act_spawn_001 kind=agent-other requires actionLabel.',
+      'AgentActionReceipt act_spawn_001 kind=agent-other requires actionLabel.'
     );
   });
 
@@ -328,7 +328,7 @@ describe('HoloLand AgentActionReceipt', () => {
         'AgentActionReceipt.hash is required.',
         'AgentActionReceipt.hashAlgorithm is required.',
         'AgentActionReceipt.actedAt is required.',
-      ]),
+      ])
     );
   });
 
@@ -365,7 +365,7 @@ describe('HoloLand ValidationReceipt envelope', () => {
   it('rejects unsupported status', () => {
     const receipt = makeValidation({ status: 'maybe' as never });
     expect(validateValidationReceipt(receipt)).toContain(
-      'ValidationReceipt.status is unsupported: maybe.',
+      'ValidationReceipt.status is unsupported: maybe.'
     );
   });
 
@@ -385,7 +385,7 @@ describe('HoloLand ValidationReceipt envelope', () => {
         'ValidationReceipt.hash is required.',
         'ValidationReceipt.hashAlgorithm is required.',
         'ValidationReceipt.validatedAt is required.',
-      ]),
+      ])
     );
   });
 
@@ -400,7 +400,7 @@ describe('HoloLand ValidationReceipt envelope', () => {
     expect(errors).toContain('hardwareReceipts[hw_bad]: HardwareReceipt.hash is required.');
     expect(errors).toContain('replayInputs[rin_bad]: ReplayInput.source is required.');
     expect(errors).toContain(
-      'replayOutcomes[rout_bad]: ReplayOutcome.status is unsupported: whatever.',
+      'replayOutcomes[rout_bad]: ReplayOutcome.status is unsupported: whatever.'
     );
     expect(errors).toContain('agentActions[act_bad]: AgentActionReceipt.actor is required.');
   });
@@ -410,7 +410,7 @@ describe('HoloLand ValidationReceipt envelope', () => {
       verificationCommands: [{ command: '' }],
     });
     expect(validateValidationReceipt(receipt)).toContain(
-      'ValidationReceipt val_oasis_001 has a verification command without command text.',
+      'ValidationReceipt val_oasis_001 has a verification command without command text.'
     );
   });
 
@@ -476,7 +476,7 @@ describe('CrossHardwareCompilationReceipt', () => {
     const receipt = makeCrossHardwareCompilation({ deviceFamily: 'nvidia-rtx-4090' as never });
     const errors = validateCrossHardwareCompilationReceipt(receipt);
     expect(errors).toContain(
-      'CrossHardwareCompilationReceipt.deviceFamily is unsupported: nvidia-rtx-4090.',
+      'CrossHardwareCompilationReceipt.deviceFamily is unsupported: nvidia-rtx-4090.'
     );
   });
 
@@ -500,7 +500,7 @@ describe('CrossHardwareCompilationReceipt', () => {
         'CrossHardwareCompilationReceipt.hash is required.',
         'CrossHardwareCompilationReceipt.hashAlgorithm is required.',
         'CrossHardwareCompilationReceipt.capturedAt is required.',
-      ]),
+      ])
     );
   });
 
@@ -515,16 +515,16 @@ describe('CrossHardwareCompilationReceipt', () => {
     });
     const errors = validateCrossHardwareCompilationReceipt(receipt);
     expect(errors).toContain(
-      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.maxMemoryMB must be non-negative.',
+      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.maxMemoryMB must be non-negative.'
     );
     expect(errors).toContain(
-      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.maxComputeUnits must be non-negative.',
+      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.maxComputeUnits must be non-negative.'
     );
     expect(errors).toContain(
-      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.powerBudgetW must be non-negative.',
+      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.powerBudgetW must be non-negative.'
     );
     expect(errors).toContain(
-      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.targetLatencyMs must be non-negative.',
+      'CrossHardwareCompilationReceipt hwc_jetson_001.constraints.targetLatencyMs must be non-negative.'
     );
   });
 
@@ -539,16 +539,16 @@ describe('CrossHardwareCompilationReceipt', () => {
     });
     const errors = validateCrossHardwareCompilationReceipt(receipt);
     expect(errors).toContain(
-      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.latencyMs must be non-negative.',
+      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.latencyMs must be non-negative.'
     );
     expect(errors).toContain(
-      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.peakMemoryBytes must be non-negative.',
+      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.peakMemoryBytes must be non-negative.'
     );
     expect(errors).toContain(
-      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.powerDrawW must be non-negative.',
+      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.powerDrawW must be non-negative.'
     );
     expect(errors).toContain(
-      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.accuracyVsReference must be between 0 and 1.',
+      'CrossHardwareCompilationReceipt hwc_jetson_001.measuredResults.accuracyVsReference must be between 0 and 1.'
     );
   });
 
@@ -580,7 +580,7 @@ describe('CrossHardwareCompilationReceipt', () => {
     });
     const errors = validateCrossHardwareCompilationReceipt(receipt);
     expect(errors).toContain(
-      'CrossHardwareCompilationReceipt hwc_jetson_001 has a verification command without command text.',
+      'CrossHardwareCompilationReceipt hwc_jetson_001 has a verification command without command text.'
     );
   });
 

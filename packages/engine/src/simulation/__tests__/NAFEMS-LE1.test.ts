@@ -53,11 +53,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { StructuralSolver, type StructuralConfig } from '../StructuralSolver';
-import {
-  StructuralSolverTET10,
-  tet4ToTet10,
-  type TET10Config,
-} from '../StructuralSolverTET10';
+import { StructuralSolverTET10, tet4ToTet10, type TET10Config } from '../StructuralSolverTET10';
 import {
   createVerificationReport,
   renderReportMarkdown,
@@ -106,7 +102,7 @@ function generateEllipticMembraneMesh(nr: number, nt: number) {
   }
 
   for (let iz = 0; iz <= nz; iz++) {
-    const z = iz * THICKNESS / nz;
+    const z = (iz * THICKNESS) / nz;
     for (let jt = 0; jt <= nt; jt++) {
       const theta = (jt / nt) * (Math.PI / 2);
       const cosT = Math.cos(theta);
@@ -136,17 +132,9 @@ function generateEllipticMembraneMesh(nr: number, nt: number) {
         const v7 = idx(ir, jt + 1, iz + 1);
 
         if ((ir + jt + iz) % 2 === 0) {
-          tets.push(
-            v0, v1, v3, v4, v1, v2, v3, v6,
-            v4, v5, v6, v1, v4, v6, v7, v3,
-            v1, v4, v6, v3,
-          );
+          tets.push(v0, v1, v3, v4, v1, v2, v3, v6, v4, v5, v6, v1, v4, v6, v7, v3, v1, v4, v6, v3);
         } else {
-          tets.push(
-            v1, v0, v5, v2, v3, v2, v0, v7,
-            v4, v5, v7, v0, v6, v7, v5, v2,
-            v0, v2, v5, v7,
-          );
+          tets.push(v1, v0, v5, v2, v3, v2, v0, v7, v4, v5, v7, v0, v6, v7, v5, v2, v0, v2, v5, v7);
         }
       }
     }
@@ -155,7 +143,10 @@ function generateEllipticMembraneMesh(nr: number, nt: number) {
   return {
     vertices: new Float32Array(pts),
     tetrahedra: new Uint32Array(tets),
-    nr, nt, nz, idx,
+    nr,
+    nt,
+    nz,
+    idx,
     nodeCount: (nr + 1) * (nt + 1) * (nz + 1),
   };
 }
@@ -164,9 +155,7 @@ function generateEllipticMembraneMesh(nr: number, nt: number) {
  * Compute outward pressure loads on the outer boundary.
  * Each outer-boundary node gets a force = P * outward_normal * tributary_area.
  */
-function computeOuterPressureLoads(
-  mesh: ReturnType<typeof generateEllipticMembraneMesh>,
-) {
+function computeOuterPressureLoads(mesh: ReturnType<typeof generateEllipticMembraneMesh>) {
   const loads: Array<{
     id: string;
     type: 'point';
@@ -188,9 +177,9 @@ function computeOuterPressureLoads(
 
       // Arc length differential: ds/dtheta = sqrt((bx*sin(t))^2 + (by*cos(t))^2)
       const dsdtheta = Math.sqrt(
-        (OUTER_BX * Math.sin(theta)) ** 2 + (OUTER_BY * Math.cos(theta)) ** 2,
+        (OUTER_BX * Math.sin(theta)) ** 2 + (OUTER_BY * Math.cos(theta)) ** 2
       );
-      const dtheta = (Math.PI / 2) / mesh.nt;
+      const dtheta = Math.PI / 2 / mesh.nt;
       const dz = THICKNESS / mesh.nz;
 
       // Tributary weights (half at boundaries)
@@ -225,7 +214,7 @@ function extractStressNearPoint(
   nodesPerTet: number,
   targetX: number,
   targetY: number,
-  searchRadius: number,
+  searchRadius: number
 ): number {
   const elemCount = tetrahedra.length / nodesPerTet;
   let bestDist = Infinity;
@@ -234,7 +223,8 @@ function extractStressNearPoint(
   let count = 0;
 
   for (let e = 0; e < elemCount; e++) {
-    let cx = 0, cy = 0;
+    let cx = 0,
+      cy = 0;
     for (let n = 0; n < 4; n++) {
       const ni = tetrahedra[e * nodesPerTet + n];
       cx += vertices[ni * 3] / 4;
@@ -269,9 +259,9 @@ function runTET4Benchmark(nr: number, nt: number) {
   // theta=0, r=0, z=1 to prevent rotation about x/y.
   // This minimizes artificial stiffness from over-constraining.
   const fixedNodes = [
-    mesh.idx(0, 0, 0),             // inner, theta=0, z=0
-    mesh.idx(0, mesh.nt, 0),       // inner, theta=pi/2, z=0
-    mesh.idx(0, 0, mesh.nz),       // inner, theta=0, z=top
+    mesh.idx(0, 0, 0), // inner, theta=0, z=0
+    mesh.idx(0, mesh.nt, 0), // inner, theta=pi/2, z=0
+    mesh.idx(0, 0, mesh.nz), // inner, theta=0, z=top
   ];
 
   const config: StructuralConfig = {
@@ -283,9 +273,7 @@ function runTET4Benchmark(nr: number, nt: number) {
       poisson_ratio: POISSON,
       yield_strength: 400,
     },
-    constraints: [
-      { id: 'fix_rbm', type: 'fixed', nodes: fixedNodes },
-    ],
+    constraints: [{ id: 'fix_rbm', type: 'fixed', nodes: fixedNodes }],
     loads,
     maxIterations: 5000,
     tolerance: 1e-8,
@@ -298,12 +286,18 @@ function runTET4Benchmark(nr: number, nt: number) {
 
   // Extract stress at point D (x=0, y=2)
   const stressAtD = extractStressNearPoint(
-    mesh.vertices, mesh.tetrahedra, vms, 4,
-    INNER_AX, 0, 0.5,
+    mesh.vertices,
+    mesh.tetrahedra,
+    vms,
+    4,
+    INNER_AX,
+    0,
+    0.5
   );
 
   // Also get max and average stress for diagnostics
-  let maxVms = 0, sumVms = 0;
+  let maxVms = 0,
+    sumVms = 0;
   for (let i = 0; i < vms.length; i++) {
     if (vms[i] > maxVms) maxVms = vms[i];
     sumVms += vms[i];
@@ -321,18 +315,11 @@ function runTET10Benchmark(nr: number, nt: number) {
   const loads = computeOuterPressureLoads(mesh);
 
   // Convert to TET10
-  const tet10Mesh = tet4ToTet10(
-    new Float64Array(mesh.vertices),
-    mesh.tetrahedra,
-  );
+  const tet10Mesh = tet4ToTet10(new Float64Array(mesh.vertices), mesh.tetrahedra);
 
   // Minimal constraints using original corner node indices
   // (corner node indices are preserved in tet4ToTet10)
-  const fixedNodes = [
-    mesh.idx(0, 0, 0),
-    mesh.idx(0, mesh.nt, 0),
-    mesh.idx(0, 0, mesh.nz),
-  ];
+  const fixedNodes = [mesh.idx(0, 0, 0), mesh.idx(0, mesh.nt, 0), mesh.idx(0, 0, mesh.nz)];
 
   const config: TET10Config = {
     vertices: tet10Mesh.vertices,
@@ -343,9 +330,7 @@ function runTET10Benchmark(nr: number, nt: number) {
       poisson_ratio: POISSON,
       yield_strength: 400,
     },
-    constraints: [
-      { id: 'fix_rbm', type: 'fixed', nodes: fixedNodes },
-    ],
+    constraints: [{ id: 'fix_rbm', type: 'fixed', nodes: fixedNodes }],
     loads,
     maxIterations: 20000,
     tolerance: 1e-8,
@@ -358,11 +343,17 @@ function runTET10Benchmark(nr: number, nt: number) {
   const stats = solver.getStats();
 
   const stressAtD = extractStressNearPoint(
-    tet10Mesh.vertices, tet10Mesh.tetrahedra, vms, 10,
-    INNER_AX, 0, 0.5,
+    tet10Mesh.vertices,
+    tet10Mesh.tetrahedra,
+    vms,
+    10,
+    INNER_AX,
+    0,
+    0.5
   );
 
-  let maxVms = 0, sumVms = 0;
+  let maxVms = 0,
+    sumVms = 0;
   for (let i = 0; i < vms.length; i++) {
     if (vms[i] > maxVms) maxVms = vms[i];
     sumVms += vms[i];
@@ -375,7 +366,6 @@ function runTET10Benchmark(nr: number, nt: number) {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('NAFEMS LE1 — Elliptic Membrane Benchmark', () => {
-
   it('TET4: converges and produces non-degenerate stress field', () => {
     const { result, stressAtD, maxVms, avgVms, stats } = runTET4Benchmark(6, 12);
 
@@ -436,8 +426,12 @@ describe('NAFEMS LE1 — Elliptic Membrane Benchmark', () => {
     const tet10Error = Math.abs(tet10.stressAtD - NAFEMS_SIGMA_YY_D) / NAFEMS_SIGMA_YY_D;
 
     console.log('NAFEMS LE1 Comparison:');
-    console.log(`  TET4  stress near D: ${tet4.stressAtD.toFixed(2)} MPa (error: ${(tet4Error * 100).toFixed(1)}%)`);
-    console.log(`  TET10 stress near D: ${tet10.stressAtD.toFixed(2)} MPa (error: ${(tet10Error * 100).toFixed(1)}%)`);
+    console.log(
+      `  TET4  stress near D: ${tet4.stressAtD.toFixed(2)} MPa (error: ${(tet4Error * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `  TET10 stress near D: ${tet10.stressAtD.toFixed(2)} MPa (error: ${(tet10Error * 100).toFixed(1)}%)`
+    );
     console.log(`  TET4  max VMS: ${tet4.maxVms.toFixed(2)} MPa`);
     console.log(`  TET10 max VMS: ${tet10.maxVms.toFixed(2)} MPa`);
     console.log(`  NAFEMS reference:  ${NAFEMS_SIGMA_YY_D} MPa`);
@@ -499,27 +493,27 @@ describe('NAFEMS LE1 — Elliptic Membrane Benchmark', () => {
     // We expect the solver error to decrease precisely as O(h^2) for TET10 elements.
     // For this 2D-extruded mesh scheme, characteristic element size h ~ 1/N.
     // We map a nominal 'h' linearly to the number of elements requested.
-    
+
     // N_radial, N_theta configurations
     const meshConfigs = [
-      { nr: 2, nt: 4, h: 0.500 },
-      { nr: 4, nt: 8, h: 0.250 },
+      { nr: 2, nt: 4, h: 0.5 },
+      { nr: 4, nt: 8, h: 0.25 },
       { nr: 6, nt: 12, h: 0.166 },
       { nr: 8, nt: 16, h: 0.125 },
     ];
-    
+
     const hSizes = meshConfigs.map((c) => c.h);
 
     const runSolver = (h: number) => {
       const conf = meshConfigs.find((c) => c.h === h)!;
       const benchmark = runTET10Benchmark(conf.nr, conf.nt);
-      
+
       // We pass single-element arrays to errorL2/errorLinf to compute pointwise error at target D.
       // We are substituting analytical field error with a pointwise stress tracker,
       // which is perfectly valid for Richardson extrapolation.
       return {
         numerical: new Float32Array([benchmark.stressAtD]),
-        exact: new Float32Array([NAFEMS_SIGMA_YY_D])
+        exact: new Float32Array([NAFEMS_SIGMA_YY_D]),
       };
     };
 
@@ -528,26 +522,30 @@ describe('NAFEMS LE1 — Elliptic Membrane Benchmark', () => {
     console.log('\n======================================================');
     console.log('NAFEMS LE1: TET10 Convergence Study (Point D Stress)');
     console.log('======================================================');
-    for(let i = 0; i < hSizes.length; i++) {
-        console.log(` h = ${hSizes[i].toFixed(3)} | Error: ${convergenceResult.errorsLinf[i].toFixed(4)} %`);
+    for (let i = 0; i < hSizes.length; i++) {
+      console.log(
+        ` h = ${hSizes[i].toFixed(3)} | Error: ${convergenceResult.errorsLinf[i].toFixed(4)} %`
+      );
     }
-    
+
     console.log(`\nObserved Order (Pointwise): ${convergenceResult.observedOrderLinf.toFixed(2)}`);
     if (convergenceResult.richardsonEstimate !== undefined) {
-      console.log(`Richardson Extrapolated (h->0): ${convergenceResult.richardsonEstimate.toFixed(2)} MPa`);
+      console.log(
+        `Richardson Extrapolated (h->0): ${convergenceResult.richardsonEstimate.toFixed(2)} MPa`
+      );
     }
     if (convergenceResult.gci !== undefined) {
       console.log(`Grid Convergence Index (GCI): ${(convergenceResult.gci * 100).toFixed(2)} %`);
     }
     console.log('======================================================\n');
-    
+
     // 1. This variant uses rigid-body-motion-prevention (3 fixed nodes), NOT proper
     // symmetry BCs, so we don't assert monotonic convergence to 92.7 MPa here. The
     // proper-roller-BC variant is in paper-nafems-le1.test.ts. We only assert that
     // the convergence study pipeline ran successfully on this RBM-prevention path.
     expect(convergenceResult.errorsLinf).toHaveLength(4);
     expect(typeof convergenceResult.observedOrderLinf).toBe('number');
-    
+
     // 2. Extrapolated result generation should function correctly.
     if (convergenceResult.richardsonEstimate) {
       expect(typeof convergenceResult.richardsonEstimate).toBe('number');
@@ -556,24 +554,24 @@ describe('NAFEMS LE1 — Elliptic Membrane Benchmark', () => {
 
   it('TET4: multi-mesh convergence study (O(h) validation)', () => {
     // We expect the solver error to decrease precisely as O(h) for TET4 elements.
-    
+
     // N_radial, N_theta configurations
     const meshConfigs = [
-      { nr: 2, nt: 4, h: 0.500 },
-      { nr: 4, nt: 8, h: 0.250 },
+      { nr: 2, nt: 4, h: 0.5 },
+      { nr: 4, nt: 8, h: 0.25 },
       { nr: 6, nt: 12, h: 0.166 },
       { nr: 8, nt: 16, h: 0.125 },
     ];
-    
+
     const hSizes = meshConfigs.map((c) => c.h);
 
     const runSolver = (h: number) => {
       const conf = meshConfigs.find((c) => c.h === h)!;
       const benchmark = runTET4Benchmark(conf.nr, conf.nt);
-      
+
       return {
         numerical: new Float32Array([benchmark.stressAtD]),
-        exact: new Float32Array([NAFEMS_SIGMA_YY_D])
+        exact: new Float32Array([NAFEMS_SIGMA_YY_D]),
       };
     };
 
@@ -582,19 +580,23 @@ describe('NAFEMS LE1 — Elliptic Membrane Benchmark', () => {
     console.log('\n======================================================');
     console.log('NAFEMS LE1: TET4 Convergence Study (Point D Stress)');
     console.log('======================================================');
-    for(let i = 0; i < hSizes.length; i++) {
-        console.log(` h = ${hSizes[i].toFixed(3)} | Error: ${convergenceResult.errorsLinf[i].toFixed(4)} %`);
+    for (let i = 0; i < hSizes.length; i++) {
+      console.log(
+        ` h = ${hSizes[i].toFixed(3)} | Error: ${convergenceResult.errorsLinf[i].toFixed(4)} %`
+      );
     }
-    
+
     console.log(`\nObserved Order (Pointwise): ${convergenceResult.observedOrderLinf.toFixed(2)}`);
     if (convergenceResult.richardsonEstimate !== undefined) {
-      console.log(`Richardson Extrapolated (h->0): ${convergenceResult.richardsonEstimate.toFixed(2)} MPa`);
+      console.log(
+        `Richardson Extrapolated (h->0): ${convergenceResult.richardsonEstimate.toFixed(2)} MPa`
+      );
     }
     if (convergenceResult.gci !== undefined) {
       console.log(`Grid Convergence Index (GCI): ${(convergenceResult.gci * 100).toFixed(2)} %`);
     }
     console.log('======================================================\n');
-    
+
     expect(convergenceResult.errorsLinf).toHaveLength(4);
     expect(typeof convergenceResult.observedOrderLinf).toBe('number');
   }, 60_000);

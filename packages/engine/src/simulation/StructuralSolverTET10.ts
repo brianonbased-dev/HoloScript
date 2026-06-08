@@ -158,7 +158,7 @@ export interface TET10Stats {
 
 /** 4-point Gauss quadrature for tetrahedra (exact for quadratic integrands). */
 const GAUSS_A = (5 + 3 * Math.sqrt(5)) / 20; // ≈ 0.5854102
-const GAUSS_B = (5 - Math.sqrt(5)) / 20;     // ≈ 0.1381966
+const GAUSS_B = (5 - Math.sqrt(5)) / 20; // ≈ 0.1381966
 const GAUSS_W = 0.25; // Each point's weight (sum = 1, × ref vol 1/6 applied later)
 
 /** Gauss points in (ξ, η, ζ) natural coordinates */
@@ -189,34 +189,54 @@ function shapeFunctionGradients(xi: number, eta: number, zeta: number): Float64A
   const dN = new Float64Array(30); // 10 nodes × 3 components
 
   // dN0/d{ξ,η,ζ} = d[L1(2L1-1)]/d... = (4L1-1) * dL1/d...
-  dN[0] = -(4 * L1 - 1); dN[1] = -(4 * L1 - 1); dN[2] = -(4 * L1 - 1);
+  dN[0] = -(4 * L1 - 1);
+  dN[1] = -(4 * L1 - 1);
+  dN[2] = -(4 * L1 - 1);
 
   // dN1/d{ξ,η,ζ} = (4L2-1) * dL2/d...
-  dN[3] = 4 * L2 - 1; dN[4] = 0; dN[5] = 0;
+  dN[3] = 4 * L2 - 1;
+  dN[4] = 0;
+  dN[5] = 0;
 
   // dN2/d{ξ,η,ζ} = (4L3-1) * dL3/d...
-  dN[6] = 0; dN[7] = 4 * L3 - 1; dN[8] = 0;
+  dN[6] = 0;
+  dN[7] = 4 * L3 - 1;
+  dN[8] = 0;
 
   // dN3/d{ξ,η,ζ} = (4L4-1) * dL4/d...
-  dN[9] = 0; dN[10] = 0; dN[11] = 4 * L4 - 1;
+  dN[9] = 0;
+  dN[10] = 0;
+  dN[11] = 4 * L4 - 1;
 
   // dN4/d{ξ,η,ζ} = d[4L1L2]/d... = 4(L1·dL2 + L2·dL1)
-  dN[12] = 4 * (L1 - L2); dN[13] = -4 * L2; dN[14] = -4 * L2;
+  dN[12] = 4 * (L1 - L2);
+  dN[13] = -4 * L2;
+  dN[14] = -4 * L2;
 
   // dN5/d{ξ,η,ζ} = d[4L2L3]/d... = 4(L2·dL3 + L3·dL2)
-  dN[15] = 4 * L3; dN[16] = 4 * L2; dN[17] = 0;
+  dN[15] = 4 * L3;
+  dN[16] = 4 * L2;
+  dN[17] = 0;
 
   // dN6/d{ξ,η,ζ} = d[4L1L3]/d... = 4(L1·dL3 + L3·dL1)
-  dN[18] = -4 * L3; dN[19] = 4 * (L1 - L3); dN[20] = -4 * L3;
+  dN[18] = -4 * L3;
+  dN[19] = 4 * (L1 - L3);
+  dN[20] = -4 * L3;
 
   // dN7/d{ξ,η,ζ} = d[4L1L4]/d... = 4(L1·dL4 + L4·dL1)
-  dN[21] = -4 * L4; dN[22] = -4 * L4; dN[23] = 4 * (L1 - L4);
+  dN[21] = -4 * L4;
+  dN[22] = -4 * L4;
+  dN[23] = 4 * (L1 - L4);
 
   // dN8/d{ξ,η,ζ} = d[4L2L4]/d... = 4(L2·dL4 + L4·dL2)
-  dN[24] = 4 * L4; dN[25] = 0; dN[26] = 4 * L2;
+  dN[24] = 4 * L4;
+  dN[25] = 0;
+  dN[26] = 4 * L2;
 
   // dN9/d{ξ,η,ζ} = d[4L3L4]/d... = 4(L3·dL4 + L4·dL3)
-  dN[27] = 0; dN[28] = 4 * L4; dN[29] = 4 * L3;
+  dN[27] = 0;
+  dN[28] = 4 * L4;
+  dN[29] = 4 * L3;
 
   return dN;
 }
@@ -230,9 +250,9 @@ function tri6ShapeFunctions(r: number, s: number): Float64Array {
     L1 * (2 * L1 - 1), // corner 1
     L2 * (2 * L2 - 1), // corner 2
     L3 * (2 * L3 - 1), // corner 3
-    4 * L1 * L2,       // midside 12
-    4 * L2 * L3,       // midside 23
-    4 * L3 * L1,       // midside 31
+    4 * L1 * L2, // midside 12
+    4 * L2 * L3, // midside 23
+    4 * L3 * L1, // midside 31
   ]);
 }
 
@@ -241,23 +261,9 @@ function tri6ShapeDerivatives(r: number, s: number): { dNdr: Float64Array; dNds:
   const L2 = r;
   const L3 = s;
 
-  const dNdr = new Float64Array([
-    -(4 * L1 - 1),
-    4 * L2 - 1,
-    0,
-    4 * (L1 - L2),
-    4 * L3,
-    -4 * L3,
-  ]);
+  const dNdr = new Float64Array([-(4 * L1 - 1), 4 * L2 - 1, 0, 4 * (L1 - L2), 4 * L3, -4 * L3]);
 
-  const dNds = new Float64Array([
-    -(4 * L1 - 1),
-    0,
-    4 * L3 - 1,
-    -4 * L2,
-    4 * L2,
-    4 * (L1 - L3),
-  ]);
+  const dNds = new Float64Array([-(4 * L1 - 1), 0, 4 * L3 - 1, -4 * L2, 4 * L2, 4 * (L1 - L3)]);
 
   return { dNdr, dNds };
 }
@@ -278,7 +284,7 @@ const TRI_GAUSS_3: Array<{ r: number; s: number; w: number }> = [
 function buildCSRPattern(
   nodeCount: number,
   elementCount: number,
-  tetrahedra: Uint32Array,
+  tetrahedra: Uint32Array
 ): { rowPtr: Uint32Array; colInd: Uint32Array; dofToCSR: Map<number, Map<number, number>> } {
   const dofCount = nodeCount * 3;
 
@@ -395,20 +401,31 @@ export class StructuralSolverTET10 {
 
   /** Helper for 3x3 matrix inversion */
   private invert3x3(m: Float64Array): Float64Array {
-    const det = m[0] * (m[4] * m[8] - m[5] * m[7]) - m[1] * (m[3] * m[8] - m[5] * m[6]) + m[2] * (m[3] * m[7] - m[4] * m[6]);
+    const det =
+      m[0] * (m[4] * m[8] - m[5] * m[7]) -
+      m[1] * (m[3] * m[8] - m[5] * m[6]) +
+      m[2] * (m[3] * m[7] - m[4] * m[6]);
     if (Math.abs(det) < 1e-25) return new Float64Array(9);
     const invDet = 1 / det;
     return new Float64Array([
-      (m[4] * m[8] - m[5] * m[7]) * invDet, (m[2] * m[7] - m[1] * m[8]) * invDet, (m[1] * m[5] - m[2] * m[4]) * invDet,
-      (m[5] * m[6] - m[3] * m[8]) * invDet, (m[0] * m[8] - m[2] * m[6]) * invDet, (m[2] * m[3] - m[0] * m[5]) * invDet,
-      (m[3] * m[7] - m[4] * m[6]) * invDet, (m[1] * m[6] - m[0] * m[7]) * invDet, (m[0] * m[4] - m[1] * m[3]) * invDet,
+      (m[4] * m[8] - m[5] * m[7]) * invDet,
+      (m[2] * m[7] - m[1] * m[8]) * invDet,
+      (m[1] * m[5] - m[2] * m[4]) * invDet,
+      (m[5] * m[6] - m[3] * m[8]) * invDet,
+      (m[0] * m[8] - m[2] * m[6]) * invDet,
+      (m[2] * m[3] - m[0] * m[5]) * invDet,
+      (m[3] * m[7] - m[4] * m[6]) * invDet,
+      (m[1] * m[6] - m[0] * m[7]) * invDet,
+      (m[0] * m[4] - m[1] * m[3]) * invDet,
     ]);
   }
 
   private gpuDisplacementBuffer: GPUBuffer | null = null;
   private gpuSolver: SparseLinearSolver | null = null;
 
-  private static readonly LOCAL_FACE_NODE_MAP: ReadonlyArray<readonly [number, number, number, number, number, number]> = [
+  private static readonly LOCAL_FACE_NODE_MAP: ReadonlyArray<
+    readonly [number, number, number, number, number, number]
+  > = [
     // Face opposite corner 3: (0,1,2) + mids (01,12,02)
     [0, 1, 2, 4, 5, 6],
     // Face opposite corner 2: (0,1,3) + mids (01,13,03)
@@ -419,7 +436,9 @@ export class StructuralSolverTET10 {
     [1, 2, 3, 5, 9, 8],
   ];
 
-  private decodeSurfaceReferences(load: TET10Load): Array<{ elementIndex: number; localFace: 0 | 1 | 2 | 3 }> {
+  private decodeSurfaceReferences(
+    load: TET10Load
+  ): Array<{ elementIndex: number; localFace: 0 | 1 | 2 | 3 }> {
     const refs: Array<{ elementIndex: number; localFace: 0 | 1 | 2 | 3 }> = [];
 
     if (load.surfaceFaces?.length) {
@@ -536,7 +555,9 @@ export class StructuralSolverTET10 {
    */
   private assembleGlobalStiffness(): void {
     const { rowPtr, colInd, dofToCSR } = buildCSRPattern(
-      this.nodeCount, this.elementCount, this.config.tetrahedra,
+      this.nodeCount,
+      this.elementCount,
+      this.config.tetrahedra
     );
 
     this.csrRowPtr = rowPtr;
@@ -618,14 +639,19 @@ export class StructuralSolverTET10 {
         // B matrix (6×30): strain = B · u
         const B = new Float64Array(180); // 6 rows × 30 cols
         for (let a = 0; a < 10; a++) {
-          const dnx = dNphys[a * 3], dny = dNphys[a * 3 + 1], dnz = dNphys[a * 3 + 2];
+          const dnx = dNphys[a * 3],
+            dny = dNphys[a * 3 + 1],
+            dnz = dNphys[a * 3 + 2];
           const col = a * 3;
-          B[0 * 30 + col] = dnx;                                     // εxx
-          B[1 * 30 + col + 1] = dny;                                 // εyy
-          B[2 * 30 + col + 2] = dnz;                                 // εzz
-          B[3 * 30 + col] = dny; B[3 * 30 + col + 1] = dnx;         // γxy
-          B[4 * 30 + col + 1] = dnz; B[4 * 30 + col + 2] = dny;     // γyz
-          B[5 * 30 + col] = dnz; B[5 * 30 + col + 2] = dnx;         // γxz
+          B[0 * 30 + col] = dnx; // εxx
+          B[1 * 30 + col + 1] = dny; // εyy
+          B[2 * 30 + col + 2] = dnz; // εzz
+          B[3 * 30 + col] = dny;
+          B[3 * 30 + col + 1] = dnx; // γxy
+          B[4 * 30 + col + 1] = dnz;
+          B[4 * 30 + col + 2] = dny; // γyz
+          B[5 * 30 + col] = dnz;
+          B[5 * 30 + col + 2] = dnx; // γxz
         }
 
         // DB = D · B (6×30)
@@ -642,7 +668,7 @@ export class StructuralSolverTET10 {
 
         // Ke += w · |detJ| · (1/6) · Bᵀ · D · B
         // The factor 1/6 is the reference tet volume
-        const weight = GAUSS_W * Math.abs(detJ) / 6;
+        const weight = (GAUSS_W * Math.abs(detJ)) / 6;
 
         for (let i = 0; i < 30; i++) {
           for (let j = 0; j < 30; j++) {
@@ -690,7 +716,11 @@ export class StructuralSolverTET10 {
     for (const load of this.config.loads) {
       switch (load.type) {
         case 'gravity': {
-          const [ax, ay, az] = load.acceleration ?? [acceleration(0), acceleration(-9.81), acceleration(0)];
+          const [ax, ay, az] = load.acceleration ?? [
+            acceleration(0),
+            acceleration(-9.81),
+            acceleration(0),
+          ];
 
           for (let e = 0; e < this.elementCount; e++) {
             const base = e * 10;
@@ -716,7 +746,7 @@ export class StructuralSolverTET10 {
                 J[1] * (J[3] * J[8] - J[5] * J[6]) +
                 J[2] * (J[3] * J[7] - J[4] * J[6]);
 
-              elemVol += GAUSS_W * Math.abs(detJ) / 6;
+              elemVol += (GAUSS_W * Math.abs(detJ)) / 6;
             }
 
             // Lumped mass: distribute volume equally to 10 nodes
@@ -753,17 +783,32 @@ export class StructuralSolverTET10 {
             }
 
             // Use corner nodes to determine outward orientation for this face
-            const c0 = faceNodes[0], c1 = faceNodes[1], c2 = faceNodes[2];
-            const oppCornerLocal = localFace === 0 ? 3 : localFace === 1 ? 2 : localFace === 2 ? 1 : 0;
+            const c0 = faceNodes[0],
+              c1 = faceNodes[1],
+              c2 = faceNodes[2];
+            const oppCornerLocal =
+              localFace === 0 ? 3 : localFace === 1 ? 2 : localFace === 2 ? 1 : 0;
             const opp = tets[elemBase + oppCornerLocal];
 
-            const x0 = verts[c0 * 3], y0 = verts[c0 * 3 + 1], z0 = verts[c0 * 3 + 2];
-            const x1 = verts[c1 * 3], y1 = verts[c1 * 3 + 1], z1 = verts[c1 * 3 + 2];
-            const x2 = verts[c2 * 3], y2 = verts[c2 * 3 + 1], z2 = verts[c2 * 3 + 2];
-            const xo = verts[opp * 3], yo = verts[opp * 3 + 1], zo = verts[opp * 3 + 2];
+            const x0 = verts[c0 * 3],
+              y0 = verts[c0 * 3 + 1],
+              z0 = verts[c0 * 3 + 2];
+            const x1 = verts[c1 * 3],
+              y1 = verts[c1 * 3 + 1],
+              z1 = verts[c1 * 3 + 2];
+            const x2 = verts[c2 * 3],
+              y2 = verts[c2 * 3 + 1],
+              z2 = verts[c2 * 3 + 2];
+            const xo = verts[opp * 3],
+              yo = verts[opp * 3 + 1],
+              zo = verts[opp * 3 + 2];
 
-            const ex1 = x1 - x0, ey1 = y1 - y0, ez1 = z1 - z0;
-            const ex2 = x2 - x0, ey2 = y2 - y0, ez2 = z2 - z0;
+            const ex1 = x1 - x0,
+              ey1 = y1 - y0,
+              ez1 = z1 - z0;
+            const ex2 = x2 - x0,
+              ey2 = y2 - y0,
+              ez2 = z2 - z0;
             let nx0 = ey1 * ez2 - ez1 * ey2;
             let ny0 = ez1 * ex2 - ex1 * ez2;
             let nz0 = ex1 * ey2 - ey1 * ex2;
@@ -776,8 +821,12 @@ export class StructuralSolverTET10 {
               const N = tri6ShapeFunctions(gp.r, gp.s);
               const { dNdr, dNds } = tri6ShapeDerivatives(gp.r, gp.s);
 
-              let jrx = 0, jry = 0, jrz = 0;
-              let jsx = 0, jsy = 0, jsz = 0;
+              let jrx = 0,
+                jry = 0,
+                jrz = 0;
+              let jsx = 0,
+                jsy = 0,
+                jsz = 0;
               for (let a = 0; a < 6; a++) {
                 const n = faceNodes[a];
                 const x = verts[n * 3];
@@ -829,11 +878,11 @@ export class StructuralSolverTET10 {
   public async solveNonlinear(): Promise<ConvergenceResult> {
     console.log(`Starting nonlinear solve: ${this.loadSteps} load steps...`);
     const startTime = performance.now();
-    
+
     // Total external forces accumulated from loads
     this.assembleForces();
     const totalExtForce = new Float64Array(this.externalForces);
-    
+
     // Start from zero displacements
     this.displacements.fill(0);
 
@@ -857,7 +906,9 @@ export class StructuralSolverTET10 {
       return Math.sqrt(n);
     };
 
-    const computeResidual = (currentExtForce: Float64Array): { residual: Float64Array; norm: number } => {
+    const computeResidual = (
+      currentExtForce: Float64Array
+    ): { residual: Float64Array; norm: number } => {
       const f_int = this.assembleInternalForce();
       const residual = new Float64Array(this.dofCount);
       for (let i = 0; i < this.dofCount; i++) {
@@ -871,15 +922,18 @@ export class StructuralSolverTET10 {
     let stepCounter = 0;
     let currentLoadFactor = 0;
     let increment = 1 / Math.max(1, this.loadSteps);
-    const minIncrement = Math.max((1 / Math.max(1, this.loadSteps)) / 2048, 1e-6);
+    const minIncrement = Math.max(1 / Math.max(1, this.loadSteps) / 2048, 1e-6);
 
     while (currentLoadFactor < 1 - 1e-12) {
       stepCounter++;
       const trialLoadFactor = Math.min(1, currentLoadFactor + increment);
-      console.log(`Load Step ${stepCounter} (Factor: ${trialLoadFactor.toFixed(4)}, Δ=${increment.toFixed(4)})`);
+      console.log(
+        `Load Step ${stepCounter} (Factor: ${trialLoadFactor.toFixed(4)}, Δ=${increment.toFixed(4)})`
+      );
 
       const currentExtForce = new Float64Array(this.dofCount);
-      for (let i = 0; i < this.dofCount; i++) currentExtForce[i] = totalExtForce[i] * trialLoadFactor;
+      for (let i = 0; i < this.dofCount; i++)
+        currentExtForce[i] = totalExtForce[i] * trialLoadFactor;
 
       const uBeforeStep = new Float64Array(this.displacements);
       let converged = false;
@@ -898,7 +952,11 @@ export class StructuralSolverTET10 {
           break;
         }
 
-        if (nrIter > 0 && Number.isFinite(previousResidualNorm) && residNorm > previousResidualNorm * explosionFactor) {
+        if (
+          nrIter > 0 &&
+          Number.isFinite(previousResidualNorm) &&
+          residNorm > previousResidualNorm * explosionFactor
+        ) {
           // Residual exploded; force adaptive substep retry.
           break;
         }
@@ -959,7 +1017,7 @@ export class StructuralSolverTET10 {
 
       if (converged) {
         currentLoadFactor = trialLoadFactor;
-        if (increment < (1 / Math.max(1, this.loadSteps))) {
+        if (increment < 1 / Math.max(1, this.loadSteps)) {
           increment = Math.min(1 / Math.max(1, this.loadSteps), increment * 1.5);
         }
         continue;
@@ -969,11 +1027,13 @@ export class StructuralSolverTET10 {
       this.displacements.set(uBeforeStep);
       increment *= 0.5;
       if (increment < minIncrement) {
-        throw new Error(`Nonlinear solve failed to converge near load factor ${trialLoadFactor.toFixed(4)}`);
+        throw new Error(
+          `Nonlinear solve failed to converge near load factor ${trialLoadFactor.toFixed(4)}`
+        );
       }
       console.warn(`  Step failed. Retrying with smaller Δ=${increment.toFixed(6)}`);
     }
-    
+
     this.solveTimeMs = performance.now() - startTime;
     return {
       converged: true,
@@ -1018,8 +1078,11 @@ export class StructuralSolverTET10 {
           }
         }
 
-        const detJ = J[0] * (J[4] * J[8] - J[5] * J[7]) - J[1] * (J[3] * J[8] - J[5] * J[6]) + J[2] * (J[3] * J[7] - J[4] * J[6]);
-        const weight = GAUSS_W * Math.abs(detJ) / 6;
+        const detJ =
+          J[0] * (J[4] * J[8] - J[5] * J[7]) -
+          J[1] * (J[3] * J[8] - J[5] * J[6]) +
+          J[2] * (J[3] * J[7] - J[4] * J[6]);
+        const weight = (GAUSS_W * Math.abs(detJ)) / 6;
         const invJ = this.invert3x3(J);
 
         const dNdX = new Float64Array(30);
@@ -1050,16 +1113,29 @@ export class StructuralSolverTET10 {
           }
         }
 
-        const strainVoigt = new Float64Array([E_gl[0], E_gl[4], E_gl[8], 2 * E_gl[1], 2 * E_gl[5], 2 * E_gl[2]]);
+        const strainVoigt = new Float64Array([
+          E_gl[0],
+          E_gl[4],
+          E_gl[8],
+          2 * E_gl[1],
+          2 * E_gl[5],
+          2 * E_gl[2],
+        ]);
         const stressVoigt = new Float64Array(6);
         for (let i = 0; i < 6; i++) {
           for (let j = 0; j < 6; j++) stressVoigt[i] += D[i * 6 + j] * strainVoigt[j];
         }
 
         const S = new Float64Array([
-          stressVoigt[0], stressVoigt[3], stressVoigt[5],
-          stressVoigt[3], stressVoigt[1], stressVoigt[4],
-          stressVoigt[5], stressVoigt[4], stressVoigt[2],
+          stressVoigt[0],
+          stressVoigt[3],
+          stressVoigt[5],
+          stressVoigt[3],
+          stressVoigt[1],
+          stressVoigt[4],
+          stressVoigt[5],
+          stressVoigt[4],
+          stressVoigt[2],
         ]);
 
         const FS = new Float64Array(9);
@@ -1121,11 +1197,14 @@ export class StructuralSolverTET10 {
           }
         }
 
-        const detJ = J[0] * (J[4] * J[8] - J[5] * J[7]) - J[1] * (J[3] * J[8] - J[5] * J[6]) + J[2] * (J[3] * J[7] - J[4] * J[6]);
+        const detJ =
+          J[0] * (J[4] * J[8] - J[5] * J[7]) -
+          J[1] * (J[3] * J[8] - J[5] * J[6]) +
+          J[2] * (J[3] * J[7] - J[4] * J[6]);
         if (Math.abs(detJ) < 1e-30) continue;
 
         const Ji = this.invert3x3(J);
-        const weight = GAUSS_W * Math.abs(detJ) / 6;
+        const weight = (GAUSS_W * Math.abs(detJ)) / 6;
 
         // Physical gradients dN/dX
         const dNdX = new Float64Array(30);
@@ -1139,7 +1218,9 @@ export class StructuralSolverTET10 {
 
         // Compute 2nd Piola-Kirchhoff stress S from current displacements
         const F = new Float64Array(9);
-        F[0] = 1; F[4] = 1; F[8] = 1; // identity
+        F[0] = 1;
+        F[4] = 1;
+        F[8] = 1; // identity
         for (let a = 0; a < 10; a++) {
           const n = nodes[a];
           for (let i = 0; i < 3; i++) {
@@ -1165,9 +1246,15 @@ export class StructuralSolverTET10 {
         for (let i = 0; i < 6; i++) {
           for (let j = 0; j < 6; j++) Sv[i] += D[i * 6 + j] * Egl[j];
         }
-        S[0] = Sv[0]; S[1] = Sv[3]; S[2] = Sv[5];
-        S[3] = Sv[3]; S[4] = Sv[1]; S[5] = Sv[4];
-        S[6] = Sv[5]; S[7] = Sv[4]; S[8] = Sv[2];
+        S[0] = Sv[0];
+        S[1] = Sv[3];
+        S[2] = Sv[5];
+        S[3] = Sv[3];
+        S[4] = Sv[1];
+        S[5] = Sv[4];
+        S[6] = Sv[5];
+        S[7] = Sv[4];
+        S[8] = Sv[2];
 
         // Add K_G: for each pair (a,b), K_G[3a+i, 3b+i] += Σ_kl dNa/dXk * S_kl * dNb/dXl
         for (let a = 0; a < 10; a++) {
@@ -1240,7 +1327,9 @@ export class StructuralSolverTET10 {
   }
 
   /** Wrapper for linear solvers (CPU or GPU) */
-  private async solveLinearSystem(rhs: Float64Array): Promise<{ converged: boolean; iterations: number; solution: Float64Array }> {
+  private async solveLinearSystem(
+    rhs: Float64Array
+  ): Promise<{ converged: boolean; iterations: number; solution: Float64Array }> {
     if (this.useGPU) {
       const gpuResult = await this.solveGPU(rhs);
       if (gpuResult) {
@@ -1253,7 +1342,7 @@ export class StructuralSolverTET10 {
         };
       }
     }
-    
+
     // Matrix-free CG wrapper for the current global stiffness CSR matrix
     const applyA = (p: Float64Array, out: Float64Array) => {
       this.multiplyStiffness(p, out);
@@ -1261,7 +1350,7 @@ export class StructuralSolverTET10 {
 
     const x = new Float64Array(this.dofCount);
     const result = this.localConjugateGradient(applyA, rhs, x, this.maxIterations, this.tolerance);
-    
+
     return {
       converged: result.converged,
       iterations: result.iterations,
@@ -1289,24 +1378,24 @@ export class StructuralSolverTET10 {
     b: Float64Array,
     x: Float64Array,
     maxIter: number,
-    tol: number,
+    tol: number
   ): { converged: boolean; iterations: number; solution: Float64Array } {
     const n = b.length;
     const r = new Float64Array(n);
     const p = new Float64Array(n);
     const Ap = new Float64Array(n);
-    
+
     applyA(x, Ap);
     for (let i = 0; i < n; i++) r[i] = b[i] - Ap[i];
     p.set(r);
-    
+
     let rsold = this.dot(r, r);
     const bNorm = Math.sqrt(this.dot(b, b));
 
     if (!Number.isFinite(rsold)) {
       return { converged: false, iterations: 0, solution: x };
     }
-    
+
     let iter = 0;
     for (iter = 0; iter < maxIter; iter++) {
       applyA(p, Ap);
@@ -1332,7 +1421,7 @@ export class StructuralSolverTET10 {
       for (let i = 0; i < n; i++) p[i] = r[i] + (rsnew / rsold) * p[i];
       rsold = rsnew;
     }
-    
+
     return { converged: iter < maxIter, iterations: iter, solution: x };
   }
 
@@ -1358,10 +1447,10 @@ export class StructuralSolverTET10 {
         this.stiffnessMatrix,
         new Float32Array(rhs),
         new Float32Array(this.displacements),
-        { 
-          maxIterations: this.maxIterations, 
+        {
+          maxIterations: this.maxIterations,
           toleranceSq: this.tolerance * this.tolerance,
-          xExtraUsage: GPUBufferUsage.VERTEX // Crucial for zero-copy rendering
+          xExtraUsage: GPUBufferUsage.VERTEX, // Crucial for zero-copy rendering
         }
       );
 
@@ -1468,7 +1557,7 @@ export class StructuralSolverTET10 {
       this.config.maxIterations ?? 2000,
       this.config.tolerance ?? 1e-10,
       diagK,
-      1e-14,
+      1e-14
     );
 
     // Copy solution back to Float64
@@ -1619,7 +1708,9 @@ export class StructuralSolverTET10 {
         const strain = new Float64Array(6);
         for (let a = 0; a < 10; a++) {
           const n = tets[base + a];
-          const dnx = dNphys[a * 3], dny = dNphys[a * 3 + 1], dnz = dNphys[a * 3 + 2];
+          const dnx = dNphys[a * 3],
+            dny = dNphys[a * 3 + 1],
+            dnz = dNphys[a * 3 + 2];
           const ux = this.displacements[n * 3];
           const uy = this.displacements[n * 3 + 1];
           const uz = this.displacements[n * 3 + 2];
@@ -1647,13 +1738,25 @@ export class StructuralSolverTET10 {
 
         // Store physical coordinates of this Gauss point via TET10 shape functions.
         // N_i for 10-node tet: corner nodes = Li(2Li-1), midside = 4*Li*Lj
-        const L1 = 1 - xi - eta - zeta, L2 = xi, L3 = eta, L4 = zeta;
+        const L1 = 1 - xi - eta - zeta,
+          L2 = xi,
+          L3 = eta,
+          L4 = zeta;
         const Nvals = [
-          L1 * (2 * L1 - 1), L2 * (2 * L2 - 1), L3 * (2 * L3 - 1), L4 * (2 * L4 - 1),
-          4 * L1 * L2, 4 * L2 * L3, 4 * L1 * L3,
-          4 * L1 * L4, 4 * L2 * L4, 4 * L3 * L4,
+          L1 * (2 * L1 - 1),
+          L2 * (2 * L2 - 1),
+          L3 * (2 * L3 - 1),
+          L4 * (2 * L4 - 1),
+          4 * L1 * L2,
+          4 * L2 * L3,
+          4 * L1 * L3,
+          4 * L1 * L4,
+          4 * L2 * L4,
+          4 * L3 * L4,
         ];
-        let gpx = 0, gpy = 0, gpz = 0;
+        let gpx = 0,
+          gpy = 0,
+          gpz = 0;
         for (let a = 0; a < 10; a++) {
           const n = tets[base + a];
           gpx += Nvals[a] * verts[n * 3];
@@ -1665,12 +1768,20 @@ export class StructuralSolverTET10 {
         this.gaussPointCoords[gpIdx * 3 + 2] = gpz;
 
         // Von Mises
-        const sxx = stress[0], syy = stress[1], szz = stress[2];
-        const txy = stress[3], tyz = stress[4], txz = stress[5];
+        const sxx = stress[0],
+          syy = stress[1],
+          szz = stress[2];
+        const txy = stress[3],
+          tyz = stress[4],
+          txz = stress[5];
         const vm = Math.sqrt(
-          sxx * sxx + syy * syy + szz * szz -
-          sxx * syy - syy * szz - szz * sxx +
-          3 * (txy * txy + tyz * tyz + txz * txz),
+          sxx * sxx +
+            syy * syy +
+            szz * szz -
+            sxx * syy -
+            syy * szz -
+            szz * sxx +
+            3 * (txy * txy + tyz * tyz + txz * txz)
         );
 
         vmSum += vm;
@@ -1746,7 +1857,8 @@ export class StructuralSolverTET10 {
   }
 
   getStats(): TET10Stats {
-    let maxVM = 0, minSF = Infinity;
+    let maxVM = 0,
+      minSF = Infinity;
     for (let e = 0; e < this.elementCount; e++) {
       if (this.vonMisesStress[e] > maxVM) maxVM = this.vonMisesStress[e];
       if (this.safetyFactors[e] < minSF) minSF = this.safetyFactors[e];
@@ -1774,7 +1886,7 @@ export class StructuralSolverTET10 {
     }
     return new Float32Array(this.displacements);
   }
- 
+
   dispose(): void {
     if (this.gpuDisplacementBuffer) {
       this.gpuDisplacementBuffer.destroy();
@@ -1795,7 +1907,7 @@ export class StructuralSolverTET10 {
  */
 export function tet4ToTet10(
   vertices: Float64Array | Float32Array,
-  tetrahedra: Uint32Array,
+  tetrahedra: Uint32Array
 ): { vertices: Float64Array; tetrahedra: Uint32Array } {
   const nodeCount = vertices.length / 3;
   const elemCount = tetrahedra.length / 4;
@@ -1821,7 +1933,7 @@ export function tet4ToTet10(
     newVerts.push(
       (vertices[a * 3] + vertices[b * 3]) / 2,
       (vertices[a * 3 + 1] + vertices[b * 3 + 1]) / 2,
-      (vertices[a * 3 + 2] + vertices[b * 3 + 2]) / 2,
+      (vertices[a * 3 + 2] + vertices[b * 3 + 2]) / 2
     );
 
     return mid;
@@ -1830,8 +1942,10 @@ export function tet4ToTet10(
   const newTets: number[] = [];
 
   for (let e = 0; e < elemCount; e++) {
-    const n0 = tetrahedra[e * 4], n1 = tetrahedra[e * 4 + 1];
-    const n2 = tetrahedra[e * 4 + 2], n3 = tetrahedra[e * 4 + 3];
+    const n0 = tetrahedra[e * 4],
+      n1 = tetrahedra[e * 4 + 1];
+    const n2 = tetrahedra[e * 4 + 2],
+      n3 = tetrahedra[e * 4 + 3];
 
     // Mid-edge nodes (following our convention)
     const m01 = getOrCreateMidNode(n0, n1); // node 4

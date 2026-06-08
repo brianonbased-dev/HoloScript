@@ -101,9 +101,9 @@ describe('createSecretStore — OWNER ISOLATION (load-bearing)', () => {
       kekProvider: makeKekProvider({ 'kek-1': KEK_A }, 'kek-1'),
     });
 
-    await expect(
-      storeWithLeakyBackend.get({ ownerId: 'bob', ref })
-    ).rejects.toBeInstanceOf(OwnerMismatchError);
+    await expect(storeWithLeakyBackend.get({ ownerId: 'bob', ref })).rejects.toBeInstanceOf(
+      OwnerMismatchError
+    );
 
     // And no value is ever produced for bob.
     let leaked: string | undefined;
@@ -121,9 +121,9 @@ describe('createSecretStore — OWNER ISOLATION (load-bearing)', () => {
     // SecretNotFoundError because the owner-scoped lookup returns nothing.
     const { store } = freshStore();
     await store.put({ ownerId: 'alice', name: 'stripe', value: 'alice-only' });
-    await expect(
-      store.get({ ownerId: 'bob', ref: 'vault:stripe' })
-    ).rejects.toBeInstanceOf(SecretNotFoundError);
+    await expect(store.get({ ownerId: 'bob', ref: 'vault:stripe' })).rejects.toBeInstanceOf(
+      SecretNotFoundError
+    );
   });
 });
 
@@ -172,9 +172,9 @@ describe('createSecretStore — tamper detection (GCM auth tag)', () => {
     // Mutate the stored ciphertext in place — GCM tag will no longer verify.
     row!.ciphertext[0] = row!.ciphertext[0] ^ 0xff;
 
-    await expect(
-      store.get({ ownerId: 'alice', ref: 'vault:stripe' })
-    ).rejects.toBeInstanceOf(DecryptError);
+    await expect(store.get({ ownerId: 'alice', ref: 'vault:stripe' })).rejects.toBeInstanceOf(
+      DecryptError
+    );
   });
 });
 
@@ -195,9 +195,9 @@ describe('createSecretStore — wrong KEK', () => {
       kekProvider: makeKekProvider({ 'kek-1': wrongKek }, 'kek-1'),
     });
 
-    await expect(
-      getStore.get({ ownerId: 'alice', ref: 'vault:stripe' })
-    ).rejects.toBeInstanceOf(DecryptError);
+    await expect(getStore.get({ ownerId: 'alice', ref: 'vault:stripe' })).rejects.toBeInstanceOf(
+      DecryptError
+    );
   });
 });
 
@@ -243,9 +243,9 @@ describe('createSecretStore — KEK rotation', () => {
       backend,
       kekProvider: makeKekProvider({ old: kekOld }, 'old'),
     });
-    await expect(
-      oldOnly.get({ ownerId: 'alice', ref: 'vault:stripe' })
-    ).rejects.toBeInstanceOf(DecryptError);
+    await expect(oldOnly.get({ ownerId: 'alice', ref: 'vault:stripe' })).rejects.toBeInstanceOf(
+      DecryptError
+    );
   });
 });
 
@@ -257,9 +257,9 @@ describe('createSecretStore — delete', () => {
     const res = await store.delete({ ownerId: 'alice', ref: 'vault:stripe' });
     expect(res.deleted).toBe(true);
 
-    await expect(
-      store.get({ ownerId: 'alice', ref: 'vault:stripe' })
-    ).rejects.toBeInstanceOf(SecretNotFoundError);
+    await expect(store.get({ ownerId: 'alice', ref: 'vault:stripe' })).rejects.toBeInstanceOf(
+      SecretNotFoundError
+    );
   });
 
   it('user B cannot delete user A secret (owner-scoped delete is a no-op)', async () => {

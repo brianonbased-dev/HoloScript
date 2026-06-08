@@ -107,14 +107,18 @@ export function exportUnstructuredGrid(
   // Points
   lines.push(`POINTS ${numNodes} float`);
   for (let i = 0; i < numNodes; i++) {
-    lines.push(`${nodes[i * 3].toFixed(6)} ${nodes[i * 3 + 1].toFixed(6)} ${nodes[i * 3 + 2].toFixed(6)}`);
+    lines.push(
+      `${nodes[i * 3].toFixed(6)} ${nodes[i * 3 + 1].toFixed(6)} ${nodes[i * 3 + 2].toFixed(6)}`
+    );
   }
 
   // Cells (tetrahedra: VTK cell type 10)
   const cellListSize = numElements * 5; // 4 nodes + 1 count per element
   lines.push(`CELLS ${numElements} ${cellListSize}`);
   for (let i = 0; i < numElements; i++) {
-    lines.push(`4 ${elements[i * 4]} ${elements[i * 4 + 1]} ${elements[i * 4 + 2]} ${elements[i * 4 + 3]}`);
+    lines.push(
+      `4 ${elements[i * 4]} ${elements[i * 4 + 1]} ${elements[i * 4 + 2]} ${elements[i * 4 + 3]}`
+    );
   }
 
   // Cell types
@@ -136,7 +140,9 @@ export function exportUnstructuredGrid(
       } else if (pd.components === 3) {
         lines.push(`VECTORS ${pd.name} float`);
         for (let i = 0; i < numNodes; i++) {
-          lines.push(`${pd.data[i * 3].toFixed(6)} ${pd.data[i * 3 + 1].toFixed(6)} ${pd.data[i * 3 + 2].toFixed(6)}`);
+          lines.push(
+            `${pd.data[i * 3].toFixed(6)} ${pd.data[i * 3 + 1].toFixed(6)} ${pd.data[i * 3 + 2].toFixed(6)}`
+          );
         }
       }
     }
@@ -179,17 +185,14 @@ export function exportPolyData(
   const numNodes = Math.floor(nodePositions.length / 3);
   const numPipes = pipes.length;
 
-  const lines: string[] = [
-    '# vtk DataFile Version 3.0',
-    title,
-    'ASCII',
-    'DATASET POLYDATA',
-  ];
+  const lines: string[] = ['# vtk DataFile Version 3.0', title, 'ASCII', 'DATASET POLYDATA'];
 
   // Points
   lines.push(`POINTS ${numNodes} float`);
   for (let i = 0; i < numNodes; i++) {
-    lines.push(`${Number(nodePositions[i * 3]).toFixed(6)} ${Number(nodePositions[i * 3 + 1]).toFixed(6)} ${Number(nodePositions[i * 3 + 2]).toFixed(6)}`);
+    lines.push(
+      `${Number(nodePositions[i * 3]).toFixed(6)} ${Number(nodePositions[i * 3 + 1]).toFixed(6)} ${Number(nodePositions[i * 3 + 2]).toFixed(6)}`
+    );
   }
 
   // Lines (pipes)

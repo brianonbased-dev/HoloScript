@@ -224,7 +224,7 @@ export function computeMerkleRoot(leafHashes: string[]): string {
 export function computeSelfHash(
   merkleRoot: string,
   pieceCount: number,
-  totalGaussians: number,
+  totalGaussians: number
 ): string {
   const payload = stableStringify({
     merkleRoot,
@@ -239,14 +239,23 @@ export function computeSelfHash(
  * Compute the bounding volume encompassing all given positions and scales.
  */
 export function computeConsolidatedBounds(
-  anchors: Array<{ position: [number, number, number]; scale: number }>,
+  anchors: Array<{ position: [number, number, number]; scale: number }>
 ): ConsolidatedBounds {
   if (anchors.length === 0) {
-    return { min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 }, center: { x: 0, y: 0, z: 0 }, halfSize: 0 };
+    return {
+      min: { x: 0, y: 0, z: 0 },
+      max: { x: 0, y: 0, z: 0 },
+      center: { x: 0, y: 0, z: 0 },
+      halfSize: 0,
+    };
   }
 
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
 
   for (const a of anchors) {
     const r = a.scale;
@@ -299,7 +308,7 @@ export function consolidate(
     provenanceHash: string;
     sourceFile?: string;
   }>,
-  options?: ConsolidationOptions,
+  options?: ConsolidationOptions
 ): ConsolidationResult {
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
@@ -318,7 +327,7 @@ export function consolidate(
   }
 
   // Stage 2: Compute Merkle root over piece provenanceHashes
-  const leafHashes = deduplicatedPieces.map(p => p.provenanceHash);
+  const leafHashes = deduplicatedPieces.map((p) => p.provenanceHash);
   const merkleRoot = computeMerkleRoot(leafHashes);
 
   // Stage 3: Merge anchors by LOD level (instancing)
@@ -340,16 +349,16 @@ export function consolidate(
     const cz = group.reduce((s, p) => s + p.position[2], 0) / group.length;
 
     // Max scale (most conservative bounding)
-    const maxScale = Math.max(...group.map(p => p.scale));
+    const maxScale = Math.max(...group.map((p) => p.scale));
 
     // Sum gaussian counts
     const totalGaussians = group.reduce((s, p) => s + p.gaussianCount, 0);
 
     // Max importance (retention priority)
-    const maxImportance = Math.max(...group.map(p => p.importance));
+    const maxImportance = Math.max(...group.map((p) => p.importance));
 
     // Merkle root over this LOD group's pieces
-    const groupMerkle = computeMerkleRoot(group.map(p => p.provenanceHash));
+    const groupMerkle = computeMerkleRoot(group.map((p) => p.provenanceHash));
 
     // Collect source files
     const groupSources: string[] = [];
@@ -361,7 +370,7 @@ export function consolidate(
     }
 
     // Deduplicate materials within group (by sourceFile)
-    const uniqueSources = new Set(group.map(p => p.sourceFile ?? ''));
+    const uniqueSources = new Set(group.map((p) => p.sourceFile ?? ''));
     materialsDeduplicated += group.length - uniqueSources.size;
 
     consolidatedAnchors.push({
@@ -430,7 +439,7 @@ export function verifyConsolidationReceipt(result: ConsolidationResult): boolean
   const recomputedSelfHash = computeSelfHash(
     receipt.merkleRoot,
     receipt.pieceCount,
-    receipt.totalGaussianCount,
+    receipt.totalGaussianCount
   );
 
   if (recomputedSelfHash !== receipt.selfHash) {

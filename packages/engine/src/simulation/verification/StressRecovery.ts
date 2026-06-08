@@ -34,7 +34,7 @@ export interface SPRResult {
 export function buildNodeToElements(
   tetrahedra: Uint32Array,
   nodeCount: number,
-  nodesPerElement: number,
+  nodesPerElement: number
 ): Uint32Array[] {
   const adj: number[][] = Array.from({ length: nodeCount }, () => []);
   const elemCount = tetrahedra.length / nodesPerElement;
@@ -88,11 +88,11 @@ function linearBasis(x: number, y: number, z: number): Float64Array {
 function solvePatchLeastSquares(
   samplingPoints: Array<{ x: number; y: number; z: number; stress: number }>,
   basisSize: number,
-  basisFn: (x: number, y: number, z: number) => Float64Array,
+  basisFn: (x: number, y: number, z: number) => Float64Array
 ): Float64Array {
   const n = basisSize;
   const A = new Float64Array(n * n); // normal matrix
-  const b = new Float64Array(n);     // right-hand side
+  const b = new Float64Array(n); // right-hand side
 
   for (const pt of samplingPoints) {
     const P = basisFn(pt.x, pt.y, pt.z);
@@ -172,7 +172,7 @@ export function recoverNodalStressSPR(
   vertices: Float64Array | Float32Array,
   gaussPointStress: Float64Array,
   gaussPointCoords: Float64Array,
-  nodeCount: number,
+  nodeCount: number
 ): SPRResult {
   const elemCount = tetrahedra.length / 10;
   const nodalStress = new Float64Array(nodeCount * 6);
@@ -190,8 +190,10 @@ export function recoverNodalStressSPR(
     if (patchElems.length === 0) continue;
 
     // Collect all Gauss points from patch elements
-    const samplingPoints: Array<{ x: number; y: number; z: number; stress: number }>[] =
-      Array.from({ length: 6 }, () => []);
+    const samplingPoints: Array<{ x: number; y: number; z: number; stress: number }>[] = Array.from(
+      { length: 6 },
+      () => []
+    );
 
     for (const elemIdx of patchElems) {
       for (let gp = 0; gp < 4; gp++) {
@@ -201,7 +203,9 @@ export function recoverNodalStressSPR(
         const z = gaussPointCoords[gpIdx * 3 + 2];
         for (let comp = 0; comp < 6; comp++) {
           samplingPoints[comp].push({
-            x, y, z,
+            x,
+            y,
+            z,
             stress: gaussPointStress[gpIdx * 6 + comp],
           });
         }
@@ -267,9 +271,13 @@ export function nodalVonMises(nodalStress: Float64Array, nodeCount: number): Flo
     const tyz = nodalStress[n * 6 + 4];
     const txz = nodalStress[n * 6 + 5];
     vms[n] = Math.sqrt(
-      sxx * sxx + syy * syy + szz * szz -
-      sxx * syy - syy * szz - szz * sxx +
-      3 * (txy * txy + tyz * tyz + txz * txz),
+      sxx * sxx +
+        syy * syy +
+        szz * szz -
+        sxx * syy -
+        syy * szz -
+        szz * sxx +
+        3 * (txy * txy + tyz * tyz + txz * txz)
     );
   }
   return vms;

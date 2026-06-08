@@ -621,7 +621,12 @@ export function QuestProofPanel() {
               marginTop: 16,
               border: `1px solid ${gateAlarms.length > 0 ? '#dc2626' : gateStats.pendingVetting > 0 ? '#f59e0b' : '#16a34a'}`,
               borderRadius: 10,
-              background: gateAlarms.length > 0 ? '#1f0707' : gateStats.pendingVetting > 0 ? '#1a1000' : '#071a0f',
+              background:
+                gateAlarms.length > 0
+                  ? '#1f0707'
+                  : gateStats.pendingVetting > 0
+                    ? '#1a1000'
+                    : '#071a0f',
               padding: '10px 14px',
               display: 'flex',
               alignItems: 'flex-start',
@@ -638,7 +643,12 @@ export function QuestProofPanel() {
                 style={{
                   fontWeight: 900,
                   fontSize: 14,
-                  color: gateAlarms.length > 0 ? '#f87171' : gateStats.pendingVetting > 0 ? '#fbbf24' : '#4ade80',
+                  color:
+                    gateAlarms.length > 0
+                      ? '#f87171'
+                      : gateStats.pendingVetting > 0
+                        ? '#fbbf24'
+                        : '#4ade80',
                 }}
               >
                 Approval Gate
@@ -688,9 +698,13 @@ export function QuestProofPanel() {
                   {gateStats.todayPushed} pushed
                 </span>
               )}
-              {gateStats.pendingVetting === 0 && gateStats.todayBounced === 0 && gateStats.todayPushed === 0 && (
-                <span style={{ color: '#6b7280', fontSize: 12 }}>gate idle — nothing pending</span>
-              )}
+              {gateStats.pendingVetting === 0 &&
+                gateStats.todayBounced === 0 &&
+                gateStats.todayPushed === 0 && (
+                  <span style={{ color: '#6b7280', fontSize: 12 }}>
+                    gate idle — nothing pending
+                  </span>
+                )}
             </div>
             {/* Right: alarm messages */}
             {gateAlarms.length > 0 && (

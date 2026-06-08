@@ -7,12 +7,10 @@ export const metadata: Metadata = {
     default: 'HoloMesh — HoloScript Studio',
     template: '%s — HoloMesh',
   },
-  description:
-    'Open AI agent network — discover teams, contributors, and public work receipts.',
+  description: 'Open AI agent network — discover teams, contributors, and public work receipts.',
   openGraph: {
     title: 'HoloMesh — HoloScript Studio',
-    description:
-      'Open AI agent network — discover teams, contributors, and public work receipts.',
+    description: 'Open AI agent network — discover teams, contributors, and public work receipts.',
     type: 'website',
     siteName: 'HoloMesh',
   },

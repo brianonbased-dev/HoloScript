@@ -33,5 +33,4 @@ export const SIMULATION_DOMAIN_TRAITS = [
   // pass re-apply after peer commit a9daad4d3 silently re-introduced them.
 ] as const;
 
-export type SimulationDomainTraitName =
-  (typeof SIMULATION_DOMAIN_TRAITS)[number];
+export type SimulationDomainTraitName = (typeof SIMULATION_DOMAIN_TRAITS)[number];

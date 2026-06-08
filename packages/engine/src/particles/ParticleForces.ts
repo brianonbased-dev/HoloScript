@@ -57,7 +57,11 @@ function simpleNoise3D(x: number, y: number, z: number): IVector3 {
   const px = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
   const py = Math.sin(y * 12.9898 + z * 78.233) * 43758.5453;
   const pz = Math.sin(z * 12.9898 + x * 78.233) * 43758.5453;
-  return [(px - Math.floor(px)) * 2 - 1, (py - Math.floor(py)) * 2 - 1, (pz - Math.floor(pz)) * 2 - 1, ];
+  return [
+    (px - Math.floor(px)) * 2 - 1,
+    (py - Math.floor(py)) * 2 - 1,
+    (pz - Math.floor(pz)) * 2 - 1,
+  ];
 }
 
 // =============================================================================
@@ -137,14 +141,14 @@ export class ParticleForceSystem {
   }
 
   private applyGravity(p: Particle, cfg: ForceFieldConfig, dt: number): void {
-    const dir = cfg.direction ?? [0, -1, 0 ];
+    const dir = cfg.direction ?? [0, -1, 0];
     p.velocity[0] += dir[0] * cfg.strength * dt;
     p.velocity[1] += dir[1] * cfg.strength * dt;
     p.velocity[2] += dir[2] * cfg.strength * dt;
   }
 
   private applyWind(p: Particle, cfg: ForceFieldConfig, dt: number): void {
-    const dir = cfg.direction ?? [1, 0, 0 ];
+    const dir = cfg.direction ?? [1, 0, 0];
     const falloff = this.getPositionalFalloff(p, cfg);
     p.velocity[0] += dir[0] * cfg.strength * falloff * dt;
     p.velocity[1] += dir[1] * cfg.strength * falloff * dt;
@@ -165,7 +169,7 @@ export class ParticleForceSystem {
   }
 
   private applyAttractor(p: Particle, cfg: ForceFieldConfig, dt: number): void {
-    const target = cfg.position ?? [0, 0, 0 ];
+    const target = cfg.position ?? [0, 0, 0];
     const dx = target[0] - p.position[0];
     const dy = target[1] - p.position[1];
     const dz = target[2] - p.position[2];
@@ -180,7 +184,7 @@ export class ParticleForceSystem {
   }
 
   private applyVortex(p: Particle, cfg: ForceFieldConfig, dt: number): void {
-    const center = cfg.position ?? [0, 0, 0 ];
+    const center = cfg.position ?? [0, 0, 0];
     const dx = p.position[0] - center[0];
     const dz = p.position[2] - center[2];
     const dist = Math.sqrt(dx * dx + dz * dz);

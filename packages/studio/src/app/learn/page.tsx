@@ -2,5 +2,5 @@
 import { redirect } from 'next/navigation';
 
 export default function RedirectPage() {
-  redirect("https://holoscript.net/academy/");
+  redirect('https://holoscript.net/academy/');
 }

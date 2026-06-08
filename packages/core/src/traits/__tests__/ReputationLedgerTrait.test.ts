@@ -100,7 +100,10 @@ describe('ReputationLedgerTrait', () => {
       observerId: 'player_sunraku',
     });
 
-    const deletion = getLastEvent(ctx, 'behavior_log_deleted') as { scope: string; deletedCount: number };
+    const deletion = getLastEvent(ctx, 'behavior_log_deleted') as {
+      scope: string;
+      deletedCount: number;
+    };
     const snapshot = getLastEvent(ctx, 'reputation_ledger_snapshot') as {
       observers: Array<{ trust: number; behaviorFacts: unknown[] }>;
     };
@@ -125,7 +128,10 @@ describe('ReputationLedgerTrait', () => {
       requestedBy: 'player_a',
     });
 
-    const deletion = getLastEvent(ctx, 'behavior_log_deleted') as { scope: string; deletedCount: number };
+    const deletion = getLastEvent(ctx, 'behavior_log_deleted') as {
+      scope: string;
+      deletedCount: number;
+    };
     expect(deletion.scope).toBe('global');
     expect(deletion.deletedCount).toBe(2);
   });
@@ -191,7 +197,10 @@ describe('ServiceObservabilityTrait data_retention alerts', () => {
       value: 91,
     });
 
-    const alert = getLastEvent(ctx, 'alert_rule_triggered') as { rule_name: string; severity: string };
+    const alert = getLastEvent(ctx, 'alert_rule_triggered') as {
+      rule_name: string;
+      severity: string;
+    };
     expect(alert.rule_name).toBe('behavior_fact_ttl_breach');
     expect(alert.severity).toBe('critical');
   });

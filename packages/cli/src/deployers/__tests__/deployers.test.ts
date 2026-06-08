@@ -23,8 +23,8 @@ import { BaseDeployer } from '../BaseDeployer';
 // mocks set up in its own beforeEach and does not touch fetch or fs.readFile.
 
 function installDeployerNetworkMocks(): void {
-  vi.spyOn(fs.promises, 'readFile').mockImplementation(
-    async () => Buffer.from('mock-build-output')
+  vi.spyOn(fs.promises, 'readFile').mockImplementation(async () =>
+    Buffer.from('mock-build-output')
   );
 
   const successfulResponse = () =>
@@ -45,7 +45,10 @@ function installDeployerNetworkMocks(): void {
       }),
     }) as Response;
 
-  vi.stubGlobal('fetch', vi.fn(async () => successfulResponse()));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => successfulResponse())
+  );
 }
 
 // ============================================================================

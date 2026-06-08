@@ -146,7 +146,7 @@ export interface PagedKVAppendKernel {
     slotMap: Uint32Array,
     newVectors: Float32Array,
     pageSize: number,
-    headDim: number,
+    headDim: number
   ): Promise<Float32Array>;
 }
 
@@ -168,7 +168,7 @@ export interface PagedKVLookupKernel {
     numVecs: number,
     startSlot: number,
     pageSize: number,
-    headDim: number,
+    headDim: number
   ): Promise<Float32Array>;
 }
 
@@ -190,7 +190,7 @@ export function createPagedKVAppendKernel(device: GPUDevice): PagedKVAppendKerne
       slotMapData: Uint32Array,
       newVectors: Float32Array,
       pageSize: number,
-      headDim: number,
+      headDim: number
     ): Promise<Float32Array> {
       const numVecs = newVectors.length / headDim;
 
@@ -199,7 +199,13 @@ export function createPagedKVAppendKernel(device: GPUDevice): PagedKVAppendKerne
         size: kvPagesData.byteLength,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
       });
-      device.queue.writeBuffer(kvBuf, 0, kvPagesData.buffer as ArrayBuffer, kvPagesData.byteOffset, kvPagesData.byteLength);
+      device.queue.writeBuffer(
+        kvBuf,
+        0,
+        kvPagesData.buffer as ArrayBuffer,
+        kvPagesData.byteOffset,
+        kvPagesData.byteLength
+      );
 
       const newVecsBuf = storageBuffer(device, newVectors);
       const pageTableBuf = storageBuffer(device, pageTableData);
@@ -263,7 +269,7 @@ export function createPagedKVLookupKernel(device: GPUDevice): PagedKVLookupKerne
       numVecs: number,
       startSlot: number,
       pageSize: number,
-      headDim: number,
+      headDim: number
     ): Promise<Float32Array> {
       const outBytes = numVecs * headDim * 4;
 
@@ -309,4 +315,3 @@ export function createPagedKVLookupKernel(device: GPUDevice): PagedKVLookupKerne
     },
   };
 }
-

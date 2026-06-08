@@ -1,138 +1,139 @@
 # HoloScript Trait Coverage Audit
+
 **Generated:** 2026-05-24
 **Command:** `node scripts/refresh-trait-coverage-audit.mjs`
 
 ## Executive Summary
 
-| Metric | Value |
-|--------|-------|
-| Total Traits | 2,322 |
-| Covered Traits | 1,333 (57.41%) |
-| Zero-Coverage Traits | 989 |
+| Metric               | Value          |
+| -------------------- | -------------- |
+| Total Traits         | 2,322          |
+| Covered Traits       | 1,333 (57.41%) |
+| Zero-Coverage Traits | 989            |
 
 > **Coverage definition:** a trait is "covered" if it has at least one of: a handler implementation (`*Trait.ts`), a test file (`*.test.ts`), an example usage (`.holo`/`.hsplus`), or documentation (`.md`).
 
 ## Coverage by Category (zero-coverage descending)
 
-| Category | Total | Covered | Zero | Handler | Test | Example | Doc |
-|----------|-------|---------|------|---------|------|---------|-----|
-| facial-expression | 75 | 2 | 73 | 0 | 0 | 1 | 1 |
-| security-crypto | 78 | 10 | 68 | 7 | 7 | 3 | 9 |
-| character-pipeline | 51 | 1 | 50 | 0 | 0 | 0 | 1 |
-| character-materials | 34 | 1 | 33 | 0 | 0 | 0 | 1 |
-| instancing-geometry | 35 | 3 | 32 | 0 | 0 | 1 | 3 |
-| sports-fitness | 37 | 9 | 28 | 0 | 0 | 6 | 9 |
-| cooking-food | 39 | 13 | 26 | 0 | 0 | 11 | 7 |
-| creatures-mythical | 42 | 17 | 25 | 0 | 0 | 13 | 9 |
-| magic-fantasy | 37 | 12 | 25 | 0 | 0 | 11 | 8 |
-| data-visualization | 45 | 22 | 23 | 0 | 0 | 13 | 17 |
-| gems-minerals | 31 | 9 | 22 | 1 | 1 | 7 | 6 |
-| age-condition | 30 | 8 | 22 | 0 | 0 | 6 | 4 |
-| furniture-decor | 36 | 14 | 22 | 0 | 0 | 12 | 11 |
-| simulation-domains | 23 | 1 | 22 | 0 | 0 | 0 | 1 |
-| animals | 48 | 28 | 20 | 0 | 0 | 20 | 12 |
-| architecture-realestate | 37 | 17 | 20 | 1 | 1 | 14 | 8 |
-| maritime-naval | 30 | 11 | 19 | 0 | 0 | 10 | 8 |
-| fabric-cloth | 30 | 11 | 19 | 0 | 0 | 10 | 9 |
-| surface-texture | 30 | 11 | 19 | 0 | 0 | 8 | 7 |
-| music-performance | 37 | 19 | 18 | 1 | 1 | 17 | 10 |
-| containers-storage | 30 | 13 | 17 | 0 | 0 | 11 | 10 |
-| terrain-ocean | 20 | 3 | 17 | 0 | 0 | 2 | 3 |
-| scientific-computing | 27 | 11 | 16 | 0 | 0 | 0 | 11 |
-| healthcare-medical | 31 | 15 | 16 | 1 | 1 | 4 | 14 |
-| signs-communication | 28 | 12 | 16 | 0 | 0 | 9 | 9 |
-| environmental-biome | 33 | 18 | 15 | 0 | 0 | 14 | 13 |
-| material-properties | 33 | 18 | 15 | 1 | 1 | 16 | 12 |
-| scifi-technology | 24 | 9 | 15 | 1 | 1 | 7 | 7 |
-| nature-life | 27 | 13 | 14 | 9 | 9 | 10 | 7 |
-| universal-service | 27 | 13 | 14 | 0 | 0 | 11 | 8 |
-| water-fluid | 19 | 6 | 13 | 0 | 0 | 3 | 4 |
-| affinity | 15 | 2 | 13 | 0 | 0 | 1 | 1 |
-| shape-form | 32 | 19 | 13 | 0 | 0 | 18 | 10 |
-| time-period | 23 | 10 | 13 | 0 | 0 | 7 | 8 |
-| holomesh-social | 13 | 1 | 12 | 0 | 0 | 0 | 1 |
-| npc-roles | 62 | 50 | 12 | 0 | 0 | 47 | 21 |
-| intelligence-behavior | 41 | 30 | 11 | 2 | 2 | 25 | 25 |
-| atmosphere-sky | 18 | 7 | 11 | 1 | 1 | 7 | 7 |
-| weather-phenomena | 26 | 15 | 11 | 0 | 0 | 10 | 11 |
-| size-scale | 18 | 7 | 11 | 0 | 0 | 4 | 7 |
-| twin-earth | 46 | 36 | 10 | 0 | 0 | 36 | 0 |
-| education-learning | 39 | 30 | 9 | 1 | 1 | 20 | 26 |
-| global-illumination | 16 | 8 | 8 | 1 | 1 | 8 | 6 |
-| enterprise-multitenancy | 19 | 11 | 8 | 4 | 4 | 5 | 11 |
-| physical-affordances | 22 | 14 | 8 | 0 | 0 | 6 | 14 |
-| measurement-sensing | 17 | 10 | 7 | 0 | 0 | 8 | 6 |
-| construction-building | 25 | 18 | 7 | 0 | 0 | 16 | 17 |
-| emotion-mood | 20 | 13 | 7 | 0 | 0 | 10 | 11 |
-| transportation-vehicles | 12 | 5 | 7 | 0 | 0 | 3 | 3 |
-| resource-gathering | 8 | 1 | 7 | 0 | 0 | 0 | 1 |
-| analytics-observability | 16 | 10 | 6 | 1 | 1 | 2 | 10 |
-| procedural-generation | 27 | 21 | 6 | 2 | 2 | 12 | 16 |
-| musical-sound | 10 | 5 | 5 | 0 | 0 | 3 | 5 |
-| hologram-media | 13 | 8 | 5 | 3 | 3 | 7 | 6 |
-| vfx-audio | 8 | 3 | 5 | 0 | 0 | 3 | 3 |
-| post-processing | 19 | 15 | 4 | 0 | 0 | 14 | 15 |
-| state-persistence | 17 | 14 | 3 | 0 | 0 | 14 | 14 |
-| fabrication-devices | 10 | 7 | 3 | 0 | 0 | 6 | 2 |
-| multisensory-haptic | 16 | 13 | 3 | 0 | 0 | 8 | 13 |
-| v43-ai-xr | 10 | 8 | 2 | 6 | 6 | 7 | 8 |
-| social-commerce | 12 | 10 | 2 | 0 | 0 | 7 | 10 |
-| interop-copresence | 15 | 13 | 2 | 13 | 13 | 11 | 13 |
-| weather-particles | 12 | 10 | 2 | 0 | 0 | 0 | 10 |
-| volumetric-webgpu | 13 | 11 | 2 | 9 | 9 | 10 | 11 |
-| accessibility | 10 | 10 | 0 | 10 | 10 | 10 | 10 |
-| concurrency | 4 | 4 | 0 | 4 | 4 | 3 | 3 |
-| accessibility-extended | 27 | 27 | 0 | 0 | 0 | 3 | 26 |
-| rendering | 16 | 16 | 0 | 4 | 4 | 9 | 16 |
-| networking-ai | 26 | 26 | 0 | 12 | 12 | 7 | 26 |
-| iot-autonomous-agents | 32 | 32 | 0 | 14 | 14 | 21 | 32 |
-| debug-cinematic | 4 | 4 | 0 | 4 | 4 | 1 | 1 |
-| gaps-physics | 16 | 16 | 0 | 15 | 15 | 13 | 16 |
-| narrative-storytelling | 12 | 12 | 0 | 0 | 0 | 10 | 10 |
-| lighting | 27 | 27 | 0 | 0 | 0 | 14 | 27 |
-| audio | 10 | 10 | 0 | 7 | 7 | 9 | 10 |
-| game-mechanics | 31 | 31 | 0 | 0 | 0 | 14 | 31 |
-| environment-input | 16 | 16 | 0 | 13 | 13 | 15 | 16 |
-| simple-modifiers | 7 | 7 | 0 | 0 | 0 | 7 | 7 |
-| auth-identity | 6 | 6 | 0 | 6 | 6 | 4 | 4 |
-| workflow-bpm | 4 | 4 | 0 | 4 | 4 | 3 | 3 |
-| parser-core-ui | 18 | 18 | 0 | 0 | 0 | 9 | 18 |
-| xr-platform | 26 | 26 | 0 | 1 | 1 | 10 | 26 |
-| spatial-algorithms | 3 | 3 | 0 | 3 | 3 | 3 | 2 |
-| search | 3 | 3 | 0 | 3 | 3 | 0 | 2 |
-| data-pipeline | 5 | 5 | 0 | 5 | 5 | 0 | 1 |
-| visual-effects | 31 | 31 | 0 | 0 | 0 | 15 | 29 |
-| file-storage | 3 | 3 | 0 | 3 | 3 | 0 | 1 |
-| humanoid-avatar | 15 | 15 | 0 | 6 | 6 | 14 | 13 |
-| safety-boundaries | 15 | 15 | 0 | 2 | 2 | 8 | 13 |
-| core-vr-interaction | 13 | 13 | 0 | 2 | 2 | 11 | 13 |
-| scripting-automation | 13 | 13 | 0 | 13 | 13 | 8 | 12 |
-| physics-expansion | 7 | 7 | 0 | 7 | 7 | 7 | 7 |
-| data-storage | 7 | 7 | 0 | 7 | 7 | 7 | 7 |
-| media-analytics | 7 | 7 | 0 | 0 | 0 | 4 | 7 |
-| devops-ci | 5 | 5 | 0 | 5 | 5 | 3 | 3 |
-| object-interaction | 25 | 25 | 0 | 0 | 0 | 10 | 25 |
-| audit-trail | 2 | 2 | 0 | 2 | 2 | 0 | 1 |
-| testing-qa | 5 | 5 | 0 | 5 | 5 | 1 | 2 |
-| locomotion-movement | 14 | 14 | 0 | 2 | 2 | 4 | 13 |
-| social-effects | 8 | 8 | 0 | 0 | 0 | 7 | 8 |
-| gpu-compute | 4 | 4 | 0 | 4 | 4 | 4 | 4 |
-| connector-integration | 4 | 4 | 0 | 1 | 1 | 4 | 3 |
-| compliance-governance | 3 | 3 | 0 | 3 | 3 | 0 | 1 |
-| payment | 7 | 7 | 0 | 4 | 4 | 6 | 4 |
-| communication | 7 | 7 | 0 | 7 | 7 | 2 | 1 |
-| ml-inference | 6 | 6 | 0 | 6 | 6 | 2 | 3 |
-| ffi-os | 4 | 4 | 0 | 4 | 4 | 0 | 1 |
-| geospatial-web3 | 9 | 9 | 0 | 9 | 9 | 9 | 9 |
-| api-gateway | 3 | 3 | 0 | 3 | 3 | 0 | 2 |
-| observability | 5 | 5 | 0 | 5 | 5 | 3 | 3 |
-| holomap-reconstruction | 5 | 5 | 0 | 0 | 0 | 5 | 5 |
-| media-content | 4 | 4 | 0 | 4 | 4 | 0 | 1 |
-| i18n-localization | 3 | 3 | 0 | 3 | 3 | 1 | 1 |
-| database-persistence | 4 | 4 | 0 | 4 | 4 | 0 | 1 |
-| ml-tensor | 3 | 3 | 0 | 3 | 3 | 0 | 1 |
-| notification-alerting | 3 | 3 | 0 | 3 | 3 | 1 | 1 |
-| feature-flags | 1 | 1 | 0 | 1 | 1 | 1 | 1 |
+| Category                | Total | Covered | Zero | Handler | Test | Example | Doc |
+| ----------------------- | ----- | ------- | ---- | ------- | ---- | ------- | --- |
+| facial-expression       | 75    | 2       | 73   | 0       | 0    | 1       | 1   |
+| security-crypto         | 78    | 10      | 68   | 7       | 7    | 3       | 9   |
+| character-pipeline      | 51    | 1       | 50   | 0       | 0    | 0       | 1   |
+| character-materials     | 34    | 1       | 33   | 0       | 0    | 0       | 1   |
+| instancing-geometry     | 35    | 3       | 32   | 0       | 0    | 1       | 3   |
+| sports-fitness          | 37    | 9       | 28   | 0       | 0    | 6       | 9   |
+| cooking-food            | 39    | 13      | 26   | 0       | 0    | 11      | 7   |
+| creatures-mythical      | 42    | 17      | 25   | 0       | 0    | 13      | 9   |
+| magic-fantasy           | 37    | 12      | 25   | 0       | 0    | 11      | 8   |
+| data-visualization      | 45    | 22      | 23   | 0       | 0    | 13      | 17  |
+| gems-minerals           | 31    | 9       | 22   | 1       | 1    | 7       | 6   |
+| age-condition           | 30    | 8       | 22   | 0       | 0    | 6       | 4   |
+| furniture-decor         | 36    | 14      | 22   | 0       | 0    | 12      | 11  |
+| simulation-domains      | 23    | 1       | 22   | 0       | 0    | 0       | 1   |
+| animals                 | 48    | 28      | 20   | 0       | 0    | 20      | 12  |
+| architecture-realestate | 37    | 17      | 20   | 1       | 1    | 14      | 8   |
+| maritime-naval          | 30    | 11      | 19   | 0       | 0    | 10      | 8   |
+| fabric-cloth            | 30    | 11      | 19   | 0       | 0    | 10      | 9   |
+| surface-texture         | 30    | 11      | 19   | 0       | 0    | 8       | 7   |
+| music-performance       | 37    | 19      | 18   | 1       | 1    | 17      | 10  |
+| containers-storage      | 30    | 13      | 17   | 0       | 0    | 11      | 10  |
+| terrain-ocean           | 20    | 3       | 17   | 0       | 0    | 2       | 3   |
+| scientific-computing    | 27    | 11      | 16   | 0       | 0    | 0       | 11  |
+| healthcare-medical      | 31    | 15      | 16   | 1       | 1    | 4       | 14  |
+| signs-communication     | 28    | 12      | 16   | 0       | 0    | 9       | 9   |
+| environmental-biome     | 33    | 18      | 15   | 0       | 0    | 14      | 13  |
+| material-properties     | 33    | 18      | 15   | 1       | 1    | 16      | 12  |
+| scifi-technology        | 24    | 9       | 15   | 1       | 1    | 7       | 7   |
+| nature-life             | 27    | 13      | 14   | 9       | 9    | 10      | 7   |
+| universal-service       | 27    | 13      | 14   | 0       | 0    | 11      | 8   |
+| water-fluid             | 19    | 6       | 13   | 0       | 0    | 3       | 4   |
+| affinity                | 15    | 2       | 13   | 0       | 0    | 1       | 1   |
+| shape-form              | 32    | 19      | 13   | 0       | 0    | 18      | 10  |
+| time-period             | 23    | 10      | 13   | 0       | 0    | 7       | 8   |
+| holomesh-social         | 13    | 1       | 12   | 0       | 0    | 0       | 1   |
+| npc-roles               | 62    | 50      | 12   | 0       | 0    | 47      | 21  |
+| intelligence-behavior   | 41    | 30      | 11   | 2       | 2    | 25      | 25  |
+| atmosphere-sky          | 18    | 7       | 11   | 1       | 1    | 7       | 7   |
+| weather-phenomena       | 26    | 15      | 11   | 0       | 0    | 10      | 11  |
+| size-scale              | 18    | 7       | 11   | 0       | 0    | 4       | 7   |
+| twin-earth              | 46    | 36      | 10   | 0       | 0    | 36      | 0   |
+| education-learning      | 39    | 30      | 9    | 1       | 1    | 20      | 26  |
+| global-illumination     | 16    | 8       | 8    | 1       | 1    | 8       | 6   |
+| enterprise-multitenancy | 19    | 11      | 8    | 4       | 4    | 5       | 11  |
+| physical-affordances    | 22    | 14      | 8    | 0       | 0    | 6       | 14  |
+| measurement-sensing     | 17    | 10      | 7    | 0       | 0    | 8       | 6   |
+| construction-building   | 25    | 18      | 7    | 0       | 0    | 16      | 17  |
+| emotion-mood            | 20    | 13      | 7    | 0       | 0    | 10      | 11  |
+| transportation-vehicles | 12    | 5       | 7    | 0       | 0    | 3       | 3   |
+| resource-gathering      | 8     | 1       | 7    | 0       | 0    | 0       | 1   |
+| analytics-observability | 16    | 10      | 6    | 1       | 1    | 2       | 10  |
+| procedural-generation   | 27    | 21      | 6    | 2       | 2    | 12      | 16  |
+| musical-sound           | 10    | 5       | 5    | 0       | 0    | 3       | 5   |
+| hologram-media          | 13    | 8       | 5    | 3       | 3    | 7       | 6   |
+| vfx-audio               | 8     | 3       | 5    | 0       | 0    | 3       | 3   |
+| post-processing         | 19    | 15      | 4    | 0       | 0    | 14      | 15  |
+| state-persistence       | 17    | 14      | 3    | 0       | 0    | 14      | 14  |
+| fabrication-devices     | 10    | 7       | 3    | 0       | 0    | 6       | 2   |
+| multisensory-haptic     | 16    | 13      | 3    | 0       | 0    | 8       | 13  |
+| v43-ai-xr               | 10    | 8       | 2    | 6       | 6    | 7       | 8   |
+| social-commerce         | 12    | 10      | 2    | 0       | 0    | 7       | 10  |
+| interop-copresence      | 15    | 13      | 2    | 13      | 13   | 11      | 13  |
+| weather-particles       | 12    | 10      | 2    | 0       | 0    | 0       | 10  |
+| volumetric-webgpu       | 13    | 11      | 2    | 9       | 9    | 10      | 11  |
+| accessibility           | 10    | 10      | 0    | 10      | 10   | 10      | 10  |
+| concurrency             | 4     | 4       | 0    | 4       | 4    | 3       | 3   |
+| accessibility-extended  | 27    | 27      | 0    | 0       | 0    | 3       | 26  |
+| rendering               | 16    | 16      | 0    | 4       | 4    | 9       | 16  |
+| networking-ai           | 26    | 26      | 0    | 12      | 12   | 7       | 26  |
+| iot-autonomous-agents   | 32    | 32      | 0    | 14      | 14   | 21      | 32  |
+| debug-cinematic         | 4     | 4       | 0    | 4       | 4    | 1       | 1   |
+| gaps-physics            | 16    | 16      | 0    | 15      | 15   | 13      | 16  |
+| narrative-storytelling  | 12    | 12      | 0    | 0       | 0    | 10      | 10  |
+| lighting                | 27    | 27      | 0    | 0       | 0    | 14      | 27  |
+| audio                   | 10    | 10      | 0    | 7       | 7    | 9       | 10  |
+| game-mechanics          | 31    | 31      | 0    | 0       | 0    | 14      | 31  |
+| environment-input       | 16    | 16      | 0    | 13      | 13   | 15      | 16  |
+| simple-modifiers        | 7     | 7       | 0    | 0       | 0    | 7       | 7   |
+| auth-identity           | 6     | 6       | 0    | 6       | 6    | 4       | 4   |
+| workflow-bpm            | 4     | 4       | 0    | 4       | 4    | 3       | 3   |
+| parser-core-ui          | 18    | 18      | 0    | 0       | 0    | 9       | 18  |
+| xr-platform             | 26    | 26      | 0    | 1       | 1    | 10      | 26  |
+| spatial-algorithms      | 3     | 3       | 0    | 3       | 3    | 3       | 2   |
+| search                  | 3     | 3       | 0    | 3       | 3    | 0       | 2   |
+| data-pipeline           | 5     | 5       | 0    | 5       | 5    | 0       | 1   |
+| visual-effects          | 31    | 31      | 0    | 0       | 0    | 15      | 29  |
+| file-storage            | 3     | 3       | 0    | 3       | 3    | 0       | 1   |
+| humanoid-avatar         | 15    | 15      | 0    | 6       | 6    | 14      | 13  |
+| safety-boundaries       | 15    | 15      | 0    | 2       | 2    | 8       | 13  |
+| core-vr-interaction     | 13    | 13      | 0    | 2       | 2    | 11      | 13  |
+| scripting-automation    | 13    | 13      | 0    | 13      | 13   | 8       | 12  |
+| physics-expansion       | 7     | 7       | 0    | 7       | 7    | 7       | 7   |
+| data-storage            | 7     | 7       | 0    | 7       | 7    | 7       | 7   |
+| media-analytics         | 7     | 7       | 0    | 0       | 0    | 4       | 7   |
+| devops-ci               | 5     | 5       | 0    | 5       | 5    | 3       | 3   |
+| object-interaction      | 25    | 25      | 0    | 0       | 0    | 10      | 25  |
+| audit-trail             | 2     | 2       | 0    | 2       | 2    | 0       | 1   |
+| testing-qa              | 5     | 5       | 0    | 5       | 5    | 1       | 2   |
+| locomotion-movement     | 14    | 14      | 0    | 2       | 2    | 4       | 13  |
+| social-effects          | 8     | 8       | 0    | 0       | 0    | 7       | 8   |
+| gpu-compute             | 4     | 4       | 0    | 4       | 4    | 4       | 4   |
+| connector-integration   | 4     | 4       | 0    | 1       | 1    | 4       | 3   |
+| compliance-governance   | 3     | 3       | 0    | 3       | 3    | 0       | 1   |
+| payment                 | 7     | 7       | 0    | 4       | 4    | 6       | 4   |
+| communication           | 7     | 7       | 0    | 7       | 7    | 2       | 1   |
+| ml-inference            | 6     | 6       | 0    | 6       | 6    | 2       | 3   |
+| ffi-os                  | 4     | 4       | 0    | 4       | 4    | 0       | 1   |
+| geospatial-web3         | 9     | 9       | 0    | 9       | 9    | 9       | 9   |
+| api-gateway             | 3     | 3       | 0    | 3       | 3    | 0       | 2   |
+| observability           | 5     | 5       | 0    | 5       | 5    | 3       | 3   |
+| holomap-reconstruction  | 5     | 5       | 0    | 0       | 0    | 5       | 5   |
+| media-content           | 4     | 4       | 0    | 4       | 4    | 0       | 1   |
+| i18n-localization       | 3     | 3       | 0    | 3       | 3    | 1       | 1   |
+| database-persistence    | 4     | 4       | 0    | 4       | 4    | 0       | 1   |
+| ml-tensor               | 3     | 3       | 0    | 3       | 3    | 0       | 1   |
+| notification-alerting   | 3     | 3       | 0    | 3       | 3    | 1       | 1   |
+| feature-flags           | 1     | 1       | 0    | 1       | 1    | 1       | 1   |
 
 ---
 

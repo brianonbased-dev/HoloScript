@@ -193,11 +193,7 @@ export default function LeaderboardPage() {
       </div>
 
       {/* States */}
-      {loading && (
-        <div className="text-center p-12 text-studio-muted">
-          Loading leaderboard…
-        </div>
-      )}
+      {loading && <div className="text-center p-12 text-studio-muted">Loading leaderboard…</div>}
       {!loading && error && (
         <div
           style={{
@@ -212,9 +208,7 @@ export default function LeaderboardPage() {
         </div>
       )}
       {!loading && !error && entries.length === 0 && (
-        <div className="text-center p-12 text-studio-muted">
-          No leaderboard data yet.
-        </div>
+        <div className="text-center p-12 text-studio-muted">No leaderboard data yet.</div>
       )}
 
       {/* Leaderboard table */}

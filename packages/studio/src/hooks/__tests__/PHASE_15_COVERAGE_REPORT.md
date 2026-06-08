@@ -13,11 +13,11 @@
 
 ## Coverage Progression
 
-| Phase | Hooks Tested | Total Hooks | Coverage | Change |
-|-------|--------------|-------------|----------|--------|
-| Phase 13 | 30 | 45 | 66.67% | Baseline |
-| Phase 14 | 34 | 45 | 75.56% | +8.89% |
-| **Phase 15** | **38** | **45** | **84.44%** | **+8.88%** |
+| Phase        | Hooks Tested | Total Hooks | Coverage   | Change     |
+| ------------ | ------------ | ----------- | ---------- | ---------- |
+| Phase 13     | 30           | 45          | 66.67%     | Baseline   |
+| Phase 14     | 34           | 45          | 75.56%     | +8.89%     |
+| **Phase 15** | **38**       | **45**      | **84.44%** | **+8.88%** |
 
 ---
 
@@ -28,6 +28,7 @@
 **Purpose:** Tests Zustand store managing visual shader node graphs with undo/redo history
 
 **Test Coverage:**
+
 - ✅ Initial State (5 tests) - Empty graph, history, dirty state
 - ✅ Node Creation/Deletion/Updates (15 tests) - CRUD operations, ID generation
 - ✅ Node Properties & Position (6 tests) - Property updates, position tracking
@@ -39,6 +40,7 @@
 - ✅ Store Persistence & Edge Cases (8 tests) - Zustand integration, invalid inputs
 
 **Key Patterns:**
+
 ```typescript
 // Zustand store reset pattern
 beforeEach(() => {
@@ -66,6 +68,7 @@ it('should prevent cyclic connections', () => {
 **Purpose:** Tests Monaco editor InlineCompletionsProvider with debounced AI completions
 
 **Test Coverage:**
+
 - ✅ Initial Registration (6 tests) - Provider registration, enabled flag, debounce options
 - ✅ Provider Callback (3 tests) - Prefix/suffix extraction logic
 - ✅ API Calls (5 tests) - POST to /api/autocomplete, error handling, empty responses
@@ -77,6 +80,7 @@ it('should prevent cyclic connections', () => {
 - ✅ Free Inline Completions (2 tests) - Noop method existence
 
 **Key Patterns:**
+
 ```typescript
 // Monaco instance mocking
 mockMonaco = {
@@ -91,10 +95,13 @@ mockMonaco = {
 // Debounced operation testing (use real timers, not fake)
 renderHook(() => useMonacoAutocomplete(mockMonaco, { debounceMs: 50 }));
 const resultPromise = mockProviderCallback(mockModel, position, {}, token);
-await waitFor(async () => {
-  await resultPromise;
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-}, { timeout: 1000 });
+await waitFor(
+  async () => {
+    await resultPromise;
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  },
+  { timeout: 1000 }
+);
 ```
 
 ---
@@ -104,6 +111,7 @@ await waitFor(async () => {
 **Purpose:** Tests version control for scenes via API (list/save/restore/delete)
 
 **Test Coverage:**
+
 - ✅ Initial State (4 tests) - Empty array, idle status, exposed methods
 - ✅ Load Versions (9 tests) - API calls, status transitions, error handling
 - ✅ Save Version (9 tests) - POST with/without label, prepend to array, return value
@@ -114,6 +122,7 @@ await waitFor(async () => {
 - ✅ Edge Cases (16 tests) - Concurrent operations, empty sceneId, malformed JSON
 
 **Key Patterns:**
+
 ```typescript
 // Mock useSceneStore with selector pattern
 vi.mock('@/lib/store', () => ({
@@ -148,6 +157,7 @@ it('should not affect versions array on delete error', async () => {
 **Purpose:** Tests window-level keyboard shortcuts for undo/redo
 
 **Test Coverage:**
+
 - ✅ Event Listener Registration (2 tests) - Add/remove keydown listeners
 - ✅ Undo Shortcut (5 tests) - Ctrl+Z, Meta+Z (Mac), preventDefault, uppercase handling
 - ✅ Redo Shortcuts (4 tests) - Ctrl+Shift+Z, Ctrl+Y, uppercase handling
@@ -156,6 +166,7 @@ it('should not affect versions array on delete error', async () => {
 - ✅ Edge Cases (5 tests) - Null target, rapid events, mixed commands, other keys
 
 **Key Patterns:**
+
 ```typescript
 // Use vi.hoisted for mock functions before vi.mock
 const { mockUndo, mockRedo } = vi.hoisted(() => ({
@@ -220,7 +231,7 @@ const { mockUndo, mockRedo } = vi.hoisted(() => ({
 ```typescript
 vi.mock('@/lib/store', () => ({
   useSceneStore: vi.fn((selector) => {
-    const store = { setCode: mockSetCode, /* ... */ };
+    const store = { setCode: mockSetCode /* ... */ };
     return selector ? selector(store) : store;
   }),
 }));
@@ -252,21 +263,21 @@ Object.defineProperty(div, 'isContentEditable', {
 
 ### Total Test Count by Phase
 
-| Phase | New Tests | Cumulative Tests | Hooks Covered |
-|-------|-----------|------------------|---------------|
-| Phase 13 | 122 | 122 | 30 |
-| Phase 14 | 141 | 263 | 34 |
-| **Phase 15** | **153** | **416** | **38** |
+| Phase        | New Tests | Cumulative Tests | Hooks Covered |
+| ------------ | --------- | ---------------- | ------------- |
+| Phase 13     | 122       | 122              | 30            |
+| Phase 14     | 141       | 263              | 34            |
+| **Phase 15** | **153**   | **416**          | **38**        |
 
 ### Phase 15 Test Breakdown
 
-| Hook | Tests | Lines | Complexity |
-|------|-------|-------|------------|
-| useShaderGraph | 48 | 426 | High (graph algorithms, undo/redo) |
-| useSceneVersions | 45 | 107 | Medium (API integration) |
-| useMonacoAutocomplete | 37 | 115 | Medium (debouncing, Monaco mocking) |
-| useGlobalHotkeys | 23 | 156 | Low (event handling) |
-| **Total** | **153** | **804** | - |
+| Hook                  | Tests   | Lines   | Complexity                          |
+| --------------------- | ------- | ------- | ----------------------------------- |
+| useShaderGraph        | 48      | 426     | High (graph algorithms, undo/redo)  |
+| useSceneVersions      | 45      | 107     | Medium (API integration)            |
+| useMonacoAutocomplete | 37      | 115     | Medium (debouncing, Monaco mocking) |
+| useGlobalHotkeys      | 23      | 156     | Low (event handling)                |
+| **Total**             | **153** | **804** | -                                   |
 
 ---
 
@@ -323,9 +334,12 @@ await waitFor(() => {
 // NO fake timers
 renderHook(() => useDebounced(callback, { delay: 50 }));
 
-await waitFor(() => {
-  expect(callback).toHaveBeenCalled();
-}, { timeout: 1000 });
+await waitFor(
+  () => {
+    expect(callback).toHaveBeenCalled();
+  },
+  { timeout: 1000 }
+);
 ```
 
 ### 4. Event Listener Testing

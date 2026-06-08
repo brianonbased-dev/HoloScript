@@ -65,7 +65,10 @@ describe('env-kek-provider', () => {
 
   it('round-trips a real secret through SecretStore using the env provider', async () => {
     const provider = createEnvKekProvider({ env: envWith('v1', generateKekBase64()) });
-    const store = createSecretStore({ backend: createInMemorySecretBackend(), kekProvider: provider });
+    const store = createSecretStore({
+      backend: createInMemorySecretBackend(),
+      kekProvider: provider,
+    });
     await store.put({ ownerId: 'user-A', name: 'OPENAI_API_KEY', value: 'sk-live-xyz' });
     const got = await store.get({ ownerId: 'user-A', ref: 'vault:OPENAI_API_KEY' });
     expect(got.value).toBe('sk-live-xyz');

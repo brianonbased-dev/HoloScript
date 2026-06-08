@@ -61,7 +61,7 @@ export async function GET() {
   if (!cache) {
     return NextResponse.json(
       { stale: true, composite: null, reason: 'no composite received yet' },
-      { status: 200, headers: { ...corsHeaders, 'Cache-Control': 'no-store' } },
+      { status: 200, headers: { ...corsHeaders, 'Cache-Control': 'no-store' } }
     );
   }
 
@@ -77,7 +77,7 @@ export async function GET() {
     {
       status: 200,
       headers: { ...corsHeaders, 'Cache-Control': 'max-age=15' },
-    },
+    }
   );
 }
 
@@ -87,10 +87,7 @@ export async function POST(req: NextRequest) {
   if (requiredKey) {
     const auth = req.headers.get('authorization');
     if (!auth?.startsWith('Bearer ') || auth.slice(7) !== requiredKey) {
-      return NextResponse.json(
-        { error: 'unauthorized' },
-        { status: 401, headers: corsHeaders },
-      );
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401, headers: corsHeaders });
     }
   }
 
@@ -98,10 +95,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json(
-      { error: 'invalid json' },
-      { status: 400, headers: corsHeaders },
-    );
+    return NextResponse.json({ error: 'invalid json' }, { status: 400, headers: corsHeaders });
   }
 
   const composite = body as EmbodiedComposite;
@@ -110,7 +104,7 @@ export async function POST(req: NextRequest) {
     if (!composite[k]) {
       return NextResponse.json(
         { error: `missing required field: ${k}` },
-        { status: 400, headers: corsHeaders },
+        { status: 400, headers: corsHeaders }
       );
     }
   }
@@ -119,6 +113,6 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json(
     { ok: true, received_at: cache.received_at },
-    { status: 200, headers: corsHeaders },
+    { status: 200, headers: corsHeaders }
   );
 }

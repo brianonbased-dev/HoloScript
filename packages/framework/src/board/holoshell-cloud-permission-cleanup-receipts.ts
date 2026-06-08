@@ -34,8 +34,7 @@ export const CLOUD_PERMISSION_CLEANUP_STATUSES = [
   'blocked',
   'failed',
 ] as const;
-export type CloudPermissionCleanupStatus =
-  (typeof CLOUD_PERMISSION_CLEANUP_STATUSES)[number];
+export type CloudPermissionCleanupStatus = (typeof CLOUD_PERMISSION_CLEANUP_STATUSES)[number];
 
 export const CLOUD_LINK_VISIBILITIES = [
   'private',
@@ -57,8 +56,7 @@ export const CLOUD_SHARE_SUBJECT_BOUNDARIES = [
   'public',
   'unknown',
 ] as const;
-export type CloudShareSubjectBoundary =
-  (typeof CLOUD_SHARE_SUBJECT_BOUNDARIES)[number];
+export type CloudShareSubjectBoundary = (typeof CLOUD_SHARE_SUBJECT_BOUNDARIES)[number];
 
 export const CLOUD_PERMISSION_RISK_LEVELS = ['low', 'medium', 'high', 'critical'] as const;
 export type CloudPermissionRiskLevel = (typeof CLOUD_PERMISSION_RISK_LEVELS)[number];
@@ -315,8 +313,7 @@ export function cloudExposureRisk(item: CloudSharedItemExposure): CloudPermissio
   if (
     item.subjects.some(
       (subject) =>
-        subject.boundary === 'external' &&
-        (subject.role === 'editor' || subject.role === 'owner')
+        subject.boundary === 'external' && (subject.role === 'editor' || subject.role === 'owner')
     )
   ) {
     return 'high';
@@ -352,7 +349,9 @@ export function summarizeCloudExposure(items: CloudSharedItemExposure[]): {
       .map((item) => item.id),
     unknownGroupItemIds: items
       .filter((item) =>
-        item.subjects.some((subject) => subject.subjectKind === 'group' && subject.boundary === 'unknown')
+        item.subjects.some(
+          (subject) => subject.subjectKind === 'group' && subject.boundary === 'unknown'
+        )
       )
       .map((item) => item.id),
     domainWideItemIds: items
@@ -436,11 +435,16 @@ export function validateProviderMetadataInventoryWitnessReceipt(
     );
   }
   if (receipt.workflow !== CLOUD_PERMISSION_CLEANUP_WORKFLOW) {
-    errors.push(`ProviderMetadataInventoryWitnessReceipt.workflow must be ${CLOUD_PERMISSION_CLEANUP_WORKFLOW}.`);
+    errors.push(
+      `ProviderMetadataInventoryWitnessReceipt.workflow must be ${CLOUD_PERMISSION_CLEANUP_WORKFLOW}.`
+    );
   }
-  if (!isNonEmptyString(receipt.id)) errors.push('ProviderMetadataInventoryWitnessReceipt.id is required.');
+  if (!isNonEmptyString(receipt.id))
+    errors.push('ProviderMetadataInventoryWitnessReceipt.id is required.');
   if (!isSupportedCloudPermissionProvider(String(receipt.provider))) {
-    errors.push(`ProviderMetadataInventoryWitnessReceipt.provider is unsupported: ${String(receipt.provider)}.`);
+    errors.push(
+      `ProviderMetadataInventoryWitnessReceipt.provider is unsupported: ${String(receipt.provider)}.`
+    );
   }
   if (!isSupportedProviderMetadataInputFormat(String(receipt.providerInputFormat))) {
     errors.push(
@@ -448,7 +452,9 @@ export function validateProviderMetadataInventoryWitnessReceipt(
     );
   }
   if (!isSupportedProviderMetadataSourceKind(String(receipt.sourceKind))) {
-    errors.push(`ProviderMetadataInventoryWitnessReceipt.sourceKind is unsupported: ${String(receipt.sourceKind)}.`);
+    errors.push(
+      `ProviderMetadataInventoryWitnessReceipt.sourceKind is unsupported: ${String(receipt.sourceKind)}.`
+    );
   }
   if (!isNonEmptyString(receipt.exportHash)) {
     errors.push('ProviderMetadataInventoryWitnessReceipt.exportHash is required.');
@@ -466,14 +472,20 @@ export function validateProviderMetadataInventoryWitnessReceipt(
     }
   }
   if (!Array.isArray(receipt.fieldAllowlist) || receipt.fieldAllowlist.length === 0) {
-    errors.push('ProviderMetadataInventoryWitnessReceipt.fieldAllowlist must include at least one field.');
+    errors.push(
+      'ProviderMetadataInventoryWitnessReceipt.fieldAllowlist must include at least one field.'
+    );
   } else {
     receipt.fieldAllowlist.forEach((field, index) => {
       if (!isNonEmptyString(field)) {
-        errors.push(`ProviderMetadataInventoryWitnessReceipt.fieldAllowlist[${index}] is required.`);
+        errors.push(
+          `ProviderMetadataInventoryWitnessReceipt.fieldAllowlist[${index}] is required.`
+        );
       }
       if (/token|cookie|content|body|password|secret/i.test(field)) {
-        errors.push(`ProviderMetadataInventoryWitnessReceipt.fieldAllowlist[${index}] contains blocked field: ${field}.`);
+        errors.push(
+          `ProviderMetadataInventoryWitnessReceipt.fieldAllowlist[${index}] contains blocked field: ${field}.`
+        );
       }
       if (field.includes('*') || /\[\]$/.test(field)) {
         errors.push(
@@ -507,10 +519,21 @@ export function validateProviderMetadataInventoryWitnessReceipt(
     errors.push('ProviderMetadataInventoryWitnessReceipt.absolutePathCaptured must be false.');
   }
   if (receipt.publicReceiptMayContainAbsolutePath !== false) {
-    errors.push('ProviderMetadataInventoryWitnessReceipt.publicReceiptMayContainAbsolutePath must be false.');
+    errors.push(
+      'ProviderMetadataInventoryWitnessReceipt.publicReceiptMayContainAbsolutePath must be false.'
+    );
   }
-  validateTimestamp('ProviderMetadataInventoryWitnessReceipt.observedAt', receipt.observedAt, errors);
-  validateHash('ProviderMetadataInventoryWitnessReceipt', receipt.hash, receipt.hashAlgorithm, errors);
+  validateTimestamp(
+    'ProviderMetadataInventoryWitnessReceipt.observedAt',
+    receipt.observedAt,
+    errors
+  );
+  validateHash(
+    'ProviderMetadataInventoryWitnessReceipt',
+    receipt.hash,
+    receipt.hashAlgorithm,
+    errors
+  );
   return errors;
 }
 
@@ -531,7 +554,11 @@ export function validateCloudShareInventoryReceipt(
   if (!isSupportedCloudPermissionProvider(String(receipt.provider))) {
     errors.push(`CloudShareInventoryReceipt.provider is unsupported: ${String(receipt.provider)}.`);
   }
-  validateNoRawLeak('CloudShareInventoryReceipt.redactedAccountLabel', receipt.redactedAccountLabel, errors);
+  validateNoRawLeak(
+    'CloudShareInventoryReceipt.redactedAccountLabel',
+    receipt.redactedAccountLabel,
+    errors
+  );
   if (!isNonEmptyString(receipt.accountLabelHash)) {
     errors.push('CloudShareInventoryReceipt.accountLabelHash is required.');
   }
@@ -561,7 +588,9 @@ export function validateCloudShareInventoryReceipt(
     receipt.providerMetadataWitnessReceiptId !== undefined &&
     !isNonEmptyString(receipt.providerMetadataWitnessReceiptId)
   ) {
-    errors.push('CloudShareInventoryReceipt.providerMetadataWitnessReceiptId must be non-empty when present.');
+    errors.push(
+      'CloudShareInventoryReceipt.providerMetadataWitnessReceiptId must be non-empty when present.'
+    );
   }
   validateTimestamp('CloudShareInventoryReceipt.observedAt', receipt.observedAt, errors);
   validateHash('CloudShareInventoryReceipt', receipt.hash, receipt.hashAlgorithm, errors);
@@ -600,7 +629,12 @@ export function validateCloudExposureDiffReceipt(
   }
   if (inventory) {
     const known = knownItemIds(inventory);
-    validateKnownIds('CloudExposureDiffReceipt.publicLinkItemIds', receipt.publicLinkItemIds, known, errors);
+    validateKnownIds(
+      'CloudExposureDiffReceipt.publicLinkItemIds',
+      receipt.publicLinkItemIds,
+      known,
+      errors
+    );
     validateKnownIds(
       'CloudExposureDiffReceipt.externalEditorItemIds',
       receipt.externalEditorItemIds,
@@ -613,8 +647,18 @@ export function validateCloudExposureDiffReceipt(
       known,
       errors
     );
-    validateKnownIds('CloudExposureDiffReceipt.unknownGroupItemIds', receipt.unknownGroupItemIds, known, errors);
-    validateKnownIds('CloudExposureDiffReceipt.domainWideItemIds', receipt.domainWideItemIds, known, errors);
+    validateKnownIds(
+      'CloudExposureDiffReceipt.unknownGroupItemIds',
+      receipt.unknownGroupItemIds,
+      known,
+      errors
+    );
+    validateKnownIds(
+      'CloudExposureDiffReceipt.domainWideItemIds',
+      receipt.domainWideItemIds,
+      known,
+      errors
+    );
   }
   validateHash('CloudExposureDiffReceipt', receipt.hash, receipt.hashAlgorithm, errors);
   return errors;
@@ -631,7 +675,8 @@ export function validateCloudPermissionRevokePlanReceipt(
       `CloudPermissionRevokePlanReceipt.schemaVersion must be ${HOLOSHELL_CLOUD_PERMISSION_CLEANUP_RECEIPT_VERSION}.`
     );
   }
-  if (!isNonEmptyString(receipt.id)) errors.push('CloudPermissionRevokePlanReceipt.id is required.');
+  if (!isNonEmptyString(receipt.id))
+    errors.push('CloudPermissionRevokePlanReceipt.id is required.');
   if (!isNonEmptyString(receipt.exposureDiffReceiptId)) {
     errors.push('CloudPermissionRevokePlanReceipt.exposureDiffReceiptId is required.');
   }
@@ -679,7 +724,9 @@ export function validateCloudPermissionRevokePlanReceipt(
     const exposureIds = exposureItemIds(exposureDiff);
     for (const id of receipt.selectedItemIds) {
       if (!exposureIds.has(id)) {
-        errors.push(`CloudPermissionRevokePlanReceipt.selectedItemIds references non-exposure item: ${id}.`);
+        errors.push(
+          `CloudPermissionRevokePlanReceipt.selectedItemIds references non-exposure item: ${id}.`
+        );
       }
     }
   }
@@ -716,17 +763,30 @@ export function validateCloudPermissionCleanupVerificationReceipt(
     errors.push('CloudPermissionCleanupVerificationReceipt.revokedExposureIds must be an array.');
   }
   if (!Array.isArray(receipt.residualAccessItemIds)) {
-    errors.push('CloudPermissionCleanupVerificationReceipt.residualAccessItemIds must be an array.');
+    errors.push(
+      'CloudPermissionCleanupVerificationReceipt.residualAccessItemIds must be an array.'
+    );
   } else if (receipt.residualAccessItemIds.length !== receipt.residualAccessCount) {
     errors.push(
       'CloudPermissionCleanupVerificationReceipt.residualAccessCount must match residualAccessItemIds length.'
     );
   }
   if (receipt.readyToClaimClean && receipt.residualAccessCount !== 0) {
-    errors.push('CloudPermissionCleanupVerificationReceipt.readyToClaimClean requires zero residual access.');
+    errors.push(
+      'CloudPermissionCleanupVerificationReceipt.readyToClaimClean requires zero residual access.'
+    );
   }
-  validateTimestamp('CloudPermissionCleanupVerificationReceipt.verifiedAt', receipt.verifiedAt, errors);
-  validateHash('CloudPermissionCleanupVerificationReceipt', receipt.hash, receipt.hashAlgorithm, errors);
+  validateTimestamp(
+    'CloudPermissionCleanupVerificationReceipt.verifiedAt',
+    receipt.verifiedAt,
+    errors
+  );
+  validateHash(
+    'CloudPermissionCleanupVerificationReceipt',
+    receipt.hash,
+    receipt.hashAlgorithm,
+    errors
+  );
   return errors;
 }
 
@@ -741,10 +801,14 @@ export function validateCloudPermissionCleanupReplayReceipt(
     );
   }
   if (receipt.workflow !== CLOUD_PERMISSION_CLEANUP_WORKFLOW) {
-    errors.push(`CloudPermissionCleanupReplayReceipt.workflow must be ${CLOUD_PERMISSION_CLEANUP_WORKFLOW}.`);
+    errors.push(
+      `CloudPermissionCleanupReplayReceipt.workflow must be ${CLOUD_PERMISSION_CLEANUP_WORKFLOW}.`
+    );
   }
   if (!isSupportedCloudPermissionCleanupStatus(String(receipt.status))) {
-    errors.push(`CloudPermissionCleanupReplayReceipt.status is unsupported: ${String(receipt.status)}.`);
+    errors.push(
+      `CloudPermissionCleanupReplayReceipt.status is unsupported: ${String(receipt.status)}.`
+    );
   }
   if (!isNonEmptyString(receipt.inventoryReceiptId)) {
     errors.push('CloudPermissionCleanupReplayReceipt.inventoryReceiptId is required.');
@@ -756,13 +820,19 @@ export function validateCloudPermissionCleanupReplayReceipt(
     errors.push('CloudPermissionCleanupReplayReceipt.replayKey is required.');
   }
   if (!Number.isInteger(receipt.residualAccessCount) || receipt.residualAccessCount < 0) {
-    errors.push('CloudPermissionCleanupReplayReceipt.residualAccessCount must be a non-negative integer.');
+    errors.push(
+      'CloudPermissionCleanupReplayReceipt.residualAccessCount must be a non-negative integer.'
+    );
   }
   if (receipt.readyToClaimClean && receipt.residualAccessCount !== 0) {
-    errors.push('CloudPermissionCleanupReplayReceipt.readyToClaimClean requires zero residual access.');
+    errors.push(
+      'CloudPermissionCleanupReplayReceipt.readyToClaimClean requires zero residual access.'
+    );
   }
   if (receipt.readyToClaimClean && !isNonEmptyString(receipt.verificationReceiptId)) {
-    errors.push('CloudPermissionCleanupReplayReceipt.readyToClaimClean requires verificationReceiptId.');
+    errors.push(
+      'CloudPermissionCleanupReplayReceipt.readyToClaimClean requires verificationReceiptId.'
+    );
   }
   if (receipt.rawCredentialCaptured !== false) {
     errors.push('CloudPermissionCleanupReplayReceipt.rawCredentialCaptured must be false.');
@@ -817,10 +887,14 @@ export function validateHoloShellCloudPermissionCleanupReceiptPack(
     errors.push('HoloShellCloudPermissionCleanupReceiptPack.status must match replay.status.');
   }
   if ((pack.status === 'clean' || pack.replay.readyToClaimClean) && !pack.verification) {
-    errors.push('HoloShellCloudPermissionCleanupReceiptPack.verification is required before clean claim.');
+    errors.push(
+      'HoloShellCloudPermissionCleanupReceiptPack.verification is required before clean claim.'
+    );
   }
   if ((pack.status === 'revocation_verified' || pack.status === 'clean') && !pack.revokePlan) {
-    errors.push('HoloShellCloudPermissionCleanupReceiptPack.revokePlan is required after revocation.');
+    errors.push(
+      'HoloShellCloudPermissionCleanupReceiptPack.revokePlan is required after revocation.'
+    );
   }
   if (pack.verification && (pack.status === 'clean' || pack.replay.readyToClaimClean)) {
     const exposureIds = exposureItemIds(pack.exposureDiff);

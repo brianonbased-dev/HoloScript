@@ -193,9 +193,7 @@ export class ThreeJSCompiler extends CompilerBase {
     this.emit('import * as THREE from "three";');
     if (this.options.enablePostProcessing) {
       this.emit('import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";');
-      this.emit(
-        'import { RenderPass } from "three/addons/postprocessing/RenderPass.js";'
-      );
+      this.emit('import { RenderPass } from "three/addons/postprocessing/RenderPass.js";');
       this.emit(
         'import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";'
       );
@@ -208,7 +206,9 @@ export class ThreeJSCompiler extends CompilerBase {
     for (const prop of env.properties) {
       if (prop.key === 'background' || prop.key === 'skybox' || prop.key === 'preset') {
         if (typeof prop.value === 'string' && prop.value.startsWith('#')) {
-          this.emit(`this.scene.background = new THREE.Color(${this.toThreeColorHex(prop.value)});`);
+          this.emit(
+            `this.scene.background = new THREE.Color(${this.toThreeColorHex(prop.value)});`
+          );
         } else {
           this.emit(`// skybox: "${prop.value}" — load via THREE.CubeTextureLoader`);
         }
@@ -219,13 +219,9 @@ export class ThreeJSCompiler extends CompilerBase {
         const color = this.toThreeColorHex(fog.color ?? '#cccccc');
         this.emit(`this.scene.fog = new THREE.Fog(${color}, ${near}, ${far});`);
       } else if (prop.key === 'ambient_light') {
-        this.emit(
-          `this.scene.add(new THREE.AmbientLight(0xffffff, ${prop.value ?? 0.5}));`
-        );
+        this.emit(`this.scene.add(new THREE.AmbientLight(0xffffff, ${prop.value ?? 0.5}));`);
       } else if (prop.key === 'ground') {
-        this.emit(
-          `const groundGeom = new THREE.PlaneGeometry(100, 100);`
-        );
+        this.emit(`const groundGeom = new THREE.PlaneGeometry(100, 100);`);
         this.emit(
           `const groundMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 });`
         );
@@ -338,10 +334,8 @@ export class ThreeJSCompiler extends CompilerBase {
       this.emit(`this.scene.add(${v});`);
     }
 
-    if (position)
-      this.emit(`${v}.position.set(${position[0]}, ${position[1]}, ${position[2]});`);
-    if (rotation)
-      this.emit(`${v}.rotation.set(${rotation[0]}, ${rotation[1]}, ${rotation[2]});`);
+    if (position) this.emit(`${v}.position.set(${position[0]}, ${position[1]}, ${position[2]});`);
+    if (rotation) this.emit(`${v}.rotation.set(${rotation[0]}, ${rotation[1]}, ${rotation[2]});`);
     if (scale) {
       if (Array.isArray(scale)) {
         this.emit(`${v}.scale.set(${scale[0]}, ${scale[1]}, ${scale[2]});`);
@@ -386,9 +380,7 @@ export class ThreeJSCompiler extends CompilerBase {
       } else if (trait.name === 'hoverable') {
         this.emit(`// @hoverable — attach raycaster pointer-move handler to ${v}`);
       } else if (trait.name === 'gaussian_splat') {
-        this.emit(
-          `// @gaussian_splat — use @mkkellogg/gaussian-splats-3d or three-splat for ${v}`
-        );
+        this.emit(`// @gaussian_splat — use @mkkellogg/gaussian-splats-3d or three-splat for ${v}`);
       } else if (trait.name === 'object_tracking') {
         this.emit(`// @object_tracking — WebXR hit-test for ${v}`);
       } else if (trait.name === 'eye_tracked') {
@@ -504,22 +496,21 @@ export class ThreeJSCompiler extends CompilerBase {
       }
       case 'point': {
         const distStr = distance !== undefined ? String(distance) : '0';
-        this.emit(
-          `const ${v} = new THREE.PointLight(${colorHex}, ${intStr}, ${distStr});`
-        );
-        if (position) this.emit(`${v}.position.set(${position[0]}, ${position[1]}, ${position[2]});`);
+        this.emit(`const ${v} = new THREE.PointLight(${colorHex}, ${intStr}, ${distStr});`);
+        if (position)
+          this.emit(`${v}.position.set(${position[0]}, ${position[1]}, ${position[2]});`);
         if (castShadow && this.options.enableShadows) this.emit(`${v}.castShadow = true;`);
         this.emit(`this.scene.add(${v});`);
         break;
       }
       case 'spot': {
-        const angleRad =
-          angle !== undefined ? `${angle} * Math.PI / 180` : 'Math.PI / 6';
+        const angleRad = angle !== undefined ? `${angle} * Math.PI / 180` : 'Math.PI / 6';
         const pen = penumbra ?? 0.1;
         this.emit(
           `const ${v} = new THREE.SpotLight(${colorHex}, ${intStr}, ${distance ?? 0}, ${angleRad}, ${pen});`
         );
-        if (position) this.emit(`${v}.position.set(${position[0]}, ${position[1]}, ${position[2]});`);
+        if (position)
+          this.emit(`${v}.position.set(${position[0]}, ${position[1]}, ${position[2]});`);
         if (castShadow && this.options.enableShadows) this.emit(`${v}.castShadow = true;`);
         this.emit(`this.scene.add(${v});`);
         break;
@@ -553,13 +544,9 @@ export class ThreeJSCompiler extends CompilerBase {
     if (near !== undefined) this.emit(`this.camera.near = ${near};`);
     if (far !== undefined) this.emit(`this.camera.far = ${far};`);
     if (position)
-      this.emit(
-        `this.camera.position.set(${position[0]}, ${position[1]}, ${position[2]});`
-      );
+      this.emit(`this.camera.position.set(${position[0]}, ${position[1]}, ${position[2]});`);
     if (target) {
-      this.emit(
-        `this.camera.lookAt(new THREE.Vector3(${target[0]}, ${target[1]}, ${target[2]}));`
-      );
+      this.emit(`this.camera.lookAt(new THREE.Vector3(${target[0]}, ${target[1]}, ${target[2]}));`);
     }
     this.emit(`this.camera.updateProjectionMatrix();`);
     this.emit('');
@@ -612,9 +599,7 @@ export class ThreeJSCompiler extends CompilerBase {
     }
 
     if (shape === 'sphere') {
-      this.emit(
-        `const ${v}Geom = new THREE.SphereGeometry(${radius ?? 5}, 16, 16);`
-      );
+      this.emit(`const ${v}Geom = new THREE.SphereGeometry(${radius ?? 5}, 16, 16);`);
     } else {
       const s = Array.isArray(size) ? size : [size ?? 5, size ?? 5, size ?? 5];
       this.emit(`const ${v}Geom = new THREE.BoxGeometry(${s[0]}, ${s[1]}, ${s[2]});`);
@@ -627,9 +612,7 @@ export class ThreeJSCompiler extends CompilerBase {
     this.emit(`this.scene.add(${v}); // trigger zone (invisible)`);
 
     if (zone.handlers?.length) {
-      this.emit(
-        `// Zone handlers: attach raycaster intersection checks for ${v}`
-      );
+      this.emit(`// Zone handlers: attach raycaster intersection checks for ${v}`);
       for (const h of zone.handlers) {
         this.emit(
           `// on ${this.escapeStringValue(h.event as string, 'TypeScript')}: implement via raycaster.intersectObject(${v})`

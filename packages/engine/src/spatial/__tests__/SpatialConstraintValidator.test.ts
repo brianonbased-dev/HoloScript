@@ -350,8 +350,8 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'zone',
           position: [0, 0, 0],
           bounds: {
-            min: [-5, -5, -5 ],
-            max: [5, 5, 5 ],
+            min: [-5, -5, -5],
+            max: [5, 5, 5],
           },
           constraints: [
             {
@@ -380,8 +380,8 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'zone',
           position: [0, 0, 0],
           bounds: {
-            min: [-5, -5, -5 ],
-            max: [5, 5, 5 ],
+            min: [-5, -5, -5],
+            max: [5, 5, 5],
           },
           constraints: [
             {
@@ -412,7 +412,7 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'zone',
           position: [0, 0, 0],
           bounds: {
-            center: [0, 0, 0 ],
+            center: [0, 0, 0],
             radius: 10,
           },
           constraints: [
@@ -442,7 +442,7 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'zone',
           position: [0, 0, 0],
           bounds: {
-            center: [0, 0, 0 ],
+            center: [0, 0, 0],
             radius: 3,
           },
           constraints: [
@@ -472,8 +472,8 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'zone',
           position: [0, 0, 0],
           bounds: {
-            min: [-5, -5, -5 ],
-            max: [5, 5, 5 ],
+            min: [-5, -5, -5],
+            max: [5, 5, 5],
           },
           constraints: [
             {
@@ -533,8 +533,8 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'zone',
           position: [0, 0, 0],
           bounds: {
-            min: [-5, -5, -5 ],
-            max: [5, 5, 5 ],
+            min: [-5, -5, -5],
+            max: [5, 5, 5],
           },
           constraints: [
             {
@@ -550,8 +550,8 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'orb',
           position: [4, 0, 0],
           bounds: {
-            min: [-2, -1, -1 ],
-            max: [2, 1, 1 ],
+            min: [-2, -1, -1],
+            max: [2, 1, 1],
           },
           constraints: [],
         },
@@ -653,8 +653,8 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'wall',
           position: [10, 0, 0],
           bounds: {
-            min: [9, -5, -5 ],
-            max: [11, 5, 5 ],
+            min: [9, -5, -5],
+            max: [11, 5, 5],
           },
           constraints: [],
         },
@@ -692,8 +692,8 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'wall',
           position: [10, 0, 0],
           bounds: {
-            min: [9, -5, -5 ],
-            max: [11, 5, 5 ],
+            min: [9, -5, -5],
+            max: [11, 5, 5],
           },
           constraints: [],
         },
@@ -802,8 +802,8 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'zone',
           position: [0, 0, 0],
           bounds: {
-            min: [-10, -10, -10 ],
-            max: [10, 10, 10 ],
+            min: [-10, -10, -10],
+            max: [10, 10, 10],
           },
           constraints: [
             {
@@ -818,8 +818,8 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'zone',
           position: [0, 0, 0],
           bounds: {
-            min: [-10, -10, -10 ],
-            max: [10, 10, 10 ],
+            min: [-10, -10, -10],
+            max: [10, 10, 10],
           },
           constraints: [
             {
@@ -851,8 +851,8 @@ describe('SpatialConstraintValidator', () => {
           entityType: 'zone',
           position: [0, 0, 0],
           bounds: {
-            min: [-5, -5, -5 ],
-            max: [5, 5, 5 ],
+            min: [-5, -5, -5],
+            max: [5, 5, 5],
           },
           constraints: [
             {
@@ -932,28 +932,28 @@ describe('SpatialConstraintValidator', () => {
 
   describe('computeAxisDistance', () => {
     it('should compute xyz distance correctly', () => {
-      const a = [0, 0, 0 ];
-      const b = [3, 4, 0 ];
+      const a = [0, 0, 0];
+      const b = [3, 4, 0];
       expect(validator.computeAxisDistance(a, b, 'xyz')).toBeCloseTo(5);
     });
 
     it('should compute xz distance (ignoring y)', () => {
-      const a = [0, 0, 0 ];
-      const b = [3, 100, 4 ];
+      const a = [0, 0, 0];
+      const b = [3, 100, 4];
       expect(validator.computeAxisDistance(a, b, 'xz')).toBeCloseTo(5);
     });
 
     it('should compute single axis distance', () => {
-      const a = [0, 0, 0 ];
-      const b = [5, 10, 15 ];
+      const a = [0, 0, 0];
+      const b = [5, 10, 15];
       expect(validator.computeAxisDistance(a, b, 'x')).toBeCloseTo(5);
       expect(validator.computeAxisDistance(a, b, 'y')).toBeCloseTo(10);
       expect(validator.computeAxisDistance(a, b, 'z')).toBeCloseTo(15);
     });
 
     it('should compute xy distance (ignoring z)', () => {
-      const a = [0, 0, 0 ];
-      const b = [3, 4, 100 ];
+      const a = [0, 0, 0];
+      const b = [3, 4, 100];
       expect(validator.computeAxisDistance(a, b, 'xy')).toBeCloseTo(5);
     });
   });

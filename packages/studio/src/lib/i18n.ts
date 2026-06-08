@@ -62,7 +62,10 @@ export function t(key: string, vars?: Interpolations): string {
  *
  * @param ns - Optional namespace prefix (e.g. `"ai"` turns `t("title")` into a lookup of `"ai.title"`)
  */
-export function useTranslation(ns?: string): { t: (key: string, vars?: Interpolations) => string; locale: Locale } {
+export function useTranslation(ns?: string): {
+  t: (key: string, vars?: Interpolations) => string;
+  locale: Locale;
+} {
   return {
     t: (key: string, vars?: Interpolations) => t(ns ? `${ns}.${key}` : key, vars),
     locale: currentLocale,

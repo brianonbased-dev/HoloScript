@@ -1,8 +1,25 @@
 /** @service_request Trait — 311-style civic service request tracking. @trait service_request */
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
-export type ServiceCategory = 'pothole' | 'streetlight' | 'graffiti' | 'abandoned_vehicle' | 'code_violation' | 'tree_hazard' | 'water_main' | 'sidewalk' | 'noise_complaint' | 'other';
-export type RequestStatus = 'submitted' | 'acknowledged' | 'assigned' | 'in_progress' | 'resolved' | 'closed' | 'duplicate';
+export type ServiceCategory =
+  | 'pothole'
+  | 'streetlight'
+  | 'graffiti'
+  | 'abandoned_vehicle'
+  | 'code_violation'
+  | 'tree_hazard'
+  | 'water_main'
+  | 'sidewalk'
+  | 'noise_complaint'
+  | 'other';
+export type RequestStatus =
+  | 'submitted'
+  | 'acknowledged'
+  | 'assigned'
+  | 'in_progress'
+  | 'resolved'
+  | 'closed'
+  | 'duplicate';
 export type PriorityLevel = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface ServiceRequestConfig {
@@ -11,7 +28,7 @@ export interface ServiceRequestConfig {
   description: string;
   location: string;
   coordinates?: { lat: number; lng: number };
-  submittedAt: string;  // ISO datetime
+  submittedAt: string; // ISO datetime
   priority: PriorityLevel;
   targetResolutionDays: number; // SLA days by priority
   department: string;
@@ -100,7 +117,11 @@ export function createServiceRequestHandler(): TraitHandler<ServiceRequestConfig
           const prev = s.status;
           s.status = newStatus;
           s.lastStatusChange = new Date().toISOString();
-          ctx.emit?.('sr:status_changed', { from: prev, to: newStatus, requestId: config.requestId });
+          ctx.emit?.('sr:status_changed', {
+            from: prev,
+            to: newStatus,
+            requestId: config.requestId,
+          });
           break;
         }
         case 'sr:add_update': {
@@ -108,7 +129,10 @@ export function createServiceRequestHandler(): TraitHandler<ServiceRequestConfig
           const author = (event.payload?.author as string) ?? 'staff';
           if (message) {
             s.updates.push({ timestamp: new Date().toISOString(), message, author });
-            ctx.emit?.('sr:update_added', { requestId: config.requestId, updateCount: s.updates.length });
+            ctx.emit?.('sr:update_added', {
+              requestId: config.requestId,
+              updateCount: s.updates.length,
+            });
           }
           break;
         }

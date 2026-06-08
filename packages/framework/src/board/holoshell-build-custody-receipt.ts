@@ -33,7 +33,7 @@ export const HOLOSHELL_BUILD_CUSTODY_RECEIPT_VERSION = 'holoshell.build-custody.
 export const CUSTODY_SOURCES = [
   'local_holoscript_cli',
   'mcp_server',
-  'hololand_overlay',   // legacy / product compatibility only
+  'hololand_overlay', // legacy / product compatibility only
   'manual',
   'ci',
 ] as const;
@@ -46,13 +46,13 @@ export interface BuildCustodyRecord {
   source: CustodySource;
   /** True when this is a true native HoloScript receipt (not hololand_overlay). */
   isNative: boolean;
-  builtBy: string;                    // agent / surface / seat
+  builtBy: string; // agent / surface / seat
   builtAt: string;
-  sourceRef: string;                  // commit, bundle hash, or workspace id
+  sourceRef: string; // commit, bundle hash, or workspace id
   mcpHealthSnapshot?: {
     mcpVersion: string;
     healthy: boolean;
-    graphAuthoritative: boolean;      // critical: stale hosted vs fresh local
+    graphAuthoritative: boolean; // critical: stale hosted vs fresh local
     features: string[];
   };
   hardwareContext?: {
@@ -61,7 +61,7 @@ export interface BuildCustodyRecord {
     gpus: string[];
     wasmSimd: boolean;
   };
-  receiptsIncluded: string[];         // IDs of other receipts that fed this custody
+  receiptsIncluded: string[]; // IDs of other receipts that fed this custody
   notes?: string[];
 }
 
@@ -145,7 +145,10 @@ export function cloneHoloShellBuildCustodyReceipt(
     custody: {
       ...receipt.custody,
       mcpHealthSnapshot: receipt.custody.mcpHealthSnapshot
-        ? { ...receipt.custody.mcpHealthSnapshot, features: [...receipt.custody.mcpHealthSnapshot.features] }
+        ? {
+            ...receipt.custody.mcpHealthSnapshot,
+            features: [...receipt.custody.mcpHealthSnapshot.features],
+          }
         : undefined,
       hardwareContext: receipt.custody.hardwareContext
         ? { ...receipt.custody.hardwareContext, gpus: [...receipt.custody.hardwareContext.gpus] }
@@ -153,7 +156,9 @@ export function cloneHoloShellBuildCustodyReceipt(
       receiptsIncluded: [...receipt.custody.receiptsIncluded],
       ...(receipt.custody.notes ? { notes: [...receipt.custody.notes] } : {}),
     },
-    ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map(c => ({ ...c })) } : {}),
+    ...(receipt.verificationCommands
+      ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c })) }
+      : {}),
     ...(receipt.provenance ? { provenance: { ...receipt.provenance } } : {}),
     ...(receipt.overlayWarning ? { overlayWarning: receipt.overlayWarning } : {}),
   };
@@ -176,12 +181,12 @@ export interface BuildCustodyInput {
 export function createHoloShellBuildCustodyReceipt(
   input: BuildCustodyInput
 ): HoloShellBuildCustodyReceipt {
-  const source = input.source ?? (input.isNative === false ? 'hololand_overlay' : 'local_holoscript_cli');
-  const isNative = input.isNative ?? (source !== 'hololand_overlay');
+  const source =
+    input.source ?? (input.isNative === false ? 'hololand_overlay' : 'local_holoscript_cli');
+  const isNative = input.isNative ?? source !== 'hololand_overlay';
 
   const status: HoloShellBuildCustodyReceipt['status'] =
-    source === 'hololand_overlay' ? 'overlay' :
-    isNative ? 'authoritative' : 'warn';
+    source === 'hololand_overlay' ? 'overlay' : isNative ? 'authoritative' : 'warn';
 
   const record: BuildCustodyRecord = {
     custodyId: `build-custody-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
@@ -201,9 +206,12 @@ export function createHoloShellBuildCustodyReceipt(
     id: record.custodyId,
     status,
     custody: record,
-    ...(source === 'hololand_overlay' ? {
-      overlayWarning: 'Legacy hololand_overlay custody. Prefer native HoloScript custody for WorldBuildReadyToken and cockpit gates.'
-    } : {}),
+    ...(source === 'hololand_overlay'
+      ? {
+          overlayWarning:
+            'Legacy hololand_overlay custody. Prefer native HoloScript custody for WorldBuildReadyToken and cockpit gates.',
+        }
+      : {}),
     hash: '',
     hashAlgorithm: 'sha256',
     createdAt: new Date().toISOString(),

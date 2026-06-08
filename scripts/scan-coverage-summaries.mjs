@@ -21,10 +21,7 @@ const rootDir = path.resolve(path.dirname(__filename), '..');
 const args = new Set(process.argv.slice(2));
 const writeCentral = args.has('--write-central');
 
-const searchRoots = [
-  path.join(rootDir, 'packages'),
-  path.join(rootDir, 'services'),
-];
+const searchRoots = [path.join(rootDir, 'packages'), path.join(rootDir, 'services')];
 
 function findCoverageSummaries(dir, results = []) {
   if (!fs.existsSync(dir)) return results;

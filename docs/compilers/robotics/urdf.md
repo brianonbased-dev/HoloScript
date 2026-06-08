@@ -22,6 +22,7 @@ A validated ROS 2 URDF generated from the canonical `TwoDoFRobotArm` composition
 - [ROS 2 Validation Receipt](./ros2-validation-receipt.md) — Compatibility verification
 
 The artifact includes:
+
 - 6 links with inertial, visual, and collision geometry
 - 2 revolute joints (shoulder + elbow) with limits and damping
 - ROS 2 `robot_state_publisher` compatible structure

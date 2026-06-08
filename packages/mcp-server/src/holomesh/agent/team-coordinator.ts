@@ -33,10 +33,7 @@ import type { TeamAgentProfile, SlotRole } from './team-agents';
 import { TEAM_AGENT_PROFILES, getAllProfiles } from './team-agents';
 import { Team as FrameworkTeam } from '@holoscript/framework';
 import type { CycleResult as FrameworkCycleResult } from '@holoscript/framework';
-import {
-  resolveSecretWithLease,
-  VaultLeaseError,
-} from '../identity/vault-lease-registry';
+import { resolveSecretWithLease, VaultLeaseError } from '../identity/vault-lease-registry';
 
 // ── Types ──
 

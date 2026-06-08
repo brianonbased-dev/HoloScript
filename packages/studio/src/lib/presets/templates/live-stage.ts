@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-live-stage",
-  name: "Virtual Live Stage",
-  description: "Concert and streaming stage with lighting rigs and effects",
-  thumbnail: "🎤",
-  tags: ["creator","stage","concert","streaming"],
-  category: "creator",
+  id: 'wizard-live-stage',
+  name: 'Virtual Live Stage',
+  description: 'Concert and streaming stage with lighting rigs and effects',
+  thumbnail: '🎤',
+  tags: ['creator', 'stage', 'concert', 'streaming'],
+  category: 'creator',
   code: `composition "Live Stage" {
   environment {
     skybox: "night"
@@ -77,7 +77,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 0.5
     label: "LIVE"
   }
-}`
+}`,
 };
 
 export default template;

@@ -104,7 +104,11 @@ function getProviders(): Provider[] {
   if (process.env.OLLAMA_URL) {
     const ollamaBase = process.env.OLLAMA_URL;
     const model = process.env.OLLAMA_AUTOCOMPLETE_MODEL ?? 'codellama:7b-code';
-    const adapter = new LocalLLMAdapter({ baseURL: ollamaBase, defaultModel: model, timeoutMs: 4000 });
+    const adapter = new LocalLLMAdapter({
+      baseURL: ollamaBase,
+      defaultModel: model,
+      timeoutMs: 4000,
+    });
     providers.push({
       name: 'ollama',
       call: async (prefix, suffix, maxTokens) => {
@@ -201,7 +205,6 @@ export async function POST(request: NextRequest) {
     }
   );
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

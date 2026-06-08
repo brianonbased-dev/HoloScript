@@ -270,8 +270,10 @@ export function vecComponentMin(a: VectorValue, b: VectorValue): VectorValue {
  * When authority is equal, falls back to magnitude tiebreak then lexicographic.
  */
 export function vecAuthorityPick(
-  a: VectorValue, weightA: number,
-  b: VectorValue, weightB: number,
+  a: VectorValue,
+  weightA: number,
+  b: VectorValue,
+  weightB: number
 ): VectorValue {
   const eps = 1e-12;
   if (Math.abs(weightA - weightB) > eps) return weightA > weightB ? a : b;
@@ -353,9 +355,15 @@ export class ProvenanceSemiring {
     // Vector physics properties (paper-3 §5.2)
     this.rules.set('velocity', { property: 'velocity', strategy: 'vec-component-sum' });
     this.rules.set('acceleration', { property: 'acceleration', strategy: 'vec-component-sum' });
-    this.rules.set('angularVelocity', { property: 'angularVelocity', strategy: 'vec-component-sum' });
+    this.rules.set('angularVelocity', {
+      property: 'angularVelocity',
+      strategy: 'vec-component-sum',
+    });
     this.rules.set('stressTensor', { property: 'stressTensor', strategy: 'vec-component-max' });
-    this.rules.set('displacementField', { property: 'displacementField', strategy: 'vec-magnitude-max' });
+    this.rules.set('displacementField', {
+      property: 'displacementField',
+      strategy: 'vec-magnitude-max',
+    });
     this.rules.set('forceField', { property: 'forceField', strategy: 'vec-authority-weighted' });
   }
 
@@ -457,17 +465,19 @@ export class ProvenanceSemiring {
     const weightA = authorityWeight(a.context?.authorityLevel ?? 0, a.context?.reputationScore);
     const weightB = authorityWeight(b.context?.authorityLevel ?? 0, b.context?.reputationScore);
 
-    if (
-      rule &&
-      (rule.strategy === 'tropical-min-plus' || rule.strategy === 'tropical-max-plus')
-    ) {
+    if (rule && (rule.strategy === 'tropical-min-plus' || rule.strategy === 'tropical-max-plus')) {
       const semiring = strategyToSemiring(rule.strategy);
       if (!semiring) {
         throw new Error(`No semiring adapter available for strategy '${rule.strategy}'`);
       }
       const srcA = String(a.source);
       const srcB = String(b.source);
-      let selectedContext = weightA > weightB ? a.context : (weightA < weightB ? b.context : tieBreakProvenance(a, b).context);
+      let selectedContext =
+        weightA > weightB
+          ? a.context
+          : weightA < weightB
+            ? b.context
+            : tieBreakProvenance(a, b).context;
       return {
         value: semiring.mul(a.value as number, b.value as number),
         source: srcA < srcB ? `${srcA}⊗${srcB}` : `${srcB}⊗${srcA}`,
@@ -556,7 +566,7 @@ export class ProvenanceSemiring {
         if (!isVectorValue(a.value) || !isVectorValue(b.value)) {
           throw new Error(
             `vec-component-max requires VectorValue on property '${property}': ` +
-            `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
+              `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
         const srcA = String(a.source);
@@ -571,7 +581,7 @@ export class ProvenanceSemiring {
         if (!isVectorValue(a.value) || !isVectorValue(b.value)) {
           throw new Error(
             `vec-component-min requires VectorValue on property '${property}': ` +
-            `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
+              `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
         const srcA = String(a.source);
@@ -586,7 +596,7 @@ export class ProvenanceSemiring {
         if (!isVectorValue(a.value) || !isVectorValue(b.value)) {
           throw new Error(
             `vec-component-sum requires VectorValue on property '${property}': ` +
-            `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
+              `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
         const srcA = String(a.source);
@@ -601,7 +611,7 @@ export class ProvenanceSemiring {
         if (!isVectorValue(a.value) || !isVectorValue(b.value)) {
           throw new Error(
             `vec-magnitude-max requires VectorValue on property '${property}': ` +
-            `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
+              `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
         const magA = vecMagnitude(a.value);
@@ -620,7 +630,7 @@ export class ProvenanceSemiring {
         if (!isVectorValue(a.value) || !isVectorValue(b.value)) {
           throw new Error(
             `vec-authority-weighted requires VectorValue on property '${property}': ` +
-            `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
+              `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
         const winner = vecAuthorityPick(a.value, weightA, b.value, weightB);

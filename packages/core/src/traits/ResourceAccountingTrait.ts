@@ -484,7 +484,11 @@ function renderAuditPrompt(
     replaceToken(
       replaceToken(
         replaceToken(
-          replaceToken(replaceToken(template, '{claimId}', receipt.claimId), '{domain}', receipt.domain),
+          replaceToken(
+            replaceToken(template, '{claimId}', receipt.claimId),
+            '{domain}',
+            receipt.domain
+          ),
           '{ledgerId}',
           receipt.ledgerId
         ),

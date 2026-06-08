@@ -72,9 +72,15 @@ describe(`SemanticNoveltyEncoder — learned model (${SEMANTIC_NOVELTY_MODEL})`,
 
   it('scores a paraphrase far above an unrelated sentence (catches what trigram misses)', async (ctx) => {
     if (!available) return ctx.skip();
-    const claim = await embedSemantic('Every convex polyhedron satisfies V minus E plus F equals two.');
-    const paraphrase = await embedSemantic('For any convex polyhedron, vertices minus edges plus faces is 2.');
-    const unrelated = await embedSemantic('The cat sat on the warm windowsill in the afternoon sun.');
+    const claim = await embedSemantic(
+      'Every convex polyhedron satisfies V minus E plus F equals two.'
+    );
+    const paraphrase = await embedSemantic(
+      'For any convex polyhedron, vertices minus edges plus faces is 2.'
+    );
+    const unrelated = await embedSemantic(
+      'The cat sat on the warm windowsill in the afternoon sun.'
+    );
     const simPara = cosineSimilarity(claim, paraphrase);
     const simUnrel = cosineSimilarity(claim, unrelated);
     expect(simPara).toBeGreaterThan(0.5); // paraphrase is semantically close
@@ -94,13 +100,14 @@ describe(`SemanticNoveltyEncoder — learned model (${SEMANTIC_NOVELTY_MODEL})`,
         id: 'prior.geometry.pythagoras',
         title: 'Pythagoras',
         source: 'classical',
-        statement: 'In a right triangle the hypotenuse squared equals the sum of the other two sides squared.',
+        statement:
+          'In a right triangle the hypotenuse squared equals the sum of the other two sides squared.',
       },
     ];
     // a PARAPHRASE (not verbatim) of the Euler entry — trigram@0.995 would call this novel
     const a = await assessSemanticNovelty(
       'Any convex solid has its corner count minus its edge count plus its face count equal to 2.',
-      corpus,
+      corpus
     );
     expect(a.binding).toBe('advisory');
     expect(a.status).toBe('near-duplicate');
@@ -109,7 +116,7 @@ describe(`SemanticNoveltyEncoder — learned model (${SEMANTIC_NOVELTY_MODEL})`,
     // a genuinely unrelated claim stays novel
     const b = await assessSemanticNovelty(
       'Agent worldlines form a braid whose word determines hash-equal shared state.',
-      corpus,
+      corpus
     );
     expect(b.status).toBe('novel');
   });

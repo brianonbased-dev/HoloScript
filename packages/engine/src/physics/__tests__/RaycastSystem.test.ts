@@ -13,7 +13,7 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 'a',
       type: 'sphere',
-      shape: { center: [0, 0, 0 ], radius: 1 },
+      shape: { center: [0, 0, 0], radius: 1 },
       layer: 1,
     });
     expect(sys.getColliderCount()).toBe(1);
@@ -23,7 +23,7 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 'b',
       type: 'sphere',
-      shape: { center: [0, 0, 0 ], radius: 1 },
+      shape: { center: [0, 0, 0], radius: 1 },
       layer: 1,
     });
     sys.removeCollider('b');
@@ -35,10 +35,10 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 's1',
       type: 'sphere',
-      shape: { center: [5, 0, 0 ], radius: 1 },
+      shape: { center: [5, 0, 0], radius: 1 },
       layer: 1,
     });
-    const hit = sys.raycast({ origin: [0, 0, 0 ], direction: [1, 0, 0 ] });
+    const hit = sys.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] });
     expect(hit).not.toBeNull();
     expect(hit!.entityId).toBe('s1');
     expect(hit!.distance).toBeCloseTo(4, 0); // hits surface at x=4
@@ -48,10 +48,10 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 's2',
       type: 'sphere',
-      shape: { center: [5, 10, 0 ], radius: 1 },
+      shape: { center: [5, 10, 0], radius: 1 },
       layer: 1,
     });
-    const hit = sys.raycast({ origin: [0, 0, 0 ], direction: [1, 0, 0 ] });
+    const hit = sys.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] });
     expect(hit).toBeNull();
   });
 
@@ -60,10 +60,10 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 'box1',
       type: 'aabb',
-      shape: { min: [3, -1, -1 ], max: [5, 1, 1 ] },
+      shape: { min: [3, -1, -1], max: [5, 1, 1] },
       layer: 1,
     });
-    const hit = sys.raycast({ origin: [0, 0, 0 ], direction: [1, 0, 0 ] });
+    const hit = sys.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] });
     expect(hit).not.toBeNull();
     expect(hit!.entityId).toBe('box1');
     expect(hit!.distance).toBeCloseTo(3, 0);
@@ -73,10 +73,10 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 'box2',
       type: 'aabb',
-      shape: { min: [3, 5, -1 ], max: [5, 7, 1 ] },
+      shape: { min: [3, 5, -1], max: [5, 7, 1] },
       layer: 1,
     });
-    const hit = sys.raycast({ origin: [0, 0, 0 ], direction: [1, 0, 0 ] });
+    const hit = sys.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] });
     expect(hit).toBeNull();
   });
 
@@ -85,10 +85,10 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 'plane1',
       type: 'plane',
-      shape: { normal: [0, 1, 0 ], distance: -5 },
+      shape: { normal: [0, 1, 0], distance: -5 },
       layer: 1,
     });
-    const hit = sys.raycast({ origin: [0, 0, 0 ], direction: [0, 1, 0 ] });
+    const hit = sys.raycast({ origin: [0, 0, 0], direction: [0, 1, 0] });
     expect(hit).not.toBeNull();
     expect(hit!.entityId).toBe('plane1');
   });
@@ -97,10 +97,10 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 'plane2',
       type: 'plane',
-      shape: { normal: [0, 1, 0 ], distance: -5 },
+      shape: { normal: [0, 1, 0], distance: -5 },
       layer: 1,
     });
-    const hit = sys.raycast({ origin: [0, 0, 0 ], direction: [1, 0, 0 ] }); // parallel to plane
+    const hit = sys.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] }); // parallel to plane
     expect(hit).toBeNull();
   });
 
@@ -109,16 +109,16 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 'far',
       type: 'sphere',
-      shape: { center: [10, 0, 0 ], radius: 1 },
+      shape: { center: [10, 0, 0], radius: 1 },
       layer: 1,
     });
     sys.addCollider({
       entityId: 'near',
       type: 'sphere',
-      shape: { center: [3, 0, 0 ], radius: 1 },
+      shape: { center: [3, 0, 0], radius: 1 },
       layer: 1,
     });
-    const hit = sys.raycast({ origin: [0, 0, 0 ], direction: [1, 0, 0 ] });
+    const hit = sys.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] });
     expect(hit!.entityId).toBe('near');
   });
 
@@ -126,16 +126,16 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 'far',
       type: 'sphere',
-      shape: { center: [10, 0, 0 ], radius: 1 },
+      shape: { center: [10, 0, 0], radius: 1 },
       layer: 1,
     });
     sys.addCollider({
       entityId: 'near',
       type: 'sphere',
-      shape: { center: [3, 0, 0 ], radius: 1 },
+      shape: { center: [3, 0, 0], radius: 1 },
       layer: 1,
     });
-    const hits = sys.raycastAll({ origin: [0, 0, 0 ], direction: [1, 0, 0 ] });
+    const hits = sys.raycastAll({ origin: [0, 0, 0], direction: [1, 0, 0] });
     expect(hits.length).toBe(2);
     expect(hits[0].entityId).toBe('near');
     expect(hits[1].entityId).toBe('far');
@@ -146,10 +146,10 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 'far',
       type: 'sphere',
-      shape: { center: [100, 0, 0 ], radius: 1 },
+      shape: { center: [100, 0, 0], radius: 1 },
       layer: 1,
     });
-    const hit = sys.raycast({ origin: [0, 0, 0 ], direction: [1, 0, 0 ] }, 10);
+    const hit = sys.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] }, 10);
     expect(hit).toBeNull();
   });
 
@@ -158,27 +158,21 @@ describe('RaycastSystem', () => {
     sys.addCollider({
       entityId: 'layer1',
       type: 'sphere',
-      shape: { center: [3, 0, 0 ], radius: 1 },
+      shape: { center: [3, 0, 0], radius: 1 },
       layer: 1,
     });
     sys.addCollider({
       entityId: 'layer2',
       type: 'sphere',
-      shape: { center: [5, 0, 0 ], radius: 1 },
+      shape: { center: [5, 0, 0], radius: 1 },
       layer: 2,
     });
-    const hit = sys.raycast(
-      { origin: [0, 0, 0 ], direction: [1, 0, 0 ] },
-      Infinity,
-      2
-    );
+    const hit = sys.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] }, Infinity, 2);
     expect(hit!.entityId).toBe('layer2');
   });
 
   // ---------- Empty ----------
   it('returns null with no colliders', () => {
-    expect(
-      sys.raycast({ origin: [0, 0, 0 ], direction: [1, 0, 0 ] })
-    ).toBeNull();
+    expect(sys.raycast({ origin: [0, 0, 0], direction: [1, 0, 0] })).toBeNull();
   });
 });

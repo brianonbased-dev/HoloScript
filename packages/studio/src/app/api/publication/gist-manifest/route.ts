@@ -69,7 +69,10 @@ async function deployToHolomesh(params: {
  * Prefer `GIST_MANIFEST_X402_TIER` for explicit policy (see below).
  */
 function requireX402Enabled(): boolean {
-  return process.env.GIST_MANIFEST_REQUIRE_X402 === 'true' || process.env.GIST_MANIFEST_REQUIRE_X402 === '1';
+  return (
+    process.env.GIST_MANIFEST_REQUIRE_X402 === 'true' ||
+    process.env.GIST_MANIFEST_REQUIRE_X402 === '1'
+  );
 }
 
 type X402Tier = 'off' | 'required' | 'strict';
@@ -93,13 +96,20 @@ function getX402Tier(): X402Tier {
 }
 
 function receiptIsNonEmpty(o: unknown): o is Record<string, unknown> {
-  return o !== null && typeof o === 'object' && !Array.isArray(o) && Object.keys(o as object).length > 0;
+  return (
+    o !== null && typeof o === 'object' && !Array.isArray(o) && Object.keys(o as object).length > 0
+  );
 }
 
 function strictX402ReceiptValid(o: Record<string, unknown>): boolean {
   const pid = o.payment_id;
   const net = o.network;
-  return typeof pid === 'string' && pid.trim().length > 0 && typeof net === 'string' && net.trim().length > 0;
+  return (
+    typeof pid === 'string' &&
+    pid.trim().length > 0 &&
+    typeof net === 'string' &&
+    net.trim().length > 0
+  );
 }
 
 function normalizeFilm3dAttestation(raw: unknown): Film3dAttestationBinding | undefined {
@@ -159,7 +169,11 @@ export async function POST(req: NextRequest) {
     if (typeof room !== 'string' || !room.length) {
       return NextResponse.json({ error: 'room (non-empty string) is required' }, { status: 400 });
     }
-    if (loroDocVersion === null || typeof loroDocVersion !== 'object' || Array.isArray(loroDocVersion)) {
+    if (
+      loroDocVersion === null ||
+      typeof loroDocVersion !== 'object' ||
+      Array.isArray(loroDocVersion)
+    ) {
       return NextResponse.json({ error: 'loroDocVersion (object) is required' }, { status: 400 });
     }
 
@@ -202,7 +216,8 @@ export async function POST(req: NextRequest) {
       loroDocVersion: loroDocVersion as Record<string, unknown>,
       x402Receipt: (x402Receipt as Record<string, unknown> | undefined) ?? undefined,
       title: typeof body.title === 'string' ? body.title : undefined,
-      primaryAssetSha256: typeof body.primaryAssetSha256 === 'string' ? body.primaryAssetSha256 : undefined,
+      primaryAssetSha256:
+        typeof body.primaryAssetSha256 === 'string' ? body.primaryAssetSha256 : undefined,
       xrMetrics,
       film3dAttestation,
       includeSemiringDigest: body.includeSemiringDigest === false ? false : undefined,
@@ -232,7 +247,10 @@ export async function POST(req: NextRequest) {
 
       if (!endpoint) {
         return NextResponse.json(
-          { error: 'holomesh.endpoint or HOLOMESH_SCENE_INGEST_URL is required when deployToHolomesh=true' },
+          {
+            error:
+              'holomesh.endpoint or HOLOMESH_SCENE_INGEST_URL is required when deployToHolomesh=true',
+          },
           { status: 400 }
         );
       }

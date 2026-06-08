@@ -236,9 +236,7 @@ export class InferencePriorityScheduler {
   schedule<TInput, TOutput>(task: InferenceTask<TInput, TOutput>): void {
     this.queue.push(task as InferenceTask);
     this.queue.sort(
-      (a, b) =>
-        PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] ||
-        a.createdAt - b.createdAt
+      (a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || a.createdAt - b.createdAt
     );
   }
 

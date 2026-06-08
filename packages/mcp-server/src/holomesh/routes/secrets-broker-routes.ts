@@ -18,13 +18,7 @@ import {
   MAX_TTL_SECONDS,
   DEFAULT_TTL_SECONDS,
 } from '@holoscript/secrets-broker';
-import {
-  json,
-  parseJsonBody,
-  extractParam,
-  getTeamMember,
-  hasTeamPermission,
-} from '../utils';
+import { json, parseJsonBody, extractParam, getTeamMember, hasTeamPermission } from '../utils';
 import { requireAuth } from '../auth-utils';
 
 // ── Protocol commercialization integration ────────────────────────────────────
@@ -85,7 +79,10 @@ interface DeviceFlowResolution {
   rejectReason?: string;
 }
 
-const deviceFlowStore = new Map<string, { challenge: DeviceFlowChallenge; resolution?: DeviceFlowResolution }>();
+const deviceFlowStore = new Map<
+  string,
+  { challenge: DeviceFlowChallenge; resolution?: DeviceFlowResolution }
+>();
 
 function pruneExpiredDeviceFlows(now: Date = new Date()): number {
   let removed = 0;
@@ -113,7 +110,6 @@ export async function handleSecretsBrokerRoutes(
   method: string,
   url: string
 ): Promise<boolean> {
-
   // ── POST /api/holomesh/team/:id/secrets/mint ─────────────────────────────
   if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/secrets\/mint$/) && method === 'POST') {
     const caller = requireAuth(req, res);
@@ -131,7 +127,8 @@ export async function handleSecretsBrokerRoutes(
     const capabilities = Array.isArray(body.capabilities)
       ? (body.capabilities as string[]).filter((c): c is Capability => typeof c === 'string')
       : undefined;
-    const ttlSeconds = typeof body.ttl_seconds === 'number' ? body.ttl_seconds : DEFAULT_TTL_SECONDS;
+    const ttlSeconds =
+      typeof body.ttl_seconds === 'number' ? body.ttl_seconds : DEFAULT_TTL_SECONDS;
 
     try {
       const token = mintCapabilityToken({
@@ -184,7 +181,12 @@ export async function handleSecretsBrokerRoutes(
 
     try {
       capRegistry.validateById(tokenId, tokenSecret, needsCapability);
-      json(res, 200, { success: true, valid: true, token_id: tokenId, capability: needsCapability });
+      json(res, 200, {
+        success: true,
+        valid: true,
+        token_id: tokenId,
+        capability: needsCapability,
+      });
     } catch (err) {
       const msg = err instanceof CapabilityTokenError ? err.message : 'Verification failed';
       const code = err instanceof CapabilityTokenError ? err.code : 'TOKEN_INVALID_SECRET';
@@ -242,10 +244,14 @@ export async function handleSecretsBrokerRoutes(
     const requestedCaps = Array.isArray(body.capabilities)
       ? (body.capabilities as string[]).filter((c): c is Capability => typeof c === 'string')
       : undefined;
-    const ttlSeconds = typeof body.ttl_seconds === 'number' ? body.ttl_seconds : DEFAULT_TTL_SECONDS;
+    const ttlSeconds =
+      typeof body.ttl_seconds === 'number' ? body.ttl_seconds : DEFAULT_TTL_SECONDS;
 
     if (!parentTokenId || !parentTokenSecret || !delegateHandle) {
-      json(res, 400, { success: false, error: 'parent_token_id, parent_token_secret, and delegate_handle required' });
+      json(res, 400, {
+        success: false,
+        error: 'parent_token_id, parent_token_secret, and delegate_handle required',
+      });
       return true;
     }
 
@@ -308,8 +314,8 @@ export async function handleSecretsBrokerRoutes(
     pruneExpiredDeviceFlows();
 
     const body = await parseJsonBody(req);
-    const verificationUri = (body.verification_uri as string | undefined)?.trim()
-      || 'https://holoscript.studio/verify';
+    const verificationUri =
+      (body.verification_uri as string | undefined)?.trim() || 'https://holoscript.studio/verify';
     const ttlSeconds = typeof body.ttl_seconds === 'number' ? body.ttl_seconds : 10 * 60;
     const intervalSeconds = typeof body.interval_seconds === 'number' ? body.interval_seconds : 5;
 
@@ -338,7 +344,10 @@ export async function handleSecretsBrokerRoutes(
 
   // ── POST /api/holomesh/team/:id/secrets/device-flow/verify ────────────────
   // Operator (desktop/founder) verifies a user-code and approves issuance.
-  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/secrets\/device-flow\/verify$/) && method === 'POST') {
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/secrets\/device-flow\/verify$/) &&
+    method === 'POST'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
@@ -350,7 +359,8 @@ export async function handleSecretsBrokerRoutes(
     const capabilities = Array.isArray(body.capabilities)
       ? (body.capabilities as string[]).filter((c): c is Capability => typeof c === 'string')
       : undefined;
-    const ttlSeconds = typeof body.ttl_seconds === 'number' ? body.ttl_seconds : DEFAULT_TTL_SECONDS;
+    const ttlSeconds =
+      typeof body.ttl_seconds === 'number' ? body.ttl_seconds : DEFAULT_TTL_SECONDS;
 
     if (!userCode) {
       json(res, 400, { success: false, error: 'user_code required' });
@@ -402,7 +412,9 @@ export async function handleSecretsBrokerRoutes(
   // ── GET /api/holomesh/team/:id/secrets/device-flow/:deviceCode ────────────
   // Device polls this endpoint to see if the operator has approved.
   {
-    const pollMatch = pathname.match(/^\/api\/holomesh\/team\/[^/]+\/secrets\/device-flow\/([^/]+)$/);
+    const pollMatch = pathname.match(
+      /^\/api\/holomesh\/team\/[^/]+\/secrets\/device-flow\/([^/]+)$/
+    );
     if (pollMatch && method === 'GET') {
       const deviceCode = pollMatch[1];
       pruneExpiredDeviceFlows();
@@ -453,9 +465,9 @@ export async function handleSecretsBrokerRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const tokens = capRegistry.list().filter(
-      (t) => t.handle.startsWith(caller.name) || t.handle === caller.name
-    );
+    const tokens = capRegistry
+      .list()
+      .filter((t) => t.handle.startsWith(caller.name) || t.handle === caller.name);
     json(res, 200, {
       success: true,
       count: tokens.length,
@@ -480,7 +492,10 @@ export async function handleSecretsBrokerRoutes(
 
   // ── POST /api/holomesh/team/:id/protocol/secrets/publish ─────────────────────
   // Publish a capability token to the HoloScript Protocol so others can collect it.
-  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/publish$/) && method === 'POST') {
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/publish$/) &&
+    method === 'POST'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
@@ -508,7 +523,8 @@ export async function handleSecretsBrokerRoutes(
     }
 
     try {
-      const { calculateRevenueDistribution, ethToWei, PROTOCOL_CONSTANTS } = await getProtocolUtils();
+      const { calculateRevenueDistribution, ethToWei, PROTOCOL_CONSTANTS } =
+        await getProtocolUtils();
       const priceWei = ethToWei(price);
       const revenuePreview = calculateRevenueDistribution(priceWei, caller.name, []);
 
@@ -608,7 +624,10 @@ export async function handleSecretsBrokerRoutes(
 
   // ── POST /api/holomesh/team/:id/protocol/secrets/collect ─────────────────────
   // Collect (purchase) a published capability token.
-  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/collect$/) && method === 'POST') {
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/collect$/) &&
+    method === 'POST'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
@@ -622,7 +641,10 @@ export async function handleSecretsBrokerRoutes(
       return true;
     }
     if (!/^[a-f0-9]{64}$/.test(rawContentHash)) {
-      json(res, 400, { success: false, error: 'content_hash must be a 64-character lowercase hex string' });
+      json(res, 400, {
+        success: false,
+        error: 'content_hash must be a 64-character lowercase hex string',
+      });
       return true;
     }
     const contentHash = rawContentHash;
@@ -675,7 +697,10 @@ export async function handleSecretsBrokerRoutes(
 
   // ── GET /api/holomesh/team/:id/protocol/secrets/revenue ──────────────────────
   // Preview revenue distribution for a capability token at a given price.
-  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/revenue$/) && method === 'GET') {
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/revenue$/) &&
+    method === 'GET'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
@@ -713,7 +738,10 @@ export async function handleSecretsBrokerRoutes(
 
   // ── GET /api/holomesh/team/:id/protocol/secrets/lookup ─────────────────────
   // Look up published capability tokens by content hash or author.
-  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/lookup$/) && method === 'GET') {
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/protocol\/secrets\/lookup$/) &&
+    method === 'GET'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
@@ -722,7 +750,11 @@ export async function handleSecretsBrokerRoutes(
     const author = urlObj.searchParams.get('author')?.trim();
 
     if (!contentHash && !author) {
-      json(res, 400, { status: 'error', error: 'MISSING_PARAMS', message: 'Provide content_hash or author' });
+      json(res, 400, {
+        status: 'error',
+        error: 'MISSING_PARAMS',
+        message: 'Provide content_hash or author',
+      });
       return true;
     }
 
@@ -744,9 +776,7 @@ export async function handleSecretsBrokerRoutes(
       }
 
       // Author lookup
-      const results = Array.from(protocolTokenStore.values()).filter(
-        (p) => p.author === author
-      );
+      const results = Array.from(protocolTokenStore.values()).filter((p) => p.author === author);
       json(res, 200, {
         status: 'success',
         author,

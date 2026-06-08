@@ -250,15 +250,14 @@ describe('HealthCheckManager', () => {
         failureThreshold: 3,
         successThreshold: 2,
         initialDelayMs: 0,
-        check: vi.fn().mockImplementation(
-          () =>
-            new Promise((resolve) =>
-              setTimeout(
-                () => resolve({ healthy: true, message: 'OK', responseTimeMs: 0 }),
-                100
+        check: vi
+          .fn()
+          .mockImplementation(
+            () =>
+              new Promise((resolve) =>
+                setTimeout(() => resolve({ healthy: true, message: 'OK', responseTimeMs: 0 }), 100)
               )
-            )
-        ),
+          ),
       };
       manager.registerProbe(probe);
       const result = await manager.runProbe('timeout-probe');
@@ -451,7 +450,12 @@ describe('DegradationManager', () => {
       manager.forceLevel(3);
       const level = manager.getCurrentLevel();
       if (level.disabledTargets.length > 0) {
-        const allTargets = ['r3f', 'webgpu', 'unity', ...level.disabledTargets.slice(0, 1)] as const;
+        const allTargets = [
+          'r3f',
+          'webgpu',
+          'unity',
+          ...level.disabledTargets.slice(0, 1),
+        ] as const;
         const available = manager.getAvailableTargets([...allTargets]);
         expect(available.length).toBeLessThan(allTargets.length);
       }

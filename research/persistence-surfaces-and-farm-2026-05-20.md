@@ -7,6 +7,7 @@
 ## Key Surfaces Discovered
 
 ### 1. PersistentTrait (packages/core/src/traits/PersistentTrait.ts)
+
 - Explicitly labeled "starter for State & Persistence category, p3 board task".
 - 2026-03 audit called out **0% coverage** for state/persistence traits.
 - Originally pure in-memory Map with TTL.
@@ -14,22 +15,26 @@
 - Pairs with `STATE_PERSISTENCE_TRAITS` constant list (saveable, restorable, synced, versioned, undo_redo, staged, phased, dormant, active, etc.).
 
 ### 2. @holoscript/crdt package
+
 - Mature authenticated CRDT library (DID-signed LWWRegister, ORSet, GCounter, OperationLog, WebRTCSync).
 - Loro CRDT usage in spatial adapters (LoroSpatialAdapter, Loro Tree for scene graphs).
 - Currently under-adopted as the backing store for the main PersistentTrait.
 - Strong foundation for distributed HoloLand / multi-agent world models.
 
 ### 3. Declared but thin State Traits
+
 - Many names in `constants/state-persistence.ts` (versioned, undo_redo, staged, dormant, cooldown, charged, etc.).
 - Only `persistent` has an implementation (now improved).
 
 ### 4. Usage in the wider system
+
 - Listed in framework trait registry (`TM_REGISTERED_TRAITS` includes "persistent").
 - Loro deltas and frontiers appear in mcp-server Holomesh sync types.
 - HoloLand platform uses Loro for spatial blocks.
 - No widespread adoption yet in JEPAObjective, NPC controllers, or receipt pipelines.
 
 ### 5. Synthesis-aligned needs
+
 - **Paper 26 (P1)**: JEPA training runs need durable checkpoints, experiment versioning, and loss-curve persistence (currently ad-hoc JSON in research/paper26/results).
 - **HoloLand JEPA (D.050)**: NPC state (goals, memory, predicted world model) must survive process restarts and support conflict-free merge across agents.
 - **D.055 public surface**: Durable profiles, receipts, and trust graphs on the orchestrator side.

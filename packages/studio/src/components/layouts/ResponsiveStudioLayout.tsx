@@ -462,7 +462,11 @@ export function ResponsiveStudioLayout({
           )}
           <div className="flex-1 flex items-center justify-center">
             {showDebug && (
-              <BreakpointIndicator breakpoint={breakpoint} orientation={orientation} width={width} />
+              <BreakpointIndicator
+                breakpoint={breakpoint}
+                orientation={orientation}
+                width={width}
+              />
             )}
           </div>
           {rightPanel && (

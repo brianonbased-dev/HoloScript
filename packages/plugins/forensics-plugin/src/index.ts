@@ -1,7 +1,10 @@
 export { evidenceChainHandler, EVIDENCE_CHAIN_TRAIT } from './traits/EvidenceChainTrait';
 export type { EvidenceChainConfig } from './traits/EvidenceChainTrait';
 
-export { sceneReconstructionHandler, SCENE_RECONSTRUCTION_TRAIT } from './traits/SceneReconstructionTrait';
+export {
+  sceneReconstructionHandler,
+  SCENE_RECONSTRUCTION_TRAIT,
+} from './traits/SceneReconstructionTrait';
 export type { SceneReconstructionConfig } from './traits/SceneReconstructionTrait';
 
 export { chainOfCustodyHandler, CHAIN_OF_CUSTODY_TRAIT } from './traits/ChainOfCustodyTrait';
@@ -37,7 +40,11 @@ export const FORENSICS_KEYWORDS = [
   { term: 'evidence', traits: ['evidence_chain'], spatialRole: 'artifact' },
   { term: 'custody', traits: ['chain_of_custody'], spatialRole: 'record' },
   { term: 'reconstruct', traits: ['scene_reconstruction'], spatialRole: 'scene' },
-  { term: 'forensics', traits: ['evidence_chain', 'scene_reconstruction', 'chain_of_custody'], spatialRole: 'analysis' },
+  {
+    term: 'forensics',
+    traits: ['evidence_chain', 'scene_reconstruction', 'chain_of_custody'],
+    spatialRole: 'analysis',
+  },
 ];
 
 export * from './forensicssolver';

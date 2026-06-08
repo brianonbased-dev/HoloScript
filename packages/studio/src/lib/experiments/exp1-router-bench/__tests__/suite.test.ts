@@ -46,14 +46,20 @@ describe('EXP1_FULL_SUITE integrity', () => {
 
       const over = verifySceneMutation(
         task.sceneContext,
-        { tool: 'set_trait_property', input: { trait_name: traitName, property_key: key, property_value: max + 1 } },
+        {
+          tool: 'set_trait_property',
+          input: { trait_name: traitName, property_key: key, property_value: max + 1 },
+        },
         resolver
       );
       expect(over.passed, `${task.id}: over-max should fail`).toBe(false);
 
       const within = verifySceneMutation(
         task.sceneContext,
-        { tool: 'set_trait_property', input: { trait_name: traitName, property_key: key, property_value: max } },
+        {
+          tool: 'set_trait_property',
+          input: { trait_name: traitName, property_key: key, property_value: max },
+        },
         resolver
       );
       expect(within.passed, `${task.id}: in-bounds should pass`).toBe(true);
@@ -61,7 +67,9 @@ describe('EXP1_FULL_SUITE integrity', () => {
   });
 
   it('forbidden-trait tasks discriminate — adding a forbidden trait FAILS', () => {
-    const forbidTasks = EXP1_FULL_SUITE.filter((t) => (t.contract?.forbiddenTraits?.length ?? 0) > 0);
+    const forbidTasks = EXP1_FULL_SUITE.filter(
+      (t) => (t.contract?.forbiddenTraits?.length ?? 0) > 0
+    );
     expect(forbidTasks.length).toBeGreaterThan(5);
     for (const task of forbidTasks) {
       const resolver = resolverFor(task);
@@ -77,7 +85,9 @@ describe('EXP1_FULL_SUITE integrity', () => {
   });
 
   it('requiredObjects tasks discriminate — deleting the required object FAILS', () => {
-    const reqObjTasks = EXP1_FULL_SUITE.filter((t) => (t.contract?.requiredObjects?.length ?? 0) > 0);
+    const reqObjTasks = EXP1_FULL_SUITE.filter(
+      (t) => (t.contract?.requiredObjects?.length ?? 0) > 0
+    );
     for (const task of reqObjTasks) {
       const resolver = resolverFor(task);
       const required = task.contract!.requiredObjects![0];

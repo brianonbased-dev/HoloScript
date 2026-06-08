@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  runPaper7IKLatencyBenchmark,
-  writePaper7Artifact,
-} from '../ik-latency-publication';
+import { runPaper7IKLatencyBenchmark, writePaper7Artifact } from '../ik-latency-publication';
 
 describe('paper-7 IK latency publication runner', () => {
   it('produces a 12-cell matrix at reduced task_count for CI', () => {

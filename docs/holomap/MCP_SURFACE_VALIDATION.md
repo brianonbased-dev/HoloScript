@@ -1,18 +1,18 @@
 # HoloMap MCP surface — validation stubs
 
-**Purpose:** Map **which HoloMap tools exist** and **what CI asserts** without running GPU/WebGPU. Aligns with board work *MCP surface validation stubs*.
+**Purpose:** Map **which HoloMap tools exist** and **what CI asserts** without running GPU/WebGPU. Aligns with board work _MCP surface validation stubs_.
 
 ## Tool registry
 
 Source of truth: `packages/mcp-server/src/holomap-mcp-tools.ts` — `holoMapToolDefinitions`.
 
-| Tool | Role |
-|------|------|
-| `holo_reconstruct_from_video` | Session open + optional ffmpeg ingest |
-| `holo_reconstruct_step` | Stream one frame (requires `frameIndex`, dimensions) |
-| `holo_reconstruct_anchor` | Anchor context |
-| `holo_reconstruct_export` | Manifest + export target |
-| `holo_map_paper_ingest_probe` | Paper harness ingest comparison |
+| Tool                          | Role                                                 |
+| ----------------------------- | ---------------------------------------------------- |
+| `holo_reconstruct_from_video` | Session open + optional ffmpeg ingest                |
+| `holo_reconstruct_step`       | Stream one frame (requires `frameIndex`, dimensions) |
+| `holo_reconstruct_anchor`     | Anchor context                                       |
+| `holo_reconstruct_export`     | Manifest + export target                             |
+| `holo_map_paper_ingest_probe` | Paper harness ingest comparison                      |
 
 ## Automated tests (stubs / contracts)
 

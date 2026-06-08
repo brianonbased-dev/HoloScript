@@ -61,7 +61,12 @@ describe('HoloSurfaceRenderer — list/repeat', () => {
     render(
       <HoloSurfaceRenderer
         nodes={listComposition()}
-        state={{ projects: [{ name: 'Alpha', id: 'a1' }, { name: 'Beta', id: 'b2' }] }}
+        state={{
+          projects: [
+            { name: 'Alpha', id: 'a1' },
+            { name: 'Beta', id: 'b2' },
+          ],
+        }}
         onEmit={onEmit}
       />
     );

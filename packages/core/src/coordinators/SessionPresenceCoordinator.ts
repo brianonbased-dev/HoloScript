@@ -176,7 +176,12 @@ export class SessionPresenceCoordinator {
   private domainFromEvent(event: string): PresenceDomain {
     if (event.startsWith('shareplay:')) return 'shareplay';
     if (event.startsWith('spatial_voice_') || event === 'on_voice_activity') return 'voice';
-    if (event.startsWith('messaging_') || event === 'message_received' || event === 'message_sent' || event === 'command_parsed')
+    if (
+      event.startsWith('messaging_') ||
+      event === 'message_received' ||
+      event === 'message_sent' ||
+      event === 'command_parsed'
+    )
       return 'messaging';
     if (event.startsWith('heartbeat_')) return 'heartbeat';
     return 'unknown';
@@ -273,8 +278,10 @@ export class SessionPresenceCoordinator {
     // listener observes the same local state). See note above.
     for (const existing of this.voice.values()) {
       let next = existing;
-      if (event === 'spatial_voice_muted') next = { ...existing, muted: true, updatedAt: observedAt };
-      else if (event === 'spatial_voice_unmuted') next = { ...existing, muted: false, updatedAt: observedAt };
+      if (event === 'spatial_voice_muted')
+        next = { ...existing, muted: true, updatedAt: observedAt };
+      else if (event === 'spatial_voice_unmuted')
+        next = { ...existing, muted: false, updatedAt: observedAt };
       else if (event === 'on_voice_activity')
         next = { ...existing, lastVoiceActivityAt: observedAt, updatedAt: observedAt };
       else continue; // spatial_voice_position — observation only
@@ -364,10 +371,21 @@ export class SessionPresenceCoordinator {
     } else if (event === 'heartbeat_error') {
       status = 'errored';
       error =
-        typeof p.error === 'string' ? p.error : typeof p.message === 'string' ? p.message : 'unknown error';
+        typeof p.error === 'string'
+          ? p.error
+          : typeof p.message === 'string'
+            ? p.message
+            : 'unknown error';
     }
 
-    this.heartbeats.set(nodeId, { nodeId, status, ticks, lastTickAt, error, updatedAt: observedAt });
+    this.heartbeats.set(nodeId, {
+      nodeId,
+      status,
+      ticks,
+      lastTickAt,
+      error,
+      updatedAt: observedAt,
+    });
   }
 
   private notifyListeners(envelope: SessionPresenceEnvelope): void {
@@ -396,7 +414,10 @@ export class SessionPresenceCoordinator {
     return s ? { ...s, participants: new Set(s.participants) } : undefined;
   }
   getAllSessions(): SharePlaySessionState[] {
-    return Array.from(this.sessions.values()).map((s) => ({ ...s, participants: new Set(s.participants) }));
+    return Array.from(this.sessions.values()).map((s) => ({
+      ...s,
+      participants: new Set(s.participants),
+    }));
   }
 
   // SpatialVoice

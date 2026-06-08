@@ -135,7 +135,17 @@ describe('getClipWiringHint', () => {
   });
 
   it('does not mark Idle as missing when it is present', () => {
-    const hint = getClipWiringHint(['Idle', 'Eating', 'Run', 'Sit', 'Inspect', 'Gesture', 'Wave', 'Attack', 'Drinking']);
+    const hint = getClipWiringHint([
+      'Idle',
+      'Eating',
+      'Run',
+      'Sit',
+      'Inspect',
+      'Gesture',
+      'Wave',
+      'Attack',
+      'Drinking',
+    ]);
     expect(hint).not.toMatch(/Idle.*missing/);
   });
 });

@@ -337,65 +337,68 @@ export function ViewportPanel() {
       {/* 3D Canvas */}
       <div className="flex-1 relative" style={{ minHeight: 300 }}>
         <StudioErrorBoundary label="ViewportPanel Canvas">
-        <Canvas
-          shadows
-          orthographic={state.mode === 'flat-semantic'}
-          camera={{
-            position: state.mode === 'flat-semantic' ? [0, 0, 10] : [8, 6, 8],
-            fov: 50,
-            zoom: state.mode === 'flat-semantic' ? 50 : 1,
-          }}
-          style={{ background: state.backgroundColor }}
-          gl={{ antialias: true, alpha: false }}
-        >
-          <Suspense fallback={null}>
-            {/* Entities */}
-            {state.entities.map((entity) => (
-              <React.Fragment key={entity.id}>
-                <EntityMesh entity={entity} mode={state.mode} />
-                {diffModeHash && <HistoricGhostMesh entity={entity} />}
-              </React.Fragment>
-            ))}
+          <Canvas
+            shadows
+            orthographic={state.mode === 'flat-semantic'}
+            camera={{
+              position: state.mode === 'flat-semantic' ? [0, 0, 10] : [8, 6, 8],
+              fov: 50,
+              zoom: state.mode === 'flat-semantic' ? 50 : 1,
+            }}
+            style={{ background: state.backgroundColor }}
+            gl={{ antialias: true, alpha: false }}
+          >
+            <Suspense fallback={null}>
+              {/* Entities */}
+              {state.entities.map((entity) => (
+                <React.Fragment key={entity.id}>
+                  <EntityMesh entity={entity} mode={state.mode} />
+                  {diffModeHash && <HistoricGhostMesh entity={entity} />}
+                </React.Fragment>
+              ))}
 
-            {/* Lights */}
-            {state.lights.map((light) => (
-              <SceneLight key={light.id} light={light} />
-            ))}
+              {/* Lights */}
+              {state.lights.map((light) => (
+                <SceneLight key={light.id} light={light} />
+              ))}
 
-            {/* Helpers */}
-            {state.gridVisible && (
-              <Grid
-                args={[20, 20]}
-                position={[0, -0.01, 0]}
-                cellSize={1}
-                cellThickness={0.5}
-                cellColor="#334155"
-                sectionSize={5}
-                sectionThickness={1}
-                sectionColor="#475569"
-                fadeDistance={30}
-                infiniteGrid
+              {/* Helpers */}
+              {state.gridVisible && (
+                <Grid
+                  args={[20, 20]}
+                  position={[0, -0.01, 0]}
+                  cellSize={1}
+                  cellThickness={0.5}
+                  cellColor="#334155"
+                  sectionSize={5}
+                  sectionThickness={1}
+                  sectionColor="#475569"
+                  fadeDistance={30}
+                  infiniteGrid
+                />
+              )}
+
+              {state.axesVisible && (
+                <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
+                  <GizmoViewport
+                    axisColors={['#ff4444', '#44ff44', '#4444ff']}
+                    labelColor="white"
+                  />
+                </GizmoHelper>
+              )}
+
+              {/* Camera Controls */}
+              <OrbitControls
+                makeDefault
+                enableDamping
+                dampingFactor={0.08}
+                minDistance={2}
+                maxDistance={50}
               />
-            )}
 
-            {state.axesVisible && (
-              <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
-                <GizmoViewport axisColors={['#ff4444', '#44ff44', '#4444ff']} labelColor="white" />
-              </GizmoHelper>
-            )}
-
-            {/* Camera Controls */}
-            <OrbitControls
-              makeDefault
-              enableDamping
-              dampingFactor={0.08}
-              minDistance={2}
-              maxDistance={50}
-            />
-
-            <Environment preset="sunset" background={false} />
-          </Suspense>
-        </Canvas>
+              <Environment preset="sunset" background={false} />
+            </Suspense>
+          </Canvas>
         </StudioErrorBoundary>
 
         {/* Overlay Stats */}

@@ -8,11 +8,11 @@
 - **Marble (World Labs)** is described as a **multimodal world model** product for generating and exporting **3D spaces** (e.g. splats, meshes) from text, images, video, 360° inputs, and coarse layouts. See the **World Labs** site, **Marble** announcement material, and **docs** for import/export and usage tiers.
 - **Genie 3 (Google DeepMind)** is a **generative, interactive 3D world** model; DeepMind’s blog describes **real-time** interaction, consistency over time, and a research / prototype access path. See DeepMind’s **Genie 3** model page and announcement post.
 
-*Capabilities and access change quickly—verify current terms, API availability, and data policies before any integration or data sharing.*
+_Capabilities and access change quickly—verify current terms, API availability, and data policies before any integration or data sharing._
 
 ## Can HoloScript “feed” these systems?
 
-- **In principle, yes, as *structured priors*:** deterministic `.holo` / scene descriptions are **useful metadata** (layout, object roles, materials references) *if* a partner pipeline accepts that format or you export to **glTF/USD** + sidecar JSON.
+- **In principle, yes, as _structured priors_:** deterministic `.holo` / scene descriptions are **useful metadata** (layout, object roles, materials references) _if_ a partner pipeline accepts that format or you export to **glTF/USD** + sidecar JSON.
 - **In practice, training pipelines want pixels + state:** world-model teams typically need **rendered** views, **actions**, and **synchronized labels**. HoloScript is strongest as:
   1. **A generator of diverse, valid scenes** (compiler-checked).
   2. **A bridge** to multiple renderers for **synthetic data** (once you add batch rendering and ground-truth export).
@@ -28,9 +28,9 @@
 
 ## References (external)
 
-- World Labs / Marble: https://www.worldlabs.ai/ and in-product documentation.  
+- World Labs / Marble: https://www.worldlabs.ai/ and in-product documentation.
 - DeepMind: Genie 3 model / blog (verify current URL under `deepmind.google`).
 
 ## Related
 
-- `research/2026-04-22_scenethesis-scenecraft-holoscript-comparison.md` — generative scene *pipelines* vs HoloScript’s declarative model.
+- `research/2026-04-22_scenethesis-scenecraft-holoscript-comparison.md` — generative scene _pipelines_ vs HoloScript’s declarative model.

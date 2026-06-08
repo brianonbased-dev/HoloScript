@@ -126,7 +126,11 @@ describe('PipelineFactory', () => {
 
   describe('encodeDispatch', () => {
     it('should encode a compute dispatch command', () => {
-      const bindGroup = factory.createBindGroup('lif_step', createLifStepBuffers(ctx), 'dispatch-bg');
+      const bindGroup = factory.createBindGroup(
+        'lif_step',
+        createLifStepBuffers(ctx),
+        'dispatch-bg'
+      );
 
       const encoder = ctx.device.createCommandEncoder();
       factory.encodeDispatch(encoder, 'lif_step', bindGroup, 40);

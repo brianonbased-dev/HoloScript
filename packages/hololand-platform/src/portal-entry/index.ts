@@ -23,11 +23,9 @@ import type { HoloTunnelSharePacket } from '../holo-tunnel/index.js';
 
 // ── Schema Version ──────────────────────────────────────────────────────────────
 
-export const PORTAL_ENTRY_RECEIPT_SCHEMA_VERSION =
-  'holoscript.holotunnel.portal-entry.v1' as const;
+export const PORTAL_ENTRY_RECEIPT_SCHEMA_VERSION = 'holoscript.holotunnel.portal-entry.v1' as const;
 
-export type PortalEntryReceiptSchemaVersion =
-  typeof PORTAL_ENTRY_RECEIPT_SCHEMA_VERSION;
+export type PortalEntryReceiptSchemaVersion = typeof PORTAL_ENTRY_RECEIPT_SCHEMA_VERSION;
 
 // ── Entrant ──────────────────────────────────────────────────────────────────────
 
@@ -250,11 +248,7 @@ const VALID_REPRESENTATION_LANES = new Set<PortalRepresentationLane>([
   'pixel-stream',
 ]);
 
-const VALID_SPATIAL_PERMISSIONS = new Set<PortalSpatialPermission>([
-  'read',
-  'mutate',
-  'admin',
-]);
+const VALID_SPATIAL_PERMISSIONS = new Set<PortalSpatialPermission>(['read', 'mutate', 'admin']);
 
 const VALID_STATUSES = new Set<PortalEntryStatus>(['admitted', 'denied', 'evicted']);
 
@@ -271,9 +265,7 @@ const VALID_STATUSES = new Set<PortalEntryStatus>(['admitted', 'denied', 'evicte
  *   - provenance.tunnelId, provenance.worldId present
  *   - overallStatus valid
  */
-export function validatePortalEntryReceipt(
-  receipt: unknown
-): PortalEntryReceiptValidation {
+export function validatePortalEntryReceipt(receipt: unknown): PortalEntryReceiptValidation {
   const errors: string[] = [];
 
   if (!isRecord(receipt)) {
@@ -281,9 +273,7 @@ export function validatePortalEntryReceipt(
   }
 
   if (receipt.schemaVersion !== PORTAL_ENTRY_RECEIPT_SCHEMA_VERSION) {
-    errors.push(
-      `schemaVersion must be ${PORTAL_ENTRY_RECEIPT_SCHEMA_VERSION}`
-    );
+    errors.push(`schemaVersion must be ${PORTAL_ENTRY_RECEIPT_SCHEMA_VERSION}`);
   }
 
   requireText(receipt, 'receiptId', 'receipt', errors);
@@ -321,13 +311,18 @@ export function validatePortalEntryReceipt(
   const representation = requireObject(receipt, 'representation', 'receipt', errors);
   if (representation) {
     if (!VALID_REPRESENTATION_LANES.has(representation.lane as PortalRepresentationLane)) {
-      errors.push(`representation.lane must be one of: ${[...VALID_REPRESENTATION_LANES].join(', ')}`);
+      errors.push(
+        `representation.lane must be one of: ${[...VALID_REPRESENTATION_LANES].join(', ')}`
+      );
     }
     const formats = requireArray(representation, 'acceptedFormats', 'representation', errors);
     if (formats && formats.length === 0) {
       errors.push('representation.acceptedFormats must include at least one format');
     }
-    if (!hasText(representation.negotiatedAt) || Number.isNaN(Date.parse(String(representation.negotiatedAt)))) {
+    if (
+      !hasText(representation.negotiatedAt) ||
+      Number.isNaN(Date.parse(String(representation.negotiatedAt)))
+    ) {
       errors.push('representation.negotiatedAt must be a valid ISO 8601 timestamp');
     }
   }
@@ -339,7 +334,9 @@ export function validatePortalEntryReceipt(
     if (spatial) {
       for (const [i, perm] of spatial.entries()) {
         if (!VALID_SPATIAL_PERMISSIONS.has(perm as PortalSpatialPermission)) {
-          errors.push(`scopesGranted.spatial[${i}] must be one of: ${[...VALID_SPATIAL_PERMISSIONS].join(', ')}`);
+          errors.push(
+            `scopesGranted.spatial[${i}] must be one of: ${[...VALID_SPATIAL_PERMISSIONS].join(', ')}`
+          );
         }
       }
       if (spatial.length === 0) {
@@ -347,7 +344,10 @@ export function validatePortalEntryReceipt(
       }
     }
     requireText(scopesGranted, 'worldId', 'scopesGranted', errors);
-    if (!hasText(scopesGranted.grantedAt) || Number.isNaN(Date.parse(String(scopesGranted.grantedAt)))) {
+    if (
+      !hasText(scopesGranted.grantedAt) ||
+      Number.isNaN(Date.parse(String(scopesGranted.grantedAt)))
+    ) {
       errors.push('scopesGranted.grantedAt must be a valid ISO 8601 timestamp');
     }
   }
@@ -356,7 +356,10 @@ export function validatePortalEntryReceipt(
   const worldStateAnchors = requireObject(receipt, 'worldStateAnchors', 'receipt', errors);
   if (worldStateAnchors) {
     requireText(worldStateAnchors, 'entrySnapshotHash', 'worldStateAnchors', errors);
-    if (!hasText(worldStateAnchors.entryTimestamp) || Number.isNaN(Date.parse(String(worldStateAnchors.entryTimestamp)))) {
+    if (
+      !hasText(worldStateAnchors.entryTimestamp) ||
+      Number.isNaN(Date.parse(String(worldStateAnchors.entryTimestamp)))
+    ) {
       errors.push('worldStateAnchors.entryTimestamp must be a valid ISO 8601 timestamp');
     }
     // exitSnapshotHash + exitTimestamp are optional; but if one is present, both should be
@@ -400,9 +403,7 @@ export function validatePortalEntryReceipt(
 /**
  * Type guard for PortalEntryReceipt.
  */
-export function isPortalEntryReceipt(
-  receipt: unknown
-): receipt is PortalEntryReceipt {
+export function isPortalEntryReceipt(receipt: unknown): receipt is PortalEntryReceipt {
   return validatePortalEntryReceipt(receipt).valid;
 }
 
@@ -520,9 +521,7 @@ export function defaultRepresentationLaneFor(
 /**
  * Determine the default accepted formats for a given representation lane.
  */
-export function defaultAcceptedFormatsFor(
-  lane: PortalRepresentationLane
-): string[] {
+export function defaultAcceptedFormatsFor(lane: PortalRepresentationLane): string[] {
   switch (lane) {
     case 'semantic-state':
       return ['scene-graph+trait-delta', 'authoritative-state-snapshot'];

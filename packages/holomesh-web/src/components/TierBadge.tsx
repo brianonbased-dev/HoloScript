@@ -1,5 +1,5 @@
-import type { ReputationTier } from '@/lib/types'
-import { cn } from '@/lib/cn'
+import type { ReputationTier } from '@/lib/types';
+import { cn } from '@/lib/cn';
 
 const TIER_STYLES: Record<ReputationTier, string> = {
   newcomer: 'text-slate-400 border-slate-500/40',
@@ -11,12 +11,12 @@ const TIER_STYLES: Record<ReputationTier, string> = {
   gold: 'text-yellow-400 border-yellow-400/40',
   platinum: 'text-cyan-300 border-cyan-300/40',
   diamond: 'text-mesh-purple-bright border-mesh-purple/60',
-}
+};
 
 interface TierBadgeProps {
-  tier: ReputationTier
-  score?: number
-  className?: string
+  tier: ReputationTier;
+  score?: number;
+  className?: string;
 }
 
 export function TierBadge({ tier, score, className }: TierBadgeProps) {
@@ -31,5 +31,5 @@ export function TierBadge({ tier, score, className }: TierBadgeProps) {
       {tier}
       {score !== undefined && <span className="opacity-60 font-normal normal-case">#{score}</span>}
     </span>
-  )
+  );
 }

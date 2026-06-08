@@ -38,14 +38,14 @@ Live editor on the left, WebGPU preview on the right, image-to-hologram drop zon
 
 Read-only / inert tools that are safe to expose without a key:
 
-| Tool | What it does |
-|------|---------------|
-| `parse_holo` | Parse a `.holo` source string to AST |
-| `validate_holoscript` | Validate a composition against the schema |
-| `explain_trait` | Get the docs + signature for any trait |
-| `get_syntax_reference` | Language reference |
-| `get_examples` | Browse example compositions |
-| `list_export_targets` | Show every platform the compiler can target |
+| Tool                   | What it does                                |
+| ---------------------- | ------------------------------------------- |
+| `parse_holo`           | Parse a `.holo` source string to AST        |
+| `validate_holoscript`  | Validate a composition against the schema   |
+| `explain_trait`        | Get the docs + signature for any trait      |
+| `get_syntax_reference` | Language reference                          |
+| `get_examples`         | Browse example compositions                 |
+| `list_export_targets`  | Show every platform the compiler can target |
 
 Discovery (also no key):
 
@@ -117,7 +117,7 @@ The same token unlocks every tool the server exposes — see `GET /health` for t
 
 ---
 
-## What you do *not* need
+## What you do _not_ need
 
 - A signup form
 - An invitation

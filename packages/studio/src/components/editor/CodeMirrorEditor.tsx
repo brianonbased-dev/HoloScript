@@ -16,12 +16,7 @@ import {
   type Tooltip,
 } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
-import {
-  defaultKeymap,
-  history,
-  historyKeymap,
-  indentWithTab,
-} from '@codemirror/commands';
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { bracketMatching, indentOnInput, foldGutter } from '@codemirror/language';
 import { linter, lintGutter, forceLinting, type Diagnostic } from '@codemirror/lint';
 import { type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
@@ -79,7 +74,7 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
           const ln = view.state.doc.line(lineNum);
           return { from: ln.from, to: ln.to, severity: 'error', message: e.message };
         }),
-      { delay: STORE_ERRORS_DEBOUNCE },
+      { delay: STORE_ERRORS_DEBOUNCE }
     );
 
     // ── Linter 2: LSP diagnostics (debounced, async server round-trip) ────────
@@ -97,7 +92,7 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
           return { from, to: ln.to, severity: sev, message: d.message };
         });
       },
-      { delay: LSP_DIAGNOSTICS_DEBOUNCE },
+      { delay: LSP_DIAGNOSTICS_DEBOUNCE }
     );
 
     // ── LSP autocomplete source (async, merged after static completions) ──────
@@ -154,7 +149,7 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
           },
         };
       },
-      { hoverTime: LSP_HOVER_DELAY },
+      { hoverTime: LSP_HOVER_DELAY }
     );
 
     const formatKeymap = keymap.of([

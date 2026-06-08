@@ -440,17 +440,11 @@ describe('RoomModeResonanceTrait — query + recompute + detach', () => {
     attachTrait(roomModeResonanceHandler, node, {}, ctx);
     ctx.clearEvents();
 
-    sendEvent(
-      roomModeResonanceHandler,
-      node,
-      { heatmap_resolution: [2, 2, 2] },
-      ctx,
-      {
-        type: 'room_mode_query',
-        queryId: 'with-heatmap',
-        includeHeatmap: true,
-      }
-    );
+    sendEvent(roomModeResonanceHandler, node, { heatmap_resolution: [2, 2, 2] }, ctx, {
+      type: 'room_mode_query',
+      queryId: 'with-heatmap',
+      includeHeatmap: true,
+    });
 
     const evt = getLastEvent(ctx, 'room_mode_response') as {
       queryId: string;

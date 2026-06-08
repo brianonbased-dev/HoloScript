@@ -15,14 +15,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { extname, join, resolve, relative, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -66,7 +59,10 @@ function parseArgs(argv) {
     if (arg === '--self-test') {
       args.selfTest = true;
     } else if (arg === '--roots') {
-      args.roots = argv[++i].split(',').map((s) => s.trim()).filter(Boolean);
+      args.roots = argv[++i]
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
     } else if (arg === '--out') {
       args.out = argv[++i];
     } else if (arg === '--date') {

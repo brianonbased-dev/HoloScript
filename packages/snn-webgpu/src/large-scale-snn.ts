@@ -280,9 +280,7 @@ export class HierarchicalSNN {
     }
 
     // Phase 2: LIF update (partitioned — ceil(N / (WG * neuronsPerThread)))
-    const partitionDispatch = Math.ceil(
-      neuronCount / (WORKGROUP_SIZE * neuronsPerThread)
-    );
+    const partitionDispatch = Math.ceil(neuronCount / (WORKGROUP_SIZE * neuronsPerThread));
     this.factory.encodeDispatch(
       encoder,
       'lif_step_partitioned',
@@ -317,9 +315,7 @@ export class HierarchicalSNN {
     const partitionDispatch = Math.ceil(neuronCount / (WORKGROUP_SIZE * neuronsPerThread));
     const baselineDispatch = computeDispatchSize(neuronCount);
     const synapticDispatch = synapticInputCount > 0 ? computeDispatchSize(neuronCount) : 0;
-    const preTileCount = synapticInputCount > 0
-      ? Math.ceil(synapticInputCount / PRE_TILE_SIZE)
-      : 0;
+    const preTileCount = synapticInputCount > 0 ? Math.ceil(synapticInputCount / PRE_TILE_SIZE) : 0;
     return {
       neuronCount,
       synapticInputCount,

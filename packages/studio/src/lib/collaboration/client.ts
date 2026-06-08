@@ -7,13 +7,7 @@
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import type { Awareness } from 'y-protocols/awareness';
-import type {
-  User,
-  UserPresence,
-  AwarenessState,
-  ConnectionStatus,
-  ChatMessage,
-} from './types';
+import type { User, UserPresence, AwarenessState, ConnectionStatus, ChatMessage } from './types';
 import type { GraphNode, GraphEdge } from '@/hooks/useNodeGraph';
 
 export interface CollaborationClientConfig {
@@ -138,7 +132,11 @@ export class CollaborationClient {
   /**
    * Sync workflow state to Yjs
    */
-  syncWorkflow(workflow: { nodes: GraphNode[]; edges: GraphEdge[]; metadata: Record<string, unknown> }): void {
+  syncWorkflow(workflow: {
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+    metadata: Record<string, unknown>;
+  }): void {
     this.ydoc.transact(() => {
       const nodesArray = this.getNodesArray();
       const edgesArray = this.getEdgesArray();
@@ -186,9 +184,12 @@ export class CollaborationClient {
     const edgesArray = this.getEdgesArray();
     const metadataMap = this.getMetadataMap();
 
-    const nodesCallback = (event: Y.YArrayEvent<GraphNode>) => callback(event as Y.YEvent<Y.AbstractType<unknown>>);
-    const edgesCallback = (event: Y.YArrayEvent<GraphEdge>) => callback(event as Y.YEvent<Y.AbstractType<unknown>>);
-    const metaCallback = (event: Y.YMapEvent<unknown>) => callback(event as Y.YEvent<Y.AbstractType<unknown>>);
+    const nodesCallback = (event: Y.YArrayEvent<GraphNode>) =>
+      callback(event as Y.YEvent<Y.AbstractType<unknown>>);
+    const edgesCallback = (event: Y.YArrayEvent<GraphEdge>) =>
+      callback(event as Y.YEvent<Y.AbstractType<unknown>>);
+    const metaCallback = (event: Y.YMapEvent<unknown>) =>
+      callback(event as Y.YEvent<Y.AbstractType<unknown>>);
 
     nodesArray.observe(nodesCallback);
     edgesArray.observe(edgesCallback);
@@ -334,4 +335,3 @@ export function getCollaborationClient(config?: CollaborationClientConfig): Coll
 export function setCollaborationClient(client: CollaborationClient) {
   collaborationClientInstance = client;
 }
-

@@ -17,7 +17,7 @@ describe('CAEL Experiment 1 — scene axis', () => {
 
   it('reads holomap-native from env', () => {
     expect(
-      resolveCaelExperiment1SceneAxis({ env: { CAEL_EXP1_SCENE_AXIS: 'holomap-native' } }),
+      resolveCaelExperiment1SceneAxis({ env: { CAEL_EXP1_SCENE_AXIS: 'holomap-native' } })
     ).toBe('holomap-native');
   });
 
@@ -25,7 +25,7 @@ describe('CAEL Experiment 1 — scene axis', () => {
     const axis = resolveCaelExperiment1SceneAxis({ env: { CAEL_EXP1_SCENE_AXIS: 'holomap' } });
     expect(sceneAxisPlainLabel(axis)).toBe('Native HoloMap scene');
     expect(formatCaelExperiment1ConditionLabel('Embodied', axis)).toBe(
-      'Embodied × Native HoloMap scene',
+      'Embodied × Native HoloMap scene'
     );
   });
 });

@@ -185,19 +185,33 @@ export function extractBotanicalLotusMaterial(
 
   const colors = deriveColors(petal, leaf, stamen, water);
   const material: BotanicalMaterialParams = {
-    subsurface_scattering: clamp(round4(0.48 + meanPetalSat * 0.22 + backlightLift * 0.18), 0.45, 0.82),
+    subsurface_scattering: clamp(
+      round4(0.48 + meanPetalSat * 0.22 + backlightLift * 0.18),
+      0.45,
+      0.82
+    ),
     subsurface_radius_rgb: deriveSubsurfaceRadius(colors.petal_mid),
-    petal_translucency_base: clamp(round4(0.42 + meanPetalLuma * 0.24 + backlightLift * 0.18), 0.38, 0.78),
+    petal_translucency_base: clamp(
+      round4(0.42 + meanPetalLuma * 0.24 + backlightLift * 0.18),
+      0.38,
+      0.78
+    ),
     petal_translucency_edge: clamp(round4(0.24 + petalEdgeLuma * 0.18), 0.24, 0.48),
     roughness: clamp(round4(0.64 + veinNormal * 1.4), 0.62, 0.82),
     ior: clamp(round4(1.33 + meanPetalSat * 0.055), 1.33, 1.39),
     vein_normal_intensity: veinNormal,
-    edge_curl_intensity: clamp(round4(0.34 + mean(petal, (pixel) => pixel.edge, 0.5) * 0.38), 0.34, 0.68),
+    edge_curl_intensity: clamp(
+      round4(0.34 + mean(petal, (pixel) => pixel.edge, 0.5) * 0.38),
+      0.34,
+      0.68
+    ),
     gravity_sag_outer: clamp(round4(0.18 + meanPetalLuma * 0.18), 0.18, 0.36),
   };
 
   const provenanceHashCount = samples.filter((sample) => sample.provenance?.contentHash).length;
-  const provenanceSignatureCount = samples.filter((sample) => sample.provenance?.walletSignature).length;
+  const provenanceSignatureCount = samples.filter(
+    (sample) => sample.provenance?.walletSignature
+  ).length;
   const contentHashStatus = completenessStatus(provenanceHashCount, samples.length);
   const walletSignatureStatus = completenessStatus(provenanceSignatureCount, samples.length);
   const signed = contentHashStatus === 'complete' && walletSignatureStatus === 'complete';
@@ -206,7 +220,8 @@ export function extractBotanicalLotusMaterial(
     schema: 'holoscript.botanical.material-extract.v1',
     status: signed ? 'extracted_from_signed_references' : 'extracted_pending_cael_anchor',
     captured_at: options.capturedAt ?? new Date().toISOString().slice(0, 10),
-    generated_by: options.generatedBy ?? '@holoscript/snn-webgpu/material-extraction/botanical-lotus',
+    generated_by:
+      options.generatedBy ?? '@holoscript/snn-webgpu/material-extraction/botanical-lotus',
     ...(options.referenceManifest ? { reference_manifest: options.referenceManifest } : {}),
     source: {
       kind: options.sourceKind ?? 'pixel_reference_images',
@@ -317,7 +332,9 @@ function assertSampleShape(sample: BotanicalImageSample): void {
   }
   const expected = sample.width * sample.height * 4;
   if (sample.data.length < expected) {
-    throw new Error(`Image sample ${sample.id} has ${sample.data.length} RGBA values; expected ${expected}`);
+    throw new Error(
+      `Image sample ${sample.id} has ${sample.data.length} RGBA values; expected ${expected}`
+    );
   }
 }
 
@@ -334,7 +351,11 @@ function deriveColors(
     petal_rim: pixelToHex(percentilePixel(petal, 's', 0.88, DEFAULT_COLORS.petal_rim)),
     petal_shadow: pixelToHex(percentilePixel(petal, 'luma', 0.16, DEFAULT_COLORS.petal_shadow)),
     seed_pod: pixelToHex(percentilePixel(stamen, 'luma', 0.82, DEFAULT_COLORS.seed_pod)),
-    seed_pod_rim: mixHex(pixelToHex(percentilePixel(stamen, 'luma', 0.62, DEFAULT_COLORS.seed_pod_rim)), DEFAULT_COLORS.seed_pod_rim, 0.35),
+    seed_pod_rim: mixHex(
+      pixelToHex(percentilePixel(stamen, 'luma', 0.62, DEFAULT_COLORS.seed_pod_rim)),
+      DEFAULT_COLORS.seed_pod_rim,
+      0.35
+    ),
     stamen: pixelToHex(percentilePixel(stamen, 's', 0.68, DEFAULT_COLORS.stamen)),
     stamen_tip: pixelToHex(percentilePixel(stamen, 'luma', 0.95, DEFAULT_COLORS.stamen_tip)),
     leaf: pixelToHex(percentilePixel(leaf, 'luma', 0.58, DEFAULT_COLORS.leaf)),
@@ -369,7 +390,9 @@ function isLotusStamen(pixel: PixelFeature): boolean {
 }
 
 function isLotusLeaf(pixel: PixelFeature): boolean {
-  return pixel.h >= 78 && pixel.h <= 178 && pixel.s > 0.12 && pixel.v > 0.08 && pixel.g >= pixel.r * 0.72;
+  return (
+    pixel.h >= 78 && pixel.h <= 178 && pixel.s > 0.12 && pixel.v > 0.08 && pixel.g >= pixel.r * 0.72
+  );
 }
 
 function isWater(pixel: PixelFeature): boolean {
@@ -384,7 +407,12 @@ function estimateStamenCount(stamenPixels: number, petalPixels: number): number 
   return Math.round(clamp(42 + ratio * 260, 42, 96));
 }
 
-function estimateConfidence(sampleCount: number, petalPixels: number, leafPixels: number, stamenPixels: number): number {
+function estimateConfidence(
+  sampleCount: number,
+  petalPixels: number,
+  leafPixels: number,
+  stamenPixels: number
+): number {
   const sampleSignal = clamp01(sampleCount / 3);
   const petalSignal = clamp01(petalPixels / 300);
   const contextSignal = clamp01((leafPixels + stamenPixels) / 160);
@@ -422,7 +450,12 @@ function localGradient(
   return Math.sqrt((right - luma) ** 2 + (down - luma) ** 2);
 }
 
-function lumaAt(data: Uint8Array | Uint8ClampedArray | readonly number[], width: number, x: number, y: number): number {
+function lumaAt(
+  data: Uint8Array | Uint8ClampedArray | readonly number[],
+  width: number,
+  x: number,
+  y: number
+): number {
   const offset = (y * width + x) * 4;
   const r = (data[offset] ?? 0) / 255;
   const g = (data[offset + 1] ?? 0) / 255;

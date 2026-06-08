@@ -553,23 +553,19 @@ Ask a natural language question about the codebase. Requires Ollama running loca
 ### Generate a Complete VR Game Level
 
 ```yaml
-
 User: Create a VR escape room with puzzles
 
 AI uses: generate_scene
 Output: Complete .holo file with rooms, puzzles, triggers, and logic
-
 ```
 
 ### Debug Code Issues
 
 ```yaml
-
 User: Why doesn't this work? [code]
 
 AI uses: validate_holoscript
 Output: Specific error messages with suggestions
-
 ```
 
 ### Learn Best Practices

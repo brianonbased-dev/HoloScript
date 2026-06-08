@@ -391,7 +391,12 @@ describe('HoloComposition', () => {
 describe('HoloLight', () => {
   it('accepts all lightType values', () => {
     const lightTypes: HoloLight['lightType'][] = [
-      'directional', 'point', 'spot', 'hemisphere', 'ambient', 'area',
+      'directional',
+      'point',
+      'spot',
+      'hemisphere',
+      'ambient',
+      'area',
     ];
     for (const lt of lightTypes) {
       const light: HoloLight = { type: 'Light', name: 'l', lightType: lt, properties: [] };
@@ -405,7 +410,10 @@ describe('HoloLight', () => {
 
   it('platformConstraint is optional', () => {
     const light: HoloLight = {
-      type: 'Light', name: 'sun', lightType: 'directional', properties: [],
+      type: 'Light',
+      name: 'sun',
+      lightType: 'directional',
+      properties: [],
     };
     expect(light.platformConstraint).toBeUndefined();
   });
@@ -503,7 +511,10 @@ describe('HoloObjectDecl', () => {
   it('accepts optional children for nesting', () => {
     const child: HoloObjectDecl = { type: 'Object', name: 'child', properties: [], traits: [] };
     const parent: HoloObjectDecl = {
-      type: 'Object', name: 'parent', properties: [], traits: [],
+      type: 'Object',
+      name: 'parent',
+      properties: [],
+      traits: [],
       children: [child],
     };
     expect(parent.children).toHaveLength(1);
@@ -512,7 +523,10 @@ describe('HoloObjectDecl', () => {
 
   it('accepts platformConstraint', () => {
     const obj: HoloObjectDecl = {
-      type: 'Object', name: 'VrOnly', properties: [], traits: [],
+      type: 'Object',
+      name: 'VrOnly',
+      properties: [],
+      traits: [],
       platformConstraint: { include: ['quest3'], exclude: [] },
     };
     expect(obj.platformConstraint?.include).toContain('quest3');
@@ -565,7 +579,9 @@ describe('HoloStatement discriminant narrowing', () => {
     const ops: HoloAssignment['operator'][] = ['=', '+=', '-=', '*=', '/='];
     for (const op of ops) {
       const a: HoloAssignment = {
-        type: 'Assignment', target: 'x', operator: op,
+        type: 'Assignment',
+        target: 'x',
+        operator: op,
         value: { type: 'Literal', value: 0 },
       };
       expect(a.operator).toBe(op);
@@ -674,7 +690,8 @@ describe('HoloExpression discriminant narrowing', () => {
     const ops: HoloUnaryExpression['operator'][] = ['!', '-'];
     for (const op of ops) {
       const u: HoloUnaryExpression = {
-        type: 'UnaryExpression', operator: op,
+        type: 'UnaryExpression',
+        operator: op,
         argument: { type: 'Identifier', name: 'x' },
       };
       expect(u.operator).toBe(op);
@@ -710,12 +727,16 @@ describe('HoloExpression discriminant narrowing', () => {
 
   it('UpdateExpression prefix vs postfix', () => {
     const pre: HoloUpdateExpression = {
-      type: 'UpdateExpression', operator: '++',
-      argument: { type: 'Identifier', name: 'i' }, prefix: true,
+      type: 'UpdateExpression',
+      operator: '++',
+      argument: { type: 'Identifier', name: 'i' },
+      prefix: true,
     };
     const post: HoloUpdateExpression = {
-      type: 'UpdateExpression', operator: '--',
-      argument: { type: 'Identifier', name: 'i' }, prefix: false,
+      type: 'UpdateExpression',
+      operator: '--',
+      argument: { type: 'Identifier', name: 'i' },
+      prefix: false,
     };
     expect(pre.prefix).toBe(true);
     expect(post.prefix).toBe(false);
@@ -725,7 +746,9 @@ describe('HoloExpression discriminant narrowing', () => {
     const bind: HoloBindExpression = { type: 'BindExpression', source: 'state.score' };
     expect(bind.transform).toBeUndefined();
     const withTx: HoloBindExpression = {
-      type: 'BindExpression', source: 'state.hp', transform: 'pct',
+      type: 'BindExpression',
+      source: 'state.hp',
+      transform: 'pct',
     };
     expect(withTx.transform).toBe('pct');
   });
@@ -743,7 +766,10 @@ describe('HoloExpression discriminant narrowing', () => {
   it('ArrayExpression holds expression elements', () => {
     const arr: HoloArrayExpression = {
       type: 'ArrayExpression',
-      elements: [{ type: 'Literal', value: 1 }, { type: 'Literal', value: 2 }],
+      elements: [
+        { type: 'Literal', value: 1 },
+        { type: 'Literal', value: 2 },
+      ],
     };
     expect(arr.elements).toHaveLength(2);
   });
@@ -770,7 +796,9 @@ describe('HoloTimeline', () => {
 
   it('TimelineAction animate kind', () => {
     const action: HoloTimelineAction = {
-      kind: 'animate', target: 'hero', properties: { x: 10 },
+      kind: 'animate',
+      target: 'hero',
+      properties: { x: 10 },
     };
     expect(action.kind).toBe('animate');
   });
@@ -802,7 +830,10 @@ describe('HoloTimeline', () => {
 describe('HoloNPC', () => {
   it('accepts minimal NPC', () => {
     const npc: HoloNPC = {
-      type: 'NPC', name: 'Guard', properties: [], behaviors: [],
+      type: 'NPC',
+      name: 'Guard',
+      properties: [],
+      behaviors: [],
     };
     expect(npc.type).toBe('NPC');
     expect(npc.dialogueTree).toBeUndefined();
@@ -810,7 +841,15 @@ describe('HoloNPC', () => {
 
   it('behavior action types cover expected set', () => {
     const types: HoloBehaviorAction['actionType'][] = [
-      'move', 'animate', 'face', 'damage', 'heal', 'spawn', 'emit', 'wait', 'call',
+      'move',
+      'animate',
+      'face',
+      'damage',
+      'heal',
+      'spawn',
+      'emit',
+      'wait',
+      'call',
     ];
     for (const t of types) {
       const action: HoloBehaviorAction = { type: 'BehaviorAction', actionType: t, config: {} };
@@ -839,12 +878,20 @@ describe('HoloQuest', () => {
 
   it('questType covers all documented values', () => {
     const types: NonNullable<HoloQuest['questType']>[] = [
-      'fetch', 'defeat', 'discover', 'escort', 'deliver', 'custom',
+      'fetch',
+      'defeat',
+      'discover',
+      'escort',
+      'deliver',
+      'custom',
     ];
     for (const qt of types) {
       const q: HoloQuest = {
-        type: 'Quest', name: 'Q', objectives: [],
-        rewards: { type: 'QuestRewards' }, questType: qt,
+        type: 'Quest',
+        name: 'Q',
+        objectives: [],
+        rewards: { type: 'QuestRewards' },
+        questType: qt,
       };
       expect(q.questType).toBe(qt);
     }
@@ -852,12 +899,20 @@ describe('HoloQuest', () => {
 
   it('QuestObjective objectiveType covers all values', () => {
     const types: HoloQuestObjective['objectiveType'][] = [
-      'discover', 'defeat', 'collect', 'deliver', 'interact', 'survive',
+      'discover',
+      'defeat',
+      'collect',
+      'deliver',
+      'interact',
+      'survive',
     ];
     for (const t of types) {
       const obj: HoloQuestObjective = {
-        type: 'QuestObjective', id: '1', description: 'desc',
-        objectiveType: t, target: 'enemy',
+        type: 'QuestObjective',
+        id: '1',
+        description: 'desc',
+        objectiveType: t,
+        target: 'enemy',
       };
       expect(obj.objectiveType).toBe(t);
     }
@@ -865,7 +920,11 @@ describe('HoloQuest', () => {
 
   it('QuestRewardItem rarity covers all values', () => {
     const rarities: NonNullable<HoloQuestRewardItem['rarity']>[] = [
-      'common', 'uncommon', 'rare', 'epic', 'legendary',
+      'common',
+      'uncommon',
+      'rare',
+      'epic',
+      'legendary',
     ];
     for (const r of rarities) {
       const item: HoloQuestRewardItem = { type: 'QuestRewardItem', id: 'sword', rarity: r };
@@ -896,8 +955,11 @@ describe('HoloAbility', () => {
     const types: HoloAbility['abilityType'][] = ['spell', 'skill', 'passive', 'ultimate'];
     for (const t of types) {
       const a: HoloAbility = {
-        type: 'Ability', name: 'A', abilityType: t,
-        stats: { type: 'AbilityStats' }, effects: { type: 'AbilityEffects' },
+        type: 'Ability',
+        name: 'A',
+        abilityType: t,
+        stats: { type: 'AbilityStats' },
+        effects: { type: 'AbilityEffects' },
       };
       expect(a.abilityType).toBe(t);
     }
@@ -918,30 +980,45 @@ describe('HoloAbility', () => {
 describe('HoloDialogue', () => {
   it('accepts string content', () => {
     const d: HoloDialogue = {
-      type: 'Dialogue', id: 'dlg_001',
-      content: 'Hello traveller!', options: [],
+      type: 'Dialogue',
+      id: 'dlg_001',
+      content: 'Hello traveller!',
+      options: [],
     };
     expect(d.content).toBe('Hello traveller!');
   });
 
   it('accepts localized text content', () => {
     const loc: HoloLocalizedText = {
-      type: 'LocalizedText', id: 'greet',
+      type: 'LocalizedText',
+      id: 'greet',
       translations: { en: 'Hello', es: 'Hola' },
     };
     const d: HoloDialogue = {
-      type: 'Dialogue', id: 'dlg_002', content: loc, options: [],
+      type: 'Dialogue',
+      id: 'dlg_002',
+      content: loc,
+      options: [],
     };
     expect((d.content as HoloLocalizedText).translations['en']).toBe('Hello');
   });
 
   it('emotion covers all documented values', () => {
     const emotions: NonNullable<HoloDialogue['emotion']>[] = [
-      'friendly', 'angry', 'sad', 'neutral', 'excited', 'mysterious',
+      'friendly',
+      'angry',
+      'sad',
+      'neutral',
+      'excited',
+      'mysterious',
     ];
     for (const em of emotions) {
       const d: HoloDialogue = {
-        type: 'Dialogue', id: 'e', emotion: em, content: 'hi', options: [],
+        type: 'Dialogue',
+        id: 'e',
+        emotion: em,
+        content: 'hi',
+        options: [],
       };
       expect(d.emotion).toBe(em);
     }
@@ -1038,14 +1115,19 @@ describe('ImportDirective', () => {
 
   it('accepts wildcard import', () => {
     const imp: ImportDirective = {
-      type: 'import', path: './lib.hs', alias: 'NS', isWildcard: true,
+      type: 'import',
+      path: './lib.hs',
+      alias: 'NS',
+      isWildcard: true,
     };
     expect(imp.isWildcard).toBe(true);
   });
 
   it('accepts named imports', () => {
     const imp: ImportDirective = {
-      type: 'import', path: './utils.hs', alias: 'utils',
+      type: 'import',
+      path: './utils.hs',
+      alias: 'utils',
       namedImports: ['helperA', 'helperB'],
     };
     expect(imp.namedImports).toHaveLength(2);
@@ -1055,7 +1137,13 @@ describe('ImportDirective', () => {
 describe('ExportDirective', () => {
   it('accepts all exportKind values', () => {
     const kinds: ExportDirective['exportKind'][] = [
-      'template', 'object', 'composition', 'trait', 'group', 'scene', 'any',
+      'template',
+      'object',
+      'composition',
+      'trait',
+      'group',
+      'scene',
+      'any',
     ];
     for (const k of kinds) {
       const exp: ExportDirective = { type: 'export', exportKind: k };
@@ -1106,8 +1194,10 @@ describe('HSPlusImport', () => {
 
   it('accepts optional fields', () => {
     const imp: HSPlusImport = {
-      path: './lib.hs', alias: 'lib',
-      namedImports: ['A'], isWildcard: false,
+      path: './lib.hs',
+      alias: 'lib',
+      namedImports: ['A'],
+      isWildcard: false,
     };
     expect(imp.namedImports).toEqual(['A']);
   });
@@ -1136,17 +1226,46 @@ describe('ReadFileFn', () => {
 describe('HoloDomainType', () => {
   it('accepts all standard domain type values', () => {
     const domains: HoloDomainType[] = [
-      'iot', 'robotics', 'dataviz', 'education', 'healthcare', 'music',
-      'architecture', 'web3', 'material', 'physics', 'vfx', 'postfx',
-      'audio', 'weather', 'procedural', 'rendering', 'navigation', 'input',
-      'codebase', 'narrative', 'payment', 'norms',
-      'service', 'contract', 'data', 'network', 'pipeline', 'metric',
-      'container', 'resilience', 'custom',
+      'iot',
+      'robotics',
+      'dataviz',
+      'education',
+      'healthcare',
+      'music',
+      'architecture',
+      'web3',
+      'material',
+      'physics',
+      'vfx',
+      'postfx',
+      'audio',
+      'weather',
+      'procedural',
+      'rendering',
+      'navigation',
+      'input',
+      'codebase',
+      'narrative',
+      'payment',
+      'norms',
+      'service',
+      'contract',
+      'data',
+      'network',
+      'pipeline',
+      'metric',
+      'container',
+      'resilience',
+      'custom',
     ];
     for (const d of domains) {
       const block: HoloDomainBlock = {
-        type: 'DomainBlock', domain: d, keyword: 'sensor', name: 'S',
-        traits: [], properties: {},
+        type: 'DomainBlock',
+        domain: d,
+        keyword: 'sensor',
+        name: 'S',
+        traits: [],
+        properties: {},
       };
       expect(block.domain).toBe(d);
     }
@@ -1156,8 +1275,12 @@ describe('HoloDomainType', () => {
 describe('HoloDomainBlock', () => {
   it('accepts minimal block', () => {
     const block: HoloDomainBlock = {
-      type: 'DomainBlock', domain: 'iot', keyword: 'sensor',
-      name: 'TempSensor', traits: [], properties: {},
+      type: 'DomainBlock',
+      domain: 'iot',
+      keyword: 'sensor',
+      name: 'TempSensor',
+      traits: [],
+      properties: {},
     };
     expect(block.domainTags).toBeUndefined();
     expect(block.children).toBeUndefined();
@@ -1166,8 +1289,12 @@ describe('HoloDomainBlock', () => {
 
   it('accepts full block with optional fields', () => {
     const block: HoloDomainBlock = {
-      type: 'DomainBlock', domain: 'robotics', keyword: 'joint',
-      name: 'Elbow', traits: ['@safety_rated'], properties: { limits: '[-1.5, 1.5]' },
+      type: 'DomainBlock',
+      domain: 'robotics',
+      keyword: 'joint',
+      name: 'Elbow',
+      traits: ['@safety_rated'],
+      properties: { limits: '[-1.5, 1.5]' },
       domainTags: ['iso10218'],
     };
     expect(block.domainTags).toContain('iso10218');
@@ -1188,8 +1315,12 @@ describe('HoloSpawnGroup', () => {
 describe('HoloWaypoints', () => {
   it('accepts name and points', () => {
     const wp: HoloWaypoints = {
-      type: 'Waypoints', name: 'Patrol',
-      points: [[0, 0, 0], [5, 0, 0]],
+      type: 'Waypoints',
+      name: 'Patrol',
+      points: [
+        [0, 0, 0],
+        [5, 0, 0],
+      ],
     };
     expect(wp.name).toBe('Patrol');
   });
@@ -1216,7 +1347,11 @@ describe('HoloTerrainBlock', () => {
 describe('NormLifecyclePhase', () => {
   it('covers all phases', () => {
     const phases: NormLifecyclePhase[] = [
-      'creation', 'representation', 'spreading', 'evaluation', 'compliance',
+      'creation',
+      'representation',
+      'spreading',
+      'evaluation',
+      'compliance',
     ];
     expect(phases).toHaveLength(5);
     assertType<NormLifecyclePhase[]>(phases);
@@ -1226,7 +1361,14 @@ describe('NormLifecyclePhase', () => {
 describe('NormStatus', () => {
   it('covers all status values', () => {
     const statuses: NormStatus[] = [
-      'draft', 'proposed', 'voting', 'adopted', 'suspended', 'deprecated', 'revoked', 'contested',
+      'draft',
+      'proposed',
+      'voting',
+      'adopted',
+      'suspended',
+      'deprecated',
+      'revoked',
+      'contested',
     ];
     expect(statuses).toHaveLength(8);
     assertType<NormStatus[]>(statuses);
@@ -1236,8 +1378,14 @@ describe('NormStatus', () => {
 describe('NormVotingMechanism', () => {
   it('covers all voting mechanisms', () => {
     const mechanisms: NormVotingMechanism[] = [
-      'majority', 'supermajority', 'consensus', 'weighted',
-      'liquid_democracy', 'quadratic', 'ranked_choice', 'lazy_consensus',
+      'majority',
+      'supermajority',
+      'consensus',
+      'weighted',
+      'liquid_democracy',
+      'quadratic',
+      'ranked_choice',
+      'lazy_consensus',
     ];
     expect(mechanisms).toHaveLength(8);
     assertType<NormVotingMechanism[]>(mechanisms);
@@ -1247,7 +1395,12 @@ describe('NormVotingMechanism', () => {
 describe('NormViolationSeverity', () => {
   it('covers all severity levels', () => {
     const levels: NormViolationSeverity[] = [
-      'info', 'warning', 'minor', 'moderate', 'major', 'critical',
+      'info',
+      'warning',
+      'minor',
+      'moderate',
+      'major',
+      'critical',
     ];
     expect(levels).toHaveLength(6);
     assertType<NormViolationSeverity[]>(levels);
@@ -1257,7 +1410,14 @@ describe('NormViolationSeverity', () => {
 describe('NormSanctionType', () => {
   it('covers all sanction types', () => {
     const types: NormSanctionType[] = [
-      'warn', 'restrict', 'penalize', 'suspend', 'ban', 'quarantine', 'escalate', 'custom',
+      'warn',
+      'restrict',
+      'penalize',
+      'suspend',
+      'ban',
+      'quarantine',
+      'escalate',
+      'custom',
     ];
     expect(types).toHaveLength(8);
     assertType<NormSanctionType[]>(types);
@@ -1267,7 +1427,12 @@ describe('NormSanctionType', () => {
 describe('NormSpreadingMechanism', () => {
   it('covers all spreading mechanisms', () => {
     const mechs: NormSpreadingMechanism[] = [
-      'broadcast', 'observation', 'communication', 'imitation', 'enforcement', 'passive',
+      'broadcast',
+      'observation',
+      'communication',
+      'imitation',
+      'enforcement',
+      'passive',
     ];
     expect(mechs).toHaveLength(6);
     assertType<NormSpreadingMechanism[]>(mechs);
@@ -1345,7 +1510,9 @@ describe('HoloMetanorm', () => {
 describe('CompiledNarrative', () => {
   it('accepts linear narrative', () => {
     const n: CompiledNarrative = {
-      name: 'Intro', type: 'linear', chapters: [],
+      name: 'Intro',
+      type: 'linear',
+      chapters: [],
     };
     expect(n.type).toBe('linear');
     expect(n.variables).toBeUndefined();
@@ -1380,7 +1547,12 @@ describe('CompiledPaywall', () => {
     const assets: CompiledPaywall['asset'][] = ['USDC', 'ETH', 'SOL'];
     for (const a of assets) {
       const pw: CompiledPaywall = {
-        name: 'P', price: 1, asset: a, network: 'ethereum', recipient: '0x0', type: 'tip',
+        name: 'P',
+        price: 1,
+        asset: a,
+        network: 'ethereum',
+        recipient: '0x0',
+        type: 'tip',
       };
       expect(pw.asset).toBe(a);
     }
@@ -1490,17 +1662,26 @@ describe('HoloCamera', () => {
 describe('HoloSpatialGroup', () => {
   it('accepts minimal group', () => {
     const group: HoloSpatialGroup = {
-      type: 'SpatialGroup', name: 'Level1', properties: [], objects: [],
+      type: 'SpatialGroup',
+      name: 'Level1',
+      properties: [],
+      objects: [],
     };
     expect(group.groups).toBeUndefined();
   });
 
   it('accepts nested groups (recursive)', () => {
     const inner: HoloSpatialGroup = {
-      type: 'SpatialGroup', name: 'Inner', properties: [], objects: [],
+      type: 'SpatialGroup',
+      name: 'Inner',
+      properties: [],
+      objects: [],
     };
     const outer: HoloSpatialGroup = {
-      type: 'SpatialGroup', name: 'Outer', properties: [], objects: [],
+      type: 'SpatialGroup',
+      name: 'Outer',
+      properties: [],
+      objects: [],
       groups: [inner],
     };
     expect(outer.groups).toHaveLength(1);

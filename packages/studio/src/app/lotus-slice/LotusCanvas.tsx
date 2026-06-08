@@ -64,7 +64,13 @@ export default function LotusCanvas() {
         </pre>
       )}
       <div
-        style={{ width: 720, height: 720, borderRadius: 8, overflow: 'hidden', border: '1px solid #222' }}
+        style={{
+          width: 720,
+          height: 720,
+          borderRadius: 8,
+          overflow: 'hidden',
+          border: '1px solid #222',
+        }}
         data-testid="lotus-canvas"
       >
         <Canvas
@@ -92,7 +98,12 @@ export default function LotusCanvas() {
             <Lightformer intensity={2.2} position={[0, 5, 3]} scale={[8, 8, 1]} color="#fff2f7" />
             <Lightformer intensity={1.1} position={[-4, 2, -2]} scale={[5, 5, 1]} color="#ffd6ea" />
             <Lightformer intensity={0.7} position={[4, 1, 2]} scale={[5, 5, 1]} color="#dfe9ff" />
-            <Lightformer intensity={0.4} position={[0, -3, 0]} scale={[10, 10, 1]} color="#0a1a14" />
+            <Lightformer
+              intensity={0.4}
+              position={[0, -3, 0]}
+              scale={[10, 10, 1]}
+              color="#0a1a14"
+            />
           </Environment>
 
           <hemisphereLight args={['#ffe6f0', '#0c1c16', 0.85]} />

@@ -64,15 +64,33 @@ export function AnimatedTransformGroup({
     let sz = 1;
     let [px, py, pz] = basePos;
     for (const ch of channels) {
-      const v = lerp(ch.from, ch.to, smoothstep(ch.edge0, ch.edge1, getTimelineValue(ch.target, 1)));
+      const v = lerp(
+        ch.from,
+        ch.to,
+        smoothstep(ch.edge0, ch.edge1, getTimelineValue(ch.target, 1))
+      );
       switch (ch.prop) {
-        case 'scaleX': sx = v; break;
-        case 'scaleY': sy = v; break;
-        case 'scaleZ': sz = v; break;
-        case 'scaleUniform': sx = sy = sz = v; break;
-        case 'posX': px = v; break;
-        case 'posY': py = v; break;
-        case 'posZ': pz = v; break;
+        case 'scaleX':
+          sx = v;
+          break;
+        case 'scaleY':
+          sy = v;
+          break;
+        case 'scaleZ':
+          sz = v;
+          break;
+        case 'scaleUniform':
+          sx = sy = sz = v;
+          break;
+        case 'posX':
+          px = v;
+          break;
+        case 'posY':
+          py = v;
+          break;
+        case 'posZ':
+          pz = v;
+          break;
       }
     }
     g.scale.set(sx, sy, sz);

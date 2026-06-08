@@ -13,11 +13,7 @@ import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { TokenIntrospection } from '../security/oauth21';
 import type { TokenIntrospectionWithTenant } from '../security/tenant-auth';
-import {
-  recordToolRequest,
-  generateCorrelationId,
-  emitMcpStructuredLog,
-} from './mcp-tool-metrics';
+import { recordToolRequest, generateCorrelationId, emitMcpStructuredLog } from './mcp-tool-metrics';
 
 let providerRegistered = false;
 

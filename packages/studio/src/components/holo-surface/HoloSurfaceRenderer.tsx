@@ -364,7 +364,13 @@ function renderNode(
     const src = resolveValue(merged.src ?? merged.source, state, computed) as string | undefined;
     const alt = resolveValue(merged.alt ?? merged.text, state, computed);
     return (
-      <img key={key} style={style} data-holo-node={node.name} src={src ?? ''} alt={String(alt ?? '')} />
+      <img
+        key={key}
+        style={style}
+        data-holo-node={node.name}
+        src={src ?? ''}
+        alt={String(alt ?? '')}
+      />
     );
   }
 
@@ -395,8 +401,7 @@ function renderNode(
     return (
       <div key={key} style={style} data-holo-node={node.name} data-holo-list>
         {items.map((item, idx) => {
-          const itemObj =
-            item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+          const itemObj = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
           const itemState: HoloSurfaceState = { ...state, ...itemObj, item, index: idx };
           const rowEmit = (event: string, payload?: unknown) =>
             onEmit(event, payload === undefined ? item : payload);

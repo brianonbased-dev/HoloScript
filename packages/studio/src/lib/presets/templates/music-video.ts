@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-music-video",
-  name: "Music Video Stage",
-  description: "Concert stage with particle effects and audio-reactive lights",
-  thumbnail: "🎶",
-  tags: ["film","music","stage","particles","audio"],
-  category: "film",
+  id: 'wizard-music-video',
+  name: 'Music Video Stage',
+  description: 'Concert stage with particle effects and audio-reactive lights',
+  thumbnail: '🎶',
+  tags: ['film', 'music', 'stage', 'particles', 'audio'],
+  category: 'film',
   code: `composition "Music Video Stage" {
   environment {
     skybox: "night"
@@ -102,7 +102,7 @@ export const template: SceneTemplate = {
       easing: "easeInOut"
     }
   }
-}`
+}`,
 };
 
 export default template;

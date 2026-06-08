@@ -18,7 +18,8 @@ import type { OTLPExporterConfig } from '@holoscript/core';
 export const observabilityTools: Tool[] = [
   {
     name: 'query_traces',
-    description: 'Query distributed trace spans by traceId, agent, or time range. Returns OTel-format spans for debugging agent orchestration.',
+    description:
+      'Query distributed trace spans by traceId, agent, or time range. Returns OTel-format spans for debugging agent orchestration.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -39,7 +40,8 @@ export const observabilityTools: Tool[] = [
   },
   {
     name: 'export_traces_otlp',
-    description: 'Export collected trace spans to an OTLP/HTTP endpoint. Requires an endpoint URL. Returns export result with span count and status.',
+    description:
+      'Export collected trace spans to an OTLP/HTTP endpoint. Requires an endpoint URL. Returns export result with span count and status.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -57,7 +59,8 @@ export const observabilityTools: Tool[] = [
   },
   {
     name: 'get_agent_health',
-    description: 'Get health status of registered agents including count, status breakdown, and telemetry stats.',
+    description:
+      'Get health status of registered agents including count, status breakdown, and telemetry stats.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -65,7 +68,8 @@ export const observabilityTools: Tool[] = [
   },
   {
     name: 'get_metrics_prometheus',
-    description: 'Get all collected metrics in Prometheus exposition text format. Use for monitoring dashboards and alerting.',
+    description:
+      'Get all collected metrics in Prometheus exposition text format. Use for monitoring dashboards and alerting.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -78,13 +82,15 @@ export const observabilityTools: Tool[] = [
   },
   {
     name: 'holo_service_scaffold',
-    description: 'Generate service observability SQL, StartupHealthCheck wiring, alert seeds, cleanup job, and @serviceObservability snippet from a .hsplus service composition or structured service config.',
+    description:
+      'Generate service observability SQL, StartupHealthCheck wiring, alert seeds, cleanup job, and @serviceObservability snippet from a .hsplus service composition or structured service config.',
     inputSchema: {
       type: 'object',
       properties: {
         composition: {
           type: 'string',
-          description: 'Optional .hsplus service composition containing @serviceObservability fields.',
+          description:
+            'Optional .hsplus service composition containing @serviceObservability fields.',
         },
         serviceName: {
           type: 'string',
@@ -97,7 +103,8 @@ export const observabilityTools: Tool[] = [
         },
         healthChecks: {
           type: 'array',
-          description: 'Startup health probes, e.g. [{service:"CostGovernor",check:"method-exists",method:"enforceBudget"}].',
+          description:
+            'Startup health probes, e.g. [{service:"CostGovernor",check:"method-exists",method:"enforceBudget"}].',
           items: { type: 'object' },
         },
         alertRules: {
@@ -294,7 +301,13 @@ type ScaffoldHealthCheck = {
   method?: string;
 };
 
-const DEFAULT_REQUIRED_TABLES = ['system_metrics', 'operation_metrics', 'alerts', 'alert_triggers', 'error_logs'];
+const DEFAULT_REQUIRED_TABLES = [
+  'system_metrics',
+  'operation_metrics',
+  'alerts',
+  'alert_triggers',
+  'error_logs',
+];
 const DEFAULT_NPC_COST_CEILING = 0.5;
 const DEFAULT_HEADLESS_AGENT_COST_CEILING = 5;
 const DEFAULT_ATTRIBUTION_FLOOR = 0.8;
@@ -314,8 +327,10 @@ function handleHoloServiceScaffold(args: Record<string, unknown>) {
   const composition = typeof args.composition === 'string' ? args.composition : '';
   const parsed = parseServiceComposition(composition);
   const serviceName = stringArg(args.serviceName) || parsed.serviceName || 'holoscript_service';
-  const requiredTables = stringArrayArg(args.requiredTables) ?? parsed.requiredTables ?? DEFAULT_REQUIRED_TABLES;
-  const healthChecks = objectArrayArg<ScaffoldHealthCheck>(args.healthChecks) ?? parsed.healthChecks ?? [];
+  const requiredTables =
+    stringArrayArg(args.requiredTables) ?? parsed.requiredTables ?? DEFAULT_REQUIRED_TABLES;
+  const healthChecks =
+    objectArrayArg<ScaffoldHealthCheck>(args.healthChecks) ?? parsed.healthChecks ?? [];
   const retentionDays = numberArg(args.retentionDays) ?? DEFAULT_RETENTION_DAYS;
   const npcCostCeiling = numberArg(args.npcCostCeilingUsdPerDay) ?? DEFAULT_NPC_COST_CEILING;
   const headlessAgentCostCeiling =
@@ -323,7 +338,11 @@ function handleHoloServiceScaffold(args: Record<string, unknown>) {
   const attributionFloor = numberArg(args.attributionAccuracyFloor) ?? DEFAULT_ATTRIBUTION_FLOOR;
   const alertRules = [
     createApiQuotaSeed('npc_daily_cost_ceiling', 'npc', npcCostCeiling),
-    createApiQuotaSeed('headless_agent_daily_cost_ceiling', 'headless_agent', headlessAgentCostCeiling),
+    createApiQuotaSeed(
+      'headless_agent_daily_cost_ceiling',
+      'headless_agent',
+      headlessAgentCostCeiling
+    ),
     createCreditFloorSeed('anthropic_credit_floor', 'anthropic'),
     ...(objectArrayArg<ScaffoldAlertRule>(args.alertRules) ?? parsed.alertRules ?? []),
   ];
@@ -351,7 +370,14 @@ function handleHoloServiceScaffold(args: Record<string, unknown>) {
     operationMetrics: [operationMetric],
     sql: renderServiceSql(requiredTables, alertRules, cleanupJob.sql),
     startupHealthCheck: renderStartupHealthCheck(serviceName, requiredTables, healthChecks),
-    hsplusTraitSnippet: renderHsplusTrait(serviceName, requiredTables, healthChecks, alertRules, cleanupJob, operationMetric),
+    hsplusTraitSnippet: renderHsplusTrait(
+      serviceName,
+      requiredTables,
+      healthChecks,
+      alertRules,
+      cleanupJob,
+      operationMetric
+    ),
   };
 }
 
@@ -367,7 +393,9 @@ function parseServiceComposition(composition: string): {
       matchQuotedValue(composition, 'service_name') ??
       matchQuotedValue(composition, 'serviceName') ??
       matchServiceDeclaration(composition),
-    requiredTables: matchStringArray(composition, 'required_tables') ?? matchStringArray(composition, 'requiredTables'),
+    requiredTables:
+      matchStringArray(composition, 'required_tables') ??
+      matchStringArray(composition, 'requiredTables'),
     healthChecks: matchHealthChecks(composition),
     alertRules: matchAlertRules(composition),
   };
@@ -389,7 +417,9 @@ function stringArrayArg(value: unknown): string[] | undefined {
 
 function objectArrayArg<T extends object>(value: unknown): T[] | undefined {
   if (!Array.isArray(value)) return undefined;
-  const records = value.filter((v): v is T => Boolean(v) && typeof v === 'object' && !Array.isArray(v));
+  const records = value.filter(
+    (v): v is T => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
+  );
   return records.length > 0 ? records : undefined;
 }
 
@@ -411,7 +441,8 @@ function matchStringArray(source: string, key: string): string[] | undefined {
 }
 
 function matchHealthChecks(source: string): ScaffoldHealthCheck[] | undefined {
-  const services = matchStringArray(source, 'health_checks') ?? matchStringArray(source, 'health_probes');
+  const services =
+    matchStringArray(source, 'health_checks') ?? matchStringArray(source, 'health_probes');
   if (!services) return undefined;
   return services.map((service) => ({ service, check: 'health-check' }));
 }
@@ -423,7 +454,9 @@ function matchAlertRules(source: string): ScaffoldAlertRule[] | undefined {
     name,
     rule_type: name.includes('quota') || name.includes('cost') ? 'api_quota' : 'custom',
     severity: name.includes('critical') || name.includes('cost') ? 'critical' : 'warning',
-    threshold: name.includes('headless') ? DEFAULT_HEADLESS_AGENT_COST_CEILING : DEFAULT_NPC_COST_CEILING,
+    threshold: name.includes('headless')
+      ? DEFAULT_HEADLESS_AGENT_COST_CEILING
+      : DEFAULT_NPC_COST_CEILING,
     rule_config: {},
   }));
 }
@@ -456,10 +489,16 @@ function createCreditFloorSeed(name: string, provider: string): ScaffoldAlertRul
   };
 }
 
-function renderServiceSql(requiredTables: string[], alertRules: ScaffoldAlertRule[], cleanupSql: string): string {
+function renderServiceSql(
+  requiredTables: string[],
+  alertRules: ScaffoldAlertRule[],
+  cleanupSql: string
+): string {
   const tableSql = requiredTables.map(renderTableSql).join('\n\n');
   const alertSql = alertRules.map(renderAlertSeedSql).join('\n\n');
-  return [tableSql, alertSql, '-- Scheduled metrics cleanup job', cleanupSql].filter(Boolean).join('\n\n');
+  return [tableSql, alertSql, '-- Scheduled metrics cleanup job', cleanupSql]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 function renderTableSql(table: string): string {

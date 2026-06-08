@@ -60,7 +60,9 @@ describe('HoloLand agent canary', () => {
       quests: [{ id: 'cq1', name: 'First Steps', steps: [{ id: 'cs1', objective: 'Explore' }] }],
       items: [{ id: 'ci1', name: 'Lantern', category: 'equipment' }],
       skills: [{ id: 'csk1', name: 'Navigation', rarity: 'common' }],
-      lootTables: [{ id: 'clt1', name: 'Starter Pack', entries: [{ id: 'cle1', itemId: 'ci1', weight: 1 }] }],
+      lootTables: [
+        { id: 'clt1', name: 'Starter Pack', entries: [{ id: 'cle1', itemId: 'ci1', weight: 1 }] },
+      ],
     });
     expect(shard.success).toBe(true);
     expect(shard.shardId).toBe('canary-shard');
@@ -170,29 +172,45 @@ describe('HoloLand agent canary', () => {
   // ── False-case: workflow failures ─────────────────────────────────────────
 
   it('canary: steward tick fails when shard does not exist', async () => {
-    const result = await handleTool('hololand_steward_tick', { shardId: 'ghost-shard' }, mockSigningCtx);
+    const result = await handleTool(
+      'hololand_steward_tick',
+      { shardId: 'ghost-shard' },
+      mockSigningCtx
+    );
     expect(result).toMatchObject({ error: expect.stringContaining('not found') });
   });
 
   it('canary: publishing a zone fails when zone does not exist', async () => {
-    const result = await handleTool('hololand_publish_zone', { zoneId: 'ghost-zone' }, mockSigningCtx);
+    const result = await handleTool(
+      'hololand_publish_zone',
+      { zoneId: 'ghost-zone' },
+      mockSigningCtx
+    );
     expect(result).toMatchObject({ error: expect.stringContaining('not found') });
   });
 
   it('canary: geo anchor fails when place does not exist', async () => {
-    const result = await handleTool('hololand_create_geo_anchor', {
-      placeId: 'ghost-place',
-      lat: 0,
-      lng: 0,
-    }, mockSigningCtx);
+    const result = await handleTool(
+      'hololand_create_geo_anchor',
+      {
+        placeId: 'ghost-place',
+        lat: 0,
+        lng: 0,
+      },
+      mockSigningCtx
+    );
     expect(result).toMatchObject({ error: expect.stringContaining('Place not found') });
   });
 
   it('canary: capture receipt fails when shard does not exist', async () => {
-    const result = await handleTool('hololand_capture_runtime_receipt', {
-      shardId: 'ghost-shard',
-      receiptType: 'validation',
-    }, mockSigningCtx);
+    const result = await handleTool(
+      'hololand_capture_runtime_receipt',
+      {
+        shardId: 'ghost-shard',
+        receiptType: 'validation',
+      },
+      mockSigningCtx
+    );
     expect(result).toMatchObject({ error: expect.stringContaining('not found') });
   });
 
@@ -450,10 +468,14 @@ describe('HoloLand agent canary', () => {
     });
 
     // Without safety envelope: actuation blocked
-    const noEnv = await handleTool('twin_earth_robot_actuate', {
-      agentId: 'canary-act-robot',
-      command: 'move',
-    }, mockSigningCtx);
+    const noEnv = await handleTool(
+      'twin_earth_robot_actuate',
+      {
+        agentId: 'canary-act-robot',
+        command: 'move',
+      },
+      mockSigningCtx
+    );
     expect(noEnv).toMatchObject({ error: expect.stringContaining('No active safety envelope') });
 
     // Register a steward to issue permission
@@ -481,10 +503,14 @@ describe('HoloLand agent canary', () => {
       blockedActions: ['robot:move'],
     });
 
-    const blocked = await handleTool('twin_earth_robot_actuate', {
-      agentId: 'canary-act-robot',
-      command: 'move',
-    }, mockSigningCtx);
+    const blocked = await handleTool(
+      'twin_earth_robot_actuate',
+      {
+        agentId: 'canary-act-robot',
+        command: 'move',
+      },
+      mockSigningCtx
+    );
     expect(blocked).toMatchObject({
       error: expect.stringContaining('blocked'),
       rejectedByEnvelope: true,
@@ -500,10 +526,14 @@ describe('HoloLand agent canary', () => {
       kind: 'ai',
     });
 
-    const noEnv = await handleTool('twin_earth_ai_invoke', {
-      agentId: 'canary-act-ai',
-      prompt: 'Hello',
-    }, mockSigningCtx);
+    const noEnv = await handleTool(
+      'twin_earth_ai_invoke',
+      {
+        agentId: 'canary-act-ai',
+        prompt: 'Hello',
+      },
+      mockSigningCtx
+    );
     expect(noEnv).toMatchObject({ error: expect.stringContaining('No active safety envelope') });
 
     await tool('twin_earth_create_safety_envelope', {
@@ -512,10 +542,14 @@ describe('HoloLand agent canary', () => {
       maxTickDurationMs: 50, // too low
     });
 
-    const lowTick = await handleTool('twin_earth_ai_invoke', {
-      agentId: 'canary-act-ai',
-      prompt: 'Hello',
-    }, mockSigningCtx);
+    const lowTick = await handleTool(
+      'twin_earth_ai_invoke',
+      {
+        agentId: 'canary-act-ai',
+        prompt: 'Hello',
+      },
+      mockSigningCtx
+    );
     expect(lowTick).toMatchObject({
       error: expect.stringContaining('too low'),
       rejectedByEnvelope: true,
@@ -593,11 +627,15 @@ describe('HoloLand agent canary', () => {
       kind: 'robot',
     });
 
-    const result = await handleTool('twin_earth_revoke_identity', {
-      agentId: 'canary-target',
-      granterId: 'canary-operator',
-      revocationSignature: '0xBad',
-    }, mockSigningCtx);
+    const result = await handleTool(
+      'twin_earth_revoke_identity',
+      {
+        agentId: 'canary-target',
+        granterId: 'canary-operator',
+        revocationSignature: '0xBad',
+      },
+      mockSigningCtx
+    );
     expect(result).toMatchObject({ error: expect.stringContaining('founder or steward') });
   });
 
@@ -614,10 +652,14 @@ describe('HoloLand agent canary', () => {
       agentId: 'canary-env-owner',
     });
 
-    const result = await handleTool('twin_earth_delete_safety_envelope', {
-      envelopeId: 'canary-del-env',
-      granterId: 'canary-env-owner',
-    }, mockSigningCtx);
+    const result = await handleTool(
+      'twin_earth_delete_safety_envelope',
+      {
+        envelopeId: 'canary-del-env',
+        granterId: 'canary-env-owner',
+      },
+      mockSigningCtx
+    );
     expect(result).toMatchObject({ error: expect.stringContaining('founder or steward') });
   });
 
@@ -634,10 +676,14 @@ describe('HoloLand agent canary', () => {
       agentId: 'canary-not-robot',
     });
 
-    const result = await handleTool('twin_earth_robot_actuate', {
-      agentId: 'canary-not-robot',
-      command: 'move',
-    }, mockSigningCtx);
+    const result = await handleTool(
+      'twin_earth_robot_actuate',
+      {
+        agentId: 'canary-not-robot',
+        command: 'move',
+      },
+      mockSigningCtx
+    );
     expect(result).toMatchObject({ error: expect.stringContaining('not a robot') });
   });
 
@@ -656,10 +702,14 @@ describe('HoloLand agent canary', () => {
       maxMemoryBytes: 1073741824,
     });
 
-    const result = await handleTool('twin_earth_ai_invoke', {
-      agentId: 'canary-not-ai',
-      prompt: 'Hello',
-    }, mockSigningCtx);
+    const result = await handleTool(
+      'twin_earth_ai_invoke',
+      {
+        agentId: 'canary-not-ai',
+        prompt: 'Hello',
+      },
+      mockSigningCtx
+    );
     expect(result).toMatchObject({ error: expect.stringContaining('not an AI') });
   });
 

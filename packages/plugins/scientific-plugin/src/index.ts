@@ -7,11 +7,7 @@
 
 import { NarupaProcessManager } from './narupa-process-manager';
 import { NarupaOrchestrator, TaskStatus } from './narupa-orchestrator';
-import type {
-  Task,
-  TaskResult,
-  HITLCallback,
-} from './narupa-orchestrator';
+import type { Task, TaskResult, HITLCallback } from './narupa-orchestrator';
 import { NarupaUnityTarget } from './narupa-unity-target';
 import type { HoloScriptObject, UnityGenerationOptions } from './narupa-unity-target';
 import { DatabaseFetcher } from './database-fetcher';

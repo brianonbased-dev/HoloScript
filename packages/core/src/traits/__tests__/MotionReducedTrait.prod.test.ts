@@ -127,7 +127,7 @@ describe('motionReducedHandler.onDetach', () => {
 describe('motionReducedHandler.onUpdate — velocity clamping', () => {
   it('no-op when isActive=false', () => {
     const { node, ctx, config } = attach();
-    (node as any).velocity = [10, 10, 10 ];
+    (node as any).velocity = [10, 10, 10];
     ctx.emit.mockClear();
     motionReducedHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalled();
@@ -138,7 +138,7 @@ describe('motionReducedHandler.onUpdate — velocity clamping', () => {
     const state = (node as any).__motionReducedState;
     state.isActive = true;
     // velocity magnitude = sqrt(4+4+4) ≈ 3.46 > 2
-    (node as any).velocity = [2, 2, 2 ];
+    (node as any).velocity = [2, 2, 2];
     ctx.emit.mockClear();
     motionReducedHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     const speed = Math.sqrt(12);
@@ -154,7 +154,7 @@ describe('motionReducedHandler.onUpdate — velocity clamping', () => {
     const { node, ctx, config } = attach({ max_velocity: 5 });
     const state = (node as any).__motionReducedState;
     state.isActive = true;
-    (node as any).velocity = [1, 1, 1 ]; // speed ≈ 1.73 < 5
+    (node as any).velocity = [1, 1, 1]; // speed ≈ 1.73 < 5
     ctx.emit.mockClear();
     motionReducedHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).not.toHaveBeenCalledWith('on_motion_clamped', expect.anything());
@@ -173,7 +173,7 @@ describe('motionReducedHandler.onUpdate — velocity clamping', () => {
     const { node, ctx, config } = attach({ disable_camera_shake: true });
     const state = (node as any).__motionReducedState;
     state.isActive = true;
-    node.position = [0, 0, 0 ];
+    node.position = [0, 0, 0];
     for (let i = 0; i < 15; i++) {
       motionReducedHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     }
@@ -329,7 +329,7 @@ describe('motionReducedHandler.onEvent — camera_transition_request', () => {
     ctx.emit.mockClear();
     motionReducedHandler.onEvent!(node as any, config, ctx as any, {
       type: 'camera_transition_request',
-      target: [10, 0, 0 ],
+      target: [10, 0, 0],
     });
     expect(ctx.emit).toHaveBeenCalledWith(
       'camera_teleport',

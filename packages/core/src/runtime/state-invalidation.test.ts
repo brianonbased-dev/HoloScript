@@ -98,7 +98,11 @@ describe('attachStateInvalidationConsumer (event-system integration)', () => {
   it('catches a persistent_expired emitted directly through emit(ctx)', async () => {
     const ctx = makeCtx();
     const reg = attachStateInvalidationConsumer(ctx, new StateInvalidationRegistry());
-    await emit('persistent_expired', { key: 'direct-k', node: { id: 'orb-1' } } as unknown as HoloScriptValue, ctx);
+    await emit(
+      'persistent_expired',
+      { key: 'direct-k', node: { id: 'orb-1' } } as unknown as HoloScriptValue,
+      ctx
+    );
     expect(reg.wasInvalidated('direct-k')).toBe(true);
     expect(reg.get('direct-k')?.nodeId).toBe('orb-1');
   });

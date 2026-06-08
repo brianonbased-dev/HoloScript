@@ -2,7 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { NavMesh } from '@holoscript/framework/ai';
 import { SteeringBehavior, type SteeringAgent } from '@holoscript/framework/ai';
 import { BehaviorTree } from '@holoscript/framework/ai';
-import { SequenceNode, SelectorNode, ActionNode, ConditionNode, InverterNode } from '@holoscript/framework/ai';
+import {
+  SequenceNode,
+  SelectorNode,
+  ActionNode,
+  ConditionNode,
+  InverterNode,
+} from '@holoscript/framework/ai';
 import { Blackboard } from '@holoscript/framework/ai';
 
 describe('AI & Pathfinding (Cycle 180)', () => {

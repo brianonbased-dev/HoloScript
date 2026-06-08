@@ -1,8 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import {
-  getConsolidationBridge,
-  resetConsolidationBridge,
-} from '../consolidation-bridge';
+import { getConsolidationBridge, resetConsolidationBridge } from '../consolidation-bridge';
 import type { MeshKnowledgeEntry } from '../types';
 
 describe('HoloMeshConsolidationBridge', () => {

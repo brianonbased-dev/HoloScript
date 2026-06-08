@@ -135,7 +135,7 @@ export class CopilotPanel {
       entities.push({
         id: `copilot_${btn.id}`,
         type: 'button',
-        position: [x - width * 0.3 + i * (width * 0.3), y - height * 0.45, z + 0.001,],
+        position: [x - width * 0.3 + i * (width * 0.3), y - height * 0.45, z + 0.001],
         size: { width: width * 0.25, height: 0.035 },
         text: btn.text,
         color: '#16213e',

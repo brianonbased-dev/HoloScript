@@ -72,13 +72,16 @@ describe('proceduralTextures — registry + resolver', () => {
 
   it('resolves the REAL botanical generators to valid, deterministic RGBA8 data', () => {
     registerProceduralTexture('botanical_normal', (p) =>
-      generateBotanicalNormalMap(p as Parameters<typeof generateBotanicalNormalMap>[0]),
+      generateBotanicalNormalMap(p as Parameters<typeof generateBotanicalNormalMap>[0])
     );
     registerProceduralTexture('botanical_roughness', (p) =>
-      generateBotanicalRoughnessMap(p as Parameters<typeof generateBotanicalRoughnessMap>[0]),
+      generateBotanicalRoughnessMap(p as Parameters<typeof generateBotanicalRoughnessMap>[0])
     );
 
-    const spec = { generator: 'botanical_normal', params: { pattern: 'petal_veins', size: 64, seed: 7 } };
+    const spec = {
+      generator: 'botanical_normal',
+      params: { pattern: 'petal_veins', size: 64, seed: 7 },
+    };
     const data = resolveProceduralData(spec)!;
     expect(data.width).toBe(64);
     expect(data.height).toBe(64);
@@ -89,16 +92,19 @@ describe('proceduralTextures — registry + resolver', () => {
     // Deterministic: same seed → byte-identical (regenerate fresh, bypassing cache)
     clearProceduralTextures();
     registerProceduralTexture('botanical_normal', (p) =>
-      generateBotanicalNormalMap(p as Parameters<typeof generateBotanicalNormalMap>[0]),
+      generateBotanicalNormalMap(p as Parameters<typeof generateBotanicalNormalMap>[0])
     );
     const again = resolveProceduralData(spec)!;
     expect(Array.from(again.data)).toEqual(Array.from(data.data));
 
     // Roughness generator also produces a valid map and converts to a texture.
     registerProceduralTexture('botanical_roughness', (p) =>
-      generateBotanicalRoughnessMap(p as Parameters<typeof generateBotanicalRoughnessMap>[0]),
+      generateBotanicalRoughnessMap(p as Parameters<typeof generateBotanicalRoughnessMap>[0])
     );
-    const tex = resolveProceduralTexture({ generator: 'botanical_roughness', params: { size: 32 } });
+    const tex = resolveProceduralTexture({
+      generator: 'botanical_roughness',
+      params: { size: 32 },
+    });
     expect(tex).not.toBeNull();
     expect(tex!.image.width).toBe(32);
   });

@@ -47,10 +47,19 @@ describe('FixtureTrait — onEvent', () => {
   it('fixture:setup stores fixture and emits fixture:ready', () => {
     const node = makeNode();
     fixtureHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fixtureHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fixture:setup', name: 'user-db', data: { userId: 42 },
-    } as never);
-    const state = node.__fixtureState as { fixtures: Map<string, { data: unknown; active: boolean }> };
+    fixtureHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fixture:setup',
+        name: 'user-db',
+        data: { userId: 42 },
+      } as never
+    );
+    const state = node.__fixtureState as {
+      fixtures: Map<string, { data: unknown; active: boolean }>;
+    };
     expect(state.fixtures.get('user-db')?.active).toBe(true);
     expect(state.fixtures.get('user-db')?.data).toEqual({ userId: 42 });
     expect(node.emit).toHaveBeenCalledWith('fixture:ready', { name: 'user-db' });
@@ -59,13 +68,26 @@ describe('FixtureTrait — onEvent', () => {
   it('fixture:teardown removes fixture and emits fixture:torn_down', () => {
     const node = makeNode();
     fixtureHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fixtureHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fixture:setup', name: 'cache', data: {},
-    } as never);
+    fixtureHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fixture:setup',
+        name: 'cache',
+        data: {},
+      } as never
+    );
     node.emit.mockClear();
-    fixtureHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fixture:teardown', name: 'cache',
-    } as never);
+    fixtureHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fixture:teardown',
+        name: 'cache',
+      } as never
+    );
     const state = node.__fixtureState as { fixtures: Map<string, unknown> };
     expect(state.fixtures.has('cache')).toBe(false);
     expect(node.emit).toHaveBeenCalledWith('fixture:torn_down', { name: 'cache' });
@@ -74,8 +96,18 @@ describe('FixtureTrait — onEvent', () => {
   it('can set up multiple fixtures independently', () => {
     const node = makeNode();
     fixtureHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fixtureHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'fixture:setup', name: 'a', data: 1 } as never);
-    fixtureHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'fixture:setup', name: 'b', data: 2 } as never);
+    fixtureHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'fixture:setup', name: 'a', data: 1 } as never
+    );
+    fixtureHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'fixture:setup', name: 'b', data: 2 } as never
+    );
     const state = node.__fixtureState as { fixtures: Map<string, unknown> };
     expect(state.fixtures.size).toBe(2);
   });

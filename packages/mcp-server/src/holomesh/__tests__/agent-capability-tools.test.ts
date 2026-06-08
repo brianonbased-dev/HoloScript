@@ -116,7 +116,11 @@ describe('agent capability tools', () => {
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
-    const results = result.results as Array<{ item: { id: string }; score: number; matched: string[] }>;
+    const results = result.results as Array<{
+      item: { id: string };
+      score: number;
+      matched: string[];
+    }>;
     expect(results[0].item.id).toBe('template_webgpu');
     expect(results[0].score).toBeGreaterThan(0);
     expect(results[0].matched).toContain('capability:webgpu');
@@ -130,19 +134,29 @@ describe('agent capability tools', () => {
 describe('resolveMarketplaceSearchUrl SSRF protection', () => {
   // --- Allowed cases ---
   it('allows https URLs to allowed hosts', () => {
-    expect(resolveMarketplaceSearchUrl('https://mcp.holoscript.net/search')).toBe('https://mcp.holoscript.net/search');
-    expect(resolveMarketplaceSearchUrl('https://mcp-orchestrator-production-45f9.up.railway.app/marketplace/search')).toBe(
-      'https://mcp-orchestrator-production-45f9.up.railway.app/marketplace/search'
+    expect(resolveMarketplaceSearchUrl('https://mcp.holoscript.net/search')).toBe(
+      'https://mcp.holoscript.net/search'
     );
+    expect(
+      resolveMarketplaceSearchUrl(
+        'https://mcp-orchestrator-production-45f9.up.railway.app/marketplace/search'
+      )
+    ).toBe('https://mcp-orchestrator-production-45f9.up.railway.app/marketplace/search');
   });
 
   it('allows http URLs to loopback hosts (localhost, 127.0.0.1)', () => {
-    expect(resolveMarketplaceSearchUrl('http://localhost:4555/marketplace/search')).toBe('http://localhost:4555/marketplace/search');
-    expect(resolveMarketplaceSearchUrl('http://127.0.0.1:4555/marketplace/search')).toBe('http://127.0.0.1:4555/marketplace/search');
+    expect(resolveMarketplaceSearchUrl('http://localhost:4555/marketplace/search')).toBe(
+      'http://localhost:4555/marketplace/search'
+    );
+    expect(resolveMarketplaceSearchUrl('http://127.0.0.1:4555/marketplace/search')).toBe(
+      'http://127.0.0.1:4555/marketplace/search'
+    );
   });
 
   it('allows https URLs to loopback hosts', () => {
-    expect(resolveMarketplaceSearchUrl('https://localhost/search')).toBe('https://localhost/search');
+    expect(resolveMarketplaceSearchUrl('https://localhost/search')).toBe(
+      'https://localhost/search'
+    );
   });
 
   it('returns env default when no override is provided', () => {
@@ -165,11 +179,15 @@ describe('resolveMarketplaceSearchUrl SSRF protection', () => {
   });
 
   it('rejects data: scheme', () => {
-    expect(() => resolveMarketplaceSearchUrl('data:text/html,<script>alert(1)</script>')).toThrow('scheme not allowed');
+    expect(() => resolveMarketplaceSearchUrl('data:text/html,<script>alert(1)</script>')).toThrow(
+      'scheme not allowed'
+    );
   });
 
   it('rejects ftp:// scheme', () => {
-    expect(() => resolveMarketplaceSearchUrl('ftp://mcp.holoscript.net/pub/exploit')).toThrow('scheme not allowed');
+    expect(() => resolveMarketplaceSearchUrl('ftp://mcp.holoscript.net/pub/exploit')).toThrow(
+      'scheme not allowed'
+    );
   });
 
   it('rejects javascript: scheme', () => {
@@ -177,12 +195,16 @@ describe('resolveMarketplaceSearchUrl SSRF protection', () => {
   });
 
   it('rejects gopher:// scheme (classic SSRF vector)', () => {
-    expect(() => resolveMarketplaceSearchUrl('gopher://169.254.169.254:80/')).toThrow('scheme not allowed');
+    expect(() => resolveMarketplaceSearchUrl('gopher://169.254.169.254:80/')).toThrow(
+      'scheme not allowed'
+    );
   });
 
   // --- Host allowlist ---
   it('rejects arbitrary host even with https', () => {
-    expect(() => resolveMarketplaceSearchUrl('https://evil.example.com/search')).toThrow('host not allowed');
+    expect(() => resolveMarketplaceSearchUrl('https://evil.example.com/search')).toThrow(
+      'host not allowed'
+    );
   });
 
   it('rejects AWS instance metadata (non-loopback http:// blocked before host check)', () => {
@@ -197,8 +219,12 @@ describe('resolveMarketplaceSearchUrl SSRF protection', () => {
 
   // --- http on non-loopback ---
   it('rejects http:// on non-loopback allowed hosts (MITM protection)', () => {
-    expect(() => resolveMarketplaceSearchUrl('http://mcp.holoscript.net/search')).toThrow('must use https');
-    expect(() => resolveMarketplaceSearchUrl('http://mcp-orchestrator-production-45f9.up.railway.app/search')).toThrow('must use https');
+    expect(() => resolveMarketplaceSearchUrl('http://mcp.holoscript.net/search')).toThrow(
+      'must use https'
+    );
+    expect(() =>
+      resolveMarketplaceSearchUrl('http://mcp-orchestrator-production-45f9.up.railway.app/search')
+    ).toThrow('must use https');
   });
 
   // --- Invalid input ---

@@ -30,7 +30,7 @@ export class PathBoundaryError extends Error {
   readonly sandboxRoot: string;
   constructor(attemptedPath: string, sandboxRoot: string) {
     super(
-      `[@holoscript/std/fs] path "${attemptedPath}" resolves outside sandbox root "${sandboxRoot}"`,
+      `[@holoscript/std/fs] path "${attemptedPath}" resolves outside sandbox root "${sandboxRoot}"`
     );
     this.name = 'PathBoundaryError';
     this.attemptedPath = attemptedPath;

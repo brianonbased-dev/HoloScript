@@ -46,24 +46,48 @@ describe('FacetedSearchTrait — onEvent', () => {
   it('facet:add creates facet and emits facet:added', () => {
     const node = makeNode();
     facetedSearchHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    facetedSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'facet:add', facet: 'color', value: 'red',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('facet:added', expect.objectContaining({
-      facet: 'color',
-      values: expect.arrayContaining(['red']),
-    }));
+    facetedSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'facet:add',
+        facet: 'color',
+        value: 'red',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'facet:added',
+      expect.objectContaining({
+        facet: 'color',
+        values: expect.arrayContaining(['red']),
+      })
+    );
   });
 
   it('facet:add accumulates values for same facet', () => {
     const node = makeNode();
     facetedSearchHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    facetedSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'facet:add', facet: 'size', value: 'small',
-    } as never);
-    facetedSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'facet:add', facet: 'size', value: 'large',
-    } as never);
+    facetedSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'facet:add',
+        facet: 'size',
+        value: 'small',
+      } as never
+    );
+    facetedSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'facet:add',
+        facet: 'size',
+        value: 'large',
+      } as never
+    );
     const state = node.__facetState as { facets: Map<string, Set<string>> };
     expect(state.facets.get('size')?.size).toBe(2);
   });
@@ -71,15 +95,30 @@ describe('FacetedSearchTrait — onEvent', () => {
   it('facet:filter emits facet:filtered with all current facets', () => {
     const node = makeNode();
     facetedSearchHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    facetedSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'facet:add', facet: 'brand', value: 'HoloTech',
-    } as never);
+    facetedSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'facet:add',
+        facet: 'brand',
+        value: 'HoloTech',
+      } as never
+    );
     node.emit.mockClear();
-    facetedSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'facet:filter',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('facet:filtered', expect.objectContaining({
-      facets: expect.objectContaining({ brand: expect.arrayContaining(['HoloTech']) }),
-    }));
+    facetedSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'facet:filter',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'facet:filtered',
+      expect.objectContaining({
+        facets: expect.objectContaining({ brand: expect.arrayContaining(['HoloTech']) }),
+      })
+    );
   });
 });

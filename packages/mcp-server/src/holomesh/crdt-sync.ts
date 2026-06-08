@@ -236,7 +236,6 @@ Insight("${this.agentDid}_${Date.now()}") {
       }));
   }
 
-
   /**
    * Spatial query: parses @position(x, y, z) from insight hs_source blocks,
    * then filters by Euclidean radius from a center point in the HoloMesh
@@ -246,12 +245,17 @@ Insight("${this.agentDid}_${Date.now()}") {
   public querySpatialEntries(options?: {
     center?: { lat: number; lng: number };
     radius?: number;
-  }): Array<{ source: string; timestamp: number; position: { x: number; y: number; z: number } | null }> {
+  }): Array<{
+    source: string;
+    timestamp: number;
+    position: { x: number; y: number; z: number } | null;
+  }> {
     const feed = this.queryFeedView();
     const center = options?.center;
     const radius = options?.radius ?? 100;
 
-    const positionRegex = /@position\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/;
+    const positionRegex =
+      /@position\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/;
 
     const parsed = feed.map((item) => {
       const match = item.source.match(positionRegex);

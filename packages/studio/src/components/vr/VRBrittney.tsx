@@ -90,7 +90,9 @@ function BrittneyInputPanel({
     rec.interimResults = false;
     rec.lang = 'en-US';
     setListening(true);
-    rec.onresult = (ev: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => {
+    rec.onresult = (ev: {
+      results: { [index: number]: { [index: number]: { transcript: string } } };
+    }) => {
       onSend(ev.results[0][0].transcript);
       setListening(false);
     };

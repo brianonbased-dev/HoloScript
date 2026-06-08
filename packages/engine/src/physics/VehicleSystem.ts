@@ -350,7 +350,8 @@ export class VehicleSystem {
     vehicle.position[2] += vehicle.linearVelocity[2] * dt;
 
     // Compute speed in km/h
-    vehicle.speed = Math.sqrt(vehicle.linearVelocity[0] ** 2 + vehicle.linearVelocity[2] ** 2) * 3.6;
+    vehicle.speed =
+      Math.sqrt(vehicle.linearVelocity[0] ** 2 + vehicle.linearVelocity[2] ** 2) * 3.6;
 
     return vehicle;
   }

@@ -44,7 +44,9 @@ export function embedWebPreview(input: WebPreviewEmbed): HoloWebSurfaceEmission 
     warnings.push('URL did not parse as absolute URL');
   }
   if ((input.allow_mic || input.allow_camera) && !input.origin_whitelist?.length) {
-    warnings.push('mic/camera allowed without origin_whitelist — accept-all is not OK for agent scenes');
+    warnings.push(
+      'mic/camera allowed without origin_whitelist — accept-all is not OK for agent scenes'
+    );
   }
   return {
     trait: {

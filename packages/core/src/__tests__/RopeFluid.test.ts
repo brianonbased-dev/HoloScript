@@ -24,12 +24,7 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
 
   it('should measure rope length and tension', () => {
     const rs = new RopeSystem();
-    rs.createRope(
-      'r2',
-      [0, 0, 0],
-      [5, 0, 0],
-      { segmentCount: 5, segmentLength: 1 }
-    );
+    rs.createRope('r2', [0, 0, 0], [5, 0, 0], { segmentCount: 5, segmentLength: 1 });
     rs.pinNode('r2', 0);
 
     // Before simulation

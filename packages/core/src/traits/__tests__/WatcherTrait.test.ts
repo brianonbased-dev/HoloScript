@@ -4,10 +4,21 @@
 import { describe, it, expect, vi } from 'vitest';
 import { watcherHandler } from '../WatcherTrait';
 
-const makeNode = () => ({ id: 'n1', traits: new Set<string>(), emit: vi.fn(), __watcherState: undefined as unknown });
-const makeCtx = (node: ReturnType<typeof makeNode>) => ({ emit: (type: string, data: unknown) => node.emit(type, data) });
+const makeNode = () => ({
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
+  __watcherState: undefined as unknown,
+});
+const makeCtx = (node: ReturnType<typeof makeNode>) => ({
+  emit: (type: string, data: unknown) => node.emit(type, data),
+});
 const defaultConfig = {
-  watch_type: 'event' as const, patterns: [], debounce_ms: 200, recursive: false, auto_start: false,
+  watch_type: 'event' as const,
+  patterns: [],
+  debounce_ms: 200,
+  recursive: false,
+  auto_start: false,
 };
 
 describe('WatcherTrait', () => {

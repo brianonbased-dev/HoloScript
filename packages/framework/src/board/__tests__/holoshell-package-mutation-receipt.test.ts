@@ -49,7 +49,8 @@ const validReceipt: HoloShellPackageMutationReceipt = {
     approvalRequired: true,
     approvalCaptured: false,
     requiresFreshUserGesture: true,
-    approvedCommandPreview: 'winget upgrade --id BlenderFoundation.Blender --accept-source-agreements',
+    approvedCommandPreview:
+      'winget upgrade --id BlenderFoundation.Blender --accept-source-agreements',
     rollbackLimits: [
       'Package manager rollback behavior is provider-specific.',
       'Admin prompts cannot be replayed silently.',
@@ -72,7 +73,8 @@ const validReceipt: HoloShellPackageMutationReceipt = {
     source: 'apps/holoshell/source/holoshell-package-custody.hsplus',
     adapter: 'scripts/holoshell-package-custody.mjs',
     upstreamValidator: 'packages/framework/src/board/holoshell-package-mutation-receipt.ts',
-    priorEvidence: '.bench-logs/holoshell-human-os-frontier/2026-05-19/install-update-safe-wrapper-evidence-pack.md',
+    priorEvidence:
+      '.bench-logs/holoshell-human-os-frontier/2026-05-19/install-update-safe-wrapper-evidence-pack.md',
   },
   summary: {
     status: 'approval_required',
@@ -162,7 +164,11 @@ describe('validateHoloShellPackageMutationReceipt', () => {
   it('rejects hidden package execution without fresh approval', () => {
     const receipt = {
       ...validReceipt,
-      approval: { ...validReceipt.approval, requiresFreshUserGesture: false, approvalRequired: false },
+      approval: {
+        ...validReceipt.approval,
+        requiresFreshUserGesture: false,
+        approvalRequired: false,
+      },
       summary: { ...validReceipt.summary, approvalRequired: false },
     };
     const errors = validateHoloShellPackageMutationReceipt(receipt);

@@ -319,7 +319,6 @@ export async function GET(request: NextRequest) {
   return Response.json({ nodes: results, total: results.length, categories });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

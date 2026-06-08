@@ -38,22 +38,50 @@ export function BountiesPanel() {
         setBounties(json.bounties || json.data || []);
       } else {
         setBounties([
-          { id: 'b1', title: 'Implement Knowledge panel', reward: 420, skills: ['react', 'studio'], status: 'open' },
-          { id: 'b2', title: 'Bounties UI + wallet wiring', reward: 680, skills: ['frontend', 'wallet'], status: 'open', claimed_by: 'grok1-x402' },
+          {
+            id: 'b1',
+            title: 'Implement Knowledge panel',
+            reward: 420,
+            skills: ['react', 'studio'],
+            status: 'open',
+          },
+          {
+            id: 'b2',
+            title: 'Bounties UI + wallet wiring',
+            reward: 680,
+            skills: ['frontend', 'wallet'],
+            status: 'open',
+            claimed_by: 'grok1-x402',
+          },
           { id: 'b3', title: 'Absorb diff view', reward: 310, status: 'completed' },
         ]);
       }
     } catch {
       setBounties([
-        { id: 'b1', title: 'Implement Knowledge panel', reward: 420, skills: ['react', 'studio'], status: 'open' },
-        { id: 'b2', title: 'Bounties UI + wallet wiring', reward: 680, skills: ['frontend', 'wallet'], status: 'open', claimed_by: 'grok1-x402' },
+        {
+          id: 'b1',
+          title: 'Implement Knowledge panel',
+          reward: 420,
+          skills: ['react', 'studio'],
+          status: 'open',
+        },
+        {
+          id: 'b2',
+          title: 'Bounties UI + wallet wiring',
+          reward: 680,
+          skills: ['frontend', 'wallet'],
+          status: 'open',
+          claimed_by: 'grok1-x402',
+        },
         { id: 'b3', title: 'Absorb diff view', reward: 310, status: 'completed' },
       ]);
     }
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const claim = (id: string) => {
     alert('Claiming bounty (would POST /bounties/:id/claim + wallet attestation)');
@@ -62,31 +90,55 @@ export function BountiesPanel() {
 
   const postNew = () => window.open('/bounties/new', '_blank');
 
-  const filtered = tab === 'available'
-    ? bounties.filter(b => b.status === 'open' && !b.claimed_by)
-    : bounties.filter(b => b.claimed_by === 'grok1-x402' || b.status === 'claimed');
+  const filtered =
+    tab === 'available'
+      ? bounties.filter((b) => b.status === 'open' && !b.claimed_by)
+      : bounties.filter((b) => b.claimed_by === 'grok1-x402' || b.status === 'claimed');
 
   return (
     <div className="p-2 text-[11px] text-studio-text">
       <div className="flex gap-2 mb-2 text-[10px] uppercase tracking-wider">
-        <button onClick={() => setTab('available')} className={tab === 'available' ? 'text-studio-accent' : ''}>Available</button>
-        <button onClick={() => setTab('mine')} className={tab === 'mine' ? 'text-studio-accent' : ''}>Mine</button>
-        <button onClick={postNew} className="ml-auto text-[9px] underline">+ Post bounty</button>
+        <button
+          onClick={() => setTab('available')}
+          className={tab === 'available' ? 'text-studio-accent' : ''}
+        >
+          Available
+        </button>
+        <button
+          onClick={() => setTab('mine')}
+          className={tab === 'mine' ? 'text-studio-accent' : ''}
+        >
+          Mine
+        </button>
+        <button onClick={postNew} className="ml-auto text-[9px] underline">
+          + Post bounty
+        </button>
       </div>
 
       {loading && <div className="text-xs text-studio-muted">Loading bounties…</div>}
 
       <div className="space-y-2">
-        {filtered.length === 0 && <div className="text-studio-muted italic text-xs">No bounties in this tab.</div>}
-        {filtered.map(b => (
+        {filtered.length === 0 && (
+          <div className="text-studio-muted italic text-xs">No bounties in this tab.</div>
+        )}
+        {filtered.map((b) => (
           <div key={b.id} className="border border-studio-border/40 rounded p-2 text-xs">
             <div className="font-medium">{b.title}</div>
-            <div className="text-emerald-400">+{b.reward} • {b.deadline || 'no deadline'}</div>
+            <div className="text-emerald-400">
+              +{b.reward} • {b.deadline || 'no deadline'}
+            </div>
             {b.skills && <div className="text-[9px] text-studio-muted">{b.skills.join(', ')}</div>}
             {b.status === 'open' && !b.claimed_by && (
-              <button onClick={() => claim(b.id)} className="mt-1 text-[9px] underline text-studio-accent">Claim</button>
+              <button
+                onClick={() => claim(b.id)}
+                className="mt-1 text-[9px] underline text-studio-accent"
+              >
+                Claim
+              </button>
             )}
-            {b.claimed_by && <div className="text-[9px] text-amber-400">claimed by {b.claimed_by}</div>}
+            {b.claimed_by && (
+              <div className="text-[9px] text-amber-400">claimed by {b.claimed_by}</div>
+            )}
           </div>
         ))}
       </div>

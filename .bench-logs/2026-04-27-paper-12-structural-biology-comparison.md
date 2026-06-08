@@ -10,9 +10,9 @@
 
 | File | Total | Non-empty | Effective (code) |
 |------|-------|-----------|------------------|
-| `packages/plugins/structural-biology-plugin/src/index.ts` | 198 | 175 | 98 |
-| `packages/plugins/structural-biology-plugin/package.json` | 24 | 23 | 23 |
-| **Sum** | **222** | **198** | **121** |
+| `packages/plugins/structural-biology-plugin/src/index.ts` | 251 | 219 | 157 |
+| `packages/plugins/structural-biology-plugin/package.json` | 29 | 28 | 28 |
+| **Sum** | **280** | **247** | **185** |
 
 ## LOC — OpenUSD side (pinned v25.11)
 
@@ -28,8 +28,8 @@
 
 | Metric | HoloScript | OpenUSD (v25.11 authored) | USD/Holo ratio |
 |--------|------------|----------------------------|-----------------|
-| Effective code LOC | 121 | 323 | **2.67×** |
-| Non-empty LOC | 198 | 362 | **1.83×** |
+| Effective code LOC | 185 | 323 | **1.75×** |
+| Non-empty LOC | 247 | 362 | **1.47×** |
 
 Note: the OpenUSD authored set above does NOT include the .h/.cpp pairs, wrap*.cpp Python bindings, module.cpp, moduleDeps.cpp, tokens.cpp, or generatedSchema.usda that step 3 (`usdGenSchema schema.usda .`) produces. Including those generated files (typically 600–1200 LOC for a plugin of this surface) widens the gap further. The numbers above measure only the lines a USD plugin author actually writes by hand on top of the v25.11 codegen.
 
@@ -60,10 +60,10 @@ Note: the OpenUSD authored set above does NOT include the .h/.cpp pairs, wrap*.c
 ### HoloScript side — measured
 
 - Plugin id fused into per-residue anchor + per-object chain hash via `@holoscript/structural-biology-plugin/chainHash()`.
-- Test protein `EGFR` with 12 residues hashes to `0ee176da`.
+- Test protein `EGFR` with 12 residues hashes to `fa149667`.
 - Plugin attribution recovered from the artifact: **structural-biology**.
 - Tamper test (mutated trait list, unchanged residues): rejected by `verifyChain` → **PASS**.
-- Result: a downstream consumer can prove "this object was authored by structural-biology@0.0.1" from the compiled artifact alone.
+- Result: a downstream consumer can prove "this object was authored by structural-biology@0.2.0" from the compiled artifact alone.
 
 ### OpenUSD v25.11 — break point
 

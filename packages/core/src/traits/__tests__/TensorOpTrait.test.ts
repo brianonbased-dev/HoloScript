@@ -7,8 +7,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { tensorOpHandler } from '../TensorOpTrait';
 
-const makeNode = () => ({ id: 'n1', traits: new Set<string>(), emit: vi.fn(), __tensorState: undefined as unknown });
-const makeCtx = (node: ReturnType<typeof makeNode>) => ({ emit: (type: string, data: unknown) => node.emit(type, data) });
+const makeNode = () => ({
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
+  __tensorState: undefined as unknown,
+});
+const makeCtx = (node: ReturnType<typeof makeNode>) => ({
+  emit: (type: string, data: unknown) => node.emit(type, data),
+});
 const defaultConfig = { max_dimensions: 4 };
 
 const fire = (node: ReturnType<typeof makeNode>, event: Record<string, unknown>) =>
@@ -59,7 +66,10 @@ describe('TensorOpTrait', () => {
     fire(node, { type: 'tensor:create', tensorId: 'a', shape: [2, 3], data: [1, 2, 3, 4, 5, 6] });
     fire(node, { type: 'tensor:create', tensorId: 'b', shape: [2, 2], data: [1, 2, 3, 4] });
     fire(node, { type: 'tensor:matmul', a: 'a', b: 'b' });
-    expect(node.emit).toHaveBeenCalledWith('tensor:error', expect.objectContaining({ op: 'matmul' }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'tensor:error',
+      expect.objectContaining({ op: 'matmul' })
+    );
     expect(lastEmit(node, 'tensor:result')).toBeUndefined();
   });
 
@@ -67,6 +77,9 @@ describe('TensorOpTrait', () => {
     const node = makeNode();
     tensorOpHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     fire(node, { type: 'tensor:add', a: 'nope', b: 'nada' });
-    expect(node.emit).toHaveBeenCalledWith('tensor:error', expect.objectContaining({ reason: 'unknown tensor id' }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'tensor:error',
+      expect.objectContaining({ reason: 'unknown tensor id' })
+    );
   });
 });

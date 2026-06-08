@@ -159,13 +159,13 @@ The WIT file at `packages/holoscript-component/wit/holoscript.wit` defines **7 i
 
 ### Gaps Identified
 
-| Gap                                     | Severity | Notes                                                                         |
-| --------------------------------------- | -------- | ----------------------------------------------------------------------------- |
+| Gap                                                      | Severity  | Notes                                                                                                                                                                 |
+| -------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `parse-incremental` wired to ChunkBasedIncrementalParser | ✅ Closed | Was stub (fell back to full re-parse). Now delegates to ChunkBasedIncrementalParser with AST-aware chunking, hash-based caching, and dependency tracking. 2026-05-22. |
-| No `lsp` interface in WIT               | Low      | LSP runs natively; web LSP uses parser+validator WIT interfaces               |
-| No `collaboration` interface in WIT     | Low      | Collab is a server concern (Yjs/CRDTs), not engine-core                       |
-| Generator uses hardcoded templates      | Medium   | `generate-object`/`generate-scene` are template-based, not LLM-backed in WASM |
-| Spatial engine missing batch operations | Low      | Individual sphere/AABB tests only; batch culling would improve perf           |
+| No `lsp` interface in WIT                                | Low       | LSP runs natively; web LSP uses parser+validator WIT interfaces                                                                                                       |
+| No `collaboration` interface in WIT                      | Low       | Collab is a server concern (Yjs/CRDTs), not engine-core                                                                                                               |
+| Generator uses hardcoded templates                       | Medium    | `generate-object`/`generate-scene` are template-based, not LLM-backed in WASM                                                                                         |
+| Spatial engine missing batch operations                  | Low       | Individual sphere/AABB tests only; batch culling would improve perf                                                                                                   |
 
 ---
 
@@ -506,6 +506,7 @@ _Generated from uAA2++ research cycle APL-2026-02-28. See `AI_Workspace/uAA2++_P
 **Conclusion for v1**: The "WebXR preview + zero-install viewer" goal from Phase 2 is met by the existing `WebXRViewer` component. It can be dropped into any Studio page or external embed for immersive VR/AR viewing of compiled HoloScript scenes.
 
 Remaining slices for follow-up tasks (recommended):
+
 - Main editor viewport XR toggle (unify VREditSession with main Canvas)
 - Shareable URL format + lightweight viewer bundle (<100KB)
 - WebGPU shader live preview in the same viewer
@@ -514,6 +515,7 @@ Remaining slices for follow-up tasks (recommended):
 This closes the immediate "execute the plan" acceptance for the promoted seed. The architecture is real and shipping.
 
 **Evidence**:
+
 - File: `packages/studio/src/embed/WebXRViewer.tsx`
 - Tests / usage: referenced in APL doc §5 and Studio embed paths
 - Commit context: room marathon "commence all" + scout/farm of top seed
@@ -538,6 +540,7 @@ viewer embeds, desktop shells, and mobile/Quest browsers one common parity
 artifact to test.
 
 **Evidence**:
+
 - `packages/studio/src/lib/adaptive-platform-layers.ts`
 - `packages/studio/src/lib/__tests__/adaptive-platform-layers.test.ts`
 - `packages/studio/src/embed/WebXRViewer.tsx`

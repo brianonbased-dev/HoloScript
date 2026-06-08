@@ -9,12 +9,24 @@ import { describe, it, expect, vi } from 'vitest';
 import { navmeshSolverHandler } from '../NavmeshSolverTrait';
 import type { WalkablePoint } from '../WalkableNavmeshBuilder';
 
-const makeNode = () => ({ id: 'n1', traits: new Set<string>(), emit: vi.fn(), __navState: undefined as unknown });
-const makeCtx = (node: ReturnType<typeof makeNode>) => ({ emit: (type: string, data: unknown) => node.emit(type, data) });
+const makeNode = () => ({
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
+  __navState: undefined as unknown,
+});
+const makeCtx = (node: ReturnType<typeof makeNode>) => ({
+  emit: (type: string, data: unknown) => node.emit(type, data),
+});
 const defaultConfig = { cell_size: 0.5 };
 
 const fire = (node: ReturnType<typeof makeNode>, event: Record<string, unknown>) =>
-  navmeshSolverHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, event as never);
+  navmeshSolverHandler.onEvent!(
+    node as never,
+    defaultConfig,
+    makeCtx(node) as never,
+    event as never
+  );
 
 const lastEmit = (node: ReturnType<typeof makeNode>, type: string) => {
   const calls = node.emit.mock.calls.filter((c: unknown[]) => c[0] === type);

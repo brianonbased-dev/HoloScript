@@ -185,7 +185,7 @@ export class NetworkManager {
       type,
       senderId: this.peerId,
       timestamp: Date.now(),
-        payload: NetworkManager.withNumericIndices(payload),
+      payload: NetworkManager.withNumericIndices(payload),
     };
     this.outbox.push(msg);
   }
@@ -347,7 +347,9 @@ export class NetworkManager {
     if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) return payload;
     const p = payload as Record<string, unknown>;
     const result: Record<string, unknown> = { ...p };
-    Object.values(p).forEach((v, i) => { result[i] = v; });
+    Object.values(p).forEach((v, i) => {
+      result[i] = v;
+    });
     return result;
   }
 }

@@ -88,10 +88,12 @@ export const broadcastToTeam = broadcastToRoom;
 /**
  * Get list of agents currently connected to a room.
  */
-export function getRoomPresence(roomId: string): { agentId: string; agentName: string; ide?: string; joinedAt: number }[] {
+export function getRoomPresence(
+  roomId: string
+): { agentId: string; agentName: string; ide?: string; joinedAt: number }[] {
   const clients = rooms.get(roomId);
   if (!clients) return [];
-  return Array.from(clients).map(c => ({
+  return Array.from(clients).map((c) => ({
     agentId: c.agentId,
     agentName: c.agentName,
     ide: c.ide,
@@ -135,7 +137,7 @@ export function handleTeamRoomConnection(
   applyEdgeSafeSseHeaders(res);
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
-    'Connection': 'keep-alive',
+    Connection: 'keep-alive',
     'Access-Control-Allow-Origin': '*',
   });
   try {
@@ -179,7 +181,7 @@ export function handleTeamRoomConnection(
 
   // Replay history for reconnecting clients
   const hist = roomHistory.get(teamId) ?? [];
-  const replay = since > 0 ? hist.filter(e => e.ts > since) : hist;
+  const replay = since > 0 ? hist.filter((e) => e.ts > since) : hist;
   for (const event of replay) {
     try {
       res.write(`data: ${JSON.stringify(event)}\n\n`);

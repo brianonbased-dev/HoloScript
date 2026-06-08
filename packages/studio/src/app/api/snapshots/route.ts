@@ -9,7 +9,12 @@ import { logger } from '@/lib/logger';
 
 import { corsHeaders } from '../_lib/cors';
 import { requireAuth } from '@/lib/api-auth';
-import { scopedSceneKey, unscopeSceneId, ownerScopePrefix, escapeLike } from '../_lib/sceneOwnerScope';
+import {
+  scopedSceneKey,
+  unscopeSceneId,
+  ownerScopePrefix,
+  escapeLike,
+} from '../_lib/sceneOwnerScope';
 import { virusScanHookPoint } from '@/lib/virusScanHookPoint';
 
 /** SEC-T12: max raw JSON body for POST (scene code + data URL). */
@@ -133,7 +138,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (dataUrl && dataUrl.startsWith('data:') && !ALLOWED_SNAPSHOT_IMAGE_HEADER.test(dataUrl.split(',')[0] ?? '')) {
+  if (
+    dataUrl &&
+    dataUrl.startsWith('data:') &&
+    !ALLOWED_SNAPSHOT_IMAGE_HEADER.test(dataUrl.split(',')[0] ?? '')
+  ) {
     return Response.json(
       { error: 'Only data:image/png, jpeg, webp, or gif snapshots are allowed' },
       { status: 400 }
@@ -288,7 +297,6 @@ export async function DELETE(request: NextRequest) {
   }
   return Response.json({ error: 'Not found' }, { status: 404 });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

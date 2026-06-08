@@ -19,10 +19,7 @@ export async function POST(request: NextRequest) {
     const { sessionId, recompileIntervalMs = 1000, autoStop = false } = body;
 
     if (!sessionId) {
-      return NextResponse.json(
-        { ok: false, error: 'sessionId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'sessionId is required' }, { status: 400 });
     }
 
     // Start streaming session

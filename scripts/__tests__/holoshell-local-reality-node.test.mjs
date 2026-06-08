@@ -59,7 +59,11 @@ try {
   const sourceBytes = readFileSync(resolve(REPO_ROOT, SOURCE));
   const expectedSourceHash = `sha256:${createHash('sha256').update(sourceBytes).digest('hex')}`;
 
-  assertEq(receipt.schemaVersion, 'holoscript.holoshell.local-reality-node.receipt.v0.1.0', 'schema');
+  assertEq(
+    receipt.schemaVersion,
+    'holoscript.holoshell.local-reality-node.receipt.v0.1.0',
+    'schema'
+  );
   assertEq(receipt.sourceHoloHash, expectedSourceHash, 'top-level source .holo hash');
   assertEq(receipt.source.holoHash, expectedSourceHash, 'nested source .holo hash');
   assertEq(printedReceipt.sourceHoloHash, expectedSourceHash, 'stdout source .holo hash');
@@ -102,7 +106,10 @@ try {
     }
   );
   assertEq(emptyResult.status, 1, 'empty projection source exits 1');
-  assertOk(emptyResult.stderr.includes('No object declarations'), 'empty projection error is explicit');
+  assertOk(
+    emptyResult.stderr.includes('No object declarations'),
+    'empty projection error is explicit'
+  );
 } finally {
   rmSync(OUT_DIR, { recursive: true, force: true });
 }
@@ -120,7 +127,9 @@ function assertEq(actual, expected, name) {
     console.log(`  ok - ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  not ok - ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  not ok - ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 

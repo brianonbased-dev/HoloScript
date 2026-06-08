@@ -18,8 +18,12 @@ vi.mock('@anthropic-ai/sdk', () => {
             model: (args.model as string) ?? 'claude-opus-4-7',
             stop_reason: 'end_turn',
           }),
-          get request_id() { return 'req_thinking_test'; },
-          get response() { return { headers: new Headers() }; },
+          get request_id() {
+            return 'req_thinking_test';
+          },
+          get response() {
+            return { headers: new Headers() };
+          },
         };
       },
     };
@@ -83,7 +87,7 @@ describe('AnthropicAdapter messages.stream thinking + output_config', () => {
         thinkingDisplay: 'omitted',
         effort: 'low',
       },
-      'claude-opus-4-7',
+      'claude-opus-4-7'
     );
     const a = streamCalls[0];
     expect(a.thinking).toEqual({ type: 'adaptive', display: 'omitted' });
@@ -94,7 +98,7 @@ describe('AnthropicAdapter messages.stream thinking + output_config', () => {
     const adapter = new AnthropicAdapter({ apiKey: 'k' });
     await adapter.complete(
       { messages: [userMsg], thinking: { type: 'disabled' } },
-      'claude-opus-4-7',
+      'claude-opus-4-7'
     );
     const a = streamCalls[0];
     expect(a.thinking).toEqual({ type: 'disabled' });

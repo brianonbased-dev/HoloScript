@@ -90,11 +90,7 @@ interface WebGPUPhysicsArtifact {
 
 const COMPLETED_STATUS = 'completed';
 
-const TOLERATED_STATUSES = new Set([
-  COMPLETED_STATUS,
-  'unsupported',
-  'error',
-]);
+const TOLERATED_STATUSES = new Set([COMPLETED_STATUS, 'unsupported', 'error']);
 
 const POLL_INTERVAL_MS = 500;
 
@@ -105,7 +101,9 @@ const POLL_INTERVAL_MS = 500;
 test.describe('WebGPU physics smoke benchmark harness', () => {
   let artifact: WebGPUPhysicsArtifact;
 
-  test('loads benchmark-webgpu-physics.html, captures artifact, and writes JSON', async ({ page }) => {
+  test('loads benchmark-webgpu-physics.html, captures artifact, and writes JSON', async ({
+    page,
+  }) => {
     const fileUrl = buildFileUrl();
 
     let settled = false;
@@ -209,7 +207,7 @@ test.describe('WebGPU physics smoke benchmark harness', () => {
     } else {
       console.log(
         `[harness] Status "${artifact.status}" is not 'completed'. ` +
-        `Failures: ${JSON.stringify(artifact.failures)}`
+          `Failures: ${JSON.stringify(artifact.failures)}`
       );
       if (!boolEnv('BENCH_REQUIRE_COMPLETED')) {
         console.log('[harness] BENCH_REQUIRE_COMPLETED not set -- accepting non-completed status.');
@@ -238,11 +236,7 @@ test.describe('WebGPU physics smoke benchmark harness', () => {
 
     expect(baseline.schema_version).toBe('webgpu-physics-bench-v1');
 
-    if (
-      artifact &&
-      artifact.status === COMPLETED_STATUS &&
-      baseline.status === COMPLETED_STATUS
-    ) {
+    if (artifact && artifact.status === COMPLETED_STATUS && baseline.status === COMPLETED_STATUS) {
       // Compare 1K cell FPS drift (loose: within 20% is fine)
       const prev1k = baseline.cells.find((c) => c.particleCount === 1000);
       const curr1k = artifact.cells.find((c) => c.particleCount === 1000);
@@ -252,8 +246,8 @@ test.describe('WebGPU physics smoke benchmark harness', () => {
         if (drift > 0.2) {
           console.warn(
             `[drift-guard] Significant drift detected: ` +
-            `prev=${prev1k.avgStepMs.toFixed(3)} ms ` +
-            `curr=${curr1k.avgStepMs.toFixed(3)} ms`
+              `prev=${prev1k.avgStepMs.toFixed(3)} ms ` +
+              `curr=${curr1k.avgStepMs.toFixed(3)} ms`
           );
         }
       }

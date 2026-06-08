@@ -64,7 +64,8 @@ function ensureLiveSwarmViewerContainer(): HTMLElement {
     fontFamily: 'Inter, sans-serif',
     backdropFilter: 'blur(10px)',
   });
-  container.innerHTML = '<strong>Live Swarm Node Viewer</strong><div style="opacity:0.7;margin-top:8px;">Connecting...</div>';
+  container.innerHTML =
+    '<strong>Live Swarm Node Viewer</strong><div style="opacity:0.7;margin-top:8px;">Connecting...</div>';
   document.body.appendChild(container);
   return container;
 }
@@ -81,7 +82,9 @@ function renderLiveSwarmTopology(payload: SwarmTopologyPayload): void {
     .join('');
 
   const updated = payload.updatedAt ?? new Date().toISOString();
-  const room = payload.roomId ? `<div style="opacity:0.65; margin-top:4px;">Room: ${payload.roomId}</div>` : '';
+  const room = payload.roomId
+    ? `<div style="opacity:0.65; margin-top:4px;">Room: ${payload.roomId}</div>`
+    : '';
 
   container.innerHTML = [
     '<strong>Live Swarm Node Viewer</strong>',
@@ -211,7 +214,11 @@ export function createAgentMarketplaceTemplateCommands(
  * Register built-in Studio commands (AI generate, export, WebRTC sync, etc.)
  * into the command palette. Called once on app init.
  */
-export function initializeStudioCommands(palette: UXCommandPalette, sceneRoot: HSPlusNode, webrtcProvider?: unknown) {
+export function initializeStudioCommands(
+  palette: UXCommandPalette,
+  sceneRoot: HSPlusNode,
+  webrtcProvider?: unknown
+) {
   const templateCommands = createAgentMarketplaceTemplateCommands(sceneRoot);
   const liveSwarmNodeViewerCommand = createLiveSwarmNodeViewerCommand();
 
@@ -232,19 +239,22 @@ export function initializeStudioCommands(palette: UXCommandPalette, sceneRoot: H
           type: 'entity',
           properties: { position: [0, 0, 0], visible: true },
           traits: new Map([
-            ['text_to_universe', { llmProvider: 'claude-3-opus', narrativeConsistency: 'high', autoSpawning: true }]
+            [
+              'text_to_universe',
+              { llmProvider: 'claude-3-opus', narrativeConsistency: 'high', autoSpawning: true },
+            ],
           ]),
-          children: []
+          children: [],
         };
-        
+
         sceneRoot.children?.push(ttuNode);
-        
+
         // Dispatch the generation event to the local graph
-        const e = new CustomEvent('hs:trait_event', { 
-          detail: { nodeId: ttuNode.id, type: 'ttu:describe', payload: { description: prompt } }
+        const e = new CustomEvent('hs:trait_event', {
+          detail: { nodeId: ttuNode.id, type: 'ttu:describe', payload: { description: prompt } },
         });
         document.dispatchEvent(e);
-      }
+      },
     },
     {
       id: 'cmd_ai_urban',
@@ -252,9 +262,9 @@ export function initializeStudioCommands(palette: UXCommandPalette, sceneRoot: H
       icon: '🌇',
       description: 'Casts @geospatial_climate over selected neighborhood',
       action: async () => {
-         // Placeholder for urban planning invocation
-         console.log('Invoking geospatial climate twin...');
-      }
+        // Placeholder for urban planning invocation
+        console.log('Invoking geospatial climate twin...');
+      },
     },
     {
       id: 'cmd_sync_mesh',
@@ -263,11 +273,11 @@ export function initializeStudioCommands(palette: UXCommandPalette, sceneRoot: H
       shortcut: ['Cmd', 'S'],
       description: 'Flushes all local mutations to the HoloMesh peer network',
       action: async () => {
-         if (webrtcProvider) {
-           console.log('Flushing specific local CRDT state to HoloMesh peers');
-           // webrtcProvider.sync(...)
-         }
-      }
+        if (webrtcProvider) {
+          console.log('Flushing specific local CRDT state to HoloMesh peers');
+          // webrtcProvider.sync(...)
+        }
+      },
     },
     liveSwarmNodeViewerCommand,
     ...templateCommands,

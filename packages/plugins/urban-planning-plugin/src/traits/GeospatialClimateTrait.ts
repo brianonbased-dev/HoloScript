@@ -39,12 +39,12 @@ export function createGeospatialClimateHandler(): TraitHandler<GeospatialClimate
     onAttach(n: HSPlusNode, c: GeospatialClimateConfig, ctx: TraitContext) {
       // Calculate initial Urban Heat Island effect based on albedo and vegetation
       const heatOffset = (0.8 - c.albedo) * 3 + (100 - c.vegetationCoverPercent) * 0.05;
-      
+
       n.__geospatialClimateState = {
         currentTempC: c.baseTemperatureC + heatOffset,
         urbanHeatIslandEffectC: heatOffset,
         airQualityIndex: 50, // baseline good
-        floodRiskLevel: 'low'
+        floodRiskLevel: 'low',
       };
       if (c.emitEvents !== false) {
         ctx.emit?.('climate:initialized', n.__geospatialClimateState);
@@ -80,10 +80,7 @@ export function createGeospatialClimateHandler(): TraitHandler<GeospatialClimate
 
       const aqDrift = (Math.cos(t * 1.3) + 1) * 0.35 - 0.2;
       const vegBonus = (c.vegetationCoverPercent / 100) * 0.15;
-      s.airQualityIndex = Math.max(
-        0,
-        Math.min(500, s.airQualityIndex + aqDrift - vegBonus)
-      );
+      s.airQualityIndex = Math.max(0, Math.min(500, s.airQualityIndex + aqDrift - vegBonus));
 
       if (c.emitEvents !== false) {
         ctx.emit?.('climate:sim_tick', {
@@ -95,16 +92,16 @@ export function createGeospatialClimateHandler(): TraitHandler<GeospatialClimate
     onEvent(n: HSPlusNode, c: GeospatialClimateConfig, ctx: TraitContext, e: TraitEvent) {
       const s = n.__geospatialClimateState as GeospatialClimateState | undefined;
       if (!s) return;
-      
+
       if (e.type === 'weather:storm') {
         const rainfallMm = (e.payload?.rainfallMm as number) ?? 50;
         // Calculate flood risk based on retention
         if (rainfallMm > 20 && c.waterRetentionRate < 0.2) {
-            s.floodRiskLevel = 'critical';
+          s.floodRiskLevel = 'critical';
         } else if (rainfallMm > 50 && c.waterRetentionRate < 0.5) {
-            s.floodRiskLevel = 'high';
+          s.floodRiskLevel = 'high';
         } else if (rainfallMm > 100) {
-            s.floodRiskLevel = 'medium';
+          s.floodRiskLevel = 'medium';
         }
         if (c.emitEvents !== false) {
           ctx.emit?.('climate:flood_risk_updated', { level: s.floodRiskLevel });

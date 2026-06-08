@@ -112,9 +112,8 @@ export class NoOpInferenceAdapter implements InferenceAdapter {
       throw new Error('NoOpInferenceAdapter: at least one input required');
     }
     const firstInput = request.inputs[inputNames[0]];
-    const outputNames = request.outputs && request.outputs.length > 0
-      ? request.outputs
-      : ['output'];
+    const outputNames =
+      request.outputs && request.outputs.length > 0 ? request.outputs : ['output'];
 
     const outputs: Record<string, Float32Tensor> = {};
     for (const name of outputNames) {
@@ -181,7 +180,7 @@ export class PureJsInferenceAdapter implements InferenceAdapter {
 
   constructor(
     private readonly inputDim?: number,
-    private readonly outputDim?: number,
+    private readonly outputDim?: number
   ) {}
 
   async load(modelUrl: string): Promise<void> {
@@ -228,7 +227,8 @@ export class PureJsInferenceAdapter implements InferenceAdapter {
     const out = net.forward(input.data, phase);
     const durationMs = nowMs() - start;
 
-    const outName = request.outputs && request.outputs.length > 0 ? request.outputs[0] : 'motion_output';
+    const outName =
+      request.outputs && request.outputs.length > 0 ? request.outputs[0] : 'motion_output';
     return {
       outputs: { [outName]: { data: out, shape: [1, out.length] } },
       durationMs,
@@ -256,7 +256,10 @@ function nowMs(): number {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
 }
 
-export function createPureJsInferenceAdapter(inputDim?: number, outputDim?: number): InferenceAdapter {
+export function createPureJsInferenceAdapter(
+  inputDim?: number,
+  outputDim?: number
+): InferenceAdapter {
   return new PureJsInferenceAdapter(inputDim, outputDim);
 }
 
@@ -298,7 +301,7 @@ export class OnnxNodeInferenceAdapter implements InferenceAdapter {
       throw new Error(
         `OnnxNodeInferenceAdapter: no .onnx model file resolved for "${modelUrl}". ` +
           `Provision it with scripts/provision-motion-model.mjs or set ` +
-          `HOLOSCRIPT_MOTION_MODELS_DIR.`,
+          `HOLOSCRIPT_MOTION_MODELS_DIR.`
       );
     }
     // Lazy import so browser/edge bundles that never call this don't pull in
@@ -333,8 +336,7 @@ export class OnnxNodeInferenceAdapter implements InferenceAdapter {
     const durationMs = nowMs() - start;
 
     const sessionOutputs: string[] = this.session.outputNames ?? Object.keys(results);
-    const wanted =
-      request.outputs && request.outputs.length > 0 ? request.outputs : sessionOutputs;
+    const wanted = request.outputs && request.outputs.length > 0 ? request.outputs : sessionOutputs;
 
     const outputs: Record<string, Float32Tensor> = {};
     wanted.forEach((name, i) => {
@@ -372,7 +374,7 @@ export class OnnxNodeInferenceAdapter implements InferenceAdapter {
 }
 
 export function createOnnxNodeInferenceAdapter(
-  preferredProvider: ExecutionProvider = 'cpu',
+  preferredProvider: ExecutionProvider = 'cpu'
 ): InferenceAdapter {
   return new OnnxNodeInferenceAdapter(preferredProvider);
 }

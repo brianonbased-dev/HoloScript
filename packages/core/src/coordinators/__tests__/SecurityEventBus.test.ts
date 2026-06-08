@@ -126,7 +126,7 @@ describe('SecurityEventBus — Pattern E remediation for security cluster', () =
       expect(a?.roles.has('editor')).toBe(true);
     });
 
-    it('rbac_tenant_changed updates the agent\'s active tenant', () => {
+    it("rbac_tenant_changed updates the agent's active tenant", () => {
       source.fire('rbac_tenant_changed', { agentId: 'a6', tenantId: 'tenant-X' });
       expect(bus.getAgent('a6')?.tenantId).toBe('tenant-X');
     });

@@ -110,7 +110,11 @@ export async function POST(req: NextRequest) {
   }
 
   // SEC-T12: Bind presigned PUT to an exact Content-Length so oversized objects cannot bypass the cap.
-  if (fileSizeBytes === undefined || typeof fileSizeBytes !== 'number' || !Number.isFinite(fileSizeBytes)) {
+  if (
+    fileSizeBytes === undefined ||
+    typeof fileSizeBytes !== 'number' ||
+    !Number.isFinite(fileSizeBytes)
+  ) {
     return NextResponse.json(
       {
         error: 'fileSizeBytes is required for presigned upload',
@@ -156,7 +160,6 @@ export async function POST(req: NextRequest) {
     expiresIn: 3600,
   });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

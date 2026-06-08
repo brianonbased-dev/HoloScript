@@ -32,7 +32,9 @@ describe('CONTRACT: mixamo-plugin adapter', () => {
 
   it('frame_count = round(duration_seconds * fps)', () => {
     expect(mapMixamoClip(clip({ duration_seconds: 2, fps: 30 })).trait.params.frame_count).toBe(60);
-    expect(mapMixamoClip(clip({ duration_seconds: 1.5, fps: 24 })).trait.params.frame_count).toBe(36);
+    expect(mapMixamoClip(clip({ duration_seconds: 1.5, fps: 24 })).trait.params.frame_count).toBe(
+      36
+    );
   });
 
   it('retarget_compat is one of vrm | urdf | unknown', () => {

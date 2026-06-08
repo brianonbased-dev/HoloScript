@@ -98,12 +98,7 @@ function sigmaAt(
 }
 
 /** Same grading shape as σ, reused for the κ and α profiles. */
-function gradedFraction(
-  pos: number,
-  ncells: number,
-  thickness: number,
-  order: number
-): number {
+function gradedFraction(pos: number, ncells: number, thickness: number, order: number): number {
   if (thickness <= 0) return 0;
   let depthCells = 0;
   if (pos < thickness) depthCells = thickness - pos;
@@ -164,7 +159,7 @@ export function computeAxisProfile(
       a[idx] = 0;
     } else {
       active = true;
-      const bi = Math.exp(-((sigma / kappa) + alpha) * (dt / EPS0));
+      const bi = Math.exp(-(sigma / kappa + alpha) * (dt / EPS0));
       b[idx] = bi;
       const denom = kappa * (sigma + kappa * alpha);
       a[idx] = denom !== 0 ? (sigma / denom) * (bi - 1) : 0;
@@ -182,12 +177,7 @@ export function computeAxisProfile(
  * Returns the new ψ. Kept as a tiny pure function so the recursion is
  * unit-testable in isolation.
  */
-export function updatePsi(
-  psi: number,
-  b: number,
-  a: number,
-  derivative: number
-): number {
+export function updatePsi(psi: number, b: number, a: number, derivative: number): number {
   return b * psi + a * derivative;
 }
 

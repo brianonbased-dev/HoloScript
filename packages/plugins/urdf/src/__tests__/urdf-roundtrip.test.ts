@@ -84,7 +84,7 @@ describe('urdf-plugin: importFromUrdf', () => {
 
   it('extracts joint parent/child linkage', () => {
     const r = importFromUrdf({ urdf_xml: ROBOT_FIXTURE });
-    const j1 = r.ir.joints.find(j => j.name === 'joint1');
+    const j1 = r.ir.joints.find((j) => j.name === 'joint1');
     expect(j1).toBeDefined();
     expect(j1!.parent).toBe('base');
     expect(j1!.child).toBe('link1');
@@ -93,13 +93,13 @@ describe('urdf-plugin: importFromUrdf', () => {
 
   it('extracts joint axis', () => {
     const r = importFromUrdf({ urdf_xml: ROBOT_FIXTURE });
-    const j1 = r.ir.joints.find(j => j.name === 'joint1');
+    const j1 = r.ir.joints.find((j) => j.name === 'joint1');
     expect(j1!.axis).toEqual([0, 0, 1]);
   });
 
   it('extracts joint limits', () => {
     const r = importFromUrdf({ urdf_xml: ROBOT_FIXTURE });
-    const j1 = r.ir.joints.find(j => j.name === 'joint1');
+    const j1 = r.ir.joints.find((j) => j.name === 'joint1');
     expect(j1!.limitLower).toBeCloseTo(-1.57);
     expect(j1!.limitUpper).toBeCloseTo(1.57);
   });
@@ -172,7 +172,7 @@ describe('urdf-plugin: urdfRoundTrip', () => {
     const first = importFromUrdf({ urdf_xml: ROBOT_FIXTURE });
     const exported = exportToUrdf({ ir: first.ir });
     const second = importFromUrdf({ urdf_xml: exported.urdf_xml });
-    const j = second.ir.joints.find(j => j.name === 'joint1');
+    const j = second.ir.joints.find((j) => j.name === 'joint1');
     expect(j).toBeDefined();
     expect(j!.parent).toBe('base');
     expect(j!.child).toBe('link1');

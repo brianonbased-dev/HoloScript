@@ -306,7 +306,12 @@ describe('CanaryTrait', () => {
       const node = makeNode();
       const ctx = makeContext();
       canaryHandler.onAttach!(node, defaultConfig, ctx);
-      canaryHandler.onEvent!(node, defaultConfig, ctx, 'canary:get_status' as unknown as TraitEvent);
+      canaryHandler.onEvent!(
+        node,
+        defaultConfig,
+        ctx,
+        'canary:get_status' as unknown as TraitEvent
+      );
       expect(ctx.emitted).toHaveLength(1);
       expect(ctx.emitted[0].type).toBe('canary:status');
     });

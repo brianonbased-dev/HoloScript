@@ -1,16 +1,16 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import type { 
-  Team, 
+import type {
+  Team,
   TeamMessage,
   TeamFeedItem,
-  TeamPresenceEntry, 
-  RegisteredAgent, 
-  StoredComment, 
+  TeamPresenceEntry,
+  RegisteredAgent,
+  StoredComment,
   StoredVote,
-  StoredBountySubmission, 
-  StoredBountyMiniGame, 
+  StoredBountySubmission,
+  StoredBountyMiniGame,
   StoredBountyGovernanceProposal,
   StoryWeaverSession,
   SelfImprovingWorldSession,
@@ -196,7 +196,10 @@ export function loadCaelAuditFromDisk(): void {
   const files = fs.readdirSync(CAEL_AUDIT_DIR).filter((f) => f.endsWith('.jsonl'));
   for (const file of files) {
     const handle = file.replace(/\.jsonl$/, '');
-    const lines = fs.readFileSync(path.join(CAEL_AUDIT_DIR, file), 'utf8').split('\n').filter((l) => l.length > 0);
+    const lines = fs
+      .readFileSync(path.join(CAEL_AUDIT_DIR, file), 'utf8')
+      .split('\n')
+      .filter((l) => l.length > 0);
     const records: CaelAuditRecord[] = [];
     for (const line of lines) {
       try {
@@ -206,9 +209,10 @@ export function loadCaelAuditFromDisk(): void {
       }
     }
     // Honor the in-memory ring buffer cap on rehydrate.
-    const trimmed = records.length > MAX_CAEL_RECORDS_PER_AGENT
-      ? records.slice(-MAX_CAEL_RECORDS_PER_AGENT)
-      : records;
+    const trimmed =
+      records.length > MAX_CAEL_RECORDS_PER_AGENT
+        ? records.slice(-MAX_CAEL_RECORDS_PER_AGENT)
+        : records;
     agentAuditStore.set(handle, trimmed);
   }
 }
@@ -293,7 +297,9 @@ export function loadAgentDefenseFromDisk(): void {
   for (const file of files) {
     const handle = file.replace(/\.json$/, '');
     try {
-      const config = JSON.parse(fs.readFileSync(path.join(DEFENSE_DIR, file), 'utf8')) as AgentDefenseConfig;
+      const config = JSON.parse(
+        fs.readFileSync(path.join(DEFENSE_DIR, file), 'utf8')
+      ) as AgentDefenseConfig;
       agentDefenseStore.set(handle, config);
     } catch {
       // Corrupt file — skip.
@@ -578,7 +584,8 @@ export function persistTeamStore(): void {
     presence: teamPresenceStore.get(t.id) ? Array.from(teamPresenceStore.get(t.id)!.values()) : [],
     messages: teamMessageStore.get(t.id) || [],
     feed: teamFeedStore.get(t.id) || [],
-    knowledgeMarketplace: (t as any).knowledgeMarketplace?.toJSON?.() || (t as any).knowledgeMarketplace,
+    knowledgeMarketplace:
+      (t as any).knowledgeMarketplace?.toJSON?.() || (t as any).knowledgeMarketplace,
     bounties: (t as any).bounties?.toJSON?.() || t.bounties,
   }));
 
@@ -668,8 +675,7 @@ function _seedFounderKeysFromEnv(): void {
   if (candidates.length === 0) return;
 
   const FOUNDER_WALLET =
-    process.env.HOLOSCRIPT_FOUNDER_WALLET ||
-    '0x0000000000000000000000000000000000000001';
+    process.env.HOLOSCRIPT_FOUNDER_WALLET || '0x0000000000000000000000000000000000000001';
 
   for (const key of candidates) {
     const record: KeyRecord = {
@@ -686,7 +692,9 @@ function _seedFounderKeysFromEnv(): void {
     keyRegistry.set(key, record);
   }
 
-  console.info(`[KeyRegistry] First boot: seeded ${candidates.length} founder key(s) from env vars`);
+  console.info(
+    `[KeyRegistry] First boot: seeded ${candidates.length} founder key(s) from env vars`
+  );
   persistKeyRegistry();
 }
 
@@ -731,7 +739,8 @@ export async function initStores(): Promise<void> {
       for (const [id, session] of socialData.storyWeaver) storyWeaverStore.set(id, session);
     }
     if (socialData.selfImprovingWorlds) {
-      for (const [id, session] of socialData.selfImprovingWorlds) selfImprovingWorldStore.set(id, session);
+      for (const [id, session] of socialData.selfImprovingWorlds)
+        selfImprovingWorldStore.set(id, session);
     }
     if (socialData.bountySubmissions) {
       for (const [id, list] of socialData.bountySubmissions) bountySubmissionStore.set(id, list);
@@ -740,7 +749,8 @@ export async function initStores(): Promise<void> {
       for (const [id, list] of socialData.bountyMiniGames) bountyMiniGameStore.set(id, list);
     }
     if (socialData.bountyGovernance) {
-      for (const [id, proposal] of socialData.bountyGovernance) bountyGovernanceStore.set(id, proposal);
+      for (const [id, proposal] of socialData.bountyGovernance)
+        bountyGovernanceStore.set(id, proposal);
     }
   }
 
@@ -790,12 +800,16 @@ export async function initStores(): Promise<void> {
         if (t.knowledgeMarketplace) {
           try {
             t.knowledgeMarketplace = new KnowledgeMarketplace(t.knowledgeMarketplace);
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
         if (t.bounties) {
           try {
             t.bounties = new BountyManager(t.bounties);
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
         teamStore.set(t.id, t);
 
@@ -839,8 +853,7 @@ export async function initStores(): Promise<void> {
   // Agents querying hololand_list_players will always see at least one real user.
   if (playerStore.size === 0) {
     const founderWallet =
-      process.env.HOLOSCRIPT_FOUNDER_WALLET ||
-      '0x0000000000000000000000000000000000000001';
+      process.env.HOLOSCRIPT_FOUNDER_WALLET || '0x0000000000000000000000000000000000000001';
     const founderPlayer: StoredPlayer = {
       id: 'player_founder',
       name: 'Joseph',
@@ -882,9 +895,14 @@ export async function initStores(): Promise<void> {
   if (tokenLedgerData?.entries) {
     try {
       deserializeLedger(tokenLedgerData);
-      console.info(`[TokenLedger] Loaded balances for ${Object.keys(tokenLedgerData.entries).length} user(s)`);
+      console.info(
+        `[TokenLedger] Loaded balances for ${Object.keys(tokenLedgerData.entries).length} user(s)`
+      );
     } catch (e: unknown) {
-      console.warn('[TokenLedger] Failed to load ledger, starting fresh:', e instanceof Error ? e.message : String(e));
+      console.warn(
+        '[TokenLedger] Failed to load ledger, starting fresh:',
+        e instanceof Error ? e.message : String(e)
+      );
     }
   }
 
@@ -893,25 +911,30 @@ export async function initStores(): Promise<void> {
     try {
       const auditHandles = await stateStore.listHandles('audit');
       for (const handle of auditHandles) {
-        const records = await stateStore.getAll('audit', handle) as CaelAuditRecord[];
+        const records = (await stateStore.getAll('audit', handle)) as CaelAuditRecord[];
         const existing = agentAuditStore.get(handle) || [];
         agentAuditStore.set(handle, [...existing, ...records].slice(-MAX_CAEL_RECORDS_PER_AGENT));
       }
 
       const defenseHandles = await stateStore.listHandles('defense');
       for (const handle of defenseHandles) {
-        const config = await stateStore.get('defense', handle) as AgentDefenseConfig | undefined;
+        const config = (await stateStore.get('defense', handle)) as AgentDefenseConfig | undefined;
         if (config) agentDefenseStore.set(handle, config);
       }
 
       const dispatchHandles = await stateStore.listHandles('dispatch');
       for (const handle of dispatchHandles) {
-        const entries = await stateStore.getAll('dispatch', handle) as DispatchEntry[];
+        const entries = (await stateStore.getAll('dispatch', handle)) as DispatchEntry[];
         const existing = agentDispatchQueue.get(handle) || [];
-        agentDispatchQueue.set(handle, [...existing, ...entries].slice(-MAX_DISPATCH_QUEUE_PER_AGENT));
+        agentDispatchQueue.set(
+          handle,
+          [...existing, ...entries].slice(-MAX_DISPATCH_QUEUE_PER_AGENT)
+        );
       }
 
-      console.log(`[loadAllStores] state stores from PostgreSQL: audit=${auditHandles.length}, defense=${defenseHandles.length}, dispatch=${dispatchHandles.length}`);
+      console.log(
+        `[loadAllStores] state stores from PostgreSQL: audit=${auditHandles.length}, defense=${defenseHandles.length}, dispatch=${dispatchHandles.length}`
+      );
     } catch (e) {
       console.warn('[loadAllStores] PostgreSQL state load failed, falling back to JSONL:', e);
     }

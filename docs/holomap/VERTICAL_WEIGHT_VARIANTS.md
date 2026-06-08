@@ -10,20 +10,20 @@ Do we ship **per-vertical fine-tunes** (indoor / outdoor / object-centric captur
 
 ## 2. Decision
 
-| Phase | Checkpoint strategy | Rationale |
-|-------|---------------------|-----------|
-| **v1.0** | **One generalist** WebGPU weight family (`weightCid`) tuned on mixed indoor + outdoor + object clips | Minimizes training surface, release risk, and CDN cardinality; matches Sprint 2–3 acceptance (single acceptance video bar). |
-| **v1.1+** | **Optional vertical specialists** — up to three extra blobs: **indoor**, **outdoor**, **object** | Quality win when capture domain is known; trait/composition can select variant without forking the protocol. |
+| Phase     | Checkpoint strategy                                                                                  | Rationale                                                                                                                   |
+| --------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **v1.0**  | **One generalist** WebGPU weight family (`weightCid`) tuned on mixed indoor + outdoor + object clips | Minimizes training surface, release risk, and CDN cardinality; matches Sprint 2–3 acceptance (single acceptance video bar). |
+| **v1.1+** | **Optional vertical specialists** — up to three extra blobs: **indoor**, **outdoor**, **object**     | Quality win when capture domain is known; trait/composition can select variant without forking the protocol.                |
 
 **Training cost tradeoff (planning numbers, not commitments):** each extra variant is roughly a **full fine-tune cycle** (data curation + eval + CID publish) on top of the teacher/generalist. Expect **~3×** training/QA work for three specialists vs one generalist; expect **per-domain error** to drop only when eval sets are **stratified** by vertical (otherwise gains look like noise).
 
 ## 3. Vertical definitions (for data and naming)
 
-| Variant | Typical capture | Failure modes generalist may show | Weighting / data emphasis |
-|---------|-----------------|-----------------------------------|---------------------------|
-| **Indoor** | Rooms, offices, warehouses | Textureless walls, repeated features, SLAM drift in long corridors | Short baseline, loop closures, normal-bounded depth |
-| **Outdoor** | Streets, campuses, facades | Scale ambiguity, lighting extremes, dynamic occluders | Exposure-invariant aug, longer baselines, geo-weak priors |
-| **Object** | Tabletop / close-range orbit | Missing context, wrong global scale, border artifacts | Tight frustum, high parallax, background masking |
+| Variant     | Typical capture              | Failure modes generalist may show                                  | Weighting / data emphasis                                 |
+| ----------- | ---------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------- |
+| **Indoor**  | Rooms, offices, warehouses   | Textureless walls, repeated features, SLAM drift in long corridors | Short baseline, loop closures, normal-bounded depth       |
+| **Outdoor** | Streets, campuses, facades   | Scale ambiguity, lighting extremes, dynamic occluders              | Exposure-invariant aug, longer baselines, geo-weak priors |
+| **Object**  | Tabletop / close-range orbit | Missing context, wrong global scale, border artifacts              | Tight frustum, high parallax, background masking          |
 
 **Object** here means **scene-scale reconstruction dominated by a single object** (scan-style), not mesh authoring of CAD parts.
 
@@ -31,8 +31,8 @@ Do we ship **per-vertical fine-tunes** (indoor / outdoor / object-centric captur
 
 - **Content address:** Each variant is a **distinct** `weightCid` (and optional `weightUrl`). No implicit “same bytes, different mode.”
 - **Selection:** Product layer chooses `weightCid` (and may set `verticalProfile` on `HoloMapConfig` for **replay identity** — see below).
-- **`verticalProfile` field:** Optional `HoloMapConfig.verticalProfile` in `HoloMapRuntime`: `'generalist' | 'indoor' | 'outdoor' | 'object'`.  
-  - Omitted or `'generalist'` does **not** change the replay fingerprint (backward compatible).  
+- **`verticalProfile` field:** Optional `HoloMapConfig.verticalProfile` in `HoloMapRuntime`: `'generalist' | 'indoor' | 'outdoor' | 'object'`.
+  - Omitted or `'generalist'` does **not** change the replay fingerprint (backward compatible).
   - `'indoor' | 'outdoor' | 'object'` is included in `computeHoloMapReplayFingerprint` so SimulationContract replay distinguishes specialist runs even if callers mistakenly reuse the same `weightCid`.
 
 ## 5. Trait compositions (automatic variant selection)

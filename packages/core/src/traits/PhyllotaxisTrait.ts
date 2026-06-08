@@ -147,7 +147,7 @@ function splitmix32(state: number): { value: number; next: number } {
 /** Convert a 32-bit unsigned int to a float in [-1, 1) deterministically. */
 function uintToBipolarFloat(u: number): number {
   // Map [0, 2^32) → [-1, 1)
-  return (u / 0x80000000) - 1;
+  return u / 0x80000000 - 1;
 }
 
 /**

@@ -170,8 +170,7 @@ function isNonEmptyString(value: unknown): value is string {
 
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
-    typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
+    typeof value === 'string' && /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
   );
 }
 
@@ -217,10 +216,14 @@ function validateCandidate(
     errors.push('PackageCandidate.source is required.');
   }
   if (candidate.installerHash && candidate.installerHashAlgorithm !== 'sha256') {
-    errors.push('PackageCandidate.installerHashAlgorithm must be sha256 when installerHash is present.');
+    errors.push(
+      'PackageCandidate.installerHashAlgorithm must be sha256 when installerHash is present.'
+    );
   }
   if (isMutation(mutationKind) && candidate.installerUrl && !candidate.installerHash) {
-    errors.push('PackageCandidate.installerHash is required when an installerUrl is present for a mutation.');
+    errors.push(
+      'PackageCandidate.installerHash is required when an installerUrl is present for a mutation.'
+    );
   }
 }
 
@@ -231,9 +234,15 @@ function validatePreflight(preflight: PackagePreflightReceipt | undefined, error
   }
   validateBoolean('PackagePreflightReceipt.adminRequired', preflight.adminRequired, errors);
   validateBoolean('PackagePreflightReceipt.adminSession', preflight.adminSession, errors);
-  validateBoolean('PackagePreflightReceipt.packageManagerAvailable', preflight.packageManagerAvailable, errors);
-  if (!isNonEmptyString(preflight.diskStatus)) errors.push('PackagePreflightReceipt.diskStatus is required.');
-  if (!isNonEmptyString(preflight.networkStatus)) errors.push('PackagePreflightReceipt.networkStatus is required.');
+  validateBoolean(
+    'PackagePreflightReceipt.packageManagerAvailable',
+    preflight.packageManagerAvailable,
+    errors
+  );
+  if (!isNonEmptyString(preflight.diskStatus))
+    errors.push('PackagePreflightReceipt.diskStatus is required.');
+  if (!isNonEmptyString(preflight.networkStatus))
+    errors.push('PackagePreflightReceipt.networkStatus is required.');
   if (!isNonEmptyString(preflight.processConflictStatus)) {
     errors.push('PackagePreflightReceipt.processConflictStatus is required.');
   }
@@ -249,7 +258,8 @@ function validateApproval(
     errors.push('HoloShellPackageMutationReceipt.approval is required.');
     return;
   }
-  if (!isNonEmptyString(approval.approvalId)) errors.push('PackageMutationApproval.approvalId is required.');
+  if (!isNonEmptyString(approval.approvalId))
+    errors.push('PackageMutationApproval.approvalId is required.');
   validateBoolean('PackageMutationApproval.approvalRequired', approval.approvalRequired, errors);
   validateBoolean('PackageMutationApproval.approvalCaptured', approval.approvalCaptured, errors);
   validateBoolean(
@@ -260,7 +270,9 @@ function validateApproval(
   validateTimestamp('PackageMutationApproval.expiresAt', approval.expiresAt, errors);
 
   if (!Array.isArray(approval.rollbackLimits) || approval.rollbackLimits.length === 0) {
-    errors.push('PackageMutationApproval.rollbackLimits must include at least one visible rollback limit.');
+    errors.push(
+      'PackageMutationApproval.rollbackLimits must include at least one visible rollback limit.'
+    );
   } else if (approval.rollbackLimits.some((limit) => !isNonEmptyString(limit))) {
     errors.push('PackageMutationApproval.rollbackLimits entries must be non-empty.');
   }
@@ -291,28 +303,35 @@ function validateVerification(
     errors.push('HoloShellPackageMutationReceipt.verification is required.');
     return;
   }
-  validateBoolean('PackageLaunchVerification.versionCommandPassed', verification.versionCommandPassed, errors);
+  validateBoolean(
+    'PackageLaunchVerification.versionCommandPassed',
+    verification.versionCommandPassed,
+    errors
+  );
   validateBoolean('PackageLaunchVerification.launchVerified', verification.launchVerified, errors);
   if (verification.launchVerified) {
     if (!isNonEmptyString(verification.binaryPath)) {
       errors.push('PackageLaunchVerification.binaryPath is required when launchVerified is true.');
     }
     if (!isNonEmptyString(verification.versionCommand)) {
-      errors.push('PackageLaunchVerification.versionCommand is required when launchVerified is true.');
+      errors.push(
+        'PackageLaunchVerification.versionCommand is required when launchVerified is true.'
+      );
     }
     if (!verification.versionCommandPassed) {
-      errors.push('PackageLaunchVerification.versionCommandPassed must be true when launchVerified is true.');
+      errors.push(
+        'PackageLaunchVerification.versionCommandPassed must be true when launchVerified is true.'
+      );
     }
     if (!isNonEmptyString(verification.verifiedVersion)) {
-      errors.push('PackageLaunchVerification.verifiedVersion is required when launchVerified is true.');
+      errors.push(
+        'PackageLaunchVerification.verifiedVersion is required when launchVerified is true.'
+      );
     }
   }
 }
 
-function validateSummary(
-  receipt: HoloShellPackageMutationReceipt,
-  errors: string[]
-): void {
+function validateSummary(receipt: HoloShellPackageMutationReceipt, errors: string[]): void {
   const summary = receipt.summary;
   if (!summary) {
     errors.push('HoloShellPackageMutationReceipt.summary is required.');
@@ -349,7 +368,9 @@ function validateSummary(
     errors.push('PackageMutationSummary.adminSession must match preflight.adminSession.');
   }
   if (summary.packageManagerAvailable !== receipt.preflight?.packageManagerAvailable) {
-    errors.push('PackageMutationSummary.packageManagerAvailable must match preflight.packageManagerAvailable.');
+    errors.push(
+      'PackageMutationSummary.packageManagerAvailable must match preflight.packageManagerAvailable.'
+    );
   }
   if (summary.launchVerified !== receipt.verification?.launchVerified) {
     errors.push('PackageMutationSummary.launchVerified must match verification.launchVerified.');
@@ -358,10 +379,18 @@ function validateSummary(
     errors.push('PackageMutationSummary.rollbackLimitCount must be a non-negative integer.');
   }
   if (summary.rollbackLimitCount !== (receipt.approval?.rollbackLimits?.length ?? -1)) {
-    errors.push('PackageMutationSummary.rollbackLimitCount must match approval.rollbackLimits length.');
+    errors.push(
+      'PackageMutationSummary.rollbackLimitCount must match approval.rollbackLimits length.'
+    );
   }
-  if (isMutation(receipt.mutationKind) && summary.executionAllowed && !receipt.approval?.approvalCaptured) {
-    errors.push('PackageMutationSummary.executionAllowed cannot be true before approval is captured.');
+  if (
+    isMutation(receipt.mutationKind) &&
+    summary.executionAllowed &&
+    !receipt.approval?.approvalCaptured
+  ) {
+    errors.push(
+      'PackageMutationSummary.executionAllowed cannot be true before approval is captured.'
+    );
   }
 }
 
@@ -384,7 +413,9 @@ function validateMetadata(metadata: PackageMutationMetadata | undefined, errors:
     errors.push('PackageMutationMetadata.wrapperMode is required.');
   }
   if (metadata.liveMutationExecutionSupported !== false) {
-    errors.push('PackageMutationMetadata.liveMutationExecutionSupported must be false until native approval gates exist.');
+    errors.push(
+      'PackageMutationMetadata.liveMutationExecutionSupported must be false until native approval gates exist.'
+    );
   }
   if (!isNonEmptyString(metadata.commandPreview)) {
     errors.push('PackageMutationMetadata.commandPreview is required.');
@@ -399,7 +430,9 @@ export function isSupportedPackageMutationStatus(value: string): value is Packag
   return isOneOf(PACKAGE_MUTATION_STATUSES, value);
 }
 
-export function isSupportedPackagePermissionEnvelope(value: string): value is PackagePermissionEnvelope {
+export function isSupportedPackagePermissionEnvelope(
+  value: string
+): value is PackagePermissionEnvelope {
   return isOneOf(PACKAGE_PERMISSION_ENVELOPES, value);
 }
 
@@ -413,7 +446,9 @@ export function validateHoloShellPackageMutationReceipt(
   const errors: string[] = [];
   if (!receipt) return ['HoloShellPackageMutationReceipt is required.'];
   if (receipt.schemaVersion !== HOLOSHELL_PACKAGE_MUTATION_RECEIPT_VERSION) {
-    errors.push(`HoloShellPackageMutationReceipt.schemaVersion must be ${HOLOSHELL_PACKAGE_MUTATION_RECEIPT_VERSION}.`);
+    errors.push(
+      `HoloShellPackageMutationReceipt.schemaVersion must be ${HOLOSHELL_PACKAGE_MUTATION_RECEIPT_VERSION}.`
+    );
   }
   if (!isNonEmptyString(receipt.id)) errors.push('HoloShellPackageMutationReceipt.id is required.');
   if (receipt.workflow !== 'install-update-tool-custody') {
@@ -423,13 +458,19 @@ export function validateHoloShellPackageMutationReceipt(
   validateTimestamp('HoloShellPackageMutationReceipt.startedAt', receipt.startedAt, errors);
   validateTimestamp('HoloShellPackageMutationReceipt.endedAt', receipt.endedAt, errors);
   if (!isSupportedPackageMutationKind(String(receipt.mutationKind))) {
-    errors.push(`HoloShellPackageMutationReceipt.mutationKind is unsupported: ${String(receipt.mutationKind)}.`);
+    errors.push(
+      `HoloShellPackageMutationReceipt.mutationKind is unsupported: ${String(receipt.mutationKind)}.`
+    );
   }
   if (!isSupportedPackageMutationStatus(String(receipt.status))) {
-    errors.push(`HoloShellPackageMutationReceipt.status is unsupported: ${String(receipt.status)}.`);
+    errors.push(
+      `HoloShellPackageMutationReceipt.status is unsupported: ${String(receipt.status)}.`
+    );
   }
   if (!isSupportedPackagePermissionEnvelope(String(receipt.permissionEnvelope))) {
-    errors.push(`HoloShellPackageMutationReceipt.permissionEnvelope is unsupported: ${String(receipt.permissionEnvelope)}.`);
+    errors.push(
+      `HoloShellPackageMutationReceipt.permissionEnvelope is unsupported: ${String(receipt.permissionEnvelope)}.`
+    );
   }
   if (receipt.status !== receipt.summary?.status) {
     errors.push('HoloShellPackageMutationReceipt.status must match summary.status.');
@@ -438,22 +479,30 @@ export function validateHoloShellPackageMutationReceipt(
     errors.push('HoloShellPackageMutationReceipt.mutationPerformed must be a boolean.');
   }
   if (receipt.mutationPerformed && !receipt.approval?.approvalCaptured) {
-    errors.push('HoloShellPackageMutationReceipt.mutationPerformed cannot be true before approval is captured.');
+    errors.push(
+      'HoloShellPackageMutationReceipt.mutationPerformed cannot be true before approval is captured.'
+    );
   }
-  if (!isNonEmptyString(receipt.replayKey)) errors.push('HoloShellPackageMutationReceipt.replayKey is required.');
-  if (!isNonEmptyString(receipt.hash)) errors.push('HoloShellPackageMutationReceipt.hash is required.');
+  if (!isNonEmptyString(receipt.replayKey))
+    errors.push('HoloShellPackageMutationReceipt.replayKey is required.');
+  if (!isNonEmptyString(receipt.hash))
+    errors.push('HoloShellPackageMutationReceipt.hash is required.');
   if (receipt.hashAlgorithm !== 'sha256') {
     errors.push('HoloShellPackageMutationReceipt.hashAlgorithm must be sha256.');
   }
   for (const command of receipt.verificationCommands ?? []) {
     const commandText = typeof command === 'string' ? command : command.command;
     if (!isNonEmptyString(commandText)) {
-      errors.push('HoloShellPackageMutationReceipt has a verification command without command text.');
+      errors.push(
+        'HoloShellPackageMutationReceipt has a verification command without command text.'
+      );
     }
   }
   for (const anchor of Object.values(receipt.sourceAnchors ?? {})) {
     if (hasAbsolutePath(anchor)) {
-      errors.push('PackageMutationSourceAnchors must be repo-relative or redacted, not absolute paths.');
+      errors.push(
+        'PackageMutationSourceAnchors must be repo-relative or redacted, not absolute paths.'
+      );
     }
   }
   for (const provenance of receipt.provenance ?? []) {

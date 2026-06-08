@@ -1,5 +1,5 @@
 // Paper 31
-import type { Metadata } from 'next'
+import type { Metadata } from 'next';
 import {
   SUBSTRATE_COMPARISON,
   EMERGENCE_MODEL_FAMILIES,
@@ -12,20 +12,19 @@ import {
   type SubstrateComparison,
   type Hypothesis,
   type PostdateResearch,
-} from '@/data/families'
+} from '@/data/families';
 
 export const metadata: Metadata = {
   title: 'Families — Emergence Research — HoloMesh',
   description:
     'Paper 31: Long-Horizon Agent Emergence Under Structured Substrate. AI agents living in a village — and you can enter it.',
-}
+};
 
 export default function FamiliesPage() {
-  const oursCount = SUBSTRATE_COMPARISON.filter((r) => r.advantage === 'ours').length
+  const oursCount = SUBSTRATE_COMPARISON.filter((r) => r.advantage === 'ours').length;
 
   return (
     <div className="space-y-12">
-
       {/* Hero */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 flex-wrap">
@@ -39,10 +38,10 @@ export default function FamiliesPage() {
           <span className="text-mesh-purple-bright">And You Can Enter It</span>
         </h1>
         <p className="text-mesh-muted text-sm max-w-2xl leading-relaxed">
-          Emergence AI showed the world what happens when AI agents live together in a simulated village.
-          We're building the same thing — except the agents run on HoloScript's structured substrate,
-          every action is verifiable on-chain, and the simulation compiles to VR.
-          Same 5×15-day design. You can walk in.
+          Emergence AI showed the world what happens when AI agents live together in a simulated
+          village. We're building the same thing — except the agents run on HoloScript's structured
+          substrate, every action is verifiable on-chain, and the simulation compiles to VR. Same
+          5×15-day design. You can walk in.
         </p>
       </div>
 
@@ -51,13 +50,14 @@ export default function FamiliesPage() {
         <div className="section-header">What Emergence AI built</div>
         <div className="rounded border border-mesh-border bg-mesh-card p-5 space-y-3">
           <p className="text-sm text-mesh-text leading-relaxed">
-            In 2026, Emergence AI ran "Emergence World" — 5 parallel village simulations, 15 sim-days each,
-            with AI agents that woke up, worked, formed opinions, gossiped, remembered grudges,
-            and fell into social patterns nobody programmed. They released videos. It was real.
+            In 2026, Emergence AI ran "Emergence World" — 5 parallel village simulations, 15
+            sim-days each, with AI agents that woke up, worked, formed opinions, gossiped,
+            remembered grudges, and fell into social patterns nobody programmed. They released
+            videos. It was real.
           </p>
           <p className="text-sm text-mesh-muted leading-relaxed">
-            The agents used free-text scratchpads for memory. The research wasn't preregistered.
-            You could watch it — you couldn't enter it, audit it, or replicate it across substrates.
+            The agents used free-text scratchpads for memory. The research wasn't preregistered. You
+            could watch it — you couldn't enter it, audit it, or replicate it across substrates.
           </p>
           <div className="flex flex-wrap gap-3 pt-1 text-xs text-mesh-dim">
             <span>5 worlds · 15 days · 4 model families · ~25 agents per world</span>
@@ -100,18 +100,21 @@ export default function FamiliesPage() {
             },
             {
               title: 'Cost transparent',
-              body: 'Every API call logged to a receipted CSV, SHA-256 anchored at phase close. $1,010 total ceiling across all phases. Emergence World\'s cost was never published.',
+              body: "Every API call logged to a receipted CSV, SHA-256 anchored at phase close. $1,010 total ceiling across all phases. Emergence World's cost was never published.",
               accent: 'text-yellow-400',
               tag: 'F.050',
             },
             {
               title: 'Negative result binding',
-              body: 'If H₁ fails — if structured substrate doesn\'t reduce drift — we publish the null result within 30 days of Phase 2 close. This is preregistered and binding.',
+              body: "If H₁ fails — if structured substrate doesn't reduce drift — we publish the null result within 30 days of Phase 2 close. This is preregistered and binding.",
               accent: 'text-mesh-purple-bright',
               tag: 'anti-HARKing',
             },
           ].map((card) => (
-            <div key={card.title} className="rounded bg-mesh-card border border-mesh-border p-4 space-y-2">
+            <div
+              key={card.title}
+              className="rounded bg-mesh-card border border-mesh-border p-4 space-y-2"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className={`text-xs font-bold ${card.accent}`}>{card.title}</div>
                 <span className="text-[9px] font-mono text-mesh-dim border border-mesh-border px-1.5 py-0.5 rounded flex-shrink-0">
@@ -134,8 +137,12 @@ export default function FamiliesPage() {
         <div className="rounded border border-mesh-border overflow-hidden">
           <div className="grid grid-cols-[1.2fr_1fr_1fr] text-[10px] text-mesh-dim bg-mesh-surface border-b border-mesh-border">
             <div className="px-3 py-2 font-bold uppercase tracking-wide">Dimension</div>
-            <div className="px-3 py-2 font-bold uppercase tracking-wide border-l border-mesh-border">Emergence AI</div>
-            <div className="px-3 py-2 font-bold uppercase tracking-wide border-l border-mesh-border text-mesh-purple">HoloScript</div>
+            <div className="px-3 py-2 font-bold uppercase tracking-wide border-l border-mesh-border">
+              Emergence AI
+            </div>
+            <div className="px-3 py-2 font-bold uppercase tracking-wide border-l border-mesh-border text-mesh-purple">
+              HoloScript
+            </div>
           </div>
           {SUBSTRATE_COMPARISON.map((row, i) => (
             <ComparisonRow key={row.dimension} row={row} zebra={i % 2 === 1} />
@@ -147,22 +154,37 @@ export default function FamiliesPage() {
       <section className="space-y-3">
         <div className="section-header">The village — Ashenmoor</div>
         <p className="text-xs text-mesh-muted">
-          10 fixed personas across all 5 worlds and both conditions.
-          Same backstories, same names, same schedules — built as <code className="text-mesh-purple-bright text-[10px]">.holo</code> agent objects
-          with <code className="text-mesh-purple-bright text-[10px]">@c-struct-agent</code> traits
-          in <code className="text-mesh-dim text-[10px]">Hololand/experiments/emergence-sim/village.holo</code>.
+          10 fixed personas across all 5 worlds and both conditions. Same backstories, same names,
+          same schedules — built as{' '}
+          <code className="text-mesh-purple-bright text-[10px]">.holo</code> agent objects with{' '}
+          <code className="text-mesh-purple-bright text-[10px]">@c-struct-agent</code> traits in{' '}
+          <code className="text-mesh-dim text-[10px]">
+            Hololand/experiments/emergence-sim/village.holo
+          </code>
+          .
         </p>
         <div className="rounded border border-mesh-border overflow-hidden">
           <div className="grid grid-cols-[1fr_1fr_1fr] text-[10px] text-mesh-dim bg-mesh-surface border-b border-mesh-border">
             <div className="px-3 py-2 font-bold uppercase tracking-wide">Role</div>
-            <div className="px-3 py-2 font-bold uppercase tracking-wide border-l border-mesh-border">Name</div>
-            <div className="px-3 py-2 font-bold uppercase tracking-wide border-l border-mesh-border">Home</div>
+            <div className="px-3 py-2 font-bold uppercase tracking-wide border-l border-mesh-border">
+              Name
+            </div>
+            <div className="px-3 py-2 font-bold uppercase tracking-wide border-l border-mesh-border">
+              Home
+            </div>
           </div>
           {PERSONAS.map((p, i) => (
-            <div key={p.id} className={`grid grid-cols-[1fr_1fr_1fr] text-xs ${i % 2 === 1 ? 'bg-mesh-surface' : 'bg-mesh-card'}`}>
-              <div className="px-3 py-2 text-mesh-purple-bright font-mono text-[10px]">{p.role}</div>
+            <div
+              key={p.id}
+              className={`grid grid-cols-[1fr_1fr_1fr] text-xs ${i % 2 === 1 ? 'bg-mesh-surface' : 'bg-mesh-card'}`}
+            >
+              <div className="px-3 py-2 text-mesh-purple-bright font-mono text-[10px]">
+                {p.role}
+              </div>
               <div className="px-3 py-2 text-mesh-text border-l border-mesh-border">{p.name}</div>
-              <div className="px-3 py-2 text-mesh-dim border-l border-mesh-border text-[10px]">{p.home}</div>
+              <div className="px-3 py-2 text-mesh-dim border-l border-mesh-border text-[10px]">
+                {p.home}
+              </div>
             </div>
           ))}
         </div>
@@ -182,8 +204,8 @@ export default function FamiliesPage() {
       <section className="space-y-3">
         <div className="section-header">Model Families</div>
         <p className="text-xs text-mesh-muted">
-          Primary run locked to Claude Sonnet 4.6 for Emergence World comparability.
-          Exploratory cross-model follow-up pre-registered separately if primary result holds.
+          Primary run locked to Claude Sonnet 4.6 for Emergence World comparability. Exploratory
+          cross-model follow-up pre-registered separately if primary result holds.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {EMERGENCE_MODEL_FAMILIES.map((fam) => (
@@ -210,8 +232,8 @@ export default function FamiliesPage() {
       <section className="space-y-3">
         <div className="section-header">Incorporating newer research</div>
         <p className="text-xs text-mesh-muted max-w-2xl leading-relaxed">
-          The following work postdates the May 15 preregistration and is being incorporated
-          as additional framing and infrastructure context. It does not alter the registered
+          The following work postdates the May 15 preregistration and is being incorporated as
+          additional framing and infrastructure context. It does not alter the registered
           hypotheses, analysis plan, or cost ceilings.
         </p>
         <div className="space-y-3">
@@ -235,20 +257,22 @@ export default function FamiliesPage() {
         </div>
       </section>
     </div>
-  )
+  );
 }
 
 function ComparisonRow({ row, zebra }: { row: SubstrateComparison; zebra: boolean }) {
-  const icon = row.advantage === 'ours' ? '▲' : row.advantage === 'theirs' ? '—' : '='
+  const icon = row.advantage === 'ours' ? '▲' : row.advantage === 'theirs' ? '—' : '=';
   const iconColor =
     row.advantage === 'ours'
       ? 'text-mesh-green'
       : row.advantage === 'theirs'
-      ? 'text-mesh-yellow'
-      : 'text-mesh-dim'
+        ? 'text-mesh-yellow'
+        : 'text-mesh-dim';
 
   return (
-    <div className={`grid grid-cols-[1.2fr_1fr_1fr] text-xs ${zebra ? 'bg-mesh-surface' : 'bg-mesh-card'}`}>
+    <div
+      className={`grid grid-cols-[1.2fr_1fr_1fr] text-xs ${zebra ? 'bg-mesh-surface' : 'bg-mesh-card'}`}
+    >
       <div className="px-3 py-2 text-mesh-dim">{row.dimension}</div>
       <div className="px-3 py-2 text-mesh-muted border-l border-mesh-border">{row.emergenceAI}</div>
       <div className="px-3 py-2 border-l border-mesh-border flex items-center justify-between gap-2">
@@ -258,7 +282,7 @@ function ComparisonRow({ row, zebra }: { row: SubstrateComparison; zebra: boolea
         <span className={`text-[10px] flex-shrink-0 ${iconColor}`}>{icon}</span>
       </div>
     </div>
-  )
+  );
 }
 
 function HypothesisCard({ h }: { h: Hypothesis }) {
@@ -266,7 +290,7 @@ function HypothesisCard({ h }: { h: Hypothesis }) {
     H1: 'border-mesh-purple/40 text-mesh-purple-bright',
     H2: 'border-cyan-500/40 text-mesh-cyan-bright',
     H3: 'border-orange-500/40 text-orange-400',
-  }
+  };
   return (
     <div
       className={`rounded border bg-mesh-card p-4 space-y-2 ${colors[h.id]?.split(' ')[0]}`}
@@ -278,11 +302,15 @@ function HypothesisCard({ h }: { h: Hypothesis }) {
       </div>
       <p className="text-xs text-mesh-text leading-relaxed">{h.claim}</p>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-mesh-dim pt-1">
-        <span><span className="text-mesh-dim">metric:</span> {h.metric}</span>
-        <span><span className="text-mesh-dim">α:</span> {h.alpha}</span>
+        <span>
+          <span className="text-mesh-dim">metric:</span> {h.metric}
+        </span>
+        <span>
+          <span className="text-mesh-dim">α:</span> {h.alpha}
+        </span>
       </div>
     </div>
-  )
+  );
 }
 
 function FamilyCard({ family }: { family: ModelFamily }) {
@@ -290,12 +318,12 @@ function FamilyCard({ family }: { family: ModelFamily }) {
     primary: 'primary',
     exploratory: 'exploratory',
     'prior-art': 'prior art',
-  }
+  };
   const roleColor: Record<ModelFamily['role'], string> = {
     primary: 'text-mesh-green border-mesh-green/30',
     exploratory: 'text-mesh-dim border-mesh-dim/30',
     'prior-art': 'text-mesh-purple border-mesh-purple/30',
-  }
+  };
   return (
     <div
       className="rounded bg-mesh-card border border-mesh-border overflow-hidden flex flex-col"
@@ -312,13 +340,18 @@ function FamilyCard({ family }: { family: ModelFamily }) {
             </span>
             <span className="text-sm font-bold text-mesh-text leading-tight">{family.lab}</span>
           </div>
-          <span className={`text-[10px] border px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 ${roleColor[family.role]}`}>
+          <span
+            className={`text-[10px] border px-1.5 py-0.5 rounded uppercase tracking-wide flex-shrink-0 ${roleColor[family.role]}`}
+          >
             {roleLabel[family.role]}
           </span>
         </div>
         <div className="space-y-1">
           {family.models.map((m) => (
-            <div key={m} className="text-xs text-mesh-muted font-mono bg-mesh-border/50 px-2 py-1 rounded">
+            <div
+              key={m}
+              className="text-xs text-mesh-muted font-mono bg-mesh-border/50 px-2 py-1 rounded"
+            >
               {m}
             </div>
           ))}
@@ -326,7 +359,7 @@ function FamilyCard({ family }: { family: ModelFamily }) {
         <p className="text-[11px] text-mesh-dim leading-relaxed">{family.notes}</p>
       </div>
     </div>
-  )
+  );
 }
 
 function PhaseCard({ phase, index }: { phase: SimPhase; index: number }) {
@@ -335,14 +368,14 @@ function PhaseCard({ phase, index }: { phase: SimPhase; index: number }) {
     running: 'text-yellow-400',
     pending: 'text-mesh-dim',
     gated: 'text-mesh-purple',
-  }
+  };
   const statusLabel: Record<SimPhase['status'], string> = {
     complete: '✓ complete',
     running: '⟳ running',
     pending: '○ pending',
     gated: '⊘ gated',
-  }
-  const borderColors = ['#7c3aed', '#06b6d4', '#f97316']
+  };
+  const borderColors = ['#7c3aed', '#06b6d4', '#f97316'];
 
   return (
     <div
@@ -358,8 +391,14 @@ function PhaseCard({ phase, index }: { phase: SimPhase; index: number }) {
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
-          <div><span className="text-mesh-dim">scope: </span><span className="text-mesh-muted">{phase.scope}</span></div>
-          <div><span className="text-mesh-dim">model: </span><span className="text-mesh-muted">{phase.model}</span></div>
+          <div>
+            <span className="text-mesh-dim">scope: </span>
+            <span className="text-mesh-muted">{phase.scope}</span>
+          </div>
+          <div>
+            <span className="text-mesh-dim">model: </span>
+            <span className="text-mesh-muted">{phase.model}</span>
+          </div>
         </div>
         <div className="space-y-1">
           <div className="text-[10px] text-mesh-dim uppercase tracking-wide">gates</div>
@@ -372,7 +411,7 @@ function PhaseCard({ phase, index }: { phase: SimPhase; index: number }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function InfoRow({ label, value, dim }: { label: string; value: string; dim?: boolean }) {
@@ -381,7 +420,7 @@ function InfoRow({ label, value, dim }: { label: string; value: string; dim?: bo
       <span className="text-mesh-dim flex-shrink-0 w-32">{label}</span>
       <span className={dim ? 'text-mesh-dim italic' : 'text-mesh-muted'}>{value}</span>
     </div>
-  )
+  );
 }
 
 function PostdateCard({ r }: { r: PostdateResearch }) {
@@ -394,7 +433,9 @@ function PostdateCard({ r }: { r: PostdateResearch }) {
       <div className="text-[10px] text-mesh-dim font-mono leading-relaxed">{r.source}</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
         <div className="space-y-1">
-          <div className="text-[10px] text-mesh-dim uppercase tracking-wide">relevance to Paper 31</div>
+          <div className="text-[10px] text-mesh-dim uppercase tracking-wide">
+            relevance to Paper 31
+          </div>
           <p className="text-[11px] text-mesh-muted leading-relaxed">{r.relevance}</p>
         </div>
         <div className="space-y-1">
@@ -403,5 +444,5 @@ function PostdateCard({ r }: { r: PostdateResearch }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

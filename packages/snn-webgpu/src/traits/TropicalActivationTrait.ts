@@ -11,10 +11,7 @@ export interface TropicalActivationConfig {
  * - min-plus: gain * min(0, x - threshold)   (cost-style dual)
  */
 export class TropicalActivationTrait {
-  forward(
-    spikeRates: Float32Array,
-    config: TropicalActivationConfig
-  ): Float32Array {
+  forward(spikeRates: Float32Array, config: TropicalActivationConfig): Float32Array {
     const result = new Float32Array(spikeRates.length);
 
     for (let i = 0; i < spikeRates.length; i++) {

@@ -51,7 +51,14 @@ export class ImportPipeline {
    */
   addAssimpJob(filename: string, scene: AssimpScene): string {
     const id = `job_${this.jobId++}`;
-    this.jobs.set(id, { id, filename, type: 'model', data: scene, status: 'queued', stage: 'validate' });
+    this.jobs.set(id, {
+      id,
+      filename,
+      type: 'model',
+      data: scene,
+      status: 'queued',
+      stage: 'validate',
+    });
     return id;
   }
 
@@ -97,7 +104,11 @@ export class ImportPipeline {
       job.stage = 'parse';
       if (job.type === 'model') {
         let result: ImportResult;
-        if (typeof job.data === 'object' && !(job.data instanceof ArrayBuffer) && !Array.isArray(job.data)) {
+        if (
+          typeof job.data === 'object' &&
+          !(job.data instanceof ArrayBuffer) &&
+          !Array.isArray(job.data)
+        ) {
           // Assimp scene path: data is an AssimpScene object
           result = this.modelImporter.importFromAssimp(job.data as AssimpScene);
         } else {

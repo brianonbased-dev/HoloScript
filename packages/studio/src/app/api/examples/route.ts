@@ -175,7 +175,6 @@ export async function GET(request: NextRequest) {
   return Response.json(result);
 }
 
-
 // PUBLIC-CORS: documented-public endpoint, intentional wildcard (SEC-T11)
 export function OPTIONS() {
   return new Response(null, {

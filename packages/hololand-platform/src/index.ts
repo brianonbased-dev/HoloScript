@@ -50,7 +50,10 @@ export type { CompileOptions, KioskSlice, KioskCard, KioskGrid } from './creator
 
 // World Build Cockpit — codebase-trust gate (task_1779267196745_rhwb, HoloLand JEPA dogfooding slice 1)
 export { renderCodebaseTrustGate } from './cockpit/codebase-trust-gate';
-export type { CodebaseTrustGateProps, CodebaseTrustGateRender } from './cockpit/codebase-trust-gate';
+export type {
+  CodebaseTrustGateProps,
+  CodebaseTrustGateRender,
+} from './cockpit/codebase-trust-gate';
 
 // Device Lab (hardware probes & receipts) — consumed directly from the barrel by consumers that need the full surface
 export * from './device-lab';

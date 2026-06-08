@@ -26,7 +26,7 @@ function makeFile(
   opts: {
     emitSites?: Array<{ eventName: string }>;
     listenSites?: Array<{ eventName: string }>;
-  } = {},
+  } = {}
 ): ScannedFile {
   return {
     path: filePath,
@@ -34,14 +34,14 @@ function makeFile(
     symbols: [makeSym('fn', filePath)],
     imports: [],
     calls: [],
-    emitSites: (opts.emitSites ?? []).map(e => ({
+    emitSites: (opts.emitSites ?? []).map((e) => ({
       callerId: 'fn',
       eventName: e.eventName,
       filePath,
       line: 10,
       column: 0,
     })),
-    listenSites: (opts.listenSites ?? []).map(e => ({
+    listenSites: (opts.listenSites ?? []).map((e) => ({
       callerId: 'fn',
       eventName: e.eventName,
       filePath,
@@ -80,9 +80,7 @@ describe('TraitCommunityDetector', () => {
   });
 
   it('detects trait:brain-geo from traits/brainGeo/ (camelCase → kebab)', () => {
-    const graph = buildGraph([
-      makeFile('packages/core/src/traits/brainGeo/BrainCoordMapper.ts'),
-    ]);
+    const graph = buildGraph([makeFile('packages/core/src/traits/brainGeo/BrainCoordMapper.ts')]);
     const comms = detector.detect(graph);
     expect(comms.has('trait:brain-geo')).toBe(true);
   });
@@ -96,33 +94,25 @@ describe('TraitCommunityDetector', () => {
   });
 
   it('detects compiler:vr community from VRCompiler.ts', () => {
-    const graph = buildGraph([
-      makeFile('packages/core/src/compilers/VRCompiler.ts'),
-    ]);
+    const graph = buildGraph([makeFile('packages/core/src/compilers/VRCompiler.ts')]);
     const comms = detector.detect(graph);
     expect(comms.has('compiler:vr')).toBe(true);
   });
 
   it('detects compiler:unity from UnityCompiler.ts', () => {
-    const graph = buildGraph([
-      makeFile('packages/core/src/compilers/UnityCompiler.ts'),
-    ]);
+    const graph = buildGraph([makeFile('packages/core/src/compilers/UnityCompiler.ts')]);
     const comms = detector.detect(graph);
     expect(comms.has('compiler:unity')).toBe(true);
   });
 
   it('detects plugin:robotics from packages/plugins/robotics/', () => {
-    const graph = buildGraph([
-      makeFile('packages/plugins/robotics/src/RoboticsPlugin.ts'),
-    ]);
+    const graph = buildGraph([makeFile('packages/plugins/robotics/src/RoboticsPlugin.ts')]);
     const comms = detector.detect(graph);
     expect(comms.has('plugin:robotics')).toBe(true);
   });
 
   it('detects plugin:alphafold from packages/plugins/alphafold/', () => {
-    const graph = buildGraph([
-      makeFile('packages/plugins/alphafold/src/AlphaFoldPlugin.ts'),
-    ]);
+    const graph = buildGraph([makeFile('packages/plugins/alphafold/src/AlphaFoldPlugin.ts')]);
     const comms = detector.detect(graph);
     expect(comms.has('plugin:alphafold')).toBe(true);
   });

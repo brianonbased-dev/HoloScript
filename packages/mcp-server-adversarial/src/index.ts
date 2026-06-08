@@ -9,18 +9,9 @@ import { assertSandbox } from './sandbox-gate.js';
 
 assertSandbox();
 
-export {
-  AdversarialSandboxViolation,
-  assertSandbox,
-  SANDBOX_ENV_VAR,
-} from './sandbox-gate.js';
+export { AdversarialSandboxViolation, assertSandbox, SANDBOX_ENV_VAR } from './sandbox-gate.js';
 
-export type {
-  AttackContext,
-  AttackResult,
-  AdversarialAttack,
-  AttackId,
-} from './types.js';
+export type { AttackContext, AttackResult, AdversarialAttack, AttackId } from './types.js';
 
 export { WhitewasherAttack } from './whitewasher.js';
 export { SybilAttack } from './sybil.js';
@@ -29,18 +20,9 @@ export { SlowPoisonerAttack } from './slow-poisoner.js';
 export { EclipseAttack } from './eclipse.js';
 
 // --- Testbed + Runner (ATI-3-testbed) ---
-export type {
-  TestbedTopology,
-  ServerProfile,
-} from './testbed/testbed-config.js';
-export {
-  DEFAULT_TOPOLOGY,
-  validateTopology,
-} from './testbed/testbed-config.js';
-export {
-  seedLegit,
-  type ServerManifest,
-} from './testbed/seed-legit.js';
+export type { TestbedTopology, ServerProfile } from './testbed/testbed-config.js';
+export { DEFAULT_TOPOLOGY, validateTopology } from './testbed/testbed-config.js';
+export { seedLegit, type ServerManifest } from './testbed/seed-legit.js';
 
 export type {
   AttackOutput,
@@ -48,10 +30,7 @@ export type {
   DefendedSummary,
   OverheadSummary,
 } from './runner/output-schema.js';
-export {
-  validateAttackOutput,
-  wilsonCI,
-} from './runner/output-schema.js';
+export { validateAttackOutput, wilsonCI } from './runner/output-schema.js';
 export {
   runTrial,
   runBaseline,

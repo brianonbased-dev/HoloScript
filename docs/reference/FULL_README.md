@@ -209,28 +209,28 @@ Production 3D rendering components. Each is a standalone R3F component:
 
 ### Additional Packages
 
-| Package                  | What it does                                                                            | LOC      |
-| ------------------------ | --------------------------------------------------------------------------------------- | -------- |
-| `@holoscript/snn-webgpu` | GPU-accelerated spiking neural networks. 10K neurons @ 60Hz via WebGPU compute shaders. | 9,524    |
+| Package                  | What it does                                                                                                                                               | LOC      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `@holoscript/snn-webgpu` | GPU-accelerated spiking neural networks. 10K neurons @ 60Hz via WebGPU compute shaders.                                                                    | 9,524    |
 | `@holoscript/wasm`       | Rust WASM parser for `.holo` parsing in V8-less runtimes (mobile WebViews, edge workers). Slower than JS under V8; see `packages/compiler-wasm/README.md`. | 3,154    |
-| `tree-sitter-holoscript` | tree-sitter grammar with LSP integration + pre-compiled WASM. Editor plugin support.    | 25 files |
+| `tree-sitter-holoscript` | tree-sitter grammar with LSP integration + pre-compiled WASM. Editor plugin support.                                                                       | 25 files |
 
 ## What's Here
 
-| Metric          | Value                                                                 | How to verify                                |
-| --------------- | --------------------------------------------------------------------- | -------------------------------------------- |
-| MCP tools       | Live count (changes with deploys)                                     | `curl mcp.holoscript.net/api/health`         |
-| Compile targets | Sovereign + bridge fleet, ExportTarget registry-backed                | `find *Compiler.ts` + code enum              |
-| Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive)                                   | `packages/holo-vm` + `packages/uaal`         |
-| GPU systems     | 6 WebGPU compute pipelines                                            | `packages/core/src/gpu/shaders/`             |
-| Renderers       | 32 React Three Fiber components                                       | `packages/r3f-renderer/src/components/`      |
-| Traits          | Trait handlers (verify live count)                                    | MCP: `list_traits` / `suggest_traits`        |
-| Packages        | 78 (72 + 6 services)                                                  | pnpm workspaces                              |
-| Tests           | 57,356+ passing                                                       | `pnpm test`                                  |
-| Examples        | 324 files                                                             | [Browse catalog →](./examples/INDEX.md)      |
+| Metric          | Value                                                  | How to verify                           |
+| --------------- | ------------------------------------------------------ | --------------------------------------- |
+| MCP tools       | Live count (changes with deploys)                      | `curl mcp.holoscript.net/api/health`    |
+| Compile targets | Sovereign + bridge fleet, ExportTarget registry-backed | `find *Compiler.ts` + code enum         |
+| Runtime VMs     | 2 (HoloVM spatial + uAAL cognitive)                    | `packages/holo-vm` + `packages/uaal`    |
+| GPU systems     | 6 WebGPU compute pipelines                             | `packages/core/src/gpu/shaders/`        |
+| Renderers       | 32 React Three Fiber components                        | `packages/r3f-renderer/src/components/` |
+| Traits          | Trait handlers (verify live count)                     | MCP: `list_traits` / `suggest_traits`   |
+| Packages        | 78 (72 + 6 services)                                   | pnpm workspaces                         |
+| Tests           | 57,356+ passing                                        | `pnpm test`                             |
+| Examples        | 324 files                                              | [Browse catalog →](./examples/INDEX.md) |
 
 See [NUMBERS.md](../NUMBERS.md) for live verification commands and current counts.
-| Knowledge store | Entries across 10+ domains (verify live count)                        | `curl .../health`                            |
+| Knowledge store | Entries across 10+ domains (verify live count) | `curl .../health` |
 
 No vendor lock-in. [Hololand](https://github.com/brianonbased-dev/Hololand) uses the same public APIs as everyone else.
 
@@ -403,12 +403,12 @@ my-vr-game/
 
 ## 🏆 vs Competitors
 
-| vs                      | HoloScript Advantage                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------ |
+| vs                      | HoloScript Advantage                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- |
 | **C# (Unity)**          | Built-in spatial primitives, registered targets vs one-engine lock-in, agent SDK with spatial awareness |
-| **Blueprints (Unreal)** | Text-based (version control friendly), three formats for different domains, cross-platform |
-| **GDScript (Godot)**    | Strong typing in `.hsplus`, module system, spatial query API, LSP tooling                  |
-| **Swift (visionOS)**    | Not locked to Apple, registered targets, agent choreography, IoT/robotics export           |
+| **Blueprints (Unreal)** | Text-based (version control friendly), three formats for different domains, cross-platform              |
+| **GDScript (Godot)**    | Strong typing in `.hsplus`, module system, spatial query API, LSP tooling                               |
+| **Swift (visionOS)**    | Not locked to Apple, registered targets, agent choreography, IoT/robotics export                        |
 
 ---
 
@@ -788,14 +788,14 @@ JSON-RPC calls to `POST /mcp` must send `Authorization: Bearer <access_token>`.
 
 Key endpoints:
 
-| Action   | Method | Endpoint                                | Auth |
-| -------- | ------ | --------------------------------------- | ---- |
-| Health   | GET    | `https://mcp.holoscript.net/api/health` | None |
+| Action   | Method | Endpoint                                | Auth                               |
+| -------- | ------ | --------------------------------------- | ---------------------------------- |
+| Health   | GET    | `https://mcp.holoscript.net/api/health` | None                               |
 | Parse    | MCP    | `parse_hs` / `parse_holo`               | OAuth/tenant key for direct `/mcp` |
-| Compile  | MCP    | `compile_holoscript`                    | OAuth/tenant key |
-| Traits   | MCP    | `list_traits` / `suggest_traits`        | OAuth/tenant key |
-| Validate | MCP    | `validate_holoscript`                   | OAuth/tenant key |
-| Render   | POST   | `https://mcp.holoscript.net/api/render` | None |
+| Compile  | MCP    | `compile_holoscript`                    | OAuth/tenant key                   |
+| Traits   | MCP    | `list_traits` / `suggest_traits`        | OAuth/tenant key                   |
+| Validate | MCP    | `validate_holoscript`                   | OAuth/tenant key                   |
+| Render   | POST   | `https://mcp.holoscript.net/api/render` | None                               |
 
 ```bash
 # Quick test

@@ -62,7 +62,11 @@ function resolveEmbeddingDimensions(event: TraitEvent, config: EmbeddingConfig):
   return Math.floor(dimensions);
 }
 
-function createDeterministicEmbedding(input: unknown, dimensions: number, model: string): Float32Array {
+function createDeterministicEmbedding(
+  input: unknown,
+  dimensions: number,
+  model: string
+): Float32Array {
   const vector = new Float32Array(dimensions);
   const text = stringifyEmbeddingInput(input);
   const features = extractEmbeddingFeatures(text);

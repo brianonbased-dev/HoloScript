@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-ai-composer",
-  name: "AI Scene Composer",
-  description: "Prompt-driven 3D scene with AI-generated objects and smart layout",
-  thumbnail: "🤖",
-  tags: ["ai","generative","smart","composer"],
-  category: "art",
+  id: 'wizard-ai-composer',
+  name: 'AI Scene Composer',
+  description: 'Prompt-driven 3D scene with AI-generated objects and smart layout',
+  thumbnail: '🤖',
+  tags: ['ai', 'generative', 'smart', 'composer'],
+  category: 'art',
   code: `composition "AI Composed Scene" {
   environment {
     skybox: "studio"
@@ -75,7 +75,7 @@ export const template: SceneTemplate = {
     opacity: 0.6
     material: "glass"
   }
-}`
+}`,
 };
 
 export default template;

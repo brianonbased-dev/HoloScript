@@ -347,9 +347,12 @@ export class ReactionTriggerTrait {
     options?: Partial<AnimationTriggerOptions>
   ): void {
     const resolved: AnimationTriggerOptions = {
-      condition: options?.condition ??
-        (this.config.animationDefaults.condition as AnimationTriggerCondition) ?? 'immediate',
-      proximityRadius: options?.proximityRadius ?? this.config.animationDefaults.proximityRadius ?? 5.0,
+      condition:
+        options?.condition ??
+        (this.config.animationDefaults.condition as AnimationTriggerCondition) ??
+        'immediate',
+      proximityRadius:
+        options?.proximityRadius ?? this.config.animationDefaults.proximityRadius ?? 5.0,
       timerDelay: options?.timerDelay ?? this.config.animationDefaults.timerDelay ?? 1000,
       loop: options?.loop ?? this.config.animationDefaults.loop ?? false,
       speed: options?.speed ?? this.config.animationDefaults.speed ?? 1.0,
@@ -375,7 +378,8 @@ export class ReactionTriggerTrait {
         logger.debug(
           '[ReactionTriggerTrait] Animation queued for proximity check:',
           animationName,
-          'radius:', resolved.proximityRadius
+          'radius:',
+          resolved.proximityRadius
         );
         break;
 
@@ -389,10 +393,7 @@ export class ReactionTriggerTrait {
           trigger: 'interaction',
         });
         this.activeAnimations.set(animationName, resolved);
-        logger.debug(
-          '[ReactionTriggerTrait] Animation queued for interaction:',
-          animationName
-        );
+        logger.debug('[ReactionTriggerTrait] Animation queued for interaction:', animationName);
         break;
 
       case 'timer': {
@@ -410,7 +411,9 @@ export class ReactionTriggerTrait {
         logger.debug(
           '[ReactionTriggerTrait] Animation scheduled:',
           animationName,
-          'delay:', resolved.timerDelay, 'ms'
+          'delay:',
+          resolved.timerDelay,
+          'ms'
         );
         break;
       }
@@ -425,7 +428,10 @@ export class ReactionTriggerTrait {
    */
   private executeAnimation(animationName: string, options: AnimationTriggerOptions): void {
     if (!this.viralPoseTrait) {
-      logger.warn('[ReactionTriggerTrait] ViralPoseTrait not attached, cannot play animation:', animationName);
+      logger.warn(
+        '[ReactionTriggerTrait] ViralPoseTrait not attached, cannot play animation:',
+        animationName
+      );
       return;
     }
 
@@ -459,7 +465,12 @@ export class ReactionTriggerTrait {
       }
     });
 
-    logger.debug('[ReactionTriggerTrait] Animation executing:', animationName, 'speed:', options.speed);
+    logger.debug(
+      '[ReactionTriggerTrait] Animation executing:',
+      animationName,
+      'speed:',
+      options.speed
+    );
   }
 
   /**
@@ -554,9 +565,7 @@ export class ReactionTriggerTrait {
 
     // Dispatch as CustomEvent for external consumers
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('holoscript-animation-event', { detail: event })
-      );
+      window.dispatchEvent(new CustomEvent('holoscript-animation-event', { detail: event }));
     }
   }
 

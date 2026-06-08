@@ -66,9 +66,9 @@ describe('emsrYieldManagement', () => {
 
   it('3-class EMSR returns correct array lengths', () => {
     const threeClass: RateClass[] = [
-      { id: 'Suite',   adr: 400, expectedDemand: 20, demandStdDev: 8 },
+      { id: 'Suite', adr: 400, expectedDemand: 20, demandStdDev: 8 },
       { id: 'Standard', adr: 200, expectedDemand: 60, demandStdDev: 15 },
-      { id: 'Budget',   adr: 100, expectedDemand: 100, demandStdDev: 25 },
+      { id: 'Budget', adr: 100, expectedDemand: 100, demandStdDev: 25 },
     ];
     const r = emsrYieldManagement(200, threeClass);
     expect(r.protectionLevels).toHaveLength(3);
@@ -93,7 +93,7 @@ describe('revparAnalysis', () => {
    */
   it('occupancy = occupied / available', () => {
     const r = revparAnalysis(200, 160, 24_000);
-    expect(r.occupancyRate).toBeCloseTo(0.80, 5);
+    expect(r.occupancyRate).toBeCloseTo(0.8, 5);
   });
 
   it('ADR = revenue / occupied rooms', () => {
@@ -134,23 +134,23 @@ describe('overbookingOptimization', () => {
    * Critical ratio = 150/(150+300) = 1/3 — expect some overbooking to be optimal
    */
   it('overbooking level ≥ 0', () => {
-    const r = overbookingOptimization(100, 0.10, 150, 300, 95);
+    const r = overbookingOptimization(100, 0.1, 150, 300, 95);
     expect(r.overbook).toBeGreaterThanOrEqual(0);
   });
 
   it('authorized bookings = capacity + overbook', () => {
-    const r = overbookingOptimization(100, 0.10, 150, 300, 95);
+    const r = overbookingOptimization(100, 0.1, 150, 300, 95);
     expect(r.authorizedBookings).toBe(r.capacity + r.overbook);
   });
 
   it('higher walk cost → lower overbooking', () => {
-    const r1 = overbookingOptimization(100, 0.10, 150, 100, 90);  // low walk cost
-    const r2 = overbookingOptimization(100, 0.10, 150, 1000, 90); // high walk cost
+    const r1 = overbookingOptimization(100, 0.1, 150, 100, 90); // low walk cost
+    const r2 = overbookingOptimization(100, 0.1, 150, 1000, 90); // high walk cost
     expect(r2.overbook).toBeLessThanOrEqual(r1.overbook);
   });
 
   it('expectedWalkCost ≥ 0', () => {
-    const r = overbookingOptimization(100, 0.10, 150, 300, 95);
+    const r = overbookingOptimization(100, 0.1, 150, 300, 95);
     expect(r.expectedWalkCost).toBeGreaterThanOrEqual(0);
   });
 
@@ -231,8 +231,13 @@ describe('hotelDemandForecast', () => {
 
   it('weekend indices > weekday indices (reflects weekend demand spike)', () => {
     const r = hotelDemandForecast(historical, 7);
-    const weekdayAvg = (r.seasonalIndices[0] + r.seasonalIndices[1] + r.seasonalIndices[2] +
-                        r.seasonalIndices[3] + r.seasonalIndices[4]) / 5;
+    const weekdayAvg =
+      (r.seasonalIndices[0] +
+        r.seasonalIndices[1] +
+        r.seasonalIndices[2] +
+        r.seasonalIndices[3] +
+        r.seasonalIndices[4]) /
+      5;
     const weekendAvg = (r.seasonalIndices[5] + r.seasonalIndices[6]) / 2;
     expect(weekendAvg).toBeGreaterThan(weekdayAvg);
   });

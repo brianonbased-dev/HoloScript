@@ -78,10 +78,9 @@ export function ResearchLanePrompt({
           Research lane active
         </div>
         <p className="mt-1 text-xs text-slate-400">
-          Paper cell, D.011 checklist, and evidence references are available in the workspace
-          {' '}
-          <code className="rounded bg-slate-800 px-1 py-0.5 text-slate-300">research/</code>
-          {' '}directory.
+          Paper cell, D.011 checklist, and evidence references are available in the workspace{' '}
+          <code className="rounded bg-slate-800 px-1 py-0.5 text-slate-300">research/</code>{' '}
+          directory.
         </p>
       </div>
     );
@@ -99,18 +98,15 @@ export function ResearchLanePrompt({
           </div>
           <p className="mt-1 text-xs text-slate-400">
             This workspace scored{' '}
-            <span className="font-mono text-amber-200">{pw.finalScore.toFixed(1)}</span>
-            /{pw.threshold} on publish-worthiness. Opt in to unlock the paper-program research
-            packet (D.011 checklist, evidence tracking, local memory, and scoped board tasks when a
-            team is connected).
+            <span className="font-mono text-amber-200">{pw.finalScore.toFixed(1)}</span>/
+            {pw.threshold} on publish-worthiness. Opt in to unlock the paper-program research packet
+            (D.011 checklist, evidence tracking, local memory, and scoped board tasks when a team is
+            connected).
           </p>
           {pw.requiredGateFailures.length > 0 && (
             <div className="mt-2 space-y-1">
               {pw.requiredGateFailures.map((failure) => (
-                <div
-                  key={failure}
-                  className="flex items-center gap-1.5 text-[11px] text-slate-500"
-                >
+                <div key={failure} className="flex items-center gap-1.5 text-[11px] text-slate-500">
                   <Lock className="h-3 w-3 text-slate-600" />
                   {failure}
                 </div>
@@ -178,8 +174,7 @@ export function ResearchLaneArtifacts({
       </div>
       <div className="flex items-center gap-1.5 text-[10px] text-emerald-400">
         <Check className="h-3 w-3" />
-        Created in workspace
-        {' '}
+        Created in workspace{' '}
         <code className="rounded bg-slate-800 px-1 py-0.5 text-slate-300">research/</code>
       </div>
     </div>

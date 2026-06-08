@@ -65,7 +65,10 @@ export {
 
 // Also re-export PillarDomain + PillarSlice from PillarRegistry for consumers
 // that historically imported from there
-export type { PillarDomain as PillarDomainAlias, PillarSlice as PillarSliceAlias } from './PillarRegistry';
+export type {
+  PillarDomain as PillarDomainAlias,
+  PillarSlice as PillarSliceAlias,
+} from './PillarRegistry';
 
 // ── Parallel / Bilateral Pillars ───────────────────────────────────────────────
 export type {
@@ -123,23 +126,14 @@ export type {
 } from './LatentIntegrityLayer';
 
 // ── RecursiveLinkTrait ────────────────────────────────────────────────────────
-export type {
-  RecursiveLinkMessage,
-  RecursiveLinkConfig,
-} from './RecursiveLinkTrait';
+export type { RecursiveLinkMessage, RecursiveLinkConfig } from './RecursiveLinkTrait';
 
 export { recursiveLinkHandler } from './RecursiveLinkTrait';
 
 // ── uAALComposedAgent — full stack in one handler ─────────────────────────────
-export type {
-  UAALAgentConfig,
-  UAALAgentSnapshot,
-} from './uAALComposedAgent';
+export type { UAALAgentConfig, UAALAgentSnapshot } from './uAALComposedAgent';
 
-export {
-  uAALComposedAgentHandler,
-  getUAALAgentSnapshot,
-} from './uAALComposedAgent';
+export { uAALComposedAgentHandler, getUAALAgentSnapshot } from './uAALComposedAgent';
 
 // ── BrainCoordMapper — MNI152 coordinate lookup ───────────────────────────────
 export type { DomainCoordEntry } from './BrainCoordMapper';
@@ -187,7 +181,4 @@ export type {
   DispatchHandler,
 } from './CognitiveVMTrait';
 
-export {
-  cognitiveVMHandler,
-  getCognitiveVMSnapshot,
-} from './CognitiveVMTrait';
+export { cognitiveVMHandler, getCognitiveVMSnapshot } from './CognitiveVMTrait';

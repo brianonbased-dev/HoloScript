@@ -56,7 +56,7 @@ describe('IKLatencyProbe (Paper 7 camera-ready benchmark substrate)', () => {
         warmupRuns: 0,
         measuredRuns: 1,
         seed: 202,
-      }),
+      })
     );
 
     expect(markdown).toContain('| Mode | 2 bones | 3 bones | 5 bones | 10 bones |');
@@ -73,13 +73,13 @@ describe('IKLatencyProbe (Paper 7 camera-ready benchmark substrate)', () => {
     for (const mode of PAPER_7_IK_MODES) {
       for (const chainLength of PAPER_7_IK_CHAIN_LENGTHS) {
         const r1 = await harness.probe(`ik-${mode}-${chainLength}`, () =>
-          runIKLatencyProbe({ mode, chainLength, taskCount: 64, seed: 500 + chainLength }),
+          runIKLatencyProbe({ mode, chainLength, taskCount: 64, seed: 500 + chainLength })
         );
         const r2 = await harness.probe(`ik-${mode}-${chainLength}`, () =>
-          runIKLatencyProbe({ mode, chainLength, taskCount: 64, seed: 500 + chainLength }),
+          runIKLatencyProbe({ mode, chainLength, taskCount: 64, seed: 500 + chainLength })
         );
         const r3 = await harness.probe(`ik-${mode}-${chainLength}`, () =>
-          runIKLatencyProbe({ mode, chainLength, taskCount: 64, seed: 500 + chainLength }),
+          runIKLatencyProbe({ mode, chainLength, taskCount: 64, seed: 500 + chainLength })
         );
 
         expect(r1.error).toBeUndefined();

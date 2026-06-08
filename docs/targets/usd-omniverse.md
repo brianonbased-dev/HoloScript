@@ -36,11 +36,11 @@ holoscript compile --target usd --usd-context omniverse factory.holo -o factory.
 
 ## Target Contexts
 
-| Context | Use case | Differences |
-|---------|----------|-------------|
-| `isaac_sim` (default) | Sim-to-real, RL training, Isaac Lab | Enforces translate→rotateXYZ→scale xformOp order; emits PhysX `ArticulationView` solver hints; Z-up by default |
-| `omniverse` | Factory twins, visualization, USD Composer | Standard USD + PhysX schemas; fewer Isaac Lab constraints |
-| `generic` | Any USD-compatible runtime | Portable PhysX schemas, no runtime-specific hints |
+| Context               | Use case                                   | Differences                                                                                                    |
+| --------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `isaac_sim` (default) | Sim-to-real, RL training, Isaac Lab        | Enforces translate→rotateXYZ→scale xformOp order; emits PhysX `ArticulationView` solver hints; Z-up by default |
+| `omniverse`           | Factory twins, visualization, USD Composer | Standard USD + PhysX schemas; fewer Isaac Lab constraints                                                      |
+| `generic`             | Any USD-compatible runtime                 | Portable PhysX schemas, no runtime-specific hints                                                              |
 
 ---
 
@@ -142,18 +142,18 @@ def Xform "PhysicsTest" (
 
 HoloScript traits map directly to USD Physics schemas:
 
-| HoloScript trait / annotation | USD schema emitted |
-|-------------------------------|-------------------|
+| HoloScript trait / annotation              | USD schema emitted                     |
+| ------------------------------------------ | -------------------------------------- |
 | `@physics { mass, restitution, friction }` | `PhysicsMassAPI`, `PhysicsMaterialAPI` |
-| `@physics { rigid: true }` | `PhysicsRigidBodyAPI` |
-| `@physics { collision: true }` (default) | `PhysicsCollisionAPI` |
-| `@robot` / `@articulation` | `PhysicsArticulationRootAPI` |
-| `@joint { type: hinge\|revolute }` | `PhysicsRevoluteJoint` |
-| `@joint { type: prismatic\|slider }` | `PhysicsPrismaticJoint` |
-| `@joint { type: ball\|spherical }` | `PhysicsSphericalJoint` |
-| `@joint { type: fixed }` | `PhysicsFixedJoint` |
-| `@joint { type: d6\|6dof }` | `PhysicsD6Joint` |
-| `@drive { stiffness, damping }` | `PhysicsDriveAPI` |
+| `@physics { rigid: true }`                 | `PhysicsRigidBodyAPI`                  |
+| `@physics { collision: true }` (default)   | `PhysicsCollisionAPI`                  |
+| `@robot` / `@articulation`                 | `PhysicsArticulationRootAPI`           |
+| `@joint { type: hinge\|revolute }`         | `PhysicsRevoluteJoint`                 |
+| `@joint { type: prismatic\|slider }`       | `PhysicsPrismaticJoint`                |
+| `@joint { type: ball\|spherical }`         | `PhysicsSphericalJoint`                |
+| `@joint { type: fixed }`                   | `PhysicsFixedJoint`                    |
+| `@joint { type: d6\|6dof }`                | `PhysicsD6Joint`                       |
+| `@drive { stiffness, damping }`            | `PhysicsDriveAPI`                      |
 
 ### PhysicsScene defaults (Isaac Sim context)
 
@@ -169,8 +169,8 @@ Override via compiler options:
 new USDPhysicsCompiler({
   targetContext: 'isaac_sim',
   gravity: [0, 0, -9.81],
-  physicsTimestep: 1/120,           // 120 Hz
-  enableGPUDynamics: false,         // CPU fallback
+  physicsTimestep: 1 / 120, // 120 Hz
+  enableGPUDynamics: false, // CPU fallback
 });
 ```
 
@@ -343,24 +343,24 @@ omni.kit.commands.execute(
 
 ```typescript
 interface USDPhysicsCompilerOptions {
-  targetContext?: 'isaac_sim' | 'omniverse' | 'generic';  // default: 'isaac_sim'
-  upAxis?: 'Y' | 'Z';                   // default: 'Z'
-  metersPerUnit?: number;               // default: 1.0
-  timeCodesPerSecond?: number;          // default: 60
-  gravity?: [number, number, number];   // default: [0, 0, -9.81]
-  physicsTimestep?: number;             // default: 1/60
-  enableGPUDynamics?: boolean;          // default: true
-  includePhysicsScene?: boolean;        // default: true
-  includeCollision?: boolean;           // default: true
-  includeVisual?: boolean;              // default: true
-  enableArticulation?: boolean;         // default: true
-  defaultMass?: number;                 // default: 1.0
-  defaultStaticFriction?: number;       // default: 0.5
-  defaultDynamicFriction?: number;      // default: 0.5
-  defaultRestitution?: number;          // default: 0.1
-  embedSemanticAST?: boolean;           // default: true
-  provenanceHash?: string;              // optional SHA-256 for SimulationContract
-  stageName?: string;                   // default: 'HoloScriptPhysicsStage'
+  targetContext?: 'isaac_sim' | 'omniverse' | 'generic'; // default: 'isaac_sim'
+  upAxis?: 'Y' | 'Z'; // default: 'Z'
+  metersPerUnit?: number; // default: 1.0
+  timeCodesPerSecond?: number; // default: 60
+  gravity?: [number, number, number]; // default: [0, 0, -9.81]
+  physicsTimestep?: number; // default: 1/60
+  enableGPUDynamics?: boolean; // default: true
+  includePhysicsScene?: boolean; // default: true
+  includeCollision?: boolean; // default: true
+  includeVisual?: boolean; // default: true
+  enableArticulation?: boolean; // default: true
+  defaultMass?: number; // default: 1.0
+  defaultStaticFriction?: number; // default: 0.5
+  defaultDynamicFriction?: number; // default: 0.5
+  defaultRestitution?: number; // default: 0.1
+  embedSemanticAST?: boolean; // default: true
+  provenanceHash?: string; // optional SHA-256 for SimulationContract
+  stageName?: string; // default: 'HoloScriptPhysicsStage'
 }
 ```
 
@@ -370,10 +370,10 @@ interface USDPhysicsCompilerOptions {
 
 HoloScript has two Isaac Sim export paths:
 
-| Path | Format | Best for |
-|------|--------|----------|
+| Path                                     | Format            | Best for                                                                     |
+| ---------------------------------------- | ----------------- | ---------------------------------------------------------------------------- |
 | `compile_to_usd targetContext=isaac_sim` | USD ASCII (.usda) | Native USD scenes, factory twins, multi-body environments, Omniverse interop |
-| `compile_to_urdf --isaac-sim` | URDF XML | Single robot import via Isaac Sim URDF Importer, ROS 2 integration |
+| `compile_to_urdf --isaac-sim`            | URDF XML          | Single robot import via Isaac Sim URDF Importer, ROS 2 integration           |
 
 For robot development targeting Isaac Lab's `ArticulationView`, both paths work. USD is preferred for new workflows; URDF is better for ROS 2 ecosystem compatibility. See [`ISAAC_SIM_OPTIMIZATION.md`](./ISAAC_SIM_OPTIMIZATION.md) for the URDF path.
 

@@ -22,10 +22,7 @@
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import {
-  createPostgresSecretBackend,
-  type SecretQueryRunner,
-} from '../postgres-secret-backend';
+import { createPostgresSecretBackend, type SecretQueryRunner } from '../postgres-secret-backend';
 import {
   createSecretStore,
   OwnerMismatchError,
@@ -506,7 +503,12 @@ describe('createSecretStore over Postgres backend — INTEGRATION', () => {
       ref: 'vault:stripe' as SecretRef,
     });
     expect(aliceRow).not.toBeNull();
-    const leakyBackend = { ...realBackend, async getByRef() { return aliceRow; } };
+    const leakyBackend = {
+      ...realBackend,
+      async getByRef() {
+        return aliceRow;
+      },
+    };
     const storeBLeaky = createSecretStore({ backend: leakyBackend, kekProvider });
 
     await expect(

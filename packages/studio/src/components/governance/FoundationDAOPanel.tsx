@@ -29,9 +29,7 @@ function buildDaoSnippet(opts: {
 }): string {
   const safe = opts.name.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_') || 'Sovereign_DAO';
   const tokenLine =
-    opts.tokenAddress.trim().length > 0
-      ? `\n    tokenAddress: "${opts.tokenAddress.trim()}"`
-      : '';
+    opts.tokenAddress.trim().length > 0 ? `\n    tokenAddress: "${opts.tokenAddress.trim()}"` : '';
   return `object "${safe}" {
   @foundation_dao {
     quorumThreshold: ${opts.quorumThreshold}
@@ -95,8 +93,8 @@ export function FoundationDAOPanel({ onClose }: FoundationDAOPanelProps) {
 
       <div className="flex-1 space-y-3 overflow-y-auto p-3">
         <p className="text-[9px] leading-relaxed text-studio-muted">
-          Inserts a world-level <code className="text-studio-accent">@foundation_dao</code> block for
-          sovereign economy governance (quorum, voting period, optional token voting).
+          Inserts a world-level <code className="text-studio-accent">@foundation_dao</code> block
+          for sovereign economy governance (quorum, voting period, optional token voting).
         </p>
 
         <label className="block space-y-1">
@@ -157,7 +155,9 @@ export function FoundationDAOPanel({ onClose }: FoundationDAOPanelProps) {
         </label>
 
         <div className="rounded-lg border border-studio-border bg-studio-surface/50 p-2">
-          <p className="mb-2 text-[9px] font-semibold text-studio-muted">Governance preview (mock)</p>
+          <p className="mb-2 text-[9px] font-semibold text-studio-muted">
+            Governance preview (mock)
+          </p>
           <ul className="space-y-2">
             {MOCK_PROPOSALS.map((p) => {
               const total = p.for + p.against || 1;

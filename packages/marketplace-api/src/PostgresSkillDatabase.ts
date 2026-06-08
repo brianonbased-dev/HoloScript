@@ -217,9 +217,7 @@ export class PostgresSkillDatabase implements ISkillDatabase {
   // SEARCH
   // ---------------------------------------------------------------------------
 
-  async searchSkills(
-    query: SkillSearchQuery
-  ): Promise<{ skills: SkillPackage[]; total: number }> {
+  async searchSkills(query: SkillSearchQuery): Promise<{ skills: SkillPackage[]; total: number }> {
     const client = await this.getClient();
     try {
       // Only published skills are discoverable (mirrors InMemorySkillDatabase).
@@ -272,10 +270,7 @@ export class PostgresSkillDatabase implements ISkillDatabase {
       }
 
       const where = conditions.join(' AND ');
-      const countRes = await client.query(
-        `SELECT COUNT(*) FROM hs_skills WHERE ${where}`,
-        params
-      );
+      const countRes = await client.query(`SELECT COUNT(*) FROM hs_skills WHERE ${where}`, params);
       const total = parseInt(countRes.rows[0].count, 10);
 
       const sortMap: Record<string, string> = {

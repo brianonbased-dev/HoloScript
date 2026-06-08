@@ -286,7 +286,11 @@ export class NetworkInterpolation {
   /**
    * Smooth correction: instead of snapping, blend toward the server position.
    */
-  smoothCorrection(currentPos: Vec3Like, serverPos: Vec3Like, dt: number): IVector3 & { x: number; y: number; z: number } {
+  smoothCorrection(
+    currentPos: Vec3Like,
+    serverPos: Vec3Like,
+    dt: number
+  ): IVector3 & { x: number; y: number; z: number } {
     const dx = readX(serverPos) - readX(currentPos);
     const dy = readY(serverPos) - readY(currentPos);
     const dz = readZ(serverPos) - readZ(currentPos);
@@ -299,7 +303,11 @@ export class NetworkInterpolation {
 
     // Smooth lerp
     const t = Math.min(1, this.config.lerpSpeed * dt);
-    return makeVec3(readX(currentPos) + dx * t, readY(currentPos) + dy * t, readZ(currentPos) + dz * t);
+    return makeVec3(
+      readX(currentPos) + dx * t,
+      readY(currentPos) + dy * t,
+      readZ(currentPos) + dz * t
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -327,11 +335,15 @@ export class NetworkInterpolation {
   // Math
   // ---------------------------------------------------------------------------
 
-  private lerpVec3(a: Vec3Like, b: Vec3Like, t: number): IVector3 & { x: number; y: number; z: number } {
+  private lerpVec3(
+    a: Vec3Like,
+    b: Vec3Like,
+    t: number
+  ): IVector3 & { x: number; y: number; z: number } {
     return makeVec3(
       readX(a) + (readX(b) - readX(a)) * t,
       readY(a) + (readY(b) - readY(a)) * t,
-      readZ(a) + (readZ(b) - readZ(a)) * t,
+      readZ(a) + (readZ(b) - readZ(a)) * t
     );
   }
 

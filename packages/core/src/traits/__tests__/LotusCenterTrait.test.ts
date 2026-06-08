@@ -3,10 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  lotusCenterHandler,
-  deriveLotusCenterPhase,
-} from '../LotusCenterTrait';
+import { lotusCenterHandler, deriveLotusCenterPhase } from '../LotusCenterTrait';
 import {
   createMockContext,
   createMockNode,
@@ -78,7 +75,9 @@ describe('LotusCenterTrait — handler lifecycle', () => {
 
     expect(getEventCount(ctx, 'lotus_center_phase_changed')).toBe(1);
     expect(getEventCount(ctx, 'center_ready_for_sdf_body')).toBe(0);
-    const evt = getLastEvent(ctx, 'lotus_center_phase_changed') as Record<string, unknown> | undefined;
+    const evt = getLastEvent(ctx, 'lotus_center_phase_changed') as
+      | Record<string, unknown>
+      | undefined;
     expect(evt?.phase).toBe('genesis_fired_pending');
   });
 
@@ -136,7 +135,9 @@ describe('LotusCenterTrait — handler lifecycle', () => {
       type: 'lotus_genesis_fired',
     });
 
-    const evt = getLastEvent(ctx, 'center_ready_for_sdf_body') as Record<string, unknown> | undefined;
+    const evt = getLastEvent(ctx, 'center_ready_for_sdf_body') as
+      | Record<string, unknown>
+      | undefined;
     expect(evt?.intensity).toBeCloseTo(1.5, 10);
   });
 
@@ -163,7 +164,11 @@ describe('LotusCenterTrait — handler lifecycle', () => {
     const node = createMockNode('center-test');
     attachTrait(lotusCenterHandler, node, {}, ctx);
     ctx.clearEvents();
-    lotusCenterHandler.onDetach?.(node as never, lotusCenterHandler.defaultConfig as never, ctx as never);
+    lotusCenterHandler.onDetach?.(
+      node as never,
+      lotusCenterHandler.defaultConfig as never,
+      ctx as never
+    );
     expect(getEventCount(ctx, 'lotus_center_detached')).toBe(1);
   });
 
@@ -173,7 +178,12 @@ describe('LotusCenterTrait — handler lifecycle', () => {
     attachTrait(lotusCenterHandler, node, {}, ctx);
     ctx.clearEvents();
     for (let i = 0; i < 100; i++) {
-      lotusCenterHandler.onUpdate?.(node as never, lotusCenterHandler.defaultConfig as never, ctx as never, 0.016);
+      lotusCenterHandler.onUpdate?.(
+        node as never,
+        lotusCenterHandler.defaultConfig as never,
+        ctx as never,
+        0.016
+      );
     }
     expect(ctx.emittedEvents.length).toBe(0);
   });

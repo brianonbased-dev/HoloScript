@@ -178,7 +178,9 @@ export function DispatchTraceCAELPanel() {
 
       {/* Footer */}
       <div className="border-t border-studio-border px-3 py-1.5 text-[10px] text-studio-muted flex justify-between">
-        <span>{rows.length} entries · max {MAX_ROWS}</span>
+        <span>
+          {rows.length} entries · max {MAX_ROWS}
+        </span>
         <span>{paused ? '⏸ Paused' : '● Live'}</span>
       </div>
     </div>

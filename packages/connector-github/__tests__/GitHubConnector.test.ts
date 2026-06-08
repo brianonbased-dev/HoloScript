@@ -3,71 +3,73 @@ import { GitHubConnector } from '../src/GitHubConnector.js';
 
 // Mock @octokit/rest
 vi.mock('@octokit/rest', () => ({
-  Octokit: vi.fn().mockImplementation(function () { return ({
-    rest: {
-      users: {
-        getAuthenticated: vi.fn().mockResolvedValue({ status: 200, data: { login: 'testuser' } }),
+  Octokit: vi.fn().mockImplementation(function () {
+    return {
+      rest: {
+        users: {
+          getAuthenticated: vi.fn().mockResolvedValue({ status: 200, data: { login: 'testuser' } }),
+        },
+        meta: {
+          get: vi.fn().mockResolvedValue({ status: 200 }),
+        },
+        repos: {
+          get: vi
+            .fn()
+            .mockResolvedValue({ data: { name: 'test-repo', owner: { login: 'testuser' } } }),
+          createForAuthenticatedUser: vi
+            .fn()
+            .mockResolvedValue({ data: { name: 'new-repo', id: 123 } }),
+          listForAuthenticatedUser: vi
+            .fn()
+            .mockResolvedValue({ data: [{ name: 'repo1' }, { name: 'repo2' }] }),
+          listForOrg: vi.fn().mockResolvedValue({ data: [{ name: 'org-repo1' }] }),
+          getContent: vi.fn().mockResolvedValue({
+            data: {
+              content: Buffer.from('object Cube { position: [0,0,0] }').toString('base64'),
+              sha: 'abc123',
+            },
+          }),
+          createOrUpdateFileContents: vi
+            .fn()
+            .mockResolvedValue({ data: { commit: { sha: 'def456' } } }),
+        },
+        issues: {
+          create: vi.fn().mockResolvedValue({ data: { number: 1, title: 'Test Issue' } }),
+          listForRepo: vi.fn().mockResolvedValue({ data: [{ number: 1 }, { number: 2 }] }),
+          update: vi.fn().mockResolvedValue({ data: { number: 1, state: 'closed' } }),
+          createComment: vi.fn().mockResolvedValue({ data: { id: 999 } }),
+        },
+        pulls: {
+          create: vi.fn().mockResolvedValue({ data: { number: 10, title: 'Test PR' } }),
+          list: vi.fn().mockResolvedValue({ data: [{ number: 10 }, { number: 11 }] }),
+          get: vi.fn().mockResolvedValue({ data: { number: 10, state: 'open' } }),
+          merge: vi.fn().mockResolvedValue({ data: { merged: true } }),
+          createReview: vi.fn().mockResolvedValue({ data: { id: 888 } }),
+        },
+        actions: {
+          listRepoWorkflows: vi
+            .fn()
+            .mockResolvedValue({ data: { workflows: [{ id: 1, name: 'CI' }] } }),
+          createWorkflowDispatch: vi.fn().mockResolvedValue({ status: 204 }),
+          listWorkflowRuns: vi.fn().mockResolvedValue({ data: { workflow_runs: [{ id: 100 }] } }),
+          listWorkflowRunsForRepo: vi
+            .fn()
+            .mockResolvedValue({ data: { workflow_runs: [{ id: 101 }] } }),
+        },
+        git: {
+          getTree: vi.fn().mockResolvedValue({
+            data: {
+              tree: [
+                { type: 'blob', path: 'scene.holo' },
+                { type: 'blob', path: 'component.hs' },
+                { type: 'blob', path: 'README.md' },
+              ],
+            },
+          }),
+        },
       },
-      meta: {
-        get: vi.fn().mockResolvedValue({ status: 200 }),
-      },
-      repos: {
-        get: vi
-          .fn()
-          .mockResolvedValue({ data: { name: 'test-repo', owner: { login: 'testuser' } } }),
-        createForAuthenticatedUser: vi
-          .fn()
-          .mockResolvedValue({ data: { name: 'new-repo', id: 123 } }),
-        listForAuthenticatedUser: vi
-          .fn()
-          .mockResolvedValue({ data: [{ name: 'repo1' }, { name: 'repo2' }] }),
-        listForOrg: vi.fn().mockResolvedValue({ data: [{ name: 'org-repo1' }] }),
-        getContent: vi.fn().mockResolvedValue({
-          data: {
-            content: Buffer.from('object Cube { position: [0,0,0] }').toString('base64'),
-            sha: 'abc123',
-          },
-        }),
-        createOrUpdateFileContents: vi
-          .fn()
-          .mockResolvedValue({ data: { commit: { sha: 'def456' } } }),
-      },
-      issues: {
-        create: vi.fn().mockResolvedValue({ data: { number: 1, title: 'Test Issue' } }),
-        listForRepo: vi.fn().mockResolvedValue({ data: [{ number: 1 }, { number: 2 }] }),
-        update: vi.fn().mockResolvedValue({ data: { number: 1, state: 'closed' } }),
-        createComment: vi.fn().mockResolvedValue({ data: { id: 999 } }),
-      },
-      pulls: {
-        create: vi.fn().mockResolvedValue({ data: { number: 10, title: 'Test PR' } }),
-        list: vi.fn().mockResolvedValue({ data: [{ number: 10 }, { number: 11 }] }),
-        get: vi.fn().mockResolvedValue({ data: { number: 10, state: 'open' } }),
-        merge: vi.fn().mockResolvedValue({ data: { merged: true } }),
-        createReview: vi.fn().mockResolvedValue({ data: { id: 888 } }),
-      },
-      actions: {
-        listRepoWorkflows: vi
-          .fn()
-          .mockResolvedValue({ data: { workflows: [{ id: 1, name: 'CI' }] } }),
-        createWorkflowDispatch: vi.fn().mockResolvedValue({ status: 204 }),
-        listWorkflowRuns: vi.fn().mockResolvedValue({ data: { workflow_runs: [{ id: 100 }] } }),
-        listWorkflowRunsForRepo: vi
-          .fn()
-          .mockResolvedValue({ data: { workflow_runs: [{ id: 101 }] } }),
-      },
-      git: {
-        getTree: vi.fn().mockResolvedValue({
-          data: {
-            tree: [
-              { type: 'blob', path: 'scene.holo' },
-              { type: 'blob', path: 'component.hs' },
-              { type: 'blob', path: 'README.md' },
-            ],
-          },
-        }),
-      },
-    },
-  }); }),
+    };
+  }),
 }));
 
 // Mock @octokit/auth-token

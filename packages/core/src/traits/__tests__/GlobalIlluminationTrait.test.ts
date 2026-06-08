@@ -21,28 +21,35 @@ describe('GlobalIlluminationTrait — validate()', () => {
   });
 
   it('rejects invalid mode', () => {
-    expect(() =>
-      GlobalIlluminationTrait.validate!({ mode: 'bad_mode' as never } as never)
-    ).toThrow('GI mode');
+    expect(() => GlobalIlluminationTrait.validate!({ mode: 'bad_mode' as never } as never)).toThrow(
+      'GI mode'
+    );
   });
 
   it('rejects sh_probes without sh config', () => {
-    expect(() =>
-      GlobalIlluminationTrait.validate!({ mode: 'sh_probes' } as never)
-    ).toThrow('sh config');
+    expect(() => GlobalIlluminationTrait.validate!({ mode: 'sh_probes' } as never)).toThrow(
+      'sh config'
+    );
   });
 
   it('rejects ddgi without ddgi config', () => {
-    expect(() =>
-      GlobalIlluminationTrait.validate!({ mode: 'ddgi' } as never)
-    ).toThrow('ddgi config');
+    expect(() => GlobalIlluminationTrait.validate!({ mode: 'ddgi' } as never)).toThrow(
+      'ddgi config'
+    );
   });
 
   it('rejects ddgi with invalid hysteresis', () => {
     expect(() =>
       GlobalIlluminationTrait.validate!({
         mode: 'ddgi',
-        ddgi: { probeCount: 64, raysPerProbe: 256, irradianceTexSize: 8, visibilityTexSize: 16, normalBias: 0.1, hysteresis: 2 },
+        ddgi: {
+          probeCount: 64,
+          raysPerProbe: 256,
+          irradianceTexSize: 8,
+          visibilityTexSize: 16,
+          normalBias: 0.1,
+          hysteresis: 2,
+        },
       } as never)
     ).toThrow('hysteresis');
   });

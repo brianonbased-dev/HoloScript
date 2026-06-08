@@ -67,49 +67,66 @@ describe('VerbalFingerprintTrait', () => {
   });
 
   it('separates equal-length text with the same first eight characters', () => {
-    attachTrait(verbalFingerprintHandler, node, {
-      style: {
-        label: 'hash-test',
-        minSentenceLength: 1,
-        maxSentenceLength: 100,
-        forbiddenPhrases: [],
-        requiredPhrases: [],
-        tone: 'test',
+    attachTrait(
+      verbalFingerprintHandler,
+      node,
+      {
+        style: {
+          label: 'hash-test',
+          minSentenceLength: 1,
+          maxSentenceLength: 100,
+          forbiddenPhrases: [],
+          requiredPhrases: [],
+          tone: 'test',
+        },
       },
-    }, ctx);
+      ctx
+    );
 
-    sendEvent(verbalFingerprintHandler, node, {
-      style: {
-        label: 'hash-test',
-        minSentenceLength: 1,
-        maxSentenceLength: 100,
-        forbiddenPhrases: [],
-        requiredPhrases: [],
-        tone: 'test',
+    sendEvent(
+      verbalFingerprintHandler,
+      node,
+      {
+        style: {
+          label: 'hash-test',
+          minSentenceLength: 1,
+          maxSentenceLength: 100,
+          forbiddenPhrases: [],
+          requiredPhrases: [],
+          tone: 'test',
+        },
       },
-    }, ctx, {
-      type: 'verbal_fingerprint_verify',
-      text: 'abcdefgh alpha.',
-      generationId: 'g-prefix-1',
-      modelBackend: 'claude',
-    });
+      ctx,
+      {
+        type: 'verbal_fingerprint_verify',
+        text: 'abcdefgh alpha.',
+        generationId: 'g-prefix-1',
+        modelBackend: 'claude',
+      }
+    );
     const first = getLastEvent(ctx, 'verbal_fingerprint_verified');
 
-    sendEvent(verbalFingerprintHandler, node, {
-      style: {
-        label: 'hash-test',
-        minSentenceLength: 1,
-        maxSentenceLength: 100,
-        forbiddenPhrases: [],
-        requiredPhrases: [],
-        tone: 'test',
+    sendEvent(
+      verbalFingerprintHandler,
+      node,
+      {
+        style: {
+          label: 'hash-test',
+          minSentenceLength: 1,
+          maxSentenceLength: 100,
+          forbiddenPhrases: [],
+          requiredPhrases: [],
+          tone: 'test',
+        },
       },
-    }, ctx, {
-      type: 'verbal_fingerprint_verify',
-      text: 'abcdefgh omega.',
-      generationId: 'g-prefix-2',
-      modelBackend: 'gpt',
-    });
+      ctx,
+      {
+        type: 'verbal_fingerprint_verify',
+        text: 'abcdefgh omega.',
+        generationId: 'g-prefix-2',
+        modelBackend: 'gpt',
+      }
+    );
     const second = getLastEvent(ctx, 'verbal_fingerprint_verified');
 
     expect('abcdefgh alpha.'.length).toBe('abcdefgh omega.'.length);
@@ -117,33 +134,44 @@ describe('VerbalFingerprintTrait', () => {
   });
 
   it('rejects text with forbidden phrases when enforce=true (false-case)', () => {
-    attachTrait(verbalFingerprintHandler, node, {
-      enforce: true,
-      style: {
-        label: 'test',
-        minSentenceLength: 1,
-        maxSentenceLength: 100,
-        forbiddenPhrases: ['forbidden'],
-        requiredPhrases: [],
-        tone: 'test',
+    attachTrait(
+      verbalFingerprintHandler,
+      node,
+      {
+        enforce: true,
+        style: {
+          label: 'test',
+          minSentenceLength: 1,
+          maxSentenceLength: 100,
+          forbiddenPhrases: ['forbidden'],
+          requiredPhrases: [],
+          tone: 'test',
+        },
       },
-    }, ctx);
-    sendEvent(verbalFingerprintHandler, node, {
-      enforce: true,
-      style: {
-        label: 'test',
-        minSentenceLength: 1,
-        maxSentenceLength: 100,
-        forbiddenPhrases: ['forbidden'],
-        requiredPhrases: [],
-        tone: 'test',
+      ctx
+    );
+    sendEvent(
+      verbalFingerprintHandler,
+      node,
+      {
+        enforce: true,
+        style: {
+          label: 'test',
+          minSentenceLength: 1,
+          maxSentenceLength: 100,
+          forbiddenPhrases: ['forbidden'],
+          requiredPhrases: [],
+          tone: 'test',
+        },
       },
-    }, ctx, {
-      type: 'verbal_fingerprint_verify',
-      text: 'This contains a forbidden word.',
-      generationId: 'g2',
-      modelBackend: 'claude',
-    });
+      ctx,
+      {
+        type: 'verbal_fingerprint_verify',
+        text: 'This contains a forbidden word.',
+        generationId: 'g2',
+        modelBackend: 'claude',
+      }
+    );
     expect(getEventCount(ctx, 'verbal_fingerprint_rejected')).toBe(1);
     const ev = getLastEvent(ctx, 'verbal_fingerprint_rejected');
     expect(ev.mismatches).toContain('forbidden_phrase:forbidden');

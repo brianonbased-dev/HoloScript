@@ -200,7 +200,8 @@ export async function detectBestEmbeddingProvider(): Promise<string> {
   }
 
   try {
-    const { createEmbeddingProvider } = await import('../engine/providers/EmbeddingProviderFactory');
+    const { createEmbeddingProvider } =
+      await import('../engine/providers/EmbeddingProviderFactory');
     const provider = await createEmbeddingProvider({ provider: NATIVE_GRAPH_RAG_PROVIDER });
     if (provider.name !== NATIVE_GRAPH_RAG_PROVIDER) {
       throw new Error(`factory returned ${provider.name}`);
@@ -355,8 +356,7 @@ function createAbsorbJob(rootDir: string): string {
 // =============================================================================
 
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
-const GRAPH_UNAVAILABLE_RECEIPT_SCHEMA =
-  'holoscript.codebase.graph-unavailable-receipt.v0.1.0';
+const GRAPH_UNAVAILABLE_RECEIPT_SCHEMA = 'holoscript.codebase.graph-unavailable-receipt.v0.1.0';
 const LOCAL_ADAPTER_RECOMMENDATION =
   'Route this request through a local HoloShell codebase adapter in the same filesystem namespace as the requested path, or pass sourceFiles inline to holo_absorb_repo before trusting GraphRAG output.';
 
@@ -384,7 +384,11 @@ interface AbsorbDiagnostics {
   hints: string[];
 }
 
-type GraphUnavailableReason = 'rootDir_unavailable' | 'cache_stale' | 'cache_missing' | 'cache_root_mismatch';
+type GraphUnavailableReason =
+  | 'rootDir_unavailable'
+  | 'cache_stale'
+  | 'cache_missing'
+  | 'cache_root_mismatch';
 
 interface GraphUnavailableReceipt {
   schemaVersion: typeof GRAPH_UNAVAILABLE_RECEIPT_SCHEMA;
@@ -569,7 +573,9 @@ function loadGraphCache(): GraphCacheEnvelope | null {
 
     return envelope;
   } catch {
-    console.warn(`[CacheDebug][codebase] load miss path=${getCacheFile()} reason=parse-or-io-error`);
+    console.warn(
+      `[CacheDebug][codebase] load miss path=${getCacheFile()} reason=parse-or-io-error`
+    );
     return null;
   }
 }
@@ -686,7 +692,9 @@ interface SourceFileEntry {
   content: string;
 }
 
-function validateSourceFiles(entries: unknown[]): { valid: false; error: string } | { valid: true; files: SourceFileEntry[] } {
+function validateSourceFiles(
+  entries: unknown[]
+): { valid: false; error: string } | { valid: true; files: SourceFileEntry[] } {
   if (!Array.isArray(entries)) {
     return { valid: false, error: 'sourceFiles must be an array.' };
   }
@@ -694,7 +702,10 @@ function validateSourceFiles(entries: unknown[]): { valid: false; error: string 
     return { valid: false, error: 'sourceFiles array is empty.' };
   }
   if (entries.length > SOURCE_FILES_MAX_FILES) {
-    return { valid: false, error: `sourceFiles exceeds maximum of ${SOURCE_FILES_MAX_FILES} files.` };
+    return {
+      valid: false,
+      error: `sourceFiles exceeds maximum of ${SOURCE_FILES_MAX_FILES} files.`,
+    };
   }
 
   const files: SourceFileEntry[] = [];
@@ -716,13 +727,19 @@ function validateSourceFiles(entries: unknown[]): { valid: false; error: string 
       return { valid: false, error: `sourceFiles[${i}] path length invalid.` };
     }
     if (p.includes('..') || path.isAbsolute(p)) {
-      return { valid: false, error: `sourceFiles[${i}] path must be relative and cannot contain "..".` };
+      return {
+        valid: false,
+        error: `sourceFiles[${i}] path must be relative and cannot contain "..".`,
+      };
     }
 
     const bytes = Buffer.byteLength(c, 'utf-8');
     totalBytes += bytes;
     if (totalBytes > SOURCE_FILES_MAX_TOTAL_BYTES) {
-      return { valid: false, error: `sourceFiles total content exceeds ${SOURCE_FILES_MAX_TOTAL_BYTES} bytes.` };
+      return {
+        valid: false,
+        error: `sourceFiles total content exceeds ${SOURCE_FILES_MAX_TOTAL_BYTES} bytes.`,
+      };
     }
 
     files.push({ path: p, content: c });
@@ -1190,8 +1207,14 @@ async function runFullScan(
   embeddingApiKey?: string,
   embeddingModel?: string
 ): Promise<unknown> {
-  const { CodebaseScanner, CodebaseGraph, HoloEmitter, CodebaseSceneCompiler, GitChangeDetector, BrainCoordNodeMapper } =
-    mod;
+  const {
+    CodebaseScanner,
+    CodebaseGraph,
+    HoloEmitter,
+    CodebaseSceneCompiler,
+    GitChangeDetector,
+    BrainCoordNodeMapper,
+  } = mod;
 
   const rootDirs = rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw : [];
   if (rootDirs.length === 0) throw new Error('No rootDir or rootDirs provided');
@@ -1199,11 +1222,11 @@ async function runFullScan(
 
   const startTime = Date.now();
 
-  const rootDiagnostics = rootDirs.map(rootDir =>
+  const rootDiagnostics = rootDirs.map((rootDir) =>
     buildAbsorbDiagnostics(rootDir, null, includeBuildArtifacts)
   );
   const inaccessibleRoots = rootDiagnostics.filter(
-    diagnostic => !diagnostic.resolvedDirExists || !diagnostic.resolvedDirReadable
+    (diagnostic) => !diagnostic.resolvedDirExists || !diagnostic.resolvedDirReadable
   );
   if (inaccessibleRoots.length > 0) {
     const cache = getCacheAge();
@@ -1994,7 +2017,11 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 
     case 'find': {
       const name = symbolName ?? extractSymbolFromQuery(query);
-      const { matchMode, truncated, results: found } = cachedGraph.searchSymbolsByName(name, {
+      const {
+        matchMode,
+        truncated,
+        results: found,
+      } = cachedGraph.searchSymbolsByName(name, {
         limit: 50,
       });
       return {
@@ -2002,7 +2029,10 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         matchMode,
         results: found,
         count: found.length,
-        ...(truncated && { truncated: true, note: 'Result set capped at 50; refine the query for more.' }),
+        ...(truncated && {
+          truncated: true,
+          note: 'Result set capped at 50; refine the query for more.',
+        }),
         ...(cacheNote && { cacheNote }),
       };
     }
@@ -2342,7 +2372,10 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
 function inferQueryType(query: string): string {
   const q = query.toLowerCase();
   // Callees first so "callee"/"what does X call" wins before the looser caller check.
-  if (q.includes('callee') || (q.includes('call') && (q.includes('does') || q.includes('what does'))))
+  if (
+    q.includes('callee') ||
+    (q.includes('call') && (q.includes('does') || q.includes('what does')))
+  )
     return 'callees';
   if (
     q.includes('caller') ||
@@ -2579,8 +2612,10 @@ export function validateLocalCodebaseSnapshotReceipt(input: unknown): Validation
   let byteSum = 0;
   if (Array.isArray(r.sourceFiles)) {
     for (const f of r.sourceFiles) {
-      if (!f?.path || typeof f.path !== 'string' || f.path.includes('..')) errors.push(`bad path: ${f?.path}`);
-      if (typeof f?.hash !== 'string' || f.hash.length !== 64) errors.push(`bad hash for ${f?.path}`);
+      if (!f?.path || typeof f.path !== 'string' || f.path.includes('..'))
+        errors.push(`bad path: ${f?.path}`);
+      if (typeof f?.hash !== 'string' || f.hash.length !== 64)
+        errors.push(`bad hash for ${f?.path}`);
       if (f?.size) byteSum += Number(f.size);
     }
   }

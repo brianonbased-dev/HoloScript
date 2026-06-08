@@ -118,9 +118,7 @@ describe('detectViewer — render path picker', () => {
   });
 
   it('defaults to parallax with no UA', () => {
-    expect(detectViewer({ userAgent: '', hasHoloplayCore: false })).toBe(
-      'parallax'
-    );
+    expect(detectViewer({ userAgent: '', hasHoloplayCore: false })).toBe('parallax');
   });
 
   it('defaults to parallax with no options at all (no globals available in node)', () => {

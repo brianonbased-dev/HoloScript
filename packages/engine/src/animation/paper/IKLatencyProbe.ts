@@ -28,7 +28,11 @@ export interface IKLatencyMatrixCell {
 }
 
 export const PAPER_7_IK_CHAIN_LENGTHS = [2, 3, 5, 10] as const;
-export const PAPER_7_IK_MODES = ['analytic', 'ccd', 'fabrik'] as const satisfies readonly IKSolveMode[];
+export const PAPER_7_IK_MODES = [
+  'analytic',
+  'ccd',
+  'fabrik',
+] as const satisfies readonly IKSolveMode[];
 
 function mulberry32(seed: number): () => number {
   let t = seed >>> 0;
@@ -43,9 +47,7 @@ function mulberry32(seed: number): () => number {
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1]! + sorted[mid]!) / 2
-    : sorted[mid]!;
+  return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
 }
 
 function cloneChain(chain: IKChain): IKChain {
@@ -86,7 +88,7 @@ function buildCanonicalChain(chainLength: 2 | 3 | 5 | 10): IKChain {
 function buildTargetSequence(
   chainLength: 2 | 3 | 5 | 10,
   taskCount: number,
-  seed: number,
+  seed: number
 ): Array<[number, number, number]> {
   const rand = mulberry32(seed);
   const reach = Math.max(1, chainLength - 0.25);
@@ -147,7 +149,7 @@ export function benchmarkIKLatencyCell(spec: IKLatencyCellSpec): IKLatencyCellRe
 }
 
 export function benchmarkIKLatencyMatrix(
-  options: IKLatencyMatrixOptions = {},
+  options: IKLatencyMatrixOptions = {}
 ): IKLatencyMatrixCell[] {
   const taskCount = options.taskCount ?? 10_000;
   const warmupRuns = options.warmupRuns ?? 1;

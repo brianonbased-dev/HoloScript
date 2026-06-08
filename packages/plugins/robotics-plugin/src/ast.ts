@@ -43,7 +43,12 @@ export interface DomainRandomizationConfig {
 
 export interface ActuatorGroupConfig {
   name: string;
-  type: 'IdealPDActuator' | 'DCMotorActuator' | 'DelayedPDActuator' | 'RemotizedPDActuator' | 'ImplicitActuator';
+  type:
+    | 'IdealPDActuator'
+    | 'DCMotorActuator'
+    | 'DelayedPDActuator'
+    | 'RemotizedPDActuator'
+    | 'ImplicitActuator';
   jointNames: string[];
   stiffness?: number;
   damping?: number;

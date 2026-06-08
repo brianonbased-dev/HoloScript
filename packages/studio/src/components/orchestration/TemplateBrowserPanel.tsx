@@ -86,12 +86,16 @@ export function TemplateBrowserPanel({ onClose, onLoadTemplate }: TemplateBrowse
 
   const handleExportAsTemplate = () => {
     const state = useOrchestrationStore.getState();
-    const data = JSON.stringify({ 
-        exportedAt: Date.now(), 
+    const data = JSON.stringify(
+      {
+        exportedAt: Date.now(),
         type: 'template',
         workflows: state.workflows,
-        behaviorTrees: state.behaviorTrees
-    }, null, 2);
+        behaviorTrees: state.behaviorTrees,
+      },
+      null,
+      2
+    );
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

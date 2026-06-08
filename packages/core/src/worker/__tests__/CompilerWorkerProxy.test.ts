@@ -8,7 +8,9 @@ const mockWorkerInstance = {
 
 vi.mock('worker_threads', () => ({
   // Must use function keyword so `new Worker()` works
-  Worker: vi.fn(function MockWorker() { return mockWorkerInstance; }),
+  Worker: vi.fn(function MockWorker() {
+    return mockWorkerInstance;
+  }),
 }));
 
 vi.mock('path', () => ({

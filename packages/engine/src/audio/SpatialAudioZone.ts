@@ -153,7 +153,7 @@ export class SpatialAudioZoneSystem {
   // ---------------------------------------------------------------------------
 
   updateListenerPosition(pos: Vec3): void {
-    this.listenerPos = [...pos ];
+    this.listenerPos = [...pos];
     this.recalculate();
   }
 

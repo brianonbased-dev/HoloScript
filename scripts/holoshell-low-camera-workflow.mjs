@@ -13,7 +13,13 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import {
+  chainReceipt,
+  sha256Bytes,
+  sha256Text,
+  stageReceipt,
+  withHash,
+} from './holoshell/chain/receipts.mjs';
 import { buildTechnologyPlan } from './holoshell-reconstruction-tech-plan.mjs';
 import { calibrateFiducialAnchor } from './holoshell-fiducial-calibration.mjs';
 import { estimateFiducialPoseSeed } from './holoshell-fiducial-pose-seed.mjs';
@@ -102,8 +108,7 @@ function parseArgs(argv) {
       args.calibrationDistortion = String(argv[++i])
         .split(',')
         .map((part) => Number.parseFloat(part.trim()));
-    }
-    else if (arg === '--assume-zero-distortion') args.assumeZeroDistortion = true;
+    } else if (arg === '--assume-zero-distortion') args.assumeZeroDistortion = true;
     else if (arg === '--require-capture') args.requireCapture = true;
     else if (arg === '--geometric-target') args.geometricTarget = true;
     else if (arg === '--no-geometric-target') args.geometricTarget = false;
@@ -116,40 +121,62 @@ function parseArgs(argv) {
   }
 
   if (args.help || args.selfTest) return args;
-  if (!Number.isInteger(args.deviceIndex) || args.deviceIndex < 0) throw new Error('--device-index must be non-negative');
-  if (!Number.isInteger(args.width) || args.width < 2 || args.width > 640) throw new Error('--width must be 2..640');
-  if (!Number.isInteger(args.height) || args.height < 2 || args.height > 480) throw new Error('--height must be 2..480');
-  if (!Number.isInteger(args.frames) || args.frames < 1 || args.frames > 120) throw new Error('--frames must be 1..120');
+  if (!Number.isInteger(args.deviceIndex) || args.deviceIndex < 0)
+    throw new Error('--device-index must be non-negative');
+  if (!Number.isInteger(args.width) || args.width < 2 || args.width > 640)
+    throw new Error('--width must be 2..640');
+  if (!Number.isInteger(args.height) || args.height < 2 || args.height > 480)
+    throw new Error('--height must be 2..480');
+  if (!Number.isInteger(args.frames) || args.frames < 1 || args.frames > 120)
+    throw new Error('--frames must be 1..120');
   if (!Number.isInteger(args.intervalMs) || args.intervalMs < 0 || args.intervalMs > 10000) {
     throw new Error('--interval-ms must be 0..10000');
   }
-  if (args.durationSec !== undefined && (!Number.isFinite(args.durationSec) || args.durationSec <= 0 || args.durationSec > 60)) {
+  if (
+    args.durationSec !== undefined &&
+    (!Number.isFinite(args.durationSec) || args.durationSec <= 0 || args.durationSec > 60)
+  ) {
     throw new Error('--duration-sec must be > 0 and <= 60');
   }
   if (args.fps !== undefined && (!Number.isFinite(args.fps) || args.fps < 0.2 || args.fps > 5)) {
     throw new Error('--fps must be 0.2..5');
   }
-  if (!Number.isInteger(args.tileGrid) || args.tileGrid < 1 || args.tileGrid > 32) throw new Error('--tile-grid must be 1..32');
+  if (!Number.isInteger(args.tileGrid) || args.tileGrid < 1 || args.tileGrid > 32)
+    throw new Error('--tile-grid must be 1..32');
   if (!Number.isInteger(args.tileWidth) || args.tileWidth < 16 || args.tileWidth > 1024) {
     throw new Error('--tile-width must be 16..1024');
   }
   if (!Number.isInteger(args.tileHeight) || args.tileHeight < 16 || args.tileHeight > 1024) {
     throw new Error('--tile-height must be 16..1024');
   }
-  if (!Number.isFinite(args.poseSeedFovDeg) || args.poseSeedFovDeg <= 5 || args.poseSeedFovDeg >= 175) {
+  if (
+    !Number.isFinite(args.poseSeedFovDeg) ||
+    args.poseSeedFovDeg <= 5 ||
+    args.poseSeedFovDeg >= 175
+  ) {
     throw new Error('--pose-seed-fov-deg must be between 5 and 175');
   }
-  const explicitPoseNumbers = [args.poseSeedFx, args.poseSeedFy, args.poseSeedCx, args.poseSeedCy].filter((value) => value !== undefined);
-  if (![0, 4].includes(explicitPoseNumbers.length) || explicitPoseNumbers.some((value) => !Number.isFinite(value))) {
+  const explicitPoseNumbers = [
+    args.poseSeedFx,
+    args.poseSeedFy,
+    args.poseSeedCx,
+    args.poseSeedCy,
+  ].filter((value) => value !== undefined);
+  if (
+    ![0, 4].includes(explicitPoseNumbers.length) ||
+    explicitPoseNumbers.some((value) => !Number.isFinite(value))
+  ) {
     throw new Error('--pose-seed-fx/fy/cx/cy must be provided together as finite numbers');
   }
   if (
     args.calibrationDistortion !== undefined &&
-    (![5, 8].includes(args.calibrationDistortion.length) || args.calibrationDistortion.some((value) => !Number.isFinite(value)))
+    (![5, 8].includes(args.calibrationDistortion.length) ||
+      args.calibrationDistortion.some((value) => !Number.isFinite(value)))
   ) {
     throw new Error('--calibration-distortion must be 5 or 8 comma-separated finite numbers');
   }
-  if (args.frames > 1 && args.intervalMs === 0) throw new Error('--interval-ms must be > 0 with multiple frames');
+  if (args.frames > 1 && args.intervalMs === 0)
+    throw new Error('--interval-ms must be > 0 with multiple frames');
   if (!['fiducial-board', 'geometric-control-target'].includes(args.targetProfile)) {
     throw new Error('--target-profile must be fiducial-board or geometric-control-target');
   }
@@ -220,12 +247,16 @@ function summarizeControl(sweepReceipt) {
 
 function summarizeTarget(targetReceipt, targetReceiptPath) {
   if (!targetReceipt) return undefined;
-  const markerCount = Array.isArray(targetReceipt.target?.markers) ? targetReceipt.target.markers.length : undefined;
+  const markerCount = Array.isArray(targetReceipt.target?.markers)
+    ? targetReceipt.target.markers.length
+    : undefined;
   return {
     path: rel(targetReceiptPath),
     receiptHash: targetReceipt.hash,
     fileHash: fileHash(targetReceiptPath),
-    profile: targetReceipt.target?.profile ?? targetReceipt.schemaVersion?.replace(/^holoshell-|\/v\d+$/g, ''),
+    profile:
+      targetReceipt.target?.profile ??
+      targetReceipt.schemaVersion?.replace(/^holoshell-|\/v\d+$/g, ''),
     dictionary: targetReceipt.target?.dictionary,
     compatibility: targetReceipt.target?.compatibility,
     pngPath: targetReceipt.target?.pngPath,
@@ -238,8 +269,12 @@ function summarizeTarget(targetReceipt, targetReceiptPath) {
     markerCount,
     markerIds: targetReceipt.target?.markers?.map((marker) => marker.id),
     markers: targetReceipt.target?.markers,
-    primitiveCount: Array.isArray(targetReceipt.target?.primitives) ? targetReceipt.target.primitives.length : undefined,
-    fiducialCount: Array.isArray(targetReceipt.target?.fiducials) ? targetReceipt.target.fiducials.length : undefined,
+    primitiveCount: Array.isArray(targetReceipt.target?.primitives)
+      ? targetReceipt.target.primitives.length
+      : undefined,
+    fiducialCount: Array.isArray(targetReceipt.target?.fiducials)
+      ? targetReceipt.target.fiducials.length
+      : undefined,
     primitives: targetReceipt.target?.primitives,
     fiducials: targetReceipt.target?.fiducials,
     chainHash: targetReceipt.chain?.receipt?.hash,
@@ -264,7 +299,9 @@ function summarizeTargetDetection(targetDetectionReceipt, targetDetectionReceipt
       pngPath: targetDetectionReceipt.target?.pngPath,
       pngHash: targetDetectionReceipt.target?.pngHash,
       markerCount: targetDetectionReceipt.target?.markerCount,
-      paletteCount: Array.isArray(targetDetectionReceipt.target?.palette) ? targetDetectionReceipt.target.palette.length : undefined,
+      paletteCount: Array.isArray(targetDetectionReceipt.target?.palette)
+        ? targetDetectionReceipt.target.palette.length
+        : undefined,
     },
     detection: targetDetectionReceipt.detection,
     chainHash: targetDetectionReceipt.chain?.receipt?.hash,
@@ -384,7 +421,10 @@ export function buildWorkflowReceipt({
   const target = summarizeTarget(targetReceipt, targetReceiptPath);
   const sweep = summarizeSweep(sweepReceipt, sweepReceiptPath);
   const render = renderReceipt ? summarizeRender(renderReceipt, renderReceiptPath) : undefined;
-  const targetDetection = summarizeTargetDetection(targetDetectionReceipt, targetDetectionReceiptPath);
+  const targetDetection = summarizeTargetDetection(
+    targetDetectionReceipt,
+    targetDetectionReceiptPath
+  );
   const fiducialPoseSeed = summarizePoseSeed(poseSeedReceipt, poseSeedReceiptPath);
   const fiducialCalibration = summarizeCalibration(calibrationReceipt, calibrationReceiptPath);
   const capturePlan = {
@@ -474,128 +514,136 @@ export function buildWorkflowReceipt({
   });
   const stages = targetStage ? [targetStage, sweepStage] : [sweepStage];
   if (targetDetection) {
-    stages.push(stageReceipt({
-      name: 'workflow.target-in-frame-analysis',
-      input: {
-        command: commands.targetDetection?.command,
-        targetDetectionReceiptPath: targetDetection.path,
-        controlFramePath: sweep.control?.frame?.path,
-        targetReceiptPath: target?.path,
-      },
-      output: {
-        status: targetDetection.status,
-        detectionStatus: targetDetection.detection?.status,
-        score: targetDetection.detection?.score,
-        paletteHitCount: targetDetection.detection?.paletteHitCount,
-        cornerCandidateCount: targetDetection.detection?.cornerCandidates?.length,
-        recoveredMarkerCount: targetDetection.detection?.recoveredMarkerCount,
-        markerCornerCount: targetDetection.detection?.markerCornerCount,
-        poseSolveInputReady: targetDetection.detection?.poseSolveInputReady,
-        boardHomographyStatus: targetDetection.detection?.boardPose?.status,
-        boardHomographyReady: targetDetection.detection?.boardHomographyReady,
-        boardReprojectionRms: targetDetection.detection?.boardPose?.reprojection?.rmsPixels,
-        receiptHash: targetDetection.receiptHash,
-        fileHash: targetDetection.fileHash,
-      },
-      metrics: {
-        exitCode: commands.targetDetection?.exitCode,
-        score: targetDetection.detection?.score,
-        paletteCoverage: targetDetection.detection?.paletteCoverage,
-        recoveredMarkerCount: targetDetection.detection?.recoveredMarkerCount,
-        markerCornerCount: targetDetection.detection?.markerCornerCount,
-        poseSolveInputReady: targetDetection.detection?.poseSolveInputReady,
-        boardHomographyReady: targetDetection.detection?.boardHomographyReady,
-        boardReprojectionRms: targetDetection.detection?.boardPose?.reprojection?.rmsPixels,
-        calibrationReady: targetDetection.detection?.calibrationReady,
-      },
-      honestScope:
-        'Checks whether the generated target is visible in the untouched control frame. This is not camera pose calibration.',
-    }));
+    stages.push(
+      stageReceipt({
+        name: 'workflow.target-in-frame-analysis',
+        input: {
+          command: commands.targetDetection?.command,
+          targetDetectionReceiptPath: targetDetection.path,
+          controlFramePath: sweep.control?.frame?.path,
+          targetReceiptPath: target?.path,
+        },
+        output: {
+          status: targetDetection.status,
+          detectionStatus: targetDetection.detection?.status,
+          score: targetDetection.detection?.score,
+          paletteHitCount: targetDetection.detection?.paletteHitCount,
+          cornerCandidateCount: targetDetection.detection?.cornerCandidates?.length,
+          recoveredMarkerCount: targetDetection.detection?.recoveredMarkerCount,
+          markerCornerCount: targetDetection.detection?.markerCornerCount,
+          poseSolveInputReady: targetDetection.detection?.poseSolveInputReady,
+          boardHomographyStatus: targetDetection.detection?.boardPose?.status,
+          boardHomographyReady: targetDetection.detection?.boardHomographyReady,
+          boardReprojectionRms: targetDetection.detection?.boardPose?.reprojection?.rmsPixels,
+          receiptHash: targetDetection.receiptHash,
+          fileHash: targetDetection.fileHash,
+        },
+        metrics: {
+          exitCode: commands.targetDetection?.exitCode,
+          score: targetDetection.detection?.score,
+          paletteCoverage: targetDetection.detection?.paletteCoverage,
+          recoveredMarkerCount: targetDetection.detection?.recoveredMarkerCount,
+          markerCornerCount: targetDetection.detection?.markerCornerCount,
+          poseSolveInputReady: targetDetection.detection?.poseSolveInputReady,
+          boardHomographyReady: targetDetection.detection?.boardHomographyReady,
+          boardReprojectionRms: targetDetection.detection?.boardPose?.reprojection?.rmsPixels,
+          calibrationReady: targetDetection.detection?.calibrationReady,
+        },
+        honestScope:
+          'Checks whether the generated target is visible in the untouched control frame. This is not camera pose calibration.',
+      })
+    );
   }
   if (fiducialPoseSeed) {
-    stages.push(stageReceipt({
-      name: 'workflow.fiducial-pose-seed',
-      input: {
-        command: commands.poseSeed?.command,
-        poseSeedReceiptPath: fiducialPoseSeed.path,
-        targetDetectionReceiptPath: targetDetection?.path,
-      },
-      output: {
-        status: fiducialPoseSeed.status,
-        poseSeedReady: fiducialPoseSeed.poseSeed?.poseSeedReady,
-        calibrationReady: fiducialPoseSeed.poseSeed?.calibrationReady,
-        reprojectionRms: fiducialPoseSeed.poseSeed?.reprojection?.rmsPixels,
-        blockers: fiducialPoseSeed.poseSeed?.blockers,
-        receiptHash: fiducialPoseSeed.receiptHash,
-        fileHash: fiducialPoseSeed.fileHash,
-      },
-      metrics: {
-        exitCode: commands.poseSeed?.exitCode,
-        poseSeedReady: fiducialPoseSeed.poseSeed?.poseSeedReady,
-        reprojectionRms: fiducialPoseSeed.poseSeed?.reprojection?.rmsPixels,
-        calibrationReady: fiducialPoseSeed.poseSeed?.calibrationReady,
-      },
-      honestScope:
-        'Seeds planar fiducial pose only after target homography exists. This stage does not claim camera calibration or metric scale.',
-    }));
+    stages.push(
+      stageReceipt({
+        name: 'workflow.fiducial-pose-seed',
+        input: {
+          command: commands.poseSeed?.command,
+          poseSeedReceiptPath: fiducialPoseSeed.path,
+          targetDetectionReceiptPath: targetDetection?.path,
+        },
+        output: {
+          status: fiducialPoseSeed.status,
+          poseSeedReady: fiducialPoseSeed.poseSeed?.poseSeedReady,
+          calibrationReady: fiducialPoseSeed.poseSeed?.calibrationReady,
+          reprojectionRms: fiducialPoseSeed.poseSeed?.reprojection?.rmsPixels,
+          blockers: fiducialPoseSeed.poseSeed?.blockers,
+          receiptHash: fiducialPoseSeed.receiptHash,
+          fileHash: fiducialPoseSeed.fileHash,
+        },
+        metrics: {
+          exitCode: commands.poseSeed?.exitCode,
+          poseSeedReady: fiducialPoseSeed.poseSeed?.poseSeedReady,
+          reprojectionRms: fiducialPoseSeed.poseSeed?.reprojection?.rmsPixels,
+          calibrationReady: fiducialPoseSeed.poseSeed?.calibrationReady,
+        },
+        honestScope:
+          'Seeds planar fiducial pose only after target homography exists. This stage does not claim camera calibration or metric scale.',
+      })
+    );
   }
   if (fiducialCalibration) {
-    stages.push(stageReceipt({
-      name: 'workflow.fiducial-calibration',
-      input: {
-        command: commands.calibration?.command,
-        calibrationReceiptPath: fiducialCalibration.path,
-        poseSeedReceiptPath: fiducialPoseSeed?.path,
-      },
-      output: {
-        status: fiducialCalibration.status,
-        calibrationReady: fiducialCalibration.calibration?.calibrationReady,
-        cameraModelReady: fiducialCalibration.calibration?.cameraModelReady,
-        calibratedAnchorReady: fiducialCalibration.calibration?.calibratedAnchorReady,
-        reprojectionRms: fiducialCalibration.calibration?.reprojection?.rmsPixels,
-        blockers: fiducialCalibration.calibration?.blockers,
-        receiptHash: fiducialCalibration.receiptHash,
-        fileHash: fiducialCalibration.fileHash,
-      },
-      metrics: {
-        exitCode: commands.calibration?.exitCode,
-        calibrationReady: fiducialCalibration.calibration?.calibrationReady,
-        cameraModelReady: fiducialCalibration.calibration?.cameraModelReady,
-        calibratedAnchorReady: fiducialCalibration.calibration?.calibratedAnchorReady,
-        reprojectionRms: fiducialCalibration.calibration?.reprojection?.rmsPixels,
-      },
-      honestScope:
-        'Promotes the pose seed only with explicit camera-model provenance. This stage does not run solvePnP or estimate distortion.',
-    }));
+    stages.push(
+      stageReceipt({
+        name: 'workflow.fiducial-calibration',
+        input: {
+          command: commands.calibration?.command,
+          calibrationReceiptPath: fiducialCalibration.path,
+          poseSeedReceiptPath: fiducialPoseSeed?.path,
+        },
+        output: {
+          status: fiducialCalibration.status,
+          calibrationReady: fiducialCalibration.calibration?.calibrationReady,
+          cameraModelReady: fiducialCalibration.calibration?.cameraModelReady,
+          calibratedAnchorReady: fiducialCalibration.calibration?.calibratedAnchorReady,
+          reprojectionRms: fiducialCalibration.calibration?.reprojection?.rmsPixels,
+          blockers: fiducialCalibration.calibration?.blockers,
+          receiptHash: fiducialCalibration.receiptHash,
+          fileHash: fiducialCalibration.fileHash,
+        },
+        metrics: {
+          exitCode: commands.calibration?.exitCode,
+          calibrationReady: fiducialCalibration.calibration?.calibrationReady,
+          cameraModelReady: fiducialCalibration.calibration?.cameraModelReady,
+          calibratedAnchorReady: fiducialCalibration.calibration?.calibratedAnchorReady,
+          reprojectionRms: fiducialCalibration.calibration?.reprojection?.rmsPixels,
+        },
+        honestScope:
+          'Promotes the pose seed only with explicit camera-model provenance. This stage does not run solvePnP or estimate distortion.',
+      })
+    );
   }
   if (render) {
-    stages.push(stageReceipt({
-      name: 'workflow.render-winning-quilt',
-      input: {
-        command: commands.render?.command,
-        bridgePath: sweep.bridgePath,
-        renderReceiptPath: render.path,
-      },
-      output: {
-        status: render.status,
-        quiltPath: render.quiltPath,
-        pngHash: render.pngHash,
-        quality: render.quality,
-        receiptHash: render.receiptHash,
-        fileHash: render.fileHash,
-      },
-      metrics: {
-        exitCode: commands.render?.exitCode,
-        pointCount: render.pointCount,
-        views: render.views,
-        width: render.width,
-        height: render.height,
-        qualityScore: render.quality?.score,
-        warningCount: render.quality?.warnings?.length,
-      },
-      honestScope:
-        'Renders the winning HoloGram bridge into a deterministic quilt preview. This is not MV-HEVC export.',
-    }));
+    stages.push(
+      stageReceipt({
+        name: 'workflow.render-winning-quilt',
+        input: {
+          command: commands.render?.command,
+          bridgePath: sweep.bridgePath,
+          renderReceiptPath: render.path,
+        },
+        output: {
+          status: render.status,
+          quiltPath: render.quiltPath,
+          pngHash: render.pngHash,
+          quality: render.quality,
+          receiptHash: render.receiptHash,
+          fileHash: render.fileHash,
+        },
+        metrics: {
+          exitCode: commands.render?.exitCode,
+          pointCount: render.pointCount,
+          views: render.views,
+          width: render.width,
+          height: render.height,
+          qualityScore: render.quality?.score,
+          warningCount: render.quality?.warnings?.length,
+        },
+        honestScope:
+          'Renders the winning HoloGram bridge into a deterministic quilt preview. This is not MV-HEVC export.',
+      })
+    );
   }
   const chain = {
     receipt: chainReceipt({
@@ -667,18 +715,27 @@ export function validateReceipt(receipt) {
   if (!receipt.sweep?.fileHash?.startsWith('sha256:')) errors.push('sweep file hash missing');
   if (receipt.status === 'pass') {
     const targetExpected = receipt.capturePlan?.geometricTarget !== false;
-    if (targetExpected && !receipt.target?.receiptHash?.startsWith('sha256:')) errors.push('control target receipt hash missing');
-    if (targetExpected && !receipt.target?.pngHash?.startsWith('sha256:')) errors.push('control target PNG hash missing');
+    if (targetExpected && !receipt.target?.receiptHash?.startsWith('sha256:'))
+      errors.push('control target receipt hash missing');
+    if (targetExpected && !receipt.target?.pngHash?.startsWith('sha256:'))
+      errors.push('control target PNG hash missing');
     if (targetExpected && !receipt.target?.pngPath) errors.push('control target PNG path missing');
-    if (targetExpected && !receipt.target?.pngFileHash?.startsWith('sha256:')) errors.push('control target PNG file hash missing');
+    if (targetExpected && !receipt.target?.pngFileHash?.startsWith('sha256:'))
+      errors.push('control target PNG file hash missing');
     if (targetExpected && !receipt.target?.profile) errors.push('control target profile missing');
-    if (receipt.capturePlan?.targetProfile === 'fiducial-board' && !(receipt.target?.markerCount >= 9)) {
+    if (
+      receipt.capturePlan?.targetProfile === 'fiducial-board' &&
+      !(receipt.target?.markerCount >= 9)
+    ) {
       errors.push('fiducial board marker metadata missing');
     }
     if (targetExpected && !receipt.targetDetection?.receiptHash?.startsWith('sha256:')) {
       errors.push('target detection receipt hash missing');
     }
-    if (targetExpected && !['detected', 'not-detected'].includes(receipt.targetDetection?.detection?.status)) {
+    if (
+      targetExpected &&
+      !['detected', 'not-detected'].includes(receipt.targetDetection?.detection?.status)
+    ) {
       errors.push('target detection status missing');
     }
     if (targetExpected && receipt.targetDetection?.detection?.calibrationReady !== false) {
@@ -710,43 +767,79 @@ export function validateReceipt(receipt) {
     if (targetExpected && !['pass', 'blocked'].includes(receipt.fiducialCalibration?.status)) {
       errors.push('fiducial calibration status missing');
     }
-    if (targetExpected && receipt.fiducialCalibration?.status === 'blocked' && receipt.fiducialCalibration?.calibration?.calibrationReady !== false) {
+    if (
+      targetExpected &&
+      receipt.fiducialCalibration?.status === 'blocked' &&
+      receipt.fiducialCalibration?.calibration?.calibrationReady !== false
+    ) {
       errors.push('blocked fiducial calibration must not claim calibration readiness');
     }
-    if (targetExpected && receipt.fiducialCalibration?.status === 'pass' && receipt.fiducialCalibration?.calibration?.calibrationReady !== true) {
+    if (
+      targetExpected &&
+      receipt.fiducialCalibration?.status === 'pass' &&
+      receipt.fiducialCalibration?.calibration?.calibrationReady !== true
+    ) {
       errors.push('passing fiducial calibration must claim calibration readiness');
     }
     if (!receipt.sweep?.winner?.mode) errors.push('winner missing');
     if (!receipt.sweep?.bridgePath) errors.push('winning bridge path missing');
     if (!receipt.control?.frame?.path) errors.push('camera control frame missing');
-    if (!receipt.control?.frame?.fileHash?.startsWith('sha256:')) errors.push('camera control frame hash missing');
-    if (!receipt.render?.receiptHash?.startsWith('sha256:')) errors.push('render receipt hash missing');
+    if (!receipt.control?.frame?.fileHash?.startsWith('sha256:'))
+      errors.push('camera control frame hash missing');
+    if (!receipt.render?.receiptHash?.startsWith('sha256:'))
+      errors.push('render receipt hash missing');
     if (!receipt.render?.pngHash?.startsWith('sha256:')) errors.push('quilt png hash missing');
     if (!receipt.render?.quiltPath) errors.push('quilt path missing');
     if (!(receipt.render?.quality?.score >= 0)) errors.push('quilt quality score missing');
-    if (!Array.isArray(receipt.technologyPlan?.recommendations) || receipt.technologyPlan.recommendations.length < 6) {
+    if (
+      !Array.isArray(receipt.technologyPlan?.recommendations) ||
+      receipt.technologyPlan.recommendations.length < 6
+    ) {
       errors.push('technology recommendations missing');
     }
     if (!receipt.technologyPlan?.recommendedNow?.includes('fiducial-calibration')) {
       errors.push('fiducial calibration technology recommendation missing');
     }
   }
-  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
-  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1) errors.push('chain stages missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:'))
+    errors.push('chain receipt hash missing');
+  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1)
+    errors.push('chain stages missing');
   return errors;
 }
 
 export async function runWorkflow(args) {
   const outPath = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date));
   const baseDir = dirname(outPath);
-  const targetSlug = args.targetProfile === 'geometric-control-target' ? 'geometric-control-target' : 'fiducial-board';
-  const targetOut = resolve(REPO_ROOT, args.targetOut ?? join(baseDir, `${targetSlug}-receipt.json`));
+  const targetSlug =
+    args.targetProfile === 'geometric-control-target'
+      ? 'geometric-control-target'
+      : 'fiducial-board';
+  const targetOut = resolve(
+    REPO_ROOT,
+    args.targetOut ?? join(baseDir, `${targetSlug}-receipt.json`)
+  );
   const targetPng = resolve(REPO_ROOT, args.targetPng ?? join(baseDir, `${targetSlug}.png`));
-  const targetDetectionOut = resolve(REPO_ROOT, args.targetDetectionOut ?? join(baseDir, 'target-in-frame-receipt.json'));
-  const poseSeedOut = resolve(REPO_ROOT, args.poseSeedOut ?? join(baseDir, 'fiducial-pose-seed-receipt.json'));
-  const calibrationOut = resolve(REPO_ROOT, args.calibrationOut ?? join(baseDir, 'fiducial-calibration-receipt.json'));
-  const sweepOut = resolve(REPO_ROOT, args.sweepOut ?? join(baseDir, 'preprocess-sweep-workflow.json'));
-  const renderOut = resolve(REPO_ROOT, args.renderOut ?? join(baseDir, 'workflow-winner-quilt.json'));
+  const targetDetectionOut = resolve(
+    REPO_ROOT,
+    args.targetDetectionOut ?? join(baseDir, 'target-in-frame-receipt.json')
+  );
+  const poseSeedOut = resolve(
+    REPO_ROOT,
+    args.poseSeedOut ?? join(baseDir, 'fiducial-pose-seed-receipt.json')
+  );
+  const calibrationOut = resolve(
+    REPO_ROOT,
+    args.calibrationOut ?? join(baseDir, 'fiducial-calibration-receipt.json')
+  );
+  const sweepOut = resolve(
+    REPO_ROOT,
+    args.sweepOut ?? join(baseDir, 'preprocess-sweep-workflow.json')
+  );
+  const renderOut = resolve(
+    REPO_ROOT,
+    args.renderOut ?? join(baseDir, 'workflow-winner-quilt.json')
+  );
   mkdirSync(baseDir, { recursive: true });
 
   let targetCommand;
@@ -786,9 +879,13 @@ export async function runWorkflow(args) {
   if (args.durationSec !== undefined) sweepArgs.push('--duration-sec', String(args.durationSec));
   if (args.fps !== undefined) sweepArgs.push('--fps', String(args.fps));
   if (args.requireCapture) sweepArgs.push('--require-capture');
-  const sweepCommand = runNodeScript(resolve(REPO_ROOT, 'scripts/holoshell-camera-scan-adapter.mjs'), sweepArgs, {
-    allowExitCodes: args.requireCapture ? [0] : [0, 2],
-  });
+  const sweepCommand = runNodeScript(
+    resolve(REPO_ROOT, 'scripts/holoshell-camera-scan-adapter.mjs'),
+    sweepArgs,
+    {
+      allowExitCodes: args.requireCapture ? [0] : [0, 2],
+    }
+  );
   const sweepReceipt = readJson(sweepOut);
   if (sweepReceipt.status !== 'pass') {
     const receipt = buildWorkflowReceipt({
@@ -805,13 +902,22 @@ export async function runWorkflow(args) {
       poseSeedReceiptPath: undefined,
       calibrationReceipt: undefined,
       calibrationReceiptPath: undefined,
-      commands: { target: targetCommand, targetDetection: undefined, poseSeed: undefined, calibration: undefined, sweep: sweepCommand, render: undefined },
+      commands: {
+        target: targetCommand,
+        targetDetection: undefined,
+        poseSeed: undefined,
+        calibration: undefined,
+        sweep: sweepCommand,
+        render: undefined,
+      },
     });
     writeJson(outPath, receipt);
     return receipt;
   }
 
-  const bridgePath = sweepReceipt.hologramBridge?.artifactPath ?? sweepReceipt.sweep?.winner?.hologramBridgeArtifactPath;
+  const bridgePath =
+    sweepReceipt.hologramBridge?.artifactPath ??
+    sweepReceipt.sweep?.winner?.hologramBridgeArtifactPath;
   if (!bridgePath) throw new Error('Sweep receipt did not name a winning HoloGram bridge');
   const controlFrame = summarizeControl(sweepReceipt).frame;
   let targetDetectionCommand;
@@ -859,7 +965,16 @@ export async function runWorkflow(args) {
         '--fov-deg',
         String(args.poseSeedFovDeg),
         ...(args.poseSeedFx !== undefined
-          ? ['--fx', String(args.poseSeedFx), '--fy', String(args.poseSeedFy), '--cx', String(args.poseSeedCx), '--cy', String(args.poseSeedCy)]
+          ? [
+              '--fx',
+              String(args.poseSeedFx),
+              '--fy',
+              String(args.poseSeedFy),
+              '--cx',
+              String(args.poseSeedCx),
+              '--cy',
+              String(args.poseSeedCy),
+            ]
           : []),
       ],
       exitCode: 0,
@@ -880,7 +995,9 @@ export async function runWorkflow(args) {
         '--out',
         rel(calibrationOut),
         ...(args.calibrationSource ? ['--calibration-source', args.calibrationSource] : []),
-        ...(args.calibrationDistortion ? ['--distortion', args.calibrationDistortion.join(',')] : []),
+        ...(args.calibrationDistortion
+          ? ['--distortion', args.calibrationDistortion.join(',')]
+          : []),
         ...(args.assumeZeroDistortion ? ['--assume-zero-distortion'] : []),
       ],
       exitCode: 0,
@@ -896,7 +1013,10 @@ export async function runWorkflow(args) {
     '--tile-height',
     String(args.tileHeight),
   ];
-  const renderCommand = runNodeScript(resolve(REPO_ROOT, 'scripts/holoshell-hologram-bridge-renderer.mjs'), renderArgs);
+  const renderCommand = runNodeScript(
+    resolve(REPO_ROOT, 'scripts/holoshell-hologram-bridge-renderer.mjs'),
+    renderArgs
+  );
   const renderReceipt = readJson(renderOut);
   const receipt = buildWorkflowReceipt({
     args: { ...args, out: outPath },
@@ -912,7 +1032,14 @@ export async function runWorkflow(args) {
     poseSeedReceiptPath: poseSeedReceipt ? poseSeedOut : undefined,
     calibrationReceipt,
     calibrationReceiptPath: calibrationReceipt ? calibrationOut : undefined,
-    commands: { target: targetCommand, targetDetection: targetDetectionCommand, poseSeed: poseSeedCommand, calibration: calibrationCommand, sweep: sweepCommand, render: renderCommand },
+    commands: {
+      target: targetCommand,
+      targetDetection: targetDetectionCommand,
+      poseSeed: poseSeedCommand,
+      calibration: calibrationCommand,
+      sweep: sweepCommand,
+      render: renderCommand,
+    },
   });
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(`Invalid workflow receipt: ${errors.join('; ')}`);
@@ -1035,7 +1162,12 @@ export async function selfTest() {
     schemaVersion: 'holoshell-camera-scan-receipt/v5',
     status: 'pass',
     sweep: {
-      winner: { mode: 'raw', score: 0.9, warningCount: 0, hologramBridgeArtifactPath: 'scan.hologram-bridge.json' },
+      winner: {
+        mode: 'raw',
+        score: 0.9,
+        warningCount: 0,
+        hologramBridgeArtifactPath: 'scan.hologram-bridge.json',
+      },
       ranking: [{ mode: 'raw', score: 0.9 }],
       rawVideoHash: 'holoshell-native-camera-raw:self-test',
     },
@@ -1124,87 +1256,97 @@ async function main() {
   }
   const receipt = await runWorkflow(args);
   const outPath = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date));
-  process.stdout.write(`${JSON.stringify({
-    receiptPath: rel(outPath),
-    status: receipt.status,
-    winner: receipt.sweep?.winner,
-    technologyPlan: receipt.technologyPlan
-      ? {
-          recommendedNow: receipt.technologyPlan.recommendedNow,
-          topRecommendation: receipt.technologyPlan.recommendations?.[0]?.id,
-          nextActions: receipt.technologyPlan.nextActions?.map((action) => action.id),
-        }
-      : undefined,
-    target: receipt.target
-      ? {
-          path: receipt.target.pngPath,
-          pngHash: receipt.target.pngHash,
-          width: receipt.target.width,
-          height: receipt.target.height,
-          profile: receipt.target.profile,
-          dictionary: receipt.target.dictionary,
-          markerCount: receipt.target.markerCount,
-          primitiveCount: receipt.target.primitiveCount,
-          fiducialCount: receipt.target.fiducialCount,
-        }
-      : undefined,
-    targetDetection: receipt.targetDetection
-      ? {
-          status: receipt.targetDetection.detection?.status,
-          detectionMode: receipt.targetDetection.detection?.detectionMode,
-          score: receipt.targetDetection.detection?.score,
-          paletteHitCount: receipt.targetDetection.detection?.paletteHitCount,
-          recoveredMarkerCount: receipt.targetDetection.detection?.recoveredMarkerCount,
-          markerCornerCount: receipt.targetDetection.detection?.markerCornerCount,
-          poseSolveInputReady: receipt.targetDetection.detection?.poseSolveInputReady,
-          boardHomographyStatus: receipt.targetDetection.detection?.boardPose?.status,
-          boardHomographyReady: receipt.targetDetection.detection?.boardHomographyReady,
-          boardReprojectionRms: receipt.targetDetection.detection?.boardPose?.reprojection?.rmsPixels,
-          calibrationReady: receipt.targetDetection.detection?.calibrationReady,
-        }
-      : undefined,
-    fiducialPoseSeed: receipt.fiducialPoseSeed
-      ? {
-          status: receipt.fiducialPoseSeed.status,
-          poseSeedReady: receipt.fiducialPoseSeed.poseSeed?.poseSeedReady,
-          calibrationReady: receipt.fiducialPoseSeed.poseSeed?.calibrationReady,
-          reprojectionRms: receipt.fiducialPoseSeed.poseSeed?.reprojection?.rmsPixels,
-          blockers: receipt.fiducialPoseSeed.poseSeed?.blockers,
-          intrinsicsSource: receipt.fiducialPoseSeed.intrinsics?.source,
-        }
-      : undefined,
-    fiducialCalibration: receipt.fiducialCalibration
-      ? {
-          status: receipt.fiducialCalibration.status,
-          calibrationReady: receipt.fiducialCalibration.calibration?.calibrationReady,
-          cameraModelReady: receipt.fiducialCalibration.calibration?.cameraModelReady,
-          calibratedAnchorReady: receipt.fiducialCalibration.calibration?.calibratedAnchorReady,
-          reprojectionRms: receipt.fiducialCalibration.calibration?.reprojection?.rmsPixels,
-          blockers: receipt.fiducialCalibration.calibration?.blockers,
-        }
-      : undefined,
-    control: receipt.control?.frame
-      ? {
-          path: receipt.control.frame.path,
-          jpegHash: receipt.control.frame.jpegHash,
-          rawQuality: receipt.control.frame.rawQuality,
-        }
-      : undefined,
-    quilt: receipt.render
-      ? {
-          path: receipt.render.quiltPath,
-          pngHash: receipt.render.pngHash,
-          width: receipt.render.width,
-          height: receipt.render.height,
-          views: receipt.render.views,
-          quality: receipt.render.quality,
-        }
-      : undefined,
-  }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        receiptPath: rel(outPath),
+        status: receipt.status,
+        winner: receipt.sweep?.winner,
+        technologyPlan: receipt.technologyPlan
+          ? {
+              recommendedNow: receipt.technologyPlan.recommendedNow,
+              topRecommendation: receipt.technologyPlan.recommendations?.[0]?.id,
+              nextActions: receipt.technologyPlan.nextActions?.map((action) => action.id),
+            }
+          : undefined,
+        target: receipt.target
+          ? {
+              path: receipt.target.pngPath,
+              pngHash: receipt.target.pngHash,
+              width: receipt.target.width,
+              height: receipt.target.height,
+              profile: receipt.target.profile,
+              dictionary: receipt.target.dictionary,
+              markerCount: receipt.target.markerCount,
+              primitiveCount: receipt.target.primitiveCount,
+              fiducialCount: receipt.target.fiducialCount,
+            }
+          : undefined,
+        targetDetection: receipt.targetDetection
+          ? {
+              status: receipt.targetDetection.detection?.status,
+              detectionMode: receipt.targetDetection.detection?.detectionMode,
+              score: receipt.targetDetection.detection?.score,
+              paletteHitCount: receipt.targetDetection.detection?.paletteHitCount,
+              recoveredMarkerCount: receipt.targetDetection.detection?.recoveredMarkerCount,
+              markerCornerCount: receipt.targetDetection.detection?.markerCornerCount,
+              poseSolveInputReady: receipt.targetDetection.detection?.poseSolveInputReady,
+              boardHomographyStatus: receipt.targetDetection.detection?.boardPose?.status,
+              boardHomographyReady: receipt.targetDetection.detection?.boardHomographyReady,
+              boardReprojectionRms:
+                receipt.targetDetection.detection?.boardPose?.reprojection?.rmsPixels,
+              calibrationReady: receipt.targetDetection.detection?.calibrationReady,
+            }
+          : undefined,
+        fiducialPoseSeed: receipt.fiducialPoseSeed
+          ? {
+              status: receipt.fiducialPoseSeed.status,
+              poseSeedReady: receipt.fiducialPoseSeed.poseSeed?.poseSeedReady,
+              calibrationReady: receipt.fiducialPoseSeed.poseSeed?.calibrationReady,
+              reprojectionRms: receipt.fiducialPoseSeed.poseSeed?.reprojection?.rmsPixels,
+              blockers: receipt.fiducialPoseSeed.poseSeed?.blockers,
+              intrinsicsSource: receipt.fiducialPoseSeed.intrinsics?.source,
+            }
+          : undefined,
+        fiducialCalibration: receipt.fiducialCalibration
+          ? {
+              status: receipt.fiducialCalibration.status,
+              calibrationReady: receipt.fiducialCalibration.calibration?.calibrationReady,
+              cameraModelReady: receipt.fiducialCalibration.calibration?.cameraModelReady,
+              calibratedAnchorReady: receipt.fiducialCalibration.calibration?.calibratedAnchorReady,
+              reprojectionRms: receipt.fiducialCalibration.calibration?.reprojection?.rmsPixels,
+              blockers: receipt.fiducialCalibration.calibration?.blockers,
+            }
+          : undefined,
+        control: receipt.control?.frame
+          ? {
+              path: receipt.control.frame.path,
+              jpegHash: receipt.control.frame.jpegHash,
+              rawQuality: receipt.control.frame.rawQuality,
+            }
+          : undefined,
+        quilt: receipt.render
+          ? {
+              path: receipt.render.quiltPath,
+              pngHash: receipt.render.pngHash,
+              width: receipt.render.width,
+              height: receipt.render.height,
+              views: receipt.render.views,
+              quality: receipt.render.quality,
+            }
+          : undefined,
+      },
+      null,
+      2
+    )}\n`
+  );
   if (args.requireCapture && receipt.status !== 'pass') process.exitCode = 2;
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('holoshell-low-camera-workflow.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('holoshell-low-camera-workflow.mjs')
+) {
   main().catch((error) => {
     process.stderr.write(`holoshell-low-camera-workflow FAIL: ${error.stack ?? error.message}\n`);
     process.exitCode = 1;

@@ -33,9 +33,7 @@ function buildT(
     hashMode: 'fnv1a',
     adapterFingerprint: null,
     replayDigestMode: 'epsilon-cross-adapter',
-    fieldQuantization: [
-      { fieldPattern: 'position', quantum: 1e-5, units: 'm' },
-    ],
+    fieldQuantization: [{ fieldPattern: 'position', quantum: 1e-5, units: 'm' }],
   };
 
   return {
@@ -121,10 +119,7 @@ describe('buildAdversarialTrajectoryReport', () => {
   });
 
   it('FALSE case: priority=0 trajectories are excluded from topPriority', () => {
-    const trajectories = [
-      buildT('zero', 'open', 0),
-      buildT('nonzero', 'open', 0.1),
-    ];
+    const trajectories = [buildT('zero', 'open', 0), buildT('nonzero', 'open', 0.1)];
     const report = buildAdversarialTrajectoryReport(trajectories, SCENE, NOW);
     expect(report.topPriority).toEqual([asTrajectoryId('nonzero')]);
   });
@@ -135,21 +130,13 @@ describe('buildAdversarialTrajectoryReport', () => {
       buildT('tie-first', 'open', 0.5, 1),
     ];
     const report = buildAdversarialTrajectoryReport(trajectories, SCENE, NOW);
-    expect(report.topPriority).toEqual([
-      asTrajectoryId('tie-first'),
-      asTrajectoryId('tie-second'),
-    ]);
+    expect(report.topPriority).toEqual([asTrajectoryId('tie-first'), asTrajectoryId('tie-second')]);
   });
 
   it('FALSE case: mixed-scene trajectories throw (category error)', () => {
     const otherScene = asSceneHash('scene-different');
-    const trajectories = [
-      buildT('a', 'open', 0.5),
-      buildT('b', 'open', 0.5, 0, otherScene),
-    ];
-    expect(() => buildAdversarialTrajectoryReport(trajectories, SCENE, NOW)).toThrow(
-      /sceneHash/
-    );
+    const trajectories = [buildT('a', 'open', 0.5), buildT('b', 'open', 0.5, 0, otherScene)];
+    expect(() => buildAdversarialTrajectoryReport(trajectories, SCENE, NOW)).toThrow(/sceneHash/);
   });
 
   it('TRUE case: topPriorityLimit truncates the list', () => {
@@ -217,10 +204,7 @@ describe('buildAdversarialTrajectoryReport', () => {
 
 describe('serializeReport', () => {
   it('TRUE case: produces deterministic JSON for identical input', () => {
-    const trajectories = [
-      buildT('t1', 'open', 0.5),
-      buildT('t2', 'invalid', 0),
-    ];
+    const trajectories = [buildT('t1', 'open', 0.5), buildT('t2', 'invalid', 0)];
     const r1 = buildAdversarialTrajectoryReport(trajectories, SCENE, NOW);
     const r2 = buildAdversarialTrajectoryReport(trajectories, SCENE, NOW);
     expect(serializeReport(r1)).toBe(serializeReport(r2));

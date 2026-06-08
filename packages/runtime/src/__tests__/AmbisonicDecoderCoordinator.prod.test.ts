@@ -73,8 +73,7 @@ function determinant(M: Matrix): number {
   let det = 1;
   for (let col = 0; col < n; col++) {
     let pivot = col;
-    for (let r = col + 1; r < n; r++)
-      if (Math.abs(a[r][col]) > Math.abs(a[pivot][col])) pivot = r;
+    for (let r = col + 1; r < n; r++) if (Math.abs(a[r][col]) > Math.abs(a[pivot][col])) pivot = r;
     if (Math.abs(a[pivot][col]) < 1e-12) return 0;
     if (pivot !== col) {
       [a[pivot], a[col]] = [a[col], a[pivot]];

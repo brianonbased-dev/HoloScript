@@ -4,20 +4,20 @@
 
 This file does **not** duplicate `docs/NUMBERS.md` or `README.md` **Honest gaps** (product domains). It tracks **package / surface README depth** so contributors know where narrative and “how to run” coverage is thin.
 
-| Vertical / surface | Primary location | README depth (snapshot) | Epic when prioritized |
-| ------------------ | ---------------- | ------------------------ | ----------------------- |
-| Core language & parser | `packages/core` | Strong — start here for traits/compiler | Tighten “first contribution” and bench links |
-| Engine runtime | `packages/engine` | Strong — sub-READMEs in subpackages | Per-subsystem how-to (physics, runtime) as needed |
-| Studio IDE | `packages/studio` | Moderate + moving fast | E2E screenshots + panel map |
-| HoloMap / mesh | `packages/mesh` | Varies | Single “data flow” diagram epic |
-| Framework (agents, skills) | `packages/framework` | Moderate | Agent lifecycle one-pager |
-| MCP server | `packages/mcp-server` | Strong for tool users | Changelog + tool schema link discipline |
-| Comparative benchmarks | `packages/comparative-benchmarks` | Paper hooks documented | Add CI badge + runbook |
-| CLI | `packages/cli` | Check on ship | install + non-interactive examples |
-| R3F renderer | `packages/r3f-renderer` | Varies | Cross-link Studio + engine |
-| SNN / WebGPU | `packages/snn-webgpu` | Research-heavy | “When to use” vs core traits |
-| Connectors (GitHub, Railway, …) | `packages/connector-*` | Per-connector | One epic per connector family |
-| HoloLand / VR app | separate HoloLand repo | TBD | World + deployment story (track there) |
+| Vertical / surface              | Primary location                  | README depth (snapshot)                 | Epic when prioritized                             |
+| ------------------------------- | --------------------------------- | --------------------------------------- | ------------------------------------------------- |
+| Core language & parser          | `packages/core`                   | Strong — start here for traits/compiler | Tighten “first contribution” and bench links      |
+| Engine runtime                  | `packages/engine`                 | Strong — sub-READMEs in subpackages     | Per-subsystem how-to (physics, runtime) as needed |
+| Studio IDE                      | `packages/studio`                 | Moderate + moving fast                  | E2E screenshots + panel map                       |
+| HoloMap / mesh                  | `packages/mesh`                   | Varies                                  | Single “data flow” diagram epic                   |
+| Framework (agents, skills)      | `packages/framework`              | Moderate                                | Agent lifecycle one-pager                         |
+| MCP server                      | `packages/mcp-server`             | Strong for tool users                   | Changelog + tool schema link discipline           |
+| Comparative benchmarks          | `packages/comparative-benchmarks` | Paper hooks documented                  | Add CI badge + runbook                            |
+| CLI                             | `packages/cli`                    | Check on ship                           | install + non-interactive examples                |
+| R3F renderer                    | `packages/r3f-renderer`           | Varies                                  | Cross-link Studio + engine                        |
+| SNN / WebGPU                    | `packages/snn-webgpu`             | Research-heavy                          | “When to use” vs core traits                      |
+| Connectors (GitHub, Railway, …) | `packages/connector-*`            | Per-connector                           | One epic per connector family                     |
+| HoloLand / VR app               | separate HoloLand repo            | TBD                                     | World + deployment story (track there)            |
 
 **How to use**
 

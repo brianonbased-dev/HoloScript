@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-material-study",
-  name: "Material Study",
-  description: "PBR material comparison with varied metalness, roughness, and emission",
-  thumbnail: "✨",
-  tags: ["art","material","shader","pbr"],
-  category: "art",
+  id: 'wizard-material-study',
+  name: 'Material Study',
+  description: 'PBR material comparison with varied metalness, roughness, and emission',
+  thumbnail: '✨',
+  tags: ['art', 'material', 'shader', 'pbr'],
+  category: 'art',
   code: `composition "Material Study" {
   environment {
     skybox: "studio"
@@ -84,7 +84,7 @@ export const template: SceneTemplate = {
     material: "glass"
     label: "Glass"
   }
-}`
+}`,
 };
 
 export default template;

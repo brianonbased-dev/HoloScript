@@ -222,8 +222,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           status: 'error',
-          error:
-            'Capability token storage is not configured. Set NEXTAUTH_SECRET or AUTH_SECRET.',
+          error: 'Capability token storage is not configured. Set NEXTAUTH_SECRET or AUTH_SECRET.',
         },
         { status: 500 }
       );

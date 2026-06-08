@@ -14,7 +14,10 @@ const PublishSchema = z.object({
   workspace_id: z.string(),
   type: z.enum(['wisdom', 'pattern', 'gotcha', 'session']),
   content: z.string().min(1),
-  wallet_address: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
+  wallet_address: z
+    .string()
+    .regex(/^0x[a-fA-F0-9]{40}$/)
+    .optional(),
   content_signature: z.string().optional(),
   is_premium: z.boolean().default(false),
   metadata: z.record(z.string(), z.unknown()).optional(),
@@ -50,17 +53,27 @@ export function getKnowledgeToolDefinitions() {
   return [
     {
       name: 'knowledge_publish',
-      description: 'Publish a knowledge entry (wisdom/pattern/gotcha). Free for authors. Sign with wallet for provenance.',
+      description:
+        'Publish a knowledge entry (wisdom/pattern/gotcha). Free for authors. Sign with wallet for provenance.',
       inputSchema: {
         type: 'object' as const,
         properties: {
           id: { type: 'string', description: 'Unique entry ID (e.g., W.MESH.V5.001)' },
-          workspace_id: { type: 'string', description: 'Workspace namespace (wallet address or project name)' },
+          workspace_id: {
+            type: 'string',
+            description: 'Workspace namespace (wallet address or project name)',
+          },
           type: { type: 'string', enum: ['wisdom', 'pattern', 'gotcha', 'session'] },
           content: { type: 'string', description: 'Knowledge content' },
           wallet_address: { type: 'string', description: 'Author wallet (0x...)' },
-          content_signature: { type: 'string', description: 'EIP-191 signature of keccak256(content)' },
-          is_premium: { type: 'boolean', description: 'Premium entries earn revenue on access (5¢/query)' },
+          content_signature: {
+            type: 'string',
+            description: 'EIP-191 signature of keccak256(content)',
+          },
+          is_premium: {
+            type: 'boolean',
+            description: 'Premium entries earn revenue on access (5¢/query)',
+          },
           metadata: { type: 'object', description: 'Additional metadata' },
         },
         required: ['id', 'workspace_id', 'type', 'content'],
@@ -68,7 +81,8 @@ export function getKnowledgeToolDefinitions() {
     },
     {
       name: 'knowledge_query',
-      description: 'Search the knowledge marketplace. Free entries always returned. Premium entries cost 5¢ and earn revenue for authors.',
+      description:
+        'Search the knowledge marketplace. Free entries always returned. Premium entries cost 5¢ and earn revenue for authors.',
       inputSchema: {
         type: 'object' as const,
         properties: {
@@ -76,7 +90,10 @@ export function getKnowledgeToolDefinitions() {
           workspace_id: { type: 'string', description: 'Limit to workspace (optional)' },
           type: { type: 'string', enum: ['wisdom', 'pattern', 'gotcha', 'session'] },
           limit: { type: 'number', description: 'Max results (default 20)' },
-          include_premium: { type: 'boolean', description: 'Include premium entries (costs credits)' },
+          include_premium: {
+            type: 'boolean',
+            description: 'Include premium entries (costs credits)',
+          },
         },
         required: ['search'],
       },
@@ -114,7 +131,7 @@ export async function handleKnowledgeToolCall(
   toolName: string,
   args: Record<string, unknown>,
   deps: KnowledgeToolsDeps,
-  callerUserId: string,
+  callerUserId: string
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   const respond = (data: unknown) => ({
     content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
@@ -126,7 +143,12 @@ export async function handleKnowledgeToolCall(
 
       // In-memory store fallback if no DB
       if (!deps.db) {
-        return respond({ success: true, stored: 'in-memory', id: input.id, warning: 'No DB — entry will not persist across restarts' });
+        return respond({
+          success: true,
+          stored: 'in-memory',
+          id: input.id,
+          warning: 'No DB — entry will not persist across restarts',
+        });
       }
 
       const { knowledgeEntries } = await import('../schema');
@@ -134,34 +156,39 @@ export async function handleKnowledgeToolCall(
       const now = new Date();
 
       const db = deps.db as any;
-      await db.insert(knowledgeEntries).values({
-        id: input.id,
-        workspaceId: input.workspace_id,
-        walletAddress: input.wallet_address || null,
-        type: input.type,
-        content: input.content,
-        contentHash: input.content_signature ? (input.metadata as Record<string, unknown>)?.content_hash as string || null : null,
-        metadata: {
-          ...input.metadata,
-          content_signature: input.content_signature || undefined,
-          provenance_wallet: input.wallet_address || undefined,
-          signed_at: input.content_signature ? now.toISOString() : undefined,
-        },
-        isPremium: input.is_premium,
-        accessCount: 0,
-        revenueCents: 0,
-        createdAt: now,
-        updatedAt: now,
-      }).onConflictDoUpdate({
-        target: knowledgeEntries.id,
-        set: {
+      await db
+        .insert(knowledgeEntries)
+        .values({
+          id: input.id,
+          workspaceId: input.workspace_id,
+          walletAddress: input.wallet_address || null,
+          type: input.type,
           content: input.content,
-          walletAddress: input.wallet_address || undefined,
-          metadata: input.metadata,
+          contentHash: input.content_signature
+            ? ((input.metadata as Record<string, unknown>)?.content_hash as string) || null
+            : null,
+          metadata: {
+            ...input.metadata,
+            content_signature: input.content_signature || undefined,
+            provenance_wallet: input.wallet_address || undefined,
+            signed_at: input.content_signature ? now.toISOString() : undefined,
+          },
           isPremium: input.is_premium,
+          accessCount: 0,
+          revenueCents: 0,
+          createdAt: now,
           updatedAt: now,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: knowledgeEntries.id,
+          set: {
+            content: input.content,
+            walletAddress: input.wallet_address || undefined,
+            metadata: input.metadata,
+            isPremium: input.is_premium,
+            updatedAt: now,
+          },
+        });
 
       return respond({
         success: true,
@@ -193,7 +220,6 @@ export async function handleKnowledgeToolCall(
 
       const where = conditions.length > 0 ? and(...(conditions as any)) : undefined;
 
-       
       const rows: any[] = await (deps.db as any)
         .select()
         .from(knowledgeEntries)
@@ -224,7 +250,11 @@ export async function handleKnowledgeToolCall(
           } else {
             // Paid tier: deduct credits, log access, pay author
             const cost = 5; // 5¢
-            const deducted = await deps.deductCredits(callerUserId, cost, `knowledge_query_premium:${row.id}`);
+            const deducted = await deps.deductCredits(
+              callerUserId,
+              cost,
+              `knowledge_query_premium:${row.id}`
+            );
             if (deducted && row.walletAddress) {
               // 80% to author, 20% platform
               const authorShare = Math.floor(cost * 0.8);
@@ -232,7 +262,9 @@ export async function handleKnowledgeToolCall(
               totalCostCents += cost;
 
               // Increment access count + revenue
-              await (deps.db as unknown as { execute: (query: unknown) => Promise<unknown> }).execute(
+              await (
+                deps.db as unknown as { execute: (query: unknown) => Promise<unknown> }
+              ).execute(
                 sql`UPDATE knowledge_entries SET access_count = access_count + 1, revenue_cents = revenue_cents + ${authorShare}, updated_at = NOW() WHERE id = ${row.id}`
               );
             }
@@ -264,10 +296,13 @@ export async function handleKnowledgeToolCall(
         count: results.length,
         total_cost_cents: totalCostCents,
         gated_entries: gatedCount,
-        x402: gatedCount > 0 ? {
-          hint: 'Upgrade tier to access premium knowledge',
-          premium_cost: '5¢ per entry (80% to author, 20% platform)',
-        } : undefined,
+        x402:
+          gatedCount > 0
+            ? {
+                hint: 'Upgrade tier to access premium knowledge',
+                premium_cost: '5¢ per entry (80% to author, 20% platform)',
+              }
+            : undefined,
       });
     }
 
@@ -300,12 +335,14 @@ export async function handleKnowledgeToolCall(
         wallet_address: entry.walletAddress,
         content_hash: entry.contentHash,
         has_signature: !!meta.content_signature,
-        provenance: meta.content_signature ? {
-          content_hash: meta.content_hash || entry.contentHash,
-          content_signature: meta.content_signature,
-          provenance_wallet: meta.provenance_wallet || entry.walletAddress,
-          signed_at: meta.signed_at,
-        } : null,
+        provenance: meta.content_signature
+          ? {
+              content_hash: meta.content_hash || entry.contentHash,
+              content_signature: meta.content_signature,
+              provenance_wallet: meta.provenance_wallet || entry.walletAddress,
+              signed_at: meta.signed_at,
+            }
+          : null,
         is_premium: entry.isPremium,
         access_count: entry.accessCount,
         revenue_cents: entry.revenueCents,
@@ -313,7 +350,7 @@ export async function handleKnowledgeToolCall(
     }
 
     case 'knowledge_earnings': {
-      const wallet = (args.wallet_address as string || '').toLowerCase();
+      const wallet = ((args.wallet_address as string) || '').toLowerCase();
 
       if (!deps.db) {
         return respond({ error: 'No DB connected' });
@@ -333,7 +370,12 @@ export async function handleKnowledgeToolCall(
         .from(knowledgeEntries)
         .where(eq(knowledgeEntries.walletAddress, wallet));
 
-      const row = stats[0] || { totalEntries: 0, premiumEntries: 0, totalAccesses: 0, totalRevenueCents: 0 };
+      const row = stats[0] || {
+        totalEntries: 0,
+        premiumEntries: 0,
+        totalAccesses: 0,
+        totalRevenueCents: 0,
+      };
 
       return respond({
         wallet_address: wallet,

@@ -31,7 +31,9 @@ const SCENE_GAUSSIANS = Object.freeze({
 
 function parseArgs(argv) {
   const args = {
-    mode: process.env.P043_CAPTURE_MODE || (process.env.P043_SMOKE === '1' ? 'smoke' : 'browser-webgpu'),
+    mode:
+      process.env.P043_CAPTURE_MODE ||
+      (process.env.P043_SMOKE === '1' ? 'smoke' : 'browser-webgpu'),
     out: process.env.P043_OUTPUT_PATH || DEFAULT_OUT,
     help: false,
   };
@@ -89,7 +91,8 @@ function positiveInt(name, fallback) {
 function nonNegativeSeconds(name, fallback) {
   const raw = process.env[name];
   const value = raw == null ? fallback : Number(raw);
-  if (!Number.isFinite(value) || value < 0) throw new Error(`${name} must be a non-negative number`);
+  if (!Number.isFinite(value) || value < 0)
+    throw new Error(`${name} must be a non-negative number`);
   return value;
 }
 
@@ -111,9 +114,10 @@ function loadConfig(args) {
     outputPath: args.out,
     mode: args.mode,
     requestedGaussianCount,
-    gaussianCount: args.mode === 'smoke'
-      ? positiveInt('P043_SMOKE_GAUSSIANS', Math.min(2048, requestedGaussianCount))
-      : requestedGaussianCount,
+    gaussianCount:
+      args.mode === 'smoke'
+        ? positiveInt('P043_SMOKE_GAUSSIANS', Math.min(2048, requestedGaussianCount))
+        : requestedGaussianCount,
     thermalState: process.env.P043_THERMAL_STATE || 'unknown',
     batteryState: process.env.P043_BATTERY_STATE || 'unknown',
     browserShell: process.env.P043_BROWSER_SHELL || null,
@@ -131,7 +135,7 @@ function hashString(input) {
 
 function mulberry32(seed) {
   return function rand() {
-    let t = seed += 0x6d2b79f5;
+    let t = (seed += 0x6d2b79f5);
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -208,7 +212,7 @@ function cpuSharedSort(positions, views) {
       }
       const inv = 1 / Math.sqrt(len2);
       const dir = normDirs[v];
-      if ((rx * inv * dir[0]) + (ry * inv * dir[1]) + (rz * inv * dir[2]) >= 0.5) {
+      if (rx * inv * dir[0] + ry * inv * dir[1] + rz * inv * dir[2] >= 0.5) {
         mask |= 1 << v;
       }
     }
@@ -326,18 +330,27 @@ function hostAdapterInfo(skuId) {
     ).trim();
     const parsed = JSON.parse(raw);
     const rows = Array.isArray(parsed) ? parsed : [parsed];
-    const target = String(skuId).toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const target = String(skuId)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '');
     const picked =
-      rows.find((row) => String(row.Name ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '').includes(target))
-      ?? rows.find((row) => /nvidia/i.test(String(row.AdapterCompatibility ?? row.Name ?? '')))
-      ?? rows.find((row) => !/virtual|display/i.test(String(row.Name ?? '')))
-      ?? rows[0];
+      rows.find((row) =>
+        String(row.Name ?? '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '')
+          .includes(target)
+      ) ??
+      rows.find((row) => /nvidia/i.test(String(row.AdapterCompatibility ?? row.Name ?? ''))) ??
+      rows.find((row) => !/virtual|display/i.test(String(row.Name ?? ''))) ??
+      rows[0];
     if (!picked) return null;
     return {
       vendor: picked.AdapterCompatibility ?? 'unknown',
       device: picked.Name ?? 'unknown',
       architecture: null,
-      description: [picked.AdapterCompatibility, picked.Name, picked.DriverVersion].filter(Boolean).join(' | '),
+      description: [picked.AdapterCompatibility, picked.Name, picked.DriverVersion]
+        .filter(Boolean)
+        .join(' | '),
       driverVersion: picked.DriverVersion ?? null,
       pnpDeviceId: picked.PNPDeviceID ?? null,
       source: 'Win32_VideoController fallback',
@@ -425,9 +438,9 @@ async function runBrowserWebGpu(config) {
         ? DEFAULT_CHROME
         : undefined;
   const useNativeWebGpu =
-    process.env.WEBGPU_DETERMINISM_NATIVE === '1'
-    || process.env.BENCH_VULKAN_BACKEND === 'native'
-    || (process.platform === 'win32' && Boolean(nativeChrome));
+    process.env.WEBGPU_DETERMINISM_NATIVE === '1' ||
+    process.env.BENCH_VULKAN_BACKEND === 'native' ||
+    (process.platform === 'win32' && Boolean(nativeChrome));
   const browser = await chromium.launch({
     headless: process.env.BENCH_HEADLESS !== '0',
     ...(useNativeWebGpu && nativeChrome ? { executablePath: nativeChrome } : {}),
@@ -448,198 +461,255 @@ async function runBrowserWebGpu(config) {
   try {
     const page = await browser.newPage();
     await page.goto(pathToFileURL(resolve(__dirname, 'benchmark-webgpu-physics.html')).href);
-    const result = await page.evaluate(async ({ shaderSource, config, workgroupSize, frameBudgetMs }) => {
-      const failures = [];
-      const notes = [
-        'Browser WebGPU runner executes splat-shared-sort.wgsl directly.',
-        'sharedSortMs and visibilityMaskMs both report the fused preprocess dispatch because the WGSL computes distance keys and bitmasks in one pass.',
-      ];
-      const nowIso = () => new Date().toISOString();
-      if (!('gpu' in navigator)) {
-        return {
-          status: 'unsupported',
-          failures: [{ stage: 'navigator.gpu', message: 'WebGPU unavailable', timestamp: nowIso() }],
-          notes,
+    const result = await page.evaluate(
+      async ({ shaderSource, config, workgroupSize, frameBudgetMs }) => {
+        const failures = [];
+        const notes = [
+          'Browser WebGPU runner executes splat-shared-sort.wgsl directly.',
+          'sharedSortMs and visibilityMaskMs both report the fused preprocess dispatch because the WGSL computes distance keys and bitmasks in one pass.',
+        ];
+        const nowIso = () => new Date().toISOString();
+        if (!('gpu' in navigator)) {
+          return {
+            status: 'unsupported',
+            failures: [
+              { stage: 'navigator.gpu', message: 'WebGPU unavailable', timestamp: nowIso() },
+            ],
+            notes,
+          };
+        }
+
+        const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+        if (!adapter) {
+          return {
+            status: 'unsupported',
+            failures: [
+              {
+                stage: 'requestAdapter',
+                message: 'No WebGPU adapter returned',
+                timestamp: nowIso(),
+              },
+            ],
+            notes,
+          };
+        }
+
+        let adapterInfo = adapter.info ?? {};
+        if ((!adapterInfo || Object.keys(adapterInfo).length === 0) && adapter.requestAdapterInfo) {
+          adapterInfo = await adapter.requestAdapterInfo();
+        }
+        const device = await adapter.requestDevice();
+
+        const hashString = (input) => {
+          let h = 2166136261;
+          for (let i = 0; i < input.length; i += 1) {
+            h ^= input.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+          }
+          return h >>> 0;
         };
-      }
-
-      const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
-      if (!adapter) {
-        return {
-          status: 'unsupported',
-          failures: [{ stage: 'requestAdapter', message: 'No WebGPU adapter returned', timestamp: nowIso() }],
-          notes,
+        const mulberry32 = (seed) => () => {
+          let t = (seed += 0x6d2b79f5);
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
         };
-      }
+        const generatePositions = (sceneId, count) => {
+          const rand = mulberry32(hashString(sceneId));
+          const positions = new Float32Array(count * 3);
+          for (let i = 0; i < count; i += 1) {
+            const a = rand() * Math.PI * 2;
+            const r = sceneId === 'dense-2m' ? Math.pow(rand(), 0.35) * 18 : rand() * 42;
+            const height = sceneId === 'outdoor-1m' ? (rand() - 0.5) * 18 : (rand() - 0.5) * 5;
+            const zScale = sceneId === 'indoor-500k' ? 0.45 : 1.0;
+            positions[i * 3] = Math.cos(a) * r;
+            positions[i * 3 + 1] = height;
+            positions[i * 3 + 2] = Math.sin(a) * r * zScale - 12;
+          }
+          return positions;
+        };
+        const generateViews = (viewCount) => {
+          const views = [];
+          for (let i = 0; i < viewCount; i += 1) {
+            const a = (i / viewCount) * Math.PI * 2;
+            const eyePosition = [Math.cos(a) * 2.5, 1.6, Math.sin(a) * 2.5 + 2.5];
+            views.push({
+              eyePosition,
+              eyeDirection: [-eyePosition[0], -0.15, -eyePosition[2] - 10],
+            });
+          }
+          return views;
+        };
+        const checksum = (distances, bitmasks) => {
+          let hash = 2166136261;
+          const step = Math.max(1, Math.floor(distances.length / 4096));
+          for (let i = 0; i < distances.length; i += step) {
+            hash ^= Math.floor(distances[i] * 1000) >>> 0;
+            hash = Math.imul(hash, 16777619);
+            hash ^= bitmasks[i] >>> 0;
+            hash = Math.imul(hash, 16777619);
+          }
+          return hash >>> 0;
+        };
 
-      let adapterInfo = adapter.info ?? {};
-      if ((!adapterInfo || Object.keys(adapterInfo).length === 0) && adapter.requestAdapterInfo) {
-        adapterInfo = await adapter.requestAdapterInfo();
-      }
-      const device = await adapter.requestDevice();
+        const positions = generatePositions(config.sceneId, config.gaussianCount);
+        const views = generateViews(config.viewCount);
+        const splats = new ArrayBuffer(config.gaussianCount * 32);
+        const splatF32 = new Float32Array(splats);
+        for (let g = 0; g < config.gaussianCount; g += 1) {
+          const base = g * 8;
+          splatF32[base] = positions[g * 3];
+          splatF32[base + 1] = positions[g * 3 + 1];
+          splatF32[base + 2] = positions[g * 3 + 2];
+          splatF32[base + 6] = 1;
+        }
+        const viewBufferData = new Float32Array(config.viewCount * 8);
+        for (let v = 0; v < config.viewCount; v += 1) {
+          const base = v * 8;
+          viewBufferData.set(views[v].eyePosition, base);
+          viewBufferData.set(views[v].eyeDirection, base + 4);
+        }
+        const uniforms = new ArrayBuffer(32);
+        const uniformView = new DataView(uniforms);
+        uniformView.setUint32(0, config.gaussianCount, true);
+        uniformView.setUint32(4, config.viewCount, true);
+        let cx = 0,
+          cy = 0,
+          cz = 0;
+        for (const view of views) {
+          cx += view.eyePosition[0];
+          cy += view.eyePosition[1];
+          cz += view.eyePosition[2];
+        }
+        cx /= views.length;
+        cy /= views.length;
+        cz /= views.length;
+        uniformView.setFloat32(16, cx, true);
+        uniformView.setFloat32(20, cy, true);
+        uniformView.setFloat32(24, cz, true);
 
-      const hashString = (input) => {
-        let h = 2166136261;
-        for (let i = 0; i < input.length; i += 1) {
-          h ^= input.charCodeAt(i);
-          h = Math.imul(h, 16777619);
-        }
-        return h >>> 0;
-      };
-      const mulberry32 = (seed) => () => {
-        let t = seed += 0x6d2b79f5;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-      };
-      const generatePositions = (sceneId, count) => {
-        const rand = mulberry32(hashString(sceneId));
-        const positions = new Float32Array(count * 3);
-        for (let i = 0; i < count; i += 1) {
-          const a = rand() * Math.PI * 2;
-          const r = sceneId === 'dense-2m' ? Math.pow(rand(), 0.35) * 18 : rand() * 42;
-          const height = sceneId === 'outdoor-1m' ? (rand() - 0.5) * 18 : (rand() - 0.5) * 5;
-          const zScale = sceneId === 'indoor-500k' ? 0.45 : 1.0;
-          positions[i * 3] = Math.cos(a) * r;
-          positions[i * 3 + 1] = height;
-          positions[i * 3 + 2] = Math.sin(a) * r * zScale - 12;
-        }
-        return positions;
-      };
-      const generateViews = (viewCount) => {
-        const views = [];
-        for (let i = 0; i < viewCount; i += 1) {
-          const a = (i / viewCount) * Math.PI * 2;
-          const eyePosition = [Math.cos(a) * 2.5, 1.6, Math.sin(a) * 2.5 + 2.5];
-          views.push({ eyePosition, eyeDirection: [-eyePosition[0], -0.15, -eyePosition[2] - 10] });
-        }
-        return views;
-      };
-      const checksum = (distances, bitmasks) => {
-        let hash = 2166136261;
-        const step = Math.max(1, Math.floor(distances.length / 4096));
-        for (let i = 0; i < distances.length; i += step) {
-          hash ^= Math.floor(distances[i] * 1000) >>> 0;
-          hash = Math.imul(hash, 16777619);
-          hash ^= bitmasks[i] >>> 0;
-          hash = Math.imul(hash, 16777619);
-        }
-        return hash >>> 0;
-      };
+        const module = device.createShaderModule({ code: shaderSource });
+        const pipeline = await device.createComputePipelineAsync({
+          layout: 'auto',
+          compute: { module, entryPoint: 'cs_preprocess' },
+        });
+        const makeBuffer = (size, usage, data) => {
+          const buffer = device.createBuffer({ size, usage });
+          if (data) device.queue.writeBuffer(buffer, 0, data);
+          return buffer;
+        };
+        const uniformBuffer = makeBuffer(
+          uniforms.byteLength,
+          GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+          uniforms
+        );
+        const splatBuffer = makeBuffer(
+          splats.byteLength,
+          GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+          splats
+        );
+        const viewsBuffer = makeBuffer(
+          viewBufferData.byteLength,
+          GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+          viewBufferData
+        );
+        const distancesBuffer = makeBuffer(
+          config.gaussianCount * 4,
+          GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+        );
+        const bitmasksBuffer = makeBuffer(
+          config.gaussianCount * 4,
+          GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+        );
+        const readDistances = makeBuffer(
+          config.gaussianCount * 4,
+          GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+        );
+        const readBitmasks = makeBuffer(
+          config.gaussianCount * 4,
+          GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+        );
+        const bindGroup = device.createBindGroup({
+          layout: pipeline.getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: { buffer: uniformBuffer } },
+            { binding: 1, resource: { buffer: splatBuffer } },
+            { binding: 2, resource: { buffer: viewsBuffer } },
+            { binding: 3, resource: { buffer: distancesBuffer } },
+            { binding: 4, resource: { buffer: bitmasksBuffer } },
+          ],
+        });
+        const dispatchOnce = async (copyOut = false) => {
+          const encoder = device.createCommandEncoder();
+          const pass = encoder.beginComputePass();
+          pass.setPipeline(pipeline);
+          pass.setBindGroup(0, bindGroup);
+          pass.dispatchWorkgroups(Math.ceil(config.gaussianCount / workgroupSize));
+          pass.end();
+          if (copyOut) {
+            encoder.copyBufferToBuffer(
+              distancesBuffer,
+              0,
+              readDistances,
+              0,
+              config.gaussianCount * 4
+            );
+            encoder.copyBufferToBuffer(
+              bitmasksBuffer,
+              0,
+              readBitmasks,
+              0,
+              config.gaussianCount * 4
+            );
+          }
+          const started = performance.now();
+          device.queue.submit([encoder.finish()]);
+          await device.queue.onSubmittedWorkDone();
+          return performance.now() - started;
+        };
 
-      const positions = generatePositions(config.sceneId, config.gaussianCount);
-      const views = generateViews(config.viewCount);
-      const splats = new ArrayBuffer(config.gaussianCount * 32);
-      const splatF32 = new Float32Array(splats);
-      for (let g = 0; g < config.gaussianCount; g += 1) {
-        const base = g * 8;
-        splatF32[base] = positions[g * 3];
-        splatF32[base + 1] = positions[g * 3 + 1];
-        splatF32[base + 2] = positions[g * 3 + 2];
-        splatF32[base + 6] = 1;
-      }
-      const viewBufferData = new Float32Array(config.viewCount * 8);
-      for (let v = 0; v < config.viewCount; v += 1) {
-        const base = v * 8;
-        viewBufferData.set(views[v].eyePosition, base);
-        viewBufferData.set(views[v].eyeDirection, base + 4);
-      }
-      const uniforms = new ArrayBuffer(32);
-      const uniformView = new DataView(uniforms);
-      uniformView.setUint32(0, config.gaussianCount, true);
-      uniformView.setUint32(4, config.viewCount, true);
-      let cx = 0, cy = 0, cz = 0;
-      for (const view of views) {
-        cx += view.eyePosition[0];
-        cy += view.eyePosition[1];
-        cz += view.eyePosition[2];
-      }
-      cx /= views.length;
-      cy /= views.length;
-      cz /= views.length;
-      uniformView.setFloat32(16, cx, true);
-      uniformView.setFloat32(20, cy, true);
-      uniformView.setFloat32(24, cz, true);
-
-      const module = device.createShaderModule({ code: shaderSource });
-      const pipeline = await device.createComputePipelineAsync({
-        layout: 'auto',
-        compute: { module, entryPoint: 'cs_preprocess' },
-      });
-      const makeBuffer = (size, usage, data) => {
-        const buffer = device.createBuffer({ size, usage });
-        if (data) device.queue.writeBuffer(buffer, 0, data);
-        return buffer;
-      };
-      const uniformBuffer = makeBuffer(uniforms.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST, uniforms);
-      const splatBuffer = makeBuffer(splats.byteLength, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, splats);
-      const viewsBuffer = makeBuffer(viewBufferData.byteLength, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST, viewBufferData);
-      const distancesBuffer = makeBuffer(config.gaussianCount * 4, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-      const bitmasksBuffer = makeBuffer(config.gaussianCount * 4, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-      const readDistances = makeBuffer(config.gaussianCount * 4, GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
-      const readBitmasks = makeBuffer(config.gaussianCount * 4, GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
-      const bindGroup = device.createBindGroup({
-        layout: pipeline.getBindGroupLayout(0),
-        entries: [
-          { binding: 0, resource: { buffer: uniformBuffer } },
-          { binding: 1, resource: { buffer: splatBuffer } },
-          { binding: 2, resource: { buffer: viewsBuffer } },
-          { binding: 3, resource: { buffer: distancesBuffer } },
-          { binding: 4, resource: { buffer: bitmasksBuffer } },
-        ],
-      });
-      const dispatchOnce = async (copyOut = false) => {
-        const encoder = device.createCommandEncoder();
-        const pass = encoder.beginComputePass();
-        pass.setPipeline(pipeline);
-        pass.setBindGroup(0, bindGroup);
-        pass.dispatchWorkgroups(Math.ceil(config.gaussianCount / workgroupSize));
-        pass.end();
-        if (copyOut) {
-          encoder.copyBufferToBuffer(distancesBuffer, 0, readDistances, 0, config.gaussianCount * 4);
-          encoder.copyBufferToBuffer(bitmasksBuffer, 0, readBitmasks, 0, config.gaussianCount * 4);
+        const frameSamples = [];
+        const runs = [];
+        const warmupEnd = performance.now() + config.warmupSeconds * 1000;
+        while (performance.now() < warmupEnd) await dispatchOnce(false);
+        for (let run = 1; run <= config.requiredRuns; run += 1) {
+          const runSamples = [];
+          const sampleEnd = performance.now() + config.sampleSeconds * 1000;
+          do {
+            const elapsed = await dispatchOnce(false);
+            frameSamples.push(elapsed);
+            runSamples.push(elapsed);
+          } while (performance.now() < sampleEnd || runSamples.length === 0);
+          runs.push({ run, sampleCount: runSamples.length });
         }
-        const started = performance.now();
-        device.queue.submit([encoder.finish()]);
-        await device.queue.onSubmittedWorkDone();
-        return performance.now() - started;
-      };
-
-      const frameSamples = [];
-      const runs = [];
-      const warmupEnd = performance.now() + (config.warmupSeconds * 1000);
-      while (performance.now() < warmupEnd) await dispatchOnce(false);
-      for (let run = 1; run <= config.requiredRuns; run += 1) {
-        const runSamples = [];
-        const sampleEnd = performance.now() + (config.sampleSeconds * 1000);
-        do {
-          const elapsed = await dispatchOnce(false);
-          frameSamples.push(elapsed);
-          runSamples.push(elapsed);
-        } while (performance.now() < sampleEnd || runSamples.length === 0);
-        runs.push({ run, sampleCount: runSamples.length });
+        await dispatchOnce(true);
+        await readDistances.mapAsync(GPUMapMode.READ);
+        await readBitmasks.mapAsync(GPUMapMode.READ);
+        const distanceCopy = new Float32Array(readDistances.getMappedRange().slice(0));
+        const bitmaskCopy = new Uint32Array(readBitmasks.getMappedRange().slice(0));
+        const resultChecksum = checksum(distanceCopy, bitmaskCopy);
+        readDistances.unmap();
+        readBitmasks.unmap();
+        return {
+          status: 'completed',
+          adapterInfo,
+          browserVersion: navigator.userAgent,
+          osVersion: `${navigator.platform}`,
+          frameSamples,
+          runs,
+          checksum: resultChecksum,
+          droppedFrameCount: frameSamples.filter((value) => value > frameBudgetMs).length,
+          notes,
+          failures,
+        };
+      },
+      {
+        shaderSource: shader,
+        config,
+        workgroupSize: WORKGROUP_SIZE,
+        frameBudgetMs: FRAME_BUDGET_MS,
       }
-      await dispatchOnce(true);
-      await readDistances.mapAsync(GPUMapMode.READ);
-      await readBitmasks.mapAsync(GPUMapMode.READ);
-      const distanceCopy = new Float32Array(readDistances.getMappedRange().slice(0));
-      const bitmaskCopy = new Uint32Array(readBitmasks.getMappedRange().slice(0));
-      const resultChecksum = checksum(distanceCopy, bitmaskCopy);
-      readDistances.unmap();
-      readBitmasks.unmap();
-      return {
-        status: 'completed',
-        adapterInfo,
-        browserVersion: navigator.userAgent,
-        osVersion: `${navigator.platform}`,
-        frameSamples,
-        runs,
-        checksum: resultChecksum,
-        droppedFrameCount: frameSamples.filter((value) => value > frameBudgetMs).length,
-        notes,
-        failures,
-      };
-    }, { shaderSource: shader, config, workgroupSize: WORKGROUP_SIZE, frameBudgetMs: FRAME_BUDGET_MS });
+    );
 
     if (result.status !== 'completed') {
       return {

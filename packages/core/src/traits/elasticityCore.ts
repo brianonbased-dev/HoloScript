@@ -37,10 +37,7 @@ export function compileElasticityTraitContext(
     if (p.enabled === false) {
       return { enabled: false, coefficient: 0 };
     }
-    const coef = readNumber(
-      p.coefficient ?? p.restitution ?? p.factor ?? p.bounce_factor,
-      0.5
-    );
+    const coef = readNumber(p.coefficient ?? p.restitution ?? p.factor ?? p.bounce_factor, 0.5);
     const enabled = p.enabled !== false && coef > 0;
     return { enabled, coefficient: enabled ? coef : 0 };
   }
@@ -71,8 +68,7 @@ export function applyElasticCollisionResponse(
 }
 
 export function createElasticityTraitHandler(trait: 'elastic' | 'bounce'): TraitHandler {
-  const defaultConfig: Record<string, unknown> =
-    trait === 'elastic' ? {} : { mode: false };
+  const defaultConfig: Record<string, unknown> = trait === 'elastic' ? {} : { mode: false };
 
   return {
     name: trait,

@@ -14,7 +14,8 @@ import type { IVector3 } from '../network/NetworkTypes';
 // =============================================================================
 
 function toVec3(v: IVector3 | [number, number, number] | unknown): IVector3 {
-  if (Array.isArray(v)) return { x: (v as number[])[0], y: (v as number[])[1], z: (v as number[])[2] };
+  if (Array.isArray(v))
+    return { x: (v as number[])[0], y: (v as number[])[1], z: (v as number[])[2] };
   return v as IVector3;
 }
 

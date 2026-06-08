@@ -22,9 +22,9 @@ function bodyState(id: string, x = 0, y = 0, z = 0): IRigidBodyState {
   return {
     id,
     position: { x, y, z },
-    rotation: [0, 0, 0, 1 ],
-    linearVelocity: [0, 0, 0 ],
-    angularVelocity: [0, 0, 0 ],
+    rotation: [0, 0, 0, 1],
+    linearVelocity: [0, 0, 0],
+    angularVelocity: [0, 0, 0],
     isSleeping: false,
     isActive: true,
   };
@@ -39,8 +39,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       distance: 5,
     };
     cs.addConstraint(c, bodyState('a'), bodyState('b', 5));
@@ -54,8 +54,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       distance: 5,
     };
     cs.addConstraint(c, bodyState('a'), bodyState('b'));
@@ -73,8 +73,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       distance: 5,
     };
     cs.addConstraint(c, a, b);
@@ -91,15 +91,15 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       distance: 5,
     };
     cs.addConstraint(c, a, b);
     const corrections = cs.solve(1 / 60);
     // Warm-start bookkeeping may still create entries, but they should remain zeroed.
-    const aVel = corrections.get('a')?.linearVelocity ?? [0, 0, 0 ];
-    const bVel = corrections.get('b')?.linearVelocity ?? [0, 0, 0 ];
+    const aVel = corrections.get('a')?.linearVelocity ?? [0, 0, 0];
+    const bVel = corrections.get('b')?.linearVelocity ?? [0, 0, 0];
     expect(aVel[0]).toBe(0);
     expect(aVel[1]).toBe(0);
     expect(aVel[2]).toBe(0);
@@ -116,8 +116,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'world',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       distance: 2,
     };
     cs.addConstraint(c, a, null);
@@ -135,8 +135,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'spring',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       restLength: 2,
       stiffness: 100,
       damping: 1,
@@ -156,8 +156,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'fixed',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
     };
     cs.addConstraint(c, a, b);
     const corrections = cs.solve(1 / 60);
@@ -167,16 +167,16 @@ describe('ConstraintSolver — Production', () => {
   it('hinge constraint applies motor angular correction', () => {
     const cs = new ConstraintSolver({ iterations: 5 });
     const a = bodyState('a', 0);
-    a.angularVelocity = [0, 0, 0 ];
+    a.angularVelocity = [0, 0, 0];
     const b = bodyState('b', 2);
     const c: IHingeConstraint = {
       id: 'h1',
       type: 'hinge',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
-      axisA: [0, 1, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
+      axisA: [0, 1, 0],
       motor: { targetVelocity: 4, maxForce: 10 },
     };
     cs.addConstraint(c, a, b);
@@ -191,8 +191,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'ball',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
     };
     cs.addConstraint(c, bodyState('a', 0), bodyState('b', 3, 0, 0));
     const corrections = cs.solve(1 / 60);
@@ -206,9 +206,9 @@ describe('ConstraintSolver — Production', () => {
       type: 'slider',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
-      axisA: [1, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
+      axisA: [1, 0, 0],
       limits: { low: -1, high: 1 },
     };
     cs.addConstraint(c, bodyState('a', 3, 2, 0), bodyState('b', 0, 0, 0));
@@ -219,15 +219,15 @@ describe('ConstraintSolver — Production', () => {
   it('cone constraint applies twist correction when angular velocity exceeds span', () => {
     const cs = new ConstraintSolver({ iterations: 5 });
     const a = bodyState('a', 0);
-    a.angularVelocity = [0, 5, 0 ];
+    a.angularVelocity = [0, 5, 0];
     const c: IConeConstraint = {
       id: 'cone1',
       type: 'cone',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
-      axisA: [0, 1, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
+      axisA: [0, 1, 0],
       swingSpan1: 1,
       swingSpan2: 1,
       twistSpan: 0.5,
@@ -241,10 +241,10 @@ describe('ConstraintSolver — Production', () => {
     const cs = new ConstraintSolver({ iterations: 5 });
     const tupleBodyA: IRigidBodyState = {
       id: 'a',
-      position: [10, 0, 0 ],
-      rotation: [0, 0, 0, 1 ],
-      linearVelocity: [0, 0, 0 ],
-      angularVelocity: [0, 0, 0 ],
+      position: [10, 0, 0],
+      rotation: [0, 0, 0, 1],
+      linearVelocity: [0, 0, 0],
+      angularVelocity: [0, 0, 0],
       isSleeping: false,
       isActive: true,
     };
@@ -253,12 +253,12 @@ describe('ConstraintSolver — Production', () => {
       type: 'generic6dof',
       bodyA: 'a',
       bodyB: 'b',
-      frameA: { position: [0, 0, 0 ], rotation: [0, 0, 0, 1 ] },
-      frameB: { position: [0, 0, 0 ], rotation: [0, 0, 0, 1 ] },
-      linearLowerLimit: [-1, -1, -1 ],
-      linearUpperLimit: [1, 1, 1 ],
-      angularLowerLimit: [-1, -1, -1 ],
-      angularUpperLimit: [1, 1, 1 ],
+      frameA: { position: [0, 0, 0], rotation: [0, 0, 0, 1] },
+      frameB: { position: [0, 0, 0], rotation: [0, 0, 0, 1] },
+      linearLowerLimit: [-1, -1, -1],
+      linearUpperLimit: [1, 1, 1],
+      angularLowerLimit: [-1, -1, -1],
+      angularUpperLimit: [1, 1, 1],
     };
     cs.addConstraint(c, tupleBodyA, bodyState('b', 0, 0, 0));
     const corrections = cs.solve(1 / 60);
@@ -273,8 +273,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       distance: 1,
     };
     cs.addConstraint(c, bodyState('a', 0), bodyState('b', 5));
@@ -293,8 +293,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       distance: 1,
       breakForce: 0.001,
     };
@@ -310,8 +310,8 @@ describe('ConstraintSolver — Production', () => {
       type: 'distance',
       bodyA: 'a',
       bodyB: 'b',
-      pivotA: [0, 0, 0 ],
-      pivotB: [0, 0, 0 ],
+      pivotA: [0, 0, 0],
+      pivotB: [0, 0, 0],
       distance: 1,
       breakForce: 0.001,
     };
@@ -330,8 +330,8 @@ describe('ConstraintSolver — Production', () => {
         type: 'distance',
         bodyA: 'a',
         bodyB: 'b',
-        pivotA: [0, 0, 0 ],
-        pivotB: [0, 0, 0 ],
+        pivotA: [0, 0, 0],
+        pivotB: [0, 0, 0],
         distance: 5,
       } as IDistanceConstraint,
       bodyState('a'),

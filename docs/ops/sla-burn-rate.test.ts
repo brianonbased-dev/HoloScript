@@ -20,7 +20,9 @@ function makeWindow(bad: number, total: number, durationSeconds = 3_600): BurnRa
 
 describe('calculateBurnRate', () => {
   it('returns 0 for zero budget', () => {
-    expect(calculateBurnRate(makeWindow(10, 100), { totalBudget: 0, budgetPeriodSeconds: 1 })).toBe(0);
+    expect(calculateBurnRate(makeWindow(10, 100), { totalBudget: 0, budgetPeriodSeconds: 1 })).toBe(
+      0
+    );
   });
 
   it('returns 0 for zero window duration', () => {
@@ -133,21 +135,13 @@ describe('evaluateBurnRate', () => {
   });
 
   it('includes severity in summary when alerting', () => {
-    const result = evaluateBurnRate(
-      makeWindow(360, 3_600),
-      makeWindow(5, 300, 300),
-      BUDGET
-    );
+    const result = evaluateBurnRate(makeWindow(360, 3_600), makeWindow(5, 300, 300), BUDGET);
     expect(result.summary).toContain('TICKET');
     expect(result.summary).toContain('1h');
   });
 
   it('ok summary is reassuring', () => {
-    const result = evaluateBurnRate(
-      makeWindow(30, 3_600, 3_600),
-      makeWindow(2, 300, 300),
-      BUDGET
-    );
+    const result = evaluateBurnRate(makeWindow(30, 3_600, 3_600), makeWindow(2, 300, 300), BUDGET);
     expect(result.summary).toContain('healthy');
     expect(result.summary).toContain('1440.0h');
   });

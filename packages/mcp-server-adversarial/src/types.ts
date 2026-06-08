@@ -1,12 +1,7 @@
 // Common types shared across all attack PoCs.
 // Spec source: research/paper-21-ati/threat-model.md §3 (capabilities) + §4 (specs).
 
-export type AttackId =
-  | 'whitewasher'
-  | 'sybil'
-  | 'score-manipulator'
-  | 'slow-poisoner'
-  | 'eclipse';
+export type AttackId = 'whitewasher' | 'sybil' | 'score-manipulator' | 'slow-poisoner' | 'eclipse';
 
 // What the attacker observes about the system (per §3 capability matrix).
 // In sandbox mode, the testbed mediates these observations.

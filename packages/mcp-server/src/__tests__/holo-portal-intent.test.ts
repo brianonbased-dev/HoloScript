@@ -28,9 +28,17 @@ describe('matchesZoneGlob', () => {
 });
 
 describe('validatePortalIntent scope ladder', () => {
-  const move: PortalIntent = { kind: 'move', entityId: 'zone:lobby:box', position: { x: 1, y: 0, z: 0 } };
+  const move: PortalIntent = {
+    kind: 'move',
+    entityId: 'zone:lobby:box',
+    position: { x: 1, y: 0, z: 0 },
+  };
   const say: PortalIntent = { kind: 'say', entityId: 'avatar:1', utterance: 'hi' };
-  const look: PortalIntent = { kind: 'look', entityId: 'avatar:1', rotation: { x: 0, y: 1, z: 0, w: 0 } };
+  const look: PortalIntent = {
+    kind: 'look',
+    entityId: 'avatar:1',
+    rotation: { x: 0, y: 1, z: 0, w: 0 },
+  };
 
   it('read-only rejects every mutating intent', () => {
     const p: SpatialPolicy = { defaultScope: 'read-only' };
@@ -42,14 +50,21 @@ describe('validatePortalIntent scope ladder', () => {
   it('mutate-zone allows move/grab on zone-matched ids, denies avatar speech/orientation', () => {
     const p: SpatialPolicy = { defaultScope: 'mutate-zone', mutableZoneGlobs: ['zone:lobby:*'] };
     expect(validatePortalIntent(move, p).allowed).toBe(true);
-    const offZone: PortalIntent = { kind: 'move', entityId: 'zone:vault:safe', position: { x: 0, y: 0, z: 0 } };
+    const offZone: PortalIntent = {
+      kind: 'move',
+      entityId: 'zone:vault:safe',
+      position: { x: 0, y: 0, z: 0 },
+    };
     expect(validatePortalIntent(offZone, p).allowed).toBe(false);
     expect(validatePortalIntent(say, p).allowed).toBe(false);
     expect(validatePortalIntent(look, p).allowed).toBe(false);
   });
 
   it('drive-avatar allows say/look/move and inherits zone rights', () => {
-    const p: SpatialPolicy = { defaultScope: 'drive-avatar', driveAvatar: { allow: true, maxEntities: 1 } };
+    const p: SpatialPolicy = {
+      defaultScope: 'drive-avatar',
+      driveAvatar: { allow: true, maxEntities: 1 },
+    };
     expect(validatePortalIntent(say, p).allowed).toBe(true);
     expect(validatePortalIntent(look, p).allowed).toBe(true);
     expect(validatePortalIntent(move, p).allowed).toBe(true);
@@ -61,7 +76,10 @@ describe('validatePortalIntent scope ladder', () => {
   });
 
   it('enforces drive-avatar maxEntities', () => {
-    const p: SpatialPolicy = { defaultScope: 'drive-avatar', driveAvatar: { allow: true, maxEntities: 2 } };
+    const p: SpatialPolicy = {
+      defaultScope: 'drive-avatar',
+      driveAvatar: { allow: true, maxEntities: 2 },
+    };
     expect(validatePortalIntent(say, p, 'drive-avatar', 1).allowed).toBe(true);
     expect(validatePortalIntent(say, p, 'drive-avatar', 2).allowed).toBe(false);
   });
@@ -72,7 +90,10 @@ describe('validatePortalIntent scope ladder', () => {
   });
 
   it('warn enforcement allows but flags the violation', () => {
-    const p: SpatialPolicy = { defaultScope: 'read-only', enforcement: { onScopeViolation: 'warn' } };
+    const p: SpatialPolicy = {
+      defaultScope: 'read-only',
+      enforcement: { onScopeViolation: 'warn' },
+    };
     const v = validatePortalIntent(move, p);
     expect(v.allowed).toBe(true);
     expect(v.warned).toBe(true);
@@ -86,12 +107,17 @@ describe('validatePortalIntent scope ladder', () => {
 
 describe('intentToDelta', () => {
   it('maps each intent kind to the right payload shape', () => {
-    expect(intentToDelta({ kind: 'move', entityId: 'e', position: { x: 1, y: 2, z: 3 } }, 100).payload)
-      .toEqual({ transform: { position: { x: 1, y: 2, z: 3 } }, updatedAt: 100 });
-    expect(intentToDelta({ kind: 'grab', entityId: 'e', targetId: 't' }, 100).payload)
-      .toEqual({ holding: 't', updatedAt: 100 });
-    expect(intentToDelta({ kind: 'say', entityId: 'e', utterance: 'yo' }, 100).payload)
-      .toEqual({ lastUtterance: 'yo', utteranceTs: 100 });
+    expect(
+      intentToDelta({ kind: 'move', entityId: 'e', position: { x: 1, y: 2, z: 3 } }, 100).payload
+    ).toEqual({ transform: { position: { x: 1, y: 2, z: 3 } }, updatedAt: 100 });
+    expect(intentToDelta({ kind: 'grab', entityId: 'e', targetId: 't' }, 100).payload).toEqual({
+      holding: 't',
+      updatedAt: 100,
+    });
+    expect(intentToDelta({ kind: 'say', entityId: 'e', utterance: 'yo' }, 100).payload).toEqual({
+      lastUtterance: 'yo',
+      utteranceTs: 100,
+    });
   });
 });
 
@@ -414,7 +440,10 @@ describe('HoloGate Loro CRDT 2-agent convergence (task_1779439734598_di6r)', () 
     const entityB = docB.getMap('entities').get('avatar:nested-test') as LoroMap;
 
     // Agent A writes position inside transform
-    entityA.set('transform', JSON.stringify({ position: { x: 5, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } }));
+    entityA.set(
+      'transform',
+      JSON.stringify({ position: { x: 5, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } })
+    );
     docA.commit();
 
     // Agent B writes a different top-level field (health) without touching transform
@@ -432,7 +461,10 @@ describe('HoloGate Loro CRDT 2-agent convergence (task_1779439734598_di6r)', () 
     const stateB = readEntityFromLoroDoc(docB, 'avatar:nested-test');
 
     expect(stateA).toEqual(stateB);
-    expect(stateA.transform).toEqual({ position: { x: 5, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } });
+    expect(stateA.transform).toEqual({
+      position: { x: 5, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+    });
     expect(stateA.health).toEqual({ hp: 100, shield: 50 });
   });
 

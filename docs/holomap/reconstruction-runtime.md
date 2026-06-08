@@ -1,18 +1,18 @@
 # HoloMap reconstruction runtime — code map and doc deltas
 
-**Purpose:** Help engineers find **runtime entry points** and keep **docs in sync** when reconstruction code moves. Supports board hygiene *reconstruction runtime + doc deltas*.
+**Purpose:** Help engineers find **runtime entry points** and keep **docs in sync** when reconstruction code moves. Supports board hygiene _reconstruction runtime + doc deltas_.
 
 ## Code map
 
-| Area | Location | Notes |
-|------|----------|--------|
-| Core reconstruction engine | `packages/core/src/reconstruction/` | WGSL, runtime, manifests |
-| RFC / protocol | `packages/core/src/reconstruction/RFC-HoloMap.md` | Tool names, manifest version |
-| HoloMap package (profiles, UX helpers) | `packages/holomap/` | Non-core surfaces per [CHARTER.md](./CHARTER.md) |
-| MCP tool surface | `packages/mcp-server/src/holomap-mcp-tools.ts` | Public agent API |
-| Session orchestration | `packages/mcp-server/src/holo-reconstruct-sessions.ts` | Bridges MCP ↔ runtime |
-| Video fetch / limits | `packages/mcp-server/src/holo-video-ingest.ts` | `HOLOMAP_MCP_*` env |
-| Vertical weight variants (RFC Q2) | [VERTICAL_WEIGHT_VARIANTS.md](./VERTICAL_WEIGHT_VARIANTS.md), `HoloMapConfig.verticalProfile` | Specialist checkpoints vs generalist; replay fingerprint |
+| Area                                   | Location                                                                                      | Notes                                                    |
+| -------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Core reconstruction engine             | `packages/core/src/reconstruction/`                                                           | WGSL, runtime, manifests                                 |
+| RFC / protocol                         | `packages/core/src/reconstruction/RFC-HoloMap.md`                                             | Tool names, manifest version                             |
+| HoloMap package (profiles, UX helpers) | `packages/holomap/`                                                                           | Non-core surfaces per [CHARTER.md](./CHARTER.md)         |
+| MCP tool surface                       | `packages/mcp-server/src/holomap-mcp-tools.ts`                                                | Public agent API                                         |
+| Session orchestration                  | `packages/mcp-server/src/holo-reconstruct-sessions.ts`                                        | Bridges MCP ↔ runtime                                    |
+| Video fetch / limits                   | `packages/mcp-server/src/holo-video-ingest.ts`                                                | `HOLOMAP_MCP_*` env                                      |
+| Vertical weight variants (RFC Q2)      | [VERTICAL_WEIGHT_VARIANTS.md](./VERTICAL_WEIGHT_VARIANTS.md), `HoloMapConfig.verticalProfile` | Specialist checkpoints vs generalist; replay fingerprint |
 
 ## When you change runtime behavior
 

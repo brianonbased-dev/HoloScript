@@ -140,9 +140,7 @@ export default function TeamsDiscoveryPage() {
   return (
     <div className="p-8 max-w-[920px] mx-auto text-studio-text">
       {/* Header */}
-      <div
-        className="flex items-center gap-3 mb-2"
-      >
+      <div className="flex items-center gap-3 mb-2">
         <Link
           href="/agents/me?tab=dashboard"
           style={{
@@ -259,11 +257,7 @@ export default function TeamsDiscoveryPage() {
       </div>
 
       {/* States */}
-      {loading && (
-        <div className="text-center p-12 text-studio-muted">
-          Loading teams...
-        </div>
-      )}
+      {loading && <div className="text-center p-12 text-studio-muted">Loading teams...</div>}
 
       {!loading && error && (
         <div

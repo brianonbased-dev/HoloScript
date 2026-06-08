@@ -82,11 +82,7 @@ function toObject(v: Vec3): { x: number; y: number; z: number } {
 function vec3Equal(a: Vec3, b: Vec3): boolean {
   const [ax, ay, az] = toTuple(a);
   const [bx, by, bz] = toTuple(b);
-  return (
-    Math.abs(ax - bx) < EPSILON &&
-    Math.abs(ay - by) < EPSILON &&
-    Math.abs(az - bz) < EPSILON
-  );
+  return Math.abs(ax - bx) < EPSILON && Math.abs(ay - by) < EPSILON && Math.abs(az - bz) < EPSILON;
 }
 
 /**
@@ -308,4 +304,3 @@ export function networkQuality(
   if (rttMs < 500) return 'poor';
   return 'disconnected';
 }
-

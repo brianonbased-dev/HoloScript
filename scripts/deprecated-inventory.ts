@@ -6,11 +6,18 @@ function buildDeprecatedInventory(targetDir: string, rootDir: string) {
   if (!fs.existsSync(targetDir)) {
     console.warn(`⚠️ Warning: Provided target directory does not exist: ${targetDir}`);
     // Output empty inventory
-    fs.writeFileSync('deprecated-symbol-inventory.json', JSON.stringify({
-      targetDir,
-      totalSymbols: 0,
-      inventory: []
-    }, null, 2));
+    fs.writeFileSync(
+      'deprecated-symbol-inventory.json',
+      JSON.stringify(
+        {
+          targetDir,
+          totalSymbols: 0,
+          inventory: [],
+        },
+        null,
+        2
+      )
+    );
     return;
   }
 
@@ -48,9 +55,9 @@ function buildDeprecatedInventory(targetDir: string, rootDir: string) {
   const program = ts.createProgram(projectFiles, {
     target: ts.ScriptTarget.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Node10,
-    allowJs: true
+    allowJs: true,
   });
-  
+
   const checker = program.getTypeChecker();
   const inventory: any[] = [];
 
@@ -64,20 +71,20 @@ function buildDeprecatedInventory(targetDir: string, rootDir: string) {
     if (!symbol) continue;
 
     const exportedSymbols = checker.getExportsOfModule(symbol);
-    
+
     for (const expSymbol of exportedSymbols) {
       const symbolName = expSymbol.getName();
       // Normally we would use LanguageService to find references, but it's very heavy.
       // For this script, we're building the inventory skeleton.
       // DYNAMIC check means using string grep across projectFiles (omitted for speed).
-      
+
       inventory.push({
         symbolName,
         filePath: file,
         classification: 'DEAD', // Assuming DEAD until proven REFERENCED by the LanguageService
         importerCount: 0,
         importerFiles: [],
-        suggestedReplacement: null
+        suggestedReplacement: null,
       });
     }
   }
@@ -85,14 +92,18 @@ function buildDeprecatedInventory(targetDir: string, rootDir: string) {
   const result = {
     targetDir,
     totalSymbols: inventory.length,
-    inventory
+    inventory,
   };
 
   fs.writeFileSync('deprecated-symbol-inventory.json', JSON.stringify(result, null, 2));
-  console.log(`✅ Saved deprecated-symbol-inventory.json with ${inventory.length} symbols tracked.`);
+  console.log(
+    `✅ Saved deprecated-symbol-inventory.json with ${inventory.length} symbols tracked.`
+  );
 }
 
-const targetPath = process.argv[2] ? path.resolve(process.cwd(), process.argv[2]) : path.resolve(process.cwd(), 'packages/core/src/deprecated');
+const targetPath = process.argv[2]
+  ? path.resolve(process.cwd(), process.argv[2])
+  : path.resolve(process.cwd(), 'packages/core/src/deprecated');
 const monorepoRoot = process.cwd();
 
 buildDeprecatedInventory(targetPath, monorepoRoot);

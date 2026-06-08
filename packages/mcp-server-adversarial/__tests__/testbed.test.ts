@@ -50,8 +50,7 @@ describe('seedLegit', () => {
   it('emits a manifest with all servers', () => {
     const manifest = seedLegit();
     expect(manifest.servers.length).toBe(
-      DEFAULT_TOPOLOGY.legitimateServers.length +
-        DEFAULT_TOPOLOGY.adversarialServers.length
+      DEFAULT_TOPOLOGY.legitimateServers.length + DEFAULT_TOPOLOGY.adversarialServers.length
     );
     expect(manifest.sandboxId).toBe(DEFAULT_TOPOLOGY.sandboxId);
     expect(manifest.networkName).toBe(DEFAULT_TOPOLOGY.networkName);

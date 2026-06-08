@@ -24,17 +24,17 @@
  *   HOLO_PERF_REGRESSION_REPO_ROOT — override repo root (used in tests)
  */
 
-import { writeFileSync, mkdirSync, existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { writeFileSync, mkdirSync, existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(
-  process.env.HOLO_PERF_REGRESSION_REPO_ROOT || resolve(__dirname, "..", "..", ".."),
+  process.env.HOLO_PERF_REGRESSION_REPO_ROOT || resolve(__dirname, '..', '..', '..')
 );
 
-const SCENARIO_ID = "08-wasm-parser-throughput";
-const PLATFORM = "wasm-rust";
+const SCENARIO_ID = '08-wasm-parser-throughput';
+const PLATFORM = 'wasm-rust';
 
 /**
  * Generate .holo source strings of varying sizes.
@@ -54,14 +54,14 @@ function generateSources() {
 
   let i = 0;
   for (const targetSize of targetSizes) {
-    let src = header.replace("{n}", i) + baseTemplate;
+    let src = header.replace('{n}', i) + baseTemplate;
     let entityIdx = 0;
     while (src.length + footer.length < targetSize) {
       const entry = baseObj
-        .replace("{i}", entityIdx)
-        .replace("{x}", (entityIdx * 2).toFixed(1))
-        .replace("{y}", "0.0")
-        .replace("{z}", (entityIdx * -1.5).toFixed(1));
+        .replace('{i}', entityIdx)
+        .replace('{x}', (entityIdx * 2).toFixed(1))
+        .replace('{y}', '0.0')
+        .replace('{z}', (entityIdx * -1.5).toFixed(1));
       src += entry;
       entityIdx++;
     }
@@ -71,16 +71,16 @@ function generateSources() {
   }
 
   // Also try to pick up any .holo files from the benchmarks/scenarios directory
-  const scenariosDir = join(REPO_ROOT, "benchmarks", "scenarios");
+  const scenariosDir = join(REPO_ROOT, 'benchmarks', 'scenarios');
   try {
     const scenarioDirs = readdirSync(scenariosDir, { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => join(scenariosDir, d.name));
     for (const dir of scenarioDirs) {
       try {
-        const files = readdirSync(dir).filter((f) => f.endsWith(".holo"));
+        const files = readdirSync(dir).filter((f) => f.endsWith('.holo'));
         for (const f of files) {
-          const content = readFileSync(join(dir, f), "utf-8");
+          const content = readFileSync(join(dir, f), 'utf-8');
           if (content.length >= 128) sources.push(content);
         }
       } catch {
@@ -101,26 +101,34 @@ function todayIso() {
 async function main() {
   console.log(`[08-wasm-parser-throughput] loading WASM compiler`);
 
-  const wasmPath = join(REPO_ROOT, "packages", "compiler-wasm", "pkg-node", "holoscript_wasm.js");
+  const wasmPath = join(REPO_ROOT, 'packages', 'compiler-wasm', 'pkg-node', 'holoscript_wasm.js');
 
   let wasmMod = null;
   try {
-    if (!existsSync(wasmPath)) throw new Error("pkg-node/holoscript_wasm.js not found — run wasm-pack in packages/compiler-wasm");
+    if (!existsSync(wasmPath))
+      throw new Error(
+        'pkg-node/holoscript_wasm.js not found — run wasm-pack in packages/compiler-wasm'
+      );
     wasmMod = await import(wasmPath);
-    if (typeof wasmMod.init === "function") {
+    if (typeof wasmMod.init === 'function') {
       wasmMod.init();
     }
-    if (typeof wasmMod.parse !== "function") throw new Error("parse() not exported from WASM module");
+    if (typeof wasmMod.parse !== 'function')
+      throw new Error('parse() not exported from WASM module');
     // Warm up
     wasmMod.parse(`composition "warmup" {}`);
-    console.log(`[08-wasm-parser-throughput] WASM loaded, version=${wasmMod.version?.() ?? "unknown"}`);
+    console.log(
+      `[08-wasm-parser-throughput] WASM loaded, version=${wasmMod.version?.() ?? 'unknown'}`
+    );
   } catch (err) {
     console.warn(`[08-wasm-parser-throughput] WASM unavailable: ${err.message}`);
     wasmMod = null;
   }
 
   const sources = generateSources();
-  console.log(`[08-wasm-parser-throughput] sources=${sources.length} total=${(sources.reduce((s, x) => s + x.length, 0) / 1024).toFixed(1)}KB`);
+  console.log(
+    `[08-wasm-parser-throughput] sources=${sources.length} total=${(sources.reduce((s, x) => s + x.length, 0) / 1024).toFixed(1)}KB`
+  );
 
   let success = false;
   let mbPerSec = 0;
@@ -153,14 +161,14 @@ async function main() {
 
   if (!success) {
     console.warn(
-      "[08-wasm-parser-throughput] recording success:false. " +
-        "Run `wasm-pack build --target nodejs` in packages/compiler-wasm to enable.",
+      '[08-wasm-parser-throughput] recording success:false. ' +
+        'Run `wasm-pack build --target nodejs` in packages/compiler-wasm to enable.'
     );
   }
 
   const result = { platform: PLATFORM, mbPerSec, parseTimeMs, success };
   console.log(
-    `[08-wasm-parser-throughput] mbPerSec=${mbPerSec} parseTimeMs=${parseTimeMs} success=${success}`,
+    `[08-wasm-parser-throughput] mbPerSec=${mbPerSec} parseTimeMs=${parseTimeMs} success=${success}`
   );
 
   const output = {
@@ -174,14 +182,14 @@ async function main() {
   };
 
   const date = todayIso();
-  const outDir = join(REPO_ROOT, "benchmarks", "results", date);
+  const outDir = join(REPO_ROOT, 'benchmarks', 'results', date);
   mkdirSync(outDir, { recursive: true });
   const outPath = join(outDir, `${SCENARIO_ID}.json`);
-  writeFileSync(outPath, JSON.stringify(output, null, 2) + "\n", "utf-8");
+  writeFileSync(outPath, JSON.stringify(output, null, 2) + '\n', 'utf-8');
   console.log(`[08-wasm-parser-throughput] wrote results → ${outPath}`);
 }
 
 main().catch((err) => {
-  console.error("[08-wasm-parser-throughput] fatal:", err);
+  console.error('[08-wasm-parser-throughput] fatal:', err);
   process.exit(2);
 });

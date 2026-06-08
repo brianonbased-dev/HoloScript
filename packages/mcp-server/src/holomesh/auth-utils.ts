@@ -14,7 +14,12 @@ export type ResolvedCaller = {
   isFounder: boolean;
 };
 
-const BEARER_CAPABILITIES: readonly HoloMeshBearerCapability[] = ['read', 'message', 'claim', 'sign'];
+const BEARER_CAPABILITIES: readonly HoloMeshBearerCapability[] = [
+  'read',
+  'message',
+  'claim',
+  'sign',
+];
 
 export function normalizeBearerSurface(value: unknown): HoloMeshBearerSurface | undefined {
   if (typeof value !== 'string') return undefined;
@@ -23,7 +28,12 @@ export function normalizeBearerSurface(value: unknown): HoloMeshBearerSurface | 
   if (surface === 'mobile' || surface === 'phone' || surface === 'ios' || surface === 'android') {
     return 'mobile';
   }
-  if (surface === 'desktop' || surface === 'claude-code' || surface === 'cursor' || surface === 'vscode') {
+  if (
+    surface === 'desktop' ||
+    surface === 'claude-code' ||
+    surface === 'cursor' ||
+    surface === 'vscode'
+  ) {
     return 'desktop';
   }
   if (surface === 'headless' || surface === 'daemon' || surface === 'ci' || surface === 'server') {
@@ -182,8 +192,7 @@ export function resolveRequestingAgent(
       return { authenticated: false, id: 'anonymous', name: 'anonymous', isFounder: false };
     }
     // Prefer an existing RegisteredAgent entry for soft-compatibility with social features
-    const baseAgent: RegisteredAgent =
-      agentKeyStore.get(token) ||
+    const baseAgent: RegisteredAgent = agentKeyStore.get(token) ||
       walletToAgent.get(record.walletAddress.toLowerCase()) || {
         id: record.agentId,
         apiKey: token,

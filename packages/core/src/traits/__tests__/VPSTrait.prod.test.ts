@@ -36,7 +36,7 @@ function fire(node: any, cfg: any, ctx: any, evt: Record<string, unknown>) {
 
 const POSE = {
   position: [1, 2, 3],
-  rotation: [0, 0.707, 0, 0.707 ],
+  rotation: [0, 0.707, 0, 0.707],
 };
 
 // ─── defaultConfig ────────────────────────────────────────────────────────────
@@ -156,7 +156,7 @@ describe('VPSTrait — onUpdate', () => {
     const node = {
       ...makeNode(),
       position: [0, 0, 0],
-      rotation: [0, 0, 0, 0 ],
+      rotation: [0, 0, 0, 0],
     };
     const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false });
     st(node).state = 'tracking';
@@ -189,7 +189,7 @@ describe('VPSTrait — onUpdate', () => {
     const node = {
       ...makeNode(),
       position: [0, 0, 0],
-      rotation: [0, 0, 0, 0 ],
+      rotation: [0, 0, 0, 0],
     };
     const { cfg, ctx } = attach(node, { coverage_check: false, auto_localize: false });
     st(node).state = 'tracking';

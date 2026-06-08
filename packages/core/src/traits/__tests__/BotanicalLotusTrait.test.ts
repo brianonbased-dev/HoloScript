@@ -454,7 +454,12 @@ describe('BotanicalLotusTrait — procedural texture generation (three-free)', (
   });
 
   it('encodes a valid tangent-space normal — blue (z) dominant, alpha opaque', () => {
-    const tex = generateBotanicalNormalMap({ pattern: 'stalk_fiber', size: 48, seed: 3, strength: 1.5 });
+    const tex = generateBotanicalNormalMap({
+      pattern: 'stalk_fiber',
+      size: 48,
+      seed: 3,
+      strength: 1.5,
+    });
     let blueGreaterThanHalf = 0;
     for (let i = 0; i < tex.data.length; i += 4) {
       if (tex.data[i + 2] >= 128) blueGreaterThanHalf += 1;
@@ -713,7 +718,12 @@ describe('BotanicalLotusTrait — reaction-diffusion morphogen (real Turing PDE,
 
 describe('BotanicalLotusTrait — 2-D morphogen (seed-pod carpel spacing, real Turing spots)', () => {
   it('self-organizes evenly-spaced activator spots on the disk from near-uniform start', () => {
-    const field = createLotusMorphogen2D({ size: 40, diffusionRatio: 40, gamma: 1600, seed: 0xdead });
+    const field = createLotusMorphogen2D({
+      size: 40,
+      diffusionRatio: 40,
+      gamma: 1600,
+      seed: 0xdead,
+    });
     // Field is masked to the inscribed disk; some cells are outside.
     const inside = field.mask.reduce((s, m) => s + m, 0);
     expect(inside).toBeGreaterThan(0);
@@ -794,7 +804,9 @@ describe('BotanicalLotusTrait — turgor-coupled petal (biophysical unfurl, not 
       stepLotusPetalTurgor(flaccid, 0.02, 1);
     }
     // With growth fully saying "open", the turgid petal realizes it faster than the flaccid one.
-    expect(lotusPetalTurgorOpenProgress(turgid)).toBeGreaterThan(lotusPetalTurgorOpenProgress(flaccid));
+    expect(lotusPetalTurgorOpenProgress(turgid)).toBeGreaterThan(
+      lotusPetalTurgorOpenProgress(flaccid)
+    );
   });
 
   it('is deterministic', () => {

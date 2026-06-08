@@ -1,7 +1,20 @@
 export * from './frame2d';
-export { createStructuralAnalysisHandler, type StructuralAnalysisConfig, type StructureType, type MaterialType } from './traits/StructuralAnalysisTrait';
-export { createLoadBearingHandler, type LoadBearingConfig, type LoadCase, type LoadType } from './traits/LoadBearingTrait';
-export { createMaterialFatigueHandler, type MaterialFatigueConfig } from './traits/MaterialFatigueTrait';
+export {
+  createStructuralAnalysisHandler,
+  type StructuralAnalysisConfig,
+  type StructureType,
+  type MaterialType,
+} from './traits/StructuralAnalysisTrait';
+export {
+  createLoadBearingHandler,
+  type LoadBearingConfig,
+  type LoadCase,
+  type LoadType,
+} from './traits/LoadBearingTrait';
+export {
+  createMaterialFatigueHandler,
+  type MaterialFatigueConfig,
+} from './traits/MaterialFatigueTrait';
 export * from './traits/types';
 
 import { createStructuralAnalysisHandler } from './traits/StructuralAnalysisTrait';
@@ -10,8 +23,16 @@ import { createMaterialFatigueHandler } from './traits/MaterialFatigueTrait';
 
 export * from './frame2d';
 
-export const pluginMeta = { name: '@holoscript/plugin-civil-engineering', version: '1.0.0', traits: ['structural_analysis', 'load_bearing', 'material_fatigue', 'dsm_frame_2d'] };
-export const traitHandlers = [createStructuralAnalysisHandler(), createLoadBearingHandler(), createMaterialFatigueHandler()];
+export const pluginMeta = {
+  name: '@holoscript/plugin-civil-engineering',
+  version: '1.0.0',
+  traits: ['structural_analysis', 'load_bearing', 'material_fatigue', 'dsm_frame_2d'],
+};
+export const traitHandlers = [
+  createStructuralAnalysisHandler(),
+  createLoadBearingHandler(),
+  createMaterialFatigueHandler(),
+];
 
 // Runtime integration — behavioral trait handler + registrar that wire the
 // deterministic Direct-Stiffness-Method 2D frame solver into HoloScriptRuntime's

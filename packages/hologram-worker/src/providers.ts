@@ -41,7 +41,7 @@ export class WorkerHologramCoordinator {
       this.raster.pngPath,
       this.raster.width,
       this.raster.height,
-      sourceKind,
+      sourceKind
     );
     const backendLabel =
       inf.backend === 'onnxruntime-node' ? 'onnxruntime-node' : 'luminance-proxy';
@@ -100,7 +100,7 @@ export class WorkerHologramCoordinator {
   }
 
   private async parallaxEncode(
-    input: Parameters<ParallaxEncoder['encode']>[0],
+    input: Parameters<ParallaxEncoder['encode']>[0]
   ): Promise<Uint8Array> {
     const art = await this.ensureBrowserArtifacts({
       depthMap: input.depthMap,

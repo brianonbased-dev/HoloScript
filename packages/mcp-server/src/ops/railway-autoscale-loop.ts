@@ -5,17 +5,16 @@
 import { AutoScalingLoop, type ScalingPolicy } from './pipeline.js';
 import { RailwayReplicaScaler } from './railway-replica-scaler.js';
 
-export type ScalingEvent =
-  | {
-      type: 'ScalingEvent';
-      phase: 'tick' | 'apply' | 'skip' | 'error';
-      utilization?: number;
-      currentReplicas?: number;
-      desiredReplicas?: number;
-      sessions?: number;
-      message?: string;
-      ts: string;
-    };
+export type ScalingEvent = {
+  type: 'ScalingEvent';
+  phase: 'tick' | 'apply' | 'skip' | 'error';
+  utilization?: number;
+  currentReplicas?: number;
+  desiredReplicas?: number;
+  sessions?: number;
+  message?: string;
+  ts: string;
+};
 
 function logScalingEvent(ev: ScalingEvent): void {
   console.info(JSON.stringify(ev));

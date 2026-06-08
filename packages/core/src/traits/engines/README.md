@@ -13,22 +13,23 @@ now, callers must know which contract they're using.
 
 ## Contracts at a glance
 
-| Engine | Shape | Lifecycle | Mutation model |
-|--------|-------|-----------|----------------|
-| `motion-matching` | Class + factory + free helpers | `load()` / `infer()` / `dispose()` | Pure — returns new result per call |
-| `cloth-verlet` | Free functions + state interfaces | None — caller owns state lifecycle | In-place — mutates Float32Array buffers |
-| `onnx-adapter` | Class + factory | `load(url)` / `run(req)` / `dispose()` | Pure — returns new tensors per call |
+| Engine            | Shape                             | Lifecycle                              | Mutation model                          |
+| ----------------- | --------------------------------- | -------------------------------------- | --------------------------------------- |
+| `motion-matching` | Class + factory + free helpers    | `load()` / `infer()` / `dispose()`     | Pure — returns new result per call      |
+| `cloth-verlet`    | Free functions + state interfaces | None — caller owns state lifecycle     | In-place — mutates Float32Array buffers |
+| `onnx-adapter`    | Class + factory                   | `load(url)` / `run(req)` / `dispose()` | Pure — returns new tensors per call     |
 
 Plus one schema + one synthetic engine:
 
-| File | Purpose |
-|------|---------|
-| `motion-data-schema.ts` | Type definitions + validators for motion training/inference data (no engine; types only) |
-| `synthetic-walk-cycle.ts` | Procedural `MotionMatchingEngine` impl — biped walk gait, no NN |
+| File                      | Purpose                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| `motion-data-schema.ts`   | Type definitions + validators for motion training/inference data (no engine; types only) |
+| `synthetic-walk-cycle.ts` | Procedural `MotionMatchingEngine` impl — biped walk gait, no NN                          |
 
 ## When to use which
 
 ### `motion-matching.ts` — `MotionMatchingEngine`
+
 Use when implementing a NEURAL motion engine (Phase-Functioned NN, NSM, DeepPhase). Class with async load + sync infer. Dispatches on phase + velocity + terrain inputs and produces pose + trajectory + contact + gait + kineticEnergyProxy.
 
 ```ts
@@ -42,6 +43,7 @@ Synthetic fallback: `SyntheticWalkCycleEngine` (procedural biped walk).
 Real-NN backends slot in here per /founder ruling 2026-04-26 (primary-literature reimplement).
 
 ### `cloth-verlet.ts` — Free functions + `ClothVerletState`
+
 Use when implementing cloth simulation. Pure math operating in-place on
 caller-owned `Float32Array` position buffers. Caller manages allocation
 and lifecycle. No class, no async, no events.
@@ -60,6 +62,7 @@ v0.182.0 keeps `array` as a reference but a future copy-on-mutate change
 would break this. See /critic batch-6 Serious #6 for runtime-test guidance.
 
 ### `onnx-adapter.ts` — `InferenceAdapter`
+
 Use when wrapping an external ML inference backend (ONNX Runtime Web/Node,
 WebLLM, transformers.js). Class with async load + async run + dispose.
 Dispatches named tensor inputs and produces named tensor outputs.
@@ -71,6 +74,7 @@ const response = await adapter.run({ inputs: { x: tensor }, outputs: ['y'] });
 ```
 
 Adapters:
+
 - `PureJsInferenceAdapter` (**default for `OnnxMotionMatchingEngine`**) — runs a
   REAL Phase-Functioned NN forward pass via `pfnn-network.ts` (real dense layers,
   ELU, phase-blended weights). Synchronous (`runSync`), no native dep, fully
@@ -89,6 +93,7 @@ The pure-JS and ONNX paths agree numerically to float32 epsilon (parity test in
 `pnpm provision:motion-model` (verify with `pnpm provision:motion-model:verify`).
 
 ### `pfnn-network.ts` — `PfnnNetwork`
+
 The real Phase-Functioned NN forward pass, fresh-authored from Holden 2017
 (SIGGRAPH) — four control-point weight banks cyclically blended by locomotion
 phase via a cubic Catmull-Rom spline, then a 2-hidden-layer ELU MLP. Weights are
@@ -115,6 +120,7 @@ real NN) OR maximum-common (async everything — overkill for cloth).
 ## When to add a new engine
 
 Per the per-trait wrapper pattern (RULING 2), new engines arrive when:
+
 1. A trait does meaningful math that runs in BOTH AST-side declaration
    (for compilers/tooling) AND THREE.js-side runtime (for scene rendering).
 2. The math is **pure** (or pure-with-state-buffer) — no THREE/PhysicsWorld
@@ -123,6 +129,7 @@ Per the per-trait wrapper pattern (RULING 2), new engines arrive when:
    to extract.
 
 Bad signals — DON'T extract:
+
 - Trait emits events into the void (Pattern E — fix the consumer first, /critic
   batch-6 Critical #1).
 - Math depends on `THREE.Object3D`/`PhysicsWorld` directly (engine should
@@ -131,13 +138,13 @@ Bad signals — DON'T extract:
 
 ## Status (2026-04-27)
 
-| Engine | Used by core/traits | Used by runtime/traits | Tested |
-|--------|---------------------|------------------------|--------|
-| `motion-matching` | `NeuralAnimationTrait.ts` | `NeuralAnimationHandler.ts` | ✓ 49 tests |
-| `synthetic-walk-cycle` | (via NeuralAnimationTrait config) | (via NeuralAnimationHandler default) | ✓ 12 tests |
-| `cloth-verlet` | (NOT YET — `core/traits/ClothTrait.ts` is a deprecated stub) | `PhysicsTraits.ts` ClothTrait | ✓ 13 tests |
-| `onnx-adapter` | `OnnxRuntimeTrait.ts` (NoOp default) | (NOT YET — no runtime consumer) | ✓ 13 tests |
-| `motion-data-schema` | (validators imported by training pipelines) | n/a | ✓ schema validators tested |
+| Engine                 | Used by core/traits                                          | Used by runtime/traits               | Tested                     |
+| ---------------------- | ------------------------------------------------------------ | ------------------------------------ | -------------------------- |
+| `motion-matching`      | `NeuralAnimationTrait.ts`                                    | `NeuralAnimationHandler.ts`          | ✓ 49 tests                 |
+| `synthetic-walk-cycle` | (via NeuralAnimationTrait config)                            | (via NeuralAnimationHandler default) | ✓ 12 tests                 |
+| `cloth-verlet`         | (NOT YET — `core/traits/ClothTrait.ts` is a deprecated stub) | `PhysicsTraits.ts` ClothTrait        | ✓ 13 tests                 |
+| `onnx-adapter`         | `OnnxRuntimeTrait.ts` (NoOp default)                         | (NOT YET — no runtime consumer)      | ✓ 13 tests                 |
+| `motion-data-schema`   | (validators imported by training pipelines)                  | n/a                                  | ✓ schema validators tested |
 
 The two "NOT YET" cells are tracked Pattern E gaps — see board tasks
 `task_1777275964528_dz5e` (Studio LocomotionDemoPanel — closes the

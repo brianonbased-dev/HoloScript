@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-interactive-story",
-  name: "Interactive Story",
-  description: "Branching narrative scene with choice points and atmosphere",
-  thumbnail: "📖",
-  tags: ["web","story","narrative","interactive"],
-  category: "web",
+  id: 'wizard-interactive-story',
+  name: 'Interactive Story',
+  description: 'Branching narrative scene with choice points and atmosphere',
+  thumbnail: '📖',
+  tags: ['web', 'story', 'narrative', 'interactive'],
+  category: 'web',
   code: `composition "Interactive Story" {
   environment {
     skybox: "night"
@@ -78,7 +78,7 @@ export const template: SceneTemplate = {
       easing: "easeInOut"
     }
   }
-}`
+}`,
 };
 
 export default template;

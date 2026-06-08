@@ -29,20 +29,20 @@ describe('patternGrading', () => {
 
   it('base size measurements equal base values', () => {
     const r = patternGrading(rules, sizes, baseSizeIndex);
-    const base = r.sizes.find(s => s.size === 'M')!;
+    const base = r.sizes.find((s) => s.size === 'M')!;
     expect(base.measurements['chest']).toBe(88);
     expect(base.measurements['waist']).toBe(68);
   });
 
   it('next size up = base + increment', () => {
     const r = patternGrading(rules, sizes, baseSizeIndex);
-    const large = r.sizes.find(s => s.size === 'L')!;
+    const large = r.sizes.find((s) => s.size === 'L')!;
     expect(large.measurements['chest']).toBeCloseTo(88 + 4, 1);
   });
 
   it('next size down = base − increment', () => {
     const r = patternGrading(rules, sizes, baseSizeIndex);
-    const small = r.sizes.find(s => s.size === 'S')!;
+    const small = r.sizes.find((s) => s.size === 'S')!;
     expect(small.measurements['chest']).toBeCloseTo(88 - 4, 1);
   });
 
@@ -70,13 +70,13 @@ describe('patternGrading', () => {
 describe('fabricWasteEstimator', () => {
   const pieces = [
     { name: 'front', widthCm: 60, heightCm: 80, quantity: 2 },
-    { name: 'back',  widthCm: 55, heightCm: 80, quantity: 2 },
-    { name: 'sleeve',widthCm: 40, heightCm: 60, quantity: 2 },
+    { name: 'back', widthCm: 55, heightCm: 80, quantity: 2 },
+    { name: 'sleeve', widthCm: 40, heightCm: 60, quantity: 2 },
   ];
 
   it('nestingEfficiency matches input factor', () => {
-    const r = fabricWasteEstimator(pieces, 150, 0.80);
-    expect(r.nestingEfficiency).toBeCloseTo(0.80, 4);
+    const r = fabricWasteEstimator(pieces, 150, 0.8);
+    expect(r.nestingEfficiency).toBeCloseTo(0.8, 4);
   });
 
   it('wastePct = 1 − nestingEfficiency', () => {
@@ -85,8 +85,8 @@ describe('fabricWasteEstimator', () => {
   });
 
   it('fabricAreaCm2 = totalPieceAreaCm2 / efficiency', () => {
-    const r = fabricWasteEstimator(pieces, 150, 0.80);
-    expect(r.fabricAreaCm2).toBeCloseTo(r.totalPieceAreaCm2 / 0.80, 2);
+    const r = fabricWasteEstimator(pieces, 150, 0.8);
+    expect(r.fabricAreaCm2).toBeCloseTo(r.totalPieceAreaCm2 / 0.8, 2);
   });
 
   it('totalPieceAreaCm2 = sum of width × height × qty', () => {
@@ -168,13 +168,19 @@ describe('trendMomentum', () => {
   });
 
   it('velocity > 0', () => {
-    const periods = [{ period: 'A', unitsSold: 100 }, { period: 'B', unitsSold: 150 }];
+    const periods = [
+      { period: 'A', unitsSold: 100 },
+      { period: 'B', unitsSold: 150 },
+    ];
     const r = trendMomentum(periods);
     expect(r.velocity).toBeGreaterThan(0);
   });
 
   it('projectedNextPeriod ≥ 0', () => {
-    const periods = [{ period: 'A', unitsSold: 50 }, { period: 'B', unitsSold: 60 }];
+    const periods = [
+      { period: 'A', unitsSold: 50 },
+      { period: 'B', unitsSold: 60 },
+    ];
     const r = trendMomentum(periods);
     expect(r.projectedNextPeriod).toBeGreaterThanOrEqual(0);
   });
@@ -215,7 +221,8 @@ describe('buildFashionReceipt', () => {
   it('accepted=true for efficient nesting', () => {
     const fabricWaste = fabricWasteEstimator(
       [{ name: 'front', widthCm: 50, heightCm: 60, quantity: 2 }],
-      150, 0.85, // 15% waste < 25%
+      150,
+      0.85 // 15% waste < 25%
     );
     const receipt = buildFashionReceipt({ fabricWaste, converged: true });
     expect(receipt.acceptance.accepted).toBe(true);
@@ -224,7 +231,8 @@ describe('buildFashionReceipt', () => {
   it('accepted=false for high fabric waste', () => {
     const fabricWaste = fabricWasteEstimator(
       [{ name: 'front', widthCm: 50, heightCm: 60, quantity: 2 }],
-      150, 0.70, // 30% waste > 25%
+      150,
+      0.7 // 30% waste > 25%
     );
     expect(fabricWaste.wastePct).toBeGreaterThan(0.25);
     const receipt = buildFashionReceipt({ fabricWaste, converged: true });
@@ -236,8 +244,8 @@ describe('buildFashionReceipt', () => {
     const trend = trendMomentum([
       { period: 'A', unitsSold: 200 },
       { period: 'B', unitsSold: 100 },
-      { period: 'C', unitsSold: 50  },
-      { period: 'D', unitsSold: 20  },
+      { period: 'C', unitsSold: 50 },
+      { period: 'D', unitsSold: 20 },
     ]);
     expect(trend.trend).toBe('down');
     const receipt = buildFashionReceipt({ trend, converged: true });

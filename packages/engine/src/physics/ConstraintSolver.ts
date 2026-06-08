@@ -436,10 +436,7 @@ export class ConstraintSolver {
         a.invInertia[1] * axis[1] * lambda,
         a.invInertia[2] * axis[2] * lambda,
       ]);
-      sc.accumulatedAngularImpulse = add(
-        sc.accumulatedAngularImpulse as Vec3,
-        scale(axis, lambda)
-      );
+      sc.accumulatedAngularImpulse = add(sc.accumulatedAngularImpulse as Vec3, scale(axis, lambda));
     }
   }
 
@@ -596,29 +593,9 @@ export class ConstraintSolver {
     // Friction rows: two tangents, each clamped to [-μλn, +μλn].
     const [t1, t2] = tangentBasis(normal);
     const maxFriction = friction * sc.accumNormal;
-    const f1 = solveRow(
-      t1,
-      0,
-      sc.accumFriction[0],
-      -maxFriction,
-      maxFriction,
-      a,
-      rA,
-      b,
-      rB
-    );
+    const f1 = solveRow(t1, 0, sc.accumFriction[0], -maxFriction, maxFriction, a, rA, b, rB);
     sc.accumFriction[0] = f1.accumulated;
-    const f2 = solveRow(
-      t2,
-      0,
-      sc.accumFriction[1],
-      -maxFriction,
-      maxFriction,
-      a,
-      rA,
-      b,
-      rB
-    );
+    const f2 = solveRow(t2, 0, sc.accumFriction[1], -maxFriction, maxFriction, a, rA, b, rB);
     sc.accumFriction[1] = f2.accumulated;
   }
 

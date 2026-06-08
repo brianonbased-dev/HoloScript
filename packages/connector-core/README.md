@@ -48,14 +48,14 @@ await railway.disconnect();
 
 ## Connectors
 
-| Package | Service | Tools | Auth Env Var |
-|---------|---------|-------|-------------|
-| [@holoscript/connector-railway](../connector-railway/) | Railway deployment | 16 | `RAILWAY_API_TOKEN` |
-| [@holoscript/connector-upstash](../connector-upstash/) | Redis, QStash, Vector | 32 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` |
-| [@holoscript/connector-appstore](../connector-appstore/) | Apple App Store + Google Play | 27 | (per-platform keys) |
-| [@holoscript/connector-moltbook](../connector-moltbook/) | Moltbook social platform | 21 | `MOLTBOOK_API_KEY` |
-| [@holoscript/connector-github](../connector-github/) | GitHub repos, PRs, issues | 20 | `GITHUB_TOKEN` |
-| [@holoscript/connector-vscode](../connector-vscode/) | VS Code IDE control | 8 | (none) |
+| Package                                                  | Service                       | Tools | Auth Env Var                                          |
+| -------------------------------------------------------- | ----------------------------- | ----- | ----------------------------------------------------- |
+| [@holoscript/connector-railway](../connector-railway/)   | Railway deployment            | 16    | `RAILWAY_API_TOKEN`                                   |
+| [@holoscript/connector-upstash](../connector-upstash/)   | Redis, QStash, Vector         | 32    | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` |
+| [@holoscript/connector-appstore](../connector-appstore/) | Apple App Store + Google Play | 27    | (per-platform keys)                                   |
+| [@holoscript/connector-moltbook](../connector-moltbook/) | Moltbook social platform      | 21    | `MOLTBOOK_API_KEY`                                    |
+| [@holoscript/connector-github](../connector-github/)     | GitHub repos, PRs, issues     | 20    | `GITHUB_TOKEN`                                        |
+| [@holoscript/connector-vscode](../connector-vscode/)     | VS Code IDE control           | 8     | (none)                                                |
 
 **Total: 124 tools across 6 connectors**, all registered on the [MCP orchestrator](https://mcp-orchestrator-production-45f9.up.railway.app/servers).
 
@@ -82,10 +82,10 @@ Every connector implements these 5 methods:
 
 ```typescript
 abstract class ServiceConnector {
-  abstract connect(): Promise<void>;           // Auth + init
-  abstract disconnect(): Promise<void>;        // Cleanup
-  abstract health(): Promise<boolean>;         // Is it working?
-  abstract listTools(): Promise<Tool[]>;       // MCP tool definitions
+  abstract connect(): Promise<void>; // Auth + init
+  abstract disconnect(): Promise<void>; // Cleanup
+  abstract health(): Promise<boolean>; // Is it working?
+  abstract listTools(): Promise<Tool[]>; // MCP tool definitions
   abstract executeTool(name: string, args: Record<string, unknown>): Promise<unknown>;
 }
 ```
@@ -124,10 +124,10 @@ For connectors that manage deployments:
 
 ```typescript
 interface DeploymentPipeline {
-  compile(projectPath: string): Promise<string>;                     // Build artifact
-  selectTarget(tier: 'low' | 'med' | 'high' | 'ultra'): Promise<void>;  // Choose tier
-  deploy(artifact: string): Promise<string>;                         // Push to target
-  verify(deploymentId: string): Promise<boolean>;                    // Health check
+  compile(projectPath: string): Promise<string>; // Build artifact
+  selectTarget(tier: 'low' | 'med' | 'high' | 'ultra'): Promise<void>; // Choose tier
+  deploy(artifact: string): Promise<string>; // Push to target
+  verify(deploymentId: string): Promise<boolean>; // Health check
 }
 ```
 
@@ -147,6 +147,7 @@ agent MyBot {
 ```
 
 The compiler:
+
 - Validates the connector name (warns on unknown, errors on missing env)
 - Generates `connectors/index.ts` with imports and lifecycle management
 - Adds `@holoscript/connector-*` to `package.json` dependencies
@@ -163,6 +164,7 @@ service API {
 ```
 
 The compiler:
+
 - Cross-references with `CONNECTOR_ENV_REQUIREMENTS` — if you declare `@connector(github)` without `@env(GITHUB_TOKEN)`, you get a compile error
 - Generates `config/env.ts` with startup validation and typed exports
 
@@ -198,7 +200,7 @@ export class MyServiceConnector extends ServiceConnector {
     await this.registrar.register({
       name: 'holoscript-myservice',
       url: 'local://connector-myservice',
-      tools: myServiceTools.map(t => t.name),
+      tools: myServiceTools.map((t) => t.name),
     });
   }
 
@@ -232,8 +234,13 @@ Then register in the trait constants:
 ```typescript
 // packages/core/src/traits/constants/connector-integration.ts
 export const KNOWN_CONNECTORS = [
-  'railway', 'github', 'moltbook', 'upstash', 'appstore', 'vscode',
-  'myservice',  // ← add here
+  'railway',
+  'github',
+  'moltbook',
+  'upstash',
+  'appstore',
+  'vscode',
+  'myservice', // ← add here
 ] as const;
 
 export const CONNECTOR_PACKAGES = {
@@ -256,14 +263,14 @@ ENV_FILE="${HOME}/.ai-ecosystem/.env"; [ ! -f "$ENV_FILE" ] && ENV_FILE="/c/User
 set -a && source "$ENV_FILE" 2>/dev/null && set +a
 ```
 
-| Connector | Env Var | How to get |
-|-----------|---------|-----------|
-| Railway | `RAILWAY_API_TOKEN` | railway.com/account/tokens → "No workspace" |
-| GitHub | `GITHUB_TOKEN` | github.com/settings/tokens |
-| Moltbook | `MOLTBOOK_API_KEY` | POST /api/holomesh/register |
-| Upstash | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | upstash.com console |
-| App Store | Apple: JWT from ASC key; Google: service account | Platform developer consoles |
-| VS Code | (none) | Runs locally |
+| Connector | Env Var                                               | How to get                                  |
+| --------- | ----------------------------------------------------- | ------------------------------------------- |
+| Railway   | `RAILWAY_API_TOKEN`                                   | railway.com/account/tokens → "No workspace" |
+| GitHub    | `GITHUB_TOKEN`                                        | github.com/settings/tokens                  |
+| Moltbook  | `MOLTBOOK_API_KEY`                                    | POST /api/holomesh/register                 |
+| Upstash   | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | upstash.com console                         |
+| App Store | Apple: JWT from ASC key; Google: service account      | Platform developer consoles                 |
+| VS Code   | (none)                                                | Runs locally                                |
 
 ## Orchestrator Registration
 

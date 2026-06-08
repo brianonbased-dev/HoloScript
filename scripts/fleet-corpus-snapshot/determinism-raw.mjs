@@ -27,7 +27,9 @@ function argValue(name) {
   return i !== -1 && i + 1 < process.argv.length ? process.argv[i + 1] : undefined;
 }
 
-const label = argValue('--label') ?? `${hostname()}|${platform()}-${arch()}|node${process.version}|kernel${release()}`;
+const label =
+  argValue('--label') ??
+  `${hostname()}|${platform()}-${arch()}|node${process.version}|kernel${release()}`;
 const extractor = await pipeline('feature-extraction', MODEL);
 const vectors = {};
 let dim = 0;

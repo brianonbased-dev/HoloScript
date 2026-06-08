@@ -24,9 +24,7 @@ describe('pluginIframeSecurity', () => {
   });
 
   it('assertSafePluginModuleUrl rejects breakout characters', () => {
-    expect(() => assertSafePluginModuleUrl('https://x.test/a"><script>')).toThrow(
-      /disallowed/
-    );
+    expect(() => assertSafePluginModuleUrl('https://x.test/a"><script>')).toThrow(/disallowed/);
     expect(() => assertSafePluginModuleUrl('https://x.test/a\n/b')).toThrow(/disallowed/);
   });
 

@@ -97,11 +97,7 @@ export function executeFsTool(
     case 'write_file':
       return sandbox.write(String(input.path), String(input.content));
     case 'edit_file':
-      return sandbox.edit(
-        String(input.path),
-        String(input.old_string),
-        String(input.new_string)
-      );
+      return sandbox.edit(String(input.path), String(input.old_string), String(input.new_string));
     case 'list_files':
       return sandbox.list();
     default:

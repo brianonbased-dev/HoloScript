@@ -30,8 +30,15 @@ import './utils/load-env';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema, type Tool } from '@modelcontextprotocol/sdk/types.js';
-import { ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  type Tool,
+} from '@modelcontextprotocol/sdk/types.js';
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 
 import { tools } from './tools';
 import { handleTool } from './handlers';
@@ -71,16 +78,10 @@ import {
   hologramContentToolDefinitions,
   handleHologramContentTool,
 } from './hologram-content-tools';
-import {
-  negotiationToolDefinitions,
-  handleNegotiationTool,
-} from './negotiation-mcp-tools';
+import { negotiationToolDefinitions, handleNegotiationTool } from './negotiation-mcp-tools';
 import { handleBatchToolCall } from './tooling-discovery-tools';
 import { listSkillResources, readSkillResource } from './skill-resources';
-import {
-  isHologramMcpResponse,
-  wrapHologramMcpEnvelope,
-} from '@holoscript/core';
+import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 
 declare const __SERVICE_VERSION__: string;
@@ -116,19 +117,25 @@ const ALL_AVAILABLE_TOOLS: Tool[] = [
   ...computeTraceTools,
   {
     name: 'holoscript_discover_tools',
-    description: 'Search for available MCP tools by intent or keyword. Returns tool names, descriptions, and schemas. Use this when you are unsure which tool to use.',
+    description:
+      'Search for available MCP tools by intent or keyword. Returns tool names, descriptions, and schemas. Use this when you are unsure which tool to use.',
     inputSchema: {
       type: 'object',
       properties: {
-        intent: { type: 'string', description: 'What you are trying to do (e.g. "parse HoloScript code", "search codebase", "compile").' },
-        limit: { type: 'number', description: 'Max number of results to return (default 5).' }
+        intent: {
+          type: 'string',
+          description:
+            'What you are trying to do (e.g. "parse HoloScript code", "search codebase", "compile").',
+        },
+        limit: { type: 'number', description: 'Max number of results to return (default 5).' },
       },
-      required: ['intent']
-    }
+      required: ['intent'],
+    },
   },
   {
     name: 'holoscript_batch_execute',
-    description: 'Execute multiple MCP tools sequentially in a single turn. Useful for chaining actions without waiting for multiple conversational turns.',
+    description:
+      'Execute multiple MCP tools sequentially in a single turn. Useful for chaining actions without waiting for multiple conversational turns.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -139,26 +146,28 @@ const ALL_AVAILABLE_TOOLS: Tool[] = [
             type: 'object',
             properties: {
               name: { type: 'string', description: 'Name of the tool to execute' },
-              arguments: { type: 'object', description: 'Arguments for the tool' }
+              arguments: { type: 'object', description: 'Arguments for the tool' },
             },
-            required: ['name', 'arguments']
-          }
-        }
+            required: ['name', 'arguments'],
+          },
+        },
       },
-      required: ['requests']
-    }
+      required: ['requests'],
+    },
   },
 ];
 
 // List available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  let mappedTools = [...ALL_AVAILABLE_TOOLS, ...PluginManager.getTools()].map(t => {
+  let mappedTools = [...ALL_AVAILABLE_TOOLS, ...PluginManager.getTools()].map((t) => {
     // Dynamic Appender: Ensure ALL tools explicitly state what they return per Gap 3 Requirements
     const desc = t.description || '';
     if (!desc.includes('Returns:') && !desc.includes('Output:')) {
       return {
         ...t,
-        description: desc + '\n\nReturns: JSON object with execution results. Specific schema omitted, see tool implementation.'
+        description:
+          desc +
+          '\n\nReturns: JSON object with execution results. Specific schema omitted, see tool implementation.',
       };
     }
     return t;
@@ -166,8 +175,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
   const limit = parseInt(process.env.HOLOSCRIPT_MAX_TOOLS || '99', 10);
   if (limit > 0 && mappedTools.length > limit) {
-    const metaTools = mappedTools.filter(t => t.name === 'holoscript_discover_tools' || t.name === 'holoscript_batch_execute');
-    const rest = mappedTools.filter(t => t.name !== 'holoscript_discover_tools' && t.name !== 'holoscript_batch_execute');
+    const metaTools = mappedTools.filter(
+      (t) => t.name === 'holoscript_discover_tools' || t.name === 'holoscript_batch_execute'
+    );
+    const rest = mappedTools.filter(
+      (t) => t.name !== 'holoscript_discover_tools' && t.name !== 'holoscript_batch_execute'
+    );
     mappedTools = [...metaTools, ...rest].slice(0, limit);
   }
 
@@ -226,7 +239,16 @@ export async function executeSingleTool(
         .slice(0, limit);
 
       return {
-        content: [{ type: 'text', text: JSON.stringify(scoredTools.map((s) => s.tool), null, 2) }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              scoredTools.map((s) => s.tool),
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
 
@@ -351,33 +373,49 @@ registerCategory(networkingTools, (name, args, _signingCtx) => handleNetworkingT
 registerCategory(snapshotTools, (name, args, _signingCtx) => handleSnapshotTool(name, args));
 registerCategory(monitoringTools, (name, args, _signingCtx) => handleMonitoringTool(name, args));
 registerCategory(holotestTools, (name, args, _signingCtx) => handleHolotestTool(name, args));
-registerCategory(refactorCodegenTools, (name, args, _signingCtx) => handleRefactorCodegenTool(name, args));
-registerCategory(absorbServiceTools, (name, args, _signingCtx) => handleAbsorbServiceTool(name, args));
+registerCategory(refactorCodegenTools, (name, args, _signingCtx) =>
+  handleRefactorCodegenTool(name, args)
+);
+registerCategory(absorbServiceTools, (name, args, _signingCtx) =>
+  handleAbsorbServiceTool(name, args)
+);
 registerCategory(codebaseTools, (name, args, _signingCtx) => handleCodebaseTool(name, args));
 registerCategory(graphRagTools, (name, args, _signingCtx) => handleGraphRagTool(name, args));
 registerCategory(selfImproveTools, (name, args, _signingCtx) => handleSelfImproveTool(name, args));
 registerCategory(grpoTools, (name, args, _signingCtx) => handleGrpoTool(name, args));
 registerCategory(gltfImportTools, (name, args, _signingCtx) => handleGltfTool(name, args));
-registerCategory(wisdomGotchaTools, (name, args, _signingCtx) => handleWisdomGotchaTool(name, args));
-registerCategory(receiptQueryTools, (name, args, _signingCtx) => handleReceiptQueryTool(name, args));
+registerCategory(wisdomGotchaTools, (name, args, _signingCtx) =>
+  handleWisdomGotchaTool(name, args)
+);
+registerCategory(receiptQueryTools, (name, args, _signingCtx) =>
+  handleReceiptQueryTool(name, args)
+);
 registerCategory(oracleMcpTools, (name, args, _signingCtx) => handleOracleMcpTool(name, args));
 registerCategory(traitTools, (name, args, _signingCtx) => handleTraitTool(name, args));
-registerCategory(computeTraceTools, (name, args, _signingCtx) => handleComputeTraceTool(name, args));
+registerCategory(computeTraceTools, (name, args, _signingCtx) =>
+  handleComputeTraceTool(name, args)
+);
 registerCategory(alphafoldTools, (name, args, _signingCtx) => handleFetchStructure(args));
-registerCategory(hologramToolDefinitions, (name, args, _signingCtx) => handleHologramTool(name, args));
-registerCategory(holotwinToolDefinitions, (name, args, _signingCtx) => handleHoloTwinTool(name, args));
+registerCategory(hologramToolDefinitions, (name, args, _signingCtx) =>
+  handleHologramTool(name, args)
+);
+registerCategory(holotwinToolDefinitions, (name, args, _signingCtx) =>
+  handleHoloTwinTool(name, args)
+);
 registerCategory(holoTunnelTools, (name, args, _signingCtx) => handleHoloTunnelTool(name, args));
 registerCategory(hologramContentToolDefinitions, (name, args, _signingCtx) =>
-  handleHologramContentTool(name, args),
+  handleHologramContentTool(name, args)
 );
 registerCategory(negotiationToolDefinitions, (name, args, _signingCtx) =>
-  handleNegotiationTool(name, args),
+  handleNegotiationTool(name, args)
 );
 
 // 2. Core fallback (anything else exported in `tools.ts` array)
 for (const t of tools) {
   if (t.name && !TOOL_DISPATCH_REGISTRY.has(t.name)) {
-    TOOL_DISPATCH_REGISTRY.set(t.name, (name, args, signingCtx) => handleTool(name, args, signingCtx));
+    TOOL_DISPATCH_REGISTRY.set(t.name, (name, args, signingCtx) =>
+      handleTool(name, args, signingCtx)
+    );
   }
 }
 
@@ -422,9 +460,8 @@ export async function _handleSingleToolLogic(
     }
 
     if (name === 'batch_tool_call') {
-      const result = await handleBatchToolCall(
-        args || {},
-        (toolName, toolArgs) => executeBatchInnerTool(toolName, toolArgs, signingCtx)
+      const result = await handleBatchToolCall(args || {}, (toolName, toolArgs) =>
+        executeBatchInnerTool(toolName, toolArgs, signingCtx)
       );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
@@ -482,8 +519,8 @@ import { loadNativeAgentCompositions } from './holomesh/agent/loader';
 async function main() {
   // Load agent definitions from native .hsplus fixtures
   loadNativeAgentCompositions();
-  
-  requireConfig((REQUIRED_VARS.MCP_SERVER as unknown as string[]), 'mcp-server');
+
+  requireConfig(REQUIRED_VARS.MCP_SERVER as unknown as string[], 'mcp-server');
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error('HoloScript MCP Server running on stdio');

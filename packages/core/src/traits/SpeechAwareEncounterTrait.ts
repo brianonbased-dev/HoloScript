@@ -101,12 +101,16 @@ export const speechAwareEncounterHandler: TraitHandler<SpeechAwareEncounterConfi
       domain: 'agent',
       axis_vocabulary: ['speaker_confidence', 'reid_match'] as const,
       generate(ctx: PillarContext): PillarSlice {
-        const state = (node as any).__speechAwareEncounterState as SpeechAwareEncounterState | undefined;
+        const state = (node as any).__speechAwareEncounterState as
+          | SpeechAwareEncounterState
+          | undefined;
         const avgConf = state?.turns?.length
-          ? state.turns.reduce((s: number, t: any) => s + t.attribution.confidence, 0) / state.turns.length
+          ? state.turns.reduce((s: number, t: any) => s + t.attribution.confidence, 0) /
+            state.turns.length
           : ((ctx.metadata as Record<string, number> | undefined)?.speaker_confidence ?? 0.5);
         const reidRate = state?.turns?.length
-          ? state.turns.filter((t: any) => !!t.attribution.reidEmbeddingId).length / state.turns.length
+          ? state.turns.filter((t: any) => !!t.attribution.reidEmbeddingId).length /
+            state.turns.length
           : ((ctx.metadata as Record<string, number> | undefined)?.reid_match ?? 0.55);
         return {
           axis_1_id: 'speaker_confidence',
@@ -133,13 +137,18 @@ export const speechAwareEncounterHandler: TraitHandler<SpeechAwareEncounterConfi
       const payload = extractPayload(event);
       const text = String(payload.text ?? '');
       const rawSpeaker = String(payload.speakerId ?? 'unknown');
-      const reidEmbeddingId = typeof payload.reidEmbeddingId === 'string' ? payload.reidEmbeddingId : undefined;
+      const reidEmbeddingId =
+        typeof payload.reidEmbeddingId === 'string' ? payload.reidEmbeddingId : undefined;
       const confidence = typeof payload.confidence === 'number' ? payload.confidence : 0;
 
       let channel: 'voice' | 'text' = state.currentChannel;
       let attribution: SpeakerAttribution;
 
-      if (state.currentChannel === 'voice' && reidEmbeddingId && confidence >= config.reid_confidence_threshold) {
+      if (
+        state.currentChannel === 'voice' &&
+        reidEmbeddingId &&
+        confidence >= config.reid_confidence_threshold
+      ) {
         const existing = state.speakerMap.get(reidEmbeddingId);
         if (existing) {
           attribution = { ...existing, confidence };
@@ -154,7 +163,11 @@ export const speechAwareEncounterHandler: TraitHandler<SpeechAwareEncounterConfi
         }
       } else {
         // Text fallback or low-confidence voice
-        if (state.currentChannel === 'voice' && config.fallback_to_text && confidence < config.reid_confidence_threshold) {
+        if (
+          state.currentChannel === 'voice' &&
+          config.fallback_to_text &&
+          confidence < config.reid_confidence_threshold
+        ) {
           channel = 'text';
           state.currentChannel = 'text';
           context.emit?.('speech_channel_switched', {

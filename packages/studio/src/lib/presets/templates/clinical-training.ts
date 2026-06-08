@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-clinical-training",
-  name: "Clinical Training Scenario",
-  description: "Medical procedure practice with step-by-step guidance",
-  thumbnail: "🩺",
-  tags: ["healthcare","clinical","training","procedure"],
-  category: "healthcare",
+  id: 'wizard-clinical-training',
+  name: 'Clinical Training Scenario',
+  description: 'Medical procedure practice with step-by-step guidance',
+  thumbnail: '🩺',
+  tags: ['healthcare', 'clinical', 'training', 'procedure'],
+  category: 'healthcare',
   code: `composition "Clinical Training" {
   environment {
     skybox: "studio"
@@ -53,7 +53,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 0.3
     label: "HR: 72 | SpO2: 98%"
   }
-}`
+}`,
 };
 
 export default template;

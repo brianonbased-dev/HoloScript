@@ -295,20 +295,11 @@ export async function createVRMAvatarFromFile(file: File): Promise<VRMModel> {
   const boneCount = bones.length;
 
   // Feature flags
-  const hasSpringBones =
-    vrm1
-      ? !!vrm1['springBone']
-      : !!vrm0?.['secondaryAnimation'];
+  const hasSpringBones = vrm1 ? !!vrm1['springBone'] : !!vrm0?.['secondaryAnimation'];
 
-  const hasExpressions =
-    vrm1
-      ? !!vrm1['expressions']
-      : !!vrm0?.['blendShapeMaster'];
+  const hasExpressions = vrm1 ? !!vrm1['expressions'] : !!vrm0?.['blendShapeMaster'];
 
-  const hasLookAt =
-    vrm1
-      ? !!vrm1['lookAt']
-      : !!vrm0?.['firstPerson'];
+  const hasLookAt = vrm1 ? !!vrm1['lookAt'] : !!vrm0?.['firstPerson'];
 
   return {
     id: `vrm-${Date.now()}`,

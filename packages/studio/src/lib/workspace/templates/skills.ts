@@ -19,7 +19,8 @@ export interface SkillDefinition {
 
 function testCommand(dna: ScaffoldDNA): string {
   if (dna.techStack.includes('vitest')) return 'pnpm vitest';
-  if (dna.techStack.includes('jest')) return dna.techStack.includes('pnpm') ? 'pnpm jest' : 'npx jest';
+  if (dna.techStack.includes('jest'))
+    return dna.techStack.includes('pnpm') ? 'pnpm jest' : 'npx jest';
   if (dna.languages.includes('py')) return 'pytest';
   if (dna.languages.includes('go')) return 'go test ./...';
   if (dna.languages.includes('rs')) return 'cargo test';
@@ -27,7 +28,8 @@ function testCommand(dna: ScaffoldDNA): string {
 }
 
 function lintCommand(dna: ScaffoldDNA): string {
-  if (dna.techStack.includes('eslint')) return dna.techStack.includes('pnpm') ? 'pnpm lint' : 'npx eslint .';
+  if (dna.techStack.includes('eslint'))
+    return dna.techStack.includes('pnpm') ? 'pnpm lint' : 'npx eslint .';
   if (dna.languages.includes('py')) return 'ruff check .';
   if (dna.languages.includes('go')) return 'golangci-lint run';
   if (dna.languages.includes('rs')) return 'cargo clippy';
@@ -265,9 +267,8 @@ function reviewSkill(dna: ScaffoldDNA): SkillDefinition {
     conventions.push('- No exported names without doc comments');
   }
 
-  const conventionBlock = conventions.length > 0
-    ? conventions.join('\n')
-    : '- Follow existing codebase conventions';
+  const conventionBlock =
+    conventions.length > 0 ? conventions.join('\n') : '- Follow existing codebase conventions';
 
   return {
     name: 'review',
@@ -318,10 +319,5 @@ Keep feedback actionable. No nitpicks on style if a formatter handles it.
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 export function generateSkills(dna: ScaffoldDNA): SkillDefinition[] {
-  return [
-    scanSkill(dna),
-    devSkill(dna),
-    documenterSkill(dna),
-    reviewSkill(dna),
-  ];
+  return [scanSkill(dna), devSkill(dna), documenterSkill(dna), reviewSkill(dna)];
 }

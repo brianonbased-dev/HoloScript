@@ -15,7 +15,12 @@ import {
 import { decodeStep, verifyBoundedLoss } from '../spike-decoder';
 import { quantumForField, buildQuantaFor, FALLBACK_QUANTUM } from '../quantum-registry';
 import { runStageB, synthesizeSampleJSONL } from '../stage-b-jsonl';
-import { runStageC, referenceReplayer, type CanonicalStep, type SNNReplayer } from '../stage-c-shadow-replay';
+import {
+  runStageC,
+  referenceReplayer,
+  type CanonicalStep,
+  type SNNReplayer,
+} from '../stage-c-shadow-replay';
 
 describe('spike-encoder', () => {
   it('canonical-sorts by (neuron_id, timestamp_us, polarity)', () => {
@@ -195,7 +200,11 @@ describe('stage-b JSONL consumption', () => {
 describe('stage-c shadow-replay', () => {
   const canonical_trace: CanonicalStep[] = [
     { step: 1, floats: { velocity: 0.5 } },
-    { step: 2, floats: { velocity: 0.75 }, vectors: { position: [1, 0, 0] as [number, number, number] } },
+    {
+      step: 2,
+      floats: { velocity: 0.75 },
+      vectors: { position: [1, 0, 0] as [number, number, number] },
+    },
     { step: 3, floats: { temperature: 300.5 } },
   ];
   const field_specs = {

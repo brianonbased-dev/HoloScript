@@ -59,8 +59,7 @@ function makeValidReceipt(): HoloShellLocalCodebaseSnapshotReceipt {
     redactionStatus: 'pass',
     status: 'ready',
     excludes: ['.git', 'node_modules', '.env'],
-    replayCommand:
-      'node scripts/holoshell-local-codebase-absorb-bundle.mjs --root C:/repo --json',
+    replayCommand: 'node scripts/holoshell-local-codebase-absorb-bundle.mjs --root C:/repo --json',
     graphReceipt: {
       authoritative: false,
       reason: 'rootDir_unavailable',
@@ -140,9 +139,7 @@ describe('validateHoloShellLocalCodebaseSnapshotReceipt', () => {
     clone.roots[0].selectedFileCount = 2;
     clone.excludes.push('dist');
 
-    expect(receipt.files[0].path).toBe(
-      'apps/holoshell/source/holoshell-world-build-cockpit.holo'
-    );
+    expect(receipt.files[0].path).toBe('apps/holoshell/source/holoshell-world-build-cockpit.holo');
     expect(receipt.roots[0].selectedFileCount).toBe(1);
     expect(receipt.excludes).not.toContain('dist');
   });

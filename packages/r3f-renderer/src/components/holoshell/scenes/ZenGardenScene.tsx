@@ -23,10 +23,7 @@ export interface ZenGardenSceneProps extends SceneComponentProps {}
  * Bamboo cluster, raked gravel, stone lantern, and a single zen_rock door.
  * Everything breathes slowly — leaves drift, mist pulses, sand has subtle life.
  */
-const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({
-  onNavigateRequest,
-  onInteraction,
-}) => {
+const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({ onNavigateRequest, onInteraction }) => {
   const { camera } = useThree();
 
   // Gentle downward contemplative gaze across the raked garden toward the door
@@ -115,14 +112,20 @@ const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({
         const chimeVol = 0.012 + Math.random() * 0.018;
         chimeGain.gain.cancelScheduledValues(ctx!.currentTime);
         chimeGain.gain.setValueAtTime(chimeVol, ctx!.currentTime);
-        chimeGain.gain.linearRampToValueAtTime(0.0001, ctx!.currentTime + 0.9 + Math.random() * 0.6);
+        chimeGain.gain.linearRampToValueAtTime(
+          0.0001,
+          ctx!.currentTime + 0.9 + Math.random() * 0.6
+        );
 
         // Occasional distant bell (low probability)
         if (Math.random() < 0.18) {
           const bellVol = 0.008 + Math.random() * 0.011;
           bellGain.gain.cancelScheduledValues(ctx!.currentTime);
           bellGain.gain.setValueAtTime(bellVol, ctx!.currentTime);
-          bellGain.gain.linearRampToValueAtTime(0.0001, ctx!.currentTime + 4.5 + Math.random() * 2.5);
+          bellGain.gain.linearRampToValueAtTime(
+            0.0001,
+            ctx!.currentTime + 4.5 + Math.random() * 2.5
+          );
         }
 
         // Schedule next trigger
@@ -134,7 +137,7 @@ const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({
       (window as any).__holoShellAudio = {
         scene: 'zen-garden',
         tracks: ['wind_chimes', 'temple_bell', 'gravel_underfoot'],
-        stop: () => stops.forEach(f => f()),
+        stop: () => stops.forEach((f) => f()),
       };
 
       // Notify phenomena bus
@@ -143,7 +146,7 @@ const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({
       // Web Audio unavailable or blocked — graceful no-op (common on first load)
     }
 
-    return () => stops.forEach(f => f());
+    return () => stops.forEach((f) => f());
   }, [onInteraction]);
 
   const handleNavigate = (id: string) => {
@@ -164,13 +167,7 @@ const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({
       {/* === FAR BACKGROUND: large stone garden wall (weathered plaster) === */}
       <mesh position={[0, 1.4, -4.22]} rotation={[0.08, 0, 0]}>
         <planeGeometry args={[16, 7.5]} />
-        <meshBasicMaterial
-          color="#c8b89a"
-          transparent
-          opacity={0.72}
-          depthWrite={false}
-          side={2}
-        />
+        <meshBasicMaterial color="#c8b89a" transparent opacity={0.72} depthWrite={false} side={2} />
       </mesh>
       {/* Subtle wall texture suggestion via darker vertical bands */}
       {[-3.5, 0, 3.5].map((x, i) => (
@@ -252,7 +249,12 @@ const ZenGardenScene: React.FC<ZenGardenSceneProps> = ({
       {/* Small top lantern "light" housing */}
       <mesh position={[-2.2, 0.02, -2.0]}>
         <cylinderGeometry args={[0.22, 0.24, 0.28, 5]} />
-        <meshStandardMaterial color="#4a4640" roughness={0.95} emissive="#d4b88a" emissiveIntensity={0.08} />
+        <meshStandardMaterial
+          color="#4a4640"
+          roughness={0.95}
+          emissive="#d4b88a"
+          emissiveIntensity={0.08}
+        />
       </mesh>
 
       {/* Soft dawn point light — low angle, warm morning sun */}

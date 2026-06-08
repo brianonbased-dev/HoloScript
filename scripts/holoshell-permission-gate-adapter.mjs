@@ -29,7 +29,15 @@ const SUBJECT_KINDS = new Set([
 ]);
 
 const ENVELOPES = new Set(['read_only', 'guarded_grant', 'break_glass_permission', 'revoke_only']);
-const STATUSES = new Set(['planned', 'requested', 'granted', 'verified', 'revoked', 'blocked', 'failed']);
+const STATUSES = new Set([
+  'planned',
+  'requested',
+  'granted',
+  'verified',
+  'revoked',
+  'blocked',
+  'failed',
+]);
 const VERIFICATION_METHODS = new Set([
   'oauth_tokeninfo',
   'provider_settings',
@@ -150,12 +158,19 @@ function nowIso(argsOrInput, input) {
 }
 
 function normalizeScopeName(scope) {
-  return String(scope ?? '').trim().toLowerCase();
+  return String(scope ?? '')
+    .trim()
+    .toLowerCase();
 }
 
 function parseScopeSpec(spec) {
-  const [scope, purpose = 'Permission needed for the approved HoloShell operation.', riskLevel = 'medium', required = 'true', providerLabel] =
-    String(spec).split('|');
+  const [
+    scope,
+    purpose = 'Permission needed for the approved HoloShell operation.',
+    riskLevel = 'medium',
+    required = 'true',
+    providerLabel,
+  ] = String(spec).split('|');
   if (!scope?.trim()) throw new Error(`Invalid scope spec: ${spec}`);
   return {
     scope: scope.trim(),
@@ -168,7 +183,9 @@ function parseScopeSpec(spec) {
 
 function scopesFromInput(rawScopes, fallback = []) {
   if (Array.isArray(rawScopes) && rawScopes.length > 0) {
-    return rawScopes.map((scope) => (typeof scope === 'string' ? parseScopeSpec(scope) : { ...scope }));
+    return rawScopes.map((scope) =>
+      typeof scope === 'string' ? parseScopeSpec(scope) : { ...scope }
+    );
   }
   return fallback.map((scope) => ({ ...scope }));
 }
@@ -184,10 +201,21 @@ function forbiddenScopeReason(scope, neverScopes = []) {
   return undefined;
 }
 
-function buildScopeDiff({ requestedScopes, minimumRequiredScopes, grantedScopes = [], neverScopes = [] }) {
-  const requestedNames = new Set(requestedScopes.map((scope) => normalizeScopeName(scope.scope)).filter(Boolean));
-  const grantedNames = new Set(grantedScopes.map((scope) => normalizeScopeName(scope.scope)).filter(Boolean));
-  const minimumNames = new Set(minimumRequiredScopes.map((scope) => normalizeScopeName(scope.scope)).filter(Boolean));
+function buildScopeDiff({
+  requestedScopes,
+  minimumRequiredScopes,
+  grantedScopes = [],
+  neverScopes = [],
+}) {
+  const requestedNames = new Set(
+    requestedScopes.map((scope) => normalizeScopeName(scope.scope)).filter(Boolean)
+  );
+  const grantedNames = new Set(
+    grantedScopes.map((scope) => normalizeScopeName(scope.scope)).filter(Boolean)
+  );
+  const minimumNames = new Set(
+    minimumRequiredScopes.map((scope) => normalizeScopeName(scope.scope)).filter(Boolean)
+  );
   const requiredMinimum = minimumRequiredScopes.filter((scope) => scope.required);
   const missingRequestedRequiredScopes = requiredMinimum
     .map((scope) => scope.scope)
@@ -199,11 +227,19 @@ function buildScopeDiff({ requestedScopes, minimumRequiredScopes, grantedScopes 
     .map((scope) => scope.scope)
     .filter((scope) => !minimumNames.has(normalizeScopeName(scope)));
   const forbiddenRequestedScopes = requestedScopes
-    .map((scope) => ({ scope: scope.scope, normalizedScope: normalizeScopeName(scope.scope), reason: forbiddenScopeReason(scope.scope, neverScopes) }))
+    .map((scope) => ({
+      scope: scope.scope,
+      normalizedScope: normalizeScopeName(scope.scope),
+      reason: forbiddenScopeReason(scope.scope, neverScopes),
+    }))
     .filter((scope) => scope.reason)
     .map((scope) => ({ ...scope, allowed: false }));
   const forbiddenGrantedScopes = grantedScopes
-    .map((scope) => ({ scope: scope.scope, normalizedScope: normalizeScopeName(scope.scope), reason: forbiddenScopeReason(scope.scope, neverScopes) }))
+    .map((scope) => ({
+      scope: scope.scope,
+      normalizedScope: normalizeScopeName(scope.scope),
+      reason: forbiddenScopeReason(scope.scope, neverScopes),
+    }))
     .filter((scope) => scope.reason)
     .map((scope) => ({ ...scope, allowed: false }));
 
@@ -228,12 +264,16 @@ function buildScopeDiff({ requestedScopes, minimumRequiredScopes, grantedScopes 
 function redactPreview(value) {
   const original = value ?? '';
   let preview = original;
-  preview = preview.replace(/(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/g, (_match, prefix) => {
-    return `${prefix}<absolute-path-redacted>`;
-  });
+  preview = preview.replace(
+    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/g,
+    (_match, prefix) => {
+      return `${prefix}<absolute-path-redacted>`;
+    }
+  );
   preview = preview.replace(
     /\b(access_token|refresh_token|id_token|client_secret|authorization|cookie|code)=([^&\s]+)/gi,
-    (_match, key, currentValue) => `${key}=${currentValue === '<redacted>' ? '<redacted>' : '<redacted>'}`
+    (_match, key, currentValue) =>
+      `${key}=${currentValue === '<redacted>' ? '<redacted>' : '<redacted>'}`
   );
   preview = preview.replace(/\bBearer\s+([A-Za-z0-9._~+/=-]+|<redacted>)/gi, 'Bearer <redacted>');
   return preview;
@@ -247,13 +287,15 @@ function publicSubjectLabel(provider, subjectKind, subjectLabel, redactedSubject
 
 function defaultVerificationMethod(subjectKind) {
   if (subjectKind === 'device') return 'device_permission_probe';
-  if (subjectKind === 'os_app_permission' || subjectKind === 'local_app') return 'os_permission_probe';
+  if (subjectKind === 'os_app_permission' || subjectKind === 'local_app')
+    return 'os_permission_probe';
   if (subjectKind === 'connector' || subjectKind === 'cloud_service') return 'connector_probe';
   return 'oauth_tokeninfo';
 }
 
 function defaultRevocationInstruction(provider, subjectKind) {
-  if (subjectKind === 'device') return `Open the device permission panel for ${provider} and revoke the approved capability.`;
+  if (subjectKind === 'device')
+    return `Open the device permission panel for ${provider} and revoke the approved capability.`;
   if (subjectKind === 'os_app_permission' || subjectKind === 'local_app') {
     return `Open OS application permissions for ${provider} and revoke the approved permission.`;
   }
@@ -269,21 +311,39 @@ function buildPlanPack(input, args = {}) {
   const provider = input.provider ?? args.provider;
   const subjectLabel = input.subjectLabel ?? args.subjectLabel ?? `${provider}:${subjectKind}`;
   const argScopes = Array.isArray(args.scopes) ? args.scopes.map(parseScopeSpec) : [];
-  const argMinimumScopes = Array.isArray(args.minimumScopes) ? args.minimumScopes.map(parseScopeSpec) : [];
+  const argMinimumScopes = Array.isArray(args.minimumScopes)
+    ? args.minimumScopes.map(parseScopeSpec)
+    : [];
   const requestedScopes = scopesFromInput(input.requestedScopes ?? input.scopes, argScopes);
   const minimumRequiredScopes = scopesFromInput(
     input.minimumRequiredScopes ?? input.minimumScopes,
-    argMinimumScopes.length > 0 ? argMinimumScopes : requestedScopes.filter((scope) => scope.required)
+    argMinimumScopes.length > 0
+      ? argMinimumScopes
+      : requestedScopes.filter((scope) => scope.required)
   );
-  const neverScopes = input.neverScopes ?? args.neverScopes ?? ['*', 'admin', 'billing', 'delete', 'full_access', 'write_all', 'manage_all'];
+  const neverScopes = input.neverScopes ??
+    args.neverScopes ?? [
+      '*',
+      'admin',
+      'billing',
+      'delete',
+      'full_access',
+      'write_all',
+      'manage_all',
+    ];
   const permissionEnvelope = input.permissionEnvelope ?? args.permissionEnvelope ?? 'guarded_grant';
-  const purpose = input.purpose ?? args.purpose ?? 'Approve the minimum permission needed for a HoloShell operation.';
+  const purpose =
+    input.purpose ??
+    args.purpose ??
+    'Approve the minimum permission needed for a HoloShell operation.';
 
   if (!SUBJECT_KINDS.has(subjectKind)) throw new Error(`Unsupported subjectKind: ${subjectKind}`);
   if (!provider?.trim()) throw new Error('provider is required');
   if (!requestedScopes.length) throw new Error('at least one requested scope is required');
-  if (!minimumRequiredScopes.length) throw new Error('at least one minimum required scope is required');
-  if (!ENVELOPES.has(permissionEnvelope)) throw new Error(`Unsupported permissionEnvelope: ${permissionEnvelope}`);
+  if (!minimumRequiredScopes.length)
+    throw new Error('at least one minimum required scope is required');
+  if (!ENVELOPES.has(permissionEnvelope))
+    throw new Error(`Unsupported permissionEnvelope: ${permissionEnvelope}`);
 
   const diff = buildScopeDiff({ requestedScopes, minimumRequiredScopes, neverScopes });
   if (diff.missingRequestedRequiredScopes.length > 0 || diff.forbiddenRequestedScopes.length > 0) {
@@ -292,15 +352,25 @@ function buildPlanPack(input, args = {}) {
 
   const subjectId = `permission-subject-${digest({ provider, subjectKind, subjectLabel }).slice(0, 12)}`;
   const requestId = `permission-request-${digest({ subjectId, requestedScopes, minimumRequiredScopes, purpose, at }).slice(0, 12)}`;
-  const approvalId = input.approvalId ?? args.approvalId ?? `approval-${digest({ subjectId, requestId, at }).slice(0, 12)}`;
-  const commandOrUrlPreview = redactPreview(input.commandOrUrlPreview ?? args.commandOrUrlPreview ?? '');
+  const approvalId =
+    input.approvalId ??
+    args.approvalId ??
+    `approval-${digest({ subjectId, requestId, at }).slice(0, 12)}`;
+  const commandOrUrlPreview = redactPreview(
+    input.commandOrUrlPreview ?? args.commandOrUrlPreview ?? ''
+  );
 
   const subject = withHash({
     id: subjectId,
     schemaVersion: RECEIPT_VERSION,
     subjectKind,
     provider,
-    redactedSubjectLabel: publicSubjectLabel(provider, subjectKind, subjectLabel, input.redactedSubjectLabel ?? args.redactedSubjectLabel),
+    redactedSubjectLabel: publicSubjectLabel(
+      provider,
+      subjectKind,
+      subjectLabel,
+      input.redactedSubjectLabel ?? args.redactedSubjectLabel
+    ),
     subjectLabelHash: hashValue(subjectLabel),
     ...(input.accountLabel ? { accountLabelHash: hashValue(input.accountLabel) } : {}),
     ...(input.browserProfile ? { browserProfile: redactPreview(input.browserProfile) } : {}),
@@ -321,7 +391,8 @@ function buildPlanPack(input, args = {}) {
     neverScopes,
     purpose,
     permissionEnvelope,
-    requiresFreshUserGesture: permissionEnvelope === 'read_only' ? (input.requiresFreshUserGesture ?? false) : true,
+    requiresFreshUserGesture:
+      permissionEnvelope === 'read_only' ? (input.requiresFreshUserGesture ?? false) : true,
     approvalId,
     ...(commandOrUrlPreview ? { commandOrUrlPreview } : {}),
     commandPreviewContainsAbsolutePaths: false,
@@ -336,7 +407,12 @@ function buildPlanPack(input, args = {}) {
     status: 'planned',
     subjectReceiptId: subject.id,
     requestReceiptId: request.id,
-    replayKey: hashValue({ workflow: WORKFLOW, subject: subject.hash, request: request.hash, adapterVersion: VERSION }),
+    replayKey: hashValue({
+      workflow: WORKFLOW,
+      subject: subject.hash,
+      request: request.hash,
+      adapterVersion: VERSION,
+    }),
     rawCredentialCaptured: false,
     overbroadScopeAccepted: false,
     readyForHoloLand: false,
@@ -356,7 +432,9 @@ function buildPlanPack(input, args = {}) {
 
 function buildVerifiedPack(pack, input, args = {}) {
   const at = nowIso(args, input);
-  const argGrantedScopes = Array.isArray(args.grantedScopes) ? args.grantedScopes.map(parseScopeSpec) : [];
+  const argGrantedScopes = Array.isArray(args.grantedScopes)
+    ? args.grantedScopes.map(parseScopeSpec)
+    : [];
   const grantedScopes = scopesFromInput(input.grantedScopes, argGrantedScopes);
   if (!grantedScopes.length) throw new Error('verify requires grantedScopes or --granted-scope');
   const deniedScopes = input.deniedScopes ?? args.deniedScopes ?? [];
@@ -370,7 +448,10 @@ function buildVerifiedPack(pack, input, args = {}) {
     throw new Error(`Grant rejected by minimum-scope policy: ${JSON.stringify(diff)}`);
   }
 
-  const tokenReferenceHash = input.tokenReferenceHash ?? args.tokenReferenceHash ?? (input.tokenReference ? hashValue(input.tokenReference) : undefined);
+  const tokenReferenceHash =
+    input.tokenReferenceHash ??
+    args.tokenReferenceHash ??
+    (input.tokenReference ? hashValue(input.tokenReference) : undefined);
   const grant = withHash({
     id: `permission-grant-${digest({ request: pack.request.hash, grantedScopes, at }).slice(0, 12)}`,
     schemaVersion: RECEIPT_VERSION,
@@ -386,11 +467,14 @@ function buildVerifiedPack(pack, input, args = {}) {
     ...(tokenReferenceHash ? { tokenReferenceHash } : {}),
     ...(input.refreshChainHash ? { refreshChainHash: input.refreshChainHash } : {}),
     ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
-    revocationInstruction: input.revocationInstruction ?? defaultRevocationInstruction(pack.subject.provider, pack.subject.subjectKind),
+    revocationInstruction:
+      input.revocationInstruction ??
+      defaultRevocationInstruction(pack.subject.provider, pack.subject.subjectKind),
     ...(input.revocationUrl ? { revocationUrlHash: hashValue(input.revocationUrl) } : {}),
   });
 
-  const verificationMethod = input.verificationMethod ?? defaultVerificationMethod(pack.subject.subjectKind);
+  const verificationMethod =
+    input.verificationMethod ?? defaultVerificationMethod(pack.subject.subjectKind);
   if (!VERIFICATION_METHODS.has(verificationMethod)) {
     throw new Error(`Unsupported verificationMethod: ${verificationMethod}`);
   }
@@ -454,7 +538,9 @@ function buildRevokedPack(pack, input, args = {}) {
     requiresFreshUserGesture: true,
     hiddenAutomationUsed: false,
     ...(input.residualAccessWarning ? { residualAccessWarning: input.residualAccessWarning } : {}),
-    rollbackNote: input.rollbackNote ?? 'Permission revoked or revocation path recorded; residual provider sessions may expire asynchronously.',
+    rollbackNote:
+      input.rollbackNote ??
+      'Permission revoked or revocation path recorded; residual provider sessions may expire asynchronously.',
   });
 
   const replay = withHash({
@@ -467,7 +553,11 @@ function buildRevokedPack(pack, input, args = {}) {
     grantReceiptId: pack.grant.id,
     ...(pack.verification ? { verificationReceiptId: pack.verification.id } : {}),
     revocationReceiptId: revocation.id,
-    replayKey: hashValue({ previousReplayKey: pack.replay.replayKey, revocation: revocation.hash, adapterVersion: VERSION }),
+    replayKey: hashValue({
+      previousReplayKey: pack.replay.replayKey,
+      revocation: revocation.hash,
+      adapterVersion: VERSION,
+    }),
     rawCredentialCaptured: false,
     overbroadScopeAccepted: false,
     readyForHoloLand: false,
@@ -485,38 +575,62 @@ function buildRevokedPack(pack, input, args = {}) {
 function validatePack(pack) {
   const errors = [];
   if (!pack || typeof pack !== 'object') return ['HoloShellPermissionGateReceiptPack is required.'];
-  if (pack.schemaVersion !== RECEIPT_VERSION) errors.push(`schemaVersion must be ${RECEIPT_VERSION}`);
+  if (pack.schemaVersion !== RECEIPT_VERSION)
+    errors.push(`schemaVersion must be ${RECEIPT_VERSION}`);
   if (pack.workflow !== WORKFLOW) errors.push(`workflow must be ${WORKFLOW}`);
   if (!STATUSES.has(pack.status)) errors.push(`unsupported status: ${pack.status}`);
   if (pack.status !== pack.replay?.status) errors.push('pack status must match replay status');
-  if (pack.subject?.publicReceiptMayContainAbsolutePath !== false) errors.push('subject may not expose absolute paths');
-  if (pack.subject?.credentialExtrusionAllowed !== false) errors.push('subject may not allow credential extrusion');
-  if (pack.request?.commandPreviewContainsAbsolutePaths !== false) errors.push('request command preview path flag must be false');
-  if (JSON.stringify(pack).match(/\b(access_token|refresh_token|client_secret|id_token)=([A-Za-z0-9._~+/=-]+)/i)) {
+  if (pack.subject?.publicReceiptMayContainAbsolutePath !== false)
+    errors.push('subject may not expose absolute paths');
+  if (pack.subject?.credentialExtrusionAllowed !== false)
+    errors.push('subject may not allow credential extrusion');
+  if (pack.request?.commandPreviewContainsAbsolutePaths !== false)
+    errors.push('request command preview path flag must be false');
+  if (
+    JSON.stringify(pack).match(
+      /\b(access_token|refresh_token|client_secret|id_token)=([A-Za-z0-9._~+/=-]+)/i
+    )
+  ) {
     errors.push('public receipt contains raw credential query material');
   }
   if (JSON.stringify(pack).match(/\bBearer\s+(?!<redacted>)[A-Za-z0-9._~+/=-]+/i)) {
     errors.push('public receipt contains raw bearer credential material');
   }
-  if ((pack.status === 'granted' || pack.status === 'verified' || pack.status === 'revoked') && !pack.grant) {
+  if (
+    (pack.status === 'granted' || pack.status === 'verified' || pack.status === 'revoked') &&
+    !pack.grant
+  ) {
     errors.push('grant receipt is required after grant');
   }
   if ((pack.status === 'verified' || pack.replay?.readyForHoloLand) && !pack.verification) {
     errors.push('verification receipt is required before readiness');
   }
-  if (pack.status === 'revoked' && !pack.revocation) errors.push('revocation receipt is required for revoked status');
-  if (pack.grant && pack.grant.rawCredentialCaptured !== false) errors.push('grant rawCredentialCaptured must be false');
-  if (pack.grant && pack.grant.hiddenAutomationUsed !== false) errors.push('grant hiddenAutomationUsed must be false');
-  if (pack.replay?.overbroadScopeAccepted !== false) errors.push('replay overbroadScopeAccepted must be false');
-  if (pack.replay?.rawCredentialCaptured !== false) errors.push('replay rawCredentialCaptured must be false');
-  if (pack.verification?.readyForHoloLand && (!pack.verification.minimumScopeSatisfied || !pack.verification.excessScopesAbsent)) {
+  if (pack.status === 'revoked' && !pack.revocation)
+    errors.push('revocation receipt is required for revoked status');
+  if (pack.grant && pack.grant.rawCredentialCaptured !== false)
+    errors.push('grant rawCredentialCaptured must be false');
+  if (pack.grant && pack.grant.hiddenAutomationUsed !== false)
+    errors.push('grant hiddenAutomationUsed must be false');
+  if (pack.replay?.overbroadScopeAccepted !== false)
+    errors.push('replay overbroadScopeAccepted must be false');
+  if (pack.replay?.rawCredentialCaptured !== false)
+    errors.push('replay rawCredentialCaptured must be false');
+  if (
+    pack.verification?.readyForHoloLand &&
+    (!pack.verification.minimumScopeSatisfied || !pack.verification.excessScopesAbsent)
+  ) {
     errors.push('verification readiness requires minimum scope and no excess scopes');
   }
   return errors;
 }
 
 function defaultOutput(command, date) {
-  return join('.bench-logs', 'holoshell-human-os-frontier', date, `permission-gate-${command}-receipt.json`);
+  return join(
+    '.bench-logs',
+    'holoshell-human-os-frontier',
+    date,
+    `permission-gate-${command}-receipt.json`
+  );
 }
 
 function readInput(args) {
@@ -524,7 +638,12 @@ function readInput(args) {
 }
 
 function runCommand(args) {
-  if (!args.command || args.command === '--help' || args.command === '-h' || args.command === 'help') {
+  if (
+    !args.command ||
+    args.command === '--help' ||
+    args.command === '-h' ||
+    args.command === 'help'
+  ) {
     printHelp();
     return { ok: true };
   }
@@ -545,15 +664,20 @@ function runCommand(args) {
   }
 
   const validationErrors = validatePack(pack);
-  if (validationErrors.length > 0) throw new Error(`adapter produced invalid receipt: ${validationErrors.join('; ')}`);
+  if (validationErrors.length > 0)
+    throw new Error(`adapter produced invalid receipt: ${validationErrors.join('; ')}`);
 
   if (args.dryRun) {
-    process.stdout.write(`${JSON.stringify({ ok: true, dryRun: true, status: pack.status, receiptId: pack.id }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ ok: true, dryRun: true, status: pack.status, receiptId: pack.id }, null, 2)}\n`
+    );
     return { ok: true, pack };
   }
   const out = args.out ?? defaultOutput(args.command, args.date);
   const written = writeJson(out, pack);
-  process.stdout.write(`${JSON.stringify({ ok: true, out: written, status: pack.status, receiptId: pack.id }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ ok: true, out: written, status: pack.status, receiptId: pack.id }, null, 2)}\n`
+  );
   return { ok: true, pack, out: written };
 }
 
@@ -593,41 +717,46 @@ function runSelfTest() {
     ],
     neverScopes: ['*', 'drive', 'admin', 'billing', 'delete', 'full_access'],
     purpose: 'Build a HoloLand world from an approved Drive file.',
-    commandOrUrlPreview: 'https://accounts.google.com/o/oauth2/v2/auth?access_token=secret&scope=drive.file',
+    commandOrUrlPreview:
+      'https://accounts.google.com/o/oauth2/v2/auth?access_token=secret&scope=drive.file',
   });
   runCommand(parseArgs(['plan', '--input', requestPath, '--out', planPath]));
 
   writeJson(verifyPath, {
     now: '2026-05-20T00:01:00.000Z',
-    grantedScopes: ['drive.file|Read and update only HoloLand-created world files.|medium|true|Google Drive per-file access'],
+    grantedScopes: [
+      'drive.file|Read and update only HoloLand-created world files.|medium|true|Google Drive per-file access',
+    ],
     tokenReference: 'raw-token-never-written',
     verificationMethod: 'oauth_tokeninfo',
     revocationInstruction: 'Open Google account app permissions and revoke HoloLand Builder.',
     revocationUrl: 'https://myaccount.google.com/permissions',
   });
-  runCommand(parseArgs(['verify', '--pack', planPath, '--input', verifyPath, '--out', verifiedPath]));
+  runCommand(
+    parseArgs(['verify', '--pack', planPath, '--input', verifyPath, '--out', verifiedPath])
+  );
 
   writeJson(revokePath, {
     now: '2026-05-20T00:02:00.000Z',
     revokeVerified: true,
     revocationMethod: 'provider_settings',
   });
-  runCommand(parseArgs(['revoke', '--pack', verifiedPath, '--input', revokePath, '--out', revokedPath]));
+  runCommand(
+    parseArgs(['revoke', '--pack', verifiedPath, '--input', revokePath, '--out', revokedPath])
+  );
 
   const plan = readJson(planPath);
   const verified = readJson(verifiedPath);
   const revoked = readJson(revokedPath);
-  const errors = [
-    ...validatePack(plan),
-    ...validatePack(verified),
-    ...validatePack(revoked),
-  ];
+  const errors = [...validatePack(plan), ...validatePack(verified), ...validatePack(revoked)];
   const publicJson = JSON.stringify({ plan, verified, revoked });
   if (publicJson.includes('joseph@example.com')) errors.push('raw subject label leaked');
   if (publicJson.includes('raw-token-never-written')) errors.push('raw token reference leaked');
   if (publicJson.includes('access_token=secret')) errors.push('raw access token leaked');
-  if (!verified.grant?.tokenReferenceHash?.startsWith('sha256:')) errors.push('token reference hash missing');
-  if (revoked.status !== 'revoked' || revoked.revocation?.revokeVerified !== true) errors.push('revoked receipt missing');
+  if (!verified.grant?.tokenReferenceHash?.startsWith('sha256:'))
+    errors.push('token reference hash missing');
+  if (revoked.status !== 'revoked' || revoked.revocation?.revokeVerified !== true)
+    errors.push('revoked receipt missing');
 
   try {
     const overbroadPath = join(dir, 'overbroad.json');
@@ -644,11 +773,16 @@ function runSelfTest() {
   }
 
   if (errors.length > 0) throw new Error(`Self-test failures:\n${errors.join('\n')}`);
-  process.stdout.write(`${JSON.stringify({ ok: true, adapter: 'holoshell-permission-gate-adapter', version: VERSION }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ ok: true, adapter: 'holoshell-permission-gate-adapter', version: VERSION }, null, 2)}\n`
+  );
   return { ok: true };
 }
 
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || process.argv[1]?.endsWith('holoshell-permission-gate-adapter.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` ||
+  process.argv[1]?.endsWith('holoshell-permission-gate-adapter.mjs')
+) {
   try {
     runCommand(parseArgs(process.argv.slice(2)));
   } catch (error) {

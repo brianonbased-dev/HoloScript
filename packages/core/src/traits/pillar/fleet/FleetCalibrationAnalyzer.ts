@@ -20,18 +20,19 @@
  *   Synthetic baseline — research/paper-22-ati/calibration-2026-05-21.json
  */
 
-import * as fs   from 'node:fs';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as os   from 'node:os';
+import * as os from 'node:os';
 
 import type { CalibrationRecord } from './FleetCalibrationCollector';
 
 // ─── Load JSONL ───────────────────────────────────────────────────────────────
 
 function loadRecords(filePath: string): CalibrationRecord[] {
-  const lines = fs.readFileSync(filePath, 'utf8')
+  const lines = fs
+    .readFileSync(filePath, 'utf8')
     .split('\n')
-    .filter(l => l.trim().length > 0);
+    .filter((l) => l.trim().length > 0);
 
   const records: CalibrationRecord[] = [];
   for (const line of lines) {
@@ -74,23 +75,26 @@ function buildHeatmap(records: CalibrationRecord[], bins = 5): HeatmapCell[] {
 
 interface FNStats {
   total: number;
-  axis1_only_catch: number;   // B_dirty only
-  axis2_only_catch: number;   // S_dirty only (axis-1 false negative)
-  both_catch: number;          // B_dirty AND S_dirty
-  neither_catch: number;       // clean
-  axis1_fn_rate: number;       // axis2_only_catch / (axis1_only_catch + axis2_only_catch + both)
+  axis1_only_catch: number; // B_dirty only
+  axis2_only_catch: number; // S_dirty only (axis-1 false negative)
+  both_catch: number; // B_dirty AND S_dirty
+  neither_catch: number; // clean
+  axis1_fn_rate: number; // axis2_only_catch / (axis1_only_catch + axis2_only_catch + both)
 }
 
 function computeFNStats(records: CalibrationRecord[]): FNStats {
-  let axis1_only = 0, axis2_only = 0, both = 0, neither = 0;
+  let axis1_only = 0,
+    axis2_only = 0,
+    both = 0,
+    neither = 0;
   for (const r of records) {
-    if (r.is_byzantine && !r.is_sycophantic)  axis1_only++;
+    if (r.is_byzantine && !r.is_sycophantic) axis1_only++;
     else if (!r.is_byzantine && r.is_sycophantic) axis2_only++;
-    else if (r.is_byzantine && r.is_sycophantic)  both++;
+    else if (r.is_byzantine && r.is_sycophantic) both++;
     else neither++;
   }
   const detected = axis1_only + axis2_only + both;
-  const fn_rate  = detected > 0 ? axis2_only / detected : 0;
+  const fn_rate = detected > 0 ? axis2_only / detected : 0;
   return {
     total: records.length,
     axis1_only_catch: axis1_only,
@@ -124,16 +128,19 @@ function computeDomainSyco(records: CalibrationRecord[]): DomainSyco[] {
       domain,
       count,
       syco_count: syco,
-      syco_rate:  count > 0 ? syco / count : 0,
+      syco_rate: count > 0 ? syco / count : 0,
     }))
     .sort((a, b) => b.syco_rate - a.syco_rate);
 }
 
 // ─── Agent-hour summary ───────────────────────────────────────────────────────
 
-function computeAgentHours(records: CalibrationRecord[]): { unique_agents: number; agent_hours: number } {
-  const ahSet = new Set(records.map(r => r.hour_bucket));
-  const agentSet = new Set(records.map(r => r.agent_id));
+function computeAgentHours(records: CalibrationRecord[]): {
+  unique_agents: number;
+  agent_hours: number;
+} {
+  const ahSet = new Set(records.map((r) => r.hour_bucket));
+  const agentSet = new Set(records.map((r) => r.agent_id));
   return { unique_agents: agentSet.size, agent_hours: ahSet.size };
 }
 
@@ -152,10 +159,10 @@ function latexFNTable(fn: FNStats): string {
     'Category & Count & Rate (\\%) \\\\',
     '\\midrule',
     `Total observations & ${fn.total} & — \\\\`,
-    `Axis-1 only (Byzantine) & ${fn.axis1_only_catch} & ${fn.total > 0 ? ((fn.axis1_only_catch/fn.total)*100).toFixed(1) : '—'} \\\\`,
-    `Axis-2 only (Sycophancy) & ${fn.axis2_only_catch} & ${fn.total > 0 ? ((fn.axis2_only_catch/fn.total)*100).toFixed(1) : '—'} \\\\`,
-    `Both axes flagged & ${fn.both_catch} & ${fn.total > 0 ? ((fn.both_catch/fn.total)*100).toFixed(1) : '—'} \\\\`,
-    `Clean (neither) & ${fn.neither_catch} & ${fn.total > 0 ? ((fn.neither_catch/fn.total)*100).toFixed(1) : '—'} \\\\`,
+    `Axis-1 only (Byzantine) & ${fn.axis1_only_catch} & ${fn.total > 0 ? ((fn.axis1_only_catch / fn.total) * 100).toFixed(1) : '—'} \\\\`,
+    `Axis-2 only (Sycophancy) & ${fn.axis2_only_catch} & ${fn.total > 0 ? ((fn.axis2_only_catch / fn.total) * 100).toFixed(1) : '—'} \\\\`,
+    `Both axes flagged & ${fn.both_catch} & ${fn.total > 0 ? ((fn.both_catch / fn.total) * 100).toFixed(1) : '—'} \\\\`,
+    `Clean (neither) & ${fn.neither_catch} & ${fn.total > 0 ? ((fn.neither_catch / fn.total) * 100).toFixed(1) : '—'} \\\\`,
     '\\midrule',
     `\\textbf{Axis-1-only false-negative rate} & ${fn.axis2_only_catch} & \\textbf{${fnPct}\\%} \\\\`,
     '\\bottomrule',
@@ -165,9 +172,9 @@ function latexFNTable(fn: FNStats): string {
 }
 
 function latexDomainTable(domains: DomainSyco[]): string {
-  const rows = domains.slice(0, 10).map(d =>
-    `${d.domain} & ${d.count} & ${(d.syco_rate * 100).toFixed(1)}\\% \\\\`
-  );
+  const rows = domains
+    .slice(0, 10)
+    .map((d) => `${d.domain} & ${d.count} & ${(d.syco_rate * 100).toFixed(1)}\\% \\\\`);
   return [
     '% ── Per-domain sycophancy prevalence (Paper 22 §5) ──',
     '\\begin{table}[h]',
@@ -187,14 +194,14 @@ function latexDomainTable(domains: DomainSyco[]): string {
 
 function latexHeatmap(cells: HeatmapCell[], bins: number): string {
   // Render as a simple tabular (bins × bins), row = B bin, col = S bin
-  const header = `% B\\\\S & ${Array.from({ length: bins }, (_, i) => `[${(i/bins).toFixed(1)},{${((i+1)/bins).toFixed(1)}})`).join(' & ')} \\\\`;
+  const header = `% B\\\\S & ${Array.from({ length: bins }, (_, i) => `[${(i / bins).toFixed(1)},{${((i + 1) / bins).toFixed(1)}})`).join(' & ')} \\\\`;
   const rows: string[] = [];
   for (let b = 0; b < bins; b++) {
-    const label = `[${(b/bins).toFixed(1)},{${((b+1)/bins).toFixed(1)}})`;
+    const label = `[${(b / bins).toFixed(1)},{${((b + 1) / bins).toFixed(1)}})`;
     const cols = cells
-      .filter(c => c.b_bin === b)
+      .filter((c) => c.b_bin === b)
       .sort((a, z) => a.s_bin - z.s_bin)
-      .map(c => (c.frac * 100).toFixed(1) + '\\%');
+      .map((c) => (c.frac * 100).toFixed(1) + '\\%');
     rows.push(`${label} & ${cols.join(' & ')} \\\\`);
   }
   return [
@@ -208,10 +215,16 @@ function latexHeatmap(cells: HeatmapCell[], bins: number): string {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 function main(): void {
-  const filePath = process.argv[2]
-    ?? process.env['FLEET_CAL_JSONL']
-    ?? path.join(os.homedir(), '.ai-ecosystem', 'research', 'paper-22-ati',
-        `fleet-calibration-${new Date().toISOString().slice(0, 10)}.jsonl`);
+  const filePath =
+    process.argv[2] ??
+    process.env['FLEET_CAL_JSONL'] ??
+    path.join(
+      os.homedir(),
+      '.ai-ecosystem',
+      'research',
+      'paper-22-ati',
+      `fleet-calibration-${new Date().toISOString().slice(0, 10)}.jsonl`
+    );
 
   if (!fs.existsSync(filePath)) {
     console.error(`[Analyzer] File not found: ${filePath}`);
@@ -228,30 +241,34 @@ function main(): void {
     process.exit(0);
   }
 
-  const fn       = computeFNStats(records);
-  const domains  = computeDomainSyco(records);
+  const fn = computeFNStats(records);
+  const domains = computeDomainSyco(records);
   const { unique_agents, agent_hours } = computeAgentHours(records);
-  const heatmap  = buildHeatmap(records, 5);
+  const heatmap = buildHeatmap(records, 5);
 
   // ── Summary ──
   console.log('\n═══ Fleet Calibration Summary ═══');
   console.log(`Observations:    ${records.length}`);
   console.log(`Unique agents:   ${unique_agents}`);
   console.log(`Agent-hours:     ${agent_hours}`);
-  console.log(`Byzantine rate:  ${(fn.axis1_only_catch / records.length * 100).toFixed(2)}%`);
-  console.log(`Sycophancy rate: ${((fn.axis2_only_catch + fn.both_catch) / records.length * 100).toFixed(2)}%`);
+  console.log(`Byzantine rate:  ${((fn.axis1_only_catch / records.length) * 100).toFixed(2)}%`);
+  console.log(
+    `Sycophancy rate: ${(((fn.axis2_only_catch + fn.both_catch) / records.length) * 100).toFixed(2)}%`
+  );
   console.log(`Axis-1 FN rate:  ${(fn.axis1_fn_rate * 100).toFixed(2)}%`);
 
   // ── Domain breakdown ──
   console.log('\n═══ Per-Domain Sycophancy ═══');
   for (const d of domains.slice(0, 10)) {
     const bar = '█'.repeat(Math.round(d.syco_rate * 20));
-    console.log(`  ${d.domain.padEnd(20)} ${bar.padEnd(20)} ${(d.syco_rate * 100).toFixed(1)}% (n=${d.count})`);
+    console.log(
+      `  ${d.domain.padEnd(20)} ${bar.padEnd(20)} ${(d.syco_rate * 100).toFixed(1)}% (n=${d.count})`
+    );
   }
 
   // ── LaTeX output ──
   const outBase = filePath.replace(/\.jsonl$/, '');
-  const texOut  = `${outBase}-tables.tex`;
+  const texOut = `${outBase}-tables.tex`;
 
   const texContent = [
     `% Fleet Calibration Tables — generated ${new Date().toISOString()}`,

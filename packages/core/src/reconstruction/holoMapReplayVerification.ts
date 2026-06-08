@@ -42,11 +42,7 @@ import type { ReconstructionManifest } from './HoloMapRuntime';
  * Higher tiers strictly subsume the proofs of lower tiers (a
  * `fully-anchored` manifest also has an OTS proof, etc).
  */
-export type HoloMapTrustTier =
-  | 'untrusted'
-  | 'self-attested'
-  | 'ots-anchored'
-  | 'fully-anchored';
+export type HoloMapTrustTier = 'untrusted' | 'self-attested' | 'ots-anchored' | 'fully-anchored';
 
 /**
  * Result of a replay-verification call.

@@ -60,12 +60,16 @@ export interface TraitDispatchContext {
 
 export interface RuntimeTraitHandler {
   name: string;
-  onAttach?: (node: unknown, config: CivicDecisionTraitConfig, context: TraitDispatchContext) => void;
+  onAttach?: (
+    node: unknown,
+    config: CivicDecisionTraitConfig,
+    context: TraitDispatchContext
+  ) => void;
   onUpdate?: (
     node: unknown,
     config: CivicDecisionTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -80,7 +84,7 @@ interface CivicDecisionNode {
 function solveOntoNode(
   node: unknown,
   config: CivicDecisionTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as CivicDecisionNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

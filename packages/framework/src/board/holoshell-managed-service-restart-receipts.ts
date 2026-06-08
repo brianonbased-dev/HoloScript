@@ -153,8 +153,7 @@ function isIsoTimestamp(value: string | undefined): boolean {
 
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
-    typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
+    typeof value === 'string' && /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
   );
 }
 
@@ -189,8 +188,10 @@ function validateManagedLocalServiceReceipt(
     errors.push(`ManagedLocalServiceReceipt[${index}] is required.`);
     return;
   }
-  if (!isNonEmptyString(receipt.serviceId)) errors.push(`ManagedLocalServiceReceipt[${index}].serviceId is required.`);
-  if (!isNonEmptyString(receipt.status)) errors.push(`ManagedLocalServiceReceipt[${index}].status is required.`);
+  if (!isNonEmptyString(receipt.serviceId))
+    errors.push(`ManagedLocalServiceReceipt[${index}].serviceId is required.`);
+  if (!isNonEmptyString(receipt.status))
+    errors.push(`ManagedLocalServiceReceipt[${index}].status is required.`);
   validateBoolean(`ManagedLocalServiceReceipt[${index}].localOnly`, receipt.localOnly, errors);
   validatePid(`ManagedLocalServiceReceipt[${index}].pid`, receipt.pid, errors);
   validateBoolean(`ManagedLocalServiceReceipt[${index}].pidAlive`, receipt.pidAlive, errors);
@@ -209,7 +210,11 @@ function validateManagedLocalServiceReceipt(
     receipt.rawCommandLineIncluded,
     errors
   );
-  validateBoolean(`ManagedLocalServiceReceipt[${index}].executeEnabled`, receipt.executeEnabled, errors);
+  validateBoolean(
+    `ManagedLocalServiceReceipt[${index}].executeEnabled`,
+    receipt.executeEnabled,
+    errors
+  );
   validateBoolean(
     `ManagedLocalServiceReceipt[${index}].trustedExecuteEnabled`,
     receipt.trustedExecuteEnabled,
@@ -228,8 +233,10 @@ function validateManagedLocalServiceReceipt(
   if (!isNonEmptyString(receipt.statusHash)) {
     errors.push(`ManagedLocalServiceReceipt[${index}].statusHash is required.`);
   }
-  if (!isNonEmptyString(receipt.adapter)) errors.push(`ManagedLocalServiceReceipt[${index}].adapter is required.`);
-  if (!isNonEmptyString(receipt.source)) errors.push(`ManagedLocalServiceReceipt[${index}].source is required.`);
+  if (!isNonEmptyString(receipt.adapter))
+    errors.push(`ManagedLocalServiceReceipt[${index}].adapter is required.`);
+  if (!isNonEmptyString(receipt.source))
+    errors.push(`ManagedLocalServiceReceipt[${index}].source is required.`);
   if (receipt.localOnly !== true) {
     errors.push(`ManagedLocalServiceReceipt[${index}] must prove localOnly=true.`);
   }
@@ -241,16 +248,14 @@ function validateManagedLocalServiceReceipt(
   }
 }
 
-function validatePidGate(
-  pack: HoloShellManagedServiceRestartReceiptPack,
-  errors: string[]
-): void {
+function validatePidGate(pack: HoloShellManagedServiceRestartReceiptPack, errors: string[]): void {
   const gate = pack.pidGate;
   if (!gate) {
     errors.push('HoloShellManagedServiceRestartReceiptPack.pidGate is required.');
     return;
   }
-  if (!isNonEmptyString(gate.serviceId)) errors.push('VerifiedPidGateReceipt.serviceId is required.');
+  if (!isNonEmptyString(gate.serviceId))
+    errors.push('VerifiedPidGateReceipt.serviceId is required.');
   if (gate.serviceId !== pack.targetService) {
     errors.push('VerifiedPidGateReceipt.serviceId must match targetService.');
   }
@@ -259,12 +264,26 @@ function validatePidGate(
   validateBoolean('VerifiedPidGateReceipt.pidAlive', gate.pidAlive, errors);
   validateBoolean('VerifiedPidGateReceipt.pidCommandVerified', gate.pidCommandVerified, errors);
   validateBoolean('VerifiedPidGateReceipt.commandLineObserved', gate.commandLineObserved, errors);
-  validateBoolean('VerifiedPidGateReceipt.rawCommandLineIncluded', gate.rawCommandLineIncluded, errors);
-  validateBoolean('VerifiedPidGateReceipt.unverifiedPidStopRefused', gate.unverifiedPidStopRefused, errors);
-  validateBoolean('VerifiedPidGateReceipt.stopOnlyVerifiedManagedPid', gate.stopOnlyVerifiedManagedPid, errors);
+  validateBoolean(
+    'VerifiedPidGateReceipt.rawCommandLineIncluded',
+    gate.rawCommandLineIncluded,
+    errors
+  );
+  validateBoolean(
+    'VerifiedPidGateReceipt.unverifiedPidStopRefused',
+    gate.unverifiedPidStopRefused,
+    errors
+  );
+  validateBoolean(
+    'VerifiedPidGateReceipt.stopOnlyVerifiedManagedPid',
+    gate.stopOnlyVerifiedManagedPid,
+    errors
+  );
   validateBoolean('VerifiedPidGateReceipt.forceKillAllowed', gate.forceKillAllowed, errors);
-  if (gate.exactPidRequired !== true) errors.push('VerifiedPidGateReceipt.exactPidRequired must be true.');
-  if (gate.rawCommandLineIncluded) errors.push('VerifiedPidGateReceipt must not include raw command lines.');
+  if (gate.exactPidRequired !== true)
+    errors.push('VerifiedPidGateReceipt.exactPidRequired must be true.');
+  if (gate.rawCommandLineIncluded)
+    errors.push('VerifiedPidGateReceipt must not include raw command lines.');
   if (gate.unverifiedPidStopRefused !== true) {
     errors.push('VerifiedPidGateReceipt.unverifiedPidStopRefused must be true.');
   }
@@ -277,17 +296,18 @@ function validatePidGate(
   if (!isNonEmptyString(gate.commandHash)) {
     errors.push('VerifiedPidGateReceipt.commandHash is required.');
   }
-  if ((pack.requestedAction === 'stop' || pack.requestedAction === 'restart') && !gate.pidCommandVerified) {
+  if (
+    (pack.requestedAction === 'stop' || pack.requestedAction === 'restart') &&
+    !gate.pidCommandVerified
+  ) {
     errors.push('Stop or restart actions require a verified managed PID.');
   }
 }
 
-function validateApproval(
-  pack: HoloShellManagedServiceRestartReceiptPack,
-  errors: string[]
-): void {
+function validateApproval(pack: HoloShellManagedServiceRestartReceiptPack, errors: string[]): void {
   const approval = pack.approval;
-  const requiresApproval = isMutationAction(pack.requestedAction) || isExecuteEscalation(pack.requestedAction);
+  const requiresApproval =
+    isMutationAction(pack.requestedAction) || isExecuteEscalation(pack.requestedAction);
   if (!requiresApproval) {
     if (pack.permissionEnvelope !== 'read_only') {
       errors.push('Status-only service receipts must use read_only permission envelope.');
@@ -298,16 +318,33 @@ function validateApproval(
     errors.push('Service mutation receipts require ServiceRestartApprovalReceipt.');
     return;
   }
-  if (!isNonEmptyString(approval.approvalId)) errors.push('ServiceRestartApprovalReceipt.approvalId is required.');
-  validateBoolean('ServiceRestartApprovalReceipt.approvalRequired', approval.approvalRequired, errors);
-  validateBoolean('ServiceRestartApprovalReceipt.approvalCaptured', approval.approvalCaptured, errors);
+  if (!isNonEmptyString(approval.approvalId))
+    errors.push('ServiceRestartApprovalReceipt.approvalId is required.');
+  validateBoolean(
+    'ServiceRestartApprovalReceipt.approvalRequired',
+    approval.approvalRequired,
+    errors
+  );
+  validateBoolean(
+    'ServiceRestartApprovalReceipt.approvalCaptured',
+    approval.approvalCaptured,
+    errors
+  );
   validateBoolean(
     'ServiceRestartApprovalReceipt.freshHumanGestureCaptured',
     approval.freshHumanGestureCaptured,
     errors
   );
-  validateBoolean('ServiceRestartApprovalReceipt.ownerAckRequired', approval.ownerAckRequired, errors);
-  validateBoolean('ServiceRestartApprovalReceipt.ownerAckCaptured', approval.ownerAckCaptured, errors);
+  validateBoolean(
+    'ServiceRestartApprovalReceipt.ownerAckRequired',
+    approval.ownerAckRequired,
+    errors
+  );
+  validateBoolean(
+    'ServiceRestartApprovalReceipt.ownerAckCaptured',
+    approval.ownerAckCaptured,
+    errors
+  );
   validateTimestamp('ServiceRestartApprovalReceipt.expiresAt', approval.expiresAt, errors);
   if (approval.requestedAction !== pack.requestedAction) {
     errors.push('ServiceRestartApprovalReceipt.requestedAction must match requestedAction.');
@@ -316,7 +353,9 @@ function validateApproval(
     errors.push('ServiceRestartApprovalReceipt.targetService must match targetService.');
   }
   if (!Array.isArray(approval.rollbackLimits) || approval.rollbackLimits.length === 0) {
-    errors.push('ServiceRestartApprovalReceipt.rollbackLimits must include at least one visible rollback limit.');
+    errors.push(
+      'ServiceRestartApprovalReceipt.rollbackLimits must include at least one visible rollback limit.'
+    );
   } else if (approval.rollbackLimits.some((limit) => !isNonEmptyString(limit))) {
     errors.push('ServiceRestartApprovalReceipt.rollbackLimits entries must be non-empty.');
   }
@@ -356,9 +395,18 @@ function validateAfterAction(
   if (afterAction.targetService !== pack.targetService) {
     errors.push('ServiceAfterActionReceipt.targetService must match targetService.');
   }
-  if (!isNonEmptyString(afterAction.status)) errors.push('ServiceAfterActionReceipt.status is required.');
-  validateBoolean('ServiceAfterActionReceipt.serviceMutationTaken', afterAction.serviceMutationTaken, errors);
-  validateBoolean('ServiceAfterActionReceipt.destructiveActionsTaken', afterAction.destructiveActionsTaken, errors);
+  if (!isNonEmptyString(afterAction.status))
+    errors.push('ServiceAfterActionReceipt.status is required.');
+  validateBoolean(
+    'ServiceAfterActionReceipt.serviceMutationTaken',
+    afterAction.serviceMutationTaken,
+    errors
+  );
+  validateBoolean(
+    'ServiceAfterActionReceipt.destructiveActionsTaken',
+    afterAction.destructiveActionsTaken,
+    errors
+  );
   validatePid('ServiceAfterActionReceipt.beforePid', afterAction.beforePid, errors);
   validatePid('ServiceAfterActionReceipt.afterPid', afterAction.afterPid, errors);
   validateBoolean('ServiceAfterActionReceipt.afterPidAlive', afterAction.afterPidAlive, errors);
@@ -367,7 +415,11 @@ function validateAfterAction(
     afterAction.afterPidCommandVerified,
     errors
   );
-  validateBoolean('ServiceAfterActionReceipt.rawCommandLineIncluded', afterAction.rawCommandLineIncluded, errors);
+  validateBoolean(
+    'ServiceAfterActionReceipt.rawCommandLineIncluded',
+    afterAction.rawCommandLineIncluded,
+    errors
+  );
   if (!isNonEmptyString(afterAction.beforeStatusHash)) {
     errors.push('ServiceAfterActionReceipt.beforeStatusHash is required.');
   }
@@ -413,11 +465,18 @@ export function validateHoloShellManagedServiceRestartReceiptPack(
       `HoloShellManagedServiceRestartReceiptPack.schemaVersion must be ${HOLOSHELL_MANAGED_SERVICE_RESTART_RECEIPT_PACK_VERSION}.`
     );
   }
-  if (!isNonEmptyString(pack.id)) errors.push('HoloShellManagedServiceRestartReceiptPack.id is required.');
+  if (!isNonEmptyString(pack.id))
+    errors.push('HoloShellManagedServiceRestartReceiptPack.id is required.');
   if (pack.workflow !== 'process-owner-lane-restart') {
-    errors.push('HoloShellManagedServiceRestartReceiptPack.workflow must be process-owner-lane-restart.');
+    errors.push(
+      'HoloShellManagedServiceRestartReceiptPack.workflow must be process-owner-lane-restart.'
+    );
   }
-  validateTimestamp('HoloShellManagedServiceRestartReceiptPack.generatedAt', pack.generatedAt, errors);
+  validateTimestamp(
+    'HoloShellManagedServiceRestartReceiptPack.generatedAt',
+    pack.generatedAt,
+    errors
+  );
   if (!isSupportedManagedServiceAction(String(pack.requestedAction))) {
     errors.push(
       `HoloShellManagedServiceRestartReceiptPack.requestedAction is unsupported: ${String(pack.requestedAction)}.`
@@ -432,9 +491,13 @@ export function validateHoloShellManagedServiceRestartReceiptPack(
     );
   }
   if (!Array.isArray(pack.services) || pack.services.length === 0) {
-    errors.push('HoloShellManagedServiceRestartReceiptPack.services must include at least one service receipt.');
+    errors.push(
+      'HoloShellManagedServiceRestartReceiptPack.services must include at least one service receipt.'
+    );
   } else {
-    pack.services.forEach((service, index) => validateManagedLocalServiceReceipt(service, errors, index));
+    pack.services.forEach((service, index) =>
+      validateManagedLocalServiceReceipt(service, errors, index)
+    );
   }
   validatePidGate(pack, errors);
   validateApproval(pack, errors);
@@ -442,25 +505,33 @@ export function validateHoloShellManagedServiceRestartReceiptPack(
   if (isMutationAction(pack.requestedAction) && !pack.afterAction) {
     errors.push('Service mutation receipts require ServiceAfterActionReceipt.');
   }
-  if (!isNonEmptyString(pack.replayKey)) errors.push('HoloShellManagedServiceRestartReceiptPack.replayKey is required.');
-  if (!isNonEmptyString(pack.hash)) errors.push('HoloShellManagedServiceRestartReceiptPack.hash is required.');
+  if (!isNonEmptyString(pack.replayKey))
+    errors.push('HoloShellManagedServiceRestartReceiptPack.replayKey is required.');
+  if (!isNonEmptyString(pack.hash))
+    errors.push('HoloShellManagedServiceRestartReceiptPack.hash is required.');
   if (pack.hashAlgorithm !== 'sha256') {
     errors.push('HoloShellManagedServiceRestartReceiptPack.hashAlgorithm must be sha256.');
   }
   for (const command of pack.verificationCommands ?? []) {
     const commandText = typeof command === 'string' ? command : command.command;
     if (!isNonEmptyString(commandText)) {
-      errors.push('HoloShellManagedServiceRestartReceiptPack has a verification command without command text.');
+      errors.push(
+        'HoloShellManagedServiceRestartReceiptPack has a verification command without command text.'
+      );
     }
   }
   for (const anchor of Object.values(pack.sourceAnchors ?? {})) {
     if (hasAbsolutePath(anchor)) {
-      errors.push('ManagedServiceRestartSourceAnchors must be repo-relative or redacted, not absolute paths.');
+      errors.push(
+        'ManagedServiceRestartSourceAnchors must be repo-relative or redacted, not absolute paths.'
+      );
     }
   }
   for (const provenance of pack.provenance ?? []) {
     if (!isNonEmptyString(provenance)) {
-      errors.push('HoloShellManagedServiceRestartReceiptPack.provenance entries must be non-empty.');
+      errors.push(
+        'HoloShellManagedServiceRestartReceiptPack.provenance entries must be non-empty.'
+      );
     }
   }
   return errors;

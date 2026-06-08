@@ -79,7 +79,7 @@ export function usePresence({ enabled = true }: UsePresenceOptions = {}): UsePre
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
-    
+
     intervalRef.current = setInterval(() => {
       try {
         const client = getCollaborationClient();

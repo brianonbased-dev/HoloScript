@@ -58,7 +58,12 @@ function zeroVec(): Vec3 {
   return { x: 0, y: 0, z: 0 };
 }
 
-function predict(state: KalmanState, covariance: number, dt: number, processNoise: number): { state: KalmanState; covariance: number } {
+function predict(
+  state: KalmanState,
+  covariance: number,
+  dt: number,
+  processNoise: number
+): { state: KalmanState; covariance: number } {
   const next: KalmanState = {
     pos: {
       x: state.pos.x + state.vel.x * dt + 0.5 * state.acc.x * dt * dt,
@@ -76,7 +81,13 @@ function predict(state: KalmanState, covariance: number, dt: number, processNois
   return { state: next, covariance: grown };
 }
 
-function update(state: KalmanState, covariance: number, measurement: Vec3, measurementNoise: number, lastDt: number): { state: KalmanState; covariance: number } {
+function update(
+  state: KalmanState,
+  covariance: number,
+  measurement: Vec3,
+  measurementNoise: number,
+  lastDt: number
+): { state: KalmanState; covariance: number } {
   // Kalman gain as a scalar derived from covariance ratio.
   const k = covariance / (covariance + measurementNoise);
 
@@ -155,7 +166,10 @@ export const kalmanFilterHandler: TraitHandler<KalmanFilterConfig> = {
     const minStep = 1000 / config.update_rate_hz;
     if (now - internal.lastPredictAt < minStep) return;
 
-    const dt = Math.min(config.max_dt_seconds, delta > 0 ? delta : (now - internal.lastPredictAt) / 1000);
+    const dt = Math.min(
+      config.max_dt_seconds,
+      delta > 0 ? delta : (now - internal.lastPredictAt) / 1000
+    );
     const result = predict(internal.state, internal.covariance, dt, config.process_noise);
     internal.state = result.state;
     internal.covariance = result.covariance;
@@ -190,7 +204,13 @@ export const kalmanFilterHandler: TraitHandler<KalmanFilterConfig> = {
         return;
       }
 
-      const result = update(internal.state, internal.covariance, measurement.pos, config.measurement_noise, clampedDt);
+      const result = update(
+        internal.state,
+        internal.covariance,
+        measurement.pos,
+        config.measurement_noise,
+        clampedDt
+      );
       internal.state = result.state;
       internal.covariance = result.covariance;
       internal.lastMeasurementAt = now;

@@ -12,7 +12,7 @@ export interface IngestComparisonRow {
 export function formatIngestComparisonMarkdown(
   paperId: string,
   ingestPath: IngestPath,
-  rows: IngestComparisonRow[],
+  rows: IngestComparisonRow[]
 ): string {
   const lines: string[] = [];
   lines.push(`## Scene ingest report — ${paperId}`);
@@ -23,12 +23,12 @@ export function formatIngestComparisonMarkdown(
   lines.push('|--------------|-----------|----------------------|-----------|-------|');
   for (const r of rows) {
     lines.push(
-      `| ${r.plainLabel} | \`${r.technicalPath}\` | \`${r.contractFingerprint}\` | ${r.ingestMs.toFixed(3)} | ${r.notes ?? '—'} |`,
+      `| ${r.plainLabel} | \`${r.technicalPath}\` | \`${r.contractFingerprint}\` | ${r.ingestMs.toFixed(3)} | ${r.notes ?? '—'} |`
     );
   }
   lines.push('');
   lines.push(
-    '_Contract fingerprint: compatibility rows hash the canonical paper scene digest; HoloMap rows use the manifest SimulationContract replay fingerprint._',
+    '_Contract fingerprint: compatibility rows hash the canonical paper scene digest; HoloMap rows use the manifest SimulationContract replay fingerprint._'
   );
   lines.push('');
   return lines.join('\n');

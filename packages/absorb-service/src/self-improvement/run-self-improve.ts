@@ -119,7 +119,8 @@ function buildLLMComplete(): LLMComplete {
         }),
         signal: AbortSignal.timeout(120_000),
       });
-      if (!res.ok) throw new Error(`sovereign LLM ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      if (!res.ok)
+        throw new Error(`sovereign LLM ${res.status}: ${(await res.text()).slice(0, 200)}`);
       const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
       const content = data.choices?.[0]?.message?.content;
       if (!content) throw new Error('sovereign LLM returned no content');
@@ -142,7 +143,8 @@ function buildLLMComplete(): LLMComplete {
         }),
         signal: AbortSignal.timeout(120_000),
       });
-      if (!res.ok) throw new Error(`Anthropic fallback ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      if (!res.ok)
+        throw new Error(`Anthropic fallback ${res.status}: ${(await res.text()).slice(0, 200)}`);
       const data = (await res.json()) as { content?: Array<{ type?: string; text?: string }> };
       const text = data.content?.find((b) => b.type === 'text')?.text;
       if (!text) throw new Error('Anthropic fallback returned no content');
@@ -158,7 +160,9 @@ async function main(): Promise<void> {
   // Feeder mode: just surface the coverage gaps (no LLM, no writes).
   if (args.targetsOnly) {
     const targets = await io.queryUntested('');
-    process.stdout.write(JSON.stringify({ rootDir: args.rootDir, count: targets.length, targets }, null, 2) + '\n');
+    process.stdout.write(
+      JSON.stringify({ rootDir: args.rootDir, count: targets.length, targets }, null, 2) + '\n'
+    );
     return;
   }
 
@@ -177,7 +181,9 @@ async function main(): Promise<void> {
     // Always restore the tree, even on error/throw.
     const cleaned = io.cleanup();
     if (cleaned.failed.length) {
-      process.stderr.write(`[self-improve] WARNING: cleanup left ${cleaned.failed.length} file(s): ${cleaned.failed.join(', ')}\n`);
+      process.stderr.write(
+        `[self-improve] WARNING: cleanup left ${cleaned.failed.length} file(s): ${cleaned.failed.join(', ')}\n`
+      );
     }
   }
 
@@ -192,7 +198,11 @@ async function main(): Promise<void> {
     finalQualityPercent: result.finalQuality?.scorePercent ?? null,
     totalDurationMs: result.totalDuration,
     // Full test bodies included so a reviewer/gated step can apply the passing ones.
-    proposals: proposals.map((p) => ({ testFilePath: p.testFilePath, passed: p.passed, content: p.content })),
+    proposals: proposals.map((p) => ({
+      testFilePath: p.testFilePath,
+      passed: p.passed,
+      content: p.content,
+    })),
   };
 
   if (args.json) {
@@ -211,7 +221,9 @@ const invokedDirectly =
   typeof process.argv[1] === 'string' && process.argv[1].includes('run-self-improve');
 if (invokedDirectly) {
   main().catch((err: unknown) => {
-    process.stderr.write(`[self-improve] FATAL: ${err instanceof Error ? err.message : String(err)}\n`);
+    process.stderr.write(
+      `[self-improve] FATAL: ${err instanceof Error ? err.message : String(err)}\n`
+    );
     process.exit(1);
   });
 }

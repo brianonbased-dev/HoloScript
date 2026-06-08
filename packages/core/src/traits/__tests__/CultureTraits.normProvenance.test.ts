@@ -26,11 +26,7 @@ import {
   normalizeNormProvenance,
   serializeNormProvenance,
 } from '../CultureTraits';
-import type {
-  CulturalNorm,
-  CulturalTraceTrait,
-  NormProvenance,
-} from '../CultureTraits';
+import type { CulturalNorm, CulturalTraceTrait, NormProvenance } from '../CultureTraits';
 
 describe('NormProvenance — sentinel + normalize', () => {
   it('UNKNOWN_NORM_PROVENANCE is frozen and shaped correctly', () => {

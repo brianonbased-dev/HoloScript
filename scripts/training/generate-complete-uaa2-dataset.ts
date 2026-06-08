@@ -55,7 +55,7 @@ class AutonomousLoop {
       });
     }
   }
-}`
+}`,
   },
   {
     name: 'lifecycle_orchestration',
@@ -77,7 +77,7 @@ class ResearchLifecycleOrchestrator {
     // Phase 5: Generate next phase
     await this.generateNextPhase(results);
   }
-}`
+}`,
   },
   {
     name: 'specialist_delegation',
@@ -104,8 +104,8 @@ class SpecialistDelegator {
 
     return result;
   }
-}`
-  }
+}`,
+  },
 ];
 
 for (let i = 0; i < 4000; i++) {
@@ -113,7 +113,7 @@ for (let i = 0; i < 4000; i++) {
   allExamples.push({
     instruction: `Implement ${pattern.name.replace('_', ' ')} for autonomous execution`,
     input: '',
-    output: pattern.code
+    output: pattern.code,
   });
 }
 
@@ -160,7 +160,7 @@ await affirmCompletion({
     toolsUsed: tools.length,
     success: results.every(r => r.success)
   }
-});`
+});`,
   });
 }
 
@@ -170,7 +170,13 @@ await affirmCompletion({
 
 console.log('[3/5] Generating MCP Orchestration patterns...');
 
-const MCP_SERVERS = ['hololand-substrate', 'holoscript-language', 'uaa2-service', 'ai-workspace-knowledge', 'semantic-search-hub'];
+const MCP_SERVERS = [
+  'hololand-substrate',
+  'holoscript-language',
+  'uaa2-service',
+  'ai-workspace-knowledge',
+  'semantic-search-hub',
+];
 
 for (let i = 0; i < 4000; i++) {
   const server = MCP_SERVERS[i % MCP_SERVERS.length];
@@ -198,7 +204,7 @@ const result = await fetch('http://localhost:5567/tools/call', {
 });
 
 const data = await result.json();
-console.log('MCP Result:', data);`
+console.log('MCP Result:', data);`,
   });
 }
 
@@ -256,7 +262,7 @@ await fetch('/api/agent/complete', {
       success: result.success
     }
   })
-});`
+});`,
   });
 }
 
@@ -302,7 +308,7 @@ class MonitoringService extends EventEmitter {
       count: values.length
     };
   }
-}`
+}`,
   });
 }
 
@@ -315,7 +321,7 @@ async function writeDataset() {
   console.log('[EXPORT] Writing uAA2++ dataset...');
 
   const outputFile = path.join(__dirname, '../datasets/uaa2-complete.jsonl');
-  const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
+  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
 
   await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 

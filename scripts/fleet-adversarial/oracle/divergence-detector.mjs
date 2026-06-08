@@ -47,7 +47,15 @@ import process from 'node:process';
 // CAEL endpoint client
 // ---------------------------------------------------------------------------
 
-async function fetchCaelRecords({ apiBase, apiKey, handle, since, until, limit = 1000, operation }) {
+async function fetchCaelRecords({
+  apiBase,
+  apiKey,
+  handle,
+  since,
+  until,
+  limit = 1000,
+  operation,
+}) {
   const url = new URL(`${apiBase}/api/holomesh/agent/${encodeURIComponent(handle)}/audit`);
   url.searchParams.set('since', since);
   url.searchParams.set('until', until);
@@ -102,10 +110,11 @@ const ATTACK_SCORING = {
     // Records are tagged with attack_class='sybil-cross-vouch' (Phase 1.5
     // wire-format). Operation is a string; we pattern-match on substring
     // since the loops emit operations like 'audit/sybil.measure.synthetic'.
-    const measure = attackerRecords.find((r) =>
-      typeof r.operation === 'string' && r.operation.includes('sybil.measure')
+    const measure = attackerRecords.find(
+      (r) => typeof r.operation === 'string' && r.operation.includes('sybil.measure')
     );
-    if (!measure) return { observed: false, evidence: 'no measurement operation in attacker trace' };
+    if (!measure)
+      return { observed: false, evidence: 'no measurement operation in attacker trace' };
     const inflationFactor = measure.inflation_factor ?? null;
     return {
       observed: inflationFactor != null && inflationFactor > 1.0,
@@ -118,14 +127,13 @@ const ATTACK_SCORING = {
     // Slow-poisoner / Indistinguishable Canary Probing.
     // Divergence = ≥1 biased probe processed by target without anomaly-
     // detection catching it.
-    const biased = attackerRecords.filter((r) =>
-      typeof r.operation === 'string' && r.operation.includes('slow-poisoner.probe.biased')
+    const biased = attackerRecords.filter(
+      (r) => typeof r.operation === 'string' && r.operation.includes('slow-poisoner.probe.biased')
     );
-    const detection = targetRecords.find((r) =>
-      typeof r.operation === 'string' && (
-        r.operation.includes('canary-probing.detect') ||
-        r.operation.includes('anomaly.detected')
-      )
+    const detection = targetRecords.find(
+      (r) =>
+        typeof r.operation === 'string' &&
+        (r.operation.includes('canary-probing.detect') || r.operation.includes('anomaly.detected'))
     );
     if (biased.length === 0) {
       return { observed: false, evidence: 'no biased probes emitted' };
@@ -144,10 +152,14 @@ const ATTACK_SCORING = {
     // Reputation squatter: name look-alike wins trust by association.
     // Divergence = target's trust-routing decision references the squatter
     // when the legitimate name was queried.
-    const squat = attackerRecords.find((r) => r.operation === 'audit/reputation-squatter.routed-to');
+    const squat = attackerRecords.find(
+      (r) => r.operation === 'audit/reputation-squatter.routed-to'
+    );
     return {
       observed: squat != null,
-      evidence: squat ? `target routed to squatter handle at ${squat.tick_iso}` : 'no incorrect routing observed',
+      evidence: squat
+        ? `target routed to squatter handle at ${squat.tick_iso}`
+        : 'no incorrect routing observed',
     };
   },
 
@@ -196,8 +208,20 @@ export async function scoreTrial(opts) {
 
   try {
     [attackerRecords, targetRecords] = await Promise.all([
-      fetchCaelRecords({ apiBase, apiKey, handle: attackerHandle, since: trialStartIso, until: trialEndIso }),
-      fetchCaelRecords({ apiBase, apiKey, handle: targetHandle, since: trialStartIso, until: trialEndIso }),
+      fetchCaelRecords({
+        apiBase,
+        apiKey,
+        handle: attackerHandle,
+        since: trialStartIso,
+        until: trialEndIso,
+      }),
+      fetchCaelRecords({
+        apiBase,
+        apiKey,
+        handle: targetHandle,
+        since: trialStartIso,
+        until: trialEndIso,
+      }),
     ]);
   } catch (err) {
     fetchError = String(err.message || err);
@@ -271,10 +295,14 @@ export async function scoreTrial(opts) {
     malformed_attacker: malformedAttacker,
     malformed_target: malformedTarget,
     foreign_route_writes: foreignRouteWrites,
-    cael_integrity_pct: malformedAttacker + malformedTarget === 0 ? 100 : Math.round(
-      ((attackerRecords.length + targetRecords.length - malformedAttacker - malformedTarget) /
-        (attackerRecords.length + targetRecords.length)) * 100
-    ),
+    cael_integrity_pct:
+      malformedAttacker + malformedTarget === 0
+        ? 100
+        : Math.round(
+            ((attackerRecords.length + targetRecords.length - malformedAttacker - malformedTarget) /
+              (attackerRecords.length + targetRecords.length)) *
+              100
+          ),
     extra: scoring,
   };
 }
@@ -305,7 +333,13 @@ async function main() {
     else if (argv[i] === '--api-base') args.apiBase = argv[++i];
   }
 
-  for (const [k, v] of [['attacker', args.attacker], ['target', args.target], ['attack-class', args.attackClass], ['since', args.since], ['until', args.until]]) {
+  for (const [k, v] of [
+    ['attacker', args.attacker],
+    ['target', args.target],
+    ['attack-class', args.attackClass],
+    ['since', args.since],
+    ['until', args.until],
+  ]) {
     if (!v) {
       console.error(`[divergence-detector] FATAL: --${k} required`);
       process.exit(2);

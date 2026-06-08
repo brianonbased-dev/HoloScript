@@ -113,7 +113,8 @@ export const agentCapabilityTools: Tool[] = [
       properties: {
         query: {
           type: 'string',
-          description: 'Free-text query for template name, description, category, tags, or capabilities.',
+          description:
+            'Free-text query for template name, description, category, tags, or capabilities.',
         },
         capability_query: {
           type: 'string',
@@ -153,7 +154,8 @@ export const agentCapabilityTools: Tool[] = [
         items: {
           type: 'array',
           items: { type: 'object' },
-          description: 'Optional inline marketplace catalog to score locally without network access.',
+          description:
+            'Optional inline marketplace catalog to score locally without network access.',
         },
       },
     },
@@ -262,7 +264,9 @@ function handleAgentCapabilities(args: Record<string, unknown>): Record<string, 
   };
 }
 
-async function handleMarketplaceSearch(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleMarketplaceSearch(
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
   const limit = clampNumber(args.limit, 10, 1, 50);
   const includeRemote = args.include_remote !== false;
   const localItems = normalizeMarketplaceItems(args.items);
@@ -309,7 +313,11 @@ async function handleMarketplaceSearch(args: Record<string, unknown>): Promise<R
         category,
       })
     )
-    .filter((result) => result.score > 0 || hasNoSearchTerms(query, capabilityQuery, capabilityTags, toolNames, category))
+    .filter(
+      (result) =>
+        result.score > 0 ||
+        hasNoSearchTerms(query, capabilityQuery, capabilityTags, toolNames, category)
+    )
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 
@@ -401,11 +409,17 @@ export function resolveMarketplaceSearchUrl(value: unknown): string {
     }
     // Reject dangerous schemes (file, data, ftp, etc.) unconditionally.
     if (!ALLOWED_MARKETPLACE_SCHEMES.has(parsed.protocol)) {
-      throw new Error(`marketplace_url scheme not allowed: ${parsed.protocol} (only https: and http: are permitted)`);
+      throw new Error(
+        `marketplace_url scheme not allowed: ${parsed.protocol} (only https: and http: are permitted)`
+      );
     }
     // http: is only permitted for loopback hosts (localhost / 127.0.0.1).
     // Non-loopback hosts must use https: to prevent MITM on marketplace responses.
-    if (parsed.protocol === 'http:' && parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1') {
+    if (
+      parsed.protocol === 'http:' &&
+      parsed.hostname !== 'localhost' &&
+      parsed.hostname !== '127.0.0.1'
+    ) {
       throw new Error(`marketplace_url must use https: for non-loopback host: ${parsed.hostname}`);
     }
     if (!ALLOWED_MARKETPLACE_HOSTNAMES.has(parsed.hostname)) {
@@ -471,7 +485,8 @@ async function fetchRemoteMarketplace(
 }
 
 function normalizeMarketplaceItems(value: unknown): MarketplaceItem[] {
-  if (Array.isArray(value)) return value.filter(isRecord).map((item) => normalizeMarketplaceItem(item));
+  if (Array.isArray(value))
+    return value.filter(isRecord).map((item) => normalizeMarketplaceItem(item));
   if (!isRecord(value)) return [];
 
   for (const key of ['templates', 'results', 'items', 'data']) {
@@ -557,13 +572,17 @@ function scoreMarketplaceItem(
     }
   }
 
-  if (options.category && normalizeToken(item.category || '') === normalizeToken(options.category)) {
+  if (
+    options.category &&
+    normalizeToken(item.category || '') === normalizeToken(options.category)
+  ) {
     score += 4;
     matched.push(`category:${normalizeToken(options.category)}`);
   }
 
   if (typeof item.rating === 'number' && item.rating > 0) score += Math.min(item.rating, 5) / 10;
-  if (typeof item.installs === 'number' && item.installs > 0) score += Math.min(item.installs, 1000) / 1000;
+  if (typeof item.installs === 'number' && item.installs > 0)
+    score += Math.min(item.installs, 1000) / 1000;
 
   return {
     item,
@@ -855,5 +874,7 @@ function hasNoSearchTerms(
   toolNames: string[],
   category: string | undefined
 ): boolean {
-  return !query && !capabilityQuery && capabilityTags.length === 0 && toolNames.length === 0 && !category;
+  return (
+    !query && !capabilityQuery && capabilityTags.length === 0 && toolNames.length === 0 && !category
+  );
 }

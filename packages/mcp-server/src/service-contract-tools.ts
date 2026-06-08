@@ -659,7 +659,8 @@ export async function handleServiceContractTool(
 export const serviceContractTools: Tool[] = [
   {
     name: 'generate_service_contract',
-    description: 'Generate a HoloScript .holo composition from an OpenAPI spec or TypeScript interfaces. ' +
+    description:
+      'Generate a HoloScript .holo composition from an OpenAPI spec or TypeScript interfaces. ' +
       'Auto-detects input format. Produces @service, @endpoint, @schema, @handler, and ' +
       '@contract traits. Supports OpenAPI 3.x JSON/YAML and TypeScript interface/type syntax.',
     inputSchema: {
@@ -667,7 +668,8 @@ export const serviceContractTools: Tool[] = [
       properties: {
         input: {
           type: 'string',
-          description: 'OpenAPI spec (JSON or YAML) or TypeScript interface/type definitions to convert',
+          description:
+            'OpenAPI spec (JSON or YAML) or TypeScript interface/type definitions to convert',
         },
         format: {
           type: 'string',
@@ -680,7 +682,8 @@ export const serviceContractTools: Tool[] = [
   },
   {
     name: 'explain_service_contract',
-    description: 'Analyze a .holo service composition and explain its contract structure. ' +
+    description:
+      'Analyze a .holo service composition and explain its contract structure. ' +
       'Returns endpoint details, schema names, and trait counts.',
     inputSchema: {
       type: 'object',

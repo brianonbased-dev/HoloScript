@@ -81,9 +81,7 @@ const W_056_CROSS_PLATFORM_UPGRADED: ImpossibilityEvidence = {
   formats: ['hsplus', 'holo', 'hs'],
   mechanism:
     'Behavioral conformance via .hsplus state machines + networked_object — finite-state behavioral equivalence (not bit-exact).',
-  evidenceRefs: [
-    'research/2026-03-09_holoscript-14-impossibilities-outside-the-box.md (UPGRADED)',
-  ],
+  evidenceRefs: ['research/2026-03-09_holoscript-14-impossibilities-outside-the-box.md (UPGRADED)'],
   filedBy: 'memo-author',
 };
 
@@ -211,7 +209,9 @@ describe('impossibilityEvidence (impossibility.v1 — counterweight to wire-form
 
     it('throws on contract violation (validates before building)', () => {
       const bad = { ...W_048_SYMBOL_GROUNDING, evidenceRefs: [] };
-      expect(() => buildImpossibilityV1Record(bad as ImpossibilityEvidence)).toThrow(/evidenceRefs/);
+      expect(() => buildImpossibilityV1Record(bad as ImpossibilityEvidence)).toThrow(
+        /evidenceRefs/
+      );
     });
 
     it('wireKey is order-independent for formats and refs (sorted in canonical snapshot)', () => {
@@ -225,14 +225,23 @@ describe('impossibilityEvidence (impossibility.v1 — counterweight to wire-form
     });
 
     it('wireKey diverges when filedBy differs (multi-rater is geometrically distinct)', () => {
-      const claudeFiled = buildImpossibilityV1Record({ ...W_048_SYMBOL_GROUNDING, filedBy: 'claude1' });
-      const geminiFiled = buildImpossibilityV1Record({ ...W_048_SYMBOL_GROUNDING, filedBy: 'gemini1' });
+      const claudeFiled = buildImpossibilityV1Record({
+        ...W_048_SYMBOL_GROUNDING,
+        filedBy: 'claude1',
+      });
+      const geminiFiled = buildImpossibilityV1Record({
+        ...W_048_SYMBOL_GROUNDING,
+        filedBy: 'gemini1',
+      });
       expect(claudeFiled.wireKey).not.toBe(geminiFiled.wireKey);
     });
 
     it('wireKey diverges when rating differs for the same filer (debate is geometric)', () => {
       const solves = buildImpossibilityV1Record(W_048_SYMBOL_GROUNDING);
-      const partially = buildImpossibilityV1Record({ ...W_048_SYMBOL_GROUNDING, rating: 'PARTIALLY' });
+      const partially = buildImpossibilityV1Record({
+        ...W_048_SYMBOL_GROUNDING,
+        rating: 'PARTIALLY',
+      });
       expect(solves.wireKey).not.toBe(partially.wireKey);
     });
   });
@@ -256,7 +265,11 @@ describe('impossibilityEvidence (impossibility.v1 — counterweight to wire-form
 
     it('cohort with disagreement (SOLVES + PARTIALLY) is correctly marked inDispute', () => {
       const records = [
-        buildImpossibilityV1Record({ ...W_048_SYMBOL_GROUNDING, filedBy: 'claude1', rating: 'SOLVES' }),
+        buildImpossibilityV1Record({
+          ...W_048_SYMBOL_GROUNDING,
+          filedBy: 'claude1',
+          rating: 'SOLVES',
+        }),
         buildImpossibilityV1Record({
           ...W_048_SYMBOL_GROUNDING,
           filedBy: 'gemini1',
@@ -276,7 +289,11 @@ describe('impossibilityEvidence (impossibility.v1 — counterweight to wire-form
     it('cohort spanning all four ratings preserves them all (no winner/loser flattening)', () => {
       const records = [
         buildImpossibilityV1Record({ ...W_048_SYMBOL_GROUNDING, filedBy: 'a', rating: 'SOLVES' }),
-        buildImpossibilityV1Record({ ...W_048_SYMBOL_GROUNDING, filedBy: 'b', rating: 'PARTIALLY' }),
+        buildImpossibilityV1Record({
+          ...W_048_SYMBOL_GROUNDING,
+          filedBy: 'b',
+          rating: 'PARTIALLY',
+        }),
         buildImpossibilityV1Record({ ...W_048_SYMBOL_GROUNDING, filedBy: 'c', rating: 'REFRAMES' }),
         buildImpossibilityV1Record({
           ...W_048_SYMBOL_GROUNDING,

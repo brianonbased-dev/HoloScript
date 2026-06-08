@@ -21,9 +21,11 @@ function task(overrides: Partial<TeamTask> = {}): TeamTask {
 
 describe('board Definition-of-Done discipline', () => {
   it('adds a Done when block to newly created tasks', () => {
-    const { added } = addTasksToBoard([], [], [
-      { title: 'Template task', description: 'Do the thing.', priority: 2 },
-    ]);
+    const { added } = addTasksToBoard(
+      [],
+      [],
+      [{ title: 'Template task', description: 'Do the thing.', priority: 2 }]
+    );
 
     expect(added).toHaveLength(1);
     expect(hasDefinitionOfDone(added[0].description)).toBe(true);
@@ -32,13 +34,17 @@ describe('board Definition-of-Done discipline', () => {
 
   it('preserves Done when criteria when long descriptions are truncated', () => {
     const longPrefix = 'x'.repeat(2100);
-    const { added } = addTasksToBoard([], [], [
-      {
-        title: 'Long template task',
-        description: `${longPrefix}\n\n## Done when:\n- The intended proof still survives truncation.`,
-        priority: 2,
-      },
-    ]);
+    const { added } = addTasksToBoard(
+      [],
+      [],
+      [
+        {
+          title: 'Long template task',
+          description: `${longPrefix}\n\n## Done when:\n- The intended proof still survives truncation.`,
+          priority: 2,
+        },
+      ]
+    );
 
     expect(added[0].description.length).toBeLessThanOrEqual(2000);
     expect(hasDefinitionOfDone(added[0].description)).toBe(true);
@@ -65,7 +71,11 @@ describe('board Definition-of-Done discipline', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.task?.verificationEvidence).toBe('pnpm vitest board-definition-of-done.test.ts passed');
-    expect(result.doneEntry?.verificationEvidence).toBe('pnpm vitest board-definition-of-done.test.ts passed');
+    expect(result.task?.verificationEvidence).toBe(
+      'pnpm vitest board-definition-of-done.test.ts passed'
+    );
+    expect(result.doneEntry?.verificationEvidence).toBe(
+      'pnpm vitest board-definition-of-done.test.ts passed'
+    );
   });
 });

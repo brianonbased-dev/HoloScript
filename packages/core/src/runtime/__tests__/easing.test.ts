@@ -124,7 +124,15 @@ describe('applyEasing', () => {
   });
 
   describe('boundary invariants', () => {
-    const easings = ['linear', 'easeIn', 'easeOut', 'easeInOut', 'easeInQuad', 'easeOutQuad', 'easeInOutQuad'];
+    const easings = [
+      'linear',
+      'easeIn',
+      'easeOut',
+      'easeInOut',
+      'easeInQuad',
+      'easeOutQuad',
+      'easeInOutQuad',
+    ];
 
     it('every easing maps 0 → 0', () => {
       for (const e of easings) {

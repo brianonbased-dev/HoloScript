@@ -82,11 +82,11 @@ type VariantId =
 
 interface VariantSpec {
   id: VariantId;
-  label: string;            // human-readable; appears in JSON + console
-  texLabel: string;         // matches the .tex \multicolumn cell
-  capability: boolean;      // shown as ✓/— in Table 1
+  label: string; // human-readable; appears in JSON + console
+  texLabel: string; // matches the .tex \multicolumn cell
+  capability: boolean; // shown as ✓/— in Table 1
   syscall: boolean;
-  resourceLimit: boolean;   // not in the original tex columns but kept for JSON completeness
+  resourceLimit: boolean; // not in the original tex columns but kept for JSON completeness
 }
 
 const VARIANTS: ReadonlyArray<VariantSpec> = [
@@ -408,7 +408,7 @@ const ATTACK_SUITE: ReadonlyArray<AttackScenario> = [
 // diverge — the W.103/F.030 frame mismatch this audit refused to ignore.
 if (ATTACK_SUITE.length !== 22) {
   throw new Error(
-    `paper-sandbox-overhead: ATTACK_SUITE.length=${ATTACK_SUITE.length}, expected 22 (in-scope post-fix denominator).`,
+    `paper-sandbox-overhead: ATTACK_SUITE.length=${ATTACK_SUITE.length}, expected 22 (in-scope post-fix denominator).`
   );
 }
 
@@ -447,11 +447,11 @@ interface VariantResult {
   scenarioResults: ScenarioResult[];
   blockedCount: number;
   scenarioCount: number;
-  blockedFraction: number;     // [0, 1]
+  blockedFraction: number; // [0, 1]
   throughputOpsPerSec: number;
   warmupIterations: number;
   measuredIterations: number;
-  medianLatencyMs: number;     // for sanity-cross-check vs ops/s
+  medianLatencyMs: number; // for sanity-cross-check vs ops/s
   p99LatencyMs: number;
 }
 
@@ -480,7 +480,7 @@ function percentile(xs: number[], p: number): number {
 async function runScenario(
   variant: VariantSpec,
   scenario: AttackScenario,
-  attackTimeoutMs: number,
+  attackTimeoutMs: number
 ): Promise<ScenarioResult> {
   if (variant.id === 'unsandboxed') {
     // True raw-Node baseline, isolated in a child process so process.exit(),
@@ -506,7 +506,7 @@ async function runScenario(
           })();
         `,
       ],
-      { encoding: 'utf8', timeout: attackTimeoutMs },
+      { encoding: 'utf8', timeout: attackTimeoutMs }
     );
     const timedOut = child.error && (child.error as NodeJS.ErrnoException).code === 'ETIMEDOUT';
     const payloadErrored = child.status === 2;
@@ -556,7 +556,7 @@ async function runScenario(
   // the harness terminates even on the D5 infinite-loop case.
   const exec = sandbox.executeHoloScript(scenario.payload, { source: 'ai-generated' });
   const watchdog = new Promise<{ timedOut: true }>((resolve) =>
-    setTimeout(() => resolve({ timedOut: true }), attackTimeoutMs),
+    setTimeout(() => resolve({ timedOut: true }), attackTimeoutMs)
   );
   const raceResult = await Promise.race([exec, watchdog]);
 
@@ -594,7 +594,7 @@ async function runScenario(
 async function measureThroughput(
   variant: VariantSpec,
   warmup: number,
-  measured: number,
+  measured: number
 ): Promise<{ opsPerSec: number; medianMs: number; p99Ms: number }> {
   const latencies: number[] = [];
 
@@ -701,10 +701,10 @@ describe('Paper #4 §Ablation: Sandbox Component Contributions', () => {
       console.log(`[paper-sandbox-overhead] Suite: ${ATTACK_SUITE.length} in-scope scenarios`);
       console.log(`[paper-sandbox-overhead] Baseline: ${baselineOps.toFixed(0)} ops/s\n`);
       console.log(
-        '[paper-sandbox-overhead] | Variant                     | Cap | Sys | Esc-Blocked    | ops/s   | Overhead |',
+        '[paper-sandbox-overhead] | Variant                     | Cap | Sys | Esc-Blocked    | ops/s   | Overhead |'
       );
       console.log(
-        '[paper-sandbox-overhead] |-----------------------------|-----|-----|----------------|---------|----------|',
+        '[paper-sandbox-overhead] |-----------------------------|-----|-----|----------------|---------|----------|'
       );
       for (const r of results) {
         const overhead = baselineOps / r.throughputOpsPerSec;
@@ -712,7 +712,7 @@ describe('Paper #4 §Ablation: Sandbox Component Contributions', () => {
         const sys = r.variant.syscall ? '✓' : '—';
         const esc = `${r.blockedCount}/${r.scenarioCount} (${r.blockedFraction.toFixed(2)})`;
         console.log(
-          `[paper-sandbox-overhead] | ${r.variant.label.padEnd(27)} | ${cap.padEnd(3)} | ${sys.padEnd(3)} | ${esc.padEnd(14)} | ${r.throughputOpsPerSec.toFixed(0).padStart(7)} | ${overhead.toFixed(2).padStart(5)}× |`,
+          `[paper-sandbox-overhead] | ${r.variant.label.padEnd(27)} | ${cap.padEnd(3)} | ${sys.padEnd(3)} | ${esc.padEnd(14)} | ${r.throughputOpsPerSec.toFixed(0).padStart(7)} | ${overhead.toFixed(2).padStart(5)}× |`
         );
       }
 
@@ -732,7 +732,8 @@ describe('Paper #4 §Ablation: Sandbox Component Contributions', () => {
         paper: 'paper-4-sandbox-usenix',
         section: 'sec:eval-ablation',
         table: 'tab:ablation-sandbox',
-        replaces: 'paper-4-sandbox-usenix.tex:1574-1604 (estimated Table 1, paired-evidence per W.GOLD.190)',
+        replaces:
+          'paper-4-sandbox-usenix.tex:1574-1604 (estimated Table 1, paired-evidence per W.GOLD.190)',
         runId,
         runAt: new Date().toISOString(),
         env: {
@@ -750,9 +751,11 @@ describe('Paper #4 §Ablation: Sandbox Component Contributions', () => {
           scenarios: ATTACK_SUITE.length,
           categories: {
             'sandbox-escape': ATTACK_SUITE.filter((s) => s.category === 'sandbox-escape').length,
-            'incorrect-physics': ATTACK_SUITE.filter((s) => s.category === 'incorrect-physics').length,
+            'incorrect-physics': ATTACK_SUITE.filter((s) => s.category === 'incorrect-physics')
+              .length,
             'non-determinism': ATTACK_SUITE.filter((s) => s.category === 'non-determinism').length,
-            'post-hoc-tampering': ATTACK_SUITE.filter((s) => s.category === 'post-hoc-tampering').length,
+            'post-hoc-tampering': ATTACK_SUITE.filter((s) => s.category === 'post-hoc-tampering')
+              .length,
           },
         },
         baseline: {
@@ -825,7 +828,7 @@ describe('Paper #4 §Ablation: Sandbox Component Contributions', () => {
     },
     // 5 variants × (22 scenarios × ≤2s + 50 warmup + 500 measured) → cap at
     // 5 minutes for slow CI hardware. Local dev finishes in ~30-90s.
-    300_000,
+    300_000
   );
 });
 

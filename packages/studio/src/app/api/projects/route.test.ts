@@ -21,9 +21,7 @@ import { getServerSession } from 'next-auth';
 import { getDb } from '../../../db/client';
 
 const mockSession = (id: string | null) =>
-  (getServerSession as ReturnType<typeof vi.fn>).mockResolvedValue(
-    id ? { user: { id } } : null
-  );
+  (getServerSession as ReturnType<typeof vi.fn>).mockResolvedValue(id ? { user: { id } } : null);
 
 function postReq(body: unknown) {
   return {
@@ -73,9 +71,7 @@ describe('POST /api/projects', () => {
     const res = await POST(postReq({ name: 'My Scene', code: 'box {}' }));
     expect(res.status).toBe(201);
     const { project } = await res.json();
-    expect(project.id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    );
+    expect(project.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     expect(project.name).toBe('My Scene');
     expect(project.slug).toBe('my-scene');
     expect(project.code).toBe('box {}');
@@ -129,9 +125,7 @@ describe('POST upsert + slug reconciliation', () => {
     const id = created.project.id;
 
     mockSession('user-1');
-    const updated = await (
-      await POST(postReq({ id, name: 'Gamma v2', code: 'g2 {}' }))
-    ).json();
+    const updated = await (await POST(postReq({ id, name: 'Gamma v2', code: 'g2 {}' }))).json();
     expect(updated.project.id).toBe(id); // same row, not a new one
     expect(updated.project.code).toBe('g2 {}');
 
@@ -145,9 +139,7 @@ describe('POST upsert + slug reconciliation', () => {
     const res = await POST(postReq({ id: '1717000000000-ab12cd', name: 'Legacy', code: 'x {}' }));
     const { project } = await res.json();
     expect(project.id).not.toBe('1717000000000-ab12cd');
-    expect(project.id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    );
+    expect(project.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
   });
 
   it('disambiguates duplicate slugs for the same owner', async () => {

@@ -30,8 +30,8 @@ interface ParsedArgs {
 
 function parseArgs(): ParsedArgs {
   const args = process.argv.slice(2);
-  const flags = args.filter(a => a.startsWith('-'));
-  const positional = args.filter(a => !a.startsWith('-'));
+  const flags = args.filter((a) => a.startsWith('-'));
+  const positional = args.filter((a) => !a.startsWith('-'));
 
   return {
     targetDir: positional[0] || '.',
@@ -46,15 +46,23 @@ function parseArgs(): ParsedArgs {
 function printBanner(): void {
   console.log();
   console.log(pc.cyan('  ╔═══════════════════════════════════════════════╗'));
-  console.log(pc.cyan('  ║') + pc.bold('     create-holoscript agent-setup            ') + pc.cyan('║'));
-  console.log(pc.cyan('  ║') + pc.dim('   Multi-agent infrastructure for any repo    ') + pc.cyan('║'));
+  console.log(
+    pc.cyan('  ║') + pc.bold('     create-holoscript agent-setup            ') + pc.cyan('║')
+  );
+  console.log(
+    pc.cyan('  ║') + pc.dim('   Multi-agent infrastructure for any repo    ') + pc.cyan('║')
+  );
   console.log(pc.cyan('  ╚═══════════════════════════════════════════════╝'));
   console.log();
 }
 
 // ─── File writing ──────────────────────────────────────────────────────────
 
-function writeFiles(dir: string, files: GeneratedFile[], force: boolean): { written: string[]; skipped: string[] } {
+function writeFiles(
+  dir: string,
+  files: GeneratedFile[],
+  force: boolean
+): { written: string[]; skipped: string[] } {
   const written: string[] = [];
   const skipped: string[] = [];
 
@@ -116,9 +124,7 @@ async function main(): Promise<void> {
   console.log(`  ${pc.cyan('Files to generate')}:\n`);
   for (const file of files) {
     const exists = fs.existsSync(path.join(absDir, file.path));
-    const icon = exists
-      ? force ? pc.yellow('↻') : pc.dim('─')
-      : pc.green('+');
+    const icon = exists ? (force ? pc.yellow('↻') : pc.dim('─')) : pc.green('+');
     const status = exists && !force ? pc.dim('(exists, skip)') : '';
     console.log(`    ${icon} ${pc.bold(file.path)} ${status}`);
     console.log(`      ${pc.dim(file.description)}`);
@@ -135,7 +141,7 @@ async function main(): Promise<void> {
 
   // Confirm unless --yes
   if (!yes) {
-    const existing = files.filter(f => fs.existsSync(path.join(absDir, f.path)));
+    const existing = files.filter((f) => fs.existsSync(path.join(absDir, f.path)));
     if (existing.length > 0 && !force) {
       console.log(pc.yellow(`  ${existing.length} file(s) already exist and will be skipped.`));
       console.log(`  Use ${pc.bold('--force')} to overwrite.\n`);
@@ -175,12 +181,16 @@ async function main(): Promise<void> {
   console.log(`    ${pc.cyan('.cursorrules')}         — Cursor IDE`);
   console.log(`    ${pc.cyan('copilot-instructions')} — GitHub Copilot`);
   console.log(`    ${pc.cyan('GEMINI.md')}            — Gemini CLI / Code Assist`);
-  console.log(`    ${pc.cyan('.claude/')}             — Claude Code (instructions + oracle + memory)`);
+  console.log(
+    `    ${pc.cyan('.claude/')}             — Claude Code (instructions + oracle + memory)`
+  );
   console.log(`    ${pc.cyan('team-connect.mjs')}     — Multi-IDE agent coordination`);
   console.log();
   console.log('  Next steps:');
   console.log();
-  console.log(`    1. ${pc.cyan('git add AGENTS.md .cursorrules .github/ GEMINI.md .claude/ team-connect.mjs')}`);
+  console.log(
+    `    1. ${pc.cyan('git add AGENTS.md .cursorrules .github/ GEMINI.md .claude/ team-connect.mjs')}`
+  );
   console.log(`    2. ${pc.cyan('git commit -m "feat: add multi-agent infrastructure"')}`);
   console.log(`    3. Open your repo in any AI-powered IDE — it just works.`);
   console.log();

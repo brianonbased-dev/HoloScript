@@ -12,11 +12,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useDispatchTrace } from '@/hooks/useDispatchTrace';
-import {
-  TIER_BADGE_CONFIG,
-  type StudioDispatchTier,
-  DISPATCH_MODES,
-} from '@/lib/dispatchTrace';
+import { TIER_BADGE_CONFIG, type StudioDispatchTier, DISPATCH_MODES } from '@/lib/dispatchTrace';
 
 // ─── Sparkline (inline SVG) ──────────────────────────────────────────────────
 
@@ -125,11 +121,7 @@ function TierBadge({ tier }: { tier: StudioDispatchTier | null }) {
 
 function AlphaIndicator({ alpha }: { alpha: number | undefined }) {
   if (alpha === undefined) {
-    return (
-      <div className="text-[9px] text-studio-muted">
-        α = — (no Tier-2)
-      </div>
-    );
+    return <div className="text-[9px] text-studio-muted">α = — (no Tier-2)</div>;
   }
 
   const threshold = 0.85;
@@ -168,30 +160,20 @@ function AlphaIndicator({ alpha }: { alpha: number | undefined }) {
 
 // ─── Tier-3 Verdict Display ────────────────────────────────────────────────────
 
-function VerdictDisplay({
-  accepted,
-  reason,
-}: {
-  accepted: boolean;
-  reason?: string;
-}) {
+function VerdictDisplay({ accepted, reason }: { accepted: boolean; reason?: string }) {
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-1.5">
         <span className="text-[10px] font-bold text-studio-muted">Verifier:</span>
         <span
           className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-            accepted
-              ? 'bg-emerald-500/15 text-emerald-400'
-              : 'bg-red-500/15 text-red-400'
+            accepted ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'
           }`}
         >
           {accepted ? 'ACCEPT' : 'REJECT'}
         </span>
       </div>
-      {reason && (
-        <div className="text-[9px] text-studio-muted leading-tight">{reason}</div>
-      )}
+      {reason && <div className="text-[9px] text-studio-muted leading-tight">{reason}</div>}
     </div>
   );
 }
@@ -255,11 +237,7 @@ function LatencySparkline({ values }: { values: number[] }) {
 
 // ─── Tier Distribution Mini-Bar ──────────────────────────────────────────────
 
-function TierDistribution({
-  counts,
-}: {
-  counts: Record<StudioDispatchTier, number>;
-}) {
+function TierDistribution({ counts }: { counts: Record<StudioDispatchTier, number> }) {
   const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
   const entries = Object.entries(counts) as [StudioDispatchTier, number][];
 
@@ -290,10 +268,7 @@ function TierDistribution({
           const cfg = TIER_BADGE_CONFIG[tier];
           return (
             <div key={tier} className="flex items-center gap-1">
-              <div
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: cfg.color }}
-              />
+              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cfg.color }} />
               <span className="text-[8px] text-studio-muted">
                 {cfg.short} {count}
               </span>
@@ -364,9 +339,7 @@ export function RuntimeTierPanel() {
         {/* Current tier badge */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <div className="text-[9px] text-studio-muted uppercase tracking-wider">
-              Active Tier
-            </div>
+            <div className="text-[9px] text-studio-muted uppercase tracking-wider">Active Tier</div>
             <TierBadge tier={latest?.tier ?? null} />
           </div>
           <div className="text-right">
@@ -392,7 +365,13 @@ export function RuntimeTierPanel() {
           <div className="text-[9px] font-semibold text-studio-muted uppercase tracking-wider">
             SNN Spike-Train (Tier-1)
           </div>
-          <SNNSpikeTrain train={latest?.tier.startsWith('tier-1') ? Array.from({ length: 16 }, () => Math.random()) : undefined} />
+          <SNNSpikeTrain
+            train={
+              latest?.tier.startsWith('tier-1')
+                ? Array.from({ length: 16 }, () => Math.random())
+                : undefined
+            }
+          />
           <div className="text-[8px] text-studio-muted">
             {latest?.tier.startsWith('tier-1')
               ? 'Live neuromorphic spike activity'
@@ -438,9 +417,7 @@ export function RuntimeTierPanel() {
             <div className="mt-1.5 bg-studio-panel/40 rounded border border-studio-border/30 p-2 space-y-1 max-h-[180px] overflow-y-auto">
               {latest && (
                 <div className="space-y-1">
-                  <div className="text-[9px] font-mono text-studio-muted">
-                    tier={latest.tier}
-                  </div>
+                  <div className="text-[9px] font-mono text-studio-muted">tier={latest.tier}</div>
                   <div className="text-[9px] font-mono text-studio-muted">
                     accepted={String(latest.accepted)}
                   </div>
@@ -455,9 +432,7 @@ export function RuntimeTierPanel() {
                   </div>
                 </div>
               )}
-              {!latest && (
-                <div className="text-[9px] text-studio-muted">No trace entries yet.</div>
-              )}
+              {!latest && <div className="text-[9px] text-studio-muted">No trace entries yet.</div>}
             </div>
           )}
         </div>

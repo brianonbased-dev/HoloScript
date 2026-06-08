@@ -51,9 +51,16 @@ describe('HealthcheckTrait — onEvent', () => {
   it('healthcheck:register stores a check', () => {
     const node = makeNode();
     healthcheckHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    healthcheckHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'healthcheck:register', checkId: 'db', checkType: 'liveness',
-    } as never);
+    healthcheckHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'healthcheck:register',
+        checkId: 'db',
+        checkType: 'liveness',
+      } as never
+    );
     const state = node.__healthcheckState as { checks: Map<string, { lastStatus: string }> };
     expect(state.checks.has('db')).toBe(true);
     expect(state.checks.get('db')?.lastStatus).toBe('unknown');
@@ -62,51 +69,106 @@ describe('HealthcheckTrait — onEvent', () => {
   it('healthcheck:run emits healthcheck:result with degraded status', () => {
     const node = makeNode();
     healthcheckHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    healthcheckHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'healthcheck:register', checkId: 'cache',
-    } as never);
+    healthcheckHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'healthcheck:register',
+        checkId: 'cache',
+      } as never
+    );
     node.emit.mockClear();
-    healthcheckHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'healthcheck:run',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('healthcheck:result', expect.objectContaining({
-      status: 'degraded',
-    }));
+    healthcheckHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'healthcheck:run',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'healthcheck:result',
+      expect.objectContaining({
+        status: 'degraded',
+      })
+    );
   });
 
   it('healthcheck:check_ok updates check to pass, run emits healthy', () => {
     const node = makeNode();
     healthcheckHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    healthcheckHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'healthcheck:register', checkId: 'api',
-    } as never);
-    healthcheckHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'healthcheck:check_ok', checkId: 'api',
-    } as never);
+    healthcheckHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'healthcheck:register',
+        checkId: 'api',
+      } as never
+    );
+    healthcheckHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'healthcheck:check_ok',
+        checkId: 'api',
+      } as never
+    );
     node.emit.mockClear();
-    healthcheckHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'healthcheck:run',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('healthcheck:result', expect.objectContaining({
-      status: 'healthy',
-    }));
+    healthcheckHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'healthcheck:run',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'healthcheck:result',
+      expect.objectContaining({
+        status: 'healthy',
+      })
+    );
   });
 
   it('healthcheck:check_fail updates check to fail, run emits unhealthy', () => {
     const node = makeNode();
     healthcheckHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    healthcheckHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'healthcheck:register', checkId: 'db',
-    } as never);
-    healthcheckHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'healthcheck:check_fail', checkId: 'db', error: 'connection timeout',
-    } as never);
+    healthcheckHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'healthcheck:register',
+        checkId: 'db',
+      } as never
+    );
+    healthcheckHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'healthcheck:check_fail',
+        checkId: 'db',
+        error: 'connection timeout',
+      } as never
+    );
     node.emit.mockClear();
-    healthcheckHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'healthcheck:run',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('healthcheck:result', expect.objectContaining({
-      status: 'unhealthy',
-    }));
+    healthcheckHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'healthcheck:run',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'healthcheck:result',
+      expect.objectContaining({
+        status: 'unhealthy',
+      })
+    );
   });
 });

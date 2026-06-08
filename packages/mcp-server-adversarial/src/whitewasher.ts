@@ -5,12 +5,7 @@
 // Spec: research/paper-21-ati/threat-model.md §4.1.
 // Board task: ATI-3-whitewasher.
 
-import type {
-  AdversarialAttack,
-  AttackContext,
-  AttackResult,
-  AttackId,
-} from './types.js';
+import type { AdversarialAttack, AttackContext, AttackResult, AttackId } from './types.js';
 
 export interface WhitewasherConfig {
   // §4.1: T_target, e.g. 0.9 for top-decile routing.
@@ -75,10 +70,7 @@ export class WhitewasherAttack implements AdversarialAttack {
       // emit valid-output rounds; the label distinguishes them for the
       // success metric and post-mortem analysis.
       phase = this.config.continueCooperativePostExploit ? 'post-exploit' : 'cooperative';
-    } else if (
-      round > this.config.cooperativeRounds &&
-      ownTrust >= this.config.targetTrust
-    ) {
+    } else if (round > this.config.cooperativeRounds && ownTrust >= this.config.targetTrust) {
       // §4.1 step 3: trigger exploit on the first round that satisfies both
       // "past the cooperative window" AND "trust target met".
       phase = 'exploit';
@@ -116,12 +108,8 @@ export class WhitewasherAttack implements AdversarialAttack {
 
   evaluateSuccess(history: readonly AttackResult[]): boolean {
     if (history.length === 0) return false;
-    const exploitRow = history.find(
-      (r) => r.attackId === this.id && r.notes === 'phase=exploit'
-    );
+    const exploitRow = history.find((r) => r.attackId === this.id && r.notes === 'phase=exploit');
     if (!exploitRow) return false;
-    return (
-      exploitRow.outputAccepted && exploitRow.trustAtAttack >= this.config.targetTrust
-    );
+    return exploitRow.outputAccepted && exploitRow.trustAtAttack >= this.config.targetTrust;
   }
 }

@@ -65,9 +65,9 @@ describe('VRRRuntime', () => {
 
   describe('syncToServer overload (layer_shift compiler)', () => {
     it('accepts (key, payload) when server URL is set', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-        new Response(null, { status: 200 })
-      );
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response(null, { status: 200 }));
       const srv = new VRRRuntime(
         baseOptions({ state_persistence: { client: 'localstorage', server: 'https://supa.test' } })
       );
@@ -137,9 +137,9 @@ describe('VRRRuntime', () => {
     it('requirePayment delegates to payments.verifyPayment when set', async () => {
       const verifyPayment = vi.fn().mockResolvedValue(true);
       const v2 = new VRRRuntime(baseOptions({ payments: { verifyPayment } }));
-      await expect(
-        v2.requirePayment({ price: 2, asset: 'USDC', network: 'base' })
-      ).resolves.toBe(true);
+      await expect(v2.requirePayment({ price: 2, asset: 'USDC', network: 'base' })).resolves.toBe(
+        true
+      );
       expect(verifyPayment).toHaveBeenCalledWith({ price: 2, asset: 'USDC', network: 'base' });
       v2.dispose();
     });

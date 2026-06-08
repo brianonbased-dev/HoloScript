@@ -43,7 +43,8 @@ function resolveOptions() {
   const timeoutMs = numEnv('BENCH_TIMEOUT_MS', 180000);
   const vulkanBackend = process.env.BENCH_VULKAN_BACKEND ?? 'native';
   const forceHighPerformanceGpu = boolEnv('BENCH_FORCE_HIGH_PERFORMANCE_GPU', true);
-  const outputPath = process.env.BENCH_OUTPUT_PATH ??
+  const outputPath =
+    process.env.BENCH_OUTPUT_PATH ??
     path.join(repoRoot, '.bench-logs', 'paper-11-trait-gpu-bench.json');
   return { target, headless, timeoutMs, vulkanBackend, forceHighPerformanceGpu, outputPath };
 }
@@ -66,13 +67,16 @@ async function main() {
   const page = await browser.newPage();
 
   page.on('console', (msg) => {
-    if (['error', 'warning'].includes(msg.type())) console.log(`[browser:${msg.type()}] ${msg.text()}`);
+    if (['error', 'warning'].includes(msg.type()))
+      console.log(`[browser:${msg.type()}] ${msg.text()}`);
   });
   page.on('pageerror', (e) => console.log('[browser:pageerror]', e.message));
 
   let settled = false;
   let resolveArtifact;
-  const artifactPromise = new Promise(r => { resolveArtifact = r; });
+  const artifactPromise = new Promise((r) => {
+    resolveArtifact = r;
+  });
 
   await page.exposeFunction('onP11Complete', (art) => {
     if (settled) return;
@@ -99,7 +103,9 @@ async function main() {
 
   const artifact = await Promise.race([
     artifactPromise,
-    new Promise((_, rej) => setTimeout(() => rej(new Error(`Timeout after ${opts.timeoutMs}ms`)), opts.timeoutMs))
+    new Promise((_, rej) =>
+      setTimeout(() => rej(new Error(`Timeout after ${opts.timeoutMs}ms`)), opts.timeoutMs)
+    ),
   ]);
 
   await browser.close();
@@ -120,7 +126,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('[P11-GPU-Bench] FATAL', err);
   process.exit(1);
 });

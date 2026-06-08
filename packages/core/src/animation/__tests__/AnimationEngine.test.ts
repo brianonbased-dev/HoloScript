@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  AnimationEngine,
-  Easing,
-} from '../AnimationEngine.js';
+import { AnimationEngine, Easing } from '../AnimationEngine.js';
 import type { AnimClip } from '../AnimationEngine.js';
 
 // ─── Easing functions ────────────────────────────────────────────────────────
@@ -253,8 +250,26 @@ describe('AnimationEngine', () => {
     it('runs multiple clips simultaneously', () => {
       const valA: number[] = [];
       const valB: number[] = [];
-      engine.play(makeClip({ id: 'a', keyframes: [{ time: 0, value: 0 }, { time: 1, value: 10 }] }), (v) => valA.push(v));
-      engine.play(makeClip({ id: 'b', keyframes: [{ time: 0, value: 100 }, { time: 1, value: 200 }] }), (v) => valB.push(v));
+      engine.play(
+        makeClip({
+          id: 'a',
+          keyframes: [
+            { time: 0, value: 0 },
+            { time: 1, value: 10 },
+          ],
+        }),
+        (v) => valA.push(v)
+      );
+      engine.play(
+        makeClip({
+          id: 'b',
+          keyframes: [
+            { time: 0, value: 100 },
+            { time: 1, value: 200 },
+          ],
+        }),
+        (v) => valB.push(v)
+      );
       valA.length = 0;
       valB.length = 0;
       engine.update(0.5);

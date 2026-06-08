@@ -80,30 +80,30 @@ graph TB
 
 ## Package Index
 
-| Layer | Package                        | Version | Description                                              |
-| ----- | ------------------------------ | ------- | -------------------------------------------------------- |
-| L0    | `@holoscript/core-types`       | 7.0.0   | Pure type definitions, zero runtime deps                 |
+| Layer | Package                        | Version | Description                                                                                                    |
+| ----- | ------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------- |
+| L0    | `@holoscript/core-types`       | 7.0.0   | Pure type definitions, zero runtime deps                                                                       |
 | L0    | `@holoscript/core`             | 7.0.0   | Parser, AST, compilers (verify: `find packages -name '*Compiler.ts' -not -path '*/__tests__/*'`), trait system |
-| L1    | `@holoscript/engine`           | 7.0.0   | Rendering, physics, animation, ECS (extracted from core) |
-| L1    | `@holoscript/framework`        | 7.0.0   | Agent orchestration, BT, economy (extracted from core)   |
-| L1    | `@holoscript/auth`             | 7.0.0   | JWT auth library (extracted from core)                   |
-| L1    | `@holoscript/agent-protocol`   | 7.0.0   | uAA2++ agent lifecycle (extracted from core)             |
-| L2    | `@holoscript/linter`           | 7.0.0   | Static analysis for .holo/.hsplus                        |
-| L2    | `@holoscript/formatter`        | 3.1.0   | Code formatting                                          |
-| L2    | `@holoscript/lsp`              | 7.0.0   | Language Server Protocol                                 |
-| L2    | `@holoscript/compiler-wasm`    | 7.0.0   | Rust WASM parser                                         |
-| L3    | `@holoscript/runtime`          | 7.0.0   | Browser runtime with R3F integration                     |
-| L3    | `@holoscript/r3f-renderer`     | 7.0.0   | Shared React Three Fiber components                      |
-| L3    | `@holoscript/crdt`             | 1.1.0   | Authenticated CRDTs for distributed state                |
-| L3    | `@holoscript/snn-webgpu`       | 7.0.0   | GPU spiking neural networks                              |
-| L4    | `@holoscript/absorb-service`   | 7.0.0   | Codebase intelligence pipeline                           |
-| L4    | `@holoscript/marketplace-api`  | 1.2.3   | Trait marketplace                                        |
-| L4    | `@holoscript/mcp-server`       | 7.0.0   | MCP tools + REST API + WebSocket collab relay            |
-| L4    | `@holoscript/security-sandbox` | 1.2.2   | node:vm sandbox for safe execution (post-vm2 migration, see W.GOLD.193) |
-| L5    | `@holoscript/mcp-server`       | 7.0.0   | MCP tools + REST API                                     |
-| L5    | `@holoscript/cli`              | 7.0.0   | CLI: compile, validate, dev-serve                        |
-| L5    | `@holoscript/studio`           | 7.0.0   | Next.js scene builder (private)                          |
-| L5    | `create-holoscript`            | 1.4.0   | Zero-config scaffolding                                  |
+| L1    | `@holoscript/engine`           | 7.0.0   | Rendering, physics, animation, ECS (extracted from core)                                                       |
+| L1    | `@holoscript/framework`        | 7.0.0   | Agent orchestration, BT, economy (extracted from core)                                                         |
+| L1    | `@holoscript/auth`             | 7.0.0   | JWT auth library (extracted from core)                                                                         |
+| L1    | `@holoscript/agent-protocol`   | 7.0.0   | uAA2++ agent lifecycle (extracted from core)                                                                   |
+| L2    | `@holoscript/linter`           | 7.0.0   | Static analysis for .holo/.hsplus                                                                              |
+| L2    | `@holoscript/formatter`        | 3.1.0   | Code formatting                                                                                                |
+| L2    | `@holoscript/lsp`              | 7.0.0   | Language Server Protocol                                                                                       |
+| L2    | `@holoscript/compiler-wasm`    | 7.0.0   | Rust WASM parser                                                                                               |
+| L3    | `@holoscript/runtime`          | 7.0.0   | Browser runtime with R3F integration                                                                           |
+| L3    | `@holoscript/r3f-renderer`     | 7.0.0   | Shared React Three Fiber components                                                                            |
+| L3    | `@holoscript/crdt`             | 1.1.0   | Authenticated CRDTs for distributed state                                                                      |
+| L3    | `@holoscript/snn-webgpu`       | 7.0.0   | GPU spiking neural networks                                                                                    |
+| L4    | `@holoscript/absorb-service`   | 7.0.0   | Codebase intelligence pipeline                                                                                 |
+| L4    | `@holoscript/marketplace-api`  | 1.2.3   | Trait marketplace                                                                                              |
+| L4    | `@holoscript/mcp-server`       | 7.0.0   | MCP tools + REST API + WebSocket collab relay                                                                  |
+| L4    | `@holoscript/security-sandbox` | 1.2.2   | node:vm sandbox for safe execution (post-vm2 migration, see W.GOLD.193)                                        |
+| L5    | `@holoscript/mcp-server`       | 7.0.0   | MCP tools + REST API                                                                                           |
+| L5    | `@holoscript/cli`              | 7.0.0   | CLI: compile, validate, dev-serve                                                                              |
+| L5    | `@holoscript/studio`           | 7.0.0   | Next.js scene builder (private)                                                                                |
+| L5    | `create-holoscript`            | 1.4.0   | Zero-config scaffolding                                                                                        |
 
 ## Dependency Rules
 

@@ -31,7 +31,9 @@ import type { Vector3 } from '@holoscript/core';
 // =============================================================================
 
 /** Normalize core `{x,y,z}` or numeric tuples to components (trait code mixes both). */
-function v3c(v: Vector3 | [number, number, number] | readonly [number, number, number]): [number, number, number] {
+function v3c(
+  v: Vector3 | [number, number, number] | readonly [number, number, number]
+): [number, number, number] {
   if (Array.isArray(v)) return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
   return [Number(v[0]) || 0, Number(v[1]) || 0, Number(v[2]) || 0];
 }
@@ -130,7 +132,10 @@ function closestPointOnSegment(
 /**
  * Compute minimum distance from point P to a polyline path.
  */
-function distanceToPath(p: Vector3 | [number, number, number], path: Array<Vector3 | [number, number, number]>): number {
+function distanceToPath(
+  p: Vector3 | [number, number, number],
+  path: Array<Vector3 | [number, number, number]>
+): number {
   if (path.length === 0) return Infinity;
   if (path.length === 1) return computeDistance3D(p, path[0]);
 

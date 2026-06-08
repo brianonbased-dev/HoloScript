@@ -116,7 +116,10 @@ function estimateTileShift(sourceDescriptors, referenceDescriptors, gridN, searc
       const score = avgScore * (0.82 + 0.18 * overlapRatio);
       const distance = Math.abs(dx) + Math.abs(dy);
       const bestDistance = Math.abs(best.shift[0]) + Math.abs(best.shift[1]);
-      if (score > best.score + 1e-9 || (Math.abs(score - best.score) <= 1e-9 && distance < bestDistance)) {
+      if (
+        score > best.score + 1e-9 ||
+        (Math.abs(score - best.score) <= 1e-9 && distance < bestDistance)
+      ) {
         best = {
           shift: [dx, dy],
           score,
@@ -131,7 +134,8 @@ function estimateTileShift(sourceDescriptors, referenceDescriptors, gridN, searc
 }
 
 export function buildNativeTileCorrespondence({ frames, bridgeFrames, pointsPerFrame }) {
-  if (!Array.isArray(frames) || !Array.isArray(bridgeFrames) || bridgeFrames.length < 2) return undefined;
+  if (!Array.isArray(frames) || !Array.isArray(bridgeFrames) || bridgeFrames.length < 2)
+    return undefined;
   const gridN = Math.round(Math.sqrt(pointsPerFrame));
   if (!Number.isInteger(gridN) || gridN < 2 || gridN * gridN !== pointsPerFrame) return undefined;
 
@@ -173,10 +177,14 @@ export function buildNativeTileCorrespondence({ frames, bridgeFrames, pointsPerF
       matchedPointCount: estimate.matchedPointCount,
     };
   });
-  const nonReference = frameMatches.filter((match) => match.frameIndex !== referenceFrame.frameIndex);
+  const nonReference = frameMatches.filter(
+    (match) => match.frameIndex !== referenceFrame.frameIndex
+  );
   const meanMatchScore = average(nonReference.map((match) => match.score));
   const meanOverlapRatio = average(nonReference.map((match) => match.overlapRatio));
-  const meanAbsShiftTiles = average(nonReference.map((match) => Math.abs(match.shiftTiles[0]) + Math.abs(match.shiftTiles[1])));
+  const meanAbsShiftTiles = average(
+    nonReference.map((match) => Math.abs(match.shiftTiles[0]) + Math.abs(match.shiftTiles[1]))
+  );
   return {
     method: 'native-tile-flow-v1',
     pointOrder: 'reference-grid-with-shift-observations',

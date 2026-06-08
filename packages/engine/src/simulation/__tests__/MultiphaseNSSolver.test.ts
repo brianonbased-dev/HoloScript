@@ -125,7 +125,7 @@ describe('MultiphaseNSSolver', () => {
         rhoGas: 1,
         surfaceTension: 0.01,
         gravity: [0, -0.1, 0],
-        pressureIterations: 300,  // variable-coefficient path
+        pressureIterations: 300, // variable-coefficient path
       };
 
       const solver = new MultiphaseNSSolver(config);
@@ -136,7 +136,7 @@ describe('MultiphaseNSSolver', () => {
 
       const stats = solver.getStats();
       expect(Number.isFinite(stats.maxVelocity)).toBe(true);
-      expect(stats.maxVelocity).toBeLessThan(10);  // bounded, not diverging
+      expect(stats.maxVelocity).toBeLessThan(10); // bounded, not diverging
       expect(Number.isFinite(stats.liquidVolumeFraction)).toBe(true);
       expect(stats.liquidVolumeFraction).toBeGreaterThan(0.1);
       expect(stats.liquidVolumeFraction).toBeLessThan(0.9);

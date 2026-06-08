@@ -11,8 +11,7 @@
 export const HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION =
   'holoscript.hardware-receipt-metadata.v1' as const;
 
-export type HardwareReceiptSchemaVersion =
-  typeof HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION;
+export type HardwareReceiptSchemaVersion = typeof HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION;
 
 export interface HardwareReceiptTarget {
   readonly id: string;
@@ -202,9 +201,7 @@ export function validatePortableHardwareReceiptMetadata(
   }
 
   if (receipt.schemaVersion !== HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION) {
-    errors.push(
-      `schemaVersion must be ${HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION}`
-    );
+    errors.push(`schemaVersion must be ${HARDWARE_RECEIPT_METADATA_SCHEMA_VERSION}`);
   }
 
   const target = requireObject(receipt, 'target', errors);

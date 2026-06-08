@@ -113,7 +113,9 @@ function perpendicularDistance(point: Vec2, lineStart: Vec2, lineEnd: Vec2): num
   const len = Math.sqrt(dx * dx + dy * dy);
   if (len === 0) return Math.sqrt((point[0] - lineStart[0]) ** 2 + (point[1] - lineStart[1]) ** 2);
   return (
-    Math.abs(dy * point[0] - dx * point[1] + lineEnd[0] * lineStart[1] - lineEnd[1] * lineStart[0]) / len
+    Math.abs(
+      dy * point[0] - dx * point[1] + lineEnd[0] * lineStart[1] - lineEnd[1] * lineStart[0]
+    ) / len
   );
 }
 

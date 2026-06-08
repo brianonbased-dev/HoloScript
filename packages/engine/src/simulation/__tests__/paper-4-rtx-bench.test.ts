@@ -173,10 +173,7 @@ function buildSha256ChainSeed(entries: number): {
   return { payloads, expectedHashes };
 }
 
-function verifySha256Chain(
-  payloads: Uint8Array[],
-  expectedHashes: string[]
-): boolean {
+function verifySha256Chain(payloads: Uint8Array[], expectedHashes: string[]): boolean {
   const enc = new TextEncoder();
   let prev = '0'.repeat(64);
   for (let i = 0; i < payloads.length; i++) {
@@ -309,7 +306,8 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
       kernel: {
         name: 'paper-4-rtx-bench-cpu-substitute',
         wgsl_path: null,
-        wgsl_sha256: 'n/a (cpu path; inlines fnv1aBytes + sha256Bytes from packages/engine/src/simulation/sha256.ts)',
+        wgsl_sha256:
+          'n/a (cpu path; inlines fnv1aBytes + sha256Bytes from packages/engine/src/simulation/sha256.ts)',
         workgroup_size: null,
         dispatch_size: null,
       },
@@ -330,11 +328,7 @@ describe('paper-4 §7.8 RTX hardware-tier sandbox bench', () => {
       if (parent === repoRoot) break;
       repoRoot = parent;
     }
-    const benchDir = path.join(
-      repoRoot,
-      '.bench-logs',
-      capturedAt.replace(/[:.]/g, '-')
-    );
+    const benchDir = path.join(repoRoot, '.bench-logs', capturedAt.replace(/[:.]/g, '-'));
     fs.mkdirSync(benchDir, { recursive: true });
     const outPath = path.join(benchDir, 'paper-4-rtx-bench.json');
     fs.writeFileSync(outPath, JSON.stringify(artifact, null, 2) + '\n', 'utf8');

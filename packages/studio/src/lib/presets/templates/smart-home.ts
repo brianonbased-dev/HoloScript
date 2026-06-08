@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-smart-home",
-  name: "Smart Home Dashboard",
-  description: "IoT-connected home with sensor overlays and device controls",
-  thumbnail: "🏠",
-  tags: ["architecture","iot","smart-home","dashboard"],
-  category: "iot",
+  id: 'wizard-smart-home',
+  name: 'Smart Home Dashboard',
+  description: 'IoT-connected home with sensor overlays and device controls',
+  thumbnail: '🏠',
+  tags: ['architecture', 'iot', 'smart-home', 'dashboard'],
+  category: 'iot',
   code: `composition "Smart Home" {
   environment {
     skybox: "studio"
@@ -55,7 +55,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 0.2
     label: "Smart Home Control Panel"
   }
-}`
+}`,
 };
 
 export default template;

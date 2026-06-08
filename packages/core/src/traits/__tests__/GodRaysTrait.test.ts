@@ -53,11 +53,14 @@ describe('GodRaysTrait — lifecycle', () => {
   it('onAttach emits god_rays_create with light parameters', async () => {
     const node = makeNode();
     await godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    expect(node.emit).toHaveBeenCalledWith('god_rays_create', expect.objectContaining({
-      decay: 0.96,
-      weight: 0.5,
-      exposure: 0.3,
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'god_rays_create',
+      expect.objectContaining({
+        decay: 0.96,
+        weight: 0.5,
+        exposure: 0.3,
+      })
+    );
   });
 
   it('onDetach emits god_rays_destroy', async () => {
@@ -75,9 +78,12 @@ describe('GodRaysTrait — onUpdate', () => {
     await godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
     await godRaysHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
-    expect(node.emit).toHaveBeenCalledWith('god_rays_update', expect.objectContaining({
-      lightPosition: mockWeatherBlackboard.sun_position,
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'god_rays_update',
+      expect.objectContaining({
+        lightPosition: mockWeatherBlackboard.sun_position,
+      })
+    );
   });
 });
 
@@ -86,12 +92,22 @@ describe('GodRaysTrait — onEvent', () => {
     const node = makeNode();
     await godRaysHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    await godRaysHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'god_rays_set_params', decay: 0.8, exposure: 0.6,
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('god_rays_update', expect.objectContaining({
-      decay: 0.8,
-      exposure: 0.6,
-    }));
+    await godRaysHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'god_rays_set_params',
+        decay: 0.8,
+        exposure: 0.6,
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'god_rays_update',
+      expect.objectContaining({
+        decay: 0.8,
+        exposure: 0.6,
+      })
+    );
   });
 });

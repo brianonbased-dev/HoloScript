@@ -28,7 +28,10 @@ describe('openusd-plugin baseline', () => {
     expect(
       usdaStableRoundTrip({
         name: 's',
-        primitives: [{ kind: 'xform', path: 'camera-main' }, { kind: 'mesh', path: 'ground' }],
+        primitives: [
+          { kind: 'xform', path: 'camera-main' },
+          { kind: 'mesh', path: 'ground' },
+        ],
       })
     ).toBe(true);
   });

@@ -507,9 +507,11 @@ describe('PhoneSleeveVRCompiler', () => {
     const html = c.compile(
       makeComposition({
         spatialGroups: [
-          makeSpatialGroup('Outer', [], [
-            makeSpatialGroup('Nested', [makeObject('TrackedSleeveTarget', ['ai_head_tracking'])]),
-          ]),
+          makeSpatialGroup(
+            'Outer',
+            [],
+            [makeSpatialGroup('Nested', [makeObject('TrackedSleeveTarget', ['ai_head_tracking'])])]
+          ),
         ],
       }),
       'test-token'

@@ -5,7 +5,7 @@ export const LEGAL_DOCUMENT_CONTRACTS_ROOT = 'legal_document_contracts' as const
 export type TropicalSemiringDigest = [
   [number, number, number],
   [number, number, number],
-  [number, number, number]
+  [number, number, number],
 ];
 
 /**
@@ -16,18 +16,18 @@ export function computeTropicalSemiringDigest(doc: LoroDoc): TropicalSemiringDig
   const versionMap = doc.version().toJSON() as unknown as Record<string, number>;
   const values = Object.values(versionMap);
   const keys = Object.keys(versionMap);
-  
+
   const ticks = values;
   const maxTick = ticks.length > 0 ? Math.max(...ticks) : 0;
-  
+
   // Extract pseudo-hashes from fractional peer IDs (as numbers)
-  const peerHashes = keys.map(id => Number(id) % 1000);
-  
+  const peerHashes = keys.map((id) => Number(id) % 1000);
+
   // Build a 3x3 mapping: [Origin, Agent, State]
   return [
     [maxTick, peerHashes[0] || 0, peerHashes[1] || 0],
     [peerHashes[2] || 0, maxTick, peerHashes[3] || 0],
-    [peerHashes[4] || 0, peerHashes[5] || 0, maxTick]
+    [peerHashes[4] || 0, peerHashes[5] || 0, maxTick],
   ];
 }
 
@@ -64,7 +64,9 @@ function parseJsonRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== 'string') return null;
   try {
     const parsed = JSON.parse(value) as unknown;
-    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : null;
+    return typeof parsed === 'object' && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }
@@ -75,7 +77,9 @@ function parseJsonArray(value: unknown): Array<Record<string, unknown>> {
   try {
     const parsed = JSON.parse(value) as unknown;
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null);
+    return parsed.filter(
+      (item): item is Record<string, unknown> => typeof item === 'object' && item !== null
+    );
   } catch {
     return [];
   }
@@ -120,18 +124,24 @@ export function setLegalContractSnapshot(
   snapshot: LegalContractSpatialSnapshot
 ): void {
   const root = ensureLegalDocumentContractsRoot(doc);
-  root.set(`${snapshot.documentId}::meta`, JSON.stringify({
-    trait: 'legal_contract',
-    documentId: snapshot.documentId,
-    title: snapshot.title ?? '',
-    jurisdiction: snapshot.jurisdiction ?? '',
-    updatedAt: Date.now(),
-  }));
-  root.set(`${snapshot.documentId}::signature`, JSON.stringify({
-    trait: 'signature_block',
-    updatedAt: Date.now(),
-    ...snapshot.signatureBlock,
-  }));
+  root.set(
+    `${snapshot.documentId}::meta`,
+    JSON.stringify({
+      trait: 'legal_contract',
+      documentId: snapshot.documentId,
+      title: snapshot.title ?? '',
+      jurisdiction: snapshot.jurisdiction ?? '',
+      updatedAt: Date.now(),
+    })
+  );
+  root.set(
+    `${snapshot.documentId}::signature`,
+    JSON.stringify({
+      trait: 'signature_block',
+      updatedAt: Date.now(),
+      ...snapshot.signatureBlock,
+    })
+  );
   root.set(`${snapshot.documentId}::audit`, JSON.stringify(snapshot.auditTrail));
   doc.commit();
 }
@@ -182,7 +192,7 @@ export function readLegalContractSnapshot(
           actor: item.actor,
           action: item.action,
           timestamp: item.timestamp,
-          ...(typeof item.hash === 'string' ? { hash: item.hash } : {})
+          ...(typeof item.hash === 'string' ? { hash: item.hash } : {}),
         } as AuditTrailEntrySnapshot;
       }
       return null;

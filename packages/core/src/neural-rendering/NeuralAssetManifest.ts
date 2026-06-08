@@ -30,9 +30,9 @@ export interface ViewSpec {
 }
 
 export interface ToleranceBands {
-  psnr_min?: number;       // dB; fail below
-  ssim_min?: number;       // 0..1; fail below
-  depth_l1_max?: number;   // meters; fail above
+  psnr_min?: number; // dB; fail below
+  ssim_min?: number; // 0..1; fail below
+  depth_l1_max?: number; // meters; fail above
 }
 
 export interface NeuralAssetManifest {
@@ -87,7 +87,9 @@ export async function computeManifestHash(manifest: NeuralAssetManifest): Promis
   const bytes = new TextEncoder().encode(canonicalSerialize(manifest));
   if (manifest.hash_mode === 'sha256') {
     // Prefer Web Crypto (subtle). Fall back gracefully for non-browser envs.
-    const g = globalThis as { crypto?: { subtle?: { digest?: (a: string, b: Uint8Array) => Promise<ArrayBuffer> } } };
+    const g = globalThis as {
+      crypto?: { subtle?: { digest?: (a: string, b: Uint8Array) => Promise<ArrayBuffer> } };
+    };
     if (g.crypto?.subtle?.digest) {
       const buf = await g.crypto.subtle.digest('SHA-256', bytes);
       const view = new Uint8Array(buf);
@@ -136,12 +138,15 @@ export function validateTierConsistency(manifest: NeuralAssetManifest): string[]
     violations.push('T0 canonical assets must not carry checkpoint_hash');
   }
   if (manifest.tier === 'T1') {
-    if (!manifest.checkpoint_hash) violations.push('T1 neural-approximated requires checkpoint_hash');
+    if (!manifest.checkpoint_hash)
+      violations.push('T1 neural-approximated requires checkpoint_hash');
     if (!manifest.tolerance_bands || Object.keys(manifest.tolerance_bands).length === 0) {
       violations.push('T1 neural-approximated requires non-empty tolerance_bands');
     }
     if (manifest.canonical_viewpoints.length === 0) {
-      violations.push('T1 neural-approximated requires ≥1 canonical_viewpoint with golden_frame_hash');
+      violations.push(
+        'T1 neural-approximated requires ≥1 canonical_viewpoint with golden_frame_hash'
+      );
     }
   }
   if (manifest.tier === 'T2' && manifest.tolerance_bands) {

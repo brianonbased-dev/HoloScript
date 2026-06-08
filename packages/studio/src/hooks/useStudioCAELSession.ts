@@ -98,16 +98,16 @@ export function useStudioCAELSession(opts: StudioCAELSessionOptions): void {
 // sources MUST add their channel here AND emit via useStudioBus.emit().
 // Keep this in sync with the bus.emit('ui.*', ...) call sites.
 export const UI_CAEL_CHANNELS = [
-  'ui.placement.click',     // PlacementSystem.handleClick
-  'ui.placement.hover',     // PlacementSystem.handlePointerMove (throttled)
-  'ui.gizmo.transform',     // GizmoController.handleChange
-  'ui.deselect',            // SceneRenderer empty-space click
-  'ui.select',              // SceneRenderer node click
-  'ui.camera.move',         // OrbitControls onChange (throttled)
-  'ui.scene.save',          // existing scene:saved bridge
-  'ui.scene.load',          // ditto
-  'ui.undo',                // historyStore subscriber
-  'ui.redo',                // historyStore subscriber
+  'ui.placement.click', // PlacementSystem.handleClick
+  'ui.placement.hover', // PlacementSystem.handlePointerMove (throttled)
+  'ui.gizmo.transform', // GizmoController.handleChange
+  'ui.deselect', // SceneRenderer empty-space click
+  'ui.select', // SceneRenderer node click
+  'ui.camera.move', // OrbitControls onChange (throttled)
+  'ui.scene.save', // existing scene:saved bridge
+  'ui.scene.load', // ditto
+  'ui.undo', // historyStore subscriber
+  'ui.redo', // historyStore subscriber
 ] as const;
 
 export type UICAELChannel = (typeof UI_CAEL_CHANNELS)[number];

@@ -27,8 +27,7 @@ import {
 
 function makeConfig(overrides?: Partial<ProphecyConfig>): ProphecyConfig {
   const probeCount = overrides?.probeCount ?? 64;
-  const probePositions =
-    overrides?.probePositions ?? new Float32Array(probeCount * 3);
+  const probePositions = overrides?.probePositions ?? new Float32Array(probeCount * 3);
   for (let i = 0; i < probeCount; i++) {
     probePositions[i * 3 + 0] = i;
     probePositions[i * 3 + 1] = 0;
@@ -68,8 +67,8 @@ describe('ProphecyOrchestrator', () => {
         () =>
           new ProphecyOrchestrator(
             ctx,
-            makeConfig({ probeCount: 0, probePositions: new Float32Array(0) }),
-          ),
+            makeConfig({ probeCount: 0, probePositions: new Float32Array(0) })
+          )
       ).toThrow(/positive integer/);
     });
 
@@ -81,8 +80,8 @@ describe('ProphecyOrchestrator', () => {
             makeConfig({
               probeCount: 100,
               probePositions: new Float32Array(300),
-            }),
-          ),
+            })
+          )
       ).toThrow(/multiple of 64/);
     });
 
@@ -91,8 +90,8 @@ describe('ProphecyOrchestrator', () => {
         () =>
           new ProphecyOrchestrator(
             ctx,
-            makeConfig({ probeCount: 64, probePositions: new Float32Array(10) }),
-          ),
+            makeConfig({ probeCount: 64, probePositions: new Float32Array(10) })
+          )
       ).toThrow(/probePositions length/);
     });
 
@@ -101,16 +100,15 @@ describe('ProphecyOrchestrator', () => {
         () =>
           new ProphecyOrchestrator(
             ctx,
-            makeConfig({ probeCount: 64, albedo: new Float32Array(10) }),
-          ),
+            makeConfig({ probeCount: 64, albedo: new Float32Array(10) })
+          )
       ).toThrow(/albedo length/);
     });
 
     it('rejects out-of-range confidenceFloor', () => {
-      expect(
-        () =>
-          new ProphecyOrchestrator(ctx, makeConfig({ confidenceFloor: 2 })),
-      ).toThrow(/confidenceFloor/);
+      expect(() => new ProphecyOrchestrator(ctx, makeConfig({ confidenceFloor: 2 }))).toThrow(
+        /confidenceFloor/
+      );
     });
   });
 
@@ -138,10 +136,7 @@ describe('ProphecyOrchestrator', () => {
     });
 
     it('drops probes below the confidence floor (rgb=0)', () => {
-      const o = new ProphecyOrchestrator(
-        ctx,
-        makeConfig({ confidenceFloor: 0.5 }),
-      );
+      const o = new ProphecyOrchestrator(ctx, makeConfig({ confidenceFloor: 0.5 }));
       o.initialize();
       const rates = new Float32Array(64);
       for (let i = 0; i < 64; i++) rates[i] = i < 32 ? 0.1 : 0.9;
@@ -177,12 +172,8 @@ describe('ProphecyOrchestrator', () => {
     it('rejects spike rate uploads of the wrong length', () => {
       const o = new ProphecyOrchestrator(ctx, makeConfig());
       o.initialize();
-      expect(() => o.uploadSpikeRates(new Float32Array(10))).toThrow(
-        /expected length 64/,
-      );
-      expect(() => o.primeSpikeRatesShadow(new Float32Array(10))).toThrow(
-        /expected length 64/,
-      );
+      expect(() => o.uploadSpikeRates(new Float32Array(10))).toThrow(/expected length 64/);
+      expect(() => o.primeSpikeRatesShadow(new Float32Array(10))).toThrow(/expected length 64/);
       o.destroy();
     });
 
@@ -197,10 +188,7 @@ describe('prophetic-radiance.wgsl', () => {
   // The orchestrator allocates buffers against a specific bind-group
   // layout — we assert the shader text declares those bindings so a
   // refactor can't silently desync them.
-  const SHADER = readFileSync(
-    join(__dirname, '..', 'shaders', 'prophetic-radiance.wgsl'),
-    'utf8',
-  );
+  const SHADER = readFileSync(join(__dirname, '..', 'shaders', 'prophetic-radiance.wgsl'), 'utf8');
 
   it('declares the ProphecyParams uniform at (0,0)', () => {
     expect(SHADER).toMatch(/@group\(0\)\s*@binding\(0\)\s*var<uniform>\s*params:\s*ProphecyParams/);
@@ -298,9 +286,7 @@ describe('HoloMeshProphecyTransport', () => {
       fetchImpl: failingFetch,
     });
     await transport.initialize(makeConfig());
-    await expect(transport.step(SCENE)).rejects.toBeInstanceOf(
-      ProphecyNotImplementedError,
-    );
+    await expect(transport.step(SCENE)).rejects.toBeInstanceOf(ProphecyNotImplementedError);
     await transport.destroy();
   });
 
@@ -309,9 +295,7 @@ describe('HoloMeshProphecyTransport', () => {
       endpoint: 'crdt://wrong/scheme/here',
       fetchImpl: failingFetch,
     });
-    await expect(transport.initialize(makeConfig())).rejects.toThrow(
-      /unsupported CRDT URI shape/,
-    );
+    await expect(transport.initialize(makeConfig())).rejects.toThrow(/unsupported CRDT URI shape/);
   });
 
   it('delegates to the fallback transport when supplied', async () => {
@@ -351,10 +335,10 @@ describe('HoloMeshProphecyTransport', () => {
       expect(url).toContain('/api/holomesh/ttu/test-session/step');
       const body = JSON.parse((init?.body as string) ?? '{}');
       expect(body.scene.sunDirection).toEqual(SCENE.sunDirection);
-      return new Response(
-        JSON.stringify({ success: true, frame: remoteFrame }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
+      return new Response(JSON.stringify({ success: true, frame: remoteFrame }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     };
 
     const transport = new HoloMeshProphecyTransport({
@@ -373,8 +357,7 @@ describe('HoloMeshProphecyTransport', () => {
       ctx,
       spikeRates: () => new Float32Array(64).fill(0.7),
     });
-    const fiveOhTwo: typeof fetch = async () =>
-      new Response('upstream down', { status: 502 });
+    const fiveOhTwo: typeof fetch = async () => new Response('upstream down', { status: 502 });
     const transport = new HoloMeshProphecyTransport({
       endpoint: 'crdt://holomesh/feed/ttu/test-session',
       fallback,

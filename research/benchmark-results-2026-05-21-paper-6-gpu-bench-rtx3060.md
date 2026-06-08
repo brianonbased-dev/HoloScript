@@ -11,18 +11,20 @@
 From the cell.timings in the artifact:
 
 - preimageBuild_ms: 0
-- schemaValidation_ms: 0  
+- schemaValidation_ms: 0
 - sampling_ms: 1
 - hashing_ms: 0.20000001788139343
 - regressionCheck_ms: 0
 - **total_ms: 1.2000000178813934**
 
 **Notes on run**:
+
 - Status: completed
 - strictAdapter: true (requested discrete GPU)
 - This run succeeded on local discrete card (unlike some Vast.ai headless attempts that hit software renderer).
 
 **Reproduction**:
+
 ```bash
 # Local discrete GPU (ensure browser has access to real RTX 3060 WebGPU adapter)
 node packages/engine/src/animation/paper/benchmarks/p6-gpu-publication.ts \

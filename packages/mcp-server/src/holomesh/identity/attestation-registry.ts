@@ -282,9 +282,7 @@ export class AttestationRegistry {
    * but keyed on `Uint8Array` (the ML-DSA-65 public key bytes) instead of a
    * 0x-Ethereum-address string.
    */
-  toPqcRegistryCheck(
-    nowMs?: number
-  ): (pqcPublicKey: Uint8Array) => Promise<RegistryCheckResult> {
+  toPqcRegistryCheck(nowMs?: number): (pqcPublicKey: Uint8Array) => Promise<RegistryCheckResult> {
     return async (pqcPublicKey: Uint8Array) => {
       const att = this.lookupByPqcKey(pqcPublicKey);
       if (!att) {

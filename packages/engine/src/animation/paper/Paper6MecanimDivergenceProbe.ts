@@ -54,10 +54,7 @@
  * @see memory/paper-6-mecanim-divergence-harness.md (legacy 6×6 ordering proxy)
  */
 
-import {
-  runAnimationSamplingProbe,
-  PAPER_P2_0_CANONICAL_SPEC,
-} from './AnimationSamplingProbe';
+import { runAnimationSamplingProbe, PAPER_P2_0_CANONICAL_SPEC } from './AnimationSamplingProbe';
 
 /**
  * One Mecanim sampling-policy version. The fields are the deltas
@@ -164,16 +161,86 @@ export interface AaaRigFixture {
  * empirical distribution at the SCA 2027 submission window).
  */
 export const PAPER_6_RIG_FIXTURES: readonly AaaRigFixture[] = Object.freeze([
-  Object.freeze({ id: 'rig-01-humanoid-male',  name: 'Humanoid Male',           boneCount: 78,  trackMultiplier: 3, sampleMultiplier: 2, category: 'humanoid' }),
-  Object.freeze({ id: 'rig-02-humanoid-female',name: 'Humanoid Female',         boneCount: 80,  trackMultiplier: 3, sampleMultiplier: 2, category: 'humanoid' }),
-  Object.freeze({ id: 'rig-03-quadruped-wolf', name: 'Quadruped Wolf',          boneCount: 64,  trackMultiplier: 3, sampleMultiplier: 2, category: 'creature' }),
-  Object.freeze({ id: 'rig-04-dragon-large',   name: 'Dragon (Large)',          boneCount: 152, trackMultiplier: 4, sampleMultiplier: 3, category: 'creature' }),
-  Object.freeze({ id: 'rig-05-vehicle-car',    name: 'Vehicle (Sedan)',         boneCount: 21,  trackMultiplier: 2, sampleMultiplier: 1, category: 'vehicle'  }),
-  Object.freeze({ id: 'rig-06-vehicle-mech',   name: 'Mech / Vehicle Hybrid',   boneCount: 96,  trackMultiplier: 3, sampleMultiplier: 2, category: 'vehicle'  }),
-  Object.freeze({ id: 'rig-07-prop-cloth',     name: 'Prop (Cloth Banner)',     boneCount: 36,  trackMultiplier: 2, sampleMultiplier: 1, category: 'prop'     }),
-  Object.freeze({ id: 'rig-08-fingered-hand',  name: 'Fingered Hand (FK+IK)',   boneCount: 31,  trackMultiplier: 4, sampleMultiplier: 1, category: 'humanoid' }),
-  Object.freeze({ id: 'rig-09-mocap-actor',    name: 'Mocap Actor (52-marker)', boneCount: 104, trackMultiplier: 4, sampleMultiplier: 3, category: 'humanoid' }),
-  Object.freeze({ id: 'rig-10-composite',      name: 'Composite (Rider+Mount)', boneCount: 144, trackMultiplier: 4, sampleMultiplier: 3, category: 'composite' }),
+  Object.freeze({
+    id: 'rig-01-humanoid-male',
+    name: 'Humanoid Male',
+    boneCount: 78,
+    trackMultiplier: 3,
+    sampleMultiplier: 2,
+    category: 'humanoid',
+  }),
+  Object.freeze({
+    id: 'rig-02-humanoid-female',
+    name: 'Humanoid Female',
+    boneCount: 80,
+    trackMultiplier: 3,
+    sampleMultiplier: 2,
+    category: 'humanoid',
+  }),
+  Object.freeze({
+    id: 'rig-03-quadruped-wolf',
+    name: 'Quadruped Wolf',
+    boneCount: 64,
+    trackMultiplier: 3,
+    sampleMultiplier: 2,
+    category: 'creature',
+  }),
+  Object.freeze({
+    id: 'rig-04-dragon-large',
+    name: 'Dragon (Large)',
+    boneCount: 152,
+    trackMultiplier: 4,
+    sampleMultiplier: 3,
+    category: 'creature',
+  }),
+  Object.freeze({
+    id: 'rig-05-vehicle-car',
+    name: 'Vehicle (Sedan)',
+    boneCount: 21,
+    trackMultiplier: 2,
+    sampleMultiplier: 1,
+    category: 'vehicle',
+  }),
+  Object.freeze({
+    id: 'rig-06-vehicle-mech',
+    name: 'Mech / Vehicle Hybrid',
+    boneCount: 96,
+    trackMultiplier: 3,
+    sampleMultiplier: 2,
+    category: 'vehicle',
+  }),
+  Object.freeze({
+    id: 'rig-07-prop-cloth',
+    name: 'Prop (Cloth Banner)',
+    boneCount: 36,
+    trackMultiplier: 2,
+    sampleMultiplier: 1,
+    category: 'prop',
+  }),
+  Object.freeze({
+    id: 'rig-08-fingered-hand',
+    name: 'Fingered Hand (FK+IK)',
+    boneCount: 31,
+    trackMultiplier: 4,
+    sampleMultiplier: 1,
+    category: 'humanoid',
+  }),
+  Object.freeze({
+    id: 'rig-09-mocap-actor',
+    name: 'Mocap Actor (52-marker)',
+    boneCount: 104,
+    trackMultiplier: 4,
+    sampleMultiplier: 3,
+    category: 'humanoid',
+  }),
+  Object.freeze({
+    id: 'rig-10-composite',
+    name: 'Composite (Rider+Mount)',
+    boneCount: 144,
+    trackMultiplier: 4,
+    sampleMultiplier: 3,
+    category: 'composite',
+  }),
 ]);
 
 /** FNV-1a 32-bit over a byte buffer. Platform-stable hash. */
@@ -304,10 +371,7 @@ type AnimSamplingTrackSpec = (typeof PAPER_P2_0_CANONICAL_SPEC.clipSpec.tracks)[
  * Run the canonical clip through one (rig × version) combination and
  * return the resulting hashable byte stream. Pure / deterministic.
  */
-export function sampleRigUnderPolicy(
-  rig: AaaRigFixture,
-  policy: MecanimVersionPolicy
-): Uint8Array {
+export function sampleRigUnderPolicy(rig: AaaRigFixture, policy: MecanimVersionPolicy): Uint8Array {
   const probe = buildProbeForRig(rig);
   const adjustedSampleTimes = applyPolicyToSampleTimes(
     probe.sampleTimes,

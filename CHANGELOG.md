@@ -7,7 +7,7 @@ All notable changes to HoloScript are documented here.
 These rules keep empirical results and narrative out of “lost history” and single-vendor tools (boards, Moltbook-only handoffs):
 
 1. **Benchmarks:** Commit JSON or CI artifacts under `docs/benchmark-artifacts/` (or the path your bench/CI run documents). Keep the benchmark suite and documented commands the source of truth for numbers.
-2. **Milestone blurbs:** For each program slice or release window, add a short entry under **`[Unreleased]`** below *or* a new file `docs/daily-digests/YYYY-MM-DD-<topic>.md`. Each blurb should include a **link to a PR or commit**, **three bullets max**, and **numbers** where they matter. Use `docs/daily-digests/TEMPLATE-milestone.md` as a scaffold.
+2. **Milestone blurbs:** For each program slice or release window, add a short entry under **`[Unreleased]`** below _or_ a new file `docs/daily-digests/YYYY-MM-DD-<topic>.md`. Each blurb should include a **link to a PR or commit**, **three bullets max**, and **numbers** where they matter. Use `docs/daily-digests/TEMPLATE-milestone.md` as a scaffold.
 3. **Dual post:** After major ships, paste the **same** blurb into Team Connect / HoloMesh handoff **and** the repo so external tooling is not the only durable record.
 
 ---
@@ -177,7 +177,7 @@ Finalized the core of the research program to date (as of 2026-04-14 snapshot: 8
   - **Paper #4 (USENIX Sec):** "Sandboxed Simulation" (1,777 lines) — V8 isolate verification.
   - **Paper #5 (ICSE):** "GraphRAG Self-Understanding" (1,389 lines) — provenance envelopes.
   - **Capstone (UIST):** "Notation to Cognition" (~850 lines) — the unified architecture.
-  - *Closing Principle:* "The provenance semiring is not a feature — it is the architecture."
+  - _Closing Principle:_ "The provenance semiring is not a feature — it is the architecture."
 
 - **Tropical Algebra Foundation**
   - Implementation of provenance semirings for conflict resolution and trait composition in `packages/core`.
@@ -219,7 +219,6 @@ Finalized the core of the research program to date (as of 2026-04-14 snapshot: 8
 - `74f24a3d` feat(engine): CRDTCAELBridge -- spatial/world-state merges as CAEL provenance events (Paper #3)
 - `5c0f988f` feat(engine): add SNNCognitionEngine — snn-webgpu LIF backed CAEL cognition (Paper #2)
 - `a78c05b3` docs(papers): add IEEE TVCG submission — Trust by Construction
-
 
 ## [6.1.0] — 2026-04-10 (Domain Plugin Explosion, A2A Protocol & Accessibility)
 

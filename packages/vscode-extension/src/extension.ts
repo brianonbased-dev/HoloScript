@@ -251,7 +251,15 @@ export function activate(context: ExtensionContext) {
   const possiblePaths = [
     path.join(context.extensionPath, 'server', 'lsp', 'server.js'),
     path.join(context.extensionPath, '..', 'cli', 'dist', 'lsp', 'server.js'),
-    path.join(context.extensionPath, 'node_modules', '@holoscript', 'cli', 'dist', 'lsp', 'server.js'),
+    path.join(
+      context.extensionPath,
+      'node_modules',
+      '@holoscript',
+      'cli',
+      'dist',
+      'lsp',
+      'server.js'
+    ),
     path.join(context.extensionPath, '..', 'lsp', 'dist', 'server.js'),
   ];
 
@@ -282,7 +290,12 @@ export function activate(context: ExtensionContext) {
     },
   };
 
-  client = new LanguageClient('holoscriptLSP', 'HoloScript Language Server', serverOptions, clientOptions);
+  client = new LanguageClient(
+    'holoscriptLSP',
+    'HoloScript Language Server',
+    serverOptions,
+    clientOptions
+  );
   client.start().catch((err) => {
     console.error('HoloScript: Failed to start language server:', err);
   });
@@ -362,7 +375,10 @@ export function activate(context: ExtensionContext) {
               const options = loadConfig(document.fileName);
               const fmtr = formatter.createFormatter(options);
               const text = document.getText();
-              const result = fmtr.format(text, document.languageId === 'holoscriptplus' ? 'hsplus' : 'holo');
+              const result = fmtr.format(
+                text,
+                document.languageId === 'holoscriptplus' ? 'hsplus' : 'holo'
+              );
               clearTimeout(timer);
 
               if (!result.changed) {
@@ -370,7 +386,10 @@ export function activate(context: ExtensionContext) {
                 return;
               }
 
-              const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(text.length));
+              const fullRange = new vscode.Range(
+                document.positionAt(0),
+                document.positionAt(text.length)
+              );
               resolve([vscode.TextEdit.replace(fullRange, result.formatted)]);
             } catch (err) {
               clearTimeout(timer);
@@ -379,24 +398,31 @@ export function activate(context: ExtensionContext) {
           });
         },
       }),
-      vscode.languages.registerDocumentRangeFormattingEditProvider(['holoscript', 'holoscriptplus'], {
-        provideDocumentRangeFormattingEdits(
-          document: vscode.TextDocument,
-          range: vscode.Range
-        ): vscode.TextEdit[] {
-          try {
-            const options = loadConfig(document.fileName);
-            const fmtr = formatter.createFormatter(options);
-            const text = document.getText();
-            const fileType = document.languageId === 'holoscriptplus' ? 'hsplus' : 'holo';
-            const result = fmtr.formatRange(text, { startLine: range.start.line, endLine: range.end.line }, fileType);
-            if (!result.changed) return [];
-            return [vscode.TextEdit.replace(range, result.formatted)];
-          } catch {
-            return [];
-          }
-        },
-      })
+      vscode.languages.registerDocumentRangeFormattingEditProvider(
+        ['holoscript', 'holoscriptplus'],
+        {
+          provideDocumentRangeFormattingEdits(
+            document: vscode.TextDocument,
+            range: vscode.Range
+          ): vscode.TextEdit[] {
+            try {
+              const options = loadConfig(document.fileName);
+              const fmtr = formatter.createFormatter(options);
+              const text = document.getText();
+              const fileType = document.languageId === 'holoscriptplus' ? 'hsplus' : 'holo';
+              const result = fmtr.formatRange(
+                text,
+                { startLine: range.start.line, endLine: range.end.line },
+                fileType
+              );
+              if (!result.changed) return [];
+              return [vscode.TextEdit.replace(range, result.formatted)];
+            } catch {
+              return [];
+            }
+          },
+        }
+      )
     );
   } catch {
     // Formatter package not available — skip
@@ -407,11 +433,17 @@ export function activate(context: ExtensionContext) {
   const debugType = 'holoscript-debug';
 
   context.subscriptions.push(
-    vscode.debug.registerDebugAdapterDescriptorFactory(debugType, new HoloScriptInlineDebugAdapterFactory())
+    vscode.debug.registerDebugAdapterDescriptorFactory(
+      debugType,
+      new HoloScriptInlineDebugAdapterFactory()
+    )
   );
 
   context.subscriptions.push(
-    vscode.debug.registerDebugConfigurationProvider(debugType, new HoloScriptDebugConfigurationProvider())
+    vscode.debug.registerDebugConfigurationProvider(
+      debugType,
+      new HoloScriptDebugConfigurationProvider()
+    )
   );
 
   context.subscriptions.push(
@@ -455,7 +487,6 @@ export function activate(context: ExtensionContext) {
 
   teamBridge = TeamBridge.getInstance();
   teamBridge.activate(context);
-
 }
 
 function isHoloScriptFile(document: TextDocument): boolean {

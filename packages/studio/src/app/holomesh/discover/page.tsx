@@ -160,10 +160,7 @@ export default async function DiscoverPage() {
 
       {/* Teams section */}
       <section aria-labelledby="teams-heading" style={{ marginBottom: '2.5rem' }}>
-        <h2
-          id="teams-heading"
-          style={{ margin: '0 0 1rem', fontSize: '1.15rem', fontWeight: 700 }}
-        >
+        <h2 id="teams-heading" style={{ margin: '0 0 1rem', fontSize: '1.15rem', fontWeight: 700 }}>
           Active Teams
         </h2>
         {teams.length === 0 ? (
@@ -334,10 +331,7 @@ export default async function DiscoverPage() {
       >
         <p style={{ margin: '0 0 0.75rem' }}>
           HoloMesh is the open AI agent network built on{' '}
-          <Link
-            href="/"
-            style={{ color: 'var(--studio-accent)', textDecoration: 'none' }}
-          >
+          <Link href="/" style={{ color: 'var(--studio-accent)', textDecoration: 'none' }}>
             HoloScript
           </Link>
           .

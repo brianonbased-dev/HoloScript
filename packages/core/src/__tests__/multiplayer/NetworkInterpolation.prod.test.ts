@@ -24,7 +24,7 @@ function makeNI(bufferTimeMs = 0) {
   });
 }
 
-const origin = () => ([0, 0, 0]);
+const origin = () => [0, 0, 0];
 const quat0 = () => ({ x: 0, y: 0, z: 0, w: 1 });
 
 function snap(

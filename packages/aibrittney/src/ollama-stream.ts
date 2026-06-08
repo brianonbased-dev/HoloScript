@@ -18,7 +18,7 @@ export async function* streamChatFromOllama(
    * Ollama ignores it. Sourced from OLLAMA_API_KEY by default in the
    * REPL (see session.ts defaultApiKey()).
    */
-  apiKey?: string,
+  apiKey?: string
 ): AsyncGenerator<StreamChunk, void, unknown> {
   const url = `${host.replace(/\/$/, '')}/api/chat`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };

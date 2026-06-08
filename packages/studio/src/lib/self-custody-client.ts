@@ -39,8 +39,7 @@ function resolveBaseUrl(): string {
   }
   // Browser: NEXT_PUBLIC vars are inlined at build time.
   return (
-    (process.env.NEXT_PUBLIC_HOLOMESH_API_URL as string | undefined) ||
-    'https://mcp.holoscript.net'
+    (process.env.NEXT_PUBLIC_HOLOMESH_API_URL as string | undefined) || 'https://mcp.holoscript.net'
   );
 }
 
@@ -119,9 +118,7 @@ export interface SelfCustodyApiError {
 }
 
 export function isApiError(x: unknown): x is SelfCustodyApiError {
-  return (
-    typeof x === 'object' && x !== null && (x as { success?: unknown }).success === false
-  );
+  return typeof x === 'object' && x !== null && (x as { success?: unknown }).success === false;
 }
 
 // ── State machine ───────────────────────────────────────────────────────────
@@ -216,10 +213,7 @@ export type WizardStateKind = WizardState['kind'];
  * These codes come from the MCP server — keep in lockstep with
  * identity-export-routes.ts. New codes default to 'idle' (full restart).
  */
-export function recoveryTargetForError(
-  errorCode: string,
-  httpStatus: number
-): WizardStateKind {
+export function recoveryTargetForError(errorCode: string, httpStatus: number): WizardStateKind {
   // 500 is always retry-safe per _dny4 atomicity; resume from the step
   // that threw it.
   if (httpStatus >= 500) return 'idle';
@@ -329,8 +323,7 @@ export async function packageExport(
       success: false,
       error: typeof body.error === 'string' ? body.error : 'unknown_error',
       message: typeof body.message === 'string' ? body.message : undefined,
-      current_status:
-        typeof body.current_status === 'string' ? body.current_status : undefined,
+      current_status: typeof body.current_status === 'string' ? body.current_status : undefined,
       http_status: res.status,
     };
   }
@@ -486,10 +479,7 @@ export async function generateBrowserWalletKeypair(): Promise<BrowserKeypair> {
  * pubKey, sig)` — we must hand it UTF-8 bytes of the nonce string, NOT hex-
  * decoded bytes. (Server treats the nonce as an opaque identifier string.)
  */
-export async function signServerNonce(
-  privateKey: CryptoKey,
-  nonce: string
-): Promise<string> {
+export async function signServerNonce(privateKey: CryptoKey, nonce: string): Promise<string> {
   const msg = new TextEncoder().encode(nonce);
   const sig = await crypto.subtle.sign(
     'Ed25519' as unknown as AlgorithmIdentifier,

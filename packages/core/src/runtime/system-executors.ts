@@ -93,7 +93,7 @@ export async function executeSystem(node: SystemNode): Promise<ExecutionResult> 
  */
 export async function executeCoreConfig(
   node: CoreConfigNode,
-  environment: Record<string, HoloScriptValue>,
+  environment: Record<string, HoloScriptValue>
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
   logger.info('[Zero-Config] Applying core configuration', node.properties);

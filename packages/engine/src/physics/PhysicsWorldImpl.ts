@@ -39,11 +39,7 @@ function vec3Dot(a: IVector3, b: IVector3): number {
 }
 
 function vec3Cross(a: IVector3, b: IVector3): IVector3 {
-  return [
-    a[1] * b[2] - a[2] * b[1],
-    a[2] * b[0] - a[0] * b[2],
-    a[0] * b[1] - a[1] * b[0],
-  ];
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 }
 
 function vec3Sub(a: IVector3, b: IVector3): IVector3 {
@@ -753,11 +749,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     let initialGravity: IVector3;
     if (config?.gravity) {
       const g = config.gravity as any;
-      initialGravity = [
-        g.x ?? g[0] ?? 0,
-        g.y ?? g[1] ?? 0,
-        g.z ?? g[2] ?? 0
-      ] as IVector3;
+      initialGravity = [g.x ?? g[0] ?? 0, g.y ?? g[1] ?? 0, g.z ?? g[2] ?? 0] as IVector3;
     } else {
       initialGravity = [...defaultG] as IVector3;
     }
@@ -780,11 +772,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
 
   public setGravity(gravity: IVector3): void {
     const g = gravity as any;
-    this.config.gravity = [
-      g.x ?? g[0] ?? 0,
-      g.y ?? g[1] ?? 0,
-      g.z ?? g[2] ?? 0
-    ] as IVector3;
+    this.config.gravity = [g.x ?? g[0] ?? 0, g.y ?? g[1] ?? 0, g.z ?? g[2] ?? 0] as IVector3;
   }
 
   public getGravity(): IVector3 {
@@ -1301,11 +1289,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
         if (currentDist === 0) return;
 
         const diff = (currentDist - config.distance) / currentDist;
-        const correction: IVector3 = [
-          dx * diff * 0.5,
-          dy * diff * 0.5,
-          dz * diff * 0.5,
-        ];
+        const correction: IVector3 = [dx * diff * 0.5, dy * diff * 0.5, dz * diff * 0.5];
 
         if (bodyA.type === 'dynamic') {
           bodyA.position = [
@@ -1529,16 +1513,8 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     const results: IOverlapResult[] = [];
 
     const queryAABB: IAABB = {
-      min: [
-        center[0] - halfExtents[0],
-        center[1] - halfExtents[1],
-        center[2] - halfExtents[2],
-      ],
-      max: [
-        center[0] + halfExtents[0],
-        center[1] + halfExtents[1],
-        center[2] + halfExtents[2],
-      ],
+      min: [center[0] - halfExtents[0], center[1] - halfExtents[1], center[2] - halfExtents[2]],
+      max: [center[0] + halfExtents[0], center[1] + halfExtents[1], center[2] + halfExtents[2]],
     };
 
     for (const body of this.bodiesArray) {

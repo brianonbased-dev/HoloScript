@@ -198,7 +198,7 @@ describe('insurance-underwriting — replay determinism', () => {
     // Independent re-run by a validator
     const rerunDigest = computeDecisionDigest(
       cohort.map((r) => model.decide(r.features)),
-      'sha256',
+      'sha256'
     );
 
     const reExec = verifyReplayExecution(receipt, {
@@ -220,7 +220,7 @@ describe('insurance-underwriting — replay determinism', () => {
     const tampered = cohort.map((r, i) =>
       i === 0
         ? { group: r.group, features: { ...r.features, zip_risk: r.features.zip_risk + 1e-4 } }
-        : r,
+        : r
     );
     const t = await runFairnessSweep(model, tampered, {
       seed: SEED,
@@ -260,14 +260,16 @@ describe('insurance-underwriting — regulatory crosswalk keys', () => {
   });
 
   it('NAIC crosswalk entry references race_proxy and homeowners-underwriting-scorer', () => {
-    const naicEntry = NAIC_INSURANCE_CROSSWALK['NAIC AI Systems Evaluation Tool (sample case file + bias audit)'];
+    const naicEntry =
+      NAIC_INSURANCE_CROSSWALK['NAIC AI Systems Evaluation Tool (sample case file + bias audit)'];
     expect(naicEntry).toBeTruthy();
     expect(naicEntry).toContain('homeowners-underwriting-scorer');
     expect(naicEntry).toContain('race_proxy');
   });
 
   it('CO SB21-169 crosswalk entry references zip_risk proxy', () => {
-    const coEntry = NAIC_INSURANCE_CROSSWALK['Colorado SB21-169 / Reg 10-1-1 (unfair-discrimination testing)'];
+    const coEntry =
+      NAIC_INSURANCE_CROSSWALK['Colorado SB21-169 / Reg 10-1-1 (unfair-discrimination testing)'];
     expect(coEntry).toBeTruthy();
     expect(coEntry).toContain('zip_risk');
   });

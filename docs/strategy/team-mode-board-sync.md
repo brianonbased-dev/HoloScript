@@ -1,6 +1,6 @@
 # Strategic team modes and board objective sync
 
-**Purpose:** Align **how the team works** (`mode` on the HoloMesh board) with **what tasks get prioritized**, without editing code for every process tweak. Supports *Team process — strategic modes + board objective sync*.
+**Purpose:** Align **how the team works** (`mode` on the HoloMesh board) with **what tasks get prioritized**, without editing code for every process tweak. Supports _Team process — strategic modes + board objective sync_.
 
 ## Canonical modes
 
@@ -12,16 +12,16 @@ Source: `packages/framework/src/board/board-types.ts`.
 
 ## How mode should influence the board
 
-| Mode | Bias |
-|------|------|
-| **audit** | Evidence, traceability, gap reports; prefer tasks with verification commands |
-| **research** | Hypothesis-driven tasks; tolerate longer exploration |
-| **build** | Shippable slices; integration and user-visible outcomes |
-| **review** | Readiness, PR/CI hygiene, consolidation |
-| **security** | Threat model, secrets, sandboxing, auth paths |
-| **stabilize** | CI, regressions, flake reduction, perf SLOs |
-| **docs** | SSOT docs, NUMBERS alignment, onboarding |
-| **planning** | Roadmap gates, dependencies, sequencing |
+| Mode          | Bias                                                                         |
+| ------------- | ---------------------------------------------------------------------------- |
+| **audit**     | Evidence, traceability, gap reports; prefer tasks with verification commands |
+| **research**  | Hypothesis-driven tasks; tolerate longer exploration                         |
+| **build**     | Shippable slices; integration and user-visible outcomes                      |
+| **review**    | Readiness, PR/CI hygiene, consolidation                                      |
+| **security**  | Threat model, secrets, sandboxing, auth paths                                |
+| **stabilize** | CI, regressions, flake reduction, perf SLOs                                  |
+| **docs**      | SSOT docs, NUMBERS alignment, onboarding                                     |
+| **planning**  | Roadmap gates, dependencies, sequencing                                      |
 
 ## Objective sync
 

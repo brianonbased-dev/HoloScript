@@ -64,7 +64,9 @@ export function hasTeamPermission(team: Team, agentId: string, permission: strin
   if (!member) return false;
   // Admin rooms: every joined member carries full permissions.
   if (team.adminRoom === true) return true;
-  return (TEAM_ROLE_PERMISSIONS[member.role as keyof typeof TEAM_ROLE_PERMISSIONS] ?? []).includes(permission);
+  return (TEAM_ROLE_PERMISSIONS[member.role as keyof typeof TEAM_ROLE_PERMISSIONS] ?? []).includes(
+    permission
+  );
 }
 
 export function getTeamWorkspaceId(teamId: string): string {
@@ -98,7 +100,9 @@ export function requireTeamAccess(
   // (they can differ when the key registry seeds a founder alias like "agent_founder"
   //  but the agent store has a timestamped id like "agent_1776058303684_3p3i")
   const agentId = caller.agent?.id;
-  const member = getTeamMember(team, caller.id) || (agentId && agentId !== caller.id ? getTeamMember(team, agentId) : undefined);
+  const member =
+    getTeamMember(team, caller.id) ||
+    (agentId && agentId !== caller.id ? getTeamMember(team, agentId) : undefined);
   const effectiveId = member?.agentId || caller.id;
   // System agent (IDE/copilot) intrinsically bypasses membership checks
   if (!member && caller.id !== 'system') {
@@ -183,7 +187,7 @@ export function isPresenceStale(
 export function pruneStalePresence(teamId: string): void {
   const presenceMap = teamPresenceStore.get(teamId);
   if (!presenceMap) return;
-  
+
   const now = Date.now();
   const deadAgentIds: string[] = [];
 
@@ -203,7 +207,7 @@ export function pruneStalePresence(teamId: string): void {
           const name = task.claimedByName || task.claimedBy;
           task.claimedBy = undefined;
           task.claimedByName = undefined;
-          
+
           // Log to team chat
           const messages = teamMessageStore.get(teamId) || [];
           messages.push({
@@ -213,7 +217,7 @@ export function pruneStalePresence(teamId: string): void {
             fromAgentName: 'System',
             content: `Task "${task.title}" reopened: ${name} went offline.`,
             messageType: 'text',
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
           });
           teamMessageStore.set(teamId, messages.slice(-500));
         }

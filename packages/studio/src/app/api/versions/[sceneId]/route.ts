@@ -146,7 +146,6 @@ export async function DELETE(
   return NextResponse.json({ ok: true, remaining: filtered.length });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

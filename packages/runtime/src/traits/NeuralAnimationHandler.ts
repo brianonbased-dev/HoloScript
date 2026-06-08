@@ -97,7 +97,11 @@ function buildBoneMap(object: THREE.Object3D): Map<string, THREE.Bone> {
   const collisions: string[] = [];
   object.traverse((child) => {
     const maybeBone = child as THREE.Bone & { isBone?: boolean; name?: string };
-    if (maybeBone.isBone === true && typeof maybeBone.name === 'string' && maybeBone.name.length > 0) {
+    if (
+      maybeBone.isBone === true &&
+      typeof maybeBone.name === 'string' &&
+      maybeBone.name.length > 0
+    ) {
       if (map.has(maybeBone.name)) collisions.push(maybeBone.name);
       map.set(maybeBone.name, maybeBone);
     }
@@ -105,7 +109,7 @@ function buildBoneMap(object: THREE.Object3D): Map<string, THREE.Bone> {
   if (collisions.length > 0) {
     console.warn(
       `[NeuralAnimationHandler] buildBoneMap: ${collisions.length} joint-name collisions in fallback traversal — ` +
-      `wrap your character in a SkinnedMesh to scope per-skeleton. Colliding joints: ${collisions.join(', ')}`
+        `wrap your character in a SkinnedMesh to scope per-skeleton. Colliding joints: ${collisions.join(', ')}`
     );
   }
   return map;
@@ -203,11 +207,19 @@ export const neuralAnimationHandler: TraitHandler = {
     };
 
     if (result.contactFeatures.leftFoot !== data.prevLeftContact) {
-      emit(data, 'on_foot_contact', { ...eventBase, side: 'left', state: result.contactFeatures.leftFoot });
+      emit(data, 'on_foot_contact', {
+        ...eventBase,
+        side: 'left',
+        state: result.contactFeatures.leftFoot,
+      });
       data.prevLeftContact = result.contactFeatures.leftFoot;
     }
     if (result.contactFeatures.rightFoot !== data.prevRightContact) {
-      emit(data, 'on_foot_contact', { ...eventBase, side: 'right', state: result.contactFeatures.rightFoot });
+      emit(data, 'on_foot_contact', {
+        ...eventBase,
+        side: 'right',
+        state: result.contactFeatures.rightFoot,
+      });
       data.prevRightContact = result.contactFeatures.rightFoot;
     }
 
@@ -277,10 +289,7 @@ export function subscribeNeuralAnimationEvent(
  * review: all three helpers now fail fast on lifecycle violation rather
  * than silently corrupt state.
  */
-export function setNeuralAnimationTargetVelocity(
-  context: TraitContext,
-  velocity: Vec3
-): void {
+export function setNeuralAnimationTargetVelocity(context: TraitContext, velocity: Vec3): void {
   const data = context.data as unknown as HandlerData;
   if (!data || !data.listeners) {
     throw new Error(
@@ -295,9 +304,7 @@ export function setNeuralAnimationTargetVelocity(
  * perception). Returns null if no inference has run yet (legitimate state);
  * throws if the handler was never attached (lifecycle error — Serious #7).
  */
-export function getNeuralAnimationLastResult(
-  context: TraitContext
-): MotionInferenceResult | null {
+export function getNeuralAnimationLastResult(context: TraitContext): MotionInferenceResult | null {
   const data = context.data as unknown as HandlerData;
   if (!data || !data.listeners) {
     throw new Error(

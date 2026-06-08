@@ -24,11 +24,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  StructuralSolverTET10,
-  tet4ToTet10,
-  type TET10Config,
-} from '../StructuralSolverTET10';
+import { StructuralSolverTET10, tet4ToTet10, type TET10Config } from '../StructuralSolverTET10';
 import { recoverNodalStressSPR } from '../verification/StressRecovery';
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -76,14 +72,18 @@ function generateMesh(nr: number, nt: number) {
   for (let iz = 0; iz < nz; iz++) {
     for (let jt = 0; jt < nt; jt++) {
       for (let ir = 0; ir < nr; ir++) {
-        const v0 = idx(ir, jt, iz),     v1 = idx(ir + 1, jt, iz);
-        const v2 = idx(ir + 1, jt + 1, iz), v3 = idx(ir, jt + 1, iz);
-        const v4 = idx(ir, jt, iz + 1), v5 = idx(ir + 1, jt, iz + 1);
-        const v6 = idx(ir + 1, jt + 1, iz + 1), v7 = idx(ir, jt + 1, iz + 1);
+        const v0 = idx(ir, jt, iz),
+          v1 = idx(ir + 1, jt, iz);
+        const v2 = idx(ir + 1, jt + 1, iz),
+          v3 = idx(ir, jt + 1, iz);
+        const v4 = idx(ir, jt, iz + 1),
+          v5 = idx(ir + 1, jt, iz + 1);
+        const v6 = idx(ir + 1, jt + 1, iz + 1),
+          v7 = idx(ir, jt + 1, iz + 1);
         if ((ir + jt + iz) % 2 === 0) {
-          tets.push(v0,v1,v3,v4, v1,v2,v3,v6, v4,v5,v6,v1, v4,v6,v7,v3, v1,v4,v6,v3);
+          tets.push(v0, v1, v3, v4, v1, v2, v3, v6, v4, v5, v6, v1, v4, v6, v7, v3, v1, v4, v6, v3);
         } else {
-          tets.push(v1,v0,v5,v2, v3,v2,v0,v7, v4,v5,v7,v0, v6,v7,v5,v2, v0,v2,v5,v7);
+          tets.push(v1, v0, v5, v2, v3, v2, v0, v7, v4, v5, v7, v0, v6, v7, v5, v2, v0, v2, v5, v7);
         }
       }
     }
@@ -92,8 +92,11 @@ function generateMesh(nr: number, nt: number) {
   return {
     vertices: new Float32Array(pts),
     tetrahedra: new Uint32Array(tets),
-    cornerIR,   // ir-coord per node (parallel to corner pts)
-    nr, nt, nz, idx,
+    cornerIR, // ir-coord per node (parallel to corner pts)
+    nr,
+    nt,
+    nz,
+    idx,
     nodeCount: (nr + 1) * (nt + 1) * (nz + 1),
   };
 }
@@ -109,7 +112,7 @@ function generateMesh(nr: number, nt: number) {
 function findOuterFaces(
   tet4: Uint32Array,
   cornerIR: number[],
-  nr: number,
+  nr: number
 ): Array<{ elementIndex: number; localFace: 0 | 1 | 2 | 3 }> {
   const faces: Array<{ elementIndex: number; localFace: 0 | 1 | 2 | 3 }> = [];
   const elemCount = tet4.length / 4;
@@ -131,11 +134,7 @@ function findOuterFaces(
 
     for (let lf = 0; lf < 4; lf++) {
       const [a, b, c] = FACE_CORNERS[lf];
-      if (
-        cornerIR[cs[a]] === nr &&
-        cornerIR[cs[b]] === nr &&
-        cornerIR[cs[c]] === nr
-      ) {
+      if (cornerIR[cs[a]] === nr && cornerIR[cs[b]] === nr && cornerIR[cs[c]] === nr) {
         faces.push({ elementIndex: e, localFace: lf as 0 | 1 | 2 | 3 });
       }
     }
@@ -154,12 +153,16 @@ function extractCauchyComponentNearPoint(
   component: number,
   targetX: number,
   targetY: number,
-  searchRadius: number,
+  searchRadius: number
 ): number {
   const elemCount = tetrahedra.length / nodesPerTet;
-  let bestDist = Infinity, bestStress = 0, sumStress = 0, count = 0;
+  let bestDist = Infinity,
+    bestStress = 0,
+    sumStress = 0,
+    count = 0;
   for (let e = 0; e < elemCount; e++) {
-    let cx = 0, cy = 0;
+    let cx = 0,
+      cy = 0;
     for (let n = 0; n < 4; n++) {
       const ni = tetrahedra[e * nodesPerTet + n];
       cx += vertices[ni * 3] / 4;
@@ -167,8 +170,14 @@ function extractCauchyComponentNearPoint(
     }
     const dist = Math.sqrt((cx - targetX) ** 2 + (cy - targetY) ** 2);
     const sigma = cauchyStress[e * 6 + component];
-    if (dist < searchRadius) { sumStress += sigma; count++; }
-    if (dist < bestDist) { bestDist = dist; bestStress = sigma; }
+    if (dist < searchRadius) {
+      sumStress += sigma;
+      count++;
+    }
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestStress = sigma;
+    }
   }
   return count > 0 ? sumStress / count : bestStress;
 }
@@ -206,9 +215,9 @@ function runTET10WithDistributedTraction(nr: number, nt: number) {
       yield_strength: 400e6,
     },
     constraints: [
-      { id: 'sym_x0', type: 'roller', nodes: x0Nodes,         dofs: [0] },
-      { id: 'sym_y0', type: 'roller', nodes: y0Nodes,         dofs: [1] },
-      { id: 'sym_z',  type: 'roller', nodes: [z0NodesRaw[0]], dofs: [2] }, // 1 node → plane stress
+      { id: 'sym_x0', type: 'roller', nodes: x0Nodes, dofs: [0] },
+      { id: 'sym_y0', type: 'roller', nodes: y0Nodes, dofs: [1] },
+      { id: 'sym_z', type: 'roller', nodes: [z0NodesRaw[0]], dofs: [2] }, // 1 node → plane stress
     ],
     loads: [
       {
@@ -234,21 +243,35 @@ function runTET10WithDistributedTraction(nr: number, nt: number) {
   // Element-averaged σ_yy near point D
   const cauchy = solver.getCauchyStress();
   const elemSigmaYY = extractCauchyComponentNearPoint(
-    tet10.vertices, tet10.tetrahedra, cauchy, 10, 1, INNER_AX, 0, 0.5,
+    tet10.vertices,
+    tet10.tetrahedra,
+    cauchy,
+    10,
+    1,
+    INNER_AX,
+    0,
+    0.5
   );
 
   // SPR-recovered nodal σ_yy at point D
   const spr = recoverNodalStressSPR(
-    tet10.tetrahedra, tet10.vertices,
-    solver.getGaussPointStress(), solver.getGaussPointCoords(), tet10NodeCount,
+    tet10.tetrahedra,
+    tet10.vertices,
+    solver.getGaussPointStress(),
+    solver.getGaussPointCoords(),
+    tet10NodeCount
   );
-  let bestNode = -1, bestDist = Infinity;
+  let bestNode = -1,
+    bestDist = Infinity;
   for (let n = 0; n < tet10NodeCount; n++) {
     const dx = tet10.vertices[n * 3] - INNER_AX;
     const dy = tet10.vertices[n * 3 + 1];
     const dz = tet10.vertices[n * 3 + 2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    if (dist < bestDist) { bestDist = dist; bestNode = n; }
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestNode = n;
+    }
   }
   const sprSigmaYY = spr.nodalStress[bestNode * 6 + 1];
 
@@ -267,12 +290,11 @@ function runTET10WithDistributedTraction(nr: number, nt: number) {
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 describe('NAFEMS LE1 — Distributed-Traction Reproducibility', () => {
-
   it('reports σ_yy at point D with distributed traction on outer boundary (h=0.083)', () => {
     const r = runTET10WithDistributedTraction(12, 24);
 
     const elemErr = Math.abs(r.elemSigmaYY - NAFEMS_REF) / NAFEMS_REF;
-    const sprErr  = Math.abs(r.sprSigmaYY  - NAFEMS_REF) / NAFEMS_REF;
+    const sprErr = Math.abs(r.sprSigmaYY - NAFEMS_REF) / NAFEMS_REF;
 
     console.log('\n' + '='.repeat(70));
     console.log('NAFEMS LE1 — Distributed Traction (TET10, h=0.083)');
@@ -281,8 +303,12 @@ describe('NAFEMS LE1 — Distributed-Traction Reproducibility', () => {
     console.log(`  Outer faces loaded:    ${r.outerFaceCount}`);
     console.log(`  TET10 nodes:           ${r.nodeCount}`);
     console.log(`  Closest node to D:     #${r.bestNode} (dist=${r.bestDist.toExponential(2)})`);
-    console.log(`  Elem-avg σ_yy:         ${r.elemSigmaYY.toFixed(2)} MPa (err: ${(elemErr*100).toFixed(2)}%)`);
-    console.log(`  SPR nodal σ_yy:        ${r.sprSigmaYY.toFixed(2)} MPa (err: ${(sprErr*100).toFixed(2)}%)`);
+    console.log(
+      `  Elem-avg σ_yy:         ${r.elemSigmaYY.toFixed(2)} MPa (err: ${(elemErr * 100).toFixed(2)}%)`
+    );
+    console.log(
+      `  SPR nodal σ_yy:        ${r.sprSigmaYY.toFixed(2)} MPa (err: ${(sprErr * 100).toFixed(2)}%)`
+    );
     console.log(`  Solve time:            ${r.solveMs.toFixed(0)} ms`);
     console.log(`  Converged:             ${r.converged}`);
     console.log('='.repeat(70));

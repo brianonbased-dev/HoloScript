@@ -39,12 +39,21 @@ function binary(operator: string, left: HoloExpression, right: HoloExpression): 
 function conditional(
   test: HoloExpression,
   consequent: HoloExpression,
-  alternate: HoloExpression,
+  alternate: HoloExpression
 ): HoloExpression {
-  return { type: 'ConditionalExpression', test, consequent, alternate } as unknown as HoloExpression;
+  return {
+    type: 'ConditionalExpression',
+    test,
+    consequent,
+    alternate,
+  } as unknown as HoloExpression;
 }
 
-function updateExpr(operator: '++' | '--', argument: HoloExpression, prefix: boolean): HoloExpression {
+function updateExpr(
+  operator: '++' | '--',
+  argument: HoloExpression,
+  prefix: boolean
+): HoloExpression {
   return { type: 'UpdateExpression', operator, argument, prefix } as unknown as HoloExpression;
 }
 
@@ -265,19 +274,31 @@ describe('evaluateHoloExpression — BinaryExpression', () => {
 
   it('handles && operator (truthy)', async () => {
     const ctx = makeCtx();
-    const result = await evaluateHoloExpression(binary('&&', literal(1), literal(2)), undefined, ctx);
+    const result = await evaluateHoloExpression(
+      binary('&&', literal(1), literal(2)),
+      undefined,
+      ctx
+    );
     expect(result).toBe(2);
   });
 
   it('handles || operator (falsy left)', async () => {
     const ctx = makeCtx();
-    const result = await evaluateHoloExpression(binary('||', literal(0), literal(42)), undefined, ctx);
+    const result = await evaluateHoloExpression(
+      binary('||', literal(0), literal(42)),
+      undefined,
+      ctx
+    );
     expect(result).toBe(42);
   });
 
   it('returns undefined for unknown operator', async () => {
     const ctx = makeCtx();
-    const result = await evaluateHoloExpression(binary('%', literal(10), literal(3)), undefined, ctx);
+    const result = await evaluateHoloExpression(
+      binary('%', literal(10), literal(3)),
+      undefined,
+      ctx
+    );
     expect(result).toBeUndefined();
   });
 });

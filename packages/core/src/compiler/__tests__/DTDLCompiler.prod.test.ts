@@ -106,9 +106,7 @@ describe('DTDLCompiler — Production', () => {
   });
 
   it('first item has @id matching composition name', () => {
-    const interfaces = readJson(
-      compiler.compile(makeComp({ name: 'SmartFactory' }), 'test-token')
-    );
+    const interfaces = readJson(compiler.compile(makeComp({ name: 'SmartFactory' }), 'test-token'));
     expect(interfaces[0]['@id']).toContain('SmartFactory');
   });
 

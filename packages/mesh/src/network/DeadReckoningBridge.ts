@@ -24,7 +24,8 @@ import { lerpVector3, distanceVector3 } from './NetworkTypes';
 
 /** Normalize IVector3: accept both {x,y,z} objects and [x,y,z] tuple arrays. */
 function toVec3(v: IVector3 | [number, number, number] | unknown): IVector3 {
-  if (Array.isArray(v)) return { x: (v as number[])[0], y: (v as number[])[1], z: (v as number[])[2] };
+  if (Array.isArray(v))
+    return { x: (v as number[])[0], y: (v as number[])[1], z: (v as number[])[2] };
   return v as IVector3;
 }
 
@@ -228,7 +229,11 @@ export class DeadReckoningPredictor {
         ...latest,
         timestamp: currentTime,
         rotation: nextRotation,
-        position: { x: latest.position.x + latest.velocity.x * clampedDt, y: latest.position.y + latest.velocity.y * clampedDt, z: latest.position.z + latest.velocity.z * clampedDt },
+        position: {
+          x: latest.position.x + latest.velocity.x * clampedDt,
+          y: latest.position.y + latest.velocity.y * clampedDt,
+          z: latest.position.z + latest.velocity.z * clampedDt,
+        },
       };
     }
 

@@ -250,8 +250,14 @@ export function useStudioSetupWizard(onClose: () => void) {
       onClose();
       // Route users to their appropriate standalone workspace based on category
       const industryCategories = [
-        'healthcare', 'architecture', 'agriculture', 'iot',
-        'robotics', 'science', 'creator', 'hologram'
+        'healthcare',
+        'architecture',
+        'agriculture',
+        'iot',
+        'robotics',
+        'science',
+        'creator',
+        'hologram',
       ];
       if (category && industryCategories.includes(category)) {
         router.push(`/industry/${category}`);
@@ -259,7 +265,18 @@ export function useStudioSetupWizard(onClose: () => void) {
         router.push('/create');
       }
     }, 800);
-  }, [selectedPresetId, specifics, experienceLevel, applyPreset, onClose, wizardTemplate, setCode, router, category, subCategory]);
+  }, [
+    selectedPresetId,
+    specifics,
+    experienceLevel,
+    applyPreset,
+    onClose,
+    wizardTemplate,
+    setCode,
+    router,
+    category,
+    subCategory,
+  ]);
 
   return {
     step,

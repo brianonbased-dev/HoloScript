@@ -10,7 +10,7 @@ describe('HoloMap golden replay fingerprint', () => {
   it('matches checked-in fixture (bump fixture intentionally when algorithm changes)', () => {
     const expected = readFileSync(
       join(__dirname, '../__fixtures__/GOLDEN_REPLAY_FINGERPRINT.txt'),
-      'utf8',
+      'utf8'
     )
       .trim()
       .replace(/\r?\n/g, '');

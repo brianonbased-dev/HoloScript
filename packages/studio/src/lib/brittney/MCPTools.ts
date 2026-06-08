@@ -405,8 +405,7 @@ const readEcosystemCanon: StudioToolDefinition = {
         },
         repo: {
           type: 'string',
-          description:
-            'Which repo to read from. Default: ai-ecosystem (the operating base).',
+          description: 'Which repo to read from. Default: ai-ecosystem (the operating base).',
           enum: ['ai-ecosystem', 'holoscript'],
         },
       },
@@ -422,7 +421,7 @@ const mapData: StudioToolDefinition = {
   function: {
     name: 'map_data',
     description:
-      "Migrate any structured data schema to native HoloScript — the universal domain bridge. Maps each field onto the trait system and returns a ready-to-compile `.holo` composition with per-field trait mappings + confidence. Use to migrate a database/API/catalog/IoT schema into native HoloScript. Pair with holo_compile to then target any platform.",
+      'Migrate any structured data schema to native HoloScript — the universal domain bridge. Maps each field onto the trait system and returns a ready-to-compile `.holo` composition with per-field trait mappings + confidence. Use to migrate a database/API/catalog/IoT schema into native HoloScript. Pair with holo_compile to then target any platform.',
     parameters: {
       type: 'object',
       properties: {
@@ -434,7 +433,10 @@ const mapData: StudioToolDefinition = {
         },
         name: { type: 'string', description: 'Name for the data source, e.g. "dispensary_menu"' },
         description: { type: 'string', description: 'What this data represents' },
-        domain: { type: 'string', description: 'Optional domain hint (retail, healthcare, iot, …)' },
+        domain: {
+          type: 'string',
+          description: 'Optional domain hint (retail, healthcare, iot, …)',
+        },
       },
       required: ['fields'],
     },
@@ -504,7 +506,10 @@ const selectModality: StudioToolDefinition = {
     parameters: {
       type: 'object',
       properties: {
-        platform: { type: 'string', description: 'A single platform target, e.g. "quest3", "ios", "web"' },
+        platform: {
+          type: 'string',
+          description: 'A single platform target, e.g. "quest3", "ios", "web"',
+        },
         platforms: {
           type: 'array',
           items: { type: 'string' },
@@ -528,12 +533,13 @@ const suggestEcosystemGap: StudioToolDefinition = {
       properties: {
         title: {
           type: 'string',
-          description: 'Short, specific gap title, e.g. "No compile target for Unreal Niagara VFX".',
+          description:
+            'Short, specific gap title, e.g. "No compile target for Unreal Niagara VFX".',
         },
         description: {
           type: 'string',
           description:
-            'What the user needed, why the ecosystem can\'t do it today, and the suggested capability to add (max ~2000 chars).',
+            "What the user needed, why the ecosystem can't do it today, and the suggested capability to add (max ~2000 chars).",
         },
         category: {
           type: 'string',
@@ -542,7 +548,8 @@ const suggestEcosystemGap: StudioToolDefinition = {
         },
         evidence: {
           type: 'string',
-          description: 'What the user was trying to do that exposed the gap (the concrete trigger).',
+          description:
+            'What the user was trying to do that exposed the gap (the concrete trigger).',
         },
       },
       required: ['title'],

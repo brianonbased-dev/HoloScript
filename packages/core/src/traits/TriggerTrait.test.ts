@@ -22,7 +22,7 @@ describe('TriggerTrait', () => {
     it('should create with custom config', () => {
       const custom = createTriggerTrait({
         shape: 'sphere',
-        size: [5, 5, 5 ],
+        size: [5, 5, 5],
       });
       expect(custom.getConfig().shape).toBe('sphere');
       expect((custom.getConfig().size as unknown as number[])?.[0]).toBe(5);
@@ -94,7 +94,7 @@ describe('TriggerTrait', () => {
     });
 
     it('should set size', () => {
-      trait.setSize([2, 2, 2 ]);
+      trait.setSize([2, 2, 2]);
       expect((trait.getConfig().size as unknown as number[])?.[0]).toBe(2);
     });
 
@@ -104,7 +104,7 @@ describe('TriggerTrait', () => {
     });
 
     it('should set center offset', () => {
-      trait.setCenter([1, 0, 0 ]);
+      trait.setCenter([1, 0, 0]);
       expect((trait.getConfig().center as unknown as number[])?.[0]).toBe(1);
     });
   });

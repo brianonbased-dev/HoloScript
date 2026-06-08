@@ -6,7 +6,7 @@ import { DecalSystem } from '@holoscript/engine/rendering';
 // =============================================================================
 
 const pos = [0, 0, 0];
-const normal = [0, 1, 0 ];
+const normal = [0, 1, 0];
 
 describe('DecalSystem', () => {
   let sys: DecalSystem;

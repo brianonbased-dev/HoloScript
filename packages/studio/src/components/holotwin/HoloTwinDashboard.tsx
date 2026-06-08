@@ -68,9 +68,30 @@ export function HoloTwinDashboard() {
 
   // Sensor mappings
   const [mappings, setMappings] = useState<SensorMapping[]>([
-    { sensor_key: 'temperature', scene_property: 'emissiveIntensity', transform: 'emissive', min: 10, max: 40, invert: false },
-    { sensor_key: 'humidity', scene_property: 'scale', transform: 'scale', min: 0, max: 100, invert: false },
-    { sensor_key: 'moisture', scene_property: 'color', transform: 'color', min: 0, max: 100, invert: false },
+    {
+      sensor_key: 'temperature',
+      scene_property: 'emissiveIntensity',
+      transform: 'emissive',
+      min: 10,
+      max: 40,
+      invert: false,
+    },
+    {
+      sensor_key: 'humidity',
+      scene_property: 'scale',
+      transform: 'scale',
+      min: 0,
+      max: 100,
+      invert: false,
+    },
+    {
+      sensor_key: 'moisture',
+      scene_property: 'color',
+      transform: 'color',
+      min: 0,
+      max: 100,
+      invert: false,
+    },
   ]);
 
   // Live data
@@ -192,9 +213,7 @@ export function HoloTwinDashboard() {
       const data = await response.json();
       if (data.ok) {
         setQuiltUrl(data.url);
-        setStatus((prev) =>
-          prev ? { ...prev, quiltHash: data.hash, quiltUrl: data.url } : null
-        );
+        setStatus((prev) => (prev ? { ...prev, quiltHash: data.hash, quiltUrl: data.url } : null));
       }
     } catch (error) {
       console.error('Compile error:', error);
@@ -256,9 +275,7 @@ export function HoloTwinDashboard() {
   return (
     <div className="p-4 space-y-4 bg-gray-900 text-white rounded-lg">
       <h2 className="text-xl font-bold">🏭 HoloTwin Dashboard</h2>
-      <p className="text-sm text-gray-400">
-        IoT Sensor → HoloScript Scene → Looking Glass Quilt
-      </p>
+      <p className="text-sm text-gray-400">IoT Sensor → HoloScript Scene → Looking Glass Quilt</p>
 
       {/* Connection Panel */}
       <div className="p-4 bg-gray-800 rounded-lg space-y-3">
@@ -296,7 +313,9 @@ export function HoloTwinDashboard() {
               type="text"
               value={brokerUrl}
               onChange={(e) => setBrokerUrl(e.target.value)}
-              placeholder={protocol === 'mqtt' ? 'mqtt://localhost:1883' : 'http://localhost:3000/sensors'}
+              placeholder={
+                protocol === 'mqtt' ? 'mqtt://localhost:1883' : 'http://localhost:3000/sensors'
+              }
               className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600"
             />
           </div>
@@ -387,9 +406,7 @@ export function HoloTwinDashboard() {
                 <input
                   type="text"
                   value={mapping.sensor_key}
-                  onChange={(e) =>
-                    handleUpdateMapping(index, { sensor_key: e.target.value })
-                  }
+                  onChange={(e) => handleUpdateMapping(index, { sensor_key: e.target.value })}
                   className="w-full px-2 py-1 bg-gray-700 rounded text-sm"
                   placeholder="temperature"
                 />
@@ -400,9 +417,7 @@ export function HoloTwinDashboard() {
                 <input
                   type="text"
                   value={mapping.scene_property}
-                  onChange={(e) =>
-                    handleUpdateMapping(index, { scene_property: e.target.value })
-                  }
+                  onChange={(e) => handleUpdateMapping(index, { scene_property: e.target.value })}
                   className="w-full px-2 py-1 bg-gray-700 rounded text-sm"
                   placeholder="scale"
                 />
@@ -432,9 +447,7 @@ export function HoloTwinDashboard() {
                 <input
                   type="number"
                   value={mapping.min}
-                  onChange={(e) =>
-                    handleUpdateMapping(index, { min: Number(e.target.value) })
-                  }
+                  onChange={(e) => handleUpdateMapping(index, { min: Number(e.target.value) })}
                   className="w-full px-2 py-1 bg-gray-700 rounded text-sm"
                 />
               </div>
@@ -444,9 +457,7 @@ export function HoloTwinDashboard() {
                 <input
                   type="number"
                   value={mapping.max}
-                  onChange={(e) =>
-                    handleUpdateMapping(index, { max: Number(e.target.value) })
-                  }
+                  onChange={(e) => handleUpdateMapping(index, { max: Number(e.target.value) })}
                   className="w-full px-2 py-1 bg-gray-700 rounded text-sm"
                 />
               </div>
@@ -456,9 +467,7 @@ export function HoloTwinDashboard() {
                 <input
                   type="checkbox"
                   checked={mapping.invert}
-                  onChange={(e) =>
-                    handleUpdateMapping(index, { invert: e.target.checked })
-                  }
+                  onChange={(e) => handleUpdateMapping(index, { invert: e.target.checked })}
                   className="w-4 h-4"
                 />
                 <button
@@ -533,11 +542,7 @@ export function HoloTwinDashboard() {
           <h3 className="font-semibold">🎬 Quilt Preview</h3>
 
           <div className="aspect-square bg-gray-700 rounded-lg overflow-hidden">
-            <img
-              src={quiltUrl}
-              alt="Quilt preview"
-              className="w-full h-full object-contain"
-            />
+            <img src={quiltUrl} alt="Quilt preview" className="w-full h-full object-contain" />
           </div>
 
           <div className="flex gap-2">
@@ -566,9 +571,7 @@ export function HoloTwinDashboard() {
             {isConnected ? '✅ Connected' : '❌ Disconnected'}
             {isStreaming && ' • 📡 Streaming'}
           </span>
-          <span>
-            Last sync: {new Date(status.lastSyncTime).toLocaleTimeString()}
-          </span>
+          <span>Last sync: {new Date(status.lastSyncTime).toLocaleTimeString()}</span>
         </div>
       )}
     </div>

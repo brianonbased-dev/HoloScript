@@ -15,7 +15,14 @@ export function HardwareBanner() {
           <svg className="w-full h-full" viewBox="0 0 400 400" fill="none">
             <path d="M400 0L0 400H400V0Z" fill="url(#grad1)" />
             <defs>
-              <linearGradient id="grad1" x1="400" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+              <linearGradient
+                id="grad1"
+                x1="400"
+                y1="0"
+                x2="200"
+                y2="200"
+                gradientUnits="userSpaceOnUse"
+              >
                 <stop stopColor="#3b82f6" />
                 <stop offset="1" stopColor="transparent" />
               </linearGradient>
@@ -30,13 +37,15 @@ export function HardwareBanner() {
               Native Hardware Layer
             </div>
             <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6 leading-tight">
-              Transform your PC into a <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">HoloScript Appliance.</span>
+              Transform your PC into a <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">
+                HoloScript Appliance.
+              </span>
             </h2>
             <p className="text-studio-muted mb-8 leading-relaxed">
-              Don't just run apps—become the infrastructure. Our replication script configures 
-              your local GPU, installs the HoloMesh daemon, and registers your node as an 
-              agentic powerhouse in the global network.
+              Don't just run apps—become the infrastructure. Our replication script configures your
+              local GPU, installs the HoloMesh daemon, and registers your node as an agentic
+              powerhouse in the global network.
             </p>
 
             <div className="grid grid-cols-2 gap-4 mb-8">
@@ -53,7 +62,7 @@ export function HardwareBanner() {
               ))}
             </div>
 
-            <button 
+            <button
               onClick={downloadSetup}
               className="group flex items-center gap-3 bg-white text-black px-8 py-4 rounded-2xl font-bold text-base hover:bg-teal-50 shadow-xl shadow-teal-500/10 transition-all active:scale-95"
             >
@@ -84,7 +93,7 @@ export function HardwareBanner() {
                   <span>Appliance Ready.</span>
                 </div>
               </div>
-              
+
               {/* Glass Reflection */}
               <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
             </div>

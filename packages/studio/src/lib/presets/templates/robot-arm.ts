@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-robot-arm",
-  name: "Robot Arm Trainer",
-  description: "URDF robot arm with joint control, kinematics, and ROS2 export",
-  thumbnail: "🦾",
-  tags: ["robotics","urdf","ros2","arm","joints"],
-  category: "robotics",
+  id: 'wizard-robot-arm',
+  name: 'Robot Arm Trainer',
+  description: 'URDF robot arm with joint control, kinematics, and ROS2 export',
+  thumbnail: '🦾',
+  tags: ['robotics', 'urdf', 'ros2', 'arm', 'joints'],
+  category: 'robotics',
   code: `composition "Robot Arm Lab" {
   environment {
     skybox: "studio"
@@ -112,7 +112,7 @@ export const template: SceneTemplate = {
     color: "#00cc66"
     label: "Pick Target"
   }
-}`
+}`,
 };
 
 export default template;

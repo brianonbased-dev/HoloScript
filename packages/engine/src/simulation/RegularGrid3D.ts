@@ -52,9 +52,9 @@ export class RegularGrid3D {
 
   /**
    * Discrete Laplacian ∇²f at (i,j,k) using 2nd-order central differences.
-   * 
+   *
    * BOUNDARY CONTRACT: This solver uses a flat array without ghost cells.
-   * At boundaries (e.g. i=0 or i=nx-1), the partial derivative in that 
+   * At boundaries (e.g. i=0 or i=nx-1), the partial derivative in that
    * direction is skipped. This results in a partial Laplacian which implicitly
    * enforces a homogeneous Neumann boundary condition (∂T/∂n = 0 / zero flux)
    * if no explicit boundary condition overwrites it after integration.
@@ -65,23 +65,17 @@ export class RegularGrid3D {
 
     if (i > 0 && i < this.nx - 1) {
       lap +=
-        (this.get(i + 1, j, k, component) -
-          2 * c +
-          this.get(i - 1, j, k, component)) /
+        (this.get(i + 1, j, k, component) - 2 * c + this.get(i - 1, j, k, component)) /
         (this.dx * this.dx);
     }
     if (j > 0 && j < this.ny - 1) {
       lap +=
-        (this.get(i, j + 1, k, component) -
-          2 * c +
-          this.get(i, j - 1, k, component)) /
+        (this.get(i, j + 1, k, component) - 2 * c + this.get(i, j - 1, k, component)) /
         (this.dy * this.dy);
     }
     if (k > 0 && k < this.nz - 1) {
       lap +=
-        (this.get(i, j, k + 1, component) -
-          2 * c +
-          this.get(i, j, k - 1, component)) /
+        (this.get(i, j, k + 1, component) - 2 * c + this.get(i, j, k - 1, component)) /
         (this.dz * this.dz);
     }
 
@@ -92,57 +86,31 @@ export class RegularGrid3D {
    * Gradient ∇f at (i,j,k) using central differences.
    * Falls back to one-sided differences at boundaries.
    */
-  gradient(
-    i: number,
-    j: number,
-    k: number,
-    component = 0
-  ): [number, number, number] {
+  gradient(i: number, j: number, k: number, component = 0): [number, number, number] {
     let gx: number, gy: number, gz: number;
 
     if (i <= 0) {
-      gx =
-        (this.get(i + 1, j, k, component) - this.get(i, j, k, component)) /
-        this.dx;
+      gx = (this.get(i + 1, j, k, component) - this.get(i, j, k, component)) / this.dx;
     } else if (i >= this.nx - 1) {
-      gx =
-        (this.get(i, j, k, component) - this.get(i - 1, j, k, component)) /
-        this.dx;
+      gx = (this.get(i, j, k, component) - this.get(i - 1, j, k, component)) / this.dx;
     } else {
-      gx =
-        (this.get(i + 1, j, k, component) -
-          this.get(i - 1, j, k, component)) /
-        (2 * this.dx);
+      gx = (this.get(i + 1, j, k, component) - this.get(i - 1, j, k, component)) / (2 * this.dx);
     }
 
     if (j <= 0) {
-      gy =
-        (this.get(i, j + 1, k, component) - this.get(i, j, k, component)) /
-        this.dy;
+      gy = (this.get(i, j + 1, k, component) - this.get(i, j, k, component)) / this.dy;
     } else if (j >= this.ny - 1) {
-      gy =
-        (this.get(i, j, k, component) - this.get(i, j - 1, k, component)) /
-        this.dy;
+      gy = (this.get(i, j, k, component) - this.get(i, j - 1, k, component)) / this.dy;
     } else {
-      gy =
-        (this.get(i, j + 1, k, component) -
-          this.get(i, j - 1, k, component)) /
-        (2 * this.dy);
+      gy = (this.get(i, j + 1, k, component) - this.get(i, j - 1, k, component)) / (2 * this.dy);
     }
 
     if (k <= 0) {
-      gz =
-        (this.get(i, j, k + 1, component) - this.get(i, j, k, component)) /
-        this.dz;
+      gz = (this.get(i, j, k + 1, component) - this.get(i, j, k, component)) / this.dz;
     } else if (k >= this.nz - 1) {
-      gz =
-        (this.get(i, j, k, component) - this.get(i, j, k - 1, component)) /
-        this.dz;
+      gz = (this.get(i, j, k, component) - this.get(i, j, k - 1, component)) / this.dz;
     } else {
-      gz =
-        (this.get(i, j, k + 1, component) -
-          this.get(i, j, k - 1, component)) /
-        (2 * this.dz);
+      gz = (this.get(i, j, k + 1, component) - this.get(i, j, k - 1, component)) / (2 * this.dz);
     }
 
     return [gx, gy, gz];

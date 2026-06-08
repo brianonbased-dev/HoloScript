@@ -74,10 +74,7 @@ export interface HoloStatementContext {
   /** Emit a named event with an optional payload. */
   emit(event: string, data?: HoloScriptValue): void | Promise<void>;
   /** Evaluate an expression-typed AST node, using scopeOverride if given. */
-  evaluateHoloExpression(
-    expr: unknown,
-    scopeOverride?: Scope,
-  ): Promise<HoloScriptValue>;
+  evaluateHoloExpression(expr: unknown, scopeOverride?: Scope): Promise<HoloScriptValue>;
   /** Telemetry seam — module delegates timing to the runtime's harness. */
   readonly telemetry: StatementTelemetry;
 }
@@ -92,14 +89,14 @@ export const MAX_ITERATIONS = 1000;
 export async function executeHoloProgram(
   statements: HoloStatement[],
   scopeOverride: Scope | undefined,
-  ctx: HoloStatementContext,
+  ctx: HoloStatementContext
 ): Promise<ExecutionResult[]> {
   const results: ExecutionResult[] = [];
   ctx.telemetry.setGauge('execution_depth', ctx.telemetry.executionDepth());
   for (const stmt of statements) {
     ctx.telemetry.incrementCounter('statements_executed', 1, { type: stmt.type });
     const res = await ctx.telemetry.measureLatency(`execute_stmt_${stmt.type}`, () =>
-      executeHoloStatement(stmt, scopeOverride, ctx),
+      executeHoloStatement(stmt, scopeOverride, ctx)
     );
     results.push(res);
     const last = results[results.length - 1];
@@ -119,7 +116,7 @@ export async function executeHoloProgram(
 export async function executeHoloStatement(
   stmt: HoloStatement,
   scopeOverride: Scope | undefined,
-  ctx: HoloStatementContext,
+  ctx: HoloStatementContext
 ): Promise<ExecutionResult> {
   try {
     switch (stmt.type) {

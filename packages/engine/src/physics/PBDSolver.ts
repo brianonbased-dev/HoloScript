@@ -1409,8 +1409,8 @@ export function generateSDF(
     bodyId: 'sdf_' + Date.now(),
     gridSize: [gx, gy, gz],
     sdfData,
-    boundsMin: [minX, minY, minZ ],
-    boundsMax: [maxX, maxY, maxZ ],
+    boundsMin: [minX, minY, minZ],
+    boundsMax: [maxX, maxY, maxZ],
     cellSize,
     friction: 0.5,
   };
@@ -1543,7 +1543,7 @@ export class PBDSolverCPU {
       volume: 0,
       restVolume: 0,
       deformationAmount: 0,
-      centerOfMass: [0, 0, 0 ],
+      centerOfMass: [0, 0, 0],
       isActive: true,
     };
 
@@ -1818,7 +1818,7 @@ export class PBDSolverCPU {
     }
     this.state.deformationAmount = totalDeform / numVerts;
     if (totalMass > 0) {
-      this.state.centerOfMass = [comX / totalMass, comY / totalMass, comZ / totalMass ];
+      this.state.centerOfMass = [comX / totalMass, comY / totalMass, comZ / totalMass];
     }
 
     // [6] Recompute normals
@@ -2551,7 +2551,7 @@ export class PBDSolverGPU {
       volume: 0,
       restVolume: 0,
       deformationAmount: 0,
-      centerOfMass: [0, 0, 0 ],
+      centerOfMass: [0, 0, 0],
       isActive: true,
     };
   }

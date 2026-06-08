@@ -54,7 +54,13 @@ describe('ServiceObservabilityTrait', () => {
     const config = {
       service_name: 'svc-c',
       alert_rules: [
-        { name: 'high_error_rate', rule_type: 'error_rate' as const, severity: 'warning' as const, threshold: 0.1, rule_config: {} },
+        {
+          name: 'high_error_rate',
+          rule_type: 'error_rate' as const,
+          severity: 'warning' as const,
+          threshold: 0.1,
+          rule_config: {},
+        },
       ],
     };
     attachTrait(serviceObservabilityHandler, node, config, ctx);
@@ -70,7 +76,13 @@ describe('ServiceObservabilityTrait', () => {
     const config = {
       service_name: 'svc-d',
       alert_rules: [
-        { name: 'cpu_hot', rule_type: 'cpu_usage' as const, severity: 'critical' as const, threshold: 0.8, rule_config: {} },
+        {
+          name: 'cpu_hot',
+          rule_type: 'cpu_usage' as const,
+          severity: 'critical' as const,
+          threshold: 0.8,
+          rule_config: {},
+        },
       ],
     };
     attachTrait(serviceObservabilityHandler, node, config, ctx);
@@ -107,7 +119,10 @@ describe('ServiceObservabilityTrait', () => {
       rule: 'npc_daily_cost_ceiling',
       value: 0.51,
     });
-    const alert = getLastEvent(ctx, 'alert_rule_triggered') as { rule_name: string; threshold: number };
+    const alert = getLastEvent(ctx, 'alert_rule_triggered') as {
+      rule_name: string;
+      threshold: number;
+    };
     expect(alert.rule_name).toBe('npc_daily_cost_ceiling');
     expect(alert.threshold).toBe(DEFAULT_NPC_DAILY_COST_CEILING_USD);
   });

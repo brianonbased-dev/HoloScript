@@ -13,8 +13,10 @@ import type { ScaffoldDNA } from '../scaffolder';
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
 function testCmd(dna: ScaffoldDNA): string {
-  if (dna.techStack.includes('vitest')) return dna.techStack.includes('pnpm') ? 'pnpm vitest' : 'npx vitest';
-  if (dna.techStack.includes('jest')) return dna.techStack.includes('pnpm') ? 'pnpm jest' : 'npx jest';
+  if (dna.techStack.includes('vitest'))
+    return dna.techStack.includes('pnpm') ? 'pnpm vitest' : 'npx vitest';
+  if (dna.techStack.includes('jest'))
+    return dna.techStack.includes('pnpm') ? 'pnpm jest' : 'npx jest';
   if (dna.languages.includes('py')) return 'pytest';
   if (dna.languages.includes('go')) return 'go test ./...';
   if (dna.languages.includes('rs')) return 'cargo test';
@@ -22,7 +24,8 @@ function testCmd(dna: ScaffoldDNA): string {
 }
 
 function lintCmd(dna: ScaffoldDNA): string {
-  if (dna.techStack.includes('eslint')) return dna.techStack.includes('pnpm') ? 'pnpm lint' : 'npx eslint .';
+  if (dna.techStack.includes('eslint'))
+    return dna.techStack.includes('pnpm') ? 'pnpm lint' : 'npx eslint .';
   if (dna.languages.includes('py')) return 'ruff check .';
   if (dna.languages.includes('go')) return 'golangci-lint run';
   if (dna.languages.includes('rs')) return 'cargo clippy';

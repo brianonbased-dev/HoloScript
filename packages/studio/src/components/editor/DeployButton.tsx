@@ -17,11 +17,18 @@ import { STATUS_RESET_DURATION, SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings'
 import { extractTraits } from '@holoscript/std';
 
 const CoreModuleRecord = CoreModule as unknown as Record<string, (...args: unknown[]) => unknown>;
-const runSafetyPass = CoreModuleRecord.runSafetyPass as (nodes: unknown[], opts: Record<string, unknown>) => { report: { verdict: string; dangerScore: number } };
+const runSafetyPass = CoreModuleRecord.runSafetyPass as (
+  nodes: unknown[],
+  opts: Record<string, unknown>
+) => { report: { verdict: string; dangerScore: number } };
 const createSubmission = CoreModuleRecord.createSubmission as (pkg: unknown) => { status: string };
 const verifySubmission = CoreModuleRecord.verifySubmission as (sub: { status: string }) => void;
 const publishSubmission = CoreModuleRecord.publishSubmission as (sub: { status: string }) => void;
-const gateCheck = CoreModuleRecord.gateCheck as (manifest: unknown, report: unknown, level: number) => { allowed: boolean; warnings?: string[] };
+const gateCheck = CoreModuleRecord.gateCheck as (
+  manifest: unknown,
+  report: unknown,
+  level: number
+) => { allowed: boolean; warnings?: string[] };
 
 interface MarketplacePackage {
   metadata: Record<string, unknown>;

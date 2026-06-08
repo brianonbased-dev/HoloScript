@@ -1,8 +1,23 @@
 /** @permit Trait — Building and business permit lifecycle management. @trait permit */
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
-export type PermitType = 'building' | 'business' | 'event' | 'demolition' | 'electrical' | 'plumbing' | 'sign' | 'zoning';
-export type PermitStatus = 'submitted' | 'under_review' | 'approved' | 'denied' | 'expired' | 'revoked' | 'withdrawn';
+export type PermitType =
+  | 'building'
+  | 'business'
+  | 'event'
+  | 'demolition'
+  | 'electrical'
+  | 'plumbing'
+  | 'sign'
+  | 'zoning';
+export type PermitStatus =
+  | 'submitted'
+  | 'under_review'
+  | 'approved'
+  | 'denied'
+  | 'expired'
+  | 'revoked'
+  | 'withdrawn';
 
 export interface PermitConfig {
   permitType: PermitType;
@@ -10,7 +25,7 @@ export interface PermitConfig {
   applicantName: string;
   projectAddress: string;
   submittedAt: string; // ISO date
-  expiresAt?: string;  // ISO date — when approved permit expires
+  expiresAt?: string; // ISO date — when approved permit expires
   reviewDeadlineDays: number;
   showStatusBadge: boolean;
 }
@@ -74,7 +89,10 @@ export function createPermitHandler(): TraitHandler<PermitConfig> {
       const prev = node.__permitState as PermitState | undefined;
       const next = computeState(config, prev);
       if (next.isOverdue && !prev?.isOverdue) {
-        ctx.emit?.('permit:overdue', { applicationNumber: config.applicationNumber, daysInReview: next.daysInReview });
+        ctx.emit?.('permit:overdue', {
+          applicationNumber: config.applicationNumber,
+          daysInReview: next.daysInReview,
+        });
       }
       if (next.isExpiringSoon && !prev?.isExpiringSoon) {
         ctx.emit?.('permit:expiring_soon', { applicationNumber: config.applicationNumber });
@@ -93,13 +111,20 @@ export function createPermitHandler(): TraitHandler<PermitConfig> {
         const prev = s.status;
         s.status = newStatus;
         s.lastUpdated = new Date().toISOString();
-        ctx.emit?.('permit:status_changed', { from: prev, to: newStatus, applicationNumber: config.applicationNumber });
+        ctx.emit?.('permit:status_changed', {
+          from: prev,
+          to: newStatus,
+          applicationNumber: config.applicationNumber,
+        });
       }
       if (event.type === 'permit:add_note') {
         const note = event.payload?.note as string;
         if (note) {
           s.reviewNotes.push(note);
-          ctx.emit?.('permit:note_added', { applicationNumber: config.applicationNumber, noteCount: s.reviewNotes.length });
+          ctx.emit?.('permit:note_added', {
+            applicationNumber: config.applicationNumber,
+            noteCount: s.reviewNotes.length,
+          });
         }
       }
     },

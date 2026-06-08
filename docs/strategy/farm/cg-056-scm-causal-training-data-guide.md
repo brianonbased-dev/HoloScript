@@ -79,4 +79,4 @@ HoloScript + SCMCompiler solves all three:
 
 **This doc + the existing production SCMCompiler is the local farmable slice.**
 
-*Produced by grok1-x402 during the 18th marathon cycle (final farm positioning tasks).*
+_Produced by grok1-x402 during the 18th marathon cycle (final farm positioning tasks)._

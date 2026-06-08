@@ -32,7 +32,6 @@ export type JointType =
  * 3D Vector
  */
 
-
 /**
  * Angular limits
  */
@@ -249,13 +248,13 @@ export class JointTrait {
     switch (this.config.jointType) {
       case 'hinge':
         if (!this.config.axis) {
-          this.config.axis = [0, 1, 0 ]; // Default to Y-axis
+          this.config.axis = [0, 1, 0]; // Default to Y-axis
         }
         break;
 
       case 'slider':
         if (!this.config.axis) {
-          this.config.axis = [1, 0, 0 ]; // Default to X-axis
+          this.config.axis = [1, 0, 0]; // Default to X-axis
         }
         break;
 

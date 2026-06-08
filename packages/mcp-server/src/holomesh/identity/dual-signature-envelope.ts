@@ -166,10 +166,7 @@ function writeU32BE(buf: Uint8Array, offset: number, value: number): void {
 
 function readU32BE(buf: Uint8Array, offset: number): number {
   return (
-    (buf[offset] << 24) >>> 0 |
-    (buf[offset + 1] << 16) |
-    (buf[offset + 2] << 8) |
-    buf[offset + 3]
+    ((buf[offset] << 24) >>> 0) | (buf[offset + 1] << 16) | (buf[offset + 2] << 8) | buf[offset + 3]
   );
 }
 
@@ -439,11 +436,7 @@ export interface IClassicalVerifier {
    * holder of `signerAddress`. Implementations MUST treat thrown errors as
    * verification failure (caller will translate to 'classical-verify-threw').
    */
-  verify(
-    payloadHash: Uint8Array,
-    signature: Uint8Array,
-    signerAddress: string
-  ): Promise<boolean>;
+  verify(payloadHash: Uint8Array, signature: Uint8Array, signerAddress: string): Promise<boolean>;
 }
 
 /**

@@ -9,7 +9,11 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { robotAiMcpTools, handleRobotAiMcpTool, clearRobotAiRegistries } from '../robot-ai-mcp-tools';
+import {
+  robotAiMcpTools,
+  handleRobotAiMcpTool,
+  clearRobotAiRegistries,
+} from '../robot-ai-mcp-tools';
 import type { SigningContext } from './identity/signing-middleware';
 import {
   buildMeshToolManifest,
@@ -80,9 +84,10 @@ export function buildTwinEarthFederationManifests(
 /**
  * Publish all Twin Earth robot/AI tools into the local mesh registry.
  */
-export function publishTwinEarthToolsToMesh(
-  options: TwinEarthFederationOptions = {}
-): { published: MeshToolManifest[]; errors: string[] } {
+export function publishTwinEarthToolsToMesh(options: TwinEarthFederationOptions = {}): {
+  published: MeshToolManifest[];
+  errors: string[];
+} {
   const manifests = buildTwinEarthFederationManifests(options);
   const published: MeshToolManifest[] = [];
   const errors: string[] = [];
@@ -156,8 +161,10 @@ export async function runTwinEarthFederationCanary(
   const missingPrimitives: string[] = [];
   for (const m of published) {
     if (!m.serviceVersion) missingPrimitives.push(`serviceVersion missing on ${m.name}`);
-    if (m.actorSessionHandoff !== true) missingPrimitives.push(`actorSessionHandoff false on ${m.name}`);
-    if (m.crossMcpReceiptEnvelope !== true) missingPrimitives.push(`crossMcpReceiptEnvelope false on ${m.name}`);
+    if (m.actorSessionHandoff !== true)
+      missingPrimitives.push(`actorSessionHandoff false on ${m.name}`);
+    if (m.crossMcpReceiptEnvelope !== true)
+      missingPrimitives.push(`crossMcpReceiptEnvelope false on ${m.name}`);
     if (m.rollbackMetadata !== true) missingPrimitives.push(`rollbackMetadata false on ${m.name}`);
     if (!m.sourceArtifactHash || m.sourceArtifactHash === 'git:HEAD') {
       missingPrimitives.push(`sourceArtifactHash placeholder on ${m.name}`);
@@ -203,7 +210,8 @@ export const twinEarthFederationTools: Tool[] = [
         },
         run_canary: {
           type: 'boolean',
-          description: 'After publishing, invoke twin_earth_register_identity via mesh routing and record gaps.',
+          description:
+            'After publishing, invoke twin_earth_register_identity via mesh routing and record gaps.',
         },
         publisher_agent_id: {
           type: 'string',

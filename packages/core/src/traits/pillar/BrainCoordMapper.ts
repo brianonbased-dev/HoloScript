@@ -68,31 +68,40 @@ export interface DomainCoordEntry extends BrainCoord {
 
 const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
   physics: {
-    mni_x: 30, mni_y: -50, mni_z: 60,
+    mni_x: 30,
+    mni_y: -50,
+    mni_z: 60,
     cortical_depth: 4,
     brodmann_area: 7,
     aal_region: 'Parietal_Sup_R',
     surface_type: 'gyrus',
-    source_note: 'Superior Parietal Lobule (SPL) BA7 — physics/spatial reasoning meta-analysis (Zacks et al.)',
+    source_note:
+      'Superior Parietal Lobule (SPL) BA7 — physics/spatial reasoning meta-analysis (Zacks et al.)',
   },
   compiler: {
-    mni_x: 44, mni_y: 36, mni_z: 20,
+    mni_x: 44,
+    mni_y: 36,
+    mni_z: 20,
     cortical_depth: 5,
     brodmann_area: 46,
     aal_region: 'Frontal_Mid_R',
     surface_type: 'gyrus',
-    source_note: 'DLPFC BA9/46 — rule-based / hierarchical planning (Badre & D\'Esposito)',
+    source_note: "DLPFC BA9/46 — rule-based / hierarchical planning (Badre & D'Esposito)",
   },
   language: {
-    mni_x: -52, mni_y: -32, mni_z: 8,
+    mni_x: -52,
+    mni_y: -32,
+    mni_z: 8,
     cortical_depth: 3,
     brodmann_area: 22,
     aal_region: 'Temporal_Sup_L',
     surface_type: 'gyrus',
-    source_note: 'Wernicke\'s area BA22 — language comprehension (Binder et al. meta-analysis)',
+    source_note: "Wernicke's area BA22 — language comprehension (Binder et al. meta-analysis)",
   },
   rendering: {
-    mni_x: -45, mni_y: -68, mni_z: 5,
+    mni_x: -45,
+    mni_y: -68,
+    mni_z: 5,
     cortical_depth: 3,
     brodmann_area: 19,
     aal_region: 'Occipital_Mid_L',
@@ -100,7 +109,9 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'V5/MT+ BA19 — visual motion & spatial rendering (Zeki et al.)',
   },
   agent: {
-    mni_x: -54, mni_y: -56, mni_z: 22,
+    mni_x: -54,
+    mni_y: -56,
+    mni_z: 22,
     cortical_depth: 4,
     brodmann_area: 39,
     aal_region: 'Angular_L',
@@ -108,15 +119,19 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'TPJ BA39 — agency, mentalizing, goal-directed action (Decety & Lamm)',
   },
   economics: {
-    mni_x: -20, mni_y: 32, mni_z: -10,
+    mni_x: -20,
+    mni_y: 32,
+    mni_z: -10,
     cortical_depth: 2,
     brodmann_area: 11,
     aal_region: 'Frontal_Orb_L',
     surface_type: 'gyrus',
-    source_note: 'OFC BA11 — value coding, cost-benefit (O\'Doherty et al. meta-analysis)',
+    source_note: "OFC BA11 — value coding, cost-benefit (O'Doherty et al. meta-analysis)",
   },
   trait: {
-    mni_x: 4, mni_y: -4, mni_z: 54,
+    mni_x: 4,
+    mni_y: -4,
+    mni_z: 54,
     cortical_depth: 5,
     brodmann_area: 6,
     aal_region: 'Supp_Motor_Area_R',
@@ -124,7 +139,9 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'SMA BA6 — motor composition, trait chaining (Nachev et al.)',
   },
   coordination: {
-    mni_x: 0, mni_y: 25, mni_z: 30,
+    mni_x: 0,
+    mni_y: 25,
+    mni_z: 30,
     cortical_depth: 2,
     brodmann_area: 32,
     aal_region: 'Cingulum_Mid',
@@ -132,7 +149,9 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'Mid-ACC BA32 — conflict monitoring, consensus coordination (Bush et al.)',
   },
   storage: {
-    mni_x: 28, mni_y: -22, mni_z: -14,
+    mni_x: 28,
+    mni_y: -22,
+    mni_z: -14,
     cortical_depth: 4,
     brodmann_area: undefined,
     aal_region: 'Hippocampus_R',
@@ -140,7 +159,9 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'Hippocampus CA1 — episodic storage & retrieval (Squire & Zola-Morgan)',
   },
   solver: {
-    mni_x: 28, mni_y: -58, mni_z: 46,
+    mni_x: 28,
+    mni_y: -58,
+    mni_z: 46,
     cortical_depth: 4,
     brodmann_area: 40,
     aal_region: 'Parietal_Inf_R',
@@ -148,7 +169,9 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'IPS/IPL BA40 — numerical computation, convergence monitoring (Dehaene et al.)',
   },
   accuracy_speed: {
-    mni_x: 4, mni_y: 14, mni_z: 52,
+    mni_x: 4,
+    mni_y: 14,
+    mni_z: 52,
     cortical_depth: 5,
     brodmann_area: 6,
     aal_region: 'Supp_Motor_Area',
@@ -156,7 +179,9 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'Pre-SMA BA6 — speed-accuracy tradeoff (Forstmann et al.)',
   },
   safety_exploration: {
-    mni_x: -4, mni_y: 44, mni_z: -14,
+    mni_x: -4,
+    mni_y: 44,
+    mni_z: -14,
     cortical_depth: 2,
     brodmann_area: 11,
     aal_region: 'Frontal_Med_Orb_L',
@@ -164,15 +189,20 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'vmPFC BA11/12 — risk aversion, explore-exploit balance (Rangel et al.)',
   },
   truth_approval: {
-    mni_x: 0, mni_y: 20, mni_z: 30,
+    mni_x: 0,
+    mni_y: 20,
+    mni_z: 30,
     cortical_depth: 3,
     brodmann_area: 24,
     aal_region: 'Cingulum_Ant',
     surface_type: 'sulcus',
-    source_note: 'Anterior ACC BA24 — truth/approval conflict monitoring (P.620.02 sycophancy probe)',
+    source_note:
+      'Anterior ACC BA24 — truth/approval conflict monitoring (P.620.02 sycophancy probe)',
   },
   init: {
-    mni_x: 8, mni_y: -12, mni_z: 4,
+    mni_x: 8,
+    mni_y: -12,
+    mni_z: 4,
     cortical_depth: 4,
     brodmann_area: undefined,
     aal_region: 'Thalamus_R',
@@ -180,7 +210,9 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'Thalamus (mediodorsal nucleus) — initialization relay, attention gating',
   },
   steady_state: {
-    mni_x: 14, mni_y: 12, mni_z: 6,
+    mni_x: 14,
+    mni_y: 12,
+    mni_z: 6,
     cortical_depth: 5,
     brodmann_area: undefined,
     aal_region: 'Caudate_R',
@@ -188,7 +220,9 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'Caudate (head) — habitual / steady-state execution (Packard & Knowlton)',
   },
   edge_case: {
-    mni_x: 38, mni_y: 2, mni_z: 10,
+    mni_x: 38,
+    mni_y: 2,
+    mni_z: 10,
     cortical_depth: 4,
     brodmann_area: 13,
     aal_region: 'Insula_R',
@@ -196,7 +230,9 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'Insula BA13 — salience / edge-case detection (Craig et al.)',
   },
   shutdown: {
-    mni_x: 0, mni_y: -28, mni_z: -8,
+    mni_x: 0,
+    mni_y: -28,
+    mni_z: -8,
     cortical_depth: 6,
     brodmann_area: undefined,
     aal_region: 'Brainstem',
@@ -204,7 +240,9 @@ const SEED_TABLE: Record<PillarDomain, DomainCoordEntry> = {
     source_note: 'PAG (periaqueductal gray) — shutdown / autonomic cessation signals',
   },
   d040: {
-    mni_x: 0, mni_y: -4, mni_z: 40,
+    mni_x: 0,
+    mni_y: -4,
+    mni_z: 40,
     cortical_depth: 4,
     brodmann_area: 8,
     aal_region: 'Frontal_Sup_Medial_L',
@@ -257,10 +295,7 @@ export function resolve(domain: string): DomainCoordEntry {
   if (domain in SEED_TABLE) return SEED_TABLE[domain as PillarDomain];
 
   // 3. Nearest-neighbor fallback
-  const all: DomainCoordEntry[] = [
-    ...Object.values(SEED_TABLE),
-    ..._overrides.values(),
-  ];
+  const all: DomainCoordEntry[] = [...Object.values(SEED_TABLE), ..._overrides.values()];
 
   // Use a stable centre to measure distance for the unknown domain.
   // Without an MNI coordinate for the unknown, we use origin (0,0,0) —
@@ -287,8 +322,9 @@ export function resolve(domain: string): DomainCoordEntry {
  * Useful for Paper 33 figure generation and test assertions.
  */
 export function getAllEntries(): ReadonlyArray<{ domain: PillarDomain; entry: DomainCoordEntry }> {
-  return (Object.entries(SEED_TABLE) as [PillarDomain, DomainCoordEntry][])
-    .map(([domain, entry]) => ({ domain, entry }));
+  return (Object.entries(SEED_TABLE) as [PillarDomain, DomainCoordEntry][]).map(
+    ([domain, entry]) => ({ domain, entry })
+  );
 }
 
 /**
@@ -298,10 +334,14 @@ export function getAllEntries(): ReadonlyArray<{ domain: PillarDomain; entry: Do
  */
 export function validateCoord(coord: BrainCoord): boolean {
   return (
-    coord.mni_x >= -90 && coord.mni_x <= 90 &&
-    coord.mni_y >= -130 && coord.mni_y <= 80 &&
-    coord.mni_z >= -80 && coord.mni_z <= 90 &&
-    coord.cortical_depth >= 1 && coord.cortical_depth <= 6
+    coord.mni_x >= -90 &&
+    coord.mni_x <= 90 &&
+    coord.mni_y >= -130 &&
+    coord.mni_y <= 80 &&
+    coord.mni_z >= -80 &&
+    coord.mni_z <= 90 &&
+    coord.cortical_depth >= 1 &&
+    coord.cortical_depth <= 6
   );
 }
 

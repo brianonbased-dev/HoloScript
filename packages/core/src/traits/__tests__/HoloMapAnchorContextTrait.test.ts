@@ -29,51 +29,72 @@ describe('HoloMapAnchorContextTrait', () => {
     const node = makeNode();
     holomapAnchorContextHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    holomapAnchorContextHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'holomap:anchor_update',
-      payload: {
-        anchorFrameIndex: 42,
-        anchorPose: {
-          position: [1, 2, 3],
-          rotation: [0, 0.25, 0, 0.9682458],
-          confidence: 0.8,
+    holomapAnchorContextHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'holomap:anchor_update',
+        payload: {
+          anchorFrameIndex: 42,
+          anchorPose: {
+            position: [1, 2, 3],
+            rotation: [0, 0.25, 0, 0.9682458],
+            confidence: 0.8,
+          },
+          anchorDescriptor: new Float32Array([1, 2, 3, 0.8]),
+          revision: 9,
         },
-        anchorDescriptor: new Float32Array([1, 2, 3, 0.8]),
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'holomap:anchor_state_changed',
+      expect.objectContaining({
+        anchorFrameIndex: 42,
+        anchorPose: expect.objectContaining({
+          position: [1, 2, 3],
+        }),
+        anchorDescriptorLength: 4,
         revision: 9,
-      },
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('holomap:anchor_state_changed', expect.objectContaining({
-      anchorFrameIndex: 42,
-      anchorPose: expect.objectContaining({
-        position: [1, 2, 3],
-      }),
-      anchorDescriptorLength: 4,
-      revision: 9,
-      autoReanchor: true,
-    }));
+        autoReanchor: true,
+      })
+    );
   });
 
   it('holomap:drift_update triggers reanchor when drift exceeds threshold', () => {
     const node = makeNode();
     holomapAnchorContextHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    holomapAnchorContextHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'holomap:drift_update',
-      payload: { estimatedDriftMeters: 1.5, maxDriftBeforeReanchor: 1.0 },
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('holomap:reanchor_requested', expect.objectContaining({
-      estimatedDriftMeters: 1.5,
-    }));
+    holomapAnchorContextHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'holomap:drift_update',
+        payload: { estimatedDriftMeters: 1.5, maxDriftBeforeReanchor: 1.0 },
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'holomap:reanchor_requested',
+      expect.objectContaining({
+        estimatedDriftMeters: 1.5,
+      })
+    );
   });
 
   it('holomap:drift_update does NOT reanchor when drift is below threshold', () => {
     const node = makeNode();
     holomapAnchorContextHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    holomapAnchorContextHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'holomap:drift_update',
-      payload: { estimatedDriftMeters: 0.3, maxDriftBeforeReanchor: 1.0 },
-    } as never);
+    holomapAnchorContextHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'holomap:drift_update',
+        payload: { estimatedDriftMeters: 0.3, maxDriftBeforeReanchor: 1.0 },
+      } as never
+    );
     expect(node.emit).not.toHaveBeenCalledWith('holomap:reanchor_requested', expect.anything());
   });
 
@@ -81,14 +102,19 @@ describe('HoloMapAnchorContextTrait', () => {
     const node = makeNode();
     holomapAnchorContextHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    holomapAnchorContextHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'holomap:surface_detected',
-      payload: {
-        surfaceAnchorId: 'surface-table-01',
-        surfaceNormal: [0, 1, 0],
-        worldPosition: [1.2, 0.8, -0.5],
-      },
-    } as never);
+    holomapAnchorContextHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'holomap:surface_detected',
+        payload: {
+          surfaceAnchorId: 'surface-table-01',
+          surfaceNormal: [0, 1, 0],
+          worldPosition: [1.2, 0.8, -0.5],
+        },
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('holomap:surface_anchor_placed', {
       surfaceAnchorId: 'surface-table-01',
       surfaceNormal: [0, 1, 0],
@@ -100,12 +126,17 @@ describe('HoloMapAnchorContextTrait', () => {
     const node = makeNode();
     holomapAnchorContextHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    holomapAnchorContextHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'holomap:surface_detected',
-      payload: {
-        surfaceNormal: [0, 1, 0],
-      },
-    } as never);
+    holomapAnchorContextHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'holomap:surface_detected',
+        payload: {
+          surfaceNormal: [0, 1, 0],
+        },
+      } as never
+    );
     expect(node.emit).not.toHaveBeenCalledWith('holomap:surface_anchor_placed', expect.anything());
   });
 
@@ -113,15 +144,20 @@ describe('HoloMapAnchorContextTrait', () => {
     const node = makeNode();
     holomapAnchorContextHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    holomapAnchorContextHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'holomap:lighting_detected',
-      payload: {
-        referenceId: 'lighting-living-room-01',
-        estimatedLux: 320,
-        colorTemperatureK: 4000,
-        dominantDirection: [0.5, -0.8, 0.3],
-      },
-    } as never);
+    holomapAnchorContextHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'holomap:lighting_detected',
+        payload: {
+          referenceId: 'lighting-living-room-01',
+          estimatedLux: 320,
+          colorTemperatureK: 4000,
+          dominantDirection: [0.5, -0.8, 0.3],
+        },
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('holomap:lighting_update', {
       referenceId: 'lighting-living-room-01',
       estimatedLux: 320,
@@ -134,12 +170,17 @@ describe('HoloMapAnchorContextTrait', () => {
     const node = makeNode();
     holomapAnchorContextHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    holomapAnchorContextHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'holomap:lighting_detected',
-      payload: {
-        estimatedLux: 320,
-      },
-    } as never);
+    holomapAnchorContextHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'holomap:lighting_detected',
+        payload: {
+          estimatedLux: 320,
+        },
+      } as never
+    );
     expect(node.emit).not.toHaveBeenCalledWith('holomap:lighting_update', expect.anything());
   });
 });

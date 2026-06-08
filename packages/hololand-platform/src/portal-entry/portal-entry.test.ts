@@ -10,17 +10,11 @@ import {
   generatePortalEntryId,
 } from './index';
 
-import type {
-  PortalEntryReceipt,
-  PortalEntrantKind,
-  PortalRepresentationLane,
-} from './index';
+import type { PortalEntryReceipt, PortalEntrantKind, PortalRepresentationLane } from './index';
 
 import type { HoloTunnelSharePacket } from '../holo-tunnel/index';
 
-function buildSharePacket(
-  overrides: Partial<HoloTunnelSharePacket> = {}
-): HoloTunnelSharePacket {
+function buildSharePacket(overrides: Partial<HoloTunnelSharePacket> = {}): HoloTunnelSharePacket {
   return {
     schemaVersion: 'holoscript.holotunnel.share-packet.v1',
     worldId: 'world-test',
@@ -318,7 +312,9 @@ describe('validatePortalEntryReceipt FALSE cases', () => {
     const result = validatePortalEntryReceipt(receipt);
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual(
-      expect.arrayContaining(['worldStateAnchors.exitTimestamp is required when exitSnapshotHash is present'])
+      expect.arrayContaining([
+        'worldStateAnchors.exitTimestamp is required when exitSnapshotHash is present',
+      ])
     );
   });
 
@@ -335,7 +331,9 @@ describe('validatePortalEntryReceipt FALSE cases', () => {
     const result = validatePortalEntryReceipt(receipt);
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual(
-      expect.arrayContaining(['worldStateAnchors.exitSnapshotHash is required when exitTimestamp is present'])
+      expect.arrayContaining([
+        'worldStateAnchors.exitSnapshotHash is required when exitTimestamp is present',
+      ])
     );
   });
 
@@ -371,7 +369,9 @@ describe('validatePortalEntryReceipt FALSE cases', () => {
     const result = validatePortalEntryReceipt(receipt);
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual(
-      expect.arrayContaining(['agent-semantic entrant must receive semantic-state representation lane'])
+      expect.arrayContaining([
+        'agent-semantic entrant must receive semantic-state representation lane',
+      ])
     );
   });
 
@@ -390,7 +390,9 @@ describe('validatePortalEntryReceipt FALSE cases', () => {
     const result = validatePortalEntryReceipt(receipt);
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual(
-      expect.arrayContaining(['human-headset entrant must receive pixel-stream representation lane'])
+      expect.arrayContaining([
+        'human-headset entrant must receive pixel-stream representation lane',
+      ])
     );
   });
 
@@ -410,7 +412,9 @@ describe('validatePortalEntryReceipt FALSE cases', () => {
     const result = validatePortalEntryReceipt(receipt);
     expect(result.valid).toBe(false);
     expect(result.errors).toEqual(
-      expect.arrayContaining(['sharePacket.schemaVersion must be holoscript.holotunnel.share-packet.v1'])
+      expect.arrayContaining([
+        'sharePacket.schemaVersion must be holoscript.holotunnel.share-packet.v1',
+      ])
     );
   });
 

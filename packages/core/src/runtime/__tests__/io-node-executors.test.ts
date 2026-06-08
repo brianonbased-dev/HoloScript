@@ -1,9 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  executeServerNode,
-  executeDatabaseNode,
-  executeFetchNode,
-} from '../io-node-executors.js';
+import { executeServerNode, executeDatabaseNode, executeFetchNode } from '../io-node-executors.js';
 import type { IoNodeContext } from '../io-node-executors.js';
 
 function makeCtx(isPublicMode = false): IoNodeContext {

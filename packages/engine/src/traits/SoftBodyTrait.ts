@@ -1,5 +1,4 @@
-import type { Vector3 } from '@holoscript/core';
-﻿/**
+import type { Vector3 } from '@holoscript/core'; /**
  * SoftBody Trait
  *
  * Deformable body physics for squishy objects.
@@ -7,7 +6,6 @@ import type { Vector3 } from '@holoscript/core';
  *
  * @version 2.0.0
  */
-
 import type { TraitHandler, HSPlusNode } from '@holoscript/core';
 import {
   SoftBodySolver,
@@ -148,7 +146,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       vertices: [],
       currentVolume: 1,
       restVolume: 1,
-      centerOfMass: [0, 0, 0 ],
+      centerOfMass: [0, 0, 0],
       solver: null,
     };
     node.__softBodyState = state;
@@ -184,8 +182,8 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       state.vertices = particles.map((p) => ({
         position: [p.position[0], p.position[1], p.position[2]],
         restPosition: [p.previousPosition[0], p.previousPosition[1], p.previousPosition[2]],
-        velocity: [p.velocity[0], p.velocity[1], p.velocity[2] ],
-        normal: [0, 1, 0 ],
+        velocity: [p.velocity[0], p.velocity[1], p.velocity[2]],
+        normal: [0, 1, 0],
       }));
     }
 
@@ -217,8 +215,8 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
           state.vertices[i] = {
             position: positions[i],
             restPosition: { ...positions[i] },
-            velocity: [0, 0, 0 ],
-            normal: normals[i] || [0, 1, 0 ],
+            velocity: [0, 0, 0],
+            normal: normals[i] || [0, 1, 0],
           };
         } else {
           state.vertices[i].position = positions[i];
@@ -269,9 +267,9 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
     } else if (event.type === 'soft_body_poke') {
       const position = event.position as [number, number, number] | [number, number, number];
       const force = (event.force as number) || 10;
-      const dirInput =
-        (event.direction as [number, number, number] | [number, number, number]) ||
-        [0, -1, 0 ];
+      const dirInput = (event.direction as [number, number, number] | [number, number, number]) || [
+        0, -1, 0,
+      ];
       const direction: [number, number, number] = Array.isArray(dirInput)
         ? [dirInput[0] ?? 0, dirInput[1] ?? -1, dirInput[2] ?? 0]
         : [dirInput[0] ?? 0, dirInput[1] ?? -1, dirInput[2] ?? 0];
@@ -283,8 +281,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       });
     } else if (event.type === 'soft_body_set_anchor') {
       const vertexIndex = event.vertexIndex as number;
-      const targetPosition = event.targetPosition as
-        [number, number, number] | undefined;
+      const targetPosition = event.targetPosition as [number, number, number] | undefined;
 
       context.emit?.('soft_body_anchor_vertex', {
         node,
@@ -332,7 +329,7 @@ export const softBodyHandler: TraitHandler<SoftBodyConfig> = {
       // Reset to rest shape
       for (const vert of state.vertices) {
         vert.position = { ...vert.restPosition };
-        vert.velocity = [0, 0, 0 ];
+        vert.velocity = [0, 0, 0];
       }
       state.isDeformed = false;
       state.deformationAmount = 0;

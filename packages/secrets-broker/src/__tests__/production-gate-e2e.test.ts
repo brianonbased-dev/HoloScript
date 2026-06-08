@@ -27,11 +27,7 @@
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import {
-  createSecretStore,
-  createInMemorySecretBackend,
-  InsecureKekError,
-} from '../secret-store';
+import { createSecretStore, createInMemorySecretBackend, InsecureKekError } from '../secret-store';
 import {
   createEnvKekProvider,
   generateKekBase64,

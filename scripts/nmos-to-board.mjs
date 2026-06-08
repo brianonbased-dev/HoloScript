@@ -52,9 +52,10 @@ const dryRun = args.includes('--dry-run');
 const noWriteBack = args.includes('--no-write-back');
 
 const inputIdx = args.indexOf('--input');
-const matrixPath = inputIdx >= 0
-  ? resolve(args[inputIdx + 1])
-  : resolve(REPO_ROOT, 'docs', 'strategy', 'competitor-gap-matrix.json');
+const matrixPath =
+  inputIdx >= 0
+    ? resolve(args[inputIdx + 1])
+    : resolve(REPO_ROOT, 'docs', 'strategy', 'competitor-gap-matrix.json');
 
 const filterIdx = args.indexOf('--filter');
 const classFilter = filterIdx >= 0 ? args[filterIdx + 1] : null;
@@ -81,9 +82,7 @@ const qualifying = [];
 
 for (const vertical of matrix.verticals ?? []) {
   const classification = vertical.nmos?.classification ?? '';
-  const isWatchClass = SKIP_CLASSIFICATIONS.some((c) =>
-    classification.toUpperCase().startsWith(c)
-  );
+  const isWatchClass = SKIP_CLASSIFICATIONS.some((c) => classification.toUpperCase().startsWith(c));
   if (isWatchClass) continue;
   if (classFilter && !classification.includes(classFilter)) continue;
 
@@ -169,14 +168,19 @@ function buildDescription(vertical, gap) {
 }
 
 const tasks = qualifying.map(({ vertical, gap }) => ({
-  _gapId: gap.id,   // internal — stripped before POST
-  _verticalIndex: matrix.verticals.indexOf(vertical),  // for write-back
-  _gapIndex: vertical.gaps.indexOf(gap),               // for write-back
+  _gapId: gap.id, // internal — stripped before POST
+  _verticalIndex: matrix.verticals.indexOf(vertical), // for write-back
+  _gapIndex: vertical.gaps.indexOf(gap), // for write-back
   title: `[NMoS] ${gap.id}: ${gap.title}`,
   description: buildDescription(vertical, gap),
   priority: severityToPriority(gap.severity),
   role: directionToRole(gap.direction, vertical.nmos?.classification ?? ''),
-  tags: ['nmos', 'competitor-gap', gap.id, vertical.competitor.toLowerCase().replace(/[^a-z0-9]+/g, '-')],
+  tags: [
+    'nmos',
+    'competitor-gap',
+    gap.id,
+    vertical.competitor.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+  ],
 }));
 
 // ── Dry-run output ────────────────────────────────────────────────────────────
@@ -197,7 +201,11 @@ if (dryRun) {
 // hooks on PATH.
 const AI_ECO = resolve(process.env.HOME ?? process.env.USERPROFILE ?? '', '.ai-ecosystem');
 
-let loadLocalEnv, getHolomeshRuntimeConfig, createHolomeshHttpClient, signingSeatIdFor, buildSignedEnvelope;
+let loadLocalEnv,
+  getHolomeshRuntimeConfig,
+  createHolomeshHttpClient,
+  signingSeatIdFor,
+  buildSignedEnvelope;
 try {
   // Use pathToFileURL so Windows absolute paths work with ESM dynamic import
   ({ loadLocalEnv, getHolomeshRuntimeConfig } = await import(
@@ -225,15 +233,16 @@ if (!cfg.apiKey || !cfg.teamId) {
 
 // Phase 3 strict signing
 let bodyTransform;
-const surface = process.env.HOLOMESH_AGENT_SURFACE
-  || process.env.HOLOMESH_RESOLVED_SURFACE
-  || 'claudecode';
+const surface =
+  process.env.HOLOMESH_AGENT_SURFACE || process.env.HOLOMESH_RESOLVED_SURFACE || 'claudecode';
 try {
   const seatId = signingSeatIdFor(surface);
   bodyTransform = async (body) => buildSignedEnvelope(body, { seatId });
 } catch (err) {
   if (process.env.HOLOMESH_HTTP_DEBUG) {
-    process.stderr.write(`[nmos-to-board] signing setup failed (${err.message}), sending unsigned\n`);
+    process.stderr.write(
+      `[nmos-to-board] signing setup failed (${err.message}), sending unsigned\n`
+    );
   }
 }
 

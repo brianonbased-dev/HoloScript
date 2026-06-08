@@ -115,16 +115,22 @@ function fmtUsd(n) {
     <div class="strip-footer">
       <span class="footer-meta">
         Refreshed {{ ageLabel }}
-        <span v-if="isStale" class="stale-flag">· data older than 12 h, manifest auto-refresh runs every 6 h</span>
+        <span v-if="isStale" class="stale-flag"
+          >· data older than 12 h, manifest auto-refresh runs every 6 h</span
+        >
       </span>
       <span class="footer-links">
         <a :href="provenanceHref">/provenance</a>
         ·
         <a :href="papersStatusHref">/papers/status</a>
         ·
-        <a href="https://github.com/brianonbased-dev/HoloScript" target="_blank" rel="noopener">HoloScript</a>
+        <a href="https://github.com/brianonbased-dev/HoloScript" target="_blank" rel="noopener"
+          >HoloScript</a
+        >
         ·
-        <a href="https://github.com/brianonbased-dev/ai-ecosystem" target="_blank" rel="noopener">ai-ecosystem</a>
+        <a href="https://github.com/brianonbased-dev/ai-ecosystem" target="_blank" rel="noopener"
+          >ai-ecosystem</a
+        >
       </span>
     </div>
   </section>

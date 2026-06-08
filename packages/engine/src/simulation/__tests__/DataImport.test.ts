@@ -17,7 +17,11 @@ import { exportScalarFieldCSV } from '../export/index';
 describe('STL Parser', () => {
   it('parses binary STL (single triangle)', () => {
     const stl = buildSTL([
-      [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
     ]);
     const mesh = parseSTL(stl);
     expect(mesh.triangles.length / 3).toBe(1);
@@ -27,12 +31,66 @@ describe('STL Parser', () => {
   it('parses binary STL (cube = 12 triangles)', () => {
     // Build a cube from 12 triangles (2 per face)
     const tris: [number, number, number][][] = [
-      [[0,0,0],[1,0,0],[1,1,0]], [[0,0,0],[1,1,0],[0,1,0]], // -z
-      [[0,0,1],[1,1,1],[1,0,1]], [[0,0,1],[0,1,1],[1,1,1]], // +z
-      [[0,0,0],[0,1,0],[0,1,1]], [[0,0,0],[0,1,1],[0,0,1]], // -x
-      [[1,0,0],[1,1,1],[1,1,0]], [[1,0,0],[1,0,1],[1,1,1]], // +x
-      [[0,0,0],[1,0,1],[1,0,0]], [[0,0,0],[0,0,1],[1,0,1]], // -y
-      [[0,1,0],[1,1,0],[1,1,1]], [[0,1,0],[1,1,1],[0,1,1]], // +y
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [1, 1, 0],
+      ],
+      [
+        [0, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0],
+      ], // -z
+      [
+        [0, 0, 1],
+        [1, 1, 1],
+        [1, 0, 1],
+      ],
+      [
+        [0, 0, 1],
+        [0, 1, 1],
+        [1, 1, 1],
+      ], // +z
+      [
+        [0, 0, 0],
+        [0, 1, 0],
+        [0, 1, 1],
+      ],
+      [
+        [0, 0, 0],
+        [0, 1, 1],
+        [0, 0, 1],
+      ], // -x
+      [
+        [1, 0, 0],
+        [1, 1, 1],
+        [1, 1, 0],
+      ],
+      [
+        [1, 0, 0],
+        [1, 0, 1],
+        [1, 1, 1],
+      ], // +x
+      [
+        [0, 0, 0],
+        [1, 0, 1],
+        [1, 0, 0],
+      ],
+      [
+        [0, 0, 0],
+        [0, 0, 1],
+        [1, 0, 1],
+      ], // -y
+      [
+        [0, 1, 0],
+        [1, 1, 0],
+        [1, 1, 1],
+      ],
+      [
+        [0, 1, 0],
+        [1, 1, 1],
+        [0, 1, 1],
+      ], // +y
     ];
     const stl = buildSTL(tris);
     const mesh = parseSTL(stl);
@@ -45,8 +103,16 @@ describe('STL Parser', () => {
   it('deduplicates shared vertices', () => {
     // Two triangles sharing an edge (3 shared vertices → 4 unique)
     const stl = buildSTL([
-      [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
-      [[1, 0, 0], [1, 1, 0], [0, 1, 0]],
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
+      [
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0],
+      ],
     ]);
     const mesh = parseSTL(stl);
     expect(mesh.triangles.length / 3).toBe(2);
@@ -122,8 +188,12 @@ f 1 2 3
 describe('CSV Importer', () => {
   it('roundtrips with CSVExporter scalar field', () => {
     // Build a known field: value = x + y + z
-    const nx = 4, ny = 3, nz = 2;
-    const dx = 0.5, dy = 0.5, dz = 0.5;
+    const nx = 4,
+      ny = 3,
+      nz = 2;
+    const dx = 0.5,
+      dy = 0.5,
+      dz = 0.5;
     const data = new Float32Array(nx * ny * nz);
     for (let k = 0; k < nz; k++) {
       for (let j = 0; j < ny; j++) {

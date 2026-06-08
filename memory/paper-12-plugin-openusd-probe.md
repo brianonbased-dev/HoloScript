@@ -6,12 +6,12 @@
 
 `@holoscript/comparative-benchmarks` exposes **`runPaper12PluginProbe()`**, which records:
 
-| Bucket | Meaning |
-|--------|---------|
-| **Holo cold parse** | `parseHolo` on sources that differ by root name each iteration (no single stable cache key). |
-| **Holo warm parse** | Same `.holo` snippet repeated — stabilizes toward steady-state parse cost. |
+| Bucket                | Meaning                                                                                                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Holo cold parse**   | `parseHolo` on sources that differ by root name each iteration (no single stable cache key).                                                                      |
+| **Holo warm parse**   | Same `.holo` snippet repeated — stabilizes toward steady-state parse cost.                                                                                        |
 | **OpenUSD proxy LOC** | Non-empty line count on a minimal **static** `OPENUSD_EQUIVALENT_PROXY` stage string — replace with pxr export from the same scene graph for camera-ready tables. |
-| **Plugin-init proxy** | One-shot microbench simulating heavy JSON/schema registration work (order-of-magnitude stub until Unity/OpenUSD hosts are scripted). |
+| **Plugin-init proxy** | One-shot microbench simulating heavy JSON/schema registration work (order-of-magnitude stub until Unity/OpenUSD hosts are scripted).                              |
 
 ## Commands
 

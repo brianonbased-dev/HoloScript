@@ -68,7 +68,10 @@ export class AntiCheat {
   /**
    * Register a player for monitoring
    */
-  registerPlayer(playerId: string, position: { x: number; y: number; z: number } | [number, number, number] = { x: 0, y: 0, z: 0 }): void {
+  registerPlayer(
+    playerId: string,
+    position: { x: number; y: number; z: number } | [number, number, number] = { x: 0, y: 0, z: 0 }
+  ): void {
     const pos = this.toVec3(position);
     this.players.set(playerId, {
       id: playerId,
@@ -105,10 +108,12 @@ export class AntiCheat {
     const now = Date.now();
     const dt = (now - player.lastUpdateAt) / 1000; // seconds
 
-      const curr = this.toVec3(player.position as { x: number; y: number; z: number } | [number, number, number]);
-      const dx = next.x - curr.x;
-      const dy = next.y - curr.y;
-      const dz = next.z - curr.z;
+    const curr = this.toVec3(
+      player.position as { x: number; y: number; z: number } | [number, number, number]
+    );
+    const dx = next.x - curr.x;
+    const dy = next.y - curr.y;
+    const dz = next.z - curr.z;
     const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
     // Teleport detection

@@ -48,23 +48,39 @@ describe('ChaosTestTrait — onEvent', () => {
   it('chaos:inject increments count and emits chaos:injected with default fault=latency', () => {
     const node = makeNode();
     chaosTestHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    chaosTestHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'chaos:inject',
-    } as never);
+    chaosTestHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'chaos:inject',
+      } as never
+    );
     const state = node.__chaosState as { injected: number; types: string[] };
     expect(state.injected).toBe(1);
     expect(state.types).toContain('latency');
-    expect(node.emit).toHaveBeenCalledWith('chaos:injected', expect.objectContaining({
-      fault: 'latency', count: 1, rate: 0.1,
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'chaos:injected',
+      expect.objectContaining({
+        fault: 'latency',
+        count: 1,
+        rate: 0.1,
+      })
+    );
   });
 
   it('chaos:inject with specific fault type', () => {
     const node = makeNode();
     chaosTestHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    chaosTestHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'chaos:inject', fault: 'crash',
-    } as never);
+    chaosTestHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'chaos:inject',
+        fault: 'crash',
+      } as never
+    );
     const state = node.__chaosState as { injected: number; types: string[] };
     expect(state.types).toContain('crash');
   });
@@ -73,9 +89,15 @@ describe('ChaosTestTrait — onEvent', () => {
     const node = makeNode();
     chaosTestHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     for (let i = 0; i < 3; i++) {
-      chaosTestHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-        type: 'chaos:inject', fault: 'timeout',
-      } as never);
+      chaosTestHandler.onEvent!(
+        node as never,
+        defaultConfig,
+        makeCtx(node) as never,
+        {
+          type: 'chaos:inject',
+          fault: 'timeout',
+        } as never
+      );
     }
     const state = node.__chaosState as { injected: number };
     expect(state.injected).toBe(3);
@@ -84,29 +106,54 @@ describe('ChaosTestTrait — onEvent', () => {
   it('chaos:report emits summary', () => {
     const node = makeNode();
     chaosTestHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    chaosTestHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'chaos:inject', fault: 'memory_leak',
-    } as never);
+    chaosTestHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'chaos:inject',
+        fault: 'memory_leak',
+      } as never
+    );
     node.emit.mockClear();
-    chaosTestHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'chaos:report',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('chaos:report', expect.objectContaining({
-      injected: 1,
-      types: ['memory_leak'],
-    }));
+    chaosTestHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'chaos:report',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'chaos:report',
+      expect.objectContaining({
+        injected: 1,
+        types: ['memory_leak'],
+      })
+    );
   });
 
   it('chaos:report types is a copy (not same reference)', () => {
     const node = makeNode();
     chaosTestHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    chaosTestHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'chaos:inject', fault: 'disk_full',
-    } as never);
+    chaosTestHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'chaos:inject',
+        fault: 'disk_full',
+      } as never
+    );
     node.emit.mockClear();
-    chaosTestHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'chaos:report',
-    } as never);
+    chaosTestHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'chaos:report',
+      } as never
+    );
     const reported = (node.emit.mock.calls[0][1] as { types: string[] }).types;
     const state = node.__chaosState as { types: string[] };
     expect(reported).not.toBe(state.types); // spread copy

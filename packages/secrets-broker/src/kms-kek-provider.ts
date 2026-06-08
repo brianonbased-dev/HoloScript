@@ -64,7 +64,9 @@ export function createKmsKekProvider(deps: KmsKekProviderDeps): KekProvider {
       if (!Buffer.isBuffer(kek) || kek.length !== KEK_BYTES) {
         // Length only — never the value.
         const len = Buffer.isBuffer(kek) ? kek.length : 'non-buffer';
-        throw new KmsKekError(`KEK "${id}" from the keyring must be ${KEK_BYTES} bytes (got ${len})`);
+        throw new KmsKekError(
+          `KEK "${id}" from the keyring must be ${KEK_BYTES} bytes (got ${len})`
+        );
       }
       return kek;
     },

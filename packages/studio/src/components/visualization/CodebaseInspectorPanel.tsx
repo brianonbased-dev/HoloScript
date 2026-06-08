@@ -72,7 +72,7 @@ export function CodebaseInspectorPanel({
             {isLoading ? 'Indexing…' : 'Re-index'}
           </button>
           <button
-            onClick={() => setViewMode(m => m === '3d' ? '2d' : '3d')}
+            onClick={() => setViewMode((m) => (m === '3d' ? '2d' : '3d'))}
             title="Toggle View Mode"
             className="flex items-center gap-1 rounded bg-studio-surface px-2 py-1 text-[10px] text-studio-text transition hover:bg-studio-border border border-studio-border/50"
           >

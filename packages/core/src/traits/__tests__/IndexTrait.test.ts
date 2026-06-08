@@ -5,7 +5,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { indexHandler } from '../IndexTrait';
 
 const makeNode = () => ({
-  id: 'n1', traits: new Set<string>(), emit: vi.fn(),
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
   __indexState: undefined as unknown,
 });
 const makeCtx = (node: ReturnType<typeof makeNode>) => ({
@@ -32,40 +34,91 @@ describe('IndexTrait', () => {
   it('index:add stores doc without emitting', () => {
     const node = makeNode();
     indexHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    indexHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'index:add', indexName: 'byColor', key: 'red', docId: 'doc-1',
-    } as never);
+    indexHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'index:add',
+        indexName: 'byColor',
+        key: 'red',
+        docId: 'doc-1',
+      } as never
+    );
     expect(node.emit).not.toHaveBeenCalled();
   });
 
   it('index:lookup returns matching docIds', () => {
     const node = makeNode();
     indexHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    indexHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'index:add', indexName: 'byColor', key: 'blue', docId: 'doc-2',
-    } as never);
+    indexHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'index:add',
+        indexName: 'byColor',
+        key: 'blue',
+        docId: 'doc-2',
+      } as never
+    );
     node.emit.mockClear();
-    indexHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'index:lookup', indexName: 'byColor', key: 'blue',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('index:result', expect.objectContaining({
-      indexName: 'byColor', key: 'blue', docIds: expect.arrayContaining(['doc-2']),
-    }));
+    indexHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'index:lookup',
+        indexName: 'byColor',
+        key: 'blue',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'index:result',
+      expect.objectContaining({
+        indexName: 'byColor',
+        key: 'blue',
+        docIds: expect.arrayContaining(['doc-2']),
+      })
+    );
   });
 
   it('index:remove deletes docId (lookup returns empty after removal)', () => {
     const node = makeNode();
     indexHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    indexHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'index:add', indexName: 'idx', key: 'k', docId: 'doc-x',
-    } as never);
-    indexHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'index:remove', indexName: 'idx', key: 'k', docId: 'doc-x',
-    } as never);
+    indexHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'index:add',
+        indexName: 'idx',
+        key: 'k',
+        docId: 'doc-x',
+      } as never
+    );
+    indexHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'index:remove',
+        indexName: 'idx',
+        key: 'k',
+        docId: 'doc-x',
+      } as never
+    );
     node.emit.mockClear();
-    indexHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'index:lookup', indexName: 'idx', key: 'k',
-    } as never);
+    indexHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'index:lookup',
+        indexName: 'idx',
+        key: 'k',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('index:result', expect.objectContaining({ docIds: [] }));
   });
 });

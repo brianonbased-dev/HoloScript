@@ -234,13 +234,7 @@ describe('handleIdentityExportRoutes — dispatcher', () => {
   it('returns false for GET method on valid paths', async () => {
     const req = mockReq('GET', ROUTE_PREPARE);
     const res = mockRes();
-    const handled = await handleIdentityExportRoutes(
-      req,
-      res,
-      ROUTE_PREPARE,
-      'GET',
-      ROUTE_PREPARE
-    );
+    const handled = await handleIdentityExportRoutes(req, res, ROUTE_PREPARE, 'GET', ROUTE_PREPARE);
     expect(handled).toBe(false);
   });
 });
@@ -462,12 +456,7 @@ describe('authentication gates', () => {
 describe('two-factor gate', () => {
   it('prepare without 2FA token returns 403 when REQUIRE_2FA=true', async () => {
     process.env.REQUIRE_2FA = 'true';
-    const res = await callRoute(
-      'POST',
-      ROUTE_PREPARE,
-      { idempotency_key: 'test' },
-      authHeader()
-    );
+    const res = await callRoute('POST', ROUTE_PREPARE, { idempotency_key: 'test' }, authHeader());
     expect(res._status).toBe(403);
     expect(res._body.error).toBe('two_factor_required');
   });
@@ -497,12 +486,7 @@ describe('two-factor gate', () => {
 
   it('prepare passes without 2FA when REQUIRE_2FA is unset (documented dev gate)', async () => {
     delete process.env.REQUIRE_2FA;
-    const res = await callRoute(
-      'POST',
-      ROUTE_PREPARE,
-      { idempotency_key: 'test' },
-      authHeader()
-    );
+    const res = await callRoute('POST', ROUTE_PREPARE, { idempotency_key: 'test' }, authHeader());
     expect(res._status).toBe(200);
   });
 });
@@ -518,18 +502,8 @@ describe('idempotency', () => {
 
   it('prepare with same idempotency_key returns same session_id', async () => {
     const idemKey = 'same-key';
-    const res1 = await callRoute(
-      'POST',
-      ROUTE_PREPARE,
-      { idempotency_key: idemKey },
-      authHeader()
-    );
-    const res2 = await callRoute(
-      'POST',
-      ROUTE_PREPARE,
-      { idempotency_key: idemKey },
-      authHeader()
-    );
+    const res1 = await callRoute('POST', ROUTE_PREPARE, { idempotency_key: idemKey }, authHeader());
+    const res2 = await callRoute('POST', ROUTE_PREPARE, { idempotency_key: idemKey }, authHeader());
 
     expect(res1._status).toBe(200);
     expect(res2._status).toBe(200);

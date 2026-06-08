@@ -100,8 +100,8 @@ export const gpuParticleHandler: TraitHandler<GPUParticleConfig> = {
       activeCount: 0,
       totalEmitted: 0,
       computeHandle: null,
-      emitterPosition: [0, 0, 0 ],
-      emitterVelocity: [0, 0, 0 ],
+      emitterPosition: [0, 0, 0],
+      emitterVelocity: [0, 0, 0],
       burstQueue: [],
     };
     node.__gpuParticleState = state;

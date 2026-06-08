@@ -49,7 +49,7 @@ export class CloudRenderer {
       windSpeed: { x: 5, z: 2 },
       lightColor: [1, 0.95, 0.85],
       ambientColor: [0.4, 0.45, 0.55],
-      lightDirection: [0.3, -0.8, 0.5 ],
+      lightDirection: [0.3, -0.8, 0.5],
       noiseScale: 0.002,
       detailScale: 0.01,
       layers: 4,

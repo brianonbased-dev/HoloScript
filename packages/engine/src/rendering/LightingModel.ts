@@ -72,7 +72,7 @@ export class LightingModel {
       color: [1, 1, 1],
       intensity: 1,
       position: [0, 10, 0],
-      direction: [0, -1, 0 ],
+      direction: [0, -1, 0],
       range: 50,
       spotAngle: 45,
       spotPenumbra: 0.2,
@@ -153,7 +153,10 @@ export class LightingModel {
   // Light Calculations
   // ---------------------------------------------------------------------------
 
-  calculateAttenuation(lightId: string, worldPos: Vector3 | { x: number; y: number; z: number }): number {
+  calculateAttenuation(
+    lightId: string,
+    worldPos: Vector3 | { x: number; y: number; z: number }
+  ): number {
     const light = this.lights.get(lightId);
     if (!light || !light.enabled) return 0;
 
@@ -195,11 +198,7 @@ export class LightingModel {
   // Culling
   // ---------------------------------------------------------------------------
 
-  getVisibleLights(
-    cameraPos: Vector3,
-    maxRange: number,
-    layerMask = 0xffffffff
-  ): Light[] {
+  getVisibleLights(cameraPos: Vector3, maxRange: number, layerMask = 0xffffffff): Light[] {
     const visible: Light[] = [];
     for (const light of this.lights.values()) {
       if (!light.enabled) continue;

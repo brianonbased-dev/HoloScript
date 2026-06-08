@@ -20,61 +20,61 @@ In executable terms, a validator must return `rejected-missing-field` before any
 ## Required Schema
 
 ```yaml
-schema: "holoscript.embodiedFleetHandoff.v1"
-capsuleId: "efh-YYYYMMDD-slug"
-createdAt: "ISO-8601"
-expiresAt: "ISO-8601"
+schema: 'holoscript.embodiedFleetHandoff.v1'
+capsuleId: 'efh-YYYYMMDD-slug'
+createdAt: 'ISO-8601'
+expiresAt: 'ISO-8601'
 source:
-  roomTaskId: ""
-  sourceAgentId: ""
-  sourceAgentHandle: ""
-  sourceCommitOrReceipt: ""
+  roomTaskId: ''
+  sourceAgentId: ''
+  sourceAgentHandle: ''
+  sourceCommitOrReceipt: ''
 
 identityBinding:
   # Required by the ant-with-a-megaphone receipt spine: accountability binds to
   # durable wallet + handle, not a disposable session map.
-  walletAddress: ""
-  handle: ""
-  participantId: ""
-  seatId: ""
-  signature: ""
+  walletAddress: ''
+  handle: ''
+  participantId: ''
+  seatId: ''
+  signature: ''
 
 embodiment:
-  runtime: "hololand"
-  worldId: ""
-  zoneId: ""
+  runtime: 'hololand'
+  worldId: ''
+  zoneId: ''
   portalPresence:
-    representation: "semantic | rendered | dual"
-    grantedScopes: ["read-only"]
-    maxScopes: ["read-only"]
-  avatarId: ""
+    representation: 'semantic | rendered | dual'
+    grantedScopes: ['read-only']
+    maxScopes: ['read-only']
+  avatarId: ''
   spawnAnchor:
     position: [0, 0, 0]
     rotation: [0, 0, 0, 1]
-    coordinateFrame: "world"
+    coordinateFrame: 'world'
 
 traitLibrary:
-  version: "D.040"
-  package: "@holoscript/core"
-  commit: ""
+  version: 'D.040'
+  package: '@holoscript/core'
+  commit: ''
   requiredTraits:
-    - "@verbalFingerprint"
-    - "@autonomousAgenda"
-    - "@reputationLedger"
-    - "@vocabularyRegister"
-    - "@speechAwareEncounter"
-    - "@avatarIntent"
+    - '@verbalFingerprint'
+    - '@autonomousAgenda'
+    - '@reputationLedger'
+    - '@vocabularyRegister'
+    - '@speechAwareEncounter'
+    - '@avatarIntent'
 
 intent:
-  rawGoal: ""
+  rawGoal: ''
   worthTest:
     criticalPath: false
     nonSubstitutable: false
     verifiable: false
     accountable: false
-  worthTestDecision: "accept | reject"
-  distilledIntent: ""
-  doneDefinition: ""
+  worthTestDecision: 'accept | reject'
+  distilledIntent: ''
+  doneDefinition: ''
   nonGoals: []
 
 context:
@@ -87,30 +87,30 @@ context:
 receipts:
   priorReceipts: []
   requiredNextReceipt:
-    type: ""
-    subject: ""
+    type: ''
+    subject: ''
     mustBindToWalletAndHandle: true
 
 firstNextAction:
-  actionType: "observe | speak | move | mutate-zone | call-tool"
-  command: ""
-  allowedScope: "read-only"
-  expectedReceipt: ""
-  stopCondition: ""
+  actionType: 'observe | speak | move | mutate-zone | call-tool'
+  command: ''
+  allowedScope: 'read-only'
+  expectedReceipt: ''
+  stopCondition: ''
 ```
 
 ## Required Field Groups
 
-| Group | Why it is required | Reject if |
-| --- | --- | --- |
-| `source` | Prevents orphan context and lets peers trace the task, commit, or receipt that created the handoff. | Task ID, source agent, or source proof is missing. |
-| `identityBinding` | D.064/D.065 scale-asymmetry rule: amplified reach is only safe when accountable to durable wallet plus handle. | `walletAddress`, `handle`, `participantId`, or `signature` is missing. |
-| `embodiment` | An embodied agent needs a world, zone, representation mode, avatar, and spatial permission boundary. | `worldId`, `zoneId`, `portalPresence`, `avatarId`, or `spawnAnchor` is missing. |
-| `traitLibrary` | D.040 requires HoloMesh teammates, HoloLand NPCs, and services to share one trait substrate. | Version, package commit, or required trait list is missing or stale. |
-| `intent` | Cold action requires worth-tested intent, not only a task title. | Worth-test decision is not `accept`, or done definition is empty. |
-| `context` | Prevents re-derivation and peer collisions. | Prior files/artifacts, decisions, or blockers are omitted. |
-| `receipts` | The first embodied action must know what provenance it must emit next. | Prior receipt chain or required next receipt is missing. |
-| `firstNextAction` | Cold handoff must be immediately executable and bounded. | Action, scope, expected receipt, or stop condition is missing. |
+| Group             | Why it is required                                                                                             | Reject if                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `source`          | Prevents orphan context and lets peers trace the task, commit, or receipt that created the handoff.            | Task ID, source agent, or source proof is missing.                              |
+| `identityBinding` | D.064/D.065 scale-asymmetry rule: amplified reach is only safe when accountable to durable wallet plus handle. | `walletAddress`, `handle`, `participantId`, or `signature` is missing.          |
+| `embodiment`      | An embodied agent needs a world, zone, representation mode, avatar, and spatial permission boundary.           | `worldId`, `zoneId`, `portalPresence`, `avatarId`, or `spawnAnchor` is missing. |
+| `traitLibrary`    | D.040 requires HoloMesh teammates, HoloLand NPCs, and services to share one trait substrate.                   | Version, package commit, or required trait list is missing or stale.            |
+| `intent`          | Cold action requires worth-tested intent, not only a task title.                                               | Worth-test decision is not `accept`, or done definition is empty.               |
+| `context`         | Prevents re-derivation and peer collisions.                                                                    | Prior files/artifacts, decisions, or blockers are omitted.                      |
+| `receipts`        | The first embodied action must know what provenance it must emit next.                                         | Prior receipt chain or required next receipt is missing.                        |
+| `firstNextAction` | Cold handoff must be immediately executable and bounded.                                                       | Action, scope, expected receipt, or stop condition is missing.                  |
 
 ## Validation Flow
 
@@ -128,93 +128,93 @@ firstNextAction:
 ## Worked Capsule Example
 
 ```yaml
-schema: "holoscript.embodiedFleetHandoff.v1"
-capsuleId: "efh-20260525-knowledge-mountain-archivist"
-createdAt: "2026-05-25T22:40:00Z"
-expiresAt: "2026-05-26T02:40:00Z"
+schema: 'holoscript.embodiedFleetHandoff.v1'
+capsuleId: 'efh-20260525-knowledge-mountain-archivist'
+createdAt: '2026-05-25T22:40:00Z'
+expiresAt: '2026-05-26T02:40:00Z'
 source:
-  roomTaskId: "task_1779744793933_frav"
-  sourceAgentId: "agent_1778102670927_5r0p"
-  sourceAgentHandle: "codex-hardware"
-  sourceCommitOrReceipt: "room-claim-receipt:task_1779744793933_frav"
+  roomTaskId: 'task_1779744793933_frav'
+  sourceAgentId: 'agent_1778102670927_5r0p'
+  sourceAgentHandle: 'codex-hardware'
+  sourceCommitOrReceipt: 'room-claim-receipt:task_1779744793933_frav'
 
 identityBinding:
-  walletAddress: "0xagentwallet..."
-  handle: "hololand-archivist-01"
-  participantId: "participant:wallet:0xagentwallet..."
-  seatId: "hololand-archivist-01:slot-1"
-  signature: "sig:capsule-hash..."
+  walletAddress: '0xagentwallet...'
+  handle: 'hololand-archivist-01'
+  participantId: 'participant:wallet:0xagentwallet...'
+  seatId: 'hololand-archivist-01:slot-1'
+  signature: 'sig:capsule-hash...'
 
 embodiment:
-  runtime: "hololand"
-  worldId: "knowledge-mountain"
-  zoneId: "summit-archive"
+  runtime: 'hololand'
+  worldId: 'knowledge-mountain'
+  zoneId: 'summit-archive'
   portalPresence:
-    representation: "dual"
-    grantedScopes: ["read-only", "drive-avatar"]
-    maxScopes: ["read-only", "drive-avatar"]
-  avatarId: "archivist-avatar"
+    representation: 'dual'
+    grantedScopes: ['read-only', 'drive-avatar']
+    maxScopes: ['read-only', 'drive-avatar']
+  avatarId: 'archivist-avatar'
   spawnAnchor:
     position: [12.0, 4.5, -8.0]
     rotation: [0.0, 0.707, 0.0, 0.707]
-    coordinateFrame: "world"
+    coordinateFrame: 'world'
 
 traitLibrary:
-  version: "D.040"
-  package: "@holoscript/core"
-  commit: "18730eb35"
+  version: 'D.040'
+  package: '@holoscript/core'
+  commit: '18730eb35'
   requiredTraits:
-    - "@verbalFingerprint"
-    - "@autonomousAgenda"
-    - "@reputationLedger"
-    - "@vocabularyRegister"
-    - "@speechAwareEncounter"
-    - "@avatarIntent"
+    - '@verbalFingerprint'
+    - '@autonomousAgenda'
+    - '@reputationLedger'
+    - '@vocabularyRegister'
+    - '@speechAwareEncounter'
+    - '@avatarIntent'
 
 intent:
-  rawGoal: "Guide the next visitor to the receipt that explains why one knowledge entry is still ungraduated."
+  rawGoal: 'Guide the next visitor to the receipt that explains why one knowledge entry is still ungraduated.'
   worthTest:
     criticalPath: true
     nonSubstitutable: true
     verifiable: true
     accountable: true
-  worthTestDecision: "accept"
-  distilledIntent: "Act as an embodied archivist for one knowledge-mountain zone and surface the receipt chain behind the selected entry."
-  doneDefinition: "Visitor receives the selected entry id, current verdict, receipt pointer, and next safe action without the agent mutating the zone."
+  worthTestDecision: 'accept'
+  distilledIntent: 'Act as an embodied archivist for one knowledge-mountain zone and surface the receipt chain behind the selected entry.'
+  doneDefinition: 'Visitor receives the selected entry id, current verdict, receipt pointer, and next safe action without the agent mutating the zone.'
   nonGoals:
-    - "Do not rewrite knowledge entries."
-    - "Do not grant broader portal scopes."
+    - 'Do not rewrite knowledge entries.'
+    - 'Do not grant broader portal scopes.'
 
 context:
   filesOrArtifactsRead:
-    - "docs/definitions/09-fleet-room-paper.md"
-    - "packages/core/src/traits/PortalPresenceTrait.ts"
-    - "packages/core/src/traits/pillar/PillarRegistry.ts"
+    - 'docs/definitions/09-fleet-room-paper.md'
+    - 'packages/core/src/traits/PortalPresenceTrait.ts'
+    - 'packages/core/src/traits/pillar/PillarRegistry.ts'
   decisionsAlreadyMade:
-    - "Fleet means native agents embodied in worlds, not raw compute."
-    - "The first action is read-only plus avatar guidance; zone mutation is out of scope."
+    - 'Fleet means native agents embodied in worlds, not raw compute.'
+    - 'The first action is read-only plus avatar guidance; zone mutation is out of scope.'
   openQuestions:
-    - "Which receipt renderer should become the default HoloLand panel?"
+    - 'Which receipt renderer should become the default HoloLand panel?'
   blockersOrSuppressors:
-    - "No public brand posture change without founder approval."
+    - 'No public brand posture change without founder approval.'
   coordinationNotes:
-    - "If the visitor requests mutation, stop and request a new capsule with mutate-zone scope."
+    - 'If the visitor requests mutation, stop and request a new capsule with mutate-zone scope.'
 
 receipts:
   priorReceipts:
-    - "room-claim-receipt:task_1779744793933_frav"
-    - "world-state-hash:knowledge-mountain:latest"
+    - 'room-claim-receipt:task_1779744793933_frav'
+    - 'world-state-hash:knowledge-mountain:latest'
   requiredNextReceipt:
-    type: "hololand.embodied-action.v1"
-    subject: "archivist-avatar:read-entry"
+    type: 'hololand.embodied-action.v1'
+    subject: 'archivist-avatar:read-entry'
     mustBindToWalletAndHandle: true
 
 firstNextAction:
-  actionType: "speak"
-  command: "Tell the visitor: this entry is ungraduated; here is the receipt chain and the next safe read-only step."
-  allowedScope: "drive-avatar"
-  expectedReceipt: "hololand.embodied-action.v1"
-  stopCondition: "Stop after one explanation or on any request for mutation outside granted scope."
+  actionType: 'speak'
+  command: 'Tell the visitor: this entry is ungraduated; here is the receipt chain and the next safe read-only step.'
+  allowedScope: 'drive-avatar'
+  expectedReceipt: 'hololand.embodied-action.v1'
+  stopCondition: 'Stop after one explanation or on any request for mutation outside granted scope.'
 ```
 
 ## Implementation Notes

@@ -101,7 +101,12 @@ const HALLUCINATION_PATTERNS = [
   {
     pattern: new RegExp(
       '//\\s*(' +
-        [String.fromCharCode(84, 79, 68, 79), String.fromCharCode(70, 73, 88, 77, 69), 'NOTE', 'EXAMPLE'].join('|') +
+        [
+          String.fromCharCode(84, 79, 68, 79),
+          String.fromCharCode(70, 73, 88, 77, 69),
+          'NOTE',
+          'EXAMPLE',
+        ].join('|') +
         ')',
       'i'
     ),

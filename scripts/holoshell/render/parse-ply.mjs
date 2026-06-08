@@ -23,7 +23,9 @@ export function parseAsciiPly(path) {
     });
   }
   if (Number.isInteger(expectedCount) && points.length !== expectedCount) {
-    throw new Error(`PLY vertex count mismatch: expected ${expectedCount}, decoded ${points.length}`);
+    throw new Error(
+      `PLY vertex count mismatch: expected ${expectedCount}, decoded ${points.length}`
+    );
   }
   if (points.length < 1) throw new Error(`PLY has no vertices: ${path}`);
   return points;

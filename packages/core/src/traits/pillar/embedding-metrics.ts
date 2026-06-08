@@ -121,7 +121,7 @@ export function effectiveRank(vectors: ReadonlyArray<VecLike>): EffectiveRankRes
  */
 export function conservationAdherence(
   penalties: ReadonlyArray<number>,
-  epsilons: ReadonlyArray<number>,
+  epsilons: ReadonlyArray<number>
 ): Array<{ epsilon: number; adherence: number }> {
   const n = penalties.length;
   return epsilons.map((epsilon) => {

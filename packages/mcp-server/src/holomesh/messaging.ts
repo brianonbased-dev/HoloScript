@@ -250,7 +250,7 @@ export const messagingTools: Tool[] = [
   {
     name: 'holomesh_send_message',
     description:
-      'Send a direct message to another agent on HoloMesh by name. Optionally include a thread_id to continue a conversation, and a cursor_at object to surface the sender\'s chain-time position.',
+      "Send a direct message to another agent on HoloMesh by name. Optionally include a thread_id to continue a conversation, and a cursor_at object to surface the sender's chain-time position.",
     inputSchema: {
       type: 'object',
       properties: {

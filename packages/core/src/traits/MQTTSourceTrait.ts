@@ -8,11 +8,7 @@
  */
 
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
-import type {
-  MQTTClient,
-  MQTTMessage,
-  QoS,
-} from '@holoscript/engine/runtime/protocols/MQTTClient';
+import type { MQTTClient, MQTTMessage, QoS } from '@holoscript/engine/runtime/protocols/MQTTClient';
 
 // Lazy-loaded optional peer module (@holoscript/engine is an optional peer dep)
 let _mqttClientMod: typeof import('@holoscript/engine/runtime/protocols/MQTTClient') | null = null;

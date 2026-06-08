@@ -120,14 +120,14 @@ export function createRopeKernel(device: GPUDevice): RopeKernel {
       const expected = seqLen * numHeads * headDim;
       if (input.length !== expected) {
         throw new Error(
-          `RoPE: input length ${input.length} does not match seqLen*numHeads*headDim=${expected}`,
+          `RoPE: input length ${input.length} does not match seqLen*numHeads*headDim=${expected}`
         );
       }
 
       const rp: Required<RopeParams> = { seqLen, numHeads, headDim, base, posOffset };
 
-      const inBuf     = createStorageBuffer(device, input);
-      const outBuf    = createOutputBuffer(device, input.byteLength);
+      const inBuf = createStorageBuffer(device, input);
+      const outBuf = createOutputBuffer(device, input.byteLength);
       const paramsBuf = createParamsBuffer(device, rp);
 
       const stagingBuf = device.createBuffer({
@@ -167,4 +167,3 @@ export function createRopeKernel(device: GPUDevice): RopeKernel {
     },
   };
 }
-

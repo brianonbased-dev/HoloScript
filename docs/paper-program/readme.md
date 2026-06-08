@@ -35,13 +35,13 @@ substrate lets them prove, measure, generate, or coordinate.
 
 The reason hidden gems can exist here is ownership across layers:
 
-| Layer | HoloScript/HoloLand owns | Paper value |
-|---|---|---|
-| Semantic truth | `.holo`, `.hs`, `.hsplus`, traits, units, constraints | Claims have precise machine-readable scope |
-| Execution truth | runtime, solvers, SimulationContract, compiler targets | Results can be rerun and checked |
-| Interaction truth | Studio, Brittney, HoloLand worlds, agent loops | Human and agent interventions become reproducible inputs |
-| Evidence truth | CAEL traces, receipts, anchors, evidence envelopes | Claims carry provenance instead of prose-only support |
-| Learning truth | trace corpora, SESL, trait inference, motion/UI generators | Verified behavior becomes training data |
+| Layer             | HoloScript/HoloLand owns                                   | Paper value                                              |
+| ----------------- | ---------------------------------------------------------- | -------------------------------------------------------- |
+| Semantic truth    | `.holo`, `.hs`, `.hsplus`, traits, units, constraints      | Claims have precise machine-readable scope               |
+| Execution truth   | runtime, solvers, SimulationContract, compiler targets     | Results can be rerun and checked                         |
+| Interaction truth | Studio, Brittney, HoloLand worlds, agent loops             | Human and agent interventions become reproducible inputs |
+| Evidence truth    | CAEL traces, receipts, anchors, evidence envelopes         | Claims carry provenance instead of prose-only support    |
+| Learning truth    | trace corpora, SESL, trait inference, motion/UI generators | Verified behavior becomes training data                  |
 
 That stack can do two things a normal research stack struggles to do:
 
@@ -55,7 +55,8 @@ That stack can do two things a normal research stack struggles to do:
 Before opening or elevating a paper, answer this:
 
 > What can we prove, measure, or generate because of CAEL + SimulationContract
-> + the owned runtime that a normal stack cannot?
+>
+> - the owned runtime that a normal stack cannot?
 
 If the answer is thin, the work stays an application note, benchmark section, or
 product milestone. If the answer is strong, the work can become a paper track.
@@ -76,14 +77,14 @@ A paper-grade claim needs:
 These are the shapes most likely to turn owned infrastructure into publishable
 claims:
 
-| Pattern | Claim shape | Gate |
-|---|---|---|
-| HoloLand as study instrument | VR/AR worlds emit paper-grade human/agent/world interaction traces | CAEL-logged sessions with replayable task evidence |
-| Three-population trait library | HoloMesh teammates, HoloLand NPCs, and services share one sovereign trait substrate | Cross-surface trait corpus plus held-out evaluation |
-| Disposable neural maps, durable identity | cognition can be regenerated because identity is anchored in wallet, handle, brain composition, memory, and provenance | fork/recovery tests plus continuity receipts |
-| CAEL-traceability regularizers | generated motion, scenes, or UI layouts are trained to preserve replayable provenance | regularizer on/off ablation and trace pass rate |
-| Papers-as-Service | the platform turns external R&D claims into spec -> implementation -> measurement -> paper evidence | claim-level novelty gate plus evidence envelope |
-| Twin Earth receipts | HoloLand runtime state can be substrate-verifiable without trusting a single assistant narration | receipt schema, verifier, and cross-consumer replay |
+| Pattern                                  | Claim shape                                                                                                            | Gate                                                |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| HoloLand as study instrument             | VR/AR worlds emit paper-grade human/agent/world interaction traces                                                     | CAEL-logged sessions with replayable task evidence  |
+| Three-population trait library           | HoloMesh teammates, HoloLand NPCs, and services share one sovereign trait substrate                                    | Cross-surface trait corpus plus held-out evaluation |
+| Disposable neural maps, durable identity | cognition can be regenerated because identity is anchored in wallet, handle, brain composition, memory, and provenance | fork/recovery tests plus continuity receipts        |
+| CAEL-traceability regularizers           | generated motion, scenes, or UI layouts are trained to preserve replayable provenance                                  | regularizer on/off ablation and trace pass rate     |
+| Papers-as-Service                        | the platform turns external R&D claims into spec -> implementation -> measurement -> paper evidence                    | claim-level novelty gate plus evidence envelope     |
+| Twin Earth receipts                      | HoloLand runtime state can be substrate-verifiable without trusting a single assistant narration                       | receipt schema, verifier, and cross-consumer replay |
 
 ## Anti-Overclaim Rule
 

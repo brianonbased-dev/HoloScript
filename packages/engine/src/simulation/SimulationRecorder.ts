@@ -102,7 +102,8 @@ export class SimulationRecorder {
     if (time >= this.snapshots[n - 1].time) return { before: n - 1, after: n - 1, alpha: 0 };
 
     // Binary search for the bracket
-    let lo = 0, hi = n - 1;
+    let lo = 0,
+      hi = n - 1;
     while (lo < hi - 1) {
       const mid = (lo + hi) >> 1;
       if (this.snapshots[mid].time <= time) lo = mid;

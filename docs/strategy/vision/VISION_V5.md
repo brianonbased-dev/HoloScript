@@ -110,13 +110,13 @@ Each version delivers a non-negotiable building block.
 
 These five traits were originally placeholders but have been fully implemented under v3.0.x stabilization. All have cleared the stabilization exit gates (>40% coverage) and unblock the v5.0 chain.
 
-| Trait                | File                           | Implementation Status | Capability Description |
-| -------------------- | ------------------------------ | --------------------- | -----------------------|
-| `NetworkedTrait`     | `traits/NetworkedTrait.ts`     | **Completed** (1100 lines) | Full WebRTC P2P routing, spatial interpolations, CRDT sync, reconnection handling. |
+| Trait                | File                           | Implementation Status      | Capability Description                                                                      |
+| -------------------- | ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------- |
+| `NetworkedTrait`     | `traits/NetworkedTrait.ts`     | **Completed** (1100 lines) | Full WebRTC P2P routing, spatial interpolations, CRDT sync, reconnection handling.          |
 | `OpenXRHALTrait`     | `traits/OpenXRHALTrait.ts`     | **Completed** (1572 lines) | Native WebXR session bindings, controller mappings, and hardware layer capability mappings. |
-| `RenderNetworkTrait` | `traits/RenderNetworkTrait.ts` | **Completed** (829 lines) | RNDR token bindings, cloud job submission pipeline, and monitoring layer integration. |
-| `ZoraCoinsTrait`     | `traits/ZoraCoinsTrait.ts`     | **Completed** (940 lines) | Viem/wagmi wallet integration, Base contract signing, bonding curve minting. |
-| `HITLTrait`          | `traits/HITLTrait.ts`          | **Completed** (795 lines) | Multi-auth approval system, webhook orchestration, secure offline audit logging. |
+| `RenderNetworkTrait` | `traits/RenderNetworkTrait.ts` | **Completed** (829 lines)  | RNDR token bindings, cloud job submission pipeline, and monitoring layer integration.       |
+| `ZoraCoinsTrait`     | `traits/ZoraCoinsTrait.ts`     | **Completed** (940 lines)  | Viem/wagmi wallet integration, Base contract signing, bonding curve minting.                |
+| `HITLTrait`          | `traits/HITLTrait.ts`          | **Completed** (795 lines)  | Multi-auth approval system, webhook orchestration, secure offline audit logging.            |
 
 > ✅ **Status**: All five critical path capabilities are integrated into their respective packages (`@holoscript/core`, `@holoscript/marketplace-api`) with functional test suites.
 
@@ -174,12 +174,12 @@ These five traits were originally placeholders but have been fully implemented u
 
 ## Relation to Existing Vision Docs
 
-| Document                                                                   | Scope                                   | Relation to v5.0                                              |
-| -------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------- |
-| [`VISION_HOLOLAND_BOOTSTRAP.md`](VISION_HOLOLAND_BOOTSTRAP.md)             | VR authoring on Twin Earth substrate with Brittney as one participant (v3.5.0)     | Delivers the authoring UX that feeds content into v5.0 scenes |
-| [`ROADMAP_v3.1-v5.0_MERGED.md`](ROADMAP_v3.1-v5.0_MERGED.md)               | Full version chain with market analysis | Authoritative milestone source for this document              |
-| [`ROADMAP.md`](ROADMAP.md)                                                 | Current sprint tracking (v3.x)          | Sprint completion feeds into v3.1 readiness                   |
-| [`docs/certification/requirements.md`](docs/certification/requirements.md) | Certified package program               | Trust layer for agent marketplace (v5.0 dependency)           |
+| Document                                                                   | Scope                                                                          | Relation to v5.0                                              |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| [`VISION_HOLOLAND_BOOTSTRAP.md`](VISION_HOLOLAND_BOOTSTRAP.md)             | VR authoring on Twin Earth substrate with Brittney as one participant (v3.5.0) | Delivers the authoring UX that feeds content into v5.0 scenes |
+| [`ROADMAP_v3.1-v5.0_MERGED.md`](ROADMAP_v3.1-v5.0_MERGED.md)               | Full version chain with market analysis                                        | Authoritative milestone source for this document              |
+| [`ROADMAP.md`](ROADMAP.md)                                                 | Current sprint tracking (v3.x)                                                 | Sprint completion feeds into v3.1 readiness                   |
+| [`docs/certification/requirements.md`](docs/certification/requirements.md) | Certified package program                                                      | Trust layer for agent marketplace (v5.0 dependency)           |
 
 ---
 

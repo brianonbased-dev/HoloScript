@@ -21,10 +21,15 @@ for (const filepath of files) {
   try {
     const code = readFileSync(filepath, 'utf8');
     if (ext === 'holo') parseHolo(code);
-    else if (ext === 'hsplus') { const p = new HoloScriptPlusParser(); p.parse(code); }
-    else parse(code);
+    else if (ext === 'hsplus') {
+      const p = new HoloScriptPlusParser();
+      p.parse(code);
+    } else parse(code);
     process.stdout.write(JSON.stringify({ file: filepath, ok: true }) + '\n');
   } catch (e) {
-    process.stdout.write(JSON.stringify({ file: filepath, ok: false, error: e.message.split('\n')[0].slice(0, 240) }) + '\n');
+    process.stdout.write(
+      JSON.stringify({ file: filepath, ok: false, error: e.message.split('\n')[0].slice(0, 240) }) +
+        '\n'
+    );
   }
 }

@@ -22,10 +22,18 @@ export interface Quat {
 
 type QuatLike = Quat | [number, number, number, number];
 
-function qx(q: QuatLike): number { return (q as Quat).x ?? (q as [number, number, number, number])[0] ?? 0; }
-function qy(q: QuatLike): number { return (q as Quat).y ?? (q as [number, number, number, number])[1] ?? 0; }
-function qz(q: QuatLike): number { return (q as Quat).z ?? (q as [number, number, number, number])[2] ?? 0; }
-function qw(q: QuatLike): number { return (q as Quat).w ?? (q as [number, number, number, number])[3] ?? 1; }
+function qx(q: QuatLike): number {
+  return (q as Quat).x ?? (q as [number, number, number, number])[0] ?? 0;
+}
+function qy(q: QuatLike): number {
+  return (q as Quat).y ?? (q as [number, number, number, number])[1] ?? 0;
+}
+function qz(q: QuatLike): number {
+  return (q as Quat).z ?? (q as [number, number, number, number])[2] ?? 0;
+}
+function qw(q: QuatLike): number {
+  return (q as Quat).w ?? (q as [number, number, number, number])[3] ?? 1;
+}
 
 function asQuat(x: number, y: number, z: number, w: number): Quat {
   const q = { x, y, z, w } as Quat;
@@ -81,8 +89,14 @@ export function fromAxisAngle(ax: number, ay: number, az: number, angle: number)
 
 /** Hamilton product: q1 * q2 (non-commutative). */
 export function multiply(a: QuatLike, b: QuatLike): Quat {
-  const ax = qx(a), ay = qy(a), az = qz(a), aw = qw(a);
-  const bx = qx(b), by = qy(b), bz = qz(b), bw = qw(b);
+  const ax = qx(a),
+    ay = qy(a),
+    az = qz(a),
+    aw = qw(a);
+  const bx = qx(b),
+    by = qy(b),
+    bz = qz(b),
+    bw = qw(b);
   return asQuat(
     aw * bx + ax * bw + ay * bz - az * by,
     aw * by - ax * bz + ay * bw + az * bx,
@@ -98,7 +112,10 @@ export function conjugate(q: QuatLike): Quat {
 
 /** Normalize to unit length. */
 export function normalize(q: QuatLike): Quat {
-  const x = qx(q), y = qy(q), z = qz(q), w = qw(q);
+  const x = qx(q),
+    y = qy(q),
+    z = qz(q),
+    w = qw(q);
   const len = Math.sqrt(x * x + y * y + z * z + w * w);
   if (len < 1e-10) return identity();
   const inv = 1 / len;
@@ -132,12 +149,14 @@ export function slerp(a: QuatLike, b: QuatLike, t: number): Quat {
 
   // If very close, fall back to linear interpolation
   if (d > 0.9995) {
-    return normalize(asQuat(
-      qx(a) + (bx - qx(a)) * t,
-      qy(a) + (by - qy(a)) * t,
-      qz(a) + (bz - qz(a)) * t,
-      qw(a) + (bw - qw(a)) * t
-    ));
+    return normalize(
+      asQuat(
+        qx(a) + (bx - qx(a)) * t,
+        qy(a) + (by - qy(a)) * t,
+        qz(a) + (bz - qz(a)) * t,
+        qw(a) + (bw - qw(a)) * t
+      )
+    );
   }
 
   const theta0 = Math.acos(d);
@@ -148,12 +167,9 @@ export function slerp(a: QuatLike, b: QuatLike, t: number): Quat {
   const s0 = Math.cos(theta) - (d * sinTheta) / sinTheta0;
   const s1 = sinTheta / sinTheta0;
 
-  return normalize(asQuat(
-    qx(a) * s0 + bx * s1,
-    qy(a) * s0 + by * s1,
-    qz(a) * s0 + bz * s1,
-    qw(a) * s0 + bw * s1
-  ));
+  return normalize(
+    asQuat(qx(a) * s0 + bx * s1, qy(a) * s0 + by * s1, qz(a) * s0 + bz * s1, qw(a) * s0 + bw * s1)
+  );
 }
 
 /** Rotate a 3D vector by a unit quaternion. */
@@ -163,7 +179,10 @@ export function rotateVec3(
   vy: number,
   vz: number
 ): { x: number; y: number; z: number; [index: number]: number } {
-  const x = qx(q), y = qy(q), z = qz(q), w = qw(q);
+  const x = qx(q),
+    y = qy(q),
+    z = qz(q),
+    w = qw(q);
   // q * v * q⁻¹  (optimized)
   const ix = w * vx + y * vz - z * vy;
   const iy = w * vy + z * vx - x * vz;
@@ -187,7 +206,10 @@ export function rotateVec3(
 /** Convert unit quaternion to a 4×4 column-major rotation matrix (Float64Array[16]). */
 export function toMatrix4(q: QuatLike): Float64Array {
   const m = new Float64Array(16);
-  const x = qx(q), y = qy(q), z = qz(q), w = qw(q);
+  const x = qx(q),
+    y = qy(q),
+    z = qz(q),
+    w = qw(q);
   const x2 = x + x,
     y2 = y + y,
     z2 = z + z;
@@ -222,8 +244,16 @@ export function toMatrix4(q: QuatLike): Float64Array {
 }
 
 /** Extract Euler angles (radians) from a unit quaternion (YXZ order). */
-export function toEuler(q: QuatLike): { pitch: number; yaw: number; roll: number; [index: number]: number } {
-  const x = qx(q), y = qy(q), z = qz(q), w = qw(q);
+export function toEuler(q: QuatLike): {
+  pitch: number;
+  yaw: number;
+  roll: number;
+  [index: number]: number;
+} {
+  const x = qx(q),
+    y = qy(q),
+    z = qz(q),
+    w = qw(q);
   const sinr_cosp = 2 * (w * x + y * z);
   const cosr_cosp = 1 - 2 * (x * x + y * y);
   const pitch = Math.atan2(sinr_cosp, cosr_cosp);
@@ -235,7 +265,12 @@ export function toEuler(q: QuatLike): { pitch: number; yaw: number; roll: number
   const cosy_cosp = 1 - 2 * (y * y + z * z);
   const roll = Math.atan2(siny_cosp, cosy_cosp);
 
-  const e = { pitch, yaw, roll } as { pitch: number; yaw: number; roll: number; [index: number]: number };
+  const e = { pitch, yaw, roll } as {
+    pitch: number;
+    yaw: number;
+    roll: number;
+    [index: number]: number;
+  };
   Object.defineProperty(e, '0', { value: pitch, enumerable: false });
   Object.defineProperty(e, '1', { value: yaw, enumerable: false });
   Object.defineProperty(e, '2', { value: roll, enumerable: false });

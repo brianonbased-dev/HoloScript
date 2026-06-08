@@ -37,7 +37,8 @@ function verifyRailwaySignature(body: string, signature: string | undefined): bo
   const expected = createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
   if (expected.length !== signature.length) return false;
   let diff = 0;
-  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
+  for (let i = 0; i < expected.length; i++)
+    diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
   return diff === 0;
 }
 
@@ -46,21 +47,21 @@ type Sub<T extends string> = T;
 // ── Emoji + label tables ─────────────────────────────────────────────────────
 
 const DEPLOYMENT_STATUS: Record<string, { emoji: string; label: string; silent?: boolean }> = {
-  CRASHED:        { emoji: '💥', label: 'crashed' },
-  OOM_KILLED:     { emoji: '🧠', label: 'OOM killed' },
-  FAILED:         { emoji: '❌', label: 'failed' },
-  DEPLOYED:       { emoji: '✅', label: 'deployed' },
-  REDEPLOYED:     { emoji: '♻️', label: 'redeployed' },
-  SUCCESS:        { emoji: '✅', label: 'deployed' },
-  SLEPT:          { emoji: '😴', label: 'slept' },
-  RESUMED:        { emoji: '▶️', label: 'resumed' },
-  RESTARTED:      { emoji: '🔄', label: 'restarted' },
-  REMOVED:        { emoji: '🗑️', label: 'removed' },
-  BUILDING:       { emoji: '🔨', label: 'building', silent: true },
-  DEPLOYING:      { emoji: '🚀', label: 'deploying', silent: true },
-  WAITING:        { emoji: '⏳', label: 'waiting', silent: true },
+  CRASHED: { emoji: '💥', label: 'crashed' },
+  OOM_KILLED: { emoji: '🧠', label: 'OOM killed' },
+  FAILED: { emoji: '❌', label: 'failed' },
+  DEPLOYED: { emoji: '✅', label: 'deployed' },
+  REDEPLOYED: { emoji: '♻️', label: 'redeployed' },
+  SUCCESS: { emoji: '✅', label: 'deployed' },
+  SLEPT: { emoji: '😴', label: 'slept' },
+  RESUMED: { emoji: '▶️', label: 'resumed' },
+  RESTARTED: { emoji: '🔄', label: 'restarted' },
+  REMOVED: { emoji: '🗑️', label: 'removed' },
+  BUILDING: { emoji: '🔨', label: 'building', silent: true },
+  DEPLOYING: { emoji: '🚀', label: 'deploying', silent: true },
+  WAITING: { emoji: '⏳', label: 'waiting', silent: true },
   NEEDS_APPROVAL: { emoji: '🔐', label: 'needs approval' },
-  QUEUED:         { emoji: '📋', label: 'queued', silent: true },
+  QUEUED: { emoji: '📋', label: 'queued', silent: true },
 };
 
 // ── Event builders ────────────────────────────────────────────────────────────
@@ -75,17 +76,17 @@ function nested(obj: unknown, ...keys: string[]): unknown {
 }
 
 function buildDeploymentMessage(body: Record<string, unknown>): string | null {
-  const raw    = (field(body, 'status') || field(nested(body, 'deployment'), 'status')).toUpperCase();
-  const entry  = DEPLOYMENT_STATUS[raw];
+  const raw = (field(body, 'status') || field(nested(body, 'deployment'), 'status')).toUpperCase();
+  const entry = DEPLOYMENT_STATUS[raw];
   if (!entry) return null;
   if (entry.silent) return null; // suppress noisy in-progress events
 
-  const svc    = field(nested(body, 'service'), 'name') || 'service';
-  const env    = field(nested(body, 'environment'), 'name');
-  const meta   = nested(body, 'deployment', 'meta') as Record<string, string> || {};
-  const sha    = (meta.commitHash || meta.commitSha || '').slice(0, 8);
-  const msg    = (meta.commitMessage || '').split('\n')[0].slice(0, 72);
-  const proj   = field(nested(body, 'project'), 'name');
+  const svc = field(nested(body, 'service'), 'name') || 'service';
+  const env = field(nested(body, 'environment'), 'name');
+  const meta = (nested(body, 'deployment', 'meta') as Record<string, string>) || {};
+  const sha = (meta.commitHash || meta.commitSha || '').slice(0, 8);
+  const msg = (meta.commitMessage || '').split('\n')[0].slice(0, 72);
+  const proj = field(nested(body, 'project'), 'name');
 
   const parts = [`${entry.emoji} Railway ${svc} ${entry.label}`];
   if (env) parts.push(`(${env})`);
@@ -97,22 +98,41 @@ function buildDeploymentMessage(body: Record<string, unknown>): string | null {
 
 function buildVolumeAlertMessage(body: Record<string, unknown>): string | null {
   const status = field(body, 'status').toUpperCase();
-  const emoji  = status === 'TRIGGERED' ? '⚠️' : status === 'RESOLVED' ? '✅' : '📦';
-  const label  = status === 'TRIGGERED' ? 'volume alert triggered' : status === 'RESOLVED' ? 'volume alert resolved' : `volume ${status.toLowerCase()}`;
-  const vol    = field(nested(body, 'volume'), 'name') || field(body, 'volumeName') || 'volume';
-  const proj   = field(nested(body, 'project'), 'name');
-  const parts  = [`${emoji} Railway ${label} — ${vol}`];
+  const emoji = status === 'TRIGGERED' ? '⚠️' : status === 'RESOLVED' ? '✅' : '📦';
+  const label =
+    status === 'TRIGGERED'
+      ? 'volume alert triggered'
+      : status === 'RESOLVED'
+        ? 'volume alert resolved'
+        : `volume ${status.toLowerCase()}`;
+  const vol = field(nested(body, 'volume'), 'name') || field(body, 'volumeName') || 'volume';
+  const proj = field(nested(body, 'project'), 'name');
+  const parts = [`${emoji} Railway ${label} — ${vol}`];
   if (proj) parts.push(`[${proj}]`);
   return parts.join(' ');
 }
 
 function buildMonitorMessage(body: Record<string, unknown>): string | null {
-  const status  = field(body, 'status').toUpperCase();
-  const emoji   = status === 'TRIGGERED' ? '🚨' : status === 'RESOLVED' ? '✅' : status === 'DELETED' ? '🗑️' : '📊';
-  const label   = status === 'TRIGGERED' ? 'monitor triggered' : status === 'RESOLVED' ? 'monitor resolved' : status === 'DELETED' ? 'monitor deleted' : `monitor ${status.toLowerCase()}`;
-  const name    = field(nested(body, 'monitor'), 'name') || field(body, 'monitorName') || 'monitor';
-  const proj    = field(nested(body, 'project'), 'name');
-  const parts   = [`${emoji} Railway ${label} — ${name}`];
+  const status = field(body, 'status').toUpperCase();
+  const emoji =
+    status === 'TRIGGERED'
+      ? '🚨'
+      : status === 'RESOLVED'
+        ? '✅'
+        : status === 'DELETED'
+          ? '🗑️'
+          : '📊';
+  const label =
+    status === 'TRIGGERED'
+      ? 'monitor triggered'
+      : status === 'RESOLVED'
+        ? 'monitor resolved'
+        : status === 'DELETED'
+          ? 'monitor deleted'
+          : `monitor ${status.toLowerCase()}`;
+  const name = field(nested(body, 'monitor'), 'name') || field(body, 'monitorName') || 'monitor';
+  const proj = field(nested(body, 'project'), 'name');
+  const parts = [`${emoji} Railway ${label} — ${name}`];
   if (proj) parts.push(`[${proj}]`);
   return parts.join(' ');
 }
@@ -135,9 +155,8 @@ export async function handleWebhookRoutes(
   res: http.ServerResponse,
   pathname: string,
   method: string,
-  url: string = pathname,
+  url: string = pathname
 ): Promise<boolean> {
-
   if (pathname !== '/webhook/railway' || method !== 'POST') return false;
 
   // Team ID: prefer ?team= query param so each user can configure their own
@@ -149,7 +168,10 @@ export async function handleWebhookRoutes(
     rawBody = await new Promise<string>((resolve, reject) => {
       const chunks: Buffer[] = [];
       let size = 0;
-      req.on('data', (c: Buffer) => { size += c.length; if (size < 64_000) chunks.push(c); });
+      req.on('data', (c: Buffer) => {
+        size += c.length;
+        if (size < 64_000) chunks.push(c);
+      });
       req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
       req.on('error', reject);
     });

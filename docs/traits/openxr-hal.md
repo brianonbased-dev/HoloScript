@@ -162,11 +162,11 @@ logic {
 
 The `@eye_tracked` trait wires into the foveation pipeline with **device-gated fallback**:
 
-| Device class | Eye tracking | Foveation mode | Gaze source |
-|---|---|---|---|
-| Quest Pro, Apple Vision Pro, Pico 4 Enterprise | Yes | `eye_gaze_driven` | Real `eye_gaze_update` ray |
-| Quest 3, Quest 2, Valve Index | No | `fixed` | Head rotation proxy |
-| Desktop simulation | No | `fixed` | Head rotation proxy |
+| Device class                                   | Eye tracking | Foveation mode    | Gaze source                |
+| ---------------------------------------------- | ------------ | ----------------- | -------------------------- |
+| Quest Pro, Apple Vision Pro, Pico 4 Enterprise | Yes          | `eye_gaze_driven` | Real `eye_gaze_update` ray |
+| Quest 3, Quest 2, Valve Index                  | No           | `fixed`           | Head rotation proxy        |
+| Desktop simulation                             | No           | `fixed`           | Head rotation proxy        |
 
 ### How it works
 

@@ -18,7 +18,10 @@
  * SimulationProvider.tsx now delegates here instead of registering manually.
  */
 
-import { SimulationSolverFactory, type SimulationSolver } from '@holoscript/core/traits/simulation-solver-factory';
+import {
+  SimulationSolverFactory,
+  type SimulationSolver,
+} from '@holoscript/core/traits/simulation-solver-factory';
 import { ThermalSolver, type ThermalConfig, type ThermalSource } from './ThermalSolver';
 import { StructuralSolver, type StructuralConfig } from './StructuralSolver';
 import {
@@ -59,9 +62,7 @@ import {
 
 // ── Config parsers (shared with register.ts, kept for consistency) ─────────
 
-function parseBoundaryConditions(
-  raw: Record<string, unknown> | undefined,
-): BoundaryCondition[] {
+function parseBoundaryConditions(raw: Record<string, unknown> | undefined): BoundaryCondition[] {
   if (!raw) return [];
   const bcs: BoundaryCondition[] = [];
 
@@ -86,9 +87,7 @@ function parseBoundaryConditions(
   return bcs;
 }
 
-function parseThermalSources(
-  raw: Record<string, unknown> | undefined,
-): ThermalSource[] {
+function parseThermalSources(raw: Record<string, unknown> | undefined): ThermalSource[] {
   if (!raw) return [];
   const sources: ThermalSource[] = [];
 
@@ -117,7 +116,7 @@ function parseThermalConfig(raw: Record<string, unknown>): ThermalConfig {
     materials: (raw.materials as Record<string, Record<string, number>>) ?? {},
     defaultMaterial: (raw.default_material as string) ?? 'air',
     boundaryConditions: parseBoundaryConditions(
-      raw.boundary_conditions as Record<string, unknown> | undefined,
+      raw.boundary_conditions as Record<string, unknown> | undefined
     ),
     sources: parseThermalSources(raw.sources as Record<string, unknown> | undefined),
     initialTemperature: (raw.initial_temperature as number) ?? 20,
@@ -130,7 +129,7 @@ function parseStructuralConfig(raw: Record<string, unknown>): StructuralConfig {
   return {
     vertices: (raw.vertices as Float32Array) ?? new Float32Array(0),
     tetrahedra: (raw.tetrahedra as Uint32Array) ?? new Uint32Array(0),
-    material: typeof mat === 'string' ? mat : (mat?.type as string) ?? 'steel_a36',
+    material: typeof mat === 'string' ? mat : ((mat?.type as string) ?? 'steel_a36'),
     constraints: (raw.constraints as StructuralConfig['constraints']) ?? [],
     loads: (raw.loads as StructuralConfig['loads']) ?? [],
     maxIterations: (raw.max_iterations as number) ?? 1000,
@@ -189,9 +188,13 @@ function parseStructuralTet4GpuCgConfig(raw: Record<string, unknown>): Structura
 function createStructuralGpuCgSolver(raw: Record<string, unknown>): SimulationSolver {
   const isTET10 = raw.isTET10 === true || raw.nodesPerElement === 10;
   if (isTET10) {
-    return new TET10SolverAdapter(new StructuralSolverTET10(parseStructuralGpuCgConfig(raw))) as unknown as SimulationSolver;
+    return new TET10SolverAdapter(
+      new StructuralSolverTET10(parseStructuralGpuCgConfig(raw))
+    ) as unknown as SimulationSolver;
   }
-  return new StructuralGpuCgSolverAdapter(new StructuralSolver(parseStructuralTet4GpuCgConfig(raw))) as unknown as SimulationSolver;
+  return new StructuralGpuCgSolverAdapter(
+    new StructuralSolver(parseStructuralTet4GpuCgConfig(raw))
+  ) as unknown as SimulationSolver;
 }
 
 function parseHydraulicConfig(raw: Record<string, unknown>): HydraulicConfig {
@@ -245,27 +248,83 @@ export function initSimulationSolvers(): void {
   // index signatures, so they don't directly satisfy SimulationSolver. The
   // double-as pattern (as unknown as SimulationSolver) matches the same approach
   // in register.ts — safe at runtime, necessary for strict TS.
-  SimulationSolverFactory.register('thermal', (raw) => new ThermalSolver(parseThermalConfig(raw)) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('thermal-gpu-stencil', (raw) => new ThermalGpuStencilSolverAdapter(new ThermalSolver({
-    ...parseThermalConfig(raw),
-    useGPU: true,
-  })) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('structural', (raw) => new StructuralSolver(parseStructuralConfig(raw)) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('structural-tet10', (raw) => new StructuralSolverTET10(parseTET10Config(raw)) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('structural-tet10-gpu-cg', (raw) => new TET10SolverAdapter(new StructuralSolverTET10(parseStructuralGpuCgConfig(raw))) as unknown as SimulationSolver);
+  SimulationSolverFactory.register(
+    'thermal',
+    (raw) => new ThermalSolver(parseThermalConfig(raw)) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'thermal-gpu-stencil',
+    (raw) =>
+      new ThermalGpuStencilSolverAdapter(
+        new ThermalSolver({
+          ...parseThermalConfig(raw),
+          useGPU: true,
+        })
+      ) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'structural',
+    (raw) => new StructuralSolver(parseStructuralConfig(raw)) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'structural-tet10',
+    (raw) => new StructuralSolverTET10(parseTET10Config(raw)) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'structural-tet10-gpu-cg',
+    (raw) =>
+      new TET10SolverAdapter(
+        new StructuralSolverTET10(parseStructuralGpuCgConfig(raw))
+      ) as unknown as SimulationSolver
+  );
   SimulationSolverFactory.register('structural-gpu-cg', createStructuralGpuCgSolver);
-  SimulationSolverFactory.register('structural-tet4-gpu-cg', (raw) => new StructuralGpuCgSolverAdapter(new StructuralSolver(parseStructuralTet4GpuCgConfig(raw))) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('hydraulic', (raw) => new HydraulicSolver(parseHydraulicConfig(raw)) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('acoustic', (raw) => new AcousticSolver(raw as unknown as AcousticConfig) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('acoustic-gpu-stencil', (raw) => new AcousticGpuStencilSolverAdapter(new AcousticSolver({
-    ...(raw as unknown as AcousticConfig),
-    useGPU: true,
-  })) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('fdtd', (raw) => new FDTDSolver(raw as unknown as FDTDConfig) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('navier-stokes', (raw) => new NavierStokesSolver(raw as unknown as NavierStokesConfig) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('multiphase', (raw) => new MultiphaseNSSolver(raw as unknown as MultiphaseConfig) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('molecular-dynamics', (raw) => new MolecularDynamicsSolver(raw as unknown as MDConfig) as unknown as SimulationSolver);
-  SimulationSolverFactory.register('mls-mpm-fluid', (raw) => new MLSMPMFluid(parseMLSMPMConfig(raw)) as unknown as SimulationSolver);
+  SimulationSolverFactory.register(
+    'structural-tet4-gpu-cg',
+    (raw) =>
+      new StructuralGpuCgSolverAdapter(
+        new StructuralSolver(parseStructuralTet4GpuCgConfig(raw))
+      ) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'hydraulic',
+    (raw) => new HydraulicSolver(parseHydraulicConfig(raw)) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'acoustic',
+    (raw) => new AcousticSolver(raw as unknown as AcousticConfig) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'acoustic-gpu-stencil',
+    (raw) =>
+      new AcousticGpuStencilSolverAdapter(
+        new AcousticSolver({
+          ...(raw as unknown as AcousticConfig),
+          useGPU: true,
+        })
+      ) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'fdtd',
+    (raw) => new FDTDSolver(raw as unknown as FDTDConfig) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'navier-stokes',
+    (raw) =>
+      new NavierStokesSolver(raw as unknown as NavierStokesConfig) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'multiphase',
+    (raw) =>
+      new MultiphaseNSSolver(raw as unknown as MultiphaseConfig) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'molecular-dynamics',
+    (raw) => new MolecularDynamicsSolver(raw as unknown as MDConfig) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'mls-mpm-fluid',
+    (raw) => new MLSMPMFluid(parseMLSMPMConfig(raw)) as unknown as SimulationSolver
+  );
   SimulationSolverFactory.register('reaction-diffusion', (raw) => {
     const cfg = raw as Record<string, unknown>;
     return new ReactionDiffusionSolver({
@@ -282,7 +341,7 @@ export function initSimulationSolvers(): void {
 
   SimulationSolverFactory.register('affinity-ode', (raw) => {
     const cfg = raw as Record<string, unknown>;
-    const agents = cfg.agents as AffinityConfig['agents'] ?? [
+    const agents = (cfg.agents as AffinityConfig['agents']) ?? [
       { id: 'agent_0', dampingRate: -0.2, couplingToPartner: 0.5 },
       { id: 'agent_1', dampingRate: -0.1, couplingToPartner: 0.8 },
     ];

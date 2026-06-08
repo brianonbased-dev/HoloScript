@@ -18,7 +18,7 @@ import { SEMANTIC_NOVELTY_MODEL, embedSemantic } from '../SemanticNoveltyEncoder
 function manifest(
   machineLabel: string,
   fingerprints: ReadonlyArray<[string, string]>,
-  overrides: Partial<DeterminismManifest> = {},
+  overrides: Partial<DeterminismManifest> = {}
 ): DeterminismManifest {
   return {
     manifestVersion: DETERMINISM_MANIFEST_VERSION,
@@ -28,7 +28,11 @@ function manifest(
     dim: 384,
     repeats: 3,
     sameMachineStable: true,
-    entries: fingerprints.map(([text, fingerprint]) => ({ text, fingerprint, sameMachineStable: true })),
+    entries: fingerprints.map(([text, fingerprint]) => ({
+      text,
+      fingerprint,
+      sameMachineStable: true,
+    })),
     ...overrides,
   };
 }
@@ -58,9 +62,18 @@ describe('SemanticDeterminismGate — pure helpers (always run)', () => {
   });
 
   it('compareDeterminismManifests matches identical fingerprints and flags real divergence', () => {
-    const a = manifest('m1', [['t1', 'sha-aaa'], ['t2', 'sha-bbb']]);
-    const b = manifest('m2', [['t1', 'sha-aaa'], ['t2', 'sha-bbb']]);
-    const c = manifest('m3', [['t1', 'sha-aaa'], ['t2', 'sha-XXX']]);
+    const a = manifest('m1', [
+      ['t1', 'sha-aaa'],
+      ['t2', 'sha-bbb'],
+    ]);
+    const b = manifest('m2', [
+      ['t1', 'sha-aaa'],
+      ['t2', 'sha-bbb'],
+    ]);
+    const c = manifest('m3', [
+      ['t1', 'sha-aaa'],
+      ['t2', 'sha-XXX'],
+    ]);
     expect(compareDeterminismManifests(a, b).identical).toBe(true);
     const diff = compareDeterminismManifests(a, c);
     expect(diff.comparable).toBe(true);
@@ -94,9 +107,18 @@ describe('SemanticDeterminismGate — pure helpers (always run)', () => {
 
   it('≥2 distinct machines with identical fingerprints → byte-identical → eligible', () => {
     const a = assessDeterminismGate([
-      manifest('linux-x64', [['t1', 'sha-aaa'], ['t2', 'sha-bbb']]),
-      manifest('win-arm64', [['t1', 'sha-aaa'], ['t2', 'sha-bbb']]),
-      manifest('ci-runner', [['t1', 'sha-aaa'], ['t2', 'sha-bbb']]),
+      manifest('linux-x64', [
+        ['t1', 'sha-aaa'],
+        ['t2', 'sha-bbb'],
+      ]),
+      manifest('win-arm64', [
+        ['t1', 'sha-aaa'],
+        ['t2', 'sha-bbb'],
+      ]),
+      manifest('ci-runner', [
+        ['t1', 'sha-aaa'],
+        ['t2', 'sha-bbb'],
+      ]),
     ]);
     expect(a.verdict).toBe('byte-identical');
     expect(a.receiptBindingEligible).toBe(true);
@@ -105,8 +127,14 @@ describe('SemanticDeterminismGate — pure helpers (always run)', () => {
 
   it('any cross-machine divergence → divergent → stays advisory', () => {
     const a = assessDeterminismGate([
-      manifest('m1', [['t1', 'sha-aaa'], ['t2', 'sha-bbb']]),
-      manifest('m2', [['t1', 'sha-aaa'], ['t2', 'sha-ZZZ']]),
+      manifest('m1', [
+        ['t1', 'sha-aaa'],
+        ['t2', 'sha-bbb'],
+      ]),
+      manifest('m2', [
+        ['t1', 'sha-aaa'],
+        ['t2', 'sha-ZZZ'],
+      ]),
     ]);
     expect(a.verdict).toBe('divergent');
     expect(a.receiptBindingEligible).toBe(false);
@@ -157,17 +185,20 @@ describe('SemanticDeterminismGate — tolerance comparator (robust receipt primi
     expect(single.verdict).toBe('insufficient-evidence');
     expect(single.receiptBindingEligible).toBe(false);
 
-    const ok = assessRawToleranceGate([
-      raw('linux-x64', { t1: [0.5, 0.5], t2: [0.1, 0.2] }),
-      raw('win-arm64', { t1: [0.5 + 2e-7, 0.5], t2: [0.1, 0.2 - 1e-7] }),
-    ], 1e-5);
+    const ok = assessRawToleranceGate(
+      [
+        raw('linux-x64', { t1: [0.5, 0.5], t2: [0.1, 0.2] }),
+        raw('win-arm64', { t1: [0.5 + 2e-7, 0.5], t2: [0.1, 0.2 - 1e-7] }),
+      ],
+      1e-5
+    );
     expect(ok.verdict).toBe('within-tolerance');
     expect(ok.receiptBindingEligible).toBe(true);
 
-    const bad = assessRawToleranceGate([
-      raw('m1', { t1: [0.5, 0.5] }),
-      raw('m2', { t1: [0.6, 0.5] }),
-    ], 1e-5);
+    const bad = assessRawToleranceGate(
+      [raw('m1', { t1: [0.5, 0.5] }), raw('m2', { t1: [0.6, 0.5] })],
+      1e-5
+    );
     expect(bad.verdict).toBe('divergent');
     expect(bad.receiptBindingEligible).toBe(false);
   });

@@ -18,9 +18,12 @@ export function querySimulation(question: string, stats: Record<string, unknown>
   // Safety
   if (matches(q, ['safe', 'will it break', 'will it fail', 'yield', 'safety factor'])) {
     const sf = dig(stats, 'minSafetyFactor');
-    if (sf === null) return 'No safety factor data available. This solver may not produce structural results.';
-    if (sf < 1) return `No — the structure will yield. Safety factor is ${sf.toFixed(2)} (below 1.0). The material's strength is exceeded.`;
-    if (sf < 2) return `Marginal — safety factor is ${sf.toFixed(2)}. Industry standard is typically 2.0-3.0. Consider reinforcement.`;
+    if (sf === null)
+      return 'No safety factor data available. This solver may not produce structural results.';
+    if (sf < 1)
+      return `No — the structure will yield. Safety factor is ${sf.toFixed(2)} (below 1.0). The material's strength is exceeded.`;
+    if (sf < 2)
+      return `Marginal — safety factor is ${sf.toFixed(2)}. Industry standard is typically 2.0-3.0. Consider reinforcement.`;
     return `Yes — safety factor is ${sf.toFixed(1)}. The structure is well within material limits.`;
   }
 
@@ -36,7 +39,9 @@ export function querySimulation(question: string, stats: Record<string, unknown>
     const c = dig(stats, 'converged', 'solveResult.converged');
     const it = dig(stats, 'iterations', 'solveResult.iterations');
     if (c === null) return 'No convergence data available.';
-    return c ? `Yes, converged in ${it ?? '?'} iterations.` : `No — the solver did not converge after ${it ?? '?'} iterations. Results may be inaccurate.`;
+    return c
+      ? `Yes, converged in ${it ?? '?'} iterations.`
+      : `No — the solver did not converge after ${it ?? '?'} iterations. Results may be inaccurate.`;
   }
 
   // Time
@@ -50,7 +55,8 @@ export function querySimulation(question: string, stats: Record<string, unknown>
   if (matches(q, ['temperature', 'how hot', 'thermal', 'heat'])) {
     const maxT = dig(stats, 'maxTemperature');
     const minT = dig(stats, 'minTemperature');
-    if (maxT !== null && minT !== null) return `Temperature ranges from ${minT.toFixed(1)} to ${maxT.toFixed(1)}.`;
+    if (maxT !== null && minT !== null)
+      return `Temperature ranges from ${minT.toFixed(1)} to ${maxT.toFixed(1)}.`;
     return 'No temperature data available from this solver.';
   }
 
@@ -69,7 +75,9 @@ export function querySimulation(question: string, stats: Record<string, unknown>
   }
 
   // Nodes / elements / DOFs
-  if (matches(q, ['how many nodes', 'how many elements', 'mesh size', 'dof', 'degrees of freedom'])) {
+  if (
+    matches(q, ['how many nodes', 'how many elements', 'mesh size', 'dof', 'degrees of freedom'])
+  ) {
     const n = dig(stats, 'nodeCount');
     const e = dig(stats, 'elementCount');
     const d = dig(stats, 'dofCount');
@@ -96,7 +104,7 @@ export function querySimulation(question: string, stats: Record<string, unknown>
 export function generateAutoReport(
   solverType: string,
   stats: Record<string, unknown>,
-  config?: Record<string, unknown>,
+  config?: Record<string, unknown>
 ): string {
   const insights = interpretResults(stats);
   const lines: string[] = [];
@@ -127,13 +135,21 @@ export function generateAutoReport(
   lines.push('| Metric | Value |');
   lines.push('|--------|-------|');
   const metrics: [string, string][] = [];
-  const n = dig(stats, 'nodeCount'); if (n !== null) metrics.push(['Nodes', n.toLocaleString()]);
-  const e = dig(stats, 'elementCount'); if (e !== null) metrics.push(['Elements', e.toLocaleString()]);
-  const c = dig(stats, 'converged', 'solveResult.converged'); if (c !== null) metrics.push(['Converged', c ? 'Yes' : '**No**']);
-  const it = dig(stats, 'iterations', 'solveResult.iterations'); if (it !== null) metrics.push(['Iterations', String(it)]);
-  const ms = dig(stats, 'solveTimeMs'); if (ms !== null) metrics.push(['Solve Time', ms < 1000 ? `${ms.toFixed(0)} ms` : `${(ms / 1000).toFixed(1)} s`]);
-  const sf = dig(stats, 'minSafetyFactor'); if (sf !== null) metrics.push(['Safety Factor', sf.toFixed(2)]);
-  const vm = dig(stats, 'maxVonMises'); if (vm !== null) metrics.push(['Max Stress', fmtStress(vm)]);
+  const n = dig(stats, 'nodeCount');
+  if (n !== null) metrics.push(['Nodes', n.toLocaleString()]);
+  const e = dig(stats, 'elementCount');
+  if (e !== null) metrics.push(['Elements', e.toLocaleString()]);
+  const c = dig(stats, 'converged', 'solveResult.converged');
+  if (c !== null) metrics.push(['Converged', c ? 'Yes' : '**No**']);
+  const it = dig(stats, 'iterations', 'solveResult.iterations');
+  if (it !== null) metrics.push(['Iterations', String(it)]);
+  const ms = dig(stats, 'solveTimeMs');
+  if (ms !== null)
+    metrics.push(['Solve Time', ms < 1000 ? `${ms.toFixed(0)} ms` : `${(ms / 1000).toFixed(1)} s`]);
+  const sf = dig(stats, 'minSafetyFactor');
+  if (sf !== null) metrics.push(['Safety Factor', sf.toFixed(2)]);
+  const vm = dig(stats, 'maxVonMises');
+  if (vm !== null) metrics.push(['Max Stress', fmtStress(vm)]);
   for (const [k, v] of metrics) lines.push(`| ${k} | ${v} |`);
   lines.push('');
 
@@ -142,7 +158,8 @@ export function generateAutoReport(
     lines.push('## Findings');
     lines.push('');
     for (const insight of insights) {
-      const icon = insight.severity === 'critical' ? 'X' : insight.severity === 'warning' ? '!' : 'i';
+      const icon =
+        insight.severity === 'critical' ? 'X' : insight.severity === 'warning' ? '!' : 'i';
       lines.push(`### [${icon}] ${insight.message}`);
       lines.push('');
       lines.push(insight.detail);
@@ -167,7 +184,10 @@ function dig(stats: Record<string, unknown>, ...paths: string[]): any {
     let val: unknown = stats;
     for (const p of parts) {
       if (val && typeof val === 'object') val = (val as Record<string, unknown>)[p];
-      else { val = undefined; break; }
+      else {
+        val = undefined;
+        break;
+      }
     }
     if (typeof val === 'number' && Number.isFinite(val)) return val;
     if (typeof val === 'boolean') return val;

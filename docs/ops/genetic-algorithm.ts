@@ -134,7 +134,11 @@ class BoltzmannSelection implements SelectionOperator {
 class SUSSelection implements SelectionOperator {
   select(population: Individual[], n: number): Individual[] {
     const totalFitness = population.reduce((s, ind) => s + ind.fitness, 0);
-    if (totalFitness === 0) return Array.from({ length: n }, () => population[Math.floor(Math.random() * population.length)]);
+    if (totalFitness === 0)
+      return Array.from(
+        { length: n },
+        () => population[Math.floor(Math.random() * population.length)]
+      );
     const step = totalFitness / n;
     let pointer = Math.random() * step;
     let cumulative = 0;
@@ -153,10 +157,14 @@ class SUSSelection implements SelectionOperator {
 
 function buildSelector(method: SelectionMethod): SelectionOperator {
   switch (method) {
-    case 'tournament': return new TournamentSelection();
-    case 'rank':       return new RankSelection();
-    case 'boltzmann':  return new BoltzmannSelection();
-    case 'sus':        return new SUSSelection();
+    case 'tournament':
+      return new TournamentSelection();
+    case 'rank':
+      return new RankSelection();
+    case 'boltzmann':
+      return new BoltzmannSelection();
+    case 'sus':
+      return new SUSSelection();
   }
 }
 
@@ -168,7 +176,10 @@ export type MutationMethod = 'gaussian' | 'polynomial' | 'inversion';
 
 function gaussianMutate(genome: ConcreteGenome, rate: number, sigma: number): ConcreteGenome {
   return genome.map((g) =>
-    Math.random() < rate ? g + sigma * (Math.sqrt(-2 * Math.log(Math.random())) * Math.cos(2 * Math.PI * Math.random())) : g,
+    Math.random() < rate
+      ? g +
+        sigma * (Math.sqrt(-2 * Math.log(Math.random())) * Math.cos(2 * Math.PI * Math.random()))
+      : g
   );
 }
 
@@ -179,15 +190,13 @@ function polynomialMutate(
   rate: number,
   etaM = 20,
   lo = -1,
-  hi = 1,
+  hi = 1
 ): ConcreteGenome {
   return genome.map((g) => {
     if (Math.random() >= rate) return g;
     const u = Math.random();
     const delta =
-      u < 0.5
-        ? Math.pow(2 * u, 1 / (etaM + 1)) - 1
-        : 1 - Math.pow(2 * (1 - u), 1 / (etaM + 1));
+      u < 0.5 ? Math.pow(2 * u, 1 / (etaM + 1)) - 1 : 1 - Math.pow(2 * (1 - u), 1 / (etaM + 1));
     return Math.max(lo, Math.min(hi, g + delta * (hi - lo)));
   });
 }
@@ -207,12 +216,15 @@ function inversionMutate(genome: ConcreteGenome): ConcreteGenome {
 function applyMutation(
   genome: ConcreteGenome,
   rate: number,
-  method: MutationMethod,
+  method: MutationMethod
 ): ConcreteGenome {
   switch (method) {
-    case 'gaussian':   return gaussianMutate(genome, rate, 0.1);
-    case 'polynomial': return polynomialMutate(genome, rate);
-    case 'inversion':  return Math.random() < rate ? inversionMutate(genome) : [...genome];
+    case 'gaussian':
+      return gaussianMutate(genome, rate, 0.1);
+    case 'polynomial':
+      return polynomialMutate(genome, rate);
+    case 'inversion':
+      return Math.random() < rate ? inversionMutate(genome) : [...genome];
   }
 }
 
@@ -228,9 +240,10 @@ class HallOfFame {
 
   update(population: Individual[]): void {
     for (const ind of population) {
-      const worst = this.elites.length < this.maxSize
-        ? null
-        : this.elites.reduce((w, e) => (e.fitness < w.fitness ? e : w));
+      const worst =
+        this.elites.length < this.maxSize
+          ? null
+          : this.elites.reduce((w, e) => (e.fitness < w.fitness ? e : w));
       if (worst === null || ind.fitness > worst.fitness) {
         if (worst !== null) this.elites.splice(this.elites.indexOf(worst), 1);
         this.elites.push({ ...ind, genome: [...ind.genome] });
@@ -348,7 +361,8 @@ export class GeneticAlgorithm {
       const stats = this.computeStats();
       history.push(stats);
 
-      if (this.cfg.targetFitness !== undefined && stats.bestFitness >= this.cfg.targetFitness) break;
+      if (this.cfg.targetFitness !== undefined && stats.bestFitness >= this.cfg.targetFitness)
+        break;
 
       this.population = await this.evolve();
       await this.evaluatePopulation();
@@ -391,7 +405,7 @@ export class GeneticAlgorithm {
     await Promise.all(
       this.population.map(async (ind) => {
         ind.fitness = await this.cfg.evaluateFitness(ind.genome);
-      }),
+      })
     );
   }
 
@@ -425,10 +439,20 @@ export class GeneticAlgorithm {
       g2 = applyMutation(g2, this.cfg.mutationRate, this.cfg.mutationMethod);
 
       if (nextGen.length < this.cfg.populationSize) {
-        nextGen.push({ id: uid(), genome: g1, fitness: 0, generationBorn: this.generationCount + 1 });
+        nextGen.push({
+          id: uid(),
+          genome: g1,
+          fitness: 0,
+          generationBorn: this.generationCount + 1,
+        });
       }
       if (nextGen.length < this.cfg.populationSize) {
-        nextGen.push({ id: uid(), genome: g2, fitness: 0, generationBorn: this.generationCount + 1 });
+        nextGen.push({
+          id: uid(),
+          genome: g2,
+          fitness: 0,
+          generationBorn: this.generationCount + 1,
+        });
       }
     }
 

@@ -500,5 +500,3 @@ if (typeof window !== 'undefined') {
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
 export { glbCache };
-
-

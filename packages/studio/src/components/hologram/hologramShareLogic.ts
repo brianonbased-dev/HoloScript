@@ -77,11 +77,7 @@ const HASH_PATTERN = /^[0-9a-f]{64}$/;
 export function isValidUploadResponse(v: unknown): v is UploadResponse {
   if (!v || typeof v !== 'object') return false;
   const o = v as Record<string, unknown>;
-  return (
-    typeof o.hash === 'string' &&
-    HASH_PATTERN.test(o.hash) &&
-    typeof o.written === 'boolean'
-  );
+  return typeof o.hash === 'string' && HASH_PATTERN.test(o.hash) && typeof o.written === 'boolean';
 }
 
 /**

@@ -60,12 +60,12 @@ const results = await Promise.all(targets.map((target) => compileHoloScript(ast,
 
 ### Web Platforms
 
-| Target        | Language   | Output                         |
-| ------------- | ---------- | ------------------------------ |
-| `webgpu`      | TypeScript | WebGPU compute shaders + scene |
-| `three`       | JavaScript | Three.js object tree           |
-| `babylon-web` | TypeScript | Babylon.js web deployment      |
-| `cesium`      | JavaScript | Cesium.js 3D geospatial        |
+| Target        | Language   | Output                                                                          |
+| ------------- | ---------- | ------------------------------------------------------------------------------- |
+| `webgpu`      | TypeScript | WebGPU compute shaders + scene                                                  |
+| `three`       | JavaScript | Three.js object tree                                                            |
+| `babylon-web` | TypeScript | Babylon.js web deployment                                                       |
+| `cesium`      | JavaScript | Cesium.js 3D geospatial                                                         |
 | `wasm`        | Rust / WAT | WebAssembly (.wasm module) — runs on WasmEdge, Wasmtime, browser, Node.js, Deno |
 
 ### VR/AR Platforms

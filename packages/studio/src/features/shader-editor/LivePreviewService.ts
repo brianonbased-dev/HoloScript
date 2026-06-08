@@ -75,9 +75,7 @@ function mapTargetPort(port: string, targetNodeType?: string): string {
 }
 
 /** Convert ShaderGraph (IShaderNode / IShaderConnection) to WGSLTranslator inputs. */
-function adaptShaderGraphToWGSL(
-  graph: ShaderGraph
-): { nodes: GNode[]; edges: GEdge[] } {
+function adaptShaderGraphToWGSL(graph: ShaderGraph): { nodes: GNode[]; edges: GEdge[] } {
   const nodes: GNode[] = Array.from(graph.nodes.values()).map((n) => {
     const mappedType = mapShaderNodeType(n.type);
     return {
@@ -111,7 +109,8 @@ function extractUniformsFromWGSL(wgsl: string): {
   const textures: string[] = [];
 
   // Texture bindings: @group(0) @binding(N) var uTexture_X: texture_2d<f32>;
-  const textureRegex = /@group\(0\) @binding\(\d+\) var (uTexture_[a-zA-Z0-9_]+): texture_2d<f32>;/g;
+  const textureRegex =
+    /@group\(0\) @binding\(\d+\) var (uTexture_[a-zA-Z0-9_]+): texture_2d<f32>;/g;
   let match: RegExpExecArray | null;
   while ((match = textureRegex.exec(wgsl)) !== null) {
     textures.push(match[1]);
@@ -133,10 +132,10 @@ function extractUniformsFromWGSL(wgsl: string): {
         type === 'f32'
           ? 'float'
           : type === 'mat4x4'
-          ? 'mat4'
-          : type.startsWith('vec')
-          ? type.replace('f', '') // vec2f → vec2, vec3f → vec3, vec4f → vec4
-          : type;
+            ? 'mat4'
+            : type.startsWith('vec')
+              ? type.replace('f', '') // vec2f → vec2, vec3f → vec3, vec4f → vec4
+              : type;
       uniforms.push({ name, type: mappedType });
     }
   }

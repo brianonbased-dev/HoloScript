@@ -35,24 +35,37 @@ describe('HoloMapSplatOutputTrait', () => {
     const node = makeNode();
     holomapSplatOutputHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    holomapSplatOutputHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'holomap:finalized',
-      payload: { manifest: { replayHash: 'rh-xyz' } },
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('holomap:splat_bake_requested', expect.objectContaining({
-      format: 'spz',
-      maxSplats: 500_000,
-      replayHash: 'rh-xyz',
-    }));
+    holomapSplatOutputHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'holomap:finalized',
+        payload: { manifest: { replayHash: 'rh-xyz' } },
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'holomap:splat_bake_requested',
+      expect.objectContaining({
+        format: 'spz',
+        maxSplats: 500_000,
+        replayHash: 'rh-xyz',
+      })
+    );
   });
 
   it('unrelated events are ignored', () => {
     const node = makeNode();
     holomapSplatOutputHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    holomapSplatOutputHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'some:other_event',
-    } as never);
+    holomapSplatOutputHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'some:other_event',
+      } as never
+    );
     expect(node.emit).not.toHaveBeenCalled();
   });
 });

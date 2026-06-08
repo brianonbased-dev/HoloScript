@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-classroom-demo",
-  name: "Classroom Demo",
-  description: "Interactive science demo with animated solar system and physics",
-  thumbnail: "🏫",
-  tags: ["education","classroom","demo","science"],
-  category: "education",
+  id: 'wizard-classroom-demo',
+  name: 'Classroom Demo',
+  description: 'Interactive science demo with animated solar system and physics',
+  thumbnail: '🏫',
+  tags: ['education', 'classroom', 'demo', 'science'],
+  category: 'education',
   code: `composition "Classroom Demo" {
   environment {
     skybox: "stars"
@@ -85,7 +85,7 @@ export const template: SceneTemplate = {
     color: "#111122"
     label: "Click a planet to learn more!"
   }
-}`
+}`,
 };
 
 export default template;

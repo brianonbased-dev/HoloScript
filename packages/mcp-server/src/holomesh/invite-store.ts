@@ -122,10 +122,9 @@ export class PostgresInviteStoreBackend implements InviteStoreBackend {
 
   async get(token: string): Promise<InviteRecord | undefined> {
     await this.ready;
-    const result = await this.pool.query(
-      'SELECT data FROM hololand_invites WHERE token = $1',
-      [token]
-    );
+    const result = await this.pool.query('SELECT data FROM hololand_invites WHERE token = $1', [
+      token,
+    ]);
     if (result.rows.length === 0) return undefined;
     return result.rows[0].data as InviteRecord;
   }
@@ -140,12 +139,7 @@ export class PostgresInviteStoreBackend implements InviteStoreBackend {
              expires_at = EXCLUDED.expires_at,
              claimed_at = EXCLUDED.claimed_at,
              updated_at = NOW()`,
-      [
-        invite.token,
-        JSON.stringify(invite),
-        invite.expiresAt,
-        invite.claimedAt ?? null,
-      ]
+      [invite.token, JSON.stringify(invite), invite.expiresAt, invite.claimedAt ?? null]
     );
   }
 

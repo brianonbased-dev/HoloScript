@@ -188,23 +188,27 @@
 ## Architecture Highlights
 
 ### Circuit Breaker Pattern
+
 - Prevents cascading failures
 - Automatic recovery testing
 - Configurable thresholds
 - Window-based failure tracking
 
 ### Exponential Backoff
+
 - Intelligent retry strategy
 - Jitter for load distribution
 - Configurable delays
 - Max attempt enforcement
 
 ### State Management
+
 - React Context for global config
 - Local state for hooks
 - Zustand for complex state (future)
 
 ### Type Safety
+
 - Full TypeScript coverage
 - Generic types for data
 - Automatic type inference
@@ -296,16 +300,19 @@ packages/react-agent-sdk/
 ## Integration with Existing Systems
 
 ### Phase 1: Identity & RBAC
+
 - `useAgent` accepts agent config with identity/RBAC settings
 - Provider passes authentication token
 - Per-agent configuration support
 
 ### Phase 2: Circuit Breaker
+
 - `useCircuitBreaker` hook exposes circuit breaker state
 - `useAgent` enables circuit breaker via config
 - Automatic failure tracking and recovery
 
 ### Phase 3+: Future Integration
+
 - Task execution aligns with uAA2++ protocol phases
 - Progress tracking shows current phase
 - Metrics track cycle completion
@@ -313,12 +320,15 @@ packages/react-agent-sdk/
 ## Usage Example (Demonstrates 3-Line Goal)
 
 ```tsx
-const { agent } = useAgent('brittney');                    // 1. Import hook
-const { data, loading, error } = useTask(                   // 2. Call hook
-  agent, 'generateComponent', { input: { name: 'Button' } }
+const { agent } = useAgent('brittney'); // 1. Import hook
+const { data, loading, error } = useTask(
+  // 2. Call hook
+  agent,
+  'generateComponent',
+  { input: { name: 'Button' } }
 );
 
-if (loading) return <Spinner />;                            // 3. Render result
+if (loading) return <Spinner />; // 3. Render result
 if (error) return <Error message={error.message} />;
 return <ComponentPreview data={data} />;
 ```

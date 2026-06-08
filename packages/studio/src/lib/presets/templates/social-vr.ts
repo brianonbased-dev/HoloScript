@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-social-vr",
-  name: "Social VR Space",
-  description: "Multiplayer social space with lounge areas and teleport points",
-  thumbnail: "👥",
-  tags: ["vr","social","multiplayer","lounge"],
-  category: "game",
+  id: 'wizard-social-vr',
+  name: 'Social VR Space',
+  description: 'Multiplayer social space with lounge areas and teleport points',
+  thumbnail: '👥',
+  tags: ['vr', 'social', 'multiplayer', 'lounge'],
+  category: 'game',
   code: `composition "Social Lounge" {
   environment {
     skybox: "nebula"
@@ -82,7 +82,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 0.2
     label: "Live Screen"
   }
-}`
+}`,
 };
 
 export default template;

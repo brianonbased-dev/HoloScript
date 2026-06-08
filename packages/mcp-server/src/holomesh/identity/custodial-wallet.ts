@@ -130,7 +130,7 @@ function getWrappingKey(): Buffer {
   if (!b64) {
     throw new Error(
       'custodial-wallet: HOLOMESH_KMS_WRAPPING_KEY_B64 env var required. ' +
-        'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'base64\'))"'
+        "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\""
     );
   }
   const key = Buffer.from(b64, 'base64');
@@ -258,7 +258,10 @@ export function provisionCustodialWallet(
   // Idempotent: return existing wallet if user already has one
   const existing = walletStore.get(userId);
   if (existing) {
-    return { wallet: existing, attestation: getAttestationRegistry().lookup(existing.publicKeyBase64)! };
+    return {
+      wallet: existing,
+      attestation: getAttestationRegistry().lookup(existing.publicKeyBase64)!,
+    };
   }
 
   const now = options.now ?? (() => new Date());

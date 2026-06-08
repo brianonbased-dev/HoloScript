@@ -243,11 +243,7 @@ export class AudioOcclusionSystem {
    * Uses the registered raycast provider to detect obstacles.
    * Now includes frequency-dependent filtering for realistic muffled sound.
    */
-  computeOcclusion(
-    listenPos: Vec3,
-    sourcePos: Vec3,
-    sourceId: string
-  ): OcclusionResult {
+  computeOcclusion(listenPos: Vec3, sourcePos: Vec3, sourceId: string): OcclusionResult {
     if (!this.raycastProvider) {
       return {
         sourceId,
@@ -280,8 +276,8 @@ export class AudioOcclusionSystem {
     }
 
     const ray: OcclusionRay = {
-      origin: [...listenPos ],
-      direction: [dx / dist, dy / dist, dz / dist ],
+      origin: [...listenPos],
+      direction: [dx / dist, dy / dist, dz / dist],
       maxDistance: dist,
     };
 

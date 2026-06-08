@@ -150,22 +150,22 @@ export const GEMINI_CAPABILITIES: Capabilities = {
   maxOutput: 65_536,
 
   streaming: true,
-  tools: true,                   // function calling
+  tools: true, // function calling
 
-  vision: true,                  // image input
-  videoInput: true,              // native video input — Gemini's differentiator
-  audioInput: true,              // native audio input
+  vision: true, // image input
+  videoInput: true, // native video input — Gemini's differentiator
+  audioInput: true, // native audio input
   audioOutput: true,
-  imageGeneration: true,         // Imagen
-  videoGeneration: true,         // Veo (Sora is deprecated; Veo is GA)
+  imageGeneration: true, // Imagen
+  videoGeneration: true, // Veo (Sora is deprecated; Veo is GA)
 
-  visibleReasoning: true,        // thinking
-  liveWebSearch: true,           // Search Grounding (first-party)
-  promptCaching: true,           // cached_content
-  structuredOutputs: true,       // JSON mode + response schema
-  embeddings: true,              // first-class endpoint
+  visibleReasoning: true, // thinking
+  liveWebSearch: true, // Search Grounding (first-party)
+  promptCaching: true, // cached_content
+  structuredOutputs: true, // JSON mode + response schema
+  embeddings: true, // first-class endpoint
 
-  vertexAvailable: true,         // native Vertex hosting
+  vertexAvailable: true, // native Vertex hosting
   bearerTokenAccess: true,
 };
 
@@ -402,7 +402,10 @@ export function geminiToolsFromToolSpecs(tools: ToolSpec[]): GeminiFunctionDecla
  *
  * Exported for unit-testing without live API access.
  */
-export function parseGeminiResponse(data: GeminiResponse, fallbackModel: string): LLMCompletionResponse {
+export function parseGeminiResponse(
+  data: GeminiResponse,
+  fallbackModel: string
+): LLMCompletionResponse {
   const candidate = data.candidates?.[0];
   const parts = candidate?.content?.parts ?? [];
   const usage = data.usageMetadata;
@@ -428,9 +431,8 @@ export function parseGeminiResponse(data: GeminiResponse, fallbackModel: string)
     }
   }
 
-  const finishReason = toolUses.length > 0
-    ? 'tool_use'
-    : mapGeminiFinishReason(candidate?.finishReason);
+  const finishReason =
+    toolUses.length > 0 ? 'tool_use' : mapGeminiFinishReason(candidate?.finishReason);
 
   return {
     content: textParts.join(''),

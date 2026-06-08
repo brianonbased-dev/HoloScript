@@ -115,7 +115,7 @@ export function __clearGetMemberPathCache(): void {
 export async function evaluateHoloExpression(
   expr: HoloExpression,
   scopeOverride: HoloExpressionScope | undefined,
-  ctx: HoloExpressionContext,
+  ctx: HoloExpressionContext
 ): Promise<HoloScriptValue> {
   switch (expr.type) {
     case 'Literal':
@@ -136,9 +136,7 @@ export async function evaluateHoloExpression(
       }
       const callee = await evaluateHoloExpression(expr.callee, scopeOverride, ctx);
       const args = await Promise.all(
-        expr.arguments.map((a: HoloExpression) =>
-          evaluateHoloExpression(a, scopeOverride, ctx),
-        ),
+        expr.arguments.map((a: HoloExpression) => evaluateHoloExpression(a, scopeOverride, ctx))
       );
 
       if (typeof callee === 'function') {
@@ -203,7 +201,7 @@ export async function evaluateHoloExpression(
     }
     case 'ArrayExpression': {
       return await Promise.all(
-        expr.elements.map((e) => evaluateHoloExpression(e, scopeOverride, ctx)),
+        expr.elements.map((e) => evaluateHoloExpression(e, scopeOverride, ctx))
       );
     }
     case 'ObjectExpression': {

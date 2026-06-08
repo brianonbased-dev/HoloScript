@@ -232,8 +232,7 @@ export function buildMeshToolManifest(
       ? normalizeTag(args.id)
       : deriveToolId(name, endpoint, capabilityTags);
   const targetRisk = getToolRiskLevel(endpoint.toolName);
-  const maxRisk =
-    typeof args.max_risk === 'string' ? (args.max_risk as ToolRiskLevel) : targetRisk;
+  const maxRisk = typeof args.max_risk === 'string' ? (args.max_risk as ToolRiskLevel) : targetRisk;
   const inputSchema =
     args.input_schema && typeof args.input_schema === 'object'
       ? (args.input_schema as Record<string, unknown>)
@@ -242,10 +241,14 @@ export function buildMeshToolManifest(
         : undefined;
   const allowTransitiveInvocation = args.allow_transitive_invocation === true;
   const serviceVersion = readOptionalString(args.service_version ?? args.serviceVersion);
-  const actorSessionHandoff = args.actor_session_handoff === true || args.actorSessionHandoff === true;
-  const crossMcpReceiptEnvelope = args.cross_mcp_receipt_envelope === true || args.crossMcpReceiptEnvelope === true;
+  const actorSessionHandoff =
+    args.actor_session_handoff === true || args.actorSessionHandoff === true;
+  const crossMcpReceiptEnvelope =
+    args.cross_mcp_receipt_envelope === true || args.crossMcpReceiptEnvelope === true;
   const rollbackMetadata = args.rollback_metadata === true || args.rollbackMetadata === true;
-  const sourceArtifactHash = readOptionalString(args.source_artifact_hash ?? args.sourceArtifactHash);
+  const sourceArtifactHash = readOptionalString(
+    args.source_artifact_hash ?? args.sourceArtifactHash
+  );
   const withoutAttestation: Omit<MeshToolManifest, 'attestation'> = {
     id,
     name,
@@ -497,13 +500,15 @@ export async function handleMeshToolRegistryTool(
       localInvoker: dispatch,
     });
     const hop = createMeshToolInvocationHop(manifest, toolArgs, {
-      callerAgentId: readOptionalString(args.caller_agent_id ?? args.callerAgentId)
-        ?? process.env.HOLOMESH_AGENT_NAME
-        ?? 'local-agent',
-      invocationId: readOptionalString(args.invocation_id ?? args.invocationId)
-        ?? crypto.randomUUID(),
-      invokedAt: readOptionalString(args.invoked_at ?? args.invokedAt ?? args.timestamp)
-        ?? new Date().toISOString(),
+      callerAgentId:
+        readOptionalString(args.caller_agent_id ?? args.callerAgentId) ??
+        process.env.HOLOMESH_AGENT_NAME ??
+        'local-agent',
+      invocationId:
+        readOptionalString(args.invocation_id ?? args.invocationId) ?? crypto.randomUUID(),
+      invokedAt:
+        readOptionalString(args.invoked_at ?? args.invokedAt ?? args.timestamp) ??
+        new Date().toISOString(),
       previousHash: verification.lastHash,
     });
     const provenanceChain = [...incomingChain, hop];
@@ -532,7 +537,10 @@ export async function handleMeshToolRegistryTool(
 export const MESH_TOOL_MANIFEST_PROTOCOL = TOOL_MANIFEST_PROTOCOL;
 export const MESH_TOOL_INVOCATION_PROTOCOL = TOOL_INVOCATION_PROTOCOL;
 
-function buildPublishArgs(args: Record<string, unknown>, allTools: Tool[]): Record<string, unknown> {
+function buildPublishArgs(
+  args: Record<string, unknown>,
+  allTools: Tool[]
+): Record<string, unknown> {
   const name = readOptionalString(args.name ?? args.tool_name ?? args.toolName);
   if (!name) throw new Error('tool_name is required');
   if (name === 'holomesh_publish_tool' || name === 'holomesh_invoke_tool') {
@@ -544,7 +552,8 @@ function buildPublishArgs(args: Record<string, unknown>, allTools: Tool[]): Reco
   return {
     ...args,
     name,
-    description: readOptionalString(args.description) ?? tool.description ?? `Mesh-published MCP tool ${name}`,
+    description:
+      readOptionalString(args.description) ?? tool.description ?? `Mesh-published MCP tool ${name}`,
     input_schema: readRecord(args.input_schema ?? args.inputSchema) ?? tool.inputSchema,
     endpoint: args.endpoint ?? { transport: 'local', toolName: name },
     allow_transitive_invocation: args.allow_transitive_invocation !== false,
@@ -561,13 +570,15 @@ function buildPublishArgs(args: Record<string, unknown>, allTools: Tool[]): Reco
 
 function readPublisher(args: Record<string, unknown>): MeshToolPublisher {
   return {
-    agentId: readOptionalString(args.publisher_agent_id ?? args.publisherAgentId)
-      ?? process.env.HOLOMESH_AGENT_ID
-      ?? process.env.HOLOMESH_AGENT_NAME
-      ?? 'local-agent',
-    name: readOptionalString(args.publisher_name ?? args.publisherName)
-      ?? process.env.HOLOMESH_AGENT_NAME
-      ?? 'local-agent',
+    agentId:
+      readOptionalString(args.publisher_agent_id ?? args.publisherAgentId) ??
+      process.env.HOLOMESH_AGENT_ID ??
+      process.env.HOLOMESH_AGENT_NAME ??
+      'local-agent',
+    name:
+      readOptionalString(args.publisher_name ?? args.publisherName) ??
+      process.env.HOLOMESH_AGENT_NAME ??
+      'local-agent',
   };
 }
 
@@ -586,7 +597,8 @@ function resolvePublishedTool(args: Record<string, unknown>): MeshToolManifest {
     return manifest;
   }
 
-  const query = args.capability_query ?? args.capabilityQuery ?? args.capability_tags ?? args.capabilityTags;
+  const query =
+    args.capability_query ?? args.capabilityQuery ?? args.capability_tags ?? args.capabilityTags;
   if (!query) throw new Error('capability_query, mesh_tool_id, or tool_name is required');
   const [manifest] = discoverMeshTools(query, 1);
   if (!manifest) throw new Error('No mesh-published tool matched capability_query');

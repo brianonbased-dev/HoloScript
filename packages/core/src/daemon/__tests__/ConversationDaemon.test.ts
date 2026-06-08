@@ -52,7 +52,9 @@ describe('assertDaemonFieldSeparation', () => {
     d.permissionProfile.breakGlassAllowed = true;
     d.permissionProfile.custodyScope = [];
     expect(() => assertDaemonFieldSeparation(d)).toThrow(DaemonFieldSeparationError);
-    expect(() => assertDaemonFieldSeparation(d)).toThrow('break-glass requires an explicit custodyScope');
+    expect(() => assertDaemonFieldSeparation(d)).toThrow(
+      'break-glass requires an explicit custodyScope'
+    );
   });
 
   it('does not throw when break-glass is enabled with a custodyScope', () => {
@@ -75,7 +77,9 @@ describe('assertDaemonFieldSeparation', () => {
     d.permissionProfile.autonomousMutations = true;
     d.dispatchPolicy.receiptRequired = false;
     expect(() => assertDaemonFieldSeparation(d)).toThrow(DaemonFieldSeparationError);
-    expect(() => assertDaemonFieldSeparation(d)).toThrow('autonomous mutations require receiptRequired');
+    expect(() => assertDaemonFieldSeparation(d)).toThrow(
+      'autonomous mutations require receiptRequired'
+    );
   });
 
   it('does not throw when autonomousMutations is true with receiptRequired true', () => {
@@ -102,7 +106,9 @@ describe('makeEmptyContextDelta', () => {
     const d = baseValidDaemon();
     const delta = makeEmptyContextDelta();
     // Empty turns should not forward to the Brittney field
-    expect(delta.significanceScore).toBeLessThan(d.brittneyRehydrationChannel.minimumDeltaSignificance);
+    expect(delta.significanceScore).toBeLessThan(
+      d.brittneyRehydrationChannel.minimumDeltaSignificance
+    );
   });
 });
 

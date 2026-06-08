@@ -151,9 +151,7 @@ export class SubscriptionResolver {
         errors: [
           {
             message: errMessage,
-            location: (error as Record<string, unknown>)?.location as
-              | SourceLocation
-              | undefined,
+            location: (error as Record<string, unknown>)?.location as SourceLocation | undefined,
             code: (error as Record<string, unknown>)?.code as string | undefined,
           },
         ],

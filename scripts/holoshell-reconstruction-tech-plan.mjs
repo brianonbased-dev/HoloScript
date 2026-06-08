@@ -10,7 +10,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import {
+  chainReceipt,
+  sha256Bytes,
+  sha256Text,
+  stageReceipt,
+  withHash,
+} from './holoshell/chain/receipts.mjs';
 
 export const VERSION = '0.1.0';
 export const RECEIPT_VERSION = 'holoshell-reconstruction-tech-plan/v1';
@@ -117,8 +123,7 @@ const STACK = [
     licenseRisk: 'low-to-medium',
     implementation:
       'Use the generated printable fiducial board, detect ids/corners in the untouched control frame, then solve camera pose before HoloMap.',
-    why:
-      'Inferior cameras need known geometry first. Fiducials convert a fuzzy live image into measurable corners, ids, pose, and reprojection error.',
+    why: 'Inferior cameras need known geometry first. Fiducials convert a fuzzy live image into measurable corners, ids, pose, and reprojection error.',
   },
   {
     id: 'batch-sfm-mvs',
@@ -130,8 +135,7 @@ const STACK = [
     licenseRisk: 'medium',
     implementation:
       'Export kept frames plus optional fiducial poses to a COLMAP workspace, run sparse reconstruction, then hand poses/sparse cloud to OpenMVS for dense mesh.',
-    why:
-      'This is the classic offline quality ladder when live low-res HoloMap points are not detailed enough.',
+    why: 'This is the classic offline quality ladder when live low-res HoloMap points are not detailed enough.',
   },
   {
     id: 'realtime-slam',
@@ -143,8 +147,7 @@ const STACK = [
     licenseRisk: 'high-for-closed-distribution',
     implementation:
       'Add an optional native bridge that streams frames, intrinsics, and IMU/depth when available; consume poses as HoloMap anchors.',
-    why:
-      'Live HoloMap wants persistent tracking. SLAM backends provide camera pose continuity, loop closure, and map reuse when inputs are stable.',
+    why: 'Live HoloMap wants persistent tracking. SLAM backends provide camera pose continuity, loop closure, and map reuse when inputs are stable.',
   },
   {
     id: 'mobile-native-depth',
@@ -156,8 +159,7 @@ const STACK = [
     licenseRisk: 'platform-sdk',
     implementation:
       'Define a HoloMap mobile ingest contract for RGB frame, depth map, confidence, intrinsics, and device pose; keep the laptop workflow as the degraded baseline.',
-    why:
-      'Mobile devices can give depth and pose directly. If the bad laptop camera works, native mobile depth should become the easy path.',
+    why: 'Mobile devices can give depth and pose directly. If the bad laptop camera works, native mobile depth should become the easy path.',
   },
   {
     id: 'quilt-lightfield',
@@ -169,8 +171,7 @@ const STACK = [
     licenseRisk: 'low',
     implementation:
       'Keep deterministic quilt generation as the inspection layer and quality gate before vendor-specific display/export formats.',
-    why:
-      'The quilt is already a concrete multi-view artifact; it is the fastest way to inspect parallax and view consistency.',
+    why: 'The quilt is already a concrete multi-view artifact; it is the fastest way to inspect parallax and view consistency.',
   },
   {
     id: 'mvhevc-spatial-export',
@@ -182,8 +183,7 @@ const STACK = [
     licenseRisk: 'platform-sdk',
     implementation:
       'Use the existing quilt or stereo layers to produce MV-HEVC with left/right layer ids and spatial metadata once camera baseline/FOV are known.',
-    why:
-      'This is the proper Apple Vision Pro export leg, separate from the current inspection quilt.',
+    why: 'This is the proper Apple Vision Pro export leg, separate from the current inspection quilt.',
   },
   {
     id: 'radiance-field-render',
@@ -195,8 +195,7 @@ const STACK = [
     licenseRisk: 'research-to-product-review',
     implementation:
       'After calibrated poses exist, export RGB frames plus poses to a splat trainer; re-import splats as a HoloGram render backend.',
-    why:
-      'Splatting is the high-quality visual target, but it should come after pose calibration rather than before capture truth is established.',
+    why: 'Splatting is the high-quality visual target, but it should come after pose calibration rather than before capture truth is established.',
   },
 ];
 
@@ -314,9 +313,11 @@ function classifyPriority(score) {
 }
 
 function signalsFromWorkflow(workflow) {
-  const rawQuality = workflow?.control?.frame?.rawQuality ?? workflow?.sweep?.control?.frame?.rawQuality ?? {};
+  const rawQuality =
+    workflow?.control?.frame?.rawQuality ?? workflow?.sweep?.control?.frame?.rawQuality ?? {};
   const renderQuality = workflow?.render?.quality ?? workflow?.quality ?? {};
-  const boardPose = workflow?.targetDetection?.detection?.boardPose ?? workflow?.targetDetection?.boardPose;
+  const boardPose =
+    workflow?.targetDetection?.detection?.boardPose ?? workflow?.targetDetection?.boardPose;
   const fiducialPoseSeed = workflow?.fiducialPoseSeed ?? workflow?.poseSeed;
   const fiducialCalibration = workflow?.fiducialCalibration ?? workflow?.calibration?.fiducial;
   const boardReprojectionRms = Number(boardPose?.reprojection?.rmsPixels);
@@ -335,20 +336,22 @@ function signalsFromWorkflow(workflow) {
       workflow?.target?.profile === 'fiducial-board' ||
       workflow?.capturePlan?.targetProfile === 'fiducial-board' ||
       Number(workflow?.target?.markerCount ?? 0) >= 4,
-    targetDetectionStatus: workflow?.targetDetection?.detection?.status ?? workflow?.targetDetection?.status,
+    targetDetectionStatus:
+      workflow?.targetDetection?.detection?.status ?? workflow?.targetDetection?.status,
     targetDetectedInFrame:
-      workflow?.targetDetection?.detection?.status === 'detected' || workflow?.targetDetection?.status === 'detected',
+      workflow?.targetDetection?.detection?.status === 'detected' ||
+      workflow?.targetDetection?.status === 'detected',
     recoveredMarkerCount,
     hasFiducialMarkerCorners:
-      recoveredMarkerCount >= 4 || workflow?.targetDetection?.detection?.poseSolveInputReady === true,
+      recoveredMarkerCount >= 4 ||
+      workflow?.targetDetection?.detection?.poseSolveInputReady === true,
     hasBoardHomography:
       workflow?.targetDetection?.detection?.boardHomographyReady === true ||
       boardPose?.status === 'homography-estimated',
     boardHomographyStatus: boardPose?.status,
     boardReprojectionRms: Number.isFinite(boardReprojectionRms) ? boardReprojectionRms : undefined,
     hasFiducialPoseSeed:
-      fiducialPoseSeed?.status === 'pass' ||
-      fiducialPoseSeed?.poseSeed?.poseSeedReady === true,
+      fiducialPoseSeed?.status === 'pass' || fiducialPoseSeed?.poseSeed?.poseSeedReady === true,
     fiducialPoseSeedStatus: fiducialPoseSeed?.status,
     poseSeedReprojectionRms: Number.isFinite(poseSeedRms) ? poseSeedRms : undefined,
     hasFiducialCalibration:
@@ -373,16 +376,14 @@ function signalsFromWorkflow(workflow) {
 }
 
 function buildRecommendations(signals) {
-  return STACK
-    .map((stack) => {
-      const priorityScore = scoreFromSignals(stack, signals);
-      return {
-        ...stack,
-        priorityScore,
-        priority: classifyPriority(priorityScore),
-      };
-    })
-    .sort((a, b) => b.priorityScore - a.priorityScore || a.id.localeCompare(b.id));
+  return STACK.map((stack) => {
+    const priorityScore = scoreFromSignals(stack, signals);
+    return {
+      ...stack,
+      priorityScore,
+      priority: classifyPriority(priorityScore),
+    };
+  }).sort((a, b) => b.priorityScore - a.priorityScore || a.id.localeCompare(b.id));
 }
 
 function buildNextActions(recommendations, signals) {
@@ -503,7 +504,9 @@ export function buildTechnologyPlan({ workflowReceipt, workflowPath } = {}) {
     workflowPath: workflowPath ? rel(workflowPath) : undefined,
     workflowHash: workflowPath ? fileHash(workflowPath) : workflow?.hash,
     signals,
-    recommendedNow: recommendations.filter((recommendation) => recommendation.priority === 'now').map((recommendation) => recommendation.id),
+    recommendedNow: recommendations
+      .filter((recommendation) => recommendation.priority === 'now')
+      .map((recommendation) => recommendation.id),
     recommendations,
     nextActions,
     sources: usedSources,
@@ -518,16 +521,24 @@ export function validateReceipt(receipt) {
   if (receipt.schemaVersion !== RECEIPT_VERSION) errors.push('schemaVersion mismatch');
   if (receipt.status !== 'pass') errors.push('status must be pass');
   if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
-  if (!receipt.plan?.workflowHash?.startsWith('sha256:') && receipt.plan?.workflowPath) errors.push('workflow hash missing');
+  if (!receipt.plan?.workflowHash?.startsWith('sha256:') && receipt.plan?.workflowPath)
+    errors.push('workflow hash missing');
   if (!Array.isArray(receipt.plan?.recommendations) || receipt.plan.recommendations.length < 6) {
     errors.push('recommendations missing');
   }
-  if (!Array.isArray(receipt.plan?.sources) || receipt.plan.sources.length < 6) errors.push('sources missing');
-  if (!Array.isArray(receipt.plan?.nextActions) || receipt.plan.nextActions.length < 3) errors.push('next actions missing');
-  if (!receipt.plan?.recommendations?.some((recommendation) => recommendation.id === 'fiducial-calibration')) {
+  if (!Array.isArray(receipt.plan?.sources) || receipt.plan.sources.length < 6)
+    errors.push('sources missing');
+  if (!Array.isArray(receipt.plan?.nextActions) || receipt.plan.nextActions.length < 3)
+    errors.push('next actions missing');
+  if (
+    !receipt.plan?.recommendations?.some(
+      (recommendation) => recommendation.id === 'fiducial-calibration'
+    )
+  ) {
     errors.push('fiducial calibration recommendation missing');
   }
-  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:'))
+    errors.push('chain receipt hash missing');
   return errors;
 }
 
@@ -579,7 +590,8 @@ export function buildReceipt({ workflowReceipt, workflowPath, out }) {
     outputPath: out ? rel(out) : undefined,
   });
   const errors = validateReceipt(receipt);
-  if (errors.length > 0) throw new Error(`Invalid reconstruction tech plan receipt: ${errors.join('; ')}`);
+  if (errors.length > 0)
+    throw new Error(`Invalid reconstruction tech plan receipt: ${errors.join('; ')}`);
   return receipt;
 }
 
@@ -587,7 +599,13 @@ export async function selfTest() {
   const workflowReceipt = withHash({
     schemaVersion: 'holoshell-low-camera-workflow/v1',
     status: 'pass',
-    capturePlan: { frames: 2, width: 64, height: 48, geometricTarget: true, targetProfile: 'fiducial-board' },
+    capturePlan: {
+      frames: 2,
+      width: 64,
+      height: 48,
+      geometricTarget: true,
+      targetProfile: 'fiducial-board',
+    },
     target: { profile: 'fiducial-board', pngHash: 'sha256:' + '1'.repeat(64), markerCount: 9 },
     control: {
       frame: {
@@ -623,18 +641,29 @@ async function main() {
   const workflowReceipt = readJson(workflowPath);
   const receipt = buildReceipt({ workflowReceipt, workflowPath, out: outPath });
   writeJson(outPath, receipt);
-  process.stdout.write(`${JSON.stringify({
-    status: receipt.status,
-    receiptPath: receipt.outputPath,
-    topRecommendation: receipt.plan.recommendations[0]?.id,
-    recommendedNow: receipt.plan.recommendedNow,
-    nextActions: receipt.plan.nextActions.map((action) => action.id),
-  }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        status: receipt.status,
+        receiptPath: receipt.outputPath,
+        topRecommendation: receipt.plan.recommendations[0]?.id,
+        recommendedNow: receipt.plan.recommendedNow,
+        nextActions: receipt.plan.nextActions.map((action) => action.id),
+      },
+      null,
+      2
+    )}\n`
+  );
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('holoshell-reconstruction-tech-plan.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('holoshell-reconstruction-tech-plan.mjs')
+) {
   main().catch((error) => {
-    process.stderr.write(`holoshell-reconstruction-tech-plan FAIL: ${error.stack ?? error.message}\n`);
+    process.stderr.write(
+      `holoshell-reconstruction-tech-plan FAIL: ${error.stack ?? error.message}\n`
+    );
     process.exitCode = 1;
   });
 }

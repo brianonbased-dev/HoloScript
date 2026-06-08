@@ -139,9 +139,9 @@ describe('preprocessSharedSort (JS twin) ↔ MultiviewGaussianRendererTrait.prep
   });
 
   it('FALSE: malformed positions (non-multiple-of-3 length) → throws', () => {
-    expect(() =>
-      preprocessSharedSort(new Float32Array([1, 2, 3, 4]), [])
-    ).toThrowError(/divisible by 3/);
+    expect(() => preprocessSharedSort(new Float32Array([1, 2, 3, 4]), [])).toThrowError(
+      /divisible by 3/
+    );
   });
 
   // ── TRUE cases — parity with CPU ref ────────────────────────
@@ -159,9 +159,7 @@ describe('preprocessSharedSort (JS twin) ↔ MultiviewGaussianRendererTrait.prep
 
   it('TRUE: single view looking down -Z; Gaussian in front of view is visible', () => {
     const positions = new Float32Array([0, 0, -3]); // 3 units in front
-    const views: ParityViewConfig[] = [
-      { eyePosition: [0, 0, 0], eyeDirection: [0, 0, -1] },
-    ];
+    const views: ParityViewConfig[] = [{ eyePosition: [0, 0, 0], eyeDirection: [0, 0, -1] }];
     const twin = preprocessSharedSort(positions, views);
     const ref = runCpuRef(positions, views);
     expect(Array.from(twin.visibilityBitmasks)).toEqual(Array.from(ref.visibilityBitmasks));
@@ -170,9 +168,7 @@ describe('preprocessSharedSort (JS twin) ↔ MultiviewGaussianRendererTrait.prep
 
   it('TRUE: single view looking down -Z; Gaussian BEHIND view is NOT visible (cos=-1 < 0.5)', () => {
     const positions = new Float32Array([0, 0, +3]); // 3 units behind
-    const views: ParityViewConfig[] = [
-      { eyePosition: [0, 0, 0], eyeDirection: [0, 0, -1] },
-    ];
+    const views: ParityViewConfig[] = [{ eyePosition: [0, 0, 0], eyeDirection: [0, 0, -1] }];
     const twin = preprocessSharedSort(positions, views);
     const ref = runCpuRef(positions, views);
     expect(Array.from(twin.visibilityBitmasks)).toEqual(Array.from(ref.visibilityBitmasks));
@@ -181,8 +177,12 @@ describe('preprocessSharedSort (JS twin) ↔ MultiviewGaussianRendererTrait.prep
 
   it('TRUE: 2 views; one Gaussian visible to view 0, another visible to view 1 (disjoint cones)', () => {
     const positions = new Float32Array([
-      0, 0, -3, // visible to view 0 (looking -Z)
-      0, 0, +3, // visible to view 1 (looking +Z)
+      0,
+      0,
+      -3, // visible to view 0 (looking -Z)
+      0,
+      0,
+      +3, // visible to view 1 (looking +Z)
     ]);
     const views: ParityViewConfig[] = [
       { eyePosition: [0, 0, 0], eyeDirection: [0, 0, -1] },
@@ -236,9 +236,15 @@ describe('preprocessSharedSort (JS twin) ↔ MultiviewGaussianRendererTrait.prep
   it('TRUE: sortedIndices order (back-to-front by squared distance to shared centroid)', () => {
     // Two views with centroid at origin; Gaussians on the +X axis sorted descending.
     const positions = new Float32Array([
-      5, 0, 0, // far
-      1, 0, 0, // near
-      3, 0, 0, // mid
+      5,
+      0,
+      0, // far
+      1,
+      0,
+      0, // near
+      3,
+      0,
+      0, // mid
     ]);
     const views: ParityViewConfig[] = [
       { eyePosition: [-1, 0, 0], eyeDirection: [1, 0, 0] },
@@ -254,9 +260,7 @@ describe('preprocessSharedSort (JS twin) ↔ MultiviewGaussianRendererTrait.prep
 
   it('TRUE: distances are squared (sqrt-free, monotonic with euclidean distance)', () => {
     const positions = new Float32Array([3, 4, 0]); // distance 5 from origin
-    const views: ParityViewConfig[] = [
-      { eyePosition: [0, 0, 0], eyeDirection: [0, 0, -1] },
-    ];
+    const views: ParityViewConfig[] = [{ eyePosition: [0, 0, 0], eyeDirection: [0, 0, -1] }];
     const twin = preprocessSharedSort(positions, views);
     // Centroid = view eye = (0,0,0). dist² = 9 + 16 = 25.
     expect(twin.distances[0]).toBeCloseTo(25, 5);

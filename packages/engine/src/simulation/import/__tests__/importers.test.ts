@@ -17,13 +17,7 @@ import { importStructuredPoints, importUnstructuredGrid } from '../VTKImporter';
 // ─── CSVImporter ─────────────────────────────────────────────────────────────
 
 describe('importScalarFieldCSV', () => {
-  const CSV_2x2x1 = [
-    'x,y,z,value',
-    '0,0,0,1.0',
-    '1,0,0,2.0',
-    '0,1,0,3.0',
-    '1,1,0,4.0',
-  ].join('\n');
+  const CSV_2x2x1 = ['x,y,z,value', '0,0,0,1.0', '1,0,0,2.0', '0,1,0,3.0', '1,1,0,4.0'].join('\n');
 
   it('parses a minimal 2×2×1 grid', () => {
     const { grid, range } = importScalarFieldCSV(CSV_2x2x1);
@@ -57,13 +51,7 @@ describe('importScalarFieldCSV', () => {
   });
 
   it('returns correct range min and max', () => {
-    const csv = [
-      'x,y,z,value',
-      '0,0,0,-5',
-      '1,0,0,0',
-      '0,1,0,10',
-      '1,1,0,3',
-    ].join('\n');
+    const csv = ['x,y,z,value', '0,0,0,-5', '1,0,0,0', '0,1,0,10', '1,1,0,3'].join('\n');
     const { range } = importScalarFieldCSV(csv);
     expect(range[0]).toBeCloseTo(-5);
     expect(range[1]).toBeCloseTo(10);
@@ -95,13 +83,7 @@ describe('importTableCSV', () => {
 // ─── OBJParser ───────────────────────────────────────────────────────────────
 
 describe('parseOBJ', () => {
-  const TRIANGLE_OBJ = [
-    '# simple triangle',
-    'v 0 0 0',
-    'v 1 0 0',
-    'v 0 1 0',
-    'f 1 2 3',
-  ].join('\n');
+  const TRIANGLE_OBJ = ['# simple triangle', 'v 0 0 0', 'v 1 0 0', 'v 0 1 0', 'f 1 2 3'].join('\n');
 
   it('parses a single triangle', () => {
     const mesh = parseOBJ(TRIANGLE_OBJ);
@@ -116,26 +98,15 @@ describe('parseOBJ', () => {
   });
 
   it('triangulates a quad face (4 verts → 2 triangles)', () => {
-    const obj = [
-      'v 0 0 0',
-      'v 1 0 0',
-      'v 1 1 0',
-      'v 0 1 0',
-      'f 1 2 3 4',
-    ].join('\n');
+    const obj = ['v 0 0 0', 'v 1 0 0', 'v 1 1 0', 'v 0 1 0', 'f 1 2 3 4'].join('\n');
     const mesh = parseOBJ(obj);
     expect(mesh.triangles.length).toBe(6); // 2 triangles × 3 indices
   });
 
   it('handles v/vt/vn face format', () => {
-    const obj = [
-      'v 0 0 0',
-      'v 1 0 0',
-      'v 0 1 0',
-      'vt 0 0',
-      'vn 0 0 1',
-      'f 1/1/1 2/1/1 3/1/1',
-    ].join('\n');
+    const obj = ['v 0 0 0', 'v 1 0 0', 'v 0 1 0', 'vt 0 0', 'vn 0 0 1', 'f 1/1/1 2/1/1 3/1/1'].join(
+      '\n'
+    );
     const mesh = parseOBJ(obj);
     expect(mesh.triangles.length).toBe(3);
   });
@@ -174,7 +145,13 @@ describe('parseSTL (ASCII)', () => {
   }
 
   it('parses a single-triangle ASCII STL', () => {
-    const buf = makeAsciiSTL([[[0, 0, 0], [1, 0, 0], [0, 1, 0]]]);
+    const buf = makeAsciiSTL([
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
+    ]);
     const mesh = parseSTL(buf);
     expect(mesh.triangles.length).toBe(3);
   });
@@ -182,8 +159,16 @@ describe('parseSTL (ASCII)', () => {
   it('deduplicates shared vertices', () => {
     // Two triangles sharing an edge
     const buf = makeAsciiSTL([
-      [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
-      [[1, 0, 0], [1, 1, 0], [0, 1, 0]],
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
+      [
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0],
+      ],
     ]);
     const mesh = parseSTL(buf);
     // 4 unique vertices (not 6)
@@ -192,7 +177,13 @@ describe('parseSTL (ASCII)', () => {
   });
 
   it('returns Float64Array vertices', () => {
-    const buf = makeAsciiSTL([[[0, 0, 0], [1, 0, 0], [0, 1, 0]]]);
+    const buf = makeAsciiSTL([
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
+    ]);
     const mesh = parseSTL(buf);
     expect(mesh.vertices).toBeInstanceOf(Float64Array);
   });
@@ -331,9 +322,18 @@ describe('parseGmsh', () => {
   it('returns empty tetrahedra for non-tet elements only', () => {
     // element type 1 = 2-node line — no tet4 found → GmshParser throws GMSH_UNSUPPORTED
     const text = [
-      '$MeshFormat', '2.2 0 8', '$EndMeshFormat',
-      '$Nodes', '2', '1 0 0 0', '2 1 0 0', '$EndNodes',
-      '$Elements', '1', '1 1 1 1 1 2', '$EndElements',
+      '$MeshFormat',
+      '2.2 0 8',
+      '$EndMeshFormat',
+      '$Nodes',
+      '2',
+      '1 0 0 0',
+      '2 1 0 0',
+      '$EndNodes',
+      '$Elements',
+      '1',
+      '1 1 1 1 1 2',
+      '$EndElements',
     ].join('\n');
     expect(() => parseGmsh(text)).toThrow(MeshImportError);
   });

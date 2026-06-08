@@ -56,8 +56,8 @@ function makeBlock(
     indices: new Uint32Array([0, 1, 2]),
     normals: new Float32Array([0, 1, 0]),
     bounds: {
-      min: [opts.minX ?? 0, opts.minY ?? 0, opts.minZ ?? 0 ],
-      max: [opts.maxX ?? 2, opts.maxY ?? 1, opts.maxZ ?? 2 ],
+      min: [opts.minX ?? 0, opts.minY ?? 0, opts.minZ ?? 0],
+      max: [opts.maxX ?? 2, opts.maxY ?? 1, opts.maxZ ?? 2],
     },
     semanticLabel: opts.semanticLabel,
     lastUpdated: Date.now(),
@@ -418,7 +418,7 @@ describe('RoomMeshTrait — onEvent: room_boundary_detected', () => {
     });
     ctx.emit.mockClear();
 
-    const bounds = { min: [-1, 0, -1 ], max: [4, 2.5, 5 ] };
+    const bounds = { min: [-1, 0, -1], max: [4, 2.5, 5] };
     fire(node, cfg, ctx, { type: 'room_boundary_detected', bounds });
 
     expect(st(node).roomBounds).toStrictEqual(bounds);

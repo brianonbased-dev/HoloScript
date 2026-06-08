@@ -10,16 +10,16 @@ These `.holo` files describe the React Three Fiber render pipeline stages in Hol
 
 ## Pipeline Files
 
-| File | Domain | Stages | Presets |
-|------|--------|--------|---------|
-| `post-processing.holo` | Screen-space effects | bloom, tone_mapping, SSAO, FXAA | Low, Medium, High |
-| `atmosphere.holo` | Sky, fog, scattering | sky, fog, scattering | ClearDay, Sunset, Foggy |
-| `ocean.holo` | Water surface | Gerstner waves, foam, caustics, reflection | Calm, Stormy |
-| `terrain.holo` | Biome terrain | mesh, noise, biomes, material, LOD | LowPoly, Ultra |
-| `global-illumination.holo` | GI and light probes | irradiance, reflection, AO | Low, Medium, High |
-| `vfx-particles.holo` | Particle systems | emitter, particle, forces, rendering | Fire, Smoke, Sparks, Magic |
-| `spatial-audio.holo` | 3D audio | HRTF, reverb, occlusion, VAD | Room, Hall, Outdoor |
-| `hologram.holo` | 2D-to-3D display | source, display, rendering, depth | Quilt, MV-HEVC, PointCloud |
+| File                       | Domain               | Stages                                     | Presets                    |
+| -------------------------- | -------------------- | ------------------------------------------ | -------------------------- |
+| `post-processing.holo`     | Screen-space effects | bloom, tone_mapping, SSAO, FXAA            | Low, Medium, High          |
+| `atmosphere.holo`          | Sky, fog, scattering | sky, fog, scattering                       | ClearDay, Sunset, Foggy    |
+| `ocean.holo`               | Water surface        | Gerstner waves, foam, caustics, reflection | Calm, Stormy               |
+| `terrain.holo`             | Biome terrain        | mesh, noise, biomes, material, LOD         | LowPoly, Ultra             |
+| `global-illumination.holo` | GI and light probes  | irradiance, reflection, AO                 | Low, Medium, High          |
+| `vfx-particles.holo`       | Particle systems     | emitter, particle, forces, rendering       | Fire, Smoke, Sparks, Magic |
+| `spatial-audio.holo`       | 3D audio             | HRTF, reverb, occlusion, VAD               | Room, Hall, Outdoor        |
+| `hologram.holo`            | 2D-to-3D display     | source, display, rendering, depth          | Quilt, MV-HEVC, PointCloud |
 
 ## Usage
 

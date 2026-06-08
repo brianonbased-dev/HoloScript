@@ -126,7 +126,11 @@ export class DeformableMesh {
   // Deformation
   // ---------------------------------------------------------------------------
 
-  applyImpact(center: Vector3 | { x: number; y: number; z: number }, radius: number, force: number): void {
+  applyImpact(
+    center: Vector3 | { x: number; y: number; z: number },
+    radius: number,
+    force: number
+  ): void {
     const centerV = this.toArr3(center);
     for (const v of this.vertices) {
       if (v.locked) continue;

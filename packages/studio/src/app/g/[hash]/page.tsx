@@ -77,11 +77,7 @@ export async function generateMetadata({
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function HologramPage({
-  params,
-}: {
-  params: Promise<{ hash: string }>;
-}) {
+export default async function HologramPage({ params }: { params: Promise<{ hash: string }> }) {
   const { hash } = await params;
   const result = await loadBundle(hash);
 
@@ -144,4 +140,3 @@ export default async function HologramPage({
     </main>
   );
 }
-

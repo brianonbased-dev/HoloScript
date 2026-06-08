@@ -89,7 +89,9 @@ describe('PipelineNodeCompiler', () => {
     expect(result.code).toContain('resolveTemplate');
     expect(result.code).toContain('normalizeOutputPath');
     expect(result.code).toContain('await fs.mkdir(path.dirname(outputPath), { recursive: true })');
-    expect(result.code).toContain("console.warn('[PipelineNodeCompiler] skipping empty webhook/rest sink endpoint')");
+    expect(result.code).toContain(
+      "console.warn('[PipelineNodeCompiler] skipping empty webhook/rest sink endpoint')"
+    );
   });
 
   it('compiles dotted path and array unwrap mappings for receipt pipelines', () => {

@@ -24,7 +24,7 @@ function makeFile(
   opts: {
     emitSites?: Array<{ callerId: string; eventName: string; line?: number }>;
     listenSites?: Array<{ callerId: string; eventName: string; line?: number }>;
-  } = {},
+  } = {}
 ): ScannedFile {
   return {
     path,
@@ -32,14 +32,14 @@ function makeFile(
     symbols: [],
     imports: [],
     calls: [],
-    emitSites: (opts.emitSites ?? []).map(s => ({
+    emitSites: (opts.emitSites ?? []).map((s) => ({
       callerId: s.callerId,
       eventName: s.eventName,
       filePath: path,
       line: s.line ?? 10,
       column: 4,
     })),
-    listenSites: (opts.listenSites ?? []).map(s => ({
+    listenSites: (opts.listenSites ?? []).map((s) => ({
       callerId: s.callerId,
       eventName: s.eventName,
       filePath: path,
@@ -104,8 +104,12 @@ describe('CodebaseGraph — EventEdge resolution', () => {
   });
 
   it('getEventListeners() returns listener-side of the same edge', () => {
-    const emitter  = makeFile('/a.ts', { emitSites:  [{ callerId: 'emit',   eventName: 'snn:spike' }] });
-    const listener = makeFile('/b.ts', { listenSites: [{ callerId: 'onSpike', eventName: 'snn:spike' }] });
+    const emitter = makeFile('/a.ts', {
+      emitSites: [{ callerId: 'emit', eventName: 'snn:spike' }],
+    });
+    const listener = makeFile('/b.ts', {
+      listenSites: [{ callerId: 'onSpike', eventName: 'snn:spike' }],
+    });
 
     graph.addFile(emitter);
     graph.addFile(listener);
@@ -118,8 +122,12 @@ describe('CodebaseGraph — EventEdge resolution', () => {
   });
 
   it('no edges for non-matching event names', () => {
-    const emitter  = makeFile('/a.ts', { emitSites:  [{ callerId: 'e', eventName: 'cortical:routed' }] });
-    const listener = makeFile('/b.ts', { listenSites: [{ callerId: 'l', eventName: 'pillar:slice'   }] });
+    const emitter = makeFile('/a.ts', {
+      emitSites: [{ callerId: 'e', eventName: 'cortical:routed' }],
+    });
+    const listener = makeFile('/b.ts', {
+      listenSites: [{ callerId: 'l', eventName: 'pillar:slice' }],
+    });
 
     graph.addFile(emitter);
     graph.addFile(listener);
@@ -134,9 +142,15 @@ describe('CodebaseGraph — EventEdge resolution', () => {
     const emitter = makeFile('/emitter.ts', {
       emitSites: [{ callerId: 'broadcast', eventName: 'training:tick' }],
     });
-    const l1 = makeFile('/l1.ts', { listenSites: [{ callerId: 'h1', eventName: 'training:tick' }] });
-    const l2 = makeFile('/l2.ts', { listenSites: [{ callerId: 'h2', eventName: 'training:tick' }] });
-    const l3 = makeFile('/l3.ts', { listenSites: [{ callerId: 'h3', eventName: 'training:tick' }] });
+    const l1 = makeFile('/l1.ts', {
+      listenSites: [{ callerId: 'h1', eventName: 'training:tick' }],
+    });
+    const l2 = makeFile('/l2.ts', {
+      listenSites: [{ callerId: 'h2', eventName: 'training:tick' }],
+    });
+    const l3 = makeFile('/l3.ts', {
+      listenSites: [{ callerId: 'h3', eventName: 'training:tick' }],
+    });
 
     for (const f of [emitter, l1, l2, l3]) graph.addFile(f);
     graph.buildIndexes();
@@ -146,7 +160,7 @@ describe('CodebaseGraph — EventEdge resolution', () => {
   });
 
   it('allEventNames() returns all distinct event names (emit + listen sides)', () => {
-    const a = makeFile('/a.ts', { emitSites:  [{ callerId: 'e', eventName: 'pillar:slice' }] });
+    const a = makeFile('/a.ts', { emitSites: [{ callerId: 'e', eventName: 'pillar:slice' }] });
     const b = makeFile('/b.ts', { listenSites: [{ callerId: 'l', eventName: 'cortical:routed' }] });
 
     graph.addFile(a);
@@ -159,11 +173,13 @@ describe('CodebaseGraph — EventEdge resolution', () => {
   });
 
   it('allEventNamespaces() extracts prefixes', () => {
-    const a = makeFile('/a.ts', { emitSites: [
-      { callerId: 'e1', eventName: 'pillar:slice' },
-      { callerId: 'e2', eventName: 'pillar:training_slice' },
-      { callerId: 'e3', eventName: 'snn:spike' },
-    ]});
+    const a = makeFile('/a.ts', {
+      emitSites: [
+        { callerId: 'e1', eventName: 'pillar:slice' },
+        { callerId: 'e2', eventName: 'pillar:training_slice' },
+        { callerId: 'e3', eventName: 'snn:spike' },
+      ],
+    });
     graph.addFile(a);
     graph.buildIndexes();
 
@@ -174,8 +190,12 @@ describe('CodebaseGraph — EventEdge resolution', () => {
   });
 
   it('getEventChain() returns emitters, listeners, and edges', () => {
-    const e = makeFile('/e.ts', { emitSites:  [{ callerId: 'emit', eventName: 'cortical:routed' }] });
-    const l = makeFile('/l.ts', { listenSites: [{ callerId: 'route', eventName: 'cortical:routed' }] });
+    const e = makeFile('/e.ts', {
+      emitSites: [{ callerId: 'emit', eventName: 'cortical:routed' }],
+    });
+    const l = makeFile('/l.ts', {
+      listenSites: [{ callerId: 'route', eventName: 'cortical:routed' }],
+    });
 
     graph.addFile(e);
     graph.addFile(l);
@@ -195,14 +215,29 @@ describe('CodebaseGraph — EventEdge resolution', () => {
     expect(graph.allEventNames().length).toBeGreaterThan(0);
 
     // Rebuild from empty
-    graph.buildFromScanResult({ rootDir: '/', rootDirs: ['/'], files: [], stats: { totalFiles:0, filesByLanguage:{}, totalSymbols:0, symbolsByType:{}, totalImports:0, totalCalls:0, totalLoc:0, durationMs:0, errors:[] } });
+    graph.buildFromScanResult({
+      rootDir: '/',
+      rootDirs: ['/'],
+      files: [],
+      stats: {
+        totalFiles: 0,
+        filesByLanguage: {},
+        totalSymbols: 0,
+        symbolsByType: {},
+        totalImports: 0,
+        totalCalls: 0,
+        totalLoc: 0,
+        durationMs: 0,
+        errors: [],
+      },
+    });
     expect(graph.allEventNames()).toHaveLength(0);
     expect(graph.getAllEventEdges()).toHaveLength(0);
   });
 
   it('same-file emit→listen resolves correctly', () => {
     const f = makeFile('/a.ts', {
-      emitSites:  [{ callerId: 'producer', eventName: 'local:event' }],
+      emitSites: [{ callerId: 'producer', eventName: 'local:event' }],
       listenSites: [{ callerId: 'consumer', eventName: 'local:event' }],
     });
     graph.addFile(f);

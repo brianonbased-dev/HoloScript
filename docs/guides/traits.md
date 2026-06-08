@@ -6,29 +6,29 @@ HoloScript includes **built-in traits** across source-verified categories that c
 
 ## Trait Categories Overview
 
-| Category       | Examples                                   |
-| -------------- | ------------------------------------------ |
-| Core VR        | @grabbable, @physics, @collidable          |
-| Interaction    | @clickable, @hoverable, @draggable         |
-| Visual/Effects | @glowing, @particle_system, @weather       |
-| Physics        | @rigid, @kinematic, @cloth, @fluid         |
-| Networking     | @networked, @synced, @persistent           |
-| Audio          | @spatial_audio, @ambient, @voice_activated |
-| AI/Agents      | @behavior_tree, @pathfinding, @npc         |
-| Humanoid       | @avatar, @hand_tracked, @eye_tracked       |
-| Locomotion     | @teleport, @flying, @climbing              |
-| UI             | @billboard, @tooltip, @menu                |
-| Platform       | @visionos, @quest, @webxr                  |
-| Environment    | @skybox, @terrain, @water                  |
-| Nature         | @flora, @fauna, @ecosystem                 |
-| Game           | @inventory, @health, @scoreboard           |
-| Magic/Sci-Fi   | @spell, @shield, @hologram                 |
-| Building       | @snappable, @resizable, @blueprint         |
-| Emotion/Mood   | @expression, @ambient_mood                 |
-| Social         | @voice_chat, @emote, @presence             |
-| Media          | @video_player, @screen_share               |
-| Accessibility  | @screen_reader, @haptic_guide              |
-| More categories | Browse live inventory with `list_traits`  |
+| Category        | Examples                                   |
+| --------------- | ------------------------------------------ |
+| Core VR         | @grabbable, @physics, @collidable          |
+| Interaction     | @clickable, @hoverable, @draggable         |
+| Visual/Effects  | @glowing, @particle_system, @weather       |
+| Physics         | @rigid, @kinematic, @cloth, @fluid         |
+| Networking      | @networked, @synced, @persistent           |
+| Audio           | @spatial_audio, @ambient, @voice_activated |
+| AI/Agents       | @behavior_tree, @pathfinding, @npc         |
+| Humanoid        | @avatar, @hand_tracked, @eye_tracked       |
+| Locomotion      | @teleport, @flying, @climbing              |
+| UI              | @billboard, @tooltip, @menu                |
+| Platform        | @visionos, @quest, @webxr                  |
+| Environment     | @skybox, @terrain, @water                  |
+| Nature          | @flora, @fauna, @ecosystem                 |
+| Game            | @inventory, @health, @scoreboard           |
+| Magic/Sci-Fi    | @spell, @shield, @hologram                 |
+| Building        | @snappable, @resizable, @blueprint         |
+| Emotion/Mood    | @expression, @ambient_mood                 |
+| Social          | @voice_chat, @emote, @presence             |
+| Media           | @video_player, @screen_share               |
+| Accessibility   | @screen_reader, @haptic_guide              |
+| More categories | Browse live inventory with `list_traits`   |
 
 ## Interaction Traits
 

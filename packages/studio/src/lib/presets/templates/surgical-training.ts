@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-surgical-training",
-  name: "Surgical Training",
-  description: "VR procedure practice with instrument tracking and step guidance",
-  thumbnail: "🏥",
-  tags: ["science","medical","surgery","vr","training"],
-  category: "science",
+  id: 'wizard-surgical-training',
+  name: 'Surgical Training',
+  description: 'VR procedure practice with instrument tracking and step guidance',
+  thumbnail: '🏥',
+  tags: ['science', 'medical', 'surgery', 'vr', 'training'],
+  category: 'science',
   code: `composition "Surgical Training" {
   environment {
     skybox: "studio"
@@ -111,7 +111,7 @@ export const template: SceneTemplate = {
     roughness: 0.2
     label: "Instrument Tray"
   }
-}`
+}`,
 };
 
 export default template;

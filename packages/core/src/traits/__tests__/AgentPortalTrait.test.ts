@@ -100,14 +100,14 @@ describe('onAttach', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     agentPortalHandler.onAttach(node, BASE_CONFIG, context);
-    expect(emitted.some(e => e.type === 'portal:init')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:init')).toBe(true);
   });
 
   it('portal:init payload should include sceneId', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     agentPortalHandler.onAttach(node, BASE_CONFIG, context);
-    const ev = emitted.find(e => e.type === 'portal:init');
+    const ev = emitted.find((e) => e.type === 'portal:init');
     expect((ev!.payload as any).sceneId).toBe('scene-A');
   });
 
@@ -115,7 +115,7 @@ describe('onAttach', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     agentPortalHandler.onAttach(node, BASE_CONFIG, context);
-    const ev = emitted.find(e => e.type === 'portal:init');
+    const ev = emitted.find((e) => e.type === 'portal:init');
     expect((ev!.payload as any).relayUrl).toBe(BASE_CONFIG.relay_url);
   });
 
@@ -123,7 +123,7 @@ describe('onAttach', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     agentPortalHandler.onAttach(node, BASE_CONFIG, context);
-    const ev = emitted.find(e => e.type === 'portal:init');
+    const ev = emitted.find((e) => e.type === 'portal:init');
     expect((ev!.payload as any).capabilities).toEqual(['vision', 'nlp']);
   });
 });
@@ -143,7 +143,7 @@ describe('onDetach', () => {
     const { node, config, emitted } = setup();
     const { context: ctx2, emitted: ev2 } = makeContext();
     agentPortalHandler.onDetach(node, config, ctx2);
-    expect(ev2.some(e => e.type === 'portal:disconnected')).toBe(true);
+    expect(ev2.some((e) => e.type === 'portal:disconnected')).toBe(true);
   });
 
   it('should emit portal:disconnecting if was connected', () => {
@@ -151,7 +151,7 @@ describe('onDetach', () => {
     getState(node).connected = true;
     const { context: ctx2, emitted: ev2 } = makeContext();
     agentPortalHandler.onDetach(node, config, ctx2);
-    expect(ev2.some(e => e.type === 'portal:disconnecting')).toBe(true);
+    expect(ev2.some((e) => e.type === 'portal:disconnecting')).toBe(true);
   });
 
   it('should handle detach with no state gracefully', () => {
@@ -164,7 +164,7 @@ describe('onDetach', () => {
     const { node, config } = setup();
     const { context, emitted } = makeContext();
     agentPortalHandler.onDetach(node, config, context);
-    const ev = emitted.find(e => e.type === 'portal:disconnected');
+    const ev = emitted.find((e) => e.type === 'portal:disconnected');
     expect((ev!.payload as any).reason).toBe('detached');
   });
 });
@@ -209,13 +209,13 @@ describe('portal:ws_connected', () => {
   it('should emit portal:connected', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal:ws_connected');
-    expect(emitted.some(e => e.type === 'portal:connected')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:connected')).toBe(true);
   });
 
   it('portal:connected should include sceneId', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal:ws_connected');
-    const ev = emitted.find(e => e.type === 'portal:connected');
+    const ev = emitted.find((e) => e.type === 'portal:connected');
     expect((ev!.payload as any).sceneId).toBe('scene-A');
   });
 
@@ -242,7 +242,7 @@ describe('portal:ws_connected', () => {
     });
     fire(node, config, context, 'portal:ws_connected');
     expect(state.outbox.length).toBe(0);
-    expect(emitted.some(e => e.type === 'portal:relay_send')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:relay_send')).toBe(true);
   });
 
   it('should not flush expired outbox messages', () => {
@@ -259,7 +259,7 @@ describe('portal:ws_connected', () => {
       hopCount: 0,
     });
     fire(node, config, context, 'portal:ws_connected');
-    expect(emitted.some(e => e.type === 'portal:relay_send')).toBe(false);
+    expect(emitted.some((e) => e.type === 'portal:relay_send')).toBe(false);
   });
 });
 
@@ -278,19 +278,22 @@ describe('portal:ws_disconnected', () => {
   it('should emit portal:disconnected', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal:ws_disconnected', { reason: 'timeout' });
-    expect(emitted.some(e => e.type === 'portal:disconnected')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:disconnected')).toBe(true);
   });
 
   it('should emit portal:reconnecting when auto_reconnect=true', () => {
-    const { node, config, context, emitted } = setup({ auto_reconnect: true, max_reconnect_attempts: 10 });
+    const { node, config, context, emitted } = setup({
+      auto_reconnect: true,
+      max_reconnect_attempts: 10,
+    });
     fire(node, config, context, 'portal:ws_disconnected', { reason: 'timeout' });
-    expect(emitted.some(e => e.type === 'portal:reconnecting')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:reconnecting')).toBe(true);
   });
 
   it('should NOT reconnect when auto_reconnect=false', () => {
     const { node, config, context, emitted } = setup({ auto_reconnect: false });
     fire(node, config, context, 'portal:ws_disconnected', { reason: 'manual' });
-    expect(emitted.some(e => e.type === 'portal:reconnecting')).toBe(false);
+    expect(emitted.some((e) => e.type === 'portal:reconnecting')).toBe(false);
   });
 
   it('should stop reconnecting after max_reconnect_attempts', () => {
@@ -300,7 +303,7 @@ describe('portal:ws_disconnected', () => {
     });
     getState(node).reconnectAttempts = 3;
     fire(node, config, context, 'portal:ws_disconnected', { reason: 'timeout' });
-    expect(emitted.some(e => e.type === 'portal:reconnecting')).toBe(false);
+    expect(emitted.some((e) => e.type === 'portal:reconnecting')).toBe(false);
   });
 
   it('should increment reconnectAttempts on each disconnect', () => {
@@ -323,7 +326,7 @@ describe('portal:send', () => {
       messageType: 'ping',
       data: { x: 1 },
     });
-    expect(emitted.some(e => e.type === 'portal:relay_send')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:relay_send')).toBe(true);
   });
 
   it('should queue to outbox when disconnected', () => {
@@ -343,7 +346,7 @@ describe('portal:send', () => {
       messageType: 'update',
       data: {},
     });
-    expect(emitted.some(e => e.type === 'portal:message_out')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:message_out')).toBe(true);
   });
 
   it('should respect max_outbox_size', () => {
@@ -367,7 +370,7 @@ describe('portal:send', () => {
       data: {},
       correlationId: 'corr-123',
     });
-    const ev = emitted.find(e => e.type === 'portal:relay_send');
+    const ev = emitted.find((e) => e.type === 'portal:relay_send');
     expect((ev!.payload as any).correlationId).toBe('corr-123');
   });
 
@@ -397,7 +400,7 @@ describe('portal:broadcast', () => {
     const { node, config, context, emitted } = setup();
     getState(node).connected = true;
     fire(node, config, context, 'portal:broadcast', { messageType: 'announce', data: 'hello' });
-    expect(emitted.some(e => e.type === 'portal:relay_send')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:relay_send')).toBe(true);
   });
 
   it('should queue to outbox when disconnected', () => {
@@ -410,7 +413,7 @@ describe('portal:broadcast', () => {
     const { node, config, context, emitted } = setup();
     getState(node).connected = true;
     fire(node, config, context, 'portal:broadcast', { messageType: 'all', data: {} });
-    const ev = emitted.find(e => e.type === 'portal:relay_send');
+    const ev = emitted.find((e) => e.type === 'portal:relay_send');
     expect((ev!.payload as any).to).toBeNull();
   });
 });
@@ -508,7 +511,7 @@ describe('portal:scene_announce', () => {
       sceneName: 'Scene B',
       agentCount: 1,
     });
-    expect(emitted.some(e => e.type === 'portal:scene_discovered')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:scene_discovered')).toBe(true);
   });
 
   it('should NOT emit scene_discovered for repeat announce', () => {
@@ -524,7 +527,7 @@ describe('portal:scene_announce', () => {
       sceneName: 'B',
       agentCount: 2,
     });
-    expect(emitted.some(e => e.type === 'portal:scene_discovered')).toBe(false);
+    expect(emitted.some((e) => e.type === 'portal:scene_discovered')).toBe(false);
   });
 
   it('should update agentCount on re-announce', () => {
@@ -543,7 +546,7 @@ describe('portal:query_agents', () => {
   it('should emit portal:federation_query', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal:query_agents', { capability: 'nlp' });
-    expect(emitted.some(e => e.type === 'portal:federation_query')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:federation_query')).toBe(true);
   });
 
   it('should return agents matching capability', () => {
@@ -555,7 +558,7 @@ describe('portal:query_agents', () => {
     fire(node, config, context, 'portal:remote_agents', { agents });
     emitted.length = 0;
     fire(node, config, context, 'portal:query_agents', { capability: 'nlp' });
-    const ev = emitted.find(e => e.type === 'portal:federation_query');
+    const ev = emitted.find((e) => e.type === 'portal:federation_query');
     expect((ev!.payload as any).results.length).toBe(1);
     expect((ev!.payload as any).results[0].agentId).toBe('b1');
   });
@@ -569,7 +572,7 @@ describe('portal:query_agents', () => {
     fire(node, config, context, 'portal:remote_agents', { agents });
     emitted.length = 0;
     fire(node, config, context, 'portal:query_agents', {});
-    const ev = emitted.find(e => e.type === 'portal:federation_query');
+    const ev = emitted.find((e) => e.type === 'portal:federation_query');
     expect((ev!.payload as any).results.length).toBe(2);
   });
 
@@ -577,7 +580,7 @@ describe('portal:query_agents', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal:scene_announce', { sceneId: 'B', agentCount: 1 });
     fire(node, config, context, 'portal:query_agents', {});
-    const ev = emitted.find(e => e.type === 'portal:federation_query');
+    const ev = emitted.find((e) => e.type === 'portal:federation_query');
     expect((ev!.payload as any).totalScenes).toBe(1);
   });
 });
@@ -626,7 +629,7 @@ describe('agent migration', () => {
       state: {},
       targetScene: 'scene-B',
     });
-    expect(emitted.some(e => e.type === 'portal:agent_migrated')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:agent_migrated')).toBe(true);
   });
 
   it('should send relay message on migrate_out when connected', () => {
@@ -640,7 +643,7 @@ describe('agent migration', () => {
       state: {},
       targetScene: 'scene-B',
     });
-    expect(emitted.some(e => e.type === 'portal:relay_send')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:relay_send')).toBe(true);
   });
 
   it('should queue migration to outbox when disconnected', () => {
@@ -710,20 +713,20 @@ describe('portal:get_stats', () => {
   it('should emit portal:stats', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal:get_stats');
-    expect(emitted.some(e => e.type === 'portal:stats')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:stats')).toBe(true);
   });
 
   it('stats should include connected field', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal:get_stats');
-    const ev = emitted.find(e => e.type === 'portal:stats');
-    expect((ev!.payload as any)).toHaveProperty('connected');
+    const ev = emitted.find((e) => e.type === 'portal:stats');
+    expect(ev!.payload as any).toHaveProperty('connected');
   });
 
   it('stats should include totalSent and totalReceived', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal:get_stats');
-    const ev = emitted.find(e => e.type === 'portal:stats');
+    const ev = emitted.find((e) => e.type === 'portal:stats');
     const p = ev!.payload as any;
     expect(p).toHaveProperty('totalSent');
     expect(p).toHaveProperty('totalReceived');
@@ -734,7 +737,7 @@ describe('portal:get_stats', () => {
     fire(node, config, context, 'portal:scene_announce', { sceneId: 'B', agentCount: 1 });
     emitted.length = 0;
     fire(node, config, context, 'portal:get_stats');
-    const ev = emitted.find(e => e.type === 'portal:stats');
+    const ev = emitted.find((e) => e.type === 'portal:stats');
     expect((ev!.payload as any).sceneCount).toBe(1);
   });
 });
@@ -749,20 +752,20 @@ describe('onUpdate — heartbeat', () => {
     getState(node).connected = true;
     // Advance by heartbeat_interval / 1000 seconds
     agentPortalHandler.onUpdate(node, config, context, 30); // 30s
-    expect(emitted.some(e => e.type === 'portal:heartbeat')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:heartbeat')).toBe(true);
   });
 
   it('should NOT emit heartbeat before interval', () => {
     const { node, config, context, emitted } = setup({ heartbeat_interval: 30000 });
     getState(node).connected = true;
     agentPortalHandler.onUpdate(node, config, context, 0.016);
-    expect(emitted.some(e => e.type === 'portal:heartbeat')).toBe(false);
+    expect(emitted.some((e) => e.type === 'portal:heartbeat')).toBe(false);
   });
 
   it('should NOT emit heartbeat when disconnected', () => {
     const { node, config, context, emitted } = setup({ heartbeat_interval: 1000 });
     agentPortalHandler.onUpdate(node, config, context, 2);
-    expect(emitted.some(e => e.type === 'portal:heartbeat')).toBe(false);
+    expect(emitted.some((e) => e.type === 'portal:heartbeat')).toBe(false);
   });
 
   it('should process inbox messages on update', () => {
@@ -780,7 +783,7 @@ describe('onUpdate — heartbeat', () => {
     });
     agentPortalHandler.onUpdate(node, config, context, 0.016);
     expect(state.inbox.length).toBe(0);
-    expect(emitted.some(e => e.type === 'portal:message_in')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:message_in')).toBe(true);
   });
 
   it('should skip expired inbox messages', () => {
@@ -797,7 +800,7 @@ describe('onUpdate — heartbeat', () => {
       hopCount: 0,
     });
     agentPortalHandler.onUpdate(node, config, context, 0.016);
-    expect(emitted.some(e => e.type === 'portal:message_in')).toBe(false);
+    expect(emitted.some((e) => e.type === 'portal:message_in')).toBe(false);
   });
 
   it('should deliver pending migrations on update', () => {
@@ -814,7 +817,7 @@ describe('onUpdate — heartbeat', () => {
       timestamp: Date.now(),
     });
     agentPortalHandler.onUpdate(node, config, context, 0.016);
-    expect(emitted.some(e => e.type === 'portal:agent_arrived')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:agent_arrived')).toBe(true);
     expect(state.pendingMigrations.length).toBe(0);
   });
 
@@ -834,7 +837,7 @@ describe('onUpdate — heartbeat', () => {
     });
     agentPortalHandler.onUpdate(node, config, context, 0.016);
     expect(state.scenes.has('dead-scene')).toBe(false);
-    expect(emitted.some(e => e.type === 'portal:scene_lost')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal:scene_lost')).toBe(true);
   });
 
   it('should not throw if no state on update', () => {

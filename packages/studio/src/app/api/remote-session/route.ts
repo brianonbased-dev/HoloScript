@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
   return Response.json({ ok: true, device });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

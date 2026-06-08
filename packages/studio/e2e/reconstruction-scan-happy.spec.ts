@@ -12,7 +12,10 @@ const STUDIO_SCAN_DEFAULT_MODEL_HASH = 'studio-room-scan-mvp';
 test.describe.serial('Reconstruction scan session', () => {
   test.setTimeout(180_000);
 
-  test('mobile upload completes with deterministic replay fingerprint', async ({ page, request }) => {
+  test('mobile upload completes with deterministic replay fingerprint', async ({
+    page,
+    request,
+  }) => {
     const create = await request.post('/api/reconstruction/session', {
       data: { weightStrategy: 'distill' },
       timeout: 30_000,
@@ -33,7 +36,9 @@ test.describe.serial('Reconstruction scan session', () => {
       buffer: videoBody,
     });
 
-    await expect(page.getByText(/Mesh captured\. Return to desktop Studio/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Mesh captured\. Return to desktop Studio/i)).toBeVisible({
+      timeout: 30_000,
+    });
 
     let replayFingerprint: string | undefined;
     for (let i = 0; i < 60; i += 1) {

@@ -44,7 +44,7 @@ describe('AccountExportArchiveVerifier', () => {
         [
           makeFileInput({ path: 'takeout/mail/inbox.mbox', content: Buffer.from('emails') }),
           makeFileInput({ path: 'takeout/photos/album.zip', content: Buffer.from('photos') }),
-        ],
+        ]
       );
 
       expect(result.payload.verificationResult).toBe('verified_with_warnings');
@@ -63,7 +63,7 @@ describe('AccountExportArchiveVerifier', () => {
         [
           makeFileInput({ path: 'takeout/mail/inbox.mbox', content: Buffer.from('emails') }),
           makeFileInput({ path: 'malware/install.exe', content: Buffer.from('malicious') }),
-        ],
+        ]
       );
 
       expect(result.payload.verificationResult).toBe('failed_executable_detected');
@@ -76,13 +76,11 @@ describe('AccountExportArchiveVerifier', () => {
 
     it('allows executables when blockOnExecutables is false', () => {
       const verifier = new AccountExportArchiveVerifier(
-        makeVerifierConfig({ blockOnExecutables: false }),
+        makeVerifierConfig({ blockOnExecutables: false })
       );
       const result = verifier.verify(
         [makePartInput()],
-        [
-          makeFileInput({ path: 'tool/setup.exe', content: Buffer.from('setup') }),
-        ],
+        [makeFileInput({ path: 'tool/setup.exe', content: Buffer.from('setup') })]
       );
 
       expect(result.payload.executablesDetected).toBe(true);
@@ -100,7 +98,7 @@ describe('AccountExportArchiveVerifier', () => {
           makeFileInput({ path: 'secrets/passwords.txt', content: Buffer.from('passwords') }),
           makeFileInput({ path: 'photos/vacation.jpg', content: Buffer.from('photo data') }),
           makeFileInput({ path: 'public/readme.txt', content: Buffer.from('readme') }),
-        ],
+        ]
       );
 
       const manifest = result.payload.fileManifest;
@@ -126,7 +124,7 @@ describe('AccountExportArchiveVerifier', () => {
         [
           makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') }),
           makeFileInput({ path: 'b.txt', content: Buffer.from('bbb') }),
-        ],
+        ]
       );
 
       const result2 = verifier.verify(
@@ -134,7 +132,7 @@ describe('AccountExportArchiveVerifier', () => {
         [
           makeFileInput({ path: 'b.txt', content: Buffer.from('bbb') }),
           makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') }),
-        ],
+        ]
       );
 
       // Same files in different order should produce the same archive hash
@@ -148,9 +146,7 @@ describe('AccountExportArchiveVerifier', () => {
           makePartInput({ partIndex: 0, totalParts: 2, content: Buffer.from('part0') }),
           makePartInput({ partIndex: 1, totalParts: 2, content: Buffer.from('part1') }),
         ],
-        [
-          makeFileInput({ path: 'data.json', content: Buffer.from('{}') }),
-        ],
+        [makeFileInput({ path: 'data.json', content: Buffer.from('{}') })]
       );
 
       expect(result.payload.totalParts).toBe(2);
@@ -169,7 +165,7 @@ describe('AccountExportArchiveVerifier', () => {
             expectedSizeBytes: 999, // actual is 7 bytes
           }),
         ],
-        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })],
+        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })]
       );
 
       expect(result.payload.parts[0].status).toBe('present_size_mismatch');
@@ -180,12 +176,10 @@ describe('AccountExportArchiveVerifier', () => {
 
     it('appends receipt to ledger when provided', () => {
       const ledger = new TrustLedger();
-      const verifier = new AccountExportArchiveVerifier(
-        makeVerifierConfig({ ledger }),
-      );
+      const verifier = new AccountExportArchiveVerifier(makeVerifierConfig({ ledger }));
       verifier.verify(
         [makePartInput()],
-        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })],
+        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })]
       );
 
       const receipts = ledger.query({});
@@ -195,12 +189,10 @@ describe('AccountExportArchiveVerifier', () => {
 
     it('produces a receipt that validates against TrustReceipt schema', () => {
       const ledger = new TrustLedger();
-      const verifier = new AccountExportArchiveVerifier(
-        makeVerifierConfig({ ledger }),
-      );
+      const verifier = new AccountExportArchiveVerifier(makeVerifierConfig({ ledger }));
       verifier.verify(
         [makePartInput()],
-        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })],
+        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })]
       );
 
       const receipts = ledger.query({});
@@ -212,7 +204,7 @@ describe('AccountExportArchiveVerifier', () => {
       const verifier = new AccountExportArchiveVerifier(makeVerifierConfig());
       const result = verifier.verify(
         [makePartInput()],
-        [makeFileInput({ path: 'lib/dependency.dll', content: Buffer.from('dll content') })],
+        [makeFileInput({ path: 'lib/dependency.dll', content: Buffer.from('dll content') })]
       );
 
       expect(result.payload.executablesDetected).toBe(true);
@@ -223,7 +215,7 @@ describe('AccountExportArchiveVerifier', () => {
       const verifier = new AccountExportArchiveVerifier(makeVerifierConfig());
       const result = verifier.verify(
         [makePartInput()],
-        [makeFileInput({ path: 'scripts/setup.ps1', content: Buffer.from('powershell script') })],
+        [makeFileInput({ path: 'scripts/setup.ps1', content: Buffer.from('powershell script') })]
       );
 
       expect(result.payload.executablesDetected).toBe(true);
@@ -231,11 +223,11 @@ describe('AccountExportArchiveVerifier', () => {
 
     it('respects custom additional executable extensions', () => {
       const verifier = new AccountExportArchiveVerifier(
-        makeVerifierConfig({ additionalExecutableExtensions: ['.wasm'] }),
+        makeVerifierConfig({ additionalExecutableExtensions: ['.wasm'] })
       );
       const result = verifier.verify(
         [makePartInput()],
-        [makeFileInput({ path: 'module/codec.wasm', content: Buffer.from('wasm binary') })],
+        [makeFileInput({ path: 'module/codec.wasm', content: Buffer.from('wasm binary') })]
       );
 
       expect(result.payload.executablesDetected).toBe(true);
@@ -246,9 +238,7 @@ describe('AccountExportArchiveVerifier', () => {
       const verifier = new AccountExportArchiveVerifier(makeVerifierConfig());
       const result = verifier.verify(
         [makePartInput()],
-        [
-          makeFileInput({ path: 'takeout/mail/inbox.mbox', content: Buffer.from('emails') }),
-        ],
+        [makeFileInput({ path: 'takeout/mail/inbox.mbox', content: Buffer.from('emails') })]
       );
 
       expect(result.payload.sensitivityBlockShare).toBe(true);
@@ -266,7 +256,7 @@ describe('AccountExportArchiveVerifier', () => {
         [
           makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') }),
           makeFileInput({ path: 'b.txt', content: Buffer.from('bbb') }),
-        ],
+        ]
       );
 
       // Then replay with same files
@@ -278,7 +268,7 @@ describe('AccountExportArchiveVerifier', () => {
         ],
         'integrity_check',
         'trust_2026-05-18T12-00-00_abc123',
-        '2026-05-18T12:00:00Z',
+        '2026-05-18T12:00:00Z'
       );
 
       expect(replayResult.payload.replayOutcome).toBe('match');
@@ -296,13 +286,12 @@ describe('AccountExportArchiveVerifier', () => {
 
       const originalResult = verifier.verify(
         [makePartInput()],
-        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })],
+        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })]
       );
 
-      const replayResult = verifier.replay(
-        originalResult.payload,
-        [makeFileInput({ path: 'a.txt', content: Buffer.from('CHANGED') })],
-      );
+      const replayResult = verifier.replay(originalResult.payload, [
+        makeFileInput({ path: 'a.txt', content: Buffer.from('CHANGED') }),
+      ]);
 
       expect(replayResult.payload.replayOutcome).toBe('mismatch_corrupt');
       expect(replayResult.payload.fileContentMatch).toBe(false);
@@ -319,16 +308,18 @@ describe('AccountExportArchiveVerifier', () => {
         [
           makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') }),
           makeFileInput({ path: 'b.txt', content: Buffer.from('bbb') }),
-        ],
+        ]
       );
 
       const replayResult = verifier.replay(
         originalResult.payload,
-        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })], // b.txt missing
+        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })] // b.txt missing
       );
 
       expect(replayResult.payload.filesMissing).toBe(1);
-      expect(replayResult.payload.diffEntries.some((d) => d.diffType === 'missing_in_replay')).toBe(true);
+      expect(replayResult.payload.diffEntries.some((d) => d.diffType === 'missing_in_replay')).toBe(
+        true
+      );
     });
 
     it('detects extra files in replay', () => {
@@ -336,19 +327,18 @@ describe('AccountExportArchiveVerifier', () => {
 
       const originalResult = verifier.verify(
         [makePartInput()],
-        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })],
+        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })]
       );
 
-      const replayResult = verifier.replay(
-        originalResult.payload,
-        [
-          makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') }),
-          makeFileInput({ path: 'new.txt', content: Buffer.from('new content') }),
-        ],
-      );
+      const replayResult = verifier.replay(originalResult.payload, [
+        makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') }),
+        makeFileInput({ path: 'new.txt', content: Buffer.from('new content') }),
+      ]);
 
       expect(replayResult.payload.filesExtra).toBe(1);
-      expect(replayResult.payload.diffEntries.some((d) => d.diffType === 'extra_in_replay')).toBe(true);
+      expect(replayResult.payload.diffEntries.some((d) => d.diffType === 'extra_in_replay')).toBe(
+        true
+      );
     });
 
     it('detects sensitivity drift', () => {
@@ -356,14 +346,14 @@ describe('AccountExportArchiveVerifier', () => {
 
       const originalResult = verifier.verify(
         [makePartInput()],
-        [makeFileInput({ path: 'data/file.txt', content: Buffer.from('data') })],
+        [makeFileInput({ path: 'data/file.txt', content: Buffer.from('data') })]
       );
 
       // Replay with a file that has "password" in its path (sensitivity drift)
       const replayResult = verifier.replay(
         originalResult.payload,
         [makeFileInput({ path: 'data/password_file.txt', content: Buffer.from('data') })],
-        'integrity_check',
+        'integrity_check'
       );
 
       // Note: this won't be a true drift test since we changed the path,
@@ -374,13 +364,11 @@ describe('AccountExportArchiveVerifier', () => {
 
     it('produces valid receipt input for replay', () => {
       const ledger = new TrustLedger();
-      const verifier = new AccountExportArchiveVerifier(
-        makeVerifierConfig({ ledger }),
-      );
+      const verifier = new AccountExportArchiveVerifier(makeVerifierConfig({ ledger }));
 
       const originalResult = verifier.verify(
         [makePartInput()],
-        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })],
+        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })]
       );
 
       const replayResult = verifier.replay(
@@ -388,7 +376,7 @@ describe('AccountExportArchiveVerifier', () => {
         [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })],
         'integrity_check',
         'trust_2026-05-18T12-00-00_abc123',
-        '2026-05-18T12:00:00Z',
+        '2026-05-18T12:00:00Z'
       );
 
       expect(replayResult.receiptInput.action.name).toBe('account_export_archive_replay');
@@ -397,13 +385,11 @@ describe('AccountExportArchiveVerifier', () => {
 
     it('appends replay receipt to ledger when provided', () => {
       const ledger = new TrustLedger();
-      const verifier = new AccountExportArchiveVerifier(
-        makeVerifierConfig({ ledger }),
-      );
+      const verifier = new AccountExportArchiveVerifier(makeVerifierConfig({ ledger }));
 
       const originalResult = verifier.verify(
         [makePartInput()],
-        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })],
+        [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })]
       );
 
       verifier.replay(
@@ -411,7 +397,7 @@ describe('AccountExportArchiveVerifier', () => {
         [makeFileInput({ path: 'a.txt', content: Buffer.from('aaa') })],
         'integrity_check',
         'trust_2026-05-18T12-00-00_abc123',
-        '2026-05-18T12:00:00Z',
+        '2026-05-18T12:00:00Z'
       );
 
       const receipts = ledger.query({});

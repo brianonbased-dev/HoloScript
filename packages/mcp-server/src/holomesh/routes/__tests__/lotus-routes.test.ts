@@ -19,7 +19,11 @@ import { handleLotusRoutes } from '../lotus-routes';
 
 // ── Mock request/response helpers ─────────────────────────────────────────────
 
-function makeRequest(url: string, method = 'GET', headers: Record<string, string> = {}): http.IncomingMessage {
+function makeRequest(
+  url: string,
+  method = 'GET',
+  headers: Record<string, string> = {}
+): http.IncomingMessage {
   const req = new EventEmitter() as unknown as http.IncomingMessage;
   req.method = method;
   req.url = url;
@@ -27,18 +31,27 @@ function makeRequest(url: string, method = 'GET', headers: Record<string, string
   return req;
 }
 
-function makeResponse(): { res: http.ServerResponse; getBody: () => string; headers: Record<string, string | string[] | undefined>; statusCode: number } {
+function makeResponse(): {
+  res: http.ServerResponse;
+  getBody: () => string;
+  headers: Record<string, string | string[] | undefined>;
+  statusCode: number;
+} {
   const headers: Record<string, string | string[] | undefined> = {};
   let statusCode = 200;
   let body = '';
 
   const res = {
-    setHeader: vi.fn((name: string, value: string | string[] | number) => { headers[name] = String(value); }),
+    setHeader: vi.fn((name: string, value: string | string[] | number) => {
+      headers[name] = String(value);
+    }),
     writeHead: vi.fn((status: number, hdrs?: Record<string, string>) => {
       statusCode = status;
       if (hdrs) Object.assign(headers, hdrs);
     }),
-    end: vi.fn((data?: string | Buffer) => { if (typeof data === 'string') body = data; }),
+    end: vi.fn((data?: string | Buffer) => {
+      if (typeof data === 'string') body = data;
+    }),
   } as unknown as http.ServerResponse;
 
   return { res, getBody: () => body, headers, statusCode };

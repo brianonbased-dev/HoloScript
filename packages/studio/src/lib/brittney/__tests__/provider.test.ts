@@ -138,10 +138,21 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
 
   beforeEach(() => {
     process.env = { ...origEnv };
-    for (const k of ['BRITTNEY_PROVIDER', 'BRITTNEY_MODEL', 'BRITTNEY_MAX_TOKENS',
-      'ANTHROPIC_API_KEY', 'OLLAMA_HOST', 'OLLAMA_BASE_URL', 'BRITTNEY_SERVICE_URL',
-      'BRITTNEY_FLEET_MODEL', 'FLEET_INFERENCE_KEY', 'BRITTNEY_FLEET_ORCH_URL',
-      'BRITTNEY_FLEET_RESOLVE_KEY', 'HOLOSCRIPT_API_KEY']) delete process.env[k];
+    for (const k of [
+      'BRITTNEY_PROVIDER',
+      'BRITTNEY_MODEL',
+      'BRITTNEY_MAX_TOKENS',
+      'ANTHROPIC_API_KEY',
+      'OLLAMA_HOST',
+      'OLLAMA_BASE_URL',
+      'BRITTNEY_SERVICE_URL',
+      'BRITTNEY_FLEET_MODEL',
+      'FLEET_INFERENCE_KEY',
+      'BRITTNEY_FLEET_ORCH_URL',
+      'BRITTNEY_FLEET_RESOLVE_KEY',
+      'HOLOSCRIPT_API_KEY',
+    ])
+      delete process.env[k];
   });
   afterEach(() => {
     process.env = { ...origEnv };
@@ -149,7 +160,10 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
   });
 
   const stubResolve = (resp: unknown, ok = true) =>
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok, json: async () => resp })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok, json: async () => resp }))
+    );
 
   it('resolves fleet when warm (BRITTNEY_PROVIDER=fleet)', async () => {
     process.env.BRITTNEY_PROVIDER = 'fleet';

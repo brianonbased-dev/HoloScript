@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  InMemoryHoloDocumentStore,
-  RefusableMutationController,
-} from '../mutations.js';
+import { InMemoryHoloDocumentStore, RefusableMutationController } from '../mutations.js';
 
 describe('RefusableMutationController', () => {
   it('returns an edit_holo diff preview without applying until confirm', async () => {

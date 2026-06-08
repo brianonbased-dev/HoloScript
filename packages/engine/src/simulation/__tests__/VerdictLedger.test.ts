@@ -85,18 +85,30 @@ describe('VerdictLedger — temporal, assumption-bound verdicts (knowledge is fl
         overturnedAssumption: 'assumption B', // never depended on
         reason: 'irrelevant',
         timestamp: '2026-01-01T00:00:00Z',
-      }),
+      })
     ).toThrow(/did not depend on it/);
   });
 
   it('entry keys are deterministic', () => {
-    const a = recordVerdict({ claimId: 'C.K', status: 'survived', assumptions: ['a'], timestamp: '2026-01-01T00:00:00Z' });
-    const b = recordVerdict({ claimId: 'C.K', status: 'survived', assumptions: ['a'], timestamp: '2026-01-01T00:00:00Z' });
+    const a = recordVerdict({
+      claimId: 'C.K',
+      status: 'survived',
+      assumptions: ['a'],
+      timestamp: '2026-01-01T00:00:00Z',
+    });
+    const b = recordVerdict({
+      claimId: 'C.K',
+      status: 'survived',
+      assumptions: ['a'],
+      timestamp: '2026-01-01T00:00:00Z',
+    });
     expect(a.current.entryKey).toBe(b.current.entryKey);
   });
 
   it('rejects empty claimId / timestamp', () => {
-    expect(() => recordVerdict({ claimId: '', status: 'undecided', timestamp: '2026-01-01T00:00:00Z' })).toThrow();
+    expect(() =>
+      recordVerdict({ claimId: '', status: 'undecided', timestamp: '2026-01-01T00:00:00Z' })
+    ).toThrow();
     expect(() => recordVerdict({ claimId: 'C', status: 'undecided', timestamp: '' })).toThrow();
   });
 });

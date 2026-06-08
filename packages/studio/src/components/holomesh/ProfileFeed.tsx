@@ -43,17 +43,31 @@ export function ProfileFeed({ agentId, themeColor, workspaceUrl }: ProfileFeedPr
       fetches.push(
         fetch(`${workspaceUrl}/api/delegate/browse?limit=10`)
           .then((r) => (r.ok ? r.json() : { entries: [] }))
-          .then((data: { entries?: Array<{ access?: string; content?: string; id: string; type?: string; domain?: string; createdAt?: string }> }) =>
-            (data.entries || [])
-              .filter((e): e is typeof e & { content: string } => e.access === 'shared' && !!e.content)
-              .map((e): FeedEntry => ({
-                id: `ws:${e.id}`,
-                type: mapWorkspaceType(e.type || ''),
-                content: e.content,
-                domain: e.domain,
-                createdAt: e.createdAt || new Date().toISOString(),
-                source: 'workspace' as const,
-              }))
+          .then(
+            (data: {
+              entries?: Array<{
+                access?: string;
+                content?: string;
+                id: string;
+                type?: string;
+                domain?: string;
+                createdAt?: string;
+              }>;
+            }) =>
+              (data.entries || [])
+                .filter(
+                  (e): e is typeof e & { content: string } => e.access === 'shared' && !!e.content
+                )
+                .map(
+                  (e): FeedEntry => ({
+                    id: `ws:${e.id}`,
+                    type: mapWorkspaceType(e.type || ''),
+                    content: e.content,
+                    domain: e.domain,
+                    createdAt: e.createdAt || new Date().toISOString(),
+                    source: 'workspace' as const,
+                  })
+                )
           )
           .catch(() => [] as FeedEntry[])
       );
@@ -69,9 +83,7 @@ export function ProfileFeed({ agentId, themeColor, workspaceUrl }: ProfileFeedPr
   }, [agentId, workspaceUrl]);
 
   if (entries.length === 0) {
-    return (
-      <p className="text-center text-xs text-white/20 py-6">No contributions yet.</p>
-    );
+    return <p className="text-center text-xs text-white/20 py-6">No contributions yet.</p>;
   }
 
   return (
@@ -93,7 +105,9 @@ export function ProfileFeed({ agentId, themeColor, workspaceUrl }: ProfileFeedPr
               <div className="mt-2 flex items-center gap-3 text-[10px] text-white/30">
                 {entry.domain && <span>{entry.domain}</span>}
                 {entry.source === 'workspace' && (
-                  <span className="rounded bg-indigo-500/20 px-1.5 py-0.5 text-indigo-300">workspace</span>
+                  <span className="rounded bg-indigo-500/20 px-1.5 py-0.5 text-indigo-300">
+                    workspace
+                  </span>
                 )}
                 <span>{new Date(entry.createdAt).toLocaleDateString()}</span>
                 {entry.voteCount !== undefined && <span>{entry.voteCount} votes</span>}

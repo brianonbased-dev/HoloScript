@@ -6,8 +6,16 @@ function makeNode(
   id: string,
   type: string,
   category: string,
-  inputs: Array<{ id: string; label: string; type: 'float' | 'vec3' | 'color' | 'texture' | 'bool' | 'string' }> = [],
-  outputs: Array<{ id: string; label: string; type: 'float' | 'vec3' | 'color' | 'texture' | 'bool' | 'string' }> = []
+  inputs: Array<{
+    id: string;
+    label: string;
+    type: 'float' | 'vec3' | 'color' | 'texture' | 'bool' | 'string';
+  }> = [],
+  outputs: Array<{
+    id: string;
+    label: string;
+    type: 'float' | 'vec3' | 'color' | 'texture' | 'bool' | 'string';
+  }> = []
 ): GraphNode {
   return {
     id,

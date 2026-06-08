@@ -1,7 +1,4 @@
-import {
-  buildHoloDaemonAgentConfig,
-  getHoloDaemonMission,
-} from '../daemon/agentProfiles';
+import { buildHoloDaemonAgentConfig, getHoloDaemonMission } from '../daemon/agentProfiles';
 import type { DaemonMissionProfile, HoloDaemonAgentConfig } from '../daemon/types';
 
 export interface AgentGenesisInput {
@@ -169,7 +166,9 @@ export function buildAgentGenesisPlan(input: AgentGenesisInput): AgentGenesisPla
   const wantsLaunch = hasSignal(signals, [
     /launch|release|deploy|marketing|public|docs|website|product|storefront|payment|checkout/,
   ]);
-  const hasRepo = Boolean(input.repoUrl || input.repoName || (input.approvedRepos?.length ?? 0) > 0);
+  const hasRepo = Boolean(
+    input.repoUrl || input.repoName || (input.approvedRepos?.length ?? 0) > 0
+  );
 
   const agents: AgentGenesisRecommendation[] = [
     buildRecommendation({
@@ -186,7 +185,8 @@ export function buildAgentGenesisPlan(input: AgentGenesisInput): AgentGenesisPla
       missionProfile: 'holoheal',
       autospawn: true,
       priority: 100,
-      reason: 'Default HoloHeal loop for every workspace: diagnose, repair, verify, and publish receipts.',
+      reason:
+        'Default HoloHeal loop for every workspace: diagnose, repair, verify, and publish receipts.',
       triggers: ['workspace.created', 'daemon.requested', 'health.regression'],
     }),
     buildRecommendation({

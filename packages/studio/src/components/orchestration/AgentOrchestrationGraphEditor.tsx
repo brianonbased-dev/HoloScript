@@ -36,7 +36,12 @@ import {
   Redo,
   History,
 } from 'lucide-react';
-import { useOrchestrationStore, type AgentWorkflow, type WorkflowEdge, type WorkflowNode } from '@/lib/orchestrationStore';
+import {
+  useOrchestrationStore,
+  type AgentWorkflow,
+  type WorkflowEdge,
+  type WorkflowNode,
+} from '@/lib/orchestrationStore';
 import type {
   AgentNodeData,
   ToolNodeData,
@@ -360,7 +365,10 @@ export function AgentOrchestrationGraphEditor({
 
   const handleSave = () => {
     if (workflow) {
-      updateWorkflow(workflow.id, { nodes: nodes as unknown as WorkflowNode[], edges: edges as unknown as WorkflowEdge[] });
+      updateWorkflow(workflow.id, {
+        nodes: nodes as unknown as WorkflowNode[],
+        edges: edges as unknown as WorkflowEdge[],
+      });
       trackWorkflowSaved(workflow.id, nodes.length, edges.length);
     }
   };

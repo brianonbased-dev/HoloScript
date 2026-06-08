@@ -74,12 +74,7 @@ export {
   NativeHoloRenderer,
   unpackColor,
 } from './render/native-renderer';
-export type {
-  RGBA,
-  RenderBackend,
-  OrthoCamera,
-  RenderStats,
-} from './render/native-renderer';
+export type { RGBA, RenderBackend, OrthoCamera, RenderStats } from './render/native-renderer';
 
 // renderHolo — single native entry: `.holo` source text → native pixels.
 export { renderHolo } from './render/render-holo';

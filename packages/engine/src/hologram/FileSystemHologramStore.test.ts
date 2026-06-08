@@ -261,9 +261,9 @@ describe('FileSystemHologramStore', () => {
   it('blocks path traversal at the asset validator', async () => {
     const b = await makeBundle(4);
     await store.put(b);
-    await expect(
-      store.getAsset(b.hash, '../../etc/passwd' as never)
-    ).rejects.toThrowError(/invalid asset/);
+    await expect(store.getAsset(b.hash, '../../etc/passwd' as never)).rejects.toThrowError(
+      /invalid asset/
+    );
   });
 
   // ── SECURITY: size cap ──

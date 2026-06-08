@@ -1,5 +1,11 @@
 import type { Vector3 } from '../types';
-import type { TraitHandler, HSPlusNode, VRHand, TraitEvent, TraitInstanceDelegate } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  VRHand,
+  TraitEvent,
+  TraitInstanceDelegate,
+} from './TraitTypes';
 /**
  * GrabbableTrait.ts
  *
@@ -39,8 +45,7 @@ export class GrabbableTrait implements Trait {
     }
 
     // Check Grabs (if not already grabbed by this hand)
-    if (!this.grabbedHands.has('left'))
-      this.checkHandInteraction(n, context, hands.left, 'left');
+    if (!this.grabbedHands.has('left')) this.checkHandInteraction(n, context, hands.left, 'left');
     if (!this.grabbedHands.has('right'))
       this.checkHandInteraction(n, context, hands.right, 'right');
 
@@ -169,9 +174,7 @@ export class GrabbableTrait implements Trait {
   private initialHandAngle: number | null = null;
   private initialObjectRotation: Vector3 | null = null;
 
-  private toArr3(
-    v: [number, number, number] | [number, number, number]
-  ): [number, number, number] {
+  private toArr3(v: [number, number, number] | [number, number, number]): [number, number, number] {
     return Array.isArray(v) ? v : [v[0], v[1], v[2]];
   }
 

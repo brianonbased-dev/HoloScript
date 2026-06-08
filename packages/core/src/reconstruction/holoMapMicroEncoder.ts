@@ -144,7 +144,13 @@ function gemmCpu(a: Float32Array, b: Float32Array, M: number, K: number, N: numb
   return c;
 }
 
-function layerNormCpu(x: Float32Array, gamma: Float32Array, beta: Float32Array, rows: number, d: number): Float32Array {
+function layerNormCpu(
+  x: Float32Array,
+  gamma: Float32Array,
+  beta: Float32Array,
+  rows: number,
+  d: number
+): Float32Array {
   const y = new Float32Array(x.length);
   const eps = 1e-5;
   for (let r = 0; r < rows; r += 1) {
@@ -186,7 +192,7 @@ function mhaCpu(
   qLen: number,
   kLen: number,
   dHead: number,
-  vHead: number,
+  vHead: number
 ): Float32Array {
   const out = new Float32Array(numHeads * qLen * vHead);
   const scale = 1 / Math.sqrt(Math.max(dHead, 1));
@@ -221,7 +227,13 @@ function mhaCpu(
   return out;
 }
 
-function ropeCpuSync(q: Float32Array, seqLen: number, numHeads: number, headDim: number, posOffset: number): Float32Array {
+function ropeCpuSync(
+  q: Float32Array,
+  seqLen: number,
+  numHeads: number,
+  headDim: number,
+  posOffset: number
+): Float32Array {
   const out = q.slice();
   const base = 10000;
   for (let t = 0; t < seqLen; t += 1) {
@@ -287,8 +299,18 @@ export function createHoloMapMicroEncoder(device: GPUDevice): HoloMapMicroEncode
       const kFlat = await gemm.run(tokens, weights.Wk, 1, EMBED_DIM, EMBED_DIM);
       const vFlat = await gemm.run(tokens, weights.Wv, 1, EMBED_DIM, EMBED_DIM);
 
-      const q3 = await rope.run(qFlat, { seqLen: 1, numHeads: NUM_HEADS, headDim: HEAD_DIM, posOffset: frame.index });
-      const k3 = await rope.run(kFlat, { seqLen: 1, numHeads: NUM_HEADS, headDim: HEAD_DIM, posOffset: frame.index });
+      const q3 = await rope.run(qFlat, {
+        seqLen: 1,
+        numHeads: NUM_HEADS,
+        headDim: HEAD_DIM,
+        posOffset: frame.index,
+      });
+      const k3 = await rope.run(kFlat, {
+        seqLen: 1,
+        numHeads: NUM_HEADS,
+        headDim: HEAD_DIM,
+        posOffset: frame.index,
+      });
 
       let attn = await fusedMha.run(q3, k3, vFlat, {
         numHeads: NUM_HEADS,
@@ -307,7 +329,7 @@ export function createHoloMapMicroEncoder(device: GPUDevice): HoloMapMicroEncode
 /** CPU fallback when WebGPU device is unavailable (matches micro-encoder layout). */
 export async function runHoloMapMicroEncoderCpu(
   frame: HoloMapMicroFrame,
-  config: HoloMapMicroConfig,
+  config: HoloMapMicroConfig
 ): Promise<Float32Array> {
   const weights = getMicroWeights(config);
   const image = frameToMicroImage(frame);

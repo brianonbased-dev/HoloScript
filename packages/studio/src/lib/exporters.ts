@@ -122,7 +122,9 @@ function generateFormatHeader(
 
     case 'obj':
       return nodes
-        .map((n) => `# ${n.name}\ng ${n.name}\nv ${n.position[0]} ${n.position[1]} ${n.position[2]}`)
+        .map(
+          (n) => `# ${n.name}\ng ${n.name}\nv ${n.position[0]} ${n.position[1]} ${n.position[2]}`
+        )
         .join('\n\n');
 
     case 'usd':

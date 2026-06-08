@@ -34,9 +34,7 @@ const STILL_BROKEN_HSPLUS = `composition "Broken" {
     @grabbable
 `; // missing two closing braces
 
-function makeFailure(
-  overrides: Partial<FailedGeneration> = {}
-): FailedGeneration {
+function makeFailure(overrides: Partial<FailedGeneration> = {}): FailedGeneration {
   return {
     id: 'test-fail-1',
     timestamp: Date.now(),
@@ -163,9 +161,7 @@ describe('SelfImprovementPipeline B3 — parseHolo validation gate', () => {
       autoFlushInterval: 0,
     });
 
-    pipeline.capture(
-      makeFailure({ correctedCode: STILL_BROKEN_HSPLUS })
-    );
+    pipeline.capture(makeFailure({ correctedCode: STILL_BROKEN_HSPLUS }));
     expect(pipeline.getStats().autoCorrectionsRejected).toBe(1);
 
     pipeline.clear();

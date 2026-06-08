@@ -138,8 +138,7 @@ export const chainHandler: TraitHandler<ChainConfig> = {
 
     if (event.type === 'chain_link_update') {
       const linkIndex = event.linkIndex as number;
-      const position = event.position as
-        [number, number, number] | [number, number, number];
+      const position = event.position as [number, number, number] | [number, number, number];
       const rotation = event.rotation as { x: number; y: number; z: number; w: number };
       const normalizedPos: [number, number, number] = Array.isArray(position)
         ? position

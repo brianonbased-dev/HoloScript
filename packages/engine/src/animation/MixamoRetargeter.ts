@@ -366,7 +366,10 @@ function eulerToQuaternion(ex: number, ey: number, ez: number): [number, number,
  * @param source - Parsed Mixamo animation.
  * @param overrides - Optional config overrides.
  */
-export function retargetToVRM(source: MixamoAnimationSource, overrides?: Partial<RetargetConfig>): AnimClip {
+export function retargetToVRM(
+  source: MixamoAnimationSource,
+  overrides?: Partial<RetargetConfig>
+): AnimClip {
   const retargeter = new MixamoRetargeter();
   return retargeter.retarget(source, vrmRetargetConfig(overrides));
 }
@@ -377,7 +380,10 @@ export function retargetToVRM(source: MixamoAnimationSource, overrides?: Partial
  * @param source - Parsed Mixamo animation.
  * @param overrides - Optional config overrides.
  */
-export function retargetToURDF(source: MixamoAnimationSource, overrides?: Partial<RetargetConfig>): AnimClip {
+export function retargetToURDF(
+  source: MixamoAnimationSource,
+  overrides?: Partial<RetargetConfig>
+): AnimClip {
   const retargeter = new MixamoRetargeter();
   return retargeter.retarget(source, urdfRetargetConfig(overrides));
 }

@@ -80,7 +80,7 @@ export const windHandler: TraitHandler<WindConfig> = {
     const state: WindState = {
       currentStrength: config.strength,
       gustTimer: 0,
-      turbulenceOffset: [0, 0, 0 ],
+      turbulenceOffset: [0, 0, 0],
       time: 0,
       isActive: true,
     };
@@ -89,7 +89,7 @@ export const windHandler: TraitHandler<WindConfig> = {
     // Register wind zone with physics system via event
     context.emit?.('register_wind_zone', {
       node,
-      position: node.position || [0, 0, 0 ],
+      position: node.position || [0, 0, 0],
       radius: config.radius,
     });
   },
@@ -137,7 +137,7 @@ export const windHandler: TraitHandler<WindConfig> = {
     state.currentStrength = config.strength * pulseMultiplier * gustMultiplier;
 
     // Request objects in radius and apply wind force via events
-    const windPos = node.position || [0, 0, 0 ];
+    const windPos = node.position || [0, 0, 0];
 
     // Emit wind zone update for physics system to apply forces
     context.emit?.('wind_zone_update', {
@@ -207,7 +207,7 @@ function _calculateWindForce(
     falloff = 1 - ratio * ratio;
   }
 
-  if (falloff <= 0) return [0, 0, 0 ];
+  if (falloff <= 0) return [0, 0, 0];
 
   // Apply turbulence to direction
   const dir: [number, number, number] = [

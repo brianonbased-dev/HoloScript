@@ -163,7 +163,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

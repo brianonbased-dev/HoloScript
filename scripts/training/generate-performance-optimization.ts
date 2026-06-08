@@ -105,13 +105,13 @@ for (let i = 0; i < 3000; i++) {
     'Add LOD system for performance optimization',
     'Create level of detail group with multiple meshes',
     'Implement LOD with billboard impostors for distant objects',
-    'Generate HoloScript with progressive LOD levels'
+    'Generate HoloScript with progressive LOD levels',
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: LOD_TEMPLATE
+    output: LOD_TEMPLATE,
   });
 }
 
@@ -222,13 +222,13 @@ for (let i = 0; i < 4000; i++) {
     'Implement frustum and occlusion culling for performance',
     'Add distance culling for open world optimization',
     'Create scene with portal-based occlusion culling',
-    'Generate optimized scene with layer-based culling'
+    'Generate optimized scene with layer-based culling',
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: CULLING_TEMPLATE
+    output: CULLING_TEMPLATE,
   });
 }
 
@@ -391,13 +391,13 @@ for (let i = 0; i < 3000; i++) {
     'Optimize draw calls with batching and instancing',
     'Implement object pooling for memory efficiency',
     'Add profiling and performance budgets',
-    'Create memory-optimized scene with texture streaming'
+    'Create memory-optimized scene with texture streaming',
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: MEMORY_BATCHING_TEMPLATE
+    output: MEMORY_BATCHING_TEMPLATE,
   });
 }
 
@@ -412,7 +412,7 @@ async function writeDataset() {
   console.log('[EXPORT] Writing performance optimization dataset...');
 
   const outputFile = path.join(__dirname, '../datasets/performance-optimization.jsonl');
-  const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
+  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
 
   await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 

@@ -59,14 +59,17 @@ export function writeLocalConfig(config: AIBrittneyLocalConfig, path = defaultCo
   renameSync(tmp, path);
 }
 
-export function resolveApiKey(config: AIBrittneyLocalConfig, env: NodeJS.ProcessEnv = process.env): string {
+export function resolveApiKey(
+  config: AIBrittneyLocalConfig,
+  env: NodeJS.ProcessEnv = process.env
+): string {
   const envName = config.apiKeyEnv ?? 'OLLAMA_API_KEY';
   return env[envName] ?? '';
 }
 
 export function upsertChannel(
   config: AIBrittneyLocalConfig,
-  channel: Omit<AIBrittneyChannel, 'createdAt'> & { createdAt?: string },
+  channel: Omit<AIBrittneyChannel, 'createdAt'> & { createdAt?: string }
 ): AIBrittneyLocalConfig {
   const next = { ...config, channels: config.channels.slice() };
   const normalized: AIBrittneyChannel = {
@@ -89,19 +92,19 @@ export function removeChannel(config: AIBrittneyLocalConfig, id: string): AIBrit
 export function setChannelEnabled(
   config: AIBrittneyLocalConfig,
   id: string,
-  enabled: boolean,
+  enabled: boolean
 ): AIBrittneyLocalConfig {
   return {
     ...config,
     channels: config.channels.map((channel) =>
-      channel.id === id ? { ...channel, enabled } : channel,
+      channel.id === id ? { ...channel, enabled } : channel
     ),
   };
 }
 
 export function setGatewayState(
   config: AIBrittneyLocalConfig,
-  gateway: GatewayState,
+  gateway: GatewayState
 ): AIBrittneyLocalConfig {
   return { ...config, gateway };
 }
@@ -116,8 +119,10 @@ function normalizeLocalConfig(raw: unknown, configPath: string): AIBrittneyLocal
 
   return {
     model: typeof raw.model === 'string' && raw.model.trim() ? raw.model : undefined,
-    ollamaHost: typeof raw.ollamaHost === 'string' && raw.ollamaHost.trim() ? raw.ollamaHost : undefined,
-    apiKeyEnv: typeof raw.apiKeyEnv === 'string' && raw.apiKeyEnv.trim() ? raw.apiKeyEnv : undefined,
+    ollamaHost:
+      typeof raw.ollamaHost === 'string' && raw.ollamaHost.trim() ? raw.ollamaHost : undefined,
+    apiKeyEnv:
+      typeof raw.apiKeyEnv === 'string' && raw.apiKeyEnv.trim() ? raw.apiKeyEnv : undefined,
     toolsEnabled: typeof raw.toolsEnabled === 'boolean' ? raw.toolsEnabled : undefined,
     channels,
     gateway,
@@ -147,7 +152,7 @@ function normalizeChannel(raw: unknown): AIBrittneyChannel[] {
 function normalizeGateway(
   raw: unknown,
   configPath: string,
-  channelCount: number,
+  channelCount: number
 ): GatewayState | undefined {
   if (!isRecord(raw)) return undefined;
   const status =
@@ -160,8 +165,7 @@ function normalizeGateway(
     pid: typeof raw.pid === 'number' && Number.isInteger(raw.pid) ? raw.pid : undefined,
     startedAt: typeof raw.startedAt === 'string' ? raw.startedAt : undefined,
     stoppedAt: typeof raw.stoppedAt === 'string' ? raw.stoppedAt : undefined,
-    lastHeartbeatAt:
-      typeof raw.lastHeartbeatAt === 'string' ? raw.lastHeartbeatAt : undefined,
+    lastHeartbeatAt: typeof raw.lastHeartbeatAt === 'string' ? raw.lastHeartbeatAt : undefined,
     configPath:
       typeof raw.configPath === 'string' && raw.configPath.trim() ? raw.configPath : configPath,
     channelCount:

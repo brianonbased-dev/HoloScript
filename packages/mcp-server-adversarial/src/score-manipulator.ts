@@ -6,12 +6,7 @@
 // Spec: research/paper-21-ati/threat-model.md §4.4.
 // Board task: ATI-3-score-manip.
 
-import type {
-  AdversarialAttack,
-  AttackContext,
-  AttackResult,
-  AttackId,
-} from './types.js';
+import type { AdversarialAttack, AttackContext, AttackResult, AttackId } from './types.js';
 
 // §4.4 success-metric defaults per spec text:
 //   success := T(s) >= 0.95 AND consumer_utility(outputs) < 0.5 * baseline
@@ -63,10 +58,7 @@ export class ScoreManipulatorAttack implements AdversarialAttack {
     if (config.baselineUtility <= 0) {
       throw new RangeError('ScoreManipulatorConfig.baselineUtility must be > 0');
     }
-    if (
-      config.utilityDecouplingThreshold !== undefined &&
-      config.utilityDecouplingThreshold <= 0
-    ) {
+    if (config.utilityDecouplingThreshold !== undefined && config.utilityDecouplingThreshold <= 0) {
       throw new RangeError(
         'ScoreManipulatorConfig.utilityDecouplingThreshold must be > 0 when provided'
       );
@@ -83,16 +75,14 @@ export class ScoreManipulatorAttack implements AdversarialAttack {
   // * baselineUtility.
   private get utilityDecouplingThreshold(): number {
     return (
-      (this.config.utilityDecouplingThreshold ??
-        SCORE_MANIP_DEFAULT_UTILITY_DECOUPLING_THRESHOLD) * this.config.baselineUtility
+      (this.config.utilityDecouplingThreshold ?? SCORE_MANIP_DEFAULT_UTILITY_DECOUPLING_THRESHOLD) *
+      this.config.baselineUtility
     );
   }
 
   step(context: AttackContext, round: number): AttackResult {
     if (!Number.isInteger(round) || round < 1) {
-      throw new RangeError(
-        'ScoreManipulatorAttack.step: round must be a positive integer'
-      );
+      throw new RangeError('ScoreManipulatorAttack.step: round must be a positive integer');
     }
 
     const ownTrust = context.observeOwnTrust();

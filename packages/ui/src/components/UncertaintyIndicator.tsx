@@ -28,8 +28,10 @@ import { cn } from '../utils/cn';
 
 export type UncertaintyVariant = 'ring' | 'badge' | 'dot';
 
-export interface UncertaintyIndicatorProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
+export interface UncertaintyIndicatorProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  'children'
+> {
   /** Confidence in [0,1]. High = good. Mutually exclusive with `uncertainty` / `severity`. */
   confidence?: number;
   /** Uncertainty in [0,1]. Low = good. Mutually exclusive with `confidence` / `severity`. */

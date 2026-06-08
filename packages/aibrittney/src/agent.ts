@@ -113,7 +113,9 @@ export async function runAgentTurn(opts: RunAgentOptions): Promise<AgentRunResul
       });
 
       if (isMutationToolName(def.function.name)) {
-        const content = JSON.stringify(await previewMutationToolCall(def.function.name, args, opts.mutationController));
+        const content = JSON.stringify(
+          await previewMutationToolCall(def.function.name, args, opts.mutationController)
+        );
         session.pushRaw({
           role: 'tool',
           name: call.function.name,
@@ -135,7 +137,7 @@ export async function runAgentTurn(opts: RunAgentOptions): Promise<AgentRunResul
       const content = JSON.stringify(
         callRes.ok
           ? callRes.data
-          : { error: callRes.error ?? `tool failed (HTTP ${callRes.status})` },
+          : { error: callRes.error ?? `tool failed (HTTP ${callRes.status})` }
       );
       session.pushRaw({
         role: 'tool',
@@ -169,7 +171,9 @@ function normalizeArgs(call: ToolCall): Record<string, unknown> {
   if (typeof a === 'string') {
     try {
       const parsed = JSON.parse(a);
-      return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {};
+      return typeof parsed === 'object' && parsed !== null
+        ? (parsed as Record<string, unknown>)
+        : {};
     } catch {
       return {};
     }
@@ -185,7 +189,7 @@ function shortenArgs(args: Record<string, unknown>): string {
 async function previewMutationToolCall(
   toolName: string,
   args: Record<string, unknown>,
-  mutationController?: RefusableMutationController,
+  mutationController?: RefusableMutationController
 ): Promise<unknown> {
   if (!mutationController) {
     return {

@@ -49,7 +49,13 @@ export function BlindABPair({ trial, onSubmit, testId }: BlindABPairProps) {
         onClick={() => setChosen(side)}
         style={isActive ? paneActive : paneBase}
       >
-        <span style={{ fontSize: tokens.font.label, fontWeight: tokens.weight.bold, color: tokens.color.textDim }}>
+        <span
+          style={{
+            fontSize: tokens.font.label,
+            fontWeight: tokens.weight.bold,
+            color: tokens.color.textDim,
+          }}
+        >
           {side === 'left' ? 'A' : 'B'}
         </span>
         <pre

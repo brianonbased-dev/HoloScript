@@ -55,11 +55,15 @@ describe('HoloMapReconstructionTrait', () => {
     const node = makeNode();
     const ctx = makeCtx(node);
     holomapReconstructionHandler.onAttach!(node as never, defaultConfig, ctx as never);
-    expect(node.emit).toHaveBeenCalledWith('holomap:attached', expect.objectContaining({
-      source: 'webcam',
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'holomap:attached',
+      expect.objectContaining({
+        source: 'webcam',
+      })
+    );
     const state = (node as unknown as Record<string, unknown>).__holomapState as {
-      isActive: boolean; framesProcessed: number;
+      isActive: boolean;
+      framesProcessed: number;
     };
     expect(state.isActive).toBe(false);
     expect(state.framesProcessed).toBe(0);
@@ -73,15 +77,22 @@ describe('HoloMapReconstructionTrait', () => {
     holomapReconstructionHandler.onAttach!(node as never, defaultConfig, ctx as never);
     node.emit.mockClear();
 
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:start_session',
-      payload: { sessionId: 'sess-abc', seed: 42, modelHash: 'test-model' },
-    } as never);
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:start_session',
+        payload: { sessionId: 'sess-abc', seed: 42, modelHash: 'test-model' },
+      } as never
+    );
 
     await waitForIdle(node);
 
     const state = (node as unknown as Record<string, unknown>).__holomapState as {
-      isActive: boolean; sessionId: string; replayHash: string;
+      isActive: boolean;
+      sessionId: string;
+      replayHash: string;
     };
     expect(state.isActive).toBe(true);
     expect(state.sessionId).toBe('sess-abc');
@@ -98,18 +109,28 @@ describe('HoloMapReconstructionTrait', () => {
     holomapReconstructionHandler.onAttach!(node as never, defaultConfig, ctx as never);
 
     // Start session
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:start_session',
-      payload: { sessionId: 'sess-frame', seed: 7, modelHash: 'frame-test', targetFPS: 10000 },
-    } as never);
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:start_session',
+        payload: { sessionId: 'sess-frame', seed: 7, modelHash: 'frame-test', targetFPS: 10000 },
+      } as never
+    );
     await waitForIdle(node);
     node.emit.mockClear();
 
     // Push frame
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:frame',
-      payload: { frame: makeFrame(0) },
-    } as never);
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:frame',
+        payload: { frame: makeFrame(0) },
+      } as never
+    );
     await waitForIdle(node);
 
     expect(node.emit).toHaveBeenCalledWith(
@@ -118,9 +139,7 @@ describe('HoloMapReconstructionTrait', () => {
         frameIndex: 0,
         pose: expect.anything(),
         trajectory: expect.objectContaining({
-          keyframes: expect.arrayContaining([
-            expect.objectContaining({ frameIndex: 0 }),
-          ]),
+          keyframes: expect.arrayContaining([expect.objectContaining({ frameIndex: 0 })]),
         }),
         anchor: expect.objectContaining({
           anchorPose: expect.objectContaining({ position: expect.any(Array) }),
@@ -151,23 +170,38 @@ describe('HoloMapReconstructionTrait', () => {
     const ctx = makeCtx(node);
     holomapReconstructionHandler.onAttach!(node as never, defaultConfig, ctx as never);
 
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:start_session',
-      payload: { sessionId: 'sess-fin', seed: 1, modelHash: 'fin-test', targetFPS: 10000 },
-    } as never);
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:start_session',
+        payload: { sessionId: 'sess-fin', seed: 1, modelHash: 'fin-test', targetFPS: 10000 },
+      } as never
+    );
     await waitForIdle(node);
 
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:frame',
-      payload: { frame: makeFrame(0) },
-    } as never);
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:frame',
+        payload: { frame: makeFrame(0) },
+      } as never
+    );
     await waitForIdle(node);
     node.emit.mockClear();
 
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:finalize',
-      payload: {},
-    } as never);
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:finalize',
+        payload: {},
+      } as never
+    );
     await waitForIdle(node);
 
     expect(node.emit).toHaveBeenCalledWith(
@@ -180,7 +214,8 @@ describe('HoloMapReconstructionTrait', () => {
     );
 
     const state = (node as unknown as Record<string, unknown>).__holomapState as {
-      isActive: boolean; lastManifest: unknown;
+      isActive: boolean;
+      lastManifest: unknown;
     };
     expect(state.isActive).toBe(false);
     expect(state.lastManifest).not.toBeNull();
@@ -192,10 +227,15 @@ describe('HoloMapReconstructionTrait', () => {
     holomapReconstructionHandler.onAttach!(node as never, defaultConfig, ctx as never);
     node.emit.mockClear();
 
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:frame',
-      payload: { frame: makeFrame(0) },
-    } as never);
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:frame',
+        payload: { frame: makeFrame(0) },
+      } as never
+    );
     await tick();
 
     expect(node.emit).toHaveBeenCalledWith(
@@ -209,17 +249,27 @@ describe('HoloMapReconstructionTrait', () => {
     const ctx = makeCtx(node);
     holomapReconstructionHandler.onAttach!(node as never, defaultConfig, ctx as never);
 
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:start_session',
-      payload: { sessionId: 'sess-bad', seed: 0, modelHash: 'bad', targetFPS: 10000 },
-    } as never);
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:start_session',
+        payload: { sessionId: 'sess-bad', seed: 0, modelHash: 'bad', targetFPS: 10000 },
+      } as never
+    );
     await waitForIdle(node);
     node.emit.mockClear();
 
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:frame',
-      payload: { frame: { notAFrame: true } },
-    } as never);
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:frame',
+        payload: { frame: { notAFrame: true } },
+      } as never
+    );
     await tick();
 
     expect(node.emit).toHaveBeenCalledWith(
@@ -235,11 +285,18 @@ describe('HoloMapReconstructionTrait', () => {
     const ctx = makeCtx(node);
     holomapReconstructionHandler.onAttach!(node as never, defaultConfig, ctx as never);
     node.emit.mockClear();
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:session_started',
-      payload: { sessionId: 'legacy-sess', replayHash: 'legacy-hash' },
-    } as never);
-    const state = (node as unknown as Record<string, unknown>).__holomapState as { isActive: boolean };
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:session_started',
+        payload: { sessionId: 'legacy-sess', replayHash: 'legacy-hash' },
+      } as never
+    );
+    const state = (node as unknown as Record<string, unknown>).__holomapState as {
+      isActive: boolean;
+    };
     expect(state.isActive).toBe(true);
     expect(node.emit).toHaveBeenCalledWith('reconstruction:session_started', expect.anything());
   });
@@ -248,11 +305,18 @@ describe('HoloMapReconstructionTrait', () => {
     const node = makeNode();
     const ctx = makeCtx(node);
     holomapReconstructionHandler.onAttach!(node as never, defaultConfig, ctx as never);
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:step_result',
-      payload: { frameIndex: 5 },
-    } as never);
-    const state = (node as unknown as Record<string, unknown>).__holomapState as { framesProcessed: number };
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:step_result',
+        payload: { frameIndex: 5 },
+      } as never
+    );
+    const state = (node as unknown as Record<string, unknown>).__holomapState as {
+      framesProcessed: number;
+    };
     expect(state.framesProcessed).toBe(6);
     expect(node.emit).toHaveBeenCalledWith('reconstruction:progress', expect.anything());
   });
@@ -261,12 +325,18 @@ describe('HoloMapReconstructionTrait', () => {
     const node = makeNode();
     const ctx = makeCtx(node);
     holomapReconstructionHandler.onAttach!(node as never, defaultConfig, ctx as never);
-    holomapReconstructionHandler.onEvent!(node as never, defaultConfig, ctx as never, {
-      type: 'holomap:finalized',
-      payload: { manifest: { replayHash: 'abc' } },
-    } as never);
+    holomapReconstructionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      ctx as never,
+      {
+        type: 'holomap:finalized',
+        payload: { manifest: { replayHash: 'abc' } },
+      } as never
+    );
     const state = (node as unknown as Record<string, unknown>).__holomapState as {
-      isActive: boolean; lastManifest: { replayHash: string } | null;
+      isActive: boolean;
+      lastManifest: { replayHash: string } | null;
     };
     expect(state.isActive).toBe(false);
     expect(state.lastManifest?.replayHash).toBe('abc');

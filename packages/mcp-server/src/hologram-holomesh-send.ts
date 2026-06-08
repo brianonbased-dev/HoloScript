@@ -27,7 +27,7 @@ export class HologramSendError extends Error {
 
   constructor(
     message: string,
-    opts: { canRetry: boolean; status: number | null; attempts: number; cause?: unknown },
+    opts: { canRetry: boolean; status: number | null; attempts: number; cause?: unknown }
   ) {
     super(message);
     this.name = 'HologramSendError';
@@ -105,7 +105,7 @@ export interface TeamMemberRow {
 async function holomeshFetchJson(
   path: string,
   apiKey: string,
-  init?: RequestInit,
+  init?: RequestInit
 ): Promise<{ ok: boolean; status: number; json: unknown }> {
   const base = resolveHolomeshApiBase();
   const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
@@ -142,7 +142,9 @@ async function holomeshFetchJsonWithRetry(
   path: string,
   apiKey: string,
   init: RequestInit | undefined,
-  retry: Required<Omit<HologramSendRetryOptions, 'sleep'>> & { sleep: (ms: number) => Promise<void> },
+  retry: Required<Omit<HologramSendRetryOptions, 'sleep'>> & {
+    sleep: (ms: number) => Promise<void>;
+  }
 ): Promise<{ status: number; json: unknown }> {
   let attempt = 0;
   let lastError: HologramSendError | null = null;
@@ -167,7 +169,7 @@ async function holomeshFetchJsonWithRetry(
       // Network fault (fetch threw) — always retryable until we exhaust attempts.
       lastError = new HologramSendError(
         `${label}: network error — ${(err as Error).message || String(err)}`,
-        { canRetry: true, status: null, attempts: attempt, cause: err },
+        { canRetry: true, status: null, attempts: attempt, cause: err }
       );
     }
 
@@ -187,7 +189,9 @@ async function holomeshFetchJsonWithRetry(
   );
 }
 
-function normalizeRetry(opts?: HologramSendRetryOptions): Required<Omit<HologramSendRetryOptions, 'sleep'>> & {
+function normalizeRetry(opts?: HologramSendRetryOptions): Required<
+  Omit<HologramSendRetryOptions, 'sleep'>
+> & {
   sleep: (ms: number) => Promise<void>;
 } {
   const maxAttempts = Math.max(1, Math.floor(opts?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS));
@@ -202,7 +206,10 @@ function normalizeRetry(opts?: HologramSendRetryOptions): Required<Omit<Hologram
 }
 
 export async function fetchTeamMemberIds(teamId: string, apiKey: string): Promise<TeamMemberRow[]> {
-  const { ok, status, json } = await holomeshFetchJson(`/team/${encodeURIComponent(teamId)}`, apiKey);
+  const { ok, status, json } = await holomeshFetchJson(
+    `/team/${encodeURIComponent(teamId)}`,
+    apiKey
+  );
   if (!ok) {
     const err = json as { error?: string };
     throw new Error(err.error || `holomesh: GET team failed (${status})`);
@@ -213,10 +220,7 @@ export async function fetchTeamMemberIds(teamId: string, apiKey: string): Promis
   return members;
 }
 
-export function assertRecipientOnTeam(
-  members: TeamMemberRow[],
-  recipientAgentId: string,
-): void {
+export function assertRecipientOnTeam(members: TeamMemberRow[], recipientAgentId: string): void {
   const hit = members.some((m) => m.agentId === recipientAgentId);
   if (!hit) {
     throw new Error('hologram send: recipientAgentId is not a member of this team');
@@ -282,7 +286,7 @@ export async function publishHologramTeamFeed(input: PublishHologramFeedInput): 
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(payload),
     },
-    normalizeRetry(retry),
+    normalizeRetry(retry)
   );
   return json;
 }
@@ -328,7 +332,7 @@ export async function sendHologramTeamMessage(input: SendHologramMessageInput): 
         messageType: 'hologram',
       }),
     },
-    normalizeRetry(retry),
+    normalizeRetry(retry)
   );
 
   return json;

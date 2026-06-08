@@ -105,7 +105,10 @@ function generateMotionClip({ category, seed, numFrames, dt }) {
       const cosHalf = Math.cos(angle / 2);
       const rot = [sinHalf * 0.1, sinHalf * 0.995, 0, cosHalf];
       const mag = Math.sqrt(rot[0] ** 2 + rot[1] ** 2 + rot[2] ** 2 + rot[3] ** 2);
-      rot[0] /= mag; rot[1] /= mag; rot[2] /= mag; rot[3] /= mag;
+      rot[0] /= mag;
+      rot[1] /= mag;
+      rot[2] /= mag;
+      rot[3] /= mag;
 
       return {
         boneId,
@@ -140,7 +143,7 @@ function checkPlausibility(clip) {
 
   for (let fi = 0; fi < clip.frames.length; fi++) {
     const frame = clip.frames[fi];
-    const footBones = frame.filter(b => b.boneId === 'l_foot' || b.boneId === 'r_foot');
+    const footBones = frame.filter((b) => b.boneId === 'l_foot' || b.boneId === 'r_foot');
     for (const bone of footBones) {
       if (bone.position[1] < FLOOR_Y - 0.05) {
         return {
@@ -175,8 +178,8 @@ function checkPlausibility(clip) {
     // Acrobatics impulse check
     if (category === 'acrobatics' && fi > 0) {
       const prevFrame = clip.frames[fi - 1];
-      const rootNow = frame.find(b => b.boneId === 'root');
-      const rootPrev = prevFrame.find(b => b.boneId === 'root');
+      const rootNow = frame.find((b) => b.boneId === 'root');
+      const rootPrev = prevFrame.find((b) => b.boneId === 'root');
       if (rootNow && rootPrev) {
         const dy = Math.abs(rootNow.position[1] - rootPrev.position[1]);
         const impulse = dy / clip.dt;
@@ -198,7 +201,7 @@ function checkPlausibility(clip) {
       const prevFrame = clip.frames[fi - 1];
       for (const bone of frame) {
         if (bone.boneId === 'l_hand' || bone.boneId === 'r_hand') {
-          const prev = prevFrame.find(b => b.boneId === bone.boneId);
+          const prev = prevFrame.find((b) => b.boneId === bone.boneId);
           if (prev) {
             const dx = bone.position[0] - prev.position[0];
             const dy = bone.position[1] - prev.position[1];
@@ -231,7 +234,7 @@ function toCanonical(value) {
     return { __cael_typed_array: value.constructor.name, data: Array.from(value) };
   }
   if (Array.isArray(value)) {
-    return value.map(v => toCanonical(v));
+    return value.map((v) => toCanonical(v));
   }
 
   const obj = /** @type {Record<string, unknown>} */ (value);
@@ -304,7 +307,7 @@ function verifyCAELHashChain(trace, mode) {
         prevHash: entry.prevHash,
         payload: entry.payload,
       },
-      resolvedMode,
+      resolvedMode
     );
 
     if (entry.hash !== expected) {
@@ -374,7 +377,7 @@ function buildMotionTrace({ traceIndex, category, seed, numFrames, dt }) {
     const framePayload = {
       frameIndex: fi,
       simTime,
-      bones: frame.map(b => ({
+      bones: frame.map((b) => ({
         boneId: b.boneId,
         position: b.position,
         rotation: b.rotation,
@@ -509,7 +512,9 @@ function main() {
       const verification = verifyCAELHashChain(trace);
       verified = verification.valid;
       if (!verification.valid) {
-        console.error(`  FAIL: ${runId} — ${verification.reason} at index ${verification.brokenAt}`);
+        console.error(
+          `  FAIL: ${runId} — ${verification.reason} at index ${verification.brokenAt}`
+        );
         results.failedTraces++;
       }
     } else {
@@ -531,7 +536,7 @@ function main() {
 
     // Write individual trace JSONL
     const filename = `trace-${runId}.jsonl`;
-    const traceJSONL = trace.map(entry => JSON.stringify(entry)).join('\n');
+    const traceJSONL = trace.map((entry) => JSON.stringify(entry)).join('\n');
     const traceHash = createHash('sha256').update(traceJSONL).digest('hex');
 
     if (!DRY_RUN) {
@@ -562,12 +567,11 @@ function main() {
     }
   }
 
-  results.passRate = results.totalTraces > 0
-    ? results.verifiedTraces / results.totalTraces
-    : 0;
+  results.passRate = results.totalTraces > 0 ? results.verifiedTraces / results.totalTraces : 0;
 
   // Gate check
-  const gateCleared = results.totalTraces >= 10_000 && results.verifiedTraces === results.totalTraces;
+  const gateCleared =
+    results.totalTraces >= 10_000 && results.verifiedTraces === results.totalTraces;
 
   // Write manifest (INDEX.json equivalent)
   const manifest = {
@@ -618,7 +622,9 @@ function main() {
     console.error('');
     console.error('  Category breakdown:');
     for (const [cat, stats] of Object.entries(results.categories)) {
-      console.error(`    ${cat}: ${stats.total} total, ${stats.passed} passed, ${stats.failed} failed`);
+      console.error(
+        `    ${cat}: ${stats.total} total, ${stats.passed} passed, ${stats.failed} failed`
+      );
     }
     console.error('');
     console.error(`  Output: ${OUTDIR}`);

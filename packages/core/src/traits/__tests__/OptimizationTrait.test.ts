@@ -4,8 +4,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { optimizationHandler, type ComputableObjective } from '../OptimizationTrait';
 
-const makeNode = () => ({ id: 'n1', traits: new Set<string>(), emit: vi.fn(), __optState: undefined as unknown });
-const makeCtx = (node: ReturnType<typeof makeNode>) => ({ emit: (type: string, data: unknown) => node.emit(type, data) });
+const makeNode = () => ({
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
+  __optState: undefined as unknown,
+});
+const makeCtx = (node: ReturnType<typeof makeNode>) => ({
+  emit: (type: string, data: unknown) => node.emit(type, data),
+});
 const defaultConfig = { max_iterations: 1000, tolerance: 1e-6 };
 
 describe('OptimizationTrait', () => {
@@ -20,12 +27,25 @@ describe('OptimizationTrait', () => {
   it('opt:solve with a string objective falls back to legacy echo (no minimization)', () => {
     const node = makeNode();
     optimizationHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    optimizationHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'opt:solve', objective: 'minimize_cost', constraints: [],
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('opt:solution', expect.objectContaining({
-      solveCount: 1, maxIter: 1000, converged: false, value: null,
-    }));
+    optimizationHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'opt:solve',
+        objective: 'minimize_cost',
+        constraints: [],
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'opt:solution',
+      expect.objectContaining({
+        solveCount: 1,
+        maxIter: 1000,
+        converged: false,
+        value: null,
+      })
+    );
   });
 
   it('opt:solve with a ComputableObjective converges to the target minimum', () => {
@@ -40,9 +60,15 @@ describe('OptimizationTrait', () => {
       stepSize: 0.3,
     };
 
-    optimizationHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'opt:solve', objective,
-    } as never);
+    optimizationHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'opt:solve',
+        objective,
+      } as never
+    );
 
     const call = node.emit.mock.calls.find((c) => c[0] === 'opt:solution');
     expect(call).toBeDefined();
@@ -81,9 +107,15 @@ describe('OptimizationTrait', () => {
       stepSize: 0.01,
     };
 
-    optimizationHandler.onEvent!(node as never, tightConfig, makeCtx(node) as never, {
-      type: 'opt:solve', objective,
-    } as never);
+    optimizationHandler.onEvent!(
+      node as never,
+      tightConfig,
+      makeCtx(node) as never,
+      {
+        type: 'opt:solve',
+        objective,
+      } as never
+    );
 
     const call = node.emit.mock.calls.find((c) => c[0] === 'opt:solution');
     expect(call).toBeDefined();

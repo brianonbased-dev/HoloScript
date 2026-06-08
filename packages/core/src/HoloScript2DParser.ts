@@ -180,10 +180,12 @@ export class HoloScript2DParser {
     name: string,
     position: Position2D
   ): UI2DNode {
-    const x = (position as unknown as { x?: number; 0?: number }).x ??
+    const x =
+      (position as unknown as { x?: number; 0?: number }).x ??
       (position as unknown as { x?: number; 0?: number })[0] ??
       0;
-    const y = (position as unknown as { y?: number; 1?: number }).y ??
+    const y =
+      (position as unknown as { y?: number; 1?: number }).y ??
       (position as unknown as { y?: number; 1?: number })[1] ??
       0;
 

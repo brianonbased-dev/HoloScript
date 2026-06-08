@@ -89,9 +89,7 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
         if (!calleeName) continue;
         // Import-bearing calls (require/…) are already emitted as import edges.
         if (this.importMethodNames.has(calleeName)) continue;
-        const calleeOwner = rule.receiverField
-          ? getFieldText(node, rule.receiverField)
-          : undefined;
+        const calleeOwner = rule.receiverField ? getFieldText(node, rule.receiverField) : undefined;
         out.push({
           callerId: this.enclosingSymbol(node),
           calleeName,

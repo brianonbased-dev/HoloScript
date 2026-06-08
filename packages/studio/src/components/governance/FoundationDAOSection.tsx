@@ -19,7 +19,9 @@ const DEFAULT_DAO: Record<string, unknown> = {
 function parseDaoProps(p: Record<string, unknown>) {
   return {
     quorumThreshold:
-      typeof p.quorumThreshold === 'number' ? p.quorumThreshold : Number(DEFAULT_DAO.quorumThreshold),
+      typeof p.quorumThreshold === 'number'
+        ? p.quorumThreshold
+        : Number(DEFAULT_DAO.quorumThreshold),
     votingPeriod:
       typeof p.votingPeriod === 'number' ? p.votingPeriod : Number(DEFAULT_DAO.votingPeriod),
     liquidDemocracy: Boolean(p.liquidDemocracy),
@@ -87,7 +89,8 @@ export function FoundationDAOSection() {
   if (!selectedId || !selected) {
     return (
       <div className="p-4 text-center text-xs text-studio-muted">
-        Select an object in the scene to attach or edit <code className="text-studio-accent">@foundation_dao</code>.
+        Select an object in the scene to attach or edit{' '}
+        <code className="text-studio-accent">@foundation_dao</code>.
       </div>
     );
   }
@@ -96,7 +99,8 @@ export function FoundationDAOSection() {
     return (
       <div className="flex flex-col gap-3 p-4">
         <p className="text-xs text-studio-muted leading-relaxed">
-          Provision sovereign economy governance on <span className="text-studio-text">{selected.name}</span>.
+          Provision sovereign economy governance on{' '}
+          <span className="text-studio-text">{selected.name}</span>.
         </p>
         <button
           type="button"
@@ -133,7 +137,9 @@ export function FoundationDAOSection() {
               onChange={(e) => setNum('quorumThreshold', parseFloat(e.target.value))}
               className="flex-1 accent-studio-accent"
             />
-            <span className="w-10 text-right tabular-nums">{(cfg.quorumThreshold * 100).toFixed(0)}%</span>
+            <span className="w-10 text-right tabular-nums">
+              {(cfg.quorumThreshold * 100).toFixed(0)}%
+            </span>
           </div>
         </label>
         <label className="flex flex-col gap-1">

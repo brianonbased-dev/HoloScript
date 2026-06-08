@@ -891,9 +891,7 @@ describe('Physics Integration', () => {
     const world = createPhysicsWorld();
 
     world.createBody(dynamicBody('ball', sphereShape(1), 1, [0, 10, 0]));
-    world.createBody(
-      staticBody('ground', boxShape([10, 0.5, 10]), [0, -0.5, 0])
-    );
+    world.createBody(staticBody('ground', boxShape([10, 0.5, 10]), [0, -0.5, 0]));
 
     // Run simulation for 2 seconds
     for (let i = 0; i < 120; i++) {
@@ -929,9 +927,7 @@ describe('Physics Integration', () => {
   it('should support kinematic platforms', () => {
     const world = createPhysicsWorld();
 
-    world.createBody(
-      kinematicBody('platform', boxShape([2, 0.25, 2]), [0, 0, 0])
-    );
+    world.createBody(kinematicBody('platform', boxShape([2, 0.25, 2]), [0, 0, 0]));
 
     // Move platform up
     for (let i = 0; i < 60; i++) {

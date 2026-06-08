@@ -22,7 +22,12 @@ describe('remotion-r3f-plugin stub', () => {
   it('emits @cinematic + @timeline pair', () => {
     const r = bindRemotionR3F(
       { id: 'c', width: 100, height: 100, fps: 60, duration_frames: 60 },
-      { composition_id: 'c', scene_ref: 'x', camera_mode: 'orbit', render_passes: ['color', 'depth'] }
+      {
+        composition_id: 'c',
+        scene_ref: 'x',
+        camera_mode: 'orbit',
+        render_passes: ['color', 'depth'],
+      }
     );
     expect(r.trait.kind).toBe('@cinematic');
     expect(r.timeline.kind).toBe('@timeline');

@@ -23,7 +23,10 @@ const RECEIPT = join(here, 'GATE-5BC-immersive-session.json');
 const PORT = 8745;
 
 // A short human-readable confirmation code derived at boot (operator reads it back).
-const CODE = Math.random().toString(36).slice(2, 6).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+const CODE =
+  Math.random().toString(36).slice(2, 6).toUpperCase() +
+  '-' +
+  Math.random().toString(36).slice(2, 6).toUpperCase();
 
 // Injected probe: wraps navigator.xr.requestSession; on a granted immersive-vr
 // session it POSTs a real receipt (mode, blend mode, reference space, input sources,
@@ -56,7 +59,14 @@ const PROBE = `
 })();
 </script>`;
 
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.json': 'application/json', '.txt': 'text/plain' };
+const MIME = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.png': 'image/png',
+  '.json': 'application/json',
+  '.txt': 'text/plain',
+};
 let captured = [];
 
 createServer((req, res) => {
@@ -67,12 +77,26 @@ createServer((req, res) => {
       try {
         const rec = JSON.parse(body || '{}');
         captured.push(rec);
-        const payload = { gate: '5b/5c', name: 'GOLD game immersive Quest session (real device capture)',
-          expectedCode: CODE, events: captured, capturedAt: new Date().toISOString(),
-          honest: 'Written ONLY from real navigator.xr immersive-vr session events POSTed by the Quest Browser. No stubbed telemetry.' };
+        const payload = {
+          gate: '5b/5c',
+          name: 'GOLD game immersive Quest session (real device capture)',
+          expectedCode: CODE,
+          events: captured,
+          capturedAt: new Date().toISOString(),
+          honest:
+            'Written ONLY from real navigator.xr immersive-vr session events POSTed by the Quest Browser. No stubbed telemetry.',
+        };
         writeFileSync(RECEIPT, JSON.stringify(payload, null, 2) + '\n');
-        console.log('[xr-receipt]', rec.event, 'frames=' + (rec.frames || 0), 'inputs=' + (rec.inputSources || 0), 'code=' + (rec.code || '?'));
-      } catch (e) { console.error('bad receipt', e.message); }
+        console.log(
+          '[xr-receipt]',
+          rec.event,
+          'frames=' + (rec.frames || 0),
+          'inputs=' + (rec.inputSources || 0),
+          'code=' + (rec.code || '?')
+        );
+      } catch (e) {
+        console.error('bad receipt', e.message);
+      }
       res.writeHead(204).end();
     });
     return;
@@ -80,13 +104,19 @@ createServer((req, res) => {
   let p = req.url.split('?')[0];
   if (p === '/') p = '/index.html';
   const file = join(BUILD, p);
-  if (!existsSync(file)) { res.writeHead(404).end('not found'); return; }
+  if (!existsSync(file)) {
+    res.writeHead(404).end('not found');
+    return;
+  }
   let data = readFileSync(file);
   const ext = extname(file);
-  if (ext === '.html') data = Buffer.from(data.toString('utf8').replace('</head>', PROBE + '</head>'));
+  if (ext === '.html')
+    data = Buffer.from(data.toString('utf8').replace('</head>', PROBE + '</head>'));
   res.writeHead(200, { 'content-type': MIME[ext] || 'application/octet-stream' });
   res.end(data);
 }).listen(PORT, () => {
-  console.log('XR capture server on http://127.0.0.1:' + PORT + '/  (serving drive-build/ + /xr-receipt)');
+  console.log(
+    'XR capture server on http://127.0.0.1:' + PORT + '/  (serving drive-build/ + /xr-receipt)'
+  );
   console.log('CONFIRMATION CODE (operator reads this back from in-headset): ' + CODE);
 });

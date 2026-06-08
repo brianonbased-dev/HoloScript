@@ -136,7 +136,8 @@ export const estimateTaskDurationTools: Tool[] = [
         },
         maxAlternatives: {
           type: 'number',
-          description: 'Maximum alternative task-type rows to return when no exact match exists. Defaults to 5.',
+          description:
+            'Maximum alternative task-type rows to return when no exact match exists. Defaults to 5.',
         },
         includeCaveats: {
           type: 'boolean',
@@ -275,8 +276,7 @@ function parseArgs(args: Record<string, unknown>): EstimateTaskDurationArgs & {
       typeof args.maxAlternatives === 'number' && Number.isFinite(args.maxAlternatives)
         ? Math.max(0, Math.min(25, Math.floor(args.maxAlternatives)))
         : 5,
-    includeCaveats:
-      typeof args.includeCaveats === 'boolean' ? args.includeCaveats : undefined,
+    includeCaveats: typeof args.includeCaveats === 'boolean' ? args.includeCaveats : undefined,
   };
 }
 
@@ -291,11 +291,10 @@ function isPercentile(value: unknown): value is PercentileKey {
   );
 }
 
-function resolveArtifactPath(args: EstimateTaskDurationArgs & { window: WindowKey }): string | null {
-  const explicit = firstExistingFile([
-    args.dataPath,
-    process.env.AGENT_TIME_DATA_PATH,
-  ]);
+function resolveArtifactPath(
+  args: EstimateTaskDurationArgs & { window: WindowKey }
+): string | null {
+  const explicit = firstExistingFile([args.dataPath, process.env.AGENT_TIME_DATA_PATH]);
   if (explicit) return explicit;
 
   const roots = [
@@ -355,7 +354,10 @@ function loadArtifact(path: string): AgentTimeArtifact {
   return parsed as unknown as AgentTimeArtifact;
 }
 
-function artifactWindow(requested: WindowKey, artifact: AgentTimeArtifact): EstimateTaskDurationResult['window'] {
+function artifactWindow(
+  requested: WindowKey,
+  artifact: AgentTimeArtifact
+): EstimateTaskDurationResult['window'] {
   return {
     requested,
     label: artifact.windowSinceLabel,
@@ -433,7 +435,11 @@ function topAlternatives(
   return rows.slice(0, maxAlternatives);
 }
 
-function confidenceFor(basis: EstimateBasis, sampleSize: number, boundToTaskPct: number): 'low' | 'medium' | 'high' {
+function confidenceFor(
+  basis: EstimateBasis,
+  sampleSize: number,
+  boundToTaskPct: number
+): 'low' | 'medium' | 'high' {
   if (basis === 'multi_commit_task_duration') {
     if (sampleSize >= 10) return 'high';
     if (sampleSize >= 3) return 'medium';
@@ -454,7 +460,9 @@ function buildCaveats(artifact: AgentTimeArtifact): string[] {
     );
   }
   if ((artifact.totals?.bindingCoveragePct || 0) < 20) {
-    caveats.push('Task-to-commit binding coverage is low; treat estimates as directional planning hints.');
+    caveats.push(
+      'Task-to-commit binding coverage is low; treat estimates as directional planning hints.'
+    );
   }
   return [...new Set(caveats)];
 }
@@ -474,7 +482,9 @@ function classifyTaskTitle(title: string): string | undefined {
       if (scope.includes('audit')) return 'docs-audit';
       return 'docs';
     }
-    if (['test', 'refactor', 'chore', 'audit', 'paper', 'research', 'perf', 'style'].includes(type)) {
+    if (
+      ['test', 'refactor', 'chore', 'audit', 'paper', 'research', 'perf', 'style'].includes(type)
+    ) {
       return type;
     }
   }
@@ -509,7 +519,10 @@ function scopedType(type: 'feat' | 'fix', scope: string): string {
 }
 
 function normalizeTaskType(value: string): string {
-  return value.trim().toLowerCase().replace(/[_\s]+/g, '-');
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-');
 }
 
 function valueAt(stats: PercentileStats, percentile: PercentileKey): number {

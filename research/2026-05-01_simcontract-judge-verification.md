@@ -11,9 +11,9 @@ owner: claude-code (claude1)
 
 ## Problem Statement
 
-The 270-cell baselines-only benchmark run (2026-04-29) revealed that **vanilla-baseline (95.6%) outperforms both FS-tool baselines (claude-code 85.6%, cursor 72.2%)**. This result is partly a methodology artifact: the rubric judge (Opus 4.7 via structured tool use) evaluates text output directly but cannot *render* Brittney's `tool_call` payloads (`create_object`, `add_trait`, `compose_traits`) into spatial, verifiable assertions. The judge sees prose and says "good prose"; it sees tool calls and says "I can't visualize this."
+The 270-cell baselines-only benchmark run (2026-04-29) revealed that **vanilla-baseline (95.6%) outperforms both FS-tool baselines (claude-code 85.6%, cursor 72.2%)**. This result is partly a methodology artifact: the rubric judge (Opus 4.7 via structured tool use) evaluates text output directly but cannot _render_ Brittney's `tool_call` payloads (`create_object`, `add_trait`, `compose_traits`) into spatial, verifiable assertions. The judge sees prose and says "good prose"; it sees tool calls and says "I can't visualize this."
 
-**The core asymmetry**: Vanilla produces text that the judge reads naturally. Brittney produces structured scene mutations that must be *materialized* before the judge can evaluate spatial correctness. Without materialization, the judge is comparing apples (readable prose) to oranges (opaque JSON payloads).
+**The core asymmetry**: Vanilla produces text that the judge reads naturally. Brittney produces structured scene mutations that must be _materialized_ before the judge can evaluate spatial correctness. Without materialization, the judge is comparing apples (readable prose) to oranges (opaque JSON payloads).
 
 ## Architecture Audit — What Already Exists
 
@@ -41,7 +41,8 @@ const deterministic = verifyDeterministically(task, mutations);
 const detById = new Map(deterministic.map((d) => [d.criterion_id, d]));
 verdicts = verdicts.map((v) => {
   const criterion = task.evaluation_rubric.find((c) => c.id === v.criterion_id);
-  const useDeterministic = criterion && criterion.verifier_type && criterion.verifier_type !== 'llm';
+  const useDeterministic =
+    criterion && criterion.verifier_type && criterion.verifier_type !== 'llm';
   const det = detById.get(v.criterion_id);
   if (!det || !useDeterministic) return v;
   return {
@@ -52,7 +53,7 @@ verdicts = verdicts.map((v) => {
 });
 ```
 
-**Key insight**: The infrastructure for deterministic-vs-LLM routing *already exists* in the judge. Rubric criteria tagged `verifier_type: 'geometric' | 'count' | 'presence'` are automatically routed to the deterministic verifier. Only `verifier_type: 'llm'` or untagged criteria go to the LLM judge.
+**Key insight**: The infrastructure for deterministic-vs-LLM routing _already exists_ in the judge. Rubric criteria tagged `verifier_type: 'geometric' | 'count' | 'presence'` are automatically routed to the deterministic verifier. Only `verifier_type: 'llm'` or untagged criteria go to the LLM judge.
 
 ### 3. `mutation-renderer.ts` — Prose Materialization (SHIPPED, PARTIAL)
 
@@ -77,9 +78,9 @@ function buildPrompt(task, candidateOutput, rubric, mutations) {
 
 **File**: `packages/studio/src/lib/brittney/SimContractGate.ts`
 
-This validates scene mutations against declared SimulationContracts. It operates at a different level: it checks whether a mutation *violates contract invariants* (deleting required objects, removing required traits, exceeding property bounds). It does NOT check whether a mutation *achieves the task goal*.
+This validates scene mutations against declared SimulationContracts. It operates at a different level: it checks whether a mutation _violates contract invariants_ (deleting required objects, removing required traits, exceeding property bounds). It does NOT check whether a mutation _achieves the task goal_.
 
-**Relevance**: SimContract is about *safety-by-construction* (preventing invalid mutations), not *goal-completion verification* (checking whether the right objects were created). These are complementary layers.
+**Relevance**: SimContract is about _safety-by-construction_ (preventing invalid mutations), not _goal-completion verification_ (checking whether the right objects were created). These are complementary layers.
 
 ### 5. `trust_mutations_over_prose` Task Flag (SHIPPED)
 
@@ -94,25 +95,30 @@ Every task has a `trust_mutations_over_prose` flag. When true, the judge prompt 
 The `RubricCriterion` type already has `verifier_type?: 'llm' | 'geometric' | 'count' | 'presence'`. But examining the task JSON files:
 
 **T01 rubric** (typical trivial task):
+
 ```json
-{ "id": "single_object", "description": "Output describes or creates exactly one object", "required": true }
+{
+  "id": "single_object",
+  "description": "Output describes or creates exactly one object",
+  "required": true
+}
 ```
 
 No `verifier_type` is set. This means every criterion defaults to LLM-judged, even when deterministic verification would be more appropriate.
 
 ## Diagnosis — Why Vanilla Wins
 
-The methodology gap is a *composition* of three independent biases, not a single problem:
+The methodology gap is a _composition_ of three independent biases, not a single problem:
 
 ### Bias 1: Asymmetric Prose Rendering
 
-| Config | What the judge sees | Naturalness |
-|--------|---------------------|-------------|
-| vanilla-baseline | Pure prose descriptions of scenes | **High** — the judge reads descriptions natively |
-| brittney-prod | Rendered mutations + prose (mutation-renderer output) | **Medium** — structured data rendered as prose |
-| FS baselines | Synthetic FS tool output descriptions | **Low** — file-system metaphor is alien to spatial evaluation |
+| Config           | What the judge sees                                   | Naturalness                                                   |
+| ---------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
+| vanilla-baseline | Pure prose descriptions of scenes                     | **High** — the judge reads descriptions natively              |
+| brittney-prod    | Rendered mutations + prose (mutation-renderer output) | **Medium** — structured data rendered as prose                |
+| FS baselines     | Synthetic FS tool output descriptions                 | **Low** — file-system metaphor is alien to spatial evaluation |
 
-`mutation-renderer.ts` produces decent prose for `create_object` calls but dumps `add_trait`, `compose_traits`, etc. as raw JSON. This means Brittney's *compositional* tool calls (the ones that distinguish it from vanilla) are the *least readable* part of the evaluation input.
+`mutation-renderer.ts` produces decent prose for `create_object` calls but dumps `add_trait`, `compose_traits`, etc. as raw JSON. This means Brittney's _compositional_ tool calls (the ones that distinguish it from vanilla) are the _least readable_ part of the evaluation input.
 
 ### Bias 2: Missing `verifier_type` Tags
 
@@ -122,17 +128,17 @@ Result: ALL rubric criteria go through the LLM judge, including criteria that co
 
 ### Bias 3: Judge Cannot Verify Spatial Properties
 
-The Opus 4.7 judge is a text model. It cannot render a 3D scene, cannot verify that objects are stacked correctly, cannot check tangency conditions. Even with `renderMutationsToProse`, the judge evaluates prose *descriptions* of spatial relationships, not the relationships themselves.
+The Opus 4.7 judge is a text model. It cannot render a 3D scene, cannot verify that objects are stacked correctly, cannot check tangency conditions. Even with `renderMutationsToProse`, the judge evaluates prose _descriptions_ of spatial relationships, not the relationships themselves.
 
 For vanilla, the judge evaluates: "three cubes stacked vertically" (prose) — and says "yes, the description mentions three stacked cubes."
 
-For Brittney, the judge evaluates: "Created Objects (3)\n- RedCube: mesh\n  position: [0, 0.50, 0]\n  scale: [1, 1, 1]\n  color: red" — and has to *infer* from the coordinates that they're stacked correctly.
+For Brittney, the judge evaluates: "Created Objects (3)\n- RedCube: mesh\n position: [0, 0.50, 0]\n scale: [1, 1, 1]\n color: red" — and has to _infer_ from the coordinates that they're stacked correctly.
 
-The judge is equally bad at both inferences, but vanilla gets credit for *saying* "stacked" while Brittney has to prove it through coordinates the judge may not parse correctly.
+The judge is equally bad at both inferences, but vanilla gets credit for _saying_ "stacked" while Brittney has to prove it through coordinates the judge may not parse correctly.
 
 ## Fix Path (a): SimContract Verification Before Judgment
 
-**What it does**: Before the LLM judge evaluates Brittney's output, run the deterministic verifier on Brittney's `tool_call` payloads and inject pass/fail results as structured context into the judge prompt. The LLM judge then evaluates the *combination* of text output + verified mutation results.
+**What it does**: Before the LLM judge evaluates Brittney's output, run the deterministic verifier on Brittney's `tool_call` payloads and inject pass/fail results as structured context into the judge prompt. The LLM judge then evaluates the _combination_ of text output + verified mutation results.
 
 **Implementation plan**:
 
@@ -155,7 +161,7 @@ The `TASK_VERIFIERS` map in `deterministic-verifier.ts` currently covers 6 tasks
   - A01, A04, A10: already covered
   - A02-A03, A05-A09: structural pattern checks (walls, floors, stairs, rooms)
 
-For each task, the deterministic verifier checks *only* what can be objectively measured from the mutation payloads: object counts, positions, colors, sizes, distances, tangency conditions.
+For each task, the deterministic verifier checks _only_ what can be objectively measured from the mutation payloads: object counts, positions, colors, sizes, distances, tangency conditions.
 
 #### Step 2: Tag all rubric criteria with `verifier_type`
 
@@ -191,11 +197,11 @@ Currently `sim_contract_pass_rate` is a separate metric per cell. The task descr
 
 **New metric**: `deterministic_creation_completion` — a task is complete iff ALL required criteria pass (deterministic for tagged criteria, LLM for `llm`-tagged criteria).
 
-This is already how the judge works. The change is making the *routing explicit* via `verifier_type` tags so that geometric/count/presence criteria are NEVER subject to LLM judgment errors.
+This is already how the judge works. The change is making the _routing explicit_ via `verifier_type` tags so that geometric/count/presence criteria are NEVER subject to LLM judgment errors.
 
 ## Fix Path (b): Materialize Brittney's Tool Calls Into Synthesized Scene Descriptions
 
-**What it does**: Before the LLM judge evaluates Brittney's output, render Brittney's complete `tool_call` sequence into a synthesized scene description that the text judge can read *as naturally as vanilla's prose*.
+**What it does**: Before the LLM judge evaluates Brittney's output, render Brittney's complete `tool_call` sequence into a synthesized scene description that the text judge can read _as naturally as vanilla's prose_.
 
 **Implementation plan**:
 
@@ -214,19 +220,22 @@ Current renderer only handles `create_object` with a fixed field set. Expand to:
 
 #### Step 2: Build a synthetic scene state from the mutation sequence
 
-Instead of rendering each mutation independently, accumulate mutations into a **scene state** (map of object name → properties) and render the *final state*. This is the key insight: the judge doesn't need to see the sequence of operations — it needs to see the *resulting scene*.
+Instead of rendering each mutation independently, accumulate mutations into a **scene state** (map of object name → properties) and render the _final state_. This is the key insight: the judge doesn't need to see the sequence of operations — it needs to see the _resulting scene_.
 
 ```typescript
 interface SceneState {
-  objects: Map<string, {
-    type: string;
-    primitive?: string;
-    position: [number, number, number];
-    scale: [number, number, number];
-    color?: string;
-    radius?: number;
-    traits: Map<string, Record<string, unknown>>;
-  }>;
+  objects: Map<
+    string,
+    {
+      type: string;
+      primitive?: string;
+      position: [number, number, number];
+      scale: [number, number, number];
+      color?: string;
+      radius?: number;
+      traits: Map<string, Record<string, unknown>>;
+    }
+  >;
 }
 ```
 
@@ -246,7 +255,7 @@ The three body spheres have decreasing radii from bottom (1.0) to top (0.5).
 
 #### Step 3: Inject synthesized description into the judge prompt
 
-For Brittney-prod cells, the `buildPrompt` function should place the synthesized scene description *before* the raw mutations. The prompt hierarchy becomes:
+For Brittney-prod cells, the `buildPrompt` function should place the synthesized scene description _before_ the raw mutations. The prompt hierarchy becomes:
 
 1. **Task prompt** (same for all configs)
 2. **Rubric** (same for all configs)
@@ -260,7 +269,7 @@ This gives the LLM judge a level playing field: it sees Brittney's scene describ
 
 Paths (a) and (b) are complementary, not alternatives:
 
-- **(a) eliminates false negatives**: Geometric/count/presence criteria that Brittney *objectively passes* will no longer fail due to LLM misinterpretation of coordinates.
+- **(a) eliminates false negatives**: Geometric/count/presence criteria that Brittney _objectively passes_ will no longer fail due to LLM misinterpretation of coordinates.
 - **(b) eliminates false positives for vanilla**: When vanilla describes "three stacked cubes" but the description is vague or wrong, the judge won't give credit for spatial claims without mutation evidence.
 
 The combined approach:
@@ -279,48 +288,49 @@ From the scoping memo (`research/2026-04-27_brittney-paper-scoping.md`):
 
 > The framing that survives /critic: "Architecturally-grounded AI creation: every mutation routes through SimulationContract verification + CAEL audit trail, evaluated against unverified-baselines on creation-completion + post-hoc safety-check pass-rate"
 
-The methodology gap directly threatens this framing. If the benchmark shows vanilla beating Brittney, the paper claim "architecturally-grounded creation is better" falls apart. But the *reason* vanilla wins is that the benchmark measures the wrong thing: it measures "can an LLM judge evaluate this output?" rather than "does this output objectively produce the correct scene?"
+The methodology gap directly threatens this framing. If the benchmark shows vanilla beating Brittney, the paper claim "architecturally-grounded creation is better" falls apart. But the _reason_ vanilla wins is that the benchmark measures the wrong thing: it measures "can an LLM judge evaluate this output?" rather than "does this output objectively produce the correct scene?"
 
 Closing the gap with (a)+(b) means:
+
 - **Deterministic verification** proves Brittney's mutations are objectively correct (or not) regardless of LLM judge interpretation
 - **Scene-state materialization** levels the playing field so the LLM judge evaluates both configs on equal terms
-- The combined metric — `deterministic_creation_completion` for geometric/count/presence criteria, LLM judgment for semantic criteria — is *reviewer-defensible*
+- The combined metric — `deterministic_creation_completion` for geometric/count/presence criteria, LLM judgment for semantic criteria — is _reviewer-defensible_
 
 ## Implementation Size Estimate
 
-| Step | LOC | Risk | Files Changed |
-|------|-----|------|---------------|
-| Tag rubric criteria with `verifier_type` | ~30 | Minimal (JSON edits) | tasks/*.json |
-| Expand deterministic verifiers | ~200-300 | Low (pure functions) | deterministic-verifier.ts, golden-cases.ts |
-| Expand mutation renderer | ~80 | Low (additive) | mutation-renderer.ts |
-| Build scene-state accumulation | ~100 | Medium (new type) | scene-state.ts (new) |
-| Inject synthesized description | ~30 | Medium (prompt eng) | judge.ts |
-| Re-run benchmark | 0 | N/A | CLI command |
-| **Total** | ~440-540 | — | ~6-7 files |
+| Step                                     | LOC      | Risk                 | Files Changed                              |
+| ---------------------------------------- | -------- | -------------------- | ------------------------------------------ |
+| Tag rubric criteria with `verifier_type` | ~30      | Minimal (JSON edits) | tasks/\*.json                              |
+| Expand deterministic verifiers           | ~200-300 | Low (pure functions) | deterministic-verifier.ts, golden-cases.ts |
+| Expand mutation renderer                 | ~80      | Low (additive)       | mutation-renderer.ts                       |
+| Build scene-state accumulation           | ~100     | Medium (new type)    | scene-state.ts (new)                       |
+| Inject synthesized description           | ~30      | Medium (prompt eng)  | judge.ts                                   |
+| Re-run benchmark                         | 0        | N/A                  | CLI command                                |
+| **Total**                                | ~440-540 | —                    | ~6-7 files                                 |
 
 ## What to Do Before Re-Running
 
 1. **DO NOT** re-run the 360-cell benchmark until paths (a) and (b) are implemented and unit-tested
-2. The 270-cell baselines-only run is still valid as a baseline — it tells us what vanilla/FS-baselines produce without Brittney. The methodology gap only affects how we *evaluate* Brittney's output, not the baselines themselves.
+2. The 270-cell baselines-only run is still valid as a baseline — it tells us what vanilla/FS-baselines produce without Brittney. The methodology gap only affects how we _evaluate_ Brittney's output, not the baselines themselves.
 3. Brittney-prod cells from a re-run will have both `creation_completion` (LLM-only, comparable to baselines) AND `deterministic_creation_completion` (hybrid deterministic+LLM, the reviewable metric). The delta between the two metrics IS the methodology artifact — it quantifies how much of vanilla's lead comes from judge asymmetry.
 
 ## Relationship to SimContractGate
 
-`SimContractGate.ts` operates at a different level than this fix. The gate checks whether a mutation *violates a declared contract* (safety). The deterministic verifier checks whether a mutation *achieves the task goal* (correctness). Both are necessary:
+`SimContractGate.ts` operates at a different level than this fix. The gate checks whether a mutation _violates a declared contract_ (safety). The deterministic verifier checks whether a mutation _achieves the task goal_ (correctness). Both are necessary:
 
-- **SimContractGate**: "Is this mutation *safe* to apply?" (prevents invalid mutations)
-- **Deterministic verifier**: "Does this mutation *correctly produce* the requested scene?" (measures goal completion)
-- **LLM judge**: "Does the text output *describe* the scene correctly?" (measures description quality)
+- **SimContractGate**: "Is this mutation _safe_ to apply?" (prevents invalid mutations)
+- **Deterministic verifier**: "Does this mutation _correctly produce_ the requested scene?" (measures goal completion)
+- **LLM judge**: "Does the text output _describe_ the scene correctly?" (measures description quality)
 
 The three layers compose: a Brittney output passes if (1) all mutations pass SimContract, (2) all geometric/count/presence criteria pass deterministic verification, and (3) all semantic criteria pass LLM judgment. This is the Algebraic Trust tri-layer in evaluation form: algebra (deterministic) + history (SimContract audit) + oracle (LLM judge).
 
 ## Appendix: Current Coverage Summary
 
-| Tier | Tasks | Has Deterministic Verifier | Rubric Criteria with verifier_type |
-|------|-------|---------------------------|-----------------------------------|
-| trivial-scene | T01-T10 | 0/10 | 0/40 (est.) |
-| multi-object-scene | M01-M10 | 3/10 (M02, M06, M09) | 0/40 (est.) |
-| agentic-multi-step | A01-A10 | 3/10 (A01, A04, A10) | 0/40 (est.) |
-| **Total** | **30** | **6/30** | **0/~120** |
+| Tier               | Tasks   | Has Deterministic Verifier | Rubric Criteria with verifier_type |
+| ------------------ | ------- | -------------------------- | ---------------------------------- |
+| trivial-scene      | T01-T10 | 0/10                       | 0/40 (est.)                        |
+| multi-object-scene | M01-M10 | 3/10 (M02, M06, M09)       | 0/40 (est.)                        |
+| agentic-multi-step | A01-A10 | 3/10 (A01, A04, A10)       | 0/40 (est.)                        |
+| **Total**          | **30**  | **6/30**                   | **0/~120**                         |
 
 After the fix: 30/30 tasks with deterministic verifiers, ~80/120 criteria tagged with `verifier_type` (geometric/count/presence), ~40/120 remaining as `llm` for semantic judgment.

@@ -6,10 +6,12 @@
 ## What might be valuable
 
 The Gemini Interactions / Live API (`generativelanguage.googleapis.com/v1beta/models/:model:streamGenerateContent` with the live session protocol) supports real-time bi-directional streaming with a `steps[]` response schema:
+
 - `step.type === 'user_input'` — what the user said
 - `step.type === 'model_output'` — what the model returned (text + functionCall)
 
 History for subsequent turns goes in `input.steps[]` (not `contents[]`). This is distinct from standard `generateContent` and enables:
+
 - Sub-100ms latency for voice/audio interaction (HoloLand NPCs, AR overlays)
 - True streaming tool-call execution mid-session
 - Native audio/video modality input within the same live session

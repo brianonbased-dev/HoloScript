@@ -160,7 +160,9 @@ async function main() {
       handleRow.fetch_error = String(err.message || err);
     }
     handles.push(handleRow);
-    process.stdout.write(`  ${agent.handle}: ${handleRow.records_observed}${handleRow.fetch_error ? ` (ERR: ${handleRow.fetch_error})` : ''}\n`);
+    process.stdout.write(
+      `  ${agent.handle}: ${handleRow.records_observed}${handleRow.fetch_error ? ` (ERR: ${handleRow.fetch_error})` : ''}\n`
+    );
   }
 
   // Sort records by (handle, tick_iso) for canonical ordering
@@ -183,17 +185,21 @@ async function main() {
   };
 
   // Default output: research/2026-04-25_paper-25-corpus-day-N.json
-  const outputPath = args.output || join(
-    AI_ECOSYSTEM_RESEARCH,
-    `${now.toISOString().slice(0, 10)}_paper-25-corpus-day-${day}.json`
-  );
+  const outputPath =
+    args.output ||
+    join(
+      AI_ECOSYSTEM_RESEARCH,
+      `${now.toISOString().slice(0, 10)}_paper-25-corpus-day-${day}.json`
+    );
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, JSON.stringify(snapshot, null, 2), 'utf8');
 
   console.log('');
   console.log('[corpus-snapshot] SUMMARY:');
   console.log(`  Records total:       ${allRecords.length}`);
-  console.log(`  Handles observed:    ${handles.filter((h) => h.records_observed > 0).length}/${fleet.length}`);
+  console.log(
+    `  Handles observed:    ${handles.filter((h) => h.records_observed > 0).length}/${fleet.length}`
+  );
   console.log(`  Handles with error:  ${handles.filter((h) => h.fetch_error).length}`);
   console.log(`  W.090 violations:    ${w090Violations}`);
   console.log(`  Foreign route writes:${foreignRouteWrites}`);
@@ -203,7 +209,9 @@ async function main() {
   }
   console.log('');
   console.log(`[corpus-snapshot] wrote ${outputPath}`);
-  console.log(`[corpus-snapshot] next: anchor via 'python scripts/anchor_ots.py ${outputPath}' for Paper 25 submission-bundle inclusion.`);
+  console.log(
+    `[corpus-snapshot] next: anchor via 'python scripts/anchor_ots.py ${outputPath}' for Paper 25 submission-bundle inclusion.`
+  );
 }
 
 main().catch((err) => {

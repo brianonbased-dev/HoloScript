@@ -49,7 +49,8 @@ export function createMemoryLeaseAdapter(): LeaseAdapter {
       if (lease.revoked) return { ok: false, reason: 'lease_revoked' };
       if (new Date(lease.expiresAt) <= new Date()) return { ok: false, reason: 'lease_expired' };
       if (lease.agentId !== params.agentId) return { ok: false, reason: 'lease_agent_mismatch' };
-      if (!lease.scope.includes(params.secretRef)) return { ok: false, reason: 'lease_scope_violation' };
+      if (!lease.scope.includes(params.secretRef))
+        return { ok: false, reason: 'lease_scope_violation' };
       return { ok: true };
     },
 

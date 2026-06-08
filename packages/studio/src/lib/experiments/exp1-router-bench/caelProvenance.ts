@@ -23,10 +23,7 @@
  *     the runner treats 0/0 as coverage 1, i.e. "nothing to trace").
  */
 
-import {
-  buildBrittneyCaelRecord,
-  verifyBrittneyCaelRecord,
-} from '../../brittney/cael';
+import { buildBrittneyCaelRecord, verifyBrittneyCaelRecord } from '../../brittney/cael';
 import { verifySceneMutation, type ContractResolver } from '../../brittney/SimContractGate';
 import type { ProvenanceChecker } from './types';
 
@@ -65,7 +62,6 @@ export const caelProvenance: ProvenanceChecker = async (result, task) => {
     prevChain: null,
   });
 
-  const traced =
-    verifyBrittneyCaelRecord(record) && record.simContractCheck !== null ? 1 : 0;
+  const traced = verifyBrittneyCaelRecord(record) && record.simContractCheck !== null ? 1 : 0;
   return { totalClaims: 1, tracedClaims: traced };
 };

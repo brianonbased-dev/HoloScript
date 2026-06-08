@@ -88,7 +88,7 @@ describe('forgetPolicyHandler.onAttach', () => {
     const { context, emitted } = makeContext();
     forgetPolicyHandler.onAttach(node, BASE_CONFIG, context);
     expect(node.__forgetPolicyState).toBeDefined();
-    expect(emitted.some(e => e.type === 'forget_policy_attached')).toBe(true);
+    expect(emitted.some((e) => e.type === 'forget_policy_attached')).toBe(true);
   });
 
   it('rejects invalid duration format and emits forget_error', () => {
@@ -96,7 +96,7 @@ describe('forgetPolicyHandler.onAttach', () => {
     const { context, emitted } = makeContext();
     forgetPolicyHandler.onAttach(node, { ...BASE_CONFIG, after: 'thirty days' }, context);
     expect(node.__forgetPolicyState).toBeUndefined();
-    expect(emitted.some(e => e.type === 'forget_error')).toBe(true);
+    expect(emitted.some((e) => e.type === 'forget_error')).toBe(true);
   });
 
   it('rejects invalid predicate format and emits forget_error', () => {
@@ -104,7 +104,7 @@ describe('forgetPolicyHandler.onAttach', () => {
     const { context, emitted } = makeContext();
     forgetPolicyHandler.onAttach(node, { ...BASE_CONFIG, when: 'not a predicate' }, context);
     expect(node.__forgetPolicyState).toBeUndefined();
-    expect(emitted.some(e => e.type === 'forget_error')).toBe(true);
+    expect(emitted.some((e) => e.type === 'forget_error')).toBe(true);
   });
 
   it('emits warning forget_error when audit=false', () => {
@@ -112,8 +112,8 @@ describe('forgetPolicyHandler.onAttach', () => {
     const { context, emitted } = makeContext();
     forgetPolicyHandler.onAttach(node, { ...BASE_CONFIG, audit: false }, context);
     expect(node.__forgetPolicyState).toBeDefined();
-    expect(emitted.some(e => e.type === 'forget_error')).toBe(true);
-    expect(emitted.some(e => e.type === 'forget_policy_attached')).toBe(true);
+    expect(emitted.some((e) => e.type === 'forget_error')).toBe(true);
+    expect(emitted.some((e) => e.type === 'forget_policy_attached')).toBe(true);
   });
 
   it('parses 30d duration into ms', () => {
@@ -145,7 +145,7 @@ describe('forgetPolicyHandler.onAttach', () => {
     const { context, emitted } = makeContext();
     forgetPolicyHandler.onAttach(node, { ...BASE_CONFIG, when: 'accessCount < 3' }, context);
     expect(node.__forgetPolicyState).toBeDefined();
-    expect(emitted.some(e => e.type === 'forget_error')).toBe(false);
+    expect(emitted.some((e) => e.type === 'forget_error')).toBe(false);
   });
 });
 
@@ -158,10 +158,10 @@ describe('forgetPolicyHandler.onDetach', () => {
     const { node, config } = setup();
     const { context, emitted } = makeContext();
     forgetPolicyHandler.onDetach(node, config, context);
-    const ev = emitted.find(e => e.type === 'forget_policy_detached');
+    const ev = emitted.find((e) => e.type === 'forget_policy_detached');
     expect(ev).toBeDefined();
-    expect((ev!.payload as any)).toHaveProperty('totalEvaluations');
-    expect((ev!.payload as any)).toHaveProperty('totalDeleted');
+    expect(ev!.payload as any).toHaveProperty('totalEvaluations');
+    expect(ev!.payload as any).toHaveProperty('totalDeleted');
   });
 
   it('deletes internal forget state on detach', () => {
@@ -199,10 +199,10 @@ describe('forgetPolicyHandler.onUpdate prerequisites', () => {
     const { node, config, context, emitted } = setup({ eval_interval_ms: 60_000 }, true);
     // first call evaluates
     forgetPolicyHandler.onUpdate(node, config, context);
-    const firstCount = emitted.filter(e => e.type === 'forget_evaluate').length;
+    const firstCount = emitted.filter((e) => e.type === 'forget_evaluate').length;
     // immediate second call should be gated
     forgetPolicyHandler.onUpdate(node, config, context);
-    const secondCount = emitted.filter(e => e.type === 'forget_evaluate').length;
+    const secondCount = emitted.filter((e) => e.type === 'forget_evaluate').length;
     expect(firstCount).toBe(1);
     expect(secondCount).toBe(1);
   });
@@ -216,7 +216,7 @@ describe('forgetPolicyHandler.onUpdate deletion behavior', () => {
   it('emits forget_evaluate on evaluation', () => {
     const { node, config, context, emitted } = setup({ eval_interval_ms: 0 }, true);
     forgetPolicyHandler.onUpdate(node, config, context);
-    expect(emitted.some(e => e.type === 'forget_evaluate')).toBe(true);
+    expect(emitted.some((e) => e.type === 'forget_evaluate')).toBe(true);
   });
 
   it('does not delete memories younger than after threshold', () => {
@@ -233,7 +233,7 @@ describe('forgetPolicyHandler.onUpdate deletion behavior', () => {
     memState.memories.set('old', makeMemory({ key: 'old', createdAt: Date.now() - 5_000 }));
     forgetPolicyHandler.onUpdate(node, config, context);
     expect(memState.memories.has('old')).toBe(false);
-    const apply = emitted.find(e => e.type === 'forget_apply');
+    const apply = emitted.find((e) => e.type === 'forget_apply');
     expect((apply!.payload as any).deletedCount).toBe(1);
   });
 
@@ -307,8 +307,14 @@ describe('forgetPolicyHandler.onUpdate deletion behavior', () => {
       true
     );
     const memState = node.__agentMemoryState!;
-    memState.memories.set('many', makeMemory({ key: 'many', createdAt: Date.now() - 5_000, tags: ['a', 'b'] }));
-    memState.memories.set('few', makeMemory({ key: 'few', createdAt: Date.now() - 5_000, tags: ['a'] }));
+    memState.memories.set(
+      'many',
+      makeMemory({ key: 'many', createdAt: Date.now() - 5_000, tags: ['a', 'b'] })
+    );
+    memState.memories.set(
+      'few',
+      makeMemory({ key: 'few', createdAt: Date.now() - 5_000, tags: ['a'] })
+    );
     forgetPolicyHandler.onUpdate(node, config, context);
     expect(memState.memories.has('many')).toBe(false);
     expect(memState.memories.has('few')).toBe(true);
@@ -347,7 +353,7 @@ describe('audit and dry_run', () => {
     const memState = node.__agentMemoryState!;
     memState.memories.set('old', makeMemory({ key: 'old', createdAt: Date.now() - 5_000 }));
     forgetPolicyHandler.onUpdate(node, config, context);
-    expect(emitted.some(e => e.type === 'forget_audit_entry')).toBe(true);
+    expect(emitted.some((e) => e.type === 'forget_audit_entry')).toBe(true);
   });
 
   it('does not emit forget_audit_entry when audit=false', () => {
@@ -358,7 +364,7 @@ describe('audit and dry_run', () => {
     const memState = node.__agentMemoryState!;
     memState.memories.set('old', makeMemory({ key: 'old', createdAt: Date.now() - 5_000 }));
     forgetPolicyHandler.onUpdate(node, config, context);
-    expect(emitted.some(e => e.type === 'forget_audit_entry')).toBe(false);
+    expect(emitted.some((e) => e.type === 'forget_audit_entry')).toBe(false);
   });
 
   it('dry_run=true does not delete, but reports wouldDelete', () => {
@@ -370,7 +376,7 @@ describe('audit and dry_run', () => {
     memState.memories.set('old', makeMemory({ key: 'old', createdAt: Date.now() - 5_000 }));
     forgetPolicyHandler.onUpdate(node, config, context);
     expect(memState.memories.has('old')).toBe(true);
-    const apply = emitted.find(e => e.type === 'forget_apply');
+    const apply = emitted.find((e) => e.type === 'forget_apply');
     expect((apply!.payload as any).deletedCount).toBe(0);
     expect((apply!.payload as any).wouldDelete).toBe(1);
     expect((apply!.payload as any).dryRun).toBe(true);
@@ -411,7 +417,7 @@ describe('forgetPolicyHandler.onEvent', () => {
     forgetPolicyHandler.onUpdate(node, config, context);
     emitted.length = 0;
     forgetPolicyHandler.onEvent(node, config, context, { type: 'forget_audit_export' });
-    const log = emitted.find(e => e.type === 'forget_audit_log');
+    const log = emitted.find((e) => e.type === 'forget_audit_log');
     expect(log).toBeDefined();
     expect(Array.isArray((log!.payload as any).entries)).toBe(true);
   });
@@ -440,7 +446,7 @@ describe('edge cases', () => {
   it('handles empty memory map gracefully', () => {
     const { node, config, context, emitted } = setup({ eval_interval_ms: 0 }, true);
     forgetPolicyHandler.onUpdate(node, config, context);
-    const evalEv = emitted.find(e => e.type === 'forget_evaluate');
+    const evalEv = emitted.find((e) => e.type === 'forget_evaluate');
     expect((evalEv!.payload as any).candidateCount).toBe(0);
   });
 
@@ -463,8 +469,14 @@ describe('edge cases', () => {
       true
     );
     const memState = node.__agentMemoryState!;
-    memState.memories.set('a', makeMemory({ key: 'a', createdAt: Date.now() - 5_000, accessCount: 2 }));
-    memState.memories.set('b', makeMemory({ key: 'b', createdAt: Date.now() - 5_000, accessCount: 3 }));
+    memState.memories.set(
+      'a',
+      makeMemory({ key: 'a', createdAt: Date.now() - 5_000, accessCount: 2 })
+    );
+    memState.memories.set(
+      'b',
+      makeMemory({ key: 'b', createdAt: Date.now() - 5_000, accessCount: 3 })
+    );
     forgetPolicyHandler.onUpdate(node, config, context);
     expect(memState.memories.has('a')).toBe(false);
     expect(memState.memories.has('b')).toBe(true);
@@ -476,8 +488,14 @@ describe('edge cases', () => {
       true
     );
     const memState = node.__agentMemoryState!;
-    memState.memories.set('a', makeMemory({ key: 'a', createdAt: Date.now() - 5_000, accessCount: 2 }));
-    memState.memories.set('b', makeMemory({ key: 'b', createdAt: Date.now() - 5_000, accessCount: 3 }));
+    memState.memories.set(
+      'a',
+      makeMemory({ key: 'a', createdAt: Date.now() - 5_000, accessCount: 2 })
+    );
+    memState.memories.set(
+      'b',
+      makeMemory({ key: 'b', createdAt: Date.now() - 5_000, accessCount: 3 })
+    );
     forgetPolicyHandler.onUpdate(node, config, context);
     expect(memState.memories.has('a')).toBe(true);
     expect(memState.memories.has('b')).toBe(false);

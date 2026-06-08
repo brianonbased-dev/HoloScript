@@ -8,23 +8,23 @@
 
 ## Legend
 
-| Symbol | Meaning |
-|--------|---------|
-| ✅ | **Honored** — Compiler or runtime explicitly preserves / emits / executes the extension. CI contract tests cover it. |
-| 🟡 | **Partial / Loader-only / Stub** — Data is ingested at load time (`HumanoidLoader`, `@pixiv/three-vrm`, or `mapVrmToAvatar`) but the compiler does **not** yet emit target-native code for it. Extension survives the trip to the runtime but may be ignored by the target engine's native pipeline. |
-| 🔴 | **Not yet implemented** — No ingestion, no emission, no runtime support in this target. |
-| N/A | **Not applicable** — Target architecture does not typically use this extension (e.g. MToon on non-rendering backends). |
+| Symbol | Meaning                                                                                                                                                                                                                                                                                              |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ✅     | **Honored** — Compiler or runtime explicitly preserves / emits / executes the extension. CI contract tests cover it.                                                                                                                                                                                 |
+| 🟡     | **Partial / Loader-only / Stub** — Data is ingested at load time (`HumanoidLoader`, `@pixiv/three-vrm`, or `mapVrmToAvatar`) but the compiler does **not** yet emit target-native code for it. Extension survives the trip to the runtime but may be ignored by the target engine's native pipeline. |
+| 🔴     | **Not yet implemented** — No ingestion, no emission, no runtime support in this target.                                                                                                                                                                                                              |
+| N/A    | **Not applicable** — Target architecture does not typically use this extension (e.g. MToon on non-rendering backends).                                                                                                                                                                               |
 
 ## Matrix
 
-| Extension | Specification | Unity | Unreal | WebGPU | R3F | Three.js | Godot | WebXR |
-|-----------|---------------|-------|--------|--------|-----|----------|-------|-------|
-| **VRMC_vrm** (humanoid bones + expressions + meta) | [VRM Consortium](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_vrm-1.0) | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 |
-| **VRMC_materials_mtoon** | [MToon 1.0](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_materials_mtoon-1.0) | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
-| **VRMC_materials_hdr_emissiveMultiplier** | [HDR emissive](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_materials_hdr_emissiveMultiplier-1.0) | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
-| **VRMC_springBone** | [SpringBone 1.0](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_springBone-1.0) | 🔴 | 🔴 | 🔴 | 🟡 | 🟡 | 🔴 | 🟡 |
-| **VRMC_node_constraint** | [Node constraint 1.0](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_node_constraint-1.0) | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
-| **KHR_materials_unlit** (commonly paired) | [Khronos glTF](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_unlit) | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 |
+| Extension                                          | Specification                                                                                                                  | Unity | Unreal | WebGPU | R3F | Three.js | Godot | WebXR |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----- | ------ | ------ | --- | -------- | ----- | ----- |
+| **VRMC_vrm** (humanoid bones + expressions + meta) | [VRM Consortium](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_vrm-1.0)                            | 🟡    | 🟡     | 🟡     | 🟡  | 🟡       | 🟡    | 🟡    |
+| **VRMC_materials_mtoon**                           | [MToon 1.0](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_materials_mtoon-1.0)                     | 🔴    | 🔴     | 🔴     | 🔴  | 🔴       | 🔴    | 🔴    |
+| **VRMC_materials_hdr_emissiveMultiplier**          | [HDR emissive](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_materials_hdr_emissiveMultiplier-1.0) | 🔴    | 🔴     | 🔴     | 🔴  | 🔴       | 🔴    | 🔴    |
+| **VRMC_springBone**                                | [SpringBone 1.0](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_springBone-1.0)                     | 🔴    | 🔴     | 🔴     | 🟡  | 🟡       | 🔴    | 🟡    |
+| **VRMC_node_constraint**                           | [Node constraint 1.0](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_node_constraint-1.0)           | 🔴    | 🔴     | 🔴     | 🔴  | 🔴       | 🔴    | 🔴    |
+| **KHR_materials_unlit** (commonly paired)          | [Khronos glTF](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_unlit)                      | 🔴    | 🔴     | 🔴     | 🔴  | 🔴       | 🔴    | 🔴    |
 
 ## Per-cell justification
 
@@ -69,16 +69,20 @@
 ## Target-specific notes
 
 ### WebGPU
+
 - WebGPU compiler currently emits generic WebGPU rendering code with standard PBR shaders. No VRM-specific vertex skinning or MToon WGSL variant exists yet.
 - Spring-bone physics would require a compute-pipeline implementation; stub only.
 
 ### Unity
+
 - VRM ingestion today is via glTF + `HumanoidLoader` trait extraction. A true Unity-native path would require `UnityEngine.Avatar` builder + `VRMImporter` equivalent; not yet built.
 
 ### Unreal
+
 - Same pattern as Unity: trait-level data only. No `USkeletalMesh` / `AnimInstance` codegen.
 
 ### Godot
+
 - No `Skeleton3D` / `BoneAttachment3D` emission from the compiler yet.
 
 ## Next steps to promote cells from 🟡 → ✅

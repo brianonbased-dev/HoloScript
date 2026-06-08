@@ -38,7 +38,7 @@ function createMockContext(stateOverrides: Record<string, any> = {}) {
       hands: { left: null, right: null },
       headset: {
         position: [0, 0, 0],
-        rotation: [0, 0, 0 ],
+        rotation: [0, 0, 0],
       },
       getPointerRay: () => null,
       getDominantHand: () => null,
@@ -116,39 +116,23 @@ describe('utility functions', () => {
 
   describe('closestPointOnSegment', () => {
     it('should return point A when projection is before segment', () => {
-      const result = closestPointOnSegment(
-        [-5, 0, 0],
-        [0, 0, 0],
-        [10, 0, 0]
-      );
+      const result = closestPointOnSegment([-5, 0, 0], [0, 0, 0], [10, 0, 0]);
       expect(result[0]).toBeCloseTo(0);
     });
 
     it('should return point B when projection is beyond segment', () => {
-      const result = closestPointOnSegment(
-        [15, 0, 0],
-        [0, 0, 0],
-        [10, 0, 0]
-      );
+      const result = closestPointOnSegment([15, 0, 0], [0, 0, 0], [10, 0, 0]);
       expect(result[0]).toBeCloseTo(10);
     });
 
     it('should return midpoint for perpendicular point', () => {
-      const result = closestPointOnSegment(
-        [5, 5, 0],
-        [0, 0, 0],
-        [10, 0, 0]
-      );
+      const result = closestPointOnSegment([5, 5, 0], [0, 0, 0], [10, 0, 0]);
       expect(result[0]).toBeCloseTo(5);
       expect(result[1]).toBeCloseTo(0);
     });
 
     it('should handle degenerate segment (point)', () => {
-      const result = closestPointOnSegment(
-        [5, 5, 0],
-        [3, 3, 0],
-        [3, 3, 0]
-      );
+      const result = closestPointOnSegment([5, 5, 0], [3, 3, 0], [3, 3, 0]);
       expect(result[0]).toBeCloseTo(3);
       expect(result[1]).toBeCloseTo(3);
     });
@@ -595,7 +579,7 @@ describe('spatialTemporalReachableHandler', () => {
     const state = context._state.spatialTemporalReachable;
     expect(state.movingObstacles.size).toBe(1);
     expect(state.movingObstacles.get('car_1')).toBeDefined();
-    expect(state.movingObstacles.get('car_1').velocity).toEqual([ -2, 0, 0 ]);
+    expect(state.movingObstacles.get('car_1').velocity).toEqual([-2, 0, 0]);
   });
 
   it('should remove obstacles when despawned', () => {
@@ -700,7 +684,7 @@ describe('spatialTemporalReachableHandler', () => {
         type: 'moving_obstacle_update',
         obstacleId: 'vehicle_1',
         position: [10, 5, 0],
-        velocity: [ 0, -2, 0 ],
+        velocity: [0, -2, 0],
         radius: 1.0,
       } as any
     );
@@ -757,7 +741,7 @@ describe('spatialTemporalReachableHandler', () => {
         type: 'moving_obstacle_update',
         obstacleId: 'vehicle_1',
         position: [10, 5, 0],
-        velocity: [ 0, 5, 0 ], // Moving away from path
+        velocity: [0, 5, 0], // Moving away from path
         radius: 0.5,
       } as any
     );

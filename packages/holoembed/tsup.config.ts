@@ -10,7 +10,5 @@ export default defineConfig({
   splitting: false,
   treeshake: true,
   minify: false,
-  external: [
-    '@holoscript/snn-webgpu',
-  ],
+  external: ['@holoscript/snn-webgpu'],
 });

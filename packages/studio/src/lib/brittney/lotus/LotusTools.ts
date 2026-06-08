@@ -66,7 +66,7 @@ export const LOTUS_TOOLS = [
     function: {
       name: 'tend_garden',
       description:
-        'Re-derive every petal\'s bloom state from current evidence and return a markdown summary suitable for posting to the user. Includes per-petal state, the Lotus Genesis readiness verdict, and a list of blocking petals if any. Read-only; always succeeds.',
+        "Re-derive every petal's bloom state from current evidence and return a markdown summary suitable for posting to the user. Includes per-petal state, the Lotus Genesis readiness verdict, and a list of blocking petals if any. Read-only; always succeeds.",
       parameters: {
         type: 'object',
         properties: {},
@@ -96,7 +96,7 @@ export const LOTUS_TOOLS = [
     function: {
       name: 'bloom_petal',
       description:
-        'Set a petal\'s bloom state. ARCHITECTURALLY GATED: this tool only succeeds if the requested target_state equals the state derivable from real evidence. If you request a target_state that the evidence does not justify, the tool returns is_error and explains what evidence is missing. You cannot lie about a petal\'s bloom; the architecture enforces truth.',
+        "Set a petal's bloom state. ARCHITECTURALLY GATED: this tool only succeeds if the requested target_state equals the state derivable from real evidence. If you request a target_state that the evidence does not justify, the tool returns is_error and explains what evidence is missing. You cannot lie about a petal's bloom; the architecture enforces truth.",
       parameters: {
         type: 'object',
         properties: {
@@ -119,7 +119,7 @@ export const LOTUS_TOOLS = [
     function: {
       name: 'wilt_petal',
       description:
-        'Mark a petal as wilted with a reason. ARCHITECTURALLY GATED: this tool only succeeds when the derived state from evidence IS already \'wilted\' (paper retracted or provenance break). You cannot wilt a healthy petal.',
+        "Mark a petal as wilted with a reason. ARCHITECTURALLY GATED: this tool only succeeds when the derived state from evidence IS already 'wilted' (paper retracted or provenance break). You cannot wilt a healthy petal.",
       parameters: {
         type: 'object',
         properties: {
@@ -129,7 +129,8 @@ export const LOTUS_TOOLS = [
           },
           reason: {
             type: 'string',
-            description: 'Human-readable reason for the wilt (e.g., "retracted by editor", "anchor lost")',
+            description:
+              'Human-readable reason for the wilt (e.g., "retracted by editor", "anchor lost")',
           },
         },
         required: ['paper_id', 'reason'],
@@ -173,10 +174,7 @@ export interface LotusToolResult {
  * Execute a lotus tool by name. Read-only tools always succeed; mutating
  * tools (`bloom_petal`, `wilt_petal`) are gated by `derivePetalBloomState`.
  */
-export function executeLotusTool(
-  toolName: string,
-  args: Record<string, unknown>,
-): LotusToolResult {
+export function executeLotusTool(toolName: string, args: Record<string, unknown>): LotusToolResult {
   try {
     switch (toolName) {
       case 'read_garden_state':
@@ -188,13 +186,10 @@ export function executeLotusTool(
       case 'bloom_petal':
         return executeBloomPetal(
           String(args.paper_id ?? ''),
-          String(args.target_state ?? '') as BloomState,
+          String(args.target_state ?? '') as BloomState
         );
       case 'wilt_petal':
-        return executeWiltPetal(
-          String(args.paper_id ?? ''),
-          String(args.reason ?? ''),
-        );
+        return executeWiltPetal(String(args.paper_id ?? ''), String(args.reason ?? ''));
       default:
         return {
           tool: toolName,
@@ -299,9 +294,10 @@ function executeProposeEvidence(paperId: string): LotusToolResult {
       currentState: derived.state,
       currentReason: derived.reason,
       blockedBy: derived.blockedBy ?? [],
-      proposals: proposals.length > 0
-        ? proposals
-        : ['Petal is already at full bloom — no further evidence needed.'],
+      proposals:
+        proposals.length > 0
+          ? proposals
+          : ['Petal is already at full bloom — no further evidence needed.'],
     },
   };
 }
@@ -393,7 +389,7 @@ function executeWiltPetal(paperId: string, reason: string): LotusToolResult {
  */
 function blockerToProposal(
   blocker: string,
-  evidence: { stubCount?: number; benchmarkTodoCount?: number },
+  evidence: { stubCount?: number; benchmarkTodoCount?: number }
 ): string {
   switch (blocker) {
     case 'hasDraft':

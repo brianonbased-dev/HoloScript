@@ -115,7 +115,10 @@ export async function buildOpsStatusPayload(): Promise<OpsStatusPayload> {
   };
 }
 
-export async function handleOpsStatusRequest(_req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleOpsStatusRequest(
+  _req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
   try {
     const body = JSON.stringify(await buildOpsStatusPayload());
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });

@@ -79,14 +79,22 @@ composition "Simple" {
   }
 }`;
 
-    testHandler.onEvent!(node, cfg, ctx as any, {
-      type: 'test:run',
-      source,
-    } as any);
+    testHandler.onEvent!(
+      node,
+      cfg,
+      ctx as any,
+      {
+        type: 'test:run',
+        source,
+      } as any
+    );
 
-    expect(ctx.emit).toHaveBeenCalledWith('test:results', expect.objectContaining({
-      results: expect.any(Array),
-    }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'test:results',
+      expect.objectContaining({
+        results: expect.any(Array),
+      })
+    );
   });
 
   it('onEvent without __test_instance is a no-op', () => {

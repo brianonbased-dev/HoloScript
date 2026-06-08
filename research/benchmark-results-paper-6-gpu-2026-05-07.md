@@ -1,9 +1,9 @@
 ---
-title: "Paper 6 GPU benchmark results"
-date: "2026-05-07"
-artifact: ".bench-logs/paper-6-gpu-bench.json"
-commit: "bca146a79"
-runner: "packages/engine/run-paper6-gpu-capture.mjs"
+title: 'Paper 6 GPU benchmark results'
+date: '2026-05-07'
+artifact: '.bench-logs/paper-6-gpu-bench.json'
+commit: 'bca146a79'
+runner: 'packages/engine/run-paper6-gpu-capture.mjs'
 ---
 
 # Paper 6 GPU Benchmark Results
@@ -36,11 +36,11 @@ node packages\engine\run-paper6-gpu-capture.mjs --out=.bench-logs\paper-6-gpu-be
 
 ## Results
 
-| Mecanim version | Rigs | Diverged | Divergence rate | Mean max-L1 | p99 max-L1 |
-|---|---:|---:|---:|---:|---:|
-| Unity 2021.3 LTS | 10 | 0 | 0.0% | 0.000e+0 | 0.000e+0 |
-| Unity 2022.3 LTS | 10 | 10 | 100.0% | 7.592e-4 | 7.594e-4 |
-| Unity 2023.2 | 10 | 10 | 100.0% | 7.592e-4 | 7.594e-4 |
+| Mecanim version  | Rigs | Diverged | Divergence rate | Mean max-L1 | p99 max-L1 |
+| ---------------- | ---: | -------: | --------------: | ----------: | ---------: |
+| Unity 2021.3 LTS |   10 |        0 |            0.0% |    0.000e+0 |   0.000e+0 |
+| Unity 2022.3 LTS |   10 |       10 |          100.0% |    7.592e-4 |   7.594e-4 |
+| Unity 2023.2     |   10 |       10 |          100.0% |    7.592e-4 |   7.594e-4 |
 
 ## Notes
 

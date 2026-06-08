@@ -35,7 +35,10 @@ export interface Exp1Provider {
  */
 export function localProvider(model: string, ollamaHost?: string): Exp1Provider {
   const baseURL =
-    ollamaHost || process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    ollamaHost ||
+    process.env.OLLAMA_HOST ||
+    process.env.OLLAMA_BASE_URL ||
+    'http://localhost:11434';
   return {
     provider: new LocalLLMAdapter({ baseURL, model, timeoutMs: 300_000 }),
     model,
@@ -51,5 +54,10 @@ export function localProvider(model: string, ollamaHost?: string): Exp1Provider 
  */
 export function frontierBaselineProvider(): Exp1Provider {
   const r = resolveBrittneyProvider();
-  return { provider: r.provider, model: r.model, maxTokens: r.maxTokens, providerName: r.providerName };
+  return {
+    provider: r.provider,
+    model: r.model,
+    maxTokens: r.maxTokens,
+    providerName: r.providerName,
+  };
 }

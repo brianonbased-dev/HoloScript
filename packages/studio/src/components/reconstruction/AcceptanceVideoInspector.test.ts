@@ -36,12 +36,14 @@ describe('AcceptanceVideoInspector helpers', () => {
   describe('manifestFilename', () => {
     it('embeds a slugged 16-char prefix of the fingerprint', () => {
       expect(manifestFilename('abc123def456ghi789jkl')).toBe(
-        'acceptance-manifest-abc123def456ghi7.json',
+        'acceptance-manifest-abc123def456ghi7.json'
       );
     });
 
     it('strips disallowed characters (slash, colon, dot) so the filename is portable', () => {
-      expect(manifestFilename('sha256:abc/def.789')).toBe('acceptance-manifest-sha256abcdef789.json');
+      expect(manifestFilename('sha256:abc/def.789')).toBe(
+        'acceptance-manifest-sha256abcdef789.json'
+      );
     });
 
     it('falls back to "unknown" when the fingerprint has no allowed characters', () => {
@@ -64,7 +66,9 @@ describe('AcceptanceVideoInspector helpers', () => {
     });
 
     it('returns the stored baseline when present', () => {
-      const fakeStorage = { getItem: (k: string) => (k === ACCEPTANCE_BASELINE_STORAGE_KEY ? 'fp-stored' : null) };
+      const fakeStorage = {
+        getItem: (k: string) => (k === ACCEPTANCE_BASELINE_STORAGE_KEY ? 'fp-stored' : null),
+      };
       expect(defaultBaseline(fakeStorage)).toBe('fp-stored');
     });
 

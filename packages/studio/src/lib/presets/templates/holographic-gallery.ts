@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-holographic-gallery",
-  name: "Holographic Gallery",
-  description: "Arrange photos as depth-displaced 3D panels in immersive gallery space",
-  thumbnail: "🖼️",
-  tags: ["hologram","gallery","depth","3d","photo"],
-  category: "hologram",
+  id: 'wizard-holographic-gallery',
+  name: 'Holographic Gallery',
+  description: 'Arrange photos as depth-displaced 3D panels in immersive gallery space',
+  thumbnail: '🖼️',
+  tags: ['hologram', 'gallery', 'depth', '3d', 'photo'],
+  category: 'hologram',
   code: `composition "Holographic Gallery" {
   environment {
     skybox: "night"
@@ -104,7 +104,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 1.2
     label: "HOLOGRAPHIC GALLERY"
   }
-}`
+}`,
 };
 
 export default template;

@@ -194,10 +194,7 @@ const PLUGIN_ID = 'structural-biology@0.2.0';
  * Each docking run produces exactly one receipt that ties the result
  * to the input configuration and plugin identity.
  */
-export function createDockingReceipt(
-  config: DockingConfig,
-  result: DockingResult,
-): DockingReceipt {
+export function createDockingReceipt(config: DockingConfig, result: DockingResult): DockingReceipt {
   const provenanceHash = dockingProvenance(result);
   const verified = result.status === 'success';
 
@@ -221,10 +218,7 @@ export function createDockingReceipt(
  * Each ADMET prediction produces exactly one receipt that ties the result
  * to the input SMILES and plugin identity.
  */
-export function createAdmetReceipt(
-  config: AdmetConfig,
-  result: AdmetResult,
-): AdmetReceipt {
+export function createAdmetReceipt(config: AdmetConfig, result: AdmetResult): AdmetReceipt {
   const provenanceHash = admetProvenance(result);
   const verified = result.status === 'success';
 
@@ -251,7 +245,7 @@ export function createAdmetReceipt(
  */
 export function createDrugDiscoveryReceipt(
   dockingReceipt: DockingReceipt,
-  admetReceipt: AdmetReceipt,
+  admetReceipt: AdmetReceipt
 ): DrugDiscoveryReceipt {
   // Composite provenance: hash of (docking hash | ADMET hash)
   const compositeInput = `${dockingReceipt.provenanceHash}|${admetReceipt.provenanceHash}`;
@@ -276,11 +270,13 @@ export function createDrugDiscoveryReceipt(
     propertyCount,
     passes,
     ki_nm: dockingReceipt.result.poses[0]
-      ? Math.exp(dockingReceipt.result.bestAffinity! * 1000 / (1.989e-3 * 298.15))
+      ? Math.exp((dockingReceipt.result.bestAffinity! * 1000) / (1.989e-3 * 298.15))
       : undefined,
-    hitRate: dockingReceipt.result.poses.length > 0
-      ? dockingReceipt.result.poses.filter(p => p.affinity <= -7.0).length / dockingReceipt.result.poses.length
-      : undefined,
+    hitRate:
+      dockingReceipt.result.poses.length > 0
+        ? dockingReceipt.result.poses.filter((p) => p.affinity <= -7.0).length /
+          dockingReceipt.result.poses.length
+        : undefined,
     summary: formatAssessmentSummary(bestAffinity, drugLikenessScore, lipinskiViolations, passes),
   };
 
@@ -302,13 +298,14 @@ function formatAssessmentSummary(
   bestAffinity: number,
   drugLikenessScore: number,
   lipinskiViolations: number,
-  passes: boolean,
+  passes: boolean
 ): string {
-  const affinityStr = bestAffinity < -7
-    ? `strong binding (${bestAffinity.toFixed(1)} kcal/mol)`
-    : bestAffinity < -5
-      ? `moderate binding (${bestAffinity.toFixed(1)} kcal/mol)`
-      : `weak binding (${bestAffinity.toFixed(1)} kcal/mol)`;
+  const affinityStr =
+    bestAffinity < -7
+      ? `strong binding (${bestAffinity.toFixed(1)} kcal/mol)`
+      : bestAffinity < -5
+        ? `moderate binding (${bestAffinity.toFixed(1)} kcal/mol)`
+        : `weak binding (${bestAffinity.toFixed(1)} kcal/mol)`;
 
   const drugStr = passes
     ? `drug-like (score=${drugLikenessScore.toFixed(2)}, ${lipinskiViolations} Lipinski violations)`
@@ -336,7 +333,7 @@ export function runDrugDiscoveryPipeline(
   dockingConfig: DockingConfig,
   dockingResult: DockingResult,
   admetConfig: AdmetConfig,
-  admetResult: AdmetResult,
+  admetResult: AdmetResult
 ): DrugDiscoveryReceipt {
   const dockingReceipt = createDockingReceipt(dockingConfig, dockingResult);
   const admetReceipt = createAdmetReceipt(admetConfig, admetResult);

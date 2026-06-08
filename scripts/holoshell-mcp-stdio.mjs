@@ -16,12 +16,9 @@
  *   }
  */
 
-import { Server }              from '@modelcontextprotocol/sdk/server/index.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 import { classifyConsentRequirement, issueConsentToken } from './holoshell-consent-contract.mjs';
 import {
@@ -33,10 +30,7 @@ import {
   lookupProcessesByPid,
 } from './holoshell-execute-receipt.mjs';
 
-const server = new Server(
-  { name: 'holoshell', version: '0.1.0' },
-  { capabilities: { tools: {} } }
-);
+const server = new Server({ name: 'holoshell', version: '0.1.0' }, { capabilities: { tools: {} } });
 
 const TOOLS = [
   {
@@ -96,9 +90,16 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        operation:   { type: 'string', description: 'Operation name matching the preflight receipt' },
-        preflightId: { type: 'string', description: 'The preflightId returned by holoshell_preflight_process_cleanup' },
-        agentId:     { type: 'string', description: 'Agent identifier (default: holoshell)', default: 'holoshell' },
+        operation: { type: 'string', description: 'Operation name matching the preflight receipt' },
+        preflightId: {
+          type: 'string',
+          description: 'The preflightId returned by holoshell_preflight_process_cleanup',
+        },
+        agentId: {
+          type: 'string',
+          description: 'Agent identifier (default: holoshell)',
+          default: 'holoshell',
+        },
       },
       required: ['operation', 'preflightId'],
     },
@@ -127,13 +128,17 @@ const TOOLS = [
           items: {
             type: 'object',
             properties: {
-              pid:    { type: 'number', description: 'Process ID' },
+              pid: { type: 'number', description: 'Process ID' },
               reason: { type: 'string', description: 'Why this process should be cleaned up' },
             },
             required: ['pid'],
           },
         },
-        agentId: { type: 'string', description: 'Agent identifier (default: holoshell)', default: 'holoshell' },
+        agentId: {
+          type: 'string',
+          description: 'Agent identifier (default: holoshell)',
+          default: 'holoshell',
+        },
       },
       required: ['targets'],
     },
@@ -148,7 +153,7 @@ const TOOLS = [
       type: 'object',
       properties: {
         consentToken: { type: 'string', description: 'Token returned by holoshell_consent_issue' },
-        preflightId:  { type: 'string', description: 'The preflightId from the preflight receipt' },
+        preflightId: { type: 'string', description: 'The preflightId from the preflight receipt' },
       },
       required: ['consentToken', 'preflightId'],
     },
@@ -163,65 +168,85 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case 'holoshell_list_stale_processes': {
-        const minAgeMs = (Number(args.minAgeMinutes ?? 5)) * 60_000;
+        const minAgeMs = Number(args.minAgeMinutes ?? 5) * 60_000;
         const procs = scanStaleProcesses({ minAgeMs });
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({ count: procs.length, processes: procs }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ count: procs.length, processes: procs }, null, 2),
+            },
+          ],
         };
       }
 
       case 'holoshell_preflight_process_cleanup': {
-        const minAgeMs = (Number(args.minAgeMinutes ?? 5)) * 60_000;
+        const minAgeMs = Number(args.minAgeMinutes ?? 5) * 60_000;
         const targets = scanStaleProcesses({ minAgeMs });
         if (targets.length === 0) {
           return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({ status: 'no_targets', message: 'No stale processes found.' }),
-            }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  status: 'no_targets',
+                  message: 'No stale processes found.',
+                }),
+              },
+            ],
           };
         }
         const preflight = createPreflightReceipt({ targets });
         writePreflightReceipt(preflight);
         const classification = classifyConsentRequirement(preflight.operation);
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              preflightId:  preflight.id,
-              operation:    preflight.operation,
-              targetCount:  targets.length,
-              lane:         classification.lane,
-              nextStep:     `Call holoshell_consent_issue with operation="${preflight.operation}" preflightId="${preflight.id}"`,
-              preflight,
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  preflightId: preflight.id,
+                  operation: preflight.operation,
+                  targetCount: targets.length,
+                  lane: classification.lane,
+                  nextStep: `Call holoshell_consent_issue with operation="${preflight.operation}" preflightId="${preflight.id}"`,
+                  preflight,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
 
       case 'holoshell_list_pending': {
         const pending = listPendingReceipts();
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              count:   pending.length,
-              pending: pending.map((pf) => ({
-                id:          pf.id,
-                operation:   pf.operation,
-                requestedBy: pf.requestedBy,
-                timestamp:   pf.timestamp,
-                targetCount: pf.targets?.length ?? 0,
-                targets:     pf.targets,
-              })),
-              note: pending.length === 0
-                ? 'No pending consents.'
-                : 'Approve via the HoloShell operate-room dashboard.',
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  count: pending.length,
+                  pending: pending.map((pf) => ({
+                    id: pf.id,
+                    operation: pf.operation,
+                    requestedBy: pf.requestedBy,
+                    timestamp: pf.timestamp,
+                    targetCount: pf.targets?.length ?? 0,
+                    targets: pf.targets,
+                  })),
+                  note:
+                    pending.length === 0
+                      ? 'No pending consents.'
+                      : 'Approve via the HoloShell operate-room dashboard.',
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
 
@@ -229,94 +254,126 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const rawTargets = Array.isArray(args.targets) ? args.targets : [];
         if (rawTargets.length === 0) {
           return {
-            content: [{ type: 'text', text: JSON.stringify({ status: 'error', reason: 'targets array is empty' }) }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ status: 'error', reason: 'targets array is empty' }),
+              },
+            ],
             isError: true,
           };
         }
         const pids = rawTargets.map((t) => Number(t.pid)).filter((p) => p > 0);
         const liveProcs = lookupProcessesByPid(pids);
         const livePidSet = new Set(liveProcs.map((p) => p.pid));
-        const reasonMap = Object.fromEntries(rawTargets.map((t) => [Number(t.pid), t.reason ?? 'agent_requested']));
+        const reasonMap = Object.fromEntries(
+          rawTargets.map((t) => [Number(t.pid), t.reason ?? 'agent_requested'])
+        );
         const targets = liveProcs.map((p) => ({
-          pid:     p.pid,
+          pid: p.pid,
           command: p.command,
-          ageMs:   p.ageMs,
-          reason:  reasonMap[p.pid] ?? 'agent_requested',
+          ageMs: p.ageMs,
+          reason: reasonMap[p.pid] ?? 'agent_requested',
         }));
         const notFound = pids.filter((p) => !livePidSet.has(p));
         if (targets.length === 0) {
           return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({ status: 'no_live_targets', notFound, message: 'None of the specified PIDs are running.' }),
-            }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  status: 'no_live_targets',
+                  notFound,
+                  message: 'None of the specified PIDs are running.',
+                }),
+              },
+            ],
           };
         }
-        const preflight = createPreflightReceipt({ targets, requestedBy: String(args.agentId ?? 'holoshell') });
+        const preflight = createPreflightReceipt({
+          targets,
+          requestedBy: String(args.agentId ?? 'holoshell'),
+        });
         writePreflightReceipt(preflight);
         const lane = classifyConsentRequirement(preflight.operation).lane;
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              status:      'queued',
-              preflightId: preflight.id,
-              lane,
-              targetCount: targets.length,
-              notFound,
-              message:     lane === 'founder_required'
-                ? 'Queued for operate-room approval. Operator must approve via the HoloShell dashboard.'
-                : `Queued (${lane}). Approve via the HoloShell dashboard or self-approve with holoshell_consent_issue.`,
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  status: 'queued',
+                  preflightId: preflight.id,
+                  lane,
+                  targetCount: targets.length,
+                  notFound,
+                  message:
+                    lane === 'founder_required'
+                      ? 'Queued for operate-room approval. Operator must approve via the HoloShell dashboard.'
+                      : `Queued (${lane}). Approve via the HoloShell dashboard or self-approve with holoshell_consent_issue.`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
         };
       }
 
       case 'holoshell_consent_classify': {
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(classifyConsentRequirement(String(args.operation)), null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(classifyConsentRequirement(String(args.operation)), null, 2),
+            },
+          ],
         };
       }
 
       case 'holoshell_consent_issue': {
-        const operation   = String(args.operation);
+        const operation = String(args.operation);
         const preflightId = String(args.preflightId);
-        const agentId     = String(args.agentId ?? 'holoshell');
+        const agentId = String(args.agentId ?? 'holoshell');
         const classification = classifyConsentRequirement(operation);
         if (classification.lane === 'founder_required') {
           return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify({
-                issued: false,
-                reason: 'founder_required — this operation requires explicit founder approval via the operate-room consent queue.',
-                lane:   classification.lane,
-              }),
-            }],
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  issued: false,
+                  reason:
+                    'founder_required — this operation requires explicit founder approval via the operate-room consent queue.',
+                  lane: classification.lane,
+                }),
+              },
+            ],
           };
         }
         const result = issueConsentToken({ operation, preflightId, agentId });
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({ issued: true, ...result }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ issued: true, ...result }, null, 2),
+            },
+          ],
         };
       }
 
       case 'holoshell_execute_receipt': {
         const result = executeReceipt({
           consentToken: String(args.consentToken),
-          preflightId:  String(args.preflightId),
+          preflightId: String(args.preflightId),
         });
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
         };
       }
 

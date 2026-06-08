@@ -76,7 +76,11 @@ export class SteeringBehaviors {
     );
   }
 
-  static arrive(agent: SteeringAgent, target: Vec3 | [number, number, number], slowRadius: number): Vec3 {
+  static arrive(
+    agent: SteeringAgent,
+    target: Vec3 | [number, number, number],
+    slowRadius: number
+  ): Vec3 {
     const toTarget = SteeringBehaviors.sub(target, agent.position);
     const dist = SteeringBehaviors.vecLength(toTarget);
     if (dist < 0.001) return makeVec3(0, 0, 0);
@@ -102,7 +106,11 @@ export class SteeringBehaviors {
       agent.position,
       SteeringBehaviors.scale(vel, circleDistance)
     );
-    const offset: [number, number, number] = [Math.cos(angle) * circleRadius, 0, Math.sin(angle) * circleRadius];
+    const offset: [number, number, number] = [
+      Math.cos(angle) * circleRadius,
+      0,
+      Math.sin(angle) * circleRadius,
+    ];
     const target = SteeringBehaviors.add(circleCenter, offset);
     return { force: SteeringBehaviors.seek(agent, target), newAngle: angle };
   }
@@ -247,7 +255,10 @@ export class SteeringBehaviors {
   private static vecLength(v: Vec3 | [number, number, number]): number {
     return Math.sqrt(getX(v) ** 2 + getY(v) ** 2 + getZ(v) ** 2);
   }
-  private static distance(a: Vec3 | [number, number, number], b: Vec3 | [number, number, number]): number {
+  private static distance(
+    a: Vec3 | [number, number, number],
+    b: Vec3 | [number, number, number]
+  ): number {
     return SteeringBehaviors.vecLength(SteeringBehaviors.sub(a, b));
   }
   private static normalize(v: Vec3 | [number, number, number]): Vec3 {

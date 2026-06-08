@@ -4,12 +4,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock @holoscript/engine/runtime BEFORE importing the module
 // ──────────────────────────────────────────────────────────────────
 
-const { mockOriginalTick, mockOriginalGetStats, mockGetProfile, MOCK_HEADLESS_PROFILE } = vi.hoisted(() => ({
-  mockOriginalTick: vi.fn().mockReturnValue('tick-result'),
-  mockOriginalGetStats: vi.fn(),
-  mockGetProfile: vi.fn().mockReturnValue({ name: 'headless' }),
-  MOCK_HEADLESS_PROFILE: { type: 'headless' } as const,
-}));
+const { mockOriginalTick, mockOriginalGetStats, mockGetProfile, MOCK_HEADLESS_PROFILE } =
+  vi.hoisted(() => ({
+    mockOriginalTick: vi.fn().mockReturnValue('tick-result'),
+    mockOriginalGetStats: vi.fn(),
+    mockGetProfile: vi.fn().mockReturnValue({ name: 'headless' }),
+    MOCK_HEADLESS_PROFILE: { type: 'headless' } as const,
+  }));
 
 vi.mock('@holoscript/engine/runtime', () => ({
   createHeadlessRuntime: vi.fn().mockImplementation(() => ({
@@ -21,11 +22,7 @@ vi.mock('@holoscript/engine/runtime', () => ({
   HEADLESS_PROFILE: MOCK_HEADLESS_PROFILE,
 }));
 
-import {
-  createHeadlessRuntime,
-  getProfile,
-  HEADLESS_PROFILE,
-} from '../HeadlessRuntime.js';
+import { createHeadlessRuntime, getProfile, HEADLESS_PROFILE } from '../HeadlessRuntime.js';
 
 // ──────────────────────────────────────────────────────────────────
 // Re-exports

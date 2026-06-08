@@ -122,9 +122,9 @@ export interface UAALAgentConfig {
 
   // ── Advanced: full sub-config overrides ─────────────────────────────────────
   overrides?: {
-    cogvm?:    Partial<CognitiveVMConfig>;
-    jepa?:     Partial<PillarJEPAConfig>;
-    emitter?:  Partial<SliceEmitterConfig>;
+    cogvm?: Partial<CognitiveVMConfig>;
+    jepa?: Partial<PillarJEPAConfig>;
+    emitter?: Partial<SliceEmitterConfig>;
     integrity?: LatentIntegrityLayerConfig;
   };
 }
@@ -135,14 +135,14 @@ export interface UAALAgentConfig {
 
 interface UAALAgentState {
   // Sub-handler nodes
-  cogvmNode:   HSPlusNode;
-  jepaNode:    HSPlusNode;
+  cogvmNode: HSPlusNode;
+  jepaNode: HSPlusNode;
   emitterNode: HSPlusNode;
   // Integrity layer (class-based, not a TraitHandler)
   integrityLayer: ReturnType<typeof createLatentIntegrityLayer>;
   // Rolling slice history for Byzantine detection
   recentSlices: PillarSlice[];
-  historySize:  number;
+  historySize: number;
   // Monotonic emitter step counter
   sim_step: number;
 }
@@ -153,43 +153,43 @@ interface UAALAgentState {
 
 function buildCogvmConfig(cfg: UAALAgentConfig): CognitiveVMConfig {
   return {
-    agent_id:                 cfg.agent_id,
-    inner_frequency:          cfg.inner_frequency          ?? 10,
-    outer_parallel_id:        cfg.outer_parallel_id        ?? 'temporal_lateral_parallel',
-    inner_parallel_id:        cfg.inner_parallel_id        ?? 'energy_entropy_parallel',
-    edge_case_threshold:      cfg.edge_case_threshold      ?? 0.35,
+    agent_id: cfg.agent_id,
+    inner_frequency: cfg.inner_frequency ?? 10,
+    outer_parallel_id: cfg.outer_parallel_id ?? 'temporal_lateral_parallel',
+    inner_parallel_id: cfg.inner_parallel_id ?? 'energy_entropy_parallel',
+    edge_case_threshold: cfg.edge_case_threshold ?? 0.35,
     lifecycle_auto_transition: true,
-    emit_to_peers:            cfg.emit_to_peers            ?? true,
-    emit_jepa_step:           true,   // composed agent intercepts this
-    jepa_latent_dim:          cfg.jepa_latent_dim          ?? 32,
+    emit_to_peers: cfg.emit_to_peers ?? true,
+    emit_jepa_step: true, // composed agent intercepts this
+    jepa_latent_dim: cfg.jepa_latent_dim ?? 32,
     ...cfg.overrides?.cogvm,
   };
 }
 
 function buildJepaConfig(cfg: UAALAgentConfig): PillarJEPAConfig {
   return {
-    latentDim:           cfg.jepa_latent_dim          ?? 32,
-    condDim:             4,
-    sigregWeight:        0.05,
-    conservationWeight:  cfg.jepa_conservation_weight  ?? 0.1,
-    conservationMargin:  0.05,
-    symmetryWeight:      0.02,
-    symmetryDelta:       0.1,
-    embeddingModel:      'jepa-context-encoder',
-    emitToGrpo:          true,   // composed agent intercepts sliceemitter:emit
-    physicsPillarId:     'physics_conservation',
-    temporalGating:      cfg.jepa_temporal_gating      ?? true,
-    bilateralWeight:     cfg.jepa_bilateral_weight     ?? 0.1,
+    latentDim: cfg.jepa_latent_dim ?? 32,
+    condDim: 4,
+    sigregWeight: 0.05,
+    conservationWeight: cfg.jepa_conservation_weight ?? 0.1,
+    conservationMargin: 0.05,
+    symmetryWeight: 0.02,
+    symmetryDelta: 0.1,
+    embeddingModel: 'jepa-context-encoder',
+    emitToGrpo: true, // composed agent intercepts sliceemitter:emit
+    physicsPillarId: 'physics_conservation',
+    temporalGating: cfg.jepa_temporal_gating ?? true,
+    bilateralWeight: cfg.jepa_bilateral_weight ?? 0.1,
     ...cfg.overrides?.jepa,
   };
 }
 
 function buildEmitterConfig(cfg: UAALAgentConfig): SliceEmitterConfig {
   return {
-    emit_to_grpo:          true,
+    emit_to_grpo: true,
     emit_to_knowledge_store: false,
-    max_buffer_size:       cfg.emitter_max_buffer        ?? 1000,
-    diversity_target:      cfg.emitter_diversity_target  ?? 0.8,
+    max_buffer_size: cfg.emitter_max_buffer ?? 1000,
+    diversity_target: cfg.emitter_diversity_target ?? 0.8,
     ...cfg.overrides?.emitter,
   };
 }
@@ -208,11 +208,20 @@ function buildEmitterConfig(cfg: UAALAgentConfig): SliceEmitterConfig {
 function domainToBrainCoord(domain: PillarDomain | string): BrainCoord {
   // Left-hemisphere domains (analytical, sequential)
   const leftDomains: Set<string> = new Set([
-    'physics', 'compiler', 'language', 'accuracy_speed', 'solver',
+    'physics',
+    'compiler',
+    'language',
+    'accuracy_speed',
+    'solver',
   ]);
   // Right-hemisphere domains (spatial, holistic)
   const rightDomains: Set<string> = new Set([
-    'rendering', 'agent', 'trait', 'safety_exploration', 'storage', 'init',
+    'rendering',
+    'agent',
+    'trait',
+    'safety_exploration',
+    'storage',
+    'init',
   ]);
 
   if (leftDomains.has(domain)) {
@@ -233,14 +242,14 @@ function domainToBrainCoord(domain: PillarDomain | string): BrainCoord {
 
 function silentCtx(): TraitContext {
   return {
-    emit:                () => {},
-    getState:            () => ({}),
-    setState:            () => {},
-    getScaleMultiplier:  () => 1,
-    setScaleContext:     () => {},
-    vr:      null,
+    emit: () => {},
+    getState: () => ({}),
+    setState: () => {},
+    getScaleMultiplier: () => 1,
+    setScaleContext: () => {},
+    vr: null,
     physics: null,
-    audio:   null,
+    audio: null,
     haptics: null,
   } as unknown as TraitContext;
 }
@@ -250,17 +259,19 @@ function silentCtx(): TraitContext {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface UAALAgentSnapshot {
-  cogvm:    CognitiveVMSnapshot | null;
+  cogvm: CognitiveVMSnapshot | null;
   sim_step: number;
   recent_slice_count: number;
 }
 
 export function getUAALAgentSnapshot(node: HSPlusNode): UAALAgentSnapshot | null {
-  const state = (node as unknown as Record<string, unknown>).__uaalAgentState as UAALAgentState | undefined;
+  const state = (node as unknown as Record<string, unknown>).__uaalAgentState as
+    | UAALAgentState
+    | undefined;
   if (!state) return null;
   return {
-    cogvm:              getCognitiveVMSnapshot(state.cogvmNode),
-    sim_step:           state.sim_step,
+    cogvm: getCognitiveVMSnapshot(state.cogvmNode),
+    sim_step: state.sim_step,
     recent_slice_count: state.recentSlices.length,
   };
 }
@@ -277,25 +288,25 @@ export const uAALComposedAgentHandler: TraitHandler<UAALAgentConfig> = {
   },
 
   onAttach(node: HSPlusNode, config: UAALAgentConfig, _context: TraitContext): void {
-    const cogvmNode:   HSPlusNode = {} as HSPlusNode;
-    const jepaNode:    HSPlusNode = {} as HSPlusNode;
+    const cogvmNode: HSPlusNode = {} as HSPlusNode;
+    const jepaNode: HSPlusNode = {} as HSPlusNode;
     const emitterNode: HSPlusNode = {} as HSPlusNode;
 
     // Attach all sub-handlers
-    cognitiveVMHandler.onAttach?.(cogvmNode,   buildCogvmConfig(config),   silentCtx());
-    pillarJepaHandler.onAttach?.(jepaNode,     buildJepaConfig(config),    silentCtx());
+    cognitiveVMHandler.onAttach?.(cogvmNode, buildCogvmConfig(config), silentCtx());
+    pillarJepaHandler.onAttach?.(jepaNode, buildJepaConfig(config), silentCtx());
     sliceEmitterHandler.onAttach?.(emitterNode, buildEmitterConfig(config), silentCtx());
 
     const integrityConfig = config.overrides?.integrity ?? {};
     const integrityLayer = createLatentIntegrityLayer({
       byzantine: {
-        sigmaThreshold: config.byzantine_sigma       ?? 2.0,
-        minHistory:     config.byzantine_min_history ?? 10,
+        sigmaThreshold: config.byzantine_sigma ?? 2.0,
+        minHistory: config.byzantine_min_history ?? 10,
         ...integrityConfig.byzantine,
       },
       sycophancy: {
-        driftThreshold: config.sycophancy_threshold  ?? 0.4,
-        minSamples:     config.sycophancy_min_samples ?? 5,
+        driftThreshold: config.sycophancy_threshold ?? 0.4,
+        minSamples: config.sycophancy_min_samples ?? 5,
         ...integrityConfig.sycophancy,
       },
     });
@@ -305,17 +316,17 @@ export const uAALComposedAgentHandler: TraitHandler<UAALAgentConfig> = {
       jepaNode,
       emitterNode,
       integrityLayer,
-      recentSlices:  [],
-      historySize:   config.integrity_history_size ?? 100,
-      sim_step:      0,
+      recentSlices: [],
+      historySize: config.integrity_history_size ?? 100,
+      sim_step: 0,
     } satisfies UAALAgentState;
   },
 
   onDetach(node: HSPlusNode, config: UAALAgentConfig, _context: TraitContext): void {
     const state = node.__uaalAgentState as UAALAgentState | undefined;
     if (state) {
-      cognitiveVMHandler.onDetach?.(state.cogvmNode,   buildCogvmConfig(config),   silentCtx());
-      pillarJepaHandler.onDetach?.(state.jepaNode,     buildJepaConfig(config),    silentCtx());
+      cognitiveVMHandler.onDetach?.(state.cogvmNode, buildCogvmConfig(config), silentCtx());
+      pillarJepaHandler.onDetach?.(state.jepaNode, buildJepaConfig(config), silentCtx());
       sliceEmitterHandler.onDetach?.(state.emitterNode, buildEmitterConfig(config), silentCtx());
     }
     delete node.__uaalAgentState;
@@ -324,10 +335,10 @@ export const uAALComposedAgentHandler: TraitHandler<UAALAgentConfig> = {
   onUpdate(): void {},
 
   onEvent(
-    node:    HSPlusNode,
-    config:  UAALAgentConfig,
+    node: HSPlusNode,
+    config: UAALAgentConfig,
     context: TraitContext,
-    event:   TraitEvent,
+    event: TraitEvent
   ): void {
     const state = node.__uaalAgentState as UAALAgentState | undefined;
     if (!state) return;
@@ -350,10 +361,10 @@ export const uAALComposedAgentHandler: TraitHandler<UAALAgentConfig> = {
 
       if (result.byzantine.isAnomalous || result.sycophancy.isDrifting) {
         context.emit?.('uaal:integrity_alert', {
-          byzantine:  result.byzantine,
+          byzantine: result.byzantine,
           sycophancy: result.sycophancy,
-          from:       (msg as Record<string, unknown>).from ?? 'unknown',
-          domain:     msg.slice?.pillar_domain ?? 'unknown',
+          from: (msg as Record<string, unknown>).from ?? 'unknown',
+          domain: msg.slice?.pillar_domain ?? 'unknown',
         });
       }
 
@@ -382,7 +393,7 @@ export const uAALComposedAgentHandler: TraitHandler<UAALAgentConfig> = {
     //
     // The chain is synchronous: all sub-handlers complete before onEvent returns.
 
-    const jepaConfig   = buildJepaConfig(config);
+    const jepaConfig = buildJepaConfig(config);
     const emitterConfig = buildEmitterConfig(config);
 
     const jepaCtx: TraitContext = {
@@ -397,14 +408,14 @@ export const uAALComposedAgentHandler: TraitHandler<UAALAgentConfig> = {
             sliceEmitterHandler.onEvent?.(
               state.emitterNode,
               emitterConfig,
-              context,             // parent context — SliceEmitter's emits go straight out
+              context, // parent context — SliceEmitter's emits go straight out
               {
-                type:        'emitter:emit',
-                slice:       p.slice,
+                type: 'emitter:emit',
+                slice: p.slice,
                 brain_coord: domainToBrainCoord(p.slice.pillar_domain),
-                sim_step:    state.sim_step,
-                agent_id:    config.agent_id,
-              } as unknown as TraitEvent,
+                sim_step: state.sim_step,
+                agent_id: config.agent_id,
+              } as unknown as TraitEvent
             );
           }
           return; // consumed internally — don't surface to parent
@@ -422,12 +433,10 @@ export const uAALComposedAgentHandler: TraitHandler<UAALAgentConfig> = {
         if (name === 'pillarjepa:step') {
           // CognitiveVM (emit_jepa_step=true) fired the JEPA step signal.
           // Route synchronously to PillarJEPA via jepaCtx.
-          pillarJepaHandler.onEvent?.(
-            state.jepaNode,
-            jepaConfig,
-            jepaCtx,
-            { type: 'pillarjepa:step', ...(payload as object) } as unknown as TraitEvent,
-          );
+          pillarJepaHandler.onEvent?.(state.jepaNode, jepaConfig, jepaCtx, {
+            type: 'pillarjepa:step',
+            ...(payload as object),
+          } as unknown as TraitEvent);
           return; // internal handoff — not surfaced to parent
         }
 

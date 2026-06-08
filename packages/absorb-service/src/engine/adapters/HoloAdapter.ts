@@ -236,7 +236,9 @@ export class HoloAdapter implements LanguageAdapter {
           type: 'trait',
           filePath,
           loc: trait.loc,
-          signature: trait.base ? `trait ${trait.name} extends ${trait.base}` : `trait ${trait.name}`,
+          signature: trait.base
+            ? `trait ${trait.name} extends ${trait.base}`
+            : `trait ${trait.name}`,
           owner: ast.name,
           isExported: true,
         })

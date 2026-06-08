@@ -110,7 +110,12 @@ export const evacuationZoneHandler: TraitHandler<EvacuationZoneConfig> = {
     ctx.emit?.('evacuation_zone:detached', { nodeId: id });
   },
 
-  onUpdate(node: HSPlusNode, config: EvacuationZoneConfig, ctx: TraitContext, _delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    config: EvacuationZoneConfig,
+    ctx: TraitContext,
+    _delta: number
+  ): void {
     const id = node.id ?? 'unknown';
     const occupancy = zoneOccupancy.get(id) ?? 0;
 
@@ -132,14 +137,22 @@ export const evacuationZoneHandler: TraitHandler<EvacuationZoneConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: EvacuationZoneConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: EvacuationZoneConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     const id = node.id ?? 'unknown';
     const eventType = typeof event === 'string' ? event : event.type;
 
     switch (eventType) {
       case 'evacuation_zone:update_status': {
         const newStatus = event.payload?.status as ZoneStatus | undefined;
-        if (newStatus && ['active', 'cleared', 'blocked', 'standby', 'compromised'].includes(newStatus)) {
+        if (
+          newStatus &&
+          ['active', 'cleared', 'blocked', 'standby', 'compromised'].includes(newStatus)
+        ) {
           const oldStatus = config.status;
           config.status = newStatus;
           ctx.emit?.('evacuation_zone:status_changed', {
@@ -218,13 +231,49 @@ export const EVACUATION_ZONE_TRAIT = {
   parameters: [
     { name: 'radiusMeters', type: 'number', required: true, description: 'Zone radius in meters' },
     { name: 'capacity', type: 'number', required: true, description: 'Max evacuee capacity' },
-    { name: 'status', type: 'enum', required: false, enumValues: ['active', 'cleared', 'blocked', 'standby', 'compromised'], default: 'standby', description: 'Current zone status' },
-    { name: 'currentOccupancy', type: 'number', required: false, default: 0, description: 'Current evacuee count' },
-    { name: 'routes', type: 'array', required: false, default: [], description: 'Evacuation route IDs' },
+    {
+      name: 'status',
+      type: 'enum',
+      required: false,
+      enumValues: ['active', 'cleared', 'blocked', 'standby', 'compromised'],
+      default: 'standby',
+      description: 'Current zone status',
+    },
+    {
+      name: 'currentOccupancy',
+      type: 'number',
+      required: false,
+      default: 0,
+      description: 'Current evacuee count',
+    },
+    {
+      name: 'routes',
+      type: 'array',
+      required: false,
+      default: [],
+      description: 'Evacuation route IDs',
+    },
     { name: 'center', type: 'object', required: false, description: 'Zone center {lat, lng, alt}' },
-    { name: 'priorityLevel', type: 'number', required: false, default: 3, description: 'Priority level (1=highest)' },
-    { name: 'perimeterSecured', type: 'boolean', required: false, default: false, description: 'Whether perimeter is secured' },
-    { name: 'assemblyPointId', type: 'string', required: false, description: 'Assembly point identifier' },
+    {
+      name: 'priorityLevel',
+      type: 'number',
+      required: false,
+      default: 3,
+      description: 'Priority level (1=highest)',
+    },
+    {
+      name: 'perimeterSecured',
+      type: 'boolean',
+      required: false,
+      default: false,
+      description: 'Whether perimeter is secured',
+    },
+    {
+      name: 'assemblyPointId',
+      type: 'string',
+      required: false,
+      description: 'Assembly point identifier',
+    },
   ],
 };
 

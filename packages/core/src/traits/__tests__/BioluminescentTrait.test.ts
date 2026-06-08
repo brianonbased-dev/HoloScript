@@ -257,15 +257,15 @@ describe('BioluminescentTrait — valueNoise3D (pure)', () => {
 describe('BioluminescentTrait — voronoi3D (pure)', () => {
   it('returns a value in [0, 1]', () => {
     for (let i = 0; i < 100; i++) {
-      const v = voronoi3D(i * 0.31, i * 0.47, i * 0.61, 0x70AD);
+      const v = voronoi3D(i * 0.31, i * 0.47, i * 0.61, 0x70ad);
       expect(v).toBeGreaterThanOrEqual(0);
       expect(v).toBeLessThanOrEqual(1);
     }
   });
 
   it('is deterministic — same inputs → byte-equal output', () => {
-    const a = voronoi3D(0.7, 1.3, 2.9, 0x70AD);
-    const b = voronoi3D(0.7, 1.3, 2.9, 0x70AD);
+    const a = voronoi3D(0.7, 1.3, 2.9, 0x70ad);
+    const b = voronoi3D(0.7, 1.3, 2.9, 0x70ad);
     expect(a).toBe(b);
   });
 });
@@ -295,12 +295,8 @@ describe('BioluminescentTrait — patternAt (pure)', () => {
   });
 
   it('is deterministic — same inputs → byte-equal output', () => {
-    expect(patternAt('perlin', pos, 1.5, 0.5, 7)).toBe(
-      patternAt('perlin', pos, 1.5, 0.5, 7)
-    );
-    expect(patternAt('voronoi', pos, 1.5, 0.5, 7)).toBe(
-      patternAt('voronoi', pos, 1.5, 0.5, 7)
-    );
+    expect(patternAt('perlin', pos, 1.5, 0.5, 7)).toBe(patternAt('perlin', pos, 1.5, 0.5, 7));
+    expect(patternAt('voronoi', pos, 1.5, 0.5, 7)).toBe(patternAt('voronoi', pos, 1.5, 0.5, 7));
   });
 });
 
@@ -332,29 +328,19 @@ const baseConfig: BioluminescentConfig = {
   max_intensity: 0.8,
   pattern: 'solid',
   spatial_scale: 0.5,
-  spatial_seed: 0x70AD,
+  spatial_seed: 0x70ad,
   emit_attach_event: false,
 };
 
 describe('BioluminescentTrait — deriveBioluminescentOutput (pure)', () => {
   it('mirrors color from config', () => {
-    const out = deriveBioluminescentOutput(
-      baseConfig,
-      { x: 0, y: 0, z: 0 },
-      null,
-      0
-    );
+    const out = deriveBioluminescentOutput(baseConfig, { x: 0, y: 0, z: 0 }, null, 0);
     expect(out.color).toBe('#00ffcc');
   });
 
   it('intensity is clamped to [min_intensity, max_intensity]', () => {
     for (let t = 0; t < 20; t += 0.13) {
-      const out = deriveBioluminescentOutput(
-        baseConfig,
-        { x: 0, y: 0, z: 0 },
-        null,
-        t
-      );
+      const out = deriveBioluminescentOutput(baseConfig, { x: 0, y: 0, z: 0 }, null, t);
       expect(out.intensity).toBeGreaterThanOrEqual(baseConfig.min_intensity);
       expect(out.intensity).toBeLessThanOrEqual(baseConfig.max_intensity);
     }
@@ -362,12 +348,7 @@ describe('BioluminescentTrait — deriveBioluminescentOutput (pure)', () => {
 
   it('weight is in [0, 1]', () => {
     for (let t = 0; t < 20; t += 0.13) {
-      const out = deriveBioluminescentOutput(
-        baseConfig,
-        { x: 0, y: 0, z: 0 },
-        null,
-        t
-      );
+      const out = deriveBioluminescentOutput(baseConfig, { x: 0, y: 0, z: 0 }, null, t);
       expect(out.weight).toBeGreaterThanOrEqual(0);
       expect(out.weight).toBeLessThanOrEqual(1);
     }
@@ -387,12 +368,7 @@ describe('BioluminescentTrait — deriveBioluminescentOutput (pure)', () => {
 
   it('observer at falloff radius → proximity 0 → intensity at min', () => {
     const cfg: BioluminescentConfig = { ...baseConfig, pulse_bpm: 0 };
-    const out = deriveBioluminescentOutput(
-      cfg,
-      { x: 0, y: 0, z: 0 },
-      { x: 2.5, y: 0, z: 0 },
-      0
-    );
+    const out = deriveBioluminescentOutput(cfg, { x: 0, y: 0, z: 0 }, { x: 2.5, y: 0, z: 0 }, 0);
     expect(out.proximity).toBe(0);
     expect(out.weight).toBe(0);
     expect(out.intensity).toBe(baseConfig.min_intensity);
@@ -433,9 +409,7 @@ describe('BioluminescentTrait — deriveBioluminescentOutput (pure)', () => {
     const b = deriveBioluminescentOutput(cfgB, { x: 1, y: 2, z: 3 }, null, 0);
     expect(a.pattern).not.toBe(b.pattern);
     // But each is itself stable on repeat
-    expect(a.pattern).toBe(
-      deriveBioluminescentOutput(cfgA, { x: 1, y: 2, z: 3 }, null, 0).pattern
-    );
+    expect(a.pattern).toBe(deriveBioluminescentOutput(cfgA, { x: 1, y: 2, z: 3 }, null, 0).pattern);
   });
 
   it("unknown pattern name falls back to 'solid' (pattern = 1)", () => {
@@ -555,27 +529,15 @@ describe('BioluminescentTrait — handler lifecycle', () => {
       { emit_attach_event: false, pulse_bpm: 0, pattern: 'solid' },
       ctx
     );
-    sendEvent(
-      bioluminescentHandler,
-      node,
-      { pulse_bpm: 0, pattern: 'solid' },
-      ctx,
-      { type: 'bioluminescent_observer', position: { x: 5, y: 0, z: 0 } }
-    );
-    sendEvent(
-      bioluminescentHandler,
-      node,
-      { pulse_bpm: 0, pattern: 'solid' },
-      ctx,
-      { type: 'bioluminescent_observer', position: null }
-    );
-    updateTrait(
-      bioluminescentHandler,
-      node,
-      { pulse_bpm: 0, pattern: 'solid' },
-      ctx,
-      0.1
-    );
+    sendEvent(bioluminescentHandler, node, { pulse_bpm: 0, pattern: 'solid' }, ctx, {
+      type: 'bioluminescent_observer',
+      position: { x: 5, y: 0, z: 0 },
+    });
+    sendEvent(bioluminescentHandler, node, { pulse_bpm: 0, pattern: 'solid' }, ctx, {
+      type: 'bioluminescent_observer',
+      position: null,
+    });
+    updateTrait(bioluminescentHandler, node, { pulse_bpm: 0, pattern: 'solid' }, ctx, 0.1);
     const sample = getLastEvent(ctx, 'bioluminescent_sample') as BioluminescentOutput;
     expect(sample.proximity).toBe(1);
   });
@@ -589,13 +551,10 @@ describe('BioluminescentTrait — handler lifecycle', () => {
       { emit_attach_event: false, pulse_bpm: 0, pattern: 'solid' },
       ctx
     );
-    sendEvent(
-      bioluminescentHandler,
-      node,
-      { pulse_bpm: 0, pattern: 'solid' },
-      ctx,
-      { type: 'bioluminescent_query', queryId: 'q-1' }
-    );
+    sendEvent(bioluminescentHandler, node, { pulse_bpm: 0, pattern: 'solid' }, ctx, {
+      type: 'bioluminescent_query',
+      queryId: 'q-1',
+    });
     const resp = getLastEvent(ctx, 'bioluminescent_response') as
       | (BioluminescentOutput & { queryId: string })
       | undefined;
@@ -617,20 +576,13 @@ describe('BioluminescentTrait — handler lifecycle', () => {
     );
     // Advance time, set observer
     updateTrait(bioluminescentHandler, node, { pulse_bpm: 60 }, ctx, 0.5);
-    sendEvent(
-      bioluminescentHandler,
-      node,
-      { pulse_bpm: 60, pattern: 'solid' },
-      ctx,
-      { type: 'bioluminescent_observer', position: { x: 1, y: 0, z: 0 } }
-    );
-    sendEvent(
-      bioluminescentHandler,
-      node,
-      { pulse_bpm: 60, pattern: 'solid' },
-      ctx,
-      { type: 'bioluminescent_reset' }
-    );
+    sendEvent(bioluminescentHandler, node, { pulse_bpm: 60, pattern: 'solid' }, ctx, {
+      type: 'bioluminescent_observer',
+      position: { x: 1, y: 0, z: 0 },
+    });
+    sendEvent(bioluminescentHandler, node, { pulse_bpm: 60, pattern: 'solid' }, ctx, {
+      type: 'bioluminescent_reset',
+    });
     expect(getEventCount(ctx, 'bioluminescent_reset_done')).toBe(1);
 
     // After reset, t=0 → pulse = 0.5; observer cleared → proximity = 1
@@ -666,12 +618,7 @@ describe('BioluminescentTrait — handler lifecycle', () => {
     const ctx = createMockContext();
     const node = createMockNode('parity');
     (node as Record<string, unknown>).position = { x: 0.5, y: 1, z: 1.5 };
-    attachTrait(
-      bioluminescentHandler,
-      node,
-      { emit_attach_event: false, pattern: 'perlin' },
-      ctx
-    );
+    attachTrait(bioluminescentHandler, node, { emit_attach_event: false, pattern: 'perlin' }, ctx);
     updateTrait(bioluminescentHandler, node, { pattern: 'perlin' }, ctx, 0.25);
     updateTrait(bioluminescentHandler, node, { pattern: 'perlin' }, ctx, 0.25);
     const sample = getLastEvent(ctx, 'bioluminescent_sample') as BioluminescentOutput;

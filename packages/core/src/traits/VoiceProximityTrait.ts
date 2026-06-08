@@ -1,5 +1,4 @@
-import type { Vector3 } from '../types';
-﻿/**
+import type { Vector3 } from '../types'; /**
  * VoiceProximity Trait
  *
  * Spatial voice chat with distance-based attenuation and zones.
@@ -7,7 +6,6 @@ import type { Vector3 } from '../types';
  *
  * @version 2.0.0
  */
-
 import type { TraitHandler } from './TraitTypes';
 
 // =============================================================================
@@ -109,7 +107,7 @@ export const voiceProximityHandler: TraitHandler<VoiceProximityConfig> = {
       isMuted: false,
       activeZone: null,
       voiceActive: false,
-      panningVector: [0, 0, 0 ],
+      panningVector: [0, 0, 0],
     };
     node.__voiceProximityState = state;
 
@@ -207,7 +205,7 @@ export const voiceProximityHandler: TraitHandler<VoiceProximityConfig> = {
         state.panningVector = [
           (speakerPos[0] - listenerPos[0]) / distance,
           (speakerPos[1] - listenerPos[1]) / distance,
-          (speakerPos[2] - listenerPos[2]) / distance
+          (speakerPos[2] - listenerPos[2]) / distance,
         ];
       }
 

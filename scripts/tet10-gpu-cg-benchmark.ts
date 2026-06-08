@@ -47,7 +47,8 @@ function parseArgs(argv: string[]): Args {
     if (arg === '--nx' || arg.startsWith('--nx=')) args.nx = Number(readValue());
     else if (arg === '--ny' || arg.startsWith('--ny=')) args.ny = Number(readValue());
     else if (arg === '--nz' || arg.startsWith('--nz=')) args.nz = Number(readValue());
-    else if (arg === '--repeats' || arg.startsWith('--repeats=')) args.repeats = Number(readValue());
+    else if (arg === '--repeats' || arg.startsWith('--repeats='))
+      args.repeats = Number(readValue());
     else if (arg === '--out' || arg.startsWith('--out=')) args.out = readValue();
   }
 
@@ -90,13 +91,7 @@ function buildConfig(nx: number, ny: number, nz: number, useGPU: boolean): TET10
         const v5 = idx(i + 1, j, k + 1);
         const v6 = idx(i + 1, j + 1, k + 1);
         const v7 = idx(i, j + 1, k + 1);
-        tets.push(
-          v0, v1, v3, v4,
-          v1, v2, v3, v6,
-          v4, v5, v6, v1,
-          v4, v6, v7, v3,
-          v1, v4, v6, v3,
-        );
+        tets.push(v0, v1, v3, v4, v1, v2, v3, v6, v4, v5, v6, v1, v4, v6, v7, v3, v1, v4, v6, v3);
       }
     }
   }
@@ -131,7 +126,9 @@ function buildConfig(nx: number, ny: number, nz: number, useGPU: boolean): TET10
   };
 }
 
-async function timeSolve(config: TET10Config): Promise<{ timing: Timing; displacements: Float64Array }> {
+async function timeSolve(
+  config: TET10Config
+): Promise<{ timing: Timing; displacements: Float64Array }> {
   const solver = new StructuralSolverTET10(config);
   const start = performance.now();
   const result = await solver.solve();
@@ -172,9 +169,12 @@ async function getWebGpuProbe(): Promise<Record<string, unknown>> {
   const caps = context.getCapabilities();
   let adapterInfo: Record<string, unknown> | null = null;
   if (caps.adapter) {
-    adapterInfo = await (caps.adapter as unknown as {
-      requestAdapterInfo?: () => Promise<Record<string, unknown>>;
-    }).requestAdapterInfo?.() ?? null;
+    adapterInfo =
+      (await (
+        caps.adapter as unknown as {
+          requestAdapterInfo?: () => Promise<Record<string, unknown>>;
+        }
+      ).requestAdapterInfo?.()) ?? null;
   }
   const result = {
     supported: context.isSupported(),
@@ -236,6 +236,6 @@ async function main(): Promise<void> {
 main()
   .then(() => process.exit(0))
   .catch((error: unknown) => {
-    console.error(error instanceof Error ? error.stack ?? error.message : String(error));
+    console.error(error instanceof Error ? (error.stack ?? error.message) : String(error));
     process.exit(1);
   });

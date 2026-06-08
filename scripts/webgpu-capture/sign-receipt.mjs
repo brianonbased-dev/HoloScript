@@ -44,7 +44,9 @@ import * as path from 'node:path';
 // ── CLI ──────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 if (args.length === 0 || args.includes('--help')) {
-  console.error('Usage: sign-receipt.mjs [--anchor-chain base-mainnet|base-sepolia] <receipt.json>');
+  console.error(
+    'Usage: sign-receipt.mjs [--anchor-chain base-mainnet|base-sepolia] <receipt.json>'
+  );
   process.exit(1);
 }
 const chainIdx = args.indexOf('--anchor-chain');
@@ -120,12 +122,18 @@ if (chain) {
     console.error(`[sign-receipt] anchor_base_x402.mjs not found; skipping chain anchor`);
   } else {
     const surface = process.env.HOLOMESH_AGENT_SURFACE || 'claudecode';
-    console.log(`[sign-receipt] Base anchoring via ${anchorBaseMjs} (chain=${chain}, surface=${surface})`);
+    console.log(
+      `[sign-receipt] Base anchoring via ${anchorBaseMjs} (chain=${chain}, surface=${surface})`
+    );
     try {
-      const out = execFileSync('node', [anchorBaseMjs, '--surface', surface, '--broadcast', receiptPath], {
-        encoding: 'utf8',
-        cwd: aiEcosystemRoot,
-      });
+      const out = execFileSync(
+        'node',
+        [anchorBaseMjs, '--surface', surface, '--broadcast', receiptPath],
+        {
+          encoding: 'utf8',
+          cwd: aiEcosystemRoot,
+        }
+      );
       console.log(out);
       // anchor_base_x402 writes <receipt>.base.json next to the receipt with
       // the broadcast result. Read it back to extract the tx hash.
@@ -144,7 +152,9 @@ if (chain) {
           anchorChain = `${chain}:${txBare}`;
           console.log(`[sign-receipt] anchor_chain: ${anchorChain}`);
         } else {
-          console.error(`[sign-receipt] no tx hash in ${basebackPath}; out keys: ${Object.keys(baseback).join(',')}`);
+          console.error(
+            `[sign-receipt] no tx hash in ${basebackPath}; out keys: ${Object.keys(baseback).join(',')}`
+          );
         }
       } else {
         console.error(`[sign-receipt] anchor_base_x402.mjs did not produce ${basebackPath}`);

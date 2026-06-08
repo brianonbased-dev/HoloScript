@@ -102,20 +102,26 @@ describe('assertCustomizationSeparation', () => {
   it('rejects displayName containing "Brittney"', () => {
     const profile = baseValidProfile();
     profile.style.displayName = 'Brittney';
-    expect(() => assertCustomizationSeparation(profile)).toThrow(DaemonCustomizationSeparationError);
+    expect(() => assertCustomizationSeparation(profile)).toThrow(
+      DaemonCustomizationSeparationError
+    );
     expect(() => assertCustomizationSeparation(profile)).toThrow('references "brittney"');
   });
 
   it('rejects displayName containing "field"', () => {
     const profile = baseValidProfile();
     profile.style.displayName = 'MyField';
-    expect(() => assertCustomizationSeparation(profile)).toThrow(DaemonCustomizationSeparationError);
+    expect(() => assertCustomizationSeparation(profile)).toThrow(
+      DaemonCustomizationSeparationError
+    );
   });
 
   it('rejects displayName containing "substrate"', () => {
     const profile = baseValidProfile();
     profile.style.displayName = 'SubstrateBot';
-    expect(() => assertCustomizationSeparation(profile)).toThrow(DaemonCustomizationSeparationError);
+    expect(() => assertCustomizationSeparation(profile)).toThrow(
+      DaemonCustomizationSeparationError
+    );
   });
 
   it('allows "Atlas" as a displayName', () => {
@@ -127,14 +133,18 @@ describe('assertCustomizationSeparation', () => {
   it('rejects careProfile with permission-like prefix', () => {
     const profile = baseValidProfile();
     profile.style.careProfile = 'cap://daemon/read';
-    expect(() => assertCustomizationSeparation(profile)).toThrow(DaemonCustomizationSeparationError);
+    expect(() => assertCustomizationSeparation(profile)).toThrow(
+      DaemonCustomizationSeparationError
+    );
   });
 
   it('rejects break-glass without custody scope', () => {
     const profile = baseValidProfile();
     profile.permissions.permissions.breakGlassAllowed = true;
     profile.permissions.permissions.custodyScope = [];
-    expect(() => assertCustomizationSeparation(profile)).toThrow(DaemonCustomizationSeparationError);
+    expect(() => assertCustomizationSeparation(profile)).toThrow(
+      DaemonCustomizationSeparationError
+    );
   });
 
   it('allows break-glass with custody scope', () => {
@@ -149,7 +159,9 @@ describe('assertCustomizationSeparation', () => {
     profile.permissions.permissions.autonomousMutations = true;
     profile.permissions.permissions.readOnly = false;
     profile.permissions.dispatch.receiptRequired = false;
-    expect(() => assertCustomizationSeparation(profile)).toThrow(DaemonCustomizationSeparationError);
+    expect(() => assertCustomizationSeparation(profile)).toThrow(
+      DaemonCustomizationSeparationError
+    );
   });
 
   it('allows autonomous mutations with receipts', () => {
@@ -164,13 +176,17 @@ describe('assertCustomizationSeparation', () => {
     const profile = baseValidProfile();
     // Type assertion to test the invariant — ownerScoped is typed as `true`
     (profile.permissions.memory as Record<string, unknown>).ownerScoped = false;
-    expect(() => assertCustomizationSeparation(profile)).toThrow(DaemonCustomizationSeparationError);
+    expect(() => assertCustomizationSeparation(profile)).toThrow(
+      DaemonCustomizationSeparationError
+    );
   });
 
   it('rejects empty brittneyChannel channelId', () => {
     const profile = baseValidProfile();
     profile.permissions.brittneyChannel.channelId = '';
-    expect(() => assertCustomizationSeparation(profile)).toThrow(DaemonCustomizationSeparationError);
+    expect(() => assertCustomizationSeparation(profile)).toThrow(
+      DaemonCustomizationSeparationError
+    );
   });
 
   it('rejects ritual with permission-like trigger', () => {
@@ -182,7 +198,9 @@ describe('assertCustomizationSeparation', () => {
       enabled: true,
     };
     profile.style.rituals = [ritual];
-    expect(() => assertCustomizationSeparation(profile)).toThrow(DaemonCustomizationSeparationError);
+    expect(() => assertCustomizationSeparation(profile)).toThrow(
+      DaemonCustomizationSeparationError
+    );
   });
 
   it('rejects workflow with permission-like ID', () => {
@@ -193,7 +211,9 @@ describe('assertCustomizationSeparation', () => {
       description: 'Should not be allowed',
     };
     profile.style.favoriteWorkflows = [wf];
-    expect(() => assertCustomizationSeparation(profile)).toThrow(DaemonCustomizationSeparationError);
+    expect(() => assertCustomizationSeparation(profile)).toThrow(
+      DaemonCustomizationSeparationError
+    );
   });
 
   it('allows ritual with cron-style trigger', () => {
@@ -245,7 +265,7 @@ describe('validateCustomizationProfile', () => {
     const profile = baseValidProfile();
     profile.style.displayName = 'Brittney';
     const errors = validateCustomizationProfile(profile);
-    expect(errors.some(e => e.includes('references "brittney"'))).toBe(true);
+    expect(errors.some((e) => e.includes('references "brittney"'))).toBe(true);
   });
 });
 
@@ -268,9 +288,18 @@ describe('customizationProfileToDaemon', () => {
 
   it('maps style layer to daemon appearance/voice/tone', () => {
     const profile = baseValidProfile();
-    profile.style.appearance = { characterClass: 'guardian', scale: 'large', colorPalette: ['#1a1a2e', '#16213e'] };
+    profile.style.appearance = {
+      characterClass: 'guardian',
+      scale: 'large',
+      colorPalette: ['#1a1a2e', '#16213e'],
+    };
     profile.style.voice = { enabled: true, voiceId: 'v-echo-1', speed: 1.1, tone: 'warm' };
-    profile.style.tone = { formality: 'formal', verbosity: 'terse', humor: 'none', patience: 'quick' };
+    profile.style.tone = {
+      formality: 'formal',
+      verbosity: 'terse',
+      humor: 'none',
+      patience: 'quick',
+    };
 
     const daemon = customizationProfileToDaemon(profile);
     expect(daemon.appearanceProfile.characterClass).toBe('guardian');
@@ -445,8 +474,13 @@ describe('makePresetProfile', () => {
   });
 
   it('all presets validate correctly', () => {
-    const presets: Array<'companion' | 'professional' | 'creative' | 'minimal' | 'guardian'> =
-      ['companion', 'professional', 'creative', 'minimal', 'guardian'];
+    const presets: Array<'companion' | 'professional' | 'creative' | 'minimal' | 'guardian'> = [
+      'companion',
+      'professional',
+      'creative',
+      'minimal',
+      'guardian',
+    ];
 
     for (const preset of presets) {
       const profile = makePresetProfile(preset, `test-${preset}`, 'owner1');
@@ -456,8 +490,13 @@ describe('makePresetProfile', () => {
   });
 
   it('all presets compose into valid daemons', () => {
-    const presets: Array<'companion' | 'professional' | 'creative' | 'minimal' | 'guardian'> =
-      ['companion', 'professional', 'creative', 'minimal', 'guardian'];
+    const presets: Array<'companion' | 'professional' | 'creative' | 'minimal' | 'guardian'> = [
+      'companion',
+      'professional',
+      'creative',
+      'minimal',
+      'guardian',
+    ];
 
     for (const preset of presets) {
       const profile = makePresetProfile(preset, `test-${preset}`, 'owner1');

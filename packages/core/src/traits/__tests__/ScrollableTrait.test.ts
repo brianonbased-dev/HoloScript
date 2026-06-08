@@ -57,7 +57,9 @@ describe('ScrollableTrait', () => {
       type: 'ui_drag',
       position: [0, -0.1, 0] as any,
     } as any);
-    await scrollableHandler.onEvent!(scrollableNode, config, context, { type: 'ui_press_end' } as any);
+    await scrollableHandler.onEvent!(scrollableNode, config, context, {
+      type: 'ui_press_end',
+    } as any);
 
     // Update
     await scrollableHandler.onUpdate!(scrollableNode, config, context, 0.016);
@@ -81,7 +83,9 @@ describe('ScrollableTrait', () => {
       type: 'ui_drag',
       position: [0, -2.0, 0] as any,
     } as any);
-    await scrollableHandler.onEvent!(scrollableNode, config, context, { type: 'ui_press_end' } as any);
+    await scrollableHandler.onEvent!(scrollableNode, config, context, {
+      type: 'ui_press_end',
+    } as any);
 
     // Update to apply constraints (constraints apply in onUpdate)
     await scrollableHandler.onUpdate!(scrollableNode, config, context, 0.016);

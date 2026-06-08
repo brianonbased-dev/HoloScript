@@ -117,7 +117,8 @@ async function handleFairnessSweep(args: Record<string, unknown>): Promise<unkno
   const cohort = validateCohort(args.cohort);
   const model = buildLinearModel(args.model);
 
-  const hashMode = args.hashMode === 'sha256' ? 'sha256' : args.hashMode === 'fnv1a' ? 'fnv1a' : undefined;
+  const hashMode =
+    args.hashMode === 'sha256' ? 'sha256' : args.hashMode === 'fnv1a' ? 'fnv1a' : undefined;
   const seed = isFiniteNumber(args.seed) ? args.seed : 0;
   const protectedAttribute =
     typeof args.protectedAttribute === 'string' ? args.protectedAttribute : 'group';
@@ -177,11 +178,13 @@ async function handleExplainFairnessReceipt(args: Record<string, unknown>): Prom
     lines.push(`Per-decision fairness receipt for model \`${r.modelId}\`.`);
     lines.push(`Sample size: ${r.sampleSize}; protected attribute: \`${r.protectedAttribute}\`.`);
     lines.push(
-      `Adverse-impact ratio (4/5ths): ${r.metrics.adverseImpactRatio} → ${r.decision === 'PASS' ? 'PASS' : 'FLAG (disparate impact)'}.`,
+      `Adverse-impact ratio (4/5ths): ${r.metrics.adverseImpactRatio} → ${r.decision === 'PASS' ? 'PASS' : 'FLAG (disparate impact)'}.`
     );
     lines.push(`Demographic-parity diff: ${r.metrics.demographicParityDiff}.`);
     lines.push(
-      `Per-group approval: ${Object.entries(r.metrics.approvalRate).map(([g, v]) => `${g}=${v}`).join('  ')}.`,
+      `Per-group approval: ${Object.entries(r.metrics.approvalRate)
+        .map(([g, v]) => `${g}=${v}`)
+        .join('  ')}.`
     );
     lines.push(`Replay fingerprint: ${r.replayFingerprint} (hash mode: ${r.hashMode}).`);
     const reExec =
@@ -195,7 +198,7 @@ async function handleExplainFairnessReceipt(args: Record<string, unknown>): Prom
     const r = receipt;
     lines.push(`Robustness receipt for model \`${r.modelId}\` (${r.replicates} LHS replicates).`);
     lines.push(
-      `Adverse-impact 90% CI: [${r.robustness.ci90[0]}, ${r.robustness.ci90[1]}], worst-case ${r.robustness.worstCase} → ${r.verdict}.`,
+      `Adverse-impact 90% CI: [${r.robustness.ci90[0]}, ${r.robustness.ci90[1]}], worst-case ${r.robustness.worstCase} → ${r.verdict}.`
     );
     lines.push(`Ensemble hash: ${r.ensembleHash}; replay fingerprint: ${r.replayFingerprint}.`);
   } else {
@@ -206,7 +209,7 @@ async function handleExplainFairnessReceipt(args: Record<string, unknown>): Prom
   lines.push(
     integrity
       ? '✓ Integrity verified: the receipt content hash matches — untampered.'
-      : '✗ Integrity FAILED: the receipt content hash does not match — tampered or corrupted.',
+      : '✗ Integrity FAILED: the receipt content hash does not match — tampered or corrupted.'
   );
   lines.push('');
   lines.push('Regulator crosswalk (this receipt satisfies, simultaneously):');
@@ -232,7 +235,7 @@ export function isFairnessToolName(name: string): boolean {
 
 export async function handleFairnessTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
     case 'fairness_sweep':
@@ -278,7 +281,8 @@ export const fairnessTools: Tool[] = [
         },
         model: {
           type: 'object',
-          description: 'Transparent linear scorer: approved iff (Σ wᵏ·featurek + bias) ≥ threshold.',
+          description:
+            'Transparent linear scorer: approved iff (Σ wᵏ·featurek + bias) ≥ threshold.',
           properties: {
             id: { type: 'string', description: 'Model identifier recorded on the receipt.' },
             weights: {
@@ -295,7 +299,10 @@ export const fairnessTools: Tool[] = [
           type: 'string',
           description: 'Label for the protected attribute on the receipt (default "group").',
         },
-        seed: { type: 'number', description: 'Replay-key seed recorded on the receipt (default 0).' },
+        seed: {
+          type: 'number',
+          description: 'Replay-key seed recorded on the receipt (default 0).',
+        },
         hashMode: {
           type: 'string',
           enum: ['fnv1a', 'sha256'],
@@ -344,7 +351,8 @@ export const fairnessTools: Tool[] = [
       properties: {
         receipt: {
           type: 'object',
-          description: 'A FairnessReceipt or FairnessRobustnessReceipt as returned by fairness_sweep.',
+          description:
+            'A FairnessReceipt or FairnessRobustnessReceipt as returned by fairness_sweep.',
         },
       },
       required: ['receipt'],

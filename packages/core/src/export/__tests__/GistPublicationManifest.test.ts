@@ -245,4 +245,3 @@ describe('GistPublicationManifest', () => {
     expect(originalCommitment).not.toBe(tamperedCommitment);
   });
 });
-

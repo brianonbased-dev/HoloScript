@@ -1,5 +1,5 @@
 import { HoloScriptPlusParser } from '@holoscript/core';
-import { ASTNode } from "@holoscript/platform";
+import { ASTNode } from '@holoscript/platform';
 
 export class V43Generator {
   private endpoint: string;

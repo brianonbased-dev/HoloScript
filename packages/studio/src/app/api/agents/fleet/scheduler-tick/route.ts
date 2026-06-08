@@ -32,9 +32,11 @@ export async function POST(req: NextRequest) {
   // Build the dispatch request body, forwarding all relevant params
   const dispatchBody: Record<string, unknown> = {};
   if (params['teamId']) dispatchBody['teamId'] = params['teamId'];
-  if (params['maxDispatches'] !== undefined) dispatchBody['maxDispatches'] = params['maxDispatches'];
+  if (params['maxDispatches'] !== undefined)
+    dispatchBody['maxDispatches'] = params['maxDispatches'];
   if (params['dryRun'] !== undefined) dispatchBody['dryRun'] = params['dryRun'];
-  if (params['executeAfterClaim'] !== undefined) dispatchBody['executeAfterClaim'] = params['executeAfterClaim'];
+  if (params['executeAfterClaim'] !== undefined)
+    dispatchBody['executeAfterClaim'] = params['executeAfterClaim'];
   if (params['capUsd'] !== undefined) dispatchBody['capUsd'] = params['capUsd'];
 
   // Forward auth so the dispatch route can pass it to HoloMesh
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
     if (!dispatchRes.ok) {
       return NextResponse.json(
         { error: 'Dispatch failed', upstream: data },
-        { status: dispatchRes.status },
+        { status: dispatchRes.status }
       );
     }
 
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Tick failed' },
-      { status: 502 },
+      { status: 502 }
     );
   }
 }

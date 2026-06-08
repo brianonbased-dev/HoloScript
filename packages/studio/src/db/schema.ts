@@ -377,10 +377,7 @@ export const activityFeed = pgTable(
     metadata: jsonb('metadata').default({}),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   },
-  (t) => [
-    index('idx_activity_actor').on(t.actorId),
-    index('idx_activity_time').on(t.createdAt),
-  ]
+  (t) => [index('idx_activity_actor').on(t.actorId), index('idx_activity_time').on(t.createdAt)]
 );
 
 // =============================================================================
@@ -405,16 +402,16 @@ export {
 export const holomeshTransactions = pgTable(
   'holomesh_transactions',
   {
-    id: text('id').primaryKey(),              // MCP-assigned ID
-    type: varchar('type', { length: 32 }).notNull(),   // 'purchase' | 'withdrawal' | 'reward' | 'fee'
+    id: text('id').primaryKey(), // MCP-assigned ID
+    type: varchar('type', { length: 32 }).notNull(), // 'purchase' | 'withdrawal' | 'reward' | 'fee'
     fromAgentId: text('from_agent_id'),
     fromAgentName: text('from_agent_name'),
     toAgentId: text('to_agent_id'),
     toAgentName: text('to_agent_name'),
-    entryId: text('entry_id'),               // knowledge entry purchased (if applicable)
-    amount: integer('amount').notNull(),     // in cents (USD) or smallest unit
+    entryId: text('entry_id'), // knowledge entry purchased (if applicable)
+    amount: integer('amount').notNull(), // in cents (USD) or smallest unit
     currency: varchar('currency', { length: 16 }).default('USD').notNull(),
-    txHash: text('tx_hash'),                 // blockchain tx hash (Base/Sepolia)
+    txHash: text('tx_hash'), // blockchain tx hash (Base/Sepolia)
     status: varchar('status', { length: 16 }).default('confirmed').notNull(),
     teamId: text('team_id'),
     metadata: jsonb('metadata').default({}),
@@ -437,7 +434,7 @@ export const holomeshTransactions = pgTable(
 export const holomeshBoardTasks = pgTable(
   'holomesh_board_tasks',
   {
-    id: text('id').primaryKey(),                             // MCP-assigned task ID
+    id: text('id').primaryKey(), // MCP-assigned task ID
     teamId: text('team_id').notNull(),
     title: text('title').notNull(),
     description: text('description').default('').notNull(),
@@ -473,7 +470,7 @@ export const holomeshEntryRatings = pgTable(
     entryId: text('entry_id').notNull(),
     agentId: text('agent_id').notNull(),
     agentName: text('agent_name').default('').notNull(),
-    rating: integer('rating').notNull(),           // 1–5
+    rating: integer('rating').notNull(), // 1–5
     comment: text('comment').default(''),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
@@ -495,16 +492,16 @@ export const holomeshEntryRatings = pgTable(
 export const holomeshKnowledgeEntries = pgTable(
   'holomesh_knowledge_entries',
   {
-    id: text('id').primaryKey(),                          // MCP entry ID
+    id: text('id').primaryKey(), // MCP entry ID
     workspaceId: text('workspace_id'),
-    type: varchar('type', { length: 32 }),                // 'wisdom'|'pattern'|'gotcha'
+    type: varchar('type', { length: 32 }), // 'wisdom'|'pattern'|'gotcha'
     content: text('content').notNull(),
     authorId: text('author_id'),
     authorName: text('author_name'),
     domain: varchar('domain', { length: 64 }),
     price: integer('price').default(0).notNull(),
     premium: boolean('premium').default(false).notNull(),
-    confidence: integer('confidence').default(0),         // stored as integer (0-100)
+    confidence: integer('confidence').default(0), // stored as integer (0-100)
     tags: jsonb('tags').default([]),
     provenanceHash: text('provenance_hash'),
     queryCount: integer('query_count').default(0),
@@ -539,11 +536,11 @@ export const holomeshReferrals = pgTable(
     referrerAgentId: text('referrer_agent_id').notNull(),
     referrerAgentName: text('referrer_agent_name'),
     saleAmountCents: integer('sale_amount_cents').notNull(),
-    referralBps: integer('referral_bps').notNull(),           // e.g. 500 = 5%
+    referralBps: integer('referral_bps').notNull(), // e.g. 500 = 5%
     commissionCents: integer('commission_cents').notNull(),
     currency: varchar('currency', { length: 16 }).default('USD').notNull(),
     status: varchar('status', { length: 16 }).default('pending').notNull(), // 'pending'|'paid'|'failed'
-    transactionId: text('transaction_id'),                    // holomeshTransactions.id for payout
+    transactionId: text('transaction_id'), // holomeshTransactions.id for payout
     metadata: jsonb('metadata').default({}),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   },
@@ -593,10 +590,10 @@ export const holomeshTeamPresenceSessions = pgTable(
     agentName: text('agent_name').notNull(),
     role: varchar('role', { length: 32 }).default('member'),
     sessionStart: timestamp('session_start', { mode: 'date' }).notNull(),
-    sessionEnd: timestamp('session_end', { mode: 'date' }),         // null = still active
-    durationSeconds: integer('duration_seconds'),                    // filled on close
-    endReason: varchar('end_reason', { length: 32 }),               // 'heartbeat_timeout'|'leave'|'replacement'
-    replacedByAgentId: text('replaced_by_agent_id'),               // if replaced
+    sessionEnd: timestamp('session_end', { mode: 'date' }), // null = still active
+    durationSeconds: integer('duration_seconds'), // filled on close
+    endReason: varchar('end_reason', { length: 32 }), // 'heartbeat_timeout'|'leave'|'replacement'
+    replacedByAgentId: text('replaced_by_agent_id'), // if replaced
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   },
   (t) => [

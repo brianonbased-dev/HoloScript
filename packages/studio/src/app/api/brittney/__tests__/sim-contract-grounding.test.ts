@@ -147,9 +147,7 @@ describe('SimContractGate — pass case (contract resolves, mutation respects in
 
   it('reads top-level simulation_contract: declarations', () => {
     const thermalResolver: ContractResolver = (ref) =>
-      ref === 'thermal-insulation-v2'
-        ? { id: ref, requiredObjects: ['Furnace'] }
-        : null;
+      ref === 'thermal-insulation-v2' ? { id: ref, requiredObjects: ['Furnace'] } : null;
     const result = verifySceneMutation(
       SCENE_WITH_TOP_LEVEL_CONTRACT,
       { tool: 'add_trait', input: { object_name: 'Furnace', trait_name: 'glow' } },
@@ -264,11 +262,7 @@ describe('SimContractGate — fail case (contract resolves, mutation violates in
       tool: 'delete_object' as const,
       input: { object_name: 'Bridge' },
     };
-    const result = verifySceneMutation(
-      SCENE_WITH_CONTRACT_TRAIT,
-      mutation,
-      bridgeResolver
-    );
+    const result = verifySceneMutation(SCENE_WITH_CONTRACT_TRAIT, mutation, bridgeResolver);
     expect(result.passed).toBe(false);
     expect(result.mutation).toEqual(mutation);
   });
@@ -326,11 +320,7 @@ describe('SimContractGate — SSE event shape contract', () => {
       tool: 'add_trait' as const,
       input: { object_name: 'Bridge', trait_name: 'glow' },
     };
-    const result = verifySceneMutation(
-      SCENE_WITH_CONTRACT_TRAIT,
-      mutation,
-      bridgeResolver
-    );
+    const result = verifySceneMutation(SCENE_WITH_CONTRACT_TRAIT, mutation, bridgeResolver);
     expect(result).toMatchObject({
       passed: false,
       contractId: 'bridge-static-load-v1',
@@ -340,10 +330,10 @@ describe('SimContractGate — SSE event shape contract', () => {
   });
 
   it('omits reason on pass results so SSE payload stays clean', () => {
-    const result = verifySceneMutation(
-      SCENE_WITHOUT_CONTRACT,
-      { tool: 'create_object', input: { name: 'Plate', type: 'mesh' } }
-    );
+    const result = verifySceneMutation(SCENE_WITHOUT_CONTRACT, {
+      tool: 'create_object',
+      input: { name: 'Plate', type: 'mesh' },
+    });
     expect(result.passed).toBe(true);
     expect(result.reason).toBeUndefined();
   });

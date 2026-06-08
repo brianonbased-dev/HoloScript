@@ -134,10 +134,15 @@ describe('isStrictMode — Phase 3 strict-by-default', () => {
     const deployDate = '2026-05-01';
     // Past the 14-day boundary, but GRACE=1 forces grace mode
     const nowMs = Date.parse('2026-05-16T00:00:00.000Z');
-    expect(isStrictMode({
-      HOLOMESH_SIGNING_DEPLOY_DATE: deployDate,
-      HOLOMESH_SIGNING_GRACE: '1',
-    }, nowMs)).toBe(false);
+    expect(
+      isStrictMode(
+        {
+          HOLOMESH_SIGNING_DEPLOY_DATE: deployDate,
+          HOLOMESH_SIGNING_GRACE: '1',
+        },
+        nowMs
+      )
+    ).toBe(false);
   });
 
   it('returns true when deploy date env var is missing (strict-by-default)', () => {
@@ -157,8 +162,18 @@ describe('isStrictMode — Phase 3 strict-by-default', () => {
     expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, boundaryMs)).toBe(true);
     expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate }, boundaryMs - 1)).toBe(true);
     // With GRACE=1, both are false (explicit opt-out)
-    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate, HOLOMESH_SIGNING_GRACE: '1' }, boundaryMs)).toBe(false);
-    expect(isStrictMode({ HOLOMESH_SIGNING_DEPLOY_DATE: deployDate, HOLOMESH_SIGNING_GRACE: '1' }, boundaryMs - 1)).toBe(false);
+    expect(
+      isStrictMode(
+        { HOLOMESH_SIGNING_DEPLOY_DATE: deployDate, HOLOMESH_SIGNING_GRACE: '1' },
+        boundaryMs
+      )
+    ).toBe(false);
+    expect(
+      isStrictMode(
+        { HOLOMESH_SIGNING_DEPLOY_DATE: deployDate, HOLOMESH_SIGNING_GRACE: '1' },
+        boundaryMs - 1
+      )
+    ).toBe(false);
   });
 
   it('GRACE_PERIOD_MS equals 14 days in milliseconds', () => {
@@ -377,9 +392,9 @@ describe('SigningContext shape — call-site recipe', () => {
     mockVerifyMessage.mockResolvedValue(true);
     const expected = ['signedRequest', 'signingValid', 'signer', 'signingProtocol'].sort();
     const cases = [
-      await extractAndVerifySigning({ legacy: 1 }),                                  // unsigned-grace
-      await extractAndVerifySigning({ legacy: 1 }, { strictMode: true }),            // unsigned-rejected
-      await extractAndVerifySigning(buildEnvelope(), { nowMs: FRESH_NOW }),          // signed-valid
+      await extractAndVerifySigning({ legacy: 1 }), // unsigned-grace
+      await extractAndVerifySigning({ legacy: 1 }, { strictMode: true }), // unsigned-rejected
+      await extractAndVerifySigning(buildEnvelope(), { nowMs: FRESH_NOW }), // signed-valid
       await extractAndVerifySigning(buildEnvelope({ timestamp: 'bad' }), { nowMs: FRESH_NOW }), // signed-stale
     ];
     for (const c of cases) {

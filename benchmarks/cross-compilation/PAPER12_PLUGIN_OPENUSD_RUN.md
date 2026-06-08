@@ -19,23 +19,23 @@ Omit `PAPER12_QUICK` for the default (200 iter / 150 ms budget per tinybench tas
 
 ## Captured run
 
-| Field | Value |
-|-------|--------|
-| **Host OS** | win32 x64 |
-| **Node** | v22.22.0 |
-| **Probe** | `@holoscript/comparative-benchmarks` `runPaper12PluginProbe()` default (not quick) |
+| Field       | Value                                                                              |
+| ----------- | ---------------------------------------------------------------------------------- |
+| **Host OS** | win32 x64                                                                          |
+| **Node**    | v22.22.0                                                                           |
+| **Probe**   | `@holoscript/comparative-benchmarks` `runPaper12PluginProbe()` default (not quick) |
 
 ### Summary (mean `parseHolo` times, same scene family)
 
-| Metric | Value |
-|--------|--------|
-| **Holo cold parse** (unique root per iter) | 0.0463 ms mean |
-| **Holo warm parse** (fixed source) | 0.0210 ms mean |
-| **warm / cold ratio** | ~0.45 (warm cheaper than cold on this run) |
-| **Holo scene non-empty lines** (warm snippet) | 6 |
-| **approx trait-shard lines** (4 traits × 3) | 12 |
-| **OpenUSD proxy stage non-empty lines** | 18 |
-| **Plugin-init proxy** (JSON churn stub, one-shot ms) | ~2.26 ms |
+| Metric                                               | Value                                      |
+| ---------------------------------------------------- | ------------------------------------------ |
+| **Holo cold parse** (unique root per iter)           | 0.0463 ms mean                             |
+| **Holo warm parse** (fixed source)                   | 0.0210 ms mean                             |
+| **warm / cold ratio**                                | ~0.45 (warm cheaper than cold on this run) |
+| **Holo scene non-empty lines** (warm snippet)        | 6                                          |
+| **approx trait-shard lines** (4 traits × 3)          | 12                                         |
+| **OpenUSD proxy stage non-empty lines**              | 18                                         |
+| **Plugin-init proxy** (JSON churn stub, one-shot ms) | ~2.26 ms                                   |
 
 ### Full JSON (2026-04-21 local capture)
 

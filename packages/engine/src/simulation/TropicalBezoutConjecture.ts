@@ -143,7 +143,7 @@ export function convexHull(points: ReadonlyArray<LatticePoint>): LatticePoint[] 
 /** Minkowski sum of two lattice polygons: convex hull of all pairwise vertex sums. */
 export function minkowskiSum(
   p: ReadonlyArray<LatticePoint>,
-  q: ReadonlyArray<LatticePoint>,
+  q: ReadonlyArray<LatticePoint>
 ): LatticePoint[] {
   const sums: LatticePoint[] = [];
   for (const a of p) {
@@ -161,7 +161,7 @@ export function minkowskiSum(
  */
 export function mixedVolume2D(
   p: ReadonlyArray<LatticePoint>,
-  q: ReadonlyArray<LatticePoint>,
+  q: ReadonlyArray<LatticePoint>
 ): number {
   const numerator = twiceArea(minkowskiSum(p, q)) - twiceArea(p) - twiceArea(q);
   if (numerator % 2 !== 0) {
@@ -252,7 +252,7 @@ function buildFalsifierScenario(maxDegree: number): TropicalScenario {
  * survived AND the falsifier is refuted by at least one discovered counterexample.
  */
 export function runTropicalBezoutConjecture(
-  options: TropicalBezoutOptions = {},
+  options: TropicalBezoutOptions = {}
 ): TropicalBezoutReceipt {
   const maxDegree = options.maxDegree ?? 6;
   if (!Number.isInteger(maxDegree) || maxDegree < 1) {

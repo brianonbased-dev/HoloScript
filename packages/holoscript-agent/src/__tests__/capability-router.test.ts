@@ -88,7 +88,7 @@ const EMPTY_BRAIN: BrainRequirements = { requires: [], prefers: [], avoids: [] }
 // ─── Open routing path (no requires) ──────────────────────────────────
 
 describe('pickProvider — open routing (no requires)', () => {
-  it('honors env override regardless of capabilities (today\'s behavior)', () => {
+  it("honors env override regardless of capabilities (today's behavior)", () => {
     const decision = pickProvider({
       brain: EMPTY_BRAIN,
       envOverride: 'openai',

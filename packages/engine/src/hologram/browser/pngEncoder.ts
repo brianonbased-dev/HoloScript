@@ -124,7 +124,7 @@ function zlibStoreEncode(raw: Uint8Array): Uint8Array {
     out[off++] = isFinal; // BFINAL=isFinal, BTYPE=00 (stored)
     writeU16LE(out, off, len);
     off += 2;
-    writeU16LE(out, off, (~len) & 0xffff);
+    writeU16LE(out, off, ~len & 0xffff);
     off += 2;
     out.set(raw.subarray(start, end), off);
     off += len;
@@ -145,11 +145,7 @@ function zlibStoreEncode(raw: Uint8Array): Uint8Array {
  * @param width  Image width in pixels
  * @param height Image height in pixels
  */
-export function encodePngRgba(
-  rgba: Uint8Array,
-  width: number,
-  height: number
-): Uint8Array {
+export function encodePngRgba(rgba: Uint8Array, width: number, height: number): Uint8Array {
   if (!Number.isInteger(width) || width <= 0) {
     throw new Error(`encodePngRgba: width must be a positive integer, got ${width}`);
   }

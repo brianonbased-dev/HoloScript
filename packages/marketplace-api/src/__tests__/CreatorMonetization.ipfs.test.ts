@@ -14,7 +14,9 @@ vi.mock('@holoscript/core/storage', () => ({
 
 const CREATOR_ADDRESS: Address = '0x1234567890123456789012345678901234567890';
 
-function createCreator(options: Partial<ConstructorParameters<typeof CreatorMonetization>[0]> = {}) {
+function createCreator(
+  options: Partial<ConstructorParameters<typeof CreatorMonetization>[0]> = {}
+) {
   return new CreatorMonetization({
     network: 'base',
     creatorAddress: CREATOR_ADDRESS,

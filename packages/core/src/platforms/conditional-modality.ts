@@ -30,7 +30,10 @@ export {
   PLATFORM_CATEGORIES,
   ALL_PLATFORMS,
 } from '../compiler/platform/PlatformConditional';
-export type { PlatformTarget, PlatformCapabilities } from '../compiler/platform/PlatformConditional';
+export type {
+  PlatformTarget,
+  PlatformCapabilities,
+} from '../compiler/platform/PlatformConditional';
 
 // @platform() Compiler Mixin (Composition-level filtering)
 export {

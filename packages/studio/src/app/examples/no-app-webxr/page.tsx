@@ -85,8 +85,8 @@ export default function NoAppWebXRExamplePage() {
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold">No-App WebXR Launch</h1>
           <p className="mt-2 text-sm text-studio-muted">
-            Open this page on any device — phone, desktop, or VR headset — and enter
-            immersive mode with zero installation.
+            Open this page on any device — phone, desktop, or VR headset — and enter immersive mode
+            with zero installation.
           </p>
         </div>
 
@@ -98,8 +98,8 @@ export default function NoAppWebXRExamplePage() {
               <span className="text-sm font-semibold">Phone</span>
             </div>
             <p className="text-[11px] text-studio-muted">
-              Tap the 3D preview to orbit. On Android, tap “Enter VR” to launch
-              Cardboard or Daydream mode.
+              Tap the 3D preview to orbit. On Android, tap “Enter VR” to launch Cardboard or
+              Daydream mode.
             </p>
           </div>
           <div className="rounded-xl border border-studio-border bg-studio-panel p-4">
@@ -108,8 +108,8 @@ export default function NoAppWebXRExamplePage() {
               <span className="text-sm font-semibold">Desktop</span>
             </div>
             <p className="text-[11px] text-studio-muted">
-              Click and drag to rotate. Click “Enter VR” to start a SteamVR or
-              OpenXR session via the browser.
+              Click and drag to rotate. Click “Enter VR” to start a SteamVR or OpenXR session via
+              the browser.
             </p>
           </div>
           <div className="rounded-xl border border-studio-border bg-studio-panel p-4">
@@ -118,8 +118,8 @@ export default function NoAppWebXRExamplePage() {
               <span className="text-sm font-semibold">Headset</span>
             </div>
             <p className="text-[11px] text-studio-muted">
-              Open in Quest Browser or Safari on Vision Pro. Auto-enters immersive
-              VR within 2 seconds — no sideloading required.
+              Open in Quest Browser or Safari on Vision Pro. Auto-enters immersive VR within 2
+              seconds — no sideloading required.
             </p>
           </div>
         </div>
@@ -137,7 +137,9 @@ export default function NoAppWebXRExamplePage() {
           </div>
 
           <div className="flex w-full max-w-md items-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-3 py-2">
-            <span className="flex-1 truncate text-xs text-studio-muted">{pageUrl || 'Loading…'}</span>
+            <span className="flex-1 truncate text-xs text-studio-muted">
+              {pageUrl || 'Loading…'}
+            </span>
             <button
               onClick={handleCopy}
               className="shrink-0 text-studio-muted hover:text-studio-accent transition"
@@ -169,27 +171,42 @@ export default function NoAppWebXRExamplePage() {
           <h2 className="mb-3 text-sm font-semibold">How it works</h2>
           <ol className="list-decimal space-y-2 pl-4 text-[11px] text-studio-muted">
             <li>
-              The scene is authored in HoloScript Studio and published to a
-              shareable URL via <code className="rounded bg-studio-surface px-1 py-0.5 text-studio-text">/api/share</code>.
+              The scene is authored in HoloScript Studio and published to a shareable URL via{' '}
+              <code className="rounded bg-studio-surface px-1 py-0.5 text-studio-text">
+                /api/share
+              </code>
+              .
             </li>
             <li>
-              The <code className="rounded bg-studio-surface px-1 py-0.5 text-studio-text">/shared/&lt;id&gt;</code> page uses <code className="rounded bg-studio-surface px-1 py-0.5 text-studio-text">ImmersiveViewer</code>, which
-              compiles the HoloScript source client-side with
-              <code className="rounded bg-studio-surface px-1 py-0.5 text-studio-text">@holoscript/core</code> and renders it with three.js.
+              The{' '}
+              <code className="rounded bg-studio-surface px-1 py-0.5 text-studio-text">
+                /shared/&lt;id&gt;
+              </code>{' '}
+              page uses{' '}
+              <code className="rounded bg-studio-surface px-1 py-0.5 text-studio-text">
+                ImmersiveViewer
+              </code>
+              , which compiles the HoloScript source client-side with
+              <code className="rounded bg-studio-surface px-1 py-0.5 text-studio-text">
+                @holoscript/core
+              </code>{' '}
+              and renders it with three.js.
             </li>
             <li>
-              On Quest Browser, the viewer auto-detects WebXR support and
-              auto-enters <code className="rounded bg-studio-surface px-1 py-0.5 text-studio-text">immersive-vr</code> within 1.5 seconds. On other
-              devices, the user taps “Enter VR” or “Enter AR”.
+              On Quest Browser, the viewer auto-detects WebXR support and auto-enters{' '}
+              <code className="rounded bg-studio-surface px-1 py-0.5 text-studio-text">
+                immersive-vr
+              </code>{' '}
+              within 1.5 seconds. On other devices, the user taps “Enter VR” or “Enter AR”.
             </li>
             <li>
-              Inside VR, the scene includes a 3D “Publish” button. Pointing
-              at it with a controller generates a QR code with the share URL,
-              so another user can scan it with their phone to join.
+              Inside VR, the scene includes a 3D “Publish” button. Pointing at it with a controller
+              generates a QR code with the share URL, so another user can scan it with their phone
+              to join.
             </li>
             <li>
-              No app store, no download, no install — just a URL that works
-              everywhere WebXR is supported.
+              No app store, no download, no install — just a URL that works everywhere WebXR is
+              supported.
             </li>
           </ol>
         </div>

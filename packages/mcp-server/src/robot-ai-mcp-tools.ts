@@ -122,10 +122,20 @@ export const robotAiMcpTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        agentId: { type: 'string', description: 'Unique substrate identifier. Auto-generated if omitted.' },
-        walletAddress: { type: 'string', description: 'EVM or Solana wallet address ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â root of trust.' },
+        agentId: {
+          type: 'string',
+          description: 'Unique substrate identifier. Auto-generated if omitted.',
+        },
+        walletAddress: {
+          type: 'string',
+          description:
+            'EVM or Solana wallet address ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â root of trust.',
+        },
         handle: { type: 'string', description: 'Human-readable handle.' },
-        attestation: { type: 'string', description: 'EIP-712 typed-data signature over (agentId + handle + timestamp).' },
+        attestation: {
+          type: 'string',
+          description: 'EIP-712 typed-data signature over (agentId + handle + timestamp).',
+        },
         attestedAt: { type: 'string', description: 'ISO-8601 timestamp of attestation.' },
         role: {
           type: 'string',
@@ -142,8 +152,14 @@ export const robotAiMcpTools: Tool[] = [
           enum: ['robot', 'ai'],
           description: 'Hardware (robot) or software (ai) participant.',
         },
-        hardwareFingerprint: { type: 'string', description: 'Device serial hash for robots. Optional.' },
-        brainCompositionId: { type: 'string', description: 'Brain composition reference for AIs. Optional.' },
+        hardwareFingerprint: {
+          type: 'string',
+          description: 'Device serial hash for robots. Optional.',
+        },
+        brainCompositionId: {
+          type: 'string',
+          description: 'Brain composition reference for AIs. Optional.',
+        },
       },
       required: ['walletAddress', 'handle', 'attestation', 'kind'],
     },
@@ -169,7 +185,10 @@ export const robotAiMcpTools: Tool[] = [
       properties: {
         agentId: { type: 'string', description: 'Identity agentId' },
         handle: { type: 'string' },
-        role: { type: 'string', enum: ['founder', 'steward', 'operator', 'robot', 'ai', 'brittney', 'visitor'] },
+        role: {
+          type: 'string',
+          enum: ['founder', 'steward', 'operator', 'robot', 'ai', 'brittney', 'visitor'],
+        },
         mode: { type: 'string', enum: ['local', 'BYOK', 'managed'] },
         brainCompositionId: { type: 'string' },
       },
@@ -185,8 +204,14 @@ export const robotAiMcpTools: Tool[] = [
       type: 'object',
       properties: {
         agentId: { type: 'string', description: 'Identity to revoke' },
-        granterId: { type: 'string', description: 'Identity performing revocation (must be founder or steward).' },
-        revocationSignature: { type: 'string', description: 'Wallet signature of revocation intent.' },
+        granterId: {
+          type: 'string',
+          description: 'Identity performing revocation (must be founder or steward).',
+        },
+        revocationSignature: {
+          type: 'string',
+          description: 'Wallet signature of revocation intent.',
+        },
       },
       required: ['agentId', 'granterId', 'revocationSignature'],
     },
@@ -203,7 +228,11 @@ export const robotAiMcpTools: Tool[] = [
           description: 'Filter by role.',
         },
         kind: { type: 'string', enum: ['robot', 'ai'], description: 'Filter by kind' },
-        mode: { type: 'string', enum: ['local', 'BYOK', 'managed'], description: 'Filter by mode.' },
+        mode: {
+          type: 'string',
+          enum: ['local', 'BYOK', 'managed'],
+          description: 'Filter by mode.',
+        },
         limit: { type: 'number', description: 'Max results. Default: 50' },
         offset: { type: 'number', description: 'Pagination offset. Default: 0' },
       },
@@ -219,11 +248,23 @@ export const robotAiMcpTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        envelopeId: { type: 'string', description: 'Envelope identifier. Auto-generated if omitted.' },
+        envelopeId: {
+          type: 'string',
+          description: 'Envelope identifier. Auto-generated if omitted.',
+        },
         agentId: { type: 'string', description: 'Identity this envelope applies to.' },
-        maxTickDurationMs: { type: 'number', description: 'Max compute budget per tick (ms). Default: 1000.' },
-        maxMemoryBytes: { type: 'number', description: 'Max memory per session (bytes). Default: 536870912 (512 MB).' },
-        maxNetworkCallsPerMinute: { type: 'number', description: 'Max outbound network calls per minute. Default: 60.' },
+        maxTickDurationMs: {
+          type: 'number',
+          description: 'Max compute budget per tick (ms). Default: 1000.',
+        },
+        maxMemoryBytes: {
+          type: 'number',
+          description: 'Max memory per session (bytes). Default: 536870912 (512 MB).',
+        },
+        maxNetworkCallsPerMinute: {
+          type: 'number',
+          description: 'Max outbound network calls per minute. Default: 60.',
+        },
         allowedActions: {
           type: 'array',
           items: { type: 'string' },
@@ -232,10 +273,17 @@ export const robotAiMcpTools: Tool[] = [
         blockedActions: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Action blacklist ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â overrides whitelist.',
+          description:
+            'Action blacklist ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â overrides whitelist.',
         },
-        deterministic: { type: 'boolean', description: 'Seed randomness for reproducibility. Default: false.' },
-        localOnly: { type: 'boolean', description: 'Block all outbound network calls. Default: false.' },
+        deterministic: {
+          type: 'boolean',
+          description: 'Seed randomness for reproducibility. Default: false.',
+        },
+        localOnly: {
+          type: 'boolean',
+          description: 'Block all outbound network calls. Default: false.',
+        },
       },
       required: ['agentId'],
     },
@@ -278,7 +326,10 @@ export const robotAiMcpTools: Tool[] = [
       type: 'object',
       properties: {
         envelopeId: { type: 'string', description: 'Envelope identifier' },
-        granterId: { type: 'string', description: 'Identity performing deletion (must be founder or steward).' },
+        granterId: {
+          type: 'string',
+          description: 'Identity performing deletion (must be founder or steward).',
+        },
       },
       required: ['envelopeId', 'granterId'],
     },
@@ -307,8 +358,14 @@ export const robotAiMcpTools: Tool[] = [
       properties: {
         granteeId: { type: 'string', description: 'Identity receiving the permission.' },
         granterId: { type: 'string', description: 'Identity issuing the permission.' },
-        action: { type: 'string', description: 'Action being permitted. E.g. actuator:move or inference:*' },
-        scope: { type: 'string', description: 'Scope of grant (contextId, resourceId, or *). Default: *.' },
+        action: {
+          type: 'string',
+          description: 'Action being permitted. E.g. actuator:move or inference:*',
+        },
+        scope: {
+          type: 'string',
+          description: 'Scope of grant (contextId, resourceId, or *). Default: *.',
+        },
         expiresAt: { type: 'string', description: 'ISO-8601 expiry. Null = no expiry.' },
       },
       required: ['granteeId', 'granterId', 'action'],
@@ -321,8 +378,14 @@ export const robotAiMcpTools: Tool[] = [
       type: 'object',
       properties: {
         grantHash: { type: 'string', description: 'Hash of the permission grant to revoke.' },
-        granterId: { type: 'string', description: 'Identity performing revocation (must match original granter).' },
-        revocationSignature: { type: 'string', description: 'Wallet signature of revocation intent.' },
+        granterId: {
+          type: 'string',
+          description: 'Identity performing revocation (must match original granter).',
+        },
+        revocationSignature: {
+          type: 'string',
+          description: 'Wallet signature of revocation intent.',
+        },
       },
       required: ['grantHash', 'granterId', 'revocationSignature'],
     },
@@ -393,7 +456,10 @@ export const robotAiMcpTools: Tool[] = [
       properties: {
         agentId: { type: 'string', description: 'AI identity.' },
         prompt: { type: 'string', description: 'Input prompt or task description.' },
-        context: { type: 'string', description: 'Additional scene or execution context. Optional.' },
+        context: {
+          type: 'string',
+          description: 'Additional scene or execution context. Optional.',
+        },
         maxTokens: { type: 'number', description: 'Max output tokens. Optional.' },
         contextId: { type: 'string', description: 'Execution context identifier. Optional.' },
       },
@@ -430,7 +496,7 @@ export const robotAiMcpTools: Tool[] = [
 
 export async function handleRobotAiMcpTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown> {
   switch (name) {
     case 'twin_earth_register_identity':
@@ -476,9 +542,7 @@ export async function handleRobotAiMcpTool(
 // HANDLERS
 // =============================================================================
 
-async function handleTwinEarthRegisterIdentity(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthRegisterIdentity(args: Record<string, unknown>): Promise<unknown> {
   const agentId = (args.agentId as string) || genId('agent');
   const walletAddress = args.walletAddress as string;
   const handle = args.handle as string;
@@ -532,9 +596,7 @@ async function handleTwinEarthRegisterIdentity(
   };
 }
 
-async function handleTwinEarthGetIdentity(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthGetIdentity(args: Record<string, unknown>): Promise<unknown> {
   const agentId = args.agentId as string;
   const identity = twinEarthIdentityRegistry.get(agentId);
   if (!identity) {
@@ -560,16 +622,16 @@ async function handleTwinEarthGetIdentity(
   };
 }
 
-async function handleTwinEarthUpdateIdentity(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthUpdateIdentity(args: Record<string, unknown>): Promise<unknown> {
   const agentId = args.agentId as string;
   const identity = twinEarthIdentityRegistry.get(agentId);
   if (!identity) {
     return { error: `Identity not found: ${agentId}` };
   }
   if (identity.revoked) {
-    return { error: `Identity ${agentId} is revoked ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â cannot update.` };
+    return {
+      error: `Identity ${agentId} is revoked ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â cannot update.`,
+    };
   }
 
   if (args.handle) {
@@ -585,9 +647,7 @@ async function handleTwinEarthUpdateIdentity(
   return { success: true, agentId, identity };
 }
 
-async function handleTwinEarthRevokeIdentity(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthRevokeIdentity(args: Record<string, unknown>): Promise<unknown> {
   const agentId = args.agentId as string;
   const granterId = args.granterId as string;
   const revocationSignature = args.revocationSignature as string;
@@ -602,7 +662,9 @@ async function handleTwinEarthRevokeIdentity(
 
   const granter = twinEarthIdentityRegistry.get(granterId);
   if (!granter || (granter.role !== 'founder' && granter.role !== 'steward')) {
-    return { error: `Revocation requires founder or steward role. ${granterId} has role ${granter?.role ?? 'unknown'}.` };
+    return {
+      error: `Revocation requires founder or steward role. ${granterId} has role ${granter?.role ?? 'unknown'}.`,
+    };
   }
   if (!revocationSignature || typeof revocationSignature !== 'string') {
     return { error: 'revocationSignature is required.' };
@@ -622,9 +684,7 @@ async function handleTwinEarthRevokeIdentity(
   return { success: true, agentId, revoked: true, revokedAt: identity.revokedAt };
 }
 
-async function handleTwinEarthListIdentities(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthListIdentities(args: Record<string, unknown>): Promise<unknown> {
   const limit = (args.limit as number) ?? 50;
   const offset = (args.offset as number) ?? 0;
   const role = args.role as string | undefined;
@@ -651,7 +711,7 @@ async function handleTwinEarthListIdentities(
 }
 
 async function handleTwinEarthCreateSafetyEnvelope(
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown> {
   const envelopeId = (args.envelopeId as string) || genId('env');
   const agentId = args.agentId as string;
@@ -665,7 +725,9 @@ async function handleTwinEarthCreateSafetyEnvelope(
     return { error: `Identity not found: ${agentId}` };
   }
   if (identity.revoked) {
-    return { error: `Identity ${agentId} is revoked ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â cannot create safety envelope.` };
+    return {
+      error: `Identity ${agentId} is revoked ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â cannot create safety envelope.`,
+    };
   }
 
   const envelope: StoredSafetyEnvelope = {
@@ -694,9 +756,7 @@ async function handleTwinEarthCreateSafetyEnvelope(
   };
 }
 
-async function handleTwinEarthGetSafetyEnvelope(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthGetSafetyEnvelope(args: Record<string, unknown>): Promise<unknown> {
   const envelopeId = args.envelopeId as string;
   const envelope = safetyEnvelopeRegistry.get(envelopeId);
   if (!envelope) {
@@ -706,7 +766,7 @@ async function handleTwinEarthGetSafetyEnvelope(
 }
 
 async function handleTwinEarthUpdateSafetyEnvelope(
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown> {
   const envelopeId = args.envelopeId as string;
   const envelope = safetyEnvelopeRegistry.get(envelopeId);
@@ -714,9 +774,11 @@ async function handleTwinEarthUpdateSafetyEnvelope(
     return { error: `Safety envelope not found: ${envelopeId}` };
   }
 
-  if (args.maxTickDurationMs !== undefined) envelope.maxTickDurationMs = args.maxTickDurationMs as number;
+  if (args.maxTickDurationMs !== undefined)
+    envelope.maxTickDurationMs = args.maxTickDurationMs as number;
   if (args.maxMemoryBytes !== undefined) envelope.maxMemoryBytes = args.maxMemoryBytes as number;
-  if (args.maxNetworkCallsPerMinute !== undefined) envelope.maxNetworkCallsPerMinute = args.maxNetworkCallsPerMinute as number;
+  if (args.maxNetworkCallsPerMinute !== undefined)
+    envelope.maxNetworkCallsPerMinute = args.maxNetworkCallsPerMinute as number;
   if (args.allowedActions !== undefined) envelope.allowedActions = args.allowedActions as string[];
   if (args.blockedActions !== undefined) envelope.blockedActions = args.blockedActions as string[];
   if (args.deterministic !== undefined) envelope.deterministic = args.deterministic as boolean;
@@ -727,14 +789,16 @@ async function handleTwinEarthUpdateSafetyEnvelope(
 }
 
 async function handleTwinEarthDeleteSafetyEnvelope(
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown> {
   const envelopeId = args.envelopeId as string;
   const granterId = args.granterId as string;
 
   const granter = twinEarthIdentityRegistry.get(granterId);
   if (!granter || (granter.role !== 'founder' && granter.role !== 'steward')) {
-    return { error: `Deletion requires founder or steward role. ${granterId} has role ${granter?.role ?? 'unknown'}.` };
+    return {
+      error: `Deletion requires founder or steward role. ${granterId} has role ${granter?.role ?? 'unknown'}.`,
+    };
   }
 
   const envelope = safetyEnvelopeRegistry.get(envelopeId);
@@ -746,9 +810,7 @@ async function handleTwinEarthDeleteSafetyEnvelope(
   return { success: true, envelopeId, deleted: true };
 }
 
-async function handleTwinEarthListSafetyEnvelopes(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthListSafetyEnvelopes(args: Record<string, unknown>): Promise<unknown> {
   const limit = (args.limit as number) ?? 50;
   const offset = (args.offset as number) ?? 0;
   const agentId = args.agentId as string | undefined;
@@ -762,9 +824,7 @@ async function handleTwinEarthListSafetyEnvelopes(
   return { success: true, total, limit, offset, envelopes: items };
 }
 
-async function handleTwinEarthGrantPermission(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthGrantPermission(args: Record<string, unknown>): Promise<unknown> {
   const granteeId = args.granteeId as string;
   const granterId = args.granterId as string;
   const action = args.action as string;
@@ -807,9 +867,7 @@ async function handleTwinEarthGrantPermission(
   return { success: true, grantHash: hash, granteeId, granterId, action, scope, expiresAt };
 }
 
-async function handleTwinEarthRevokePermission(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthRevokePermission(args: Record<string, unknown>): Promise<unknown> {
   const grantHash = args.grantHash as string;
   const granterId = args.granterId as string;
   const revocationSignature = args.revocationSignature as string;
@@ -821,7 +879,9 @@ async function handleTwinEarthRevokePermission(
 
   const granter = twinEarthIdentityRegistry.get(granterId);
   if (!granter || (granter.role !== 'founder' && granter.role !== 'steward')) {
-    return { error: `Revocation requires founder or steward role. ${granterId} has role ${granter?.role ?? 'unknown'}.` };
+    return {
+      error: `Revocation requires founder or steward role. ${granterId} has role ${granter?.role ?? 'unknown'}.`,
+    };
   }
   if (grant.granterId !== granterId) {
     return { error: `Only the original granter (${grant.granterId}) can revoke this grant.` };
@@ -834,9 +894,7 @@ async function handleTwinEarthRevokePermission(
   return { success: true, grantHash, revoked: true };
 }
 
-async function handleTwinEarthValidatePermission(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthValidatePermission(args: Record<string, unknown>): Promise<unknown> {
   const granteeId = args.granteeId as string;
   const action = args.action as string;
   const scope = args.scope as string;
@@ -847,7 +905,7 @@ async function handleTwinEarthValidatePermission(
       !g.revocationSignature &&
       (g.action === action || g.action === '*') &&
       (g.scope === scope || g.scope === '*') &&
-      (!g.expiresAt || new Date(g.expiresAt) > new Date()),
+      (!g.expiresAt || new Date(g.expiresAt) > new Date())
   );
 
   if (!grant) {
@@ -864,9 +922,7 @@ async function handleTwinEarthValidatePermission(
   };
 }
 
-async function handleTwinEarthListPermissions(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthListPermissions(args: Record<string, unknown>): Promise<unknown> {
   const limit = (args.limit as number) ?? 50;
   const offset = (args.offset as number) ?? 0;
   const granteeId = args.granteeId as string | undefined;
@@ -884,9 +940,7 @@ async function handleTwinEarthListPermissions(
   return { success: true, total, limit, offset, grants: items };
 }
 
-async function handleTwinEarthRobotActuate(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthRobotActuate(args: Record<string, unknown>): Promise<unknown> {
   const agentId = args.agentId as string;
   const command = args.command as string;
   const parameters = (args.parameters as Record<string, unknown>) ?? {};
@@ -904,7 +958,9 @@ async function handleTwinEarthRobotActuate(
   }
 
   // Find active safety envelope
-  const storedEnvelope = Array.from(safetyEnvelopeRegistry.values()).find((e) => e.agentId === agentId);
+  const storedEnvelope = Array.from(safetyEnvelopeRegistry.values()).find(
+    (e) => e.agentId === agentId
+  );
   if (!storedEnvelope) {
     return { error: `No active safety envelope for ${agentId}. Robot actuation is blocked.` };
   }
@@ -925,7 +981,7 @@ async function handleTwinEarthRobotActuate(
       !g.revocationSignature &&
       (g.action === action || g.action === '*') &&
       (g.scope === scope || g.scope === '*') &&
-      (!g.expiresAt || new Date(g.expiresAt) > new Date()),
+      (!g.expiresAt || new Date(g.expiresAt) > new Date())
   );
 
   const identity: TwinEarthIdentity = {
@@ -967,13 +1023,25 @@ async function handleTwinEarthRobotActuate(
     : ({} as unknown as PermissionGrant);
 
   // Canonical substrate gating
-  const result = evaluateActuation(identity, grant, envelope, action as PermissionGrant['action'], scope);
+  const result = evaluateActuation(
+    identity,
+    grant,
+    envelope,
+    action as PermissionGrant['action'],
+    scope
+  );
 
   if (!result.allowed) {
     return {
       error: result.reason,
-      rejectedByEnvelope: result.blockingRule !== undefined && result.blockingRule !== 'expired_grant' && result.blockingRule !== 'revoked_grant',
-      permissionDenied: result.blockingRule === 'expired_grant' || result.blockingRule === 'revoked_grant' || result.reason.includes('Grant'),
+      rejectedByEnvelope:
+        result.blockingRule !== undefined &&
+        result.blockingRule !== 'expired_grant' &&
+        result.blockingRule !== 'revoked_grant',
+      permissionDenied:
+        result.blockingRule === 'expired_grant' ||
+        result.blockingRule === 'revoked_grant' ||
+        result.reason.includes('Grant'),
     };
   }
 
@@ -1005,14 +1073,12 @@ async function handleTwinEarthRobotActuate(
     envelopeId: storedEnvelope.id,
     status: 'success',
     simulated: true,
-    dispatchedTo: 'stub',  // RATCHET: no real ROS/MQTT/hardware bridge; robot runtime not wired
+    dispatchedTo: 'stub', // RATCHET: no real ROS/MQTT/hardware bridge; robot runtime not wired
     note: 'Actuation was simulated (canary). In production this dispatches to the robot runtime.',
   };
 }
 
-async function handleTwinEarthAIInvoke(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthAIInvoke(args: Record<string, unknown>): Promise<unknown> {
   const agentId = args.agentId as string;
   const prompt = args.prompt as string;
   const context = (args.context as string | undefined) ?? '';
@@ -1031,7 +1097,9 @@ async function handleTwinEarthAIInvoke(
   }
 
   // Find active safety envelope
-  const storedEnvelope = Array.from(safetyEnvelopeRegistry.values()).find((e) => e.agentId === agentId);
+  const storedEnvelope = Array.from(safetyEnvelopeRegistry.values()).find(
+    (e) => e.agentId === agentId
+  );
   if (!storedEnvelope) {
     return { error: `No active safety envelope for ${agentId}. AI invocation is blocked.` };
   }
@@ -1076,7 +1144,7 @@ async function handleTwinEarthAIInvoke(
       !g.revocationSignature &&
       (g.action === action || g.action === 'ai:*' || g.action === '*') &&
       (g.scope === scope || g.scope === '*') &&
-      (!g.expiresAt || new Date(g.expiresAt) > new Date()),
+      (!g.expiresAt || new Date(g.expiresAt) > new Date())
   );
 
   if (!storedGrant) {
@@ -1110,14 +1178,12 @@ async function handleTwinEarthAIInvoke(
     envelopeId: storedEnvelope.id,
     status: 'success',
     simulated: true,
-    dispatchedTo: 'stub',  // RATCHET: no real inference runtime bridge; simulated dispatch
+    dispatchedTo: 'stub', // RATCHET: no real inference runtime bridge; simulated dispatch
     note: 'AI invocation was simulated (canary). In production this dispatches to the inference runtime.',
   };
 }
 
-async function handleTwinEarthCaptureReceipt(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleTwinEarthCaptureReceipt(args: Record<string, unknown>): Promise<unknown> {
   const actorId = args.actorId as string;
   const action = args.action as string;
   const status = args.status as 'success' | 'failure' | 'timeout' | 'rejected_by_envelope';

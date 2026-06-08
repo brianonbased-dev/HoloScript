@@ -325,7 +325,8 @@ export class OctreeLODSystem {
   }
 
   private insertIntoNode(node: LODOctreeNode, anchor: GaussianAnchor): boolean {
-    if (!this.containsPoint(node, anchor.position[0], anchor.position[1], anchor.position[2])) return false;
+    if (!this.containsPoint(node, anchor.position[0], anchor.position[1], anchor.position[2]))
+      return false;
 
     // If this node's depth matches the anchor's LOD level, store here
     if (node.depth === anchor.lodLevel) {
@@ -695,7 +696,9 @@ export class OctreeLODSystem {
       // Only redistribute if the anchor's LOD level is deeper than this node
       if (anchor.lodLevel > node.depth) {
         for (const child of node.children) {
-          if (this.containsPoint(child, anchor.position[0], anchor.position[1], anchor.position[2])) {
+          if (
+            this.containsPoint(child, anchor.position[0], anchor.position[1], anchor.position[2])
+          ) {
             if (anchor.lodLevel === child.depth) {
               child.anchors.push(anchor);
               child.gaussianCount += anchor.gaussianCount;

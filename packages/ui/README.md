@@ -23,7 +23,9 @@ function Dashboard() {
       <Badge variant="default">Live</Badge>
       <StatCard title="Revenue" value={12500} format="usd" trend={4.2} />
       <Input placeholder="Search..." />
-      <Button variant="outline" size="sm">Save</Button>
+      <Button variant="outline" size="sm">
+        Save
+      </Button>
       <Spinner size="md" />
     </div>
   );
@@ -32,22 +34,22 @@ function Dashboard() {
 
 ## Components
 
-| Component | Description |
-|-----------|-------------|
-| `Button` | Forwarded-ref button with 6 variants (`default`, `destructive`, `outline`, `secondary`, `ghost`, `link`) and 4 sizes (`default`, `sm`, `lg`, `icon`). |
-| `Badge` | Inline status pill with 4 variants (`default`, `secondary`, `outline`, `destructive`). Rounded-full, small text. |
-| `Input` | Forwarded-ref text input. Dark-themed with emerald focus ring. Accepts all native input props. |
-| `Spinner` | Animated SVG loading indicator. 3 sizes (`sm`, `md`, `lg`). |
-| `StatCard` | Metric display card with trend indicator. Formats: `usd`, `eth`, `number`. Shows up/down arrows via `lucide-react`. Supports `loading` skeleton state. |
-| `PanelSplitter` | Draggable resize handle for split-panel layouts. Supports mouse and touch. Emits pixel deltas; parent controls clamping. Horizontal or vertical. |
-| `ContextMenu` | Fixed-position right-click menu with Edit, Duplicate, Delete actions. Auto-clamps to viewport. Closes on outside click. |
-| `SimplePropertyInspector` | Sidebar panel for editing object name, color (preset grid + custom picker), and size (range slider). Studio-themed. |
-| `ErrorBoundary` | Class-based error boundary with labeled crash messages, retry/reload buttons, `onError` callback, optional `renderFallback`, and dev-only stack traces. |
+| Component                 | Description                                                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`                  | Forwarded-ref button with 6 variants (`default`, `destructive`, `outline`, `secondary`, `ghost`, `link`) and 4 sizes (`default`, `sm`, `lg`, `icon`).   |
+| `Badge`                   | Inline status pill with 4 variants (`default`, `secondary`, `outline`, `destructive`). Rounded-full, small text.                                        |
+| `Input`                   | Forwarded-ref text input. Dark-themed with emerald focus ring. Accepts all native input props.                                                          |
+| `Spinner`                 | Animated SVG loading indicator. 3 sizes (`sm`, `md`, `lg`).                                                                                             |
+| `StatCard`                | Metric display card with trend indicator. Formats: `usd`, `eth`, `number`. Shows up/down arrows via `lucide-react`. Supports `loading` skeleton state.  |
+| `PanelSplitter`           | Draggable resize handle for split-panel layouts. Supports mouse and touch. Emits pixel deltas; parent controls clamping. Horizontal or vertical.        |
+| `ContextMenu`             | Fixed-position right-click menu with Edit, Duplicate, Delete actions. Auto-clamps to viewport. Closes on outside click.                                 |
+| `SimplePropertyInspector` | Sidebar panel for editing object name, color (preset grid + custom picker), and size (range slider). Studio-themed.                                     |
+| `ErrorBoundary`           | Class-based error boundary with labeled crash messages, retry/reload buttons, `onError` callback, optional `renderFallback`, and dev-only stack traces. |
 
 ## Utilities
 
-| Export | Description |
-|--------|-------------|
+| Export           | Description                                                                 |
+| ---------------- | --------------------------------------------------------------------------- |
 | `cn(...classes)` | Merges Tailwind classes without conflicts. Wraps `clsx` + `tailwind-merge`. |
 
 ## Theming

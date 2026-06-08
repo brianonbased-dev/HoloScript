@@ -40,7 +40,12 @@ import {
   VALID_ATTACK_CLASSES,
   type DispatchEntry,
 } from '../state';
-import type { TeamPresenceEntry, RegisteredAgent, MeshKnowledgeEntry, KnowledgeEntryType } from '../types';
+import type {
+  TeamPresenceEntry,
+  RegisteredAgent,
+  MeshKnowledgeEntry,
+  KnowledgeEntryType,
+} from '../types';
 import { requireAuth, resolveRequestingAgent } from '../auth-utils';
 import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
@@ -106,7 +111,8 @@ const RAW_DUMP_PATTERNS = [
   /\bHOLOMESH_API_KEY\b/i,
   /\bHOLOSCRIPT_API_KEY\b/i,
 ];
-const SECRET_METADATA_KEY = /(api[_-]?key|private[_-]?key|token|secret|password|authorization|cookie)/i;
+const SECRET_METADATA_KEY =
+  /(api[_-]?key|private[_-]?key|token|secret|password|authorization|cookie)/i;
 
 interface PublicKnowledgeQuality {
   ok: boolean;
@@ -151,14 +157,13 @@ function normalizeKnowledgeType(value: unknown): KnowledgeEntryType | null {
 }
 
 function normalizeStringArray(value: unknown, maxItems = 12): string[] {
-  const raw = Array.isArray(value)
-    ? value
-    : typeof value === 'string'
-      ? value.split(',')
-      : [];
+  const raw = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
   const out: string[] = [];
   for (const item of raw) {
-    const normalized = String(item).trim().toLowerCase().replace(/[^a-z0-9:_-]+/g, '-');
+    const normalized = String(item)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9:_-]+/g, '-');
     if (!normalized || normalized.length > 48 || out.includes(normalized)) continue;
     out.push(normalized);
     if (out.length >= maxItems) break;
@@ -168,7 +173,10 @@ function normalizeStringArray(value: unknown, maxItems = 12): string[] {
 
 function normalizeDomain(value: unknown): string {
   if (typeof value !== 'string') return 'general';
-  const trimmed = value.trim().toLowerCase().replace(/[^a-z0-9:_-]+/g, '-');
+  const trimmed = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9:_-]+/g, '-');
   return trimmed ? trimmed.slice(0, 64) : 'general';
 }
 
@@ -194,7 +202,10 @@ function sanitizePublicMetadata(value: unknown): Record<string, unknown> {
   return out;
 }
 
-function attachEvidenceMetadata(body: Record<string, unknown>, metadata: Record<string, unknown>): void {
+function attachEvidenceMetadata(
+  body: Record<string, unknown>,
+  metadata: Record<string, unknown>
+): void {
   const evidence = body.evidence;
   if (typeof evidence === 'string' && evidence.trim()) {
     metadata.evidence = evidence.trim().slice(0, 1000);
@@ -202,11 +213,12 @@ function attachEvidenceMetadata(body: Record<string, unknown>, metadata: Record<
     metadata.evidence = normalizeStringArray(evidence, 8);
   }
 
-  const receiptHash = typeof body.receipt_sha256 === 'string'
-    ? body.receipt_sha256.trim()
-    : typeof body.receiptHash === 'string'
-      ? body.receiptHash.trim()
-      : '';
+  const receiptHash =
+    typeof body.receipt_sha256 === 'string'
+      ? body.receipt_sha256.trim()
+      : typeof body.receiptHash === 'string'
+        ? body.receiptHash.trim()
+        : '';
   if (receiptHash) metadata.receipt_sha256 = receiptHash.slice(0, 128);
   if (isRecord(body.receipt)) metadata.receipt = body.receipt;
   if (typeof body.title === 'string' && body.title.trim()) {
@@ -214,23 +226,32 @@ function attachEvidenceMetadata(body: Record<string, unknown>, metadata: Record<
   }
 }
 
-function assessPublicKnowledgeEntry(content: string, metadata: Record<string, unknown>): PublicKnowledgeQuality {
+function assessPublicKnowledgeEntry(
+  content: string,
+  metadata: Record<string, unknown>
+): PublicKnowledgeQuality {
   const reasons: string[] = [];
   const warnings: string[] = [];
   const compact = content.replace(/\s+/g, ' ').trim();
   const wordCount = compact.split(/\s+/).filter(Boolean).length;
 
   if (compact.length < PUBLIC_KNOWLEDGE_MIN_CHARS) {
-    reasons.push(`content must be at least ${PUBLIC_KNOWLEDGE_MIN_CHARS} characters of compressed knowledge`);
+    reasons.push(
+      `content must be at least ${PUBLIC_KNOWLEDGE_MIN_CHARS} characters of compressed knowledge`
+    );
   }
   if (compact.length > PUBLIC_KNOWLEDGE_MAX_CHARS) {
-    reasons.push(`content must be ${PUBLIC_KNOWLEDGE_MAX_CHARS} characters or less; summarize raw logs before posting`);
+    reasons.push(
+      `content must be ${PUBLIC_KNOWLEDGE_MAX_CHARS} characters or less; summarize raw logs before posting`
+    );
   }
   if (wordCount < 6) {
     reasons.push('content needs enough context for another agent to reuse it');
   }
   if (RAW_DUMP_PATTERNS.some((pattern) => pattern.test(content))) {
-    reasons.push('public entries must be curated W/P/G knowledge, not raw session dumps, secrets, or shell logs');
+    reasons.push(
+      'public entries must be curated W/P/G knowledge, not raw session dumps, secrets, or shell logs'
+    );
   }
 
   const hasEvidence =
@@ -251,7 +272,9 @@ function assessPublicKnowledgeEntry(content: string, metadata: Record<string, un
 }
 
 function isPublicFeedEntry(entry: MeshKnowledgeEntry): boolean {
-  if (entry.tags?.some((tag) => ['raw-dump', 'session-dump', 'system-log', 'tombstone'].includes(tag))) {
+  if (
+    entry.tags?.some((tag) => ['raw-dump', 'session-dump', 'system-log', 'tombstone'].includes(tag))
+  ) {
     return false;
   }
   const quality = isRecord(entry.metadata?.quality) ? entry.metadata.quality : null;
@@ -344,8 +367,12 @@ export async function handleCoreRoutes(
   // ── POST /api/holomesh/verify ─────────────────────────────────────────────
   if (pathname === '/api/holomesh/verify' && method === 'POST') {
     const body = await parseJsonBody(req);
-    const token = body.token || (req.headers['authorization']?.startsWith('Bearer ') ? req.headers['authorization'].slice(7) : null);
-    
+    const token =
+      body.token ||
+      (req.headers['authorization']?.startsWith('Bearer ')
+        ? req.headers['authorization'].slice(7)
+        : null);
+
     if (!token) {
       json(res, 400, { error: 'token is required' });
       return true;
@@ -353,7 +380,7 @@ export async function handleCoreRoutes(
 
     // Reuse resolveRequestingAgent logic
     const caller = resolveRequestingAgent({ headers: { authorization: `Bearer ${token}` } } as any);
-    
+
     if (!caller.authenticated || !caller.agent) {
       json(res, 401, { success: false, error: 'Invalid token' });
       return true;
@@ -365,8 +392,8 @@ export async function handleCoreRoutes(
         id: caller.agent.id,
         name: caller.agent.name,
         walletAddress: caller.agent.walletAddress,
-        isFounder: caller.agent.isFounder
-      }
+        isFounder: caller.agent.isFounder,
+      },
     });
     return true;
   }
@@ -547,7 +574,12 @@ export async function handleCoreRoutes(
       return true;
     }
     const votes = voteStore.get(entryId) || [];
-    votes.push({ agentId: caller.id, targetId: entryId, type: 'up', createdAt: new Date().toISOString() } as any);
+    votes.push({
+      agentId: caller.id,
+      targetId: entryId,
+      type: 'up',
+      createdAt: new Date().toISOString(),
+    } as any);
     voteStore.set(entryId, votes);
     json(res, 200, { success: true, voteCount: votes.length });
     return true;
@@ -558,9 +590,7 @@ export async function handleCoreRoutes(
     const caller = resolveRequestingAgent(req);
     const entries = await client.queryKnowledge('', { limit: 20 });
     const publicEntries = entries.filter((e: MeshKnowledgeEntry) => isPublicFeedEntry(e));
-    const formatted = publicEntries.map((e: MeshKnowledgeEntry) =>
-      formatEntry(e, caller)
-    );
+    const formatted = publicEntries.map((e: MeshKnowledgeEntry) => formatEntry(e, caller));
     json(res, 200, {
       success: true,
       entries: formatted,
@@ -579,7 +609,9 @@ export async function handleCoreRoutes(
     const now = Date.now();
 
     for (const tid of teamPresenceStore.keys()) {
-      try { pruneStalePresence(tid); } catch {}
+      try {
+        pruneStalePresence(tid);
+      } catch {}
     }
 
     const registeredById = new Map<string, RegisteredAgent>();
@@ -588,12 +620,17 @@ export async function handleCoreRoutes(
     const freshestByAgent = new Map<string, { lastHeartbeat: string; teamId: string }>();
     for (const [teamId, presenceMap] of teamPresenceStore.entries()) {
       for (const [agentId, entry] of presenceMap.entries()) {
-        if (!entry?.lastHeartbeat || isPresenceStale(entry, now) || entry.status === 'offline') continue;
+        if (!entry?.lastHeartbeat || isPresenceStale(entry, now) || entry.status === 'offline')
+          continue;
         const registered = registeredById.get(agentId);
         const expectedSurfaceTag = registered?.surfaceTag;
-        if (expectedSurfaceTag && entry.surfaceTag && expectedSurfaceTag !== entry.surfaceTag) continue;
+        if (expectedSurfaceTag && entry.surfaceTag && expectedSurfaceTag !== entry.surfaceTag)
+          continue;
         const previous = freshestByAgent.get(agentId);
-        if (!previous || new Date(previous.lastHeartbeat).getTime() < new Date(entry.lastHeartbeat).getTime()) {
+        if (
+          !previous ||
+          new Date(previous.lastHeartbeat).getTime() < new Date(entry.lastHeartbeat).getTime()
+        ) {
           freshestByAgent.set(agentId, { lastHeartbeat: entry.lastHeartbeat, teamId });
         }
       }
@@ -608,13 +645,16 @@ export async function handleCoreRoutes(
     for (const agent of agentKeyStore.values()) {
       agentNameToId.set(agent.name, agent.id);
     }
-    const contributionStats = new Map<string, {
-      count: number;
-      domains: Set<string>;
-      tags: Set<string>;
-      queries: number;
-      reuse: number;
-    }>();
+    const contributionStats = new Map<
+      string,
+      {
+        count: number;
+        domains: Set<string>;
+        tags: Set<string>;
+        queries: number;
+        reuse: number;
+      }
+    >();
     for (const entry of publicEntries) {
       const agentId = entry.authorId || agentNameToId.get(entry.authorName);
       if (!agentId) continue;
@@ -638,7 +678,11 @@ export async function handleCoreRoutes(
       const profile = mergePublicProfile(agent);
       const stats = contributionStats.get(agent.id);
       const teams = Array.from(teamStore.values())
-        .filter((team) => team.visibility === 'public' && team.members.some((member) => member.agentId === agent.id))
+        .filter(
+          (team) =>
+            team.visibility === 'public' &&
+            team.members.some((member) => member.agentId === agent.id)
+        )
         .map((team) => ({
           id: team.id,
           name: team.name,
@@ -679,7 +723,8 @@ export async function handleCoreRoutes(
         registered: agentKeyStore.size,
         online: agentsAll.filter((agent) => agent.online).length,
         publicEntries: publicEntries.length,
-        publicTeams: Array.from(teamStore.values()).filter((team) => team.visibility === 'public').length,
+        publicTeams: Array.from(teamStore.values()).filter((team) => team.visibility === 'public')
+          .length,
       },
     });
     return true;
@@ -691,24 +736,35 @@ export async function handleCoreRoutes(
     if (publicProfileMatch && method === 'GET') {
       const handle = decodeURIComponent(publicProfileMatch[1]);
       const agent = Array.from(agentKeyStore.values()).find(
-        (candidate) => candidate.id === handle || candidate.name.toLowerCase() === handle.toLowerCase()
+        (candidate) =>
+          candidate.id === handle || candidate.name.toLowerCase() === handle.toLowerCase()
       );
       if (!agent) {
         json(res, 404, { error: 'Agent not found' });
         return true;
       }
       const profile = mergePublicProfile(agent);
-      const agentTeams = Array.from(teamStore.values())
-        .filter((team) => team.members.some((member) => member.agentId === agent.id));
+      const agentTeams = Array.from(teamStore.values()).filter((team) =>
+        team.members.some((member) => member.agentId === agent.id)
+      );
       const teams = agentTeams
         .filter((team) => team.visibility === 'public')
         .map((team) => ({ id: team.id, name: team.name, type: team.type }));
 
       // ── Active tasks: board tasks currently claimed by this agent ──────────
-      const activeTasks: Array<{ id: string; title: string; teamId: string; teamName: string; priority: number }> = [];
+      const activeTasks: Array<{
+        id: string;
+        title: string;
+        teamId: string;
+        teamName: string;
+        priority: number;
+      }> = [];
       for (const team of agentTeams) {
         for (const task of team.taskBoard ?? []) {
-          if (task.status === 'claimed' && (task.claimedBy === agent.id || task.claimedByName === agent.name)) {
+          if (
+            task.status === 'claimed' &&
+            (task.claimedBy === agent.id || task.claimedByName === agent.name)
+          ) {
             activeTasks.push({
               id: task.id,
               title: task.title,
@@ -728,39 +784,45 @@ export async function handleCoreRoutes(
           if (member.agentId !== agent.id) fleetAgentIds.add(member.agentId);
         }
       }
-      const fleet = Array.from(fleetAgentIds).map((fid) => {
-        const fa = Array.from(agentKeyStore.values()).find((a) => a.id === fid);
-        if (!fa) return null;
-        // Check presence across all teams
-        let online = false;
-        let lastHeartbeat: string | null = null;
-        for (const [, presenceMap] of teamPresenceStore.entries()) {
-          const entry = presenceMap.get(fid);
-          if (entry && !isPresenceStale(entry)) {
-            online = true;
-            lastHeartbeat = entry.lastSeen ?? null;
-            break;
-          } else if (entry && (!lastHeartbeat || (entry.lastSeen ?? '') > lastHeartbeat)) {
-            lastHeartbeat = entry.lastSeen ?? null;
+      const fleet = Array.from(fleetAgentIds)
+        .map((fid) => {
+          const fa = Array.from(agentKeyStore.values()).find((a) => a.id === fid);
+          if (!fa) return null;
+          // Check presence across all teams
+          let online = false;
+          let lastHeartbeat: string | null = null;
+          for (const [, presenceMap] of teamPresenceStore.entries()) {
+            const entry = presenceMap.get(fid);
+            if (entry && !isPresenceStale(entry)) {
+              online = true;
+              lastHeartbeat = entry.lastSeen ?? null;
+              break;
+            } else if (entry && (!lastHeartbeat || (entry.lastSeen ?? '') > lastHeartbeat)) {
+              lastHeartbeat = entry.lastSeen ?? null;
+            }
           }
-        }
-        return {
-          id: fa.id,
-          name: fa.name,
-          handle: fa.surfaceTag ?? fa.name,
-          traits: (fa.traits ?? []).slice(0, 4),
-          tier: resolveReputationTier(Number(fa.reputation ?? 0)),
-          online,
-          lastHeartbeat,
-        };
-      }).filter(Boolean);
+          return {
+            id: fa.id,
+            name: fa.name,
+            handle: fa.surfaceTag ?? fa.name,
+            traits: (fa.traits ?? []).slice(0, 4),
+            tier: resolveReputationTier(Number(fa.reputation ?? 0)),
+            online,
+            lastHeartbeat,
+          };
+        })
+        .filter(Boolean);
 
       let entries: MeshKnowledgeEntry[] = [];
       try {
         entries = await client.queryKnowledge('', { limit: 1000 });
       } catch {}
       const contributions = entries
-        .filter((entry) => isPublicFeedEntry(entry) && (entry.authorId === agent.id || entry.authorName === agent.name))
+        .filter(
+          (entry) =>
+            isPublicFeedEntry(entry) &&
+            (entry.authorId === agent.id || entry.authorName === agent.name)
+        )
         .slice(0, 20)
         .map((entry) => formatEntry(entry));
       json(res, 200, {
@@ -826,12 +888,19 @@ export async function handleCoreRoutes(
     // the index — they push to team.members. teamPresenceStore is the
     // authoritative live signal, so iterate it for the join.
     for (const tid of teamPresenceStore.keys()) {
-      try { pruneStalePresence(tid); } catch { /* best-effort — never fail /agents */ }
+      try {
+        pruneStalePresence(tid);
+      } catch {
+        /* best-effort — never fail /agents */
+      }
     }
     // Build agentId → freshest heartbeat across all presence stores,
     // requiring surfaceTag agreement with the registered agent's surfaceTag
     // (layer A.2: handle-registry agreement check).
-    const freshestByAgent = new Map<string, { lastHeartbeat: string; teamId: string; surfaceTagMatch: boolean }>();
+    const freshestByAgent = new Map<
+      string,
+      { lastHeartbeat: string; teamId: string; surfaceTagMatch: boolean }
+    >();
     const presenceMismatchByAgent = new Map<string, boolean>();
     // Pre-build agentId → registered KeyRecord lookup for the surfaceTag check.
     const registeredById = new Map<string, RegisteredAgent>();
@@ -851,9 +920,8 @@ export async function handleCoreRoutes(
         const registered = registeredById.get(agentId);
         const expectedSurfaceTag = registered?.surfaceTag;
         // surfaceTag agreement: only enforce when both sides declared one.
-        const surfaceTagMatch = !expectedSurfaceTag
-          || !entry.surfaceTag
-          || expectedSurfaceTag === entry.surfaceTag;
+        const surfaceTagMatch =
+          !expectedSurfaceTag || !entry.surfaceTag || expectedSurfaceTag === entry.surfaceTag;
         if (!surfaceTagMatch) {
           presenceMismatchByAgent.set(agentId, true);
           continue; // ghost: heartbeat fresh but surface lied
@@ -971,7 +1039,10 @@ export async function handleCoreRoutes(
         // Look up the handle's owner agent by name.
         let handleAgent: typeof caller.agent | null = null;
         for (const a of agentKeyStore.values()) {
-          if (a.name === handle) { handleAgent = a; break; }
+          if (a.name === handle) {
+            handleAgent = a;
+            break;
+          }
         }
         if (handleAgent) {
           const handleTeams = agentTeamIndex.get(handleAgent.id) || [];
@@ -997,9 +1068,7 @@ export async function handleCoreRoutes(
         since: url.searchParams.get('since') || undefined,
         until: url.searchParams.get('until') || undefined,
         operation: url.searchParams.get('operation') || undefined,
-        limit: url.searchParams.get('limit')
-          ? Number(url.searchParams.get('limit'))
-          : undefined,
+        limit: url.searchParams.get('limit') ? Number(url.searchParams.get('limit')) : undefined,
       };
       const records = queryCaelAuditRecords(handle, filter);
       json(res, 200, {
@@ -1238,18 +1307,18 @@ export async function handleCoreRoutes(
       }
 
       // Union of handles seen in either presence or CAEL store
-      const allHandles = new Set<string>([
-        ...presenceByHandle.keys(),
-        ...caelByHandle.keys(),
-      ]);
+      const allHandles = new Set<string>([...presenceByHandle.keys(), ...caelByHandle.keys()]);
 
-      const byHandle: Record<string, {
-        online: boolean;
-        last_heartbeat: string | null;
-        status: string | null;
-        cael_records_in_window: number;
-        last_cael_iso: string | null;
-      }> = {};
+      const byHandle: Record<
+        string,
+        {
+          online: boolean;
+          last_heartbeat: string | null;
+          status: string | null;
+          cael_records_in_window: number;
+          last_cael_iso: string | null;
+        }
+      > = {};
       let onlineCount = 0;
       let caelActiveCount = 0;
       const onlineHandles: string[] = [];
@@ -1259,8 +1328,14 @@ export async function handleCoreRoutes(
         const c = caelByHandle.get(handle);
         const isOnline = p?.status === 'active' || p?.status === 'busy';
         const isCaelActive = c != null;
-        if (isOnline) { onlineCount++; onlineHandles.push(handle); }
-        if (isCaelActive) { caelActiveCount++; caelActiveHandles.push(handle); }
+        if (isOnline) {
+          onlineCount++;
+          onlineHandles.push(handle);
+        }
+        if (isCaelActive) {
+          caelActiveCount++;
+          caelActiveHandles.push(handle);
+        }
         byHandle[handle] = {
           online: isOnline,
           last_heartbeat: p?.lastHeartbeat ?? null,
@@ -1404,12 +1479,8 @@ export async function handleCoreRoutes(
         cur.count += 1;
         cur.taskIds.push(t.id);
         // metadata.claimedAt is a common convention; fall back to createdAt
-        const claimedAt =
-          (t.metadata?.claimedAt as string | undefined) || t.createdAt || null;
-        if (
-          claimedAt &&
-          (cur.oldestClaimedAt === null || claimedAt < cur.oldestClaimedAt)
-        ) {
+        const claimedAt = (t.metadata?.claimedAt as string | undefined) || t.createdAt || null;
+        if (claimedAt && (cur.oldestClaimedAt === null || claimedAt < cur.oldestClaimedAt)) {
           cur.oldestClaimedAt = claimedAt;
         }
         claimedByHandle.set(t.claimedByName, cur);
@@ -1418,7 +1489,12 @@ export async function handleCoreRoutes(
       // --- Index: done entries in window by handle ---
       const doneByHandle = new Map<
         string,
-        { count: number; lastIso: string | null; lastCommitHash: string | null; commitHashCount: number }
+        {
+          count: number;
+          lastIso: string | null;
+          lastCommitHash: string | null;
+          commitHashCount: number;
+        }
       >();
       for (const d of team.doneLog ?? []) {
         const handle = d.completedBy;
@@ -1655,7 +1731,10 @@ export async function handleCoreRoutes(
       }
       const body = (await parseJsonBody(req)) as Partial<DispatchEntry> | null;
       if (!body) {
-        json(res, 400, { error: 'JSON body required (cell_id, attack_class, target_handle, duration_ms, trial, defense_state).' });
+        json(res, 400, {
+          error:
+            'JSON body required (cell_id, attack_class, target_handle, duration_ms, trial, defense_state).',
+        });
         return true;
       }
       if (typeof body.cell_id !== 'string' || !body.cell_id) {
@@ -1914,7 +1993,10 @@ export async function handleCoreRoutes(
     const domainMap = new Map<string, number>();
     for (const e of entries) {
       if (e.authorId) {
-        const prev = contributorMap.get(e.authorId) || { name: e.authorName || e.authorId, count: 0 };
+        const prev = contributorMap.get(e.authorId) || {
+          name: e.authorName || e.authorId,
+          count: 0,
+        };
         contributorMap.set(e.authorId, { name: prev.name, count: prev.count + 1 });
       }
       const domain = e.domain || 'general';
@@ -1987,10 +2069,26 @@ export async function handleCoreRoutes(
         domains: domainMap.size,
       },
       how_to_join: {
-        step_1: { action: 'Register', endpoint: 'POST /api/holomesh/register', description: 'Create your agent identity with a wallet.' },
-        step_2: { action: 'Set up your profile', endpoint: 'PATCH /api/holomesh/profile', description: 'Add bio, theme, and status.' },
-        step_3: { action: 'Contribute knowledge', endpoint: 'POST /api/holomesh/contribute', description: 'Share a wisdom, pattern, or gotcha.' },
-        step_4: { action: 'Join a guild', endpoint: 'GET /api/holomesh/guilds', description: 'Find public teams with open slots, bounties, and team-scoped knowledge.' },
+        step_1: {
+          action: 'Register',
+          endpoint: 'POST /api/holomesh/register',
+          description: 'Create your agent identity with a wallet.',
+        },
+        step_2: {
+          action: 'Set up your profile',
+          endpoint: 'PATCH /api/holomesh/profile',
+          description: 'Add bio, theme, and status.',
+        },
+        step_3: {
+          action: 'Contribute knowledge',
+          endpoint: 'POST /api/holomesh/contribute',
+          description: 'Share a wisdom, pattern, or gotcha.',
+        },
+        step_4: {
+          action: 'Join a guild',
+          endpoint: 'GET /api/holomesh/guilds',
+          description: 'Find public teams with open slots, bounties, and team-scoped knowledge.',
+        },
       },
       knowledge_types: {
         wisdom: 'General insights and architectural truths',
@@ -2170,7 +2268,10 @@ export async function handleCoreRoutes(
       ],
       provenanceHash:
         found.provenanceHash ||
-        crypto.createHash('sha256').update(publicId + Date.now()).digest('hex'),
+        crypto
+          .createHash('sha256')
+          .update(publicId + Date.now())
+          .digest('hex'),
     };
     await client.contributeKnowledge([publicEntry]);
     json(res, 201, {

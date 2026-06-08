@@ -414,10 +414,7 @@ export class CreatorMonetization {
     return result.uri;
   }
 
-  private async uploadIPFSFiles(
-    files: CoreIPFSFile[],
-    name: string
-  ): Promise<IPFSUploadResult> {
+  private async uploadIPFSFiles(files: CoreIPFSFile[], name: string): Promise<IPFSUploadResult> {
     const provider = this.getIPFSProvider();
     const apiKey = this.getIPFSApiKey(provider);
 
@@ -536,11 +533,7 @@ export class CreatorMonetization {
   }
 
   private normalizeIPFSPath(name: string | undefined, index: number): string {
-    const base = (name || `file-${index + 1}`)
-      .replace(/\\/g, '/')
-      .split('/')
-      .filter(Boolean)
-      .pop();
+    const base = (name || `file-${index + 1}`).replace(/\\/g, '/').split('/').filter(Boolean).pop();
 
     return this.slugify(base || `file-${index + 1}`, true);
   }
@@ -558,7 +551,10 @@ export class CreatorMonetization {
   }
 
   private slugify(value: string, keepExtension = false): string {
-    const normalized = value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+    const normalized = value
+      .trim()
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
     if (!normalized) {
       return keepExtension ? 'file' : 'upload';
     }

@@ -32,15 +32,15 @@ This document defines the architecture for decomposing HoloScript's registered e
   |-- trait definitions
 ```
 
-**Problem**: `ExportManager` constructor imports ALL [see NUMBERS.md]  via `CompilerFactory.createCompiler()`, which uses a giant `switch` statement with static imports. Even with tsup code-splitting, the shared dependency graph pulls in most compilers when any one is used.
+**Problem**: `ExportManager` constructor imports ALL [see NUMBERS.md] via `CompilerFactory.createCompiler()`, which uses a giant `switch` statement with static imports. Even with tsup code-splitting, the shared dependency graph pulls in most compilers when any one is used.
 
 ### 1.2 Existing WASM Components
 
 > **2026-05-12 reconciliation**: Only `compiler-wasm` is a live Rust crate in the current tree. `spatial-engine-wasm` and `holoscript-component` were retired in commit `c5887f4e7` (2026-04-01). Do not treat them as current build targets. See `docs/packages/rust-spatial-stack-history.md` for the retirement record.
 
-| Package                | Purpose               | Size   | Technology          | Status |
-| ---------------------- | --------------------- | ------ | ------------------- | ------ |
-| `compiler-wasm`        | Parser (Rust)         | ~200KB | wasm-bindgen        | Live   |
+| Package                | Purpose               | Size   | Technology          | Status  |
+| ---------------------- | --------------------- | ------ | ------------------- | ------- |
+| `compiler-wasm`        | Parser (Rust)         | ~200KB | wasm-bindgen        | Live    |
 | `spatial-engine-wasm`  | Noise, collision, A\* | ~50KB  | wasm-bindgen        | Retired |
 | `holoscript-component` | Full runtime (Rust)   | ~459KB | WIT/Component Model | Retired |
 

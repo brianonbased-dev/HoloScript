@@ -307,7 +307,8 @@ export function validatePlatformConstraints(composition: HoloComposition): strin
   };
 
   for (const obj of composition.objects || []) checkObject(obj);
-  for (const tmpl of composition.templates || []) check(tmpl.platformConstraint, `template "${tmpl.name}"`);
+  for (const tmpl of composition.templates || [])
+    check(tmpl.platformConstraint, `template "${tmpl.name}"`);
   for (const tmpl of composition.templates || []) {
     for (const trait of tmpl.traits || []) {
       check(trait.platformConstraint, `trait "@${trait.name}" on template "${tmpl.name}"`);
@@ -315,7 +316,8 @@ export function validatePlatformConstraints(composition: HoloComposition): strin
   }
   for (const norm of composition.norms || []) check(norm.platformConstraint, `norm "${norm.name}"`);
   for (const grp of composition.spatialGroups || []) checkGroup(grp);
-  for (const light of composition.lights || []) check(light.platformConstraint, `light "${light.name}"`);
+  for (const light of composition.lights || [])
+    check(light.platformConstraint, `light "${light.name}"`);
 
   return errors;
 }

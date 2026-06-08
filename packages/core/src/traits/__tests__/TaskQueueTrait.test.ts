@@ -97,13 +97,13 @@ describe('enqueue/dequeue/process', () => {
     const { node, config, context, emitted } = setup({ max_concurrent: 0 });
     addTask(node, config, context, { taskId: 't1', priority: 0, data: { a: 1 } });
     expect(node.__taskQueueState.queue.length).toBe(1);
-    expect(emitted.some(e => e.type === 'queue:enqueue')).toBe(true);
+    expect(emitted.some((e) => e.type === 'queue:enqueue')).toBe(true);
   });
 
   it('generates task id when taskId missing', () => {
     const { node, config, context, emitted } = setup({ max_concurrent: 0 });
     addTask(node, config, context, { priority: 0, data: {} });
-    const ev = emitted.find(e => e.type === 'queue:enqueue');
+    const ev = emitted.find((e) => e.type === 'queue:enqueue');
     expect(String((ev!.payload as any).taskId)).toMatch(/^task_/);
   });
 
@@ -112,14 +112,17 @@ describe('enqueue/dequeue/process', () => {
     addTask(node, config, context, { taskId: 't1', data: { a: 1 } });
     expect(node.__taskQueueState.active.length).toBe(1);
     expect(node.__taskQueueState.queue.length).toBe(0);
-    expect(emitted.some(e => e.type === 'queue:dequeue')).toBe(true);
-    expect(emitted.some(e => e.type === config.process_action)).toBe(true);
+    expect(emitted.some((e) => e.type === 'queue:dequeue')).toBe(true);
+    expect(emitted.some((e) => e.type === config.process_action)).toBe(true);
   });
 
   it('process event payload includes taskId/data/retryCount', () => {
-    const { node, config, context, emitted } = setup({ max_concurrent: 1, process_action: 'do_task' });
+    const { node, config, context, emitted } = setup({
+      max_concurrent: 1,
+      process_action: 'do_task',
+    });
     addTask(node, config, context, { taskId: 't1', data: { x: 2 } });
-    const ev = emitted.find(e => e.type === 'do_task');
+    const ev = emitted.find((e) => e.type === 'do_task');
     expect((ev!.payload as any).taskId).toBe('t1');
     expect((ev!.payload as any).data).toEqual({ x: 2 });
     expect((ev!.payload as any).retryCount).toBe(0);
@@ -154,7 +157,7 @@ describe('priority behavior', () => {
       payload: { taskId: 'active', result: 'ok' },
     } as any);
 
-    const processEvents = emitted.filter(e => e.type === config.process_action);
+    const processEvents = emitted.filter((e) => e.type === config.process_action);
     const latest = processEvents[processEvents.length - 1];
     expect((latest.payload as any).taskId).toBe('high');
   });
@@ -184,7 +187,7 @@ describe('completion flow', () => {
     expect(node.__taskQueueState.active.length).toBe(0);
     expect(node.__taskQueueState.completed.length).toBe(1);
     expect(node.__taskQueueState.totalProcessed).toBe(1);
-    expect(emitted.some(e => e.type === 'queue:complete')).toBe(true);
+    expect(emitted.some((e) => e.type === 'queue:complete')).toBe(true);
   });
 
   it('caps completed history at 100', () => {
@@ -227,12 +230,14 @@ describe('failure/retry/dead-letter', () => {
       payload: { taskId: 't1', error: 'boom' },
     } as any);
 
-    expect(emitted.some(e => e.type === 'queue:failed')).toBe(true);
-    expect(emitted.some(e => e.type === 'queue:retry')).toBe(true);
+    expect(emitted.some((e) => e.type === 'queue:failed')).toBe(true);
+    expect(emitted.some((e) => e.type === 'queue:retry')).toBe(true);
     expect(node.__taskQueueState.queue.length).toBe(0);
 
     vi.advanceTimersByTime(1000);
-    expect(node.__taskQueueState.queue.length + node.__taskQueueState.active.length).toBeGreaterThan(0);
+    expect(
+      node.__taskQueueState.queue.length + node.__taskQueueState.active.length
+    ).toBeGreaterThan(0);
   });
 
   it('retry delay uses exponential backoff', () => {
@@ -243,7 +248,7 @@ describe('failure/retry/dead-letter', () => {
       type: 'queue:task_failed',
       payload: { taskId: 't1', error: 'boom1' },
     } as any);
-    const firstRetry = emitted.find(e => e.type === 'queue:retry');
+    const firstRetry = emitted.find((e) => e.type === 'queue:retry');
     expect((firstRetry!.payload as any).nextRetryMs).toBe(1000);
 
     vi.advanceTimersByTime(1000);
@@ -253,7 +258,7 @@ describe('failure/retry/dead-letter', () => {
       type: 'queue:task_failed',
       payload: { taskId: activeTask.id, error: 'boom2' },
     } as any);
-    const retries = emitted.filter(e => e.type === 'queue:retry');
+    const retries = emitted.filter((e) => e.type === 'queue:retry');
     expect((retries[1].payload as any).nextRetryMs).toBe(2000);
   });
 
@@ -268,7 +273,7 @@ describe('failure/retry/dead-letter', () => {
 
     expect(node.__taskQueueState.deadLetter.length).toBe(1);
     expect(node.__taskQueueState.deadLetter[0].status).toBe('dead');
-    expect(emitted.some(e => e.type === 'queue:dead_letter')).toBe(true);
+    expect(emitted.some((e) => e.type === 'queue:dead_letter')).toBe(true);
   });
 
   it('caps dead-letter queue at dead_letter_max', () => {
@@ -310,7 +315,7 @@ describe('status/drain/misc', () => {
       type: 'queue:get_status',
       payload: {},
     } as any);
-    const ev = emitted.find(e => e.type === 'queue:status');
+    const ev = emitted.find((e) => e.type === 'queue:status');
     expect(ev).toBeDefined();
     expect((ev!.payload as any).pending).toBe(1);
   });
@@ -341,7 +346,7 @@ describe('status/drain/misc', () => {
       payload: { taskId: 't1', result: 'ok' },
     } as any);
 
-    expect(emitted.some(e => e.type === 'queue:drain')).toBe(true);
+    expect(emitted.some((e) => e.type === 'queue:drain')).toBe(true);
   });
 
   it('onUpdate is no-op (event-driven)', () => {

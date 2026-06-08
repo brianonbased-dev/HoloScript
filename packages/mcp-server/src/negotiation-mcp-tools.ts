@@ -74,7 +74,10 @@ const QUOTE_SCHEMA = {
       description: 'Numeric price in `currency`. 0 = free / favor.',
       minimum: 0,
     },
-    currency: { type: 'string', description: 'Currency code or token symbol (USD, USDC, sat, credits, ...).' },
+    currency: {
+      type: 'string',
+      description: 'Currency code or token symbol (USD, USDC, sat, credits, ...).',
+    },
     slaSeconds: {
       type: 'number',
       description: 'SLA target in wallclock seconds. 0 = best-effort.',
@@ -123,7 +126,10 @@ export const negotiationToolDefinitions: Tool[] = [
         teamId: { type: 'string', description: 'HoloMesh team id this negotiation belongs to.' },
         initiatorAgentId: { type: 'string', description: 'Agent id of the requester.' },
         initiatorAgentName: { type: 'string', description: 'Display name of the initiator.' },
-        responderAgentId: { type: 'string', description: 'Agent id of the responder being asked to quote.' },
+        responderAgentId: {
+          type: 'string',
+          description: 'Agent id of the responder being asked to quote.',
+        },
         responderAgentName: { type: 'string', description: 'Display name of the responder.' },
         request: REQUEST_PAYLOAD_SCHEMA,
         signerAddress: {
@@ -153,9 +159,18 @@ export const negotiationToolDefinitions: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        negotiationId: { type: 'string', description: 'Negotiation id returned by negotiation_request_quote.' },
-        authorAgentId: { type: 'string', description: 'Agent id of the responder posting the quote.' },
-        signerAddress: { type: 'string', description: 'Optional 0x-address that signed the envelope.' },
+        negotiationId: {
+          type: 'string',
+          description: 'Negotiation id returned by negotiation_request_quote.',
+        },
+        authorAgentId: {
+          type: 'string',
+          description: 'Agent id of the responder posting the quote.',
+        },
+        signerAddress: {
+          type: 'string',
+          description: 'Optional 0x-address that signed the envelope.',
+        },
         quote: QUOTE_SCHEMA,
       },
       required: ['negotiationId', 'authorAgentId', 'quote'],
@@ -204,7 +219,8 @@ export const negotiationToolDefinitions: Tool[] = [
         authorAgentId: { type: 'string', description: 'Agent id of the responder.' },
         signerAddress: { type: 'string', description: 'Optional signer address.' },
         result: {
-          description: 'Free-form result payload — hashed deterministically into receipt.resultHash.',
+          description:
+            'Free-form result payload — hashed deterministically into receipt.resultHash.',
         },
       },
       required: ['negotiationId', 'authorAgentId'],
@@ -219,11 +235,20 @@ export const negotiationToolDefinitions: Tool[] = [
       type: 'object',
       properties: {
         negotiationId: { type: 'string', description: 'Negotiation id.' },
-        authorAgentId: { type: 'string', description: 'Agent id of the party submitting the receipt.' },
+        authorAgentId: {
+          type: 'string',
+          description: 'Agent id of the party submitting the receipt.',
+        },
         signerAddress: { type: 'string', description: 'Optional signer address.' },
-        initiatorSignature: { type: 'string', description: 'Initiator’s signature of the receipt.' },
+        initiatorSignature: {
+          type: 'string',
+          description: 'Initiator’s signature of the receipt.',
+        },
         initiatorAddress: { type: 'string', description: 'Initiator’s 0x-address.' },
-        responderSignature: { type: 'string', description: 'Responder’s signature of the receipt.' },
+        responderSignature: {
+          type: 'string',
+          description: 'Responder’s signature of the receipt.',
+        },
         responderAddress: { type: 'string', description: 'Responder’s 0x-address.' },
         resultHash: {
           type: 'string',
@@ -247,7 +272,10 @@ export const negotiationToolDefinitions: Tool[] = [
           properties: {
             address: { type: 'string', description: '0x-address the mock signer reports.' },
             chainId: { type: 'number', description: 'Chain id the mock claims to be on.' },
-            fixedTxHash: { type: 'string', description: '0x-hash the mock returns instead of computing one.' },
+            fixedTxHash: {
+              type: 'string',
+              description: '0x-hash the mock returns instead of computing one.',
+            },
           },
           additionalProperties: false,
         },
@@ -369,7 +397,7 @@ function shapeAdvanceResult(r: AdvanceNegotiationResult): NegotiationToolResult 
 
 export async function handleNegotiationTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown> {
   switch (name) {
     case 'negotiation_request_quote': {
@@ -431,10 +459,9 @@ export async function handleNegotiationTool(
           negotiationId,
           authorAgentId,
           action: 'quote',
-          signerAddress:
-            typeof args.signerAddress === 'string' ? args.signerAddress : undefined,
+          signerAddress: typeof args.signerAddress === 'string' ? args.signerAddress : undefined,
           payload: { quote },
-        }),
+        })
       );
     }
 
@@ -449,9 +476,8 @@ export async function handleNegotiationTool(
           negotiationId,
           authorAgentId,
           action: 'accept',
-          signerAddress:
-            typeof args.signerAddress === 'string' ? args.signerAddress : undefined,
-        }),
+          signerAddress: typeof args.signerAddress === 'string' ? args.signerAddress : undefined,
+        })
       );
     }
 
@@ -467,10 +493,9 @@ export async function handleNegotiationTool(
           negotiationId,
           authorAgentId,
           action: 'reject',
-          signerAddress:
-            typeof args.signerAddress === 'string' ? args.signerAddress : undefined,
+          signerAddress: typeof args.signerAddress === 'string' ? args.signerAddress : undefined,
           payload: reason ? { reason } : undefined,
-        }),
+        })
       );
     }
 
@@ -486,10 +511,9 @@ export async function handleNegotiationTool(
           negotiationId,
           authorAgentId,
           action: 'execute',
-          signerAddress:
-            typeof args.signerAddress === 'string' ? args.signerAddress : undefined,
+          signerAddress: typeof args.signerAddress === 'string' ? args.signerAddress : undefined,
           payload: result !== undefined ? { result } : undefined,
-        }),
+        })
       );
     }
 
@@ -515,10 +539,8 @@ export async function handleNegotiationTool(
         };
       }
       const useChainAnchor = args.useChainAnchor === true;
-      const resultHash =
-        typeof args.resultHash === 'string' ? args.resultHash : undefined;
-      const signerAddress =
-        typeof args.signerAddress === 'string' ? args.signerAddress : undefined;
+      const resultHash = typeof args.resultHash === 'string' ? args.resultHash : undefined;
+      const signerAddress = typeof args.signerAddress === 'string' ? args.signerAddress : undefined;
 
       if (useChainAnchor) {
         const mockOpts = (args.mockChainAnchor ?? {}) as MockSignerOptions;
@@ -559,7 +581,7 @@ export async function handleNegotiationTool(
           responderAddress,
           resultHash,
           settlementTxHash,
-        }),
+        })
       );
     }
 
@@ -575,20 +597,16 @@ export async function handleNegotiationTool(
           negotiationId,
           authorAgentId,
           action: 'dispute',
-          signerAddress:
-            typeof args.signerAddress === 'string' ? args.signerAddress : undefined,
+          signerAddress: typeof args.signerAddress === 'string' ? args.signerAddress : undefined,
           payload: reason ? { reason } : undefined,
-        }),
+        })
       );
     }
 
     case 'negotiation_list': {
       const teamId = String(args.teamId ?? '');
       if (!teamId) return { ok: false, error: 'teamId required' };
-      const limit =
-        typeof args.limit === 'number' && args.limit > 0
-          ? Math.floor(args.limit)
-          : 50;
+      const limit = typeof args.limit === 'number' && args.limit > 0 ? Math.floor(args.limit) : 50;
       const negotiations = listNegotiationsForTeam(teamId).slice(0, limit);
       return { ok: true, count: negotiations.length, negotiations };
     }

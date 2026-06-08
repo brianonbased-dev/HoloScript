@@ -74,7 +74,12 @@ function parseHoloScript(code: string): TraceEntry[] {
           message: `Scene "${node.name || 'unnamed'}" initialized`,
           timeMs: inc(),
         });
-      } else if (node.type === 'Object' || node.type === 'Zone' || node.type === 'Actor' || node.type === 'team_agent') {
+      } else if (
+        node.type === 'Object' ||
+        node.type === 'Zone' ||
+        node.type === 'Actor' ||
+        node.type === 'team_agent'
+      ) {
         entries.push({
           step: ++step,
           type: 'object',
@@ -83,7 +88,7 @@ function parseHoloScript(code: string): TraceEntry[] {
           timeMs: inc(),
         });
       }
-      
+
       // Also check standard object properties that indicate a native type
       if (node.type === 'ObjectDefinition' && node.fields?.type === 'team_agent') {
         entries.push({
@@ -96,12 +101,12 @@ function parseHoloScript(code: string): TraceEntry[] {
       }
 
       const allTraits = [...(node.traits || []), ...(node.directives || [])];
-      
+
       if (allTraits.length > 0) {
         for (const trait of allTraits) {
-          // Traits usually have 'config' or 'params' 
+          // Traits usually have 'config' or 'params'
           let props = trait.params || {};
-          
+
           if (trait.config) {
             props = {};
             for (let i = 0; i < 20; i += 3) {
@@ -112,26 +117,29 @@ function parseHoloScript(code: string): TraceEntry[] {
               }
             }
           }
-          
+
           let message = `@${trait.name}(${Object.entries(props)
-              .map(([k, v]) => `${k}: ${v}`)
-              .join(', ')}) applied`;
-              
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', ')}) applied`;
+
           if (trait.name === 'agent') {
-             message = `Agent Profile Configured: ${props.name || props.id} (Role: ${props.role}, Model: ${props.model})`;
+            message = `Agent Profile Configured: ${props.name || props.id} (Role: ${props.role}, Model: ${props.model})`;
           } else if (trait.name === 'capabilities') {
-             const skills = Array.isArray(props.skills) ? props.skills.join(', ') : props.skills;
-             message = `Agent Capabilities Registered: [${skills}]`;
+            const skills = Array.isArray(props.skills) ? props.skills.join(', ') : props.skills;
+            message = `Agent Capabilities Registered: [${skills}]`;
           }
-          
+
           entries.push({
             step: ++step,
             type: 'trait',
             trait: trait.name,
-            props: Object.keys(props).reduce((acc, k) => {
-              acc[k] = String(props[k]);
-              return acc;
-            }, {} as Record<string, string>),
+            props: Object.keys(props).reduce(
+              (acc, k) => {
+                acc[k] = String(props[k]);
+                return acc;
+              },
+              {} as Record<string, string>
+            ),
             message,
             timeMs: inc(),
           });
@@ -141,7 +149,8 @@ function parseHoloScript(code: string): TraceEntry[] {
       // AST can have objects, children, domainBlocks, etc.
       if (node.objects && Array.isArray(node.objects)) node.objects.forEach(traverse);
       if (node.children && Array.isArray(node.children)) node.children.forEach(traverse);
-      if (node.domainBlocks && Array.isArray(node.domainBlocks)) node.domainBlocks.forEach(traverse);
+      if (node.domainBlocks && Array.isArray(node.domainBlocks))
+        node.domainBlocks.forEach(traverse);
     };
 
     traverse(ast);
@@ -184,7 +193,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ trace: [], error: msg }, { status: 500 });
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

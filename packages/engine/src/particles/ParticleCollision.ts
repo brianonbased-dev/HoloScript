@@ -72,7 +72,13 @@ export class ParticleCollisionSystem {
     const len = Math.sqrt(plane.nx * plane.nx + plane.ny * plane.ny + plane.nz * plane.nz);
     if (len > 1e-10 && Math.abs(len - 1) > 1e-6) {
       const inv = 1 / len;
-      this.planes.push({ ...plane, nx: plane.nx * inv, ny: plane.ny * inv, nz: plane.nz * inv, d: plane.d * inv });
+      this.planes.push({
+        ...plane,
+        nx: plane.nx * inv,
+        ny: plane.ny * inv,
+        nz: plane.nz * inv,
+        d: plane.d * inv,
+      });
     } else {
       this.planes.push(plane);
     }

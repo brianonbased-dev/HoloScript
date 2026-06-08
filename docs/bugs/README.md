@@ -32,4 +32,3 @@ Required fields in every artifact:
 - commits reviewed or evidence source
 - outcome summary
 - follow-up owner or "none"
-

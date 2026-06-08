@@ -84,14 +84,14 @@ describe('AgentCapability', () => {
   it('rejects missing domain', () => {
     const bad = { ...valid, domain: undefined };
     expect(validateAgentCapability(bad)).toContain(
-      'AgentCapability agent:render:visual-synth.domain is required.',
+      'AgentCapability agent:render:visual-synth.domain is required.'
     );
   });
 
   it('rejects bad latency', () => {
     const bad = { ...valid, latency: 'warp' as any };
     expect(validateAgentCapability(bad)).toContain(
-      'AgentCapability agent:render:visual-synth.latency is unsupported: warp.',
+      'AgentCapability agent:render:visual-synth.latency is unsupported: warp.'
     );
   });
 
@@ -122,14 +122,14 @@ describe('StewardCapability', () => {
   it('rejects unsupported kind', () => {
     const bad = { ...valid, kind: 'fly' as any };
     expect(validateStewardCapability(bad)).toContain(
-      'StewardCapability steward:oasis:spawn-encounter.kind is unsupported: fly.',
+      'StewardCapability steward:oasis:spawn-encounter.kind is unsupported: fly.'
     );
   });
 
   it('requires label for capability-other', () => {
     const bad = { ...valid, kind: 'capability-other' as any };
     expect(validateStewardCapability(bad)).toContain(
-      'StewardCapability steward:oasis:spawn-encounter kind=capability-other requires label.',
+      'StewardCapability steward:oasis:spawn-encounter kind=capability-other requires label.'
     );
   });
 
@@ -152,9 +152,7 @@ describe('ShellCapability', () => {
     kind: 'PackageManagerOrchestrator',
     agentSource: 'cli',
     trustState: 'known',
-    permissions: [
-      { with: 'holoscript://fs/node_modules', can: 'fs/write', nb: { scoped: true } },
-    ],
+    permissions: [{ with: 'holoscript://fs/node_modules', can: 'fs/write', nb: { scoped: true } }],
     receiptExpectation: {
       schema: 'holoshell-receipt-v1',
       requiredArtifacts: ['exitCode', 'stdout', 'stderr'],
@@ -172,28 +170,28 @@ describe('ShellCapability', () => {
   it('rejects bad agentSource', () => {
     const bad = { ...valid, agentSource: 'telepathy' as any };
     expect(validateShellCapability(bad)).toContain(
-      'ShellCapability shell:cli:package-manager.agentSource is unsupported: telepathy.',
+      'ShellCapability shell:cli:package-manager.agentSource is unsupported: telepathy.'
     );
   });
 
   it('rejects bad trustState', () => {
     const bad = { ...valid, trustState: 'maybe' as any };
     expect(validateShellCapability(bad)).toContain(
-      'ShellCapability shell:cli:package-manager.trustState is unsupported: maybe.',
+      'ShellCapability shell:cli:package-manager.trustState is unsupported: maybe.'
     );
   });
 
   it('rejects empty permissions', () => {
     const bad = { ...valid, permissions: [] };
     expect(validateShellCapability(bad)).toContain(
-      'ShellCapability shell:cli:package-manager.permissions must be a non-empty array.',
+      'ShellCapability shell:cli:package-manager.permissions must be a non-empty array.'
     );
   });
 
   it('rejects missing receiptExpectation', () => {
     const bad = { ...valid, receiptExpectation: undefined as any };
     expect(validateShellCapability(bad)).toContain(
-      'ShellCapability shell:cli:package-manager.receiptExpectation is required.',
+      'ShellCapability shell:cli:package-manager.receiptExpectation is required.'
     );
   });
 
@@ -207,11 +205,7 @@ describe('ShellCapability', () => {
     cloned.permissions[0].nb!.scoped = false;
     expect(valid.permissions[0].nb).toEqual({ scoped: true });
     cloned.receiptExpectation.requiredArtifacts.push('new');
-    expect(valid.receiptExpectation.requiredArtifacts).toEqual([
-      'exitCode',
-      'stdout',
-      'stderr',
-    ]);
+    expect(valid.receiptExpectation.requiredArtifacts).toEqual(['exitCode', 'stdout', 'stderr']);
   });
 });
 

@@ -75,7 +75,8 @@ export function evaluateKillCriteria(
   const bestProvenanceCoverage = Math.max(B.provenanceCoverage, C.provenanceCoverage);
   const c3Dead = bestProvenanceCoverage < thresholds.c3CoverageFloor;
 
-  const tokenRatioBoverA = A.meanInputTokens === 0 ? Infinity : B.meanInputTokens / A.meanInputTokens;
+  const tokenRatioBoverA =
+    A.meanInputTokens === 0 ? Infinity : B.meanInputTokens / A.meanInputTokens;
 
   const summary = [
     c1Dead

@@ -244,5 +244,4 @@ export class EditorUI {
       lastResult: this.lastGraphResult,
     };
   }
-
 }

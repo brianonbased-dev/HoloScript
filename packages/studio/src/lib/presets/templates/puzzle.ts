@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-puzzle",
-  name: "Puzzle Room Starter",
-  description: "Interactive puzzle room with clickable switches and moving elements",
-  thumbnail: "🧩",
-  tags: ["game","puzzle","interactive","logic"],
-  category: "game",
+  id: 'wizard-puzzle',
+  name: 'Puzzle Room Starter',
+  description: 'Interactive puzzle room with clickable switches and moving elements',
+  thumbnail: '🧩',
+  tags: ['game', 'puzzle', 'interactive', 'logic'],
+  category: 'game',
   code: `composition "Puzzle Room" {
   environment {
     skybox: "studio"
@@ -84,7 +84,7 @@ export const template: SceneTemplate = {
       easing: "easeInOut"
     }
   }
-}`
+}`,
 };
 
 export default template;

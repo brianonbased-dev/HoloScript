@@ -50,7 +50,7 @@ describe('RigidBody — Production', () => {
     });
 
     it('initializes at origin', () => {
-      expect(body.position).toEqual([0, 0, 0 ]);
+      expect(body.position).toEqual([0, 0, 0]);
     });
 
     it('starts with zero velocity', () => {
@@ -71,12 +71,12 @@ describe('RigidBody — Production', () => {
 
   describe('getters/setters', () => {
     it('position get/set', () => {
-      body.position = [1, 2, 3 ];
-      expect(body.position).toEqual([1, 2, 3 ]);
+      body.position = [1, 2, 3];
+      expect(body.position).toEqual([1, 2, 3]);
     });
 
     it('linearVelocity get/set', () => {
-      body.linearVelocity = [5, 0, 0 ];
+      body.linearVelocity = [5, 0, 0];
       expect(body.linearVelocity[0]).toBe(5);
     });
 
@@ -98,8 +98,8 @@ describe('RigidBody — Production', () => {
 
   describe('applyForce', () => {
     it('accumulates force', () => {
-      body.applyForce([10, 0, 0 ]);
-      body.applyForce([5, 0, 0 ]);
+      body.applyForce([10, 0, 0]);
+      body.applyForce([5, 0, 0]);
       // Force is internal, test via integration
       body.integrateForces(1.0, zeroVector());
       expect(body.linearVelocity[0]).toBeGreaterThan(0);
@@ -107,7 +107,7 @@ describe('RigidBody — Production', () => {
 
     it('no-ops on static body', () => {
       const s = makeStatic();
-      s.applyForce([1000, 0, 0 ]);
+      s.applyForce([1000, 0, 0]);
       s.integrateForces(1.0, zeroVector());
       expect(s.linearVelocity).toEqual(zeroVector());
     });
@@ -115,20 +115,20 @@ describe('RigidBody — Production', () => {
 
   describe('applyImpulse', () => {
     it('instantaneously changes velocity', () => {
-      body.applyImpulse([5, 0, 0 ]);
+      body.applyImpulse([5, 0, 0]);
       expect(body.linearVelocity[0]).toBe(5); // mass=1, so dv = impulse * inverseMass
     });
 
     it('no-ops on static body', () => {
       const s = makeStatic();
-      s.applyImpulse([100, 0, 0 ]);
+      s.applyImpulse([100, 0, 0]);
       expect(s.linearVelocity).toEqual(zeroVector());
     });
   });
 
   describe('applyTorque', () => {
     it('accumulates torque', () => {
-      body.applyTorque([0, 10, 0 ]);
+      body.applyTorque([0, 10, 0]);
       body.integrateForces(1.0, zeroVector());
       expect(body.angularVelocity[1]).toBeGreaterThan(0);
     });
@@ -136,8 +136,8 @@ describe('RigidBody — Production', () => {
 
   describe('applyForceAtPoint', () => {
     it('adds both linear force and torque from offset', () => {
-      body.position = [0, 0, 0 ];
-      body.applyForceAtPoint([0, 10, 0 ], [1, 0, 0 ]);
+      body.position = [0, 0, 0];
+      body.applyForceAtPoint([0, 10, 0], [1, 0, 0]);
       expect(body.getForce()[1]).toBe(10);
       expect(Math.abs(body.getTorque()[2])).toBeGreaterThan(0);
     });
@@ -145,21 +145,21 @@ describe('RigidBody — Production', () => {
 
   describe('applyImpulseAtPoint / torque impulse', () => {
     it('changes angular velocity from off-center impulse', () => {
-      body.position = [0, 0, 0 ];
-      body.applyImpulseAtPoint([0, 10, 0 ], [1, 0, 0 ]);
+      body.position = [0, 0, 0];
+      body.applyImpulseAtPoint([0, 10, 0], [1, 0, 0]);
       expect(Math.abs(body.angularVelocity[2])).toBeGreaterThan(0);
     });
 
     it('applyTorqueImpulse no-ops on static body', () => {
       const s = makeStatic();
-      s.applyTorqueImpulse([0, 100, 0 ]);
+      s.applyTorqueImpulse([0, 100, 0]);
       expect(s.angularVelocity).toEqual(zeroVector());
     });
   });
 
   describe('clearForces', () => {
     it('clears accumulated forces', () => {
-      body.applyForce([100, 0, 0 ]);
+      body.applyForce([100, 0, 0]);
       body.clearForces();
       body.integrateForces(1.0, zeroVector());
       expect(body.linearVelocity[0]).toBeCloseTo(0, 5);
@@ -168,26 +168,26 @@ describe('RigidBody — Production', () => {
 
   describe('integrateForces', () => {
     it('applies gravity', () => {
-      body.integrateForces(1.0, [0, -9.81, 0 ]);
+      body.integrateForces(1.0, [0, -9.81, 0]);
       expect(body.linearVelocity[1]).toBeLessThan(0);
     });
 
     it('skips sleeping bodies', () => {
       const sleepy = makeDynamic({ sleeping: true });
-      sleepy.integrateForces(1.0, [0, -9.81, 0 ]);
+      sleepy.integrateForces(1.0, [0, -9.81, 0]);
       expect(sleepy.linearVelocity).toEqual(zeroVector());
     });
   });
 
   describe('integrateVelocities', () => {
     it('updates position from velocity', () => {
-      body.linearVelocity = [10, 0, 0 ];
+      body.linearVelocity = [10, 0, 0];
       body.integrateVelocities(1.0);
       expect(body.position[0]).toBeCloseTo(10, 1);
     });
 
     it('normalizes rotation after angular integration', () => {
-      body.angularVelocity = [0, 10, 0 ];
+      body.angularVelocity = [0, 10, 0];
       body.integrateVelocities(0.5);
       const q = body.rotation;
       const len = Math.sqrt(q[0] ** 2 + q[1] ** 2 + q[2] ** 2 + q[3] ** 2);
@@ -197,7 +197,7 @@ describe('RigidBody — Production', () => {
     it('skips static body during velocity integration', () => {
       const s = makeStatic();
       s.integrateVelocities(1.0);
-      expect(s.position).toEqual([0, 5, 0 ]);
+      expect(s.position).toEqual([0, 5, 0]);
     });
   });
 
@@ -225,9 +225,9 @@ describe('RigidBody — Production', () => {
 
   describe('getState', () => {
     it('returns state snapshot', () => {
-      body.position = [1, 2, 3 ];
+      body.position = [1, 2, 3];
       const state = body.getState();
-      expect(state.position).toEqual([1, 2, 3 ]);
+      expect(state.position).toEqual([1, 2, 3]);
       expect(state.isSleeping).toBe(false);
     });
   });
@@ -240,7 +240,7 @@ describe('RigidBody — Production', () => {
       };
       body.setTransform(t);
       const result = body.getTransform();
-      expect(result.position).toEqual([5, 10, 15 ]);
+      expect(result.position).toEqual([5, 10, 15]);
     });
   });
 

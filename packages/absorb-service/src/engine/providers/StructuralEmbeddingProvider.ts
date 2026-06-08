@@ -123,7 +123,7 @@ export class StructuralEmbeddingProvider implements EmbeddingProvider {
    * use `embedSymbol()` directly with the full ExternalSymbolDefinition.
    */
   async getEmbeddings(texts: string[]): Promise<number[][]> {
-    return texts.map(t => Array.from(this.embedText(t)));
+    return texts.map((t) => Array.from(this.embedText(t)));
   }
 
   /**
@@ -146,7 +146,7 @@ export class StructuralEmbeddingProvider implements EmbeddingProvider {
       emitCount?: number;
       listenCount?: number;
       eventNames?: string[];
-    } = {},
+    } = {}
   ): Float32Array {
     const vec = new Float32Array(DIM);
 
@@ -158,7 +158,7 @@ export class StructuralEmbeddingProvider implements EmbeddingProvider {
       vec[i] = fp.includes(KNOWN_PACKAGES[i]!) ? 1 : 0;
     }
     // Dims 6–9: structural directory flags
-    vec[6] = (fp.includes('__tests__') || fp.includes('.test.') || fp.includes('.spec.')) ? 1 : 0;
+    vec[6] = fp.includes('__tests__') || fp.includes('.test.') || fp.includes('.spec.') ? 1 : 0;
     vec[7] = fp.includes('/traits/') ? 1 : 0;
     vec[8] = fp.includes('/adapters/') ? 1 : 0;
     vec[9] = fp.includes('/providers/') ? 1 : 0;
@@ -217,7 +217,7 @@ export class StructuralEmbeddingProvider implements EmbeddingProvider {
     for (let i = 0; i < KNOWN_PACKAGES.length; i++) {
       vec[i] = fp.includes(KNOWN_PACKAGES[i]!) ? 1 : 0;
     }
-    vec[6] = (fp.includes('__tests__') || fp.includes('.test.') || fp.includes('.spec.')) ? 1 : 0;
+    vec[6] = fp.includes('__tests__') || fp.includes('.test.') || fp.includes('.spec.') ? 1 : 0;
     vec[7] = fp.includes('/traits/') ? 1 : 0;
     vec[8] = fp.includes('/adapters/') ? 1 : 0;
     vec[9] = fp.includes('/providers/') ? 1 : 0;
@@ -261,7 +261,7 @@ function spreadHash(hash: number, vec: Float32Array, offset: number, count: numb
   // Use LCG to generate `count` values from the seed hash
   let state = hash;
   for (let i = 0; i < count; i++) {
-    state = ((state * 1664525 + 1013904223) >>> 0); // LCG
+    state = (state * 1664525 + 1013904223) >>> 0; // LCG
     vec[offset + i] = (state >>> 0) / 4294967295; // normalize to [0,1]
   }
 }
@@ -278,32 +278,46 @@ function l2Normalize(vec: Float32Array): void {
 
 function symbolTypeScore(type: string): number {
   switch (type) {
-    case 'function':    return 1.0;
-    case 'method':      return 0.9;
-    case 'class':       return 0.7;
-    case 'interface':   return 0.5;
-    case 'type_alias':  return 0.4;
-    case 'enum':        return 0.3;
-    case 'constant':    return 0.2;
-    case 'field':       return 0.15;
-    default:            return 0.1;
+    case 'function':
+      return 1.0;
+    case 'method':
+      return 0.9;
+    case 'class':
+      return 0.7;
+    case 'interface':
+      return 0.5;
+    case 'type_alias':
+      return 0.4;
+    case 'enum':
+      return 0.3;
+    case 'constant':
+      return 0.2;
+    case 'field':
+      return 0.15;
+    default:
+      return 0.1;
   }
 }
 
 function visibilityScore(v: string | undefined): number {
   switch (v) {
-    case 'public':    return 1.0;
-    case 'protected': return 0.5;
-    case 'internal':  return 0.3;
-    case 'private':   return 0.0;
-    default:          return 0.8; // undefined → assume public-ish
+    case 'public':
+      return 1.0;
+    case 'protected':
+      return 0.5;
+    case 'internal':
+      return 0.3;
+    case 'private':
+      return 0.0;
+    default:
+      return 0.8; // undefined → assume public-ish
   }
 }
 
 function countParams(signature: string): number {
   // Count commas in parameter list — rough but fast
   const parenStart = signature.indexOf('(');
-  const parenEnd   = signature.lastIndexOf(')');
+  const parenEnd = signature.lastIndexOf(')');
   if (parenStart < 0 || parenEnd <= parenStart) return 0;
   const params = signature.slice(parenStart + 1, parenEnd).trim();
   if (!params) return 0;

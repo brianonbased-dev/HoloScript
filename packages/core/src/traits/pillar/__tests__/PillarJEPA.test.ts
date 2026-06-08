@@ -13,8 +13,19 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { pillarJepaHandler, computeConservationLoss, axisIdToDirection, type PillarJEPAConfig, type PillarJEPALoss } from '../PillarJEPA';
-import { makeParallelPillar, LEFT_PHYSICS_PILLAR, RIGHT_PHYSICS_PILLAR, TRUTH_PHYSICS_PARALLEL } from '../ParallelPillar';
+import {
+  pillarJepaHandler,
+  computeConservationLoss,
+  axisIdToDirection,
+  type PillarJEPAConfig,
+  type PillarJEPALoss,
+} from '../PillarJEPA';
+import {
+  makeParallelPillar,
+  LEFT_PHYSICS_PILLAR,
+  RIGHT_PHYSICS_PILLAR,
+  TRUTH_PHYSICS_PARALLEL,
+} from '../ParallelPillar';
 import type { HSPlusNode, TraitContext } from '../../TraitTypes';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -98,7 +109,7 @@ describe('PillarJEPA', () => {
   it('emits pillarjepa:loss on a valid step', () => {
     step(node, DEFAULT_CONFIG, ctx);
 
-    const lossEvent = events.find(e => e.name === 'pillarjepa:loss');
+    const lossEvent = events.find((e) => e.name === 'pillarjepa:loss');
     expect(lossEvent).toBeDefined();
 
     const loss = lossEvent!.payload as {
@@ -137,7 +148,9 @@ describe('PillarJEPA', () => {
       },
     });
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as { conservationLoss: number } | undefined;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as
+      | { conservationLoss: number }
+      | undefined;
     expect(loss?.conservationLoss).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(loss?.conservationLoss)).toBe(true);
   });
@@ -154,7 +167,9 @@ describe('PillarJEPA', () => {
       },
     });
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as { conservationLoss: number } | undefined;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as
+      | { conservationLoss: number }
+      | undefined;
     expect(loss?.conservationLoss).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(loss?.conservationLoss)).toBe(true);
   });
@@ -162,14 +177,16 @@ describe('PillarJEPA', () => {
   it('symmetry loss is >= 0', () => {
     step(node, DEFAULT_CONFIG, ctx);
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as { symmetryLoss: number } | undefined;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as
+      | { symmetryLoss: number }
+      | undefined;
     expect(loss?.symmetryLoss).toBeGreaterThanOrEqual(0);
   });
 
   it('emits sliceemitter:emit when emitToGrpo = true', () => {
     step(node, DEFAULT_CONFIG, ctx);
 
-    const sliceEvent = events.find(e => e.name === 'sliceemitter:emit');
+    const sliceEvent = events.find((e) => e.name === 'sliceemitter:emit');
     expect(sliceEvent).toBeDefined();
 
     const payload = sliceEvent!.payload as {
@@ -189,18 +206,18 @@ describe('PillarJEPA', () => {
     events2.length = 0;
 
     step(node2, config, ctx2);
-    expect(events2.find(e => e.name === 'sliceemitter:emit')).toBeUndefined();
+    expect(events2.find((e) => e.name === 'sliceemitter:emit')).toBeUndefined();
     pillarJepaHandler.onDetach?.(node2, config, ctx2);
   });
 
   it('emits pillarjepa:error for missing context', () => {
     pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
       type: 'pillarjepa:step',
-      context: '',  // empty
+      context: '', // empty
       targetVec: new Float32Array(DEFAULT_CONFIG.latentDim),
     });
 
-    const errEvent = events.find(e => e.name === 'pillarjepa:error');
+    const errEvent = events.find((e) => e.name === 'pillarjepa:error');
     expect(errEvent).toBeDefined();
     const err = errEvent!.payload as { code: string };
     expect(err.code).toBe('PJEPA_CONTEXT_REQUIRED');
@@ -213,7 +230,7 @@ describe('PillarJEPA', () => {
       targetVec: null,
     });
 
-    const errEvent = events.find(e => e.name === 'pillarjepa:error');
+    const errEvent = events.find((e) => e.name === 'pillarjepa:error');
     expect(errEvent).toBeDefined();
     const err = errEvent!.payload as { code: string };
     expect(err.code).toBe('PJEPA_TARGET_VEC_REQUIRED');
@@ -224,9 +241,9 @@ describe('PillarJEPA', () => {
     step(node, DEFAULT_CONFIG, ctx);
     step(node, DEFAULT_CONFIG, ctx);
 
-    const lossEvents = events.filter(e => e.name === 'pillarjepa:loss');
+    const lossEvents = events.filter((e) => e.name === 'pillarjepa:loss');
     expect(lossEvents).toHaveLength(3);
-    const steps = lossEvents.map(e => (e.payload as { step: number }).step);
+    const steps = lossEvents.map((e) => (e.payload as { step: number }).step);
     expect(steps).toEqual([1, 2, 3]);
   });
 
@@ -243,19 +260,24 @@ describe('PillarJEPA', () => {
       b2: new Float32Array(latentDim).fill(0),
     });
 
-    const errEvent = events.find(e => e.name === 'pillarjepa:error');
+    const errEvent = events.find((e) => e.name === 'pillarjepa:error');
     expect(errEvent).toBeUndefined();
   });
 
   it('works without conditioning (condDim = 0)', () => {
-    const config: PillarJEPAConfig = { ...DEFAULT_CONFIG, condDim: 0, conservationWeight: 0, symmetryWeight: 0 };
+    const config: PillarJEPAConfig = {
+      ...DEFAULT_CONFIG,
+      condDim: 0,
+      conservationWeight: 0,
+      symmetryWeight: 0,
+    };
     const node2 = makeNode();
     const { ctx: ctx2, events: events2 } = makeCtx();
     pillarJepaHandler.onAttach?.(node2, config, ctx2);
     events2.length = 0;
 
     step(node2, config, ctx2);
-    const loss = events2.find(e => e.name === 'pillarjepa:loss');
+    const loss = events2.find((e) => e.name === 'pillarjepa:loss');
     expect(loss).toBeDefined();
     expect((loss!.payload as { totalLoss: number }).totalLoss).toBeGreaterThanOrEqual(0);
     pillarJepaHandler.onDetach?.(node2, config, ctx2);
@@ -266,13 +288,15 @@ describe('PillarJEPA', () => {
   it('loss payload includes temporalConvergence when gating is enabled', () => {
     step(node, DEFAULT_CONFIG, ctx);
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
     expect(typeof loss.temporalConvergence).toBe('number');
     expect(loss.temporalConvergence).toBeGreaterThanOrEqual(0);
     expect(loss.temporalConvergence).toBeLessThanOrEqual(1);
     expect(typeof loss.effectiveConservationWeight).toBe('number');
     expect(loss.effectiveConservationWeight).toBeGreaterThanOrEqual(0);
-    expect(loss.effectiveConservationWeight).toBeLessThanOrEqual(DEFAULT_CONFIG.conservationWeight + 1e-9);
+    expect(loss.effectiveConservationWeight).toBeLessThanOrEqual(
+      DEFAULT_CONFIG.conservationWeight + 1e-9
+    );
   });
 
   it('temporalConvergence = NaN when gating is disabled', () => {
@@ -283,7 +307,7 @@ describe('PillarJEPA', () => {
     events2.length = 0;
 
     step(node2, config, ctx2);
-    const loss = (events2.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const loss = events2.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
     expect(Number.isNaN(loss.temporalConvergence)).toBe(true);
     // Without gating, effectiveConservationWeight = config.conservationWeight
     expect(loss.effectiveConservationWeight).toBeCloseTo(config.conservationWeight);
@@ -296,7 +320,7 @@ describe('PillarJEPA', () => {
       axis_1_id: 'steady_state',
       axis_2_id: 'convergence',
       pos_1: 1.0,
-      pos_2: 1.0,    // ← fully converged
+      pos_2: 1.0, // ← fully converged
       pillar_id: 'temporal_lifecycle',
       pillar_domain: 'steady_state',
     };
@@ -308,7 +332,7 @@ describe('PillarJEPA', () => {
       temporal_slice: steadyStateSlice,
     });
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
     expect(loss.effectiveConservationWeight).toBeCloseTo(0);
     expect(loss.temporalConvergence).toBeCloseTo(1.0);
   });
@@ -319,7 +343,7 @@ describe('PillarJEPA', () => {
       axis_1_id: 'init',
       axis_2_id: 'convergence',
       pos_1: 0.0,
-      pos_2: 0.0,    // ← fully transient
+      pos_2: 0.0, // ← fully transient
       pillar_id: 'temporal_lifecycle',
       pillar_domain: 'steady_state',
     };
@@ -331,7 +355,7 @@ describe('PillarJEPA', () => {
       temporal_slice: transientSlice,
     });
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
     expect(loss.effectiveConservationWeight).toBeCloseTo(DEFAULT_CONFIG.conservationWeight);
     expect(loss.temporalConvergence).toBeCloseTo(0.0);
   });
@@ -352,7 +376,7 @@ describe('PillarJEPA', () => {
       parallel_slice: parallelSlice,
     });
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
     expect(typeof loss.hemisphereAgreement).toBe('number');
     expect(loss.hemisphereAgreement!).toBeGreaterThanOrEqual(0);
     expect(loss.hemisphereAgreement!).toBeLessThanOrEqual(1);
@@ -372,7 +396,7 @@ describe('PillarJEPA', () => {
       parallel_slice: parallelSlice,
     });
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
     expect(typeof loss.bilateralLoss).toBe('number');
     expect(loss.bilateralLoss!).toBeGreaterThanOrEqual(0);
   });
@@ -382,7 +406,7 @@ describe('PillarJEPA', () => {
     const mirrorParallel = makeParallelPillar(
       'mirror_test',
       LEFT_PHYSICS_PILLAR,
-      LEFT_PHYSICS_PILLAR, // same pillar on both sides
+      LEFT_PHYSICS_PILLAR // same pillar on both sides
     );
     const parallelSlice = mirrorParallel.generateParallel({
       layer: 'test',
@@ -398,15 +422,23 @@ describe('PillarJEPA', () => {
       parallel_slice: parallelSlice,
     });
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
     expect(loss.bilateralLoss).toBeCloseTo(0);
     expect(loss.hemisphereAgreement).toBeCloseTo(1);
   });
 
   it('bilateral: symmetryLoss uses hemisphere agreement (not LCG) when parallel_slice provided', () => {
     // Agreement = 1 → symmetryLoss = 0 (regardless of symmetryDelta)
-    const mirrorParallel = makeParallelPillar('mirror_sym', LEFT_PHYSICS_PILLAR, LEFT_PHYSICS_PILLAR);
-    const parallelSlice = mirrorParallel.generateParallel({ layer: 'test', agent_id: 'test', timestamp_ms: 0 });
+    const mirrorParallel = makeParallelPillar(
+      'mirror_sym',
+      LEFT_PHYSICS_PILLAR,
+      LEFT_PHYSICS_PILLAR
+    );
+    const parallelSlice = mirrorParallel.generateParallel({
+      layer: 'test',
+      agent_id: 'test',
+      timestamp_ms: 0,
+    });
 
     pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
       type: 'pillarjepa:step',
@@ -415,21 +447,29 @@ describe('PillarJEPA', () => {
       parallel_slice: parallelSlice,
     });
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
     // When hemispheres agree perfectly: symmetryLoss = (1 - 1.0) = 0
     expect(loss.symmetryLoss).toBeCloseTo(0);
   });
 
   it('bilateral: hemisphereAgreement / bilateralLoss absent when no parallel_slice', () => {
     step(node, DEFAULT_CONFIG, ctx);
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
     expect(loss.hemisphereAgreement).toBeUndefined();
     expect(loss.bilateralLoss).toBeUndefined();
   });
 
   it('bilateral: left hemisphere slice used for physicsSlice when parallel_slice provided', () => {
-    const physicsSlice_left = LEFT_PHYSICS_PILLAR.generate({ layer: 'test', agent_id: 'test', timestamp_ms: 0 });
-    const parallelSlice = TRUTH_PHYSICS_PARALLEL.generateParallel({ layer: 'test', agent_id: 'test', timestamp_ms: 0 });
+    const physicsSlice_left = LEFT_PHYSICS_PILLAR.generate({
+      layer: 'test',
+      agent_id: 'test',
+      timestamp_ms: 0,
+    });
+    const parallelSlice = TRUTH_PHYSICS_PARALLEL.generateParallel({
+      layer: 'test',
+      agent_id: 'test',
+      timestamp_ms: 0,
+    });
 
     pillarJepaHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
       type: 'pillarjepa:step',
@@ -438,7 +478,7 @@ describe('PillarJEPA', () => {
       parallel_slice: parallelSlice,
     });
 
-    const loss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const loss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
     // TRUTH_PHYSICS_PARALLEL.left = INTENT_TRUTH_APPROVAL_PILLAR (truth_approval domain)
     expect(loss.pillar_domain).toBe('truth_approval');
     expect(loss.axis_1_id).toBe('truth_seeking');
@@ -463,9 +503,18 @@ describe('PillarJEPA', () => {
       context: 'physics tick transient',
       targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
       pillar_slice: physicsSlice,
-      temporal_slice: { ...physicsSlice, pillar_id: 'temporal_lifecycle', pillar_domain: 'steady_state', axis_1_id: 'init', axis_2_id: 'convergence', pos_1: 0.0, pos_2: 0.0 },
+      temporal_slice: {
+        ...physicsSlice,
+        pillar_id: 'temporal_lifecycle',
+        pillar_domain: 'steady_state',
+        axis_1_id: 'init',
+        axis_2_id: 'convergence',
+        pos_1: 0.0,
+        pos_2: 0.0,
+      },
     });
-    const transientLoss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const transientLoss = events.find((e) => e.name === 'pillarjepa:loss')
+      ?.payload as PillarJEPALoss;
     events.length = 0;
 
     // Steady-state step
@@ -474,9 +523,17 @@ describe('PillarJEPA', () => {
       context: 'physics tick steady',
       targetVec: new Float32Array(DEFAULT_CONFIG.latentDim).fill(0.1),
       pillar_slice: physicsSlice,
-      temporal_slice: { ...physicsSlice, pillar_id: 'temporal_lifecycle', pillar_domain: 'steady_state', axis_1_id: 'steady_state', axis_2_id: 'convergence', pos_1: 1.0, pos_2: 1.0 },
+      temporal_slice: {
+        ...physicsSlice,
+        pillar_id: 'temporal_lifecycle',
+        pillar_domain: 'steady_state',
+        axis_1_id: 'steady_state',
+        axis_2_id: 'convergence',
+        pos_1: 1.0,
+        pos_2: 1.0,
+      },
     });
-    const steadyLoss = (events.find(e => e.name === 'pillarjepa:loss')?.payload) as PillarJEPALoss;
+    const steadyLoss = events.find((e) => e.name === 'pillarjepa:loss')?.payload as PillarJEPALoss;
 
     // Steady-state total loss ≤ transient total loss (conservation gate reduces penalty)
     expect(steadyLoss.totalLoss).toBeLessThanOrEqual(transientLoss.totalLoss + 1e-9);
@@ -533,9 +590,10 @@ describe('computeConservationLoss (direct)', () => {
   it('depends on the prediction (has gradient signal) — distinct inputs give distinct losses', () => {
     // The whole point of the fix: L_c is a function of the prediction, not a
     // constant. Two different predictions must be able to produce different losses.
-    const a = Float32Array.from(dir, (v) => -v);          // score = −1, high loss
-    const b = Float32Array.from(dir);                      // score = +1, zero loss
-    expect(computeConservationLoss(a, 1.0, 0.05, 'energy'))
-      .not.toBe(computeConservationLoss(b, 1.0, 0.05, 'energy'));
+    const a = Float32Array.from(dir, (v) => -v); // score = −1, high loss
+    const b = Float32Array.from(dir); // score = +1, zero loss
+    expect(computeConservationLoss(a, 1.0, 0.05, 'energy')).not.toBe(
+      computeConservationLoss(b, 1.0, 0.05, 'energy')
+    );
   });
 });

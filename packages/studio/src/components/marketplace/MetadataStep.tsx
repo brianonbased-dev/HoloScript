@@ -6,11 +6,10 @@ interface MetadataStepProps {
   onChangeMetadata: (key: string, value: any) => void;
 }
 
-export const MetadataStep: React.FC<MetadataStepProps> = ({
-  metadata,
-  onChangeMetadata,
-}) => {
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+export const MetadataStep: React.FC<MetadataStepProps> = ({ metadata, onChangeMetadata }) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     onChangeMetadata(name, value);
   };
@@ -28,7 +27,10 @@ export const MetadataStep: React.FC<MetadataStepProps> = ({
   };
 
   const removeTag = (tagToRemove: string) => {
-    onChangeMetadata('tags', (metadata.tags || []).filter(t => t !== tagToRemove));
+    onChangeMetadata(
+      'tags',
+      (metadata.tags || []).filter((t) => t !== tagToRemove)
+    );
   };
 
   return (
@@ -63,7 +65,12 @@ export const MetadataStep: React.FC<MetadataStepProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="category-select" className="block text-sm font-medium text-studio-text mb-2">Category *</label>
+              <label
+                htmlFor="category-select"
+                className="block text-sm font-medium text-studio-text mb-2"
+              >
+                Category *
+              </label>
               <select
                 id="category-select"
                 name="category"
@@ -81,7 +88,12 @@ export const MetadataStep: React.FC<MetadataStepProps> = ({
             </div>
 
             <div>
-              <label htmlFor="license-select" className="block text-sm font-medium text-studio-text mb-2">License</label>
+              <label
+                htmlFor="license-select"
+                className="block text-sm font-medium text-studio-text mb-2"
+              >
+                License
+              </label>
               <select
                 id="license-select"
                 name="license"
@@ -109,7 +121,10 @@ export const MetadataStep: React.FC<MetadataStepProps> = ({
             {metadata.tags && metadata.tags.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {metadata.tags.map((tag, i) => (
-                  <span key={i} className="inline-flex items-center gap-2 rounded-full bg-studio-accent/20 px-3 py-1">
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-2 rounded-full bg-studio-accent/20 px-3 py-1"
+                  >
                     <span className="text-xs font-medium text-studio-accent">{tag}</span>
                     <button
                       onClick={() => removeTag(tag)}

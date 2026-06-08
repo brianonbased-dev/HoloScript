@@ -99,8 +99,14 @@ describe('physics primitives', () => {
     // Only strictly-false disables
     expect(handlePhysics([{ enabled: false }], emit)).toEqual({ success: true, enabled: false });
     // Other falsy values still count as "enabled"
-    expect(handlePhysics([{ enabled: 0 }] as HoloScriptValue[], emit)).toEqual({ success: true, enabled: true });
-    expect(handlePhysics([{ enabled: null }] as HoloScriptValue[], emit)).toEqual({ success: true, enabled: true });
+    expect(handlePhysics([{ enabled: 0 }] as HoloScriptValue[], emit)).toEqual({
+      success: true,
+      enabled: true,
+    });
+    expect(handlePhysics([{ enabled: null }] as HoloScriptValue[], emit)).toEqual({
+      success: true,
+      enabled: true,
+    });
   });
 
   it('handleGravity — default value is 9.81 (earth-surface)', () => {

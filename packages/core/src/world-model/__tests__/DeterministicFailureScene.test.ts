@@ -129,9 +129,7 @@ describe('buildDeterministicFailureTrajectory', () => {
     expect(trajectory.predicateScore.violation).toBe(1);
     expect(trajectory.priority.priority).toBeGreaterThan(0);
     expect(trajectory.actionTrace).toHaveLength(DEFAULT_DETERMINISTIC_FAILURE_ACTIONS.length);
-    expect(trajectory.observationTrace).toHaveLength(
-      DEFAULT_DETERMINISTIC_FAILURE_ACTIONS.length
-    );
+    expect(trajectory.observationTrace).toHaveLength(DEFAULT_DETERMINISTIC_FAILURE_ACTIONS.length);
     expect(trajectory.caelReceiptHash).toBe(result.eventLogHash);
     expect(hasReplayEvidence(trajectory)).toBe(true);
   });

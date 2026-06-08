@@ -86,7 +86,8 @@ export function AvatarExportPanel() {
       config.hair && `  hair = "${config.hair}"`,
       config.eyes && `  eyes = "${config.eyes}"`,
       config.mouth && `  mouth = "${config.mouth}"`,
-      config.clothing.length > 0 && `  clothing = [${config.clothing.map((c) => `"${c}"`).join(', ')}]`,
+      config.clothing.length > 0 &&
+        `  clothing = [${config.clothing.map((c) => `"${c}"`).join(', ')}]`,
       config.accessories.length > 0 &&
         `  accessories = [${config.accessories.map((a) => `"${a}"`).join(', ')}]`,
       `  scale = ${config.scale}`,
@@ -201,7 +202,11 @@ export function AvatarExportPanel() {
             onClick={handleCopy}
             className="flex items-center gap-1.5 rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted transition hover:text-studio-text"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? (
+              <Check className="h-3.5 w-3.5 text-green-400" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>

@@ -23,7 +23,10 @@
  * lives in studio. This is the lightweight cross-package surface.
  */
 
-import { useHologramMcpContent, type ResolvedHologramContent } from '../hooks/useHologramMcpContent';
+import {
+  useHologramMcpContent,
+  type ResolvedHologramContent,
+} from '../hooks/useHologramMcpContent';
 import type { CSSProperties, ReactNode } from 'react';
 
 // Public API

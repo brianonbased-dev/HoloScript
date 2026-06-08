@@ -99,7 +99,10 @@ try {
     // category = first subdir under examples/, else "root"
     const parts = path.split('/').filter(Boolean);
     const category = parts.length > 2 ? parts[1] : 'root';
-    const slug = `${category === 'root' ? '' : category + '/'}${base}`.replace(/[^a-z0-9/_-]+/g, '-');
+    const slug = `${category === 'root' ? '' : category + '/'}${base}`.replace(
+      /[^a-z0-9/_-]+/g,
+      '-'
+    );
     return {
       slug,
       path,

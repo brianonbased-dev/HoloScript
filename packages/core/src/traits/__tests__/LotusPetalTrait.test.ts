@@ -3,11 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  lotusPetalHandler,
-  deriveLotusPetalVisual,
-  isReservedPaperId,
-} from '../LotusPetalTrait';
+import { lotusPetalHandler, deriveLotusPetalVisual, isReservedPaperId } from '../LotusPetalTrait';
 import {
   createMockContext,
   createMockNode,
@@ -154,7 +150,9 @@ describe('LotusPetalTrait — handler lifecycle', () => {
       bloomState: 'full',
     });
 
-    const evt = getLastEvent(ctx, 'lotus_petal_visual_changed') as Record<string, unknown> | undefined;
+    const evt = getLastEvent(ctx, 'lotus_petal_visual_changed') as
+      | Record<string, unknown>
+      | undefined;
     expect(evt).toBeDefined();
     expect(evt?.bloomState).toBe('full');
     const visual = evt?.visual as { opacity: number; glow_colour: string };
@@ -203,7 +201,9 @@ describe('LotusPetalTrait — handler lifecycle', () => {
       bloomState: 'full', // upstream tries to bloom a reserved slot
     });
 
-    const evt = getLastEvent(ctx, 'lotus_petal_visual_changed') as Record<string, unknown> | undefined;
+    const evt = getLastEvent(ctx, 'lotus_petal_visual_changed') as
+      | Record<string, unknown>
+      | undefined;
     expect(evt).toBeDefined();
     const visual = evt?.visual as { opacity: number; glow_colour: string };
     // Reserved slot must stay sealed-dark even though state was 'full'
@@ -246,7 +246,11 @@ describe('LotusPetalTrait — handler lifecycle', () => {
       ctx
     );
     ctx.clearEvents();
-    lotusPetalHandler.onDetach?.(node as never, lotusPetalHandler.defaultConfig as never, ctx as never);
+    lotusPetalHandler.onDetach?.(
+      node as never,
+      lotusPetalHandler.defaultConfig as never,
+      ctx as never
+    );
     expect(getEventCount(ctx, 'lotus_petal_detached')).toBe(1);
   });
 
@@ -261,7 +265,12 @@ describe('LotusPetalTrait — handler lifecycle', () => {
     );
     ctx.clearEvents();
     for (let i = 0; i < 100; i++) {
-      lotusPetalHandler.onUpdate?.(node as never, lotusPetalHandler.defaultConfig as never, ctx as never, 0.016);
+      lotusPetalHandler.onUpdate?.(
+        node as never,
+        lotusPetalHandler.defaultConfig as never,
+        ctx as never,
+        0.016
+      );
     }
     expect(ctx.emittedEvents.length).toBe(0);
   });

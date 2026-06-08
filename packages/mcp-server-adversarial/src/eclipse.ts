@@ -16,12 +16,7 @@
 // Spec: research/paper-21-ati/threat-model.md §4.5.
 // Board task: ATI-3-eclipse.
 
-import type {
-  AdversarialAttack,
-  AttackContext,
-  AttackResult,
-  AttackId,
-} from './types.js';
+import type { AdversarialAttack, AttackContext, AttackResult, AttackId } from './types.js';
 
 // §4.5 success metric per spec: T(target) < 0.3 * T(target)_pre_eclipse.
 export const ECLIPSE_DEFAULT_TRUST_REDUCTION_THRESHOLD = 0.3;
@@ -59,16 +54,11 @@ export class EclipseAttack implements AdversarialAttack {
     if (!Number.isInteger(config.K) || config.K < 2) {
       throw new RangeError('EclipseConfig.K must be an integer >= 2');
     }
-    if (
-      !config.targetSandboxServerId ||
-      config.targetSandboxServerId.trim() === ''
-    ) {
+    if (!config.targetSandboxServerId || config.targetSandboxServerId.trim() === '') {
       throw new RangeError('EclipseConfig.targetSandboxServerId is required');
     }
     if (!Number.isInteger(config.eclipseRounds) || config.eclipseRounds < 1) {
-      throw new RangeError(
-        'EclipseConfig.eclipseRounds must be a positive integer'
-      );
+      throw new RangeError('EclipseConfig.eclipseRounds must be a positive integer');
     }
     if (config.preEclipseTargetTrust <= 0) {
       throw new RangeError(
@@ -79,17 +69,12 @@ export class EclipseAttack implements AdversarialAttack {
       config.trustReductionThreshold !== undefined &&
       (config.trustReductionThreshold <= 0 || config.trustReductionThreshold >= 1)
     ) {
-      throw new RangeError(
-        'EclipseConfig.trustReductionThreshold must be in (0, 1) when provided'
-      );
+      throw new RangeError('EclipseConfig.trustReductionThreshold must be in (0, 1) when provided');
     }
   }
 
   private get trustReductionThreshold(): number {
-    return (
-      this.config.trustReductionThreshold ??
-      ECLIPSE_DEFAULT_TRUST_REDUCTION_THRESHOLD
-    );
+    return this.config.trustReductionThreshold ?? ECLIPSE_DEFAULT_TRUST_REDUCTION_THRESHOLD;
   }
 
   // Trust at which the attack is declared successful. Below this, the

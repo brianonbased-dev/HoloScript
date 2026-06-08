@@ -184,7 +184,9 @@ describe('mesh tool registry', () => {
       [...tools],
       async () => ({ ok: true })
     )) as Record<string, unknown>;
-    const firstAttestation = first.attestation as { provenanceChain: Array<Record<string, unknown>> };
+    const firstAttestation = first.attestation as {
+      provenanceChain: Array<Record<string, unknown>>;
+    };
     const tampered = [{ ...firstAttestation.provenanceChain[0], argsHash: 'tampered' }];
     const dispatch = vi.fn().mockResolvedValue({ ok: true });
 

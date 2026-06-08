@@ -24,15 +24,14 @@ const jsonOut = path.join(tmp, 'summary.json');
 const mdOut = path.join(tmp, 'summary.md');
 
 try {
-  const result = spawnSync(process.execPath, [
-    SCRIPT,
-    '--self-test',
-    `--out=${jsonOut}`,
-    `--markdown-out=${mdOut}`,
-  ], {
-    cwd: REPO_ROOT,
-    encoding: 'utf8',
-  });
+  const result = spawnSync(
+    process.execPath,
+    [SCRIPT, '--self-test', `--out=${jsonOut}`, `--markdown-out=${mdOut}`],
+    {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+    }
+  );
 
   assertEq(result.status, 0, 'self-test exits 0');
 
@@ -48,7 +47,11 @@ try {
     'parses HoloEmbed 90 percent recall'
   );
   assertEq(summary.coordination.mode, 'offline-synthetic', 'self-test uses offline coordination');
-  assertContains(markdown, 'Table 7.5 - HoloMesh Team-Protocol Coordination', 'writes markdown table 7.5');
+  assertContains(
+    markdown,
+    'Table 7.5 - HoloMesh Team-Protocol Coordination',
+    'writes markdown table 7.5'
+  );
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
@@ -66,7 +69,9 @@ function assertEq(actual, expected, name) {
     console.log(`  ok - ${name}`);
   } else {
     testsFailed++;
-    console.error(`  not ok - ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  not ok - ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 

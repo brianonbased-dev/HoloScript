@@ -111,8 +111,8 @@ describe('chainHandler.onDetach', () => {
 // ─── onEvent — chain_link_update ──────────────────────────────────────────────
 
 describe('chainHandler.onEvent — chain_link_update', () => {
-  const pos = [1, -0.1, 0 ];
-  const rot = [0, 0, 0, 1 ];
+  const pos = [1, -0.1, 0];
+  const rot = [0, 0, 0, 1];
   it('updates link position', () => {
     const { node, ctx, config } = attach({ links: 5 });
     chainHandler.onEvent!(node, config, ctx, {
@@ -166,14 +166,14 @@ describe('chainHandler.onEvent — chain_full_update', () => {
   it('updates all link positions in batch', () => {
     const { node, ctx, config } = attach({ links: 3 });
     const positions = [
-      [1, 0, 0 ],
-      [2, 0, 0 ],
-      [3, 0, 0 ],
+      [1, 0, 0],
+      [2, 0, 0],
+      [3, 0, 0],
     ];
     const rots = [
-      [0, 0, 0, 1 ],
-      [0, 0, 0, 1 ],
-      [0, 0, 0, 1 ],
+      [0, 0, 0, 1],
+      [0, 0, 0, 1],
+      [0, 0, 0, 1],
     ];
     chainHandler.onEvent!(node, config, ctx, {
       type: 'chain_full_update',
@@ -186,8 +186,8 @@ describe('chainHandler.onEvent — chain_full_update', () => {
   it('emits chain_full_mesh_update', () => {
     const { node, ctx, config } = attach({ links: 2 });
     const positions = [
-      [0, 0, 0 ],
-      [0, -0.1, 0 ],
+      [0, 0, 0],
+      [0, -0.1, 0],
     ];
     ctx.emit.mockClear();
     chainHandler.onEvent!(node, config, ctx, {
@@ -202,7 +202,7 @@ describe('chainHandler.onEvent — chain_full_update', () => {
   });
   it('handles fewer positions than links gracefully', () => {
     const { node, ctx, config } = attach({ links: 5 });
-    const positions = [[1, 0, 0 ]];
+    const positions = [[1, 0, 0]];
     expect(() =>
       chainHandler.onEvent!(node, config, ctx, {
         type: 'chain_full_update',
@@ -327,7 +327,7 @@ describe('chainHandler.onEvent — chain_repair', () => {
 describe('chainHandler.onEvent — misc events', () => {
   it('chain_apply_force emits chain_external_force', () => {
     const { node, ctx, config } = attach();
-    const force = [0, -9.8, 0 ];
+    const force = [0, -9.8, 0];
     ctx.emit.mockClear();
     chainHandler.onEvent!(node, config, ctx, { type: 'chain_apply_force', linkIndex: 1, force });
     expect(ctx.emit).toHaveBeenCalledWith(

@@ -14,10 +14,7 @@
  * last N tracked jobs (newest first) with status pill + duration.
  */
 import type { TraitRuntimeIntegration } from '@holoscript/engine/runtime/TraitRuntimeIntegration';
-import {
-  useGenerativeJobs,
-  type GenerativeJobsView,
-} from './TraitRuntimeContext';
+import { useGenerativeJobs, type GenerativeJobsView } from './TraitRuntimeContext';
 import type { GenerativeJobKind, GenerativeJobState } from '@holoscript/core/coordinators';
 
 export interface LocomotionDemoPanelProps {
@@ -37,7 +34,10 @@ export function LocomotionDemoPanel({ runtime, maxRecentJobs = 12 }: LocomotionD
   const view: GenerativeJobsView = useGenerativeJobs(runtime);
   const { stats, jobs } = view;
   // Newest first by updatedAt — getAllJobs returns insertion order, so sort.
-  const recent = jobs.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, maxRecentJobs);
+  const recent = jobs
+    .slice()
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, maxRecentJobs);
 
   const kinds: GenerativeJobKind[] = ['inpainting', 'texture_gen', 'controlnet', 'diffusion_rt'];
 
@@ -97,9 +97,20 @@ export function LocomotionDemoPanel({ runtime, maxRecentJobs = 12 }: LocomotionD
                   {ready ? 'ready' : 'idle'}
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, fontSize: 11 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 2,
+                  fontSize: 11,
+                }}
+              >
                 <KindStat label="queued" value={k.queued} />
-                <KindStat label="running" value={k.running} accent={k.running > 0 ? '#38bdf8' : undefined} />
+                <KindStat
+                  label="running"
+                  value={k.running}
+                  accent={k.running > 0 ? '#38bdf8' : undefined}
+                />
                 <KindStat
                   label="errored"
                   value={k.errored}
@@ -163,7 +174,14 @@ function JobRow({ job }: { job: GenerativeJobState }) {
       }}
     >
       <span style={{ color: '#94a3b8' }}>{job.kind}</span>
-      <span style={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <span
+        style={{
+          fontFamily: 'monospace',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
         {job.jobId}
       </span>
       <span style={{ color, textTransform: 'uppercase', fontSize: 11 }}>{job.status}</span>

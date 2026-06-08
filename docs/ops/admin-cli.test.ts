@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  renderDashboard,
-  mockOpsStatus,
-  mockLb,
-  joinBase,
-} from './admin-cli';
+import { renderDashboard, mockOpsStatus, mockLb, joinBase } from './admin-cli';
 
 describe('P.008.05 admin-cli (ops dashboard)', () => {
   it('renders regions, circuit breakers, and LB block', () => {

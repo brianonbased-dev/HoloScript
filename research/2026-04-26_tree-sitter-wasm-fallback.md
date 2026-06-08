@@ -20,9 +20,9 @@
 
 ## Risk checklist
 
-- **Version skew:** grammar WASM must match the compiler/parser version the project expects (surface “parser mismatch” in UI).  
-- **Memory:** re-parse on every keystroke → debounce; cap file size for full AST.  
-- **Security:** only load **same-origin** or **SRI** `@holoscript` distributed WASM.  
+- **Version skew:** grammar WASM must match the compiler/parser version the project expects (surface “parser mismatch” in UI).
+- **Memory:** re-parse on every keystroke → debounce; cap file size for full AST.
+- **Security:** only load **same-origin** or **SRI** `@holoscript` distributed WASM.
 - **SSR / Vitest:** follow existing patterns (namespace imports) so SSR test runs do not trip Vite’s synthetic imports.
 
 ## Outcome of this task

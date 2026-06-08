@@ -58,10 +58,7 @@ import type { SecretRow, SecretStoreBackend } from './secret-store';
  * the lease adapter's `LeaseQueryRunner`.
  */
 export interface SecretQueryRunner {
-  query(
-    sql: string,
-    params: readonly unknown[]
-  ): Promise<{ rows: Array<Record<string, unknown>> }>;
+  query(sql: string, params: readonly unknown[]): Promise<{ rows: Array<Record<string, unknown>> }>;
 }
 
 /** Dependencies for {@link createPostgresSecretBackend}. */
@@ -128,7 +125,9 @@ function asNullableIsoString(value: unknown, column: string): string | null {
   if (value === null || value === undefined) return null;
   const iso = toIso(value);
   if (iso === null) {
-    throw new TypeError(`postgres-secret-backend: column "${column}" is not a valid timestamp|null`);
+    throw new TypeError(
+      `postgres-secret-backend: column "${column}" is not a valid timestamp|null`
+    );
   }
   return iso;
 }
@@ -271,10 +270,9 @@ export function createPostgresSecretBackend(deps: PostgresSecretBackendDeps): Se
 
     async listByKekId(kekId: string): Promise<SecretRow[]> {
       // Spans owners deliberately — rotation re-wraps every row under a KEK.
-      const { rows } = await query(
-        `SELECT ${SELECT_COLUMNS} FROM secret_store WHERE kek_id = $1`,
-        [kekId]
-      );
+      const { rows } = await query(`SELECT ${SELECT_COLUMNS} FROM secret_store WHERE kek_id = $1`, [
+        kekId,
+      ]);
       return rows.map(narrowSecretRow);
     },
 

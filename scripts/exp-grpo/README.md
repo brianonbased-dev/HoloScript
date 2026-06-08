@@ -15,13 +15,13 @@ driver.sh           → orchestrates all 4, posts verdict to knowledge store
 
 ### Corresponds to TypeScript specs
 
-| Python file | TypeScript spec |
-|---|---|
-| `grpo_fleet_job.py` reward weights | `GRPORewardFunctions.ts` `GRPO_REWARD_WEIGHTS` |
-| `grpo_fleet_job.py` GRPO config | `GRPOConfig.ts` `RECOMMENDED_GRPO_CONFIG` |
-| `scripts/training/oplora_wrapper.py` | `OPLoRAConfig.ts` `DEFAULT_OPLORA_CONFIG` |
-| `grpo_eval.py` quality_score | `QualityScore.ts` weighted composite |
-| `grpo_analyze.py` PROVE/KILL | `ConvergenceDetector.ts` plateau logic |
+| Python file                          | TypeScript spec                                |
+| ------------------------------------ | ---------------------------------------------- |
+| `grpo_fleet_job.py` reward weights   | `GRPORewardFunctions.ts` `GRPO_REWARD_WEIGHTS` |
+| `grpo_fleet_job.py` GRPO config      | `GRPOConfig.ts` `RECOMMENDED_GRPO_CONFIG`      |
+| `scripts/training/oplora_wrapper.py` | `OPLoRAConfig.ts` `DEFAULT_OPLORA_CONFIG`      |
+| `grpo_eval.py` quality_score         | `QualityScore.ts` weighted composite           |
+| `grpo_analyze.py` PROVE/KILL         | `ConvergenceDetector.ts` plateau logic         |
 
 ### Related files
 
@@ -56,34 +56,34 @@ vastai create instance $OFFER_ID \
 
 ## Environment variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `HOLOSCRIPT_API_KEY` | required | MCP orchestrator key |
-| `REPO_URL` | required | Git clone URL (may embed PAT) |
-| `BASE_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | Base model for training |
-| `GRPO_MAX_STEPS` | `500` | Training steps (use 2000+ for real run) |
-| `RUN_SFT` | `0` | Set to `1` to enable SFT warmup on DPO pairs |
-| `BASELINE_QUALITY` | `0.30` | Baseline quality for PROVE/KILL verdict |
-| `WANDB_API_KEY` | — | Optional W&B logging |
-| `HF_TOKEN` + `HF_ORG` | — | Optional HuggingFace Hub push |
-| `GRPO_SEED` | `42` | Reproducibility seed |
-| `EXTRACT_MAX_PROMPTS` | `1500` | Max prompts to extract |
+| Variable              | Default                    | Description                                  |
+| --------------------- | -------------------------- | -------------------------------------------- |
+| `HOLOSCRIPT_API_KEY`  | required                   | MCP orchestrator key                         |
+| `REPO_URL`            | required                   | Git clone URL (may embed PAT)                |
+| `BASE_MODEL`          | `Qwen/Qwen2.5-7B-Instruct` | Base model for training                      |
+| `GRPO_MAX_STEPS`      | `500`                      | Training steps (use 2000+ for real run)      |
+| `RUN_SFT`             | `0`                        | Set to `1` to enable SFT warmup on DPO pairs |
+| `BASELINE_QUALITY`    | `0.30`                     | Baseline quality for PROVE/KILL verdict      |
+| `WANDB_API_KEY`       | —                          | Optional W&B logging                         |
+| `HF_TOKEN` + `HF_ORG` | —                          | Optional HuggingFace Hub push                |
+| `GRPO_SEED`           | `42`                       | Reproducibility seed                         |
+| `EXTRACT_MAX_PROMPTS` | `1500`                     | Max prompts to extract                       |
 
 ## Verdict logic
 
-| Verdict | Condition |
-|---|---|
-| `PROVE` | `quality_score >= baseline + 0.05` AND `quality_score >= 0.35` |
-| `KILL` | `quality_score < 0.20` |
-| `INCONCLUSIVE` | Everything else (delta too small, or score within noise band) |
+| Verdict        | Condition                                                      |
+| -------------- | -------------------------------------------------------------- |
+| `PROVE`        | `quality_score >= baseline + 0.05` AND `quality_score >= 0.35` |
+| `KILL`         | `quality_score < 0.20`                                         |
+| `INCONCLUSIVE` | Everything else (delta too small, or score within noise band)  |
 
 ## GPU requirements
 
-| Config | Min VRAM | Est. time | Est. cost |
-|---|---|---|---|
-| `--dry-run` | None | <30s | $0 |
-| `GRPO_MAX_STEPS=500` (smoke) | 24 GB | ~45 min | ~$0.30 |
-| `GRPO_MAX_STEPS=2000` (real) | 80 GB | ~3-4 hr | ~$6-8 |
+| Config                       | Min VRAM | Est. time | Est. cost |
+| ---------------------------- | -------- | --------- | --------- |
+| `--dry-run`                  | None     | <30s      | $0        |
+| `GRPO_MAX_STEPS=500` (smoke) | 24 GB    | ~45 min   | ~$0.30    |
+| `GRPO_MAX_STEPS=2000` (real) | 80 GB    | ~3-4 hr   | ~$6-8     |
 
 ## Links
 

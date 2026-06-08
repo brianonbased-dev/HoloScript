@@ -91,11 +91,7 @@ export function sampleLaplace(lambda: number): number {
  * Add calibrated Laplace noise to a weight vector.
  * Guarantees epsilon-differential privacy for L1 sensitivity `sensitivity`.
  */
-export function addLaplaceNoise(
-  weights: number[],
-  epsilon: number,
-  sensitivity: number
-): number[] {
+export function addLaplaceNoise(weights: number[], epsilon: number, sensitivity: number): number[] {
   if (epsilon <= 0) throw new Error('epsilon must be > 0');
   if (sensitivity <= 0) throw new Error('sensitivity must be > 0');
   const lambda = sensitivity / epsilon;
@@ -140,9 +136,7 @@ export function generateParticipantId(): string {
 /**
  * Create a new federation session for a local participant.
  */
-export function createFederationSession(
-  config: Partial<FederationConfig> = {}
-): FederationSession {
+export function createFederationSession(config: Partial<FederationConfig> = {}): FederationSession {
   const resolvedConfig: FederationConfig = {
     epsilon: config.epsilon ?? 0.5,
     sensitivity: config.sensitivity ?? 1.0,
@@ -281,9 +275,7 @@ export function applyAggregatedUpdate(
     throw new Error('Weight vector length mismatch');
   }
 
-  const updated = local.weights.map(
-    (w, i) => w + learningRate * aggregated.aggregatedDelta[i]
-  );
+  const updated = local.weights.map((w, i) => w + learningRate * aggregated.aggregatedDelta[i]);
 
   return {
     traitId: local.traitId,

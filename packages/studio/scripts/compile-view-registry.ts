@@ -21,7 +21,13 @@ import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
 const STUDIO_ROOT = join(import.meta.dirname || __dirname, '..');
 const PANELS_DIR = join(STUDIO_ROOT, 'src', 'lib', 'studio', 'panels');
 const OUT_PATH = join(STUDIO_ROOT, 'src', 'lib', 'studio', 'viewRegistry.generated.ts');
-const COMPONENTS_OUT_PATH = join(STUDIO_ROOT, 'src', 'lib', 'studio', 'viewRegistry.components.tsx');
+const COMPONENTS_OUT_PATH = join(
+  STUDIO_ROOT,
+  'src',
+  'lib',
+  'studio',
+  'viewRegistry.components.tsx'
+);
 const STRICT = process.argv.includes('--strict') || process.env.HOLO_STRICT === '1';
 
 interface ViewMeta {
@@ -48,7 +54,16 @@ function extractView(ast: any, file: string): ViewMeta {
     throw new Error(`${file}: missing @view({...}) decorator on composition`);
   }
   const v = viewTrait.config._arg0 as Partial<ViewMeta>;
-  const required = ['id', 'title', 'icon', 'category', 'placement', 'scope', 'gate', 'surfaceClass'];
+  const required = [
+    'id',
+    'title',
+    'icon',
+    'category',
+    'placement',
+    'scope',
+    'gate',
+    'surfaceClass',
+  ];
   for (const k of required) {
     if (v[k as keyof ViewMeta] === undefined) throw new Error(`${file}: @view missing '${k}'`);
   }
@@ -161,7 +176,7 @@ function build(): void {
     "import type { ComponentType } from 'react';\n\n" +
     'type AnyModule = Record<string, unknown>;\n' +
     'const pick = (m: AnyModule, name: string): ComponentType<unknown> =>\n' +
-    "  ((m[name] ?? (m as { default?: unknown }).default) as ComponentType<unknown>);\n\n" +
+    '  ((m[name] ?? (m as { default?: unknown }).default) as ComponentType<unknown>);\n\n' +
     '/** Dynamically-imported React widget for each slotted view (by view id). */\n' +
     'export const VIEW_COMPONENTS: Record<string, ComponentType<unknown>> = {\n' +
     slotEntries
@@ -183,7 +198,9 @@ function build(): void {
   if (errorCount > 0) {
     const msg = `viewreg:build: ${errorCount} panel .holo file(s) did not compile`;
     if (STRICT) throw new Error(`${msg} (strict mode — failing the gate)`);
-    console.warn(`\n⚠ ${msg} — keeping last-good generated registry; deploy NOT blocked. Run --strict in CI.`);
+    console.warn(
+      `\n⚠ ${msg} — keeping last-good generated registry; deploy NOT blocked. Run --strict in CI.`
+    );
   }
 }
 

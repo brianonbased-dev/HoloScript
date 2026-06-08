@@ -86,7 +86,6 @@ export async function GET(request: NextRequest) {
   });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

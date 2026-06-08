@@ -188,10 +188,12 @@ export class PluginInstallPipeline {
       );
       this.emitProgress(pluginId, 'download', 30);
 
-      const { bundle, shasum, expectedShasum, signature: downloadSignature } = await this.downloadPackage(
-        pluginId,
-        metadata.version
-      );
+      const {
+        bundle,
+        shasum,
+        expectedShasum,
+        signature: downloadSignature,
+      } = await this.downloadPackage(pluginId, metadata.version);
 
       // Stage 3: Verify integrity
       this.emitState(pluginId, 'verifying', 'Verifying package integrity...');
@@ -676,11 +678,7 @@ export class PluginInstallPipeline {
     const contentHash = this.signatureService.computeContentHash(bundle);
 
     // Delegate to the fully implemented PluginSignatureService
-    return this.signatureService.verifyPackageIntegrity(
-      bundle,
-      contentHash,
-      signature
-    );
+    return this.signatureService.verifyPackageIntegrity(bundle, contentHash, signature);
   }
 
   /**

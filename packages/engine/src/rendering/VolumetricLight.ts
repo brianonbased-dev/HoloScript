@@ -46,7 +46,7 @@ export class VolumetricLight {
   addLight(config: Partial<VolumetricLightConfig> & { id: string }): VolumetricLightConfig {
     const light: VolumetricLightConfig = {
       position: [0, 50, 0],
-      direction: [0, -1, 0 ],
+      direction: [0, -1, 0],
       color: [1, 0.95, 0.8],
       intensity: 1,
       scattering: 0.3,
@@ -75,11 +75,7 @@ export class VolumetricLight {
   // Ray March Simulation
   // ---------------------------------------------------------------------------
 
-  march(
-    lightId: string,
-    viewPos: Vector3,
-    viewDir: Vector3
-  ): VolumetricSample[] {
+  march(lightId: string, viewPos: Vector3, viewDir: Vector3): VolumetricSample[] {
     const light = this.lights.get(lightId);
     if (!light || !light.enabled) return [];
 
@@ -90,10 +86,14 @@ export class VolumetricLight {
 
     for (let i = 0; i < light.samples; i++) {
       const t = (i + 0.5) * stepSize;
-      const samplePos = [viewPos[0] + dir[0] * t, viewPos[1] + dir[1] * t, viewPos[2] + dir[2] * t, ];
+      const samplePos = [viewPos[0] + dir[0] * t, viewPos[1] + dir[1] * t, viewPos[2] + dir[2] * t];
 
       // Phase function (Henyey-Greenstein approximation)
-      const toLight = [light.position[0] - samplePos[0], light.position[1] - samplePos[1], light.position[2] - samplePos[2], ];
+      const toLight = [
+        light.position[0] - samplePos[0],
+        light.position[1] - samplePos[1],
+        light.position[2] - samplePos[2],
+      ];
       const dist = Math.sqrt(toLight[0] ** 2 + toLight[1] ** 2 + toLight[2] ** 2) || 1;
       const ndl = (toLight[0] * dir[0] + toLight[1] * dir[1] + toLight[2] * dir[2]) / dist;
 
@@ -135,6 +135,6 @@ export class VolumetricLight {
 
   private normalize(v: Vector3): Vector3 {
     const len = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) || 1;
-    return [v[0] / len, v[1] / len, v[2] / len ];
+    return [v[0] / len, v[1] / len, v[2] / len];
   }
 }

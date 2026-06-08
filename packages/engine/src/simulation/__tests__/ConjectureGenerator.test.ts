@@ -295,8 +295,7 @@ describe('curvatureBoundProbe + curvature cone family', () => {
     expect(falsifiedReceipt.counterexamples.length).toBeGreaterThanOrEqual(1);
     expect(
       falsifiedReceipt.evaluations.some(
-        (evaluation) =>
-          evaluation.status === 'falsified' && evaluation.parameters.apexHeight === 2
+        (evaluation) => evaluation.status === 'falsified' && evaluation.parameters.apexHeight === 2
       )
     ).toBe(true);
   });

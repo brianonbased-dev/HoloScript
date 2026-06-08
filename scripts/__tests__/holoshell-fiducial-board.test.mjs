@@ -7,11 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  RECEIPT_VERSION,
-  selfTest,
-  validateReceipt,
-} from '../holoshell-fiducial-board.mjs';
+import { RECEIPT_VERSION, selfTest, validateReceipt } from '../holoshell-fiducial-board.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
@@ -34,7 +30,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -45,7 +43,10 @@ assertEq(receipt.status, 'pass', 'pass status');
 assertEq(validateReceipt(receipt).length, 0, 'receipt validates');
 assertEq(receipt.target.profile, 'fiducial-board', 'target profile recorded');
 assertEq(receipt.target.markers.length, 9, 'nine marker descriptors recorded');
-assertOk(receipt.target.markers.every((marker) => marker.payload.length === 25), 'marker payloads are 5x5');
+assertOk(
+  receipt.target.markers.every((marker) => marker.payload.length === 25),
+  'marker payloads are 5x5'
+);
 assertEq(receipt.target.compatibility.opencvAruco, false, 'OpenCV ArUco compatibility is honest');
 assertEq(receipt.target.compatibility.aprilTag, false, 'AprilTag compatibility is honest');
 assertOk(receipt.target.pngHash.startsWith('sha256:'), 'target PNG hash recorded');
@@ -67,7 +68,10 @@ const missingMarkers = {
     markers: [],
   },
 };
-assertOk(validateReceipt(missingMarkers).includes('marker metadata missing'), 'markers are required');
+assertOk(
+  validateReceipt(missingMarkers).includes('marker metadata missing'),
+  'markers are required'
+);
 
 console.log('Test 4: CLI self-test runs without touching hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {

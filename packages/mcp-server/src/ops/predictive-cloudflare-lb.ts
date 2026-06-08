@@ -4,7 +4,11 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { PredictiveLoadBalancer } from './pipeline.js';
-import { cfGetLoadBalancerPool, cfPatchLoadBalancerPool, type CfOrigin } from './cloudflare-lb-api.js';
+import {
+  cfGetLoadBalancerPool,
+  cfPatchLoadBalancerPool,
+  type CfOrigin,
+} from './cloudflare-lb-api.js';
 
 export interface LbWeightsSnapshot {
   backends: string[];
@@ -149,7 +153,8 @@ export async function runPredictiveCloudflareLbTick(options: {
 
 export function maybeStartPredictiveCloudflareLbLoop(): void {
   const enabled =
-    process.env.MCP_PREDICTIVE_LB_ENABLED === '1' || process.env.MCP_PREDICTIVE_LB_ENABLED === 'true';
+    process.env.MCP_PREDICTIVE_LB_ENABLED === '1' ||
+    process.env.MCP_PREDICTIVE_LB_ENABLED === 'true';
   if (!enabled) return;
 
   const apiToken = process.env.CLOUDFLARE_API_TOKEN || '';
@@ -164,8 +169,12 @@ export function maybeStartPredictiveCloudflareLbLoop(): void {
   }
 
   const dryRun =
-    process.env.MCP_PREDICTIVE_LB_DRY_RUN === '1' || process.env.MCP_PREDICTIVE_LB_DRY_RUN === 'true';
-  const intervalMs = Math.max(10_000, parseInt(process.env.MCP_PREDICTIVE_LB_INTERVAL_MS || '30000', 10));
+    process.env.MCP_PREDICTIVE_LB_DRY_RUN === '1' ||
+    process.env.MCP_PREDICTIVE_LB_DRY_RUN === 'true';
+  const intervalMs = Math.max(
+    10_000,
+    parseInt(process.env.MCP_PREDICTIVE_LB_INTERVAL_MS || '30000', 10)
+  );
 
   console.info(
     `[predictive-lb] Cloudflare pool ${poolId} every ${intervalMs}ms (dryRun=${dryRun}); origin names must match MCP_PREDICTIVE_LB_BACKENDS`

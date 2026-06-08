@@ -15,7 +15,10 @@ type RenderResult = {
   error?: string;
   note?: string;
   render?: { target: string; engine: string; mode: string; requiresGpu: boolean };
-  workload?: { id: string; jobs: { job_type: string; command: string; requires_webgpu: boolean }[] };
+  workload?: {
+    id: string;
+    jobs: { job_type: string; command: string; requires_webgpu: boolean }[];
+  };
 };
 
 async function call(args: Record<string, unknown>): Promise<RenderResult> {
@@ -53,7 +56,9 @@ describe('render_world_on_fleet — dryRun preview (default, no spend)', () => {
   });
 
   it('scales the estimate with quality', async () => {
-    expect((await call({ world: 'x', target: '3dgs', quality: 'ultra' })).estimateSeconds).toBe(2400);
+    expect((await call({ world: 'x', target: '3dgs', quality: 'ultra' })).estimateSeconds).toBe(
+      2400
+    );
   });
 
   it('previews a pending rasterize target but flags enginePending', async () => {

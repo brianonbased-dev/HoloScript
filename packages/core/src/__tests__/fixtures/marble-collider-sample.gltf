@@ -5,29 +5,39 @@
   },
   "scene": 0,
   "scenes": [{ "nodes": [0] }],
-  "nodes": [{
-    "mesh": 0,
-    "name": "ColliderBox"
-  }],
-  "meshes": [{
-    "primitives": [{
-      "attributes": {
-        "POSITION": 0
-      },
-      "indices": 1,
-      "material": 0
-    }]
-  }],
-  "buffers": [{
-    "uri": "data:application/octet-stream;base64,AAABAAIAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "byteLength": 48
-  }],
-  "bufferViews": [{
-    "buffer": 0,
-    "byteOffset": 0,
-    "byteLength": 48,
-    "target": 34963
-  }],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "ColliderBox"
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0
+          },
+          "indices": 1,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "data:application/octet-stream;base64,AAABAAIAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "byteLength": 48
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 48,
+      "target": 34963
+    }
+  ],
   "accessors": [
     {
       "bufferView": 0,
@@ -44,10 +54,12 @@
       "type": "SCALAR"
     }
   ],
-  "materials": [{
-    "name": "ColliderMaterial",
-    "pbrMetallicRoughness": {
-      "baseColorFactor": [0.8, 0.2, 0.2, 1.0]
+  "materials": [
+    {
+      "name": "ColliderMaterial",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [0.8, 0.2, 0.2, 1.0]
+      }
     }
-  }]
+  ]
 }

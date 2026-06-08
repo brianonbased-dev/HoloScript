@@ -73,7 +73,13 @@ describe('executeFunction', () => {
 
   it('includes spatialPosition', async () => {
     const ctx = makeCtx();
-    const node = { type: 'function', id: 'fn', name: 'fn', parameters: [], position: [0, 0, 0] as [number, number, number] };
+    const node = {
+      type: 'function',
+      id: 'fn',
+      name: 'fn',
+      parameters: [],
+      position: [0, 0, 0] as [number, number, number],
+    };
     const result = await executeFunction(node, ctx);
     expect(result.spatialPosition).toBeDefined();
   });
@@ -136,7 +142,10 @@ describe('executeConnection', () => {
 describe('executeGate', () => {
   it('evaluates true path when condition is truthy', async () => {
     const ctx = makeCtx();
-    (ctx.executeProgram as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, output: 'truePath' });
+    (ctx.executeProgram as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      output: 'truePath',
+    });
     const node = {
       type: 'gate',
       condition: 'true',
@@ -149,7 +158,10 @@ describe('executeGate', () => {
 
   it('evaluates false path when condition is falsy', async () => {
     const ctx = makeCtx();
-    (ctx.executeProgram as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, output: 'falsePath' });
+    (ctx.executeProgram as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      output: 'falsePath',
+    });
     const node = {
       type: 'gate',
       condition: 'false',

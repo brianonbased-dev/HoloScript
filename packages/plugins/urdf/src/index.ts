@@ -71,7 +71,9 @@ export function importFromUrdf(input: UrdfImportInput): UrdfImportOutput {
 
     // Geometry — look for geometry block near this link name
     const geomMatch = urdf_xml.match(
-      new RegExp(`<link[^>]+name="${name}"[\\s\\S]*?<geometry>[\\s\\S]*?<(box|cylinder|sphere|mesh)`)
+      new RegExp(
+        `<link[^>]+name="${name}"[\\s\\S]*?<geometry>[\\s\\S]*?<(box|cylinder|sphere|mesh)`
+      )
     );
     if (geomMatch) {
       link.geometry = geomMatch[1] as UrdfLink['geometry'];
@@ -106,16 +108,14 @@ export function importFromUrdf(input: UrdfImportInput): UrdfImportOutput {
 
     const rawType = typeMatch ? typeMatch[1] : 'unknown';
     const validTypes = ['revolute', 'continuous', 'prismatic', 'fixed', 'floating', 'planar'];
-    const type = validTypes.includes(rawType)
-      ? (rawType as UrdfJoint['type'])
-      : 'unknown';
+    const type = validTypes.includes(rawType) ? (rawType as UrdfJoint['type']) : 'unknown';
 
     // Axis
     const axisMatch = body.match(/<axis\s+xyz="([^"]+)"/);
     let axis: [number, number, number] = [0, 0, 1];
     if (axisMatch) {
       const parts = axisMatch[1].split(/\s+/).map(Number);
-      if (parts.length === 3 && parts.every(n => !isNaN(n))) {
+      if (parts.length === 3 && parts.every((n) => !isNaN(n))) {
         axis = [parts[0], parts[1], parts[2]];
       }
     }
@@ -200,8 +200,5 @@ export function urdfRoundTrip(urdf_xml: string): boolean {
   const first = importFromUrdf({ urdf_xml });
   const exported = exportToUrdf({ ir: first.ir });
   const second = importFromUrdf({ urdf_xml: exported.urdf_xml });
-  return (
-    second.link_count === first.link_count &&
-    second.joint_count === first.joint_count
-  );
+  return second.link_count === first.link_count && second.joint_count === first.joint_count;
 }

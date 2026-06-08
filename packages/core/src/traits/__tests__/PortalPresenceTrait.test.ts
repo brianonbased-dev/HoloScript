@@ -92,14 +92,14 @@ describe('onAttach', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     portalPresenceHandler.onAttach(node, BASE_CONFIG, context);
-    expect(emitted.some(e => e.type === 'portal_presence:registered')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal_presence:registered')).toBe(true);
   });
 
   it('registered event should include worldId and scopes', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     portalPresenceHandler.onAttach(node, BASE_CONFIG, context);
-    const ev = emitted.find(e => e.type === 'portal_presence:registered');
+    const ev = emitted.find((e) => e.type === 'portal_presence:registered');
     expect((ev!.payload as any).worldId).toBe('world-test');
     expect((ev!.payload as any).scopes).toEqual(['read-only']);
   });
@@ -131,14 +131,14 @@ describe('onDetach', () => {
     });
     const { context: ctx2, emitted: ev2 } = makeContext();
     portalPresenceHandler.onDetach(node, config, ctx2);
-    expect(ev2.some(e => e.type === 'portal_presence:entrant_departed')).toBe(true);
+    expect(ev2.some((e) => e.type === 'portal_presence:entrant_departed')).toBe(true);
   });
 
   it('should emit portal_presence:unregistered on detach', () => {
     const { node, config } = setup();
     const { context, emitted } = makeContext();
     portalPresenceHandler.onDetach(node, config, context);
-    expect(emitted.some(e => e.type === 'portal_presence:unregistered')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal_presence:unregistered')).toBe(true);
   });
 
   it('should handle detach with no state gracefully', () => {
@@ -206,13 +206,13 @@ describe('portal open/close', () => {
   it('should emit state_change on open', () => {
     const { node, config, context, emitted } = setup({ open: false });
     fire(node, config, context, 'portal_presence:open');
-    expect(emitted.some(e => e.type === 'portal_presence:state_change')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal_presence:state_change')).toBe(true);
   });
 
   it('should emit state_change on close', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal_presence:close');
-    expect(emitted.some(e => e.type === 'portal_presence:state_change')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal_presence:state_change')).toBe(true);
   });
 });
 
@@ -237,7 +237,7 @@ describe('portal_presence:request_entry', () => {
       entrantId: 'agent-1',
       name: 'Agent One',
     });
-    expect(emitted.some(e => e.type === 'portal_presence:entrant_arrived')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal_presence:entrant_arrived')).toBe(true);
   });
 
   it('should emit threshold_handshake on entry', () => {
@@ -245,7 +245,7 @@ describe('portal_presence:request_entry', () => {
     fire(node, config, context, 'portal_presence:request_entry', {
       entrantId: 'agent-1',
     });
-    expect(emitted.some(e => e.type === 'portal_presence:threshold_handshake')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal_presence:threshold_handshake')).toBe(true);
   });
 
   it('should reject entry when portal is closed', () => {
@@ -254,14 +254,14 @@ describe('portal_presence:request_entry', () => {
       entrantId: 'agent-1',
     });
     expect(getState(node).entrants.has('agent-1')).toBe(false);
-    expect(emitted.some(e => e.type === 'portal_presence:entry_rejected')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal_presence:entry_rejected')).toBe(true);
   });
 
   it('should reject entry with missing entrantId', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal_presence:request_entry', {});
-    expect(emitted.some(e => e.type === 'portal_presence:entry_rejected')).toBe(true);
-    const ev = emitted.find(e => e.type === 'portal_presence:entry_rejected');
+    expect(emitted.some((e) => e.type === 'portal_presence:entry_rejected')).toBe(true);
+    const ev = emitted.find((e) => e.type === 'portal_presence:entry_rejected');
     expect((ev!.payload as any).reason).toBe('missing_entrant_id');
   });
 
@@ -288,8 +288,8 @@ describe('portal_presence:request_entry', () => {
       representation: 'semantic',
       agentCardPresent: false,
     });
-    expect(emitted.some(e => e.type === 'portal_presence:entry_rejected')).toBe(true);
-    const ev = emitted.find(e => e.type === 'portal_presence:entry_rejected');
+    expect(emitted.some((e) => e.type === 'portal_presence:entry_rejected')).toBe(true);
+    const ev = emitted.find((e) => e.type === 'portal_presence:entry_rejected');
     expect((ev!.payload as any).reason).toBe('agent_card_required');
   });
 
@@ -399,10 +399,13 @@ describe('portal_presence:depart', () => {
 
   it('should emit entrant_departed on departure', () => {
     const { node, config, context } = setup();
-    fire(node, config, context, 'portal_presence:request_entry', { entrantId: 'e1', name: 'Agent' });
+    fire(node, config, context, 'portal_presence:request_entry', {
+      entrantId: 'e1',
+      name: 'Agent',
+    });
     const { context: ctx2, emitted: ev2 } = makeContext();
     fire(node, config, ctx2, 'portal_presence:depart', { entrantId: 'e1' });
-    expect(ev2.some(e => e.type === 'portal_presence:entrant_departed')).toBe(true);
+    expect(ev2.some((e) => e.type === 'portal_presence:entrant_departed')).toBe(true);
   });
 
   it('should increment totalDeparted on departure', () => {
@@ -436,7 +439,7 @@ describe('portal_presence:validate_delta', () => {
       entrantId: 'e1',
       requiredScope: 'mutate-zone',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(true);
   });
 
@@ -451,7 +454,7 @@ describe('portal_presence:validate_delta', () => {
       entrantId: 'e1',
       requiredScope: 'read-only',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(true);
   });
 
@@ -466,7 +469,7 @@ describe('portal_presence:validate_delta', () => {
       entrantId: 'e1',
       requiredScope: 'drive-avatar',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(false);
     expect((ev!.payload as any).reason).toBe('scope_exceeded');
   });
@@ -482,7 +485,7 @@ describe('portal_presence:validate_delta', () => {
       entrantId: 'e1',
       requiredScope: 'mutate-zone',
     });
-    expect(emitted.some(e => e.type === 'portal_presence:scope_violation')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal_presence:scope_violation')).toBe(true);
   });
 
   it('should increment totalViolations on scope violation', () => {
@@ -504,7 +507,7 @@ describe('portal_presence:validate_delta', () => {
       entrantId: 'ghost',
       requiredScope: 'read-only',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(false);
   });
 
@@ -521,7 +524,7 @@ describe('portal_presence:validate_delta', () => {
       requiredScope: 'mutate-zone',
       zone: 'zone-B',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(false);
     expect((ev!.payload as any).reason).toBe('zone_not_admitted');
   });
@@ -539,7 +542,7 @@ describe('portal_presence:validate_delta', () => {
       requiredScope: 'mutate-zone',
       zone: 'zone-arbitrary',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(true);
   });
 
@@ -554,7 +557,7 @@ describe('portal_presence:validate_delta', () => {
       entrantId: 'e1',
       requiredScope: 'drive-avatar',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(true);
   });
 });
@@ -567,13 +570,13 @@ describe('portal_presence:get_status', () => {
   it('should emit status event', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal_presence:get_status');
-    expect(emitted.some(e => e.type === 'portal_presence:status')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal_presence:status')).toBe(true);
   });
 
   it('status should include worldId and zoneId', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'portal_presence:get_status');
-    const ev = emitted.find(e => e.type === 'portal_presence:status');
+    const ev = emitted.find((e) => e.type === 'portal_presence:status');
     expect((ev!.payload as any).worldId).toBe('world-test');
     expect((ev!.payload as any).zoneId).toBe('zone-alpha');
   });
@@ -583,7 +586,7 @@ describe('portal_presence:get_status', () => {
     fire(node, config, context, 'portal_presence:request_entry', { entrantId: 'e1' });
     emitted.length = 0;
     fire(node, config, context, 'portal_presence:get_status');
-    const ev = emitted.find(e => e.type === 'portal_presence:status');
+    const ev = emitted.find((e) => e.type === 'portal_presence:status');
     expect((ev!.payload as any).entrantCount).toBe(1);
   });
 });
@@ -633,7 +636,7 @@ describe('portal_presence:update_scopes', () => {
       entrantId: 'e1',
       scopes: ['mutate-zone'],
     });
-    expect(emitted.some(e => e.type === 'portal_presence:scopes_updated')).toBe(true);
+    expect(emitted.some((e) => e.type === 'portal_presence:scopes_updated')).toBe(true);
   });
 
   it('should ignore update for unknown entrant', () => {
@@ -664,7 +667,7 @@ describe('portal_presence:expel', () => {
     fire(node, config, context, 'portal_presence:request_entry', { entrantId: 'e1', name: 'A' });
     const { context: ctx2, emitted: ev2 } = makeContext();
     fire(node, config, ctx2, 'portal_presence:expel', { entrantId: 'e1', reason: 'violation' });
-    const ev = ev2.find(e => e.type === 'portal_presence:entrant_departed');
+    const ev = ev2.find((e) => e.type === 'portal_presence:entrant_departed');
     expect((ev!.payload as any).reason).toBe('violation');
   });
 
@@ -740,7 +743,7 @@ describe('scope precedence', () => {
       entrantId: 'e1',
       requiredScope: 'mutate-zone',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(true);
   });
 
@@ -755,7 +758,7 @@ describe('scope precedence', () => {
       entrantId: 'e1',
       requiredScope: 'read-only',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(true);
   });
 
@@ -770,7 +773,7 @@ describe('scope precedence', () => {
       entrantId: 'e1',
       requiredScope: 'drive-avatar',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(false);
   });
 
@@ -785,7 +788,7 @@ describe('scope precedence', () => {
       entrantId: 'e1',
       requiredScope: 'drive-avatar',
     });
-    const ev = emitted.find(e => e.type === 'portal_presence:delta_result');
+    const ev = emitted.find((e) => e.type === 'portal_presence:delta_result');
     expect((ev!.payload as any).allowed).toBe(false);
   });
 });

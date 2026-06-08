@@ -19,8 +19,12 @@ import {
  */
 describe('GPU Structural Verification', () => {
   it('produces numerically identical results to CPU reference (Cantilever Bending)', async () => {
-    const lx = 1, ly = 1, lz = 5;
-    const nx = 1, ny = 1, nz = 3;
+    const lx = 1,
+      ly = 1,
+      lz = 5;
+    const nx = 1,
+      ny = 1,
+      nz = 3;
 
     // 1. Build coarse mesh
     const pts: number[] = [];
@@ -36,8 +40,14 @@ describe('GPU Structural Verification', () => {
     for (let k = 0; k < nz; k++) {
       for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
-          const v0 = idx(i, j, k), v1 = idx(i + 1, j, k), v2 = idx(i + 1, j + 1, k), v3 = idx(i, j + 1, k);
-          const v4 = idx(i, j, k + 1), v5 = idx(i + 1, j, k + 1), v6 = idx(i + 1, j + 1, k + 1), v7 = idx(i, j + 1, k + 1);
+          const v0 = idx(i, j, k),
+            v1 = idx(i + 1, j, k),
+            v2 = idx(i + 1, j + 1, k),
+            v3 = idx(i, j + 1, k);
+          const v4 = idx(i, j, k + 1),
+            v5 = idx(i + 1, j, k + 1),
+            v6 = idx(i + 1, j + 1, k + 1),
+            v7 = idx(i, j + 1, k + 1);
           tets.push(v0, v1, v3, v4, v1, v2, v3, v6, v4, v5, v6, v1, v4, v6, v7, v3, v1, v4, v6, v3);
         }
       }
@@ -67,7 +77,7 @@ describe('GPU Structural Verification', () => {
         yield_strength: yieldStrength(1e8),
       },
       constraints: [{ id: 'fixed', type: 'fixed', nodes: fixedNodes }],
-      loads: tipNodes.map(n => ({
+      loads: tipNodes.map((n) => ({
         id: `L${n}`,
         type: 'point' as const,
         nodeIndex: n,
@@ -84,11 +94,11 @@ describe('GPU Structural Verification', () => {
 
     // 4. Solve on GPU
     const gpuSolver = new StructuralSolverTET10({ ...configBase, useGPU: true });
-    const result = await gpuSolver.solve(); 
-    
+    const result = await gpuSolver.solve();
+
     if (result.converged) {
       const gpuDisp = gpuSolver.getDisplacements();
-      
+
       // 5. Compare results
       let maxDiff = 0;
       for (let i = 0; i < cpuDisp.length; i++) {
@@ -97,7 +107,7 @@ describe('GPU Structural Verification', () => {
 
       // Expect high agreement (within CG tolerance)
       expect(maxDiff).toBeLessThan(1e-7);
-      
+
       // Verify zero-copy buffer is available (only when WebGPU was actually used)
       const buffer = gpuSolver.getDisplacementBuffer();
       if (buffer) {

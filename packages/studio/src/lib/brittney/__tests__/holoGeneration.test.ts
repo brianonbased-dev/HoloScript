@@ -276,7 +276,8 @@ const FIXTURE_AI_AGENT = `composition "AI Assistant" {
 // NEGATIVE FIXTURES — intentionally broken outputs to test error detection
 // ═══════════════════════════════════════════════════���═══════════════════════
 
-const FIXTURE_MARKDOWN_WRAPPED = '```holoscript\ncomposition "Test" {\n  object "Cube" {\n    geometry: "cube"\n  }\n}\n```';
+const FIXTURE_MARKDOWN_WRAPPED =
+  '```holoscript\ncomposition "Test" {\n  object "Cube" {\n    geometry: "cube"\n  }\n}\n```';
 
 const FIXTURE_UNBALANCED_BRACES = `composition "Broken" {
   object "Cube" {
@@ -493,8 +494,8 @@ describe('holoGeneration — parseHolo integration', () => {
     // Should have light objects
     const lightObjects = result.ast?.objects.filter((o) =>
       o.properties.some(
-        (p) => p.key === 'type' && typeof p.value === 'string' && p.value.includes('light'),
-      ),
+        (p) => p.key === 'type' && typeof p.value === 'string' && p.value.includes('light')
+      )
     );
     expect(lightObjects?.length).toBeGreaterThanOrEqual(2);
   });
@@ -507,7 +508,7 @@ describe('holoGeneration — parseHolo integration', () => {
     expect(result.ast?.name).toBe('Robot Arm');
     // Find objects with physics traits
     const physicsObjects = result.ast?.objects.filter((o) =>
-      o.traits.some((t) => t.name === 'physics'),
+      o.traits.some((t) => t.name === 'physics')
     );
     expect(physicsObjects?.length).toBeGreaterThanOrEqual(3);
     // Check joints exist
@@ -523,11 +524,11 @@ describe('holoGeneration — parseHolo integration', () => {
     expect(result.ast?.name).toBe('Storefront');
     // Find objects with inventory/paywall traits
     const inventoryObjects = result.ast?.objects.filter((o) =>
-      o.traits.some((t) => t.name === 'inventory_sync'),
+      o.traits.some((t) => t.name === 'inventory_sync')
     );
     expect(inventoryObjects?.length).toBeGreaterThanOrEqual(1);
     const paywallObjects = result.ast?.objects.filter((o) =>
-      o.traits.some((t) => t.name === 'x402_paywall'),
+      o.traits.some((t) => t.name === 'x402_paywall')
     );
     expect(paywallObjects?.length).toBeGreaterThanOrEqual(1);
   });
@@ -539,9 +540,7 @@ describe('holoGeneration — parseHolo integration', () => {
     expect(result.ast).toBeDefined();
     expect(result.ast?.name).toBe('AI Assistant');
     // Find objects with ai_npc trait
-    const aiObjects = result.ast?.objects.filter((o) =>
-      o.traits.some((t) => t.name === 'ai_npc'),
-    );
+    const aiObjects = result.ast?.objects.filter((o) => o.traits.some((t) => t.name === 'ai_npc'));
     expect(aiObjects?.length).toBeGreaterThanOrEqual(1);
   });
 

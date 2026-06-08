@@ -211,7 +211,9 @@ export function verifySubmission(
       ...safetyResult.report.budget.diagnostics
         .filter((d: { severity: string; message: string }) => d.severity === 'error')
         .map((d: { severity: string; message: string }) => d.message),
-      ...safetyResult.report.capabilities.missing.map((m: { scope: string }) => `Missing capability: ${m.scope}`),
+      ...safetyResult.report.capabilities.missing.map(
+        (m: { scope: string }) => `Missing capability: ${m.scope}`
+      ),
     ];
   } else if (safetyResult.report.verdict === 'warnings' && !cfg.allowWarnings) {
     submission.status = 'rejected';

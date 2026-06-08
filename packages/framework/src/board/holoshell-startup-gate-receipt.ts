@@ -20,8 +20,7 @@ import type { ArtifactHashAlgorithm } from './board-types';
 
 // ── Version ──
 
-export const HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION =
-  'hololand.holoshell.startup-gate.v0.1.0';
+export const HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION = 'hololand.holoshell.startup-gate.v0.1.0';
 
 // ── Workflow ──
 
@@ -60,8 +59,7 @@ export const STARTUP_GATE_PERMISSION_ENVELOPES = [
   'break_glass_register',
   'revoke_only',
 ] as const;
-export type StartupGatePermissionEnvelope =
-  (typeof STARTUP_GATE_PERMISSION_ENVELOPES)[number];
+export type StartupGatePermissionEnvelope = (typeof STARTUP_GATE_PERMISSION_ENVELOPES)[number];
 
 export const STARTUP_VERIFICATION_METHODS = [
   'startup_folder_exists',
@@ -73,8 +71,7 @@ export const STARTUP_VERIFICATION_METHODS = [
   'systemd_unit_exists',
   'manual_redacted_witness',
 ] as const;
-export type StartupVerificationMethod =
-  (typeof STARTUP_VERIFICATION_METHODS)[number];
+export type StartupVerificationMethod = (typeof STARTUP_VERIFICATION_METHODS)[number];
 
 // ── Sub-receipts ──
 
@@ -242,8 +239,7 @@ function isIsoTimestamp(value: string | undefined): boolean {
 
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
-    typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
+    typeof value === 'string' && /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
   );
 }
 
@@ -282,9 +278,12 @@ export function validateStartupRegistrationState(
     errors.push('StartupRegistrationState is required for registered packs.');
     return;
   }
-  if (!isNonEmptyString(state.platform)) errors.push('StartupRegistrationState.platform is required.');
-  if (typeof state.registered !== 'boolean') errors.push('StartupRegistrationState.registered must be a boolean.');
-  if (!isNonEmptyString(state.commandHash)) errors.push('StartupRegistrationState.commandHash is required.');
+  if (!isNonEmptyString(state.platform))
+    errors.push('StartupRegistrationState.platform is required.');
+  if (typeof state.registered !== 'boolean')
+    errors.push('StartupRegistrationState.registered must be a boolean.');
+  if (!isNonEmptyString(state.commandHash))
+    errors.push('StartupRegistrationState.commandHash is required.');
   if (hasAbsolutePath(state.commandPreview)) {
     errors.push('StartupRegistrationState.commandPreview must not contain absolute paths.');
   }
@@ -294,8 +293,10 @@ export function validateStartupRegistrationState(
   if (typeof state.placedByHoloShell !== 'boolean') {
     errors.push('StartupRegistrationState.placedByHoloShell must be a boolean.');
   }
-  if (!isIsoTimestamp(state.observedAt)) errors.push('StartupRegistrationState.observedAt must be a valid ISO timestamp.');
-  if (!isNonEmptyString(state.stateHash)) errors.push('StartupRegistrationState.stateHash is required.');
+  if (!isIsoTimestamp(state.observedAt))
+    errors.push('StartupRegistrationState.observedAt must be a valid ISO timestamp.');
+  if (!isNonEmptyString(state.stateHash))
+    errors.push('StartupRegistrationState.stateHash is required.');
 }
 
 export function validateStartupRegistrationRequestReceipt(
@@ -303,20 +304,31 @@ export function validateStartupRegistrationRequestReceipt(
   errors: string[]
 ): void {
   if (!receipt) {
-    errors.push('StartupRegistrationRequestReceipt is required when status >= registration_requested.');
+    errors.push(
+      'StartupRegistrationRequestReceipt is required when status >= registration_requested.'
+    );
     return;
   }
   if (receipt.schemaVersion !== HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION) {
-    errors.push(`StartupRegistrationRequestReceipt.schemaVersion must be ${HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION}`);
+    errors.push(
+      `StartupRegistrationRequestReceipt.schemaVersion must be ${HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION}`
+    );
   }
-  if (!isNonEmptyString(receipt.id)) errors.push('StartupRegistrationRequestReceipt.id is required.');
-  if (!isNonEmptyString(receipt.platform)) errors.push('StartupRegistrationRequestReceipt.platform is required.');
-  if (!isNonEmptyString(receipt.purpose)) errors.push('StartupRegistrationRequestReceipt.purpose is required.');
+  if (!isNonEmptyString(receipt.id))
+    errors.push('StartupRegistrationRequestReceipt.id is required.');
+  if (!isNonEmptyString(receipt.platform))
+    errors.push('StartupRegistrationRequestReceipt.platform is required.');
+  if (!isNonEmptyString(receipt.purpose))
+    errors.push('StartupRegistrationRequestReceipt.purpose is required.');
   if (hasAbsolutePath(receipt.commandPreview)) {
-    errors.push('StartupRegistrationRequestReceipt.commandPreview must not contain absolute paths.');
+    errors.push(
+      'StartupRegistrationRequestReceipt.commandPreview must not contain absolute paths.'
+    );
   }
   if (receipt.commandPreviewContainsAbsolutePath !== false) {
-    errors.push('StartupRegistrationRequestReceipt.commandPreviewContainsAbsolutePath must be false.');
+    errors.push(
+      'StartupRegistrationRequestReceipt.commandPreviewContainsAbsolutePath must be false.'
+    );
   }
   if (typeof receipt.requiresFreshUserGesture !== 'boolean') {
     errors.push('StartupRegistrationRequestReceipt.requiresFreshUserGesture must be a boolean.');
@@ -330,8 +342,10 @@ export function validateStartupRegistrationRequestReceipt(
   if (!isIsoTimestamp(receipt.requestedAt)) {
     errors.push('StartupRegistrationRequestReceipt.requestedAt must be a valid ISO timestamp.');
   }
-  if (!isNonEmptyString(receipt.hash)) errors.push('StartupRegistrationRequestReceipt.hash is required.');
-  if (receipt.hashAlgorithm !== 'sha256') errors.push('StartupRegistrationRequestReceipt.hashAlgorithm must be sha256.');
+  if (!isNonEmptyString(receipt.hash))
+    errors.push('StartupRegistrationRequestReceipt.hash is required.');
+  if (receipt.hashAlgorithm !== 'sha256')
+    errors.push('StartupRegistrationRequestReceipt.hashAlgorithm must be sha256.');
 }
 
 export function validateStartupRegistrationApprovalReceipt(
@@ -339,13 +353,18 @@ export function validateStartupRegistrationApprovalReceipt(
   errors: string[]
 ): void {
   if (!receipt) {
-    errors.push('StartupRegistrationApprovalReceipt is required when status >= registration_approved.');
+    errors.push(
+      'StartupRegistrationApprovalReceipt is required when status >= registration_approved.'
+    );
     return;
   }
   if (receipt.schemaVersion !== HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION) {
-    errors.push(`StartupRegistrationApprovalReceipt.schemaVersion must be ${HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION}`);
+    errors.push(
+      `StartupRegistrationApprovalReceipt.schemaVersion must be ${HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION}`
+    );
   }
-  if (!isNonEmptyString(receipt.id)) errors.push('StartupRegistrationApprovalReceipt.id is required.');
+  if (!isNonEmptyString(receipt.id))
+    errors.push('StartupRegistrationApprovalReceipt.id is required.');
   if (!isNonEmptyString(receipt.requestReceiptId)) {
     errors.push('StartupRegistrationApprovalReceipt.requestReceiptId is required.');
   }
@@ -364,8 +383,10 @@ export function validateStartupRegistrationApprovalReceipt(
   if (!isIsoTimestamp(receipt.approvedAt)) {
     errors.push('StartupRegistrationApprovalReceipt.approvedAt must be a valid ISO timestamp.');
   }
-  if (!isNonEmptyString(receipt.hash)) errors.push('StartupRegistrationApprovalReceipt.hash is required.');
-  if (receipt.hashAlgorithm !== 'sha256') errors.push('StartupRegistrationApprovalReceipt.hashAlgorithm must be sha256.');
+  if (!isNonEmptyString(receipt.hash))
+    errors.push('StartupRegistrationApprovalReceipt.hash is required.');
+  if (receipt.hashAlgorithm !== 'sha256')
+    errors.push('StartupRegistrationApprovalReceipt.hashAlgorithm must be sha256.');
 }
 
 export function validateStartupRegistrationVerificationReceipt(
@@ -377,9 +398,12 @@ export function validateStartupRegistrationVerificationReceipt(
     return;
   }
   if (receipt.schemaVersion !== HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION) {
-    errors.push(`StartupRegistrationVerificationReceipt.schemaVersion must be ${HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION}`);
+    errors.push(
+      `StartupRegistrationVerificationReceipt.schemaVersion must be ${HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION}`
+    );
   }
-  if (!isNonEmptyString(receipt.id)) errors.push('StartupRegistrationVerificationReceipt.id is required.');
+  if (!isNonEmptyString(receipt.id))
+    errors.push('StartupRegistrationVerificationReceipt.id is required.');
   if (!isNonEmptyString(receipt.approvalReceiptId)) {
     errors.push('StartupRegistrationVerificationReceipt.approvalReceiptId is required.');
   }
@@ -401,8 +425,10 @@ export function validateStartupRegistrationVerificationReceipt(
   if (!isIsoTimestamp(receipt.verifiedAt)) {
     errors.push('StartupRegistrationVerificationReceipt.verifiedAt must be a valid ISO timestamp.');
   }
-  if (!isNonEmptyString(receipt.hash)) errors.push('StartupRegistrationVerificationReceipt.hash is required.');
-  if (receipt.hashAlgorithm !== 'sha256') errors.push('StartupRegistrationVerificationReceipt.hashAlgorithm must be sha256.');
+  if (!isNonEmptyString(receipt.hash))
+    errors.push('StartupRegistrationVerificationReceipt.hash is required.');
+  if (receipt.hashAlgorithm !== 'sha256')
+    errors.push('StartupRegistrationVerificationReceipt.hashAlgorithm must be sha256.');
 }
 
 export function validateStartupUnregistrationReceipt(
@@ -414,7 +440,9 @@ export function validateStartupUnregistrationReceipt(
     return;
   }
   if (receipt.schemaVersion !== HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION) {
-    errors.push(`StartupUnregistrationReceipt.schemaVersion must be ${HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION}`);
+    errors.push(
+      `StartupUnregistrationReceipt.schemaVersion must be ${HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION}`
+    );
   }
   if (!isNonEmptyString(receipt.id)) errors.push('StartupUnregistrationReceipt.id is required.');
   if (!isNonEmptyString(receipt.verificationReceiptId)) {
@@ -435,8 +463,10 @@ export function validateStartupUnregistrationReceipt(
   if (!isIsoTimestamp(receipt.unregisteredAt)) {
     errors.push('StartupUnregistrationReceipt.unregisteredAt must be a valid ISO timestamp.');
   }
-  if (!isNonEmptyString(receipt.hash)) errors.push('StartupUnregistrationReceipt.hash is required.');
-  if (receipt.hashAlgorithm !== 'sha256') errors.push('StartupUnregistrationReceipt.hashAlgorithm must be sha256.');
+  if (!isNonEmptyString(receipt.hash))
+    errors.push('StartupUnregistrationReceipt.hash is required.');
+  if (receipt.hashAlgorithm !== 'sha256')
+    errors.push('StartupUnregistrationReceipt.hashAlgorithm must be sha256.');
 }
 
 export function validateStartupReplayReceipt(
@@ -448,14 +478,17 @@ export function validateStartupReplayReceipt(
     return;
   }
   if (receipt.schemaVersion !== HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION) {
-    errors.push(`StartupReplayReceipt.schemaVersion must be ${HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION}`);
+    errors.push(
+      `StartupReplayReceipt.schemaVersion must be ${HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION}`
+    );
   }
   if (receipt.workflow !== STARTUP_GATE_WORKFLOW) {
     errors.push(`StartupReplayReceipt.workflow must be ${STARTUP_GATE_WORKFLOW}`);
   }
   if (!isNonEmptyString(receipt.id)) errors.push('StartupReplayReceipt.id is required.');
   if (!isNonEmptyString(receipt.status)) errors.push('StartupReplayReceipt.status is required.');
-  if (!isNonEmptyString(receipt.replayKey)) errors.push('StartupReplayReceipt.replayKey is required.');
+  if (!isNonEmptyString(receipt.replayKey))
+    errors.push('StartupReplayReceipt.replayKey is required.');
   if (receipt.rawCredentialCaptured !== false) {
     errors.push('StartupReplayReceipt.rawCredentialCaptured must be false.');
   }
@@ -469,7 +502,8 @@ export function validateStartupReplayReceipt(
     errors.push('StartupReplayReceipt.createdAt must be a valid ISO timestamp.');
   }
   if (!isNonEmptyString(receipt.hash)) errors.push('StartupReplayReceipt.hash is required.');
-  if (receipt.hashAlgorithm !== 'sha256') errors.push('StartupReplayReceipt.hashAlgorithm must be sha256.');
+  if (receipt.hashAlgorithm !== 'sha256')
+    errors.push('StartupReplayReceipt.hashAlgorithm must be sha256.');
 }
 
 export function validateHoloShellStartupGateReceiptPack(
@@ -504,7 +538,11 @@ export function validateHoloShellStartupGateReceiptPack(
   if (status === 'registration_approved') {
     validateStartupRegistrationApprovalReceipt(pack.approval, errors);
   }
-  if (status === 'registered' || status === 'unregistration_planned' || status === 'unregistration_requested') {
+  if (
+    status === 'registered' ||
+    status === 'unregistration_planned' ||
+    status === 'unregistration_requested'
+  ) {
     validateStartupRegistrationState(pack.registrationState, errors);
     validateStartupRegistrationVerificationReceipt(pack.verification, errors);
   }
@@ -540,7 +578,9 @@ export function validateHoloShellStartupGateReceiptPack(
   }
 
   // Credential leakage check
-  if (/\b(access_token|refresh_token|client_secret|id_token)=([A-Za-z0-9._~+/=-]+)/i.test(packJson)) {
+  if (
+    /\b(access_token|refresh_token|client_secret|id_token)=([A-Za-z0-9._~+/=-]+)/i.test(packJson)
+  ) {
     errors.push('Receipt pack contains raw credential material.');
   }
 
@@ -579,9 +619,7 @@ export function cloneStartupUnregistrationReceipt(
   return { ...receipt };
 }
 
-export function cloneStartupReplayReceipt(
-  receipt: StartupReplayReceipt
-): StartupReplayReceipt {
+export function cloneStartupReplayReceipt(receipt: StartupReplayReceipt): StartupReplayReceipt {
   return { ...receipt };
 }
 
@@ -593,12 +631,8 @@ export function cloneHoloShellStartupGateReceiptPack(
     registrationState: pack.registrationState
       ? cloneStartupRegistrationState(pack.registrationState)
       : undefined,
-    request: pack.request
-      ? cloneStartupRegistrationRequestReceipt(pack.request)
-      : undefined,
-    approval: pack.approval
-      ? cloneStartupRegistrationApprovalReceipt(pack.approval)
-      : undefined,
+    request: pack.request ? cloneStartupRegistrationRequestReceipt(pack.request) : undefined,
+    approval: pack.approval ? cloneStartupRegistrationApprovalReceipt(pack.approval) : undefined,
     verification: pack.verification
       ? cloneStartupRegistrationVerificationReceipt(pack.verification)
       : undefined,

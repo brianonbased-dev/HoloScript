@@ -69,10 +69,34 @@ describe('dcLoadFlow', () => {
 
 describe('renewableDispatch', () => {
   const generators = [
-    { id: 'solar', type: 'solar' as const, marginalCostPerMWh: 0,   capacityMW: 200, co2IntensityGco2Kwh: 0  },
-    { id: 'wind',  type: 'wind'  as const, marginalCostPerMWh: 5,   capacityMW: 150, co2IntensityGco2Kwh: 0  },
-    { id: 'gas',   type: 'gas'   as const, marginalCostPerMWh: 60,  capacityMW: 300, co2IntensityGco2Kwh: 490 },
-    { id: 'coal',  type: 'coal'  as const, marginalCostPerMWh: 40,  capacityMW: 200, co2IntensityGco2Kwh: 820 },
+    {
+      id: 'solar',
+      type: 'solar' as const,
+      marginalCostPerMWh: 0,
+      capacityMW: 200,
+      co2IntensityGco2Kwh: 0,
+    },
+    {
+      id: 'wind',
+      type: 'wind' as const,
+      marginalCostPerMWh: 5,
+      capacityMW: 150,
+      co2IntensityGco2Kwh: 0,
+    },
+    {
+      id: 'gas',
+      type: 'gas' as const,
+      marginalCostPerMWh: 60,
+      capacityMW: 300,
+      co2IntensityGco2Kwh: 490,
+    },
+    {
+      id: 'coal',
+      type: 'coal' as const,
+      marginalCostPerMWh: 40,
+      capacityMW: 200,
+      co2IntensityGco2Kwh: 820,
+    },
   ];
 
   it('cheapest generator dispatched first', () => {
@@ -95,7 +119,7 @@ describe('renewableDispatch', () => {
   it('total dispatched per generator ≤ its capacity', () => {
     const r = renewableDispatch(generators, 400);
     for (const d of r.dispatched) {
-      const gen = generators.find(g => g.id === d.id)!;
+      const gen = generators.find((g) => g.id === d.id)!;
       expect(d.dispatchedMW).toBeLessThanOrEqual(gen.capacityMW + 0.01);
     }
   });
@@ -198,8 +222,20 @@ describe('gridReliability', () => {
 
 describe('carbonIntensity', () => {
   const generators = [
-    { id: 'solar', type: 'solar' as const, marginalCostPerMWh: 0, capacityMW: 100, co2IntensityGco2Kwh: 0 },
-    { id: 'gas',   type: 'gas'   as const, marginalCostPerMWh: 60, capacityMW: 100, co2IntensityGco2Kwh: 490 },
+    {
+      id: 'solar',
+      type: 'solar' as const,
+      marginalCostPerMWh: 0,
+      capacityMW: 100,
+      co2IntensityGco2Kwh: 0,
+    },
+    {
+      id: 'gas',
+      type: 'gas' as const,
+      marginalCostPerMWh: 60,
+      capacityMW: 100,
+      co2IntensityGco2Kwh: 490,
+    },
   ];
 
   it('100% solar → zero carbon intensity', () => {
@@ -234,7 +270,13 @@ describe('buildEnergyReceipt', () => {
 
   it('accepted=true for balanced grid', () => {
     const generators = [
-      { id: 'solar', type: 'solar' as const, marginalCostPerMWh: 0, capacityMW: 500, co2IntensityGco2Kwh: 0 },
+      {
+        id: 'solar',
+        type: 'solar' as const,
+        marginalCostPerMWh: 0,
+        capacityMW: 500,
+        co2IntensityGco2Kwh: 0,
+      },
     ];
     const dispatch = renewableDispatch(generators, 200);
     const receipt = buildEnergyReceipt({ dispatch, converged: true });
@@ -243,7 +285,13 @@ describe('buildEnergyReceipt', () => {
 
   it('accepted=false for unmet demand', () => {
     const generators = [
-      { id: 'solar', type: 'solar' as const, marginalCostPerMWh: 0, capacityMW: 50, co2IntensityGco2Kwh: 0 },
+      {
+        id: 'solar',
+        type: 'solar' as const,
+        marginalCostPerMWh: 0,
+        capacityMW: 50,
+        co2IntensityGco2Kwh: 0,
+      },
     ];
     const dispatch = renewableDispatch(generators, 200);
     expect(dispatch.unmetDemandMW).toBeGreaterThan(0);
@@ -253,10 +301,7 @@ describe('buildEnergyReceipt', () => {
   });
 
   it('accepted=false for poor reliability (SAIDI > 2.5)', () => {
-    const reliability = gridReliability(
-      [{ customersAffected: 10000, durationHours: 5 }],
-      1000,
-    ); // SAIDI = 50 h
+    const reliability = gridReliability([{ customersAffected: 10000, durationHours: 5 }], 1000); // SAIDI = 50 h
     const receipt = buildEnergyReceipt({ reliability, converged: true });
     expect(receipt.acceptance.accepted).toBe(false);
   });

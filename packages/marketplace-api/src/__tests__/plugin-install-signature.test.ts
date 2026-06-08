@@ -51,7 +51,11 @@ describe('PluginSignatureService', () => {
     const keypair = PluginSignatureService.generateKeypair();
     const content = 'test-plugin-bundle-content';
     const contentHash = service.computeContentHash(content);
-    const signature = service.createSignature(contentHash, keypair.privateKeyPem, keypair.publicKeyBase64);
+    const signature = service.createSignature(
+      contentHash,
+      keypair.privateKeyPem,
+      keypair.publicKeyBase64
+    );
 
     const result = await service.verifyPackageIntegrity(content, contentHash, signature);
 
@@ -67,7 +71,7 @@ describe('PluginSignatureService', () => {
 
     expect(result.valid).toBe(true); // Content hash matches
     expect(result.trusted).toBe(false);
-    expect(result.warnings.some(w => w.includes('not signed'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('not signed'))).toBe(true);
   });
 
   it('rejects tampered content', async () => {
@@ -75,7 +79,11 @@ describe('PluginSignatureService', () => {
     const originalContent = 'original-bundle';
     const tamperedContent = 'tampered-bundle';
     const contentHash = service.computeContentHash(originalContent);
-    const signature = service.createSignature(contentHash, keypair.privateKeyPem, keypair.publicKeyBase64);
+    const signature = service.createSignature(
+      contentHash,
+      keypair.privateKeyPem,
+      keypair.publicKeyBase64
+    );
 
     const result = await service.verifyPackageIntegrity(tamperedContent, contentHash, signature);
 
@@ -89,7 +97,11 @@ describe('PluginSignatureService', () => {
 
     // Generate a different keypair and sign with it
     const wrongKeypair = PluginSignatureService.generateKeypair();
-    const forgedSignature = service.createSignature(contentHash, wrongKeypair.privateKeyPem, wrongKeypair.publicKeyBase64);
+    const forgedSignature = service.createSignature(
+      contentHash,
+      wrongKeypair.privateKeyPem,
+      wrongKeypair.publicKeyBase64
+    );
 
     // Try to verify with the forged key (not the signing key)
     // The content hash matches but the signature won't verify against any registered key
@@ -116,7 +128,7 @@ describe('PluginSignatureService', () => {
     const result = await service.verifyPackageIntegrity(content, contentHash, invalidAlgoSignature);
 
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('Unsupported algorithm'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('Unsupported algorithm'))).toBe(true);
   });
 });
 
@@ -142,7 +154,11 @@ describe('PluginInstallPipeline.verifySignature is not a stub', () => {
 
     const content = 'test-bundle-content';
     const contentHash = sigService.computeContentHash(content);
-    const signature = sigService.createSignature(contentHash, keypair.privateKeyPem, keypair.publicKeyBase64);
+    const signature = sigService.createSignature(
+      contentHash,
+      keypair.privateKeyPem,
+      keypair.publicKeyBase64
+    );
 
     // The pipeline's private verifySignature method should delegate to sigService
     // We test this indirectly: the method is called during install(), but we can
@@ -166,6 +182,6 @@ describe('PluginInstallPipeline.verifySignature is not a stub', () => {
     // No signature provided: valid=true (content hash matches), trusted=false (unsigned)
     expect(result.valid).toBe(true);
     expect(result.trusted).toBe(false);
-    expect(result.warnings.some(w => w.includes('not signed'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('not signed'))).toBe(true);
   });
 });

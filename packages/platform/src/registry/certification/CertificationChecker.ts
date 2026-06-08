@@ -207,7 +207,10 @@ export class CertificationChecker {
       return;
     }
 
-    this.config = { ...DEFAULT_CERTIFICATION_CONFIG, ...(configOrPkg as Partial<CertificationConfig>) };
+    this.config = {
+      ...DEFAULT_CERTIFICATION_CONFIG,
+      ...(configOrPkg as Partial<CertificationConfig>),
+    };
   }
 
   /**
@@ -899,10 +902,7 @@ export class CertificationChecker {
       .filter((c) => c.status === 'failed' || c.status === 'warning')
       .map((c) => ({
         severity: c.status === 'failed' ? 'error' : c.status === 'warning' ? 'warning' : 'info',
-        category:
-          c.category === 'code_quality'
-            ? 'codeQuality'
-            : c.category,
+        category: c.category === 'code_quality' ? 'codeQuality' : c.category,
         check: c.id,
         message: c.message,
       }));
@@ -952,9 +952,17 @@ export function generateBadge(
   if (!result.certified || !result.level) return null;
 
   const issuedAt = (result.certifiedAt ?? new Date()).toISOString();
-  const expiresAt = (result.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)).toISOString();
-  const fingerprint = Buffer.from(`${packageName}:${version}:${result.level}:${result.score}`).toString('hex').slice(0, 64).padEnd(64, '0');
-  const signature = Buffer.from(`${fingerprint}:${issuedAt}`).toString('hex').slice(0, 64).padEnd(64, '0');
+  const expiresAt = (
+    result.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+  ).toISOString();
+  const fingerprint = Buffer.from(`${packageName}:${version}:${result.level}:${result.score}`)
+    .toString('hex')
+    .slice(0, 64)
+    .padEnd(64, '0');
+  const signature = Buffer.from(`${fingerprint}:${issuedAt}`)
+    .toString('hex')
+    .slice(0, 64)
+    .padEnd(64, '0');
 
   return {
     packageName,

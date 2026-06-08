@@ -212,9 +212,7 @@ export const sliceEmitterHandler: TraitHandler<SliceEmitterConfig> = {
       state.unique_fingerprints.add(fingerprintSlice(slice));
 
       const diversity_ratio =
-        state.total_count > 0
-          ? state.unique_fingerprints.size / state.total_count
-          : 1.0;
+        state.total_count > 0 ? state.unique_fingerprints.size / state.total_count : 1.0;
 
       const diversityStats: DiversityStats = {
         unique_count: state.unique_fingerprints.size,

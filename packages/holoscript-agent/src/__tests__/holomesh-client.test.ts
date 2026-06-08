@@ -4,11 +4,47 @@ import type { BoardTask } from '../types.js';
 
 describe('pickClaimableTask', () => {
   const tasks: BoardTask[] = [
-    { id: 't1', title: 'unrelated UI tweak', description: '', priority: 'low', tags: ['ui', 'cosmetic'], status: 'open' },
-    { id: 't2', title: 'cross-paper threat-model memo', description: 'security G10', priority: 'high', tags: ['security', 'paper-21', 'gap-G10'], status: 'open' },
-    { id: 't3', title: 'closed task', description: '', priority: 'high', tags: ['security'], status: 'done' },
-    { id: 't4', title: 'already-claimed by someone', description: '', priority: 'high', tags: ['security'], status: 'open', claimedBy: 'someone-else' },
-    { id: 't5', title: 'Sybil attack spec', description: 'adversarial', priority: 'medium', tags: ['adversarial-evaluation'], status: 'open' },
+    {
+      id: 't1',
+      title: 'unrelated UI tweak',
+      description: '',
+      priority: 'low',
+      tags: ['ui', 'cosmetic'],
+      status: 'open',
+    },
+    {
+      id: 't2',
+      title: 'cross-paper threat-model memo',
+      description: 'security G10',
+      priority: 'high',
+      tags: ['security', 'paper-21', 'gap-G10'],
+      status: 'open',
+    },
+    {
+      id: 't3',
+      title: 'closed task',
+      description: '',
+      priority: 'high',
+      tags: ['security'],
+      status: 'done',
+    },
+    {
+      id: 't4',
+      title: 'already-claimed by someone',
+      description: '',
+      priority: 'high',
+      tags: ['security'],
+      status: 'open',
+      claimedBy: 'someone-else',
+    },
+    {
+      id: 't5',
+      title: 'Sybil attack spec',
+      description: 'adversarial',
+      priority: 'medium',
+      tags: ['adversarial-evaluation'],
+      status: 'open',
+    },
   ];
 
   it('selects the highest-scoring open unclaimed task whose tags match the brain', () => {
@@ -34,10 +70,12 @@ describe('pickClaimableTask', () => {
 describe('HolomeshClient', () => {
   it('sends bearer + content-type on every request and parses JSON', async () => {
     const calls: Array<{ url: string; init: RequestInit }> = [];
-    const fetchImpl: typeof fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      calls.push({ url: String(url), init: init ?? {} });
-      return new Response(JSON.stringify({ tasks: [] }), { status: 200 });
-    }) as unknown as typeof fetch;
+    const fetchImpl: typeof fetch = vi.fn(
+      async (url: string | URL | Request, init?: RequestInit) => {
+        calls.push({ url: String(url), init: init ?? {} });
+        return new Response(JSON.stringify({ tasks: [] }), { status: 200 });
+      }
+    ) as unknown as typeof fetch;
 
     const client = new HolomeshClient({
       apiBase: 'https://mcp.holoscript.net/api/holomesh',

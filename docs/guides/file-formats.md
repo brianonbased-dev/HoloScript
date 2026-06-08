@@ -299,18 +299,18 @@ composition "Dispensary" {
 
 ## Format Comparison
 
-| Feature          | .hs (Pipelines)      | .hsplus (Behaviors)   | .holo (Worlds)          |
-| ---------------- | -------------------- | --------------------- | ----------------------- |
-| Mental model     | Data flows           | Reactive agents       | Declarative scenes      |
-| Root block       | `pipeline "Name" {}` | (none)                | `composition "Name" {}` |
-| Objects          | ❌                   | `composition name {}` | `object "name" {}`      |
-| Data source/sink | ✅                   | ❌                    | ✅ (inline pipeline)    |
-| VR Traits        | ❌                   | `@grabbable`          | `@grabbable`            |
-| Reactive State   | ❌                   | `@state {}`           | `state {}`              |
-| Templates        | ❌                   | ❌                    | `template "Name" {}`    |
-| Environment      | ❌                   | ❌                    | `environment {}`        |
-| Spatial Groups   | ❌                   | ❌                    | `spatial_group {}`      |
-| Logic Block      | ❌                   | ❌                    | `logic {}`              |
+| Feature          | .hs (Pipelines)      | .hsplus (Behaviors)        | .holo (Worlds)             |
+| ---------------- | -------------------- | -------------------------- | -------------------------- |
+| Mental model     | Data flows           | Reactive agents            | Declarative scenes         |
+| Root block       | `pipeline "Name" {}` | (none)                     | `composition "Name" {}`    |
+| Objects          | ❌                   | `composition name {}`      | `object "name" {}`         |
+| Data source/sink | ✅                   | ❌                         | ✅ (inline pipeline)       |
+| VR Traits        | ❌                   | `@grabbable`               | `@grabbable`               |
+| Reactive State   | ❌                   | `@state {}`                | `state {}`                 |
+| Templates        | ❌                   | ❌                         | `template "Name" {}`       |
+| Environment      | ❌                   | ❌                         | `environment {}`           |
+| Spatial Groups   | ❌                   | ❌                         | `spatial_group {}`         |
+| Logic Block      | ❌                   | ❌                         | `logic {}`                 |
 | Compiles to      | Node, Python, Lambda | Registered spatial targets | Registered spatial targets |
 
 ---
@@ -377,10 +377,10 @@ When `parser.parse()` returns an AST it may also include an `errors[]` array con
 
 ## AI Generation
 
-| Tool                 | Input            | Output Format    |
-| -------------------- | ---------------- | ---------------- |
-| `generate_scene`     | Natural language | `.holo`          |
-| `generate_object`    | Natural language | `.hsplus`        |
-| `parse_pipeline`     | `.hs` source     | Pipeline AST     |
-| `compile_pipeline`   | `.hs` source     | Node.js / Python |
+| Tool                 | Input            | Output Format      |
+| -------------------- | ---------------- | ------------------ |
+| `generate_scene`     | Natural language | `.holo`            |
+| `generate_object`    | Natural language | `.hsplus`          |
+| `parse_pipeline`     | `.hs` source     | Pipeline AST       |
+| `compile_pipeline`   | `.hs` source     | Node.js / Python   |
 | `compile_holoscript` | Any format       | Registered targets |

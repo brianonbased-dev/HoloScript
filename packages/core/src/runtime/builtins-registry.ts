@@ -70,9 +70,7 @@ import {
 } from './primitives';
 
 /** A builtin function's runtime signature. */
-export type BuiltinFn = (
-  args: HoloScriptValue[],
-) => HoloScriptValue | Promise<HoloScriptValue>;
+export type BuiltinFn = (args: HoloScriptValue[]) => HoloScriptValue | Promise<HoloScriptValue>;
 
 // ──────────────────────────────────────────────────────────────────
 // Default particle counts / colors (named constants)
@@ -119,7 +117,7 @@ export interface BuiltinsContext {
     name: string,
     position: SpatialPosition,
     color: string,
-    count: number,
+    count: number
   ) => void;
   /** Connection-stream creator (move move-trail). */
   createConnectionStream: (
@@ -127,7 +125,7 @@ export interface BuiltinsContext {
     to: string,
     fromPos: SpatialPosition,
     toPos: SpatialPosition,
-    dataType: string,
+    dataType: string
   ) => void;
 
   /** Fire-and-forget emit (showSettings / openChat / spawn mitosis / notifyParent). */
@@ -150,7 +148,7 @@ export interface BuiltinsContext {
  */
 export function createBuiltinsMap(
   ctx: BuiltinsContext,
-  customFunctions?: Record<string, BuiltinFn>,
+  customFunctions?: Record<string, BuiltinFn>
 ): Map<string, BuiltinFn> {
   const builtins = new Map<string, BuiltinFn>();
 
@@ -342,7 +340,7 @@ export function createBuiltinsMap(
   builtins.set('multiply', (args): HoloScriptValue => Number(args[0]) * Number(args[1]));
   builtins.set(
     'divide',
-    (args): HoloScriptValue => (Number(args[1]) !== 0 ? Number(args[0]) / Number(args[1]) : 0),
+    (args): HoloScriptValue => (Number(args[1]) !== 0 ? Number(args[0]) / Number(args[1]) : 0)
   );
   builtins.set('mod', (args): HoloScriptValue => Number(args[0]) % Number(args[1]));
   builtins.set('abs', (args): HoloScriptValue => Math.abs(Number(args[0])));
@@ -363,7 +361,7 @@ export function createBuiltinsMap(
   });
   builtins.set(
     'substring',
-    (args): HoloScriptValue => String(args[0]).substring(Number(args[1]), Number(args[2])),
+    (args): HoloScriptValue => String(args[0]).substring(Number(args[1]), Number(args[2]))
   );
 
   builtins.set('wait', async (args): Promise<HoloScriptValue> => {
@@ -430,7 +428,7 @@ export function createBuiltinsMap(
   builtins.set('isArray', (args): HoloScriptValue => Array.isArray(args[0]));
   builtins.set(
     'isNumber',
-    (args): HoloScriptValue => typeof args[0] === 'number' && !isNaN(args[0]),
+    (args): HoloScriptValue => typeof args[0] === 'number' && !isNaN(args[0])
   );
   builtins.set('isString', (args): HoloScriptValue => typeof args[0] === 'string');
 
@@ -455,7 +453,7 @@ export function createBuiltinsMap(
   // ── Misc ─────────────────────────────────────────────────────
   builtins.set(
     'sleep',
-    (args) => new Promise((resolve) => setTimeout(resolve, Number(args[0]) || 0)),
+    (args) => new Promise((resolve) => setTimeout(resolve, Number(args[0]) || 0))
   );
   builtins.set('think', async (args) => {
     const activeNode = ctx.executionStack[ctx.executionStack.length - 1];

@@ -41,10 +41,13 @@ describe('ConsentGateTrait — onAttach / onDetach', () => {
     const state = node.__consentGateState as ConsentGateState;
     expect(state.status).toBe('pending');
     expect(state.grantedAt).toBeNull();
-    expect(node.emit).toHaveBeenCalledWith('consent_requested', expect.objectContaining({
-      scope: ['camera'],
-      purpose: 'AR camera access',
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'consent_requested',
+      expect.objectContaining({
+        scope: ['camera'],
+        purpose: 'AR camera access',
+      })
+    );
   });
 
   it('onAttach appends to auditLog when audit_log=true', () => {
@@ -58,14 +61,22 @@ describe('ConsentGateTrait — onAttach / onDetach', () => {
   it('onDetach emits consent_revoked when status=granted', () => {
     const node = makeNode();
     consentGateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    consentGateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent_grant',
-    } as never);
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent_grant',
+      } as never
+    );
     node.emit.mockClear();
     consentGateHandler.onDetach!(node as never, defaultConfig, makeCtx(node) as never);
-    expect(node.emit).toHaveBeenCalledWith('consent_revoked', expect.objectContaining({
-      reason: 'detach',
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'consent_revoked',
+      expect.objectContaining({
+        reason: 'detach',
+      })
+    );
   });
 
   it('onDetach does NOT emit consent_revoked when status=pending', () => {
@@ -82,24 +93,37 @@ describe('ConsentGateTrait — onEvent', () => {
     const node = makeNode();
     consentGateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    consentGateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent_grant',
-    } as never);
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent_grant',
+      } as never
+    );
     const state = node.__consentGateState as ConsentGateState;
     expect(state.status).toBe('granted');
     expect(state.grantedAt).not.toBeNull();
-    expect(node.emit).toHaveBeenCalledWith('consent_granted', expect.objectContaining({
-      scope: ['camera'],
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'consent_granted',
+      expect.objectContaining({
+        scope: ['camera'],
+      })
+    );
   });
 
   it('consent_grant sets expiresAt when expiry_ms > 0', () => {
     const node = makeNode();
     const cfg = { ...defaultConfig, expiry_ms: 5000 };
     consentGateHandler.onAttach!(node as never, cfg, makeCtx(node) as never);
-    consentGateHandler.onEvent!(node as never, cfg, makeCtx(node) as never, {
-      type: 'consent_grant',
-    } as never);
+    consentGateHandler.onEvent!(
+      node as never,
+      cfg,
+      makeCtx(node) as never,
+      {
+        type: 'consent_grant',
+      } as never
+    );
     const state = node.__consentGateState as ConsentGateState;
     expect(state.expiresAt).not.toBeNull();
     expect(state.expiresAt!).toBeGreaterThan(state.grantedAt!);
@@ -109,26 +133,45 @@ describe('ConsentGateTrait — onEvent', () => {
     const node = makeNode();
     consentGateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    consentGateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent_deny', reason: 'user refused',
-    } as never);
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent_deny',
+        reason: 'user refused',
+      } as never
+    );
     const state = node.__consentGateState as ConsentGateState;
     expect(state.status).toBe('denied');
-    expect(node.emit).toHaveBeenCalledWith('consent_denied', expect.objectContaining({
-      reason: 'user refused',
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'consent_denied',
+      expect.objectContaining({
+        reason: 'user refused',
+      })
+    );
   });
 
   it('consent_revoke transitions status to revoked and emits consent_revoked', () => {
     const node = makeNode();
     consentGateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    consentGateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent_grant',
-    } as never);
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent_grant',
+      } as never
+    );
     node.emit.mockClear();
-    consentGateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent_revoke',
-    } as never);
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent_revoke',
+      } as never
+    );
     const state = node.__consentGateState as ConsentGateState;
     expect(state.status).toBe('revoked');
     expect(node.emit).toHaveBeenCalledWith('consent_revoked', expect.anything());
@@ -138,9 +181,14 @@ describe('ConsentGateTrait — onEvent', () => {
     const node = makeNode();
     consentGateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    consentGateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent_expire',
-    } as never);
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent_expire',
+      } as never
+    );
     const state = node.__consentGateState as ConsentGateState;
     expect(state.status).toBe('expired');
     expect(node.emit).toHaveBeenCalledWith('consent_expired', expect.anything());
@@ -149,12 +197,22 @@ describe('ConsentGateTrait — onEvent', () => {
   it('consent_request re-sets to pending after denial', () => {
     const node = makeNode();
     consentGateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    consentGateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent_deny',
-    } as never);
-    consentGateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent_request',
-    } as never);
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent_deny',
+      } as never
+    );
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent_request',
+      } as never
+    );
     const state = node.__consentGateState as ConsentGateState;
     expect(state.status).toBe('pending');
   });
@@ -163,25 +221,43 @@ describe('ConsentGateTrait — onEvent', () => {
     const node = makeNode();
     consentGateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    consentGateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent_query', queryId: 'q42',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('consent_status_response', expect.objectContaining({
-      queryId: 'q42',
-      status: 'pending',
-    }));
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent_query',
+        queryId: 'q42',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'consent_status_response',
+      expect.objectContaining({
+        queryId: 'q42',
+        status: 'pending',
+      })
+    );
   });
 
   it('consent_audit_query returns audit log', () => {
     const node = makeNode();
     consentGateHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    consentGateHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent_audit_query', queryId: 'aq1',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('consent_audit_response', expect.objectContaining({
-      queryId: 'aq1',
-      log: expect.arrayContaining([expect.objectContaining({ action: 'requested' })]),
-    }));
+    consentGateHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent_audit_query',
+        queryId: 'aq1',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'consent_audit_response',
+      expect.objectContaining({
+        queryId: 'aq1',
+        log: expect.arrayContaining([expect.objectContaining({ action: 'requested' })]),
+      })
+    );
   });
 });

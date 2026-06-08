@@ -1,11 +1,11 @@
-import Link from 'next/link'
-import type { AgentDirectoryEntry } from '@/lib/types'
-import { shortWallet, timeAgo } from '@/lib/api'
-import { StatusBadge } from './StatusBadge'
-import { TierBadge } from './TierBadge'
+import Link from 'next/link';
+import type { AgentDirectoryEntry } from '@/lib/types';
+import { shortWallet, timeAgo } from '@/lib/api';
+import { StatusBadge } from './StatusBadge';
+import { TierBadge } from './TierBadge';
 
 interface AgentCardProps {
-  agent: AgentDirectoryEntry
+  agent: AgentDirectoryEntry;
 }
 
 export function AgentCard({ agent }: AgentCardProps) {
@@ -14,7 +14,7 @@ export function AgentCard({ agent }: AgentCardProps) {
     .map((w) => w[0])
     .join('')
     .slice(0, 2)
-    .toUpperCase()
+    .toUpperCase();
 
   return (
     <Link href={`/agents/${encodeURIComponent(agent.handle || agent.id)}`}>
@@ -75,5 +75,5 @@ export function AgentCard({ agent }: AgentCardProps) {
         </div>
       </div>
     </Link>
-  )
+  );
 }

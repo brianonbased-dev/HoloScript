@@ -339,7 +339,10 @@ export function validateEnergyGridModel(model: EnergyGridModel): EnergyGridValid
     if (!Number.isFinite(line.capacityMw) || line.capacityMw <= 0) {
       errors.push(`line ${line.id} capacityMw must be positive`);
     }
-    if (line.resistancePu !== undefined && (!Number.isFinite(line.resistancePu) || line.resistancePu < 0)) {
+    if (
+      line.resistancePu !== undefined &&
+      (!Number.isFinite(line.resistancePu) || line.resistancePu < 0)
+    ) {
       errors.push(`line ${line.id} resistancePu must be non-negative when provided`);
     }
   }
@@ -351,7 +354,11 @@ export function validateEnergyGridModel(model: EnergyGridModel): EnergyGridValid
     if (!Number.isFinite(solar.areaM2) || solar.areaM2 <= 0) {
       errors.push(`solar asset ${solar.id} areaM2 must be positive`);
     }
-    if (!Number.isFinite(solar.moduleEfficiency) || solar.moduleEfficiency <= 0 || solar.moduleEfficiency > 1) {
+    if (
+      !Number.isFinite(solar.moduleEfficiency) ||
+      solar.moduleEfficiency <= 0 ||
+      solar.moduleEfficiency > 1
+    ) {
       errors.push(`solar asset ${solar.id} moduleEfficiency must be in (0, 1]`);
     }
   }
@@ -417,14 +424,16 @@ export function connectedComponents(model: EnergyGridModel): string[][] {
 
 export function solveDCPowerFlow(
   model: EnergyGridModel,
-  options: DCPowerFlowSolveOptions = {},
+  options: DCPowerFlowSolveOptions = {}
 ): DCPowerFlowResult {
   const validation = validateEnergyGridModel(model);
   if (!validation.valid) {
     throw new Error(`[energy-grid] invalid model: ${validation.errors.join('; ')}`);
   }
   if (validation.connectedComponents.length !== 1) {
-    throw new Error('[energy-grid] DC power flow requires one connected island for this first solver slice');
+    throw new Error(
+      '[energy-grid] DC power flow requires one connected island for this first solver slice'
+    );
   }
 
   const slackBus = model.buses.find((bus) => bus.kind === 'slack');
@@ -510,13 +519,14 @@ export function solveDCPowerFlow(
 
 export function estimateSolarOutput(
   asset: SolarAsset,
-  sample: SolarIrradianceSample,
+  sample: SolarIrradianceSample
 ): SolarOutputEstimate {
   const cloudFactor = 1 - clamp(sample.cloudCoverFraction ?? 0, 0, 1) * 0.75;
   const temperatureC = sample.ambientTemperatureC ?? 25;
   const temperatureDerate = 1 - Math.max(0, temperatureC - 25) * 0.004;
   const derate = clamp((asset.derate ?? 0.86) * cloudFactor * temperatureDerate, 0, 1);
-  const rawMw = (sample.globalHorizontalIrradianceWm2 * asset.areaM2 * asset.moduleEfficiency) / 1_000_000;
+  const rawMw =
+    (sample.globalHorizontalIrradianceWm2 * asset.areaM2 * asset.moduleEfficiency) / 1_000_000;
   const deliveredBeforeClip = rawMw * derate;
   const deliveredMw = Math.min(deliveredBeforeClip, asset.inverterLimitMw ?? deliveredBeforeClip);
   return {
@@ -529,10 +539,16 @@ export function estimateSolarOutput(
   };
 }
 
-export function estimateBatteryDegradation(input: BatteryDegradationInput): BatteryDegradationEstimate {
+export function estimateBatteryDegradation(
+  input: BatteryDegradationInput
+): BatteryDegradationEstimate {
   const { battery } = input;
   const equivalentFullCycles = input.throughputMwh / (2 * battery.capacityMwh);
-  const soc = clamp(input.averageStateOfChargeFraction ?? battery.stateOfChargeMwh / battery.capacityMwh, 0, 1);
+  const soc = clamp(
+    input.averageStateOfChargeFraction ?? battery.stateOfChargeMwh / battery.capacityMwh,
+    0,
+    1
+  );
   const temperatureC = input.ambientTemperatureC ?? battery.temperatureC ?? 25;
   const temperatureFactor = 1 + Math.max(0, temperatureC - 25) * 0.035;
   const cRate = Math.max(battery.maxChargeMw, battery.maxDischargeMw) / battery.capacityMwh;
@@ -552,10 +568,7 @@ export function estimateBatteryDegradation(input: BatteryDegradationInput): Batt
   };
 }
 
-export function buildDerDispatchQubo(
-  model: EnergyGridModel,
-  targetMw: number,
-): DerDispatchQubo {
+export function buildDerDispatchQubo(model: EnergyGridModel, targetMw: number): DerDispatchQubo {
   if (!Number.isFinite(targetMw) || targetMw < 0) {
     throw new Error('[energy-grid] targetMw must be a non-negative finite number');
   }
@@ -593,7 +606,7 @@ export function buildDerDispatchQubo(
 export function buildEnergyGridReceipt(
   model: EnergyGridModel,
   result: DCPowerFlowResult,
-  options: string | EnergyGridReceiptOptions = {},
+  options: string | EnergyGridReceiptOptions = {}
 ): EnergyGridReceipt {
   const normalizedOptions = typeof options === 'string' ? { runId: options } : options;
   const acceptance = verifyPowerFlowAcceptance(model, result);
@@ -632,7 +645,7 @@ export function buildEnergyGridReceipt(
 
 export function verifyPowerFlowAcceptance(
   model: EnergyGridModel,
-  result: DCPowerFlowResult,
+  result: DCPowerFlowResult
 ): EnergyGridReceipt['acceptance'] {
   const violations: Array<{ criterion: string; message: string }> = [];
 
@@ -640,7 +653,10 @@ export function verifyPowerFlowAcceptance(
     violations.push({ criterion: 'convergence', message: 'DC power flow did not converge' });
   }
 
-  const netInjection = Object.values(result.busNetInjectionMw).reduce((sum, value) => sum + value, 0);
+  const netInjection = Object.values(result.busNetInjectionMw).reduce(
+    (sum, value) => sum + value,
+    0
+  );
   if (Math.abs(netInjection) > Math.max(1e-6, model.baseMva * 1e-9)) {
     violations.push({
       criterion: 'power_balance',
@@ -701,7 +717,9 @@ function solveLinearSystem(matrix: number[][], rhs: number[]): number[] {
   if (n === 0) return [];
   const a = matrix.map((row, rowIndex) => {
     if (row.length !== n) {
-      throw new Error(`[energy-grid] reduced matrix row ${rowIndex} has length ${row.length}, expected ${n}`);
+      throw new Error(
+        `[energy-grid] reduced matrix row ${rowIndex} has length ${row.length}, expected ${n}`
+      );
     }
     return [...row];
   });
@@ -762,7 +780,10 @@ function totalDemandMw(model: EnergyGridModel): number {
 }
 
 function totalGenerationMw(model: EnergyGridModel): number {
-  return model.buses.reduce((sum, bus) => sum + (bus.generationMw ?? 0) + (bus.batteryDispatchMw ?? 0), 0);
+  return model.buses.reduce(
+    (sum, bus) => sum + (bus.generationMw ?? 0) + (bus.batteryDispatchMw ?? 0),
+    0
+  );
 }
 
 function maxLineLoadingRatio(result: DCPowerFlowResult): number {

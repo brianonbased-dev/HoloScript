@@ -9,7 +9,9 @@ export interface Logger {
   error(message: string, ...args: unknown[]): void;
 }
 
-const noop = (): void => { /* intentional no-op */ };
+const noop = (): void => {
+  /* intentional no-op */
+};
 
 export const logger: Logger = {
   debug: noop,

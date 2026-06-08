@@ -752,11 +752,7 @@ export function multiplyTransforms(a: ITransform, b: ITransform): ITransform {
       a.position[2] + b.position[2] * a.scale[2],
     ],
     rotation: multiplyQuaternions(a.rotation, b.rotation),
-    scale: [
-      a.scale[0] * b.scale[0],
-      a.scale[1] * b.scale[1],
-      a.scale[2] * b.scale[2],
-    ],
+    scale: [a.scale[0] * b.scale[0], a.scale[1] * b.scale[1], a.scale[2] * b.scale[2]],
   };
 }
 

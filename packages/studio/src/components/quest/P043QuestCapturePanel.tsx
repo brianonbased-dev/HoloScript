@@ -70,7 +70,9 @@ interface GpuDevice {
 
 interface QuestBrowserApis {
   gpu?: {
-    requestAdapter: (options?: { powerPreference?: 'high-performance' }) => Promise<GpuAdapter | null>;
+    requestAdapter: (options?: {
+      powerPreference?: 'high-performance';
+    }) => Promise<GpuAdapter | null>;
   };
   getBattery?: () => Promise<{ level: number; charging: boolean }>;
 }
@@ -125,7 +127,9 @@ function generatePositions(sceneId: string, count: number): Float32Array {
   return positions;
 }
 
-function generateViews(viewCount: number): Array<{ eyePosition: number[]; eyeDirection: number[] }> {
+function generateViews(
+  viewCount: number
+): Array<{ eyePosition: number[]; eyeDirection: number[] }> {
   const views = [];
   for (let i = 0; i < viewCount; i += 1) {
     const a = (i / viewCount) * Math.PI * 2;
@@ -172,13 +176,17 @@ async function runQuestCapture(options: {
   if (!adapter) throw new Error('WebGPU requestAdapter returned no adapter');
   const info = await adapterInfo(adapter);
   const device = await adapter.requestDevice();
-  const usage = (globalThis as typeof globalThis & {
-    GPUBufferUsage: Record<string, number>;
-    GPUMapMode: Record<string, number>;
-  }).GPUBufferUsage;
-  const mapMode = (globalThis as typeof globalThis & {
-    GPUMapMode: Record<string, number>;
-  }).GPUMapMode;
+  const usage = (
+    globalThis as typeof globalThis & {
+      GPUBufferUsage: Record<string, number>;
+      GPUMapMode: Record<string, number>;
+    }
+  ).GPUBufferUsage;
+  const mapMode = (
+    globalThis as typeof globalThis & {
+      GPUMapMode: Record<string, number>;
+    }
+  ).GPUMapMode;
   const buffers: GpuBuffer[] = [];
 
   try {
@@ -239,10 +247,22 @@ async function runQuestCapture(options: {
       usage.STORAGE | usage.COPY_DST,
       viewBufferData
     );
-    const distancesBuffer = makeBuffer(options.cell.gaussianCount * 4, usage.STORAGE | usage.COPY_SRC);
-    const bitmasksBuffer = makeBuffer(options.cell.gaussianCount * 4, usage.STORAGE | usage.COPY_SRC);
-    const readDistances = makeBuffer(options.cell.gaussianCount * 4, usage.COPY_DST | usage.MAP_READ);
-    const readBitmasks = makeBuffer(options.cell.gaussianCount * 4, usage.COPY_DST | usage.MAP_READ);
+    const distancesBuffer = makeBuffer(
+      options.cell.gaussianCount * 4,
+      usage.STORAGE | usage.COPY_SRC
+    );
+    const bitmasksBuffer = makeBuffer(
+      options.cell.gaussianCount * 4,
+      usage.STORAGE | usage.COPY_SRC
+    );
+    const readDistances = makeBuffer(
+      options.cell.gaussianCount * 4,
+      usage.COPY_DST | usage.MAP_READ
+    );
+    const readBitmasks = makeBuffer(
+      options.cell.gaussianCount * 4,
+      usage.COPY_DST | usage.MAP_READ
+    );
     const bindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries: [
@@ -262,8 +282,20 @@ async function runQuestCapture(options: {
       pass.dispatchWorkgroups(Math.ceil(options.cell.gaussianCount / workgroupSize));
       pass.end();
       if (copyOut) {
-        encoder.copyBufferToBuffer(distancesBuffer, 0, readDistances, 0, options.cell.gaussianCount * 4);
-        encoder.copyBufferToBuffer(bitmasksBuffer, 0, readBitmasks, 0, options.cell.gaussianCount * 4);
+        encoder.copyBufferToBuffer(
+          distancesBuffer,
+          0,
+          readDistances,
+          0,
+          options.cell.gaussianCount * 4
+        );
+        encoder.copyBufferToBuffer(
+          bitmasksBuffer,
+          0,
+          readBitmasks,
+          0,
+          options.cell.gaussianCount * 4
+        );
       }
       const started = performance.now();
       device.queue.submit([encoder.finish()]);
@@ -339,7 +371,9 @@ export function P043QuestCapturePanel({
     nav
       .getBattery?.()
       .then((battery) => {
-        setBatteryState(`${Math.round(battery.level * 100)}% ${battery.charging ? 'charging' : 'discharging'}`);
+        setBatteryState(
+          `${Math.round(battery.level * 100)}% ${battery.charging ? 'charging' : 'discharging'}`
+        );
       })
       .catch(() => {});
   }, []);
@@ -378,7 +412,12 @@ export function P043QuestCapturePanel({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ runId, artifact }),
       });
-      const result = (await response.json()) as { ok?: boolean; path?: string; artifactPath?: string; error?: string };
+      const result = (await response.json()) as {
+        ok?: boolean;
+        path?: string;
+        artifactPath?: string;
+        error?: string;
+      };
       if (!response.ok || !result.ok) throw new Error(result.error || 'Artifact write failed');
       setArtifactPath(result.artifactPath || result.path || '');
       setStatus('saved');
@@ -402,7 +441,9 @@ export function P043QuestCapturePanel({
     >
       <section style={{ maxWidth: 960, margin: '0 auto', display: 'grid', gap: 16 }}>
         <header style={{ display: 'grid', gap: 8 }}>
-          <p style={{ margin: 0, color: '#7dd3fc', fontSize: 12, fontWeight: 700, letterSpacing: 0 }}>
+          <p
+            style={{ margin: 0, color: '#7dd3fc', fontSize: 12, fontWeight: 700, letterSpacing: 0 }}
+          >
             P043 Quest 3
           </p>
           <h1 style={{ margin: 0, fontSize: 28, lineHeight: 1.1 }}>SKU Matrix Capture</h1>
@@ -417,7 +458,11 @@ export function P043QuestCapturePanel({
         >
           <label style={labelStyle}>
             Cell
-            <select value={cellId} onChange={(event) => setCellId(event.target.value)} style={inputStyle}>
+            <select
+              value={cellId}
+              onChange={(event) => setCellId(event.target.value)}
+              style={inputStyle}
+            >
               {cells.map((cell) => (
                 <option key={cell.id} value={cell.id}>
                   {cell.sceneId} n={cell.views}
@@ -427,7 +472,11 @@ export function P043QuestCapturePanel({
           </label>
           <label style={labelStyle}>
             Run id
-            <input value={runId} onChange={(event) => setRunId(event.target.value)} style={inputStyle} />
+            <input
+              value={runId}
+              onChange={(event) => setRunId(event.target.value)}
+              style={inputStyle}
+            />
           </label>
           <label style={labelStyle}>
             Battery
@@ -466,7 +515,9 @@ export function P043QuestCapturePanel({
             gap: 12,
           }}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+          <div
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}
+          >
             <Stat label="Warmup" value={`${P043_WARMUP_SECONDS}s`} />
             <Stat label="Sample" value={`${P043_SAMPLE_SECONDS}s`} />
             <Stat label="Runs" value={`${P043_REQUIRED_RUNS}`} />
@@ -482,7 +533,13 @@ export function P043QuestCapturePanel({
               {progress.samples > 0 ? `${progress.samples} samples` : ''}
             </p>
             {artifactPath && (
-              <p style={{ margin: 0, color: '#86efac', fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
+              <p
+                style={{
+                  margin: 0,
+                  color: '#86efac',
+                  fontFamily: 'ui-monospace, SFMono-Regular, monospace',
+                }}
+              >
                 {artifactPath}
               </p>
             )}
@@ -495,7 +552,14 @@ export function P043QuestCapturePanel({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ minHeight: 64, border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: 8, padding: 12 }}>
+    <div
+      style={{
+        minHeight: 64,
+        border: '1px solid rgba(148, 163, 184, 0.18)',
+        borderRadius: 8,
+        padding: 12,
+      }}
+    >
       <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 700 }}>{label}</div>
       <div style={{ color: '#f8fafc', fontSize: 20, fontWeight: 800 }}>{value}</div>
     </div>

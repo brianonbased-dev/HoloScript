@@ -13,9 +13,9 @@ describe('buildAgentGenesisPlan', () => {
     });
 
     expect(plan.strategy).toBe('skills-first-agent-genesis');
-    expect(plan.agents.filter((agent) => agent.autospawn).map((agent) => agent.missionProfile)).toEqual(
-      expect.arrayContaining(['holoheal', 'secret-custodian', 'fleet-auditor', 'builder'])
-    );
+    expect(
+      plan.agents.filter((agent) => agent.autospawn).map((agent) => agent.missionProfile)
+    ).toEqual(expect.arrayContaining(['holoheal', 'secret-custodian', 'fleet-auditor', 'builder']));
     for (const agent of plan.agents) {
       expect(agent.skillsFirst.rule).toBe('skills-first');
       expect(agent.skillsFirst.primarySkills.length).toBeGreaterThan(0);

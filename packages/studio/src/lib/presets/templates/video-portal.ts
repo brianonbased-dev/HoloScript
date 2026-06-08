@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-video-portal",
-  name: "Video Portal",
-  description: "Video on depth-displaced surface with parallax effect",
-  thumbnail: "🌀",
-  tags: ["hologram","video","depth","portal","immersive"],
-  category: "hologram",
+  id: 'wizard-video-portal',
+  name: 'Video Portal',
+  description: 'Video on depth-displaced surface with parallax effect',
+  thumbnail: '🌀',
+  tags: ['hologram', 'video', 'depth', 'portal', 'immersive'],
+  category: 'hologram',
   code: `composition "Video Portal" {
   environment {
     skybox: "space"
@@ -85,7 +85,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 5.0
     material: { opacity: 0 }
   }
-}`
+}`,
 };
 
 export default template;

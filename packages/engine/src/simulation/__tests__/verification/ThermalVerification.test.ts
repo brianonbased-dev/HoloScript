@@ -37,9 +37,9 @@ import {
 import { registerMaterial } from '../../MaterialDatabase';
 
 const TEST_MATERIAL = 'verification_test';
-const K = 1.0;     // W/(m·K) — conductivity
-const CP = 1.0;    // J/(kg·K) — specific heat
-const RHO = 1.0;   // kg/m³ — density
+const K = 1.0; // W/(m·K) — conductivity
+const CP = 1.0; // J/(kg·K) — specific heat
+const RHO = 1.0; // kg/m³ — density
 const ALPHA = K / (RHO * CP); // = 1.0 m²/s (diffusivity)
 
 registerMaterial(TEST_MATERIAL, {
@@ -93,7 +93,7 @@ describe('Benchmark 1: 1D steady-state conduction', () => {
     });
 
     // Run well past steady state (~5 diffusion timescales)
-    const totalTime = 5 * (L * L) / ALPHA; // 5 * 0.01 = 0.05s
+    const totalTime = (5 * (L * L)) / ALPHA; // 5 * 0.01 = 0.05s
     const steps = Math.ceil(totalTime / 0.00005);
     for (let i = 0; i < steps; i++) {
       solver.step(0.00005);
@@ -107,7 +107,7 @@ describe('Benchmark 1: 1D steady-state conduction', () => {
 
     for (let i = 0; i < Nx; i++) {
       numerical.push(grid.get(i, 1, 1));
-      analytical.push(T_hot - (T_hot - T_cold) * (i * dx) / L);
+      analytical.push(T_hot - ((T_hot - T_cold) * (i * dx)) / L);
     }
 
     const l2Err = errorL2(numerical, analytical);
@@ -183,7 +183,7 @@ describe('Convergence analysis utilities', () => {
     // Synthetic data: error = C * h^2 (second order)
     const C = 1.5;
     const meshSizes = [0.2, 0.1, 0.05, 0.025];
-    const errors = meshSizes.map(h => C * h * h);
+    const errors = meshSizes.map((h) => C * h * h);
 
     const order = computeObservedOrder(meshSizes, errors);
     expect(order).toBeCloseTo(2.0, 5);
@@ -194,7 +194,7 @@ describe('Convergence analysis utilities', () => {
 
     const C = 3.0;
     const meshSizes = [0.2, 0.1, 0.05, 0.025];
-    const errors = meshSizes.map(h => C * h);
+    const errors = meshSizes.map((h) => C * h);
 
     const order = computeObservedOrder(meshSizes, errors);
     expect(order).toBeCloseTo(1.0, 5);

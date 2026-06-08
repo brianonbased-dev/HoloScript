@@ -55,7 +55,7 @@ function mkCtx(scope: Scope, overrides: Partial<HoloStatementContext> = {}): Hol
     },
     ...overrides,
     // Preserve emitLog pointer on ctx for test inspection via a cast
-    ...((): object => ({})),
+    ...(): object => ({}),
   } as HoloStatementContext & { __emitLog?: typeof emitLog };
 }
 
@@ -67,7 +67,7 @@ describe('runtime/holo-statement-executor', () => {
       const res = await executeHoloStatement(
         { type: 'Assignment', target: 'x', operator: '=', value: 42 } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(res.success).toBe(true);
       expect(scope.variables.get('x')).toBe(42);
@@ -76,10 +76,26 @@ describe('runtime/holo-statement-executor', () => {
     it('handles += -= *= /= compound operators', async () => {
       const scope = mkScope({ a: 10, b: 10, c: 10, d: 10 });
       const ctx = mkCtx(scope);
-      await executeHoloStatement({ type: 'Assignment', target: 'a', operator: '+=', value: 5 } as never, undefined, ctx);
-      await executeHoloStatement({ type: 'Assignment', target: 'b', operator: '-=', value: 3 } as never, undefined, ctx);
-      await executeHoloStatement({ type: 'Assignment', target: 'c', operator: '*=', value: 4 } as never, undefined, ctx);
-      await executeHoloStatement({ type: 'Assignment', target: 'd', operator: '/=', value: 2 } as never, undefined, ctx);
+      await executeHoloStatement(
+        { type: 'Assignment', target: 'a', operator: '+=', value: 5 } as never,
+        undefined,
+        ctx
+      );
+      await executeHoloStatement(
+        { type: 'Assignment', target: 'b', operator: '-=', value: 3 } as never,
+        undefined,
+        ctx
+      );
+      await executeHoloStatement(
+        { type: 'Assignment', target: 'c', operator: '*=', value: 4 } as never,
+        undefined,
+        ctx
+      );
+      await executeHoloStatement(
+        { type: 'Assignment', target: 'd', operator: '/=', value: 2 } as never,
+        undefined,
+        ctx
+      );
       expect(scope.variables.get('a')).toBe(15);
       expect(scope.variables.get('b')).toBe(7);
       expect(scope.variables.get('c')).toBe(40);
@@ -99,7 +115,7 @@ describe('runtime/holo-statement-executor', () => {
           alternate: [{ type: 'Assignment', target: 'result', operator: '=', value: 2 }],
         } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(res.success).toBe(true);
       expect(scope.variables.get('result')).toBe(1);
@@ -116,7 +132,7 @@ describe('runtime/holo-statement-executor', () => {
           alternate: [{ type: 'Assignment', target: 'result', operator: '=', value: 2 }],
         } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(scope.variables.get('result')).toBe(2);
     });
@@ -149,7 +165,7 @@ describe('runtime/holo-statement-executor', () => {
             if (expr === 'i-val') return scope.variables.get('i') as number;
             return expr as HoloScriptValue;
           },
-        },
+        }
       );
       expect(scope.variables.get('i')).toBe(5);
       // 0+1+2+3+4 = 10
@@ -164,7 +180,7 @@ describe('runtime/holo-statement-executor', () => {
       const res = await executeHoloStatement(
         { type: 'WhileStatement', condition: true, body: [] } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(res.success).toBe(false);
       expect(res.error).toBe('Infinite loop');
@@ -191,7 +207,7 @@ describe('runtime/holo-statement-executor', () => {
           body: [{ type: 'EmitStatement', event: 'tick', data: 'i-val' }],
         } as never,
         undefined,
-        ctx,
+        ctx
       );
       // i starts at 0 (init overrode 99), iterates while i<3 → i becomes 3
       expect(scope.variables.get('i')).toBe(3);
@@ -205,7 +221,7 @@ describe('runtime/holo-statement-executor', () => {
       await executeHoloStatement(
         { type: 'VariableDeclaration', name: 'foo', value: 7 } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(scope.variables.get('foo')).toBe(7);
     });
@@ -216,7 +232,7 @@ describe('runtime/holo-statement-executor', () => {
       await executeHoloStatement(
         { type: 'VariableDeclaration', name: 'bar' } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(scope.variables.has('bar')).toBe(true);
       expect(scope.variables.get('bar')).toBeUndefined();
@@ -229,7 +245,7 @@ describe('runtime/holo-statement-executor', () => {
       await executeHoloStatement(
         { type: 'VariableDeclaration', name: 'local', value: 'here' } as never,
         sub,
-        ctx,
+        ctx
       );
       expect(sub.variables.get('local')).toBe('here');
       expect(main.variables.has('local')).toBe(false);
@@ -244,7 +260,7 @@ describe('runtime/holo-statement-executor', () => {
       await executeHoloStatement(
         { type: 'EmitStatement', event: 'clicked', data: 'payload' } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(emitFn).toHaveBeenCalledWith('clicked', 'payload');
     });
@@ -256,7 +272,7 @@ describe('runtime/holo-statement-executor', () => {
       await executeHoloStatement(
         { type: 'EmitStatement', event: 'pulse' } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(emitFn).toHaveBeenCalledWith('pulse', undefined);
     });
@@ -271,7 +287,7 @@ describe('runtime/holo-statement-executor', () => {
       const res = await executeHoloStatement(
         { type: 'AwaitStatement', expression: 'whatever' } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(res.success).toBe(true);
     });
@@ -284,7 +300,7 @@ describe('runtime/holo-statement-executor', () => {
       const res = await executeHoloStatement(
         { type: 'AwaitStatement', expression: 'whatever' } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(res.success).toBe(true);
     });
@@ -297,7 +313,7 @@ describe('runtime/holo-statement-executor', () => {
       const res = await executeHoloStatement(
         { type: 'ReturnStatement', value: 'done' } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(res.success).toBe(true);
       expect(res.output).toBe('done');
@@ -306,11 +322,7 @@ describe('runtime/holo-statement-executor', () => {
     it('returns null when no value', async () => {
       const scope = mkScope();
       const ctx = mkCtx(scope);
-      const res = await executeHoloStatement(
-        { type: 'ReturnStatement' } as never,
-        undefined,
-        ctx,
-      );
+      const res = await executeHoloStatement({ type: 'ReturnStatement' } as never, undefined, ctx);
       expect(res.success).toBe(true);
       expect(res.output).toBeNull();
     });
@@ -325,7 +337,7 @@ describe('runtime/holo-statement-executor', () => {
       const res = await executeHoloStatement(
         { type: 'ExpressionStatement', expression: 'anything' } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(res.success).toBe(true);
       expect(res.output).toBe('evaluated');
@@ -336,11 +348,7 @@ describe('runtime/holo-statement-executor', () => {
     it('returns error message with type', async () => {
       const scope = mkScope();
       const ctx = mkCtx(scope);
-      const res = await executeHoloStatement(
-        { type: 'NopeNotReal' } as never,
-        undefined,
-        ctx,
-      );
+      const res = await executeHoloStatement({ type: 'NopeNotReal' } as never, undefined, ctx);
       expect(res.success).toBe(false);
       expect(res.error).toContain('Unknown stmt type');
       expect(res.error).toContain('NopeNotReal');
@@ -358,7 +366,7 @@ describe('runtime/holo-statement-executor', () => {
       const res = await executeHoloStatement(
         { type: 'Assignment', target: 'x', operator: '=', value: 'expr' } as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(res.success).toBe(false);
       expect(res.error).toBe('kaboom');
@@ -376,7 +384,7 @@ describe('runtime/holo-statement-executor', () => {
           { type: 'Assignment', target: 'count', operator: '+=', value: 3 },
         ] as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(results).toHaveLength(3);
       expect(scope.variables.get('count')).toBe(6);
@@ -392,7 +400,7 @@ describe('runtime/holo-statement-executor', () => {
           { type: 'Assignment', target: 'reached', operator: '+=', value: 100 },
         ] as never,
         undefined,
-        ctx,
+        ctx
       );
       expect(results).toHaveLength(2);
       expect(results[1].output).toBe('early');
@@ -408,7 +416,7 @@ describe('runtime/holo-statement-executor', () => {
           { type: 'Assignment', target: 'reached', operator: '+=', value: 1 },
         ] as never,
         undefined,
-        ctx,
+        ctx
       );
       // null is NOT `!== undefined` in the short-circuit check; actually
       // `null !== undefined` IS true, so short-circuit DOES fire. Lock that.

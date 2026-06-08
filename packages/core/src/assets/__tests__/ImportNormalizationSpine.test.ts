@@ -8,7 +8,9 @@ import {
 describe('ImportNormalizationSpine (task_1779336717743_34m6 Phase 1 seed)', () => {
   it('normalizeLegacyToGLTF returns SourceImportReceipt + SemanticMappingReceipt for legacy format (OBJ via assimp path)', async () => {
     const fakeObj = 'v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3';
-    const artifact = await normalizeLegacyToGLTF('test-model.obj', fakeObj, { preferNativeAssimp: true });
+    const artifact = await normalizeLegacyToGLTF('test-model.obj', fakeObj, {
+      preferNativeAssimp: true,
+    });
 
     expect(artifact.source).toBeDefined();
     const src: SourceImportReceipt = artifact.source;

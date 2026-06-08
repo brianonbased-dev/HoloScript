@@ -220,7 +220,7 @@ describe('RooftopAnchorTrait — Production', () => {
     const { node, ctx, cfg } = attach();
     fire(node, cfg, ctx, { type: 'rooftop_pose_update', position: [1, 20, 2] });
     expect(st(node).state).toBe('tracking');
-    expect(st(node).rooftopPosition).toEqual([1, 20, 2 ]);
+    expect(st(node).rooftopPosition).toEqual([1, 20, 2]);
   });
 
   // ─── onEvent: unavailable ────────────────────────────────────────────
@@ -268,7 +268,7 @@ describe('RooftopAnchorTrait — Production', () => {
 
   it('onUpdate sets node.position when resolved and node has position', () => {
     const { node, ctx, cfg } = attach({ elevation_offset: 5 });
-    node.position = [0, 0, 0 ];
+    node.position = [0, 0, 0];
     fire(node, cfg, ctx, {
       type: 'rooftop_anchor_resolved',
       handle: 'H9',

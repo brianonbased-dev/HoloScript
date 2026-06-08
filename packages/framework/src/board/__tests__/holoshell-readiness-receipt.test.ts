@@ -178,35 +178,38 @@ describe('validateHoloShellReadinessReceipt', () => {
   it('requires id', () => {
     const receipt = { ...makeValidReceipt(), id: '' };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.id is required.',
+      'HoloShellReadinessReceipt.id is required.'
     );
   });
 
   it('requires workflow', () => {
     const receipt = { ...makeValidReceipt(), workflow: '' };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.workflow is required.',
+      'HoloShellReadinessReceipt.workflow is required.'
     );
   });
 
   it('requires valid startedAt', () => {
     const receipt = { ...makeValidReceipt(), startedAt: 'invalid' };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.startedAt is required and must be a valid ISO-8601 timestamp.',
+      'HoloShellReadinessReceipt.startedAt is required and must be a valid ISO-8601 timestamp.'
     );
   });
 
   it('requires valid endedAt', () => {
     const receipt = { ...makeValidReceipt(), endedAt: '' };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.endedAt is required and must be a valid ISO-8601 timestamp.',
+      'HoloShellReadinessReceipt.endedAt is required and must be a valid ISO-8601 timestamp.'
     );
   });
 
   it('requires gitStatus', () => {
-    const receipt = { ...makeValidReceipt(), gitStatus: undefined as unknown as ReadinessGitStatus };
+    const receipt = {
+      ...makeValidReceipt(),
+      gitStatus: undefined as unknown as ReadinessGitStatus,
+    };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.gitStatus is required.',
+      'HoloShellReadinessReceipt.gitStatus is required.'
     );
   });
 
@@ -214,21 +217,27 @@ describe('validateHoloShellReadinessReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.gitStatus = { ...receipt.gitStatus, changedFiles: -1 };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'ReadinessGitStatus.changedFiles must be a non-negative number.',
+      'ReadinessGitStatus.changedFiles must be a non-negative number.'
     );
   });
 
   it('requires buildReceipt', () => {
-    const receipt = { ...makeValidReceipt(), buildReceipt: undefined as unknown as LocalCliAbsorptionReceipt };
+    const receipt = {
+      ...makeValidReceipt(),
+      buildReceipt: undefined as unknown as LocalCliAbsorptionReceipt,
+    };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.buildReceipt is required.',
+      'HoloShellReadinessReceipt.buildReceipt is required.'
     );
   });
 
   it('requires sourceValidation', () => {
-    const receipt = { ...makeValidReceipt(), sourceValidation: undefined as unknown as ReadinessSourceValidation };
+    const receipt = {
+      ...makeValidReceipt(),
+      sourceValidation: undefined as unknown as ReadinessSourceValidation,
+    };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.sourceValidation is required.',
+      'HoloShellReadinessReceipt.sourceValidation is required.'
     );
   });
 
@@ -239,14 +248,17 @@ describe('validateHoloShellReadinessReceipt', () => {
       checks: [{ id: '', label: '', status: 'pass' }],
     };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'ReadinessValidationCheck.id is required.',
+      'ReadinessValidationCheck.id is required.'
     );
   });
 
   it('requires deviceLab', () => {
-    const receipt = { ...makeValidReceipt(), deviceLab: undefined as unknown as ReadinessDeviceLabStatus };
+    const receipt = {
+      ...makeValidReceipt(),
+      deviceLab: undefined as unknown as ReadinessDeviceLabStatus,
+    };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.deviceLab is required.',
+      'HoloShellReadinessReceipt.deviceLab is required.'
     );
   });
 
@@ -257,14 +269,17 @@ describe('validateHoloShellReadinessReceipt', () => {
       checks: [{ id: 'gpu', label: 'GPU', status: 'bad' as 'pass' }],
     };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'ReadinessDeviceLabCheck.status is unsupported: bad.',
+      'ReadinessDeviceLabCheck.status is unsupported: bad.'
     );
   });
 
   it('requires graphStatus', () => {
-    const receipt = { ...makeValidReceipt(), graphStatus: undefined as unknown as ReadinessGraphStatus };
+    const receipt = {
+      ...makeValidReceipt(),
+      graphStatus: undefined as unknown as ReadinessGraphStatus,
+    };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.graphStatus is required.',
+      'HoloShellReadinessReceipt.graphStatus is required.'
     );
   });
 
@@ -272,7 +287,7 @@ describe('validateHoloShellReadinessReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.graphStatus = { ...receipt.graphStatus, nodeCount: -5 };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'ReadinessGraphStatus.nodeCount must be a non-negative number.',
+      'ReadinessGraphStatus.nodeCount must be a non-negative number.'
     );
   });
 
@@ -280,28 +295,28 @@ describe('validateHoloShellReadinessReceipt', () => {
     const receipt = makeValidReceipt();
     receipt.taskFiling = { tasksFiled: -1 } as ReadinessTaskFiling;
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'ReadinessTaskFiling.tasksFiled must be a non-negative number.',
+      'ReadinessTaskFiling.tasksFiled must be a non-negative number.'
     );
   });
 
   it('requires hash', () => {
     const receipt = { ...makeValidReceipt(), hash: '' };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.hash is required.',
+      'HoloShellReadinessReceipt.hash is required.'
     );
   });
 
   it('requires hashAlgorithm', () => {
     const receipt = { ...makeValidReceipt(), hashAlgorithm: '' as unknown as 'sha256' };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.hashAlgorithm is required.',
+      'HoloShellReadinessReceipt.hashAlgorithm is required.'
     );
   });
 
   it('rejects unsupported overallOutcome', () => {
     const receipt = { ...makeValidReceipt(), overallOutcome: 'success' as unknown as 'pass' };
     expect(validateHoloShellReadinessReceipt(receipt)).toContain(
-      'HoloShellReadinessReceipt.overallOutcome is unsupported: success.',
+      'HoloShellReadinessReceipt.overallOutcome is unsupported: success.'
     );
   });
 });

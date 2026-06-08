@@ -38,10 +38,7 @@ function findPackageJsonDirs(dir) {
   return results;
 }
 
-const packageDirs = [
-  ...findPackageJsonDirs(packagesDir),
-  ...findPackageJsonDirs(servicesDir),
-];
+const packageDirs = [...findPackageJsonDirs(packagesDir), ...findPackageJsonDirs(servicesDir)];
 
 const changes = [];
 const skipped = [];

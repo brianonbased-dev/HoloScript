@@ -19,7 +19,7 @@ describe('TraitRegistryBridge (APL WIT audit — wired to real registries)', () 
   it('generateTraitForTarget produces code for a known Android XR trait', () => {
     const code = generateTraitForTarget('physics', 'android-xr', { mass: 2.0 });
     expect(code.length).toBeGreaterThan(0);
-    expect(code.some(line => line.includes('PhysicsComponent'))).toBe(true);
+    expect(code.some((line) => line.includes('PhysicsComponent'))).toBe(true);
   });
 
   it('listTraitsForTarget returns the full Android XR trait map for android-xr', () => {
@@ -131,7 +131,13 @@ describe('TraitRegistryBridge (APL WIT audit — wired to real registries)', () 
   it('listTraitsForTarget for core deduplicates normalised names', () => {
     const list = listTraitsForTarget('core');
     // Ensure no duplicates after normalisation
-    const normalised = list.map(n => n.toLowerCase().replace(/^@/, '').replace(/trait$/i, '').replace(/_/g, '-'));
+    const normalised = list.map((n) =>
+      n
+        .toLowerCase()
+        .replace(/^@/, '')
+        .replace(/trait$/i, '')
+        .replace(/_/g, '-')
+    );
     const uniqueNormalised = new Set(normalised);
     // Allow for some legitimate overlaps between registry and docs,
     // but the count should be very close
@@ -143,7 +149,7 @@ describe('TraitRegistryBridge (APL WIT audit — wired to real registries)', () 
   it('generateTraitForTarget for core returns a descriptive stub for known traits', () => {
     const code = generateTraitForTarget('grabbable', 'core');
     expect(code.length).toBeGreaterThan(0);
-    expect(code.some(line => line.includes('grabbable'))).toBe(true);
+    expect(code.some((line) => line.includes('grabbable'))).toBe(true);
   });
 
   it('generateTraitForTarget for core returns not-found stub for unknown traits', () => {

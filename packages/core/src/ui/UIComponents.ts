@@ -270,4 +270,3 @@ export const createScrollView = (config: ScrollViewConfig): HSPlusNode => {
     children: config.children || [],
   } as unknown as HSPlusNode;
 };
-

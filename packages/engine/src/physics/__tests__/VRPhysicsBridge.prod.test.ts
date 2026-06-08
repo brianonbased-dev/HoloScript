@@ -17,16 +17,16 @@ function makeWorld(initialBodies: Record<string, any> = {}) {
     createBody(config: any) {
       bodies[config.id] = {
         ...config,
-        velocity: [0, 0, 0 ],
+        velocity: [0, 0, 0],
         position: config.transform?.position,
       };
       return config.id;
     },
     setPosition(id: string, position: IVector3) {
-      if (bodies[id]) bodies[id].position = [...position  ];
+      if (bodies[id]) bodies[id].position = [...position];
     },
     setLinearVelocity(id: string, velocity: IVector3) {
-      if (bodies[id]) bodies[id].velocity = [...velocity  ];
+      if (bodies[id]) bodies[id].velocity = [...velocity];
     },
     getBody(id: string) {
       return bodies[id] ?? null;
@@ -47,7 +47,7 @@ function makeWorld(initialBodies: Record<string, any> = {}) {
 }
 
 function makeHand(x: number, y = 0, z = 0): VRHand {
-  return { position: { x, y, z }, rotation: [0, 0, 0 ] } as VRHand;
+  return { position: { x, y, z }, rotation: [0, 0, 0] } as VRHand;
 }
 
 function makeContext(left: VRHand | null, right: VRHand | null) {

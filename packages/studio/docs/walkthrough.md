@@ -9,15 +9,15 @@ This note ties together the **Gist publication manifest** API, optional **x402**
 
 ### Request body (JSON)
 
-| Field | Required | Notes |
-|--------|-----------|--------|
-| `room` | yes | Non-empty string; drives `provenance_receipt.document_id` |
-| `loroDocVersion` | yes | Object — Loro / CRDT snapshot for Door 1 |
-| `x402Receipt` | tier-dependent | Optional payment anchor (Door 3) |
-| `title` | no | Human label |
-| `primaryAssetSha256` | no | Content address for primary gist asset |
-| `xrMetrics` | no | Plain object — e.g. Film3D `hitTestCount`, `depthSensingActive`, … |
-| `includeSemiringDigest` | no | Default true; set `false` to omit `provenance_semiring_digest` |
+| Field                   | Required       | Notes                                                              |
+| ----------------------- | -------------- | ------------------------------------------------------------------ |
+| `room`                  | yes            | Non-empty string; drives `provenance_receipt.document_id`          |
+| `loroDocVersion`        | yes            | Object — Loro / CRDT snapshot for Door 1                           |
+| `x402Receipt`           | tier-dependent | Optional payment anchor (Door 3)                                   |
+| `title`                 | no             | Human label                                                        |
+| `primaryAssetSha256`    | no             | Content address for primary gist asset                             |
+| `xrMetrics`             | no             | Plain object — e.g. Film3D `hitTestCount`, `depthSensingActive`, … |
+| `includeSemiringDigest` | no             | Default true; set `false` to omit `provenance_semiring_digest`     |
 
 ### Response
 

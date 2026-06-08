@@ -82,7 +82,11 @@ describe('SpectatorCameraCoordinator — Pattern E wiring', () => {
 
   it('smoothing < 1 → camera trails the target, approaching monotonically', () => {
     const bus = new EventBus();
-    const coord = createSpectatorCameraCoordinator({ bus, followOffset: [0, 0, 0], smoothing: 0.5 });
+    const coord = createSpectatorCameraCoordinator({
+      bus,
+      followOffset: [0, 0, 0],
+      smoothing: 0.5,
+    });
     const { tick } = mountFollow(bus, 'player_1');
     coord.setTargetPosition('player_1', [100, 0, 0]);
 

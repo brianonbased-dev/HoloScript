@@ -72,12 +72,7 @@ describe('BeatmapTrait — sortCues (pure)', () => {
       { beat: 16, event: 'fog_roll' },
     ];
     const sorted = sortCues(input);
-    expect(sorted.map((c) => c.event)).toEqual([
-      'intro',
-      'fog_roll',
-      'spot_reveal',
-      'show_start',
-    ]);
+    expect(sorted.map((c) => c.event)).toEqual(['intro', 'fog_roll', 'spot_reveal', 'show_start']);
   });
 
   it('preserves authoring order for equal-beat cues (stable sort)', () => {
@@ -87,11 +82,7 @@ describe('BeatmapTrait — sortCues (pure)', () => {
       { beat: 16, event: 'third_at_16' },
     ];
     const sorted = sortCues(input);
-    expect(sorted.map((c) => c.event)).toEqual([
-      'first_at_16',
-      'second_at_16',
-      'third_at_16',
-    ]);
+    expect(sorted.map((c) => c.event)).toEqual(['first_at_16', 'second_at_16', 'third_at_16']);
   });
 
   it('handles empty input', () => {
@@ -302,9 +293,7 @@ describe('BeatmapTrait — internal clock firing', () => {
     updateTrait(beatmapHandler, node, { bpm: 120, cues: unsorted }, ctx, 32);
 
     // Verify all three fired, in beat order
-    const fired = ctx.emittedEvents.filter((e) =>
-      ['early', 'middle', 'late'].includes(e.event)
-    );
+    const fired = ctx.emittedEvents.filter((e) => ['early', 'middle', 'late'].includes(e.event));
     expect(fired.map((e) => e.event)).toEqual(['early', 'middle', 'late']);
   });
 
@@ -444,22 +433,11 @@ describe('BeatmapTrait — AudioAnalysis sync', () => {
     const ctx = createMockContext();
     const node = createMockNode();
     const cues: BeatmapCue[] = [{ beat: 4, event: 'snare' }];
-    attachTrait(
-      beatmapHandler,
-      node,
-      { bpm: 120, sync_to: 'AudioAnalysis', cues },
-      ctx
-    );
+    attachTrait(beatmapHandler, node, { bpm: 120, sync_to: 'AudioAnalysis', cues }, ctx);
     ctx.clearEvents();
 
     // Internal updateTrait should NOT fire anything
-    updateTrait(
-      beatmapHandler,
-      node,
-      { bpm: 120, sync_to: 'AudioAnalysis', cues },
-      ctx,
-      10
-    );
+    updateTrait(beatmapHandler, node, { bpm: 120, sync_to: 'AudioAnalysis', cues }, ctx, 10);
     expect(getEventCount(ctx, 'snare')).toBe(0);
   });
 
@@ -471,39 +449,25 @@ describe('BeatmapTrait — AudioAnalysis sync', () => {
       { beat: 4, event: 'snare' },
       { beat: 8, event: 'kick' },
     ];
-    attachTrait(
-      beatmapHandler,
-      node,
-      { bpm: 120, sync_to: 'AudioAnalysis', cues },
-      ctx
-    );
+    attachTrait(beatmapHandler, node, { bpm: 120, sync_to: 'AudioAnalysis', cues }, ctx);
     ctx.clearEvents();
 
-    sendEvent(
-      beatmapHandler,
-      node,
-      { bpm: 120, sync_to: 'AudioAnalysis', cues },
-      ctx,
-      { type: 'audio_beat_tick', beat: 0 }
-    );
+    sendEvent(beatmapHandler, node, { bpm: 120, sync_to: 'AudioAnalysis', cues }, ctx, {
+      type: 'audio_beat_tick',
+      beat: 0,
+    });
     expect(getEventCount(ctx, 'intro')).toBe(1);
 
-    sendEvent(
-      beatmapHandler,
-      node,
-      { bpm: 120, sync_to: 'AudioAnalysis', cues },
-      ctx,
-      { type: 'audio_beat_tick', beat: 4 }
-    );
+    sendEvent(beatmapHandler, node, { bpm: 120, sync_to: 'AudioAnalysis', cues }, ctx, {
+      type: 'audio_beat_tick',
+      beat: 4,
+    });
     expect(getEventCount(ctx, 'snare')).toBe(1);
 
-    sendEvent(
-      beatmapHandler,
-      node,
-      { bpm: 120, sync_to: 'AudioAnalysis', cues },
-      ctx,
-      { type: 'audio_beat_tick', beat: 8 }
-    );
+    sendEvent(beatmapHandler, node, { bpm: 120, sync_to: 'AudioAnalysis', cues }, ctx, {
+      type: 'audio_beat_tick',
+      beat: 8,
+    });
     expect(getEventCount(ctx, 'kick')).toBe(1);
   });
 
@@ -516,22 +480,14 @@ describe('BeatmapTrait — AudioAnalysis sync', () => {
       { beat: 2, event: 'c' },
       { beat: 3, event: 'd' },
     ];
-    attachTrait(
-      beatmapHandler,
-      node,
-      { bpm: 120, sync_to: 'AudioAnalysis', cues },
-      ctx
-    );
+    attachTrait(beatmapHandler, node, { bpm: 120, sync_to: 'AudioAnalysis', cues }, ctx);
     ctx.clearEvents();
 
     // External analyser jumps straight from beat 0 to beat 3 (e.g. dropped frames)
-    sendEvent(
-      beatmapHandler,
-      node,
-      { bpm: 120, sync_to: 'AudioAnalysis', cues },
-      ctx,
-      { type: 'audio_beat_tick', beat: 3 }
-    );
+    sendEvent(beatmapHandler, node, { bpm: 120, sync_to: 'AudioAnalysis', cues }, ctx, {
+      type: 'audio_beat_tick',
+      beat: 3,
+    });
 
     expect(getEventCount(ctx, 'a')).toBe(1);
     expect(getEventCount(ctx, 'b')).toBe(1);

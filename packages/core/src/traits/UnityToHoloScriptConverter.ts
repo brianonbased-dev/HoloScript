@@ -100,10 +100,7 @@ const SHADER_TYPE_MAP: Record<string, 'pbr' | 'unlit' | 'toon' | 'holographic'> 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function vec3ToString(
-  v: Vector3 | undefined,
-  def = [0, 0, 0 ]
-): string {
+function vec3ToString(v: Vector3 | undefined, def = [0, 0, 0]): string {
   if (!v) return `[${def[0]}, ${def[1]}, ${def[2]}]`;
   const x = Array.isArray(v) ? (v[0] ?? def[0]) : ((v as { x?: number })?.x ?? def[0]);
   const y = Array.isArray(v) ? (v[1] ?? def[1]) : ((v as { y?: number })?.y ?? def[1]);
@@ -203,7 +200,7 @@ export function convertGameObject(
   // Build DSL block
   const pos = vec3ToString(go.position);
   const rot = vec3ToString(go.rotation);
-  const scale = vec3ToString(go.scale, [1, 1, 1 ]);
+  const scale = vec3ToString(go.scale, [1, 1, 1]);
 
   const lines: string[] = [
     `${pad}object ${id} : ${geometryId} {`,

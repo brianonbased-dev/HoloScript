@@ -22,7 +22,9 @@ mkdirSync(PANELS_DIR, { recursive: true });
 
 /** HoloScript object literal with unquoted keys (matches the .holo dialect). */
 function holoObj(o: Record<string, unknown>): string {
-  return `{ ${Object.entries(o).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(', ')} }`;
+  return `{ ${Object.entries(o)
+    .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+    .join(', ')} }`;
 }
 
 /**
@@ -40,10 +42,16 @@ const VERIFIED_RIGHT_RAIL_SLOTS: Record<string, { component: string; import: str
   repl: { component: 'REPLPanel', import: '@/components/repl/REPLPanel' },
   registry: { component: 'RegistryPanel', import: '@/components/registry/RegistryPanel' },
   export: { component: 'ExportPanel', import: '@/components/export/ExportPanel' },
-  multiplayer: { component: 'MultiplayerPanel', import: '@/components/collaboration/MultiplayerPanel' },
+  multiplayer: {
+    component: 'MultiplayerPanel',
+    import: '@/components/collaboration/MultiplayerPanel',
+  },
   snapshots: { component: 'SnapshotGallery', import: '@/components/gallery/SnapshotGallery' },
   assetLib: { component: 'AssetLibraryPanel', import: '@/components/assets/AssetLibraryPanel' },
-  templateGallery: { component: 'TemplateGallery', import: '@/components/templates/TemplateGallery' },
+  templateGallery: {
+    component: 'TemplateGallery',
+    import: '@/components/templates/TemplateGallery',
+  },
   audio: { component: 'AudioTraitPanel', import: '@/components/audio/AudioTraitPanel' },
   exportV2: { component: 'ExportPipelinePanel', import: '@/components/export/ExportPipelinePanel' },
   keyframes: { component: 'KeyframeEditor', import: '@/components/keyframes/KeyframeEditor' },

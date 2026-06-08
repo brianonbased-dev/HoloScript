@@ -233,7 +233,7 @@ if (trait === 'body_tracking' && platform === 'web') {
 
 ### S.007 | Training vs deployment observability (security posture) | ⚡0.75
 
-**Research capture:** Full **cryptographic indistinguishability** of train/deploy from the model’s view is a high bar; pragmatic parity is **interface-stable manifests** + **attested runtimes** (same observation schema, hashed prompt templates, policy-as-code IDs). Ship profiles should declare **which sensors exist in prod vs lab** and block silent upgrades. HoloMesh-facing agents should treat **environment fingerprint** as part of state so policy files can branch on *certified* vs *dev* builds without reward-shaping drift.
+**Research capture:** Full **cryptographic indistinguishability** of train/deploy from the model’s view is a high bar; pragmatic parity is **interface-stable manifests** + **attested runtimes** (same observation schema, hashed prompt templates, policy-as-code IDs). Ship profiles should declare **which sensors exist in prod vs lab** and block silent upgrades. HoloMesh-facing agents should treat **environment fingerprint** as part of state so policy files can branch on _certified_ vs _dev_ builds without reward-shaping drift.
 
 ### S.008 | Relatedness (SDT) vs mesa-optimization pressure | ⚡0.7
 

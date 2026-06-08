@@ -121,10 +121,9 @@ export async function POST(request: NextRequest) {
 
   // SEC-T17: cap body bytes. Prompt is internally capped at MAX_PROMPT_CHARS
   // (4KB); 32KB body budget leaves ample JSON/existingCode headroom.
-  const parsed = await readJsonBody<{ prompt?: unknown; existingCode?: unknown }>(
-    request,
-    { maxBytes: 32_000 }
-  );
+  const parsed = await readJsonBody<{ prompt?: unknown; existingCode?: unknown }>(request, {
+    maxBytes: 32_000,
+  });
   if (!parsed.ok) {
     return NextResponse.json(
       { success: false, code: '', error: parsed.error },
@@ -323,7 +322,6 @@ async function tryOllamaFallback(fullPrompt: string): Promise<string | null> {
     return null;
   }
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

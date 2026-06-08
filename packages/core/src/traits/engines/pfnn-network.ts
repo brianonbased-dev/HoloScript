@@ -124,7 +124,9 @@ export class PfnnNetwork {
    * Export the raw weights — used by the .onnx provisioning script so the
    * ONNX graph carries the identical numbers. Returned arrays are copies.
    */
-  exportWeights(): { controlPoints: { layers: { weight: number[]; bias: number[]; shape: [number, number] }[] }[] } {
+  exportWeights(): {
+    controlPoints: { layers: { weight: number[]; bias: number[]; shape: [number, number] }[] }[];
+  } {
     return {
       controlPoints: this.controlPoints.map((cp) => ({
         layers: cp.layers.map((l) => ({
@@ -148,7 +150,8 @@ export class PfnnNetwork {
     const k = Math.floor(scaled);
     const f = scaled - k; // fractional within segment
 
-    const mod = (n: number) => ((n % PHASE_CONTROL_POINTS) + PHASE_CONTROL_POINTS) % PHASE_CONTROL_POINTS;
+    const mod = (n: number) =>
+      ((n % PHASE_CONTROL_POINTS) + PHASE_CONTROL_POINTS) % PHASE_CONTROL_POINTS;
     const p0 = this.controlPoints[mod(k - 1)].layers[layerIdx];
     const p1 = this.controlPoints[mod(k)].layers[layerIdx];
     const p2 = this.controlPoints[mod(k + 1)].layers[layerIdx];
@@ -184,7 +187,7 @@ export class PfnnNetwork {
   forward(input: Float32Array, phase: number): Float32Array {
     if (input.length !== this.inputDim) {
       throw new Error(
-        `PfnnNetwork.forward: input length ${input.length} != inputDim ${this.inputDim}`,
+        `PfnnNetwork.forward: input length ${input.length} != inputDim ${this.inputDim}`
       );
     }
     let x: DenseTensor = createTensor([1, this.inputDim], input);
@@ -214,10 +217,13 @@ export class PfnnNetwork {
   forwardControlPoint(input: Float32Array, cp = 0): Float32Array {
     if (input.length !== this.inputDim) {
       throw new Error(
-        `PfnnNetwork.forwardControlPoint: input length ${input.length} != inputDim ${this.inputDim}`,
+        `PfnnNetwork.forwardControlPoint: input length ${input.length} != inputDim ${this.inputDim}`
       );
     }
-    const layers = this.controlPoints[((cp % PHASE_CONTROL_POINTS) + PHASE_CONTROL_POINTS) % PHASE_CONTROL_POINTS].layers;
+    const layers =
+      this.controlPoints[
+        ((cp % PHASE_CONTROL_POINTS) + PHASE_CONTROL_POINTS) % PHASE_CONTROL_POINTS
+      ].layers;
     let x: DenseTensor = createTensor([1, this.inputDim], input);
     x = add(matmul(x, layers[0].weight), layers[0].bias);
     eluInPlace(x.data);

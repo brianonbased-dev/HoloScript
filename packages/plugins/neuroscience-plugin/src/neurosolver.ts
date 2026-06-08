@@ -145,11 +145,11 @@ export interface EEGBandPowerResult {
   psd: number[];
   /** Frequency bins Hz */
   frequencies: number[];
-  delta: number;   // 0.5–4 Hz
-  theta: number;   // 4–8 Hz
-  alpha: number;   // 8–13 Hz
-  beta: number;    // 13–30 Hz
-  gamma: number;   // 30–100 Hz
+  delta: number; // 0.5–4 Hz
+  theta: number; // 4–8 Hz
+  alpha: number; // 8–13 Hz
+  beta: number; // 13–30 Hz
+  gamma: number; // 30–100 Hz
   /** Dominant band */
   dominantBand: 'delta' | 'theta' | 'alpha' | 'beta' | 'gamma';
 }
@@ -181,16 +181,24 @@ function alphaN(V: number): number {
   const dv = V + 55;
   return Math.abs(dv) < 1e-7 ? 0.1 : (0.01 * dv) / (1 - Math.exp(-dv / 10));
 }
-function betaN(V: number): number { return 0.125 * Math.exp(-(V + 65) / 80); }
+function betaN(V: number): number {
+  return 0.125 * Math.exp(-(V + 65) / 80);
+}
 
 function alphaM(V: number): number {
   const dv = V + 40;
   return Math.abs(dv) < 1e-7 ? 1.0 : (0.1 * dv) / (1 - Math.exp(-dv / 10));
 }
-function betaM(V: number): number { return 4 * Math.exp(-(V + 65) / 18); }
+function betaM(V: number): number {
+  return 4 * Math.exp(-(V + 65) / 18);
+}
 
-function alphaH(V: number): number { return 0.07 * Math.exp(-(V + 65) / 20); }
-function betaH(V: number): number { return 1 / (1 + Math.exp(-(V + 35) / 10)); }
+function alphaH(V: number): number {
+  return 0.07 * Math.exp(-(V + 65) / 20);
+}
+function betaH(V: number): number {
+  return 1 / (1 + Math.exp(-(V + 35) / 10));
+}
 
 // ─── Hodgkin-Huxley solver ────────────────────────────────────────────────────
 
@@ -204,8 +212,12 @@ function betaH(V: number): number { return 1 / (1 + Math.exp(-(V + 35) / 10)); }
 export function hodgkinHuxley(params: HHParams): HHResult {
   const {
     Cm = 1.0,
-    gNa = 120, gK = 36, gL = 0.3,
-    ENa = 50, EK = -77, EL = -54.4,
+    gNa = 120,
+    gK = 36,
+    gL = 0.3,
+    ENa = 50,
+    EK = -77,
+    EL = -54.4,
     Iapp,
     durationMs = 100,
     dtMs = 0.01,
@@ -236,8 +248,8 @@ export function hodgkinHuxley(params: HHParams): HHResult {
 
   const dVdt = (v: number, _m: number, _h: number, _n: number) => {
     const INa = gNa * _m ** 3 * _h * (v - ENa);
-    const IK  = gK  * _n ** 4       * (v - EK);
-    const IL  = gL                  * (v - EL);
+    const IK = gK * _n ** 4 * (v - EK);
+    const IL = gL * (v - EL);
     return (Iapp - INa - IK - IL) / Cm;
   };
   const dmdt = (v: number, _m: number) => alphaM(v) * (1 - _m) - betaM(v) * _m;
@@ -264,24 +276,30 @@ export function hodgkinHuxley(params: HHParams): HHResult {
     const k1h = dhdt(V, h);
     const k1n = dndt(V, n);
 
-    const V2 = V + 0.5 * dt * k1V, m2 = m + 0.5 * dt * k1m;
-    const h2 = h + 0.5 * dt * k1h, n2 = n + 0.5 * dt * k1n;
+    const V2 = V + 0.5 * dt * k1V,
+      m2 = m + 0.5 * dt * k1m;
+    const h2 = h + 0.5 * dt * k1h,
+      n2 = n + 0.5 * dt * k1n;
 
     const k2V = dVdt(V2, m2, h2, n2);
     const k2m = dmdt(V2, m2);
     const k2h = dhdt(V2, h2);
     const k2n = dndt(V2, n2);
 
-    const V3 = V + 0.5 * dt * k2V, m3 = m + 0.5 * dt * k2m;
-    const h3 = h + 0.5 * dt * k2h, n3 = n + 0.5 * dt * k2n;
+    const V3 = V + 0.5 * dt * k2V,
+      m3 = m + 0.5 * dt * k2m;
+    const h3 = h + 0.5 * dt * k2h,
+      n3 = n + 0.5 * dt * k2n;
 
     const k3V = dVdt(V3, m3, h3, n3);
     const k3m = dmdt(V3, m3);
     const k3h = dhdt(V3, h3);
     const k3n = dndt(V3, n3);
 
-    const V4 = V + dt * k3V, m4 = m + dt * k3m;
-    const h4 = h + dt * k3h, n4 = n + dt * k3n;
+    const V4 = V + dt * k3V,
+      m4 = m + dt * k3m;
+    const h4 = h + dt * k3h,
+      n4 = n + dt * k3n;
 
     const k4V = dVdt(V4, m4, h4, n4);
     const k4m = dmdt(V4, m4);
@@ -304,8 +322,15 @@ export function hodgkinHuxley(params: HHParams): HHResult {
   const firingRateHz = spikes.length / (durationMs / 1000);
 
   return {
-    timeMs: timeArr, voltagesMv: VArr, m: mArr, h: hArr, n: nArr,
-    spikeTimes: spikes, firingRateHz, peakVoltageMv: peakV, restingPotentialMv: restV,
+    timeMs: timeArr,
+    voltagesMv: VArr,
+    m: mArr,
+    h: hArr,
+    n: nArr,
+    spikeTimes: spikes,
+    firingRateHz,
+    peakVoltageMv: peakV,
+    restingPotentialMv: restV,
   };
 }
 
@@ -322,20 +347,30 @@ function sigmoid(x: number, a: number, theta: number): number {
  */
 export function wilsonCowan(params: WilsonCowanParams): WilsonCowanResult {
   const {
-    tauE = 8, tauI = 8,
-    wEE = 16, wEI = 12, wIE = 13, wII = 11,
-    pE = 1.25, pI = 0,
-    aE = 1.2, aI = 1.0,
-    thetaE = 2.8, thetaI = 4.0,
-    E0 = 0.1, I0 = 0.05,
-    durationMs = 500, dtMs = 0.5,
+    tauE = 8,
+    tauI = 8,
+    wEE = 16,
+    wEI = 12,
+    wIE = 13,
+    wII = 11,
+    pE = 1.25,
+    pI = 0,
+    aE = 1.2,
+    aI = 1.0,
+    thetaE = 2.8,
+    thetaI = 4.0,
+    E0 = 0.1,
+    I0 = 0.05,
+    durationMs = 500,
+    dtMs = 0.5,
   } = params;
 
   if (tauE <= 0 || tauI <= 0) throw new Error('Time constants must be positive');
   if (durationMs <= 0) throw new Error('durationMs must be positive');
 
   const N = Math.ceil(durationMs / dtMs);
-  let E = E0, I = I0;
+  let E = E0,
+    I = I0;
 
   const timeArr: number[] = [];
   const EArr: number[] = [];
@@ -376,9 +411,14 @@ export function wilsonCowan(params: WilsonCowanParams): WilsonCowanResult {
  */
 export function lifNeuron(params: LIFParams): LIFResult {
   const {
-    tauM = 20, Vrest = -65, Vthresh = -50, Vreset = -65,
-    tauRef = 2, Iapp = 1.5,
-    durationMs = 200, dtMs = 0.1,
+    tauM = 20,
+    Vrest = -65,
+    Vthresh = -50,
+    Vreset = -65,
+    tauRef = 2,
+    Iapp = 1.5,
+    durationMs = 200,
+    dtMs = 0.1,
   } = params;
 
   if (tauM <= 0) throw new Error('tauM must be positive');
@@ -449,7 +489,8 @@ export function eegBandPower(signal: number[], samplingRateHz: number): EEGBandP
     frequencies.push(freq);
 
     // DFT sum
-    let re = 0, im = 0;
+    let re = 0,
+      im = 0;
     for (let n = 0; n < N; n++) {
       const angle = (2 * Math.PI * k * n) / N;
       re += signal[n] * Math.cos(angle);
@@ -470,13 +511,26 @@ export function eegBandPower(signal: number[], samplingRateHz: number): EEGBandP
   const delta = bandPower(0.5, 4);
   const theta = bandPower(4, 8);
   const alpha = bandPower(8, 13);
-  const beta  = bandPower(13, 30);
+  const beta = bandPower(13, 30);
   const gamma = bandPower(30, Math.min(100, nyquist));
 
   const bands = { delta, theta, alpha, beta, gamma } as const;
-  const dominantBand = (Object.entries(bands).sort((a, b) => b[1] - a[1])[0][0]) as EEGBandPowerResult['dominantBand'];
+  const dominantBand = Object.entries(bands).sort(
+    (a, b) => b[1] - a[1]
+  )[0][0] as EEGBandPowerResult['dominantBand'];
 
-  return { signal, samplingRateHz, psd, frequencies, delta, theta, alpha, beta, gamma, dominantBand };
+  return {
+    signal,
+    samplingRateHz,
+    psd,
+    frequencies,
+    delta,
+    theta,
+    alpha,
+    beta,
+    gamma,
+    dominantBand,
+  };
 }
 
 // ─── Connectivity metrics (graph-theoretic) ───────────────────────────────────
@@ -502,7 +556,7 @@ export function connectivityMetrics(adjacency: number[][]): ConnectivityMetrics 
 
   // Clustering coefficient for each node
   const clusteringCoeffs = adjacency.map((row, i) => {
-    const neighbors = row.map((v, j) => v && i !== j ? j : -1).filter(j => j >= 0);
+    const neighbors = row.map((v, j) => (v && i !== j ? j : -1)).filter((j) => j >= 0);
     const k = neighbors.length;
     if (k < 2) return 0;
     let links = 0;
@@ -546,11 +600,18 @@ export function connectivityMetrics(adjacency: number[][]): ConnectivityMetrics 
   const p = edgeCount / ((nodeCount * (nodeCount - 1)) / 2);
   const C_rand = p;
   const L_rand = nodeCount > 1 ? Math.log(nodeCount) / Math.log(Math.max(1, p * nodeCount)) : 1;
-  const smallWorldIndex = (C_rand > 0 && L_rand > 0)
-    ? (clusteringCoefficient / C_rand) / (avgPathLength / L_rand)
-    : 0;
+  const smallWorldIndex =
+    C_rand > 0 && L_rand > 0 ? clusteringCoefficient / C_rand / (avgPathLength / L_rand) : 0;
 
-  return { nodeCount, edgeCount, clusteringCoefficient, avgPathLength, smallWorldIndex, degrees, globalEfficiency };
+  return {
+    nodeCount,
+    edgeCount,
+    clusteringCoefficient,
+    avgPathLength,
+    smallWorldIndex,
+    degrees,
+    globalEfficiency,
+  };
 }
 
 // ─── Receipt ──────────────────────────────────────────────────────────────────
@@ -566,7 +627,7 @@ export interface NeuroAnalysisResult {
 
 export function buildNeuroReceipt(
   result: NeuroAnalysisResult,
-  options?: NeuroReceiptOptions,
+  options?: NeuroReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
@@ -574,12 +635,20 @@ export function buildNeuroReceipt(
     // Sub-threshold stimulus — not necessarily a violation, but informative
   }
   if (result.wilsonCowan && !result.wilsonCowan.converged) {
-    violations.push({ criterion: 'convergence', message: 'Wilson-Cowan did not converge to fixed point' });
+    violations.push({
+      criterion: 'convergence',
+      message: 'Wilson-Cowan did not converge to fixed point',
+    });
   }
   if (result.lif && result.lif.theoreticalRateHz !== null) {
-    const rateErr = Math.abs(result.lif.firingRateHz - result.lif.theoreticalRateHz) / result.lif.theoreticalRateHz;
-    if (rateErr > 0.20) {
-      violations.push({ criterion: 'lif_rate', message: `LIF firing rate deviates ${(rateErr * 100).toFixed(1)}% from theoretical` });
+    const rateErr =
+      Math.abs(result.lif.firingRateHz - result.lif.theoreticalRateHz) /
+      result.lif.theoreticalRateHz;
+    if (rateErr > 0.2) {
+      violations.push({
+        criterion: 'lif_rate',
+        message: `LIF firing rate deviates ${(rateErr * 100).toFixed(1)}% from theoretical`,
+      });
     }
   }
 
@@ -601,7 +670,11 @@ export function buildNeuroReceipt(
     runId: options?.runId ?? `neuro-${Date.now().toString(36)}`,
     solverConfig: { solverType: 'hodgkin-huxley-rk4', scale: 'neuron' },
     resultSummary,
-    cael: { version: 'cael.v1', event: 'neuroscience.neural_simulation', solverType: 'neuroscience.hh-rk4' },
+    cael: {
+      version: 'cael.v1',
+      event: 'neuroscience.neural_simulation',
+      solverType: 'neuroscience.hh-rk4',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

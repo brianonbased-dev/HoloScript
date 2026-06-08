@@ -29,7 +29,6 @@ export const logger: MeshLogger =
         info: (...args: unknown[]) => console.info(...args),
         warn: (...args: unknown[]) => console.warn(...args),
         error: (...args: unknown[]) => console.error(...args),
-        debug: (...args: unknown[]) =>
-          (console.debug ?? console.log)(...args),
+        debug: (...args: unknown[]) => (console.debug ?? console.log)(...args),
       }
     : { info: noop, warn: noop, error: noop, debug: noop };

@@ -6,7 +6,9 @@ const { pathToFileURL } = require('node:url');
 const target = join(__dirname, '..', 'dist', 'cli.js');
 
 if (!existsSync(target)) {
-  console.error('[holoscript-studio-ui-graph] build output is missing. Run `pnpm --filter @holoscript/studio-ui-graph run build` first.');
+  console.error(
+    '[holoscript-studio-ui-graph] build output is missing. Run `pnpm --filter @holoscript/studio-ui-graph run build` first.'
+  );
   process.exit(1);
 }
 

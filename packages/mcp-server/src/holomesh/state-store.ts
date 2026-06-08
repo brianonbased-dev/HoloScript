@@ -149,10 +149,10 @@ export class PostgresStateStoreBackend implements StateStoreBackend {
 
   async delete(namespace: string, handle: string): Promise<void> {
     await this.ready;
-    await this.pool.query(
-      'DELETE FROM holomesh_state WHERE namespace = $1 AND handle = $2',
-      [namespace, handle]
-    );
+    await this.pool.query('DELETE FROM holomesh_state WHERE namespace = $1 AND handle = $2', [
+      namespace,
+      handle,
+    ]);
   }
 
   async listHandles(namespace: string): Promise<string[]> {

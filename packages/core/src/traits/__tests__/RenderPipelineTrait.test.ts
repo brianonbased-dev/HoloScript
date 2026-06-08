@@ -51,7 +51,10 @@ describe('renderPipelineHandler', () => {
 
     const state = (node as any).__rpState;
     expect(state.passes).toContain('bloom');
-    expect(emitFn).toHaveBeenCalledWith('rp:pass_added', expect.objectContaining({ passName: 'bloom' }));
+    expect(emitFn).toHaveBeenCalledWith(
+      'rp:pass_added',
+      expect.objectContaining({ passName: 'bloom' })
+    );
   });
 
   it('rp:execute event sets active=true and emits rp:executed', () => {
@@ -61,12 +64,7 @@ describe('renderPipelineHandler', () => {
     const cfg = renderPipelineHandler.defaultConfig as any;
     renderPipelineHandler.onAttach!(node as any, cfg, ctx as any);
 
-    renderPipelineHandler.onEvent!(
-      node as any,
-      cfg,
-      ctx as any,
-      { type: 'rp:execute' } as any
-    );
+    renderPipelineHandler.onEvent!(node as any, cfg, ctx as any, { type: 'rp:execute' } as any);
 
     const state = (node as any).__rpState;
     expect(state.active).toBe(true);

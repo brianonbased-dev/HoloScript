@@ -8,12 +8,7 @@
  * accumulated cost, and an honest unreachable result.
  */
 import { describe, it, expect, vi } from 'vitest';
-import {
-  astarHandler,
-  runAstar,
-  type AstarGridQuery,
-  type AstarGraphQuery,
-} from '../AstarTrait';
+import { astarHandler, runAstar, type AstarGridQuery, type AstarGraphQuery } from '../AstarTrait';
 
 const makeNode = () => ({
   id: 'node-1',
@@ -216,16 +211,21 @@ describe('AstarTrait — onEvent emits a computed path', () => {
   it('astar:find_path with a grid emits astar:path_found carrying the real path + cost', () => {
     const node = makeNode();
     astarHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    astarHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'astar:find_path',
-      grid: [
-        [0, 1, 0],
-        [0, 1, 0],
-        [0, 0, 0],
-      ],
-      start: [0, 0],
-      goal: [0, 2],
-    } as never);
+    astarHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'astar:find_path',
+        grid: [
+          [0, 1, 0],
+          [0, 1, 0],
+          [0, 0, 0],
+        ],
+        start: [0, 0],
+        goal: [0, 2],
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith(
       'astar:path_found',
       expect.objectContaining({
@@ -245,16 +245,21 @@ describe('AstarTrait — onEvent emits a computed path', () => {
   it('emits astar:path_not_found (unreachable) when the goal is walled off', () => {
     const node = makeNode();
     astarHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    astarHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'astar:find_path',
-      grid: [
-        [0, 1, 0],
-        [0, 1, 1],
-        [0, 0, 1],
-      ],
-      start: [0, 0],
-      goal: [0, 2],
-    } as never);
+    astarHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'astar:find_path',
+        grid: [
+          [0, 1, 0],
+          [0, 1, 1],
+          [0, 0, 1],
+        ],
+        start: [0, 0],
+        goal: [0, 2],
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith(
       'astar:path_not_found',
       expect.objectContaining({ reason: 'unreachable' })
@@ -264,11 +269,16 @@ describe('AstarTrait — onEvent emits a computed path', () => {
   it('emits astar:path_not_found (no-graph) when no grid/edges supplied', () => {
     const node = makeNode();
     astarHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    astarHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'astar:find_path',
-      from: [0, 0, 0],
-      to: [10, 0, 10],
-    } as never);
+    astarHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'astar:find_path',
+        from: [0, 0, 0],
+        to: [10, 0, 10],
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith(
       'astar:path_not_found',
       expect.objectContaining({ reason: 'no-graph' })
@@ -283,12 +293,17 @@ describe('AstarTrait — onEvent emits a computed path', () => {
       [0, 0],
     ];
     for (let i = 0; i < 5; i++) {
-      astarHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-        type: 'astar:find_path',
-        grid,
-        start: [0, 0],
-        goal: [1, 1],
-      } as never);
+      astarHandler.onEvent!(
+        node as never,
+        defaultConfig,
+        makeCtx(node) as never,
+        {
+          type: 'astar:find_path',
+          grid,
+          start: [0, 0],
+          goal: [1, 1],
+        } as never
+      );
     }
     const state = node.__astarState as { searches: number };
     expect(state.searches).toBe(5);
@@ -298,9 +313,14 @@ describe('AstarTrait — onEvent emits a computed path', () => {
     const node = makeNode();
     astarHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    astarHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'astar:unknown',
-    } as never);
+    astarHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'astar:unknown',
+      } as never
+    );
     expect(node.emit).not.toHaveBeenCalled();
   });
 });

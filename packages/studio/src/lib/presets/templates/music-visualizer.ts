@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-music-visualizer",
-  name: "Music Visualizer",
-  description: "Audio-reactive rings and orbs with glow effects",
-  thumbnail: "🎵",
-  tags: ["art","audio","visualizer","particles"],
-  category: "art",
+  id: 'wizard-music-visualizer',
+  name: 'Music Visualizer',
+  description: 'Audio-reactive rings and orbs with glow effects',
+  thumbnail: '🎵',
+  tags: ['art', 'audio', 'visualizer', 'particles'],
+  category: 'art',
   code: `composition "Audio Visualizer" {
   environment {
     skybox: "night"
@@ -104,7 +104,7 @@ export const template: SceneTemplate = {
     opacity: 0.6
     material: "glass"
   }
-}`
+}`,
 };
 
 export default template;

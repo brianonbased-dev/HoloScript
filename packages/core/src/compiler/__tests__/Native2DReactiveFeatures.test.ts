@@ -50,10 +50,7 @@ function obj(
   return { type: 'Object', name, properties: [], traits, children };
 }
 
-function comp(
-  objects: HoloObjectDecl[],
-  state?: HoloComposition['state']
-): HoloComposition {
+function comp(objects: HoloObjectDecl[], state?: HoloComposition['state']): HoloComposition {
   return {
     type: 'Composition',
     name: 'ReactiveProbe',
@@ -88,12 +85,14 @@ const react = (c: HoloComposition) =>
 describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
   // 1 ─────────────────────────────────────────────────────────────────────────
   describe('1. @apiEndpoint / poll', () => {
-    const c = comp([obj('Inbox', [trait('fetch', { into: 'items', endpoint: '/api/x', method: 'GET' })])]);
+    const c = comp([
+      obj('Inbox', [trait('fetch', { into: 'items', endpoint: '/api/x', method: 'GET' })]),
+    ]);
 
     it('WORKS: one-shot @fetch emits useEffect+fetch (React) and data-holo-fetch (HTML)', () => {
       const r = react(c);
       expect(r).toContain('useEffect');
-      expect(r).toContain("fetch(`/api/x`)");
+      expect(r).toContain('fetch(`/api/x`)');
       expect(html(c)).toContain('data-holo-fetch="/api/x"');
     });
 
@@ -106,9 +105,15 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
   // 2 ─────────────────────────────────────────────────────────────────────────
   describe('2. form traits', () => {
     const c = comp([
-      obj('Signup', [trait('panel', { tag: 'form' }), trait('form', { onSubmit: 'submitNewsletter(e)' })], [
-        obj('Email', [trait('input', { type: 'email', placeholder: 'you@x.com', required: true })]),
-      ]),
+      obj(
+        'Signup',
+        [trait('panel', { tag: 'form' }), trait('form', { onSubmit: 'submitNewsletter(e)' })],
+        [
+          obj('Email', [
+            trait('input', { type: 'email', placeholder: 'you@x.com', required: true }),
+          ]),
+        ]
+      ),
     ]);
 
     it('WORKS: @input emits type/placeholder/required (both targets)', () => {
@@ -134,7 +139,9 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
   // 3 ─────────────────────────────────────────────────────────────────────────
   describe('3. event handlers', () => {
-    const c = comp([obj('Go', [trait('button', { content: 'Go', onClick: "navigate('/rooms')" })])]);
+    const c = comp([
+      obj('Go', [trait('button', { content: 'Go', onClick: "navigate('/rooms')" })]),
+    ]);
 
     it('WORKS: @button.onClick → React arrow handler + HTML onclick attr', () => {
       expect(react(c)).toContain("onClick={() => navigate('/rooms')}");
@@ -144,10 +151,10 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
   // 4 ─────────────────────────────────────────────────────────────────────────
   describe('4. @state', () => {
-    const c = comp(
-      [obj('Box', [trait('text', { content: 'x' })])],
-      { type: 'State', properties: [{ type: 'StateProperty', key: 'count', value: 3 }] } as HoloComposition['state']
-    );
+    const c = comp([obj('Box', [trait('text', { content: 'x' })])], {
+      type: 'State',
+      properties: [{ type: 'StateProperty', key: 'count', value: 3 }],
+    } as HoloComposition['state']);
 
     it('WORKS: composition.state → useState hook (React)', () => {
       expect(react(c)).toContain('const [count, setCount] = useState(3);');
@@ -161,9 +168,11 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
   // 5 ─────────────────────────────────────────────────────────────────────────
   describe('5. @map / list rendering', () => {
     const c = comp([
-      obj('List', [trait('fetch', { into: 'items', endpoint: '/api/items' })], [
-        obj('Row', [trait('text', { content: '{{name}}' })]),
-      ]),
+      obj(
+        'List',
+        [trait('fetch', { into: 'items', endpoint: '/api/items' })],
+        [obj('Row', [trait('text', { content: '{{name}}' })])]
+      ),
     ]);
 
     it('WORKS (HTML): @fetch container + row template + interpolation tokens', () => {
@@ -183,7 +192,9 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
   // 6 ─────────────────────────────────────────────────────────────────────────
   describe('6. @if (conditional rendering)', () => {
-    const c = comp([obj('Maybe', [trait('if', { when: 'count > 0' }), trait('text', { content: 'shown' })])]);
+    const c = comp([
+      obj('Maybe', [trait('if', { when: 'count > 0' }), trait('text', { content: 'shown' })]),
+    ]);
 
     it('ABSENT: @if is not emitted — element renders unconditionally (pins the gap)', () => {
       const r = react(c);
@@ -197,10 +208,10 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
   // 7 ─────────────────────────────────────────────────────────────────────────
   describe('7. @computed (derived values)', () => {
-    const c = comp(
-      [obj('Box', [trait('computed', { name: 'doubled', expr: 'count * 2' })])],
-      { type: 'State', properties: [{ type: 'StateProperty', key: 'count', value: 2 }] } as HoloComposition['state']
-    );
+    const c = comp([obj('Box', [trait('computed', { name: 'doubled', expr: 'count * 2' })])], {
+      type: 'State',
+      properties: [{ type: 'StateProperty', key: 'count', value: 2 }],
+    } as HoloComposition['state']);
 
     it('ABSENT: @computed emits no derived binding (pins the gap)', () => {
       const r = react(c);
@@ -212,7 +223,11 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
   // 8 ─────────────────────────────────────────────────────────────────────────
   describe('8. layout', () => {
     it('WORKS: flex layout → display:flex + direction + gap', () => {
-      const c = comp([obj('Col', [trait('layout', { flex: 'column', gap: 12, justify: 'center', align: 'start' })])]);
+      const c = comp([
+        obj('Col', [
+          trait('layout', { flex: 'column', gap: 12, justify: 'center', align: 'start' }),
+        ]),
+      ]);
       const h = html(c);
       expect(h).toContain('display: flex');
       expect(h).toContain('flex-direction: column');
@@ -230,7 +245,13 @@ describe('Native2D reactive features — falsifier-per-feature (N1)', () => {
 
   // 9 ─────────────────────────────────────────────────────────────────────────
   describe('9. @route', () => {
-    const c = comp([obj('Page', [trait('route', { path: '/dashboard' })], [obj('T', [trait('text', { content: 'hi' })])])]);
+    const c = comp([
+      obj(
+        'Page',
+        [trait('route', { path: '/dashboard' })],
+        [obj('T', [trait('text', { content: 'hi' })])]
+      ),
+    ]);
 
     it('ABSENT: @route emits no router/path binding (pins the gap; nav today is onClick navigate())', () => {
       const r = react(c);

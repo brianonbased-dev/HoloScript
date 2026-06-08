@@ -124,7 +124,7 @@ describe('SpatialNavigationTrait — Production', () => {
 
   describe('onUpdate — waypoint proximity', () => {
     it('detects waypoint reached when within radius', () => {
-      const ctx = makeContext([10, 0, 0 ]); // At wp1 position
+      const ctx = makeContext([10, 0, 0]); // At wp1 position
       spatialNavigationHandler.onAttach(node, config, ctx);
       spatialNavigationHandler.onEvent!(node, config, ctx, {
         type: 'navigation:start',
@@ -139,7 +139,7 @@ describe('SpatialNavigationTrait — Production', () => {
     });
 
     it('emits arrival when last waypoint reached', () => {
-      const ctx = makeContext([30, 0, 0 ]); // At final wp3 position
+      const ctx = makeContext([30, 0, 0]); // At final wp3 position
       spatialNavigationHandler.onAttach(node, config, ctx);
       spatialNavigationHandler.onEvent!(node, config, ctx, {
         type: 'navigation:start',
@@ -155,7 +155,7 @@ describe('SpatialNavigationTrait — Production', () => {
     });
 
     it('does NOT trigger when player is far from waypoint', () => {
-      const ctx = makeContext([100, 0, 100 ]); // Far away
+      const ctx = makeContext([100, 0, 100]); // Far away
       spatialNavigationHandler.onAttach(node, config, ctx);
       spatialNavigationHandler.onEvent!(node, config, ctx, {
         type: 'navigation:start',
@@ -169,7 +169,7 @@ describe('SpatialNavigationTrait — Production', () => {
     });
 
     it('skips update when not navigating', () => {
-      const ctx = makeContext([10, 0, 0 ]);
+      const ctx = makeContext([10, 0, 0]);
       spatialNavigationHandler.onAttach(node, config, ctx);
       ctx.emit.mockClear();
 

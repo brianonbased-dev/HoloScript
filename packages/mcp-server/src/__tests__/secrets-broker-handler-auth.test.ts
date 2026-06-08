@@ -163,11 +163,11 @@ describe('handleSecretsBrokerTool — auth integration', () => {
 
   it('TRUE: gated call with correct capability scope → tool runs', async () => {
     const ctx = capabilityCtx('secrets:grant.create' as Capability);
-    const result = (await handleSecretsBrokerTool(
-      'holo_secrets_grant',
-      validGrantArgs,
-      ctx
-    )) as { status?: string; grant?: { grantId?: string }; authError?: boolean };
+    const result = (await handleSecretsBrokerTool('holo_secrets_grant', validGrantArgs, ctx)) as {
+      status?: string;
+      grant?: { grantId?: string };
+      authError?: boolean;
+    };
     expect(result.authError).toBeUndefined();
     expect(result.status).toBe('granted');
   });

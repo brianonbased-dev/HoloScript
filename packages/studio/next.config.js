@@ -92,7 +92,10 @@ const nextConfig = {
           { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
           // Quest Browser requires explicit xr-spatial-tracking permission.
           // Omitting this causes isSessionSupported('immersive-vr') to return false.
-          { key: 'Permissions-Policy', value: 'xr-spatial-tracking=*, camera=(), microphone=(), geolocation=()' },
+          {
+            key: 'Permissions-Policy',
+            value: 'xr-spatial-tracking=*, camera=(), microphone=(), geolocation=()',
+          },
         ],
       },
     ];

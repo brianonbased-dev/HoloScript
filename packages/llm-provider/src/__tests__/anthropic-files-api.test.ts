@@ -38,8 +38,12 @@ vi.mock('@anthropic-ai/sdk', () => {
             model: (body.model as string) ?? 'claude-opus-4-7',
             stop_reason: 'end_turn',
           }),
-          get request_id() { return 'req_files_test'; },
-          get response() { return { headers: new Headers() }; },
+          get request_id() {
+            return 'req_files_test';
+          },
+          get response() {
+            return { headers: new Headers() };
+          },
         };
       },
     };
@@ -97,10 +101,7 @@ describe('AnthropicAdapter Files API', () => {
       messages: [
         {
           role: 'user',
-          content: [
-            { type: 'text', text: 'Summarize this.' },
-            documentBlock,
-          ],
+          content: [{ type: 'text', text: 'Summarize this.' }, documentBlock],
         },
       ],
     });

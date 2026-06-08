@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  runPaper6MecanimBenchmark,
-  writePaper6Artifact,
-} from '../p6-gpu-publication';
+import { runPaper6MecanimBenchmark, writePaper6Artifact } from '../p6-gpu-publication';
 import {
   PAPER_6_RIG_FIXTURES,
   PAPER_6_MECANIM_VERSION_CHAIN,

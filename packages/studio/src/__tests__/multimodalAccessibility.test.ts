@@ -50,7 +50,7 @@ describe('computeContrastRatio', () => {
 describe('checkAlignment — vision', () => {
   it('flags icon-only element without aria-label', () => {
     const result = checkAlignment(
-      makeComp({ vision: { isIconOnly: true }, language: {}, action: {} }),
+      makeComp({ vision: { isIconOnly: true }, language: {}, action: {} })
     );
     const issue = result.issues.find((i) => i.wcagCriterion === '1.1.1');
     expect(issue).toBeDefined();
@@ -65,7 +65,7 @@ describe('checkAlignment — vision', () => {
         vision: { isIconOnly: true },
         language: { ariaLabel: 'Close dialog' },
         action: {},
-      }),
+      })
     );
     expect(result.issues.filter((i) => i.wcagCriterion === '1.1.1')).toHaveLength(0);
   });
@@ -77,7 +77,7 @@ describe('checkAlignment — vision', () => {
         vision: { foregroundColor: '#dddddd', backgroundColor: '#ffffff' },
         language: {},
         action: {},
-      }),
+      })
     );
     const issue = result.issues.find((i) => i.wcagCriterion === '1.4.3');
     expect(issue).toBeDefined();
@@ -92,7 +92,7 @@ describe('checkAlignment — vision', () => {
         vision: { foregroundColor: '#777777', backgroundColor: '#ffffff' },
         language: {},
         action: {},
-      }),
+      })
     );
     const issue = result.issues.find((i) => i.wcagCriterion === '1.4.3');
     expect(issue?.severity).toBe('warning');
@@ -104,14 +104,14 @@ describe('checkAlignment — vision', () => {
         vision: { foregroundColor: '#000000', backgroundColor: '#ffffff' },
         language: {},
         action: {},
-      }),
+      })
     );
     expect(result.issues.filter((i) => i.wcagCriterion === '1.4.3')).toHaveLength(0);
   });
 
   it('flags missing focus indicator', () => {
     const result = checkAlignment(
-      makeComp({ vision: { hasFocusIndicator: false }, language: {}, action: {} }),
+      makeComp({ vision: { hasFocusIndicator: false }, language: {}, action: {} })
     );
     const issue = result.issues.find((i) => i.wcagCriterion === '2.4.7');
     expect(issue?.severity).toBe('error');
@@ -123,7 +123,7 @@ describe('checkAlignment — vision', () => {
         vision: { boundingBoxPx: { width: 20, height: 20 } },
         language: {},
         action: {},
-      }),
+      })
     );
     const issue = result.issues.find((i) => i.wcagCriterion === '2.5.5');
     expect(issue?.severity).toBe('error');
@@ -135,7 +135,7 @@ describe('checkAlignment — vision', () => {
         vision: { boundingBoxPx: { width: 30, height: 30 } },
         language: {},
         action: {},
-      }),
+      })
     );
     const issue = result.issues.find((i) => i.wcagCriterion === '2.5.5');
     expect(issue?.severity).toBe('warning');
@@ -147,7 +147,7 @@ describe('checkAlignment — vision', () => {
         vision: { boundingBoxPx: { width: 44, height: 44 } },
         language: {},
         action: {},
-      }),
+      })
     );
     expect(result.issues.filter((i) => i.wcagCriterion === '2.5.5')).toHaveLength(0);
   });
@@ -162,7 +162,7 @@ describe('checkAlignment — language', () => {
         vision: {},
         language: {},
         action: { isFocusable: true, hasClickHandler: true },
-      }),
+      })
     );
     const issue = result.issues.find((i) => i.wcagCriterion === '4.1.2');
     expect(issue?.severity).toBe('error');
@@ -174,23 +174,21 @@ describe('checkAlignment — language', () => {
         vision: {},
         language: { ariaLabel: 'Submit form', role: 'button' },
         action: { isFocusable: true, hasClickHandler: true, hasKeyboardHandler: true },
-      }),
+      })
     );
-    expect(result.issues.filter((i) => i.wcagCriterion === '4.1.2' && i.severity === 'error')).toHaveLength(0);
+    expect(
+      result.issues.filter((i) => i.wcagCriterion === '4.1.2' && i.severity === 'error')
+    ).toHaveLength(0);
   });
 
   it('flags invalid heading level', () => {
-    const result = checkAlignment(
-      makeComp({ language: { headingLevel: 7 } }),
-    );
+    const result = checkAlignment(makeComp({ language: { headingLevel: 7 } }));
     const issue = result.issues.find((i) => i.wcagCriterion === '1.3.1');
     expect(issue?.severity).toBe('error');
   });
 
   it('flags very low readability score', () => {
-    const result = checkAlignment(
-      makeComp({ language: { readabilityScore: 10 } }),
-    );
+    const result = checkAlignment(makeComp({ language: { readabilityScore: 10 } }));
     const issue = result.issues.find((i) => i.wcagCriterion === '3.1.5');
     expect(issue?.severity).toBe('warning');
   });
@@ -205,7 +203,7 @@ describe('checkAlignment — action', () => {
         vision: {},
         language: {},
         action: { hasClickHandler: true, hasKeyboardHandler: false, isFocusable: false },
-      }),
+      })
     );
     const issue = result.issues.find((i) => i.wcagCriterion === '2.1.1');
     expect(issue?.severity).toBe('error');
@@ -217,7 +215,7 @@ describe('checkAlignment — action', () => {
         vision: {},
         language: { ariaLabel: 'Open menu', role: 'button' },
         action: { hasClickHandler: true, hasKeyboardHandler: true, isFocusable: true, tabIndex: 0 },
-      }),
+      })
     );
     expect(result.issues.filter((i) => i.wcagCriterion === '2.1.1')).toHaveLength(0);
   });
@@ -228,7 +226,7 @@ describe('checkAlignment — action', () => {
         vision: {},
         language: { role: 'status' },
         action: { hasLiveRegion: false },
-      }),
+      })
     );
     const issue = result.issues.find((i) => i.wcagCriterion === '4.1.3');
     expect(issue?.severity).toBe('warning');
@@ -244,7 +242,7 @@ describe('checkAlignment — cross-modal', () => {
         vision: { isIconOnly: false },
         language: { textContent: 'Save', ariaLabel: 'Submit form' },
         action: {},
-      }),
+      })
     );
     const issue = result.issues.find((i) => i.wcagCriterion === '2.5.3');
     expect(issue?.severity).toBe('error');
@@ -258,7 +256,7 @@ describe('checkAlignment — cross-modal', () => {
         vision: {},
         language: { textContent: 'Save', ariaLabel: 'Save' },
         action: {},
-      }),
+      })
     );
     expect(result.issues.filter((i) => i.wcagCriterion === '2.5.3')).toHaveLength(0);
   });
@@ -269,10 +267,10 @@ describe('checkAlignment — cross-modal', () => {
         vision: {},
         language: {},
         action: { hasClickHandler: true },
-      }),
+      })
     );
     const issue = result.issues.find(
-      (i) => i.wcagCriterion === '1.1.1' && i.modalities.length === 3,
+      (i) => i.wcagCriterion === '1.1.1' && i.modalities.length === 3
     );
     expect(issue).toBeDefined();
   });
@@ -287,7 +285,7 @@ describe('checkAlignment — scoring', () => {
         vision: { hasFocusIndicator: true, boundingBoxPx: { width: 44, height: 44 } },
         language: { ariaLabel: 'Close', role: 'button', textContent: 'Close' },
         action: { isFocusable: true, hasClickHandler: true, hasKeyboardHandler: true, tabIndex: 0 },
-      }),
+      })
     );
     expect(result.alignmentScore).toBe(100);
     expect(result.wcagConformance).toBe('AA');
@@ -300,7 +298,7 @@ describe('checkAlignment — scoring', () => {
         vision: {},
         language: {},
         action: { hasClickHandler: true, isFocusable: false, hasKeyboardHandler: false },
-      }),
+      })
     );
     expect(result.wcagConformance).toBe('none');
     expect(result.alignmentScore).toBeLessThan(100);

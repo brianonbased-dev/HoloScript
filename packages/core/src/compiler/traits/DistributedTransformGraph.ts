@@ -183,9 +183,9 @@ export class DistributedTransformGraph {
     const result = this.semiring.add(traits);
     this.logicalClock += 1;
 
-    const stateHash = fnv1a32(
-      JSON.stringify(result.provenance) + ':' + this.logicalClock
-    ).toString(16).padStart(8, '0');
+    const stateHash = fnv1a32(JSON.stringify(result.provenance) + ':' + this.logicalClock)
+      .toString(16)
+      .padStart(8, '0');
 
     const state: NodeTransformState = {
       nodeId: this.nodeId,
@@ -292,15 +292,16 @@ export class DistributedTransformGraph {
       }
     }
 
-    const composition = allTraits.length > 0
-      ? this.semiring.add(allTraits)
-      : {
-          config: {},
-          provenance: {},
-          conflicts: [],
-          errors: [],
-          deadElements: [],
-        };
+    const composition =
+      allTraits.length > 0
+        ? this.semiring.add(allTraits)
+        : {
+            config: {},
+            provenance: {},
+            conflicts: [],
+            errors: [],
+            deadElements: [],
+          };
 
     const mergedHash = this.getMergedHash(nowMs);
 
@@ -341,6 +342,9 @@ export class DistributedTransformGraph {
 
 function generateNodeId(): string {
   // Deterministically random enough for test/prototype use.
-  const r = () => Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0');
+  const r = () =>
+    Math.floor(Math.random() * 0xffff)
+      .toString(16)
+      .padStart(4, '0');
   return `node-${r()}${r()}-${r()}`;
 }

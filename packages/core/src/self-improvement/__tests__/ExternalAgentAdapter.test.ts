@@ -101,7 +101,10 @@ describe('ClaudeManagedAgentAdapter', () => {
       metadata: { benchmark: 'managed-agent-fixture' },
     });
 
-    expect(client.created[0]).toMatchObject({ agent: 'agnt_fixture', environmentId: 'env_fixture' });
+    expect(client.created[0]).toMatchObject({
+      agent: 'agnt_fixture',
+      environmentId: 'env_fixture',
+    });
     expect(client.sent[0].sessionId).toBe('sesn_fixture');
     expect(client.sent[0].event.content[0].text).toBe('Draft the benchmark section.');
     expect(receipt.provider).toBe('anthropic.claude-managed-agents');
@@ -122,7 +125,9 @@ describe('ClaudeManagedAgentAdapter', () => {
       agent: { id: 'agnt_fixture', vendor: 'anthropic' },
       session: { id: 'sesn_fixture' },
       events: [{ id: 'evt_1', type: 'agent.message', payload: { text: 'candidate memory' } }],
-      artifacts: [{ path: 'memory.md', type: 'markdown', producer: 'agnt_fixture', content: 'candidate' }],
+      artifacts: [
+        { path: 'memory.md', type: 'markdown', producer: 'agnt_fixture', content: 'candidate' },
+      ],
       now: () => new Date('2026-05-06T00:00:00Z'),
     });
 
@@ -213,7 +218,13 @@ describe('ClaudeManagedAgentAdapter', () => {
           events: {
             send: vi.fn(async () => undefined),
             list: vi.fn(async () => ({
-              data: [{ id: 'evt_sdk', type: 'session.status_idle', processed_at: '2026-05-06T00:00:00Z' }],
+              data: [
+                {
+                  id: 'evt_sdk',
+                  type: 'session.status_idle',
+                  processed_at: '2026-05-06T00:00:00Z',
+                },
+              ],
             })),
           },
         },

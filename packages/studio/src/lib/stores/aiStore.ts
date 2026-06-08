@@ -32,7 +32,8 @@ export const useAIStore = create<AIState>()(
       setStatus: (status) => set({ status }),
       setOllamaStatus: (ollamaStatus) => set({ ollamaStatus }),
       setModel: (model) => set({ model }),
-      addPrompt: (entry) => set((s) => ({ promptHistory: [...s.promptHistory, entry].slice(-100) })),
+      addPrompt: (entry) =>
+        set((s) => ({ promptHistory: [...s.promptHistory, entry].slice(-100) })),
       clearHistory: () => set({ promptHistory: [] }),
     }),
     { name: 'ai-store' }

@@ -188,9 +188,7 @@ export interface HologramStore {
  * point for the "hash is computed, not trusted" invariant — all put()
  * implementations MUST call this before writing.
  */
-export async function canonicalizeBundleForPut(
-  bundle: HologramBundle
-): Promise<string> {
+export async function canonicalizeBundleForPut(bundle: HologramBundle): Promise<string> {
   validateBundle(bundle);
   return computeBundleHash(bundle.meta, bundle.depthBin, bundle.normalBin);
 }

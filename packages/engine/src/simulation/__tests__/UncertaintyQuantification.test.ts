@@ -38,7 +38,9 @@ function mockSolverFactory(_type: string, config: Record<string, unknown>): UQSo
 
   return {
     fieldNames: ['displacement', 'stress'] as const,
-    solve: async () => { /* deterministic — nothing to solve */ },
+    solve: async () => {
+      /* deterministic — nothing to solve */
+    },
     getField: (name: string) => {
       if (name === 'displacement') return displacementField;
       if (name === 'stress') return stressField;
@@ -140,8 +142,9 @@ describe('computeFieldDistribution', () => {
   });
 
   it('confidence intervals bracket the mean', () => {
-    const samples = Array.from({ length: 20 }, (_, i) =>
-      new Float64Array([i * 0.5, i * 1.0, i * 1.5]),
+    const samples = Array.from(
+      { length: 20 },
+      (_, i) => new Float64Array([i * 0.5, i * 1.0, i * 1.5])
     );
 
     const dist = computeFieldDistribution('field', samples, 0.95);
@@ -163,9 +166,7 @@ describe('UncertaintyQuantification', () => {
       name: 'test-uq',
       baseConfig: { stiffness: 200e9, load: 1000 },
       solverType: 'structural',
-      uncertainParameters: [
-        { path: 'stiffness', min: 190e9, max: 210e9 },
-      ],
+      uncertainParameters: [{ path: 'stiffness', min: 190e9, max: 210e9 }],
       sampleCount: 5,
     };
 
@@ -217,9 +218,7 @@ describe('UncertaintyQuantification', () => {
       name: 'field-test',
       baseConfig: { stiffness: 200e9, load: 1000 },
       solverType: 'structural',
-      uncertainParameters: [
-        { path: 'stiffness', min: 190e9, max: 210e9 },
-      ],
+      uncertainParameters: [{ path: 'stiffness', min: 190e9, max: 210e9 }],
       sampleCount: 15,
       fieldNames: ['displacement', 'stress'],
     };
@@ -254,9 +253,7 @@ describe('UncertaintyQuantification', () => {
       name: 'stats-test',
       baseConfig: { stiffness: 200e9, load: 1000 },
       solverType: 'structural',
-      uncertainParameters: [
-        { path: 'stiffness', min: 190e9, max: 210e9 },
-      ],
+      uncertainParameters: [{ path: 'stiffness', min: 190e9, max: 210e9 }],
       sampleCount: 10,
     };
 
@@ -284,9 +281,7 @@ describe('UncertaintyQuantification', () => {
       name: 'progress-test',
       baseConfig: { stiffness: 200e9, load: 1000 },
       solverType: 'structural',
-      uncertainParameters: [
-        { path: 'stiffness', min: 190e9, max: 210e9 },
-      ],
+      uncertainParameters: [{ path: 'stiffness', min: 190e9, max: 210e9 }],
       sampleCount: 5,
       onProgress: (completed, total) => progressCalls.push([completed, total]),
     };
@@ -305,11 +300,9 @@ describe('UncertaintyQuantification', () => {
       name: 'single-param',
       baseConfig: { stiffness: 200e9, load: 1000 },
       solverType: 'structural',
-      uncertainParameters: [
-        { path: 'load', min: 800, max: 1200 },
-      ],
+      uncertainParameters: [{ path: 'load', min: 800, max: 1200 }],
       sampleCount: 30,
-      confidenceLevel: 0.90,
+      confidenceLevel: 0.9,
     };
 
     const uq = new UncertaintyQuantification(config, mockSolverFactory);
@@ -330,9 +323,7 @@ describe('UncertaintyQuantification', () => {
       name: 'dispose-test',
       baseConfig: { stiffness: 200e9, load: 1000 },
       solverType: 'structural',
-      uncertainParameters: [
-        { path: 'stiffness', min: 190e9, max: 210e9 },
-      ],
+      uncertainParameters: [{ path: 'stiffness', min: 190e9, max: 210e9 }],
       sampleCount: 5,
     };
 

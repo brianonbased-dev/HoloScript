@@ -70,11 +70,7 @@ export class FrustumCuller {
   isVisible(sphere: BoundingSphere): boolean {
     const [sx, sy, sz] = sphere.position ?? [sphere.x ?? 0, sphere.y ?? 0, sphere.z ?? 0];
     for (const plane of this.planes) {
-      const dist =
-          plane.nx * sx +
-          plane.ny * sy +
-          plane.nz * sz +
-        plane.d;
+      const dist = plane.nx * sx + plane.ny * sy + plane.nz * sz + plane.d;
       if (dist < -sphere.radius) return false; // Fully behind this plane
     }
     return true;
@@ -112,4 +108,3 @@ export class FrustumCuller {
     return { nx: nnx, ny: nny, nz: nnz, d: -(nnx * px + nny * py + nnz * pz) };
   }
 }
-

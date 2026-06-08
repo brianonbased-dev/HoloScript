@@ -68,7 +68,9 @@ describe('emergence corpus durability (D.053 persistence)', () => {
 
   it('write-through: observations land in the on-disk JSONL corpus', () => {
     expect(existsSync(CORPUS_PATH)).toBe(true);
-    const lines = readFileSync(CORPUS_PATH, 'utf8').split('\n').filter((l) => l.trim());
+    const lines = readFileSync(CORPUS_PATH, 'utf8')
+      .split('\n')
+      .filter((l) => l.trim());
     // 3 observation records for this soul.
     const mine = lines
       .map((l) => JSON.parse(l))

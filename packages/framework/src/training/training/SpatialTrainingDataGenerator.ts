@@ -568,10 +568,7 @@ function generateReachableTrait(
   return `@spatial_reachable(${parts.join(', ')})`;
 }
 
-function computeDistance(
-  a: [number, number, number],
-  b: [number, number, number]
-): number {
+function computeDistance(a: [number, number, number], b: [number, number, number]): number {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
   const dz = b[2] - a[2];
@@ -583,11 +580,14 @@ function isPointInBox(
   bounds: { min: [number, number, number]; max: [number, number, number] },
   margin: number = 0
 ): boolean {
-  return (point[0] >= bounds.min[0] + margin &&
-  point[0] <= bounds.max[0] - margin &&
-  point[1] >= bounds.min[1] + margin &&
-  point[1] <= bounds.max[1] - margin &&
-  point[2] >= bounds.min[2] + margin && point[2] <= bounds.max[2] - margin);
+  return (
+    point[0] >= bounds.min[0] + margin &&
+    point[0] <= bounds.max[0] - margin &&
+    point[1] >= bounds.min[1] + margin &&
+    point[1] <= bounds.max[1] - margin &&
+    point[2] >= bounds.min[2] + margin &&
+    point[2] <= bounds.max[2] - margin
+  );
 }
 
 /**
@@ -969,7 +969,11 @@ export class SpatialTrainingDataGenerator {
 
     // Generate container (zone)
     const containerName = this.rng.pick(ZONE_NAMES);
-    const containerSize: [number, number, number] = [this.rng.float(4, 12), this.rng.float(3, 8), this.rng.float(4, 12)];
+    const containerSize: [number, number, number] = [
+      this.rng.float(4, 12),
+      this.rng.float(3, 8),
+      this.rng.float(4, 12),
+    ];
     const containerPos = this.randomPosition(difficulty);
     const margin = this.rng.float(0, 0.5);
 
@@ -977,12 +981,12 @@ export class SpatialTrainingDataGenerator {
       min: [
         containerPos[0] - containerSize[0] / 2,
         containerPos[1] - containerSize[1] / 2,
-        containerPos[2] - containerSize[2] / 2
+        containerPos[2] - containerSize[2] / 2,
       ] as [number, number, number],
       max: [
         containerPos[0] + containerSize[0] / 2,
         containerPos[1] + containerSize[1] / 2,
-        containerPos[2] + containerSize[2] / 2
+        containerPos[2] + containerSize[2] / 2,
       ] as [number, number, number],
     };
 
@@ -1068,7 +1072,11 @@ export class SpatialTrainingDataGenerator {
       // Add inner container
       const innerContainerName = this.pickUniqueName(ZONE_NAMES, usedNames);
       usedNames.push(innerContainerName);
-      const innerSize: [number, number, number] = [containerSize[0] * 0.4, containerSize[1] * 0.4, containerSize[2] * 0.4];
+      const innerSize: [number, number, number] = [
+        containerSize[0] * 0.4,
+        containerSize[1] * 0.4,
+        containerSize[2] * 0.4,
+      ];
       const innerObj: SceneObject = {
         id: innerContainerName,
         type: 'zone',
@@ -1078,12 +1086,12 @@ export class SpatialTrainingDataGenerator {
           min: [
             containerPos[0] - innerSize[0] / 2,
             containerPos[1] - innerSize[1] / 2,
-            containerPos[2] - innerSize[2] / 2
+            containerPos[2] - innerSize[2] / 2,
           ],
           max: [
             containerPos[0] + innerSize[0] / 2,
             containerPos[1] + innerSize[1] / 2,
-            containerPos[2] + innerSize[2] / 2
+            containerPos[2] + innerSize[2] / 2,
           ],
         },
       };
@@ -1207,7 +1215,11 @@ export class SpatialTrainingDataGenerator {
       usedNames.push(obsName);
       obstacleNames.push(obsName);
 
-      const obsScale: [number, number, number] = [this.rng.float(1.5, 4), this.rng.float(2, 5), this.rng.float(1.5, 4)];
+      const obsScale: [number, number, number] = [
+        this.rng.float(1.5, 4),
+        this.rng.float(2, 5),
+        this.rng.float(1.5, 4),
+      ];
 
       let obsPos;
       if (!isPositive && i === 0) {
@@ -1239,11 +1251,11 @@ export class SpatialTrainingDataGenerator {
             midpoint[2] + (perpZ / perpLen) * offset * side,
           ] as [number, number, number];
         } else {
-          obsPos = [
-            midpoint[0] + offset * side,
-            midpoint[1],
-            midpoint[2],
-          ] as [number, number, number];
+          obsPos = [midpoint[0] + offset * side, midpoint[1], midpoint[2]] as [
+            number,
+            number,
+            number,
+          ];
         }
       }
 
@@ -1251,12 +1263,12 @@ export class SpatialTrainingDataGenerator {
         min: [
           obsPos[0] - obsScale[0] / 2,
           obsPos[1] - obsScale[1] / 2,
-          obsPos[2] - obsScale[2] / 2
+          obsPos[2] - obsScale[2] / 2,
         ] as [number, number, number],
         max: [
           obsPos[0] + obsScale[0] / 2,
           obsPos[1] + obsScale[1] / 2,
-          obsPos[2] + obsScale[2] / 2
+          obsPos[2] + obsScale[2] / 2,
         ] as [number, number, number],
       };
 
@@ -1482,11 +1494,7 @@ export class SpatialTrainingDataGenerator {
       const s = this.rng.float(0.3, 2.5);
       return [s, s, s];
     }
-    return [
-      this.rng.float(0.3, 3.0),
-      this.rng.float(0.3, 3.0),
-      this.rng.float(0.3, 3.0)
-    ];
+    return [this.rng.float(0.3, 3.0), this.rng.float(0.3, 3.0), this.rng.float(0.3, 3.0)];
   }
 
   private pickUniqueName(pool: string[], used: string[]): string {

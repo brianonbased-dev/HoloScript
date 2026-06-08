@@ -23,10 +23,10 @@ import {
  * EXCLUSION DOCUMENTATION [D.011 Alignment]:
  * The \`JitterBuffer\` and \`PriorityScheduler\` classes have been migrated to
  * the \`@holoscript/mesh\` package and their APIs have fundamentally changed
- * (e.g. JitterBuffer now takes JitterBufferConfig instead of a capacity number, 
- * \`addSample\` deprecated). 
- * 
- * To unblock D.011 validation and automated benchmark thresholds, we intentionally 
+ * (e.g. JitterBuffer now takes JitterBufferConfig instead of a capacity number,
+ * \`addSample\` deprecated).
+ *
+ * To unblock D.011 validation and automated benchmark thresholds, we intentionally
  * exclude these two components from this sync.bench.ts benchmark. A dedicated
  * network benchmarking suite in \`packages/mesh\` handles these components now.
  */

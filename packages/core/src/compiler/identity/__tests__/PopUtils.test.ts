@@ -129,9 +129,9 @@ describe('PopUtils', () => {
 
   describe('extractNonce', () => {
     it('pulls the nonce out of a signature-input header', () => {
-      expect(
-        extractNonce({ 'signature-input': 'sig1=("@method");created=1;nonce="xyz789"' })
-      ).toBe('xyz789');
+      expect(extractNonce({ 'signature-input': 'sig1=("@method");created=1;nonce="xyz789"' })).toBe(
+        'xyz789'
+      );
     });
 
     it('returns null when no signature-input header is present', () => {

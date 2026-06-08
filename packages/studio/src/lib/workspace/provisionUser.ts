@@ -547,7 +547,11 @@ function payloadEntries(payload: unknown): unknown[] {
   const content = record.content;
   if (Array.isArray(content)) {
     for (const part of content) {
-      if (part && typeof part === 'object' && typeof (part as { text?: unknown }).text === 'string') {
+      if (
+        part &&
+        typeof part === 'object' &&
+        typeof (part as { text?: unknown }).text === 'string'
+      ) {
         try {
           return payloadEntries(JSON.parse((part as { text: string }).text));
         } catch {
@@ -561,7 +565,9 @@ function payloadEntries(payload: unknown): unknown[] {
 }
 
 function stringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
 }
 
 function normalizeKnowledgeEntry(
@@ -576,11 +582,7 @@ function normalizeKnowledgeEntry(
 
   const type = typeof record.type === 'string' ? record.type.toLowerCase() : 'wisdom';
   const tags = Array.from(
-    new Set([
-      ...stringArray(record.tags),
-      'studio-provision',
-      `workspace:${context.workspaceId}`,
-    ])
+    new Set([...stringArray(record.tags), 'studio-provision', `workspace:${context.workspaceId}`])
   );
   const metadata =
     record.metadata && typeof record.metadata === 'object'
@@ -984,7 +986,9 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
         'start-daemon',
         'done',
         `daimōn latent (emerges from use) + ${fleet.spawned.length} fleet agents` +
-          (fleet.spawned.length ? ` (${fleet.spawned.map((a) => a.missionProfile).join(', ')})` : '')
+          (fleet.spawned.length
+            ? ` (${fleet.spawned.map((a) => a.missionProfile).join(', ')})`
+            : '')
       );
     }
 

@@ -139,9 +139,7 @@ export function validateHoloShellWorldBuildReadyToken(
       for (const required of token.requiredGates) {
         const g = token.gates.find((x) => x.gateId === required);
         if (!g || g.status !== 'pass') {
-          errors.push(
-            `Token marked ready but required gate "${required}" is not pass.`
-          );
+          errors.push(`Token marked ready but required gate "${required}" is not pass.`);
         }
       }
     }
@@ -155,7 +153,10 @@ export function validateHoloShellWorldBuildReadyToken(
   if (!auth) {
     errors.push('HoloShellWorldBuildReadyToken.authorityMarkers is required.');
   } else {
-    if (!auth.graphAuthoritySource || !['local', 'hosted-stale', 'mixed'].includes(auth.graphAuthoritySource)) {
+    if (
+      !auth.graphAuthoritySource ||
+      !['local', 'hosted-stale', 'mixed'].includes(auth.graphAuthoritySource)
+    ) {
       errors.push('authorityMarkers.graphAuthoritySource must be local | hosted-stale | mixed.');
     }
     // Strong preference for local authority on source/graph

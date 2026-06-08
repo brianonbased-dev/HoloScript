@@ -417,12 +417,7 @@ export function deriveBioluminescentOutput(
 function readNodePosition(node: unknown): Vec3Like {
   const n = node as Record<string, unknown> | null;
   const pos = n?.position as Vec3Like | undefined;
-  if (
-    pos &&
-    typeof pos.x === 'number' &&
-    typeof pos.y === 'number' &&
-    typeof pos.z === 'number'
-  ) {
+  if (pos && typeof pos.x === 'number' && typeof pos.y === 'number' && typeof pos.z === 'number') {
     return pos;
   }
   return { x: 0, y: 0, z: 0 };

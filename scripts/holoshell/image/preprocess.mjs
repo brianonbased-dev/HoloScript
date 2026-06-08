@@ -5,7 +5,9 @@ function clampByte(value) {
 }
 
 function lumaAt(rgb, offset) {
-  return 0.2126 * (rgb[offset] ?? 0) + 0.7152 * (rgb[offset + 1] ?? 0) + 0.0722 * (rgb[offset + 2] ?? 0);
+  return (
+    0.2126 * (rgb[offset] ?? 0) + 0.7152 * (rgb[offset + 1] ?? 0) + 0.0722 * (rgb[offset + 2] ?? 0)
+  );
 }
 
 function cloneFrame(frame, rgb = new Uint8Array(frame.rgb)) {
@@ -21,7 +23,11 @@ function changedPixelRatio(before, after, stride) {
   let changed = 0;
   for (let i = 0; i < pixels; i += 1) {
     const p = i * stride;
-    if (before[p] !== after[p] || before[p + 1] !== after[p + 1] || before[p + 2] !== after[p + 2]) {
+    if (
+      before[p] !== after[p] ||
+      before[p + 1] !== after[p + 1] ||
+      before[p + 2] !== after[p + 2]
+    ) {
       changed += 1;
     }
   }

@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { checkAlignment } from '../accessibility/multimodal';
-import type { VisualDescriptor, LanguageDescriptor, ActionDescriptor } from '../accessibility/multimodal';
+import type {
+  VisualDescriptor,
+  LanguageDescriptor,
+  ActionDescriptor,
+} from '../accessibility/multimodal';
 
 function makeVisual(overrides: Partial<VisualDescriptor> = {}): VisualDescriptor {
   return {
@@ -45,7 +49,7 @@ describe('checkAlignment()', () => {
       const report = checkAlignment(
         makeVisual({ altText: '' }),
         makeLang({ role: 'presentation' }),
-        makeAction({ interactionType: 'none' }),
+        makeAction({ interactionType: 'none' })
       );
       expect(report.passes).toBe(true);
     });
@@ -56,9 +60,9 @@ describe('checkAlignment()', () => {
       const report = checkAlignment(
         makeVisual({ altText: '' }),
         makeLang({ role: 'img' }),
-        makeAction({ interactionType: 'none' }),
+        makeAction({ interactionType: 'none' })
       );
-      const issue = report.issues.find(i => i.criterion === '1.1.1' && i.severity === 'critical');
+      const issue = report.issues.find((i) => i.criterion === '1.1.1' && i.severity === 'critical');
       expect(issue).toBeDefined();
       expect(report.passes).toBe(false);
     });
@@ -67,9 +71,11 @@ describe('checkAlignment()', () => {
       const report = checkAlignment(
         makeVisual({ altText: '', isFullyHidden: true }),
         makeLang({ role: 'img' }),
-        makeAction({ interactionType: 'none' }),
+        makeAction({ interactionType: 'none' })
       );
-      expect(report.issues.filter(i => i.criterion === '1.1.1' && i.severity === 'critical')).toHaveLength(0);
+      expect(
+        report.issues.filter((i) => i.criterion === '1.1.1' && i.severity === 'critical')
+      ).toHaveLength(0);
     });
   });
 
@@ -78,9 +84,9 @@ describe('checkAlignment()', () => {
       const report = checkAlignment(
         makeVisual({ hasAdequateContrast: false }),
         makeLang(),
-        makeAction(),
+        makeAction()
       );
-      const issue = report.issues.find(i => i.criterion === '1.4.3');
+      const issue = report.issues.find((i) => i.criterion === '1.4.3');
       expect(issue).toBeDefined();
       expect(issue?.severity).toBe('serious');
     });
@@ -91,9 +97,9 @@ describe('checkAlignment()', () => {
       const report = checkAlignment(
         makeVisual(),
         makeLang(),
-        makeAction({ isKeyboardFocusable: false }),
+        makeAction({ isKeyboardFocusable: false })
       );
-      const issue = report.issues.find(i => i.criterion === '2.1.1');
+      const issue = report.issues.find((i) => i.criterion === '2.1.1');
       expect(issue).toBeDefined();
       expect(issue?.severity).toBe('critical');
     });
@@ -104,9 +110,9 @@ describe('checkAlignment()', () => {
       const report = checkAlignment(
         makeVisual({ hasFocusIndicator: false }),
         makeLang(),
-        makeAction({ isKeyboardFocusable: true }),
+        makeAction({ isKeyboardFocusable: true })
       );
-      const issue = report.issues.find(i => i.criterion === '2.4.7');
+      const issue = report.issues.find((i) => i.criterion === '2.4.7');
       expect(issue).toBeDefined();
       expect(issue?.severity).toBe('serious');
     });
@@ -117,9 +123,9 @@ describe('checkAlignment()', () => {
       const report = checkAlignment(
         makeVisual(),
         makeLang(),
-        makeAction({ hasSufficientTouchTarget: false }),
+        makeAction({ hasSufficientTouchTarget: false })
       );
-      const issue = report.issues.find(i => i.criterion === '2.5.5');
+      const issue = report.issues.find((i) => i.criterion === '2.5.5');
       expect(issue).toBeDefined();
       expect(issue?.severity).toBe('moderate');
     });
@@ -127,12 +133,8 @@ describe('checkAlignment()', () => {
 
   describe('WCAG 3.1.1 — Language of Page', () => {
     it('raises moderate when no language is declared', () => {
-      const report = checkAlignment(
-        makeVisual(),
-        makeLang({ lang: '' }),
-        makeAction(),
-      );
-      const issue = report.issues.find(i => i.criterion === '3.1.1');
+      const report = checkAlignment(makeVisual(), makeLang({ lang: '' }), makeAction());
+      const issue = report.issues.find((i) => i.criterion === '3.1.1');
       expect(issue).toBeDefined();
       expect(issue?.severity).toBe('moderate');
     });
@@ -140,22 +142,14 @@ describe('checkAlignment()', () => {
 
   describe('WCAG 4.1.2 — Name, Role, Value', () => {
     it('raises critical when interactive element has no accessible name', () => {
-      const report = checkAlignment(
-        makeVisual(),
-        makeLang({ accessibleName: '' }),
-        makeAction(),
-      );
-      const issue = report.issues.find(i => i.criterion === '4.1.2' && i.severity === 'critical');
+      const report = checkAlignment(makeVisual(), makeLang({ accessibleName: '' }), makeAction());
+      const issue = report.issues.find((i) => i.criterion === '4.1.2' && i.severity === 'critical');
       expect(issue).toBeDefined();
     });
 
     it('raises serious when interactive element has no explicit role', () => {
-      const report = checkAlignment(
-        makeVisual(),
-        makeLang({ role: '' }),
-        makeAction(),
-      );
-      const issue = report.issues.find(i => i.criterion === '4.1.2' && i.severity === 'serious');
+      const report = checkAlignment(makeVisual(), makeLang({ role: '' }), makeAction());
+      const issue = report.issues.find((i) => i.criterion === '4.1.2' && i.severity === 'serious');
       expect(issue).toBeDefined();
     });
   });
@@ -165,9 +159,9 @@ describe('checkAlignment()', () => {
       const report = checkAlignment(
         makeVisual(),
         makeLang(),
-        makeAction({ isScreenReaderAccessible: false }),
+        makeAction({ isScreenReaderAccessible: false })
       );
-      const issue = report.issues.find(i => i.criterion === '1.3.1');
+      const issue = report.issues.find((i) => i.criterion === '1.3.1');
       expect(issue).toBeDefined();
       expect(issue?.severity).toBe('serious');
     });
@@ -179,12 +173,14 @@ describe('checkAlignment()', () => {
       const report = checkAlignment(
         makeVisual({ hasAdequateContrast: false }),
         makeLang({ lang: '' }),
-        makeAction({ isKeyboardFocusable: false }),
+        makeAction({ isKeyboardFocusable: false })
       );
-      const severities = report.issues.map(i => i.severity);
+      const severities = report.issues.map((i) => i.severity);
       for (let idx = 1; idx < severities.length; idx++) {
-        expect(['critical', 'serious', 'moderate', 'minor'].indexOf(severities[idx]!)).toBeGreaterThanOrEqual(
-          ['critical', 'serious', 'moderate', 'minor'].indexOf(severities[idx - 1]!),
+        expect(
+          ['critical', 'serious', 'moderate', 'minor'].indexOf(severities[idx]!)
+        ).toBeGreaterThanOrEqual(
+          ['critical', 'serious', 'moderate', 'minor'].indexOf(severities[idx - 1]!)
         );
       }
     });
@@ -196,12 +192,20 @@ describe('checkAlignment()', () => {
     });
 
     it('returns "A" when only serious issues exist', () => {
-      const report = checkAlignment(makeVisual({ hasAdequateContrast: false }), makeLang(), makeAction());
+      const report = checkAlignment(
+        makeVisual({ hasAdequateContrast: false }),
+        makeLang(),
+        makeAction()
+      );
       expect(report.wcagLevel).toBe('A');
     });
 
     it('returns "none" when critical issues exist', () => {
-      const report = checkAlignment(makeVisual({ altText: '' }), makeLang({ role: 'img', accessibleName: '' }), makeAction({ interactionType: 'none' }));
+      const report = checkAlignment(
+        makeVisual({ altText: '' }),
+        makeLang({ role: 'img', accessibleName: '' }),
+        makeAction({ interactionType: 'none' })
+      );
       expect(report.wcagLevel).toBe('none');
     });
   });

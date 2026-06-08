@@ -322,7 +322,9 @@ describe('permission scope policy helpers', () => {
     expect(redaction.preview).toContain('<absolute-path-redacted>');
     expect(redaction.preview).toContain('access_token=<redacted>');
     expect(permissionPreviewHasPublicLeak('Bearer abc.def.ghi')).toBe(true);
-    expect(permissionPreviewHasPublicLeak('https://accounts.example/auth?scope=drive.file')).toBe(false);
+    expect(permissionPreviewHasPublicLeak('https://accounts.example/auth?scope=drive.file')).toBe(
+      false
+    );
   });
 
   it('keeps already-redacted previews stable across repeated checks', () => {

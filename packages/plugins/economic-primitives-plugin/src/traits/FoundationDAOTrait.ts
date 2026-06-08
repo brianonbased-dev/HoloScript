@@ -39,7 +39,7 @@ const defaultConfig: FoundationDAOConfig = {
   governanceToken: 'HOLO_GOV',
   quorumPercent: 33,
   executionDelayHours: 48,
-  multisigOwnersCount: 9
+  multisigOwnersCount: 9,
 };
 
 export function createFoundationDAOHandler(): TraitHandler<FoundationDAOConfig> {
@@ -148,70 +148,73 @@ export function createFoundationDAOHandler(): TraitHandler<FoundationDAOConfig> 
       const s = n.__daoState as FoundationDAOState;
       if (!s) return;
       if (e.type === 'dao:propose') {
-         const nowMs = Date.now();
-         const proposal: Proposal = {
-           id: `prop_${nowMs}`,
-           title: (e.payload?.title as string) || 'General Update',
-           votesFor: 0,
-           votesAgainst: 0,
-           status: 'active',
-           zoneId: typeof e.payload?.zoneId === 'string' ? (e.payload.zoneId as string) : undefined,
-           requestedAmountX402:
-             typeof e.payload?.requestedAmountX402 === 'number'
-               ? (e.payload.requestedAmountX402 as number)
-               : undefined,
-           createdAtMs: nowMs,
-           voterWeights: {},
-         };
-         s.activeProposals.push(proposal);
-         ctx.emit?.('dao:proposal_created', { proposal });
+        const nowMs = Date.now();
+        const proposal: Proposal = {
+          id: `prop_${nowMs}`,
+          title: (e.payload?.title as string) || 'General Update',
+          votesFor: 0,
+          votesAgainst: 0,
+          status: 'active',
+          zoneId: typeof e.payload?.zoneId === 'string' ? (e.payload.zoneId as string) : undefined,
+          requestedAmountX402:
+            typeof e.payload?.requestedAmountX402 === 'number'
+              ? (e.payload.requestedAmountX402 as number)
+              : undefined,
+          createdAtMs: nowMs,
+          voterWeights: {},
+        };
+        s.activeProposals.push(proposal);
+        ctx.emit?.('dao:proposal_created', { proposal });
       } else if (e.type === 'dao:vote') {
-         const pid = e.payload?.proposalId as string;
-         const prop = s.activeProposals.find(p => p.id === pid);
-         if (prop && prop.status !== 'executed') {
-           const voterId = typeof e.payload?.voterId === 'string' ? (e.payload.voterId as string) : 'anonymous_voter';
-           const support = Boolean(e.payload?.support);
-           const weight = typeof e.payload?.weight === 'number' ? (e.payload.weight as number) : 1;
-           prop.status = 'active';
-           delete prop.executableAtMs;
-           applyVote(prop, voterId, support, weight);
-           maybeConcludeProposal(prop, c, s, ctx, Date.now());
-           executeProposal(prop, s, ctx, Date.now());
-         }
+        const pid = e.payload?.proposalId as string;
+        const prop = s.activeProposals.find((p) => p.id === pid);
+        if (prop && prop.status !== 'executed') {
+          const voterId =
+            typeof e.payload?.voterId === 'string'
+              ? (e.payload.voterId as string)
+              : 'anonymous_voter';
+          const support = Boolean(e.payload?.support);
+          const weight = typeof e.payload?.weight === 'number' ? (e.payload.weight as number) : 1;
+          prop.status = 'active';
+          delete prop.executableAtMs;
+          applyVote(prop, voterId, support, weight);
+          maybeConcludeProposal(prop, c, s, ctx, Date.now());
+          executeProposal(prop, s, ctx, Date.now());
+        }
       } else if (e.type === 'dao:autonomous_vote') {
-         const pid = e.payload?.proposalId as string;
-         const prop = s.activeProposals.find(p => p.id === pid);
-         if (!prop || prop.status !== 'active') return;
+        const pid = e.payload?.proposalId as string;
+        const prop = s.activeProposals.find((p) => p.id === pid);
+        if (!prop || prop.status !== 'active') return;
 
-         const agents = Array.isArray(e.payload?.agents)
-           ? (e.payload?.agents as Array<Record<string, unknown>>)
-           : [];
+        const agents = Array.isArray(e.payload?.agents)
+          ? (e.payload?.agents as Array<Record<string, unknown>>)
+          : [];
 
-         for (const agent of agents) {
-           const voterId = typeof agent.agentId === 'string' ? (agent.agentId as string) : 'agent';
-           const support =
-             typeof agent.support === 'boolean'
-               ? (agent.support as boolean)
-               : prop.requestedAmountX402
-                 ? prop.requestedAmountX402 <= s.treasuryBalanceX402
-                 : true;
-           const weight = typeof agent.weight === 'number' ? (agent.weight as number) : 1;
-           applyVote(prop, voterId, support, weight);
-         }
+        for (const agent of agents) {
+          const voterId = typeof agent.agentId === 'string' ? (agent.agentId as string) : 'agent';
+          const support =
+            typeof agent.support === 'boolean'
+              ? (agent.support as boolean)
+              : prop.requestedAmountX402
+                ? prop.requestedAmountX402 <= s.treasuryBalanceX402
+                : true;
+          const weight = typeof agent.weight === 'number' ? (agent.weight as number) : 1;
+          applyVote(prop, voterId, support, weight);
+        }
 
-         maybeConcludeProposal(prop, c, s, ctx, Date.now());
+        maybeConcludeProposal(prop, c, s, ctx, Date.now());
         executeProposal(prop, s, ctx, Date.now());
       } else if (e.type === 'dao:execute') {
-         const nowMs =
-           typeof e.payload?.nowMs === 'number' ? (e.payload.nowMs as number) : Date.now();
+        const nowMs =
+          typeof e.payload?.nowMs === 'number' ? (e.payload.nowMs as number) : Date.now();
 
-         if (typeof e.payload?.proposalId === 'string') {
-           const prop = s.activeProposals.find(p => p.id === e.payload!.proposalId);
-           if (prop) executeProposal(prop, s, ctx, nowMs);
-         } else {
-           s.activeProposals.forEach((p) => executeProposal(p, s, ctx, nowMs));
-         }
+        if (typeof e.payload?.proposalId === 'string') {
+          const prop = s.activeProposals.find((p) => p.id === e.payload!.proposalId);
+          if (prop) executeProposal(prop, s, ctx, nowMs);
+        } else {
+          s.activeProposals.forEach((p) => executeProposal(p, s, ctx, nowMs));
+        }
       }
-    }
+    },
   };
 }

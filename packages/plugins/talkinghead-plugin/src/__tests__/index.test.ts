@@ -6,7 +6,12 @@ import {
   type TalkingHeadInput,
 } from '../index';
 
-function makeSineWave(freq: number, sampleRate: number, durationMs: number, amplitude = 0.8): Float32Array {
+function makeSineWave(
+  freq: number,
+  sampleRate: number,
+  durationMs: number,
+  amplitude = 0.8
+): Float32Array {
   const samples = Math.floor((sampleRate * durationMs) / 1000);
   const buf = new Float32Array(samples);
   for (let i = 0; i < samples; i++) {
@@ -19,7 +24,11 @@ function silence(durationMs: number, sampleRate = 44100): Float32Array {
   return new Float32Array(Math.floor((sampleRate * durationMs) / 1000));
 }
 
-function audioBuffer(samples: Float32Array, sampleRate = 44100, durationMs?: number): AudioBufferLike {
+function audioBuffer(
+  samples: Float32Array,
+  sampleRate = 44100,
+  durationMs?: number
+): AudioBufferLike {
   return {
     samples,
     sampleRate,
@@ -111,9 +120,7 @@ describe('mapTalkingHead audio_buffer auto-extraction', () => {
       audio_buffer: buf,
     });
     expect(r.viseme_count).toBe(1);
-    expect(r.lipsync.params.viseme_events).toEqual([
-      { viseme: 'O', t_start_ms: 0, t_end_ms: 400 },
-    ]);
+    expect(r.lipsync.params.viseme_events).toEqual([{ viseme: 'O', t_start_ms: 0, t_end_ms: 400 }]);
   });
 
   it('warns when audio_uri is provided but audio_buffer is missing', () => {

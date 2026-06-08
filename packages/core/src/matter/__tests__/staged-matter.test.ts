@@ -57,9 +57,7 @@ describe('consolidate', () => {
       ...c,
       manifest: {
         ...c.manifest,
-        provenanceHashes: c.manifest.provenanceHashes.filter(
-          (h) => h !== a.provenanceHash
-        ),
+        provenanceHashes: c.manifest.provenanceHashes.filter((h) => h !== a.provenanceHash),
       },
     };
 

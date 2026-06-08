@@ -40,7 +40,10 @@ class SimpleJEPAPredictor {
   private ctxAlpha = 0.3;
   private predWeights: number[];
 
-  constructor(private horizon: number, private ctxLen: number = 4) {
+  constructor(
+    private horizon: number,
+    private ctxLen: number = 4
+  ) {
     // Small learned predictor weights (will be updated by the objective)
     this.predWeights = Array.from({ length: 4 }, () => (Math.random() - 0.5) * 0.1);
   }
@@ -52,13 +55,13 @@ class SimpleJEPAPredictor {
     for (let i = 0; i < ctxLen && start - i >= 0; i++) {
       const v = trajectory[start - i];
       rep[0] += v * w;
-      rep[1] += (v * v) * w;
+      rep[1] += v * v * w;
       rep[2] += Math.sin(v * 2) * w;
       rep[3] += Math.cos(v * 3) * w;
       w *= this.ctxAlpha;
     }
     const norm = Math.sqrt(rep.reduce((s, x) => s + x * x, 0)) + 1e-8;
-    return rep.map(x => x / norm);
+    return rep.map((x) => x / norm);
   }
 
   /** Predict the representation of the future frame. */
@@ -68,7 +71,7 @@ class SimpleJEPAPredictor {
       ctxRep[0] * (1 + a) + ctxRep[1] * b,
       ctxRep[1] * (1 + c) + ctxRep[2] * d,
       ctxRep[2] * 0.8 + ctxRep[3] * a,
-      ctxRep[3] * 0.9 + ctxRep[0] * b
+      ctxRep[3] * 0.9 + ctxRep[0] * b,
     ];
   }
 
@@ -94,7 +97,8 @@ class SimpleJEPAPredictor {
     const clip = 0.5;
     for (let i = 0; i < 4; i++) {
       let g = grad[i] * 0.05;
-      if (g > clip) g = clip; if (g < -clip) g = -clip;
+      if (g > clip) g = clip;
+      if (g < -clip) g = -clip;
       this.predWeights[i] -= lr * g;
       // light L2
       this.predWeights[i] *= 0.999;
@@ -104,7 +108,11 @@ class SimpleJEPAPredictor {
 
 /** JEPA objective: predict future target representation from context. */
 class JEPAObjective {
-  constructor(private predictor: SimpleJEPAPredictor, private ctxLen = 4, private lr = 0.002) {}
+  constructor(
+    private predictor: SimpleJEPAPredictor,
+    private ctxLen = 4,
+    private lr = 0.002
+  ) {}
 
   trainStep(corpus: Trajectory[]): number {
     let totalLoss = 0;
@@ -130,7 +138,9 @@ class JEPAObjective {
 }
 
 async function runPaper26MinimumCorpusBenchmark() {
-  console.log('[Paper 26] Building minimum viable solver-pair corpus (128 spring trajectories, horizon 8)...');
+  console.log(
+    '[Paper 26] Building minimum viable solver-pair corpus (128 spring trajectories, horizon 8)...'
+  );
 
   const corpus = await createSimplePhysicsCorpus({ size: 128, horizon: 8 });
   console.log(`[Paper 26] Corpus ready: ${corpus.length} trajectories`);
@@ -149,7 +159,10 @@ async function runPaper26MinimumCorpusBenchmark() {
     }
   }
 
-  console.log('[Paper 26] Training complete. Final loss:', lossCurve[lossCurve.length - 1].toFixed(5));
+  console.log(
+    '[Paper 26] Training complete. Final loss:',
+    lossCurve[lossCurve.length - 1].toFixed(5)
+  );
 
   const baselines = await runNonVerifiedBaseline(corpus, predictor);
   const finalLoss = lossCurve[lossCurve.length - 1];
@@ -167,7 +180,10 @@ async function runPaper26MinimumCorpusBenchmark() {
   const path = require('path');
   const outDir = path.join('research', 'paper-26-artifacts');
   fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, 'loss-curve.json'), JSON.stringify({ lossCurve, epochs: lossCurve.length }, null, 2));
+  fs.writeFileSync(
+    path.join(outDir, 'loss-curve.json'),
+    JSON.stringify({ lossCurve, epochs: lossCurve.length }, null, 2)
+  );
   fs.writeFileSync(path.join(outDir, 'world-model-receipt.json'), JSON.stringify(receipt, null, 2));
   console.log(`[Paper 26] Artifacts written to ${outDir}/`);
 
@@ -181,7 +197,9 @@ async function runNonVerifiedBaseline(
   // Both baselines measured in the same representation space as JEPA.
   // Strong baseline: pass the context encoding through with identity weights (ctxRep itself).
   // Weak baseline: pass zero representation (predict nothing from context).
-  let totalStrong = 0, totalWeak = 0, count = 0;
+  let totalStrong = 0,
+    totalWeak = 0,
+    count = 0;
   const ctxLen = 4;
 
   for (const traj of corpus) {
@@ -191,7 +209,8 @@ async function runNonVerifiedBaseline(
       const target = predictor.targetEncode(t, i);
 
       // Strong baseline: predict ctx itself (identity — no transformation)
-      let strongLoss = 0, weakLoss = 0;
+      let strongLoss = 0,
+        weakLoss = 0;
       for (let k = 0; k < 4; k++) {
         strongLoss += (ctx[k] - target[k]) ** 2;
         // Weak baseline: predict all zeros
@@ -208,13 +227,20 @@ async function runNonVerifiedBaseline(
   };
 }
 
-async function createSimplePhysicsCorpus({ size, horizon }: { size: number; horizon: number }): Promise<Trajectory[]> {
+async function createSimplePhysicsCorpus({
+  size,
+  horizon,
+}: {
+  size: number;
+  horizon: number;
+}): Promise<Trajectory[]> {
   const corpus: Trajectory[] = [];
   for (let i = 0; i < size; i++) {
     const phase = (i % 17) * 0.17;
     const decay = 0.04 + (i % 5) * 0.005;
-    const traj = Array.from({ length: horizon }, (_, t) =>
-      Math.sin((t + phase) * 0.7) * Math.exp(-t * decay) + (Math.random() - 0.5) * 0.03
+    const traj = Array.from(
+      { length: horizon },
+      (_, t) => Math.sin((t + phase) * 0.7) * Math.exp(-t * decay) + (Math.random() - 0.5) * 0.03
     );
     corpus.push({ solverId: `spring-mass-${i}`, trajectory: traj });
   }
@@ -245,20 +271,24 @@ function createWorldModelReceipt(
     finalLoss: lossCurve[lossCurve.length - 1],
     baselineLoss: baselines.weak,
     improvementPercent: Number(improvementVsWeak.toFixed(2)),
-    solverPairs: corpus.map(t => t.solverId),
+    solverPairs: corpus.map((t) => t.solverId),
     createdAt: new Date().toISOString(),
-    note: 'Minimum-corpus JEPA demonstration for Paper 26 (ICLR 2027). Self-contained predictor + objective on 128 spring trajectories. Real JEPAPredictor (D.050) will replace the toy version. vs-weak-baseline improvement is the publishable signal; vs-strong-last-value remains future work.'
+    note: 'Minimum-corpus JEPA demonstration for Paper 26 (ICLR 2027). Self-contained predictor + objective on 128 spring trajectories. Real JEPAPredictor (D.050) will replace the toy version. vs-weak-baseline improvement is the publishable signal; vs-strong-last-value remains future work.',
   };
 }
 
 // Run guard (works under tsx, ts-node, and direct node)
-const isMain = process.argv[1]?.endsWith('paper-26-jepa-mincorpus-benchmark.ts') ||
-               process.argv[1]?.endsWith('paper-26-jepa-mincorpus-benchmark.js');
+const isMain =
+  process.argv[1]?.endsWith('paper-26-jepa-mincorpus-benchmark.ts') ||
+  process.argv[1]?.endsWith('paper-26-jepa-mincorpus-benchmark.js');
 
 if (isMain) {
   runPaper26MinimumCorpusBenchmark()
     .then(() => console.log('[Paper 26] Done.'))
-    .catch(err => { console.error('[Paper 26] FAILED:', err); process.exit(1); });
+    .catch((err) => {
+      console.error('[Paper 26] FAILED:', err);
+      process.exit(1);
+    });
 }
 
 export { runPaper26MinimumCorpusBenchmark };

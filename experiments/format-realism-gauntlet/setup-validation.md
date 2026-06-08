@@ -4,13 +4,13 @@ Initial setup run: `.bench-logs/format-stress/manual/humanoid-rock-throw-setup/`
 
 ## Current Status
 
-| Surface | Command | Status |
-| --- | --- | --- |
-| Stage parse | `holoscript parse humanoid-rock-throw.holo --json` | pass |
-| Behavior parse | `holoscript parse humanoid-rock-throw.hsplus --json` | pass |
-| Pipeline parse | `holoscript parse humanoid-rock-throw.hs --json` | pass |
-| Stage compile | `holoscript compile humanoid-rock-throw.holo --target threejs` | pass |
-| Pipeline compile | `holoscript compile humanoid-rock-throw.hs --target node` | pass |
+| Surface          | Command                                                          | Status    |
+| ---------------- | ---------------------------------------------------------------- | --------- |
+| Stage parse      | `holoscript parse humanoid-rock-throw.holo --json`               | pass      |
+| Behavior parse   | `holoscript parse humanoid-rock-throw.hsplus --json`             | pass      |
+| Pipeline parse   | `holoscript parse humanoid-rock-throw.hs --json`                 | pass      |
+| Stage compile    | `holoscript compile humanoid-rock-throw.holo --target threejs`   | pass      |
+| Pipeline compile | `holoscript compile humanoid-rock-throw.hs --target node`        | pass      |
 | Behavior compile | `holoscript compile humanoid-rock-throw.hsplus --target threejs` | known gap |
 
 ## Known Gap

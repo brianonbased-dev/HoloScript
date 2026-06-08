@@ -104,7 +104,11 @@ export function computeDisplacedPosition(
   const bias = config.bias ?? 0.5;
   const h = sampleTexture(heightMap, u, v)[0]; // R channel = height
   const offset = (h - bias) * scale;
-  return [position[0] + normal[0] * offset, position[1] + normal[1] * offset, position[2] + normal[2] * offset];
+  return [
+    position[0] + normal[0] * offset,
+    position[1] + normal[1] * offset,
+    position[2] + normal[2] * offset,
+  ];
 }
 
 /**
@@ -127,11 +131,7 @@ export function computeDisplacementNormalsFromHeightMap(
       const r = x < gridW - 1 ? heights[y * gridW + (x + 1)] : c;
       const u = y > 0 ? heights[(y - 1) * gridW + x] : c;
       const d = y < gridH - 1 ? heights[(y + 1) * gridW + x] : c;
-      normals.push([
-        -(r - l) / (2 * cellSizeX),
-        1,
-        -(d - u) / (2 * cellSizeZ),
-      ]);
+      normals.push([-(r - l) / (2 * cellSizeX), 1, -(d - u) / (2 * cellSizeZ)]);
     }
   }
   return normals;
@@ -214,11 +214,7 @@ export function computePOM(
 export function triplanarWeights(normal: Vector3, sharpness = 4): Vector3 {
   const w = [Math.abs(normal[0]), Math.abs(normal[1]), Math.abs(normal[2])];
   // Power curve for sharper blending
-  const pw = [
-    Math.pow(w[0], sharpness),
-    Math.pow(w[1], sharpness),
-    Math.pow(w[2], sharpness),
-  ];
+  const pw = [Math.pow(w[0], sharpness), Math.pow(w[1], sharpness), Math.pow(w[2], sharpness)];
   const sum = pw[0] + pw[1] + pw[2] + 1e-6;
   return [pw[0] / sum, pw[1] / sum, pw[2] / sum];
 }

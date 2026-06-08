@@ -477,7 +477,8 @@ export function NodeGraphEditor({ onCompile }: NodeGraphEditorProps) {
               onClick={() => {
                 if (compiledGLSL) {
                   navigator.clipboard.writeText(compiledGLSL);
-                  setCopied(true);COPY_FEEDBACK_DURATION
+                  setCopied(true);
+                  COPY_FEEDBACK_DURATION;
                   setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
                 }
               }}

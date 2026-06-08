@@ -49,11 +49,12 @@ onMounted(async () => {
   try {
     // Try with Bearer token from hash/cookie if available (Mode-A path)
     // Default: no auth → Mode-B
-    const token = typeof window !== 'undefined'
-      ? new URLSearchParams(window.location.search).get('token')
-      : null;
+    const token =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('token')
+        : null;
 
-    const headers = { 'Accept': 'application/json' };
+    const headers = { Accept: 'application/json' };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -65,9 +66,10 @@ onMounted(async () => {
     mode.value = lotusMode;
 
     const data = await res.json();
-    petals.value = lotusMode === 'A'
-      ? Object.values(data.petals) // Mode-A: keyed by paper_id
-      : data.petals;               // Mode-B: array
+    petals.value =
+      lotusMode === 'A'
+        ? Object.values(data.petals) // Mode-A: keyed by paper_id
+        : data.petals; // Mode-B: array
     readiness.value = data.readiness;
     metadata.value = data.metadata;
   } catch (err) {
@@ -84,7 +86,10 @@ const sortedPetals = computed(() => {
   // Mode-A: sort by bloom state, then by paper_id
   return [...petals.value].sort((a, b) => {
     const order = { full: 0, blooming: 1, budding: 2, sealed: 3, wilted: 4 };
-    return (order[a.state] ?? 3) - (order[b.state] ?? 3) || (a.paper_id || '').localeCompare(b.paper_id || '');
+    return (
+      (order[a.state] ?? 3) - (order[b.state] ?? 3) ||
+      (a.paper_id || '').localeCompare(b.paper_id || '')
+    );
   });
 });
 
@@ -104,11 +109,23 @@ const petalPositions = computed(() => {
 
   for (let i = 0; i < innerCount; i++) {
     const angle = (i * 360) / innerCount - 90; // start from top
-    positions.push({ ring: 'inner', index: i, angle, cx: 200 + 90 * Math.cos(angle * Math.PI / 180), cy: 200 + 90 * Math.sin(angle * Math.PI / 180) });
+    positions.push({
+      ring: 'inner',
+      index: i,
+      angle,
+      cx: 200 + 90 * Math.cos((angle * Math.PI) / 180),
+      cy: 200 + 90 * Math.sin((angle * Math.PI) / 180),
+    });
   }
   for (let i = 0; i < outerCount; i++) {
     const angle = (i * 360) / outerCount - 90 + 22.5; // offset by half-step
-    positions.push({ ring: 'outer', index: innerCount + i, angle, cx: 200 + 145 * Math.cos(angle * Math.PI / 180), cy: 200 + 145 * Math.sin(angle * Math.PI / 180) });
+    positions.push({
+      ring: 'outer',
+      index: innerCount + i,
+      angle,
+      cx: 200 + 145 * Math.cos((angle * Math.PI) / 180),
+      cy: 200 + 145 * Math.sin((angle * Math.PI) / 180),
+    });
   }
   return positions;
 });
@@ -124,7 +141,9 @@ function petalDetails(p) {
   if (mode.value === 'A') {
     const lines = [p.venue || '', p.reason || ''];
     if (p.measured) {
-      lines.push(`Stubs: ${p.measured.stubCount}, Benchmarks pending: ${p.measured.benchmarkTodoCount}`);
+      lines.push(
+        `Stubs: ${p.measured.stubCount}, Benchmarks pending: ${p.measured.benchmarkTodoCount}`
+      );
       const anchors = [];
       if (p.measured.otsAnchored) anchors.push('OTS');
       if (p.measured.baseAnchored) anchors.push('Base');
@@ -144,9 +163,9 @@ function petalDetails(p) {
         16 papers. One algebra. One verifiable chain from source notation to rendered pixel.
       </p>
       <p class="lotus-sub">
-        Each petal represents a paper in the HoloScript research program.
-        Bloom state is derived from real evidence — draft content, anchor
-        receipts, and benchmark results — not self-reported status.
+        Each petal represents a paper in the HoloScript research program. Bloom state is derived
+        from real evidence — draft content, anchor receipts, and benchmark results — not
+        self-reported status.
       </p>
     </header>
 
@@ -155,9 +174,7 @@ function petalDetails(p) {
       Loading bloom state&hellip;
     </div>
 
-    <div v-else-if="loadError" class="lotus-error">
-      Failed to load lotus data: {{ loadError }}
-    </div>
+    <div v-else-if="loadError" class="lotus-error">Failed to load lotus data: {{ loadError }}</div>
 
     <template v-else>
       <section class="lotus-summary">
@@ -166,9 +183,7 @@ function petalDetails(p) {
           <span v-if="mode === 'A'" class="lotus-mode-badge lotus-mode-a">
             Full disclosure (authenticated)
           </span>
-          <span v-else class="lotus-mode-badge lotus-mode-b">
-            Anonymous bloom
-          </span>
+          <span v-else class="lotus-mode-badge lotus-mode-b"> Anonymous bloom </span>
         </div>
 
         <div class="lotus-totals">
@@ -195,10 +210,30 @@ function petalDetails(p) {
       </section>
 
       <section class="lotus-visualization">
-        <svg viewBox="0 0 400 400" class="lotus-svg" role="img" aria-label="Lotus flower visualization">
+        <svg
+          viewBox="0 0 400 400"
+          class="lotus-svg"
+          role="img"
+          aria-label="Lotus flower visualization"
+        >
           <!-- Center -->
-          <circle cx="200" cy="200" r="28" fill="none" stroke="#6366f1" stroke-width="2" opacity="0.6" />
-          <text x="200" y="204" text-anchor="middle" fill="#6366f1" font-size="10" font-weight="600">
+          <circle
+            cx="200"
+            cy="200"
+            r="28"
+            fill="none"
+            stroke="#6366f1"
+            stroke-width="2"
+            opacity="0.6"
+          />
+          <text
+            x="200"
+            y="204"
+            text-anchor="middle"
+            fill="#6366f1"
+            font-size="10"
+            font-weight="600"
+          >
             {{ readiness.fullPetals }}/{{ readiness.totalPetals }}
           </text>
 
@@ -214,7 +249,10 @@ function petalDetails(p) {
               opacity="0.85"
               class="lotus-petal"
             >
-              <title>{{ petalLabel(p) }}: {{ p.state }}{{ petalDetails(p) ? '\n' + petalDetails(p) : '' }}</title>
+              <title>
+                {{ petalLabel(p) }}: {{ p.state
+                }}{{ petalDetails(p) ? '\n' + petalDetails(p) : '' }}
+              </title>
             </ellipse>
           </g>
         </svg>
@@ -222,7 +260,12 @@ function petalDetails(p) {
 
       <section class="lotus-petal-list">
         <h2>Petal Details</h2>
-        <div v-for="(p, i) in sortedPetals" :key="i" class="lotus-petal-card" :class="'lotus-state-' + p.state">
+        <div
+          v-for="(p, i) in sortedPetals"
+          :key="i"
+          class="lotus-petal-card"
+          :class="'lotus-state-' + p.state"
+        >
           <div class="lotus-petal-header">
             <span class="lotus-petal-dot" :style="{ background: BLOOM_COLORS[p.state] }"></span>
             <span class="lotus-petal-name">{{ petalLabel(p) }}</span>
@@ -232,8 +275,15 @@ function petalDetails(p) {
           <div v-if="p.reason" class="lotus-petal-reason">{{ p.reason }}</div>
           <div v-if="mode === 'A' && p.measured" class="lotus-petal-measured">
             <span v-if="p.measured.hasDraft">draft</span>
-            <span v-if="p.measured.stubCount">{{ p.measured.stubCount }} stub{{ p.measured.stubCount > 1 ? 's' : '' }}</span>
-            <span v-if="p.measured.benchmarkTodoCount">{{ p.measured.benchmarkTodoCount }} benchmark{{ p.measured.benchmarkTodoCount > 1 ? 's' : '' }} pending</span>
+            <span v-if="p.measured.stubCount"
+              >{{ p.measured.stubCount }} stub{{ p.measured.stubCount > 1 ? 's' : '' }}</span
+            >
+            <span v-if="p.measured.benchmarkTodoCount"
+              >{{ p.measured.benchmarkTodoCount }} benchmark{{
+                p.measured.benchmarkTodoCount > 1 ? 's' : ''
+              }}
+              pending</span
+            >
             <span v-if="p.measured.otsAnchored">OTS anchored</span>
             <span v-if="p.measured.baseAnchored">Base anchored</span>
           </div>
@@ -242,13 +292,13 @@ function petalDetails(p) {
 
       <footer class="lotus-footer">
         <p>
-          Bloom state is a pure function of verifiable evidence — draft content,
-          anchor receipts, and benchmark results — not self-reported claims.
-          The Lotus Genesis Trigger fires when all 16 petals reach full bloom.
+          Bloom state is a pure function of verifiable evidence — draft content, anchor receipts,
+          and benchmark results — not self-reported claims. The Lotus Genesis Trigger fires when all
+          16 petals reach full bloom.
         </p>
         <p v-if="mode === 'B'" class="lotus-anon-note">
-          You are viewing the anonymous bloom visualization. Team members can
-          authenticate to see paper identifiers and detailed progress.
+          You are viewing the anonymous bloom visualization. Team members can authenticate to see
+          paper identifiers and detailed progress.
         </p>
       </footer>
     </template>
@@ -304,10 +354,14 @@ function petalDetails(p) {
   vertical-align: middle;
 }
 @keyframes lotus-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.lotus-summary { margin: 2rem 0 1.5rem; }
+.lotus-summary {
+  margin: 2rem 0 1.5rem;
+}
 
 .lotus-meta {
   font-size: 0.85rem;
@@ -405,7 +459,9 @@ function petalDetails(p) {
 }
 
 .lotus-petal {
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
   cursor: pointer;
 }
 .lotus-petal:hover {
@@ -430,11 +486,21 @@ function petalDetails(p) {
   background: var(--vp-c-bg);
   border-left: 3px solid;
 }
-.lotus-state-full    { border-left-color: #10b981; }
-.lotus-state-blooming { border-left-color: #3b82f6; }
-.lotus-state-budding { border-left-color: #f59e0b; }
-.lotus-state-sealed  { border-left-color: #6b7280; }
-.lotus-state-wilted  { border-left-color: #ef4444; }
+.lotus-state-full {
+  border-left-color: #10b981;
+}
+.lotus-state-blooming {
+  border-left-color: #3b82f6;
+}
+.lotus-state-budding {
+  border-left-color: #f59e0b;
+}
+.lotus-state-sealed {
+  border-left-color: #6b7280;
+}
+.lotus-state-wilted {
+  border-left-color: #ef4444;
+}
 
 .lotus-petal-header {
   display: flex;

@@ -18,11 +18,14 @@ import {
   requireTeamAccessFresh,
   pruneStalePresence,
   normalizePresenceSurface,
-  getPresenceTtlMs
+  getPresenceTtlMs,
 } from '../utils';
 import { hasBearerCapability, requireAuth } from '../auth-utils';
 import { broadcastToTeam } from '../team-room';
-import { extractAndVerifySigning, resolveCapabilityFromHeader } from '../identity/signing-middleware';
+import {
+  extractAndVerifySigning,
+  resolveCapabilityFromHeader,
+} from '../identity/signing-middleware';
 import {
   ROOM_PRESETS,
   claimTask,
@@ -98,9 +101,7 @@ function stringList(value: unknown): string[] | undefined {
 function cloneBoardProvenance(provenance: BoardMutationProvenance): BoardMutationProvenance {
   return {
     ...provenance,
-    attribution_chain: provenance.attribution_chain
-      ? [...provenance.attribution_chain]
-      : undefined,
+    attribution_chain: provenance.attribution_chain ? [...provenance.attribution_chain] : undefined,
   };
 }
 
@@ -148,7 +149,9 @@ function parseBoardMutationProvenance(
     },
   };
 }
-const CLAIM_HEARTBEAT_GRACE_MS = Number(process.env.HOLOMESH_CLAIM_HEARTBEAT_GRACE_MS || 2 * 60 * 1000);
+const CLAIM_HEARTBEAT_GRACE_MS = Number(
+  process.env.HOLOMESH_CLAIM_HEARTBEAT_GRACE_MS || 2 * 60 * 1000
+);
 const DEFAULT_FLEET_SNAPSHOT_STALE_AFTER_MS = 2 * 60 * 60 * 1000;
 
 function normalizeVerificationEvidence(value: unknown): string | undefined {
@@ -179,7 +182,9 @@ function numericCount(value: unknown): number {
 }
 
 function getFleetSnapshotStaleAfterMs(): number {
-  const raw = Number(process.env.HOLOMESH_FLEET_STALE_THRESHOLD_MS || process.env.STALE_THRESHOLD_MS);
+  const raw = Number(
+    process.env.HOLOMESH_FLEET_STALE_THRESHOLD_MS || process.env.STALE_THRESHOLD_MS
+  );
   return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_FLEET_SNAPSHOT_STALE_AFTER_MS;
 }
 
@@ -189,7 +194,9 @@ function normalizeFleetSource(value: unknown): string {
   return source ? source.slice(0, 120) : 'fleet-status-live.mjs';
 }
 
-function normalizeFleetSnapshotPayload(body: Record<string, unknown>): TeamFleetSnapshotPayload | null {
+function normalizeFleetSnapshotPayload(
+  body: Record<string, unknown>
+): TeamFleetSnapshotPayload | null {
   const candidate = isRecord(body.snapshot) ? body.snapshot : body;
   if (!isRecord(candidate)) return null;
   return { ...candidate } as TeamFleetSnapshotPayload;
@@ -236,7 +243,10 @@ function evaluateFleetSnapshotHealth(
   return { status, reasons, ageMs, staleAfterMs };
 }
 
-function fleetSnapshotResponse(teamId: string, record?: TeamFleetSnapshotRecord): Record<string, unknown> {
+function fleetSnapshotResponse(
+  teamId: string,
+  record?: TeamFleetSnapshotRecord
+): Record<string, unknown> {
   if (!record) {
     return {
       success: true,
@@ -431,9 +441,7 @@ export async function handleBoardRoutes(
       .filter((t) => t.status === 'open')
       .sort((a, b) => (a.priority ?? 5) - (b.priority ?? 5))
       .slice(0, 8);
-    const claimed = flatTasks
-      .filter((t) => t.status === 'claimed')
-      .slice(0, 5);
+    const claimed = flatTasks.filter((t) => t.status === 'claimed').slice(0, 5);
 
     // Inbox (DMs, handoffs, reviews) — newest first
     const messages = teamMessageStore.get(teamId) || [];
@@ -600,7 +608,9 @@ export async function handleBoardRoutes(
     if (!team.taskBoard) team.taskBoard = [];
     const sug = (team as Team & { suggestions: TeamSuggestion[] }).suggestions;
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -625,7 +635,10 @@ export async function handleBoardRoutes(
   }
 
   // POST /api/holomesh/team/:id/suggestions/:suggestionId/vote (MCP: holomesh_suggest_vote)
-  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions\/[^/]+\/vote$/) && method === 'POST') {
+  if (
+    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/suggestions\/[^/]+\/vote$/) &&
+    method === 'POST'
+  ) {
     // Pattern Gamma write-path coverage (follow-up to 29e9a8da7): voting
     // mutates the suggestions array; must reload before the membership check
     // so cross-replica /joins are visible.
@@ -645,7 +658,9 @@ export async function handleBoardRoutes(
     if (!team.taskBoard) team.taskBoard = [];
     const suggestions = (team as Team & { suggestions: TeamSuggestion[] }).suggestions;
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -665,7 +680,7 @@ export async function handleBoardRoutes(
       caller.name,
       value as 1 | -1,
       team.maxSlots,
-      reason,
+      reason
     );
     if (!result.success) {
       json(res, 400, { error: result.error || 'vote failed' });
@@ -683,7 +698,11 @@ export async function handleBoardRoutes(
       });
     }
     persistTeamStore();
-    json(res, 200, { success: true, suggestion: result.suggestion, promotedTask: result.promotedTask });
+    json(res, 200, {
+      success: true,
+      suggestion: result.suggestion,
+      promotedTask: result.promotedTask,
+    });
     return true;
   }
 
@@ -699,7 +718,9 @@ export async function handleBoardRoutes(
     const team = teamStore.get(teamId)!;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -723,26 +744,32 @@ export async function handleBoardRoutes(
       new URL(url, 'http://localhost').searchParams.get('dedup') ??
       body.dedup ??
       ''
-    ).toString().toLowerCase();
+    )
+      .toString()
+      .toLowerCase();
     const dedupMode: 'exact' | 'normalized' = dedupParam === 'exact' ? 'exact' : 'normalized';
 
     // Add tasks (framework signature: board, doneLog, tasks)
     // doneLog types differ between mcp-server (TeamTask[]) and framework (DoneLogEntry[])
     // but only .title is used for dedup, which both have
     const tasksWithCreator = tasksBody.map((t: any) => ({ ...t, createdBy: caller.id }));
-    const result = addTasksToBoard(team.taskBoard, (team.doneLog || []), tasksWithCreator, { dedupMode });
+    const result = addTasksToBoard(team.taskBoard, team.doneLog || [], tasksWithCreator, {
+      dedupMode,
+    });
     const normalizationWarnings = Array.isArray((result as any).warnings)
       ? (result as any).warnings
       : (tasksBody as Array<{ title?: string; description?: string }>).flatMap((t) => {
           const raw = String(t.description || '');
           // Kept in sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
           if (raw.length <= 2000) return [];
-          return [{
-            title: String(t.title || '').slice(0, 200),
-            reason: 'description_truncated' as const,
-            originalLength: raw.length,
-            keptLength: 2000,
-          }];
+          return [
+            {
+              title: String(t.title || '').slice(0, 200),
+              reason: 'description_truncated' as const,
+              originalLength: raw.length,
+              keptLength: 2000,
+            },
+          ];
         });
     team.taskBoard = result.updatedBoard;
     persistTeamStore();
@@ -777,7 +804,9 @@ export async function handleBoardRoutes(
     const team = teamStore.get(teamId)!;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -799,10 +828,12 @@ export async function handleBoardRoutes(
       // Mock scout from todos based on expected format
       // Skip the scanner's own implementation files, code-gen templates,
       // and test/spec files to prevent self-derivation.
-      const SCOUT_SKIP_RE = /\b(?:board-routes|team-routes|board-tools|refactor-codegen-tools)\.ts[:#]|(?:__tests__[/\\]|\.test\.ts[:#]|\.spec\.ts[:#])/;
-      const tasksBody = todoContent.split('\n')
-        .filter(l => !SCOUT_SKIP_RE.test(l))
-        .filter(l => l.includes('TODO:') || l.includes('FIXME:'))
+      const SCOUT_SKIP_RE =
+        /\b(?:board-routes|team-routes|board-tools|refactor-codegen-tools)\.ts[:#]|(?:__tests__[/\\]|\.test\.ts[:#]|\.spec\.ts[:#])/;
+      const tasksBody = todoContent
+        .split('\n')
+        .filter((l) => !SCOUT_SKIP_RE.test(l))
+        .filter((l) => l.includes('TODO:') || l.includes('FIXME:'))
         .map((l, i) => ({
           title: l.substring(l.indexOf(l.includes('TODO:') ? 'TODO:' : 'FIXME:')).trim(),
           description: `Generated from source grep: \n\n${l}`,
@@ -812,7 +843,7 @@ export async function handleBoardRoutes(
         }));
       if (tasksBody.length > 0) {
         const scopedTasksBody = tasksBody.slice(0, body.max_tasks || 50);
-        const result = addTasksToBoard(team.taskBoard, (team.doneLog || []), scopedTasksBody);
+        const result = addTasksToBoard(team.taskBoard, team.doneLog || [], scopedTasksBody);
         addedTasks = result.added;
         skippedTasks = result.skipped;
         warnings = Array.isArray((result as any).warnings)
@@ -820,23 +851,28 @@ export async function handleBoardRoutes(
           : scopedTasksBody.flatMap((t: { title?: string; description?: string }) => {
               const raw = String(t.description || '');
               if (raw.length <= 1000) return [];
-              return [{
-                title: String(t.title || '').slice(0, 200),
-                reason: 'description_truncated' as const,
-                originalLength: raw.length,
-                keptLength: 1000,
-              }];
+              return [
+                {
+                  title: String(t.title || '').slice(0, 200),
+                  reason: 'description_truncated' as const,
+                  originalLength: raw.length,
+                  keptLength: 1000,
+                },
+              ];
             });
         team.taskBoard = result.updatedBoard;
       }
     } else if (team.taskBoard.length === 0) {
       // Empty board auto-hint task
-      const result = addTasksToBoard(team.taskBoard, (team.doneLog || []), [{
-        title: 'Run /room scout to find actionable work in this repository',
-        description: 'Your project board is empty. Run /room scout with todo_content populated or use it directly in terminal.',
-        source: 'scout:auto-hint',
-        priority: 1
-      }]);
+      const result = addTasksToBoard(team.taskBoard, team.doneLog || [], [
+        {
+          title: 'Run /room scout to find actionable work in this repository',
+          description:
+            'Your project board is empty. Run /room scout with todo_content populated or use it directly in terminal.',
+          source: 'scout:auto-hint',
+          priority: 1,
+        },
+      ]);
       addedTasks = result.added;
       skippedTasks = result.skipped;
       warnings = Array.isArray((result as any).warnings) ? (result as any).warnings : [];
@@ -881,9 +917,7 @@ export async function handleBoardRoutes(
       return true;
     }
 
-    const doneEntry = ((team.doneLog || [])).find(
-      (entry) => entry.taskId === taskId
-    );
+    const doneEntry = (team.doneLog || []).find((entry) => entry.taskId === taskId);
     if (doneEntry) {
       json(res, 200, { success: true, teamId, task: doneEntry, done: true });
       return true;
@@ -907,7 +941,9 @@ export async function handleBoardRoutes(
     const parts = pathname.split('/');
     const taskId = parts[parts.length - 1];
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -919,7 +955,7 @@ export async function handleBoardRoutes(
     // `cancel`/`skip`/`drop` intentionally stay unknown — their semantics
     // (reopen vs delete vs defer) are ambiguous and picking wrong silently
     // loses work. An explicit client choice is safer.
-    const action = (rawAction === 'remove' || rawAction === 'archive') ? 'delete' : rawAction;
+    const action = rawAction === 'remove' || rawAction === 'archive' ? 'delete' : rawAction;
     const boardMutationActions = new Set([
       'claim',
       'done',
@@ -934,14 +970,16 @@ export async function handleBoardRoutes(
     if (boardMutationActions.has(action)) {
       if (caller.surface === 'mobile') {
         json(res, 403, {
-          error: action === 'claim'
-            ? 'Mobile bearers are assistant surfaces and cannot claim board tasks'
-            : 'Mobile bearers are assistant surfaces and cannot mutate board tasks',
-          code: action === 'claim'
-            ? 'mobile_claim_denied'
-            : action === 'done'
-              ? 'mobile_done_denied'
-              : 'mobile_board_mutation_denied',
+          error:
+            action === 'claim'
+              ? 'Mobile bearers are assistant surfaces and cannot claim board tasks'
+              : 'Mobile bearers are assistant surfaces and cannot mutate board tasks',
+          code:
+            action === 'claim'
+              ? 'mobile_claim_denied'
+              : action === 'done'
+                ? 'mobile_done_denied'
+                : 'mobile_board_mutation_denied',
           surface: caller.surface,
           required_capability: 'claim',
         });
@@ -976,12 +1014,13 @@ export async function handleBoardRoutes(
     // Still advisory in the sense that caller.id/caller.name remain the
     // authoritative identity; what changed is that the tag field can no
     // longer be arbitrarily reassigned per-request.
-    const claimedByTag = caller.surfaceTag
-      ?? (typeof body.claimedByTag === 'string' ? body.claimedByTag : undefined);
-    const completedByTag = caller.surfaceTag
-      ?? (typeof body.completedByTag === 'string' ? body.completedByTag : undefined);
-    const deleterTag = caller.surfaceTag
-      ?? (typeof body.deleterTag === 'string' ? body.deleterTag : undefined);
+    const claimedByTag =
+      caller.surfaceTag ?? (typeof body.claimedByTag === 'string' ? body.claimedByTag : undefined);
+    const completedByTag =
+      caller.surfaceTag ??
+      (typeof body.completedByTag === 'string' ? body.completedByTag : undefined);
+    const deleterTag =
+      caller.surfaceTag ?? (typeof body.deleterTag === 'string' ? body.deleterTag : undefined);
     const deleteReason = typeof body.reason === 'string' ? body.reason.slice(0, 500) : undefined;
     const provenanceResult = parseBoardMutationProvenance(body, caller);
     if (provenanceResult.error) {
@@ -1031,7 +1070,10 @@ export async function handleBoardRoutes(
         // Dynamic roster: whoever actually claims/dispatches/hardware-runs for the team is on the team.
         const existingMember = team.members.find((m) => m.agentId === caller.id);
         if (!existingMember) {
-          const memberType = (caller.surface && caller.surface.includes('hardware')) || caller.ideType === 'hardware' ? 'hardware' : 'agent';
+          const memberType =
+            (caller.surface && caller.surface.includes('hardware')) || caller.ideType === 'hardware'
+              ? 'hardware'
+              : 'agent';
           team.members.push({
             agentId: caller.id,
             agentName: caller.name,
@@ -1044,7 +1086,10 @@ export async function handleBoardRoutes(
           });
         } else if (!existingMember.type) {
           // Backfill type for legacy members
-          existingMember.type = (caller.surface && caller.surface.includes('hardware')) || caller.ideType === 'hardware' ? 'hardware' : 'agent';
+          existingMember.type =
+            (caller.surface && caller.surface.includes('hardware')) || caller.ideType === 'hardware'
+              ? 'hardware'
+              : 'agent';
         }
 
         result = claimTask(team.taskBoard, taskId, caller.id, caller.name, claimedByTag);
@@ -1102,7 +1147,12 @@ export async function handleBoardRoutes(
           json(res, 400, { error: 'commit hash required' });
           return true;
         }
-        const wrap = appendFollowUpCommit((team.doneLog || []) as unknown as import('@holoscript/framework').DoneLogEntry[], taskId, commit, body.summary as string | undefined);
+        const wrap = appendFollowUpCommit(
+          (team.doneLog || []) as unknown as import('@holoscript/framework').DoneLogEntry[],
+          taskId,
+          commit,
+          body.summary as string | undefined
+        );
         if (!wrap.success) {
           json(res, 404, { error: wrap.error || 'Entry not found' });
           return true;
@@ -1120,7 +1170,7 @@ export async function handleBoardRoutes(
         eventType = 'board:reopened';
         break;
       case 'delegate': {
-        const targetTeamId = body.to_team_id as string || teamId;
+        const targetTeamId = (body.to_team_id as string) || teamId;
         const targetTeam = teamStore.get(targetTeamId);
         if (!targetTeam) {
           json(res, 404, { error: 'Target team not found' });
@@ -1141,7 +1191,9 @@ export async function handleBoardRoutes(
         // `config:write` is owner-only per TEAM_ROLE_PERMISSIONS (types.ts:523)
         // plus adminRoom members inherit full permissions.
         if (!hasTeamPermission(team, caller.id, 'config:write')) {
-          json(res, 403, { error: 'Permission denied: only team owners can delete tasks (config:write required)' });
+          json(res, 403, {
+            error: 'Permission denied: only team owners can delete tasks (config:write required)',
+          });
           return true;
         }
         const wrap = deleteTask(team.taskBoard, taskId, caller.id, caller.name, {
@@ -1169,7 +1221,9 @@ export async function handleBoardRoutes(
           hasTeamPermission(team, caller.id, 'config:write') ||
           (hasTeamPermission(team, caller.id, 'board:write') && task.createdBy === caller.id);
         if (!canUpdate) {
-          json(res, 403, { error: 'Permission denied: only team owners or the task creator can update tasks' });
+          json(res, 403, {
+            error: 'Permission denied: only team owners or the task creator can update tasks',
+          });
           return true;
         }
         const updates: Record<string, unknown> = {};
@@ -1179,7 +1233,9 @@ export async function handleBoardRoutes(
         if (typeof body.description === 'string') {
           // Preserve previous description for audit before overwriting.
           if (task.description !== body.description) {
-            updates._prevDescription = String(task.description ?? '').slice(0, 500) + (String(task.description ?? '').length > 500 ? '…' : '');
+            updates._prevDescription =
+              String(task.description ?? '').slice(0, 500) +
+              (String(task.description ?? '').length > 500 ? '…' : '');
           }
           updates.description = normalizeTaskDescription(body.description, 2000);
         }
@@ -1190,7 +1246,9 @@ export async function handleBoardRoutes(
           updates.tags = (body.tags as unknown[]).slice(0, 50).map((t) => String(t).slice(0, 100));
         }
         if (Object.keys(updates).filter((k) => k !== '_prevDescription').length === 0) {
-          json(res, 400, { error: 'No updatable fields provided: supply title, description, priority, and/or tags' });
+          json(res, 400, {
+            error: 'No updatable fields provided: supply title, description, priority, and/or tags',
+          });
           return true;
         }
         updates.updatedAt = new Date().toISOString();
@@ -1201,7 +1259,10 @@ export async function handleBoardRoutes(
         break;
       }
       default:
-        json(res, 400, { error: 'Unknown action — supported: claim|done|append_commit|block|reopen|delegate|delete|update (aliases: remove, archive → delete)' });
+        json(res, 400, {
+          error:
+            'Unknown action — supported: claim|done|append_commit|block|reopen|delegate|delete|update (aliases: remove, archive → delete)',
+        });
         return true;
     }
 
@@ -1265,7 +1326,9 @@ export async function handleBoardRoutes(
     const team = teamStore.get(teamId)!;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1289,15 +1352,12 @@ export async function handleBoardRoutes(
     // Once an agent is registered with a surface, subsequent heartbeats
     // cannot reassign it via request body. Body is fallback-only.
     const teamMember = team.members.find((m) => m.agentId === caller.id);
-    const declaredSurfaceTag = typeof body.surface_tag === 'string'
-      ? (body.surface_tag as string)
-      : undefined;
+    const declaredSurfaceTag =
+      typeof body.surface_tag === 'string' ? (body.surface_tag as string) : undefined;
     const declaredSurface = normalizePresenceSurface(
       body.surface ?? new URL(url, 'http://localhost').searchParams.get('surface')
     );
-    const resolvedSurfaceTag = caller.surfaceTag
-      ?? teamMember?.surfaceTag
-      ?? declaredSurfaceTag;
+    const resolvedSurfaceTag = caller.surfaceTag ?? teamMember?.surfaceTag ?? declaredSurfaceTag;
     // Aliveness fix (task_1777939860298_m9ep, layer b): explicit teardown.
     // body.status==='offline' is the Stop hook's "I'm leaving" signal — the
     // server must DELETE the row, not stamp it offline and let it expire
@@ -1395,7 +1455,7 @@ export async function handleBoardRoutes(
       const registered = byAgentId.get(m.agentId);
       const presence = presenceMap?.get(m.agentId);
       const walletAddress = m.walletAddress ?? registered?.walletAddress;
-      const x402Verified = m.x402Verified ?? (registered?.x402Verified === true);
+      const x402Verified = m.x402Verified ?? registered?.x402Verified === true;
       const surfaceTag = m.surfaceTag ?? presence?.surfaceTag;
       return {
         agentId: m.agentId,
@@ -1436,7 +1496,9 @@ export async function handleBoardRoutes(
     }
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1481,7 +1543,7 @@ export async function handleBoardRoutes(
     const access = await requireTeamAccessFresh(req, res, url, 'messages:read');
     if (!access) return true;
     const { teamId } = access;
-    
+
     const messages = teamMessageStore.get(teamId) || [];
     json(res, 200, { success: true, messages });
     return true;
@@ -1489,7 +1551,9 @@ export async function handleBoardRoutes(
 
   // POST /api/holomesh/team/:id/messages/:messageId/read|mark-read
   {
-    const readMatch = pathname.match(/^\/api\/holomesh\/team\/([^/]+)\/messages\/([^/]+)\/(?:read|mark-read)$/);
+    const readMatch = pathname.match(
+      /^\/api\/holomesh\/team\/([^/]+)\/messages\/([^/]+)\/(?:read|mark-read)$/
+    );
     if (readMatch && method === 'POST') {
       const access = await requireTeamAccessFresh(req, res, url, 'messages:read');
       if (!access) return true;
@@ -1546,7 +1610,9 @@ export async function handleBoardRoutes(
     if (!access) return true;
     const { teamId, caller } = access;
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1634,10 +1700,7 @@ export async function handleBoardRoutes(
   // ──────────────────────────────────────────────────────────────────────────
 
   // POST /api/holomesh/team/:id/founder-approval — record a one-tap approval
-  if (
-    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/founder-approval$/) &&
-    method === 'POST'
-  ) {
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/founder-approval$/) && method === 'POST') {
     const access = await requireTeamAccessFresh(req, res, url, 'board:write');
     if (!access) return true;
     const { teamId, caller } = access;
@@ -1707,10 +1770,7 @@ export async function handleBoardRoutes(
 
   // GET /api/holomesh/team/:id/founder-approval[?status=approved] — poll approvals
   // The signing agent's consume loop polls this with ?status=approved.
-  if (
-    pathname.match(/^\/api\/holomesh\/team\/[^/]+\/founder-approval$/) &&
-    method === 'GET'
-  ) {
+  if (pathname.match(/^\/api\/holomesh\/team\/[^/]+\/founder-approval$/) && method === 'GET') {
     const access = await requireTeamAccessFresh(req, res, url, 'board:read');
     if (!access) return true;
     const { teamId } = access;
@@ -1959,11 +2019,12 @@ export async function handleBoardRoutes(
     }
 
     // 2. Done log
-    for (const entry of (team.doneLog || [])) {
+    for (const entry of team.doneLog || []) {
       pushDoneTrace(entry);
       for (const ev of entry.subagentEvents || []) pushSubagentTrace(ev);
       for (const ev of entry.policyEvents || []) pushPolicyTrace(ev);
-      for (const art of entry.artifacts || []) pushArtifactTrace(art, entry.taskId, entry.timestamp);
+      for (const art of entry.artifacts || [])
+        pushArtifactTrace(art, entry.taskId, entry.timestamp);
     }
 
     // 3. Messages

@@ -46,9 +46,15 @@ describe('DataTransformTrait — onEvent', () => {
   it('transform:apply emits transform:applied with mapping and count', () => {
     const node = makeNode();
     dataTransformHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    dataTransformHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'transform:apply', mapping: { from: 'snake_case', to: 'camelCase' },
-    } as never);
+    dataTransformHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'transform:apply',
+        mapping: { from: 'snake_case', to: 'camelCase' },
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('transform:applied', {
       mapping: { from: 'snake_case', to: 'camelCase' },
       count: 1,
@@ -59,9 +65,15 @@ describe('DataTransformTrait — onEvent', () => {
     const node = makeNode();
     dataTransformHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     for (let i = 0; i < 3; i++) {
-      dataTransformHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-        type: 'transform:apply', mapping: {},
-      } as never);
+      dataTransformHandler.onEvent!(
+        node as never,
+        defaultConfig,
+        makeCtx(node) as never,
+        {
+          type: 'transform:apply',
+          mapping: {},
+        } as never
+      );
     }
     const state = node.__dtState as { transforms: number };
     expect(state.transforms).toBe(3);

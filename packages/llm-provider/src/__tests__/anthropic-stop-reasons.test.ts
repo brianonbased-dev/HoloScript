@@ -51,7 +51,9 @@ vi.mock('@anthropic-ai/sdk', () => {
             model: (args.model as string) ?? 'claude-opus-4-7',
             stop_reason: nextStopReason.value,
           }),
-          get request_id() { return mockRequestId.value; },
+          get request_id() {
+            return mockRequestId.value;
+          },
           get response() {
             const headers = new Headers(Object.entries(mockResponseHeaders.value));
             return { headers };

@@ -46,7 +46,11 @@ function checkBounds(
   if (bounds.ssim_min !== undefined && m.ssim !== undefined && m.ssim < bounds.ssim_min) {
     violations.push({ metric: 'ssim', bound: bounds.ssim_min, observed: m.ssim });
   }
-  if (bounds.depth_l1_max !== undefined && m.depth_l1 !== undefined && m.depth_l1 > bounds.depth_l1_max) {
+  if (
+    bounds.depth_l1_max !== undefined &&
+    m.depth_l1 !== undefined &&
+    m.depth_l1 > bounds.depth_l1_max
+  ) {
     violations.push({ metric: 'depth_l1', bound: bounds.depth_l1_max, observed: m.depth_l1 });
   }
   return violations;
@@ -92,7 +96,9 @@ export async function auditNeuralAsset(
 }
 
 /** Test/sanity comparator that returns synthesized metrics you specify. */
-export function fixedMetricsComparator(metrics_by_view: Record<string, ViewMetrics>): FrameComparator {
+export function fixedMetricsComparator(
+  metrics_by_view: Record<string, ViewMetrics>
+): FrameComparator {
   return {
     async measureView(view: ViewSpec): Promise<ViewMetrics> {
       return metrics_by_view[view.view_id] ?? { view_id: view.view_id };

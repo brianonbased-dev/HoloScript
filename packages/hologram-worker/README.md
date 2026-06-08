@@ -22,16 +22,16 @@ Provider endpoints used by `@holoscript/engine` `createNodeProviders()`:
 
 ## Environment
 
-| Variable | Purpose |
-|----------|---------|
-| `PORT` | Listen port (default `8790`) |
-| `STUDIO_INTERNAL_URL` | Base URL for `POST /api/hologram/upload` |
-| `HOLOGRAM_WORKER_TOKEN` | Bearer secret (must match Studio `HOLOGRAM_WORKER_TOKEN`) |
-| `HOLOGRAM_SHARE_BASE_URL` | Public base for `shareUrl` / `quiltUrl` (often same as Studio public URL) |
-| `HOLOGRAM_ONNX_MODEL_PATH` | Filesystem path to Depth Anything V2 Small `.onnx` (optional; without it, depth uses CPU luminance) |
-| `HOLOGRAM_WORKER_DEPTH_BACKEND` | Set to `luminance` to force luminance even if ONNX path is set |
-| `HOLOGRAM_DEPTH_MAX_SIDE` | Max width/height after rasterize (default `640`) |
-| `HOLOGRAM_WORKER_INGRESS_TOKEN` | Optional; if set, `POST /render` and `/providers/*` require `Authorization: Bearer …` |
+| Variable                        | Purpose                                                                                             |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `PORT`                          | Listen port (default `8790`)                                                                        |
+| `STUDIO_INTERNAL_URL`           | Base URL for `POST /api/hologram/upload`                                                            |
+| `HOLOGRAM_WORKER_TOKEN`         | Bearer secret (must match Studio `HOLOGRAM_WORKER_TOKEN`)                                           |
+| `HOLOGRAM_SHARE_BASE_URL`       | Public base for `shareUrl` / `quiltUrl` (often same as Studio public URL)                           |
+| `HOLOGRAM_ONNX_MODEL_PATH`      | Filesystem path to Depth Anything V2 Small `.onnx` (optional; without it, depth uses CPU luminance) |
+| `HOLOGRAM_WORKER_DEPTH_BACKEND` | Set to `luminance` to force luminance even if ONNX path is set                                      |
+| `HOLOGRAM_DEPTH_MAX_SIDE`       | Max width/height after rasterize (default `640`)                                                    |
+| `HOLOGRAM_WORKER_INGRESS_TOKEN` | Optional; if set, `POST /render` and `/providers/*` require `Authorization: Bearer …`               |
 
 ## ONNX model (supply-chain)
 

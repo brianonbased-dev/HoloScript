@@ -60,10 +60,10 @@ export interface AggregatedCausalGraph {
 }
 
 export interface PrivacyCausalConfig {
-  epsilon: number;          // total privacy budget
-  delta: number;            // (ε,δ)-DP delta parameter, use 0 for pure DP
-  alpha: number;            // significance level for CI tests (e.g. 0.05)
-  maxCondSetSize: number;   // PC algorithm max conditioning set size
+  epsilon: number; // total privacy budget
+  delta: number; // (ε,δ)-DP delta parameter, use 0 for pure DP
+  alpha: number; // significance level for CI tests (e.g. 0.05)
+  maxCondSetSize: number; // PC algorithm max conditioning set size
   minSiloAgreement: number; // fraction of silos that must agree on an edge (0–1)
 }
 
@@ -76,7 +76,7 @@ export interface PrivacyCausalConfig {
  * Uses inverse CDF: b * sign(u - 0.5) * ln(1 - 2|u - 0.5|)
  */
 function laplaceSample(scale: number): number {
-  const u = (randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5;
+  const u = randomBytes(4).readUInt32BE(0) / 0xffffffff - 0.5;
   if (u === 0) return 0;
   return -scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
 }
@@ -85,11 +85,7 @@ function laplaceSample(scale: number): number {
  * Add Laplace noise calibrated to sensitivity/epsilon for a test statistic.
  * Returns the noised statistic.
  */
-export function addDPNoise(
-  statistic: number,
-  sensitivity: number,
-  epsilon: number,
-): number {
+export function addDPNoise(statistic: number, sensitivity: number, epsilon: number): number {
   if (epsilon <= 0) throw new Error('epsilon must be > 0');
   if (sensitivity <= 0) throw new Error('sensitivity must be > 0');
   const scale = sensitivity / epsilon;
@@ -133,7 +129,7 @@ export function dpConditionalIndependenceTest(
   sampleCorrelation: number,
   sampleSize: number,
   epsilon: number,
-  alpha: number = 0.05,
+  alpha: number = 0.05
 ): ConditionalIndependenceResult {
   if (epsilon <= 0) throw new Error('epsilon must be > 0');
   if (sampleSize < 4) throw new Error('sampleSize must be >= 4');
@@ -171,11 +167,8 @@ export function dpConditionalIndependenceTest(
 function normalCDF(x: number): number {
   const t = 1 / (1 + 0.2316419 * Math.abs(x));
   const poly =
-    t * (0.319381530 +
-      t * (-0.356563782 +
-        t * (1.781477937 +
-          t * (-1.821255978 +
-            t * 1.330274429))));
+    t *
+    (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
   const approx = 1 - (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * x * x) * poly;
   return x >= 0 ? approx : 1 - approx;
 }
@@ -200,7 +193,7 @@ export function runDPSkeletonLearning(
   variables: string[],
   correlations: Map<string, Map<string, number>>,
   sampleSize: number,
-  config: PrivacyCausalConfig,
+  config: PrivacyCausalConfig
 ): CausalSkeleton {
   const { epsilon, alpha, maxCondSetSize } = config;
 
@@ -220,7 +213,7 @@ export function runDPSkeletonLearning(
     for (const key of [...adjacencies]) {
       const [x, y] = key.split('||');
       // Collect current neighbours of x (excluding y)
-      const neighbours = getNeighbours(x, variables, adjacencies).filter(v => v !== y);
+      const neighbours = getNeighbours(x, variables, adjacencies).filter((v) => v !== y);
       if (neighbours.length < condSize) continue;
 
       // Try each conditioning set of size condSize
@@ -229,7 +222,13 @@ export function runDPSkeletonLearning(
         // Get partial correlation (simplified: use marginal correlation here)
         const r = correlations.get(x)?.get(y) ?? 0;
         const result = dpConditionalIndependenceTest(
-          x, y, condSet, r, sampleSize, epsilonPerTest, alpha,
+          x,
+          y,
+          condSet,
+          r,
+          sampleSize,
+          epsilonPerTest,
+          alpha
         );
         budgetSpent += epsilonPerTest;
 
@@ -256,13 +255,13 @@ function edgeKey(a: string, b: string): string {
 }
 
 function getNeighbours(v: string, variables: string[], adjacencies: Set<string>): string[] {
-  return variables.filter(u => u !== v && adjacencies.has(edgeKey(v, u)));
+  return variables.filter((u) => u !== v && adjacencies.has(edgeKey(v, u)));
 }
 
 function totalCITests(n: number, maxK: number): number {
   let total = 0;
   for (let k = 0; k <= maxK; k++) {
-    total += n * (n - 1) / 2 * binomialCoeff(n - 2, k);
+    total += ((n * (n - 1)) / 2) * binomialCoeff(n - 2, k);
   }
   return Math.max(total, 1);
 }
@@ -271,7 +270,7 @@ function binomialCoeff(n: number, k: number): number {
   if (k > n) return 0;
   if (k === 0) return 1;
   let result = 1;
-  for (let i = 0; i < k; i++) result = result * (n - i) / (i + 1);
+  for (let i = 0; i < k; i++) result = (result * (n - i)) / (i + 1);
   return Math.round(result);
 }
 
@@ -299,7 +298,7 @@ function choose<T>(arr: T[], k: number): T[][] {
  */
 export function aggregateCausalSkeletons(
   silos: FederatedSiloData[],
-  config: PrivacyCausalConfig,
+  config: PrivacyCausalConfig
 ): AggregatedCausalGraph {
   if (silos.length === 0) throw new Error('At least one silo required');
 
@@ -371,7 +370,7 @@ export class SecureCausalDiscovery {
     siloId: string,
     variables: string[],
     correlations: Map<string, Map<string, number>>,
-    sampleSize: number,
+    sampleSize: number
   ): void {
     this.silos.push({ id: siloId, variables, correlations, sampleSize });
   }
@@ -379,12 +378,12 @@ export class SecureCausalDiscovery {
   discover(): AggregatedCausalGraph {
     if (this.silos.length === 0) throw new Error('No silos registered');
 
-    const federatedData: FederatedSiloData[] = this.silos.map(silo => {
+    const federatedData: FederatedSiloData[] = this.silos.map((silo) => {
       const skeleton = runDPSkeletonLearning(
         silo.variables,
         silo.correlations,
         silo.sampleSize,
-        this.config,
+        this.config
       );
       return { siloId: silo.id, skeleton, sampleSize: silo.sampleSize };
     });
@@ -412,7 +411,7 @@ export class SecureCausalDiscovery {
  * Returns a Map<variableId, Map<variableId, pearsonR>>
  */
 export function buildCorrelationMatrix(
-  observations: Map<string, number[]>,
+  observations: Map<string, number[]>
 ): Map<string, Map<string, number>> {
   const varIds = [...observations.keys()];
   const result = new Map<string, Map<string, number>>();
@@ -437,9 +436,12 @@ function pearsonR(x: number[], y: number[]): number {
   if (n < 2) return 0;
   const mx = x.slice(0, n).reduce((a, b) => a + b, 0) / n;
   const my = y.slice(0, n).reduce((a, b) => a + b, 0) / n;
-  let num = 0, dx2 = 0, dy2 = 0;
+  let num = 0,
+    dx2 = 0,
+    dy2 = 0;
   for (let i = 0; i < n; i++) {
-    const dx = x[i] - mx, dy = y[i] - my;
+    const dx = x[i] - mx,
+      dy = y[i] - my;
     num += dx * dy;
     dx2 += dx * dx;
     dy2 += dy * dy;
@@ -478,7 +480,7 @@ export class PrivacyAuditLog {
   }
 
   entriesForSilo(siloId: string): PrivacyAuditEntry[] {
-    return this.entries.filter(e => e.siloId === siloId);
+    return this.entries.filter((e) => e.siloId === siloId);
   }
 
   all(): PrivacyAuditEntry[] {

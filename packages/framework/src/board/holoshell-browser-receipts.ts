@@ -12,10 +12,7 @@
  * the absorption surface stabilizes.
  */
 
-import type {
-  ArtifactProvenanceLink,
-  ArtifactVerificationCommand,
-} from './board-types';
+import type { ArtifactProvenanceLink, ArtifactVerificationCommand } from './board-types';
 
 // ── Browser Action ──
 
@@ -153,7 +150,9 @@ export function validateBrowserAbsorptionReceipt(receipt: BrowserAbsorptionRecei
     receipt.startedAt === '' ||
     Number.isNaN(Date.parse(receipt.startedAt))
   ) {
-    errors.push('BrowserAbsorptionReceipt.startedAt is required and must be a valid ISO-8601 timestamp.');
+    errors.push(
+      'BrowserAbsorptionReceipt.startedAt is required and must be a valid ISO-8601 timestamp.'
+    );
   }
   if (
     receipt.endedAt === undefined ||
@@ -161,7 +160,9 @@ export function validateBrowserAbsorptionReceipt(receipt: BrowserAbsorptionRecei
     receipt.endedAt === '' ||
     Number.isNaN(Date.parse(receipt.endedAt))
   ) {
-    errors.push('BrowserAbsorptionReceipt.endedAt is required and must be a valid ISO-8601 timestamp.');
+    errors.push(
+      'BrowserAbsorptionReceipt.endedAt is required and must be a valid ISO-8601 timestamp.'
+    );
   }
 
   // Policy validation
@@ -175,7 +176,11 @@ export function validateBrowserAbsorptionReceipt(receipt: BrowserAbsorptionRecei
     if (!Array.isArray(p.blockedDomains)) {
       errors.push('BrowserAbsorptionReceipt.policy.blockedDomains must be an array.');
     }
-    if (p.maxDurationMs === undefined || typeof p.maxDurationMs !== 'number' || p.maxDurationMs < 0) {
+    if (
+      p.maxDurationMs === undefined ||
+      typeof p.maxDurationMs !== 'number' ||
+      p.maxDurationMs < 0
+    ) {
       errors.push('BrowserAbsorptionReceipt.policy.maxDurationMs must be a non-negative number.');
     }
     if (typeof p.headless !== 'boolean') {
@@ -192,7 +197,9 @@ export function validateBrowserAbsorptionReceipt(receipt: BrowserAbsorptionRecei
     }
     for (const action of p.allowedActions ?? []) {
       if (!isSupportedBrowserActionKind(action)) {
-        errors.push(`BrowserAbsorptionReceipt.policy.allowedActions contains unsupported kind: ${String(action)}.`);
+        errors.push(
+          `BrowserAbsorptionReceipt.policy.allowedActions contains unsupported kind: ${String(action)}.`
+        );
       }
     }
   }
@@ -223,7 +230,10 @@ export function validateBrowserAbsorptionReceipt(receipt: BrowserAbsorptionRecei
       ) {
         errors.push(`BrowserAction step ${action.step} timestamp is invalid.`);
       }
-      if (action.durationMs !== undefined && (typeof action.durationMs !== 'number' || action.durationMs < 0)) {
+      if (
+        action.durationMs !== undefined &&
+        (typeof action.durationMs !== 'number' || action.durationMs < 0)
+      ) {
         errors.push(`BrowserAction step ${action.step} durationMs must be a non-negative number.`);
       }
     }
@@ -235,7 +245,9 @@ export function validateBrowserAbsorptionReceipt(receipt: BrowserAbsorptionRecei
 
   for (const command of receipt.verificationCommands ?? []) {
     if (!command.command) {
-      errors.push(`BrowserAbsorptionReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`);
+      errors.push(
+        `BrowserAbsorptionReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`
+      );
     }
   }
 
@@ -251,7 +263,7 @@ export function isSupportedBrowserActionKind(kind: string): kind is BrowserActio
 const BROWSER_ABSORPTION_OUTCOMES = ['success', 'failure', 'timeout', 'blocked_by_policy'] as const;
 
 export function isSupportedBrowserAbsorptionOutcome(
-  outcome: string,
+  outcome: string
 ): outcome is BrowserAbsorptionReceipt['outcome'] {
   return (BROWSER_ABSORPTION_OUTCOMES as readonly string[]).includes(outcome);
 }
@@ -272,7 +284,7 @@ function cloneBrowserPolicy(policy: BrowserAbsorptionPolicy): BrowserAbsorptionP
 }
 
 function cloneVerificationCommands(
-  commands: ArtifactVerificationCommand[] | undefined,
+  commands: ArtifactVerificationCommand[] | undefined
 ): ArtifactVerificationCommand[] | undefined {
   if (!commands) return undefined;
   return commands.map((command) => ({
@@ -282,7 +294,7 @@ function cloneVerificationCommands(
 }
 
 function cloneProvenance(
-  provenance: ArtifactProvenanceLink | undefined,
+  provenance: ArtifactProvenanceLink | undefined
 ): ArtifactProvenanceLink | undefined {
   if (!provenance) return undefined;
   return {
@@ -294,7 +306,7 @@ function cloneProvenance(
 }
 
 export function cloneBrowserAbsorptionReceipt(
-  receipt: BrowserAbsorptionReceipt,
+  receipt: BrowserAbsorptionReceipt
 ): BrowserAbsorptionReceipt {
   return {
     ...receipt,

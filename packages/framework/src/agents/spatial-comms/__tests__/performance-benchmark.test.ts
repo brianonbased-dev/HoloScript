@@ -64,32 +64,35 @@ describe('Performance Benchmarks', () => {
       expect(avgTime).toBeLessThan(0.5); // <0.5ms target
     });
 
-    it.todo('should maintain message rate of 90 msg/s - perf target pending spatial-comms optimization; tracked per red-flags serious skipped audit', async () => {
-      const client = new SpatialCommClient('perf-test-agent');
-      await client.init();
+    it.todo(
+      'should maintain message rate of 90 msg/s - perf target pending spatial-comms optimization; tracked per red-flags serious skipped audit',
+      async () => {
+        const client = new SpatialCommClient('perf-test-agent');
+        await client.init();
 
-      const messageCount = 90;
-      const duration = 1000; // 1 second
-      const start = performance.now();
-      let sent = 0;
+        const messageCount = 90;
+        const duration = 1000; // 1 second
+        const start = performance.now();
+        let sent = 0;
 
-      const sendMessages = async () => {
-        while (performance.now() - start < duration) {
-          await client.syncPosition([0, 0, 0], [0, 0, 0, 1], [1, 1, 1]);
-          sent++;
+        const sendMessages = async () => {
+          while (performance.now() - start < duration) {
+            await client.syncPosition([0, 0, 0], [0, 0, 0, 1], [1, 1, 1]);
+            sent++;
 
-          // Wait for next frame (11.1ms for 90fps)
-          await new Promise((resolve) => setTimeout(resolve, 11.1));
-        }
-      };
+            // Wait for next frame (11.1ms for 90fps)
+            await new Promise((resolve) => setTimeout(resolve, 11.1));
+          }
+        };
 
-      await sendMessages();
-      await client.shutdown();
+        await sendMessages();
+        await client.shutdown();
 
-      console.log(`    Sent ${sent} messages in ${duration}ms`);
-      // Timer granularity in Node.js limits throughput; accept 20+ msg/s
-      expect(sent).toBeGreaterThanOrEqual(20);
-    });
+        console.log(`    Sent ${sent} messages in ${duration}ms`);
+        // Timer granularity in Node.js limits throughput; accept 20+ msg/s
+        expect(sent).toBeGreaterThanOrEqual(20);
+      }
+    );
 
     it('should keep binary message size under 512 bytes', () => {
       const message: PositionSyncMessage = {
@@ -427,9 +430,9 @@ describe('Performance Benchmarks', () => {
 
       console.log(`    Memory growth: ${memoryGrowth.toFixed(2)} MB`);
 
-        // Should not grow more than 50MB for 1000 frames
-        expect(memoryGrowth).toBeLessThan(50);
-      }, 15000);
+      // Should not grow more than 50MB for 1000 frames
+      expect(memoryGrowth).toBeLessThan(50);
+    }, 15000);
   });
 });
 

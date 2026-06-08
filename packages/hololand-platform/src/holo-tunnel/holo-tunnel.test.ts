@@ -23,9 +23,7 @@ describe('HoloTunnel URL helpers', () => {
     expect(normalizeHoloTunnelRelayBase('wss://relay.example/tunnel-ws/')).toBe(
       'https://relay.example'
     );
-    expect(buildHoloTunnelWsUrl('https://relay.example/')).toBe(
-      'wss://relay.example/tunnel-ws'
-    );
+    expect(buildHoloTunnelWsUrl('https://relay.example/')).toBe('wss://relay.example/tunnel-ws');
     expect(buildHoloTunnelLiveUrl('ws://relay.example/tunnel-ws')).toBe(
       'http://relay.example/live'
     );

@@ -68,7 +68,9 @@ function makeFileProxy(overrides: Partial<DownloadedFileProxy> = {}): Downloaded
   };
 }
 
-function makeInventory(overrides: Partial<DownloadsInventoryReceipt> = {}): DownloadsInventoryReceipt {
+function makeInventory(
+  overrides: Partial<DownloadsInventoryReceipt> = {}
+): DownloadsInventoryReceipt {
   return {
     id: 'inv_test001',
     schemaVersion: 'holoscript-downloads-inventory-receipt/v1',
@@ -359,15 +361,17 @@ describe('Download Shelf Receipt Pack (generic shelf)', () => {
         osPathPolicy: 'absolute_path_kept_in_private_receipt_only',
         probedByHardwareAudit: true,
       },
-      lessons: [{
-        lesson: 'All files scanned; safe for preview-only import.',
-        kind: 'import_success',
-        sourceOutcome: 'success',
-        autoDerived: true,
-        showToNonDevelopers: false,
-        insight: 'No executables detected.',
-        recommendedAction: 'Proceed with import.',
-      }],
+      lessons: [
+        {
+          lesson: 'All files scanned; safe for preview-only import.',
+          kind: 'import_success',
+          sourceOutcome: 'success',
+          autoDerived: true,
+          showToNonDevelopers: false,
+          insight: 'No executables detected.',
+          recommendedAction: 'Proceed with import.',
+        },
+      ],
       generatedAt: '2026-05-19T12:00:00Z',
       replayable: true,
       replayKey: 'sha256:roothash:hashes:policy:1:actions:scan',
@@ -429,15 +433,17 @@ describe('Download Shelf Receipt Pack (generic shelf)', () => {
       schemaVersion: 'holoscript-download-shelf-replay-lesson-receipt/v1',
       sourceImportReceiptId: 'quar_pack001',
       shelf: shelfIdentity,
-      lessons: [{
-        lesson: 'All files scanned; safe for preview-only import.',
-        kind: 'import_success',
-        sourceOutcome: 'success',
-        autoDerived: true,
-        showToNonDevelopers: false,
-        insight: 'No executables detected.',
-        recommendedAction: 'Proceed with import.',
-      }],
+      lessons: [
+        {
+          lesson: 'All files scanned; safe for preview-only import.',
+          kind: 'import_success',
+          sourceOutcome: 'success',
+          autoDerived: true,
+          showToNonDevelopers: false,
+          insight: 'No executables detected.',
+          recommendedAction: 'Proceed with import.',
+        },
+      ],
       generatedAt: '2026-05-19T12:00:00Z',
       replayable: true,
       replayKey: 'sha256:roothash:hashes:policy:1:actions:scan',
@@ -468,18 +474,22 @@ describe('Download Shelf Receipt Pack (generic shelf)', () => {
 describe('Safety Invariants (scanner adapter enforcement)', () => {
   it('rejects file proxy with containsAbsolutePaths=true', () => {
     const fileProxy = makeFileProxy({ containsAbsolutePaths: true as unknown as false });
-    const errors = validateDownloadsInventoryReceipt(makeInventory({
-      files: [fileProxy],
-      anyFileContainsAbsolutePath: true as unknown as false,
-    }));
+    const errors = validateDownloadsInventoryReceipt(
+      makeInventory({
+        files: [fileProxy],
+        anyFileContainsAbsolutePath: true as unknown as false,
+      })
+    );
     expect(errors.length).toBeGreaterThan(0);
     expect(errors.some((e) => e.includes('containsAbsolutePaths'))).toBe(true);
   });
 
   it('rejects inventory with importMode other than preview_only', () => {
-    const errors = validateDownloadsInventoryReceipt(makeInventory({
-      importMode: 'full_access' as unknown as 'preview_only',
-    }));
+    const errors = validateDownloadsInventoryReceipt(
+      makeInventory({
+        importMode: 'full_access' as unknown as 'preview_only',
+      })
+    );
     expect(errors.length).toBeGreaterThan(0);
     expect(errors.some((e) => e.includes('importMode'))).toBe(true);
   });
@@ -657,7 +667,12 @@ describe('Replay Key Determinism', () => {
       // Simplified for test; in production this uses crypto
       return `sha256:${text.length}:${text.slice(0, 8)}`;
     }
-    function buildReplayKey(rootHash: string, fileHashes: string[], policyVersion: string, actionSet: string[]) {
+    function buildReplayKey(
+      rootHash: string,
+      fileHashes: string[],
+      policyVersion: string,
+      actionSet: string[]
+    ) {
       const components = [
         `sha256:${rootHash}`,
         `hashes:${fileHashes.sort().join(',')}`,
@@ -673,7 +688,12 @@ describe('Replay Key Determinism', () => {
   });
 
   it('produces different replay keys for different inputs', () => {
-    function buildReplayKey(rootHash: string, fileHashes: string[], policyVersion: string, actionSet: string[]) {
+    function buildReplayKey(
+      rootHash: string,
+      fileHashes: string[],
+      policyVersion: string,
+      actionSet: string[]
+    ) {
       const components = [
         `sha256:${rootHash}`,
         `hashes:${fileHashes.sort().join(',')}`,

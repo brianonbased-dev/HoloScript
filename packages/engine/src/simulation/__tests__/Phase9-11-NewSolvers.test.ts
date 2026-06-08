@@ -26,8 +26,13 @@ describe('Phase 10: MultiphaseNSSolver', () => {
     const solver = new MultiphaseNSSolver(config);
 
     // Initialize spherical bubble: φ = r - R (negative inside)
-    const cx = 0.5, cy = 0.5, cz = 0.5, R = 0.25;
-    solver.initializeLevelSet((x, y, z) => Math.sqrt((x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2) - R);
+    const cx = 0.5,
+      cy = 0.5,
+      cz = 0.5,
+      R = 0.25;
+    solver.initializeLevelSet(
+      (x, y, z) => Math.sqrt((x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2) - R
+    );
 
     const dt = 0.0001;
     for (let i = 0; i < 50; i++) solver.step(dt);
@@ -85,7 +90,8 @@ describe('Phase 10: MultiphaseNSSolver', () => {
 
     // Center should be negative (inside bubble)
     // Corners should be positive (outside)
-    let hasNeg = false, hasPos = false;
+    let hasNeg = false,
+      hasPos = false;
     for (let i = 0; i < ls.length; i++) {
       if (ls[i] < 0) hasNeg = true;
       if (ls[i] > 0) hasPos = true;
@@ -120,8 +126,12 @@ describe('Phase 11: MolecularDynamicsSolver', () => {
     const solver = new MolecularDynamicsSolver(config);
 
     // Manually place particles at equilibrium distance along x
-    solver.positions[0] = 5.0; solver.positions[1] = 5.0; solver.positions[2] = 5.0;
-    solver.positions[3] = 5.0 + r0; solver.positions[4] = 5.0; solver.positions[5] = 5.0;
+    solver.positions[0] = 5.0;
+    solver.positions[1] = 5.0;
+    solver.positions[2] = 5.0;
+    solver.positions[3] = 5.0 + r0;
+    solver.positions[4] = 5.0;
+    solver.positions[5] = 5.0;
     solver.velocities.fill(0); // zero velocity
 
     // Refresh forces/potential after the manual placement without moving.

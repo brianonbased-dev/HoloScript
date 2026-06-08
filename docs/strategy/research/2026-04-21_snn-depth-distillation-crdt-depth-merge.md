@@ -19,11 +19,11 @@ Two coupled questions from the media pipeline thread:
 
 ### Distillation options (ordered by implementation cost)
 
-| Approach | Idea | Pros | Cons |
-|----------|------|------|------|
-| **A. Decoder head on spike statistics** | Pool firing rates per region → small MLP or linear map → scalar/vector **depth prior** per tile | Uses existing encoder/SNN path; bounded output | Needs labeled or self-supervised targets; risk of jitter at 60fps |
-| **B. Teacher–student (ANN→SNN)** | Train thin ANN depth stub on RGB-D; distill to SNN with spike-aware loss | Stronger accuracy if teacher is good | Heavy offline pipeline; may defeat “neuromorphic efficiency” story unless student is tiny |
-| **C. Event-style input** | Feed asynchronous events from silicon / simulated event camera into SNN | Matches neuromorphic hardware narrative | HoloScript path today is frame-centric WebGPU LIF — gap to close |
+| Approach                                | Idea                                                                                            | Pros                                           | Cons                                                                                      |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **A. Decoder head on spike statistics** | Pool firing rates per region → small MLP or linear map → scalar/vector **depth prior** per tile | Uses existing encoder/SNN path; bounded output | Needs labeled or self-supervised targets; risk of jitter at 60fps                         |
+| **B. Teacher–student (ANN→SNN)**        | Train thin ANN depth stub on RGB-D; distill to SNN with spike-aware loss                        | Stronger accuracy if teacher is good           | Heavy offline pipeline; may defeat “neuromorphic efficiency” story unless student is tiny |
+| **C. Event-style input**                | Feed asynchronous events from silicon / simulated event camera into SNN                         | Matches neuromorphic hardware narrative        | HoloScript path today is frame-centric WebGPU LIF — gap to close                          |
 
 ### Feasibility verdict (this cycle)
 
@@ -40,11 +40,11 @@ Two coupled questions from the media pipeline thread:
 
 ### Mergeable representations
 
-| Representation | CRDT-friendly? | Merge rule sketch |
-|----------------|----------------|-------------------|
-| **Global heightfield / DEM** (low res, chunked) | Yes | Per-chunk **LWW** with **vector clock + author DID**; optional merge of `confidence` scalar |
-| **Sparse landmarks** (planes, keypoints) | Yes | OR-Set / map of ids → LWW registers for parameters |
-| **Dense per-frame depth** | No (for CRDT payload) | Sync **params** (camera pose, intrinsics) via `crdt-spatial`; ship depth over **WebRTC datagram** or **regional blob store** |
+| Representation                                  | CRDT-friendly?        | Merge rule sketch                                                                                                            |
+| ----------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Global heightfield / DEM** (low res, chunked) | Yes                   | Per-chunk **LWW** with **vector clock + author DID**; optional merge of `confidence` scalar                                  |
+| **Sparse landmarks** (planes, keypoints)        | Yes                   | OR-Set / map of ids → LWW registers for parameters                                                                           |
+| **Dense per-frame depth**                       | No (for CRDT payload) | Sync **params** (camera pose, intrinsics) via `crdt-spatial`; ship depth over **WebRTC datagram** or **regional blob store** |
 
 ### Tie-in to `@holoscript/crdt-spatial`
 

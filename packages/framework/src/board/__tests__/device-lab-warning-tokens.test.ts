@@ -15,9 +15,7 @@ import {
   type DeviceLabReceipt,
 } from '../device-lab-warning-tokens';
 
-function makeMinimalReceipt(
-  overrides: Partial<DeviceLabReceipt> = {}
-): DeviceLabReceipt {
+function makeMinimalReceipt(overrides: Partial<DeviceLabReceipt> = {}): DeviceLabReceipt {
   return {
     receiptId: 'hldev_test',
     schemaVersion: 'hololand-device-lab-receipt/v1',
@@ -67,7 +65,8 @@ describe('deriveWarningTokens', () => {
           id: 'headset-report',
           label: 'Quest/headset probe report',
           status: 'skipped',
-          detail: 'No headset report supplied. Export observations.md from Studio /quest-probe and pass --headset-report.',
+          detail:
+            'No headset report supplied. Export observations.md from Studio /quest-probe and pass --headset-report.',
         },
       ],
       gotchas: [
@@ -100,7 +99,8 @@ describe('deriveWarningTokens', () => {
           id: 'replay-receipt',
           label: 'Replay receipt capture',
           status: 'skipped',
-          detail: 'No replay artifact supplied. Pass --replay with a scene replay, trace, or validation receipt.',
+          detail:
+            'No replay artifact supplied. Pass --replay with a scene replay, trace, or validation receipt.',
         },
       ],
       gotchas: [
@@ -126,20 +126,37 @@ describe('deriveWarningTokens', () => {
   it('derives tokens for both headset and replay gaps (real receipt scenario)', () => {
     const receipt = makeMinimalReceipt({
       checks: [
-        { id: 'wasm-simd', label: 'WASM SIMD', status: 'pass', detail: 'WebAssembly SIMD validation passed.' },
-        { id: 'runtime-inventory', label: 'Local GPU/runtime inventory', status: 'pass', detail: 'Detected 4 GPU controller(s).' },
-        { id: 'webgpu-browser', label: 'WebGPU browser smoke', status: 'pass', detail: 'WebGPU adapter/device smoke shader completed.' },
+        {
+          id: 'wasm-simd',
+          label: 'WASM SIMD',
+          status: 'pass',
+          detail: 'WebAssembly SIMD validation passed.',
+        },
+        {
+          id: 'runtime-inventory',
+          label: 'Local GPU/runtime inventory',
+          status: 'pass',
+          detail: 'Detected 4 GPU controller(s).',
+        },
+        {
+          id: 'webgpu-browser',
+          label: 'WebGPU browser smoke',
+          status: 'pass',
+          detail: 'WebGPU adapter/device smoke shader completed.',
+        },
         {
           id: 'headset-report',
           label: 'Quest/headset probe report',
           status: 'skipped',
-          detail: 'No headset report supplied. Export observations.md from Studio /quest-probe and pass --headset-report.',
+          detail:
+            'No headset report supplied. Export observations.md from Studio /quest-probe and pass --headset-report.',
         },
         {
           id: 'replay-receipt',
           label: 'Replay receipt capture',
           status: 'skipped',
-          detail: 'No replay artifact supplied. Pass --replay with a scene replay, trace, or validation receipt.',
+          detail:
+            'No replay artifact supplied. Pass --replay with a scene replay, trace, or validation receipt.',
         },
       ],
       gotchas: [
@@ -189,7 +206,9 @@ describe('deriveWarningTokens', () => {
     const tokens = deriveWarningTokens(receipt);
     // Skipped checks with "No " in detail create tokens with default whyItMatters
     expect(tokens).toHaveLength(1);
-    expect(tokens[0].whyItMatters).toBe('This evidence gap affects HoloLand readiness. Attach the required evidence or explicitly skip with a reason.');
+    expect(tokens[0].whyItMatters).toBe(
+      'This evidence gap affects HoloLand readiness. Attach the required evidence or explicitly skip with a reason.'
+    );
   });
 
   it('includes all three action types on each token', () => {
@@ -225,8 +244,18 @@ describe('deriveWarningTokens', () => {
   it('maps gotcha severity correctly', () => {
     const receipt = makeMinimalReceipt({
       gotchas: [
-        { id: 'G.HW.WEBGPU_BROWSER', severity: 'high', summary: 'WebGPU failed', evidenceCheckId: 'webgpu' },
-        { id: 'G.HW.HEADSET_REPORT', severity: 'medium', summary: 'Headset missing', evidenceCheckId: 'headset' },
+        {
+          id: 'G.HW.WEBGPU_BROWSER',
+          severity: 'high',
+          summary: 'WebGPU failed',
+          evidenceCheckId: 'webgpu',
+        },
+        {
+          id: 'G.HW.HEADSET_REPORT',
+          severity: 'medium',
+          summary: 'Headset missing',
+          evidenceCheckId: 'headset',
+        },
         { id: 'G.HW.GPU_INVENTORY', severity: 'low', summary: 'No GPU', evidenceCheckId: 'gpu' },
       ],
       checks: [],
@@ -286,9 +315,33 @@ describe('summarizeWarningTokens', () => {
 
   it('summarizes mixed severity tokens', () => {
     const tokens = [
-      { id: '1', title: 'High', severity: 'high' as const, detail: '', whyItMatters: '', actions: [], sourceCheckId: '' },
-      { id: '2', title: 'Medium', severity: 'medium' as const, detail: '', whyItMatters: '', actions: [], sourceCheckId: '' },
-      { id: '3', title: 'Low', severity: 'low' as const, detail: '', whyItMatters: '', actions: [], sourceCheckId: '' },
+      {
+        id: '1',
+        title: 'High',
+        severity: 'high' as const,
+        detail: '',
+        whyItMatters: '',
+        actions: [],
+        sourceCheckId: '',
+      },
+      {
+        id: '2',
+        title: 'Medium',
+        severity: 'medium' as const,
+        detail: '',
+        whyItMatters: '',
+        actions: [],
+        sourceCheckId: '',
+      },
+      {
+        id: '3',
+        title: 'Low',
+        severity: 'low' as const,
+        detail: '',
+        whyItMatters: '',
+        actions: [],
+        sourceCheckId: '',
+      },
     ];
 
     const summary = summarizeWarningTokens(tokens);
@@ -297,7 +350,15 @@ describe('summarizeWarningTokens', () => {
 
   it('handles single token', () => {
     const tokens = [
-      { id: '1', title: 'Single', severity: 'medium' as const, detail: '', whyItMatters: '', actions: [], sourceCheckId: '' },
+      {
+        id: '1',
+        title: 'Single',
+        severity: 'medium' as const,
+        detail: '',
+        whyItMatters: '',
+        actions: [],
+        sourceCheckId: '',
+      },
     ];
 
     const summary = summarizeWarningTokens(tokens);

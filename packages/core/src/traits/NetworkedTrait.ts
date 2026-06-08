@@ -548,9 +548,13 @@ export class NetworkedTrait {
         };
 
         if (this.activeTransport === 'websocket' && this.wsTransport) {
-          this.wsTransport.send(message as NetworkMessage as import("@holoscript/mesh").SyncMessage);
+          this.wsTransport.send(
+            message as NetworkMessage as import('@holoscript/mesh').SyncMessage
+          );
         } else if (this.activeTransport === 'webrtc' && this.rtcTransport) {
-          this.rtcTransport.send(message as NetworkMessage as import("@holoscript/mesh").SyncMessage);
+          this.rtcTransport.send(
+            message as NetworkMessage as import('@holoscript/mesh').SyncMessage
+          );
         } else if (this.syncProtocol) {
           this.syncProtocol.syncState(this.entityId, updates);
         }
@@ -1127,5 +1131,3 @@ export const networkedHandler = {
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
   },
 } as const satisfies TraitHandler;
-
-

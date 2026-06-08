@@ -30,16 +30,19 @@ function mockSolver(): SimSolver {
       if (name === 'von_mises_stress') return new Float32Array([0.5, 0.5]);
       return null;
     },
-    getStats() { return {}; },
+    getStats() {
+      return {};
+    },
     dispose() {},
   };
 }
 
 function makeRecorder(): CAELRecorder {
-  return new CAELRecorder(
-    mockSolver(),
-    { solverType: 'mock', vertices: new Float64Array([0,0,0,1,0,0,0,1,0,0,0,1]), tetrahedra: new Uint32Array([0,1,2,3]) },
-  );
+  return new CAELRecorder(mockSolver(), {
+    solverType: 'mock',
+    vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+    tetrahedra: new Uint32Array([0, 1, 2, 3]),
+  });
 }
 
 // ── Helper: extract interaction entries from JSONL ────────────────────────────
@@ -94,7 +97,7 @@ describe('CRDTCAELBridge', () => {
       expect(data.fromPeer).toBe('remote-node');
       expect(data.localPeer).toBe('local-node');
       expect(typeof data.mergeBytes).toBe('number');
-      expect((data.mergeBytes as number)).toBeGreaterThan(0);
+      expect(data.mergeBytes as number).toBeGreaterThan(0);
     });
 
     it('records versionBefore and versionAfter fingerprints', () => {
@@ -154,14 +157,14 @@ describe('CRDTCAELBridge', () => {
       expect(merges.length).toBe(2);
 
       const fromPeers = merges.map(
-        (e) => ((e.payload as Record<string, unknown>).data as Record<string, unknown>).fromPeer,
+        (e) => ((e.payload as Record<string, unknown>).data as Record<string, unknown>).fromPeer
       );
       expect(fromPeers).toEqual(['remote-node', 'remote-2']);
     });
 
     it('all entries form a valid CAEL hash chain and properly coerce array tuple input', () => {
       // Testing the array coercion logic explicitly
-      remote.setPosition('cube-1', [3, 1, 2 ] as any);
+      remote.setPosition('cube-1', [3, 1, 2] as any);
       bridge.mergeSpatial(remote.exportUpdate(), 'remote-node');
 
       const position = remote.getPosition('cube-1');
@@ -176,7 +179,7 @@ describe('CRDTCAELBridge', () => {
       const bareRecorder = makeRecorder();
       const bareBridge = new CRDTCAELBridge({ recorder: bareRecorder });
       expect(() => bareBridge.mergeSpatial(new Uint8Array([1, 2, 3]), 'x')).toThrow(
-        'no SpatialCRDTBridge configured',
+        'no SpatialCRDTBridge configured'
       );
     });
   });
@@ -254,8 +257,13 @@ describe('CRDTCAELBridge', () => {
 
     it('logs a cael.crdt_merge/world_state event when merging bytes', () => {
       remoteWorld.setObject('tree-1', {
-        position: [0, 0, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1],
-        mesh: 'oak.glb', traits: ['@natural'], owner: 'system', properties: {},
+        position: [0, 0, 0],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
+        mesh: 'oak.glb',
+        traits: ['@natural'],
+        owner: 'system',
+        properties: {},
       });
 
       const snapshot = remoteWorld.export();
@@ -272,12 +280,22 @@ describe('CRDTCAELBridge', () => {
 
     it('tracks objectCountDelta when objects are added by the merge', () => {
       remoteWorld.setObject('rock-5', {
-        position: [1, 0, 2], rotation: [0, 0, 0, 1], scale: [1, 1, 1],
-        mesh: 'rock.glb', traits: [], owner: 'system', properties: {},
+        position: [1, 0, 2],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
+        mesh: 'rock.glb',
+        traits: [],
+        owner: 'system',
+        properties: {},
       });
       remoteWorld.setObject('rock-6', {
-        position: [3, 0, 4], rotation: [0, 0, 0, 1], scale: [1, 1, 1],
-        mesh: 'rock.glb', traits: [], owner: 'system', properties: {},
+        position: [3, 0, 4],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
+        mesh: 'rock.glb',
+        traits: [],
+        owner: 'system',
+        properties: {},
       });
 
       bridge.mergeWorld(remoteWorld.export(), 'remote-peer');
@@ -291,8 +309,13 @@ describe('CRDTCAELBridge', () => {
 
     it('accepts a WorldState instance (not just bytes)', () => {
       remoteWorld.setObject('lamp-3', {
-        position: [0, 2, 0], rotation: [0, 0, 0, 1], scale: [1, 1, 1],
-        mesh: 'lamp.glb', traits: ['@illuminated'], owner: 'system', properties: {},
+        position: [0, 2, 0],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
+        mesh: 'lamp.glb',
+        traits: ['@illuminated'],
+        owner: 'system',
+        properties: {},
       });
 
       bridge.mergeWorld(remoteWorld, 'remote-peer');
@@ -307,8 +330,13 @@ describe('CRDTCAELBridge', () => {
 
     it('all world_state merge entries form a valid CAEL hash chain', () => {
       remoteWorld.setObject('npc-1', {
-        position: [5, 0, 5], rotation: [0, 0, 0, 1], scale: [1, 1, 1],
-        mesh: 'human.glb', traits: ['@npc'], owner: 'system', properties: {},
+        position: [5, 0, 5],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
+        mesh: 'human.glb',
+        traits: ['@npc'],
+        owner: 'system',
+        properties: {},
       });
 
       bridge.mergeWorld(remoteWorld.export(), 'remote-peer');
@@ -321,7 +349,7 @@ describe('CRDTCAELBridge', () => {
     it('throws if no WorldState is configured', () => {
       const bareBridge = new CRDTCAELBridge({ recorder: makeRecorder() });
       expect(() => bareBridge.mergeWorld(new Uint8Array([1, 2]), 'x')).toThrow(
-        'no WorldState configured',
+        'no WorldState configured'
       );
     });
   });

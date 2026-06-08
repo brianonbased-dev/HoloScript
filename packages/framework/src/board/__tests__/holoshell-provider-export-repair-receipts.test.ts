@@ -104,7 +104,8 @@ function makePlan(
     failureReceiptId: 'failure-001',
     partialArchiveEvidenceReceiptId: 'partial-001',
     repairAction: 'resume_download',
-    safeReason: 'Archive evidence is missing 1 part(s); resume or re-download into quarantine before import.',
+    safeReason:
+      'Archive evidence is missing 1 part(s); resume or re-download into quarantine before import.',
     selectedProductsHash: 'selected-products-hash-001',
     userApprovalNonce: 'nonce-001',
     requiresFreshUserGesture: true,
@@ -262,9 +263,9 @@ describe('HoloShell provider export repair receipts', () => {
     expect(planFor('missing_archive_part', { missingPartCount: 1 }).repairAction).toBe(
       'resume_download'
     );
-    expect(
-      planFor('admin_blocked', {}, { adminOrManagedAccountBlock: true }).repairAction
-    ).toBe('manual_provider_ticket');
+    expect(planFor('admin_blocked', {}, { adminOrManagedAccountBlock: true }).repairAction).toBe(
+      'manual_provider_ticket'
+    );
     expect(planFor('cloud_handoff_block').repairAction).toBe('change_delivery_method');
     expect(planFor('corrupt_archive').repairAction).toBe('change_archive_size');
     expect(planFor('link_expired').repairAction).toBe('re_download_same_link');

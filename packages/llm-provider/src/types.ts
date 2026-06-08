@@ -306,7 +306,7 @@ export interface AnthropicFileContentBlockOptions {
 export function anthropicFileContentBlock(
   fileId: string,
   type: AnthropicFileContentBlockType,
-  options: AnthropicFileContentBlockOptions = {},
+  options: AnthropicFileContentBlockOptions = {}
 ): AnthropicFileContentBlock {
   if (type === 'container_upload') {
     return {
@@ -609,7 +609,16 @@ export interface HoloScriptGenerationResponse {
 // Provider Configuration
 // =============================================================================
 
-export type LLMProviderName = 'openai' | 'anthropic' | 'gemini' | 'mock' | 'bitnet' | 'local-llm' | 'openrouter' | 'xai' | 'brittney-cloud';
+export type LLMProviderName =
+  | 'openai'
+  | 'anthropic'
+  | 'gemini'
+  | 'mock'
+  | 'bitnet'
+  | 'local-llm'
+  | 'openrouter'
+  | 'xai'
+  | 'brittney-cloud';
 
 export interface LLMProviderConfig {
   /** API key for authentication */
@@ -870,10 +879,7 @@ export interface ILLMProvider {
    * first chunk; mid-stream failures yield a final `message_stop` with
    * `finishReason: 'error'` and the partial state observed so far.
    */
-  streamCompletion(
-    request: LLMCompletionRequest,
-    model?: string
-  ): AsyncIterable<LLMStreamChunk>;
+  streamCompletion(request: LLMCompletionRequest, model?: string): AsyncIterable<LLMStreamChunk>;
 
   /**
    * Upload a reusable file reference on providers that support a Files API.

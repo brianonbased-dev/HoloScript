@@ -100,7 +100,9 @@ function stableStringify(v: unknown): string {
   const keys = Object.keys(v as object).sort();
   return (
     '{' +
-    keys.map((k) => JSON.stringify(k) + ':' + stableStringify((v as Record<string, unknown>)[k])).join(',') +
+    keys
+      .map((k) => JSON.stringify(k) + ':' + stableStringify((v as Record<string, unknown>)[k]))
+      .join(',') +
     '}'
   );
 }
@@ -157,21 +159,15 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
     });
 
     it('[I2] composition with single object locks codegen', () => {
-      const result = compile(
-        createComposition({ objects: [createObject('Cube')] }),
-      );
+      const result = compile(createComposition({ objects: [createObject('Cube')] }));
       expect(hashResult(result)).toMatchSnapshot('I2-singleObject');
     });
 
     it('[I3] composition with multiple objects locks codegen', () => {
       const result = compile(
         createComposition({
-          objects: [
-            createObject('Cube'),
-            createObject('Sphere'),
-            createObject('Plane'),
-          ],
-        }),
+          objects: [createObject('Cube'), createObject('Sphere'), createObject('Plane')],
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I3-multiObject');
     });
@@ -189,7 +185,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
         createComposition({
           name: 'WorldScene',
           objects: [createObject('Anchor')],
-        }),
+        })
       );
       expect(hashResult({ infoPlist: result.infoPlist })).toMatchSnapshot('I5-infoPlistWithScene');
     });
@@ -200,7 +196,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
       const result = compile(
         createComposition({
           objects: [objectWithTrait('Scanner', 'lidar_capture')],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I6-lidar');
     });
@@ -209,7 +205,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
       const result = compile(
         createComposition({
           objects: [objectWithTrait('Avatar', 'face_tracking')],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I7-faceTracking');
     });
@@ -218,7 +214,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
       const result = compile(
         createComposition({
           objects: [objectWithTrait('Hand', 'camera_hand_tracking')],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I8-handTracking');
     });
@@ -227,7 +223,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
       const result = compile(
         createComposition({
           objects: [objectWithTrait('Room', 'roomplan_scan')],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I9-roomPlan');
     });
@@ -236,7 +232,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
       const result = compile(
         createComposition({
           objects: [objectWithTrait('Portal', 'portal_ar')],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I10-portal');
     });
@@ -245,7 +241,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
       const result = compile(
         createComposition({
           objects: [objectWithTrait('AudioSource', 'spatial_audio')],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I11-spatialAudio');
     });
@@ -254,7 +250,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
       const result = compile(
         createComposition({
           objects: [objectWithTrait('Capturable', 'object_capture')],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I12-objectCapture');
     });
@@ -263,7 +259,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
       const result = compile(
         createComposition({
           objects: [objectWithTrait('Shared', 'shareplay_session')],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I13-sharePlay');
     });
@@ -272,7 +268,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
       const result = compile(
         createComposition({
           objects: [objectWithTrait('Beacon', 'uwb_positioning')],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I14-uwb');
     });
@@ -281,7 +277,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
       const result = compile(
         createComposition({
           objects: [objectWithTrait('Scene', 'npu_scene_understanding')],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I15-npu');
     });
@@ -301,7 +297,7 @@ describe('IOSCompiler characterization (W4-T3 pre-split lock for W1-T1)', () => 
             objectWithTrait('C', 'spatial_audio'),
             createObject('PlainObj'),
           ],
-        }),
+        })
       );
       expect(hashResult(result)).toMatchSnapshot('I16-composite');
     });

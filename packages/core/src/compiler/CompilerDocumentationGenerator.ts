@@ -773,7 +773,8 @@ export class CompilerDocumentationGenerator {
         const objRec = obj as unknown as Record<string, unknown>;
         const transform = objRec.transform as Record<string, unknown> | undefined;
         const pos = (objRec.position || transform?.position) as
-          [number, number, number] | undefined;
+          | [number, number, number]
+          | undefined;
         const posStr = pos ? `(${pos[0]}, ${pos[1]}, ${pos[2]})` : 'N/A';
         const traitNames = obj.traits
           ? this.extractTraitNames(obj.traits).join(', ') || 'none'

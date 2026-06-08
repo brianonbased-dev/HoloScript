@@ -14,7 +14,6 @@ const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
 
-
 // PUBLIC-CORS: documented-public endpoint, intentional wildcard (SEC-T11)
 export function OPTIONS() {
   return new Response(null, {

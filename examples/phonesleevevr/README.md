@@ -44,6 +44,7 @@ See the full revival guide:
 This example is the first living artifact of the Tier-A SOVEREIGN-REVIVAL (15M devices, sentiment alive, zero prior active work until this marathon).
 
 Next slices (claimable):
+
 - Real snn-webgpu perception adapter feeding the compiler runtime
 - Brittney prompt pack for PhoneSleeveVR experiences
 - End-to-end demo with live tracking + voice

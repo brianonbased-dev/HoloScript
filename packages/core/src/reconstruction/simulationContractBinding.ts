@@ -19,7 +19,10 @@ export function assertHoloMapManifestContract(m: ReconstructionManifest): void {
   if (m.simulationContract.kind !== HOLOMAP_SIMULATION_CONTRACT_KIND) {
     throw new Error(`Unexpected SimulationContract kind: ${m.simulationContract.kind}`);
   }
-  if (!m.simulationContract.replayFingerprint || m.simulationContract.replayFingerprint.length < 8) {
+  if (
+    !m.simulationContract.replayFingerprint ||
+    m.simulationContract.replayFingerprint.length < 8
+  ) {
     throw new Error('HoloMap manifest missing replayFingerprint');
   }
 }

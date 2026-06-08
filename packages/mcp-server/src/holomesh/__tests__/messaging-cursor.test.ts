@@ -145,7 +145,7 @@ describe('messaging cursorAt extension (agent identity = handle + chain + depth)
         'POST',
         { to: BOB.id, content: 'hi', cursor_at: { chain: 'room-7', depth: 5 } },
         'KEY-ALICE',
-        resolver,
+        resolver
       );
       expect(r?.status).toBe(201);
       expect(r?.body.message.cursorAt).toEqual({ chain: 'room-7', depth: 5 });
@@ -157,7 +157,7 @@ describe('messaging cursorAt extension (agent identity = handle + chain + depth)
         'POST',
         { to: BOB.id, content: 'hi', cursorAt: { chain: 'room-9', depth: 7 } },
         'KEY-ALICE',
-        resolver,
+        resolver
       );
       expect(r?.status).toBe(201);
       expect(r?.body.message.cursorAt).toEqual({ chain: 'room-9', depth: 7 });
@@ -169,7 +169,7 @@ describe('messaging cursorAt extension (agent identity = handle + chain + depth)
         'POST',
         { to: BOB.id, content: 'no cursor' },
         'KEY-ALICE',
-        resolver,
+        resolver
       );
       expect(r?.status).toBe(201);
       expect('cursorAt' in r!.body.message).toBe(false);
@@ -181,7 +181,7 @@ describe('messaging cursorAt extension (agent identity = handle + chain + depth)
         'POST',
         { to: BOB.id, content: 'bad', cursor_at: { chain: '', depth: 5 } },
         'KEY-ALICE',
-        resolver,
+        resolver
       );
       expect(r?.status).toBe(400);
       expect(r?.body.error).toMatch(/chain/);
@@ -198,7 +198,7 @@ describe('messaging cursorAt extension (agent identity = handle + chain + depth)
           cursorAt: { chain: 'camel', depth: 99 },
         },
         'KEY-ALICE',
-        resolver,
+        resolver
       );
       expect(r?.status).toBe(201);
       expect(r?.body.message.cursorAt).toEqual({ chain: 'snake', depth: 1 });

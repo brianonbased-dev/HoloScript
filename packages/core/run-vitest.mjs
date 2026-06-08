@@ -105,7 +105,7 @@ if (hasExplicitShard(extraArgs) || hasPositionalTestTargets(extraArgs) || isCove
   // dedicated heap and no sibling-shard interference. Positional file args
   // restrict vitest to just those files; no exclusion env flag needed here.
   console.error(
-    `[run-vitest] pass 1/2 — sequential flaky pass (${FLAKY_FILES.length} files, maxWorkers=1)`,
+    `[run-vitest] pass 1/2 — sequential flaky pass (${FLAKY_FILES.length} files, maxWorkers=1)`
   );
   const seqProc = runVitest(['--maxWorkers=1', ...FLAKY_FILES]);
   const seqCode = seqProc.status ?? 1;

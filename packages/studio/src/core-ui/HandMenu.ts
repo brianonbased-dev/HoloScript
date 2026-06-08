@@ -28,7 +28,8 @@ export class HandMenuSystem {
     this.transitions.update(delta);
 
     // Check left hand palm orientation
-    const leftHand = (this.runtime as unknown as { vrContext?: { hands?: { left?: VRHand } } }).vrContext?.hands?.left;
+    const leftHand = (this.runtime as unknown as { vrContext?: { hands?: { left?: VRHand } } })
+      .vrContext?.hands?.left;
     if (!leftHand) return;
 
     if (this.checkPalmFacingUser(leftHand)) {
@@ -100,11 +101,11 @@ export class HandMenuSystem {
     // Animate in: scale + fade
     this.transitions.popIn(
       menuId,
-      
+
       (s) => {
         if (this.menuNode?.properties) this.menuNode.properties.scale = s;
       },
-      
+
       (o) => {
         if (this.menuNode?.properties) this.menuNode.properties.opacity = o;
       },
@@ -126,20 +127,18 @@ export class HandMenuSystem {
     // Animate out: scale + fade, then unmount
     this.transitions.popOut(
       nodeIdToRemove,
-      
+
       (s) => {
         if (this.menuNode?.properties) this.menuNode.properties.scale = s;
       },
-      
+
       (o) => {
         if (this.menuNode?.properties) this.menuNode.properties.opacity = o;
       },
       {
         duration: 0.25,
         onComplete: () => {
-          
           if (this.runtime.unmountObject) {
-            
             this.runtime.unmountObject(nodeIdToRemove);
           }
           this.isTransitioning = false;

@@ -8,8 +8,8 @@ describe('JointTrait', () => {
     joint = new JointTrait({
       jointType: 'hinge',
       connectedBody: 'Frame',
-      anchor: [-0.5, 0, 0 ],
-      axis: [0, 1, 0 ],
+      anchor: [-0.5, 0, 0],
+      axis: [0, 1, 0],
       angularLimits: { min: 0, max: 120 },
     });
   });

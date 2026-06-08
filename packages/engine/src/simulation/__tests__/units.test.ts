@@ -1,13 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { UnitRegistry, DimensionalMismatchError, registry } from '../units/UnitRegistry';
 import {
-  celsiusToKelvin, kelvinToCelsius, fahrenheitToKelvin, barToPascal, psiToPascal,
+  celsiusToKelvin,
+  kelvinToCelsius,
+  fahrenheitToKelvin,
+  barToPascal,
+  psiToPascal,
   millimetersToMeters,
-  type Temperature, type Pressure
+  type Temperature,
+  type Pressure,
 } from '../units/PhysicalQuantity';
 
 describe('UnitRegistry and Dimensionality', () => {
-
   describe('Dimensional mismatch rejection', () => {
     it('throws when converting differing dimensions (e.g., Length to Mass)', () => {
       expect(() => {
@@ -41,11 +45,11 @@ describe('UnitRegistry and Dimensionality', () => {
     it('converts F to K', () => {
       expect(registry.convert(32, 'F', 'K')).toBeCloseTo(273.15, 4);
     });
-    
+
     it('PhysicalQuantity manual conversions work', () => {
-       expect(celsiusToKelvin(0)).toBeCloseTo(273.15, 4);
-       expect(kelvinToCelsius(273.15 as Temperature)).toBeCloseTo(0, 4);
-       expect(fahrenheitToKelvin(32)).toBeCloseTo(273.15, 4);
+      expect(celsiusToKelvin(0)).toBeCloseTo(273.15, 4);
+      expect(kelvinToCelsius(273.15 as Temperature)).toBeCloseTo(0, 4);
+      expect(fahrenheitToKelvin(32)).toBeCloseTo(273.15, 4);
     });
   });
 
@@ -93,7 +97,7 @@ describe('UnitRegistry and Dimensionality', () => {
       expect(registry.convert(1, 'ft', 'm')).toBeCloseTo(0.3048, 4);
       expect(registry.convert(3.28084, 'ft', 'm')).toBeCloseTo(1, 4);
     });
-    
+
     it('PhysicalQuantity manual conversions work', () => {
       expect(millimetersToMeters(1000)).toBeCloseTo(1, 4);
     });

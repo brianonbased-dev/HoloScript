@@ -45,7 +45,13 @@ export interface Paper6MecanimPublication {
   readonly rig_count: number;
   readonly version_count: number;
   readonly rigs: readonly { id: string; name: string; boneCount: number; category: string }[];
-  readonly versions: readonly { label: string; samplerPrecision: string; keyframeTimeTolerance: number; tQuantizationStep: number; flushDenormals: boolean }[];
+  readonly versions: readonly {
+    label: string;
+    samplerPrecision: string;
+    keyframeTimeTolerance: number;
+    tQuantizationStep: number;
+    flushDenormals: boolean;
+  }[];
   readonly cells: readonly RigVersionCellResult[];
   readonly per_version: readonly PerVersionDivergenceStats[];
   readonly markdown_table: string;

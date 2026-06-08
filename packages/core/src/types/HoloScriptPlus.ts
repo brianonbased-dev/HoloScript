@@ -16,7 +16,6 @@ export interface Color {
   a?: number;
 }
 
-
 export interface Transform {
   position: Vector3;
   rotation: Vector3;

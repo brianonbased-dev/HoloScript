@@ -45,12 +45,14 @@ describe('founder-reversibility — inferFounderActionType', () => {
   });
 
   it('classifies GPU provisioning as service_rental', () => {
-    expect(inferFounderActionType('Provision a GPU fleet for the benchmark')).toBe('service_rental');
+    expect(inferFounderActionType('Provision a GPU fleet for the benchmark')).toBe(
+      'service_rental'
+    );
   });
 
   it('classifies door-to-door mobility as mobility_coordination', () => {
     expect(inferFounderActionType('Coordinate the door-to-door mobility trip')).toBe(
-      'mobility_coordination',
+      'mobility_coordination'
     );
   });
 
@@ -99,9 +101,7 @@ describe('founder-reversibility — deriveFounderReversibility', () => {
   });
 
   it('still blocks actual mobility coordination (regression)', () => {
-    const r = deriveFounderReversibility(
-      'Coordinate the mobility trip for door-to-door delivery',
-    );
+    const r = deriveFounderReversibility('Coordinate the mobility trip for door-to-door delivery');
     expect(r.actionType).toBe('mobility_coordination');
     expect(r.reversible).toBe(false);
   });
@@ -147,14 +147,8 @@ describe('IRREVERSIBLE_RE / SPATIAL_RE exported constants', () => {
 const REPO_ROOT = resolve(__dirname, '..', '..', '..', '..', '..');
 
 const CONSUMER_FILES = [
-  resolve(
-    REPO_ROOT,
-    'packages/mcp-server/src/holomesh/routes/founder-approval-policy.ts',
-  ),
-  resolve(
-    REPO_ROOT,
-    'packages/studio/src/app/api/quest-proof/next-actions/nextActions.ts',
-  ),
+  resolve(REPO_ROOT, 'packages/mcp-server/src/holomesh/routes/founder-approval-policy.ts'),
+  resolve(REPO_ROOT, 'packages/studio/src/app/api/quest-proof/next-actions/nextActions.ts'),
 ];
 
 /**
@@ -173,10 +167,10 @@ function stripImportLines(src: string): string {
 // If any of these substrings appear in the non-import body of a consumer file,
 // the regex is defined inline and the divergence guard fires.
 const INLINE_REGEX_STARTS = [
-  '/\\b(deploy|force[- ]?push',   // IRREVERSIBLE_RE start
-  '/\\b(world|scene|hololand',    // SPATIAL_RE start
-  '/\\b(rent|rental|gpu|fleet',   // RENTAL_RE start
-  '/\\b(mobility|door-to-door',   // MOBILITY_RE start
+  '/\\b(deploy|force[- ]?push', // IRREVERSIBLE_RE start
+  '/\\b(world|scene|hololand', // SPATIAL_RE start
+  '/\\b(rent|rental|gpu|fleet', // RENTAL_RE start
+  '/\\b(mobility|door-to-door', // MOBILITY_RE start
 ];
 
 describe('divergence guard — regex constants must NOT be defined inline in consumers', () => {

@@ -24,15 +24,18 @@ export const FileUploadStep: React.FC<FileUploadStepProps> = ({
     }
   };
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      onChangeFile(file);
-      const detected = inferProjectDNA(file);
-      onProjectDNADetected(detected);
-    }
-  }, [onChangeFile, onProjectDNADetected]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        onChangeFile(file);
+        const detected = inferProjectDNA(file);
+        onProjectDNADetected(detected);
+      }
+    },
+    [onChangeFile, onProjectDNADetected]
+  );
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -68,7 +71,9 @@ export const FileUploadStep: React.FC<FileUploadStepProps> = ({
       {contentFile && (
         <div className="rounded-lg bg-studio-success/10 p-4 border border-studio-success/30">
           <div className="font-medium text-studio-text">✓ File selected: {contentFile.name}</div>
-          <div className="mt-2 text-sm text-studio-text-muted">{(contentFile.size / 1024 / 1024).toFixed(2)} MB</div>
+          <div className="mt-2 text-sm text-studio-text-muted">
+            {(contentFile.size / 1024 / 1024).toFixed(2)} MB
+          </div>
         </div>
       )}
 

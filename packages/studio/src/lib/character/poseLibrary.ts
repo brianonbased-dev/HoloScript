@@ -20,7 +20,7 @@ export type PoseCategory = 'classic' | 'viral' | 'trending' | 'dance' | 'emote' 
 
 export interface BonePose {
   boneName: string;
-  rotation: { x: number, y: number, z: number, w: number }; // [x, y, z, w]
+  rotation: { x: number; y: number; z: number; w: number }; // [x, y, z, w]
   position?: [number, number, number]; // [x, y, z]
 }
 

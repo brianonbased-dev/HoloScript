@@ -64,8 +64,16 @@ export interface NeedsKeyResolution {
 /** Structural trait handler shape (matches the domain-plugin trait handlers). */
 export interface NeedsKeyTraitHandler {
   name: 'needs_key';
-  onAttach(node: unknown, config: NeedsKeyConfig | undefined, context: NeedsKeyDispatchContext): Promise<void>;
-  onUpdate(node: unknown, config: NeedsKeyConfig | undefined, context: NeedsKeyDispatchContext): Promise<void>;
+  onAttach(
+    node: unknown,
+    config: NeedsKeyConfig | undefined,
+    context: NeedsKeyDispatchContext
+  ): Promise<void>;
+  onUpdate(
+    node: unknown,
+    config: NeedsKeyConfig | undefined,
+    context: NeedsKeyDispatchContext
+  ): Promise<void>;
 }
 
 /** In-memory node carrier for the transient resolved-secret slot. Never persisted. */

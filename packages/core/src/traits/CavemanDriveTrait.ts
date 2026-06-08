@@ -23,11 +23,11 @@ import {
 } from './CavemanActionAnimationBridge';
 
 export interface CavemanDriveState {
-  hunger: number;     // 0..1 — rises on time, falls on eat
-  thirst: number;     // 0..1 — rises on time, falls on drink
-  fatigue: number;    // 0..1 — rises with action cost, falls on rest
-  fear: number;       // 0..1 — rises on threat, decays with time / safety
-  curiosity: number;  // 0..1 — rises with novelty, falls on inspect
+  hunger: number; // 0..1 — rises on time, falls on eat
+  thirst: number; // 0..1 — rises on time, falls on drink
+  fatigue: number; // 0..1 — rises with action cost, falls on rest
+  fear: number; // 0..1 — rises on threat, decays with time / safety
+  curiosity: number; // 0..1 — rises with novelty, falls on inspect
   attentionTarget: string | null;
   lastLLMCallTick: number;
 }
@@ -99,12 +99,12 @@ export class CavemanDriveTrait implements Trait {
 
   perceive(nearbyEntities: any[]) {
     // Simple attention heuristic (research §4)
-    const threat = nearbyEntities.find(e => e.type === 'predator' || e.threatLevel > 0.6);
+    const threat = nearbyEntities.find((e) => e.type === 'predator' || e.threatLevel > 0.6);
     if (threat) {
       this.state.attentionTarget = threat.id;
       this.state.fear = Math.min(1, this.state.fear + 0.3);
     } else {
-      const interesting = nearbyEntities.find(e => e.type === 'food' || e.type === 'shiny');
+      const interesting = nearbyEntities.find((e) => e.type === 'food' || e.type === 'shiny');
       if (interesting) this.state.attentionTarget = interesting.id;
     }
   }

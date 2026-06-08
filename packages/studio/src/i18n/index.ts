@@ -11,15 +11,16 @@
 
 import en from './locales/en';
 
-type NestedKeys<T, Prefix extends string = ''> = T extends Record<string, unknown>
-  ? {
-      [K in keyof T]: K extends string
-        ? T[K] extends Record<string, unknown>
-          ? NestedKeys<T[K], `${Prefix}${K}.`>
-          : `${Prefix}${K}`
-        : never;
-    }[keyof T]
-  : never;
+type NestedKeys<T, Prefix extends string = ''> =
+  T extends Record<string, unknown>
+    ? {
+        [K in keyof T]: K extends string
+          ? T[K] extends Record<string, unknown>
+            ? NestedKeys<T[K], `${Prefix}${K}.`>
+            : `${Prefix}${K}`
+          : never;
+      }[keyof T]
+    : never;
 
 export type TranslationKey = NestedKeys<typeof en>;
 

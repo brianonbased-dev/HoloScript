@@ -119,11 +119,7 @@ export const SceneDoor: React.FC<SceneDoorProps> = ({
       {/* Rock / surface frame (subtle arch) */}
       <mesh position={[0, 0.6, -0.08]}>
         <boxGeometry args={[1.35, 2.15, 0.22]} />
-        <meshStandardMaterial
-          color={style.frameColor}
-          roughness={0.98}
-          metalness={0.02}
-        />
+        <meshStandardMaterial color={style.frameColor} roughness={0.98} metalness={0.02} />
       </mesh>
 
       {/* Door leaf group (rotates) */}
@@ -141,7 +137,7 @@ export const SceneDoor: React.FC<SceneDoorProps> = ({
         </mesh>
 
         {/* Vertical wood grain suggestion (thin boxes) */}
-        {[ -0.28, 0.0, 0.28 ].map((x, idx) => (
+        {[-0.28, 0.0, 0.28].map((x, idx) => (
           <mesh key={idx} position={[x, 0, 0.08]}>
             <boxGeometry args={[0.04, 1.7, 0.03]} />
             <meshStandardMaterial color="#2f2318" roughness={0.96} />

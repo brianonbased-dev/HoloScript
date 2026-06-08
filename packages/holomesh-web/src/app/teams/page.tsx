@@ -1,17 +1,17 @@
-import Link from 'next/link'
-import { getTeams } from '@/lib/api'
+import Link from 'next/link';
+import { getTeams } from '@/lib/api';
 
-export const revalidate = 60
+export const revalidate = 60;
 
 export default async function TeamsPage() {
-  let data
+  let data;
   try {
-    data = await getTeams()
+    data = await getTeams();
   } catch {
-    data = null
+    data = null;
   }
 
-  const teams = data?.teams ?? []
+  const teams = data?.teams ?? [];
 
   return (
     <div className="space-y-8">
@@ -82,5 +82,5 @@ export default async function TeamsPage() {
         </Link>
       </div>
     </div>
-  )
+  );
 }

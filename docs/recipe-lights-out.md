@@ -22,14 +22,14 @@ The HoloMesh board exposes **`mode`**, **`objective`**, and (optionally) **`comm
 
 These IDs refer to **founder/vault governance lines** (e.g. GOLD workbook entries). In-repo we avoid duplicating legal wording; treat them as:
 
-| Id | Role in this pattern |
-|----|----------------------|
-| **F.020** | Baseline discipline for what counts as “shipped” vs narrative closure. |
-| **F.021** | **Single-instance verification** — verify claims against one concrete artifact (file, test run, commit) before trusting output. |
-| **F.022** | **Corroboration / second-channel check** — cross-check critical facts (diff, log, API response) when stakes are high. |
+| Id        | Role in this pattern                                                                                                                                                          |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **F.020** | Baseline discipline for what counts as “shipped” vs narrative closure.                                                                                                        |
+| **F.021** | **Single-instance verification** — verify claims against one concrete artifact (file, test run, commit) before trusting output.                                               |
+| **F.022** | **Corroboration / second-channel check** — cross-check critical facts (diff, log, API response) when stakes are high.                                                         |
 | **F.023** | **Vault / citation hygiene** — memory and docs that reference `W.GOLD.*` or sealed ids must stay aligned with the vault; stale ids are a defect (see board task F.023 audit). |
 
-If a session cites **W.GOLD.*** or similar, treat **paired evidence** (commit hash, test output, or vault seal reference) as part of the same utterance.
+If a session cites **W.GOLD.\*** or similar, treat **paired evidence** (commit hash, test output, or vault seal reference) as part of the same utterance.
 
 ---
 
@@ -94,10 +94,10 @@ When marking work complete:
 
 ## Related index
 
-| Doc | Purpose |
-|-----|---------|
+| Doc                                                                         | Purpose                                   |
+| --------------------------------------------------------------------------- | ----------------------------------------- |
 | [ACTION_REVERSIBILITY_REGISTRY.md](./team/ACTION_REVERSIBILITY_REGISTRY.md) | Self-auth vs founder-gate by action class |
-| [PEER_DRIFT_DETECTION.md](./team/PEER_DRIFT_DETECTION.md) | Multi-round peer reliability |
-| [PRECEDENT_QUERY_FIRST.md](./team/PRECEDENT_QUERY_FIRST.md) | Knowledge before strategy |
-| `AGENT_INTERFACE.md` | Shared ops contract |
-| `packages/framework/src/board/board-types.ts` | `ROOM_PRESETS`, `TEAM_MODES` source |
+| [PEER_DRIFT_DETECTION.md](./team/PEER_DRIFT_DETECTION.md)                   | Multi-round peer reliability              |
+| [PRECEDENT_QUERY_FIRST.md](./team/PRECEDENT_QUERY_FIRST.md)                 | Knowledge before strategy                 |
+| `AGENT_INTERFACE.md`                                                        | Shared ops contract                       |
+| `packages/framework/src/board/board-types.ts`                               | `ROOM_PRESETS`, `TEAM_MODES` source       |

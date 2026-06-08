@@ -433,7 +433,10 @@ async function submitRenderJob(
     if (state.persistence) {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
       await state.persistence.moveToCompleted(job).catch((err) => {
-        console.error(`[RenderNetworkTrait] submitJobToAPI: moveToCompleted failed for job ${job.id}:`, err);
+        console.error(
+          `[RenderNetworkTrait] submitJobToAPI: moveToCompleted failed for job ${job.id}:`,
+          err
+        );
       });
     }
 
@@ -625,7 +628,10 @@ function pollJobStatus(
         if (state.persistence) {
           // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           state.persistence.moveToCompleted(job).catch((err) => {
-            console.error(`[RenderNetworkTrait] pollJobStatus: moveToCompleted failed for job ${job.id}:`, err);
+            console.error(
+              `[RenderNetworkTrait] pollJobStatus: moveToCompleted failed for job ${job.id}:`,
+              err
+            );
           });
           // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           state.persistence.saveState(state).catch((err) => {
@@ -660,7 +666,10 @@ function pollJobStatus(
         if (state.persistence) {
           // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
           state.persistence.moveToCompleted(job).catch((err) => {
-            console.error(`[RenderNetworkTrait] pollJobStatus (failed): moveToCompleted failed for job ${job.id}:`, err);
+            console.error(
+              `[RenderNetworkTrait] pollJobStatus (failed): moveToCompleted failed for job ${job.id}:`,
+              err
+            );
           });
         }
 

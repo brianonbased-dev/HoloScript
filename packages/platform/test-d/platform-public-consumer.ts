@@ -22,12 +22,4 @@ const requestId: string = randomUUID();
 const digest: Promise<string> = sha256('public type consumer fixture');
 const walletConnect: Web3Connector['connectWallet'] = connector.connectWallet;
 
-void [
-  digest,
-  manifest,
-  policy,
-  registry,
-  requestId,
-  thermalState,
-  walletConnect,
-];
+void [digest, manifest, policy, registry, requestId, thermalState, walletConnect];

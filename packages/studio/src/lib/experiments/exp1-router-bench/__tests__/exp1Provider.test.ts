@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import {
-  localProvider,
-  SOVEREIGN_BASELINE_MODEL,
-  SOVEREIGN_LITE_MODEL,
-} from '../exp1Provider';
+import { localProvider, SOVEREIGN_BASELINE_MODEL, SOVEREIGN_LITE_MODEL } from '../exp1Provider';
 
 describe('EXP-1 sovereign provider (no silent frontier billing)', () => {
   it('localProvider is sovereign — providerName ollama, no external vendor', () => {

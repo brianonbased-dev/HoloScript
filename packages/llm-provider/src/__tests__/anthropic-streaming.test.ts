@@ -30,8 +30,16 @@ import type { LLMStreamChunk } from '../types';
 import { MockAdapter } from '../adapters/mock';
 
 type StreamEvent =
-  | { type: 'content_block_start'; content_block: { type: 'text' } | { type: 'tool_use'; id: string; name: string } }
-  | { type: 'content_block_delta'; delta: { type: 'text_delta'; text: string } | { type: 'input_json_delta'; partial_json: string } }
+  | {
+      type: 'content_block_start';
+      content_block: { type: 'text' } | { type: 'tool_use'; id: string; name: string };
+    }
+  | {
+      type: 'content_block_delta';
+      delta:
+        | { type: 'text_delta'; text: string }
+        | { type: 'input_json_delta'; partial_json: string };
+    }
   | { type: 'content_block_stop' }
   | { type: 'message_delta'; delta: { stop_reason: string | null } };
 
@@ -57,7 +65,9 @@ vi.mock('@anthropic-ai/sdk', () => {
           for (const ev of streamEvents) yield ev;
         },
         finalMessage: async () => finalMessageData.value,
-        get request_id() { return mockRequestId.value; },
+        get request_id() {
+          return mockRequestId.value;
+        },
         get response() {
           const headers = new Headers(Object.entries(mockResponseHeaders.value));
           return { headers };
@@ -133,14 +143,22 @@ describe('AnthropicAdapter.streamCompletion — chunk translation', () => {
         content_block: { type: 'tool_use', id: 'toolu_abc', name: 'create_object' },
       },
       { type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: '{"obj' } },
-      { type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: 'ect":"cube",' } },
+      {
+        type: 'content_block_delta',
+        delta: { type: 'input_json_delta', partial_json: 'ect":"cube",' },
+      },
       { type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: '"x":1}' } },
       { type: 'content_block_stop' },
       { type: 'message_delta', delta: { stop_reason: 'tool_use' } }
     );
     finalMessageData.value = {
       content: [
-        { type: 'tool_use', id: 'toolu_abc', name: 'create_object', input: { object: 'cube', x: 1 } },
+        {
+          type: 'tool_use',
+          id: 'toolu_abc',
+          name: 'create_object',
+          input: { object: 'cube', x: 1 },
+        },
       ] as never,
       usage: { input_tokens: 20, output_tokens: 8 },
       model: 'claude-sonnet-4-6',
@@ -200,7 +218,10 @@ describe('AnthropicAdapter.streamCompletion — chunk translation', () => {
     streamEvents.length = 0;
     streamEvents.push(
       { type: 'content_block_start', content_block: { type: 'text' } },
-      { type: 'content_block_delta', delta: { type: 'text_delta', text: 'I cannot help with that.' } },
+      {
+        type: 'content_block_delta',
+        delta: { type: 'text_delta', text: 'I cannot help with that.' },
+      },
       { type: 'content_block_stop' },
       { type: 'message_delta', delta: { stop_reason: 'refusal' } }
     );

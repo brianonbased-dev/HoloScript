@@ -31,13 +31,13 @@ import type { ToolSpec, ToolUseBlock, ToolResultBlock } from '@holoscript/llm-pr
 // Sandbox roots — keep narrow. Add only when a task needs more.
 // ---------------------------------------------------------------------------
 const ALLOWED_READ_ROOTS = [
-  '/root/msc-paper-22',          // Paper 22 mechanization inputs (scp'd by deploy)
-  '/root/holoscript-mesh',        // Read-only repo view (clone path on instance)
-  '/root/agent-output',           // Read back what we wrote
+  '/root/msc-paper-22', // Paper 22 mechanization inputs (scp'd by deploy)
+  '/root/holoscript-mesh', // Read-only repo view (clone path on instance)
+  '/root/agent-output', // Read back what we wrote
 ];
 
 const ALLOWED_WRITE_ROOTS = [
-  '/root/agent-output',           // Single write sink — keeps deliverables in one place
+  '/root/agent-output', // Single write sink — keeps deliverables in one place
 ];
 
 // Command-prefix whitelist. Prefix-match is intentional — `lake build MSC`
@@ -56,23 +56,32 @@ const ALLOWED_WRITE_ROOTS = [
 // the worker must call something productive (lake build / pnpm --filter
 // build / vitest run / lean compile / etc.) to claim `executed`.
 const BASH_READ_ONLY_PREFIXES = [
-  'ls ', 'ls\n', 'ls$',
+  'ls ',
+  'ls\n',
+  'ls$',
   'cat ',
-  'grep ', 'rg ',
+  'grep ',
+  'rg ',
   'find ',
   'wc ',
-  'head ', 'tail ',
-  'git status', 'git log', 'git diff', 'git show',
+  'head ',
+  'tail ',
+  'git status',
+  'git log',
+  'git diff',
+  'git show',
   'pwd',
   'echo ',
   'lake env',
 ];
 
 const BASH_PRODUCTIVE_PREFIXES = [
-  'lake build', 'lake clean',
+  'lake build',
+  'lake clean',
   'lean ',
   'pnpm --filter',
-  'pnpm vitest', 'vitest run',
+  'pnpm vitest',
+  'vitest run',
 ];
 
 const BASH_WHITELIST = [...BASH_READ_ONLY_PREFIXES, ...BASH_PRODUCTIVE_PREFIXES];
@@ -97,7 +106,7 @@ export const MESH_TOOLS: ToolSpec[] = [
     description:
       'Read a file from the agent sandbox. Allowed roots: /root/msc-paper-22, ' +
       '/root/holoscript-mesh, /root/agent-output. Returns the file content as text. ' +
-      'Use this to inspect inputs scp\'d to the instance (e.g. MSC/Invariants.lean).',
+      "Use this to inspect inputs scp'd to the instance (e.g. MSC/Invariants.lean).",
     input_schema: {
       type: 'object',
       properties: {
@@ -201,7 +210,10 @@ export async function runTool(use: ToolUseBlock): Promise<ToolResultBlock> {
       if (denied) return errResult(use.id, denied);
       const text = await readFile(path, 'utf8');
       // Cap at 200KB to avoid context blowups
-      const truncated = text.length > 200_000 ? text.slice(0, 200_000) + `\n…[truncated, full file is ${text.length} bytes]` : text;
+      const truncated =
+        text.length > 200_000
+          ? text.slice(0, 200_000) + `\n…[truncated, full file is ${text.length} bytes]`
+          : text;
       return okResult(use.id, truncated);
     }
 
@@ -285,7 +297,10 @@ function runBash(cmd: string, cwd: string): Promise<BashResult> {
     });
     child.on('exit', (code) => {
       clearTimeout(killer);
-      const finalStdout = stdout.length >= STDOUT_CAP ? stdout + `\n…[stdout truncated at ${STDOUT_CAP} bytes]` : stdout;
+      const finalStdout =
+        stdout.length >= STDOUT_CAP
+          ? stdout + `\n…[stdout truncated at ${STDOUT_CAP} bytes]`
+          : stdout;
       const note = killed ? `\n[bash killed after ${TIMEOUT_MS}ms timeout]` : '';
       resolveProm({ code: code ?? 1, stdout: finalStdout + note, stderr });
     });

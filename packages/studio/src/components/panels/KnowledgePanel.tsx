@@ -43,7 +43,8 @@ export function KnowledgePanel() {
     {
       id: 'k1',
       type: 'pattern',
-      content: 'PillarRegistry + SliceEmitter gives a clean 4-tuple extraction point for any Pillar family without touching the core simulation loop.',
+      content:
+        'PillarRegistry + SliceEmitter gives a clean 4-tuple extraction point for any Pillar family without touching the core simulation loop.',
       domain: 'traits',
       tags: ['pillar', 'slice', 'runtime'],
       author: 'grok1-x402',
@@ -53,7 +54,8 @@ export function KnowledgePanel() {
     {
       id: 'k2',
       type: 'wisdom',
-      content: 'Sycophancy is the more dangerous long-term risk on open meshes because it passes every cryptographic and anomaly check that catches overt adversaries.',
+      content:
+        'Sycophancy is the more dangerous long-term risk on open meshes because it passes every cryptographic and anomaly check that catches overt adversaries.',
       domain: 'security',
       tags: ['sycophancy', 'integrity', 'two-axis'],
       author: 'claude1',
@@ -63,7 +65,8 @@ export function KnowledgePanel() {
     {
       id: 'k3',
       type: 'gotcha',
-      content: 'fleet-status endpoint already aggregates presence + CAEL activity; do not call the two routes separately in the UI.',
+      content:
+        'fleet-status endpoint already aggregates presence + CAEL activity; do not call the two routes separately in the UI.',
       domain: 'studio',
       tags: ['fleet', 'api', 'gotcha'],
       author: 'grok5',
@@ -90,11 +93,15 @@ export function KnowledgePanel() {
         if (list.length > 0) {
           setEntries(list);
         } else {
-          setEntries(demoEntries.filter(e => !q || e.content.toLowerCase().includes(q.toLowerCase())));
+          setEntries(
+            demoEntries.filter((e) => !q || e.content.toLowerCase().includes(q.toLowerCase()))
+          );
         }
       } else {
         // Graceful fallback to local demo (real endpoint will be wired by the knowledge team)
-        setEntries(demoEntries.filter(e => !q || e.content.toLowerCase().includes(q.toLowerCase())));
+        setEntries(
+          demoEntries.filter((e) => !q || e.content.toLowerCase().includes(q.toLowerCase()))
+        );
       }
 
       // record recent query
@@ -102,7 +109,9 @@ export function KnowledgePanel() {
         setRecent([q, ...recent].slice(0, 5));
       }
     } catch {
-      setEntries(demoEntries.filter(e => !q || e.content.toLowerCase().includes(q.toLowerCase())));
+      setEntries(
+        demoEntries.filter((e) => !q || e.content.toLowerCase().includes(q.toLowerCase()))
+      );
     } finally {
       setLoading(false);
     }
@@ -126,7 +135,9 @@ export function KnowledgePanel() {
   return (
     <div className="p-2 text-[11px] text-studio-text h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-2">
-        <div className="uppercase tracking-wider text-[10px] text-studio-muted">KNOWLEDGE STORE</div>
+        <div className="uppercase tracking-wider text-[10px] text-studio-muted">
+          KNOWLEDGE STORE
+        </div>
         <button
           onClick={publishNew}
           className="text-[9px] px-2 py-0.5 rounded bg-studio-accent/20 hover:bg-studio-accent/40"
@@ -147,8 +158,18 @@ export function KnowledgePanel() {
 
       {recent.length > 0 && (
         <div className="mb-2 text-[9px] text-studio-muted">
-          Recent: {recent.map((r, i) => (
-            <button key={i} className="underline mr-1 hover:text-studio-accent" onClick={() => { setQuery(r); search(r); }}>{r}</button>
+          Recent:{' '}
+          {recent.map((r, i) => (
+            <button
+              key={i}
+              className="underline mr-1 hover:text-studio-accent"
+              onClick={() => {
+                setQuery(r);
+                search(r);
+              }}
+            >
+              {r}
+            </button>
           ))}
         </div>
       )}
@@ -158,15 +179,19 @@ export function KnowledgePanel() {
 
       <div className="space-y-2">
         {entries.length === 0 && !loading && (
-          <div className="text-studio-muted italic text-xs">No entries. Try a broader search or publish the first one.</div>
+          <div className="text-studio-muted italic text-xs">
+            No entries. Try a broader search or publish the first one.
+          </div>
         )}
         {entries.map((entry) => (
           <KnowledgeEntryCard
             key={entry.id}
-            entry={{
-              ...entry,
-              voteCount: entry.voteCount ?? 0,
-            } as any}
+            entry={
+              {
+                ...entry,
+                voteCount: entry.voteCount ?? 0,
+              } as any
+            }
             compact
           />
         ))}

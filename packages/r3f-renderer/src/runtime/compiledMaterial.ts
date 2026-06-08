@@ -15,11 +15,7 @@
  * @cites I.007, plan §0.7, task_1780604509863_w7i9 (assembly)
  */
 import * as THREE from 'three';
-import {
-  attachShaderChunks,
-  type ShaderChunkSet,
-  type ShaderChunkHandle,
-} from './shaderChunks';
+import { attachShaderChunks, type ShaderChunkSet, type ShaderChunkHandle } from './shaderChunks';
 import { resolveProceduralTexture, type ProceduralTextureSpec } from './proceduralTextures';
 
 /** Physical PBR props (mirror of the compiler's meshPhysicalMaterial emission). */

@@ -3,7 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock TraitComposer
 const { mockCompose } = vi.hoisted(() => ({ mockCompose: vi.fn() }));
 vi.mock('../../compiler/TraitComposer.js', () => ({
-  TraitComposer: vi.fn(function() { return { compose: mockCompose }; }),
+  TraitComposer: vi.fn(function () {
+    return { compose: mockCompose };
+  }),
 }));
 
 import { TraitBinder } from '../TraitBinder.js';

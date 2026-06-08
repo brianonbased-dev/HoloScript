@@ -22,23 +22,14 @@ Example: `A-009-2026-04-27T22-01-04Z-stress-abc123.json`
       "title": "Compiler: trait combo cloth+water+softbody fails",
       "description": "Stress-test combo errored during compilation. Error log: ...",
       "priority": "high",
-      "tags": [
-        "auto-filed-by-A-009",
-        "example-driven",
-        "compiler-bug"
-      ],
+      "tags": ["auto-filed-by-A-009", "example-driven", "compiler-bug"],
       "dedup_key": "a009-stress-abc123-combo-1"
     },
     {
       "title": "Artist requested @holographic_mesh trait (not in compiler)",
       "description": "Reiterate studio run requested this trait for a procedural fashion demo.",
       "priority": "medium",
-      "tags": [
-        "auto-filed-by-A-009",
-        "example-driven",
-        "trait-request",
-        "studio"
-      ],
+      "tags": ["auto-filed-by-A-009", "example-driven", "trait-request", "studio"],
       "dedup_key": "a009-stress-abc123-trait-holographic-mesh"
     }
   ]
@@ -47,22 +38,22 @@ Example: `A-009-2026-04-27T22-01-04Z-stress-abc123.json`
 
 ### Field Definitions
 
-| Field | Type | Required | Notes |
-| --- | --- | --- | --- |
-| `routine_id` | string | Yes | Unique identifier for this A-009 run (trigger ID). |
-| `routine_name` | string | Yes | Display name; should be "A-009 Example freshness + artist stress-test". |
-| `fired_at` | string (ISO 8601) | Yes | UTC timestamp when A-009 ran. |
-| `gaps` | array | Yes | Array of gap/issue objects. Empty array → no file created. |
+| Field          | Type              | Required | Notes                                                                   |
+| -------------- | ----------------- | -------- | ----------------------------------------------------------------------- |
+| `routine_id`   | string            | Yes      | Unique identifier for this A-009 run (trigger ID).                      |
+| `routine_name` | string            | Yes      | Display name; should be "A-009 Example freshness + artist stress-test". |
+| `fired_at`     | string (ISO 8601) | Yes      | UTC timestamp when A-009 ran.                                           |
+| `gaps`         | array             | Yes      | Array of gap/issue objects. Empty array → no file created.              |
 
 ### Gap Object Fields
 
-| Field | Type | Required | Notes |
-| --- | --- | --- | --- |
-| `title` | string | Yes | <60 characters. Concise description of the gap. |
-| `description` | string | No | <900 characters. Detailed explanation, error logs, context. |
-| `priority` | string | No | `"high"`, `"medium"`, `"low"`. Default: `"medium"`. |
-| `tags` | string[] | No | Array of tags. Should include `"auto-filed-by-A-009"`. Common: `"example-driven"`, `"compiler-bug"`, `"trait-request"`, `"studio"`, `"runtime"`. |
-| `dedup_key` | string | Yes | Unique key for deduplication. Format: `a009-<run-id>-<combo-id>-<gap-index>`. Server deduplicates on title + dedup_key. |
+| Field         | Type     | Required | Notes                                                                                                                                            |
+| ------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `title`       | string   | Yes      | <60 characters. Concise description of the gap.                                                                                                  |
+| `description` | string   | No       | <900 characters. Detailed explanation, error logs, context.                                                                                      |
+| `priority`    | string   | No       | `"high"`, `"medium"`, `"low"`. Default: `"medium"`.                                                                                              |
+| `tags`        | string[] | No       | Array of tags. Should include `"auto-filed-by-A-009"`. Common: `"example-driven"`, `"compiler-bug"`, `"trait-request"`, `"studio"`, `"runtime"`. |
+| `dedup_key`   | string   | Yes      | Unique key for deduplication. Format: `a009-<run-id>-<combo-id>-<gap-index>`. Server deduplicates on title + dedup_key.                          |
 
 ## Pipeline
 

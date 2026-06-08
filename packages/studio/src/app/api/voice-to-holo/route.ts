@@ -53,8 +53,7 @@ function makeClient(): Anthropic | null {
 function buildSystemPrompt(previousComposition: string | undefined): string {
   if (!previousComposition) return SYSTEM_PROMPT_FRESH;
   return (
-    SYSTEM_PROMPT_FRESH +
-    SYSTEM_PROMPT_EDIT_SUFFIX.replace('{{PREVIOUS}}', previousComposition)
+    SYSTEM_PROMPT_FRESH + SYSTEM_PROMPT_EDIT_SUFFIX.replace('{{PREVIOUS}}', previousComposition)
   );
 }
 
@@ -90,7 +89,9 @@ async function callModel(
   return { text, latencyMs: Date.now() - t0 };
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse<VoiceToHoloResponse | VoiceToHoloError>> {
+export async function POST(
+  req: NextRequest
+): Promise<NextResponse<VoiceToHoloResponse | VoiceToHoloError>> {
   // SEC-T03: gate on authenticated session before touching any LLM key.
   const auth = await requireAuth();
   if (auth instanceof NextResponse) {

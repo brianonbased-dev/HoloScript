@@ -23,11 +23,7 @@ export default function SelfCustodyPage() {
   const router = useRouter();
 
   if (status === 'loading') {
-    return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>
-        Loading...
-      </div>
-    );
+    return <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>Loading...</div>;
   }
 
   if (!session?.user) {
@@ -42,9 +38,7 @@ export default function SelfCustodyPage() {
   // a clear error if the session doesn't carry one.
   const sessionUser = session.user as unknown as SessionUser;
   const bearerToken =
-    sessionUser.accessToken ||
-    (session as unknown as { accessToken?: string }).accessToken ||
-    '';
+    sessionUser.accessToken || (session as unknown as { accessToken?: string }).accessToken || '';
 
   if (!bearerToken) {
     return (
@@ -60,9 +54,9 @@ export default function SelfCustodyPage() {
         }}
         role="alert"
       >
-        <strong>Session missing MCP bearer token.</strong> Your next-auth
-        session does not expose an access token we can pass to the identity
-        server. Sign out and back in, or contact support if this persists.
+        <strong>Session missing MCP bearer token.</strong> Your next-auth session does not expose an
+        access token we can pass to the identity server. Sign out and back in, or contact support if
+        this persists.
       </div>
     );
   }
@@ -70,8 +64,7 @@ export default function SelfCustodyPage() {
   // Dev banner when REQUIRE_2FA is unset at build time. Production deploys
   // should set this to mask the banner.
   const devSkipBanner =
-    process.env.NEXT_PUBLIC_REQUIRE_2FA !== 'true' &&
-    process.env.NODE_ENV !== 'production';
+    process.env.NEXT_PUBLIC_REQUIRE_2FA !== 'true' && process.env.NODE_ENV !== 'production';
 
   return (
     <div
@@ -123,9 +116,8 @@ export default function SelfCustodyPage() {
           fontSize: 13,
         }}
       >
-        Retire the custodial signer and take sole control of your account via
-        your own wallet. This is permanent — we cannot restore custodial
-        signing once retired.
+        Retire the custodial signer and take sole control of your account via your own wallet. This
+        is permanent — we cannot restore custodial signing once retired.
       </p>
 
       <MigrationWizard

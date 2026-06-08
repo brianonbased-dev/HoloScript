@@ -520,9 +520,12 @@ export class TraitInheritanceResolver {
       });
     }
 
-    if ('x' in record && '0' in record) (record as unknown as Record<number, HoloValue>)[0] = record.x;
-    if ('y' in record && '1' in record) (record as unknown as Record<number, HoloValue>)[1] = record.y;
-    if ('z' in record && '2' in record) (record as unknown as Record<number, HoloValue>)[2] = record.z;
+    if ('x' in record && '0' in record)
+      (record as unknown as Record<number, HoloValue>)[0] = record.x;
+    if ('y' in record && '1' in record)
+      (record as unknown as Record<number, HoloValue>)[1] = record.y;
+    if ('z' in record && '2' in record)
+      (record as unknown as Record<number, HoloValue>)[2] = record.z;
   }
 
   private propertiesToRecord(

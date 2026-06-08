@@ -10,13 +10,7 @@
  *    (spec-level check, not model-output check)."
  */
 
-import {
-  encodeStep,
-  extendChain,
-  toHex,
-  type SpikeBatch,
-  type FieldQuanta,
-} from './spike-encoder';
+import { encodeStep, extendChain, toHex, type SpikeBatch, type FieldQuanta } from './spike-encoder';
 import { decodeStep, verifyBoundedLoss } from './spike-decoder';
 
 export interface StageAResult {
@@ -39,7 +33,8 @@ export function simulatePendulum(
   // Seeded init: theta = seed % 2 radians, omega = 0
   let theta = (seed % 200) / 100.0; // deterministic
   let omega = 0;
-  const out: Array<{ step: number; theta: number; omega: number; pos: [number, number, number] }> = [];
+  const out: Array<{ step: number; theta: number; omega: number; pos: [number, number, number] }> =
+    [];
   for (let step = 0; step < num_steps; step++) {
     const alpha = -(g / L) * Math.sin(theta);
     omega += alpha * dt;
@@ -129,7 +124,11 @@ export function runStageA(opts?: {
 
 // Direct-run entry point (for smoke during development).
 // Check if this is being run directly via tsx/ts-node; skipped in production builds.
-if (typeof process !== 'undefined' && process.argv && process.argv[1]?.includes('stage-a-synthetic')) {
+if (
+  typeof process !== 'undefined' &&
+  process.argv &&
+  process.argv[1]?.includes('stage-a-synthetic')
+) {
   const result = runStageA();
   // eslint-disable-next-line no-console
   console.log(JSON.stringify(result, null, 2));

@@ -16,12 +16,20 @@ function dt1NewFileOrExisting(dna: ScaffoldDNA): string {
   return `### DT-1: Should I create a new file or add to an existing one?
 
 \`\`\`
-${isMonorepo ? `Is it for a specific package?
+${
+  isMonorepo
+    ? `Is it for a specific package?
   YES → Add to that package's existing files first
   NO  → Check if a shared/common package exists
-` : ''}${hasComponents ? `Is it a new UI component?
+`
+    : ''
+}${
+    hasComponents
+      ? `Is it a new UI component?
   YES → New file in components/ (one component per file)
-` : ''}Is it a new utility function?
+`
+      : ''
+  }Is it a new utility function?
   YES → Add to the closest existing utility file
   NO new file unless the function doesn't fit anywhere
 Is it a new API endpoint?
@@ -122,9 +130,10 @@ function dt4ToolChoice(dna: ScaffoldDNA): string {
     choices.push('Go: use standard library when possible. Minimize external deps.');
   }
 
-  const choiceBlock = choices.length > 0
-    ? choices.map(c => `  - ${c}`).join('\n')
-    : '  - Follow existing patterns in the codebase.';
+  const choiceBlock =
+    choices.length > 0
+      ? choices.map((c) => `  - ${c}`).join('\n')
+      : '  - Follow existing patterns in the codebase.';
 
   return `### DT-4: Which tool or framework should I use?
 
@@ -145,11 +154,15 @@ Need a new dependency?
 // ─── DT-5: Error recovery ──────────────────────────────────────────────────
 
 function dt5ErrorRecovery(dna: ScaffoldDNA): string {
-  const buildCmd = dna.techStack.includes('pnpm') ? 'pnpm build' :
-    dna.techStack.includes('yarn') ? 'yarn build' :
-    dna.languages.includes('go') ? 'go build ./...' :
-    dna.languages.includes('rs') ? 'cargo build' :
-    'npm run build';
+  const buildCmd = dna.techStack.includes('pnpm')
+    ? 'pnpm build'
+    : dna.techStack.includes('yarn')
+      ? 'yarn build'
+      : dna.languages.includes('go')
+        ? 'go build ./...'
+        : dna.languages.includes('rs')
+          ? 'cargo build'
+          : 'npm run build';
 
   return `### DT-5: Something broke — how do I recover?
 
@@ -200,7 +213,7 @@ function quickDefaults(dna: ScaffoldDNA): string {
     defaults.push(`Server or client component? → **Server** by default, client only when needed`);
   }
 
-  return defaults.map(d => `- ${d}`).join('\n');
+  return defaults.map((d) => `- ${d}`).join('\n');
 }
 
 // ─── Main template ──────────────────────────────────────────────────────────

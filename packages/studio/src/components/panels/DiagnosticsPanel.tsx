@@ -261,18 +261,23 @@ export function DiagnosticsPanel() {
                             const endLine = fix.range.endLine - 1;
                             const startCol = fix.range.startColumn;
                             const endCol = fix.range.endColumn;
-                            
+
                             if (startLine >= 0 && startLine < lines.length) {
                               if (startLine === endLine) {
                                 const line = lines[startLine] || '';
-                                lines[startLine] = line.slice(0, startCol) + fix.newText + line.slice(endCol);
+                                lines[startLine] =
+                                  line.slice(0, startCol) + fix.newText + line.slice(endCol);
                               } else {
                                 const firstLine = lines[startLine]?.slice(0, startCol) || '';
                                 const lastLine = lines[endLine]?.slice(endCol) || '';
-                                lines.splice(startLine, endLine - startLine + 1, firstLine + fix.newText + lastLine);
+                                lines.splice(
+                                  startLine,
+                                  endLine - startLine + 1,
+                                  firstLine + fix.newText + lastLine
+                                );
                               }
                               setCode(lines.join('\n'));
-                              setDiagnostics(prev => prev.filter(d => d !== diag));
+                              setDiagnostics((prev) => prev.filter((d) => d !== diag));
                             }
                           }}
                           className="px-2 py-0.5 rounded text-[9px] font-medium transition

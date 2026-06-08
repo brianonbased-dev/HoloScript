@@ -12,7 +12,7 @@ import {
 
 /**
  * HoloScript Language Server Proxy Wrapper
- * 
+ *
  * Routes operations to the WebWorker via CompilerWorkerProxy to ensure
  * main-thread framerate is preserved during massive document processing.
  */
@@ -37,8 +37,7 @@ export class HoloScriptLanguageServer {
   /**
    * Remove document from cache when closed.
    */
-  removeDocument(uri: string): void {
-  }
+  removeDocument(uri: string): void {}
 
   /**
    * Update document content
@@ -58,7 +57,11 @@ export class HoloScriptLanguageServer {
    * Get completions at position
    */
   async getCompletions(uri: string, position: Position): Promise<CompletionItem[]> {
-    return (await this.proxy.getCompletions(uri, position.line, position.character)) as CompletionItem[];
+    return (await this.proxy.getCompletions(
+      uri,
+      position.line,
+      position.character
+    )) as CompletionItem[];
   }
 
   /**
@@ -86,7 +89,10 @@ export class HoloScriptLanguageServer {
   /**
    * Prepare rename
    */
-  async prepareRename(uri: string, position: Position): Promise<{ range: Range; placeholder: string } | null> {
+  async prepareRename(
+    uri: string,
+    position: Position
+  ): Promise<{ range: Range; placeholder: string } | null> {
     return null;
   }
 
@@ -94,13 +100,17 @@ export class HoloScriptLanguageServer {
    * Rename symbol
    */
   async rename(uri: string, position: Position, newName: string): Promise<WorkspaceEdit | null> {
-    return null; 
+    return null;
   }
 
   /**
    * Get code actions
    */
-  async getCodeActions(uri: string, range: Range, diagnostics: Diagnostic[]): Promise<CodeAction[]> {
+  async getCodeActions(
+    uri: string,
+    range: Range,
+    diagnostics: Diagnostic[]
+  ): Promise<CodeAction[]> {
     return [];
   }
 }

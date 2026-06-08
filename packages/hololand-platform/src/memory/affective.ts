@@ -1,14 +1,14 @@
 /**
  * @fileoverview Affective Memory module for HoloLand VR Platform.
- * Prioritizes scene loading and content surface caching based on emotional 
+ * Prioritizes scene loading and content surface caching based on emotional
  * valence/arousal feedback metrics.
  */
 
 import type { VRRRuntime } from '@holoscript/runtime';
 
 export interface AffectScore {
-  valence: number;  // -1 (negative) to 1 (positive)
-  arousal: number;  // 0 (calm) to 1 (excited)
+  valence: number; // -1 (negative) to 1 (positive)
+  arousal: number; // 0 (calm) to 1 (excited)
   timestamp: number;
 }
 
@@ -22,7 +22,7 @@ export interface AffectiveSceneContext {
 export class AffectiveMemory {
   private runtime: VRRRuntime;
   private sceneMemory: Map<string, AffectiveSceneContext> = new Map();
-  
+
   constructor(runtime: VRRRuntime) {
     this.runtime = runtime;
   }
@@ -32,13 +32,13 @@ export class AffectiveMemory {
    */
   public trackAffect(sceneId: string, valence: number, arousal: number): void {
     const score: AffectScore = { valence, arousal, timestamp: Date.now() };
-    
+
     if (!this.sceneMemory.has(sceneId)) {
       this.sceneMemory.set(sceneId, {
         sceneId,
         accumulatedAffect: [],
         averageValence: 0,
-        priorityWeight: 0
+        priorityWeight: 0,
       });
     }
 
@@ -51,7 +51,7 @@ export class AffectiveMemory {
     }
 
     this.recalculatePriority(context);
-    
+
     // Save to runtime persistence
     this.runtime.persistState(`affective_memory_${sceneId}`, context);
   }
@@ -61,19 +61,19 @@ export class AffectiveMemory {
    */
   private recalculatePriority(context: AffectiveSceneContext): void {
     if (context.accumulatedAffect.length === 0) return;
-    
+
     let sumValence = 0;
     let sumArousal = 0;
     for (const score of context.accumulatedAffect) {
       sumValence += score.valence;
       sumArousal += score.arousal;
     }
-    
+
     context.averageValence = sumValence / context.accumulatedAffect.length;
     const avgArousal = sumArousal / context.accumulatedAffect.length;
-    
+
     // Weight logic: Scenes with both high positivity (valence) and engagement (arousal) get top priority
-    context.priorityWeight = (context.averageValence * 0.7) + (avgArousal * 0.3);
+    context.priorityWeight = context.averageValence * 0.7 + avgArousal * 0.3;
   }
 
   /**
@@ -83,7 +83,7 @@ export class AffectiveMemory {
   public getPrioritizedScenes(): string[] {
     const scenes = Array.from(this.sceneMemory.values());
     scenes.sort((a, b) => b.priorityWeight - a.priorityWeight);
-    return scenes.map(s => s.sceneId);
+    return scenes.map((s) => s.sceneId);
   }
 
   /**

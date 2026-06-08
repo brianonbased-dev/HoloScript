@@ -45,17 +45,17 @@ describe('holo_generate_bindings handler', () => {
   });
 
   it('returns error when neither modulePath nor sourceCode is provided', async () => {
-    const result = await handleDeveloperTool('holo_generate_bindings', {
+    const result = (await handleDeveloperTool('holo_generate_bindings', {
       targetLang: 'python',
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
     expect(result.error).toMatch(/modulePath.*sourceCode/i);
   });
 
   it('generates Python bindings from sourceCode', async () => {
-    const result = await handleDeveloperTool('holo_generate_bindings', {
+    const result = (await handleDeveloperTool('holo_generate_bindings', {
       targetLang: 'python',
       sourceCode: SIMPLE_SOURCE,
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
 
     expect(result.error).toBeUndefined();
     expect(result.language).toBe('python');
@@ -64,10 +64,10 @@ describe('holo_generate_bindings handler', () => {
   });
 
   it('Python output contains expected boilerplate markers', async () => {
-    const result = await handleDeveloperTool('holo_generate_bindings', {
+    const result = (await handleDeveloperTool('holo_generate_bindings', {
       targetLang: 'python',
       sourceCode: SIMPLE_SOURCE,
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
 
     const code = result.code as string;
     // InteropBindingGenerator always emits the module docstring and typing import
@@ -76,10 +76,10 @@ describe('holo_generate_bindings handler', () => {
   });
 
   it('generates JavaScript bindings from sourceCode', async () => {
-    const result = await handleDeveloperTool('holo_generate_bindings', {
+    const result = (await handleDeveloperTool('holo_generate_bindings', {
       targetLang: 'javascript',
       sourceCode: SIMPLE_SOURCE,
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
 
     expect(result.error).toBeUndefined();
     expect(result.language).toBe('javascript');
@@ -87,20 +87,20 @@ describe('holo_generate_bindings handler', () => {
   });
 
   it('generates TypeScript bindings and sets language tag', async () => {
-    const result = await handleDeveloperTool('holo_generate_bindings', {
+    const result = (await handleDeveloperTool('holo_generate_bindings', {
       targetLang: 'typescript',
       sourceCode: SIMPLE_SOURCE,
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
 
     expect(result.error).toBeUndefined();
     expect(result.language).toBe('typescript');
   });
 
   it('populates exports array', async () => {
-    const result = await handleDeveloperTool('holo_generate_bindings', {
+    const result = (await handleDeveloperTool('holo_generate_bindings', {
       targetLang: 'python',
       sourceCode: SIMPLE_SOURCE,
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
 
     expect(Array.isArray(result.exports)).toBe(true);
     expect((result.exports as string[]).length).toBeGreaterThanOrEqual(0);
@@ -108,10 +108,10 @@ describe('holo_generate_bindings handler', () => {
   });
 
   it('metadata contains generatedAt and sourceFile', async () => {
-    const result = await handleDeveloperTool('holo_generate_bindings', {
+    const result = (await handleDeveloperTool('holo_generate_bindings', {
       targetLang: 'python',
       sourceCode: SIMPLE_SOURCE,
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
 
     const meta = result.metadata as Record<string, unknown>;
     expect(meta).toBeDefined();
@@ -120,20 +120,20 @@ describe('holo_generate_bindings handler', () => {
   });
 
   it('includes usage hint in response', async () => {
-    const result = await handleDeveloperTool('holo_generate_bindings', {
+    const result = (await handleDeveloperTool('holo_generate_bindings', {
       targetLang: 'python',
       sourceCode: SIMPLE_SOURCE,
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
 
     expect(typeof result.usage).toBe('string');
     expect(result.usage as string).toMatch(/\.py/);
   });
 
   it('returns error for invalid .hsplus source', async () => {
-    const result = await handleDeveloperTool('holo_generate_bindings', {
+    const result = (await handleDeveloperTool('holo_generate_bindings', {
       targetLang: 'python',
       sourceCode: '<<< completely invalid >>>',
-    }) as Record<string, unknown>;
+    })) as Record<string, unknown>;
 
     // Parser either returns errors array or throws — either way error key is set
     expect(result.error).toBeDefined();

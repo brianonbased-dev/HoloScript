@@ -4,7 +4,11 @@ export { createComponentLibraryHandler } from './traits/ComponentLibraryTrait';
 export { createFirmwareFlashHandler } from './traits/FirmwareFlashTrait';
 export type { TraitHandler, TraitContext, TraitEvent, HSPlusNode } from './traits/types';
 export type { PCBLayoutConfig, Pad, Trace, PCBLayer } from './traits/PCBLayoutTrait';
-export type { ComponentLibraryConfig, Component, ComponentCategory } from './traits/ComponentLibraryTrait';
+export type {
+  ComponentLibraryConfig,
+  Component,
+  ComponentCategory,
+} from './traits/ComponentLibraryTrait';
 export type { FirmwareFlashConfig, FlashProtocol } from './traits/FirmwareFlashTrait';
 
 import { registerPluginTraits } from '@holoscript/core/runtime';

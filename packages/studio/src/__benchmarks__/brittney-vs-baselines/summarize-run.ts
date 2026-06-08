@@ -15,12 +15,17 @@ if (!runId) {
 }
 
 const resultsDir = path.join(__dirname, 'results', runId);
-const run: BenchmarkRun = JSON.parse(fs.readFileSync(path.join(resultsDir, 'results.json'), 'utf8'));
+const run: BenchmarkRun = JSON.parse(
+  fs.readFileSync(path.join(resultsDir, 'results.json'), 'utf8')
+);
 
 const total = run.outcomes.length;
 const passed = run.outcomes.filter((o) => o.creation_completion).length;
 const passRate = ((passed / total) * 100).toFixed(1);
-const duration = ((new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 60000).toFixed(1);
+const duration = (
+  (new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) /
+  60000
+).toFixed(1);
 
 const byTier: Record<string, { pass: number; total: number }> = {};
 for (const o of run.outcomes) {
@@ -41,7 +46,9 @@ const byTask: Record<string, number> = {};
 for (const o of failures) {
   byTask[o.task_id] = (byTask[o.task_id] || 0) + 1;
 }
-const topFailures = Object.entries(byTask).sort((a, b) => b[1] - a[1]).slice(0, 5);
+const topFailures = Object.entries(byTask)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 5);
 
 const lines: string[] = [
   `## Benchmark Run \`${run.run_id}\``,
@@ -52,13 +59,15 @@ const lines: string[] = [
   `- **Configs**: ${run.configs.join(', ')}`,
   '',
   '### By Tier',
-  ...Object.entries(byTier).map(([tier, { pass, total }]) =>
-    `- ${tier}: ${pass}/${total} (${((pass / total) * 100).toFixed(1)}%)`
+  ...Object.entries(byTier).map(
+    ([tier, { pass, total }]) =>
+      `- ${tier}: ${pass}/${total} (${((pass / total) * 100).toFixed(1)}%)`
   ),
   '',
   '### By Config',
-  ...Object.entries(byConfig).map(([config, { pass, total }]) =>
-    `- ${config}: ${pass}/${total} (${((pass / total) * 100).toFixed(1)}%)`
+  ...Object.entries(byConfig).map(
+    ([config, { pass, total }]) =>
+      `- ${config}: ${pass}/${total} (${((pass / total) * 100).toFixed(1)}%)`
   ),
   '',
 ];

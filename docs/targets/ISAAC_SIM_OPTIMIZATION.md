@@ -282,6 +282,7 @@ ixx = iyy = izz = (2 / 5) * mass * r * r;
 ### Verification
 
 Run `pnpm --filter @holoscript/core test packages/core/src/compiler/__tests__/SDFCompiler.test.ts`:
+
 - Test count is intentionally not pinned here; trust the command output.
 - Coverage: gz-sim plugins, proper inertia (box/sphere/cylinder), joint articulation, mass property extraction
 - Build verified: `pnpm --filter @holoscript/core build` passes cleanly.

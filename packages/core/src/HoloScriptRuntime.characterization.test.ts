@@ -56,15 +56,15 @@ function hashResult(result: unknown): string {
 // Fields stripped as non-deterministic. If the split adds a new
 // timestamp-shaped field, add it here with a one-line justification.
 const NONDET_KEYS = new Set<string>([
-  'executionTime',   // wall-clock ms for the individual execute call
-  'timestamp',       // generic event timestamps
-  'runId',           // provenance record run ID
-  '_generated_at',   // runtime-internal generation marker
-  'created',         // orb/node creation Date.now() (W4-T3 L1 drift source)
-  'createdAt',       // SimulationProvenance ISO timestamp
-  'modifiedAt',      // mutation markers
-  'updatedAt',       // mutation markers
-  'lastUpdate',      // periodic-update markers
+  'executionTime', // wall-clock ms for the individual execute call
+  'timestamp', // generic event timestamps
+  'runId', // provenance record run ID
+  '_generated_at', // runtime-internal generation marker
+  'created', // orb/node creation Date.now() (W4-T3 L1 drift source)
+  'createdAt', // SimulationProvenance ISO timestamp
+  'modifiedAt', // mutation markers
+  'updatedAt', // mutation markers
+  'lastUpdate', // periodic-update markers
 ]);
 
 function stripNondeterministic(v: unknown): unknown {
@@ -82,7 +82,13 @@ function stableStringify(v: unknown): string {
   if (v === null || typeof v !== 'object') return JSON.stringify(v);
   if (Array.isArray(v)) return '[' + v.map(stableStringify).join(',') + ']';
   const keys = Object.keys(v as object).sort();
-  return '{' + keys.map((k) => JSON.stringify(k) + ':' + stableStringify((v as Record<string, unknown>)[k])).join(',') + '}';
+  return (
+    '{' +
+    keys
+      .map((k) => JSON.stringify(k) + ':' + stableStringify((v as Record<string, unknown>)[k]))
+      .join(',') +
+    '}'
+  );
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -131,11 +137,19 @@ describe('HoloScriptRuntime characterization (W4-T3 pre-split lock)', () => {
     it('[L3] connection between two orbs locks output', async () => {
       // Setup: create source and target orbs
       const src: OrbNode = {
-        type: 'orb', name: 'src', properties: {}, methods: [], position: [0, 0, 0],
+        type: 'orb',
+        name: 'src',
+        properties: {},
+        methods: [],
+        position: [0, 0, 0],
         hologram: { shape: 'orb', color: '#00ff00', size: 1, glow: true, interactive: false },
       };
       const tgt: OrbNode = {
-        type: 'orb', name: 'tgt', properties: {}, methods: [], position: [5, 0, 0],
+        type: 'orb',
+        name: 'tgt',
+        properties: {},
+        methods: [],
+        position: [5, 0, 0],
         hologram: { shape: 'orb', color: '#0000ff', size: 1, glow: true, interactive: false },
       };
       await runtime.executeNode(src);
@@ -212,10 +226,22 @@ describe('HoloScriptRuntime characterization (W4-T3 pre-split lock)', () => {
   describe('execute(array) sequencing', () => {
     it('[L9] sequential execution locks composite result', async () => {
       const nodes: ASTNode[] = [
-        { type: 'orb', name: 'a', properties: {}, methods: [], position: [0, 0, 0],
-          hologram: { shape: 'orb', color: '#111', size: 1, glow: false, interactive: false } } as OrbNode,
-        { type: 'orb', name: 'b', properties: {}, methods: [], position: [1, 0, 0],
-          hologram: { shape: 'orb', color: '#222', size: 1, glow: false, interactive: false } } as OrbNode,
+        {
+          type: 'orb',
+          name: 'a',
+          properties: {},
+          methods: [],
+          position: [0, 0, 0],
+          hologram: { shape: 'orb', color: '#111', size: 1, glow: false, interactive: false },
+        } as OrbNode,
+        {
+          type: 'orb',
+          name: 'b',
+          properties: {},
+          methods: [],
+          position: [1, 0, 0],
+          hologram: { shape: 'orb', color: '#222', size: 1, glow: false, interactive: false },
+        } as OrbNode,
         { type: 'connection', source: 'a', target: 'b', connectionType: 'flow' } as ConnectionNode,
       ];
       const results = await runtime.execute(nodes);
@@ -274,7 +300,9 @@ describe('HoloScriptRuntime characterization (W4-T3 pre-split lock)', () => {
       runtime.registerTrait('charTrait', handler as never);
       // Observable: count of registered traits or lookup
       const registry = runtime.getExtensionRegistry();
-      expect(hashResult({ hasCharTrait: registry !== undefined })).toMatchSnapshot('L16-registerTrait');
+      expect(hashResult({ hasCharTrait: registry !== undefined })).toMatchSnapshot(
+        'L16-registerTrait'
+      );
     });
   });
 });

@@ -29,8 +29,10 @@ export interface GeneratedFile {
 // ─── Shared helpers ────────────────────────────────────────────────────────
 
 function testCmd(dna: ProjectDNA): string {
-  if (dna.techStack.includes('vitest')) return dna.techStack.includes('pnpm') ? 'pnpm vitest' : 'npx vitest';
-  if (dna.techStack.includes('jest')) return dna.techStack.includes('pnpm') ? 'pnpm jest' : 'npx jest';
+  if (dna.techStack.includes('vitest'))
+    return dna.techStack.includes('pnpm') ? 'pnpm vitest' : 'npx vitest';
+  if (dna.techStack.includes('jest'))
+    return dna.techStack.includes('pnpm') ? 'pnpm jest' : 'npx jest';
   if (dna.languages.includes('py')) return 'pytest';
   if (dna.languages.includes('go')) return 'go test ./...';
   if (dna.languages.includes('rs')) return 'cargo test';
@@ -47,7 +49,8 @@ function buildCmd(dna: ProjectDNA): string {
 }
 
 function lintCmd(dna: ProjectDNA): string {
-  if (dna.techStack.includes('eslint')) return dna.techStack.includes('pnpm') ? 'pnpm lint' : 'npx eslint .';
+  if (dna.techStack.includes('eslint'))
+    return dna.techStack.includes('pnpm') ? 'pnpm lint' : 'npx eslint .';
   if (dna.languages.includes('py')) return 'ruff check .';
   if (dna.languages.includes('go')) return 'golangci-lint run';
   if (dna.languages.includes('rs')) return 'cargo clippy';
@@ -73,7 +76,7 @@ function stackConventions(dna: ProjectDNA): string {
     rules.push('- No `unwrap()` in production — use `?` or explicit error handling.');
   }
   if (dna.frameworks.includes('next.js')) {
-    rules.push('- Server Components by default. `\'use client\'` only when needed.');
+    rules.push("- Server Components by default. `'use client'` only when needed.");
   }
   if (dna.frameworks.includes('react') && !dna.frameworks.includes('next.js')) {
     rules.push('- Functional components only. Co-locate tests.');

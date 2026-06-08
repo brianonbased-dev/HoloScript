@@ -132,8 +132,9 @@ function compileToPdb(traits: AlphaFoldTrait[], opts: AlphaFoldCompileOptions = 
         }
       } else {
         throw new Error(
-          'protein_structure trait for ' + (t.name ?? 'unnamed') +
-          ' has no pdb_data. Set allowPlaceholder:true in compile options to emit a placeholder backbone, or fetch structure data first via alphafold_fetch_structure.'
+          'protein_structure trait for ' +
+            (t.name ?? 'unnamed') +
+            ' has no pdb_data. Set allowPlaceholder:true in compile options to emit a placeholder backbone, or fetch structure data first via alphafold_fetch_structure.'
         );
       }
     } else if (t.trait === 'binding_site') {

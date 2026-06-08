@@ -883,7 +883,9 @@ export class SpatialDataGenerator {
       (overlapMaxX - overlapMinX) * (overlapMaxY - overlapMinY) * (overlapMaxZ - overlapMinZ);
 
     const targetVolume =
-      (target.max[0] - target.min[0]) * (target.max[1] - target.min[1]) * (target.max[2] - target.min[2]);
+      (target.max[0] - target.min[0]) *
+      (target.max[1] - target.min[1]) *
+      (target.max[2] - target.min[2]);
 
     if (targetVolume === 0) return 0;
 
@@ -1316,7 +1318,9 @@ export class SpatialDataGenerator {
   private hashComposition(comp: SpatialComposition): string {
     const str =
       comp.name +
-      comp.objects.map((o) => `${o.id}:${o.position[0]},${o.position[1]},${o.position[2]}`).join('|');
+      comp.objects
+        .map((o) => `${o.id}:${o.position[0]},${o.position[1]},${o.position[2]}`)
+        .join('|');
 
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -1478,11 +1482,7 @@ export function parseSimpleComposition(source: string): SpatialComposition {
 
     let scaleVec: Vector3 | undefined;
     if (scaleMatch) {
-      scaleVec = [
-        parseFloat(scaleMatch[1]),
-        parseFloat(scaleMatch[2]),
-        parseFloat(scaleMatch[3]),
-      ];
+      scaleVec = [parseFloat(scaleMatch[1]), parseFloat(scaleMatch[2]), parseFloat(scaleMatch[3])];
     } else if (sizeMatch) {
       const s = parseFloat(sizeMatch[1]);
       scaleVec = [s, s, s];

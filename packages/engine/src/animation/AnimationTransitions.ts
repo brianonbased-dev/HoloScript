@@ -49,9 +49,11 @@ export class AnimationTransitionSystem {
   /** Normalize position: supports [x,y,z] arrays and {x,y,z} objects */
   private toVec3(v: IVector3 | { x: number; y: number; z: number }): IVector3 {
     if (Array.isArray(v)) return [v[0], v[1], v[2]];
-    return [(v as { x: number; y: number; z: number }).x ?? 0,
-            (v as { x: number; y: number; z: number }).y ?? 0,
-            (v as { x: number; y: number; z: number }).z ?? 0];
+    return [
+      (v as { x: number; y: number; z: number }).x ?? 0,
+      (v as { x: number; y: number; z: number }).y ?? 0,
+      (v as { x: number; y: number; z: number }).z ?? 0,
+    ];
   }
 
   private toQuat4(
@@ -82,7 +84,8 @@ export class AnimationTransitionSystem {
       position: this.toVec3(p.position as IVector3 | { x: number; y: number; z: number }),
       rotation: this.toQuat4(
         p.rotation as
-          | ([number, number, number, number] & Partial<{ x: number; y: number; z: number; w: number }>)
+          | ([number, number, number, number] &
+              Partial<{ x: number; y: number; z: number; w: number }>)
           | { x: number; y: number; z: number; w: number }
       ),
     }));
@@ -189,11 +192,7 @@ export class AnimationTransitionSystem {
   }
 
   private lerpVec3(a: IVector3, b: IVector3, t: number): IVector3 {
-    return [
-      a[0] + (b[0] - a[0]) * t,
-      a[1] + (b[1] - a[1]) * t,
-      a[2] + (b[2] - a[2]) * t,
-    ];
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   }
 
   private slerpQuat(

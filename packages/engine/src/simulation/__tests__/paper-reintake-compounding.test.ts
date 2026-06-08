@@ -69,7 +69,10 @@ function loadEnv(path: string): void {
       if (eq < 0) continue;
       const key = trimmed.slice(0, eq).trim();
       let val = trimmed.slice(eq + 1).trim();
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
         val = val.slice(1, -1);
       }
       if (!process.env[key]) process.env[key] = val;
@@ -85,8 +88,7 @@ loadEnv('C:/Users/josep/.ai-ecosystem/.env');
 loadEnv('C:/Users/Josep/Documents/GitHub/HoloScript/.env');
 
 const ORCHESTRATOR_URL =
-  process.env.ORCHESTRATOR_URL ??
-  'https://mcp-orchestrator-production-45f9.up.railway.app';
+  process.env.ORCHESTRATOR_URL ?? 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const NETWORK_TIMEOUT_MS = 4000;
 const WORKSPACE_ID = 'ai-ecosystem';
 
@@ -96,9 +98,11 @@ function makeRng(seed: number): () => number {
   let state = seed >>> 0;
   if (state === 0) state = 0x9e3779b9;
   return () => {
-    state ^= state << 13; state >>>= 0;
+    state ^= state << 13;
+    state >>>= 0;
     state ^= state >>> 17;
-    state ^= state << 5;  state >>>= 0;
+    state ^= state << 5;
+    state >>>= 0;
     return (state >>> 0) / 0x100000000;
   };
 }
@@ -110,7 +114,10 @@ function makeRng(seed: number): () => number {
 // (the type definition) and fix the indexing so helpers compile cleanly.
 // Functionally equivalent — same room, same obstacles, same goal.
 
-interface Vec2 { x: number; y: number }
+interface Vec2 {
+  x: number;
+  y: number;
+}
 
 interface NavEnvironment {
   width: number;
@@ -143,8 +150,14 @@ function castSensorRays(env: NavEnvironment): Float32Array {
   const distances = new Float32Array(8);
   const maxDist = Math.sqrt(env.width ** 2 + env.height ** 2);
   const angles = [
-    0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4,
-    Math.PI, (5 * Math.PI) / 4, (3 * Math.PI) / 2, (7 * Math.PI) / 4,
+    0,
+    Math.PI / 4,
+    Math.PI / 2,
+    (3 * Math.PI) / 4,
+    Math.PI,
+    (5 * Math.PI) / 4,
+    (3 * Math.PI) / 2,
+    (7 * Math.PI) / 4,
   ];
 
   for (let i = 0; i < 8; i++) {
@@ -189,10 +202,18 @@ function moveAgent(env: NavEnvironment, action: string, stepSize = 0.5): void {
   let nx = env.agentPos.x;
   let ny = env.agentPos.y;
   switch (action) {
-    case 'move_east': nx += stepSize; break;
-    case 'move_west': nx -= stepSize; break;
-    case 'move_north': ny += stepSize; break;
-    case 'move_south': ny -= stepSize; break;
+    case 'move_east':
+      nx += stepSize;
+      break;
+    case 'move_west':
+      nx -= stepSize;
+      break;
+    case 'move_north':
+      ny += stepSize;
+      break;
+    case 'move_south':
+      ny -= stepSize;
+      break;
   }
   nx = Math.max(env.agentRadius, Math.min(env.width - env.agentRadius, nx));
   ny = Math.max(env.agentRadius, Math.min(env.height - env.agentRadius, ny));
@@ -223,20 +244,24 @@ class NavSimSolver implements SimSolver {
   private sensorField: Float32Array = new Float32Array(10);
   solverType = 'navigation' as const;
 
-  constructor(env: NavEnvironment) { this.env = env; }
+  constructor(env: NavEnvironment) {
+    this.env = env;
+  }
 
   step(_dt: number): void {
     const rays = castSensorRays(this.env);
     const gv = goalVector(this.env);
-    this.sensorField = new Float32Array([
-      ...rays, gv.dist, (gv.angle / Math.PI + 1) / 2,
-    ]);
+    this.sensorField = new Float32Array([...rays, gv.dist, (gv.angle / Math.PI + 1) / 2]);
   }
   getField(name: string): FieldData | null {
     return name === 'nav_sensors' ? this.sensorField : null;
   }
-  getNodeCount(): number { return 10; }
-  getDOFCount(): number { return 10; }
+  getNodeCount(): number {
+    return 10;
+  }
+  getDOFCount(): number {
+    return 10;
+  }
 }
 
 // ── Sensor bridge with optional prior-knowledge bias ───────────────────────
@@ -258,7 +283,7 @@ class NavSensorBridge implements CAELSensorBridge {
   constructor(
     env: NavEnvironment,
     priorBias = 0,
-    priorDirVec: [number, number, number, number] = [0, 0, 0, 0],
+    priorDirVec: [number, number, number, number] = [0, 0, 0, 0]
   ) {
     this.env = env;
     this.priorBias = priorBias;
@@ -273,9 +298,7 @@ class NavSensorBridge implements CAELSensorBridge {
     const values = new Float32Array(128);
 
     // Ray → direction mapping (N=0, E=1, S=2, W=3)
-    const rayToDir: number[][] = [
-      [1], [0, 1], [0], [0, 3], [3], [2, 3], [2], [1, 2],
-    ];
+    const rayToDir: number[][] = [[1], [0, 1], [0], [0, 3], [3], [2, 3], [2], [1, 2]];
 
     // Openness excitation
     for (let r = 0; r < 8; r++) {
@@ -323,10 +346,10 @@ class NavSensorBridge implements CAELSensorBridge {
   encode(readings: SensorReading[]): Record<string, unknown> {
     return {
       id: this.id,
-      readings: readings.map(r => ({
+      readings: readings.map((r) => ({
         fieldName: r.fieldName,
         simTime: r.simTime,
-        values: Array.from(r.values).map(v => Number(v.toFixed(4))),
+        values: Array.from(r.values).map((v) => Number(v.toFixed(4))),
       })),
     };
   }
@@ -339,7 +362,9 @@ class NavActionSelector implements CAELActionSelector {
   private readonly actions = ['move_north', 'move_east', 'move_south', 'move_west'];
   private rng: () => number;
 
-  constructor(rng: () => number) { this.rng = rng; }
+  constructor(rng: () => number) {
+    this.rng = rng;
+  }
 
   select(cognition: CognitionSnapshot, _simTime: number): ActionDecision {
     const popSize = 32;
@@ -350,7 +375,7 @@ class NavActionSelector implements CAELActionSelector {
     }
 
     // Deterministic tiebreak via seeded RNG — keeps trials reproducible
-    const utilities = popCounts.map(c => c + this.rng() * 1e-3);
+    const utilities = popCounts.map((c) => c + this.rng() * 1e-3);
     const actionObjs: AgentAction[] = this.actions.map((type, i) => ({
       type,
       params: {},
@@ -379,23 +404,23 @@ class NavActionSelector implements CAELActionSelector {
 
 interface TrialResult {
   seed: number;
-  ticks: number;            // ticks to reach goal (or MAX_TICKS if unreached)
+  ticks: number; // ticks to reach goal (or MAX_TICKS if unreached)
   reached: boolean;
   pathLength: number;
-  pathEfficiency: number;   // Manhattan / pathLength, clamped [0,1]
+  pathEfficiency: number; // Manhattan / pathLength, clamped [0,1]
   totalSpikes: number;
   wallTimeMs: number;
   mode: 'baseline' | 'reintake';
 }
 
-const MAX_TICKS = 400;     // hard cap per trial
-const DT = 0.05;           // 50ms per agent tick (10 LIF steps / tick)
+const MAX_TICKS = 400; // hard cap per trial
+const DT = 0.05; // 50ms per agent tick (10 LIF steps / tick)
 
 async function runTrial(
   seed: number,
   mode: 'baseline' | 'reintake',
   priorBias: number,
-  priorDirVec: [number, number, number, number],
+  priorDirVec: [number, number, number, number]
 ): Promise<TrialResult> {
   const env = createRoom();
   const solver = new NavSimSolver(env);
@@ -472,7 +497,7 @@ interface GraduateOutcome {
 async function graduatePattern(
   runId: string,
   baseline: TrialResult,
-  obstacleConfig: Array<{ pos: Vec2; radius: number }>,
+  obstacleConfig: Array<{ pos: Vec2; radius: number }>
 ): Promise<GraduateOutcome> {
   const apiKey = process.env.HOLOSCRIPT_API_KEY ?? process.env.MCP_API_KEY;
   if (!apiKey) {
@@ -491,29 +516,31 @@ async function graduatePattern(
       },
       body: JSON.stringify({
         workspace_id: WORKSPACE_ID,
-        entries: [{
-          id: `nav-episode-${runId}`,
-          workspace_id: WORKSPACE_ID,
-          type: 'pattern',
-          domain: 'simulation.snn-navigation',
-          content:
-            `Agent navigated 20x20 room with ${obstacleConfig.length} obstacles ` +
-            `from (2,2) to (18,18) in ${baseline.ticks} ticks. ` +
-            `Path length ${baseline.pathLength.toFixed(2)}. ` +
-            `Peak firing rate ${(baseline.totalSpikes / (128 * baseline.ticks * 10)).toFixed(4)}. ` +
-            `Used population decoding with 32-neuron/direction.`,
-          confidence: 0.8,
-          metadata: {
-            runId,
-            ticks: baseline.ticks,
-            pathLength: baseline.pathLength,
-            pathEfficiency: baseline.pathEfficiency,
-            spikes: baseline.totalSpikes,
-            // Recalled goal direction hint: "mostly NE" for this room
-            goalDirVec: [0.7, 0.7, 0.0, 0.0], // N, E, S, W
-            obstacleConfig,
+        entries: [
+          {
+            id: `nav-episode-${runId}`,
+            workspace_id: WORKSPACE_ID,
+            type: 'pattern',
+            domain: 'simulation.snn-navigation',
+            content:
+              `Agent navigated 20x20 room with ${obstacleConfig.length} obstacles ` +
+              `from (2,2) to (18,18) in ${baseline.ticks} ticks. ` +
+              `Path length ${baseline.pathLength.toFixed(2)}. ` +
+              `Peak firing rate ${(baseline.totalSpikes / (128 * baseline.ticks * 10)).toFixed(4)}. ` +
+              `Used population decoding with 32-neuron/direction.`,
+            confidence: 0.8,
+            metadata: {
+              runId,
+              ticks: baseline.ticks,
+              pathLength: baseline.pathLength,
+              pathEfficiency: baseline.pathEfficiency,
+              spikes: baseline.totalSpikes,
+              // Recalled goal direction hint: "mostly NE" for this room
+              goalDirVec: [0.7, 0.7, 0.0, 0.0], // N, E, S, W
+              obstacleConfig,
+            },
           },
-        }],
+        ],
       }),
     });
     clearTimeout(timer);
@@ -543,7 +570,7 @@ async function queryKnowledgeStore(): Promise<QueryOutcome> {
     latencyMs: 0,
     parseMs: 0,
     // Synthetic pattern: "goal is mostly NE of start" — a weak but honest prior
-    priorBias: 0.20,
+    priorBias: 0.2,
     priorDirVec: [0.7, 0.7, 0.0, 0.0],
     source: 'synthetic-fallback',
   };
@@ -574,8 +601,12 @@ async function queryKnowledgeStore(): Promise<QueryOutcome> {
     const body: unknown = await res.json();
     // Tolerant parsing — orchestrator schemas drift
     const entries: Array<Record<string, unknown>> =
-      (body as { entries?: unknown[]; results?: unknown[] }).entries as Array<Record<string, unknown>> ??
-      (body as { entries?: unknown[]; results?: unknown[] }).results as Array<Record<string, unknown>> ??
+      ((body as { entries?: unknown[]; results?: unknown[] }).entries as Array<
+        Record<string, unknown>
+      >) ??
+      ((body as { entries?: unknown[]; results?: unknown[] }).results as Array<
+        Record<string, unknown>
+      >) ??
       [];
 
     // Find the best-matching nav episode
@@ -603,7 +634,7 @@ async function queryKnowledgeStore(): Promise<QueryOutcome> {
       ok: true,
       latencyMs,
       parseMs,
-      priorBias: 0.20,
+      priorBias: 0.2,
       priorDirVec,
       source: 'knowledge-store',
     };
@@ -651,11 +682,13 @@ function medianP99(xs: number[]): { median: number; p99: number } {
 function welchOneSided(a: number[], b: number[]): { t: number; p: number; df: number } {
   const { mean: ma, std: sa } = meanStd(a);
   const { mean: mb, std: sb } = meanStd(b);
-  const na = a.length, nb = b.length;
-  const va = sa * sa, vb = sb * sb;
+  const na = a.length,
+    nb = b.length;
+  const va = sa * sa,
+    vb = sb * sb;
   const se = Math.sqrt(va / na + vb / nb);
   if (se === 0) return { t: 0, p: 0.5, df: na + nb - 2 };
-  const t = (mb - ma) / se;                    // negative t = B faster
+  const t = (mb - ma) / se; // negative t = B faster
   // Welch–Satterthwaite df
   const df =
     (va / na + vb / nb) ** 2 /
@@ -667,8 +700,12 @@ function welchOneSided(a: number[], b: number[]): { t: number; p: number; df: nu
 
 function normalCdf(x: number): number {
   // Abramowitz & Stegun 7.1.26 — standard-normal CDF
-  const b1 = 0.319381530, b2 = -0.356563782, b3 = 1.781477937;
-  const b4 = -1.821255978, b5 = 1.330274429, p = 0.2316419;
+  const b1 = 0.31938153,
+    b2 = -0.356563782,
+    b3 = 1.781477937;
+  const b4 = -1.821255978,
+    b5 = 1.330274429,
+    p = 0.2316419;
   const sign = x < 0 ? -1 : 1;
   const ax = Math.abs(x) / Math.SQRT2;
   const k = 1 / (1 + p * ax);
@@ -684,51 +721,53 @@ function fmt(n: number, d = 2): string {
   return n.toFixed(d);
 }
 
-function printPerSessionTable(
-  baseline: TrialResult[],
-  reintake: TrialResult[],
-): void {
+function printPerSessionTable(baseline: TrialResult[], reintake: TrialResult[]): void {
   const metric = (name: string, key: keyof TrialResult) => {
-    const a = baseline.map(t => Number(t[key]));
-    const b = reintake.map(t => Number(t[key]));
-    const mA = medianP99(a), mB = medianP99(b);
+    const a = baseline.map((t) => Number(t[key]));
+    const b = reintake.map((t) => Number(t[key]));
+    const mA = medianP99(a),
+      mB = medianP99(b);
     console.log(
       `  ${name.padEnd(18)} | ` +
-      `${(`${fmt(mA.median)} (${fmt(mA.p99)})`).padStart(21)} | ` +
-      `${(`${fmt(mB.median)} (${fmt(mB.p99)})`).padStart(21)}`,
+        `${`${fmt(mA.median)} (${fmt(mA.p99)})`.padStart(21)} | ` +
+        `${`${fmt(mB.median)} (${fmt(mB.p99)})`.padStart(21)}`
     );
   };
 
   console.log('\n┌─ Per-Session Metrics (median, p99; N=10 each) ─┐');
-  console.log(`  ${'Metric'.padEnd(18)} | ${'Session A (baseline)'.padStart(21)} | ${'Session B (reintake)'.padStart(21)}`);
+  console.log(
+    `  ${'Metric'.padEnd(18)} | ${'Session A (baseline)'.padStart(21)} | ${'Session B (reintake)'.padStart(21)}`
+  );
   console.log('  ' + '─'.repeat(18) + '─┼─' + '─'.repeat(21) + '─┼─' + '─'.repeat(21));
-  metric('ticks_to_goal',    'ticks');
-  metric('path_length',      'pathLength');
-  metric('path_efficiency',  'pathEfficiency');
-  metric('total_spikes',     'totalSpikes');
-  metric('wall_time_ms',     'wallTimeMs');
-  const succA = baseline.filter(t => t.reached).length;
-  const succB = reintake.filter(t => t.reached).length;
-  console.log(`  ${'success_rate'.padEnd(18)} | ${(succA + '/10').padStart(21)} | ${(succB + '/10').padStart(21)}`);
+  metric('ticks_to_goal', 'ticks');
+  metric('path_length', 'pathLength');
+  metric('path_efficiency', 'pathEfficiency');
+  metric('total_spikes', 'totalSpikes');
+  metric('wall_time_ms', 'wallTimeMs');
+  const succA = baseline.filter((t) => t.reached).length;
+  const succB = reintake.filter((t) => t.reached).length;
+  console.log(
+    `  ${'success_rate'.padEnd(18)} | ${(succA + '/10').padStart(21)} | ${(succB + '/10').padStart(21)}`
+  );
 }
 
 function printDeltaTable(
   baseline: TrialResult[],
-  reintake: TrialResult[],
+  reintake: TrialResult[]
 ): { dTicks: number; p: number } {
-  const aTicks = baseline.map(t => t.ticks);
-  const bTicks = reintake.map(t => t.ticks);
-  const aPath = baseline.map(t => t.pathLength);
-  const bPath = reintake.map(t => t.pathLength);
-  const aEff = baseline.map(t => t.pathEfficiency);
-  const bEff = reintake.map(t => t.pathEfficiency);
-  const aSpk = baseline.map(t => t.totalSpikes);
-  const bSpk = reintake.map(t => t.totalSpikes);
+  const aTicks = baseline.map((t) => t.ticks);
+  const bTicks = reintake.map((t) => t.ticks);
+  const aPath = baseline.map((t) => t.pathLength);
+  const bPath = reintake.map((t) => t.pathLength);
+  const aEff = baseline.map((t) => t.pathEfficiency);
+  const bEff = reintake.map((t) => t.pathEfficiency);
+  const aSpk = baseline.map((t) => t.totalSpikes);
+  const bSpk = reintake.map((t) => t.totalSpikes);
 
   const dTicks = medianP99(aTicks).median - medianP99(bTicks).median;
-  const dPath  = medianP99(aPath).median  - medianP99(bPath).median;
-  const dEff   = medianP99(bEff).median   - medianP99(aEff).median;
-  const dSpk   = medianP99(aSpk).median   - medianP99(bSpk).median;
+  const dPath = medianP99(aPath).median - medianP99(bPath).median;
+  const dEff = medianP99(bEff).median - medianP99(aEff).median;
+  const dSpk = medianP99(aSpk).median - medianP99(bSpk).median;
 
   const tt = welchOneSided(aTicks, bTicks);
 
@@ -741,7 +780,9 @@ function printDeltaTable(
   console.log(`  Welch one-sided t-test  H1: B.ticks < A.ticks`);
   console.log(`    t  = ${fmt(tt.t, 3)}`);
   console.log(`    df ≈ ${fmt(tt.df, 2)}`);
-  console.log(`    p  ≈ ${fmt(tt.p, 4)}     ${tt.p < 0.05 ? '(significant, α=0.05)' : '(not significant at α=0.05)'}`);
+  console.log(
+    `    p  ≈ ${fmt(tt.p, 4)}     ${tt.p < 0.05 ? '(significant, α=0.05)' : '(not significant at α=0.05)'}`
+  );
   console.log(`    Note: normal approximation — N=10 is small; treat p as indicative.`);
 
   return { dTicks, p: tt.p };
@@ -752,37 +793,59 @@ function printLatexTable(
   reintake: TrialResult[],
   overheadMs: number,
   queryMs: number,
-  writeMs: number,
+  writeMs: number
 ): void {
   const m = (key: keyof TrialResult, arr: TrialResult[]) =>
-    medianP99(arr.map(t => Number(t[key])));
-  const aT = m('ticks', baseline), bT = m('ticks', reintake);
-  const aP = m('pathLength', baseline), bP = m('pathLength', reintake);
-  const aE = m('pathEfficiency', baseline), bE = m('pathEfficiency', reintake);
-  const aS = m('totalSpikes', baseline), bS = m('totalSpikes', reintake);
+    medianP99(arr.map((t) => Number(t[key])));
+  const aT = m('ticks', baseline),
+    bT = m('ticks', reintake);
+  const aP = m('pathLength', baseline),
+    bP = m('pathLength', reintake);
+  const aE = m('pathEfficiency', baseline),
+    bE = m('pathEfficiency', reintake);
+  const aS = m('totalSpikes', baseline),
+    bS = m('totalSpikes', reintake);
   const tt = welchOneSided(
-    baseline.map(t => t.ticks),
-    reintake.map(t => t.ticks),
+    baseline.map((t) => t.ticks),
+    reintake.map((t) => t.ticks)
   );
 
   console.log('\n% ── LaTeX: RE-INTAKE Compounding (Capstone §7 / Paper #5) ──');
   console.log('\\begin{table}[h]');
   console.log('\\centering');
-  console.log('\\caption{RE-INTAKE compounding experiment: paired SNN navigation (N=10 seeds per session, 20$\\times$20 room, 6 obstacles, goal (18,18) from start (2,2)). Session A is a cold baseline that writes its episode to the knowledge store; Session B queries the store and pre-biases its input currents with the recalled goal direction.}');
+  console.log(
+    '\\caption{RE-INTAKE compounding experiment: paired SNN navigation (N=10 seeds per session, 20$\\times$20 room, 6 obstacles, goal (18,18) from start (2,2)). Session A is a cold baseline that writes its episode to the knowledge store; Session B queries the store and pre-biases its input currents with the recalled goal direction.}'
+  );
   console.log('\\label{tab:reintake-compounding}');
   console.log('\\begin{tabular}{lrrr}');
   console.log('\\toprule');
   console.log('Metric & Session A (baseline) & Session B (RE-INTAKE) & $\\Delta$ \\\\');
   console.log('\\midrule');
-  console.log(`Ticks-to-goal       & ${fmt(aT.median)} (${fmt(aT.p99)}) & ${fmt(bT.median)} (${fmt(bT.p99)}) & ${fmt(aT.median - bT.median)} \\\\`);
-  console.log(`Path length         & ${fmt(aP.median)} (${fmt(aP.p99)}) & ${fmt(bP.median)} (${fmt(bP.p99)}) & ${fmt(aP.median - bP.median)} \\\\`);
-  console.log(`Path efficiency     & ${fmt(aE.median, 3)} (${fmt(aE.p99, 3)}) & ${fmt(bE.median, 3)} (${fmt(bE.p99, 3)}) & ${fmt(bE.median - aE.median, 3)} \\\\`);
-  console.log(`Total spikes        & ${fmt(aS.median, 0)} (${fmt(aS.p99, 0)}) & ${fmt(bS.median, 0)} (${fmt(bS.p99, 0)}) & ${fmt(aS.median - bS.median, 0)} \\\\`);
+  console.log(
+    `Ticks-to-goal       & ${fmt(aT.median)} (${fmt(aT.p99)}) & ${fmt(bT.median)} (${fmt(bT.p99)}) & ${fmt(aT.median - bT.median)} \\\\`
+  );
+  console.log(
+    `Path length         & ${fmt(aP.median)} (${fmt(aP.p99)}) & ${fmt(bP.median)} (${fmt(bP.p99)}) & ${fmt(aP.median - bP.median)} \\\\`
+  );
+  console.log(
+    `Path efficiency     & ${fmt(aE.median, 3)} (${fmt(aE.p99, 3)}) & ${fmt(bE.median, 3)} (${fmt(bE.p99, 3)}) & ${fmt(bE.median - aE.median, 3)} \\\\`
+  );
+  console.log(
+    `Total spikes        & ${fmt(aS.median, 0)} (${fmt(aS.p99, 0)}) & ${fmt(bS.median, 0)} (${fmt(bS.p99, 0)}) & ${fmt(aS.median - bS.median, 0)} \\\\`
+  );
   console.log('\\midrule');
-  console.log(`Welch t (one-sided) & \\multicolumn{3}{c}{$t = ${fmt(tt.t, 3)}$, $df \\approx ${fmt(tt.df, 2)}$, $p \\approx ${fmt(tt.p, 4)}$} \\\\`);
-  console.log(`Graduation latency  & \\multicolumn{3}{c}{${fmt(writeMs, 1)} ms (Session A $\\to$ knowledge store)} \\\\`);
-  console.log(`Query latency       & \\multicolumn{3}{c}{${fmt(queryMs, 1)} ms (Session B lookup)} \\\\`);
-  console.log(`RE-INTAKE overhead  & \\multicolumn{3}{c}{${fmt(overheadMs, 1)} ms (query + parse + bias setup)} \\\\`);
+  console.log(
+    `Welch t (one-sided) & \\multicolumn{3}{c}{$t = ${fmt(tt.t, 3)}$, $df \\approx ${fmt(tt.df, 2)}$, $p \\approx ${fmt(tt.p, 4)}$} \\\\`
+  );
+  console.log(
+    `Graduation latency  & \\multicolumn{3}{c}{${fmt(writeMs, 1)} ms (Session A $\\to$ knowledge store)} \\\\`
+  );
+  console.log(
+    `Query latency       & \\multicolumn{3}{c}{${fmt(queryMs, 1)} ms (Session B lookup)} \\\\`
+  );
+  console.log(
+    `RE-INTAKE overhead  & \\multicolumn{3}{c}{${fmt(overheadMs, 1)} ms (query + parse + bias setup)} \\\\`
+  );
   console.log('\\bottomrule');
   console.log('\\end{tabular}');
   console.log('\\end{table}');
@@ -790,12 +853,12 @@ function printLatexTable(
 
 function interpretation(dTicks: number, p: number, source: string): string {
   const net: 'helped' | 'had no effect' | 'hurt' =
-    p < 0.05 && dTicks > 0 ? 'helped' :
-    p > 0.95 && dTicks < 0 ? 'hurt' : 'had no effect';
+    p < 0.05 && dTicks > 0 ? 'helped' : p > 0.95 && dTicks < 0 ? 'hurt' : 'had no effect';
 
-  const caveat = source === 'synthetic-fallback'
-    ? 'Note: the prior came from a SYNTHETIC fallback (orchestrator unreachable or no prior entry); the experiment still runs, but the flywheel claim is weaker.'
-    : 'Prior came from the live orchestrator knowledge store.';
+  const caveat =
+    source === 'synthetic-fallback'
+      ? 'Note: the prior came from a SYNTHETIC fallback (orchestrator unreachable or no prior entry); the experiment still runs, but the flywheel claim is weaker.'
+      : 'Prior came from the live orchestrator knowledge store.';
 
   if (net === 'helped') {
     return (
@@ -803,7 +866,8 @@ function interpretation(dTicks: number, p: number, source: string): string {
       `~${fmt(dTicks, 1)} fewer ticks on average (p≈${fmt(p, 4)}). ` +
       `The GOLD-flywheel claim is supported: an agent that queried the ` +
       `store and biased its input currents toward the recalled goal ` +
-      `direction converged faster than a cold agent with identical weights. ` + caveat
+      `direction converged faster than a cold agent with identical weights. ` +
+      caveat
     );
   }
   if (net === 'hurt') {
@@ -812,7 +876,8 @@ function interpretation(dTicks: number, p: number, source: string): string {
       `on average (p≈${fmt(1 - p, 4)} that B was slower). This is a genuine ` +
       `negative finding: stale / wrong prior biases can degrade performance ` +
       `for untrained SNNs. Fail-closed is the right default; RE-INTAKE should ` +
-      `gate on pattern confidence and task similarity, not blind recall. ` + caveat
+      `gate on pattern confidence and task similarity, not blind recall. ` +
+      caveat
     );
   }
   return (
@@ -821,7 +886,8 @@ function interpretation(dTicks: number, p: number, source: string): string {
     `For untrained SNNs with a soft direction bias, the live sensor signal ` +
     `dominates the recalled prior. The flywheel likely needs either stronger ` +
     `priors (e.g., waypoint sequence, not just goal direction) or learning ` +
-    `on top of recall. ` + caveat
+    `on top of recall. ` +
+    caveat
   );
 }
 
@@ -831,8 +897,9 @@ describe('Capstone §7 / Paper #5: RE-INTAKE Compounding', () => {
   it('measures whether knowledge-store recall makes Session B faster than Session A', async () => {
     const N_TRIALS = 10;
     const env0 = createRoom();
-    const obstacleConfig = env0.obstacles.map(o => ({
-      pos: { x: o.pos.x, y: o.pos.y }, radius: o.radius,
+    const obstacleConfig = env0.obstacles.map((o) => ({
+      pos: { x: o.pos.x, y: o.pos.y },
+      radius: o.radius,
     }));
 
     console.log('\n[reintake] ═══════════════════════════════════════════════════════════');
@@ -843,36 +910,37 @@ describe('Capstone §7 / Paper #5: RE-INTAKE Compounding', () => {
     console.log(`[reintake] Environment        : 20×20 room, 6 obstacles, (2,2)→(18,18)`);
     console.log(`[reintake] SNN                : 128 LIF neurons, 4 populations × 32`);
     console.log(`[reintake] Orchestrator       : ${ORCHESTRATOR_URL}`);
-    console.log(`[reintake] Honest outcomes    : positive (B < A), null, negative — all are publishable.`);
+    console.log(
+      `[reintake] Honest outcomes    : positive (B < A), null, negative — all are publishable.`
+    );
     console.log('');
 
     // ── Session A: cold baseline, N trials ─────────────────────────────
     console.log('[reintake] Phase 1/4 — Running Session A (baseline, cold)…');
     const baseline: TrialResult[] = [];
     for (let i = 0; i < N_TRIALS; i++) {
-      const seed = 0xA0000000 | (i * 2654435761);   // Knuth golden-ratio multiplier
+      const seed = 0xa0000000 | (i * 2654435761); // Knuth golden-ratio multiplier
       const tr = await runTrial(seed, 'baseline', 0, [0, 0, 0, 0]);
       baseline.push(tr);
       console.log(
         `[reintake]   trial ${(i + 1).toString().padStart(2)}: ` +
-        `ticks=${tr.ticks.toString().padStart(3)} ` +
-        `reached=${tr.reached ? 'Y' : 'N'} ` +
-        `path=${fmt(tr.pathLength).padStart(6)} ` +
-        `spikes=${tr.totalSpikes.toString().padStart(6)} ` +
-        `wall=${fmt(tr.wallTimeMs).padStart(7)}ms`,
+          `ticks=${tr.ticks.toString().padStart(3)} ` +
+          `reached=${tr.reached ? 'Y' : 'N'} ` +
+          `path=${fmt(tr.pathLength).padStart(6)} ` +
+          `spikes=${tr.totalSpikes.toString().padStart(6)} ` +
+          `wall=${fmt(tr.wallTimeMs).padStart(7)}ms`
       );
     }
 
     // ── Graduate the best-baseline episode to the knowledge store ──────
     console.log('\n[reintake] Phase 2/4 — Graduating best baseline episode to knowledge store…');
-    const bestBaseline = [...baseline]
-      .filter(t => t.reached)
-      .sort((a, b) => a.ticks - b.ticks)[0] ?? baseline[0];
+    const bestBaseline =
+      [...baseline].filter((t) => t.reached).sort((a, b) => a.ticks - b.ticks)[0] ?? baseline[0];
     const runId = `${Date.now()}-${bestBaseline.seed.toString(16)}`;
     const gradOutcome = await graduatePattern(runId, bestBaseline, obstacleConfig);
     console.log(
       `[reintake]   ok=${gradOutcome.ok} latency=${fmt(gradOutcome.latencyMs, 1)}ms ` +
-      (gradOutcome.error ? `error=${gradOutcome.error}` : ''),
+        (gradOutcome.error ? `error=${gradOutcome.error}` : '')
     );
 
     // ── Query the knowledge store for prior ────────────────────────────
@@ -882,25 +950,25 @@ describe('Capstone §7 / Paper #5: RE-INTAKE Compounding', () => {
     const totalOverheadMs = performance.now() - queryStart;
     console.log(
       `[reintake]   ok=${q.ok} source=${q.source} ` +
-      `query=${fmt(q.latencyMs, 1)}ms parse=${fmt(q.parseMs, 1)}ms ` +
-      `priorBias=${q.priorBias} priorDir=[${q.priorDirVec.map(v => fmt(v, 2)).join(',')}]` +
-      (q.error ? ` error=${q.error}` : ''),
+        `query=${fmt(q.latencyMs, 1)}ms parse=${fmt(q.parseMs, 1)}ms ` +
+        `priorBias=${q.priorBias} priorDir=[${q.priorDirVec.map((v) => fmt(v, 2)).join(',')}]` +
+        (q.error ? ` error=${q.error}` : '')
     );
 
     // ── Session B: RE-INTAKE, N trials (same seeds as A) ───────────────
     console.log('\n[reintake] Phase 4/4 — Running Session B (RE-INTAKE, biased)…');
     const reintake: TrialResult[] = [];
     for (let i = 0; i < N_TRIALS; i++) {
-      const seed = 0xA0000000 | (i * 2654435761);   // SAME seed as A
+      const seed = 0xa0000000 | (i * 2654435761); // SAME seed as A
       const tr = await runTrial(seed, 'reintake', q.priorBias, q.priorDirVec);
       reintake.push(tr);
       console.log(
         `[reintake]   trial ${(i + 1).toString().padStart(2)}: ` +
-        `ticks=${tr.ticks.toString().padStart(3)} ` +
-        `reached=${tr.reached ? 'Y' : 'N'} ` +
-        `path=${fmt(tr.pathLength).padStart(6)} ` +
-        `spikes=${tr.totalSpikes.toString().padStart(6)} ` +
-        `wall=${fmt(tr.wallTimeMs).padStart(7)}ms`,
+          `ticks=${tr.ticks.toString().padStart(3)} ` +
+          `reached=${tr.reached ? 'Y' : 'N'} ` +
+          `path=${fmt(tr.pathLength).padStart(6)} ` +
+          `spikes=${tr.totalSpikes.toString().padStart(6)} ` +
+          `wall=${fmt(tr.wallTimeMs).padStart(7)}ms`
       );
     }
 
@@ -917,11 +985,11 @@ describe('Capstone §7 / Paper #5: RE-INTAKE Compounding', () => {
     expect(baseline.length).toBe(N_TRIALS);
     expect(reintake.length).toBe(N_TRIALS);
     // Every trial produced at least one spike — SNN is alive in both sessions
-    expect(baseline.every(t => t.totalSpikes > 0)).toBe(true);
-    expect(reintake.every(t => t.totalSpikes > 0)).toBe(true);
+    expect(baseline.every((t) => t.totalSpikes > 0)).toBe(true);
+    expect(reintake.every((t) => t.totalSpikes > 0)).toBe(true);
     // Path length is strictly positive in every trial
-    expect(baseline.every(t => t.pathLength > 0)).toBe(true);
-    expect(reintake.every(t => t.pathLength > 0)).toBe(true);
+    expect(baseline.every((t) => t.pathLength > 0)).toBe(true);
+    expect(reintake.every((t) => t.pathLength > 0)).toBe(true);
     // Query returned SOMETHING (either live or synthetic-fallback)
     expect(q.ok).toBe(true);
     // NOTE: we do NOT assert dTicks > 0 — the null and negative results

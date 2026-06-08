@@ -37,13 +37,7 @@ export type ExpressionEvaluator = (expr: string) => unknown;
  *
  * Matched case-insensitive against the full condition string.
  */
-const SUSPICIOUS_KEYWORDS = [
-  'eval',
-  'process',
-  'require',
-  '__proto__',
-  'constructor',
-] as const;
+const SUSPICIOUS_KEYWORDS = ['eval', 'process', 'require', '__proto__', 'constructor'] as const;
 
 /**
  * Evaluate a HoloScript condition expression.
@@ -64,7 +58,7 @@ const SUSPICIOUS_KEYWORDS = [
  */
 export function evaluateCondition(
   condition: string | unknown,
-  evaluate: ExpressionEvaluator,
+  evaluate: ExpressionEvaluator
 ): boolean {
   if (!condition) return false;
   const condStr = String(condition);

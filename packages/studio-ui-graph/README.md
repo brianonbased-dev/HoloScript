@@ -20,11 +20,11 @@ node packages/studio-ui-graph/dist/cli.js
 holoscript-studio-ui-graph --root packages/studio --output packages/studio/.holo/studio.ui.holo
 ```
 
-| Flag | Default |
-|---|---|
-| `--root` / `-r` | `packages/studio` |
+| Flag              | Default                       |
+| ----------------- | ----------------------------- |
+| `--root` / `-r`   | `packages/studio`             |
 | `--output` / `-o` | `<root>/.holo/studio.ui.holo` |
-| `--quiet` / `-q` | progress on stderr by default |
+| `--quiet` / `-q`  | progress on stderr by default |
 
 ## Output shape (v0.1)
 
@@ -48,18 +48,18 @@ Each `page` block is one `page.tsx`. Each component node is one TSX file reachab
 
 ## Roadmap
 
-| Milestone | Scope | Status |
-|---|---|---|
-| v0.1 | Pages + component trees + reuse map | ✅ shipped |
-| v0.2 | Zustand `@uses_stores([…])` detection | ✅ shipped |
-| v0.3 | API/SSE detection — `@calls_apis([…])` for `fetch`, `useSWR`, `EventSource`, `axios` | ✅ shipped |
-| v0.4 | Dynamic + `React.lazy` import following + JSX-aware project options (closes the empty-tree bug) | ✅ shipped |
-| v0.5 | `--watch` mode (debounced 300ms on `src/**/*.ts{,x}`) | ✅ shipped |
-| v0.6 | Mermaid serializer (`--format mermaid`) — markdown-fenced flowchart TD with one subgraph per page | ✅ shipped |
-| v0.7 | In-Studio viewer page at `/dev/ui-graph` — server-rendered summary table + per-page rollups | ✅ shipped |
-| **v1.0** | **`publish` subcommand** — POSTs the `.holo` to the MCP orchestrator's `/knowledge/sync` endpoint as a `pattern` entry under id `studio-ui-graph`. Any agent on the mesh can now query Studio UI structure via `/knowledge/query`. | **✅ shipped** |
-| v1.1+ | Native absorb-service ingest (`POST /api/absorb/holo`) so the .holo lands in the GraphRAG store directly, not just the knowledge-store | open |
-| v1.2+ | Per-page Mermaid output split into individual files (the single 97 KB Mermaid is too big for some renderers) | open |
+| Milestone | Scope                                                                                                                                                                                                                              | Status         |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| v0.1      | Pages + component trees + reuse map                                                                                                                                                                                                | ✅ shipped     |
+| v0.2      | Zustand `@uses_stores([…])` detection                                                                                                                                                                                              | ✅ shipped     |
+| v0.3      | API/SSE detection — `@calls_apis([…])` for `fetch`, `useSWR`, `EventSource`, `axios`                                                                                                                                               | ✅ shipped     |
+| v0.4      | Dynamic + `React.lazy` import following + JSX-aware project options (closes the empty-tree bug)                                                                                                                                    | ✅ shipped     |
+| v0.5      | `--watch` mode (debounced 300ms on `src/**/*.ts{,x}`)                                                                                                                                                                              | ✅ shipped     |
+| v0.6      | Mermaid serializer (`--format mermaid`) — markdown-fenced flowchart TD with one subgraph per page                                                                                                                                  | ✅ shipped     |
+| v0.7      | In-Studio viewer page at `/dev/ui-graph` — server-rendered summary table + per-page rollups                                                                                                                                        | ✅ shipped     |
+| **v1.0**  | **`publish` subcommand** — POSTs the `.holo` to the MCP orchestrator's `/knowledge/sync` endpoint as a `pattern` entry under id `studio-ui-graph`. Any agent on the mesh can now query Studio UI structure via `/knowledge/query`. | **✅ shipped** |
+| v1.1+     | Native absorb-service ingest (`POST /api/absorb/holo`) so the .holo lands in the GraphRAG store directly, not just the knowledge-store                                                                                             | open           |
+| v1.2+     | Per-page Mermaid output split into individual files (the single 97 KB Mermaid is too big for some renderers)                                                                                                                       | open           |
 
 ## Live in production (verified 2026-04-29)
 

@@ -313,7 +313,7 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
         if (!payload || typeof payload !== 'object') return;
         const p = payload as Record<string, any>;
         const agentId = String(p.agentId);
-        
+
         const account = getOrCreateAccount(state, agentId, config, context);
         const amount = Math.max(0, Number(p.amount) || config.task_completion_reward);
         account.balance += amount;
@@ -596,9 +596,10 @@ export const economyPrimitivesHandler: TraitHandler<EconomyConfig> = {
       }
 
       case 'economy:get_bounties': {
-        const status = (payload && typeof payload === 'object' && 'status' in payload) 
-          ? (payload as any).status as BountyStatus 
-          : undefined;
+        const status =
+          payload && typeof payload === 'object' && 'status' in payload
+            ? ((payload as any).status as BountyStatus)
+            : undefined;
         const bounties: Bounty[] = [];
         for (const b of state.bounties.values()) {
           if (!status || b.status === status) bounties.push(b);

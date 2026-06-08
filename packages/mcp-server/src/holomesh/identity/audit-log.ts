@@ -29,13 +29,13 @@
 
 /** Every category of auditable event in the custodial key lifecycle. */
 export type AuditEventType =
-  | 'key_generated'          // New keypair created for a user
-  | 'key_accessed'           // Private key decrypted for signing
-  | 'key_rotated'            // Old key retired, new key provisioned
-  | 'signing_performed'      // Custodial signing on behalf of user
-  | 'key_export_prepared'   // Self-custody export package created
-  | 'key_export_finalized'  // Self-custody migration completed
-  | 'key_access_denied';    // Attempted access by unauthorized caller
+  | 'key_generated' // New keypair created for a user
+  | 'key_accessed' // Private key decrypted for signing
+  | 'key_rotated' // Old key retired, new key provisioned
+  | 'signing_performed' // Custodial signing on behalf of user
+  | 'key_export_prepared' // Self-custody export package created
+  | 'key_export_finalized' // Self-custody migration completed
+  | 'key_access_denied'; // Attempted access by unauthorized caller
 
 /** The severity level for audit events. Redacted logs use `info` for
  *  routine operations and `warn`/`error` for denied or anomalous access. */

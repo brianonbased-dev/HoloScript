@@ -61,8 +61,7 @@ describe('holo_task_kolmogorov_score', () => {
   // ─── FALSE/TRUE pair 1: empty agent context ──────────────────────────────
 
   describe('G.GOLD.013 pair: empty agent context', () => {
-    const task =
-      'fix the gaussian budget analyzer regression in packages/core/src/compiler';
+    const task = 'fix the gaussian budget analyzer regression in packages/core/src/compiler';
 
     it('FALSE case: empty recentDoneEntries → ratio ≈ 1.0 and score ≈ 0', () => {
       const r = holoTaskKolmogorovScore({
@@ -121,9 +120,7 @@ describe('holo_task_kolmogorov_score', () => {
     const oneEntry = holoTaskKolmogorovScore({
       taskDescription: task,
       agentContext: {
-        recentDoneEntries: [
-          'security audit hololand npc trait compiler lexical firewalling',
-        ],
+        recentDoneEntries: ['security audit hololand npc trait compiler lexical firewalling'],
       },
     });
     const tenEntries = holoTaskKolmogorovScore({
@@ -174,7 +171,8 @@ describe('holo_task_kolmogorov_score', () => {
     // Score normalization sanity: long-task score should be within a 3x band of short-task score
     // (gzip window saturation can drift things, but they should never differ by >10x for the
     // same vocabulary).
-    const ratioBetweenScores = Math.max(long.score, short.score) / Math.max(0.001, Math.min(long.score, short.score));
+    const ratioBetweenScores =
+      Math.max(long.score, short.score) / Math.max(0.001, Math.min(long.score, short.score));
     expect(ratioBetweenScores).toBeLessThan(10);
   });
 
@@ -246,20 +244,17 @@ describe('holo_task_kolmogorov_score', () => {
     expect(r1).toEqual({ score: 0, mdlBytes: 0, baselineBytes: 0, ratio: 0 });
 
     // Wrong-typed taskDescription → treated as empty.
-    const r2 = (await handleKolmogorovTaskScoreTool(
-      'holo_task_kolmogorov_score',
-      { taskDescription: 42, agentContext: { recentDoneEntries: [] } }
-    )) as KolmogorovScoreResult;
+    const r2 = (await handleKolmogorovTaskScoreTool('holo_task_kolmogorov_score', {
+      taskDescription: 42,
+      agentContext: { recentDoneEntries: [] },
+    })) as KolmogorovScoreResult;
     expect(r2).toEqual({ score: 0, mdlBytes: 0, baselineBytes: 0, ratio: 0 });
 
     // recentDoneEntries with non-string members are filtered.
-    const r3 = (await handleKolmogorovTaskScoreTool(
-      'holo_task_kolmogorov_score',
-      {
-        taskDescription: 'hello',
-        agentContext: { recentDoneEntries: ['real entry', 42, null, 'second entry'] },
-      }
-    )) as KolmogorovScoreResult;
+    const r3 = (await handleKolmogorovTaskScoreTool('holo_task_kolmogorov_score', {
+      taskDescription: 'hello',
+      agentContext: { recentDoneEntries: ['real entry', 42, null, 'second entry'] },
+    })) as KolmogorovScoreResult;
     expect(r3.baselineBytes).toBeGreaterThan(0);
   });
 

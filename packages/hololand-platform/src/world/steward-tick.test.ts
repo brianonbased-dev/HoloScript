@@ -110,7 +110,7 @@ describe('stewardTick', () => {
 
     // The steward NPC should have fired once at tick 2
     const actionReceipts = receipts.filter((r) =>
-      r.events.some((e) => e.startsWith('npc-action:')),
+      r.events.some((e) => e.startsWith('npc-action:'))
     );
     expect(actionReceipts.length).toBeGreaterThanOrEqual(1);
   });

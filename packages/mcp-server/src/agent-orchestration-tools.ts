@@ -34,17 +34,20 @@ import {
 export const agentOrchestrationTools: Tool[] = [
   {
     name: 'discover_agents',
-    description: 'Find agents by capability, domain, or tag. Searches local registry and optional remote URLs.',
+    description:
+      'Find agents by capability, domain, or tag. Searches local registry and optional remote URLs.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         type: {
           type: 'string',
-          description: 'Capability type filter: render, analyze, generate, transform, validate, orchestrate, etc.',
+          description:
+            'Capability type filter: render, analyze, generate, transform, validate, orchestrate, etc.',
         },
         domain: {
           type: 'string',
-          description: 'Domain filter: spatial, nlp, vision, blockchain, physics, gaming, general, etc.',
+          description:
+            'Domain filter: spatial, nlp, vision, blockchain, physics, gaming, general, etc.',
         },
         tags: {
           type: 'array',
@@ -69,13 +72,15 @@ export const agentOrchestrationTools: Tool[] = [
   },
   {
     name: 'delegate_task',
-    description: 'Send a task to a discovered agent. Auto-selects the best agent if agentId is omitted.',
+    description:
+      'Send a task to a discovered agent. Auto-selects the best agent if agentId is omitted.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         agentId: {
           type: 'string',
-          description: 'Target agent ID (from discover_agents). Omit for auto-selection by capability.',
+          description:
+            'Target agent ID (from discover_agents). Omit for auto-selection by capability.',
         },
         skillId: {
           type: 'string',
@@ -121,7 +126,8 @@ export const agentOrchestrationTools: Tool[] = [
   },
   {
     name: 'compose_workflow',
-    description: 'Define and validate a multi-step skill workflow (DAG). Returns validation result with execution plan.',
+    description:
+      'Define and validate a multi-step skill workflow (DAG). Returns validation result with execution plan.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -138,7 +144,8 @@ export const agentOrchestrationTools: Tool[] = [
               skillId: { type: 'string', description: 'Skill/tool to invoke.' },
               inputs: {
                 type: 'object',
-                description: 'Input mapping. Values can be {type:"literal",value:...}, {type:"ref",stepId:"...",outputKey:"..."}, or {type:"context",key:"..."}.',
+                description:
+                  'Input mapping. Values can be {type:"literal",value:...}, {type:"ref",stepId:"...",outputKey:"..."}, or {type:"context",key:"..."}.',
               },
               dependsOn: {
                 type: 'array',
@@ -173,7 +180,8 @@ export const agentOrchestrationTools: Tool[] = [
   },
   {
     name: 'execute_workflow', // THIN (ratchet P4): dry-run by default. No toolExecutor wired unless MCP caller provides one; steps return dry-run stubs.
-    description: 'Execute a skill workflow. Each step invokes a local MCP tool. Returns results from every step.',
+    description:
+      'Execute a skill workflow. Each step invokes a local MCP tool. Returns results from every step.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -431,7 +439,12 @@ async function handleExecuteWorkflow(
         >;
       }
     : async (skillId: string, inputs: Record<string, unknown>) => {
-        return { skillId, inputs, note: 'No tool executor configured — dry run only', dryRun: true };
+        return {
+          skillId,
+          inputs,
+          note: 'No tool executor configured — dry run only',
+          dryRun: true,
+        };
       };
 
   const isDryRun = !toolExecutor;
@@ -449,7 +462,12 @@ async function handleExecuteWorkflow(
       output: sr.output,
       error: sr.error,
     })),
-    ...(isDryRun ? { message: 'No tool executor wired — steps returned dry-run stubs only. Wire a toolExecutor for real execution.' } : {}),
+    ...(isDryRun
+      ? {
+          message:
+            'No tool executor wired — steps returned dry-run stubs only. Wire a toolExecutor for real execution.',
+        }
+      : {}),
   };
 }
 

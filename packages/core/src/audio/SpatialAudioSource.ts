@@ -23,15 +23,29 @@ export class SpatialAudioSource {
     this.volume = config.volume ?? 1;
   }
 
-  play(): void { this.playing = true; }
-  stop(): void { this.playing = false; }
-  pause(): void { this.playing = false; }
-  resume(): void { this.playing = true; }
+  play(): void {
+    this.playing = true;
+  }
+  stop(): void {
+    this.playing = false;
+  }
+  pause(): void {
+    this.playing = false;
+  }
+  resume(): void {
+    this.playing = true;
+  }
 
-  isPlaying(): boolean { return this.playing; }
+  isPlaying(): boolean {
+    return this.playing;
+  }
 
-  getVolume(): number { return this.volume; }
-  setVolume(v: number): void { this.volume = v; }
+  getVolume(): number {
+    return this.volume;
+  }
+  setVolume(v: number): void {
+    this.volume = v;
+  }
 
   getPosition(): [number, number, number] {
     return [...this.position] as [number, number, number];

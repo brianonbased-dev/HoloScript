@@ -156,9 +156,7 @@ export async function tier2LlmPropose(op: DispatchableOperation): Promise<unknow
  * Effect verifier using the engine's SimulationContract gate.
  * Returns `passed: true` when the manifest passes structural checks.
  */
-export async function tier2EffectVerifier(
-  traits: string[]
-): Promise<DispatchEffectVerifierResult> {
+export async function tier2EffectVerifier(traits: string[]): Promise<DispatchEffectVerifierResult> {
   // Structural check: every trait must be non-empty and known
   const knownTraits = new Set(['grabbable', 'hoverable', 'clickable', 'draggable', 'throwable']);
   for (const trait of traits) {

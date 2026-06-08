@@ -394,10 +394,7 @@ export {
 // `rediscovered` novelty check (the honest-NO that stops a novice from claiming
 // an already-known result, D.060 / W.520). Consumes the shipped assessConjectureNovelty
 // corpus parameter; full literature ingestion is the documented follow-up.
-export {
-  KNOWN_RESULTS_CORPUS,
-  assessNoveltyAgainstKnownResults,
-} from './ConjecturePriorArtCorpus';
+export { KNOWN_RESULTS_CORPUS, assessNoveltyAgainstKnownResults } from './ConjecturePriorArtCorpus';
 
 // Semantic novelty ADVISORY layer (scope 2026-05-23) — a learned local model
 // (Xenova/all-MiniLM-L6-v2 via the already-present @huggingface/transformers, offline)

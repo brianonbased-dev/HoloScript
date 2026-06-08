@@ -102,7 +102,7 @@ The engine doesn't just do text search — it walks the call graph, finds commun
 clusters, measures blast radius, and feeds all of that to an LLM for a cited answer.
 
 Below are question families organized by what you're trying to learn. Each family
-shows a *splash pattern* — start broad, then drill into specifics as the graph
+shows a _splash pattern_ — start broad, then drill into specifics as the graph
 reveals structure.
 
 ### Compilation & Target Pipeline
@@ -214,6 +214,7 @@ Semantic search finds code by meaning, not keywords. Start broad, narrow with fi
 ```
 
 Filter by type for precision:
+
 ```
 holo_semantic_search({ query: "compiler", type: "class" })        → only compiler classes
 holo_semantic_search({ query: "validate", type: "function" })     → only validation functions
@@ -228,6 +229,7 @@ search fails but graph enrichment helps, or where you need to frame the question
 differently to get useful results.
 
 **Cross-package boundaries (graph excels here):**
+
 ```
 "What happens when studio calls a function defined in @holoscript/core that
  delegates to absorb-service? Trace the full cross-package call chain."
@@ -236,6 +238,7 @@ differently to get useful results.
 ```
 
 **Dead code & orphans (what ISN'T connected):**
+
 ```
 "Which exported functions have zero callers anywhere in the codebase?"
 "Are there compiler implementations that no compilation target actually uses?"
@@ -244,6 +247,7 @@ differently to get useful results.
 ```
 
 **Naming collisions & shadows (same name, different things):**
+
 ```
 "There are multiple 'parse' functions — which one handles .holo vs .hs vs .hsplus?"
 "How many 'validate' functions exist and do they share a contract or are they independent?"
@@ -252,6 +256,7 @@ differently to get useful results.
 ```
 
 **Runtime vs static structure (graph sees static, behavior is dynamic):**
+
 ```
 "Which tool handlers are registered dynamically at startup vs statically in tools.ts?"
 "How does the plugin discovery mechanism load plugins that aren't statically imported?"
@@ -260,6 +265,7 @@ differently to get useful results.
 ```
 
 **Scale & performance (what's expensive):**
+
 ```
 "Which functions have the deepest call chains — more than 10 levels deep?"
 "What's the most complex community cluster and what holds it together?"
@@ -268,6 +274,7 @@ differently to get useful results.
 ```
 
 **Monorepo-specific (pnpm workspace gotchas):**
+
 ```
 "Which packages use workspace:* protocol dependencies that would break for external users?"
 "Are there packages that import from dist/ instead of src/ of sibling packages?"
@@ -276,6 +283,7 @@ differently to get useful results.
 ```
 
 **Questions that trip up naive RAG but Graph RAG handles:**
+
 ```
 "How does the auth system work?" → Naive RAG finds 'auth' strings everywhere.
   Graph RAG finds the auth entry points (resolveRequestingAgent, requireAuth)
@@ -590,16 +598,16 @@ tracking.
 
 ### Environment Variables
 
-| Variable                | Required         | Description                                                    |
-| ----------------------- | ---------------- | -------------------------------------------------------------- |
-| `ABSORB_API_KEY`        | For paid tools   | API key for Studio authentication                              |
+| Variable                | Required         | Description                                                                                                                                                      |
+| ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ABSORB_API_KEY`        | For paid tools   | API key for Studio authentication                                                                                                                                |
 | `OPENAI_API_KEY`        | Optional         | OpenAI key, used ONLY for the generic factory with explicit `provider: 'openai'`. The GraphRAG path (`detectBestEmbeddingProvider`) ignores it entirely (F.106). |
-| `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)            |
-| `EMBEDDING_PROVIDER`    | Optional         | GraphRAG override — only `holoembed` is accepted (`structural` is a legacy alias mapped to `holoembed`); any other value (incl. `openai`) is rejected (F.106). |
-| `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://studio.holoscript.net`) |
-| `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                       |
-| `ANTHROPIC_API_KEY`     | Optional         | Anthropic API key for LLM-powered queries                      |
-| `GEMINI_API_KEY`        | Optional         | Google Gemini API key for LLM-powered queries                  |
+| `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)                                                                                                              |
+| `EMBEDDING_PROVIDER`    | Optional         | GraphRAG override — only `holoembed` is accepted (`structural` is a legacy alias mapped to `holoembed`); any other value (incl. `openai`) is rejected (F.106).   |
+| `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://studio.holoscript.net`)                                                                                                   |
+| `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                                                                                                                         |
+| `ANTHROPIC_API_KEY`     | Optional         | Anthropic API key for LLM-powered queries                                                                                                                        |
+| `GEMINI_API_KEY`        | Optional         | Google Gemini API key for LLM-powered queries                                                                                                                    |
 
 ### Embedding Provider Auto-Detection
 

@@ -76,15 +76,18 @@ function requireFinite(value: unknown, name: string, min: number, max: number): 
   return value;
 }
 
-export function updateNativeCameraFrameDigest(previousDigest: string | undefined, frameHash: string): string {
-  return sha256Hex([
-    'holoscript-native-camera-sequence-v1',
-    previousDigest ?? 'start',
-    frameHash,
-  ]);
+export function updateNativeCameraFrameDigest(
+  previousDigest: string | undefined,
+  frameHash: string
+): string {
+  return sha256Hex(['holoscript-native-camera-sequence-v1', previousDigest ?? 'start', frameHash]);
 }
 
-export function nativeCameraVideoHash(token: string, frameDigest: string, frameCount: number): string {
+export function nativeCameraVideoHash(
+  token: string,
+  frameDigest: string,
+  frameCount: number
+): string {
   return `native-camera:${sha256Hex([
     'holoscript-native-camera-video-v1',
     token,
@@ -124,9 +127,11 @@ function decodeDevicePose(raw: unknown): CameraPose | undefined {
   if (typeof raw !== 'object') throw new Error('nativeFrame.devicePose must be an object');
   const o = raw as Record<string, unknown>;
   const vec = (v: unknown, n: number, name: string): number[] => {
-    if (!Array.isArray(v) || v.length !== n) throw new Error(`devicePose.${name} must be a ${n}-number array`);
+    if (!Array.isArray(v) || v.length !== n)
+      throw new Error(`devicePose.${name} must be a ${n}-number array`);
     return v.map((x, i) => {
-      if (typeof x !== 'number' || !Number.isFinite(x)) throw new Error(`devicePose.${name}[${i}] must be finite`);
+      if (typeof x !== 'number' || !Number.isFinite(x))
+        throw new Error(`devicePose.${name}[${i}] must be finite`);
       return x;
     });
   };
@@ -139,13 +144,20 @@ function decodeDevicePose(raw: unknown): CameraPose | undefined {
   return { position, rotation, confidence };
 }
 
-export function decodeNativeCameraFramePayload(payload: NativeCameraFramePayload): DecodedNativeCameraFrame {
+export function decodeNativeCameraFramePayload(
+  payload: NativeCameraFramePayload
+): DecodedNativeCameraFrame {
   if (!payload || typeof payload !== 'object') {
     throw new Error('nativeFrame must be an object');
   }
 
   const index = requireInt(payload.index, 'nativeFrame.index', 0, 100_000);
-  const timestampMs = requireFinite(payload.timestampMs ?? index * 650, 'nativeFrame.timestampMs', 0, 24 * 60 * 60_000);
+  const timestampMs = requireFinite(
+    payload.timestampMs ?? index * 650,
+    'nativeFrame.timestampMs',
+    0,
+    24 * 60 * 60_000
+  );
   const width = requireInt(payload.width, 'nativeFrame.width', 2, MAX_FRAME_DIMENSION);
   const height = requireInt(payload.height, 'nativeFrame.height', 2, MAX_FRAME_DIMENSION);
   const strideRaw = payload.stride ?? 3;
@@ -191,7 +203,10 @@ export function decodeNativeCameraFramePayload(payload: NativeCameraFramePayload
     frame.rgb,
     ...(measuredDepth ? ['depth', measuredDepth.bytes] : []),
     ...(devicePose
-      ? ['pose', `${devicePose.position.join(',')};${devicePose.rotation.join(',')};${devicePose.confidence}`]
+      ? [
+          'pose',
+          `${devicePose.position.join(',')};${devicePose.rotation.join(',')};${devicePose.confidence}`,
+        ]
       : []),
   ]);
 
@@ -305,7 +320,11 @@ export async function finalizeNativeCameraLiveScan(
   try {
     const manifest = await runtimeState.runtime.finalize();
     const scanKind: ScanKind = session.scanKind === 'face' ? 'face' : 'room';
-    const videoHash = nativeCameraVideoHash(session.token, nativeCamera.frameDigest, nativeCamera.frameCount);
+    const videoHash = nativeCameraVideoHash(
+      session.token,
+      nativeCamera.frameDigest,
+      nativeCamera.frameCount
+    );
     const replayFingerprint = computeHoloMapReplayFingerprint({
       modelHash: scanSessionModelHash(),
       seed: 0,
@@ -339,7 +358,10 @@ export async function finalizeNativeCameraLiveScan(
       ...nativeCamera,
       updatedAtIso: new Date().toISOString(),
       holomap: {
-        ...(nativeCamera.holomap ?? { framesStepped: manifest.frameCount, pointCount: manifest.pointCount }),
+        ...(nativeCamera.holomap ?? {
+          framesStepped: manifest.frameCount,
+          pointCount: manifest.pointCount,
+        }),
         runtime: 'finalized',
         replayFingerprint,
         framesStepped: manifest.frameCount,

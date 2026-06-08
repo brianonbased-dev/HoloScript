@@ -241,8 +241,7 @@ export async function handleHologramContentTool(
   }
 
   const rows = parseRows(args.rows);
-  const title =
-    typeof args.title === 'string' && args.title.trim() ? args.title.trim() : undefined;
+  const title = typeof args.title === 'string' && args.title.trim() ? args.title.trim() : undefined;
   const scale =
     typeof args.scale === 'number' && Number.isFinite(args.scale) && args.scale > 0
       ? args.scale

@@ -10,7 +10,9 @@ function makeCtx(overrides: Partial<HoloStatementContext> = {}): HoloStatementCo
   const scope = makeScope();
   return {
     getVariable: vi.fn((name: string) => scope.variables.get(name) ?? null),
-    setVariable: vi.fn((name: string, value: unknown) => { scope.variables.set(name, value as never); }),
+    setVariable: vi.fn((name: string, value: unknown) => {
+      scope.variables.set(name, value as never);
+    }),
     currentScope: scope,
     emit: vi.fn(),
     evaluateHoloExpression: vi.fn().mockResolvedValue(null),
@@ -41,7 +43,10 @@ describe('executeHoloProgram', () => {
       { type: 'ExpressionStatement', expression: { type: 'literal', value: 1 } },
       { type: 'ExpressionStatement', expression: { type: 'literal', value: 2 } },
     ];
-    (ctx.evaluateHoloExpression as ReturnType<typeof vi.fn>).mockImplementation(async () => { order.push(order.length + 1); return order[order.length - 1]; });
+    (ctx.evaluateHoloExpression as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      order.push(order.length + 1);
+      return order[order.length - 1];
+    });
     await executeHoloProgram(stmts as never, undefined, ctx);
     expect(order).toEqual([1, 2]);
   });
@@ -67,7 +72,8 @@ describe('executeHoloStatement - Assignment', () => {
     const ctx = makeCtx({ evaluateHoloExpression: vi.fn().mockResolvedValue(5) });
     const result = await executeHoloStatement(
       { type: 'Assignment', target: 'x', operator: '=', value: {} } as never,
-      undefined, ctx,
+      undefined,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(ctx.setVariable).toHaveBeenCalledWith('x', 5, undefined);
@@ -80,7 +86,8 @@ describe('executeHoloStatement - Assignment', () => {
     });
     await executeHoloStatement(
       { type: 'Assignment', target: 'x', operator: '+=', value: {} } as never,
-      undefined, ctx,
+      undefined,
+      ctx
     );
     expect(ctx.setVariable).toHaveBeenCalledWith('x', 13, undefined);
   });
@@ -103,7 +110,9 @@ describe('executeHoloStatement - IfStatement', () => {
   it('executes alternate when condition is falsy', async () => {
     let callCount = 0;
     const ctx = makeCtx({
-      evaluateHoloExpression: vi.fn().mockImplementation(async () => callCount++ === 0 ? false : 99),
+      evaluateHoloExpression: vi
+        .fn()
+        .mockImplementation(async () => (callCount++ === 0 ? false : 99)),
     });
     const stmt = {
       type: 'IfStatement',
@@ -124,7 +133,8 @@ describe('executeHoloStatement - WhileStatement', () => {
     });
     await executeHoloStatement(
       { type: 'WhileStatement', condition: {}, body: [] } as never,
-      undefined, ctx,
+      undefined,
+      ctx
     );
     expect(iters).toBeGreaterThanOrEqual(2);
   });
@@ -133,7 +143,8 @@ describe('executeHoloStatement - WhileStatement', () => {
     const ctx = makeCtx({ evaluateHoloExpression: vi.fn().mockResolvedValue(true) });
     const result = await executeHoloStatement(
       { type: 'WhileStatement', condition: {}, body: [] } as never,
-      undefined, ctx,
+      undefined,
+      ctx
     );
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/loop/i);
@@ -145,7 +156,8 @@ describe('executeHoloStatement - EmitStatement', () => {
     const ctx = makeCtx({ evaluateHoloExpression: vi.fn().mockResolvedValue('data') });
     await executeHoloStatement(
       { type: 'EmitStatement', event: 'myEvent', data: {} } as never,
-      undefined, ctx,
+      undefined,
+      ctx
     );
     expect(ctx.emit).toHaveBeenCalledWith('myEvent', 'data');
   });
@@ -154,10 +166,7 @@ describe('executeHoloStatement - EmitStatement', () => {
 describe('executeHoloStatement - unknown type', () => {
   it('returns success false for unknown stmt type', async () => {
     const ctx = makeCtx();
-    const result = await executeHoloStatement(
-      { type: 'UnknownXYZ' } as never,
-      undefined, ctx,
-    );
+    const result = await executeHoloStatement({ type: 'UnknownXYZ' } as never, undefined, ctx);
     expect(result.success).toBe(false);
     expect(result.error).toContain('UnknownXYZ');
   });

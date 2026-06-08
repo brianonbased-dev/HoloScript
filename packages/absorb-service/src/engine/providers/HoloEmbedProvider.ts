@@ -52,8 +52,8 @@ import { StructuralEmbeddingProvider } from './StructuralEmbeddingProvider';
 // =============================================================================
 
 const STRUCTURAL_DIM = 384;
-const SUBWORD_BINS   = 128;  // bins per subword block
-const SUBWORD_BLOCKS = 3;    // name+sig, docComment, eventNames
+const SUBWORD_BINS = 128; // bins per subword block
+const SUBWORD_BLOCKS = 3; // name+sig, docComment, eventNames
 const DIM = STRUCTURAL_DIM + SUBWORD_BINS * SUBWORD_BLOCKS; // 768
 
 /**
@@ -91,7 +91,7 @@ export class HoloEmbedProvider implements EmbeddingProvider {
    * DocComment and event trigrams are zero — use embedSymbol() for full fidelity.
    */
   async getEmbeddings(texts: string[]): Promise<number[][]> {
-    return texts.map(t => Array.from(this._embedText(t)));
+    return texts.map((t) => Array.from(this._embedText(t)));
   }
 
   /**
@@ -106,7 +106,7 @@ export class HoloEmbedProvider implements EmbeddingProvider {
       emitCount?: number;
       listenCount?: number;
       eventNames?: string[];
-    } = {},
+    } = {}
   ): Float32Array {
     const vec = new Float32Array(DIM);
 
@@ -183,9 +183,12 @@ function trigramHistogram(text: string, vec: Float32Array, offset: number, bins:
 
     // FNV-1a hash of the 3 chars
     let h = 2166136261;
-    h ^= a.charCodeAt(0); h = (h * 16777619) >>> 0;
-    h ^= b.charCodeAt(0); h = (h * 16777619) >>> 0;
-    h ^= c.charCodeAt(0); h = (h * 16777619) >>> 0;
+    h ^= a.charCodeAt(0);
+    h = (h * 16777619) >>> 0;
+    h ^= b.charCodeAt(0);
+    h = (h * 16777619) >>> 0;
+    h ^= c.charCodeAt(0);
+    h = (h * 16777619) >>> 0;
 
     counts[h % bins]!++;
     total++;
@@ -212,14 +215,16 @@ function trigramHistogram(text: string, vec: Float32Array, offset: number, bins:
  *   "ev:pillar:spike"    → "ev pillar spike"
  */
 function camelSplit(s: string): string {
-  return s
-    // Insert space before uppercase runs following lowercase: "aSite" → "a Site"
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    // Insert space before uppercase followed by lowercase: "HTMLParser" → "HTML Parser"
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    // Replace non-alphanumeric separators (_, -, :, .) with space
-    .replace(/[^a-zA-Z0-9]+/g, ' ')
-    .trim();
+  return (
+    s
+      // Insert space before uppercase runs following lowercase: "aSite" → "a Site"
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      // Insert space before uppercase followed by lowercase: "HTMLParser" → "HTML Parser"
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+      // Replace non-alphanumeric separators (_, -, :, .) with space
+      .replace(/[^a-zA-Z0-9]+/g, ' ')
+      .trim()
+  );
 }
 
 // =============================================================================

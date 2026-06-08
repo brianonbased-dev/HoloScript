@@ -179,8 +179,8 @@ export class BuiltinRegistry {
           return ff;
         } else {
           // @ts-ignore — @hololand/navigation CPU fallback (optional peer dep)
-          const { FlowFieldGenerator } = await import('@hololand/navigation').catch(() =>
-            import('../gpu/index.js')
+          const { FlowFieldGenerator } = await import('@hololand/navigation').catch(
+            () => import('../gpu/index.js')
           );
           return new FlowFieldGenerator({
             width: (config.width as number) || 64,

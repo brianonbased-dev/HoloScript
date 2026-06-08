@@ -6,11 +6,7 @@
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  RECEIPT_VERSION,
-  selfTest,
-  validateReceipt,
-} from '../holoshell-low-camera-workflow.mjs';
+import { RECEIPT_VERSION, selfTest, validateReceipt } from '../holoshell-low-camera-workflow.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
@@ -33,7 +29,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -46,7 +44,11 @@ assertOk(receipt.target.receiptHash.startsWith('sha256:'), 'target receipt hash 
 assertOk(receipt.target.pngHash.startsWith('sha256:'), 'target PNG hash recorded');
 assertOk(receipt.target.pngFileHash.startsWith('sha256:'), 'target PNG file hash recorded');
 assertEq(receipt.target.profile, 'fiducial-board', 'fiducial board profile recorded');
-assertEq(receipt.target.dictionary, 'holoshell-native-binary-7x7-v1', 'fiducial dictionary recorded');
+assertEq(
+  receipt.target.dictionary,
+  'holoshell-native-binary-7x7-v1',
+  'fiducial dictionary recorded'
+);
 assertEq(receipt.target.markerCount, 9, 'fiducial marker count recorded');
 assertEq(receipt.target.primitiveCount, 2, 'target primitive count recorded');
 assertEq(receipt.target.fiducialCount, 9, 'target fiducial count recorded');
@@ -54,42 +56,99 @@ assertOk(receipt.sweep.receiptHash.startsWith('sha256:'), 'sweep receipt hash re
 assertOk(receipt.sweep.fileHash.startsWith('sha256:'), 'sweep file hash recorded');
 assertEq(receipt.sweep.winner.mode, 'raw', 'winner mode recorded');
 assertOk(receipt.control.frame.path, 'camera control frame recorded');
-assertOk(receipt.control.frame.fileHash.startsWith('sha256:'), 'camera control frame hash recorded');
-assertEq(receipt.targetDetection.detection.status, 'not-detected', 'target detection status recorded');
-assertEq(receipt.targetDetection.target.profile, 'fiducial-board', 'target detection carries target profile');
-assertEq(receipt.targetDetection.detection.recoveredMarkerCount, 0, 'missing target recovers zero markers');
-assertEq(receipt.targetDetection.detection.boardHomographyReady, false, 'missing target has no board homography');
+assertOk(
+  receipt.control.frame.fileHash.startsWith('sha256:'),
+  'camera control frame hash recorded'
+);
+assertEq(
+  receipt.targetDetection.detection.status,
+  'not-detected',
+  'target detection status recorded'
+);
+assertEq(
+  receipt.targetDetection.target.profile,
+  'fiducial-board',
+  'target detection carries target profile'
+);
+assertEq(
+  receipt.targetDetection.detection.recoveredMarkerCount,
+  0,
+  'missing target recovers zero markers'
+);
+assertEq(
+  receipt.targetDetection.detection.boardHomographyReady,
+  false,
+  'missing target has no board homography'
+);
 assertEq(
   receipt.targetDetection.detection.boardPose.status,
   'insufficient-correspondences',
   'missing target homography fails closed'
 );
-assertEq(receipt.targetDetection.detection.calibrationReady, false, 'target detection does not claim calibration readiness');
-const targetDetectionStage = receipt.chain.stages.find((stage) => stage.name === 'workflow.target-in-frame-analysis');
-assertEq(targetDetectionStage.metrics.boardHomographyReady, false, 'chain stage records board homography readiness');
+assertEq(
+  receipt.targetDetection.detection.calibrationReady,
+  false,
+  'target detection does not claim calibration readiness'
+);
+const targetDetectionStage = receipt.chain.stages.find(
+  (stage) => stage.name === 'workflow.target-in-frame-analysis'
+);
+assertEq(
+  targetDetectionStage.metrics.boardHomographyReady,
+  false,
+  'chain stage records board homography readiness'
+);
 assertEq(receipt.fiducialPoseSeed.status, 'blocked', 'missing target blocks fiducial pose seed');
 assertEq(receipt.fiducialPoseSeed.poseSeed.poseSeedReady, false, 'blocked pose seed is not ready');
-assertEq(receipt.fiducialPoseSeed.poseSeed.calibrationReady, false, 'pose seed does not claim calibration');
+assertEq(
+  receipt.fiducialPoseSeed.poseSeed.calibrationReady,
+  false,
+  'pose seed does not claim calibration'
+);
 assertOk(
   receipt.fiducialPoseSeed.poseSeed.blockers.includes('board-homography-unavailable'),
   'pose seed blocker recorded'
 );
-const poseSeedStage = receipt.chain.stages.find((stage) => stage.name === 'workflow.fiducial-pose-seed');
+const poseSeedStage = receipt.chain.stages.find(
+  (stage) => stage.name === 'workflow.fiducial-pose-seed'
+);
 assertEq(poseSeedStage.metrics.poseSeedReady, false, 'chain stage records pose seed readiness');
-assertEq(receipt.fiducialCalibration.status, 'blocked', 'missing evidence blocks fiducial calibration');
-assertEq(receipt.fiducialCalibration.calibration.calibrationReady, false, 'blocked calibration is not ready');
+assertEq(
+  receipt.fiducialCalibration.status,
+  'blocked',
+  'missing evidence blocks fiducial calibration'
+);
+assertEq(
+  receipt.fiducialCalibration.calibration.calibrationReady,
+  false,
+  'blocked calibration is not ready'
+);
 assertOk(
   receipt.fiducialCalibration.calibration.blockers.includes('pose-seed-unavailable'),
   'calibration blocker recorded'
 );
-const calibrationStage = receipt.chain.stages.find((stage) => stage.name === 'workflow.fiducial-calibration');
-assertEq(calibrationStage.metrics.calibrationReady, false, 'chain stage records calibration readiness');
+const calibrationStage = receipt.chain.stages.find(
+  (stage) => stage.name === 'workflow.fiducial-calibration'
+);
+assertEq(
+  calibrationStage.metrics.calibrationReady,
+  false,
+  'chain stage records calibration readiness'
+);
 assertOk(receipt.render.receiptHash.startsWith('sha256:'), 'render receipt hash recorded');
 assertOk(receipt.render.pngHash.startsWith('sha256:'), 'quilt png hash recorded');
 assertEq(receipt.render.quality.grade, 'weak', 'workflow carries render quality grade');
 assertOk(receipt.quality.score >= 0, 'workflow exposes top-level quality');
-assertOk(receipt.technologyPlan.recommendedNow.includes('fiducial-calibration'), 'workflow recommends fiducial calibration');
-assertOk(receipt.technologyPlan.recommendations.some((recommendation) => recommendation.id === 'mobile-native-depth'), 'workflow carries mobile depth alternative');
+assertOk(
+  receipt.technologyPlan.recommendedNow.includes('fiducial-calibration'),
+  'workflow recommends fiducial calibration'
+);
+assertOk(
+  receipt.technologyPlan.recommendations.some(
+    (recommendation) => recommendation.id === 'mobile-native-depth'
+  ),
+  'workflow carries mobile depth alternative'
+);
 assertEq(
   receipt.chain?.receipt?.stageCount,
   6,

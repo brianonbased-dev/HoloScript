@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  HoloScriptSandbox,
-  type ContractedSandboxData,
-  type SandboxSimSolver,
-} from '../index';
+import { HoloScriptSandbox, type ContractedSandboxData, type SandboxSimSolver } from '../index';
 
 describe('HoloScriptSandbox.executeContractedSimulation', () => {
   const validHolo = `

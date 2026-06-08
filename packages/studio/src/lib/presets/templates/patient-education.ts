@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-patient-education",
-  name: "Patient Education Display",
-  description: "Visual health information with interactive 3D models",
-  thumbnail: "📋",
-  tags: ["healthcare","education","patient","visualization"],
-  category: "healthcare",
+  id: 'wizard-patient-education',
+  name: 'Patient Education Display',
+  description: 'Visual health information with interactive 3D models',
+  thumbnail: '📋',
+  tags: ['healthcare', 'education', 'patient', 'visualization'],
+  category: 'healthcare',
   code: `composition "Patient Education" {
   environment {
     skybox: "studio"
@@ -48,7 +48,7 @@ export const template: SceneTemplate = {
     scale: [2, 0.1, 2]
     color: "#f0f0f5"
   }
-}`
+}`,
 };
 
 export default template;

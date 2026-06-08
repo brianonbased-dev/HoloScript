@@ -1960,9 +1960,10 @@ export class R3FCompiler {
     this._defaultLighting = options.defaultLighting ?? true;
     this._holomapPointCloud = options.holomapPointCloud;
     if (options.platformTarget) {
-      this._platformTarget = typeof options.platformTarget === 'string'
-        ? createPlatformTarget(options.platformTarget as any)
-        : options.platformTarget;
+      this._platformTarget =
+        typeof options.platformTarget === 'string'
+          ? createPlatformTarget(options.platformTarget as any)
+          : options.platformTarget;
     }
   }
 
@@ -2397,7 +2398,9 @@ export class R3FCompiler {
     const childNodes: R3FNode[] = [];
     if (world.children && world.children.length > 0) {
       for (const child of world.children) {
-        childNodes.push(this.compileObjectDecl(child as unknown as Record<string, unknown>, templateMap));
+        childNodes.push(
+          this.compileObjectDecl(child as unknown as Record<string, unknown>, templateMap)
+        );
       }
     }
 
@@ -2474,12 +2477,14 @@ export class R3FCompiler {
         // profile's declared dot pattern (e.g. '1_center_7_12_18_radial' → [1,7,12,18]
         // = 1 central carpel + radial rings of 7, 12, 18). The renderer recesses a
         // carpel well per entry — the iconic lotus receptacle, compiled from `.holo`.
-        carpelRings: ((profile.seed_pod_dot_pattern as string | undefined)?.match(/\d+/g) ?? [
-          '1',
-          '7',
-          '12',
-          '18',
-        ]).map(Number),
+        carpelRings: (
+          (profile.seed_pod_dot_pattern as string | undefined)?.match(/\d+/g) ?? [
+            '1',
+            '7',
+            '12',
+            '18',
+          ]
+        ).map(Number),
       },
     };
 
@@ -2529,7 +2534,14 @@ export class R3FCompiler {
     const stemNode = this.createNode('group', {
       __animatedTransform: [
         { prop: 'scaleY', target: 'developmentalTime', edge0: 0, edge1: 0.42, from: 0.001, to: 1 },
-        { prop: 'posY', target: 'developmentalTime', edge0: 0, edge1: 0.42, from: 0, to: stemHeight / 2 },
+        {
+          prop: 'posY',
+          target: 'developmentalTime',
+          edge0: 0,
+          edge1: 0.42,
+          from: 0,
+          to: stemHeight / 2,
+        },
       ],
     });
     stemNode.children = [
@@ -2594,8 +2606,7 @@ export class R3FCompiler {
       return this.compileComponentNode(node as unknown as CompositionChild);
     }
 
-    const rawProps =
-      ((node as unknown as CompositionChild).properties) || {};
+    const rawProps = (node as unknown as CompositionChild).properties || {};
     const type = this.mapType(node.type, rawProps);
 
     const r3fNode = r3fNodePool.acquire();
@@ -2695,7 +2706,9 @@ export class R3FCompiler {
 
     if (composition.environment) {
       root.children!.push(
-        ...this.compileEnvironmentBlock(composition.environment as unknown as Record<string, unknown>)
+        ...this.compileEnvironmentBlock(
+          composition.environment as unknown as Record<string, unknown>
+        )
       );
     }
 
@@ -2721,7 +2734,9 @@ export class R3FCompiler {
     // Compile timelines
     if (Array.isArray(composition.timelines)) {
       for (const timeline of composition.timelines) {
-        root.children!.push(this.compileTimelineBlock(timeline as unknown as Record<string, unknown>));
+        root.children!.push(
+          this.compileTimelineBlock(timeline as unknown as Record<string, unknown>)
+        );
       }
     }
 
@@ -2753,13 +2768,17 @@ export class R3FCompiler {
 
     // Compile UI overlay
     if (composition.ui) {
-      root.children!.push(this.compileUIBlock(composition.ui as unknown as Record<string, unknown>));
+      root.children!.push(
+        this.compileUIBlock(composition.ui as unknown as Record<string, unknown>)
+      );
     }
 
     // Compile transitions
     if (Array.isArray(composition.transitions)) {
       for (const transition of composition.transitions) {
-        root.children!.push(this.compileTransitionBlock(transition as unknown as Record<string, unknown>));
+        root.children!.push(
+          this.compileTransitionBlock(transition as unknown as Record<string, unknown>)
+        );
       }
     }
 
@@ -2779,7 +2798,9 @@ export class R3FCompiler {
 
     // Compile first-class camera block
     if (composition.camera) {
-      root.children!.push(this.compileCameraBlock(composition.camera as unknown as Record<string, unknown>));
+      root.children!.push(
+        this.compileCameraBlock(composition.camera as unknown as Record<string, unknown>)
+      );
     }
 
     // Compile first-class effects block OR auto-detect post-processing
@@ -4199,7 +4220,9 @@ export class R3FCompiler {
           } else if ((d.name as string) === 'spatial_audio' || (d.name as string) === 'voice') {
             props.spatial = true;
           } else if ((d.name as string) === 'gem_resonance') {
-            props.gemResonance = gemResonanceConfig(d.config as Record<string, unknown> | undefined);
+            props.gemResonance = gemResonanceConfig(
+              d.config as Record<string, unknown> | undefined
+            );
             props.spatial = true;
           } else if (d.name === 'networked') {
             props.networked = d.config || true;

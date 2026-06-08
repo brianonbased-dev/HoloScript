@@ -19,8 +19,14 @@ import {
 import type { ContentTypeStats } from '../hooks/useCreatorStats';
 
 // Lazy-load chart components — chart.js is ~200KB and only used here (admin/creator dashboard)
-const RevenueChart = dynamic(() => import('./RevenueChart').then(m => ({ default: m.RevenueChart })), { ssr: false });
-const AnalyticsPanel = dynamic(() => import('./AnalyticsPanel').then(m => ({ default: m.AnalyticsPanel })), { ssr: false });
+const RevenueChart = dynamic(
+  () => import('./RevenueChart').then((m) => ({ default: m.RevenueChart })),
+  { ssr: false }
+);
+const AnalyticsPanel = dynamic(
+  () => import('./AnalyticsPanel').then((m) => ({ default: m.AnalyticsPanel })),
+  { ssr: false }
+);
 
 const CONTENT_TYPE_ICONS: Record<string, typeof Brain> = {
   scene: Layers,

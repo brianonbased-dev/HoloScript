@@ -12,12 +12,7 @@
 // Types
 // ============================================================================
 
-export type SyncMode =
-  | 'genlock'
-  | 'framelock'
-  | 'freerun'
-  | 'timecode'
-  | 'ntp';
+export type SyncMode = 'genlock' | 'framelock' | 'freerun' | 'timecode' | 'ntp';
 
 export type LEDPanelLayout =
   | 'flat_wall'

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { resolveWorldCreation, type WorldProposal, type WorldCreationVote } from './byzantineWorldConsensus';
+import {
+  resolveWorldCreation,
+  type WorldProposal,
+  type WorldCreationVote,
+} from './byzantineWorldConsensus';
 
 const cfg = { totalAgents: 4, byzantineFaults: 1 };
 
@@ -24,11 +28,10 @@ describe('resolveWorldCreation', () => {
   });
 
   it('rejects ensemble too small for f', () => {
-    const r = resolveWorldCreation(
-      [{ id: 'p1', proposerId: 'a', contentHash: 'h' }],
-      [],
-      { totalAgents: 3, byzantineFaults: 1 }
-    );
+    const r = resolveWorldCreation([{ id: 'p1', proposerId: 'a', contentHash: 'h' }], [], {
+      totalAgents: 3,
+      byzantineFaults: 1,
+    });
     expect(r.status).toBe('rejected');
   });
 

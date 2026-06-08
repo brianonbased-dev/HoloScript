@@ -82,9 +82,7 @@ function toNavItem(item: StudioNavigationItemDefinition): NavItem {
 }
 
 const CORE_ITEMS = STUDIO_PRIMARY_NAVIGATION_ITEMS.map(toNavItem);
-const LAB_ITEMS = isStudioLabNavigationEnabled()
-  ? STUDIO_LAB_NAVIGATION_ITEMS.map(toNavItem)
-  : [];
+const LAB_ITEMS = isStudioLabNavigationEnabled() ? STUDIO_LAB_NAVIGATION_ITEMS.map(toNavItem) : [];
 const SETTINGS_ITEM = toNavItem(STUDIO_SETTINGS_NAVIGATION_ITEM);
 
 // ═══════════════════════════════════════════════════════════════════
@@ -489,10 +487,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Right panel sidebar — Safety / Marketplace / Platform / Traits */}
-        {!isMobile &&
-          (pathname.startsWith('/create') || pathname.startsWith('/projects/')) && (
-            <RightPanelSidebar />
-          )}
+        {!isMobile && (pathname.startsWith('/create') || pathname.startsWith('/projects/')) && (
+          <RightPanelSidebar />
+        )}
       </main>
     </div>
   );

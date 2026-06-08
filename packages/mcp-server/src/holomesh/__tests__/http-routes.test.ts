@@ -233,7 +233,9 @@ describe('HoloMesh HTTP Routes', () => {
       const walletAddress = '0xABCDef1234567890abcdef1234567890ABCDef12';
 
       // Step 1: challenge
-      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletAddress });
+      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', {
+        wallet_address: walletAddress,
+      });
       const chalRes = mockRes();
       await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/register/challenge');
       expect(chalRes._status).toBe(200);
@@ -298,7 +300,9 @@ describe('HoloMesh HTTP Routes', () => {
       const wallet = '0x1111111111111111111111111111111111111111';
 
       // Step 1: first agent gets challenge + registers
-      const chal1Req = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: wallet });
+      const chal1Req = mockReq('POST', '/api/holomesh/register/challenge', {
+        wallet_address: wallet,
+      });
       const chal1Res = mockRes();
       await handleHoloMeshRoute(chal1Req, chal1Res, '/api/holomesh/register/challenge');
       const nonce1 = chal1Res._body.nonce;
@@ -315,7 +319,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res1._status).toBe(201);
 
       // Step 2: duplicate blocked at challenge step
-      const chal2Req = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: wallet });
+      const chal2Req = mockReq('POST', '/api/holomesh/register/challenge', {
+        wallet_address: wallet,
+      });
       const chal2Res = mockRes();
       await handleHoloMeshRoute(chal2Req, chal2Res, '/api/holomesh/register/challenge');
       expect(chal2Res._status).toBe(409);
@@ -545,7 +551,9 @@ describe('HoloMesh HTTP Routes', () => {
   describe('POST /api/holomesh/register/challenge', () => {
     it('issues a nonce for a fresh wallet_address', async () => {
       const walletAddress = '0x' + 'a'.repeat(40);
-      const req = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletAddress });
+      const req = mockReq('POST', '/api/holomesh/register/challenge', {
+        wallet_address: walletAddress,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/register/challenge');
 
@@ -558,7 +566,9 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('returns 400 for malformed wallet_address', async () => {
-      const req = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: 'not-an-address' });
+      const req = mockReq('POST', '/api/holomesh/register/challenge', {
+        wallet_address: 'not-an-address',
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/register/challenge');
 
@@ -574,7 +584,9 @@ describe('HoloMesh HTTP Routes', () => {
       const existingWallet = regRes._body.agent.wallet_address;
 
       // Challenge for that wallet → 409
-      const req = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: existingWallet });
+      const req = mockReq('POST', '/api/holomesh/register/challenge', {
+        wallet_address: existingWallet,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/register/challenge');
 
@@ -587,7 +599,9 @@ describe('HoloMesh HTTP Routes', () => {
     it('happy path: challenge + sign + register, NO private_key in response', async () => {
       const walletAddress = '0x' + 'b'.repeat(40);
       // Step 1: challenge
-      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletAddress });
+      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', {
+        wallet_address: walletAddress,
+      });
       const chalRes = mockRes();
       await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/register/challenge');
       const nonce = chalRes._body.nonce;
@@ -627,7 +641,9 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('rejects invalid signature with 401', async () => {
       const walletAddress = '0x' + 'd'.repeat(40);
-      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletAddress });
+      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', {
+        wallet_address: walletAddress,
+      });
       const chalRes = mockRes();
       await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/register/challenge');
       const nonce = chalRes._body.nonce;
@@ -648,7 +664,9 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('rejects replay (same nonce twice)', async () => {
       const walletA = '0x' + 'e'.repeat(40);
-      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletA });
+      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', {
+        wallet_address: walletA,
+      });
       const chalRes = mockRes();
       await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/register/challenge');
       const nonce = chalRes._body.nonce;
@@ -668,7 +686,7 @@ describe('HoloMesh HTTP Routes', () => {
       // Second use of same nonce — fails (already consumed)
       const reg2Req = mockReq('POST', '/api/holomesh/register', {
         name: 'replay-second',
-        wallet_address: '0x' + 'f'.repeat(40),  // different wallet, doesn't matter
+        wallet_address: '0x' + 'f'.repeat(40), // different wallet, doesn't matter
         nonce,
         signature: '0xsig',
       });
@@ -683,7 +701,9 @@ describe('HoloMesh HTTP Routes', () => {
       // "rejects duplicate wallet address" test (challengeStore + walletToAgent share state).
       const walletA = '0x' + '3'.repeat(40);
       const walletB = '0x' + '4'.repeat(40);
-      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', { wallet_address: walletA });
+      const chalReq = mockReq('POST', '/api/holomesh/register/challenge', {
+        wallet_address: walletA,
+      });
       const chalRes = mockRes();
       await handleHoloMeshRoute(chalReq, chalRes, '/api/holomesh/register/challenge');
       const nonce = chalRes._body.nonce;
@@ -691,7 +711,7 @@ describe('HoloMesh HTTP Routes', () => {
       mockVerifyTypedData.mockResolvedValue(true);
       const regReq = mockReq('POST', '/api/holomesh/register', {
         name: 'mismatch-bot',
-        wallet_address: walletB,   // different wallet than challenge was for
+        wallet_address: walletB, // different wallet than challenge was for
         nonce,
         signature: '0xsig',
       });
@@ -711,7 +731,7 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(res._status).toBe(201);
       expect(res._body.agent.api_key).toBeTruthy();
-      expect(res._body.wallet.private_key).toBeTruthy();  // legacy behavior preserved
+      expect(res._body.wallet.private_key).toBeTruthy(); // legacy behavior preserved
       expect(res._body.wallet.deprecated).toContain('deprecated');
       // Deprecation signal in body tells clients to migrate
       expect(res._body.deprecation).toBeTruthy();
@@ -754,7 +774,8 @@ describe('HoloMesh HTTP Routes', () => {
         '/api/holomesh/contribute',
         {
           type: 'wisdom',
-          content: 'Test insight from auth test proves bearer-scoped contribution works for reusable knowledge.',
+          content:
+            'Test insight from auth test proves bearer-scoped contribution works for reusable knowledge.',
         },
         { authorization: `Bearer ${apiKey}` }
       );
@@ -2219,17 +2240,23 @@ describe('HoloMesh HTTP Routes', () => {
       const agentId = regRes._body.agent.id;
 
       // Create a team and join it.
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `ghost-team-${Date.now()}` },
-        { authorization: `Bearer ${apiKey}` });
+        { authorization: `Bearer ${apiKey}` }
+      );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
       // Beat presence to mark agent online.
-      const beatReq = mockReq('POST', `/api/holomesh/team/${tid}/presence`,
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
         { ide_type: 'cursor', surface_tag: 'cursor-claude', status: 'active' },
-        { authorization: `Bearer ${apiKey}` });
+        { authorization: `Bearer ${apiKey}` }
+      );
       const beatRes = mockRes();
       await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
       expect(beatRes._status).toBe(200);
@@ -2274,26 +2301,35 @@ describe('HoloMesh HTTP Routes', () => {
       const apiKey = regRes._body.agent.api_key;
       const agentId = regRes._body.agent.id;
 
-      const createReq = mockReq('POST', '/api/holomesh/team',
+      const createReq = mockReq(
+        'POST',
+        '/api/holomesh/team',
         { name: `tear-team-${Date.now()}` },
-        { authorization: `Bearer ${apiKey}` });
+        { authorization: `Bearer ${apiKey}` }
+      );
       const createRes = mockRes();
       await handleHoloMeshRoute(createReq, createRes, '/api/holomesh/team');
       const tid = createRes._body.team.id;
 
       // Beat — row created
-      const beatReq = mockReq('POST', `/api/holomesh/team/${tid}/presence`,
+      const beatReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
         { ide_type: 'claude-code', status: 'active' },
-        { authorization: `Bearer ${apiKey}` });
+        { authorization: `Bearer ${apiKey}` }
+      );
       const beatRes = mockRes();
       await handleHoloMeshRoute(beatReq, beatRes, `/api/holomesh/team/${tid}/presence`);
       expect(beatRes._status).toBe(200);
       expect(beatRes._body.online_count).toBe(1);
 
       // Explicit offline — row deleted, NOT just stamped
-      const offlineReq = mockReq('POST', `/api/holomesh/team/${tid}/presence`,
+      const offlineReq = mockReq(
+        'POST',
+        `/api/holomesh/team/${tid}/presence`,
         { ide_type: 'claude-code', status: 'offline' },
-        { authorization: `Bearer ${apiKey}` });
+        { authorization: `Bearer ${apiKey}` }
+      );
       const offlineRes = mockRes();
       await handleHoloMeshRoute(offlineReq, offlineRes, `/api/holomesh/team/${tid}/presence`);
       expect(offlineRes._status).toBe(200);
@@ -2402,7 +2438,11 @@ describe('HoloMesh HTTP Routes', () => {
         authorization: `Bearer ${ownerApiKey}`,
       });
       const list1Res = mockRes();
-      await handleHoloMeshRoute(list1, list1Res, `/api/holomesh/team/${tid}/suggestions?status=open`);
+      await handleHoloMeshRoute(
+        list1,
+        list1Res,
+        `/api/holomesh/team/${tid}/suggestions?status=open`
+      );
       expect(list1Res._status).toBe(200);
       expect(list1Res._body.suggestions).toHaveLength(1);
 
@@ -2413,7 +2453,11 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const voteRes = mockRes();
-      await handleHoloMeshRoute(voteReq, voteRes, `/api/holomesh/team/${tid}/suggestions/${sid}/vote`);
+      await handleHoloMeshRoute(
+        voteReq,
+        voteRes,
+        `/api/holomesh/team/${tid}/suggestions/${sid}/vote`
+      );
       expect(voteRes._status).toBe(200);
       expect(voteRes._body.suggestion.score).toBe(1);
     });
@@ -3002,12 +3046,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(postedTask.tags).toEqual(inputTags);
       const taskId = postedTask.id;
 
-      const getReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const getReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const getRes = mockRes();
       await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/board`);
 
@@ -3047,12 +3088,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(addRes._status).toBe(201);
       const taskId = addRes._body.tasks[0].id;
 
-      const detailReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board/${taskId}`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const detailReq = mockReq('GET', `/api/holomesh/team/${tid}/board/${taskId}`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const detailRes = mockRes();
       await handleHoloMeshRoute(detailReq, detailRes, `/api/holomesh/team/${tid}/board/${taskId}`);
 
@@ -3121,7 +3159,9 @@ describe('HoloMesh HTTP Routes', () => {
         // Only the first survives; #2 and #3 collapse to the same 60-char prefix
         expect(res._body.added).toBe(1);
         expect(res._body.skipped.length).toBe(2);
-        expect(res._body.skipped.every((s: { reason: string }) => s.reason === 'duplicate')).toBe(true);
+        expect(res._body.skipped.every((s: { reason: string }) => s.reason === 'duplicate')).toBe(
+          true
+        );
         expect(res._body.dedupMode).toBe('normalized');
       });
 
@@ -3171,7 +3211,7 @@ describe('HoloMesh HTTP Routes', () => {
             tasks: [
               { title: 'identical title', priority: 1 },
               { title: '  identical title  ', priority: 1 }, // whitespace-trimmed match
-              { title: 'IDENTICAL TITLE', priority: 1 },     // case-insensitive match
+              { title: 'IDENTICAL TITLE', priority: 1 }, // case-insensitive match
             ],
           },
           { authorization: `Bearer ${ownerApiKey}` }
@@ -3272,12 +3312,9 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(doneReq, doneRes, `/api/holomesh/team/${tid}/board/${taskId}`);
       expect(doneRes._status).toBe(200);
 
-      const logReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board/done?limit=10`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const logReq = mockReq('GET', `/api/holomesh/team/${tid}/board/done?limit=10`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const logRes = mockRes();
       await handleHoloMeshRoute(logReq, logRes, `/api/holomesh/team/${tid}/board/done?limit=10`);
       expect(logRes._status).toBe(200);
@@ -3285,21 +3322,24 @@ describe('HoloMesh HTTP Routes', () => {
       expect(logRes._body.entries.length).toBeGreaterThanOrEqual(1);
       expect(logRes._body.entries[0].taskId).toBe(taskId);
       expect(logRes._body.entries[0].commitHash).toBe('abc1234');
-      expect(logRes._body.entries[0].verificationEvidence).toBe('vitest http-routes done-log case passed');
+      expect(logRes._body.entries[0].verificationEvidence).toBe(
+        'vitest http-routes done-log case passed'
+      );
       expect(doneRes._body.reviewRequest.messageType).toBe('review-request');
 
-      const messagesReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/messages`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const messagesReq = mockReq('GET', `/api/holomesh/team/${tid}/messages`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const messagesRes = mockRes();
       await handleHoloMeshRoute(messagesReq, messagesRes, `/api/holomesh/team/${tid}/messages`);
       expect(messagesRes._status).toBe(200);
-      expect(messagesRes._body.messages.some((m: any) =>
-        m.messageType === 'review-request' && m.content.includes('vitest http-routes done-log case passed')
-      )).toBe(true);
+      expect(
+        messagesRes._body.messages.some(
+          (m: any) =>
+            m.messageType === 'review-request' &&
+            m.content.includes('vitest http-routes done-log case passed')
+        )
+      ).toBe(true);
     });
 
     it('PATCH /board/:taskId rejects done without verification_evidence', async () => {
@@ -3358,14 +3398,16 @@ describe('HoloMesh HTTP Routes', () => {
       const tid = createRes._body.team.id;
 
       const team = teamStore.get(tid)!;
-      team.taskBoard = [{
-        id: 'task_missing_dod',
-        title: 'missing definition of done',
-        description: 'No closure criteria here.',
-        status: 'open',
-        priority: 1,
-        createdAt: new Date().toISOString(),
-      } as any];
+      team.taskBoard = [
+        {
+          id: 'task_missing_dod',
+          title: 'missing definition of done',
+          description: 'No closure criteria here.',
+          status: 'open',
+          priority: 1,
+          createdAt: new Date().toISOString(),
+        } as any,
+      ];
 
       const claimReq = mockReq(
         'PATCH',
@@ -3374,7 +3416,11 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const claimRes = mockRes();
-      await handleHoloMeshRoute(claimReq, claimRes, `/api/holomesh/team/${tid}/board/task_missing_dod`);
+      await handleHoloMeshRoute(
+        claimReq,
+        claimRes,
+        `/api/holomesh/team/${tid}/board/task_missing_dod`
+      );
 
       expect(claimRes._status).toBe(400);
       expect(claimRes._body.error).toContain('Definition-of-Done required');
@@ -3405,11 +3451,14 @@ describe('HoloMesh HTTP Routes', () => {
         'POST',
         `/api/holomesh/team/${tid}/board`,
         {
-          tasks: [{
-            title: 'heartbeat-gated claim',
-            description: 'Members must prove they are alive before claiming.\n\n## Done when:\n- Claim guard rejects missing heartbeat and accepts fresh heartbeat.',
-            priority: 1,
-          }],
+          tasks: [
+            {
+              title: 'heartbeat-gated claim',
+              description:
+                'Members must prove they are alive before claiming.\n\n## Done when:\n- Claim guard rejects missing heartbeat and accepts fresh heartbeat.',
+              priority: 1,
+            },
+          ],
         },
         { authorization: `Bearer ${ownerApiKey}` }
       );
@@ -3424,7 +3473,11 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer ${memberApiKey}` }
       );
       const missingBeatRes = mockRes();
-      await handleHoloMeshRoute(missingBeatReq, missingBeatRes, `/api/holomesh/team/${tid}/board/${taskId}`);
+      await handleHoloMeshRoute(
+        missingBeatReq,
+        missingBeatRes,
+        `/api/holomesh/team/${tid}/board/${taskId}`
+      );
       expect(missingBeatRes._status).toBe(403);
       expect(missingBeatRes._body.code).toBe('heartbeat_required');
 
@@ -3666,11 +3719,15 @@ describe('HoloMesh HTTP Routes', () => {
       expect(entries.some((entry: any) => entry.kind === 'task_claimed')).toBe(true);
       expect(entries.some((entry: any) => entry.kind === 'task_done')).toBe(true);
 
-      const liveArtifact = entries.find((entry: any) => entry.id === 'artifact_artifact-live_task-trace-live');
+      const liveArtifact = entries.find(
+        (entry: any) => entry.id === 'artifact_artifact-live_task-trace-live'
+      );
       expect(liveArtifact.timestamp).toBe(liveTimestamp);
       expect(liveArtifact.timestamp).not.toBe('task-trace-live');
 
-      const doneArtifact = entries.find((entry: any) => entry.id === 'artifact_artifact-done_task-trace-done');
+      const doneArtifact = entries.find(
+        (entry: any) => entry.id === 'artifact_artifact-done_task-trace-done'
+      );
       expect(doneArtifact.timestamp).toBe(doneTimestamp);
 
       const presence = entries.find((entry: any) => entry.id === 'presence_agent-trace');
@@ -3742,12 +3799,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(doneRes._body.completedAs.surfaceTag).toBe('cursor-claude');
 
       // Done log must surface the tag so /board/done enumeration preserves attribution
-      const logReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board/done?limit=10`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const logReq = mockReq('GET', `/api/holomesh/team/${tid}/board/done?limit=10`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const logRes = mockRes();
       await handleHoloMeshRoute(logReq, logRes, `/api/holomesh/team/${tid}/board/done?limit=10`);
       expect(logRes._status).toBe(200);
@@ -3829,12 +3883,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(doneRes._body.completedAs.surfaceTag).toBe('claude-code');
 
       // 5. Done-log projection also shows the register-time tag, not the spoof
-      const logReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board/done?limit=10`,
-        undefined,
-        { authorization: `Bearer ${victimApiKey}` }
-      );
+      const logReq = mockReq('GET', `/api/holomesh/team/${tid}/board/done?limit=10`, undefined, {
+        authorization: `Bearer ${victimApiKey}`,
+      });
       const logRes = mockRes();
       await handleHoloMeshRoute(logReq, logRes, `/api/holomesh/team/${tid}/board/done?limit=10`);
       expect(logRes._status).toBe(200);
@@ -3943,24 +3994,18 @@ describe('HoloMesh HTTP Routes', () => {
       expect(delRes._body.tombstone.completedByTag).toBe('deleted-by:claudecode-claude');
 
       // Task is gone from the board
-      const boardReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const boardReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const boardRes = mockRes();
       await handleHoloMeshRoute(boardReq, boardRes, `/api/holomesh/team/${tid}/board`);
       expect(boardRes._status).toBe(200);
       expect(boardRes._body.tasks.find((t: { id: string }) => t.id === taskId)).toBeUndefined();
 
       // Tombstone is in done log for audit trail
-      const logReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board/done?limit=10`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const logReq = mockReq('GET', `/api/holomesh/team/${tid}/board/done?limit=10`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const logRes = mockRes();
       await handleHoloMeshRoute(logReq, logRes, `/api/holomesh/team/${tid}/board/done?limit=10`);
       expect(logRes._status).toBe(200);
@@ -4021,12 +4066,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(delRes._body.error).toContain('config:write');
 
       // Task is still on the board (delete was refused, not partially applied)
-      const boardReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const boardReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const boardRes = mockRes();
       await handleHoloMeshRoute(boardReq, boardRes, `/api/holomesh/team/${tid}/board`);
       expect(boardRes._body.tasks.find((t: { id: string }) => t.id === taskId)).toBeTruthy();
@@ -4050,7 +4092,11 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const delRes = mockRes();
-      await handleHoloMeshRoute(delReq, delRes, `/api/holomesh/team/${tid}/board/task_does_not_exist_xxx`);
+      await handleHoloMeshRoute(
+        delReq,
+        delRes,
+        `/api/holomesh/team/${tid}/board/task_does_not_exist_xxx`
+      );
       // Follows existing convention: helper-level "Task not found" → 400
       // (claim/done/block/reopen all return 400 for missing tasks).
       expect(delRes._status).toBe(400);
@@ -4191,12 +4237,9 @@ describe('HoloMesh HTTP Routes', () => {
       }
 
       // Page 1 (default limit, offset=0) — newest 30
-      const p1Req = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board/done`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const p1Req = mockReq('GET', `/api/holomesh/team/${tid}/board/done`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const p1Res = mockRes();
       await handleHoloMeshRoute(p1Req, p1Res, `/api/holomesh/team/${tid}/board/done`);
       expect(p1Res._status).toBe(200);
@@ -4211,12 +4254,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(p1Res._body.entries[29].summary).toBe('closed 35');
 
       // Page 2 (offset=30, still default limit)
-      const p2Req = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board/done?offset=30`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const p2Req = mockReq('GET', `/api/holomesh/team/${tid}/board/done?offset=30`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const p2Res = mockRes();
       await handleHoloMeshRoute(p2Req, p2Res, `/api/holomesh/team/${tid}/board/done?offset=30`);
       expect(p2Res._status).toBe(200);
@@ -4234,7 +4274,11 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const p3Res = mockRes();
-      await handleHoloMeshRoute(p3Req, p3Res, `/api/holomesh/team/${tid}/board/done?offset=60&limit=30`);
+      await handleHoloMeshRoute(
+        p3Req,
+        p3Res,
+        `/api/holomesh/team/${tid}/board/done?offset=60&limit=30`
+      );
       expect(p3Res._status).toBe(200);
       expect(p3Res._body.returned).toBe(5);
       expect(p3Res._body.offset).toBe(60);
@@ -4250,19 +4294,20 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const emptyRes = mockRes();
-      await handleHoloMeshRoute(emptyReq, emptyRes, `/api/holomesh/team/${tid}/board/done?offset=200`);
+      await handleHoloMeshRoute(
+        emptyReq,
+        emptyRes,
+        `/api/holomesh/team/${tid}/board/done?offset=200`
+      );
       expect(emptyRes._status).toBe(200);
       expect(emptyRes._body.returned).toBe(0);
       expect(emptyRes._body.hasMore).toBe(false);
       expect(emptyRes._body.entries).toEqual([]);
 
       // Malformed offset (negative) clamps to 0
-      const negReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board/done?offset=-5`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const negReq = mockReq('GET', `/api/holomesh/team/${tid}/board/done?offset=-5`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const negRes = mockRes();
       await handleHoloMeshRoute(negReq, negRes, `/api/holomesh/team/${tid}/board/done?offset=-5`);
       expect(negRes._status).toBe(200);
@@ -4270,12 +4315,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(negRes._body.entries[0].summary).toBe('closed 64');
 
       // Limit cap enforced (board-routes clamps to max 1000 per page)
-      const bigReq = mockReq(
-        'GET',
-        `/api/holomesh/team/${tid}/board/done?limit=1000`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const bigReq = mockReq('GET', `/api/holomesh/team/${tid}/board/done?limit=1000`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const bigRes = mockRes();
       await handleHoloMeshRoute(bigReq, bigRes, `/api/holomesh/team/${tid}/board/done?limit=1000`);
       expect(bigRes._status).toBe(200);
@@ -4310,20 +4352,14 @@ describe('HoloMesh HTTP Routes', () => {
       const tid = createRes._body.team.id;
 
       const readCounters = async () => {
-        const bReq = mockReq(
-          'GET',
-          `/api/holomesh/team/${tid}/board`,
-          undefined,
-          { authorization: `Bearer ${ownerApiKey}` }
-        );
+        const bReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+          authorization: `Bearer ${ownerApiKey}`,
+        });
         const bRes = mockRes();
         await handleHoloMeshRoute(bReq, bRes, `/api/holomesh/team/${tid}/board`);
-        const dReq = mockReq(
-          'GET',
-          `/api/holomesh/team/${tid}/board/done`,
-          undefined,
-          { authorization: `Bearer ${ownerApiKey}` }
-        );
+        const dReq = mockReq('GET', `/api/holomesh/team/${tid}/board/done`, undefined, {
+          authorization: `Bearer ${ownerApiKey}`,
+        });
         const dRes = mockRes();
         await handleHoloMeshRoute(dReq, dRes, `/api/holomesh/team/${tid}/board/done`);
         expect(bRes._status).toBe(200);
@@ -4644,7 +4680,12 @@ describe('HoloMesh HTTP Routes', () => {
           x402Verified: false,
         });
         // members.length is now 2; try to shrink max_slots to 2 (= ok), then to less — rejected.
-        const ok = mockReq('PATCH', `/api/holomesh/team/${tid}/config`, { max_slots: 2 }, { authorization: `Bearer ${ownerApiKey}` });
+        const ok = mockReq(
+          'PATCH',
+          `/api/holomesh/team/${tid}/config`,
+          { max_slots: 2 },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
         const okRes = mockRes();
         await handleHoloMeshRoute(ok, okRes, `/api/holomesh/team/${tid}/config`);
         expect(okRes._status).toBe(200);
@@ -4658,7 +4699,12 @@ describe('HoloMesh HTTP Routes', () => {
           walletAddress: '0xdef',
           x402Verified: false,
         });
-        const bad = mockReq('PATCH', `/api/holomesh/team/${tid}/config`, { max_slots: 2 }, { authorization: `Bearer ${ownerApiKey}` });
+        const bad = mockReq(
+          'PATCH',
+          `/api/holomesh/team/${tid}/config`,
+          { max_slots: 2 },
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
         const badRes = mockRes();
         await handleHoloMeshRoute(bad, badRes, `/api/holomesh/team/${tid}/config`);
         expect(badRes._status).toBe(400);
@@ -4667,7 +4713,12 @@ describe('HoloMesh HTTP Routes', () => {
 
       it('empty body 400', async () => {
         const tid = await makeTeam();
-        const req = mockReq('PATCH', `/api/holomesh/team/${tid}/config`, {}, { authorization: `Bearer ${ownerApiKey}` });
+        const req = mockReq(
+          'PATCH',
+          `/api/holomesh/team/${tid}/config`,
+          {},
+          { authorization: `Bearer ${ownerApiKey}` }
+        );
         const res = mockRes();
         await handleHoloMeshRoute(req, res, `/api/holomesh/team/${tid}/config`);
         expect(res._status).toBe(400);
@@ -4834,7 +4885,9 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(req, res, '/api/holomesh/feed');
 
       expect(res._status).toBe(200);
-      expect(res._body.entries.map((entry: Record<string, unknown>) => entry.id)).toEqual(['curated1']);
+      expect(res._body.entries.map((entry: Record<string, unknown>) => entry.id)).toEqual([
+        'curated1',
+      ]);
       expect(res._body.quality.hidden).toBe(1);
     });
   });
@@ -4907,7 +4960,8 @@ describe('HoloMesh HTTP Routes', () => {
         '/api/holomesh/contribute',
         {
           type: 'wisdom',
-          content: '[team-connect] node scripts/codex-team-daemon.mjs join\n' +
+          content:
+            '[team-connect] node scripts/codex-team-daemon.mjs join\n' +
             'git status --short\nHOLOMESH_API_KEY=do-not-echo\nRaw logs are not public wisdom.',
           domain: 'agents',
         },
@@ -4919,7 +4973,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._status).toBe(422);
       expect(res._body.error).toBe('public_knowledge_quality_gate');
       expect(mockClient.contributeKnowledge).not.toHaveBeenCalledWith(
-        expect.arrayContaining([expect.objectContaining({ content: expect.stringContaining('[team-connect]') })])
+        expect.arrayContaining([
+          expect.objectContaining({ content: expect.stringContaining('[team-connect]') }),
+        ])
       );
     });
 
@@ -4936,7 +4992,8 @@ describe('HoloMesh HTTP Routes', () => {
         '/api/holomesh/contribute',
         {
           type: 'pattern',
-          content: 'Pattern: keep fleet receipts as evidence metadata while the public HoloMesh entry stays compressed and reusable.',
+          content:
+            'Pattern: keep fleet receipts as evidence metadata while the public HoloMesh entry stays compressed and reusable.',
           domain: 'agents',
           tags: ['fleet'],
           receipt_sha256: 'abc123',
@@ -4951,10 +5008,12 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.id).toMatch(/^P\.contrib\./);
       const call = mockClient.contributeKnowledge.mock.calls.at(-1);
       const entry = call?.[0]?.[0] as Record<string, unknown>;
-      expect(entry.metadata).toEqual(expect.objectContaining({
-        receipt_sha256: 'abc123',
-        quality: expect.objectContaining({ state: 'public-ready' }),
-      }));
+      expect(entry.metadata).toEqual(
+        expect.objectContaining({
+          receipt_sha256: 'abc123',
+          quality: expect.objectContaining({ state: 'public-ready' }),
+        })
+      );
       expect(entry.tags).toContain('receipt');
     });
   });
@@ -4992,12 +5051,16 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(req, res, '/api/holomesh/directory');
 
       expect(res._status).toBe(200);
-      const listed = (res._body.agents as Array<Record<string, unknown>>).find((agent) => agent.id === agentId);
-      expect(listed).toEqual(expect.objectContaining({
-        name: regRes._body.agent.name,
-        contributionCount: 1,
-        tier: 'newcomer',
-      }));
+      const listed = (res._body.agents as Array<Record<string, unknown>>).find(
+        (agent) => agent.id === agentId
+      );
+      expect(listed).toEqual(
+        expect.objectContaining({
+          name: regRes._body.agent.name,
+          contributionCount: 1,
+          tier: 'newcomer',
+        })
+      );
       expect(listed?.profile).toBeDefined();
       expect(listed?.topDomains).toContain('agents');
     });
@@ -5028,12 +5091,16 @@ describe('HoloMesh HTTP Routes', () => {
       await handleHoloMeshRoute(req, res, '/api/holomesh/guilds?open=true&type=research');
 
       expect(res._status).toBe(200);
-      const guild = (res._body.guilds as Array<Record<string, unknown>>).find((candidate) => candidate.name === teamName);
-      expect(guild).toEqual(expect.objectContaining({
-        type: 'research',
-        openSlots: 4,
-        memberCount: 1,
-      }));
+      const guild = (res._body.guilds as Array<Record<string, unknown>>).find(
+        (candidate) => candidate.name === teamName
+      );
+      expect(guild).toEqual(
+        expect.objectContaining({
+          type: 'research',
+          openSlots: 4,
+          memberCount: 1,
+        })
+      );
       expect((guild?.links as Record<string, unknown>).join).toContain('/join');
     });
   });
@@ -5434,10 +5501,15 @@ describe('HoloMesh HTTP Routes', () => {
         },
       ]);
 
-      const req = mockReq('POST', '/api/holomesh/quickstart', {
-        name: `quickstart-bot-${Date.now()}`,
-        description: 'A test bot for quickstart',
-      }, { authorization: 'Bearer test-api-key' });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/quickstart',
+        {
+          name: `quickstart-bot-${Date.now()}`,
+          description: 'A test bot for quickstart',
+        },
+        { authorization: 'Bearer test-api-key' }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
 
@@ -5447,13 +5519,15 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.agent.wallet_address).toMatch(/^0x/);
       expect(res._body.agent.capabilities).toEqual(['read', 'message', 'claim']);
       expect(res._body.wallet.private_key).toMatch(/^0x/);
-      expect(res._body.security_contract).toEqual(expect.objectContaining({
-        decision: 'dev_onboarding_faucet',
-        credential_delivery: 'one_time_creation_response',
-        api_key_scopes: ['holomesh', 'mcp'],
-        api_key_capabilities: ['read', 'message', 'claim'],
-        non_echo_surfaces: ['board', 'feed', 'admin/agents'],
-      }));
+      expect(res._body.security_contract).toEqual(
+        expect.objectContaining({
+          decision: 'dev_onboarding_faucet',
+          credential_delivery: 'one_time_creation_response',
+          api_key_scopes: ['holomesh', 'mcp'],
+          api_key_capabilities: ['read', 'message', 'claim'],
+          non_echo_surfaces: ['board', 'feed', 'admin/agents'],
+        })
+      );
       expect(res._body.your_first_entry).toBeDefined();
       expect(res._body.your_first_entry.type).toBe('wisdom');
       expect(res._body.feed_preview).toBeInstanceOf(Array);
@@ -5465,7 +5539,12 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('rejects short names', async () => {
-      const req = mockReq('POST', '/api/holomesh/quickstart', { name: 'x' }, { authorization: 'Bearer test-api-key' });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/quickstart',
+        { name: 'x' },
+        { authorization: 'Bearer test-api-key' }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
 
@@ -5475,13 +5554,23 @@ describe('HoloMesh HTTP Routes', () => {
 
     it('rejects duplicate names', async () => {
       // Register first
-      const req1 = mockReq('POST', '/api/holomesh/quickstart', { name: `dup-test-${Date.now()}` }, { authorization: 'Bearer test-api-key' });
+      const req1 = mockReq(
+        'POST',
+        '/api/holomesh/quickstart',
+        { name: `dup-test-${Date.now()}` },
+        { authorization: 'Bearer test-api-key' }
+      );
       const res1 = mockRes();
       await handleHoloMeshRoute(req1, res1, '/api/holomesh/quickstart');
       expect(res1._status).toBe(201);
 
       // Try same name
-      const req2 = mockReq('POST', '/api/holomesh/quickstart', { name: res1._body.agent.name }, { authorization: 'Bearer test-api-key' });
+      const req2 = mockReq(
+        'POST',
+        '/api/holomesh/quickstart',
+        { name: res1._body.agent.name },
+        { authorization: 'Bearer test-api-key' }
+      );
       const res2 = mockRes();
       await handleHoloMeshRoute(req2, res2, '/api/holomesh/quickstart');
 
@@ -5491,10 +5580,15 @@ describe('HoloMesh HTTP Routes', () => {
     it('includes description in hello entry', async () => {
       mockClient.queryKnowledge.mockResolvedValueOnce([]);
 
-      const req = mockReq('POST', '/api/holomesh/quickstart', {
-        name: `desc-bot-${Date.now()}`,
-        description: 'I analyze security patterns',
-      }, { authorization: 'Bearer test-api-key' });
+      const req = mockReq(
+        'POST',
+        '/api/holomesh/quickstart',
+        {
+          name: `desc-bot-${Date.now()}`,
+          description: 'I analyze security patterns',
+        },
+        { authorization: 'Bearer test-api-key' }
+      );
       const res = mockRes();
       await handleHoloMeshRoute(req, res, '/api/holomesh/quickstart');
 
@@ -5538,22 +5632,29 @@ describe('HoloMesh HTTP Routes', () => {
         (agent) => agent.agent_id === agentId
       );
       if (!listed) throw new Error('quickstart agent missing from admin list');
-      expect(listed).toEqual(expect.objectContaining({
-        agent_id: agentId,
-        agent_name: agentName,
-        wallet_address: quickstartRes._body.agent.wallet_address,
-        scopes: ['holomesh', 'mcp'],
-        is_founder: false,
-      }));
+      expect(listed).toEqual(
+        expect.objectContaining({
+          agent_id: agentId,
+          agent_name: agentName,
+          wallet_address: quickstartRes._body.agent.wallet_address,
+          scopes: ['holomesh', 'mcp'],
+          is_founder: false,
+        })
+      );
       expect(listed.api_key).toBeUndefined();
       expect(listed.key).toBeUndefined();
       const listPayload = JSON.stringify(listRes._body);
       expect(listPayload).not.toContain(quickstartKey);
       expect(listPayload).not.toContain(quickstartPrivateKey);
 
-      const revokeReq = mockReq('POST', '/api/holomesh/admin/revoke', { agent_id: agentId }, {
-        authorization: 'Bearer test-api-key',
-      });
+      const revokeReq = mockReq(
+        'POST',
+        '/api/holomesh/admin/revoke',
+        { agent_id: agentId },
+        {
+          authorization: 'Bearer test-api-key',
+        }
+      );
       const revokeRes = mockRes();
       await handleHoloMeshRoute(revokeReq, revokeRes, '/api/holomesh/admin/revoke');
 
@@ -5744,7 +5845,11 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer test-api-key` }
       );
       const snapshotRes = mockRes();
-      await handleHoloMeshRoute(snapshotReq, snapshotRes, '/api/holomesh/sovereign/lifepod/snapshot');
+      await handleHoloMeshRoute(
+        snapshotReq,
+        snapshotRes,
+        '/api/holomesh/sovereign/lifepod/snapshot'
+      );
 
       expect(snapshotRes._status).toBe(201);
       expect(snapshotRes._body.success).toBe(true);
@@ -5786,7 +5891,11 @@ describe('HoloMesh HTTP Routes', () => {
         { authorization: `Bearer test-api-key` }
       );
       const tamperedRes = mockRes();
-      await handleHoloMeshRoute(tamperedReq, tamperedRes, '/api/holomesh/sovereign/lifepod/restore');
+      await handleHoloMeshRoute(
+        tamperedReq,
+        tamperedRes,
+        '/api/holomesh/sovereign/lifepod/restore'
+      );
 
       expect(tamperedRes._status).toBe(400);
       expect(tamperedRes._body.code).toBe('lifepod_signature_invalid');
@@ -5960,12 +6069,9 @@ describe('HoloMesh HTTP Routes', () => {
     });
 
     it('returns empty agents + zero totals when no presence/CAEL/claimed/done', async () => {
-      const req = mockReq(
-        'GET',
-        `/api/holomesh/fleet/status?team=${teamId}`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const req = mockReq('GET', `/api/holomesh/fleet/status?team=${teamId}`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/fleet/status?team=${teamId}`);
 
@@ -5995,8 +6101,14 @@ describe('HoloMesh HTTP Routes', () => {
       const handleB = 'fleet-worker-B';
       const tickIso = new Date(Date.now() - 30 * 60_000).toISOString(); // 30min ago
 
-      appendCaelAuditRecord(handleA, makeCael({ tick_iso: tickIso, brain_class: 'security-auditor' }));
-      appendCaelAuditRecord(handleA, makeCael({ tick_iso: tickIso, brain_class: 'security-auditor' }));
+      appendCaelAuditRecord(
+        handleA,
+        makeCael({ tick_iso: tickIso, brain_class: 'security-auditor' })
+      );
+      appendCaelAuditRecord(
+        handleA,
+        makeCael({ tick_iso: tickIso, brain_class: 'security-auditor' })
+      );
       appendCaelAuditRecord(handleB, makeCael({ tick_iso: tickIso, brain_class: 'lean-theorist' }));
 
       // Seed presence for handleA
@@ -6030,12 +6142,9 @@ describe('HoloMesh HTTP Routes', () => {
         } as any,
       ];
 
-      const req = mockReq(
-        'GET',
-        `/api/holomesh/fleet/status?team=${teamId}`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const req = mockReq('GET', `/api/holomesh/fleet/status?team=${teamId}`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/fleet/status?team=${teamId}`);
 
@@ -6066,7 +6175,9 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.fleetTotals.caelRecords24h).toBe(3);
       expect(res._body.fleetTotals.doneEntries24h).toBe(1);
       expect(res._body.fleetTotals.drift_alerts.length).toBeGreaterThan(0);
-      expect(res._body.fleetTotals.drift_alerts.some((s: string) => s.includes(handleB))).toBe(true);
+      expect(res._body.fleetTotals.drift_alerts.some((s: string) => s.includes(handleB))).toBe(
+        true
+      );
       expect(res._body.fleetTotals.trust_distribution.degraded).toBeGreaterThanOrEqual(1);
     });
 
@@ -6103,12 +6214,9 @@ describe('HoloMesh HTTP Routes', () => {
       ];
       // No doneLog → cael_no_artifacts active
 
-      const req = mockReq(
-        'GET',
-        `/api/holomesh/fleet/status?team=${teamId}`,
-        undefined,
-        { authorization: `Bearer ${ownerApiKey}` }
-      );
+      const req = mockReq('GET', `/api/holomesh/fleet/status?team=${teamId}`, undefined, {
+        authorization: `Bearer ${ownerApiKey}`,
+      });
       const res = mockRes();
       await handleHoloMeshRoute(req, res, `/api/holomesh/fleet/status?team=${teamId}`);
 
@@ -6145,12 +6253,9 @@ describe('HoloMesh HTTP Routes', () => {
       // 404: unknown team
       const r404 = mockRes();
       await handleHoloMeshRoute(
-        mockReq(
-          'GET',
-          '/api/holomesh/fleet/status?team=team_nonexistent',
-          undefined,
-          { authorization: `Bearer ${ownerApiKey}` }
-        ),
+        mockReq('GET', '/api/holomesh/fleet/status?team=team_nonexistent', undefined, {
+          authorization: `Bearer ${ownerApiKey}`,
+        }),
         r404,
         '/api/holomesh/fleet/status?team=team_nonexistent'
       );
@@ -6207,7 +6312,8 @@ describe('HoloMesh HTTP Routes', () => {
             tasks: [
               {
                 title: '[CANARY] board persistence probe',
-                description: 'Verifies that a task created via POST survives claim, done, and done-log retrieval.',
+                description:
+                  'Verifies that a task created via POST survives claim, done, and done-log retrieval.',
                 priority: 4,
               },
             ],
@@ -6221,12 +6327,9 @@ describe('HoloMesh HTTP Routes', () => {
         const taskId = postRes._body.tasks[0].id;
 
         // 3. GET /board — task must be present
-        const getReq = mockReq(
-          'GET',
-          `/api/holomesh/team/${tid}/board`,
-          undefined,
-          { authorization: `Bearer ${ownerApiKey}` }
-        );
+        const getReq = mockReq('GET', `/api/holomesh/team/${tid}/board`, undefined, {
+          authorization: `Bearer ${ownerApiKey}`,
+        });
         const getRes = mockRes();
         await handleHoloMeshRoute(getReq, getRes, `/api/holomesh/team/${tid}/board`);
         expect(getRes._status).toBe(200);
@@ -6252,7 +6355,8 @@ describe('HoloMesh HTTP Routes', () => {
           {
             action: 'done',
             summary: 'Canary completed successfully',
-            verification_evidence: 'test-pass: board persistence round-trip verified in http-routes.test.ts',
+            verification_evidence:
+              'test-pass: board persistence round-trip verified in http-routes.test.ts',
           },
           { authorization: `Bearer ${ownerApiKey}` }
         );
@@ -6262,12 +6366,9 @@ describe('HoloMesh HTTP Routes', () => {
         expect(doneRes._body.success).toBe(true);
 
         // 6. GET /board/done — task must appear in done log
-        const doneLogReq = mockReq(
-          'GET',
-          `/api/holomesh/team/${tid}/board/done`,
-          undefined,
-          { authorization: `Bearer ${ownerApiKey}` }
-        );
+        const doneLogReq = mockReq('GET', `/api/holomesh/team/${tid}/board/done`, undefined, {
+          authorization: `Bearer ${ownerApiKey}`,
+        });
         const doneLogRes = mockRes();
         await handleHoloMeshRoute(doneLogReq, doneLogRes, `/api/holomesh/team/${tid}/board/done`);
         expect(doneLogRes._status).toBe(200);

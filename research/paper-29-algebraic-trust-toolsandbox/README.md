@@ -36,28 +36,32 @@ Requires `leanprover/lean4:v4.15.0` (pinned in `lean-toolchain`).
 
 ## Status
 
-| File | Theorems | Axioms | `sorry` | Notes |
-|------|----------|--------|---------|-------|
-| `ATC.Basic` | 0 | 0 | 0 | Definitions only |
-| `ATC.CompositionLaw` | 23 | 3 | 0 | Composition theorem proved |
-| **Total** | **23** | **3** | **0** | Gate exceeded (target: sandbox⊗cost theorem proved at 0 sorry) |
+| File                 | Theorems | Axioms | `sorry` | Notes                                                          |
+| -------------------- | -------- | ------ | ------- | -------------------------------------------------------------- |
+| `ATC.Basic`          | 0        | 0      | 0       | Definitions only                                               |
+| `ATC.CompositionLaw` | 23       | 3      | 0       | Composition theorem proved                                     |
+| **Total**            | **23**   | **3**  | **0**   | Gate exceeded (target: sandbox⊗cost theorem proved at 0 sorry) |
 
 ## Key Theorems (from `ATC.CompositionLaw`)
 
 ### Core composition theorem
+
 - `composition_preserves_both` — THE theorem: ⊗ preserves both sandbox and budget invariants
 
 ### Sandbox preservation (weakening never opens)
+
 - `sandbox_preservation` — denied capabilities stay denied under composition
 - `sandbox_preservation_contrapositive` — if composed allows, sandbox allows
 - `sandbox_preservation_for_all_cost_gards` — quantified over all cost guards
 
 ### Budget preservation (composition never exceeds budget)
+
 - `budget_preservation` — over-budget stays over-budget under composition
 - `budget_preservation_contrapositive` — if composed allows, budget allows
 - `budget_preservation_for_all_sandbox_policies` — quantified over all sandbox policies
 
 ### Algebraic laws
+
 - `sandbox_identity_left/right` — sandboxAll is the identity
 - `cost_identity_permits`, `cost_identity_composition` — costUnlimited is the identity
 - `sandbox_annihilator_left/right` — sandboxNone denies everything
@@ -66,11 +70,13 @@ Requires `leanprover/lean4:v4.15.0` (pinned in `lean-toolchain`).
 - `cost_composition_commutative` — budget conjunction is commutative
 
 ### Execution classification
+
 - `execute_preserves_sandbox` — sandbox denials classified in execution result
 - `execute_preserves_budget` — budget denials classified in execution result
 - `allowed_implies_both_permitted` — allowed iff both sandbox and budget pass
 
 ### Semiring strategy laws (W.GOLD.189 Layer 1)
+
 - `semiring_merge_commutative` — ⊕ commutative for all 5 strategies (axiom)
 - `semiring_merge_associative` — ⊕ associative for all 5 strategies (axiom)
 - `composition_distributes_over_merge` — ⊗ distributes over ⊕ (axiom)
@@ -98,15 +104,15 @@ the strategies that have closed-form Lean proofs.
 
 ## Model Mapping to Production Code
 
-| Abstract model | Production code | File |
-|----------------|-----------------|------|
-| `SandboxPolicy.permits` | `SandboxPolicy.allows(cap)` | `mcp-server/src/security/sandbox-policy.ts` |
-| `CostGuard.permits` | `CostGuard.isOverBudget()` | `holoscript-agent/src/cost-guard.ts` |
-| `ComposedPolicy.permits` | `allows(cap) && !isOverBudget()` | MCP server compose check |
-| `MergeStrategy` | `strategyToSemiring()` | `core/src/compiler/traits/Semiring.ts` |
-| `mergeAdd` | `ProvenanceSemiring.merge()` | `core/src/compiler/traits/ProvenanceSemiring.ts` |
-| `CAELEvent` | CAEL pipeline | `engine/src/simulation/` |
-| `ExecutionResult` | MCP tool execution result | `mcp-server/src/security/fork-sandbox-gate.ts` |
+| Abstract model           | Production code                  | File                                             |
+| ------------------------ | -------------------------------- | ------------------------------------------------ |
+| `SandboxPolicy.permits`  | `SandboxPolicy.allows(cap)`      | `mcp-server/src/security/sandbox-policy.ts`      |
+| `CostGuard.permits`      | `CostGuard.isOverBudget()`       | `holoscript-agent/src/cost-guard.ts`             |
+| `ComposedPolicy.permits` | `allows(cap) && !isOverBudget()` | MCP server compose check                         |
+| `MergeStrategy`          | `strategyToSemiring()`           | `core/src/compiler/traits/Semiring.ts`           |
+| `mergeAdd`               | `ProvenanceSemiring.merge()`     | `core/src/compiler/traits/ProvenanceSemiring.ts` |
+| `CAELEvent`              | CAEL pipeline                    | `engine/src/simulation/`                         |
+| `ExecutionResult`        | MCP tool execution result        | `mcp-server/src/security/fork-sandbox-gate.ts`   |
 
 ## Paper Cross-References (gate requires ≥3 main-program papers)
 
@@ -128,18 +134,18 @@ the strategies that have closed-form Lean proofs.
 
 This mechanization follows the same pattern as Paper 22's `MSC` project:
 
-| Paper 22 (MSC) | Paper 29 (ATC) |
-|----------------|----------------|
-| `SimState` (opaque) | `CostGuard` (structure with Option) |
-| `execute` (opaque relation) | `execute` (defined function) |
-| `solver_functional` (axiom) | `semiring_merge_commutative` (axiom) |
+| Paper 22 (MSC)                    | Paper 29 (ATC)                       |
+| --------------------------------- | ------------------------------------ |
+| `SimState` (opaque)               | `CostGuard` (structure with Option)  |
+| `execute` (opaque relation)       | `execute` (defined function)         |
+| `solver_functional` (axiom)       | `semiring_merge_commutative` (axiom) |
 | `cael_causal_well_formed` (axiom) | `semiring_merge_associative` (axiom) |
-| 4 invariants | 23 theorems + 3 axioms |
-| 0 sorry | 0 sorry |
-| `lake build` green | `lake build` green |
+| 4 invariants                      | 23 theorems + 3 axioms               |
+| 0 sorry                           | 0 sorry                              |
+| `lake build` green                | `lake build` green                   |
 
 The key difference: Paper 22 models an opaque runtime (`execute`, `cael` are
 axiomatized), while Paper 29 models a defined composition operator (`⊗`) with
 theorems derivable from the definitions. The axioms in Paper 29 are about the
-*semiring merge strategies* (externally validated), not about opaque runtime
+_semiring merge strategies_ (externally validated), not about opaque runtime
 components.

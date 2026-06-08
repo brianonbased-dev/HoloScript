@@ -69,12 +69,7 @@ function sampleMission(): AerospaceMissionModel {
       heatedAreaM2: 0.5,
     },
     structuralHarness: {
-      vertices: new Float32Array([
-        0, 0, 0,
-        1, 0, 0,
-        0, 1, 0,
-        0, 0, 1,
-      ]),
+      vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
       tetrahedra: new Uint32Array([0, 1, 2, 3]),
       fixedNodeIds: [0, 1, 2],
       loadNodeId: 3,
@@ -170,7 +165,11 @@ describe('@holoscript/aerospace-plugin', () => {
   it('runs the structural harness through StructuralSolver', () => {
     const mission = sampleMission();
     const profile = generateReentryProfile(mission.centralBody, mission.vehicle, mission.reentry!);
-    const structural = runAerospaceStructuralHarness(profile, mission.vehicle, mission.structuralHarness!);
+    const structural = runAerospaceStructuralHarness(
+      profile,
+      mission.vehicle,
+      mission.structuralHarness!
+    );
 
     expect(structural.solverType).toBe('structural');
     expect(structural.appliedLoadN).toBeGreaterThan(0);

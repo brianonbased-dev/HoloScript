@@ -425,16 +425,62 @@ export const BEHAVIOR_TREE_TEMPLATES: BehaviorTreeTemplate[] = [
   {
     id: 'sensor-threshold-monitor',
     name: 'Sensor Threshold Monitor',
-    description: 'Generic multi-sensor threshold monitor. Reads N sensors, compares against target ranges, actuates corrective devices when breached. Works for any IoT domain — climate, agriculture, manufacturing, building management.',
+    description:
+      'Generic multi-sensor threshold monitor. Reads N sensors, compares against target ranges, actuates corrective devices when breached. Works for any IoT domain — climate, agriculture, manufacturing, building management.',
     category: 'behavior-tree',
     tags: ['iot', 'sensor', 'threshold', 'actuator', 'monitoring', 'digital-twin'],
     nodes: [
-      { id: 'root', type: 'sequence', label: 'Monitor Cycle', position: { x: 400, y: 50 }, data: {} },
-      { id: 'read_sensors', type: 'action', label: 'Read All Sensors', position: { x: 200, y: 150 }, data: { actionCode: 'const readings = zone.sensors.map(s => ({ id: s.id, value: sensor(s.id).value, target: s.target, range: s.range })); blackboard.set("readings", readings);' } },
-      { id: 'check_thresholds', type: 'selector', label: 'Check Thresholds', position: { x: 400, y: 150 }, data: {} },
-      { id: 'all_ok', type: 'condition', label: 'All In Range?', position: { x: 300, y: 250 }, data: { conditionCode: 'return blackboard.get("readings").every(r => r.value >= r.range[0] && r.value <= r.range[1])' } },
-      { id: 'actuate_corrections', type: 'action', label: 'Actuate Corrections', position: { x: 500, y: 250 }, data: { actionCode: 'const breached = blackboard.get("readings").filter(r => r.value < r.range[0] || r.value > r.range[1]); for (const b of breached) { const actuator = zone.getActuatorFor(b.id); if (actuator) actuate(actuator.id, { target: b.target }); } log("threshold", "corrected", breached.length);' } },
-      { id: 'snapshot', type: 'action', label: 'Log Telemetry', position: { x: 600, y: 150 }, data: { actionCode: 'captureSnapshot("monitoring"); attestResult();' } },
+      {
+        id: 'root',
+        type: 'sequence',
+        label: 'Monitor Cycle',
+        position: { x: 400, y: 50 },
+        data: {},
+      },
+      {
+        id: 'read_sensors',
+        type: 'action',
+        label: 'Read All Sensors',
+        position: { x: 200, y: 150 },
+        data: {
+          actionCode:
+            'const readings = zone.sensors.map(s => ({ id: s.id, value: sensor(s.id).value, target: s.target, range: s.range })); blackboard.set("readings", readings);',
+        },
+      },
+      {
+        id: 'check_thresholds',
+        type: 'selector',
+        label: 'Check Thresholds',
+        position: { x: 400, y: 150 },
+        data: {},
+      },
+      {
+        id: 'all_ok',
+        type: 'condition',
+        label: 'All In Range?',
+        position: { x: 300, y: 250 },
+        data: {
+          conditionCode:
+            'return blackboard.get("readings").every(r => r.value >= r.range[0] && r.value <= r.range[1])',
+        },
+      },
+      {
+        id: 'actuate_corrections',
+        type: 'action',
+        label: 'Actuate Corrections',
+        position: { x: 500, y: 250 },
+        data: {
+          actionCode:
+            'const breached = blackboard.get("readings").filter(r => r.value < r.range[0] || r.value > r.range[1]); for (const b of breached) { const actuator = zone.getActuatorFor(b.id); if (actuator) actuate(actuator.id, { target: b.target }); } log("threshold", "corrected", breached.length);',
+        },
+      },
+      {
+        id: 'snapshot',
+        type: 'action',
+        label: 'Log Telemetry',
+        position: { x: 600, y: 150 },
+        data: { actionCode: 'captureSnapshot("monitoring"); attestResult();' },
+      },
     ],
     edges: [
       { id: 'e1', source: 'root', target: 'read_sensors' },
@@ -447,18 +493,70 @@ export const BEHAVIOR_TREE_TEMPLATES: BehaviorTreeTemplate[] = [
   {
     id: 'scheduled-process',
     name: 'Scheduled Process Executor',
-    description: 'Runs a configurable process on schedule or when conditions are met. Checks preconditions, executes steps in sequence, logs compliance data with attestation. Works for any scheduled operation — irrigation, dosing, maintenance, inspection.',
+    description:
+      'Runs a configurable process on schedule or when conditions are met. Checks preconditions, executes steps in sequence, logs compliance data with attestation. Works for any scheduled operation — irrigation, dosing, maintenance, inspection.',
     category: 'behavior-tree',
     tags: ['iot', 'schedule', 'process', 'compliance', 'automation', 'digital-twin'],
     nodes: [
-      { id: 'root', type: 'sequence', label: 'Process Cycle', position: { x: 400, y: 50 }, data: {} },
-      { id: 'precondition_sel', type: 'selector', label: 'Check Preconditions', position: { x: 200, y: 150 }, data: {} },
-      { id: 'preconditions_met', type: 'condition', label: 'Preconditions OK?', position: { x: 100, y: 250 }, data: { conditionCode: 'return process.preconditions.every(p => evaluate(p))' } },
-      { id: 'skip', type: 'action', label: 'Skip — Not Ready', position: { x: 300, y: 250 }, data: { actionCode: 'log("process", "skipped_preconditions");' } },
-      { id: 'execute_steps', type: 'sequence', label: 'Execute Steps', position: { x: 400, y: 150 }, data: {} },
-      { id: 'step_1', type: 'action', label: 'Step 1', position: { x: 350, y: 250 }, data: { actionCode: 'await executeStep(process.steps[0]);' } },
-      { id: 'step_2', type: 'action', label: 'Step 2', position: { x: 500, y: 250 }, data: { actionCode: 'await executeStep(process.steps[1]);' } },
-      { id: 'log_completion', type: 'action', label: 'Log & Attest', position: { x: 600, y: 150 }, data: { actionCode: 'logCompliance(process.name, { steps: process.steps.length, timestamp: Date.now() }); attestResult();' } },
+      {
+        id: 'root',
+        type: 'sequence',
+        label: 'Process Cycle',
+        position: { x: 400, y: 50 },
+        data: {},
+      },
+      {
+        id: 'precondition_sel',
+        type: 'selector',
+        label: 'Check Preconditions',
+        position: { x: 200, y: 150 },
+        data: {},
+      },
+      {
+        id: 'preconditions_met',
+        type: 'condition',
+        label: 'Preconditions OK?',
+        position: { x: 100, y: 250 },
+        data: { conditionCode: 'return process.preconditions.every(p => evaluate(p))' },
+      },
+      {
+        id: 'skip',
+        type: 'action',
+        label: 'Skip — Not Ready',
+        position: { x: 300, y: 250 },
+        data: { actionCode: 'log("process", "skipped_preconditions");' },
+      },
+      {
+        id: 'execute_steps',
+        type: 'sequence',
+        label: 'Execute Steps',
+        position: { x: 400, y: 150 },
+        data: {},
+      },
+      {
+        id: 'step_1',
+        type: 'action',
+        label: 'Step 1',
+        position: { x: 350, y: 250 },
+        data: { actionCode: 'await executeStep(process.steps[0]);' },
+      },
+      {
+        id: 'step_2',
+        type: 'action',
+        label: 'Step 2',
+        position: { x: 500, y: 250 },
+        data: { actionCode: 'await executeStep(process.steps[1]);' },
+      },
+      {
+        id: 'log_completion',
+        type: 'action',
+        label: 'Log & Attest',
+        position: { x: 600, y: 150 },
+        data: {
+          actionCode:
+            'logCompliance(process.name, { steps: process.steps.length, timestamp: Date.now() }); attestResult();',
+        },
+      },
     ],
     edges: [
       { id: 'e1', source: 'root', target: 'precondition_sel' },

@@ -20,10 +20,7 @@ vi.mock('../SimulationSolverFactory', () => ({
   },
 }));
 
-import {
-  thermalSimulationHandler,
-  structuralFEMHandler,
-} from '../SimulationTraitHandlers';
+import { thermalSimulationHandler, structuralFEMHandler } from '../SimulationTraitHandlers';
 
 import { SimulationSolverFactory } from '../SimulationSolverFactory';
 

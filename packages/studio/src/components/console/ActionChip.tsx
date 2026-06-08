@@ -48,9 +48,21 @@ export function ActionChip({
     background: surface,
     fontSize: tokens.font.chip,
   };
-  const badgeText = approved ? 'approved ✓' : busy ? 'approving…' : reversible ? 'tap to do' : 'review';
+  const badgeText = approved
+    ? 'approved ✓'
+    : busy
+      ? 'approving…'
+      : reversible
+        ? 'tap to do'
+        : 'review';
   const badge = (
-    <span style={{ fontSize: tokens.font.label, fontWeight: tokens.weight.bold, color: approved || !busy ? badgeColor : tokens.color.textDim }}>
+    <span
+      style={{
+        fontSize: tokens.font.label,
+        fontWeight: tokens.weight.bold,
+        color: approved || !busy ? badgeColor : tokens.color.textDim,
+      }}
+    >
       {badgeText}
     </span>
   );

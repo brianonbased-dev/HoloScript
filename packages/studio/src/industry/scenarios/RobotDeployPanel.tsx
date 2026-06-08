@@ -135,10 +135,7 @@ export function RobotDeployPanel() {
       .map((j) => ({
         joint: j,
         angle: jointAngles[j.name] ?? 0,
-        linkLength:
-          Math.sqrt(
-            j.origin.x ** 2 + j.origin.y ** 2 + j.origin.z ** 2
-          ) || 1,
+        linkLength: Math.sqrt(j.origin.x ** 2 + j.origin.y ** 2 + j.origin.z ** 2) || 1,
       }));
     return forwardKinematics(chain);
   }, [robot, jointAngles]);
@@ -149,10 +146,7 @@ export function RobotDeployPanel() {
       .filter((j) => j.type !== 'fixed')
       .map((j) => ({
         joint: j,
-        linkLength:
-          Math.sqrt(
-            j.origin.x ** 2 + j.origin.y ** 2 + j.origin.z ** 2
-          ) || 1,
+        linkLength: Math.sqrt(j.origin.x ** 2 + j.origin.y ** 2 + j.origin.z ** 2) || 1,
       }));
     return workspaceBounds(chain);
   }, [robot]);

@@ -61,7 +61,9 @@ function deriveSkillName(composition) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.source || (args.roots.length === 0 && !args.dryRun)) {
-    log('usage: node scripts/compile-skill.mjs <source.hs> --roots <r1>,<r2> [--name <skill>] [--dry-run <dir>]');
+    log(
+      'usage: node scripts/compile-skill.mjs <source.hs> --roots <r1>,<r2> [--name <skill>] [--dry-run <dir>]'
+    );
     process.exit(4);
   }
 
@@ -73,10 +75,16 @@ function main() {
     process.exit(1);
   }
   const composition = parsed.ast;
-  if (!composition) { log('PARSE OK but no AST'); process.exit(1); }
+  if (!composition) {
+    log('PARSE OK but no AST');
+    process.exit(1);
+  }
 
   const skillName = args.name ?? deriveSkillName(composition);
-  if (!skillName) { log('no skill name (no @identity.name and no --name)'); process.exit(4); }
+  if (!skillName) {
+    log('no skill name (no @identity.name and no --name)');
+    process.exit(4);
+  }
 
   let emitted;
   try {
@@ -86,16 +94,27 @@ function main() {
     log(`COMPILER ERROR: ${err.message}`);
     process.exit(2);
   }
-  if (!emitted) { log('no SKILL.md emitted'); process.exit(3); }
+  if (!emitted) {
+    log('no SKILL.md emitted');
+    process.exit(3);
+  }
 
   // Resolve targets. ~ expands to home for real roots.
   const home = process.env.HOME || process.env.USERPROFILE || '';
   const expand = (p) => (p.startsWith('~') ? join(home, p.slice(1)) : p);
 
   const targets = args.dryRun
-    ? args.roots.map((_, i) => join(resolve(args.dryRun), String(i), skillName, 'SKILL.md'))
+    ? args.roots
+        .map((_, i) => join(resolve(args.dryRun), String(i), skillName, 'SKILL.md'))
         // if --roots omitted in dry-run, default to two synthetic roots
-        .concat(args.roots.length === 0 ? [join(resolve(args.dryRun), '0', skillName, 'SKILL.md'), join(resolve(args.dryRun), '1', skillName, 'SKILL.md')] : [])
+        .concat(
+          args.roots.length === 0
+            ? [
+                join(resolve(args.dryRun), '0', skillName, 'SKILL.md'),
+                join(resolve(args.dryRun), '1', skillName, 'SKILL.md'),
+              ]
+            : []
+        )
     : args.roots.map((r) => join(expand(r), skillName, 'SKILL.md'));
 
   const written = [];

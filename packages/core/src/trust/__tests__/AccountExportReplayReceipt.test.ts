@@ -12,7 +12,7 @@ import type { VerificationResult } from '../AccountExportArchiveReceipt';
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 function makeValidReplayPayload(
-  overrides: Partial<AccountExportReplayPayload> = {},
+  overrides: Partial<AccountExportReplayPayload> = {}
 ): AccountExportReplayPayload {
   return {
     workflow: 'browser_account_export',
@@ -46,7 +46,7 @@ function makeValidReplayPayload(
 }
 
 function makeValidReplayOptions(
-  overrides: Partial<AccountExportReplayAdapterOptions> = {},
+  overrides: Partial<AccountExportReplayAdapterOptions> = {}
 ): AccountExportReplayAdapterOptions {
   return {
     passportDid: 'did:holoscript:test_actor',
@@ -71,23 +71,21 @@ describe('validateReplayVerification', () => {
 
   it('rejects missing originalVerificationReceiptId', () => {
     const result = validateReplayVerification(
-      makeValidReplayPayload({ originalVerificationReceiptId: '' }),
+      makeValidReplayPayload({ originalVerificationReceiptId: '' })
     );
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Missing originalVerificationReceiptId');
   });
 
   it('rejects missing originalArchiveHash', () => {
-    const result = validateReplayVerification(
-      makeValidReplayPayload({ originalArchiveHash: '' }),
-    );
+    const result = validateReplayVerification(makeValidReplayPayload({ originalArchiveHash: '' }));
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Missing originalArchiveHash');
   });
 
   it('rejects sourceFileMutationPerformed=true', () => {
     const result = validateReplayVerification(
-      makeValidReplayPayload({ sourceFileMutationPerformed: true }),
+      makeValidReplayPayload({ sourceFileMutationPerformed: true })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('sourceFileMutationPerformed'))).toBe(true);
@@ -95,7 +93,7 @@ describe('validateReplayVerification', () => {
 
   it('rejects rawPrivateDataPublished=true', () => {
     const result = validateReplayVerification(
-      makeValidReplayPayload({ rawPrivateDataPublished: true }),
+      makeValidReplayPayload({ rawPrivateDataPublished: true })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('rawPrivateDataPublished'))).toBe(true);
@@ -103,7 +101,7 @@ describe('validateReplayVerification', () => {
 
   it('rejects privatePathLeakedToPublicReceipt=true', () => {
     const result = validateReplayVerification(
-      makeValidReplayPayload({ privatePathLeakedToPublicReceipt: true }),
+      makeValidReplayPayload({ privatePathLeakedToPublicReceipt: true })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('privatePathLeakedToPublicReceipt'))).toBe(true);
@@ -114,9 +112,14 @@ describe('validateReplayVerification', () => {
       makeValidReplayPayload({
         replayOutcome: 'match',
         diffEntries: [
-          { path: 'a.txt', diffType: 'content_hash_mismatch', originalValue: 'hash1', replayValue: 'hash2' },
+          {
+            path: 'a.txt',
+            diffType: 'content_hash_mismatch',
+            originalValue: 'hash1',
+            replayValue: 'hash2',
+          },
         ],
-      }),
+      })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('diffEntries'))).toBe(true);
@@ -124,7 +127,7 @@ describe('validateReplayVerification', () => {
 
   it('rejects match outcome with filesDiffered > 0', () => {
     const result = validateReplayVerification(
-      makeValidReplayPayload({ replayOutcome: 'match', filesDiffered: 2 }),
+      makeValidReplayPayload({ replayOutcome: 'match', filesDiffered: 2 })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('filesDiffered'))).toBe(true);
@@ -138,9 +141,14 @@ describe('validateReplayVerification', () => {
         fileContentMatch: false,
         filesDiffered: 1,
         diffEntries: [
-          { path: 'a.txt', diffType: 'content_hash_mismatch', originalValue: 'hash1', replayValue: 'hash2' },
+          {
+            path: 'a.txt',
+            diffType: 'content_hash_mismatch',
+            originalValue: 'hash1',
+            replayValue: 'hash2',
+          },
         ],
-      }),
+      })
     );
     expect(result.valid).toBe(true);
   });
@@ -160,7 +168,12 @@ describe('validateReplayVerification', () => {
       const overrides: Partial<AccountExportReplayPayload> = { replayOutcome: outcome };
       if (outcome === 'match') {
         // match requires empty diffs and no differed files
-        Object.assign(overrides, { filesDiffered: 0, diffEntries: [], fileContentMatch: true, archiveHashMatch: true });
+        Object.assign(overrides, {
+          filesDiffered: 0,
+          diffEntries: [],
+          fileContentMatch: true,
+          archiveHashMatch: true,
+        });
       }
       if (outcome.startsWith('mismatch')) {
         Object.assign(overrides, { fileContentMatch: false, archiveHashMatch: false });
@@ -176,7 +189,7 @@ describe('validateReplayVerification', () => {
         replayOutcome: 'mismatch_sensitivity_drift',
         archiveHashMatch: true,
         fileContentMatch: true,
-      }),
+      })
     );
     expect(result.warnings.some((w) => w.includes('mismatch'))).toBe(true);
   });
@@ -223,7 +236,7 @@ describe('replayToReceiptInput', () => {
   it('sets read_only envelope for match outcomes', () => {
     const input = replayToReceiptInput(
       makeValidReplayPayload({ replayOutcome: 'match' }),
-      makeValidReplayOptions(),
+      makeValidReplayOptions()
     );
     expect(input.permissionEnvelope).toBe('read_only');
   });
@@ -231,7 +244,7 @@ describe('replayToReceiptInput', () => {
   it('sets break_glass envelope for mismatch_corrupt', () => {
     const input = replayToReceiptInput(
       makeValidReplayPayload({ replayOutcome: 'mismatch_corrupt' }),
-      makeValidReplayOptions(),
+      makeValidReplayOptions()
     );
     expect(input.permissionEnvelope).toBe('break_glass');
   });
@@ -239,7 +252,7 @@ describe('replayToReceiptInput', () => {
   it('sets guarded_execute envelope for mismatch_sensitivity_drift', () => {
     const input = replayToReceiptInput(
       makeValidReplayPayload({ replayOutcome: 'mismatch_sensitivity_drift' }),
-      makeValidReplayOptions(),
+      makeValidReplayOptions()
     );
     expect(input.permissionEnvelope).toBe('guarded_execute');
   });
@@ -247,7 +260,7 @@ describe('replayToReceiptInput', () => {
   it('passes parentReceiptIds through links', () => {
     const input = replayToReceiptInput(
       makeValidReplayPayload(),
-      makeValidReplayOptions({ parentReceiptIds: ['rec_001', 'rec_002'] }),
+      makeValidReplayOptions({ parentReceiptIds: ['rec_001', 'rec_002'] })
     );
     expect(input.links?.parentReceiptIds).toEqual(['rec_001', 'rec_002']);
   });
@@ -258,7 +271,12 @@ describe('replayToReceiptInput', () => {
       fileContentMatch: false,
       archiveHashMatch: false,
       diffEntries: [
-        { path: 'a.txt', diffType: 'content_hash_mismatch', originalValue: 'hash1', replayValue: 'hash2' },
+        {
+          path: 'a.txt',
+          diffType: 'content_hash_mismatch',
+          originalValue: 'hash1',
+          replayValue: 'hash2',
+        },
       ],
     });
     const input = replayToReceiptInput(payload, makeValidReplayOptions());
@@ -300,8 +318,14 @@ describe('stableReplayHash', () => {
   });
 
   it('is key-order independent', () => {
-    const payload1 = makeValidReplayPayload({ provider: 'google_takeout', trigger: 'integrity_check' });
-    const payload2 = makeValidReplayPayload({ trigger: 'integrity_check', provider: 'google_takeout' });
+    const payload1 = makeValidReplayPayload({
+      provider: 'google_takeout',
+      trigger: 'integrity_check',
+    });
+    const payload2 = makeValidReplayPayload({
+      trigger: 'integrity_check',
+      provider: 'google_takeout',
+    });
     expect(stableReplayHash(payload1)).toBe(stableReplayHash(payload2));
   });
 });

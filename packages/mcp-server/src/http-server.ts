@@ -22,7 +22,10 @@ import './utils/load-env';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { ListResourcesRequestSchema, ReadResourceRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID, createHash } from 'crypto';
 import http from 'http';
 import { tools } from './tools';
@@ -96,10 +99,7 @@ loadNativeAgentCompositions();
 import { WebRTCSignalingServer } from './holomesh/webrtc-signaling';
 import { formatBroadcastContextMarkdown } from './holomesh/moltbook-broadcast-context';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from './moltbook/moltbook-post.js';
-import {
-  resolveSecretWithLease,
-  VaultLeaseError,
-} from './holomesh/identity/vault-lease-registry';
+import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
 
 /**
  * Phase 3 wrapper around `process.env.MOLTBOOK_API_KEY` for the per-request
@@ -907,7 +907,10 @@ const httpServer = http.createServer(async (req, res) => {
   // LLM provider health probe — confirms credit status for Anthropic and
   // availability of other configured providers (task_1778462298192_564w).
   if (url === '/api/health/llm' && req.method === 'GET') {
-    const providers: Record<string, { configured: boolean; creditStatus?: string; error?: string }> = {};
+    const providers: Record<
+      string,
+      { configured: boolean; creditStatus?: string; error?: string }
+    > = {};
     // Anthropic probe
     if (process.env.ANTHROPIC_API_KEY) {
       try {
@@ -935,10 +938,18 @@ const httpServer = http.createServer(async (req, res) => {
         } else if (probe.ok) {
           providers.anthropic = { configured: true, creditStatus: 'ok' };
         } else {
-          providers.anthropic = { configured: true, creditStatus: 'unknown', error: `HTTP ${probe.status}` };
+          providers.anthropic = {
+            configured: true,
+            creditStatus: 'unknown',
+            error: `HTTP ${probe.status}`,
+          };
         }
       } catch (e: unknown) {
-        providers.anthropic = { configured: true, creditStatus: 'unreachable', error: e instanceof Error ? e.message : String(e) };
+        providers.anthropic = {
+          configured: true,
+          creditStatus: 'unreachable',
+          error: e instanceof Error ? e.message : String(e),
+        };
       }
     } else {
       providers.anthropic = { configured: false };
@@ -946,7 +957,9 @@ const httpServer = http.createServer(async (req, res) => {
     // Other providers (config status only)
     providers.openrouter = { configured: Boolean(process.env.OPENROUTER_API_KEY) };
     providers.openai = { configured: Boolean(process.env.OPENAI_API_KEY) };
-    providers.gemini = { configured: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY) };
+    providers.gemini = {
+      configured: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY),
+    };
     providers.ollama = { configured: Boolean(process.env.HOLOSCRIPT_LOCAL_LLM_URL) };
 
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1291,16 +1304,26 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: 'Scene not found' }));
       return;
     }
-    const useWebGPU = new URLSearchParams(req.url?.split('?')[1] ?? '').get('renderer') === 'webgpu';
+    const useWebGPU =
+      new URLSearchParams(req.url?.split('?')[1] ?? '').get('renderer') === 'webgpu';
     if (useWebGPU) {
       try {
-        const compiled = await handleCompileToTarget({ code: scene.code, target: 'webgpu', options: {} });
+        const compiled = await handleCompileToTarget({
+          code: scene.code,
+          target: 'webgpu',
+          options: {},
+        });
         if (compiled.success && compiled.previewHtml) {
-          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-HoloScript-Renderer': 'sovereign-webgpu' });
+          res.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+            'X-HoloScript-Renderer': 'sovereign-webgpu',
+          });
           res.end(compiled.previewHtml);
           return;
         }
-      } catch (_) { /* fall through to Three.js bridge on compile error */ }
+      } catch (_) {
+        /* fall through to Three.js bridge on compile error */
+      }
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(generateBrowserTemplate(scene.code, scene.title, scene.id));
@@ -1315,10 +1338,15 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: 'Scene not found' }));
       return;
     }
-    const useWebGPU = new URLSearchParams(req.url?.split('?')[1] ?? '').get('renderer') === 'webgpu';
+    const useWebGPU =
+      new URLSearchParams(req.url?.split('?')[1] ?? '').get('renderer') === 'webgpu';
     if (useWebGPU) {
       try {
-        const compiled = await handleCompileToTarget({ code: scene.code, target: 'webgpu', options: {} });
+        const compiled = await handleCompileToTarget({
+          code: scene.code,
+          target: 'webgpu',
+          options: {},
+        });
         if (compiled.success && compiled.previewHtml) {
           res.writeHead(200, {
             'Content-Type': 'text/html; charset=utf-8',
@@ -1328,7 +1356,9 @@ const httpServer = http.createServer(async (req, res) => {
           res.end(compiled.previewHtml);
           return;
         }
-      } catch (_) { /* fall through to Three.js bridge on compile error */ }
+      } catch (_) {
+        /* fall through to Three.js bridge on compile error */
+      }
     }
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
@@ -1623,7 +1653,8 @@ const httpServer = http.createServer(async (req, res) => {
 
       const requestedScopes = scope.split(' ').filter(Boolean);
       const invalidScopes = requestedScopes.filter(
-        (requestedScope) => !client.scopes.includes(requestedScope) && !client.scopes.includes('admin')
+        (requestedScope) =>
+          !client.scopes.includes(requestedScope) && !client.scopes.includes('admin')
       );
       if (invalidScopes.length > 0) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1856,12 +1887,8 @@ const httpServer = http.createServer(async (req, res) => {
   if (url === '/oauth/github/device' && req.method === 'POST') {
     try {
       const body = await parseJsonBody(req);
-      const {
-        initiateDeviceFlow,
-        pollDeviceFlow,
-        exchangeForHoloMeshToken,
-        getDeviceFlowStats,
-      } = await import('./security/github-device-flow.js');
+      const { initiateDeviceFlow, pollDeviceFlow, exchangeForHoloMeshToken, getDeviceFlowStats } =
+        await import('./security/github-device-flow.js');
 
       const action = body.action as string;
 
@@ -1877,7 +1904,9 @@ const httpServer = http.createServer(async (req, res) => {
         const deviceCode = body.device_code as string;
         if (!deviceCode) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ error: 'invalid_request', error_description: 'device_code required' }));
+          res.end(
+            JSON.stringify({ error: 'invalid_request', error_description: 'device_code required' })
+          );
           return;
         }
         const result = await pollDeviceFlow(deviceCode);
@@ -1895,7 +1924,9 @@ const httpServer = http.createServer(async (req, res) => {
         const deviceCode = body.device_code as string;
         if (!deviceCode) {
           res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ error: 'invalid_request', error_description: 'device_code required' }));
+          res.end(
+            JSON.stringify({ error: 'invalid_request', error_description: 'device_code required' })
+          );
           return;
         }
         const result = await exchangeForHoloMeshToken(deviceCode);
@@ -2413,8 +2444,7 @@ const httpServer = http.createServer(async (req, res) => {
       await import('./holomesh/routes/custodial-wallet-routes');
     if (await handleCustodialWalletRoutes(req, res, pathname, method, url)) return;
 
-    const { handleVaultLeaseRoutes } =
-      await import('./holomesh/routes/vault-lease-routes');
+    const { handleVaultLeaseRoutes } = await import('./holomesh/routes/vault-lease-routes');
     if (await handleVaultLeaseRoutes(req, res, pathname, method, url)) return;
   }
 
@@ -3288,8 +3318,7 @@ const httpServer = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(
       JSON.stringify({
-        description:
-          'Anonymous tier — read-only HoloScript tools, no API key required.',
+        description: 'Anonymous tier — read-only HoloScript tools, no API key required.',
         tools: Array.from(PUBLIC_ANON_TOOLS),
         rate_limit_per_minute: PUBLIC_ANON_RATE_LIMIT,
         usage: {
@@ -3570,7 +3599,9 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
   await initStores();
 
   // Drain ci-public lane on Railway's spare CPU (zero marginal cost co-location).
-  startCiPublicWorker().catch(() => { /* non-fatal */ });
+  startCiPublicWorker().catch(() => {
+    /* non-fatal */
+  });
 
   // Rehydrate the daimōn emergence corpus (D.053) from durable storage so the
   // in-memory soul-observation / daemon Maps survive restart. Additive; never
@@ -3579,7 +3610,7 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     const stats = hydrateEmergenceFromCorpus();
     if (stats.records > 0) {
       console.info(
-        `[emergence] hydrated corpus: ${stats.records} record(s), ${stats.souls} soul(s), ${stats.emerged} emerged`,
+        `[emergence] hydrated corpus: ${stats.records} record(s), ${stats.souls} soul(s), ${stats.emerged} emerged`
       );
     }
   } catch (e) {

@@ -39,13 +39,10 @@ export const holomapDriftCorrectionHandler: TraitHandler<HoloMapDriftCorrectionC
     const payload = event.payload ?? {};
     const trajectory =
       payload.trajectory && typeof payload.trajectory === 'object'
-        ? payload.trajectory as Record<string, unknown>
+        ? (payload.trajectory as Record<string, unknown>)
         : undefined;
     const driftValue = payload.estimatedDriftMeters ?? trajectory?.estimatedDriftMeters;
-    const drift =
-      typeof driftValue === 'number' && Number.isFinite(driftValue)
-        ? driftValue
-        : 0;
+    const drift = typeof driftValue === 'number' && Number.isFinite(driftValue) ? driftValue : 0;
     const nestedKeyframes = Array.isArray(trajectory?.keyframes) ? trajectory.keyframes : undefined;
     const keyframeCount =
       typeof payload.keyframeCount === 'number' && Number.isFinite(payload.keyframeCount)
@@ -53,9 +50,11 @@ export const holomapDriftCorrectionHandler: TraitHandler<HoloMapDriftCorrectionC
         : nestedKeyframes?.length;
     const nestedLastLoopClosureFrame = trajectory?.lastLoopClosureFrame;
     const lastLoopClosureFrame =
-      typeof payload.lastLoopClosureFrame === 'number' && Number.isFinite(payload.lastLoopClosureFrame)
+      typeof payload.lastLoopClosureFrame === 'number' &&
+      Number.isFinite(payload.lastLoopClosureFrame)
         ? payload.lastLoopClosureFrame
-        : typeof nestedLastLoopClosureFrame === 'number' && Number.isFinite(nestedLastLoopClosureFrame)
+        : typeof nestedLastLoopClosureFrame === 'number' &&
+            Number.isFinite(nestedLastLoopClosureFrame)
           ? nestedLastLoopClosureFrame
           : undefined;
 

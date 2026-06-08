@@ -102,13 +102,13 @@ describe('HoloMap trait integration wiring', () => {
     holomapDriftCorrectionHandler.onAttach?.(
       node as never,
       { maxDriftMeters: 1, loopClosureThreshold: 0.92, rewriteHistory: true } as never,
-      ctx as never,
+      ctx as never
     );
     holomapDriftCorrectionHandler.onEvent?.(
       node as never,
       { maxDriftMeters: 1, loopClosureThreshold: 0.92, rewriteHistory: true } as never,
       ctx as never,
-      { type: 'holomap:step_result', payload: { trajectory: { estimatedDriftMeters: 1.5 } } },
+      { type: 'holomap:step_result', payload: { trajectory: { estimatedDriftMeters: 1.5 } } }
     );
 
     const anchorPose = {
@@ -124,7 +124,7 @@ describe('HoloMap trait integration wiring', () => {
       {
         type: 'holomap:anchor_update',
         payload: { anchorFrameIndex: 4, anchorPose, anchorDescriptor },
-      },
+      }
     );
 
     holomapAnchorContextHandler.onEvent?.(
@@ -134,7 +134,7 @@ describe('HoloMap trait integration wiring', () => {
       {
         type: 'holomap:drift_update',
         payload: { estimatedDriftMeters: 2.5, maxDriftBeforeReanchor: 2.0 },
-      },
+      }
     );
 
     expect(ctx.emitted.some((e) => e.event === 'holomap:drift_correction_requested')).toBe(true);

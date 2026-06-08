@@ -84,11 +84,7 @@ export class ProjectileSystem {
       vy: (dy / len) * config.speed,
       vz: (dz / len) * config.speed,
       position: [x, y, z],
-      velocity: [
-        (dx / len) * config.speed,
-        (dy / len) * config.speed,
-        (dz / len) * config.speed,
-      ],
+      velocity: [(dx / len) * config.speed, (dy / len) * config.speed, (dz / len) * config.speed],
       config,
       age: 0,
       hitCount: 0,
@@ -106,10 +102,7 @@ export class ProjectileSystem {
   // Update
   // ---------------------------------------------------------------------------
 
-  update(
-    dt: number,
-    targets?: ProjectileTarget[]
-  ): void {
+  update(dt: number, targets?: ProjectileTarget[]): void {
     for (const proj of this.projectiles.values()) {
       if (!proj.alive) continue;
 
@@ -179,21 +172,14 @@ export class ProjectileSystem {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private findNearest(
-    proj: Projectile,
-    targets: ProjectileTarget[]
-  ): Vec3 | null {
+  private findNearest(proj: Projectile, targets: ProjectileTarget[]): Vec3 | null {
     let best: Vec3 | null = null;
     let bestDist = Infinity;
     for (const t of targets) {
       const tx = t.position ? t.position[0] : (t.x ?? 0);
       const ty = t.position ? t.position[1] : (t.y ?? 0);
       const tz = t.position ? t.position[2] : (t.z ?? 0);
-      const d = Math.sqrt(
-        (tx - proj.x) ** 2 +
-        (ty - proj.y) ** 2 +
-        (tz - proj.z) ** 2
-      );
+      const d = Math.sqrt((tx - proj.x) ** 2 + (ty - proj.y) ** 2 + (tz - proj.z) ** 2);
       if (d < bestDist) {
         bestDist = d;
         best = [tx, ty, tz] as Vec3;

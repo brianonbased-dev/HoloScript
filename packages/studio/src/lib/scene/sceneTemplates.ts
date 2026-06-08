@@ -1166,9 +1166,7 @@ const BASE_SCENE_TEMPLATES: SceneTemplate[] = [
 ];
 
 /** All scene templates: built-in + wizard starter templates merged. */
-export const SCENE_TEMPLATES: SceneTemplate[] = [
-  ...BASE_SCENE_TEMPLATES,
-];
+export const SCENE_TEMPLATES: SceneTemplate[] = [...BASE_SCENE_TEMPLATES];
 
 // ─── Search ───────────────────────────────────────────────────────────────────
 

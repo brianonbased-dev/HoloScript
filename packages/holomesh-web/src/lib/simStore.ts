@@ -20,39 +20,39 @@ import * as path from 'node:path';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface PopulationMetrics {
-  tick:             number;
-  medianGamma:      number;
-  p90Gamma:         number;
-  meanTotalLoss:    number;
-  stdTotalLoss:     number;
-  meanDiversity:    number;
+  tick: number;
+  medianGamma: number;
+  p90Gamma: number;
+  meanTotalLoss: number;
+  stdTotalLoss: number;
+  meanDiversity: number;
   lifecycleDistrib: Record<string, number>;
 }
 
 export interface SimReceipt {
-  tick:       number;
-  hash:       string;   // SHA-256 of canonical snapshot JSON
-  signature:  string;   // ECDSA signature (hex), empty if no signing key
-  issuedAt:   string;   // ISO timestamp
-  baseBlock?: string;   // Base block number once anchored
-  baseTxHash?:string;   // Base transaction hash once anchored
+  tick: number;
+  hash: string; // SHA-256 of canonical snapshot JSON
+  signature: string; // ECDSA signature (hex), empty if no signing key
+  issuedAt: string; // ISO timestamp
+  baseBlock?: string; // Base block number once anchored
+  baseTxHash?: string; // Base transaction hash once anchored
 }
 
 export interface SimState {
-  label:           string;
-  agents:          number;
-  targetTicks:     number;
-  currentTick:     number;
-  running:         boolean;
-  startedAt:       string | null;
-  lastPushAt:      string | null;
-  elapsedMs:       number;
-  population:      PopulationMetrics[];   // full history (capped at 1000)
-  latestMetrics:   PopulationMetrics | null;
-  receipts:        SimReceipt[];
+  label: string;
+  agents: number;
+  targetTicks: number;
+  currentTick: number;
+  running: boolean;
+  startedAt: string | null;
+  lastPushAt: string | null;
+  elapsedMs: number;
+  population: PopulationMetrics[]; // full history (capped at 1000)
+  latestMetrics: PopulationMetrics | null;
+  receipts: SimReceipt[];
   config: {
-    innerFreq:      number;
-    latentDim:      number;
+    innerFreq: number;
+    latentDim: number;
     sycophancyFrac: number;
   } | null;
 }
@@ -87,18 +87,18 @@ function tryWrite(state: SimState): void {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_STATE: SimState = {
-  label:          'paper26',
-  agents:         0,
-  targetTicks:    1000,
-  currentTick:    0,
-  running:        false,
-  startedAt:      null,
-  lastPushAt:     null,
-  elapsedMs:      0,
-  population:     [],
-  latestMetrics:  null,
-  receipts:       [],
-  config:         null,
+  label: 'paper26',
+  agents: 0,
+  targetTicks: 1000,
+  currentTick: 0,
+  running: false,
+  startedAt: null,
+  lastPushAt: null,
+  elapsedMs: 0,
+  population: [],
+  latestMetrics: null,
+  receipts: [],
+  config: null,
 };
 
 let _state: SimState = tryRead() ?? { ...DEFAULT_STATE };
@@ -129,21 +129,22 @@ function signSnapshot(snapshot: PopulationMetrics): SimReceipt {
   }
 
   return {
-    tick:      snapshot.tick,
+    tick: snapshot.tick,
     hash,
     signature,
-    issuedAt:  new Date().toISOString(),
+    issuedAt: new Date().toISOString(),
   };
 }
 
 async function anchorToBase(receipt: SimReceipt): Promise<void> {
-  const apiKey  = process.env['HOLOSCRIPT_API_KEY'];
+  const apiKey = process.env['HOLOSCRIPT_API_KEY'];
   const mcpBase = process.env['MCP_BASE_URL'] ?? 'https://mcp.holoscript.net';
   if (!apiKey) return;
 
   try {
     const body = JSON.stringify({
-      jsonrpc: '2.0', id: 1,
+      jsonrpc: '2.0',
+      id: 1,
       method: 'tools/call',
       params: {
         name: 'twin_earth_capture_receipt',
@@ -162,11 +163,11 @@ async function anchorToBase(receipt: SimReceipt): Promise<void> {
     });
 
     if (resp.ok) {
-      const rpc = await resp.json() as { result?: { content?: { text?: string }[] } };
+      const rpc = (await resp.json()) as { result?: { content?: { text?: string }[] } };
       const text = rpc.result?.content?.[0]?.text;
       if (text) {
         const data = JSON.parse(text) as { blockNumber?: string; txHash?: string };
-        receipt.baseBlock  = data.blockNumber;
+        receipt.baseBlock = data.blockNumber;
         receipt.baseTxHash = data.txHash;
       }
     }
@@ -185,17 +186,24 @@ export function getState(): SimState {
 
 export function pushMetrics(
   metrics: PopulationMetrics,
-  meta: { label?: string; agents?: number; targetTicks?: number; running?: boolean; elapsedMs?: number; config?: SimState['config'] },
+  meta: {
+    label?: string;
+    agents?: number;
+    targetTicks?: number;
+    running?: boolean;
+    elapsedMs?: number;
+    config?: SimState['config'];
+  }
 ): void {
   if (!_state.startedAt) _state.startedAt = new Date().toISOString();
-  _state.lastPushAt    = new Date().toISOString();
-  _state.label         = meta.label        ?? _state.label;
-  _state.agents        = meta.agents       ?? _state.agents;
-  _state.targetTicks   = meta.targetTicks  ?? _state.targetTicks;
-  _state.running       = meta.running      ?? true;
-  _state.elapsedMs     = meta.elapsedMs    ?? _state.elapsedMs;
-  _state.config        = meta.config       ?? _state.config;
-  _state.currentTick   = metrics.tick;
+  _state.lastPushAt = new Date().toISOString();
+  _state.label = meta.label ?? _state.label;
+  _state.agents = meta.agents ?? _state.agents;
+  _state.targetTicks = meta.targetTicks ?? _state.targetTicks;
+  _state.running = meta.running ?? true;
+  _state.elapsedMs = meta.elapsedMs ?? _state.elapsedMs;
+  _state.config = meta.config ?? _state.config;
+  _state.currentTick = metrics.tick;
   _state.latestMetrics = metrics;
 
   // Cap history at 1000 entries (sparse: keep every entry up to 100, then every 5th)
@@ -219,13 +227,19 @@ export function pushMetrics(
   // Broadcast to SSE subscribers
   const payload = JSON.stringify({ metrics, receipt });
   for (const sub of _subscribers) {
-    try { sub(payload); } catch { _subscribers.delete(sub); }
+    try {
+      sub(payload);
+    } catch {
+      _subscribers.delete(sub);
+    }
   }
 }
 
 export function subscribe(callback: (data: string) => void): () => void {
   _subscribers.add(callback);
-  return () => { _subscribers.delete(callback); };
+  return () => {
+    _subscribers.delete(callback);
+  };
 }
 
 export function resetState(): void {

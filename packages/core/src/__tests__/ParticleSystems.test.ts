@@ -103,7 +103,7 @@ describe('ParticleSystem', () => {
     sps.burst(20);
     sps.update(0.001);
     const alive = sps.getAliveParticles();
-    const positions = alive.map((p) => ([p[0], p[1], p[2]]));
+    const positions = alive.map((p) => [p[0], p[1], p[2]]);
     const allSame = positions.every((p) => p[0] === positions[0][0] && p[1] === positions[0][1]);
     expect(allSame).toBe(false);
   });

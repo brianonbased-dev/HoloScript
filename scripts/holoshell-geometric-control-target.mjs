@@ -11,7 +11,13 @@ import { deflateSync } from 'node:zlib';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import {
+  chainReceipt,
+  sha256Bytes,
+  sha256Text,
+  stageReceipt,
+  withHash,
+} from './holoshell/chain/receipts.mjs';
 
 export const VERSION = '0.1.0';
 export const RECEIPT_VERSION = 'holoshell-geometric-control-target/v1';
@@ -28,7 +34,12 @@ function rel(path) {
 }
 
 function defaultOutput(date) {
-  return join('.scratch', 'holoshell-geometric-control-target', date, 'geometric-control-target-receipt.json');
+  return join(
+    '.scratch',
+    'holoshell-geometric-control-target',
+    date,
+    'geometric-control-target-receipt.json'
+  );
 }
 
 function defaultPngForReceipt(outPath) {
@@ -65,8 +76,10 @@ function parseArgs(argv) {
 }
 
 function validateDimensions(width, height) {
-  if (!Number.isInteger(width) || width < 320 || width > 4096) throw new Error('--width must be 320..4096');
-  if (!Number.isInteger(height) || height < 240 || height > 4096) throw new Error('--height must be 240..4096');
+  if (!Number.isInteger(width) || width < 320 || width > 4096)
+    throw new Error('--width must be 320..4096');
+  if (!Number.isInteger(height) || height < 240 || height > 4096)
+    throw new Error('--height must be 240..4096');
 }
 
 function printHelp() {
@@ -209,7 +222,8 @@ function fillTriangle(rgb, width, height, vertices, color) {
 function fillDiamond(rgb, width, height, cx, cy, radius, color) {
   for (let py = Math.floor(cy - radius); py <= Math.ceil(cy + radius); py += 1) {
     for (let px = Math.floor(cx - radius); px <= Math.ceil(cx + radius); px += 1) {
-      if (Math.abs(px - cx) + Math.abs(py - cy) <= radius) putPixel(rgb, width, height, px, py, color);
+      if (Math.abs(px - cx) + Math.abs(py - cy) <= radius)
+        putPixel(rgb, width, height, px, py, color);
     }
   }
 }
@@ -220,18 +234,55 @@ function drawCheckerboard(rgb, width, height, area, columns, rows) {
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < columns; col += 1) {
       const color = (row + col) % 2 === 0 ? [12, 12, 12] : [245, 245, 245];
-      fillRect(rgb, width, height, area.x + col * cellWidth, area.y + row * cellHeight, cellWidth + 0.5, cellHeight + 0.5, color);
+      fillRect(
+        rgb,
+        width,
+        height,
+        area.x + col * cellWidth,
+        area.y + row * cellHeight,
+        cellWidth + 0.5,
+        cellHeight + 0.5,
+        color
+      );
     }
   }
-  strokeRect(rgb, width, height, area.x, area.y, area.width, area.height, [0, 0, 0], Math.max(3, Math.round(width * 0.003)));
+  strokeRect(
+    rgb,
+    width,
+    height,
+    area.x,
+    area.y,
+    area.width,
+    area.height,
+    [0, 0, 0],
+    Math.max(3, Math.round(width * 0.003))
+  );
 }
 
 function drawFiducial(rgb, width, height, center, size, accent) {
   const x = center.x - size / 2;
   const y = center.y - size / 2;
   fillRect(rgb, width, height, x, y, size, size, [0, 0, 0]);
-  fillRect(rgb, width, height, x + size * 0.17, y + size * 0.17, size * 0.66, size * 0.66, [255, 255, 255]);
-  fillRect(rgb, width, height, x + size * 0.34, y + size * 0.34, size * 0.32, size * 0.32, [0, 0, 0]);
+  fillRect(
+    rgb,
+    width,
+    height,
+    x + size * 0.17,
+    y + size * 0.17,
+    size * 0.66,
+    size * 0.66,
+    [255, 255, 255]
+  );
+  fillRect(
+    rgb,
+    width,
+    height,
+    x + size * 0.34,
+    y + size * 0.34,
+    size * 0.32,
+    size * 0.32,
+    [0, 0, 0]
+  );
   fillCircle(rgb, width, height, center.x, center.y, Math.max(3, size * 0.08), accent);
 }
 
@@ -257,10 +308,30 @@ function buildTargetGeometry(width, height) {
       area: board,
     },
     fiducials: [
-      { id: 'top-left', center: { x: margin, y: margin }, size: fiducialSize, accent: [255, 38, 38] },
-      { id: 'top-right', center: { x: width - margin, y: margin }, size: fiducialSize, accent: [35, 190, 70] },
-      { id: 'bottom-left', center: { x: margin, y: height - margin }, size: fiducialSize, accent: [42, 104, 255] },
-      { id: 'bottom-right', center: { x: width - margin, y: height - margin }, size: fiducialSize, accent: [255, 190, 42] },
+      {
+        id: 'top-left',
+        center: { x: margin, y: margin },
+        size: fiducialSize,
+        accent: [255, 38, 38],
+      },
+      {
+        id: 'top-right',
+        center: { x: width - margin, y: margin },
+        size: fiducialSize,
+        accent: [35, 190, 70],
+      },
+      {
+        id: 'bottom-left',
+        center: { x: margin, y: height - margin },
+        size: fiducialSize,
+        accent: [42, 104, 255],
+      },
+      {
+        id: 'bottom-right',
+        center: { x: width - margin, y: height - margin },
+        size: fiducialSize,
+        accent: [255, 190, 42],
+      },
     ],
     primitives: [
       {
@@ -300,9 +371,24 @@ function buildTargetGeometry(width, height) {
       },
     ],
     axes: [
-      { id: 'x-axis-red', from: { x: board.x, y: center.y }, to: { x: board.x + board.width, y: center.y }, color: [230, 35, 42] },
-      { id: 'y-axis-green', from: { x: center.x, y: board.y + board.height }, to: { x: center.x, y: board.y }, color: [22, 172, 78] },
-      { id: 'diagonal-blue', from: { x: board.x, y: board.y + board.height }, to: { x: board.x + board.width, y: board.y }, color: [36, 92, 230] },
+      {
+        id: 'x-axis-red',
+        from: { x: board.x, y: center.y },
+        to: { x: board.x + board.width, y: center.y },
+        color: [230, 35, 42],
+      },
+      {
+        id: 'y-axis-green',
+        from: { x: center.x, y: board.y + board.height },
+        to: { x: center.x, y: board.y },
+        color: [22, 172, 78],
+      },
+      {
+        id: 'diagonal-blue',
+        from: { x: board.x, y: board.y + board.height },
+        to: { x: board.x + board.width, y: board.y },
+        color: [36, 92, 230],
+      },
     ],
   };
 }
@@ -314,11 +400,38 @@ function renderTarget(width, height) {
   const stroke = Math.max(3, Math.round(Math.min(width, height) * 0.006));
 
   fillRect(rgb, width, height, 0, 0, width, height, [252, 252, 248]);
-  strokeRect(rgb, width, height, stroke, stroke, width - stroke * 2, height - stroke * 2, [0, 0, 0], stroke);
-  drawCheckerboard(rgb, width, height, geometry.checkerboard.area, geometry.checkerboard.columns, geometry.checkerboard.rows);
+  strokeRect(
+    rgb,
+    width,
+    height,
+    stroke,
+    stroke,
+    width - stroke * 2,
+    height - stroke * 2,
+    [0, 0, 0],
+    stroke
+  );
+  drawCheckerboard(
+    rgb,
+    width,
+    height,
+    geometry.checkerboard.area,
+    geometry.checkerboard.columns,
+    geometry.checkerboard.rows
+  );
 
   for (const axis of geometry.axes) {
-    drawLine(rgb, width, height, axis.from.x, axis.from.y, axis.to.x, axis.to.y, axis.color, stroke);
+    drawLine(
+      rgb,
+      width,
+      height,
+      axis.from.x,
+      axis.from.y,
+      axis.to.x,
+      axis.to.y,
+      axis.color,
+      stroke
+    );
   }
 
   for (const fiducial of geometry.fiducials) {
@@ -349,23 +462,105 @@ function renderTarget(width, height) {
         Math.max(2, Math.round(stroke * 0.7))
       );
     } else if (primitive.kind === 'circle') {
-      fillCircle(rgb, width, height, primitive.center.x, primitive.center.y, primitive.radius, primitive.color);
-      fillCircle(rgb, width, height, primitive.center.x, primitive.center.y, primitive.radius * 0.34, [0, 0, 0]);
+      fillCircle(
+        rgb,
+        width,
+        height,
+        primitive.center.x,
+        primitive.center.y,
+        primitive.radius,
+        primitive.color
+      );
+      fillCircle(
+        rgb,
+        width,
+        height,
+        primitive.center.x,
+        primitive.center.y,
+        primitive.radius * 0.34,
+        [0, 0, 0]
+      );
     } else if (primitive.kind === 'triangle') {
-      fillTriangle(rgb, width, height, [
-        { x: primitive.center.x, y: primitive.center.y - primitive.radius },
-        { x: primitive.center.x - primitive.radius * 1.05, y: primitive.center.y + primitive.radius * 0.9 },
-        { x: primitive.center.x + primitive.radius * 1.05, y: primitive.center.y + primitive.radius * 0.9 },
-      ], primitive.color);
+      fillTriangle(
+        rgb,
+        width,
+        height,
+        [
+          { x: primitive.center.x, y: primitive.center.y - primitive.radius },
+          {
+            x: primitive.center.x - primitive.radius * 1.05,
+            y: primitive.center.y + primitive.radius * 0.9,
+          },
+          {
+            x: primitive.center.x + primitive.radius * 1.05,
+            y: primitive.center.y + primitive.radius * 0.9,
+          },
+        ],
+        primitive.color
+      );
     } else if (primitive.kind === 'diamond') {
-      fillDiamond(rgb, width, height, primitive.center.x, primitive.center.y, primitive.radius, primitive.color);
-      fillDiamond(rgb, width, height, primitive.center.x, primitive.center.y, primitive.radius * 0.32, [255, 255, 255]);
+      fillDiamond(
+        rgb,
+        width,
+        height,
+        primitive.center.x,
+        primitive.center.y,
+        primitive.radius,
+        primitive.color
+      );
+      fillDiamond(
+        rgb,
+        width,
+        height,
+        primitive.center.x,
+        primitive.center.y,
+        primitive.radius * 0.32,
+        [255, 255, 255]
+      );
     } else if (primitive.kind === 'cross') {
       const bar = primitive.size * 0.26;
-      fillRect(rgb, width, height, primitive.center.x - primitive.size / 2, primitive.center.y - bar / 2, primitive.size, bar, primitive.color);
-      fillRect(rgb, width, height, primitive.center.x - bar / 2, primitive.center.y - primitive.size / 2, bar, primitive.size, primitive.color);
-      strokeRect(rgb, width, height, primitive.center.x - primitive.size / 2, primitive.center.y - bar / 2, primitive.size, bar, [0, 0, 0], 2);
-      strokeRect(rgb, width, height, primitive.center.x - bar / 2, primitive.center.y - primitive.size / 2, bar, primitive.size, [0, 0, 0], 2);
+      fillRect(
+        rgb,
+        width,
+        height,
+        primitive.center.x - primitive.size / 2,
+        primitive.center.y - bar / 2,
+        primitive.size,
+        bar,
+        primitive.color
+      );
+      fillRect(
+        rgb,
+        width,
+        height,
+        primitive.center.x - bar / 2,
+        primitive.center.y - primitive.size / 2,
+        bar,
+        primitive.size,
+        primitive.color
+      );
+      strokeRect(
+        rgb,
+        width,
+        height,
+        primitive.center.x - primitive.size / 2,
+        primitive.center.y - bar / 2,
+        primitive.size,
+        bar,
+        [0, 0, 0],
+        2
+      );
+      strokeRect(
+        rgb,
+        width,
+        height,
+        primitive.center.x - bar / 2,
+        primitive.center.y - primitive.size / 2,
+        bar,
+        primitive.size,
+        [0, 0, 0],
+        2
+      );
     }
   }
 
@@ -425,8 +620,10 @@ export function validateReceipt(receipt) {
     if (!hash) errors.push('target PNG file missing');
     else if (hash !== receipt.target.pngHash) errors.push('target PNG file hash mismatch');
   }
-  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
-  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length !== 1) errors.push('chain stage missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:'))
+    errors.push('chain receipt hash missing');
+  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length !== 1)
+    errors.push('chain stage missing');
   return errors;
 }
 
@@ -442,12 +639,14 @@ export async function generateTarget(args = {}) {
   mkdirSync(dirname(pngPath), { recursive: true });
   writeFileSync(pngPath, png);
   const pngHash = `sha256:${sha256Bytes(png)}`;
-  const variant = sha256Text(JSON.stringify({
-    version: VERSION,
-    width,
-    height,
-    geometry: target.geometry,
-  })).slice(0, 12);
+  const variant = sha256Text(
+    JSON.stringify({
+      version: VERSION,
+      width,
+      height,
+      geometry: target.geometry,
+    })
+  ).slice(0, 12);
 
   const stage = stageReceipt({
     name: 'target.generate-geometric-control',
@@ -512,7 +711,8 @@ export async function generateTarget(args = {}) {
     outputPath: rel(outPath),
   });
   const errors = validateReceipt(receipt);
-  if (errors.length > 0) throw new Error(`Invalid geometric control target receipt: ${errors.join('; ')}`);
+  if (errors.length > 0)
+    throw new Error(`Invalid geometric control target receipt: ${errors.join('; ')}`);
   writeJson(outPath, receipt);
   return receipt;
 }
@@ -524,8 +724,10 @@ export async function selfTest() {
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(errors.join('; '));
   const bytes = readFileSync(resolve(REPO_ROOT, receipt.target.pngPath));
-  if (!bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) throw new Error('self-test target is not a PNG');
-  if (receipt.target.pngHash !== `sha256:${sha256Bytes(bytes)}`) throw new Error('self-test PNG hash mismatch');
+  if (!bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE))
+    throw new Error('self-test target is not a PNG');
+  if (receipt.target.pngHash !== `sha256:${sha256Bytes(bytes)}`)
+    throw new Error('self-test PNG hash mismatch');
   return receipt;
 }
 
@@ -541,23 +743,34 @@ async function main() {
     return;
   }
   const receipt = await generateTarget(args);
-  process.stdout.write(`${JSON.stringify({
-    status: receipt.status,
-    receiptPath: receipt.outputPath,
-    target: {
-      path: receipt.target.pngPath,
-      pngHash: receipt.target.pngHash,
-      width: receipt.target.width,
-      height: receipt.target.height,
-      primitiveCount: receipt.target.primitives.length,
-      fiducialCount: receipt.target.fiducials.length,
-    },
-  }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        status: receipt.status,
+        receiptPath: receipt.outputPath,
+        target: {
+          path: receipt.target.pngPath,
+          pngHash: receipt.target.pngHash,
+          width: receipt.target.width,
+          height: receipt.target.height,
+          primitiveCount: receipt.target.primitives.length,
+          fiducialCount: receipt.target.fiducials.length,
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('holoshell-geometric-control-target.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('holoshell-geometric-control-target.mjs')
+) {
   main().catch((error) => {
-    process.stderr.write(`holoshell-geometric-control-target FAIL: ${error.stack ?? error.message}\n`);
+    process.stderr.write(
+      `holoshell-geometric-control-target FAIL: ${error.stack ?? error.message}\n`
+    );
     process.exitCode = 1;
   });
 }

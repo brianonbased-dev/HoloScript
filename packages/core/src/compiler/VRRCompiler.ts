@@ -841,9 +841,13 @@ export class VRRCompiler extends CompilerBase {
     return null;
   }
 
-  private extractGlobalSimulationStateFromWorlds(comp: Record<string, unknown>): Record<string, unknown> {
+  private extractGlobalSimulationStateFromWorlds(
+    comp: Record<string, unknown>
+  ): Record<string, unknown> {
     // Preferred source: v4+ `composition.worlds[]`
-    const worlds = Array.isArray(comp.worlds) ? (comp.worlds as Array<Record<string, unknown>>) : [];
+    const worlds = Array.isArray(comp.worlds)
+      ? (comp.worlds as Array<Record<string, unknown>>)
+      : [];
     if (worlds.length > 0 && worlds[0]) {
       const w = worlds[0];
       if (w.simulation_state && typeof w.simulation_state === 'object') {
@@ -911,7 +915,7 @@ export class VRRCompiler extends CompilerBase {
     // Generate imports and scene setup
     this.generateImports();
     this.generateSceneSetup();
-    
+
     // Pass global state to API hooks and get the twin group name
     const twinGroupName = this.generateAPIHooks(twinNodes as unknown[], globalSimulationState);
 
@@ -1011,7 +1015,10 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`document.body.appendChild(renderer.domElement);`);
   }
 
-  private generateAPIHooks(twinNodes: unknown[], globalSimulationState: Record<string, unknown> = {}): string {
+  private generateAPIHooks(
+    twinNodes: unknown[],
+    globalSimulationState: Record<string, unknown> = {}
+  ): string {
     this.generatedCode.push(`\n// Engine Initialization via @vrr_twin`);
 
     // Default config values
@@ -1122,7 +1129,7 @@ export class VRRCompiler extends CompilerBase {
     this.generatedCode.push(`vrr.syncPlayers((players) => {`);
     this.generatedCode.push(`  // Render avatars in scene mapped to players.position`);
     this.generatedCode.push(`});`);
-    
+
     return twinName;
   }
 

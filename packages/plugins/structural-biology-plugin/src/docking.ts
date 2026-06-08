@@ -236,11 +236,22 @@ export function dockingProvenance(result: DockingResult): string {
 export function selectDockingBackend(questionType: string): DockingBackend {
   const q = questionType.toLowerCase();
 
-  if (q.includes('screen') || q.includes('high-throughput') || q.includes('batch') || q.includes('many')) {
+  if (
+    q.includes('screen') ||
+    q.includes('high-throughput') ||
+    q.includes('batch') ||
+    q.includes('many')
+  ) {
     return 'autodock-gpu';
   }
 
-  if (q.includes('cnn') || q.includes('ml') || q.includes('gnina') || q.includes('neural') || q.includes('deep learning')) {
+  if (
+    q.includes('cnn') ||
+    q.includes('ml') ||
+    q.includes('gnina') ||
+    q.includes('neural') ||
+    q.includes('deep learning')
+  ) {
     return 'gnina';
   }
 
@@ -266,7 +277,7 @@ export interface DockingCompileOptions {
  */
 export function compileDocking(
   traits: Array<AutoDockTrait | BindingAffinityTrait>,
-  opts: DockingCompileOptions = {},
+  opts: DockingCompileOptions = {}
 ): string {
   const format = opts.format ?? 'pdbqt';
 
@@ -290,17 +301,22 @@ function compileDockingToPdbqt(traits: Array<AutoDockTrait | BindingAffinityTrai
   for (const t of traits) {
     if (t.trait === 'auto_dock') {
       lines.push(`REMARK 400 DOCKING backend=${t.backend}`);
-      lines.push(`REMARK 400 SEARCH_CENTER ${t.searchCenter.x},${t.searchCenter.y},${t.searchCenter.z}`);
+      lines.push(
+        `REMARK 400 SEARCH_CENTER ${t.searchCenter.x},${t.searchCenter.y},${t.searchCenter.z}`
+      );
       lines.push(`REMARK 400 SEARCH_SIZE ${t.searchSize.x},${t.searchSize.y},${t.searchSize.z}`);
       lines.push(`REMARK 400 SCORING ${t.scoringFunction ?? 'vina'}`);
       if (t.numRuns) lines.push(`REMARK 400 RUNS ${t.numRuns}`);
     } else if (t.trait === 'binding_affinity') {
       lines.push(`REMARK 500 BINDING_AFFINITY best=${t.bestAffinity} kcal/mol`);
       lines.push(`REMARK 500 POSES ${t.poseCount}`);
-      lines.push(`REMARK 500 RMSD_RANGE ${t.bestRmsdRange[0].toFixed(3)}-${t.bestRmsdRange[1].toFixed(3)}`);
+      lines.push(
+        `REMARK 500 RMSD_RANGE ${t.bestRmsdRange[0].toFixed(3)}-${t.bestRmsdRange[1].toFixed(3)}`
+      );
       lines.push(`REMARK 500 BACKEND ${t.backend}`);
       if (t.ki_nm !== undefined) lines.push(`REMARK 500 KI ${t.ki_nm.toFixed(2)} nM`);
-      if (t.hitRate !== undefined) lines.push(`REMARK 500 HIT_RATE ${(t.hitRate * 100).toFixed(1)}%`);
+      if (t.hitRate !== undefined)
+        lines.push(`REMARK 500 HIT_RATE ${(t.hitRate * 100).toFixed(1)}%`);
     }
   }
 
@@ -343,16 +359,18 @@ function compileDockingToSdf(traits: Array<AutoDockTrait | BindingAffinityTrait>
 }
 
 function compileDockingToCsv(traits: Array<AutoDockTrait | BindingAffinityTrait>): string {
-  const rows: string[] = ['trait,backend,bestAffinity_kcal_mol,poseCount,rmsdLb,rmsdUb,ki_nm,hitRate'];
+  const rows: string[] = [
+    'trait,backend,bestAffinity_kcal_mol,poseCount,rmsdLb,rmsdUb,ki_nm,hitRate',
+  ];
 
   for (const t of traits) {
     if (t.trait === 'binding_affinity') {
       rows.push(
-        `binding_affinity,${t.backend},${t.bestAffinity},${t.poseCount},${t.bestRmsdRange[0]},${t.bestRmsdRange[1]},${t.ki_nm ?? ''},${t.hitRate ?? ''}`,
+        `binding_affinity,${t.backend},${t.bestAffinity},${t.poseCount},${t.bestRmsdRange[0]},${t.bestRmsdRange[1]},${t.ki_nm ?? ''},${t.hitRate ?? ''}`
       );
     } else if (t.trait === 'auto_dock') {
       rows.push(
-        `auto_dock,${t.backend},,,${t.searchCenter.x},${t.searchCenter.y},${t.searchCenter.z},`,
+        `auto_dock,${t.backend},,,${t.searchCenter.x},${t.searchCenter.y},${t.searchCenter.z},`
       );
     }
   }
@@ -367,7 +385,9 @@ function compileDockingToHolo(traits: Array<AutoDockTrait | BindingAffinityTrait
     if (t.trait === 'auto_dock') {
       lines.push(`  object "DockingConfig" @auto_dock {`);
       lines.push(`    backend: "${t.backend}"`);
-      lines.push(`    center: { x: ${t.searchCenter.x}, y: ${t.searchCenter.y}, z: ${t.searchCenter.z} }`);
+      lines.push(
+        `    center: { x: ${t.searchCenter.x}, y: ${t.searchCenter.y}, z: ${t.searchCenter.z} }`
+      );
       lines.push(`    size: { x: ${t.searchSize.x}, y: ${t.searchSize.y}, z: ${t.searchSize.z} }`);
       if (t.numRuns) lines.push(`    numRuns: ${t.numRuns}`);
       if (t.scoringFunction) lines.push(`    scoringFunction: "${t.scoringFunction}"`);

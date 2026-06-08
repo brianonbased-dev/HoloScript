@@ -4,7 +4,10 @@ import { resolve } from 'path';
 export default defineConfig({
   resolve: {
     alias: [
-      { find: '@holoscript/core/reconstruction', replacement: resolve(__dirname, '../core/src/reconstruction/index.ts') },
+      {
+        find: '@holoscript/core/reconstruction',
+        replacement: resolve(__dirname, '../core/src/reconstruction/index.ts'),
+      },
       { find: /^@holoscript\/core$/, replacement: resolve(__dirname, '../core/src/index.ts') },
       { find: '@holoscript/holomap', replacement: resolve(__dirname, '../holomap/src/index.ts') },
     ],

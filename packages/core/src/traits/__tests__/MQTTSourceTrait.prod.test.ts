@@ -78,7 +78,11 @@ import {
   isMQTTSourceConnected,
 } from '../MQTTSourceTrait';
 // @ts-expect-error - TS doesn't resolve peerDep workspace paths correctly
-import { createMQTTClient, getMQTTClient, MQTTClient } from '@holoscript/engine/runtime/protocols/MQTTClient';
+import {
+  createMQTTClient,
+  getMQTTClient,
+  MQTTClient,
+} from '@holoscript/engine/runtime/protocols/MQTTClient';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 let _nodeId = 0;
@@ -126,9 +130,12 @@ describe('mqttSourceHandler.defaultConfig', () => {
 
 // ─── onAttach ─────────────────────────────────────────────────────────────────
 describe('mqttSourceHandler.onAttach', () => {
-  it('creates __mqttSourceState', async () => expect((await attach()).node.__mqttSourceState).toBeDefined());
-  it('connected = false', async () => expect((await attach()).node.__mqttSourceState.connected).toBe(false));
-  it('messageCount = 0', async () => expect((await attach()).node.__mqttSourceState.messageCount).toBe(0));
+  it('creates __mqttSourceState', async () =>
+    expect((await attach()).node.__mqttSourceState).toBeDefined());
+  it('connected = false', async () =>
+    expect((await attach()).node.__mqttSourceState.connected).toBe(false));
+  it('messageCount = 0', async () =>
+    expect((await attach()).node.__mqttSourceState.messageCount).toBe(0));
   it('error = null', async () => expect((await attach()).node.__mqttSourceState.error).toBeNull());
 
   it('creates MQTT client via createMQTTClient', async () => {

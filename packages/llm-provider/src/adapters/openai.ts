@@ -35,8 +35,8 @@ import {
 // into old pinned behavior without making those models the default.
 export const OPENAI_MODELS = [
   'gpt-5.5',
-  'gpt-5.5-instant',   // 1M ctx, ChatGPT default; alias: chat-latest — A-020 2026-06-08
-  'chat-latest',       // API alias for gpt-5.5-instant (openai changelog 2026-06-08)
+  'gpt-5.5-instant', // 1M ctx, ChatGPT default; alias: chat-latest — A-020 2026-06-08
+  'chat-latest', // API alias for gpt-5.5-instant (openai changelog 2026-06-08)
   'gpt-5.4',
   'gpt-5.4-pro',
   'gpt-5.4-mini',
@@ -431,34 +431,34 @@ function parseChatToolCalls(choice: unknown): {
  * without instantiating the adapter — single source of truth per W.GOLD.006.
  */
 export const OPENAI_CAPABILITIES: Capabilities = {
-  contextWindow: 0,              // [VERIFY task_1778109552044_wstq]
-  maxOutput: 0,                  // [VERIFY task_1778109552044_wstq]
+  contextWindow: 0, // [VERIFY task_1778109552044_wstq]
+  maxOutput: 0, // [VERIFY task_1778109552044_wstq]
 
   streaming: true,
-  tools: true,                   // Responses function calling
+  tools: true, // Responses function calling
 
-  vision: true,                  // GPT-5.x, GPT-4o family
-  audioInput: true,              // Realtime API
-  audioOutput: true,             // Realtime API
-  imageGeneration: true,         // GPT Image
+  vision: true, // GPT-5.x, GPT-4o family
+  audioInput: true, // Realtime API
+  audioOutput: true, // Realtime API
+  imageGeneration: true, // GPT Image
 
-  visibleReasoning: true,        // reasoning summaries/items; raw CoT is not exposed
-  adjustableEffort: true,        // reasoning effort: none/minimal/low/medium/high/xhigh
+  visibleReasoning: true, // reasoning summaries/items; raw CoT is not exposed
+  adjustableEffort: true, // reasoning effort: none/minimal/low/medium/high/xhigh
 
-  liveWebSearch: true,           // Responses web_search tool (first-party)
-  hostedShell: true,             // Responses shell — DEFAULT-DENY in policy layer (W.GOLD don't)
-  codeExecutionSandbox: true,    // Responses code interpreter
-  fileSearchBuiltIn: true,       // Vector stores — NOT source-of-truth (W.GOLD don't)
-  promptCaching: true,           // automatic prompt caching + retention controls
-  hostedAgenticLoop: true,       // Agents SDK — interop only, never replaces HoloMesh (W.GOLD don't)
-  persistentMemoryStore: true,   // Vector stores
-  structuredOutputs: true,       // strict JSON schema
-  embeddings: true,              // first-class endpoint
-  batchApi: true,                // 50% off, 24h SLA
-  realtimeVoice: true,           // Realtime API (WebRTC/SIP/WebSocket)
-  embeddedChatUI: true,          // ChatKit
-  appsIframeSurface: true,       // Apps SDK (MCP-Apps iframe)
-  evalsFirstParty: false,        // Evals platform deprecated 2026-06-03 (A-020)
+  liveWebSearch: true, // Responses web_search tool (first-party)
+  hostedShell: true, // Responses shell — DEFAULT-DENY in policy layer (W.GOLD don't)
+  codeExecutionSandbox: true, // Responses code interpreter
+  fileSearchBuiltIn: true, // Vector stores — NOT source-of-truth (W.GOLD don't)
+  promptCaching: true, // automatic prompt caching + retention controls
+  hostedAgenticLoop: true, // Agents SDK — interop only, never replaces HoloMesh (W.GOLD don't)
+  persistentMemoryStore: true, // Vector stores
+  structuredOutputs: true, // strict JSON schema
+  embeddings: true, // first-class endpoint
+  batchApi: true, // 50% off, 24h SLA
+  realtimeVoice: true, // Realtime API (WebRTC/SIP/WebSocket)
+  embeddedChatUI: true, // ChatKit
+  appsIframeSurface: true, // Apps SDK (MCP-Apps iframe)
+  evalsFirstParty: false, // Evals platform deprecated 2026-06-03 (A-020)
 
   bearerTokenAccess: true,
 };

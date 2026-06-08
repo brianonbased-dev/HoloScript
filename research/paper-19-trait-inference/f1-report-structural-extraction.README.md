@@ -20,58 +20,58 @@ Three-layer classifier for predicting trait annotations from .hsplus source snip
 
 The headline configuration uses Layer 1 only (extract all @-tokens). This is the simplest classifier that meets the gate.
 
-| Metric | Value | Notes |
-|---|---|---|
-| Eval rows | 300 | `split_role == "novel-combination-test"` |
-| **Row-macro F1 (headline)** | **0.8508** | Mean per-row F1 |
-| Row-macro precision | 0.8041 | Mean per-row precision |
-| Row-macro recall | 0.9979 | Mean per-row recall |
-| Label-macro F1 | 0.6096 | Per-label F1 averaged over label space |
-| Micro F1 | 0.7638 | Pooled TP / FP / FN across all rows |
-| TP / FP / FN | 553 / 339 / 3 | |
+| Metric                      | Value         | Notes                                    |
+| --------------------------- | ------------- | ---------------------------------------- |
+| Eval rows                   | 300           | `split_role == "novel-combination-test"` |
+| **Row-macro F1 (headline)** | **0.8508**    | Mean per-row F1                          |
+| Row-macro precision         | 0.8041        | Mean per-row precision                   |
+| Row-macro recall            | 0.9979        | Mean per-row recall                      |
+| Label-macro F1              | 0.6096        | Per-label F1 averaged over label space   |
+| Micro F1                    | 0.7638        | Pooled TP / FP / FN across all rows      |
+| TP / FP / FN                | 553 / 339 / 3 |                                          |
 
 ## Classifier configurations on novel-combination-test
 
-| Configuration | Row-macro F1 | Precision | Recall | Micro F1 |
-|---|---|---|---|---|
-| structural-extraction | 0.8508 | 0.8041 | 0.9979 | 0.7638 |
-| structural-extraction+heuristics | 0.7993 | 0.7294 | 0.9986 | 0.7237 |
-| structural+cooccurrence-0.5 | 0.6761 | 0.5685 | 0.9986 | 0.5986 |
-| structural+cooccurrence-0.7 | 0.7262 | 0.6338 | 0.9986 | 0.6464 |
+| Configuration                    | Row-macro F1 | Precision | Recall | Micro F1 |
+| -------------------------------- | ------------ | --------- | ------ | -------- |
+| structural-extraction            | 0.8508       | 0.8041    | 0.9979 | 0.7638   |
+| structural-extraction+heuristics | 0.7993       | 0.7294    | 0.9986 | 0.7237   |
+| structural+cooccurrence-0.5      | 0.6761       | 0.5685    | 0.9986 | 0.5986   |
+| structural+cooccurrence-0.7      | 0.7262       | 0.6338    | 0.9986 | 0.6464   |
 
 ## In-distribution-test results
 
-| Configuration | Row-macro F1 | Precision | Recall | Micro F1 |
-|---|---|---|---|---|
-| structural-extraction | 0.8967 | 0.8823 | 0.9334 | 0.9065 |
-| structural-extraction+heuristics | 0.8273 | 0.7980 | 0.8923 | 0.8538 |
-| structural+cooccurrence-0.5 | 0.7867 | 0.7404 | 0.8923 | 0.7778 |
-| structural+cooccurrence-0.7 | 0.8184 | 0.7857 | 0.8923 | 0.8310 |
+| Configuration                    | Row-macro F1 | Precision | Recall | Micro F1 |
+| -------------------------------- | ------------ | --------- | ------ | -------- |
+| structural-extraction            | 0.8967       | 0.8823    | 0.9334 | 0.9065   |
+| structural-extraction+heuristics | 0.8273       | 0.7980    | 0.8923 | 0.8538   |
+| structural+cooccurrence-0.5      | 0.7867       | 0.7404    | 0.8923 | 0.7778   |
+| structural+cooccurrence-0.7      | 0.8184       | 0.7857    | 0.8923 | 0.8310   |
 
 ## Comparison with keyword-match baseline
 
-| Quantity | Value |
-|---|---|
-| Keyword-match baseline (row-macro F1) | 0.5541 |
-| **Structural extraction (row-macro F1)** | **0.8508** |
-| **Delta** | **29.6746pp** |
-| Pre-registration floor | 0.8000 |
-| Margin requirement | +15pp over keyword baseline |
-| Effective floor (max of floor vs +15pp) | 0.8000 |
-| **Gate: floor passed** | **YES** |
-| **Gate: margin passed** | **YES** |
+| Quantity                                 | Value                       |
+| ---------------------------------------- | --------------------------- |
+| Keyword-match baseline (row-macro F1)    | 0.5541                      |
+| **Structural extraction (row-macro F1)** | **0.8508**                  |
+| **Delta**                                | **29.6746pp**               |
+| Pre-registration floor                   | 0.8000                      |
+| Margin requirement                       | +15pp over keyword baseline |
+| Effective floor (max of floor vs +15pp)  | 0.8000                      |
+| **Gate: floor passed**                   | **YES**                     |
+| **Gate: margin passed**                  | **YES**                     |
 
 ## Pre-registration gate check
 
 > F1 (macro) ≥ 0.80 on the novel-combination test split, with ≥ 15 percentage-point margin over the keyword-match baseline.
 
-| Check | Result |
-|---|---|
-| Novel-combination F1 | 0.8508 |
-| Keyword baseline F1 | 0.5541 |
+| Check                | Result    |
+| -------------------- | --------- |
+| Novel-combination F1 | 0.8508    |
+| Keyword baseline F1  | 0.5541    |
 | Margin over baseline | 29.6746pp |
-| Floor (≥0.80) | PASS |
-| Margin (≥15pp) | PASS |
+| Floor (≥0.80)        | PASS      |
+| Margin (≥15pp)       | PASS      |
 
 **GATE PASSED**: Both floor (≥0.80) and margin (≥15pp) requirements met.
 

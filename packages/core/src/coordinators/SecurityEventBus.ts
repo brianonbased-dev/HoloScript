@@ -255,7 +255,12 @@ export class SecurityEventBus {
     else if (domain === 'tenant') this.applyTenantEvent(event, payload, observedAt);
 
     // Audit-log channel — append for both `audit_*` and `forget_audit_*`
-    if (domain === 'audit' || event === 'audit_log' || event === 'forget_audit_log' || event === 'forget_audit_entry') {
+    if (
+      domain === 'audit' ||
+      event === 'audit_log' ||
+      event === 'forget_audit_log' ||
+      event === 'forget_audit_entry'
+    ) {
       this.appendAudit(event, payload, observedAt);
     }
 
@@ -314,9 +319,12 @@ export class SecurityEventBus {
 
     if (event === 'rbac_role_assigned' && typeof p.role === 'string') roles.add(p.role);
     else if (event === 'rbac_role_revoked' && typeof p.role === 'string') roles.delete(p.role);
-    else if (event === 'rbac_capability_granted' && typeof p.capability === 'string') capabilities.add(p.capability);
-    else if (event === 'rbac_capability_revoked' && typeof p.capability === 'string') capabilities.delete(p.capability);
-    else if (event === 'rbac_tenant_changed' && typeof p.tenantId === 'string') tenantId = p.tenantId;
+    else if (event === 'rbac_capability_granted' && typeof p.capability === 'string')
+      capabilities.add(p.capability);
+    else if (event === 'rbac_capability_revoked' && typeof p.capability === 'string')
+      capabilities.delete(p.capability);
+    else if (event === 'rbac_tenant_changed' && typeof p.tenantId === 'string')
+      tenantId = p.tenantId;
     else if (event === 'rbac_user_roles' && Array.isArray(p.roles)) {
       roles.clear();
       for (const r of p.roles) if (typeof r === 'string') roles.add(r);
@@ -387,7 +395,8 @@ export class SecurityEventBus {
     else if (event === 'tenant_decommissioned') status = 'decommissioned';
     else if (event === 'tenant_status_changed' && typeof p.status === 'string') {
       const s = p.status;
-      if (s === 'active' || s === 'suspended' || s === 'provisioned' || s === 'decommissioned') status = s;
+      if (s === 'active' || s === 'suspended' || s === 'provisioned' || s === 'decommissioned')
+        status = s;
     } else if (event === 'tenant_tier_changed' && typeof p.tier === 'string') {
       tier = p.tier;
     } else {

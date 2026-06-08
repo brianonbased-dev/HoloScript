@@ -75,7 +75,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
       `[ErrorBoundary${this.props.label ? `:${this.props.label}` : ''}]`,
       astPath ?? '',
       error,
-      info.componentStack,
+      info.componentStack
     );
 
     this.setState({ astPath });
@@ -135,9 +135,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
               Stack trace
             </summary>
             <pre className="mt-1 max-h-40 overflow-auto text-[9px] text-red-500/50 whitespace-pre-wrap">
-              {astPath && (
-                <span className="mb-1 block font-bold text-red-400">{astPath}</span>
-              )}
+              {astPath && <span className="mb-1 block font-bold text-red-400">{astPath}</span>}
               {error.stack}
             </pre>
           </details>

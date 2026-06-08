@@ -174,14 +174,16 @@ describe('HoloScriptSandbox', () => {
 
     it('should limit audit log size to 1000 entries', () => {
       const largeSandbox = new HoloScriptSandbox({ enableLogging: true });
-      const log = (largeSandbox as unknown as {
-        log(entry: {
-          source: 'user';
-          action: 'execute';
-          success: boolean;
-          codeHash: string;
-        }): void;
-      }).log.bind(largeSandbox);
+      const log = (
+        largeSandbox as unknown as {
+          log(entry: {
+            source: 'user';
+            action: 'execute';
+            success: boolean;
+            codeHash: string;
+          }): void;
+        }
+      ).log.bind(largeSandbox);
 
       // Exercise the audit ring directly; VM execution behavior is covered
       // above, and 1100 VM spins makes this cap test load-sensitive.

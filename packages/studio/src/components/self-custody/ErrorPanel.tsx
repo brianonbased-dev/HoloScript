@@ -47,24 +47,21 @@ function copyForError(err: SelfCustodyApiError): ErrorCopy {
     case 'session_expired':
       return {
         title: 'Session expired',
-        body:
-          'Your export session has expired. Sessions are short-lived (15 minutes) to limit exposure. Start over to generate a new one.',
+        body: 'Your export session has expired. Sessions are short-lived (15 minutes) to limit exposure. Start over to generate a new one.',
         primary: { label: 'Start over', kind: 'restart' },
         tone: 'warn',
       };
     case 'manifest_hash_mismatch':
       return {
         title: 'Package corrupted',
-        body:
-          'The package you finalized does not match the package the server issued. If you edited the file or uploaded the wrong one, restart. If the file is as-downloaded, contact support.',
+        body: 'The package you finalized does not match the package the server issued. If you edited the file or uploaded the wrong one, restart. If the file is as-downloaded, contact support.',
         primary: { label: 'Start over', kind: 'restart' },
         tone: 'error',
       };
     case 'bad_ownership_proof':
       return {
         title: 'Signature did not verify',
-        body:
-          'The server could not verify your signature over the nonce. This usually means the public key and private key got out of sync. Regenerate the keypair and re-sign.',
+        body: 'The server could not verify your signature over the nonce. This usually means the public key and private key got out of sync. Regenerate the keypair and re-sign.',
         primary: { label: 'Regenerate & re-sign', kind: 'retry-here' },
         secondary: { label: 'Start over', kind: 'restart' },
         tone: 'error',
@@ -72,24 +69,21 @@ function copyForError(err: SelfCustodyApiError): ErrorCopy {
     case 'two_factor_required':
       return {
         title: '2FA required',
-        body:
-          'Step-up 2FA is enabled on this server. Start the wizard again and supply a 2FA token.',
+        body: 'Step-up 2FA is enabled on this server. Start the wizard again and supply a 2FA token.',
         primary: { label: 'Start over', kind: 'restart' },
         tone: 'warn',
       };
     case 'rate_limited':
       return {
         title: 'Rate limited',
-        body:
-          'Too many prepare attempts in the last hour. Wait and try again — the limit is 3 per hour per user.',
+        body: 'Too many prepare attempts in the last hour. Wait and try again — the limit is 3 per hour per user.',
         primary: { label: 'Start over', kind: 'restart' },
         tone: 'warn',
       };
     case 'already_self_custody':
       return {
         title: 'Already migrated',
-        body:
-          'This account is already in self-custody mode. There is nothing to migrate — the export flow is a no-op for you.',
+        body: 'This account is already in self-custody mode. There is nothing to migrate — the export flow is a no-op for you.',
         primary: { label: 'Close', kind: 'restart' },
         tone: 'info',
       };
@@ -100,8 +94,7 @@ function copyForError(err: SelfCustodyApiError): ErrorCopy {
       return {
         title: 'Session state mismatch',
         body:
-          (err.message ||
-            'The session is not in the expected state for this step.') +
+          (err.message || 'The session is not in the expected state for this step.') +
           (err.current_status ? ` (current: ${err.current_status})` : '') +
           ' Start over to create a fresh session.',
         primary: { label: 'Start over', kind: 'restart' },
@@ -110,8 +103,7 @@ function copyForError(err: SelfCustodyApiError): ErrorCopy {
     default:
       return {
         title: `Error: ${err.error}`,
-        body:
-          err.message || 'An unknown error occurred. Start over and try again.',
+        body: err.message || 'An unknown error occurred. Start over and try again.',
         primary: { label: 'Start over', kind: 'restart' },
         tone: 'error',
       };
@@ -120,10 +112,8 @@ function copyForError(err: SelfCustodyApiError): ErrorCopy {
 
 export function ErrorPanel({ error, onRestart, onRetryHere }: ErrorPanelProps) {
   const copy = copyForError(error);
-  const bg =
-    copy.tone === 'error' ? '#531' : copy.tone === 'warn' ? '#432' : '#234';
-  const color =
-    copy.tone === 'error' ? '#fdd' : copy.tone === 'warn' ? '#ffd' : '#dff';
+  const bg = copy.tone === 'error' ? '#531' : copy.tone === 'warn' ? '#432' : '#234';
+  const color = copy.tone === 'error' ? '#fdd' : copy.tone === 'warn' ? '#ffd' : '#dff';
 
   const handlePrimary = () => {
     if (copy.primary.kind === 'retry-here' && onRetryHere) {

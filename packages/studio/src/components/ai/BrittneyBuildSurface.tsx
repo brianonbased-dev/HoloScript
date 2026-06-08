@@ -39,11 +39,7 @@ import {
   ArrowRight,
   Sparkles,
 } from 'lucide-react';
-import {
-  streamAssistant,
-  buildRichContext,
-  executeTool,
-} from '@/lib/brittney';
+import { streamAssistant, buildRichContext, executeTool } from '@/lib/brittney';
 import type { AssistantMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
 import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
 import { useUnifiedBrittneyHistory } from '@/hooks/useUnifiedBrittneyHistory';
@@ -54,7 +50,7 @@ import { SuggestionCards } from './SuggestionCards';
 // feature here, but we don't want to block the chat shell on its load.
 const SceneViewer = dynamic(
   () => import('@/embed/SceneViewer').then((m) => ({ default: m.SceneViewer })),
-  { ssr: false, loading: () => <PreviewSkeleton /> },
+  { ssr: false, loading: () => <PreviewSkeleton /> }
 );
 
 // ---------------------------------------------------------------------------
@@ -83,13 +79,29 @@ interface FeatureChip {
 }
 
 const FEATURE_CHIPS: readonly FeatureChip[] = [
-  { label: 'Quest 3 (XR)', prompt: 'Target Quest 3 — make sure traits are XR-ready.', group: 'platform' },
-  { label: 'Web (R3F)', prompt: 'Compile this for the web with React Three Fiber.', group: 'platform' },
+  {
+    label: 'Quest 3 (XR)',
+    prompt: 'Target Quest 3 — make sure traits are XR-ready.',
+    group: 'platform',
+  },
+  {
+    label: 'Web (R3F)',
+    prompt: 'Compile this for the web with React Three Fiber.',
+    group: 'platform',
+  },
   { label: 'Unity', prompt: 'Compile this for Unity. Show me what changes.', group: 'platform' },
   { label: 'Robotics (URDF)', prompt: 'Convert the rig to URDF for ROS 2.', group: 'platform' },
-  { label: 'Add @physics', prompt: 'Add the @physics trait to the most recent object.', group: 'trait' },
+  {
+    label: 'Add @physics',
+    prompt: 'Add the @physics trait to the most recent object.',
+    group: 'trait',
+  },
   { label: 'Add @grabbable', prompt: 'Make the most recent object @grabbable.', group: 'trait' },
-  { label: 'Add lighting', prompt: 'Add a couple of lights so the scene is well-lit.', group: 'trait' },
+  {
+    label: 'Add lighting',
+    prompt: 'Add a couple of lights so the scene is well-lit.',
+    group: 'trait',
+  },
   { label: 'A robot', prompt: 'Add a simple robot — base, arm, gripper.', group: 'kind' },
   { label: 'A character', prompt: 'Add a stylized character with rigged limbs.', group: 'kind' },
   { label: 'A dashboard', prompt: 'Add a floating UI dashboard with stat tiles.', group: 'kind' },
@@ -136,9 +148,7 @@ function ToolBadge({
       : 'bg-red-500/10 text-red-400 border border-red-500/10';
   const canConfirm = Boolean(result.requiresConfirmation && result.pendingAction && onConfirm);
   return (
-    <div
-      className={`flex items-start gap-2 rounded-lg px-3 py-1.5 text-[11px] ${stateClass}`}
-    >
+    <div className={`flex items-start gap-2 rounded-lg px-3 py-1.5 text-[11px] ${stateClass}`}>
       {result.success ? (
         <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0" />
       ) : (
@@ -271,21 +281,21 @@ function HolomeshTemplateChips({ onChip }: { onChip: (prompt: string) => void })
         from holomesh
       </div>
       <div className="flex flex-wrap gap-1.5 px-1">
-      {templates.map((t) => {
-        const safeName = sanitizeForPrompt(t.name, 60);
-        const safeObjective = sanitizeForPrompt(t.objective, 200);
-        const prompt = `Set up a HoloMesh "${safeName}" team session — ${safeObjective}.`;
-        return (
-          <button
-            key={t.slug}
-            onClick={() => onChip(prompt)}
-            className="rounded-full border border-purple-400/20 bg-purple-500/[0.06] px-3 py-1 text-[11px] text-purple-300/80 transition hover:border-purple-400/50 hover:bg-purple-500/[0.12] hover:text-purple-200"
-            title={t.description}
-          >
-            {t.name}
-          </button>
-        );
-      })}
+        {templates.map((t) => {
+          const safeName = sanitizeForPrompt(t.name, 60);
+          const safeObjective = sanitizeForPrompt(t.objective, 200);
+          const prompt = `Set up a HoloMesh "${safeName}" team session — ${safeObjective}.`;
+          return (
+            <button
+              key={t.slug}
+              onClick={() => onChip(prompt)}
+              className="rounded-full border border-purple-400/20 bg-purple-500/[0.06] px-3 py-1 text-[11px] text-purple-300/80 transition hover:border-purple-400/50 hover:bg-purple-500/[0.12] hover:text-purple-200"
+              title={t.description}
+            >
+              {t.name}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -359,7 +369,7 @@ export function BrittneyBuildSurface() {
       getCode: () => useSceneStore.getState().code ?? '',
       setCode: useSceneStore.getState().setCode,
     }),
-    [addTrait, removeTrait, setTraitProperty, addNode, removeNode, updateNode],
+    [addTrait, removeTrait, setTraitProperty, addNode, removeNode, updateNode]
   );
 
   const {
@@ -412,12 +422,7 @@ export function BrittneyBuildSurface() {
 
       // Rich context now uses the live scene — the assistant can see what's
       // already there and reason about it instead of starting from blank.
-      const sceneContext = buildRichContext(
-        code,
-        nodes,
-        null,
-        null,
-      );
+      const sceneContext = buildRichContext(code, nodes, null, null);
 
       const assistantId = (Date.now() + 1).toString();
       setMessages((m) => [
@@ -435,7 +440,7 @@ export function BrittneyBuildSurface() {
           if (event.type === 'text') {
             acc += event.payload as string;
             setMessages((m) =>
-              m.map((msg) => (msg.id === assistantId ? { ...msg, text: acc } : msg)),
+              m.map((msg) => (msg.id === assistantId ? { ...msg, text: acc } : msg))
             );
           } else if (event.type === 'tool_call') {
             const tc = event.payload as ToolCallPayload;
@@ -445,15 +450,15 @@ export function BrittneyBuildSurface() {
             toolResults.push(result);
             setMessages((m) =>
               m.map((msg) =>
-                msg.id === assistantId ? { ...msg, toolResults: [...toolResults] } : msg,
-              ),
+                msg.id === assistantId ? { ...msg, toolResults: [...toolResults] } : msg
+              )
             );
           } else if (event.type === 'error') {
             acc = `Sorry, I hit an error: ${event.payload}`;
             setMessages((m) =>
               m.map((msg) =>
-                msg.id === assistantId ? { ...msg, text: acc, isStreaming: false } : msg,
-              ),
+                msg.id === assistantId ? { ...msg, text: acc, isStreaming: false } : msg
+              )
             );
           } else if (event.type === 'done') {
             break;
@@ -465,8 +470,8 @@ export function BrittneyBuildSurface() {
 
       setMessages((m) =>
         m.map((msg) =>
-          msg.id === assistantId ? { ...msg, text: acc, isStreaming: false, toolResults } : msg,
-        ),
+          msg.id === assistantId ? { ...msg, text: acc, isStreaming: false, toolResults } : msg
+        )
       );
       setLlmHistory((h) => [...h, { role: 'assistant', content: acc }]);
       persistMessage({ role: 'assistant', content: acc });
@@ -486,7 +491,7 @@ export function BrittneyBuildSurface() {
       setTraitProperty,
       setCode,
       getStoreActions,
-    ],
+    ]
   );
 
   const handleConfirmToolResult = useCallback(
@@ -498,7 +503,7 @@ export function BrittneyBuildSurface() {
         target.pendingAction.tool,
         target.pendingAction.args,
         getStoreActions(),
-        { confirmed: true },
+        { confirmed: true }
       );
       const nextResult: ToolResult = applied.success
         ? { ...applied, message: `Applied: ${applied.message}` }
@@ -510,14 +515,14 @@ export function BrittneyBuildSurface() {
             ? {
                 ...msg,
                 toolResults: msg.toolResults?.map((result, index) =>
-                  index === resultIndex ? nextResult : result,
+                  index === resultIndex ? nextResult : result
                 ),
               }
-            : msg,
-        ),
+            : msg
+        )
       );
     },
-    [messages, getStoreActions],
+    [messages, getStoreActions]
   );
 
   const handleDeclineToolResult = useCallback((messageId: string, resultIndex: number) => {
@@ -535,11 +540,11 @@ export function BrittneyBuildSurface() {
                       pendingAction: undefined,
                       diff: undefined,
                     }
-                  : result,
+                  : result
               ),
             }
-          : msg,
-      ),
+          : msg
+      )
     );
   }, []);
 
@@ -553,7 +558,7 @@ export function BrittneyBuildSurface() {
       }
       runSend(prompt);
     },
-    [runSend],
+    [runSend]
   );
 
   const handleOpenStudio = useCallback(() => {
@@ -724,7 +729,11 @@ export function BrittneyBuildSurface() {
                     }`}
                     aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
                   >
-                    {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                    {isListening ? (
+                      <MicOff className="h-3.5 w-3.5" />
+                    ) : (
+                      <Mic className="h-3.5 w-3.5" />
+                    )}
                   </button>
                 )}
                 <button

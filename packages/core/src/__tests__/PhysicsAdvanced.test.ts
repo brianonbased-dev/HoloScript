@@ -25,7 +25,7 @@ function createBody(id: string, pos: [number, number, number]): IRigidBodyState 
   return {
     id,
     position: { ...pos },
-    rotation: [0, 0, 0, 1 ],
+    rotation: [0, 0, 0, 1],
     linearVelocity: [0, 0, 0],
     angularVelocity: [0, 0, 0],
     isSleeping: false,

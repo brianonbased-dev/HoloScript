@@ -134,7 +134,10 @@ export interface ConjectureProbe {
   id: string;
   description: string;
   predicate: ConjectureProbePredicate;
-  evaluate(candidate: GeometryConjectureCandidate, facts: MeshFacts): ConjectureProbeEvaluationResult;
+  evaluate(
+    candidate: GeometryConjectureCandidate,
+    facts: MeshFacts
+  ): ConjectureProbeEvaluationResult;
 }
 
 export interface CandidateEvaluation {
@@ -344,7 +347,10 @@ function assertClaim(claim: ConjectureClaim): void {
   }
 }
 
-function assertStringArray(values: unknown, label: string): asserts values is ReadonlyArray<string> {
+function assertStringArray(
+  values: unknown,
+  label: string
+): asserts values is ReadonlyArray<string> {
   if (!Array.isArray(values)) {
     throw new Error(`conjecture.v1: ${label} must be an array`);
   }

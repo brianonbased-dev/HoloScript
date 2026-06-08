@@ -87,8 +87,8 @@ describe('locardScore', () => {
   });
 
   it('higher background frequency → lower LR', () => {
-    const r1  = locardScore('paint', 0.7, 0.6, 0.001);
-    const r2  = locardScore('paint', 0.7, 0.6, 0.05);
+    const r1 = locardScore('paint', 0.7, 0.6, 0.001);
+    const r2 = locardScore('paint', 0.7, 0.6, 0.05);
     expect(r2.likelihoodRatio).toBeLessThan(r1.likelihoodRatio);
   });
 
@@ -178,7 +178,7 @@ describe('bloodSpatterAngle', () => {
   });
 
   it('angle increases as width/length approaches 1', () => {
-    const r_low  = bloodSpatterAngle(3, 10);
+    const r_low = bloodSpatterAngle(3, 10);
     const r_high = bloodSpatterAngle(9, 10);
     expect(r_high.angleOfImpactDeg).toBeGreaterThan(r_low.angleOfImpactDeg);
   });
@@ -208,7 +208,7 @@ describe('trajectoryBackCalculation', () => {
    * Lines: y=500 (horizontal from A) and x=500 (vertical from B) → meet at (500,500).
    */
   const stains: SpatterStain[] = [
-    { x: 300, y: 500, angleOfImpactDeg: 45, directionRad: 0 },         // → toward +X: line y=500
+    { x: 300, y: 500, angleOfImpactDeg: 45, directionRad: 0 }, // → toward +X: line y=500
     { x: 500, y: 300, angleOfImpactDeg: 45, directionRad: Math.PI / 2 }, // ↑ toward +Y: line x=500
   ];
 
@@ -254,12 +254,20 @@ describe('dnaMatchProbability', () => {
 
   it('more loci → lower RMP (more discriminating)', () => {
     const r1 = dnaMatchProbability([[0.1, 0.2]]);
-    const r4 = dnaMatchProbability([[0.1, 0.2], [0.15, 0.1], [0.08, 0.12], [0.05, 0.09]]);
+    const r4 = dnaMatchProbability([
+      [0.1, 0.2],
+      [0.15, 0.1],
+      [0.08, 0.12],
+      [0.05, 0.09],
+    ]);
     expect(r4.randomMatchProbability).toBeLessThan(r1.randomMatchProbability);
   });
 
   it('RMP is in (0, 1]', () => {
-    const r = dnaMatchProbability([[0.2, 0.3], [0.1, 0.15]]);
+    const r = dnaMatchProbability([
+      [0.2, 0.3],
+      [0.1, 0.15],
+    ]);
     expect(r.randomMatchProbability).toBeGreaterThan(0);
     expect(r.randomMatchProbability).toBeLessThanOrEqual(1);
   });
@@ -276,9 +284,19 @@ describe('dnaMatchProbability', () => {
 
   it('13-locus CODIS profile: LR very large', () => {
     const codis: Array<[number, number]> = [
-      [0.1, 0.15], [0.08, 0.12], [0.2, 0.1], [0.05, 0.09],
-      [0.15, 0.07], [0.1, 0.2], [0.08, 0.06], [0.12, 0.1],
-      [0.09, 0.14], [0.07, 0.11], [0.13, 0.08], [0.06, 0.1], [0.09, 0.12],
+      [0.1, 0.15],
+      [0.08, 0.12],
+      [0.2, 0.1],
+      [0.05, 0.09],
+      [0.15, 0.07],
+      [0.1, 0.2],
+      [0.08, 0.06],
+      [0.12, 0.1],
+      [0.09, 0.14],
+      [0.07, 0.11],
+      [0.13, 0.08],
+      [0.06, 0.1],
+      [0.09, 0.12],
     ];
     const r = dnaMatchProbability(codis);
     expect(r.log10LR).toBeGreaterThan(10); // > 10^10
@@ -297,10 +315,34 @@ describe('dnaMatchProbability', () => {
 
 describe('chainOfCustodyIntegrity', () => {
   const goodChain: CustodyEntry[] = [
-    { timestamp: '2024-01-01T09:00Z', handler: 'Officer_A', action: 'collected',   locationId: 'scene_01', sealed: true },
-    { timestamp: '2024-01-01T10:00Z', handler: 'Officer_A', action: 'transferred', locationId: 'lab_01',   sealed: true },
-    { timestamp: '2024-01-01T11:00Z', handler: 'Analyst_B', action: 'examined',    locationId: 'lab_01',   sealed: false },
-    { timestamp: '2024-01-01T15:00Z', handler: 'Analyst_B', action: 'stored',      locationId: 'lab_01',   sealed: true },
+    {
+      timestamp: '2024-01-01T09:00Z',
+      handler: 'Officer_A',
+      action: 'collected',
+      locationId: 'scene_01',
+      sealed: true,
+    },
+    {
+      timestamp: '2024-01-01T10:00Z',
+      handler: 'Officer_A',
+      action: 'transferred',
+      locationId: 'lab_01',
+      sealed: true,
+    },
+    {
+      timestamp: '2024-01-01T11:00Z',
+      handler: 'Analyst_B',
+      action: 'examined',
+      locationId: 'lab_01',
+      sealed: false,
+    },
+    {
+      timestamp: '2024-01-01T15:00Z',
+      handler: 'Analyst_B',
+      action: 'stored',
+      locationId: 'lab_01',
+      sealed: true,
+    },
   ];
 
   it('perfect chain has score 100 and is admissible', () => {
@@ -319,9 +361,7 @@ describe('chainOfCustodyIntegrity', () => {
   });
 
   it('unsealed transfer reduces score', () => {
-    const bad = goodChain.map((e, i) =>
-      i === 1 ? { ...e, sealed: false } : e,
-    );
+    const bad = goodChain.map((e, i) => (i === 1 ? { ...e, sealed: false } : e));
     const r = chainOfCustodyIntegrity(bad);
     expect(r.unsealedTransfers).toBeGreaterThan(0);
     expect(r.integrityScore).toBeLessThan(100);
@@ -362,8 +402,20 @@ describe('buildForensicsReceipt', () => {
   it('accepted=false for inadmissible custody chain', () => {
     // Score < 80: first entry not collection + timestamp reversal
     const badChain: CustodyEntry[] = [
-      { timestamp: '2024-01-01T10:00Z', handler: 'A', action: 'transferred', locationId: 'lab', sealed: false },
-      { timestamp: '2024-01-01T09:00Z', handler: 'B', action: 'examined',    locationId: 'lab', sealed: false },
+      {
+        timestamp: '2024-01-01T10:00Z',
+        handler: 'A',
+        action: 'transferred',
+        locationId: 'lab',
+        sealed: false,
+      },
+      {
+        timestamp: '2024-01-01T09:00Z',
+        handler: 'B',
+        action: 'examined',
+        locationId: 'lab',
+        sealed: false,
+      },
     ];
     const custody = chainOfCustodyIntegrity(badChain);
     const receipt = buildForensicsReceipt({ custody, converged: true });

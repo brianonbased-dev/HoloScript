@@ -55,7 +55,9 @@ for (const line of output.split(/\r?\n/)) {
 }
 
 if (violations.length > 0) {
-  console.error('\n[tropical-mentions] Found algebraic tropical mentions outside approved coverage surfaces:');
+  console.error(
+    '\n[tropical-mentions] Found algebraic tropical mentions outside approved coverage surfaces:'
+  );
   for (const v of violations) {
     console.error(`- ${v}`);
   }
@@ -65,4 +67,6 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-console.log('[tropical-mentions] OK: all algebraic tropical mentions are in approved coverage surfaces.');
+console.log(
+  '[tropical-mentions] OK: all algebraic tropical mentions are in approved coverage surfaces.'
+);

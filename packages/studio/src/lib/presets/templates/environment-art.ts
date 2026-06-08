@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-environment-art",
-  name: "Environment Art Scene",
-  description: "Lush landscape with terrain, vegetation, and atmospheric fog",
-  thumbnail: "🏔️",
-  tags: ["art","environment","landscape","nature"],
-  category: "art",
+  id: 'wizard-environment-art',
+  name: 'Environment Art Scene',
+  description: 'Lush landscape with terrain, vegetation, and atmospheric fog',
+  thumbnail: '🏔️',
+  tags: ['art', 'environment', 'landscape', 'nature'],
+  category: 'art',
   code: `composition "Environment Art" {
   environment {
     skybox: "sunset"
@@ -84,7 +84,7 @@ export const template: SceneTemplate = {
     opacity: 0.8
     material: "glass"
   }
-}`
+}`,
 };
 
 export default template;

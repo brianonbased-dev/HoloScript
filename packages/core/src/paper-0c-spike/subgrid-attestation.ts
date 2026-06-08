@@ -207,10 +207,7 @@ async function sha256Hex(input: string): Promise<string> {
  */
 export function hashSubgridParams(params: SubgridParams, mode: 'fnv1a'): string;
 export function hashSubgridParams(params: SubgridParams, mode: 'sha256'): Promise<string>;
-export function hashSubgridParams(
-  params: SubgridParams,
-  mode: HashMode
-): string | Promise<string>;
+export function hashSubgridParams(params: SubgridParams, mode: HashMode): string | Promise<string>;
 export function hashSubgridParams(
   params: SubgridParams,
   mode: HashMode = DEFAULT_HASH_MODE
@@ -231,10 +228,7 @@ export function hashSubgridParams(
  *
  * Engine integration point: see module header "Integration hook" section.
  */
-export function attestSubgridParams(
-  params: SubgridParams,
-  mode: 'fnv1a'
-): SubgridAttestation;
+export function attestSubgridParams(params: SubgridParams, mode: 'fnv1a'): SubgridAttestation;
 export function attestSubgridParams(
   params: SubgridParams,
   mode: 'sha256'

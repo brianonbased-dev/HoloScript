@@ -125,7 +125,7 @@ export function createVerificationReport(
   benchmarks: BenchmarkResult[],
   softwareVersion: string
 ): VerificationReport {
-  const passed = benchmarks.filter(b => b.passed).length;
+  const passed = benchmarks.filter((b) => b.passed).length;
 
   // Per-solver breakdown
   const bySolver = {} as Record<SolverType, { total: number; passed: number; failed: number }>;
@@ -184,7 +184,10 @@ export function renderReportMarkdown(report: VerificationReport): string {
   lines.push('');
 
   // Per-solver breakdown
-  const solverEntries = Object.entries(report.summary.bySolver) as [SolverType, { total: number; passed: number; failed: number }][];
+  const solverEntries = Object.entries(report.summary.bySolver) as [
+    SolverType,
+    { total: number; passed: number; failed: number },
+  ][];
   if (solverEntries.length > 0) {
     lines.push('### Results by Solver');
     lines.push('');
@@ -211,7 +214,7 @@ export function renderReportMarkdown(report: VerificationReport): string {
   lines.push('');
 
   // Convergence studies
-  const withConvergence = report.benchmarks.filter(b => b.convergence);
+  const withConvergence = report.benchmarks.filter((b) => b.convergence);
   if (withConvergence.length > 0) {
     lines.push('## Convergence Studies');
     lines.push('');
@@ -249,7 +252,9 @@ export function renderReportMarkdown(report: VerificationReport): string {
       lines.push('| log10(h) | log10(L2 Error) | log10(L-inf Error) |');
       lines.push('|----------|-----------------|---------------------|');
       for (const pt of plot.points) {
-        lines.push(`| ${pt.logMeshSize.toFixed(4)} | ${pt.logErrorL2.toFixed(4)} | ${pt.logErrorLinf.toFixed(4)} |`);
+        lines.push(
+          `| ${pt.logMeshSize.toFixed(4)} | ${pt.logErrorL2.toFixed(4)} | ${pt.logErrorLinf.toFixed(4)} |`
+        );
       }
       lines.push('');
       lines.push(`**Observed order (L2)**: ${plot.observedOrderL2.toFixed(2)}`);

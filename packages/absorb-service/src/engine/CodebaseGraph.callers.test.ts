@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { CodebaseGraph } from './CodebaseGraph';
 import type { CallEdge, ExternalSymbolDefinition, ScannedFile } from './types';
 
-function sym(partial: Partial<ExternalSymbolDefinition> & Pick<ExternalSymbolDefinition, 'name' | 'filePath'>): ExternalSymbolDefinition {
+function sym(
+  partial: Partial<ExternalSymbolDefinition> & Pick<ExternalSymbolDefinition, 'name' | 'filePath'>
+): ExternalSymbolDefinition {
   return {
     type: 'function',
     language: 'typescript',

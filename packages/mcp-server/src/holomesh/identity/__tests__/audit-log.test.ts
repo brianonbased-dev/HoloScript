@@ -19,10 +19,7 @@ import {
   _resetCustodialWalletForTests,
   _generateTestWrappingKey,
 } from '../custodial-wallet';
-import {
-  _resetAuditLogForTests,
-  _getEventBufferForTests,
-} from '../audit-log';
+import { _resetAuditLogForTests, _getEventBufferForTests } from '../audit-log';
 import { resetAttestationRegistry, getAttestationRegistry } from '../signing-middleware';
 
 let testWrappingKey: Buffer;
@@ -123,8 +120,7 @@ describe('custodialSign', () => {
     const pubKeyDer = Buffer.from(prov.wallet.publicKeyBase64, 'base64');
     // Reconstruct an Ed25519 public key from raw bytes
     const spkiPrefix = Buffer.from([
-      0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70,
-      0x03, 0x21, 0x00,
+      0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
     ]);
     const fullDer = Buffer.concat([spkiPrefix, pubKeyDer]);
     const publicKey = crypto.createPublicKey({
@@ -184,9 +180,14 @@ describe('custodialSign', () => {
   it('allows system signing service to sign', () => {
     provisionCustodialWallet('signer-6', { wrappingKey: testWrappingKey });
 
-    const result = custodialSign('signer-6', Buffer.from('data'), 'system:custodial-signing-service', {
-      wrappingKey: testWrappingKey,
-    });
+    const result = custodialSign(
+      'signer-6',
+      Buffer.from('data'),
+      'system:custodial-signing-service',
+      {
+        wrappingKey: testWrappingKey,
+      }
+    );
 
     expect(result.signatureBase64).toBeTruthy();
   });
@@ -342,8 +343,7 @@ describe('envelope encryption integrity', () => {
     // Verify using the stored public key
     const pubKeyBytes = Buffer.from(prov.wallet.publicKeyBase64, 'base64');
     const spkiPrefix = Buffer.from([
-      0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70,
-      0x03, 0x21, 0x00,
+      0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
     ]);
     const fullDer = Buffer.concat([spkiPrefix, pubKeyBytes]);
     const publicKey = crypto.createPublicKey({

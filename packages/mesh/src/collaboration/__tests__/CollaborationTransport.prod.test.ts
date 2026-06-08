@@ -6,11 +6,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import {
-  CollaborationTransport,
-  encodeSyncMessage,
-  decodeSyncMessage,
-} from '@holoscript/core';
+import { CollaborationTransport, encodeSyncMessage, decodeSyncMessage } from '@holoscript/core';
 import type { SyncMessage } from '@holoscript/core';
 
 describe('CollaborationTransport — Production', () => {

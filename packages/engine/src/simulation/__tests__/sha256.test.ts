@@ -54,20 +54,20 @@ describe('sha256Bytes — RFC 6234 test vectors', () => {
 
   it('SHA-256("") matches NIST empty-input vector', () => {
     expect(sha256Bytes(new Uint8Array(0))).toBe(
-      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
     );
   });
 
   it('SHA-256("abc") matches RFC 6234 §B.1', () => {
     expect(sha256Bytes(te.encode('abc'))).toBe(
-      'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+      'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
     );
   });
 
   it('SHA-256(multi-block input) matches RFC 6234 §B.2', () => {
     const input = te.encode('abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq');
     expect(sha256Bytes(input)).toBe(
-      '248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1',
+      '248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1'
     );
   });
 });
@@ -76,15 +76,12 @@ describe('sha256Bytes — cross-check vs Node native crypto', () => {
   // Covers single-byte, block-boundary (63/64/65), multi-block-boundary
   // (127/128/129), large (1KB, 16KB). If any bit-pattern triggers a
   // carry-handling bug, these sizes hit it.
-  it.each([1, 63, 64, 65, 127, 128, 129, 1024, 16384])(
-    'agrees with native at size %i',
-    (size) => {
-      const input = randomBytes(size, size * 13);
-      const pureJS = sha256Bytes(input);
-      const native = createHash('sha256').update(input).digest('hex');
-      expect(pureJS).toBe(native);
-    },
-  );
+  it.each([1, 63, 64, 65, 127, 128, 129, 1024, 16384])('agrees with native at size %i', (size) => {
+    const input = randomBytes(size, size * 13);
+    const pureJS = sha256Bytes(input);
+    const native = createHash('sha256').update(input).digest('hex');
+    expect(pureJS).toBe(native);
+  });
 });
 
 describe('fnv1aBytes — byte-domain FNV-1a', () => {
@@ -182,7 +179,10 @@ describe('hashShapeMatchesMode — Prereq 3 tamper detection', () => {
 
   it('accepts byte-domain SHA-256 output under mode=sha256', () => {
     expect(
-      hashShapeMatchesMode('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad', 'sha256'),
+      hashShapeMatchesMode(
+        'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+        'sha256'
+      )
     ).toBe(true);
   });
 
@@ -190,14 +190,17 @@ describe('hashShapeMatchesMode — Prereq 3 tamper detection', () => {
     expect(
       hashShapeMatchesMode(
         'cael-sha-ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
-        'sha256',
-      ),
+        'sha256'
+      )
     ).toBe(true);
   });
 
   it('REJECTS sha256-shaped hash under mode=fnv1a (attack: sha256 hash in fnv1a-declared trace)', () => {
     expect(
-      hashShapeMatchesMode('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad', 'fnv1a'),
+      hashShapeMatchesMode(
+        'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+        'fnv1a'
+      )
     ).toBe(false);
   });
 

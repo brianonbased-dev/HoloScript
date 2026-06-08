@@ -75,12 +75,12 @@ export interface ShowSegment {
 
 export function pathLength(waypoints: Vec2[]): number {
   let total = 0;
-   for (let i = 1; i < waypoints.length; i++) {
-      const dx = waypoints[i].x - waypoints[i - 1].x;
-      const dy = waypoints[i].y - waypoints[i - 1].y;
-      total += Math.sqrt(dx * dx + dy * dy);
-   }
-   return total;
+  for (let i = 1; i < waypoints.length; i++) {
+    const dx = waypoints[i].x - waypoints[i - 1].x;
+    const dy = waypoints[i].y - waypoints[i - 1].y;
+    total += Math.sqrt(dx * dx + dy * dy);
+  }
+  return total;
 }
 
 export function walkDuration(path: RunwayPath, model: ModelProfile): number {
@@ -93,19 +93,19 @@ export function modelPositionAtTime(
   path: RunwayPath,
   model: ModelProfile,
   elapsedSec: number
-   ): Vec2 {
-   const distanceTraveled = elapsedSec * model.walkSpeedMPS;
-   let accumulated = 0;
-   for (let i = 1; i < path.waypoints.length; i++) {
-      const dx = path.waypoints[i].x - path.waypoints[i - 1].x;
-      const dy = path.waypoints[i].y - path.waypoints[i - 1].y;
+): Vec2 {
+  const distanceTraveled = elapsedSec * model.walkSpeedMPS;
+  let accumulated = 0;
+  for (let i = 1; i < path.waypoints.length; i++) {
+    const dx = path.waypoints[i].x - path.waypoints[i - 1].x;
+    const dy = path.waypoints[i].y - path.waypoints[i - 1].y;
     const segLen = Math.sqrt(dx * dx + dy * dy);
     if (accumulated + segLen >= distanceTraveled) {
       const frac = (distanceTraveled - accumulated) / segLen;
-        return {
-          x: path.waypoints[i - 1].x + dx * frac,
-          y: path.waypoints[i - 1].y + dy * frac,
-        };
+      return {
+        x: path.waypoints[i - 1].x + dx * frac,
+        y: path.waypoints[i - 1].y + dy * frac,
+      };
     }
     accumulated += segLen;
   }
@@ -200,7 +200,8 @@ export function clothSimSnapshot(
     grid[r] = [];
     for (let c = 0; c < gridW; c++) {
       grid[r][c] = {
-        x: c * 0.1, y: r * 0.1,
+        x: c * 0.1,
+        y: r * 0.1,
         position: { x: c * 0.1, y: r * 0.1 },
         velocity: { x: 0, y: 0 },
         pinned: r === 0,

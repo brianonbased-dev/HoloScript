@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-sensor-dashboard",
-  name: "Sensor Dashboard",
-  description: "Live sensor monitoring with gauges, status indicators, and data panels",
-  thumbnail: "📡",
-  tags: ["iot","sensor","dashboard","monitoring"],
-  category: "iot",
+  id: 'wizard-sensor-dashboard',
+  name: 'Sensor Dashboard',
+  description: 'Live sensor monitoring with gauges, status indicators, and data panels',
+  thumbnail: '📡',
+  tags: ['iot', 'sensor', 'dashboard', 'monitoring'],
+  category: 'iot',
   code: `composition "Sensor Dashboard" {
   environment {
     skybox: "night"
@@ -88,7 +88,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 0.15
     label: "No active alerts"
   }
-}`
+}`,
 };
 
 export default template;

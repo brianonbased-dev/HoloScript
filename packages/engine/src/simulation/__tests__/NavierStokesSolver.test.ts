@@ -84,9 +84,10 @@ describe('NavierStokesSolver', () => {
       for (let i = 0; i < 5000; i++) solver.step(dt);
 
       // Analytical steady-state: u(y) = (a/2ν)·y·(H-y), uMax = a·H²/(8ν)
-      const uMax = bodyAccel * H * H / (8 * nu);
+      const uMax = (bodyAccel * H * H) / (8 * nu);
 
-      const midI = 1, midK = 1;
+      const midI = 1,
+        midK = 1;
       const centerJ = Math.floor(ny / 2);
       const centerU = solver.getVelocityAt(midI, centerJ, midK)[0];
 
@@ -176,9 +177,7 @@ describe('NavierStokesSolver', () => {
         domainSize: [1, 1, 0.2],
         viscosity: 0.01,
         density: 1,
-        boundaryConditions: [
-          { face: 'y+', type: 'lid', velocity: [U, 0, 0] },
-        ],
+        boundaryConditions: [{ face: 'y+', type: 'lid', velocity: [U, 0, 0] }],
       };
 
       const solver = new NavierStokesSolver(config);

@@ -56,24 +56,38 @@ export class SimulationToolExecutor {
    */
   async execute(toolName: string, args: Record<string, unknown>): Promise<SimToolResult> {
     switch (toolName) {
-      case 'setup_simulation': return this.setupSimulation(args);
-      case 'run_simulation': return this.runSimulation(args);
-      case 'query_results': return this.queryResults(args);
-      case 'generate_report': return this.generateReport(args);
-      case 'run_parameter_sweep': return this.runParameterSweep(args);
-      case 'import_data': return this.importData(args);
-      case 'set_visualization': return this.setVisualization(args);
-      case 'animate_simulation': return this.animateSimulation(args);
-      default: return { success: false, message: `Unknown simulation tool: ${toolName}` };
+      case 'setup_simulation':
+        return this.setupSimulation(args);
+      case 'run_simulation':
+        return this.runSimulation(args);
+      case 'query_results':
+        return this.queryResults(args);
+      case 'generate_report':
+        return this.generateReport(args);
+      case 'run_parameter_sweep':
+        return this.runParameterSweep(args);
+      case 'import_data':
+        return this.importData(args);
+      case 'set_visualization':
+        return this.setVisualization(args);
+      case 'animate_simulation':
+        return this.animateSimulation(args);
+      default:
+        return { success: false, message: `Unknown simulation tool: ${toolName}` };
     }
   }
 
   /** Check if a tool name is a simulation tool. */
   isSimulationTool(name: string): boolean {
     return [
-      'setup_simulation', 'run_simulation', 'query_results',
-      'generate_report', 'run_parameter_sweep', 'import_data',
-      'set_visualization', 'animate_simulation',
+      'setup_simulation',
+      'run_simulation',
+      'query_results',
+      'generate_report',
+      'run_parameter_sweep',
+      'import_data',
+      'set_visualization',
+      'animate_simulation',
     ].includes(name);
   }
 
@@ -94,7 +108,9 @@ export class SimulationToolExecutor {
 
       switch (solverType) {
         case 'thermal': {
-          const ts = new eng.ThermalSolver(config as unknown as ConstructorParameters<typeof eng.ThermalSolver>[0]);
+          const ts = new eng.ThermalSolver(
+            config as unknown as ConstructorParameters<typeof eng.ThermalSolver>[0]
+          );
           solver = new eng.ThermalSolverAdapter(ts);
           break;
         }
@@ -102,8 +118,12 @@ export class SimulationToolExecutor {
         case 'structural-tet10': {
           // Auto-mesh if no vertices provided
           if (!config.vertices) {
-            const size = (config.mesh as Record<string, unknown>)?.size as [number, number, number] ?? [1, 1, 1];
-            const divisions = (config.mesh as Record<string, unknown>)?.divisions as number ?? 4;
+            const size = ((config.mesh as Record<string, unknown>)?.size as [
+              number,
+              number,
+              number,
+            ]) ?? [1, 1, 1];
+            const divisions = ((config.mesh as Record<string, unknown>)?.divisions as number) ?? 4;
             const mesh = eng.meshBox({ size, divisions: [divisions, divisions, divisions] });
             const tet10 = eng.tet4ToTet10(mesh.vertices, mesh.tetrahedra);
             config.vertices = tet10.vertices;
@@ -113,15 +133,21 @@ export class SimulationToolExecutor {
             if (config.constraints) {
               for (const c of config.constraints as Array<Record<string, unknown>>) {
                 if (c.face && !c.nodes) {
-                  c.nodes = eng.findNodesOnFace(mesh, c.face as 'x-' | 'x+' | 'y-' | 'y+' | 'z-' | 'z+');
+                  c.nodes = eng.findNodesOnFace(
+                    mesh,
+                    c.face as 'x-' | 'x+' | 'y-' | 'y+' | 'z-' | 'z+'
+                  );
                 }
               }
             }
             if (config.loads) {
               for (const l of config.loads as Array<Record<string, unknown>>) {
                 if (l.face && !l.nodeIndex && !l.nodes) {
-                  const faceNodes = eng.findNodesOnFace(mesh, l.face as 'x-' | 'x+' | 'y-' | 'y+' | 'z-' | 'z+');
-                  const force = l.force as [number, number, number] ?? [0, 0, 0];
+                  const faceNodes = eng.findNodesOnFace(
+                    mesh,
+                    l.face as 'x-' | 'x+' | 'y-' | 'y+' | 'z-' | 'z+'
+                  );
+                  const force = (l.force as [number, number, number]) ?? [0, 0, 0];
                   // Convert single face load to per-node point loads
                   const perNode: [number, number, number] = [
                     force[0] / faceNodes.length,
@@ -136,40 +162,57 @@ export class SimulationToolExecutor {
             }
           }
 
-          const tet10 = new eng.StructuralSolverTET10(config as unknown as ConstructorParameters<typeof eng.StructuralSolverTET10>[0]);
+          const tet10 = new eng.StructuralSolverTET10(
+            config as unknown as ConstructorParameters<typeof eng.StructuralSolverTET10>[0]
+          );
           solver = new eng.TET10SolverAdapter(tet10);
           break;
         }
         case 'acoustic': {
-          const as_ = new eng.AcousticSolver(config as unknown as ConstructorParameters<typeof eng.AcousticSolver>[0]);
+          const as_ = new eng.AcousticSolver(
+            config as unknown as ConstructorParameters<typeof eng.AcousticSolver>[0]
+          );
           solver = new eng.AcousticSolverAdapter(as_);
           break;
         }
         case 'fdtd': {
-          const fdtd = new eng.FDTDSolver(config as unknown as ConstructorParameters<typeof eng.FDTDSolver>[0]);
+          const fdtd = new eng.FDTDSolver(
+            config as unknown as ConstructorParameters<typeof eng.FDTDSolver>[0]
+          );
           solver = new eng.FDTDSolverAdapter(fdtd);
           break;
         }
         case 'navier-stokes': {
-          const ns = new eng.NavierStokesSolver(config as unknown as ConstructorParameters<typeof eng.NavierStokesSolver>[0]);
+          const ns = new eng.NavierStokesSolver(
+            config as unknown as ConstructorParameters<typeof eng.NavierStokesSolver>[0]
+          );
           // NavierStokesSolver doesn't have an adapter yet — create inline
           solver = {
             mode: 'transient',
             fieldNames: ['velocity_magnitude', 'pressure'],
-            step(dt: number) { ns.step(dt); },
+            step(dt: number) {
+              ns.step(dt);
+            },
             solve() {},
             getField(name: string) {
               if (name === 'velocity_magnitude') return ns.getVelocityMagnitude();
               if (name === 'pressure') return ns.getPressureField();
               return null;
             },
-            getStats() { return ns.getStats() as unknown as Record<string, unknown>; },
-            dispose() { ns.dispose(); },
+            getStats() {
+              return ns.getStats() as unknown as Record<string, unknown>;
+            },
+            dispose() {
+              ns.dispose();
+            },
           };
           break;
         }
         default: {
-          return { success: false, message: `Unknown solver type: ${solverType}. Available: thermal, structural-tet10, acoustic, fdtd, navier-stokes, multiphase, molecular-dynamics.` };
+          return {
+            success: false,
+            message: `Unknown solver type: ${solverType}. Available: thermal, structural-tet10, acoustic, fdtd, navier-stokes, multiphase, molecular-dynamics.`,
+          };
         }
       }
 
@@ -189,7 +232,10 @@ export class SimulationToolExecutor {
         data: { solverType, fieldNames: solver.fieldNames },
       };
     } catch (e) {
-      return { success: false, message: `Failed to set up simulation: ${e instanceof Error ? e.message : String(e)}` };
+      return {
+        success: false,
+        message: `Failed to set up simulation: ${e instanceof Error ? e.message : String(e)}`,
+      };
     }
   }
 
@@ -210,7 +256,9 @@ export class SimulationToolExecutor {
         await solver.solve();
       } else {
         // Transient — step N times
-        const recorder = record ? new eng.SimulationRecorder({ maxMemoryBytes: 256 * 1024 * 1024 }) : null;
+        const recorder = record
+          ? new eng.SimulationRecorder({ maxMemoryBytes: 256 * 1024 * 1024 })
+          : null;
         const dt = 0.001; // default timestep — solvers have their own CFL
 
         for (let i = 0; i < steps; i++) {
@@ -241,30 +289,41 @@ export class SimulationToolExecutor {
       const warnings = insights.filter((i: { severity: string }) => i.severity === 'warning');
 
       let summary = `Simulation complete in ${elapsed < 1000 ? `${elapsed.toFixed(0)}ms` : `${(elapsed / 1000).toFixed(1)}s`}.`;
-      if (criticals.length > 0) summary += ` ${criticals.length} CRITICAL issue(s): ${criticals.map((c: { message: string }) => c.message).join('; ')}.`;
+      if (criticals.length > 0)
+        summary += ` ${criticals.length} CRITICAL issue(s): ${criticals.map((c: { message: string }) => c.message).join('; ')}.`;
       else if (warnings.length > 0) summary += ` ${warnings.length} warning(s). `;
       else summary += ' All checks passed.';
 
-      if (this.state.recording) summary += ` Recorded ${this.state.frameCount} frames for playback.`;
+      if (this.state.recording)
+        summary += ` Recorded ${this.state.frameCount} frames for playback.`;
 
       return {
         success: true,
         message: summary,
         data: {
           stats: this.state.stats,
-          insights: insights.map((i: { severity: string; message: string }) => ({ severity: i.severity, message: i.message })),
+          insights: insights.map((i: { severity: string; message: string }) => ({
+            severity: i.severity,
+            message: i.message,
+          })),
           frameCount: this.state.frameCount,
           elapsedMs: elapsed,
         },
       };
     } catch (e) {
-      return { success: false, message: `Simulation failed: ${e instanceof Error ? e.message : String(e)}` };
+      return {
+        success: false,
+        message: `Simulation failed: ${e instanceof Error ? e.message : String(e)}`,
+      };
     }
   }
 
   private async queryResults(args: Record<string, unknown>): Promise<SimToolResult> {
     if (Object.keys(this.state.stats).length === 0) {
-      return { success: false, message: 'No simulation results available. Run a simulation first.' };
+      return {
+        success: false,
+        message: 'No simulation results available. Run a simulation first.',
+      };
     }
 
     const eng = await this.loadEngine();
@@ -283,7 +342,7 @@ export class SimulationToolExecutor {
     const report = eng.generateAutoReport(
       this.state.solverType,
       this.state.stats,
-      this.state.config,
+      this.state.config
     );
 
     return { success: true, message: report };
@@ -293,7 +352,7 @@ export class SimulationToolExecutor {
     const eng = await this.loadEngine();
     const paramPath = args.parameter_path as string;
     const values = args.values as number[];
-    const objective = args.objective as string ?? 'maxVonMises';
+    const objective = (args.objective as string) ?? 'maxVonMises';
 
     if (!paramPath || !values?.length) {
       return { success: false, message: 'Need parameter_path and values array.' };
@@ -342,13 +401,16 @@ export class SimulationToolExecutor {
     // The actual file buffer would come from the Studio drop handler
     // Here we describe what would happen
     const actions: Record<string, string> = {
-      'fits_visualize': 'Parsed FITS spectral cube and loaded into SpectralCubeViewer with channel slider.',
-      'fits_compare_with_simulation': 'Loaded FITS as reference field for comparison with FDTD simulation.',
-      'stl_mesh_for_simulation': 'Parsed STL surface mesh and fed to AutoMesher for tetrahedral volume generation.',
-      'stl_visualize': 'Rendered STL surface mesh with wireframe overlay.',
-      'obj_mesh_for_simulation': 'Parsed OBJ surface and generated TET10 volume mesh via AutoMesher.',
-      'csv_visualize': 'Imported CSV scalar field data and displayed with turbo colormap.',
-      'vtk_visualize': 'Loaded VTK simulation results with point and cell data overlays.',
+      fits_visualize:
+        'Parsed FITS spectral cube and loaded into SpectralCubeViewer with channel slider.',
+      fits_compare_with_simulation:
+        'Loaded FITS as reference field for comparison with FDTD simulation.',
+      stl_mesh_for_simulation:
+        'Parsed STL surface mesh and fed to AutoMesher for tetrahedral volume generation.',
+      stl_visualize: 'Rendered STL surface mesh with wireframe overlay.',
+      obj_mesh_for_simulation: 'Parsed OBJ surface and generated TET10 volume mesh via AutoMesher.',
+      csv_visualize: 'Imported CSV scalar field data and displayed with turbo colormap.',
+      vtk_visualize: 'Loaded VTK simulation results with point and cell data overlays.',
     };
 
     const key = `${fileType}_${purpose}`;
@@ -363,7 +425,8 @@ export class SimulationToolExecutor {
     if (args.field) changes.push(`field: ${args.field}`);
     if (args.colormap) changes.push(`colormap: ${args.colormap}`);
     if (args.opacity !== undefined) changes.push(`opacity: ${args.opacity}`);
-    if (args.displacement_scale !== undefined) changes.push(`displacement scale: ${args.displacement_scale}x`);
+    if (args.displacement_scale !== undefined)
+      changes.push(`displacement scale: ${args.displacement_scale}x`);
     if (args.wireframe !== undefined) changes.push(`wireframe: ${args.wireframe ? 'on' : 'off'}`);
 
     return {
@@ -377,7 +440,10 @@ export class SimulationToolExecutor {
     const action = args.action as string;
 
     if (!this.state.recording && action !== 'play') {
-      return { success: false, message: 'No recorded simulation to animate. Run a simulation with record: true first.' };
+      return {
+        success: false,
+        message: 'No recorded simulation to animate. Run a simulation with record: true first.',
+      };
     }
 
     const messages: Record<string, string> = {
@@ -390,7 +456,11 @@ export class SimulationToolExecutor {
     };
 
     if (args.seek_to !== undefined) {
-      return { success: true, message: `Seeked to t = ${args.seek_to}s.`, data: { action: 'seek', time: args.seek_to } };
+      return {
+        success: true,
+        message: `Seeked to t = ${args.seek_to}s.`,
+        data: { action: 'seek', time: args.seek_to },
+      };
     }
 
     return {

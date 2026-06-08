@@ -28,7 +28,7 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 - ✅ **Particle Systems** - 120K particles, dust, debris
 - ✅ **Shock Waves** - Spherical expansion, force application
 - ✅ **Camera Effects** - Shake, auto-follow (scene-level)
-- ✅ **Test Coverage** - [see NUMBERS.md]  passing
+- ✅ **Test Coverage** - [see NUMBERS.md] passing
 
 ### Rendering System (100%)
 
@@ -145,7 +145,7 @@ Both Path 1 (compilation) and Path 2 (runtime execution) are fully operational w
 ### Test Coverage
 
 - Total Tests: verify from `pnpm test` or current CI output
-- Demolition Tests: [see NUMBERS.md] 
+- Demolition Tests: [see NUMBERS.md]
 - Coverage: 80%+ (Codecov enforced)
 - Passing: ✅ All tests passing
 

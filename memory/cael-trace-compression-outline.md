@@ -10,7 +10,7 @@
 ## Strategies (combine)
 
 1. **Per-field delta encoding** — Float/state vectors as XOR-delta or varint against previous step; identity matrices for static topology.
-2. **Checkpoint-and-replay** — Every *k* steps (or *m* MB), store full keyframe + rolling hash; tail = deltas only.
+2. **Checkpoint-and-replay** — Every _k_ steps (or _m_ MB), store full keyframe + rolling hash; tail = deltas only.
 3. **Structural sharing** — Immutable scene graph nodes referenced by ID; log only changed node IDs per tick.
 4. **Optional ZSTD** — Compress JSONL chunks after canonicalization (replay: decompress → same canonical bytes → same FNV/SHA per Option C mode).
 

@@ -155,7 +155,9 @@ export function buildContextualPrompt(
       );
       for (const r of githubContext.repos.slice(0, 20)) {
         const meta = [r.language, r.isPrivate ? 'private' : 'public'].filter(Boolean).join(', ');
-        gh.push(`- ${r.fullName}${meta ? ` (${meta})` : ''}${r.description ? ` — ${r.description}` : ''}`);
+        gh.push(
+          `- ${r.fullName}${meta ? ` (${meta})` : ''}${r.description ? ` — ${r.description}` : ''}`
+        );
       }
       gh.push(
         `\nWhen the user asks to absorb, scan, analyze, or work with "my repos", proactively list ` +

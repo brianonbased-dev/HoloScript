@@ -17,18 +17,17 @@ export interface StudioPublishCommandContext {
   getSceneName?: () => string;
   getTemplateCategory?: () => string;
   runTool: (tool: StudioPublishToolName, input: Record<string, unknown>) => Promise<unknown>;
-  notify?: (
-    message: string,
-    type?: 'info' | 'success' | 'warning' | 'error'
-  ) => void;
+  notify?: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
 }
 
 function slugifyPaletteValue(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'untitled-scene';
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'untitled-scene'
+  );
 }
 
 function stringifyPaletteAst(ast: unknown): string {
@@ -113,13 +112,24 @@ export class UXCommandPalette {
     this.container = document.createElement('div');
     this.container.id = 'studio2-ux-palette';
     Object.assign(this.container.style, {
-      position: 'absolute', left: '50%', top: '30%', transform: 'translate(-50%, 0)',
-      width: '600px', maxHeight: '400px', backgroundColor: 'var(--holo-surface-elevated, rgba(20,20,25,0.95))',
-      backdropFilter: 'blur(12px)', border: '1px solid var(--holo-border, #333)', borderRadius: '12px',
-      display: 'none', flexDirection: 'column', zIndex: '9999', boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
-      color: '#fff', fontFamily: 'Inter, sans-serif'
+      position: 'absolute',
+      left: '50%',
+      top: '30%',
+      transform: 'translate(-50%, 0)',
+      width: '600px',
+      maxHeight: '400px',
+      backgroundColor: 'var(--holo-surface-elevated, rgba(20,20,25,0.95))',
+      backdropFilter: 'blur(12px)',
+      border: '1px solid var(--holo-border, #333)',
+      borderRadius: '12px',
+      display: 'none',
+      flexDirection: 'column',
+      zIndex: '9999',
+      boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+      color: '#fff',
+      fontFamily: 'Inter, sans-serif',
     });
-    
+
     document.body.appendChild(this.container);
     this.setupListeners();
     this.render();
@@ -143,7 +153,11 @@ export class UXCommandPalette {
     this.render();
   }
 
-  public bindCommandStream(stream: { subscribe: (fn: (cmds: CommandOption[]) => void) => { unsubscribe: () => void } } | AsyncIterable<CommandOption[]>) {
+  public bindCommandStream(
+    stream:
+      | { subscribe: (fn: (cmds: CommandOption[]) => void) => { unsubscribe: () => void } }
+      | AsyncIterable<CommandOption[]>
+  ) {
     if (this.streamSubscription) {
       this.streamSubscription.unsubscribe();
       this.streamSubscription = undefined;
@@ -155,7 +169,11 @@ export class UXCommandPalette {
       });
     } else {
       let active = true;
-      this.streamSubscription = { unsubscribe: () => { active = false; } };
+      this.streamSubscription = {
+        unsubscribe: () => {
+          active = false;
+        },
+      };
       (async () => {
         for await (const cmds of stream) {
           if (!active) break;
@@ -187,9 +205,9 @@ export class UXCommandPalette {
         e.preventDefault();
         this.toggle();
       }
-      
+
       if (!this.active) return;
-      
+
       if (e.key === 'Escape') {
         this.toggle();
       } else if (e.key === 'ArrowDown') {
@@ -219,9 +237,10 @@ export class UXCommandPalette {
   private getFilteredOptions() {
     if (!this.query) return this.options;
     const lowerQuery = this.query.toLowerCase();
-    return this.options.filter(opt => 
-      opt.label.toLowerCase().includes(lowerQuery) || 
-      opt.description?.toLowerCase().includes(lowerQuery)
+    return this.options.filter(
+      (opt) =>
+        opt.label.toLowerCase().includes(lowerQuery) ||
+        opt.description?.toLowerCase().includes(lowerQuery)
     );
   }
 
@@ -236,14 +255,16 @@ export class UXCommandPalette {
   private render() {
     if (!this.active) return;
     const filtered = this.getFilteredOptions();
-    
+
     this.container.innerHTML = `
       <div class="command-palette-header" style="padding: 16px; border-bottom: 1px solid var(--holo-border, #333);">
         <input type="text" placeholder="What do you want to build? (Type / for AI)..." value="${this.query}" 
                style="width: 100%; background: transparent; border: none; font-size: 18px; color: white; outline: none;"/>
       </div>
       <div class="command-palette-list" style="overflow-y: auto; padding: 8px;">
-        ${filtered.map((opt, i) => `
+        ${filtered
+          .map(
+            (opt, i) => `
           <div class="command-option" data-idx="${i}"
                style="padding: 12px 16px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;
                       background-color: ${i === this.selectedIndex ? 'var(--holo-accent-primary, #3b82f6)' : 'transparent'};
@@ -254,7 +275,9 @@ export class UXCommandPalette {
             </div>
             ${opt.shortcut ? `<span style="font-family: monospace; opacity: 0.5;">${opt.shortcut.join(' ')}</span>` : ''}
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     `;
 

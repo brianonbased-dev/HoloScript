@@ -84,23 +84,14 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { Pool } from 'pg';
-import {
-  createPublicClient,
-  http,
-  parseAbiItem,
-  decodeEventLog,
-  verifyMessage,
-} from 'viem';
+import { createPublicClient, http, parseAbiItem, decodeEventLog, verifyMessage } from 'viem';
 import { base, mainnet } from 'viem/chains';
 import {
   X402Facilitator,
   InvisibleWalletStub,
   validateX402MicropaymentBoundary,
 } from '@holoscript/framework/economy';
-import {
-  X402HttpVerifier,
-  createX402HttpVerifierFromEnv,
-} from './economy/x402-http-verifier.js';
+import { X402HttpVerifier, createX402HttpVerifierFromEnv } from './economy/x402-http-verifier.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -210,7 +201,6 @@ export interface SubscriptionGrant {
   tier: 'monthly' | 'annual';
   active: boolean;
 }
-
 
 // ─── Rate Limiter (in-memory sliding window) ─────────────────────────────────
 
@@ -364,7 +354,8 @@ export class x402PaymentService {
           asset: config.asset as 'USDC' | 'ETH' | 'SOL',
           network: config.network as 'base' | 'ethereum' | 'solana',
           facilitator: this.selectFacilitator(config.network),
-          content_id: (req.params.twin_id as string) || (req.params.menu_id as string) || 'unknown_content',
+          content_id:
+            (req.params.twin_id as string) || (req.params.menu_id as string) || 'unknown_content',
         });
       } catch (_err) {
         // Sanitized: no internal error details leaked
@@ -383,8 +374,9 @@ export class x402PaymentService {
 
   /** Return HTTP 402 Payment Required response with WWW-Authenticate header */
   return402Response(res: Response, request: x402PaymentRequest): void {
-    const resource =
-      request.content_id.startsWith('/') ? request.content_id : `/${request.content_id}`;
+    const resource = request.content_id.startsWith('/')
+      ? request.content_id
+      : `/${request.content_id}`;
     const body: Record<string, unknown> = {
       error: 'Payment required',
       price: request.price,
@@ -635,7 +627,10 @@ export class x402PaymentService {
       }
 
       // Verify transaction on blockchain directly via getBlockchainReceipt
-      const { amount, recipient } = await this.getBlockchainReceipt(transactionHash, String(network));
+      const { amount, recipient } = await this.getBlockchainReceipt(
+        transactionHash,
+        String(network)
+      );
 
       // Compose the receipt
       const receipt: x402PaymentReceipt = {
@@ -664,7 +659,7 @@ export class x402PaymentService {
 
       // Store receipt in database
       await this.storeReceipt(receipt);
-      
+
       // Mark as consumed
       this.consumedNonces.add(nonceKey);
 
@@ -891,11 +886,7 @@ export class x402PaymentService {
 
   /** Resolve platform recipient: explicit address → wallet stub → receipt fallback. */
   private resolvePlatformRecipientAddress(fallbackFromReceipt: string): string {
-    return (
-      this.options.platform_wallet ??
-      this.options.wallet?.getAddress() ??
-      fallbackFromReceipt
-    );
+    return this.options.platform_wallet ?? this.options.wallet?.getAddress() ?? fallbackFromReceipt;
   }
 
   /**
@@ -1013,8 +1004,6 @@ export class x402PaymentService {
   resetAutonomousNoncesForTest(): void {
     this.m2mConsumedTxHashes.clear();
   }
-
-
 
   private async verifyOnChainM2M(
     txHash: `0x${string}`,

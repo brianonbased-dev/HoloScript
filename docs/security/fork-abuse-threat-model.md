@@ -35,12 +35,12 @@ A user who deliberately runs HoloScript for its security model will not know tha
 
 ### Remediation
 
-| Layer | Action |
-|-------|--------|
-| **Canonical codebase** | Keep HS010 enforcement unconditional (no compile-time disable flag). Document the blocklist as a normative part of the HoloScript specification, not an implementation detail. |
+| Layer                    | Action                                                                                                                                                                                                                                       |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Canonical codebase**   | Keep HS010 enforcement unconditional (no compile-time disable flag). Document the blocklist as a normative part of the HoloScript specification, not an implementation detail.                                                               |
 | **Runtime verification** | Add a `holo --verify-compiler` CLI command that attempts to compile a known-bad test script (containing blocked keywords) and confirms it is rejected. Agents should run this at startup when operating in an untrusted runtime environment. |
-| **Distribution signing** | Canonical releases (npm, GitHub releases) are signed with the HoloScript release key. Downstream consumers should verify signatures via `npm audit signatures` or equivalent. |
-| **Canary detection** | Publish a `holoscript-security-canary` package that contains deliberately-invalid `.holo` files. CI of dependent projects should include a step that confirms these files fail to compile, proving the lexical firewall is active. |
+| **Distribution signing** | Canonical releases (npm, GitHub releases) are signed with the HoloScript release key. Downstream consumers should verify signatures via `npm audit signatures` or equivalent.                                                                |
+| **Canary detection**     | Publish a `holoscript-security-canary` package that contains deliberately-invalid `.holo` files. CI of dependent projects should include a step that confirms these files fail to compile, proving the lexical firewall is active.           |
 
 ---
 
@@ -62,11 +62,11 @@ Because the syntax remains valid, agent compositions and existing `.holo` files 
 
 ### Remediation
 
-| Layer | Action |
-|-------|--------|
-| **Canonical codebase** | Implement trait behavior verification tests that assert the observable side effects of each security trait (e.g., `@security_sandbox` must reject `fs` access attempts; `@rate_limit` must delay or reject over-limit calls). |
-| **Runtime verification** | The `holo --verify-compiler` command (see §1) should include a trait-efficacy probe: compile a script that attempts a blocked action inside `@security_sandbox` and confirm it is intercepted. |
-| **Canary detection** | Extend the canary package with `.holo` files that rely on trait enforcement. If the trait is a no-op, the canary test fails closed (the action is blocked by HS010) or fails open (the action succeeds, triggering an alert). |
+| Layer                    | Action                                                                                                                                                                                                                        |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Canonical codebase**   | Implement trait behavior verification tests that assert the observable side effects of each security trait (e.g., `@security_sandbox` must reject `fs` access attempts; `@rate_limit` must delay or reject over-limit calls). |
+| **Runtime verification** | The `holo --verify-compiler` command (see §1) should include a trait-efficacy probe: compile a script that attempts a blocked action inside `@security_sandbox` and confirm it is intercepted.                                |
+| **Canary detection**     | Extend the canary package with `.holo` files that rely on trait enforcement. If the trait is a no-op, the canary test fails closed (the action is blocked by HS010) or fails open (the action succeeds, triggering an alert). |
 
 ---
 
@@ -88,12 +88,12 @@ Result: agents on the fork can impersonate any surface (`claude1`, `gemini1`, `c
 
 ### Remediation
 
-| Layer | Action |
-|-------|--------|
-| **Canonical codebase** | Signing middleware is strict-by-default (`isStrictMode` returns `true` unless `HOLOMESH_SIGNING_GRACE=1`). Document that forks which add `GRACE=1` lose team-membership guarantees. |
-| **Server strict mode** | The server-side `isStrictMode` flag (in `identity/signing-middleware.ts`) rejects unsigned requests by default. `HOLOMESH_SIGNING_GRACE=1` is the explicit opt-out during rollout; remove it once all clients sign. |
-| **Attestation registry** | The founder attestation route (`POST /attest-pending`) should flag known-fork signatures (if any are ever observed) and revoke them. |
-| **Canary detection** | The canary package should include a test that verifies a mock x402 challenge can be signed and verified. Failure indicates attestation stripping. |
+| Layer                    | Action                                                                                                                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Canonical codebase**   | Signing middleware is strict-by-default (`isStrictMode` returns `true` unless `HOLOMESH_SIGNING_GRACE=1`). Document that forks which add `GRACE=1` lose team-membership guarantees.                                 |
+| **Server strict mode**   | The server-side `isStrictMode` flag (in `identity/signing-middleware.ts`) rejects unsigned requests by default. `HOLOMESH_SIGNING_GRACE=1` is the explicit opt-out during rollout; remove it once all clients sign. |
+| **Attestation registry** | The founder attestation route (`POST /attest-pending`) should flag known-fork signatures (if any are ever observed) and revoke them.                                                                                |
+| **Canary detection**     | The canary package should include a test that verifies a mock x402 challenge can be signed and verified. Failure indicates attestation stripping.                                                                   |
 
 ---
 
@@ -115,12 +115,12 @@ This is not merely piracy. It is a **supply-chain attack vector**: developers wh
 
 ### Remediation
 
-| Layer | Action |
-|-------|--------|
-| **Canonical codebase** | Keep the economic layer modular but default-enabled. Document that forks which remove payment gating are not eligible for security updates or team membership. |
+| Layer                     | Action                                                                                                                                                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Canonical codebase**    | Keep the economic layer modular but default-enabled. Document that forks which remove payment gating are not eligible for security updates or team membership.                                                                                            |
 | **npm scope enforcement** | Canonical packages publish only under the `@holoscript/` scope. Monitor npm for typosquatting (`holoscript-lite`, `holoscript-unofficial`, `@holoscript/free`) and file takedown requests for packages that redistribute modified security-critical code. |
-| **Protocol verification** | The `holo --verify-compiler` command should attempt a protocol handshake against the canonical orchestrator and confirm that x402 challenges are issued. Absence of challenges indicates economic bypass. |
-| **Canary detection** | The canary package should include a compilation target that is known to be payment-gated in canonical HoloScript. Successful compilation without a valid x402 receipt triggers an alert. |
+| **Protocol verification** | The `holo --verify-compiler` command should attempt a protocol handshake against the canonical orchestrator and confirm that x402 challenges are issued. Absence of challenges indicates economic bypass.                                                 |
+| **Canary detection**      | The canary package should include a compilation target that is known to be payment-gated in canonical HoloScript. Successful compilation without a valid x402 receipt triggers an alert.                                                                  |
 
 ---
 
@@ -142,11 +142,11 @@ These changes are subtle. They do not break compilation or obvious functionality
 
 ### Remediation
 
-| Layer | Action |
-|-------|--------|
+| Layer                  | Action                                                                                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Canonical codebase** | Document the threat-model-driven default pattern as a normative spec. Require that any change to default behavior be accompanied by a benchmark and a threat-model table (see W.GOLD.193). |
-| **Trace verification** | CAEL trace consumers should validate that `hashMode` is present and matches an expected value. Missing or unexpected `hashMode` should trigger rejection, not silent acceptance. |
-| **Canary detection** | The canary package should generate a CAEL trace and assert that `hashMode` is present and correctly set. |
+| **Trace verification** | CAEL trace consumers should validate that `hashMode` is present and matches an expected value. Missing or unexpected `hashMode` should trigger rejection, not silent acceptance.           |
+| **Canary detection**   | The canary package should generate a CAEL trace and assert that `hashMode` is present and correctly set.                                                                                   |
 
 ---
 
@@ -166,12 +166,12 @@ Because HoloScript is MIT-licensed, anyone can publish a modified version to npm
 
 ### Remediation
 
-| Layer | Action |
-|-------|--------|
-| **Canonical codebase** | Maintain a `PACKAGE_INTEGRITY.md` document listing the canonical npm scopes, GitHub org, and release signing keys. |
-| **Dependency audit** | `pnpm audit` and `npm audit` should be run in CI. Add a custom audit script (`scripts/verify-canonical-deps.mjs`) that checks `package-lock.json` / `pnpm-lock.yaml` for non-canonical `@holoscript/*` sources. |
-| **Registry monitoring** | Subscribe to npm RSS for new packages matching `holoscript*` and `@holoscript/*`. Flag new publishers for manual review. |
-| **Documentation** | The README and install docs should prominently state the canonical install command (`npm install @holoscript/core`) and warn against unofficial forks. |
+| Layer                   | Action                                                                                                                                                                                                          |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Canonical codebase**  | Maintain a `PACKAGE_INTEGRITY.md` document listing the canonical npm scopes, GitHub org, and release signing keys.                                                                                              |
+| **Dependency audit**    | `pnpm audit` and `npm audit` should be run in CI. Add a custom audit script (`scripts/verify-canonical-deps.mjs`) that checks `package-lock.json` / `pnpm-lock.yaml` for non-canonical `@holoscript/*` sources. |
+| **Registry monitoring** | Subscribe to npm RSS for new packages matching `holoscript*` and `@holoscript/*`. Flag new publishers for manual review.                                                                                        |
+| **Documentation**       | The README and install docs should prominently state the canonical install command (`npm install @holoscript/core`) and warn against unofficial forks.                                                          |
 
 ---
 
@@ -179,14 +179,14 @@ Because HoloScript is MIT-licensed, anyone can publish a modified version to npm
 
 To detect all of the above abuse patterns in CI, publish and maintain a `holoscript-security-canary` package with the following test matrix:
 
-| Test ID | What it probes | Expected behavior on canonical HoloScript | Expected failure mode on abused fork |
-|---------|---------------|------------------------------------------|--------------------------------------|
-| `CANARY-001` | HS010 lexical firewall | Compilation fails with `SecurityViolation` | Compilation succeeds (firewall removed) |
-| `CANARY-002` | `@security_sandbox` efficacy | File-system access attempt is blocked | Access succeeds (trait is no-op) |
-| `CANARY-003` | x402 challenge issuance | Protocol handshake returns 402 challenge | Returns 200 with no challenge (economic bypass) |
-| `CANARY-004` | Seat-wallet signing | Challenge can be signed and verified | Verification fails or is skipped (attestation stripped) |
-| `CANARY-005` | CAEL `hashMode` field | Trace contains `hashMode: fnv1a` or `sha256` | `hashMode` missing or incorrect (default reversal) |
-| `CANARY-006` | `@rate_limit` enforcement | Rapid calls are throttled or rejected | All calls succeed immediately (trait no-op) |
+| Test ID      | What it probes               | Expected behavior on canonical HoloScript    | Expected failure mode on abused fork                    |
+| ------------ | ---------------------------- | -------------------------------------------- | ------------------------------------------------------- |
+| `CANARY-001` | HS010 lexical firewall       | Compilation fails with `SecurityViolation`   | Compilation succeeds (firewall removed)                 |
+| `CANARY-002` | `@security_sandbox` efficacy | File-system access attempt is blocked        | Access succeeds (trait is no-op)                        |
+| `CANARY-003` | x402 challenge issuance      | Protocol handshake returns 402 challenge     | Returns 200 with no challenge (economic bypass)         |
+| `CANARY-004` | Seat-wallet signing          | Challenge can be signed and verified         | Verification fails or is skipped (attestation stripped) |
+| `CANARY-005` | CAEL `hashMode` field        | Trace contains `hashMode: fnv1a` or `sha256` | `hashMode` missing or incorrect (default reversal)      |
+| `CANARY-006` | `@rate_limit` enforcement    | Rapid calls are throttled or rejected        | All calls succeed immediately (trait no-op)             |
 
 The canary package should be run in CI of any project that consumes HoloScript from an untrusted source (e.g., a mirror, a fork, or a transitive dependency).
 
@@ -194,15 +194,15 @@ The canary package should be run in CI of any project that consumes HoloScript f
 
 ## Summary of Findings
 
-| #   | Finding                                      | Severity | Status                              | Responsible            |
-| --- | -------------------------------------------- | -------- | ----------------------------------- | ---------------------- |
-| 1   | Compiler defanging (HS010 removal)           | CRITICAL | 🔴 Needs canary package + CI test   | core / security        |
-| 2   | Trait stripping (no-op security primitives)  | HIGH     | 🔴 Needs trait-efficacy probes      | core / security        |
-| 3   | Attestation and identity stripping           | HIGH     | 🟡 Signing is opt-in; strict mode TBD | identity / holomesh  |
-| 4   | Economic layer bypass (x402 removal)         | HIGH     | 🟡 Monitor npm for typosquats       | marketplace / protocol |
-| 5   | Default reversal (threat-model hiding)         | MEDIUM   | 🟡 Document spec; trace consumers validate | cael / research       |
-| 6   | Supply chain / typosquatting                 | HIGH     | 🟡 `PACKAGE_INTEGRITY.md` needed    | ops / security         |
-| 7   | Canary package not yet published               | HIGH     | 🔴 Create `holoscript-security-canary`| security / devops       |
+| #   | Finding                                     | Severity | Status                                     | Responsible            |
+| --- | ------------------------------------------- | -------- | ------------------------------------------ | ---------------------- |
+| 1   | Compiler defanging (HS010 removal)          | CRITICAL | 🔴 Needs canary package + CI test          | core / security        |
+| 2   | Trait stripping (no-op security primitives) | HIGH     | 🔴 Needs trait-efficacy probes             | core / security        |
+| 3   | Attestation and identity stripping          | HIGH     | 🟡 Signing is opt-in; strict mode TBD      | identity / holomesh    |
+| 4   | Economic layer bypass (x402 removal)        | HIGH     | 🟡 Monitor npm for typosquats              | marketplace / protocol |
+| 5   | Default reversal (threat-model hiding)      | MEDIUM   | 🟡 Document spec; trace consumers validate | cael / research        |
+| 6   | Supply chain / typosquatting                | HIGH     | 🟡 `PACKAGE_INTEGRITY.md` needed           | ops / security         |
+| 7   | Canary package not yet published            | HIGH     | 🔴 Create `holoscript-security-canary`     | security / devops      |
 
 ---
 

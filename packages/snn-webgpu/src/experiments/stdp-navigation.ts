@@ -147,12 +147,7 @@ export class SNNNavigationAgent {
   private world: GridWorld;
   private simStepsPerAction: number;
 
-  constructor(
-    ctx: GPUContext,
-    world: GridWorld,
-    stdpEnabled: boolean,
-    simStepsPerAction = 10
-  ) {
+  constructor(ctx: GPUContext, world: GridWorld, stdpEnabled: boolean, simStepsPerAction = 10) {
     this.world = world;
     this.simStepsPerAction = simStepsPerAction;
     const n = world.size * world.size;

@@ -34,7 +34,16 @@
 // ─── Minimal domain shapes (adapted from real board/agent records) ───────────
 
 /** Board priority as seen across the stack: P-levels, words, or numeric. */
-export type RawPriority = 'P0' | 'P1' | 'P2' | 'P3' | 'high' | 'medium' | 'low' | number | undefined;
+export type RawPriority =
+  | 'P0'
+  | 'P1'
+  | 'P2'
+  | 'P3'
+  | 'high'
+  | 'medium'
+  | 'low'
+  | number
+  | undefined;
 
 export interface BoardTask {
   id: string;
@@ -164,7 +173,7 @@ export function scoreAgentForTask(task: BoardTask, agent: FleetAgent): number {
 /** Pick the best eligible agent for a task, or null if none are eligible. */
 export function matchAgentToTask(
   task: BoardTask,
-  agents: FleetAgent[],
+  agents: FleetAgent[]
 ): { agent: FleetAgent; score: number } | null {
   let best: { agent: FleetAgent; score: number } | null = null;
   for (const agent of agents) {
@@ -343,7 +352,7 @@ export function planFleetDispatch(
   tasks: BoardTask[],
   agents: FleetAgent[],
   governor: SpendGovernor,
-  options: PlanOptions = {},
+  options: PlanOptions = {}
 ): FleetDispatchPlan {
   const maxDispatches = Math.max(1, options.maxDispatches ?? 1);
   const estimate = options.estimateSpendUsd ?? estimateTaskSpendUsd;

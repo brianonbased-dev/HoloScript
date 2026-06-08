@@ -42,7 +42,7 @@ function createMockContext(playerPos?: Vector3): TraitContext {
   return {
     vr: {
       hands: { left: null, right: null },
-      headset: { position: [0, 1.6, 0], rotation: [0, 0, 0 ] },
+      headset: { position: [0, 1.6, 0], rotation: [0, 0, 0] },
       isPresenting: false,
     } as any,
     physics: {

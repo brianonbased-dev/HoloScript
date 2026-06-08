@@ -20,18 +20,18 @@ The Signer interface in `signer.ts` is the swap point — runtime negotiations c
 
 ## On-chain evidence
 
-| Field | Value |
-|-------|-------|
-| Tx hash | `0x3cc575…2369d` (full hash in `2026-05-07_xsp6-trezor-anchor-proof.base.json`) |
-| Block | 45676237 |
-| Chain | Base mainnet (8453) |
-| From | `0x0C57…660E3` (S.ANC founder anchor) |
-| To | `0x0C57…660E3` (self-tx) |
-| Value | 0 ETH |
-| Calldata | `0xf79e63…2a34b` (EIP-712 hash; full in sidecar JSON) |
-| On-chain nonce after | 126 |
-| Cost | < 0.000001 ETH (~$0.0005) |
-| Basescan | see sidecar JSON `basescanUrl` field |
+| Field                | Value                                                                           |
+| -------------------- | ------------------------------------------------------------------------------- |
+| Tx hash              | `0x3cc575…2369d` (full hash in `2026-05-07_xsp6-trezor-anchor-proof.base.json`) |
+| Block                | 45676237                                                                        |
+| Chain                | Base mainnet (8453)                                                             |
+| From                 | `0x0C57…660E3` (S.ANC founder anchor)                                           |
+| To                   | `0x0C57…660E3` (self-tx)                                                        |
+| Value                | 0 ETH                                                                           |
+| Calldata             | `0xf79e63…2a34b` (EIP-712 hash; full in sidecar JSON)                           |
+| On-chain nonce after | 126                                                                             |
+| Cost                 | < 0.000001 ETH (~$0.0005)                                                       |
+| Basescan             | see sidecar JSON `basescanUrl` field                                            |
 
 ## Verification
 
@@ -81,10 +81,10 @@ The semantic content of this receipt: the founder anchor witnesses **the 2026-05
 
 Two-tier signer:
 
-| Settlement class | Signer | Frequency | Latency |
-|------------------|--------|-----------|---------|
-| Runtime (agent-to-agent commerce) | `EthersSigner` dev-keyed | Per-negotiation | Sub-second |
-| Founder-anchored (treasury, marathons, milestones) | This Trezor flow | Manual | Minutes (Joseph + button) |
+| Settlement class                                   | Signer                   | Frequency       | Latency                   |
+| -------------------------------------------------- | ------------------------ | --------------- | ------------------------- |
+| Runtime (agent-to-agent commerce)                  | `EthersSigner` dev-keyed | Per-negotiation | Sub-second                |
+| Founder-anchored (treasury, marathons, milestones) | This Trezor flow         | Manual          | Minutes (Joseph + button) |
 
 The runtime path lets agents transact at full speed. The founder-anchored path provides the periodic ground-truth attestation that anchors the system to the founder's Trezor on Base. Same `Signer` interface in code; different broadcast mechanism in practice.
 

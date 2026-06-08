@@ -9,11 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  runPhysicsSmoke,
-  printSmokeReceipt,
-  type PhysicsSmokeReceipt,
-} from '../smoke';
+import { runPhysicsSmoke, printSmokeReceipt, type PhysicsSmokeReceipt } from '../smoke';
 import { execFile } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -95,7 +91,9 @@ describe('physics smoke receipt', { timeout: 120000 }, () => {
 
     expect(receipt.demos.length).toBe(1);
     expect(receipt.demos[0].status).toBe('failed');
-    expect(receipt.demos[0].validationErrors.some((e) => e.message.includes('not found'))).toBe(true);
+    expect(receipt.demos[0].validationErrors.some((e) => e.message.includes('not found'))).toBe(
+      true
+    );
   });
 
   it('writes receipt to disk when output is specified', async () => {
@@ -165,9 +163,9 @@ describe('physics smoke receipt', { timeout: 120000 }, () => {
     expect(receipt.demos[0].validationErrors.some((e) => e.message.startsWith('[parser]'))).toBe(
       true
     );
-    expect(receipt.demos[0].validationWarnings.every((w) => !w.message.startsWith('[parser]'))).toBe(
-      true
-    );
+    expect(
+      receipt.demos[0].validationWarnings.every((w) => !w.message.startsWith('[parser]'))
+    ).toBe(true);
     expect(receipt.demos[0].compileResult).toBeUndefined();
   });
 

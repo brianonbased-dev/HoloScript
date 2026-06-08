@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-interior-design",
-  name: "Interior Design Studio",
-  description: "Room layout with furniture placement and material preview",
-  thumbnail: "🛋️",
-  tags: ["architecture","interior","design","furniture"],
-  category: "architecture",
+  id: 'wizard-interior-design',
+  name: 'Interior Design Studio',
+  description: 'Room layout with furniture placement and material preview',
+  thumbnail: '🛋️',
+  tags: ['architecture', 'interior', 'design', 'furniture'],
+  category: 'architecture',
   code: `composition "Interior Design" {
   environment {
     skybox: "studio"
@@ -59,7 +59,7 @@ export const template: SceneTemplate = {
     color: "#8b4513"
     material: { roughness: 1.0 }
   }
-}`
+}`,
 };
 
 export default template;

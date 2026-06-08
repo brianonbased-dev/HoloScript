@@ -93,8 +93,7 @@ const selfCustodyPubKey: Map<string, string> = new Map();
 
 /** Per-user retirement audit trail. Writes are keyed by userId so duplicate
  *  retire() calls can detect prior state without touching userCustodyMode. */
-const retiredCustodialSigners: Map<string, RetiredCustodialSignerRecord> =
-  new Map();
+const retiredCustodialSigners: Map<string, RetiredCustodialSignerRecord> = new Map();
 
 /** Subscriber callbacks that receive every committed audit event. Populated
  *  via `onAuditEvent` — wired by the admin-audit/KV flush pipeline in prod. */
@@ -183,9 +182,7 @@ export function requireCustodial(userId: string): RequireCustodialResult {
 /** Subscribe to audit events. Synchronous — listener throws propagate so a
  *  broken audit sink fails the transaction rather than silently losing
  *  events. */
-export function onAuditEvent(
-  listener: (event: CustodyAuditEvent) => void
-): () => void {
+export function onAuditEvent(listener: (event: CustodyAuditEvent) => void): () => void {
   auditSubscribers.push(listener);
   return () => {
     const i = auditSubscribers.indexOf(listener);
@@ -243,9 +240,7 @@ export function retireCustodialSigner(
     throw new TypeError('retireCustodialSigner: userId required (string)');
   }
   if (!newWalletAddress || typeof newWalletAddress !== 'string') {
-    throw new TypeError(
-      'retireCustodialSigner: newWalletAddress required (string)'
-    );
+    throw new TypeError('retireCustodialSigner: newWalletAddress required (string)');
   }
 
   // Replay-safe idempotency. If we already retired this user, return the
@@ -387,9 +382,7 @@ export function _resetCustodyRegistryForTests(): void {
  * read the Map directly for assertions. Marked _-prefix so it never appears
  * in production call sites.
  */
-export function _getUserCustodyModeForTests(
-  userId: string
-): CustodyMode | undefined {
+export function _getUserCustodyModeForTests(userId: string): CustodyMode | undefined {
   return userCustodyMode.get(userId);
 }
 
@@ -399,9 +392,6 @@ export function _getUserCustodyModeForTests(
  * full retirement flow. In production this Map is only ever written by
  * `retireCustodialSigner`.
  */
-export function _setUserCustodyModeForTests(
-  userId: string,
-  mode: CustodyMode
-): void {
+export function _setUserCustodyModeForTests(userId: string, mode: CustodyMode): void {
   userCustodyMode.set(userId, mode);
 }

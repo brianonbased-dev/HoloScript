@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  NullMotionMatchingEngine,
-  createNullMotionMatchingEngine,
-} from '../motion-matching';
+import { NullMotionMatchingEngine, createNullMotionMatchingEngine } from '../motion-matching';
 
 describe('NullMotionMatchingEngine', () => {
   it('starts unloaded; load() flips loaded=true', async () => {
@@ -63,10 +60,18 @@ describe('NullMotionMatchingEngine', () => {
 
   it('gait classifier matches velocity-magnitude bands', () => {
     const e = createNullMotionMatchingEngine('biped_humanoid_v2');
-    expect(e.infer({ targetVelocity: { x: 0, y: 0, z: 0 }, currentPhase: 0, delta: 0.016 }).gait).toBe('idle');
-    expect(e.infer({ targetVelocity: { x: 1.0, y: 0, z: 0 }, currentPhase: 0, delta: 0.016 }).gait).toBe('walk');
-    expect(e.infer({ targetVelocity: { x: 2.5, y: 0, z: 0 }, currentPhase: 0, delta: 0.016 }).gait).toBe('trot');
-    expect(e.infer({ targetVelocity: { x: 5.0, y: 0, z: 0 }, currentPhase: 0, delta: 0.016 }).gait).toBe('run');
+    expect(
+      e.infer({ targetVelocity: { x: 0, y: 0, z: 0 }, currentPhase: 0, delta: 0.016 }).gait
+    ).toBe('idle');
+    expect(
+      e.infer({ targetVelocity: { x: 1.0, y: 0, z: 0 }, currentPhase: 0, delta: 0.016 }).gait
+    ).toBe('walk');
+    expect(
+      e.infer({ targetVelocity: { x: 2.5, y: 0, z: 0 }, currentPhase: 0, delta: 0.016 }).gait
+    ).toBe('trot');
+    expect(
+      e.infer({ targetVelocity: { x: 5.0, y: 0, z: 0 }, currentPhase: 0, delta: 0.016 }).gait
+    ).toBe('run');
   });
 
   it('contact features alternate by phase half', () => {

@@ -147,15 +147,15 @@ describe('WorldModelBootstrap', () => {
       expect(obj.name).toBe('TestCollider');
 
       // Position should be at center
-      const posProp = obj.properties?.find(p => p.key === 'position');
+      const posProp = obj.properties?.find((p) => p.key === 'position');
       expect(posProp?.value).toEqual([0, 5, 0]);
 
       // Scale should match AABB size
-      const scaleProp = obj.properties?.find(p => p.key === 'scale');
+      const scaleProp = obj.properties?.find((p) => p.key === 'scale');
       expect(scaleProp?.value).toEqual([10, 10, 10]);
 
       // Should have physics and collidable traits
-      const traitNames = obj.traits?.map(t => typeof t === 'string' ? t : t.name);
+      const traitNames = obj.traits?.map((t) => (typeof t === 'string' ? t : t.name));
       expect(traitNames).toContain('physics');
       expect(traitNames).toContain('collidable');
     });
@@ -163,16 +163,14 @@ describe('WorldModelBootstrap', () => {
     it('should set mass=0 for static colliders by default', () => {
       const aabb: AABB = { min: [0, 0, 0], max: [1, 1, 1] };
       const obj = aabbToHoloObject('Static', aabb);
-      const physicsTrait = obj.traits?.find(t =>
-        typeof t !== 'string' && t.name === 'physics'
-      );
+      const physicsTrait = obj.traits?.find((t) => typeof t !== 'string' && t.name === 'physics');
       expect((physicsTrait as any)?.config?.mass).toBe(0);
     });
 
     it('should add trigger trait when requested', () => {
       const aabb: AABB = { min: [0, 0, 0], max: [1, 1, 1] };
       const obj = aabbToHoloObject('Zone', aabb, { isTrigger: true });
-      const traitNames = obj.traits?.map(t => typeof t === 'string' ? t : t.name);
+      const traitNames = obj.traits?.map((t) => (typeof t === 'string' ? t : t.name));
       expect(traitNames).toContain('trigger');
     });
   });
@@ -191,14 +189,14 @@ describe('WorldModelBootstrap', () => {
 
     it('should include SceneBounds collider from manifest AABB', () => {
       const composition = bootstrapFromMarble(marbleManifest as MarbleManifest);
-      const sceneBounds = composition.objects.find(o => o.name === 'SceneBounds');
+      const sceneBounds = composition.objects.find((o) => o.name === 'SceneBounds');
 
       expect(sceneBounds).toBeDefined();
 
-      const posProp = sceneBounds!.properties?.find(p => p.key === 'position');
+      const posProp = sceneBounds!.properties?.find((p) => p.key === 'position');
       expect(posProp?.value).toEqual([0, 15, 0]);
 
-      const scaleProp = sceneBounds!.properties?.find(p => p.key === 'scale');
+      const scaleProp = sceneBounds!.properties?.find((p) => p.key === 'scale');
       expect(scaleProp?.value).toEqual([100, 30, 100]);
     });
 
@@ -208,56 +206,55 @@ describe('WorldModelBootstrap', () => {
         colliderGLTF as unknown as GLTFDocument
       );
 
-      const colliderBox = composition.objects.find(o => o.name === 'ColliderBox');
+      const colliderBox = composition.objects.find((o) => o.name === 'ColliderBox');
       expect(colliderBox).toBeDefined();
 
       // Unit cube: center at [0,0,0], size [2,2,2]
-      const posProp = colliderBox!.properties?.find(p => p.key === 'position');
+      const posProp = colliderBox!.properties?.find((p) => p.key === 'position');
       expect(posProp?.value).toEqual([0, 0, 0]);
     });
 
     it('should include provenance metadata by default', () => {
       const composition = bootstrapFromMarble(marbleManifest as MarbleManifest);
-      const provenance = composition.objects.find(o => o.name === 'MarbleProvenance');
+      const provenance = composition.objects.find((o) => o.name === 'MarbleProvenance');
 
       expect(provenance).toBeDefined();
       const provenanceTrait = provenance!.traits?.find(
-        t => typeof t !== 'string' && t.name === 'provenance'
+        (t) => typeof t !== 'string' && t.name === 'provenance'
       );
       expect(provenanceTrait).toBeDefined();
       expect((provenanceTrait as any).config?.source).toBe('world_labs_marble');
-      expect((provenanceTrait as any).config?.world_id).toBe('dc2c65e4-68d3-4210-a01e-7a54cc9ded2a');
+      expect((provenanceTrait as any).config?.world_id).toBe(
+        'dc2c65e4-68d3-4210-a01e-7a54cc9ded2a'
+      );
     });
 
     it('should include Gaussian splat references by default', () => {
       const composition = bootstrapFromMarble(marbleManifest as MarbleManifest);
-      const splatObj = composition.objects.find(o => o.name === 'GaussianSplatCloud');
+      const splatObj = composition.objects.find((o) => o.name === 'GaussianSplatCloud');
 
       expect(splatObj).toBeDefined();
       const splatTrait = splatObj!.traits?.find(
-        t => typeof t !== 'string' && t.name === 'gaussian_splat'
+        (t) => typeof t !== 'string' && t.name === 'gaussian_splat'
       );
       expect(splatTrait).toBeDefined();
       expect((splatTrait as any).config?.spz_100k).toContain('sample-forest-100k.spz');
     });
 
     it('should allow disabling provenance and splat injection', () => {
-      const composition = bootstrapFromMarble(
-        marbleManifest as MarbleManifest,
-        undefined,
-        { includeProvenance: false, includeSplatRefs: false }
-      );
+      const composition = bootstrapFromMarble(marbleManifest as MarbleManifest, undefined, {
+        includeProvenance: false,
+        includeSplatRefs: false,
+      });
 
-      expect(composition.objects.find(o => o.name === 'MarbleProvenance')).toBeUndefined();
-      expect(composition.objects.find(o => o.name === 'GaussianSplatCloud')).toBeUndefined();
+      expect(composition.objects.find((o) => o.name === 'MarbleProvenance')).toBeUndefined();
+      expect(composition.objects.find((o) => o.name === 'GaussianSplatCloud')).toBeUndefined();
     });
 
     it('should use custom composition name', () => {
-      const composition = bootstrapFromMarble(
-        marbleManifest as MarbleManifest,
-        undefined,
-        { compositionName: 'MyCustomScene' }
-      );
+      const composition = bootstrapFromMarble(marbleManifest as MarbleManifest, undefined, {
+        compositionName: 'MyCustomScene',
+      });
       expect(composition.name).toBe('MyCustomScene');
     });
 
@@ -274,10 +271,8 @@ describe('WorldModelBootstrap', () => {
       expect(composition.spatialGroups).toBeDefined();
 
       // SceneBounds should have physics traits
-      const sceneBounds = composition.objects.find(o => o.name === 'SceneBounds');
-      const traitNames = sceneBounds?.traits?.map(t =>
-        typeof t === 'string' ? t : t.name
-      );
+      const sceneBounds = composition.objects.find((o) => o.name === 'SceneBounds');
+      const traitNames = sceneBounds?.traits?.map((t) => (typeof t === 'string' ? t : t.name));
       expect(traitNames).toContain('physics');
       expect(traitNames).toContain('collidable');
     });

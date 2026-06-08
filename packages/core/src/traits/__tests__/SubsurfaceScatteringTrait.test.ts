@@ -21,6 +21,8 @@ describe('SubsurfaceScatteringTrait', () => {
   });
 
   it('validate throws for invalid method', () => {
-    expect(() => SubsurfaceScatteringTrait.validate!({ ...validConfig, method: 'invalid' as never })).toThrow();
+    expect(() =>
+      SubsurfaceScatteringTrait.validate!({ ...validConfig, method: 'invalid' as never })
+    ).toThrow();
   });
 });

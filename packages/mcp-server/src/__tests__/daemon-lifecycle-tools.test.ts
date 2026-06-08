@@ -117,9 +117,9 @@ describe('holo_daemon_turn', () => {
   });
 
   it('rejects missing daemonId and callerId', async () => {
-    await expect(
-      handleDaemonLifecycleTool('holo_daemon_turn', { callerId: 'x' })
-    ).rejects.toThrow('daemonId is required');
+    await expect(handleDaemonLifecycleTool('holo_daemon_turn', { callerId: 'x' })).rejects.toThrow(
+      'daemonId is required'
+    );
     await expect(
       handleDaemonLifecycleTool('holo_daemon_turn', { daemonId: 'nope' })
     ).rejects.toThrow('callerId is required');
@@ -142,9 +142,17 @@ describe('holo_observe_soul + holo_daemon_emergence_check', () => {
   // (MIN_SIGNIFICANT_TURNS=5 @ significance>=0.5, MIN_MODEL_RICHNESS=3).
   function knowingDeltas() {
     return [
-      { updatedPreferences: { theme: 'dark' }, careSignalHistory: ['focus'], significanceScore: 0.8 },
+      {
+        updatedPreferences: { theme: 'dark' },
+        careSignalHistory: ['focus'],
+        significanceScore: 0.8,
+      },
       { updatedPreferences: { lang: 'ts' }, significanceScore: 0.7 },
-      { updatedPreferences: { pace: 'fast' }, careSignalHistory: ['encourage'], significanceScore: 0.9 },
+      {
+        updatedPreferences: { pace: 'fast' },
+        careSignalHistory: ['encourage'],
+        significanceScore: 0.9,
+      },
       { newReceiptRefs: ['receipt:x'], significanceScore: 0.6 },
       { updatedPreferences: { editor: 'vim' }, significanceScore: 0.75 },
     ];
@@ -263,12 +271,12 @@ describe('holo_observe_soul + holo_daemon_emergence_check', () => {
   });
 
   it('rejects observe/emergence calls missing ownerId', async () => {
-    await expect(
-      handleDaemonLifecycleTool('holo_observe_soul', {})
-    ).rejects.toThrow('ownerId is required');
-    await expect(
-      handleDaemonLifecycleTool('holo_daemon_emergence_check', {})
-    ).rejects.toThrow('ownerId is required');
+    await expect(handleDaemonLifecycleTool('holo_observe_soul', {})).rejects.toThrow(
+      'ownerId is required'
+    );
+    await expect(handleDaemonLifecycleTool('holo_daemon_emergence_check', {})).rejects.toThrow(
+      'ownerId is required'
+    );
   });
 });
 
@@ -312,15 +320,13 @@ describe('holo_create_daemon', () => {
     });
     const r = result as { daemon: ConversationDaemon };
     expect(r.daemon.permissionProfile.breakGlassAllowed).toBe(true);
-    expect(r.daemon.permissionProfile.custodyScope).toContain(
-      'holoshell:guardian:emergency'
-    );
+    expect(r.daemon.permissionProfile.custodyScope).toContain('holoshell:guardian:emergency');
   });
 
   it('rejects missing ownerId', async () => {
-    await expect(
-      handleDaemonLifecycleTool('holo_create_daemon', {})
-    ).rejects.toThrow('ownerId is required');
+    await expect(handleDaemonLifecycleTool('holo_create_daemon', {})).rejects.toThrow(
+      'ownerId is required'
+    );
   });
 
   it('rejects invalid preset', async () => {
@@ -401,9 +407,9 @@ describe('holo_get_daemon', () => {
   });
 
   it('rejects missing daemonId', async () => {
-    await expect(
-      handleDaemonLifecycleTool('holo_get_daemon', {})
-    ).rejects.toThrow('daemonId is required');
+    await expect(handleDaemonLifecycleTool('holo_get_daemon', {})).rejects.toThrow(
+      'daemonId is required'
+    );
   });
 });
 

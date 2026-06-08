@@ -384,9 +384,16 @@ describe('OnnxRuntimeTrait — runtime-only contract guards', () => {
       name: 'test-adapter',
       preferredProvider: 'webgpu' as const,
       loaded: false,
-      load: async () => { calls.push('load'); },
-      run: async () => { calls.push('run'); return { outputs: {}, durationMs: 1, providerUsed: 'webgpu' as const }; },
-      dispose: () => { calls.push('dispose'); },
+      load: async () => {
+        calls.push('load');
+      },
+      run: async () => {
+        calls.push('run');
+        return { outputs: {}, durationMs: 1, providerUsed: 'webgpu' as const };
+      },
+      dispose: () => {
+        calls.push('dispose');
+      },
     };
     const cfg = {
       execution_provider: 'webgpu',

@@ -11,9 +11,15 @@ import {
 describe('TropicalGraphUtils', () => {
   it('normalizes adjacency by fixing diagonal and infinities', () => {
     const adjacency = new Float32Array([
-      9, 3, Number.POSITIVE_INFINITY,
-      Number.NaN, 9, 1,
-      Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, 9,
+      9,
+      3,
+      Number.POSITIVE_INFINITY,
+      Number.NaN,
+      9,
+      1,
+      Number.POSITIVE_INFINITY,
+      Number.POSITIVE_INFINITY,
+      9,
     ]);
 
     const normalized = normalizeAdjacency(adjacency, 3);
@@ -29,10 +35,22 @@ describe('TropicalGraphUtils', () => {
 
   it('round-trips dense <-> CSR', () => {
     const dense = new Float32Array([
-      0, 3, TROPICAL_INF, 8,
-      TROPICAL_INF, 0, 1, TROPICAL_INF,
-      5, TROPICAL_INF, 0, 2,
-      TROPICAL_INF, TROPICAL_INF, TROPICAL_INF, 0,
+      0,
+      3,
+      TROPICAL_INF,
+      8,
+      TROPICAL_INF,
+      0,
+      1,
+      TROPICAL_INF,
+      5,
+      TROPICAL_INF,
+      0,
+      2,
+      TROPICAL_INF,
+      TROPICAL_INF,
+      TROPICAL_INF,
+      0,
     ]);
 
     const csr = denseToCSR(dense, 4);

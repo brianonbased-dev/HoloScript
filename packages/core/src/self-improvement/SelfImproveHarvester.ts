@@ -36,7 +36,8 @@ export class SelfImproveHarvester {
   private readonly minQualityScore: number;
 
   constructor(config: HarvesterConfig = {}) {
-    this.outputFile = config.outputFile ?? config.outputDir ?? 'memory://self-improvement-harvest.jsonl';
+    this.outputFile =
+      config.outputFile ?? config.outputDir ?? 'memory://self-improvement-harvest.jsonl';
     this.minQualityScore = config.minQualityScore ?? 0;
   }
 

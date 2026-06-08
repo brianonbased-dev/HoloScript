@@ -17,6 +17,7 @@ One sentence summary: **If Babylon makes MCP a first-party feature before HoloSc
 ## What Exists Today (Verified April 2026)
 
 ### Babylon.js 9.0 (March 2026)
+
 - Microsoft-backed
 - OpenPBR materials built-in
 - Geospatial rendering, nav mesh + crowd agents, animation retargeting
@@ -24,6 +25,7 @@ One sentence summary: **If Babylon makes MCP a first-party feature before HoloSc
 - Apache 2.0 open source
 
 ### The Babylon MCP Community Server
+
 Live at forum.babylonjs.com thread "MCP for Babylon — let AI agents control your scene" (Feb 2026). Key capabilities:
 
 - Scene graph inspection (nodes, meshes, materials)
@@ -36,63 +38,68 @@ This is **the only production-ready MCP integration for a 3D engine in April 202
 
 ### Its Current Limitations
 
-| Limitation | Implication |
-|---|---|
-| Community-maintained, not first-party | Could be abandoned or diverge from Babylon core |
-| No semantic layer | Agents see a scene graph, not intent |
-| Single-engine lock-in | Can't use Babylon MCP scene in Three.js / Unity / Unreal |
-| No simulation integration | Pure rendering manipulation |
-| No provenance / replay | No audit trail for agent actions |
+| Limitation                            | Implication                                              |
+| ------------------------------------- | -------------------------------------------------------- |
+| Community-maintained, not first-party | Could be abandoned or diverge from Babylon core          |
+| No semantic layer                     | Agents see a scene graph, not intent                     |
+| Single-engine lock-in                 | Can't use Babylon MCP scene in Three.js / Unity / Unreal |
+| No simulation integration             | Pure rendering manipulation                              |
+| No provenance / replay                | No audit trail for agent actions                         |
 
 ---
 
 ## The Threat Scenarios
 
 ### Scenario A: Microsoft Acquires / Blesses the MCP Server (most likely)
+
 **Probability**: 60%
 **Timeline**: 6-12 months
 **Trigger**: Microsoft Build 2026 (May) or .NET Conf (November)
 
 If Microsoft adopts Babylon MCP as first-party — promoted in Windows Dev Blog, shown at Build, integrated into Visual Studio demos — "agent-native 3D" becomes a Microsoft-backed story. The narrative compresses to:
+
 - "Want agents to control 3D? Use Babylon."
 - "Want to build enterprise agents? Use LangChain + Babylon."
 - HoloScript becomes "the other one."
 
 **Impact on HoloScript**:
+
 - Lose dev mindshare on agent-native 3D positioning
 - Harder to recruit contributors (Microsoft brand pulls)
 - Cursor's MCP marketplace places Babylon first by default
 - 3D engine + MCP becomes table-stakes, not differentiation
 
 ### Scenario B: Babylon Adds Multi-Target Compile (lower probability)
+
 **Probability**: 20%
 **Timeline**: 12-18 months
 **Trigger**: Babylon team observes HoloScript traction and responds
 
 If Babylon builds a "compile Babylon scene to Three.js / USD / Unity" story, they eat HoloScript's multi-target differentiation too. Their installed base makes this a harder fight than the agent-native one.
 
-**Mitigation window**: HoloScript has ~12 months to make multi-target compilation *the core pitch* before Babylon can replicate it.
+**Mitigation window**: HoloScript has ~12 months to make multi-target compilation _the core pitch_ before Babylon can replicate it.
 
 ### Scenario C: Status Quo (Babylon MCP stays community) (lower probability)
+
 **Probability**: 20%
 **Timeline**: Indefinite
 **Trigger**: Microsoft prioritizes other bets; Babylon team too small
 
-If nothing changes, HoloScript has time to ship and establish position. But this is the *least likely* scenario — Microsoft has a strong pattern of acquiring / elevating agent-adjacent community projects.
+If nothing changes, HoloScript has time to ship and establish position. But this is the _least likely_ scenario — Microsoft has a strong pattern of acquiring / elevating agent-adjacent community projects.
 
 ---
 
 ## What Makes Babylon's MCP Different From Ours
 
-| Dimension | Babylon MCP (community) | HoloScript MCP |
-|---|---|---|
-| **Scope** | Scene graph manipulation | Platform (Absorb, HoloMesh, compilation, simulation) |
-| **Tool count** | ~20 tools (estimated from thread) | 215+ verifiable via `/health` |
-| **Domain** | 3D scenes in Babylon only | Spatial + simulation + agent coordination + knowledge |
-| **Semantic layer** | None — raw scene graph | `.holo` AST with typed traits |
-| **Cross-runtime** | No — Babylon only | Yes — compile to 30+ targets |
-| **Provenance** | None | CAEL hash chains + SimulationContract |
-| **Upstream** | Community contributor | Core team (mcp.holoscript.net) |
+| Dimension          | Babylon MCP (community)           | HoloScript MCP                                        |
+| ------------------ | --------------------------------- | ----------------------------------------------------- |
+| **Scope**          | Scene graph manipulation          | Platform (Absorb, HoloMesh, compilation, simulation)  |
+| **Tool count**     | ~20 tools (estimated from thread) | 215+ verifiable via `/health`                         |
+| **Domain**         | 3D scenes in Babylon only         | Spatial + simulation + agent coordination + knowledge |
+| **Semantic layer** | None — raw scene graph            | `.holo` AST with typed traits                         |
+| **Cross-runtime**  | No — Babylon only                 | Yes — compile to 30+ targets                          |
+| **Provenance**     | None                              | CAEL hash chains + SimulationContract                 |
+| **Upstream**       | Community contributor             | Core team (mcp.holoscript.net)                        |
 
 This table is our offensive material. If Babylon tries to add features, they have to do so in their community MCP which has no central maintainer. HoloScript's MCP is the primary product surface.
 
@@ -151,13 +158,13 @@ This table is our offensive material. If Babylon tries to add features, they hav
 
 Watch for these specific moves. Each requires a concrete HoloScript response:
 
-| Babylon move | HoloScript response |
-|---|---|
-| Microsoft blog post naming Babylon MCP as first-party | Publish counter-piece within 48h: "What First-Party MCP Misses" |
-| Babylon 9.x release notes mention semantic layer / IR | Publish `.holo → Babylon` compile target demo within 2 weeks |
-| Babylon adds multi-engine export | Lean into HoloScript's provenance + simulation differentiation; Babylon can't follow |
-| Microsoft Build 2026 features Babylon + Cursor + MCP | Ship HoloScript + Cursor + MCP integration same week, coordinate PR |
-| Babylon partners with NVIDIA for Omniverse | Emphasize browser-native accessibility — the part NVIDIA can't match |
+| Babylon move                                          | HoloScript response                                                                  |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Microsoft blog post naming Babylon MCP as first-party | Publish counter-piece within 48h: "What First-Party MCP Misses"                      |
+| Babylon 9.x release notes mention semantic layer / IR | Publish `.holo → Babylon` compile target demo within 2 weeks                         |
+| Babylon adds multi-engine export                      | Lean into HoloScript's provenance + simulation differentiation; Babylon can't follow |
+| Microsoft Build 2026 features Babylon + Cursor + MCP  | Ship HoloScript + Cursor + MCP integration same week, coordinate PR                  |
+| Babylon partners with NVIDIA for Omniverse            | Emphasize browser-native accessibility — the part NVIDIA can't match                 |
 
 ---
 
@@ -166,21 +173,25 @@ Watch for these specific moves. Each requires a concrete HoloScript response:
 Instead of just defending, push Babylon onto the defensive:
 
 ### Play 1: Offer `.holo → Babylon` as a free upgrade path
+
 Frame: "You already have Babylon scenes? Run them through HoloScript and now they work in Three.js, Unity, and Unreal too."
 
 Channel: Babylon forum, Discord, YouTube tutorials.
 
 ### Play 2: Publish a compatible HoloScript MCP server that competes on surface area
+
 HoloScript's 215 tools vs Babylon's ~20. Make the comparison explicit and visible.
 
 Channel: Awesome-MCP lists, Cursor marketplace, LangChain integrations docs.
 
 ### Play 3: Lead the Spatial Sovereignty narrative before Microsoft frames agents-in-3D
+
 If the story is "vendor-neutral agent-native spatial platforms," Babylon (a Microsoft product) is disadvantaged by design.
 
 Channel: Podcasts, conference talks, thought-leadership blog.
 
 ### Play 4: Partner with A-Frame
+
 A-Frame is also non-Microsoft, Apple-endorsed, Vision-Pro-friendly. HoloScript + A-Frame vs Babylon is a stronger coalition than HoloScript alone.
 
 Channel: Diego Marcos (A-Frame maintainer), WebXR community, Apple dev relations.
@@ -192,11 +203,13 @@ Channel: Diego Marcos (A-Frame maintainer), WebXR community, Apple dev relations
 Babylon.js 9.0 + community MCP is the most time-sensitive threat to HoloScript's "agent-native 3D" positioning. We have roughly 6-12 months before Microsoft is likely to elevate it.
 
 **Three things to do this month**:
+
 1. Ship `npx create-holoscript` with 30-sec time-to-wow
 2. Publish a flagship multi-target demo video
 3. Submit HoloScript MCP to Cursor marketplace
 
 **Two things to do this quarter**:
+
 1. Write "Semantic IR vs Scene Graph" thought piece
 2. Partner with A-Frame ecosystem to coalition-build
 

@@ -31,7 +31,16 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE_FILE = join(ROOT, 'scripts', 'boundary-baselines.json');
 const UPDATE = process.argv.includes('--update');
 
-const IGNORED_DIRS = new Set(['.git', '.next', 'coverage', 'node_modules', 'dist', 'pkg', 'target', '.scratch']);
+const IGNORED_DIRS = new Set([
+  '.git',
+  '.next',
+  'coverage',
+  'node_modules',
+  'dist',
+  'pkg',
+  'target',
+  '.scratch',
+]);
 
 // `any` escape hatches in TypeScript type position (the standard bans `any`;
 // WHY: 3 production bugs — see CLAUDE.md coding standards).
@@ -121,7 +130,9 @@ function main() {
         `${guard.label}\n      grew to ${count} (baseline ${baseline}, +${count - baseline}). ${guard.remedy}`
       );
     } else if (count < baseline) {
-      shrank.push(`${guard.key}: shrank to ${count} (was ${baseline}) — run --update to lock in the win.`);
+      shrank.push(
+        `${guard.key}: shrank to ${count} (was ${baseline}) — run --update to lock in the win.`
+      );
     }
   }
 

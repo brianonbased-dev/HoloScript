@@ -46,63 +46,122 @@ describe('DeployTrait — onEvent', () => {
   it('deploy:start creates deployment and emits first stage', () => {
     const node = makeNode();
     deployHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    deployHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'deploy:start', version: '1.2.3', target: 'production',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('deploy:stage', expect.objectContaining({
-      stage: 'prepare', status: 'started',
-    }));
+    deployHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'deploy:start',
+        version: '1.2.3',
+        target: 'production',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'deploy:stage',
+      expect.objectContaining({
+        stage: 'prepare',
+        status: 'started',
+      })
+    );
   });
 
   it('deploy:advance progresses to next stage', () => {
     const node = makeNode();
     deployHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    deployHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'deploy:start', version: '1.0.0', target: 'staging',
-    } as never);
+    deployHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'deploy:start',
+        version: '1.0.0',
+        target: 'staging',
+      } as never
+    );
     // Get the deployId from the emitted call
     const startCall = node.emit.mock.calls.find(([t]) => t === 'deploy:stage');
     const deployId = startCall?.[1]?.deployId as string;
     node.emit.mockClear();
-    deployHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'deploy:advance', deployId,
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('deploy:stage', expect.objectContaining({
-      deployId, stage: 'deploy', status: 'started',
-    }));
+    deployHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'deploy:advance',
+        deployId,
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'deploy:stage',
+      expect.objectContaining({
+        deployId,
+        stage: 'deploy',
+        status: 'started',
+      })
+    );
   });
 
   it('deploy:advance at last stage emits deploy:complete', () => {
     const node = makeNode();
     deployHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    deployHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'deploy:start', version: '2.0.0', target: 'prod',
-    } as never);
+    deployHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'deploy:start',
+        version: '2.0.0',
+        target: 'prod',
+      } as never
+    );
     const startCall = node.emit.mock.calls.find(([t]) => t === 'deploy:stage');
     const deployId = startCall?.[1]?.deployId as string;
     // Advance through all stages
     for (let i = 1; i < defaultConfig.stages.length; i++) {
-      deployHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-        type: 'deploy:advance', deployId,
-      } as never);
+      deployHandler.onEvent!(
+        node as never,
+        defaultConfig,
+        makeCtx(node) as never,
+        {
+          type: 'deploy:advance',
+          deployId,
+        } as never
+      );
     }
     // Last advance should complete
     node.emit.mockClear();
-    deployHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'deploy:advance', deployId,
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('deploy:complete', expect.objectContaining({
-      deployId, version: '2.0.0', target: 'prod',
-    }));
+    deployHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'deploy:advance',
+        deployId,
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'deploy:complete',
+      expect.objectContaining({
+        deployId,
+        version: '2.0.0',
+        target: 'prod',
+      })
+    );
   });
 
   it('deploy:advance on unknown deployId does nothing', () => {
     const node = makeNode();
     deployHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    deployHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'deploy:advance', deployId: 'ghost_id',
-    } as never);
+    deployHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'deploy:advance',
+        deployId: 'ghost_id',
+      } as never
+    );
     expect(node.emit).not.toHaveBeenCalled();
   });
 });

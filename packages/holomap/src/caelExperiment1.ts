@@ -26,10 +26,13 @@ export function resolveCaelExperiment1SceneAxis(proc: {
     return 'marble-compatibility';
   }
   throw new Error(
-    `Invalid CAEL_EXP1_SCENE_AXIS "${proc.env.CAEL_EXP1_SCENE_AXIS}". Use holomap-native | marble-compatibility.`,
+    `Invalid CAEL_EXP1_SCENE_AXIS "${proc.env.CAEL_EXP1_SCENE_AXIS}". Use holomap-native | marble-compatibility.`
   );
 }
 
-export function formatCaelExperiment1ConditionLabel(embodimentCell: string, sceneAxis: CaelExperiment1SceneAxis): string {
+export function formatCaelExperiment1ConditionLabel(
+  embodimentCell: string,
+  sceneAxis: CaelExperiment1SceneAxis
+): string {
   return `${embodimentCell} × ${sceneAxisPlainLabel(sceneAxis)}`;
 }

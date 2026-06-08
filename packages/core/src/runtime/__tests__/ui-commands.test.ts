@@ -1,9 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  executeShowCommand,
-  executeHideCommand,
-  executeCreateCommand,
-} from '../ui-commands.js';
+import { executeShowCommand, executeHideCommand, executeCreateCommand } from '../ui-commands.js';
 import type { UICommandContext } from '../ui-commands.js';
 
 function makeCtx(): UICommandContext {
@@ -58,7 +54,7 @@ describe('executeHideCommand', () => {
       expect.any(String),
       [5, 6, 7],
       expect.any(String),
-      expect.any(Number),
+      expect.any(Number)
     );
   });
 });

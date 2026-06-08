@@ -56,7 +56,8 @@ export async function POST(request: NextRequest) {
   // blobs while keeping this well under the 300s maxDuration abuse lane.
   const readResult = await readJsonBody<unknown>(request, { maxBytes: 16_384 });
   if (!readResult.ok) {
-    const msg = readResult.error === 'payload_too_large' ? 'Body exceeds 16KB limit' : 'Invalid JSON body';
+    const msg =
+      readResult.error === 'payload_too_large' ? 'Body exceeds 16KB limit' : 'Invalid JSON body';
     return NextResponse.json({ error: msg }, { status: readResult.status });
   }
   const raw: unknown = readResult.body;
@@ -93,7 +94,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ job: created }, { status: 201 });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

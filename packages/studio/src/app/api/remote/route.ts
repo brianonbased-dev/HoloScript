@@ -100,7 +100,6 @@ export async function DELETE(request: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

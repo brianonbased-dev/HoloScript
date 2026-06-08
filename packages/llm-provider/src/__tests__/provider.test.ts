@@ -18,12 +18,7 @@ import { GeminiAdapter, GEMINI_MODELS, GEMINI_CAPABILITIES } from '../adapters/g
 import { BitNetAdapter, BITNET_CAPABILITIES } from '../adapters/bitnet';
 import { LocalLLMAdapter, LOCAL_LLM_CAPABILITIES } from '../adapters/local-llm';
 import { OpenRouterAdapter, OPENROUTER_CAPABILITIES } from '../adapters/openrouter';
-import {
-  XAIAdapter,
-  XAI_MODELS,
-  XAI_MODEL_CAPABILITIES,
-  XAI_CAPABILITIES,
-} from '../adapters/xai';
+import { XAIAdapter, XAI_MODELS, XAI_MODEL_CAPABILITIES, XAI_CAPABILITIES } from '../adapters/xai';
 import { LLMProviderManager } from '../provider-manager';
 import {
   LLMProviderError,
@@ -260,7 +255,7 @@ describe('OpenAIAdapter (metadata)', () => {
       realtimeVoice: true,
       embeddedChatUI: true,
       appsIframeSurface: true,
-      evalsFirstParty: false,       // deprecated 2026-06-03 (A-020)
+      evalsFirstParty: false, // deprecated 2026-06-03 (A-020)
       bearerTokenAccess: true,
     });
   });

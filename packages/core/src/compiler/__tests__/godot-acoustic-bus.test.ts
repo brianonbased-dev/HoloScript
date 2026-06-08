@@ -12,16 +12,24 @@ describe('godot-acoustic-bus (E-G16)', () => {
   });
 
   it('NEGATIVE CONTROL: metal and glass presets produce different reverb params', () => {
-    const metal = compileAcousticTrait('audio_material', { preset: 'metal' }, 's')!.lines.join('\n');
-    const glass = compileAcousticTrait('audio_material', { preset: 'glass' }, 's')!.lines.join('\n');
+    const metal = compileAcousticTrait('audio_material', { preset: 'metal' }, 's')!.lines.join(
+      '\n'
+    );
+    const glass = compileAcousticTrait('audio_material', { preset: 'glass' }, 's')!.lines.join(
+      '\n'
+    );
     expect(metal).toContain('room_size = 0.85');
     expect(glass).toContain('room_size = 0.35');
     expect(metal).not.toEqual(glass); // the preset genuinely changes the bus graph
   });
 
   it('audio_occlusion lowers the low-pass cutoff as attenuation rises', () => {
-    const low = compileAcousticTrait('audio_occlusion', { attenuation: 0.1 }, 's')!.lines.join('\n');
-    const high = compileAcousticTrait('audio_occlusion', { attenuation: 0.9 }, 's')!.lines.join('\n');
+    const low = compileAcousticTrait('audio_occlusion', { attenuation: 0.1 }, 's')!.lines.join(
+      '\n'
+    );
+    const high = compileAcousticTrait('audio_occlusion', { attenuation: 0.9 }, 's')!.lines.join(
+      '\n'
+    );
     expect(low).toContain('AudioEffectLowPassFilter.new()');
     const lowHz = Number(low.match(/cutoff_hz = (\d+)/)![1]);
     const highHz = Number(high.match(/cutoff_hz = (\d+)/)![1]);
@@ -46,6 +54,10 @@ describe('godot-acoustic-bus (E-G16)', () => {
   });
 
   it('MODELED_ACOUSTIC_TRAITS lists exactly the DSP-backed traits', () => {
-    expect([...MODELED_ACOUSTIC_TRAITS].sort()).toEqual(['audio_material', 'audio_occlusion', 'audio_portal']);
+    expect([...MODELED_ACOUSTIC_TRAITS].sort()).toEqual([
+      'audio_material',
+      'audio_occlusion',
+      'audio_portal',
+    ]);
   });
 });

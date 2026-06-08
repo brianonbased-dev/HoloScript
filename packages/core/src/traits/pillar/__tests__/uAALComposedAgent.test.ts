@@ -48,31 +48,26 @@ function makeCtx() {
     emit(name: string, payload: unknown) {
       events.push({ name, payload });
     },
-    getState:           () => ({}),
-    setState:           () => {},
+    getState: () => ({}),
+    setState: () => {},
     getScaleMultiplier: () => 1,
-    setScaleContext:    () => {},
-    vr:      null,
+    setScaleContext: () => {},
+    vr: null,
     physics: null,
-    audio:   null,
+    audio: null,
     haptics: null,
   } as unknown as TraitContext;
   return { ctx, events };
 }
 
 const DEFAULT_CONFIG: UAALAgentConfig = {
-  agent_id:         'test_uaal',
-  inner_frequency:  4,
-  emit_to_peers:    true,
-  jepa_latent_dim:  16,
+  agent_id: 'test_uaal',
+  inner_frequency: 4,
+  emit_to_peers: true,
+  jepa_latent_dim: 16,
 };
 
-function tick(
-  n: number,
-  node: HSPlusNode,
-  config: UAALAgentConfig,
-  ctx: TraitContext,
-): void {
+function tick(n: number, node: HSPlusNode, config: UAALAgentConfig, ctx: TraitContext): void {
   for (let i = 0; i < n; i++) {
     uAALComposedAgentHandler.onEvent?.(node, config, ctx, {
       type: 'cogvm:tick',
@@ -114,19 +109,19 @@ describe('uAALComposedAgent', () => {
   // ── 2. cogvm:inner_tick ────────────────────────────────────────────────────
   it('cogvm:tick emits cogvm:inner_tick', () => {
     tick(1, node, DEFAULT_CONFIG, ctx);
-    expect(events.some(e => e.name === 'cogvm:inner_tick')).toBe(true);
+    expect(events.some((e) => e.name === 'cogvm:inner_tick')).toBe(true);
   });
 
   // ── 3. cogvm:outer_tick ────────────────────────────────────────────────────
   it('N inner ticks trigger cogvm:outer_tick', () => {
     tick(DEFAULT_CONFIG.inner_frequency!, node, DEFAULT_CONFIG, ctx);
-    expect(events.some(e => e.name === 'cogvm:outer_tick')).toBe(true);
+    expect(events.some((e) => e.name === 'cogvm:outer_tick')).toBe(true);
   });
 
   // ── 4. pillarjepa:loss emitted on outer tick ───────────────────────────────
   it('outer tick causes pillarjepa:loss to be emitted', () => {
     tick(DEFAULT_CONFIG.inner_frequency!, node, DEFAULT_CONFIG, ctx);
-    const lossEvt = events.find(e => e.name === 'pillarjepa:loss');
+    const lossEvt = events.find((e) => e.name === 'pillarjepa:loss');
     expect(lossEvt).toBeDefined();
     const loss = lossEvt!.payload as { totalLoss: number; step: number };
     expect(typeof loss.totalLoss).toBe('number');
@@ -136,22 +131,22 @@ describe('uAALComposedAgent', () => {
   // ── 5. emitter:training_slice emitted ─────────────────────────────────────
   it('outer tick causes emitter:training_slice to be emitted', () => {
     tick(DEFAULT_CONFIG.inner_frequency!, node, DEFAULT_CONFIG, ctx);
-    const trainingEvt = events.find(e => e.name === 'emitter:training_slice');
+    const trainingEvt = events.find((e) => e.name === 'emitter:training_slice');
     expect(trainingEvt).toBeDefined();
   });
 
   // ── 6. emitter:diversity_stats emitted ─────────────────────────────────────
   it('emitter:diversity_stats emitted alongside training_slice', () => {
     tick(DEFAULT_CONFIG.inner_frequency!, node, DEFAULT_CONFIG, ctx);
-    expect(events.some(e => e.name === 'emitter:diversity_stats')).toBe(true);
+    expect(events.some((e) => e.name === 'emitter:diversity_stats')).toBe(true);
   });
 
   // ── 7. recursive_link:send on inner tick ──────────────────────────────────
   it('recursive_link:send emitted with loop=inner on each tick', () => {
     tick(1, node, DEFAULT_CONFIG, ctx);
     const innerRl = events.find(
-      e => e.name === 'recursive_link:send' &&
-           (e.payload as Record<string, unknown>).loop === 'inner'
+      (e) =>
+        e.name === 'recursive_link:send' && (e.payload as Record<string, unknown>).loop === 'inner'
     );
     expect(innerRl).toBeDefined();
   });
@@ -160,8 +155,8 @@ describe('uAALComposedAgent', () => {
   it('recursive_link:send emitted with loop=outer on outer tick', () => {
     tick(DEFAULT_CONFIG.inner_frequency!, node, DEFAULT_CONFIG, ctx);
     const outerRl = events.find(
-      e => e.name === 'recursive_link:send' &&
-           (e.payload as Record<string, unknown>).loop === 'outer'
+      (e) =>
+        e.name === 'recursive_link:send' && (e.payload as Record<string, unknown>).loop === 'outer'
     );
     expect(outerRl).toBeDefined();
   });
@@ -169,26 +164,29 @@ describe('uAALComposedAgent', () => {
   // ── 9. recursive_link:receive — no alert on first message ─────────────────
   it('recursive_link:receive does not fire integrity_alert before history fills', () => {
     uAALComposedAgentHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
-      type:  'recursive_link:receive',
-      from:  'peer_agent',
-      to:    DEFAULT_CONFIG.agent_id,
-      loop:  'inner' as const,
+      type: 'recursive_link:receive',
+      from: 'peer_agent',
+      to: DEFAULT_CONFIG.agent_id,
+      loop: 'inner' as const,
       slice: {
-        axis_1_id: 'energy', axis_2_id: 'momentum',
-        pos_1: 0.9, pos_2: 0.1,
-        pillar_id: 'physics_conservation', pillar_domain: 'physics' as PillarDomain,
+        axis_1_id: 'energy',
+        axis_2_id: 'momentum',
+        pos_1: 0.9,
+        pos_2: 0.1,
+        pillar_id: 'physics_conservation',
+        pillar_domain: 'physics' as PillarDomain,
       },
       timestamp_ms: Date.now(),
     });
-    expect(events.some(e => e.name === 'uaal:integrity_alert')).toBe(false);
+    expect(events.some((e) => e.name === 'uaal:integrity_alert')).toBe(false);
   });
 
   // ── 10. uaal:integrity_alert fires on Byzantine anomaly ───────────────────
   it('uaal:integrity_alert fires when Byzantine sigma threshold exceeded', () => {
     const lowSigmaConfig: UAALAgentConfig = {
       ...DEFAULT_CONFIG,
-      byzantine_sigma:       0.01,  // hair-trigger — any deviation flags
-      byzantine_min_history: 2,     // only need 2 history points
+      byzantine_sigma: 0.01, // hair-trigger — any deviation flags
+      byzantine_min_history: 2, // only need 2 history points
     };
     const n2 = makeNode();
     const { ctx: c2, events: e2 } = makeCtx();
@@ -197,26 +195,38 @@ describe('uAALComposedAgent', () => {
 
     // Seed history with 2 similar slices (same coords → mean = 0.9, std ≈ 0)
     const seedSlice = {
-      axis_1_id: 'energy', axis_2_id: 'momentum',
-      pos_1: 0.9, pos_2: 0.1,
-      pillar_id: 'physics_conservation', pillar_domain: 'physics' as PillarDomain,
+      axis_1_id: 'energy',
+      axis_2_id: 'momentum',
+      pos_1: 0.9,
+      pos_2: 0.1,
+      pillar_id: 'physics_conservation',
+      pillar_domain: 'physics' as PillarDomain,
     };
     for (let i = 0; i < 2; i++) {
       uAALComposedAgentHandler.onEvent?.(n2, lowSigmaConfig, c2, {
-        type: 'recursive_link:receive', from: 'peer', to: 'self',
-        loop: 'inner' as const, slice: seedSlice, timestamp_ms: Date.now(),
+        type: 'recursive_link:receive',
+        from: 'peer',
+        to: 'self',
+        loop: 'inner' as const,
+        slice: seedSlice,
+        timestamp_ms: Date.now(),
       });
     }
     e2.length = 0;
 
     // Send anomalous slice (very different coords)
     uAALComposedAgentHandler.onEvent?.(n2, lowSigmaConfig, c2, {
-      type: 'recursive_link:receive', from: 'peer', to: 'self',
+      type: 'recursive_link:receive',
+      from: 'peer',
+      to: 'self',
       loop: 'inner' as const,
       slice: {
-        axis_1_id: 'energy', axis_2_id: 'momentum',
-        pos_1: 0.01, pos_2: 0.99,  // orthogonal → anomalous cosine similarity
-        pillar_id: 'physics_conservation', pillar_domain: 'physics' as PillarDomain,
+        axis_1_id: 'energy',
+        axis_2_id: 'momentum',
+        pos_1: 0.01,
+        pos_2: 0.99, // orthogonal → anomalous cosine similarity
+        pillar_id: 'physics_conservation',
+        pillar_domain: 'physics' as PillarDomain,
       },
       timestamp_ms: Date.now(),
     });
@@ -232,9 +242,9 @@ describe('uAALComposedAgent', () => {
     uAALComposedAgentHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, { type: 'cogvm:freeze' });
     events.length = 0;
     tick(DEFAULT_CONFIG.inner_frequency! * 2, node, DEFAULT_CONFIG, ctx);
-    expect(events.some(e => e.name === 'cogvm:inner_tick')).toBe(false);
-    expect(events.some(e => e.name === 'pillarjepa:loss')).toBe(false);
-    expect(events.some(e => e.name === 'emitter:training_slice')).toBe(false);
+    expect(events.some((e) => e.name === 'cogvm:inner_tick')).toBe(false);
+    expect(events.some((e) => e.name === 'pillarjepa:loss')).toBe(false);
+    expect(events.some((e) => e.name === 'emitter:training_slice')).toBe(false);
   });
 
   // ── 12. cogvm:unfreeze ─────────────────────────────────────────────────────
@@ -243,15 +253,17 @@ describe('uAALComposedAgent', () => {
     uAALComposedAgentHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, { type: 'cogvm:unfreeze' });
     events.length = 0;
     tick(1, node, DEFAULT_CONFIG, ctx);
-    expect(events.some(e => e.name === 'cogvm:inner_tick')).toBe(true);
+    expect(events.some((e) => e.name === 'cogvm:inner_tick')).toBe(true);
   });
 
   // ── 13. cogvm:set_lifecycle ────────────────────────────────────────────────
   it('cogvm:set_lifecycle emits cogvm:lifecycle_transition', () => {
     uAALComposedAgentHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
-      type: 'cogvm:set_lifecycle', state: 'active', reason: 'test',
+      type: 'cogvm:set_lifecycle',
+      state: 'active',
+      reason: 'test',
     });
-    const transition = events.find(e => e.name === 'cogvm:lifecycle_transition');
+    const transition = events.find((e) => e.name === 'cogvm:lifecycle_transition');
     expect(transition).toBeDefined();
     const p = transition!.payload as { from: string; to: string; reason: string };
     expect(p.to).toBe('active');
@@ -265,14 +277,14 @@ describe('uAALComposedAgent', () => {
     events.length = 0;
 
     uAALComposedAgentHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, { type: 'emitter:flush' });
-    expect(events.some(e => e.name === 'emitter:buffer_flushed')).toBe(true);
+    expect(events.some((e) => e.name === 'emitter:buffer_flushed')).toBe(true);
   });
 
   // ── 15. cogvm:register_dispatch ───────────────────────────────────────────
   it('cogvm:register_dispatch wires a custom handler reflected in snapshot', () => {
     uAALComposedAgentHandler.onEvent?.(node, DEFAULT_CONFIG, ctx, {
-      type:    'cogvm:register_dispatch',
-      domain:  'steady_state' as PillarDomain,
+      type: 'cogvm:register_dispatch',
+      domain: 'steady_state' as PillarDomain,
       handler: () => ({ loop_frequency_multiplier: 0.77 }),
     });
     tick(DEFAULT_CONFIG.inner_frequency!, node, DEFAULT_CONFIG, ctx);
@@ -316,19 +328,19 @@ describe('uAALComposedAgent', () => {
     e2.length = 0;
 
     tick(DEFAULT_CONFIG.inner_frequency!, n2, noPeerCfg, c2);
-    expect(e2.filter(e => e.name === 'recursive_link:send')).toHaveLength(0);
+    expect(e2.filter((e) => e.name === 'recursive_link:send')).toHaveLength(0);
     uAALComposedAgentHandler.onDetach?.(n2, noPeerCfg, c2);
   });
 
   // ── 20. pillarjepa:step not surfaced ──────────────────────────────────────
   it('pillarjepa:step is NOT forwarded to the parent context', () => {
     tick(DEFAULT_CONFIG.inner_frequency!, node, DEFAULT_CONFIG, ctx);
-    expect(events.some(e => e.name === 'pillarjepa:step')).toBe(false);
+    expect(events.some((e) => e.name === 'pillarjepa:step')).toBe(false);
   });
 
   // ── 21. sliceemitter:emit not surfaced ────────────────────────────────────
   it('sliceemitter:emit (PillarJEPA internal) is NOT forwarded to parent', () => {
     tick(DEFAULT_CONFIG.inner_frequency!, node, DEFAULT_CONFIG, ctx);
-    expect(events.some(e => e.name === 'sliceemitter:emit')).toBe(false);
+    expect(events.some((e) => e.name === 'sliceemitter:emit')).toBe(false);
   });
 });

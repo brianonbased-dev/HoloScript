@@ -118,9 +118,7 @@ describe('onUpdate', () => {
     const node = makeNode();
     const { ctx } = makeCtx();
     transformHandler.onAttach!(node, cfg, ctx);
-    expect(() =>
-      transformHandler.onUpdate!(node, cfg, ctx, 0.016)
-    ).not.toThrow();
+    expect(() => transformHandler.onUpdate!(node, cfg, ctx, 0.016)).not.toThrow();
   });
 });
 
@@ -144,7 +142,9 @@ describe('transform:add_rule', () => {
     transformHandler.onAttach!(node, cfg, ctx);
 
     transformHandler.onEvent!(
-      node, cfg, ctx,
+      node,
+      cfg,
+      ctx,
       evt('transform:add_rule', { source_event: 'x', output_event: 'y', ops: [], enabled: true })
     );
 
@@ -223,7 +223,10 @@ describe('transform:get_status', () => {
     transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { score: 200 })); // passes
 
     transformHandler.onEvent!(node, cfg, ctx, evt('transform:get_status'));
-    const status = emitted.find((e) => e.type === 'transform:status')!.payload as Record<string, unknown>;
+    const status = emitted.find((e) => e.type === 'transform:status')!.payload as Record<
+      string,
+      unknown
+    >;
     expect(status.totalProcessed).toBe(2);
     expect(status.totalFiltered).toBe(1);
   });
@@ -264,7 +267,12 @@ describe('op: omit', () => {
     const rule = makeRule({ ops: [{ type: 'omit', fields: ['secret', 'internal'] }] });
     transformHandler.onAttach!(node, { rules: [rule] }, ctx);
 
-    transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { name: 'alice', secret: 'x', internal: true }));
+    transformHandler.onEvent!(
+      node,
+      cfg,
+      ctx,
+      evt('data:in', { name: 'alice', secret: 'x', internal: true })
+    );
 
     const out = emitted.find((e) => e.type === 'data:out')!.payload as Record<string, unknown>;
     expect(out).toEqual({ name: 'alice' });
@@ -358,9 +366,7 @@ describe('op: compute', () => {
     transformHandler.onAttach!(node, { rules: [rule] }, ctx);
 
     // Should not throw and should still emit output (compute skipped, field absent)
-    expect(() =>
-      transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { a: 1 }))
-    ).not.toThrow();
+    expect(() => transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { a: 1 }))).not.toThrow();
     const out = emitted.find((e) => e.type === 'data:out');
     expect(out).toBeDefined();
   });
@@ -472,7 +478,9 @@ describe('op: filter', () => {
   it('exists=false — passes when field is absent', () => {
     const node = makeNode();
     const { ctx, emitted } = makeCtx();
-    const rule = makeRule({ ops: [{ type: 'filter', field: 'error', op: 'exists', value: false }] });
+    const rule = makeRule({
+      ops: [{ type: 'filter', field: 'error', op: 'exists', value: false }],
+    });
     transformHandler.onAttach!(node, { rules: [rule] }, ctx);
 
     transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { result: 'ok' }));
@@ -521,7 +529,10 @@ describe('transform:output event', () => {
 
     transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { x: 7 }));
 
-    const meta = emitted.find((e) => e.type === 'transform:output')?.payload as Record<string, unknown>;
+    const meta = emitted.find((e) => e.type === 'transform:output')?.payload as Record<
+      string,
+      unknown
+    >;
     expect(meta).toBeDefined();
     expect(meta.transformId).toBe('r-out');
     expect(meta.sourceEvent).toBe('data:in');
@@ -545,12 +556,18 @@ describe('transform:filtered event', () => {
   it('emits transform:filtered with reason on filter rejection', () => {
     const node = makeNode();
     const { ctx, emitted } = makeCtx();
-    const rule = makeRule({ id: 'r-filter', ops: [{ type: 'filter', field: 'ok', op: 'eq', value: true }] });
+    const rule = makeRule({
+      id: 'r-filter',
+      ops: [{ type: 'filter', field: 'ok', op: 'eq', value: true }],
+    });
     transformHandler.onAttach!(node, { rules: [rule] }, ctx);
 
     transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { ok: false }));
 
-    const filtered = emitted.find((e) => e.type === 'transform:filtered')?.payload as Record<string, unknown>;
+    const filtered = emitted.find((e) => e.type === 'transform:filtered')?.payload as Record<
+      string,
+      unknown
+    >;
     expect(filtered.transformId).toBe('r-filter');
     expect(filtered.sourceEvent).toBe('data:in');
     expect(filtered.reason).toBe('filter_rejected');
@@ -603,7 +620,10 @@ describe('transform:error event', () => {
 
     transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { x: 1 }));
 
-    const errEvent = emitted.find((e) => e.type === 'transform:error')?.payload as Record<string, unknown>;
+    const errEvent = emitted.find((e) => e.type === 'transform:error')?.payload as Record<
+      string,
+      unknown
+    >;
     expect(errEvent).toBeDefined();
     expect(errEvent.transformId).toBe('r-err2');
     expect(errEvent.sourceEvent).toBe('data:in');
@@ -635,8 +655,16 @@ describe('multiple rules matching same source event', () => {
   it('applies all matching enabled rules', () => {
     const node = makeNode();
     const { ctx, emitted } = makeCtx();
-    const r1 = makeRule({ id: 'r1', output_event: 'out:a', ops: [{ type: 'pick', fields: ['a'] }] });
-    const r2 = makeRule({ id: 'r2', output_event: 'out:b', ops: [{ type: 'pick', fields: ['b'] }] });
+    const r1 = makeRule({
+      id: 'r1',
+      output_event: 'out:a',
+      ops: [{ type: 'pick', fields: ['a'] }],
+    });
+    const r2 = makeRule({
+      id: 'r2',
+      output_event: 'out:b',
+      ops: [{ type: 'pick', fields: ['b'] }],
+    });
     transformHandler.onAttach!(node, { rules: [r1, r2] }, ctx);
 
     transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { a: 1, b: 2 }));
@@ -684,9 +712,7 @@ describe('missing state guard', () => {
     const node = makeNode();
     const { ctx, emitted } = makeCtx();
 
-    expect(() =>
-      transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { x: 1 }))
-    ).not.toThrow();
+    expect(() => transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { x: 1 }))).not.toThrow();
     expect(emitted).toHaveLength(0);
   });
 });
@@ -705,7 +731,12 @@ describe('chained ops', () => {
     const rule = makeRule({ ops });
     transformHandler.onAttach!(node, { rules: [rule] }, ctx);
 
-    transformHandler.onEvent!(node, cfg, ctx, evt('data:in', { a: 10, b: 20, c: undefined, d: 99 }));
+    transformHandler.onEvent!(
+      node,
+      cfg,
+      ctx,
+      evt('data:in', { a: 10, b: 20, c: undefined, d: 99 })
+    );
 
     const out = emitted.find((e) => e.type === 'data:out')!.payload as Record<string, unknown>;
     expect(out.alpha).toBe(10);

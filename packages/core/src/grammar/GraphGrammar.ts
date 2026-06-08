@@ -677,10 +677,7 @@ export function compositionToRule(
     tags: ['composition', ...traitNames],
     produce: (_node, _context) => {
       return [
-        createTerminal(compositionName, traitNames, [0, 0, 0], {}, [
-          'composed',
-          ...traitNames,
-        ]),
+        createTerminal(compositionName, traitNames, [0, 0, 0], {}, ['composed', ...traitNames]),
       ];
     },
   };
@@ -770,11 +767,11 @@ export function createVillageGrammar(): GraphGrammar {
       for (let i = 0; i < benchCount; i++) {
         const angle = (i / benchCount) * Math.PI * 2;
         nodes.push(
-          createTerminal('bench', ['collidable', 'visible'], [
-            Math.cos(angle) * 5,
-            0,
-            Math.sin(angle) * 5,
-          ])
+          createTerminal(
+            'bench',
+            ['collidable', 'visible'],
+            [Math.cos(angle) * 5, 0, Math.sin(angle) * 5]
+          )
         );
       }
 
@@ -802,12 +799,7 @@ export function createVillageGrammar(): GraphGrammar {
     weight: 0.3,
     tags: ['structure', 'house', 'large'],
     produce: () => [
-      createTerminal(
-        'house_large_walls',
-        ['collidable', 'visible'],
-        [0, 0, 0],
-        { scale: 1.5 }
-      ),
+      createTerminal('house_large_walls', ['collidable', 'visible'], [0, 0, 0], { scale: 1.5 }),
       createTerminal('house_large_door', ['grabbable', 'collidable', 'visible'], [0, 0, 4.5]),
       createTerminal('house_large_roof', ['collidable', 'visible'], [0, 4.5, 0]),
       createTerminal('chimney', ['visible', 'collidable'], [2, 6, 0]),
@@ -823,14 +815,7 @@ export function createVillageGrammar(): GraphGrammar {
     produce: (_node, ctx) => {
       const rng = new SeededRandom(ctx.seed + ctx.nodeCount);
       const scale = rng.float(0.5, 2.0);
-      return [
-        createTerminal(
-          'tree',
-          ['collidable', 'visible'],
-          [0, 0, 0],
-          { treeScale: scale }
-        ),
-      ];
+      return [createTerminal('tree', ['collidable', 'visible'], [0, 0, 0], { treeScale: scale })];
     },
   });
 
@@ -891,22 +876,22 @@ export function createDungeonGrammar(): GraphGrammar {
       // Random loot
       if (rng.next() > 0.5) {
         nodes.push(
-          createTerminal('chest', ['grabbable', 'collidable', 'visible', 'inventory'], [
-            rng.float(-3, 3),
-            0,
-            rng.float(-3, 3),
-          ])
+          createTerminal(
+            'chest',
+            ['grabbable', 'collidable', 'visible', 'inventory'],
+            [rng.float(-3, 3), 0, rng.float(-3, 3)]
+          )
         );
       }
 
       // Random enemies
       if (rng.next() > 0.3) {
         nodes.push(
-          createTerminal('enemy', ['health', 'damage', 'collidable', 'visible', 'respawnable'], [
-            rng.float(-4, 4),
-            0,
-            rng.float(-4, 4),
-          ])
+          createTerminal(
+            'enemy',
+            ['health', 'damage', 'collidable', 'visible', 'respawnable'],
+            [rng.float(-4, 4), 0, rng.float(-4, 4)]
+          )
         );
       }
 
@@ -922,9 +907,11 @@ export function createDungeonGrammar(): GraphGrammar {
     produce: () => [
       createTerminal('room_floor', ['collidable', 'visible'], [0, 0, 0]),
       createTerminal('room_walls', ['collidable', 'visible'], [0, 0, 0]),
-      createTerminal('treasure_chest', ['grabbable', 'collidable', 'visible', 'inventory'], [
-        0, 0, 0,
-      ]),
+      createTerminal(
+        'treasure_chest',
+        ['grabbable', 'collidable', 'visible', 'inventory'],
+        [0, 0, 0]
+      ),
       createTerminal('gold_pile', ['visible', 'collidable'], [-2, 0, 1]),
       createTerminal('gold_pile', ['visible', 'collidable'], [2, 0, -1]),
     ],
@@ -937,27 +924,13 @@ export function createDungeonGrammar(): GraphGrammar {
     maxDepth: 8,
     tags: ['dungeon', 'boss'],
     produce: () => [
-      createTerminal(
-        'boss_room_floor',
-        ['collidable', 'visible'],
-        [0, 0, 0],
-        { scale: 2 }
-      ),
-      createTerminal(
-        'boss_room_walls',
-        ['collidable', 'visible'],
-        [0, 0, 0],
-        { scale: 2 }
-      ),
-      createTerminal(
-        'boss',
-        ['health', 'damage', 'collidable', 'visible'],
-        [0, 0, -5],
-        { maxHealth: 1000, baseDamage: 50 }
-      ),
-      createTerminal('boss_loot', ['grabbable', 'collidable', 'visible', 'equippable'], [
-        0, 1, -8,
-      ]),
+      createTerminal('boss_room_floor', ['collidable', 'visible'], [0, 0, 0], { scale: 2 }),
+      createTerminal('boss_room_walls', ['collidable', 'visible'], [0, 0, 0], { scale: 2 }),
+      createTerminal('boss', ['health', 'damage', 'collidable', 'visible'], [0, 0, -5], {
+        maxHealth: 1000,
+        baseDamage: 50,
+      }),
+      createTerminal('boss_loot', ['grabbable', 'collidable', 'visible', 'equippable'], [0, 1, -8]),
     ],
   });
 

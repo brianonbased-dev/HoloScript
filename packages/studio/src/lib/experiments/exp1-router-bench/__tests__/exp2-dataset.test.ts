@@ -17,7 +17,10 @@ describe('EXP-2 dataset generator', () => {
 
   it('the assistant target parses to a set_trait_property mutation matching meta.expected', () => {
     for (const ex of generateDataset(300)) {
-      const target = JSON.parse(ex.messages[2].content) as { tool: string; input: Record<string, unknown> };
+      const target = JSON.parse(ex.messages[2].content) as {
+        tool: string;
+        input: Record<string, unknown>;
+      };
       expect(target.tool).toBe('set_trait_property');
       expect(target.input.trait_name).toBe(ex.meta.trait);
       expect(target.input.property_value).toBe(ex.meta.expected);

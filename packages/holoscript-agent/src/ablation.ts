@@ -107,7 +107,7 @@ export async function runAblation(opts: RunAblationOptions): Promise<AblationMat
 
       const costUsd = spec.pricer
         ? spec.pricer(response.usage)
-        : costGuard?.recordUsage(spec.model, response.usage).costUsd ?? 0;
+        : (costGuard?.recordUsage(spec.model, response.usage).costUsd ?? 0);
       if (spec.pricer && costGuard) {
         costGuard.recordUsage(spec.model, response.usage);
       }
@@ -250,7 +250,10 @@ function hashPrompt(system: string, user: string): string {
 
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`ablation cell "${label}" timed out after ${ms}ms`)), ms);
+    const timer = setTimeout(
+      () => reject(new Error(`ablation cell "${label}" timed out after ${ms}ms`)),
+      ms
+    );
     p.then(
       (v) => {
         clearTimeout(timer);

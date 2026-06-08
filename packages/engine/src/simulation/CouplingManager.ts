@@ -213,10 +213,7 @@ export class CouplingManager {
   /**
    * Get a named field from a solver.
    */
-  private getField(
-    entry: SolverEntry,
-    fieldName: string
-  ): RegularGrid3D | Float32Array | null {
+  private getField(entry: SolverEntry, fieldName: string): RegularGrid3D | Float32Array | null {
     switch (entry.type) {
       case 'thermal': {
         const solver = entry.solver as ThermalSolver;

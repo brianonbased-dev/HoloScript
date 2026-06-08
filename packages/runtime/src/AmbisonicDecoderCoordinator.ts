@@ -147,14 +147,10 @@ export class AmbisonicDecoderCoordinator {
     this._started = true;
 
     this.unsubscribers.push(
-      this.bus.on<AmbisonicsInitEvent>('ambisonics_init_decoder', (e) =>
-        this.onInit(e)
-      )
+      this.bus.on<AmbisonicsInitEvent>('ambisonics_init_decoder', (e) => this.onInit(e))
     );
     this.unsubscribers.push(
-      this.bus.on<AmbisonicsRotationEvent>('ambisonics_update_rotation', (e) =>
-        this.onRotation(e)
-      )
+      this.bus.on<AmbisonicsRotationEvent>('ambisonics_update_rotation', (e) => this.onRotation(e))
     );
     this.unsubscribers.push(
       this.bus.on<AmbisonicsPlaybackEvent>('ambisonics_start_playback', (e) =>
@@ -172,9 +168,7 @@ export class AmbisonicDecoderCoordinator {
       )
     );
     this.unsubscribers.push(
-      this.bus.on<AmbisonicsPlaybackEvent>('ambisonics_cleanup', (e) =>
-        this.onCleanup(e)
-      )
+      this.bus.on<AmbisonicsPlaybackEvent>('ambisonics_cleanup', (e) => this.onCleanup(e))
     );
   }
 

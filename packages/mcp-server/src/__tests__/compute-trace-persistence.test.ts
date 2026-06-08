@@ -118,7 +118,13 @@ describe('compute-trace corpus durability (native-model compute axis)', () => {
       contractId: 'glow-midpoint',
       scene: 'obj#item { @glow(intensity: 2) }',
       bound: { trait: 'glow', property: 'intensity', min: 0, max: 10, current: 2 },
-      mutation: { tool: 'set_trait_property', objectName: 'item', traitName: 'glow', propertyKey: 'intensity', propertyValue: 5 },
+      mutation: {
+        tool: 'set_trait_property',
+        objectName: 'item',
+        traitName: 'glow',
+        propertyKey: 'intensity',
+        propertyValue: 5,
+      },
       expectedValue: 5,
       opLabel: 'midpoint',
     });
@@ -132,7 +138,13 @@ describe('compute-trace corpus durability (native-model compute axis)', () => {
       contractId: 'audio-twothirds',
       scene: 'obj#speaker { @audio(volume: 1) }',
       bound: { trait: 'audio', property: 'volume', min: 0, max: 9, current: 1 },
-      mutation: { tool: 'set_trait_property', objectName: 'speaker', traitName: 'audio', propertyKey: 'volume', propertyValue: 5 },
+      mutation: {
+        tool: 'set_trait_property',
+        objectName: 'speaker',
+        traitName: 'audio',
+        propertyKey: 'volume',
+        propertyValue: 5,
+      },
       expectedValue: 6,
       opLabel: 'twothirds',
     });
@@ -143,7 +155,9 @@ describe('compute-trace corpus durability (native-model compute axis)', () => {
 
   it('write-through: graded mutations land in the on-disk JSONL corpus', () => {
     expect(existsSync(TRACE_PATH)).toBe(true);
-    const lines = readFileSync(TRACE_PATH, 'utf8').split('\n').filter((l) => l.trim());
+    const lines = readFileSync(TRACE_PATH, 'utf8')
+      .split('\n')
+      .filter((l) => l.trim());
     const mine = lines.map((l) => JSON.parse(l)).filter((r) => r.sessionId === SESSION);
     expect(mine).toHaveLength(3);
     const midpoint = mine.find((r) => r.contractId === 'glow-midpoint');
@@ -154,7 +168,9 @@ describe('compute-trace corpus durability (native-model compute axis)', () => {
 
   it('survives "restart": a fresh, independent module instance recovers the records from disk', async () => {
     const restarted = await import('../compute-trace-store?restart=1');
-    const records = restarted.readComputeTraces().filter((r: { sessionId: string }) => r.sessionId === SESSION);
+    const records = restarted
+      .readComputeTraces()
+      .filter((r: { sessionId: string }) => r.sessionId === SESSION);
     expect(records).toHaveLength(3);
     const stats = restarted.computeTraceStats();
     expect(stats.records).toBeGreaterThanOrEqual(3);
@@ -186,7 +202,10 @@ describe('compute-trace corpus durability (native-model compute axis)', () => {
     // passedOnly export (default) drops the failing twothirds row.
     const out = store.exportTracesJsonl(undefined, { passedOnly: true });
     expect(existsSync(out.path)).toBe(true);
-    const exported = readFileSync(out.path, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
+    const exported = readFileSync(out.path, 'utf8')
+      .split('\n')
+      .filter((l) => l.trim())
+      .map((l) => JSON.parse(l));
     const mineExported = exported.filter((r: { session: string }) => r.session === SESSION);
     // Of this session's 3 rows, 2 passed → only those survive the passedOnly export.
     expect(mineExported).toHaveLength(2);

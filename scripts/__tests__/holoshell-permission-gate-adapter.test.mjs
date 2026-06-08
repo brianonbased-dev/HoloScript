@@ -31,7 +31,9 @@ function assertEq(actual, expected, name) {
     console.log(`  PASS ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -76,8 +78,14 @@ assertEq(validatePack(plan).length, 0, 'plan validates');
 const planJson = JSON.stringify(plan);
 assertOk(!planJson.includes('joseph@example.com'), 'raw subject label is absent');
 assertOk(!planJson.includes('access_token=secret'), 'raw access token is absent');
-assertOk(plan.request.commandOrUrlPreview.includes('<absolute-path-redacted>'), 'absolute path preview redacted');
-assertOk(plan.request.commandOrUrlPreview.includes('access_token=<redacted>'), 'token preview redacted');
+assertOk(
+  plan.request.commandOrUrlPreview.includes('<absolute-path-redacted>'),
+  'absolute path preview redacted'
+);
+assertOk(
+  plan.request.commandOrUrlPreview.includes('access_token=<redacted>'),
+  'token preview redacted'
+);
 
 console.log('Test 2: verify receipts store token hash only and become ready');
 const verified = buildVerifiedPack(plan, {
@@ -113,7 +121,10 @@ try {
   });
   assertOk(false, 'overbroad grant should throw');
 } catch (error) {
-  assertOk(String(error.message).includes('Grant rejected by minimum-scope policy'), 'overbroad grant throws policy error');
+  assertOk(
+    String(error.message).includes('Grant rejected by minimum-scope policy'),
+    'overbroad grant throws policy error'
+  );
 }
 
 console.log('Test 5: CLI plan -> verify -> revoke round trip writes receipts');
@@ -127,7 +138,9 @@ const revokedPath = join(tmp, 'revoked.json');
 writeJson(requestPath, request);
 writeJson(verifyPath, {
   now: '2026-05-20T00:01:00.000Z',
-  grantedScopes: ['drive.file|Read and update only HoloLand-created world files.|medium|true|Google Drive per-file access'],
+  grantedScopes: [
+    'drive.file|Read and update only HoloLand-created world files.|medium|true|Google Drive per-file access',
+  ],
   tokenReferenceHash: 'sha256:prehashed-token-ref',
 });
 writeJson(revokePath, {
@@ -135,25 +148,41 @@ writeJson(revokePath, {
   revokeVerified: true,
 });
 
-const planResult = spawnSync(process.execPath, [SCRIPT, 'plan', '--input', requestPath, '--out', planPath], {
-  cwd: REPO_ROOT,
-  encoding: 'utf8',
-});
+const planResult = spawnSync(
+  process.execPath,
+  [SCRIPT, 'plan', '--input', requestPath, '--out', planPath],
+  {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  }
+);
 assertEq(planResult.status, 0, 'CLI plan exits 0');
 assertOk(existsSync(planPath), 'CLI plan file exists');
 
-const verifyResult = spawnSync(process.execPath, [SCRIPT, 'verify', '--pack', planPath, '--input', verifyPath, '--out', verifiedPath], {
-  cwd: REPO_ROOT,
-  encoding: 'utf8',
-});
+const verifyResult = spawnSync(
+  process.execPath,
+  [SCRIPT, 'verify', '--pack', planPath, '--input', verifyPath, '--out', verifiedPath],
+  {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  }
+);
 assertEq(verifyResult.status, 0, 'CLI verify exits 0');
 const cliVerified = JSON.parse(readFileSync(verifiedPath, 'utf8'));
-assertEq(cliVerified.grant.tokenReferenceHash, 'sha256:prehashed-token-ref', 'CLI verify preserves token hash');
+assertEq(
+  cliVerified.grant.tokenReferenceHash,
+  'sha256:prehashed-token-ref',
+  'CLI verify preserves token hash'
+);
 
-const revokeResult = spawnSync(process.execPath, [SCRIPT, 'revoke', '--pack', verifiedPath, '--input', revokePath, '--out', revokedPath], {
-  cwd: REPO_ROOT,
-  encoding: 'utf8',
-});
+const revokeResult = spawnSync(
+  process.execPath,
+  [SCRIPT, 'revoke', '--pack', verifiedPath, '--input', revokePath, '--out', revokedPath],
+  {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  }
+);
 assertEq(revokeResult.status, 0, 'CLI revoke exits 0');
 const cliRevoked = JSON.parse(readFileSync(revokedPath, 'utf8'));
 assertEq(cliRevoked.status, 'revoked', 'CLI revoked status');

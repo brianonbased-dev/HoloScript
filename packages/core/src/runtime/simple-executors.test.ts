@@ -44,13 +44,17 @@ function makeCtx(overrides: Partial<SimpleExecutorContext> = {}): SimpleExecutor
     stateMachines: new Map<string, StateMachineNode>(),
     templates: new Map<string, unknown>(),
     getEnvironment: () => envRef.current,
-    setEnvironment: (env) => { envRef.current = env; },
+    setEnvironment: (env) => {
+      envRef.current = env;
+    },
     focusHistory: [] as string[],
     executionStackDepth: () => 0,
     evaluateExpression: vi.fn((e: string) => e as HoloScriptValue),
     callFunction: vi.fn(async () => ({ success: true }) as ExecutionResult),
     setVariable: vi.fn(),
-    setScale: (mul, mag) => { scaleRef.current = { multiplier: mul, magnitude: mag }; },
+    setScale: (mul, mag) => {
+      scaleRef.current = { multiplier: mul, magnitude: mag };
+    },
     getScale: () => scaleRef.current,
     emit: vi.fn(),
     executeProgram: vi.fn(async () => [] as ExecutionResult[]),
@@ -102,9 +106,9 @@ describe('executeExpressionStatement', () => {
         throw new Error('bad-expr');
       }),
     });
-    await expect(
-      executeExpressionStatement({ expression: 'broken' }, ctx),
-    ).rejects.toThrow('bad-expr');
+    await expect(executeExpressionStatement({ expression: 'broken' }, ctx)).rejects.toThrow(
+      'bad-expr'
+    );
   });
 });
 
@@ -118,8 +122,11 @@ describe('executeCall', () => {
       callFunction: vi.fn(async () => ({ success: true, output: 'callResult' }) as ExecutionResult),
     });
     const result = await executeCall(
-      { type: 'call', target: 'myFn', args: ['a', 'b'] } as ASTNode & { target?: string; args?: unknown[] },
-      ctx,
+      { type: 'call', target: 'myFn', args: ['a', 'b'] } as ASTNode & {
+        target?: string;
+        args?: unknown[];
+      },
+      ctx
     );
     expect(ctx.callFunction).toHaveBeenCalledWith('myFn', ['a', 'b']);
     expect(result.output).toBe('callResult');
@@ -133,7 +140,10 @@ describe('executeCall', () => {
 
   it('defaults args to empty array', async () => {
     const ctx = makeCtx();
-    await executeCall({ type: 'call', target: 'f' } as ASTNode & { target?: string; args?: unknown[] }, ctx);
+    await executeCall(
+      { type: 'call', target: 'f' } as ASTNode & { target?: string; args?: unknown[] },
+      ctx
+    );
     expect(ctx.callFunction).toHaveBeenCalledWith('f', []);
   });
 });
@@ -147,11 +157,13 @@ describe('executeEnvironment', () => {
     const envRef: { current: Record<string, unknown> } = { current: { existing: 'keep' } };
     const ctx = makeCtx({
       getEnvironment: () => envRef.current,
-      setEnvironment: (env) => { envRef.current = env; },
+      setEnvironment: (env) => {
+        envRef.current = env;
+      },
     });
     const result = await executeEnvironment(
       { type: 'environment', settings: { newKey: 'added' } } as unknown as EnvironmentNode,
-      ctx,
+      ctx
     );
     expect(envRef.current).toEqual({ existing: 'keep', newKey: 'added' });
     expect(result.output).toBe('Environment updated');
@@ -161,11 +173,13 @@ describe('executeEnvironment', () => {
     const envRef: { current: Record<string, unknown> } = { current: { shared: 'old' } };
     const ctx = makeCtx({
       getEnvironment: () => envRef.current,
-      setEnvironment: (env) => { envRef.current = env; },
+      setEnvironment: (env) => {
+        envRef.current = env;
+      },
     });
     await executeEnvironment(
       { type: 'environment', settings: { shared: 'new' } } as unknown as EnvironmentNode,
-      ctx,
+      ctx
     );
     expect(envRef.current.shared).toBe('new');
   });
@@ -236,7 +250,8 @@ describe('executeStructure', () => {
 
   it('spatialPosition is carried through from node.position', async () => {
     const result = await executeStructure({
-      type: 'nexus', position: [1, 2, 3],
+      type: 'nexus',
+      position: [1, 2, 3],
     } as ASTNode);
     expect(result.spatialPosition).toEqual([1, 2, 3]);
   });
@@ -252,8 +267,11 @@ describe('executeAssignment', () => {
       evaluateExpression: vi.fn(() => 42 as HoloScriptValue),
     });
     const result = await executeAssignment(
-      { type: 'assignment', name: 'x', value: 'expr' } as ASTNode & { name: string; value: unknown },
-      ctx,
+      { type: 'assignment', name: 'x', value: 'expr' } as ASTNode & {
+        name: string;
+        value: unknown;
+      },
+      ctx
     );
     expect(ctx.evaluateExpression).toHaveBeenCalledWith('expr');
     expect(ctx.setVariable).toHaveBeenCalledWith('x', 42);
@@ -264,7 +282,7 @@ describe('executeAssignment', () => {
     const ctx = makeCtx();
     await executeAssignment(
       { type: 'assignment', name: 'x', value: 100 } as ASTNode & { name: string; value: unknown },
-      ctx,
+      ctx
     );
     expect(ctx.evaluateExpression).toHaveBeenCalledWith('100');
   });
@@ -279,7 +297,7 @@ describe('executeReturn', () => {
     const ctx = makeCtx({ evaluateExpression: vi.fn(() => 'returned' as HoloScriptValue) });
     const result = await executeReturn(
       { type: 'return', value: 'x' } as ASTNode & { value?: unknown },
-      ctx,
+      ctx
     );
     expect(ctx.evaluateExpression).toHaveBeenCalledWith('x');
     expect(result.output).toBe('returned');
@@ -289,7 +307,7 @@ describe('executeReturn', () => {
     const ctx = makeCtx();
     await executeReturn(
       { type: 'return', expression: 'expr-val' } as ASTNode & { expression?: string },
-      ctx,
+      ctx
     );
     expect(ctx.evaluateExpression).toHaveBeenCalledWith('expr-val');
   });
@@ -317,7 +335,7 @@ describe('executeScale', () => {
     });
     await executeScale(
       { type: 'scale', multiplier: 5, magnitude: 'cosmic', body: [] } as unknown as ScaleNode,
-      ctx,
+      ctx
     );
     // First call enters: 2 * 5 = 10
     expect(setScale.mock.calls[0]).toEqual([10, 'cosmic']);
@@ -329,7 +347,7 @@ describe('executeScale', () => {
     const ctx = makeCtx();
     await executeScale(
       { type: 'scale', multiplier: 3, magnitude: 'macro', body: [] } as unknown as ScaleNode,
-      ctx,
+      ctx
     );
     // Two emit calls: enter + exit
     expect((ctx.emit as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('scale:change');
@@ -346,7 +364,7 @@ describe('executeScale', () => {
     });
     await executeScale(
       { type: 'scale', multiplier: 10, magnitude: 'micro', body: [] } as unknown as ScaleNode,
-      ctx,
+      ctx
     );
     // After scale block completes, parent (1, 'standard') is restored
     expect(scaleRef.current).toEqual({ multiplier: 1, magnitude: 'standard' });
@@ -356,7 +374,7 @@ describe('executeScale', () => {
     const ctx = makeCtx();
     const result = await executeScale(
       { type: 'scale', multiplier: 2, magnitude: 'atomic', body: [] } as unknown as ScaleNode,
-      ctx,
+      ctx
     );
     expect(result.output).toBe('Executed scale block: atomic');
   });
@@ -377,14 +395,15 @@ describe('executeComposition', () => {
     });
     await executeComposition(
       {
-        type: 'composition', name: 'c',
+        type: 'composition',
+        name: 'c',
         body: {
           systems: [{ type: 's1' } as ASTNode],
           configs: [{ type: 'c1' } as ASTNode],
           children: [{ type: 'ch1' } as ASTNode],
         },
       } as unknown as CompositionNode,
-      ctx,
+      ctx
     );
     expect(callOrder).toHaveLength(3);
     expect(callOrder[0][0].type).toBe('s1'); // systems first
@@ -398,10 +417,11 @@ describe('executeComposition', () => {
     });
     const result = await executeComposition(
       {
-        type: 'composition', name: 'c',
+        type: 'composition',
+        name: 'c',
         body: { systems: [], configs: [], children: [] },
       } as unknown as CompositionNode,
-      ctx,
+      ctx
     );
     expect(result.success).toBe(false);
     expect(result.output).toContain('specialized blocks');
@@ -413,10 +433,11 @@ describe('executeComposition', () => {
     });
     const result = await executeComposition(
       {
-        type: 'composition', name: 'flat',
+        type: 'composition',
+        name: 'flat',
         children: [{ type: 'a' } as ASTNode, { type: 'b' } as ASTNode],
       } as unknown as CompositionNode,
-      ctx,
+      ctx
     );
     expect(ctx.executeProgram).toHaveBeenCalledTimes(1);
     expect(result.output).toBe('Composition flat executed');
@@ -432,7 +453,7 @@ describe('executeFocus', () => {
     const ctx = makeCtx();
     await executeFocus(
       { type: 'focus', target: 'player-1', body: [] } as unknown as FocusNode,
-      ctx,
+      ctx
     );
     expect(ctx.focusHistory).toEqual(['player-1']);
   });
@@ -442,7 +463,7 @@ describe('executeFocus', () => {
     const ctx = makeCtx({ executionStackDepth: depthSpy });
     await executeFocus(
       { type: 'focus', target: 't', body: [{ type: 'b' } as ASTNode] } as unknown as FocusNode,
-      ctx,
+      ctx
     );
     expect(ctx.executeProgram).toHaveBeenCalled();
     // Second arg is the stack depth
@@ -455,7 +476,7 @@ describe('executeFocus', () => {
     });
     const result = await executeFocus(
       { type: 'focus', target: 't', body: [{ type: 's' } as ASTNode] } as unknown as FocusNode,
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(result.output).toBe('Focused on t');
@@ -467,7 +488,7 @@ describe('executeFocus', () => {
     });
     const result = await executeFocus(
       { type: 'focus', target: 'x', body: [{ type: 's' } as ASTNode] } as unknown as FocusNode,
-      ctx,
+      ctx
     );
     expect(result.success).toBe(false);
   });
@@ -476,7 +497,7 @@ describe('executeFocus', () => {
     const ctx = makeCtx({ executeProgram: vi.fn(async () => []) });
     const result = await executeFocus(
       { type: 'focus', target: 'x', body: [] } as unknown as FocusNode,
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
   });

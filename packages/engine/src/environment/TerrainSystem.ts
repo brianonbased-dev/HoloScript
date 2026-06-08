@@ -231,7 +231,7 @@ export class TerrainSystem {
     const ny = 2 * epsilon;
     const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
 
-    return [nx / len, ny / len, nz / len ];
+    return [nx / len, ny / len, nz / len];
   }
 
   /**
@@ -319,7 +319,7 @@ export class TerrainSystem {
 
             vertices.push({
               position: [worldX, worldY, worldZ],
-              normal: [0, 1, 0 ], // Simplified; real normals computed post-pass
+              normal: [0, 1, 0], // Simplified; real normals computed post-pass
               uv: { u: x / (res - 1), v: z / (res - 1) },
               height: h,
             });

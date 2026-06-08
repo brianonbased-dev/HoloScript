@@ -62,8 +62,7 @@ describe('resolveReputationTier — production tier thresholds', () => {
 
 describe('reputationToTrust — [0,1] normalization', () => {
   it('0 reputation => 0 trust', () => expect(reputationToTrust(0)).toBe(0));
-  it('authority ceiling => 1.0 trust', () =>
-    expect(reputationToTrust(AUTHORITY_CEILING)).toBe(1));
+  it('authority ceiling => 1.0 trust', () => expect(reputationToTrust(AUTHORITY_CEILING)).toBe(1));
   it('clamps above ceiling', () => expect(reputationToTrust(500)).toBe(1));
   it('linear below ceiling', () => expect(reputationToTrust(50)).toBe(0.5));
 });

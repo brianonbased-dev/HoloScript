@@ -348,10 +348,7 @@ export function DesktopViewer({
         ...style,
       }}
     >
-      <Canvas
-        camera={{ position: [0, 6, 14], fov: 50 }}
-        style={{ background: backgroundColor }}
-      >
+      <Canvas camera={{ position: [0, 6, 14], fov: 50 }} style={{ background: backgroundColor }}>
         <Suspense fallback={null}>
           <ambientLight intensity={0.6} />
           <directionalLight position={[10, 20, 5]} intensity={0.9} castShadow />
@@ -409,9 +406,7 @@ export function DesktopViewer({
           <div style={{ opacity: 0.8, fontSize: 10 }}>
             {receipt.engineDelivery} → {receipt.renderer}
           </div>
-          <div style={{ opacity: 0.6, fontSize: 9, marginTop: 2 }}>
-            WIT: {receipt.witWorld}
-          </div>
+          <div style={{ opacity: 0.6, fontSize: 9, marginTop: 2 }}>WIT: {receipt.witWorld}</div>
         </div>
       )}
 

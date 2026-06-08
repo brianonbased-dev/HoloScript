@@ -31,7 +31,7 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
       position: config.position || [0, 0, 0],
       rotation: config.rotation || [0, 0, 0],
       geometry: 'box',
-      scale: [width, height, 0.01 ], // Thin backplate
+      scale: [width, height, 0.01], // Thin backplate
       color: '#333333',
       physics: { type: 'kinematic' }, // Anchored base
     },
@@ -43,7 +43,7 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
         properties: {
           position: [0, 0, depth / 2], // Slightly protruding
           geometry: 'box',
-          scale: [width * 0.9, height * 0.9, depth ],
+          scale: [width * 0.9, height * 0.9, depth],
           color: config.color || '#007AFF',
           physics: { type: 'dynamic', mass: 0.1 },
           data: config.data,
@@ -74,4 +74,3 @@ export function createUIButton(id: string, config: UIButtonConfig): HSPlusNode {
     ],
   };
 }
-

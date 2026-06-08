@@ -11,7 +11,13 @@ import { deflateSync } from 'node:zlib';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import {
+  chainReceipt,
+  sha256Bytes,
+  sha256Text,
+  stageReceipt,
+  withHash,
+} from './holoshell/chain/receipts.mjs';
 
 export const VERSION = '0.1.0';
 export const RECEIPT_VERSION = 'holoshell-fiducial-board/v1';
@@ -77,8 +83,10 @@ function parseArgs(argv) {
 }
 
 function validateDimensions(width, height) {
-  if (!Number.isInteger(width) || width < 420 || width > 4096) throw new Error('--width must be 420..4096');
-  if (!Number.isInteger(height) || height < 320 || height > 4096) throw new Error('--height must be 320..4096');
+  if (!Number.isInteger(width) || width < 420 || width > 4096)
+    throw new Error('--width must be 420..4096');
+  if (!Number.isInteger(height) || height < 320 || height > 4096)
+    throw new Error('--height must be 320..4096');
 }
 
 function printHelp() {
@@ -200,7 +208,16 @@ function drawMarker(rgb, width, height, marker, x, y, size) {
     }
   }
   const accentSize = Math.max(6, cell * 0.42);
-  fillRect(rgb, width, height, x + size - accentSize * 1.25, y + accentSize * 0.25, accentSize, accentSize, marker.accent);
+  fillRect(
+    rgb,
+    width,
+    height,
+    x + size - accentSize * 1.25,
+    y + accentSize * 0.25,
+    accentSize,
+    accentSize,
+    marker.accent
+  );
   return {
     id: `hs-${marker.id}`,
     numericId: marker.id,
@@ -234,33 +251,81 @@ function drawBoard(width, height) {
     height: height - margin * 2,
   };
   const gap = Math.round(Math.min(board.width, board.height) * 0.055);
-  const markerSize = Math.floor(Math.min((board.width - gap * 4) / 3, (board.height - gap * 4) / 3));
+  const markerSize = Math.floor(
+    Math.min((board.width - gap * 4) / 3, (board.height - gap * 4) / 3)
+  );
   const startX = Math.round((width - markerSize * 3 - gap * 2) / 2);
   const startY = Math.round((height - markerSize * 3 - gap * 2) / 2);
   fillRect(rgb, width, height, 0, 0, width, height, [250, 250, 246]);
-  strokeRect(rgb, width, height, board.x, board.y, board.width, board.height, [0, 0, 0], Math.max(3, Math.round(markerSize * 0.02)));
-  fillRect(rgb, width, height, board.x + 6, board.y + 6, board.width - 12, board.height - 12, [255, 255, 255]);
-  const markers = MARKERS.map((marker) => drawMarker(
+  strokeRect(
     rgb,
     width,
     height,
-    marker,
-    startX + marker.col * (markerSize + gap),
-    startY + marker.row * (markerSize + gap),
-    markerSize
-  ));
+    board.x,
+    board.y,
+    board.width,
+    board.height,
+    [0, 0, 0],
+    Math.max(3, Math.round(markerSize * 0.02))
+  );
+  fillRect(
+    rgb,
+    width,
+    height,
+    board.x + 6,
+    board.y + 6,
+    board.width - 12,
+    board.height - 12,
+    [255, 255, 255]
+  );
+  const markers = MARKERS.map((marker) =>
+    drawMarker(
+      rgb,
+      width,
+      height,
+      marker,
+      startX + marker.col * (markerSize + gap),
+      startY + marker.row * (markerSize + gap),
+      markerSize
+    )
+  );
   const stroke = Math.max(3, Math.round(markerSize * 0.022));
   const centerX = Math.round(width / 2);
   const centerY = Math.round(height / 2);
-  fillRect(rgb, width, height, centerX - markerSize * 0.11, centerY - stroke / 2, markerSize * 0.22, stroke, [0, 174, 204]);
-  fillRect(rgb, width, height, centerX - stroke / 2, centerY - markerSize * 0.11, stroke, markerSize * 0.22, [210, 42, 214]);
+  fillRect(
+    rgb,
+    width,
+    height,
+    centerX - markerSize * 0.11,
+    centerY - stroke / 2,
+    markerSize * 0.22,
+    stroke,
+    [0, 174, 204]
+  );
+  fillRect(
+    rgb,
+    width,
+    height,
+    centerX - stroke / 2,
+    centerY - markerSize * 0.11,
+    stroke,
+    markerSize * 0.22,
+    [210, 42, 214]
+  );
   return {
     rgb,
     geometry: {
       width,
       height,
       board,
-      markerGrid: { rows: 3, columns: 3, markerSize, gap, cells: MARKER_GRID, innerCells: INNER_GRID },
+      markerGrid: {
+        rows: 3,
+        columns: 3,
+        markerSize,
+        gap,
+        cells: MARKER_GRID,
+        innerCells: INNER_GRID,
+      },
       markers,
       fiducials: markers.map((marker) => ({
         id: marker.id,
@@ -269,12 +334,32 @@ function drawBoard(width, height) {
         accentRgb: marker.accentRgb,
       })),
       primitives: [
-        { id: 'cyan-center-axis', kind: 'axis', rgb: [0, 174, 204], center: { x: centerX, y: centerY } },
-        { id: 'magenta-center-axis', kind: 'axis', rgb: [210, 42, 214], center: { x: centerX, y: centerY } },
+        {
+          id: 'cyan-center-axis',
+          kind: 'axis',
+          rgb: [0, 174, 204],
+          center: { x: centerX, y: centerY },
+        },
+        {
+          id: 'magenta-center-axis',
+          kind: 'axis',
+          rgb: [210, 42, 214],
+          center: { x: centerX, y: centerY },
+        },
       ],
       axes: [
-        { id: 'horizontal-center-axis', from: { x: centerX - markerSize * 0.11, y: centerY }, to: { x: centerX + markerSize * 0.11, y: centerY }, color: [0, 174, 204] },
-        { id: 'vertical-center-axis', from: { x: centerX, y: centerY - markerSize * 0.11 }, to: { x: centerX, y: centerY + markerSize * 0.11 }, color: [210, 42, 214] },
+        {
+          id: 'horizontal-center-axis',
+          from: { x: centerX - markerSize * 0.11, y: centerY },
+          to: { x: centerX + markerSize * 0.11, y: centerY },
+          color: [0, 174, 204],
+        },
+        {
+          id: 'vertical-center-axis',
+          from: { x: centerX, y: centerY - markerSize * 0.11 },
+          to: { x: centerX, y: centerY + markerSize * 0.11 },
+          color: [210, 42, 214],
+        },
       ],
     },
   };
@@ -302,17 +387,22 @@ export function validateReceipt(receipt) {
   if (!receipt.target?.pngHash?.startsWith('sha256:')) errors.push('target PNG hash missing');
   if (!receipt.target?.pngPath) errors.push('target PNG path missing');
   if (receipt.target?.profile !== 'fiducial-board') errors.push('target profile mismatch');
-  if (!Array.isArray(receipt.target?.markers) || receipt.target.markers.length !== 9) errors.push('marker metadata missing');
-  if (!receipt.target?.markers?.every((marker) => marker.payload?.length === INNER_GRID * INNER_GRID)) {
+  if (!Array.isArray(receipt.target?.markers) || receipt.target.markers.length !== 9)
+    errors.push('marker metadata missing');
+  if (
+    !receipt.target?.markers?.every((marker) => marker.payload?.length === INNER_GRID * INNER_GRID)
+  ) {
     errors.push('marker payload missing');
   }
-  if (!Array.isArray(receipt.target?.fiducials) || receipt.target.fiducials.length !== 9) errors.push('fiducials missing');
+  if (!Array.isArray(receipt.target?.fiducials) || receipt.target.fiducials.length !== 9)
+    errors.push('fiducials missing');
   if (receipt.target?.pngPath) {
     const hash = fileHash(receipt.target.pngPath);
     if (!hash) errors.push('target PNG file missing');
     else if (hash !== receipt.target.pngHash) errors.push('target PNG file hash mismatch');
   }
-  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:'))
+    errors.push('chain receipt hash missing');
   return errors;
 }
 
@@ -327,7 +417,9 @@ export async function generateFiducialBoard(args = {}) {
   mkdirSync(dirname(pngPath), { recursive: true });
   writeFileSync(pngPath, png);
   const pngHash = `sha256:${sha256Bytes(png)}`;
-  const variant = sha256Text(JSON.stringify({ version: VERSION, width, height, geometry: board.geometry })).slice(0, 12);
+  const variant = sha256Text(
+    JSON.stringify({ version: VERSION, width, height, geometry: board.geometry })
+  ).slice(0, 12);
   const stage = stageReceipt({
     name: 'target.generate-fiducial-board',
     input: { width, height, variant },
@@ -368,7 +460,8 @@ export async function generateFiducialBoard(args = {}) {
       compatibility: {
         opencvAruco: false,
         aprilTag: false,
-        reason: 'The board is ArUco-inspired but uses a HoloShell-native deterministic marker dictionary.',
+        reason:
+          'The board is ArUco-inspired but uses a HoloShell-native deterministic marker dictionary.',
       },
       pngPath: rel(pngPath),
       pngHash,
@@ -401,8 +494,10 @@ export async function selfTest() {
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(errors.join('; '));
   const bytes = readFileSync(resolve(REPO_ROOT, receipt.target.pngPath));
-  if (!bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) throw new Error('self-test board is not a PNG');
-  if (receipt.target.pngHash !== `sha256:${sha256Bytes(bytes)}`) throw new Error('self-test PNG hash mismatch');
+  if (!bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE))
+    throw new Error('self-test board is not a PNG');
+  if (receipt.target.pngHash !== `sha256:${sha256Bytes(bytes)}`)
+    throw new Error('self-test PNG hash mismatch');
   return receipt;
 }
 
@@ -418,23 +513,32 @@ async function main() {
     return;
   }
   const receipt = await generateFiducialBoard(args);
-  process.stdout.write(`${JSON.stringify({
-    status: receipt.status,
-    receiptPath: receipt.outputPath,
-    target: {
-      path: receipt.target.pngPath,
-      pngHash: receipt.target.pngHash,
-      width: receipt.target.width,
-      height: receipt.target.height,
-      markerCount: receipt.target.markers.length,
-      dictionary: receipt.target.dictionary,
-      opencvArucoCompatible: receipt.target.compatibility.opencvAruco,
-      aprilTagCompatible: receipt.target.compatibility.aprilTag,
-    },
-  }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        status: receipt.status,
+        receiptPath: receipt.outputPath,
+        target: {
+          path: receipt.target.pngPath,
+          pngHash: receipt.target.pngHash,
+          width: receipt.target.width,
+          height: receipt.target.height,
+          markerCount: receipt.target.markers.length,
+          dictionary: receipt.target.dictionary,
+          opencvArucoCompatible: receipt.target.compatibility.opencvAruco,
+          aprilTagCompatible: receipt.target.compatibility.aprilTag,
+        },
+      },
+      null,
+      2
+    )}\n`
+  );
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('holoshell-fiducial-board.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('holoshell-fiducial-board.mjs')
+) {
   main().catch((error) => {
     process.stderr.write(`holoshell-fiducial-board FAIL: ${error.stack ?? error.message}\n`);
     process.exitCode = 1;

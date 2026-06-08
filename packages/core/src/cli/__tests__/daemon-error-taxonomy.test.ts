@@ -8,27 +8,67 @@
 import { describe, it, expect } from 'vitest';
 
 // Inlined from @holoscript/absorb-service/daemon/daemon-error-taxonomy (pure functions, zero deps)
-type ErrorCategory = 'missing_symbol' | 'type_mismatch' | 'missing_property' | 'missing_member'
-  | 'wrong_arity' | 'incompatible_types' | 'import_resolution' | 'generic_constraint'
-  | 'null_safety' | 'abstract_incomplete' | 'overload_mismatch' | 'readonly_violation' | 'unknown';
+type ErrorCategory =
+  | 'missing_symbol'
+  | 'type_mismatch'
+  | 'missing_property'
+  | 'missing_member'
+  | 'wrong_arity'
+  | 'incompatible_types'
+  | 'import_resolution'
+  | 'generic_constraint'
+  | 'null_safety'
+  | 'abstract_incomplete'
+  | 'overload_mismatch'
+  | 'readonly_violation'
+  | 'unknown';
 
-interface SemanticError { code: string; category: ErrorCategory; symbol?: string; file: string; line: number; message: string; }
+interface SemanticError {
+  code: string;
+  category: ErrorCategory;
+  symbol?: string;
+  file: string;
+  line: number;
+  message: string;
+}
 
 const CODE_TO_CATEGORY: Record<string, ErrorCategory> = {
-  TS2304: 'missing_symbol', TS2305: 'missing_symbol', TS2306: 'import_resolution',
-  TS2307: 'import_resolution', TS2322: 'incompatible_types', TS2339: 'missing_property',
-  TS2344: 'generic_constraint', TS2345: 'type_mismatch', TS2349: 'type_mismatch',
-  TS2515: 'abstract_incomplete', TS2531: 'null_safety', TS2540: 'readonly_violation',
-  TS2554: 'wrong_arity', TS2741: 'missing_member', TS2769: 'overload_mismatch',
-  TS18047: 'null_safety', TS18048: 'null_safety',
+  TS2304: 'missing_symbol',
+  TS2305: 'missing_symbol',
+  TS2306: 'import_resolution',
+  TS2307: 'import_resolution',
+  TS2322: 'incompatible_types',
+  TS2339: 'missing_property',
+  TS2344: 'generic_constraint',
+  TS2345: 'type_mismatch',
+  TS2349: 'type_mismatch',
+  TS2515: 'abstract_incomplete',
+  TS2531: 'null_safety',
+  TS2540: 'readonly_violation',
+  TS2554: 'wrong_arity',
+  TS2741: 'missing_member',
+  TS2769: 'overload_mismatch',
+  TS18047: 'null_safety',
+  TS18048: 'null_safety',
 };
 
-function categorizeError(code: string): ErrorCategory { return CODE_TO_CATEGORY[code] ?? 'unknown'; }
+function categorizeError(code: string): ErrorCategory {
+  return CODE_TO_CATEGORY[code] ?? 'unknown';
+}
 
 function extractSymbol(message: string): string | undefined {
-  const patterns = [/Cannot find name '(\w+)'/, /Property '(\w+)' does not exist/, /Type '(\w+)' is not assignable/,
-    /has no exported member '(\w+)'/, /Cannot find module '([^']+)'/, /Property '(\w+)' is missing/];
-  for (const re of patterns) { const m = message.match(re); if (m?.[1]) return m[1]; }
+  const patterns = [
+    /Cannot find name '(\w+)'/,
+    /Property '(\w+)' does not exist/,
+    /Type '(\w+)' is not assignable/,
+    /has no exported member '(\w+)'/,
+    /Cannot find module '([^']+)'/,
+    /Property '(\w+)' is missing/,
+  ];
+  for (const re of patterns) {
+    const m = message.match(re);
+    if (m?.[1]) return m[1];
+  }
   return undefined;
 }
 
@@ -36,21 +76,52 @@ function parseTscErrorLine(line: string): SemanticError | null {
   const m = line.match(/^(.+?)\((\d+),\d+\):\s*error\s*(TS\d+):\s*(.+)/);
   if (!m) return null;
   const [, file, lineNum, code, message] = m;
-  return { code, category: categorizeError(code), symbol: extractSymbol(message), file: file.replace(/\\/g, '/'), line: parseInt(lineNum, 10), message: message.trim() };
+  return {
+    code,
+    category: categorizeError(code),
+    symbol: extractSymbol(message),
+    file: file.replace(/\\/g, '/'),
+    line: parseInt(lineNum, 10),
+    message: message.trim(),
+  };
 }
 
 function parseTscOutput(output: string): SemanticError[] {
-  return output.split('\n').map(parseTscErrorLine).filter((e): e is SemanticError => e !== null);
+  return output
+    .split('\n')
+    .map(parseTscErrorLine)
+    .filter((e): e is SemanticError => e !== null);
 }
 
 function aggregatePatterns(errors: SemanticError[]) {
-  const byCategory = new Map<ErrorCategory, { files: Set<string>; symbols: Set<string>; exemplar: string; count: number }>();
+  const byCategory = new Map<
+    ErrorCategory,
+    { files: Set<string>; symbols: Set<string>; exemplar: string; count: number }
+  >();
   for (const e of errors) {
     const existing = byCategory.get(e.category);
-    if (existing) { existing.count++; existing.files.add(e.file); if (e.symbol) existing.symbols.add(e.symbol); }
-    else { byCategory.set(e.category, { files: new Set([e.file]), symbols: new Set(e.symbol ? [e.symbol] : []), exemplar: e.message, count: 1 }); }
+    if (existing) {
+      existing.count++;
+      existing.files.add(e.file);
+      if (e.symbol) existing.symbols.add(e.symbol);
+    } else {
+      byCategory.set(e.category, {
+        files: new Set([e.file]),
+        symbols: new Set(e.symbol ? [e.symbol] : []),
+        exemplar: e.message,
+        count: 1,
+      });
+    }
   }
-  return [...byCategory.entries()].map(([category, data]) => ({ category, count: data.count, files: [...data.files], symbols: [...data.symbols], exemplar: data.exemplar })).sort((a, b) => b.count - a.count);
+  return [...byCategory.entries()]
+    .map(([category, data]) => ({
+      category,
+      count: data.count,
+      files: [...data.files],
+      symbols: [...data.symbols],
+      exemplar: data.exemplar,
+    }))
+    .sort((a, b) => b.count - a.count);
 }
 
 describe('categorizeError', () => {

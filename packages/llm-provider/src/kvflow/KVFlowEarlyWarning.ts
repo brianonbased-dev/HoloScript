@@ -318,8 +318,10 @@ export class KVFlowCarouselDetector {
     const metricsArray = Array.from(brainMetrics.values());
     const summary: CarouselSummary = {
       totalBrains: metricsArray.length,
-      healthyBrains: metricsArray.filter((m) => m.hitRate >= this.config.healthyHitRateThreshold).length,
-      atRiskBrains: metricsArray.filter((m) => m.hitRate < this.config.atRiskHitRateThreshold).length,
+      healthyBrains: metricsArray.filter((m) => m.hitRate >= this.config.healthyHitRateThreshold)
+        .length,
+      atRiskBrains: metricsArray.filter((m) => m.hitRate < this.config.atRiskHitRateThreshold)
+        .length,
       carouselBrains: warnings.length,
       totalStallsAvoided: metricsArray.reduce((sum, m) => sum + m.prefetchStallsAvoided, 0),
       totalStallsObserved: metricsArray.reduce((sum, m) => sum + m.stallsObserved, 0),
@@ -578,13 +580,11 @@ export class KVFlowCarouselDetector {
     const configIsStale =
       configUpdateTime < graphChangeTime ||
       (Date.now() - configUpdateTime > this.config.configStalenessThresholdMs &&
-        (stepsAdded + stepsRemoved) > 0);
+        stepsAdded + stepsRemoved > 0);
 
     if (!configIsStale && stepsAdded === 0 && stepsRemoved === 0) return null;
 
-    const isStale =
-      configIsStale ||
-      (stepsAdded + stepsRemoved) > 0;
+    const isStale = configIsStale || stepsAdded + stepsRemoved > 0;
 
     const summary = isStale
       ? `Workflow graph has ${stepsAdded} additions and ${stepsRemoved} removals since last config update. ` +

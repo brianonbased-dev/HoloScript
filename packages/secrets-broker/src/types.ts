@@ -175,11 +175,7 @@ export interface LeaseAdapter {
   }): Promise<{ ok: boolean; reason?: string }>;
 
   /** Revoke a lease early (task done, agent compromise, rotation, etc.). */
-  revokeLease(params: {
-    leaseId: string;
-    reason: string;
-    by: string;
-  }): Promise<{ ok: boolean }>;
+  revokeLease(params: { leaseId: string; reason: string; by: string }): Promise<{ ok: boolean }>;
 }
 
 /** Device-flow provisioning result for a new AI surface. */

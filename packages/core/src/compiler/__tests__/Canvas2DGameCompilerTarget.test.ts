@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  Canvas2DGameCompiler,
-  normalizeHoloComposition,
-} from '../Canvas2DGameCompilerTarget';
+import { Canvas2DGameCompiler, normalizeHoloComposition } from '../Canvas2DGameCompilerTarget';
 import {
   isValidCompilerName,
   getDomainForCompiler,

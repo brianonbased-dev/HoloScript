@@ -39,8 +39,8 @@ describe('VoiceProximityTrait', () => {
     sendEvent(voiceProximityHandler, node, cfg, ctx, {
       type: 'voice_distance_update',
       distance: 10,
-      listenerPosition: [0, 0, 0 ],
-      speakerPosition: [10, 0, 0 ],
+      listenerPosition: [0, 0, 0],
+      speakerPosition: [10, 0, 0],
     });
     const s = (node as any).__voiceProximityState;
     // Linear at distance=10, min=1, max=20: 1 - (10-1)/(20-1) ≈ 0.526
@@ -52,8 +52,8 @@ describe('VoiceProximityTrait', () => {
     sendEvent(voiceProximityHandler, node, cfg, ctx, {
       type: 'voice_distance_update',
       distance: 0.5,
-      listenerPosition: [0, 0, 0 ],
-      speakerPosition: [0.5, 0, 0 ],
+      listenerPosition: [0, 0, 0],
+      speakerPosition: [0.5, 0, 0],
     });
     expect((node as any).__voiceProximityState.targetAttenuation).toBe(1);
   });
@@ -62,8 +62,8 @@ describe('VoiceProximityTrait', () => {
     sendEvent(voiceProximityHandler, node, cfg, ctx, {
       type: 'voice_distance_update',
       distance: 25,
-      listenerPosition: [0, 0, 0 ],
-      speakerPosition: [25, 0, 0 ],
+      listenerPosition: [0, 0, 0],
+      speakerPosition: [25, 0, 0],
     });
     expect((node as any).__voiceProximityState.targetAttenuation).toBe(0);
   });

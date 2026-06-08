@@ -10,6 +10,7 @@
 Composing `@voronoi_fracture`, `@granular_material`, `@global_illumination`, and `@fluid_simulation`
 in a single `.holo` scene causes the HoloScript parser to emit `HSP001: Unknown directive` warnings
 for all four traits — despite each having:
+
 - A full `*Trait.ts` handler implementation in `packages/core/src/traits/`
 - At minimum `voronoi_fracture` and `granular_material` having entries in `trait-registry.json`
 
@@ -18,13 +19,13 @@ and downstream compilers that treat HSP001 as an error would reject valid scenes
 
 ## Affected Traits
 
-| Trait annotation | Trait*.ts file | In trait-registry.json | Parser result |
-|---|---|---|---|
-| `@global_illumination` | `GlobalIlluminationTrait.ts` | NO | HSP001 warning |
-| `@voronoi_fracture` | `VoronoiFractureTrait.ts` | YES | HSP001 warning |
-| `@fluid_simulation` | `FluidSimulationTrait.ts` | NO | HSP001 warning |
-| `@granular_material` | `GranularMaterialTrait.ts` | YES | HSP001 warning |
-| `@deformable_terrain` | `DeformableTerrainTrait.ts` | NO | **PASSES** (parser knows this one) |
+| Trait annotation       | Trait\*.ts file              | In trait-registry.json | Parser result                      |
+| ---------------------- | ---------------------------- | ---------------------- | ---------------------------------- |
+| `@global_illumination` | `GlobalIlluminationTrait.ts` | NO                     | HSP001 warning                     |
+| `@voronoi_fracture`    | `VoronoiFractureTrait.ts`    | YES                    | HSP001 warning                     |
+| `@fluid_simulation`    | `FluidSimulationTrait.ts`    | NO                     | HSP001 warning                     |
+| `@granular_material`   | `GranularMaterialTrait.ts`   | YES                    | HSP001 warning                     |
+| `@deformable_terrain`  | `DeformableTerrainTrait.ts`  | NO                     | **PASSES** (parser knows this one) |
 
 Note: `@deformable_terrain` passes even though it is NOT in `trait-registry.json`. This confirms
 the parser's trait whitelist is a **third, independent source** that is inconsistent with both the
@@ -61,6 +62,7 @@ Actual: `HSP001: Unknown directive @voronoi_fracture`
 
 The parser (`packages/core/dist/parser.cjs`) maintains its own internal known-traits whitelist
 that is not automatically synced with:
+
 1. `packages/core/src/traits/trait-registry.json`
 2. The presence of `*Trait.ts` handler files
 
@@ -83,11 +85,41 @@ on any gap.
 
 ```json
 [
-  { "code":"HSP001", "message":"HSP001: Unknown directive @global_illumination", "line":55, "severity":"warning" },
-  { "code":"HSP001", "message":"HSP001: Unknown directive @voronoi_fracture", "line":97, "severity":"warning" },
-  { "code":"HSP001", "message":"HSP001: Unknown directive @fluid_simulation", "line":229, "severity":"warning" },
-  { "code":"HSP001", "message":"HSP001: Unknown directive @granular_material", "line":304, "severity":"warning" },
-  { "code":"HSP001", "message":"HSP001: Unknown directive @granular_material", "line":335, "severity":"warning" },
-  { "code":"HSP001", "message":"HSP001: Unknown directive @granular_material", "line":365, "severity":"warning" }
+  {
+    "code": "HSP001",
+    "message": "HSP001: Unknown directive @global_illumination",
+    "line": 55,
+    "severity": "warning"
+  },
+  {
+    "code": "HSP001",
+    "message": "HSP001: Unknown directive @voronoi_fracture",
+    "line": 97,
+    "severity": "warning"
+  },
+  {
+    "code": "HSP001",
+    "message": "HSP001: Unknown directive @fluid_simulation",
+    "line": 229,
+    "severity": "warning"
+  },
+  {
+    "code": "HSP001",
+    "message": "HSP001: Unknown directive @granular_material",
+    "line": 304,
+    "severity": "warning"
+  },
+  {
+    "code": "HSP001",
+    "message": "HSP001: Unknown directive @granular_material",
+    "line": 335,
+    "severity": "warning"
+  },
+  {
+    "code": "HSP001",
+    "message": "HSP001: Unknown directive @granular_material",
+    "line": 365,
+    "severity": "warning"
+  }
 ]
 ```

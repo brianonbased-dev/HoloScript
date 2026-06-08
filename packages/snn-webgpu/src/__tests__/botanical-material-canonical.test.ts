@@ -23,7 +23,9 @@ describe('canonical botanical material extraction', () => {
     expect(normalized.anchor_ids).toEqual(['lotus-a']);
     expect(normalized.provenance.content_hash_status).toBe('complete');
     expect(normalized.provenance.wallet_signature_status).toBe('complete');
-    expect(normalized.material.subsurface_scattering).toBe(fixtureResult.material.subsurface_scattering);
+    expect(normalized.material.subsurface_scattering).toBe(
+      fixtureResult.material.subsurface_scattering
+    );
     expect(normalized.confidence).toBe(fixtureResult.confidence.overall);
   });
 

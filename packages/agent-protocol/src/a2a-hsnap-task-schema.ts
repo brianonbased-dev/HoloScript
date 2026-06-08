@@ -306,12 +306,7 @@ export const mapA2AToHSNAP: A2AToHSNAP = (task, options = {}) => {
   const stateBindings: HSNAPStateBinding[] = [];
   if (task.metadata?.stateBindings && Array.isArray(task.metadata.stateBindings)) {
     for (const binding of task.metadata.stateBindings) {
-      if (
-        binding &&
-        typeof binding === 'object' &&
-        'target' in binding &&
-        'source' in binding
-      ) {
+      if (binding && typeof binding === 'object' && 'target' in binding && 'source' in binding) {
         const b = binding as Record<string, unknown>;
         stateBindings.push({
           target: String(b.target),

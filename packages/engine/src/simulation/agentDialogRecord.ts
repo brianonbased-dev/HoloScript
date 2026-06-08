@@ -152,7 +152,10 @@ export function dialogWireKey(source: AgentDialogWireInput): string {
  * preserved). Wallclock variations between recorders, agent restart effects,
  * and instance-id churn do not affect the result by construction.
  */
-export function wireFormatEquivalentDialog(a: AgentDialogWireInput, b: AgentDialogWireInput): boolean {
+export function wireFormatEquivalentDialog(
+  a: AgentDialogWireInput,
+  b: AgentDialogWireInput
+): boolean {
   return dialogWireKey(a) === dialogWireKey(b);
 }
 

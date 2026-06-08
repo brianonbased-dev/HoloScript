@@ -47,7 +47,9 @@ function packWgslSplatRaw64(payload: SplatUploadPayload, reuse: Float32Array | n
   const floatsPerSplat = 16; // 64 bytes
   const need = count * floatsPerSplat;
   const buf =
-    reuse && reuse.length >= need ? reuse : new Float32Array(Math.max(need, floatsPerSplat * Math.max(count, 1)));
+    reuse && reuse.length >= need
+      ? reuse
+      : new Float32Array(Math.max(need, floatsPerSplat * Math.max(count, 1)));
 
   for (let i = 0; i < count; i++) {
     const o = i * floatsPerSplat;

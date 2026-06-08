@@ -30,9 +30,9 @@ function toNumber(n: number): number {
 function toVec3(v: Vec3Like): Vec3 {
   const idx = v as [number, number, number];
   const obj = v as Vec3;
-  const x = toNumber((idx[0] ?? obj.x) ?? 0);
-  const y = toNumber((idx[1] ?? obj.y) ?? 0);
-  const z = toNumber((idx[2] ?? obj.z) ?? 0);
+  const x = toNumber(idx[0] ?? obj.x ?? 0);
+  const y = toNumber(idx[1] ?? obj.y ?? 0);
+  const z = toNumber(idx[2] ?? obj.z ?? 0);
   const out = { x, y, z } as Vec3;
   Object.defineProperty(out, '0', { value: x, enumerable: false, writable: true });
   Object.defineProperty(out, '1', { value: y, enumerable: false, writable: true });
@@ -287,11 +287,7 @@ export class PhysicsStep implements EngineSystem {
     let closest: { bodyId: string; distance: number; point: Vec3 } | null = null;
 
     for (const body of this.bodies.values()) {
-      const oc = [
-        o[0] - body.position[0],
-        o[1] - body.position[1],
-        o[2] - body.position[2],
-      ];
+      const oc = [o[0] - body.position[0], o[1] - body.position[1], o[2] - body.position[2]];
       const b = oc[0] * d[0] + oc[1] * d[1] + oc[2] * d[2];
       const c = oc[0] * oc[0] + oc[1] * oc[1] + oc[2] * oc[2] - 0.5 * 0.5; // radius 0.5
       const discriminant = b * b - c;
@@ -305,11 +301,7 @@ export class PhysicsStep implements EngineSystem {
         closest = {
           bodyId: body.id,
           distance: t,
-          point: toVec3([
-            o[0] + d[0] * t,
-            o[1] + d[1] * t,
-            o[2] + d[2] * t,
-          ]),
+          point: toVec3([o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t]),
         };
       }
     }

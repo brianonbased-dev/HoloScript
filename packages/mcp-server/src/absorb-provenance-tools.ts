@@ -181,7 +181,10 @@ export async function fetchOrchestratorGraphContext(
   // when HOLOMESH_VAULT_LEASE_ENFORCE is on.
   const apiKey = readGraphContextApiKey();
   if (!search.trim() || !apiKey) {
-    return { graphSnapshotId: await provenanceHash(`${search}|no-orchestrator`), staleness: 'unknown' };
+    return {
+      graphSnapshotId: await provenanceHash(`${search}|no-orchestrator`),
+      staleness: 'unknown',
+    };
   }
 
   const baseUrl = (
@@ -205,7 +208,10 @@ export async function fetchOrchestratorGraphContext(
     });
 
     if (!res.ok) {
-      return { graphSnapshotId: await provenanceHash(`${search}|query-${res.status}`), staleness: 'unknown' };
+      return {
+        graphSnapshotId: await provenanceHash(`${search}|query-${res.status}`),
+        staleness: 'unknown',
+      };
     }
 
     const data = (await res.json()) as {
@@ -248,7 +254,10 @@ export async function fetchOrchestratorGraphContext(
       knowledgeAsOf: new Date(newest).toISOString(),
     };
   } catch {
-    return { graphSnapshotId: await provenanceHash(`${search}|orchestrator-error`), staleness: 'unknown' };
+    return {
+      graphSnapshotId: await provenanceHash(`${search}|orchestrator-error`),
+      staleness: 'unknown',
+    };
   }
 }
 

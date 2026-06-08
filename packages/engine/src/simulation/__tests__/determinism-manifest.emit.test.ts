@@ -31,7 +31,9 @@ function defaultLabel(): string {
 
 describe('semantic-novelty determinism manifest emitter (P1 fleet artifact)', () => {
   it(
-    ENABLED ? 'emits this machine\'s manifest and is same-machine stable' : 'is inert unless EMIT_DETERMINISM_MANIFEST=1',
+    ENABLED
+      ? "emits this machine's manifest and is same-machine stable"
+      : 'is inert unless EMIT_DETERMINISM_MANIFEST=1',
     async (ctx) => {
       if (!ENABLED) return ctx.skip();
       const label = process.env.DETERMINISM_LABEL ?? defaultLabel();
@@ -41,12 +43,14 @@ describe('semantic-novelty determinism manifest emitter (P1 fleet artifact)', ()
         `determinism-manifest.${hostname()}-${platform()}-${arch()}.json`;
       writeFileSync(out, JSON.stringify(manifest, null, 2), 'utf8');
       // eslint-disable-next-line no-console
-      console.log(`[determinism] wrote ${out} (sameMachineStable=${manifest.sameMachineStable}, dim=${manifest.dim})`);
+      console.log(
+        `[determinism] wrote ${out} (sameMachineStable=${manifest.sameMachineStable}, dim=${manifest.dim})`
+      );
       // A machine that isn't even same-machine stable can never contribute to a byte-identical
       // verdict — assert it here so a broken node fails loudly rather than emitting junk.
       expect(manifest.sameMachineStable).toBe(true);
       expect(manifest.entries.length).toBeGreaterThan(0);
     },
-    180_000,
+    180_000
   );
 });

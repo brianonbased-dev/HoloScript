@@ -12,17 +12,17 @@
 The autonomy chain is `schedule → file board task → claim → EXECUTE → close`. Today:
 
 - **Schedulers work**: HoloShell Team registry (30 ACTIVE rows, `--enqueue-due` every 15 min) + cloud routines file board tasks.
-- **Claim works in live sessions only**: `auto-claim.ts` (posttooluse) + A-022 triage need a live LLM agent session. `team-connect --daemon` *can* auto-claim every 5 min but the family daemons run it `--no-auto-claim` (presence only).
+- **Claim works in live sessions only**: `auto-claim.ts` (posttooluse) + A-022 triage need a live LLM agent session. `team-connect --daemon` _can_ auto-claim every 5 min but the family daemons run it `--no-auto-claim` (presence only).
 - **EXECUTE has no autonomous path**: nothing assigns a claimed task to a capable agent and authorizes its execution. **Brittney can see the board but cannot dispatch.**
 
 This plan makes Brittney the orchestrator that **selects → capability-matches → spend-gates → dispatches → executes → closes** board tasks.
 
 ## 2. Shipped this session (decision core)
 
-| File | What | State |
-|---|---|---|
-| `packages/studio/src/lib/brittney/FleetOrchestrator.ts` | Pure decision logic: `normalizePriority`, `deriveTaskSkills`, `scoreAgentForTask`, `matchAgentToTask`, `rankTasks`/`selectNextTask`, `SpendGovernor` (daily cap), `estimateTaskSpendUsd`, `planFleetDispatch`. Zero app/framework imports → ~zero build blast radius. | ✅ committed, unit-tested-by-design |
-| `packages/studio/src/lib/brittney/__tests__/FleetOrchestrator.test.ts` | Full contract coverage (priority, matching, ranking, spend cap, plan). | ✅ committed — **run on desktop to confirm green** |
+| File                                                                   | What                                                                                                                                                                                                                                                                  | State                                              |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `packages/studio/src/lib/brittney/FleetOrchestrator.ts`                | Pure decision logic: `normalizePriority`, `deriveTaskSkills`, `scoreAgentForTask`, `matchAgentToTask`, `rankTasks`/`selectNextTask`, `SpendGovernor` (daily cap), `estimateTaskSpendUsd`, `planFleetDispatch`. Zero app/framework imports → ~zero build blast radius. | ✅ committed, unit-tested-by-design                |
+| `packages/studio/src/lib/brittney/__tests__/FleetOrchestrator.test.ts` | Full contract coverage (priority, matching, ranking, spend cap, plan).                                                                                                                                                                                                | ✅ committed — **run on desktop to confirm green** |
 
 The core is deliberately I/O-free: it decides **what** to dispatch and **whether** the cap allows it. The wiring layer below owns claiming, the LLM call, recording actual spend, and closing.
 
@@ -60,8 +60,14 @@ const dispatchTaskToAgent: StudioToolDefinition = {
     parameters: {
       type: 'object',
       properties: {
-        teamId: { type: 'string', description: 'Team whose board to work (defaults to session team)' },
-        maxDispatches: { type: 'number', description: 'Max tasks to dispatch this run (default 1)' },
+        teamId: {
+          type: 'string',
+          description: 'Team whose board to work (defaults to session team)',
+        },
+        maxDispatches: {
+          type: 'number',
+          description: 'Max tasks to dispatch this run (default 1)',
+        },
         dryRun: { type: 'string', enum: ['true', 'false'], description: 'Preview plan only' },
       },
     },
@@ -74,9 +80,10 @@ const dispatchTaskToAgent: StudioToolDefinition = {
 ### 3c. Scheduler tick — execute declared schedules
 
 `agentProfiles.ts` defines `schedules: string[]` (`nightly`, `daily`, …) but nothing reads them (`autospawnFleet.ts` only persists them). Add a tick endpoint/cron (`POST /api/agents/fleet/scheduler-tick`) that:
+
 - reads each autospawned agent's `metadata.schedules`, resolves which are due now,
 - for a due schedule, calls the dispatch flow (§3a) scoped to that agent/mission.
-Reconcile with the **Tier-B HoloShell Team registry** (the working scheduler) — prefer one scheduler of record; this tick should consume registry-enqueued board tasks, not duplicate the cadence engine.
+  Reconcile with the **Tier-B HoloShell Team registry** (the working scheduler) — prefer one scheduler of record; this tick should consume registry-enqueued board tasks, not duplicate the cadence engine.
 
 ### 3d. Env + config
 
@@ -106,7 +113,7 @@ This plan closes **decision + dispatch + spend-gating** and gives Brittney a cal
 - **Real execution sandboxing.** §3a executes via the Brittney provider in-process. Running untrusted/autonomous code changes safely (write scope, branch isolation, rollback) is unsolved here — needs the security-sandbox + scoped git worktree per agent before this runs against real repos unattended.
 - **Commit/push by the executor.** Closing a board task with evidence ≠ shipping a commit. Wiring the executor to actually commit/push (and to which branch, with what signing) is a separate, founder-gated step.
 - **Capability matching is heuristic.** `deriveTaskSkills` uses tags/role/keywords, not a learned router. Mis-routes are possible; keep `maxDispatches` low until observed.
-- **Spend estimate is a heuristic, not token-accurate.** `estimateTaskSpendUsd` gates *before* execution by priority; real token cost is only known after. The cap is enforced on recorded actuals, but a single dispatch can overshoot its own estimate within the remaining budget.
+- **Spend estimate is a heuristic, not token-accurate.** `estimateTaskSpendUsd` gates _before_ execution by priority; real token cost is only known after. The cap is enforced on recorded actuals, but a single dispatch can overshoot its own estimate within the remaining budget.
 - **No multi-agent contention control.** If both the desktop daemons and this Studio executor are live, two paths could claim the same task. The claim step (§3a.6a) must treat claim-races as expected and skip, and ideally one executor-of-record is designated per team.
 - **Scheduler reconciliation is unfinished.** §3c overlaps the Tier-B HoloShell Team registry; which engine owns cadence must be decided to avoid double-firing.
-- **Brittney can't yet *observe* in-flight dispatches.** No live status surface for running autonomous executions beyond `[fleet-metric]` logs; a Studio panel for active dispatches + spend-remaining is follow-up.
+- **Brittney can't yet _observe_ in-flight dispatches.** No live status surface for running autonomous executions beyond `[fleet-metric]` logs; a Studio panel for active dispatches + spend-remaining is follow-up.

@@ -7,7 +7,7 @@ Founder direction recorded on 2026-05-24: the long-term VRChat compiler target i
 `VRChatCompiler` still implements the legacy UdonSharp C# emitter. That path remains available as:
 
 ```ts
-new VRChatCompiler({ outputFormat: 'udonsharp-csharp', useUdonSharp: true })
+new VRChatCompiler({ outputFormat: 'udonsharp-csharp', useUdonSharp: true });
 ```
 
 Requests for `outputFormat: 'udon-assembly'`, `outputFormat: 'udon-bytecode'`, or `useUdonSharp: false` fail fast. This prevents agents from silently returning C# while claiming they produced a Byte/Udon artifact.

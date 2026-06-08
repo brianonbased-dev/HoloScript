@@ -19,21 +19,35 @@
 import { execSync } from 'node:child_process';
 
 const PRIMARY = 'c:/users/josep/documents/github/holoscript';
-const sh = (c) => { try { return execSync(c, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim(); } catch { return ''; } };
+const sh = (c) => {
+  try {
+    return execSync(c, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+  } catch {
+    return '';
+  }
+};
 const norm = (p) => (p || '').replace(/\\/g, '/').toLowerCase();
 const emit = (additionalContext) =>
-  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext } }));
+  console.log(
+    JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext } })
+  );
 
 const root = norm(sh('git rev-parse --show-toplevel'));
-if (root !== PRIMARY) { emit(''); process.exit(0); } // already isolated — no-op
+if (root !== PRIMARY) {
+  emit('');
+  process.exit(0);
+} // already isolated — no-op
 
 const handle = (process.env.AGENT_HANDLE || process.env.HOLOMESH_HANDLE || `agent-${process.pid}`)
-  .replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+  .replace(/[^a-z0-9-]/gi, '-')
+  .toLowerCase();
 const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
 
 // Reuse this handle's existing worktree if one is live
 const mine = sh('git worktree list --porcelain')
-  .split('\n').map((l) => (l.match(/^worktree (.+)$/) || [])[1]).filter(Boolean)
+  .split('\n')
+  .map((l) => (l.match(/^worktree (.+)$/) || [])[1])
+  .filter(Boolean)
   .find((p) => norm(p).includes('/.scratch/') && norm(p).includes(handle));
 
 let wt = mine;
@@ -44,10 +58,12 @@ if (!wt) {
   sh(`git worktree add "${wt}" -b codex/${handle}-${ts} origin/main`);
 }
 
-emit([
-  '⚠️ ISOLATION (W.GOLD.546 / D.068): this session started in the FROZEN PRIMARY checkout.',
-  'Do NOT edit or commit here — the shared tree collides (stash/index races) and commits to main/codex/* strand.',
-  'Your isolated worktree — do ALL edits, commits, and pushes there:',
-  `  cd "${wt}"`,
-  'Per-agent isolation makes collisions impossible while preserving commit-straight-to-main velocity.',
-].join('\n'));
+emit(
+  [
+    '⚠️ ISOLATION (W.GOLD.546 / D.068): this session started in the FROZEN PRIMARY checkout.',
+    'Do NOT edit or commit here — the shared tree collides (stash/index races) and commits to main/codex/* strand.',
+    'Your isolated worktree — do ALL edits, commits, and pushes there:',
+    `  cd "${wt}"`,
+    'Per-agent isolation makes collisions impossible while preserving commit-straight-to-main velocity.',
+  ].join('\n')
+);

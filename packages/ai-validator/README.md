@@ -156,17 +156,17 @@ cube {
 
 Detects common LLM hallucination patterns:
 
-| Pattern              | Score | Example                           |
-| -------------------- | ----- | --------------------------------- |
-| AI-like traits       | 30    | `@ai_powered`, `@smart_detection` |
-| Triple braces        | 50    | `{{{` or `}}}`                    |
-| OOP syntax           | 40    | `class`, `extends`, `implements`  |
-| Placeholders         | 60    | `[PLACEHOLDER]`, `[YOUR_VALUE]`   |
+| Pattern              | Score | Example                                        |
+| -------------------- | ----- | ---------------------------------------------- |
+| AI-like traits       | 30    | `@ai_powered`, `@smart_detection`              |
+| Triple braces        | 50    | `{{{` or `}}}`                                 |
+| OOP syntax           | 40    | `class`, `extends`, `implements`               |
+| Placeholders         | 60    | `[PLACEHOLDER]`, `[YOUR_VALUE]`                |
 | Task-marker comments | 20    | Line comments starting with common task labels |
-| HTML/XML             | 35    | `<cube>...</cube>`                |
-| JavaScript           | 35    | `function createCube()`           |
-| Template literals    | 45    | `@color("${variable}")`           |
-| Excessive repetition | 25    | 5+ identical traits               |
+| HTML/XML             | 35    | `<cube>...</cube>`                             |
+| JavaScript           | 35    | `function createCube()`                        |
+| Template literals    | 45    | `@color("${variable}")`                        |
+| Excessive repetition | 25    | 5+ identical traits                            |
 
 ### 5. Semantic Validation
 

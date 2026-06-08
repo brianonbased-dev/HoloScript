@@ -50,7 +50,7 @@ vi.mock('@holoscript/engine/hologram', () => ({
 
 vi.mock('../hologram-worker-client', async () => {
   const actual = await vi.importActual<typeof import('../hologram-worker-client')>(
-    '../hologram-worker-client',
+    '../hologram-worker-client'
   );
   return {
     // Spy hooks used by handleHologramTool (composition path):
@@ -65,16 +65,13 @@ vi.mock('../hologram-worker-client', async () => {
 
 vi.mock('../hologram-holomesh-send', async () => {
   const actual = await vi.importActual<typeof import('../hologram-holomesh-send')>(
-    '../hologram-holomesh-send',
+    '../hologram-holomesh-send'
   );
   return actual;
 });
 
 import { handleHologramTool } from '../hologram-mcp-tools';
-import {
-  __resetHologramSendRateForTests,
-  allowHologramSend,
-} from '../hologram-holomesh-send';
+import { __resetHologramSendRateForTests, allowHologramSend } from '../hologram-holomesh-send';
 // The public export is the mock; the real implementation is re-exported from
 // the mock factory as __realCallHologramWorkerRender so the direct
 // worker-client lifecycle tests below can exercise real fetch behavior.
@@ -152,10 +149,9 @@ describe('hologram push layer — reliability + abuse matrix', () => {
       process.env.HOLOGRAM_WORKER_URL = 'https://worker.test';
       globalThis.fetch = vi.fn(
         async () =>
-          new Response(
-            JSON.stringify({ shareUrl: 'https://s/u', targets: ['quilt'] }),
-            { status: 200 },
-          ),
+          new Response(JSON.stringify({ shareUrl: 'https://s/u', targets: ['quilt'] }), {
+            status: 200,
+          })
       ) as typeof fetch;
 
       await expect(
@@ -163,14 +159,14 @@ describe('hologram push layer — reliability + abuse matrix', () => {
           sourceUrl: 'https://src/x.png',
           mediaType: 'image',
           targets: ['quilt'],
-        }),
+        })
       ).rejects.toThrow('missing hash');
     });
 
     it('worker-client: invalid JSON on success status throws typed error', async () => {
       process.env.HOLOGRAM_WORKER_URL = 'https://worker.test';
       globalThis.fetch = vi.fn(
-        async () => new Response('not-json-at-all', { status: 200 }),
+        async () => new Response('not-json-at-all', { status: 200 })
       ) as typeof fetch;
 
       await expect(
@@ -178,7 +174,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
           sourceUrl: 'https://src/x.png',
           mediaType: 'image',
           targets: ['quilt'],
-        }),
+        })
       ).rejects.toThrow('invalid JSON (200)');
     });
 
@@ -188,7 +184,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
         async () =>
           new Response(JSON.stringify({ error: 'render queue full' }), {
             status: 503,
-          }),
+          })
       ) as typeof fetch;
 
       await expect(
@@ -196,22 +192,20 @@ describe('hologram push layer — reliability + abuse matrix', () => {
           sourceUrl: 'https://src/x.png',
           mediaType: 'image',
           targets: ['quilt'],
-        }),
+        })
       ).rejects.toThrow('render queue full');
     });
 
     it('worker-client: HTTP 5xx with empty body falls back to status code', async () => {
       process.env.HOLOGRAM_WORKER_URL = 'https://worker.test';
-      globalThis.fetch = vi.fn(
-        async () => new Response('', { status: 500 }),
-      ) as typeof fetch;
+      globalThis.fetch = vi.fn(async () => new Response('', { status: 500 })) as typeof fetch;
 
       await expect(
         callHologramWorkerRender({
           sourceBase64: 'QQ==',
           mediaType: 'image',
           targets: ['quilt'],
-        }),
+        })
       ).rejects.toThrow('HTTP 500');
     });
 
@@ -226,7 +220,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
         handleHologramTool('holo_hologram_render', {
           mediaType: 'image',
           sourceUrl: 'https://cdn.example/x.png',
-        }),
+        })
       ).rejects.toThrow('worker timeout');
     });
   });
@@ -238,7 +232,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
       await expect(
         handleHologramTool('holo_hologram_from_media', {
           source: 'x.png',
-        }),
+        })
       ).rejects.toThrow('mediaType must be one of image|gif|video');
     });
 
@@ -247,7 +241,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
         handleHologramTool('holo_hologram_from_media', {
           mediaType: 'hologram',
           source: 'x.png',
-        }),
+        })
       ).rejects.toThrow('mediaType must be one of');
     });
 
@@ -256,7 +250,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
         handleHologramTool('holo_hologram_from_media', {
           mediaType: 42,
           source: 'x.png',
-        } as unknown as Record<string, unknown>),
+        } as unknown as Record<string, unknown>)
       ).rejects.toThrow('mediaType must be one of');
     });
 
@@ -265,7 +259,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
         handleHologramTool('holo_hologram_from_media', {
           mediaType: '   ',
           source: 'x.png',
-        }),
+        })
       ).rejects.toThrow('mediaType must be one of');
     });
 
@@ -285,7 +279,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
           source: '',
           sourceUrl: '',
           sourceBase64: '',
-        }),
+        })
       ).rejects.toThrow('one of source, sourceUrl, or sourceBase64');
     });
 
@@ -295,7 +289,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
           mediaType: 'image',
           source: '   ',
           sourceUrl: '\t\n',
-        }),
+        })
       ).rejects.toThrow('one of source, sourceUrl, or sourceBase64');
     });
 
@@ -304,7 +298,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
         handleHologramTool('holo_hologram_send', {
           hash: 'h',
           shareUrl: 'https://x',
-        }),
+        })
       ).rejects.toThrow('recipientAgentId');
     });
 
@@ -313,7 +307,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
         handleHologramTool('holo_hologram_send', {
           shareUrl: 'https://x',
           recipientAgentId: 'a1',
-        }),
+        })
       ).rejects.toThrow('hash, shareUrl, and recipientAgentId are required');
     });
 
@@ -326,7 +320,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
             hash: 'h',
             shareUrl: 'https://x',
             recipientAgentId: 'a1',
-          }),
+          })
         ).rejects.toThrow('teamId is required');
       } finally {
         if (prevTeamId !== undefined) process.env.HOLOMESH_TEAM_ID = prevTeamId;
@@ -338,7 +332,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
         handleHologramTool('holo_hologram_publish_feed', {
           shareUrl: 'https://x',
           teamId: 't1',
-        }),
+        })
       ).rejects.toThrow('hash and shareUrl are required');
     });
 
@@ -406,7 +400,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
           handleHologramTool('holo_hologram_compile_quilt', {
             mediaType: 'image',
             sourceBase64: huge,
-          }),
+          })
         ).rejects.toThrow(/oversized hologram payload/);
 
         // The worker must NOT have been called — rejection happens BEFORE
@@ -517,7 +511,7 @@ describe('hologram push layer — reliability + abuse matrix', () => {
         async () =>
           new Response(JSON.stringify({ hash: 'h', targets: ['quilt'] }), {
             status: 200,
-          }),
+          })
       ) as typeof fetch;
 
       const r = await callHologramWorkerRender({

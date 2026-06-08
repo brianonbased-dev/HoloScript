@@ -34,7 +34,6 @@ import { isNativeAdapter, type HoloAdapter } from './adapters/HoloAdapter';
 // Dynamic import for worker pool (graceful degradation if not available)
 let WorkerPool: typeof import('./workers/WorkerPool').WorkerPool | null;
 try {
-   
   WorkerPool = require('./workers/WorkerPool').WorkerPool;
 } catch {
   // Worker threads not available (browser, WASM, or old Node.js)
@@ -119,7 +118,7 @@ export class CodebaseScanner {
     const startTime = Date.now();
     const rootDirsRaw = options.rootDirs ?? (options.rootDir ? [options.rootDir] : []);
     if (rootDirsRaw.length === 0) throw new Error('No rootDir or rootDirs provided to scan');
-    const rootDirs = rootDirsRaw.map(r => path.resolve(r));
+    const rootDirs = rootDirsRaw.map((r) => path.resolve(r));
     const rootDir = rootDirs[0]; // Primary root for relative path normalization
     const maxFiles = options.maxFiles ?? DEFAULT_MAX_FILES;
     const maxFileSize = options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
@@ -131,7 +130,12 @@ export class CodebaseScanner {
     const filePathsSet = new Set<string>();
     for (const rDir of rootDirs) {
       if (filePathsSet.size >= maxFiles) break;
-      const paths = this.collectFiles(rDir, exclude, maxFiles - filePathsSet.size, options.languages);
+      const paths = this.collectFiles(
+        rDir,
+        exclude,
+        maxFiles - filePathsSet.size,
+        options.languages
+      );
       for (const p of paths) filePathsSet.add(p);
     }
     const filePaths = Array.from(filePathsSet);
@@ -176,7 +180,11 @@ export class CodebaseScanner {
 
             return { filePath, content, language, sizeBytes };
           } catch (e: unknown) {
-            errors.push({ file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'read' });
+            errors.push({
+              file: filePath,
+              error: e instanceof Error ? e.message : String(e),
+              phase: 'read',
+            });
             return null;
           }
         });
@@ -200,26 +208,27 @@ export class CodebaseScanner {
 
         // Step 2a: Parse native adapters (HoloScript) in-process.
         const nativePromises = nativeData.map((data) =>
-          this.parseNativeAdapter(data.filePath, rootDir, data.content, data.language, data.sizeBytes)
+          this.parseNativeAdapter(
+            data.filePath,
+            rootDir,
+            data.content,
+            data.language,
+            data.sizeBytes
+          )
         );
 
         // Step 2b: Parse tree-sitter adapters in parallel via worker pool (CPU bound)
         const parsePromises = treeSitterData.map((data) =>
-          this
-            .workerPool!.execute<WorkerParseJobResult>({
-              filePath: data.filePath,
-              content: data.content,
-              language: data.language,
-              sizeBytes: data.sizeBytes,
-            })
-            .then(toScanWorkerPayload)
+          this.workerPool!.execute<WorkerParseJobResult>({
+            filePath: data.filePath,
+            content: data.content,
+            language: data.language,
+            sizeBytes: data.sizeBytes,
+          }).then(toScanWorkerPayload)
         );
 
         const [nativeResults, parseResults]: [ScanWorkerPayload[], ScanWorkerPayload[]] =
-          await Promise.all([
-            Promise.all(nativePromises),
-            Promise.all(parsePromises),
-          ]);
+          await Promise.all([Promise.all(nativePromises), Promise.all(parsePromises)]);
         // Merge native + tree-sitter results into a single accumulation pass below.
         parseResults.push(...nativeResults);
 
@@ -260,7 +269,11 @@ export class CodebaseScanner {
           sizeBytes = Buffer.byteLength(content, 'utf-8');
           if (sizeBytes > maxFileSize) continue;
         } catch (e: unknown) {
-          errors.push({ file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'read' });
+          errors.push({
+            file: filePath,
+            error: e instanceof Error ? e.message : String(e),
+            phase: 'read',
+          });
           continue;
         }
 
@@ -325,7 +338,11 @@ export class CodebaseScanner {
           }
         } catch (e: unknown) {
           if (!(options.includeBuildArtifacts ?? false)) {
-            errors.push({ file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'parse' });
+            errors.push({
+              file: filePath,
+              error: e instanceof Error ? e.message : String(e),
+              phase: 'parse',
+            });
             continue;
           }
 
@@ -367,7 +384,7 @@ export class CodebaseScanner {
             symbols,
             imports,
             calls,
-            ...(emitSites  && emitSites.length  > 0 ? { emitSites }  : {}),
+            ...(emitSites && emitSites.length > 0 ? { emitSites } : {}),
             ...(listenSites && listenSites.length > 0 ? { listenSites } : {}),
             loc,
             sizeBytes,
@@ -387,7 +404,11 @@ export class CodebaseScanner {
 
           onProgress?.(files.length, filePaths.length, relPath);
         } catch (e: unknown) {
-          errors.push({ file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'extract' });
+          errors.push({
+            file: filePath,
+            error: e instanceof Error ? e.message : String(e),
+            phase: 'extract',
+          });
         }
       }
     }
@@ -508,7 +529,9 @@ export class CodebaseScanner {
       sizeBytes = Buffer.byteLength(content, 'utf-8');
       if (sizeBytes > maxFileSize) return {};
     } catch (e: unknown) {
-      return { error: { file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'read' } };
+      return {
+        error: { file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'read' },
+      };
     }
 
     // Native adapters (HoloScript) bypass tree-sitter entirely.
@@ -545,7 +568,13 @@ export class CodebaseScanner {
       }
     } catch (e: unknown) {
       if (!includeBuildArtifacts) {
-        return { error: { file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'parse' } };
+        return {
+          error: {
+            file: filePath,
+            error: e instanceof Error ? e.message : String(e),
+            phase: 'parse',
+          },
+        };
       }
 
       // Dist-safe fallback
@@ -577,7 +606,13 @@ export class CodebaseScanner {
         file: { path: relPath, language, symbols, imports, calls, loc, sizeBytes, docComment },
       };
     } catch (e: unknown) {
-      return { error: { file: filePath, error: e instanceof Error ? e.message : String(e), phase: 'extract' } };
+      return {
+        error: {
+          file: filePath,
+          error: e instanceof Error ? e.message : String(e),
+          phase: 'extract',
+        },
+      };
     }
   }
 

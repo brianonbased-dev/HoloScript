@@ -176,7 +176,7 @@ export class UIRenderer {
 
     // Check this node
     const r = this.getWorldRect(node);
-      if (x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height) {
+    if (x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height) {
       if (node.interactive) {
         return { node, localX: x - r.x, localY: y - r.y };
       }

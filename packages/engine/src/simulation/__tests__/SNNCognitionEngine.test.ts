@@ -20,7 +20,7 @@ import type { SensorReading } from '../CAELAgent';
 function makeSensorReading(
   values: number[],
   fieldName = 'von_mises_stress',
-  simTime = 0,
+  simTime = 0
 ): SensorReading {
   return {
     fieldName,
@@ -119,19 +119,13 @@ describe('SNNCognitionEngine', () => {
     const highSensors: SensorReading[] = [makeSensorReading(Array(32).fill(1.0))];
     const snapActive = await engine.think(highSensors, 0.016);
     // Should be 'stabilize_structure' or 'monitor_structure' depending on rate
-    expect(['stabilize_structure', 'monitor_structure']).toContain(
-      snapActive.goalStack[0].id,
-    );
+    expect(['stabilize_structure', 'monitor_structure']).toContain(snapActive.goalStack[0].id);
   });
 
   it('integrates with CAELAgentLoop — spikes are recorded in CAEL trace', async () => {
     const { CAELRecorder } = await import('../CAELRecorder');
-    const {
-      CAELAgentLoop,
-      FieldSensorBridge,
-      SimpleActionSelector,
-      StructuralActionMapper,
-    } = await import('../CAELAgent');
+    const { CAELAgentLoop, FieldSensorBridge, SimpleActionSelector, StructuralActionMapper } =
+      await import('../CAELAgent');
     const { parseCAELJSONL, verifyCAELHashChain } = await import('../CAELTrace');
 
     // Minimal mock solver — avoids ThermalSolver config complexity
@@ -144,14 +138,17 @@ describe('SNNCognitionEngine', () => {
         if (name === 'von_mises_stress') return new Float32Array([0.3, 0.5, 0.7, 0.9]);
         return null;
       },
-      getStats() { return {}; },
+      getStats() {
+        return {};
+      },
       dispose() {},
     };
 
-    const recorder = new CAELRecorder(
-      mockSolver,
-      { solverType: 'mock', vertices: new Float64Array([0,0,0,1,0,0,0,1,0,0,0,1]), tetrahedra: new Uint32Array([0,1,2,3]) },
-    );
+    const recorder = new CAELRecorder(mockSolver, {
+      solverType: 'mock',
+      vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+      tetrahedra: new Uint32Array([0, 1, 2, 3]),
+    });
 
     const snnEngine = new SNNCognitionEngine({ neuronCount: 8, inputScalemV: 20 });
 
@@ -193,12 +190,8 @@ describe('SNNCognitionEngine', () => {
 
   it('covers initialized WebGPU cognition path (with CPU fallback) in async CAEL loop', async () => {
     const { CAELRecorder } = await import('../CAELRecorder');
-    const {
-      CAELAgentLoop,
-      FieldSensorBridge,
-      SimpleActionSelector,
-      StructuralActionMapper,
-    } = await import('../CAELAgent');
+    const { CAELAgentLoop, FieldSensorBridge, SimpleActionSelector, StructuralActionMapper } =
+      await import('../CAELAgent');
 
     const mockSolver = {
       mode: 'transient' as const,
@@ -209,26 +202,22 @@ describe('SNNCognitionEngine', () => {
         if (name === 'von_mises_stress') return new Float32Array([0.2, 0.4, 0.8, 1.0]);
         return null;
       },
-      getStats() { return {}; },
+      getStats() {
+        return {};
+      },
       dispose() {},
     };
 
-    const recorder = new CAELRecorder(
-      mockSolver,
-      {
-        solverType: 'mock',
-        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
-        tetrahedra: new Uint32Array([0, 1, 2, 3]),
-      },
-    );
+    const recorder = new CAELRecorder(mockSolver, {
+      solverType: 'mock',
+      vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+      tetrahedra: new Uint32Array([0, 1, 2, 3]),
+    });
 
     const initializedEngine = new SNNCognitionEngine({ neuronCount: 8, inputScalemV: 20 });
     await initializedEngine.initialize();
 
-    const preSnap = await initializedEngine.think(
-      [makeSensorReading([0.2, 0.4, 0.8, 1.0])],
-      0.001,
-    );
+    const preSnap = await initializedEngine.think([makeSensorReading([0.2, 0.4, 0.8, 1.0])], 0.001);
     const backend = (preSnap.extra as Record<string, unknown>)['lifBackend'];
     expect(['webgpu', 'cpu-reference']).toContain(backend);
 

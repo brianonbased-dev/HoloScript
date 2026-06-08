@@ -89,7 +89,7 @@ const DEFAULT_API_KEY =
   (typeof process !== 'undefined' && process.env.HOLOSCRIPT_SOVEREIGN_API_KEY) || '';
 
 const DEFAULT_TIMEOUT_MS =
-  (typeof process !== 'undefined' && process.env.HOLOSCRIPT_SOVEREIGN_TIMEOUT_MS)
+  typeof process !== 'undefined' && process.env.HOLOSCRIPT_SOVEREIGN_TIMEOUT_MS
     ? parseInt(process.env.HOLOSCRIPT_SOVEREIGN_TIMEOUT_MS, 10)
     : 300_000;
 
@@ -178,9 +178,7 @@ export class SovereignWorldAdapter implements WorldGeneratorAdapter {
       await this.sleep(this.pollIntervalMs);
     }
 
-    throw new Error(
-      `[SovereignWorldAdapter] Job ${jobId} timed out after ${this.timeoutMs}ms`
-    );
+    throw new Error(`[SovereignWorldAdapter] Job ${jobId} timed out after ${this.timeoutMs}ms`);
   }
 
   private async fetchJob(jobId: string): Promise<SovereignJobResponse> {
@@ -195,13 +193,16 @@ export class SovereignWorldAdapter implements WorldGeneratorAdapter {
     }
 
     const rawMeta = job.metadata ?? {};
-    const bounds = (rawMeta.bounds as [number, number, number, number, number, number] | undefined) ??
-      [-10, 0, -10, 10, 5, 10];
+    const bounds = (rawMeta.bounds as
+      | [number, number, number, number, number, number]
+      | undefined) ?? [-10, 0, -10, 10, 5, 10];
 
     const metadata: WorldMetadata = {
       format: job.asset_url.endsWith('.glb') ? 'mesh' : '3dgs',
       bounds,
-      ...(rawMeta.agent_start ? { agentStart: rawMeta.agent_start as [number, number, number] } : {}),
+      ...(rawMeta.agent_start
+        ? { agentStart: rawMeta.agent_start as [number, number, number] }
+        : {}),
       ...(rawMeta.waypoints ? { waypoints: rawMeta.waypoints as [number, number, number][] } : {}),
       ...(rawMeta.splat_count ? { splatCount: rawMeta.splat_count as number } : {}),
       ...(rawMeta.triangle_count ? { triangleCount: rawMeta.triangle_count as number } : {}),
@@ -224,7 +225,10 @@ export class SovereignWorldAdapter implements WorldGeneratorAdapter {
       ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}),
     };
 
-    const res = await fetch(url, { ...init, headers: { ...headers, ...(init.headers as Record<string, string> ?? {}) } });
+    const res = await fetch(url, {
+      ...init,
+      headers: { ...headers, ...((init.headers as Record<string, string>) ?? {}) },
+    });
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');

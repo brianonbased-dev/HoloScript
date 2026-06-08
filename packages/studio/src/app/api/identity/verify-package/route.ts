@@ -104,7 +104,11 @@ function verifyManifestHashLocal(pkg: ExportPackage): boolean {
   }
 }
 
-function deriveExportKey(password: string, saltBase64: string, params: ExportPackageKdfParams): Buffer {
+function deriveExportKey(
+  password: string,
+  saltBase64: string,
+  params: ExportPackageKdfParams
+): Buffer {
   const salt = Buffer.from(saltBase64, 'base64');
   if (salt.length === 0) {
     throw new Error('empty salt');
@@ -120,10 +124,17 @@ function deriveExportKey(password: string, saltBase64: string, params: ExportPac
   });
 }
 
-function decryptPayloadLocal(pkg: ExportPackage, password: string): { ok: true; bytes: Buffer } | { ok: false } {
+function decryptPayloadLocal(
+  pkg: ExportPackage,
+  password: string
+): { ok: true; bytes: Buffer } | { ok: false } {
   if (!pkg || !password) return { ok: false };
   try {
-    const key = deriveExportKey(password, pkg.encryption.kdf_params.salt, pkg.encryption.kdf_params);
+    const key = deriveExportKey(
+      password,
+      pkg.encryption.kdf_params.salt,
+      pkg.encryption.kdf_params
+    );
     const nonce = Buffer.from(pkg.encryption.nonce, 'base64');
     const blob = Buffer.from(pkg.payload, 'base64');
     if (blob.length < AUTH_TAG_BYTES) return { ok: false };
@@ -167,10 +178,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json(
-      { ok: false, error: 'malformed_json' },
-      { status: 400 }
-    );
+    return NextResponse.json({ ok: false, error: 'malformed_json' }, { status: 400 });
   }
 
   const bodyObj = body as { package?: unknown; password?: unknown } | null;
@@ -180,16 +188,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const { package: pkg, password } = bodyObj;
 
   if (!isWellFormedPackage(pkg)) {
-    return NextResponse.json(
-      { ok: false, error: 'package_malformed' },
-      { status: 400 }
-    );
+    return NextResponse.json({ ok: false, error: 'package_malformed' }, { status: 400 });
   }
   if (typeof password !== 'string' || password.length === 0) {
-    return NextResponse.json(
-      { ok: false, error: 'password_required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ ok: false, error: 'password_required' }, { status: 400 });
   }
 
   const manifestOk = verifyManifestHashLocal(pkg);

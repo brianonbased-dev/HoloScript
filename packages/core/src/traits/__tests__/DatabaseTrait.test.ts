@@ -58,95 +58,199 @@ describe('DatabaseTrait — onEvent', () => {
   it('database:put stores value and emits result', () => {
     const node = makeNode();
     databaseHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    databaseHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'database:put', key: 'k1', value: 'hello',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('database:result', expect.objectContaining({
-      key: 'k1', value: 'hello', found: true, op: 'put',
-    }));
+    databaseHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'database:put',
+        key: 'k1',
+        value: 'hello',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'database:result',
+      expect.objectContaining({
+        key: 'k1',
+        value: 'hello',
+        found: true,
+        op: 'put',
+      })
+    );
   });
 
   it('database:get retrieves a value', () => {
     const node = makeNode();
     databaseHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    databaseHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'database:put', key: 'x', value: 42,
-    } as never);
+    databaseHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'database:put',
+        key: 'x',
+        value: 42,
+      } as never
+    );
     node.emit.mockClear();
-    databaseHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'database:get', key: 'x',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('database:result', expect.objectContaining({
-      key: 'x', value: 42, found: true, op: 'get',
-    }));
+    databaseHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'database:get',
+        key: 'x',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'database:result',
+      expect.objectContaining({
+        key: 'x',
+        value: 42,
+        found: true,
+        op: 'get',
+      })
+    );
   });
 
   it('database:get returns found=false for missing key', () => {
     const node = makeNode();
     databaseHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    databaseHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'database:get', key: 'missing',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('database:result', expect.objectContaining({
-      found: false,
-    }));
+    databaseHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'database:get',
+        key: 'missing',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'database:result',
+      expect.objectContaining({
+        found: false,
+      })
+    );
   });
 
   it('database:delete removes key', () => {
     const node = makeNode();
     databaseHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    databaseHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'database:put', key: 'del', value: 'bye',
-    } as never);
+    databaseHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'database:put',
+        key: 'del',
+        value: 'bye',
+      } as never
+    );
     node.emit.mockClear();
-    databaseHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'database:delete', key: 'del',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('database:result', expect.objectContaining({
-      found: true, op: 'delete',
-    }));
+    databaseHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'database:delete',
+        key: 'del',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'database:result',
+      expect.objectContaining({
+        found: true,
+        op: 'delete',
+      })
+    );
   });
 
   it('database:clear empties collection', () => {
     const node = makeNode();
     databaseHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    databaseHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'database:put', key: 'a', value: 1,
-    } as never);
+    databaseHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'database:put',
+        key: 'a',
+        value: 1,
+      } as never
+    );
     node.emit.mockClear();
-    databaseHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'database:clear',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('database:cleared', expect.objectContaining({
-      collection: 'default',
-    }));
+    databaseHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'database:clear',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'database:cleared',
+      expect.objectContaining({
+        collection: 'default',
+      })
+    );
   });
 
   it('database:list returns all keys', () => {
     const node = makeNode();
     databaseHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     for (const k of ['p', 'q', 'r']) {
-      databaseHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-        type: 'database:put', key: k, value: k,
-      } as never);
+      databaseHandler.onEvent!(
+        node as never,
+        defaultConfig,
+        makeCtx(node) as never,
+        {
+          type: 'database:put',
+          key: k,
+          value: k,
+        } as never
+      );
     }
     node.emit.mockClear();
-    databaseHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'database:list',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('database:result', expect.objectContaining({
-      count: 3, op: 'list',
-    }));
+    databaseHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'database:list',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'database:result',
+      expect.objectContaining({
+        count: 3,
+        op: 'list',
+      })
+    );
   });
 
   it('database:put emits error when max_entries reached', () => {
     const node = makeNode();
     const cfg = { ...defaultConfig, max_entries: 2 };
     databaseHandler.onAttach!(node as never, cfg, makeCtx(node) as never);
-    databaseHandler.onEvent!(node as never, cfg, makeCtx(node) as never, { type: 'database:put', key: 'a', value: 1 } as never);
-    databaseHandler.onEvent!(node as never, cfg, makeCtx(node) as never, { type: 'database:put', key: 'b', value: 2 } as never);
+    databaseHandler.onEvent!(
+      node as never,
+      cfg,
+      makeCtx(node) as never,
+      { type: 'database:put', key: 'a', value: 1 } as never
+    );
+    databaseHandler.onEvent!(
+      node as never,
+      cfg,
+      makeCtx(node) as never,
+      { type: 'database:put', key: 'b', value: 2 } as never
+    );
     node.emit.mockClear();
-    databaseHandler.onEvent!(node as never, cfg, makeCtx(node) as never, { type: 'database:put', key: 'overflow', value: 3 } as never);
+    databaseHandler.onEvent!(
+      node as never,
+      cfg,
+      makeCtx(node) as never,
+      { type: 'database:put', key: 'overflow', value: 3 } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('database:error', expect.any(Object));
   });
 });

@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createHoloMapRuntime, HOLOMAP_DEFAULTS, type ReconstructionFrame } from '../HoloMapRuntime';
+import {
+  createHoloMapRuntime,
+  HOLOMAP_DEFAULTS,
+  type ReconstructionFrame,
+} from '../HoloMapRuntime';
 
 vi.mock('../holoMapWeightCache', () => ({
   getCachedWeightBlob: vi.fn(() => Promise.resolve(undefined)),
@@ -52,7 +56,9 @@ function summarizeTimings(samples: number[]): TimingStats {
   };
 }
 
-function normalizeManifest(manifest: Awaited<ReturnType<ReturnType<typeof createHoloMapRuntime>['finalize']>>) {
+function normalizeManifest(
+  manifest: Awaited<ReturnType<ReturnType<typeof createHoloMapRuntime>['finalize']>>
+) {
   return {
     ...manifest,
     provenance: {

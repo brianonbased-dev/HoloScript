@@ -78,9 +78,7 @@ function ToolBadge({
       : 'bg-red-500/10 text-red-400 border border-red-500/10';
   const canConfirm = Boolean(result.requiresConfirmation && result.pendingAction && onConfirm);
   return (
-    <div
-      className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${stateClass}`}
-    >
+    <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${stateClass}`}>
       {result.success ? (
         <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
       ) : (
@@ -311,9 +309,7 @@ export function BrittneyFullScreen() {
           if (event.type === 'text') {
             accumulatedText += event.payload as string;
             setMessages((m) =>
-              m.map((msg) =>
-                msg.id === assistantMsgId ? { ...msg, text: accumulatedText } : msg
-              )
+              m.map((msg) => (msg.id === assistantMsgId ? { ...msg, text: accumulatedText } : msg))
             );
           } else if (event.type === 'tool_call') {
             const tc = event.payload as ToolCallPayload;
@@ -469,197 +465,197 @@ export function BrittneyFullScreen() {
     <>
       {showTutorial && <FirstLaunchTutorial onClose={dismissTutorial} />}
       {showOnboarding && <OnboardingWizard onClose={() => setShowOnboarding(false)} />}
-    <div
-      className={`fixed inset-0 flex flex-col items-center bg-[#0a0a12] transition-all duration-500 ${
-        isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-      }`}
-    >
-      {/* Subtle gradient background */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-1/3 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-studio-accent/[0.03] blur-[120px]" />
-        <div className="absolute right-1/4 bottom-1/4 h-[300px] w-[300px] rounded-full bg-purple-500/[0.02] blur-[100px]" />
-      </div>
+      <div
+        className={`fixed inset-0 flex flex-col items-center bg-[#0a0a12] transition-all duration-500 ${
+          isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+        }`}
+      >
+        {/* Subtle gradient background */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-1/2 top-1/3 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-studio-accent/[0.03] blur-[120px]" />
+          <div className="absolute right-1/4 bottom-1/4 h-[300px] w-[300px] rounded-full bg-purple-500/[0.02] blur-[100px]" />
+        </div>
 
-      {/* Header bar */}
-      <header className="relative z-10 flex w-full items-center justify-between px-6 py-4">
-        <Link
-          href="/"
-          aria-label="HoloScript Studio home"
-          className="flex items-center gap-2 rounded-lg transition hover:opacity-80 focus:outline-none focus:ring-1 focus:ring-studio-accent/40"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.05] text-white/60 font-mono font-bold text-sm">
-            HS
-          </div>
-          <span className="text-white/40 text-sm font-medium hidden sm:block">
-            HoloScript Studio
-          </span>
-        </Link>
-        {hasConversation && (
-          <button
-            onClick={handleOpenEditor}
-            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/60 transition-all hover:border-studio-accent/30 hover:text-white hover:bg-white/[0.06]"
+        {/* Header bar */}
+        <header className="relative z-10 flex w-full items-center justify-between px-6 py-4">
+          <Link
+            href="/"
+            aria-label="HoloScript Studio home"
+            className="flex items-center gap-2 rounded-lg transition hover:opacity-80 focus:outline-none focus:ring-1 focus:ring-studio-accent/40"
           >
-            Open Editor
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        )}
-      </header>
-
-      {/* Main content area */}
-      <div className="relative z-10 flex w-full max-w-2xl flex-1 flex-col px-4 pb-4">
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto space-y-4 pb-4">
-          {/* Centered greeting when no conversation yet */}
-          {!hasConversation && (
-            <div className="flex flex-col items-center justify-center pt-[6vh]">
-              {/* Assistant avatar */}
-              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-studio-accent to-purple-500 shadow-lg shadow-studio-accent/20">
-                <span className="text-xl font-bold text-white">B</span>
-              </div>
-              <h1 className="mb-2 text-2xl font-semibold text-white/90 tracking-tight">
-                {GREETING.text}
-              </h1>
-              <p className="mb-6 text-sm text-white/30 max-w-md text-center">
-                Describe your project, paste a GitHub URL, or pick a starting point below. I will
-                scaffold it, wire the logic, and compile to any platform.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowOnboarding(true)}
-                className="mb-8 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/55 transition-all hover:border-studio-accent/30 hover:text-white hover:bg-white/[0.06]"
-              >
-                Import existing code · all starting points
-                <ArrowRight className="h-4 w-4" />
-              </button>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.05] text-white/60 font-mono font-bold text-sm">
+              HS
             </div>
+            <span className="text-white/40 text-sm font-medium hidden sm:block">
+              HoloScript Studio
+            </span>
+          </Link>
+          {hasConversation && (
+            <button
+              onClick={handleOpenEditor}
+              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/60 transition-all hover:border-studio-accent/30 hover:text-white hover:bg-white/[0.06]"
+            >
+              Open Editor
+              <ArrowRight className="h-4 w-4" />
+            </button>
           )}
+        </header>
 
-          {/* Conversation messages (only after first user message) */}
-          {hasConversation &&
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className="flex items-start gap-3 max-w-[85%]">
-                  {msg.role === 'assistant' && (
-                    <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-studio-accent to-purple-500 text-white text-xs font-bold shadow">
-                      B
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-1.5">
-                    <div
-                      className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                        msg.role === 'user'
-                          ? 'bg-studio-accent text-white rounded-br-md'
-                          : 'bg-white/[0.04] text-white/85 border border-white/[0.06] rounded-bl-md'
-                      }`}
-                    >
-                      {msg.text ||
-                        (msg.isStreaming ? (
-                          <span className="flex items-center gap-2 text-white/40">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Thinking...
-                          </span>
-                        ) : null)}
-                      {msg.isStreaming && msg.text && <StreamingCursor />}
-                    </div>
+        {/* Main content area */}
+        <div className="relative z-10 flex w-full max-w-2xl flex-1 flex-col px-4 pb-4">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+            {/* Centered greeting when no conversation yet */}
+            {!hasConversation && (
+              <div className="flex flex-col items-center justify-center pt-[6vh]">
+                {/* Assistant avatar */}
+                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-studio-accent to-purple-500 shadow-lg shadow-studio-accent/20">
+                  <span className="text-xl font-bold text-white">B</span>
+                </div>
+                <h1 className="mb-2 text-2xl font-semibold text-white/90 tracking-tight">
+                  {GREETING.text}
+                </h1>
+                <p className="mb-6 text-sm text-white/30 max-w-md text-center">
+                  Describe your project, paste a GitHub URL, or pick a starting point below. I will
+                  scaffold it, wire the logic, and compile to any platform.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowOnboarding(true)}
+                  className="mb-8 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/55 transition-all hover:border-studio-accent/30 hover:text-white hover:bg-white/[0.06]"
+                >
+                  Import existing code · all starting points
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
 
-                    {/* Tool results inline */}
-                    {msg.toolResults && msg.toolResults.length > 0 && (
-                      <div className="space-y-1.5 pl-1">
-                        {msg.toolResults.map((r, i) => (
-                          <ToolBadge
-                            key={i}
-                            result={r}
-                            onConfirm={
-                              msg.isStreaming
-                                ? undefined
-                                : () => handleConfirmToolResult(msg.id, i)
-                            }
-                            onDecline={
-                              msg.isStreaming
-                                ? undefined
-                                : () => handleDeclineToolResult(msg.id, i)
-                            }
-                          />
-                        ))}
+            {/* Conversation messages (only after first user message) */}
+            {hasConversation &&
+              messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className="flex items-start gap-3 max-w-[85%]">
+                    {msg.role === 'assistant' && (
+                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-studio-accent to-purple-500 text-white text-xs font-bold shadow">
+                        B
                       </div>
                     )}
+                    <div className="flex flex-col gap-1.5">
+                      <div
+                        className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                          msg.role === 'user'
+                            ? 'bg-studio-accent text-white rounded-br-md'
+                            : 'bg-white/[0.04] text-white/85 border border-white/[0.06] rounded-bl-md'
+                        }`}
+                      >
+                        {msg.text ||
+                          (msg.isStreaming ? (
+                            <span className="flex items-center gap-2 text-white/40">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Thinking...
+                            </span>
+                          ) : null)}
+                        {msg.isStreaming && msg.text && <StreamingCursor />}
+                      </div>
+
+                      {/* Tool results inline */}
+                      {msg.toolResults && msg.toolResults.length > 0 && (
+                        <div className="space-y-1.5 pl-1">
+                          {msg.toolResults.map((r, i) => (
+                            <ToolBadge
+                              key={i}
+                              result={r}
+                              onConfirm={
+                                msg.isStreaming
+                                  ? undefined
+                                  : () => handleConfirmToolResult(msg.id, i)
+                              }
+                              onDecline={
+                                msg.isStreaming
+                                  ? undefined
+                                  : () => handleDeclineToolResult(msg.id, i)
+                              }
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-          {/* Progress indicator */}
-          {progressLabel && (
-            <div className="flex justify-start">
-              <div className="ml-11">
-                <ProgressIndicator label={progressLabel} />
+            {/* Progress indicator */}
+            {progressLabel && (
+              <div className="flex justify-start">
+                <div className="ml-11">
+                  <ProgressIndicator label={progressLabel} />
+                </div>
               </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Suggestion cards */}
+          {showCards && !hasConversation && (
+            <div className="mb-4">
+              <SuggestionCards onSelect={handleCardSelect} />
             </div>
           )}
 
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Suggestion cards */}
-        {showCards && !hasConversation && (
-          <div className="mb-4">
-            <SuggestionCards onSelect={handleCardSelect} />
-          </div>
-        )}
-
-        {/* Input area */}
-        <div className="shrink-0">
-          <div className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-lg shadow-black/20 transition-colors focus-within:border-studio-accent/30">
-            <textarea
-              ref={inputRef}
-              value={isListening && interimTranscript ? input + ' ' + interimTranscript : input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKey}
-              placeholder="Describe what you want to build..."
-              disabled={isThinking}
-              rows={1}
-              className="w-full resize-none bg-transparent px-4 py-3.5 pr-24 text-sm text-white placeholder-white/25 outline-none disabled:opacity-50"
-              aria-label="Message assistant"
-            />
-            <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5">
-              {voiceSupported && (
-                <button
-                  onClick={isListening ? stopListening : startListening}
-                  disabled={isThinking}
-                  className={`rounded-lg p-2 transition ${
-                    isListening
-                      ? 'animate-pulse bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                      : 'text-white/30 hover:bg-white/[0.06] hover:text-white/60'
-                  }`}
-                  title={isListening ? 'Stop listening' : 'Voice input'}
-                  aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
-                >
-                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                </button>
-              )}
-              <button
-                onClick={handleSend}
-                disabled={isThinking || !input.trim()}
-                className="rounded-lg bg-studio-accent p-2 text-white shadow transition-all hover:bg-studio-accent/80 disabled:opacity-20 disabled:hover:bg-studio-accent"
-                aria-label="Send message to assistant"
-              >
-                {isThinking ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
+          {/* Input area */}
+          <div className="shrink-0">
+            <div className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-lg shadow-black/20 transition-colors focus-within:border-studio-accent/30">
+              <textarea
+                ref={inputRef}
+                value={isListening && interimTranscript ? input + ' ' + interimTranscript : input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKey}
+                placeholder="Describe what you want to build..."
+                disabled={isThinking}
+                rows={1}
+                className="w-full resize-none bg-transparent px-4 py-3.5 pr-24 text-sm text-white placeholder-white/25 outline-none disabled:opacity-50"
+                aria-label="Message assistant"
+              />
+              <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5">
+                {voiceSupported && (
+                  <button
+                    onClick={isListening ? stopListening : startListening}
+                    disabled={isThinking}
+                    className={`rounded-lg p-2 transition ${
+                      isListening
+                        ? 'animate-pulse bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                        : 'text-white/30 hover:bg-white/[0.06] hover:text-white/60'
+                    }`}
+                    title={isListening ? 'Stop listening' : 'Voice input'}
+                    aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
+                  >
+                    {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </button>
                 )}
-              </button>
+                <button
+                  onClick={handleSend}
+                  disabled={isThinking || !input.trim()}
+                  className="rounded-lg bg-studio-accent p-2 text-white shadow transition-all hover:bg-studio-accent/80 disabled:opacity-20 disabled:hover:bg-studio-accent"
+                  aria-label="Send message to assistant"
+                >
+                  {isThinking ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
+            <p className="mt-2 text-center text-[11px] text-white/15">
+              The assistant uses AI to scaffold projects. Results are editable in the Studio editor.
+            </p>
           </div>
-          <p className="mt-2 text-center text-[11px] text-white/15">
-            The assistant uses AI to scaffold projects. Results are editable in the Studio editor.
-          </p>
         </div>
       </div>
-    </div>
     </>
   );
 }

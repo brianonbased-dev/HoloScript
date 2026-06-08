@@ -19,7 +19,11 @@ function attach(cfg: any = {}) {
 }
 
 function makePose(x = 0, y = 0, z = 0, conf = 1.0) {
-  return { position: [x, y, z] as [number, number, number], rotation: [0, 0, 0, 1], confidence: conf };
+  return {
+    position: [x, y, z] as [number, number, number],
+    rotation: [0, 0, 0, 1],
+    confidence: conf,
+  };
 }
 
 // ─── defaultConfig ────────────────────────────────────────────────────────────

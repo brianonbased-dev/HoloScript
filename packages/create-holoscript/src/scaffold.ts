@@ -262,7 +262,10 @@ export interface ServeResult {
 export async function serveDir(dir: string, preferredPort = 3030): Promise<ServeResult> {
   const http = await import('node:http');
 
-  const handler = (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => {
+  const handler = (
+    req: import('node:http').IncomingMessage,
+    res: import('node:http').ServerResponse
+  ) => {
     const urlPath = (req.url ?? '/').split('?')[0];
     let filePath = path.join(dir, decodeURIComponent(urlPath));
     // Directory → index.html

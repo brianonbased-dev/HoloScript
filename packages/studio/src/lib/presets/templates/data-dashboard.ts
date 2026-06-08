@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-data-dashboard",
-  name: "3D Data Dashboard",
-  description: "Spatial data visualization with bar charts and status panels",
-  thumbnail: "📊",
-  tags: ["web","data","dashboard","visualization"],
-  category: "web",
+  id: 'wizard-data-dashboard',
+  name: '3D Data Dashboard',
+  description: 'Spatial data visualization with bar charts and status panels',
+  thumbnail: '📊',
+  tags: ['web', 'data', 'dashboard', 'visualization'],
+  category: 'web',
   code: `composition "Data Dashboard" {
   environment {
     skybox: "night"
@@ -76,7 +76,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 0.2
     label: "System Status: OK"
   }
-}`
+}`,
 };
 
 export default template;

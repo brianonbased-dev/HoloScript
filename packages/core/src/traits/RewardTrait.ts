@@ -63,10 +63,7 @@ function toVec3(value: unknown): [number, number, number] | null {
   return [x, y, z];
 }
 
-function resolveTargetPosition(
-  targetId: string,
-  context: any
-): [number, number, number] | null {
+function resolveTargetPosition(targetId: string, context: any): [number, number, number] | null {
   if (!targetId) return null;
 
   const physicsPos = toVec3(context?.physics?.getBodyPosition?.(targetId));
@@ -165,7 +162,8 @@ export const rewardTraitHandler: TraitHandler<RewardShapeConfig> = {
 
           // Resolve target from physics scene first, then state snapshots.
           // Fall back to origin to preserve legacy behavior when unresolved.
-          const targetPos = resolveTargetPosition(targetId, context) ?? ([0, 0, 0] as [number, number, number]);
+          const targetPos =
+            resolveTargetPosition(targetId, context) ?? ([0, 0, 0] as [number, number, number]);
 
           const dx = currentPos[0] - targetPos[0];
           const dy = currentPos[1] - targetPos[1];
@@ -196,8 +194,7 @@ export const rewardTraitHandler: TraitHandler<RewardShapeConfig> = {
           const maxVel = (event.config.maxVel as number) ?? 10;
 
           // Reward if velocity is in target range
-          eventReward =
-            speed >= minVel && speed <= maxVel ? 1.0 : -0.1 * Math.abs(speed - maxVel);
+          eventReward = speed >= minVel && speed <= maxVel ? 1.0 : -0.1 * Math.abs(speed - maxVel);
           break;
         }
 

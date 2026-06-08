@@ -21,9 +21,7 @@ function mockContext(trustSeries: number[]): AttackContext {
   };
 }
 
-function makeAttack(
-  overrides: Partial<ScoreManipulatorConfig> = {}
-): ScoreManipulatorAttack {
+function makeAttack(overrides: Partial<ScoreManipulatorConfig> = {}): ScoreManipulatorAttack {
   return new ScoreManipulatorAttack({
     trustMaxOutputRef: 'v1-test-derivation',
     targetTrust: 0.95,
@@ -49,9 +47,7 @@ describe('ScoreManipulatorAttack — constructor validation', () => {
   it('rejects negative or non-finite outputUtilityRatio', () => {
     expect(() => makeAttack({ outputUtilityRatio: -0.1 })).toThrow(RangeError);
     expect(() => makeAttack({ outputUtilityRatio: Number.NaN })).toThrow(RangeError);
-    expect(() => makeAttack({ outputUtilityRatio: Number.POSITIVE_INFINITY })).toThrow(
-      RangeError
-    );
+    expect(() => makeAttack({ outputUtilityRatio: Number.POSITIVE_INFINITY })).toThrow(RangeError);
   });
 
   it('accepts outputUtilityRatio of 0 (zero utility — extreme Goodhart)', () => {
@@ -108,9 +104,7 @@ describe('ScoreManipulatorAttack.step — phase=score-max every round (§4.4 ste
       outputUtilityRatio: 0.2,
       baselineUtility: 1.0,
     });
-    expect(wellConfigured.step(mockContext([0.96]), 1).observedSuccessMetric).toBe(
-      true
-    );
+    expect(wellConfigured.step(mockContext([0.96]), 1).observedSuccessMetric).toBe(true);
 
     // Trust met, utility NOT decoupled (utility ratio above threshold)
     const utilityFail = makeAttack({

@@ -187,7 +187,8 @@ export class HololandTraceCorpusExporter {
     const payload = redactReviewerPayload(event.payload ?? {});
     const provenance = this.buildProvenance(event.provenance, payload);
     const subjectHash =
-      event.subjectHash ?? (event.subjectId ? hashReviewerSubject(event.subjectId, this.subjectSalt) : undefined);
+      event.subjectHash ??
+      (event.subjectId ? hashReviewerSubject(event.subjectId, this.subjectSalt) : undefined);
 
     const entryWithoutHash: EntryWithoutHash = {
       schemaVersion: HOLOLAND_TRACE_CORPUS_SCHEMA,
@@ -236,7 +237,7 @@ export class HololandTraceCorpusExporter {
 
   private buildProvenance(
     input: HololandTraceProvenanceInput | undefined,
-    payload: Record<string, ReviewerSafeJSON>,
+    payload: Record<string, ReviewerSafeJSON>
   ): ReviewerSafeTraceProvenance {
     const metadata = input?.metadata ? redactReviewerValue(input.metadata) : undefined;
     return {
@@ -260,7 +261,9 @@ export function hashReviewerSubject(subjectId: string, salt: string): string {
   return `sha256:${sha256Hex(`${salt}:${subjectId}`)}`;
 }
 
-export function redactReviewerPayload(payload: Record<string, unknown>): Record<string, ReviewerSafeJSON> {
+export function redactReviewerPayload(
+  payload: Record<string, unknown>
+): Record<string, ReviewerSafeJSON> {
   const redacted = redactReviewerValue(payload);
   if (!isReviewerSafeObject(redacted)) {
     return {};
@@ -270,7 +273,7 @@ export function redactReviewerPayload(payload: Record<string, unknown>): Record<
 
 export function exportHololandTraceCorpus(
   events: readonly HololandTraceEventInput[],
-  options: HololandTraceCorpusOptions = {},
+  options: HololandTraceCorpusOptions = {}
 ): HololandTraceCorpus {
   const exporter = new HololandTraceCorpusExporter(options);
   exporter.appendMany(events);
@@ -279,7 +282,7 @@ export function exportHololandTraceCorpus(
 
 export function exportHololandTraceJSONL(
   events: readonly HololandTraceEventInput[],
-  options: HololandTraceCorpusOptions = {},
+  options: HololandTraceCorpusOptions = {}
 ): string {
   return toHololandTraceJSONL(exportHololandTraceCorpus(events, options).entries);
 }
@@ -304,9 +307,10 @@ export function parseHololandTraceJSONL(jsonl: string): ReviewerSafeTraceEntry[]
 }
 
 export function verifyHololandTraceCorpus(
-  entriesOrJsonl: readonly ReviewerSafeTraceEntry[] | string,
+  entriesOrJsonl: readonly ReviewerSafeTraceEntry[] | string
 ): HololandTraceVerification {
-  const entries = typeof entriesOrJsonl === 'string' ? parseHololandTraceJSONL(entriesOrJsonl) : entriesOrJsonl;
+  const entries =
+    typeof entriesOrJsonl === 'string' ? parseHololandTraceJSONL(entriesOrJsonl) : entriesOrJsonl;
   let prevHash: string = HOLOLAND_TRACE_GENESIS_HASH;
   let corpusId: string | undefined;
 
@@ -344,9 +348,12 @@ export function verifyHololandTraceCorpus(
 }
 
 export function ingestHololandTraceCorpus(
-  entriesOrJsonl: readonly ReviewerSafeTraceEntry[] | string,
+  entriesOrJsonl: readonly ReviewerSafeTraceEntry[] | string
 ): HololandTraceCorpusIngestion {
-  const entries = typeof entriesOrJsonl === 'string' ? parseHololandTraceJSONL(entriesOrJsonl) : entriesOrJsonl.map(cloneEntry);
+  const entries =
+    typeof entriesOrJsonl === 'string'
+      ? parseHololandTraceJSONL(entriesOrJsonl)
+      : entriesOrJsonl.map(cloneEntry);
   const verification = verifyHololandTraceCorpus(entries);
   const learnedSceneComposition: LearnedSceneCompositionSignals = {
     acceptedTemplateIds: [],
@@ -368,8 +375,10 @@ export function ingestHololandTraceCorpus(
 
   for (const entry of entries) {
     if (entry.eventType === 'task_completion') {
-      const taskId = readString(entry.payload, 'taskId') ?? entry.provenance.taskId ?? 'unknown-task';
-      const completed = readBoolean(entry.payload, 'completed') ?? readBoolean(entry.payload, 'success');
+      const taskId =
+        readString(entry.payload, 'taskId') ?? entry.provenance.taskId ?? 'unknown-task';
+      const completed =
+        readBoolean(entry.payload, 'completed') ?? readBoolean(entry.payload, 'success');
       adaptiveInterfaceGates.push({
         gateId: `task:${taskId}:completion`,
         eventType: entry.eventType,
@@ -449,7 +458,8 @@ function redactReviewerValue(value: unknown, keyHint = ''): ReviewerSafeJSON | u
     return `[redacted:${keyHint}]`;
   }
   if (value === null) return null;
-  if (value === undefined || typeof value === 'function' || typeof value === 'symbol') return undefined;
+  if (value === undefined || typeof value === 'function' || typeof value === 'symbol')
+    return undefined;
   if (typeof value === 'string' || typeof value === 'boolean') return value;
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value === 'bigint') return value.toString();
@@ -484,8 +494,12 @@ function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEY_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
-function isReviewerSafeObject(value: ReviewerSafeJSON | undefined): value is Record<string, ReviewerSafeJSON> {
-  return value !== undefined && value !== null && typeof value === 'object' && !Array.isArray(value);
+function isReviewerSafeObject(
+  value: ReviewerSafeJSON | undefined
+): value is Record<string, ReviewerSafeJSON> {
+  return (
+    value !== undefined && value !== null && typeof value === 'object' && !Array.isArray(value)
+  );
 }
 
 function isReviewerSafeTraceEntry(value: unknown): value is ReviewerSafeTraceEntry {
@@ -532,7 +546,9 @@ function summarizeEntries(entries: readonly ReviewerSafeTraceEntry[]): HololandT
     sessionIds: [...sessionIds].sort(),
     subjectHashes: [...subjectHashes].sort(),
     ...(timestamps[0] ? { firstTimestamp: timestamps[0] } : {}),
-    ...(timestamps[timestamps.length - 1] ? { lastTimestamp: timestamps[timestamps.length - 1] } : {}),
+    ...(timestamps[timestamps.length - 1]
+      ? { lastTimestamp: timestamps[timestamps.length - 1] }
+      : {}),
   };
 }
 
@@ -559,7 +575,8 @@ function sha256Hex(value: string): string {
 
 function canonicalize(value: unknown): ReviewerSafeJSON | undefined {
   if (value === null) return null;
-  if (value === undefined || typeof value === 'function' || typeof value === 'symbol') return undefined;
+  if (value === undefined || typeof value === 'function' || typeof value === 'symbol')
+    return undefined;
   if (typeof value === 'string' || typeof value === 'boolean') return value;
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value === 'bigint') return value.toString();

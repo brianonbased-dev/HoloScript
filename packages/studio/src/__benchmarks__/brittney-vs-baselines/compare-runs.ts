@@ -34,12 +34,20 @@ const sa = summarize(a);
 const sb = summarize(b);
 
 console.log(`=== Benchmark Run Comparison ===\n`);
-console.log(`Baseline:  ${runA} — ${sa.passed}/${sa.total} (${(sa.rate * 100).toFixed(1)}%) $${sa.cost.toFixed(2)}`);
-console.log(`Current:   ${runB} — ${sb.passed}/${sb.total} (${(sb.rate * 100).toFixed(1)}%) $${sb.cost.toFixed(2)}`);
-console.log(`Delta:     ${sb.passed - sa.passed} cells, ${((sb.rate - sa.rate) * 100).toFixed(1)} pp, $${(sb.cost - sa.cost).toFixed(2)}\n`);
+console.log(
+  `Baseline:  ${runA} — ${sa.passed}/${sa.total} (${(sa.rate * 100).toFixed(1)}%) $${sa.cost.toFixed(2)}`
+);
+console.log(
+  `Current:   ${runB} — ${sb.passed}/${sb.total} (${(sb.rate * 100).toFixed(1)}%) $${sb.cost.toFixed(2)}`
+);
+console.log(
+  `Delta:     ${sb.passed - sa.passed} cells, ${((sb.rate - sa.rate) * 100).toFixed(1)} pp, $${(sb.cost - sa.cost).toFixed(2)}\n`
+);
 
 // Per-task comparison
-const allTasks = Array.from(new Set([...a.outcomes.map((o) => o.task_id), ...b.outcomes.map((o) => o.task_id)])).sort();
+const allTasks = Array.from(
+  new Set([...a.outcomes.map((o) => o.task_id), ...b.outcomes.map((o) => o.task_id)])
+).sort();
 
 console.log('Per-task delta (config=baseline → current):');
 for (const taskId of allTasks) {
@@ -53,7 +61,9 @@ for (const taskId of allTasks) {
 
   if (delta !== 0) {
     const sign = delta > 0 ? '+' : '';
-    console.log(`  ${taskId}: ${aPass}/${aOutcomes.length} → ${bPass}/${bOutcomes.length} (${sign}${delta})`);
+    console.log(
+      `  ${taskId}: ${aPass}/${aOutcomes.length} → ${bPass}/${bOutcomes.length} (${sign}${delta})`
+    );
   }
 }
 

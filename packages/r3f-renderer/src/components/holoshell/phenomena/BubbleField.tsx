@@ -217,11 +217,7 @@ export const BubbleField: React.FC<BubbleFieldProps> = ({
             return (
               <mesh key={k} position={p}>
                 <sphereGeometry args={[0.018]} />
-                <meshBasicMaterial
-                  color="#ffffff"
-                  transparent
-                  opacity={Math.max(0, 1 - t * 1.4)}
-                />
+                <meshBasicMaterial color="#ffffff" transparent opacity={Math.max(0, 1 - t * 1.4)} />
               </mesh>
             );
           })}

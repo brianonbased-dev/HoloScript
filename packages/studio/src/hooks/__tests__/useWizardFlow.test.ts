@@ -128,7 +128,9 @@ describe('useWizardFlow logic', () => {
       expect(isConsentSufficient({ ...DEFAULT_CONSENT })).toBe(true);
       expect(isConsentSufficient({ ...DEFAULT_CONSENT, scaffold: false })).toBe(true);
       expect(isConsentSufficient({ ...DEFAULT_CONSENT, absorb: false })).toBe(true);
-      expect(isConsentSufficient({ ...DEFAULT_CONSENT, scaffold: false, absorb: false })).toBe(false);
+      expect(isConsentSufficient({ ...DEFAULT_CONSENT, scaffold: false, absorb: false })).toBe(
+        false
+      );
     });
 
     it('consent is preserved through RESET', () => {
@@ -199,7 +201,12 @@ describe('useWizardFlow logic', () => {
           skills: [],
           hooks: [],
           daemonConfig: { profile: 'guardian', pollingIntervalMs: 5000, enabledJobs: [] },
-          teamRoomConfig: { teamName: 'test', memberLimit: 5, defaultRole: 'contributor', features: [] },
+          teamRoomConfig: {
+            teamName: 'test',
+            memberLimit: 5,
+            defaultRole: 'contributor',
+            features: [],
+          },
         },
       });
       state = wizardReducer(state, { type: 'ADVANCE_STAGE' }); // -> scenario

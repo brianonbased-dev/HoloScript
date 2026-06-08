@@ -36,7 +36,7 @@ function resolveConfig<C>(b: RuntimeTraitBinding<C>): C {
 export function attachTraits(
   node: HSPlusNode,
   bindings: ReadonlyArray<RuntimeTraitBinding>,
-  context: TraitContext,
+  context: TraitContext
 ): void {
   for (const b of bindings) {
     b.handler.onAttach?.(node, resolveConfig(b), context);
@@ -53,7 +53,7 @@ export function tickTraits(
   bindings: ReadonlyArray<RuntimeTraitBinding>,
   context: TraitContext,
   delta: number,
-  maxDelta: number = DEFAULT_MAX_DELTA,
+  maxDelta: number = DEFAULT_MAX_DELTA
 ): number {
   const dt = delta < 0 ? 0 : delta > maxDelta ? maxDelta : delta;
   for (const b of bindings) {
@@ -67,7 +67,7 @@ export function tickTraits(
 export function detachTraits(
   node: HSPlusNode,
   bindings: ReadonlyArray<RuntimeTraitBinding>,
-  context: TraitContext,
+  context: TraitContext
 ): void {
   for (let i = bindings.length - 1; i >= 0; i -= 1) {
     bindings[i].handler.onDetach?.(node, resolveConfig(bindings[i]), context);

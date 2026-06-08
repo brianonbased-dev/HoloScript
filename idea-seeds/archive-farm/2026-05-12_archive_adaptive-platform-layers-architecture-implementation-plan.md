@@ -37,7 +37,7 @@ Reviewed 2026-05-13 against current monorepo reality:
 - The 47-package topology herein has been consolidated. `holoscript-component`, `spatial-engine`, `shader-preview-wgpu`, `playground`, and `neovim` were retired (ghost packages / zero source code). `collab-server`, `fs`, `compiler`, `parser`, and `agent-sdk` were merged into successors. ~15 platform packages migrated to the Hololand repo.
 - The WIT interfaces and WASM integration claimed as "Phase 1 Complete" are in TypeScript fallback mode. `wasm-compiler-bridge.ts` carries a `STALE-PATH NOTE` (commit c5887f4e7) because `packages/holoscript-component/` was retired.
 - Current architecture ground truth: `docs/cross-language-deletion-ledger.md` and `research/2026-05-12_deleted-package-disposition-audit.md`.
-- The *concept* of adaptive platform layers (Web / Desktop / Mobile) is still valid and lives in current work, but this specific document is historical. Do not preserve.
+- The _concept_ of adaptive platform layers (Web / Desktop / Mobile) is still valid and lives in current work, but this specific document is historical. Do not preserve.
 
 ## Links
 

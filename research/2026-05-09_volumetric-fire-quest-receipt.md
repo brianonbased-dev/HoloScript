@@ -21,6 +21,7 @@ Full receipt JSON is attached: `hololand-device-lab-2026-05-09T08-35-53-176Z.jso
 ## Claim Demotion
 
 Because:
+
 1. The `volumetric-fire` component is **not yet implemented**.
 2. No **Quest 3 hardware** is available on this build machine.
 3. No **frame-time or foveation data** can be captured for a non-existent component.

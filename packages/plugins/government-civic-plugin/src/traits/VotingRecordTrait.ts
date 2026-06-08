@@ -1,7 +1,12 @@
 /** @voting_record Trait — Public voting record and election results display. @trait voting_record */
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
-export type VoteType = 'council_vote' | 'ballot_measure' | 'election' | 'referendum' | 'committee_vote';
+export type VoteType =
+  | 'council_vote'
+  | 'ballot_measure'
+  | 'election'
+  | 'referendum'
+  | 'committee_vote';
 export type VoteOutcome = 'passed' | 'failed' | 'tabled' | 'withdrawn' | 'tied' | 'pending';
 
 export interface VoteCast {
@@ -71,7 +76,9 @@ export function createVotingRecordHandler(): TraitHandler<VotingRecordConfig> {
       node.__votingState = {
         outcome: 'pending' as VoteOutcome,
         votes: [],
-        ayeCount: 0, nayCount: 0, abstainCount: 0,
+        ayeCount: 0,
+        nayCount: 0,
+        abstainCount: 0,
         absentCount: config.eligibleVoters.length,
         totalEligible: config.eligibleVoters.length,
         participationRate: 0,
@@ -98,24 +105,35 @@ export function createVotingRecordHandler(): TraitHandler<VotingRecordConfig> {
           const cast = event.payload as unknown as VoteCast;
           if (!cast?.memberId || !cast?.vote) return;
           // Replace if already voted
-          const existing = s.votes.findIndex(v => v.memberId === cast.memberId);
+          const existing = s.votes.findIndex((v) => v.memberId === cast.memberId);
           if (existing >= 0) s.votes.splice(existing, 1);
           s.votes.push({ ...cast, timestamp: new Date().toISOString() });
           // Recount
-          s.ayeCount = s.votes.filter(v => v.vote === 'aye').length;
-          s.nayCount = s.votes.filter(v => v.vote === 'nay').length;
-          s.abstainCount = s.votes.filter(v => v.vote === 'abstain').length;
+          s.ayeCount = s.votes.filter((v) => v.vote === 'aye').length;
+          s.nayCount = s.votes.filter((v) => v.vote === 'nay').length;
+          s.abstainCount = s.votes.filter((v) => v.vote === 'abstain').length;
           s.absentCount = s.totalEligible - s.votes.length;
           s.participationRate = s.votes.length / (s.totalEligible || 1);
           s.quorumMet = s.participationRate > 0.5;
-          ctx.emit?.('vote:cast', { voteId: config.voteId, memberId: cast.memberId, vote: cast.vote, ayeCount: s.ayeCount, nayCount: s.nayCount });
+          ctx.emit?.('vote:cast', {
+            voteId: config.voteId,
+            memberId: cast.memberId,
+            vote: cast.vote,
+            ayeCount: s.ayeCount,
+            nayCount: s.nayCount,
+          });
           break;
         }
         case 'vote:close':
           s.isOpen = false;
           s.closedAt = new Date().toISOString();
           s.outcome = computeOutcome(s, config);
-          ctx.emit?.('vote:closed', { voteId: config.voteId, outcome: s.outcome, ayeCount: s.ayeCount, nayCount: s.nayCount });
+          ctx.emit?.('vote:closed', {
+            voteId: config.voteId,
+            outcome: s.outcome,
+            ayeCount: s.ayeCount,
+            nayCount: s.nayCount,
+          });
           break;
         case 'vote:table':
           s.isOpen = false;

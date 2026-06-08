@@ -261,9 +261,9 @@ describe('SceneSerializer', () => {
     it('should preserve node transforms through JSON round-trip', () => {
       const scene = createEmptySceneGraph('TransformTest');
       const node = createEmptyNode('n1', 'Node');
-      node.transform.position = [10, 20, 30 ];
-      node.transform.rotation = [0, 0.707, 0, 0.707 ];
-      node.transform.scale = [2, 2, 2 ];
+      node.transform.position = [10, 20, 30];
+      node.transform.rotation = [0, 0.707, 0, 0.707];
+      node.transform.scale = [2, 2, 2];
       scene.root.children.push(node);
 
       const serializer = new SceneSerializer();
@@ -415,10 +415,10 @@ describe('Utility Functions', () => {
 
     it('should accumulate translations', () => {
       const scene = createEmptySceneGraph('Test');
-      scene.root.transform.position = [10, 0, 0 ];
+      scene.root.transform.position = [10, 0, 0];
 
       const child = createEmptyNode('c1', 'Child');
-      child.transform.position = [5, 0, 0 ];
+      child.transform.position = [5, 0, 0];
       scene.root.children.push(child);
 
       const worldTransform = getWorldTransform(scene.root, 'c1');
@@ -430,10 +430,10 @@ describe('Utility Functions', () => {
 
     it('should accumulate scales', () => {
       const scene = createEmptySceneGraph('Test');
-      scene.root.transform.scale = [2, 2, 2 ];
+      scene.root.transform.scale = [2, 2, 2];
 
       const child = createEmptyNode('c1', 'Child');
-      child.transform.scale = [0.5, 0.5, 0.5 ];
+      child.transform.scale = [0.5, 0.5, 0.5];
       scene.root.children.push(child);
 
       const worldTransform = getWorldTransform(scene.root, 'c1');

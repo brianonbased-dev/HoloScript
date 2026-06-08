@@ -152,16 +152,13 @@ export function useVnVData(report: VerificationReport | null): VnVVisualizationD
       }
     }
 
-    const globalObservedOrder = orders.length > 0
-      ? orders.reduce((s, v) => s + v, 0) / orders.length
-      : undefined;
+    const globalObservedOrder =
+      orders.length > 0 ? orders.reduce((s, v) => s + v, 0) / orders.length : undefined;
 
-    const averageGCI = gcis.length > 0
-      ? gcis.reduce((s, v) => s + v, 0) / gcis.length
-      : undefined;
+    const averageGCI = gcis.length > 0 ? gcis.reduce((s, v) => s + v, 0) / gcis.length : undefined;
 
     // Build benchmark summary
-    const benchmarkSummary: BenchmarkSummaryItem[] = report.benchmarks.map(b => ({
+    const benchmarkSummary: BenchmarkSummaryItem[] = report.benchmarks.map((b) => ({
       name: b.name,
       solver: b.solver,
       passed: b.passed,
@@ -172,9 +169,7 @@ export function useVnVData(report: VerificationReport | null): VnVVisualizationD
       gci: b.convergence?.gci,
     }));
 
-    const passRate = report.summary.total > 0
-      ? report.summary.passed / report.summary.total
-      : 0;
+    const passRate = report.summary.total > 0 ? report.summary.passed / report.summary.total : 0;
 
     return {
       convergenceSeries,
@@ -195,7 +190,7 @@ export function useElementToNodeUncertainty(
   tetrahedra: Uint32Array | null,
   nodesPerElement: number,
   nodeCount: number,
-  elementGCI: Float32Array | null,
+  elementGCI: Float32Array | null
 ): Float32Array {
   return useMemo(() => {
     if (!tetrahedra || !elementGCI || nodeCount === 0) {

@@ -42,9 +42,9 @@ Introduce an explicit adapter boundary:
 interface TraitRuntimeBridge {
   bind(nodeId: string, node: HSPlusNode, object3d: THREE.Object3D): void;
   unbind(nodeId: string): void;
-  syncFromCore(nodeId: string): void;   // core → runtime props/transform
-  syncToCore(nodeId: string): void;     // runtime → core observed state (opt-in)
-  dispatch(event: TraitEvent): void;    // bus fan-out across both systems
+  syncFromCore(nodeId: string): void; // core → runtime props/transform
+  syncToCore(nodeId: string): void; // runtime → core observed state (opt-in)
+  dispatch(event: TraitEvent): void; // bus fan-out across both systems
 }
 ```
 

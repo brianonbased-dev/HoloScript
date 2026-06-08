@@ -38,7 +38,8 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
       category: 'convergence',
       message: 'Solver did not converge',
       detail: `The iterative solver failed to reach the convergence tolerance within the maximum iteration count (${extractNum(stats, 'iterations', 'solveResult.iterations') ?? '?'} iterations).`,
-      recommendation: 'Increase maxIterations, refine the mesh, or check boundary conditions for consistency.',
+      recommendation:
+        'Increase maxIterations, refine the mesh, or check boundary conditions for consistency.',
     });
   } else if (converged === true) {
     const iterations = extractNum(stats, 'iterations', 'solveResult.iterations');
@@ -48,7 +49,8 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
         category: 'performance',
         message: 'Slow convergence',
         detail: `Solver converged but required ${iterations} iterations. This suggests an ill-conditioned system.`,
-        recommendation: 'Consider preconditioning, mesh refinement near stress concentrations, or checking for near-singular boundary conditions.',
+        recommendation:
+          'Consider preconditioning, mesh refinement near stress concentrations, or checking for near-singular boundary conditions.',
       });
     }
   }
@@ -62,7 +64,8 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
         category: 'safety',
         message: 'Structure will yield under this load',
         detail: `Minimum safety factor is ${minSafety.toFixed(2)} (below 1.0). The material's yield strength is exceeded.`,
-        recommendation: 'Increase cross-section, use a stronger material, or reduce the applied load.',
+        recommendation:
+          'Increase cross-section, use a stronger material, or reduce the applied load.',
       });
     } else if (minSafety < 2.0) {
       insights.push({
@@ -70,7 +73,8 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
         category: 'safety',
         message: 'Low safety margin',
         detail: `Safety factor is ${minSafety.toFixed(2)}. Industry standard for most applications is 2.0-3.0.`,
-        recommendation: 'Consider increasing material thickness or using a higher-grade material for production use.',
+        recommendation:
+          'Consider increasing material thickness or using a higher-grade material for production use.',
       });
     } else {
       insights.push({
@@ -78,7 +82,8 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
         category: 'safety',
         message: `Safety factor: ${minSafety.toFixed(1)}`,
         detail: `The structure operates well within material limits.`,
-        recommendation: 'Design is adequate. Consider weight optimization if the safety factor is excessive (>5).',
+        recommendation:
+          'Design is adequate. Consider weight optimization if the safety factor is excessive (>5).',
       });
     }
   }
@@ -91,7 +96,8 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
       category: 'accuracy',
       message: `Peak Von Mises stress: ${formatStress(maxStress)}`,
       detail: 'Maximum stress occurs at the most loaded element.',
-      recommendation: 'Check if the peak stress location is at a geometric singularity (sharp corner). If so, the value may be mesh-dependent.',
+      recommendation:
+        'Check if the peak stress location is at a geometric singularity (sharp corner). If so, the value may be mesh-dependent.',
     });
   }
 
@@ -106,7 +112,8 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
         category: 'accuracy',
         message: 'Large deformation detected',
         detail: `Maximum displacement is ${(ratio * 100).toFixed(1)}% of the domain size. Linear elasticity assumptions may be invalid.`,
-        recommendation: 'Consider nonlinear geometric analysis for displacements exceeding 5-10% of the characteristic dimension.',
+        recommendation:
+          'Consider nonlinear geometric analysis for displacements exceeding 5-10% of the characteristic dimension.',
       });
     }
   }
@@ -121,7 +128,10 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
       category: 'accuracy',
       message: `Temperature range: ${minTemp.toFixed(1)} to ${maxTemp.toFixed(1)} (${range.toFixed(1)} spread)`,
       detail: 'Temperature field summary across the domain.',
-      recommendation: range > 500 ? 'Large thermal gradient — check for thermal stress coupling.' : 'Temperature distribution is moderate.',
+      recommendation:
+        range > 500
+          ? 'Large thermal gradient — check for thermal stress coupling.'
+          : 'Temperature distribution is moderate.',
     });
   }
 
@@ -133,7 +143,10 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
       category: 'accuracy',
       message: `Peak velocity: ${maxVelocity.toFixed(3)} m/s`,
       detail: 'Maximum flow velocity in the domain.',
-      recommendation: maxVelocity > 100 ? 'High velocities detected — consider compressibility effects.' : 'Incompressible assumption is reasonable.',
+      recommendation:
+        maxVelocity > 100
+          ? 'High velocities detected — consider compressibility effects.'
+          : 'Incompressible assumption is reasonable.',
     });
   }
 
@@ -145,7 +158,10 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
       category: 'accuracy',
       message: `Peak E-field: ${maxE.toExponential(2)} V/m`,
       detail: 'Maximum electric field magnitude in the FDTD domain.',
-      recommendation: maxE > 3e6 ? 'Electric field exceeds air breakdown threshold (~3 MV/m). Dielectric failure possible.' : 'Field levels are within normal range.',
+      recommendation:
+        maxE > 3e6
+          ? 'Electric field exceeds air breakdown threshold (~3 MV/m). Dielectric failure possible.'
+          : 'Field levels are within normal range.',
     });
   }
 
@@ -170,7 +186,8 @@ export function interpretResults(stats: Record<string, unknown>): SimulationInsi
       category: 'performance',
       message: `Long solve time: ${(solveTime / 1000).toFixed(1)}s`,
       detail: 'The simulation took more than 10 seconds.',
-      recommendation: 'Consider enabling GPU acceleration, reducing mesh density, or using a coarser initial solve.',
+      recommendation:
+        'Consider enabling GPU acceleration, reducing mesh density, or using a coarser initial solve.',
     });
   }
 

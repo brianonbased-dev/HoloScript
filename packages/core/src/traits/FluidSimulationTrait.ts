@@ -73,7 +73,7 @@ export function poly6Kernel(r: number, h: number): number {
  */
 export function spikyKernelGradient(dx: number, dy: number, dz: number, h: number): Vec3 {
   const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  if (r > h || r < 1e-5) return [0, 0, 0 ];
+  if (r > h || r < 1e-5) return [0, 0, 0];
   const coeff = (-45 / (Math.PI * h ** 6)) * (h - r) ** 2;
   return [coeff * (dx / r), coeff * (dy / r), coeff * (dz / r)];
 }
@@ -174,7 +174,7 @@ export class FluidSimulationSystem {
     this.cfg = {
       restDensity: config.restDensity ?? 1000,
       viscosity: config.viscosity ?? 0.001,
-      gravity: config.gravity ?? [0, -9.81, 0 ],
+      gravity: config.gravity ?? [0, -9.81, 0],
       solverType: config.solverType ?? 'sph',
       timeStep: config.timeStep ?? 0.016,
       maxVelocity: config.maxVelocity ?? 100,
@@ -194,8 +194,8 @@ export class FluidSimulationSystem {
     this.particles.set(id, {
       id,
       position: [...position],
-      velocity: velocity ? [...velocity] : [0, 0, 0 ],
-      force: [0, 0, 0 ],
+      velocity: velocity ? [...velocity] : [0, 0, 0],
+      force: [0, 0, 0],
       density: this.cfg.restDensity,
       pressure: 0,
       mass: 1.0,

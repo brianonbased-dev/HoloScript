@@ -11,7 +11,10 @@ import { fileURLToPath } from 'node:url';
 
 export const SOLVER_SIGNALS = [
   { id: 'sim-solver', pattern: /\bSimSolver\b/ },
-  { id: 'solver-type', pattern: /\b(class|interface|type)\s+[A-Za-z0-9_]*(Solver|Backend|Simulation)\b/ },
+  {
+    id: 'solver-type',
+    pattern: /\b(class|interface|type)\s+[A-Za-z0-9_]*(Solver|Backend|Simulation)\b/,
+  },
   { id: 'power-flow', pattern: /power[-_ ]?flow|reactancePu|lineFlowsMw/i },
   { id: 'quantum', pattern: /\b(QmSolver|VQE|QAOA|Psi4|QuantumEspresso|OpenFermion)\b/i },
   { id: 'robotics-sim', pattern: /\b(Isaac|ROS2|URDF|sim[-_ ]?to[-_ ]?real)\b/i },

@@ -422,10 +422,18 @@ describe('verifyASTAssetManifest', () => {
       license: fixtureLicense(),
       signer: async () => '0xsig',
     });
-    const fail = await verifyASTAssetManifest(asset.manifest, SOURCE_WITHOUT_LICENSE, async () => false);
+    const fail = await verifyASTAssetManifest(
+      asset.manifest,
+      SOURCE_WITHOUT_LICENSE,
+      async () => false
+    );
     expect(fail.ok).toBe(false);
     expect(fail.error).toMatch(/Signature/);
-    const pass = await verifyASTAssetManifest(asset.manifest, SOURCE_WITHOUT_LICENSE, async () => true);
+    const pass = await verifyASTAssetManifest(
+      asset.manifest,
+      SOURCE_WITHOUT_LICENSE,
+      async () => true
+    );
     expect(pass.ok).toBe(true);
   });
 });
@@ -584,7 +592,12 @@ describe('ASTLicenseRegistry', () => {
     reg.register(a.asset);
     reg.register(b.asset);
     expect(reg.size()).toBe(2);
-    expect(reg.list().map((m) => m.assetId).sort()).toEqual(['asset-A', 'asset-B']);
+    expect(
+      reg
+        .list()
+        .map((m) => m.assetId)
+        .sort()
+    ).toEqual(['asset-A', 'asset-B']);
     expect(reg.getAsset('asset-A')?.manifest.license.licenseId).toBe('lic-A');
     expect(reg.getGate('asset-B')).toBeDefined();
   });

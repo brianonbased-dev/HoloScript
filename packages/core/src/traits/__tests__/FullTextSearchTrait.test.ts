@@ -47,9 +47,16 @@ describe('FullTextSearchTrait — onEvent', () => {
   it('fts:index stores document and emits fts:indexed', () => {
     const node = makeNode();
     fullTextSearchHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fullTextSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fts:index', docId: 'doc-1', content: 'HoloScript is a spatial programming language',
-    } as never);
+    fullTextSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fts:index',
+        docId: 'doc-1',
+        content: 'HoloScript is a spatial programming language',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('fts:indexed', { docId: 'doc-1', size: 1 });
     const state = node.__ftsState as { index: Map<string, string> };
     expect(state.index.get('doc-1')).toContain('spatial');
@@ -58,13 +65,34 @@ describe('FullTextSearchTrait — onEvent', () => {
   it('fts:search returns matching documents', () => {
     const node = makeNode();
     fullTextSearchHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fullTextSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'fts:index', docId: 'd1', content: 'apple fruit tree' } as never);
-    fullTextSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'fts:index', docId: 'd2', content: 'banana fruit' } as never);
-    fullTextSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'fts:index', docId: 'd3', content: 'vegetable carrot' } as never);
+    fullTextSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'fts:index', docId: 'd1', content: 'apple fruit tree' } as never
+    );
+    fullTextSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'fts:index', docId: 'd2', content: 'banana fruit' } as never
+    );
+    fullTextSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'fts:index', docId: 'd3', content: 'vegetable carrot' } as never
+    );
     node.emit.mockClear();
-    fullTextSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fts:search', query: 'fruit',
-    } as never);
+    fullTextSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fts:search',
+        query: 'fruit',
+      } as never
+    );
     const call = node.emit.mock.calls.find(([t]) => t === 'fts:results');
     expect(call?.[1]?.hits).toContain('d1');
     expect(call?.[1]?.hits).toContain('d2');
@@ -75,13 +103,26 @@ describe('FullTextSearchTrait — onEvent', () => {
   it('fts:search is case-insensitive', () => {
     const node = makeNode();
     fullTextSearchHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fullTextSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fts:index', docId: 'doc-a', content: 'HOLOSCRIPT RUNTIME engine',
-    } as never);
+    fullTextSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fts:index',
+        docId: 'doc-a',
+        content: 'HOLOSCRIPT RUNTIME engine',
+      } as never
+    );
     node.emit.mockClear();
-    fullTextSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fts:search', query: 'holoscript',
-    } as never);
+    fullTextSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fts:search',
+        query: 'holoscript',
+      } as never
+    );
     const call = node.emit.mock.calls.find(([t]) => t === 'fts:results');
     expect(call?.[1]?.hits).toContain('doc-a');
   });
@@ -89,11 +130,22 @@ describe('FullTextSearchTrait — onEvent', () => {
   it('fts:search returns empty hits for no-match query', () => {
     const node = makeNode();
     fullTextSearchHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fullTextSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'fts:index', docId: 'x', content: 'abc' } as never);
+    fullTextSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'fts:index', docId: 'x', content: 'abc' } as never
+    );
     node.emit.mockClear();
-    fullTextSearchHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fts:search', query: 'zzz',
-    } as never);
+    fullTextSearchHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fts:search',
+        query: 'zzz',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('fts:results', expect.objectContaining({ total: 0 }));
   });
 });

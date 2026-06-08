@@ -20,7 +20,7 @@ So “real-time Three.js scene capture” is **not** a single import away; you c
 - **Pros:** Pixel-perfect, reproducible, fits `remotion render` and CI.
 - **Cons:** Duplicated scene logic unless you share data-only props and small presentational components; not literally “the same running Studio”.
 
-*Repo touchpoint:* `packages/video-tutorials` compositions such as `R3FCompilerWalkthrough` today use the shared **`CompilerWalkthroughTemplate`** (slide-style walkthrough), not a full live Three stage—expanding to `@remotion/three` would be a **new** composition, not a wire-up of Studio’s canvas.
+_Repo touchpoint:_ `packages/video-tutorials` compositions such as `R3FCompilerWalkthrough` today use the shared **`CompilerWalkthroughTemplate`** (slide-style walkthrough), not a full live Three stage—expanding to `@remotion/three` would be a **new** composition, not a wire-up of Studio’s canvas.
 
 ## Pattern B — Capture the real canvas (browser)
 

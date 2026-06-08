@@ -124,14 +124,10 @@ void main() {
 // ── Billboard Quad ───────────────────────────────────────────────────────────
 
 const QUAD_POSITIONS = new Float32Array([
-  -0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0,
-  -0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0,
+  -0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0,
 ]);
 
-const QUAD_UVS = new Float32Array([
-  0, 0, 1, 0, 1, 1,
-  0, 0, 1, 1, 0, 1,
-]);
+const QUAD_UVS = new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1]);
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -155,7 +151,8 @@ export function UncertaintyCloud({
   // Normalize uncertainties if needed
   const normalizedUncertainties = useMemo(() => {
     if (normalized) return new Float32Array(uncertainties);
-    let min = Infinity, max = -Infinity;
+    let min = Infinity,
+      max = -Infinity;
     for (let i = 0; i < uncertainties.length; i++) {
       if (uncertainties[i] < min) min = Number(uncertainties[i]);
       if (uncertainties[i] > max) max = Number(uncertainties[i]);

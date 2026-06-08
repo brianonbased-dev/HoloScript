@@ -152,10 +152,10 @@ export class IBMQuantumBackend implements QmSolver {
   // ── SimSolver lifecycle ────────────────────────────────────────────────
 
   /** No-op: QM solvers are steady-state, not time-stepped. */
-  step(_dt: number): void { }
+  step(_dt: number): void {}
 
   /** No-op: energy is computed on-demand via capability methods. */
-  solve(): void | Promise<void> { }
+  solve(): void | Promise<void> {}
 
   /**
    * Return the last computed energy as a scalar field.
@@ -166,7 +166,9 @@ export class IBMQuantumBackend implements QmSolver {
   getField(name: string): FieldData {
     if (name === 'total_energy') {
       if (this.lastEnergy === null) {
-        throw new Error('[ibm-quantum] No energy computed yet. Call computeEnergy or runVQE first.');
+        throw new Error(
+          '[ibm-quantum] No energy computed yet. Call computeEnergy or runVQE first.'
+        );
       }
       return new Float64Array([this.lastEnergy]);
     }
@@ -241,7 +243,7 @@ export class IBMQuantumBackend implements QmSolver {
   async optimizeGeometry(_molecule: MoleculeSpec): Promise<QmGeometryResult> {
     throw new Error(
       '[ibm-quantum] IBM Quantum backend does not support geometry optimization. ' +
-      'Use Psi4 for optimization then ibm-quantum for energy validation.',
+        'Use Psi4 for optimization then ibm-quantum for energy validation.'
     );
   }
 
@@ -284,7 +286,7 @@ export class IBMQuantumBackend implements QmSolver {
       ibm_backend: this.config.ibmBackend ?? null,
     };
 
-    const raw = await this._runPythonBridge(input) as RawVQEResponse;
+    const raw = (await this._runPythonBridge(input)) as RawVQEResponse;
 
     if (raw.error) {
       throw new Error(`[ibm-quantum] VQE failed: ${raw.error}`);
@@ -292,9 +294,8 @@ export class IBMQuantumBackend implements QmSolver {
 
     const wallTime = raw.wall_time_seconds ?? (performance.now() - startTime) / 1000;
 
-    const executionBackend = (raw.execution_backend === 'ibm-quantum')
-      ? 'ibm-quantum' as const
-      : 'aer' as const;
+    const executionBackend =
+      raw.execution_backend === 'ibm-quantum' ? ('ibm-quantum' as const) : ('aer' as const);
 
     const result: VQEResult = {
       groundStateEnergy: raw.ground_state_energy ?? 0,
@@ -340,7 +341,7 @@ export class IBMQuantumBackend implements QmSolver {
       if (row === undefined || row.length !== n) {
         throw new Error(
           `[ibm-quantum] runQAOA: weightMatrix must be square. ` +
-          `Row ${i} has length ${row?.length ?? 'undefined'}, expected ${n}.`,
+            `Row ${i} has length ${row?.length ?? 'undefined'}, expected ${n}.`
         );
       }
     }
@@ -353,7 +354,7 @@ export class IBMQuantumBackend implements QmSolver {
       ibm_backend: this.config.ibmBackend ?? null,
     };
 
-    const raw = await this._runPythonBridge(input) as RawQAOAResponse;
+    const raw = (await this._runPythonBridge(input)) as RawQAOAResponse;
 
     if ((raw as { error?: string }).error) {
       throw new Error(`[ibm-quantum] QAOA failed: ${(raw as { error: string }).error}`);
@@ -361,9 +362,8 @@ export class IBMQuantumBackend implements QmSolver {
 
     const wallTime = raw.wall_time_seconds ?? (performance.now() - startTime) / 1000;
 
-    const executionBackend = (raw.execution_backend === 'ibm-quantum')
-      ? 'ibm-quantum' as const
-      : 'aer' as const;
+    const executionBackend =
+      raw.execution_backend === 'ibm-quantum' ? ('ibm-quantum' as const) : ('aer' as const);
 
     return {
       optimalBitstring: raw.optimal_bitstring ?? '0'.repeat(n),
@@ -438,9 +438,7 @@ export class IBMQuantumBackend implements QmSolver {
    * @returns Parsed JSON response from the Python script.
    * @throws If the Python process exits with a fatal error.
    */
-  private async _runPythonBridge(
-    input: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
+  private async _runPythonBridge(input: Record<string, unknown>): Promise<Record<string, unknown>> {
     const { execFile } = await import('node:child_process');
     const { promisify } = await import('node:util');
     const execFileAsync = promisify(execFile);
@@ -463,14 +461,12 @@ export class IBMQuantumBackend implements QmSolver {
     delete bridgeInput['apiToken'];
 
     const apiToken = this._resolveApiToken();
-    const childEnv = apiToken
-      ? { ...process.env, IBM_QUANTUM_API_KEY: apiToken }
-      : process.env;
+    const childEnv = apiToken ? { ...process.env, IBM_QUANTUM_API_KEY: apiToken } : process.env;
 
     const { stdout, stderr } = await execFileAsync(
       pythonExe,
       [scriptPath, JSON.stringify(bridgeInput)],
-      { maxBuffer: 10 * 1024 * 1024, env: childEnv },
+      { maxBuffer: 10 * 1024 * 1024, env: childEnv }
     );
 
     // Qiskit emits deprecation and UserWarning messages to stderr — filter them.
@@ -478,10 +474,7 @@ export class IBMQuantumBackend implements QmSolver {
       const fatal = stderr
         .split('\n')
         .filter(
-          (l) =>
-            l.includes('Error:') ||
-            l.includes('Traceback') ||
-            l.includes('SyntaxError'),
+          (l) => l.includes('Error:') || l.includes('Traceback') || l.includes('SyntaxError')
         );
       if (fatal.length > 0) {
         throw new Error(`[ibm-quantum] Python bridge error: ${fatal.join('\n')}`);
@@ -521,9 +514,31 @@ export class IBMQuantumBackend implements QmSolver {
 
     // Approximate atomic numbers for common elements
     const atomicNumbers: Record<string, number> = {
-      H: 1, He: 2, Li: 3, Be: 4, B: 5, C: 6, N: 7, O: 8, F: 9, Ne: 10,
-      Na: 11, Mg: 12, Al: 13, Si: 14, P: 15, S: 16, Cl: 17, Ar: 18,
-      K: 19, Ca: 20, Fe: 26, Co: 27, Ni: 28, Cu: 29, Zn: 30,
+      H: 1,
+      He: 2,
+      Li: 3,
+      Be: 4,
+      B: 5,
+      C: 6,
+      N: 7,
+      O: 8,
+      F: 9,
+      Ne: 10,
+      Na: 11,
+      Mg: 12,
+      Al: 13,
+      Si: 14,
+      P: 15,
+      S: 16,
+      Cl: 17,
+      Ar: 18,
+      K: 19,
+      Ca: 20,
+      Fe: 26,
+      Co: 27,
+      Ni: 28,
+      Cu: 29,
+      Zn: 30,
     };
 
     const atoms = molecule.atoms;
@@ -534,7 +549,7 @@ export class IBMQuantumBackend implements QmSolver {
         const ai = atoms[i];
         const aj = atoms[j];
         if (ai === undefined || aj === undefined) continue;
-        const zi = atomicNumbers[ai.symbol] ?? 6;  // default C if unknown
+        const zi = atomicNumbers[ai.symbol] ?? 6; // default C if unknown
         const zj = atomicNumbers[aj.symbol] ?? 6;
 
         const dx = (ai.x - aj.x) * ANGSTROM_TO_BOHR;

@@ -29,10 +29,42 @@ import type { Employee } from '../workforce';
 // the solver. The handler surfaces meanSalaryA / meanSalaryB / rawGapPct, so we
 // assert against the hand arithmetic.
 const EQUITY_EMPLOYEES: Employee[] = [
-  { id: 'm1', salary: 100000, group: 'male', yearsExperience: 5, performanceRating: 3, jobLevel: 3, tenureYears: 4 },
-  { id: 'm2', salary: 100000, group: 'male', yearsExperience: 5, performanceRating: 3, jobLevel: 3, tenureYears: 4 },
-  { id: 'f1', salary: 80000, group: 'female', yearsExperience: 5, performanceRating: 3, jobLevel: 3, tenureYears: 4 },
-  { id: 'f2', salary: 80000, group: 'female', yearsExperience: 5, performanceRating: 3, jobLevel: 3, tenureYears: 4 },
+  {
+    id: 'm1',
+    salary: 100000,
+    group: 'male',
+    yearsExperience: 5,
+    performanceRating: 3,
+    jobLevel: 3,
+    tenureYears: 4,
+  },
+  {
+    id: 'm2',
+    salary: 100000,
+    group: 'male',
+    yearsExperience: 5,
+    performanceRating: 3,
+    jobLevel: 3,
+    tenureYears: 4,
+  },
+  {
+    id: 'f1',
+    salary: 80000,
+    group: 'female',
+    yearsExperience: 5,
+    performanceRating: 3,
+    jobLevel: 3,
+    tenureYears: 4,
+  },
+  {
+    id: 'f2',
+    salary: 80000,
+    group: 'female',
+    yearsExperience: 5,
+    performanceRating: 3,
+    jobLevel: 3,
+    tenureYears: 4,
+  },
 ];
 
 function payEquityOrb(config: Record<string, unknown>): unknown {
@@ -61,7 +93,7 @@ describe('hr-workforce -> HoloScript runtime integration (pay_equity)', () => {
     });
 
     await runtime.executeNode(
-      payEquityOrb({ employees: EQUITY_EMPLOYEES, groupA: 'male', groupB: 'female' }) as never,
+      payEquityOrb({ employees: EQUITY_EMPLOYEES, groupA: 'male', groupB: 'female' }) as never
     );
     await flush();
 
@@ -82,7 +114,7 @@ describe('hr-workforce -> HoloScript runtime integration (pay_equity)', () => {
     runtime.on('pay_equity_solved', (e: unknown) => solved.push(e));
 
     await runtime.executeNode(
-      payEquityOrb({ employees: EQUITY_EMPLOYEES, groupA: 'male', groupB: 'female' }) as never,
+      payEquityOrb({ employees: EQUITY_EMPLOYEES, groupA: 'male', groupB: 'female' }) as never
     );
     await flush();
 
@@ -94,7 +126,7 @@ describe('hr-workforce -> HoloScript runtime integration (pay_equity)', () => {
     registerHrWorkforceTraitHandlers(runtime);
 
     await runtime.executeNode(
-      payEquityOrb({ employees: EQUITY_EMPLOYEES, groupA: 'male', groupB: 'female' }) as never,
+      payEquityOrb({ employees: EQUITY_EMPLOYEES, groupA: 'male', groupB: 'female' }) as never
     );
     await flush();
 
@@ -124,12 +156,36 @@ describe('hr-workforce -> HoloScript runtime integration (pay_equity)', () => {
     // employees" — the handler's try/catch turns that into a pay_equity_error
     // rather than a throw through the runtime.
     const malformed: Employee[] = [
-      { id: 'm1', salary: 100000, group: 'male', yearsExperience: 5, performanceRating: 3, jobLevel: 3, tenureYears: 4 },
-      { id: 'm2', salary: 100000, group: 'male', yearsExperience: 5, performanceRating: 3, jobLevel: 3, tenureYears: 4 },
-      { id: 'f1', salary: 80000, group: 'female', yearsExperience: 5, performanceRating: 3, jobLevel: 3, tenureYears: 4 },
+      {
+        id: 'm1',
+        salary: 100000,
+        group: 'male',
+        yearsExperience: 5,
+        performanceRating: 3,
+        jobLevel: 3,
+        tenureYears: 4,
+      },
+      {
+        id: 'm2',
+        salary: 100000,
+        group: 'male',
+        yearsExperience: 5,
+        performanceRating: 3,
+        jobLevel: 3,
+        tenureYears: 4,
+      },
+      {
+        id: 'f1',
+        salary: 80000,
+        group: 'female',
+        yearsExperience: 5,
+        performanceRating: 3,
+        jobLevel: 3,
+        tenureYears: 4,
+      },
     ];
     await runtime.executeNode(
-      payEquityOrb({ employees: malformed, groupA: 'male', groupB: 'female' }) as never,
+      payEquityOrb({ employees: malformed, groupA: 'male', groupB: 'female' }) as never
     );
     await flush();
 

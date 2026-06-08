@@ -2,7 +2,14 @@ import Anthropic from '@anthropic-ai/sdk';
 import { OllamaClient } from './lib/ollama-client';
 import { renderMutationsToProse } from './mutation-renderer';
 import { verifyDeterministically } from './deterministic-verifier';
-import type { ConfigName, RubricCriterion, RubricVerdict, SceneMutation, Task, TokenUsage } from './types';
+import type {
+  ConfigName,
+  RubricCriterion,
+  RubricVerdict,
+  SceneMutation,
+  Task,
+  TokenUsage,
+} from './types';
 
 export interface JudgeOptions {
   client: Anthropic;
@@ -73,18 +80,25 @@ function formatMutations(mutations: SceneMutation[]): string {
   if (mutations.length === 0) return '_(none)_';
   return mutations
     .map((m) => {
-      const status = m.sim_contract_passed === true ? 'passed' : m.sim_contract_passed === false ? 'rejected' : 'unknown';
+      const status =
+        m.sim_contract_passed === true
+          ? 'passed'
+          : m.sim_contract_passed === false
+            ? 'rejected'
+            : 'unknown';
       return `- ${m.tool_name}: ${JSON.stringify(m.input)} [sim_contract: ${status}]`;
     })
     .join('\n');
 }
 
-function buildPrompt(task: Task, candidateOutput: string, rubric: RubricCriterion[], mutations: SceneMutation[]): string {
+function buildPrompt(
+  task: Task,
+  candidateOutput: string,
+  rubric: RubricCriterion[],
+  mutations: SceneMutation[]
+): string {
   const rubricBlock = rubric
-    .map(
-      (c, i) =>
-        `${i + 1}. id=${c.id} required=${c.required}\n   ${c.description}`
-    )
+    .map((c, i) => `${i + 1}. id=${c.id} required=${c.required}\n   ${c.description}`)
     .join('\n');
   const trustMutations = task.trust_mutations_over_prose ?? false;
 
@@ -214,7 +228,8 @@ export async function judgeRun(
       // criteria tagged with 'llm' or untagged stay with the judge.
       verdicts = verdicts.map((v) => {
         const criterion = task.evaluation_rubric.find((c) => c.id === v.criterion_id);
-        const useDeterministic = criterion && criterion.verifier_type && criterion.verifier_type !== 'llm';
+        const useDeterministic =
+          criterion && criterion.verifier_type && criterion.verifier_type !== 'llm';
         const det = detById.get(v.criterion_id);
         if (!det || !useDeterministic) return v;
         return {
@@ -228,7 +243,9 @@ export async function judgeRun(
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       const isCreditOrRateLimit =
-        msg.includes('credit balance is too low') || msg.includes('Rate limit') || msg.includes('429');
+        msg.includes('credit balance is too low') ||
+        msg.includes('Rate limit') ||
+        msg.includes('429');
       const isModelUnavailable =
         msg.includes('not_found_error') || msg.includes('model') || msg.includes('404');
       if ((isCreditOrRateLimit || isModelUnavailable) && opts.ollamaClient) {
@@ -309,7 +326,8 @@ async function judgeWithOllama(
 
   usage.input_tokens = ollamaClient.estimateTokens(inputChars);
   usage.output_tokens =
-    response.usage?.completion_tokens ?? ollamaClient.estimateTokens(JSON.stringify(response).length);
+    response.usage?.completion_tokens ??
+    ollamaClient.estimateTokens(JSON.stringify(response).length);
 
   const choice = response.choices[0];
   const toolCalls = choice?.message?.tool_calls;
@@ -383,7 +401,8 @@ async function judgeWithOllama(
   // Deterministic override: same logic as Anthropic judge path.
   verdicts = verdicts.map((v) => {
     const criterion = task.evaluation_rubric.find((c) => c.id === v.criterion_id);
-    const useDeterministic = criterion && criterion.verifier_type && criterion.verifier_type !== 'llm';
+    const useDeterministic =
+      criterion && criterion.verifier_type && criterion.verifier_type !== 'llm';
     const det = detById.get(v.criterion_id);
     if (!det || !useDeterministic) return v;
     return {

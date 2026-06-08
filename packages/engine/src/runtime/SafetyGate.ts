@@ -15,7 +15,10 @@
 import { SafetyReport, SafetyVerdict } from '@holoscript/core';
 import { runSafetyPass, EffectASTNode } from '@holoscript/core';
 import { ResourceCategory, PLATFORM_BUDGETS } from '@holoscript/core';
-import { PlatformTarget, XR_PLATFORM_CAPABILITIES as PLATFORM_CAPABILITIES } from '@holoscript/core';
+import {
+  PlatformTarget,
+  XR_PLATFORM_CAPABILITIES as PLATFORM_CAPABILITIES,
+} from '@holoscript/core';
 import { InstallManifest } from '@holoscript/core';
 
 // =============================================================================

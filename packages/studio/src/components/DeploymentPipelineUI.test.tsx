@@ -52,17 +52,17 @@ describe('DeploymentPipelineUI', () => {
 
     // Change to low
     fireEvent.change(select, { target: { value: 'low' } });
-        expect(screen.getByText('Development')).toBeInTheDocument();
+    expect(screen.getByText('Development')).toBeInTheDocument();
     expect(screen.getByText('vercel-edge')).toBeInTheDocument();
 
     // Change to high
     fireEvent.change(select, { target: { value: 'high' } });
-        expect(screen.getByText('Production')).toBeInTheDocument();
+    expect(screen.getByText('Production')).toBeInTheDocument();
     expect(screen.getByText('aws-lambda')).toBeInTheDocument();
 
     // Change to ultra
     fireEvent.change(select, { target: { value: 'ultra' } });
-        expect(screen.getByText('Global CDN')).toBeInTheDocument();
+    expect(screen.getByText('Global CDN')).toBeInTheDocument();
     expect(screen.getByText('multi-region')).toBeInTheDocument();
   });
 
@@ -98,7 +98,6 @@ describe('DeploymentPipelineUI', () => {
     await vi.runAllTimersAsync();
 
     // Verify onDeployComplete called with success
-    
   });
 
   it('shows deploying state during pipeline execution', async () => {
@@ -126,13 +125,11 @@ describe('DeploymentPipelineUI', () => {
     await vi.advanceTimersByTimeAsync(1000);
 
     // Source should complete
-    
 
     // Complete all stages
     await vi.runAllTimersAsync();
 
     // Final stage should show success
-    
   });
 
   it('handles empty source with warning', async () => {
@@ -142,8 +139,6 @@ describe('DeploymentPipelineUI', () => {
     fireEvent.click(deployButton);
 
     await vi.advanceTimersByTimeAsync(1000);
-
-    
   });
 
   it('displays progress bars during compilation and deployment', async () => {
@@ -154,8 +149,6 @@ describe('DeploymentPipelineUI', () => {
 
     // Advance to compilation stage
     await vi.advanceTimersByTimeAsync(1000);
-
-    
 
     // Progress should be visible during running stages
     // (visual check - presence of progress indicator elements)
@@ -173,11 +166,9 @@ describe('DeploymentPipelineUI', () => {
 
     // Expand
     fireEvent.click(logsButton);
-    
 
     // Collapse
     fireEvent.click(logsButton);
-    
   });
 
   it('displays logs during deployment', async () => {
@@ -191,13 +182,10 @@ describe('DeploymentPipelineUI', () => {
     const deployButton = screen.getByRole('button', { name: /deploy/i });
     fireEvent.click(deployButton);
 
-    
-
     // Advance through pipeline
     await vi.runAllTimersAsync();
 
     // Should show completion log
-    
   });
 
   it('shows log count badge', async () => {
@@ -228,7 +216,6 @@ describe('DeploymentPipelineUI', () => {
     await vi.runAllTimersAsync();
 
     // Check for different log levels
-    
   });
 
   // ── Rollback Functionality ─────────────────────────────────────────────────
@@ -239,7 +226,7 @@ describe('DeploymentPipelineUI', () => {
     const rollbackButton = screen.getByRole('button', { name: /rollback/i });
     fireEvent.click(rollbackButton);
 
-        expect(screen.getByText('Confirm Rollback')).toBeInTheDocument();
+    expect(screen.getByText('Confirm Rollback')).toBeInTheDocument();
     expect(screen.getByText(/This will revert to the previous deployment/i)).toBeInTheDocument();
   });
 
@@ -249,12 +236,8 @@ describe('DeploymentPipelineUI', () => {
     const rollbackButton = screen.getByRole('button', { name: /rollback/i });
     fireEvent.click(rollbackButton);
 
-    
-
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
     fireEvent.click(cancelButton);
-
-    
   });
 
   it('executes rollback callback when confirmed', async () => {
@@ -266,13 +249,9 @@ describe('DeploymentPipelineUI', () => {
     const rollbackButton = screen.getByRole('button', { name: /rollback/i });
     fireEvent.click(rollbackButton);
 
-    
-
     // Confirm
     const confirmButton = screen.getByRole('button', { name: /rollback now/i });
     fireEvent.click(confirmButton);
-
-    
   });
 
   it('disables rollback button during deployment', async () => {
@@ -283,8 +262,6 @@ describe('DeploymentPipelineUI', () => {
 
     // Start deployment
     fireEvent.click(deployButton);
-
-    
   });
 
   it('logs rollback activity', async () => {
@@ -302,10 +279,6 @@ describe('DeploymentPipelineUI', () => {
 
     const confirmButton = screen.getByRole('button', { name: /rollback now/i });
     fireEvent.click(confirmButton);
-
-    
-
-    
   });
 
   // ── Accessibility ──────────────────────────────────────────────────────────
@@ -354,8 +327,6 @@ describe('DeploymentPipelineUI', () => {
     fireEvent.click(deployButton);
 
     await vi.advanceTimersByTimeAsync(1000);
-
-    
   });
 
   it('shows correct target for each quality tier', () => {
@@ -388,7 +359,7 @@ describe('DeploymentPipelineUI', () => {
     await vi.runAllTimersAsync();
 
     // Should show duration for completed stages (format: XXXms)
-        const durations = screen.getAllByText(/\d+ms/);
+    const durations = screen.getAllByText(/\d+ms/);
     expect(durations.length).toBeGreaterThan(0);
   });
 });

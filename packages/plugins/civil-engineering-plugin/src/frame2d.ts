@@ -241,10 +241,12 @@ export function validateFrame2DModel(model: Frame2DModel): Frame2DValidation {
   // Minimum stability check: need enough supports to prevent rigid body motion
   const totalRestrainedDOF = model.supports.reduce(
     (sum, s) => sum + (s.ux ? 1 : 0) + (s.uy ? 1 : 0) + (s.theta ? 1 : 0),
-    0,
+    0
   );
   if (totalRestrainedDOF < 3) {
-    errors.push('insufficient supports: need at least 3 restrained DOF to prevent rigid body motion');
+    errors.push(
+      'insufficient supports: need at least 3 restrained DOF to prevent rigid body motion'
+    );
   }
 
   return { valid: errors.length === 0, errors, warnings };
@@ -264,9 +266,7 @@ function matMul(A: Matrix, B: Matrix): Matrix {
   const k = B.length;
   const C = zeros(m, n);
   for (let i = 0; i < m; i++)
-    for (let j = 0; j < n; j++)
-      for (let l = 0; l < k; l++)
-        C[i][j] += A[i][l] * B[l][j];
+    for (let j = 0; j < n; j++) for (let l = 0; l < k; l++) C[i][j] += A[i][l] * B[l][j];
   return C;
 }
 
@@ -274,9 +274,7 @@ function transpose(A: Matrix): Matrix {
   const m = A.length;
   const n = A[0].length;
   const T = zeros(n, m);
-  for (let i = 0; i < m; i++)
-    for (let j = 0; j < n; j++)
-      T[j][i] = A[i][j];
+  for (let i = 0; i < m; i++) for (let j = 0; j < n; j++) T[j][i] = A[i][j];
   return T;
 }
 
@@ -292,9 +290,13 @@ function gaussSolve(A: Matrix, b: number[]): number[] {
     let bestAbs = Math.abs(a[pivot][pivot]);
     for (let row = pivot + 1; row < n; row++) {
       const v = Math.abs(a[row][pivot]);
-      if (v > bestAbs) { bestAbs = v; bestRow = row; }
+      if (v > bestAbs) {
+        bestAbs = v;
+        bestRow = row;
+      }
     }
-    if (bestAbs < 1e-14) throw new Error('[frame2d] singular stiffness matrix — check boundary conditions');
+    if (bestAbs < 1e-14)
+      throw new Error('[frame2d] singular stiffness matrix — check boundary conditions');
     if (bestRow !== pivot) {
       [a[pivot], a[bestRow]] = [a[bestRow], a[pivot]];
       [rhs[pivot], rhs[bestRow]] = [rhs[bestRow], rhs[pivot]];
@@ -333,12 +335,12 @@ function localStiffness(E: number, I: number, A: number, L: number): Matrix {
   const L3 = L * L * L;
 
   return [
-    [ EA/L,         0,          0,    -EA/L,         0,          0    ],
-    [    0,  12*EI/L3,   6*EI/L2,        0, -12*EI/L3,   6*EI/L2   ],
-    [    0,   6*EI/L2,    4*EI/L,        0,  -6*EI/L2,    2*EI/L   ],
-    [-EA/L,         0,          0,     EA/L,         0,          0    ],
-    [    0, -12*EI/L3,  -6*EI/L2,        0,  12*EI/L3,  -6*EI/L2   ],
-    [    0,   6*EI/L2,    2*EI/L,        0,  -6*EI/L2,    4*EI/L   ],
+    [EA / L, 0, 0, -EA / L, 0, 0],
+    [0, (12 * EI) / L3, (6 * EI) / L2, 0, (-12 * EI) / L3, (6 * EI) / L2],
+    [0, (6 * EI) / L2, (4 * EI) / L, 0, (-6 * EI) / L2, (2 * EI) / L],
+    [-EA / L, 0, 0, EA / L, 0, 0],
+    [0, (-12 * EI) / L3, (-6 * EI) / L2, 0, (12 * EI) / L3, (-6 * EI) / L2],
+    [0, (6 * EI) / L2, (2 * EI) / L, 0, (-6 * EI) / L2, (4 * EI) / L],
   ];
 }
 
@@ -349,12 +351,12 @@ function localStiffness(E: number, I: number, A: number, L: number): Matrix {
  */
 function transformMatrix(c: number, s: number): Matrix {
   return [
-    [ c,  s,  0,  0,  0,  0 ],
-    [-s,  c,  0,  0,  0,  0 ],
-    [ 0,  0,  1,  0,  0,  0 ],
-    [ 0,  0,  0,  c,  s,  0 ],
-    [ 0,  0,  0, -s,  c,  0 ],
-    [ 0,  0,  0,  0,  0,  1 ],
+    [c, s, 0, 0, 0, 0],
+    [-s, c, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0],
+    [0, 0, 0, c, s, 0],
+    [0, 0, 0, -s, c, 0],
+    [0, 0, 0, 0, 0, 1],
   ];
 }
 
@@ -389,7 +391,7 @@ function equivalentNodalForces(
   dl: DistributedLoad,
   elem: BeamElement,
   fromNode: Node2D,
-  toNode: Node2D,
+  toNode: Node2D
 ): number[] /* 6-element global force vector */ {
   const dx = toNode.x - fromNode.x;
   const dy = toNode.y - fromNode.y;
@@ -429,14 +431,12 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
   const K = zeros(nDOF, nDOF);
   for (const elem of model.elements) {
     const fromNode = nodeById.get(elem.fromNodeId)!;
-    const toNode   = nodeById.get(elem.toNodeId)!;
+    const toNode = nodeById.get(elem.toNodeId)!;
     const Ke = globalElementStiffness(elem, fromNode, toNode);
     const i0 = nodeIndex.get(elem.fromNodeId)! * 3;
     const i1 = nodeIndex.get(elem.toNodeId)! * 3;
-    const dofs = [i0, i0+1, i0+2, i1, i1+1, i1+2];
-    for (let r = 0; r < 6; r++)
-      for (let c_ = 0; c_ < 6; c_++)
-        K[dofs[r]][dofs[c_]] += Ke[r][c_];
+    const dofs = [i0, i0 + 1, i0 + 2, i1, i1 + 1, i1 + 2];
+    for (let r = 0; r < 6; r++) for (let c_ = 0; c_ < 6; c_++) K[dofs[r]][dofs[c_]] += Ke[r][c_];
   }
 
   // Assemble global force vector
@@ -444,7 +444,7 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
 
   for (const load of model.nodalLoads ?? []) {
     const idx = nodeIndex.get(load.nodeId)! * 3;
-    F[idx]     += load.Fx ?? 0;
+    F[idx] += load.Fx ?? 0;
     F[idx + 1] += load.Fy ?? 0;
     F[idx + 2] += load.Mz ?? 0;
   }
@@ -452,11 +452,11 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
   for (const dl of model.distributedLoads ?? []) {
     const elem = elemById.get(dl.elementId)!;
     const fromNode = nodeById.get(elem.fromNodeId)!;
-    const toNode   = nodeById.get(elem.toNodeId)!;
+    const toNode = nodeById.get(elem.toNodeId)!;
     const f_global = equivalentNodalForces(dl, elem, fromNode, toNode);
     const i0 = nodeIndex.get(elem.fromNodeId)! * 3;
     const i1 = nodeIndex.get(elem.toNodeId)! * 3;
-    const dofs = [i0, i0+1, i0+2, i1, i1+1, i1+2];
+    const dofs = [i0, i0 + 1, i0 + 2, i1, i1 + 1, i1 + 2];
     for (let r = 0; r < 6; r++) F[dofs[r]] += f_global[r];
   }
 
@@ -466,9 +466,18 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
   const restraints: boolean[] = new Array<boolean>(nDOF).fill(false);
   for (const support of model.supports) {
     const idx = nodeIndex.get(support.nodeId)! * 3;
-    if (support.ux)    { K[idx][idx]         += PENALTY; restraints[idx]     = true; }
-    if (support.uy)    { K[idx+1][idx+1]     += PENALTY; restraints[idx+1]   = true; }
-    if (support.theta) { K[idx+2][idx+2]     += PENALTY; restraints[idx+2]   = true; }
+    if (support.ux) {
+      K[idx][idx] += PENALTY;
+      restraints[idx] = true;
+    }
+    if (support.uy) {
+      K[idx + 1][idx + 1] += PENALTY;
+      restraints[idx + 1] = true;
+    }
+    if (support.theta) {
+      K[idx + 2][idx + 2] += PENALTY;
+      restraints[idx + 2] = true;
+    }
   }
 
   // Solve K * u = F
@@ -479,8 +488,8 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
     const idx = nodeIndex.get(node.id)! * 3;
     return {
       nodeId: node.id,
-      ux:    u[idx],
-      uy:    u[idx + 1],
+      ux: u[idx],
+      uy: u[idx + 1],
       theta: u[idx + 2],
     };
   });
@@ -490,14 +499,13 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
   const K_clean = zeros(nDOF, nDOF);
   for (const elem of model.elements) {
     const fromNode = nodeById.get(elem.fromNodeId)!;
-    const toNode   = nodeById.get(elem.toNodeId)!;
+    const toNode = nodeById.get(elem.toNodeId)!;
     const Ke = globalElementStiffness(elem, fromNode, toNode);
     const i0 = nodeIndex.get(elem.fromNodeId)! * 3;
     const i1 = nodeIndex.get(elem.toNodeId)! * 3;
-    const dofs = [i0, i0+1, i0+2, i1, i1+1, i1+2];
+    const dofs = [i0, i0 + 1, i0 + 2, i1, i1 + 1, i1 + 2];
     for (let r = 0; r < 6; r++)
-      for (let c_ = 0; c_ < 6; c_++)
-        K_clean[dofs[r]][dofs[c_]] += Ke[r][c_];
+      for (let c_ = 0; c_ < 6; c_++) K_clean[dofs[r]][dofs[c_]] += Ke[r][c_];
   }
 
   const reactions: SupportReaction[] = model.supports.map((support) => {
@@ -505,8 +513,8 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
     const Ku_row = (row: number) => K_clean[row].reduce((s, kij, j) => s + kij * u[j], 0);
     return {
       nodeId: support.nodeId,
-      Rx: support.ux    ? Ku_row(idx)     - F[idx]     : 0,
-      Ry: support.uy    ? Ku_row(idx + 1) - F[idx + 1] : 0,
+      Rx: support.ux ? Ku_row(idx) - F[idx] : 0,
+      Ry: support.uy ? Ku_row(idx + 1) - F[idx + 1] : 0,
       Mz: support.theta ? Ku_row(idx + 2) - F[idx + 2] : 0,
     };
   });
@@ -514,7 +522,7 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
   // Recover element internal forces
   const elementForces: ElementForces[] = model.elements.map((elem) => {
     const fromNode = nodeById.get(elem.fromNodeId)!;
-    const toNode   = nodeById.get(elem.toNodeId)!;
+    const toNode = nodeById.get(elem.toNodeId)!;
     const dx = toNode.x - fromNode.x;
     const dy = toNode.y - fromNode.y;
     const L = Math.sqrt(dx * dx + dy * dy);
@@ -526,11 +534,13 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
 
     const i0 = nodeIndex.get(elem.fromNodeId)! * 3;
     const i1 = nodeIndex.get(elem.toNodeId)! * 3;
-    const u_global = [u[i0], u[i0+1], u[i0+2], u[i1], u[i1+1], u[i1+2]];
+    const u_global = [u[i0], u[i0 + 1], u[i0 + 2], u[i1], u[i1 + 1], u[i1 + 2]];
 
     // Transform to local: u_local = T * u_global
     const T = transformMatrix(c, s);
-    const u_local = u_global.map((_, i) => T[i].reduce((sum, tij, j) => sum + tij * u_global[j], 0));
+    const u_local = u_global.map((_, i) =>
+      T[i].reduce((sum, tij, j) => sum + tij * u_global[j], 0)
+    );
 
     const k_local = localStiffness(E, I, A, L);
     // f_local = k_local * u_local  (internal forces in local frame)
@@ -544,7 +554,14 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
     const dl = (model.distributedLoads ?? []).find((d) => d.elementId === elem.id);
     let f_local_adj = [...f_local];
     if (dl) {
-      const f_fef_local = [0, (dl.w * L) / 2, (dl.w * L * L) / 12, 0, (dl.w * L) / 2, -(dl.w * L * L) / 12];
+      const f_fef_local = [
+        0,
+        (dl.w * L) / 2,
+        (dl.w * L * L) / 12,
+        0,
+        (dl.w * L) / 2,
+        -(dl.w * L * L) / 12,
+      ];
       f_local_adj = f_local.map((v, i) => v + f_fef_local[i]);
     }
 
@@ -558,18 +575,18 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
 
     return {
       elementId: elem.id,
-      N_start:  -f_local_adj[0],  // sign: tension positive convention
-      V_start:  -f_local_adj[1],
-      M_start:   f_local_adj[2],
-      N_end:     f_local_adj[3],
-      V_end:     f_local_adj[4],
-      M_end:     f_local_adj[5],
+      N_start: -f_local_adj[0], // sign: tension positive convention
+      V_start: -f_local_adj[1],
+      M_start: f_local_adj[2],
+      N_end: f_local_adj[3],
+      V_end: f_local_adj[4],
+      M_end: f_local_adj[5],
       utilisationRatio,
     };
   });
 
   const maxDisplacementM = Math.max(
-    ...nodeDisplacements.map((d) => Math.sqrt(d.ux ** 2 + d.uy ** 2)),
+    ...nodeDisplacements.map((d) => Math.sqrt(d.ux ** 2 + d.uy ** 2))
   );
   const maxUtilisationRatio = Math.max(0, ...elementForces.map((ef) => ef.utilisationRatio));
 
@@ -590,7 +607,7 @@ export function solveFrame2D(model: Frame2DModel): Frame2DResult {
 export function buildFrame2DReceipt(
   model: Frame2DModel,
   result: Frame2DResult,
-  options: Frame2DReceiptOptions = {},
+  options: Frame2DReceiptOptions = {}
 ): Frame2DReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 

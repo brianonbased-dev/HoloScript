@@ -43,7 +43,8 @@ export const TOOL_CATALOG: ToolDef[] = [
           },
           symbol: {
             type: 'string',
-            description: 'Symbol or file pattern (e.g. "useSWR", "packages/studio/src/app/create").',
+            description:
+              'Symbol or file pattern (e.g. "useSWR", "packages/studio/src/app/create").',
           },
         },
         required: ['query', 'symbol'],

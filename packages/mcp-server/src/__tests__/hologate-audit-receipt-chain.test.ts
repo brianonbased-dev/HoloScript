@@ -37,10 +37,12 @@ function sortedJson(v: unknown): unknown {
   if (Array.isArray(v)) return v.map(sortedJson);
   if (v !== null && typeof v === 'object') {
     const o = v as Record<string, unknown>;
-    return Object.keys(o).sort().reduce<Record<string, unknown>>((acc, k) => {
-      acc[k] = sortedJson(o[k]);
-      return acc;
-    }, {});
+    return Object.keys(o)
+      .sort()
+      .reduce<Record<string, unknown>>((acc, k) => {
+        acc[k] = sortedJson(o[k]);
+        return acc;
+      }, {});
   }
   return v;
 }
@@ -50,7 +52,11 @@ function hashWorldState(state: WorldState): string {
   return 'sha256:' + createHash('sha256').update(canonical).digest('hex');
 }
 
-function applyDelta(state: WorldState, entityId: string, payload: Record<string, unknown>): WorldState {
+function applyDelta(
+  state: WorldState,
+  entityId: string,
+  payload: Record<string, unknown>
+): WorldState {
   const existing = state[entityId] ?? {};
   return { ...state, [entityId]: deepMerge(existing as Record<string, unknown>, payload) };
 }
@@ -81,7 +87,7 @@ interface MutationRecord {
 interface PortalExitRecord {
   receiptId: string;
   agentId: string;
-  entryReceiptId: string;   // back-reference — tamper-evident chain
+  entryReceiptId: string; // back-reference — tamper-evident chain
   exitWorldStateHash: string;
   mutationCount: number;
   mutationLog: MutationRecord[];
@@ -92,7 +98,7 @@ function buildEntryReceipt(
   agentId: string,
   worldState: WorldState,
   scopes: string[],
-  now = Date.now(),
+  now = Date.now()
 ): PortalEntryRecord {
   return {
     receiptId: `entry:${agentId}:${now}`,
@@ -109,12 +115,12 @@ function buildExitReceipt(
   entry: PortalEntryRecord,
   exitWorldState: WorldState,
   mutations: MutationRecord[],
-  now = Date.now(),
+  now = Date.now()
 ): PortalExitRecord {
   return {
     receiptId: `exit:${entry.agentId}:${now}`,
     agentId: entry.agentId,
-    entryReceiptId: entry.receiptId,  // ← chain link
+    entryReceiptId: entry.receiptId, // ← chain link
     exitWorldStateHash: hashWorldState(exitWorldState),
     mutationCount: mutations.length,
     mutationLog: mutations,
@@ -147,7 +153,10 @@ describe('portal audit receipt chain — entry → mutation → exit → rewind'
   // 1. Entry receipt captures initial world-state hash
   // -------------------------------------------------------------------------
   it('entry receipt captures deterministic world-state hash', () => {
-    const entry = buildEntryReceipt('agent-a', worldState, ['scope:world:read', 'scope:agent:drive-avatar']);
+    const entry = buildEntryReceipt('agent-a', worldState, [
+      'scope:world:read',
+      'scope:agent:drive-avatar',
+    ]);
 
     expect(entry.receiptId).toMatch(/^entry:agent-a:/);
     expect(entry.entryWorldStateHash).toMatch(/^sha256:[0-9a-f]{64}$/);
@@ -165,7 +174,11 @@ describe('portal audit receipt chain — entry → mutation → exit → rewind'
     const entry = buildEntryReceipt('agent-a', worldState, ['scope:agent:drive-avatar']);
     const entryHash = entry.entryWorldStateHash;
 
-    const intent: PortalIntent = { kind: 'move', entityId: 'entity:box-1', position: { x: 10, y: 0, z: 0 } };
+    const intent: PortalIntent = {
+      kind: 'move',
+      entityId: 'entity:box-1',
+      position: { x: 10, y: 0, z: 0 },
+    };
     const validation = validatePortalIntent(intent, POLICY);
     expect(validation.allowed).toBe(true);
 
@@ -182,12 +195,19 @@ describe('portal audit receipt chain — entry → mutation → exit → rewind'
     const entry = buildEntryReceipt('agent-a', worldState, ['scope:agent:drive-avatar'], 1000);
 
     // Apply a mutation
-    const intent: PortalIntent = { kind: 'move', entityId: 'entity:box-1', position: { x: 3, y: 0, z: 0 } };
+    const intent: PortalIntent = {
+      kind: 'move',
+      entityId: 'entity:box-1',
+      position: { x: 3, y: 0, z: 0 },
+    };
     const { entityId, payload } = intentToDelta(intent, 1100);
     worldState = applyDelta(worldState, entityId, payload);
 
     const mutation: MutationRecord = {
-      seq: 1, agentId: 'agent-a', intentKind: 'move', entityId,
+      seq: 1,
+      agentId: 'agent-a',
+      intentKind: 'move',
+      entityId,
       deltaHash: createHash('sha256').update(JSON.stringify(payload)).digest('hex'),
       ts: 1100,
     };
@@ -213,7 +233,7 @@ describe('portal audit receipt chain — entry → mutation → exit → rewind'
     const intents: PortalIntent[] = [
       { kind: 'move', entityId: 'entity:box-1', position: { x: 1, y: 0, z: 0 } },
       { kind: 'move', entityId: 'entity:box-2', position: { x: 6, y: 0, z: 0 } },
-      { kind: 'say',  entityId: 'avatar:agent-a', utterance: 'test' },
+      { kind: 'say', entityId: 'avatar:agent-a', utterance: 'test' },
     ];
 
     for (let i = 0; i < intents.length; i++) {
@@ -222,7 +242,10 @@ describe('portal audit receipt chain — entry → mutation → exit → rewind'
       const { entityId, payload } = intentToDelta(intents[i], 1000 + i * 100);
       worldState = applyDelta(worldState, entityId, payload);
       mutations.push({
-        seq: i + 1, agentId: 'agent-a', intentKind: intents[i].kind, entityId,
+        seq: i + 1,
+        agentId: 'agent-a',
+        intentKind: intents[i].kind,
+        entityId,
         deltaHash: createHash('sha256').update(JSON.stringify(payload)).digest('hex'),
         ts: 1000 + i * 100,
       });
@@ -251,7 +274,11 @@ describe('portal audit receipt chain — entry → mutation → exit → rewind'
     const mutations: MutationRecord[] = [];
 
     // read-only scope → move rejected
-    const intent: PortalIntent = { kind: 'move', entityId: 'entity:box-1', position: { x: 99, y: 0, z: 0 } };
+    const intent: PortalIntent = {
+      kind: 'move',
+      entityId: 'entity:box-1',
+      position: { x: 99, y: 0, z: 0 },
+    };
     const v = validatePortalIntent(intent, { defaultScope: 'read-only' });
     expect(v.allowed).toBe(false);
 
@@ -259,14 +286,21 @@ describe('portal audit receipt chain — entry → mutation → exit → rewind'
     if (v.allowed) {
       const { entityId, payload } = intentToDelta(intent);
       worldState = applyDelta(worldState, entityId, payload);
-      mutations.push({ seq: 1, agentId: 'agent-a', intentKind: intent.kind, entityId, deltaHash: '', ts: Date.now() });
+      mutations.push({
+        seq: 1,
+        agentId: 'agent-a',
+        intentKind: intent.kind,
+        entityId,
+        deltaHash: '',
+        ts: Date.now(),
+      });
     }
 
     expect(hashWorldState(worldState)).toBe(hashBefore);
     expect(mutations).toHaveLength(0);
 
     const exit = buildExitReceipt(entry, worldState, mutations);
-    expect(exit.exitWorldStateHash).toBe(entry.entryWorldStateHash);  // no change
+    expect(exit.exitWorldStateHash).toBe(entry.entryWorldStateHash); // no change
     expect(exit.mutationCount).toBe(0);
   });
 
@@ -276,10 +310,10 @@ describe('portal audit receipt chain — entry → mutation → exit → rewind'
   it('world-state hash is independent of entity insertion order', () => {
     const stateA: WorldState = {
       'entity:alpha': { x: 1 },
-      'entity:beta':  { x: 2 },
+      'entity:beta': { x: 2 },
     };
     const stateB: WorldState = {
-      'entity:beta':  { x: 2 },
+      'entity:beta': { x: 2 },
       'entity:alpha': { x: 1 },
     };
     expect(hashWorldState(stateA)).toBe(hashWorldState(stateB));
@@ -289,7 +323,11 @@ describe('portal audit receipt chain — entry → mutation → exit → rewind'
   // 7. Delta hash integrity — payload hash in mutation log is reproducible
   // -------------------------------------------------------------------------
   it('mutation record delta hash is deterministic and matches payload', () => {
-    const intent: PortalIntent = { kind: 'move', entityId: 'entity:box-1', position: { x: 7, y: 2, z: 1 } };
+    const intent: PortalIntent = {
+      kind: 'move',
+      entityId: 'entity:box-1',
+      position: { x: 7, y: 2, z: 1 },
+    };
     const { payload } = intentToDelta(intent, 5000);
 
     const hash1 = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
@@ -306,17 +344,39 @@ describe('portal audit receipt chain — entry → mutation → exit → rewind'
     const entryB = buildEntryReceipt('agent-b', worldState, ['scope:agent:drive-avatar'], 1001);
 
     // agent-a mutates box-1
-    const intentA: PortalIntent = { kind: 'move', entityId: 'entity:box-1', position: { x: 10, y: 0, z: 0 } };
+    const intentA: PortalIntent = {
+      kind: 'move',
+      entityId: 'entity:box-1',
+      position: { x: 10, y: 0, z: 0 },
+    };
     const { entityId: eidA, payload: payA } = intentToDelta(intentA, 1100);
     const stateAfterA = applyDelta(worldState, eidA, payA);
 
     // agent-b mutates box-2 (independent)
-    const intentB: PortalIntent = { kind: 'move', entityId: 'entity:box-2', position: { x: -5, y: 0, z: 0 } };
+    const intentB: PortalIntent = {
+      kind: 'move',
+      entityId: 'entity:box-2',
+      position: { x: -5, y: 0, z: 0 },
+    };
     const { entityId: eidB, payload: payB } = intentToDelta(intentB, 1200);
     const stateAfterB = applyDelta(worldState, eidB, payB);
 
-    const mutA: MutationRecord = { seq: 1, agentId: 'agent-a', intentKind: 'move', entityId: eidA, deltaHash: '', ts: 1100 };
-    const mutB: MutationRecord = { seq: 1, agentId: 'agent-b', intentKind: 'move', entityId: eidB, deltaHash: '', ts: 1200 };
+    const mutA: MutationRecord = {
+      seq: 1,
+      agentId: 'agent-a',
+      intentKind: 'move',
+      entityId: eidA,
+      deltaHash: '',
+      ts: 1100,
+    };
+    const mutB: MutationRecord = {
+      seq: 1,
+      agentId: 'agent-b',
+      intentKind: 'move',
+      entityId: eidB,
+      deltaHash: '',
+      ts: 1200,
+    };
 
     const exitA = buildExitReceipt(entryA, stateAfterA, [mutA], 2000);
     const exitB = buildExitReceipt(entryB, stateAfterB, [mutB], 2001);

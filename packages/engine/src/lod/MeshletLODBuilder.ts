@@ -227,7 +227,11 @@ export class MeshletLODBuilder {
 
         let simplified: MeshData;
         try {
-          simplified = lodGen.simplifyMesh(subMesh, targetTriangles, this.options.simplificationAlgorithm);
+          simplified = lodGen.simplifyMesh(
+            subMesh,
+            targetTriangles,
+            this.options.simplificationAlgorithm
+          );
         } catch {
           // Fallback: use sub-mesh as-is if simplification fails
           simplified = subMesh;
@@ -274,9 +278,7 @@ export class MeshletLODBuilder {
 
     const generationTimeMs = performance.now() - start;
     const totalMeshlets = levels.reduce((s, l) => s + l.meshlets.length, 0);
-    const reductionRatios = levels.map((l) =>
-      l.totalTriangles / (levels[0]?.totalTriangles || 1)
-    );
+    const reductionRatios = levels.map((l) => l.totalTriangles / (levels[0]?.totalTriangles || 1));
 
     return {
       levels,

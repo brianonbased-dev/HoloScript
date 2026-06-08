@@ -135,15 +135,18 @@ export const trackingTopologyHandler: TraitHandler<TrackingTopologyConfig> = {
     internal.lastRefreshAt = now;
 
     internal.stats.active_targets = internal.targets.size;
-    internal.stats.headset_count = Array.from(internal.headsets.values()).filter((h) => h.active).length;
+    internal.stats.headset_count = Array.from(internal.headsets.values()).filter(
+      (h) => h.active
+    ).length;
 
     const reidConfidences: number[] = [];
     for (const target of Array.from(internal.targets.values())) {
       if (target.reid_pending) reidConfidences.push(target.confidence);
     }
-    internal.stats.avg_reid_confidence = reidConfidences.length > 0
-      ? reidConfidences.reduce((s, v) => s + v, 0) / reidConfidences.length
-      : 0;
+    internal.stats.avg_reid_confidence =
+      reidConfidences.length > 0
+        ? reidConfidences.reduce((s, v) => s + v, 0) / reidConfidences.length
+        : 0;
 
     // Decay transient associations so the renderer only draws current-frame edges.
     internal.associations = [];

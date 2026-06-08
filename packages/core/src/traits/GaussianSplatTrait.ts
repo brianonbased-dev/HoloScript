@@ -164,7 +164,8 @@ export const gaussianSplatHandler: TraitHandler<GaussianSplatConfig> = {
     const get3 = (v: unknown, i: 0 | 1 | 2): number => {
       if (!v) return 0;
       if (Array.isArray(v)) return (v[i] as number) ?? 0;
-      return ((v as { x?: number; y?: number; z?: number })[i === 0 ? 'x' : i === 1 ? 'y' : 'z'] ?? 0) as number;
+      return ((v as { x?: number; y?: number; z?: number })[i === 0 ? 'x' : i === 1 ? 'y' : 'z'] ??
+        0) as number;
     };
 
     const cameraPos = context.camera?.position as unknown;

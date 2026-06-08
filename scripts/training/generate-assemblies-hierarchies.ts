@@ -37,8 +37,8 @@ console.log('[1/5] Generating Parent-Child Hierarchy examples...');
 
 const HIERARCHY_TEMPLATES = [
   {
-    name: "Simple Hierarchy - Robot Arm",
-    description: "3-segment robot arm with parent-child relationships",
+    name: 'Simple Hierarchy - Robot Arm',
+    description: '3-segment robot arm with parent-child relationships',
     code: `composition "Robot_Arm" {
   object "base" {
     @anchor
@@ -91,11 +91,11 @@ const HIERARCHY_TEMPLATES = [
     // When elbow rotates, gripper moves with it!
     // This is a kinematic chain
   }
-}`
+}`,
   },
   {
-    name: "Vehicle Assembly - Car",
-    description: "Car with chassis, wheels, and engine all connected",
+    name: 'Vehicle Assembly - Car',
+    description: 'Car with chassis, wheels, and engine all connected',
     code: `composition "Simple_Car" {
   object "chassis" {
     @rigidbody
@@ -179,11 +179,11 @@ const HIERARCHY_TEMPLATES = [
   // When chassis moves, all wheels move with it!
   // Each wheel can rotate independently around its axis
   // Steering affects front wheels only
-}`
+}`,
   },
   {
-    name: "Skeletal Hierarchy - Character",
-    description: "Humanoid skeleton with bone hierarchy",
+    name: 'Skeletal Hierarchy - Character',
+    description: 'Humanoid skeleton with bone hierarchy',
     code: `composition "Character_Skeleton" {
   object "pelvis" {
     @root_bone
@@ -274,8 +274,8 @@ const HIERARCHY_TEMPLATES = [
   // When chest rotates, both arms rotate with it!
   // When shoulder rotates, arm follows!
   // IK can be applied to reach for objects
-}`
-  }
+}`,
+  },
 ];
 
 for (let i = 0; i < 20000; i++) {
@@ -285,13 +285,13 @@ for (let i = 0; i < 20000; i++) {
     `Build ${template.description} where parts move together`,
     `Generate HoloScript for ${template.name} with proper object relationships`,
     `Design ${template.description} with connected components`,
-    `Create ${template.name} showing how pieces attach and move as a unit`
+    `Create ${template.name} showing how pieces attach and move as a unit`,
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: template.code
+    output: template.code,
   });
 }
 
@@ -305,7 +305,7 @@ console.log('[2/5] Generating Mechanical Assembly examples...');
 
 const MECHANICAL_ASSEMBLIES = [
   {
-    name: "Gear Train",
+    name: 'Gear Train',
     code: `composition "Gear_Train" {
   object "drive_gear" {
     @motor
@@ -352,10 +352,10 @@ const MECHANICAL_ASSEMBLIES = [
 
   // Drive gear spins → Driven gear spins (connected by teeth)
   // Speed reduced, torque increased by gear ratio
-}`
+}`,
   },
   {
-    name: "Piston Engine",
+    name: 'Piston Engine',
     code: `composition "Piston_Engine" {
   object "crankshaft" {
     @motor
@@ -420,10 +420,10 @@ const MECHANICAL_ASSEMBLIES = [
 
     // Piston slides inside cylinder
   }
-}`
+}`,
   },
   {
-    name: "Pulley System",
+    name: 'Pulley System',
     code: `composition "Pulley_System" {
   object "fixed_pulley_1" {
     @anchor
@@ -494,8 +494,8 @@ const MECHANICAL_ASSEMBLIES = [
     // Pull 2m of rope → Load lifts 1m
     // Pull with 50kg force → Can lift 100kg load
   }
-}`
-  }
+}`,
+  },
 ];
 
 for (let i = 0; i < 25000; i++) {
@@ -504,7 +504,7 @@ for (let i = 0; i < 25000; i++) {
   allExamples.push({
     instruction: `Create a ${assembly.name} mechanical assembly with moving parts`,
     input: '',
-    output: assembly.code
+    output: assembly.code,
   });
 }
 
@@ -518,7 +518,7 @@ console.log('[3/5] Generating Constraint System examples...');
 
 const CONSTRAINT_SYSTEMS = [
   {
-    name: "Rope Bridge",
+    name: 'Rope Bridge',
     code: `composition "Rope_Bridge" {
   object "anchor_left" {
     @anchor
@@ -590,10 +590,10 @@ const CONSTRAINT_SYSTEMS = [
   // Continue chain to anchor_right...
   // When player steps on plank, rope stretches, plank swings
   // All planks connected by ropes, move together as chain
-}`
+}`,
   },
   {
-    name: "Spring System",
+    name: 'Spring System',
     code: `composition "Spring_Mass_System" {
   object "ceiling" {
     @anchor
@@ -635,10 +635,10 @@ const CONSTRAINT_SYSTEMS = [
     // Equilibrium: kx = mg → x = 49/100 = 0.49m stretch
     // Oscillates around equilibrium with period T = 2π√(m/k) ≈ 1.4s
   }
-}`
+}`,
   },
   {
-    name: "Chain Link Fence",
+    name: 'Chain Link Fence',
     code: `composition "Chain_Link_Fence" {
   object "post_1" {
     @anchor
@@ -687,8 +687,8 @@ const CONSTRAINT_SYSTEMS = [
   // Continue chain to post_2...
   // Each link connected to next with ball-socket joint
   // Chain can flex, swing, supports weight of all links
-}`
-  }
+}`,
+  },
 ];
 
 for (let i = 0; i < 20000; i++) {
@@ -697,7 +697,7 @@ for (let i = 0; i < 20000; i++) {
   allExamples.push({
     instruction: `Build a ${constraint.name} using constraints to connect parts`,
     input: '',
-    output: constraint.code
+    output: constraint.code,
   });
 }
 
@@ -711,7 +711,7 @@ console.log('[4/5] Generating Inverse Kinematics examples...');
 
 const IK_SYSTEMS = [
   {
-    name: "IK Robot Arm Reach",
+    name: 'IK Robot Arm Reach',
     code: `composition "IK_Robot_Arm" {
   object "target" {
     @interactive
@@ -790,10 +790,10 @@ const IK_SYSTEMS = [
     // IK solver calculates joint angles so this touches target!
     // User drags target → Segments rotate → End effector reaches target
   }
-}`
+}`,
   },
   {
-    name: "Character IK Walk",
+    name: 'Character IK Walk',
     code: `composition "IK_Character_Walk" {
   object "left_foot_target" {
     @ik_target
@@ -871,8 +871,8 @@ const IK_SYSTEMS = [
 
   // Repeat for right leg...
   // When character moves, IK solves leg positions to match terrain
-}`
-  }
+}`,
+  },
 ];
 
 for (let i = 0; i < 20000; i++) {
@@ -881,7 +881,7 @@ for (let i = 0; i < 20000; i++) {
   allExamples.push({
     instruction: `Create ${ik.name} using inverse kinematics to reach targets`,
     input: '',
-    output: ik.code
+    output: ik.code,
   });
 }
 
@@ -894,16 +894,16 @@ console.log(`  ✓ 20,000 examples generated`);
 console.log('[5/5] Generating Complex Assembly examples...');
 
 const COMPLEX_ASSEMBLIES = [
-  "Helicopter (rotor → blades → fuselage → tail rotor)",
-  "Clock (gears → hands → pendulum → weights)",
-  "Crane (base → boom → cable → hook → load)",
-  "Bicycle (frame → wheels → pedals → chain → gears)",
-  "Drawbridge (castle wall → bridge → chains → counterweight)",
-  "Windmill (tower → blades → gears → millstone)",
-  "Trebuchet (base → arm → sling → counterweight → projectile)",
-  "Ship (hull → mast → sails → rudder → anchor)",
-  "Tank (chassis → turret → barrel → tracks → wheels)",
-  "Dragon (body → wings → tail → legs → neck → head)"
+  'Helicopter (rotor → blades → fuselage → tail rotor)',
+  'Clock (gears → hands → pendulum → weights)',
+  'Crane (base → boom → cable → hook → load)',
+  'Bicycle (frame → wheels → pedals → chain → gears)',
+  'Drawbridge (castle wall → bridge → chains → counterweight)',
+  'Windmill (tower → blades → gears → millstone)',
+  'Trebuchet (base → arm → sling → counterweight → projectile)',
+  'Ship (hull → mast → sails → rudder → anchor)',
+  'Tank (chassis → turret → barrel → tracks → wheels)',
+  'Dragon (body → wings → tail → legs → neck → head)',
 ];
 
 for (let i = 0; i < 15000; i++) {
@@ -917,7 +917,7 @@ for (let i = 0; i < 15000; i++) {
   // Constraints connecting parts
   // Joints for movement
   // All parts move together as a functional unit
-}`
+}`,
   });
 }
 
@@ -932,7 +932,7 @@ async function writeDataset() {
   console.log('[EXPORT] Writing assemblies & hierarchies dataset...');
 
   const outputFile = path.join(__dirname, '../datasets/assemblies-hierarchies.jsonl');
-  const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
+  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
 
   await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 

@@ -804,13 +804,10 @@ describe('E2E smoke: provision → HoloMesh identity → display', () => {
     // Verify the HoloMesh registration call happened with correct params
     const fetchMock = vi.mocked(fetch);
     const registerCall = fetchMock.mock.calls.find(
-      ([url, init]) =>
-        String(url).includes('/api/holomesh/register') && init?.method === 'POST'
+      ([url, init]) => String(url).includes('/api/holomesh/register') && init?.method === 'POST'
     );
     expect(registerCall).toBeDefined();
-    const registerPayload = JSON.parse(
-      String(registerCall![1]?.body ?? '{}')
-    ) as { name: string };
+    const registerPayload = JSON.parse(String(registerCall![1]?.body ?? '{}')) as { name: string };
     expect(registerPayload.name).toBe('studio-octocat');
 
     // Verify the API key was passed as header
@@ -860,9 +857,7 @@ describe('E2E smoke: provision → HoloMesh identity → display', () => {
     expect(envIdentity!.content).toContain('HOLOMESH_WALLET_KEY=');
 
     // secrets.manifest.yml MUST reference HoloMesh API key
-    const secretsManifest = pushedFiles.find(
-      (f) => f.path === 'ecosystem/secrets.manifest.yml'
-    );
+    const secretsManifest = pushedFiles.find((f) => f.path === 'ecosystem/secrets.manifest.yml');
     expect(secretsManifest).toBeDefined();
     expect(secretsManifest!.content).toContain('HOLOMESH_API_KEY');
   });
@@ -1475,9 +1470,9 @@ describe('provisionUser daemon — latent daimōn + ops fleet (D.053 emergence)'
     expect(registers.length).toBeGreaterThan(0);
     expect(registers.every((r) => typeof r.missionProfile === 'string')).toBe(true);
     expect(registers.some((r) => r.daemon !== undefined)).toBe(false);
-    expect(
-      registers.some((r) => (r.capabilities ?? []).includes('conversation-daemon'))
-    ).toBe(false);
+    expect(registers.some((r) => (r.capabilities ?? []).includes('conversation-daemon'))).toBe(
+      false
+    );
   });
 
   it('autospawns the resident ops crew from the genesis plan (gap #4)', async () => {

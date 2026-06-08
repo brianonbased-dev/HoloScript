@@ -218,7 +218,11 @@ function smoothJointPose(
 
   const inv = 1 - factor;
   return {
-    position: [px * factor + cx * inv, py * factor + cy * inv, pz * factor + cz * inv] as unknown as Vec3,
+    position: [
+      px * factor + cx * inv,
+      py * factor + cy * inv,
+      pz * factor + cz * inv,
+    ] as unknown as Vec3,
     rotation: [
       prx * factor + crx * inv,
       pry * factor + cry * inv,

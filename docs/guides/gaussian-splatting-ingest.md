@@ -13,7 +13,10 @@
 ## 2. Ingest with `SplatProcessingService`
 
 ```ts
-import { SplatProcessingService, type SplatData } from '@holoscript/core/services/SplatProcessingService';
+import {
+  SplatProcessingService,
+  type SplatData,
+} from '@holoscript/core/services/SplatProcessingService';
 
 const service = new SplatProcessingService();
 const buffer = await fs.readFile('room.splat');
@@ -38,6 +41,7 @@ object ScannedRoom @gaussian_splat(source: "room.splat", quality: "high", max_sp
 ```
 
 The `gaussianSplatHandler` (see `packages/core/src/traits/GaussianSplatTrait.ts`) performs:
+
 - Lazy load via the configured source
 - SPZ / SH decoding
 - GPU-friendly state (bounding box, LOD, gaussian budget, temporal)

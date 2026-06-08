@@ -22,35 +22,35 @@
 
 export const ADMET_PROPERTIES = [
   // Absorption
-  'caco2_permeability',       // Caco-2 cell permeability (logPapp)
-  'hia',                      // Human intestinal absorption (%)
-  'pgp_substrate',            // P-glycoprotein substrate (binary)
-  'pgp_inhibitor',            // P-glycoprotein inhibitor (binary)
-  'bbb_permeability',         // Blood-brain barrier penetration (binary)
-  'cns_permeability',         // CNS permeability (binary)
+  'caco2_permeability', // Caco-2 cell permeability (logPapp)
+  'hia', // Human intestinal absorption (%)
+  'pgp_substrate', // P-glycoprotein substrate (binary)
+  'pgp_inhibitor', // P-glycoprotein inhibitor (binary)
+  'bbb_permeability', // Blood-brain barrier penetration (binary)
+  'cns_permeability', // CNS permeability (binary)
   // Distribution
-  'vdss',                     // Volume of distribution at steady state (L/kg)
-  'fraction_unbound',         // Fraction unbound in plasma (Fu)
-  'ppb',                      // Plasma protein binding (%)
+  'vdss', // Volume of distribution at steady state (L/kg)
+  'fraction_unbound', // Fraction unbound in plasma (Fu)
+  'ppb', // Plasma protein binding (%)
   // Metabolism
-  'cyp2d6_substrate',        // CYP2D6 substrate (binary)
-  'cyp3a4_substrate',        // CYP3A4 substrate (binary)
-  'cyp1a2_inhibitor',        // CYP1A2 inhibitor (binary)
-  'cyp2c19_inhibitor',       // CYP2C19 inhibitor (binary)
-  'cyp2c9_inhibitor',        // CYP2C9 inhibitor (binary)
-  'cyp2d6_inhibitor',        // CYP2D6 inhibitor (binary)
-  'cyp3a4_inhibitor',        // CYP3A4 inhibitor (binary)
-  'cyp2d6_inhibitor_v2',     // CYP2D6 inhibitor v2 (binary, updated model)
+  'cyp2d6_substrate', // CYP2D6 substrate (binary)
+  'cyp3a4_substrate', // CYP3A4 substrate (binary)
+  'cyp1a2_inhibitor', // CYP1A2 inhibitor (binary)
+  'cyp2c19_inhibitor', // CYP2C19 inhibitor (binary)
+  'cyp2c9_inhibitor', // CYP2C9 inhibitor (binary)
+  'cyp2d6_inhibitor', // CYP2D6 inhibitor (binary)
+  'cyp3a4_inhibitor', // CYP3A4 inhibitor (binary)
+  'cyp2d6_inhibitor_v2', // CYP2D6 inhibitor v2 (binary, updated model)
   // Excretion
-  'half_life',                // Elimination half-life (hours)
-  'clearance',                // Hepatic clearance (mL/min/kg)
+  'half_life', // Elimination half-life (hours)
+  'clearance', // Hepatic clearance (mL/min/kg)
   // Toxicity
-  'hht',                     // Human hepatotoxicity (binary)
-  'ames',                    // Ames mutagenicity (binary)
-  'dili',                    // Drug-induced liver injury (binary)
-  'skin_sensitization',      // Skin sensitization (binary)
-  'carcinogenesis',          // Carcinogenicity (binary)
-  'rat_oral_ld50',           // Rat oral LD50 (mol/kg)
+  'hht', // Human hepatotoxicity (binary)
+  'ames', // Ames mutagenicity (binary)
+  'dili', // Drug-induced liver injury (binary)
+  'skin_sensitization', // Skin sensitization (binary)
+  'carcinogenesis', // Carcinogenicity (binary)
+  'rat_oral_ld50', // Rat oral LD50 (mol/kg)
 ] as const;
 
 export type AdmetProperty = (typeof ADMET_PROPERTIES)[number];
@@ -211,7 +211,10 @@ export function countLipinskiViolations(smiles: string): number {
  *   - Toxicity flags (any positive → -0.25 per flag)
  *   - Half-life in therapeutic range (5-24h → +0.1)
  */
-export function computeDrugLikeness(predictions: AdmetPrediction[], lipinskiViolations: number): number {
+export function computeDrugLikeness(
+  predictions: AdmetPrediction[],
+  lipinskiViolations: number
+): number {
   let score = 1.0;
 
   // Lipinski penalty
@@ -227,10 +230,7 @@ export function computeDrugLikeness(predictions: AdmetPrediction[], lipinskiViol
       score -= 0.1;
     }
     // Toxicity flags
-    if (
-      (p.property === 'ames' || p.property === 'hht' || p.property === 'dili') &&
-      p.value > 0.5
-    ) {
+    if ((p.property === 'ames' || p.property === 'hht' || p.property === 'dili') && p.value > 0.5) {
       score -= 0.25;
     }
     // Half-life in therapeutic range
@@ -310,7 +310,7 @@ export interface AdmetCompileOptions {
  */
 export function compileAdmet(
   traits: Array<AdmetPredictionTrait | AdmetResultTrait>,
-  opts: AdmetCompileOptions = {},
+  opts: AdmetCompileOptions = {}
 ): string {
   const format = opts.format ?? 'csv';
 
@@ -329,7 +329,9 @@ export function compileAdmet(
 }
 
 function compileAdmetToCsv(traits: Array<AdmetPredictionTrait | AdmetResultTrait>): string {
-  const rows: string[] = ['trait,smiles,backend,properties,drugLikenessScore,lipinskiViolations,passes'];
+  const rows: string[] = [
+    'trait,smiles,backend,properties,drugLikenessScore,lipinskiViolations,passes',
+  ];
 
   for (const t of traits) {
     if (t.trait === 'admet_prediction') {
@@ -337,7 +339,7 @@ function compileAdmetToCsv(traits: Array<AdmetPredictionTrait | AdmetResultTrait
       rows.push(`admet_prediction,${t.smiles},${t.backend ?? 'rdkit'},${props},,`);
     } else if (t.trait === 'admet_result') {
       rows.push(
-        `admet_result,${t.smiles},${t.backend},${t.propertyCount},${t.drugLikenessScore},${t.lipinskiViolations},${t.passes}`,
+        `admet_result,${t.smiles},${t.backend},${t.propertyCount},${t.drugLikenessScore},${t.lipinskiViolations},${t.passes}`
       );
     }
   }

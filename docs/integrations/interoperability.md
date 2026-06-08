@@ -8,13 +8,13 @@
 
 HoloScript's architecture mirrors the best patterns from the broader language interop world:
 
-| Pattern                        | Industry Parallel                | HoloScript Implementation           |
-| ------------------------------ | -------------------------------- | ----------------------------------- |
+| Pattern                        | Industry Parallel                | HoloScript Implementation                   |
+| ------------------------------ | -------------------------------- | ------------------------------------------- |
 | Write once, compile everywhere | Slang (shader cross-compilation) | Single AST -> registered platform compilers |
-| Universal scene interchange    | OpenUSD, glTF                    | JSON AST as bridge format           |
-| Polyglot composition           | WASM Component Model             | Rust/WASM + TypeScript dual parser  |
-| AI tool integration            | MCP Protocol                     | `@holoscript/mcp-server` package    |
-| Editor integration             | Language Server Protocol         | `@holoscript/lsp` package           |
+| Universal scene interchange    | OpenUSD, glTF                    | JSON AST as bridge format                   |
+| Polyglot composition           | WASM Component Model             | Rust/WASM + TypeScript dual parser          |
+| AI tool integration            | MCP Protocol                     | `@holoscript/mcp-server` package            |
+| Editor integration             | Language Server Protocol         | `@holoscript/lsp` package                   |
 
 ---
 

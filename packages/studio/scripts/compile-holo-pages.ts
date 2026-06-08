@@ -102,7 +102,10 @@ async function compileFile(holoPath: string): Promise<{ outputPath: string; code
     : GENERATED_HEADER + result.code;
   const normalizedCode = generatedCode.replace(/[ \t]+$/gm, '');
 
-  return { outputPath, code: normalizedCode.endsWith('\n') ? normalizedCode : `${normalizedCode}\n` };
+  return {
+    outputPath,
+    code: normalizedCode.endsWith('\n') ? normalizedCode : `${normalizedCode}\n`,
+  };
 }
 
 async function build(): Promise<void> {

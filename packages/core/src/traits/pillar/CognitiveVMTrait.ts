@@ -74,11 +74,7 @@ import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from '../Trai
 import type { PillarSlice, PillarDomain } from './SemanticCollaborationContract';
 import type { PillarContext } from './PillarRegistry';
 import type { ParallelPillarSlice } from './ParallelPillar';
-import {
-  pillarRegistryHandler,
-  SEED_PILLARS,
-  TEMPORAL_PILLAR,
-} from './PillarRegistry';
+import { pillarRegistryHandler, SEED_PILLARS, TEMPORAL_PILLAR } from './PillarRegistry';
 import {
   parallelPillarHandler,
   SEED_PARALLEL_PILLARS,
@@ -91,27 +87,27 @@ import type { PillarRegistryConfig } from './PillarRegistry';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type LifecycleState =
-  | 'init'         // new domain, full conservation verification
-  | 'active'       // warming up, most checks enabled
+  | 'init' // new domain, full conservation verification
+  | 'active' // warming up, most checks enabled
   | 'steady_state' // converging, backing off verification overhead
-  | 'stable'       // fully converged, minimal overhead
-  | 'edge_case'    // hemisphere disagreement detected (large bounding box)
-  | 'shutdown';    // agent is shutting down
+  | 'stable' // fully converged, minimal overhead
+  | 'edge_case' // hemisphere disagreement detected (large bounding box)
+  | 'shutdown'; // agent is shutting down
 
 /** Derive lifecycle state from temporal convergence + hemisphere agreement. */
 function deriveLifecycle(
   convergence: number,
   boxArea: number,
   edgeThreshold: number,
-  current: LifecycleState,
+  current: LifecycleState
 ): LifecycleState {
   // Shutdown is sticky — only escapable via cogvm:set_lifecycle
   if (current === 'shutdown') return 'shutdown';
   // Edge case: hemispheres disagree significantly
   if (boxArea > edgeThreshold) return 'edge_case';
-  if (convergence < 0.2)  return 'init';
-  if (convergence < 0.6)  return 'active';
-  if (convergence < 0.9)  return 'steady_state';
+  if (convergence < 0.2) return 'init';
+  if (convergence < 0.6) return 'active';
+  if (convergence < 0.9) return 'steady_state';
   return 'stable';
 }
 
@@ -149,14 +145,14 @@ export interface CognitiveVMBehaviour {
 
 function defaultBehaviour(): CognitiveVMBehaviour {
   return {
-    solver_precision:         0.8,
-    conservation_threshold:   0.9,
-    lod_quality:              0.7,
-    goal_priority:            0.8,
-    memory_window:            0.5,
-    cost_budget:              0.6,
-    exploration_rate:         0.2,
-    sycophancy_guard:         0.4,
+    solver_precision: 0.8,
+    conservation_threshold: 0.9,
+    lod_quality: 0.7,
+    goal_priority: 0.8,
+    memory_window: 0.5,
+    cost_budget: 0.6,
+    exploration_rate: 0.2,
+    sycophancy_guard: 0.4,
     loop_frequency_multiplier: 1.0,
   };
 }
@@ -171,21 +167,21 @@ function defaultBehaviour(): CognitiveVMBehaviour {
  */
 export type DispatchHandler = (
   slice: PillarSlice,
-  current: CognitiveVMBehaviour,
+  current: CognitiveVMBehaviour
 ) => Partial<CognitiveVMBehaviour>;
 
 /** Built-in dispatch handlers for all seed PillarDomains. */
 const BUILTIN_DISPATCH: Partial<Record<PillarDomain, DispatchHandler>> = {
   // Inner-loop (left hemisphere) dispatchers
   physics: (slice) => ({
-    solver_precision:         clamp(slice.pos_1),
-    conservation_threshold:   clamp(slice.pos_1 - 0.05),
+    solver_precision: clamp(slice.pos_1),
+    conservation_threshold: clamp(slice.pos_1 - 0.05),
   }),
   rendering: (slice) => ({
     lod_quality: clamp(slice.pos_1),
   }),
   solver: (slice, cur) => ({
-    solver_precision:         clamp((cur.solver_precision + slice.pos_1) / 2),
+    solver_precision: clamp((cur.solver_precision + slice.pos_1) / 2),
     loop_frequency_multiplier: clamp(0.5 + slice.pos_2),
   }),
   trait: (slice) => ({
@@ -196,26 +192,26 @@ const BUILTIN_DISPATCH: Partial<Record<PillarDomain, DispatchHandler>> = {
   }),
   language: (slice) => ({
     memory_window: clamp(slice.pos_1),
-    cost_budget:   clamp(slice.pos_2),
+    cost_budget: clamp(slice.pos_2),
   }),
   accuracy_speed: (slice) => ({
-    solver_precision:  clamp(slice.pos_1),          // accuracy
-    cost_budget:       clamp(1 - slice.pos_2),       // inverse of speed-pressure
+    solver_precision: clamp(slice.pos_1), // accuracy
+    cost_budget: clamp(1 - slice.pos_2), // inverse of speed-pressure
   }),
 
   // Outer-loop (right hemisphere) dispatchers
   truth_approval: (slice) => ({
-    sycophancy_guard: clamp(slice.pos_2 + 0.1),     // raise guard as approval pressure rises
+    sycophancy_guard: clamp(slice.pos_2 + 0.1), // raise guard as approval pressure rises
   }),
   coordination: (slice) => ({
     goal_priority: clamp(slice.pos_1),
   }),
   safety_exploration: (slice) => ({
-    exploration_rate:  clamp(slice.pos_2),
-    sycophancy_guard:  clamp(1 - slice.pos_1 * 0.5), // lower safety → higher guard
+    exploration_rate: clamp(slice.pos_2),
+    sycophancy_guard: clamp(1 - slice.pos_1 * 0.5), // lower safety → higher guard
   }),
   economics: (slice) => ({
-    cost_budget:   clamp(slice.pos_1),
+    cost_budget: clamp(slice.pos_1),
     goal_priority: clamp(slice.pos_2),
   }),
   agent: (slice) => ({
@@ -226,7 +222,7 @@ const BUILTIN_DISPATCH: Partial<Record<PillarDomain, DispatchHandler>> = {
   // Bilateral (temporal)
   steady_state: (slice) => ({
     loop_frequency_multiplier: clamp(0.3 + slice.pos_2 * 0.7), // converged → slow outer loop
-    conservation_threshold:    clamp(1.0 - slice.pos_2 * 0.3), // ease threshold in steady state
+    conservation_threshold: clamp(1.0 - slice.pos_2 * 0.3), // ease threshold in steady state
   }),
   storage: (slice) => ({
     memory_window: clamp(slice.pos_1),
@@ -297,7 +293,7 @@ export interface CognitiveVMConfig {
 interface CognitiveVMState {
   inner_tick: number;
   outer_tick: number;
-  inner_counter: number;              // counts inner ticks since last outer tick
+  inner_counter: number; // counts inner ticks since last outer tick
   lifecycle: LifecycleState;
   behaviour: CognitiveVMBehaviour;
   frozen: boolean;
@@ -343,7 +339,7 @@ function parallelCfg(): ParallelPillarConfig {
 function captureSlice(
   registryNode: HSPlusNode,
   pillar_id: string,
-  pillarCtx: PillarContext,
+  pillarCtx: PillarContext
 ): PillarSlice | null {
   let captured: PillarSlice | null = null;
   const cap = {
@@ -364,7 +360,7 @@ function captureSlice(
 function captureParallelSlice(
   parallelNode: HSPlusNode,
   parallel_id: string,
-  pillarCtx: PillarContext,
+  pillarCtx: PillarContext
 ): ParallelPillarSlice | null {
   let captured: ParallelPillarSlice | null = null;
   const cap = {
@@ -386,7 +382,7 @@ function captureParallelSlice(
 /** Apply dispatch handler for a slice domain, return the before/after diff. */
 function applyDispatch(
   slice: PillarSlice,
-  state: CognitiveVMState,
+  state: CognitiveVMState
 ): { before: CognitiveVMBehaviour; after: CognitiveVMBehaviour; domain: PillarDomain } {
   const domain = slice.pillar_domain;
   const handler = state.dispatch_table.get(domain) ?? BUILTIN_DISPATCH[domain];
@@ -427,23 +423,25 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
     // Register all seed pillars covering every PillarDomain
     for (const p of SEED_PILLARS) {
       pillarRegistryHandler.onEvent?.(registryNode, registryCfg(), silentCtx(), {
-        type: 'pillar:register', pillar: p,
+        type: 'pillar:register',
+        pillar: p,
       });
     }
     // Register all seed parallel pillar pairs
     for (const pp of SEED_PARALLEL_PILLARS) {
       parallelPillarHandler.onEvent?.(parallelNode, parallelCfg(), silentCtx(), {
-        type: 'pillar:register_parallel', parallel: pp,
+        type: 'pillar:register_parallel',
+        parallel: pp,
       });
     }
 
     const state: CognitiveVMState = {
-      inner_tick:    0,
-      outer_tick:    0,
+      inner_tick: 0,
+      outer_tick: 0,
       inner_counter: 0,
-      lifecycle:     'init',
-      behaviour:     defaultBehaviour(),
-      frozen:        false,
+      lifecycle: 'init',
+      behaviour: defaultBehaviour(),
+      frozen: false,
       dispatch_table: new Map(),
       registryNode,
       parallelNode,
@@ -466,7 +464,7 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
     node: HSPlusNode,
     config: CognitiveVMConfig,
     context: TraitContext,
-    event: TraitEvent,
+    event: TraitEvent
   ): void {
     const state = node.__cognitiveVMState as CognitiveVMState | undefined;
     if (!state) return;
@@ -485,14 +483,17 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
 
     // ── cogvm:set_lifecycle ───────────────────────────────────────────────────
     if (event.type === 'cogvm:set_lifecycle') {
-      const next  = extractField<LifecycleState>(event, 'state');
+      const next = extractField<LifecycleState>(event, 'state');
       const reason = extractField<string>(event, 'reason') ?? 'manual override';
       if (!next) return;
       const prev = state.lifecycle;
       state.lifecycle = next;
       if (prev !== next) {
         context.emit?.('cogvm:lifecycle_transition', {
-          from: prev, to: next, reason, step: state.inner_tick,
+          from: prev,
+          to: next,
+          reason,
+          step: state.inner_tick,
         });
       }
       return;
@@ -500,7 +501,7 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
 
     // ── cogvm:register_dispatch ───────────────────────────────────────────────
     if (event.type === 'cogvm:register_dispatch') {
-      const domain  = extractField<PillarDomain>(event, 'domain');
+      const domain = extractField<PillarDomain>(event, 'domain');
       const handler = extractField<DispatchHandler>(event, 'handler');
       if (domain && handler) state.dispatch_table.set(domain, handler);
       return;
@@ -511,14 +512,14 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
     if (state.frozen) return;
 
     const userMeta = extractField<Record<string, unknown>>(event, 'metadata') ?? {};
-    const userCtx  = extractField<string>(event, 'context') ?? `cogvm tick ${state.inner_tick}`;
+    const userCtx = extractField<string>(event, 'context') ?? `cogvm tick ${state.inner_tick}`;
     const t0 = Date.now();
 
     const pillarCtx: PillarContext = {
-      layer:       'inner_loop',
-      agent_id:    config.agent_id,
+      layer: 'inner_loop',
+      agent_id: config.agent_id,
       timestamp_ms: t0,
-      metadata:    userMeta,
+      metadata: userMeta,
     };
 
     // ── INNER LOOP ────────────────────────────────────────────────────────────
@@ -527,45 +528,47 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
     state.inner_counter++;
 
     // Generate inner bilateral slice (left = analytical domain pillar)
-    const innerParallel = captureParallelSlice(
-      state.parallelNode,
-      config.inner_parallel_id,
-      { ...pillarCtx, layer: 'inner_loop' },
-    );
+    const innerParallel = captureParallelSlice(state.parallelNode, config.inner_parallel_id, {
+      ...pillarCtx,
+      layer: 'inner_loop',
+    });
 
     // Use left hemisphere slice for inner dispatch
     const innerSlice: PillarSlice = innerParallel?.left ?? {
-      axis_1_id: 'energy', axis_2_id: 'momentum',
-      pos_1: 1.0, pos_2: 0.0,
-      pillar_id: 'physics_conservation', pillar_domain: 'physics',
+      axis_1_id: 'energy',
+      axis_2_id: 'momentum',
+      pos_1: 1.0,
+      pos_2: 0.0,
+      pillar_id: 'physics_conservation',
+      pillar_domain: 'physics',
     };
 
     const innerDispatch = applyDispatch(innerSlice, state);
     const innerMs = Date.now() - t0;
 
     context.emit?.('cogvm:inner_tick', {
-      slice:      innerSlice,
-      step:       state.inner_tick,
-      loop_ms:    innerMs,
-      behaviour:  { ...state.behaviour },
-      lifecycle:  state.lifecycle,
+      slice: innerSlice,
+      step: state.inner_tick,
+      loop_ms: innerMs,
+      behaviour: { ...state.behaviour },
+      lifecycle: state.lifecycle,
     });
 
     if (innerDispatch.before !== innerDispatch.after) {
       context.emit?.('cogvm:dispatch_applied', {
         domain: innerDispatch.domain,
         before: innerDispatch.before,
-        after:  innerDispatch.after,
-        loop:   'inner',
+        after: innerDispatch.after,
+        loop: 'inner',
       });
     }
 
     // Emit inner slice to peers via RecursiveLink channel
     if (config.emit_to_peers) {
       context.emit?.('recursive_link:send', {
-        from:  config.agent_id,
-        to:    '*',
-        loop:  'inner',
+        from: config.agent_id,
+        to: '*',
+        loop: 'inner',
         slice: innerSlice,
         timestamp_ms: t0,
       });
@@ -579,24 +582,27 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
     state.outer_tick++;
 
     const outerCtx: PillarContext = {
-      layer:       'outer_loop',
-      agent_id:    config.agent_id,
+      layer: 'outer_loop',
+      agent_id: config.agent_id,
       timestamp_ms: Date.now(),
-      metadata:    userMeta,
+      metadata: userMeta,
     };
 
     // Generate outer bilateral slice (temporal left × temporal right)
     const outerParallel = captureParallelSlice(
       state.parallelNode,
       config.outer_parallel_id,
-      outerCtx,
+      outerCtx
     );
 
     // Fallback outer slice (fully converged steady state)
     const outerSlice: PillarSlice = outerParallel?.right ?? {
-      axis_1_id: 'convergence', axis_2_id: 'steady_state',
-      pos_1: 1.0, pos_2: 1.0,
-      pillar_id: TEMPORAL_PILLAR.id, pillar_domain: 'steady_state',
+      axis_1_id: 'convergence',
+      axis_2_id: 'steady_state',
+      pos_1: 1.0,
+      pos_2: 1.0,
+      pillar_id: TEMPORAL_PILLAR.id,
+      pillar_domain: 'steady_state',
     };
 
     // Dispatch right hemisphere (outer) slice
@@ -605,18 +611,21 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
     // Lifecycle transition from temporal convergence + hemisphere agreement
     if (config.lifecycle_auto_transition) {
       const convergence = outerParallel?.right.pos_2 ?? 1.0;
-      const boxArea     = outerParallel?.box_area    ?? 0.0;
+      const boxArea = outerParallel?.box_area ?? 0.0;
       const prevLifecycle = state.lifecycle;
       const nextLifecycle = deriveLifecycle(
-        convergence, boxArea, config.edge_case_threshold, prevLifecycle
+        convergence,
+        boxArea,
+        config.edge_case_threshold,
+        prevLifecycle
       );
       if (nextLifecycle !== prevLifecycle) {
         state.lifecycle = nextLifecycle;
         context.emit?.('cogvm:lifecycle_transition', {
-          from:        prevLifecycle,
-          to:          nextLifecycle,
-          reason:      `convergence=${convergence.toFixed(3)} box_area=${boxArea.toFixed(3)}`,
-          step:        state.outer_tick,
+          from: prevLifecycle,
+          to: nextLifecycle,
+          reason: `convergence=${convergence.toFixed(3)} box_area=${boxArea.toFixed(3)}`,
+          step: state.outer_tick,
         });
       }
     }
@@ -625,28 +634,28 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
 
     context.emit?.('cogvm:outer_tick', {
       parallel_slice: outerParallel,
-      slice:          outerSlice,
-      behaviour:      { ...state.behaviour },
-      lifecycle:      state.lifecycle,
-      step:           state.outer_tick,
-      loop_ms:        outerMs,
+      slice: outerSlice,
+      behaviour: { ...state.behaviour },
+      lifecycle: state.lifecycle,
+      step: state.outer_tick,
+      loop_ms: outerMs,
     });
 
     if (outerDispatch.before !== outerDispatch.after) {
       context.emit?.('cogvm:dispatch_applied', {
         domain: outerDispatch.domain,
         before: outerDispatch.before,
-        after:  outerDispatch.after,
-        loop:   'outer',
+        after: outerDispatch.after,
+        loop: 'outer',
       });
     }
 
     // Emit outer slice to peers
     if (config.emit_to_peers) {
       context.emit?.('recursive_link:send', {
-        from:  config.agent_id,
-        to:    '*',
-        loop:  'outer',
+        from: config.agent_id,
+        to: '*',
+        loop: 'outer',
         slice: outerSlice,
         timestamp_ms: Date.now(),
       });
@@ -655,8 +664,8 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
     // Optional: emit pillarjepa:step so a co-located PillarJEPA can learn
     if (config.emit_jepa_step && outerParallel) {
       context.emit?.('pillarjepa:step', {
-        context:        userCtx,
-        targetVec:      new Float32Array(config.jepa_latent_dim).fill(0),
+        context: userCtx,
+        targetVec: new Float32Array(config.jepa_latent_dim).fill(0),
         parallel_slice: outerParallel,
         temporal_slice: outerSlice,
       });
@@ -669,21 +678,23 @@ export const cognitiveVMHandler: TraitHandler<CognitiveVMConfig> = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface CognitiveVMSnapshot {
-  inner_tick:  number;
-  outer_tick:  number;
-  lifecycle:   LifecycleState;
-  behaviour:   CognitiveVMBehaviour;
-  frozen:      boolean;
+  inner_tick: number;
+  outer_tick: number;
+  lifecycle: LifecycleState;
+  behaviour: CognitiveVMBehaviour;
+  frozen: boolean;
 }
 
 export function getCognitiveVMSnapshot(node: HSPlusNode): CognitiveVMSnapshot | null {
-  const state = (node as unknown as Record<string, unknown>).__cognitiveVMState as CognitiveVMState | undefined;
+  const state = (node as unknown as Record<string, unknown>).__cognitiveVMState as
+    | CognitiveVMState
+    | undefined;
   if (!state) return null;
   return {
     inner_tick: state.inner_tick,
     outer_tick: state.outer_tick,
-    lifecycle:  state.lifecycle,
-    behaviour:  { ...state.behaviour },
-    frozen:     state.frozen,
+    lifecycle: state.lifecycle,
+    behaviour: { ...state.behaviour },
+    frozen: state.frozen,
   };
 }

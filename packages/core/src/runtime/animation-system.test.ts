@@ -141,9 +141,16 @@ describe('updateAnimations — multiple animations in one tick', () => {
 describe('updateAnimations — easing integration (composes with slice 1)', () => {
   it('easeIn at t=0.5 gives 0.25 progress → value is 25 for from=0 to=100', () => {
     const anims = new Map<string, Animation>();
-    anims.set('a', makeAnim({
-      from: 0, to: 100, duration: 1000, startTime: 0, easing: 'easeIn',
-    }));
+    anims.set(
+      'a',
+      makeAnim({
+        from: 0,
+        to: 100,
+        duration: 1000,
+        startTime: 0,
+        easing: 'easeIn',
+      })
+    );
     const set = vi.fn();
     updateAnimations(anims, set, 500);
     // applyEasing(0.5, 'easeIn') = 0.25 → value = 0 + (100-0)*0.25 = 25
@@ -152,9 +159,16 @@ describe('updateAnimations — easing integration (composes with slice 1)', () =
 
   it('unknown easing falls back to linear', () => {
     const anims = new Map<string, Animation>();
-    anims.set('a', makeAnim({
-      from: 0, to: 100, duration: 1000, startTime: 0, easing: 'unknown',
-    }));
+    anims.set(
+      'a',
+      makeAnim({
+        from: 0,
+        to: 100,
+        duration: 1000,
+        startTime: 0,
+        easing: 'unknown',
+      })
+    );
     const set = vi.fn();
     updateAnimations(anims, set, 500);
     expect(set).toHaveBeenCalledWith('obj.y', 50);

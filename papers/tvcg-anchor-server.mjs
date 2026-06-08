@@ -6,27 +6,27 @@ import { resolve } from 'node:path';
 
 const PORT = 8474;
 const HOST = '127.0.0.1';
-const EXPECTED_WALLET  = '0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3';
-const BASE_CHAIN_ID    = 8453;
+const EXPECTED_WALLET = '0x0C574397150Ad8d9f7FEF83fe86a2CBdf4A660E3';
+const BASE_CHAIN_ID = 8453;
 const BASE_CHAIN_ID_HEX = '0x2105';
 
 // Resolved at startup — works regardless of cwd
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const TEX_PATH  = resolve(REPO_ROOT, 'research/trust-by-construction-paper.tex');
+const TEX_PATH = resolve(REPO_ROOT, 'research/trust-by-construction-paper.tex');
 const PY_SCRIPT = resolve(
   process.env.USERPROFILE || process.env.HOME || 'C:/Users/Josep',
   '.ai-ecosystem/scripts/anchor_base.py'
 );
 
 const TX = {
-  from:                 EXPECTED_WALLET,
-  to:                   EXPECTED_WALLET,
-  value:                '0x0',
+  from: EXPECTED_WALLET,
+  to: EXPECTED_WALLET,
+  value: '0x0',
   // sha256 of trust-by-construction-paper.tex as calldata (not a key — content hash)
-  data:                 '0x' + '1bb17f254e90031dc35e58138bca035c15b0379502a13ed0391c61c319a3bd83',
-  chainId:              BASE_CHAIN_ID_HEX,
-  gas:                  '0x613c',
-  maxFeePerGas:         '0x2faf080',
+  data: '0x' + '1bb17f254e90031dc35e58138bca035c15b0379502a13ed0391c61c319a3bd83',
+  chainId: BASE_CHAIN_ID_HEX,
+  gas: '0x613c',
+  maxFeePerGas: '0x2faf080',
   maxPriorityFeePerGas: '0xf4240',
 };
 
@@ -45,19 +45,26 @@ function send(res, status, body, type = 'application/json') {
 function readBody(req) {
   return new Promise((ok, err) => {
     let s = '';
-    req.on('data', c => { s += c; if (s.length > 8192) { err(new Error('body too large')); req.destroy(); } });
+    req.on('data', (c) => {
+      s += c;
+      if (s.length > 8192) {
+        err(new Error('body too large'));
+        req.destroy();
+      }
+    });
     req.on('end', () => ok(s));
     req.on('error', err);
   });
 }
 
 function runRecord(txHash) {
-  return new Promise(ok => {
+  return new Promise((ok) => {
     execFile(
       'python',
       [PY_SCRIPT, '--record', TEX_PATH, '--tx-hash', txHash],
       { cwd: REPO_ROOT, timeout: 30_000 },
-      (error, stdout, stderr) => ok({ ok: !error, stdout, stderr, error: error ? String(error) : null })
+      (error, stdout, stderr) =>
+        ok({ ok: !error, stdout, stderr, error: error ? String(error) : null })
     );
   });
 }

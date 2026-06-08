@@ -369,7 +369,7 @@ export class DispatchPolicy {
       const result = await executor(op);
       const reason = result.accepted
         ? undefined
-        : result.reason ?? 'Tier-1 browser executor rejected dispatch';
+        : (result.reason ?? 'Tier-1 browser executor rejected dispatch');
       return this.buildDecision(
         DispatchTier.TIER_1_BROWSER,
         result.accepted,
@@ -400,24 +400,17 @@ export class DispatchPolicy {
     const emulator = await this.runTier1WasmEmulator(op, runtime);
     const reason = emulator.accepted
       ? undefined
-      : emulator.reason ?? 'compiler-wasm SNN emulator rejected dispatch';
+      : (emulator.reason ?? 'compiler-wasm SNN emulator rejected dispatch');
 
-    return this.buildDecision(
-      DispatchTier.TIER_1_WASM,
-      emulator.accepted,
-      op,
-      reason,
-      undefined,
-      {
-        wasmProbe: runtime,
-        wasmEmulator: emulator,
-      }
-    );
+    return this.buildDecision(DispatchTier.TIER_1_WASM, emulator.accepted, op, reason, undefined, {
+      wasmProbe: runtime,
+      wasmEmulator: emulator,
+    });
   }
 
   private async tryTier2(op: DispatchableOperation): Promise<DispatchDecision> {
     const provider = this.config.llmProposalProvider;
-    const proposal = provider ? (await provider(op)) ?? null : null;
+    const proposal = provider ? ((await provider(op)) ?? null) : null;
     if (!proposal) {
       this.alphaTracker.recordAttempt(false);
       const alpha = this.alphaTracker.getAlpha();
@@ -708,7 +701,11 @@ async function runTier1BrowserSnn(
     const snnWebgpu = await import('@holoscript/snn-webgpu');
     const { GPUContext, LIFSimulator, DEFAULT_LIF_PARAMS } = snnWebgpu as {
       GPUContext: new () => { initialize(): Promise<unknown> };
-      LIFSimulator: new (ctx: unknown, neurons: number, params: unknown) => { initialize(): Promise<unknown>; stepN(steps: number): Promise<unknown> };
+      LIFSimulator: new (
+        ctx: unknown,
+        neurons: number,
+        params: unknown
+      ) => { initialize(): Promise<unknown>; stepN(steps: number): Promise<unknown> };
       DEFAULT_LIF_PARAMS: unknown;
     };
     const ctx = new GPUContext();
@@ -844,9 +841,7 @@ function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-const MINIMAL_WASM_MODULE = new Uint8Array([
-  0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
-]);
+const MINIMAL_WASM_MODULE = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
 
 function emulateLifSteps(
   input: string,

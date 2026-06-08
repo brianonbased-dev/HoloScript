@@ -56,7 +56,12 @@ describe('StateMachineInterpreter — createInstance', () => {
   it('fires initial onEntry with instance context', () => {
     const hook = vi.fn();
     sm.setHookExecutor(hook);
-    const machine = makeMachine('door', 'closed', [{ name: 'closed', onEntry: 'log("entered")' }], []);
+    const machine = makeMachine(
+      'door',
+      'closed',
+      [{ name: 'closed', onEntry: 'log("entered")' }],
+      []
+    );
     sm.createInstance('door-1', machine, { owner: 'alice' });
     expect(hook).toHaveBeenCalledTimes(1);
     expect(hook).toHaveBeenCalledWith('log("entered")', { owner: 'alice' });
@@ -102,11 +107,7 @@ describe('StateMachineInterpreter — transition ordering', () => {
 
     // Expected order: exit-closed (while currentState still 'closed'),
     // then enter-open (after change, currentState == 'open').
-    expect(order).toEqual([
-      'enter-closed@closed',
-      'exit-closed@closed',
-      'enter-open@open',
-    ]);
+    expect(order).toEqual(['enter-closed@closed', 'exit-closed@closed', 'enter-open@open']);
     expect(sm.getInstance('door-1')!.currentState).toBe('open');
   });
 });
@@ -283,12 +284,7 @@ describe('StateMachineInterpreter — idempotent transitions', () => {
 
   it('transitionTo unknown state logs error and leaves state unchanged', () => {
     const sm = new StateMachineInterpreter();
-    const machine = makeMachine(
-      'door',
-      'closed',
-      [{ name: 'closed' }, { name: 'open' }],
-      []
-    );
+    const machine = makeMachine('door', 'closed', [{ name: 'closed' }, { name: 'open' }], []);
     sm.createInstance('door-1', machine, {});
     sm.transitionTo('door-1', 'zzz-does-not-exist');
     expect(sm.getInstance('door-1')!.currentState).toBe('closed');

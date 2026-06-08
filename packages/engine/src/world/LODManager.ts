@@ -60,7 +60,7 @@ const DEFAULT_LOD_CONFIG: LODConfig = {
 export class LODManager {
   private config: LODConfig;
   private objects: Map<string, LODObject> = new Map();
-  private viewerPosition = [0, 0, 0 ];
+  private viewerPosition = [0, 0, 0];
 
   constructor(config?: Partial<LODConfig>) {
     this.config = { ...DEFAULT_LOD_CONFIG, ...config };

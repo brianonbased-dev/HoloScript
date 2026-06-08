@@ -109,7 +109,8 @@ export class CameraPath {
   } {
     const n = this.points.length;
     if (n === 0) return { position: [0, 0, 0], lookAt: null };
-    if (n === 1) return { position: [...this.points[0].position], lookAt: this.points[0].lookAt || null };
+    if (n === 1)
+      return { position: [...this.points[0].position], lookAt: this.points[0].lookAt || null };
 
     const f = t * (n - 1);
     const i = Math.min(Math.floor(f), n - 2);

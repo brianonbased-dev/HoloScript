@@ -286,7 +286,7 @@ const TRAIT_SKILL_MAPPINGS: TraitSkillMapping[] = [
       {
         name: 'Throw a ball',
         input: { objectId: 'ball_1', velocityMultiplier: 1.5 },
-        output: { thrown: true, velocity: [2.1, 3.0, -1.5 ] },
+        output: { thrown: true, velocity: [2.1, 3.0, -1.5] },
       },
     ],
   },

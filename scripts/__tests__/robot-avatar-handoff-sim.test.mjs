@@ -29,7 +29,9 @@ function assertEq(actual, expected, name) {
     return;
   }
   testsFailed += 1;
-  console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  console.error(
+    `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+  );
 }
 
 try {
@@ -46,7 +48,7 @@ try {
   object "AvatarHand" { geometry: "sphere" }
   object "Payload" { geometry: "cube" }
 }
-`,
+`
   );
 
   writeFileSync(
@@ -66,8 +68,8 @@ try {
         },
       },
       null,
-      2,
-    )}\n`,
+      2
+    )}\n`
   );
 
   const result = spawnSync(
@@ -88,7 +90,7 @@ try {
     {
       cwd: repoRoot,
       encoding: 'utf8',
-    },
+    }
   );
 
   assertEq(result.status, 0, 'sim exits 0');
@@ -99,7 +101,10 @@ try {
   const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
   assertEq(rows.length, 3, 'three pipeline rows');
   assertEq(rows.filter((row) => row.status !== 'pass').length, 0, 'all rows pass');
-  assertOk(rows.every((row) => row.signature_verified === true), 'row signatures verified');
+  assertOk(
+    rows.every((row) => row.signature_verified === true),
+    'row signatures verified'
+  );
   assertEq(receipt.replay.finalPayloadOwner, 'avatar', 'payload custody transfers to avatar');
   assertEq(receipt.scene.requiredObjectsPresent, true, 'scene contains required handoff objects');
   assertOk(receipt.receipts.robotReceipt.verified, 'robot receipt verifies');

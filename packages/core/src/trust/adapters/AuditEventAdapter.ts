@@ -6,11 +6,7 @@
  */
 
 import { AuditEvent } from '../../audit/AuditLogger';
-import {
-  TrustReceiptInput,
-  TrustPermissionEnvelope,
-  stableTrustStringify,
-} from '../TrustReceipt';
+import { TrustReceiptInput, TrustPermissionEnvelope, stableTrustStringify } from '../TrustReceipt';
 
 export interface AuditEventAdapterOptions {
   /** Canonical Passport DID for the actor. Falls back to a synthetic DID. */
@@ -27,25 +23,19 @@ export interface AuditEventAdapterOptions {
  */
 export function auditEventToReceiptInput(
   event: AuditEvent,
-  options: AuditEventAdapterOptions = {},
+  options: AuditEventAdapterOptions = {}
 ): TrustReceiptInput {
   const permissionEnvelope: TrustPermissionEnvelope = options.permissionEnvelope ?? 'read_only';
 
   const outcome =
-    event.outcome === 'success'
-      ? 'success'
-      : event.outcome === 'failure'
-        ? 'failure'
-        : 'denied';
+    event.outcome === 'success' ? 'success' : event.outcome === 'failure' ? 'failure' : 'denied';
 
   return {
     schemaVersion: '1.0.0',
     recordedAt: event.timestamp.toISOString(),
     actor: {
       passportDid: options.passportDid ?? `did:holoscript:actor:${event.actorId}`,
-      bindings: event.actorId
-        ? [{ value: event.actorId, type: event.actorType }]
-        : undefined,
+      bindings: event.actorId ? [{ value: event.actorId, type: event.actorType }] : undefined,
     },
     permissionEnvelope,
     action: {

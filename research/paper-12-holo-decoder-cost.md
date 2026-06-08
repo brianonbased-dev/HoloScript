@@ -32,29 +32,29 @@ The bound is independent of the number of compile targets T (targets consume the
 
 ## Empirical P/N Sweep (Smoke-Test Harness)
 
-We exercised the chain-walking decoder logic using the established pattern from the compiler smoke-test harness (`packages/core/src/compiler/__tests__/` — see paper-10-* .bench.test.ts for the micro-bench skeleton and the provenance emission paths in AndroidXRCompiler / BabylonCompiler / core plugin loaders).
+We exercised the chain-walking decoder logic using the established pattern from the compiler smoke-test harness (`packages/core/src/compiler/__tests__/` — see paper-10-\* .bench.test.ts for the micro-bench skeleton and the provenance emission paths in AndroidXRCompiler / BabylonCompiler / core plugin loaders).
 
 Synthetic workloads were generated with controlled (P, N_per_plugin) and the verification predicate was timed (50 iterations per cell, Node 20, sha256 fold simulating the semiring update). All runs on the same desktop harness used for prior paper-12 scene-suite overhead measurements.
 
 ### Sweep Results (mean wall time, ms)
 
-| P  | N_per | N_total | mean_ms | std_ms | notes |
-|----|-------|---------|---------|--------|-------|
-| 1  | 10    | 10      | 0.072   | 0.012  | baseline |
-| 1  | 100   | 100     | 0.319   | 0.031  |       |
-| 1  | 1000  | 1000    | 3.220   | 0.085  |       |
-| 2  | 10    | 20      | 0.047   | 0.009  |       |
-| 2  | 100   | 200     | 0.603   | 0.041  |       |
-| 2  | 1000  | 2000    | 6.332   | 0.12   |       |
-| 4  | 10    | 40      | 0.110   | 0.015  |       |
-| 4  | 100   | 400     | 1.328   | 0.07   |       |
-| 4  | 1000  | 4000    | 11.544  | 0.31   |       |
-| 8  | 10    | 80      | 0.238   | 0.022  |       |
-| 8  | 100   | 800     | 2.329   | 0.09   |       |
-| 8  | 1000  | 8000    | 20.070  | 0.55   |       |
-| 16 | 10    | 160     | 0.486   | 0.03   |       |
-| 16 | 100   | 1600    | 4.175   | 0.14   |       |
-| 16 | 1000  | 16000   | 59.873  | 1.8    | largest cell |
+| P   | N_per | N_total | mean_ms | std_ms | notes        |
+| --- | ----- | ------- | ------- | ------ | ------------ |
+| 1   | 10    | 10      | 0.072   | 0.012  | baseline     |
+| 1   | 100   | 100     | 0.319   | 0.031  |              |
+| 1   | 1000  | 1000    | 3.220   | 0.085  |              |
+| 2   | 10    | 20      | 0.047   | 0.009  |              |
+| 2   | 100   | 200     | 0.603   | 0.041  |              |
+| 2   | 1000  | 2000    | 6.332   | 0.12   |              |
+| 4   | 10    | 40      | 0.110   | 0.015  |              |
+| 4   | 100   | 400     | 1.328   | 0.07   |              |
+| 4   | 1000  | 4000    | 11.544  | 0.31   |              |
+| 8   | 10    | 80      | 0.238   | 0.022  |              |
+| 8   | 100   | 800     | 2.329   | 0.09   |              |
+| 8   | 1000  | 8000    | 20.070  | 0.55   |              |
+| 16  | 10    | 160     | 0.486   | 0.03   |              |
+| 16  | 100   | 1600    | 4.175   | 0.14   |              |
+| 16  | 1000  | 16000   | 59.873  | 1.8    | largest cell |
 
 **Envelope fit**: time ≈ k · (P + N_total) with R² > 0.99 for N_total ≥ 100 (the small-P small-N cells are dominated by JS call overhead, as expected for a micro-bench). The observed constant k ≈ 0.0037 ms per (plugin + node) on this hardware. Real compiled C++/WASM decoder will be 1–2 orders of magnitude faster but the asymptotic class remains identical.
 
@@ -93,8 +93,7 @@ Reviewer action: rerun the bench commands above (or the equivalent once wired in
 **Commit**: (to be filled on `git commit`)  
 **Evidence**: this memo + dated results + tex citation update for task_1779176532120_rm8v
 
-The provenance-preservation theorem's decoder cost is now fully substantiated for the I3D '27 submission.
----
+## The provenance-preservation theorem's decoder cost is now fully substantiated for the I3D '27 submission.
 
 ## Re-validation 2026-05-21 (current marathon cycle)
 

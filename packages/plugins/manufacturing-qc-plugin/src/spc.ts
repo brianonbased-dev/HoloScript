@@ -58,8 +58,8 @@ export interface SPCChartResult {
   chartType: ChartType;
   subgroupCount: number;
   totalObservations: number;
-  primaryChart: ControlLimits;      // X̅ or p or c/u
-  secondaryChart?: ControlLimits;   // R or s (only for variables charts)
+  primaryChart: ControlLimits; // X̅ or p or c/u
+  secondaryChart?: ControlLimits; // R or s (only for variables charts)
   subgroupStats: SubgroupStat[];
   outOfControlCount: number;
   processInControl: boolean;
@@ -131,48 +131,104 @@ export interface SPCReceipt {
 
 /** d2 unbiasing constants for range → σ̂ */
 const D2: Record<number, number> = {
-  2: 1.128, 3: 1.693, 4: 2.059, 5: 2.326,
-  6: 2.534, 7: 2.704, 8: 2.847, 9: 2.970, 10: 3.078,
+  2: 1.128,
+  3: 1.693,
+  4: 2.059,
+  5: 2.326,
+  6: 2.534,
+  7: 2.704,
+  8: 2.847,
+  9: 2.97,
+  10: 3.078,
 };
 
 /** d3 for range chart LCL */
 const D3: Record<number, number> = {
-  2: 0,     3: 0,     4: 0,     5: 0,
-  6: 0,     7: 0.076, 8: 0.136, 9: 0.184, 10: 0.223,
+  2: 0,
+  3: 0,
+  4: 0,
+  5: 0,
+  6: 0,
+  7: 0.076,
+  8: 0.136,
+  9: 0.184,
+  10: 0.223,
 };
 
 /** d4 for range chart UCL */
 const D4: Record<number, number> = {
-  2: 3.267, 3: 2.575, 4: 2.282, 5: 2.115,
-  6: 2.004, 7: 1.924, 8: 1.864, 9: 1.816, 10: 1.777,
+  2: 3.267,
+  3: 2.575,
+  4: 2.282,
+  5: 2.115,
+  6: 2.004,
+  7: 1.924,
+  8: 1.864,
+  9: 1.816,
+  10: 1.777,
 };
 
 /** c4 unbiasing constants for s → σ̂ */
 const C4: Record<number, number> = {
-  2: 0.7979, 3: 0.8862, 4: 0.9213, 5: 0.9400,
-  6: 0.9515, 7: 0.9594, 8: 0.9650, 9: 0.9693, 10: 0.9727,
+  2: 0.7979,
+  3: 0.8862,
+  4: 0.9213,
+  5: 0.94,
+  6: 0.9515,
+  7: 0.9594,
+  8: 0.965,
+  9: 0.9693,
+  10: 0.9727,
 };
 
 /** A2 constants for X̅-R chart (3σ limits via R̅) */
 const A2: Record<number, number> = {
-  2: 1.880, 3: 1.023, 4: 0.729, 5: 0.577,
-  6: 0.483, 7: 0.419, 8: 0.373, 9: 0.337, 10: 0.308,
+  2: 1.88,
+  3: 1.023,
+  4: 0.729,
+  5: 0.577,
+  6: 0.483,
+  7: 0.419,
+  8: 0.373,
+  9: 0.337,
+  10: 0.308,
 };
 
 /** A3 constants for X̅-s chart (3σ limits via s̅) */
 const A3: Record<number, number> = {
-  2: 2.659, 3: 1.954, 4: 1.628, 5: 1.427,
-  6: 1.287, 7: 1.182, 8: 1.099, 9: 1.032, 10: 0.975,
+  2: 2.659,
+  3: 1.954,
+  4: 1.628,
+  5: 1.427,
+  6: 1.287,
+  7: 1.182,
+  8: 1.099,
+  9: 1.032,
+  10: 0.975,
 };
 
 /** B3 / B4 for s-chart limits */
 const B3: Record<number, number> = {
-  2: 0,     3: 0,     4: 0,     5: 0,
-  6: 0.030, 7: 0.118, 8: 0.185, 9: 0.239, 10: 0.284,
+  2: 0,
+  3: 0,
+  4: 0,
+  5: 0,
+  6: 0.03,
+  7: 0.118,
+  8: 0.185,
+  9: 0.239,
+  10: 0.284,
 };
 const B4: Record<number, number> = {
-  2: 3.267, 3: 2.568, 4: 2.266, 5: 2.089,
-  6: 1.970, 7: 1.882, 8: 1.815, 9: 1.761, 10: 1.716,
+  2: 3.267,
+  3: 2.568,
+  4: 2.266,
+  5: 2.089,
+  6: 1.97,
+  7: 1.882,
+  8: 1.815,
+  9: 1.761,
+  10: 1.716,
 };
 
 // ─── Statistics helpers ────────────────────────────────────────────────────────────────────
@@ -266,7 +322,8 @@ function westernElectricViolations(zScores: number[]): string[][] {
     // Rule 5: 6 consecutive monotone
     if (i >= 5) {
       const window = zScores.slice(i - 5, i + 1);
-      let inc = true; let dec = true;
+      let inc = true;
+      let dec = true;
       for (let j = 1; j < window.length; j++) {
         if (window[j] <= window[j - 1]) inc = false;
         if (window[j] >= window[j - 1]) dec = false;
@@ -291,7 +348,10 @@ function westernElectricViolations(zScores: number[]): string[][] {
       for (let j = 2; j < window.length; j++) {
         const prevDir = window[j - 1] > window[j - 2];
         const currDir = window[j] > window[j - 1];
-        if (currDir === prevDir) { alternating = false; break; }
+        if (currDir === prevDir) {
+          alternating = false;
+          break;
+        }
       }
       if (alternating) violations[i].push('WE7:alternating14');
     }
@@ -396,14 +456,15 @@ function buildXbarSChart(subgroups: Subgroup[]): SPCChartResult {
     lclFloor: 0,
   };
 
-  const c4val = C4[n] ?? 0.9400;
+  const c4val = C4[n] ?? 0.94;
   const sigma = sBar / c4val;
   const primaryZ = means.map((m) => (sigma > 0 ? (m - xbarBar) / sigma : 0));
   const primaryViolations = westernElectricViolations(primaryZ);
 
   const subgroupStats: SubgroupStat[] = subgroups.map((sg, i) => {
     const violations = [...primaryViolations[i]];
-    if (stds[i] > secondaryLimits.ucl || stds[i] < secondaryLimits.lcl) violations.push('s:outOfControl');
+    if (stds[i] > secondaryLimits.ucl || stds[i] < secondaryLimits.lcl)
+      violations.push('s:outOfControl');
     return {
       index: sg.index,
       n,
@@ -485,7 +546,8 @@ function buildPChart(subgroups: Subgroup[]): SPCChartResult {
 function buildCChart(subgroups: Subgroup[]): SPCChartResult {
   if (subgroups.length < 2) throw new Error('[spc] c-chart requires ≥ 2 subgroups');
   for (const sg of subgroups) {
-    if (sg.defects === undefined) throw new Error('[spc] c-chart requires .defects on every subgroup');
+    if (sg.defects === undefined)
+      throw new Error('[spc] c-chart requires .defects on every subgroup');
   }
 
   const counts = subgroups.map((sg) => sg.defects ?? 0);
@@ -537,9 +599,12 @@ function buildCChart(subgroups: Subgroup[]): SPCChartResult {
  */
 export function buildSPCChart(type: ChartType, subgroups: Subgroup[]): SPCChartResult {
   switch (type) {
-    case 'xbar_r':  return buildXbarRChart(subgroups);
-    case 'xbar_s':  return buildXbarSChart(subgroups);
-    case 'p':       return buildPChart(subgroups);
+    case 'xbar_r':
+      return buildXbarRChart(subgroups);
+    case 'xbar_s':
+      return buildXbarSChart(subgroups);
+    case 'p':
+      return buildPChart(subgroups);
     case 'np': {
       // np-chart: same as p-chart but plot count instead of proportion
       const result = buildPChart(subgroups);
@@ -555,7 +620,8 @@ export function buildSPCChart(type: ChartType, subgroups: Subgroup[]): SPCChartR
         },
       };
     }
-    case 'c':       return buildCChart(subgroups);
+    case 'c':
+      return buildCChart(subgroups);
     case 'u': {
       // u-chart: defects per unit (c-chart normalised by n)
       for (const sg of subgroups) {
@@ -612,7 +678,7 @@ export function computeCapability(
   subgroups: Subgroup[],
   lsl: number,
   usl: number,
-  target?: number,
+  target?: number
 ): ProcessCapability {
   if (usl <= lsl) throw new Error('[spc] usl must be > lsl');
   if (allValues.length < 2) throw new Error('[spc] need ≥ 2 values for capability');
@@ -633,11 +699,11 @@ export function computeCapability(
   }
 
   const specWidth = usl - lsl;
-  const Cp  = withinSigma  > 0 ? specWidth / (6 * withinSigma)  : Infinity;
-  const Pp  = overallSigma > 0 ? specWidth / (6 * overallSigma) : Infinity;
+  const Cp = withinSigma > 0 ? specWidth / (6 * withinSigma) : Infinity;
+  const Pp = overallSigma > 0 ? specWidth / (6 * overallSigma) : Infinity;
 
-  const CpkUpper = withinSigma  > 0 ? (usl - processMean) / (3 * withinSigma)  : Infinity;
-  const CpkLower = withinSigma  > 0 ? (processMean - lsl) / (3 * withinSigma)  : Infinity;
+  const CpkUpper = withinSigma > 0 ? (usl - processMean) / (3 * withinSigma) : Infinity;
+  const CpkLower = withinSigma > 0 ? (processMean - lsl) / (3 * withinSigma) : Infinity;
   const Cpk = Math.min(CpkUpper, CpkLower);
 
   const PpkUpper = overallSigma > 0 ? (usl - processMean) / (3 * overallSigma) : Infinity;
@@ -656,11 +722,17 @@ export function computeCapability(
   const ppmBelowLSL = ppm(zBelowLSL);
 
   return {
-    lsl, usl, target,
+    lsl,
+    usl,
+    target,
     processMean,
     processStdDev: overallSigma,
-    Cp, Cpk, CpkLower, CpkUpper,
-    Pp, Ppk,
+    Cp,
+    Cpk,
+    CpkLower,
+    CpkUpper,
+    Pp,
+    Ppk,
     Cpm,
     ppmAboveUSL,
     ppmBelowLSL,
@@ -676,7 +748,7 @@ export function buildSPCReceipt(
   modelId: string,
   chartResult: SPCChartResult,
   capability?: ProcessCapability,
-  options: SPCReceiptOptions = {},
+  options: SPCReceiptOptions = {}
 ): SPCReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 

@@ -246,8 +246,7 @@ export class EthersSigner implements Signer {
       chainId: targetChainId,
     });
     const signature = await this.wallet.signMessage(canonical);
-    const hash =
-      '0x' + createHash('sha256').update(signature).update(canonical).digest('hex');
+    const hash = '0x' + createHash('sha256').update(signature).update(canonical).digest('hex');
     // Fabricate a stable block number from the hash so test assertions are
     // deterministic. Real broadcast obviously gets the chain's number.
     const blockNumber = parseInt(hash.slice(2, 10), 16);

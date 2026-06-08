@@ -159,14 +159,14 @@ export function keplerOrbit(elements: OrbitalElements): OrbitResult {
   if (e < 0 || e >= 1) throw new Error('Eccentricity must be in [0, 1) for elliptical orbit');
 
   const periodS = 2 * Math.PI * Math.sqrt(a ** 3 / MU_EARTH);
-  const apoapsisM  = a * (1 + e) - R_EARTH;
+  const apoapsisM = a * (1 + e) - R_EARTH;
   const periapsisM = a * (1 - e) - R_EARTH;
   const meanVelocityMs = (2 * Math.PI * a) / periodS;
   const specificEnergyJkg = -MU_EARTH / (2 * a);
 
   return {
     periodS,
-    apoapsisAltM:  Math.max(0, apoapsisM),
+    apoapsisAltM: Math.max(0, apoapsisM),
     periapsisAltM: Math.max(0, periapsisM),
     meanVelocityMs,
     specificEnergyJkg,
@@ -207,10 +207,10 @@ export function machNumber(velocityMs: number, speedOfSoundMs: number): MachResu
   const stagnationTempRiseK = ((gamma - 1) / 2) * mach ** 2; // as ratio T0/T - 1
 
   let regime: FlightRegime;
-  if (mach < 0.8)       regime = 'subsonic';
-  else if (mach < 1.2)  regime = 'transonic';
-  else if (mach < 5.0)  regime = 'supersonic';
-  else                  regime = 'hypersonic';
+  if (mach < 0.8) regime = 'subsonic';
+  else if (mach < 1.2) regime = 'transonic';
+  else if (mach < 5.0) regime = 'supersonic';
+  else regime = 'hypersonic';
 
   return { mach, regime, stagnationTempRiseK };
 }
@@ -221,7 +221,10 @@ export function machNumber(velocityMs: number, speedOfSoundMs: number): MachResu
  * TWR = thrustN / (massKg × g₀)
  * TWR > 1 → vehicle can lift off
  */
-export function thrustToWeightRatio(thrustN: number, massKg: number): {
+export function thrustToWeightRatio(
+  thrustN: number,
+  massKg: number
+): {
   twr: number;
   canLiftOff: boolean;
 } {
@@ -241,7 +244,7 @@ export function axialStress(
   areaM2: number,
   elasticModulusPa: number,
   lengthM: number,
-  ultimateStressPa: number,
+  ultimateStressPa: number
 ): StressResult {
   if (areaM2 <= 0) throw new Error('Area must be positive');
   if (elasticModulusPa <= 0) throw new Error('Elastic modulus must be positive');
@@ -260,21 +263,33 @@ export function axialStress(
 
 export function buildAerospaceReceipt(
   result: AerospaceAnalysisResult,
-  options?: AerospaceReceiptOptions,
+  options?: AerospaceReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.deltaV && result.deltaV.totalDeltaV < 9_400) {
-    violations.push({ criterion: 'delta_v', message: `ΔV ${result.deltaV.totalDeltaV.toFixed(0)} m/s insufficient for LEO (≥9400 m/s required)` });
+    violations.push({
+      criterion: 'delta_v',
+      message: `ΔV ${result.deltaV.totalDeltaV.toFixed(0)} m/s insufficient for LEO (≥9400 m/s required)`,
+    });
   }
   if (result.orbit && result.orbit.periapsisAltM < 200_000) {
-    violations.push({ criterion: 'periapsis', message: `Periapsis altitude ${(result.orbit.periapsisAltM / 1000).toFixed(0)} km below 200 km minimum` });
+    violations.push({
+      criterion: 'periapsis',
+      message: `Periapsis altitude ${(result.orbit.periapsisAltM / 1000).toFixed(0)} km below 200 km minimum`,
+    });
   }
   if (result.stress && result.stress.safetyFactor < 1.5) {
-    violations.push({ criterion: 'structural_margin', message: `Safety factor ${result.stress.safetyFactor.toFixed(2)} below 1.5 minimum` });
+    violations.push({
+      criterion: 'structural_margin',
+      message: `Safety factor ${result.stress.safetyFactor.toFixed(2)} below 1.5 minimum`,
+    });
   }
   if (result.mach && result.mach.regime === 'hypersonic' && result.mach.stagnationTempRiseK > 10) {
-    violations.push({ criterion: 'thermal_barrier', message: `Hypersonic stagnation heating significant — thermal protection required` });
+    violations.push({
+      criterion: 'thermal_barrier',
+      message: `Hypersonic stagnation heating significant — thermal protection required`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -289,7 +304,11 @@ export function buildAerospaceReceipt(
       machNumber: result.mach?.mach ?? null,
       safetyFactor: result.stress?.safetyFactor ?? null,
     },
-    cael: { version: 'cael.v1', event: 'aerospace.trajectory_analysis', solverType: 'aerospace.tsiolkovsky' },
+    cael: {
+      version: 'cael.v1',
+      event: 'aerospace.trajectory_analysis',
+      solverType: 'aerospace.tsiolkovsky',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

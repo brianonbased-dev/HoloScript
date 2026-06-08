@@ -1,7 +1,7 @@
 # Milestone digest — 2026-04-23
 
-* **Program / theme:** SEC-T-Zero closure (x402 challenge-verified /register) + HoloGram push layer live during the generated-major metadata window + Universal-IR coverage matrix (Wave B Stream 3 landing)
-* **PR / commit:** Chain `a479462ec` → `fd6bb45c6` → `1ccd12504` → `8da2ece0e` → `efed5d79a` → `d1fecc2dd`; the deployment was then labeled as generated public-major metadata and is now folded back into the HoloScript 6.x release story
+- **Program / theme:** SEC-T-Zero closure (x402 challenge-verified /register) + HoloGram push layer live during the generated-major metadata window + Universal-IR coverage matrix (Wave B Stream 3 landing)
+- **PR / commit:** Chain `a479462ec` → `fd6bb45c6` → `1ccd12504` → `8da2ece0e` → `efed5d79a` → `d1fecc2dd`; the deployment was then labeled as generated public-major metadata and is now folded back into the HoloScript 6.x release story
 
 ## Three bullets
 

@@ -559,7 +559,3 @@ if (typeof window !== 'undefined') {
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
 export { VideoExporter as default };
-
-
-
-

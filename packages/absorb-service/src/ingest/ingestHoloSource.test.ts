@@ -120,9 +120,7 @@ describe('ingestHoloSource (B1)', () => {
     const { graph } = ingestHoloSource(SAMPLE_SOURCE, { filePath: 'real.hsplus' });
     const defs = Array.from(graph.getDefinitions().values());
 
-    const realOrbs = defs.filter(
-      (d) => d.type === 'orb' && d.metadata?.fromHoloAST === true
-    );
+    const realOrbs = defs.filter((d) => d.type === 'orb' && d.metadata?.fromHoloAST === true);
     expect(realOrbs.length).toBeGreaterThan(0);
 
     // Every orb emitted by the real parser must carry a `loc` with a valid
@@ -137,7 +135,10 @@ describe('ingestHoloSource (B1)', () => {
     // Composition node should also carry loc post-followup.
     const composition = defs.find((d) => d.type === 'composition');
     expect(composition, 'no composition definition emitted').toBeDefined();
-    expect(composition?.loc, 'composition missing loc — check parseComposition / parseImplicitComposition').toBeDefined();
+    expect(
+      composition?.loc,
+      'composition missing loc — check parseComposition / parseImplicitComposition'
+    ).toBeDefined();
   });
 
   it('emits trait-config references for each @trait application', () => {

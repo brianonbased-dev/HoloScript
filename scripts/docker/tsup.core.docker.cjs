@@ -5,7 +5,9 @@ const { execSync } = require('child_process');
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 let gitSha = 'unknown';
-try { gitSha = execSync('git rev-parse --short HEAD').toString().trim(); } catch {}
+try {
+  gitSha = execSync('git rev-parse --short HEAD').toString().trim();
+} catch {}
 
 module.exports = {
   entry: {
@@ -75,13 +77,33 @@ module.exports = {
     // packages; dynamically imported and optional. Must mirror
     // packages/core/tsup.config.ts (which externalizes these) or the Docker
     // core build fails: esbuild "Could not resolve onnxruntime-node".
-    'onnxruntime-node', 'onnxruntime-web', 'onnxruntime-common',
+    'onnxruntime-node',
+    'onnxruntime-web',
+    'onnxruntime-common',
     // Native/Node packages
-    'dotenv', 'jsonwebtoken', 'jws', 'safe-buffer', 'ws',
-    'react', 'react-dom', 'three', '@react-three/fiber', '@react-three/drei',
-    'loro-crdt', 'pg', 'puppeteer', 'playwright', '@playwright/test',
-    'ioredis', 'discord.js',
-    'tree-sitter', 'tree-sitter-typescript', 'tree-sitter-python',
-    'tree-sitter-rust', 'tree-sitter-go', 'tree-sitter-javascript', 'web-tree-sitter',
+    'dotenv',
+    'jsonwebtoken',
+    'jws',
+    'safe-buffer',
+    'ws',
+    'react',
+    'react-dom',
+    'three',
+    '@react-three/fiber',
+    '@react-three/drei',
+    'loro-crdt',
+    'pg',
+    'puppeteer',
+    'playwright',
+    '@playwright/test',
+    'ioredis',
+    'discord.js',
+    'tree-sitter',
+    'tree-sitter-typescript',
+    'tree-sitter-python',
+    'tree-sitter-rust',
+    'tree-sitter-go',
+    'tree-sitter-javascript',
+    'web-tree-sitter',
   ],
 };

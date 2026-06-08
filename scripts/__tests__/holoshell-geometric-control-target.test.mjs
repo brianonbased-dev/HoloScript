@@ -34,7 +34,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -49,8 +51,14 @@ assertEq(receipt.target.width, 320, 'self-test width');
 assertEq(receipt.target.height, 240, 'self-test height');
 assertEq(receipt.target.fiducials.length, 4, 'four fiducials recorded');
 assertEq(receipt.target.primitives.length, 5, 'five primitives recorded');
-assertOk(receipt.target.primitives.some((primitive) => primitive.kind === 'circle'), 'circle primitive recorded');
-assertOk(receipt.target.primitives.some((primitive) => primitive.kind === 'triangle'), 'triangle primitive recorded');
+assertOk(
+  receipt.target.primitives.some((primitive) => primitive.kind === 'circle'),
+  'circle primitive recorded'
+);
+assertOk(
+  receipt.target.primitives.some((primitive) => primitive.kind === 'triangle'),
+  'triangle primitive recorded'
+);
 assertEq(receipt.chain?.receipt?.stageCount, 1, 'one generation stage');
 
 console.log('Test 2: generated PNG has a valid PNG signature');
@@ -68,7 +76,10 @@ const missingTarget = {
     pngHash: undefined,
   },
 };
-assertOk(validateReceipt(missingTarget).includes('target PNG hash missing'), 'target PNG hash is required');
+assertOk(
+  validateReceipt(missingTarget).includes('target PNG hash missing'),
+  'target PNG hash is required'
+);
 
 console.log('Test 4: CLI self-test runs without touching hardware');
 const cli = spawnSync(process.execPath, [SCRIPT, '--self-test'], {

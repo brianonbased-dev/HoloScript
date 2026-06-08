@@ -91,16 +91,18 @@ function smoothKeypoints(current: Keypoint[], buffer: Keypoint[][], smoothing: n
       continue;
     }
 
-    smoothed.push(withCompat({
-      x: curr.x * (1 - smoothing) + prev.x * smoothing,
-      y: curr.y * (1 - smoothing) + prev.y * smoothing,
-      z:
-        curr.z !== undefined && prev.z !== undefined
-          ? curr.z * (1 - smoothing) + prev.z * smoothing
-          : curr.z,
-      confidence: curr.confidence,
-      name: curr.name,
-    }));
+    smoothed.push(
+      withCompat({
+        x: curr.x * (1 - smoothing) + prev.x * smoothing,
+        y: curr.y * (1 - smoothing) + prev.y * smoothing,
+        z:
+          curr.z !== undefined && prev.z !== undefined
+            ? curr.z * (1 - smoothing) + prev.z * smoothing
+            : curr.z,
+        confidence: curr.confidence,
+        name: curr.name,
+      })
+    );
   }
 
   return smoothed;

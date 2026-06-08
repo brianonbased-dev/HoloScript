@@ -44,26 +44,29 @@ export const HoloShellProvider: React.FC<HoloShellProviderProps> = ({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const navigate = useCallback((sceneId: SceneId) => {
-    if (sceneId === currentScene || isTransitioning) return;
+  const navigate = useCallback(
+    (sceneId: SceneId) => {
+      if (sceneId === currentScene || isTransitioning) return;
 
-    // Start crossfade
-    setIsTransitioning(true);
-    setPreviousScene(currentScene);
+      // Start crossfade
+      setIsTransitioning(true);
+      setPreviousScene(currentScene);
 
-    // After fade-out, swap scenes, then fade-in completes
-    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+      // After fade-out, swap scenes, then fade-in completes
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
 
-    transitionTimeoutRef.current = setTimeout(() => {
-      setCurrentScene(sceneId);
-      // Allow the new scene to mount, then end transition
-      // The actual DOM fade is driven by HoloShellRouter
-      setTimeout(() => {
-        setIsTransitioning(false);
-        setPreviousScene(null);
-      }, 50);
-    }, TRANSITION_DURATION_MS);
-  }, [currentScene, isTransitioning]);
+      transitionTimeoutRef.current = setTimeout(() => {
+        setCurrentScene(sceneId);
+        // Allow the new scene to mount, then end transition
+        // The actual DOM fade is driven by HoloShellRouter
+        setTimeout(() => {
+          setIsTransitioning(false);
+          setPreviousScene(null);
+        }, 50);
+      }, TRANSITION_DURATION_MS);
+    },
+    [currentScene, isTransitioning]
+  );
 
   const triggerPhenomena = useCallback((phenomena: string, data?: unknown) => {
     // This is a hook for external systems (audio, haptics, HoloScript bridge)
@@ -89,11 +92,7 @@ export const HoloShellProvider: React.FC<HoloShellProviderProps> = ({
     triggerPhenomena,
   };
 
-  return (
-    <HoloShellContext.Provider value={value}>
-      {children}
-    </HoloShellContext.Provider>
-  );
+  return <HoloShellContext.Provider value={value}>{children}</HoloShellContext.Provider>;
 };
 
 /**
@@ -105,7 +104,7 @@ export function useHoloShell(): HoloShellContextType {
   if (!ctx) {
     throw new Error(
       'useHoloShell must be used within a HoloShellProvider. ' +
-      'Wrap your app with <HoloShellProvider> from @hololand/renderer/holoshell'
+        'Wrap your app with <HoloShellProvider> from @hololand/renderer/holoshell'
     );
   }
   return ctx;

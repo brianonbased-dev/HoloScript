@@ -106,12 +106,22 @@ describe('AffectiveMemory', () => {
     it('registers onAffectEvent hook on runtime options', () => {
       memory.bindToRuntimeEvents();
       const opts = (runtime as unknown as { options: Record<string, unknown> }).options;
-      expect(typeof (opts as { hooks?: { onAffectEvent?: unknown } }).hooks?.onAffectEvent).toBe('function');
+      expect(typeof (opts as { hooks?: { onAffectEvent?: unknown } }).hooks?.onAffectEvent).toBe(
+        'function'
+      );
     });
 
     it('calls trackAffect when onAffectEvent fires', () => {
       memory.bindToRuntimeEvents();
-      const opts = (runtime as unknown as { options: { hooks: { onAffectEvent: (args: { sceneId: string; valence: number; arousal: number }) => void } } }).options;
+      const opts = (
+        runtime as unknown as {
+          options: {
+            hooks: {
+              onAffectEvent: (args: { sceneId: string; valence: number; arousal: number }) => void;
+            };
+          };
+        }
+      ).options;
       opts.hooks.onAffectEvent({ sceneId: 'event-scene', valence: 0.7, arousal: 0.5 });
       expect(runtime.persistState).toHaveBeenCalledWith(
         'affective_memory_event-scene',
@@ -121,7 +131,9 @@ describe('AffectiveMemory', () => {
 
     it('chains previously registered onAffectEvent hooks', () => {
       const previousHook = vi.fn();
-      const opts = (runtime as unknown as { options: { hooks: { onAffectEvent: typeof previousHook } } }).options;
+      const opts = (
+        runtime as unknown as { options: { hooks: { onAffectEvent: typeof previousHook } } }
+      ).options;
       if (!opts.hooks) (opts as Record<string, unknown>).hooks = {};
       opts.hooks.onAffectEvent = previousHook;
 

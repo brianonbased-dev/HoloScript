@@ -30,7 +30,7 @@ function measureLifTwinDelta(
   cpuMembrane: Float32Array,
   gpuMembrane: Float32Array,
   cpuSpikes: Uint32Array,
-  gpuSpikes: Float32Array | Uint32Array,
+  gpuSpikes: Float32Array | Uint32Array
 ): LifTwinDelta {
   let maxAbsDiff = 0;
   let maxRelDiff = 0;
@@ -206,12 +206,7 @@ describe('LIFTwinTest (Paper #2 CPU↔GPU parity)', () => {
     const divergentSpikes = new Uint32Array(cpuSpikes);
     divergentSpikes[23] = cpuSpikes[23] === 0 ? 1 : 0;
 
-    const delta = measureLifTwinDelta(
-      cpuMembrane,
-      divergentMembrane,
-      cpuSpikes,
-      divergentSpikes,
-    );
+    const delta = measureLifTwinDelta(cpuMembrane, divergentMembrane, cpuSpikes, divergentSpikes);
 
     expect(delta.maxAbsDiff).toBeGreaterThan(ABSOLUTE_TOLERANCE);
     expect(delta.spikeMismatches).toBe(1);

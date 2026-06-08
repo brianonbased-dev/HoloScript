@@ -3,9 +3,9 @@ doc_tier: research
 research_phase: base
 status: active
 last_verified: 2026-05-06
-canonical_for: "cursor-mdc-spec"
-supersedes: ""
-extends: "C:/Users/josep/.ai-ecosystem/research/2026-05-06_context-as-compile-target.md"
+canonical_for: 'cursor-mdc-spec'
+supersedes: ''
+extends: 'C:/Users/josep/.ai-ecosystem/research/2026-05-06_context-as-compile-target.md'
 ---
 
 ### Machine summary (uAA2 COMPRESS)
@@ -51,20 +51,20 @@ alwaysApply: <boolean — true|false>
 <markdown body — one rule per file>
 ```
 
-| Field          | Type                              | Purpose                                                                        |
-|----------------|-----------------------------------|--------------------------------------------------------------------------------|
-| `description`  | String                            | Agent uses this to decide relevance when `alwaysApply: false`. Required-ish.   |
-| `globs`        | String (comma-separated patterns) | File patterns that auto-attach the rule. Empty = not glob-scoped.              |
-| `alwaysApply`  | Boolean                           | If `true`, rule applies every chat session; `globs` and `description` ignored. |
+| Field         | Type                              | Purpose                                                                        |
+| ------------- | --------------------------------- | ------------------------------------------------------------------------------ |
+| `description` | String                            | Agent uses this to decide relevance when `alwaysApply: false`. Required-ish.   |
+| `globs`       | String (comma-separated patterns) | File patterns that auto-attach the rule. Empty = not glob-scoped.              |
+| `alwaysApply` | Boolean                           | If `true`, rule applies every chat session; `globs` and `description` ignored. |
 
 ### Rule-type matrix (derived from frontmatter combinations)
 
-| Type                      | `alwaysApply` | `description` | `globs`   | Trigger                           |
-|---------------------------|---------------|---------------|-----------|-----------------------------------|
-| Always Apply              | `true`        | —             | —         | Every chat session                |
-| Apply Intelligently       | `false`       | provided      | omitted   | Agent picks based on description  |
-| Apply to Specific Files   | `false`       | —             | provided  | File matches glob pattern         |
-| Apply Manually            | `false`       | omitted       | omitted   | User `@`-mentions in chat         |
+| Type                    | `alwaysApply` | `description` | `globs`  | Trigger                          |
+| ----------------------- | ------------- | ------------- | -------- | -------------------------------- |
+| Always Apply            | `true`        | —             | —        | Every chat session               |
+| Apply Intelligently     | `false`       | provided      | omitted  | Agent picks based on description |
+| Apply to Specific Files | `false`       | —             | provided | File matches glob pattern        |
+| Apply Manually          | `false`       | omitted       | omitted  | User `@`-mentions in chat        |
 
 ### Verified against in-use files
 
@@ -153,10 +153,10 @@ Per-rule files cover the BLOCK rules (refusals/hard_donts) and answer-defaults �
 
 ## Open questions (deferred to v2 — not v1 blockers)
 
-- Should `@hard_physical_gap` get its own `.mdc`? Decision deferred. v1 surfaces them only in the index file. Rationale: hard physical gaps describe what the skill *cannot* absorb — they're not actionable rules an Agent enforces, they're posture. The index file is the right home until a v2 use case proves otherwise.
+- Should `@hard_physical_gap` get its own `.mdc`? Decision deferred. v1 surfaces them only in the index file. Rationale: hard physical gaps describe what the skill _cannot_ absorb — they're not actionable rules an Agent enforces, they're posture. The index file is the right home until a v2 use case proves otherwise.
 - Should `@routine` (A-00X) emit one .mdc per routine? Deferred to v2. Routines are scheduled triggers, not in-session rules. The index file's "Recurring routines" table is enough surface area for v1.
 - Should `@skill` registrations emit per-skill `.mdc` files? The parent spec has `compile_to_skill_md` for that — not this emitter's job. Skills appear in the index file as a registry only.
 
 ---
 
-*Research timestamp: 2026-05-06. Spec verified live against `cursor.com/docs/context/rules` (after the documented 308 redirect from `docs.cursor.com`). Existing `.cursor/rules/*.mdc` files in HoloScript and ai-ecosystem repos confirm the in-use shape matches the documented spec.*
+_Research timestamp: 2026-05-06. Spec verified live against `cursor.com/docs/context/rules` (after the documented 308 redirect from `docs.cursor.com`). Existing `.cursor/rules/_.mdc` files in HoloScript and ai-ecosystem repos confirm the in-use shape matches the documented spec.\*

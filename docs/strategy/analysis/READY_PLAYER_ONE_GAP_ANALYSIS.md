@@ -37,15 +37,15 @@ The OASIS has **zero AI agents**. NPCs follow scripts. Anorak is a pre-recorded 
 
 HoloScript was **designed for AI from day one:**
 
-| Capability                                                     | Status   |
-| -------------------------------------------------------------- | -------- |
+| Capability                                                          | Status   |
+| ------------------------------------------------------------------- | -------- |
 | Brittney AI assistant ([see NUMBERS.md] , spatial avatar, lip-sync) | ✅ Built |
-| Voice → MCP pipeline in VR (speak to build)                    | ✅ Built |
-| AI-writable `.holo` format (designed for LLM generation)       | ✅ Built |
-| Multi-agent choreography (100+ agents, < 50ms negotiation)     | ✅ Built |
-| Agent registry, discovery, spatial context awareness           | ✅ Built |
-| Self-improvement pipeline (failed generations → training data) | ✅ Built |
-| Agentic consensus mechanisms, hierarchy, delegation            | ✅ Built |
+| Voice → MCP pipeline in VR (speak to build)                         | ✅ Built |
+| AI-writable `.holo` format (designed for LLM generation)            | ✅ Built |
+| Multi-agent choreography (100+ agents, < 50ms negotiation)          | ✅ Built |
+| Agent registry, discovery, spatial context awareness                | ✅ Built |
+| Self-improvement pipeline (failed generations → training data)      | ✅ Built |
+| Agentic consensus mechanisms, hierarchy, delegation                 | ✅ Built |
 
 Cline and Spielberg imagined a world _consumed by humans_. HoloScript imagines a world **co-created by humans and AI**, where Brittney sits next to you in VR space and builds what you describe.
 
@@ -225,7 +225,7 @@ The OASIS has items. HoloScript has a **composable behavioral algebra**.
 
 The OASIS somehow supports millions of concurrent users in a single battle (Planet Doom finale) without addressing any networking challenges.
 
-HoloScript/Hololand has **real networking infrastructure** (1,[see NUMBERS.md]  passing):
+HoloScript/Hololand has **real networking infrastructure** (1,[see NUMBERS.md] passing):
 
 | System                       | What It Does                                               | Tests |
 | ---------------------------- | ---------------------------------------------------------- | ----- |
@@ -282,12 +282,12 @@ The OASIS doesn't show collaborative creation tools. Users consume, they don't c
 
 HoloScript has **real-time collaborative editing:**
 
-| Feature                     | Implementation                                |
-| --------------------------- | --------------------------------------------- |
+| Feature                     | Implementation                                         |
+| --------------------------- | ------------------------------------------------------ |
 | CRDT-based document sync    | CRDTDocument, CollaborationSession ([see NUMBERS.md] ) |
-| VR-aware awareness protocol | World position, platform tracking             |
-| Conflict resolution         | Operational transform via Yjs                 |
-| VR Git integration          | Auto-commit, rollback, snapshots from VR      |
+| VR-aware awareness protocol | World position, platform tracking                      |
+| Conflict resolution         | Operational transform via Yjs                          |
+| VR Git integration          | Auto-commit, rollback, snapshots from VR               |
 
 Multiple people can build the same world simultaneously — **in VR**.
 
@@ -410,7 +410,7 @@ HoloScript = spatial computing as a universal human right.
 | Governance             | ❌ Corporate monopoly | ✅ Open source                       |
 | Code portability       | ❌ Platform locked    | ✅ Bidirectional import/export       |
 | Trait composition      | ❌ Hardcoded objects  | ✅ 1,800+ composable traits          |
-| Real networking        | ❌ Hand-waved         | ✅ 1,[see NUMBERS.md] , full stack           |
+| Real networking        | ❌ Hand-waved         | ✅ 1,[see NUMBERS.md] , full stack   |
 | Enterprise readiness   | ❌ None               | ✅ SOC2/GDPR, OTEL, multi-tenant     |
 | Collaborative editing  | ❌ None               | ✅ CRDT + VR Git                     |
 | Procedural generation  | ❌ Static worlds      | ✅ PCG + AI generation               |

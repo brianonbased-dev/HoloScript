@@ -27,7 +27,13 @@ export function emitMermaid(graphs: PageGraph[]): string {
   return lines.join('\n') + '\n';
 }
 
-function emitNode(node: ComponentNode, parentId: string, seen: Set<string>, out: string[], indent: number): void {
+function emitNode(
+  node: ComponentNode,
+  parentId: string,
+  seen: Set<string>,
+  out: string[],
+  indent: number
+): void {
   const pad = ' '.repeat(indent);
   const id = `${parentId}_${safe(node.name)}`;
   const isRoot = node.name === 'Page';

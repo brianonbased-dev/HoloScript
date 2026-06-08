@@ -9,10 +9,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { EventBus } from '../events';
-import {
-  SpatialVoiceCoordinator,
-  createSpatialVoiceCoordinator,
-} from '../SpatialVoiceCoordinator';
+import { SpatialVoiceCoordinator, createSpatialVoiceCoordinator } from '../SpatialVoiceCoordinator';
 import { attenuationGain, stereoPan, type Vec3 } from '../spatialVoiceAttenuation';
 import { spatialVoiceHandler } from '../../../core/src/traits/SpatialVoiceTrait';
 

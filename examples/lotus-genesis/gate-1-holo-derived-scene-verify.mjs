@@ -21,7 +21,16 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const SCENE_PATH = join(here, '..', '..', 'packages', 'studio', 'public', 'scenes', 'lotus-pond.holo');
+const SCENE_PATH = join(
+  here,
+  '..',
+  '..',
+  'packages',
+  'studio',
+  'public',
+  'scenes',
+  'lotus-pond.holo'
+);
 const RECEIPT_PATH = join(here, 'GATE-1-HOLO-DERIVED-SCENE-receipt.json');
 
 const core = await import('@holoscript/core');
@@ -128,5 +137,7 @@ const receipt = {
 writeFileSync(RECEIPT_PATH, JSON.stringify(receipt, null, 2) + '\n');
 
 for (const [k, v] of Object.entries(checks)) console.log(`${v ? '✓' : '✗'} ${k}`);
-console.log(`\nGate 1 [lotus-genesis]: ${status} (${passed}/${total}) — sceneDigest ${sceneDigest}`);
+console.log(
+  `\nGate 1 [lotus-genesis]: ${status} (${passed}/${total}) — sceneDigest ${sceneDigest}`
+);
 process.exit(status === 'PASS' ? 0 : 1);

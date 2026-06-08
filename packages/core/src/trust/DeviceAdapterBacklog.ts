@@ -17,9 +17,7 @@ export type DeviceAdapterMode =
 
 export type DeviceAdapterMutationClass = 'none' | 'guarded' | 'break_glass';
 
-export type DeviceAdapterReadiness =
-  | 'ready_for_contract'
-  | 'blocked_on_health_trust_spine';
+export type DeviceAdapterReadiness = 'ready_for_contract' | 'blocked_on_health_trust_spine';
 
 export type DeviceAdapterDomain =
   | 'home'
@@ -263,10 +261,16 @@ export function validateDeviceAdapterContractInstance(
   if (!VALID_PERMISSION_ENVELOPES.includes(instance.trust?.permissionEnvelope)) {
     errors.push(`Invalid permissionEnvelope: ${instance.trust?.permissionEnvelope}`);
   }
-  if (instance.trust?.outboundMutation === 'guarded' && instance.trust.permissionEnvelope === 'read_only') {
+  if (
+    instance.trust?.outboundMutation === 'guarded' &&
+    instance.trust.permissionEnvelope === 'read_only'
+  ) {
     errors.push('Guarded outbound mutation cannot use read_only permission');
   }
-  if (instance.trust?.outboundMutation === 'break_glass' && instance.trust.permissionEnvelope !== 'break_glass') {
+  if (
+    instance.trust?.outboundMutation === 'break_glass' &&
+    instance.trust.permissionEnvelope !== 'break_glass'
+  ) {
     errors.push('Break-glass outbound mutation must use break_glass permission');
   }
   if (

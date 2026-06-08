@@ -277,13 +277,7 @@ export class BrowserQuiltRenderer implements QuiltRenderer {
  */
 const PARALLAX_K = 4.0;
 
-const cpuRasterizeTile: TileRasterizer = ({
-  tile,
-  tileWidth,
-  tileHeight,
-  depthMap,
-  source,
-}) => {
+const cpuRasterizeTile: TileRasterizer = ({ tile, tileWidth, tileHeight, depthMap, source }) => {
   const out = new Uint8Array(tileWidth * tileHeight * 4);
   const srcW = source.width;
   const srcH = source.height;
@@ -408,7 +402,11 @@ function makeGpuRasterizer(): TileRasterizer {
       // Uint8Array as Uint8Array<ArrayBufferLike> while THREE.DataTexture's
       // first parameter is the older BufferSource shape.
       const tex = new THREE.DataTexture(
-        new Uint8Array(source.data.buffer, source.data.byteOffset, source.data.byteLength) as unknown as BufferSource,
+        new Uint8Array(
+          source.data.buffer,
+          source.data.byteOffset,
+          source.data.byteLength
+        ) as unknown as BufferSource,
         source.width,
         source.height,
         THREE.RGBAFormat,
@@ -449,7 +447,7 @@ function makeGpuRasterizer(): TileRasterizer {
     renderer.render(scene, camera);
 
     // Read back via getContext('webgl2') readPixels — synchronous.
-    const gl = (renderer.getContext() as unknown) as WebGL2RenderingContext;
+    const gl = renderer.getContext() as unknown as WebGL2RenderingContext;
     const pixels = new Uint8Array(tileWidth * tileHeight * 4);
     gl.readPixels(0, 0, tileWidth, tileHeight, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
 

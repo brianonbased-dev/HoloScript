@@ -30,7 +30,7 @@ describe('HoloLand adversarial trajectory buffer', () => {
       'invalidity',
     ]);
     expect(new Set(report.trajectories.map((trajectory) => trajectory.id)).size).toBe(
-      report.trajectories.length,
+      report.trajectories.length
     );
     expect(report.summary.solved).toBeGreaterThan(0);
     expect(report.summary.unresolved).toBeGreaterThan(0);
@@ -44,7 +44,7 @@ describe('HoloLand adversarial trajectory buffer', () => {
       generatedAt: FIXED_NOW,
     });
     const events = report.trajectories.flatMap((trajectory) =>
-      trajectory.observationTrace.flatMap((observation) => observation.eventLog),
+      trajectory.observationTrace.flatMap((observation) => observation.eventLog)
     );
 
     expect(events.some((event) => event.type === 'placement')).toBe(true);
@@ -92,7 +92,7 @@ describe('HoloLand adversarial trajectory buffer', () => {
 
     expect(right.reportHash).toBe(left.reportHash);
     expect(right.trajectories.map((trajectory) => trajectory.replay.caelReceiptHash)).toEqual(
-      left.trajectories.map((trajectory) => trajectory.replay.caelReceiptHash),
+      left.trajectories.map((trajectory) => trajectory.replay.caelReceiptHash)
     );
   });
 });

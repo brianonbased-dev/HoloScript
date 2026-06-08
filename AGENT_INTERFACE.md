@@ -8,12 +8,13 @@ Per-LLM behavior lives in each agent's own config. This file covers what's ident
 Team **HoloScript Core** (`team_1775935947314_f0noxi`).
 Principal: **Josep (brianonbased-dev)** — Founder. All operations authorized.
 Agents:
+
 - **Claude (Antigravity)**: Strategic architecture & implementation (IDE).
 - **Claude Code (CLI)**: Primary orchestration, file operations, and Git lifecycle.
 - **Gemini**: Research, synthesis, and visual audits.
 - **GPT-4o (Builder)**: Scaffolding, boilerplate, and routine features.
 - **Codex**: Hardware-native execution, local validation, and performance anchor.
-Wallet: `0xc277ecc96b4fef62c0d00133c6dd95c40c16700d`
+  Wallet: `0xc277ecc96b4fef62c0d00133c6dd95c40c16700d`
 
 ## Credentials
 
@@ -23,24 +24,24 @@ ENV_FILE="C:/Users/Josep/.ai-ecosystem/.env"
 set -a && source "$ENV_FILE" 2>/dev/null && set +a
 ```
 
-| Key | Scope | In shell? |
-|-----|-------|-----------|
-| `HOLOSCRIPT_API_KEY` | Orchestrator + HoloScript MCP | Yes |
-| `ABSORB_API_KEY` | Absorb service (admin tier) | Yes |
-| `HOLOMESH_API_KEY` | Team board, knowledge, messages | No — source .env |
-| `HOLOMESH_TEAM_ID` | `team_bfe0bd952f327631` | No — source .env |
-| `ANTHROPIC_API_KEY` | LLM calls | No — source .env |
-| `GITHUB_TOKEN` | GitHub API | No — source .env |
+| Key                  | Scope                           | In shell?        |
+| -------------------- | ------------------------------- | ---------------- |
+| `HOLOSCRIPT_API_KEY` | Orchestrator + HoloScript MCP   | Yes              |
+| `ABSORB_API_KEY`     | Absorb service (admin tier)     | Yes              |
+| `HOLOMESH_API_KEY`   | Team board, knowledge, messages | No — source .env |
+| `HOLOMESH_TEAM_ID`   | `team_bfe0bd952f327631`         | No — source .env |
+| `ANTHROPIC_API_KEY`  | LLM calls                       | No — source .env |
+| `GITHUB_TOKEN`       | GitHub API                      | No — source .env |
 
 ## Services
 
-| Service | URL | Auth | Transport |
-|---------|-----|------|-----------|
-| HoloScript MCP | `mcp.holoscript.net` | `HOLOSCRIPT_API_KEY` | MCP JSON-RPC over `POST /mcp` (verified 2026-04-26: returns 401 without bearer, parses with one). Tool count via `GET /health` (live). |
-| Absorb | `absorb.holoscript.net` | `ABSORB_API_KEY` | **PARTIAL 2026-04-26 (RETRACTION)** — live is stale v6.0.0 (5+ FAILED deploys today, task_1777164270247_5m8f) but REST routes ARE mounted. Verified 22:35 UTC: `/api/absorb/graphs` → 200, `/api/pipeline` → 200, `/api/holodaemon` → 200, `/api/admin/*` → 403 (anonymous bearer), `/api/absorb/{projects,moltbook}` + `/api/credits/balance` → 500 (DB anonymous-user bug). MCP `GET /mcp` → 200 SSE upgrade; POST returns HTML 404 (SSE-only). Prior "REST entirely 404'd" was WRONG — audit tested `/api/projects` instead of `/api/absorb/projects`. |
-| Orchestrator | `mcp-orchestrator-production-45f9.up.railway.app` | `HOLOSCRIPT_API_KEY` | MCP + REST (servers, tools, knowledge query/sync, tools/call bridge). |
-| HoloMesh API | `mcp.holoscript.net/api/holomesh` | `HOLOMESH_API_KEY` | REST |
-| Studio | `studio-production-a071.up.railway.app` | none | Web |
+| Service        | URL                                               | Auth                 | Transport                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------- | ------------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HoloScript MCP | `mcp.holoscript.net`                              | `HOLOSCRIPT_API_KEY` | MCP JSON-RPC over `POST /mcp` (verified 2026-04-26: returns 401 without bearer, parses with one). Tool count via `GET /health` (live).                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Absorb         | `absorb.holoscript.net`                           | `ABSORB_API_KEY`     | **PARTIAL 2026-04-26 (RETRACTION)** — live is stale v6.0.0 (5+ FAILED deploys today, task_1777164270247_5m8f) but REST routes ARE mounted. Verified 22:35 UTC: `/api/absorb/graphs` → 200, `/api/pipeline` → 200, `/api/holodaemon` → 200, `/api/admin/*` → 403 (anonymous bearer), `/api/absorb/{projects,moltbook}` + `/api/credits/balance` → 500 (DB anonymous-user bug). MCP `GET /mcp` → 200 SSE upgrade; POST returns HTML 404 (SSE-only). Prior "REST entirely 404'd" was WRONG — audit tested `/api/projects` instead of `/api/absorb/projects`. |
+| Orchestrator   | `mcp-orchestrator-production-45f9.up.railway.app` | `HOLOSCRIPT_API_KEY` | MCP + REST (servers, tools, knowledge query/sync, tools/call bridge).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| HoloMesh API   | `mcp.holoscript.net/api/holomesh`                 | `HOLOMESH_API_KEY`   | REST                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Studio         | `studio-production-a071.up.railway.app`           | none                 | Web                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 **Doc-drift note (2026-04-26 audit)**: prior table claimed "Absorb: REST only" and "Orchestrator: REST" — both backwards. See `task_1777164270247_7ee8` for the absorb-specific drift fix; same gap also corrected in HoloScript/CLAUDE.md "Absorb Service" § + ai-ecosystem/CLAUDE.md services table + ~/.claude/CLAUDE.md.
 
@@ -62,7 +63,7 @@ When a user message **names exactly one** board id matching `task_\d+_[a-z0-9]+`
 
 1. **Claim only that `task_id`.** Do not claim or mark `done` on other tasks in the same pass without an explicit new user instruction listing those ids.
 2. **Do not expand scope** into batch sweeps (multi-paper refactors, repo-wide measuredFrom passes, N unrelated commits) unless the **task description** itself requires that breadth.
-3. **Before the first `git commit` on that task**, state a one-line scope check in the handoff or PR body: *Working only `task_…` as written; no batch sweep.*
+3. **Before the first `git commit` on that task**, state a one-line scope check in the handoff or PR body: _Working only `task_…` as written; no batch sweep._
 
 Full marathon / autonomous room behavior (claim → work → `done` → next open task) stays valid when the user asks for it explicitly. See `~/.cursor/skills/room-autonomous/SKILL.md` for the operator loop; this section is the **anti–over-execution** guard (text + process, task_1777252987113_ep4e).
 
@@ -115,32 +116,33 @@ Before **strategic** (architecture / scope) calls, follow **[Precedent-query-fir
 
 Before editing TypeScript, query the codebase:
 
-| Tool / Endpoint | Purpose |
-|-----------------|---------|
-| `holo_graph_status` | Check graph cache freshness |
-| `holo_absorb_repo` | Scan codebase (use cache if fresh) |
-| `holo_query_codebase` | Callers, callees, imports, symbols |
-| `holo_impact_analysis` | Blast radius for a change |
-| `holo_ask_codebase` | Natural language Q&A (needs Ollama) |
+| Tool / Endpoint        | Purpose                             |
+| ---------------------- | ----------------------------------- |
+| `holo_graph_status`    | Check graph cache freshness         |
+| `holo_absorb_repo`     | Scan codebase (use cache if fresh)  |
+| `holo_query_codebase`  | Callers, callees, imports, symbols  |
+| `holo_impact_analysis` | Blast radius for a change           |
+| `holo_ask_codebase`    | Natural language Q&A (needs Ollama) |
 
 REST fallback: `POST https://absorb.holoscript.net/api/query` with Bearer `$ABSORB_API_KEY`.
 
 ## Team Protocol
 
-| Action | MCP Tool | REST Fallback |
-|--------|----------|---------------|
-| Heartbeat | `holomesh_heartbeat` | `POST .../team/:id/presence` |
-| Board | `holomesh_board_list` | `GET .../team/:id/board` |
-| Claim task | `holomesh_board_claim` | `PATCH .../team/:id/board/:taskId` |
-| Complete | `holomesh_board_complete` | `PATCH .../team/:id/board/:taskId` |
-| Contribute knowledge | `holomesh_contribute` | `POST .../team/:id/knowledge` |
-| Send message | `holomesh_send_message` | `POST .../team/:id/messages` |
-| Suggestions | `holomesh_suggest` | `POST .../team/:id/suggestions` |
-| SSE room | — | `GET .../team/:id/room/live` |
+| Action               | MCP Tool                  | REST Fallback                      |
+| -------------------- | ------------------------- | ---------------------------------- |
+| Heartbeat            | `holomesh_heartbeat`      | `POST .../team/:id/presence`       |
+| Board                | `holomesh_board_list`     | `GET .../team/:id/board`           |
+| Claim task           | `holomesh_board_claim`    | `PATCH .../team/:id/board/:taskId` |
+| Complete             | `holomesh_board_complete` | `PATCH .../team/:id/board/:taskId` |
+| Contribute knowledge | `holomesh_contribute`     | `POST .../team/:id/knowledge`      |
+| Send message         | `holomesh_send_message`   | `POST .../team/:id/messages`       |
+| Suggestions          | `holomesh_suggest`        | `POST .../team/:id/suggestions`    |
+| SSE room             | —                         | `GET .../team/:id/room/live`       |
 
 ## Session Handoff Contract (all agents)
 
 Every agent MUST post a handoff message on session end containing:
+
 1. **Completed:** What you did (commit hashes if applicable)
 2. **Unfinished:** What's left and why (blocked? context limit? needs research?)
 3. **Next agent:** Who should pick this up and what they should do first
@@ -153,15 +155,15 @@ Script: `node C:/Users/Josep/.ai-ecosystem/hooks/team-connect.mjs --report --nam
 
 Time is of the utmost importance in HoloScript. Slowness reads as broken in spatial and agent loops—even when correctness holds. All contributions must adhere to the **NORTH_STAR §5 Performance Thresholds**.
 
-| Operation | Target Budget |
-|-----------|---------------|
-| MCP tool call | < 2s |
-| Graph absorb (incremental) | < 100ms |
-| Compilation (single file) | < 50ms |
-| VR frame budget (90Hz) | < 11.1ms |
-| Safety classifier (CC++) | < 40ms |
+| Operation                  | Target Budget |
+| -------------------------- | ------------- |
+| MCP tool call              | < 2s          |
+| Graph absorb (incremental) | < 100ms       |
+| Compilation (single file)  | < 50ms        |
+| VR frame budget (90Hz)     | < 11.1ms      |
+| Safety classifier (CC++)   | < 40ms        |
 
-*See `NORTH_STAR.md` §5 for full thresholds and remediation paths. Anchor product UX to these rows before adding features.*
+_See `NORTH_STAR.md` §5 for full thresholds and remediation paths. Anchor product UX to these rows before adding features._
 
 ## Coding Standards
 

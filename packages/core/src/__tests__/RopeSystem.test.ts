@@ -90,12 +90,7 @@ describe('RopeSystem', () => {
   });
 
   it('constraint solving maintains segment length', () => {
-    rs.createRope(
-      'r1',
-      [0, 0, 0],
-      [10, 0, 0],
-      { segmentCount: 4, iterations: 20, elasticity: 1 }
-    );
+    rs.createRope('r1', [0, 0, 0], [10, 0, 0], { segmentCount: 4, iterations: 20, elasticity: 1 });
     rs.pinNode('r1', 0);
     rs.pinNode('r1', 4);
     // Run several physics steps

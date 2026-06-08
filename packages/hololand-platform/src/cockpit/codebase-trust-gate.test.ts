@@ -32,9 +32,14 @@ describe('CodebaseTrustGate', () => {
   });
 
   it('returns unverified for low trust or no receipts', () => {
-    const result = renderCodebaseTrustGate({ ...baseProps, trustScore: 30, receiptCount: 0, jepaVerified: false });
+    const result = renderCodebaseTrustGate({
+      ...baseProps,
+      trustScore: 30,
+      receiptCount: 0,
+      jepaVerified: false,
+    });
     expect(result.status).toBe('unverified');
-    expect(result.actions.some(a => a.includes('Generate SimulationContract'))).toBe(true);
+    expect(result.actions.some((a) => a.includes('Generate SimulationContract'))).toBe(true);
   });
 
   it('includes deep link to D.055 public surface for the world', () => {

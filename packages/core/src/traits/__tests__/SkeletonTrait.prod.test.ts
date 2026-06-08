@@ -14,8 +14,8 @@ import type { BoneDefinition, AnimationClip, AnimationEvent } from '../SkeletonT
 
 const BIND_POSE = {
   position: [0, 0, 0],
-  rotation: [0, 0, 0, 1 ],
-  scale: [1, 1, 1 ],
+  rotation: [0, 0, 0, 1],
+  scale: [1, 1, 1],
 };
 
 function makeBone(name: string, parent?: string): BoneDefinition {
@@ -72,14 +72,14 @@ describe('SkeletonTrait — bones', () => {
   it('getBoneTransform returns bind pose initially', () => {
     const sk = new SkeletonTrait({ bones: [makeBone('head')] });
     const t = sk.getBoneTransform('head')!;
-    expect(t.position).toEqual([0, 0, 0 ]);
+    expect(t.position).toEqual([0, 0, 0]);
     expect(t.rotation[3]).toBe(1);
   });
 
   it('setBoneTransform updates position', () => {
     const sk = new SkeletonTrait({ bones: [makeBone('arm')] });
     sk.setBoneTransform('arm', { position: [1, 2, 3] });
-    expect(sk.getBoneTransform('arm')?.position).toEqual([1, 2, 3 ]);
+    expect(sk.getBoneTransform('arm')?.position).toEqual([1, 2, 3]);
   });
 
   it('setBoneTransform on unknown bone is a no-op', () => {

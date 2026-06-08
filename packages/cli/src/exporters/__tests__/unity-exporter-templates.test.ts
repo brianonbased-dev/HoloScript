@@ -9,8 +9,9 @@ describe('Unity Exporter Templates', () => {
     const src = fs.readFileSync(exporterFile, 'utf-8');
 
     // Matches any function generateHolo*(): string { return `...`; }
-    const regex = /function\s+generateHolo[A-Za-z]+\(\)\s*:\s*string\s*\{[\s\S]*?return\s*`([\s\S]*?)`;/g;
-    
+    const regex =
+      /function\s+generateHolo[A-Za-z]+\(\)\s*:\s*string\s*\{[\s\S]*?return\s*`([\s\S]*?)`;/g;
+
     let match;
     let checkedCount = 0;
     const errors: string[] = [];
@@ -18,7 +19,7 @@ describe('Unity Exporter Templates', () => {
     while ((match = regex.exec(src)) !== null) {
       checkedCount++;
       const content = match[1];
-      
+
       let depth = 0;
       let failed = false;
       for (let i = 0; i < content.length; i++) {
@@ -30,7 +31,7 @@ describe('Unity Exporter Templates', () => {
           break;
         }
       }
-      
+
       if (!failed && depth > 0) {
         errors.push(`Mismatched braces (missing '}') in template. Depth at end: ${depth}`);
       }

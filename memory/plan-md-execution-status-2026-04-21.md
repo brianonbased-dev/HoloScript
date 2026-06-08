@@ -9,12 +9,12 @@ There is **no** repository-root `plan.md`. Planning and execution tracking are *
 
 ## Where planning actually lives
 
-| Kind | Location | Role |
-|------|----------|------|
+| Kind                      | Location                                                                                          | Role                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Sprint / track blueprints | `docs/planning/` (`SPRINT_*_PLAN.md`, `TRACK_*_PLAN.md`, `V1_V5_REFINEMENT_MASTER_PLAN.md`, etc.) | Time-bounded or track-scoped intent; many items are **historical** unless the doc was explicitly refreshed. |
-| Competitive ops | `docs/strategy/competitive-monitoring-plan.md` | **Ongoing cadence** (weekly/monthly/quarterly); not a document that “finishes.” |
-| Strategy snapshots | `docs/strategy/*.md` | Positioning, battle cards, marketplace notes. |
-| Operational truth | `CHANGELOG.md`, HoloMesh team board, `docs/NUMBERS.md` discipline | What shipped vs what is still open. |
+| Competitive ops           | `docs/strategy/competitive-monitoring-plan.md`                                                    | **Ongoing cadence** (weekly/monthly/quarterly); not a document that “finishes.”                             |
+| Strategy snapshots        | `docs/strategy/*.md`                                                                              | Positioning, battle cards, marketplace notes.                                                               |
+| Operational truth         | `CHANGELOG.md`, HoloMesh team board, `docs/NUMBERS.md` discipline                                 | What shipped vs what is still open.                                                                         |
 
 ## Snapshot checks (spot-verified)
 
@@ -28,4 +28,4 @@ There is **no** repository-root `plan.md`. Planning and execution tracking are *
 
 ## Optional follow-up (not required to close this task)
 
-- Add a one-line pointer in `AGENTS.md` or `README.md` — *only if* the team wants to stop repeated audits hunting for `plan.md`. (Omitted from this commit to avoid doc churn unless requested.)
+- Add a one-line pointer in `AGENTS.md` or `README.md` — _only if_ the team wants to stop repeated audits hunting for `plan.md`. (Omitted from this commit to avoid doc churn unless requested.)

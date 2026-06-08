@@ -83,7 +83,10 @@ export abstract class BaseDeployer extends EventEmitter {
   /** Injectable exec for testing — set directly on the instance to override the default */
   public _execAsync: (cmd: string, opts?: { timeout?: number }) => Promise<unknown>;
 
-  constructor(name: string, execFn?: (cmd: string, opts?: { timeout?: number }) => Promise<unknown>) {
+  constructor(
+    name: string,
+    execFn?: (cmd: string, opts?: { timeout?: number }) => Promise<unknown>
+  ) {
     super();
     this.name = name;
     this._execAsync = execFn ?? execAsync;

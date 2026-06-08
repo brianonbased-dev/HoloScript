@@ -55,12 +55,12 @@ Recommended pattern (lightweight, no heavy ROS deps in core):
 
 Example mapping:
 
-| ROS 2 Topic          | HoloScript Trait / Event          | Notes |
-|----------------------|-----------------------------------|-------|
-| `/joint_states`      | `joint_state_update` trait        | Drives animation + physics |
-| `/scan` / `/lidar`   | `lidar_pointcloud` (point trait)  | Perception input for JEPA |
-| `/tf` + `/odom`      | `pose_update` + `odometry`        | Ground-truth for receipts |
-| `/cmd_vel`           | `intent_velocity` (action)        | For HoloLand NPC control |
+| ROS 2 Topic        | HoloScript Trait / Event         | Notes                      |
+| ------------------ | -------------------------------- | -------------------------- |
+| `/joint_states`    | `joint_state_update` trait       | Drives animation + physics |
+| `/scan` / `/lidar` | `lidar_pointcloud` (point trait) | Perception input for JEPA  |
+| `/tf` + `/odom`    | `pose_update` + `odometry`       | Ground-truth for receipts  |
+| `/cmd_vel`         | `intent_velocity` (action)       | For HoloLand NPC control   |
 
 The bridge can be a thin ROS 2 package that calls the HoloScript MCP `compile_to_*` or writes `.holo` fragments with embedded receipts.
 
@@ -158,6 +158,7 @@ single deployable bundle:
 ```
 
 Returns:
+
 ```json
 {
   "urdf": "...",
@@ -169,6 +170,7 @@ Returns:
 ```
 
 Save each field to the corresponding file in your ROS 2 package and run:
+
 ```bash
 ros2 launch my_robot robot.launch.py
 ```
@@ -185,6 +187,7 @@ spawn, and optional RViz — all generated from the `.holo` composition.
 ---
 
 **Verification for this artifact**:
+
 - Written from the live NMoS table + robotics-plugin sources + SimulationContract/JEPA stack.
 - Follows the exact "produce one integration guide / adapter per vertical" mandate.
 - First concrete D.007 BRIDGE execution after the D.055 door.

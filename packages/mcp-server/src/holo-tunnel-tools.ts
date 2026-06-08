@@ -42,15 +42,18 @@ interface HoloTunnelToolHandle {
 // ---------------------------------------------------------------------------
 // In-process tunnel registry (MCP is single-process per server instance)
 // ---------------------------------------------------------------------------
-const activeTunnels = new Map<string, {
-  url: string;
-  liveUrl: string;
-  relayBase: string;
-  port: number;
-  localHost: string;
-  sharePacket: HoloTunnelSharePacket;
-  close: () => void;
-}>();
+const activeTunnels = new Map<
+  string,
+  {
+    url: string;
+    liveUrl: string;
+    relayBase: string;
+    port: number;
+    localHost: string;
+    sharePacket: HoloTunnelSharePacket;
+    close: () => void;
+  }
+>();
 
 // Lazy-import startHoloTunnel so the server doesn't fail if the dependency
 // is tree-shaken or the module is unavailable in the current build.
@@ -65,7 +68,7 @@ async function getStartHoloTunnel() {
 }
 
 export function __setStartHoloTunnelForTests(
-  fn: typeof import('@holoscript/hololand-platform').startHoloTunnel | null,
+  fn: typeof import('@holoscript/hololand-platform').startHoloTunnel | null
 ): void {
   startHoloTunnelFn = fn;
 }
@@ -172,7 +175,7 @@ function optionalString(args: Record<string, unknown>, key: string): string | un
 // ---------------------------------------------------------------------------
 export async function handleHoloTunnelTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   switch (name) {
     case 'holo_tunnel_create': {
@@ -201,7 +204,7 @@ export async function handleHoloTunnelTool(
         const sourceRef = optionalString(args, 'sourceRef');
         const createdBy = optionalString(args, 'createdBy');
         const expiresAt = optionalString(args, 'expiresAt');
-        const result = await startHoloTunnel({
+        const result = (await startHoloTunnel({
           localPort: port,
           ...(relayBase ? { relayBase } : {}),
           localHost,
@@ -209,11 +212,14 @@ export async function handleHoloTunnelTool(
           ...(worldId ? { worldId } : {}),
           ...(sessionName ? { sessionName } : {}),
           ...(sourceRef ? { sourceRef } : {}),
-          ...(createdBy === 'studio' || createdBy === 'agent' || createdBy === 'cli' || createdBy === 'holoscript'
+          ...(createdBy === 'studio' ||
+          createdBy === 'agent' ||
+          createdBy === 'cli' ||
+          createdBy === 'holoscript'
             ? { createdBy }
             : { createdBy: 'agent' as const }),
           ...(expiresAt ? { expiresAt } : {}),
-        } as unknown as Parameters<typeof startHoloTunnel>[0]) as HoloTunnelToolHandle;
+        } as unknown as Parameters<typeof startHoloTunnel>[0])) as HoloTunnelToolHandle;
 
         // Register the tunnel so it can be closed later
         activeTunnels.set(result.tunnelId, {

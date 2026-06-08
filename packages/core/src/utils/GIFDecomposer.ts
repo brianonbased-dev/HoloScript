@@ -223,9 +223,17 @@ class GifByteParser {
         const imageData = this.readSubBlocks();
 
         frames.push({
-          x, y, width: fw, height: fh,
-          delay, disposalMethod, hasTransparency, transparentIndex,
-          interlaced, localColorTable, imageData,
+          x,
+          y,
+          width: fw,
+          height: fh,
+          delay,
+          disposalMethod,
+          hasTransparency,
+          transparentIndex,
+          interlaced,
+          localColorTable,
+          imageData,
         });
 
         // Reset per-frame GCE state
@@ -252,7 +260,7 @@ class GifByteParser {
  */
 async function compositeFrames(
   raw: ReturnType<GifByteParser['parse']>,
-  originalData: Uint8Array,
+  originalData: Uint8Array
 ): Promise<GifFrame[]> {
   const { header, frames: rawFrames } = raw;
   const { width, height } = header;
@@ -351,7 +359,7 @@ function buildSingleFrameGif(
   original: Uint8Array,
   frameIndex: number,
   header: GifHeader,
-  frames: RawGifFrame[],
+  frames: RawGifFrame[]
 ): Uint8Array {
   // Strategy: scan the original byte stream, locate the Nth image descriptor,
   // and extract from there to the next image descriptor (or trailer).
@@ -365,7 +373,7 @@ function buildSingleFrameGif(
   const lsdPacked = original[pos + 4];
   const hasGlobal = (lsdPacked >> 7) & 1;
   const globalSize = lsdPacked & 0x07;
-  const lsdEnd = pos + 7 + (hasGlobal ? 3 * (2 ** (globalSize + 1)) : 0);
+  const lsdEnd = pos + 7 + (hasGlobal ? 3 * 2 ** (globalSize + 1) : 0);
   const headerBytes = original.slice(0, lsdEnd);
 
   pos = lsdEnd;
@@ -384,7 +392,7 @@ function buildSingleFrameGif(
       pos += 10; // image descriptor is 10 bytes
       const idp = original[currentFrameStart + 9];
       if ((idp >> 7) & 1) {
-        pos += 3 * (2 ** ((idp & 0x07) + 1));
+        pos += 3 * 2 ** ((idp & 0x07) + 1);
       }
       pos++; // LZW min code size
       let sb: number;
@@ -445,7 +453,7 @@ export interface GifDecomposeOptions {
  */
 export async function decomposeGif(
   source: string | Blob,
-  options: GifDecomposeOptions = {},
+  options: GifDecomposeOptions = {}
 ): Promise<GifDecomposition> {
   // Fetch raw bytes
   let data: Uint8Array;

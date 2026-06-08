@@ -243,19 +243,16 @@ export function MigrationWizard({
   }, []);
 
   // Step 1 → prepare
-  const handleStep1Continue = useCallback(
-    async (twofaToken: string | undefined) => {
-      // We actually collect the password in Step 2, so we defer the
-      // prepare call until then. Step 1 just moves us to the password
-      // step via local state — we don't call prepare yet.
-      // But to keep the state machine clean (idle → preparing → prepared),
-      // we stash the 2FA token in a ref and let Step 2's onContinue drive
-      // the real prepare call.
-      step1DataRef.current = { twofaToken };
-      step1AdvanceToPassword();
-    },
-    []
-  );
+  const handleStep1Continue = useCallback(async (twofaToken: string | undefined) => {
+    // We actually collect the password in Step 2, so we defer the
+    // prepare call until then. Step 1 just moves us to the password
+    // step via local state — we don't call prepare yet.
+    // But to keep the state machine clean (idle → preparing → prepared),
+    // we stash the 2FA token in a ref and let Step 2's onContinue drive
+    // the real prepare call.
+    step1DataRef.current = { twofaToken };
+    step1AdvanceToPassword();
+  }, []);
 
   // We need an intermediate "collecting password" view that sits between
   // idle and preparing. Rather than add a new state, we use a ref + local
@@ -305,9 +302,7 @@ export function MigrationWizard({
       // custodial-signer export path to ship first.
       const recoveryBytes = new Uint8Array(32);
       crypto.getRandomValues(recoveryBytes);
-      const recoveryBytesB64 = btoa(
-        String.fromCharCode(...Array.from(recoveryBytes))
-      );
+      const recoveryBytesB64 = btoa(String.fromCharCode(...Array.from(recoveryBytes)));
 
       const pkgRes = await packageExport({
         bearerToken,
@@ -559,10 +554,7 @@ export function MigrationWizard({
   );
 }
 
-function stateToProgressIndex(
-  state: WizardState,
-  collectingPassword: boolean
-): number {
+function stateToProgressIndex(state: WizardState, collectingPassword: boolean): number {
   switch (state.kind) {
     case 'idle':
       return collectingPassword ? 2 : 1;
@@ -586,14 +578,7 @@ function stateToProgressIndex(
 }
 
 function ProgressIndicator({ current }: { current: number }) {
-  const steps = [
-    '2FA',
-    'Password',
-    'Package',
-    'Confirm',
-    'Ownership',
-    'Done',
-  ];
+  const steps = ['2FA', 'Password', 'Package', 'Confirm', 'Ownership', 'Done'];
   return (
     <div
       style={{

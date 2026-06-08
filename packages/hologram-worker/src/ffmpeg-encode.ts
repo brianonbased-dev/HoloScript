@@ -13,7 +13,7 @@ function tmp(suffix: string): string {
 export async function encodeStereoMp4(
   leftPng: Buffer,
   rightPng: Buffer,
-  fps: number,
+  fps: number
 ): Promise<Uint8Array> {
   const left = tmp('-L.png');
   const right = tmp('-R.png');
@@ -74,7 +74,20 @@ export async function encodeParallaxWebm(previewPng: Buffer): Promise<Uint8Array
   const png = tmp('-p.png');
   const out = tmp('.webm');
   await fs.writeFile(png, previewPng);
-  const args = ['-y', '-loop', '1', '-i', png, '-t', '2', '-c:v', 'libvpx-vp9', '-b:v', '500k', out];
+  const args = [
+    '-y',
+    '-loop',
+    '1',
+    '-i',
+    png,
+    '-t',
+    '2',
+    '-c:v',
+    'libvpx-vp9',
+    '-b:v',
+    '500k',
+    out,
+  ];
   await new Promise<void>((resolvePromise, rejectPromise) => {
     const proc = spawn(ffmpegInstaller.path, args, { stdio: ['ignore', 'ignore', 'pipe'] });
     let stderr = '';

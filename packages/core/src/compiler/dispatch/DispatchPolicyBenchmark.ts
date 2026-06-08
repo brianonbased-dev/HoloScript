@@ -152,7 +152,9 @@ export async function runDispatchPolicyLatencyBenchmark(
 
     const samples: DispatchLatencySample[] = [];
     for (let i = 0; i < iterations; i += 1) {
-      samples.push(await measureDispatchSample(policy, scenario, scenarioOperation, i, options.now));
+      samples.push(
+        await measureDispatchSample(policy, scenario, scenarioOperation, i, options.now)
+      );
     }
 
     summaries.push(summarizeDispatchSamples(scenario, samples));
@@ -170,8 +172,12 @@ export async function runDispatchPolicyLatencyBenchmark(
 export function recommendDispatchPolicyDefaults(
   summaries: DispatchLatencySummary[]
 ): DispatchTierDefaultRecommendation {
-  const tier2 = summaries.find((summary) => summary.requestedTier === DispatchTier.TIER_2_SPECULATIVE);
-  const tier3 = summaries.find((summary) => summary.requestedTier === DispatchTier.TIER_3_CPU_DIRECT);
+  const tier2 = summaries.find(
+    (summary) => summary.requestedTier === DispatchTier.TIER_2_SPECULATIVE
+  );
+  const tier3 = summaries.find(
+    (summary) => summary.requestedTier === DispatchTier.TIER_3_CPU_DIRECT
+  );
 
   if (!tier2) {
     return {
@@ -192,7 +198,8 @@ export function recommendDispatchPolicyDefaults(
   if (!tier2Comparable || !tier3Comparable) {
     return {
       tier2DefaultEnabled: false,
-      reason: 'Tier 2 or Tier 3 did not accept benchmark samples; keep speculative dispatch disabled by default.',
+      reason:
+        'Tier 2 or Tier 3 did not accept benchmark samples; keep speculative dispatch disabled by default.',
       tier2MeanLatencyMs: tier2.meanLatencyMs,
       tier3MeanLatencyMs: tier3.meanLatencyMs,
       tier2P95LatencyMs: tier2.p95LatencyMs,

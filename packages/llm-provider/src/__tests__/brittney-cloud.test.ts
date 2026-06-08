@@ -352,7 +352,11 @@ describe('createBrittneyCloudProvider()', () => {
   const origEnv = process.env;
 
   beforeEach(() => {
-    process.env = { ...origEnv, BRITTNEY_SERVICE_URL: 'http://brittney.test:8000', BRITTNEY_API_KEY: 'secret' };
+    process.env = {
+      ...origEnv,
+      BRITTNEY_SERVICE_URL: 'http://brittney.test:8000',
+      BRITTNEY_API_KEY: 'secret',
+    };
   });
 
   afterEach(() => {

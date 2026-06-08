@@ -31,10 +31,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..');
 
 // The ledger SSOT files this guard protects. Add new gold-game text SSOT here.
-const GUARDED = [
-  'examples/gold-game/GATES.md',
-  'examples/gold-game/verify-all.mjs',
-];
+const GUARDED = ['examples/gold-game/GATES.md', 'examples/gold-game/verify-all.mjs'];
 
 let failed = 0;
 
@@ -49,7 +46,9 @@ for (const rel of GUARDED) {
 
   // 1. BOM check (raw bytes).
   if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
-    console.error(`${rel}:1:1: UTF-8 BOM (EF BB BF) found -- strip it; the ledger must be BOM-free.`);
+    console.error(
+      `${rel}:1:1: UTF-8 BOM (EF BB BF) found -- strip it; the ledger must be BOM-free.`
+    );
     failed = 1;
   }
 
@@ -60,7 +59,11 @@ for (const rel of GUARDED) {
   const offenders = [];
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
-    if (code === 0x0a) { line++; col = 0; continue; }
+    if (code === 0x0a) {
+      line++;
+      col = 0;
+      continue;
+    }
     col++;
     if (code === 0x0d) {
       offenders.push({ line, col, kind: 'CR (CRLF line ending)', ch: '\\r' });
@@ -82,16 +85,24 @@ for (const rel of GUARDED) {
       console.error(`${rel}:${o.line}:${o.col}: ${o.kind} ${o.ch}`);
     }
     if (offenders.length > shown.length) {
-      console.error(`${rel}: ... and ${offenders.length - shown.length} more (${offenders.length} total)`);
+      console.error(
+        `${rel}: ... and ${offenders.length - shown.length} more (${offenders.length} total)`
+      );
     }
   }
 }
 
 if (failed) {
   console.error('');
-  console.error('[gold-game-encoding] FAIL -- the GOLD-game ledger SSOT must stay BOM-free, pure ASCII, LF.');
-  console.error('  This usually means a toolchain re-encoded the files to mojibake (W: peer codex branch, 2026-05-29).');
-  console.error('  Fix: re-normalize, e.g. strip BOM + transliterate non-ASCII punctuation back to ASCII,');
+  console.error(
+    '[gold-game-encoding] FAIL -- the GOLD-game ledger SSOT must stay BOM-free, pure ASCII, LF.'
+  );
+  console.error(
+    '  This usually means a toolchain re-encoded the files to mojibake (W: peer codex branch, 2026-05-29).'
+  );
+  console.error(
+    '  Fix: re-normalize, e.g. strip BOM + transliterate non-ASCII punctuation back to ASCII,'
+  );
   console.error('  keep ONLY the real semantic change, then re-stage.');
   process.exit(1);
 }

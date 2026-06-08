@@ -45,11 +45,21 @@ export class TileMap {
     this.tileSize = tileSize;
   }
 
-  getWidth(): number { return this.width; }
-  getHeight(): number { return this.height; }
-  getTileSize(): number { return this.tileSize; }
-  getLayerCount(): number { return this.layers.size; }
-  getLayerNames(): string[] { return Array.from(this.layers.keys()); }
+  getWidth(): number {
+    return this.width;
+  }
+  getHeight(): number {
+    return this.height;
+  }
+  getTileSize(): number {
+    return this.tileSize;
+  }
+  getLayerCount(): number {
+    return this.layers.size;
+  }
+  getLayerNames(): string[] {
+    return Array.from(this.layers.keys());
+  }
 
   addLayer(name: string): void {
     if (!this.layers.has(name)) {
@@ -111,14 +121,14 @@ export class TileMap {
     if (!data) return 0;
 
     const DIRS: Array<[number, number]> = [
-      [0, -1],  // N
-      [1, -1],  // NE
-      [1,  0],  // E
-      [1,  1],  // SE
-      [0,  1],  // S
-      [-1, 1],  // SW
-      [-1, 0],  // W
-      [-1,-1],  // NW
+      [0, -1], // N
+      [1, -1], // NE
+      [1, 0], // E
+      [1, 1], // SE
+      [0, 1], // S
+      [-1, 1], // SW
+      [-1, 0], // W
+      [-1, -1], // NW
     ];
 
     let updated = 0;
@@ -133,7 +143,7 @@ export class TileMap {
         const [dx, dy] = DIRS[bit];
         const neighbor = data.get(key(xs + dx, ys + dy));
         if (neighbor && neighbor.id === tile.id) {
-          neighborMask |= (1 << bit);
+          neighborMask |= 1 << bit;
         }
       }
 

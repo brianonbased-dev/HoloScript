@@ -129,19 +129,30 @@ async function detectBackend(): Promise<'webgpu' | 'wasm'> {
 /**
  * Load Transformers.js lazily with fallback support.
  */
-async function loadTransformers(): Promise<{ pipeline: (task: string, model: string, opts?: unknown) => Promise<unknown> }> {
+async function loadTransformers(): Promise<{
+  pipeline: (task: string, model: string, opts?: unknown) => Promise<unknown>;
+}> {
   try {
     const mod = await import('@xenova/transformers' as any);
     return mod;
   } catch {
     try {
-      const cdnUrl = ['https:', '', 'cdn.jsdelivr.net', 'npm', '@xenova', 'transformers@2', 'dist', 'transformers.min.js'].join('/');
+      const cdnUrl = [
+        'https:',
+        '',
+        'cdn.jsdelivr.net',
+        'npm',
+        '@xenova',
+        'transformers@2',
+        'dist',
+        'transformers.min.js',
+      ].join('/');
       const mod = await import(cdnUrl as any);
       return mod;
     } catch (e) {
       throw new Error(
         `[@segment] Could not load @xenova/transformers. ` +
-        `Add it to your project: pnpm add @xenova/transformers. Original error: ${String(e)}`
+          `Add it to your project: pnpm add @xenova/transformers. Original error: ${String(e)}`
       );
     }
   }
@@ -167,7 +178,11 @@ function getImageSource(
 }
 
 /** Convert a mask tensor to Uint8ClampedArray for emission */
-function maskToUint8(maskData: Float32Array | number[], width: number, height: number): Uint8ClampedArray {
+function maskToUint8(
+  maskData: Float32Array | number[],
+  width: number,
+  height: number
+): Uint8ClampedArray {
   const out = new Uint8ClampedArray(width * height * 4); // RGBA
   for (let i = 0; i < maskData.length; i++) {
     // Assuming maskData is normalized [0, 1] or binary [0, 1]
@@ -197,15 +212,15 @@ async function computeSegmentation(
 
     if (config.method === 'background-removal') {
       // Use Transformers.js background removal (rembg-based)
-      result = await (state.pipeline as any)(imageSource) as { image: unknown };
+      result = (await (state.pipeline as any)(imageSource)) as { image: unknown };
     } else if (config.method === 'sam2') {
       // Use SAM 2 with optional point prompts
-      result = await (state.pipeline as any)(imageSource, {
+      result = (await (state.pipeline as any)(imageSource, {
         points_per_side: 32,
         pred_iou_thresh: 0.8,
         stability_score_thresh: 0.9,
         size_limit: Math.max(config.resolution.width, config.resolution.height),
-      }) as { masks: unknown };
+      })) as { masks: unknown };
     } else {
       throw new Error(`Unknown segmentation method: ${config.method}`);
     }
@@ -284,12 +299,13 @@ export const segmentTraitHandler: TraitHandler<SegmentationConfig> = {
           if (backend === 'webgpu') {
             env.backends.onnx.wasm.proxy = false;
           }
-        } catch { /* environment config is best-effort */ }
+        } catch {
+          /* environment config is best-effort */
+        }
 
         // Load appropriate model based on method
-        const modelId = cfg.method === 'background-removal' 
-          ? 'Xenova/remove-background'
-          : 'Xenova/sam2-tiny';
+        const modelId =
+          cfg.method === 'background-removal' ? 'Xenova/remove-background' : 'Xenova/sam2-tiny';
 
         state.pipeline = await pipeline(
           cfg.method === 'background-removal' ? 'image-segmentation' : 'image-segmentation',

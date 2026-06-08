@@ -33,17 +33,22 @@ export function SyntheticDataDashboard({
   className = '',
 }: SyntheticDataDashboardProps) {
   const {
-    camera, setCamera,
-    lighting, setLighting,
-    augmentation, setAugmentation,
-    batch, setBatch,
+    camera,
+    setCamera,
+    lighting,
+    setLighting,
+    augmentation,
+    setAugmentation,
+    batch,
+    setBatch,
     progress,
-    activeTab, setActiveTab,
+    activeTab,
+    setActiveTab,
     splitSummary,
     estimatedSize,
     handleGenerate,
     handleExport,
-    toggleAugType
+    toggleAugType,
   } = useSyntheticData(onGenerate, onExportConfig);
 
   const tabs = ['camera', 'lighting', 'augmentation', 'batch'] as const;
@@ -75,16 +80,16 @@ export function SyntheticDataDashboard({
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'camera' && (
-        <CameraTab camera={camera} setCamera={setCamera} />
-      )}
+      {activeTab === 'camera' && <CameraTab camera={camera} setCamera={setCamera} />}
 
-      {activeTab === 'lighting' && (
-        <LightingTab lighting={lighting} setLighting={setLighting} />
-      )}
+      {activeTab === 'lighting' && <LightingTab lighting={lighting} setLighting={setLighting} />}
 
       {activeTab === 'augmentation' && (
-        <AugmentationTab augmentation={augmentation} setAugmentation={setAugmentation} toggleAugType={toggleAugType} />
+        <AugmentationTab
+          augmentation={augmentation}
+          setAugmentation={setAugmentation}
+          toggleAugType={toggleAugType}
+        />
       )}
 
       {activeTab === 'batch' && (

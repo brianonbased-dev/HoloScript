@@ -19,6 +19,7 @@ The competitive brief (2026-04-17) identified 16 competitors across 4 fronts. Th
 These need near-real-time awareness. Set up push alerts.
 
 ### GitHub release feeds
+
 Subscribe (RSS or watch-releases) to:
 
 - **BabylonJS/Babylon.js** — highest priority
@@ -26,11 +27,12 @@ Subscribe (RSS or watch-releases) to:
 - **aframevr/aframe**
 - **langchain-ai/langchain** + `langchain-ai/langgraph`
 - **modelcontextprotocol/** (entire org — protocol evolution)
-- **anthropics/courses** + anthropics/anthropic-sdk-* (our own upstream)
+- **anthropics/courses** + anthropics/anthropic-sdk-\* (our own upstream)
 
 Action: Weekly 5-min scan. Note any agent/MCP/spatial feature additions.
 
 ### Blog feeds (RSS)
+
 - **Windows Dev Blog** (Babylon announcements land here)
 - **NVIDIA blogs** (Physical AI / Omniverse)
 - **ANSYS blog**
@@ -38,7 +40,9 @@ Action: Weekly 5-min scan. Note any agent/MCP/spatial feature additions.
 - **LangChain blog**
 
 ### Social listening (Twitter/X)
+
 Set up a saved search or list. Keywords to watch:
+
 - "babylon.js" + "MCP"
 - "three.js" + "agent"
 - "omniverse" + "pricing"
@@ -56,6 +60,7 @@ Action: Daily 2-min scan at session start.
 Check these once a week, typically Monday morning.
 
 ### Product pricing / tier pages
+
 - simscale.com/product/pricing/
 - forums.developer.nvidia.com (Omniverse pricing thread)
 - cursor.com/pricing
@@ -65,19 +70,21 @@ Check these once a week, typically Monday morning.
 Look for: pricing changes, new free tiers, enterprise floor shifts, feature gating changes.
 
 ### Job postings
+
 Job pages reveal strategic priorities before products ship.
 
-| Company | Page | What to watch |
-|---|---|---|
-| Babylon.js / Microsoft | careers.microsoft.com (filter: "Babylon") | MCP / agent roles = first-party elevation signal |
-| NVIDIA | nvidia.com/en-us/about-nvidia/careers | "Physical AI developer advocate", "browser" roles |
-| ANSYS | ansys.com/careers | SimAI / GeomAI expansion, browser / web roles |
-| Cursor | cursor.com/careers | New agent types, non-code domain hires |
-| SimScale | simscale.com/careers/ | Offline / on-prem roles (would signal pivot) |
+| Company                | Page                                      | What to watch                                     |
+| ---------------------- | ----------------------------------------- | ------------------------------------------------- |
+| Babylon.js / Microsoft | careers.microsoft.com (filter: "Babylon") | MCP / agent roles = first-party elevation signal  |
+| NVIDIA                 | nvidia.com/en-us/about-nvidia/careers     | "Physical AI developer advocate", "browser" roles |
+| ANSYS                  | ansys.com/careers                         | SimAI / GeomAI expansion, browser / web roles     |
+| Cursor                 | cursor.com/careers                        | New agent types, non-code domain hires            |
+| SimScale               | simscale.com/careers/                     | Offline / on-prem roles (would signal pivot)      |
 
 Cadence: Weekly 10-min scan. Flag any role that suggests category expansion.
 
 ### Cursor marketplace
+
 List of MCP servers at cursor.com/mcp (or wherever they publish it). Action: check for new "spatial", "simulation", "3D" entries. Submit HoloScript if not listed.
 
 ---
@@ -87,6 +94,7 @@ List of MCP servers at cursor.com/mcp (or wherever they publish it). Action: che
 Once a month, spend 30-45 minutes on:
 
 ### Analyst reports
+
 - **Gartner Hype Cycle** — simulation, spatial computing, AI agents
 - **Forrester Wave** — digital twin, agent platforms
 - **IDC MarketScape** — CAE software, agent development
@@ -95,6 +103,7 @@ Once a month, spend 30-45 minutes on:
 Action: Skim executive summaries; note any HoloScript category placement (or adjacent category creation).
 
 ### Review site sentiment trends
+
 - **G2** — SimScale, Babylon.js, Cursor, ANSYS review trends
 - **Capterra** — same
 - **Product Hunt** — new launches in our space
@@ -103,10 +112,12 @@ Action: Skim executive summaries; note any HoloScript category placement (or adj
 Look for: emerging complaints (opportunities for us), emerging love (threats).
 
 ### Patent / trademark filings
+
 - **USPTO TSDR** search for competitor filings
 - Watch for: trademark applications on terms HoloScript uses (sovereignty, verifiable, etc.)
 
 ### Academic / preprint activity
+
 - **arxiv.org** — simulation, spatial AI, agent frameworks
 - **IEEE Xplore** — TVCG, VIS, VR venues
 - Competitor papers = product roadmap preview
@@ -158,6 +169,7 @@ Some signals need immediate response, not weekly scan.
 ## Tooling Recommendations
 
 ### Cheap / free
+
 - **RSS reader** (Feedly, Inoreader) — free tier sufficient
 - **Google Alerts** — "babylon MCP", "holoscript competitor", "spatial sovereignty", "verifiable digital twin"
 - **Twitter/X saved searches** — free
@@ -165,11 +177,13 @@ Some signals need immediate response, not weekly scan.
 - **job page bookmarks** — manual weekly check
 
 ### Paid (when scale justifies)
+
 - **Crayon** or **Klue** — automated competitive intel platforms ($5K-25K/yr)
 - **Kompyte** — competitor tracking ($3K-15K/yr)
 - **BuzzSumo** — content trend analysis ($100-300/mo)
 
 ### DIY via our stack
+
 - **Absorb** — run quarterly scans on competitor open-source repos to surface architectural changes
 - **HoloMesh** — cross-agent knowledge store for competitive intel graduated to team memory
 - **Scheduled agents** — Codex automation `refresh-competitive-monitoring-cadence` runs Mondays at 9am Phoenix time to scan official sources, refresh matrix rows, and digest to `docs/daily-digests/`
@@ -178,14 +192,14 @@ Some signals need immediate response, not weekly scan.
 
 ## Ownership & Cadence
 
-| Activity | Owner | Cadence | Duration |
-|---|---|---|---|
-| Tier 1 daily social scan | Scheduled agent `refresh-competitive-monitoring-cadence` | Weekly Monday batch | 2 min |
-| Tier 1 weekly release scan | Scheduled agent `refresh-competitive-monitoring-cadence` | Weekly | 5 min |
-| Tier 2 weekly pricing/jobs | Scheduled agent `refresh-competitive-monitoring-cadence` | Weekly | 10 min |
-| Tier 3 monthly deep review | Scheduled agent `refresh-competitive-monitoring-cadence` + strategy | Monthly | 30-45 min |
-| Tier 4 quarterly full refresh | Scheduled agent `refresh-competitive-monitoring-cadence` + strategy | Quarterly | Half-day |
-| Red alert response | Scheduled agent + strategy | As triggered | 4-8 hours |
+| Activity                      | Owner                                                               | Cadence             | Duration  |
+| ----------------------------- | ------------------------------------------------------------------- | ------------------- | --------- |
+| Tier 1 daily social scan      | Scheduled agent `refresh-competitive-monitoring-cadence`            | Weekly Monday batch | 2 min     |
+| Tier 1 weekly release scan    | Scheduled agent `refresh-competitive-monitoring-cadence`            | Weekly              | 5 min     |
+| Tier 2 weekly pricing/jobs    | Scheduled agent `refresh-competitive-monitoring-cadence`            | Weekly              | 10 min    |
+| Tier 3 monthly deep review    | Scheduled agent `refresh-competitive-monitoring-cadence` + strategy | Monthly             | 30-45 min |
+| Tier 4 quarterly full refresh | Scheduled agent `refresh-competitive-monitoring-cadence` + strategy | Quarterly           | Half-day  |
+| Red alert response            | Scheduled agent + strategy                                          | As triggered        | 4-8 hours |
 
 **Time budget**: ~30 min/week normal; 4-8 hours per quarterly refresh; as-needed for red alerts.
 
@@ -199,9 +213,11 @@ Every Monday, log the week's scan as a daily-digest entry:
 # Competitive Scan — [date]
 
 ## Red / Amber alerts
+
 - [list or "none this week"]
 
 ## Tier 1 signals
+
 - Babylon: [any notable release/post]
 - Three.js: ...
 - NVIDIA: ...
@@ -211,11 +227,13 @@ Every Monday, log the week's scan as a daily-digest entry:
 - Others: ...
 
 ## Tier 2 signals
+
 - Pricing changes: ...
 - Notable job postings: ...
 - Cursor marketplace changes: ...
 
 ## Action items this week
+
 - [ ] ...
 ```
 

@@ -18,7 +18,9 @@ export const computeShaderHandler: TraitHandler<ComputeShaderConfig> = {
   onDetach(node: HSPlusNode): void {
     delete node.__csState;
   },
-  onUpdate(): void { /* RATCHET: empty — no per-frame shader execution or workgroup scheduling */ },
+  onUpdate(): void {
+    /* RATCHET: empty — no per-frame shader execution or workgroup scheduling */
+  },
   onEvent(
     node: HSPlusNode,
     _config: ComputeShaderConfig,

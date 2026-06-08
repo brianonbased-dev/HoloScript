@@ -124,7 +124,13 @@ export function createHumanoidRockThrowScene(seed = DEFAULT_SEED): HumanoidRockT
   const objects: readonly HumanoidRockThrowObject[] = [
     { id: 'avatar', kind: 'avatar', center: { x: -3, y: 1.25, z: 0 } },
     { id: 'right-hand', kind: 'hand', center: { x: -2.72, y: 1.22, z: 0.16 } },
-    { id: 'rock', kind: 'rock', center: { x: -2.35, y: 0.22, z: 0.12 }, radiusM: 0.13, massKg: 1.8 },
+    {
+      id: 'rock',
+      kind: 'rock',
+      center: { x: -2.35, y: 0.22, z: 0.12 },
+      radiusM: 0.13,
+      massKg: 1.8,
+    },
     { id: 'target', kind: 'target', center: { x: 2.55, y: 0.85, z: 0 }, radiusM: 0.42, massKg: 20 },
     { id: 'stage', kind: 'stage', center: { x: 0, y: 0, z: 0 } },
   ];

@@ -60,7 +60,9 @@ describe('LifePod signed snapshots', () => {
 
     expect(restored.signatureVerified).toBe(true);
     expect(restored.state).toEqual(agentState);
-    expect(Buffer.from(restored.stateBytes).equals(Buffer.from(lifePodStateBytes(agentState)))).toBe(true);
+    expect(
+      Buffer.from(restored.stateBytes).equals(Buffer.from(lifePodStateBytes(agentState)))
+    ).toBe(true);
   });
 
   it('rejects a snapshot whose signed state bytes were tampered', () => {

@@ -9,7 +9,12 @@
  * 5. Logs the gap for the roadmap (every gap is a feature request)
  */
 
-import { DOMAIN_TAXONOMY, matchDomains, type DomainEntry, type CoverageLevel } from './DomainTaxonomy';
+import {
+  DOMAIN_TAXONOMY,
+  matchDomains,
+  type DomainEntry,
+  type CoverageLevel,
+} from './DomainTaxonomy';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,7 +109,10 @@ export function handleGap(keywords: string[]): GapResponse {
   const adjacent = findAdjacentDomains(kw);
 
   if (adjacent.length > 0) {
-    const names = adjacent.slice(0, 3).map((d) => d.name).join(', ');
+    const names = adjacent
+      .slice(0, 3)
+      .map((d) => d.name)
+      .join(', ');
     return {
       requestedDomain: kw,
       hasMatch: false,
@@ -123,9 +131,16 @@ export function handleGap(keywords: string[]): GapResponse {
     hasMatch: false,
     closestDomain: null,
     relatedDomains: [],
-    capabilities: ['data-import', 'visualization', '3d-annotation', 'measurement', 'report-generation'],
+    capabilities: [
+      'data-import',
+      'visualization',
+      '3d-annotation',
+      'measurement',
+      'report-generation',
+    ],
     bridgeStrategy: 'universal-data-platform',
-    message: `I don't have a specific solver for "${kw}", but HoloScript is a universal data platform. I can:\n\n` +
+    message:
+      `I don't have a specific solver for "${kw}", but HoloScript is a universal data platform. I can:\n\n` +
       `1. **Import your data** — drop CSV, VTK, FITS, STL, OBJ, or HDF5 files\n` +
       `2. **Visualize in 3D** — colormaps, animations, channel scrubbing\n` +
       `3. **Measure and annotate** — probe values, pin notes to 3D locations\n` +
@@ -150,67 +165,82 @@ function describePartialCapabilities(domain: DomainEntry): PartialCapabilities {
     'structural-dynamic': {
       can: ['modal-analysis', 'natural-frequencies'],
       canDo: 'I can extract natural frequencies and mode shapes via eigenvalue analysis.',
-      cantDo: 'full transient dynamics (explicit time integration, crash, impact) aren\'t implemented yet.',
-      workaround: 'For vibration analysis, I can identify resonant frequencies and critical modes. Want me to run a modal analysis?',
+      cantDo:
+        "full transient dynamics (explicit time integration, crash, impact) aren't implemented yet.",
+      workaround:
+        'For vibration analysis, I can identify resonant frequencies and critical modes. Want me to run a modal analysis?',
     },
-    'fatigue': {
+    fatigue: {
       can: ['safety-factor', 'stress-analysis'],
       canDo: 'I can compute Von Mises stress and safety factors for static loads.',
-      cantDo: 'cycle counting (Rainflow), S-N curves, and crack propagation aren\'t built in.',
-      workaround: 'I can identify stress hotspots and safety margins. You can use the stress data for external fatigue life estimation.',
+      cantDo: "cycle counting (Rainflow), S-N curves, and crack propagation aren't built in.",
+      workaround:
+        'I can identify stress hotspots and safety margins. You can use the stress data for external fatigue life estimation.',
     },
-    'convection': {
+    convection: {
       can: ['boundary-convection', 'coupled-thermal-cfd'],
-      canDo: 'I can apply convective boundary conditions (h, T_ambient) and couple thermal + CFD solvers.',
-      cantDo: 'fully resolved conjugate heat transfer with turbulence isn\'t available.',
-      workaround: 'For most HVAC and electronics cooling, boundary convection gives good results. Want me to set up a coupled thermal-CFD simulation?',
+      canDo:
+        'I can apply convective boundary conditions (h, T_ambient) and couple thermal + CFD solvers.',
+      cantDo: "fully resolved conjugate heat transfer with turbulence isn't available.",
+      workaround:
+        'For most HVAC and electronics cooling, boundary convection gives good results. Want me to set up a coupled thermal-CFD simulation?',
     },
-    'ultrasound': {
+    ultrasound: {
       can: ['wave-propagation', 'acoustic-simulation'],
-      canDo: 'I can simulate acoustic wave propagation at any frequency, including ultrasound ranges.',
-      cantDo: 'tissue models, B-mode image formation, and DICOM import aren\'t included.',
-      workaround: 'I can model the wave physics. You\'d need to post-process for image formation.',
+      canDo:
+        'I can simulate acoustic wave propagation at any frequency, including ultrasound ranges.',
+      cantDo: "tissue models, B-mode image formation, and DICOM import aren't included.",
+      workaround: "I can model the wave physics. You'd need to post-process for image formation.",
     },
     'rf-design': {
       can: ['fdtd-em', 'antenna-pattern'],
-      canDo: 'I can run FDTD for antenna radiation patterns, S-parameters approximation, and field visualization.',
-      cantDo: 'frequency-domain methods (Method of Moments, FEM-EM) and Smith chart tools aren\'t available.',
-      workaround: 'FDTD gives accurate broadband results. I can sweep frequency via Gaussian pulse excitation.',
+      canDo:
+        'I can run FDTD for antenna radiation patterns, S-parameters approximation, and field visualization.',
+      cantDo:
+        "frequency-domain methods (Method of Moments, FEM-EM) and Smith chart tools aren't available.",
+      workaround:
+        'FDTD gives accurate broadband results. I can sweep frequency via Gaussian pulse excitation.',
     },
-    'hemodynamics': {
+    hemodynamics: {
       can: ['navier-stokes', 'flow-visualization'],
       canDo: 'I can simulate incompressible flow through vessel-like geometries.',
-      cantDo: 'non-Newtonian blood viscosity models (Carreau, power-law) aren\'t included.',
-      workaround: 'For large arteries, Newtonian approximation is reasonable. Want me to set up a flow simulation?',
+      cantDo: "non-Newtonian blood viscosity models (Carreau, power-law) aren't included.",
+      workaround:
+        'For large arteries, Newtonian approximation is reasonable. Want me to set up a flow simulation?',
     },
-    'reservoir': {
+    reservoir: {
       can: ['multiphase-flow'],
       canDo: 'I can simulate two-phase flow with level-set interface tracking.',
-      cantDo: 'Darcy flow, porous media permeability, and multi-component transport aren\'t specialized for reservoir.',
-      workaround: 'The multiphase solver handles immiscible fluid interfaces. For reservoir-specific features, I can import and visualize your data.',
+      cantDo:
+        "Darcy flow, porous media permeability, and multi-component transport aren't specialized for reservoir.",
+      workaround:
+        'The multiphase solver handles immiscible fluid interfaces. For reservoir-specific features, I can import and visualize your data.',
     },
-    'aerospace': {
+    aerospace: {
       can: ['structural-tet10', 'navier-stokes', 'acoustic'],
       canDo: 'I can do structural stress analysis, subsonic flow, and acoustic radiation.',
-      cantDo: 'transonic/supersonic (compressible) flow isn\'t implemented.',
-      workaround: 'For subsonic aircraft components (wing structure, cabin acoustics), I have full coverage. What\'s your specific analysis?',
+      cantDo: "transonic/supersonic (compressible) flow isn't implemented.",
+      workaround:
+        "For subsonic aircraft components (wing structure, cabin acoustics), I have full coverage. What's your specific analysis?",
     },
   };
 
-  return partialDescriptions[domain.id] ?? {
-    can: domain.solvers,
-    canDo: `I have ${domain.solvers.length} solver(s) that apply: ${domain.solvers.join(', ')}.`,
-    cantDo: 'some specialized features for this domain aren\'t available.',
-    workaround: 'Let me know your specific goal and I\'ll find the best approach with what I have.',
-  };
+  return (
+    partialDescriptions[domain.id] ?? {
+      can: domain.solvers,
+      canDo: `I have ${domain.solvers.length} solver(s) that apply: ${domain.solvers.join(', ')}.`,
+      cantDo: "some specialized features for this domain aren't available.",
+      workaround:
+        "Let me know your specific goal and I'll find the best approach with what I have.",
+    }
+  );
 }
 
 // ── Adjacent Domain Finder ───────────────────────────────────────────────────
 
 function findAdjacentDomains(query: string): DomainEntry[] {
   // Find domains whose description or keywords partially match
-  const scored = DOMAIN_TAXONOMY
-    .filter((d) => d.coverage === 'full' || d.coverage === 'partial')
+  const scored = DOMAIN_TAXONOMY.filter((d) => d.coverage === 'full' || d.coverage === 'partial')
     .map((d) => {
       let score = 0;
       const words = query.split(/\s+/);
@@ -233,5 +263,7 @@ function findAdjacentDomains(query: string): DomainEntry[] {
  */
 export function logGapRequest(gap: GapResponse): void {
   if (!gap.isNovelGap) return;
-  console.log(`[GapHandler] Novel domain request: "${gap.requestedDomain}". Closest: ${gap.closestDomain?.name ?? 'none'}. Strategy: ${gap.bridgeStrategy}`);
+  console.log(
+    `[GapHandler] Novel domain request: "${gap.requestedDomain}". Closest: ${gap.closestDomain?.name ?? 'none'}. Strategy: ${gap.bridgeStrategy}`
+  );
 }

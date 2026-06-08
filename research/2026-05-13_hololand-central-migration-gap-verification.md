@@ -10,19 +10,19 @@
 
 **6 of 10 gaps from the vision doc are ALREADY CLOSED.** The parser supports `system`, `component`, `import`, `storage`, and `device` constructs that the vision doc lists as "Critical" blockers. The only remaining parser-level gap is **`page` and `include` keywords inside `composition` blocks.**
 
-| Gap | Vision Doc Severity | Actual Status | Evidence |
-|-----|---------------------|---------------|----------|
-| G1 — `system` keyword | 🔴 Critical | **✅ CLOSED** | `packages/core/src/parser/__tests__/HololandCentralMigrationGaps.test.ts:16` |
-| G2 — inter-file `import` | 🔴 Critical | **✅ CLOSED** | `packages/core/src/parser/__tests__/HololandCentralMigrationGaps.test.ts:29` |
-| G8 — `component` keyword | 🟡 Medium | **✅ CLOSED** | `packages/core/src/parser/__tests__/HololandCentralMigrationGaps.test.ts:23` |
-| G10 — `storage`/`device` APIs | 🟠 Medium | **✅ CLOSED** | `packages/core/src/parser/__tests__/HololandCentralMigrationGaps.test.ts:41,51` |
-| G3 — Browser E2E execution | 🔴 Critical | **🚧 OPEN** | Needs runtime pipeline verification |
-| G4 — R3F compiler → HoloLand bridge | 🟡 High | **🚧 OPEN** | Needs integration test |
-| G5 — Brittney spatial/VR interface | 🟡 High | **🚧 OPEN** | Not a parser concern |
-| G6 — VR code workspace composition | 🟡 High | **🚧 OPEN** | Needs `.holo` composition design |
-| G7 — Live hot-reload in WebXR | 🟡 High | **🚧 OPEN** | Needs runtime verification |
-| G9 — Hololand-specific training data | 🟡 Medium | **🚧 OPEN** | TrainingMonkey responsibility |
-| **NEW** — `page`/`include` in composition | Not listed | **🔴 OPEN** | Parser error HSP101 on `page` keyword |
+| Gap                                       | Vision Doc Severity | Actual Status | Evidence                                                                        |
+| ----------------------------------------- | ------------------- | ------------- | ------------------------------------------------------------------------------- |
+| G1 — `system` keyword                     | 🔴 Critical         | **✅ CLOSED** | `packages/core/src/parser/__tests__/HololandCentralMigrationGaps.test.ts:16`    |
+| G2 — inter-file `import`                  | 🔴 Critical         | **✅ CLOSED** | `packages/core/src/parser/__tests__/HololandCentralMigrationGaps.test.ts:29`    |
+| G8 — `component` keyword                  | 🟡 Medium           | **✅ CLOSED** | `packages/core/src/parser/__tests__/HololandCentralMigrationGaps.test.ts:23`    |
+| G10 — `storage`/`device` APIs             | 🟠 Medium           | **✅ CLOSED** | `packages/core/src/parser/__tests__/HololandCentralMigrationGaps.test.ts:41,51` |
+| G3 — Browser E2E execution                | 🔴 Critical         | **🚧 OPEN**   | Needs runtime pipeline verification                                             |
+| G4 — R3F compiler → HoloLand bridge       | 🟡 High             | **🚧 OPEN**   | Needs integration test                                                          |
+| G5 — Brittney spatial/VR interface        | 🟡 High             | **🚧 OPEN**   | Not a parser concern                                                            |
+| G6 — VR code workspace composition        | 🟡 High             | **🚧 OPEN**   | Needs `.holo` composition design                                                |
+| G7 — Live hot-reload in WebXR             | 🟡 High             | **🚧 OPEN**   | Needs runtime verification                                                      |
+| G9 — Hololand-specific training data      | 🟡 Medium           | **🚧 OPEN**   | TrainingMonkey responsibility                                                   |
+| **NEW** — `page`/`include` in composition | Not listed          | **🔴 OPEN**   | Parser error HSP101 on `page` keyword                                           |
 
 **Key finding:** The vision doc `VISION_HOLOLAND_BOOTSTRAP.md` (dated 2026-02-15) is **stale** on parser capabilities. The parser has evolved since February, but the vision doc was not updated. This creates a false sense of blocking distance — teams may defer migration work believing the parser is months away, when in fact it is weeks or days away.
 
@@ -108,12 +108,12 @@ The parser recognizes `component` as a top-level node type with `props`, `state`
 
 ```ts
 // storage API inside system body
-storage.get("key")
-storage.set("key", "value")
+storage.get('key');
+storage.set('key', 'value');
 
 // device API inside system body
-device.isMobile
-device.prefersReducedMotion()
+device.isMobile;
+device.prefersReducedMotion();
 ```
 
 Both parse successfully inside `system` and `component` bodies. Note: these are parser-level successes — runtime implementation of `storage` and `device` objects still needs verification, but the language surface is accepted.
@@ -138,6 +138,7 @@ composition "HololandCentral" {
 ```
 
 **Parser error:**
+
 ```json
 {
   "code": "HSP101",
@@ -158,14 +159,14 @@ composition "HololandCentral" {
 
 These gaps were correctly identified in the vision doc as open, but they are **not parser blockers** — they are runtime, compiler, and infrastructure gaps.
 
-| Gap | Why Still Open | What Would Close It |
-|-----|----------------|---------------------|
-| G3 — Browser E2E execution | No test exists that compiles `.hsplus` → R3F → renders in a real browser with WebXR | Add a Puppeteer/Playwright E2E test in `packages/engine/` |
-| G4 — R3F compiler → HoloLand bridge | R3F compiler exists but no confirmed integration with `@hololand/core` runtime | Build a bridge package that consumes R3F compiler output and initializes HoloLand renderer |
-| G5 — Brittney spatial/VR interface | Brittney is IDE-only; no in-world agent presence | Phase 3 of vision doc (spatial Brittney) |
-| G6 — VR code workspace composition | No `.holo` composition defines a VR dev environment | Design `brittney-workspace.holo` per vision doc |
-| G7 — Live hot-reload in WebXR | `HotReloader.ts` exists but unverified with active VR sessions | End-to-end test with WebXR session + file watcher |
-| G9 — Hololand-specific training data | TrainingMonkey enhancement #3 not executed | Generate 4,200 HoloLand-specific training examples |
+| Gap                                  | Why Still Open                                                                      | What Would Close It                                                                        |
+| ------------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| G3 — Browser E2E execution           | No test exists that compiles `.hsplus` → R3F → renders in a real browser with WebXR | Add a Puppeteer/Playwright E2E test in `packages/engine/`                                  |
+| G4 — R3F compiler → HoloLand bridge  | R3F compiler exists but no confirmed integration with `@hololand/core` runtime      | Build a bridge package that consumes R3F compiler output and initializes HoloLand renderer |
+| G5 — Brittney spatial/VR interface   | Brittney is IDE-only; no in-world agent presence                                    | Phase 3 of vision doc (spatial Brittney)                                                   |
+| G6 — VR code workspace composition   | No `.holo` composition defines a VR dev environment                                 | Design `brittney-workspace.holo` per vision doc                                            |
+| G7 — Live hot-reload in WebXR        | `HotReloader.ts` exists but unverified with active VR sessions                      | End-to-end test with WebXR session + file watcher                                          |
+| G9 — Hololand-specific training data | TrainingMonkey enhancement #3 not executed                                          | Generate 4,200 HoloLand-specific training examples                                         |
 
 ---
 
@@ -203,4 +204,4 @@ grep -A 30 "childNodeKeywords = \[" packages/core/src/parser/HoloScriptPlusParse
 
 ---
 
-*Audit closed. 6/10 vision-doc gaps are closed. 1 new parser gap discovered (`page`/`include`). 5 runtime/pipeline gaps remain as correctly identified.*
+_Audit closed. 6/10 vision-doc gaps are closed. 1 new parser gap discovered (`page`/`include`). 5 runtime/pipeline gaps remain as correctly identified._

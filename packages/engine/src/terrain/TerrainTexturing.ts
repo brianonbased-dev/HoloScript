@@ -154,7 +154,7 @@ export class TerrainTexturing {
     const ay = Math.pow(Math.abs(normal[1]), s);
     const az = Math.pow(Math.abs(normal[2]), s);
     const total = ax + ay + az || 1;
-    return [ax / total, ay / total, az / total ];
+    return [ax / total, ay / total, az / total];
   }
 
   // ---------------------------------------------------------------------------

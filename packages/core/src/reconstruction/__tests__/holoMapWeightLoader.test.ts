@@ -43,7 +43,9 @@ describe('holoMapWeightLoader', () => {
   it('cache hit returns cached bytes without fetch', async () => {
     const payload = new TextEncoder().encode('cached-bytes');
     const hex = createHash('sha256').update(payload).digest('hex');
-    vi.mocked(getCachedWeightBlob).mockResolvedValue(payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength));
+    vi.mocked(getCachedWeightBlob).mockResolvedValue(
+      payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength)
+    );
 
     const result = await loadHoloMapWeightBlob({
       weightUrl: 'https://example.invalid/holomap.bin',
@@ -125,12 +127,14 @@ describe('holoMapWeightLoader', () => {
     const fetchImpl: typeof fetch = async () => new Response(null, { status: 404 });
     vi.mocked(getCachedWeightBlob).mockResolvedValue(undefined);
 
-    await expect(loadHoloMapWeightBlob({
-      weightUrl: 'https://a.invalid/holomap.bin',
-      weightUrls: ['https://b.invalid/holomap.bin'],
-      weightCid: '0'.repeat(64),
-      fetchImpl,
-    })).rejects.toThrow(/all sources exhausted/);
+    await expect(
+      loadHoloMapWeightBlob({
+        weightUrl: 'https://a.invalid/holomap.bin',
+        weightUrls: ['https://b.invalid/holomap.bin'],
+        weightCid: '0'.repeat(64),
+        fetchImpl,
+      })
+    ).rejects.toThrow(/all sources exhausted/);
   });
 
   it('file:// URL reads from disk (Node only)', async () => {
@@ -158,7 +162,11 @@ describe('holoMapWeightLoader', () => {
   it('localResolver is tried before cache and network', async () => {
     const payload = new TextEncoder().encode('mesh-local');
     const hex = createHash('sha256').update(payload).digest('hex');
-    const localResolver = vi.fn().mockResolvedValue(payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength));
+    const localResolver = vi
+      .fn()
+      .mockResolvedValue(
+        payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength)
+      );
     vi.mocked(getCachedWeightBlob).mockResolvedValue(undefined);
     vi.mocked(putCachedWeightBlob).mockResolvedValue(undefined);
 

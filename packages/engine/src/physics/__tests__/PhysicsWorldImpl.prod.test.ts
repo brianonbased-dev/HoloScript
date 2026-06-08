@@ -17,13 +17,13 @@ import type { IRigidBodyConfig } from '@holoscript/core';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeWorld() {
-  return new PhysicsWorldImpl({ gravity: [0, -9.81, 0 ] });
+  return new PhysicsWorldImpl({ gravity: [0, -9.81, 0] });
 }
 
 function sphereBody(
   id: string,
   radius = 0.5,
-  pos = [0, 0, 0 ],
+  pos = [0, 0, 0],
   type: 'dynamic' | 'static' = 'dynamic'
 ): IRigidBodyConfig {
   return {
@@ -33,17 +33,13 @@ function sphereBody(
     shape: { type: 'sphere', radius },
     transform: {
       position: pos,
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
     },
     material: { friction: 0.5, restitution: 0.3 },
   };
 }
 
-function boxBody(
-  id: string,
-  half = [0.5, 0.5, 0.5 ],
-  pos = [0, 0, 0 ]
-): IRigidBodyConfig {
+function boxBody(id: string, half = [0.5, 0.5, 0.5], pos = [0, 0, 0]): IRigidBodyConfig {
   return {
     id,
     type: 'dynamic',
@@ -51,7 +47,7 @@ function boxBody(
     shape: { type: 'box', halfExtents: half },
     transform: {
       position: pos,
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
     },
     material: { friction: 0.5, restitution: 0.3 },
   };
@@ -74,7 +70,7 @@ describe('PhysicsWorldImpl: production', () => {
     });
 
     it('setGravity updates gravity', () => {
-      world.setGravity([0, -1, 0 ]);
+      world.setGravity([0, -1, 0]);
       expect(world.getGravity()[1]).toBeCloseTo(-1);
     });
 
@@ -85,7 +81,7 @@ describe('PhysicsWorldImpl: production', () => {
     });
 
     it('zero gravity constructor', () => {
-      const w = new PhysicsWorldImpl({ gravity: [0, 0, 0 ] });
+      const w = new PhysicsWorldImpl({ gravity: [0, 0, 0] });
       expect(w.getGravity()[1]).toBe(0);
     });
   });
@@ -144,58 +140,56 @@ describe('PhysicsWorldImpl: production', () => {
   // ─── Body manipulation ────────────────────────────────────────────────────
   describe('body manipulation', () => {
     beforeEach(() => {
-      world.createBody(sphereBody('s1', 0.5, [0, 0, 0 ]));
+      world.createBody(sphereBody('s1', 0.5, [0, 0, 0]));
     });
 
     it('setPosition updates body position', () => {
-      world.setPosition('s1', [5, 10, 3 ]);
+      world.setPosition('s1', [5, 10, 3]);
       const state = world.getBody('s1');
       expect(state?.position[0]).toBeCloseTo(5);
       expect(state?.position[1]).toBeCloseTo(10);
     });
 
     it('setRotation updates body rotation', () => {
-      world.setRotation('s1', [0, 0.707, 0, 0.707 ]);
+      world.setRotation('s1', [0, 0.707, 0, 0.707]);
       const state = world.getBody('s1');
       expect(state?.rotation[3]).toBeCloseTo(0.707, 2);
     });
 
     it('setLinearVelocity updates velocity', () => {
-      world.setLinearVelocity('s1', [1, 2, 3 ]);
+      world.setLinearVelocity('s1', [1, 2, 3]);
       const state = world.getBody('s1');
       expect(state?.linearVelocity[0]).toBeCloseTo(1);
     });
 
     it('setAngularVelocity updates angular velocity', () => {
-      world.setAngularVelocity('s1', [0, 1, 0 ]);
+      world.setAngularVelocity('s1', [0, 1, 0]);
       const state = world.getBody('s1');
       expect(state?.angularVelocity[1]).toBeCloseTo(1);
     });
 
     it('applyForce does not throw for existing body', () => {
-      expect(() => world.applyForce('s1', [0, 100, 0 ])).not.toThrow();
+      expect(() => world.applyForce('s1', [0, 100, 0])).not.toThrow();
     });
 
     it('applyForce at point does not throw', () => {
-      expect(() =>
-        world.applyForce('s1', [0, 100, 0 ], [1, 0, 0 ])
-      ).not.toThrow();
+      expect(() => world.applyForce('s1', [0, 100, 0], [1, 0, 0])).not.toThrow();
     });
 
     it('applyImpulse does not throw for existing body', () => {
-      expect(() => world.applyImpulse('s1', [0, 5, 0 ])).not.toThrow();
+      expect(() => world.applyImpulse('s1', [0, 5, 0])).not.toThrow();
     });
 
     it('applyTorque does not throw for existing body', () => {
-      expect(() => world.applyTorque('s1', [0, 1, 0 ])).not.toThrow();
+      expect(() => world.applyTorque('s1', [0, 1, 0])).not.toThrow();
     });
 
     it('applyTorqueImpulse does not throw for existing body', () => {
-      expect(() => world.applyTorqueImpulse('s1', [0, 1, 0 ])).not.toThrow();
+      expect(() => world.applyTorqueImpulse('s1', [0, 1, 0])).not.toThrow();
     });
 
     it('setPosition no-ops for unknown id', () => {
-      expect(() => world.setPosition('nope', [0, 0, 0 ])).not.toThrow();
+      expect(() => world.setPosition('nope', [0, 0, 0])).not.toThrow();
     });
   });
 
@@ -212,7 +206,7 @@ describe('PhysicsWorldImpl: production', () => {
         type: 'fixed',
         bodyA: 'a',
         bodyB: 'b',
-        pivotA: [0, 0, 0 ],
+        pivotA: [0, 0, 0],
       });
       expect(id).toBe('c1');
     });
@@ -224,7 +218,7 @@ describe('PhysicsWorldImpl: production', () => {
           type: 'fixed',
           bodyA: 'missing',
           bodyB: 'b',
-          pivotA: [0, 0, 0 ],
+          pivotA: [0, 0, 0],
         })
       ).toThrow();
     });
@@ -236,7 +230,7 @@ describe('PhysicsWorldImpl: production', () => {
           type: 'fixed',
           bodyA: 'a',
           bodyB: 'missing',
-          pivotA: [0, 0, 0 ],
+          pivotA: [0, 0, 0],
         })
       ).toThrow();
     });
@@ -247,7 +241,7 @@ describe('PhysicsWorldImpl: production', () => {
         type: 'fixed',
         bodyA: 'a',
         bodyB: 'b',
-        pivotA: [0, 0, 0 ],
+        pivotA: [0, 0, 0],
       });
       expect(() =>
         world.createConstraint({
@@ -255,7 +249,7 @@ describe('PhysicsWorldImpl: production', () => {
           type: 'fixed',
           bodyA: 'a',
           bodyB: 'b',
-          pivotA: [0, 0, 0 ],
+          pivotA: [0, 0, 0],
         })
       ).toThrow();
     });
@@ -266,7 +260,7 @@ describe('PhysicsWorldImpl: production', () => {
         type: 'fixed',
         bodyA: 'a',
         bodyB: 'b',
-        pivotA: [0, 0, 0 ],
+        pivotA: [0, 0, 0],
       });
       expect(world.removeConstraint('c1')).toBe(true);
     });
@@ -281,7 +275,7 @@ describe('PhysicsWorldImpl: production', () => {
         type: 'fixed',
         bodyA: 'a',
         bodyB: 'b',
-        pivotA: [0, 0, 0 ],
+        pivotA: [0, 0, 0],
       });
       expect(() => world.setConstraintEnabled('c1', false)).not.toThrow();
     });
@@ -292,7 +286,7 @@ describe('PhysicsWorldImpl: production', () => {
         type: 'fixed',
         bodyA: 'a',
         bodyB: 'b',
-        pivotA: [0, 0, 0 ],
+        pivotA: [0, 0, 0],
       });
       world.removeBody('a');
       // The constraint tied to 'a' is cascade-removed, so removeConstraint returns false
@@ -307,7 +301,7 @@ describe('PhysicsWorldImpl: production', () => {
     });
 
     it('step with dynamic body moves it under gravity', () => {
-      world.createBody(sphereBody('s1', 0.5, [0, 10, 0 ]));
+      world.createBody(sphereBody('s1', 0.5, [0, 10, 0]));
       const before = world.getBody('s1')!.position[1];
       world.step(0.5);
       const after = world.getBody('s1')!.position[1];
@@ -315,14 +309,14 @@ describe('PhysicsWorldImpl: production', () => {
     });
 
     it('static body does not move under gravity', () => {
-      world.createBody(sphereBody('floor', 0.5, [0, 0, 0 ], 'static'));
+      world.createBody(sphereBody('floor', 0.5, [0, 0, 0], 'static'));
       world.step(1);
       const state = world.getBody('floor')!;
       expect(state.position[1]).toBeCloseTo(0);
     });
 
     it('multiple step calls accumulate movement', () => {
-      world.createBody(sphereBody('s1', 0.5, [0, 100, 0 ]));
+      world.createBody(sphereBody('s1', 0.5, [0, 100, 0]));
       world.step(0.1);
       const y1 = world.getBody('s1')!.position[1];
       world.step(0.1);
@@ -334,24 +328,24 @@ describe('PhysicsWorldImpl: production', () => {
   // ─── Sphere-sphere collision ──────────────────────────────────────────────
   describe('sphere-sphere collision detection', () => {
     it('overlapping spheres emit a collision event on step', () => {
-      world.createBody(sphereBody('a', 1, [0, 0, 0 ]));
-      world.createBody(sphereBody('b', 1, [1, 0, 0 ])); // dist=1 < sum=2
+      world.createBody(sphereBody('a', 1, [0, 0, 0]));
+      world.createBody(sphereBody('b', 1, [1, 0, 0])); // dist=1 < sum=2
       world.step(1 / 60);
       const contacts = world.getContacts();
       expect(contacts.some((e) => e.type === 'begin' || e.type === 'persist')).toBe(true);
     });
 
     it('separated spheres emit no begin collision event', () => {
-      world.createBody(sphereBody('a', 0.5, [0, 0, 0 ]));
-      world.createBody(sphereBody('b', 0.5, [10, 0, 0 ]));
+      world.createBody(sphereBody('a', 0.5, [0, 0, 0]));
+      world.createBody(sphereBody('b', 0.5, [10, 0, 0]));
       world.step(1 / 60);
       const contacts = world.getContacts();
       expect(contacts.filter((e) => e.type === 'begin')).toHaveLength(0);
     });
 
     it('box + sphere collision does not throw', () => {
-      world.createBody(sphereBody('s', 0.5, [0, 0, 0 ]));
-      world.createBody(boxBody('b', [0.5, 0.5, 0.5 ], [0.3, 0, 0 ]));
+      world.createBody(sphereBody('s', 0.5, [0, 0, 0]));
+      world.createBody(boxBody('b', [0.5, 0.5, 0.5], [0.3, 0, 0]));
       expect(() => world.step(1 / 60)).not.toThrow();
     });
   });
@@ -365,14 +359,14 @@ describe('PhysicsWorldImpl: production', () => {
 
     it('multiple bodies can be added and queried independently', () => {
       for (let i = 0; i < 10; i++) {
-        world.createBody(sphereBody(`body${i}`, 0.5, [i, 0, 0 ]));
+        world.createBody(sphereBody(`body${i}`, 0.5, [i, 0, 0]));
       }
       expect(world.getAllBodies()).toHaveLength(10);
     });
 
     it('step with many bodies does not throw', () => {
       for (let i = 0; i < 10; i++) {
-        world.createBody(sphereBody(`body${i}`, 0.5, [i * 5, 0, 0 ]));
+        world.createBody(sphereBody(`body${i}`, 0.5, [i * 5, 0, 0]));
       }
       expect(() => world.step(1 / 60)).not.toThrow();
     });

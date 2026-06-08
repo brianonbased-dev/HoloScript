@@ -19,8 +19,8 @@ describe('TelemetryTrait', () => {
     mockContext = {
       emit,
       physics: {
-        getBodyPosition: vi.fn().mockReturnValue([1, 2, 3 ]),
-        getBodyVelocity: vi.fn().mockReturnValue([0.1, 0.2, 0.3 ]),
+        getBodyPosition: vi.fn().mockReturnValue([1, 2, 3]),
+        getBodyVelocity: vi.fn().mockReturnValue([0.1, 0.2, 0.3]),
         applyVelocity: vi.fn(),
         applyAngularVelocity: vi.fn(),
         setKinematic: vi.fn(),

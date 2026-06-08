@@ -18,11 +18,19 @@ export const threatFeedHandler: TraitHandler<ThreatFeedConfig> = {
     enabled: true,
   },
   onAttach(node: HSPlusNode, config: ThreatFeedConfig, ctx: TraitContext): void {
-    ctx.emit?.('threat_feed:attached', { nodeId: node.id, sourceId: config.sourceId, provider: config.provider });
+    ctx.emit?.('threat_feed:attached', {
+      nodeId: node.id,
+      sourceId: config.sourceId,
+      provider: config.provider,
+    });
   },
   onEvent(node: HSPlusNode, config: ThreatFeedConfig, ctx: TraitContext, event: TraitEvent): void {
     if (event.type === 'threat_feed:ingest') {
-      ctx.emit?.('threat_feed:ingested', { nodeId: node.id, sourceId: config.sourceId, count: event.payload?.count ?? 0 });
+      ctx.emit?.('threat_feed:ingested', {
+        nodeId: node.id,
+        sourceId: config.sourceId,
+        count: event.payload?.count ?? 0,
+      });
     }
   },
 };

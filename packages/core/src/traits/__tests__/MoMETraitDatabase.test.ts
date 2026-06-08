@@ -83,7 +83,7 @@ describe('TraitExpert.addTrait', () => {
     const e = new TraitExpert('rendering');
     e.addTrait(makeTrait('emissive', 'rendering', { tags: ['glow', 'neon'] }));
     const r = e.query('glow', DEFAULT_OPTS);
-    expect(r.some(x => x.trait.name === 'emissive')).toBe(true);
+    expect(r.some((x) => x.trait.name === 'emissive')).toBe(true);
   });
 });
 
@@ -105,7 +105,7 @@ describe('TraitExpert.removeTrait', () => {
     e.addTrait(makeTrait('emissive', 'rendering', { tags: ['glow'] }));
     e.removeTrait('emissive');
     const r = e.query('glow', DEFAULT_OPTS);
-    expect(r.some(x => x.trait.name === 'emissive')).toBe(false);
+    expect(r.some((x) => x.trait.name === 'emissive')).toBe(false);
   });
 });
 
@@ -178,7 +178,8 @@ describe('TraitExpert.query — description match', () => {
 describe('TraitExpert.query — filters', () => {
   it('maxResults should cap results', () => {
     const e = new TraitExpert('rendering');
-    for (let i = 0; i < 10; i++) e.addTrait(makeTrait(`trait${i}`, 'rendering', { tags: ['glow'] }));
+    for (let i = 0; i < 10; i++)
+      e.addTrait(makeTrait(`trait${i}`, 'rendering', { tags: ['glow'] }));
     const r = e.query('glow', { ...DEFAULT_OPTS, maxResults: 3 });
     expect(r.length).toBeLessThanOrEqual(3);
   });
@@ -216,7 +217,7 @@ describe('TraitExpert.query — filters', () => {
     );
     const r = e.query('heavyShader', { ...DEFAULT_OPTS, platformFilter: 'mobile' });
     const rBase = e.query('heavyShader', DEFAULT_OPTS);
-    expect((r[0]?.relevance ?? 0)).toBeLessThan(rBase[0]?.relevance ?? 1);
+    expect(r[0]?.relevance ?? 0).toBeLessThan(rBase[0]?.relevance ?? 1);
   });
 });
 
@@ -297,10 +298,7 @@ describe('MoMETraitDatabase.register', () => {
 describe('MoMETraitDatabase.registerBatch', () => {
   it('should register multiple traits at once', () => {
     const db = new MoMETraitDatabase();
-    db.registerBatch([
-      makeTrait('a', 'rendering'),
-      makeTrait('b', 'physics'),
-    ]);
+    db.registerBatch([makeTrait('a', 'rendering'), makeTrait('b', 'physics')]);
     expect(db.totalTraits).toBe(2);
   });
 
@@ -337,14 +335,14 @@ describe('MoMETraitDatabase.query', () => {
     const db = new MoMETraitDatabase();
     db.register(makeTrait('rigidBody', 'physics'));
     const r = db.query('rigidBody');
-    expect(r.some(x => x.trait.name === 'rigidBody')).toBe(true);
+    expect(r.some((x) => x.trait.name === 'rigidBody')).toBe(true);
   });
 
   it('should return empty for unrelated query', () => {
     const db = new MoMETraitDatabase();
     db.register(makeTrait('material', 'rendering'));
     const r = db.query('xyzxyzxyz');
-    expect(r.every(x => x.relevance < 0.1)).toBe(true);
+    expect(r.every((x) => x.relevance < 0.1)).toBe(true);
   });
 
   it('should respect maxResults option', () => {
@@ -361,7 +359,7 @@ describe('MoMETraitDatabase.query', () => {
     db.register(makeTrait('spatialAudio', 'audio', { tags: ['spatial'] }));
     db.register(makeTrait('spatialPortal', 'spatial', { tags: ['spatial'] }));
     const r = db.query('spatial', { categories: ['audio'] });
-    expect(r.every(x => x.expert === 'audio')).toBe(true);
+    expect(r.every((x) => x.expert === 'audio')).toBe(true);
   });
 
   it('results should be sorted by relevance descending', () => {
@@ -379,7 +377,7 @@ describe('MoMETraitDatabase.query', () => {
     // Register same name in different categories shouldn't happen but test dedupe
     db.register(makeTrait('shared', 'rendering'));
     const r = db.query('shared');
-    const names = r.map(x => x.trait.name);
+    const names = r.map((x) => x.trait.name);
     expect(new Set(names).size).toBe(names.length);
   });
 
@@ -408,7 +406,7 @@ describe('MoMETraitDatabase.findCompatible', () => {
     const db = new MoMETraitDatabase();
     db.register(makeTrait('material', 'rendering', { compatibleWith: ['emissive'] }));
     db.register(makeTrait('emissive', 'rendering'));
-    expect(db.findCompatible('material').map(t => t.name)).toContain('emissive');
+    expect(db.findCompatible('material').map((t) => t.name)).toContain('emissive');
   });
 
   it('should return empty array for unknown trait', () => {
@@ -428,7 +426,7 @@ describe('MoMETraitDatabase.findConflicts', () => {
     const db = new MoMETraitDatabase();
     db.register(makeTrait('toon', 'rendering', { conflictsWith: ['iridescence'] }));
     db.register(makeTrait('iridescence', 'rendering'));
-    expect(db.findConflicts('toon').map(t => t.name)).toContain('iridescence');
+    expect(db.findConflicts('toon').map((t) => t.name)).toContain('iridescence');
   });
 
   it('should return empty array for unknown trait', () => {
@@ -483,7 +481,7 @@ describe('MoMETraitDatabase.getStats', () => {
     const db = new MoMETraitDatabase();
     db.register(makeTrait('a', 'rendering'));
     const stats = db.getStats();
-    const renderStat = stats.find(s => s.category === 'rendering');
+    const renderStat = stats.find((s) => s.category === 'rendering');
     expect(renderStat?.traitCount).toBe(1);
   });
 });
@@ -623,19 +621,19 @@ describe('createMoMETraitDatabase', () => {
   it('query("glow") should return emissive in results', () => {
     const db = createMoMETraitDatabase();
     const r = db.query('glow');
-    expect(r.some(x => x.trait.name === 'emissive')).toBe(true);
+    expect(r.some((x) => x.trait.name === 'emissive')).toBe(true);
   });
 
   it('query("rigid physics") should return rigidBody', () => {
     const db = createMoMETraitDatabase();
     const r = db.query('rigid physics');
-    expect(r.some(x => x.trait.name === 'rigidBody')).toBe(true);
+    expect(r.some((x) => x.trait.name === 'rigidBody')).toBe(true);
   });
 
   it('findCompatible("material") should include emissive', () => {
     const db = createMoMETraitDatabase();
     const compat = db.findCompatible('material');
-    expect(compat.some(t => t.name === 'emissive')).toBe(true);
+    expect(compat.some((t) => t.name === 'emissive')).toBe(true);
   });
 
   it('options override should apply', () => {

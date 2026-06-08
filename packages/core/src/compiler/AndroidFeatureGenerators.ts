@@ -232,7 +232,10 @@ export function emitGeoAnchorSetup(compiler: AndroidCompiler, composition: HoloC
  * Emit the full Geospatial VPS setup: session config, Earth tracking,
  * anchor creation (geo/terrain/rooftop), and Streetscape Geometry access.
  */
-export function emitGeospatialVPSSetup(compiler: AndroidCompiler, composition: HoloComposition): void {
+export function emitGeospatialVPSSetup(
+  compiler: AndroidCompiler,
+  composition: HoloComposition
+): void {
   compiler.emit('');
   compiler.emit('// === ARCore Geospatial API: VPS street-level geo-anchoring ===');
   compiler.emit('private var earth: Earth? = null');
@@ -317,7 +320,9 @@ export function emitGeospatialVPSSetup(compiler: AndroidCompiler, composition: H
   compiler.emit('node.setParent(anchorNode)');
   compiler.emit('node.renderable = renderable');
   compiler.emit('placedNodes[name] = node');
-  compiler.emit('android.util.Log.d("HoloScript", "Geospatial anchor: $name at ($lat, $lng, $alt)")');
+  compiler.emit(
+    'android.util.Log.d("HoloScript", "Geospatial anchor: $name at ($lat, $lng, $alt)")'
+  );
   compiler.indentLevel--;
   compiler.emit('}');
   compiler.indentLevel--;
@@ -334,13 +339,9 @@ export function emitGeospatialVPSSetup(compiler: AndroidCompiler, composition: H
     compiler.emit('if (earthRef.trackingState != TrackingState.TRACKING) return');
     compiler.emit('');
     compiler.emit('val qx = 0f');
-    compiler.emit(
-      'val qy = Math.sin(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()'
-    );
+    compiler.emit('val qy = Math.sin(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()');
     compiler.emit('val qz = 0f');
-    compiler.emit(
-      'val qw = Math.cos(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()'
-    );
+    compiler.emit('val qw = Math.cos(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()');
     compiler.emit('');
     compiler.emit(
       'earthRef.resolveAnchorOnTerrainAsync(lat, lng, altOffset, qx, qy, qz, qw) { anchor, state ->'
@@ -353,7 +354,9 @@ export function emitGeospatialVPSSetup(compiler: AndroidCompiler, composition: H
     compiler.emit('anchorNode.setParent(arFragment.arSceneView.scene)');
     compiler.emit('');
     compiler.emit(
-      'NodeFactory.createDefaultNode(this@' + compiler.options.className + 'Activity) { renderable ->'
+      'NodeFactory.createDefaultNode(this@' +
+        compiler.options.className +
+        'Activity) { renderable ->'
     );
     compiler.indentLevel++;
     compiler.emit('val node = TransformableNode(arFragment.transformationSystem)');
@@ -382,13 +385,9 @@ export function emitGeospatialVPSSetup(compiler: AndroidCompiler, composition: H
     compiler.emit('if (earthRef.trackingState != TrackingState.TRACKING) return');
     compiler.emit('');
     compiler.emit('val qx = 0f');
-    compiler.emit(
-      'val qy = Math.sin(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()'
-    );
+    compiler.emit('val qy = Math.sin(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()');
     compiler.emit('val qz = 0f');
-    compiler.emit(
-      'val qw = Math.cos(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()'
-    );
+    compiler.emit('val qw = Math.cos(Math.toRadians(heading.' + 'to' + 'Double() / 2)).toFloat()');
     compiler.emit('');
     compiler.emit(
       'earthRef.resolveAnchorOnRooftopAsync(lat, lng, altOffset, qx, qy, qz, qw) { anchor, state ->'
@@ -401,7 +400,9 @@ export function emitGeospatialVPSSetup(compiler: AndroidCompiler, composition: H
     compiler.emit('anchorNode.setParent(arFragment.arSceneView.scene)');
     compiler.emit('');
     compiler.emit(
-      'NodeFactory.createDefaultNode(this@' + compiler.options.className + 'Activity) { renderable ->'
+      'NodeFactory.createDefaultNode(this@' +
+        compiler.options.className +
+        'Activity) { renderable ->'
     );
     compiler.indentLevel++;
     compiler.emit('val node = TransformableNode(arFragment.transformationSystem)');
@@ -719,7 +720,9 @@ export function emitDepthScanSetup(compiler: AndroidCompiler, composition: HoloC
     compiler.emit('} else {');
     compiler.indentLevel++;
     compiler.emit('// GLB export: binary glTF format');
-    compiler.emit('android.util.Log.d("HoloScript", "GLB export requires glTF serializer library")');
+    compiler.emit(
+      'android.util.Log.d("HoloScript", "GLB export requires glTF serializer library")'
+    );
     compiler.indentLevel--;
     compiler.emit('}');
     compiler.emit('');
@@ -895,7 +898,9 @@ export function emitPortalARSetup(compiler: AndroidCompiler, composition: HoloCo
     compiler.indentLevel++;
     compiler.emit('val frame = arFragment.arSceneView.arFrame ?: return@addOnUpdateListener');
     compiler.emit('val lightEstimate = frame.lightEstimate');
-    compiler.emit('if (lightEstimate != null && lightEstimate.state == LightEstimate.State.VALID) {');
+    compiler.emit(
+      'if (lightEstimate != null && lightEstimate.state == LightEstimate.State.VALID) {'
+    );
     compiler.indentLevel++;
     compiler.emit('val intensity = lightEstimate.pixelIntensity');
     compiler.emit('val colorCorrection = FloatArray(4)');
@@ -926,7 +931,10 @@ export function hasHandTrackingTraits(composition: HoloComposition): boolean {
   return false;
 }
 
-export function emitHandTrackingSetup(compiler: AndroidCompiler, composition: HoloComposition): void {
+export function emitHandTrackingSetup(
+  compiler: AndroidCompiler,
+  composition: HoloComposition
+): void {
   compiler.emit('');
   compiler.emit('// === Camera Hand Tracking: MediaPipe Hands (M.010.04) ===');
   compiler.emit('private var handsolution: com.google.mediapipe.solutions.hands.Hands? = null');
@@ -1072,9 +1080,7 @@ export function emitHandTrackingSetup(compiler: AndroidCompiler, composition: Ho
   if (hasPinch) {
     compiler.emit('// Pinch gesture: thumb tip close to index tip');
     compiler.emit('val pinchDist = Math.sqrt(');
-    compiler.emit(
-      '    Math.pow((thumbTip[0] - indexTip[0]).' + 'to' + 'Double(), 2.0) +'
-    );
+    compiler.emit('    Math.pow((thumbTip[0] - indexTip[0]).' + 'to' + 'Double(), 2.0) +');
     compiler.emit('    Math.pow((thumbTip[1] - indexTip[1]).' + 'to' + 'Double(), 2.0)');
     compiler.emit(').toFloat()');
     compiler.emit('if (pinchDist < 0.05f) {');
@@ -1174,7 +1180,10 @@ export function hasAuthoringTraits(composition: HoloComposition): boolean {
   return false;
 }
 
-export function emitAuthoringSetup(compiler: AndroidCompiler, composition: HoloComposition): string {
+export function emitAuthoringSetup(
+  compiler: AndroidCompiler,
+  composition: HoloComposition
+): string {
   compiler.lines = [];
   compiler.indentLevel = 0;
 
@@ -1213,7 +1222,10 @@ export function emitAuthoringSetup(compiler: AndroidCompiler, composition: HoloC
   return compiler.lines.join('\n');
 }
 
-export function emitAuthoringInlineSetup(compiler: AndroidCompiler, composition: HoloComposition): void {
+export function emitAuthoringInlineSetup(
+  compiler: AndroidCompiler,
+  composition: HoloComposition
+): void {
   compiler.emit('');
   compiler.emit('// --- Spatial Authoring inline setup (M.010.08) ---');
 

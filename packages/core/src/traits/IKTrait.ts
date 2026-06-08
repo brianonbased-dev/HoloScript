@@ -26,7 +26,6 @@ export type IKSolverType = 'fabrik' | 'ccd' | 'two-bone' | 'full-body';
  * 3D Vector
  */
 
-
 /**
  * Quaternion rotation — canonical 4-tuple definition lives at
  * packages/core/src/types/HoloScriptPlus.ts:26. Founder ruling (2026-04-28):
@@ -326,7 +325,7 @@ export class IKTrait {
     const totalLength = bones.reduce((sum, bone) => sum + bone.length, 0);
 
     // Get root position
-    const rootPos = bones[0].transform?.position || [0, 0, 0 ];
+    const rootPos = bones[0].transform?.position || [0, 0, 0];
 
     // Calculate distance to target
     const distToTarget = this.distance(rootPos, targetPosition);
@@ -402,11 +401,7 @@ export class IKTrait {
         const p0 = positions[i];
         const length = bones[i].length;
         const dir = this.normalize(this.subtract(p0, p1));
-        positions[i] = [
-          p1[0] + dir[0] * length,
-          p1[1] + dir[1] * length,
-          p1[2] + dir[2] * length,
-        ];
+        positions[i] = [p1[0] + dir[0] * length, p1[1] + dir[1] * length, p1[2] + dir[2] * length];
       }
 
       if (this.config.pinRoot) {
@@ -508,25 +503,21 @@ export class IKTrait {
    */
   private lookRotation(forward: Vector3): Quaternion {
     // Simplified look rotation (proper implementation would be more complex)
-    const up = [0, 1, 0 ];
+    const up = [0, 1, 0];
 
     // Cross product for right vector
-    const right = this.normalize(
-      [
-        up[1] * forward[2] - up[2] * forward[1],
-        up[2] * forward[0] - up[0] * forward[2],
-        up[0] * forward[1] - up[1] * forward[0],
-      ] as Vector3
-    );
+    const right = this.normalize([
+      up[1] * forward[2] - up[2] * forward[1],
+      up[2] * forward[0] - up[0] * forward[2],
+      up[0] * forward[1] - up[1] * forward[0],
+    ] as Vector3);
 
     // Recalculate up
-    const newUp = this.normalize(
-      [
-        forward[1] * right[2] - forward[2] * right[1],
-        forward[2] * right[0] - forward[0] * right[2],
-        forward[0] * right[1] - forward[1] * right[0],
-      ] as Vector3
-    );
+    const newUp = this.normalize([
+      forward[1] * right[2] - forward[2] * right[1],
+      forward[2] * right[0] - forward[0] * right[2],
+      forward[0] * right[1] - forward[1] * right[0],
+    ] as Vector3);
 
     // Convert rotation matrix to quaternion (simplified)
     const trace = right[0] + newUp[1] + forward[2];
@@ -643,7 +634,11 @@ export const iKHandler = {
       };
       const side = event.side as 'left' | 'right' | undefined;
       const locked = event.state as boolean | undefined;
-      if (typeof ikInstance.setFootLock === 'function' && (side === 'left' || side === 'right') && typeof locked === 'boolean') {
+      if (
+        typeof ikInstance.setFootLock === 'function' &&
+        (side === 'left' || side === 'right') &&
+        typeof locked === 'boolean'
+      ) {
         ikInstance.setFootLock(side, locked);
         ctx.emit('i_k_foot_lock_changed', { node, side, locked });
       }

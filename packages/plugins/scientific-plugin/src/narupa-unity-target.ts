@@ -461,7 +461,10 @@ namespace ${namespace}
   /**
    * Generate Unity scene file (.unity format)
    */
-  private generateUnityScene(objects: HoloScriptObject[], _options: UnityGenerationOptions): string {
+  private generateUnityScene(
+    objects: HoloScriptObject[],
+    _options: UnityGenerationOptions
+  ): string {
     // Simplified Unity scene YAML
     const sceneObjects = objects.map((obj, i) => this.generateSceneObject(obj, i + 1));
 

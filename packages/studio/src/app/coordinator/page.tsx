@@ -46,7 +46,9 @@ export default function CoordinatorPage() {
           fontFamily: 'system-ui, sans-serif',
         }}
       >
-        <header style={{ padding: '20px 24px', background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
+        <header
+          style={{ padding: '20px 24px', background: '#0f172a', borderBottom: '1px solid #1e293b' }}
+        >
           <h1 style={{ margin: '0 0 6px', fontSize: 20 }}>Coordinator</h1>
           <p style={{ margin: 0, color: '#94a3b8', fontSize: 13 }}>
             Live view of the 4 Pattern E consumer-buses (asset loads, security, generative jobs,
@@ -235,7 +237,9 @@ function DemoControls({ factory }: { factory: TraitContextFactory }) {
 
   return (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-      <span style={{ color: '#64748b', fontSize: 12, alignSelf: 'center' }}>Demo · tick {tick}</span>
+      <span style={{ color: '#64748b', fontSize: 12, alignSelf: 'center' }}>
+        Demo · tick {tick}
+      </span>
       <button style={buttonStyle} onClick={() => startLoad(`avatars/asset-${tick}.glb`)}>
         + Asset load
       </button>

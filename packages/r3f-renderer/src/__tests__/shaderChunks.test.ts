@@ -65,7 +65,12 @@ describe('shaderChunks — PBR-preserving onBeforeCompile injection', () => {
     makeChunkInjector({
       chunks: [
         { stage: 'vertex', include: 'begin_vertex', code: 'BEFORE;', position: 'before' },
-        { stage: 'fragment', include: 'emissivemap_fragment', code: 'REPLACED;', position: 'replace' },
+        {
+          stage: 'fragment',
+          include: 'emissivemap_fragment',
+          code: 'REPLACED;',
+          position: 'replace',
+        },
       ],
     })(shader);
     expect(shader.vertexShader).toContain('BEFORE;\n#include <begin_vertex>');

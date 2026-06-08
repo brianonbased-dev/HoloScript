@@ -35,7 +35,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -44,7 +46,10 @@ const blocked = await selfTest();
 assertEq(blocked.schemaVersion, RECEIPT_VERSION, 'schema version');
 assertEq(blocked.status, 'blocked', 'blocked status');
 assertEq(validateReceipt(blocked).length, 0, 'blocked receipt validates');
-assertOk(blocked.permissionGate.nextAction.includes('Windows Settings'), 'blocked receipt names OS permission gate');
+assertOk(
+  blocked.permissionGate.nextAction.includes('Windows Settings'),
+  'blocked receipt names OS permission gate'
+);
 assertOk(!JSON.stringify(blocked).includes('device-id'), 'raw device id is absent');
 assertOk(blocked.chain?.receipt?.hash?.startsWith('sha256:'), 'blocked receipt carries chain hash');
 assertEq(blocked.chain?.receipt?.stageCount, 1, 'blocked receipt has capture stage');
@@ -125,10 +130,7 @@ const sweepPass = {
       { mode: 'raw', score: 0.93 },
       { mode: 'luma-clahe', score: 0.91 },
     ],
-    results: [
-      { preprocess: { mode: 'raw' } },
-      { preprocess: { mode: 'luma-clahe' } },
-    ],
+    results: [{ preprocess: { mode: 'raw' } }, { preprocess: { mode: 'luma-clahe' } }],
   },
 };
 assertEq(validateReceipt(sweepPass).length, 0, 'minimal sweep receipt validates');
@@ -222,7 +224,10 @@ const help = spawnSync(process.execPath, [SCRIPT, '--help'], {
 assertEq(help.status, 0, 'CLI help exits 0');
 assertOk(help.stdout.includes('fixture'), 'CLI help names fixture command');
 assertOk(help.stdout.includes('sweep'), 'CLI help names sweep command');
-assertOk(help.stdout.includes('.scratch/holoshell-low-camera-fixture'), 'fixture default is scratch-scoped');
+assertOk(
+  help.stdout.includes('.scratch/holoshell-low-camera-fixture'),
+  'fixture default is scratch-scoped'
+);
 assertOk(help.stdout.includes('luma-clahe'), 'CLI help names preprocess modes');
 
 if (testsFailed > 0) {

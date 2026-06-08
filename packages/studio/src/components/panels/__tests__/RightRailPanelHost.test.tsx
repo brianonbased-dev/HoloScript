@@ -83,7 +83,13 @@ describe('RightRailPanelHost', () => {
 
   it('keeps content visible when wrapped in an error boundary', () => {
     renderHost([
-      { id: 'a', open: true, width: 288, errorLabel: 'Node Inspector', content: <div>boundaried</div> },
+      {
+        id: 'a',
+        open: true,
+        width: 288,
+        errorLabel: 'Node Inspector',
+        content: <div>boundaried</div>,
+      },
     ]);
     expect(screen.getByText('boundaried')).toBeInTheDocument();
   });

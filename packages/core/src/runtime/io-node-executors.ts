@@ -61,7 +61,7 @@ export interface IoNodeContext {
  */
 export async function executeServerNode(
   node: ServerNodeLike,
-  ctx: IoNodeContext,
+  ctx: IoNodeContext
 ): Promise<ExecutionResult> {
   if (ctx.isPublicMode) {
     return {
@@ -85,7 +85,7 @@ export async function executeServerNode(
  */
 export async function executeDatabaseNode(
   node: DatabaseNodeLike,
-  ctx: IoNodeContext,
+  ctx: IoNodeContext
 ): Promise<ExecutionResult> {
   if (ctx.isPublicMode) {
     return {
@@ -109,7 +109,7 @@ export async function executeDatabaseNode(
  */
 export async function executeFetchNode(
   node: FetchNodeLike,
-  ctx: IoNodeContext,
+  ctx: IoNodeContext
 ): Promise<ExecutionResult> {
   if (ctx.isPublicMode) {
     return {

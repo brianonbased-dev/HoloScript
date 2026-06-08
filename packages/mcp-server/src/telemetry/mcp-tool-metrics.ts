@@ -72,7 +72,7 @@ export function getPerToolPrometheusText(): string {
   lines.push(
     '',
     '# HELP mcp_tool_errors_total MCP tool invocations that returned an error per tool_name',
-    '# TYPE mcp_tool_errors_total counter',
+    '# TYPE mcp_tool_errors_total counter'
   );
   for (const [tool, b] of perToolMetrics) {
     lines.push(`mcp_tool_errors_total{tool_name="${escapeLabel(tool)}"} ${b.errors}`);
@@ -81,7 +81,7 @@ export function getPerToolPrometheusText(): string {
   lines.push(
     '',
     '# HELP mcp_tool_latency_ms_sum Sum of tool execution latency in ms per tool_name',
-    '# TYPE mcp_tool_latency_ms_sum counter',
+    '# TYPE mcp_tool_latency_ms_sum counter'
   );
   for (const [tool, b] of perToolMetrics) {
     lines.push(`mcp_tool_latency_ms_sum{tool_name="${escapeLabel(tool)}"} ${b.latencyMsSum}`);
@@ -90,7 +90,7 @@ export function getPerToolPrometheusText(): string {
   lines.push(
     '',
     '# HELP mcp_tool_latency_ms_count Number of latency samples per tool_name',
-    '# TYPE mcp_tool_latency_ms_count counter',
+    '# TYPE mcp_tool_latency_ms_count counter'
   );
   for (const [tool, b] of perToolMetrics) {
     lines.push(`mcp_tool_latency_ms_count{tool_name="${escapeLabel(tool)}"} ${b.latencyMsCount}`);
@@ -99,7 +99,7 @@ export function getPerToolPrometheusText(): string {
   lines.push(
     '',
     '# HELP mcp_tool_cache_hits_total MCP tool calls served from cache per tool_name',
-    '# TYPE mcp_tool_cache_hits_total counter',
+    '# TYPE mcp_tool_cache_hits_total counter'
   );
   for (const [tool, b] of perToolMetrics) {
     lines.push(`mcp_tool_cache_hits_total{tool_name="${escapeLabel(tool)}"} ${b.cacheHits}`);

@@ -21,10 +21,22 @@ describe('TropicalShortestPaths', () => {
 
   it('computes APSP with tropical min-plus GEMM path doubling', async () => {
     const adjacency = new Float32Array([
-      0, 3, 10, INF,
-      INF, 0, 1, 7,
-      INF, INF, 0, 2,
-      INF, INF, INF, 0,
+      0,
+      3,
+      10,
+      INF,
+      INF,
+      0,
+      1,
+      7,
+      INF,
+      INF,
+      0,
+      2,
+      INF,
+      INF,
+      INF,
+      0,
     ]);
 
     const result = await tropical.computeAPSP(adjacency, 4);
@@ -53,10 +65,22 @@ describe('TropicalShortestPaths', () => {
 
   it('computes APSP via CPU fallback for small dense matrices', async () => {
     const adjacency = new Float32Array([
-      0, 3, 10, INF,
-      INF, 0, 1, 7,
-      INF, INF, 0, 2,
-      INF, INF, INF, 0,
+      0,
+      3,
+      10,
+      INF,
+      INF,
+      0,
+      1,
+      7,
+      INF,
+      INF,
+      0,
+      2,
+      INF,
+      INF,
+      INF,
+      0,
     ]);
 
     const cpuPreferred = new TropicalShortestPaths(ctx, { preferGPU: false });

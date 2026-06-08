@@ -137,11 +137,7 @@ export {
 } from './adapters/bitnet';
 export type { BitNetModel } from './adapters/bitnet';
 
-export {
-  LocalLLMAdapter,
-  LOCAL_LLM_MODELS,
-  LOCAL_LLM_CAPABILITIES,
-} from './adapters/local-llm';
+export { LocalLLMAdapter, LOCAL_LLM_MODELS, LOCAL_LLM_CAPABILITIES } from './adapters/local-llm';
 export type { LocalLLMModel } from './adapters/local-llm';
 
 export {
@@ -157,12 +153,7 @@ export {
 } from './adapters/openai-compatible';
 export type { OpenAICompatibleAdapterConfig } from './adapters/openai-compatible';
 
-export {
-  XAIAdapter,
-  XAI_MODELS,
-  XAI_MODEL_CAPABILITIES,
-  XAI_CAPABILITIES,
-} from './adapters/xai';
+export { XAIAdapter, XAI_MODELS, XAI_MODEL_CAPABILITIES, XAI_CAPABILITIES } from './adapters/xai';
 export type { XAIModel, XAIModelCapability } from './adapters/xai';
 
 export {
@@ -341,11 +332,15 @@ export function createLocalLLMProvider(config?: Partial<LocalLLMProviderConfig>)
  * });
  * ```
  */
-export function createOpenRouterProvider(config?: Partial<OpenRouterProviderConfig>): OpenRouterAdapter {
+export function createOpenRouterProvider(
+  config?: Partial<OpenRouterProviderConfig>
+): OpenRouterAdapter {
   const apiKey =
     config?.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENROUTER_API_KEY : '') ?? '';
   if (!apiKey) {
-    throw new Error('OpenRouter API key required. Set OPENROUTER_API_KEY or pass apiKey in config.');
+    throw new Error(
+      'OpenRouter API key required. Set OPENROUTER_API_KEY or pass apiKey in config.'
+    );
   }
   return new OpenRouterAdapter({ ...config, apiKey });
 }
@@ -415,7 +410,9 @@ export function createBrittneyCloudProvider(
   config?: Partial<BrittneyCloudProviderConfig>
 ): BrittneyCloudAdapter {
   const baseURL =
-    config?.baseURL ?? (typeof process !== 'undefined' ? process.env.BRITTNEY_SERVICE_URL : '') ?? '';
+    config?.baseURL ??
+    (typeof process !== 'undefined' ? process.env.BRITTNEY_SERVICE_URL : '') ??
+    '';
   const apiKey =
     config?.apiKey ?? (typeof process !== 'undefined' ? process.env.BRITTNEY_API_KEY : '') ?? '';
   if (!baseURL) {

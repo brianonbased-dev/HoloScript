@@ -33,10 +33,7 @@ describe('CareField', () => {
     });
 
     expect(decision.allowed).toBe(true);
-    expect(decision.acceptedOptimizationTargets).toEqual([
-      'human_agency',
-      'mutual_understanding',
-    ]);
+    expect(decision.acceptedOptimizationTargets).toEqual(['human_agency', 'mutual_understanding']);
     expect(decision.blocked).toEqual([]);
   });
 

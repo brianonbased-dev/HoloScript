@@ -1,8 +1,21 @@
 /** @public_meeting Trait — City council and public hearing management. @trait public_meeting */
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
-export type MeetingType = 'city_council' | 'planning_commission' | 'public_hearing' | 'zoning_board' | 'budget_session' | 'town_hall';
-export type MeetingStatus = 'scheduled' | 'in_session' | 'recess' | 'public_comment' | 'voting' | 'adjourned' | 'cancelled';
+export type MeetingType =
+  | 'city_council'
+  | 'planning_commission'
+  | 'public_hearing'
+  | 'zoning_board'
+  | 'budget_session'
+  | 'town_hall';
+export type MeetingStatus =
+  | 'scheduled'
+  | 'in_session'
+  | 'recess'
+  | 'public_comment'
+  | 'voting'
+  | 'adjourned'
+  | 'cancelled';
 
 export interface AgendaItem {
   id: string;
@@ -80,7 +93,9 @@ export function createPublicMeetingHandler(): TraitHandler<PublicMeetingConfig> 
       const quorumMet = config.membersPresent >= config.quorumRequired;
       if (quorumMet !== s.quorumMet) {
         s.quorumMet = quorumMet;
-        ctx.emit?.(quorumMet ? 'meeting:quorum_met' : 'meeting:quorum_lost', { meetingId: config.meetingId });
+        ctx.emit?.(quorumMet ? 'meeting:quorum_met' : 'meeting:quorum_lost', {
+          meetingId: config.meetingId,
+        });
       }
       s.lastUpdated = new Date().toISOString();
     },
@@ -91,11 +106,16 @@ export function createPublicMeetingHandler(): TraitHandler<PublicMeetingConfig> 
         case 'meeting:call_to_order':
           s.status = 'in_session';
           s.recordingActive = true;
-          ctx.emit?.('meeting:called_to_order', { meetingId: config.meetingId, quorumMet: s.quorumMet });
+          ctx.emit?.('meeting:called_to_order', {
+            meetingId: config.meetingId,
+            quorumMet: s.quorumMet,
+          });
           break;
         case 'meeting:open_public_comment':
           s.status = 'public_comment';
-          ctx.emit?.('meeting:public_comment_open', { speakersRegistered: s.publicSpeakersRegistered });
+          ctx.emit?.('meeting:public_comment_open', {
+            speakersRegistered: s.publicSpeakersRegistered,
+          });
           break;
         case 'meeting:register_speaker':
           s.publicSpeakersRegistered++;
@@ -103,19 +123,28 @@ export function createPublicMeetingHandler(): TraitHandler<PublicMeetingConfig> 
           break;
         case 'meeting:next_speaker':
           s.publicSpeakersHeard++;
-          ctx.emit?.('meeting:speaker_started', { heard: s.publicSpeakersHeard, remaining: s.publicSpeakersRegistered - s.publicSpeakersHeard });
+          ctx.emit?.('meeting:speaker_started', {
+            heard: s.publicSpeakersHeard,
+            remaining: s.publicSpeakersRegistered - s.publicSpeakersHeard,
+          });
           break;
         case 'meeting:next_agenda_item':
           if (s.currentAgendaItemIndex < config.agenda.length - 1) {
             s.currentAgendaItemIndex++;
             const item = config.agenda[s.currentAgendaItemIndex];
-            ctx.emit?.('meeting:agenda_advanced', { index: s.currentAgendaItemIndex, item: item?.title });
+            ctx.emit?.('meeting:agenda_advanced', {
+              index: s.currentAgendaItemIndex,
+              item: item?.title,
+            });
           }
           break;
         case 'meeting:adjourn':
           s.status = 'adjourned';
           s.recordingActive = false;
-          ctx.emit?.('meeting:adjourned', { meetingId: config.meetingId, minutesElapsed: Math.round(s.minutesElapsed) });
+          ctx.emit?.('meeting:adjourned', {
+            meetingId: config.meetingId,
+            minutesElapsed: Math.round(s.minutesElapsed),
+          });
           break;
       }
     },

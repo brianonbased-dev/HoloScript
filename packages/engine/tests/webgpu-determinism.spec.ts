@@ -105,7 +105,9 @@ function createHarnessServer(): http.Server {
         res.end();
         return;
       }
-      const fileName = path.basename(url.pathname === '/' ? 'webgpu-determinism-harness.html' : url.pathname);
+      const fileName = path.basename(
+        url.pathname === '/' ? 'webgpu-determinism-harness.html' : url.pathname
+      );
       if (!SCRIPT_ASSETS.has(fileName)) {
         res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
         res.end('not found');
@@ -156,10 +158,15 @@ test.describe('Paper-3 WebGPU determinism harness', () => {
     const address = await listen(server);
     const harnessUrl = buildHarnessUrl(address.port);
     let settled = false;
-    let resolveResult!: (result: { artifact?: HarnessArtifact; error?: BrowserHarnessError }) => void;
-    const resultPromise = new Promise<{ artifact?: HarnessArtifact; error?: BrowserHarnessError }>((resolve) => {
-      resolveResult = resolve;
-    });
+    let resolveResult!: (result: {
+      artifact?: HarnessArtifact;
+      error?: BrowserHarnessError;
+    }) => void;
+    const resultPromise = new Promise<{ artifact?: HarnessArtifact; error?: BrowserHarnessError }>(
+      (resolve) => {
+        resolveResult = resolve;
+      }
+    );
 
     await page.exposeFunction(
       '__playwrightDeterminismDone__',
@@ -167,7 +174,7 @@ test.describe('Paper-3 WebGPU determinism harness', () => {
         if (settled) return;
         settled = true;
         resolveResult(result);
-      },
+      }
     );
 
     await page.addInitScript(`

@@ -4,7 +4,11 @@
 
 import { describe, it, expect } from 'vitest';
 import { diffScenes } from '../SceneDiffer';
-import type { HoloComposition, HoloObjectDecl, HoloObjectProperty } from '../../../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectProperty,
+} from '../../../parser/HoloCompositionTypes';
 import type { ASTMutation } from '../../StudioBridge';
 
 function makeComposition(partial: Partial<HoloComposition> = {}): HoloComposition {
@@ -125,19 +129,17 @@ describe('SceneDiffer', () => {
     const result = diffScenes(prev, next);
     const cfgMut = result.mutations.find((m) => m.type === 'updateTraitConfig');
     expect(cfgMut).toBeDefined();
-    expect((cfgMut as ASTMutation & { configKey: string; configValue: unknown }).configValue).toBe(2);
+    expect((cfgMut as ASTMutation & { configKey: string; configValue: unknown }).configValue).toBe(
+      2
+    );
   });
 
   it('diffs child objects recursively', () => {
     const prev = makeComposition({
-      objects: [
-        makeObject('Parent', {}, [], [makeObject('Child', { scale: 1 })]),
-      ],
+      objects: [makeObject('Parent', {}, [], [makeObject('Child', { scale: 1 })])],
     });
     const next = makeComposition({
-      objects: [
-        makeObject('Parent', {}, [], [makeObject('Child', { scale: 2 })]),
-      ],
+      objects: [makeObject('Parent', {}, [], [makeObject('Child', { scale: 2 })])],
     });
     const result = diffScenes(prev, next);
     expect(result.mutations.length).toBeGreaterThan(0);
@@ -191,7 +193,9 @@ describe('SceneDiffer', () => {
     const result = diffScenes(prev, next);
     const posMut = result.mutations.find((m) => m.type === 'updatePosition');
     expect(posMut).toBeDefined();
-    expect(result.mutations.some((m) => m.type === 'updateObjectProperty' && m.key === 'position')).toBe(false);
+    expect(
+      result.mutations.some((m) => m.type === 'updateObjectProperty' && m.key === 'position')
+    ).toBe(false);
   });
 
   it('handles large scene (1000 objects) efficiently', () => {
@@ -201,9 +205,7 @@ describe('SceneDiffer', () => {
     }
     const prev = makeComposition({ objects });
     const next = makeComposition({
-      objects: objects.map((o, idx) =>
-        idx === 500 ? makeObject(o.name, { x: idx, y: 1 }) : o
-      ),
+      objects: objects.map((o, idx) => (idx === 500 ? makeObject(o.name, { x: idx, y: 1 }) : o)),
     });
     const t0 = performance.now();
     const result = diffScenes(prev, next);

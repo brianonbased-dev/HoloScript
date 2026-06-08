@@ -34,23 +34,10 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
-import {
-  TraitMatrixEntry,
-  TraitPlatformSupport,
-  TraitCoverage,
-  SortField,
-  SortDir,
-} from './types';
-import {
-  PLATFORM_KEYS,
-  PLATFORM_LABELS,
-  CATEGORY_COLORS,
-  SAMPLE_TRAITS,
-} from './mockData';
+import { TraitMatrixEntry, TraitPlatformSupport, TraitCoverage, SortField, SortDir } from './types';
+import { PLATFORM_KEYS, PLATFORM_LABELS, CATEGORY_COLORS, SAMPLE_TRAITS } from './mockData';
 import { PlatformCell, CoverageBadge } from './TraitMatrixBadges';
 import { TraitDetailPanel } from './TraitDetailPanel';
-
-
 
 // =============================================================================
 // Sort Logic
@@ -83,8 +70,6 @@ function sortTraits(
   });
   return dir === 'desc' ? sorted.reverse() : sorted;
 }
-
-
 
 interface TraitSupportMatrixDashboardProps {
   traits?: TraitMatrixEntry[];

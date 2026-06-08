@@ -9,7 +9,13 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import { aiInpaintingHandler, type AiInpaintingConfig, type InpaintModel, type MaskSource, type BlendMode } from './AiInpaintingTrait';
+import {
+  aiInpaintingHandler,
+  type AiInpaintingConfig,
+  type InpaintModel,
+  type MaskSource,
+  type BlendMode,
+} from './AiInpaintingTrait';
 
 describe('AiInpaintingTrait', () => {
   let mockNode: Partial<HSPlusNode>;

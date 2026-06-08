@@ -99,10 +99,10 @@ describe('WizardFlow', () => {
     });
 
     it('UPDATE_LAST_ASSISTANT creates assistant message when none exists', () => {
-      const state = reduce(
-        createInitialWizardState(),
-        { type: 'ADD_MESSAGE', message: { role: 'user', content: 'hello' } }
-      );
+      const state = reduce(createInitialWizardState(), {
+        type: 'ADD_MESSAGE',
+        message: { role: 'user', content: 'hello' },
+      });
       expect(state.messages).toHaveLength(1);
       expect(state.messages[0].role).toBe('user');
 
@@ -135,7 +135,8 @@ describe('WizardFlow', () => {
 
     it('SET_ABSORB_PROGRESS merges partial progress', () => {
       const state = createInitialWizardState();
-      const next = reduce(state,
+      const next = reduce(
+        state,
         { type: 'SET_ABSORB_PROGRESS', progress: { status: 'scanning', totalFiles: 100 } },
         { type: 'SET_ABSORB_PROGRESS', progress: { filesScanned: 50, currentFile: 'src/index.ts' } }
       );
@@ -265,7 +266,9 @@ describe('WizardFlow', () => {
     it('intake requires domain keywords or long intent', () => {
       expect(canAdvance(stateAt('intake'))).toBe(false);
       expect(canAdvance(stateAt('intake', { domainKeywords: ['dispensary'] }))).toBe(true);
-      expect(canAdvance(stateAt('intake', { userIntent: 'a long enough intent string' }))).toBe(true);
+      expect(canAdvance(stateAt('intake', { userIntent: 'a long enough intent string' }))).toBe(
+        true
+      );
     });
 
     it('absorb requires complete status', () => {
@@ -312,9 +315,7 @@ describe('WizardFlow', () => {
 
     it('deploy requires compilation targets', () => {
       expect(canAdvance(stateAt('deploy'))).toBe(false);
-      expect(
-        canAdvance(stateAt('deploy', { compilationTargets: ['react'] }))
-      ).toBe(true);
+      expect(canAdvance(stateAt('deploy', { compilationTargets: ['react'] }))).toBe(true);
     });
   });
 

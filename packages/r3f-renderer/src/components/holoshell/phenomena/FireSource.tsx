@@ -94,7 +94,7 @@ export const FireSource: React.FC<FireSourceProps> = ({
       const s = i * 0.037;
       pos[i * 3 + 0] = (Math.sin(s * 12) * 0.18 + (i % 5) * 0.01) * 0.6;
       pos[i * 3 + 1] = (i % 11) * 0.03;
-      pos[i * 3 + 2] = (Math.cos(s * 9) * 0.16) * 0.6;
+      pos[i * 3 + 2] = Math.cos(s * 9) * 0.16 * 0.6;
 
       seeds[i] = s;
       sizes[i] = 1.6 + (i % 7) * 0.35;
@@ -192,9 +192,7 @@ export const FireSource: React.FC<FireSourceProps> = ({
       />
 
       {/* Embers */}
-      {embers && emberGeo && (
-        <points geometry={emberGeo} material={emberMat} />
-      )}
+      {embers && emberGeo && <points geometry={emberGeo} material={emberMat} />}
 
       {/* Soft glow sphere at base (emissive halo) */}
       <mesh position={[0, 0.18, 0]}>

@@ -11,7 +11,7 @@ name: Test Snapshot (S.TST refresher)
 on:
   workflow_dispatch:
 permissions:
-  contents: write   # commit docs/test-snapshot.json back to main
+  contents: write # commit docs/test-snapshot.json back to main
 
 concurrency:
   group: test-snapshot
@@ -42,7 +42,7 @@ jobs:
 
       - name: Run core tests (capture output)
         id: core
-        continue-on-error: true   # we record fail counts, never gate on them
+        continue-on-error: true # we record fail counts, never gate on them
         run: |
           mkdir -p /tmp/snap
           set -o pipefail

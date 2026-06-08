@@ -24,7 +24,12 @@
  * @module secrets-broker/secret-resolver
  */
 
-import { DecryptError, OwnerMismatchError, SecretNotFoundError, type SecretStore } from './secret-store';
+import {
+  DecryptError,
+  OwnerMismatchError,
+  SecretNotFoundError,
+  type SecretStore,
+} from './secret-store';
 import type { SecretRef } from './types';
 
 /** Thrown when a resolve is attempted without an authenticated owner identity. */
@@ -99,11 +104,23 @@ export function createSecretResolver(deps: SecretResolverDeps): SecretResolver {
     outcome: 'allowed' | 'denied',
     reason: string | null
   ): void => {
-    audit({ event: 'secret.resolve', ownerId, ref, purpose, outcome, reason, at: now().toISOString() });
+    audit({
+      event: 'secret.resolve',
+      ownerId,
+      ref,
+      purpose,
+      outcome,
+      reason,
+      at: now().toISOString(),
+    });
   };
 
   return {
-    async resolve({ authenticatedOwnerId, ref, purpose }: ResolveInput): Promise<{ value: string }> {
+    async resolve({
+      authenticatedOwnerId,
+      ref,
+      purpose,
+    }: ResolveInput): Promise<{ value: string }> {
       const purposeOrNull = purpose ?? null;
 
       // (1) FAIL CLOSED — no authenticated owner means no value, full stop.

@@ -143,5 +143,5 @@ export function base64ToSimulation(encoded: string): SerializedSimulation {
 export function estimateURLSize(sim: SerializedSimulation): number {
   const json = JSON.stringify(sim);
   // Base64 expands by ~33%
-  return Math.ceil(json.length * 4 / 3);
+  return Math.ceil((json.length * 4) / 3);
 }

@@ -4,6 +4,7 @@
 **Author:** github-copilot  
 **Date:** 2026-04-28  
 **References:**
+
 - research/2026-04-28_cascadeur-EVOLVED.md §W.701, W.702, W.705, W.706, Δ1, Δ4, Δ10
 - research/2026-04-28_cascadeur.md (source RE)
 - D.027 (Brittney operator contract — NL → manipulator → refusable diff)
@@ -18,6 +19,7 @@
 Cascadeur's **AutoPosing** network solves: given a sparse set of manipulator positions, infer a plausible full-body pose for the remaining joints. The 2019 SIGGRAPH-referenced architecture demonstrates this is tractable at ~329k parameters — trivially CPU/WASM runnable, web-deliverable, mobile-viable.
 
 HoloScript needs a first-party equivalent that:
+
 1. Integrates with the `.hsplus` trait system
 2. Feeds into the `<RefusableDiff />` animator-primacy pipeline (P.700.01)
 3. Operates on `.holo` character data without mutation until accept
@@ -29,22 +31,23 @@ HoloScript needs a first-party equivalent that:
 
 ### 2.1 Cascadeur 2019 Baseline
 
-| Property | Value | Source |
-|----------|-------|--------|
-| Architecture | 5-layer FC | SIGGRAPH 2019 blog |
-| Layer sizes | 300 → 400 → 300 → 200 | SIGGRAPH 2019 blog |
-| Input | 18 manipulator joint positions | SIGGRAPH 2019 blog |
-| Output | 111 joint positions | SIGGRAPH 2019 blog (inferred: ~37 joints × 3 coords) |
-| Total params | ~329k (verified by direct count) | EVOLVED.md §Param Count |
-| Float32 size | ~1.3 MB | EVOLVED.md §Param Count |
-| Float16 size | ~660 KB | EVOLVED.md §Param Count |
-| Training set | ~115k poses (2M after 17× augmentation) | SIGGRAPH 2019 blog |
-| Loss | Least-squares on joint positions | SIGGRAPH 2019 blog |
-| Error metric | 3.5cm average joint position error | SIGGRAPH 2019 blog |
+| Property     | Value                                   | Source                                               |
+| ------------ | --------------------------------------- | ---------------------------------------------------- |
+| Architecture | 5-layer FC                              | SIGGRAPH 2019 blog                                   |
+| Layer sizes  | 300 → 400 → 300 → 200                   | SIGGRAPH 2019 blog                                   |
+| Input        | 18 manipulator joint positions          | SIGGRAPH 2019 blog                                   |
+| Output       | 111 joint positions                     | SIGGRAPH 2019 blog (inferred: ~37 joints × 3 coords) |
+| Total params | ~329k (verified by direct count)        | EVOLVED.md §Param Count                              |
+| Float32 size | ~1.3 MB                                 | EVOLVED.md §Param Count                              |
+| Float16 size | ~660 KB                                 | EVOLVED.md §Param Count                              |
+| Training set | ~115k poses (2M after 17× augmentation) | SIGGRAPH 2019 blog                                   |
+| Loss         | Least-squares on joint positions        | SIGGRAPH 2019 blog                                   |
+| Error metric | 3.5cm average joint position error      | SIGGRAPH 2019 blog                                   |
 
 ### 2.2 HoloScript Target Architecture (W.706)
 
 Per EVOLVED.md W.706, the HoloScript reference implementation mirrors the 2019 spec:
+
 - 5-layer FC: input(N) → 300 → 400 → 300 → 200 → output(J×3)
 - Input: 6 / 16 / 28 manipulator positions (three operating modes)
 - Output: 37 joint positions (×3 = 111 output values)
@@ -173,11 +176,11 @@ Simpler. Add `PosePredictTrait.ts` and a `PosePredictEngine` that imports from a
 
 ## 6. Manipulator Mode Design
 
-| Mode | Joint indices | Use case |
-|------|--------------|---------|
-| 6 | pelvis, L/R wrist, L/R ankle, head | Minimal drag — quick pose sketching, HoloLand gesture input |
-| 16 | 6 + L/R elbow, L/R knee, L/R shoulder, spine-mid, chest, neck | Standard Studio authoring |
-| 28 | 16 + L/R hip, L/R finger (pinch proxy), L/R toe, clavicles, jaw | Precision character work, facial integration |
+| Mode | Joint indices                                                   | Use case                                                    |
+| ---- | --------------------------------------------------------------- | ----------------------------------------------------------- |
+| 6    | pelvis, L/R wrist, L/R ankle, head                              | Minimal drag — quick pose sketching, HoloLand gesture input |
+| 16   | 6 + L/R elbow, L/R knee, L/R shoulder, spine-mid, chest, neck   | Standard Studio authoring                                   |
+| 28   | 16 + L/R hip, L/R finger (pinch proxy), L/R toe, clavicles, jaw | Precision character work, facial integration                |
 
 All three modes share the same trained model by zero-padding unused manipulator slots and masking them in a learned mask layer — consistent with the approach described in the SIGGRAPH 2019 blog for variable-input AutoPosing.
 
@@ -190,7 +193,7 @@ Per EVOLVED.md, the `pose.predict` trait outputs **joint positions** (not rotati
 ```typescript
 // Future separate impl ticket
 export interface IKResolveInput {
-  joint_positions: Float32Array;   // from PosePredictOutput
+  joint_positions: Float32Array; // from PosePredictOutput
   skeleton_bind_pose: SkeletonState;
   ik_solver: 'fabrik' | 'cyclic_ccd' | 'analytical';
 }
@@ -204,24 +207,24 @@ This two-step design mirrors the Cascadeur separation between AutoPosing (positi
 
 For the first `biped_v1.onnx` model:
 
-| Step | Details |
-|------|---------|
-| Corpus | CMU MoCap + AMASS (open license) |
-| Augmentation | 17× per W.702: mirror (left↔right), rotation (N random azimuth orientations) |
-| Target scale | ~115k raw poses → ~2M augmented (matching Cascadeur training scale) |
-| Input format | 37 joint positions normalized to pelvis-origin, unit hip-width scale |
-| Output format | 37 joint positions (same normalization) |
-| Manipulator sampling | Random 6/16/28 subsets per batch (variable-input training) |
-| Loss | MSE on joint positions |
-| Validation metric | Average per-joint position error (cm) — target ≤4cm for biped |
-| Benchmark | 3.5cm is Cascadeur's published error; ≤4cm is acceptable parity |
-| Training infra | Paper 18 gate track (Motion-SESL pipeline, CAEL-logged) |
+| Step                 | Details                                                                      |
+| -------------------- | ---------------------------------------------------------------------------- |
+| Corpus               | CMU MoCap + AMASS (open license)                                             |
+| Augmentation         | 17× per W.702: mirror (left↔right), rotation (N random azimuth orientations) |
+| Target scale         | ~115k raw poses → ~2M augmented (matching Cascadeur training scale)          |
+| Input format         | 37 joint positions normalized to pelvis-origin, unit hip-width scale         |
+| Output format        | 37 joint positions (same normalization)                                      |
+| Manipulator sampling | Random 6/16/28 subsets per batch (variable-input training)                   |
+| Loss                 | MSE on joint positions                                                       |
+| Validation metric    | Average per-joint position error (cm) — target ≤4cm for biped                |
+| Benchmark            | 3.5cm is Cascadeur's published error; ≤4cm is acceptable parity              |
+| Training infra       | Paper 18 gate track (Motion-SESL pipeline, CAEL-logged)                      |
 
 ---
 
 ## 9. HoloLand / D.019 Cross-Product Note
 
-Per Δ10: AutoPosing's 6→37 joint inference **is the same computational problem** as 2D keypoint→3D pose estimation when the input comes from image keypoints or hand tracking. 
+Per Δ10: AutoPosing's 6→37 joint inference **is the same computational problem** as 2D keypoint→3D pose estimation when the input comes from image keypoints or hand tracking.
 
 If a Quest 3 user gestures (6 hand-tracked targets), this trait can infer a full avatar pose in real time. This is a HoloGram (D.019) + pose.predict product fusion candidate. Track separately; note here for cross-referencing.
 

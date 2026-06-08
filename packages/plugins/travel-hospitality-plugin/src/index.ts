@@ -1,6 +1,18 @@
-export { createReservationHandler, type ReservationConfig, type ReservationStatus } from './traits/ReservationTrait';
-export { createItineraryHandler, type ItineraryConfig, type ItineraryItem } from './traits/ItineraryTrait';
-export { createRateManagementHandler, type RateManagementConfig, type RatePeriod } from './traits/RateManagementTrait';
+export {
+  createReservationHandler,
+  type ReservationConfig,
+  type ReservationStatus,
+} from './traits/ReservationTrait';
+export {
+  createItineraryHandler,
+  type ItineraryConfig,
+  type ItineraryItem,
+} from './traits/ItineraryTrait';
+export {
+  createRateManagementHandler,
+  type RateManagementConfig,
+  type RatePeriod,
+} from './traits/RateManagementTrait';
 export * from './traits/types';
 
 import { createReservationHandler } from './traits/ReservationTrait';
@@ -23,5 +35,22 @@ export {
   type TraitRegistrar,
 } from './runtime';
 
-export const pluginMeta = { name: '@holoscript/plugin-travel-hospitality', version: '1.0.0', traits: ['reservation', 'itinerary', 'rate_management', 'emsr_yield', 'revpar', 'overbooking', 'group_displacement', 'demand_forecast'] };
-export const traitHandlers = [createReservationHandler(), createItineraryHandler(), createRateManagementHandler()];
+export const pluginMeta = {
+  name: '@holoscript/plugin-travel-hospitality',
+  version: '1.0.0',
+  traits: [
+    'reservation',
+    'itinerary',
+    'rate_management',
+    'emsr_yield',
+    'revpar',
+    'overbooking',
+    'group_displacement',
+    'demand_forecast',
+  ],
+};
+export const traitHandlers = [
+  createReservationHandler(),
+  createItineraryHandler(),
+  createRateManagementHandler(),
+];

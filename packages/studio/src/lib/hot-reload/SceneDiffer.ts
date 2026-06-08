@@ -243,7 +243,10 @@ interface PropertyDiff {
   removed: string[];
 }
 
-function diffProperties(prev: HoloObjectProperty[] = [], next: HoloObjectProperty[] = []): PropertyDiff {
+function diffProperties(
+  prev: HoloObjectProperty[] = [],
+  next: HoloObjectProperty[] = []
+): PropertyDiff {
   const prevMap = new Map(prev.map((p) => [p.key, p]));
   const nextMap = new Map(next.map((p) => [p.key, p]));
 

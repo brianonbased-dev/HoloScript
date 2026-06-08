@@ -16,17 +16,22 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  resolveSecretWithLease,
-  VaultLeaseError,
-} from './holomesh/identity/vault-lease-registry';
+import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface FounderRuling {
-  layer: 'Diamond' | 'Platinum' | 'GOLD' | 'NORTH_STAR' | 'CLAUDE.md' | 'knowledge' | 'founder-default' | 'judgment';
+  layer:
+    | 'Diamond'
+    | 'Platinum'
+    | 'GOLD'
+    | 'NORTH_STAR'
+    | 'CLAUDE.md'
+    | 'knowledge'
+    | 'founder-default'
+    | 'judgment';
   ruling: string;
   citation: string;
   action: string;
@@ -95,14 +100,14 @@ const KNOWN_DEFAULTS: DefaultEntry[] = [
     layer: 'founder-default',
     ruling: 'MCP if reachable; CLI only as fallback.',
     citation: 'founder-defaults table — "MCP or CLI?"',
-    action: 'Use the MCP tool. If it 502s, investigate; don\'t silently route around it.',
+    action: "Use the MCP tool. If it 502s, investigate; don't silently route around it.",
   },
   {
     keywords: ['commit now', 'commit', 'wait'],
     layer: 'founder-default',
     ruling: 'Commit if you finished a coherent unit and tests pass.',
     citation: 'founder-defaults table — "Commit now or wait?"',
-    action: 'Commit to main (local agents don\'t branch).',
+    action: "Commit to main (local agents don't branch).",
   },
   {
     keywords: ['git add', 'stage', '-A', 'git add .'],
@@ -119,7 +124,14 @@ const KNOWN_DEFAULTS: DefaultEntry[] = [
     action: 'Use the real database in tests.',
   },
   {
-    keywords: ['hardcode count', 'hardcode stats', 'tool count', 'compiler count', 'trait count', 'test count'],
+    keywords: [
+      'hardcode count',
+      'hardcode stats',
+      'tool count',
+      'compiler count',
+      'trait count',
+      'test count',
+    ],
     layer: 'founder-default',
     ruling: 'No — reference HoloScript/docs/NUMBERS.md or the verification command.',
     citation: 'founder-defaults table — "Hardcode a count?" + zero-hardcoded-stats rule',
@@ -130,12 +142,12 @@ const KNOWN_DEFAULTS: DefaultEntry[] = [
     layer: 'founder-default',
     ruling: 'No — use unknown. any has caused 3+ production bugs.',
     citation: 'founder-defaults table — "any in TypeScript?" + global CLAUDE.md',
-    action: 'Replace any with unknown. Fix the type, don\'t mask it.',
+    action: "Replace any with unknown. Fix the type, don't mask it.",
   },
   {
     keywords: ['plan or ask', 'ask the founder', 'ask joseph', 'should i ask'],
     layer: 'founder-default',
-    ruling: 'Plan, then tell — don\'t stall asking.',
+    ruling: "Plan, then tell — don't stall asking.",
     citation: 'founder-defaults table — "Plan or ask?"',
     action: 'Decide, execute, announce in the handoff.',
   },
@@ -151,7 +163,8 @@ const KNOWN_DEFAULTS: DefaultEntry[] = [
     layer: 'founder-default',
     ruling: 'Fix if yours, investigate if pre-existing.',
     citation: 'founder-defaults table — "Test failing and not mine?"',
-    action: 'Investigate the failure. Do not skip or .only; file complex pre-existing failures as tasks with evidence.',
+    action:
+      'Investigate the failure. Do not skip or .only; file complex pre-existing failures as tasks with evidence.',
   },
   {
     keywords: ['local service', 'production', 'localhost', 'dev service'],
@@ -164,7 +177,8 @@ const KNOWN_DEFAULTS: DefaultEntry[] = [
     keywords: ['domain code in core', 'packages/core/', 'domain vocabulary in core'],
     layer: 'founder-default',
     ruling: 'No — plugins are data, not code. Zero domain vocabulary in core.',
-    citation: 'founder-defaults table — "Domain-specific code in packages/core/?" + S.MCP architecture rule',
+    citation:
+      'founder-defaults table — "Domain-specific code in packages/core/?" + S.MCP architecture rule',
     action: 'Place domain code in packages/plugins/. Core learns shapes, not domains.',
   },
   {
@@ -196,7 +210,14 @@ const KNOWN_DEFAULTS: DefaultEntry[] = [
     action: 'Use /moltbook for engagement only. No automation.',
   },
   {
-    keywords: ['bandaid', 'quick fix', 'for now', 'temporarily', 'good enough to unblock', 'until we'],
+    keywords: [
+      'bandaid',
+      'quick fix',
+      'for now',
+      'temporarily',
+      'good enough to unblock',
+      'until we',
+    ],
     layer: 'founder-default',
     ruling: 'Refuse the bandaid. Fix the root cause.',
     citation: 'founder skill §1 Refuse the bandaid',
@@ -210,7 +231,14 @@ const KNOWN_DEFAULTS: DefaultEntry[] = [
     action: 'Fix the broken system. Do not build a shadow system around it.',
   },
   {
-    keywords: ['demote', 'descope', 'simpler version for now', 'v1 without', 'we can add later', 'skip for now'],
+    keywords: [
+      'demote',
+      'descope',
+      'simpler version for now',
+      'v1 without',
+      'we can add later',
+      'skip for now',
+    ],
     layer: 'founder-default',
     ruling: 'Refuse the demote. Name the scope cut explicitly or build the gap.',
     citation: 'founder skill §3 Refuse the demote',
@@ -230,15 +258,23 @@ const KNOWN_DEFAULTS: DefaultEntry[] = [
 // ---------------------------------------------------------------------------
 
 const VISION_PILLARS: Record<string, string> = {
-  'simulation-first': 'Digital twin before physical twin. Every feature asks: can it be simulated deterministically, replayed, and V&V\'d? If no, it is not done.',
-  'universal-platform': 'Any data -> .holo -> any device. Zero domain vocabulary in core. Plugins are data. Core never learns that "robotics" or "medical" exist — it learns shapes.',
-  'architecture-beats-alignment': 'Security through structure, not through asking AI to be careful. If a safety check depends on a model reading content correctly, the check is doing nothing.',
+  'simulation-first':
+    "Digital twin before physical twin. Every feature asks: can it be simulated deterministically, replayed, and V&V'd? If no, it is not done.",
+  'universal-platform':
+    'Any data -> .holo -> any device. Zero domain vocabulary in core. Plugins are data. Core never learns that "robotics" or "medical" exist — it learns shapes.',
+  'architecture-beats-alignment':
+    'Security through structure, not through asking AI to be careful. If a safety check depends on a model reading content correctly, the check is doing nothing.',
   'failure-knowledge-decays-slower': 'Gotchas outlive tips. Prune success first, keep scars.',
-  'algebraic-trust': 'SimulationContract + CAEL + x402 unify under Algebraic Trust. Every verification-layer decision must be reducible to it.',
-  'production-is-the-product': 'Production is the product, not a later stage. If the only way it works is on your laptop, you have not shipped it.',
-  'iphone-moment-on-quest-3': 'The product is validated by Joseph using it daily on Quest 3. Developer-only UX is not a product.',
-  'github-is-source-of-truth': 'GitHub is source of truth; servers are projections. Live API = now. Git = the record.',
-  'wallets-are-identity': 'Wallets are identity. API keys are sessions. Never overwrite wallets during rotation. HoloMesh keys are disposable; agentId + wallet is durable.',
+  'algebraic-trust':
+    'SimulationContract + CAEL + x402 unify under Algebraic Trust. Every verification-layer decision must be reducible to it.',
+  'production-is-the-product':
+    'Production is the product, not a later stage. If the only way it works is on your laptop, you have not shipped it.',
+  'iphone-moment-on-quest-3':
+    'The product is validated by Joseph using it daily on Quest 3. Developer-only UX is not a product.',
+  'github-is-source-of-truth':
+    'GitHub is source of truth; servers are projections. Live API = now. Git = the record.',
+  'wallets-are-identity':
+    'Wallets are identity. API keys are sessions. Never overwrite wallets during rotation. HoloMesh keys are disposable; agentId + wallet is durable.',
 };
 
 // ---------------------------------------------------------------------------
@@ -300,7 +336,9 @@ function readClaudeMd(): string | null {
 // Knowledge store query
 // ---------------------------------------------------------------------------
 
-async function queryKnowledgeStore(search: string): Promise<Array<{ id?: string; type?: string; content?: string }>> {
+async function queryKnowledgeStore(
+  search: string
+): Promise<Array<{ id?: string; type?: string; content?: string }>> {
   const apiKey = readKnowledgeApiKey();
   if (!apiKey) return [];
 
@@ -391,17 +429,19 @@ function matchGoldIndex(question: string, goldIndex: string | null): FounderRuli
 // Main handler
 // ---------------------------------------------------------------------------
 
-export async function handleFounderTool(
-  args: Record<string, unknown>
-): Promise<FounderResult> {
+export async function handleFounderTool(args: Record<string, unknown>): Promise<FounderResult> {
   const rawQuestion = String(args.question || '');
   const context = String(args.context || '');
   const mode = ((args.mode as string) || 'single') as 'single' | 'batch';
   const explain = args.explain === true;
 
-  const questions = mode === 'batch'
-    ? rawQuestion.split(' // ').map((s) => s.trim()).filter(Boolean)
-    : [rawQuestion.trim()].filter(Boolean);
+  const questions =
+    mode === 'batch'
+      ? rawQuestion
+          .split(' // ')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [rawQuestion.trim()].filter(Boolean);
 
   if (questions.length === 0) {
     throw new Error('holo_founder: question is required (non-empty string).');
@@ -436,7 +476,21 @@ export async function handleFounderTool(
       const ns = northStar.toLowerCase();
       const lowerQ = q.toLowerCase();
       // Look for decision-tree keys in NORTH_STAR
-      const dtKeys = ['package', 'commit', 'test', 'mcp', 'cache', 'todo', 'version', 'doc', 'cost', 'conflict', 'repo', 'embedding', 'git'];
+      const dtKeys = [
+        'package',
+        'commit',
+        'test',
+        'mcp',
+        'cache',
+        'todo',
+        'version',
+        'doc',
+        'cost',
+        'conflict',
+        'repo',
+        'embedding',
+        'git',
+      ];
       for (const key of dtKeys) {
         if (lowerQ.includes(key) && ns.includes(key)) {
           // Extract a line from NORTH_STAR that mentions the key
@@ -467,10 +521,32 @@ export async function handleFounderTool(
         const topContent = String(top.content || '').toLowerCase();
         // Content words: non-stopword tokens of length >= 5 from the query.
         const STOPWORDS = new Set([
-          'should', 'could', 'would', 'about', 'after', 'before', 'between',
-          'which', 'where', 'there', 'their', 'these', 'those', 'while',
-          'because', 'through', 'against', 'across', 'around', 'under',
-          'within', 'without', 'every', 'other', 'another', 'something',
+          'should',
+          'could',
+          'would',
+          'about',
+          'after',
+          'before',
+          'between',
+          'which',
+          'where',
+          'there',
+          'their',
+          'these',
+          'those',
+          'while',
+          'because',
+          'through',
+          'against',
+          'across',
+          'around',
+          'under',
+          'within',
+          'without',
+          'every',
+          'other',
+          'another',
+          'something',
         ]);
         const contentWords = q
           .toLowerCase()
@@ -483,7 +559,8 @@ export async function handleFounderTool(
             layer: 'knowledge',
             ruling: `Knowledge store returned ${knowledge.length} entr${knowledge.length === 1 ? 'y' : 'ies'}. Top: ${String(top.content || '').slice(0, 200)}`,
             citation: `knowledge store — ${top.id || top.type || 'unknown'}`,
-            action: 'Use the knowledge store entry as precedent. If it conflicts with GOLD, GOLD wins.',
+            action:
+              'Use the knowledge store entry as precedent. If it conflicts with GOLD, GOLD wins.',
           };
         }
         // else: top entry has zero keyword overlap with the query — store
@@ -495,7 +572,8 @@ export async function handleFounderTool(
     if (!ruling) {
       ruling = {
         layer: 'judgment',
-        ruling: 'No precedent found in authority layers. Make the conservative choice (easier to undo) and document the decision.',
+        ruling:
+          'No precedent found in authority layers. Make the conservative choice (easier to undo) and document the decision.',
         citation: 'founder skill §Escape hatch — judgment call',
         action: 'Decide, execute, and document the rationale in the handoff.',
       };

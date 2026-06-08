@@ -43,13 +43,13 @@ export interface TokenLedgerEntry {
 
 /** Sources that can create a ledger entry. */
 export type TokenSource =
-  | 'stripe_payment'       // Stripe webhook → credit
-  | 'admin_grant'          // Founder/admin manual grant → credit
-  | 'admin_revoke'         // Founder/admin manual revoke → debit
-  | 'operation_debit'      // HoloScript operation → debit
-  | 'promotion_credit'     // Sign-up bonus, campaign → credit
-  | 'refund'               // Stripe refund or admin reversal → credit
-  | 'adjustment';          // General correction (credit or debit)
+  | 'stripe_payment' // Stripe webhook → credit
+  | 'admin_grant' // Founder/admin manual grant → credit
+  | 'admin_revoke' // Founder/admin manual revoke → debit
+  | 'operation_debit' // HoloScript operation → debit
+  | 'promotion_credit' // Sign-up bonus, campaign → credit
+  | 'refund' // Stripe refund or admin reversal → credit
+  | 'adjustment'; // General correction (credit or debit)
 
 /** Balance inquiry result. */
 export interface TokenBalance {
@@ -384,13 +384,10 @@ export function authorizeAndDebit(
   operationName: string,
   metadata?: Record<string, unknown>
 ): TokenOperationResult {
-  return debitTokens(
-    userId,
-    amount,
-    'operation_debit',
-    `op_${operationName}_${Date.now()}`,
-    { operation: operationName, ...metadata }
-  );
+  return debitTokens(userId, amount, 'operation_debit', `op_${operationName}_${Date.now()}`, {
+    operation: operationName,
+    ...metadata,
+  });
 }
 
 // ── Admin operations ──────────────────────────────────────────────────────────

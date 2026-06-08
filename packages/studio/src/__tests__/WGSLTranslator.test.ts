@@ -514,16 +514,9 @@ describe('WGSLTranslator — utility nodes', () => {
 
   it('ScreenSpaceAO bindings order after material textures', () => {
     const texId = 'texA';
-    const nodes = [
-      node(texId, 'Texture2D'),
-      node('ssao', 'ScreenSpaceAO'),
-      node('out', 'output'),
-    ];
+    const nodes = [node(texId, 'Texture2D'), node('ssao', 'ScreenSpaceAO'), node('out', 'output')];
     const uTex = `uTexture_${texId}`;
-    const result = compile(nodes, [
-      edge(texId, 'ssao'),
-      edge('ssao', 'out'),
-    ]);
+    const result = compile(nodes, [edge(texId, 'ssao'), edge('ssao', 'out')]);
     expect(result.ok).toBe(true);
     const wgsl = result.wgsl!;
     const iUni = wgsl.indexOf('var<uniform> uniforms');

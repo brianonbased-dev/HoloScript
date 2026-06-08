@@ -69,17 +69,17 @@ export const ScalarArithmetic: PIDArithmetic<number> = {
  * Arithmetic adapter for IVector3 values.
  */
 export const Vector3Arithmetic: PIDArithmetic<IVector3> = {
-  zero: () => ([0, 0, 0 ]),
-  add: (a, b) => ([a[0] + b[0], a[1] + b[1], a[2] + b[2] ]),
-  sub: (a, b) => ([a[0] - b[0], a[1] - b[1], a[2] - b[2] ]),
-  scale: (s, a) => ([s * a[0], s * a[1], s * a[2] ]),
+  zero: () => [0, 0, 0],
+  add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  scale: (s, a) => [s * a[0], s * a[1], s * a[2]],
   magnitude: (a) => Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]),
-  clamp: (a, min, max) => ([
+  clamp: (a, min, max) => [
     Math.max(min, Math.min(max, a[0])),
     Math.max(min, Math.min(max, a[1])),
     Math.max(min, Math.min(max, a[2])),
-  ]),
-  clone: (a) => ([a[0], a[1], a[2] ]),
+  ],
+  clone: (a) => [a[0], a[1], a[2]],
 };
 
 // =============================================================================
@@ -905,20 +905,16 @@ export function createVector3PIDController(
   config: PIDControllerTraitConfig
 ): PIDController<IVector3> {
   return new PIDController<IVector3>(
-    defaultPIDConfig(
-      'pid-vec3-' + config.id,
-      [0, 0, 0 ],
-      {
-        outerGains: { kP: 2.0, kI: 0.1, kD: 0.5, ...config.outerGains },
-        innerGains: { kP: 1.0, kI: 0.0, kD: 0.1, ...config.innerGains },
-        timing: { innerHz: 200, outerHz: 60, ...config.timing },
-        outputLimit: config.outputLimit ?? 1000,
-        integralLimit: config.integralLimit ?? 100,
-        setpointRampRate: config.setpointRampRate ?? 0,
-        velocityLimit: config.velocityLimit ?? 50,
-        derivativeFilterAlpha: config.derivativeFilterAlpha ?? 0.1,
-      }
-    ),
+    defaultPIDConfig('pid-vec3-' + config.id, [0, 0, 0], {
+      outerGains: { kP: 2.0, kI: 0.1, kD: 0.5, ...config.outerGains },
+      innerGains: { kP: 1.0, kI: 0.0, kD: 0.1, ...config.innerGains },
+      timing: { innerHz: 200, outerHz: 60, ...config.timing },
+      outputLimit: config.outputLimit ?? 1000,
+      integralLimit: config.integralLimit ?? 100,
+      setpointRampRate: config.setpointRampRate ?? 0,
+      velocityLimit: config.velocityLimit ?? 50,
+      derivativeFilterAlpha: config.derivativeFilterAlpha ?? 0.1,
+    }),
     Vector3Arithmetic
   );
 }

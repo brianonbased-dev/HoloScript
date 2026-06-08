@@ -216,7 +216,7 @@ class FileScanSessionStore implements ScanSessionStore {
           } catch {
             await rm(path, { force: true });
           }
-        }),
+        })
     );
   }
 
@@ -309,7 +309,7 @@ export function getScanSessionStore(): ScanSessionStore {
   } else {
     singleton = new FileScanSessionStore(
       process.env.STUDIO_SCAN_SESSION_DIR?.trim() ||
-        join(tmpdir(), 'holoscript-studio-scan-sessions'),
+        join(tmpdir(), 'holoscript-studio-scan-sessions')
     );
   }
   return singleton;

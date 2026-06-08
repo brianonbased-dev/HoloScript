@@ -186,7 +186,9 @@ describe('chain-anchor: hashSettlementReceipt', () => {
     });
 
     it('hashSettlementReceipt with 0.05 USDC price produces a non-zero price in the hash', () => {
-      const domain = settlementDomain({ HOLOMESH_NEGOTIATION_CHAIN_ID: '8453' } as NodeJS.ProcessEnv);
+      const domain = settlementDomain({
+        HOLOMESH_NEGOTIATION_CHAIN_ID: '8453',
+      } as NodeJS.ProcessEnv);
       const subDollarHashable: HashableReceipt = {
         ...FIXED_HASHABLE,
         finalQuote: { ...FIXED_HASHABLE.finalQuote, price: 0.05 },
@@ -203,7 +205,9 @@ describe('chain-anchor: hashSettlementReceipt', () => {
     });
 
     it('hashSettlementReceipt with priceScaleFactor=1 keeps integer prices unchanged', () => {
-      const domain = settlementDomain({ HOLOMESH_NEGOTIATION_CHAIN_ID: '8453' } as NodeJS.ProcessEnv);
+      const domain = settlementDomain({
+        HOLOMESH_NEGOTIATION_CHAIN_ID: '8453',
+      } as NodeJS.ProcessEnv);
       // Using scaleFactor=1 means price is already in smallest unit.
       const h1 = hashSettlementReceipt(FIXED_HASHABLE, domain, { priceScaleFactor: 1 });
       const h2 = hashSettlementReceipt(FIXED_HASHABLE, domain, { priceScaleFactor: 1 });

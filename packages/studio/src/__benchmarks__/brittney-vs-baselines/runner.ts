@@ -276,10 +276,7 @@ async function executeCell(opts: ExecuteCellOptions): Promise<RunOutcome> {
   return outcome;
 }
 
-function buildHint(
-  verdicts: RunOutcome['per_criterion'],
-  rubric: RubricCriterion[]
-): string {
+function buildHint(verdicts: RunOutcome['per_criterion'], rubric: RubricCriterion[]): string {
   const failed = verdicts.filter((v) => !v.passed);
   if (failed.length === 0) return '';
 

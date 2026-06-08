@@ -20,11 +20,7 @@ import {
   meshQuality,
   meshSurface,
 } from '../AutoMesher';
-import {
-  StructuralSolverTET10,
-  tet4ToTet10,
-  type TET10Config,
-} from '../StructuralSolverTET10';
+import { StructuralSolverTET10, tet4ToTet10, type TET10Config } from '../StructuralSolverTET10';
 import { exportUnstructuredGrid } from '../export/VTKExporter';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -51,7 +47,12 @@ const ALUMINUM = {
 function runPipeline(opts: {
   size: [number, number, number];
   divisions: [number, number, number];
-  material: { youngs_modulus: number; poisson_ratio: number; yield_strength: number; density: number };
+  material: {
+    youngs_modulus: number;
+    poisson_ratio: number;
+    yield_strength: number;
+    density: number;
+  };
   fixedFace: 'x-' | 'x+' | 'y-' | 'y+' | 'z-' | 'z+';
   loadFace: 'x-' | 'x+' | 'y-' | 'y+' | 'z-' | 'z+';
   force: [number, number, number];
@@ -98,8 +99,17 @@ function runPipeline(opts: {
   const displacements = solver.getDisplacements();
 
   return {
-    tet4, tet10, quality, solver, result, stats, stress, displacements,
-    fixedNodes, loadNodes, config,
+    tet4,
+    tet10,
+    quality,
+    solver,
+    result,
+    stats,
+    stress,
+    displacements,
+    fixedNodes,
+    loadNodes,
+    config,
   };
 }
 
@@ -167,7 +177,10 @@ describe('Scenario: Steel cantilever beam under tip load', () => {
 
   it('Euler-Bernoulli: tip deflection is within order of magnitude', () => {
     // delta = FL³ / (3EI), I = bh³/12
-    const F = 1000, L = 1.0, b = 0.1, h = 0.1;
+    const F = 1000,
+      L = 1.0,
+      b = 0.1,
+      h = 0.1;
     const I = (b * h * h * h) / 12;
     const expectedDelta = (F * L * L * L) / (3 * STEEL.youngs_modulus * I);
 
@@ -233,7 +246,8 @@ describe('Scenario: Aluminum column under axial compression', () => {
   it('displacement field is smooth (no jumps between adjacent elements)', () => {
     // Check that max displacement magnitude is within 100x of average
     const u = column.displacements;
-    let sumMag = 0, maxMag = 0;
+    let sumMag = 0,
+      maxMag = 0;
     const nodeCount = u.length / 3;
     for (let i = 0; i < nodeCount; i++) {
       const mag = Math.sqrt(u[i * 3] ** 2 + u[i * 3 + 1] ** 2 + u[i * 3 + 2] ** 2);
@@ -250,77 +264,76 @@ describe('Scenario: Aluminum column under axial compression', () => {
 // ── Scenario 2b: Nonlinear V&V (Green-Lagrange) ─────────────────────────────
 
 describe('Scenario: Nonlinear cantilever benchmark (Green-Lagrange validation)', () => {
-  it.todo('matches linear response order at modest load and remains physically stable - nonlinear cantilever V&V pending full solver parity; tracked per red-flags audit', async () => {
-    // Standard cantilever benchmark geometry.
-    const size: [number, number, number] = [0.1, 0.1, 1.0];
-    const divisions: [number, number, number] = [2, 2, 8];
+  it.todo(
+    'matches linear response order at modest load and remains physically stable - nonlinear cantilever V&V pending full solver parity; tracked per red-flags audit',
+    async () => {
+      // Standard cantilever benchmark geometry.
+      const size: [number, number, number] = [0.1, 0.1, 1.0];
+      const divisions: [number, number, number] = [2, 2, 8];
 
-    const tet4 = meshBox({ size, divisions });
-    const tet10 = tet4ToTet10(tet4.vertices, tet4.tetrahedra);
+      const tet4 = meshBox({ size, divisions });
+      const tet10 = tet4ToTet10(tet4.vertices, tet4.tetrahedra);
 
-    const fixedNodes = findNodesOnFace(tet4, 'z-');
-    const loadNodes = findNodesOnFace(tet4, 'z+');
-    const totalTipLoad = -1000;
+      const fixedNodes = findNodesOnFace(tet4, 'z-');
+      const loadNodes = findNodesOnFace(tet4, 'z+');
+      const totalTipLoad = -1000;
 
-    const perNodeForce: [number, number, number] = [
-      0,
-      totalTipLoad / loadNodes.length,
-      0,
-    ];
+      const perNodeForce: [number, number, number] = [0, totalTipLoad / loadNodes.length, 0];
 
-    const baseConfig = {
-      vertices: tet10.vertices,
-      tetrahedra: tet10.tetrahedra,
-      material: STEEL,
-      constraints: [{ id: 'fix', type: 'fixed' as const, nodes: fixedNodes }],
-      loads: loadNodes.map((n, i) => ({
-        id: `nonlinear_load_${i}`,
-        type: 'point' as const,
-        nodeIndex: n,
-        force: perNodeForce,
-      })),
-      useGPU: false,
-      maxIterations: 8000,
-      tolerance: 1e-9,
-    };
+      const baseConfig = {
+        vertices: tet10.vertices,
+        tetrahedra: tet10.tetrahedra,
+        material: STEEL,
+        constraints: [{ id: 'fix', type: 'fixed' as const, nodes: fixedNodes }],
+        loads: loadNodes.map((n, i) => ({
+          id: `nonlinear_load_${i}`,
+          type: 'point' as const,
+          nodeIndex: n,
+          force: perNodeForce,
+        })),
+        useGPU: false,
+        maxIterations: 8000,
+        tolerance: 1e-9,
+      };
 
-    // Linear reference
-    const linearSolver = new StructuralSolverTET10({ ...baseConfig, nonlinear: false });
-    const linearResult = linearSolver.solveCPU();
-    expect(linearResult.converged).toBe(true);
+      // Linear reference
+      const linearSolver = new StructuralSolverTET10({ ...baseConfig, nonlinear: false });
+      const linearResult = linearSolver.solveCPU();
+      expect(linearResult.converged).toBe(true);
 
-    // Nonlinear solve (Green-Lagrange)
-    const nonlinearSolver = new StructuralSolverTET10({
-      ...baseConfig,
-      nonlinear: true,
-      loadSteps: 8,
-    });
-    const nonlinearResult = await nonlinearSolver.solve();
-    expect(nonlinearResult.converged).toBe(true);
+      // Nonlinear solve (Green-Lagrange)
+      const nonlinearSolver = new StructuralSolverTET10({
+        ...baseConfig,
+        nonlinear: true,
+        loadSteps: 8,
+      });
+      const nonlinearResult = await nonlinearSolver.solve();
+      expect(nonlinearResult.converged).toBe(true);
 
-    const uLin = linearSolver.getDisplacements();
-    const uNonlin = nonlinearSolver.getDisplacements();
+      const uLin = linearSolver.getDisplacements();
+      const uNonlin = nonlinearSolver.getDisplacements();
 
-    let maxUyLinear = 0;
-    let maxUyNonlinear = 0;
-    for (const n of loadNodes) {
-      maxUyLinear = Math.max(maxUyLinear, Math.abs(uLin[n * 3 + 1]));
-      maxUyNonlinear = Math.max(maxUyNonlinear, Math.abs(uNonlin[n * 3 + 1]));
+      let maxUyLinear = 0;
+      let maxUyNonlinear = 0;
+      for (const n of loadNodes) {
+        maxUyLinear = Math.max(maxUyLinear, Math.abs(uLin[n * 3 + 1]));
+        maxUyNonlinear = Math.max(maxUyNonlinear, Math.abs(uNonlin[n * 3 + 1]));
+      }
+
+      // Nonlinear should stay in the same physical order for this modest load.
+      expect(maxUyLinear).toBeGreaterThan(0);
+      expect(maxUyNonlinear).toBeGreaterThan(maxUyLinear * 0.8);
+      expect(maxUyNonlinear).toBeLessThan(maxUyLinear * 2.5);
+
+      const nlStress = nonlinearSolver.getVonMisesStress();
+      for (let i = 0; i < nlStress.length; i++) {
+        expect(Number.isFinite(nlStress[i])).toBe(true);
+      }
+
+      linearSolver.dispose();
+      nonlinearSolver.dispose();
     }
-
-    // Nonlinear should stay in the same physical order for this modest load.
-    expect(maxUyLinear).toBeGreaterThan(0);
-    expect(maxUyNonlinear).toBeGreaterThan(maxUyLinear * 0.8);
-    expect(maxUyNonlinear).toBeLessThan(maxUyLinear * 2.5);
-
-    const nlStress = nonlinearSolver.getVonMisesStress();
-    for (let i = 0; i < nlStress.length; i++) {
-      expect(Number.isFinite(nlStress[i])).toBe(true);
-    }
-
-    linearSolver.dispose();
-    nonlinearSolver.dispose();
-  });
+  );
 });
 
 // ── Scenario 3: Plate Bending With Different Materials ───────────────────────
@@ -388,7 +401,9 @@ describe('Scenario: Full pipeline — mesh → solve → export → verify', () 
       material: STEEL,
       constraints: [{ id: 'fix', type: 'fixed', nodes: fixedNodes }],
       loads: loadNodes.map((n, i) => ({
-        id: `l${i}`, type: 'point' as const, nodeIndex: n,
+        id: `l${i}`,
+        type: 'point' as const,
+        nodeIndex: n,
         force: [0, -100 / loadNodes.length, 0] as [number, number, number],
       })),
       useGPU: false,
@@ -411,18 +426,22 @@ describe('Scenario: Full pipeline — mesh → solve → export → verify', () 
       new Float32Array(tet4.vertices),
       tet4.tetrahedra,
       // pointData: per-node arrays
-      [{
-        name: 'Displacement_Y',
-        data: new Float32Array(Array.from({ length: tet4.nodeCount }, (_, i) =>
-          displacements[i * 3 + 1],
-        )),
-        components: 1,
-      }],
+      [
+        {
+          name: 'Displacement_Y',
+          data: new Float32Array(
+            Array.from({ length: tet4.nodeCount }, (_, i) => displacements[i * 3 + 1])
+          ),
+          components: 1,
+        },
+      ],
       // cellData: per-element arrays
-      [{
-        name: 'VonMises_Stress',
-        data: new Float32Array(stress),
-      }],
+      [
+        {
+          name: 'VonMises_Stress',
+          data: new Float32Array(stress),
+        },
+      ]
     );
 
     // 7. Verify VTK output structure
@@ -440,13 +459,11 @@ describe('Scenario: Full pipeline — mesh → solve → export → verify', () 
     // Surface of a unit cube → meshSurface → tet4ToTet10 → solve
     const surface = {
       vertices: new Float64Array([
-        0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0,
-        0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1,
+        0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1,
       ]),
       triangles: new Uint32Array([
-        0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6,
-        0, 4, 5, 0, 5, 1, 2, 6, 7, 2, 7, 3,
-        0, 3, 7, 0, 7, 4, 1, 5, 6, 1, 6, 2,
+        0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 2, 6, 7, 2, 7, 3, 0, 3, 7, 0, 7, 4, 1,
+        5, 6, 1, 6, 2,
       ]),
     };
 
@@ -462,7 +479,9 @@ describe('Scenario: Full pipeline — mesh → solve → export → verify', () 
       material: STEEL,
       constraints: [{ id: 'fix', type: 'fixed', nodes: fixedNodes }],
       loads: loadNodes.map((n, i) => ({
-        id: `l${i}`, type: 'point' as const, nodeIndex: n,
+        id: `l${i}`,
+        type: 'point' as const,
+        nodeIndex: n,
         force: [0, 0, 1000 / loadNodes.length] as [number, number, number],
       })),
       useGPU: false,
@@ -489,7 +508,9 @@ describe('Scenario: Full pipeline — mesh → solve → export → verify', () 
       material: ALUMINUM,
       constraints: [{ id: 'fix', type: 'fixed', nodes: fixedNodes }],
       loads: pointNodes.map((n, i) => ({
-        id: `p${i}`, type: 'point' as const, nodeIndex: n,
+        id: `p${i}`,
+        type: 'point' as const,
+        nodeIndex: n,
         force: [0, 0, -500 / pointNodes.length] as [number, number, number],
       })),
       useGPU: false,

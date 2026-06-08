@@ -63,7 +63,7 @@ describe('executeOrb — Phase 1: state reconciliation', () => {
     expect(result.success).toBe(true);
     expect(ctx.setVariable).toHaveBeenCalledWith(
       'ball',
-      expect.objectContaining({ __type: 'orb', name: 'ball' }),
+      expect.objectContaining({ __type: 'orb', name: 'ball' })
     );
   });
 
@@ -251,7 +251,7 @@ describe('executeOrb — Phase 5: hologram construction', () => {
     await executeOrb(orb, ctx);
     expect(ctx.setHologramState).toHaveBeenCalledWith(
       'testOrb',
-      expect.objectContaining({ color: '#abc' }),
+      expect.objectContaining({ color: '#abc' })
     );
   });
 });
@@ -264,11 +264,15 @@ describe('executeOrb — Phase 6: migration logic', () => {
   it('runs migration when template version increased', async () => {
     const oldTpl = { name: 'T', version: 1 } as Partial<TemplateNode>;
     const newTpl = {
-      name: 'T', version: 2,
+      name: 'T',
+      version: 2,
       migrations: [{ fromVersion: 1, toVersion: 2, block: [] }],
     } as Partial<TemplateNode>;
     const existing: Record<string, unknown> = {
-      __type: 'orb', id: 'testOrb', name: 'testOrb', _templateRef: oldTpl,
+      __type: 'orb',
+      id: 'testOrb',
+      name: 'testOrb',
+      _templateRef: oldTpl,
     };
     const ctx = makeCtx({
       getVariable: vi.fn().mockReturnValue(existing),
@@ -279,14 +283,17 @@ describe('executeOrb — Phase 6: migration logic', () => {
     await executeOrb(orb, ctx);
     expect(ctx.executeMigrationBlock).toHaveBeenCalledWith(
       existing,
-      expect.objectContaining({ fromVersion: 1 }),
+      expect.objectContaining({ fromVersion: 1 })
     );
   });
 
   it('does not run migration when version is the same', async () => {
     const tpl = { name: 'T', version: 1, migrations: [] } as Partial<TemplateNode>;
     const existing: Record<string, unknown> = {
-      __type: 'orb', id: 'testOrb', name: 'testOrb', _templateRef: tpl,
+      __type: 'orb',
+      id: 'testOrb',
+      name: 'testOrb',
+      _templateRef: tpl,
     };
     const ctx = makeCtx({
       getVariable: vi.fn().mockReturnValue(existing),
@@ -333,7 +340,7 @@ describe('executeOrb — Phase 7: orbData build', () => {
       'testOrb_creation',
       expect.any(Array),
       '#00ffff',
-      20,
+      20
     );
   });
 
@@ -360,13 +367,15 @@ describe('executeOrb — Phase 7: orbData build', () => {
 
   it('preserves existing properties on update', async () => {
     const existing: Record<string, unknown> = {
-      __type: 'orb', id: 'testOrb', name: 'testOrb',
+      __type: 'orb',
+      id: 'testOrb',
+      name: 'testOrb',
       properties: { score: 5 },
     };
     const ctx = makeCtx({ getVariable: vi.fn().mockReturnValue(existing) });
     const orb = makeOrb({ properties: { color: 'red' } });
     await executeOrb(orb, ctx);
-    const props = (existing.properties as Record<string, unknown>);
+    const props = existing.properties as Record<string, unknown>;
     expect(props.score).toBe(5);
     expect(props.color).toBe('red');
   });
@@ -393,7 +402,7 @@ describe('executeOrb — Phase 7: orbData build', () => {
         orb: expect.objectContaining({
           traits: ['glowing'],
         }),
-      }),
+      })
     );
   });
 });
@@ -435,7 +444,11 @@ describe('executeOrb — agent initialization', () => {
 
   it('reuses existing agent runtime on update', async () => {
     const existing = { __type: 'orb', id: 'testOrb', name: 'testOrb' };
-    const existingAgent = { reset: vi.fn(), getState: vi.fn().mockReturnValue({}), executeAction: vi.fn() };
+    const existingAgent = {
+      reset: vi.fn(),
+      getState: vi.fn().mockReturnValue({}),
+      executeAction: vi.fn(),
+    };
     const ctx = makeCtx({
       getVariable: vi.fn().mockReturnValue(existing),
       isAgent: vi.fn().mockReturnValue(true),

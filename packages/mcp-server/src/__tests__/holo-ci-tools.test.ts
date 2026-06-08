@@ -131,7 +131,11 @@ describe('holo_ci_dispatch spend authorisation', () => {
 
   it('dry-run is never gated by spend authz — callerToken present but ignored', async () => {
     // Even a token with no allowance should preview freely.
-    const res = (await handleHoloCiTool('holo_ci_dispatch', { sha: SHA, dryRun: true }, CALLER)) as {
+    const res = (await handleHoloCiTool(
+      'holo_ci_dispatch',
+      { sha: SHA, dryRun: true },
+      CALLER
+    )) as {
       ok: boolean;
       dryRun: boolean;
     };

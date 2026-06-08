@@ -25,50 +25,50 @@ discipline, refusal of reactive moves, receipt generation, and final state?
 
 ## Experimental Unit
 
-| Unit | Description |
-| --- | --- |
-| Brain | A `.hsplus` or related source file declaring identity, priorities, anti-patterns, gates, or decision loops. |
-| Case | A JSON fixture containing user intent, expected behavior, observed behavior, and refusal requirements. |
-| Receipt | The scored eval output written by `scripts/evaluate-brain-intent-loop.mjs`. |
-| Drift | A mismatch between declared brain contract, expected route, observed behavior, or final state. |
+| Unit    | Description                                                                                                 |
+| ------- | ----------------------------------------------------------------------------------------------------------- |
+| Brain   | A `.hsplus` or related source file declaring identity, priorities, anti-patterns, gates, or decision loops. |
+| Case    | A JSON fixture containing user intent, expected behavior, observed behavior, and refusal requirements.      |
+| Receipt | The scored eval output written by `scripts/evaluate-brain-intent-loop.mjs`.                                 |
+| Drift   | A mismatch between declared brain contract, expected route, observed behavior, or final state.              |
 
 ## Initial Cases
 
-| Case | Brain surface | What it measures |
-| --- | --- | --- |
-| `holoshell-room-marathon.case.json` | Brittney / HoloShell operator | Compound shell workflow classification, guarded execution, workflow approval, no mutation before approval. |
-| `trait-inference-gate-refusal.case.json` | `compositions/trait-inference-brain.hsplus` | Refusal to begin ML/paper work before dataset and preregistration gates. |
+| Case                                     | Brain surface                               | What it measures                                                                                           |
+| ---------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `holoshell-room-marathon.case.json`      | Brittney / HoloShell operator               | Compound shell workflow classification, guarded execution, workflow approval, no mutation before approval. |
+| `trait-inference-gate-refusal.case.json` | `compositions/trait-inference-brain.hsplus` | Refusal to begin ML/paper work before dataset and preregistration gates.                                   |
 
 ## Required Negative Controls
 
-| Control | Why it matters |
-| --- | --- |
-| Prompt-only baseline | Shows whether the brain contract adds measurable behavior beyond ordinary instructions. |
-| Wrong-brain run | Catches generic compliance where any brain passes any case. |
-| Reactive-move case | Tests refusal of moves like rebranding comments as contracts or publishing claims before enforcement exists. |
-| Mutation-before-approval case | Tests whether permission gates are observed under execution pressure. |
+| Control                       | Why it matters                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Prompt-only baseline          | Shows whether the brain contract adds measurable behavior beyond ordinary instructions.                      |
+| Wrong-brain run               | Catches generic compliance where any brain passes any case.                                                  |
+| Reactive-move case            | Tests refusal of moves like rebranding comments as contracts or publishing claims before enforcement exists. |
+| Mutation-before-approval case | Tests whether permission gates are observed under execution pressure.                                        |
 
 ## Ablation Matrix
 
-| Mode | Expected paper use |
-| --- | --- |
-| Prompt-only | Baseline behavior without explicit brain contract scoring. |
-| Brain + post-hoc receipt | Measures whether the brain contract matched outcome after the run. |
-| Brain + strict receipt gate | Fails the workflow when required checks fail. |
-| Brain + runtime policy bridge | Blocks or allows real tool use from receipt-backed policy. |
+| Mode                          | Expected paper use                                                 |
+| ----------------------------- | ------------------------------------------------------------------ |
+| Prompt-only                   | Baseline behavior without explicit brain contract scoring.         |
+| Brain + post-hoc receipt      | Measures whether the brain contract matched outcome after the run. |
+| Brain + strict receipt gate   | Fails the workflow when required checks fail.                      |
+| Brain + runtime policy bridge | Blocks or allows real tool use from receipt-backed policy.         |
 
 ## Gate To Paper-Grade Evidence
 
 This subtrack becomes paper-grade only when it has:
 
-| Gate | Evidence |
-| --- | --- |
-| Breadth | Three or more materially different brains represented in receipts. |
-| Depth | Multiple cases per brain, including success, refusal, and negative-control cases. |
-| Enforcement | Strict mode wired into a real CI or pre-merge path. |
-| Runtime bridge | At least one HoloShell or tool-use workflow uses a `--runtime-gate` receipt as an execution gate. |
-| Cost study | Latency, token, and retry overhead compared across ablation modes. |
-| Failure taxonomy | Drift categories reported with examples and fix paths. |
+| Gate             | Evidence                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| Breadth          | Three or more materially different brains represented in receipts.                                |
+| Depth            | Multiple cases per brain, including success, refusal, and negative-control cases.                 |
+| Enforcement      | Strict mode wired into a real CI or pre-merge path.                                               |
+| Runtime bridge   | At least one HoloShell or tool-use workflow uses a `--runtime-gate` receipt as an execution gate. |
+| Cost study       | Latency, token, and retry overhead compared across ablation modes.                                |
+| Failure taxonomy | Drift categories reported with examples and fix paths.                                            |
 
 ## Current Next Moves
 

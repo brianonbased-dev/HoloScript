@@ -119,11 +119,7 @@ export function resolveWorldCreation<T = unknown>(
   for (const p of proposals) {
     const count = approvals.get(p.id)?.size ?? 0;
     if (count < quorumSize) continue;
-    if (
-      bestId === null ||
-      count > bestCount ||
-      (count === bestCount && p.id < bestId)
-    ) {
+    if (bestId === null || count > bestCount || (count === bestCount && p.id < bestId)) {
       bestCount = count;
       bestId = p.id;
     }

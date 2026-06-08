@@ -75,14 +75,34 @@ export interface SyntheticGraphResult {
 // =============================================================================
 
 const DOMAINS = [
-  'snn', 'pillar', 'cortical', 'thermal', 'acoustic',
-  'rendering', 'compiler', 'agent', 'storage', 'integrity',
+  'snn',
+  'pillar',
+  'cortical',
+  'thermal',
+  'acoustic',
+  'rendering',
+  'compiler',
+  'agent',
+  'storage',
+  'integrity',
 ];
 
 const ACTIONS = [
-  'spike', 'burst', 'slice', 'route', 'emit',
-  'dispatch', 'process', 'validate', 'store', 'retrieve',
-  'transform', 'encode', 'decode', 'sync', 'flush',
+  'spike',
+  'burst',
+  'slice',
+  'route',
+  'emit',
+  'dispatch',
+  'process',
+  'validate',
+  'store',
+  'retrieve',
+  'transform',
+  'encode',
+  'decode',
+  'sync',
+  'flush',
 ];
 
 const PACKAGES = [
@@ -104,11 +124,11 @@ export class SyntheticGraphFactory {
 
   constructor(opts: SyntheticGraphOptions = {}) {
     this.opts = {
-      numFiles:         opts.numFiles         ?? 500,
-      numEvents:        opts.numEvents         ?? 50,
+      numFiles: opts.numFiles ?? 500,
+      numEvents: opts.numEvents ?? 50,
       listenersPerEvent: opts.listenersPerEvent ?? 3,
-      symsPerFile:      opts.symsPerFile       ?? 4,
-      seed:             opts.seed              ?? 'holograph-paper26',
+      symsPerFile: opts.symsPerFile ?? 4,
+      seed: opts.seed ?? 'holograph-paper26',
     };
   }
 

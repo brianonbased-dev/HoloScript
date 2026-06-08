@@ -49,7 +49,9 @@ const MountainLakeScene: React.FC<MountainLakeSceneProps> = ({
     const stops: Array<() => void> = [];
     const timers: Array<ReturnType<typeof setTimeout>> = [];
     try {
-      const audioCtx: AudioContext = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
+      const audioCtx: AudioContext = new (
+        (window as any).AudioContext || (window as any).webkitAudioContext
+      )();
       ctx = audioCtx;
       const master = audioCtx.createGain();
       master.gain.value = 0.016; // extremely faint alpine bed — vast contemplative scale
@@ -64,7 +66,8 @@ const MountainLakeScene: React.FC<MountainLakeSceneProps> = ({
       const wd = windBuf.getChannelData(0);
       for (let i = 0; i < wd.length; i++) {
         const t = i / audioCtx.sampleRate;
-        wd[i] = (Math.random() * 2 - 1) * (0.55 + 0.35 * Math.sin(t * 0.9 + Math.sin(t * 0.11) * 0.6));
+        wd[i] =
+          (Math.random() * 2 - 1) * (0.55 + 0.35 * Math.sin(t * 0.9 + Math.sin(t * 0.11) * 0.6));
       }
       const wind = audioCtx.createBufferSource();
       wind.buffer = windBuf;
@@ -96,7 +99,12 @@ const MountainLakeScene: React.FC<MountainLakeSceneProps> = ({
       wG.connect(master);
       wind.start();
       wLfo.start();
-      stops.push(() => { try { wind.stop(); wLfo.stop(); } catch {} });
+      stops.push(() => {
+        try {
+          wind.stop();
+          wLfo.stop();
+        } catch {}
+      });
 
       // faint water lapping — sparse soft rhythmic waves kissing the rocky shoreline, very low energy and irregular
       const scheduleLap = () => {
@@ -108,7 +116,8 @@ const MountainLakeScene: React.FC<MountainLakeSceneProps> = ({
         for (let i = 0; i < ld.length; i++) {
           const t = i / audioCtx.sampleRate;
           // soft decaying whoosh + micro texture for natural lap feel
-          ld[i] = (Math.random() * 2 - 1) * Math.pow(1 - t * 0.92, 1.6) * (0.7 + 0.3 * Math.sin(t * 14));
+          ld[i] =
+            (Math.random() * 2 - 1) * Math.pow(1 - t * 0.92, 1.6) * (0.7 + 0.3 * Math.sin(t * 14));
         }
         lapSrc.buffer = lapBuf;
         const lG = audioCtx.createGain();
@@ -128,7 +137,11 @@ const MountainLakeScene: React.FC<MountainLakeSceneProps> = ({
         lG.gain.setValueAtTime(0.0001, now);
         lG.gain.linearRampToValueAtTime(0.48, now + 0.18);
         lG.gain.linearRampToValueAtTime(0.00001, now + 1.65 + Math.random() * 0.55);
-        setTimeout(() => { try { lapSrc.stop(); } catch {} }, 2300);
+        setTimeout(() => {
+          try {
+            lapSrc.stop();
+          } catch {}
+        }, 2300);
         timers.push(setTimeout(scheduleLap, 3850 + Math.random() * 7200));
       };
       timers.push(setTimeout(scheduleLap, 950 + Math.random() * 1850));
@@ -281,13 +294,7 @@ const MountainLakeScene: React.FC<MountainLakeSceneProps> = ({
       {/* === SUBTLE FOG / ATMOSPHERIC PLANE (mid-scene haze) === */}
       <mesh position={[0.4, 0.9, -3.65]} rotation={[0.04, 0, 0]}>
         <planeGeometry args={[11, 4.8]} />
-        <meshBasicMaterial
-          color="#a8b8c8"
-          transparent
-          opacity={0.13}
-          depthWrite={false}
-          side={2}
-        />
+        <meshBasicMaterial color="#a8b8c8" transparent opacity={0.13} depthWrite={false} side={2} />
       </mesh>
 
       {/* === COLD DAWN / OVERCAST POINT LIGHT === */}

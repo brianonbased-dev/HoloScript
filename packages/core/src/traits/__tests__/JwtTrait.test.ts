@@ -6,7 +6,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { jwtHandler } from '../JwtTrait';
 
 const makeNode = () => ({
-  id: 'n1', traits: new Set<string>(), emit: vi.fn(),
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
   __jwtState: undefined as unknown,
 });
 const makeCtx = (node: ReturnType<typeof makeNode>) => ({
@@ -42,18 +44,31 @@ describe('JwtTrait', () => {
   it('jwt:issue increments issued counter', () => {
     const node = makeNode();
     jwtHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    jwtHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'jwt:issue', sub: 'user-1', claims: { role: 'admin' },
-    } as never);
+    jwtHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'jwt:issue',
+        sub: 'user-1',
+        claims: { role: 'admin' },
+      } as never
+    );
     expect((node.__jwtState as { issued: number }).issued).toBe(1);
   });
 
   it('jwt:verify increments verified counter', () => {
     const node = makeNode();
     jwtHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    jwtHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'jwt:verify', token: 'some.jwt.token',
-    } as never);
+    jwtHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'jwt:verify',
+        token: 'some.jwt.token',
+      } as never
+    );
     expect((node.__jwtState as { verified: number }).verified).toBe(1);
   });
 });

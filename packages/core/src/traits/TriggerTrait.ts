@@ -23,7 +23,6 @@ import type { Vector3 } from '../types';
  * 3D Vector
  */
 
-
 /**
  * Trigger shape types
  */
@@ -182,10 +181,10 @@ export class TriggerTrait {
   constructor(config: Partial<TriggerConfig> = {}) {
     this.config = {
       shape: config.shape ?? 'box',
-      size: config.size ?? [1, 1, 1 ],
+      size: config.size ?? [1, 1, 1],
       radius: config.radius ?? 0.5,
       height: config.height ?? 1,
-      center: config.center ?? [0, 0, 0 ],
+      center: config.center ?? [0, 0, 0],
       layer: config.layer ?? 0,
       layerMask: config.layerMask ?? -1, // All layers
       filterTags: config.filterTags ?? [],

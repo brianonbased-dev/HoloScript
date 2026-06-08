@@ -134,7 +134,7 @@ async function main() {
   console.log(`[gpu-job-queue] log=${logPath}`);
   if (queuePath.includes('example') && !DRY) {
     console.warn(
-      '[gpu-job-queue] Using example queue. Copy to scripts/gpu-jobs.local.json and set GPU_JOB_QUEUE, or you may run placeholder commands.',
+      '[gpu-job-queue] Using example queue. Copy to scripts/gpu-jobs.local.json and set GPU_JOB_QUEUE, or you may run placeholder commands.'
     );
   }
 
@@ -143,7 +143,13 @@ async function main() {
 
   if (DRY) {
     for (const j of jobs) {
-      console.log('[dry-run]', j.id, j.label, j.command, `timeBoxSec=${j.timeBoxSec ?? data.defaults?.timeBoxSec ?? 3600}`);
+      console.log(
+        '[dry-run]',
+        j.id,
+        j.label,
+        j.command,
+        `timeBoxSec=${j.timeBoxSec ?? data.defaults?.timeBoxSec ?? 3600}`
+      );
     }
     return;
   }

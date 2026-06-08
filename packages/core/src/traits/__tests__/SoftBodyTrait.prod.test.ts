@@ -112,7 +112,12 @@ describe('softBodyHandler — onDetach', () => {
   });
   it('no soft_body_destroy when paused first', async () => {
     const { node, ctx, cfg } = await attach();
-    await softBodyHandler.onEvent!(node as any, cfg, ctx as any, { type: 'soft_body_pause' } as any);
+    await softBodyHandler.onEvent!(
+      node as any,
+      cfg,
+      ctx as any,
+      { type: 'soft_body_pause' } as any
+    );
     ctx.emitted.length = 0;
     await softBodyHandler.onDetach!(node as any, cfg, ctx as any);
     expect(ctx.emitted.find((e) => e.type === 'soft_body_destroy')).toBeUndefined();
@@ -130,11 +135,11 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
       ctx as any,
       {
         type: 'soft_body_vertex_update',
-        positions: [[0.5, 0, 0 ]],
+        positions: [[0.5, 0, 0]],
         normals: [],
       } as any
     );
-    expect((node as any).__softBodyState.vertices[0].position).toEqual([0.5, 0, 0 ]);
+    expect((node as any).__softBodyState.vertices[0].position).toEqual([0.5, 0, 0]);
   });
   it('emits soft_body_mesh_update', async () => {
     const { node, ctx } = await attach();
@@ -144,7 +149,7 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
       ctx as any,
       {
         type: 'soft_body_vertex_update',
-        positions: [[0, 0, 0 ]],
+        positions: [[0, 0, 0]],
         normals: [],
       } as any
     );
@@ -159,7 +164,7 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
       ctx as any,
       {
         type: 'soft_body_vertex_update',
-        positions: [[0, 0, 0 ]],
+        positions: [[0, 0, 0]],
         normals: [],
       } as any
     );
@@ -170,7 +175,7 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
       ctx as any,
       {
         type: 'soft_body_vertex_update',
-        positions: [[1, 0, 0 ]],
+        positions: [[1, 0, 0]],
         normals: [],
       } as any
     );
@@ -184,7 +189,7 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
       ctx as any,
       {
         type: 'soft_body_vertex_update',
-        positions: [[0, 0, 0 ]],
+        positions: [[0, 0, 0]],
       } as any
     );
     ctx.emitted.length = 0;
@@ -194,7 +199,7 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
       ctx as any,
       {
         type: 'soft_body_vertex_update',
-        positions: [[1, 0, 0 ]],
+        positions: [[1, 0, 0]],
       } as any
     );
     expect(ctx.emitted.find((e) => e.type === 'on_soft_body_deform')).toBeDefined();
@@ -207,7 +212,7 @@ describe('softBodyHandler — onEvent soft_body_vertex_update', () => {
       ctx as any,
       {
         type: 'soft_body_vertex_update',
-        positions: [[0, 0, 0 ]],
+        positions: [[0, 0, 0]],
         volume: 2.5,
       } as any
     );
@@ -226,7 +231,7 @@ describe('softBodyHandler — onEvent soft_body_apply_force', () => {
       ctx as any,
       {
         type: 'soft_body_apply_force',
-        force: [1, 2, 3 ],
+        force: [1, 2, 3],
         position: [0, 0, 0],
         radius: 0.2,
       } as any
@@ -241,11 +246,11 @@ describe('softBodyHandler — onEvent soft_body_apply_force', () => {
       ctx as any,
       {
         type: 'soft_body_apply_force',
-        force: [5, 0, 0 ],
+        force: [5, 0, 0],
       } as any
     );
     const ev = ctx.emitted.find((e) => e.type === 'soft_body_external_force');
-    expect(ev?.payload.force).toEqual([5, 0, 0 ]);
+    expect(ev?.payload.force).toEqual([5, 0, 0]);
   });
   it('default radius = 0.1 when not provided', async () => {
     const { node, ctx } = await attach();
@@ -255,7 +260,7 @@ describe('softBodyHandler — onEvent soft_body_apply_force', () => {
       ctx as any,
       {
         type: 'soft_body_apply_force',
-        force: [0, 0, 1 ],
+        force: [0, 0, 1],
       } as any
     );
     expect(
@@ -277,7 +282,7 @@ describe('softBodyHandler — onEvent soft_body_poke', () => {
         type: 'soft_body_poke',
         position: [0, 0, 0],
         force: 5,
-        direction: [0, -1, 0 ],
+        direction: [0, -1, 0],
       } as any
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_impulse')).toBeDefined();
@@ -292,7 +297,7 @@ describe('softBodyHandler — onEvent soft_body_poke', () => {
         type: 'soft_body_poke',
         position: [0, 0, 0],
         force: 10,
-        direction: [0, -1, 0 ],
+        direction: [0, -1, 0],
       } as any
     );
     const ev = ctx.emitted.find((e) => e.type === 'soft_body_impulse');
@@ -326,7 +331,7 @@ describe('softBodyHandler — onEvent soft_body_set_anchor', () => {
       {
         type: 'soft_body_set_anchor',
         vertexIndex: 2,
-        targetPosition: [1, 0, 0 ],
+        targetPosition: [1, 0, 0],
       } as any
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_anchor_vertex')).toBeDefined();
@@ -393,7 +398,7 @@ describe('softBodyHandler — onEvent grab', () => {
       {
         type: 'soft_body_grab_start',
         handId: 'right',
-        handPosition: [0, 1, 0 ],
+        handPosition: [0, 1, 0],
         grabRadius: 0.2,
       } as any
     );
@@ -408,7 +413,7 @@ describe('softBodyHandler — onEvent grab', () => {
       {
         type: 'soft_body_grab_update',
         handId: 'right',
-        handPosition: [1, 1, 0 ],
+        handPosition: [1, 1, 0],
       } as any
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_grab_move')).toBeDefined();
@@ -434,7 +439,7 @@ describe('softBodyHandler — onEvent grab', () => {
       ctx as any,
       {
         type: 'soft_body_grab_start',
-        handPosition: [0, 0, 0 ],
+        handPosition: [0, 0, 0],
       } as any
     );
     expect(ctx.emitted.find((e) => e.type === 'soft_body_grab_begin')?.payload.handId).toBe(
@@ -465,7 +470,7 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
       ctx as any,
       {
         type: 'soft_body_vertex_update',
-        positions: [[0, 0, 0 ]],
+        positions: [[0, 0, 0]],
       } as any
     );
     await softBodyHandler.onEvent!(
@@ -474,7 +479,7 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
       ctx as any,
       {
         type: 'soft_body_vertex_update',
-        positions: [[2, 0, 0 ]],
+        positions: [[2, 0, 0]],
       } as any
     );
     expect((node as any).__softBodyState.isDeformed).toBe(true);
@@ -505,7 +510,7 @@ describe('softBodyHandler — onEvent soft_body_reset', () => {
       ctx as any,
       {
         type: 'soft_body_vertex_update',
-        positions: [[0, 0, 0 ]],
+        positions: [[0, 0, 0]],
         volume: 2.0,
       } as any
     );

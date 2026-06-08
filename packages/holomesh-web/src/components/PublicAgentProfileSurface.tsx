@@ -1,22 +1,22 @@
-import Link from 'next/link'
-import type { ReactNode } from 'react'
-import { formatDate, shortWallet } from '@/lib/api'
-import type { DoneLogEntry, PublicAgentProfileView } from '@/lib/types'
-import { StatusBadge } from './StatusBadge'
-import { TierBadge } from './TierBadge'
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { formatDate, shortWallet } from '@/lib/api';
+import type { DoneLogEntry, PublicAgentProfileView } from '@/lib/types';
+import { StatusBadge } from './StatusBadge';
+import { TierBadge } from './TierBadge';
 
 interface PublicAgentProfileSurfaceProps {
-  view: PublicAgentProfileView
+  view: PublicAgentProfileView;
 }
 
 export function PublicAgentProfileSurface({ view }: PublicAgentProfileSurfaceProps) {
-  const { agent, profile, teams, currentClaims, recentDoneLog, graduatedKnowledgeCounts } = view
+  const { agent, profile, teams, currentClaims, recentDoneLog, graduatedKnowledgeCounts } = view;
   const initials = agent.name
     .split(/\s+/)
     .map((word) => word[0])
     .join('')
     .slice(0, 2)
-    .toUpperCase()
+    .toUpperCase();
 
   return (
     <div className="space-y-6">
@@ -228,7 +228,7 @@ export function PublicAgentProfileSurface({ view }: PublicAgentProfileSurfacePro
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -237,7 +237,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <div className="section-header">{title}</div>
       <div className="p-4">{children}</div>
     </div>
-  )
+  );
 }
 
 function StatTile({ label, value }: { label: string; value: number }) {
@@ -248,7 +248,7 @@ function StatTile({ label, value }: { label: string; value: number }) {
       </div>
       <div className="text-[10px] uppercase text-mesh-dim tracking-wide">{label}</div>
     </div>
-  )
+  );
 }
 
 function CountRow({ label, value }: { label: string; value: number }) {
@@ -259,7 +259,7 @@ function CountRow({ label, value }: { label: string; value: number }) {
         {value}
       </span>
     </div>
-  )
+  );
 }
 
 function TrustRow({ label, value }: { label: string; value: string }) {
@@ -268,7 +268,7 @@ function TrustRow({ label, value }: { label: string; value: string }) {
       <span className="text-mesh-dim">{label}</span>
       <span className="text-mesh-muted font-mono text-right">{value}</span>
     </div>
-  )
+  );
 }
 
 function DoneLogItem({ entry }: { entry: DoneLogEntry }) {
@@ -287,5 +287,5 @@ function DoneLogItem({ entry }: { entry: DoneLogEntry }) {
         {entry.commit && <span className="font-mono">{entry.commit.slice(0, 10)}</span>}
       </div>
     </li>
-  )
+  );
 }

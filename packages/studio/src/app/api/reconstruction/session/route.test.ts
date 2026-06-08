@@ -8,7 +8,10 @@ import {
 } from '@/lib/reconstruction-scan-store';
 import { PUT } from './route';
 
-function framePayload(index: number, offset = 0): {
+function framePayload(
+  index: number,
+  offset = 0
+): {
   index: number;
   timestampMs: number;
   width: number;

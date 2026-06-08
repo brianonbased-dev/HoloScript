@@ -1,5 +1,3 @@
-
-
 export class KeyboardSystem {
   private focusedNodeId: string | null = null;
   private symbolState: boolean = false;

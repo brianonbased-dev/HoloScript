@@ -6,7 +6,9 @@ const { pathToFileURL } = require('node:url');
 const target = join(__dirname, '..', 'dist', 'index.js');
 
 if (!existsSync(target)) {
-  console.error('[holoscript-agent] build output is missing. Run `pnpm --filter @holoscript/holoscript-agent run build` first.');
+  console.error(
+    '[holoscript-agent] build output is missing. Run `pnpm --filter @holoscript/holoscript-agent run build` first.'
+  );
   process.exit(1);
 }
 

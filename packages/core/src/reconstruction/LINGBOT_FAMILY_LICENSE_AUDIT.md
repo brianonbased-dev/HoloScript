@@ -8,8 +8,8 @@
 
 **Counsel review log (board Q3):**
 
-| Date | Status | Notes |
-|------|--------|--------|
+| Date       | Status      | Notes                                                                                                                                   |
+| ---------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-04-19 | **Pending** | No written clearance recorded in-repo. RFC path **A** (distillation) stays **gated**; ship demos on path **C** / plan **B** per RFC §5. |
 
 ## Gate closure criteria (required to mark "done")
@@ -36,11 +36,11 @@ In `RFC-HoloMap.md`, **lingbot family** names a **competitive framing**: third-p
 
 ## 2. What HoloScript ships today (code and packages)
 
-| Check | Result (as of 2026-04-17) |
-|-------|---------------------------|
-| **npm / workspace dependencies** named after lingbot or Ant | **None found** (`package.json` search). |
-| **Vendored third-party source** identifiable as lingbot/Ant | **None found** (repo search limited to naming; no proprietary SDK checked in under those names). |
-| **HoloMap implementation** | **Scaffold + stubs only** — no student model, no API client to external recon services in the Sprint 1 HoloMap slice. |
+| Check                                                       | Result (as of 2026-04-17)                                                                                             |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **npm / workspace dependencies** named after lingbot or Ant | **None found** (`package.json` search).                                                                               |
+| **Vendored third-party source** identifiable as lingbot/Ant | **None found** (repo search limited to naming; no proprietary SDK checked in under those names).                      |
+| **HoloMap implementation**                                  | **Scaffold + stubs only** — no student model, no API client to external recon services in the Sprint 1 HoloMap slice. |
 
 **Conclusion:** Today’s repository does **not** embed lingbot-family **code** or declare **direct package dependencies** on those products. Risk is **forward-looking**: how we acquire weights, use external APIs, or describe competitors in go-to-market materials.
 
@@ -48,11 +48,11 @@ In `RFC-HoloMap.md`, **lingbot family** names a **competitive framing**: third-p
 
 ## 3. Planned interaction paths (from RFC)
 
-| Path | RFC label | License / policy touchpoints |
-|------|-----------|--------------------------------|
-| A | **Bridge** — distillation using outputs from a third-party recon stack | API or product **Terms of Service**, **acceptable use**, **output ownership**, **derivative works**, **redistribution** of distilled weights, **commercial use**. |
-| B | **Clean** — train on permissively licensed public datasets | Dataset licenses (e.g. ScanNet, Matterport terms), **attribution**, **share-alike** if any, **geographic or commercial restrictions**. |
-| C | **Shortcut** — fine-tune open bases (e.g. depth / pose priors with permissive licenses) | **Model weights license**, **attribution**, **any non-commercial clauses**, **patent / trademark** notices. |
+| Path | RFC label                                                                               | License / policy touchpoints                                                                                                                                      |
+| ---- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A    | **Bridge** — distillation using outputs from a third-party recon stack                  | API or product **Terms of Service**, **acceptable use**, **output ownership**, **derivative works**, **redistribution** of distilled weights, **commercial use**. |
+| B    | **Clean** — train on permissively licensed public datasets                              | Dataset licenses (e.g. ScanNet, Matterport terms), **attribution**, **share-alike** if any, **geographic or commercial restrictions**.                            |
+| C    | **Shortcut** — fine-tune open bases (e.g. depth / pose priors with permissive licenses) | **Model weights license**, **attribution**, **any non-commercial clauses**, **patent / trademark** notices.                                                       |
 
 **Default RFC stance:** prefer **C** for demo and **B** for production weights; **A only if counsel approves**.
 
@@ -60,12 +60,12 @@ In `RFC-HoloMap.md`, **lingbot family** names a **competitive framing**: third-p
 
 ## 4. Risk register (for counsel and leadership)
 
-| ID | Topic | Severity if mishandled | Mitigation |
-|----|--------|------------------------|------------|
-| R1 | **Using commercial API outputs to train** our student | High — could breach ToS or create **unclean** training claims | Do not start bridge path without **written legal clearance**; document data lineage. |
-| R2 | **Comparative marketing** (naming competitors, benchmarks) | Medium — **trademark** / unfair competition in some jurisdictions | Factual comparisons; avoid implying endorsement; run **marketing review**. |
-| R3 | **Open-source contamination** if third-party code is ever pasted in | High — license incompatibility with HoloScript’s distribution | No copy-paste from unknown sources; **SPDX / NOTICE** hygiene; CI license checks where applicable. |
-| R4 | **Patent landscape** (foundation models, splat / neural rendering) | Medium–High depending on jurisdiction | Counsel + defensive documentation of **independent implementation** for HoloMap WGSL. |
+| ID  | Topic                                                               | Severity if mishandled                                            | Mitigation                                                                                         |
+| --- | ------------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| R1  | **Using commercial API outputs to train** our student               | High — could breach ToS or create **unclean** training claims     | Do not start bridge path without **written legal clearance**; document data lineage.               |
+| R2  | **Comparative marketing** (naming competitors, benchmarks)          | Medium — **trademark** / unfair competition in some jurisdictions | Factual comparisons; avoid implying endorsement; run **marketing review**.                         |
+| R3  | **Open-source contamination** if third-party code is ever pasted in | High — license incompatibility with HoloScript’s distribution     | No copy-paste from unknown sources; **SPDX / NOTICE** hygiene; CI license checks where applicable. |
+| R4  | **Patent landscape** (foundation models, splat / neural rendering)  | Medium–High depending on jurisdiction                             | Counsel + defensive documentation of **independent implementation** for HoloMap WGSL.              |
 
 ---
 
@@ -83,11 +83,11 @@ Use this as a **ticket to legal**, not a substitute for review.
 
 ## 6. Engineering gates (operational)
 
-| Gate | Condition |
-|------|-----------|
-| **G1 — Bridge** | Counsel sign-off **and** a recorded data-provenance spec (what was ingested, from where, under what terms). |
-| **G2 — Benchmarks** | Any public number comparing to a named commercial product goes through **marketing + legal** review. |
-| **G3 — Dependencies** | New npm packages touching recon / VLA vendors require **license field review** in the PR template. |
+| Gate                  | Condition                                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **G1 — Bridge**       | Counsel sign-off **and** a recorded data-provenance spec (what was ingested, from where, under what terms). |
+| **G2 — Benchmarks**   | Any public number comparing to a named commercial product goes through **marketing + legal** review.        |
+| **G3 — Dependencies** | New npm packages touching recon / VLA vendors require **license field review** in the PR template.          |
 
 ---
 
@@ -101,12 +101,12 @@ Use this as a **ticket to legal**, not a substitute for review.
 
 ## 8. Document control
 
-| Version | Date | Notes |
-|---------|------|-------|
-| 0.1 | 2026-04-17 | Initial audit: no lingbot packages in tree; bridge path gated. |
-| 0.2 | 2026-04-18 | Appendix A: full monorepo `pnpm licenses` snapshot attached. |
-| 0.3 | 2026-04-18 | Appendix B: compile targets (VRChat, Unity, …) vs npm dependency scope. |
-| 0.4 | 2026-04-18 | Appendix B.3: link to `docs/guides/publishing-platform-terms.md`. |
+| Version | Date       | Notes                                                                   |
+| ------- | ---------- | ----------------------------------------------------------------------- |
+| 0.1     | 2026-04-17 | Initial audit: no lingbot packages in tree; bridge path gated.          |
+| 0.2     | 2026-04-18 | Appendix A: full monorepo `pnpm licenses` snapshot attached.            |
+| 0.3     | 2026-04-18 | Appendix B: compile targets (VRChat, Unity, …) vs npm dependency scope. |
+| 0.4     | 2026-04-18 | Appendix B.3: link to `docs/guides/publishing-platform-terms.md`.       |
 
 ---
 
@@ -118,19 +118,19 @@ Use this as a **ticket to legal**, not a substitute for review.
 
 ### A.1 Where the reports live
 
-| Artifact | Path |
-|----------|------|
-| Summary (human-readable) | [`reports/pnpm-licenses-summary.md`](./reports/pnpm-licenses-summary.md) |
-| Full snapshot (JSON) | [`reports/pnpm-licenses-snapshot.json`](./reports/pnpm-licenses-snapshot.json) |
-| Regenerator script | [`reports/generate-pnpm-license-summary.mjs`](./reports/generate-pnpm-license-summary.mjs) |
+| Artifact                 | Path                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------ |
+| Summary (human-readable) | [`reports/pnpm-licenses-summary.md`](./reports/pnpm-licenses-summary.md)                   |
+| Full snapshot (JSON)     | [`reports/pnpm-licenses-snapshot.json`](./reports/pnpm-licenses-snapshot.json)             |
+| Regenerator script       | [`reports/generate-pnpm-license-summary.mjs`](./reports/generate-pnpm-license-summary.mjs) |
 
 ### A.2 Snapshot highlights (2026-04-18)
 
 These figures are copied from the summary for quick reading; the authoritative table is in `pnpm-licenses-summary.md`.
 
-- **Packages counted:** 2317  
-- **Distinct license expressions:** 37  
-- **Top declared licenses:** MIT (1786), Apache-2.0 (256), ISC (89), BSD-3-Clause (43)  
+- **Packages counted:** 2317
+- **Distinct license expressions:** 37
+- **Top declared licenses:** MIT (1786), Apache-2.0 (256), ISC (89), BSD-3-Clause (43)
 - **Heuristic review queue (non-default / copyleft / custom / unknown):** includes **Unknown** (23), **SEE LICENSE IN LICENSE.md** (5), **Unlicense** (5), **LGPL** / **Apache+LGPL** combinations, **UNLICENSED**, **PolyForm-Shield**, **Remotion License** strings, **CC-BY-4.0**, **BlueOak**, and **WTFPL** variants — see the “Review queue” table in the summary file for exact counts.
 
 ### A.3 Lingbot-specific spot check
@@ -153,7 +153,7 @@ Then bump the **Document control** version row and update **A.2** dates/figures 
 
 ## Appendix B — Compile targets (VRChat, Unity, Unreal, Godot, web, …)
 
-### B.1 What the pnpm scan does *not* cover
+### B.1 What the pnpm scan does _not_ cover
 
 **Appendix A** inventories **npm packages** used to build and run the HoloScript monorepo (compiler, Studio, services, tests). It does **not** include:
 
@@ -169,15 +169,14 @@ HoloScript implements **emitters** (for example `VRChatCompiler.ts`, `UnityCompi
 
 So:
 
-| Layer | Who owns compliance | Typical artifacts |
-|--------|---------------------|-------------------|
-| HoloScript toolchain | HoloScript / this audit’s Appendix A | `node_modules`, lockfile |
-| Generated output + author glue code | Project author | UdonSharp C#, Unity scenes, etc. |
-| Host engine + platform | Author + platform vendor | Unity EULA, VRChat Terms & Creator Guidelines, store rules |
+| Layer                               | Who owns compliance                  | Typical artifacts                                          |
+| ----------------------------------- | ------------------------------------ | ---------------------------------------------------------- |
+| HoloScript toolchain                | HoloScript / this audit’s Appendix A | `node_modules`, lockfile                                   |
+| Generated output + author glue code | Project author                       | UdonSharp C#, Unity scenes, etc.                           |
+| Host engine + platform              | Author + platform vendor             | Unity EULA, VRChat Terms & Creator Guidelines, store rules |
 
 ### B.3 Practical guidance for product and counsel
 
 1. **Ship checklist:** Public index of vendor terms lives in **`docs/guides/publishing-platform-terms.md`** (VRChat, Unity, Unreal, Godot, web, Apple, Android). Refresh links when vendors move pages.
 2. **No automatic coupling:** Emitting VRChat-shaped C# does **not** by itself satisfy VRChat’s publishing rules; it only helps technically.
 3. **HoloMap:** Native reconstruction weights and bridge-path licensing (section 3–5 above) are **orthogonal** to VRChat—unless you **bundle** recon output into a world and that bundle triggers a platform content or performance policy.
-

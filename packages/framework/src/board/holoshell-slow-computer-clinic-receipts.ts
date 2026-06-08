@@ -55,11 +55,7 @@ export const PROCESS_CATEGORIES = [
 ] as const;
 export type ProcessCategory = (typeof PROCESS_CATEGORIES)[number];
 
-export const STOP_POLICIES = [
-  'read_only',
-  'guarded_execute',
-  'break_glass_required',
-] as const;
+export const STOP_POLICIES = ['read_only', 'guarded_execute', 'break_glass_required'] as const;
 export type StopPolicy = (typeof STOP_POLICIES)[number];
 
 export const OWNER_LANES = [
@@ -75,11 +71,7 @@ export const OWNER_LANES = [
 ] as const;
 export type OwnerLane = (typeof OWNER_LANES)[number];
 
-export const PERMISSION_ENVELOPES = [
-  'read_only',
-  'guarded_execute',
-  'break_glass',
-] as const;
+export const PERMISSION_ENVELOPES = ['read_only', 'guarded_execute', 'break_glass'] as const;
 export type PermissionEnvelope = (typeof PERMISSION_ENVELOPES)[number];
 
 // ── Receipt interfaces ──
@@ -287,9 +279,7 @@ export function isSupportedPermissionEnvelope(value: string): value is Permissio
 
 // ── Validators ──
 
-export function validateProcessHealthReceipt(
-  receipt: ProcessHealthReceipt | undefined
-): string[] {
+export function validateProcessHealthReceipt(receipt: ProcessHealthReceipt | undefined): string[] {
   const errors: string[] = [];
   if (!receipt) return ['ProcessHealthReceipt is required.'];
   if (receipt.schemaVersion !== HOLOSHELL_SLOW_COMPUTER_CLINIC_RECEIPT_VERSION) {
@@ -340,9 +330,7 @@ export function validateProcessHealthReceipt(
   return errors;
 }
 
-export function validateHardwareAuditReceipt(
-  receipt: HardwareAuditReceipt | undefined
-): string[] {
+export function validateHardwareAuditReceipt(receipt: HardwareAuditReceipt | undefined): string[] {
   const errors: string[] = [];
   if (!receipt) return ['HardwareAuditReceipt is required.'];
   if (receipt.schemaVersion !== HOLOSHELL_SLOW_COMPUTER_CLINIC_RECEIPT_VERSION) {
@@ -366,10 +354,16 @@ export function validateHardwareAuditReceipt(
   if (typeof receipt.memoryTotalGb !== 'number' || receipt.memoryTotalGb <= 0) {
     errors.push('HardwareAuditReceipt.memoryTotalGb must be a positive number.');
   }
-  if (receipt.gpuUtilizationPercent !== null && (receipt.gpuUtilizationPercent < 0 || receipt.gpuUtilizationPercent > 100)) {
+  if (
+    receipt.gpuUtilizationPercent !== null &&
+    (receipt.gpuUtilizationPercent < 0 || receipt.gpuUtilizationPercent > 100)
+  ) {
     errors.push('HardwareAuditReceipt.gpuUtilizationPercent must be null or between 0 and 100.');
   }
-  if (receipt.gpuMemoryUsedPercent !== null && (receipt.gpuMemoryUsedPercent < 0 || receipt.gpuMemoryUsedPercent > 100)) {
+  if (
+    receipt.gpuMemoryUsedPercent !== null &&
+    (receipt.gpuMemoryUsedPercent < 0 || receipt.gpuMemoryUsedPercent > 100)
+  ) {
     errors.push('HardwareAuditReceipt.gpuMemoryUsedPercent must be null or between 0 and 100.');
   }
   if (typeof receipt.thermalThrottling !== 'boolean' && receipt.thermalThrottling !== null) {
@@ -413,7 +407,7 @@ function validateOwnershipPlan(plan: OwnershipPlan | undefined, index: number): 
 
 function validateGuardedStopPlan(plan: GuardedStopPlan | undefined, index: number): string[] {
   const errors: string[] = [];
-  if (!plan) return[`StopPlans[${index}] is required.`];
+  if (!plan) return [`StopPlans[${index}] is required.`];
   if (!isNonEmptyString(plan.planId)) errors.push(`StopPlans[${index}].planId is required.`);
   if (!Number.isInteger(plan.targetPid) || plan.targetPid <= 0) {
     errors.push(`StopPlans[${index}].targetPid must be a positive integer.`);
@@ -462,7 +456,9 @@ export function validateRemediationVerificationReceipt(
     );
   }
   if (receipt.workflow !== SLOW_COMPUTER_CLINIC_WORKFLOW) {
-    errors.push(`RemediationVerificationReceipt.workflow must be ${SLOW_COMPUTER_CLINIC_WORKFLOW}.`);
+    errors.push(
+      `RemediationVerificationReceipt.workflow must be ${SLOW_COMPUTER_CLINIC_WORKFLOW}.`
+    );
   }
   if (!isNonEmptyString(receipt.id)) {
     errors.push('RemediationVerificationReceipt.id is required.');
@@ -507,7 +503,9 @@ export function validateProductionStopReadinessReceipt(
     );
   }
   if (receipt.workflow !== SLOW_COMPUTER_CLINIC_WORKFLOW) {
-    errors.push(`ProductionStopReadinessReceipt.workflow must be ${SLOW_COMPUTER_CLINIC_WORKFLOW}.`);
+    errors.push(
+      `ProductionStopReadinessReceipt.workflow must be ${SLOW_COMPUTER_CLINIC_WORKFLOW}.`
+    );
   }
   if (!isNonEmptyString(receipt.id)) {
     errors.push('ProductionStopReadinessReceipt.id is required.');
@@ -563,10 +561,14 @@ export function validateSlowComputerClinicReplayReceipt(
     );
   }
   if (receipt.workflow !== SLOW_COMPUTER_CLINIC_WORKFLOW) {
-    errors.push(`SlowComputerClinicReplayReceipt.workflow must be ${SLOW_COMPUTER_CLINIC_WORKFLOW}.`);
+    errors.push(
+      `SlowComputerClinicReplayReceipt.workflow must be ${SLOW_COMPUTER_CLINIC_WORKFLOW}.`
+    );
   }
   if (!isSupportedClinicWorkflowState(String(receipt.status))) {
-    errors.push(`SlowComputerClinicReplayReceipt.status is unsupported: ${String(receipt.status)}.`);
+    errors.push(
+      `SlowComputerClinicReplayReceipt.status is unsupported: ${String(receipt.status)}.`
+    );
   }
   if (!isNonEmptyString(receipt.processHealthReceiptId)) {
     errors.push('SlowComputerClinicReplayReceipt.processHealthReceiptId is required.');

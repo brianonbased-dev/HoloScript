@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  encounterHandler,
-  shouldFire,
-  type EncounterConfig,
-} from '../EncounterTrait';
+import { encounterHandler, shouldFire, type EncounterConfig } from '../EncounterTrait';
 import {
   createMockContext,
   createMockNode,

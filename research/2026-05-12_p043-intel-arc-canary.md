@@ -20,17 +20,17 @@ The `scripts/p043-sku-matrix.mjs` scaffold was exercised:
 
 ## Intel Arc Cell Inventory
 
-| Cell ID | Scene | Views | Status | Artifact Path |
-|---|---|---:|:---:|---|
-| intel-arc__indoor-500k__n2 | indoor-500k | 2 | pending | `.bench-logs/p043-sku-matrix/intel-arc/indoor-500k/n2.json` |
-| intel-arc__indoor-500k__n4 | indoor-500k | 4 | pending | `.bench-logs/p043-sku-matrix/intel-arc/indoor-500k/n4.json` |
-| intel-arc__indoor-500k__n8 | indoor-500k | 8 | pending | `.bench-logs/p043-sku-matrix/intel-arc/indoor-500k/n8.json` |
-| intel-arc__outdoor-1m__n2 | outdoor-1m | 2 | pending | `.bench-logs/p043-sku-matrix/intel-arc/outdoor-1m/n2.json` |
-| intel-arc__outdoor-1m__n4 | outdoor-1m | 4 | pending | `.bench-logs/p043-sku-matrix/intel-arc/outdoor-1m/n4.json` |
-| intel-arc__outdoor-1m__n8 | outdoor-1m | 8 | pending | `.bench-logs/p043-sku-matrix/intel-arc/outdoor-1m/n8.json` |
-| intel-arc__dense-2m__n2 | dense-2m | 2 | pending | `.bench-logs/p043-sku-matrix/intel-arc/dense-2m/n2.json` |
-| intel-arc__dense-2m__n4 | dense-2m | 4 | pending | `.bench-logs/p043-sku-matrix/intel-arc/dense-2m/n4.json` |
-| intel-arc__dense-2m__n8 | dense-2m | 8 | pending | `.bench-logs/p043-sku-matrix/intel-arc/dense-2m/n8.json` |
+| Cell ID                    | Scene       | Views | Status  | Artifact Path                                               |
+| -------------------------- | ----------- | ----: | :-----: | ----------------------------------------------------------- |
+| intel-arc**indoor-500k**n2 | indoor-500k |     2 | pending | `.bench-logs/p043-sku-matrix/intel-arc/indoor-500k/n2.json` |
+| intel-arc**indoor-500k**n4 | indoor-500k |     4 | pending | `.bench-logs/p043-sku-matrix/intel-arc/indoor-500k/n4.json` |
+| intel-arc**indoor-500k**n8 | indoor-500k |     8 | pending | `.bench-logs/p043-sku-matrix/intel-arc/indoor-500k/n8.json` |
+| intel-arc**outdoor-1m**n2  | outdoor-1m  |     2 | pending | `.bench-logs/p043-sku-matrix/intel-arc/outdoor-1m/n2.json`  |
+| intel-arc**outdoor-1m**n4  | outdoor-1m  |     4 | pending | `.bench-logs/p043-sku-matrix/intel-arc/outdoor-1m/n4.json`  |
+| intel-arc**outdoor-1m**n8  | outdoor-1m  |     8 | pending | `.bench-logs/p043-sku-matrix/intel-arc/outdoor-1m/n8.json`  |
+| intel-arc**dense-2m**n2    | dense-2m    |     2 | pending | `.bench-logs/p043-sku-matrix/intel-arc/dense-2m/n2.json`    |
+| intel-arc**dense-2m**n4    | dense-2m    |     4 | pending | `.bench-logs/p043-sku-matrix/intel-arc/dense-2m/n4.json`    |
+| intel-arc**dense-2m**n8    | dense-2m    |     8 | pending | `.bench-logs/p043-sku-matrix/intel-arc/dense-2m/n8.json`    |
 
 ## Blocker
 

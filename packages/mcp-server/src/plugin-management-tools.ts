@@ -21,7 +21,8 @@ import {
 export const pluginManagementTools: Tool[] = [
   {
     name: 'install_plugin',
-    description: 'Install a HoloScript plugin with sandboxed execution. Provide plugin metadata and code. Returns installation result.',
+    description:
+      'Install a HoloScript plugin with sandboxed execution. Provide plugin metadata and code. Returns installation result.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -56,7 +57,8 @@ export const pluginManagementTools: Tool[] = [
   },
   {
     name: 'install_domain_plugin',
-    description: 'STUB: Install a pre-packaged domain plugin by package name. Not yet implemented — returns failure. Use install_plugin for runtime-loaded plugins.',
+    description:
+      'STUB: Install a pre-packaged domain plugin by package name. Not yet implemented — returns failure. Use install_plugin for runtime-loaded plugins.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -70,7 +72,8 @@ export const pluginManagementTools: Tool[] = [
   },
   {
     name: 'discover_plugins',
-    description: 'Discover available domain plugins based on a specific query or intent. OVERCLAIMED: returns a hardcoded 3-entry catalog, not a live plugin index. No dynamic discovery, filesystem scan, or remote registry fetch.',
+    description:
+      'Discover available domain plugins based on a specific query or intent. OVERCLAIMED: returns a hardcoded 3-entry catalog, not a live plugin index. No dynamic discovery, filesystem scan, or remote registry fetch.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -88,20 +91,23 @@ export const pluginManagementTools: Tool[] = [
   },
   {
     name: 'list_plugins',
-    description: 'List all installed plugins with their state, version, permissions, and registered tools.',
+    description:
+      'List all installed plugins with their state, version, permissions, and registered tools.',
     inputSchema: {
       type: 'object',
       properties: {
         state: {
           type: 'string',
-          description: 'Filter by lifecycle state (installed, verified, sandboxed, enabled, disabled)',
+          description:
+            'Filter by lifecycle state (installed, verified, sandboxed, enabled, disabled)',
         },
       },
     },
   },
   {
     name: 'manage_plugin',
-    description: 'Manage a plugin lifecycle: enable, disable, or uninstall. Use action parameter to specify the operation.',
+    description:
+      'Manage a plugin lifecycle: enable, disable, or uninstall. Use action parameter to specify the operation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -293,7 +299,8 @@ async function handleDiscoverPlugins(args: Record<string, unknown>) {
   const registry = [
     {
       id: '@holoscript/radio-astronomy-plugin',
-      description: 'Radio Astrophysics primitive extension including interferometers and synaptic bridges.',
+      description:
+        'Radio Astrophysics primitive extension including interferometers and synaptic bridges.',
       category: 'science',
     },
     {

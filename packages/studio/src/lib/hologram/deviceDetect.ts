@@ -92,14 +92,10 @@ export function hasWebXRRuntime(nav?: { xr?: unknown }): boolean {
  * a LG extension installed has explicitly indicated they want LG output.
  */
 export function detectViewer(options: DetectViewerOptions = {}): HologramViewerKind {
-  const ua =
-    options.userAgent ??
-    (typeof navigator !== 'undefined' ? navigator.userAgent : '');
+  const ua = options.userAgent ?? (typeof navigator !== 'undefined' ? navigator.userAgent : '');
 
   const win =
-    typeof globalThis !== 'undefined'
-      ? (globalThis as { HoloPlayCore?: unknown })
-      : undefined;
+    typeof globalThis !== 'undefined' ? (globalThis as { HoloPlayCore?: unknown }) : undefined;
 
   if (
     isLookingGlassEnvironment({

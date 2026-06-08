@@ -119,9 +119,7 @@ export function PluginHostProvider({
             return { subscribed: true };
           }
           if (method === 'write') {
-            logger.warn(
-              `[PluginHost] scene.write from ${pluginId} — not yet wired to scene graph`
-            );
+            logger.warn(`[PluginHost] scene.write from ${pluginId} — not yet wired to scene graph`);
             return { success: false, reason: 'Scene write not yet connected to live scene graph' };
           }
         }

@@ -82,7 +82,7 @@ function loadCommits(): CommitSpec[] {
     : resolve(__dirname, 'snapshots', 'commits.txt');
   if (!existsSync(commitFile)) {
     throw new Error(
-      `commits.txt not found at ${commitFile}. Re-run scripts/select-commits.mjs first.`,
+      `commits.txt not found at ${commitFile}. Re-run scripts/select-commits.mjs first.`
     );
   }
   const raw = readFileSync(commitFile, 'utf8');
@@ -204,11 +204,21 @@ function buildReport(results: SnapshotResult[]): string {
   lines.push('');
   lines.push('## Method');
   lines.push('');
-  lines.push('1. Snapshot `ai-ecosystem/research/paper-audit-matrix.md` at 10 historical commits via `git show`.');
-  lines.push('2. For each snapshot, parse the Matrix table -> 16 `PetalEvidence` records via `matrix-parser.ts`.');
-  lines.push('3. Apply `derivePetalBloomState` to each evidence record -> 16 bloom-states per snapshot (the **Brittney path** — what `tend_garden` would compute if wired to live matrix instead of v1 fixture).');
-  lines.push('4. Compare against hand-curated **human baseline** in `snapshots/<sha>.baseline.json` (one bloom-state per petal per snapshot, derived by reading the matrix row directly).');
-  lines.push('5. Per-petal agreement = 1 if states match, 0 otherwise. Per-snapshot rate = sum/16.');
+  lines.push(
+    '1. Snapshot `ai-ecosystem/research/paper-audit-matrix.md` at 10 historical commits via `git show`.'
+  );
+  lines.push(
+    '2. For each snapshot, parse the Matrix table -> 16 `PetalEvidence` records via `matrix-parser.ts`.'
+  );
+  lines.push(
+    '3. Apply `derivePetalBloomState` to each evidence record -> 16 bloom-states per snapshot (the **Brittney path** — what `tend_garden` would compute if wired to live matrix instead of v1 fixture).'
+  );
+  lines.push(
+    '4. Compare against hand-curated **human baseline** in `snapshots/<sha>.baseline.json` (one bloom-state per petal per snapshot, derived by reading the matrix row directly).'
+  );
+  lines.push(
+    '5. Per-petal agreement = 1 if states match, 0 otherwise. Per-snapshot rate = sum/16.'
+  );
   lines.push('');
   lines.push('## Acceptance criteria (memo verbatim)');
   lines.push('');
@@ -218,7 +228,9 @@ function buildReport(results: SnapshotResult[]): string {
   lines.push('');
   lines.push('## Results');
   lines.push('');
-  lines.push('| Snapshot | Date | Subject | Bytes | Petals | Parser ms | Tend ms | Agree | Trusted | Genesis ready |');
+  lines.push(
+    '| Snapshot | Date | Subject | Bytes | Petals | Parser ms | Tend ms | Agree | Trusted | Genesis ready |'
+  );
   lines.push('|---|---|---|---:|---:|---:|---:|:---:|:---:|:---:|');
 
   for (const r of results) {
@@ -226,7 +238,7 @@ function buildReport(results: SnapshotResult[]): string {
     const subj = r.commit.subject.slice(0, 40).replace(/\|/g, '/');
     const ag = trusted ? `${r.agreementCount}/${r.totalPetals}` : 'n/a';
     lines.push(
-      `| \`${r.commit.sha.slice(0, 8)}\` | ${r.commit.date} | ${subj} | ${r.matrixBytes} | ${r.parsedPetalCount}/16 | ${r.parserMs} | ${r.tendMs} | ${ag} | ${trusted ? 'YES' : '**NO**'} | ${r.readinessReady ? 'YES' : 'no'} |`,
+      `| \`${r.commit.sha.slice(0, 8)}\` | ${r.commit.date} | ${subj} | ${r.matrixBytes} | ${r.parsedPetalCount}/16 | ${r.parserMs} | ${r.tendMs} | ${ag} | ${trusted ? 'YES' : '**NO**'} | ${r.readinessReady ? 'YES' : 'no'} |`
     );
   }
 
@@ -239,19 +251,21 @@ function buildReport(results: SnapshotResult[]): string {
   const tendMax = Math.max(...tendTimes);
   const totalAgree = trustedResults.reduce((a, r) => a + r.agreementCount, 0);
   const totalPetalsTested = trustedResults.length * 16;
-  const agreementPct =
-    totalPetalsTested > 0 ? (100 * totalAgree) / totalPetalsTested : Number.NaN;
-  const minSnapshotAgreement = trustedResults.length > 0
-    ? Math.min(...trustedResults.map((r) => r.agreementCount))
-    : Number.NaN;
+  const agreementPct = totalPetalsTested > 0 ? (100 * totalAgree) / totalPetalsTested : Number.NaN;
+  const minSnapshotAgreement =
+    trustedResults.length > 0
+      ? Math.min(...trustedResults.map((r) => r.agreementCount))
+      : Number.NaN;
 
   lines.push(`- Snapshots tested: **${results.length}**`);
   lines.push(`- Snapshots with trusted baseline: **${trustedResults.length}/${results.length}**`);
   lines.push(`- Median tend time: **${tendMedian} ms** (parser+derivation)`);
   lines.push(`- Max tend time: **${tendMax} ms**`);
-  lines.push(`- Aggregate agreement (trusted only): **${totalAgree}/${totalPetalsTested}${
-    Number.isFinite(agreementPct) ? ` = ${agreementPct.toFixed(1)}%` : ''
-  }**`);
+  lines.push(
+    `- Aggregate agreement (trusted only): **${totalAgree}/${totalPetalsTested}${
+      Number.isFinite(agreementPct) ? ` = ${agreementPct.toFixed(1)}%` : ''
+    }**`
+  );
   if (Number.isFinite(minSnapshotAgreement)) {
     lines.push(`- Worst-snapshot per-petal agreement: **${minSnapshotAgreement}/16**`);
   }
@@ -265,26 +279,34 @@ function buildReport(results: SnapshotResult[]): string {
     Number.isFinite(minSnapshotAgreement) &&
     minSnapshotAgreement >= 15;
   const aggregateOk = Number.isFinite(agreementPct) && agreementPct >= 90;
-  lines.push(`- Median tend <= 30000 ms (30s): **${tendOk ? 'PASS' : 'FAIL'}** (${tendMedian} ms).`);
   lines.push(
-    `- Worst-snapshot agreement >= 15/16 (strict reading): **${acceptOk ? 'PASS' : trustedResults.length === 0 ? 'PENDING (no trusted baselines)' : 'FAIL'}**.`,
+    `- Median tend <= 30000 ms (30s): **${tendOk ? 'PASS' : 'FAIL'}** (${tendMedian} ms).`
+  );
+  lines.push(
+    `- Worst-snapshot agreement >= 15/16 (strict reading): **${acceptOk ? 'PASS' : trustedResults.length === 0 ? 'PENDING (no trusted baselines)' : 'FAIL'}**.`
   );
   lines.push(
     `- Aggregate agreement >= 90% (lenient reading): **${aggregateOk ? 'PASS' : trustedResults.length === 0 ? 'PENDING' : 'FAIL'}** (${
       Number.isFinite(agreementPct) ? agreementPct.toFixed(1) + '%' : 'n/a'
-    }).`,
+    }).`
   );
   lines.push('');
   if (trustedResults.length === 0) {
     lines.push(
-      '> **Status**: harness wired and runnable; baselines pending hand-curation. Each snapshot in `snapshots/<sha>.baseline.json` needs a JSON file mapping `paper_id -> bloom-state` derived by reading the matrix row directly. The harness produces those parser outputs as a starting point — a future agent (or the founder) sanity-checks them and commits the curated baseline. Until then, this report is the **harness landing**, not the gate verdict.',
+      '> **Status**: harness wired and runnable; baselines pending hand-curation. Each snapshot in `snapshots/<sha>.baseline.json` needs a JSON file mapping `paper_id -> bloom-state` derived by reading the matrix row directly. The harness produces those parser outputs as a starting point — a future agent (or the founder) sanity-checks them and commits the curated baseline. Until then, this report is the **harness landing**, not the gate verdict.'
     );
   }
   lines.push('');
 
   // Findings: enumerate parser-vs-human disagreements explicitly so the
   // report is actionable for whoever reads it next.
-  const allDisagreements: Array<{ sha: string; date: string; petal: string; brittney: BloomState; human: BloomState }> = [];
+  const allDisagreements: Array<{
+    sha: string;
+    date: string;
+    petal: string;
+    brittney: BloomState;
+    human: BloomState;
+  }> = [];
   for (const r of results) {
     const trustedFlag = loadBaseline(r.commit.sha).trusted;
     if (!trustedFlag) continue;
@@ -308,14 +330,20 @@ function buildReport(results: SnapshotResult[]): string {
   lines.push('## Findings');
   lines.push('');
   if (allDisagreements.length === 0) {
-    lines.push('No parser-vs-human disagreements detected. The matrix-parser correctly translates audit-column data into bloom-primitives across all 10 snapshots.');
+    lines.push(
+      'No parser-vs-human disagreements detected. The matrix-parser correctly translates audit-column data into bloom-primitives across all 10 snapshots.'
+    );
   } else {
-    lines.push(`Total disagreements: **${allDisagreements.length}** (across ${trustedResults.length} trusted snapshots, ${trustedResults.length * 16} petal-checks).`);
+    lines.push(
+      `Total disagreements: **${allDisagreements.length}** (across ${trustedResults.length} trusted snapshots, ${trustedResults.length * 16} petal-checks).`
+    );
     lines.push('');
     lines.push('| Snapshot | Date | Petal | Parser said | Human said |');
     lines.push('|---|---|---|---|---|');
     for (const d of allDisagreements) {
-      lines.push(`| \`${d.sha}\` | ${d.date} | \`${d.petal}\` | \`${d.brittney}\` | \`${d.human}\` |`);
+      lines.push(
+        `| \`${d.sha}\` | ${d.date} | \`${d.petal}\` | \`${d.brittney}\` | \`${d.human}\` |`
+      );
     }
     lines.push('');
 
@@ -327,17 +355,25 @@ function buildReport(results: SnapshotResult[]): string {
     lines.push('### Disagreement clusters');
     lines.push('');
     for (const [petal, count] of [...byPetal.entries()].sort((a, b) => b[1] - a[1])) {
-      lines.push(`- \`${petal}\`: **${count} snapshot(s)** — see baseline _meta.expected_disagreements for the root cause.`);
+      lines.push(
+        `- \`${petal}\`: **${count} snapshot(s)** — see baseline _meta.expected_disagreements for the root cause.`
+      );
     }
     lines.push('');
     lines.push('### Identified parser bugs');
     lines.push('');
-    lines.push('1. **`parseLOC` fails on free-text LOC values** like `✅ fleshed`, falling back to `loc=0` -> `hasDraft=false` -> `sealed`. Affects paper 7 (`p2-1-ik`) in 04-19 and early 04-24 snapshots where LOC was annotated as `✅ fleshed` instead of a number. Fix: detect `✅ fleshed`/`✅ filled`/`✅ <descriptor>` patterns and treat as `hasDraft=true` with no precise LOC.');
-    lines.push('2. **`🟡` skeleton signal is ignored** — the parser uses `loc > 0` as `hasDraft`, but the matrix legend explicitly states `🟡 skeleton (<500 LOC) — audit partial by construction`. A strict human reader treats 🟡 skeleton as `sealed` (no real draft yet). Fix: when `🟡` appears in the LOC cell, set `hasDraft=false` regardless of LOC count.');
+    lines.push(
+      '1. **`parseLOC` fails on free-text LOC values** like `✅ fleshed`, falling back to `loc=0` -> `hasDraft=false` -> `sealed`. Affects paper 7 (`p2-1-ik`) in 04-19 and early 04-24 snapshots where LOC was annotated as `✅ fleshed` instead of a number. Fix: detect `✅ fleshed`/`✅ filled`/`✅ <descriptor>` patterns and treat as `hasDraft=true` with no precise LOC.'
+    );
+    lines.push(
+      '2. **`🟡` skeleton signal is ignored** — the parser uses `loc > 0` as `hasDraft`, but the matrix legend explicitly states `🟡 skeleton (<500 LOC) — audit partial by construction`. A strict human reader treats 🟡 skeleton as `sealed` (no real draft yet). Fix: when `🟡` appears in the LOC cell, set `hasDraft=false` regardless of LOC count.'
+    );
     lines.push('');
     lines.push('### Why the gate FAILS strict per-snapshot but PASSES aggregate');
     lines.push('');
-    lines.push('The Gate 3 memo verbatim says "≥90% (one-petal disagreement allowed of 16)". Read strictly per-snapshot, **6/10 snapshots PASS** (newer 16-col matrices) and **4/10 snapshots FAIL** (older 11-col with 🟡 skeleton signals + `✅ fleshed` LOC text). Read leniently as aggregate (149/160 = 93.1%), the gate **PASSES**. Either reading is defensible per the verbatim text. The honest verdict: **the parser is correct on the modern matrix but has 2 known bugs on the legacy format**, and Gate 3 surfaces both as actionable build-targets for a v2 parser pass.');
+    lines.push(
+      'The Gate 3 memo verbatim says "≥90% (one-petal disagreement allowed of 16)". Read strictly per-snapshot, **6/10 snapshots PASS** (newer 16-col matrices) and **4/10 snapshots FAIL** (older 11-col with 🟡 skeleton signals + `✅ fleshed` LOC text). Read leniently as aggregate (149/160 = 93.1%), the gate **PASSES**. Either reading is defensible per the verbatim text. The honest verdict: **the parser is correct on the modern matrix but has 2 known bugs on the legacy format**, and Gate 3 surfaces both as actionable build-targets for a v2 parser pass.'
+    );
     lines.push('');
   }
 
@@ -351,7 +387,7 @@ function buildReport(results: SnapshotResult[]): string {
     const trusted = loadBaseline(r.commit.sha).trusted;
     if (!trusted) {
       lines.push(
-        '> Baseline NOT yet curated. Parser-derived states shown below are the **starting point** for hand-curation; review against the matrix row at this commit.',
+        '> Baseline NOT yet curated. Parser-derived states shown below are the **starting point** for hand-curation; review against the matrix row at this commit.'
       );
       lines.push('');
     }
@@ -363,7 +399,7 @@ function buildReport(results: SnapshotResult[]): string {
       const matched = r.agreements.get(pid);
       const matchCell = trusted ? (matched ? 'OK' : 'MISS') : 'pending';
       lines.push(
-        `| \`${pid}\` | \`${br?.state}\` | ${(br?.reason ?? '').slice(0, 80)} | ${baseline ?? '_(unset)_'} | ${matchCell} |`,
+        `| \`${pid}\` | \`${br?.state}\` | ${(br?.reason ?? '').slice(0, 80)} | ${baseline ?? '_(unset)_'} | ${matchCell} |`
       );
     }
     lines.push('');
@@ -371,21 +407,35 @@ function buildReport(results: SnapshotResult[]): string {
 
   lines.push('## Anti-citations');
   lines.push('');
-  lines.push('- The matrix-parser is **NOT** a live evidence-provider — it reads at-snapshot. Live `tend_garden` still uses the v1 fixture (`__fixtures__/petal-evidence-snapshot.json`). Wiring the parser into Brittney is a separate task (see "Next steps" below) and is intentionally NOT bundled here per F.031 + the memo "out of scope" rules.');
-  lines.push('- Per-petal disagreement may reflect parser fragility (audit-column to bloom-primitive translation) **and/or** drift in the matrix\'s own column semantics across the 11-column -> 16-column transition. The report surfaces both — it does NOT auto-promote either as ground truth.');
+  lines.push(
+    '- The matrix-parser is **NOT** a live evidence-provider — it reads at-snapshot. Live `tend_garden` still uses the v1 fixture (`__fixtures__/petal-evidence-snapshot.json`). Wiring the parser into Brittney is a separate task (see "Next steps" below) and is intentionally NOT bundled here per F.031 + the memo "out of scope" rules.'
+  );
+  lines.push(
+    "- Per-petal disagreement may reflect parser fragility (audit-column to bloom-primitive translation) **and/or** drift in the matrix's own column semantics across the 11-column -> 16-column transition. The report surfaces both — it does NOT auto-promote either as ground truth."
+  );
   lines.push('');
   lines.push('## Next steps (for a future agent)');
   lines.push('');
-  lines.push('1. Hand-curate `snapshots/<sha>.baseline.json` for each of the 10 commits — flip `trusted: false` -> trusted entries by reading the matrix row in `git show <sha>:research/paper-audit-matrix.md` and judging the bloom state directly. The harness is fully reproducible.');
-  lines.push('2. Re-run `npx tsx run-gate-3.mts` and re-commit this report with real agreement numbers.');
-  lines.push('3. If aggregate agreement >=90%, the parser is provably truthy and **wiring it into Brittney as v2 evidence-provider** becomes the sequel task.');
-  lines.push('4. If <90%, the disagreement table tells you which audit-column -> bloom-primitive translations are broken — fix `matrix-parser.ts:rowToEvidence` and re-run.');
+  lines.push(
+    '1. Hand-curate `snapshots/<sha>.baseline.json` for each of the 10 commits — flip `trusted: false` -> trusted entries by reading the matrix row in `git show <sha>:research/paper-audit-matrix.md` and judging the bloom state directly. The harness is fully reproducible.'
+  );
+  lines.push(
+    '2. Re-run `npx tsx run-gate-3.mts` and re-commit this report with real agreement numbers.'
+  );
+  lines.push(
+    '3. If aggregate agreement >=90%, the parser is provably truthy and **wiring it into Brittney as v2 evidence-provider** becomes the sequel task.'
+  );
+  lines.push(
+    '4. If <90%, the disagreement table tells you which audit-column -> bloom-primitive translations are broken — fix `matrix-parser.ts:rowToEvidence` and re-run.'
+  );
   lines.push('');
   lines.push('## Provenance');
   lines.push('');
   lines.push(`- Run timestamp: ${new Date().toISOString()}`);
   lines.push(`- ai-ecosystem repo: \`${AI_ECO_REPO}\``);
-  lines.push(`- Harness commit: see git log of \`packages/studio/src/__benchmarks__/lotus-gate-3/\``);
+  lines.push(
+    `- Harness commit: see git log of \`packages/studio/src/__benchmarks__/lotus-gate-3/\``
+  );
   lines.push('');
 
   return lines.join('\n');
@@ -416,7 +466,7 @@ async function main() {
     '..',
     '..',
     'research',
-    'lotus-gate-3-evidence',
+    'lotus-gate-3-evidence'
   );
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
   const outPath = resolve(outDir, `${new Date().toISOString().slice(0, 10)}.md`);

@@ -48,7 +48,7 @@ export function useYjsCollaboration({
 
   const connect = useCallback(async () => {
     if (!enabled || isConnectingRef.current) return;
-    
+
     // Skip if already connected
     if (connectionStatus === 'connected') return;
 
@@ -62,7 +62,7 @@ export function useYjsCollaboration({
         unobserveRef.current();
         unobserveRef.current = null;
       }
-      
+
       // Ensure we disconnect the prior client instance from sending callbacks
       try {
         const existingClient = getCollaborationClient();

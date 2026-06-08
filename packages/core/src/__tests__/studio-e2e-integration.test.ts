@@ -364,11 +364,15 @@ describe('E2E: Profiler', () => {
 describe('E2E: LOD Manager', () => {
   it('registers objects and queries levels', () => {
     const mgr = new LODManager({ autoUpdate: false } as any);
-    mgr.register('tree', [0, 0, 0], [
-      { level: 0, maxDistance: 0, meshDetail: 1 },
-      { level: 1, maxDistance: 20, meshDetail: 0.5 },
-      { level: 2, maxDistance: 50, meshDetail: 0.1 },
-    ]);
+    mgr.register(
+      'tree',
+      [0, 0, 0],
+      [
+        { level: 0, maxDistance: 0, meshDetail: 1 },
+        { level: 1, maxDistance: 20, meshDetail: 0.5 },
+        { level: 2, maxDistance: 50, meshDetail: 0.1 },
+      ]
+    );
     expect(mgr.getObject('tree')).toBeDefined();
     const level = mgr.getObject('tree')?.currentLevel;
     expect(level).toBe(0);
@@ -376,11 +380,15 @@ describe('E2E: LOD Manager', () => {
 
   it('forced level override', () => {
     const mgr = new LODManager({ autoUpdate: false } as any);
-    mgr.register('obj', [0, 0, 0], [
-      { level: 0, maxDistance: 0, meshDetail: 1 },
-      { level: 1, maxDistance: 20, meshDetail: 0.5 },
-      { level: 2, maxDistance: 50, meshDetail: 0.1 },
-    ]);
+    mgr.register(
+      'obj',
+      [0, 0, 0],
+      [
+        { level: 0, maxDistance: 0, meshDetail: 1 },
+        { level: 1, maxDistance: 20, meshDetail: 0.5 },
+        { level: 2, maxDistance: 50, meshDetail: 0.1 },
+      ]
+    );
     const obj = mgr.getObject('obj');
     if (obj) obj.currentLevel = 2; // Simulate forced override by directly modifying state (since setForcedLevel was removed)
     mgr.update(0.016);

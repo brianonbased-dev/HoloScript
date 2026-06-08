@@ -20,7 +20,7 @@ export default defineConfig({
         const docUrl = '/docs' + slashPrefix + item.url;
         return {
           ...item,
-          url: docUrl
+          url: docUrl,
         };
       });
 
@@ -28,11 +28,11 @@ export default defineConfig({
       mapped.push({
         url: '/',
         changefreq: 'weekly',
-        priority: 1.0 // highest priority for the root product page
+        priority: 1.0, // highest priority for the root product page
       });
 
       return mapped;
-    }
+    },
   },
 
   /**
@@ -799,11 +799,20 @@ export default defineConfig({
             { text: '2026-05-09', link: '/reviews/2026-05-09' },
             { text: '2026-05-08', link: '/reviews/2026-05-08' },
             { text: '2026-05-07', link: '/reviews/2026-05-07' },
-            { text: '2026-05-07 (material preset audit)', link: '/reviews/2026-05-07-material-preset-button-audit' },
+            {
+              text: '2026-05-07 (material preset audit)',
+              link: '/reviews/2026-05-07-material-preset-button-audit',
+            },
             { text: '2026-05-07 (PR-183 triage)', link: '/reviews/2026-05-07-pr-183-triage' },
-            { text: '2026-05-07 (pre-merge stash split)', link: '/reviews/2026-05-07-pre-merge-184001-stash-split' },
+            {
+              text: '2026-05-07 (pre-merge stash split)',
+              link: '/reviews/2026-05-07-pre-merge-184001-stash-split',
+            },
             { text: '2026-05-06', link: '/reviews/2026-05-06' },
-            { text: '2026-05-06 (stash backlog triage)', link: '/reviews/2026-05-06-stash-backlog-triage' },
+            {
+              text: '2026-05-06 (stash backlog triage)',
+              link: '/reviews/2026-05-06-stash-backlog-triage',
+            },
             { text: '2026-05-05', link: '/reviews/2026-05-05' },
             { text: '2026-05-04', link: '/reviews/2026-05-04' },
             { text: '2026-05-03', link: '/reviews/2026-05-03' },

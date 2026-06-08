@@ -39,9 +39,7 @@ describe('hologram-holomesh-send', () => {
   });
 
   it('assertRecipientOnTeam rejects non-members', () => {
-    expect(() =>
-      assertRecipientOnTeam([{ agentId: 'a1' }], 'ghost'),
-    ).toThrow('not a member');
+    expect(() => assertRecipientOnTeam([{ agentId: 'a1' }], 'ghost')).toThrow('not a member');
   });
 
   it('sendHologramTeamMessage posts hologram payload', async () => {
@@ -52,11 +50,13 @@ describe('hologram-holomesh-send', () => {
       if (u.endsWith('/team/t1')) {
         return new Response(
           JSON.stringify({ team: { members: [{ agentId: 'peer1', agentName: 'Peer' }] } }),
-          { status: 200 },
+          { status: 200 }
         );
       }
       if (u.endsWith('/team/t1/message')) {
-        return new Response(JSON.stringify({ success: true, message: { id: 'm1' } }), { status: 201 });
+        return new Response(JSON.stringify({ success: true, message: { id: 'm1' } }), {
+          status: 201,
+        });
       }
       return new Response('not found', { status: 404 });
     }) as typeof fetch;
@@ -86,10 +86,9 @@ describe('hologram-holomesh-send', () => {
     globalThis.fetch = vi.fn(async (url: string | URL) => {
       const u = String(url);
       if (u.endsWith('/team/t1')) {
-        return new Response(
-          JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }),
-          { status: 200 },
-        );
+        return new Response(JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }), {
+          status: 200,
+        });
       }
       return new Response(JSON.stringify({ success: true }), { status: 201 });
     }) as typeof fetch;
@@ -110,7 +109,7 @@ describe('hologram-holomesh-send', () => {
         hash: 'overflow',
         shareUrl: 'https://x/u',
         recipientAgentId: 'peer1',
-      }),
+      })
     ).rejects.toThrow('rate limited');
   });
 
@@ -141,7 +140,7 @@ describe('hologram-holomesh-send', () => {
 
   it('fetchTeamMemberIds throws on HTTP error', async () => {
     globalThis.fetch = vi.fn(
-      async () => new Response(JSON.stringify({ error: 'nope' }), { status: 403 }),
+      async () => new Response(JSON.stringify({ error: 'nope' }), { status: 403 })
     ) as typeof fetch;
     await expect(fetchTeamMemberIds('t1', 'k')).rejects.toThrow('nope');
   });
@@ -160,10 +159,9 @@ describe('hologram-holomesh-send', () => {
       globalThis.fetch = vi.fn(async (url: string | URL) => {
         const u = String(url);
         if (u.endsWith('/team/t1')) {
-          return new Response(
-            JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }),
-            { status: 200 },
-          );
+          return new Response(JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }), {
+            status: 200,
+          });
         }
         if (u.endsWith('/team/t1/message')) {
           postCount += 1;
@@ -200,10 +198,9 @@ describe('hologram-holomesh-send', () => {
       globalThis.fetch = vi.fn(async (url: string | URL) => {
         const u = String(url);
         if (u.endsWith('/team/t1')) {
-          return new Response(
-            JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }),
-            { status: 200 },
-          );
+          return new Response(JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }), {
+            status: 200,
+          });
         }
         if (u.endsWith('/team/t1/message')) {
           postCount += 1;
@@ -233,10 +230,9 @@ describe('hologram-holomesh-send', () => {
       globalThis.fetch = vi.fn(async (url: string | URL) => {
         const u = String(url);
         if (u.endsWith('/team/t1')) {
-          return new Response(
-            JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }),
-            { status: 200 },
-          );
+          return new Response(JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }), {
+            status: 200,
+          });
         }
         if (u.endsWith('/team/t1/message')) {
           postCount += 1;
@@ -253,7 +249,7 @@ describe('hologram-holomesh-send', () => {
           shareUrl: 'https://x/u',
           recipientAgentId: 'peer1',
           retry: { maxAttempts: 3, baseDelayMs: 1, maxDelayMs: 2, sleep: noSleep },
-        }),
+        })
       ).rejects.toMatchObject({
         name: 'HologramSendError',
         canRetry: true,
@@ -268,10 +264,9 @@ describe('hologram-holomesh-send', () => {
       globalThis.fetch = vi.fn(async (url: string | URL) => {
         const u = String(url);
         if (u.endsWith('/team/t1')) {
-          return new Response(
-            JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }),
-            { status: 200 },
-          );
+          return new Response(JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }), {
+            status: 200,
+          });
         }
         if (u.endsWith('/team/t1/message')) {
           postCount += 1;
@@ -335,10 +330,9 @@ describe('hologram-holomesh-send', () => {
       globalThis.fetch = vi.fn(async (url: string | URL) => {
         const u = String(url);
         if (u.endsWith('/team/t1')) {
-          return new Response(
-            JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }),
-            { status: 200 },
-          );
+          return new Response(JSON.stringify({ team: { members: [{ agentId: 'peer1' }] } }), {
+            status: 200,
+          });
         }
         return new Response(JSON.stringify({ success: true }), { status: 201 });
       }) as typeof fetch;

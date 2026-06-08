@@ -769,9 +769,7 @@ function buildHoloComposition(gltf: GltfData, inputPath: string): string {
   lines.push('    ambient_light: 0.4');
 
   // Check for global lighting extensions
-  const lightsExt = gltf.extensions?.['KHR_lights_punctual'] as
-    | KhrLightsPunctualExt
-    | undefined;
+  const lightsExt = gltf.extensions?.['KHR_lights_punctual'] as KhrLightsPunctualExt | undefined;
   if (lightsExt?.lights) {
     const directionalLight = lightsExt.lights.find((l) => l.type === 'directional');
     if (directionalLight) {

@@ -48,7 +48,7 @@ for (const line of dockerfileText.split('\n')) {
   const pFlag = trimmed.match(/-p\s+([\w./]+\.json)/);
   const tsConfigFile = pFlag ? pFlag[1] : 'tsconfig.json';
 
-  if (!PACKAGES_TO_CHECK.find(p => p.pkgName === pkgName)) {
+  if (!PACKAGES_TO_CHECK.find((p) => p.pkgName === pkgName)) {
     PACKAGES_TO_CHECK.push({ pkgName, tsConfigFile });
   }
 }
@@ -56,7 +56,11 @@ for (const line of dockerfileText.split('\n')) {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function readJson(path) {
-  try { return JSON.parse(readFileSync(path, 'utf8')); } catch { return null; }
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 function walkTs(dir, files = []) {
@@ -75,21 +79,19 @@ function walkTs(dir, files = []) {
 }
 
 function isTestFile(absPath) {
-  return absPath.includes('__tests__') ||
+  return (
+    absPath.includes('__tests__') ||
     absPath.endsWith('.test.ts') ||
     absPath.endsWith('.test.tsx') ||
     absPath.endsWith('.spec.ts') ||
-    absPath.endsWith('.spec.tsx');
+    absPath.endsWith('.spec.tsx')
+  );
 }
 
 /** Check if a tsconfig exclude list covers test files */
 function tsConfigExcludesTests(tsconfig) {
   const excl = tsconfig.exclude ?? [];
-  return excl.some(e =>
-    e.includes('__tests__') ||
-    e.includes('test.') ||
-    e.includes('spec.'),
-  );
+  return excl.some((e) => e.includes('__tests__') || e.includes('test.') || e.includes('spec.'));
 }
 
 // ─── Audit one package ────────────────────────────────────────────────────────
@@ -110,8 +112,8 @@ function auditPackage({ pkgName, tsConfigFile }) {
     if (testFiles.length > 0) {
       failures.push(
         `${tsConfigFile} missing — tsc will include ALL .ts files. ` +
-        `${testFiles.length} test file(s) exist in src/. ` +
-        `If they import removed exports, the build fails.`,
+          `${testFiles.length} test file(s) exist in src/. ` +
+          `If they import removed exports, the build fails.`
       );
     } else {
       warnings.push(`${tsConfigFile} missing (currently safe — no test files in src/)`);
@@ -126,9 +128,12 @@ function auditPackage({ pkgName, tsConfigFile }) {
     if (testFiles.length > 0) {
       failures.push(
         `${tsConfigFile} has no test-file exclusions, ` +
-        `${testFiles.length} test file(s) in src/ will be type-checked:\n` +
-        testFiles.slice(0, 4).map(f => `    ${f.replace(ROOT + '\\', '').replace(ROOT + '/', '')}`).join('\n') +
-        (testFiles.length > 4 ? `\n    ... and ${testFiles.length - 4} more` : ''),
+          `${testFiles.length} test file(s) in src/ will be type-checked:\n` +
+          testFiles
+            .slice(0, 4)
+            .map((f) => `    ${f.replace(ROOT + '\\', '').replace(ROOT + '/', '')}`)
+            .join('\n') +
+          (testFiles.length > 4 ? `\n    ... and ${testFiles.length - 4} more` : '')
       );
     } else {
       warnings.push(`${tsConfigFile} has no test exclusions (safe now — 0 test files in src/)`);
@@ -142,7 +147,7 @@ function auditPackage({ pkgName, tsConfigFile }) {
 
 const targetArg = process.argv[2];
 const packagesToCheck = targetArg
-  ? PACKAGES_TO_CHECK.filter(p => p.pkgName === targetArg)
+  ? PACKAGES_TO_CHECK.filter((p) => p.pkgName === targetArg)
   : PACKAGES_TO_CHECK;
 
 if (packagesToCheck.length === 0) {
@@ -172,7 +177,9 @@ for (const entry of packagesToCheck) {
 }
 
 console.log(`\n${'─'.repeat(60)}`);
-console.log(`Failures: ${totalFailures}  Warnings: ${totalWarnings}  Packages: ${packagesToCheck.length}`);
+console.log(
+  `Failures: ${totalFailures}  Warnings: ${totalWarnings}  Packages: ${packagesToCheck.length}`
+);
 
 if (totalFailures > 0) {
   console.log('\nFix these issues before pushing to avoid Railway build failures.\n');

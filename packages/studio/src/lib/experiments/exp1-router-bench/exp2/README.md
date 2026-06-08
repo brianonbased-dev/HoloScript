@@ -8,7 +8,7 @@ one founder-gated step (class-1 GPU spend). Everything below the "Gate" line is 
 EXP-1c found the capability frontier: the 1.5B respects contracts (clamp/forbidden/
 required = 100% with offload) but **cannot COMPUTE** — it scores **0%** on the compute
 suite (midpoint / %-of-range / delta-then-clamp), and even the 7B only 25%. The
-substrate supplies the *bounds*; it does not supply *arithmetic ability*. EXP-2 asks:
+substrate supplies the _bounds_; it does not supply _arithmetic ability_. EXP-2 asks:
 
 > Can a small LoRA SFT install the COMPUTATION the 1.5B fails zero-shot — taking it
 > from 0% toward the substrate's reach — yielding a lite, portable, **downloadable**
@@ -17,7 +17,7 @@ substrate supplies the *bounds*; it does not supply *arithmetic ability*. EXP-2 
 (NB — design correction caught by inspecting the emitted data: the bounds are
 instance-specific and NOT derivable from the contract id, so they MUST be in the
 prompt. Hiding them makes the target unlearnable. EXP-2 therefore relocates the
-*computation*, not the *knowledge*. Memorising a fixed contract catalogue — relocating
+_computation_, not the _knowledge_. Memorising a fixed contract catalogue — relocating
 the knowledge too — is a valid separate follow-on (EXP-2b).)
 
 ## Design
@@ -25,7 +25,7 @@ the knowledge too — is a valid separate follow-on (EXP-2b).)
 - **Base:** `Qwen2.5-Coder-1.5B` (the EXP-1 Arm-C model). Apache-2.0, dense, downloadable.
 - **Method:** LoRA SFT (r=16, alpha=32, lr=2e-4, ~3 epochs) — small, cheap, mergeable.
 - **Corpus:** `generateDataset(N)` — deterministic (seeded), `(system + NL instruction +
-  scene + GIVEN bounds) → exact correct mutation JSON`. The model learns to evaluate
+scene + GIVEN bounds) → exact correct mutation JSON`. The model learns to evaluate
   clamp / midpoint / percentage / delta-then-clamp over the bounds it is shown.
 - **Eval (the falsifier):** run the merged model through the EXP-1 **compute suite**
   (`EXP1_SUITE=compute`) on a HELD-OUT seed. Compare to the BASE 1.5B (0%). **Pass =
@@ -42,7 +42,7 @@ import { generateDataset, toJsonl } from './generateDataset';
 import { writeFileSync } from 'node:fs';
 // 80/20 train/eval split by seed; keep eval trait/op combos disjoint for generalisation.
 writeFileSync('exp2-train.jsonl', toJsonl(generateDataset(4000, 42)));
-writeFileSync('exp2-eval.jsonl',  toJsonl(generateDataset(800, 99)));
+writeFileSync('exp2-eval.jsonl', toJsonl(generateDataset(800, 99)));
 ```
 
 ## ── Gate: the GPU training run (founder-gated, class-1 spend) ──

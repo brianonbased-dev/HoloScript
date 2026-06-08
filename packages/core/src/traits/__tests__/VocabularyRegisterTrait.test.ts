@@ -57,10 +57,21 @@ describe('VocabularyRegisterTrait', () => {
   });
 
   it('injects vocabulary payload with tone hint', () => {
-    attachTrait(vocabularyRegisterHandler, node, { active_register: 'medieval-fantasy', prepend_tone_hint: true }, ctx);
-    sendEvent(vocabularyRegisterHandler, node, { active_register: 'medieval-fantasy', prepend_tone_hint: true }, ctx, {
-      type: 'vocabulary_inject',
-    });
+    attachTrait(
+      vocabularyRegisterHandler,
+      node,
+      { active_register: 'medieval-fantasy', prepend_tone_hint: true },
+      ctx
+    );
+    sendEvent(
+      vocabularyRegisterHandler,
+      node,
+      { active_register: 'medieval-fantasy', prepend_tone_hint: true },
+      ctx,
+      {
+        type: 'vocabulary_inject',
+      }
+    );
     const ev = getLastEvent(ctx, 'vocabulary_injected');
     expect(ev.payload).toContain('[Tone]');
     expect(ev.payload).toContain('medieval-fantasy');

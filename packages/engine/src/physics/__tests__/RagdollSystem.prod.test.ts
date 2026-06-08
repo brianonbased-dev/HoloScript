@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { RagdollSystem, HUMANOID_PRESET, QUADRUPED_PRESET } from '..';
 
 describe('RagdollSystem — Production', () => {
-  const origin = [0, 5, 0 ];
+  const origin = [0, 5, 0];
 
   // ─── Humanoid ─────────────────────────────────────────────────────
   it('createHumanoid generates correct bone count', () => {
@@ -26,8 +26,8 @@ describe('RagdollSystem — Production', () => {
 
   it('humanoid root position is set', () => {
     const rs = new RagdollSystem();
-    const ragdoll = rs.createHumanoid('hero', [1, 2, 3 ]);
-    expect(ragdoll.rootPosition).toEqual([1, 2, 3 ]);
+    const ragdoll = rs.createHumanoid('hero', [1, 2, 3]);
+    expect(ragdoll.rootPosition).toEqual([1, 2, 3]);
   });
 
   // ─── Quadruped ────────────────────────────────────────────────────

@@ -54,12 +54,7 @@ export class GhostRunner {
     this.recordTime = 0;
   }
 
-  sample(
-    dt: number,
-    pos: [number, number, number],
-    rotation: number,
-    speed: number
-  ): void {
+  sample(dt: number, pos: [number, number, number], rotation: number, speed: number): void {
     if (!this.recording) return;
     this.recordTime += dt;
     this.activeRecording.push({

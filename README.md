@@ -76,12 +76,12 @@ HoloScript is not trying to replace every tool in your stack. It keeps the inten
 
 ### One-line outcomes by role
 
-| If you are a...        | Describe this                                                          | Get this                                                                                                    |
-| ---------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Game / XR developer    | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Unity, Unreal, Godot, or React Three Fiber output from the same scene                    |
-| AI agent builder       | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP tools with typed inputs, permissions, and live inventory verified via `GET /health`  |
+| If you are a...        | Describe this                                                          | Get this                                                                                                                                       |
+| ---------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Game / XR developer    | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Unity, Unreal, Godot, or React Three Fiber output from the same scene                                                                          |
+| AI agent builder       | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP tools with typed inputs, permissions, and live inventory verified via `GET /health`                                                        |
 | Simulation engineer    | `simulation "WindTunnel" { solver: fea, mesh: tet10, boundary: ... }`  | TypeScript-accessible solvers with replay/provenance hooks; verify geometry, meshing, boundary conditions, and V&V depth before scientific use |
-| Founder / product team | `service "BillingAPI" { route: /invoice, method: POST, ... }`          | Node.js service scaffold with observability, metering, and rollback hooks                |
+| Founder / product team | `service "BillingAPI" { route: /invoice, method: POST, ... }`          | Node.js service scaffold with observability, metering, and rollback hooks                                                                      |
 
 ## Example outcomes
 
@@ -136,14 +136,14 @@ Every gap shares the same pattern: the infrastructure traits exist, the domain p
 
 HoloScript is a 6-layer open platform. The same model anchors the [landing page](https://holoscript.net) and this repo, so the story reads the same whether someone (or an agent) starts from the site or the source.
 
-| Layer            | What it is                                                                    | Where it lives                                                          |
-| ---------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| 6 · Marketplace  | Traits + plugins + skills, Ed25519 signatures, x402 payments                  | `store.holoscript.net`, [`packages/plugins/`](./packages/plugins/)      |
-| 5 · Studio       | AI scene builder, browser workflow, node-graph editor                         | [`packages/studio/`](./packages/studio/)                                |
-| 4 · Agents       | Swarm intelligence, MCP comms, economy primitives                             | [`packages/mcp-server/`](./packages/mcp-server/)                        |
-| 3 · Compiler     | Named backends, cross-target compilation, circuit breaker, incremental builds | [`packages/core/src/compiler/`](./packages/core/src/compiler/)          |
-| 2 · Runtime      | Three.js browser, Rust spatial engine, WebGPU rendering                       | `packages/r3f-renderer/`, `packages/snn-webgpu/`, `packages/compiler-wasm/` |
-| 1 · OS Core      | Cognitive (uAAL), perceptual (SNN), economic (x402), semantic traits          | [`packages/core/`](./packages/core/)                                    |
+| Layer           | What it is                                                                    | Where it lives                                                              |
+| --------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 6 · Marketplace | Traits + plugins + skills, Ed25519 signatures, x402 payments                  | `store.holoscript.net`, [`packages/plugins/`](./packages/plugins/)          |
+| 5 · Studio      | AI scene builder, browser workflow, node-graph editor                         | [`packages/studio/`](./packages/studio/)                                    |
+| 4 · Agents      | Swarm intelligence, MCP comms, economy primitives                             | [`packages/mcp-server/`](./packages/mcp-server/)                            |
+| 3 · Compiler    | Named backends, cross-target compilation, circuit breaker, incremental builds | [`packages/core/src/compiler/`](./packages/core/src/compiler/)              |
+| 2 · Runtime     | Three.js browser, Rust spatial engine, WebGPU rendering                       | `packages/r3f-renderer/`, `packages/snn-webgpu/`, `packages/compiler-wasm/` |
+| 1 · OS Core     | Cognitive (uAAL), perceptual (SNN), economic (x402), semantic traits          | [`packages/core/`](./packages/core/)                                        |
 
 The layers are architectural, not counts — they don't go stale. Ecosystem counts (tools, traits, compilers) are never hardcoded here; see [What to verify live](#what-to-verify-live).
 

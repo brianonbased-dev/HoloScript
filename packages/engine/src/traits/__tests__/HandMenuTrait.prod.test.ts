@@ -43,26 +43,21 @@ let _nodeId = 0;
 function makeNode(withProps = true) {
   return {
     id: `hand_node_${++_nodeId}`,
-    properties: withProps
-      ? { position: [0, 0, 0], scale: [1, 1, 1 ] }
-      : undefined,
+    properties: withProps ? { position: [0, 0, 0], scale: [1, 1, 1] } : undefined,
   };
 }
 
 function makeCtx(handData?: { left?: { position: [number, number, number] } }) {
   return {
     emit: vi.fn(),
-    vr:
-      handData !== undefined
-        ? { headset: { position: [0, 0, 0] }, hands: handData }
-        : undefined,
+    vr: handData !== undefined ? { headset: { position: [0, 0, 0] }, hands: handData } : undefined,
   };
 }
 
 const defaultConfig: any = {
   hand: 'left',
   trigger: 'palm_up',
-  offset: [0, 0.2, 0 ],
+  offset: [0, 0.2, 0],
   scale: 1,
 };
 
@@ -83,7 +78,7 @@ describe('handMenuHandler.defaultValue', () => {
   const d = (handMenuHandler as any).defaultValue;
   it('hand = left', () => expect(d.hand).toBe('left'));
   it('trigger = palm_up', () => expect(d.trigger).toBe('palm_up'));
-  it('offset = {0,0.2,0}', () => expect(d.offset).toEqual([0, 0.2, 0 ]));
+  it('offset = {0,0.2,0}', () => expect(d.offset).toEqual([0, 0.2, 0]));
   it('scale = 1', () => expect(d.scale).toBe(1));
 });
 
@@ -92,7 +87,7 @@ describe('handMenuHandler.defaultValue', () => {
 describe('handMenuHandler.onAttach', () => {
   it('sets node.properties.scale to {0,0,0}', () => {
     const { node } = attach();
-    expect(node.properties!.scale).toEqual([0, 0, 0 ]);
+    expect(node.properties!.scale).toEqual([0, 0, 0]);
   });
 
   it('sets node.properties.opacity to 0', () => {
@@ -152,7 +147,7 @@ describe('handMenuHandler.onUpdate â€” hand absent (no left hand)', () => {
     const ctx = makeCtx({ left: undefined });
     handMenuHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     const expectedS = 0.4 * (config.scale || 1);
-    expect(node.properties!.scale).toEqual([expectedS, expectedS, expectedS ]);
+    expect(node.properties!.scale).toEqual([expectedS, expectedS, expectedS]);
   });
 
   it('updates opacity from spring value when hand absent', () => {

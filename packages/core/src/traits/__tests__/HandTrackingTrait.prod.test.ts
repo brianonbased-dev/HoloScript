@@ -130,10 +130,7 @@ describe('HandTrackingTrait — Production', () => {
       handTrackingHandler.onAttach(n, cfg, c);
 
       const joints1 = new Map([
-        [
-          'wrist',
-          { position: [0, 0, 0], rotation: [0, 0, 0, 1 ], radius: 0.01 },
-        ],
+        ['wrist', { position: [0, 0, 0], rotation: [0, 0, 0, 1], radius: 0.01 }],
       ]);
 
       // First update to set initial joints
@@ -145,10 +142,7 @@ describe('HandTrackingTrait — Production', () => {
 
       // Second update with different position — smoothing applies
       const joints2 = new Map([
-        [
-          'wrist',
-          { position: [10, 10, 10], rotation: [0, 0, 0, 1 ], radius: 0.01 },
-        ],
+        ['wrist', { position: [10, 10, 10], rotation: [0, 0, 0, 1], radius: 0.01 }],
       ]);
 
       handTrackingHandler.onEvent!(n, cfg, c, {
@@ -306,10 +300,7 @@ describe('HandTrackingTrait — Production', () => {
   describe('joint query', () => {
     it('returns joint pose', () => {
       const joints = new Map([
-        [
-          'index_tip',
-          { position: [1, 2, 3], rotation: [0, 0, 0, 1 ], radius: 0.005 },
-        ],
+        ['index_tip', { position: [1, 2, 3], rotation: [0, 0, 0, 1], radius: 0.005 }],
       ]);
       handTrackingHandler.onEvent!(node, config, ctx, {
         type: 'hand_data',

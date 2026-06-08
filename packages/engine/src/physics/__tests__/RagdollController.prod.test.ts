@@ -48,8 +48,8 @@ describe('RagdollController', () => {
 
     it('custom limits are respected', () => {
       rc.addBone('lhand', 'spine', 1, 0.2, {
-        min: [-0.5, -0.3, -0.1 ],
-        max: [0.5, 0.3, 0.1 ],
+        min: [-0.5, -0.3, -0.1],
+        max: [0.5, 0.3, 0.1],
       });
       expect(rc.getBone('lhand')!.jointLimits.min[0]).toBe(-0.5);
     });
@@ -151,13 +151,13 @@ describe('RagdollController', () => {
     it('adds velocity to a bone proportional to impulse/mass', () => {
       rc.goRagdoll();
       const spine = rc.getBone('spine')!;
-      rc.applyImpulse('spine', [10, 0, 0 ]);
+      rc.applyImpulse('spine', [10, 0, 0]);
       // velocity[0] += 10 / mass(5) = 2
       expect(spine.velocity[0]).toBeCloseTo(2);
     });
 
     it('no-op for unknown bone id', () => {
-      expect(() => rc.applyImpulse('ghost', [1, 0, 0 ])).not.toThrow();
+      expect(() => rc.applyImpulse('ghost', [1, 0, 0])).not.toThrow();
     });
   });
 });

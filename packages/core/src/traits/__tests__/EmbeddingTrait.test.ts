@@ -46,9 +46,15 @@ describe('EmbeddingTrait — onEvent', () => {
   it('embedding:generate emits embedding:result with vector and dims', () => {
     const node = makeNode();
     embeddingHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    embeddingHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'embedding:generate', input: 'hello world',
-    } as never);
+    embeddingHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'embedding:generate',
+        input: 'hello world',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith(
       'embedding:result',
       expect.objectContaining({
@@ -67,9 +73,16 @@ describe('EmbeddingTrait — onEvent', () => {
   it('embedding:generate uses provided dimensions', () => {
     const node = makeNode();
     embeddingHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    embeddingHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'embedding:generate', input: 'test', dimensions: 512,
-    } as never);
+    embeddingHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'embedding:generate',
+        input: 'test',
+        dimensions: 512,
+      } as never
+    );
     const call = node.emit.mock.calls[0][1] as { dimensions: number; vector: Float32Array };
     expect(call.dimensions).toBe(512);
     expect(call.vector.length).toBe(512);
@@ -79,18 +92,33 @@ describe('EmbeddingTrait — onEvent', () => {
     const node = makeNode();
     const config = { ...defaultConfig, default_dimensions: 16 };
     embeddingHandler.onAttach!(node as never, config, makeCtx(node) as never);
-    embeddingHandler.onEvent!(node as never, config, makeCtx(node) as never, {
-      type: 'embedding:generate',
-      input: { text: 'same semantic seed' },
-    } as never);
-    embeddingHandler.onEvent!(node as never, config, makeCtx(node) as never, {
-      type: 'embedding:generate',
-      input: { text: 'same semantic seed' },
-    } as never);
-    embeddingHandler.onEvent!(node as never, config, makeCtx(node) as never, {
-      type: 'embedding:generate',
-      input: { text: 'different semantic seed' },
-    } as never);
+    embeddingHandler.onEvent!(
+      node as never,
+      config,
+      makeCtx(node) as never,
+      {
+        type: 'embedding:generate',
+        input: { text: 'same semantic seed' },
+      } as never
+    );
+    embeddingHandler.onEvent!(
+      node as never,
+      config,
+      makeCtx(node) as never,
+      {
+        type: 'embedding:generate',
+        input: { text: 'same semantic seed' },
+      } as never
+    );
+    embeddingHandler.onEvent!(
+      node as never,
+      config,
+      makeCtx(node) as never,
+      {
+        type: 'embedding:generate',
+        input: { text: 'different semantic seed' },
+      } as never
+    );
 
     const first = node.emit.mock.calls[0][1] as { vector: Float32Array };
     const second = node.emit.mock.calls[1][1] as { vector: Float32Array };
@@ -104,11 +132,16 @@ describe('EmbeddingTrait — onEvent', () => {
     const node = makeNode();
     const config = { ...defaultConfig, default_dimensions: 8 };
     embeddingHandler.onAttach!(node as never, config, makeCtx(node) as never);
-    embeddingHandler.onEvent!(node as never, config, makeCtx(node) as never, {
-      type: 'embedding:generate',
-      input: 'test',
-      dimensions: -3,
-    } as never);
+    embeddingHandler.onEvent!(
+      node as never,
+      config,
+      makeCtx(node) as never,
+      {
+        type: 'embedding:generate',
+        input: 'test',
+        dimensions: -3,
+      } as never
+    );
 
     const call = node.emit.mock.calls[0][1] as { dimensions: number; vector: Float32Array };
     expect(call.dimensions).toBe(8);
@@ -118,9 +151,16 @@ describe('EmbeddingTrait — onEvent', () => {
   it('embedding:generate uses provided model', () => {
     const node = makeNode();
     embeddingHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    embeddingHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'embedding:generate', input: 'x', model: 'custom-embed-v1',
-    } as never);
+    embeddingHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'embedding:generate',
+        input: 'x',
+        model: 'custom-embed-v1',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith(
       'embedding:result',
       expect.objectContaining({
@@ -132,8 +172,18 @@ describe('EmbeddingTrait — onEvent', () => {
   it('increments index per call', () => {
     const node = makeNode();
     embeddingHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    embeddingHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'embedding:generate', input: 'a' } as never);
-    embeddingHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'embedding:generate', input: 'b' } as never);
+    embeddingHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'embedding:generate', input: 'a' } as never
+    );
+    embeddingHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'embedding:generate', input: 'b' } as never
+    );
     const lastCall = node.emit.mock.calls[1][1] as { index: number };
     expect(lastCall.index).toBe(2);
   });

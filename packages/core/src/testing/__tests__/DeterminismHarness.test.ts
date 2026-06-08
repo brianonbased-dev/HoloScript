@@ -101,13 +101,19 @@ describe('captureEnvironment', () => {
 
 describe('describeEnvironment', () => {
   it('returns runtime as the first segment', () => {
-    const env: EnvironmentInfo = { runtime: 'node', node: { version: '18.0', platform: 'linux', arch: 'x64' } };
+    const env: EnvironmentInfo = {
+      runtime: 'node',
+      node: { version: '18.0', platform: 'linux', arch: 'x64' },
+    };
     const desc = describeEnvironment(env);
     expect(desc).toMatch(/^node/);
   });
 
   it('includes node version, platform, and arch', () => {
-    const env: EnvironmentInfo = { runtime: 'node', node: { version: '18.15', platform: 'win32', arch: 'x64' } };
+    const env: EnvironmentInfo = {
+      runtime: 'node',
+      node: { version: '18.15', platform: 'win32', arch: 'x64' },
+    };
     const desc = describeEnvironment(env);
     expect(desc).toContain('node 18.15');
     expect(desc).toContain('win32');
@@ -269,11 +275,7 @@ describe('DeterminismHarness.probe', () => {
 
   it('merges per-probe annotations with harness annotations', async () => {
     const harness = new DeterminismHarness({ annotations: { suite: 'perf' } });
-    const result = await harness.probe(
-      'merge-ann',
-      () => new Uint8Array([1]),
-      { run: 'first' }
-    );
+    const result = await harness.probe('merge-ann', () => new Uint8Array([1]), { run: 'first' });
     expect(result.environment.annotations?.suite).toBe('perf');
     expect(result.environment.annotations?.run).toBe('first');
   });
@@ -321,10 +323,7 @@ describe('DeterminismHarness.compareResults', () => {
   });
 
   it('returns divergent when results have different hashes', () => {
-    const results = [
-      makeResult('probe', 'hash_a'),
-      makeResult('probe', 'hash_b'),
-    ];
+    const results = [makeResult('probe', 'hash_a'), makeResult('probe', 'hash_b')];
     const report = DeterminismHarness.compareResults(results);
     expect(report.divergent).toBe(true);
     expect(report.uniqueHashes).toBe(2);
@@ -338,9 +337,9 @@ describe('DeterminismHarness.compareResults', () => {
     ];
     const report = DeterminismHarness.compareResults(results);
     expect(report.groups).toHaveLength(2);
-    const groupA = report.groups.find(g => g.hash === 'hash_a')!;
+    const groupA = report.groups.find((g) => g.hash === 'hash_a')!;
     expect(groupA.results).toHaveLength(2);
-    const groupB = report.groups.find(g => g.hash === 'hash_b')!;
+    const groupB = report.groups.find((g) => g.hash === 'hash_b')!;
     expect(groupB.results).toHaveLength(1);
   });
 

@@ -25,12 +25,12 @@ import {
 // ─── Reference segment ────────────────────────────────────────────────────────
 
 const freeway: RoadSegment = {
-  id:               'I-90-west',
+  id: 'I-90-west',
   freeFlowSpeedKph: 100,
-  capacityVeh:      2200,
-  lengthKm:         5,
-  bprAlpha:         0.15,
-  bprBeta:          4,
+  capacityVeh: 2200,
+  lengthKm: 5,
+  bprAlpha: 0.15,
+  bprBeta: 4,
 };
 
 // ─── BPR travel time ─────────────────────────────────────────────────────────
@@ -71,8 +71,8 @@ describe('bprTravelTime', () => {
 
   it('uses default α=0.15 β=4 when not specified', () => {
     const seg: RoadSegment = { id: 'x', freeFlowSpeedKph: 60, capacityVeh: 1000, lengthKm: 2 };
-    const t0  = (2 / 60) * 60; // 2 min
-    const t   = bprTravelTime(seg, 1000);
+    const t0 = (2 / 60) * 60; // 2 min
+    const t = bprTravelTime(seg, 1000);
     expect(t).toBeCloseTo(t0 * 1.15, 4);
   });
 });
@@ -81,12 +81,12 @@ describe('bprTravelTime', () => {
 
 describe('levelOfService', () => {
   it('LOS A for vc ≤ 0.35', () => {
-    expect(levelOfService(0.10)).toBe('A');
+    expect(levelOfService(0.1)).toBe('A');
     expect(levelOfService(0.35)).toBe('A');
   });
 
   it('LOS B for 0.35 < vc ≤ 0.54', () => {
-    expect(levelOfService(0.40)).toBe('B');
+    expect(levelOfService(0.4)).toBe('B');
     expect(levelOfService(0.54)).toBe('B');
   });
 
@@ -102,12 +102,12 @@ describe('levelOfService', () => {
 
   it('LOS E for 0.91 < vc ≤ 1.00', () => {
     expect(levelOfService(0.95)).toBe('E');
-    expect(levelOfService(1.00)).toBe('E');
+    expect(levelOfService(1.0)).toBe('E');
   });
 
   it('LOS F for vc > 1.00', () => {
     expect(levelOfService(1.01)).toBe('F');
-    expect(levelOfService(1.50)).toBe('F');
+    expect(levelOfService(1.5)).toBe('F');
   });
 });
 
@@ -262,7 +262,10 @@ describe('frankWolfeAssignment — symmetric 2-link network (Wardrop verificatio
    */
   const nodes: NetworkNode[] = [{ id: 'A' }, { id: 'B' }];
   const seg: (id: string) => RoadSegment = (id) => ({
-    id, freeFlowSpeedKph: 60, capacityVeh: 200, lengthKm: 10,
+    id,
+    freeFlowSpeedKph: 60,
+    capacityVeh: 200,
+    lengthKm: 10,
   });
   const links: NetworkLink[] = [
     { id: 'link1', fromId: 'A', toId: 'B', segment: seg('seg1') },
@@ -343,8 +346,11 @@ describe('buildTrafficFlowReceipt', () => {
   });
 
   it('uses provided runId', () => {
-    const segs   = analyzeSegments([{ segment: freeway, volume: 1000 }]);
-    const receipt = buildTrafficFlowReceipt({ segments: segs, converged: true }, { runId: 'run-42' });
+    const segs = analyzeSegments([{ segment: freeway, volume: 1000 }]);
+    const receipt = buildTrafficFlowReceipt(
+      { segments: segs, converged: true },
+      { runId: 'run-42' }
+    );
     expect(receipt.runId).toBe('run-42');
   });
 });

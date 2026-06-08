@@ -95,8 +95,8 @@ export interface FDTDStats {
 // ── Physical Constants ───────────────────────────────────────────────────────
 
 const EPS0 = 8.8541878128e-12; // F/m — vacuum permittivity
-const MU0 = 1.2566370614e-6;   // H/m — vacuum permeability
-const C0 = 299792458;           // m/s — speed of light
+const MU0 = 1.2566370614e-6; // H/m — vacuum permeability
+const C0 = 299792458; // m/s — speed of light
 
 // ── Yee Field Storage ────────────────────────────────────────────────────────
 
@@ -157,16 +157,26 @@ export class FDTDSolver {
   // half-integer/H grid) plus ψ convolution-memory fields for each of the 12
   // curl derivative terms.
   private cpml: {
-    intX: CpmlProfile; intY: CpmlProfile; intZ: CpmlProfile;
-    halfX: CpmlProfile; halfY: CpmlProfile; halfZ: CpmlProfile;
+    intX: CpmlProfile;
+    intY: CpmlProfile;
+    intZ: CpmlProfile;
+    halfX: CpmlProfile;
+    halfY: CpmlProfile;
+    halfZ: CpmlProfile;
     // H-field ψ (loss along the derivative axis; H is half-staggered there)
-    psiHxy: YeeField; psiHxz: YeeField;
-    psiHyz: YeeField; psiHyx: YeeField;
-    psiHzx: YeeField; psiHzy: YeeField;
+    psiHxy: YeeField;
+    psiHxz: YeeField;
+    psiHyz: YeeField;
+    psiHyx: YeeField;
+    psiHzx: YeeField;
+    psiHzy: YeeField;
     // E-field ψ (E is integer-staggered along its derivative axis)
-    psiExy: YeeField; psiExz: YeeField;
-    psiEyz: YeeField; psiEyx: YeeField;
-    psiEzx: YeeField; psiEzy: YeeField;
+    psiExy: YeeField;
+    psiExz: YeeField;
+    psiEyz: YeeField;
+    psiEyx: YeeField;
+    psiEzx: YeeField;
+    psiEzy: YeeField;
   } | null = null;
 
   private currentTime = 0;
@@ -177,8 +187,12 @@ export class FDTDSolver {
     const [nx, ny, nz] = config.cellCount;
     const [dx, dy, dz] = config.cellSize;
 
-    this.nx = nx; this.ny = ny; this.nz = nz;
-    this.dx = dx; this.dy = dy; this.dz = dz;
+    this.nx = nx;
+    this.ny = ny;
+    this.nz = nz;
+    this.dx = dx;
+    this.dy = dy;
+    this.dz = dz;
 
     // Yee field dimensions
     this.Ex = new YeeField(nx, ny + 1, nz + 1);
@@ -199,7 +213,7 @@ export class FDTDSolver {
     const c = 1 / Math.sqrt(eps * mu);
     this.cflLimit = 1 / (c * Math.sqrt(1 / (dx * dx) + 1 / (dy * dy) + 1 / (dz * dz)));
     const safety = config.cflSafety ?? 0.9;
-    this.dt = config.timeStep ?? (this.cflLimit * safety);
+    this.dt = config.timeStep ?? this.cflLimit * safety;
     if (this.dt > this.cflLimit) this.dt = this.cflLimit * safety;
 
     // Update coefficients (lossy media):
@@ -208,7 +222,7 @@ export class FDTDSolver {
     // De = (dt/eps) / (1 + sigma*dt/(2*eps))
     const sigDtOver2Eps = (sigma * this.dt) / (2 * eps);
     this.Ce = (1 - sigDtOver2Eps) / (1 + sigDtOver2Eps);
-    this.De = (this.dt / eps) / (1 + sigDtOver2Eps);
+    this.De = this.dt / eps / (1 + sigDtOver2Eps);
 
     // H update (lossless magnetic for now: sigma_m = 0)
     this.Ch = 1;
@@ -227,13 +241,24 @@ export class FDTDSolver {
       const halfY = computeAxisProfile(ny, 0.5, ny, t, dy, dt);
       const halfZ = computeAxisProfile(nz, 0.5, nz, t, dz, dt);
       this.cpml = {
-        intX, intY, intZ, halfX, halfY, halfZ,
-        psiHxy: new YeeField(nx + 1, ny, nz), psiHxz: new YeeField(nx + 1, ny, nz),
-        psiHyz: new YeeField(nx, ny + 1, nz), psiHyx: new YeeField(nx, ny + 1, nz),
-        psiHzx: new YeeField(nx, ny, nz + 1), psiHzy: new YeeField(nx, ny, nz + 1),
-        psiExy: new YeeField(nx, ny + 1, nz + 1), psiExz: new YeeField(nx, ny + 1, nz + 1),
-        psiEyz: new YeeField(nx + 1, ny, nz + 1), psiEyx: new YeeField(nx + 1, ny, nz + 1),
-        psiEzx: new YeeField(nx + 1, ny + 1, nz), psiEzy: new YeeField(nx + 1, ny + 1, nz),
+        intX,
+        intY,
+        intZ,
+        halfX,
+        halfY,
+        halfZ,
+        psiHxy: new YeeField(nx + 1, ny, nz),
+        psiHxz: new YeeField(nx + 1, ny, nz),
+        psiHyz: new YeeField(nx, ny + 1, nz),
+        psiHyx: new YeeField(nx, ny + 1, nz),
+        psiHzx: new YeeField(nx, ny, nz + 1),
+        psiHzy: new YeeField(nx, ny, nz + 1),
+        psiExy: new YeeField(nx, ny + 1, nz + 1),
+        psiExz: new YeeField(nx, ny + 1, nz + 1),
+        psiEyz: new YeeField(nx + 1, ny, nz + 1),
+        psiEyx: new YeeField(nx + 1, ny, nz + 1),
+        psiEzx: new YeeField(nx + 1, ny + 1, nz),
+        psiEzy: new YeeField(nx + 1, ny + 1, nz),
       };
     }
   }
@@ -268,8 +293,9 @@ export class FDTDSolver {
     for (let k = 0; k < nz; k++) {
       for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx + 1; i++) {
-          const curlEx = (Ez.get(i, j + 1, k) - Ez.get(i, j, k)) / dy
-                       - (Ey.get(i, j, k + 1) - Ey.get(i, j, k)) / dz;
+          const curlEx =
+            (Ez.get(i, j + 1, k) - Ez.get(i, j, k)) / dy -
+            (Ey.get(i, j, k + 1) - Ey.get(i, j, k)) / dz;
           Hx.set(i, j, k, Ch * Hx.get(i, j, k) - Dh * curlEx);
         }
       }
@@ -279,8 +305,9 @@ export class FDTDSolver {
     for (let k = 0; k < nz; k++) {
       for (let j = 0; j < ny + 1; j++) {
         for (let i = 0; i < nx; i++) {
-          const curlEy = (Ex.get(i, j, k + 1) - Ex.get(i, j, k)) / dz
-                       - (Ez.get(i + 1, j, k) - Ez.get(i, j, k)) / dx;
+          const curlEy =
+            (Ex.get(i, j, k + 1) - Ex.get(i, j, k)) / dz -
+            (Ez.get(i + 1, j, k) - Ez.get(i, j, k)) / dx;
           Hy.set(i, j, k, Ch * Hy.get(i, j, k) - Dh * curlEy);
         }
       }
@@ -290,8 +317,9 @@ export class FDTDSolver {
     for (let k = 0; k < nz + 1; k++) {
       for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
-          const curlEz = (Ey.get(i + 1, j, k) - Ey.get(i, j, k)) / dx
-                       - (Ex.get(i, j + 1, k) - Ex.get(i, j, k)) / dy;
+          const curlEz =
+            (Ey.get(i + 1, j, k) - Ey.get(i, j, k)) / dx -
+            (Ex.get(i, j + 1, k) - Ex.get(i, j, k)) / dy;
           Hz.set(i, j, k, Ch * Hz.get(i, j, k) - Dh * curlEz);
         }
       }
@@ -307,8 +335,9 @@ export class FDTDSolver {
     for (let k = 1; k < nz; k++) {
       for (let j = 1; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
-          const curlHx = (Hz.get(i, j, k) - Hz.get(i, j - 1, k)) / dy
-                       - (Hy.get(i, j, k) - Hy.get(i, j, k - 1)) / dz;
+          const curlHx =
+            (Hz.get(i, j, k) - Hz.get(i, j - 1, k)) / dy -
+            (Hy.get(i, j, k) - Hy.get(i, j, k - 1)) / dz;
           Ex.set(i, j, k, Ce * Ex.get(i, j, k) + De * curlHx);
         }
       }
@@ -318,8 +347,9 @@ export class FDTDSolver {
     for (let k = 1; k < nz; k++) {
       for (let j = 0; j < ny; j++) {
         for (let i = 1; i < nx; i++) {
-          const curlHy = (Hx.get(i, j, k) - Hx.get(i, j, k - 1)) / dz
-                       - (Hz.get(i, j, k) - Hz.get(i - 1, j, k)) / dx;
+          const curlHy =
+            (Hx.get(i, j, k) - Hx.get(i, j, k - 1)) / dz -
+            (Hz.get(i, j, k) - Hz.get(i - 1, j, k)) / dx;
           Ey.set(i, j, k, Ce * Ey.get(i, j, k) + De * curlHy);
         }
       }
@@ -329,8 +359,9 @@ export class FDTDSolver {
     for (let k = 0; k < nz; k++) {
       for (let j = 1; j < ny; j++) {
         for (let i = 1; i < nx; i++) {
-          const curlHz = (Hy.get(i, j, k) - Hy.get(i - 1, j, k)) / dx
-                       - (Hx.get(i, j, k) - Hx.get(i, j - 1, k)) / dy;
+          const curlHz =
+            (Hy.get(i, j, k) - Hy.get(i - 1, j, k)) / dx -
+            (Hx.get(i, j, k) - Hx.get(i, j - 1, k)) / dy;
           Ez.set(i, j, k, Ce * Ez.get(i, j, k) + De * curlHz);
         }
       }
@@ -358,7 +389,7 @@ export class FDTDSolver {
           const pz = updatePsi(c.psiHxz.get(i, j, k), c.halfZ.b[k], c.halfZ.a[k], dEydz);
           c.psiHxy.set(i, j, k, py);
           c.psiHxz.set(i, j, k, pz);
-          const curlEx = (dEzdy * c.halfY.invKappa[j] + py) - (dEydz * c.halfZ.invKappa[k] + pz);
+          const curlEx = dEzdy * c.halfY.invKappa[j] + py - (dEydz * c.halfZ.invKappa[k] + pz);
           Hx.set(i, j, k, Ch * Hx.get(i, j, k) - Dh * curlEx);
         }
       }
@@ -374,7 +405,7 @@ export class FDTDSolver {
           const px = updatePsi(c.psiHyx.get(i, j, k), c.halfX.b[i], c.halfX.a[i], dEzdx);
           c.psiHyz.set(i, j, k, pz);
           c.psiHyx.set(i, j, k, px);
-          const curlEy = (dExdz * c.halfZ.invKappa[k] + pz) - (dEzdx * c.halfX.invKappa[i] + px);
+          const curlEy = dExdz * c.halfZ.invKappa[k] + pz - (dEzdx * c.halfX.invKappa[i] + px);
           Hy.set(i, j, k, Ch * Hy.get(i, j, k) - Dh * curlEy);
         }
       }
@@ -390,7 +421,7 @@ export class FDTDSolver {
           const py = updatePsi(c.psiHzy.get(i, j, k), c.halfY.b[j], c.halfY.a[j], dExdy);
           c.psiHzx.set(i, j, k, px);
           c.psiHzy.set(i, j, k, py);
-          const curlEz = (dEydx * c.halfX.invKappa[i] + px) - (dExdy * c.halfY.invKappa[j] + py);
+          const curlEz = dEydx * c.halfX.invKappa[i] + px - (dExdy * c.halfY.invKappa[j] + py);
           Hz.set(i, j, k, Ch * Hz.get(i, j, k) - Dh * curlEz);
         }
       }
@@ -413,7 +444,7 @@ export class FDTDSolver {
           const pz = updatePsi(c.psiExz.get(i, j, k), c.intZ.b[k], c.intZ.a[k], dHydz);
           c.psiExy.set(i, j, k, py);
           c.psiExz.set(i, j, k, pz);
-          const curlHx = (dHzdy * c.intY.invKappa[j] + py) - (dHydz * c.intZ.invKappa[k] + pz);
+          const curlHx = dHzdy * c.intY.invKappa[j] + py - (dHydz * c.intZ.invKappa[k] + pz);
           Ex.set(i, j, k, Ce * Ex.get(i, j, k) + De * curlHx);
         }
       }
@@ -429,7 +460,7 @@ export class FDTDSolver {
           const px = updatePsi(c.psiEyx.get(i, j, k), c.intX.b[i], c.intX.a[i], dHzdx);
           c.psiEyz.set(i, j, k, pz);
           c.psiEyx.set(i, j, k, px);
-          const curlHy = (dHxdz * c.intZ.invKappa[k] + pz) - (dHzdx * c.intX.invKappa[i] + px);
+          const curlHy = dHxdz * c.intZ.invKappa[k] + pz - (dHzdx * c.intX.invKappa[i] + px);
           Ey.set(i, j, k, Ce * Ey.get(i, j, k) + De * curlHy);
         }
       }
@@ -445,7 +476,7 @@ export class FDTDSolver {
           const py = updatePsi(c.psiEzy.get(i, j, k), c.intY.b[j], c.intY.a[j], dHxdy);
           c.psiEzx.set(i, j, k, px);
           c.psiEzy.set(i, j, k, py);
-          const curlHz = (dHydx * c.intX.invKappa[i] + px) - (dHxdy * c.intY.invKappa[j] + py);
+          const curlHz = dHydx * c.intX.invKappa[i] + px - (dHxdy * c.intY.invKappa[j] + py);
           Ez.set(i, j, k, Ce * Ez.get(i, j, k) + De * curlHz);
         }
       }
@@ -457,16 +488,22 @@ export class FDTDSolver {
     const { nx, ny, nz } = this;
 
     // Ex tangential to y and z faces → zero at j=0, j=ny, k=0, k=nz
-    for (let k of [0, nz]) for (let j = 0; j <= ny; j++) for (let i = 0; i < nx; i++) this.Ex.set(i, j, k, 0);
-    for (let k = 0; k <= nz; k++) for (let j of [0, ny]) for (let i = 0; i < nx; i++) this.Ex.set(i, j, k, 0);
+    for (let k of [0, nz])
+      for (let j = 0; j <= ny; j++) for (let i = 0; i < nx; i++) this.Ex.set(i, j, k, 0);
+    for (let k = 0; k <= nz; k++)
+      for (let j of [0, ny]) for (let i = 0; i < nx; i++) this.Ex.set(i, j, k, 0);
 
     // Ey tangential to x and z faces
-    for (let k of [0, nz]) for (let j = 0; j < ny; j++) for (let i = 0; i <= nx; i++) this.Ey.set(i, j, k, 0);
-    for (let k = 0; k <= nz; k++) for (let j = 0; j < ny; j++) for (let i of [0, nx]) this.Ey.set(i, j, k, 0);
+    for (let k of [0, nz])
+      for (let j = 0; j < ny; j++) for (let i = 0; i <= nx; i++) this.Ey.set(i, j, k, 0);
+    for (let k = 0; k <= nz; k++)
+      for (let j = 0; j < ny; j++) for (let i of [0, nx]) this.Ey.set(i, j, k, 0);
 
     // Ez tangential to x and y faces
-    for (let k = 0; k < nz; k++) for (let j of [0, ny]) for (let i = 0; i <= nx; i++) this.Ez.set(i, j, k, 0);
-    for (let k = 0; k < nz; k++) for (let j = 0; j <= ny; j++) for (let i of [0, nx]) this.Ez.set(i, j, k, 0);
+    for (let k = 0; k < nz; k++)
+      for (let j of [0, ny]) for (let i = 0; i <= nx; i++) this.Ez.set(i, j, k, 0);
+    for (let k = 0; k < nz; k++)
+      for (let j = 0; j <= ny; j++) for (let i of [0, nx]) this.Ez.set(i, j, k, 0);
   }
 
   /** Apply sources at the current time. */
@@ -477,9 +514,8 @@ export class FDTDSolver {
       const val = this.evaluateSource(src, t);
 
       // Inject as current density J (adds to E-field via De * J / eps)
-      const field = src.polarization === 'x' ? this.Ez
-                  : src.polarization === 'y' ? this.Ey
-                  : this.Ez;
+      const field =
+        src.polarization === 'x' ? this.Ez : src.polarization === 'y' ? this.Ey : this.Ez;
 
       if (src.polarization === 'x') {
         this.Ex.set(si, sj, sk, this.Ex.get(si, sj, sk) - this.De * val);
@@ -518,9 +554,12 @@ export class FDTDSolver {
       for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
           // Average E components to cell center
-          const ex = 0.5 * (this.Ex.get(i, j, k) + (i + 1 < this.Ex.sx ? this.Ex.get(i + 1, j, k) : 0));
-          const ey = 0.5 * (this.Ey.get(i, j, k) + (j + 1 < this.Ey.sy ? this.Ey.get(i, j + 1, k) : 0));
-          const ez = 0.5 * (this.Ez.get(i, j, k) + (k + 1 < this.Ez.sz ? this.Ez.get(i, j, k + 1) : 0));
+          const ex =
+            0.5 * (this.Ex.get(i, j, k) + (i + 1 < this.Ex.sx ? this.Ex.get(i + 1, j, k) : 0));
+          const ey =
+            0.5 * (this.Ey.get(i, j, k) + (j + 1 < this.Ey.sy ? this.Ey.get(i, j + 1, k) : 0));
+          const ez =
+            0.5 * (this.Ez.get(i, j, k) + (k + 1 < this.Ez.sz ? this.Ez.get(i, j, k + 1) : 0));
           result[(k * ny + j) * nx + i] = Math.sqrt(ex * ex + ey * ey + ez * ez);
         }
       }
@@ -536,9 +575,9 @@ export class FDTDSolver {
     for (let k = 0; k < nz; k++) {
       for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
-          const hx = (i < this.Hx.sx && j < this.Hx.sy && k < this.Hx.sz) ? this.Hx.get(i, j, k) : 0;
-          const hy = (i < this.Hy.sx && j < this.Hy.sy && k < this.Hy.sz) ? this.Hy.get(i, j, k) : 0;
-          const hz = (i < this.Hz.sx && j < this.Hz.sy && k < this.Hz.sz) ? this.Hz.get(i, j, k) : 0;
+          const hx = i < this.Hx.sx && j < this.Hx.sy && k < this.Hx.sz ? this.Hx.get(i, j, k) : 0;
+          const hy = i < this.Hy.sx && j < this.Hy.sy && k < this.Hy.sz ? this.Hy.get(i, j, k) : 0;
+          const hz = i < this.Hz.sx && j < this.Hz.sy && k < this.Hz.sz ? this.Hz.get(i, j, k) : 0;
           result[(k * ny + j) * nx + i] = Math.sqrt(hx * hx + hy * hy + hz * hz);
         }
       }
@@ -546,10 +585,13 @@ export class FDTDSolver {
     return result;
   }
 
-  getTime(): number { return this.currentTime; }
+  getTime(): number {
+    return this.currentTime;
+  }
 
   getStats(): FDTDStats {
-    let maxE = 0, maxH = 0;
+    let maxE = 0,
+      maxH = 0;
     for (const f of [this.Ex, this.Ey, this.Ez]) {
       for (let i = 0; i < f.data.length; i++) {
         const v = Math.abs(f.data[i]);

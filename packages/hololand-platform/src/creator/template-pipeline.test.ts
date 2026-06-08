@@ -101,7 +101,7 @@ describe('compileTemplateToChallenge', () => {
     const template = makeValidTemplate();
     template.id = '';
     expect(() => compileTemplateToChallenge(template, { creatorId: 'creator_d' })).toThrow(
-      'Invalid CreatorTemplate',
+      'Invalid CreatorTemplate'
     );
   });
 
@@ -192,7 +192,7 @@ describe('approveChallenge', () => {
       status: 'pending',
     } as ReturnType<typeof submitForReview>;
     expect(() => approveChallenge(orphanReview, 'reviewer_1')).toThrow(
-      'Challenge chal_nonexistent not found',
+      'Challenge chal_nonexistent not found'
     );
   });
 });
@@ -241,7 +241,7 @@ describe('Kiosk consumption', () => {
     const c1 = compileTemplateToChallenge(template, { creatorId: 'creator_m' });
     const c2 = compileTemplateToChallenge(
       { ...template, id: 'tmpl_test_pipeline_2', name: 'Second Template' },
-      { creatorId: 'creator_n' },
+      { creatorId: 'creator_n' }
     );
 
     submitForReview(c1);
@@ -259,7 +259,7 @@ describe('Kiosk consumption', () => {
     const c1 = compileTemplateToChallenge(template, { creatorId: 'alice' });
     const c2 = compileTemplateToChallenge(
       { ...template, id: 'tmpl_test_pipeline_2', name: 'Second Template' },
-      { creatorId: 'bob' },
+      { creatorId: 'bob' }
     );
 
     submitForReview(c1);
@@ -278,8 +278,13 @@ describe('Kiosk consumption', () => {
     const template = makeValidTemplate();
     const c1 = compileTemplateToChallenge(template, { creatorId: 'creator_o' });
     const c2 = compileTemplateToChallenge(
-      { ...template, id: 'tmpl_test_pipeline_2', name: 'Desert Raid', description: 'Hot and sandy' },
-      { creatorId: 'creator_p' },
+      {
+        ...template,
+        id: 'tmpl_test_pipeline_2',
+        name: 'Desert Raid',
+        description: 'Hot and sandy',
+      },
+      { creatorId: 'creator_p' }
     );
 
     submitForReview(c1);
@@ -300,7 +305,7 @@ describe('Kiosk consumption', () => {
     for (let i = 0; i < 5; i++) {
       const c = compileTemplateToChallenge(
         { ...template, id: `tmpl_${i}`, name: `Template ${i}` },
-        { creatorId: `creator_${i}` },
+        { creatorId: `creator_${i}` }
       );
       submitForReview(c);
       const r = getCreatorRegistry().reviews.get(`rev_${c.id}`)!;

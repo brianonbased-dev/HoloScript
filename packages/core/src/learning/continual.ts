@@ -67,7 +67,7 @@ export interface TraitDescriptor {
 export interface LearningResult {
   traitName: TraitName;
   version: string;
-  forgettingScore: number;   // 0 = no forgetting, 1 = complete forgetting
+  forgettingScore: number; // 0 = no forgetting, 1 = complete forgetting
   ewcPenalty: number;
   converged: boolean;
   iterations: number;
@@ -98,7 +98,7 @@ export interface ContinualLearnerOptions {
  */
 export function computeFisherDiagonal(
   embeddings: TraitEmbedding[],
-  currentWeights: Float64Array,
+  currentWeights: Float64Array
 ): FisherDiagonal {
   const dim = currentWeights.length;
   const fisher = new Float64Array(dim);
@@ -131,7 +131,7 @@ export function computeEWCPenalty(
   currentWeights: Float64Array,
   optimalWeights: Float64Array,
   fisher: FisherDiagonal,
-  lambda: number,
+  lambda: number
 ): number {
   let penalty = 0;
   const dim = Math.min(currentWeights.length, optimalWeights.length, fisher.length);
@@ -156,7 +156,7 @@ export function computeEWCPenalty(
 export function neuralODEStep(
   z: Float64Array,
   dt: number,
-  kernelWeights: Float64Array,
+  kernelWeights: Float64Array
 ): Float64Array {
   const dim = z.length;
   const dz = new Float64Array(dim);
@@ -185,7 +185,7 @@ export function neuralODEStep(
 export function integrateODE(
   z0: Float64Array,
   kernelWeights: Float64Array,
-  nSteps = 10,
+  nSteps = 10
 ): Float64Array {
   const dt = 1.0 / nSteps;
   let z = new Float64Array(z0);
@@ -240,7 +240,9 @@ export class EpisodicBuffer {
 }
 
 function cosineSimilarity(a: Float64Array, b: Float64Array): number {
-  let dot = 0, normA = 0, normB = 0;
+  let dot = 0,
+    normA = 0,
+    normB = 0;
   const len = Math.min(a.length, b.length);
   for (let i = 0; i < len; i++) {
     dot += a[i] * b[i];
@@ -303,15 +305,17 @@ export class ContinualTraitLearner {
 
     // 1. Compute EWC importance from existing traits
     const existingEmbeddings = [...this.traitEmbeddings.values()];
-    const fisher = existingEmbeddings.length > 0
-      ? computeFisherDiagonal(existingEmbeddings, this.weights)
-      : new Float64Array(this.weights.length);
+    const fisher =
+      existingEmbeddings.length > 0
+        ? computeFisherDiagonal(existingEmbeddings, this.weights)
+        : new Float64Array(this.weights.length);
     const optimalWeights = new Float64Array(this.weights);
 
     // 2. Evolve trait embedding through Neural ODE
-    const z0 = trait.embedding.length === this.options.embeddingDim
-      ? new Float64Array(trait.embedding)
-      : resizeEmbedding(trait.embedding, this.options.embeddingDim);
+    const z0 =
+      trait.embedding.length === this.options.embeddingDim
+        ? new Float64Array(trait.embedding)
+        : resizeEmbedding(trait.embedding, this.options.embeddingDim);
 
     const evolvedEmbedding = integrateODE(z0, this.odeKernel);
 
@@ -372,9 +376,10 @@ export class ContinualTraitLearner {
   consolidateVersion(version: string): TaskSnapshot {
     const traitNames = [...this.traitVersions.keys()];
     const embeddings = [...this.traitEmbeddings.values()];
-    const fisher = embeddings.length > 0
-      ? computeFisherDiagonal(embeddings, this.weights)
-      : new Float64Array(this.weights.length);
+    const fisher =
+      embeddings.length > 0
+        ? computeFisherDiagonal(embeddings, this.weights)
+        : new Float64Array(this.weights.length);
 
     const snapshot: TaskSnapshot = {
       version,
@@ -399,7 +404,7 @@ export class ContinualTraitLearner {
    */
   retrieveSimilarTraits(
     queryEmbedding: TraitEmbedding,
-    topK = 5,
+    topK = 5
   ): Array<{ name: TraitName; similarity: number }> {
     return this.episodicBuffer.retrieve(queryEmbedding, topK);
   }
@@ -429,7 +434,7 @@ export class ContinualTraitLearner {
    */
   checkBackwardCompatibility(
     snapshot: TaskSnapshot,
-    threshold = 0.8,
+    threshold = 0.8
   ): { compatible: TraitName[]; incompatible: TraitName[] } {
     const compatible: TraitName[] = [];
     const incompatible: TraitName[] = [];

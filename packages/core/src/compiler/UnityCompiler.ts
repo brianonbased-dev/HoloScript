@@ -124,9 +124,10 @@ export class UnityCompiler extends CompilerBase {
       holomapPointCloud: options.holomapPointCloud,
     };
     if (options.platformTarget) {
-      this._platformTarget = typeof options.platformTarget === 'string'
-        ? createPlatformTarget(options.platformTarget as any)
-        : options.platformTarget;
+      this._platformTarget =
+        typeof options.platformTarget === 'string'
+          ? createPlatformTarget(options.platformTarget as any)
+          : options.platformTarget;
     }
   }
 
@@ -295,35 +296,25 @@ export class UnityCompiler extends CompilerBase {
     this.emit(`      string holomapPosB64 = ${posLit};`);
     this.emit(`      string holomapColB64 = ${colLit};`);
     this.emit(`      int holomapN = ${h.pointCount};`);
-    this.emit(
-      '      byte[] holomapPos = System.Convert.FromBase64String(holomapPosB64);',
-    );
-    this.emit(
-      '      byte[] holomapCol = System.Convert.FromBase64String(holomapColB64);',
-    );
+    this.emit('      byte[] holomapPos = System.Convert.FromBase64String(holomapPosB64);');
+    this.emit('      byte[] holomapCol = System.Convert.FromBase64String(holomapColB64);');
     this.emit('      if (holomapPos.Length >= holomapN * 12 && holomapCol.Length >= holomapN * 3)');
     this.emit('      {');
-    this.emit(
-      '        var holomapGo = new GameObject("HoloMapReconstructionPoints");',
-    );
+    this.emit('        var holomapGo = new GameObject("HoloMapReconstructionPoints");');
     this.emit('        holomapGo.transform.SetParent(transform, false);');
     this.emit('        var mesh = new Mesh();');
-    this.emit(
-      '        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;',
-    );
+    this.emit('        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;');
     this.emit('        var verts = new Vector3[holomapN];');
     this.emit('        var cols = new Color32[holomapN];');
     this.emit('        var idx = new int[holomapN];');
     this.emit('        for (int i = 0; i < holomapN; i++)');
     this.emit('        {');
+    this.emit('          int p = i * 12; int c = i * 3;');
     this.emit(
-      '          int p = i * 12; int c = i * 3;',
+      '          verts[i] = new Vector3(System.BitConverter.ToSingle(holomapPos, p), System.BitConverter.ToSingle(holomapPos, p + 4), System.BitConverter.ToSingle(holomapPos, p + 8));'
     );
     this.emit(
-      '          verts[i] = new Vector3(System.BitConverter.ToSingle(holomapPos, p), System.BitConverter.ToSingle(holomapPos, p + 4), System.BitConverter.ToSingle(holomapPos, p + 8));',
-    );
-    this.emit(
-      '          cols[i] = new Color32(holomapCol[c], holomapCol[c + 1], holomapCol[c + 2], 255);',
+      '          cols[i] = new Color32(holomapCol[c], holomapCol[c + 1], holomapCol[c + 2], 255);'
     );
     this.emit('          idx[i] = i;');
     this.emit('        }');
@@ -334,13 +325,11 @@ export class UnityCompiler extends CompilerBase {
     this.emit('        var mf = holomapGo.AddComponent<MeshFilter>();');
     this.emit('        mf.sharedMesh = mesh;');
     this.emit('        var mr = holomapGo.AddComponent<MeshRenderer>();');
+    this.emit('        var sh = Shader.Find("Universal Render Pipeline/Unlit");');
+    this.emit('        if (sh == null) sh = Shader.Find("Unlit/Color");');
     this.emit(
-      '        var sh = Shader.Find("Universal Render Pipeline/Unlit");',
+      '        mr.sharedMaterial = sh != null ? new Material(sh) : new Material(Shader.Find("Hidden/InternalErrorShader"));'
     );
-    this.emit(
-      '        if (sh == null) sh = Shader.Find("Unlit/Color");',
-    );
-    this.emit('        mr.sharedMaterial = sh != null ? new Material(sh) : new Material(Shader.Find("Hidden/InternalErrorShader"));');
     this.emit('      }');
     this.emit('    }');
   }

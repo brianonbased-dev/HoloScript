@@ -379,11 +379,7 @@ function startFlyTo(
 
   state.flyToStart = [...context.camera.position];
   // Offset camera slightly behind and above the target
-  state.flyToTarget = [
-    bodyPos[0],
-    bodyPos[1] + 2,
-    bodyPos[2] + 5,
-  ];
+  state.flyToTarget = [bodyPos[0], bodyPos[1] + 2, bodyPos[2] + 5];
   state.flyToProgress = 1;
 }
 

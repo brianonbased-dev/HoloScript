@@ -50,28 +50,33 @@ function holomeshHeaders(clientAuth?: string | null): Record<string, string> {
 // ── Board + fleet fetch ───────────────────────────────────────────────────────
 
 async function fetchBoardTasks(teamId: string, clientAuth?: string | null): Promise<BoardTask[]> {
-  const res = await fetch(`${HOLOMESH_BASE}/api/holomesh/team/${encodeURIComponent(teamId)}/board`, {
-    headers: holomeshHeaders(clientAuth),
-    signal: AbortSignal.timeout(10_000),
-  });
+  const res = await fetch(
+    `${HOLOMESH_BASE}/api/holomesh/team/${encodeURIComponent(teamId)}/board`,
+    {
+      headers: holomeshHeaders(clientAuth),
+      signal: AbortSignal.timeout(10_000),
+    }
+  );
   if (!res.ok) return [];
   const data: unknown = await res.json();
   const body = data as { tasks?: unknown[]; board?: { tasks?: unknown[] } };
   const raw = body.tasks ?? body.board?.tasks ?? [];
-  return raw.map((t: unknown) => {
-    const task = t as Record<string, unknown>;
-    return {
-      id: String(task['id'] ?? task['taskId'] ?? ''),
-      title: String(task['title'] ?? ''),
-      description: task['description'] ? String(task['description']) : undefined,
-      priority: task['priority'] as BoardTask['priority'],
-      role: task['role'] ? String(task['role']) : undefined,
-      tags: Array.isArray(task['tags']) ? (task['tags'] as string[]) : undefined,
-      status: task['status'] ? String(task['status']) : 'open',
-      claimedBy: task['claimedBy'] ? String(task['claimedBy']) : null,
-      createdAt: task['createdAt'] ? String(task['createdAt']) : undefined,
-    } satisfies BoardTask;
-  }).filter((t) => t.id);
+  return raw
+    .map((t: unknown) => {
+      const task = t as Record<string, unknown>;
+      return {
+        id: String(task['id'] ?? task['taskId'] ?? ''),
+        title: String(task['title'] ?? ''),
+        description: task['description'] ? String(task['description']) : undefined,
+        priority: task['priority'] as BoardTask['priority'],
+        role: task['role'] ? String(task['role']) : undefined,
+        tags: Array.isArray(task['tags']) ? (task['tags'] as string[]) : undefined,
+        status: task['status'] ? String(task['status']) : 'open',
+        claimedBy: task['claimedBy'] ? String(task['claimedBy']) : null,
+        createdAt: task['createdAt'] ? String(task['createdAt']) : undefined,
+      } satisfies BoardTask;
+    })
+    .filter((t) => t.id);
 }
 
 async function fetchFleetAgents(teamId: string, clientAuth?: string | null): Promise<FleetAgent[]> {
@@ -137,7 +142,7 @@ async function claimTask(
   taskId: string,
   agentId: string,
   agentHandle: string,
-  clientAuth?: string | null,
+  clientAuth?: string | null
 ): Promise<ClaimResult> {
   try {
     const res = await fetch(
@@ -147,7 +152,7 @@ async function claimTask(
         headers: holomeshHeaders(clientAuth),
         body: JSON.stringify({ action: 'claim', agentId, agentName: agentHandle }),
         signal: AbortSignal.timeout(8_000),
-      },
+      }
     );
     if (!res.ok) {
       const errData: unknown = await res.json().catch(() => null);
@@ -186,18 +191,15 @@ export async function GET() {
 async function setAgentStatus(
   agentId: string,
   status: 'active' | 'paused',
-  clientAuth?: string | null,
+  clientAuth?: string | null
 ): Promise<void> {
   try {
-    await fetch(
-      `${HOLOMESH_BASE}/api/holomesh/agents/fleet/${encodeURIComponent(agentId)}`,
-      {
-        method: 'PATCH',
-        headers: holomeshHeaders(clientAuth),
-        body: JSON.stringify({ status }),
-        signal: AbortSignal.timeout(5_000),
-      },
-    );
+    await fetch(`${HOLOMESH_BASE}/api/holomesh/agents/fleet/${encodeURIComponent(agentId)}`, {
+      method: 'PATCH',
+      headers: holomeshHeaders(clientAuth),
+      body: JSON.stringify({ status }),
+      signal: AbortSignal.timeout(5_000),
+    });
   } catch {
     // non-fatal — lifecycle state is best-effort; execution continues
   }
@@ -223,22 +225,24 @@ const SELF_IMPROVE_RUNNER = 'packages/absorb-service/src/self-improvement/run-se
 if (process.env['HOLOSCRIPT_REPO_ROOT']) {
   // Lazy dynamic imports so the guard runs at module-load time without requiring
   // node:fs/node:path at the top-level (Next.js edge compat, unit-test isolation).
-  Promise.all([import('node:fs'), import('node:path')]).then(([fs, path]) => {
-    const runnerAbs = path.join(process.env['HOLOSCRIPT_REPO_ROOT']!, SELF_IMPROVE_RUNNER);
-    if (!fs.existsSync(runnerAbs)) {
-      console.error(
-        `[fleet-dispatch] STARTUP GUARD FAILED: HOLOSCRIPT_REPO_ROOT is set to ` +
-        `"${process.env['HOLOSCRIPT_REPO_ROOT']}" but the self-improve runner was not found ` +
-        `at expected path: ${runnerAbs}\n` +
-        `Self-improve tasks WILL fail with ENOENT. ` +
-        `Check HOLOSCRIPT_REPO_ROOT in Railway studio-service env vars.`
-      );
-    } else {
-      console.log(
-        `[fleet-dispatch] REPO_ROOT guard OK: runner found at ${runnerAbs}`
-      );
-    }
-  }).catch(() => { /* non-fatal — guard failure must never block the route */ });
+  Promise.all([import('node:fs'), import('node:path')])
+    .then(([fs, path]) => {
+      const runnerAbs = path.join(process.env['HOLOSCRIPT_REPO_ROOT']!, SELF_IMPROVE_RUNNER);
+      if (!fs.existsSync(runnerAbs)) {
+        console.error(
+          `[fleet-dispatch] STARTUP GUARD FAILED: HOLOSCRIPT_REPO_ROOT is set to ` +
+            `"${process.env['HOLOSCRIPT_REPO_ROOT']}" but the self-improve runner was not found ` +
+            `at expected path: ${runnerAbs}\n` +
+            `Self-improve tasks WILL fail with ENOENT. ` +
+            `Check HOLOSCRIPT_REPO_ROOT in Railway studio-service env vars.`
+        );
+      } else {
+        console.log(`[fleet-dispatch] REPO_ROOT guard OK: runner found at ${runnerAbs}`);
+      }
+    })
+    .catch(() => {
+      /* non-fatal — guard failure must never block the route */
+    });
 }
 
 /**
@@ -299,7 +303,7 @@ async function executeSelfImproveViaRunner(task: BoardTask): Promise<string> {
 async function executeTaskViaHoloClaw(
   task: BoardTask,
   agent: FleetAgent,
-  clientAuth?: string | null,
+  clientAuth?: string | null
 ): Promise<string> {
   await setAgentStatus(agent.id, 'active', clientAuth);
 
@@ -327,7 +331,9 @@ async function executeTaskViaHoloClaw(
     };
 
     const chunks: string[] = [];
-    for await (const chunk of resolved.provider.streamCompletion(req) as AsyncIterable<LLMStreamChunk>) {
+    for await (const chunk of resolved.provider.streamCompletion(
+      req
+    ) as AsyncIterable<LLMStreamChunk>) {
       if (chunk.type === 'text_delta' && chunk.text) chunks.push(chunk.text);
     }
     return chunks.join('').trim() || '(no output from executor)';
@@ -340,7 +346,7 @@ async function closeTask(
   teamId: string,
   taskId: string,
   evidence: string,
-  clientAuth?: string | null,
+  clientAuth?: string | null
 ): Promise<void> {
   try {
     await fetch(
@@ -350,7 +356,7 @@ async function closeTask(
         headers: holomeshHeaders(clientAuth),
         body: JSON.stringify({ action: 'done', verification_evidence: evidence }),
         signal: AbortSignal.timeout(8_000),
-      },
+      }
     );
   } catch {
     // non-fatal — task was claimed; close failure is logged but doesn't fail the response
@@ -370,15 +376,17 @@ export async function POST(req: NextRequest) {
   }
 
   const params = (body ?? {}) as Record<string, unknown>;
-  const teamId = typeof params['teamId'] === 'string' && params['teamId'].trim()
-    ? params['teamId'].trim()
-    : DEFAULT_TEAM_ID;
-  const maxDispatches = typeof params['maxDispatches'] === 'number'
-    ? Math.min(Math.max(1, params['maxDispatches']), 10)
-    : 1;
+  const teamId =
+    typeof params['teamId'] === 'string' && params['teamId'].trim()
+      ? params['teamId'].trim()
+      : DEFAULT_TEAM_ID;
+  const maxDispatches =
+    typeof params['maxDispatches'] === 'number'
+      ? Math.min(Math.max(1, params['maxDispatches']), 10)
+      : 1;
   const dryRun = params['dryRun'] === true || params['dryRun'] === 'true';
-  const executorEnabled = params['executeAfterClaim'] === true ||
-    process.env['FLEET_EXECUTOR_ENABLED'] === 'true';
+  const executorEnabled =
+    params['executeAfterClaim'] === true || process.env['FLEET_EXECUTOR_ENABLED'] === 'true';
 
   // Fetch live state
   const [tasks, agents] = await Promise.all([
@@ -387,10 +395,10 @@ export async function POST(req: NextRequest) {
   ]);
 
   // capUsd: body param (Studio override) > env > default
-  const bodyCapUsd = typeof params['capUsd'] === 'number' && params['capUsd'] > 0
-    ? params['capUsd']
-    : undefined;
-  const capUsd = bodyCapUsd ?? (Number(process.env['FLEET_DAILY_SPEND_CAP_USD']) || DEFAULT_DAILY_SPEND_CAP_USD);
+  const bodyCapUsd =
+    typeof params['capUsd'] === 'number' && params['capUsd'] > 0 ? params['capUsd'] : undefined;
+  const capUsd =
+    bodyCapUsd ?? (Number(process.env['FLEET_DAILY_SPEND_CAP_USD']) || DEFAULT_DAILY_SPEND_CAP_USD);
   const governor = await loadGovernor(teamId, capUsd);
 
   const plan: FleetDispatchPlan = planFleetDispatch(tasks, agents, governor, { maxDispatches });
@@ -419,7 +427,14 @@ export async function POST(req: NextRequest) {
   }
 
   // Execute: claim each decided task, record estimated spend
-  const dispatched: Array<ClaimResult & { taskTitle: string; agentHandle: string; estimatedSpendUsd: number; reason: string }> = [];
+  const dispatched: Array<
+    ClaimResult & {
+      taskTitle: string;
+      agentHandle: string;
+      estimatedSpendUsd: number;
+      reason: string;
+    }
+  > = [];
 
   for (const decision of plan.decisions) {
     const claim = await claimTask(
@@ -427,7 +442,7 @@ export async function POST(req: NextRequest) {
       decision.task.id,
       decision.agent.id,
       decision.agent.handle,
-      clientAuth,
+      clientAuth
     );
 
     let executionRecord: string | undefined;
@@ -435,7 +450,7 @@ export async function POST(req: NextRequest) {
       governor.record(decision.estimatedSpendUsd);
       await saveGovernor(teamId, governor);
       console.log(
-        `[fleet-metric] dispatch task=${decision.task.id} agent=${decision.agent.handle} score=${decision.score.toFixed(2)} est=$${decision.estimatedSpendUsd} reason="${decision.reason}"`,
+        `[fleet-metric] dispatch task=${decision.task.id} agent=${decision.agent.handle} score=${decision.score.toFixed(2)} est=$${decision.estimatedSpendUsd} reason="${decision.reason}"`
       );
       if (executorEnabled) {
         try {

@@ -239,7 +239,9 @@ export class SpatialCRDTBridge {
     const nodeMap = this.getNodeMap(nodeId);
     if (!nodeMap) return;
 
-    let x = 0, y = 0, z = 0;
+    let x = 0,
+      y = 0,
+      z = 0;
     if (Array.isArray(position)) {
       x = position[0] ?? 0;
       y = position[1] ?? 0;
@@ -290,7 +292,9 @@ export class SpatialCRDTBridge {
     const nodeMap = this.getNodeMap(nodeId);
     if (!nodeMap) return;
 
-    let x = 1, y = 1, z = 1;
+    let x = 1,
+      y = 1,
+      z = 1;
     if (Array.isArray(scale)) {
       x = scale[0] ?? 1;
       y = scale[1] ?? 1;

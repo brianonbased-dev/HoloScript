@@ -163,7 +163,11 @@ export class CAELRecorder {
     this.contracted.dispose();
   }
 
-  private append(event: CAELTraceEntry['event'], simTime: number, payload: Record<string, unknown>): void {
+  private append(
+    event: CAELTraceEntry['event'],
+    simTime: number,
+    payload: Record<string, unknown>
+  ): void {
     const entryWithoutHash = {
       version: 'cael.v1' as const,
       runId: this.runId,

@@ -102,7 +102,10 @@ describe('AgentDiscoveryTrait', () => {
       const config = agentDiscoveryHandler.defaultConfig as AgentDiscoveryConfig;
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
-      expect(mockContext.emit).toHaveBeenCalledWith('agent_discovery_initialized', expect.any(Object));
+      expect(mockContext.emit).toHaveBeenCalledWith(
+        'agent_discovery_initialized',
+        expect.any(Object)
+      );
     });
 
     it('should start heartbeat timer if interval > 0', async () => {
@@ -154,8 +157,8 @@ describe('AgentDiscoveryTrait', () => {
       await agentDiscoveryHandler.onAttach(mockNode, config, mockContext as TraitContext);
 
       // After attach with auto_register, should emit registration-related event
-      const registrationEvents = (mockContext.emit as any).mock.calls.some((c: any) =>
-        c[0]?.includes('registered') || c[0]?.includes('registration')
+      const registrationEvents = (mockContext.emit as any).mock.calls.some(
+        (c: any) => c[0]?.includes('registered') || c[0]?.includes('registration')
       );
       expect(registrationEvents || mockNode.__agentDiscoveryState.manifest).toBeTruthy();
     });
@@ -249,13 +252,21 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should emit agent_discovery_detached event', async () => {
       (mockContext.emit as any)?.mockClear();
-      await agentDiscoveryHandler.onDetach(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext);
+      await agentDiscoveryHandler.onDetach(
+        mockNode,
+        agentDiscoveryHandler.defaultConfig,
+        mockContext as TraitContext
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('agent_discovery_detached', expect.any(Object));
     });
 
     it('should clean up state reference', async () => {
-      await agentDiscoveryHandler.onDetach(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext);
+      await agentDiscoveryHandler.onDetach(
+        mockNode,
+        agentDiscoveryHandler.defaultConfig,
+        mockContext as TraitContext
+      );
 
       expect(mockNode.__agentDiscoveryState).toBeUndefined();
     });
@@ -263,7 +274,11 @@ describe('AgentDiscoveryTrait', () => {
     it('should handle detach without prior attach', () => {
       const node = {} as any;
       expect(() => {
-        agentDiscoveryHandler.onDetach(node, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext);
+        agentDiscoveryHandler.onDetach(
+          node,
+          agentDiscoveryHandler.defaultConfig,
+          mockContext as TraitContext
+        );
       }).not.toThrow();
     });
   });
@@ -276,27 +291,47 @@ describe('AgentDiscoveryTrait', () => {
 
     it('should accept delta time parameter', () => {
       expect(() => {
-        agentDiscoveryHandler.onUpdate(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, 0.016);
+        agentDiscoveryHandler.onUpdate(
+          mockNode,
+          agentDiscoveryHandler.defaultConfig,
+          mockContext as TraitContext,
+          0.016
+        );
       }).not.toThrow();
     });
 
     it('should handle zero delta time', () => {
       expect(() => {
-        agentDiscoveryHandler.onUpdate(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, 0);
+        agentDiscoveryHandler.onUpdate(
+          mockNode,
+          agentDiscoveryHandler.defaultConfig,
+          mockContext as TraitContext,
+          0
+        );
       }).not.toThrow();
     });
 
     it('should handle missing state gracefully', () => {
       const node = {} as any;
       expect(() => {
-        agentDiscoveryHandler.onUpdate(node, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, 0.016);
+        agentDiscoveryHandler.onUpdate(
+          node,
+          agentDiscoveryHandler.defaultConfig,
+          mockContext as TraitContext,
+          0.016
+        );
       }).not.toThrow();
     });
 
     it('should support repeated updates', () => {
       for (let i = 0; i < 5; i++) {
         expect(() => {
-          agentDiscoveryHandler.onUpdate(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, 0.016);
+          agentDiscoveryHandler.onUpdate(
+            mockNode,
+            agentDiscoveryHandler.defaultConfig,
+            mockContext as TraitContext,
+            0.016
+          );
         }).not.toThrow();
       }
     });
@@ -312,7 +347,12 @@ describe('AgentDiscoveryTrait', () => {
     it('should handle agent_register event', async () => {
       const event = { type: 'agent_register' };
 
-      await agentDiscoveryHandler.onEvent(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, event);
+      await agentDiscoveryHandler.onEvent(
+        mockNode,
+        agentDiscoveryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       // Should not throw and state should remain valid
       expect(mockNode.__agentDiscoveryState).toBeDefined();
@@ -321,7 +361,12 @@ describe('AgentDiscoveryTrait', () => {
     it('should handle agent_deregister event', async () => {
       const event = { type: 'agent_deregister' };
 
-      await agentDiscoveryHandler.onEvent(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, event);
+      await agentDiscoveryHandler.onEvent(
+        mockNode,
+        agentDiscoveryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockNode.__agentDiscoveryState).toBeDefined();
     });
@@ -329,7 +374,12 @@ describe('AgentDiscoveryTrait', () => {
     it('should handle agent_discover event', async () => {
       const event = { type: 'agent_discover' };
 
-      await agentDiscoveryHandler.onEvent(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, event);
+      await agentDiscoveryHandler.onEvent(
+        mockNode,
+        agentDiscoveryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockNode.__agentDiscoveryState).toBeDefined();
     });
@@ -341,7 +391,12 @@ describe('AgentDiscoveryTrait', () => {
       };
       const event = { type: 'agent_query', query };
 
-      await agentDiscoveryHandler.onEvent(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, event);
+      await agentDiscoveryHandler.onEvent(
+        mockNode,
+        agentDiscoveryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockNode.__agentDiscoveryState).toBeDefined();
     });
@@ -352,7 +407,12 @@ describe('AgentDiscoveryTrait', () => {
       };
       const event = { type: 'agent_query', query };
 
-      await agentDiscoveryHandler.onEvent(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, event);
+      await agentDiscoveryHandler.onEvent(
+        mockNode,
+        agentDiscoveryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockNode.__agentDiscoveryState).toBeDefined();
     });
@@ -360,7 +420,12 @@ describe('AgentDiscoveryTrait', () => {
     it('should handle agent_get_discovered event', async () => {
       const event = { type: 'agent_get_discovered' };
 
-      await agentDiscoveryHandler.onEvent(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, event);
+      await agentDiscoveryHandler.onEvent(
+        mockNode,
+        agentDiscoveryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       const state = mockNode.__agentDiscoveryState;
       expect(state.discoveredAgents).toBeInstanceOf(Map);
@@ -369,7 +434,12 @@ describe('AgentDiscoveryTrait', () => {
     it('should handle agent_get_status event', async () => {
       const event = { type: 'agent_get_status' };
 
-      await agentDiscoveryHandler.onEvent(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, event);
+      await agentDiscoveryHandler.onEvent(
+        mockNode,
+        agentDiscoveryHandler.defaultConfig,
+        mockContext as TraitContext,
+        event
+      );
 
       const state = mockNode.__agentDiscoveryState;
       expect(state.registrationStatus).toBeDefined();
@@ -379,13 +449,23 @@ describe('AgentDiscoveryTrait', () => {
       const event = { type: 'unknown_agent_event' };
 
       expect(() => {
-        agentDiscoveryHandler.onEvent(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, event);
+        agentDiscoveryHandler.onEvent(
+          mockNode,
+          agentDiscoveryHandler.defaultConfig,
+          mockContext as TraitContext,
+          event
+        );
       }).not.toThrow();
     });
 
     it('should handle event without type property', () => {
       expect(() => {
-        agentDiscoveryHandler.onEvent(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, {} as any);
+        agentDiscoveryHandler.onEvent(
+          mockNode,
+          agentDiscoveryHandler.defaultConfig,
+          mockContext as TraitContext,
+          {} as any
+        );
       }).not.toThrow();
     });
   });
@@ -410,7 +490,9 @@ describe('AgentDiscoveryTrait', () => {
       await agentDiscoveryHandler.onAttach(node1, config, mockContext as TraitContext);
       await agentDiscoveryHandler.onAttach(node2, config, mockContext as TraitContext);
 
-      expect(node1.__agentDiscoveryState.discoveredAgents).not.toBe(node2.__agentDiscoveryState.discoveredAgents);
+      expect(node1.__agentDiscoveryState.discoveredAgents).not.toBe(
+        node2.__agentDiscoveryState.discoveredAgents
+      );
     });
 
     it('should maintain separate event histories per node', async () => {
@@ -421,7 +503,9 @@ describe('AgentDiscoveryTrait', () => {
       await agentDiscoveryHandler.onAttach(node1, config, mockContext as TraitContext);
       await agentDiscoveryHandler.onAttach(node2, config, mockContext as TraitContext);
 
-      expect(node1.__agentDiscoveryState.eventHistory).not.toBe(node2.__agentDiscoveryState.eventHistory);
+      expect(node1.__agentDiscoveryState.eventHistory).not.toBe(
+        node2.__agentDiscoveryState.eventHistory
+      );
     });
   });
 
@@ -595,7 +679,9 @@ describe('AgentDiscoveryTrait', () => {
       await agentDiscoveryHandler.onAttach(node, config, mockContext as TraitContext);
       expect(node.__agentDiscoveryState).toBeDefined();
 
-      await agentDiscoveryHandler.onEvent(node, config, mockContext as TraitContext, { type: 'agent_discover' });
+      await agentDiscoveryHandler.onEvent(node, config, mockContext as TraitContext, {
+        type: 'agent_discover',
+      });
       expect(node.__agentDiscoveryState).toBeDefined();
 
       await agentDiscoveryHandler.onEvent(node, config, mockContext as TraitContext, {
@@ -633,7 +719,12 @@ describe('AgentDiscoveryTrait', () => {
       ];
 
       for (const query of queries) {
-        await agentDiscoveryHandler.onEvent(mockNode, agentDiscoveryHandler.defaultConfig, mockContext as TraitContext, query as any);
+        await agentDiscoveryHandler.onEvent(
+          mockNode,
+          agentDiscoveryHandler.defaultConfig,
+          mockContext as TraitContext,
+          query as any
+        );
         expect(mockNode.__agentDiscoveryState).toBeDefined();
       }
     });

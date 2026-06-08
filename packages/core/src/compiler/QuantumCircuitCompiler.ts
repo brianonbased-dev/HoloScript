@@ -27,7 +27,11 @@
  */
 
 import { CompilerBase } from './CompilerBase';
-import type { HoloComposition, HoloObjectDecl, HoloObjectTrait } from '../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+} from '../parser/HoloCompositionTypes';
 import type { JsonLdSceneGraph } from './SemanticSceneGraph';
 
 // ---------------------------------------------------------------------------
@@ -127,7 +131,11 @@ function extractAtoms(
   if (!entry) return undefined;
   let raw = entry.value;
   if (typeof raw === 'string') {
-    try { raw = JSON.parse(raw); } catch { return undefined; }
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
   }
   if (!Array.isArray(raw)) return undefined;
   return raw.filter(
@@ -149,7 +157,11 @@ function extractWeightMatrix(
   if (!entry) return undefined;
   let raw = entry.value;
   if (typeof raw === 'string') {
-    try { raw = JSON.parse(raw); } catch { return undefined; }
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
   }
   if (!Array.isArray(raw)) return undefined;
   if (!raw.every((row): row is number[] => Array.isArray(row))) return undefined;
@@ -171,7 +183,13 @@ function generateVQECircuit(
   moleculeName: string,
   ansatzLayers: number,
   initialParams?: number[]
-): { qasm: string; numQubits: number; estimatedDepth: number; warnings: string[]; paramNames: string[] } {
+): {
+  qasm: string;
+  numQubits: number;
+  estimatedDepth: number;
+  warnings: string[];
+  paramNames: string[];
+} {
   const warnings: string[] = [];
   let numQubits = qubitsForMolecule(atoms);
 
@@ -214,7 +232,9 @@ function generateVQECircuit(
   let paramIdx = 0;
 
   for (let layer = 0; layer < ansatzLayers; layer++) {
-    lines.push(`// Layer ${layer}: Ry rotations ( - [${paramIdx}..${paramIdx + n - 1}] optimised by VQE)`);
+    lines.push(
+      `// Layer ${layer}: Ry rotations ( - [${paramIdx}..${paramIdx + n - 1}] optimised by VQE)`
+    );
     for (let i = 0; i < n; i++) {
       lines.push(`ry(theta_${paramIdx}) q[${i}];`);
       paramIdx++;
@@ -254,7 +274,13 @@ function generateQAOACircuit(
   p: number,
   initialGamma?: number,
   initialBeta?: number
-): { qasm: string; numQubits: number; estimatedDepth: number; warnings: string[]; paramNames: string[] } {
+): {
+  qasm: string;
+  numQubits: number;
+  estimatedDepth: number;
+  warnings: string[];
+  paramNames: string[];
+} {
   const warnings: string[] = [];
   let n = weightMatrix.length;
 
@@ -499,12 +525,16 @@ export class QuantumCircuitCompiler extends CompilerBase {
       atoms.map((a) => a.symbol).join('') ??
       'molecule';
 
-    const ansatzLayers = Math.max(1, Math.round(extractNumber(cfg, 'ansatzLayers') ?? extractNumber(cfg, 'ansatz_layers') ?? 2));
+    const ansatzLayers = Math.max(
+      1,
+      Math.round(extractNumber(cfg, 'ansatzLayers') ?? extractNumber(cfg, 'ansatz_layers') ?? 2)
+    );
 
     // Allow initial VQE parameters from config (array of per-qubit-per-layer angles)
-    const initialParams = cfg['initialParams']?.value as number[] | undefined
-      ?? cfg['initial_params']?.value as number[] | undefined
-      ?? undefined;
+    const initialParams =
+      (cfg['initialParams']?.value as number[] | undefined) ??
+      (cfg['initial_params']?.value as number[] | undefined) ??
+      undefined;
 
     const { qasm, numQubits, estimatedDepth, warnings, paramNames } = generateVQECircuit(
       atoms,
@@ -534,10 +564,8 @@ export class QuantumCircuitCompiler extends CompilerBase {
     const p = Math.max(1, Math.round(extractNumber(cfg, 'p') ?? 1));
 
     // Allow initial gamma/beta from config (bindable by optimizer)
-    const initialGamma = extractNumber(cfg, 'gamma')
-      ?? extractNumber(cfg, 'initial_gamma');
-    const initialBeta = extractNumber(cfg, 'beta')
-      ?? extractNumber(cfg, 'initial_beta');
+    const initialGamma = extractNumber(cfg, 'gamma') ?? extractNumber(cfg, 'initial_gamma');
+    const initialBeta = extractNumber(cfg, 'beta') ?? extractNumber(cfg, 'initial_beta');
 
     const { qasm, numQubits, estimatedDepth, warnings, paramNames } = generateQAOACircuit(
       weightMatrix,

@@ -44,115 +44,115 @@ export interface ScenarioCardProps {
  * Displays the scenario name, emoji icon, category badge, description,
  * tags, and test count. Supports hover effects and selection state.
  */
-const ScenarioCard = React.memo(function ScenarioCard({
-  scenario,
-  onSelect,
-  isActive = false,
-  className,
-}: ScenarioCardProps) {
-  const cat = CATEGORY_COLORS[scenario.category];
-  const catLabel = CATEGORY_LABELS[scenario.category];
+const ScenarioCard = React.memo(
+  function ScenarioCard({ scenario, onSelect, isActive = false, className }: ScenarioCardProps) {
+    const cat = CATEGORY_COLORS[scenario.category];
+    const catLabel = CATEGORY_LABELS[scenario.category];
 
-  const handleClick = useCallback(() => {
-    onSelect?.(scenario.id);
-  }, [onSelect, scenario.id]);
+    const handleClick = useCallback(() => {
+      onSelect?.(scenario.id);
+    }, [onSelect, scenario.id]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        onSelect?.(scenario.id);
-      }
-    },
-    [onSelect, scenario.id]
-  );
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect?.(scenario.id);
+        }
+      },
+      [onSelect, scenario.id]
+    );
 
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={`Launch ${scenario.name} scenario`}
-      aria-pressed={isActive}
-      className={className}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      style={{
-        padding: 16,
-        background: isActive ? cat.bg : 'rgba(255,255,255,0.025)',
-        border: `1px solid ${isActive ? cat.border : 'rgba(255,255,255,0.06)'}`,
-        borderRadius: 12,
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        position: 'relative',
-        overflow: 'hidden',
-        outline: 'none',
-      }}
-      data-testid={`scenario-card-${scenario.id}`}
-    >
-      {/* Header row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <span style={{ fontSize: 28 }} aria-hidden="true">
-          {scenario.emoji}
-        </span>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#e8e8f8' }}>{scenario.name}</div>
-          <div
-            style={{
-              fontSize: 10,
-              color: cat.primary,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-            }}
-          >
-            {catLabel.emoji} {catLabel.label}
-          </div>
-        </div>
-      </div>
-
-      {/* Description */}
-      <p
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={`Launch ${scenario.name} scenario`}
+        aria-pressed={isActive}
+        className={className}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
         style={{
-          fontSize: 12,
-          color: '#8899aa',
-          lineHeight: 1.4,
-          marginBottom: 8,
-          margin: '0 0 8px 0',
+          padding: 16,
+          background: isActive ? cat.bg : 'rgba(255,255,255,0.025)',
+          border: `1px solid ${isActive ? cat.border : 'rgba(255,255,255,0.06)'}`,
+          borderRadius: 12,
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          position: 'relative',
+          overflow: 'hidden',
+          outline: 'none',
         }}
+        data-testid={`scenario-card-${scenario.id}`}
       >
-        {scenario.description}
-      </p>
-
-      {/* Footer: tags + test count */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {scenario.tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
+        {/* Header row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <span style={{ fontSize: 28 }} aria-hidden="true">
+            {scenario.emoji}
+          </span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#e8e8f8' }}>{scenario.name}</div>
+            <div
               style={{
-                padding: '1px 6px',
-                background: `${cat.primary}10`,
-                border: `1px solid ${cat.primary}20`,
-                borderRadius: 6,
-                fontSize: 9,
-                color: `${cat.primary}cc`,
+                fontSize: 10,
+                color: cat.primary,
+                fontWeight: 600,
+                textTransform: 'uppercase',
               }}
             >
-              {tag}
-            </span>
-          ))}
+              {catLabel.emoji} {catLabel.label}
+            </div>
+          </div>
         </div>
-        <span style={{ fontSize: 10, color: '#556677' }} aria-label={`${scenario.testCount} tests`}>
-          {scenario.testCount} tests
-        </span>
+
+        {/* Description */}
+        <p
+          style={{
+            fontSize: 12,
+            color: '#8899aa',
+            lineHeight: 1.4,
+            marginBottom: 8,
+            margin: '0 0 8px 0',
+          }}
+        >
+          {scenario.description}
+        </p>
+
+        {/* Footer: tags + test count */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {scenario.tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                style={{
+                  padding: '1px 6px',
+                  background: `${cat.primary}10`,
+                  border: `1px solid ${cat.primary}20`,
+                  borderRadius: 6,
+                  fontSize: 9,
+                  color: `${cat.primary}cc`,
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+          <span
+            style={{ fontSize: 10, color: '#556677' }}
+            aria-label={`${scenario.testCount} tests`}
+          >
+            {scenario.testCount} tests
+          </span>
+        </div>
       </div>
-    </div>
-  );
-}, (prev, next) => (
-  prev.scenario.id === next.scenario.id &&
-  prev.isActive === next.isActive &&
-  prev.className === next.className &&
-  prev.onSelect === next.onSelect
-));
+    );
+  },
+  (prev, next) =>
+    prev.scenario.id === next.scenario.id &&
+    prev.isActive === next.isActive &&
+    prev.className === next.className &&
+    prev.onSelect === next.onSelect
+);
 ScenarioCard.displayName = 'ScenarioCard';
 
 export { ScenarioCard };

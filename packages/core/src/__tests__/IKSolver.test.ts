@@ -6,7 +6,7 @@ import { IKSolver, type IKChain, type IKBone } from '@holoscript/engine/animatio
 // =============================================================================
 
 function bone(id: string, x: number, y: number, length: number): IKBone {
-  return { id, position: [x, y, 0], rotation: [0, 0, 0, 1 ], length };
+  return { id, position: [x, y, 0], rotation: [0, 0, 0, 1], length };
 }
 
 function chain2(id: string, target: [number, number, number]): IKChain {

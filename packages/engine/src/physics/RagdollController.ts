@@ -163,8 +163,8 @@ export class RagdollController {
     // Apply gravity and integrate
     for (const bone of this.bones.values()) {
       const vx = getX(bone.velocity) * this.config.damping;
-      const vy = (getY(bone.velocity) + this.config.gravity * dt * this.blendFactor) *
-        this.config.damping;
+      const vy =
+        (getY(bone.velocity) + this.config.gravity * dt * this.blendFactor) * this.config.damping;
       const vz = getZ(bone.velocity) * this.config.damping;
       setVec3(bone.velocity, vx, vy, vz);
 
@@ -194,16 +194,35 @@ export class RagdollController {
           const my = dy * diff * 0.5;
           const mz = dz * diff * 0.5;
 
-          setVec3(bone.position, getX(bone.position) - mx, getY(bone.position) - my, getZ(bone.position) - mz);
-          setVec3(parent.position, getX(parent.position) + mx, getY(parent.position) + my, getZ(parent.position) + mz);
+          setVec3(
+            bone.position,
+            getX(bone.position) - mx,
+            getY(bone.position) - my,
+            getZ(bone.position) - mz
+          );
+          setVec3(
+            parent.position,
+            getX(parent.position) + mx,
+            getY(parent.position) + my,
+            getZ(parent.position) + mz
+          );
         }
 
         // Joint limits
         setVec3(
           bone.rotation,
-          Math.max(getX(bone.jointLimits.min), Math.min(getX(bone.jointLimits.max), getX(bone.rotation))),
-          Math.max(getY(bone.jointLimits.min), Math.min(getY(bone.jointLimits.max), getY(bone.rotation))),
-          Math.max(getZ(bone.jointLimits.min), Math.min(getZ(bone.jointLimits.max), getZ(bone.rotation)))
+          Math.max(
+            getX(bone.jointLimits.min),
+            Math.min(getX(bone.jointLimits.max), getX(bone.rotation))
+          ),
+          Math.max(
+            getY(bone.jointLimits.min),
+            Math.min(getY(bone.jointLimits.max), getY(bone.rotation))
+          ),
+          Math.max(
+            getZ(bone.jointLimits.min),
+            Math.min(getZ(bone.jointLimits.max), getZ(bone.rotation))
+          )
         );
       }
     }

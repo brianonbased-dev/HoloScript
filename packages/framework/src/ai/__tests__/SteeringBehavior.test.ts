@@ -92,7 +92,9 @@ describe('SteeringBehavior', () => {
 
   it('avoid returns zero when no obstacles in range', () => {
     const a = agent();
-    const obstacles: { position: Vector3; radius: number }[] = [{ position: [100, 0, 100], radius: 1 }];
+    const obstacles: { position: Vector3; radius: number }[] = [
+      { position: [100, 0, 100], radius: 1 },
+    ];
     const f = SteeringBehavior.avoid(a, obstacles, 5);
     expect(f[0]).toBe(0);
     expect(f[2]).toBe(0);

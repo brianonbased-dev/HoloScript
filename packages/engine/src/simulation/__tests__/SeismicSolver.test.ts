@@ -9,11 +9,15 @@ import { RegularGrid3D } from '../RegularGrid3D';
 describe('Phase 9: Seismic Extensions', () => {
   describe('buildLayeredVelocity', () => {
     it('creates correct velocity layers by depth', () => {
-      const vel = buildLayeredVelocity([5, 5, 20], [1, 1, 4], [
-        { depth: 0, velocity: 1500 },   // water: 0-2m
-        { depth: 2, velocity: 3000 },   // sediment: 2-3m
-        { depth: 3, velocity: 5000 },   // rock: 3-4m
-      ]);
+      const vel = buildLayeredVelocity(
+        [5, 5, 20],
+        [1, 1, 4],
+        [
+          { depth: 0, velocity: 1500 }, // water: 0-2m
+          { depth: 2, velocity: 3000 }, // sediment: 2-3m
+          { depth: 3, velocity: 5000 }, // rock: 3-4m
+        ]
+      );
 
       // Near top (k=0, z=0): water
       expect(vel.get(2, 2, 0)).toBeCloseTo(1500);
@@ -26,14 +30,20 @@ describe('Phase 9: Seismic Extensions', () => {
 
   describe('Heterogeneous velocity field', () => {
     it('wave propagates faster in high-velocity layer', () => {
-      const nx = 3, ny = 3, nz = 80;
+      const nx = 3,
+        ny = 3,
+        nz = 80;
       const lz = 4.0;
 
       // Two layers: slow (1000 m/s) top half, fast (3000 m/s) bottom half
-      const vel = buildLayeredVelocity([nx, ny, nz], [0.15, 0.15, lz], [
-        { depth: 0, velocity: 1000 },
-        { depth: 2, velocity: 3000 },
-      ]);
+      const vel = buildLayeredVelocity(
+        [nx, ny, nz],
+        [0.15, 0.15, lz],
+        [
+          { depth: 0, velocity: 1000 },
+          { depth: 2, velocity: 3000 },
+        ]
+      );
 
       const config: AcousticConfig = {
         gridResolution: [nx, ny, nz],
@@ -42,16 +52,20 @@ describe('Phase 9: Seismic Extensions', () => {
         boundaryConditions: [
           { face: 'z-', type: 'absorbing' },
           { face: 'z+', type: 'absorbing' },
-          { face: 'x-', type: 'soft_wall' }, { face: 'x+', type: 'soft_wall' },
-          { face: 'y-', type: 'soft_wall' }, { face: 'y+', type: 'soft_wall' },
+          { face: 'x-', type: 'soft_wall' },
+          { face: 'x+', type: 'soft_wall' },
+          { face: 'y-', type: 'soft_wall' },
+          { face: 'y+', type: 'soft_wall' },
         ],
-        sources: [{
-          id: 'seismic',
-          position: [1, 1, 10], // in slow layer
-          type: 'ricker_wavelet',
-          amplitude: 1000,
-          frequency: 50,
-        }],
+        sources: [
+          {
+            id: 'seismic',
+            position: [1, 1, 10], // in slow layer
+            type: 'ricker_wavelet',
+            amplitude: 1000,
+            frequency: 50,
+          },
+        ],
       };
 
       const solver = new AcousticSolver(config);
@@ -77,17 +91,22 @@ describe('Phase 9: Seismic Extensions', () => {
         domainSize: [0.03, 0.03, 1],
         speedOfSound: 1000,
         boundaryConditions: [
-          { face: 'z-', type: 'absorbing' }, { face: 'z+', type: 'absorbing' },
-          { face: 'x-', type: 'soft_wall' }, { face: 'x+', type: 'soft_wall' },
-          { face: 'y-', type: 'soft_wall' }, { face: 'y+', type: 'soft_wall' },
+          { face: 'z-', type: 'absorbing' },
+          { face: 'z+', type: 'absorbing' },
+          { face: 'x-', type: 'soft_wall' },
+          { face: 'x+', type: 'soft_wall' },
+          { face: 'y-', type: 'soft_wall' },
+          { face: 'y+', type: 'soft_wall' },
         ],
-        sources: [{
-          id: 'ricker',
-          position: [1, 1, 50],
-          type: 'ricker_wavelet',
-          amplitude: 1.0,
-          frequency: 100, // 100 Hz dominant frequency
-        }],
+        sources: [
+          {
+            id: 'ricker',
+            position: [1, 1, 50],
+            type: 'ricker_wavelet',
+            amplitude: 1.0,
+            frequency: 100, // 100 Hz dominant frequency
+          },
+        ],
       };
 
       const solver = new AcousticSolver(config);

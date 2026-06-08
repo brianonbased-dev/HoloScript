@@ -58,7 +58,7 @@ function buildEnvelope(opts: {
   const needsPqc = opts.mode === 'pqc_only' || opts.mode === 'dual';
 
   const classicalSig = needsClassical
-    ? opts.classicalSig ?? new Uint8Array(65).fill(0xaa)
+    ? (opts.classicalSig ?? new Uint8Array(65).fill(0xaa))
     : new Uint8Array(0);
 
   let pqcSig = new Uint8Array(0);
@@ -83,7 +83,12 @@ function buildEnvelope(opts: {
   };
 }
 
-function envelopeToRequest(env: DualSignatureEnvelope, body: unknown, nonce: string, timestamp: string) {
+function envelopeToRequest(
+  env: DualSignatureEnvelope,
+  body: unknown,
+  nonce: string,
+  timestamp: string
+) {
   return {
     envelope_type: 'dual' as const,
     envelope_b64: Buffer.from(serializeDualSignatureEnvelope(env)).toString('base64'),
@@ -171,10 +176,7 @@ describe('isDualEnvelopeBody', () => {
 
 describe('extractAndVerifySigning dispatch', () => {
   it('FALSE: classical envelope shape does NOT get marked signingProtocol=dual', async () => {
-    const result = await extractAndVerifySigning(
-      { plain: 'body' },
-      { strictMode: false }
-    );
+    const result = await extractAndVerifySigning({ plain: 'body' }, { strictMode: false });
     expect(result.ctx.signingProtocol).toBe('classical');
   });
 

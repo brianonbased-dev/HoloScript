@@ -59,13 +59,7 @@ import type {
 // VOCABULARY v1 - TYPED CONTEXT AST (the sovereign concept)
 // =============================================================================
 
-export type ContextSurface =
-  | 'claude'
-  | 'codex'
-  | 'cursor'
-  | 'copilot'
-  | 'gemini'
-  | 'any';
+export type ContextSurface = 'claude' | 'codex' | 'cursor' | 'copilot' | 'gemini' | 'any';
 
 /**
  * Top-level block: who is this context for.
@@ -83,8 +77,8 @@ export interface ContextIdentity {
   domain: string;
   surface: ContextSurface;
   noMonopoly: boolean;
-  description?: string;          // skill_md frontmatter `description:`
-  allowedTools?: string[];       // skill_md frontmatter `allowed-tools:`
+  description?: string; // skill_md frontmatter `description:`
+  allowedTools?: string[]; // skill_md frontmatter `allowed-tools:`
   /**
    * Vocabulary v3 (Iteration 3 first slice): the literal placeholder
    * the surface substitutes with user invocation arguments. For Claude
@@ -151,14 +145,14 @@ export interface ContextDefault {
 
 /** Per-rule: GOLD-tier wisdom reference. */
 export interface ContextGraduatedWisdom {
-  id: string;             // e.g. W.GOLD.001 or P.GOLD.007
+  id: string; // e.g. W.GOLD.001 or P.GOLD.007
   claim: string;
   tier: 'diamond' | 'platinum' | 'gold';
 }
 
 /** Per-rule: F.* feedback memory entry. */
 export interface ContextFeedback {
-  id: string;             // e.g. F.017 (feedback entry from MEMORY.md)
+  id: string; // e.g. F.017 (feedback entry from MEMORY.md)
   claim: string;
   source?: string;
 }
@@ -200,7 +194,7 @@ export interface ContextSkill {
   invocableAs: string;
   authority: string;
   authoritativeFor: string[];
-  refusals?: string[];                    // names of @refusal traits this skill enforces
+  refusals?: string[]; // names of @refusal traits this skill enforces
   outputProtocol?: {
     invocation: string;
     format: string;
@@ -216,10 +210,10 @@ export interface ContextInclude {
 
 /** Per-rule: A-00X recurring routine (added in v1 ratification). */
 export interface ContextRoutine {
-  id: string;                             // A-001, A-019, etc.
-  schedule: string;                       // cron expression
-  skill: string;                          // /research, /scan, etc.
-  promptRef: string;                      // file path to prompt
+  id: string; // A-001, A-019, etc.
+  schedule: string; // cron expression
+  skill: string; // /research, /scan, etc.
+  promptRef: string; // file path to prompt
   sla: string;
   outputDir?: string;
   cleanExitScript?: string;
@@ -281,8 +275,8 @@ export interface ContextProseAfter {
  * (the live founder skill carried this section with no .hs primitive).
  */
 export interface ContextDomainDispatch {
-  domain: string;                    // domain label (Legal / NDA / contract, etc.)
-  skills: string[];                  // skills to delegate execution to
+  domain: string; // domain label (Legal / NDA / contract, etc.)
+  skills: string[]; // skills to delegate execution to
 }
 
 /**
@@ -293,8 +287,8 @@ export interface ContextDomainDispatch {
  * .hs primitive).
  */
 export interface ContextCorpusMutability {
-  policy: string;                    // e.g. "Mutable via Track B", "Founder-ratification-required", "Read-only reference"
-  description: string;               // what the policy covers
+  policy: string; // e.g. "Mutable via Track B", "Founder-ratification-required", "Read-only reference"
+  description: string; // what the policy covers
 }
 
 /**
@@ -308,10 +302,10 @@ export interface ContextCorpusMutability {
  * the founder skill enforces (e.g. "$5 standing spend cap" for capital).
  */
 export interface ContextDomainPreference {
-  domain: string;                    // domain label (legal, brand, capital, etc.)
-  skills: string[];                  // /skill-name dispatch targets
-  notes?: string;                    // optional context / disambiguation
-  ceiling?: string;                  // optional spend / scope ceiling for this domain
+  domain: string; // domain label (legal, brand, capital, etc.)
+  skills: string[]; // /skill-name dispatch targets
+  notes?: string; // optional context / disambiguation
+  ceiling?: string; // optional spend / scope ceiling for this domain
 }
 
 /**
@@ -324,12 +318,12 @@ export interface ContextDomainPreference {
  * are allowed (e.g. one for paper milestones, one for service deploys).
  */
 export interface ContextDateDiscipline {
-  wisdomId: string;                  // "W.317" or similar
-  refusalContract: string;           // one-line summary of the gate
-  requiredComponents: string[];      // ordered list (e.g. open_blockers, matrix_row_staleness, engineering_readiness)
-  shapeTemplate: string;             // literal output template (multi-line OK)
-  reason?: string;                   // citation / context
-  crossReferences?: string[];        // related rules / paper-matrix columns
+  wisdomId: string; // "W.317" or similar
+  refusalContract: string; // one-line summary of the gate
+  requiredComponents: string[]; // ordered list (e.g. open_blockers, matrix_row_staleness, engineering_readiness)
+  shapeTemplate: string; // literal output template (multi-line OK)
+  reason?: string; // citation / context
+  crossReferences?: string[]; // related rules / paper-matrix columns
 }
 
 /**
@@ -380,17 +374,13 @@ export interface ContextResearchDefault {
  * skills to declare new modes without vocabulary changes — but the
  * common cases stay in the union for documentation purposes.
  */
-export type ContextInvocationModeKind =
-  | 'auto-fire'
-  | 'explicit'
-  | 'wrap-other-skill'
-  | string;
+export type ContextInvocationModeKind = 'auto-fire' | 'explicit' | 'wrap-other-skill' | string;
 
 export interface ContextInvocationMode {
   mode: ContextInvocationModeKind;
-  when: string;                      // condition that triggers this mode
-  effect: string;                    // what the skill does in this mode
-  example?: string;                  // optional invocation example
+  when: string; // condition that triggers this mode
+  effect: string; // what the skill does in this mode
+  example?: string; // optional invocation example
   // NOTE: source key is `effect:` (not `behavior:`) because `behavior` is
   // a parser-reserved keyword in HoloCompositionParser. Rendered label
   // in emitted markdown is "**Effect**:" for consistency. Same pattern
@@ -407,16 +397,9 @@ export interface ContextInvocationMode {
  * chatter. Multiple projections are allowed because the same skill may
  * support interactive Quest review and read-only spatial evidence.
  */
-export type ContextEmbodiedProjectionSurface =
-  | 'quest-3'
-  | 'spatial-photo'
-  | 'hologram'
-  | string;
+export type ContextEmbodiedProjectionSurface = 'quest-3' | 'spatial-photo' | 'hologram' | string;
 
-export type ContextEmbodiedProjectionKind =
-  | 'read-only'
-  | 'interactive'
-  | string;
+export type ContextEmbodiedProjectionKind = 'read-only' | 'interactive' | string;
 
 export interface ContextEmbodiedProjection {
   surface: ContextEmbodiedProjectionSurface;
@@ -468,8 +451,8 @@ export interface ContextAST {
   includes: ContextInclude[];
   routines: ContextRoutine[];
   hardPhysicalGaps: ContextHardPhysicalGap[];
-  invocationModes: ContextInvocationMode[];   // vocabulary v2 (Iteration 2 G-3 first slice)
-  dateDisciplines: ContextDateDiscipline[];   // vocabulary v2 (Iteration 2 G-3 second slice)
+  invocationModes: ContextInvocationMode[]; // vocabulary v2 (Iteration 2 G-3 first slice)
+  dateDisciplines: ContextDateDiscipline[]; // vocabulary v2 (Iteration 2 G-3 second slice)
   domainPreferences: ContextDomainPreference[]; // vocabulary v2 (Iteration 2 G-3 third slice)
   embodiedProjections: ContextEmbodiedProjection[]; // vocabulary v2 (Iteration 2 G-3 embodied slice)
   editorialDefaults: ContextEditorialDefault[]; // vocabulary v2 (Iteration 2 G-3 fourth slice)
@@ -489,7 +472,7 @@ export interface ContextValidationDiagnostic {
   severity: 'error' | 'warning';
   rule: string;
   message: string;
-  location?: string;                      // file:line if known
+  location?: string; // file:line if known
 }
 
 export type ContextEmitFormat =
@@ -502,7 +485,7 @@ export type ContextEmitFormat =
   | 'mcp_context_loader';
 
 export interface ContextCompileResult {
-  files: Record<string, string>;          // emitted-format -> content
+  files: Record<string, string>; // emitted-format -> content
   ast: ContextAST;
   diagnostics: ContextValidationDiagnostic[];
 }
@@ -528,10 +511,22 @@ export interface ContextCompilerOptions {
  * When this array changes, update the linter's copy too (it cites this line).
  */
 const BANNED_DEFAULT_PATTERNS: ReadonlyArray<{ pattern: RegExp; rule: string }> = [
-  { pattern: /\bgit\s+add\s+(?:-A|--all|\.)(?=\s|$)/i, rule: 'F.001/F.011 - git add -A leaked .env twice' },
-  { pattern: /:\s*any\b|\bas\s+any\b|<any>/i, rule: 'global CLAUDE.md - no `any` in TypeScript, use `unknown`' },
-  { pattern: /\bregex\b.+\.(?:hs|hsplus|holo)\b/i, rule: 'F.014 - no regex on .hs/.hsplus/.holo, use @holoscript/core' },
-  { pattern: /\bmock\s+(?:the\s+)?(?:db|database)\b/i, rule: 'founder-default - real DB in tests, mock-vs-prod divergence' },
+  {
+    pattern: /\bgit\s+add\s+(?:-A|--all|\.)(?=\s|$)/i,
+    rule: 'F.001/F.011 - git add -A leaked .env twice',
+  },
+  {
+    pattern: /:\s*any\b|\bas\s+any\b|<any>/i,
+    rule: 'global CLAUDE.md - no `any` in TypeScript, use `unknown`',
+  },
+  {
+    pattern: /\bregex\b.+\.(?:hs|hsplus|holo)\b/i,
+    rule: 'F.014 - no regex on .hs/.hsplus/.holo, use @holoscript/core',
+  },
+  {
+    pattern: /\bmock\s+(?:the\s+)?(?:db|database)\b/i,
+    rule: 'founder-default - real DB in tests, mock-vs-prod divergence',
+  },
 ];
 
 /**
@@ -544,9 +539,18 @@ const BANNED_DEFAULT_PATTERNS: ReadonlyArray<{ pattern: RegExp; rule: string }> 
  * authoring substrate-replacement as the desired state.)
  */
 const VENDOR_AS_SUBSTRATE_PATTERNS: ReadonlyArray<{ pattern: RegExp; rule: string }> = [
-  { pattern: /managed_agents_replaces_holomesh/i, rule: 'W.GOLD.002 - vendor framework cannot replace HoloMesh' },
-  { pattern: /vector_store_as_source_of_truth/i, rule: "docs/LLM_CAPABILITIES.md hard-don'ts - vendor stores never source-of-truth" },
-  { pattern: /api_keys_as_identity/i, rule: 'W.GOLD.004 - wallets are identity, API keys are sessions' },
+  {
+    pattern: /managed_agents_replaces_holomesh/i,
+    rule: 'W.GOLD.002 - vendor framework cannot replace HoloMesh',
+  },
+  {
+    pattern: /vector_store_as_source_of_truth/i,
+    rule: "docs/LLM_CAPABILITIES.md hard-don'ts - vendor stores never source-of-truth",
+  },
+  {
+    pattern: /api_keys_as_identity/i,
+    rule: 'W.GOLD.004 - wallets are identity, API keys are sessions',
+  },
 ];
 
 /**
@@ -559,10 +563,10 @@ const VENDOR_AS_SUBSTRATE_PATTERNS: ReadonlyArray<{ pattern: RegExp; rule: strin
  * (graduation is founder-only - Joseph or the farm pipeline).
  */
 const KNOWN_DIAMOND_IDS: ReadonlySet<string> = new Set([
-  'W.GOLD.001',     // Architecture beats alignment
-  'P.GOLD.001',     // Failure knowledge decays slower than success knowledge
-  'W.GOLD.188',     // Algebraic Trust (paired with W.GOLD.189)
-  'W.GOLD.189',     // Algebraic Trust tri-layer (algebra + history + oracle)
+  'W.GOLD.001', // Architecture beats alignment
+  'P.GOLD.001', // Failure knowledge decays slower than success knowledge
+  'W.GOLD.188', // Algebraic Trust (paired with W.GOLD.189)
+  'W.GOLD.189', // Algebraic Trust tri-layer (algebra + history + oracle)
   // Add more as graduate.py promotes - verify against D:/GOLD/INDEX.md.
 ]);
 
@@ -786,7 +790,7 @@ export class ContextCompiler extends CompilerBase {
         ast.graduatedWisdoms.push({
           id: stringField(cfg, 'id', ''),
           claim: stringField(cfg, 'claim', ''),
-          tier: (stringField(cfg, 'tier', 'gold') as 'diamond' | 'platinum' | 'gold'),
+          tier: stringField(cfg, 'tier', 'gold') as 'diamond' | 'platinum' | 'gold',
         });
         break;
       case 'feedback':
@@ -898,11 +902,7 @@ export class ContextCompiler extends CompilerBase {
           target: stringField(cfg, 'target', ''),
           actionType: stringField(cfg, 'action_type', ''),
           requires: stringListField(cfg, 'requires'),
-          founderRatificationRequired: boolField(
-            cfg,
-            'founder_ratification_required',
-            false
-          ),
+          founderRatificationRequired: boolField(cfg, 'founder_ratification_required', false),
           notes: stringFieldOrUndef(cfg, 'notes'),
         });
         break;
@@ -1042,7 +1042,8 @@ export class ContextCompiler extends CompilerBase {
         ast.warnings.push({
           severity: 'warning',
           rule: 'F.023 vault-id-format',
-          message: `@graduated_wisdom id "${wisdom.id}" doesn't match expected format ` +
+          message:
+            `@graduated_wisdom id "${wisdom.id}" doesn't match expected format ` +
             `(W.GOLD.NNN | P.GOLD.NNN | G.GOLD.NNN). Possible typo or stale citation.`,
         });
       }
@@ -1145,9 +1146,7 @@ export class ContextCompiler extends CompilerBase {
       lines.push(`| Name | Reason | Alternative |`);
       lines.push(`|---|---|---|`);
       for (const dont of ast.hardDonts) {
-        lines.push(
-          `| **${dont.name}** | ${dont.reason} | ${dont.alternative ?? '*(none)*'} |`
-        );
+        lines.push(`| **${dont.name}** | ${dont.reason} | ${dont.alternative ?? '*(none)*'} |`);
       }
       lines.push('');
       this.appendProseAfter(lines, ast, 'hard_dont');
@@ -1160,9 +1159,7 @@ export class ContextCompiler extends CompilerBase {
       lines.push(`| When | Answer | Reason |`);
       lines.push(`|---|---|---|`);
       for (const def of ast.defaults) {
-        lines.push(
-          `| ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`
-        );
+        lines.push(`| ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`);
       }
       lines.push('');
       this.appendProseAfter(lines, ast, 'default');
@@ -1175,9 +1172,10 @@ export class ContextCompiler extends CompilerBase {
       lines.push('| Domain | Skills to delegate to | Notes / ceiling |');
       lines.push('|---|---|---|');
       for (const pref of ast.domainPreferences) {
-        const skills = pref.skills.length > 0
-          ? pref.skills.map((s) => `\`${s}\``).join(', ')
-          : '*(in-skill default)*';
+        const skills =
+          pref.skills.length > 0
+            ? pref.skills.map((s) => `\`${s}\``).join(', ')
+            : '*(in-skill default)*';
         const notesParts: string[] = [];
         if (pref.ceiling) notesParts.push(`Ceiling: ${pref.ceiling}`);
         if (pref.notes) notesParts.push(pref.notes);
@@ -1307,9 +1305,7 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`  - **Action**: ${esc.doAction}`);
         lines.push(`  - **Recipient**: ${esc.recipient}`);
         if (esc.refuseToEscalateWhen.length > 0) {
-          lines.push(
-            `  - **Refuse to escalate when**: ${esc.refuseToEscalateWhen.join(', ')}`
-          );
+          lines.push(`  - **Refuse to escalate when**: ${esc.refuseToEscalateWhen.join(', ')}`);
         }
       }
       lines.push('');
@@ -1319,7 +1315,8 @@ export class ContextCompiler extends CompilerBase {
     // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
     if (ast.dateDisciplines.length > 0) {
       const firstWisdom = ast.dateDisciplines[0]?.wisdomId;
-      const wisdomSuffix = ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
+      const wisdomSuffix =
+        ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
       lines.push(`## Date discipline${wisdomSuffix}`);
       lines.push('');
       for (const d of ast.dateDisciplines) {
@@ -1500,9 +1497,7 @@ export class ContextCompiler extends CompilerBase {
     if (ast.refusals.length > 0 || ast.hardDonts.length > 0) {
       lines.push('## Hard rules (The Four Refusals + cross-provider red lines)');
       lines.push('');
-      lines.push(
-        'Rules below are non-negotiable. Each names what to do, what NOT to do, and why.'
-      );
+      lines.push('Rules below are non-negotiable. Each names what to do, what NOT to do, and why.');
       lines.push('');
 
       for (const refusal of ast.refusals) {
@@ -1544,9 +1539,7 @@ export class ContextCompiler extends CompilerBase {
       lines.push('| When | Do | Reason |');
       lines.push('|---|---|---|');
       for (const def of ast.defaults) {
-        lines.push(
-          `| ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`
-        );
+        lines.push(`| ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`);
       }
       lines.push('');
       this.appendProseAfter(lines, ast, 'default');
@@ -1559,9 +1552,10 @@ export class ContextCompiler extends CompilerBase {
       lines.push('| Domain | Skills to delegate to | Notes / ceiling |');
       lines.push('|---|---|---|');
       for (const pref of ast.domainPreferences) {
-        const skills = pref.skills.length > 0
-          ? pref.skills.map((s) => `\`${s}\``).join(', ')
-          : '*(in-skill default)*';
+        const skills =
+          pref.skills.length > 0
+            ? pref.skills.map((s) => `\`${s}\``).join(', ')
+            : '*(in-skill default)*';
         const notesParts: string[] = [];
         if (pref.ceiling) notesParts.push(`Ceiling: ${pref.ceiling}`);
         if (pref.notes) notesParts.push(pref.notes);
@@ -1691,9 +1685,7 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`  - **Action**: ${esc.doAction}`);
         lines.push(`  - **Recipient**: ${esc.recipient}`);
         if (esc.refuseToEscalateWhen.length > 0) {
-          lines.push(
-            `  - **Refuse to escalate when**: ${esc.refuseToEscalateWhen.join(', ')}`
-          );
+          lines.push(`  - **Refuse to escalate when**: ${esc.refuseToEscalateWhen.join(', ')}`);
         }
       }
       lines.push('');
@@ -1703,7 +1695,8 @@ export class ContextCompiler extends CompilerBase {
     // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
     if (ast.dateDisciplines.length > 0) {
       const firstWisdom = ast.dateDisciplines[0]?.wisdomId;
-      const wisdomSuffix = ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
+      const wisdomSuffix =
+        ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
       lines.push(`## Date discipline${wisdomSuffix}`);
       lines.push('');
       for (const d of ast.dateDisciplines) {
@@ -1830,9 +1823,7 @@ export class ContextCompiler extends CompilerBase {
     for (const refusal of ast.refusals) {
       const slug = toCursorSlug(refusal.name);
       const filename = `.cursor/rules/refusal-${slug}.mdc`;
-      const description = oneLine(
-        `Refusal: ${refusal.name} - ${refusal.reason ?? refusal.when}`
-      );
+      const description = oneLine(`Refusal: ${refusal.name} - ${refusal.reason ?? refusal.when}`);
       const body: string[] = [];
       body.push(`# Refusal: ${refusal.name}`);
       body.push('');
@@ -1966,9 +1957,10 @@ export class ContextCompiler extends CompilerBase {
       idx.push('| Domain | Skills to delegate to | Notes / ceiling |');
       idx.push('|---|---|---|');
       for (const pref of ast.domainPreferences) {
-        const skills = pref.skills.length > 0
-          ? pref.skills.map((s) => `\`${s}\``).join(', ')
-          : '*(in-skill default)*';
+        const skills =
+          pref.skills.length > 0
+            ? pref.skills.map((s) => `\`${s}\``).join(', ')
+            : '*(in-skill default)*';
         const notesParts: string[] = [];
         if (pref.ceiling) notesParts.push(`Ceiling: ${pref.ceiling}`);
         if (pref.notes) notesParts.push(pref.notes);
@@ -2091,9 +2083,7 @@ export class ContextCompiler extends CompilerBase {
         idx.push(`  - **Action**: ${esc.doAction}`);
         idx.push(`  - **Recipient**: ${esc.recipient}`);
         if (esc.refuseToEscalateWhen.length > 0) {
-          idx.push(
-            `  - **Refuse to escalate when**: ${esc.refuseToEscalateWhen.join(', ')}`
-          );
+          idx.push(`  - **Refuse to escalate when**: ${esc.refuseToEscalateWhen.join(', ')}`);
         }
       }
       idx.push('');
@@ -2103,7 +2093,8 @@ export class ContextCompiler extends CompilerBase {
     // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
     if (ast.dateDisciplines.length > 0) {
       const firstWisdom = ast.dateDisciplines[0]?.wisdomId;
-      const wisdomSuffix = ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
+      const wisdomSuffix =
+        ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
       idx.push(`## Date discipline${wisdomSuffix}`);
       idx.push('');
       for (const d of ast.dateDisciplines) {
@@ -2369,9 +2360,7 @@ export class ContextCompiler extends CompilerBase {
       lines.push(`| Name | Reason | Alternative |`);
       lines.push(`|---|---|---|`);
       for (const dont of ast.hardDonts) {
-        lines.push(
-          `| **${dont.name}** | ${dont.reason} | ${dont.alternative ?? '*(none)*'} |`
-        );
+        lines.push(`| **${dont.name}** | ${dont.reason} | ${dont.alternative ?? '*(none)*'} |`);
       }
       lines.push('');
       this.appendProseAfter(lines, ast, 'hard_dont');
@@ -2384,9 +2373,7 @@ export class ContextCompiler extends CompilerBase {
       lines.push(`| When | Answer | Reason |`);
       lines.push(`|---|---|---|`);
       for (const def of ast.defaults) {
-        lines.push(
-          `| ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`
-        );
+        lines.push(`| ${def.when} | **${def.do}** | ${def.reason ?? '*(no citation)*'} |`);
       }
       lines.push('');
       this.appendProseAfter(lines, ast, 'default');
@@ -2399,9 +2386,10 @@ export class ContextCompiler extends CompilerBase {
       lines.push('| Domain | Skills to delegate to | Notes / ceiling |');
       lines.push('|---|---|---|');
       for (const pref of ast.domainPreferences) {
-        const skills = pref.skills.length > 0
-          ? pref.skills.map((s) => `\`${s}\``).join(', ')
-          : '*(in-skill default)*';
+        const skills =
+          pref.skills.length > 0
+            ? pref.skills.map((s) => `\`${s}\``).join(', ')
+            : '*(in-skill default)*';
         const notesParts: string[] = [];
         if (pref.ceiling) notesParts.push(`Ceiling: ${pref.ceiling}`);
         if (pref.notes) notesParts.push(pref.notes);
@@ -2532,9 +2520,7 @@ export class ContextCompiler extends CompilerBase {
         lines.push(`  - **Action**: ${esc.doAction}`);
         lines.push(`  - **Recipient**: ${esc.recipient}`);
         if (esc.refuseToEscalateWhen.length > 0) {
-          lines.push(
-            `  - **Refuse to escalate when**: ${esc.refuseToEscalateWhen.join(', ')}`
-          );
+          lines.push(`  - **Refuse to escalate when**: ${esc.refuseToEscalateWhen.join(', ')}`);
         }
       }
       lines.push('');
@@ -2544,7 +2530,8 @@ export class ContextCompiler extends CompilerBase {
     // Date discipline (W.317) (vocabulary v2 - Iteration 2 G-3 next slice)
     if (ast.dateDisciplines.length > 0) {
       const firstWisdom = ast.dateDisciplines[0]?.wisdomId;
-      const wisdomSuffix = ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
+      const wisdomSuffix =
+        ast.dateDisciplines.length === 1 && firstWisdom ? ` (${firstWisdom})` : '';
       lines.push(`## Date discipline${wisdomSuffix}`);
       lines.push('');
       for (const d of ast.dateDisciplines) {
@@ -2637,9 +2624,7 @@ export class ContextCompiler extends CompilerBase {
       lines.push('|---|---|');
       for (const d of ast.domainDispatches) {
         const skills =
-          d.skills.length > 0
-            ? d.skills.map((s) => `\`${s}\``).join(', ')
-            : '*(in-skill default)*';
+          d.skills.length > 0 ? d.skills.map((s) => `\`${s}\``).join(', ') : '*(in-skill default)*';
         lines.push(`| ${d.domain} | ${skills} |`);
       }
       lines.push('');
@@ -2682,10 +2667,13 @@ export class ContextCompiler extends CompilerBase {
       lines.push('| Target | Action type | Requires | Founder ratification | Notes |');
       lines.push('|---|---|---|---|---|');
       for (const row of rows) {
-        const actionType = row.actionType ? `\`${mdTableCell(row.actionType)}\`` : '*(unspecified)*';
-        const requires = row.requires.length > 0
-          ? row.requires.map((r) => mdTableCell(r)).join('<br>')
-          : '*(none)*';
+        const actionType = row.actionType
+          ? `\`${mdTableCell(row.actionType)}\``
+          : '*(unspecified)*';
+        const requires =
+          row.requires.length > 0
+            ? row.requires.map((r) => mdTableCell(r)).join('<br>')
+            : '*(none)*';
         const notes = row.notes ? mdTableCell(row.notes) : '';
         lines.push(
           `| ${mdTableCell(row.target)} | ${actionType} | ${requires} | ${row.founderRatificationRequired ? 'Yes' : 'No'} | ${notes} |`
@@ -2694,9 +2682,7 @@ export class ContextCompiler extends CompilerBase {
       lines.push('');
     };
 
-    const mutableTargets = ast.trackBAuthorities.filter(
-      (row) => !row.founderRatificationRequired
-    );
+    const mutableTargets = ast.trackBAuthorities.filter((row) => !row.founderRatificationRequired);
     const founderRatifiedTargets = ast.trackBAuthorities.filter(
       (row) => row.founderRatificationRequired
     );
@@ -2747,9 +2733,7 @@ export class ContextCompiler extends CompilerBase {
     }
   }
 
-  private formatPaperDefaultScope(
-    def: ContextEditorialDefault | ContextResearchDefault
-  ): string {
+  private formatPaperDefaultScope(def: ContextEditorialDefault | ContextResearchDefault): string {
     const paperId = def.paperId?.trim();
     const paperPhase = def.paperPhase?.trim();
     if (paperId && paperPhase) return `${paperId} / ${paperPhase}`;
@@ -2800,28 +2784,17 @@ function stringField(cfg: Record<string, HoloValue>, key: string, fallback: stri
   return fallback;
 }
 
-function stringFieldOrUndef(
-  cfg: Record<string, HoloValue>,
-  key: string
-): string | undefined {
+function stringFieldOrUndef(cfg: Record<string, HoloValue>, key: string): string | undefined {
   const v = cfg[key];
   return typeof v === 'string' ? v : undefined;
 }
 
-function numberField(
-  cfg: Record<string, HoloValue>,
-  key: string,
-  fallback: number
-): number {
+function numberField(cfg: Record<string, HoloValue>, key: string, fallback: number): number {
   const v = cfg[key];
   return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
 }
 
-function boolField(
-  cfg: Record<string, HoloValue>,
-  key: string,
-  fallback: boolean
-): boolean {
+function boolField(cfg: Record<string, HoloValue>, key: string, fallback: boolean): boolean {
   const v = cfg[key];
   return typeof v === 'boolean' ? v : fallback;
 }
@@ -2860,7 +2833,14 @@ function formatYamlDescription(description: string): string {
 }
 
 const YAML_RESERVED: ReadonlySet<string> = new Set([
-  'yes', 'no', 'true', 'false', 'on', 'off', 'null', '~',
+  'yes',
+  'no',
+  'true',
+  'false',
+  'on',
+  'off',
+  'null',
+  '~',
 ]);
 
 function stringListField(cfg: Record<string, HoloValue>, key: string): string[] {
@@ -2914,7 +2894,10 @@ function wrapMdc(description: string, bodyLines: string[]): string {
  * and trims. Returned string is safe to drop directly after `description: `.
  */
 function oneLine(s: string): string {
-  return s.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return s
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**

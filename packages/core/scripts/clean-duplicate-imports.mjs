@@ -32,8 +32,8 @@ function fixFile(filePath) {
   return false;
 }
 
-const files = fs.readdirSync(traitsDir).filter(f => f.endsWith('.ts'));
-files.forEach(file => {
+const files = fs.readdirSync(traitsDir).filter((f) => f.endsWith('.ts'));
+files.forEach((file) => {
   fixFile(path.join(traitsDir, file));
 });
 

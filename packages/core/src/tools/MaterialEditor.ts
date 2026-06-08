@@ -9,7 +9,10 @@
  * eliminating duplicate PBR schemas across the codebase.
  */
 
-import type { MaterialDef, RenderingMaterialType as MaterialType } from '@holoscript/engine/rendering/MaterialLibrary';
+import type {
+  MaterialDef,
+  RenderingMaterialType as MaterialType,
+} from '@holoscript/engine/rendering/MaterialLibrary';
 import {
   hexToRGBA,
   rgbaToHex,

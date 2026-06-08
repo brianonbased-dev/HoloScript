@@ -27,7 +27,9 @@ function migrateDeprecated(inventoryPath: string) {
         console.error(`Error processing ${item.filePath}: ${e.message}`);
       }
     } else if (item.classification === 'REFERENCED') {
-      console.log(`[REFERENCED] ${item.symbolName} -> generating codemod for ${item.importerCount} importers.`);
+      console.log(
+        `[REFERENCED] ${item.symbolName} -> generating codemod for ${item.importerCount} importers.`
+      );
       migratedCount++;
     }
   }
@@ -38,5 +40,7 @@ function migrateDeprecated(inventoryPath: string) {
   console.log('Codemods safely generated to tmp/');
 }
 
-const inventoryPath = process.argv[2] ? path.resolve(process.cwd(), process.argv[2]) : path.resolve(process.cwd(), 'deprecated-symbol-inventory.json');
+const inventoryPath = process.argv[2]
+  ? path.resolve(process.cwd(), process.argv[2])
+  : path.resolve(process.cwd(), 'deprecated-symbol-inventory.json');
 migrateDeprecated(inventoryPath);

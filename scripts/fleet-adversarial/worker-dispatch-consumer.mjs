@@ -57,7 +57,10 @@ function parseArgs(argv) {
   const args = {
     handle: null,
     // Bare base; URL builders append /api/holomesh/... (mirrors _base.mjs).
-    apiBase: (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(/\/api\/holomesh\/?$/, ''),
+    apiBase: (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(
+      /\/api\/holomesh\/?$/,
+      ''
+    ),
     apiKey: null, // resolved per --handle below
     tickMs: 30_000,
     maxConcurrentTrials: 1,
@@ -84,7 +87,9 @@ function parseArgs(argv) {
     args.apiKey = process.env.HOLOMESH_API_KEY || null;
   }
   if (!args.apiKey) {
-    throw new Error(`No bearer found for handle "${args.handle}" (looked at HOLOMESH_API_KEY_MESH_<NN>_X402 and HOLOMESH_API_KEY)`);
+    throw new Error(
+      `No bearer found for handle "${args.handle}" (looked at HOLOMESH_API_KEY_MESH_<NN>_X402 and HOLOMESH_API_KEY)`
+    );
   }
   return args;
 }
@@ -176,9 +181,13 @@ async function pollOnce(args) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  console.log(`[worker-dispatch] handle=${args.handle} tick-ms=${args.tickMs} dry-run=${args.dryRun}`);
+  console.log(
+    `[worker-dispatch] handle=${args.handle} tick-ms=${args.tickMs} dry-run=${args.dryRun}`
+  );
   console.log(`[worker-dispatch] api-base=${args.apiBase}`);
-  console.log(`[worker-dispatch] supported attack classes: ${Object.keys(ATTACKER_REGISTRY).join(', ')}`);
+  console.log(
+    `[worker-dispatch] supported attack classes: ${Object.keys(ATTACKER_REGISTRY).join(', ')}`
+  );
 
   if (args.once) {
     const result = await pollOnce(args);
@@ -200,8 +209,10 @@ async function main() {
     try {
       const result = await pollOnce(args);
       if (result.executed.length > 0) {
-        console.log(`[worker-dispatch] poll: pending=${result.pending} executed=${result.executed.length} ` +
-          `(${result.executed.filter((r) => r.status === 'OK' || r.status === 'OK_DRY_RUN').length} OK)`);
+        console.log(
+          `[worker-dispatch] poll: pending=${result.pending} executed=${result.executed.length} ` +
+            `(${result.executed.filter((r) => r.status === 'OK' || r.status === 'OK_DRY_RUN').length} OK)`
+        );
       }
     } catch (err) {
       console.error(`[worker-dispatch] poll FAILED: ${err.message || err}`);

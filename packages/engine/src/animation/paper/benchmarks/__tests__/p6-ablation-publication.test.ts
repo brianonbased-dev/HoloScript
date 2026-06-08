@@ -27,9 +27,9 @@ describe('paper-6 constraint-solver ablation publication runner', () => {
     expect(full?.reference_hash_equal).toBe(true);
     expect(full?.divergence_vs_reference).toBe(0);
     expect(minus?.reference_hash_equal).toBe(false);
-    expect((minus?.divergence_vs_reference ?? 0)).toBeGreaterThan(0);
+    expect(minus?.divergence_vs_reference ?? 0).toBeGreaterThan(0);
     expect(baseline?.reference_hash_equal).toBe(false);
-    expect((baseline?.divergence_vs_reference ?? 0)).toBeGreaterThan(0);
+    expect(baseline?.divergence_vs_reference ?? 0).toBeGreaterThan(0);
   });
 
   it('records positive per-frame timings for every row', () => {

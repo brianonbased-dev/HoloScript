@@ -9,7 +9,21 @@
  * @version 1.0.0
  */
 
-import type { ISceneGraph, IMaterial, IMesh, IAnimation, IAnimationChannel, IAnimationSampler, ISceneNode, ITransform, IComponent, ITextureRef, IBuffer, IBufferView, IAccessor } from '../SceneGraph';
+import type {
+  ISceneGraph,
+  IMaterial,
+  IMesh,
+  IAnimation,
+  IAnimationChannel,
+  IAnimationSampler,
+  ISceneNode,
+  ITransform,
+  IComponent,
+  ITextureRef,
+  IBuffer,
+  IBufferView,
+  IAccessor,
+} from '../SceneGraph';
 import type {
   IGLTFExportResult,
   IGLTFDocument,
@@ -237,7 +251,10 @@ export class USDZExporter {
           ? this.mapGLTFTextureRef(mat.emissiveTexture.index, mat.emissiveTexture.texCoord || 0)
           : undefined,
         metallicRoughnessTexture: pbr?.metallicRoughnessTexture
-          ? this.mapGLTFTextureRef(pbr.metallicRoughnessTexture.index, pbr.metallicRoughnessTexture.texCoord || 0)
+          ? this.mapGLTFTextureRef(
+              pbr.metallicRoughnessTexture.index,
+              pbr.metallicRoughnessTexture.texCoord || 0
+            )
           : undefined,
       };
     });
@@ -316,7 +333,8 @@ export class USDZExporter {
       const samplers = anim.samplers.map((s) => ({
         inputBufferView: s.input,
         outputBufferView: s.output,
-        interpolation: (s.interpolation?.toLowerCase() || 'linear') as import('../SceneGraph').AnimationInterpolation,
+        interpolation: (s.interpolation?.toLowerCase() ||
+          'linear') as import('../SceneGraph').AnimationInterpolation,
       }));
       return {
         id: `anim_${i}`,
@@ -393,7 +411,15 @@ export class USDZExporter {
   }
 
   private mapGLTFPrimitiveMode(mode?: number): string {
-    const modes = ['points', 'lines', 'lineLoop', 'lineStrip', 'triangles', 'triangleStrip', 'triangleFan'];
+    const modes = [
+      'points',
+      'lines',
+      'lineLoop',
+      'lineStrip',
+      'triangles',
+      'triangleStrip',
+      'triangleFan',
+    ];
     return modes[mode ?? 4] || 'triangles';
   }
 

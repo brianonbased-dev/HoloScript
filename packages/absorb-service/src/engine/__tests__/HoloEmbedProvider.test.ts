@@ -77,10 +77,12 @@ describe('HoloEmbedProvider', () => {
   });
 
   it('embedSymbol output is L2-normalized (norm ≈ 1.0)', () => {
-    const vec = provider.embedSymbol(makeSym({
-      name: 'PillarSliceEmitter',
-      eventNames: ['pillar:slice:emitted'],
-    } as Partial<ExternalSymbolDefinition> & { eventNames?: string[] }));
+    const vec = provider.embedSymbol(
+      makeSym({
+        name: 'PillarSliceEmitter',
+        eventNames: ['pillar:slice:emitted'],
+      } as Partial<ExternalSymbolDefinition> & { eventNames?: string[] })
+    );
     expect(norm(vec)).toBeCloseTo(1.0, 4);
   });
 
@@ -90,15 +92,17 @@ describe('HoloEmbedProvider', () => {
     const structural = new StructuralEmbeddingProvider();
     const sym = makeSym({ name: 'SomeClass', type: 'class' });
     const structVec = structural.embedSymbol(sym);
-    const holoVec   = provider.embedSymbol(sym);
+    const holoVec = provider.embedSymbol(sym);
 
     // After joint L2-normalization over 768 dims, the structural sub-vector (0-383)
     // is scaled down proportionally but points in the SAME direction as structVec.
     // Verify via cosine similarity between the sub-vector and structVec > 0.99.
     const holoBase = holoVec.slice(0, 384);
-    let dot = 0, normA = 0, normB = 0;
+    let dot = 0,
+      normA = 0,
+      normB = 0;
     for (let i = 0; i < 384; i++) {
-      dot   += holoBase[i]! * structVec[i]!;
+      dot += holoBase[i]! * structVec[i]!;
       normA += holoBase[i]! * holoBase[i]!;
       normB += structVec[i]! * structVec[i]!;
     }
@@ -126,10 +130,10 @@ describe('HoloEmbedProvider', () => {
       signature: 'class GraphEdgeRenderer',
     });
 
-    const targetVec   = provider.embedSymbol(targetSym);
+    const targetVec = provider.embedSymbol(targetSym);
     const unrelatedVec = provider.embedSymbol(unrelatedSym);
 
-    const simTarget   = cosine(queryVec, targetVec);
+    const simTarget = cosine(queryVec, targetVec);
     const simUnrelated = cosine(queryVec, unrelatedVec);
 
     expect(simTarget).toBeGreaterThan(simUnrelated);
@@ -152,7 +156,7 @@ describe('HoloEmbedProvider', () => {
       signature: 'l2Normalize(vec: Float32Array): void',
     });
 
-    const simTarget   = cosine(queryVec!, provider.embedSymbol(targetSym));
+    const simTarget = cosine(queryVec!, provider.embedSymbol(targetSym));
     const simUnrelated = cosine(queryVec!, provider.embedSymbol(unrelatedSym));
 
     expect(simTarget).toBeGreaterThan(simUnrelated);
@@ -196,7 +200,7 @@ describe('HoloEmbedProvider', () => {
 
     // embedSymbol with event names enriched
     const vecWithEvents = provider.embedSymbol(sym, { eventNames: ['pillar:spike', 'snn:spike'] });
-    const vecNoEvents   = provider.embedSymbol(sym); // no event names
+    const vecNoEvents = provider.embedSymbol(sym); // no event names
 
     // Prepare a fake "query" symbol that contains the event name tokens
     // Query embedded as text (only fills block 1)
@@ -264,7 +268,7 @@ describe('HoloEmbedProvider', () => {
     const symNoDoc = makeSym({ name: 'computeSliceDiversity' });
 
     const vecWithDoc = provider.embedSymbol(symWithDoc);
-    const vecNoDoc   = provider.embedSymbol(symNoDoc);
+    const vecNoDoc = provider.embedSymbol(symNoDoc);
 
     // Dims 512–639 should differ when docComment is present
     let diff = 0;

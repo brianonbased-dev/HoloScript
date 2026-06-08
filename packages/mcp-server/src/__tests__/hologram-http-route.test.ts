@@ -104,10 +104,7 @@ describe('GET /api/hologram/:hash/:artifact', () => {
     const manifest = { hash: FAKE_HASH, artifacts: ['preview.png', 'manifest.json'] };
     await writeFile(join(bundleDir, 'manifest.json'), JSON.stringify(manifest), 'utf-8');
 
-    const result = await hologramArtifactHandler(
-      `/api/hologram/${FAKE_HASH}/manifest.json`,
-      'GET'
-    );
+    const result = await hologramArtifactHandler(`/api/hologram/${FAKE_HASH}/manifest.json`, 'GET');
 
     expect(result.status).toBe(200);
     expect(result.contentType).toBe('application/json');
@@ -142,10 +139,7 @@ describe('GET /api/hologram/:hash/:artifact', () => {
   });
 
   it('returns 400 for unknown artifact name', async () => {
-    const result = await hologramArtifactHandler(
-      `/api/hologram/${FAKE_HASH}/evil.exe`,
-      'GET'
-    );
+    const result = await hologramArtifactHandler(`/api/hologram/${FAKE_HASH}/evil.exe`, 'GET');
     expect(result.status).toBe(400);
   });
 
@@ -161,10 +155,7 @@ describe('GET /api/hologram/:hash/:artifact', () => {
 
   it('rejects hash shorter than 64 chars', async () => {
     const shortHash = 'a'.repeat(63);
-    const result = await hologramArtifactHandler(
-      `/api/hologram/${shortHash}/preview.png`,
-      'GET'
-    );
+    const result = await hologramArtifactHandler(`/api/hologram/${shortHash}/preview.png`, 'GET');
     expect(result.status).toBe(404);
   });
 
@@ -203,20 +194,14 @@ describe('GET /api/hologram/:hash/:artifact', () => {
     await writeFile(join(bundleDir, 'manifest.json'), JSON.stringify(manifest), 'utf-8');
 
     // First fetch succeeds.
-    const first = await hologramArtifactHandler(
-      `/api/hologram/${FAKE_HASH}/preview.png`,
-      'GET'
-    );
+    const first = await hologramArtifactHandler(`/api/hologram/${FAKE_HASH}/preview.png`, 'GET');
     expect(first.status).toBe(200);
     expect(first.body).toEqual(pngData);
 
     // Second fetch after arbitrary delay returns identical bytes. There is no
     // single-use / presigned / TTL gate that would cause a subsequent fetch
     // to fail with 401/403/410.
-    const second = await hologramArtifactHandler(
-      `/api/hologram/${FAKE_HASH}/preview.png`,
-      'GET'
-    );
+    const second = await hologramArtifactHandler(`/api/hologram/${FAKE_HASH}/preview.png`, 'GET');
     expect(second.status).toBe(200);
     expect(second.body).toEqual(first.body);
 

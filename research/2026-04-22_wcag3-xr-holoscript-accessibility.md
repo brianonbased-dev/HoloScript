@@ -21,7 +21,7 @@
 
 ## References
 
-- W3C WCAG 3.0 (draft): https://www.w3.org/TR/wcag-3.0/  
-- W3C WAI, WCAG 3 timeline and news: https://www.w3.org/WAI/  
+- W3C WCAG 3.0 (draft): https://www.w3.org/TR/wcag-3.0/
+- W3C WAI, WCAG 3 timeline and news: https://www.w3.org/WAI/
 
-*This is engineering orientation, not legal or compliance advice.*
+_This is engineering orientation, not legal or compliance advice._

@@ -853,9 +853,7 @@ describe('Rate-limit: 4th /prepare in the hour → 429 (threat model: enumeratio
 
     // No session created for the rate-limited call.
     expect(
-      Array.from(exportSessionStore.values()).some((s) =>
-        s.idempotencyKeys.has('rl-integration-4')
-      )
+      Array.from(exportSessionStore.values()).some((s) => s.idempotencyKeys.has('rl-integration-4'))
     ).toBe(false);
   });
 });

@@ -35,7 +35,10 @@ export interface BakingJobStateLike {
   jobId: string;
   stage: string;
   overallProgress: number;
-  stageProgress: Record<string, { progress: number; message?: string; estimatedTimeRemainingMs?: number }>;
+  stageProgress: Record<
+    string,
+    { progress: number; message?: string; estimatedTimeRemainingMs?: number }
+  >;
   trainingMetrics?: Record<string, unknown>;
   actualCost?: number;
   error?: { stage: string; message: string; code: string; retryable: boolean };

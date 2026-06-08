@@ -27,9 +27,7 @@ function normalizeTraitName(name: string): string {
 }
 
 function normalizeFamilyFromExport(exportName: string): string {
-  return exportName
-    .replace(/_TRAITS$/, '')
-    .toLowerCase();
+  return exportName.replace(/_TRAITS$/, '').toLowerCase();
 }
 
 function pairKey(a: string, b: string): string {
@@ -157,8 +155,7 @@ describe('Paper 11 Benchmark: trait conflict family census', () => {
 
     const payload = {
       generatedAt: new Date().toISOString(),
-      source:
-        'packages/core/src/traits/constants/__tests__/paper-trait-conflict-families.test.ts',
+      source: 'packages/core/src/traits/constants/__tests__/paper-trait-conflict-families.test.ts',
       traitUniverseCount: uniqueTraits.length,
       familyPairRows: rows.length,
       topByStrict,
@@ -192,7 +189,10 @@ describe('Paper 11 Benchmark: trait conflict family census', () => {
     console.log('[paper-trait-conflict-families] trait universe:', payload.traitUniverseCount);
     console.log('[paper-trait-conflict-families] family pair rows:', payload.familyPairRows);
     console.log('[paper-trait-conflict-families] top strict rows:', payload.topByStrict.length);
-    console.log('[paper-trait-conflict-families] top domain-override rows:', payload.topByDomainOverride.length);
+    console.log(
+      '[paper-trait-conflict-families] top domain-override rows:',
+      payload.topByDomainOverride.length
+    );
     console.log('[paper-trait-conflict-families] JSON artifact:', writtenOutFile);
 
     expect(payload.traitUniverseCount).toBeGreaterThan(0);

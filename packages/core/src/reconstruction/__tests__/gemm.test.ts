@@ -47,8 +47,8 @@ describe('GEMM — CPU reference', () => {
   });
 
   it('2x3 @ 3x2 = identity-ish', () => {
-    const A = new Float32Array([1,0,0, 0,1,0]);
-    const B = new Float32Array([1,2, 3,4, 5,6]);
+    const A = new Float32Array([1, 0, 0, 0, 1, 0]);
+    const B = new Float32Array([1, 2, 3, 4, 5, 6]);
     const C = gemmCpu(A, B, 2, 2, 3);
     expect(C[0]).toBeCloseTo(1);
     expect(C[1]).toBeCloseTo(2);
@@ -58,7 +58,9 @@ describe('GEMM — CPU reference', () => {
 
   it('random 4x4 @ 4x4 matches naive product', () => {
     const rng = mulberry32(42);
-    const M = 4, N = 4, K = 4;
+    const M = 4,
+      N = 4,
+      K = 4;
     const A = new Float32Array(M * K).map(() => rng() * 2 - 1);
     const B = new Float32Array(K * N).map(() => rng() * 2 - 1);
     const C = gemmCpu(A, B, M, N, K);
@@ -87,7 +89,9 @@ describe('GEMM — WebGPU', () => {
     const device = await adapter.requestDevice();
 
     const rng = mulberry32(11);
-    const M = 8, N = 8, K = 8;
+    const M = 8,
+      N = 8,
+      K = 8;
     const A = new Float32Array(M * K).map(() => rng() * 2 - 1);
     const B = new Float32Array(K * N).map(() => rng() * 2 - 1);
 
@@ -106,7 +110,9 @@ describe('GEMM — WebGPU', () => {
     const device = await adapter.requestDevice();
 
     const rng = mulberry32(99);
-    const M = 5, N = 7, K = 6;
+    const M = 5,
+      N = 7,
+      K = 6;
     const A = new Float32Array(M * K).map(() => rng() * 2 - 1);
     const B = new Float32Array(K * N).map(() => rng() * 2 - 1);
 
@@ -125,7 +131,9 @@ describe('GEMM — WebGPU', () => {
     const device = await adapter.requestDevice();
 
     const rng = mulberry32(55);
-    const M = 16, N = 32, K = 24;
+    const M = 16,
+      N = 32,
+      K = 24;
     const A = new Float32Array(M * K).map(() => rng() - 0.5);
     const B = new Float32Array(K * N).map(() => rng() - 0.5);
 
@@ -144,9 +152,9 @@ describe('GEMM — WebGPU', () => {
     const device = await adapter.requestDevice();
 
     const kernel = createGemmKernel(device);
-    await expect(
-      kernel.run(new Float32Array(6), new Float32Array(6), 3, 3, 2),
-    ).rejects.toThrow('GEMM');
+    await expect(kernel.run(new Float32Array(6), new Float32Array(6), 3, 3, 2)).rejects.toThrow(
+      'GEMM'
+    );
     device.destroy();
   });
 });

@@ -31,11 +31,11 @@ surface that Paper 12 can cite for the audit-matrix `scalingMemo` column.
 
 ## Growth Table
 
-| Objects | Annotations | Projected runtime ms | Projected memory MB | Bottleneck |
-|---:|---:|---:|---:|---|
-| 50 | 200 | 2.108 | 0.031 | linear export serialization |
-| 500 | 2000 | 21.075 | 0.305 | linear export serialization |
-| 5000 | 20000 | 210.75 | 3.052 | export batch scheduling and plugin serialization |
+| Objects | Annotations | Projected runtime ms | Projected memory MB | Bottleneck                                       |
+| ------: | ----------: | -------------------: | ------------------: | ------------------------------------------------ |
+|      50 |         200 |                2.108 |               0.031 | linear export serialization                      |
+|     500 |        2000 |               21.075 |               0.305 | linear export serialization                      |
+|    5000 |       20000 |               210.75 |               3.052 | export batch scheduling and plugin serialization |
 
 ## Scale-Out Plan
 

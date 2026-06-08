@@ -4,7 +4,10 @@ import { performance } from 'node:perf_hooks';
 
 import { WebGPUContext } from '../packages/engine/src/gpu/WebGPUContext';
 import { AcousticSolver } from '../packages/engine/src/simulation/AcousticSolver';
-import { StructuralSolver, type StructuralConfig } from '../packages/engine/src/simulation/StructuralSolver';
+import {
+  StructuralSolver,
+  type StructuralConfig,
+} from '../packages/engine/src/simulation/StructuralSolver';
 import { ThermalSolver, type ThermalConfig } from '../packages/engine/src/simulation/ThermalSolver';
 import type { Force } from '../packages/engine/src/simulation/units/PhysicalQuantity';
 import {
@@ -70,31 +73,31 @@ function maxAbsDiff(a: Float32Array, b: Float32Array): number {
 }
 
 function buildTET4CantileverConfig(useGPU: boolean): StructuralConfig {
-  const vertices = new Float32Array([
-    0, 0, 0,
-    1, 0, 0,
-    0, 1, 0,
-    0, 0, 1,
-    1, 1, 1,
-  ]);
-  const tetrahedra = new Uint32Array([
-    0, 1, 2, 3,
-    1, 2, 3, 4,
-  ]);
+  const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1]);
+  const tetrahedra = new Uint32Array([0, 1, 2, 3, 1, 2, 3, 4]);
 
   return {
     vertices,
     tetrahedra,
-    material: { density: densityQ(1000), youngs_modulus: youngsModulus(1e6), poisson_ratio: poissonRatio(0.3), yield_strength: yieldStrength(1e8) },
+    material: {
+      density: densityQ(1000),
+      youngs_modulus: youngsModulus(1e6),
+      poisson_ratio: poissonRatio(0.3),
+      yield_strength: yieldStrength(1e8),
+    },
     constraints: [{ id: 'fixed-root', type: 'fixed', nodes: [0] }],
-    loads: [{ id: 'tip-load', type: 'point', nodeIndex: 4, force: [0, 0, 100] as [Force, Force, Force] }],
+    loads: [
+      { id: 'tip-load', type: 'point', nodeIndex: 4, force: [0, 0, 100] as [Force, Force, Force] },
+    ],
     maxIterations: 1000,
     tolerance: 1e-8,
     useGPU,
   };
 }
 
-async function timeStructural(useGPU: boolean): Promise<{ timing: StructuralTiming; displacements: Float32Array; nnz: number | undefined }> {
+async function timeStructural(
+  useGPU: boolean
+): Promise<{ timing: StructuralTiming; displacements: Float32Array; nnz: number | undefined }> {
   const solver = new StructuralSolver(buildTET4CantileverConfig(useGPU));
   const start = performance.now();
   const result = useGPU ? await solver.solveAsync() : solver.solve();
@@ -122,7 +125,13 @@ function buildThermalConfig(useGPU: boolean): ThermalConfig {
     gridResolution: [18, 18, 18],
     domainSize: [1, 1, 1],
     timeStep: 0.0005,
-    materials: { air: { conductivity: thermalConductivity(0.026), density: densityQ(1.225), specific_heat: specificHeat(1005) } },
+    materials: {
+      air: {
+        conductivity: thermalConductivity(0.026),
+        density: densityQ(1.225),
+        specific_heat: specificHeat(1005),
+      },
+    },
     defaultMaterial: 'air',
     boundaryConditions: [
       { type: 'dirichlet', faces: ['x-'], value: 100 },
@@ -134,7 +143,10 @@ function buildThermalConfig(useGPU: boolean): ThermalConfig {
   };
 }
 
-async function timeThermal(useGPU: boolean, steps: number): Promise<{ elapsedMs: number; field: Float32Array; usedGPU: boolean }> {
+async function timeThermal(
+  useGPU: boolean,
+  steps: number
+): Promise<{ elapsedMs: number; field: Float32Array; usedGPU: boolean }> {
   const solver = new ThermalSolver(buildThermalConfig(useGPU));
   const start = performance.now();
   for (let i = 0; i < steps; i++) {
@@ -148,12 +160,23 @@ async function timeThermal(useGPU: boolean, steps: number): Promise<{ elapsedMs:
   return { elapsedMs, field, usedGPU: stats.usedGPU };
 }
 
-async function timeAcoustic(useGPU: boolean, steps: number): Promise<{ elapsedMs: number; field: Float32Array; usedGPU: boolean }> {
+async function timeAcoustic(
+  useGPU: boolean,
+  steps: number
+): Promise<{ elapsedMs: number; field: Float32Array; usedGPU: boolean }> {
   const solver = new AcousticSolver({
     gridResolution: [18, 18, 18],
     domainSize: [1, 1, 1],
     speedOfSound: 343,
-    sources: [{ id: 'pulse', type: 'gaussian_pulse', position: [9, 9, 9], amplitude: 1, pulseWidth: 0.0001 }],
+    sources: [
+      {
+        id: 'pulse',
+        type: 'gaussian_pulse',
+        position: [9, 9, 9],
+        amplitude: 1,
+        pulseWidth: 0.0001,
+      },
+    ],
     useGPU,
   });
   const start = performance.now();
@@ -232,7 +255,9 @@ async function main(): Promise<void> {
       mesh: { nodeCount: 5, elementCount: 2, dofCount: 15, nnz: structuralNnz },
       cpu: { medianMs: median(structuralCpu.map((t) => t.elapsedMs)), timings: structuralCpu },
       gpu: { medianMs: median(structuralGpu.map((t) => t.elapsedMs)), timings: structuralGpu },
-      speedup: median(structuralCpu.map((t) => t.elapsedMs)) / median(structuralGpu.map((t) => t.elapsedMs)),
+      speedup:
+        median(structuralCpu.map((t) => t.elapsedMs)) /
+        median(structuralGpu.map((t) => t.elapsedMs)),
       maxAbsDisplacementDiff: structuralDiff,
     },
     thermalStencil: {
@@ -263,6 +288,6 @@ async function main(): Promise<void> {
 main()
   .then(() => process.exit(0))
   .catch((error: unknown) => {
-    console.error(error instanceof Error ? error.stack ?? error.message : String(error));
+    console.error(error instanceof Error ? (error.stack ?? error.message) : String(error));
     process.exit(1);
   });

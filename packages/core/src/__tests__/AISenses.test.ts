@@ -79,7 +79,7 @@ describe('Cycle 148: AI Senses', () => {
   it('should seek toward and flee from targets', () => {
     const agent: SteeringAgent = {
       position: [0, 0, 0],
-      velocity: [0, 0, 0 ],
+      velocity: [0, 0, 0],
       maxSpeed: 5,
       maxForce: 3,
       mass: 1,
@@ -95,7 +95,7 @@ describe('Cycle 148: AI Senses', () => {
   it('should arrive and slow down near target', () => {
     const agent: SteeringAgent = {
       position: [0, 0, 0],
-      velocity: [2, 0, 0 ],
+      velocity: [2, 0, 0],
       maxSpeed: 5,
       maxForce: 3,
       mass: 1,
@@ -111,7 +111,7 @@ describe('Cycle 148: AI Senses', () => {
   it('should produce flock forces for a group', () => {
     const agents: SteeringAgent[] = Array.from({ length: 5 }, (_, i) => ({
       position: [i * 2, 0, 0],
-      velocity: [1, 0, 0 ],
+      velocity: [1, 0, 0],
       maxSpeed: 5,
       maxForce: 3,
       mass: 1,

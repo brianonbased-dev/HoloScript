@@ -106,7 +106,10 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
           padding: 12,
           displayColors: true,
           callbacks: {
-            label: function (context: { dataset: { label?: string }; parsed: { y: number | null } }) {
+            label: function (context: {
+              dataset: { label?: string };
+              parsed: { y: number | null };
+            }) {
               let label = context.dataset.label || '';
               if (label) {
                 label += ': ';

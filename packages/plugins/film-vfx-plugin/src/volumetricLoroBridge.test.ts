@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { LoroDoc } from 'loro-crdt';
-import { FILM3D_VOLUMETRICS_ROOT, syncVirtualProductionToVolumetricCrdt } from './volumetricLoroBridge';
+import {
+  FILM3D_VOLUMETRICS_ROOT,
+  syncVirtualProductionToVolumetricCrdt,
+} from './volumetricLoroBridge';
 import type { VirtualProductionConfig } from './traits/VirtualProductionTrait';
 
 const sampleVp: VirtualProductionConfig = {

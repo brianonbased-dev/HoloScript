@@ -69,7 +69,7 @@ export interface RuntimeTraitHandler {
     node: unknown,
     config: RevparTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -84,7 +84,7 @@ interface RevparNode {
 function solveOntoNode(
   node: unknown,
   config: RevparTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as RevparNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

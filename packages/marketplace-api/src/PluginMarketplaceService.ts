@@ -139,7 +139,7 @@ export class InMemoryPluginDatabase implements IPluginDatabase {
         packageUrl: `/api/plugins/${pkg.id}/versions/${pkg.version}/download`,
         shasum,
         size: Buffer.byteLength(bundle, 'base64'),
-        signatureStatus: pkg.signature ? 'signed' as const : 'unsigned' as const,
+        signatureStatus: pkg.signature ? ('signed' as const) : ('unsigned' as const),
         studioVersion: pkg.compatibility.studioVersion,
         releaseNotes: undefined,
       };
@@ -788,9 +788,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
         signatureTrusted: signatureVerification?.trusted ?? false,
         keyFingerprint: signatureVerification?.keyFingerprint ?? '',
         author: signatureVerification?.author ?? user.userName,
-        signedAt: signatureVerification
-          ? new Date().toISOString()
-          : undefined,
+        signedAt: signatureVerification ? new Date().toISOString() : undefined,
       },
     });
 
@@ -1254,9 +1252,7 @@ export class PluginMarketplaceService implements IPluginMarketplaceAPI {
             valid: Boolean(latestPublish.payload.signatureValid),
             trusted: Boolean(latestPublish.payload.signatureTrusted),
             keyFingerprint: String(latestPublish.payload.keyFingerprint ?? ''),
-            author: latestPublish.payload.author
-              ? String(latestPublish.payload.author)
-              : undefined,
+            author: latestPublish.payload.author ? String(latestPublish.payload.author) : undefined,
             signedAt: latestPublish.payload.signedAt
               ? String(latestPublish.payload.signedAt)
               : undefined,

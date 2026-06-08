@@ -8,14 +8,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { runSegmentedCapture } from './format-stress-segmented-capture.mjs';
@@ -24,8 +17,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 const DEFAULT_MANIFEST = 'experiments/format-realism-gauntlet/manifest.json';
 const DEFAULT_AGENT_SURFACE = 'codex-hardware';
-const ECOSYSTEM_ROOT =
-  process.env.AI_ECOSYSTEM_ROOT || 'C:/Users/josep/.ai-ecosystem';
+const ECOSYSTEM_ROOT = process.env.AI_ECOSYSTEM_ROOT || 'C:/Users/josep/.ai-ecosystem';
 
 function usage() {
   return `Usage: node scripts/holoshell-format-gauntlet.mjs [manifest.json] [options]
@@ -441,7 +433,16 @@ function openArtifact(path) {
   return spawnSync('xdg-open', [absolute], { encoding: 'utf8' });
 }
 
-function writeDashboardReport({ receipt, previous, deltas, contactSheetPath, boardTasksPath, dedupePath, filing, dryRun = false }) {
+function writeDashboardReport({
+  receipt,
+  previous,
+  deltas,
+  contactSheetPath,
+  boardTasksPath,
+  dedupePath,
+  filing,
+  dryRun = false,
+}) {
   const outputDir = repoPath(receipt.outputDir);
   const evidenceBanner = dryRun
     ? '> **Evidence quality: non-quality / command-surface.** This was a dry-run. Dashboard deltas compare placeholder evidence against the previous real scorecard. Do not treat these as visual regressions.'
@@ -470,7 +471,11 @@ function writeDashboardReport({ receipt, previous, deltas, contactSheetPath, boa
     lines.push('Previous scorecard: none found');
   }
 
-  lines.push('', '| Metric | Previous | Current | Delta | Evidence |', '| --- | --- | --- | --- | --- |');
+  lines.push(
+    '',
+    '| Metric | Previous | Current | Delta | Evidence |',
+    '| --- | --- | --- | --- | --- |'
+  );
   for (const row of deltas) {
     lines.push(
       `| ${row.label} | ${row.previous ?? 'n/a'} | ${row.current ?? 'n/a'} | ${row.delta} | ${row.evidenceQuality} |`
@@ -516,11 +521,12 @@ export async function runHoloShellFormatGauntlet(rawOptions = {}) {
   const outputDir = repoPath(receipt.outputDir);
   const currentScorecardPath = repoPath(receipt.artifacts.scorecard);
   const currentScorecard = readJson(currentScorecardPath);
-  const previous = collectScorecards(
-    resolve(REPO_ROOT, '.bench-logs/format-stress'),
-    currentScorecard.scenario,
-    currentScorecardPath
-  )[0] || null;
+  const previous =
+    collectScorecards(
+      resolve(REPO_ROOT, '.bench-logs/format-stress'),
+      currentScorecard.scenario,
+      currentScorecardPath
+    )[0] || null;
   const deltas = compareScorecards(previous, currentScorecard, { dryRun: options.dryRun });
   const contactSheetPath = buildContactSheet(receipt, outputDir);
   const boardTasks = buildBoardTasks(receipt);
@@ -615,4 +621,3 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     process.exit(1);
   });
 }
-

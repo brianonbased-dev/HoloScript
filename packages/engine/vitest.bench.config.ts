@@ -56,7 +56,10 @@ export default defineConfig({
       '@holoscript/framework/behavior': resolve(__dirname, '../framework/src/behavior.ts'),
       '@holoscript/framework/economy': resolve(__dirname, '../framework/src/economy/index.ts'),
       '@holoscript/framework/learning': resolve(__dirname, '../framework/src/learning/index.ts'),
-      '@holoscript/framework/negotiation': resolve(__dirname, '../framework/src/negotiation/index.ts'),
+      '@holoscript/framework/negotiation': resolve(
+        __dirname,
+        '../framework/src/negotiation/index.ts'
+      ),
       '@holoscript/framework/training': resolve(__dirname, '../framework/src/training/index.ts'),
       '@holoscript/framework/ai': resolve(__dirname, '../framework/src/ai/index.ts'),
       '@holoscript/framework/skills': resolve(__dirname, '../framework/src/skills/index.ts'),

@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { runBench, type BenchArms } from '../runner';
-import {
-  evaluateKillCriteria,
-  mostEfficientArm,
-  type KillThresholds,
-} from '../metrics';
+import { evaluateKillCriteria, mostEfficientArm, type KillThresholds } from '../metrics';
 import { EXP1_FIRST_SLICE } from '../tasks';
 import type { ArmAggregate, ArmModel, ArmModelResult, BenchReport } from '../types';
 
@@ -105,7 +101,10 @@ const provFull = async () => ({ totalClaims: 2, tracedClaims: 2 });
 function mockPassArm(inputTokens: number): ArmModel {
   return async (_prompt, { task }): Promise<ArmModelResult> => ({
     rawOutput: 'mock',
-    mutation: { tool: task.acceptableTools[0], input: { object_name: 'freeOrb', trait_name: 'spin' } },
+    mutation: {
+      tool: task.acceptableTools[0],
+      input: { object_name: 'freeOrb', trait_name: 'spin' },
+    },
     inputTokens,
     outputTokens: 20,
   });
@@ -158,12 +157,21 @@ describe('EXP-1 runner integration (real oracle, mock arms, zero GPU)', () => {
       rawOutput: 'mock',
       mutation: {
         tool: 'set_trait_property',
-        input: { object_name: 'lamp', trait_name: 'glow', property_key: 'intensity', property_value: 5.0 },
+        input: {
+          object_name: 'lamp',
+          trait_name: 'glow',
+          property_key: 'intensity',
+          property_value: 5.0,
+        },
       },
       inputTokens: 100,
       outputTokens: 10,
     });
-    const r = await runBench([glowTask], { A: violatingArm, B: violatingArm, C: violatingArm }, provFull);
+    const r = await runBench(
+      [glowTask],
+      { A: violatingArm, B: violatingArm, C: violatingArm },
+      provFull
+    );
     // Out-of-bounds mutation → oracle fails → task fail across all arms.
     expect(r.arms.A.passRate).toBe(0);
   });

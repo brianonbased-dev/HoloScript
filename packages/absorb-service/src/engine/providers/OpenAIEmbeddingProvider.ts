@@ -112,7 +112,6 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   }
 
   private async initClient(): Promise<OpenAIClient> {
-     
     let OpenAI: new (opts: { apiKey: string }) => OpenAIClient;
 
     try {

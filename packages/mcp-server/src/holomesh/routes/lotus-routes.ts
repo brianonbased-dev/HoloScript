@@ -54,25 +54,45 @@ interface BloomDerivation {
 
 function derivePetalBloomState(evidence: PetalEvidence): BloomDerivation {
   if (evidence.retracted) {
-    return { state: 'wilted', reason: 'Paper retracted or moved off-program.', blockedBy: ['retracted'] };
+    return {
+      state: 'wilted',
+      reason: 'Paper retracted or moved off-program.',
+      blockedBy: ['retracted'],
+    };
   }
   if (evidence.anchorMismatch && !evidence.otsAnchored && !evidence.baseAnchored) {
-    return { state: 'wilted', reason: 'Anchor mismatch with no surviving anchors.', blockedBy: ['anchorMismatch', 'otsAnchored', 'baseAnchored'] };
+    return {
+      state: 'wilted',
+      reason: 'Anchor mismatch with no surviving anchors.',
+      blockedBy: ['anchorMismatch', 'otsAnchored', 'baseAnchored'],
+    };
   }
   if (!evidence.hasDraft) {
     return { state: 'sealed', reason: 'No draft content yet.', blockedBy: ['hasDraft'] };
   }
   if (evidence.stubCount > 0) {
-    return { state: 'budding', reason: `Draft present with ${evidence.stubCount} stub(s).`, blockedBy: ['stubCount'] };
+    return {
+      state: 'budding',
+      reason: `Draft present with ${evidence.stubCount} stub(s).`,
+      blockedBy: ['stubCount'],
+    };
   }
   if (evidence.benchmarkTodoCount > 0) {
-    return { state: 'blooming', reason: `${evidence.benchmarkTodoCount} benchmark(s) pending.`, blockedBy: ['benchmarkTodoCount'] };
+    return {
+      state: 'blooming',
+      reason: `${evidence.benchmarkTodoCount} benchmark(s) pending.`,
+      blockedBy: ['benchmarkTodoCount'],
+    };
   }
   if (!evidence.otsAnchored || !evidence.baseAnchored) {
     const missing: Array<keyof PetalEvidence> = [];
     if (!evidence.otsAnchored) missing.push('otsAnchored');
     if (!evidence.baseAnchored) missing.push('baseAnchored');
-    return { state: 'blooming', reason: `Awaiting ${missing.map(m => m === 'otsAnchored' ? 'OTS' : 'Base').join(' + ')} anchor.`, blockedBy: missing };
+    return {
+      state: 'blooming',
+      reason: `Awaiting ${missing.map((m) => (m === 'otsAnchored' ? 'OTS' : 'Base')).join(' + ')} anchor.`,
+      blockedBy: missing,
+    };
   }
   return { state: 'full', reason: 'Content complete and dual-anchored.' };
 }
@@ -93,7 +113,7 @@ const PETAL_EVIDENCE: Record<string, PetalEvidence & { _note?: string }> = {
     baseAnchored: false,
     anchorMismatch: false,
   },
-  'cael': {
+  cael: {
     paperId: 'cael',
     venue: 'AAMAS 2026',
     hasDraft: true,
@@ -113,7 +133,7 @@ const PETAL_EVIDENCE: Record<string, PetalEvidence & { _note?: string }> = {
     baseAnchored: true,
     anchorMismatch: false,
   },
-  'snn': {
+  snn: {
     paperId: 'snn',
     venue: 'NeurIPS 2026',
     hasDraft: true,
@@ -123,7 +143,7 @@ const PETAL_EVIDENCE: Record<string, PetalEvidence & { _note?: string }> = {
     baseAnchored: true,
     anchorMismatch: false,
   },
-  'crdt': {
+  crdt: {
     paperId: 'crdt',
     venue: 'ECOOP 2027',
     hasDraft: true,
@@ -143,7 +163,7 @@ const PETAL_EVIDENCE: Record<string, PetalEvidence & { _note?: string }> = {
     baseAnchored: true,
     anchorMismatch: false,
   },
-  'graphrag': {
+  graphrag: {
     paperId: 'graphrag',
     venue: 'ICSE 2027',
     hasDraft: true,
@@ -249,7 +269,8 @@ const PETAL_EVIDENCE: Record<string, PetalEvidence & { _note?: string }> = {
 
 const SNAPSHOT_METADATA = {
   snapshot_at: '2026-04-27',
-  source: 'Synthesized from research/2026-04-27_brittney-paper-scoping.md + paper-audit-matrix.md (Round 7 anchors)',
+  source:
+    'Synthesized from research/2026-04-27_brittney-paper-scoping.md + paper-audit-matrix.md (Round 7 anchors)',
   petal_count: Object.keys(PETAL_EVIDENCE).length,
 };
 
@@ -284,11 +305,11 @@ interface ModeBPetal {
 }
 
 const BLOOM_COLORS: Record<BloomState, string> = {
-  sealed: '#6b7280',    // gray
-  budding: '#f59e0b',   // amber
-  blooming: '#3b82f6',  // blue
-  full: '#10b981',      // emerald
-  wilted: '#ef4444',    // red
+  sealed: '#6b7280', // gray
+  budding: '#f59e0b', // amber
+  blooming: '#3b82f6', // blue
+  full: '#10b981', // emerald
+  wilted: '#ef4444', // red
 };
 
 function buildModeAResponse(): {
@@ -382,7 +403,7 @@ export async function handleLotusRoutes(
   res: http.ServerResponse,
   pathname: string,
   method: string,
-  _url: string,
+  _url: string
 ): Promise<boolean> {
   // GET /api/lotus
   if (pathname === '/api/lotus' && method === 'GET') {

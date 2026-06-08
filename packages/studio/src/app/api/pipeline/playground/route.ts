@@ -115,7 +115,6 @@ export async function GET() {
   return NextResponse.json({ endpoint: '/api/pipeline/playground', actions: ['parse', 'compile'] });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

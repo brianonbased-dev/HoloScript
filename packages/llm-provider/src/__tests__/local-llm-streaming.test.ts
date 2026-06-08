@@ -353,9 +353,7 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
   });
 
   it('emits text_delta before tool_use chunks for mixed content', async () => {
-    fetchMock.mockResolvedValue(
-      mockStreamResponse(ndjson(...mixedTextAndToolLines()))
-    );
+    fetchMock.mockResolvedValue(mockStreamResponse(ndjson(...mixedTextAndToolLines())));
 
     const chunks = await collect(
       adapter.streamCompletion({ messages: [{ role: 'user', content: 'create a cube' }] })
@@ -374,12 +372,12 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
   });
 
   it('handles multiple tool calls in one chunk', async () => {
-    fetchMock.mockResolvedValue(
-      mockStreamResponse(ndjson(...multipleToolCallLines()))
-    );
+    fetchMock.mockResolvedValue(mockStreamResponse(ndjson(...multipleToolCallLines())));
 
     const chunks = await collect(
-      adapter.streamCompletion({ messages: [{ role: 'user', content: 'create cube and color it' }] })
+      adapter.streamCompletion({
+        messages: [{ role: 'user', content: 'create cube and color it' }],
+      })
     );
 
     const starts = chunks.filter((c) => c.type === 'tool_use_start');
@@ -402,9 +400,7 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
   });
 
   it('parses tool call arguments from JSON string (Ollama compatibility)', async () => {
-    fetchMock.mockResolvedValue(
-      mockStreamResponse(ndjson(...toolCallStringArgsLines()))
-    );
+    fetchMock.mockResolvedValue(mockStreamResponse(ndjson(...toolCallStringArgsLines())));
 
     const chunks = await collect(
       adapter.streamCompletion({ messages: [{ role: 'user', content: 'create sphere' }] })
@@ -452,9 +448,7 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
   });
 
   it('throws LLMProviderError on pre-flight 500 response (no chunks emitted)', async () => {
-    fetchMock.mockResolvedValue(
-      mockErrorResponse('internal server error', 500)
-    );
+    fetchMock.mockResolvedValue(mockErrorResponse('internal server error', 500));
 
     await expect(
       collect(adapter.streamCompletion({ messages: [{ role: 'user', content: 'test' }] }))
@@ -462,9 +456,7 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
 
     // Verify the error is retryable (5xx)
     try {
-      await collect(
-        adapter.streamCompletion({ messages: [{ role: 'user', content: 'test' }] })
-      );
+      await collect(adapter.streamCompletion({ messages: [{ role: 'user', content: 'test' }] }));
     } catch (err) {
       expect(err).toBeInstanceOf(LLMProviderError);
       if (err instanceof LLMProviderError) {
@@ -475,14 +467,10 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
   });
 
   it('throws LLMProviderError on pre-flight 429 (retryable)', async () => {
-    fetchMock.mockResolvedValue(
-      mockErrorResponse('rate limited', 429)
-    );
+    fetchMock.mockResolvedValue(mockErrorResponse('rate limited', 429));
 
     try {
-      await collect(
-        adapter.streamCompletion({ messages: [{ role: 'user', content: 'test' }] })
-      );
+      await collect(adapter.streamCompletion({ messages: [{ role: 'user', content: 'test' }] }));
     } catch (err) {
       expect(err).toBeInstanceOf(LLMProviderError);
       if (err instanceof LLMProviderError) {
@@ -500,9 +488,7 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
     ).rejects.toThrow(LLMProviderError);
 
     try {
-      await collect(
-        adapter.streamCompletion({ messages: [{ role: 'user', content: 'test' }] })
-      );
+      await collect(adapter.streamCompletion({ messages: [{ role: 'user', content: 'test' }] }));
     } catch (err) {
       expect(err).toBeInstanceOf(LLMProviderError);
       if (err instanceof LLMProviderError) {
@@ -597,10 +583,7 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
     const fullBody = `${line1}\n${line2}\n`;
     const midLineSplit = Math.floor(fullBody.length / 2);
     fetchMock.mockResolvedValue(
-      mockChunkedResponse([
-        fullBody.slice(0, midLineSplit),
-        fullBody.slice(midLineSplit),
-      ])
+      mockChunkedResponse([fullBody.slice(0, midLineSplit), fullBody.slice(midLineSplit)])
     );
 
     const chunks = await collect(
@@ -628,9 +611,7 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
       )
     );
 
-    await collect(
-      adapter.streamCompletion({ messages: [{ role: 'user', content: 'test' }] })
-    );
+    await collect(adapter.streamCompletion({ messages: [{ role: 'user', content: 'test' }] }));
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -702,9 +683,7 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
       )
     );
 
-    await collect(
-      adapterV1.streamCompletion({ messages: [{ role: 'user', content: 'test' }] })
-    );
+    await collect(adapterV1.streamCompletion({ messages: [{ role: 'user', content: 'test' }] }));
 
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     // Constructor strips /v1 → http://localhost:11434 → /api/chat
@@ -822,9 +801,7 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
 
   it('maps done_reason correctly for tool_use and stop', async () => {
     // Test 1: tool calls present → finishReason = 'tool_use' regardless of done_reason
-    fetchMock.mockResolvedValue(
-      mockStreamResponse(ndjson(...toolCallLines()))
-    );
+    fetchMock.mockResolvedValue(mockStreamResponse(ndjson(...toolCallLines())));
     const toolChunks = await collect(
       adapter.streamCompletion({ messages: [{ role: 'user', content: 'make cube' }] })
     );
@@ -835,9 +812,7 @@ describe('LocalLLMAdapter.streamCompletion — NDJSON chunk translation', () => 
 
     // Reset mock for test 2
     fetchMock.mockClear();
-    fetchMock.mockResolvedValue(
-      mockStreamResponse(ndjson(...textOnlyLines()))
-    );
+    fetchMock.mockResolvedValue(mockStreamResponse(ndjson(...textOnlyLines())));
     const textChunks = await collect(
       adapter.streamCompletion({ messages: [{ role: 'user', content: 'hello' }] })
     );

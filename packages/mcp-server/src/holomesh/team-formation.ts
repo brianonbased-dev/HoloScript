@@ -83,7 +83,10 @@ export const DEFAULT_FORMATION_CONFIG: TeamFormationConfig = {
 // SCORING
 // =============================================================================
 
-function capabilityOverlap(agent: RosterAgent, required: string[]): { hits: string[]; misses: string[] } {
+function capabilityOverlap(
+  agent: RosterAgent,
+  required: string[]
+): { hits: string[]; misses: string[] } {
   const agentSet = new Set(agent.capabilities.map((c) => c.toLowerCase()));
   const hits: string[] = [];
   const misses: string[] = [];
@@ -94,7 +97,12 @@ function capabilityOverlap(agent: RosterAgent, required: string[]): { hits: stri
   return { hits, misses };
 }
 
-function scoreAgent(agent: RosterAgent, req: TeamRequirement, alreadyCovered: Set<string>, config: TeamFormationConfig): number {
+function scoreAgent(
+  agent: RosterAgent,
+  req: TeamRequirement,
+  alreadyCovered: Set<string>,
+  config: TeamFormationConfig
+): number {
   const { hits: requiredHits } = capabilityOverlap(agent, req.requiredCapabilities);
   const preferredHits = req.preferredCapabilities
     ? capabilityOverlap(agent, req.preferredCapabilities).hits
@@ -178,9 +186,8 @@ export function formTeam(
     });
   }
 
-  const coverage = req.requiredCapabilities.length === 0
-    ? 1
-    : covered.size / req.requiredCapabilities.length;
+  const coverage =
+    req.requiredCapabilities.length === 0 ? 1 : covered.size / req.requiredCapabilities.length;
   const gaps = req.requiredCapabilities.filter((c) => !covered.has(c.toLowerCase()));
   const strengths = Array.from(covered);
 
@@ -189,15 +196,20 @@ export function formTeam(
     recommendations.push(`Cover gaps: ${gaps.join(', ')} via recruit or upskill.`);
   }
   if (selected.length < targetSize) {
-    recommendations.push(`Team underfilled (${selected.length}/${targetSize}). Expand roster or relax requirements.`);
+    recommendations.push(
+      `Team underfilled (${selected.length}/${targetSize}). Expand roster or relax requirements.`
+    );
   }
   if (selected.length > 0 && coverage === 1) {
-    recommendations.push('All required capabilities covered. Consider pairing for redundancy on critical roles.');
+    recommendations.push(
+      'All required capabilities covered. Consider pairing for redundancy on critical roles.'
+    );
   }
 
-  const complementarity = selected.length > 0
-    ? selected.reduce((s, m) => s + m.complementarityScore, 0) / selected.length
-    : 0;
+  const complementarity =
+    selected.length > 0
+      ? selected.reduce((s, m) => s + m.complementarityScore, 0) / selected.length
+      : 0;
 
   let status: FormedTeam['status'] = 'proposed';
   if (selected.length === 0) status = 'unfillable';

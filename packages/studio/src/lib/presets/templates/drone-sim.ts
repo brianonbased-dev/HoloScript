@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-drone-sim",
-  name: "Drone Simulator",
-  description: "Autonomous drone with waypoints, obstacles, and flight path visualization",
-  thumbnail: "🚁",
-  tags: ["robotics","drone","uav","flight","autonomous"],
-  category: "robotics",
+  id: 'wizard-drone-sim',
+  name: 'Drone Simulator',
+  description: 'Autonomous drone with waypoints, obstacles, and flight path visualization',
+  thumbnail: '🚁',
+  tags: ['robotics', 'drone', 'uav', 'flight', 'autonomous'],
+  category: 'robotics',
   code: `composition "Drone Simulator" {
   environment {
     skybox: "sunset"
@@ -143,7 +143,7 @@ export const template: SceneTemplate = {
     scale: [1.5, 3, 1.5]
     color: "#2a5a2a"
   }
-}`
+}`,
 };
 
 export default template;

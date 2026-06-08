@@ -70,7 +70,7 @@ export interface QAOARunner {
    */
   runQAOA(
     weightMatrix: number[][],
-    circuitDepthP?: number,
+    circuitDepthP?: number
   ): Promise<{
     /** Length-n binary string — '0' or '1' per agent index */
     optimalBitstring: string;
@@ -139,17 +139,19 @@ export interface Paper26QuantumAssignmentState {
 // Internal state-slot helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STATE_KEY  = '__p26qa_state__';
-const GAMMA_KEY  = '__p26qa_gammas__';
-const TICK_KEY   = '__p26qa_tick__';
+const STATE_KEY = '__p26qa_state__';
+const GAMMA_KEY = '__p26qa_gammas__';
+const TICK_KEY = '__p26qa_tick__';
 
 function getState(node: HSPlusNode): Paper26QuantumAssignmentState {
-  return (node as unknown as Record<string, unknown>)[STATE_KEY] as Paper26QuantumAssignmentState ?? {
-    assignment:        '',
-    lastRunTick:       0,
-    approximationRatio: 0,
-    running:           false,
-  };
+  return (
+    ((node as unknown as Record<string, unknown>)[STATE_KEY] as Paper26QuantumAssignmentState) ?? {
+      assignment: '',
+      lastRunTick: 0,
+      approximationRatio: 0,
+      running: false,
+    }
+  );
 }
 
 function setState(node: HSPlusNode, s: Paper26QuantumAssignmentState): void {
@@ -158,7 +160,7 @@ function setState(node: HSPlusNode, s: Paper26QuantumAssignmentState): void {
 
 /** Per-agent γ cache: agentId → latest γ value */
 function getGammaCache(node: HSPlusNode): Record<string, number> {
-  return (node as unknown as Record<string, unknown>)[GAMMA_KEY] as Record<string, number> ?? {};
+  return ((node as unknown as Record<string, unknown>)[GAMMA_KEY] as Record<string, number>) ?? {};
 }
 
 function setGammaCache(node: HSPlusNode, cache: Record<string, number>): void {
@@ -195,7 +197,7 @@ function setCurrentTick(node: HSPlusNode, tick: number): void {
  */
 export function buildGammaWeightMatrix(
   agentGammas: Record<string, number>,
-  agentIds: string[],
+  agentIds: string[]
 ): number[][] {
   const n = agentIds.length;
   const W: number[][] = Array.from({ length: n }, () => Array<number>(n).fill(0));
@@ -203,7 +205,7 @@ export function buildGammaWeightMatrix(
     for (let j = i + 1; j < n; j++) {
       const gi = agentGammas[agentIds[i]] ?? 0.5;
       const gj = agentGammas[agentIds[j]] ?? 0.5;
-      const w  = Math.round((1 - Math.abs(gi - gj)) * 10) / 10;
+      const w = Math.round((1 - Math.abs(gi - gj)) * 10) / 10;
       W[i][j] = w;
       W[j][i] = w;
     }
@@ -251,7 +253,7 @@ export function classicalGreedyBisection(weightMatrix: number[][]): string {
   };
 
   let improved = true;
-  let passes   = 0;
+  let passes = 0;
   const maxPasses = n; // guaranteed termination
 
   while (improved && passes < maxPasses) {
@@ -305,12 +307,12 @@ async function runAssignment(
   node: HSPlusNode,
   config: Paper26QuantumAssignmentConfig,
   ctx: TraitContext,
-  currentTick: number,
+  currentTick: number
 ): Promise<void> {
-  const agentIds     = config.agentIds;
-  const ring         = config.ring;
-  const qaoa_p       = config.qaoa_p ?? 1;
-  const agentGammas  = getGammaCache(node);
+  const agentIds = config.agentIds;
+  const ring = config.ring;
+  const qaoa_p = config.qaoa_p ?? 1;
+  const agentGammas = getGammaCache(node);
   const weightMatrix = buildGammaWeightMatrix(agentGammas, agentIds);
 
   if (!shouldUseQAOA(ring, agentIds.length)) {
@@ -326,10 +328,10 @@ async function runAssignment(
       ring,
       agentIds,
       assignment,
-      approximationRatio:  1.0,   // greedy achieves ≥ 0.5 of optimum; treat as 1 for display
-      executionBackend:    'classical',
-      wallTimeSeconds:     0,
-      tick:                currentTick,
+      approximationRatio: 1.0, // greedy achieves ≥ 0.5 of optimum; treat as 1 for display
+      executionBackend: 'classical',
+      wallTimeSeconds: 0,
+      tick: currentTick,
     });
     return;
   }
@@ -340,13 +342,13 @@ async function runAssignment(
     ctx.emit('quantum:assignment-result', {
       ring,
       agentIds,
-      assignment:          result.optimalBitstring,
-      approximationRatio:  result.approximationRatio,
-      executionBackend:    result.executionBackend,
-      wallTimeSeconds:     result.wallTimeSeconds,
-      numQubits:           result.numQubits,
-      optimalValue:        result.optimalValue,
-      tick:                currentTick,
+      assignment: result.optimalBitstring,
+      approximationRatio: result.approximationRatio,
+      executionBackend: result.executionBackend,
+      wallTimeSeconds: result.wallTimeSeconds,
+      numQubits: result.numQubits,
+      optimalValue: result.optimalValue,
+      tick: currentTick,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -356,11 +358,11 @@ async function runAssignment(
       ring,
       agentIds,
       assignment,
-      approximationRatio:  1.0,
-      executionBackend:    'classical_fallback',
-      wallTimeSeconds:     0,
-      tick:                currentTick,
-      error:               msg,
+      approximationRatio: 1.0,
+      executionBackend: 'classical_fallback',
+      wallTimeSeconds: 0,
+      tick: currentTick,
+      error: msg,
     });
   }
 }
@@ -375,9 +377,7 @@ async function runAssignment(
  * Group 0 ("cut side A") — reduced glow, grounded stance.
  * Group 1 ("cut side B") — elevated glow, open stance.
  */
-function groupVisuals(
-  bit: '0' | '1',
-): { glowIntensityDelta: number; animStateOverride: string } {
+function groupVisuals(bit: '0' | '1'): { glowIntensityDelta: number; animStateOverride: string } {
   return bit === '1'
     ? { glowIntensityDelta: +0.25, animStateOverride: 'upright_calm' }
     : { glowIntensityDelta: -0.15, animStateOverride: 'lean_in' };
@@ -404,7 +404,7 @@ function groupVisuals(
  * @returns A TraitHandler ready to be registered with the HoloScript runtime.
  */
 export function createQuantumAssignmentTrait(
-  qaoa: QAOARunner,
+  qaoa: QAOARunner
 ): TraitHandler<Paper26QuantumAssignmentConfig> {
   return {
     name: 'paper26_quantum_assignment',
@@ -414,29 +414,29 @@ export function createQuantumAssignmentTrait(
     onAttach(node: HSPlusNode, config: Paper26QuantumAssignmentConfig, ctx: TraitContext): void {
       // Initialise state and caches on the node
       setState(node, {
-        assignment:         '',
-        lastRunTick:        0,
+        assignment: '',
+        lastRunTick: 0,
         approximationRatio: 0,
-        running:            false,
+        running: false,
       });
       setGammaCache(node, {});
       setCurrentTick(node, 0);
 
       ctx.emit('quantum:assignment-attached', {
-        ring:       config.ring,
+        ring: config.ring,
         agentCount: config.agentIds.length,
-        qaoa_p:     config.qaoa_p ?? 1,
-        useQAOA:    shouldUseQAOA(config.ring, config.agentIds.length),
+        qaoa_p: config.qaoa_p ?? 1,
+        useQAOA: shouldUseQAOA(config.ring, config.agentIds.length),
       });
     },
 
     // ── onEvent ──────────────────────────────────────────────────────────────
 
     onEvent(
-      node:   HSPlusNode,
+      node: HSPlusNode,
       config: Paper26QuantumAssignmentConfig,
-      ctx:    TraitContext,
-      event:  TraitEvent,
+      ctx: TraitContext,
+      event: TraitEvent
     ): void {
       const ev = event as TraitEvent & { payload?: Record<string, unknown> };
 
@@ -446,21 +446,24 @@ export function createQuantumAssignmentTrait(
 
         // Update γ cache for the agent identified in the payload
         const agentId = p['agent_id'] as string | undefined;
-        const gamma   = p['gamma']    as number | undefined;
-        if (typeof agentId === 'string' && typeof gamma === 'number'
-            && config.agentIds.includes(agentId)) {
+        const gamma = p['gamma'] as number | undefined;
+        if (
+          typeof agentId === 'string' &&
+          typeof gamma === 'number' &&
+          config.agentIds.includes(agentId)
+        ) {
           const cache = getGammaCache(node);
           cache[agentId] = gamma;
           setGammaCache(node, cache);
         }
 
         // Advance tick counter
-        const tick = (p['tick'] as number | undefined) ?? (getCurrentTick(node) + 1);
+        const tick = (p['tick'] as number | undefined) ?? getCurrentTick(node) + 1;
         setCurrentTick(node, tick);
 
         // Check rerun interval
         const interval = config.rerunIntervalTicks ?? 50;
-        const state    = getState(node);
+        const state = getState(node);
         const ticksSinceLast = tick - state.lastRunTick;
 
         if (!state.running && ticksSinceLast >= interval) {
@@ -484,31 +487,31 @@ export function createQuantumAssignmentTrait(
         // Only process results that belong to this ring
         if ((p['ring'] as number | undefined) !== config.ring) return;
 
-        const assignment        = (p['assignment']         as string) ?? '';
+        const assignment = (p['assignment'] as string) ?? '';
         const approximationRatio = (p['approximationRatio'] as number) ?? 0;
-        const tick              = (p['tick']               as number) ?? getCurrentTick(node);
-        const error             = p['error'] as string | undefined;
+        const tick = (p['tick'] as number) ?? getCurrentTick(node);
+        const error = p['error'] as string | undefined;
 
         // Persist result in node state
         setState(node, {
           assignment,
-          lastRunTick:        tick,
+          lastRunTick: tick,
           approximationRatio,
-          running:            false,
-          lastError:          error,
+          running: false,
+          lastError: error,
         });
 
         // Emit per-agent group assignment events
         const agentIds = (p['agentIds'] as string[] | undefined) ?? config.agentIds;
         for (let i = 0; i < agentIds.length; i++) {
-          const bit    = (assignment[i] ?? '0') as '0' | '1';
+          const bit = (assignment[i] ?? '0') as '0' | '1';
           const visuals = groupVisuals(bit);
           ctx.emit('avatar:group-assignment', {
-            agent_id:           agentIds[i],
-            ring:               config.ring,
-            group:              bit === '1' ? 'B' : 'A',
+            agent_id: agentIds[i],
+            ring: config.ring,
+            group: bit === '1' ? 'B' : 'A',
             glowIntensityDelta: visuals.glowIntensityDelta,
-            animStateOverride:  visuals.animStateOverride,
+            animStateOverride: visuals.animStateOverride,
             approximationRatio,
             tick,
           });
@@ -522,7 +525,7 @@ export function createQuantumAssignmentTrait(
 
     onDetach(node: HSPlusNode, config: Paper26QuantumAssignmentConfig, ctx: TraitContext): void {
       ctx.emit('quantum:assignment-detached', {
-        ring:       config.ring,
+        ring: config.ring,
         agentCount: config.agentIds.length,
       });
       // Clear node slots
@@ -549,7 +552,10 @@ export function createQuantumAssignmentTrait(
  * ```
  */
 export const stubQAOARunner: QAOARunner = {
-  async runQAOA(weightMatrix: number[][], circuitDepthP = 1): Promise<{
+  async runQAOA(
+    weightMatrix: number[][],
+    circuitDepthP = 1
+  ): Promise<{
     optimalBitstring: string;
     optimalValue: number;
     approximationRatio: number;
@@ -560,13 +566,13 @@ export const stubQAOARunner: QAOARunner = {
   }> {
     const bitstring = classicalGreedyBisection(weightMatrix);
     return {
-      optimalBitstring:   bitstring,
-      optimalValue:       0,
+      optimalBitstring: bitstring,
+      optimalValue: 0,
       approximationRatio: 1.0,
       circuitDepthP,
-      numQubits:          weightMatrix.length,
-      executionBackend:   'stub_classical',
-      wallTimeSeconds:    0,
+      numQubits: weightMatrix.length,
+      executionBackend: 'stub_classical',
+      wallTimeSeconds: 0,
     };
   },
 };

@@ -64,7 +64,7 @@ export class RefusableMutationController {
 
   constructor(
     private readonly store: HoloDocumentStore,
-    private readonly options: MutationControllerOptions = {},
+    private readonly options: MutationControllerOptions = {}
   ) {}
 
   async previewToolCall(toolName: string, args: Record<string, unknown>): Promise<MutationPreview> {
@@ -93,7 +93,8 @@ export class RefusableMutationController {
       diff: buildUnifiedDiff(documentId, beforeSource, afterSource),
       requiresConfirmation: true,
       status: 'pending',
-      message: 'Diff preview only. No change is applied until the operator confirms this previewId.',
+      message:
+        'Diff preview only. No change is applied until the operator confirms this previewId.',
       reason: readOptionalString(args, 'reason'),
       createdAt: (this.options.now?.() ?? new Date()).toISOString(),
     };
@@ -173,7 +174,11 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function buildUnifiedDiff(documentId: string, beforeSource: string, afterSource: string): string {
+export function buildUnifiedDiff(
+  documentId: string,
+  beforeSource: string,
+  afterSource: string
+): string {
   if (beforeSource === afterSource) {
     return `--- ${documentId}\n+++ ${documentId}\n`;
   }

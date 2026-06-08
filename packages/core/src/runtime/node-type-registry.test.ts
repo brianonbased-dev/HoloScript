@@ -18,11 +18,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import {
-  dispatchNode,
-  NODE_TYPE_HANDLERS,
-  type RuntimeDispatcher,
-} from './node-type-registry';
+import { dispatchNode, NODE_TYPE_HANDLERS, type RuntimeDispatcher } from './node-type-registry';
 import type { ASTNode } from '../parser/types';
 
 // ──────────────────────────────────────────────────────────────────
@@ -35,11 +31,14 @@ function makeStubRuntime(): RuntimeDispatcher {
   const okResult = async () => ({ success: true, output: 'stub' });
   return {
     buildOrbExecutorContext: vi.fn(() => ({}) as never),
-    buildNarrativeContext: vi.fn(() => ({
-      quests: new Map(),
-      setActiveQuestId: vi.fn(),
-      setDialogueState: vi.fn(),
-    }) as never),
+    buildNarrativeContext: vi.fn(
+      () =>
+        ({
+          quests: new Map(),
+          setActiveQuestId: vi.fn(),
+          setDialogueState: vi.fn(),
+        }) as never
+    ),
     buildGraphExecutorContext: vi.fn(() => ({}) as never),
     buildSimpleExecutorContext: vi.fn(() => ({}) as never),
     buildInfoExecutorContext: vi.fn(() => ({}) as never),
@@ -71,10 +70,7 @@ function makeStubRuntime(): RuntimeDispatcher {
 describe('dispatchNode — unknown node type', () => {
   it('returns error result without throwing', async () => {
     const runtime = makeStubRuntime();
-    const result = await dispatchNode(
-      { type: 'totally-invented-type' } as ASTNode,
-      runtime,
-    );
+    const result = await dispatchNode({ type: 'totally-invented-type' } as ASTNode, runtime);
     expect(result.success).toBe(false);
     expect(result.error).toContain('Unknown node type');
     expect(result.error).toContain('totally-invented-type');
@@ -93,7 +89,7 @@ describe('dispatchNode — delegates to registered handlers', () => {
     const runtime = makeStubRuntime();
     await dispatchNode(
       { type: 'for', variable: 'i', iterable: 'arr', body: [] } as ASTNode,
-      runtime,
+      runtime
     );
     expect(runtime.executeForLoop).toHaveBeenCalledTimes(1);
   });
@@ -112,10 +108,7 @@ describe('dispatchNode — delegates to registered handlers', () => {
 
   it('if node calls runtime.executeIfStatement', async () => {
     const runtime = makeStubRuntime();
-    await dispatchNode(
-      { type: 'if', condition: 'true', body: [] } as ASTNode,
-      runtime,
-    );
+    await dispatchNode({ type: 'if', condition: 'true', body: [] } as ASTNode, runtime);
     expect(runtime.executeIfStatement).toHaveBeenCalledTimes(1);
   });
 
@@ -161,10 +154,7 @@ describe('dispatchNode — capitalization-sensitive dispatch decision (compositi
 
   it('lowercase composition dispatches via executeCompositionPure (simple-executors path)', async () => {
     const runtime = makeStubRuntime();
-    await dispatchSafe(
-      { type: 'composition', name: 'c', children: [] } as ASTNode,
-      runtime,
-    );
+    await dispatchSafe({ type: 'composition', name: 'c', children: [] } as ASTNode, runtime);
     expect(runtime.buildSimpleExecutorContext).toHaveBeenCalled();
     expect(runtime.buildHoloCompositionContext).not.toHaveBeenCalled();
   });
@@ -173,7 +163,7 @@ describe('dispatchNode — capitalization-sensitive dispatch decision (compositi
     const runtime = makeStubRuntime();
     await dispatchSafe(
       { type: 'Composition', name: 'c', templates: [], objects: [] } as ASTNode,
-      runtime,
+      runtime
     );
     expect(runtime.buildHoloCompositionContext).toHaveBeenCalled();
   });
@@ -241,34 +231,65 @@ describe('AUDIT drift detector — known node types coverage', () => {
    */
   const CANONICAL_NODE_TYPES = [
     // Orb / object
-    'orb', 'object',
+    'orb',
+    'object',
     // Narrative
-    'narrative', 'quest', 'dialogue', 'visual_metadata',
+    'narrative',
+    'quest',
+    'dialogue',
+    'visual_metadata',
     // Graph
-    'method', 'function', 'connection', 'gate', 'stream',
+    'method',
+    'function',
+    'connection',
+    'gate',
+    'stream',
     // Simple / expression
-    'call', 'assignment', 'return', 'expression-statement',
-    'scale', 'focus', 'environment',
+    'call',
+    'assignment',
+    'return',
+    'expression-statement',
+    'scale',
+    'focus',
+    'environment',
     // Info / UI
-    'visualize', '2d-element',
+    'visualize',
+    '2d-element',
     // Structure
-    'nexus', 'building',
+    'nexus',
+    'building',
     // Capitalization-sensitive
-    'composition', 'Composition', 'template', 'Template',
+    'composition',
+    'Composition',
+    'template',
+    'Template',
     // State
-    'state-machine', 'state-declaration',
+    'state-machine',
+    'state-declaration',
     // System
-    'system', 'core_config',
+    'system',
+    'core_config',
     // Migration (plain success)
     'migration',
     // IO
-    'server', 'database', 'fetch', 'execute',
+    'server',
+    'database',
+    'fetch',
+    'execute',
     // Memory
-    'memory', 'semantic-memory', 'episodic-memory', 'procedural-memory',
+    'memory',
+    'semantic-memory',
+    'episodic-memory',
+    'procedural-memory',
     // Control flow
-    'for', 'forEach', 'while', 'if', 'match',
+    'for',
+    'forEach',
+    'while',
+    'if',
+    'match',
     // Debug + generic
-    'debug', 'generic',
+    'debug',
+    'generic',
   ];
 
   it('every canonical node type has a registered handler', () => {

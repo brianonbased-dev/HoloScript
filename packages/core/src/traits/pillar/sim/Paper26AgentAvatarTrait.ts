@@ -65,22 +65,22 @@ export interface Paper26AvatarConfig {
 }
 
 export interface Paper26AvatarState {
-  gamma:        number;   // 0–1 hemisphere agreement
-  lifecycle:    string;   // 'init' | 'learning' | 'converging' | 'stable' | 'diverging'
-  totalLoss:    number;
-  diversity:    number;   // 0–1
-  lastUpdated:  number;   // ms timestamp
+  gamma: number; // 0–1 hemisphere agreement
+  lifecycle: string; // 'init' | 'learning' | 'converging' | 'stable' | 'diverging'
+  totalLoss: number;
+  diversity: number; // 0–1
+  lastUpdated: number; // ms timestamp
 }
 
 /** What the renderer consumes to drive the avatar each frame */
 export interface Paper26AvatarRenderState {
-  position:    [number, number, number];
-  glowColor:   string;   // CSS hex
+  position: [number, number, number];
+  glowColor: string; // CSS hex
   glowIntensity: number; // 0–1
-  postureScale:  number; // 0.85–1.05 (vertical lean factor)
-  animState:   LifecycleAnim;
+  postureScale: number; // 0.85–1.05 (vertical lean factor)
+  animState: LifecycleAnim;
   expressionTension: number; // 0–1 (drives brow + jaw morph targets)
-  particleDensity:   number; // 0–1
+  particleDensity: number; // 0–1
   hudLines: [string, string]; // two-line floating HUD text
   isSycophantic: boolean;
 }
@@ -90,20 +90,20 @@ export interface Paper26AvatarRenderState {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type LifecycleAnim =
-  | 'idle_neutral'     // init
-  | 'active_observe'   // learning — head turns, hand gestures
-  | 'lean_in'          // converging — body leans toward arena centre
-  | 'upright_calm'     // stable — tall, relaxed
-  | 'step_back'        // diverging — weight shift back
-  | 'mirror_pose';     // sycophantic — mirrors nearest agent
+  | 'idle_neutral' // init
+  | 'active_observe' // learning — head turns, hand gestures
+  | 'lean_in' // converging — body leans toward arena centre
+  | 'upright_calm' // stable — tall, relaxed
+  | 'step_back' // diverging — weight shift back
+  | 'mirror_pose'; // sycophantic — mirrors nearest agent
 
 const LIFECYCLE_ANIM: Record<string, LifecycleAnim> = {
-  init:         'idle_neutral',
-  learning:     'active_observe',
-  converging:   'lean_in',
-  stable:       'upright_calm',
-  diverging:    'step_back',
-  sycophantic:  'mirror_pose',
+  init: 'idle_neutral',
+  learning: 'active_observe',
+  converging: 'lean_in',
+  stable: 'upright_calm',
+  diverging: 'step_back',
+  sycophantic: 'mirror_pose',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,10 +111,10 @@ const LIFECYCLE_ANIM: Record<string, LifecycleAnim> = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const RING_BASE_COLOR: Record<number, string> = {
-  0: '#22d3ee',  // inner  — cyan-bright
-  1: '#a855f7',  // ring 1 — purple
-  2: '#6366f1',  // ring 2 — indigo
-  3: '#818cf8',  // outer  — muted indigo
+  0: '#22d3ee', // inner  — cyan-bright
+  1: '#a855f7', // ring 1 — purple
+  2: '#6366f1', // ring 2 — indigo
+  3: '#818cf8', // outer  — muted indigo
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -123,20 +123,20 @@ const RING_BASE_COLOR: Record<number, string> = {
 
 function deriveRenderState(
   config: Paper26AvatarConfig,
-  state: Paper26AvatarState,
+  state: Paper26AvatarState
 ): Paper26AvatarRenderState {
   const { gamma, lifecycle, totalLoss, diversity } = state;
 
   // Glow: high γ → cyan bright; low γ → dim purple
-  const glowColor     = gamma > 0.6 ? '#22d3ee' : gamma > 0.3 ? '#a855f7' : '#3b0764';
+  const glowColor = gamma > 0.6 ? '#22d3ee' : gamma > 0.3 ? '#a855f7' : '#3b0764';
   const glowIntensity = 0.2 + gamma * 0.8;
 
   // Posture: γ maps to [0.87, 1.03] — subtle, not cartoonish
   const postureScale = 0.87 + gamma * 0.16;
 
   // Animation
-  const animKey    = config.sycophantic ? 'sycophantic' : lifecycle;
-  const animState  = LIFECYCLE_ANIM[animKey] ?? 'idle_neutral';
+  const animKey = config.sycophantic ? 'sycophantic' : lifecycle;
+  const animState = LIFECYCLE_ANIM[animKey] ?? 'idle_neutral';
 
   // Facial tension: normalise loss to [0,1] using a soft cap at 2.0
   const expressionTension = Math.min(totalLoss / 2.0, 1.0);
@@ -145,17 +145,17 @@ function deriveRenderState(
   const particleDensity = diversity;
 
   // HUD
-  const gammaStr   = (gamma * 100).toFixed(0).padStart(3, ' ');
+  const gammaStr = (gamma * 100).toFixed(0).padStart(3, ' ');
   const lifecycleLabel = lifecycle.toUpperCase().padEnd(10, ' ');
-  const lossStr    = totalLoss.toFixed(4);
-  const divStr     = (diversity * 100).toFixed(0);
+  const lossStr = totalLoss.toFixed(4);
+  const divStr = (diversity * 100).toFixed(0);
   const hudLines: [string, string] = [
     `${config.agent_id}  γ ${gammaStr}%  ${lifecycleLabel}`,
     `loss ${lossStr}  ρ ${divStr}%`,
   ];
 
   return {
-    position:           config.position,
+    position: config.position,
     glowColor,
     glowIntensity,
     postureScale,
@@ -163,7 +163,7 @@ function deriveRenderState(
     expressionTension,
     particleDensity,
     hudLines,
-    isSycophantic:      config.sycophantic ?? false,
+    isSycophantic: config.sycophantic ?? false,
   };
 }
 
@@ -172,16 +172,19 @@ function deriveRenderState(
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_AVATAR_STATE: Paper26AvatarState = {
-  gamma:       0,
-  lifecycle:   'init',
-  totalLoss:   0,
-  diversity:   1.0,
+  gamma: 0,
+  lifecycle: 'init',
+  totalLoss: 0,
+  diversity: 1.0,
   lastUpdated: 0,
 };
 
 function getAvatarState(node: HSPlusNode): Paper26AvatarState {
-  return (node as unknown as Record<string, unknown>)['__p26avatar_state__'] as Paper26AvatarState
-    ?? { ...DEFAULT_AVATAR_STATE };
+  return (
+    ((node as unknown as Record<string, unknown>)['__p26avatar_state__'] as Paper26AvatarState) ?? {
+      ...DEFAULT_AVATAR_STATE,
+    }
+  );
 }
 
 function setAvatarState(node: HSPlusNode, state: Paper26AvatarState): void {
@@ -196,7 +199,7 @@ export const paper26AvatarHandler: TraitHandler<Paper26AvatarConfig> = {
     ctx.emit('avatar:attached', {
       agent_id: config.agent_id,
       position: config.position,
-      ring:     config.ring,
+      ring: config.ring,
     });
   },
 
@@ -208,10 +211,10 @@ export const paper26AvatarHandler: TraitHandler<Paper26AvatarConfig> = {
       const p = ev.payload ?? {};
       const prev = getAvatarState(node);
       const next: Paper26AvatarState = {
-        gamma:       (p['gamma']     as number) ?? prev.gamma,
-        lifecycle:   (p['lifecycle'] as string) ?? prev.lifecycle,
-        totalLoss:   (p['totalLoss'] as number) ?? prev.totalLoss,
-        diversity:   (p['diversity'] as number) ?? prev.diversity,
+        gamma: (p['gamma'] as number) ?? prev.gamma,
+        lifecycle: (p['lifecycle'] as string) ?? prev.lifecycle,
+        totalLoss: (p['totalLoss'] as number) ?? prev.totalLoss,
+        diversity: (p['diversity'] as number) ?? prev.diversity,
         lastUpdated: Date.now(),
       };
       setAvatarState(node, next);
@@ -237,10 +240,10 @@ export const paper26AvatarHandler: TraitHandler<Paper26AvatarConfig> = {
 
 /** Concentric ring spec: { count, radius } */
 const RING_SPEC = [
-  { count: 12, radius: 4  },   // ring 0 — innermost
-  { count: 24, radius: 8  },   // ring 1
-  { count: 36, radius: 12 },   // ring 2
-  { count: 28, radius: 16 },   // ring 3 — outermost
+  { count: 12, radius: 4 }, // ring 0 — innermost
+  { count: 24, radius: 8 }, // ring 1
+  { count: 36, radius: 12 }, // ring 2
+  { count: 28, radius: 16 }, // ring 3 — outermost
 ] as const;
 
 export function generateAgentPositions(): Array<Paper26AvatarConfig & { index: number }> {
@@ -254,19 +257,15 @@ export function generateAgentPositions(): Array<Paper26AvatarConfig & { index: n
 
     for (let i = 0; i < spec.count; i++) {
       const angle = i * angleStep + angleOffset;
-      const x     = spec.radius * Math.cos(angle);
-      const z     = spec.radius * Math.sin(angle);
-      const id    = `sim_agent_${String(agentIndex).padStart(3, '0')}`;
+      const x = spec.radius * Math.cos(angle);
+      const z = spec.radius * Math.sin(angle);
+      const id = `sim_agent_${String(agentIndex).padStart(3, '0')}`;
 
       positions.push({
-        index:      agentIndex,
-        agent_id:   id,
-        position:   [
-          parseFloat(x.toFixed(3)),
-          0,
-          parseFloat(z.toFixed(3)),
-        ],
-        ring:       ringIndex as 0 | 1 | 2 | 3,
+        index: agentIndex,
+        agent_id: id,
+        position: [parseFloat(x.toFixed(3)), 0, parseFloat(z.toFixed(3))],
+        ring: ringIndex as 0 | 1 | 2 | 3,
         sycophantic: false, // override for secondary eval
       });
 
@@ -281,12 +280,12 @@ export function generateAgentPositions(): Array<Paper26AvatarConfig & { index: n
  *  Call this from the HoloLand runtime once the SSE stream is connected. */
 export interface SSEMetricsTick {
   metrics: {
-    tick:             number;
-    medianGamma:      number;
-    p90Gamma:         number;
-    meanTotalLoss:    number;
-    stdTotalLoss:     number;
-    meanDiversity:    number;
+    tick: number;
+    medianGamma: number;
+    p90Gamma: number;
+    meanTotalLoss: number;
+    stdTotalLoss: number;
+    meanDiversity: number;
     lifecycleDistrib: Record<string, number>;
   };
 }
@@ -319,15 +318,15 @@ export interface SSEMetricsTick {
  * total per-tick CPU proportional to visual importance rather than flat.
  */
 const RING_SIGMA_SCALE: Record<number, number> = {
-  0: 1.0,   // full σ spread
-  1: 1.0,   // standard (default)
-  2: 0.5,   // halved σ
-  3: 0.0,   // median only — no spread
+  0: 1.0, // full σ spread
+  1: 1.0, // standard (default)
+  2: 0.5, // halved σ
+  3: 0.0, // median only — no spread
 };
 
 export function derivePerAgentUpdates(
   tick: SSEMetricsTick,
-  agentPositions: Array<Paper26AvatarConfig & { index: number }>,
+  agentPositions: Array<Paper26AvatarConfig & { index: number }>
 ): Array<{ agent_id: string; payload: Record<string, unknown> }> {
   const { metrics } = tick;
   const lifecycleEntries = Object.entries(metrics.lifecycleDistrib);
@@ -335,15 +334,15 @@ export function derivePerAgentUpdates(
   // Majority lifecycle class — used for ring 2+3 to skip CDF sampling
   const majorityLifecycle = lifecycleEntries.reduce(
     (best, [lc, frac]) => (frac > best[1] ? [lc, frac] : best),
-    ['init', 0] as [string, number],
+    ['init', 0] as [string, number]
   )[0];
 
   return agentPositions.map(({ agent_id, index, ring }) => {
     const sigmaScale = RING_SIGMA_SCALE[ring] ?? 1.0;
 
     // Deterministic pseudo-random from agent index + tick
-    const seed  = (index * 2654435761 + metrics.tick * 40503) >>> 0;
-    const rng01 = ((seed ^ (seed >>> 16)) * 0x45d9f3b >>> 0) / 0xffffffff;
+    const seed = (index * 2654435761 + metrics.tick * 40503) >>> 0;
+    const rng01 = (((seed ^ (seed >>> 16)) * 0x45d9f3b) >>> 0) / 0xffffffff;
 
     // γ: spread scaled by ring tier
     const sigma = ((metrics.p90Gamma - metrics.medianGamma) / 1.28) * sigmaScale;
@@ -353,11 +352,14 @@ export function derivePerAgentUpdates(
     let lifecycle: string;
     if (sigmaScale > 0.5) {
       let cumulative = 0;
-      const rng2 = ((seed ^ (seed >>> 8)) * 0x9e3779b9 >>> 0) / 0xffffffff;
+      const rng2 = (((seed ^ (seed >>> 8)) * 0x9e3779b9) >>> 0) / 0xffffffff;
       lifecycle = lifecycleEntries[0]?.[0] ?? 'init';
       for (const [lc, frac] of lifecycleEntries) {
         cumulative += frac;
-        if (rng2 <= cumulative) { lifecycle = lc; break; }
+        if (rng2 <= cumulative) {
+          lifecycle = lc;
+          break;
+        }
       }
     } else {
       lifecycle = majorityLifecycle;

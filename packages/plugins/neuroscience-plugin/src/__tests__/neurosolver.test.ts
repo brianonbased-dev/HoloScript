@@ -56,9 +56,9 @@ describe('hodgkinHuxley', () => {
 
   it('gating variables m, h, n stay in [0, 1]', () => {
     const r = hodgkinHuxley(baseParams);
-    for (const v of r.m) expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1);
-    for (const v of r.h) expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1);
-    for (const v of r.n) expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1);
+    for (const v of r.m) (expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1));
+    for (const v of r.h) (expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1));
+    for (const v of r.n) (expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1));
   });
 
   it('output arrays have same length', () => {
@@ -92,8 +92,8 @@ describe('wilsonCowan', () => {
 
   it('E and I activities stay in [0, 1]', () => {
     const r = wilsonCowan(baseParams);
-    for (const v of r.E) expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1);
-    for (const v of r.I) expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1);
+    for (const v of r.E) (expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1));
+    for (const v of r.I) (expect(v).toBeGreaterThanOrEqual(0), expect(v).toBeLessThanOrEqual(1));
   });
 
   it('output arrays have same length', () => {
@@ -166,7 +166,7 @@ describe('lifNeuron', () => {
   });
 
   it('refractory period reduces firing rate vs no refractoriness', () => {
-    const rRef  = lifNeuron({ Iapp: 3.0, tauRef: 5, durationMs: 500, dtMs: 0.1 });
+    const rRef = lifNeuron({ Iapp: 3.0, tauRef: 5, durationMs: 500, dtMs: 0.1 });
     const rNoRef = lifNeuron({ Iapp: 3.0, tauRef: 0.01, durationMs: 500, dtMs: 0.1 });
     expect(rRef.firingRateHz).toBeLessThan(rNoRef.firingRateHz);
   });
@@ -191,7 +191,7 @@ describe('eegBandPower', () => {
 
   it('pure 10 Hz sine wave → dominant band is alpha', () => {
     const N = 512;
-    const signal = Array.from({ length: N }, (_, i) => Math.sin(2 * Math.PI * 10 * i / fs));
+    const signal = Array.from({ length: N }, (_, i) => Math.sin((2 * Math.PI * 10 * i) / fs));
     const r = eegBandPower(signal, fs);
     expect(r.dominantBand).toBe('alpha');
     expect(r.alpha).toBeGreaterThan(r.delta);
@@ -201,13 +201,13 @@ describe('eegBandPower', () => {
 
   it('pure 2 Hz sine wave → dominant band is delta', () => {
     const N = 512;
-    const signal = Array.from({ length: N }, (_, i) => Math.sin(2 * Math.PI * 2 * i / fs));
+    const signal = Array.from({ length: N }, (_, i) => Math.sin((2 * Math.PI * 2 * i) / fs));
     const r = eegBandPower(signal, fs);
     expect(r.dominantBand).toBe('delta');
   });
 
   it('psd and frequencies arrays are returned', () => {
-    const signal = Array.from({ length: 64 }, (_, i) => Math.sin(2 * Math.PI * 8 * i / fs));
+    const signal = Array.from({ length: 64 }, (_, i) => Math.sin((2 * Math.PI * 8 * i) / fs));
     const r = eegBandPower(signal, fs);
     expect(r.psd.length).toBeGreaterThan(0);
     expect(r.frequencies.length).toBeGreaterThan(0);
@@ -256,7 +256,7 @@ describe('connectivityMetrics', () => {
 
   it('fully connected graph: all degrees = 3', () => {
     const r = connectivityMetrics(K4);
-    expect(r.degrees.every(d => d === 3)).toBe(true);
+    expect(r.degrees.every((d) => d === 3)).toBe(true);
   });
 
   /**
@@ -311,7 +311,10 @@ describe('buildNeuroReceipt', () => {
   it('accepted=false when WC does not converge', () => {
     const wc = wilsonCowan({ durationMs: 10, dtMs: 0.5 }); // too short to converge
     // Force non-convergence flag
-    const receipt = buildNeuroReceipt({ wilsonCowan: { ...wc, converged: false }, converged: true });
+    const receipt = buildNeuroReceipt({
+      wilsonCowan: { ...wc, converged: false },
+      converged: true,
+    });
     expect(receipt.acceptance.accepted).toBe(false);
     expect(receipt.acceptance.violations.length).toBeGreaterThan(0);
   });

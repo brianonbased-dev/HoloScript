@@ -30,8 +30,12 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, '..', '..');
 const imp = (p) => import(pathToFileURL(p).href);
 const core = await imp(join(repo, 'packages', 'core', 'dist', 'index.js'));
-const { computeStateDigest } = await imp(join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'));
-const { QuiltCompiler } = await imp(join(repo, 'packages', 'engine', 'src', 'hologram', 'QuiltCompiler.ts'));
+const { computeStateDigest } = await imp(
+  join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts')
+);
+const { QuiltCompiler } = await imp(
+  join(repo, 'packages', 'engine', 'src', 'hologram', 'QuiltCompiler.ts')
+);
 const receiptPath = join(here, 'GATE-13-HOLOGRAM-receipt.json');
 const holoPath = join(here, 'gold-vault-game.holo');
 const HASH = 'sha256';
@@ -130,7 +134,10 @@ const hasLightFieldParallax = parallaxDisparity > 1e-4; // gems genuinely shift 
 
 // ── 4. Digest over the deterministic hologram geometry (REAL computeStateDigest) ─
 const quiltDigest = computeStateDigest(
-  { fieldNames: ['lightfield', 'rig'], getField: (n) => Float32Array.from(n === 'rig' ? rigField : lightField) },
+  {
+    fieldNames: ['lightfield', 'rig'],
+    getField: (n) => Float32Array.from(n === 'rig' ? rigField : lightField),
+  },
   HASH
 );
 // re-derive (independent build of the same arrays) for the "reproduces twice" property
@@ -144,7 +151,10 @@ for (const tile of tiles) {
   }
 }
 const quiltDigest2 = computeStateDigest(
-  { fieldNames: ['lightfield', 'rig'], getField: (n) => Float32Array.from(n === 'rig' ? rigField2 : lightField2) },
+  {
+    fieldNames: ['lightfield', 'rig'],
+    getField: (n) => Float32Array.from(n === 'rig' ? rigField2 : lightField2),
+  },
   HASH
 );
 const deterministic = quiltDigest === quiltDigest2 && quiltDigest.length > 0;
@@ -156,7 +166,8 @@ const receipt = {
   verifier: 'examples/gold-game/gate-13-hologram-verify.mjs',
   format: 'Looking Glass QUILT (multiview light-field)',
   implementation: {
-    quiltCompiler: 'packages/engine/src/hologram/QuiltCompiler.ts (SHIPPED — the real Looking Glass quilt compiler)',
+    quiltCompiler:
+      'packages/engine/src/hologram/QuiltCompiler.ts (SHIPPED — the real Looking Glass quilt compiler)',
     sceneSource: 'examples/gold-game/gold-vault-game.holo (parsed via @holoscript/core parseHolo)',
     contractSpine: 'packages/engine/src/simulation/hashes.ts computeStateDigest',
   },
@@ -164,7 +175,12 @@ const receipt = {
     parseClean,
     groups: (ast.spatialGroups || []).map((g) => g.name),
     objectCount: sceneObjects.length,
-    objects: sceneObjects.map((o) => ({ name: o.name, group: o.group, color: o.color, world: o.world })),
+    objects: sceneObjects.map((o) => ({
+      name: o.name,
+      group: o.group,
+      color: o.color,
+      world: o.world,
+    })),
   },
   quilt: {
     device: config.device,
@@ -188,7 +204,11 @@ const receipt = {
     hasLightFieldParallax,
   },
   checks: { parseClean, realQuiltSurface, hasParallaxRig, hasLightFieldParallax, deterministic },
-  contract: { spine: 'REAL computeStateDigest(field-bag, sha256)', quiltDigest, reproducible: 'run the verifier to re-derive' },
+  contract: {
+    spine: 'REAL computeStateDigest(field-bag, sha256)',
+    quiltDigest,
+    reproducible: 'run the verifier to re-derive',
+  },
   honestScope:
     'Runs the GENUINE shipped QuiltCompiler (packages/engine/src/hologram/QuiltCompiler.ts — the Looking Glass quilt compiler, D.019 hologram product line) over the REAL parsed vault scene. PROVEN: the real .holo vault world compiles to a genuine 48-view multiview light-field quilt (8x6 tile grid for the 16inch Looking Glass) with a real view-sheared camera rig, every vault object is projected into all 48 views, the gems exhibit real cross-view parallax (the disparity that IS a light field), and the quilt geometry digest reproduces deterministically via the real computeStateDigest. ' +
     'NOT proven here (out of scope, requires non-deterministic / non-committable inputs): (a) RASTERIZED pixels — the actual quilt.png is rendered by the headless-Chromium hologram-worker (packages/hologram-worker, Playwright + WebGL) or browser BrowserQuiltRenderer, not in this pure-geometry verifier; (b) the createHologram media path (depth-from-2D-media) needs the hologram-worker depth provider (HOLOGRAM_WORKER_URL) — a live service, skipped by design; (c) MV-HEVC encode needs ffmpeg in the worker; (d) display on real Looking Glass / Vision Pro hardware. This gate proves the deterministic LIGHT-FIELD GEOMETRY of the vault hologram (camera rig + per-view projection), which is the compiler-side artifact; the pixel raster + media-depth + hardware display are the service/hardware-in-the-loop deepening, the same pattern as Gate 1 (R3F render is artifact/manual) and Gate 5b/5c (device-in-the-loop).',
@@ -199,24 +219,54 @@ const emit = process.argv.includes('--emit');
 if (emit) {
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n');
   console.log('GATE-13 RECEIPT EMITTED ->', receiptPath);
-  console.log('  realQuiltSurface=' + realQuiltSurface, 'views=' + config.views, 'grid=' + config.columns + 'x' + config.rows, 'device=' + config.device);
-  console.log('  objects=' + sceneObjects.length, 'projectedPoints=' + tiles.length * sceneObjects.length, 'parallax=' + hasLightFieldParallax + '(' + (Math.round(parallaxDisparity * 1e6) / 1e6) + ')');
+  console.log(
+    '  realQuiltSurface=' + realQuiltSurface,
+    'views=' + config.views,
+    'grid=' + config.columns + 'x' + config.rows,
+    'device=' + config.device
+  );
+  console.log(
+    '  objects=' + sceneObjects.length,
+    'projectedPoints=' + tiles.length * sceneObjects.length,
+    'parallax=' + hasLightFieldParallax + '(' + Math.round(parallaxDisparity * 1e6) / 1e6 + ')'
+  );
   console.log('  quiltDigest=' + quiltDigest.slice(0, 24), 'deterministic=' + deterministic);
 } else {
   let existing;
-  try { existing = JSON.parse(readFileSync(receiptPath, 'utf8')); } catch { console.error('No Gate-13 receipt. Run --emit first.'); process.exit(2); }
+  try {
+    existing = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  } catch {
+    console.error('No Gate-13 receipt. Run --emit first.');
+    process.exit(2);
+  }
   const checks = [
     ['vault scene parses clean (@holoscript/core)', parseClean === true],
-    ['REAL shipped QuiltCompiler produces a 48-view tile grid (8x6, 16inch)', realQuiltSurface === true],
-    ['multiview camera rig has real baseline spread (left<0<right, view-sheared)', hasParallaxRig === true],
-    ['every vault object projected into all views → light field', tiles.length * sceneObjects.length === config.views * sceneObjects.length && sceneObjects.length >= 6],
+    [
+      'REAL shipped QuiltCompiler produces a 48-view tile grid (8x6, 16inch)',
+      realQuiltSurface === true,
+    ],
+    [
+      'multiview camera rig has real baseline spread (left<0<right, view-sheared)',
+      hasParallaxRig === true,
+    ],
+    [
+      'every vault object projected into all views → light field',
+      tiles.length * sceneObjects.length === config.views * sceneObjects.length &&
+        sceneObjects.length >= 6,
+    ],
     ['gems exhibit genuine cross-view parallax (disparity > 0)', hasLightFieldParallax === true],
     ['hologram geometry digest reproduces deterministically (twice)', deterministic === true],
-    ['quilt digest reproduces vs receipt (real computeStateDigest)', quiltDigest === existing.contract.quiltDigest],
+    [
+      'quilt digest reproduces vs receipt (real computeStateDigest)',
+      quiltDigest === existing.contract.quiltDigest,
+    ],
   ];
   let ok = true;
   console.log('GATE-13 (HOLOGRAM — MULTIVIEW QUILT) VERIFICATION:');
-  for (const [label, pass] of checks) { console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label); ok = ok && pass; }
+  for (const [label, pass] of checks) {
+    console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label);
+    ok = ok && pass;
+  }
   console.log('  => GATE 13', ok ? 'VERIFIED' : 'BROKEN');
   process.exit(ok ? 0 : 1);
 }

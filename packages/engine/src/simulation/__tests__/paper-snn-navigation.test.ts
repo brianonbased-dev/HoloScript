@@ -33,7 +33,10 @@ import type { SimSolver, FieldData } from '../SimSolver';
 
 // ── 2D Navigation Environment ───────────────────────────────────────────────
 
-interface Vec2 { x: number; y: number }
+interface Vec2 {
+  x: number;
+  y: number;
+}
 
 interface NavEnvironment {
   width: number;
@@ -66,7 +69,16 @@ function createRoom(): NavEnvironment {
 function castSensorRays(env: NavEnvironment): Float32Array {
   const distances = new Float32Array(8);
   const maxDist = Math.sqrt(env.width ** 2 + env.height ** 2);
-  const angles = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4, Math.PI, (5 * Math.PI) / 4, (3 * Math.PI) / 2, (7 * Math.PI) / 4];
+  const angles = [
+    0,
+    Math.PI / 4,
+    Math.PI / 2,
+    (3 * Math.PI) / 4,
+    Math.PI,
+    (5 * Math.PI) / 4,
+    (3 * Math.PI) / 2,
+    (7 * Math.PI) / 4,
+  ];
 
   for (let i = 0; i < 8; i++) {
     const dx = Math.cos(angles[i]);
@@ -114,11 +126,20 @@ function moveAgent(env: NavEnvironment, action: string, stepSize: number = 0.5):
   let ny = env.agentPos.y;
 
   switch (action) {
-    case 'move_east': nx += stepSize; break;
-    case 'move_west': nx -= stepSize; break;
-    case 'move_north': ny += stepSize; break;
-    case 'move_south': ny -= stepSize; break;
-    default: return false;
+    case 'move_east':
+      nx += stepSize;
+      break;
+    case 'move_west':
+      nx -= stepSize;
+      break;
+    case 'move_north':
+      ny += stepSize;
+      break;
+    case 'move_south':
+      ny -= stepSize;
+      break;
+    default:
+      return false;
   }
 
   // Wall collision
@@ -156,7 +177,9 @@ class NavSimSolver implements SimSolver {
   private sensorField: Float32Array = new Float32Array(10);
   solverType = 'navigation' as const;
 
-  constructor(env: NavEnvironment) { this.env = env; }
+  constructor(env: NavEnvironment) {
+    this.env = env;
+  }
 
   step(_dt: number): void {
     // Update sensor field from environment state
@@ -170,8 +193,12 @@ class NavSimSolver implements SimSolver {
     return null;
   }
 
-  getNodeCount(): number { return 10; }
-  getDOFCount(): number { return 10; }
+  getNodeCount(): number {
+    return 10;
+  }
+  getDOFCount(): number {
+    return 10;
+  }
 }
 
 // ── CAEL-compatible sensor bridge for navigation ───────────────────────────
@@ -181,7 +208,9 @@ class NavSensorBridge implements CAELSensorBridge {
   readonly fieldNames = ['nav_sensors'] as const;
   private env: NavEnvironment;
 
-  constructor(env: NavEnvironment) { this.env = env; }
+  constructor(env: NavEnvironment) {
+    this.env = env;
+  }
 
   sample(solver: SimSolver, simTime: number): SensorReading[] {
     solver.getField('nav_sensors'); // trigger solver update
@@ -196,14 +225,14 @@ class NavSensorBridge implements CAELSensorBridge {
     // ray 0=E, 1=NE, 2=N, 3=NW, 4=W, 5=SW, 6=S, 7=SE
     // Population: N=0, E=1, S=2, W=3
     const rayToDir = [
-      [1],       // ray 0 (E) → excites E pop
-      [0, 1],    // ray 1 (NE) → excites N, E
-      [0],       // ray 2 (N) → excites N pop
-      [0, 3],    // ray 3 (NW) → excites N, W
-      [3],       // ray 4 (W) → excites W pop
-      [2, 3],    // ray 5 (SW) → excites S, W
-      [2],       // ray 6 (S) → excites S pop
-      [1, 2],    // ray 7 (SE) → excites E, S
+      [1], // ray 0 (E) → excites E pop
+      [0, 1], // ray 1 (NE) → excites N, E
+      [0], // ray 2 (N) → excites N pop
+      [0, 3], // ray 3 (NW) → excites N, W
+      [3], // ray 4 (W) → excites W pop
+      [2, 3], // ray 5 (SW) → excites S, W
+      [2], // ray 6 (S) → excites S pop
+      [1, 2], // ray 7 (SE) → excites E, S
     ];
 
     // Obstacle avoidance: CLOSE obstacles INHIBIT that direction
@@ -241,20 +270,22 @@ class NavSensorBridge implements CAELSensorBridge {
     for (let i = 0; i < 128; i++) if (values[i] > maxVal) maxVal = values[i];
     if (maxVal > 0) for (let i = 0; i < 128; i++) values[i] /= maxVal;
 
-    return [{
-      fieldName: 'nav_sensors',
-      simTime,
-      values,
-    }];
+    return [
+      {
+        fieldName: 'nav_sensors',
+        simTime,
+        values,
+      },
+    ];
   }
 
   encode(readings: SensorReading[]): Record<string, unknown> {
     return {
       id: this.id,
-      readings: readings.map(r => ({
+      readings: readings.map((r) => ({
         fieldName: r.fieldName,
         simTime: r.simTime,
-        values: Array.from(r.values).map(v => Number(v.toFixed(4))),
+        values: Array.from(r.values).map((v) => Number(v.toFixed(4))),
       })),
     };
   }
@@ -279,7 +310,7 @@ class NavActionSelector implements CAELActionSelector {
     // Pure spike-population decoding — the sensor bridge already encoded
     // goal direction and obstacle avoidance into asymmetric input currents.
     // The SNN's differential firing rates ARE the decision.
-    const utilities = popCounts.map(c => c);
+    const utilities = popCounts.map((c) => c);
     const actions: AgentAction[] = this.actions.map((type, i) => ({
       type,
       params: {},
@@ -312,7 +343,10 @@ class NavActionMapper implements CAELActionMapper {
   private env: NavEnvironment;
   private stepSize: number;
 
-  constructor(env: NavEnvironment, stepSize: number = 0.5) { this.env = env; this.stepSize = stepSize; }
+  constructor(env: NavEnvironment, stepSize: number = 0.5) {
+    this.env = env;
+    this.stepSize = stepSize;
+  }
 
   apply(action: AgentAction, _solver: SimSolver, _simTime: number): WorldDelta {
     const before = `${this.env.agentPos.x.toFixed(3)},${this.env.agentPos.y.toFixed(3)}`;
@@ -366,7 +400,7 @@ describe('Paper #2 Benchmark: SNN Navigation Experiment', () => {
       id: 'nav-snn-128',
       neuronCount: 128,
       inputScalemV: 15, // moderate sensitivity
-      stepsPerTick: 10,  // 10 LIF steps per agent tick
+      stepsPerTick: 10, // 10 LIF steps per agent tick
     });
 
     const sensor = new NavSensorBridge(env);
@@ -399,10 +433,14 @@ describe('Paper #2 Benchmark: SNN Navigation Experiment', () => {
     // Run experiment
     console.log('\n[nav-experiment] === SNN Navigation Experiment ===');
     console.log(
-      `[nav-experiment] Scene ingest: ${ingestPath} (set HOLOSCRIPT_INGEST_PATH or --ingest-path=)`,
+      `[nav-experiment] Scene ingest: ${ingestPath} (set HOLOSCRIPT_INGEST_PATH or --ingest-path=)`
     );
-    console.log(`[nav-experiment] Room: ${env.width}x${env.height}, ${env.obstacles.length} obstacles`);
-    console.log(`[nav-experiment] Start: (${env.agentPos.x}, ${env.agentPos.y}), Goal: (${env.goal.x}, ${env.goal.y})`);
+    console.log(
+      `[nav-experiment] Room: ${env.width}x${env.height}, ${env.obstacles.length} obstacles`
+    );
+    console.log(
+      `[nav-experiment] Start: (${env.agentPos.x}, ${env.agentPos.y}), Goal: (${env.goal.x}, ${env.goal.y})`
+    );
     console.log(`[nav-experiment] SNN: 128 LIF neurons, 10 steps/tick, CPU reference`);
     console.log('');
 
@@ -444,13 +482,15 @@ describe('Paper #2 Benchmark: SNN Navigation Experiment', () => {
       if ((tick + 1) % 50 === 0) {
         const pos = env.agentPos;
         const dist = Math.sqrt((env.goal.x - pos.x) ** 2 + (env.goal.y - pos.y) ** 2);
-        console.log(`[nav-experiment] Tick ${tick + 1}: pos=(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}) dist=${dist.toFixed(1)} spikes=${totalSpikes} ${goalReached ? 'GOAL!' : ''}`);
+        console.log(
+          `[nav-experiment] Tick ${tick + 1}: pos=(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}) dist=${dist.toFixed(1)} spikes=${totalSpikes} ${goalReached ? 'GOAL!' : ''}`
+        );
       }
     }
 
     // ── Compute Metrics ──────────────────────────────────────────────────────
 
-    const traceJSONL = trace.map(e => JSON.stringify(e)).join('\n');
+    const traceJSONL = trace.map((e) => JSON.stringify(e)).join('\n');
     const traceBytes = new TextEncoder().encode(traceJSONL).length;
     const traceEntries = trace.length;
 
@@ -476,26 +516,45 @@ describe('Paper #2 Benchmark: SNN Navigation Experiment', () => {
     for (const entry of trace) {
       const payload = JSON.stringify({ tick: entry.tick, type: entry.type, data: entry.data });
       const expected = fnv1a(verifyHash.toString() + payload);
-      if (expected !== entry.hash) { chainValid = false; break; }
+      if (expected !== entry.hash) {
+        chainValid = false;
+        break;
+      }
       verifyHash = expected;
     }
 
     // ── Print Results ────────────────────────────────────────────────────────
 
     console.log('\n[nav-experiment] === RESULTS ===');
-    console.log(`[nav-experiment] Goal reached: ${goalReached} ${goalReached ? `(tick ${goalTick})` : '(not reached)'}`);
-    console.log(`[nav-experiment] Final position: (${env.agentPos.x.toFixed(2)}, ${env.agentPos.y.toFixed(2)})`);
-    console.log(`[nav-experiment] Final distance to goal: ${Math.sqrt((env.goal.x - env.agentPos.x) ** 2 + (env.goal.y - env.agentPos.y) ** 2).toFixed(2)}`);
-    console.log(`[nav-experiment] Path length: ${totalPathLength.toFixed(2)} (Manhattan optimal: ${manhattanDist.toFixed(2)})`);
+    console.log(
+      `[nav-experiment] Goal reached: ${goalReached} ${goalReached ? `(tick ${goalTick})` : '(not reached)'}`
+    );
+    console.log(
+      `[nav-experiment] Final position: (${env.agentPos.x.toFixed(2)}, ${env.agentPos.y.toFixed(2)})`
+    );
+    console.log(
+      `[nav-experiment] Final distance to goal: ${Math.sqrt((env.goal.x - env.agentPos.x) ** 2 + (env.goal.y - env.agentPos.y) ** 2).toFixed(2)}`
+    );
+    console.log(
+      `[nav-experiment] Path length: ${totalPathLength.toFixed(2)} (Manhattan optimal: ${manhattanDist.toFixed(2)})`
+    );
     console.log(`[nav-experiment] Path efficiency: ${(pathEfficiency * 100).toFixed(1)}%`);
     console.log('');
     console.log(`[nav-experiment] Total spikes: ${totalSpikes}`);
-    console.log(`[nav-experiment] Avg firing rate: ${(avgFiringRate * 100).toFixed(2)}% per neuron per step`);
+    console.log(
+      `[nav-experiment] Avg firing rate: ${(avgFiringRate * 100).toFixed(2)}% per neuron per step`
+    );
     console.log('');
-    console.log(`[nav-experiment] Tick timing: mean=${avgTickMs.toFixed(2)}ms median=${medianTickMs.toFixed(2)}ms p95=${p95TickMs.toFixed(2)}ms`);
-    console.log(`[nav-experiment] Total wall time: ${tickTimings.reduce((a, b) => a + b, 0).toFixed(0)}ms for ${TOTAL_TICKS} ticks`);
+    console.log(
+      `[nav-experiment] Tick timing: mean=${avgTickMs.toFixed(2)}ms median=${medianTickMs.toFixed(2)}ms p95=${p95TickMs.toFixed(2)}ms`
+    );
+    console.log(
+      `[nav-experiment] Total wall time: ${tickTimings.reduce((a, b) => a + b, 0).toFixed(0)}ms for ${TOTAL_TICKS} ticks`
+    );
     console.log('');
-    console.log(`[nav-experiment] CAEL trace: ${traceEntries} entries, ${(traceBytes / 1024).toFixed(1)} KB`);
+    console.log(
+      `[nav-experiment] CAEL trace: ${traceEntries} entries, ${(traceBytes / 1024).toFixed(1)} KB`
+    );
     console.log(`[nav-experiment] Hash chain valid: ${chainValid}`);
     console.log(`[nav-experiment] Bytes/entry: ${(traceBytes / traceEntries).toFixed(0)}`);
 

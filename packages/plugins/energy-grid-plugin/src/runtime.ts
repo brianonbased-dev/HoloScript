@@ -59,7 +59,7 @@ export interface RuntimeTraitHandler {
     node: unknown,
     config: PowerFlowTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -74,7 +74,7 @@ interface PowerFlowNode {
 function solveOntoNode(
   node: unknown,
   config: PowerFlowTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as PowerFlowNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

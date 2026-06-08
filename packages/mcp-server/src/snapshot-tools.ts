@@ -69,7 +69,8 @@ export const snapshotTools: Tool[] = [
   },
   {
     name: 'load_temporal_snapshot',
-    description: 'Reads the meta parameters of a specific keyframe without enforcing a world rewind.',
+    description:
+      'Reads the meta parameters of a specific keyframe without enforcing a world rewind.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -80,7 +81,8 @@ export const snapshotTools: Tool[] = [
   },
   {
     name: 'rewind_world_state',
-    description: 'Forces the replication mesh backward, reverting the world to a safely stored Temporal Snapshot.',
+    description:
+      'Forces the replication mesh backward, reverting the world to a safely stored Temporal Snapshot.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -98,7 +100,11 @@ export async function handleSnapshotTool(name: string, args: any): Promise<any> 
   switch (name) {
     case 'create_temporal_snapshot': {
       const { worldState } = args;
-      if (!worldState) throw new Error("[snapshot] Missing 'worldState' in args. Expected: {worldState: {objects: [...], environment: {...}}}. Got keys: " + Object.keys(args || {}).join(', '));
+      if (!worldState)
+        throw new Error(
+          "[snapshot] Missing 'worldState' in args. Expected: {worldState: {objects: [...], environment: {...}}}. Got keys: " +
+            Object.keys(args || {}).join(', ')
+        );
 
       const snapshotId = `ts_${Date.now()}`;
 

@@ -16,14 +16,14 @@ function pagedKVAppendCpu(
   slotMap: Uint32Array,
   newVecs: Float32Array,
   pageSize: number,
-  headDim: number,
+  headDim: number
 ): Float32Array {
   const out = new Float32Array(kvPages);
   const numVecs = newVecs.length / headDim;
   for (let v = 0; v < numVecs; v++) {
     const logPage = slotMap[v] >>> 16;
-    const inPage  = slotMap[v] & 0xffff;
-    const base    = pageTable[logPage] * pageSize * headDim;
+    const inPage = slotMap[v] & 0xffff;
+    const base = pageTable[logPage] * pageSize * headDim;
     for (let d = 0; d < headDim; d++) {
       out[base + inPage * headDim + d] = newVecs[v * headDim + d];
     }
@@ -40,14 +40,14 @@ function pagedKVLookupCpu(
   numVecs: number,
   startSlot: number,
   pageSize: number,
-  headDim: number,
+  headDim: number
 ): Float32Array {
   const out = new Float32Array(numVecs * headDim);
   for (let v = 0; v < numVecs; v++) {
     const logSlot = v + startSlot;
     const logPage = Math.floor(logSlot / pageSize);
-    const inPage  = logSlot % pageSize;
-    const base    = pageTable[logPage] * pageSize * headDim;
+    const inPage = logSlot % pageSize;
+    const base = pageTable[logPage] * pageSize * headDim;
     for (let d = 0; d < headDim; d++) {
       out[v * headDim + d] = kvPages[base + inPage * headDim + d];
     }
@@ -79,7 +79,9 @@ function mulberry32(seed: number): () => number {
 
 describe('PagedKV — CPU reference', () => {
   it('append writes to correct page slot (single page, slot 0)', () => {
-    const pageSize = 4, headDim = 2, numPhysPages = 1;
+    const pageSize = 4,
+      headDim = 2,
+      numPhysPages = 1;
     const kvPages = new Float32Array(numPhysPages * pageSize * headDim); // all zeros
     const pageTable = new Uint32Array([0]); // logical page 0 → physical offset 0
     // Append 1 vector to (logPage=0, slotInPage=0)
@@ -93,7 +95,8 @@ describe('PagedKV — CPU reference', () => {
   });
 
   it('append writes to correct page slot (second page, second slot)', () => {
-    const pageSize = 4, headDim = 2;
+    const pageSize = 4,
+      headDim = 2;
     // 2 physical pages
     const kvPages = new Float32Array(2 * pageSize * headDim);
     const pageTable = new Uint32Array([0, 1]); // logical 0 → phys 0, logical 1 → phys 1
@@ -107,19 +110,27 @@ describe('PagedKV — CPU reference', () => {
   });
 
   it('lookup retrieves appended values correctly', () => {
-    const pageSize = 4, headDim = 3;
+    const pageSize = 4,
+      headDim = 3;
     const numPhysPages = 2;
     let kvPages = new Float32Array(numPhysPages * pageSize * headDim);
     const pageTable = new Uint32Array([0, 1]);
     // Append 5 vectors across two pages
-    const vecs = new Float32Array([1,2,3,  4,5,6,  7,8,9,  10,11,12,  13,14,15]);
+    const vecs = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
     for (let v = 0; v < 5; v++) {
       const logSlot = v;
       const logPage = Math.floor(logSlot / pageSize);
-      const inPage  = logSlot % pageSize;
+      const inPage = logSlot % pageSize;
       const slotMap = new Uint32Array([(logPage << 16) | inPage]);
       const vec = vecs.slice(v * headDim, v * headDim + headDim);
-      kvPages = pagedKVAppendCpu(kvPages, pageTable, slotMap, new Float32Array(vec), pageSize, headDim);
+      kvPages = pagedKVAppendCpu(
+        kvPages,
+        pageTable,
+        slotMap,
+        new Float32Array(vec),
+        pageSize,
+        headDim
+      );
     }
     // Now lookup all 5
     const out = pagedKVLookupCpu(kvPages, pageTable, 5, 0, pageSize, headDim);
@@ -127,11 +138,12 @@ describe('PagedKV — CPU reference', () => {
   });
 
   it('lookup startSlot > 0 skips earlier tokens', () => {
-    const pageSize = 4, headDim = 2;
+    const pageSize = 4,
+      headDim = 2;
     // Fill kvPages with identity data: slot i → [i*2, i*2+1]
     const kvPages = new Float32Array(1 * pageSize * headDim);
     for (let i = 0; i < pageSize; i++) {
-      kvPages[i * headDim]     = i * 2;
+      kvPages[i * headDim] = i * 2;
       kvPages[i * headDim + 1] = i * 2 + 1;
     }
     const pageTable = new Uint32Array([0]);
@@ -157,16 +169,13 @@ describe('PagedKV — WebGPU append', () => {
     if (!adapter) return;
     const device = await adapter.requestDevice();
 
-    const pageSize = 4, headDim = 4;
+    const pageSize = 4,
+      headDim = 4;
     const numPhysPages = 2;
     const kvPages = new Float32Array(numPhysPages * pageSize * headDim);
     const pageTable = new Uint32Array([0, 1]);
     // Append 3 vectors: slots 0,1,4 (page 0 slot 0, page 0 slot 1, page 1 slot 0)
-    const slotMap = new Uint32Array([
-      (0 << 16) | 0,
-      (0 << 16) | 1,
-      (1 << 16) | 0,
-    ]);
+    const slotMap = new Uint32Array([(0 << 16) | 0, (0 << 16) | 1, (1 << 16) | 0]);
     const rng = mulberry32(777);
     const newVecs = new Float32Array(3 * headDim);
     for (let i = 0; i < newVecs.length; i++) newVecs[i] = rng() * 10;
@@ -180,7 +189,7 @@ describe('PagedKV — WebGPU append', () => {
       slotMap,
       newVecs,
       pageSize,
-      headDim,
+      headDim
     );
 
     expect(allClose(gpuOut, cpuOut)).toBe(true);
@@ -198,25 +207,20 @@ describe('PagedKV — WebGPU lookup', () => {
     if (!adapter) return;
     const device = await adapter.requestDevice();
 
-    const pageSize = 4, headDim = 4;
+    const pageSize = 4,
+      headDim = 4;
     const numPhysPages = 2;
     const rng = mulberry32(123);
     const kvPages = new Float32Array(numPhysPages * pageSize * headDim);
     for (let i = 0; i < kvPages.length; i++) kvPages[i] = rng() * 5;
     const pageTable = new Uint32Array([0, 1]);
 
-    const numVecs = 6, startSlot = 1;
+    const numVecs = 6,
+      startSlot = 1;
     const cpuOut = pagedKVLookupCpu(kvPages, pageTable, numVecs, startSlot, pageSize, headDim);
 
     const kernel = createPagedKVLookupKernel(device);
-    const gpuOut = await kernel.run(
-      kvPages,
-      pageTable,
-      numVecs,
-      startSlot,
-      pageSize,
-      headDim,
-    );
+    const gpuOut = await kernel.run(kvPages, pageTable, numVecs, startSlot, pageSize, headDim);
 
     expect(allClose(gpuOut, cpuOut)).toBe(true);
     device.destroy();
@@ -228,13 +232,14 @@ describe('PagedKV — WebGPU lookup', () => {
     if (!adapter) return;
     const device = await adapter.requestDevice();
 
-    const pageSize = 4, headDim = 2;
-    const kvPages = new Float32Array([1,2, 3,4, 5,6, 7,8]);
+    const pageSize = 4,
+      headDim = 2;
+    const kvPages = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
     const pageTable = new Uint32Array([0]);
 
     const kernel = createPagedKVLookupKernel(device);
     const gpuOut = await kernel.run(kvPages, pageTable, 4, 0, pageSize, headDim);
-    expect(Array.from(gpuOut)).toEqual([1,2,3,4,5,6,7,8]);
+    expect(Array.from(gpuOut)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     device.destroy();
   });
 });

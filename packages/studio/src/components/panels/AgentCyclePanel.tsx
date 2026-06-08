@@ -8,7 +8,11 @@
  */
 import React, { useState, useCallback } from 'react';
 
-import { MotivationStackPanel, MOTIVATION_STACK_DEMO, type MotivationSignal } from './MotivationStackPanel';
+import {
+  MotivationStackPanel,
+  MOTIVATION_STACK_DEMO,
+  type MotivationSignal,
+} from './MotivationStackPanel';
 
 const PHASES = [
   { id: 0, name: 'INTAKE', icon: '📥', color: '#3b82f6' },
@@ -57,7 +61,9 @@ function jitterMotivation(base: MotivationSignal[]): MotivationSignal[] {
 export function AgentCyclePanel() {
   const [cycles, setCycles] = useState<DemoCycle[]>([]);
   const [activeCycle, setActiveCycle] = useState<DemoCycle | null>(null);
-  const [motivation, setMotivation] = useState<MotivationSignal[]>(() => [...MOTIVATION_STACK_DEMO]);
+  const [motivation, setMotivation] = useState<MotivationSignal[]>(() => [
+    ...MOTIVATION_STACK_DEMO,
+  ]);
 
   const runCycle = useCallback((task: string) => {
     const cycle = createDemoCycle(task);

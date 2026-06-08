@@ -815,38 +815,38 @@ describe('AIGlassesTraitMap', () => {
       expect(report.unsupported.length).toBeGreaterThan(0);
     });
 
-  describe('AI_TRAIT_MAP vision', () => {
-    it('vision is full and generates ImageLabeling for default classification task', () => {
-      const mapping = traitMap.getTraitMapping('vision');
-      expect(mapping).toBeDefined();
-      expect(mapping!.level).toBe('full');
-      const code = traitMap.generateTraitCode('vision', 'cam', {});
-      expect(code.some((l) => l.includes('ImageLabeling'))).toBe(true);
-      expect(code.some((l) => l.includes('cam'))).toBe(true);
-      expect(hasNoPlaceholderTaskMarker(code)).toBe(true);
-    });
+    describe('AI_TRAIT_MAP vision', () => {
+      it('vision is full and generates ImageLabeling for default classification task', () => {
+        const mapping = traitMap.getTraitMapping('vision');
+        expect(mapping).toBeDefined();
+        expect(mapping!.level).toBe('full');
+        const code = traitMap.generateTraitCode('vision', 'cam', {});
+        expect(code.some((l) => l.includes('ImageLabeling'))).toBe(true);
+        expect(code.some((l) => l.includes('cam'))).toBe(true);
+        expect(hasNoPlaceholderTaskMarker(code)).toBe(true);
+      });
 
-    it('vision generates TextRecognition for text_recognition task', () => {
-      const code = traitMap.generateTraitCode('vision', 'textScan', { task: 'text_recognition' });
-      expect(code.some((l) => l.includes('TextRecognition'))).toBe(true);
-      expect(code.some((l) => l.includes('textScan'))).toBe(true);
-    });
+      it('vision generates TextRecognition for text_recognition task', () => {
+        const code = traitMap.generateTraitCode('vision', 'textScan', { task: 'text_recognition' });
+        expect(code.some((l) => l.includes('TextRecognition'))).toBe(true);
+        expect(code.some((l) => l.includes('textScan'))).toBe(true);
+      });
 
-    it('vision generates FaceDetection for face_detection task', () => {
-      const code = traitMap.generateTraitCode('vision', 'faceNode', { task: 'face_detection' });
-      expect(code.some((l) => l.includes('FaceDetection'))).toBe(true);
-    });
+      it('vision generates FaceDetection for face_detection task', () => {
+        const code = traitMap.generateTraitCode('vision', 'faceNode', { task: 'face_detection' });
+        expect(code.some((l) => l.includes('FaceDetection'))).toBe(true);
+      });
 
-    it('vision generates BarcodeScanning for barcode task', () => {
-      const code = traitMap.generateTraitCode('vision', 'scanner', { task: 'barcode' });
-      expect(code.some((l) => l.includes('BarcodeScanning'))).toBe(true);
-    });
+      it('vision generates BarcodeScanning for barcode task', () => {
+        const code = traitMap.generateTraitCode('vision', 'scanner', { task: 'barcode' });
+        expect(code.some((l) => l.includes('BarcodeScanning'))).toBe(true);
+      });
 
-    it('vision declares ML Kit imports', () => {
-      const imports = traitMap.getRequiredImports(['vision']);
-      expect(imports.some((i) => i.includes('mlkit'))).toBe(true);
+      it('vision declares ML Kit imports', () => {
+        const imports = traitMap.getRequiredImports(['vision']);
+        expect(imports.some((i) => i.includes('mlkit'))).toBe(true);
+      });
     });
-  });
 
     it('blocked reasons explain form factor constraints', () => {
       const report = traitMap.generateCoverageReport([]);

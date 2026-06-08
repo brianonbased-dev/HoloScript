@@ -69,7 +69,9 @@ const getInitialStudioMode = (): StudioMode => {
 
 const getInitialGeometricViewMode = (): GeometricViewMode => {
   if (typeof window === 'undefined') return 'mesh';
-  const saved = window.localStorage.getItem('studio-geometric-view-mode') as GeometricViewMode | null;
+  const saved = window.localStorage.getItem(
+    'studio-geometric-view-mode'
+  ) as GeometricViewMode | null;
   return saved && ['draft', 'mesh', 'sim'].includes(saved) ? saved : 'mesh';
 };
 

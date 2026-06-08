@@ -7,10 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  validateShard,
-  cloneShard,
-} from '../frontier-shard';
+import { validateShard, cloneShard } from '../frontier-shard';
 import type { Shard } from '../frontier-shard';
 
 function makeMinimalShard(overrides?: Partial<Shard>): Shard {
@@ -56,9 +53,7 @@ describe('Shard spatialRules validation', () => {
     const shard = makeMinimalShard({
       spatialRules: 'nope' as any,
     });
-    expect(validateShard(shard)).toContain(
-      'Shard shard_test.spatialRules must be an array.',
-    );
+    expect(validateShard(shard)).toContain('Shard shard_test.spatialRules must be an array.');
   });
 
   it('rejects spatialRules with unknown zoneId reference', () => {
@@ -75,7 +70,7 @@ describe('Shard spatialRules validation', () => {
       ],
     });
     expect(validateShard(shard)).toContain(
-      'Shard shard_test.spatialRules[rule_bad].zoneId references unknown Zone: z_missing.',
+      'Shard shard_test.spatialRules[rule_bad].zoneId references unknown Zone: z_missing.'
     );
   });
 
@@ -91,7 +86,7 @@ describe('Shard spatialRules validation', () => {
       ],
     });
     expect(validateShard(shard)).toContain(
-      'Shard shard_test.spatialRules[rule_bad]: SpatialRule rule_bad.predicates[p1]: SpatialPredicate.kind is unsupported: unknown.',
+      'Shard shard_test.spatialRules[rule_bad]: SpatialRule rule_bad.predicates[p1]: SpatialPredicate.kind is unsupported: unknown.'
     );
   });
 
@@ -107,7 +102,7 @@ describe('Shard spatialRules validation', () => {
       ],
     });
     expect(validateShard(shard)).toContain(
-      'Shard shard_test.spatialRules[rule_bad]: SpatialRule rule_bad.actions[a1]: SpatialAction.kind is unsupported: unknown.',
+      'Shard shard_test.spatialRules[rule_bad]: SpatialRule rule_bad.actions[a1]: SpatialAction.kind is unsupported: unknown.'
     );
   });
 });
@@ -144,10 +139,10 @@ describe('Shard clone with spatialRules', () => {
     expect(cloned.spatialRules![0].predicates).not.toBe(shard.spatialRules![0].predicates);
     expect(cloned.spatialRules![0].actions).not.toBe(shard.spatialRules![0].actions);
     expect(cloned.spatialRules![0].predicates[0].position).not.toBe(
-      shard.spatialRules![0].predicates[0].position,
+      shard.spatialRules![0].predicates[0].position
     );
     expect(cloned.spatialRules![0].actions[0].spawnPosition).not.toBe(
-      shard.spatialRules![0].actions[0].spawnPosition,
+      shard.spatialRules![0].actions[0].spawnPosition
     );
   });
 

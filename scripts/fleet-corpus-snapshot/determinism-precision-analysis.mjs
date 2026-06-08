@@ -18,12 +18,19 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const FLAG_VALUE = new Set(['--out', '--eps']);
 const rawArgs = process.argv.slice(2);
-const files = rawArgs.filter((a, i) => !a.startsWith('--') && !(i > 0 && FLAG_VALUE.has(rawArgs[i - 1])));
+const files = rawArgs.filter(
+  (a, i) => !a.startsWith('--') && !(i > 0 && FLAG_VALUE.has(rawArgs[i - 1]))
+);
 if (files.length < 2) {
-  console.error('usage: determinism-precision-analysis.mjs <rawA.json> <rawB.json> [rawC.json ...] [--out r.json] [--eps 1e-5]');
+  console.error(
+    'usage: determinism-precision-analysis.mjs <rawA.json> <rawB.json> [rawC.json ...] [--out r.json] [--eps 1e-5]'
+  );
   process.exit(2);
 }
-const argVal = (name) => { const i = process.argv.indexOf(name); return i !== -1 ? process.argv[i + 1] : undefined; };
+const argVal = (name) => {
+  const i = process.argv.indexOf(name);
+  return i !== -1 ? process.argv[i + 1] : undefined;
+};
 const outPath = argVal('--out');
 const EPS = parseFloat(argVal('--eps') ?? '1e-5');
 
@@ -32,8 +39,14 @@ const ref = manifests[0];
 const others = manifests.slice(1);
 const texts = Object.keys(ref.vectors);
 
-function qtok(x, p) { const t = x.toFixed(p); const z = (0).toFixed(p); return t === `-${z}` ? z : t; }
-function fp(v, p) { return v.map((x) => qtok(x, p)).join(','); }
+function qtok(x, p) {
+  const t = x.toFixed(p);
+  const z = (0).toFixed(p);
+  return t === `-${z}` ? z : t;
+}
+function fp(v, p) {
+  return v.map((x) => qtok(x, p)).join(',');
+}
 
 // per-probe worst delta over all non-reference machines
 const perProbe = [];
@@ -43,8 +56,14 @@ for (const t of texts) {
   let mx = 0;
   for (const m of others) {
     const b = m.vectors[t];
-    if (!b || b.length !== a.length) { mx = Infinity; break; }
-    for (let i = 0; i < a.length; i++) { const d = Math.abs(a[i] - b[i]); if (d > mx) mx = d; }
+    if (!b || b.length !== a.length) {
+      mx = Infinity;
+      break;
+    }
+    for (let i = 0; i < a.length; i++) {
+      const d = Math.abs(a[i] - b[i]);
+      if (d > mx) mx = d;
+    }
   }
   if (mx > globalMax) globalMax = mx;
   perProbe.push({ textPrefix: t.slice(0, 48), maxDelta: mx });

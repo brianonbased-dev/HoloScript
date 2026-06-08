@@ -9,21 +9,21 @@ export interface NetworkNode {
 }
 
 export function evaluateThreatLevel(nodes: NetworkNode[]): ThreatLevel {
-  const compromisedCount = nodes.filter(n => n.status === 'compromised').length;
-  const highTrafficCount = nodes.filter(n => Math.abs(n.anomalousTrafficKbps) > 5000).length;
+  const compromisedCount = nodes.filter((n) => n.status === 'compromised').length;
+  const highTrafficCount = nodes.filter((n) => Math.abs(n.anomalousTrafficKbps) > 5000).length;
 
   if (compromisedCount > 2 || highTrafficCount > 5) return 'SEVERE';
   if (compromisedCount > 0 || highTrafficCount > 2) return 'HIGH';
   if (highTrafficCount > 0) return 'ELEVATED';
-  
-  const offlineCount = nodes.filter(n => n.status === 'offline').length;
+
+  const offlineCount = nodes.filter((n) => n.status === 'offline').length;
   if (offlineCount > 0) return 'GUARDED';
 
   return 'LOW';
 }
 
 export function isolateCompromisedNodes(nodes: NetworkNode[]): NetworkNode[] {
-  return nodes.map(n => {
+  return nodes.map((n) => {
     if (n.status === 'compromised') {
       return { ...n, status: 'offline', anomalousTrafficKbps: 0 };
     }

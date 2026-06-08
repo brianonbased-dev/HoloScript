@@ -307,7 +307,11 @@ export class SpatialAwarenessTrait extends EventEmitter {
    * Move by delta
    */
   move(delta: Vector3): void {
-    this.setPosition([this.position[0] + delta[0], this.position[1] + delta[1], this.position[2] + delta[2]]);
+    this.setPosition([
+      this.position[0] + delta[0],
+      this.position[1] + delta[1],
+      this.position[2] + delta[2],
+    ]);
   }
 
   // ===========================================================================
@@ -585,13 +589,22 @@ export async function createSharedSpatialProvider(): Promise<SpatialContextProvi
 }
 
 // ── Handler (delegates to SpatialAwarenessTrait) ──
-import type { TraitHandler, HSPlusNode, TraitContext, TraitInstanceDelegate, TraitEvent } from './TraitTypes';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitInstanceDelegate,
+  TraitEvent,
+} from './TraitTypes';
 
 export const spatialAwarenessHandler = {
   name: 'spatial_awareness',
   defaultConfig: {},
   async onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): Promise<void> {
-    const instance = new SpatialAwarenessTrait(node.id || 'spatial_awareness', config as Partial<SpatialAwarenessTraitConfig>);
+    const instance = new SpatialAwarenessTrait(
+      node.id || 'spatial_awareness',
+      config as Partial<SpatialAwarenessTraitConfig>
+    );
     node.__spatial_awareness_instance = instance;
     // The constructor only fire-and-forgets start() when autoStart is set. Await
     // start() here so the provider (lazy-loaded from the optional engine peer) is

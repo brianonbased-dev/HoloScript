@@ -123,9 +123,8 @@ export const lotusCenterHandler: TraitHandler<LotusCenterConfig> = {
 
   onAttach(node, config, context) {
     const ctxState = context.getState?.() ?? {};
-    const initialBloom = (ctxState[config.bloom_state_source] as
-      | LotusAggregateBloomState
-      | undefined) ?? 'sealed';
+    const initialBloom =
+      (ctxState[config.bloom_state_source] as LotusAggregateBloomState | undefined) ?? 'sealed';
     const initialGenesis = Boolean(ctxState[config.genesis_fired_source]);
 
     const derived = deriveLotusCenterPhase(initialBloom, initialGenesis, config);

@@ -87,11 +87,7 @@ function lerp(a: number, b: number, t: number): number {
 type IVector3 = [number, number, number];
 
 function _lerpVec3(a: IVector3, b: IVector3, t: number): IVector3 {
-  return [
-    lerp(a[0], b[0], t),
-    lerp(a[1], b[1], t),
-    lerp(a[2], b[2], t),
-  ];
+  return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
 }
 
 function interpolateKeyframes(keyframes: Keyframe[], t: number): number {

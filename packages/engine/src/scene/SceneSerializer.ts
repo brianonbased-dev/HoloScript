@@ -148,7 +148,7 @@ export class SceneSerializer {
           z: data.rz || 0,
           w: data.rw || 1,
         }; // or simplified
-        const scl = data.scale || [data.sx || 1, data.sy || 1, data.sz || 1 ];
+        const scl = data.scale || [data.sx || 1, data.sy || 1, data.sz || 1];
 
         properties.position = pos;
         properties.rotation = rot;

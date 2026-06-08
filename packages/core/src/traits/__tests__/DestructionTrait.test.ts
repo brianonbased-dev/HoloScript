@@ -31,8 +31,8 @@ describe('DestructionTrait', () => {
 
   beforeEach(() => {
     node = createMockNode('destr');
-    node.position = [0, 0, 0 ];
-    node.scale = [1, 1, 1 ];
+    node.position = [0, 0, 0];
+    node.scale = [1, 1, 1];
     ctx = createMockContext();
     attachTrait(destructionHandler, node, cfg, ctx);
   });

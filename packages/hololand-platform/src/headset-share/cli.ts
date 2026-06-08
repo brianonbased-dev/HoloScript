@@ -87,8 +87,7 @@ function parseArgs(argv: string[]): CliOptions {
         throw new Error(`Invalid transport: ${transport}. Valid: ${VALID_TRANSPORTS.join(', ')}`);
       }
       options.transport = transport as HeadsetTransportKind;
-    }
-    else if (arg === '--port') options.port = parseInt(next(), 10);
+    } else if (arg === '--port') options.port = parseInt(next(), 10);
     else if (arg === '--host') options.host = next();
     else if (arg === '--api-key') options.apiKey = next();
     else if (arg === '--holomesh-host') options.holomeshHost = next();
@@ -256,13 +255,19 @@ async function main(): Promise<void> {
   if (cli.json) {
     // Print receipt details
     const receiptDir = `${DEFAULT_HEADSET_SHARE_OUTPUT_DIR}`;
-    console.log(JSON.stringify({
-      shareId: server.shareId,
-      url: server.url,
-      transport: server.transport,
-      host: server.host,
-      port: server.port,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          shareId: server.shareId,
+          url: server.url,
+          transport: server.transport,
+          host: server.host,
+          port: server.port,
+        },
+        null,
+        2
+      )
+    );
   }
 
   // Graceful shutdown

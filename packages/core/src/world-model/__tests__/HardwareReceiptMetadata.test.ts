@@ -54,8 +54,7 @@ function buildReceipt(
       {
         kind: 'composition',
         uri: 'holoscript://rooms/holotunnel/replay-input',
-        sha256:
-          '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
       },
     ],
     provenance: {

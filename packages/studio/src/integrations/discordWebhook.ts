@@ -228,7 +228,11 @@ export class DiscordWebhookManager {
   /**
    * Handle Discord Gateway messages
    */
-  private handleGatewayMessage(data: { op?: number; t?: string; d?: Record<string, unknown> }): void {
+  private handleGatewayMessage(data: {
+    op?: number;
+    t?: string;
+    d?: Record<string, unknown>;
+  }): void {
     // Handle heartbeat
     if (data.op === 10 && data.d) {
       const payload = data.d as { heartbeat_interval: number };
@@ -242,7 +246,12 @@ export class DiscordWebhookManager {
 
     // Handle MESSAGE_REACTION_ADD event
     if (data.t === 'MESSAGE_REACTION_ADD' && data.d) {
-      const reactionData = data.d as { emoji: { name?: string; id?: string }; user_id: string; channel_id: string; message_id: string };
+      const reactionData = data.d as {
+        emoji: { name?: string; id?: string };
+        user_id: string;
+        channel_id: string;
+        message_id: string;
+      };
       this.handleReaction({
         emoji: reactionData.emoji?.name || reactionData.emoji?.id || 'unknown',
         emojiName: reactionData.emoji?.name || 'custom',

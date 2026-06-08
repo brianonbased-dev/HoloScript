@@ -146,9 +146,7 @@ function extractPlddtFromPdb(pdb: string): {
     if (Number.isFinite(bFactor)) perResidue.push(bFactor);
   }
   const mean =
-    perResidue.length > 0
-      ? perResidue.reduce((a, b) => a + b, 0) / perResidue.length
-      : 0;
+    perResidue.length > 0 ? perResidue.reduce((a, b) => a + b, 0) / perResidue.length : 0;
   return { perResidue, mean, length: perResidue.length };
 }
 

@@ -102,7 +102,10 @@ function loadPublishedCatalog(rootDir: string): Map<string, MarketplaceMeta> {
   }
 }
 
-function attachMarketplaceMeta(skills: SkillMeta[], catalog: Map<string, MarketplaceMeta>): SkillMeta[] {
+function attachMarketplaceMeta(
+  skills: SkillMeta[],
+  catalog: Map<string, MarketplaceMeta>
+): SkillMeta[] {
   return skills.map((s) => {
     const fromFile = catalog.get(s.fileName);
     const fromName = catalog.get(`${s.name}.hsplus`);
@@ -189,7 +192,6 @@ export async function POST(request: Request) {
     name: safeName,
   });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

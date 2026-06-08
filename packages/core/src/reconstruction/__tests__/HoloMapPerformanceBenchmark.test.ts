@@ -93,11 +93,22 @@ interface PerfDashboard {
   };
 }
 
-function summarizeLatency(latencies: StepLatency[]): Omit<BenchResult, 'frameCount' | 'memoryBefore' | 'memoryAfter' | 'rssDeltaMb' | 'heapDeltaMb' | 'gcPressureMbPerKFrame'> {
+function summarizeLatency(
+  latencies: StepLatency[]
+): Omit<
+  BenchResult,
+  | 'frameCount'
+  | 'memoryBefore'
+  | 'memoryAfter'
+  | 'rssDeltaMb'
+  | 'heapDeltaMb'
+  | 'gcPressureMbPerKFrame'
+> {
   const samples = latencies.map((l) => l.stepMs).sort((a, b) => a - b);
   const totalMs = samples.reduce((a, b) => a + b, 0);
   const mean = totalMs / Math.max(1, samples.length);
-  const variance = samples.reduce((sum, v) => sum + (v - mean) ** 2, 0) / Math.max(1, samples.length);
+  const variance =
+    samples.reduce((sum, v) => sum + (v - mean) ** 2, 0) / Math.max(1, samples.length);
   const stdDev = Math.sqrt(variance);
   return {
     totalMs,
@@ -185,7 +196,10 @@ async function runBenchmark(frameCount: number): Promise<BenchResult> {
   };
 }
 
-async function runDeterminismVerification(frames: ReconstructionFrame[], runs = 10): Promise<DeterminismResult> {
+async function runDeterminismVerification(
+  frames: ReconstructionFrame[],
+  runs = 10
+): Promise<DeterminismResult> {
   const manifests: ReconstructionManifest[] = [];
   const replayHashes: string[] = [];
 
@@ -215,11 +229,16 @@ async function runDeterminismVerification(frames: ReconstructionFrame[], runs = 
   const allReplayHashesMatch = replayHashes.every((h) => h === firstReplay);
 
   const firstNorm = JSON.stringify(normalizeForCompare(manifests[0]));
-  const allManifestsMatch = manifests.every((m) => JSON.stringify(normalizeForCompare(m)) === firstNorm);
+  const allManifestsMatch = manifests.every(
+    (m) => JSON.stringify(normalizeForCompare(m)) === firstNorm
+  );
 
   let mismatchedAt: number | undefined;
   for (let i = 1; i < runs; i++) {
-    if (replayHashes[i] !== firstReplay || JSON.stringify(normalizeForCompare(manifests[i])) !== firstNorm) {
+    if (
+      replayHashes[i] !== firstReplay ||
+      JSON.stringify(normalizeForCompare(manifests[i])) !== firstNorm
+    ) {
       mismatchedAt = i;
       break;
     }
@@ -239,84 +258,64 @@ async function runDeterminismVerification(frames: ReconstructionFrame[], runs = 
 describe('HoloMap Sprint-3 — Performance Benchmark Suite', () => {
   const benchResults: BenchResult[] = [];
 
-  it(
-    'benchmark 500 frames: latency distribution + memory + GC pressure',
-    async () => {
-      const result = await runBenchmark(500);
-      benchResults.push(result);
-      expect(result.latencies).toHaveLength(500);
-      expect(result.p50).toBeGreaterThanOrEqual(0);
-      // Relaxed from 100ms to 200ms — see 1000-frame comment for rationale.
-      expect(result.max).toBeLessThan(200);
-      // Memory sanity: should not explode
-      expect(result.rssDeltaMb).toBeLessThan(512);
-    },
-    60_000
-  );
+  it('benchmark 500 frames: latency distribution + memory + GC pressure', async () => {
+    const result = await runBenchmark(500);
+    benchResults.push(result);
+    expect(result.latencies).toHaveLength(500);
+    expect(result.p50).toBeGreaterThanOrEqual(0);
+    // Relaxed from 100ms to 200ms — see 1000-frame comment for rationale.
+    expect(result.max).toBeLessThan(200);
+    // Memory sanity: should not explode
+    expect(result.rssDeltaMb).toBeLessThan(512);
+  }, 60_000);
 
-  it(
-    'benchmark 1000 frames: latency distribution + memory + GC pressure',
-    async () => {
-      const result = await runBenchmark(1000);
-      benchResults.push(result);
-      expect(result.latencies).toHaveLength(1000);
-      // Relaxed from 100ms to 200ms — single-step stall gate is inherently
-      // machine-dependent; 200ms still catches pathological stalls without
-      // flaking on CI runners with GC pauses.
-      expect(result.max).toBeLessThan(200);
-      expect(result.rssDeltaMb).toBeLessThan(512);
-    },
-    60_000
-  );
+  it('benchmark 1000 frames: latency distribution + memory + GC pressure', async () => {
+    const result = await runBenchmark(1000);
+    benchResults.push(result);
+    expect(result.latencies).toHaveLength(1000);
+    // Relaxed from 100ms to 200ms — single-step stall gate is inherently
+    // machine-dependent; 200ms still catches pathological stalls without
+    // flaking on CI runners with GC pauses.
+    expect(result.max).toBeLessThan(200);
+    expect(result.rssDeltaMb).toBeLessThan(512);
+  }, 60_000);
 
-  it(
-    'benchmark 2000 frames: latency distribution + memory + GC pressure (CI gate)',
-    async () => {
-      const result = await runBenchmark(2000);
-      benchResults.push(result);
-      expect(result.latencies).toHaveLength(2000);
-      // Relaxed from 100ms to 200ms — see 1000-frame comment for rationale.
-      expect(result.max).toBeLessThan(200);
-      expect(result.rssDeltaMb).toBeLessThan(512);
+  it('benchmark 2000 frames: latency distribution + memory + GC pressure (CI gate)', async () => {
+    const result = await runBenchmark(2000);
+    benchResults.push(result);
+    expect(result.latencies).toHaveLength(2000);
+    // Relaxed from 100ms to 200ms — see 1000-frame comment for rationale.
+    expect(result.max).toBeLessThan(200);
+    expect(result.rssDeltaMb).toBeLessThan(512);
 
-      // Regression CI gate: p50 < 16s, p99 < 45s for 2k-frame total runtime.
-      // The p50 gate allows modest Windows host variance while still catching
-      // multi-second regressions; p99 and stall gates remain strict.
-      const p50_s = result.p50 * 2000 / 1000; // extrapolate from per-step p50 to total
-      const p99_s = result.p99 * 2000 / 1000;
-      expect(p50_s).toBeLessThan(16);
-      expect(p99_s).toBeLessThan(45);
-      expect(result.stallCount).toBe(0);
-    },
-    120_000
-  );
+    // Regression CI gate: p50 < 16s, p99 < 45s for 2k-frame total runtime.
+    // The p50 gate allows modest Windows host variance while still catching
+    // multi-second regressions; p99 and stall gates remain strict.
+    const p50_s = (result.p50 * 2000) / 1000; // extrapolate from per-step p50 to total
+    const p99_s = (result.p99 * 2000) / 1000;
+    expect(p50_s).toBeLessThan(16);
+    expect(p99_s).toBeLessThan(45);
+    expect(result.stallCount).toBe(0);
+  }, 120_000);
 
-  it(
-    'benchmark 5000 frames: latency distribution + memory + GC pressure',
-    async () => {
-      const result = await runBenchmark(5000);
-      benchResults.push(result);
-      expect(result.latencies).toHaveLength(5000);
-      // Relaxed from 200ms to 500ms — 5000-frame run is long enough for
-      // major GC pauses on CI. Still catches pathological stalls.
-      expect(result.max).toBeLessThan(500);
-      expect(result.rssDeltaMb).toBeLessThan(1024);
-    },
-    300_000
-  );
+  it('benchmark 5000 frames: latency distribution + memory + GC pressure', async () => {
+    const result = await runBenchmark(5000);
+    benchResults.push(result);
+    expect(result.latencies).toHaveLength(5000);
+    // Relaxed from 200ms to 500ms — 5000-frame run is long enough for
+    // major GC pauses on CI. Still catches pathological stalls.
+    expect(result.max).toBeLessThan(500);
+    expect(result.rssDeltaMb).toBeLessThan(1024);
+  }, 300_000);
 
-  it(
-    'determinism: 10x repeat of same 100-frame video+seed → identical manifests',
-    async () => {
-      const frames = makeFrames(100);
-      const det = await runDeterminismVerification(frames, 10);
-      expect(det.identical).toBe(true);
-      expect(det.allReplayHashesMatch).toBe(true);
-      expect(det.allManifestsMatch).toBe(true);
-      expect(det.mismatchedAt).toBeUndefined();
-    },
-    60_000
-  );
+  it('determinism: 10x repeat of same 100-frame video+seed → identical manifests', async () => {
+    const frames = makeFrames(100);
+    const det = await runDeterminismVerification(frames, 10);
+    expect(det.identical).toBe(true);
+    expect(det.allReplayHashesMatch).toBe(true);
+    expect(det.allManifestsMatch).toBe(true);
+    expect(det.mismatchedAt).toBeUndefined();
+  }, 60_000);
 
   it('writes performance dashboard JSON report', () => {
     // Find the 2k result for the CI gate summary
@@ -335,7 +334,12 @@ describe('HoloMap Sprint-3 — Performance Benchmark Suite', () => {
         memoryAfter: undefined as unknown as NodeJS.MemoryUsage,
         latencies: b.latencies.slice(0, 100), // keep first 100 for size; full data in test output
       })),
-      determinism: { runs: 10, identical: true, allReplayHashesMatch: true, allManifestsMatch: true },
+      determinism: {
+        runs: 10,
+        identical: true,
+        allReplayHashesMatch: true,
+        allManifestsMatch: true,
+      },
       ciGate: {
         passed: p50_2k_s < 15 && p99_2k_s < 45 && stallCount_2k === 0,
         p50_2k_s,

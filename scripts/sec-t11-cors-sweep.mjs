@@ -250,12 +250,17 @@ function processFile(routeRel, { write }) {
     const maxDurRe = /^export const maxDuration[^\n]*\n/m;
     const mm = maxDurRe.exec(newSrc);
     if (mm) {
-      newSrc = newSrc.slice(0, mm.index + mm[0].length) + '\n' + importLine + newSrc.slice(mm.index + mm[0].length);
+      newSrc =
+        newSrc.slice(0, mm.index + mm[0].length) +
+        '\n' +
+        importLine +
+        newSrc.slice(mm.index + mm[0].length);
     } else {
       newSrc = importLine + newSrc;
     }
   } else {
-    newSrc = newSrc.slice(0, lastImportEnd) + '\n' + importLine.trimEnd() + newSrc.slice(lastImportEnd);
+    newSrc =
+      newSrc.slice(0, lastImportEnd) + '\n' + importLine.trimEnd() + newSrc.slice(lastImportEnd);
   }
 
   if (write) {
@@ -271,12 +276,9 @@ function markPublic(routeRel, { write }) {
   // Idempotency.
   if (src.includes('PUBLIC-CORS:')) return { file: routeRel, status: 'already-marked' };
   if (!WILDCARD_OPTIONS_RE.test(src)) return { file: routeRel, status: 'no-match' };
-  const newSrc = src.replace(
-    WILDCARD_OPTIONS_RE,
-    (full, methods) => {
-      return `// PUBLIC-CORS: documented-public endpoint, intentional wildcard (SEC-T11)\n` + full;
-    }
-  );
+  const newSrc = src.replace(WILDCARD_OPTIONS_RE, (full, methods) => {
+    return `// PUBLIC-CORS: documented-public endpoint, intentional wildcard (SEC-T11)\n` + full;
+  });
   if (write) fs.writeFileSync(absPath, newSrc, 'utf8');
   return { file: routeRel, status: 'marked-public' };
 }

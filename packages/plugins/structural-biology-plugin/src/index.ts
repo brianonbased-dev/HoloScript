@@ -28,24 +28,18 @@
 
 // ── Domain primitives (v0.1.0) ────────────────────────────────────────────────
 
-export const STRUCTURAL_BIOLOGY_OBJECT_TYPES = [
-  'protein',
-  'ligand',
-  'chain',
-] as const;
-export type StructuralBiologyObjectType =
-  (typeof STRUCTURAL_BIOLOGY_OBJECT_TYPES)[number];
+export const STRUCTURAL_BIOLOGY_OBJECT_TYPES = ['protein', 'ligand', 'chain'] as const;
+export type StructuralBiologyObjectType = (typeof STRUCTURAL_BIOLOGY_OBJECT_TYPES)[number];
 
 // ── Annotation traits (v0.1.0) ───────────────────────────────────────────────
 
 export const STRUCTURAL_BIOLOGY_TRAITS = [
-  'foldable',        // protein backbone supports folding state transitions
-  'helix',           // alpha-helix secondary-structure annotation
-  'sheet',           // beta-sheet secondary-structure annotation
-  'residue_anchor',  // per-residue provenance anchor (chain id + index)
+  'foldable', // protein backbone supports folding state transitions
+  'helix', // alpha-helix secondary-structure annotation
+  'sheet', // beta-sheet secondary-structure annotation
+  'residue_anchor', // per-residue provenance anchor (chain id + index)
 ] as const;
-export type StructuralBiologyTraitName =
-  (typeof STRUCTURAL_BIOLOGY_TRAITS)[number];
+export type StructuralBiologyTraitName = (typeof STRUCTURAL_BIOLOGY_TRAITS)[number];
 
 // ── Bridge traits (v0.2.0) ────────────────────────────────────────────────────
 
@@ -57,10 +51,10 @@ export type StructuralBiologyTraitName =
  * as new domain traits.
  */
 export const BRIDGE_TRAITS = [
-  'auto_dock',         // Automated molecular docking (core trait)
-  'binding_affinity',  // Binding affinity metrics (core trait)
-  'admet_prediction',  // ADMET property prediction (new)
-  'admet_result',      // ADMET prediction result (new)
+  'auto_dock', // Automated molecular docking (core trait)
+  'binding_affinity', // Binding affinity metrics (core trait)
+  'admet_prediction', // ADMET property prediction (new)
+  'admet_result', // ADMET prediction result (new)
 ] as const;
 export type BridgeTraitName = (typeof BRIDGE_TRAITS)[number];
 
@@ -114,16 +108,16 @@ export function register(host: PluginHostRegistry): StructuralBiologyPluginDescr
 // ── Domain primitives (v0.1.0) ────────────────────────────────────────────────
 
 export interface Residue {
-  chain: string;          // chain identifier (e.g. "A")
-  index: number;          // 1-based residue index in chain
-  resname: string;        // 3-letter residue name (e.g. "GLY")
+  chain: string; // chain identifier (e.g. "A")
+  index: number; // 1-based residue index in chain
+  resname: string; // 3-letter residue name (e.g. "GLY")
   secondary?: 'helix' | 'sheet' | 'loop';
 }
 
 export interface ProteinObject {
   type: 'protein';
   name: string;
-  uniprot?: string;       // UniProt accession (e.g. "P00533")
+  uniprot?: string; // UniProt accession (e.g. "P00533")
   residues: Residue[];
   traits: StructuralBiologyTraitName[];
 }
@@ -131,7 +125,7 @@ export interface ProteinObject {
 export interface LigandObject {
   type: 'ligand';
   name: string;
-  smiles?: string;        // ligand SMILES string
+  smiles?: string; // ligand SMILES string
   traits: StructuralBiologyTraitName[];
 }
 
@@ -162,7 +156,7 @@ function hashHex(s: string): string {
 
 export function residueAnchor(residue: Residue): string {
   return hashHex(
-    `${PLUGIN_DESCRIPTOR.id}@${PLUGIN_DESCRIPTOR.version}|${residue.chain}:${residue.index}:${residue.resname}:${residue.secondary ?? 'loop'}`,
+    `${PLUGIN_DESCRIPTOR.id}@${PLUGIN_DESCRIPTOR.version}|${residue.chain}:${residue.index}:${residue.resname}:${residue.secondary ?? 'loop'}`
   );
 }
 

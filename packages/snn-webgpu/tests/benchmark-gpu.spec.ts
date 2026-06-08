@@ -208,7 +208,8 @@ test.describe('Paper 2 SNN WebGPU benchmark harness', () => {
     // ------------------------------------------------------------------
     // Status assertions
     // ------------------------------------------------------------------
-    expect(TOLERATED_STATUSES.has(artifact.status),
+    expect(
+      TOLERATED_STATUSES.has(artifact.status),
       `Unexpected artifact status: "${artifact.status}"`
     ).toBe(true);
 
@@ -220,7 +221,8 @@ test.describe('Paper 2 SNN WebGPU benchmark harness', () => {
       expect(artifact.lif.peak).not.toBeNull();
 
       if (artifact.lif.peak) {
-        const isLikelySoftware = !artifact.adapter ||
+        const isLikelySoftware =
+          !artifact.adapter ||
           !artifact.adapter.description ||
           ['swiftshader', 'mesa', 'llvmpipe', 'software'].some((token) =>
             (artifact.adapter!.description ?? '').toLowerCase().includes(token)
@@ -229,7 +231,7 @@ test.describe('Paper 2 SNN WebGPU benchmark harness', () => {
         if (isLikelySoftware) {
           console.log(
             `[harness] Software renderer detected (${artifact.adapter?.description ?? 'no adapter'}). ` +
-            `Peak: ${artifact.lif.peak.throughput_M_per_s} M neurons/s — throughput baseline skipped.`
+              `Peak: ${artifact.lif.peak.throughput_M_per_s} M neurons/s — throughput baseline skipped.`
           );
           // Still validate structural integrity: throughput must be positive
           expect(artifact.lif.peak.throughput_M_per_s).toBeGreaterThan(0);
@@ -241,7 +243,7 @@ test.describe('Paper 2 SNN WebGPU benchmark harness', () => {
           const expectedMinThroughputM = 100;
           console.log(
             `[harness] Discrete adapter: ${artifact.adapter?.description}. ` +
-            `Peak: ${artifact.lif.peak.throughput_M_per_s} M neurons/s`
+              `Peak: ${artifact.lif.peak.throughput_M_per_s} M neurons/s`
           );
           expect(artifact.lif.peak.throughput_M_per_s).toBeGreaterThan(expectedMinThroughputM);
         }
@@ -250,7 +252,7 @@ test.describe('Paper 2 SNN WebGPU benchmark harness', () => {
       // Non-completed is tolerated (adapter gate / device init failure in CI)
       console.log(
         `[harness] Status "${artifact.status}" is not 'completed'. ` +
-        `Failures: ${JSON.stringify(artifact.failures)}`
+          `Failures: ${JSON.stringify(artifact.failures)}`
       );
       if (!boolEnv('BENCH_REQUIRE_COMPLETED')) {
         console.log('[harness] BENCH_REQUIRE_COMPLETED not set — accepting non-completed status.');
@@ -296,15 +298,15 @@ test.describe('Paper 2 SNN WebGPU benchmark harness', () => {
         if (regressionRatio > 0.5) {
           console.warn(
             `[drift-guard] ⚠ Throughput regression detected: ` +
-            `previous=${previousPeak.toFixed(1)} M/s current=${currentPeak.toFixed(1)} M/s ` +
-            `(regression=${(regressionRatio * 100).toFixed(1)}%)`
+              `previous=${previousPeak.toFixed(1)} M/s current=${currentPeak.toFixed(1)} M/s ` +
+              `(regression=${(regressionRatio * 100).toFixed(1)}%)`
           );
           // Non-fatal warning — note in artifact but don't fail CI
           // A future task can tighten this to expect() if desired
         } else {
           console.log(
             `[drift-guard] ✓ No significant regression: ` +
-            `previous=${previousPeak.toFixed(1)} M/s → current=${currentPeak.toFixed(1)} M/s`
+              `previous=${previousPeak.toFixed(1)} M/s → current=${currentPeak.toFixed(1)} M/s`
           );
         }
       }

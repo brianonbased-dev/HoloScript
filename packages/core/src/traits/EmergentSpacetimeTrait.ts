@@ -22,7 +22,11 @@
  */
 
 import type { TraitHandler, HSPlusNode } from './TraitTypes';
-import { ProvenanceSemiring, TRAIT_ZERO, type ProvenanceValue } from '../compiler/traits/ProvenanceSemiring';
+import {
+  ProvenanceSemiring,
+  TRAIT_ZERO,
+  type ProvenanceValue,
+} from '../compiler/traits/ProvenanceSemiring';
 
 // =============================================================================
 // TYPES
@@ -237,11 +241,7 @@ function emergentDistance(
  *
  * Ricci ~ Δd where Δ is the graph Laplacian over entanglement edges
  */
-function computeRicci(
-  voxelId: string,
-  network: ProvenanceNetwork,
-  neighbors: string[]
-): number {
+function computeRicci(voxelId: string, network: ProvenanceNetwork, neighbors: string[]): number {
   const voxel = network.voxels.get(voxelId);
   if (!voxel) return 0;
 
@@ -256,8 +256,9 @@ function computeRicci(
     if (!neighbor) continue;
 
     const edge = network.edges.find(
-      (e) => (e.source === voxelId && e.target === neighborId) ||
-             (e.source === neighborId && e.target === voxelId)
+      (e) =>
+        (e.source === voxelId && e.target === neighborId) ||
+        (e.source === neighborId && e.target === voxelId)
     );
     const prov = edge?.provenance ?? 1.0;
     const dist = emergentDistance(voxel, neighbor, prov);
@@ -296,7 +297,7 @@ function forceLayoutGuard(
   let force: [number, number, number] = [0, 0, 0];
 
   // Use pre-computed adjacency list if provided
-  const neighbors = neighborIds || Array.from(network.voxels.keys()).filter(id => id !== voxelId);
+  const neighbors = neighborIds || Array.from(network.voxels.keys()).filter((id) => id !== voxelId);
 
   for (const otherId of neighbors) {
     const other = network.voxels.get(otherId);
@@ -353,15 +354,14 @@ function countProvenanceLoops(network: ProvenanceNetwork): number {
  * H_0_shift ≈ 0.08 × (loop_density - threshold) / threshold
  */
 function hubbleCorrection(network: ProvenanceNetwork, threshold: number = 0.05): number {
-  const loopDensity = network.edges.length > 0
-    ? countProvenanceLoops(network) / network.edges.length
-    : 0;
+  const loopDensity =
+    network.edges.length > 0 ? countProvenanceLoops(network) / network.edges.length : 0;
 
   if (loopDensity <= threshold) {
     return 0;
   }
 
-  return 0.08 * (loopDensity - threshold) / threshold;
+  return (0.08 * (loopDensity - threshold)) / threshold;
 }
 
 // =============================================================================
@@ -428,7 +428,7 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
     // Simple seeded RNG (mulberry32)
     let rngState = seed;
     const seededRandom = () => {
-      rngState = (rngState + 0x6D2B79F5) | 0;
+      rngState = (rngState + 0x6d2b79f5) | 0;
       let t = Math.imul(rngState ^ (rngState >>> 15), 1 | rngState);
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -442,9 +442,21 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
       const p3 = 1 - p1 - p2;
 
       const state: Complex[][] = [
-        [{ re: p1, im: 0 }, { re: 0, im: 0 }, { re: 0, im: 0 }],
-        [{ re: 0, im: 0 }, { re: p2, im: 0 }, { re: 0, im: 0 }],
-        [{ re: 0, im: 0 }, { re: 0, im: 0 }, { re: p3, im: 0 }],
+        [
+          { re: p1, im: 0 },
+          { re: 0, im: 0 },
+          { re: 0, im: 0 },
+        ],
+        [
+          { re: 0, im: 0 },
+          { re: p2, im: 0 },
+          { re: 0, im: 0 },
+        ],
+        [
+          { re: 0, im: 0 },
+          { re: 0, im: 0 },
+          { re: p3, im: 0 },
+        ],
       ];
 
       // Random initial position in unit cube
@@ -474,13 +486,16 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
         const b = voxelArray[j];
 
         // Skip if either voxel already has max edges
-        if ((edgeCount.get(a.id) || 0) >= maxEdgesPerVoxel &&
-            (edgeCount.get(b.id) || 0) >= maxEdgesPerVoxel) continue;
+        if (
+          (edgeCount.get(a.id) || 0) >= maxEdgesPerVoxel &&
+          (edgeCount.get(b.id) || 0) >= maxEdgesPerVoxel
+        )
+          continue;
 
         const dist = Math.sqrt(
           (a.position[0] - b.position[0]) ** 2 +
-          (a.position[1] - b.position[1]) ** 2 +
-          (a.position[2] - b.position[2]) ** 2
+            (a.position[1] - b.position[1]) ** 2 +
+            (a.position[2] - b.position[2]) ** 2
         );
 
         // Connect nearest neighbors (within threshold)
@@ -529,7 +544,9 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
 
     node.__emergentSpacetimeState = state;
 
-    console.log(`[EmergentSpacetime] Initialized with ${initialCount} voxels, ${edges.length} edges`);
+    console.log(
+      `[EmergentSpacetime] Initialized with ${initialCount} voxels, ${edges.length} edges`
+    );
   },
 
   onDetach(node) {
@@ -560,7 +577,7 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
         const dx = source.position[0] - target.position[0];
         const dy = source.position[1] - target.position[1];
         const dz = source.position[2] - target.position[2];
-        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
         // Weight: 1.0 at close range, 0.2 at far range (for visual feedback)
         edge.weight = Math.max(0.2, 1.0 - dist / 1.5);
       }
@@ -657,8 +674,9 @@ export const emergentSpacetimeHandler: TraitHandler<EmergentSpacetimeConfig> = {
         const data = event as any;
         const { sourceId, targetId, newProvenance } = data.data || {};
         const edge = state.network.edges.find(
-          (e) => (e.source === sourceId && e.target === targetId) ||
-                 (e.source === targetId && e.target === sourceId)
+          (e) =>
+            (e.source === sourceId && e.target === targetId) ||
+            (e.source === targetId && e.target === sourceId)
         );
         if (edge) {
           edge.provenance = provFuse(edge.provenance, newProvenance ?? 1.0);

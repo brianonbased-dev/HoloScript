@@ -311,10 +311,7 @@ export class SpatialPartitionPass {
 
   // ── AST Walk (mirrors GaussianBudgetAnalyzer.collectGaussianSources) ─────────
 
-  private collectFromComposition(
-    composition: HoloComposition,
-    out: RawGaussianSource[]
-  ): void {
+  private collectFromComposition(composition: HoloComposition, out: RawGaussianSource[]): void {
     if (composition.objects) {
       for (const obj of composition.objects) {
         this.collectFromObject(obj, out);
@@ -369,21 +366,17 @@ export class SpatialPartitionPass {
     }
   }
 
-  private extractSource(
-    obj: HoloObjectDecl,
-    trait: HoloObjectTrait
-  ): RawGaussianSource | null {
+  private extractSource(obj: HoloObjectDecl, trait: HoloObjectTrait): RawGaussianSource | null {
     const config = (trait.config ?? {}) as Record<string, unknown>;
-    const maxSplats =
-      typeof config.max_splats === 'number' ? config.max_splats : 50_000;
+    const maxSplats = typeof config.max_splats === 'number' ? config.max_splats : 50_000;
     const sourceFile =
-      typeof config.src === 'string' ? config.src :
-      typeof config.source === 'string' ? config.source :
-      undefined;
+      typeof config.src === 'string'
+        ? config.src
+        : typeof config.source === 'string'
+          ? config.source
+          : undefined;
     const importance =
-      typeof config.importance === 'number'
-        ? Math.max(0, Math.min(1, config.importance))
-        : 0.5;
+      typeof config.importance === 'number' ? Math.max(0, Math.min(1, config.importance)) : 0.5;
 
     // Bug fix: the parser stores position in obj.properties[], not obj.position.
     // obj.position is only populated when constructing AST nodes directly (tests,
@@ -527,8 +520,12 @@ function computeBounds(anchors: SpatialAnchor[]): SpatialBounds {
     };
   }
 
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
 
   for (const a of anchors) {
     const r = a.scale; // use scale as radius contribution
@@ -543,11 +540,7 @@ function computeBounds(anchors: SpatialAnchor[]): SpatialBounds {
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
   const cz = (minZ + maxZ) / 2;
-  const halfSize = Math.max(
-    (maxX - minX) / 2,
-    (maxY - minY) / 2,
-    (maxZ - minZ) / 2
-  );
+  const halfSize = Math.max((maxX - minX) / 2, (maxY - minY) / 2, (maxZ - minZ) / 2);
 
   return {
     min: { x: minX, y: minY, z: minZ },

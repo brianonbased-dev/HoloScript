@@ -34,7 +34,7 @@ export async function initializeWasm(
 ): Promise<WasmInstance> {
   throw new Error(
     'WASM compiler component retired in c5887f4e7. ' +
-    'Use @holoscript/core TypeScript API directly instead of WASM loader.'
+      'Use @holoscript/core TypeScript API directly instead of WASM loader.'
   );
 }
 
@@ -258,7 +258,7 @@ let wasmInstance: WasmInstance | null = null;
 export async function getWasmInstance(): Promise<WasmInstance> {
   throw new Error(
     'WASM compiler component retired in c5887f4e7. ' +
-    'Use @holoscript/core TypeScript API directly instead of WASM loader.'
+      'Use @holoscript/core TypeScript API directly instead of WASM loader.'
   );
 }
 

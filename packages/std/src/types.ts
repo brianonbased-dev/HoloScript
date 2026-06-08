@@ -184,8 +184,18 @@ export type DeepPartial<T> = {
  */
 export function vec2(x: number = 0, y: number = 0): Vec2 {
   const v = [x, y] as unknown as Vec2;
-  Object.defineProperty(v, 'x', { value: x, writable: true, enumerable: false, configurable: true });
-  Object.defineProperty(v, 'y', { value: y, writable: true, enumerable: false, configurable: true });
+  Object.defineProperty(v, 'x', {
+    value: x,
+    writable: true,
+    enumerable: false,
+    configurable: true,
+  });
+  Object.defineProperty(v, 'y', {
+    value: y,
+    writable: true,
+    enumerable: false,
+    configurable: true,
+  });
   return v;
 }
 
@@ -194,9 +204,24 @@ export function vec2(x: number = 0, y: number = 0): Vec2 {
  */
 export function vec3(x: number = 0, y: number = 0, z: number = 0): Vec3 {
   const v = [x, y, z] as unknown as Vec3;
-  Object.defineProperty(v, 'x', { value: x, writable: true, enumerable: false, configurable: true });
-  Object.defineProperty(v, 'y', { value: y, writable: true, enumerable: false, configurable: true });
-  Object.defineProperty(v, 'z', { value: z, writable: true, enumerable: false, configurable: true });
+  Object.defineProperty(v, 'x', {
+    value: x,
+    writable: true,
+    enumerable: false,
+    configurable: true,
+  });
+  Object.defineProperty(v, 'y', {
+    value: y,
+    writable: true,
+    enumerable: false,
+    configurable: true,
+  });
+  Object.defineProperty(v, 'z', {
+    value: z,
+    writable: true,
+    enumerable: false,
+    configurable: true,
+  });
   return v;
 }
 

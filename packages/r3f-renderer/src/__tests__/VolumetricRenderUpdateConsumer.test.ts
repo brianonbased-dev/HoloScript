@@ -137,9 +137,54 @@ describe('VolumetricRenderUpdateConsumer', () => {
 describe('reorderByIndices', () => {
   it('reorders matrices (16 floats per entry) by index array', () => {
     const src = new Float32Array([
-      1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, // matrix 0
-      2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, // matrix 1
-      3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 1, // matrix 2
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      1, // matrix 0
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      2,
+      0,
+      0,
+      0,
+      0,
+      1, // matrix 1
+      3,
+      0,
+      0,
+      0,
+      0,
+      3,
+      0,
+      0,
+      0,
+      0,
+      3,
+      0,
+      0,
+      0,
+      0,
+      1, // matrix 2
     ]);
     const indices = new Uint32Array([2, 0, 1]);
     const out = reorderByIndices(src, indices, 16);
@@ -151,18 +196,36 @@ describe('reorderByIndices', () => {
 
   it('reorders colors (4 floats per entry) by index array', () => {
     const src = new Float32Array([
-      0.1, 0.2, 0.3, 0.4, // color 0
-      0.5, 0.6, 0.7, 0.8, // color 1
-      0.9, 1.0, 0.0, 0.1, // color 2
+      0.1,
+      0.2,
+      0.3,
+      0.4, // color 0
+      0.5,
+      0.6,
+      0.7,
+      0.8, // color 1
+      0.9,
+      1.0,
+      0.0,
+      0.1, // color 2
     ]);
     const indices = new Uint32Array([1, 2, 0]);
     const out = reorderByIndices(src, indices, 4);
 
     expect(out).toEqual(
       new Float32Array([
-        0.5, 0.6, 0.7, 0.8, // color 1
-        0.9, 1.0, 0.0, 0.1, // color 2
-        0.1, 0.2, 0.3, 0.4, // color 0
+        0.5,
+        0.6,
+        0.7,
+        0.8, // color 1
+        0.9,
+        1.0,
+        0.0,
+        0.1, // color 2
+        0.1,
+        0.2,
+        0.3,
+        0.4, // color 0
       ])
     );
   });

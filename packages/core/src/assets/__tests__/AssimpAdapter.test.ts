@@ -11,7 +11,11 @@ function scene(overrides: Partial<AssimpScene> = {}): AssimpScene {
     root: {
       name: 'root',
       children: [
-        { name: 'body', mesh_indices: [0], transform: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2, 3, 4, 1] },
+        {
+          name: 'body',
+          mesh_indices: [0],
+          transform: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 2, 3, 4, 1],
+        },
         { name: 'empty_xform' },
       ],
     },

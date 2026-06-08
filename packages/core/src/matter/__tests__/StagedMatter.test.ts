@@ -136,9 +136,7 @@ describe('StagedMatter', () => {
       const unitB = makeUnit('B');
       const merged = consolidate(unitA, unitB);
 
-      const newEdges = merged.manifest.derivationEdges.filter(
-        (e) => e.operation === 'consolidate'
-      );
+      const newEdges = merged.manifest.derivationEdges.filter((e) => e.operation === 'consolidate');
       for (const edge of newEdges) {
         expect(edge.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       }

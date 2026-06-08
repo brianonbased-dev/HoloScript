@@ -23,7 +23,12 @@ function feed(over: Partial<NetworkEventWireInput> = {}): NetworkEventWireInput 
   return {
     feedId: 'feed-team-7',
     events: [
-      event({ chainDepth: 0, type: 'presence.join', actor: 'claude1', payload: { surface: 'claude-code' } }),
+      event({
+        chainDepth: 0,
+        type: 'presence.join',
+        actor: 'claude1',
+        payload: { surface: 'claude-code' },
+      }),
       event({ chainDepth: 1, type: 'board.claim', actor: 'claude1', payload: { taskId: 't-1' } }),
     ],
     ...over,
@@ -44,7 +49,12 @@ describe('networkEventRecord (network.event.v1 — fifth instance of time-bindin
     const reversedInput = feed({
       events: [
         event({ chainDepth: 1, type: 'board.claim', actor: 'claude1', payload: { taskId: 't-1' } }),
-        event({ chainDepth: 0, type: 'presence.join', actor: 'claude1', payload: { surface: 'claude-code' } }),
+        event({
+          chainDepth: 0,
+          type: 'presence.join',
+          actor: 'claude1',
+          payload: { surface: 'claude-code' },
+        }),
       ],
     });
     expect(wireFormatEquivalentNetworkEvent(sortedFirst, reversedInput)).toBe(true);
@@ -54,7 +64,13 @@ describe('networkEventRecord (network.event.v1 — fifth instance of time-bindin
     const f = feed({
       events: [
         event({ chainDepth: 0 }),
-        event({ chainDepth: 1, type: 'mode.switch', payload: { from: 'audit', to: 'build' }, parentHash: 'h0', meta: { reason: 'auto' } }),
+        event({
+          chainDepth: 1,
+          type: 'mode.switch',
+          payload: { from: 'audit', to: 'build' },
+          parentHash: 'h0',
+          meta: { reason: 'auto' },
+        }),
       ],
     });
     const snap = canonicalNetworkEventSnapshot(f) as { events: Array<Record<string, unknown>> };
@@ -89,7 +105,12 @@ describe('networkEventRecord (network.event.v1 — fifth instance of time-bindin
     const b = feed({
       events: [
         event({ chainDepth: 0 }),
-        event({ chainDepth: 1, type: 'board.claim', payload: { taskId: 't-1' }, parentHash: 'h-other' }),
+        event({
+          chainDepth: 1,
+          type: 'board.claim',
+          payload: { taskId: 't-1' },
+          parentHash: 'h-other',
+        }),
       ],
     });
     expect(wireFormatEquivalentNetworkEvent(a, b)).toBe(false);
@@ -104,7 +125,9 @@ describe('networkEventRecord (network.event.v1 — fifth instance of time-bindin
         event({ chainDepth: 0, type: 'presence.join', actor: 'claude1', payload: {} }),
       ],
     });
-    const snap = canonicalNetworkEventSnapshot(f) as { events: Array<{ type: string; actor: string }> };
+    const snap = canonicalNetworkEventSnapshot(f) as {
+      events: Array<{ type: string; actor: string }>;
+    };
     // Sorted by type ASC, then actor ASC at same chainDepth
     expect(snap.events[0]).toMatchObject({ type: 'board.claim', actor: 'claude1' });
     expect(snap.events[1]).toMatchObject({ type: 'presence.join', actor: 'claude1' });
@@ -164,7 +187,12 @@ describe('networkEventRecord (network.event.v1 — fifth instance of time-bindin
         event({ chainDepth: 2, type: 'board.claim', actor: 'claude1', payload: { taskId: 't' } }),
         event({ chainDepth: 3, type: 'knowledge.sync', actor: 'claude1', payload: { entries: 1 } }),
         event({ chainDepth: 4, type: 'suggestion.vote', actor: 'gemini1', payload: { dir: 'up' } }),
-        event({ chainDepth: 5, type: 'board.done', actor: 'claude1', payload: { taskId: 't', commit: 'abc' } }),
+        event({
+          chainDepth: 5,
+          type: 'board.done',
+          actor: 'claude1',
+          payload: { taskId: 't', commit: 'abc' },
+        }),
       ],
     });
     const rec = buildNetworkEventV1Record(f);

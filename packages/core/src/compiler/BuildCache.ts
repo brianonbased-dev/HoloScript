@@ -449,9 +449,7 @@ export class BuildCache {
 
     try {
       const rawData = readFileSync(entryPath, 'utf-8');
-      const data: T = (meta.compressed
-        ? readJson(decompress(rawData))
-        : readJson(rawData)) as T;
+      const data: T = (meta.compressed ? readJson(decompress(rawData)) : readJson(rawData)) as T;
 
       meta.accessedAt = Date.now();
       meta.accessCount++;

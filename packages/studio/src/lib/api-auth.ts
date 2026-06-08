@@ -30,7 +30,9 @@ export async function getSession() {
   const cookieStore = await cookies();
   type GetTokenReq = Parameters<typeof getToken>[0]['req'];
   const token = await getToken({
-    req: { cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])) } as GetTokenReq,
+    req: {
+      cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])),
+    } as GetTokenReq,
     secret,
   });
   if (!token) return null;
@@ -45,9 +47,10 @@ export async function getSession() {
     },
     // Use actual JWT expiry (token.exp is Unix seconds); fall back to 30 days
     // only when the claim is absent so we don't extend a near-expiry token.
-    expires: typeof token.exp === 'number'
-      ? new Date(token.exp * 1000).toISOString()
-      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    expires:
+      typeof token.exp === 'number'
+        ? new Date(token.exp * 1000).toISOString()
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   };
 }
 
@@ -85,10 +88,7 @@ export async function requireAuth(request?: Request) {
 
   const session = await getSession();
   if (!session?.user?.id) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
   return session;
 }

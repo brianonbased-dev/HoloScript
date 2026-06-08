@@ -23,10 +23,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  createBuiltinsMap,
-  type BuiltinsContext,
-} from './builtins-registry';
+import { createBuiltinsMap, type BuiltinsContext } from './builtins-registry';
 import type {
   AgentRuntime,
   Animation,
@@ -355,14 +352,9 @@ describe('spawn — async with template + child executeOrb', () => {
   it('legacy signature (name, position) creates particle effect + returns spawned record', async () => {
     const ctx = makeCtx();
     const b = createBuiltinsMap(ctx);
-    const result = await (b.get('spawn')!([
-      'enemy',
-      [10, 0, 0],
-    ]) as Promise<HoloScriptValue>);
+    const result = await (b.get('spawn')!(['enemy', [10, 0, 0]]) as Promise<HoloScriptValue>);
     expect(ctx.spatialMemory.get('enemy')).toEqual([10, 0, 0]);
-    expect(ctx.createParticleEffect).toHaveBeenCalledWith(
-      'enemy_spawn', [10, 0, 0], '#00ff00', 25,
-    );
+    expect(ctx.createParticleEffect).toHaveBeenCalledWith('enemy_spawn', [10, 0, 0], '#00ff00', 25);
     expect(result).toEqual({ spawned: 'enemy', at: [10, 0, 0] });
   });
 
@@ -397,7 +389,8 @@ describe('spawn — async with template + child executeOrb', () => {
     expect(ctx.executeOrb).toHaveBeenCalledTimes(1);
     // Mitosis event fired with parentId + childId
     expect(ctx.emit).toHaveBeenCalledWith('mitosis_spawned', {
-      parentId: 'parent-1', childId: 'kid-1',
+      parentId: 'parent-1',
+      childId: 'kid-1',
     });
     expect(ctx.emit).toHaveBeenCalledWith('parent-1.mitosis_spawned', {
       childId: 'kid-1',
@@ -415,10 +408,13 @@ describe('notifyParent — async mitosis event dispatch', () => {
       'child-B',
     ]) as Promise<HoloScriptValue>);
     expect(ctx.emit).toHaveBeenCalledWith('mitosis_child_complete', {
-      parentId: 'parent-A', childId: 'child-B', result: { score: 42 },
+      parentId: 'parent-A',
+      childId: 'child-B',
+      result: { score: 42 },
     });
     expect(ctx.emit).toHaveBeenCalledWith('parent-A.mitosis_child_complete', {
-      childId: 'child-B', result: { score: 42 },
+      childId: 'child-B',
+      result: { score: 42 },
     });
   });
 
@@ -428,7 +424,7 @@ describe('notifyParent — async mitosis event dispatch', () => {
     await (b.get('notifyParent')!(['parent', {}]) as Promise<HoloScriptValue>);
     expect(ctx.emit).toHaveBeenCalledWith(
       'mitosis_child_complete',
-      expect.objectContaining({ childId: 'unknown' }),
+      expect.objectContaining({ childId: 'unknown' })
     );
   });
 });
@@ -448,9 +444,7 @@ describe('spatial builtins', () => {
     expect(ctx.hologramState.has('obj')).toBe(false);
     expect(ctx.spatialMemory.has('obj')).toBe(false);
     expect(ctx.variables.has('obj')).toBe(false);
-    expect(ctx.createParticleEffect).toHaveBeenCalledWith(
-      'obj_despawn', [1, 2, 3], '#ff0000', 30,
-    );
+    expect(ctx.createParticleEffect).toHaveBeenCalledWith('obj_despawn', [1, 2, 3], '#ff0000', 30);
     expect(r).toEqual({ despawned: 'obj' });
   });
 
@@ -467,7 +461,11 @@ describe('spatial builtins', () => {
     b.get('move')!(['obj', [5, 0, 0]]);
     expect(ctx.spatialMemory.get('obj')).toEqual([5, 0, 0]);
     expect(ctx.createConnectionStream).toHaveBeenCalledWith(
-      'obj', 'obj_dest', [0, 0, 0], [5, 0, 0], 'move',
+      'obj',
+      'obj_dest',
+      [0, 0, 0],
+      [5, 0, 0],
+      'move'
     );
   });
 });

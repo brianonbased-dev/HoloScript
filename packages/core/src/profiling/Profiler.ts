@@ -96,12 +96,46 @@ export class Profiler {
   private hotspotMap: Map<string, { totalTime: number; callCount: number }> = new Map();
 
   // Frame-based profiling state
-  private frameHistory: Array<{ frameNumber: number; totalTime: number; scopes: unknown[]; timestamp: number }> = [];
+  private frameHistory: Array<{
+    frameNumber: number;
+    totalTime: number;
+    scopes: unknown[];
+    timestamp: number;
+  }> = [];
   private maxFrames = 300;
-  private currentFrameData: { frameNumber: number; totalTime: number; scopes: Array<{ name: string; startTime: number; endTime: number; duration: number; depth: number; children: unknown[] }>; timestamp: number } | null = null;
+  private currentFrameData: {
+    frameNumber: number;
+    totalTime: number;
+    scopes: Array<{
+      name: string;
+      startTime: number;
+      endTime: number;
+      duration: number;
+      depth: number;
+      children: unknown[];
+    }>;
+    timestamp: number;
+  } | null = null;
   private frameCounter = 0;
-  private scopeStack: Array<{ name: string; startTime: number; endTime: number; duration: number; depth: number; children: unknown[] }> = [];
-  private frameSummaries: Map<string, { name: string; avgTime: number; minTime: number; maxTime: number; totalTime: number; callCount: number }> = new Map();
+  private scopeStack: Array<{
+    name: string;
+    startTime: number;
+    endTime: number;
+    duration: number;
+    depth: number;
+    children: unknown[];
+  }> = [];
+  private frameSummaries: Map<
+    string,
+    {
+      name: string;
+      avgTime: number;
+      minTime: number;
+      maxTime: number;
+      totalTime: number;
+      callCount: number;
+    }
+  > = new Map();
 
   /**
    * Start profiling session
@@ -412,7 +446,14 @@ export class Profiler {
     // Update frame summary
     let summary = this.frameSummaries.get(scope.name);
     if (!summary) {
-      summary = { name: scope.name, avgTime: 0, minTime: Infinity, maxTime: 0, totalTime: 0, callCount: 0 };
+      summary = {
+        name: scope.name,
+        avgTime: 0,
+        minTime: Infinity,
+        maxTime: 0,
+        totalTime: 0,
+        callCount: 0,
+      };
       this.frameSummaries.set(scope.name, summary);
     }
     summary.callCount++;
@@ -431,19 +472,51 @@ export class Profiler {
     }
   }
 
-  getFrameHistory(): Array<{ frameNumber: number; totalTime: number; scopes: unknown[]; timestamp: number }> {
+  getFrameHistory(): Array<{
+    frameNumber: number;
+    totalTime: number;
+    scopes: unknown[];
+    timestamp: number;
+  }> {
     return [...this.frameHistory];
   }
 
-  getAllSummaries(): Array<{ name: string; avgTime: number; minTime: number; maxTime: number; totalTime: number; callCount: number }> {
+  getAllSummaries(): Array<{
+    name: string;
+    avgTime: number;
+    minTime: number;
+    maxTime: number;
+    totalTime: number;
+    callCount: number;
+  }> {
     return [...this.frameSummaries.values()];
   }
 
-  getSlowestScopes(count = 5): Array<{ name: string; avgTime: number; minTime: number; maxTime: number; totalTime: number; callCount: number }> {
+  getSlowestScopes(
+    count = 5
+  ): Array<{
+    name: string;
+    avgTime: number;
+    minTime: number;
+    maxTime: number;
+    totalTime: number;
+    callCount: number;
+  }> {
     return [...this.frameSummaries.values()].sort((a, b) => b.maxTime - a.maxTime).slice(0, count);
   }
 
-  getSummary(name: string): { name: string; avgTime: number; minTime: number; maxTime: number; totalTime: number; callCount: number } | undefined {
+  getSummary(
+    name: string
+  ):
+    | {
+        name: string;
+        avgTime: number;
+        minTime: number;
+        maxTime: number;
+        totalTime: number;
+        callCount: number;
+      }
+    | undefined {
     return this.frameSummaries.get(name);
   }
 

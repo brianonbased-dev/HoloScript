@@ -3,8 +3,8 @@ import { PhysicsWorldImpl, createPhysicsWorld } from '..';
 
 /** Helper to create a body config with the required transform property */
 function bodyConfig(overrides: Record<string, any> = {}) {
-  const pos = overrides.position ?? [0, 0, 0 ];
-  const rot = overrides.rotation ?? [0, 0, 0, 1 ];
+  const pos = overrides.position ?? [0, 0, 0];
+  const rot = overrides.rotation ?? [0, 0, 0, 1];
   return {
     id: overrides.id ?? 'body',
     type: overrides.type ?? 'dynamic',
@@ -33,7 +33,7 @@ describe('PhysicsWorldImpl', () => {
 
     it('accepts custom config', () => {
       const w = new PhysicsWorldImpl({
-        gravity: [0, -20, 0 ],
+        gravity: [0, -20, 0],
         fixedTimestep: 1 / 120,
         maxSubsteps: 10,
         solverIterations: 4,
@@ -44,7 +44,7 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('setGravity updates gravity', () => {
-      world.setGravity([0, -5, 0 ]);
+      world.setGravity([0, -5, 0]);
       expect(world.getGravity()[1]).toBe(-5);
     });
   });
@@ -58,7 +58,7 @@ describe('PhysicsWorldImpl', () => {
         bodyConfig({
           id: 'box1',
           type: 'dynamic',
-          shape: { type: 'box', halfExtents: [1, 1, 1 ] },
+          shape: { type: 'box', halfExtents: [1, 1, 1] },
           position: [0, 5, 0],
           mass: 1,
         })
@@ -95,7 +95,7 @@ describe('PhysicsWorldImpl', () => {
         bodyConfig({
           id: 'b',
           type: 'static',
-          shape: { type: 'box', halfExtents: [10, 0.5, 10 ] },
+          shape: { type: 'box', halfExtents: [10, 0.5, 10] },
           position: [0, -1, 0],
           mass: 0,
         })
@@ -113,26 +113,26 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('setPosition updates position', () => {
-      world.setPosition('obj', [5, 10, 15 ]);
+      world.setPosition('obj', [5, 10, 15]);
       expect(world.getBody('obj')!.position[0]).toBe(5);
     });
 
     it('setLinearVelocity updates velocity', () => {
-      world.setLinearVelocity('obj', [1, 2, 3 ]);
+      world.setLinearVelocity('obj', [1, 2, 3]);
       const state = world.getBody('obj')!;
       expect(state.linearVelocity[0]).toBe(1);
     });
 
     it('applyForce does not throw', () => {
-      expect(() => world.applyForce('obj', [10, 0, 0 ])).not.toThrow();
+      expect(() => world.applyForce('obj', [10, 0, 0])).not.toThrow();
     });
 
     it('applyImpulse does not throw', () => {
-      expect(() => world.applyImpulse('obj', [0, 5, 0 ])).not.toThrow();
+      expect(() => world.applyImpulse('obj', [0, 5, 0])).not.toThrow();
     });
 
     it('applyTorque does not throw', () => {
-      expect(() => world.applyTorque('obj', [0, 1, 0 ])).not.toThrow();
+      expect(() => world.applyTorque('obj', [0, 1, 0])).not.toThrow();
     });
   });
 
@@ -232,7 +232,7 @@ describe('PhysicsWorldImpl', () => {
         bodyConfig({
           id: 'ground',
           type: 'static',
-          shape: { type: 'box', halfExtents: [100, 0.5, 100 ] },
+          shape: { type: 'box', halfExtents: [100, 0.5, 100] },
           mass: 0,
         })
       );
@@ -258,7 +258,7 @@ describe('PhysicsWorldImpl', () => {
       world.createBody(
         bodyConfig({
           id: 'target',
-          shape: { type: 'box', halfExtents: [1, 1, 1 ] },
+          shape: { type: 'box', halfExtents: [1, 1, 1] },
           position: [0, 0, -5],
         })
       );
@@ -266,8 +266,8 @@ describe('PhysicsWorldImpl', () => {
 
     it('raycast hits a body', () => {
       const hits = world.raycast({
-        origin: [0, 0, 0 ],
-        direction: [0, 0, -1 ],
+        origin: [0, 0, 0],
+        direction: [0, 0, -1],
         maxDistance: 100,
       });
       expect(hits.length).toBeGreaterThan(0);
@@ -276,8 +276,8 @@ describe('PhysicsWorldImpl', () => {
 
     it('raycast misses when direction is wrong', () => {
       const hits = world.raycast({
-        origin: [0, 0, 0 ],
-        direction: [0, 0, 1 ],
+        origin: [0, 0, 0],
+        direction: [0, 0, 1],
         maxDistance: 100,
       });
       expect(hits).toHaveLength(0);
@@ -285,8 +285,8 @@ describe('PhysicsWorldImpl', () => {
 
     it('raycastClosest returns single hit', () => {
       const hit = world.raycastClosest({
-        origin: [0, 0, 0 ],
-        direction: [0, 0, -1 ],
+        origin: [0, 0, 0],
+        direction: [0, 0, -1],
         maxDistance: 100,
       });
       expect(hit).not.toBeNull();
@@ -294,13 +294,13 @@ describe('PhysicsWorldImpl', () => {
     });
 
     it('sphereOverlap finds nearby bodies', () => {
-      const results = world.sphereOverlap([0, 0, -5 ], 2);
+      const results = world.sphereOverlap([0, 0, -5], 2);
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].bodyId).toBe('target');
     });
 
     it('boxOverlap finds overlapping bodies', () => {
-      const results = world.boxOverlap([0, 0, -5 ], [2, 2, 2 ]);
+      const results = world.boxOverlap([0, 0, -5], [2, 2, 2]);
       expect(results.length).toBeGreaterThan(0);
     });
   });

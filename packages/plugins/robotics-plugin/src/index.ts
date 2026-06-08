@@ -148,15 +148,16 @@ function asString(value: unknown, fallback: string): string {
 
 function asVec3(value: unknown, fallback: [number, number, number]): [number, number, number] {
   if (Array.isArray(value) && value.length >= 3) {
-    return [asNumber(value[0], fallback[0]), asNumber(value[1], fallback[1]), asNumber(value[2], fallback[2])];
+    return [
+      asNumber(value[0], fallback[0]),
+      asNumber(value[1], fallback[1]),
+      asNumber(value[2], fallback[2]),
+    ];
   }
   return fallback;
 }
 
-function asJointLimits(
-  value: unknown,
-  fallback: RobotJoint['limits']
-): RobotJoint['limits'] {
+function asJointLimits(value: unknown, fallback: RobotJoint['limits']): RobotJoint['limits'] {
   if (Array.isArray(value) && value.length >= 4) {
     return {
       lower: asNumber(value[0], fallback?.lower ?? -1.57),
@@ -179,7 +180,10 @@ function asJointLimits(
   return fallback;
 }
 
-function findTrait(node: HoloCompositionNodeLike, predicate: (normalizedName: string) => boolean): TraitMatch | null {
+function findTrait(
+  node: HoloCompositionNodeLike,
+  predicate: (normalizedName: string) => boolean
+): TraitMatch | null {
   for (const trait of node.traits ?? []) {
     const normalizedName = normalizeTraitName(trait.name);
     if (predicate(normalizedName)) {
@@ -193,11 +197,7 @@ function findTrait(node: HoloCompositionNodeLike, predicate: (normalizedName: st
 function getJointTrait(node: HoloCompositionNodeLike): TraitMatch | null {
   return findTrait(
     node,
-    (name) =>
-      name === 'joint' ||
-      name === 'hinge' ||
-      name === 'slider' ||
-      name.startsWith('joint_')
+    (name) => name === 'joint' || name === 'hinge' || name === 'slider' || name.startsWith('joint_')
   );
 }
 
@@ -213,7 +213,9 @@ function jointTypeFromTrait(
   nodeProps: Record<string, unknown>,
   defaultJointType: RobotJoint['type']
 ): RobotJoint['type'] {
-  const explicitType = normalizeTraitName(asString(nodeProps.joint_type ?? nodeProps.type, defaultJointType));
+  const explicitType = normalizeTraitName(
+    asString(nodeProps.joint_type ?? nodeProps.type, defaultJointType)
+  );
 
   switch (explicitType) {
     case 'revolute':
@@ -246,7 +248,9 @@ function jointTypeFromTrait(
 function hardwareInterfaceFromMotor(
   motorProps: Record<string, unknown>
 ): RobotTransmission['hardwareInterface'] {
-  const commandMode = normalizeTraitName(asString(motorProps.commandMode ?? motorProps.mode, 'position'));
+  const commandMode = normalizeTraitName(
+    asString(motorProps.commandMode ?? motorProps.mode, 'position')
+  );
 
   if (commandMode === 'velocity') return 'velocity';
   if (commandMode === 'effort' || commandMode === 'torque') return 'effort';
@@ -291,8 +295,14 @@ function createTransmission(
   return {
     name: sanitizeRobotName(asString(motorProps.name, `${jointName}_transmission`)),
     joint: jointName,
-    actuator: sanitizeRobotName(asString(motorProps.actuator ?? motorProps.name, `${jointName}_motor`)),
-    mechanicalReduction: Number((asNumber(motorProps.mechanicalReduction ?? motorProps.gearRatio, 1) * hardwareScale).toFixed(6)),
+    actuator: sanitizeRobotName(
+      asString(motorProps.actuator ?? motorProps.name, `${jointName}_motor`)
+    ),
+    mechanicalReduction: Number(
+      (asNumber(motorProps.mechanicalReduction ?? motorProps.gearRatio, 1) * hardwareScale).toFixed(
+        6
+      )
+    ),
     hardwareInterface: hardwareInterfaceFromMotor(motorProps),
   };
 }
@@ -321,7 +331,9 @@ function buildLinkXml(link: RobotLink): string {
 
   if (link.collision) {
     lines.push('    <collision>');
-    lines.push(`      <geometry><mesh filename="${xmlEscape(link.collision.geometry)}"/></geometry>`);
+    lines.push(
+      `      <geometry><mesh filename="${xmlEscape(link.collision.geometry)}"/></geometry>`
+    );
     lines.push('    </collision>');
   }
 
@@ -383,10 +395,7 @@ export function extractURDFFromHoloComposition(
   const joints: RobotJoint[] = [];
   const transmissions: RobotTransmission[] = [];
 
-  const visitNode = (
-    node: HoloCompositionNodeLike,
-    parentLinkName: string | null
-  ) => {
+  const visitNode = (node: HoloCompositionNodeLike, parentLinkName: string | null) => {
     const props = asRecord(node.properties);
     const link = mapNodeToRobotLink(node, hardwareScale);
     links.push(link);
@@ -529,7 +538,7 @@ export function generateIsaacLabFeed(
   };
 
   // Simple content hashes for the receipt (evidence loop)
-  const sourceHoloHash = `holo:${ast.name}:${(ast.objects?.length || 0)}`;
+  const sourceHoloHash = `holo:${ast.name}:${ast.objects?.length || 0}`;
   const usdHash = `usd:${usd.length}`;
   const configHash = `cfg:${JSON.stringify(taskConfig).length}`;
 
@@ -540,7 +549,8 @@ export function generateIsaacLabFeed(
     generatedAt: new Date().toISOString(),
     isaacLabVersion: version,
     readyForTraining: true,
-    notes: 'Narrow feed bundle — assets + randomization + actuator config. Policy training & real-robot eval are downstream.',
+    notes:
+      'Narrow feed bundle — assets + randomization + actuator config. Policy training & real-robot eval are downstream.',
   };
 
   return {

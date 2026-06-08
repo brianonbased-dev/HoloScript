@@ -386,7 +386,10 @@ export const GRACE_PERIOD_MS = 14 * 24 * 60 * 60 * 1000;
  * opt-in is no longer checked — strict mode is now the default. Remove
  * MIGRATION_ACK from deployment configs; it has no effect.
  */
-export function isStrictMode(env: NodeJS.ProcessEnv = process.env, nowMs: number = Date.now()): boolean {
+export function isStrictMode(
+  env: NodeJS.ProcessEnv = process.env,
+  nowMs: number = Date.now()
+): boolean {
   // Phase 3: strict mode is ON by default. Set GRACE=1 to opt out during
   // the transition period (for machines not yet sending signed requests).
   if (env.HOLOMESH_SIGNING_GRACE === '1') return false;

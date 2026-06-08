@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-greenhouse-monitor",
-  name: "Greenhouse Monitor",
-  description: "Climate-controlled greenhouse with sensor overlays",
-  thumbnail: "🌱",
-  tags: ["agriculture","greenhouse","sensors","climate"],
-  category: "agriculture",
+  id: 'wizard-greenhouse-monitor',
+  name: 'Greenhouse Monitor',
+  description: 'Climate-controlled greenhouse with sensor overlays',
+  thumbnail: '🌱',
+  tags: ['agriculture', 'greenhouse', 'sensors', 'climate'],
+  category: 'agriculture',
   code: `composition "Greenhouse Monitor" {
   environment {
     skybox: "studio"
@@ -59,7 +59,7 @@ export const template: SceneTemplate = {
     emissive: "#cc44cc"
     emissiveIntensity: 2.5
   }
-}`
+}`,
 };
 
 export default template;

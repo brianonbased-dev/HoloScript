@@ -85,7 +85,7 @@ function normalizeIngestPath(raw: string): IngestPath {
     return s;
   }
   throw new Error(
-    `Invalid ingest path "${raw}". Use marble | holomap | both (or set HOLOSCRIPT_RECONSTRUCTION_PROFILE).`,
+    `Invalid ingest path "${raw}". Use marble | holomap | both (or set HOLOSCRIPT_RECONSTRUCTION_PROFILE).`
   );
 }
 
@@ -113,19 +113,14 @@ function normalizeVertical(raw: string): HoloMapVertical {
   if (s === 'base' || s === 'indoor' || s === 'outdoor' || s === 'object') {
     return s;
   }
-  throw new Error(
-    `Invalid HoloMap vertical "${raw}". Use base | indoor | outdoor | object.`,
-  );
+  throw new Error(`Invalid HoloMap vertical "${raw}". Use base | indoor | outdoor | object.`);
 }
 
 /**
  * Canonical resolution order: argv flag → HOLOSCRIPT_INGEST_PATH → INGEST_PATH →
  * HOLOSCRIPT_RECONSTRUCTION_PROFILE → default `marble`.
  */
-export function resolveIngestPath(proc: {
-  argv: string[];
-  env: NodeJS.ProcessEnv;
-}): IngestPath {
+export function resolveIngestPath(proc: { argv: string[]; env: NodeJS.ProcessEnv }): IngestPath {
   const fromArgv = parseIngestPathArgv(proc.argv);
   if (fromArgv) {
     return normalizeIngestPath(fromArgv);
@@ -142,7 +137,7 @@ export function resolveIngestPath(proc: {
     if (!meta) {
       throw new Error(
         `Unknown HOLOSCRIPT_RECONSTRUCTION_PROFILE "${profileId}". ` +
-          `Known: ${Object.keys(RECONSTRUCTION_PROFILES).join(', ')}`,
+          `Known: ${Object.keys(RECONSTRUCTION_PROFILES).join(', ')}`
       );
     }
     return meta.ingestPath;
@@ -200,11 +195,7 @@ export function selectHoloMapVerticalFromTraits(traits: string[]): HoloMapVertic
     return 'outdoor';
   }
 
-  if (
-    normalized.has('slam_heavy') ||
-    normalized.has('indoor') ||
-    normalized.has('low_light')
-  ) {
+  if (normalized.has('slam_heavy') || normalized.has('indoor') || normalized.has('low_light')) {
     return 'indoor';
   }
 

@@ -32,7 +32,10 @@ export interface VTKUnstructuredResult {
  * Parse a VTK STRUCTURED_POINTS file.
  */
 export function importStructuredPoints(vtk: string): VTKStructuredResult {
-  const lines = vtk.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+  const lines = vtk
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
 
   let dimensions: [number, number, number] = [0, 0, 0];
   let spacing: [number, number, number] = [1, 1, 1];
@@ -89,7 +92,10 @@ export function importStructuredPoints(vtk: string): VTKStructuredResult {
  * Parse a VTK UNSTRUCTURED_GRID file.
  */
 export function importUnstructuredGrid(vtk: string): VTKUnstructuredResult {
-  const lines = vtk.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+  const lines = vtk
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
 
   let vertices = new Float64Array(0);
   let tetrahedra = new Uint32Array(0);

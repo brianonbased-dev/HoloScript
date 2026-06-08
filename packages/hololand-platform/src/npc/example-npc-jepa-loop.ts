@@ -53,7 +53,9 @@ function main() {
   console.log('Demo complete. In a real HoloLand NPC this loop runs every tick,');
   console.log('with the real JEPAPredictor weights, live sensor observations,');
   console.log('and full SimulationContract anchoring of every prediction.');
-  console.log('Receipts flow to the World Build Cockpit trust gate and the public HoloMesh surface (D.055).');
+  console.log(
+    'Receipts flow to the World Build Cockpit trust gate and the public HoloMesh surface (D.055).'
+  );
 }
 
 main();

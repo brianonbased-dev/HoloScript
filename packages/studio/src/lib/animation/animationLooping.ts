@@ -198,12 +198,7 @@ export function generateSeamlessLoop(clip: RecordedClip, options: LoopOptions = 
       blendedFrames.push({
         time: endFrame.time,
         boneIndex,
-        rotation: [
-          blendedQuat.x,
-          blendedQuat.y,
-          blendedQuat.z,
-          blendedQuat.w,
-        ],
+        rotation: [blendedQuat.x, blendedQuat.y, blendedQuat.z, blendedQuat.w],
       });
     });
   });

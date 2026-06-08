@@ -63,7 +63,7 @@ export interface ProvenanceGuardResult {
  */
 export function validateCitations(
   citations: Citation[],
-  graph: CodebaseGraph,
+  graph: CodebaseGraph
 ): ProvenanceGuardResult {
   const validated: ValidatedCitation[] = [];
   const resolved: ValidatedCitation[] = [];
@@ -128,7 +128,7 @@ export function validateCitations(
  */
 export function filterAnswerCitations(
   citations: Citation[],
-  graph: CodebaseGraph,
+  graph: CodebaseGraph
 ): { citations: Citation[]; guard: ProvenanceGuardResult } | null {
   const result = validateCitations(citations, graph);
   if (!result.passed) return null;

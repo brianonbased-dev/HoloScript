@@ -59,7 +59,7 @@ Add to your MCP settings:
 | `generate_object`     | Creates a single HoloScript object    |
 | `generate_scene`      | Creates a complete composition        |
 | `validate_holoscript` | Checks code for errors + suggestions  |
-| `list_traits`         | Browse traits by category      |
+| `list_traits`         | Browse traits by category             |
 | `explain_trait`       | Detailed docs for a single trait      |
 | `compile_to_target`   | Compile to Unity, Godot, VRChat, etc. |
 | `create_share_link`   | Generate a playground URL             |

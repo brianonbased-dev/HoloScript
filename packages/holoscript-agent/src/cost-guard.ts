@@ -4,7 +4,7 @@ import type { TokenUsage } from '@holoscript/llm-provider';
 import type { CostState, ModelPricer } from './types.js';
 
 export const ANTHROPIC_PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> = {
-  'claude-opus-4-8': { input: 10, output: 50 },  // 3× cheaper than 4.7 on total cost; A-020 2026-06-08
+  'claude-opus-4-8': { input: 10, output: 50 }, // 3× cheaper than 4.7 on total cost; A-020 2026-06-08
   'claude-opus-4-7': { input: 5, output: 25 },
   'claude-opus-4-6': { input: 5, output: 25 },
   'claude-sonnet-4-6': { input: 3, output: 15 },

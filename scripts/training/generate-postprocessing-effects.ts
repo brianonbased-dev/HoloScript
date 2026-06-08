@@ -77,13 +77,13 @@ for (let i = 0; i < 2500; i++) {
     'Add bloom post-processing effect to make bright objects glow',
     'Create a scene with bloom to enhance emissive materials',
     'Apply bloom effect with custom threshold and intensity',
-    'Generate HoloScript with bloom for neon-style lighting'
+    'Generate HoloScript with bloom for neon-style lighting',
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: BLOOM_TEMPLATE
+    output: BLOOM_TEMPLATE,
   });
 }
 
@@ -135,7 +135,7 @@ for (let i = 0; i < 2500; i++) {
   allExamples.push({
     instruction: 'Add SSAO post-processing for ambient occlusion shadows',
     input: '',
-    output: SSAO_TEMPLATE
+    output: SSAO_TEMPLATE,
   });
 }
 
@@ -195,13 +195,13 @@ for (let i = 0; i < 2500; i++) {
     'Add motion blur for fast-moving objects',
     'Create cinematic depth of field effect',
     'Apply both motion blur and DOF for realistic camera',
-    'Generate scene with focus effects and motion blur'
+    'Generate scene with focus effects and motion blur',
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: MOTION_DOF_TEMPLATE
+    output: MOTION_DOF_TEMPLATE,
   });
 }
 
@@ -272,13 +272,13 @@ for (let i = 0; i < 2500; i++) {
     'Add color grading for cinematic look',
     'Apply anti-aliasing to smooth jagged edges',
     'Create scene with tone mapping and AA',
-    'Generate post-processing with color correction and FXAA'
+    'Generate post-processing with color correction and FXAA',
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: COLOR_AA_TEMPLATE
+    output: COLOR_AA_TEMPLATE,
   });
 }
 
@@ -293,7 +293,7 @@ async function writeDataset() {
   console.log('[EXPORT] Writing post-processing dataset...');
 
   const outputFile = path.join(__dirname, '../datasets/postprocessing-effects.jsonl');
-  const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
+  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
 
   await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 

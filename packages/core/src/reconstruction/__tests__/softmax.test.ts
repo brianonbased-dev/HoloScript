@@ -154,7 +154,13 @@ describe('Softmax — CPU reference', () => {
 const describeWebGpu = isWebGpuEnvironmentPresent() ? describe : describe.skip;
 
 describeWebGpu('Softmax kernel', () => {
-  async function runCase(rows: number, cols: number, seed: number, min: number, max: number): Promise<void> {
+  async function runCase(
+    rows: number,
+    cols: number,
+    seed: number,
+    min: number,
+    max: number
+  ): Promise<void> {
     const device = await requestDeviceOrNull();
     if (!device) {
       return;

@@ -309,7 +309,11 @@ export class HoloScriptWasm {
   }
 
   /** WIT `generate-trait-code-for-target` — produce code for a trait on a target */
-  generateTraitCode(name: string, target: TraitTarget, config: Record<string, unknown> = {}): string[] {
+  generateTraitCode(
+    name: string,
+    target: TraitTarget,
+    config: Record<string, unknown> = {}
+  ): string[] {
     return generateTraitCodeImpl(name, target, config);
   }
 
@@ -452,7 +456,11 @@ function listTraitsImpl(target: TraitTarget): string[] {
   return [];
 }
 
-function generateTraitCodeImpl(name: string, target: TraitTarget, config: Record<string, unknown>): string[] {
+function generateTraitCodeImpl(
+  name: string,
+  target: TraitTarget,
+  config: Record<string, unknown>
+): string[] {
   const bridge = getBridge();
   if (bridge?.generateTraitForTarget) {
     return bridge.generateTraitForTarget(name, target, config);

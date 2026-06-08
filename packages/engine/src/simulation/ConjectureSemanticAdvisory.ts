@@ -24,7 +24,11 @@ import { assessSemanticNoveltyIndexed, type SemanticCorpusIndex } from './Semant
  * evaluated and not refuted. `out-of-scope` was never examined; `falsified` is already wrong,
  * so "is it novel" is moot. Override via options.runWhen if a caller wants a different policy.
  */
-const DEFAULT_ADVISORY_STATUSES: ReadonlyArray<ConjectureStatus> = ['survived', 'rediscovered', 'undecided'];
+const DEFAULT_ADVISORY_STATUSES: ReadonlyArray<ConjectureStatus> = [
+  'survived',
+  'rediscovered',
+  'undecided',
+];
 
 export interface ConjectureReceiptWithAdvisory {
   /** The unmodified receipt — its receiptKey is unaffected by this wrapper. */
@@ -53,7 +57,7 @@ export interface AttachSemanticAdvisoryOptions {
 export async function attachSemanticAdvisory(
   receipt: ConjectureReceipt,
   index: SemanticCorpusIndex,
-  options: AttachSemanticAdvisoryOptions = {},
+  options: AttachSemanticAdvisoryOptions = {}
 ): Promise<ConjectureReceiptWithAdvisory> {
   const runWhen = options.runWhen ?? DEFAULT_ADVISORY_STATUSES;
   if (!runWhen.includes(receipt.status)) {
@@ -65,7 +69,7 @@ export async function attachSemanticAdvisory(
   const semanticAdvisory = await assessSemanticNoveltyIndexed(
     receipt.claim.statement,
     index,
-    options.threshold,
+    options.threshold
   );
   return { receipt, semanticAdvisory };
 }

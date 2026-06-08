@@ -118,7 +118,10 @@ class SlowPoisonerDriver implements TrustDriver {
   readonly state: ServerTrustState;
   constructor(formula: TrustFormulaVersion = 'v11') {
     // Precondition: established server, T >= 0.7 => seed near that reputation.
-    this.state = new ServerTrustState({ contributions: 80, queriesAnswered: 100, reuseRate: 1.5 }, formula);
+    this.state = new ServerTrustState(
+      { contributions: 80, queriesAnswered: 100, reuseRate: 1.5 },
+      formula
+    );
   }
   step(_round: number): void {
     // Maintain a steady legitimate-looking cadence so trust does not decay.
@@ -144,11 +147,14 @@ class EclipseDriver implements TrustDriver {
     // Seed the victim at its pre-eclipse reputation (invert reputationToTrust).
     const seedReputation = Math.max(0, preEclipseTargetTrust) * 100;
     // Split the seed across contributions/queries to be a realistic profile.
-    this.state = new ServerTrustState({
-      contributions: Math.round(seedReputation * 0.6),
-      queriesAnswered: Math.round(seedReputation * 0.4),
-      reuseRate: 1.0,
-    }, formula);
+    this.state = new ServerTrustState(
+      {
+        contributions: Math.round(seedReputation * 0.6),
+        queriesAnswered: Math.round(seedReputation * 0.4),
+        reuseRate: 1.0,
+      },
+      formula
+    );
   }
   step(_round: number): void {
     // Under eclipse the victim's real reuse evaporates (no honest peers reach
@@ -172,7 +178,10 @@ class EclipseDriver implements TrustDriver {
   }
 }
 
-export function makeTrustDriver(spec: RunnableAttack, formula: TrustFormulaVersion = 'v11'): TrustDriver {
+export function makeTrustDriver(
+  spec: RunnableAttack,
+  formula: TrustFormulaVersion = 'v11'
+): TrustDriver {
   switch (spec.id) {
     case 'sybil':
       return new SybilDriver(spec.config.K, formula);

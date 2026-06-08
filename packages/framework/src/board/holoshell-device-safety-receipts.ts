@@ -190,7 +190,8 @@ export interface DeviceInventoryReceipt {
 
 // ── DeviceSafetyEnvelopeReceipt ──
 
-export const DEVICE_SAFETY_ENVELOPE_RECEIPT_VERSION = 'holoscript-device-safety-envelope-receipt/v1';
+export const DEVICE_SAFETY_ENVELOPE_RECEIPT_VERSION =
+  'holoscript-device-safety-envelope-receipt/v1';
 
 export interface DeviceSafetyEnvelopeReceipt {
   /** Unique receipt identifier. */
@@ -451,7 +452,15 @@ export interface HoloShellTargetDeviceProofPack {
   /** Whether this pack is ready to unlock HoloLand world operations (requires real target witness, not blocker-only). */
   targetProofReadyForHoloLand: boolean;
   /** Overall status for the target-proof workflow. */
-  status: 'local_ready' | 'device_identified' | 'witness_planned' | 'witness_captured' | 'approved' | 'executed' | 'target_proven' | 'blocked';
+  status:
+    | 'local_ready'
+    | 'device_identified'
+    | 'witness_planned'
+    | 'witness_captured'
+    | 'approved'
+    | 'executed'
+    | 'target_proven'
+    | 'blocked';
   /** Hash of the full target proof pack for integrity. */
   hash: string;
   /** Hash algorithm used. */
@@ -480,8 +489,7 @@ function isNonNegativeInteger(value: number): boolean {
 
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
-    typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
+    typeof value === 'string' && /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
   );
 }
 
@@ -509,7 +517,12 @@ function validateDeviceIdentityEntry(
   if (!isOneOf(DEVICE_CATEGORIES, String(device.category))) {
     errors.push(`${label}.category is unsupported: ${String(device.category)}.`);
   }
-  if (!isOneOf(['connected', 'disconnected', 'pairing', 'unknown'] as const, String(device.connectionStatus))) {
+  if (
+    !isOneOf(
+      ['connected', 'disconnected', 'pairing', 'unknown'] as const,
+      String(device.connectionStatus)
+    )
+  ) {
     errors.push(`${label}.connectionStatus is unsupported: ${String(device.connectionStatus)}.`);
   }
   if (typeof device.probedByHardwareAudit !== 'boolean') {
@@ -617,7 +630,9 @@ export function validateDeviceInventoryReceipt(receipt: DeviceInventoryReceipt):
   const errors: string[] = [];
   if (!receipt.id) errors.push('DeviceInventoryReceipt.id is required.');
   if (receipt.schemaVersion !== DEVICE_INVENTORY_RECEIPT_VERSION) {
-    errors.push(`DeviceInventoryReceipt.schemaVersion must be ${DEVICE_INVENTORY_RECEIPT_VERSION}.`);
+    errors.push(
+      `DeviceInventoryReceipt.schemaVersion must be ${DEVICE_INVENTORY_RECEIPT_VERSION}.`
+    );
   }
   if (!isIsoTimestamp(receipt.inventoriedAt)) {
     errors.push('DeviceInventoryReceipt.inventoriedAt must be a valid ISO-8601 timestamp.');
@@ -650,7 +665,9 @@ export function validateDeviceSafetyEnvelopeReceipt(
   const errors: string[] = [];
   if (!receipt.id) errors.push('DeviceSafetyEnvelopeReceipt.id is required.');
   if (receipt.schemaVersion !== DEVICE_SAFETY_ENVELOPE_RECEIPT_VERSION) {
-    errors.push(`DeviceSafetyEnvelopeReceipt.schemaVersion must be ${DEVICE_SAFETY_ENVELOPE_RECEIPT_VERSION}.`);
+    errors.push(
+      `DeviceSafetyEnvelopeReceipt.schemaVersion must be ${DEVICE_SAFETY_ENVELOPE_RECEIPT_VERSION}.`
+    );
   }
   if (!isIsoTimestamp(receipt.createdAt)) {
     errors.push('DeviceSafetyEnvelopeReceipt.createdAt must be a valid ISO-8601 timestamp.');
@@ -661,15 +678,21 @@ export function validateDeviceSafetyEnvelopeReceipt(
   } else {
     for (const scope of receipt.consentScopes) {
       if (!isSupportedDeviceConsentScope(String(scope))) {
-        errors.push(`DeviceSafetyEnvelopeReceipt.consentScopes has unsupported scope: ${String(scope)}.`);
+        errors.push(
+          `DeviceSafetyEnvelopeReceipt.consentScopes has unsupported scope: ${String(scope)}.`
+        );
       }
     }
   }
   if (!isSupportedDeviceActionClass(String(receipt.actionClass))) {
-    errors.push(`DeviceSafetyEnvelopeReceipt.actionClass is unsupported: ${String(receipt.actionClass)}.`);
+    errors.push(
+      `DeviceSafetyEnvelopeReceipt.actionClass is unsupported: ${String(receipt.actionClass)}.`
+    );
   }
   if (!isOneOf(DEVICE_ACTION_RISK_LEVELS, String(receipt.riskLevel))) {
-    errors.push(`DeviceSafetyEnvelopeReceipt.riskLevel is unsupported: ${String(receipt.riskLevel)}.`);
+    errors.push(
+      `DeviceSafetyEnvelopeReceipt.riskLevel is unsupported: ${String(receipt.riskLevel)}.`
+    );
   }
   validateSafeRanges(receipt.safeRanges, 'DeviceSafetyEnvelopeReceipt.safeRanges[]', errors);
   if (!receipt.commandPreview) {
@@ -684,7 +707,11 @@ export function validateDeviceSafetyEnvelopeReceipt(
   if (hasAbsolutePath(receipt.commandPreview)) {
     errors.push('DeviceSafetyEnvelopeReceipt.commandPreview must not expose absolute local paths.');
   }
-  validatePrivacyRedactions(receipt.privacyRedactions, 'DeviceSafetyEnvelopeReceipt.privacyRedactions[]', errors);
+  validatePrivacyRedactions(
+    receipt.privacyRedactions,
+    'DeviceSafetyEnvelopeReceipt.privacyRedactions[]',
+    errors
+  );
   if (typeof receipt.requiresFreshUserGesture !== 'boolean') {
     errors.push('DeviceSafetyEnvelopeReceipt.requiresFreshUserGesture must be a boolean.');
   }
@@ -722,7 +749,9 @@ export function validateConsentReceipt(receipt: ConsentReceipt): string[] {
     errors.push(`ConsentReceipt.actionClass is unsupported: ${String(receipt.actionClass)}.`);
   }
   if (!isOneOf(DEVICE_ACTION_RISK_LEVELS, String(receipt.riskLevelAcknowledged))) {
-    errors.push(`ConsentReceipt.riskLevelAcknowledged is unsupported: ${String(receipt.riskLevelAcknowledged)}.`);
+    errors.push(
+      `ConsentReceipt.riskLevelAcknowledged is unsupported: ${String(receipt.riskLevelAcknowledged)}.`
+    );
   }
   if (!isIsoTimestamp(receipt.consentedAt)) {
     errors.push('ConsentReceipt.consentedAt must be a valid ISO-8601 timestamp.');
@@ -768,7 +797,11 @@ export function validateDeviceActionReceipt(receipt: DeviceActionReceipt): strin
   if (!isIsoTimestamp(receipt.completedAt)) {
     errors.push('DeviceActionReceipt.completedAt must be a valid ISO-8601 timestamp.');
   }
-  if (typeof receipt.durationMs !== 'number' || !Number.isFinite(receipt.durationMs) || receipt.durationMs < 0) {
+  if (
+    typeof receipt.durationMs !== 'number' ||
+    !Number.isFinite(receipt.durationMs) ||
+    receipt.durationMs < 0
+  ) {
     errors.push('DeviceActionReceipt.durationMs must be a non-negative finite number.');
   }
   validateStateSnapshot(receipt.beforeState, 'DeviceActionReceipt.beforeState', errors);
@@ -782,7 +815,11 @@ export function validateDeviceActionReceipt(receipt: DeviceActionReceipt): strin
   if (!Array.isArray(receipt.safeRangeViolations)) {
     errors.push('DeviceActionReceipt.safeRangeViolations must be an array.');
   }
-  validatePrivacyRedactions(receipt.privacyRedactions, 'DeviceActionReceipt.privacyRedactions[]', errors);
+  validatePrivacyRedactions(
+    receipt.privacyRedactions,
+    'DeviceActionReceipt.privacyRedactions[]',
+    errors
+  );
   if (typeof receipt.replayable !== 'boolean') {
     errors.push('DeviceActionReceipt.replayable must be a boolean.');
   }
@@ -798,7 +835,8 @@ export function validateReplayLessonReceipt(receipt: ReplayLessonReceipt): strin
   if (receipt.schemaVersion !== REPLAY_LESSON_RECEIPT_VERSION) {
     errors.push(`ReplayLessonReceipt.schemaVersion must be ${REPLAY_LESSON_RECEIPT_VERSION}.`);
   }
-  if (!receipt.sourceActionReceiptId) errors.push('ReplayLessonReceipt.sourceActionReceiptId is required.');
+  if (!receipt.sourceActionReceiptId)
+    errors.push('ReplayLessonReceipt.sourceActionReceiptId is required.');
   validateDeviceIdentityEntry(receipt.device, 'ReplayLessonReceipt.device', errors);
   if (!Array.isArray(receipt.lessons) || receipt.lessons.length === 0) {
     errors.push('ReplayLessonReceipt.lessons must include at least one lesson.');
@@ -809,7 +847,9 @@ export function validateReplayLessonReceipt(receipt: ReplayLessonReceipt): strin
         errors.push(`ReplayLessonEntry.kind is unsupported: ${String(lesson.kind)}.`);
       }
       if (!isSupportedDeviceActionOutcome(String(lesson.sourceOutcome))) {
-        errors.push(`ReplayLessonEntry.sourceOutcome is unsupported: ${String(lesson.sourceOutcome)}.`);
+        errors.push(
+          `ReplayLessonEntry.sourceOutcome is unsupported: ${String(lesson.sourceOutcome)}.`
+        );
       }
       if (typeof lesson.autoDerived !== 'boolean') {
         errors.push('ReplayLessonEntry.autoDerived must be a boolean.');
@@ -818,7 +858,8 @@ export function validateReplayLessonReceipt(receipt: ReplayLessonReceipt): strin
         errors.push('ReplayLessonEntry.showToNonDevelopers must be a boolean.');
       }
       if (!lesson.insight) errors.push('ReplayLessonEntry.insight is required.');
-      if (!lesson.recommendedAction) errors.push('ReplayLessonEntry.recommendedAction is required.');
+      if (!lesson.recommendedAction)
+        errors.push('ReplayLessonEntry.recommendedAction is required.');
     }
   }
   if (!isIsoTimestamp(receipt.generatedAt)) {
@@ -830,7 +871,8 @@ export function validateReplayLessonReceipt(receipt: ReplayLessonReceipt): strin
   if (typeof receipt.originalMutationPerformed !== 'boolean') {
     errors.push('ReplayLessonReceipt.originalMutationPerformed must be a boolean.');
   }
-  if (!receipt.originalRollbackNote) errors.push('ReplayLessonReceipt.originalRollbackNote is required.');
+  if (!receipt.originalRollbackNote)
+    errors.push('ReplayLessonReceipt.originalRollbackNote is required.');
   validateHashFields('ReplayLessonReceipt', receipt.hash, receipt.hashAlgorithm, errors);
   return errors;
 }
@@ -857,7 +899,12 @@ export function validateHoloShellDeviceSafetyReceiptPack(
   }
   if (pack.action) errors.push(...validateDeviceActionReceipt(pack.action));
   if (pack.replay) errors.push(...validateReplayLessonReceipt(pack.replay));
-  if (!isOneOf(['planned', 'consented', 'executing', 'completed', 'failed', 'blocked'] as const, String(pack.status))) {
+  if (
+    !isOneOf(
+      ['planned', 'consented', 'executing', 'completed', 'failed', 'blocked'] as const,
+      String(pack.status)
+    )
+  ) {
     errors.push(`HoloShellDeviceSafetyReceiptPack.status is unsupported: ${String(pack.status)}.`);
   }
   if (pack.status === 'completed' && !pack.action) {
@@ -878,10 +925,14 @@ export function validateHoloShellTargetDeviceProofPack(
     errors.push(...validateHoloShellDeviceSafetyReceiptPack(pack.safetyPack));
   }
   if (!pack.targetWitness) {
-    errors.push('HoloShellTargetDeviceProofPack.targetWitness is required (real target frame or explicit blocker).');
+    errors.push(
+      'HoloShellTargetDeviceProofPack.targetWitness is required (real target frame or explicit blocker).'
+    );
   } else {
-    if (!pack.targetWitness.witnessedAt) errors.push('TargetDeviceWitness.witnessedAt is required.');
-    if (!pack.targetWitness.witnessSource) errors.push('TargetDeviceWitness.witnessSource is required.');
+    if (!pack.targetWitness.witnessedAt)
+      errors.push('TargetDeviceWitness.witnessedAt is required.');
+    if (!pack.targetWitness.witnessSource)
+      errors.push('TargetDeviceWitness.witnessSource is required.');
     const hasRealWitness = !!pack.targetWitness.witnessHash;
     const hasBlocker = !!pack.targetWitness.blocker;
     if (!hasRealWitness && !hasBlocker) {
@@ -893,9 +944,25 @@ export function validateHoloShellTargetDeviceProofPack(
   }
   // ready_for_hololand requires a real (non-blocker) witness
   if (pack.targetProofReadyForHoloLand && !pack.targetWitness?.witnessHash) {
-    errors.push('targetProofReadyForHoloLand=true requires a real targetWitness.witnessHash (not blocker-only).');
+    errors.push(
+      'targetProofReadyForHoloLand=true requires a real targetWitness.witnessHash (not blocker-only).'
+    );
   }
-  if (!isOneOf(['local_ready', 'device_identified', 'witness_planned', 'witness_captured', 'approved', 'executed', 'target_proven', 'blocked'] as const, String(pack.status))) {
+  if (
+    !isOneOf(
+      [
+        'local_ready',
+        'device_identified',
+        'witness_planned',
+        'witness_captured',
+        'approved',
+        'executed',
+        'target_proven',
+        'blocked',
+      ] as const,
+      String(pack.status)
+    )
+  ) {
     errors.push(`HoloShellTargetDeviceProofPack.status is unsupported: ${String(pack.status)}.`);
   }
   validateHashFields('HoloShellTargetDeviceProofPack', pack.hash, pack.hashAlgorithm, errors);
@@ -908,26 +975,62 @@ export function cloneDeviceIdentityEntry(entry: DeviceIdentityEntry): DeviceIden
   return { ...entry };
 }
 
-export function cloneDeviceInventoryReceipt(receipt: DeviceInventoryReceipt): DeviceInventoryReceipt {
+export function cloneDeviceInventoryReceipt(
+  receipt: DeviceInventoryReceipt
+): DeviceInventoryReceipt {
   return {
     ...receipt,
     devices: receipt.devices.map(cloneDeviceIdentityEntry),
     categoriesFound: [...receipt.categoriesFound],
     warnings: [...receipt.warnings],
-    ...(receipt.provenance ? { provenance: { ...receipt.provenance, parentArtifactIds: receipt.provenance.parentArtifactIds ? [...receipt.provenance.parentArtifactIds] : undefined } } : {}),
-    ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c, artifactIds: c.artifactIds ? [...c.artifactIds] : undefined })) } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            parentArtifactIds: receipt.provenance.parentArtifactIds
+              ? [...receipt.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
+    ...(receipt.verificationCommands
+      ? {
+          verificationCommands: receipt.verificationCommands.map((c) => ({
+            ...c,
+            artifactIds: c.artifactIds ? [...c.artifactIds] : undefined,
+          })),
+        }
+      : {}),
   };
 }
 
-export function cloneDeviceSafetyEnvelopeReceipt(receipt: DeviceSafetyEnvelopeReceipt): DeviceSafetyEnvelopeReceipt {
+export function cloneDeviceSafetyEnvelopeReceipt(
+  receipt: DeviceSafetyEnvelopeReceipt
+): DeviceSafetyEnvelopeReceipt {
   return {
     ...receipt,
     device: cloneDeviceIdentityEntry(receipt.device),
     consentScopes: [...receipt.consentScopes],
     safeRanges: receipt.safeRanges.map((r) => ({ ...r })),
     privacyRedactions: receipt.privacyRedactions.map((r) => ({ ...r })),
-    ...(receipt.provenance ? { provenance: { ...receipt.provenance, parentArtifactIds: receipt.provenance.parentArtifactIds ? [...receipt.provenance.parentArtifactIds] : undefined } } : {}),
-    ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c, artifactIds: c.artifactIds ? [...c.artifactIds] : undefined })) } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            parentArtifactIds: receipt.provenance.parentArtifactIds
+              ? [...receipt.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
+    ...(receipt.verificationCommands
+      ? {
+          verificationCommands: receipt.verificationCommands.map((c) => ({
+            ...c,
+            artifactIds: c.artifactIds ? [...c.artifactIds] : undefined,
+          })),
+        }
+      : {}),
   };
 }
 
@@ -944,8 +1047,24 @@ export function cloneDeviceActionReceipt(receipt: DeviceActionReceipt): DeviceAc
     device: cloneDeviceIdentityEntry(receipt.device),
     safeRangeViolations: [...receipt.safeRangeViolations],
     privacyRedactions: receipt.privacyRedactions.map((r) => ({ ...r })),
-    ...(receipt.provenance ? { provenance: { ...receipt.provenance, parentArtifactIds: receipt.provenance.parentArtifactIds ? [...receipt.provenance.parentArtifactIds] : undefined } } : {}),
-    ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c, artifactIds: c.artifactIds ? [...c.artifactIds] : undefined })) } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            parentArtifactIds: receipt.provenance.parentArtifactIds
+              ? [...receipt.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
+    ...(receipt.verificationCommands
+      ? {
+          verificationCommands: receipt.verificationCommands.map((c) => ({
+            ...c,
+            artifactIds: c.artifactIds ? [...c.artifactIds] : undefined,
+          })),
+        }
+      : {}),
   };
 }
 
@@ -954,7 +1073,16 @@ export function cloneReplayLessonReceipt(receipt: ReplayLessonReceipt): ReplayLe
     ...receipt,
     device: cloneDeviceIdentityEntry(receipt.device),
     lessons: receipt.lessons.map((l) => ({ ...l })),
-    ...(receipt.provenance ? { provenance: { ...receipt.provenance, parentArtifactIds: receipt.provenance.parentArtifactIds ? [...receipt.provenance.parentArtifactIds] : undefined } } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            parentArtifactIds: receipt.provenance.parentArtifactIds
+              ? [...receipt.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
   };
 }
 
@@ -982,7 +1110,16 @@ export function cloneHoloShellTargetDeviceProofPack(
     ...pack,
     safetyPack: cloneHoloShellDeviceSafetyReceiptPack(pack.safetyPack),
     targetWitness: cloneTargetDeviceWitness(pack.targetWitness),
-    ...(pack.provenance ? { provenance: { ...pack.provenance, parentArtifactIds: pack.provenance.parentArtifactIds ? [...pack.provenance.parentArtifactIds] : undefined } } : {}),
+    ...(pack.provenance
+      ? {
+          provenance: {
+            ...pack.provenance,
+            parentArtifactIds: pack.provenance.parentArtifactIds
+              ? [...pack.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
   };
 }
 
@@ -1084,7 +1221,8 @@ export interface SafeStopReceipt {
   retryEligible: boolean;
 }
 
-export const PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION = 'holoscript-physical-rollback-limit-receipt/v1';
+export const PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION =
+  'holoscript-physical-rollback-limit-receipt/v1';
 
 /** Physical rollback limit receipt — documents what physical changes can and cannot be undone. */
 export interface PhysicalRollbackLimitReceipt {
@@ -1130,20 +1268,24 @@ export interface HoloShellActuationExtension {
 
 // ── Validators ──
 
-export function validateActuationSimulationReceipt(
-  receipt: ActuationSimulationReceipt
-): string[] {
+export function validateActuationSimulationReceipt(receipt: ActuationSimulationReceipt): string[] {
   const errors: string[] = [];
   if (receipt.schemaVersion !== ACTUATION_SIMULATION_RECEIPT_VERSION)
-    errors.push(`ActuationSimulationReceipt.schemaVersion must be "${ACTUATION_SIMULATION_RECEIPT_VERSION}".`);
+    errors.push(
+      `ActuationSimulationReceipt.schemaVersion must be "${ACTUATION_SIMULATION_RECEIPT_VERSION}".`
+    );
   if (!receipt.id) errors.push('ActuationSimulationReceipt.id is required.');
   if (!receipt.actionId) errors.push('ActuationSimulationReceipt.actionId is required.');
-  if (!receipt.targetDeviceId) errors.push('ActuationSimulationReceipt.targetDeviceId is required.');
-  if (!receipt.predictedOutcome) errors.push('ActuationSimulationReceipt.predictedOutcome is required.');
-  if (typeof receipt.simulationPassed !== 'boolean') errors.push('ActuationSimulationReceipt.simulationPassed must be boolean.');
+  if (!receipt.targetDeviceId)
+    errors.push('ActuationSimulationReceipt.targetDeviceId is required.');
+  if (!receipt.predictedOutcome)
+    errors.push('ActuationSimulationReceipt.predictedOutcome is required.');
+  if (typeof receipt.simulationPassed !== 'boolean')
+    errors.push('ActuationSimulationReceipt.simulationPassed must be boolean.');
   if (typeof receipt.durationMs !== 'number' || receipt.durationMs < 0)
     errors.push('ActuationSimulationReceipt.durationMs must be a non-negative number.');
-  if (!receipt.simulationEngine) errors.push('ActuationSimulationReceipt.simulationEngine is required.');
+  if (!receipt.simulationEngine)
+    errors.push('ActuationSimulationReceipt.simulationEngine is required.');
   if (!receipt.simulatedAt) errors.push('ActuationSimulationReceipt.simulatedAt is required.');
   return errors;
 }
@@ -1151,20 +1293,25 @@ export function validateActuationSimulationReceipt(
 export function validateSensorFreshnessReceipt(receipt: SensorFreshnessReceipt): string[] {
   const errors: string[] = [];
   if (receipt.schemaVersion !== SENSOR_FRESHNESS_RECEIPT_VERSION)
-    errors.push(`SensorFreshnessReceipt.schemaVersion must be "${SENSOR_FRESHNESS_RECEIPT_VERSION}".`);
+    errors.push(
+      `SensorFreshnessReceipt.schemaVersion must be "${SENSOR_FRESHNESS_RECEIPT_VERSION}".`
+    );
   if (!receipt.id) errors.push('SensorFreshnessReceipt.id is required.');
   if (!receipt.actionId) errors.push('SensorFreshnessReceipt.actionId is required.');
   if (typeof receipt.maxSensorAgeMs !== 'number' || receipt.maxSensorAgeMs < 0)
     errors.push('SensorFreshnessReceipt.maxSensorAgeMs must be a non-negative number.');
   if (typeof receipt.actualSensorAgeMs !== 'number' || receipt.actualSensorAgeMs < 0)
     errors.push('SensorFreshnessReceipt.actualSensorAgeMs must be a non-negative number.');
-  if (typeof receipt.sensorFresh !== 'boolean') errors.push('SensorFreshnessReceipt.sensorFresh must be boolean.');
+  if (typeof receipt.sensorFresh !== 'boolean')
+    errors.push('SensorFreshnessReceipt.sensorFresh must be boolean.');
   if (typeof receipt.maxApprovalAgeMs !== 'number' || receipt.maxApprovalAgeMs < 0)
     errors.push('SensorFreshnessReceipt.maxApprovalAgeMs must be a non-negative number.');
   if (typeof receipt.actualApprovalAgeMs !== 'number' || receipt.actualApprovalAgeMs < 0)
     errors.push('SensorFreshnessReceipt.actualApprovalAgeMs must be a non-negative number.');
-  if (typeof receipt.approvalFresh !== 'boolean') errors.push('SensorFreshnessReceipt.approvalFresh must be boolean.');
-  if (typeof receipt.fresh !== 'boolean') errors.push('SensorFreshnessReceipt.fresh must be boolean.');
+  if (typeof receipt.approvalFresh !== 'boolean')
+    errors.push('SensorFreshnessReceipt.approvalFresh must be boolean.');
+  if (typeof receipt.fresh !== 'boolean')
+    errors.push('SensorFreshnessReceipt.fresh must be boolean.');
   if (!receipt.checkedAt) errors.push('SensorFreshnessReceipt.checkedAt is required.');
   // Cross-field: fresh = sensorFresh && approvalFresh
   if (receipt.fresh !== (receipt.sensorFresh && receipt.approvalFresh))
@@ -1182,25 +1329,36 @@ export function validateSafeStopReceipt(receipt: SafeStopReceipt): string[] {
   if (!SAFE_STOP_TRIGGERS.includes(receipt.trigger as SafeStopTrigger))
     errors.push(`SafeStopReceipt.trigger must be one of: ${SAFE_STOP_TRIGGERS.join(', ')}.`);
   if (!receipt.reason) errors.push('SafeStopReceipt.reason is required.');
-  if (typeof receipt.safeCategoryReached !== 'boolean') errors.push('SafeStopReceipt.safeCategoryReached must be boolean.');
+  if (typeof receipt.safeCategoryReached !== 'boolean')
+    errors.push('SafeStopReceipt.safeCategoryReached must be boolean.');
   if (!receipt.stoppedAt) errors.push('SafeStopReceipt.stoppedAt is required.');
-  if (typeof receipt.retryEligible !== 'boolean') errors.push('SafeStopReceipt.retryEligible must be boolean.');
+  if (typeof receipt.retryEligible !== 'boolean')
+    errors.push('SafeStopReceipt.retryEligible must be boolean.');
   return errors;
 }
 
-export function validatePhysicalRollbackLimitReceipt(receipt: PhysicalRollbackLimitReceipt): string[] {
+export function validatePhysicalRollbackLimitReceipt(
+  receipt: PhysicalRollbackLimitReceipt
+): string[] {
   const errors: string[] = [];
   if (receipt.schemaVersion !== PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION)
-    errors.push(`PhysicalRollbackLimitReceipt.schemaVersion must be "${PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION}".`);
+    errors.push(
+      `PhysicalRollbackLimitReceipt.schemaVersion must be "${PHYSICAL_ROLLBACK_LIMIT_RECEIPT_VERSION}".`
+    );
   if (!receipt.id) errors.push('PhysicalRollbackLimitReceipt.id is required.');
   if (!receipt.actionId) errors.push('PhysicalRollbackLimitReceipt.actionId is required.');
-  if (!receipt.targetDeviceId) errors.push('PhysicalRollbackLimitReceipt.targetDeviceId is required.');
-  if (typeof receipt.reversible !== 'boolean') errors.push('PhysicalRollbackLimitReceipt.reversible must be boolean.');
+  if (!receipt.targetDeviceId)
+    errors.push('PhysicalRollbackLimitReceipt.targetDeviceId is required.');
+  if (typeof receipt.reversible !== 'boolean')
+    errors.push('PhysicalRollbackLimitReceipt.reversible must be boolean.');
   if (typeof receipt.rollbackWindowMs !== 'number' || receipt.rollbackWindowMs < 0)
     errors.push('PhysicalRollbackLimitReceipt.rollbackWindowMs must be a non-negative number.');
-  if (typeof receipt.rollbackAttempted !== 'boolean') errors.push('PhysicalRollbackLimitReceipt.rollbackAttempted must be boolean.');
+  if (typeof receipt.rollbackAttempted !== 'boolean')
+    errors.push('PhysicalRollbackLimitReceipt.rollbackAttempted must be boolean.');
   // Cross-field: rollbackSucceeded only meaningful if rollbackAttempted
   if (!receipt.rollbackAttempted && receipt.rollbackSucceeded !== undefined)
-    errors.push('PhysicalRollbackLimitReceipt.rollbackSucceeded must be undefined when rollbackAttempted=false.');
+    errors.push(
+      'PhysicalRollbackLimitReceipt.rollbackSucceeded must be undefined when rollbackAttempted=false.'
+    );
   return errors;
 }

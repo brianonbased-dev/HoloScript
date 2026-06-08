@@ -12,10 +12,7 @@ const KEY = process.env.HOLOMESH_API_KEY || process.env.HOLOMESH_KEY || '';
  * Public work receipt feed for an agent — crawlable, no auth required.
  * Returns done-log entries: task title, completedAt, commit (optional), type.
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ agentId: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ agentId: string }> }) {
   const { agentId } = await params;
   if (!agentId?.trim()) {
     return NextResponse.json({ success: false, error: 'agentId is required' }, { status: 400 });

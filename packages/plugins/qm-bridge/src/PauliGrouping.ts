@@ -187,9 +187,7 @@ export function groupPauliTerms(terms: PauliTerm[]): PauliGroupingResult {
  * Parse a SparsePauliOp-style list of (pauli_string, coefficient) pairs
  * into PauliTerm array.
  */
-export function parsePauliList(
-  entries: Array<[string, number]>
-): PauliTerm[] {
+export function parsePauliList(entries: Array<[string, number]>): PauliTerm[] {
   return entries.map(([pauli, coefficient]) => ({ pauli, coefficient }));
 }
 

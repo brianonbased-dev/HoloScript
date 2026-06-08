@@ -161,7 +161,8 @@ async function runPaper6WebGPUMatrixBenchmark(): Promise<void> {
           vendor: info.vendor || 'unknown',
           architecture: info.architecture || null,
           device: info.device || null,
-          description: [info.vendor, info.architecture, info.device].filter(Boolean).join(' ') || null,
+          description:
+            [info.vendor, info.architecture, info.device].filter(Boolean).join(' ') || null,
         };
       } else {
         note('WebGPU adapter request returned null (software renderer or blocked).');
@@ -271,8 +272,8 @@ async function runPaper6WebGPUMatrixBenchmark(): Promise<void> {
   if (baselineHash === 0) {
     note(
       `Baseline hash is placeholder (0x00000000). ` +
-      `This run seeded hash=0x${hash.toString(16).padStart(8, '0')}. ` +
-      `Update PAPER6_CANONICAL_BASELINE_HASH after cross-cell verification.`
+        `This run seeded hash=0x${hash.toString(16).padStart(8, '0')}. ` +
+        `Update PAPER6_CANONICAL_BASELINE_HASH after cross-cell verification.`
     );
   }
 
@@ -290,7 +291,7 @@ runPaper6WebGPUMatrixBenchmark().catch((err) => {
     ...(window as any).__PAPER6_WEBGPU_ARTIFACT__,
     status: 'error',
     failures: [
-      ...(window as any).__PAPER6_WEBGPU_ARTIFACT__?.failures ?? [],
+      ...((window as any).__PAPER6_WEBGPU_ARTIFACT__?.failures ?? []),
       { stage: 'bootstrap', message: String(err), timestamp: new Date().toISOString() },
     ],
   };

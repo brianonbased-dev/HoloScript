@@ -471,7 +471,8 @@ describe('HoloMeshWorldState', () => {
       // Simulate a feed entry with @position
       const list = ws.getDoc().getList('insights');
       list?.push({
-        hs_source: 'Insight("test_1") {\n  @author("agent-1")\n  @position(10, 25, 0)\n  @velocity(0, 1, 0)\n}',
+        hs_source:
+          'Insight("test_1") {\n  @author("agent-1")\n  @position(10, 25, 0)\n  @velocity(0, 1, 0)\n}',
         author: 'agent-1',
         timestamp: 1000,
       });
@@ -479,7 +480,7 @@ describe('HoloMeshWorldState', () => {
 
       const entries = ws.querySpatialEntries();
       expect(entries.length).toBeGreaterThanOrEqual(1);
-      const positioned = entries.find(e => e.position !== null);
+      const positioned = entries.find((e) => e.position !== null);
       expect(positioned).toBeDefined();
       expect(positioned!.position).toEqual({ x: 10, y: 25, z: 0 });
     });
@@ -495,7 +496,7 @@ describe('HoloMeshWorldState', () => {
       ws.getDoc().commit();
 
       const entries = ws.querySpatialEntries();
-      const noPos = entries.find(e => e.position === null);
+      const noPos = entries.find((e) => e.position === null);
       expect(noPos).toBeDefined();
     });
 
@@ -535,11 +536,10 @@ describe('HoloMeshWorldState', () => {
       ws.getDoc().commit();
 
       const entries = ws.querySpatialEntries();
-      const withPos = entries.filter(e => e.position !== null);
+      const withPos = entries.filter((e) => e.position !== null);
       expect(withPos.length).toBe(2);
     });
   });
-
 
   // ── V9: Neuroscience Memory Consolidation ───────────────────────────────
 

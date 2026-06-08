@@ -368,8 +368,8 @@ describe('BinarySerializer', () => {
     it('should preserve node transforms', () => {
       const scene = createEmptySceneGraph('TransformTest');
       const node = createEmptyNode('n1', 'Node');
-      node.transform.position = [10, 20, 30 ];
-      node.transform.scale = [2, 2, 2 ];
+      node.transform.position = [10, 20, 30];
+      node.transform.scale = [2, 2, 2];
       scene.root.children.push(node);
 
       const serializer = new BinarySerializer();

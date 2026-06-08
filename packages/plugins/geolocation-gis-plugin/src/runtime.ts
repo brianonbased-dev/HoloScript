@@ -48,13 +48,13 @@ export interface RuntimeTraitHandler {
   onAttach?: (
     node: unknown,
     config: VincentyGeodesyTraitConfig,
-    context: TraitDispatchContext,
+    context: TraitDispatchContext
   ) => void;
   onUpdate?: (
     node: unknown,
     config: VincentyGeodesyTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -69,7 +69,7 @@ interface VincentyNode {
 function solveOntoNode(
   node: unknown,
   config: VincentyGeodesyTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as VincentyNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

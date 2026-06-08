@@ -80,7 +80,7 @@ export interface SimpleExecutorContext {
  */
 export async function executeStateMachine(
   node: StateMachineNode,
-  ctx: SimpleExecutorContext,
+  ctx: SimpleExecutorContext
 ): Promise<ExecutionResult> {
   ctx.stateMachines.set(node.name, node);
   return {
@@ -95,7 +95,7 @@ export async function executeStateMachine(
  */
 export async function executeExpressionStatement(
   node: { expression: string },
-  ctx: SimpleExecutorContext,
+  ctx: SimpleExecutorContext
 ): Promise<ExecutionResult> {
   const value = ctx.evaluateExpression(node.expression);
   return {
@@ -110,7 +110,7 @@ export async function executeExpressionStatement(
  */
 export async function executeCall(
   node: ASTNode & { target?: string; args?: unknown[] },
-  ctx: SimpleExecutorContext,
+  ctx: SimpleExecutorContext
 ): Promise<ExecutionResult> {
   const funcName = node.target || '';
   const args = node.args || [];
@@ -123,7 +123,7 @@ export async function executeCall(
  */
 export async function executeEnvironment(
   node: EnvironmentNode,
-  ctx: SimpleExecutorContext,
+  ctx: SimpleExecutorContext
 ): Promise<ExecutionResult> {
   ctx.setEnvironment({
     ...ctx.getEnvironment(),
@@ -138,7 +138,7 @@ export async function executeEnvironment(
  */
 export async function executeHoloTemplate(
   node: { name: string } & Record<string, unknown>,
-  ctx: SimpleExecutorContext,
+  ctx: SimpleExecutorContext
 ): Promise<ExecutionResult> {
   ctx.templates.set(node.name, node);
   return { success: true, output: `Template ${node.name} registered` };
@@ -188,7 +188,7 @@ export async function executeStructure(node: ASTNode): Promise<ExecutionResult> 
  */
 export async function executeAssignment(
   node: ASTNode & { name: string; value: unknown },
-  ctx: SimpleExecutorContext,
+  ctx: SimpleExecutorContext
 ): Promise<ExecutionResult> {
   const value = ctx.evaluateExpression(String(node.value));
   ctx.setVariable(node.name, value);
@@ -205,7 +205,7 @@ export async function executeAssignment(
  */
 export async function executeReturn(
   node: ASTNode & { value?: unknown; expression?: string },
-  ctx: SimpleExecutorContext,
+  ctx: SimpleExecutorContext
 ): Promise<ExecutionResult> {
   const expr = String(node.value || node.expression || '');
   const value = ctx.evaluateExpression(expr);
@@ -224,7 +224,7 @@ export async function executeReturn(
  */
 export async function executeScale(
   node: ScaleNode,
-  ctx: SimpleExecutorContext,
+  ctx: SimpleExecutorContext
 ): Promise<ExecutionResult> {
   const parent = ctx.getScale();
   const newMultiplier = parent.multiplier * node.multiplier;
@@ -257,7 +257,7 @@ export async function executeScale(
  */
 export async function executeComposition(
   node: CompositionNode,
-  ctx: SimpleExecutorContext,
+  ctx: SimpleExecutorContext
 ): Promise<ExecutionResult> {
   if (node.body) {
     const systemResults = await ctx.executeProgram(node.body.systems, ctx.executionStackDepth());
@@ -273,7 +273,7 @@ export async function executeComposition(
 
   return {
     success: (await ctx.executeProgram(node.children, ctx.executionStackDepth())).every(
-      (r) => r.success,
+      (r) => r.success
     ),
     output: `Composition ${node.name} executed`,
   };
@@ -286,7 +286,7 @@ export async function executeComposition(
  */
 export async function executeFocus(
   node: FocusNode,
-  ctx: SimpleExecutorContext,
+  ctx: SimpleExecutorContext
 ): Promise<ExecutionResult> {
   ctx.focusHistory.push(node.target);
   const results = await ctx.executeProgram(node.body, ctx.executionStackDepth());

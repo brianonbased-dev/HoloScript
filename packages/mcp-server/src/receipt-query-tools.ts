@@ -65,7 +65,8 @@ export const receiptQueryTools: Tool[] = [
       properties: {
         includeSubjects: {
           type: 'boolean',
-          description: 'Whether to include the subject taxonomy for each capability. Default: true.',
+          description:
+            'Whether to include the subject taxonomy for each capability. Default: true.',
           default: true,
         },
       },
@@ -79,7 +80,7 @@ export const receiptQueryTools: Tool[] = [
 
 export async function handleReceiptQueryTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
     case 'holo_query_receipts':

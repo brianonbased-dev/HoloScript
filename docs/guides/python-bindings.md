@@ -275,3 +275,4 @@ pip install holoscript[types]
 - [Playground](https://holoscript.net/playground)
 - [GitHub Repository](https://github.com/brianonbased-dev/HoloScript)
 - [MCP Server](./mcp-server) - For tool-based AI integration
+````

@@ -62,10 +62,7 @@ export type {
   QAOAResult,
 } from './QmSolver';
 
-export {
-  QM_BACKEND_CAPABILITIES,
-  requireCapability,
-} from './QmSolver';
+export { QM_BACKEND_CAPABILITIES, requireCapability } from './QmSolver';
 
 // ── Pauli Grouping (Paper 37) ────────────────────────────────────────────────
 
@@ -77,18 +74,11 @@ export {
   estimateMeasurementCost,
 } from './PauliGrouping';
 
-export type {
-  PauliTerm,
-  PauliGroup,
-  PauliGroupingResult,
-} from './PauliGrouping';
+export type { PauliTerm, PauliGroup, PauliGroupingResult } from './PauliGrouping';
 
 // ── CAEL mapping ──────────────────────────────────────────────────────────────
 
-export type {
-  CaelQmSolverConfig,
-  CaelQmResultSummary,
-} from './cael-mapping';
+export type { CaelQmSolverConfig, CaelQmResultSummary } from './cael-mapping';
 
 export {
   qmConfigToCael,
@@ -179,7 +169,7 @@ export function createQmSolver(config: QmSolverConfig): QmSolver {
     default:
       throw new Error(
         `[qm-bridge] Unknown backend: '${config.backend}'. ` +
-        `Supported: psi4, quantum-espresso, tblite, ibm-quantum, pyscf`,
+          `Supported: psi4, quantum-espresso, tblite, ibm-quantum, pyscf`
       );
   }
 }
@@ -276,10 +266,7 @@ export function selectQmBackend(questionType: string): QmBackend {
  * Provides sensible defaults so users don't need to know DFT functionals
  * to ask Brittney a question. Brittney can always override these.
  */
-export function getDefaultQmConfig(
-  backend: QmBackend,
-  questionType?: string,
-): QmSolverConfig {
+export function getDefaultQmConfig(backend: QmBackend, questionType?: string): QmSolverConfig {
   const q = (questionType ?? '').toLowerCase();
 
   switch (backend) {

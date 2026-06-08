@@ -6,11 +6,11 @@ Integrates with **Apple App Store Connect** and **Google Play Developer API** fo
 
 ## Delivery status (Integration Hub)
 
-| Capability | Status |
-|------------|--------|
-| Dual-platform MCP connector (`AppStoreConnector`, tool registry) | Shipped — see `src/` and `INTEGRATION_HUB.md` |
-| Apple + Google tool surface (upload, tracks, TestFlight, metadata) | Shipped — see feature list below |
-| CI / Studio wiring for “one-click” submission | Partial — requires project credentials and pipeline glue per app |
+| Capability                                                         | Status                                                           |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Dual-platform MCP connector (`AppStoreConnector`, tool registry)   | Shipped — see `src/` and `INTEGRATION_HUB.md`                    |
+| Apple + Google tool surface (upload, tracks, TestFlight, metadata) | Shipped — see feature list below                                 |
+| CI / Studio wiring for “one-click” submission                      | Partial — requires project credentials and pipeline glue per app |
 
 ## Features
 

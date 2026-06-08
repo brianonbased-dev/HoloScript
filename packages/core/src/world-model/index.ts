@@ -28,11 +28,7 @@ export {
 
 export { scoreTrajectory } from './PredicateScorer';
 
-export {
-  mutateTrace,
-  exploreAdversarialTraces,
-  BUILT_IN_PROFILES,
-} from './AdversarialMutator';
+export { mutateTrace, exploreAdversarialTraces, BUILT_IN_PROFILES } from './AdversarialMutator';
 export type {
   MutationStrategy,
   MutatorProfile,

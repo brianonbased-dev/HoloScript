@@ -36,7 +36,11 @@ export type {
   ISceneNode,
   IMaterial as ISceneGraphMaterial,
 } from '../export/SceneGraph';
-export { createEmptySceneGraph, createEmptyNode, createDefaultMaterial } from '../export/SceneGraph';
+export {
+  createEmptySceneGraph,
+  createEmptyNode,
+  createDefaultMaterial,
+} from '../export/SceneGraph';
 
 // USDZ Pipeline
 export { USDZPipeline, type USDZPipelineOptions } from '../compiler/USDZPipeline';

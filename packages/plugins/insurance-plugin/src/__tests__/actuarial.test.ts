@@ -22,27 +22,107 @@ import {
 // ─── Illustrative life table (ILT) — truncated 1958 CSO qx values ────────────
 // Ages 0–100 (101 values). Terminal qx[100] = 1.0 (everyone dies by 100).
 const CSO_QX: number[] = [
-  0.004530, 0.001080, 0.000910, 0.000830, 0.000790, // 0-4
-  0.000760, 0.000730, 0.000720, 0.000720, 0.000730, // 5-9
-  0.000730, 0.000770, 0.000850, 0.000990, 0.001150, // 10-14
-  0.001330, 0.001510, 0.001670, 0.001780, 0.001870, // 15-19
-  0.001960, 0.002010, 0.002020, 0.002010, 0.001980, // 20-24
-  0.001960, 0.001960, 0.001970, 0.001980, 0.002000, // 25-29
-  0.002030, 0.002060, 0.002110, 0.002170, 0.002250, // 30-34
-  0.002360, 0.002500, 0.002680, 0.002890, 0.003140, // 35-39
-  0.003440, 0.003790, 0.004190, 0.004660, 0.005190, // 40-44
-  0.005810, 0.006500, 0.007280, 0.008170, 0.009180, // 45-49
-  0.010380, 0.011680, 0.013110, 0.014700, 0.016530, // 50-54
-  0.018640, 0.021010, 0.023580, 0.026440, 0.029560, // 55-59
-  0.032990, 0.036700, 0.040680, 0.044990, 0.049650, // 60-64
-  0.054770, 0.060330, 0.066440, 0.073040, 0.080240, // 65-69
-  0.088050, 0.096620, 0.105800, 0.115800, 0.126600, // 70-74
-  0.138200, 0.150600, 0.163900, 0.178200, 0.193600, // 75-79
-  0.210300, 0.228200, 0.247500, 0.268000, 0.290000, // 80-84
-  0.313000, 0.337400, 0.363000, 0.390000, 0.418200, // 85-89
-  0.447600, 0.477900, 0.509100, 0.541100, 0.573800, // 90-94
-  0.607000, 0.640400, 0.673800, 0.706900, 0.739400, // 95-99
-  1.000000,                                          // 100
+  0.00453,
+  0.00108,
+  0.00091,
+  0.00083,
+  0.00079, // 0-4
+  0.00076,
+  0.00073,
+  0.00072,
+  0.00072,
+  0.00073, // 5-9
+  0.00073,
+  0.00077,
+  0.00085,
+  0.00099,
+  0.00115, // 10-14
+  0.00133,
+  0.00151,
+  0.00167,
+  0.00178,
+  0.00187, // 15-19
+  0.00196,
+  0.00201,
+  0.00202,
+  0.00201,
+  0.00198, // 20-24
+  0.00196,
+  0.00196,
+  0.00197,
+  0.00198,
+  0.002, // 25-29
+  0.00203,
+  0.00206,
+  0.00211,
+  0.00217,
+  0.00225, // 30-34
+  0.00236,
+  0.0025,
+  0.00268,
+  0.00289,
+  0.00314, // 35-39
+  0.00344,
+  0.00379,
+  0.00419,
+  0.00466,
+  0.00519, // 40-44
+  0.00581,
+  0.0065,
+  0.00728,
+  0.00817,
+  0.00918, // 45-49
+  0.01038,
+  0.01168,
+  0.01311,
+  0.0147,
+  0.01653, // 50-54
+  0.01864,
+  0.02101,
+  0.02358,
+  0.02644,
+  0.02956, // 55-59
+  0.03299,
+  0.0367,
+  0.04068,
+  0.04499,
+  0.04965, // 60-64
+  0.05477,
+  0.06033,
+  0.06644,
+  0.07304,
+  0.08024, // 65-69
+  0.08805,
+  0.09662,
+  0.1058,
+  0.1158,
+  0.1266, // 70-74
+  0.1382,
+  0.1506,
+  0.1639,
+  0.1782,
+  0.1936, // 75-79
+  0.2103,
+  0.2282,
+  0.2475,
+  0.268,
+  0.29, // 80-84
+  0.313,
+  0.3374,
+  0.363,
+  0.39,
+  0.4182, // 85-89
+  0.4476,
+  0.4779,
+  0.5091,
+  0.5411,
+  0.5738, // 90-94
+  0.607,
+  0.6404,
+  0.6738,
+  0.7069,
+  0.7394, // 95-99
+  1.0, // 100
 ];
 
 const ILT = buildLifeTable('1958-CSO', CSO_QX, 0.05);
@@ -102,7 +182,7 @@ describe('computeActuarialValues — whole_life', () => {
     // so NSP is higher (≈ $23,000 for $100k benefit). Verify structural bounds only.
     const r = computeActuarialValues(
       { type: 'whole_life', issueAge: 35, benefitAmount: 100_000 },
-      ILT,
+      ILT
     );
     expect(r.nsp).toBeGreaterThan(1_000);
     expect(r.nsp).toBeLessThan(30_000);
@@ -111,26 +191,44 @@ describe('computeActuarialValues — whole_life', () => {
   it('annual premium < NSP (premium is paid over lifetime)', () => {
     const r = computeActuarialValues(
       { type: 'whole_life', issueAge: 35, benefitAmount: 100_000 },
-      ILT,
+      ILT
     );
     expect(r.annualPremium).toBeLessThan(r.nsp);
   });
 
   it('older issue age produces higher NSP (higher mortality)', () => {
-    const r35 = computeActuarialValues({ type: 'whole_life', issueAge: 35, benefitAmount: 100_000 }, ILT);
-    const r55 = computeActuarialValues({ type: 'whole_life', issueAge: 55, benefitAmount: 100_000 }, ILT);
+    const r35 = computeActuarialValues(
+      { type: 'whole_life', issueAge: 35, benefitAmount: 100_000 },
+      ILT
+    );
+    const r55 = computeActuarialValues(
+      { type: 'whole_life', issueAge: 55, benefitAmount: 100_000 },
+      ILT
+    );
     expect(r55.nsp).toBeGreaterThan(r35.nsp);
   });
 
   it('higher interest rate produces lower NSP (discounting effect)', () => {
-    const r5pct  = computeActuarialValues({ type: 'whole_life', issueAge: 40, benefitAmount: 100_000, interestRate: 0.05 }, ILT);
-    const r10pct = computeActuarialValues({ type: 'whole_life', issueAge: 40, benefitAmount: 100_000, interestRate: 0.10 }, ILT);
+    const r5pct = computeActuarialValues(
+      { type: 'whole_life', issueAge: 40, benefitAmount: 100_000, interestRate: 0.05 },
+      ILT
+    );
+    const r10pct = computeActuarialValues(
+      { type: 'whole_life', issueAge: 40, benefitAmount: 100_000, interestRate: 0.1 },
+      ILT
+    );
     expect(r10pct.nsp).toBeLessThan(r5pct.nsp);
   });
 
   it('NSP scales linearly with benefit amount', () => {
-    const r100k = computeActuarialValues({ type: 'whole_life', issueAge: 40, benefitAmount: 100_000 }, ILT);
-    const r200k = computeActuarialValues({ type: 'whole_life', issueAge: 40, benefitAmount: 200_000 }, ILT);
+    const r100k = computeActuarialValues(
+      { type: 'whole_life', issueAge: 40, benefitAmount: 100_000 },
+      ILT
+    );
+    const r200k = computeActuarialValues(
+      { type: 'whole_life', issueAge: 40, benefitAmount: 200_000 },
+      ILT
+    );
     expect(r200k.nsp).toBeCloseTo(r100k.nsp * 2, 4);
   });
 
@@ -145,7 +243,7 @@ describe('computeActuarialValues — whole_life', () => {
 
   it('throws for issue age beyond table', () => {
     expect(() =>
-      computeActuarialValues({ type: 'whole_life', issueAge: 200, benefitAmount: 1 }, ILT),
+      computeActuarialValues({ type: 'whole_life', issueAge: 200, benefitAmount: 1 }, ILT)
     ).toThrow();
   });
 });
@@ -154,19 +252,34 @@ describe('computeActuarialValues — whole_life', () => {
 
 describe('computeActuarialValues — term_life', () => {
   it('term NSP < whole_life NSP (subset of coverage period)', () => {
-    const wl   = computeActuarialValues({ type: 'whole_life', issueAge: 35, benefitAmount: 100_000 }, ILT);
-    const term = computeActuarialValues({ type: 'term_life',  issueAge: 35, benefitAmount: 100_000, termYears: 20 }, ILT);
+    const wl = computeActuarialValues(
+      { type: 'whole_life', issueAge: 35, benefitAmount: 100_000 },
+      ILT
+    );
+    const term = computeActuarialValues(
+      { type: 'term_life', issueAge: 35, benefitAmount: 100_000, termYears: 20 },
+      ILT
+    );
     expect(term.nsp).toBeLessThan(wl.nsp);
   });
 
   it('longer term produces higher NSP', () => {
-    const t10 = computeActuarialValues({ type: 'term_life', issueAge: 35, benefitAmount: 100_000, termYears: 10 }, ILT);
-    const t30 = computeActuarialValues({ type: 'term_life', issueAge: 35, benefitAmount: 100_000, termYears: 30 }, ILT);
+    const t10 = computeActuarialValues(
+      { type: 'term_life', issueAge: 35, benefitAmount: 100_000, termYears: 10 },
+      ILT
+    );
+    const t30 = computeActuarialValues(
+      { type: 'term_life', issueAge: 35, benefitAmount: 100_000, termYears: 30 },
+      ILT
+    );
     expect(t30.nsp).toBeGreaterThan(t10.nsp);
   });
 
   it('policyType is term_life', () => {
-    const r = computeActuarialValues({ type: 'term_life', issueAge: 35, benefitAmount: 1, termYears: 20 }, ILT);
+    const r = computeActuarialValues(
+      { type: 'term_life', issueAge: 35, benefitAmount: 1, termYears: 20 },
+      ILT
+    );
     expect(r.policyType).toBe('term_life');
     expect(r.termYears).toBe(20);
   });
@@ -176,13 +289,22 @@ describe('computeActuarialValues — term_life', () => {
 
 describe('computeActuarialValues — endowment', () => {
   it('endowment NSP ≥ equivalent term_life NSP (adds pure endowment)', () => {
-    const term = computeActuarialValues({ type: 'term_life',  issueAge: 35, benefitAmount: 100_000, termYears: 20 }, ILT);
-    const endt = computeActuarialValues({ type: 'endowment', issueAge: 35, benefitAmount: 100_000, termYears: 20 }, ILT);
+    const term = computeActuarialValues(
+      { type: 'term_life', issueAge: 35, benefitAmount: 100_000, termYears: 20 },
+      ILT
+    );
+    const endt = computeActuarialValues(
+      { type: 'endowment', issueAge: 35, benefitAmount: 100_000, termYears: 20 },
+      ILT
+    );
     expect(endt.nsp).toBeGreaterThan(term.nsp);
   });
 
   it('endowment NSP ≤ benefit amount (PV cannot exceed undiscounted payout)', () => {
-    const r = computeActuarialValues({ type: 'endowment', issueAge: 35, benefitAmount: 100_000, termYears: 30 }, ILT);
+    const r = computeActuarialValues(
+      { type: 'endowment', issueAge: 35, benefitAmount: 100_000, termYears: 30 },
+      ILT
+    );
     expect(r.nsp).toBeLessThan(100_000);
     expect(r.nsp).toBeGreaterThan(0);
   });
@@ -192,18 +314,27 @@ describe('computeActuarialValues — endowment', () => {
 
 describe('computeActuarialValues — annuity_due', () => {
   it('whole-life annuity NSP = benefit × ä_x (annuityDue)', () => {
-    const r = computeActuarialValues({ type: 'annuity_due', issueAge: 65, benefitAmount: 10_000 }, ILT);
+    const r = computeActuarialValues(
+      { type: 'annuity_due', issueAge: 65, benefitAmount: 10_000 },
+      ILT
+    );
     expect(r.nsp).toBeCloseTo(r.annuityDue * 10_000, 4);
   });
 
   it('temporary annuity NSP < whole-life annuity NSP', () => {
-    const wl  = computeActuarialValues({ type: 'annuity_due', issueAge: 65, benefitAmount: 1 }, ILT);
-    const tmp = computeActuarialValues({ type: 'annuity_due', issueAge: 65, benefitAmount: 1, termYears: 10 }, ILT);
+    const wl = computeActuarialValues({ type: 'annuity_due', issueAge: 65, benefitAmount: 1 }, ILT);
+    const tmp = computeActuarialValues(
+      { type: 'annuity_due', issueAge: 65, benefitAmount: 1, termYears: 10 },
+      ILT
+    );
     expect(tmp.nsp).toBeLessThan(wl.nsp);
   });
 
   it('annualPremium is 0 for annuity products', () => {
-    const r = computeActuarialValues({ type: 'annuity_due', issueAge: 60, benefitAmount: 1_000 }, ILT);
+    const r = computeActuarialValues(
+      { type: 'annuity_due', issueAge: 60, benefitAmount: 1_000 },
+      ILT
+    );
     expect(r.annualPremium).toBe(0);
   });
 });
@@ -218,16 +349,16 @@ describe('computeNPV', () => {
    */
   const cashFlows = [
     { period: 0, amount: -1000 },
-    { period: 1, amount:  400  },
-    { period: 2, amount:  400  },
-    { period: 3, amount:  400  },
+    { period: 1, amount: 400 },
+    { period: 2, amount: 400 },
+    { period: 3, amount: 400 },
   ];
 
   it('NPV at 10% is near zero for the ~9.7%-IRR project', () => {
     // IRR ≈ 9.7%; at 10% discount the NPV is small but not exactly zero.
     // Exact NPV = -1000 + 400/1.1 + 400/1.21 + 400/1.331 ≈ -$0.95... but
     // actually: 363.64 + 330.58 + 300.53 = 994.75 → NPV = -5.25.
-    const r = computeNPV(cashFlows, 0.10);
+    const r = computeNPV(cashFlows, 0.1);
     expect(Math.abs(r.npv)).toBeLessThan(10); // within $10
   });
 
@@ -237,18 +368,24 @@ describe('computeNPV', () => {
   });
 
   it('IRR is approximately 9.7%', () => {
-    const r = computeNPV(cashFlows, 0.10);
+    const r = computeNPV(cashFlows, 0.1);
     expect(r.irr).not.toBeNull();
     expect(r.irr!).toBeCloseTo(0.097, 2);
   });
 
   it('payback period is period 3 (cumulative turns positive at t=3)', () => {
-    const r = computeNPV(cashFlows, 0.10);
+    const r = computeNPV(cashFlows, 0.1);
     expect(r.paybackPeriod).toBe(3);
   });
 
   it('project with all positive flows has no IRR in (0,2) range', () => {
-    const r = computeNPV([{ period: 0, amount: 100 }, { period: 1, amount: 100 }], 0.05);
+    const r = computeNPV(
+      [
+        { period: 0, amount: 100 },
+        { period: 1, amount: 100 },
+      ],
+      0.05
+    );
     // NPV is always positive for all-positive flows; IRR is null (no zero crossing)
     expect(r.irr).toBeNull();
   });
@@ -262,9 +399,7 @@ describe('computeNPV', () => {
 
 describe('computeVaR', () => {
   // Simulate 1000 loss observations from an exponential-like distribution
-  const losses = Array.from({ length: 1000 }, (_, i) =>
-    -500 + i * 1.5 + Math.sin(i * 0.13) * 50,
-  );
+  const losses = Array.from({ length: 1000 }, (_, i) => -500 + i * 1.5 + Math.sin(i * 0.13) * 50);
 
   it('var99 ≥ var95 (higher confidence = larger loss threshold)', () => {
     const r = computeVaR(losses);
@@ -328,7 +463,7 @@ describe('gompertzMakehamQx', () => {
   });
 
   it('produces a valid life table when passed to buildLifeTable', () => {
-    const qx    = gompertzMakehamQx(params, 99);
+    const qx = gompertzMakehamQx(params, 99);
     const table = buildLifeTable('gompertz-test', qx, 0.05);
     expect(table.rows[0].lx).toBe(100_000);
     expect(table.rows[0].ex).toBeGreaterThan(50);
@@ -348,7 +483,7 @@ describe('gompertzMakehamQx', () => {
 describe('buildActuarialReceipt', () => {
   const result = computeActuarialValues(
     { type: 'whole_life', issueAge: 40, benefitAmount: 100_000 },
-    ILT,
+    ILT
   );
 
   it('produces receipt with plugin=insurance and CAEL event', () => {

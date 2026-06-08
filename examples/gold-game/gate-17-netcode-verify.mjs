@@ -35,7 +35,9 @@ const imp = (p) => import(pathToFileURL(p).href);
 const mesh = await imp(join(repo, 'packages', 'mesh', 'dist', 'index.js'));
 const { EntityAuthority, ReplicationManager, NetworkInterpolation } = mesh;
 // REAL receipt spine.
-const { computeStateDigest } = await imp(join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'));
+const { computeStateDigest } = await imp(
+  join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts')
+);
 
 const receiptPath = join(here, 'GATE-17-NETCODE-receipt.json');
 const HASH = 'sha256';
@@ -44,8 +46,8 @@ const HASH = 'sha256';
 //    them in one session. TIER ladder mirrors the GOLD vault (Bronze→…→Diamond). ──
 const TIER_ORDER = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
 const SERVER = 'vault-server';
-const HUMAN = 'human-curator';      // human-sim client
-const AGENT = 'agent-curator';      // AI agent client
+const HUMAN = 'human-curator'; // human-sim client
+const AGENT = 'agent-curator'; // AI agent client
 const ENTRIES = ['W.001', 'W.002', 'W.003', 'W.004', 'W.005'];
 const LOCK_MS = 60_000; // graduation lock window
 
@@ -128,8 +130,18 @@ const clients = [human, agent];
 
 // Co-presence motion: push a remote-avatar snapshot so NetworkInterpolation
 // actually buffers + interpolates the OTHER curator between authoritative updates.
-human.interp.pushSnapshot({ entityId: AGENT, timestamp: 0, position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
-human.interp.pushSnapshot({ entityId: AGENT, timestamp: 100, position: { x: 10, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
+human.interp.pushSnapshot({
+  entityId: AGENT,
+  timestamp: 0,
+  position: { x: 0, y: 0, z: 0 },
+  rotation: { x: 0, y: 0, z: 0, w: 1 },
+});
+human.interp.pushSnapshot({
+  entityId: AGENT,
+  timestamp: 100,
+  position: { x: 10, y: 0, z: 0 },
+  rotation: { x: 0, y: 0, z: 0, w: 1 },
+});
 const interpState = human.interp.getInterpolatedState(AGENT, 150); // t=50 → x≈5
 const interpolatedMidpoint = interpState && Math.abs(interpState.position.x - 5) < 1;
 
@@ -159,19 +171,28 @@ const r6 = attemptGraduate(human, 'W.001', clients); // Silver→Gold
 
 // (1) The lock works: the conflicting second attempt was DENIED (no double-graduate).
 const conflictDenied = rConflict === 'denied';
-const noDoubleGraduate = log.filter((l) => l.startsWith('GRAD') && l.includes('W.003')).length === 1;
+const noDoubleGraduate =
+  log.filter((l) => l.startsWith('GRAD') && l.includes('W.003')).length === 1;
 
 // (2) After the session BOTH clients AGREE on synced vault state (entries+tiers).
 const humanVaultStr = JSON.stringify(human.vault);
 const agentVaultStr = JSON.stringify(agent.vault);
 const vaultsAgree = humanVaultStr === agentVaultStr;
 // And the expected end-state (W.001 graduated twice → Gold; W.002–W.005 once → Silver; W.003 once → Silver):
-const expectedVault = { 'W.001': 'Gold', 'W.002': 'Silver', 'W.003': 'Silver', 'W.004': 'Silver', 'W.005': 'Silver' };
+const expectedVault = {
+  'W.001': 'Gold',
+  'W.002': 'Silver',
+  'W.003': 'Silver',
+  'W.004': 'Silver',
+  'W.005': 'Silver',
+};
 const vaultAsExpected = humanVaultStr === JSON.stringify(expectedVault);
 
 // (2b) Both clients agree on the lock HISTORY (same authoritative event log — they
 // share one ordered session record, which is what each client's replication reflects).
-const sharedLockHistory = log.filter((l) => l.startsWith('GRAD') || l.startsWith('DENY') || l.startsWith('START'));
+const sharedLockHistory = log.filter(
+  (l) => l.startsWith('GRAD') || l.startsWith('DENY') || l.startsWith('START')
+);
 
 // (3) Deterministic — the agreement digest reproduces via the REAL computeStateDigest.
 //     Encode the converged vault (sorted entries → tier index) + the event log as a field.
@@ -183,11 +204,20 @@ function vaultField(vault) {
   const events = sharedLockHistory.map(eventCode);
   return Float32Array.from([...vals, -1, ...events]);
 }
-const humanDigest = computeStateDigest({ fieldNames: ['vault'], getField: () => vaultField(human.vault) }, HASH);
-const agentDigest = computeStateDigest({ fieldNames: ['vault'], getField: () => vaultField(agent.vault) }, HASH);
+const humanDigest = computeStateDigest(
+  { fieldNames: ['vault'], getField: () => vaultField(human.vault) },
+  HASH
+);
+const agentDigest = computeStateDigest(
+  { fieldNames: ['vault'], getField: () => vaultField(agent.vault) },
+  HASH
+);
 const digestsAgree = humanDigest === agentDigest && humanDigest.length > 0;
 // reproduce twice from scratch (recompute the same field → same digest)
-const reHuman = computeStateDigest({ fieldNames: ['vault'], getField: () => vaultField(human.vault) }, HASH);
+const reHuman = computeStateDigest(
+  { fieldNames: ['vault'], getField: () => vaultField(human.vault) },
+  HASH
+);
 const reproducible = reHuman === humanDigest;
 
 const receipt = {
@@ -197,9 +227,11 @@ const receipt = {
   verifier: 'examples/gold-game/gate-17-netcode-verify.mjs',
   modelledOn: 'packages/core/src/__tests__/Multiplayer.test.ts (Cycle 108)',
   meshClasses: {
-    EntityAuthority: 'REAL — packages/mesh/dist/index.js (lock gates graduation; requestTransfer returns null when locked)',
+    EntityAuthority:
+      'REAL — packages/mesh/dist/index.js (lock gates graduation; requestTransfer returns null when locked)',
     ReplicationManager: 'REAL — generateUpdates delta broadcast + applyRemoteUpdate convergence',
-    NetworkInterpolation: 'REAL — remote curator avatar snapshot buffer + interpolation (midpoint x≈5)',
+    NetworkInterpolation:
+      'REAL — remote curator avatar snapshot buffer + interpolation (midpoint x≈5)',
     computeStateDigest: 'REAL — packages/engine/src/simulation/hashes.ts',
   },
   session: {
@@ -209,8 +241,17 @@ const receipt = {
     tierOrder: TIER_ORDER,
     eventLog: sharedLockHistory,
     convergedVault: human.vault,
-    conflict: { entry: 'W.003', firstHolder: HUMAN, secondContender: AGENT, secondResult: rConflict },
-    interpolation: { remote: AGENT, sampledAt: 150, position: interpState ? interpState.position : null },
+    conflict: {
+      entry: 'W.003',
+      firstHolder: HUMAN,
+      secondContender: AGENT,
+      secondResult: rConflict,
+    },
+    interpolation: {
+      remote: AGENT,
+      sampledAt: 150,
+      position: interpState ? interpState.position : null,
+    },
     results: { r1, r2, rConflict, r3, r4, r5, r6 },
   },
   contract: {
@@ -231,28 +272,63 @@ if (emit) {
   console.log('  eventLog:');
   for (const l of sharedLockHistory) console.log('    ' + l);
   console.log('  convergedVault:', humanVaultStr);
-  console.log('  vaultsAgree=' + vaultsAgree, 'conflictDenied=' + conflictDenied, 'interpMidpoint=' + interpolatedMidpoint);
+  console.log(
+    '  vaultsAgree=' + vaultsAgree,
+    'conflictDenied=' + conflictDenied,
+    'interpMidpoint=' + interpolatedMidpoint
+  );
   console.log('  agreementDigest=' + humanDigest);
 } else {
   let existing;
-  try { existing = JSON.parse(readFileSync(receiptPath, 'utf8')); }
-  catch { console.error('No Gate-17 receipt. Run --emit first.'); process.exit(2); }
+  try {
+    existing = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  } catch {
+    console.error('No Gate-17 receipt. Run --emit first.');
+    process.exit(2);
+  }
   const checks = [
-    ['real EntityAuthority/ReplicationManager/NetworkInterpolation loaded from @holoscript/mesh dist',
-      typeof EntityAuthority === 'function' && typeof ReplicationManager === 'function' && typeof NetworkInterpolation === 'function'],
-    ['conflict on the same entry is DENIED by the EntityAuthority lock (second curator)', conflictDenied === true],
-    ['no double-graduate — the contested entry W.003 was graduated exactly once', noDoubleGraduate === true],
-    ['both clients AGREE on the synced vault state (same entries at same tiers)', vaultsAgree === true],
+    [
+      'real EntityAuthority/ReplicationManager/NetworkInterpolation loaded from @holoscript/mesh dist',
+      typeof EntityAuthority === 'function' &&
+        typeof ReplicationManager === 'function' &&
+        typeof NetworkInterpolation === 'function',
+    ],
+    [
+      'conflict on the same entry is DENIED by the EntityAuthority lock (second curator)',
+      conflictDenied === true,
+    ],
+    [
+      'no double-graduate — the contested entry W.003 was graduated exactly once',
+      noDoubleGraduate === true,
+    ],
+    [
+      'both clients AGREE on the synced vault state (same entries at same tiers)',
+      vaultsAgree === true,
+    ],
     ['converged vault matches the expected authoritative end-state', vaultAsExpected === true],
-    ['remote curator avatar interpolated via real NetworkInterpolation (midpoint x≈5)', interpolatedMidpoint === true],
-    ['both clients agree on the lock/event history (one ordered session record)', sharedLockHistory.length >= 6],
-    ['agreement digest is identical across both clients (real computeStateDigest)', digestsAgree === true],
-    ['agreement digest reproduces (deterministic) and matches the committed receipt',
-      reproducible === true && humanDigest === existing.contract.agreementDigest],
+    [
+      'remote curator avatar interpolated via real NetworkInterpolation (midpoint x≈5)',
+      interpolatedMidpoint === true,
+    ],
+    [
+      'both clients agree on the lock/event history (one ordered session record)',
+      sharedLockHistory.length >= 6,
+    ],
+    [
+      'agreement digest is identical across both clients (real computeStateDigest)',
+      digestsAgree === true,
+    ],
+    [
+      'agreement digest reproduces (deterministic) and matches the committed receipt',
+      reproducible === true && humanDigest === existing.contract.agreementDigest,
+    ],
   ];
   let ok = true;
   console.log('GATE-17 (NETCODE CO-PRESENCE) VERIFICATION:');
-  for (const [label, pass] of checks) { console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label); ok = ok && pass; }
+  for (const [label, pass] of checks) {
+    console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label);
+    ok = ok && pass;
+  }
   console.log('  => GATE 17', ok ? 'VERIFIED' : 'BROKEN');
   process.exit(ok ? 0 : 1);
 }

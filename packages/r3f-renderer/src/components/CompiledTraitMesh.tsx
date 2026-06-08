@@ -18,7 +18,13 @@ import { useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { TraitContext, HSPlusNode } from '@holoscript/core';
-import { attachTraits, tickTraits, detachTraits, DEFAULT_MAX_DELTA, type RuntimeTraitBinding } from '../runtime/traitRuntime';
+import {
+  attachTraits,
+  tickTraits,
+  detachTraits,
+  DEFAULT_MAX_DELTA,
+  type RuntimeTraitBinding,
+} from '../runtime/traitRuntime';
 import { buildCompiledMaterial, type CompiledMaterialSpec } from '../runtime/compiledMaterial';
 
 export interface CompiledTraitMeshProps {

@@ -62,7 +62,10 @@ export default function ConjectureReceiptsPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setLoadState({ status: 'error', message: err instanceof Error ? err.message : String(err) });
+          setLoadState({
+            status: 'error',
+            message: err instanceof Error ? err.message : String(err),
+          });
         }
       });
     return () => {
@@ -223,8 +226,14 @@ export default function ConjectureReceiptsPage() {
 
               {replay ? (
                 <div className="mt-3 border border-zinc-700 bg-zinc-950 p-3 text-xs text-zinc-300">
-                  <div>{replay.counterexampleMatched ? 'Counterexample reproduced' : 'Replay did not match'}</div>
-                  <div className="mt-1 font-mono text-zinc-500">{shortKey(replay.replayReceiptKey ?? 'no-receipt')}</div>
+                  <div>
+                    {replay.counterexampleMatched
+                      ? 'Counterexample reproduced'
+                      : 'Replay did not match'}
+                  </div>
+                  <div className="mt-1 font-mono text-zinc-500">
+                    {shortKey(replay.replayReceiptKey ?? 'no-receipt')}
+                  </div>
                 </div>
               ) : null}
 
@@ -232,14 +241,19 @@ export default function ConjectureReceiptsPage() {
                 <h3 className="text-xs font-semibold uppercase text-zinc-500">Candidates</h3>
                 <div className="mt-2 space-y-2">
                   {selected.candidateSummaries.slice(0, 8).map((candidate) => (
-                    <div key={candidate.candidateId} className="border border-zinc-800 bg-zinc-950 p-3 text-xs">
+                    <div
+                      key={candidate.candidateId}
+                      className="border border-zinc-800 bg-zinc-950 p-3 text-xs"
+                    >
                       <div className="flex justify-between gap-3">
                         <span className="font-medium text-zinc-200">{candidate.candidateId}</span>
                         <span className="text-zinc-500">{candidate.status}</span>
                       </div>
                       <div className="mt-1 text-zinc-500">{candidate.family}</div>
                       {candidate.failedProbeIds.length > 0 ? (
-                        <div className="mt-1 text-red-300">{candidate.failedProbeIds.join(', ')}</div>
+                        <div className="mt-1 text-red-300">
+                          {candidate.failedProbeIds.join(', ')}
+                        </div>
                       ) : null}
                     </div>
                   ))}

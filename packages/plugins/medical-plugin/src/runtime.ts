@@ -65,13 +65,13 @@ export interface RuntimeTraitHandler {
   onAttach?: (
     node: unknown,
     config: ParklandResuscitationTraitConfig,
-    context: TraitDispatchContext,
+    context: TraitDispatchContext
   ) => void;
   onUpdate?: (
     node: unknown,
     config: ParklandResuscitationTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -86,7 +86,7 @@ interface ParklandResuscitationNode {
 function solveOntoNode(
   node: unknown,
   config: ParklandResuscitationTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as ParklandResuscitationNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

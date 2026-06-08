@@ -35,7 +35,10 @@ if (args.help) {
 }
 
 const cwd = resolve(args.cwd ?? findGitRoot(process.cwd()) ?? process.cwd());
-const out = resolve(cwd, args.out ?? args.output ?? 'docs/public/evidence/paper-12-hololand-envelope.json');
+const out = resolve(
+  cwd,
+  args.out ?? args.output ?? 'docs/public/evidence/paper-12-hololand-envelope.json'
+);
 const preset = args.preset ?? 'paper-12-hololand';
 const runtime = collectEvidenceRuntime();
 

@@ -62,7 +62,10 @@ describe('CONTRACT: openusd-plugin adapter', () => {
   it('usdaStableRoundTrip returns true for well-formed input', () => {
     const ok = usdaStableRoundTrip({
       name: 's',
-      primitives: [{ kind: 'xform', path: 'rig/root' }, { kind: 'mesh', path: 'ground' }],
+      primitives: [
+        { kind: 'xform', path: 'rig/root' },
+        { kind: 'mesh', path: 'ground' },
+      ],
     });
     expect(ok).toBe(true);
   });

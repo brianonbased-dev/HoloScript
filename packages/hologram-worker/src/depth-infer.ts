@@ -48,7 +48,7 @@ export function resolveDepthModelPath(): string | undefined {
 async function luminanceDepthFromPng(
   pngPath: string,
   width: number,
-  height: number,
+  height: number
 ): Promise<Float32Array> {
   const { data } = await sharp(await fs.readFile(pngPath))
     .ensureAlpha()
@@ -71,7 +71,7 @@ function bilinearResize(
   srcW: number,
   srcH: number,
   dstW: number,
-  dstH: number,
+  dstH: number
 ): Float32Array {
   const dst = new Float32Array(dstW * dstH);
   const xScale = srcW / dstW;
@@ -104,7 +104,7 @@ async function runOnnxDepth(
   modelPath: string,
   pngPath: string,
   outW: number,
-  outH: number,
+  outH: number
 ): Promise<DepthInferenceResult> {
   const ort = await import('onnxruntime-node');
   const session = await ort.InferenceSession.create(modelPath);
@@ -177,7 +177,7 @@ export async function inferDepthForRaster(
   pngPath: string,
   width: number,
   height: number,
-  _sourceKind: HologramSourceKind,
+  _sourceKind: HologramSourceKind
 ): Promise<DepthInferenceResult> {
   void _sourceKind;
   const onnxPath =

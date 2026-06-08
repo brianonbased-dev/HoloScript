@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  AgentTrustLedger,
-  byzantineResilientMerge,
-} from '../social-causality-byzantine';
+import { AgentTrustLedger, byzantineResilientMerge } from '../social-causality-byzantine';
 import type { SCMDAG, SCMEdge, SCMNode } from '../SCMCompiler';
 
 const node = (id: string, do_capable = false): SCMNode => ({
@@ -16,14 +13,10 @@ const edge = (
   source: string,
   target: string,
   weight: number,
-  relation = 'dictates_context',
+  relation = 'dictates_context'
 ): SCMEdge => ({ source, target, relation, weight });
 
-const dag = (
-  agentId: string,
-  nodes: SCMNode[],
-  edges: SCMEdge[],
-): SCMDAG => ({
+const dag = (agentId: string, nodes: SCMNode[], edges: SCMEdge[]): SCMDAG => ({
   metadata: { model_name: agentId, generated_at: '1970-01-01T00:00:00.000Z' },
   nodes,
   edges,
@@ -192,18 +185,14 @@ describe('byzantineResilientMerge — Cycle 13: Byzantine-Resilient FMARL', () =
   it('rejects out-of-range option values', () => {
     const ledger = new AgentTrustLedger();
     const dags = [dag('a', [node('A')], [])];
-    expect(() => byzantineResilientMerge(dags, ledger, { outlierSigma: 0 })).toThrow(
-      RangeError,
-    );
+    expect(() => byzantineResilientMerge(dags, ledger, { outlierSigma: 0 })).toThrow(RangeError);
     expect(() => byzantineResilientMerge(dags, ledger, { decayPerEpoch: -0.1 })).toThrow(
-      RangeError,
+      RangeError
     );
-    expect(() =>
-      byzantineResilientMerge(dags, ledger, { dropThreshold: 1.5 }),
-    ).toThrow(RangeError);
-    expect(() =>
-      byzantineResilientMerge(dags, ledger, { minClusterAgents: 1 }),
-    ).toThrow(RangeError);
+    expect(() => byzantineResilientMerge(dags, ledger, { dropThreshold: 1.5 })).toThrow(RangeError);
+    expect(() => byzantineResilientMerge(dags, ledger, { minClusterAgents: 1 })).toThrow(
+      RangeError
+    );
   });
 
   it('skips std-dev test when all observers have identical weights (std=0)', () => {

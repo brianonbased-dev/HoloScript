@@ -93,13 +93,7 @@ export function analyzeXForwardedFor(
   }
   const left = hops[0];
   const peer = tcpPeer?.replace(/^::ffff:/, '') || '';
-  if (
-    peer &&
-    left &&
-    /^[\d.]+$/.test(left) &&
-    isPrivateIPv4(left) &&
-    !isPrivateIPv4(peer)
-  ) {
+  if (peer && left && /^[\d.]+$/.test(left) && isPrivateIPv4(left) && !isPrivateIPv4(peer)) {
     return { suspicious: true, reason: 'xff_private_left_public_peer' };
   }
   const uniq = new Set(hops);

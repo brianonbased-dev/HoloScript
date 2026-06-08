@@ -368,7 +368,7 @@ describe('SNNRetrievalModel', () => {
 
     expect(result.modelSpecific.shouldAbstain).toBe(true);
     expect(result.modelSpecific.confidence).toBeLessThan(
-      (DEFAULT_EXPERIMENT_CONFIG.snn.abstentionThreshold ?? 0.85)
+      DEFAULT_EXPERIMENT_CONFIG.snn.abstentionThreshold ?? 0.85
     );
   });
 
@@ -381,7 +381,12 @@ describe('SNNRetrievalModel', () => {
 
     // Without inhibition
     const noLiModel = new SNNRetrievalModel(
-      { ...DEFAULT_EXPERIMENT_CONFIG.snn, neuronsPerLayer: 32, timestepsPerInference: 20, lateralInhibitionStrength: 0 },
+      {
+        ...DEFAULT_EXPERIMENT_CONFIG.snn,
+        neuronsPerLayer: 32,
+        timestepsPerInference: 20,
+        lateralInhibitionStrength: 0,
+      },
       kb.facts.length,
       kb.facts.map((f) => f.name)
     );
@@ -394,12 +399,14 @@ describe('SNNRetrievalModel', () => {
 
   it('should preserve lateral inhibition weights after training', () => {
     const { train } = splitTrainTest(kb, 0.8, 42);
-    const liBefore = (model as unknown as { weightsLateralInhibition: Float32Array }).weightsLateralInhibition;
+    const liBefore = (model as unknown as { weightsLateralInhibition: Float32Array })
+      .weightsLateralInhibition;
     const snapshotBefore = new Float32Array(liBefore);
 
     model.train(train.slice(0, 5), 3);
 
-    const liAfter = (model as unknown as { weightsLateralInhibition: Float32Array }).weightsLateralInhibition;
+    const liAfter = (model as unknown as { weightsLateralInhibition: Float32Array })
+      .weightsLateralInhibition;
     // Structural weights should not be modified by Hebbian learning
     expect(liAfter).toEqual(snapshotBefore);
   });

@@ -14,14 +14,14 @@ generatedAt: 2026-05-27T05:07:46.261Z
 
 ## Breakdown
 
-| Category | Count | Share |
-|---|---|---|
-| Total rows read | 10 | 100% |
-| Reward-hack exclusions | 0 | 0.0% |
-| No CAEL trace | 0 | 0.0% |
-| Static-only (no solver invoked) | 0 | 0.0% |
-| Solver failed | 0 | 0.0% |
-| **Runtime eligible** | **10** | **100.0%** |
+| Category                        | Count  | Share      |
+| ------------------------------- | ------ | ---------- |
+| Total rows read                 | 10     | 100%       |
+| Reward-hack exclusions          | 0      | 0.0%       |
+| No CAEL trace                   | 0      | 0.0%       |
+| Static-only (no solver invoked) | 0      | 0.0%       |
+| Solver failed                   | 0      | 0.0%       |
+| **Runtime eligible**            | **10** | **100.0%** |
 
 ## Solver-fail reasons
 

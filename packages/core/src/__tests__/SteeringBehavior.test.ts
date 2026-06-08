@@ -118,10 +118,7 @@ describe('SteeringBehavior', () => {
   });
 
   it('blend clamps to maxForce', () => {
-    const result = SteeringBehavior.blend(
-      [{ force: [100, 0, 0], type: 'seek', weight: 1 }],
-      5
-    );
+    const result = SteeringBehavior.blend([{ force: [100, 0, 0], type: 'seek', weight: 1 }], 5);
     expect(mag(result)).toBeCloseTo(5, 1);
   });
 

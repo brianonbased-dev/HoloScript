@@ -119,9 +119,7 @@ function parseLOC(cell: string): { loc: number; isSkeleton: boolean } {
 function parseAnchor(cell: string): { ots: boolean; base: boolean } {
   // Strip whitespace, split on / and read first/second.
   const compact = cell.replace(/\s+/g, '');
-  const ots = /✅\/[✅❌]/.test(compact)
-    ? true
-    : /✅/.test(compact.split('/')[0] || '');
+  const ots = /✅\/[✅❌]/.test(compact) ? true : /✅/.test(compact.split('/')[0] || '');
   const baseStr = compact.split('/')[1] || '';
   const base = baseStr.includes('✅');
   return { ots, base };
@@ -253,8 +251,20 @@ function splitRow(row: string): string[] {
 function parseMatrixRow(row: string): ParsedRow | null {
   const cells = splitRow(row);
   if (cells.length < 11) return null; // not a data row
-  const [code, paperName, , locCell, empClaims, reproD011, citations, anchor, novelty, threatModel, venueFit, ...rest] =
-    cells;
+  const [
+    code,
+    paperName,
+    ,
+    locCell,
+    empClaims,
+    reproD011,
+    citations,
+    anchor,
+    novelty,
+    threatModel,
+    venueFit,
+    ...rest
+  ] = cells;
   if (!code || code === '#') return null;
 
   const { loc, isSkeleton } = parseLOC(locCell);

@@ -62,7 +62,9 @@ describe('executeShowCommand', () => {
 
   it('uses node.hologram.color when provided', async () => {
     const { ctx, createParticleEffect } = makeCtx();
-    const node = { type: 'voice', hologram: { color: '#ff0000' } } as ASTNode & { hologram?: { color: string } };
+    const node = { type: 'voice', hologram: { color: '#ff0000' } } as ASTNode & {
+      hologram?: { color: string };
+    };
     await executeShowCommand('orb', node as never, ctx);
     // Custom hologram color passed to particle effect
     expect(createParticleEffect.mock.calls[0][2]).toBe('#ff0000');
@@ -97,7 +99,10 @@ describe('executeCreateCommand', () => {
     const result = await executeCreateCommand(['sphere', 'my_sphere'], node, ctx);
     expect(spatialMemory.get('my_sphere')).toEqual([0, 0, 0]);
     expect(createParticleEffect.mock.calls[0]).toEqual([
-      'my_sphere_create', [0, 0, 0], '#00ffff', 20,
+      'my_sphere_create',
+      [0, 0, 0],
+      '#00ffff',
+      20,
     ]);
     expect(result.created).toBe('my_sphere');
     expect(result.shape).toBe('sphere');
@@ -105,11 +110,7 @@ describe('executeCreateCommand', () => {
 
   it('defaults size to 1 and interactive to true', async () => {
     const { ctx } = makeCtx();
-    const result = await executeCreateCommand(
-      ['cube', 'box'],
-      { type: 'voice' } as ASTNode,
-      ctx,
-    );
+    const result = await executeCreateCommand(['cube', 'box'], { type: 'voice' } as ASTNode, ctx);
     const hologram = result.hologram as Record<string, unknown>;
     expect(hologram.size).toBe(1);
     expect(hologram.interactive).toBe(true);
@@ -117,7 +118,9 @@ describe('executeCreateCommand', () => {
 
   it('explicit interactive:false propagates', async () => {
     const { ctx } = makeCtx();
-    const node = { type: 'voice', hologram: { interactive: false } } as ASTNode & { hologram: { interactive: boolean } };
+    const node = { type: 'voice', hologram: { interactive: false } } as ASTNode & {
+      hologram: { interactive: boolean };
+    };
     const result = await executeCreateCommand(['cube', 'c'], node as never, ctx);
     const hologram = result.hologram as Record<string, unknown>;
     expect(hologram.interactive).toBe(false);
@@ -191,7 +194,11 @@ describe('executeMoveCommand', () => {
     await executeMoveCommand('obj', ['5', '10', '15'], { type: 'voice' } as ASTNode, ctx);
     expect(spatialMemory.get('obj')).toEqual([5, 10, 15]);
     expect(createConnectionStream).toHaveBeenCalledWith(
-      'obj', 'obj_move', [0, 0, 0], [5, 10, 15], 'movement',
+      'obj',
+      'obj_move',
+      [0, 0, 0],
+      [5, 10, 15],
+      'movement'
     );
   });
 

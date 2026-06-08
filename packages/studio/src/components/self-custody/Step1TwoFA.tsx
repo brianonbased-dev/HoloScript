@@ -27,8 +27,8 @@ export function Step1TwoFA({ devSkipBanner, onContinue, onCancel }: Step1Props) 
     <div>
       <h2 style={{ fontSize: 18, marginBottom: 12 }}>Step 1 — Verify it&apos;s you</h2>
       <p style={{ color: '#aaa', fontSize: 13, marginBottom: 16 }}>
-        Migrating to self-custody is permanent. We require a second factor before
-        proceeding. Enter a code from your authenticator app or hardware key.
+        Migrating to self-custody is permanent. We require a second factor before proceeding. Enter
+        a code from your authenticator app or hardware key.
       </p>
 
       {devSkipBanner && (
@@ -45,9 +45,8 @@ export function Step1TwoFA({ devSkipBanner, onContinue, onCancel }: Step1Props) 
           role="alert"
           aria-label="dev-banner"
         >
-          <strong>DEV MODE:</strong> REQUIRE_2FA is disabled on this server.
-          The migration will proceed without 2FA. Do not ship this configuration
-          to production.
+          <strong>DEV MODE:</strong> REQUIRE_2FA is disabled on this server. The migration will
+          proceed without 2FA. Do not ship this configuration to production.
         </div>
       )}
 

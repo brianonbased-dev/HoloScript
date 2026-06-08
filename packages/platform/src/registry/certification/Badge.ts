@@ -348,7 +348,12 @@ function legacyBadgeKey(packageName: string, version: string): string {
   return `${packageName}@${version}`;
 }
 
-function makeFingerprint(packageName: string, version: string, level: string, score: number): string {
+function makeFingerprint(
+  packageName: string,
+  version: string,
+  level: string,
+  score: number
+): string {
   return createHmac('sha256', SIGNING_KEY)
     .update(`${packageName}:${version}:${level}:${score}`)
     .digest('hex');
@@ -368,7 +373,9 @@ export function issueBadge(
   if (!result.certified || !result.level) return null;
 
   const issuedAt = (result.certifiedAt ?? new Date()).toISOString();
-  const expiresAt = (result.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)).toISOString();
+  const expiresAt = (
+    result.expiresAt ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+  ).toISOString();
   const fingerprint = makeFingerprint(packageName, version, result.level, result.score);
   const signature = makeSignature(fingerprint, issuedAt, expiresAt);
 
@@ -389,7 +396,12 @@ export function verifyBadge(badge: CertificationBadge): {
   reason?: string;
   badge?: CertificationBadge;
 } {
-  const expectedFingerprint = makeFingerprint(badge.packageName, badge.version, badge.level, badge.score);
+  const expectedFingerprint = makeFingerprint(
+    badge.packageName,
+    badge.version,
+    badge.level,
+    badge.score
+  );
   if (badge.fingerprint !== expectedFingerprint) {
     return { valid: false, reason: 'Fingerprint mismatch' };
   }

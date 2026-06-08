@@ -210,7 +210,8 @@ export const hrtfHandler: TraitHandler<HRTFConfig> = {
     const headsetPos = vr?.headset?.position;
     const headsetRot = vr?.headset?.rotation;
     if (headsetPos && Array.isArray(headsetPos) && headsetPos.length === 3) {
-      const movedFar = distanceSq(headsetPos, state.lastEmittedPosition) > POSITION_CHANGE_THRESHOLD_SQ;
+      const movedFar =
+        distanceSq(headsetPos, state.lastEmittedPosition) > POSITION_CHANGE_THRESHOLD_SQ;
       const rotatedFar =
         headsetRot && Array.isArray(headsetRot) && headsetRot.length === 3
           ? state.lastEmittedRotation === null ||

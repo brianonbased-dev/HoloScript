@@ -16,7 +16,10 @@ function createMockSolver(fieldSize: number): SimSolver & { simTime: number } {
     mode: 'transient' as const,
     fieldNames: ['temperature'] as const,
     simTime: 0,
-    step(dt: number) { time += dt; this.simTime = time; },
+    step(dt: number) {
+      time += dt;
+      this.simTime = time;
+    },
     solve() {},
     getField(name: string): FieldData | null {
       if (name !== 'temperature') return null;
@@ -24,7 +27,9 @@ function createMockSolver(fieldSize: number): SimSolver & { simTime: number } {
       for (let i = 0; i < fieldSize; i++) data[i] = time * (i + 1);
       return data;
     },
-    getStats() { return { currentTime: time }; },
+    getStats() {
+      return { currentTime: time };
+    },
     dispose() {},
   };
 }
@@ -105,8 +110,10 @@ describe('SimulationRecorder', () => {
   it('bracket search handles edge cases', () => {
     const recorder = new SimulationRecorder();
     const solver = createMockSolver(5);
-    solver.step(0.1); recorder.capture(solver, solver.simTime);
-    solver.step(0.1); recorder.capture(solver, solver.simTime);
+    solver.step(0.1);
+    recorder.capture(solver, solver.simTime);
+    solver.step(0.1);
+    recorder.capture(solver, solver.simTime);
 
     // Before start
     const b1 = recorder.findBracket(0);
@@ -144,7 +151,10 @@ describe('SimulationRecorder', () => {
 // ═══════════════════════════════════════════════════════════════════════
 
 describe('SimulationPlayback', () => {
-  function recordFrames(n: number, dt = 0.1): { recorder: SimulationRecorder; playback: SimulationPlayback } {
+  function recordFrames(
+    n: number,
+    dt = 0.1
+  ): { recorder: SimulationRecorder; playback: SimulationPlayback } {
     const recorder = new SimulationRecorder();
     const solver = createMockSolver(5);
     for (let i = 0; i < n; i++) {

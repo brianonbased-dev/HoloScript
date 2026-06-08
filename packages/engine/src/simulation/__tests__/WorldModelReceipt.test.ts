@@ -20,7 +20,12 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ContractedSimulation, type WorldModelReceipt, type LatentVector, type PhysicsState } from '../SimulationContract';
+import {
+  ContractedSimulation,
+  type WorldModelReceipt,
+  type LatentVector,
+  type PhysicsState,
+} from '../SimulationContract';
 import { StructuralSolver, type StructuralConfig } from '../StructuralSolver';
 import { RegularGrid3D } from '../RegularGrid3D';
 import type { SimSolver, SolverMode, FieldData } from '../SimSolver';
@@ -38,15 +43,31 @@ import type { SimSolver, SolverMode, FieldData } from '../SimSolver';
 //  Winding follows right-hand rule: det(J) > 0 for all tets.
 //
 const VERTICES = new Float32Array([
-  0.0, 0.0, 0.0,   // 0 — base
-  1.0, 0.0, 0.0,   // 1 — base
-  0.5, 1.0, 0.0,   // 2 — base
-  0.5, 0.3, 1.0,   // 3 — apex tet-0 (free)
-  0.5, 0.3, 2.0,   // 4 — apex tet-1 (free)
+  0.0,
+  0.0,
+  0.0, // 0 — base
+  1.0,
+  0.0,
+  0.0, // 1 — base
+  0.5,
+  1.0,
+  0.0, // 2 — base
+  0.5,
+  0.3,
+  1.0, // 3 — apex tet-0 (free)
+  0.5,
+  0.3,
+  2.0, // 4 — apex tet-1 (free)
 ]);
 const TETRAHEDRA = new Uint32Array([
-  0, 1, 2, 3,   // Tet 0: positive Jacobian
-  0, 2, 1, 4,   // Tet 1: swapped 1↔2 so apex 4 stays above
+  0,
+  1,
+  2,
+  3, // Tet 0: positive Jacobian
+  0,
+  2,
+  1,
+  4, // Tet 1: swapped 1↔2 so apex 4 stays above
 ]);
 
 function buildConfig(): StructuralConfig {
@@ -96,7 +117,13 @@ describe('WorldModelReceipt — new types', () => {
     // Type-level check: WorldModelReceipt fields are present at runtime via a mock
     const mockReceipt: WorldModelReceipt = {
       jepa_prediction: { values: new Float32Array([1, 2]), dim: 2, encoderId: 'test', simTime: 0 },
-      solver_ground_truth: { simTime: 0, fields: {}, geometryHash: 'abc', contractId: 'cid', solverType: 'structural' },
+      solver_ground_truth: {
+        simTime: 0,
+        fields: {},
+        geometryHash: 'abc',
+        contractId: 'cid',
+        solverType: 'structural',
+      },
       delta_error: 1.5,
       confidence_bound: { lo: 1.4, hi: 1.6, coverage: 0.95 },
       receiptId: 'wmr-test',
@@ -118,7 +145,7 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
     const contracted = new ContractedSimulation(
       solver as unknown as import('../SimSolver').SimSolver,
       config as unknown as Record<string, unknown>,
-      { solverType: 'structural', useCryptographicHash: false },
+      { solverType: 'structural', useCryptographicHash: false }
     );
 
     await contracted.solve();
@@ -145,7 +172,9 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
     expect(receipt.hashMode).toBe('fnv1a');
 
     // solver_ground_truth is populated
-    expect(receipt.solver_ground_truth.geometryHash).toBe(contracted.getContractId() !== '' ? receipt.contractId : '');
+    expect(receipt.solver_ground_truth.geometryHash).toBe(
+      contracted.getContractId() !== '' ? receipt.contractId : ''
+    );
     expect(receipt.solver_ground_truth.solverType).toBe('structural');
     expect(receipt.solver_ground_truth.simTime).toBeGreaterThanOrEqual(0);
   });
@@ -165,7 +194,7 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
     const contracted = new ContractedSimulation(
       solver as unknown as import('../SimSolver').SimSolver,
       config as unknown as Record<string, unknown>,
-      { solverType: 'structural' },
+      { solverType: 'structural' }
     );
 
     await contracted.solve();
@@ -216,7 +245,7 @@ describe('WorldModelReceipt — ContractedSimulation.generateWorldModelReceipt()
     const contracted = new ContractedSimulation(
       solver as unknown as import('../SimSolver').SimSolver,
       config as unknown as Record<string, unknown>,
-      { solverType: 'structural', useCryptographicHash: true },
+      { solverType: 'structural', useCryptographicHash: true }
     );
 
     await contracted.solve();
@@ -255,7 +284,9 @@ class GridFieldSolverMock implements SimSolver {
     if (name === 'scalar_field') return this.scalar;
     return null;
   }
-  getStats(): Record<string, unknown> { return { converged: true }; }
+  getStats(): Record<string, unknown> {
+    return { converged: true };
+  }
   dispose(): void {}
 }
 
@@ -265,7 +296,7 @@ describe('WorldModelReceipt — RegularGrid3D field capture (regression cr7d)', 
     const contracted = new ContractedSimulation(
       solver,
       {},
-      { solverType: 'reaction-diffusion', useCryptographicHash: false },
+      { solverType: 'reaction-diffusion', useCryptographicHash: false }
     );
 
     await contracted.solve();
@@ -282,7 +313,7 @@ describe('WorldModelReceipt — RegularGrid3D field capture (regression cr7d)', 
     const contracted = new ContractedSimulation(
       solver,
       {},
-      { solverType: 'reaction-diffusion', useCryptographicHash: true },
+      { solverType: 'reaction-diffusion', useCryptographicHash: true }
     );
 
     await contracted.solve();
@@ -309,7 +340,7 @@ describe('WorldModelReceipt — base-anchor pipeline', () => {
     const contracted = new ContractedSimulation(
       solver as unknown as import('../SimSolver').SimSolver,
       config as unknown as Record<string, unknown>,
-      { solverType: 'structural', useCryptographicHash: true },
+      { solverType: 'structural', useCryptographicHash: true }
     );
 
     await contracted.solve();
@@ -349,8 +380,10 @@ describe('WorldModelReceipt — base-anchor pipeline', () => {
       },
       paper26_seed: {
         title: 'Verifiable World Models via Simulation Contracts',
-        novelty: 'First cryptographically-verified world model receipt tied to a physics simulation contract.',
-        tvcg_boundary: 'Above current TVCG submission scope (Trust by Construction, external review 2026-05-17).',
+        novelty:
+          'First cryptographically-verified world model receipt tied to a physics simulation contract.',
+        tvcg_boundary:
+          'Above current TVCG submission scope (Trust by Construction, external review 2026-05-17).',
         founder_review_required_for_paper_scoping: true,
       },
     };

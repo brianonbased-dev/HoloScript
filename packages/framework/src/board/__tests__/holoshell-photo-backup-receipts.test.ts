@@ -137,13 +137,18 @@ describe('HoloShell photo backup receipts', () => {
   });
 
   it('rejects original deletion before restore proof', () => {
-    const receipt = makeCustodyReceipt() as unknown as Omit<PhotoBackupCustodyReceipt, 'summary'> & {
-      summary: Omit<PhotoBackupCustodyReceipt['summary'], 'originalsDeleted'> & { originalsDeleted: boolean };
+    const receipt = makeCustodyReceipt() as unknown as Omit<
+      PhotoBackupCustodyReceipt,
+      'summary'
+    > & {
+      summary: Omit<PhotoBackupCustodyReceipt['summary'], 'originalsDeleted'> & {
+        originalsDeleted: boolean;
+      };
     };
     receipt.summary.originalsDeleted = true;
-    expect(validatePhotoBackupCustodyReceipt(receipt as unknown as PhotoBackupCustodyReceipt)).toContain(
-      'PhotoBackupCustodyReceipt.summary.originalsDeleted must be false.'
-    );
+    expect(
+      validatePhotoBackupCustodyReceipt(receipt as unknown as PhotoBackupCustodyReceipt)
+    ).toContain('PhotoBackupCustodyReceipt.summary.originalsDeleted must be false.');
   });
 
   it('requires quota and delete semantics when a target is chosen', () => {

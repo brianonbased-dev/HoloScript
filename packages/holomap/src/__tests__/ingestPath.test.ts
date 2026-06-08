@@ -18,7 +18,7 @@ describe('resolveIngestPath', () => {
       resolveIngestPath({
         argv: ['node', 'vitest', '--ingest-path=both'],
         env: {},
-      }),
+      })
     ).toBe('both');
   });
 
@@ -27,7 +27,7 @@ describe('resolveIngestPath', () => {
       resolveIngestPath({
         argv: [],
         env: { HOLOSCRIPT_INGEST_PATH: 'holomap' },
-      }),
+      })
     ).toBe('holomap');
   });
 
@@ -36,7 +36,7 @@ describe('resolveIngestPath', () => {
       resolveIngestPath({
         argv: [],
         env: { HOLOSCRIPT_RECONSTRUCTION_PROFILE: 'compare-both' },
-      }),
+      })
     ).toBe('both');
   });
 });
@@ -57,7 +57,7 @@ describe('HoloMap vertical resolution', () => {
       resolveHoloMapVertical({
         argv: ['node', 'vitest', '--holomap-vertical=object'],
         env: { HOLOSCRIPT_HOLOMAP_VERTICAL: 'indoor' },
-      }),
+      })
     ).toBe('object');
   });
 
@@ -66,7 +66,7 @@ describe('HoloMap vertical resolution', () => {
       resolveHoloMapVertical({
         argv: [],
         env: { HOLOSCRIPT_HOLOMAP_VERTICAL: 'indoor' },
-      }),
+      })
     ).toBe('indoor');
   });
 
@@ -78,20 +78,18 @@ describe('HoloMap vertical resolution', () => {
 describe('trait-based vertical selection', () => {
   it('selects object for close-range traits', () => {
     expect(selectHoloMapVerticalFromTraits(['close_range_scan', 'reconstruction_source'])).toBe(
-      'object',
+      'object'
     );
   });
 
   it('selects outdoor for geospatial traits', () => {
     expect(selectHoloMapVerticalFromTraits(['geospatial', 'reconstruction_source'])).toBe(
-      'outdoor',
+      'outdoor'
     );
   });
 
   it('selects indoor for SLAM-heavy traits', () => {
-    expect(selectHoloMapVerticalFromTraits(['slam_heavy', 'reconstruction_source'])).toBe(
-      'indoor',
-    );
+    expect(selectHoloMapVerticalFromTraits(['slam_heavy', 'reconstruction_source'])).toBe('indoor');
   });
 
   it('falls back to base profile', () => {

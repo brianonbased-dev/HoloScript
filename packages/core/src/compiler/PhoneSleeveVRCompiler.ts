@@ -853,7 +853,9 @@ ${handTrackingFrame}
         : '',
       this.opts.aiVoiceCommands ? '      if (AI_VOICE_COMMANDS_ENABLED) initVoiceCommands();' : '',
       this.opts.aiUpscaling ? '      if (AI_UPSCALING_ENABLED) initNeuralUpscaling();' : '',
-      this.opts.brittneySovereign ? '      if (BRITTNEY_SOVEREIGN_ENABLED) initBrittneySovereign();' : '',
+      this.opts.brittneySovereign
+        ? '      if (BRITTNEY_SOVEREIGN_ENABLED) initBrittneySovereign();'
+        : '',
     ]
       .filter(Boolean)
       .join('\n');

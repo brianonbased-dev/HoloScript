@@ -2,10 +2,7 @@
  * CircuitBreakerTrait — comprehensive tests
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  circuitBreakerHandler,
-  type CircuitBreakerConfig,
-} from '../CircuitBreakerTrait';
+import { circuitBreakerHandler, type CircuitBreakerConfig } from '../CircuitBreakerTrait';
 import type { HSPlusNode, TraitContext } from '../TraitTypes';
 
 // ---------------------------------------------------------------------------
@@ -39,15 +36,35 @@ function setup(configOverrides: Partial<CircuitBreakerConfig> = {}) {
   return { node, config, context, emitted };
 }
 
-function execute(node: CBNode, config: CircuitBreakerConfig, context: TraitContext, action = 'do_work', params: Record<string, unknown> = {}) {
+function execute(
+  node: CBNode,
+  config: CircuitBreakerConfig,
+  context: TraitContext,
+  action = 'do_work',
+  params: Record<string, unknown> = {}
+) {
   circuitBreakerHandler.onEvent?.(node, config, context, {
     type: 'circuit_breaker:execute',
     payload: { action, params },
   } as any);
 }
 
-function resolveLatest(node: CBNode, config: CircuitBreakerConfig, context: TraitContext, emitted: Array<{ type: string; payload: unknown }>, success: boolean, error?: string) {
-  const actionEv = [...emitted].reverse().find(e => e.type !== 'circuit_breaker:success' && e.type !== 'circuit_breaker:failure' && !e.type.startsWith('circuit_breaker:'));
+function resolveLatest(
+  node: CBNode,
+  config: CircuitBreakerConfig,
+  context: TraitContext,
+  emitted: Array<{ type: string; payload: unknown }>,
+  success: boolean,
+  error?: string
+) {
+  const actionEv = [...emitted]
+    .reverse()
+    .find(
+      (e) =>
+        e.type !== 'circuit_breaker:success' &&
+        e.type !== 'circuit_breaker:failure' &&
+        !e.type.startsWith('circuit_breaker:')
+    );
   const cbId = (actionEv?.payload as any)?.__circuitBreakerId;
   if (!cbId) throw new Error('No cbId found to resolve');
   circuitBreakerHandler.onEvent?.(node, config, context, {
@@ -106,7 +123,7 @@ describe('execute/result flow', () => {
   it('execute forwards action with __circuitBreakerId', () => {
     const { node, config, context, emitted } = setup();
     execute(node, config, context, 'run_action', { x: 1 });
-    const ev = emitted.find(e => e.type === 'run_action');
+    const ev = emitted.find((e) => e.type === 'run_action');
     expect(ev).toBeDefined();
     expect((ev!.payload as any).x).toBe(1);
     expect(typeof (ev!.payload as any).__circuitBreakerId).toBe('string');
@@ -122,7 +139,7 @@ describe('execute/result flow', () => {
     const { node, config, context, emitted } = setup();
     execute(node, config, context, 'a1');
     resolveLatest(node, config, context, emitted, true);
-    expect(emitted.some(e => e.type === 'circuit_breaker:success')).toBe(true);
+    expect(emitted.some((e) => e.type === 'circuit_breaker:success')).toBe(true);
     expect(node.__circuitBreakerState.totalSuccesses).toBe(1);
   });
 
@@ -130,7 +147,7 @@ describe('execute/result flow', () => {
     const { node, config, context, emitted } = setup();
     execute(node, config, context, 'a1');
     resolveLatest(node, config, context, emitted, false, 'boom');
-    expect(emitted.some(e => e.type === 'circuit_breaker:failure')).toBe(true);
+    expect(emitted.some((e) => e.type === 'circuit_breaker:failure')).toBe(true);
     expect(node.__circuitBreakerState.totalFailures).toBe(1);
   });
 
@@ -140,8 +157,8 @@ describe('execute/result flow', () => {
       type: 'circuit_breaker:result',
       payload: { cbId: 'missing', success: true },
     } as any);
-    expect(emitted.some(e => e.type === 'circuit_breaker:success')).toBe(false);
-    expect(emitted.some(e => e.type === 'circuit_breaker:failure')).toBe(false);
+    expect(emitted.some((e) => e.type === 'circuit_breaker:success')).toBe(false);
+    expect(emitted.some((e) => e.type === 'circuit_breaker:failure')).toBe(false);
   });
 });
 
@@ -158,16 +175,16 @@ describe('opens by failure count threshold', () => {
     resolveLatest(node, config, context, emitted, false, 'e2');
 
     expect(node.__circuitBreakerState.state).toBe('open');
-    expect(emitted.some(e => e.type === 'circuit_breaker:opened')).toBe(true);
+    expect(emitted.some((e) => e.type === 'circuit_breaker:opened')).toBe(true);
   });
 
   it('opened payload includes failureCount/failureRate/window', () => {
     const { node, config, context, emitted } = setup({ failure_threshold: 1, window_ms: 5000 });
     execute(node, config, context, 'a1');
     resolveLatest(node, config, context, emitted, false, 'e1');
-    const ev = emitted.find(e => e.type === 'circuit_breaker:opened');
-    expect((ev!.payload as any)).toHaveProperty('failureCount');
-    expect((ev!.payload as any)).toHaveProperty('failureRate');
+    const ev = emitted.find((e) => e.type === 'circuit_breaker:opened');
+    expect(ev!.payload as any).toHaveProperty('failureCount');
+    expect(ev!.payload as any).toHaveProperty('failureRate');
     expect((ev!.payload as any).window).toBe(5000);
   });
 
@@ -179,8 +196,8 @@ describe('opens by failure count threshold', () => {
 
     execute(node, config, context, 'a2');
 
-    expect(emitted.some(e => e.type === 'circuit_breaker:rejected')).toBe(true);
-    expect(emitted.some(e => e.type === 'a2')).toBe(false);
+    expect(emitted.some((e) => e.type === 'circuit_breaker:rejected')).toBe(true);
+    expect(emitted.some((e) => e.type === 'a2')).toBe(false);
   });
 });
 
@@ -232,7 +249,10 @@ describe('opens by failure rate threshold', () => {
 
 describe('state transitions', () => {
   it('auto-transitions open -> half-open after reset_timeout_ms', () => {
-    const { node, config, context, emitted } = setup({ failure_threshold: 1, reset_timeout_ms: 1000 });
+    const { node, config, context, emitted } = setup({
+      failure_threshold: 1,
+      reset_timeout_ms: 1000,
+    });
     execute(node, config, context, 'a1');
     resolveLatest(node, config, context, emitted, false, 'e1');
 
@@ -240,7 +260,7 @@ describe('state transitions', () => {
     circuitBreakerHandler.onUpdate?.(node, config, context, 0.016);
 
     expect(node.__circuitBreakerState.state).toBe('half-open');
-    expect(emitted.some(e => e.type === 'circuit_breaker:half_opened')).toBe(true);
+    expect(emitted.some((e) => e.type === 'circuit_breaker:half_opened')).toBe(true);
   });
 
   it('half-open success_threshold successes close the circuit', () => {
@@ -264,7 +284,7 @@ describe('state transitions', () => {
     resolveLatest(node, config, context, emitted, true);
 
     expect(node.__circuitBreakerState.state).toBe('closed');
-    expect(emitted.some(e => e.type === 'circuit_breaker:closed')).toBe(true);
+    expect(emitted.some((e) => e.type === 'circuit_breaker:closed')).toBe(true);
   });
 
   it('half-open failure reopens the circuit', () => {
@@ -283,7 +303,9 @@ describe('state transitions', () => {
     resolveLatest(node, config, context, emitted, false, 'half-open-fail');
 
     expect(node.__circuitBreakerState.state).toBe('open');
-    expect(emitted.filter(e => e.type === 'circuit_breaker:opened').length).toBeGreaterThanOrEqual(2);
+    expect(
+      emitted.filter((e) => e.type === 'circuit_breaker:opened').length
+    ).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -304,7 +326,7 @@ describe('reset/status/window pruning', () => {
 
     expect(node.__circuitBreakerState.state).toBe('closed');
     expect(node.__circuitBreakerState.requestLog.length).toBe(0);
-    expect(emitted.some(e => e.type === 'circuit_breaker:closed')).toBe(true);
+    expect(emitted.some((e) => e.type === 'circuit_breaker:closed')).toBe(true);
   });
 
   it('get_status emits status with counters and failureRate', () => {
@@ -319,11 +341,11 @@ describe('reset/status/window pruning', () => {
       payload: {},
     } as any);
 
-    const status = emitted.find(e => e.type === 'circuit_breaker:status');
+    const status = emitted.find((e) => e.type === 'circuit_breaker:status');
     expect(status).toBeDefined();
-    expect((status!.payload as any)).toHaveProperty('state');
-    expect((status!.payload as any)).toHaveProperty('totalRequests');
-    expect((status!.payload as any)).toHaveProperty('failureRate');
+    expect(status!.payload as any).toHaveProperty('state');
+    expect(status!.payload as any).toHaveProperty('totalRequests');
+    expect(status!.payload as any).toHaveProperty('failureRate');
     expect((status!.payload as any).windowTotal).toBeGreaterThan(0);
   });
 
@@ -349,7 +371,9 @@ describe('reset/status/window pruning', () => {
     const node = makeNode();
     const { context } = makeContext();
     expect(() =>
-      circuitBreakerHandler.onEvent?.(node, BASE_CONFIG, context, { type: 'circuit_breaker:get_status' } as any)
+      circuitBreakerHandler.onEvent?.(node, BASE_CONFIG, context, {
+        type: 'circuit_breaker:get_status',
+      } as any)
     ).not.toThrow();
   });
 });

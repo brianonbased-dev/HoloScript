@@ -66,7 +66,7 @@ export interface RuntimeTraitHandler {
     node: unknown,
     config: OneRepMaxTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -81,7 +81,7 @@ interface OneRepMaxNode {
 function solveOntoNode(
   node: unknown,
   config: OneRepMaxTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as OneRepMaxNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';
@@ -91,8 +91,7 @@ function solveOntoNode(
   if (typeof weightKg !== 'number' || typeof reps !== 'number') {
     context.emit('one_rep_max_error', {
       nodeId,
-      error:
-        'one_rep_max trait requires config.weightKg (number) and config.reps (number)',
+      error: 'one_rep_max trait requires config.weightKg (number) and config.reps (number)',
     });
     return;
   }

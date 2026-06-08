@@ -36,12 +36,7 @@ document.body.appendChild(renderer.domElement);
 const threeScene = new THREE.Scene();
 threeScene.background = new THREE.Color('#0a0a0f');
 
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 1.6, 3);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -103,9 +98,7 @@ function makeText(obj) {
   ctx.fillText(text, pad, h / 2);
   const texture = new THREE.CanvasTexture(canvas);
   texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  const sprite = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: texture, transparent: true })
-  );
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
   const s = (typeof obj.scale === 'number' ? obj.scale : 1) * 2;
   sprite.scale.set((w / h) * s, s, 1);
   return sprite;

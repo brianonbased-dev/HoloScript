@@ -1,5 +1,4 @@
-import type { Vector3 } from '@holoscript/core';
-﻿/**
+import type { Vector3 } from '@holoscript/core'; /**
  * MovementPredictor Production Tests
  *
  * Covers: update (velocity computation from position delta), setIntent,
@@ -8,7 +7,6 @@ import type { Vector3 } from '@holoscript/core';
  * math, intent biasing (weight 0 â†’ pure recurrent, weight 1 â†’ pure intent target),
  * history buffer (cappedAt maxHistory=60), toTuple (array or object Vector3).
  */
-
 import { describe, it, expect } from 'vitest';
 import { MovementPredictor } from '../MovementPredictor';
 
@@ -176,12 +174,12 @@ describe('MovementPredictor â€” Vector3 input', () => {
 
   it('accepts object-form Vector3 {"x","y","z"} without error', () => {
     const mp = makeMP();
-    expect(() => mp.update([1, 2, 3 ] as any, 0.016)).not.toThrow();
+    expect(() => mp.update([1, 2, 3] as any, 0.016)).not.toThrow();
   });
 
   it('ambient window uses the correct position after object-form update', () => {
     const mp = makeMP();
-    mp.update([7, 8, 9 ] as any, 0.016);
+    mp.update([7, 8, 9] as any, 0.016);
     const windows = mp.getPredictiveWindows(1);
     expect(windows[0].center[0]).toBeCloseTo(7, 5);
   });

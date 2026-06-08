@@ -263,7 +263,9 @@ describe('agentDiscoveryHandler.onEvent — agent_get_status', () => {
   it('emits discovery_status with registrationStatus', async () => {
     const { node, ctx, config } = await attach({ agent_id: 'a1', agent_name: 'Agent1' });
     ctx.emit.mockClear();
-    await agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, { type: 'agent_get_status' });
+    await agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'agent_get_status',
+    });
     expect(ctx.emit).toHaveBeenCalledWith(
       'discovery_status',
       expect.objectContaining({
@@ -279,7 +281,9 @@ describe('agentDiscoveryHandler.onEvent — agent_get_status', () => {
     const state = (node as any).__agentDiscoveryState;
     state.eventHistory = [{ type: 'discovered', agent: {}, timestamp: 0 }];
     ctx.emit.mockClear();
-    await agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, { type: 'agent_get_status' });
+    await agentDiscoveryHandler.onEvent!(node as any, config, ctx as any, {
+      type: 'agent_get_status',
+    });
     const [, payload] = ctx.emit.mock.calls[0];
     expect(payload.eventCount).toBe(1);
   });

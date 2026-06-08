@@ -399,7 +399,7 @@ describe('extractTraitNames', () => {
   it('deduplicates trait names', () => {
     const source = 'orb cube { @grabbable @grabbable }';
     const names = extractTraitNames(source);
-    expect(names.filter(n => n === 'grabbable')).toHaveLength(1);
+    expect(names.filter((n) => n === 'grabbable')).toHaveLength(1);
   });
 
   it('returns empty array for source with no traits', () => {

@@ -17,7 +17,11 @@
  */
 
 import type { TraitHandler } from './TraitTypes';
-import type { HoloMapConfig, ReconstructionManifest, ReconstructionFrame } from '../reconstruction/HoloMapRuntime';
+import type {
+  HoloMapConfig,
+  ReconstructionManifest,
+  ReconstructionFrame,
+} from '../reconstruction/HoloMapRuntime';
 import { createHoloMapRuntime, HOLOMAP_DEFAULTS } from '../reconstruction/HoloMapRuntime';
 
 // =============================================================================
@@ -53,7 +57,9 @@ export interface HoloMapReconstructionState {
 interface BoundHoloMapRuntime {
   initPromise: Promise<void> | null;
   dispose(): Promise<void>;
-  step(frame: ReconstructionFrame): Promise<import('../reconstruction/HoloMapRuntime').ReconstructionStep | null>;
+  step(
+    frame: ReconstructionFrame
+  ): Promise<import('../reconstruction/HoloMapRuntime').ReconstructionStep | null>;
   finalize(): Promise<ReconstructionManifest>;
   replayHash(): string;
 }
@@ -104,21 +110,27 @@ export const holomapReconstructionHandler: TraitHandler<HoloMapReconstructionCon
       | undefined;
     if (!state) return;
 
-    const rawRuntime = (node as unknown as Record<string, unknown>).__holomapRuntime as
-      | BoundHoloMapRuntime
-      | null;
+    const rawRuntime = (node as unknown as Record<string, unknown>)
+      .__holomapRuntime as BoundHoloMapRuntime | null;
 
     // ── Session lifecycle events ─────────────────────────────────────────────
 
     if (event.type === 'holomap:start_session') {
       const payload = (event.payload ?? {}) as Record<string, unknown>;
       const runtime = createHoloMapRuntime();
-      const sessionId = typeof payload.sessionId === 'string' ? payload.sessionId : cryptoRandomId();
+      const sessionId =
+        typeof payload.sessionId === 'string' ? payload.sessionId : cryptoRandomId();
       const runtimeConfig: HoloMapConfig = {
         ...HOLOMAP_DEFAULTS,
         ...config.runtime,
-        seed: typeof payload.seed === 'number' ? payload.seed : (config.runtime?.seed ?? HOLOMAP_DEFAULTS.seed),
-        modelHash: typeof payload.modelHash === 'string' ? payload.modelHash : (config.runtime?.modelHash ?? 'holomap-trait-bound'),
+        seed:
+          typeof payload.seed === 'number'
+            ? payload.seed
+            : (config.runtime?.seed ?? HOLOMAP_DEFAULTS.seed),
+        modelHash:
+          typeof payload.modelHash === 'string'
+            ? payload.modelHash
+            : (config.runtime?.modelHash ?? 'holomap-trait-bound'),
       };
 
       state.runtime = runtime as unknown as BoundHoloMapRuntime;
@@ -131,103 +143,118 @@ export const holomapReconstructionHandler: TraitHandler<HoloMapReconstructionCon
       state.sessionId = sessionId;
 
       // Chain onto initPromise so subsequent operations wait for init.
-      state.operationChain = state.initPromise.then(() => {
-        state.replayHash = runtime.replayHash();
-        context.emit?.('holomap:session_started', {
-          sessionId,
-          replayHash: state.replayHash,
-        });
-        context.emit?.('reconstruction:session_started', {
-          sessionId,
-          replayHash: state.replayHash,
-        });
-      }, (err: unknown) => {
-        state.isActive = false;
-        state.lastError = err instanceof Error ? err.message : String(err);
-        context.emit?.('holomap:error', { message: state.lastError, phase: 'init' });
-      });
+      state.operationChain = state.initPromise.then(
+        () => {
+          state.replayHash = runtime.replayHash();
+          context.emit?.('holomap:session_started', {
+            sessionId,
+            replayHash: state.replayHash,
+          });
+          context.emit?.('reconstruction:session_started', {
+            sessionId,
+            replayHash: state.replayHash,
+          });
+        },
+        (err: unknown) => {
+          state.isActive = false;
+          state.lastError = err instanceof Error ? err.message : String(err);
+          context.emit?.('holomap:error', { message: state.lastError, phase: 'init' });
+        }
+      );
       return;
     }
 
     if (event.type === 'holomap:frame') {
       if (!state.runtime || !state.initPromise) {
-        context.emit?.('holomap:error', { message: 'Runtime not ready; send holomap:start_session first' });
+        context.emit?.('holomap:error', {
+          message: 'Runtime not ready; send holomap:start_session first',
+        });
         return;
       }
       const payload = (event.payload ?? {}) as Record<string, unknown>;
       const frame = payload.frame as ReconstructionFrame | undefined;
       if (!frame || !isReconstructionFrame(frame)) {
-        context.emit?.('holomap:error', { message: 'Invalid or missing ReconstructionFrame in holomap:frame' });
+        context.emit?.('holomap:error', {
+          message: 'Invalid or missing ReconstructionFrame in holomap:frame',
+        });
         return;
       }
 
       // Serialize operations: each step waits for the previous one (and init) to finish.
-      state.operationChain = state.operationChain.then(() =>
-        state.initPromise!.then(() => state.runtime!.step(frame))
-      ).then((step) => {
-        if (!step) return; // throttled
-        state.framesProcessed = Math.max(state.framesProcessed, step.frame.index + 1);
-        context.emit?.('holomap:step_result', {
-          frameIndex: step.frame.index,
-          pose: step.pose,
-          points: step.points,
-          trajectory: step.trajectory,
-          anchor: step.anchor,
-        });
-        context.emit?.('reconstruction:progress', {
-          framesProcessed: state.framesProcessed,
-        });
-        context.emit?.('holomap:drift_update', {
-          estimatedDriftMeters: step.trajectory.estimatedDriftMeters,
-          keyframeCount: step.trajectory.keyframes.length,
-          lastLoopClosureFrame: step.trajectory.lastLoopClosureFrame,
-        });
-        context.emit?.('holomap:anchor_update', {
-          anchorFrameIndex: step.anchor.anchorFrameIndex,
-          anchorPose: step.anchor.anchorPose,
-          anchorDescriptor: step.anchor.anchorDescriptor,
-          revision: step.anchor.revision,
-        });
-      }, (err: unknown) => {
-        state.lastError = err instanceof Error ? err.message : String(err);
-        context.emit?.('holomap:error', { message: state.lastError, phase: 'feed_frame' });
-      });
+      state.operationChain = state.operationChain
+        .then(() => state.initPromise!.then(() => state.runtime!.step(frame)))
+        .then(
+          (step) => {
+            if (!step) return; // throttled
+            state.framesProcessed = Math.max(state.framesProcessed, step.frame.index + 1);
+            context.emit?.('holomap:step_result', {
+              frameIndex: step.frame.index,
+              pose: step.pose,
+              points: step.points,
+              trajectory: step.trajectory,
+              anchor: step.anchor,
+            });
+            context.emit?.('reconstruction:progress', {
+              framesProcessed: state.framesProcessed,
+            });
+            context.emit?.('holomap:drift_update', {
+              estimatedDriftMeters: step.trajectory.estimatedDriftMeters,
+              keyframeCount: step.trajectory.keyframes.length,
+              lastLoopClosureFrame: step.trajectory.lastLoopClosureFrame,
+            });
+            context.emit?.('holomap:anchor_update', {
+              anchorFrameIndex: step.anchor.anchorFrameIndex,
+              anchorPose: step.anchor.anchorPose,
+              anchorDescriptor: step.anchor.anchorDescriptor,
+              revision: step.anchor.revision,
+            });
+          },
+          (err: unknown) => {
+            state.lastError = err instanceof Error ? err.message : String(err);
+            context.emit?.('holomap:error', { message: state.lastError, phase: 'feed_frame' });
+          }
+        );
       return;
     }
 
     if (event.type === 'holomap:finalize') {
       if (!state.runtime || !state.initPromise) {
-        context.emit?.('holomap:error', { message: 'Runtime not ready; send holomap:start_session first' });
+        context.emit?.('holomap:error', {
+          message: 'Runtime not ready; send holomap:start_session first',
+        });
         return;
       }
 
-      state.operationChain = state.operationChain.then(() =>
-        state.initPromise!.then(() => state.runtime!.finalize())
-      ).then((manifest) => {
-        state.isActive = false;
-        state.lastManifest = manifest;
-        context.emit?.('holomap:finalized', {
-          manifest,
-          framesProcessed: state.framesProcessed,
-          replayHash: manifest.replayHash,
-        });
-        if (config.autoFinalize) {
-          context.emit?.('reconstruction:manifest', {
-            framesProcessed: state.framesProcessed,
-            replayHash: manifest.replayHash,
-            manifest,
-          });
-        }
-        // Dispose after finalize (clean-up)
-        void state.runtime!.dispose().then(() => {
-          state.runtime = null;
-          state.initPromise = null;
-          (node as unknown as Record<string, unknown>).__holomapRuntime = null;
-        });
-      }, (err: unknown) => {
-        state.lastError = err instanceof Error ? err.message : String(err);
-        context.emit?.('holomap:error', { message: state.lastError, phase: 'finalize' });
-      });
+      state.operationChain = state.operationChain
+        .then(() => state.initPromise!.then(() => state.runtime!.finalize()))
+        .then(
+          (manifest) => {
+            state.isActive = false;
+            state.lastManifest = manifest;
+            context.emit?.('holomap:finalized', {
+              manifest,
+              framesProcessed: state.framesProcessed,
+              replayHash: manifest.replayHash,
+            });
+            if (config.autoFinalize) {
+              context.emit?.('reconstruction:manifest', {
+                framesProcessed: state.framesProcessed,
+                replayHash: manifest.replayHash,
+                manifest,
+              });
+            }
+            // Dispose after finalize (clean-up)
+            void state.runtime!.dispose().then(() => {
+              state.runtime = null;
+              state.initPromise = null;
+              (node as unknown as Record<string, unknown>).__holomapRuntime = null;
+            });
+          },
+          (err: unknown) => {
+            state.lastError = err instanceof Error ? err.message : String(err);
+            context.emit?.('holomap:error', { message: state.lastError, phase: 'finalize' });
+          }
+        );
       return;
     }
 
@@ -238,7 +265,8 @@ export const holomapReconstructionHandler: TraitHandler<HoloMapReconstructionCon
       state.isActive = true;
       state.lastError = null;
       state.sessionId = typeof payload.sessionId === 'string' ? payload.sessionId : state.sessionId;
-      state.replayHash = typeof payload.replayHash === 'string' ? payload.replayHash : state.replayHash;
+      state.replayHash =
+        typeof payload.replayHash === 'string' ? payload.replayHash : state.replayHash;
       context.emit?.('reconstruction:session_started', {
         sessionId: state.sessionId,
         replayHash: state.replayHash,
@@ -272,7 +300,8 @@ export const holomapReconstructionHandler: TraitHandler<HoloMapReconstructionCon
 
     if (event.type === 'holomap:error') {
       state.isActive = false;
-      state.lastError = typeof payload.message === 'string' ? payload.message : 'unknown holomap error';
+      state.lastError =
+        typeof payload.message === 'string' ? payload.message : 'unknown holomap error';
       context.emit?.('reconstruction:error', {
         message: state.lastError,
       });

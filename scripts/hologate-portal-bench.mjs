@@ -58,8 +58,12 @@ const RECEIPT_PATH = join(RECEIPT_DIR, 'hologate-portal-bench-receipt.json');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const banner = (t) => { console.log(`\n${'─'.repeat(62)}`); console.log(`  ${t}`); console.log('─'.repeat(62)); };
-const ok   = (l, v) => console.log(`  \x1b[32m✓\x1b[0m ${l.padEnd(38)} ${v}`);
+const banner = (t) => {
+  console.log(`\n${'─'.repeat(62)}`);
+  console.log(`  ${t}`);
+  console.log('─'.repeat(62));
+};
+const ok = (l, v) => console.log(`  \x1b[32m✓\x1b[0m ${l.padEnd(38)} ${v}`);
 const warn = (l, v) => console.log(`  \x1b[33m⚠\x1b[0m ${l.padEnd(38)} ${String(v).slice(0, 80)}`);
 
 /**
@@ -82,7 +86,14 @@ function timeit(fn, iters, warmup = WARMUP) {
   const p50Ns = samples[Math.floor(iters * 0.5)];
   const p99Ns = samples[Math.floor(iters * 0.99)];
   const opsPerSec = Math.round(1e9 / avgNs);
-  return { avgNs: +avgNs.toFixed(1), minNs: +minNs.toFixed(1), maxNs: +maxNs.toFixed(1), p50Ns: +p50Ns.toFixed(1), p99Ns: +p99Ns.toFixed(1), opsPerSec };
+  return {
+    avgNs: +avgNs.toFixed(1),
+    minNs: +minNs.toFixed(1),
+    maxNs: +maxNs.toFixed(1),
+    p50Ns: +p50Ns.toFixed(1),
+    p99Ns: +p99Ns.toFixed(1),
+    opsPerSec,
+  };
 }
 
 function fmtNs(ns) {
@@ -103,7 +114,12 @@ function matchesZoneGlob(id, globs) {
   if (!globs || globs.length === 0) return false;
   return globs.some((g) => {
     const re = new RegExp(
-      '^' + g.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$',
+      '^' +
+        g
+          .split('*')
+          .map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+          .join('.*') +
+        '$'
     );
     return re.test(id);
   });
@@ -113,7 +129,8 @@ function validatePortalIntent(intent, policy, requestedScope, driveAvatarActiveC
   const p = policy ?? {};
   const scope = requestedScope ?? p.defaultScope ?? 'read-only';
   const warn = p.enforcement?.onScopeViolation === 'warn';
-  const deny = (reason) => warn ? { allowed: true, scope, reason, warned: true } : { allowed: false, scope, reason };
+  const deny = (reason) =>
+    warn ? { allowed: true, scope, reason, warned: true } : { allowed: false, scope, reason };
   const allow = () => ({ allowed: true, scope });
   if (p.allowedScopes && p.allowedScopes.length > 0 && !p.allowedScopes.includes(scope)) {
     return deny(`scope '${scope}' not in allowedScopes`);
@@ -135,7 +152,8 @@ function validatePortalIntent(intent, policy, requestedScope, driveAvatarActiveC
       if (rank < SCOPE_RANK['drive-avatar']) return deny(`'${intent.kind}' requires drive-avatar`);
       if (p.driveAvatar && p.driveAvatar.allow === false) return deny('drive-avatar disabled');
       const max = p.driveAvatar?.maxEntities ?? 0;
-      if (max > 0 && driveAvatarActiveCount >= max) return deny(`drive-avatar limit reached (${driveAvatarActiveCount}/${max})`);
+      if (max > 0 && driveAvatarActiveCount >= max)
+        return deny(`drive-avatar limit reached (${driveAvatarActiveCount}/${max})`);
       return allow();
     }
     default:
@@ -147,10 +165,12 @@ function validatePortalIntent(intent, policy, requestedScope, driveAvatarActiveC
 // Mirrors the portal-entry sha256Canonical pattern.
 
 function sha256WorldState(entityMap) {
-  const sorted = Object.keys(entityMap).sort().reduce((acc, k) => {
-    acc[k] = entityMap[k];
-    return acc;
-  }, {});
+  const sorted = Object.keys(entityMap)
+    .sort()
+    .reduce((acc, k) => {
+      acc[k] = entityMap[k];
+      return acc;
+    }, {});
   return createHash('sha256').update(JSON.stringify(sorted), 'utf8').digest('hex');
 }
 
@@ -159,7 +179,10 @@ function buildWorldState(nEntities) {
   const state = {};
   for (let i = 0; i < nEntities; i++) {
     state[`entity_${i.toString().padStart(5, '0')}`] = {
-      transform: { position: { x: Math.random(), y: Math.random(), z: Math.random() }, rotation: { x: 0, y: 0, z: 0, w: 1 } },
+      transform: {
+        position: { x: Math.random(), y: Math.random(), z: Math.random() },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+      },
       visible: true,
       updatedAt: Date.now(),
     };
@@ -172,7 +195,9 @@ function buildWorldState(nEntities) {
 function gitHead() {
   try {
     return execSync('git rev-parse --short HEAD', { cwd: REPO_ROOT, encoding: 'utf-8' }).trim();
-  } catch { return 'unknown'; }
+  } catch {
+    return 'unknown';
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -183,10 +208,10 @@ function bench1_intentValidation(N) {
   banner(`[1/4] Intent validation (N=${N.toLocaleString()})`);
 
   const scopes = ['read-only', 'mutate-zone', 'drive-avatar'];
-  const kinds  = ['move', 'look', 'grab', 'say'];
+  const kinds = ['move', 'look', 'grab', 'say'];
   const policies = {
-    readOnly:    { defaultScope: 'read-only' },
-    mutateZone:  { defaultScope: 'mutate-zone', mutableZoneGlobs: ['zone_*'] },
+    readOnly: { defaultScope: 'read-only' },
+    mutateZone: { defaultScope: 'mutate-zone', mutableZoneGlobs: ['zone_*'] },
     driveAvatar: { defaultScope: 'drive-avatar', driveAvatar: { allow: true, maxEntities: 5 } },
   };
 
@@ -194,10 +219,14 @@ function bench1_intentValidation(N) {
   const intents = Array.from({ length: N }, (_, i) => {
     const kind = kinds[i % kinds.length];
     switch (kind) {
-      case 'move': return { kind: 'move', entityId: `ent_${i}`, position: { x: i * 0.1, y: 0, z: 0 } };
-      case 'look': return { kind: 'look', entityId: `ent_${i}`, rotation: { x: 0, y: 0, z: 0, w: 1 } };
-      case 'grab': return { kind: 'grab', entityId: `ent_${i}`, targetId: `zone_${i % 20}` };
-      case 'say':  return { kind: 'say',  entityId: `ent_${i}`, utterance: `hello ${i}` };
+      case 'move':
+        return { kind: 'move', entityId: `ent_${i}`, position: { x: i * 0.1, y: 0, z: 0 } };
+      case 'look':
+        return { kind: 'look', entityId: `ent_${i}`, rotation: { x: 0, y: 0, z: 0, w: 1 } };
+      case 'grab':
+        return { kind: 'grab', entityId: `ent_${i}`, targetId: `zone_${i % 20}` };
+      case 'say':
+        return { kind: 'say', entityId: `ent_${i}`, utterance: `hello ${i}` };
     }
   });
   const policyList = Object.values(policies);
@@ -207,17 +236,20 @@ function bench1_intentValidation(N) {
   const elapsed0 = performance.now();
   for (let it = 0; it < N; it++) {
     const policy = policyList[it % policyList.length];
-    const scope  = scopes[it % scopes.length];
+    const scope = scopes[it % scopes.length];
     lastResult = validatePortalIntent(intents[it], policy, scope);
   }
   const totalMs = performance.now() - elapsed0;
-  const avgNs   = (totalMs * 1e6) / N;
+  const avgNs = (totalMs * 1e6) / N;
 
   // Per-scope breakdown (smaller sample)
   const BREAKDOWN_N = Math.min(N, 2000);
   const breakdown = {};
   for (const scope of scopes) {
-    const policy = policies[scope === 'read-only' ? 'readOnly' : scope === 'mutate-zone' ? 'mutateZone' : 'driveAvatar'];
+    const policy =
+      policies[
+        scope === 'read-only' ? 'readOnly' : scope === 'mutate-zone' ? 'mutateZone' : 'driveAvatar'
+      ];
     const intent = { kind: 'move', entityId: 'ent_0', position: { x: 0, y: 0, z: 0 } };
     const r = timeit(() => validatePortalIntent(intent, policy, scope), BREAKDOWN_N, 100);
     breakdown[scope] = r;
@@ -239,9 +271,15 @@ function bench1_intentValidation(N) {
     avgPerIntentNs: +avgNs.toFixed(1),
     throughputIntentsPerSec: Math.round(N / (totalMs / 1000)),
     breakdown: Object.fromEntries(
-      Object.entries(breakdown).map(([k, v]) => [k, {
-        avgNs: v.avgNs, p50Ns: v.p50Ns, p99Ns: v.p99Ns, opsPerSec: v.opsPerSec,
-      }])
+      Object.entries(breakdown).map(([k, v]) => [
+        k,
+        {
+          avgNs: v.avgNs,
+          p50Ns: v.p50Ns,
+          p99Ns: v.p99Ns,
+          opsPerSec: v.opsPerSec,
+        },
+      ])
     ),
   };
 }
@@ -256,7 +294,10 @@ function bench2_broadcastFanout(nSubscribers) {
   // Inline subscriber registry (mirrors networking-tools.ts subscribeToStateDeltas).
   // We measure the pure in-process fan-out cost, not I/O transport.
   const subscribers = new Set();
-  const subscribe = (fn) => { subscribers.add(fn); return () => subscribers.delete(fn); };
+  const subscribe = (fn) => {
+    subscribers.add(fn);
+    return () => subscribers.delete(fn);
+  };
 
   let totalCallbacks = 0;
   const receivedBySubscriber = new Map();
@@ -276,13 +317,15 @@ function bench2_broadcastFanout(nSubscribers) {
   // Build a representative delta batch (3 fields changed)
   const sampleDeltas = [
     { entityId: 'ent_0', field: 'transform', oldValue: { x: 0 }, newValue: { x: 1 } },
-    { entityId: 'ent_0', field: 'visible',   oldValue: true,      newValue: false },
-    { entityId: 'ent_1', field: 'holding',   oldValue: null,      newValue: 'target_7' },
+    { entityId: 'ent_0', field: 'visible', oldValue: true, newValue: false },
+    { entityId: 'ent_1', field: 'holding', oldValue: null, newValue: 'target_7' },
   ];
 
   function broadcastDeltas(deltas) {
     for (const sub of subscribers) {
-      try { sub(deltas); } catch {}
+      try {
+        sub(deltas);
+      } catch {}
     }
   }
 
@@ -324,7 +367,9 @@ function bench2_broadcastFanout(nSubscribers) {
   for (const n of [...new Set(scalingPoints)]) {
     const localSubs = new Set();
     for (let i = 0; i < n; i++) localSubs.add(() => {});
-    function localBroadcast(d) { for (const s of localSubs) s(d); }
+    function localBroadcast(d) {
+      for (const s of localSubs) s(d);
+    }
     for (let i = 0; i < 50; i++) localBroadcast(sampleDeltas);
     const st0 = performance.now();
     for (let r = 0; r < ROUNDS; r++) localBroadcast(sampleDeltas);
@@ -365,8 +410,12 @@ function bench3_thresholdNegotiation() {
 
   function defaultRepresentationLaneFor(surfaceKind) {
     switch (surfaceKind) {
-      case 'agent-semantic': case 'agent-pixel': return 'semantic-state';
-      case 'human-headset':  case 'human-browser': return 'pixel-stream';
+      case 'agent-semantic':
+      case 'agent-pixel':
+        return 'semantic-state';
+      case 'human-headset':
+      case 'human-browser':
+        return 'pixel-stream';
     }
   }
 
@@ -384,19 +433,29 @@ function bench3_thresholdNegotiation() {
 
     // Step 2: resolve scope (from HoloDoor policy)
     const scope = policy?.defaultScope ?? 'read-only';
-    const spatialScopes = scope === 'drive-avatar' ? ['read', 'mutate', 'admin']
-                        : scope === 'mutate-zone'  ? ['read', 'mutate']
-                        : ['read'];
+    const spatialScopes =
+      scope === 'drive-avatar'
+        ? ['read', 'mutate', 'admin']
+        : scope === 'mutate-zone'
+          ? ['read', 'mutate']
+          : ['read'];
 
     // Step 3: build minimal receipt header (content-hash omitted for speed)
     const negotiatedAt = new Date().toISOString();
     const representation = { lane, acceptedFormats: formats, negotiatedAt };
-    const scopesGranted  = { spatial: spatialScopes, toolScopeIds: [], worldId: 'world_bench', grantedAt: negotiatedAt };
+    const scopesGranted = {
+      spatial: spatialScopes,
+      toolScopeIds: [],
+      worldId: 'world_bench',
+      grantedAt: negotiatedAt,
+    };
 
     // Step 4: entrant_arrived event (simulate write to event bus)
     const event = {
       type: 'entrant_arrived',
-      agentId: a2aCardRef ? `agent_${Math.abs(a2aCardRef.charCodeAt(8) ?? 0)}` : `human_${Date.now() % 9999}`,
+      agentId: a2aCardRef
+        ? `agent_${Math.abs(a2aCardRef.charCodeAt(8) ?? 0)}`
+        : `human_${Date.now() % 9999}`,
       lane,
       scope,
     };
@@ -440,7 +499,12 @@ function bench3_thresholdNegotiation() {
     p50Ns: +p50.toFixed(1),
     p99Ns: +p99.toFixed(1),
     throughputPerSec: Math.round(1e9 / avg),
-    stepsModelled: ['lane-selection', 'scope-resolution', 'receipt-header', 'entrant-arrived-event'],
+    stepsModelled: [
+      'lane-selection',
+      'scope-resolution',
+      'receipt-header',
+      'entrant-arrived-event',
+    ],
   };
 }
 
@@ -499,7 +563,10 @@ async function main() {
   console.log(`Run: ${new Date().toISOString()}`);
   console.log(`Host: ${os.hostname()} | Arch: ${os.arch()} | CPUs: ${os.cpus().length}`);
   console.log(`Node: ${process.version}`);
-  if (DRY_RUN) { console.log('\n[DRY-RUN] skipping actual benchmarks.'); process.exit(0); }
+  if (DRY_RUN) {
+    console.log('\n[DRY-RUN] skipping actual benchmarks.');
+    process.exit(0);
+  }
 
   const startMs = performance.now();
 
@@ -509,18 +576,18 @@ async function main() {
   const r4 = bench4_worldStateHash();
 
   const totalMs = performance.now() - startMs;
-  const commit   = gitHead();
+  const commit = gitHead();
 
   const receipt = {
     schemaVersion: 'holoscript.bench.hologate-portal.v1',
-    benchmarkId:   `hgbench_${Date.now().toString(36)}`,
-    generatedAt:   new Date().toISOString(),
-    generatedBy:   'scripts/hologate-portal-bench.mjs',
+    benchmarkId: `hgbench_${Date.now().toString(36)}`,
+    generatedAt: new Date().toISOString(),
+    generatedBy: 'scripts/hologate-portal-bench.mjs',
     host: {
-      hostname:   os.hostname(),
-      arch:       os.arch(),
-      cpuCount:   os.cpus().length,
-      cpuModel:   os.cpus()[0]?.model ?? 'unknown',
+      hostname: os.hostname(),
+      arch: os.arch(),
+      cpuCount: os.cpus().length,
+      cpuModel: os.cpus()[0]?.model ?? 'unknown',
       nodeVersion: process.version,
     },
     commit,
@@ -529,19 +596,19 @@ async function main() {
     researchFile: 'research/2026-05-22_hologate-copresence-systems-paper-evaluation.md',
     boardTask: 'task_1779439734598_y1gk',
     measurements: {
-      intentValidation:      r1,
-      deltaFanout:           r2,
-      thresholdNegotiation:  r3,
-      worldStateHash:        r4,
+      intentValidation: r1,
+      deltaFanout: r2,
+      thresholdNegotiation: r3,
+      worldStateHash: r4,
     },
     summary: {
-      intentValidation_avgNs:      r1.avgPerIntentNs,
-      intentValidation_opsPerSec:  r1.throughputIntentsPerSec,
-      broadcastFanout_n50_avgNs:   r2.avgPerBroadcastNs,
-      thresholdNeg_avgNs:          r3.avgNs,
-      thresholdNeg_p99Ns:          r3.p99Ns,
-      worldHash_1K_avgNs:          r4.avgNs,
-      worldHash_1K_opsPerSec:      r4.opsPerSec,
+      intentValidation_avgNs: r1.avgPerIntentNs,
+      intentValidation_opsPerSec: r1.throughputIntentsPerSec,
+      broadcastFanout_n50_avgNs: r2.avgPerBroadcastNs,
+      thresholdNeg_avgNs: r3.avgNs,
+      thresholdNeg_p99Ns: r3.p99Ns,
+      worldHash_1K_avgNs: r4.avgNs,
+      worldHash_1K_opsPerSec: r4.opsPerSec,
     },
   };
 
@@ -555,11 +622,20 @@ async function main() {
   ok('Receipt written to', RECEIPT_PATH.replace(REPO_ROOT + '/', ''));
 
   console.log('\n── Summary ──────────────────────────────────────────────────────');
-  console.log(`  [1] Intent validation   avg=${fmtNs(r1.avgPerIntentNs)} | ${r1.throughputIntentsPerSec.toLocaleString()} intents/sec`);
-  console.log(`  [2] Broadcast fan-out   avg per broadcast (N=${r2.nSubscribers} subs)=${fmtNs(r2.avgPerBroadcastNs)}`);
+  console.log(
+    `  [1] Intent validation   avg=${fmtNs(r1.avgPerIntentNs)} | ${r1.throughputIntentsPerSec.toLocaleString()} intents/sec`
+  );
+  console.log(
+    `  [2] Broadcast fan-out   avg per broadcast (N=${r2.nSubscribers} subs)=${fmtNs(r2.avgPerBroadcastNs)}`
+  );
   console.log(`  [3] Threshold negot.    avg=${fmtNs(r3.avgNs)} p99=${fmtNs(r3.p99Ns)}`);
-  console.log(`  [4] World-state hash    avg=${fmtNs(r4.avgNs)} (1K entities, ${r4.opsPerSec.toLocaleString()} hashes/sec)`);
+  console.log(
+    `  [4] World-state hash    avg=${fmtNs(r4.avgNs)} (1K entities, ${r4.opsPerSec.toLocaleString()} hashes/sec)`
+  );
   console.log('─────────────────────────────────────────────────────────────────\n');
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

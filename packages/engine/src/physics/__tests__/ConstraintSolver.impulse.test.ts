@@ -19,11 +19,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { ConstraintSolver } from '..';
-import type {
-  IContactConstraint,
-  IDistanceConstraint,
-  IRigidBodyState,
-} from '@holoscript/core';
+import type { IContactConstraint, IDistanceConstraint, IRigidBodyState } from '@holoscript/core';
 import {
   effectiveMass,
   solveRow,

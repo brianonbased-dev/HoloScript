@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-factory-automation",
-  name: "Factory Automation",
-  description: "Industrial production line with conveyors, robots, and sensor monitoring",
-  thumbnail: "🏭",
-  tags: ["robotics","factory","industrial","automation"],
-  category: "robotics",
+  id: 'wizard-factory-automation',
+  name: 'Factory Automation',
+  description: 'Industrial production line with conveyors, robots, and sensor monitoring',
+  thumbnail: '🏭',
+  tags: ['robotics', 'factory', 'industrial', 'automation'],
+  category: 'robotics',
   code: `composition "Factory Automation" {
   environment {
     skybox: "studio"
@@ -127,7 +127,7 @@ export const template: SceneTemplate = {
     material: "glass"
     label: "Safety Perimeter"
   }
-}`
+}`,
 };
 
 export default template;

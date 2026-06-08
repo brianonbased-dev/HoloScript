@@ -219,9 +219,13 @@ module.exports = grammar({
     // Dialog blocks (branching conversation trees)
     // e.g. dialog "greeting" { text: "Hello!"  option "Yes" -> @dialog("confirm") }
     dialog_block: ($) =>
-      seq('dialog', field('id', $.string), '{',
+      seq(
+        'dialog',
+        field('id', $.string),
+        '{',
         repeat(choice(seq($.property, optional(',')), $.dialog_option)),
-      '}'),
+        '}'
+      ),
 
     dialog_option: ($) =>
       seq('option', field('label', $.string), '->', field('target', $.dialog_target)),
@@ -254,7 +258,13 @@ module.exports = grammar({
     timeline_action: ($) => choice($.animate_action, $.emit_action, $.call_action),
 
     animate_action: ($) =>
-      seq('animate', field('target', $.identifier), '{', repeat(seq($.property, optional(','))), '}'),
+      seq(
+        'animate',
+        field('target', $.identifier),
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
+      ),
 
     emit_action: ($) =>
       seq('emit', field('event', $.string), optional(seq('(', sepBy($.argument, ','), ')'))),
@@ -298,12 +308,26 @@ module.exports = grammar({
       ),
 
     _template_content: ($) =>
-      choice($.property, $.trait_inline, $.trait_with_body, $.state_block, $.networked_block,
+      choice(
+        $.property,
+        $.trait_inline,
+        $.trait_with_body,
+        $.state_block,
+        $.networked_block,
         // Structured physics blocks in templates
-        $.physics_block, $.collider_block, $.rigidbody_block, $.force_field_block, $.articulation_block,
-        $.animation, $.event_handler, $.action, $.decorator_event_handler,
+        $.physics_block,
+        $.collider_block,
+        $.rigidbody_block,
+        $.force_field_block,
+        $.articulation_block,
+        $.animation,
+        $.event_handler,
+        $.action,
+        $.decorator_event_handler,
         // Compile-time safety annotations
-        $.effects_decorator, $.budget_decorator),
+        $.effects_decorator,
+        $.budget_decorator
+      ),
 
     // =========================================================================
     // OBJECT (Instances in scene)
@@ -312,9 +336,25 @@ module.exports = grammar({
     object: ($) =>
       seq(
         optional($.platform_decorator),
-        choice('object', 'orb', 'cube', 'sphere', 'cylinder', 'cone', 'model',
-               'npc', 'portal', 'audio', 'spawnpoint', 'ui_panel', 'text',
-               'gesture', 'progress', 'button', 'text'),
+        choice(
+          'object',
+          'orb',
+          'cube',
+          'sphere',
+          'cylinder',
+          'cone',
+          'model',
+          'npc',
+          'portal',
+          'audio',
+          'spawnpoint',
+          'ui_panel',
+          'text',
+          'gesture',
+          'progress',
+          'button',
+          'text'
+        ),
         field('name', $.string),
         optional(seq('using', field('template', $.string))),
         optional($.trait_list),
@@ -360,7 +400,14 @@ module.exports = grammar({
 
     _entity_content: ($) => choice($.property, $.component, $.state_block, $.event_handler),
 
-    component: ($) => seq('component', field('name', $.identifier), '{', repeat(seq($.property, optional(','))), '}'),
+    component: ($) =>
+      seq(
+        'component',
+        field('name', $.identifier),
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
+      ),
 
     // =========================================================================
     // TRAITS
@@ -386,14 +433,23 @@ module.exports = grammar({
 
     // Structured trait with properties — @agent { type: "player", capabilities: [...] }
     trait_with_body: ($) =>
-      prec(2, seq('@', field('name', $.identifier),
-        optional($.trait_arguments),
-        '{', repeat(seq($.property, optional(','))), '}'
-      )),
+      prec(
+        2,
+        seq(
+          '@',
+          field('name', $.identifier),
+          optional($.trait_arguments),
+          '{',
+          repeat(seq($.property, optional(','))),
+          '}'
+        )
+      ),
 
     // Decorator-style event handler — @on_event("name"): { } or @on_collision: { }
     decorator_event_handler: ($) =>
-      seq('@', field('event', $.identifier),
+      seq(
+        '@',
+        field('event', $.identifier),
         optional(seq('(', sepBy($.argument, ','), ')')),
         ':',
         $.block
@@ -405,26 +461,15 @@ module.exports = grammar({
 
     // Platform decorator — @platform(vr) or @platform(quest3, android-xr) or @platform(not: web)
     platform_decorator: ($) =>
-      prec(2, seq(
-        '@',
-        'platform',
-        '(',
-        choice(
-          seq('not', ':', $.platform_list),
-          $.platform_list
-        ),
-        ')'
-      )),
+      prec(
+        2,
+        seq('@', 'platform', '(', choice(seq('not', ':', $.platform_list), $.platform_list), ')')
+      ),
 
-    platform_list: ($) =>
-      sepBy1($.platform_name, ','),
+    platform_list: ($) => sepBy1($.platform_name, ','),
 
     // Platform name with optional hyphens (e.g., android-xr, visionos-ar)
-    platform_name: ($) =>
-      token(seq(
-        /[a-z][a-z0-9]*/,
-        repeat(seq('-', /[a-z][a-z0-9]*/))
-      )),
+    platform_name: ($) => token(seq(/[a-z][a-z0-9]*/, repeat(seq('-', /[a-z][a-z0-9]*/)))),
 
     // =========================================================================
     // STATE & NETWORKING
@@ -446,15 +491,21 @@ module.exports = grammar({
     // and nested typed sub-blocks: collider, rigidbody, force_field, articulation
     // e.g. physics { collider sphere { radius: 0.5 } rigidbody { mass: 5 } mass: 2 }
     physics_block: ($) =>
-      seq('physics', optional(':'), '{',
-        repeat(choice(
-          $.collider_block,
-          $.rigidbody_block,
-          $.force_field_block,
-          $.articulation_block,
-          seq($.property, optional(','))
-        )),
-      '}'),
+      seq(
+        'physics',
+        optional(':'),
+        '{',
+        repeat(
+          choice(
+            $.collider_block,
+            $.rigidbody_block,
+            $.force_field_block,
+            $.articulation_block,
+            seq($.property, optional(','))
+          )
+        ),
+        '}'
+      ),
 
     // =========================================================================
     // HSPLUS: MODULES, STRUCTS, ENUMS, INTERFACES
@@ -462,46 +513,59 @@ module.exports = grammar({
 
     // Module declaration — module GameState { export let score... }
     module_declaration: ($) =>
-      seq('module', field('name', $.identifier), '{',
-        repeat(choice(
-          $.function_declaration,
-          $.variable_declaration_stmt,
-          $.export_statement,
-          $.property,
-          $.state_block,
-          $.event_handler,
-          $.action,
-          $.decorator_event_handler
-        )),
-      '}'),
+      seq(
+        'module',
+        field('name', $.identifier),
+        '{',
+        repeat(
+          choice(
+            $.function_declaration,
+            $.variable_declaration_stmt,
+            $.export_statement,
+            $.property,
+            $.state_block,
+            $.event_handler,
+            $.action,
+            $.decorator_event_handler
+          )
+        ),
+        '}'
+      ),
 
     // Struct definition — struct Point { x: number, y: number }
     struct_definition: ($) =>
-      seq('struct', field('name', $.identifier), '{',
+      seq(
+        'struct',
+        field('name', $.identifier),
+        '{',
         repeat(seq($.typed_field, optional(','))),
-      '}'),
+        '}'
+      ),
 
-    typed_field: ($) =>
-      seq(field('name', $.identifier), optional('?'), ':', field('type', $.type)),
+    typed_field: ($) => seq(field('name', $.identifier), optional('?'), ':', field('type', $.type)),
 
     // Enum definition — enum Direction { NORTH, SOUTH, EAST }
     enum_definition: ($) =>
-      seq('enum', field('name', $.identifier), '{',
-        sepByTrailing($.enum_member, ','),
-      '}'),
+      seq('enum', field('name', $.identifier), '{', sepByTrailing($.enum_member, ','), '}'),
 
     enum_member: ($) =>
       seq(field('name', $.identifier), optional(seq('=', field('value', $._value)))),
 
     // Interface definition — interface BallState { position: Vector3 }
     interface_definition: ($) =>
-      seq('interface', field('name', $.identifier),
+      seq(
+        'interface',
+        field('name', $.identifier),
         optional(seq('extends', field('base', $.identifier))),
-      '{', repeat(seq($.typed_field, optional(','))), '}'),
+        '{',
+        repeat(seq($.typed_field, optional(','))),
+        '}'
+      ),
 
     // Import statement — import { X, Y } from "module"
     import_statement: ($) =>
-      seq('import',
+      seq(
+        'import',
         choice(
           seq('{', sepBy($.import_specifier, ','), '}', 'from', field('source', $.string)),
           seq(field('default', $.identifier), 'from', field('source', $.string)),
@@ -514,7 +578,8 @@ module.exports = grammar({
 
     // Export statement — export function/const/let/{ }
     export_statement: ($) =>
-      seq('export',
+      seq(
+        'export',
         choice(
           $.function_declaration,
           $.variable_declaration_stmt,
@@ -528,8 +593,11 @@ module.exports = grammar({
     function_declaration: ($) =>
       seq(
         optional($.effect_annotation),
-        'function', field('name', choice($.identifier, $.string)),
-        '(', optional($.parameter_list), ')',
+        'function',
+        field('name', choice($.identifier, $.string)),
+        '(',
+        optional($.parameter_list),
+        ')',
         optional(seq(':', field('return_type', $.type))),
         $.block
       ),
@@ -549,31 +617,28 @@ module.exports = grammar({
 
     // Zone declaration — zone "SafeZone" { shape: "box" bounds: [...] }
     zone_declaration: ($) =>
-      seq('zone', field('name', $.string), '{',
-        repeat(seq($.property, optional(','))),
-      '}'),
+      seq('zone', field('name', $.string), '{', repeat(seq($.property, optional(','))), '}'),
 
     // Spawn group — spawn_group "Resources" { template: "X" count: 20 }
     spawn_group: ($) =>
-      seq('spawn_group', field('name', $.string), '{',
-        repeat(seq($.property, optional(','))),
-      '}'),
+      seq('spawn_group', field('name', $.string), '{', repeat(seq($.property, optional(','))), '}'),
 
     // Waypoints block — waypoints "route" [ [0,1,0], [1,0,0] ]
-    waypoints_block: ($) =>
-      seq('waypoints', field('name', $.string), $.array),
+    waypoints_block: ($) => seq('waypoints', field('name', $.string), $.array),
 
     // Constraint block — constraint name { type: hinge body_a: X }
     constraint_block: ($) =>
-      seq('constraint', field('name', $.identifier), '{',
+      seq(
+        'constraint',
+        field('name', $.identifier),
+        '{',
         repeat(seq($.property, optional(','))),
-      '}'),
+        '}'
+      ),
 
     // Terrain block — terrain name { generator: perlin size: [100,100] }
     terrain_block: ($) =>
-      seq('terrain', field('name', $.identifier), '{',
-        repeat(seq($.property, optional(','))),
-      '}'),
+      seq('terrain', field('name', $.identifier), '{', repeat(seq($.property, optional(','))), '}'),
 
     // =========================================================================
     // DOMAIN-SPECIFIC BLOCKS (structured for AI model training)
@@ -584,11 +649,22 @@ module.exports = grammar({
     // device "SmartLight" { protocol: "matter" capability: "dimming" }
     iot_block: ($) =>
       seq(
-        choice('sensor', 'device', 'binding', 'telemetry_stream', 'digital_twin',
-               'data_binding', 'mqtt_source', 'mqtt_sink', 'wot_thing'),
+        choice(
+          'sensor',
+          'device',
+          'binding',
+          'telemetry_stream',
+          'digital_twin',
+          'data_binding',
+          'mqtt_source',
+          'mqtt_sink',
+          'wot_thing'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)),
+        '}'
       ),
 
     // ── Robotics ─────────────────────────────────────────────────────────────
@@ -596,11 +672,22 @@ module.exports = grammar({
     // actuator "GripperServo" { type: "servo" torque: 5.0 }
     robotics_block: ($) =>
       seq(
-        choice('joint', 'actuator', 'controller', 'end_effector', 'kinematics',
-               'gripper', 'mobile_base', 'safety_zone', 'path_planner'),
+        choice(
+          'joint',
+          'actuator',
+          'controller',
+          'end_effector',
+          'kinematics',
+          'gripper',
+          'mobile_base',
+          'safety_zone',
+          'path_planner'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)),
+        '}'
       ),
 
     // ── Data Visualization / Enterprise ──────────────────────────────────────
@@ -608,11 +695,22 @@ module.exports = grammar({
     // chart "Temperature" { type: "line" data_source: "sensors/temp" }
     dataviz_block: ($) =>
       seq(
-        choice('dashboard', 'chart', 'data_source', 'widget', 'panel',
-               'table', 'metric', 'alert_rule', 'report'),
+        choice(
+          'dashboard',
+          'chart',
+          'data_source',
+          'widget',
+          'panel',
+          'table',
+          'metric',
+          'alert_rule',
+          'report'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.object)),
+        '}'
       ),
 
     // ── Education / Learning ─────────────────────────────────────────────────
@@ -620,11 +718,22 @@ module.exports = grammar({
     // quiz "Final Exam" { passing_score: 80 questions: [...] }
     education_block: ($) =>
       seq(
-        choice('lesson', 'quiz', 'curriculum', 'course', 'assessment',
-               'flashcard', 'tutorial', 'lab_experiment', 'exercise'),
+        choice(
+          'lesson',
+          'quiz',
+          'curriculum',
+          'course',
+          'assessment',
+          'flashcard',
+          'tutorial',
+          'lab_experiment',
+          'exercise'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.object)),
+        '}'
       ),
 
     // ── Healthcare / Medical ─────────────────────────────────────────────────
@@ -632,11 +741,21 @@ module.exports = grammar({
     // patient_model "Heart" { anatomy: "cardiac" layers: [...] }
     healthcare_block: ($) =>
       seq(
-        choice('procedure', 'patient_model', 'vital_monitor', 'diagnosis',
-               'therapeutic', 'surgical_step', 'anatomy_layer', 'drug_interaction'),
+        choice(
+          'procedure',
+          'patient_model',
+          'vital_monitor',
+          'diagnosis',
+          'therapeutic',
+          'surgical_step',
+          'anatomy_layer',
+          'drug_interaction'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.object)),
+        '}'
       ),
 
     // ── Music / Audio Production ─────────────────────────────────────────────
@@ -644,11 +763,22 @@ module.exports = grammar({
     // track "Melody" { bpm: 120 time_signature: "4/4" }
     music_block: ($) =>
       seq(
-        choice('instrument', 'track', 'sequence', 'sample', 'effect_chain',
-               'mixer', 'midi_map', 'beat_pattern', 'chord_progression'),
+        choice(
+          'instrument',
+          'track',
+          'sequence',
+          'sample',
+          'effect_chain',
+          'mixer',
+          'midi_map',
+          'beat_pattern',
+          'chord_progression'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.object)),
+        '}'
       ),
 
     // ── Architecture / Construction ──────────────────────────────────────────
@@ -656,11 +786,22 @@ module.exports = grammar({
     // room "Kitchen" { area: 25 ceiling_height: 3.0 }
     architecture_block: ($) =>
       seq(
-        choice('floor_plan', 'room', 'building', 'facade', 'structural',
-               'hvac_system', 'plumbing_system', 'electrical_system', 'landscape'),
+        choice(
+          'floor_plan',
+          'room',
+          'building',
+          'facade',
+          'structural',
+          'hvac_system',
+          'plumbing_system',
+          'electrical_system',
+          'landscape'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.object)),
+        '}'
       ),
 
     // ── Web3 / Blockchain ────────────────────────────────────────────────────
@@ -668,11 +809,22 @@ module.exports = grammar({
     // token "GameCoin" { supply: 1000000 decimals: 18 }
     web3_block: ($) =>
       seq(
-        choice('contract', 'token', 'wallet', 'marketplace', 'auction',
-               'royalty_split', 'governance', 'staking_pool', 'bridge'),
+        choice(
+          'contract',
+          'token',
+          'wallet',
+          'marketplace',
+          'auction',
+          'royalty_split',
+          'governance',
+          'staking_pool',
+          'bridge'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.object)),
+        '}'
       ),
 
     // =========================================================================
@@ -687,11 +839,21 @@ module.exports = grammar({
     // middleware "Auth" { type: "jwt" strategy: "bearer" }
     service_block: ($) =>
       seq(
-        choice('service', 'endpoint', 'route', 'handler', 'middleware',
-               'gateway', 'proxy', 'load_balancer'),
+        choice(
+          'service',
+          'endpoint',
+          'route',
+          'handler',
+          'middleware',
+          'gateway',
+          'proxy',
+          'load_balancer'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)),
+        '}'
       ),
 
     // ── Contract & Schema ──────────────────────────────────────────────────────
@@ -699,11 +861,20 @@ module.exports = grammar({
     // validator "UserInput" { target: "User" rules: { email: "required|email" } }
     contract_block: ($) =>
       seq(
-        choice('schema', 'validator', 'serializer', 'openapi', 'asyncapi',
-               'protobuf', 'graphql_schema'),
+        choice(
+          'schema',
+          'validator',
+          'serializer',
+          'openapi',
+          'asyncapi',
+          'protobuf',
+          'graphql_schema'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.object)),
+        '}'
       ),
 
     // ── Data & Storage ─────────────────────────────────────────────────────────
@@ -712,11 +883,20 @@ module.exports = grammar({
     // cache "UserCache" { strategy: "lru" max_size: 1000 ttl: 300 }
     data_block: ($) =>
       seq(
-        choice('data_model', 'migration', 'seed', 'data_view',
-               'data_index', 'stored_procedure', 'data_trigger'),
+        choice(
+          'data_model',
+          'migration',
+          'seed',
+          'data_view',
+          'data_index',
+          'stored_procedure',
+          'data_trigger'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.object)),
+        '}'
       ),
 
     // ── Pipeline & Messaging ───────────────────────────────────────────────────
@@ -725,11 +905,21 @@ module.exports = grammar({
     // scheduler "Cleanup" { cron: "0 2 * * *" timezone: "UTC" }
     pipeline_block: ($) =>
       seq(
-        choice('pipeline', 'stage', 'queue', 'worker', 'scheduler',
-               'consumer', 'producer', 'dead_letter'),
+        choice(
+          'pipeline',
+          'stage',
+          'queue',
+          'worker',
+          'scheduler',
+          'consumer',
+          'producer',
+          'dead_letter'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)),
+        '}'
       ),
 
     // =========================================================================
@@ -741,10 +931,19 @@ module.exports = grammar({
 
     codebase_block: ($) =>
       seq(
-        choice('codebase', 'module_map', 'dependency_graph', 'call_graph', 'semantic_search', 'graph_query'),
+        choice(
+          'codebase',
+          'module_map',
+          'dependency_graph',
+          'call_graph',
+          'semantic_search',
+          'graph_query'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(seq($.property, optional(',')), $.event_handler, $.object, $.spatial_group)), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.event_handler, $.object, $.spatial_group)),
+        '}'
       ),
 
     // =========================================================================
@@ -754,13 +953,16 @@ module.exports = grammar({
     // =========================================================================
 
     custom_block: ($) =>
-      prec(-1,
+      prec(
+        -1,
         seq(
           optional($.platform_decorator),
           field('kind', $.identifier),
           field('name', choice($.string, $.identifier)),
           optional($.trait_list),
-          '{', repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)), '}'
+          '{',
+          repeat(choice(seq($.property, optional(',')), $.event_handler, $.object)),
+          '}'
         )
       ),
 
@@ -782,59 +984,108 @@ module.exports = grammar({
     // }
     material_block: ($) =>
       seq(
-        choice('material', 'pbr_material', 'unlit_material', 'shader',
-               'toon_material', 'glass_material', 'subsurface_material'),
+        choice(
+          'material',
+          'pbr_material',
+          'unlit_material',
+          'shader',
+          'toon_material',
+          'glass_material',
+          'subsurface_material'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(
-          seq($.property, optional(',')),
-          $.texture_map,
-          $.texture_map_block,
-          $.shader_pass,
-          $.shader_connection
-        )), '}'
+        '{',
+        repeat(
+          choice(
+            seq($.property, optional(',')),
+            $.texture_map,
+            $.texture_map_block,
+            $.shader_pass,
+            $.shader_connection
+          )
+        ),
+        '}'
       ),
 
     // Simple texture map assignment (inline form)
     // e.g. albedo_map: "textures/wood.png"
     texture_map: ($) =>
       seq(
-        field('channel', choice(
-          'albedo_map', 'normal_map', 'roughness_map', 'metallic_map',
-          'emission_map', 'ao_map', 'height_map', 'opacity_map',
-          'displacement_map', 'specular_map', 'clearcoat_map',
-          'baseColor_map', 'emissive_map', 'transmission_map',
-          'sheen_map', 'anisotropy_map', 'thickness_map',
-          'subsurface_map', 'iridescence_map')),
-        ':', field('source', $._expression)
+        field(
+          'channel',
+          choice(
+            'albedo_map',
+            'normal_map',
+            'roughness_map',
+            'metallic_map',
+            'emission_map',
+            'ao_map',
+            'height_map',
+            'opacity_map',
+            'displacement_map',
+            'specular_map',
+            'clearcoat_map',
+            'baseColor_map',
+            'emissive_map',
+            'transmission_map',
+            'sheen_map',
+            'anisotropy_map',
+            'thickness_map',
+            'subsurface_map',
+            'iridescence_map'
+          )
+        ),
+        ':',
+        field('source', $._expression)
       ),
 
     // Structured texture map sub-block (detailed form with parameters)
     // e.g. albedo_map { source: "textures/wood.png" tiling: [2, 2] filtering: "trilinear" }
     texture_map_block: ($) =>
       seq(
-        field('channel', choice(
-          'albedo_map', 'normal_map', 'roughness_map', 'metallic_map',
-          'emission_map', 'ao_map', 'height_map', 'opacity_map',
-          'displacement_map', 'specular_map', 'clearcoat_map',
-          'baseColor_map', 'emissive_map', 'transmission_map',
-          'sheen_map', 'anisotropy_map', 'thickness_map',
-          'subsurface_map', 'iridescence_map')),
-        '{', repeat(seq($.property, optional(','))), '}'
+        field(
+          'channel',
+          choice(
+            'albedo_map',
+            'normal_map',
+            'roughness_map',
+            'metallic_map',
+            'emission_map',
+            'ao_map',
+            'height_map',
+            'opacity_map',
+            'displacement_map',
+            'specular_map',
+            'clearcoat_map',
+            'baseColor_map',
+            'emissive_map',
+            'transmission_map',
+            'sheen_map',
+            'anisotropy_map',
+            'thickness_map',
+            'subsurface_map',
+            'iridescence_map'
+          )
+        ),
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
     // Shader pass for multi-pass rendering
     // e.g. pass "ForwardBase" { vertex: "shaders/pbr.vert" fragment: "shaders/pbr.frag" }
     shader_pass: ($) =>
       seq(
-        'pass', optional(field('name', choice($.string, $.identifier))),
-        '{', repeat(seq($.property, optional(','))), '}'
+        'pass',
+        optional(field('name', choice($.string, $.identifier))),
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
     shader_connection: ($) =>
-      seq(
-        field('output', $.identifier), '->', field('input', $.property_access)
-      ),
+      seq(field('output', $.identifier), '->', field('input', $.property_access)),
 
     // ── P0: Structured Physics ───────────────────────────────────────────────
     // collider sphere { radius: 0.5 is_trigger: false }
@@ -842,38 +1093,62 @@ module.exports = grammar({
     collider_block: ($) =>
       seq(
         choice('collider', 'trigger'),
-        optional(field('shape', choice('box', 'sphere', 'capsule', 'mesh',
-                                        'convex', 'cylinder', 'heightfield'))),
-        '{', repeat(seq($.property, optional(','))), '}'
+        optional(
+          field(
+            'shape',
+            choice('box', 'sphere', 'capsule', 'mesh', 'convex', 'cylinder', 'heightfield')
+          )
+        ),
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
-    rigidbody_block: ($) =>
-      seq('rigidbody', '{', repeat(seq($.property, optional(','))), '}'),
+    rigidbody_block: ($) => seq('rigidbody', '{', repeat(seq($.property, optional(','))), '}'),
 
     force_field_block: ($) =>
       seq(
-        choice('force_field', 'gravity_zone', 'wind_zone', 'buoyancy_zone',
-               'magnetic_field', 'drag_zone'),
+        choice(
+          'force_field',
+          'gravity_zone',
+          'wind_zone',
+          'buoyancy_zone',
+          'magnetic_field',
+          'drag_zone'
+        ),
         optional(field('name', choice($.string, $.identifier))),
         optional($.trait_list),
-        '{', repeat(seq($.property, optional(','))), '}'
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
     articulation_block: ($) =>
-      seq('articulation', field('name', choice($.string, $.identifier)),
+      seq(
+        'articulation',
+        field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(
-          $.joint_block,
-          seq($.property, optional(','))
-        )), '}'
+        '{',
+        repeat(choice($.joint_block, seq($.property, optional(',')))),
+        '}'
       ),
 
     joint_block: ($) =>
       seq(
-        choice('joint', 'hinge', 'slider', 'ball_socket', 'fixed_joint',
-               'd6_joint', 'spring_joint', 'prismatic'),
+        choice(
+          'joint',
+          'hinge',
+          'slider',
+          'ball_socket',
+          'fixed_joint',
+          'd6_joint',
+          'spring_joint',
+          'prismatic'
+        ),
         field('name', choice($.string, $.identifier)),
-        '{', repeat(seq($.property, optional(','))), '}'
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
     // ── P1: Particle / VFX System ────────────────────────────────────────────
@@ -883,19 +1158,33 @@ module.exports = grammar({
         choice('particles', 'emitter', 'vfx', 'particle_system'),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(
-          seq($.property, optional(',')),
-          $.particle_module
-        )), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.particle_module)),
+        '}'
       ),
 
     particle_module: ($) =>
       seq(
-        choice('emission', 'lifetime', 'velocity', 'force', 'color_over_life',
-               'size_over_life', 'noise', 'collision', 'sub_emitter',
-               'shape', 'renderer', 'rotation_over_life', 'trails',
-               'texture_sheet', 'inherit_velocity'),
-        '{', repeat(seq($.property, optional(','))), '}'
+        choice(
+          'emission',
+          'lifetime',
+          'velocity',
+          'force',
+          'color_over_life',
+          'size_over_life',
+          'noise',
+          'collision',
+          'sub_emitter',
+          'shape',
+          'renderer',
+          'rotation_over_life',
+          'trails',
+          'texture_sheet',
+          'inherit_velocity'
+        ),
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
     // ── P1: Post-Processing Pipeline ─────────────────────────────────────────
@@ -904,28 +1193,59 @@ module.exports = grammar({
       seq(
         choice('post_processing', 'post_fx', 'render_pipeline'),
         optional(field('name', choice($.string, $.identifier))),
-        '{', repeat($.post_effect), '}'
+        '{',
+        repeat($.post_effect),
+        '}'
       ),
 
     post_effect: ($) =>
       seq(
-        choice('bloom', 'ambient_occlusion', 'ssao', 'color_grading', 'tone_mapping',
-               'depth_of_field', 'motion_blur', 'vignette', 'chromatic_aberration',
-               'fog', 'volumetric_fog', 'screen_space_reflections', 'ssr',
-               'anti_aliasing', 'fxaa', 'smaa', 'taa', 'film_grain',
-               'lens_flare', 'god_rays', 'outline', 'pixelate'),
-        '{', repeat(seq($.property, optional(','))), '}'
+        choice(
+          'bloom',
+          'ambient_occlusion',
+          'ssao',
+          'color_grading',
+          'tone_mapping',
+          'depth_of_field',
+          'motion_blur',
+          'vignette',
+          'chromatic_aberration',
+          'fog',
+          'volumetric_fog',
+          'screen_space_reflections',
+          'ssr',
+          'anti_aliasing',
+          'fxaa',
+          'smaa',
+          'taa',
+          'film_grain',
+          'lens_flare',
+          'god_rays',
+          'outline',
+          'pixelate'
+        ),
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
     // ── P1: Spatial Audio System ─────────────────────────────────────────────
     // audio_source "Waterfall" @spatial @hrtf { clip: "water.ogg" volume: 0.8 }
     audio_source_block: ($) =>
       seq(
-        choice('audio_source', 'audio_listener', 'reverb_zone',
-               'audio_mixer', 'ambience', 'sound_emitter'),
+        choice(
+          'audio_source',
+          'audio_listener',
+          'reverb_zone',
+          'audio_mixer',
+          'ambience',
+          'sound_emitter'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(seq($.property, optional(','))), '}'
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
     // ── P2: Weather & Atmosphere ─────────────────────────────────────────────
@@ -935,18 +1255,32 @@ module.exports = grammar({
         choice('weather', 'atmosphere', 'sky', 'climate'),
         optional(field('name', choice($.string, $.identifier))),
         optional($.trait_list),
-        '{', repeat(choice(
-          seq($.property, optional(',')),
-          $.weather_layer
-        )), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.weather_layer)),
+        '}'
       ),
 
     weather_layer: ($) =>
       seq(
-        choice('rain', 'snow', 'wind', 'lightning', 'clouds', 'hail',
-               'time_of_day', 'sun', 'moon', 'fog_layer', 'aurora',
-               'dust_storm', 'humidity', 'temperature'),
-        '{', repeat(seq($.property, optional(','))), '}'
+        choice(
+          'rain',
+          'snow',
+          'wind',
+          'lightning',
+          'clouds',
+          'hail',
+          'time_of_day',
+          'sun',
+          'moon',
+          'fog_layer',
+          'aurora',
+          'dust_storm',
+          'humidity',
+          'temperature'
+        ),
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
     // ── P2: Procedural Generation ────────────────────────────────────────────
@@ -956,64 +1290,91 @@ module.exports = grammar({
         choice('procedural', 'generate', 'scatter', 'distribute'),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(
-          seq($.property, optional(',')),
-          $.noise_function,
-          $.biome_rule
-        )), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.noise_function, $.biome_rule)),
+        '}'
       ),
 
     noise_function: ($) =>
       seq(
-        choice('perlin', 'simplex', 'voronoi', 'worley', 'fbm', 'ridged',
-               'cellular', 'white_noise', 'curl', 'domain_warp'),
+        choice(
+          'perlin',
+          'simplex',
+          'voronoi',
+          'worley',
+          'fbm',
+          'ridged',
+          'cellular',
+          'white_noise',
+          'curl',
+          'domain_warp'
+        ),
         optional(field('name', $.identifier)),
-        '{', repeat(seq($.property, optional(','))), '}'
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
     biome_rule: ($) =>
-      seq('biome', field('name', choice($.string, $.identifier)),
-        '{', repeat(seq($.property, optional(','))), '}'
+      seq(
+        'biome',
+        field('name', choice($.string, $.identifier)),
+        '{',
+        repeat(seq($.property, optional(','))),
+        '}'
       ),
 
     // ── P2: LOD & Render Hints ───────────────────────────────────────────────
     // lod { level 0 { mesh: "high.glb" } level 50 { mesh: "mid.glb" } level 200 { mesh: "low.glb" } }
-    lod_block: ($) =>
-      seq('lod', '{', repeat($.lod_level), '}'),
+    lod_block: ($) => seq('lod', '{', repeat($.lod_level), '}'),
 
     lod_level: ($) =>
       seq(
         choice('level', 'lod'),
         field('distance', $.number),
-        '{', repeat(choice(
-          seq($.property, optional(',')),
-          $.object
-        )), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.object)),
+        '}'
       ),
 
     // render { cast_shadows: true receive_shadows: true layer: "transparent" }
-    render_hints: ($) =>
-      seq('render', '{', repeat(seq($.property, optional(','))), '}'),
+    render_hints: ($) => seq('render', '{', repeat(seq($.property, optional(','))), '}'),
 
     // ── P3: Navigation & AI ──────────────────────────────────────────────────
     // navmesh "MainNav" { agent_radius: 0.5 agent_height: 2.0 }
     // behavior_tree "PatrolAI" { sequence { condition : "see_player" leaf : "attack" } }
     navigation_block: ($) =>
       seq(
-        choice('navmesh', 'nav_agent', 'behavior_tree', 'obstacle',
-               'nav_link', 'nav_modifier', 'crowd_manager'),
+        choice(
+          'navmesh',
+          'nav_agent',
+          'behavior_tree',
+          'obstacle',
+          'nav_link',
+          'nav_modifier',
+          'crowd_manager'
+        ),
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
-        '{', repeat(choice(
-          seq($.property, optional(',')),
-          $.behavior_node
-        )), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.behavior_node)),
+        '}'
       ),
 
     behavior_node: ($) =>
       seq(
-        choice('selector', 'sequence', 'condition', 'leaf', 'parallel',
-               'decorator', 'inverter', 'repeater', 'cooldown', 'guard'),
+        choice(
+          'selector',
+          'sequence',
+          'condition',
+          'leaf',
+          'parallel',
+          'decorator',
+          'inverter',
+          'repeater',
+          'cooldown',
+          'guard'
+        ),
         optional(field('name', $.identifier)),
         choice(
           seq('{', repeat(choice($.behavior_node, seq($.property, optional(',')))), '}'),
@@ -1028,26 +1389,19 @@ module.exports = grammar({
         choice('input', 'interaction', 'gesture_profile', 'controller_map'),
         optional(field('name', choice($.string, $.identifier))),
         optional($.trait_list),
-        '{', repeat(choice(
-          seq($.property, optional(',')),
-          $.input_binding
-        )), '}'
+        '{',
+        repeat(choice(seq($.property, optional(',')), $.input_binding)),
+        '}'
       ),
 
-    input_binding: ($) =>
-      seq(
-        field('action', $.identifier), '=>', field('binding', $._expression)
-      ),
+    input_binding: ($) => seq(field('action', $.identifier), '=>', field('binding', $._expression)),
 
     // ── P3: Annotations ──────────────────────────────────────────────────────
     // #[debug, profile("gpu"), editor_only]
-    annotation: ($) =>
-      seq('#[', sepBy($.annotation_entry, ','), ']'),
+    annotation: ($) => seq('#[', sepBy($.annotation_entry, ','), ']'),
 
     annotation_entry: ($) =>
-      seq(field('key', $.identifier),
-        optional(seq('(', sepBy($._expression, ','), ')'))
-      ),
+      seq(field('key', $.identifier), optional(seq('(', sepBy($._expression, ','), ')'))),
 
     // =========================================================================
     // BUILT-IN TEST FRAMEWORK
@@ -1060,35 +1414,38 @@ module.exports = grammar({
     // }
     test_block: ($) =>
       seq(
-        'test', field('name', $.string),
+        'test',
+        field('name', $.string),
         optional($.trait_list),
-        '{', repeat(choice(
-          $.test_given,
-          $.test_when,
-          $.test_then,
-          $.test_assertion,
-          $.test_lifecycle,
-          seq($.property, optional(',')),
-          $._statement
-        )), '}'
+        '{',
+        repeat(
+          choice(
+            $.test_given,
+            $.test_when,
+            $.test_then,
+            $.test_assertion,
+            $.test_lifecycle,
+            seq($.property, optional(',')),
+            $._statement
+          )
+        ),
+        '}'
       ),
 
-    test_given: ($) =>
-      seq('given', '{', repeat($._statement), '}'),
+    test_given: ($) => seq('given', '{', repeat($._statement), '}'),
 
-    test_when: ($) =>
-      seq('when', '{', repeat($._statement), '}'),
+    test_when: ($) => seq('when', '{', repeat($._statement), '}'),
 
-    test_then: ($) =>
-      seq('then', '{', repeat(choice($.test_assertion, $._statement)), '}'),
+    test_then: ($) => seq('then', '{', repeat(choice($.test_assertion, $._statement)), '}'),
 
-    test_assertion: ($) =>
-      seq('assert', field('expression', $._expression)),
+    test_assertion: ($) => seq('assert', field('expression', $._expression)),
 
     test_lifecycle: ($) =>
       seq(
         choice('before_each', 'after_each', 'before_all', 'after_all'),
-        '{', repeat($._statement), '}'
+        '{',
+        repeat($._statement),
+        '}'
       ),
 
     // =========================================================================
@@ -1109,8 +1466,11 @@ module.exports = grammar({
     action: ($) =>
       seq(
         optional($.effect_annotation),
-        'action', field('name', $.identifier),
-        '(', optional($.parameter_list), ')',
+        'action',
+        field('name', $.identifier),
+        '(',
+        optional($.parameter_list),
+        ')',
         $.block
       ),
 
@@ -1178,19 +1538,54 @@ module.exports = grammar({
     // PROPERTIES
     // =========================================================================
 
-    _keyword: ($) => choice(
-      'model', 'kind', 'layer', 'action', 'state', 'value', 'event', 'name',
-      'table', 'version', 'destructive', 'trigger', 'condition', 'object', 'orb', 'cube', 'sphere',
-      'cylinder', 'cone', 'npc', 'portal', 'audio', 'spawnpoint', 'ui_panel', 'text', 'gesture',
-      'progress', 'button', 'sensor', 'device', 'binding', 'telemetry_stream', 'digital_twin',
-      'data_binding', 'mqtt_source', 'mqtt_sink', 'wot_thing', 'spatial_group', 'timeline', 'logic',
-      'light', 'camera', 'test'
-    ),
+    _keyword: ($) =>
+      choice(
+        'model',
+        'kind',
+        'layer',
+        'action',
+        'state',
+        'value',
+        'event',
+        'name',
+        'table',
+        'version',
+        'destructive',
+        'trigger',
+        'condition',
+        'object',
+        'orb',
+        'cube',
+        'sphere',
+        'cylinder',
+        'cone',
+        'npc',
+        'portal',
+        'audio',
+        'spawnpoint',
+        'ui_panel',
+        'text',
+        'gesture',
+        'progress',
+        'button',
+        'sensor',
+        'device',
+        'binding',
+        'telemetry_stream',
+        'digital_twin',
+        'data_binding',
+        'mqtt_source',
+        'mqtt_sink',
+        'wot_thing',
+        'spatial_group',
+        'timeline',
+        'logic',
+        'light',
+        'camera',
+        'test'
+      ),
 
-    property_key: ($) => choice(
-      $.identifier,
-      $._keyword
-    ),
+    property_key: ($) => choice($.identifier, $._keyword),
 
     property: ($) => seq(field('key', $.property_key), ':', field('value', $._expression)),
 
@@ -1218,40 +1613,47 @@ module.exports = grammar({
       ),
 
     variable_declaration: ($) =>
-      seq(choice('const', 'let', 'var'), field('name', $.identifier), '=', field('value', $._expression)),
+      seq(
+        choice('const', 'let', 'var'),
+        field('name', $.identifier),
+        '=',
+        field('value', $._expression)
+      ),
 
     switch_statement: ($) =>
-      seq('switch', '(', field('value', $._expression), ')', '{',
-        repeat($.case_clause),
-        '}'),
+      seq('switch', '(', field('value', $._expression), ')', '{', repeat($.case_clause), '}'),
 
     case_clause: ($) =>
       seq(
-        choice(
-          seq('case', field('value', $._value), ':'),
-          seq('default', ':')
-        ),
+        choice(seq('case', field('value', $._value), ':'), seq('default', ':')),
         repeat($._statement),
         optional('break')
       ),
 
     // For-of loop — for (const file of files) { }
     for_of_loop: ($) =>
-      seq('for', '(',
+      seq(
+        'for',
+        '(',
         optional(choice('const', 'let', 'var')),
         field('variable', $.identifier),
         'of',
         field('iterable', $._expression),
-        ')', $.block),
+        ')',
+        $.block
+      ),
 
     // Throw statement
     throw_statement: ($) => seq('throw', $._expression),
 
     // Try/catch/finally
     try_statement: ($) =>
-      seq('try', $.block,
+      seq(
+        'try',
+        $.block,
         optional(seq('catch', optional(seq('(', $.identifier, ')')), $.block)),
-        optional(seq('finally', $.block))),
+        optional(seq('finally', $.block))
+      ),
 
     assignment: ($) =>
       seq(
@@ -1333,21 +1735,22 @@ module.exports = grammar({
       ),
 
     // Await expression — await moveTo(pos)
-    await_expression: ($) =>
-      prec.right(6, seq('await', $._expression)),
+    await_expression: ($) => prec.right(6, seq('await', $._expression)),
 
     // New expression — new Map()
     new_expression: ($) =>
-      prec(8, seq('new', field('constructor', $.identifier),
-        '(', sepBy($.argument, ','), ')')),
+      prec(8, seq('new', field('constructor', $.identifier), '(', sepBy($.argument, ','), ')')),
 
     // Optional chaining — zone?.pvp_enabled
     optional_chain: ($) =>
-      prec.left(7, seq(
-        field('object', choice($.identifier, $.property_access, $.optional_chain)),
-        '?.',
-        field('property', $.identifier)
-      )),
+      prec.left(
+        7,
+        seq(
+          field('object', choice($.identifier, $.property_access, $.optional_chain)),
+          '?.',
+          field('property', $.identifier)
+        )
+      ),
 
     binary_expression: ($) =>
       choice(
@@ -1482,8 +1885,7 @@ module.exports = grammar({
     array_type: ($) => prec.left(1, seq($.type, '[', ']')),
 
     // Generic type — Map<string, SymbolInfo>, Promise<void>
-    generic_type: ($) =>
-      prec(2, seq(field('name', $.identifier), '<', sepBy($.type, ','), '>')),
+    generic_type: ($) => prec(2, seq(field('name', $.identifier), '<', sepBy($.type, ','), '>')),
 
     // =========================================================================
     // CULTURAL NORMS (v4.6 — Emergent Agent Culture)
@@ -1502,33 +1904,31 @@ module.exports = grammar({
         field('name', choice($.string, $.identifier)),
         optional($.trait_list),
         '{',
-        repeat(choice(
-          $.norm_creation,
-          $.norm_representation,
-          $.norm_spreading,
-          $.norm_evaluation,
-          $.norm_compliance,
-          $.event_handler,
-          seq($.property, optional(','))
-        )),
+        repeat(
+          choice(
+            $.norm_creation,
+            $.norm_representation,
+            $.norm_spreading,
+            $.norm_evaluation,
+            $.norm_compliance,
+            $.event_handler,
+            seq($.property, optional(','))
+          )
+        ),
         '}'
       ),
 
     // CRSEC lifecycle sub-blocks
-    norm_creation: ($) =>
-      seq('creation', '{', repeat(seq($.property, optional(','))), '}'),
+    norm_creation: ($) => seq('creation', '{', repeat(seq($.property, optional(','))), '}'),
 
     norm_representation: ($) =>
       seq('representation', '{', repeat(seq($.property, optional(','))), '}'),
 
-    norm_spreading: ($) =>
-      seq('spreading', '{', repeat(seq($.property, optional(','))), '}'),
+    norm_spreading: ($) => seq('spreading', '{', repeat(seq($.property, optional(','))), '}'),
 
-    norm_evaluation: ($) =>
-      seq('evaluation', '{', repeat(seq($.property, optional(','))), '}'),
+    norm_evaluation: ($) => seq('evaluation', '{', repeat(seq($.property, optional(','))), '}'),
 
-    norm_compliance: ($) =>
-      seq('compliance', '{', repeat(seq($.property, optional(','))), '}'),
+    norm_compliance: ($) => seq('compliance', '{', repeat(seq($.property, optional(','))), '}'),
 
     // =========================================================================
     // COMPILE-TIME SAFETY ANNOTATIONS
@@ -1536,8 +1936,7 @@ module.exports = grammar({
 
     // Effect annotation — declares which effects a function/action may produce
     // <physics:force, render:spawn> function move() { ... }
-    effect_annotation: ($) =>
-      prec(3, seq('<', sepBy($.effect_specifier, ','), '>')),
+    effect_annotation: ($) => prec(3, seq('<', sepBy($.effect_specifier, ','), '>')),
 
     // Single effect specifier — category:operation (e.g. physics:force)
     effect_specifier: ($) =>
@@ -1545,29 +1944,30 @@ module.exports = grammar({
 
     // @effects() decorator — declares effects on objects/templates
     // @effects(physics:force, render:spawn)
-    effects_decorator: ($) =>
-      seq('@effects', '(', sepBy($.effect_specifier, ','), ')'),
+    effects_decorator: ($) => seq('@effects', '(', sepBy($.effect_specifier, ','), ')'),
 
     // @budget() decorator — declares resource budget constraints
     // @budget(particles: 500, memoryMB: 16)
-    budget_decorator: ($) =>
-      seq('@budget', '(', sepBy($.budget_entry, ','), ')'),
+    budget_decorator: ($) => seq('@budget', '(', sepBy($.budget_entry, ','), ')'),
 
-    budget_entry: ($) =>
-      seq(field('resource', $.identifier), ':', field('limit', $.number)),
+    budget_entry: ($) => seq(field('resource', $.identifier), ':', field('limit', $.number)),
 
     // Resource definition — linear resource type declaration
     // resource InventoryItem has(drop) { ... }
     // resource EntityAuthority { ... }  // no abilities = fully linear
     resource_definition: ($) =>
-      seq('resource', field('name', $.identifier),
+      seq(
+        'resource',
+        field('name', $.identifier),
         optional($.resource_abilities),
-        '{', repeat(choice($.property, $.function_declaration)), '}'),
+        '{',
+        repeat(choice($.property, $.function_declaration)),
+        '}'
+      ),
 
     // Resource abilities — which linear abilities the resource has
     // has(copy, drop)  or  has(drop)
-    resource_abilities: ($) =>
-      seq('has', '(', sepBy($.identifier, ','), ')'),
+    resource_abilities: ($) => seq('has', '(', sepBy($.identifier, ','), ')'),
 
     // =========================================================================
     // IDENTIFIERS & COMMENTS
@@ -1575,9 +1975,6 @@ module.exports = grammar({
 
     identifier: ($) => /[a-zA-Z_][a-zA-Z0-9_]*/,
 
-    comment: ($) => token(choice(
-      seq('//', /.*/),
-      seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/')
-    )),
+    comment: ($) => token(choice(seq('//', /.*/), seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/'))),
   },
 });

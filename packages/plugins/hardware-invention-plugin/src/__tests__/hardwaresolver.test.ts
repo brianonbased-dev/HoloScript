@@ -36,12 +36,12 @@ describe('microstripImpedance', () => {
 
   it('wider trace → lower impedance', () => {
     const narrow = microstripImpedance({ traceWidthMm: 0.2, dielectricHeightMm: 0.2 });
-    const wide   = microstripImpedance({ traceWidthMm: 0.8, dielectricHeightMm: 0.2 });
+    const wide = microstripImpedance({ traceWidthMm: 0.8, dielectricHeightMm: 0.2 });
     expect(narrow.impedanceOhms).toBeGreaterThan(wide.impedanceOhms);
   });
 
   it('higher substrate → higher impedance', () => {
-    const thin  = microstripImpedance({ traceWidthMm: 0.4, dielectricHeightMm: 0.1 });
+    const thin = microstripImpedance({ traceWidthMm: 0.4, dielectricHeightMm: 0.1 });
     const thick = microstripImpedance({ traceWidthMm: 0.4, dielectricHeightMm: 0.4 });
     expect(thick.impedanceOhms).toBeGreaterThan(thin.impedanceOhms);
   });
@@ -55,7 +55,7 @@ describe('microstripImpedance', () => {
     const r = microstripImpedance({ traceWidthMm: 0.4, dielectricHeightMm: 0.2 }, 50);
     // Z0 should be within ±10% of 50 for these params
     const z = r.impedanceOhms;
-    const expected = Math.abs(z - 50) / 50 <= 0.10;
+    const expected = Math.abs(z - 50) / 50 <= 0.1;
     expect(r.withinTolerance).toBe(expected);
   });
 
@@ -79,19 +79,27 @@ describe('striplineImpedance', () => {
 
   it('wider trace → lower impedance', () => {
     const narrow = striplineImpedance({ traceWidthMm: 0.1, dielectricHeightMm: 0.2 });
-    const wide   = striplineImpedance({ traceWidthMm: 0.5, dielectricHeightMm: 0.2 });
+    const wide = striplineImpedance({ traceWidthMm: 0.5, dielectricHeightMm: 0.2 });
     expect(narrow.impedanceOhms).toBeGreaterThan(wide.impedanceOhms);
   });
 
   it('effectivePermittivity equals εr (fully embedded)', () => {
     const er = 4.3;
-    const r = striplineImpedance({ traceWidthMm: 0.3, dielectricHeightMm: 0.15, relativePermittivity: er });
+    const r = striplineImpedance({
+      traceWidthMm: 0.3,
+      dielectricHeightMm: 0.15,
+      relativePermittivity: er,
+    });
     expect(r.effectivePermittivity).toBeCloseTo(er, 4);
   });
 
   it('propagationDelayPsMm = sqrt(εr) × 3.336', () => {
     const er = 4.3;
-    const r = striplineImpedance({ traceWidthMm: 0.3, dielectricHeightMm: 0.15, relativePermittivity: er });
+    const r = striplineImpedance({
+      traceWidthMm: 0.3,
+      dielectricHeightMm: 0.15,
+      relativePermittivity: er,
+    });
     expect(r.propagationDelayPsMm).toBeCloseTo(Math.sqrt(er) * 3.336, 2);
   });
 
@@ -118,7 +126,7 @@ describe('irDropAnalysis', () => {
   it('wider trace → lower IR drop', () => {
     // Signature: irDropAnalysis(lengthMm, widthMm, currentA, thicknessMm, budgetMv)
     const narrow = irDropAnalysis(100, 0.5, 1.0, 0.035); // width=0.5mm
-    const wide   = irDropAnalysis(100, 2.0, 1.0, 0.035); // width=2.0mm
+    const wide = irDropAnalysis(100, 2.0, 1.0, 0.035); // width=2.0mm
     expect(wide.irDropMv).toBeLessThan(narrow.irDropMv);
   });
 
@@ -135,7 +143,7 @@ describe('irDropAnalysis', () => {
 
   it('returns input trace dimensions', () => {
     // Signature: (length, width, current, thickness)
-    const r = irDropAnalysis(50, 0.5, 2.0, 0.070);
+    const r = irDropAnalysis(50, 0.5, 2.0, 0.07);
     expect(r.traceLengthMm).toBe(50);
     expect(r.traceWidthMm).toBe(0.5);
     expect(r.currentA).toBe(2.0);
@@ -150,7 +158,8 @@ describe('decouplingCapacitor', () => {
    * C=100nF=0.1μF, L=1nH: SRF = 1/(2π√(1e-9 × 0.1e-6)) ≈ 15.9 MHz
    */
   it('selfResonantFreqMHz ≈ 1/(2π√(LC))', () => {
-    const C_uF = 0.1, L_nH = 1;
+    const C_uF = 0.1,
+      L_nH = 1;
     const r = decouplingCapacitor(C_uF, L_nH, 0.1);
     const expected = 1 / (2 * Math.PI * Math.sqrt(L_nH * 1e-9 * C_uF * 1e-6)) / 1e6;
     expect(r.selfResonantFreqMHz).toBeCloseTo(expected, 0);
@@ -181,12 +190,12 @@ describe('dfmCheck', () => {
     // DFMInput: { minTraceWidthMm, minTraceSpacingMm, viaDrillDiamMm, annularRingMm, silkscreenClearanceMm, edgeClearanceMm }
     // IPC-2221B minimums: 0.100, 0.100, 0.200, 0.050, 0.100, 0.300
     const r = dfmCheck({
-      minTraceWidthMm:       0.15,
-      minTraceSpacingMm:     0.15,
-      viaDrillDiamMm:        0.30,
-      annularRingMm:         0.10,
+      minTraceWidthMm: 0.15,
+      minTraceSpacingMm: 0.15,
+      viaDrillDiamMm: 0.3,
+      annularRingMm: 0.1,
       silkscreenClearanceMm: 0.15,
-      edgeClearanceMm:       0.50,
+      edgeClearanceMm: 0.5,
     });
     expect(r.failures).toBe(0);
     expect(r.manufacturable).toBe(true);
@@ -194,12 +203,12 @@ describe('dfmCheck', () => {
 
   it('fails when trace width below IPC-2221B minimum (0.100mm)', () => {
     const r = dfmCheck({
-      minTraceWidthMm:       0.05,   // below 0.100 minimum
-      minTraceSpacingMm:     0.15,
-      viaDrillDiamMm:        0.30,
-      annularRingMm:         0.10,
+      minTraceWidthMm: 0.05, // below 0.100 minimum
+      minTraceSpacingMm: 0.15,
+      viaDrillDiamMm: 0.3,
+      annularRingMm: 0.1,
       silkscreenClearanceMm: 0.15,
-      edgeClearanceMm:       0.50,
+      edgeClearanceMm: 0.5,
     });
     expect(r.failures).toBeGreaterThan(0);
     expect(r.manufacturable).toBe(false);
@@ -207,12 +216,12 @@ describe('dfmCheck', () => {
 
   it('checks array has entries for each rule', () => {
     const r = dfmCheck({
-      minTraceWidthMm:       0.15,
-      minTraceSpacingMm:     0.15,
-      viaDrillDiamMm:        0.30,
-      annularRingMm:         0.10,
+      minTraceWidthMm: 0.15,
+      minTraceSpacingMm: 0.15,
+      viaDrillDiamMm: 0.3,
+      annularRingMm: 0.1,
       silkscreenClearanceMm: 0.15,
-      edgeClearanceMm:       0.50,
+      edgeClearanceMm: 0.5,
     });
     expect(r.checks.length).toBeGreaterThan(0);
     for (const check of r.checks) {
@@ -227,34 +236,34 @@ describe('dfmCheck', () => {
 describe('bomCostEstimator', () => {
   const bom = [
     { partNumber: 'R0402', description: '10k resistor', quantity: 10, unitCostUSD: 0.01 },
-    { partNumber: 'C0603', description: '100nF cap',    quantity: 5,  unitCostUSD: 0.05 },
-    { partNumber: 'IC001', description: 'MCU',          quantity: 1,  unitCostUSD: 2.50, defectRate: 0.001 },
+    { partNumber: 'C0603', description: '100nF cap', quantity: 5, unitCostUSD: 0.05 },
+    { partNumber: 'IC001', description: 'MCU', quantity: 1, unitCostUSD: 2.5, defectRate: 0.001 },
   ];
 
   it('totalBOMCostUSD = sum of quantity × unitCost', () => {
-    const r = bomCostEstimator(bom, 0.20);
-    const expected = 10 * 0.01 + 5 * 0.05 + 1 * 2.50;
+    const r = bomCostEstimator(bom, 0.2);
+    const expected = 10 * 0.01 + 5 * 0.05 + 1 * 2.5;
     expect(r.totalBOMCostUSD).toBeCloseTo(expected, 4);
   });
 
   it('assemblyCostUSD = fraction × totalBOMCostUSD', () => {
-    const r = bomCostEstimator(bom, 0.20);
-    expect(r.assemblyCostUSD).toBeCloseTo(r.totalBOMCostUSD * 0.20, 4);
+    const r = bomCostEstimator(bom, 0.2);
+    expect(r.assemblyCostUSD).toBeCloseTo(r.totalBOMCostUSD * 0.2, 4);
   });
 
   it('totalUnitCostUSD = BOM + assembly', () => {
-    const r = bomCostEstimator(bom, 0.20);
+    const r = bomCostEstimator(bom, 0.2);
     expect(r.totalUnitCostUSD).toBeCloseTo(r.totalBOMCostUSD + r.assemblyCostUSD, 4);
   });
 
   it('firstPassYield in (0, 1]', () => {
-    const r = bomCostEstimator(bom, 0.20);
+    const r = bomCostEstimator(bom, 0.2);
     expect(r.firstPassYield).toBeGreaterThan(0);
     expect(r.firstPassYield).toBeLessThanOrEqual(1);
   });
 
   it('lines length matches BOM input', () => {
-    const r = bomCostEstimator(bom, 0.20);
+    const r = bomCostEstimator(bom, 0.2);
     expect(r.lines).toHaveLength(bom.length);
   });
 });
@@ -343,8 +352,12 @@ describe('buildHardwareReceipt', () => {
 
   it('accepted=true for manufacturable result', () => {
     const dfm = dfmCheck({
-      minTraceWidthMm: 0.15, minTraceSpacingMm: 0.15, viaDrillDiamMm: 0.30,
-      annularRingMm: 0.10, silkscreenClearanceMm: 0.15, edgeClearanceMm: 0.50,
+      minTraceWidthMm: 0.15,
+      minTraceSpacingMm: 0.15,
+      viaDrillDiamMm: 0.3,
+      annularRingMm: 0.1,
+      silkscreenClearanceMm: 0.15,
+      edgeClearanceMm: 0.5,
     });
     const receipt = buildHardwareReceipt({ dfm, converged: true });
     expect(receipt.acceptance.accepted).toBe(true);
@@ -352,8 +365,12 @@ describe('buildHardwareReceipt', () => {
 
   it('accepted=false when DFM violations present', () => {
     const dfm = dfmCheck({
-      minTraceWidthMm: 0.05, minTraceSpacingMm: 0.05, viaDrillDiamMm: 0.10,
-      annularRingMm: 0.01, silkscreenClearanceMm: 0.02, edgeClearanceMm: 0.10,
+      minTraceWidthMm: 0.05,
+      minTraceSpacingMm: 0.05,
+      viaDrillDiamMm: 0.1,
+      annularRingMm: 0.01,
+      silkscreenClearanceMm: 0.02,
+      edgeClearanceMm: 0.1,
     });
     expect(dfm.failures).toBeGreaterThan(0);
     const receipt = buildHardwareReceipt({ dfm, converged: true });

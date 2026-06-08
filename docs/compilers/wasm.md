@@ -98,11 +98,11 @@ The WASM output runs identically in:
 
 For IoT and edge-device deployment, the same `.wasm` binary runs on WASI-compliant runtimes:
 
-| Runtime    | Use Case                              | Command |
-| ---------- | ------------------------------------- | ------- |
-| **WasmEdge** | IoT gateways, lightweight edge nodes  | `wasmedge holoscript.wasm` |
-| **Wasmtime** | Server-side edge, embedded controllers | `wasmtime holoscript.wasm` |
-| **Browser**  | In-browser digital twins, WebXR       | `WebAssembly.instantiate(...)` |
+| Runtime      | Use Case                               | Command                        |
+| ------------ | -------------------------------------- | ------------------------------ |
+| **WasmEdge** | IoT gateways, lightweight edge nodes   | `wasmedge holoscript.wasm`     |
+| **Wasmtime** | Server-side edge, embedded controllers | `wasmtime holoscript.wasm`     |
+| **Browser**  | In-browser digital twins, WebXR        | `WebAssembly.instantiate(...)` |
 
 The `--target wasm` compiler produces a single `.wasm` module plus JS glue. For headless IoT deployments, run the `.wasm` directly with WasmEdge or Wasmtime; for browser or WebXR twins, use the generated JS bindings.
 

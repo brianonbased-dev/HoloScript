@@ -3,10 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import {
-  GRPOPromptExtractor,
-  type PromptExtractorFS,
-} from './GRPOPromptExtractor';
+import { GRPOPromptExtractor, type PromptExtractorFS } from './GRPOPromptExtractor';
 
 const TASK = String.fromCharCode(84, 79, 68, 79);
 const FIX_MARKER = String.fromCharCode(70, 73, 88, 77, 69);
@@ -42,11 +39,7 @@ export function example() {
 `;
       const annotations = extractor.parseTaskMarkerComments(src);
       expect(annotations.length).toBe(3);
-      expect(annotations.map((a) => a.text)).toEqual([
-        'First item',
-        'Second item',
-        'Third item',
-      ]);
+      expect(annotations.map((a) => a.text)).toEqual(['First item', 'Second item', 'Third item']);
     });
   });
 

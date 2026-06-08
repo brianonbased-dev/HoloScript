@@ -61,7 +61,10 @@ export class AStarPathfinder {
   // Pathfinding
   // ---------------------------------------------------------------------------
 
-  findPath(start: NavPoint | { x: number; y: number; z: number }, goal: NavPoint | { x: number; y: number; z: number }): PathResult {
+  findPath(
+    start: NavPoint | { x: number; y: number; z: number },
+    goal: NavPoint | { x: number; y: number; z: number }
+  ): PathResult {
     const t0 = performance.now();
     const startP = this.toArr3(start);
     const goalP = this.toArr3(goal);
@@ -75,7 +78,8 @@ export class AStarPathfinder {
 
     const startPoly =
       this.navMesh.findPolygonAtPoint(startObj) ?? this.navMesh.findNearestPolygon(startObj);
-    const goalPoly = this.navMesh.findPolygonAtPoint(goalObj) ?? this.navMesh.findNearestPolygon(goalObj);
+    const goalPoly =
+      this.navMesh.findPolygonAtPoint(goalObj) ?? this.navMesh.findNearestPolygon(goalObj);
 
     if (!startPoly || !goalPoly) {
       const directDist = this.dist(startP, goalP);
@@ -273,13 +277,19 @@ export class AStarPathfinder {
     return path;
   }
 
-  private dist(a: NavPoint | { x: number; y: number; z: number }, b: NavPoint | { x: number; y: number; z: number }): number {
+  private dist(
+    a: NavPoint | { x: number; y: number; z: number },
+    b: NavPoint | { x: number; y: number; z: number }
+  ): number {
     const av = this.toArr3(a);
     const bv = this.toArr3(b);
     return Math.sqrt((av[0] - bv[0]) ** 2 + (av[1] - bv[1]) ** 2 + (av[2] - bv[2]) ** 2);
   }
 
-  private makeCacheKey(a: NavPoint | { x: number; y: number; z: number }, b: NavPoint | { x: number; y: number; z: number }): string {
+  private makeCacheKey(
+    a: NavPoint | { x: number; y: number; z: number },
+    b: NavPoint | { x: number; y: number; z: number }
+  ): string {
     const av = this.toArr3(a);
     const bv = this.toArr3(b);
     return `${av[0].toFixed(1)},${av[1].toFixed(1)},${av[2].toFixed(1)}->${bv[0].toFixed(1)},${bv[1].toFixed(1)},${bv[2].toFixed(1)}`;

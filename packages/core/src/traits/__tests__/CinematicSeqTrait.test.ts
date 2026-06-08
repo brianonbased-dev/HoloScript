@@ -49,9 +49,17 @@ describe('CinematicSeqTrait — onEvent', () => {
   it('cin:add_clip adds clip and emits cin:clip_added', () => {
     const node = makeNode();
     cinematicSeqHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    cinematicSeqHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'cin:add_clip', clipName: 'intro', startFrame: 0, endFrame: 240,
-    } as never);
+    cinematicSeqHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'cin:add_clip',
+        clipName: 'intro',
+        startFrame: 0,
+        endFrame: 240,
+      } as never
+    );
     const state = node.__cinState as { clips: Array<Record<string, unknown>> };
     expect(state.clips.length).toBe(1);
     expect(state.clips[0].name).toBe('intro');
@@ -61,21 +69,42 @@ describe('CinematicSeqTrait — onEvent', () => {
   it('cin:add_clip increments total for each clip', () => {
     const node = makeNode();
     cinematicSeqHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    cinematicSeqHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'cin:add_clip', clipName: 'a', startFrame: 0, endFrame: 100,
-    } as never);
-    cinematicSeqHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'cin:add_clip', clipName: 'b', startFrame: 101, endFrame: 200,
-    } as never);
+    cinematicSeqHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'cin:add_clip',
+        clipName: 'a',
+        startFrame: 0,
+        endFrame: 100,
+      } as never
+    );
+    cinematicSeqHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'cin:add_clip',
+        clipName: 'b',
+        startFrame: 101,
+        endFrame: 200,
+      } as never
+    );
     expect(node.emit).toHaveBeenLastCalledWith('cin:clip_added', { clipName: 'b', total: 2 });
   });
 
   it('cin:play sets playing=true and emits cin:playing', () => {
     const node = makeNode();
     cinematicSeqHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    cinematicSeqHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'cin:play',
-    } as never);
+    cinematicSeqHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'cin:play',
+      } as never
+    );
     const state = node.__cinState as { playing: boolean; currentFrame: number };
     expect(state.playing).toBe(true);
     expect(node.emit).toHaveBeenCalledWith('cin:playing', { frame: 0 });
@@ -84,9 +113,15 @@ describe('CinematicSeqTrait — onEvent', () => {
   it('cin:seek updates currentFrame and emits cin:seeked', () => {
     const node = makeNode();
     cinematicSeqHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    cinematicSeqHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'cin:seek', frame: 120,
-    } as never);
+    cinematicSeqHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'cin:seek',
+        frame: 120,
+      } as never
+    );
     const state = node.__cinState as { currentFrame: number };
     expect(state.currentFrame).toBe(120);
     expect(node.emit).toHaveBeenCalledWith('cin:seeked', { frame: 120 });
@@ -95,13 +130,23 @@ describe('CinematicSeqTrait — onEvent', () => {
   it('cin:stop sets playing=false and emits cin:stopped', () => {
     const node = makeNode();
     cinematicSeqHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    cinematicSeqHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'cin:play',
-    } as never);
+    cinematicSeqHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'cin:play',
+      } as never
+    );
     node.emit.mockClear();
-    cinematicSeqHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'cin:stop',
-    } as never);
+    cinematicSeqHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'cin:stop',
+      } as never
+    );
     const state = node.__cinState as { playing: boolean };
     expect(state.playing).toBe(false);
     expect(node.emit).toHaveBeenCalledWith('cin:stopped', expect.objectContaining({ frame: 0 }));

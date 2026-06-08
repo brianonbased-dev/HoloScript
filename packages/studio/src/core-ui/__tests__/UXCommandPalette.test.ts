@@ -1,14 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  createStudioPublishingCommands,
-  type StudioPublishToolName,
-} from '../UXCommandPalette';
+import { createStudioPublishingCommands, type StudioPublishToolName } from '../UXCommandPalette';
 
 describe('createStudioPublishingCommands', () => {
   it('publishes the current editor AST to the marketplace tool', async () => {
-    const runTool = vi.fn<
-      (tool: StudioPublishToolName, input: Record<string, unknown>) => Promise<unknown>
-    >().mockResolvedValue({ success: true });
+    const runTool = vi
+      .fn<(tool: StudioPublishToolName, input: Record<string, unknown>) => Promise<unknown>>()
+      .mockResolvedValue({ success: true });
     const notify = vi.fn();
 
     const [publishCommand] = createStudioPublishingCommands({
@@ -34,9 +31,9 @@ describe('createStudioPublishingCommands', () => {
   });
 
   it('crossposts the current editor AST through the Moltbook tool', async () => {
-    const runTool = vi.fn<
-      (tool: StudioPublishToolName, input: Record<string, unknown>) => Promise<unknown>
-    >().mockResolvedValue({ success: true });
+    const runTool = vi
+      .fn<(tool: StudioPublishToolName, input: Record<string, unknown>) => Promise<unknown>>()
+      .mockResolvedValue({ success: true });
 
     const commands = createStudioPublishingCommands({
       getCurrentEditorAst: () => ({ scene: { name: 'Orbital Dock' }, nodes: [{ id: 'dock-1' }] }),

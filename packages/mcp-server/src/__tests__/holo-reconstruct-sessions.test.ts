@@ -52,7 +52,7 @@ describe('holo reconstruct MCP sessions', () => {
   it('rejects step for unknown session', async () => {
     const rgb = Buffer.alloc(12, 1);
     await expect(
-      mcpReconstructStep('not-a-real-session', rgb.toString('base64'), 0, 2, 2),
+      mcpReconstructStep('not-a-real-session', rgb.toString('base64'), 0, 2, 2)
     ).rejects.toThrow(/unknown sessionId/);
   });
 });

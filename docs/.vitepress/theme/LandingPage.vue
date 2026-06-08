@@ -213,8 +213,8 @@ onMounted(() => {
           <div class="stack-layer stack-1">
             <span class="stack-num">1</span><strong>OS Core</strong
             ><span class="stack-detail"
-              >Cognitive (uAAL) &middot; Perceptual (SNN) &middot; Economic (x402) &middot;
-              semantic traits</span
+              >Cognitive (uAAL) &middot; Perceptual (SNN) &middot; Economic (x402) &middot; semantic
+              traits</span
             >
           </div>
         </div>
@@ -358,8 +358,8 @@ animate();</code></pre>
       <div class="container">
         <h2 class="section-title">Semantic Traits at Platform Scale</h2>
         <p class="section-sub">
-          Traits span VR, robotics, IoT, AI agents, swarm intelligence, economy, physics,
-          rendering, multiplayer, and more. Add powerful behaviors with simple decorators.
+          Traits span VR, robotics, IoT, AI agents, swarm intelligence, economy, physics, rendering,
+          multiplayer, and more. Add powerful behaviors with simple decorators.
         </p>
         <div class="traits-grid">
           <div class="trait" v-for="t in traits" :key="t.name">
@@ -409,9 +409,9 @@ animate();</code></pre>
             <div class="use-icon">&#x1F3AD;</div>
             <h3>Autonomous Intelligence</h3>
             <p>
-              MCP tooling, swarm intelligence (ant colony, particle swarm, flocking), 3-layer
-              agent comms (RealTime/A2A/MCP), economy primitives, and Brittney &mdash; a model that
-              writes native HoloScript. Your agents think, trade, and evolve.
+              MCP tooling, swarm intelligence (ant colony, particle swarm, flocking), 3-layer agent
+              comms (RealTime/A2A/MCP), economy primitives, and Brittney &mdash; a model that writes
+              native HoloScript. Your agents think, trade, and evolve.
             </p>
           </div>
           <div class="use-card">
@@ -536,8 +536,8 @@ animate();</code></pre>
             <div class="card-icon">&#x1F504;</div>
             <h3 class="card-title card-title--cyan">Cross-Target Compilation</h3>
             <p>
-              Unity, Unreal, Godot, VRChat, WebGPU, visionOS, Android XR, URDF, SDF, DTDL,
-              OpenUSD, and more
+              Unity, Unreal, Godot, VRChat, WebGPU, visionOS, Android XR, URDF, SDF, DTDL, OpenUSD,
+              and more
             </p>
           </div>
           <div class="card card--glow" style="text-align: center">

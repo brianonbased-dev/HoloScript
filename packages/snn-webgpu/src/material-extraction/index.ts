@@ -1,7 +1,4 @@
-export {
-  extractBotanicalLotusMaterial,
-  toBotanicalLotusTrait,
-} from './botanical-lotus.js';
+export { extractBotanicalLotusMaterial, toBotanicalLotusTrait } from './botanical-lotus.js';
 export type {
   BotanicalColorParams,
   BotanicalGeometryParams,

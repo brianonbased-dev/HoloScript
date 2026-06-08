@@ -490,4 +490,3 @@ describe('AI PromptBuilder', () => {
     expect(() => builder.buildCodeGenPrompt(minimal)).not.toThrow();
   });
 });
-

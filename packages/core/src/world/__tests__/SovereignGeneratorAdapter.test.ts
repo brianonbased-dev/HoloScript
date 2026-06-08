@@ -154,23 +154,37 @@ describe('SovereignGeneratorAdapter', () => {
       // Mock both endpoints to return valid responses
       const localFetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          choices: [{ message: { content: JSON.stringify({
-            traits: ['@grabbable', '@physics'],
-            reasoning: { '@grabbable': 'local match', '@physics': 'local match' },
-            confidence: 0.9,
-          }) } }],
-        }),
+        json: () =>
+          Promise.resolve({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    traits: ['@grabbable', '@physics'],
+                    reasoning: { '@grabbable': 'local match', '@physics': 'local match' },
+                    confidence: 0.9,
+                  }),
+                },
+              },
+            ],
+          }),
       });
       const cloudFetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve({
-          choices: [{ message: { content: JSON.stringify({
-            traits: ['@clickable'],
-            reasoning: { '@clickable': 'cloud match' },
-            confidence: 0.8,
-          }) } }],
-        }),
+        json: () =>
+          Promise.resolve({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    traits: ['@clickable'],
+                    reasoning: { '@clickable': 'cloud match' },
+                    confidence: 0.8,
+                  }),
+                },
+              },
+            ],
+          }),
       });
 
       // Use local endpoint that succeeds
@@ -229,9 +243,7 @@ describe('SovereignGeneratorAdapter', () => {
     });
 
     it('extracts geometry from HoloScript code', () => {
-      const geo = (adapter as any).extractGeometryFromCode(
-        'object "Test" { geometry: "sphere" }'
-      );
+      const geo = (adapter as any).extractGeometryFromCode('object "Test" { geometry: "sphere" }');
       expect(geo).toBe('sphere');
     });
 

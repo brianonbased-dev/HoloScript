@@ -7,11 +7,7 @@
  * dependency.
  */
 import { describe, it, expect, vi } from 'vitest';
-import {
-  executeDebug,
-  DEBUG_HOLOGRAM,
-  type DebugExecutorContext,
-} from './debug-executor';
+import { executeDebug, DEBUG_HOLOGRAM, type DebugExecutorContext } from './debug-executor';
 import type { HologramProperties, HoloScriptValue, ExecutionResult } from '../types';
 
 function mkCtx(overrides: Partial<DebugExecutorContext> = {}): DebugExecutorContext & {
@@ -138,7 +134,7 @@ describe('runtime/debug-executor', () => {
       expect(ctx.__writes[0].key).toBe('debug_my-fn');
     });
 
-    it("writes under debug_program when target is missing", async () => {
+    it('writes under debug_program when target is missing', async () => {
       const ctx = mkCtx();
       await executeDebug({ type: 'debug' } as never, ctx);
       expect(ctx.__writes[0].key).toBe('debug_program');

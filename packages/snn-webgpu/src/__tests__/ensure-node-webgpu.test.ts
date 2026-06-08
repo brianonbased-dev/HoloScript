@@ -13,7 +13,11 @@
  * gate function never activated the Node binding, causing silent CPU passthrough.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { ensureNodeWebGpuSync, ensureNodeWebGpu, _resetNodeWebGpuBootstrap } from '../ensure-node-webgpu.js';
+import {
+  ensureNodeWebGpuSync,
+  ensureNodeWebGpu,
+  _resetNodeWebGpuBootstrap,
+} from '../ensure-node-webgpu.js';
 import { GPUContext } from '../gpu-context.js';
 
 const hasWindow = typeof globalThis.window !== 'undefined';
@@ -100,7 +104,8 @@ describe('webgpuGate integration (core)', () => {
     // Import the gate from core (which has ensureNodeWebGpuSync built-in).
     // The import is dynamic so that snn-webgpu tests don't depend on core.
     try {
-      const { isWebGpuEnvironmentPresent } = await import('../../core/dist/reconstruction/webgpuGate.js');
+      const { isWebGpuEnvironmentPresent } =
+        await import('../../core/dist/reconstruction/webgpuGate.js');
       const present = isWebGpuEnvironmentPresent();
       // If we have a GPU, this should be true.
       if (ensureNodeWebGpuSync()) {

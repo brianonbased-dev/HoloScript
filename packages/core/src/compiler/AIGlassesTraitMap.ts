@@ -1018,10 +1018,7 @@ export const AI_TRAIT_MAP: Record<string, AIGlassesTraitMapping> = {
         ],
       };
       const lines = taskLines[task] ?? taskLines['classification'];
-      return [
-        `// @vision -- ML Kit Vision via glasses camera (task: ${task})`,
-        ...lines,
-      ];
+      return [`// @vision -- ML Kit Vision via glasses camera (task: ${task})`, ...lines];
     },
   },
 

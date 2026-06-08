@@ -80,7 +80,7 @@ export class SocialUIPanel {
     // Position the list inside content area
     // Note: ScrollView centers itself, so we might need localized positioning
     if (listNode.properties?.position) {
-      listNode.properties.position = [0, 0, 0.01 ];
+      listNode.properties.position = [0, 0, 0.01];
     }
     contentArea.children?.push(listNode);
 

@@ -57,9 +57,10 @@ export function sealResolveReceipt(
  * receipt's `receiptHash` (the first's `prevHash` must be null). On failure, `brokenAt` is
  * the index of the first receipt that fails — any tampered field, deletion, or reorder.
  */
-export function verifyResolveReceiptChain(
-  receipts: readonly SecretResolveReceipt[]
-): { ok: boolean; brokenAt: number | null } {
+export function verifyResolveReceiptChain(receipts: readonly SecretResolveReceipt[]): {
+  ok: boolean;
+  brokenAt: number | null;
+} {
   let prev: string | null = null;
   for (let i = 0; i < receipts.length; i++) {
     const r = receipts[i];

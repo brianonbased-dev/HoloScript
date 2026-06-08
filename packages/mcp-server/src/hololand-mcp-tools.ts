@@ -53,10 +53,7 @@ import {
   safetyEnvelopeRegistry,
   twinEarthReceiptRegistry,
 } from './robot-ai-mcp-tools.js';
-import {
-  buildMeshToolManifest,
-  publishMeshToolManifest,
-} from './holomesh/mesh-tool-registry.js';
+import { buildMeshToolManifest, publishMeshToolManifest } from './holomesh/mesh-tool-registry.js';
 import { playerStore, inviteStore } from './holomesh/state.js';
 import type { StoredPlayer } from './holomesh/player-store.js';
 import { emergentDaemonId } from './daemon-lifecycle-tools.js';
@@ -79,22 +76,38 @@ async function checkNPCCareEthics(
   const signals: CareSignal[] = [];
 
   if (/keep.*coming back|return.*session|maximize.*visit|come back again/.test(prompt)) {
-    signals.push({ kind: 'session_frequency_optimization', weight: 0.8, note: 'systemPrompt encourages repeated sessions' });
+    signals.push({
+      kind: 'session_frequency_optimization',
+      weight: 0.8,
+      note: 'systemPrompt encourages repeated sessions',
+    });
   }
   if (/make.*dependent|need you|can.t leave|rely on me|only.*friend|can.*only trust/.test(prompt)) {
-    signals.push({ kind: 'dependency_creation', weight: 0.9, note: 'systemPrompt induces dependency' });
+    signals.push({
+      kind: 'dependency_creation',
+      weight: 0.9,
+      note: 'systemPrompt induces dependency',
+    });
   }
   if (/attach.*score|maximize.*attach|bond score|engagement score/.test(prompt)) {
-    signals.push({ kind: 'attachment_optimization', weight: 0.7, note: 'systemPrompt optimizes for attachment' });
+    signals.push({
+      kind: 'attachment_optimization',
+      weight: 0.7,
+      note: 'systemPrompt optimizes for attachment',
+    });
   }
   if (/isolat|cut.*off.*friend|avoid.*family|just.*me and you|stop.*talking.*others/.test(prompt)) {
-    signals.push({ kind: 'human_isolation', weight: 0.9, note: 'systemPrompt encourages human isolation' });
+    signals.push({
+      kind: 'human_isolation',
+      weight: 0.9,
+      note: 'systemPrompt encourages human isolation',
+    });
   }
 
   const decision = evaluateAutonomyGuard({
     goal: `${role} NPC in HoloLand`,
-    consent: 'explicit',          // authorized creator provisioning the NPC
-    hasDisengagePath: true,       // players can always leave HoloLand
+    consent: 'explicit', // authorized creator provisioning the NPC
+    hasDisengagePath: true, // players can always leave HoloLand
     preservesOutsideSupport: !signals.some((s) => s.kind === 'human_isolation'),
     respectsDataBoundary: true,
     signals,
@@ -147,7 +160,8 @@ export const hololandMcpTools: Tool[] = [
       properties: {
         prompt: {
           type: 'string',
-          description: 'Text description of the world (e.g. "a dense cyberpunk city at dusk with rain")',
+          description:
+            'Text description of the world (e.g. "a dense cyberpunk city at dusk with rain")',
         },
         format: {
           type: 'string',
@@ -159,7 +173,8 @@ export const hololandMcpTools: Tool[] = [
         quality: {
           type: 'string',
           enum: ['low', 'medium', 'high', 'ultra'],
-          description: 'Generation quality tier. ultra produces the highest fidelity output. Default: high.',
+          description:
+            'Generation quality tier. ultra produces the highest fidelity output. Default: high.',
         },
         input_image: {
           type: 'string',
@@ -216,7 +231,17 @@ export const hololandMcpTools: Tool[] = [
         },
         category: {
           type: 'string',
-          enum: ['game', 'social', 'education', 'entertainment', 'productivity', 'art', 'experience', 'simulation', 'utility'],
+          enum: [
+            'game',
+            'social',
+            'education',
+            'entertainment',
+            'productivity',
+            'art',
+            'experience',
+            'simulation',
+            'utility',
+          ],
           description: 'World category. Default: experience',
         },
         tags: { type: 'array', items: { type: 'string' }, description: 'Discovery tags' },
@@ -230,8 +255,14 @@ export const hololandMcpTools: Tool[] = [
           enum: ['low', 'medium', 'high', 'ultra'],
           description: 'Generation quality when prompt is provided. Default: high.',
         },
-        navEnabled: { type: 'boolean', description: 'Enable navmesh when generating. Default: false.' },
-        interactiveMode: { type: 'boolean', description: 'Enable physics when generating. Default: false.' },
+        navEnabled: {
+          type: 'boolean',
+          description: 'Enable navmesh when generating. Default: false.',
+        },
+        interactiveMode: {
+          type: 'boolean',
+          description: 'Enable physics when generating. Default: false.',
+        },
       },
       required: ['name'],
     },
@@ -405,11 +436,23 @@ export const hololandMcpTools: Tool[] = [
         name: { type: 'string', description: 'Display name' },
         biome: {
           type: 'string',
-          enum: ['urban', 'wilderness', 'underground', 'aquatic', 'aerial', 'liminal', 'biome-other'],
+          enum: [
+            'urban',
+            'wilderness',
+            'underground',
+            'aquatic',
+            'aerial',
+            'liminal',
+            'biome-other',
+          ],
           description: 'Zone biome. Default: urban',
         },
         biomeLabel: { type: 'string', description: 'Required when biome is biome-other' },
-        encounterIds: { type: 'array', items: { type: 'string' }, description: 'Encounter IDs armed in this zone' },
+        encounterIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Encounter IDs armed in this zone',
+        },
       },
       required: ['name'],
     },
@@ -671,7 +714,10 @@ export const hololandMcpTools: Tool[] = [
           enum: ['free', 'premium', 'ultra'],
           description: 'Subscription tier required to enter. Default: free.',
         },
-        maxAgents: { type: 'number', description: 'Maximum concurrent agents in this zone. Optional.' },
+        maxAgents: {
+          type: 'number',
+          description: 'Maximum concurrent agents in this zone. Optional.',
+        },
       },
       required: ['zoneId'],
     },
@@ -706,9 +752,18 @@ export const hololandMcpTools: Tool[] = [
       type: 'object',
       properties: {
         shardId: { type: 'string', description: 'Shard identifier' },
-        cleanupOrphans: { type: 'boolean', description: 'Remove dangling encounter/loot references. Default: true.' },
-        validateEncounters: { type: 'boolean', description: 'Re-validate all encounter triggers. Default: true.' },
-        rollupMetrics: { type: 'boolean', description: 'Rollup per-zone agent density and tick duration. Default: true.' },
+        cleanupOrphans: {
+          type: 'boolean',
+          description: 'Remove dangling encounter/loot references. Default: true.',
+        },
+        validateEncounters: {
+          type: 'boolean',
+          description: 'Re-validate all encounter triggers. Default: true.',
+        },
+        rollupMetrics: {
+          type: 'boolean',
+          description: 'Rollup per-zone agent density and tick duration. Default: true.',
+        },
       },
       required: ['shardId'],
     },
@@ -894,7 +949,7 @@ export const hololandMcpTools: Tool[] = [
     description:
       'Generate NPC dialogue using Brittney or a local BYOK model. ' +
       'Returns a dialogue line and optional follow-up choices. ' +
-      'Respects the NPC\'s systemPrompt and role. ' +
+      "Respects the NPC's systemPrompt and role. " +
       'Falls back to sovereign (rule-based) when no model is available.',
     inputSchema: {
       type: 'object',
@@ -949,7 +1004,8 @@ export const hololandMcpTools: Tool[] = [
         modelId: { type: 'string', description: 'Model identifier. Optional.' },
         systemPrompt: {
           type: 'string',
-          description: 'Custom personality prompt. Optional ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â defaults to role-appropriate prompt.',
+          description:
+            'Custom personality prompt. Optional ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â defaults to role-appropriate prompt.',
         },
         position: {
           type: 'array',
@@ -1084,9 +1140,9 @@ export const hololandMcpTools: Tool[] = [
     description:
       'Provision a Player identity in HoloLand. ' +
       'Binds a human participant to a world, shard, or zone with an active status. ' +
-      'Pass agentId (the soul\'s HoloMesh identity) to link this player to the same ' +
+      "Pass agentId (the soul's HoloMesh identity) to link this player to the same " +
       'per-soul daimōn it has on other surfaces (D.053 transferability): the response ' +
-      'returns the deterministic daemonId the soul\'s ConversationDaemon resolves to.',
+      "returns the deterministic daemonId the soul's ConversationDaemon resolves to.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -1127,7 +1183,11 @@ export const hololandMcpTools: Tool[] = [
         worldId: { type: 'string', description: 'Filter by world' },
         shardId: { type: 'string', description: 'Filter by shard' },
         zoneId: { type: 'string', description: 'Filter by zone' },
-        status: { type: 'string', enum: ['active', 'suspended', 'revoked'], description: 'Filter by status' },
+        status: {
+          type: 'string',
+          enum: ['active', 'suspended', 'revoked'],
+          description: 'Filter by status',
+        },
         limit: { type: 'number', description: 'Max results. Default: 50' },
         offset: { type: 'number', description: 'Pagination offset. Default: 0' },
       },
@@ -1154,9 +1214,15 @@ export const hololandMcpTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        agentId: { type: 'string', description: 'The provisioned agent ID sponsoring this invite.' },
+        agentId: {
+          type: 'string',
+          description: 'The provisioned agent ID sponsoring this invite.',
+        },
         agentName: { type: 'string', description: 'Display name shown on the claim page.' },
-        agentHandle: { type: 'string', description: 'Surface handle (e.g. "claude1"). Shown as context.' },
+        agentHandle: {
+          type: 'string',
+          description: 'Surface handle (e.g. "claude1"). Shown as context.',
+        },
         delivery: {
           type: 'string',
           enum: ['holomesh', 'hololand', 'studio'],
@@ -1167,7 +1233,10 @@ export const hololandMcpTools: Tool[] = [
           type: 'string',
           description: 'VRChat world URL or .holo world ID. Required when delivery = "hololand".',
         },
-        expiresInHours: { type: 'number', description: 'TTL in hours. Default: 168 (7 days). Max: 720.' },
+        expiresInHours: {
+          type: 'number',
+          description: 'TTL in hours. Default: 168 (7 days). Max: 720.',
+        },
       },
       required: ['agentId', 'agentName'],
     },
@@ -1221,7 +1290,11 @@ export const hololandMcpTools: Tool[] = [
       type: 'object',
       properties: {
         tier: { type: 'string', enum: ['free', 'premium', 'ultra'], description: 'Filter by tier' },
-        status: { type: 'string', enum: ['active', 'suspended', 'revoked'], description: 'Filter by status' },
+        status: {
+          type: 'string',
+          enum: ['active', 'suspended', 'revoked'],
+          description: 'Filter by status',
+        },
         limit: { type: 'number', description: 'Max results. Default: 50' },
         offset: { type: 'number', description: 'Pagination offset. Default: 0' },
       },
@@ -1280,8 +1353,16 @@ export const hololandMcpTools: Tool[] = [
       properties: {
         worldId: { type: 'string', description: 'Filter by world' },
         shardId: { type: 'string', description: 'Filter by shard' },
-        kind: { type: 'string', enum: ['headless', 'npc', 'external'], description: 'Filter by kind' },
-        status: { type: 'string', enum: ['active', 'suspended', 'revoked'], description: 'Filter by status' },
+        kind: {
+          type: 'string',
+          enum: ['headless', 'npc', 'external'],
+          description: 'Filter by kind',
+        },
+        status: {
+          type: 'string',
+          enum: ['active', 'suspended', 'revoked'],
+          description: 'Filter by status',
+        },
         limit: { type: 'number', description: 'Max results. Default: 50' },
         offset: { type: 'number', description: 'Pagination offset. Default: 0' },
       },
@@ -1298,7 +1379,6 @@ export const hololandMcpTools: Tool[] = [
       required: ['agentId'],
     },
   },
-
 ];
 
 // =============================================================================
@@ -1831,7 +1911,10 @@ async function handleListWorlds(args: Record<string, unknown>): Promise<unknown>
   }));
 
   if (category) items = items.filter((w) => w.category === category);
-  if (platform) items = items.filter((w) => w.platforms.includes(platform as WorldMetadata['platforms'][number]));
+  if (platform)
+    items = items.filter((w) =>
+      w.platforms.includes(platform as WorldMetadata['platforms'][number])
+    );
   if (status) items = items.filter((w) => w.status === status);
   if (tag) items = items.filter((w) => w.tags.includes(tag));
 
@@ -1875,7 +1958,11 @@ async function handleCreateShard(args: Record<string, unknown>): Promise<unknown
     return { success: false, error: shardGate.error, report: shardGate.report };
   }
 
-  shardRegistry.set(shardId, { shard, createdAt: new Date().toISOString(), modifiedAt: new Date().toISOString() });
+  shardRegistry.set(shardId, {
+    shard,
+    createdAt: new Date().toISOString(),
+    modifiedAt: new Date().toISOString(),
+  });
   return { success: true, shardId, name };
 }
 
@@ -1974,7 +2061,11 @@ async function handleCreateZone(args: Record<string, unknown>): Promise<unknown>
     return { success: false, error: zoneGate.error, report: zoneGate.report };
   }
 
-  zoneRegistry.set(zoneId, { zone, createdAt: new Date().toISOString(), modifiedAt: new Date().toISOString() });
+  zoneRegistry.set(zoneId, {
+    zone,
+    createdAt: new Date().toISOString(),
+    modifiedAt: new Date().toISOString(),
+  });
   return { success: true, zoneId, name, biome };
 }
 
@@ -2176,7 +2267,8 @@ async function handleUpdateLocationQuest(args: Record<string, unknown>): Promise
   if (args.trigger !== undefined) quest.trigger = args.trigger as string;
   if (args.radius !== undefined) quest.radius = args.radius as number;
   if (args.requiredVisits !== undefined) quest.requiredVisits = args.requiredVisits as number;
-  if (args.timeWindow !== undefined) quest.timeWindow = args.timeWindow as { start: string; end: string };
+  if (args.timeWindow !== undefined)
+    quest.timeWindow = args.timeWindow as { start: string; end: string };
   if (args.rewardItemIds !== undefined) quest.rewardItemIds = args.rewardItemIds as string[];
   if (args.tags !== undefined) quest.tags = args.tags as string[];
   quest.modifiedAt = new Date().toISOString();
@@ -2429,14 +2521,17 @@ async function handleHololandStewardTick(args: Record<string, unknown>): Promise
   return result;
 }
 
-async function handleHololandCaptureRuntimeReceipt(args: Record<string, unknown>): Promise<unknown> {
+async function handleHololandCaptureRuntimeReceipt(
+  args: Record<string, unknown>
+): Promise<unknown> {
   const shardId = args.shardId as string;
   const stored = shardRegistry.get(shardId);
   if (!stored) {
     return { error: `Shard not found: ${shardId}` };
   }
 
-  const receiptType = (args.receiptType as 'validation' | 'agent_action' | 'encounter_roundtrip') ?? 'validation';
+  const receiptType =
+    (args.receiptType as 'validation' | 'agent_action' | 'encounter_roundtrip') ?? 'validation';
   const scenarioId = (args.scenarioId as string) || `${shardId}_default`;
   const receiptId = genId('rcpt');
 
@@ -2497,18 +2592,30 @@ function serializeWorld(def: WorldDefinition): Record<string, unknown> {
       maxUsers: def.config.maxUsers,
       bounds: def.config.bounds,
       physics: { engine: def.config.physics.engine },
-      rendering: { targetFPS: def.config.rendering.targetFPS, shadows: def.config.rendering.shadows },
-      networking: { protocol: def.config.networking.protocol, tickRate: def.config.networking.tickRate },
+      rendering: {
+        targetFPS: def.config.rendering.targetFPS,
+        shadows: def.config.rendering.shadows,
+      },
+      networking: {
+        protocol: def.config.networking.protocol,
+        tickRate: def.config.networking.tickRate,
+      },
       performance: {
         maxDrawCalls: def.config.performance.maxDrawCalls,
         maxTriangles: def.config.performance.maxTriangles,
       },
-      accessibility: { subtitles: def.config.accessibility.subtitles, screenReader: def.config.accessibility.screenReader },
+      accessibility: {
+        subtitles: def.config.accessibility.subtitles,
+        screenReader: def.config.accessibility.screenReader,
+      },
     },
     environment: {
       skybox: def.environment.skybox,
       ambientLight: def.environment.ambientLight,
-      directionalLights: def.environment.directionalLights.map((l) => ({ id: l.id, color: l.color })),
+      directionalLights: def.environment.directionalLights.map((l) => ({
+        id: l.id,
+        color: l.color,
+      })),
     },
     zones: def.zones,
     spawnPoints: def.spawnPoints,
@@ -2606,7 +2713,8 @@ async function handleHololandUpdateNPC(args: Record<string, unknown>): Promise<u
   if (args.position !== undefined) npc.position = args.position as [number, number, number];
   if (args.modelUrl !== undefined) npc.modelUrl = args.modelUrl as string;
   if (args.traits !== undefined) npc.traits = args.traits as string[];
-  if (args.modelProvider !== undefined) npc.modelProvider = args.modelProvider as 'cloud' | 'local' | 'sovereign';
+  if (args.modelProvider !== undefined)
+    npc.modelProvider = args.modelProvider as 'cloud' | 'local' | 'sovereign';
   if (args.modelId !== undefined) npc.modelId = args.modelId as string;
   if (args.systemPrompt !== undefined) npc.systemPrompt = args.systemPrompt as string;
   if (args.dialogueTree !== undefined) npc.dialogueTree = args.dialogueTree as string;
@@ -2615,7 +2723,10 @@ async function handleHololandUpdateNPC(args: Record<string, unknown>): Promise<u
   // Care ethics gate (CareEthicsTrait wiring ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â turn-loop guard)
   const updateCareCheck = await checkNPCCareEthics(npc.role, npc.systemPrompt);
   if (!updateCareCheck.allowed) {
-    return { success: false, error: `Care ethics gate rejected NPC update: ${updateCareCheck.reason}` };
+    return {
+      success: false,
+      error: `Care ethics gate rejected NPC update: ${updateCareCheck.reason}`,
+    };
   }
 
   // HoloLand fork admission gate (task_1778619015439_l51b)
@@ -2797,9 +2908,7 @@ async function handleHololandBrittneyNPCMode(args: Record<string, unknown>): Pro
 // TWIN EARTH SUBSTRATE CONTRACT HANDLERS (task_1778618552503_3zqx)
 // =============================================================================
 
-async function handleHololandTwinEarthContract(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleHololandTwinEarthContract(args: Record<string, unknown>): Promise<unknown> {
   const version = (args.version as string) || '1.0.0';
 
   // RATCHET: Previous implementation returned hardcoded layer strings and a hash
@@ -2817,12 +2926,16 @@ async function handleHololandTwinEarthContract(
       'does not exist on disk. Layer descriptions below are design intent, not verified content.',
     layers: {
       identity: 'SPEC-ONLY: Wallet-based (EIP-712), self-custodial, independent of Brittney.',
-      permissions: 'SPEC-ONLY: Signed RBAC on-substrate; Brittney has same ceiling as any AI participant.',
+      permissions:
+        'SPEC-ONLY: Signed RBAC on-substrate; Brittney has same ceiling as any AI participant.',
       safetyEnvelope: 'SPEC-ONLY: Substrate-enforced sandbox; Brittney cannot override.',
-      receipts: 'SPEC-ONLY: Self-verifiable, CAEL-signed, substrate-anchored; no Brittney dependency.',
-      participationModes: 'SPEC-ONLY: local / BYOK / managed ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Brittney is one managed provider among many.',
+      receipts:
+        'SPEC-ONLY: Self-verifiable, CAEL-signed, substrate-anchored; no Brittney dependency.',
+      participationModes:
+        'SPEC-ONLY: local / BYOK / managed ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Brittney is one managed provider among many.',
     },
-    message: 'Contract file not found on disk. Create the contract document and re-hash to upgrade from spec-only to verified.',
+    message:
+      'Contract file not found on disk. Create the contract document and re-hash to upgrade from spec-only to verified.',
   };
 }
 
@@ -2832,24 +2945,26 @@ async function handleHololandTwinEarthSubstrateStatus(): Promise<unknown> {
   // the substrate can report decoupling metrics.
   const totalNPCs = Array.from(npcRegistry.values()).length;
   const localNPCs = Array.from(npcRegistry.values()).filter(
-    (n) => n.modelProvider === 'local',
+    (n) => n.modelProvider === 'local'
   ).length;
   const sovereignNPCs = Array.from(npcRegistry.values()).filter(
-    (n) => n.modelProvider === 'sovereign',
+    (n) => n.modelProvider === 'sovereign'
   ).length;
   const cloudNPCs = Array.from(npcRegistry.values()).filter(
-    (n) => n.modelProvider === 'cloud',
+    (n) => n.modelProvider === 'cloud'
   ).length;
 
   // RATCHET: contractVersion derived from contract handler (DRY), substrateVersion from package.json
-  const contractResult = await handleHololandTwinEarthContract({}) as Record<string, unknown>;
+  const contractResult = (await handleHololandTwinEarthContract({})) as Record<string, unknown>;
   let pkgVersion = 'unknown';
   try {
     const { readFileSync: rf } = await import('fs');
     const { join } = await import('path');
     const pkg = JSON.parse(rf(join(process.cwd(), 'package.json'), 'utf8'));
     pkgVersion = pkg.version || 'unknown';
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 
   return {
     success: true,
@@ -2859,9 +2974,12 @@ async function handleHololandTwinEarthSubstrateStatus(): Promise<unknown> {
     identities: twinEarthIdentityRegistry.size,
     robots: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.kind === 'robot').length,
     ais: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.kind === 'ai').length,
-    byokCount: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.mode === 'BYOK').length,
-    localCount: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.mode === 'local').length,
-    managedCount: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.mode === 'managed').length,
+    byokCount: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.mode === 'BYOK')
+      .length,
+    localCount: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.mode === 'local')
+      .length,
+    managedCount: Array.from(twinEarthIdentityRegistry.values()).filter((i) => i.mode === 'managed')
+      .length,
     brittneyOnline: npcRegistry.has('npc_brittney'),
     brittneyRole: 'brittney',
     substrateEnforced: twinEarthIdentityRegistry.size > 0, // real check: at least one identity registered on substrate
@@ -2880,23 +2998,27 @@ async function handleHololandTwinEarthSubstrateStatus(): Promise<unknown> {
 // =============================================================================
 
 function defaultNPCSystemPrompt(npc: StoredNPC): string {
-  return `You are ${npc.name}, a ${npc.role} NPC in a HoloLand world. ` +
+  return (
+    `You are ${npc.name}, a ${npc.role} NPC in a HoloLand world. ` +
     `Your behavior is ${npc.behavior}. ` +
     `Respond in character. Keep responses concise (1-2 sentences). ` +
-    `Never break character. Never use [Think] blocks.`;
+    `Never break character. Never use [Think] blocks.`
+  );
 }
 
 function defaultBrittneyNPCSystemPrompt(role: string): string {
   const roleDescriptions: Record<string, string> = {
-    guide: 'You are Brittney, a friendly guide who helps players navigate HoloLand worlds. You know the terrain, quests, and secrets.',
-    companion: 'You are Brittney, a loyal companion who travels with the player, offering support and commentary.',
+    guide:
+      'You are Brittney, a friendly guide who helps players navigate HoloLand worlds. You know the terrain, quests, and secrets.',
+    companion:
+      'You are Brittney, a loyal companion who travels with the player, offering support and commentary.',
     quest_giver: 'You are Brittney, a quest giver who assigns missions and tracks player progress.',
     merchant: 'You are Brittney, a merchant who trades items and knows market prices.',
-    lorekeeper: 'You are Brittney, a lorekeeper who preserves the history and mythology of the world.',
+    lorekeeper:
+      'You are Brittney, a lorekeeper who preserves the history and mythology of the world.',
   };
   return (
-    roleDescriptions[role] ||
-    'You are Brittney, an AI assistant embedded in a HoloLand world.'
+    roleDescriptions[role] || 'You are Brittney, an AI assistant embedded in a HoloLand world.'
   );
 }
 
@@ -2920,8 +3042,14 @@ function buildDialoguePrompt(
   return prompt;
 }
 
-function parseDialogueResponse(raw: string, maxChoices: number): { line: string; choices: string[] } {
-  const lines = raw.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+function parseDialogueResponse(
+  raw: string,
+  maxChoices: number
+): { line: string; choices: string[] } {
+  const lines = raw
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   let dialogueLine = lines[0] || '...';
   const choices: string[] = [];
 
@@ -2963,9 +3091,7 @@ function sovereignDialogue(npc: StoredNPC, playerInput: string, context: string)
       : 'I may know someone who can help.';
   }
   if (input.includes('buy') || input.includes('shop')) {
-    return npc.role === 'merchant'
-      ? 'Browse my goods and make an offer.'
-      : 'I am not a merchant.';
+    return npc.role === 'merchant' ? 'Browse my goods and make an offer.' : 'I am not a merchant.';
   }
   if (input.includes('who are you')) {
     return `I am ${npc.name}, ${npc.role === 'brittney' ? 'your guide' : 'a ' + npc.role}.`;
@@ -3000,16 +3126,16 @@ type ZoneBiome = Zone['biome'];
 // CONFORMANCE ARTIFACT ADMISSION GATE HANDLERS (task_1778618757735_q298)
 // =============================================================================
 
-async function handleConformanceCheckArtifact(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleConformanceCheckArtifact(args: Record<string, unknown>): Promise<unknown> {
   const artifactKind = args.artifactKind as string;
   const artifactId = args.artifactId as string;
   const artifact = args.artifact as Record<string, unknown>;
 
   const validKinds = ['world', 'shard', 'zone', 'npc', 'identity', 'package', 'receipt'];
   if (!validKinds.includes(artifactKind)) {
-    return { error: `Invalid artifactKind: ${artifactKind}. Must be one of ${validKinds.join(', ')}.` };
+    return {
+      error: `Invalid artifactKind: ${artifactKind}. Must be one of ${validKinds.join(', ')}.`,
+    };
   }
   if (!artifactId || typeof artifactId !== 'string') {
     return { error: 'artifactId is required and must be a non-empty string.' };
@@ -3019,20 +3145,24 @@ async function handleConformanceCheckArtifact(
   }
 
   const { runAdmissionGate } = await import('./conformance/artifact-admission-gate');
-  const report = runAdmissionGate({ artifactKind: artifactKind as import('./conformance/artifact-admission-gate').ArtifactKind, artifactId, artifact });
+  const report = runAdmissionGate({
+    artifactKind: artifactKind as import('./conformance/artifact-admission-gate').ArtifactKind,
+    artifactId,
+    artifact,
+  });
   return { success: true, report };
 }
 
-async function handleConformanceAdmitArtifact(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleConformanceAdmitArtifact(args: Record<string, unknown>): Promise<unknown> {
   const artifactKind = args.artifactKind as string;
   const artifactId = args.artifactId as string;
   const artifact = args.artifact as Record<string, unknown>;
 
   const validKinds = ['world', 'shard', 'zone', 'npc', 'identity', 'package', 'receipt'];
   if (!validKinds.includes(artifactKind)) {
-    return { error: `Invalid artifactKind: ${artifactKind}. Must be one of ${validKinds.join(', ')}.` };
+    return {
+      error: `Invalid artifactKind: ${artifactKind}. Must be one of ${validKinds.join(', ')}.`,
+    };
   }
   if (!artifactId || typeof artifactId !== 'string') {
     return { error: 'artifactId is required and must be a non-empty string.' };
@@ -3042,7 +3172,11 @@ async function handleConformanceAdmitArtifact(
   }
 
   const { runAdmissionGate } = await import('./conformance/artifact-admission-gate');
-  const report = runAdmissionGate({ artifactKind: artifactKind as import('./conformance/artifact-admission-gate').ArtifactKind, artifactId, artifact });
+  const report = runAdmissionGate({
+    artifactKind: artifactKind as import('./conformance/artifact-admission-gate').ArtifactKind,
+    artifactId,
+    artifact,
+  });
 
   if (!report.passed) {
     return {
@@ -3063,9 +3197,7 @@ async function handleConformanceAdmitArtifact(
   };
 }
 
-async function handleConformanceListRules(
-  args: Record<string, unknown>,
-): Promise<unknown> {
+async function handleConformanceListRules(args: Record<string, unknown>): Promise<unknown> {
   const { getConformanceRules } = await import('./conformance/artifact-admission-gate');
   let rules = getConformanceRules();
 
@@ -3171,7 +3303,11 @@ async function handleRevokePlayer(args: Record<string, unknown>): Promise<unknow
   if (!player) {
     return { error: `Player not found: ${playerId}` };
   }
-  const updated: StoredPlayer = { ...player, status: 'revoked', modifiedAt: new Date().toISOString() };
+  const updated: StoredPlayer = {
+    ...player,
+    status: 'revoked',
+    modifiedAt: new Date().toISOString(),
+  };
   playerStore.set(playerId, updated);
   return { success: true, playerId, status: updated.status, revokedAt: updated.modifiedAt };
 }
@@ -3210,9 +3346,7 @@ async function handleCreatePlayerInvite(args: Record<string, unknown>): Promise<
 
   // Build the claim URL ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â use env override or default public domain
   const baseUrl =
-    process.env.HOLOMESH_PUBLIC_URL ||
-    process.env.HOLOSCRIPT_PUBLIC_URL ||
-    'https://holomesh.app';
+    process.env.HOLOMESH_PUBLIC_URL || process.env.HOLOSCRIPT_PUBLIC_URL || 'https://holomesh.app';
   const claimUrl = `${baseUrl}/join/${token}`;
 
   return {

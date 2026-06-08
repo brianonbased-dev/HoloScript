@@ -8,19 +8,11 @@
  * Authority: W.GOLD.035, W.GOLD.193
  */
 
-import {
-  type Shard,
-  type Zone,
-  validateShard,
-  validateZone,
-} from '@holoscript/framework';
+import { type Shard, type Zone, validateShard, validateZone } from '@holoscript/framework';
 import { type WorldDefinition } from '../../../core/src/hololand/WorldDefinitionSchema';
 
 import { type StoredNPC } from '../hololand-mcp-tools';
-import {
-  type StoredTwinEarthIdentity,
-  type StoredSafetyEnvelope,
-} from '../robot-ai-mcp-tools';
+import { type StoredTwinEarthIdentity, type StoredSafetyEnvelope } from '../robot-ai-mcp-tools';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CONFORMANCE RULES
@@ -93,7 +85,8 @@ export function validatePackageAdmission(pkg: PackageProvenance): ConformanceFin
       message: 'Package sourceHash is missing or not a valid SHA-256 hex string (64 chars).',
       field: 'sourceHash',
       actual: pkg.sourceHash,
-      remediation: 'Compute SHA-256 of the canonical source tree and provide a 64-character hex string.',
+      remediation:
+        'Compute SHA-256 of the canonical source tree and provide a 64-character hex string.',
     });
   }
 
@@ -124,7 +117,8 @@ export function validatePackageAdmission(pkg: PackageProvenance): ConformanceFin
       severity: 'critical',
       message: 'Package signer is missing.',
       field: 'signer',
-      remediation: 'Provide the identity (wallet address, agent handle, or key fingerprint) of the signer.',
+      remediation:
+        'Provide the identity (wallet address, agent handle, or key fingerprint) of the signer.',
     });
   }
 
@@ -152,7 +146,10 @@ export function validatePackageAdmission(pkg: PackageProvenance): ConformanceFin
     });
   }
 
-  if (!pkg.admissionDecision || !['admitted', 'rejected', 'pending'].includes(pkg.admissionDecision)) {
+  if (
+    !pkg.admissionDecision ||
+    !['admitted', 'rejected', 'pending'].includes(pkg.admissionDecision)
+  ) {
     findings.push({
       ruleId: 'PACKAGE-007',
       severity: 'critical',
@@ -192,7 +189,8 @@ export function validatePackageAdmission(pkg: PackageProvenance): ConformanceFin
       severity: 'medium',
       message: 'Package has a signature but no keyFingerprint for verification.',
       field: 'keyFingerprint',
-      remediation: 'Include the public key fingerprint so verifiers can locate the trust store entry.',
+      remediation:
+        'Include the public key fingerprint so verifiers can locate the trust store entry.',
     });
   }
 
@@ -268,7 +266,10 @@ export function validateReceiptAdmission(receipt: ArtifactReceiptBody): Conforma
     });
   }
 
-  if (!receipt.hashAlgorithm || !['sha256', 'git-blob', 'cid', 'custom'].includes(receipt.hashAlgorithm)) {
+  if (
+    !receipt.hashAlgorithm ||
+    !['sha256', 'git-blob', 'cid', 'custom'].includes(receipt.hashAlgorithm)
+  ) {
     findings.push({
       ruleId: 'RECEIPT-005',
       severity: 'high',
@@ -505,7 +506,15 @@ export function validateZoneAdmission(zone: Zone): ConformanceFinding[] {
     });
   }
 
-  const validBiomes = ['urban', 'wilderness', 'underground', 'aquatic', 'aerial', 'liminal', 'biome-other'];
+  const validBiomes = [
+    'urban',
+    'wilderness',
+    'underground',
+    'aquatic',
+    'aerial',
+    'liminal',
+    'biome-other',
+  ];
   if (!validBiomes.includes(zone.biome)) {
     findings.push({
       ruleId: 'ZONE-002',
@@ -548,7 +557,15 @@ export function validateNPCAdmission(npc: StoredNPC): ConformanceFinding[] {
     });
   }
 
-  const validRoles = ['merchant', 'guide', 'quest_giver', 'enemy', 'companion', 'ambient', 'brittney'];
+  const validRoles = [
+    'merchant',
+    'guide',
+    'quest_giver',
+    'enemy',
+    'companion',
+    'ambient',
+    'brittney',
+  ];
   if (!validRoles.includes(npc.role)) {
     findings.push({
       ruleId: 'NPC-002',
@@ -701,7 +718,9 @@ export function validateIdentityAdmission(identity: StoredTwinEarthIdentity): Co
 // SAFETY ENVELOPE VALIDATION
 // ═════════════════════════════════════════════════════════════════════════════
 
-export function validateSafetyEnvelopeAdmission(envelope: StoredSafetyEnvelope): ConformanceFinding[] {
+export function validateSafetyEnvelopeAdmission(
+  envelope: StoredSafetyEnvelope
+): ConformanceFinding[] {
   const findings: ConformanceFinding[] = [];
 
   if (!envelope.id || envelope.id.trim().length === 0) {
@@ -863,61 +882,385 @@ export interface ConformanceRule {
 
 export function getConformanceRules(): ConformanceRule[] {
   return [
-    { ruleId: 'WORLD-001', artifactKind: 'world', severity: 'critical', description: 'World metadata.id is required.', remediation: 'Assign a unique world identifier.' },
-    { ruleId: 'WORLD-002', artifactKind: 'world', severity: 'critical', description: 'World metadata.name is empty.', remediation: 'Provide a non-empty display name.' },
-    { ruleId: 'WORLD-003', artifactKind: 'world', severity: 'critical', description: 'World config block is missing.', remediation: 'Include a config block.' },
-    { ruleId: 'WORLD-004', artifactKind: 'world', severity: 'high', description: 'World config.maxUsers must be positive.', remediation: 'Set maxUsers > 0.' },
-    { ruleId: 'WORLD-005', artifactKind: 'world', severity: 'medium', description: 'World config.bounds is missing.', remediation: 'Define spatial bounds.' },
-    { ruleId: 'WORLD-006', artifactKind: 'world', severity: 'medium', description: 'World has no spawn points.', remediation: 'Add at least one spawn point.' },
-    { ruleId: 'WORLD-007', artifactKind: 'world', severity: 'info', description: 'World has no zones.', remediation: 'Add zones for spatial partitioning.' },
-    { ruleId: 'SHARD-001', artifactKind: 'shard', severity: 'critical', description: 'Shard structural validation failed.', remediation: 'Fix structural errors.' },
-    { ruleId: 'SHARD-002', artifactKind: 'shard', severity: 'high', description: 'Encounter references unknown zone.', remediation: 'Create the zone or remove the binding.' },
-    { ruleId: 'SHARD-003', artifactKind: 'shard', severity: 'high', description: 'Encounter references unknown loot table.', remediation: 'Create the loot table or remove the binding.' },
-    { ruleId: 'SHARD-004', artifactKind: 'shard', severity: 'high', description: 'LootTable entry references unknown item.', remediation: 'Create the item or remove the entry.' },
-    { ruleId: 'SHARD-005', artifactKind: 'shard', severity: 'high', description: 'LootTable entry references unknown skill.', remediation: 'Create the skill or remove the entry.' },
-    { ruleId: 'SHARD-006', artifactKind: 'shard', severity: 'medium', description: 'Quest step has empty objective.', remediation: 'Provide a non-empty objective.' },
-    { ruleId: 'SHARD-007', artifactKind: 'shard', severity: 'medium', description: 'Shard has no zones.', remediation: 'Add at least one zone.' },
-    { ruleId: 'ZONE-001', artifactKind: 'zone', severity: 'critical', description: 'Zone structural validation failed.', remediation: 'Fix structural errors.' },
-    { ruleId: 'ZONE-002', artifactKind: 'zone', severity: 'high', description: 'Zone biome is not recognized.', remediation: 'Use a recognized biome.' },
-    { ruleId: 'ZONE-003', artifactKind: 'zone', severity: 'high', description: 'Zone biome-other requires biomeLabel.', remediation: 'Provide a biomeLabel.' },
-    { ruleId: 'NPC-001', artifactKind: 'npc', severity: 'critical', description: 'NPC name is empty.', remediation: 'Provide a non-empty display name.' },
-    { ruleId: 'NPC-002', artifactKind: 'npc', severity: 'high', description: 'NPC role is not recognized.', remediation: 'Use a recognized role.' },
-    { ruleId: 'NPC-003', artifactKind: 'npc', severity: 'high', description: 'NPC modelProvider is not recognized.', remediation: 'Use cloud, local, or sovereign.' },
-    { ruleId: 'NPC-004', artifactKind: 'npc', severity: 'medium', description: 'NPC position must be [x, y, z].', remediation: 'Provide a 3-element array.' },
-    { ruleId: 'NPC-005', artifactKind: 'npc', severity: 'low', description: 'Sovereign NPC lacks dialogueTree or systemPrompt.', remediation: 'Provide deterministic behavior config.' },
-    { ruleId: 'IDENTITY-001', artifactKind: 'identity', severity: 'critical', description: 'Identity agentId is missing.', remediation: 'Assign a unique agentId.' },
-    { ruleId: 'IDENTITY-002', artifactKind: 'identity', severity: 'critical', description: 'Identity walletAddress is missing.', remediation: 'Provide a wallet address.' },
-    { ruleId: 'IDENTITY-003', artifactKind: 'identity', severity: 'critical', description: 'Identity attestation is missing.', remediation: 'Provide an EIP-712 signature.' },
-    { ruleId: 'IDENTITY-004', artifactKind: 'identity', severity: 'high', description: 'Identity handle is empty.', remediation: 'Provide a non-empty handle.' },
-    { ruleId: 'IDENTITY-005', artifactKind: 'identity', severity: 'high', description: 'Identity kind is invalid.', remediation: 'Set kind to robot or ai.' },
-    { ruleId: 'IDENTITY-006', artifactKind: 'identity', severity: 'critical', description: 'Identity is revoked.', remediation: 'Re-register a new identity.' },
-    { ruleId: 'IDENTITY-007', artifactKind: 'identity', severity: 'high', description: 'Identity attestedAt is invalid.', remediation: 'Provide a valid ISO-8601 timestamp.' },
-    { ruleId: 'IDENTITY-008', artifactKind: 'identity', severity: 'high', description: 'Identity attestation has expired.', remediation: 'Renew the attestation.' },
-    { ruleId: 'ENVELOPE-001', artifactKind: 'identity', severity: 'critical', description: 'Safety envelope id is missing.', remediation: 'Assign a unique envelope id.' },
-    { ruleId: 'ENVELOPE-002', artifactKind: 'identity', severity: 'critical', description: 'Safety envelope agentId is missing.', remediation: 'Bind to an existing identity.' },
-    { ruleId: 'ENVELOPE-003', artifactKind: 'identity', severity: 'critical', description: 'Safety envelope substrateEnforced is false.', remediation: 'Set substrateEnforced=true.' },
-    { ruleId: 'ENVELOPE-004', artifactKind: 'identity', severity: 'high', description: 'Safety envelope maxTickDurationMs is negative.', remediation: 'Set to non-negative.' },
-    { ruleId: 'ENVELOPE-005', artifactKind: 'identity', severity: 'high', description: 'Safety envelope maxMemoryBytes is negative.', remediation: 'Set to non-negative.' },
-    { ruleId: 'ENVELOPE-006', artifactKind: 'identity', severity: 'high', description: 'Safety envelope maxNetworkCallsPerMinute is negative.', remediation: 'Set to non-negative.' },
-    { ruleId: 'ENVELOPE-007', artifactKind: 'identity', severity: 'info', description: 'Safety envelope has no action restrictions.', remediation: 'Consider adding allowedActions whitelist.' },
+    {
+      ruleId: 'WORLD-001',
+      artifactKind: 'world',
+      severity: 'critical',
+      description: 'World metadata.id is required.',
+      remediation: 'Assign a unique world identifier.',
+    },
+    {
+      ruleId: 'WORLD-002',
+      artifactKind: 'world',
+      severity: 'critical',
+      description: 'World metadata.name is empty.',
+      remediation: 'Provide a non-empty display name.',
+    },
+    {
+      ruleId: 'WORLD-003',
+      artifactKind: 'world',
+      severity: 'critical',
+      description: 'World config block is missing.',
+      remediation: 'Include a config block.',
+    },
+    {
+      ruleId: 'WORLD-004',
+      artifactKind: 'world',
+      severity: 'high',
+      description: 'World config.maxUsers must be positive.',
+      remediation: 'Set maxUsers > 0.',
+    },
+    {
+      ruleId: 'WORLD-005',
+      artifactKind: 'world',
+      severity: 'medium',
+      description: 'World config.bounds is missing.',
+      remediation: 'Define spatial bounds.',
+    },
+    {
+      ruleId: 'WORLD-006',
+      artifactKind: 'world',
+      severity: 'medium',
+      description: 'World has no spawn points.',
+      remediation: 'Add at least one spawn point.',
+    },
+    {
+      ruleId: 'WORLD-007',
+      artifactKind: 'world',
+      severity: 'info',
+      description: 'World has no zones.',
+      remediation: 'Add zones for spatial partitioning.',
+    },
+    {
+      ruleId: 'SHARD-001',
+      artifactKind: 'shard',
+      severity: 'critical',
+      description: 'Shard structural validation failed.',
+      remediation: 'Fix structural errors.',
+    },
+    {
+      ruleId: 'SHARD-002',
+      artifactKind: 'shard',
+      severity: 'high',
+      description: 'Encounter references unknown zone.',
+      remediation: 'Create the zone or remove the binding.',
+    },
+    {
+      ruleId: 'SHARD-003',
+      artifactKind: 'shard',
+      severity: 'high',
+      description: 'Encounter references unknown loot table.',
+      remediation: 'Create the loot table or remove the binding.',
+    },
+    {
+      ruleId: 'SHARD-004',
+      artifactKind: 'shard',
+      severity: 'high',
+      description: 'LootTable entry references unknown item.',
+      remediation: 'Create the item or remove the entry.',
+    },
+    {
+      ruleId: 'SHARD-005',
+      artifactKind: 'shard',
+      severity: 'high',
+      description: 'LootTable entry references unknown skill.',
+      remediation: 'Create the skill or remove the entry.',
+    },
+    {
+      ruleId: 'SHARD-006',
+      artifactKind: 'shard',
+      severity: 'medium',
+      description: 'Quest step has empty objective.',
+      remediation: 'Provide a non-empty objective.',
+    },
+    {
+      ruleId: 'SHARD-007',
+      artifactKind: 'shard',
+      severity: 'medium',
+      description: 'Shard has no zones.',
+      remediation: 'Add at least one zone.',
+    },
+    {
+      ruleId: 'ZONE-001',
+      artifactKind: 'zone',
+      severity: 'critical',
+      description: 'Zone structural validation failed.',
+      remediation: 'Fix structural errors.',
+    },
+    {
+      ruleId: 'ZONE-002',
+      artifactKind: 'zone',
+      severity: 'high',
+      description: 'Zone biome is not recognized.',
+      remediation: 'Use a recognized biome.',
+    },
+    {
+      ruleId: 'ZONE-003',
+      artifactKind: 'zone',
+      severity: 'high',
+      description: 'Zone biome-other requires biomeLabel.',
+      remediation: 'Provide a biomeLabel.',
+    },
+    {
+      ruleId: 'NPC-001',
+      artifactKind: 'npc',
+      severity: 'critical',
+      description: 'NPC name is empty.',
+      remediation: 'Provide a non-empty display name.',
+    },
+    {
+      ruleId: 'NPC-002',
+      artifactKind: 'npc',
+      severity: 'high',
+      description: 'NPC role is not recognized.',
+      remediation: 'Use a recognized role.',
+    },
+    {
+      ruleId: 'NPC-003',
+      artifactKind: 'npc',
+      severity: 'high',
+      description: 'NPC modelProvider is not recognized.',
+      remediation: 'Use cloud, local, or sovereign.',
+    },
+    {
+      ruleId: 'NPC-004',
+      artifactKind: 'npc',
+      severity: 'medium',
+      description: 'NPC position must be [x, y, z].',
+      remediation: 'Provide a 3-element array.',
+    },
+    {
+      ruleId: 'NPC-005',
+      artifactKind: 'npc',
+      severity: 'low',
+      description: 'Sovereign NPC lacks dialogueTree or systemPrompt.',
+      remediation: 'Provide deterministic behavior config.',
+    },
+    {
+      ruleId: 'IDENTITY-001',
+      artifactKind: 'identity',
+      severity: 'critical',
+      description: 'Identity agentId is missing.',
+      remediation: 'Assign a unique agentId.',
+    },
+    {
+      ruleId: 'IDENTITY-002',
+      artifactKind: 'identity',
+      severity: 'critical',
+      description: 'Identity walletAddress is missing.',
+      remediation: 'Provide a wallet address.',
+    },
+    {
+      ruleId: 'IDENTITY-003',
+      artifactKind: 'identity',
+      severity: 'critical',
+      description: 'Identity attestation is missing.',
+      remediation: 'Provide an EIP-712 signature.',
+    },
+    {
+      ruleId: 'IDENTITY-004',
+      artifactKind: 'identity',
+      severity: 'high',
+      description: 'Identity handle is empty.',
+      remediation: 'Provide a non-empty handle.',
+    },
+    {
+      ruleId: 'IDENTITY-005',
+      artifactKind: 'identity',
+      severity: 'high',
+      description: 'Identity kind is invalid.',
+      remediation: 'Set kind to robot or ai.',
+    },
+    {
+      ruleId: 'IDENTITY-006',
+      artifactKind: 'identity',
+      severity: 'critical',
+      description: 'Identity is revoked.',
+      remediation: 'Re-register a new identity.',
+    },
+    {
+      ruleId: 'IDENTITY-007',
+      artifactKind: 'identity',
+      severity: 'high',
+      description: 'Identity attestedAt is invalid.',
+      remediation: 'Provide a valid ISO-8601 timestamp.',
+    },
+    {
+      ruleId: 'IDENTITY-008',
+      artifactKind: 'identity',
+      severity: 'high',
+      description: 'Identity attestation has expired.',
+      remediation: 'Renew the attestation.',
+    },
+    {
+      ruleId: 'ENVELOPE-001',
+      artifactKind: 'identity',
+      severity: 'critical',
+      description: 'Safety envelope id is missing.',
+      remediation: 'Assign a unique envelope id.',
+    },
+    {
+      ruleId: 'ENVELOPE-002',
+      artifactKind: 'identity',
+      severity: 'critical',
+      description: 'Safety envelope agentId is missing.',
+      remediation: 'Bind to an existing identity.',
+    },
+    {
+      ruleId: 'ENVELOPE-003',
+      artifactKind: 'identity',
+      severity: 'critical',
+      description: 'Safety envelope substrateEnforced is false.',
+      remediation: 'Set substrateEnforced=true.',
+    },
+    {
+      ruleId: 'ENVELOPE-004',
+      artifactKind: 'identity',
+      severity: 'high',
+      description: 'Safety envelope maxTickDurationMs is negative.',
+      remediation: 'Set to non-negative.',
+    },
+    {
+      ruleId: 'ENVELOPE-005',
+      artifactKind: 'identity',
+      severity: 'high',
+      description: 'Safety envelope maxMemoryBytes is negative.',
+      remediation: 'Set to non-negative.',
+    },
+    {
+      ruleId: 'ENVELOPE-006',
+      artifactKind: 'identity',
+      severity: 'high',
+      description: 'Safety envelope maxNetworkCallsPerMinute is negative.',
+      remediation: 'Set to non-negative.',
+    },
+    {
+      ruleId: 'ENVELOPE-007',
+      artifactKind: 'identity',
+      severity: 'info',
+      description: 'Safety envelope has no action restrictions.',
+      remediation: 'Consider adding allowedActions whitelist.',
+    },
     // Package provenance rules
-    { ruleId: 'PACKAGE-001', artifactKind: 'package', severity: 'critical', description: 'Package sourceHash is missing or invalid.', remediation: 'Compute SHA-256 of canonical source tree.' },
-    { ruleId: 'PACKAGE-002', artifactKind: 'package', severity: 'critical', description: 'Package packageId is missing.', remediation: 'Provide a valid package identifier.' },
-    { ruleId: 'PACKAGE-003', artifactKind: 'package', severity: 'high', description: 'Package version is not valid semver.', remediation: 'Use semantic versioning (e.g., 7.0.0).' },
-    { ruleId: 'PACKAGE-004', artifactKind: 'package', severity: 'critical', description: 'Package signer is missing.', remediation: 'Provide signer identity.' },
-    { ruleId: 'PACKAGE-005', artifactKind: 'package', severity: 'high', description: 'Package trustTier is not recognized.', remediation: 'Use a recognized trust tier.' },
-    { ruleId: 'PACKAGE-006', artifactKind: 'package', severity: 'high', description: 'Package with unverified signer is being admitted.', remediation: 'Require at least "verified" tier for admission.' },
-    { ruleId: 'PACKAGE-007', artifactKind: 'package', severity: 'critical', description: 'Package admissionDecision is invalid.', remediation: 'Set to admitted, rejected, or pending.' },
-    { ruleId: 'PACKAGE-008', artifactKind: 'package', severity: 'medium', description: 'Package checkedAt timestamp is invalid.', remediation: 'Provide a valid ISO-8601 timestamp.' },
-    { ruleId: 'PACKAGE-009', artifactKind: 'package', severity: 'medium', description: 'Package provenance lacks a signature.', remediation: 'Sign the canonical provenance block with Ed25519.' },
-    { ruleId: 'PACKAGE-010', artifactKind: 'package', severity: 'medium', description: 'Package has signature but no keyFingerprint.', remediation: 'Include the public key fingerprint.' },
+    {
+      ruleId: 'PACKAGE-001',
+      artifactKind: 'package',
+      severity: 'critical',
+      description: 'Package sourceHash is missing or invalid.',
+      remediation: 'Compute SHA-256 of canonical source tree.',
+    },
+    {
+      ruleId: 'PACKAGE-002',
+      artifactKind: 'package',
+      severity: 'critical',
+      description: 'Package packageId is missing.',
+      remediation: 'Provide a valid package identifier.',
+    },
+    {
+      ruleId: 'PACKAGE-003',
+      artifactKind: 'package',
+      severity: 'high',
+      description: 'Package version is not valid semver.',
+      remediation: 'Use semantic versioning (e.g., 7.0.0).',
+    },
+    {
+      ruleId: 'PACKAGE-004',
+      artifactKind: 'package',
+      severity: 'critical',
+      description: 'Package signer is missing.',
+      remediation: 'Provide signer identity.',
+    },
+    {
+      ruleId: 'PACKAGE-005',
+      artifactKind: 'package',
+      severity: 'high',
+      description: 'Package trustTier is not recognized.',
+      remediation: 'Use a recognized trust tier.',
+    },
+    {
+      ruleId: 'PACKAGE-006',
+      artifactKind: 'package',
+      severity: 'high',
+      description: 'Package with unverified signer is being admitted.',
+      remediation: 'Require at least "verified" tier for admission.',
+    },
+    {
+      ruleId: 'PACKAGE-007',
+      artifactKind: 'package',
+      severity: 'critical',
+      description: 'Package admissionDecision is invalid.',
+      remediation: 'Set to admitted, rejected, or pending.',
+    },
+    {
+      ruleId: 'PACKAGE-008',
+      artifactKind: 'package',
+      severity: 'medium',
+      description: 'Package checkedAt timestamp is invalid.',
+      remediation: 'Provide a valid ISO-8601 timestamp.',
+    },
+    {
+      ruleId: 'PACKAGE-009',
+      artifactKind: 'package',
+      severity: 'medium',
+      description: 'Package provenance lacks a signature.',
+      remediation: 'Sign the canonical provenance block with Ed25519.',
+    },
+    {
+      ruleId: 'PACKAGE-010',
+      artifactKind: 'package',
+      severity: 'medium',
+      description: 'Package has signature but no keyFingerprint.',
+      remediation: 'Include the public key fingerprint.',
+    },
     // Receipt rules
-    { ruleId: 'RECEIPT-001', artifactKind: 'receipt', severity: 'critical', description: 'Receipt id is missing.', remediation: 'Assign a unique receipt identifier.' },
-    { ruleId: 'RECEIPT-002', artifactKind: 'receipt', severity: 'critical', description: 'Receipt kind is not recognized.', remediation: 'Use a recognized receipt kind.' },
-    { ruleId: 'RECEIPT-003', artifactKind: 'receipt', severity: 'critical', description: 'Receipt artifactId is missing.', remediation: 'Bind the receipt to the artifact it certifies.' },
-    { ruleId: 'RECEIPT-004', artifactKind: 'receipt', severity: 'critical', description: 'Receipt hash is missing.', remediation: 'Compute a hash over the canonical receipt body.' },
-    { ruleId: 'RECEIPT-005', artifactKind: 'receipt', severity: 'high', description: 'Receipt hashAlgorithm is not supported.', remediation: 'Use a supported hash algorithm.' },
-    { ruleId: 'RECEIPT-006', artifactKind: 'receipt', severity: 'high', description: 'Receipt issuedAt timestamp is invalid.', remediation: 'Provide a valid ISO-8601 timestamp.' },
-    { ruleId: 'RECEIPT-007', artifactKind: 'receipt', severity: 'medium', description: 'Receipt has a verification command without command text.', remediation: 'Provide the shell command or test invocation.' },
+    {
+      ruleId: 'RECEIPT-001',
+      artifactKind: 'receipt',
+      severity: 'critical',
+      description: 'Receipt id is missing.',
+      remediation: 'Assign a unique receipt identifier.',
+    },
+    {
+      ruleId: 'RECEIPT-002',
+      artifactKind: 'receipt',
+      severity: 'critical',
+      description: 'Receipt kind is not recognized.',
+      remediation: 'Use a recognized receipt kind.',
+    },
+    {
+      ruleId: 'RECEIPT-003',
+      artifactKind: 'receipt',
+      severity: 'critical',
+      description: 'Receipt artifactId is missing.',
+      remediation: 'Bind the receipt to the artifact it certifies.',
+    },
+    {
+      ruleId: 'RECEIPT-004',
+      artifactKind: 'receipt',
+      severity: 'critical',
+      description: 'Receipt hash is missing.',
+      remediation: 'Compute a hash over the canonical receipt body.',
+    },
+    {
+      ruleId: 'RECEIPT-005',
+      artifactKind: 'receipt',
+      severity: 'high',
+      description: 'Receipt hashAlgorithm is not supported.',
+      remediation: 'Use a supported hash algorithm.',
+    },
+    {
+      ruleId: 'RECEIPT-006',
+      artifactKind: 'receipt',
+      severity: 'high',
+      description: 'Receipt issuedAt timestamp is invalid.',
+      remediation: 'Provide a valid ISO-8601 timestamp.',
+    },
+    {
+      ruleId: 'RECEIPT-007',
+      artifactKind: 'receipt',
+      severity: 'medium',
+      description: 'Receipt has a verification command without command text.',
+      remediation: 'Provide the shell command or test invocation.',
+    },
   ];
 }

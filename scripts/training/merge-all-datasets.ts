@@ -44,7 +44,7 @@ async function generateIfMissing(scriptName: string, outputFile: string, descrip
 
   try {
     const { stdout } = await execAsync(`npx tsx "${scriptName}"`, {
-      maxBuffer: 1024 * 1024 * 100
+      maxBuffer: 1024 * 1024 * 100,
     });
     console.log(stdout);
     console.log(`  ✓ ${description} generated successfully`);
@@ -115,7 +115,10 @@ async function mergeDatasets() {
     try {
       console.log(`Reading ${dataset.name}...`);
       const content = await readFile(filePath, 'utf-8');
-      const lines = content.trim().split('\n').filter(line => line.length > 0);
+      const lines = content
+        .trim()
+        .split('\n')
+        .filter((line) => line.length > 0);
 
       console.log(`  ✓ ${lines.length.toLocaleString()} examples`);
 
@@ -174,13 +177,15 @@ async function mergeDatasets() {
   console.log(`  ${'TOTAL'.padEnd(25)} ${totalExamples.toLocaleString().padStart(10)} (100%)`);
   console.log();
   console.log('Next Steps:');
-  console.log('  1. Upload to Vast.ai: scp brittney-v3.0-complete-FINAL.jsonl root@<vast-ip>:/workspace/datasets/');
+  console.log(
+    '  1. Upload to Vast.ai: scp brittney-v3.0-complete-FINAL.jsonl root@<vast-ip>:/workspace/datasets/'
+  );
   console.log('  2. Train Brittney v3.0 (~10-12 hours on RTX 6000 Ada)');
   console.log('  3. Estimated cost: ~$12');
   console.log();
 }
 
-mergeDatasets().catch(error => {
+mergeDatasets().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

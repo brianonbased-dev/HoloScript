@@ -45,8 +45,8 @@ function createBoxEntity(
     type,
     position,
     bounds: {
-      min: [position[0] - halfSize, position[1] - halfSize, position[2] - halfSize ],
-      max: [position[0] + halfSize, position[1] + halfSize, position[2] + halfSize ],
+      min: [position[0] - halfSize, position[1] - halfSize, position[2] - halfSize],
+      max: [position[0] + halfSize, position[1] + halfSize, position[2] + halfSize],
     },
   };
 }
@@ -98,15 +98,15 @@ describe('SpatialQueryExecutor - Visible Query', () => {
     it('should find visible entities with no obstacles', () => {
       // Spread entities so they don't block each other
       const entities = [
-        createEntity('e1', [5, 0, 0 ]),
-        createEntity('e2', [0, 10, 0 ]),
-        createEntity('e3', [0, 0, 15 ]),
+        createEntity('e1', [5, 0, 0]),
+        createEntity('e2', [0, 10, 0]),
+        createEntity('e3', [0, 0, 15]),
       ];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'visible',
-        from: [0, 0, 0 ],
+        from: [0, 0, 0],
       } as VisibleQuery);
 
       expect(results.length).toBe(3);
@@ -116,15 +116,15 @@ describe('SpatialQueryExecutor - Visible Query', () => {
     it('should limit visible entities by maxDistance', () => {
       // Spread entities so they don't block each other
       const entities = [
-        createEntity('e1', [5, 0, 0 ]),
-        createEntity('e2', [0, 10, 0 ]),
-        createEntity('e3', [100, 0, 0 ]),
+        createEntity('e1', [5, 0, 0]),
+        createEntity('e2', [0, 10, 0]),
+        createEntity('e3', [100, 0, 0]),
       ];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'visible',
-        from: [0, 0, 0 ],
+        from: [0, 0, 0],
         maxDistance: 20,
       } as VisibleQuery);
 
@@ -134,14 +134,14 @@ describe('SpatialQueryExecutor - Visible Query', () => {
 
     it('should exclude entities at same position', () => {
       const entities = [
-        createEntity('e1', [0, 0, 0 ]), // Same as from
-        createEntity('e2', [5, 0, 0 ]),
+        createEntity('e1', [0, 0, 0]), // Same as from
+        createEntity('e2', [5, 0, 0]),
       ];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'visible',
-        from: [0, 0, 0 ],
+        from: [0, 0, 0],
       } as VisibleQuery);
 
       expect(results.length).toBe(1);
@@ -152,16 +152,16 @@ describe('SpatialQueryExecutor - Visible Query', () => {
   describe('field of view (FOV)', () => {
     it('should filter by FOV when direction specified', () => {
       const entities = [
-        createEntity('e1', [10, 0, 0 ]), // Directly ahead
-        createEntity('e2', [0, 10, 0 ]), // 90 degrees off
-        createEntity('e3', [10, 5, 0 ]), // Slightly off center
+        createEntity('e1', [10, 0, 0]), // Directly ahead
+        createEntity('e2', [0, 10, 0]), // 90 degrees off
+        createEntity('e3', [10, 5, 0]), // Slightly off center
       ];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'visible',
-        from: [0, 0, 0 ],
-        direction: [1, 0, 0 ], // Looking along X axis
+        from: [0, 0, 0],
+        direction: [1, 0, 0], // Looking along X axis
         fov: 60, // 60 degree cone
       } as VisibleQuery);
 
@@ -171,17 +171,17 @@ describe('SpatialQueryExecutor - Visible Query', () => {
 
     it('should see 360 degrees without FOV', () => {
       const entities = [
-        createEntity('e1', [10, 0, 0 ]),
-        createEntity('e2', [-10, 0, 0 ]),
-        createEntity('e3', [0, 10, 0 ]),
-        createEntity('e4', [0, -10, 0 ]),
+        createEntity('e1', [10, 0, 0]),
+        createEntity('e2', [-10, 0, 0]),
+        createEntity('e3', [0, 10, 0]),
+        createEntity('e4', [0, -10, 0]),
       ];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'visible',
-        from: [0, 0, 0 ],
-        direction: [1, 0, 0 ],
+        from: [0, 0, 0],
+        direction: [1, 0, 0],
         // No FOV specified = 360 degrees
       } as VisibleQuery);
 
@@ -190,15 +190,15 @@ describe('SpatialQueryExecutor - Visible Query', () => {
 
     it('should handle narrow FOV', () => {
       const entities = [
-        createEntity('e1', [10, 0, 0 ]), // Directly ahead
-        createEntity('e2', [10, 5, 0 ]), // More off center (outside 10 deg)
+        createEntity('e1', [10, 0, 0]), // Directly ahead
+        createEntity('e2', [10, 5, 0]), // More off center (outside 10 deg)
       ];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'visible',
-        from: [0, 0, 0 ],
-        direction: [1, 0, 0 ],
+        from: [0, 0, 0],
+        direction: [1, 0, 0],
         fov: 10, // Very narrow 10 degree cone
       } as VisibleQuery);
 
@@ -210,14 +210,14 @@ describe('SpatialQueryExecutor - Visible Query', () => {
   describe('line of sight blocking', () => {
     it('should block visibility with obstacle in between', () => {
       const entities = [
-        createSphereEntity('obstacle', [5, 0, 0 ], 2),
-        createEntity('target', [10, 0, 0 ]),
+        createSphereEntity('obstacle', [5, 0, 0], 2),
+        createEntity('target', [10, 0, 0]),
       ];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'visible',
-        from: [0, 0, 0 ],
+        from: [0, 0, 0],
       } as VisibleQuery);
 
       // Target should be blocked by obstacle
@@ -227,14 +227,14 @@ describe('SpatialQueryExecutor - Visible Query', () => {
 
     it('should see around obstacles', () => {
       const entities = [
-        createSphereEntity('obstacle', [5, 0, 0 ], 1),
-        createEntity('target', [5, 10, 0 ]), // Not in line with obstacle
+        createSphereEntity('obstacle', [5, 0, 0], 1),
+        createEntity('target', [5, 10, 0]), // Not in line with obstacle
       ];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'visible',
-        from: [0, 0, 0 ],
+        from: [0, 0, 0],
       } as VisibleQuery);
 
       const targetVisible = results.find((r) => r.entity.id === 'target');
@@ -255,30 +255,24 @@ describe('SpatialQueryExecutor - Reachable Query', () => {
   });
 
   it('should find reachable entities with no obstacles', () => {
-    const entities = [
-      createEntity('e1', [5, 0, 0 ]),
-      createEntity('e2', [10, 0, 0 ]),
-    ];
+    const entities = [createEntity('e1', [5, 0, 0]), createEntity('e2', [10, 0, 0])];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'reachable',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
     } as ReachableQuery);
 
     expect(results.length).toBe(2);
   });
 
   it('should limit by maxDistance', () => {
-    const entities = [
-      createEntity('e1', [5, 0, 0 ]),
-      createEntity('e2', [100, 0, 0 ]),
-    ];
+    const entities = [createEntity('e1', [5, 0, 0]), createEntity('e2', [100, 0, 0])];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'reachable',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       maxDistance: 20,
     } as ReachableQuery);
 
@@ -287,15 +281,15 @@ describe('SpatialQueryExecutor - Reachable Query', () => {
   });
 
   it('should exclude entities blocked by obstacles', () => {
-    const obstacle = createSphereEntity('wall', [5, 0, 0 ], 2);
-    const target = createEntity('target', [10, 0, 0 ]);
-    const clear = createEntity('clear', [0, 10, 0 ]);
+    const obstacle = createSphereEntity('wall', [5, 0, 0], 2);
+    const target = createEntity('target', [10, 0, 0]);
+    const clear = createEntity('clear', [0, 10, 0]);
 
     executor.updateEntities([obstacle, target, clear]);
 
     const results = executor.execute({
       type: 'reachable',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       obstacles: [obstacle],
     } as ReachableQuery);
 
@@ -307,15 +301,15 @@ describe('SpatialQueryExecutor - Reachable Query', () => {
 
   it('should return sorted by distance', () => {
     const entities = [
-      createEntity('far', [20, 0, 0 ]),
-      createEntity('near', [5, 0, 0 ]),
-      createEntity('mid', [10, 0, 0 ]),
+      createEntity('far', [20, 0, 0]),
+      createEntity('near', [5, 0, 0]),
+      createEntity('mid', [10, 0, 0]),
     ];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'reachable',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
     } as ReachableQuery);
 
     expect(results.map((r) => r.entity.id)).toEqual(['near', 'mid', 'far']);
@@ -335,16 +329,13 @@ describe('SpatialQueryExecutor - In Region Query', () => {
 
   describe('box regions', () => {
     it('should find entities inside box region', () => {
-      const entities = [
-        createEntity('inside', [5, 5, 5 ]),
-        createEntity('outside', [50, 50, 50 ]),
-      ];
+      const entities = [createEntity('inside', [5, 5, 5]), createEntity('outside', [50, 50, 50])];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'in_region',
-        from: [0, 0, 0 ],
-        region: createBoxRegion('zone', [0, 0, 0 ], [10, 10, 10 ]),
+        from: [0, 0, 0],
+        region: createBoxRegion('zone', [0, 0, 0], [10, 10, 10]),
       } as InRegionQuery);
 
       expect(results.length).toBe(1);
@@ -352,13 +343,13 @@ describe('SpatialQueryExecutor - In Region Query', () => {
     });
 
     it('should include entities on boundary', () => {
-      const entities = [createEntity('on_edge', [10, 5, 5 ])];
+      const entities = [createEntity('on_edge', [10, 5, 5])];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'in_region',
-        from: [0, 0, 0 ],
-        region: createBoxRegion('zone', [0, 0, 0 ], [10, 10, 10 ]),
+        from: [0, 0, 0],
+        region: createBoxRegion('zone', [0, 0, 0], [10, 10, 10]),
       } as InRegionQuery);
 
       expect(results.length).toBe(1);
@@ -367,16 +358,13 @@ describe('SpatialQueryExecutor - In Region Query', () => {
 
   describe('sphere regions', () => {
     it('should find entities inside sphere region', () => {
-      const entities = [
-        createEntity('inside', [1, 0, 0 ]),
-        createEntity('outside', [20, 0, 0 ]),
-      ];
+      const entities = [createEntity('inside', [1, 0, 0]), createEntity('outside', [20, 0, 0])];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'in_region',
-        from: [0, 0, 0 ],
-        region: createSphereRegion('bubble', [0, 0, 0 ], 10),
+        from: [0, 0, 0],
+        region: createSphereRegion('bubble', [0, 0, 0], 10),
       } as InRegionQuery);
 
       expect(results.length).toBe(1);
@@ -384,16 +372,13 @@ describe('SpatialQueryExecutor - In Region Query', () => {
     });
 
     it('should return sorted by distance from query origin', () => {
-      const entities = [
-        createEntity('far', [8, 0, 0 ]),
-        createEntity('near', [2, 0, 0 ]),
-      ];
+      const entities = [createEntity('far', [8, 0, 0]), createEntity('near', [2, 0, 0])];
       executor.updateEntities(entities);
 
       const results = executor.execute({
         type: 'in_region',
-        from: [0, 0, 0 ],
-        region: createSphereRegion('bubble', [0, 0, 0 ], 10),
+        from: [0, 0, 0],
+        region: createSphereRegion('bubble', [0, 0, 0], 10),
       } as InRegionQuery);
 
       expect(results.map((r) => r.entity.id)).toEqual(['near', 'far']);
@@ -413,13 +398,13 @@ describe('SpatialQueryExecutor - Raycast Query', () => {
   });
 
   it('should hit entities along ray direction', () => {
-    const entities = [createSphereEntity('target', [10, 0, 0 ], 2)];
+    const entities = [createSphereEntity('target', [10, 0, 0], 2)];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'raycast',
-      from: [0, 0, 0 ],
-      direction: [1, 0, 0 ],
+      from: [0, 0, 0],
+      direction: [1, 0, 0],
       maxDistance: 100,
     } as RaycastQuery);
 
@@ -428,13 +413,13 @@ describe('SpatialQueryExecutor - Raycast Query', () => {
   });
 
   it('should miss entities not in ray path', () => {
-    const entities = [createSphereEntity('off_path', [10, 10, 0 ], 1)];
+    const entities = [createSphereEntity('off_path', [10, 10, 0], 1)];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'raycast',
-      from: [0, 0, 0 ],
-      direction: [1, 0, 0 ],
+      from: [0, 0, 0],
+      direction: [1, 0, 0],
       maxDistance: 100,
     } as RaycastQuery);
 
@@ -442,13 +427,13 @@ describe('SpatialQueryExecutor - Raycast Query', () => {
   });
 
   it('should respect maxDistance', () => {
-    const entities = [createSphereEntity('too_far', [100, 0, 0 ], 2)];
+    const entities = [createSphereEntity('too_far', [100, 0, 0], 2)];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'raycast',
-      from: [0, 0, 0 ],
-      direction: [1, 0, 0 ],
+      from: [0, 0, 0],
+      direction: [1, 0, 0],
       maxDistance: 10,
     } as RaycastQuery);
 
@@ -457,15 +442,15 @@ describe('SpatialQueryExecutor - Raycast Query', () => {
 
   it('should return first hit when hitFirst is true', () => {
     const entities = [
-      createSphereEntity('first', [5, 0, 0 ], 1),
-      createSphereEntity('second', [10, 0, 0 ], 1),
+      createSphereEntity('first', [5, 0, 0], 1),
+      createSphereEntity('second', [10, 0, 0], 1),
     ];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'raycast',
-      from: [0, 0, 0 ],
-      direction: [1, 0, 0 ],
+      from: [0, 0, 0],
+      direction: [1, 0, 0],
       maxDistance: 100,
       hitFirst: true,
     } as RaycastQuery);
@@ -476,15 +461,15 @@ describe('SpatialQueryExecutor - Raycast Query', () => {
 
   it('should hit all entities when hitFirst is false', () => {
     const entities = [
-      createSphereEntity('first', [5, 0, 0 ], 1),
-      createSphereEntity('second', [10, 0, 0 ], 1),
+      createSphereEntity('first', [5, 0, 0], 1),
+      createSphereEntity('second', [10, 0, 0], 1),
     ];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'raycast',
-      from: [0, 0, 0 ],
-      direction: [1, 0, 0 ],
+      from: [0, 0, 0],
+      direction: [1, 0, 0],
       maxDistance: 100,
       hitFirst: false,
     } as RaycastQuery);
@@ -494,15 +479,15 @@ describe('SpatialQueryExecutor - Raycast Query', () => {
 
   it('should sort hits by distance', () => {
     const entities = [
-      createSphereEntity('far', [10, 0, 0 ], 1),
-      createSphereEntity('near', [5, 0, 0 ], 1),
+      createSphereEntity('far', [10, 0, 0], 1),
+      createSphereEntity('near', [5, 0, 0], 1),
     ];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'raycast',
-      from: [0, 0, 0 ],
-      direction: [1, 0, 0 ],
+      from: [0, 0, 0],
+      direction: [1, 0, 0],
       maxDistance: 100,
     } as RaycastQuery);
 
@@ -511,13 +496,13 @@ describe('SpatialQueryExecutor - Raycast Query', () => {
   });
 
   it('should handle ray behind entity', () => {
-    const entities = [createSphereEntity('behind', [-10, 0, 0 ], 2)];
+    const entities = [createSphereEntity('behind', [-10, 0, 0], 2)];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'raycast',
-      from: [0, 0, 0 ],
-      direction: [1, 0, 0 ], // Pointing away
+      from: [0, 0, 0],
+      direction: [1, 0, 0], // Pointing away
       maxDistance: 100,
     } as RaycastQuery);
 
@@ -538,12 +523,12 @@ describe('SpatialQueryExecutor - Within Query (includePartial)', () => {
 
   it('should include partial overlaps when includePartial is true', () => {
     // Entity center is at 15, but has radius 3, so edge is at 12
-    const entities = [createSphereEntity('partial', [15, 0, 0 ], 3)];
+    const entities = [createSphereEntity('partial', [15, 0, 0], 3)];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'within',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       radius: 13, // Just reaches edge of entity
       includePartial: true,
     } as WithinQuery);
@@ -552,12 +537,12 @@ describe('SpatialQueryExecutor - Within Query (includePartial)', () => {
   });
 
   it('should exclude partial overlaps when includePartial is false', () => {
-    const entities = [createSphereEntity('partial', [15, 0, 0 ], 3)];
+    const entities = [createSphereEntity('partial', [15, 0, 0], 3)];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'within',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       radius: 13, // Entity center at 15 is outside
       includePartial: false,
     } as WithinQuery);
@@ -567,13 +552,13 @@ describe('SpatialQueryExecutor - Within Query (includePartial)', () => {
 
   it('should handle box bounds for partial overlap', () => {
     const entities = [
-      createBoxEntity('box', [12, 0, 0 ], 4), // Edges at 10 and 14
+      createBoxEntity('box', [12, 0, 0], 4), // Edges at 10 and 14
     ];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'within',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       radius: 11, // Reaches edge of box
       includePartial: true,
     } as WithinQuery);
@@ -598,7 +583,7 @@ describe('SpatialQueryExecutor - Edge Cases', () => {
 
     const results = executor.execute({
       type: 'nearest',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       count: 10,
     } as NearestQuery);
 
@@ -606,12 +591,12 @@ describe('SpatialQueryExecutor - Edge Cases', () => {
   });
 
   it('should handle entity type filter with no matches', () => {
-    const entities = [createEntity('e1', [5, 0, 0 ], 'npc')];
+    const entities = [createEntity('e1', [5, 0, 0], 'npc')];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'nearest',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       entityTypeFilter: ['item'], // No items exist
     } as NearestQuery);
 
@@ -620,14 +605,14 @@ describe('SpatialQueryExecutor - Edge Cases', () => {
 
   it('should handle entities without bounds', () => {
     const entities = [
-      createEntity('no_bounds', [10, 0, 0 ]), // No bounds
+      createEntity('no_bounds', [10, 0, 0]), // No bounds
     ];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'raycast',
-      from: [0, 0, 0 ],
-      direction: [1, 0, 0 ],
+      from: [0, 0, 0],
+      direction: [1, 0, 0],
       maxDistance: 100,
     } as RaycastQuery);
 
@@ -636,28 +621,28 @@ describe('SpatialQueryExecutor - Edge Cases', () => {
   });
 
   it('should handle region update', () => {
-    executor.updateRegions([createBoxRegion('r1', [0, 0, 0 ], [10, 10, 10 ])]);
+    executor.updateRegions([createBoxRegion('r1', [0, 0, 0], [10, 10, 10])]);
 
     // Regions stored for in_region queries
-    const entities = [createEntity('e1', [5, 5, 5 ])];
+    const entities = [createEntity('e1', [5, 5, 5])];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'in_region',
-      from: [0, 0, 0 ],
-      region: createBoxRegion('r1', [0, 0, 0 ], [10, 10, 10 ]),
+      from: [0, 0, 0],
+      region: createBoxRegion('r1', [0, 0, 0], [10, 10, 10]),
     } as InRegionQuery);
 
     expect(results.length).toBe(1);
   });
 
   it('should handle unknown query type gracefully', () => {
-    executor.updateEntities([createEntity('e1', [5, 0, 0 ])]);
+    executor.updateEntities([createEntity('e1', [5, 0, 0])]);
 
     // @ts-ignore - Testing unknown type
     const results = executor.execute({
       type: 'unknown_type',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
     });
 
     expect(results).toEqual([]);
@@ -666,13 +651,13 @@ describe('SpatialQueryExecutor - Edge Cases', () => {
   it('should apply maxResults to all query types', () => {
     const entities = [];
     for (let i = 0; i < 20; i++) {
-      entities.push(createEntity(`e${i}`, [i + 1, 0, 0 ]));
+      entities.push(createEntity(`e${i}`, [i + 1, 0, 0]));
     }
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'within',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       radius: 100,
       maxResults: 5,
     } as WithinQuery);
@@ -681,12 +666,12 @@ describe('SpatialQueryExecutor - Edge Cases', () => {
   });
 
   it('should include direction in results', () => {
-    const entities = [createEntity('e1', [10, 0, 0 ])];
+    const entities = [createEntity('e1', [10, 0, 0])];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'nearest',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
     } as NearestQuery);
 
     expect(results[0].direction).toBeDefined();
@@ -696,15 +681,12 @@ describe('SpatialQueryExecutor - Edge Cases', () => {
   });
 
   it('should handle entities directly on origin', () => {
-    const entities = [
-      createEntity('at_origin', [0, 0, 0 ]),
-      createEntity('nearby', [1, 0, 0 ]),
-    ];
+    const entities = [createEntity('at_origin', [0, 0, 0]), createEntity('nearby', [1, 0, 0])];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'within',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       radius: 5,
     } as WithinQuery);
 
@@ -714,15 +696,15 @@ describe('SpatialQueryExecutor - Edge Cases', () => {
 
   it('should handle by_type with multiple types', () => {
     const entities = [
-      createEntity('e1', [5, 0, 0 ], 'npc'),
-      createEntity('e2', [10, 0, 0 ], 'item'),
-      createEntity('e3', [15, 0, 0 ], 'obstacle'),
+      createEntity('e1', [5, 0, 0], 'npc'),
+      createEntity('e2', [10, 0, 0], 'item'),
+      createEntity('e3', [15, 0, 0], 'obstacle'),
     ];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'by_type',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       entityTypes: ['npc', 'item'],
     } as ByTypeQuery);
 
@@ -743,18 +725,18 @@ describe('SpatialQueryExecutor - Sight Line', () => {
   });
 
   it('should include sightLine in visible query results', () => {
-    const entities = [createEntity('e1', [10, 0, 0 ])];
+    const entities = [createEntity('e1', [10, 0, 0])];
     executor.updateEntities(entities);
 
     const results = executor.execute({
       type: 'visible',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
     } as VisibleQuery);
 
     expect(results[0].sightLine).toBeDefined();
     expect(results[0].sightLine!.blocked).toBe(false);
-    expect(results[0].sightLine!.from).toEqual([0, 0, 0 ]);
-    expect(results[0].sightLine!.to).toEqual([10, 0, 0 ]);
+    expect(results[0].sightLine!.from).toEqual([0, 0, 0]);
+    expect(results[0].sightLine!.to).toEqual([10, 0, 0]);
   });
 });
 
@@ -768,10 +750,10 @@ describe('SpatialQueryExecutor - By Type Query', () => {
   beforeEach(() => {
     executor = new SpatialQueryExecutor();
     const entities = [
-      createEntity('npc1', [5, 0, 0 ], 'npc'),
-      createEntity('npc2', [15, 0, 0 ], 'npc'),
-      createEntity('item1', [10, 0, 0 ], 'item'),
-      createEntity('item2', [25, 0, 0 ], 'item'),
+      createEntity('npc1', [5, 0, 0], 'npc'),
+      createEntity('npc2', [15, 0, 0], 'npc'),
+      createEntity('item1', [10, 0, 0], 'item'),
+      createEntity('item2', [25, 0, 0], 'item'),
     ];
     executor.updateEntities(entities);
   });
@@ -779,7 +761,7 @@ describe('SpatialQueryExecutor - By Type Query', () => {
   it('should filter by single type', () => {
     const results = executor.execute({
       type: 'by_type',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       entityTypes: ['npc'],
     } as ByTypeQuery);
 
@@ -790,7 +772,7 @@ describe('SpatialQueryExecutor - By Type Query', () => {
   it('should combine type filter with radius', () => {
     const results = executor.execute({
       type: 'by_type',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       entityTypes: ['npc'],
       radius: 10,
     } as ByTypeQuery);
@@ -802,7 +784,7 @@ describe('SpatialQueryExecutor - By Type Query', () => {
   it('should return empty for non-existent type', () => {
     const results = executor.execute({
       type: 'by_type',
-      from: [0, 0, 0 ],
+      from: [0, 0, 0],
       entityTypes: ['vehicle'],
     } as ByTypeQuery);
 

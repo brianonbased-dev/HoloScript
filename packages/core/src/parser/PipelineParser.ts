@@ -51,7 +51,16 @@ export interface PipelineOnError {
 export interface PipelineSource {
   kind: 'source';
   name: string;
-  type: 'rest' | 'webhook' | 'stream' | 'filesystem' | 'database' | 'mcp' | 'list' | 'stdout' | 'user_input';
+  type:
+    | 'rest'
+    | 'webhook'
+    | 'stream'
+    | 'filesystem'
+    | 'database'
+    | 'mcp'
+    | 'list'
+    | 'stdout'
+    | 'user_input';
   endpoint?: string;
   path?: string;
   pattern?: string;
@@ -323,7 +332,10 @@ function parseInlineObjectLiteral(value: string): Record<string, unknown> | unde
     const idx = part.indexOf(':');
     if (idx <= 0) return undefined;
 
-    const key = part.slice(0, idx).trim().replace(/^['"]|['"]$/g, '');
+    const key = part
+      .slice(0, idx)
+      .trim()
+      .replace(/^['"]|['"]$/g, '');
     const rawVal = part.slice(idx + 1).trim();
 
     let parsed: unknown = rawVal;
@@ -386,12 +398,7 @@ function splitPropertyLines(content: string): string[] {
       continue;
     }
 
-    if (
-      depth === 0 &&
-      /\s/.test(ch) &&
-      current.trim() &&
-      /^\w+\s*:/.test(content.slice(i + 1))
-    ) {
+    if (depth === 0 && /\s/.test(ch) && current.trim() && /^\w+\s*:/.test(content.slice(i + 1))) {
       flush();
       continue;
     }
@@ -431,7 +438,7 @@ function parseProperties(content: string): Record<string, unknown> {
       // Let's assume if we see `^\s{2,4}\w+\s*:` and it's NOT a HoloScript keyword, it's a property?
       // For now, let's just collect EVERYTHING into the multiline string until the end of the block.
       // This works perfectly if `template: |` is the last property (which it is).
-      
+
       // Let's check for `}` just in case, but `extractBlock` removes the LAST `}`.
       // However, it might not remove internal `}`.
       // Actually, if we just collect the rest of the lines, it will perfectly capture the template.
@@ -765,11 +772,7 @@ function parsePipelineContent(
     const p = parseProperties(block.content);
     const mappings = parseFieldMappings(block.content);
     const hasType = p.type !== undefined;
-    const type = hasType
-      ? String(p.type)
-      : mappings.length > 0
-        ? 'field_mapping'
-        : undefined;
+    const type = hasType ? String(p.type) : mappings.length > 0 ? 'field_mapping' : undefined;
 
     if (!type) {
       errors.push({

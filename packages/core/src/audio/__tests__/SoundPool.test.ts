@@ -4,9 +4,30 @@ import { SoundPool } from '../SoundPool.js';
 describe('SoundPool', () => {
   let pool: SoundPool;
 
-  const sfx1 = { id: 'beep', name: 'Beep Sound', duration: 0.5, category: 'sfx', volume: 1, loop: false };
-  const sfx2 = { id: 'boop', name: 'Boop Sound', duration: 0.3, category: 'sfx', volume: 0.8, loop: false };
-  const music1 = { id: 'theme', name: 'Main Theme', duration: 120, category: 'music', volume: 1, loop: true };
+  const sfx1 = {
+    id: 'beep',
+    name: 'Beep Sound',
+    duration: 0.5,
+    category: 'sfx',
+    volume: 1,
+    loop: false,
+  };
+  const sfx2 = {
+    id: 'boop',
+    name: 'Boop Sound',
+    duration: 0.3,
+    category: 'sfx',
+    volume: 0.8,
+    loop: false,
+  };
+  const music1 = {
+    id: 'theme',
+    name: 'Main Theme',
+    duration: 120,
+    category: 'music',
+    volume: 1,
+    loop: true,
+  };
 
   beforeEach(() => {
     pool = new SoundPool();

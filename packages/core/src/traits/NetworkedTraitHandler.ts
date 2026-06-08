@@ -134,7 +134,11 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
   onAttach(node: HSPlusNode, config: NetworkedHandlerConfig, context: TraitContext): void {
     // Pre-warm: populate _syncTierRates before the first onUpdate tick.
     // Empty catch is intentional — absent optional peer is correct no-op behaviour.
-    void import('@holoscript/mesh').then((m) => { _syncTierRates ??= m.SYNC_TIER_RATES; }).catch(() => {});
+    void import('@holoscript/mesh')
+      .then((m) => {
+        _syncTierRates ??= m.SYNC_TIER_RATES;
+      })
+      .catch(() => {});
 
     const key = getNodeKey(node);
 
@@ -237,7 +241,7 @@ export const networkedHandler: TraitHandler<NetworkedHandlerConfig> = {
 
     // P.NET.01: Use tier-based sync rate if syncTier is set.
     // Falls back to config.syncRate when mesh is absent (optional peer, not yet loaded).
-    const baseSyncRate = (_syncTierRates?.[config.syncTier]) ?? config.syncRate;
+    const baseSyncRate = _syncTierRates?.[config.syncTier] ?? config.syncRate;
     // P.NET.03: Priority-weighted effective sync rate
     const effectiveRate = baseSyncRate * state.priorityWeight;
     const syncIntervalMs = effectiveRate > 0 ? 1000 / effectiveRate : Infinity;

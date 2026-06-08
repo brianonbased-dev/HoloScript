@@ -96,13 +96,7 @@ describe('CulturalMemory', () => {
 
     it('traces decay over ticks', () => {
       const mem = new CulturalMemory({ traceDecayRate: 0.1 });
-      const trace = mem.leaveTrace(
-        'agent1',
-        'zone_a',
-        'temp',
-        [0, 0, 0],
-        { decayRate: 0.1 }
-      );
+      const trace = mem.leaveTrace('agent1', 'zone_a', 'temp', [0, 0, 0], { decayRate: 0.1 });
       const before = trace.intensity;
       mem.tick();
       const after = mem.zoneTraces('zone_a').find((t) => t.id === trace.id);

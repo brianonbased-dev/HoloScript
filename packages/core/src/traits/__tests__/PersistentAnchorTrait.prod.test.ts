@@ -59,8 +59,8 @@ describe('PersistentAnchorTrait — onAttach', () => {
     expect(s.persistedId).toBeNull();
     expect(s.isResolved).toBe(false);
     expect(s.resolveAttempts).toBe(0);
-    expect(s.localPosition).toEqual([0, 0, 0 ]);
-    expect(s.localRotation).toEqual([0, 0, 0, 1 ]);
+    expect(s.localPosition).toEqual([0, 0, 0]);
+    expect(s.localRotation).toEqual([0, 0, 0, 1]);
     expect(s.anchorHandle).toBeNull();
   });
 
@@ -192,7 +192,7 @@ describe('PersistentAnchorTrait — onUpdate', () => {
     const { cfg, ctx } = attach(node, { ttl: 0 });
     const s = st(node);
     s.state = 'tracking';
-    s.localPosition = [1, 2, 3 ];
+    s.localPosition = [1, 2, 3];
     persistentAnchorHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     expect(node.position[0]).toBe(1);
     expect(node.position[1]).toBe(2);
@@ -200,11 +200,11 @@ describe('PersistentAnchorTrait — onUpdate', () => {
   });
 
   it('applies localRotation to node.rotation when state=resolved', () => {
-    const node = { ...makeNode(), rotation: [0, 0, 0, 0 ] };
+    const node = { ...makeNode(), rotation: [0, 0, 0, 0] };
     const { cfg, ctx } = attach(node, { ttl: 0 });
     const s = st(node);
     s.state = 'resolved';
-    s.localRotation = [0, 0.707, 0, 0.707 ];
+    s.localRotation = [0, 0.707, 0, 0.707];
     persistentAnchorHandler.onUpdate!(node, cfg, ctx as any, 0.016);
     expect(node.rotation[3]).toBeCloseTo(0.707);
   });
@@ -269,7 +269,7 @@ describe('PersistentAnchorTrait — onEvent: persistent_anchor_not_found', () =>
     fire(node, cfg, ctx, { type: 'persistent_anchor_not_found' });
     fire(node, cfg, ctx, { type: 'persistent_anchor_not_found' });
     const s = st(node);
-    expect(s.localPosition).toEqual([5, 0, 5 ]);
+    expect(s.localPosition).toEqual([5, 0, 5]);
     expect(s.state).toBe('unresolved');
     expect(ctx.emit).toHaveBeenCalledWith(
       'on_persistent_anchor_fallback',
@@ -286,8 +286,8 @@ describe('PersistentAnchorTrait — onEvent: persistent_anchor_pose_update', () 
   it('updates position/rotation and sets state=tracking', () => {
     const node = makeNode();
     const { cfg, ctx } = attach(node, { auto_resolve: false });
-    const pos = [1, 2, 3 ];
-    const rot = [0, 1, 0, 0 ];
+    const pos = [1, 2, 3];
+    const rot = [0, 1, 0, 0];
     fire(node, cfg, ctx, { type: 'persistent_anchor_pose_update', position: pos, rotation: rot });
     expect(st(node).localPosition).toEqual(pos);
     expect(st(node).localRotation).toEqual(rot);
@@ -302,7 +302,7 @@ describe('PersistentAnchorTrait — onEvent: persistent_anchor_create', () => {
     const node = {
       ...makeNode(),
       position: [10, 0, 20],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
     };
     const { cfg, ctx } = attach(node, {
       name: 'new_anchor',
@@ -331,7 +331,7 @@ describe('PersistentAnchorTrait — onEvent: persistent_anchor_create', () => {
     const call = (ctx.emit as any).mock.calls.find(
       (c: any[]) => c[0] === 'persistent_anchor_create_request'
     )?.[1];
-    expect(call.position).toEqual([0, 0, 0 ]);
+    expect(call.position).toEqual([0, 0, 0]);
   });
 });
 

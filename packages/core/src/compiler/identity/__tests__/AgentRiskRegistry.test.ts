@@ -11,12 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  AgentRole,
-  WorkflowStep,
-  AgentConfig,
-  generateAgentKeyPair,
-} from '../AgentIdentity';
+import { AgentRole, WorkflowStep, AgentConfig, generateAgentKeyPair } from '../AgentIdentity';
 import { AgentTokenIssuer, TokenRequest, resetTokenIssuer } from '../AgentTokenIssuer';
 import { AgentRBAC, ResourceType, resetRBAC } from '../AgentRBAC';
 import {
@@ -64,9 +59,7 @@ function makeResult(opts: {
   };
 }
 
-function makeComposition(opts: {
-  withConfabulation?: boolean;
-}): HoloComposition {
+function makeComposition(opts: { withConfabulation?: boolean }): HoloComposition {
   if (opts.withConfabulation) {
     // Apply unknown property to known trait → guaranteed schema warning,
     // and a known property out of range → guaranteed error.

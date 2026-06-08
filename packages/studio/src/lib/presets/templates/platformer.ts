@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-platformer",
-  name: "Platformer Starter",
-  description: "Side-scrolling platformer with floating platforms and collectibles",
-  thumbnail: "🏃",
-  tags: ["game","platformer","physics","level"],
-  category: "game",
+  id: 'wizard-platformer',
+  name: 'Platformer Starter',
+  description: 'Side-scrolling platformer with floating platforms and collectibles',
+  thumbnail: '🏃',
+  tags: ['game', 'platformer', 'physics', 'level'],
+  category: 'game',
   code: `composition "Platformer Level" {
   environment {
     skybox: "sunset"
@@ -95,7 +95,7 @@ export const template: SceneTemplate = {
     scale: [0.08, 3, 0.08]
     color: "#cc3333"
   }
-}`
+}`,
 };
 
 export default template;

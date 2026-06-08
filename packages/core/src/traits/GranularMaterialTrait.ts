@@ -59,7 +59,9 @@ function addIndexAliases(v: Vec3): Vec3 {
   return v;
 }
 
-function toBounds(bounds?: GranularBounds | { min: [number, number, number]; max: [number, number, number] }): GranularBounds {
+function toBounds(
+  bounds?: GranularBounds | { min: [number, number, number]; max: [number, number, number] }
+): GranularBounds {
   if (!bounds) {
     return {
       min: { x: -10, y: -10, z: -10 },
@@ -194,7 +196,11 @@ export class GranularMaterialSystem {
    * Add a particle at the given position with the given radius.
    * @returns The new particle's ID, or -1 if max particles exceeded.
    */
-  addParticle(position: Vec3 | [number, number, number], radius: number, materialTag = 'default'): number {
+  addParticle(
+    position: Vec3 | [number, number, number],
+    radius: number,
+    materialTag = 'default'
+  ): number {
     if (this.particles.size >= this.config.maxParticles) {
       return -1;
     }
@@ -255,7 +261,11 @@ export class GranularMaterialSystem {
   /**
    * Apply an external impulse force to all particles within a radius.
    */
-  applyImpulse(position: Vec3 | [number, number, number], force: Vec3 | [number, number, number], radius: number): void {
+  applyImpulse(
+    position: Vec3 | [number, number, number],
+    force: Vec3 | [number, number, number],
+    radius: number
+  ): void {
     const pos = toVec3(position);
     const f = toVec3(force);
     for (const particle of this.particles.values()) {

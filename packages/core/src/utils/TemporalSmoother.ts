@@ -128,9 +128,7 @@ export class VectorTemporalSmoother {
    */
   smooth<T extends NumericVec>(current: T): T {
     if (this._state === null || this._state.length !== current.length) {
-      this._state = this.coldStart
-        ? Array.from(current)
-        : current.map((v) => this.alpha * v);
+      this._state = this.coldStart ? Array.from(current) : current.map((v) => this.alpha * v);
     } else {
       for (let i = 0; i < current.length; i++) {
         this._state[i] = this.alpha * current[i] + (1 - this.alpha) * this._state[i];
@@ -313,7 +311,7 @@ export function ema(previous: number | null, current: number, alpha = 0.8): numb
 export function emaVec<T extends NumericVec>(
   previous: readonly number[] | null,
   current: T,
-  alpha = 0.8,
+  alpha = 0.8
 ): T {
   if (previous === null || previous.length !== current.length) {
     return Array.from(current) as unknown as T;

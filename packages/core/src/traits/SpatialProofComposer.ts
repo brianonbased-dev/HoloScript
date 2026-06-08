@@ -189,11 +189,7 @@ function validateRequiredSensors(
   }
 }
 
-function validateClockSkew(
-  toleranceMs: number,
-  sensors: SpatialProofSensors,
-  nowMs: number
-): void {
+function validateClockSkew(toleranceMs: number, sensors: SpatialProofSensors, nowMs: number): void {
   const samples: number[] = [sensors.wallclock];
   if (sensors.gps) samples.push(sensors.gps.captured_at);
   if (sensors.imu) samples.push(sensors.imu.captured_at);

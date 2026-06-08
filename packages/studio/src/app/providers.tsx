@@ -11,10 +11,7 @@ import { usePathname } from 'next/navigation';
 import { useGlobalHotkeys } from '../hooks/useGlobalHotkeys';
 import { ErrorBoundary } from '@holoscript/ui';
 import { initAnalytics, identifyUser } from '../lib/analytics';
-import {
-  flushFederatedAnalytics,
-  isFederatedAnalyticsEnabled,
-} from '../lib/federatedAnalytics';
+import { flushFederatedAnalytics, isFederatedAnalyticsEnabled } from '../lib/federatedAnalytics';
 import dynamic from 'next/dynamic';
 const DevToolsInit = dynamic(
   () => import('../components/DevToolsInit').then((m) => ({ default: m.DevToolsInit })),
@@ -60,7 +57,13 @@ const ToastContext = createContext<{
 });
 export const useToast = () => useContext(ToastContext);
 
-function _ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: string) => void }) {
+function _ToastContainer({
+  toasts,
+  onRemove,
+}: {
+  toasts: Toast[];
+  onRemove: (id: string) => void;
+}) {
   if (toasts.length === 0) return null;
 
   const typeStyles: Record<Toast['type'], string> = {
@@ -191,9 +194,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <ThemeContext.Provider value={{ theme, toggle: toggleTheme }}>
             <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
               <ErrorBoundary showReloadButton>
-                <PluginHostProvider>
-                  {children}
-                </PluginHostProvider>
+                <PluginHostProvider>{children}</PluginHostProvider>
               </ErrorBoundary>
               {!isScanRoom && <DevToolsInit />}
               {!isScanRoom && <WebVitals />}

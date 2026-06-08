@@ -11,14 +11,13 @@
  */
 
 import { createHash } from 'node:crypto';
-import { execSync }   from 'node:child_process';
+import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { verifyConsentToken } from './holoshell-consent-contract.mjs';
 
 const RECEIPTS_DIR =
-  process.env.HOLOSHELL_RECEIPTS_DIR ??
-  'C:/Users/Josep/.ai-ecosystem/runtime/holoshell/receipts';
+  process.env.HOLOSHELL_RECEIPTS_DIR ?? 'C:/Users/Josep/.ai-ecosystem/runtime/holoshell/receipts';
 
 function ensureDir(dir) {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
@@ -38,7 +37,9 @@ function canonical(value) {
 }
 
 function hashValue(v) {
-  return `sha256:${createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex')}`;
+  return `sha256:${createHash('sha256')
+    .update(JSON.stringify(canonical(v)))
+    .digest('hex')}`;
 }
 
 // ── Process scanning ──────────────────────────────────────────────────────────
@@ -83,10 +84,10 @@ export function scanStaleProcesses({ minAgeMs = 5 * 60 * 1000 } = {}) {
   return items
     .filter((p) => typeof p.AgeMs === 'number' && p.AgeMs > minAgeMs)
     .map((p) => ({
-      pid:     Number(p.ProcessId),
+      pid: Number(p.ProcessId),
       command: String(p.CommandLine ?? '').slice(0, 120),
-      ageMs:   p.AgeMs,
-      reason:  'git_status_ignored_stale',
+      ageMs: p.AgeMs,
+      reason: 'git_status_ignored_stale',
     }));
 }
 
@@ -116,15 +117,15 @@ export function writePreflightReceipt(preflight) {
 export function createPreflightReceipt({ targets, requestedBy = 'holoshell' }) {
   const id = `pf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const base = {
-    schema:      'hololand.holoshell.stale-process-cleanup.preflight.v0.1.0',
+    schema: 'hololand.holoshell.stale-process-cleanup.preflight.v0.1.0',
     id,
-    operation:   'stale_process_cleanup',
+    operation: 'stale_process_cleanup',
     requestedBy,
-    timestamp:   new Date().toISOString(),
-    targets:     targets.map((t) => ({
-      pid:            t.pid,
-      ageMs:          t.ageMs,
-      reason:         t.reason,
+    timestamp: new Date().toISOString(),
+    targets: targets.map((t) => ({
+      pid: t.pid,
+      ageMs: t.ageMs,
+      reason: t.reason,
       commandPreview: t.command.slice(0, 80),
     })),
     hashAlgorithm: 'sha256',
@@ -168,7 +169,7 @@ export function executeReceipt({ consentToken, preflightId }) {
   }
 
   const verification = verifyConsentToken(consentToken, {
-    operation:   preflight.operation,
+    operation: preflight.operation,
     preflightId,
   });
   if (!verification.valid) {
@@ -189,31 +190,35 @@ export function executeReceipt({ consentToken, preflightId }) {
     }
     const afterAlive = isProcessAlive(target.pid);
     results.push({
-      pid:            target.pid,
-      outcome:        afterAlive ? 'kill_failed' : 'killed',
-      reason:         target.reason,
+      pid: target.pid,
+      outcome: afterAlive ? 'kill_failed' : 'killed',
+      reason: target.reason,
       commandPreview: target.commandPreview,
     });
   }
 
   const executionBase = {
-    schema:       'hololand.holoshell.stale-process-cleanup.execution.v0.1.0',
-    id:           `ex_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    schema: 'hololand.holoshell.stale-process-cleanup.execution.v0.1.0',
+    id: `ex_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     preflightId,
-    operation:    preflight.operation,
-    consentLane:  verification.lane,
-    executedAt:   new Date().toISOString(),
+    operation: preflight.operation,
+    consentLane: verification.lane,
+    executedAt: new Date().toISOString(),
     summary: {
-      total:       results.length,
-      killed:      results.filter((r) => r.outcome === 'killed').length,
+      total: results.length,
+      killed: results.filter((r) => r.outcome === 'killed').length,
       already_gone: results.filter((r) => r.outcome === 'already_gone').length,
-      errors:      results.filter((r) => ['kill_error', 'kill_failed'].includes(r.outcome)).length,
+      errors: results.filter((r) => ['kill_error', 'kill_failed'].includes(r.outcome)).length,
     },
     results,
-    rollbackNote: 'Process termination is not reversible. PIDs and command previews recorded for audit.',
+    rollbackNote:
+      'Process termination is not reversible. PIDs and command previews recorded for audit.',
     hashAlgorithm: 'sha256',
   };
-  const executionReceipt = { ...executionBase, hash: hashValue({ ...executionBase, hash: undefined }) };
+  const executionReceipt = {
+    ...executionBase,
+    hash: hashValue({ ...executionBase, hash: undefined }),
+  };
 
   ensureDir(RECEIPTS_DIR);
   writeFileSync(
@@ -240,19 +245,26 @@ export function listPendingReceipts() {
         .map((f) => {
           try {
             return JSON.parse(readFileSync(join(RECEIPTS_DIR, f), 'utf8')).preflightId;
-          } catch { return null; }
+          } catch {
+            return null;
+          }
         })
         .filter(Boolean)
     );
     return files
       .filter((f) => f.endsWith('.preflight.json'))
       .map((f) => {
-        try { return JSON.parse(readFileSync(join(RECEIPTS_DIR, f), 'utf8')); }
-        catch { return null; }
+        try {
+          return JSON.parse(readFileSync(join(RECEIPTS_DIR, f), 'utf8'));
+        } catch {
+          return null;
+        }
       })
       .filter((pf) => pf && !executedIds.has(pf.id))
       .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -272,15 +284,19 @@ export function lookupProcessesByPid(pids) {
   ].join(' ');
   try {
     const raw = execSync(`powershell -NonInteractive -Command "${ps}"`, {
-      encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 10_000,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 10_000,
     }).trim();
     if (!raw || raw === 'null') return [];
     const parsed = JSON.parse(raw);
     const items = Array.isArray(parsed) ? parsed : [parsed];
     return items.map((p) => ({
-      pid:     Number(p.ProcessId),
+      pid: Number(p.ProcessId),
       command: String(p.CommandLine ?? '').slice(0, 120),
-      ageMs:   typeof p.AgeMs === 'number' ? p.AgeMs : 0,
+      ageMs: typeof p.AgeMs === 'number' ? p.AgeMs : 0,
     }));
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }

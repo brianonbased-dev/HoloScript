@@ -33,7 +33,11 @@ describe('applyTransformation — filter', () => {
       evaluateCondition: vi.fn((pred: string) => pred === 'keep'),
     });
     // Setter captures current _item; condition returns true when pred === 'keep'
-    const result = await applyTransformation([1, 2, 3], makeNode('filter', { predicate: 'keep' }), ctx);
+    const result = await applyTransformation(
+      [1, 2, 3],
+      makeNode('filter', { predicate: 'keep' }),
+      ctx
+    );
     expect(result).toEqual([1, 2, 3]); // predicate always true
   });
 
@@ -56,7 +60,7 @@ describe('applyTransformation — filter', () => {
     const result = await applyTransformation(
       [1, null, 2, undefined, 3, 0, ''],
       makeNode('filter', {}),
-      ctx,
+      ctx
     );
     // null + undefined dropped; 0 and '' retained
     expect(result).toEqual([1, 2, 3, 0, '']);
@@ -104,7 +108,7 @@ describe('applyTransformation — reduce', () => {
     const resultWithReducer = await applyTransformation(
       [1, 2, 3],
       makeNode('reduce', { initial: 100, reducer: 'r' }),
-      ctx,
+      ctx
     );
     // evaluator always returns 999, so final value is 999
     expect(resultWithReducer).toBe(999);
@@ -117,11 +121,7 @@ describe('applyTransformation — reduce', () => {
     // See transformation.ts ~L91-97 (default branch hardcodes starting
     // accumulator to 0).
     const ctx = makeCtx();
-    const result = await applyTransformation(
-      [1, 2, 3],
-      makeNode('reduce', { initial: 100 }),
-      ctx,
-    );
+    const result = await applyTransformation([1, 2, 3], makeNode('reduce', { initial: 100 }), ctx);
     // Expected semantically: 100 + 1 + 2 + 3 = 106
     // Actual: 0 + 1 + 2 + 3 = 6 (initial ignored in default branch)
     expect(result).toBe(6);
@@ -146,8 +146,12 @@ describe('applyTransformation — reduce', () => {
     await applyTransformation([1, 2], makeNode('reduce', { reducer: 'r' }), ctx);
     // For each item: setVariable('_acc'), setVariable('_item'), evaluateExpression
     expect(callOrder).toEqual([
-      'set(_acc)', 'set(_item)', 'eval',
-      'set(_acc)', 'set(_item)', 'eval',
+      'set(_acc)',
+      'set(_item)',
+      'eval',
+      'set(_acc)',
+      'set(_item)',
+      'eval',
     ]);
   });
 });
@@ -161,7 +165,11 @@ describe('applyTransformation — sort', () => {
 
   it('sorts descending when `descending: true`', async () => {
     const ctx = makeCtx();
-    const result = await applyTransformation([1, 3, 2], makeNode('sort', { descending: true }), ctx);
+    const result = await applyTransformation(
+      [1, 3, 2],
+      makeNode('sort', { descending: true }),
+      ctx
+    );
     expect(result).toEqual([3, 2, 1]);
   });
 
@@ -210,7 +218,9 @@ describe('applyTransformation — unique / flatten / reverse', () => {
 
   it('flatten — flattens one level', async () => {
     const ctx = makeCtx();
-    expect(await applyTransformation([[1, 2], [3], 4], makeNode('flatten'), ctx)).toEqual([1, 2, 3, 4]);
+    expect(await applyTransformation([[1, 2], [3], 4], makeNode('flatten'), ctx)).toEqual([
+      1, 2, 3, 4,
+    ]);
   });
 
   it('reverse — reverses array order', async () => {
@@ -229,25 +239,33 @@ describe('applyTransformation — unique / flatten / reverse', () => {
 describe('applyTransformation — take / skip', () => {
   it('take — honors count', async () => {
     const ctx = makeCtx();
-    expect(await applyTransformation([1, 2, 3, 4, 5], makeNode('take', { count: 2 }), ctx)).toEqual([1, 2]);
+    expect(await applyTransformation([1, 2, 3, 4, 5], makeNode('take', { count: 2 }), ctx)).toEqual(
+      [1, 2]
+    );
   });
 
   it('take — default count is 10', async () => {
     const ctx = makeCtx();
     const twenty = Array.from({ length: 20 }, (_, i) => i);
-    expect((await applyTransformation(twenty, makeNode('take', {}), ctx) as number[]).length).toBe(10);
+    expect(
+      ((await applyTransformation(twenty, makeNode('take', {}), ctx)) as number[]).length
+    ).toBe(10);
   });
 
   it('take — 0 defaults to 10 (|| fallback on falsy)', async () => {
     const ctx = makeCtx();
     const five = [1, 2, 3, 4, 5];
-    expect((await applyTransformation(five, makeNode('take', { count: 0 }), ctx) as number[]).length).toBe(5);
+    expect(
+      ((await applyTransformation(five, makeNode('take', { count: 0 }), ctx)) as number[]).length
+    ).toBe(5);
     // count=0 coerces via Number(0)||10 → 10; but array only has 5, so slice returns all 5
   });
 
   it('skip — removes first N items', async () => {
     const ctx = makeCtx();
-    expect(await applyTransformation([1, 2, 3, 4, 5], makeNode('skip', { count: 2 }), ctx)).toEqual([3, 4, 5]);
+    expect(await applyTransformation([1, 2, 3, 4, 5], makeNode('skip', { count: 2 }), ctx)).toEqual(
+      [3, 4, 5]
+    );
   });
 
   it('skip — default count is 0', async () => {

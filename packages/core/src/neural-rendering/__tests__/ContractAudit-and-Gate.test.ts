@@ -3,7 +3,9 @@ import { buildManifest, type NeuralAssetManifest } from '../NeuralAssetManifest'
 import { auditNeuralAsset, fixedMetricsComparator } from '../ContractAudit';
 import { gateResolve } from '../NeuralRuntimeGate';
 
-async function t1Manifest(overrides: Partial<NeuralAssetManifest> = {}): Promise<NeuralAssetManifest> {
+async function t1Manifest(
+  overrides: Partial<NeuralAssetManifest> = {}
+): Promise<NeuralAssetManifest> {
   return buildManifest({
     tier: 'T1',
     representation: 'nerf',
@@ -11,7 +13,13 @@ async function t1Manifest(overrides: Partial<NeuralAssetManifest> = {}): Promise
     canonical_viewpoints: [
       {
         view_id: 'v0',
-        camera: { position: [0, 0, 5], target: [0, 0, 0], up: [0, 1, 0], fov_degrees: 60, resolution: [1024, 1024] },
+        camera: {
+          position: [0, 0, 5],
+          target: [0, 0, 0],
+          up: [0, 1, 0],
+          fov_degrees: 60,
+          resolution: [1024, 1024],
+        },
         golden_frame_hash: 'sha256:golden0',
       },
     ],
@@ -79,7 +87,12 @@ describe('NeuralRuntimeGate', () => {
   it('accepts T1 when threshold + budget pass', async () => {
     const m = await t1Manifest();
     const r = await gateResolve(
-      { manifest: m, budget: { max_latency_ms: 100 }, accept_approximate: false, observed_cost: { max_latency_ms: 50 } },
+      {
+        manifest: m,
+        budget: { max_latency_ms: 100 },
+        accept_approximate: false,
+        observed_cost: { max_latency_ms: 50 },
+      },
       fixedMetricsComparator({ v0: { view_id: 'v0', psnr: 35, ssim: 0.98, depth_l1: 0.01 } })
     );
     expect(r.decision).toBe('accept');

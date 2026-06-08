@@ -20,7 +20,10 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { ABSORB_GRAPH_RAG_ENGINE_ERROR, ABSORB_HOLO_ABSORB_REPO_HINT } from './graph-rag-prerequisite';
+import {
+  ABSORB_GRAPH_RAG_ENGINE_ERROR,
+  ABSORB_HOLO_ABSORB_REPO_HINT,
+} from './graph-rag-prerequisite';
 
 // =============================================================================
 // CONFIGURATION

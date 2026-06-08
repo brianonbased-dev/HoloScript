@@ -123,7 +123,9 @@ export async function handleVaultLeaseRoutes(
     const taskId = typeof b.taskId === 'string' ? b.taskId : '';
     const requestedAgentId = typeof b.agentId === 'string' ? b.agentId : caller.id;
     const agentTag = typeof b.agentTag === 'string' ? b.agentTag : undefined;
-    const scope = Array.isArray(b.scope) ? (b.scope as unknown[]).filter((s): s is SecretRef => typeof s === 'string') : [];
+    const scope = Array.isArray(b.scope)
+      ? (b.scope as unknown[]).filter((s): s is SecretRef => typeof s === 'string')
+      : [];
     const durationMs = typeof b.durationMs === 'number' ? b.durationMs : undefined;
 
     // Authority check: non-founder callers may only issue leases for
@@ -198,9 +200,10 @@ export async function handleVaultLeaseRoutes(
       json(res, 400, { error: 'invalid-body' });
       return true;
     }
-    const secretRef = typeof (body as Record<string, unknown>).secretRef === 'string'
-      ? (body as Record<string, string>).secretRef
-      : '';
+    const secretRef =
+      typeof (body as Record<string, unknown>).secretRef === 'string'
+        ? (body as Record<string, string>).secretRef
+        : '';
     if (!secretRef) {
       json(res, 400, { error: 'secret-ref-missing' });
       return true;
@@ -257,9 +260,10 @@ export async function handleVaultLeaseRoutes(
       json(res, 400, { error: 'invalid-body' });
       return true;
     }
-    const reasonRaw = typeof (body as Record<string, unknown>).reason === 'string'
-      ? (body as Record<string, string>).reason
-      : '';
+    const reasonRaw =
+      typeof (body as Record<string, unknown>).reason === 'string'
+        ? (body as Record<string, string>).reason
+        : '';
     if (!VALID_REVOKE_REASONS.includes(reasonRaw as RevokeReason)) {
       json(res, 400, {
         error: 'invalid-reason',
@@ -307,9 +311,7 @@ export async function handleVaultLeaseRoutes(
     const includeExpired = params.get('includeExpired') === 'true';
 
     // Non-founder: clamp agentId filter to caller. Founder: pass through.
-    const agentId = caller.isFounder
-      ? (params.get('agentId') ?? undefined)
-      : caller.id;
+    const agentId = caller.isFounder ? (params.get('agentId') ?? undefined) : caller.id;
 
     const leases = queryLeases({ taskId, agentId, includeExpired });
     json(res, 200, {
@@ -331,7 +333,11 @@ export async function handleVaultLeaseRoutes(
     const expired = sweepExpiredLeases();
     json(res, 200, {
       sweptCount: expired.length,
-      leases: expired.map((l) => ({ leaseId: l.leaseId, taskId: l.taskId, expiredAt: l.expiresAt })),
+      leases: expired.map((l) => ({
+        leaseId: l.leaseId,
+        taskId: l.taskId,
+        expiredAt: l.expiresAt,
+      })),
     });
     return true;
   }

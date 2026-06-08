@@ -13,7 +13,6 @@ export async function GET(req: NextRequest) {
   return proxyHoloMesh('/api/holomesh/teams/leaderboard', req);
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

@@ -8,13 +8,13 @@
 
 ## Quick Overview
 
-| | |
-|---|---|
-| **Tagline** | "Create and grow amazing games and real-time experiences" |
-| **Backer** | Unity Technologies (public; ticker U) |
-| **Audience** | Game devs (indie → AAA), AEC, film, automotive, education |
-| **Pricing** | Personal free (≤$200K revenue); Pro $2,040/seat/yr; Enterprise custom |
-| **Latest** | Unity 6 (2024); Runtime Fee controversy (Sept 2023) damaged trust; "revert + apology" showed fragility |
+|              |                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------ |
+| **Tagline**  | "Create and grow amazing games and real-time experiences"                                              |
+| **Backer**   | Unity Technologies (public; ticker U)                                                                  |
+| **Audience** | Game devs (indie → AAA), AEC, film, automotive, education                                              |
+| **Pricing**  | Personal free (≤$200K revenue); Pro $2,040/seat/yr; Enterprise custom                                  |
+| **Latest**   | Unity 6 (2024); Runtime Fee controversy (Sept 2023) damaged trust; "revert + apology" showed fragility |
 
 ## Their Pitch
 
@@ -35,7 +35,7 @@
 5. **Team collaboration** — Plastic SCM integration, Collaborate (deprecated but replaced), cloud project sharing. HoloScript has CRDT collab (`packages/crdt`) but no equivalent to Plastic/Git LFS large-asset workflows.
 6. **LiveOps stack** — Analytics, Remote Config, Cloud Build, Multiplay, User Reporting. Post-launch operations as SaaS. HoloScript has no comparable post-launch operations suite.
 7. **Compile target ubiquity** — 25+ platforms (console, mobile, desktop, web, XR). HoloScript has 30+ compile targets but many are beta/stubs.
-8. **Community trust (fragile)** — Runtime Fee backlash showed the community *cares* deeply; the reversal showed Unity is vulnerable to community pressure.
+8. **Community trust (fragile)** — Runtime Fee backlash showed the community _cares_ deeply; the reversal showed Unity is vulnerable to community pressure.
 
 ## Weaknesses
 
@@ -50,25 +50,25 @@
 
 ## Our Differentiators (vs Unity)
 
-| Differentiator | Why it matters | Proof |
-|---|---|---|
-| **Browser-native editor + runtime** | No install, no GPU floor, works on Chromebooks/tablets | `packages/studio/` + WebGPU runtime |
-| **`.holo` semantic source — portable, versioned, attestable** | Unity C# is locked to Unity; `.holo` compiles to 30+ targets | `packages/core/src/compilers/` |
-| **Deterministic replay + SimulationContract** | Byte-identical reproduction for V&V; Unity has no equivalent | TVCG paper + `packages/core/src/compiler/SimulationContract.ts` |
-| **Agent-native MCP at platform layer** | Unity ML-Agents is bolt-on; HoloScript MCP is first-class | `mcp.holoscript.net` |
-| **No runtime fee / no per-install tax** | Unity's pricing trauma is an open wound; we can exploit it | — |
-| **Compile to Unity C#** | We're not a replacement; we're an upstream authoring layer | `docs/archive/packages/unity-sdk.md` |
-| **Cross-domain simulation** | Unity is games-first; HoloScript is simulation-first (medical, legal, climate, molecular) | SimSci GPU solvers |
+| Differentiator                                                | Why it matters                                                                            | Proof                                                           |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Browser-native editor + runtime**                           | No install, no GPU floor, works on Chromebooks/tablets                                    | `packages/studio/` + WebGPU runtime                             |
+| **`.holo` semantic source — portable, versioned, attestable** | Unity C# is locked to Unity; `.holo` compiles to 30+ targets                              | `packages/core/src/compilers/`                                  |
+| **Deterministic replay + SimulationContract**                 | Byte-identical reproduction for V&V; Unity has no equivalent                              | TVCG paper + `packages/core/src/compiler/SimulationContract.ts` |
+| **Agent-native MCP at platform layer**                        | Unity ML-Agents is bolt-on; HoloScript MCP is first-class                                 | `mcp.holoscript.net`                                            |
+| **No runtime fee / no per-install tax**                       | Unity's pricing trauma is an open wound; we can exploit it                                | —                                                               |
+| **Compile to Unity C#**                                       | We're not a replacement; we're an upstream authoring layer                                | `docs/archive/packages/unity-sdk.md`                            |
+| **Cross-domain simulation**                                   | Unity is games-first; HoloScript is simulation-first (medical, legal, climate, molecular) | SimSci GPU solvers                                              |
 
 ## Objection Handling
 
-| Prospect says... | Respond with... |
-|---|---|
-| "Unity has the Asset Store" | "For pre-made 3D models and shaders, yes. For verifiable simulation contracts, agent-native behavior, and cross-domain digital twins — no. Different problem, different store." |
-| "Our team already knows Unity" | "HoloScript compiles to Unity C#. You can keep your runtime and pipeline; we just replace the authoring layer with something portable and agent-native." |
-| "Unity's profiler is essential" | "For real-time CPU/GPU profiling, Unity's is ahead. We're building profiler parity in `packages/benchmark`. If you need profiling today, profile in Unity after compiling from `.holo`." |
-| "Unity Learn has everything we need" | "For game development, yes. For spatial simulation, agent governance, and verifiable digital twins — there's no Unity course because Unity doesn't do that." |
-| "Unity has LiveOps" | "For post-launch game operations, Unity's stack is mature. We don't compete there yet. If your need is pre-launch simulation validation, we have something Unity doesn't." |
+| Prospect says...                     | Respond with...                                                                                                                                                                          |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Unity has the Asset Store"          | "For pre-made 3D models and shaders, yes. For verifiable simulation contracts, agent-native behavior, and cross-domain digital twins — no. Different problem, different store."          |
+| "Our team already knows Unity"       | "HoloScript compiles to Unity C#. You can keep your runtime and pipeline; we just replace the authoring layer with something portable and agent-native."                                 |
+| "Unity's profiler is essential"      | "For real-time CPU/GPU profiling, Unity's is ahead. We're building profiler parity in `packages/benchmark`. If you need profiling today, profile in Unity after compiling from `.holo`." |
+| "Unity Learn has everything we need" | "For game development, yes. For spatial simulation, agent governance, and verifiable digital twins — there's no Unity course because Unity doesn't do that."                             |
+| "Unity has LiveOps"                  | "For post-launch game operations, Unity's stack is mature. We don't compete there yet. If your need is pre-launch simulation validation, we have something Unity doesn't."               |
 
 ## Landmines to Set
 
@@ -113,14 +113,14 @@
 
 ## Gap Analysis — Editor / Asset / Learn / Profile / Collab / LiveOps
 
-| Dimension | Unity State | HoloScript State | Gap Severity | ETA |
-|---|---|---|---|---|
-| **Editor maturity** | 20 years, industry benchmark | Beta Studio, 2 years | 🔴 High | 12-18 mo |
-| **Asset Store** | 70K assets, network effect | No marketplace at scale | 🔴 High | 24-36 mo |
-| **Learning platform** | Unity Learn + certifications | Docs + video-tutorials package | 🟠 Medium-High | 12-18 mo |
-| **Profiler** | CPU/GPU/memory/audio/network | `benchmark` + `comparative-benchmarks` | 🟠 Medium-High | 6-12 mo |
-| **Collaboration** | Plastic SCM + cloud projects | CRDT collab (`packages/crdt`) | 🟡 Medium | 6-9 mo |
-| **LiveOps** | Analytics, Remote Config, Cloud Build, Multiplay | No equivalent | 🔴 High | 36+ mo |
+| Dimension             | Unity State                                      | HoloScript State                       | Gap Severity   | ETA      |
+| --------------------- | ------------------------------------------------ | -------------------------------------- | -------------- | -------- |
+| **Editor maturity**   | 20 years, industry benchmark                     | Beta Studio, 2 years                   | 🔴 High        | 12-18 mo |
+| **Asset Store**       | 70K assets, network effect                       | No marketplace at scale                | 🔴 High        | 24-36 mo |
+| **Learning platform** | Unity Learn + certifications                     | Docs + video-tutorials package         | 🟠 Medium-High | 12-18 mo |
+| **Profiler**          | CPU/GPU/memory/audio/network                     | `benchmark` + `comparative-benchmarks` | 🟠 Medium-High | 6-12 mo  |
+| **Collaboration**     | Plastic SCM + cloud projects                     | CRDT collab (`packages/crdt`)          | 🟡 Medium      | 6-9 mo   |
+| **LiveOps**           | Analytics, Remote Config, Cloud Build, Multiplay | No equivalent                          | 🔴 High        | 36+ mo   |
 
 **Conclusion:** HoloScript should not attempt to match Unity's full ecosystem breadth. Instead, lead with differentiation (simulation-first, deterministic replay, agent-native, browser-native) and build ecosystem depth selectively in verticals where Unity has no presence.
 

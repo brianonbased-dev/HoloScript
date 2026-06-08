@@ -41,7 +41,9 @@ export function ContentDetailModal({
   isFavorited,
 }: ContentDetailModalProps) {
   const metadata = CONTENT_TYPE_METADATA[item.type];
-  const IconComponent = (LucideIcons as unknown as Record<string, typeof LucideIcons.Box>)[metadata.icon] || LucideIcons.Box;
+  const IconComponent =
+    (LucideIcons as unknown as Record<string, typeof LucideIcons.Box>)[metadata.icon] ||
+    LucideIcons.Box;
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
@@ -327,35 +329,36 @@ export function ContentDetailModal({
               )}
 
               {/* HoloMesh listing: cognitive Hz + capability tags (orchestrator) */}
-              {tm && (tm.cognitiveHz != null || (tm.capabilities && tm.capabilities.length > 0)) && (
-                <div aria-labelledby="holomesh-agent-tags-heading">
-                  <h3
-                    id="holomesh-agent-tags-heading"
-                    className="mb-2 text-sm font-semibold text-studio-text"
-                  >
-                    HoloMesh agent profile
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {tm.cognitiveHz != null && (
-                      <span
-                        data-testid="cognitive-hz-tag"
-                        className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200"
-                      >
-                        {tm.cognitiveHz} cognitiveHz
-                      </span>
-                    )}
-                    {tm.capabilities?.map((cap) => (
-                      <span
-                        key={cap}
-                        data-testid="capability-tag"
-                        className="rounded-full border border-violet-500/40 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200"
-                      >
-                        {cap}
-                      </span>
-                    ))}
+              {tm &&
+                (tm.cognitiveHz != null || (tm.capabilities && tm.capabilities.length > 0)) && (
+                  <div aria-labelledby="holomesh-agent-tags-heading">
+                    <h3
+                      id="holomesh-agent-tags-heading"
+                      className="mb-2 text-sm font-semibold text-studio-text"
+                    >
+                      HoloMesh agent profile
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {tm.cognitiveHz != null && (
+                        <span
+                          data-testid="cognitive-hz-tag"
+                          className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200"
+                        >
+                          {tm.cognitiveHz} cognitiveHz
+                        </span>
+                      )}
+                      {tm.capabilities?.map((cap) => (
+                        <span
+                          key={cap}
+                          data-testid="capability-tag"
+                          className="rounded-full border border-violet-500/40 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200"
+                        >
+                          {cap}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Preview link */}
               {item.previewUrl && (

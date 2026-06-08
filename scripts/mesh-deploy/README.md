@@ -17,12 +17,12 @@ v2.0.0 (commit `64c8ccfe0`). Closes the gap between "31 GPUs running" and
 
 ## Files
 
-| File | Purpose |
-|---|---|
-| `bootstrap-agent.sh` | Runs ON each instance. Installs node, clones repo, builds agent, starts daemon. Idempotent. |
-| `agents-template.json` | Schema for per-agent identity (handle, brain, provider, model, wallet env key, bearer env key). Founder fills in. |
-| `Deploy-MeshAgents.ps1` | Founder runs LOCALLY. Parallel-SSHes bootstrap.sh to each instance with composed env vars. |
-| `README.md` | This file. |
+| File                    | Purpose                                                                                                           |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `bootstrap-agent.sh`    | Runs ON each instance. Installs node, clones repo, builds agent, starts daemon. Idempotent.                       |
+| `agents-template.json`  | Schema for per-agent identity (handle, brain, provider, model, wallet env key, bearer env key). Founder fills in. |
+| `Deploy-MeshAgents.ps1` | Founder runs LOCALLY. Parallel-SSHes bootstrap.sh to each instance with composed env vars.                        |
+| `README.md`             | This file.                                                                                                        |
 
 ---
 
@@ -38,6 +38,7 @@ Per F.001, F.002, F.027 — the things that ONLY the founder can do:
      keys; never let an agent auto-generate them.
    - Tooling: `cast wallet new` (foundry) or `python -c "from eth_account import Account; ..."`.
 3. **Populate identity env vars** in `HoloScript/.env` (the SSOT per F.012):
+
    ```
    HOLOMESH_TEAM_ID=team_1775935947314_f0noxi
    HOLOSCRIPT_AGENT_WALLET_H200=0x...
@@ -46,6 +47,7 @@ Per F.001, F.002, F.027 — the things that ONLY the founder can do:
    HOLOSCRIPT_AGENT_X402_BEARER_TI1=...
    ... (one pair per agent in agents.json)
    ```
+
    `.env` is gitignored — verified clean per F.001 pre-commit guard.
 
 4. **Author or copy `agents.json`** from `agents-template.json`.
@@ -98,12 +100,14 @@ For each successfully bootstrapped instance:
 ## What this WILL and WON'T do for the 31-instance burn
 
 **WILL**:
+
 - Convert idle instance burn ($8.13/hr) into actual mesh work.
 - Each agent claims real board tasks; done-log records measurable output.
 - Local-LLM agents incur $0 LLM cost (just compute burn that you're already paying for).
 - Mock-provider agents validate runtime + identity flow at $0 LLM cost.
 
 **WON'T**:
+
 - Auto-provision wallets or x402 seats (founder authority — F.001/F.002).
 - Self-fund LLM API credits (founder owns ANTHROPIC_API_KEY etc.).
 - Deploy to instances marked `enabled: false` in agents.json.

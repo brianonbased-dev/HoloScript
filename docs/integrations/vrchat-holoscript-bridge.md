@@ -13,6 +13,7 @@ VRChat worlds, avatars, social graphs, and physics events → `.holo` compositio
 VRChat is currently the highest-signal social/embodied platform (149k+ CCU peaks, massive user-generated content, real social physics). It is one of the best sources of rich, noisy, multi-agent trajectory data in existence.
 
 Bringing it into HoloScript gives:
+
 - A huge corpus of social physics for Paper 26 JEPA training (far richer than synthetic ROS 2 trajectories alone).
 - A way to import popular worlds/avatars into HoloLand as first-class, receipt-anchored digital twins.
 - A bidirectional on-ramp for the millions of VRChat creators who want to move their work into a sovereign, receipt-based substrate without losing their existing audience.
@@ -39,6 +40,7 @@ hs import-vrchat \
 ```
 
 Produces:
+
 - Scene graph as HoloScript entities + transforms
 - Avatars as rigged characters with trait bundles
 - Social interactions (proximity, voice, gestures) as time-series traits
@@ -47,19 +49,20 @@ Produces:
 
 ## Step 2: Map VRChat Events to HoloScript Traits
 
-| VRChat Event                  | HoloScript Trait / Event          | Notes |
-|-------------------------------|-----------------------------------|-------|
-| Player join / leave           | `agent_spawn`, `agent_despawn`    | Identity via VRChat user ID |
-| Locomotion / IK               | `pose_stream` + `locomotion`      | Perfect for JEPA world models |
-| Voice / gesture               | `social_intent`, `expression`     | Rich conditioning for NPCs |
-| Object pickup / placement     | `interaction_event`               | Physics + intent data |
-| World state changes           | `property_update` + `graph_delta` | For live twin syncing |
+| VRChat Event              | HoloScript Trait / Event          | Notes                         |
+| ------------------------- | --------------------------------- | ----------------------------- |
+| Player join / leave       | `agent_spawn`, `agent_despawn`    | Identity via VRChat user ID   |
+| Locomotion / IK           | `pose_stream` + `locomotion`      | Perfect for JEPA world models |
+| Voice / gesture           | `social_intent`, `expression`     | Rich conditioning for NPCs    |
+| Object pickup / placement | `interaction_event`               | Physics + intent data         |
+| World state changes       | `property_update` + `graph_delta` | For live twin syncing         |
 
 A small bridge service (or Udon script + webhook) can emit these as signed HoloScript events with embedded receipts.
 
 ## Step 3: Receipt-Anchored Social World Model
 
 Every imported world or session produces a `WorldModelReceipt` that can be:
+
 - Published to the creator's public HoloMesh profile (D.055)
 - Used as training corpus for JEPA models that learn social physics
 - Re-compiled into HoloLand for high-fidelity, provenance-tracked versions of popular VRChat spaces

@@ -77,7 +77,9 @@ if (UPDATE) {
   manifest.stableFailures.count = updated.length;
   manifest.stableFailures.tests = updated;
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
-  console.error(`[baseline-gate] --update: wrote ${updated.length} stable failures to test-baseline.json`);
+  console.error(
+    `[baseline-gate] --update: wrote ${updated.length} stable failures to test-baseline.json`
+  );
   process.exit(0);
 }
 
@@ -94,5 +96,7 @@ if (newFailures.length > 0) {
   process.exit(1);
 }
 
-console.error('\n[baseline-gate] OK — no failures outside the captured baseline (no new regressions).');
+console.error(
+  '\n[baseline-gate] OK — no failures outside the captured baseline (no new regressions).'
+);
 process.exit(0);

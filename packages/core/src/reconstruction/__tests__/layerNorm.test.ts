@@ -27,7 +27,7 @@ function layerNormCpu(
   beta: Float32Array,
   rows: number,
   dModel: number,
-  eps = 1e-5,
+  eps = 1e-5
 ): Float32Array {
   const out = new Float32Array(input.length);
 

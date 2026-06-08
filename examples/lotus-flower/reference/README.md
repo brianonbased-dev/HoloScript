@@ -5,11 +5,11 @@ provenance contract.
 
 ## Expected images
 
-| # | Role | Description | Anchor ID |
-|---|------|-------------|-----------|
-| 1 | `material` | Open pink lotus close-up | `lotus-reference-2026-05-06-01` |
-| 2 | `silhouette` | Upright pink lotus silhouette | `lotus-reference-2026-05-06-02` |
-| 3 | `leaf_context` | Pink lotus with leaves and water context | `lotus-reference-2026-05-06-03` |
+| #   | Role           | Description                              | Anchor ID                       |
+| --- | -------------- | ---------------------------------------- | ------------------------------- |
+| 1   | `material`     | Open pink lotus close-up                 | `lotus-reference-2026-05-06-01` |
+| 2   | `silhouette`   | Upright pink lotus silhouette            | `lotus-reference-2026-05-06-02` |
+| 3   | `leaf_context` | Pink lotus with leaves and water context | `lotus-reference-2026-05-06-03` |
 
 ## Supplemental local evidence
 

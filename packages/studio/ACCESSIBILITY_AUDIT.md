@@ -3,7 +3,7 @@
 **Date:** 2026-04-20  
 **Standard:** WCAG 2.1 AA  
 **Scope:** `packages/studio/src/`  
-**Method:** Manual audit + automated grep scanning  
+**Method:** Manual audit + automated grep scanning
 
 ---
 
@@ -17,11 +17,11 @@ All critical WCAG 2.1 AA violations have been remediated. The Studio UI now meet
 
 All custom Tailwind/CSS variable color pairs pass WCAG AA (4.5:1 for normal text, 3:1 for large/UI):
 
-| Foreground | Background | Ratio | Result |
-|---|---|---|---|
-| `--studio-text` (#e4e4e7) | `--studio-panel` (#1a1a2e) | ~13.8:1 | ✅ AAA |
-| `--studio-muted` (#71717a) | `--studio-panel` (#1a1a2e) | ~4.6:1 | ✅ AA |
-| `--studio-accent` (#3b82f6) | `--studio-bg` (#0d0d14) | ~5.2:1 | ✅ AA |
+| Foreground                  | Background                 | Ratio   | Result |
+| --------------------------- | -------------------------- | ------- | ------ |
+| `--studio-text` (#e4e4e7)   | `--studio-panel` (#1a1a2e) | ~13.8:1 | ✅ AAA |
+| `--studio-muted` (#71717a)  | `--studio-panel` (#1a1a2e) | ~4.6:1  | ✅ AA  |
+| `--studio-accent` (#3b82f6) | `--studio-bg` (#0d0d14)    | ~5.2:1  | ✅ AA  |
 
 ---
 
@@ -54,41 +54,45 @@ This restores a visible 2px blue focus ring on all interactive form elements reg
 **Fix:** Added explicit `id`/`htmlFor` pairs to every form field across all four forms.
 
 #### `app/workspace/traits/new/page.tsx`
-| Field | Element ID |
-|---|---|
-| Trait ID | `trait-id` |
-| Display Name | `trait-name` |
-| Category | `trait-category` |
-| Description | `trait-description` |
+
+| Field        | Element ID          |
+| ------------ | ------------------- |
+| Trait ID     | `trait-id`          |
+| Display Name | `trait-name`        |
+| Category     | `trait-category`    |
+| Description  | `trait-description` |
 
 #### `app/workspace/templates/new/page.tsx`
-| Field | Element ID |
-|---|---|
-| Template ID | `template-id` |
-| Display Name | `template-name` |
-| Version | `template-version` |
-| Template Type | `template-type` |
-| Description | `template-description` |
+
+| Field              | Element ID                                  |
+| ------------------ | ------------------------------------------- |
+| Template ID        | `template-id`                               |
+| Display Name       | `template-name`                             |
+| Version            | `template-version`                          |
+| Template Type      | `template-type`                             |
+| Description        | `template-description`                      |
 | Is Public checkbox | `isPublic` (pre-existing, no change needed) |
 
 #### `app/workspace/plugins/new/page.tsx`
-| Field | Element ID |
-|---|---|
-| Plugin ID | `plugin-id` |
-| Display Name | `plugin-name` |
-| Version | `plugin-version` |
-| Author | `plugin-author` |
-| Entry Point | `plugin-entrypoint` |
-| Description | `plugin-description` |
+
+| Field        | Element ID           |
+| ------------ | -------------------- |
+| Plugin ID    | `plugin-id`          |
+| Display Name | `plugin-name`        |
+| Version      | `plugin-version`     |
+| Author       | `plugin-author`      |
+| Entry Point  | `plugin-entrypoint`  |
+| Description  | `plugin-description` |
 
 #### `app/workspace/agents/new/page.tsx`
-| Field | Element ID |
-|---|---|
-| Agent ID | `agent-id` |
-| Human-Readable Name | `agent-name` |
-| Version | `agent-version` |
-| Trust Profile | `agent-trust` |
-| Description | `agent-description` |
+
+| Field               | Element ID          |
+| ------------------- | ------------------- |
+| Agent ID            | `agent-id`          |
+| Human-Readable Name | `agent-name`        |
+| Version             | `agent-version`     |
+| Trust Profile       | `agent-trust`       |
+| Description         | `agent-description` |
 
 ---
 
@@ -97,12 +101,15 @@ This restores a visible 2px blue focus ring on all interactive form elements reg
 **Issue (WCAG SC 1.3.1, 4.1.2):** Two industry demo components contained `<input type="range">` elements with no accessible label or ARIA attributes, making them unusable by screen readers and keyboard-only users.
 
 #### `industry/scenarios/UniversalCompilerDashboard.tsx`
+
 Added: `id="ast-nodes"`, `aria-label="AST node count"`, `aria-valuenow={nodes}`, `aria-valuemin={100}`, `aria-valuemax={10000}`
 
 #### `industry/scenarios/SandboxAuditorPanel.tsx`
+
 Added: `aria-label="Trust level"`, `aria-valuenow={trustLevel}`, `aria-valuemin={0}`, `aria-valuemax={100}`
 
 #### `components/inspector/SliderUI.tsx` (`PBRSlider`)
+
 Added: `aria-label={label}`, `aria-valuenow={value}`, `aria-valuemin={min}`, `aria-valuemax={max}` to the underlying range input. The visible label text is already rendered in the component via the `label` prop.
 
 ---
@@ -112,7 +119,9 @@ Added: `aria-label={label}`, `aria-valuenow={value}`, `aria-valuemin={min}`, `ar
 **Issue (WCAG SC 2.1.1):** Multiple components used `<div onClick>` patterns for interactive controls with no keyboard equivalent (`role`, `tabIndex`, `onKeyDown`), making them inaccessible to keyboard-only users.
 
 #### `industry/scenarios/SpaceMissionPanel.tsx`
+
 Clickable celestial body selector cards (Origin and Destination grids) now have:
+
 - `role="button"`
 - `tabIndex={0}`
 - `aria-pressed={key === origin/destination}`
@@ -120,7 +129,9 @@ Clickable celestial body selector cards (Origin and Destination grids) now have:
 - `onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setOrigin/setDestination(key)}`
 
 #### `industry/scenarios/MusicStudioPanel.tsx`
+
 Piano key divs now have:
+
 - `role="button"`
 - `tabIndex={0}`
 - `aria-label={n}` (note name)
@@ -128,7 +139,9 @@ Piano key divs now have:
 - `onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setNote(n)}`
 
 #### `components/inspector/SliderUI.tsx`
+
 The inline value edit span now has:
+
 - `role="button"`
 - `tabIndex={0}`
 - `onKeyDown={(e) => e.key === 'Enter' && startEdit()}`

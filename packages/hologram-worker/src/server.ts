@@ -100,7 +100,10 @@ function clientIp(req: import('node:http').IncomingMessage): string {
   return raw.replace(/^::ffff:/, '');
 }
 
-async function handleProviderRoute(route: string, body: RenderBody): Promise<Record<string, unknown>> {
+async function handleProviderRoute(
+  route: string,
+  body: RenderBody
+): Promise<Record<string, unknown>> {
   const media = await loadMediaBytes(body);
   const sourceKind = parseSourceKind(body.mediaType);
 
@@ -274,7 +277,7 @@ const server = createServer(async (req, res) => {
           quiltUrl: publicBase
             ? `${publicBase.replace(/\/$/, '')}/api/hologram/${hash}/quilt.png`
             : '',
-        }),
+        })
       );
     } finally {
       await coord.dispose();

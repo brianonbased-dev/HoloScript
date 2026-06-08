@@ -151,12 +151,9 @@ describe('structured JSON logging', () => {
 });
 
 describe('withMcpToolExecutionSpan metrics integration', () => {
-  it(
-    'records per-tool request and emits start+end logs',
-    async () => {
-    const { withMcpToolExecutionSpan, resetMcpOtelRegistrationFlagForTests } = await import(
-      '../telemetry/mcp-tool-tracing'
-    );
+  it('records per-tool request and emits start+end logs', async () => {
+    const { withMcpToolExecutionSpan, resetMcpOtelRegistrationFlagForTests } =
+      await import('../telemetry/mcp-tool-tracing');
     const logs: McpStructuredLog[] = [];
     setMcpLogSink((e) => logs.push(e));
     delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
@@ -182,7 +179,5 @@ describe('withMcpToolExecutionSpan metrics integration', () => {
     expect(startLog?.correlation_id).toBe(endLog?.correlation_id);
     expect(endLog?.latency_ms).toBeGreaterThanOrEqual(0);
     expect(endLog?.error).toBe(false);
-    },
-    20_000,
-  );
+  }, 20_000);
 });

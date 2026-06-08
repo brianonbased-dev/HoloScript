@@ -3,7 +3,7 @@ import { createMockNode, createMockContext, attachTrait, updateTrait } from './t
 
 // Mock KeplerianCalculator
 vi.mock('@holoscript/engine/orbital', () => ({
-  calculatePosition: vi.fn(() => ([1.0, 0.5, 0.2 ])),
+  calculatePosition: vi.fn(() => [1.0, 0.5, 0.2]),
 }));
 
 // Mock logger

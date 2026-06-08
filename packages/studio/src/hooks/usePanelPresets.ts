@@ -46,7 +46,9 @@ function savePresets(presets: PanelPreset[]) {
     if (typeof window === 'undefined') return;
     const custom = presets.filter((p) => !BUILT_IN_PRESETS.some((b) => b.name === p.name));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(custom));
-  } catch (err) { logger.warn('[usePanelPresets] saving presets to localStorage failed:', err); }
+  } catch (err) {
+    logger.warn('[usePanelPresets] saving presets to localStorage failed:', err);
+  }
 }
 
 export interface UsePanelPresetsReturn {

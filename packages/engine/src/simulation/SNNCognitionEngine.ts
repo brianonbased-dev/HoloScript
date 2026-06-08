@@ -38,11 +38,7 @@ import {
   DEFAULT_LIF_PARAMS,
   type LIFParams,
 } from '@holoscript/snn-webgpu';
-import type {
-  CAELCognitionEngine,
-  CognitionSnapshot,
-  SensorReading,
-} from './CAELAgent';
+import type { CAELCognitionEngine, CognitionSnapshot, SensorReading } from './CAELAgent';
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -92,7 +88,7 @@ function deriveGoalStack(
   spikeCount: number,
   totalNeurons: number,
   totalSteps: number,
-  avgSignal: number,
+  avgSignal: number
 ): CognitionSnapshot['goalStack'] {
   const firingRate = totalSteps > 0 ? spikeCount / (totalNeurons * totalSteps) : 0;
 
@@ -157,7 +153,10 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
       this.sim = webgpuSim;
       this.isInitialized = true;
     } catch (e) {
-      console.warn('[SNNCognitionEngine] Failed to initialize WebGPU LIFSimulator, falling back to CPUReferenceSimulator:', e);
+      console.warn(
+        '[SNNCognitionEngine] Failed to initialize WebGPU LIFSimulator, falling back to CPUReferenceSimulator:',
+        e
+      );
     }
   }
 
@@ -168,9 +167,7 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
     const backend = this.sim instanceof LIFSimulator ? 'webgpu' : 'cpu-reference';
 
     // Number of LIF timesteps to run for this agent tick
-    const steps =
-      this.stepsPerTickOverride ??
-      Math.max(1, Math.round((dt * 1000) / this.lifDt));
+    const steps = this.stepsPerTickOverride ?? Math.max(1, Math.round((dt * 1000) / this.lifDt));
 
     const allSpikes: Array<{ neuronIndex: number; timestampMs: number; population: string }> = [];
     let totalSpikeCount = 0;
@@ -186,12 +183,12 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
       // Based on WebGPU LIF, index matches neuron id.
       for (let i = 0; i < spikesResult.data.length; i++) {
         if (spikesResult.data[i] > 0) {
-           allSpikes.push({
-             neuronIndex: i,
-             timestampMs: spikesResult.data[i], // Assumes buffer holds time or just >0 for a spike
-             population: this.population
-           });
-           totalSpikeCount++;
+          allSpikes.push({
+            neuronIndex: i,
+            timestampMs: spikesResult.data[i], // Assumes buffer holds time or just >0 for a spike
+            population: this.population,
+          });
+          totalSpikeCount++;
         }
       }
     } else {
@@ -212,17 +209,14 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
       }
     }
 
-    const membraneVoltages = this.sim instanceof CPUReferenceSimulator ? this.sim.getMembraneV() : new Float32Array();
-    const avgSignal = inputCurrents.length > 0
-      ? inputCurrents.reduce((a, b) => a + b, 0) / inputCurrents.length / this.inputScalemV
-      : 0;
+    const membraneVoltages =
+      this.sim instanceof CPUReferenceSimulator ? this.sim.getMembraneV() : new Float32Array();
+    const avgSignal =
+      inputCurrents.length > 0
+        ? inputCurrents.reduce((a, b) => a + b, 0) / inputCurrents.length / this.inputScalemV
+        : 0;
 
-    const goalStack = deriveGoalStack(
-      totalSpikeCount,
-      this.neuronCount,
-      steps,
-      avgSignal,
-    );
+    const goalStack = deriveGoalStack(totalSpikeCount, this.neuronCount, steps, avgSignal);
 
     return {
       spikes: allSpikes,
@@ -237,9 +231,8 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
       extra: {
         avgSignalNorm: Number(avgSignal.toFixed(6)),
         stepsPerTick: steps,
-        firingRate: steps > 0
-          ? Number((totalSpikeCount / (this.neuronCount * steps)).toFixed(6))
-          : 0,
+        firingRate:
+          steps > 0 ? Number((totalSpikeCount / (this.neuronCount * steps)).toFixed(6)) : 0,
         lifBackend: backend,
         lifDtMs: this.lifDt,
       },
@@ -262,9 +255,7 @@ export class SNNCognitionEngine implements CAELCognitionEngine {
       activePlan: snapshot.activePlan,
       // Membrane voltages (first 32 neurons for trace compactness)
       membraneVoltagesSample: snapshot.membraneVoltages
-        ? Array.from(snapshot.membraneVoltages.slice(0, 32), (v) =>
-            Number(v.toFixed(4)),
-          )
+        ? Array.from(snapshot.membraneVoltages.slice(0, 32), (v) => Number(v.toFixed(4)))
         : undefined,
       extra: snapshot.extra,
     };

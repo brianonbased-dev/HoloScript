@@ -109,7 +109,10 @@ function layoutDAG(nodes: SceneNode[]): { nodes: LayoutNode[]; edges: LayoutEdge
       layerMap.get(depth)!.push(ln);
 
       // Recurse into children
-      if ('children' in node && Array.isArray((node as unknown as { children?: unknown }).children)) {
+      if (
+        'children' in node &&
+        Array.isArray((node as unknown as { children?: unknown }).children)
+      ) {
         traverse((node as unknown as { children: SceneNode[] }).children, depth + 1, node.id);
       }
     }

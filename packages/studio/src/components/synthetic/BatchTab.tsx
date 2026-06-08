@@ -5,7 +5,7 @@ import { FORMAT_INFO } from './constants';
 interface BatchTabProps {
   batch: BatchConfig;
   setBatch: React.Dispatch<React.SetStateAction<BatchConfig>>;
-  splitSummary: { train: number; val: number; test: number; };
+  splitSummary: { train: number; val: number; test: number };
 }
 
 export function BatchTab({ batch, setBatch, splitSummary }: BatchTabProps) {
@@ -39,9 +39,7 @@ export function BatchTab({ batch, setBatch, splitSummary }: BatchTabProps) {
       <div>
         <div className="flex justify-between text-[10px]">
           <span className="text-studio-muted">Total Images</span>
-          <span className="text-studio-text font-mono">
-            {batch.totalImages.toLocaleString()}
-          </span>
+          <span className="text-studio-text font-mono">{batch.totalImages.toLocaleString()}</span>
         </div>
         <input
           type="range"
@@ -49,9 +47,7 @@ export function BatchTab({ batch, setBatch, splitSummary }: BatchTabProps) {
           max="50000"
           step="100"
           value={batch.totalImages}
-          onChange={(e) =>
-            setBatch((prev) => ({ ...prev, totalImages: parseInt(e.target.value) }))
-          }
+          onChange={(e) => setBatch((prev) => ({ ...prev, totalImages: parseInt(e.target.value) }))}
           className="w-full accent-studio-accent h-1"
         />
       </div>
@@ -99,9 +95,7 @@ export function BatchTab({ batch, setBatch, splitSummary }: BatchTabProps) {
         <div className="text-[10px] text-studio-muted mb-1">Data Splits</div>
         <div className="grid grid-cols-3 gap-1 text-[10px]">
           <div className="text-center">
-            <div className="text-emerald-400 font-mono">
-              {(batch.trainSplit * 100).toFixed(0)}%
-            </div>
+            <div className="text-emerald-400 font-mono">{(batch.trainSplit * 100).toFixed(0)}%</div>
             <div className="text-studio-muted">Train ({splitSummary.train})</div>
           </div>
           <div className="text-center">
@@ -142,9 +136,7 @@ export function BatchTab({ batch, setBatch, splitSummary }: BatchTabProps) {
         <input
           type="number"
           value={batch.seed}
-          onChange={(e) =>
-            setBatch((prev) => ({ ...prev, seed: parseInt(e.target.value) || 0 }))
-          }
+          onChange={(e) => setBatch((prev) => ({ ...prev, seed: parseInt(e.target.value) || 0 }))}
           className="w-20 bg-studio-panel/30 text-studio-text rounded px-2 py-1 text-[10px] outline-none font-mono"
         />
       </div>

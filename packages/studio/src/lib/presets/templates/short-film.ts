@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-short-film",
-  name: "Short Film Set",
-  description: "Cinematic set with camera positions, key lighting, and backdrop",
-  thumbnail: "🎥",
-  tags: ["film","cinematic","camera","lighting"],
-  category: "film",
+  id: 'wizard-short-film',
+  name: 'Short Film Set',
+  description: 'Cinematic set with camera positions, key lighting, and backdrop',
+  thumbnail: '🎥',
+  tags: ['film', 'cinematic', 'camera', 'lighting'],
+  category: 'film',
   code: `composition "Short Film Set" {
   environment {
     skybox: "sunset"
@@ -81,7 +81,7 @@ export const template: SceneTemplate = {
     position: [1, 1.5, 2]
     rotation: [-5, -10, 0]
   }
-}`
+}`,
 };
 
 export default template;

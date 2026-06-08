@@ -36,7 +36,14 @@ function setup(configOverrides: Record<string, unknown> = {}) {
   return { node, config, context, emitted };
 }
 
-function exec(node: RLNode, config: any, context: TraitContext, action = 'do_work', key?: string, params: Record<string, unknown> = {}) {
+function exec(
+  node: RLNode,
+  config: any,
+  context: TraitContext,
+  action = 'do_work',
+  key?: string,
+  params: Record<string, unknown> = {}
+) {
   rateLimiterHandler.onEvent?.(node, config, context, {
     type: 'rate_limiter:execute',
     payload: { action, key, params },
@@ -93,15 +100,15 @@ describe('token bucket behavior', () => {
 
     exec(node, config, context, 'act', 'k1', { x: 1 });
 
-    expect(emitted.some(e => e.type === 'rate_limiter:allowed')).toBe(true);
-    expect(emitted.some(e => e.type === 'act')).toBe(true);
+    expect(emitted.some((e) => e.type === 'rate_limiter:allowed')).toBe(true);
+    expect(emitted.some((e) => e.type === 'act')).toBe(true);
     expect(node.__rateLimiterState?.totalAllowed).toBe(1);
   });
 
   it('forwards action payload with __rateLimitKey', () => {
     const { node, config, context, emitted } = setup({ strategy: 'token_bucket' });
     exec(node, config, context, 'perform', 'tenantA', { foo: 'bar' });
-    const ev = emitted.find(e => e.type === 'perform');
+    const ev = emitted.find((e) => e.type === 'perform');
     expect((ev?.payload as any).foo).toBe('bar');
     expect((ev?.payload as any).__rateLimitKey).toBe('tenantA');
   });
@@ -118,7 +125,7 @@ describe('token bucket behavior', () => {
     exec(node, config, context, 'a1', 'k1');
     exec(node, config, context, 'a2', 'k1');
 
-    expect(emitted.some(e => e.type === 'rate_limiter:rejected')).toBe(true);
+    expect(emitted.some((e) => e.type === 'rate_limiter:rejected')).toBe(true);
     expect(node.__rateLimiterState?.totalRejected).toBe(1);
   });
 
@@ -140,7 +147,7 @@ describe('token bucket behavior', () => {
     rateLimiterHandler.onUpdate?.(node, config, context, 0.016);
 
     bucket = node.__rateLimiterState?.buckets.get('k1');
-    expect((bucket?.tokens ?? 0)).toBeGreaterThanOrEqual(1);
+    expect(bucket?.tokens ?? 0).toBeGreaterThanOrEqual(1);
   });
 
   it('refill does not exceed max_tokens', () => {
@@ -156,7 +163,7 @@ describe('token bucket behavior', () => {
     rateLimiterHandler.onUpdate?.(node, config, context, 0.016);
 
     const bucket = node.__rateLimiterState?.buckets.get('k1');
-    expect((bucket?.tokens ?? 0)).toBeLessThanOrEqual(3);
+    expect(bucket?.tokens ?? 0).toBeLessThanOrEqual(3);
   });
 
   it('uses default_key when key omitted', () => {
@@ -182,8 +189,8 @@ describe('sliding window behavior', () => {
     exec(node, config, context, 'a2', 'k1');
     exec(node, config, context, 'a3', 'k1');
 
-    const allowedCount = emitted.filter(e => e.type === 'rate_limiter:allowed').length;
-    const rejectedCount = emitted.filter(e => e.type === 'rate_limiter:rejected').length;
+    const allowedCount = emitted.filter((e) => e.type === 'rate_limiter:allowed').length;
+    const rejectedCount = emitted.filter((e) => e.type === 'rate_limiter:rejected').length;
     expect(allowedCount).toBe(2);
     expect(rejectedCount).toBe(1);
   });
@@ -197,14 +204,14 @@ describe('sliding window behavior', () => {
 
     exec(node, config, context, 'a1', 'k1');
     exec(node, config, context, 'a2', 'k1'); // rejected
-    expect(emitted.some(e => e.type === 'rate_limiter:rejected')).toBe(true);
+    expect(emitted.some((e) => e.type === 'rate_limiter:rejected')).toBe(true);
 
     vi.advanceTimersByTime(1001);
     rateLimiterHandler.onUpdate?.(node, config, context, 0.016);
 
     emitted.length = 0;
     exec(node, config, context, 'a3', 'k1');
-    expect(emitted.some(e => e.type === 'rate_limiter:allowed')).toBe(true);
+    expect(emitted.some((e) => e.type === 'rate_limiter:allowed')).toBe(true);
   });
 
   it('tracks separate windows per key', () => {
@@ -216,7 +223,7 @@ describe('sliding window behavior', () => {
 
     exec(node, config, context, 'a1', 'k1');
     exec(node, config, context, 'b1', 'k2');
-    const allowed = emitted.filter(e => e.type === 'rate_limiter:allowed').length;
+    const allowed = emitted.filter((e) => e.type === 'rate_limiter:allowed').length;
     expect(allowed).toBe(2);
   });
 });
@@ -263,14 +270,17 @@ describe('reset and status', () => {
       payload: { key: 'k1' },
     } as any);
 
-    const status = emitted.find(e => e.type === 'rate_limiter:status');
+    const status = emitted.find((e) => e.type === 'rate_limiter:status');
     expect(status).toBeDefined();
     expect((status!.payload as any).strategy).toBe('token_bucket');
-    expect((status!.payload as any)).toHaveProperty('remaining');
+    expect(status!.payload as any).toHaveProperty('remaining');
   });
 
   it('get_status emits rate_limiter:status for sliding window', () => {
-    const { node, config, context, emitted } = setup({ strategy: 'sliding_window', max_requests: 3 });
+    const { node, config, context, emitted } = setup({
+      strategy: 'sliding_window',
+      max_requests: 3,
+    });
     exec(node, config, context, 'a1', 'k1');
 
     rateLimiterHandler.onEvent?.(node, config, context, {
@@ -278,7 +288,7 @@ describe('reset and status', () => {
       payload: { key: 'k1' },
     } as any);
 
-    const status = emitted.find(e => e.type === 'rate_limiter:status');
+    const status = emitted.find((e) => e.type === 'rate_limiter:status');
     expect((status!.payload as any).strategy).toBe('sliding_window');
     expect((status!.payload as any).remaining).toBe(2);
   });
@@ -308,5 +318,4 @@ describe('reset and status', () => {
     const { context } = makeContext();
     expect(() => rateLimiterHandler.onUpdate?.(node, BASE_CONFIG, context, 0.016)).not.toThrow();
   });
-}
-);
+});

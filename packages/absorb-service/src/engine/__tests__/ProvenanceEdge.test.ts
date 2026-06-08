@@ -15,7 +15,17 @@ function makeFile(filePath: string): ScannedFile {
   return {
     path: filePath,
     language: 'typescript',
-    symbols: [{ name: 'fn', type: 'function', language: 'typescript', visibility: 'public', filePath, line: 1, isExported: true }],
+    symbols: [
+      {
+        name: 'fn',
+        type: 'function',
+        language: 'typescript',
+        visibility: 'public',
+        filePath,
+        line: 1,
+        isExported: true,
+      },
+    ],
     imports: [],
     calls: [],
     loc: 10,
@@ -23,7 +33,11 @@ function makeFile(filePath: string): ScannedFile {
   };
 }
 
-function makeReceipt(filePath: string, contractHash: string, opts?: Partial<ProvenanceEdge>): ProvenanceEdge {
+function makeReceipt(
+  filePath: string,
+  contractHash: string,
+  opts?: Partial<ProvenanceEdge>
+): ProvenanceEdge {
   return {
     filePath,
     contractHash,
@@ -171,7 +185,17 @@ describe('ProvenanceEdge — clear() resets provenance state', () => {
       rootDir: '/',
       rootDirs: ['/'],
       files: [makeFile('/b.ts')],
-      stats: { totalFiles: 1, filesByLanguage: {}, totalSymbols: 0, symbolsByType: {}, totalImports: 0, totalCalls: 0, totalLoc: 10, durationMs: 1, errors: [] },
+      stats: {
+        totalFiles: 1,
+        filesByLanguage: {},
+        totalSymbols: 0,
+        symbolsByType: {},
+        totalImports: 0,
+        totalCalls: 0,
+        totalLoc: 10,
+        durationMs: 1,
+        errors: [],
+      },
     };
     g.buildFromScanResult(result);
 
@@ -189,7 +213,17 @@ describe('ProvenanceEdge — clear() resets provenance state', () => {
       rootDir: '/',
       rootDirs: ['/'],
       files: [makeFile('/a.ts')],
-      stats: { totalFiles: 1, filesByLanguage: {}, totalSymbols: 0, symbolsByType: {}, totalImports: 0, totalCalls: 0, totalLoc: 10, durationMs: 1, errors: [] },
+      stats: {
+        totalFiles: 1,
+        filesByLanguage: {},
+        totalSymbols: 0,
+        symbolsByType: {},
+        totalImports: 0,
+        totalCalls: 0,
+        totalLoc: 10,
+        durationMs: 1,
+        errors: [],
+      },
     };
     g.buildFromScanResult(result);
 

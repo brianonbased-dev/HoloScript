@@ -5,4 +5,3 @@
 ### Changed
 
 - Align release metadata with the HoloScript 6.x line. See the root CHANGELOG for the outward-facing release narrative.
-

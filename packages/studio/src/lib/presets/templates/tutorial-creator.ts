@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-tutorial-creator",
-  name: "Tutorial Creator",
-  description: "Step-by-step learning module with interactive examples",
-  thumbnail: "📝",
-  tags: ["education","tutorial","learning","interactive"],
-  category: "education",
+  id: 'wizard-tutorial-creator',
+  name: 'Tutorial Creator',
+  description: 'Step-by-step learning module with interactive examples',
+  thumbnail: '📝',
+  tags: ['education', 'tutorial', 'learning', 'interactive'],
+  category: 'education',
   code: `composition "Tutorial Module" {
   environment {
     skybox: "studio"
@@ -85,7 +85,7 @@ export const template: SceneTemplate = {
     scale: [10, 0.1, 8]
     color: "#e0e0e0"
   }
-}`
+}`,
 };
 
 export default template;

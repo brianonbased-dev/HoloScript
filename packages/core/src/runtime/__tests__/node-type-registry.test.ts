@@ -101,7 +101,10 @@ function makeRuntime(): RuntimeDispatcher {
   } as unknown as RuntimeDispatcher;
 }
 
-function node(type: string, extra: Record<string, unknown> = {}): import('../../parser/types.js').ASTNode {
+function node(
+  type: string,
+  extra: Record<string, unknown> = {}
+): import('../../parser/types.js').ASTNode {
   return { type, ...extra } as unknown as import('../../parser/types.js').ASTNode;
 }
 
@@ -115,21 +118,52 @@ describe('NODE_TYPE_HANDLERS', () => {
 
   it('contains expected keys', () => {
     const required = [
-      'orb', 'object', 'narrative', 'quest', 'dialogue', 'visual_metadata',
-      'method', 'function', 'connection', 'gate', 'stream',
-      'call', 'assignment', 'return', 'expression-statement',
-      'scale', 'focus', 'environment',
-      'visualize', '2d-element',
-      'nexus', 'building',
-      'composition', 'Composition',
-      'template', 'Template',
-      'state-machine', 'state-declaration',
-      'system', 'core_config',
+      'orb',
+      'object',
+      'narrative',
+      'quest',
+      'dialogue',
+      'visual_metadata',
+      'method',
+      'function',
+      'connection',
+      'gate',
+      'stream',
+      'call',
+      'assignment',
+      'return',
+      'expression-statement',
+      'scale',
+      'focus',
+      'environment',
+      'visualize',
+      '2d-element',
+      'nexus',
+      'building',
+      'composition',
+      'Composition',
+      'template',
+      'Template',
+      'state-machine',
+      'state-declaration',
+      'system',
+      'core_config',
       'migration',
-      'server', 'database', 'fetch', 'execute',
-      'memory', 'semantic-memory', 'episodic-memory', 'procedural-memory',
-      'for', 'forEach', 'while', 'if', 'match',
-      'debug', 'generic',
+      'server',
+      'database',
+      'fetch',
+      'execute',
+      'memory',
+      'semantic-memory',
+      'episodic-memory',
+      'procedural-memory',
+      'for',
+      'forEach',
+      'while',
+      'if',
+      'match',
+      'debug',
+      'generic',
     ];
     for (const key of required) {
       expect(NODE_TYPE_HANDLERS).toHaveProperty(key);

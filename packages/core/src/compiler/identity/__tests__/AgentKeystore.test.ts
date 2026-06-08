@@ -10,12 +10,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as crypto from 'crypto';
-import {
-  AgentKeystore,
-  getKeystore,
-  resetKeystore,
-  type AgentCredential,
-} from '../AgentKeystore';
+import { AgentKeystore, getKeystore, resetKeystore, type AgentCredential } from '../AgentKeystore';
 import { AgentRole, generateAgentKeyPair, type AgentKeyPair } from '../AgentIdentity';
 
 /** Build a fresh AgentCredential for the given role. */

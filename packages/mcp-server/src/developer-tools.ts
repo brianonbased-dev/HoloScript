@@ -54,7 +54,8 @@ export function resetDeveloperSingletons(): void {
 export const developerTools: Tool[] = [
   {
     name: 'get_api_reference',
-    description: 'Generate API reference documentation for all MCP tools. Returns markdown or JSON format with categories, parameters, and examples.',
+    description:
+      'Generate API reference documentation for all MCP tools. Returns markdown or JSON format with categories, parameters, and examples.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -73,7 +74,8 @@ export const developerTools: Tool[] = [
   },
   {
     name: 'serve_preview',
-    description: 'Get dev server state and composition preview data. Returns current files, parse status, and connected client info.',
+    description:
+      'Get dev server state and composition preview data. Returns current files, parse status, and connected client info.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -92,7 +94,8 @@ export const developerTools: Tool[] = [
   },
   {
     name: 'get_workspace_info',
-    description: 'Get workspace configuration, members, composition counts, and build order from holoscript.workspace.json.',
+    description:
+      'Get workspace configuration, members, composition counts, and build order from holoscript.workspace.json.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -110,7 +113,8 @@ export const developerTools: Tool[] = [
   },
   {
     name: 'inspect_trace_waterfall',
-    description: 'Convert trace spans into a waterfall visualization with timing, nesting, agent colors, and critical path analysis.',
+    description:
+      'Convert trace spans into a waterfall visualization with timing, nesting, agent colors, and critical path analysis.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -152,7 +156,8 @@ export const developerTools: Tool[] = [
       properties: {
         modulePath: {
           type: 'string',
-          description: 'Path to the .hsplus source file to generate bindings for (absolute or workspace-relative)',
+          description:
+            'Path to the .hsplus source file to generate bindings for (absolute or workspace-relative)',
         },
         targetLang: {
           type: 'string',
@@ -171,13 +176,15 @@ export const developerTools: Tool[] = [
   },
   {
     name: 'get_dev_dashboard_state',
-    description: 'Get comprehensive developer dashboard state including composition status, trace summaries, agent registry, plugin status, and budget/usage info.',
+    description:
+      'Get comprehensive developer dashboard state including composition status, trace summaries, agent registry, plugin status, and budget/usage info.',
     inputSchema: {
       type: 'object' as const,
       properties: {
         sections: {
           type: 'array',
-          description: 'Which dashboard sections to include (default: all). Options: compositions, traces, agents, plugins, economy, api',
+          description:
+            'Which dashboard sections to include (default: all). Options: compositions, traces, agents, plugins, economy, api',
           items: {
             type: 'string',
             enum: ['compositions', 'traces', 'agents', 'plugins', 'economy', 'api'],
@@ -491,9 +498,18 @@ async function handleGenerateBindings(args: Record<string, unknown>): Promise<un
   let ast: SrcAST;
   try {
     const { parse } = await import('@holoscript/core/parser');
-    const result = parse(rawSource) as { success: boolean; errors: Array<{ line: number; column: number; message: string }>; ast?: unknown };
+    const result = parse(rawSource) as {
+      success: boolean;
+      errors: Array<{ line: number; column: number; message: string }>;
+      ast?: unknown;
+    };
     if (!result.success) {
-      const msgs = result.errors.map((e: { line: number; column: number; message: string }) => `${e.line}:${e.column} ${e.message}`).join('; ');
+      const msgs = result.errors
+        .map(
+          (e: { line: number; column: number; message: string }) =>
+            `${e.line}:${e.column} ${e.message}`
+        )
+        .join('; ');
       return { error: `Parse errors: ${msgs}` };
     }
     ast = (result.ast ?? { body: [] }) as SrcAST;

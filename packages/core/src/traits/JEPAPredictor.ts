@@ -60,10 +60,14 @@ export class JEPAPredictor {
 
   constructor(config: JEPAPredictorConfig, weights?: JEPAPredictorWeights) {
     if (!Number.isInteger(config.latentDim) || config.latentDim < 1) {
-      throw new RangeError(`JEPAPredictor: latentDim must be a positive integer, got ${config.latentDim}`);
+      throw new RangeError(
+        `JEPAPredictor: latentDim must be a positive integer, got ${config.latentDim}`
+      );
     }
     if (!Number.isInteger(config.condDim) || config.condDim < 0) {
-      throw new RangeError(`JEPAPredictor: condDim must be a non-negative integer, got ${config.condDim}`);
+      throw new RangeError(
+        `JEPAPredictor: condDim must be a non-negative integer, got ${config.condDim}`
+      );
     }
 
     this.latentDim = config.latentDim;
@@ -159,9 +163,7 @@ export class JEPAPredictor {
     let bestConfidence = -Infinity;
 
     for (const action of candidateActions) {
-      const conditioning = this.condDim > 0
-        ? textToEmbedding(action, this.condDim)
-        : null;
+      const conditioning = this.condDim > 0 ? textToEmbedding(action, this.condDim) : null;
 
       const { predicted } = this.forward(contextEmb, conditioning);
 
@@ -223,10 +225,7 @@ function reluInPlace(a: Float32Array): void {
  * tests are reproducible without a PRNG library dependency.
  * Scale follows He init (fan-in = inputDim).
  */
-function initDeterministicWeights(
-  latentDim: number,
-  condDim: number
-): JEPAPredictorWeights {
+function initDeterministicWeights(latentDim: number, condDim: number): JEPAPredictorWeights {
   const inputDim = latentDim + condDim;
   const scale1 = Math.sqrt(2 / inputDim);
   const scale2 = Math.sqrt(2 / latentDim);
@@ -277,11 +276,7 @@ function l2Norm(v: Float32Array): number {
   return Math.sqrt(sum);
 }
 
-function validateWeights(
-  w: JEPAPredictorWeights,
-  latentDim: number,
-  condDim: number
-): void {
+function validateWeights(w: JEPAPredictorWeights, latentDim: number, condDim: number): void {
   const inputDim = latentDim + condDim;
   const expected = {
     W1: inputDim * latentDim,

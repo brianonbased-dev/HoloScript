@@ -11,7 +11,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe('Anchored manifest (OA3)', () => {
   it('example JSON satisfies contract', () => {
-    const raw = readFileSync(join(__dirname, '../__fixtures__/ANCHORED_MANIFEST_EXAMPLE.json'), 'utf8');
+    const raw = readFileSync(
+      join(__dirname, '../__fixtures__/ANCHORED_MANIFEST_EXAMPLE.json'),
+      'utf8'
+    );
     const m = readJson(raw) as ReconstructionManifest;
     expect(() => assertHoloMapManifestContract(m)).not.toThrow();
     expect(m.provenance.opentimestampsProof).toContain('.ots');
@@ -20,7 +23,7 @@ describe('Anchored manifest (OA3)', () => {
 
   it('mergeAnchoredProvenance fills URLs', () => {
     const base: ReconstructionManifest = readJson(
-      readFileSync(join(__dirname, '../__fixtures__/ANCHORED_MANIFEST_EXAMPLE.json'), 'utf8'),
+      readFileSync(join(__dirname, '../__fixtures__/ANCHORED_MANIFEST_EXAMPLE.json'), 'utf8')
     ) as ReconstructionManifest;
     const cleared = {
       ...base,

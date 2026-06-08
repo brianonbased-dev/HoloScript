@@ -396,9 +396,13 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         setPlaneSensing((prev) => accumulatePlaneSensing(prev, analysis));
         if (cameraState === 'recording') {
           const hasInertialFallback = lastMotionAtRef.current !== null;
-          if (!nativeHeadingSeenRef.current && !hasInertialFallback && Math.abs(analysis.horizontalShift) >= 2) {
+          if (
+            !nativeHeadingSeenRef.current &&
+            !hasInertialFallback &&
+            Math.abs(analysis.horizontalShift) >= 2
+          ) {
             const nextHeading = normalizeHeadingDegrees(
-              (syntheticHeadingRef.current ?? 0) - analysis.horizontalShift * 4.5,
+              (syntheticHeadingRef.current ?? 0) - analysis.horizontalShift * 4.5
             );
             syntheticHeadingRef.current = nextHeading;
             headingRef.current = nextHeading;
@@ -776,7 +780,8 @@ export default function MobileScanPage({ params }: MobileScanProps) {
         : cameraState === 'processing'
           ? 100
           : 0;
-  const feedbackFrameCount = sessionFeedback?.nativeCamera?.frameCount ?? sessionFeedback?.frameCount;
+  const feedbackFrameCount =
+    sessionFeedback?.nativeCamera?.frameCount ?? sessionFeedback?.frameCount;
   const feedbackPointCount =
     sessionFeedback?.renderAsset?.pointCount ?? sessionFeedback?.nativeCamera?.holomap?.pointCount;
   const overlayPointCount = Math.max(

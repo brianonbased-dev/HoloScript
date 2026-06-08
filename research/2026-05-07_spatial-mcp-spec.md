@@ -3,9 +3,9 @@ doc_tier: research
 research_phase: base
 status: active
 last_verified: 2026-05-07
-canonical_for: "spatial-mcp-v0.1"
-supersedes: ""
-extends: ""
+canonical_for: 'spatial-mcp-v0.1'
+supersedes: ''
+extends: ''
 ---
 
 ### Machine summary (uAA2 COMPRESS)
@@ -212,17 +212,17 @@ Same shape as the TS interfaces above, embedded in the MCP tool's `inputSchema`.
 
 ## Files this lands
 
-| File | Role |
-|------|------|
-| `research/2026-05-07_spatial-mcp-spec.md` | This spec |
-| `packages/core/src/spatial/spatial-context.ts` | Types + `validateSpatialContext()` |
-| `packages/core/src/spatial/index.ts` | Public exports |
-| `packages/core/src/index.ts` | Re-export `./spatial` |
-| `packages/mcp-server/src/spatial-mcp-tools.ts` | Tool definition + handler for `compile_to_spatial` |
-| `packages/mcp-server/src/handlers.ts` | Wire dispatcher |
-| `packages/mcp-server/src/index.ts` | Add to `ALL_AVAILABLE_TOOLS` |
-| `packages/studio/src/lib/spatial-mcp.ts` | VR-side helper `emitSpatialContext` |
-| `packages/mcp-server/src/__tests__/spatial-mcp.test.ts` | Round-trip test |
+| File                                                    | Role                                               |
+| ------------------------------------------------------- | -------------------------------------------------- |
+| `research/2026-05-07_spatial-mcp-spec.md`               | This spec                                          |
+| `packages/core/src/spatial/spatial-context.ts`          | Types + `validateSpatialContext()`                 |
+| `packages/core/src/spatial/index.ts`                    | Public exports                                     |
+| `packages/core/src/index.ts`                            | Re-export `./spatial`                              |
+| `packages/mcp-server/src/spatial-mcp-tools.ts`          | Tool definition + handler for `compile_to_spatial` |
+| `packages/mcp-server/src/handlers.ts`                   | Wire dispatcher                                    |
+| `packages/mcp-server/src/index.ts`                      | Add to `ALL_AVAILABLE_TOOLS`                       |
+| `packages/studio/src/lib/spatial-mcp.ts`                | VR-side helper `emitSpatialContext`                |
+| `packages/mcp-server/src/__tests__/spatial-mcp.test.ts` | Round-trip test                                    |
 
 ## Decision log
 

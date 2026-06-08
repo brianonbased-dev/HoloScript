@@ -84,7 +84,13 @@ export class FlowFieldCompute {
     this.ctx = null;
   }
 
-  get gridWidth(): number { return this.width; }
-  get gridHeight(): number { return this.height; }
-  get worldCellSize(): number { return this.cellSize; }
+  get gridWidth(): number {
+    return this.width;
+  }
+  get gridHeight(): number {
+    return this.height;
+  }
+  get worldCellSize(): number {
+    return this.cellSize;
+  }
 }

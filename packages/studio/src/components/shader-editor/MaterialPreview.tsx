@@ -113,33 +113,33 @@ export function MaterialPreview() {
         )}
 
         <StudioErrorBoundary label="Material Preview Canvas">
-        <Canvas ref={canvasRef} gl={{ preserveDrawingBuffer: true }} className="w-full h-full">
-          <PerspectiveCamera makeDefault position={[0, 0, 5]} />
-          <OrbitControls enableDamping dampingFactor={0.05} />
+          <Canvas ref={canvasRef} gl={{ preserveDrawingBuffer: true }} className="w-full h-full">
+            <PerspectiveCamera makeDefault position={[0, 0, 5]} />
+            <OrbitControls enableDamping dampingFactor={0.05} />
 
-          <Suspense fallback={null}>
-            <Environment preset={hdriPreset as 'studio'} />
-          </Suspense>
+            <Suspense fallback={null}>
+              <Environment preset={hdriPreset as 'studio'} />
+            </Suspense>
 
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[10, 10, 5]} intensity={1} />
 
-          <PreviewMeshComponent
-            type={previewMesh}
-            compiled={compiled}
-            showWireframe={showWireframe}
-            onWebGLError={setWebGLError}
-          />
-
-          {splitView && (
             <PreviewMeshComponent
               type={previewMesh}
-              compiled={null}
+              compiled={compiled}
               showWireframe={showWireframe}
-              position={[-2.5, 0, 0]}
+              onWebGLError={setWebGLError}
             />
-          )}
-        </Canvas>
+
+            {splitView && (
+              <PreviewMeshComponent
+                type={previewMesh}
+                compiled={null}
+                showWireframe={showWireframe}
+                position={[-2.5, 0, 0]}
+              />
+            )}
+          </Canvas>
         </StudioErrorBoundary>
 
         {/* WebGL error overlay */}

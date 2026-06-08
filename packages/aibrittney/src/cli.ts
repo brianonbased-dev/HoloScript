@@ -62,7 +62,9 @@ function parseArgs(argv: string[]): ParsedArgs {
 function readVersion(): string {
   try {
     const here = dirname(fileURLToPath(import.meta.url));
-    const pkg = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8')) as { version?: string };
+    const pkg = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8')) as {
+      version?: string;
+    };
     return pkg.version ?? '0.0.0';
   } catch {
     return '0.0.0';
@@ -135,11 +137,13 @@ function printConfig(config: AIBrittneyLocalConfig, configPath: string): void {
   process.stdout.write(`model: ${config.model ?? '<env/default>'}\n`);
   process.stdout.write(`host: ${config.ollamaHost ?? '<env/default>'}\n`);
   process.stdout.write(`api-key-env: ${config.apiKeyEnv ?? 'OLLAMA_API_KEY'}\n`);
-  process.stdout.write(`tools: ${config.toolsEnabled === undefined ? '<cli/repl default>' : String(config.toolsEnabled)}\n`);
+  process.stdout.write(
+    `tools: ${config.toolsEnabled === undefined ? '<cli/repl default>' : String(config.toolsEnabled)}\n`
+  );
   process.stdout.write(`channels: ${config.channels.length}\n`);
   if (config.gateway) {
     process.stdout.write(
-      `gateway: ${config.gateway.status}${config.gateway.pid ? ` pid=${config.gateway.pid}` : ''}\n`,
+      `gateway: ${config.gateway.status}${config.gateway.pid ? ` pid=${config.gateway.pid}` : ''}\n`
     );
   }
 }
@@ -158,7 +162,8 @@ function handleConfigure(args: ParsedArgs, configPath: string): number {
     return 0;
   }
   if (action === 'set') {
-    if (!key || !value) return usageError('usage: aibrittney configure set <model|host|api-key-env|tools> <value>');
+    if (!key || !value)
+      return usageError('usage: aibrittney configure set <model|host|api-key-env|tools> <value>');
     const next = { ...config };
     switch (key) {
       case 'model':
@@ -172,7 +177,8 @@ function handleConfigure(args: ParsedArgs, configPath: string): number {
         break;
       case 'tools':
         next.toolsEnabled = parseOnOff(value);
-        if (next.toolsEnabled === undefined) return usageError('tools must be one of: on, off, true, false');
+        if (next.toolsEnabled === undefined)
+          return usageError('tools must be one of: on, off, true, false');
         break;
       default:
         return usageError(`unknown config key: ${key}`);
@@ -220,14 +226,15 @@ function handleChannels(args: ParsedArgs, configPath: string): number {
     }
     for (const channel of config.channels) {
       process.stdout.write(
-        `${channel.enabled ? 'on ' : 'off'} ${channel.id} ${channel.type} ${channel.target}\n`,
+        `${channel.enabled ? 'on ' : 'off'} ${channel.id} ${channel.type} ${channel.target}\n`
       );
     }
     return 0;
   }
   if (action === 'add') {
     const target = targetParts.join(' ').trim();
-    if (!id || !type || !target) return usageError('usage: aibrittney channels add <id> <type> <target> [--disabled]');
+    if (!id || !type || !target)
+      return usageError('usage: aibrittney channels add <id> <type> <target> [--disabled]');
     const next = upsertChannel(config, { id, type, target, enabled: !disabled });
     writeLocalConfig(next, configPath);
     process.stdout.write(`channel ${id} saved\n`);
@@ -242,7 +249,8 @@ function handleChannels(args: ParsedArgs, configPath: string): number {
   }
   if (action === 'enable' || action === 'disable') {
     if (!id) return usageError(`usage: aibrittney channels ${action} <id>`);
-    if (!config.channels.some((channel) => channel.id === id)) return usageError(`unknown channel: ${id}`);
+    if (!config.channels.some((channel) => channel.id === id))
+      return usageError(`unknown channel: ${id}`);
     const next = setChannelEnabled(config, id, action === 'enable');
     writeLocalConfig(next, configPath);
     process.stdout.write(`channel ${id} ${action === 'enable' ? 'enabled' : 'disabled'}\n`);
@@ -261,12 +269,13 @@ async function handleGateway(args: ParsedArgs, configPath: string): Promise<numb
       return 0;
     }
     const alive = state.pid ? isProcessRunning(state.pid) : false;
-    const visibleStatus =
-      alive || state.status === 'stopped' ? state.status : 'stale';
+    const visibleStatus = alive || state.status === 'stopped' ? state.status : 'stale';
     process.stdout.write(`gateway: ${visibleStatus}\n`);
     if (state.pid) process.stdout.write(`pid: ${state.pid}\n`);
     if (state.lastHeartbeatAt) process.stdout.write(`last-heartbeat: ${state.lastHeartbeatAt}\n`);
-    process.stdout.write(`channels: ${config.channels.filter((channel) => channel.enabled).length}\n`);
+    process.stdout.write(
+      `channels: ${config.channels.filter((channel) => channel.enabled).length}\n`
+    );
     return 0;
   }
   if (action === 'start') {
@@ -352,7 +361,7 @@ function gatewayState(
   status: GatewayState['status'],
   config: AIBrittneyLocalConfig,
   configPath: string,
-  pid = process.pid,
+  pid = process.pid
 ): GatewayState {
   const now = new Date().toISOString();
   return {
@@ -365,7 +374,11 @@ function gatewayState(
   };
 }
 
-async function runGatewayLoop(configPath: string, intervalMs: number, once: boolean): Promise<number> {
+async function runGatewayLoop(
+  configPath: string,
+  intervalMs: number,
+  once: boolean
+): Promise<number> {
   process.stdout.write(`aibrittney gateway running pid=${process.pid} config=${configPath}\n`);
   let stopping = false;
   const stop = () => {
@@ -386,7 +399,7 @@ async function runGatewayLoop(configPath: string, intervalMs: number, once: bool
             lastHeartbeatAt: state.lastHeartbeatAt,
             stoppedAt: new Date().toISOString(),
           }),
-          configPath,
+          configPath
         );
         return 0;
       }
@@ -399,7 +412,7 @@ async function runGatewayLoop(configPath: string, intervalMs: number, once: bool
         ...gatewayState('stopped', config, configPath),
         stoppedAt: new Date().toISOString(),
       }),
-      configPath,
+      configPath
     );
     return 0;
   } finally {
@@ -429,5 +442,5 @@ main().then(
   (err) => {
     process.stderr.write(`fatal: ${(err as Error).stack ?? String(err)}\n`);
     process.exit(1);
-  },
+  }
 );

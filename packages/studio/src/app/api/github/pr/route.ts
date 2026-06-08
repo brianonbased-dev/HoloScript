@@ -127,7 +127,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ prs, total: prs.length });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

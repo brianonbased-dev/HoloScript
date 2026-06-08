@@ -34,18 +34,26 @@ import { lookup } from '../BrainCoordMapper';
 // storage at (28,-22,-14) surface_type='sulcus' → cold
 // truth_approval at (0,20,30) surface_type='sulcus' → cold
 
-const GYRAL_COORD  = lookup('physics');     // (30,-50,60) gyrus
+const GYRAL_COORD = lookup('physics'); // (30,-50,60) gyrus
 const SULCAL_COORD = lookup('coordination'); // (0,25,30) sulcus
-const HIPPOCAMPUS  = lookup('storage');     // (28,-22,-14) sulcus
+const HIPPOCAMPUS = lookup('storage'); // (28,-22,-14) sulcus
 
 // Out-of-range coord — 500mm from anything in the seed table
 const FAR_COORD = { mni_x: 500, mni_y: 500, mni_z: 500 };
 
 // Exactly at a gyral seed entry
-const EXACT_GYRAL = { mni_x: GYRAL_COORD.mni_x, mni_y: GYRAL_COORD.mni_y, mni_z: GYRAL_COORD.mni_z };
+const EXACT_GYRAL = {
+  mni_x: GYRAL_COORD.mni_x,
+  mni_y: GYRAL_COORD.mni_y,
+  mni_z: GYRAL_COORD.mni_z,
+};
 
 // Exactly at a sulcal seed entry
-const EXACT_SULCAL = { mni_x: SULCAL_COORD.mni_x, mni_y: SULCAL_COORD.mni_y, mni_z: SULCAL_COORD.mni_z };
+const EXACT_SULCAL = {
+  mni_x: SULCAL_COORD.mni_x,
+  mni_y: SULCAL_COORD.mni_y,
+  mni_z: SULCAL_COORD.mni_z,
+};
 
 // ─── classifyCoord() ──────────────────────────────────────────────────────────
 
@@ -95,14 +103,14 @@ describe('classifyCoord() — hot/cold classification', () => {
   });
 
   it('gyral priority > sulcal priority', () => {
-    const gyral  = classifyCoord(EXACT_GYRAL);
+    const gyral = classifyCoord(EXACT_GYRAL);
     const sulcal = classifyCoord(EXACT_SULCAL);
     expect(gyral.priority).toBeGreaterThan(sulcal.priority);
   });
 
   it('unknown priority is between gyral and sulcal', () => {
-    const gyral   = classifyCoord(EXACT_GYRAL);
-    const sulcal  = classifyCoord(EXACT_SULCAL);
+    const gyral = classifyCoord(EXACT_GYRAL);
+    const sulcal = classifyCoord(EXACT_SULCAL);
     const unknown = classifyCoord(FAR_COORD);
     expect(unknown.priority).toBeLessThan(gyral.priority);
     expect(unknown.priority).toBeGreaterThan(sulcal.priority);
@@ -120,7 +128,10 @@ describe('classifyCoord() — custom config', () => {
     // threshold=0.1mm: any distance > 0.1 → unknown
     const cfg = { ...GYRI_SULCI_DEFAULT_CONFIG, unknown_threshold_mm: 0.1 };
     // Even a coord 1mm off from a seed entry should be unknown
-    const r = classifyCoord({ mni_x: GYRAL_COORD.mni_x + 1, mni_y: GYRAL_COORD.mni_y, mni_z: GYRAL_COORD.mni_z }, cfg);
+    const r = classifyCoord(
+      { mni_x: GYRAL_COORD.mni_x + 1, mni_y: GYRAL_COORD.mni_y, mni_z: GYRAL_COORD.mni_z },
+      cfg
+    );
     expect(r.surface_type).toBe('unknown');
     expect(r.is_extrapolated).toBe(true);
   });
@@ -255,10 +266,10 @@ describe('GyriSulciPartitioner class', () => {
   });
 
   it('stats() returns correct hot/cold/unknown counts', () => {
-    partitioner.classify(EXACT_GYRAL);   // gyrus → hot
-    partitioner.classify(EXACT_SULCAL);  // sulcus → cold
-    partitioner.classify(HIPPOCAMPUS);   // sulcus → cold
-    partitioner.classify(FAR_COORD);     // unknown
+    partitioner.classify(EXACT_GYRAL); // gyrus → hot
+    partitioner.classify(EXACT_SULCAL); // sulcus → cold
+    partitioner.classify(HIPPOCAMPUS); // sulcus → cold
+    partitioner.classify(FAR_COORD); // unknown
 
     const s = partitioner.stats();
     expect(s.hot).toBe(1);
@@ -269,7 +280,11 @@ describe('GyriSulciPartitioner class', () => {
 
   it('custom threshold respected by class', () => {
     const strict = new GyriSulciPartitioner({ unknown_threshold_mm: 0.1 });
-    const r = strict.classify({ mni_x: GYRAL_COORD.mni_x + 1, mni_y: GYRAL_COORD.mni_y, mni_z: GYRAL_COORD.mni_z });
+    const r = strict.classify({
+      mni_x: GYRAL_COORD.mni_x + 1,
+      mni_y: GYRAL_COORD.mni_y,
+      mni_z: GYRAL_COORD.mni_z,
+    });
     expect(r.surface_type).toBe('unknown');
   });
 

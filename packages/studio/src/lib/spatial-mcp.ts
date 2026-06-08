@@ -65,9 +65,7 @@ export function normalizeVec3(v: SpatialVec3, eps = 1e-6): SpatialVec3 {
  * always returned (even when invalid) so call sites can log + drop or
  * surface validation errors back to the user.
  */
-export function emitSpatialContext(
-  input: EmitSpatialContextInput
-): EmitSpatialContextResult {
+export function emitSpatialContext(input: EmitSpatialContextInput): EmitSpatialContextResult {
   // Normalize gaze direction so the strict unit-vector check in
   // validateSpatialContext doesn't reject sub-pixel float drift coming out
   // of the headset.

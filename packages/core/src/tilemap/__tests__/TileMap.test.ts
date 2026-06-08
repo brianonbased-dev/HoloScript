@@ -13,7 +13,14 @@ describe('TileFlags', () => {
   });
 
   it('flags are distinct powers of two (bitmask-compatible)', () => {
-    const flags = [TileFlags.SOLID, TileFlags.PASSTHROUGH, TileFlags.WATER, TileFlags.LAVA, TileFlags.TRIGGER, TileFlags.DAMAGE];
+    const flags = [
+      TileFlags.SOLID,
+      TileFlags.PASSTHROUGH,
+      TileFlags.WATER,
+      TileFlags.LAVA,
+      TileFlags.TRIGGER,
+      TileFlags.DAMAGE,
+    ];
     // All non-zero, no duplicates
     const unique = new Set(flags);
     expect(unique.size).toBe(flags.length);

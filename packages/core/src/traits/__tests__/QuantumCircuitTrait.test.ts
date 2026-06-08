@@ -22,7 +22,10 @@ function makeNode(): HSPlusNode {
 }
 
 /** Build a minimal TraitContext with an observable emit. */
-function makeContext(): { context: TraitContext; emissions: Array<{ event: string; payload: unknown }> } {
+function makeContext(): {
+  context: TraitContext;
+  emissions: Array<{ event: string; payload: unknown }>;
+} {
   const emissions: Array<{ event: string; payload: unknown }> = [];
 
   const context = {
@@ -34,9 +37,13 @@ function makeContext(): { context: TraitContext; emissions: Array<{ event: strin
       emissions.push({ event, payload });
     },
     getState: () => ({}),
-    setState: (_updates: Record<string, unknown>) => { /* no-op */ },
+    setState: (_updates: Record<string, unknown>) => {
+      /* no-op */
+    },
     getScaleMultiplier: () => 1,
-    setScaleContext: (_magnitude: string) => { /* no-op */ },
+    setScaleContext: (_magnitude: string) => {
+      /* no-op */
+    },
   } as TraitContext;
 
   return { context, emissions };
@@ -60,11 +67,13 @@ async function waitForQcEmission(
 ): Promise<{ event: string; payload: unknown }> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const found = emissions.find(e => e.event === 'qc:qasm' || e.event === 'qc:error');
+    const found = emissions.find((e) => e.event === 'qc:qasm' || e.event === 'qc:error');
     if (found) return found;
-    await new Promise<void>(r => setTimeout(r, 10));
+    await new Promise<void>((r) => setTimeout(r, 10));
   }
-  throw new Error(`Timed out waiting for qc:qasm / qc:error. Emissions: ${JSON.stringify(emissions)}`);
+  throw new Error(
+    `Timed out waiting for qc:qasm / qc:error. Emissions: ${JSON.stringify(emissions)}`
+  );
 }
 
 // =============================================================================
@@ -241,7 +250,7 @@ describe('GUARD3 — QuantumCircuitTrait: unknown circuitType defaults gracefull
     quantumCircuitHandler.onEvent!(node, config, context, { type: 'qc:status', payload: {} });
 
     // qc:status is synchronous — no waiting needed
-    const statusEmission = emissions.find(e => e.event === 'qc:status_result');
+    const statusEmission = emissions.find((e) => e.event === 'qc:status_result');
     expect(statusEmission).toBeDefined();
 
     const statusPayload = statusEmission!.payload as Record<string, unknown>;

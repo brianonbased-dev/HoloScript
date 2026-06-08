@@ -79,11 +79,11 @@ Field semantics:
 
 Values are from official vendor docs checked on 2026-05-25.
 
-| Provider | supportsFunctionTools | supportsServerTools | supportsBackground | supportsDeferred | supportsAsyncClientConcurrency | supportsBatch | supportsRemoteMcp | supportsResponseWebSocket | supportsRealtime | supportsRealtimeVoice | supportsLiveApi |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| OpenAI | yes | yes | yes | no | no cited A-020 source | yes | yes | no | yes | yes | no |
-| xAI | yes | yes | no | yes | yes | yes | yes | yes | yes | yes | no |
-| Gemini | yes | yes | no | no | no cited A-020 source | yes | no for normal Gemini API tools | no | yes | yes | yes |
+| Provider | supportsFunctionTools | supportsServerTools | supportsBackground | supportsDeferred | supportsAsyncClientConcurrency | supportsBatch | supportsRemoteMcp              | supportsResponseWebSocket | supportsRealtime | supportsRealtimeVoice | supportsLiveApi |
+| -------- | --------------------- | ------------------- | ------------------ | ---------------- | ------------------------------ | ------------- | ------------------------------ | ------------------------- | ---------------- | --------------------- | --------------- |
+| OpenAI   | yes                   | yes                 | yes                | no               | no cited A-020 source          | yes           | yes                            | no                        | yes              | yes                   | no              |
+| xAI      | yes                   | yes                 | no                 | yes              | yes                            | yes           | yes                            | yes                       | yes              | yes                   | no              |
+| Gemini   | yes                   | yes                 | no                 | no               | no cited A-020 source          | yes           | no for normal Gemini API tools | no                        | yes              | yes                   | yes             |
 
 Notes:
 
@@ -111,7 +111,7 @@ In executable terms, provider fixtures must assert that this tuple differs whene
   supportsRealtime,
   supportsRealtimeVoice,
   supportsLiveApi,
-]
+];
 ```
 
 A regression test should fail if OpenAI, xAI, and Gemini collapse to the same `{ tools: true }` manifest despite the table above.

@@ -57,19 +57,17 @@
  * summary section so the team sees wins.
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Allow tests + alt-cwd invocations to redirect the repo root via
 // HOLO_PERF_REGRESSION_REPO_ROOT. Defaults to the script's parent (../).
-const REPO_ROOT = resolve(
-  process.env.HOLO_PERF_REGRESSION_REPO_ROOT || resolve(__dirname, ".."),
-);
-const BASELINE_PATH = join(REPO_ROOT, "benchmarks", "baseline.json");
-const RESULTS_DIR = join(REPO_ROOT, "benchmarks", "results");
+const REPO_ROOT = resolve(process.env.HOLO_PERF_REGRESSION_REPO_ROOT || resolve(__dirname, '..'));
+const BASELINE_PATH = join(REPO_ROOT, 'benchmarks', 'baseline.json');
+const RESULTS_DIR = join(REPO_ROOT, 'benchmarks', 'results');
 
 const args = process.argv.slice(2);
 function argFlag(name) {
@@ -80,10 +78,10 @@ function argValue(name) {
   return i >= 0 ? args[i + 1] : null;
 }
 
-const explicitThreshold = argValue("--threshold");
-const explicitResults = argValue("--results");
-const explicitDate = argValue("--date");
-const updateBaseline = argFlag("--update-baseline");
+const explicitThreshold = argValue('--threshold');
+const explicitResults = argValue('--results');
+const explicitDate = argValue('--date');
+const updateBaseline = argFlag('--update-baseline');
 
 function fail(msg, code = 2) {
   console.error(`[perf-regression-check] FAIL: ${msg}`);
@@ -96,15 +94,15 @@ function todayIso() {
 
 function gitHead() {
   try {
-    return execSync("git rev-parse HEAD", { cwd: REPO_ROOT }).toString().trim();
+    return execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim();
   } catch {
-    return "unknown";
+    return 'unknown';
   }
 }
 
 function loadJson(p) {
   try {
-    return JSON.parse(readFileSync(p, "utf-8"));
+    return JSON.parse(readFileSync(p, 'utf-8'));
   } catch (e) {
     fail(`could not read JSON at ${p}: ${e.message}`);
   }
@@ -115,7 +113,7 @@ function listResultsForDate(date) {
   if (!existsSync(dir)) return [];
   const out = [];
   for (const name of readdirSync(dir)) {
-    if (!name.endsWith(".json")) continue;
+    if (!name.endsWith('.json')) continue;
     out.push(join(dir, name));
   }
   return out;
@@ -142,13 +140,15 @@ function pctChange(baseline, current) {
 }
 
 function fmtPct(n) {
-  if (!Number.isFinite(n)) return "∞";
-  return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
+  if (!Number.isFinite(n)) return '∞';
+  return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
 }
 
 function main() {
   if (updateBaseline) {
-    console.log(`[perf-regression-check] --update-baseline: rewriting ${BASELINE_PATH} from current results`);
+    console.log(
+      `[perf-regression-check] --update-baseline: rewriting ${BASELINE_PATH} from current results`
+    );
     const current = loadCurrent();
     const scenarios = {};
     for (const { data } of current) {
@@ -156,45 +156,47 @@ function main() {
       const platforms = {};
       for (const r of data.results ?? []) {
         if (r.success === false) continue;
-          const captured = {};
-          for (const [k, v] of Object.entries(r)) {
-            if (k !== "platform" && k !== "success" && typeof v === "number") {
-              captured[k] = v;
-            }
+        const captured = {};
+        for (const [k, v] of Object.entries(r)) {
+          if (k !== 'platform' && k !== 'success' && typeof v === 'number') {
+            captured[k] = v;
           }
-          platforms[r.platform] = captured;
+        }
+        platforms[r.platform] = captured;
       }
       scenarios[scen] = { platforms };
     }
     const baseline = {
-      version: "v1",
+      version: 'v1',
       frozen_at: new Date().toISOString(),
       frozen_by_commit: gitHead(),
       axes: {
-        compileTimeMs: { regression_threshold_pct: 5, comparator: "lower-is-better" },
-        outputSizeBytes: { regression_threshold_pct: 30, comparator: "lower-is-better" },
-        latencyMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
-        frameTimeMs: { regression_threshold_pct: 8, comparator: "lower-is-better" },
-        mbPerSec: { regression_threshold_pct: 8, comparator: "higher-is-better" },
-        rps: { regression_threshold_pct: 8, comparator: "higher-is-better" },
-        p95LatencyMs: { regression_threshold_pct: 10, comparator: "lower-is-better" },
+        compileTimeMs: { regression_threshold_pct: 5, comparator: 'lower-is-better' },
+        outputSizeBytes: { regression_threshold_pct: 30, comparator: 'lower-is-better' },
+        latencyMs: { regression_threshold_pct: 10, comparator: 'lower-is-better' },
+        frameTimeMs: { regression_threshold_pct: 8, comparator: 'lower-is-better' },
+        mbPerSec: { regression_threshold_pct: 8, comparator: 'higher-is-better' },
+        rps: { regression_threshold_pct: 8, comparator: 'higher-is-better' },
+        p95LatencyMs: { regression_threshold_pct: 10, comparator: 'lower-is-better' },
       },
       scenarios,
     };
-    writeFileSync(BASELINE_PATH, JSON.stringify(baseline, null, 2) + "\n", "utf-8");
-    console.log(`[perf-regression-check] wrote baseline with ${Object.keys(scenarios).length} scenario(s)`);
+    writeFileSync(BASELINE_PATH, JSON.stringify(baseline, null, 2) + '\n', 'utf-8');
+    console.log(
+      `[perf-regression-check] wrote baseline with ${Object.keys(scenarios).length} scenario(s)`
+    );
     process.exit(0);
   }
 
   if (!existsSync(BASELINE_PATH)) {
     console.log(
-      `[perf-regression-check] WARNING: ${BASELINE_PATH} does not exist yet — no regression check performed.`,
+      `[perf-regression-check] WARNING: ${BASELINE_PATH} does not exist yet — no regression check performed.`
     );
     console.log(
-      `  To seed: run benchmarks, then run \`node scripts/perf-regression-check.mjs --update-baseline\``,
+      `  To seed: run benchmarks, then run \`node scripts/perf-regression-check.mjs --update-baseline\``
     );
     console.log(
-      `  Empty baseline = first-time setup; CI will not gate until baseline is committed.`,
+      `  Empty baseline = first-time setup; CI will not gate until baseline is committed.`
     );
     process.exit(0);
   }
@@ -232,10 +234,9 @@ function main() {
       for (const axis of Object.keys(baseline.axes ?? {})) {
         const cur = r[axis];
         const base = basePlat[axis];
-        if (typeof cur !== "number" || typeof base !== "number") continue;
+        if (typeof cur !== 'number' || typeof base !== 'number') continue;
         const pct = pctChange(base, cur);
-        const threshold =
-          overrides[axis] ?? baseline.axes[axis].regression_threshold_pct ?? 5;
+        const threshold = overrides[axis] ?? baseline.axes[axis].regression_threshold_pct ?? 5;
         const entry = {
           scenario,
           platform: r.platform,
@@ -245,13 +246,11 @@ function main() {
           pct,
           threshold,
         };
-          const comparator = baseline.axes[axis].comparator ?? "lower-is-better";
-          const isRegression =
-            comparator === "higher-is-better" ? pct < -threshold : pct > threshold;
-          const isImprovement =
-            comparator === "higher-is-better" ? pct > 0 : pct < 0;
-          if (isRegression) regressions.push({ ...entry, comparator });
-          else if (isImprovement) improvements.push({ ...entry, comparator });
+        const comparator = baseline.axes[axis].comparator ?? 'lower-is-better';
+        const isRegression = comparator === 'higher-is-better' ? pct < -threshold : pct > threshold;
+        const isImprovement = comparator === 'higher-is-better' ? pct > 0 : pct < 0;
+        if (isRegression) regressions.push({ ...entry, comparator });
+        else if (isImprovement) improvements.push({ ...entry, comparator });
       }
     }
   }
@@ -261,29 +260,39 @@ function main() {
   }
 
   // Report
-  console.log(`[perf-regression-check] baseline frozen_at=${baseline.frozen_at} commit=${baseline.frozen_by_commit?.slice(0, 8) ?? "?"}`);
-  console.log(`[perf-regression-check] checked ${current.length} result file(s) against ${Object.keys(baseline.scenarios ?? {}).length} baseline scenario(s)`);
+  console.log(
+    `[perf-regression-check] baseline frozen_at=${baseline.frozen_at} commit=${baseline.frozen_by_commit?.slice(0, 8) ?? '?'}`
+  );
+  console.log(
+    `[perf-regression-check] checked ${current.length} result file(s) against ${Object.keys(baseline.scenarios ?? {}).length} baseline scenario(s)`
+  );
 
   if (improvements.length > 0) {
     console.log(`\n[perf-regression-check] ${improvements.length} improvement(s):`);
     for (const i of improvements.slice(0, 10)) {
-      console.log(`  ✓ ${i.scenario} / ${i.platform} / ${i.axis}: ${i.baseline} → ${i.current} (${fmtPct(i.pct)})`);
+      console.log(
+        `  ✓ ${i.scenario} / ${i.platform} / ${i.axis}: ${i.baseline} → ${i.current} (${fmtPct(i.pct)})`
+      );
     }
   }
   if (newScenarios.length > 0) {
-    console.log(`\n[perf-regression-check] ${newScenarios.length} new scenario/platform combo(s) (not in baseline yet):`);
+    console.log(
+      `\n[perf-regression-check] ${newScenarios.length} new scenario/platform combo(s) (not in baseline yet):`
+    );
     for (const n of newScenarios.slice(0, 10)) console.log(`  + ${n.scenario}`);
     console.log(`  → run with --update-baseline to add them.`);
   }
   if (missingScenarios.length > 0) {
-    console.log(`\n[perf-regression-check] WARNING: ${missingScenarios.length} baseline scenario(s) not in current results:`);
+    console.log(
+      `\n[perf-regression-check] WARNING: ${missingScenarios.length} baseline scenario(s) not in current results:`
+    );
     for (const m of missingScenarios.slice(0, 10)) console.log(`  - ${m}`);
   }
   if (regressions.length > 0) {
     console.log(`\n[perf-regression-check] ${regressions.length} REGRESSION(s) detected:`);
     for (const r of regressions) {
       console.log(
-        `  ✗ ${r.scenario} / ${r.platform} / ${r.axis}: ${r.baseline} → ${r.current} (${fmtPct(r.pct)}, threshold +${r.threshold}%)`,
+        `  ✗ ${r.scenario} / ${r.platform} / ${r.axis}: ${r.baseline} → ${r.current} (${fmtPct(r.pct)}, threshold +${r.threshold}%)`
       );
     }
     console.log(`\n[perf-regression-check] FAIL: regression threshold exceeded.`);

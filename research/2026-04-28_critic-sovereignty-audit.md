@@ -43,11 +43,11 @@ trail. This is not a theoretical risk. This is shipped code.
 
 ```typescript
 if (node.properties) {
-  node.properties.position = newPosition;     // line 531
+  node.properties.position = newPosition; // line 531
 }
 // ...
 if (!config.preserve_rotation && node.properties) {
-  node.properties.rotation = hand.rotation;   // line 546
+  node.properties.rotation = hand.rotation; // line 546
 }
 ```
 
@@ -82,13 +82,13 @@ no output channel, no copy, and no way to recover the original without external 
 
 ```typescript
 if (config.highlight_on_point && node.properties) {
-  node.properties.__originalEmissive = node.properties.emissive;  // line 707
-  node.properties.emissive = config.highlight_color;               // line 708
+  node.properties.__originalEmissive = node.properties.emissive; // line 707
+  node.properties.emissive = config.highlight_color; // line 708
 }
 // ...
 if (config.highlight_on_point && node.properties) {
-  node.properties.emissive = node.properties.__originalEmissive || null;  // line 719
-  delete node.properties.__originalEmissive;                               // line 720
+  node.properties.emissive = node.properties.__originalEmissive || null; // line 719
+  delete node.properties.__originalEmissive; // line 720
 }
 ```
 
@@ -119,14 +119,14 @@ polluted.
 
 ```typescript
 // hover_enter:
-node.properties.scale = state.originalScale * config.scale_on_hover;  // line 775
-node.properties.emissive = config.highlight_color;                      // line 782
-node.properties.emissiveIntensity = config.glow_intensity;             // line 783
+node.properties.scale = state.originalScale * config.scale_on_hover; // line 775
+node.properties.emissive = config.highlight_color; // line 782
+node.properties.emissiveIntensity = config.glow_intensity; // line 783
 
 // hover_exit:
-node.properties.scale = state.originalScale;                           // line 806
-node.properties.emissive = state.originalColor;                        // line 810
-delete node.properties.emissiveIntensity;                              // line 812
+node.properties.scale = state.originalScale; // line 806
+node.properties.emissive = state.originalColor; // line 810
+delete node.properties.emissiveIntensity; // line 812
 ```
 
 Three separate authored properties stomped on hover. Line 783 introduces
@@ -228,6 +228,7 @@ HoloScript tiers today. (D.026)
 ### What Was Searched
 
 Comprehensive grep across:
+
 - `packages/core/src` — parser, traits, compilers, runtime
 - `packages/studio/src` — Studio frontend
 - `packages/framework/src` — board, team, economy
@@ -282,14 +283,14 @@ Until that test exists, sovereignty is a convention, not a contract.
 
 ## Summary Table
 
-| Finding | File | Line(s) | Severity | Type |
-|---------|------|---------|----------|------|
-| `@grabbable` stomps position/rotation every frame | VRTraitSystem.ts | 531, 546 | P0 | Layer-collapse |
-| `@pointable` stores sentinel in `node.properties` | VRTraitSystem.ts | 707, 720 | P0 | Schema pollution |
-| `@hoverable` stomps scale/emissive, adds new keys | VRTraitSystem.ts | 775, 782–783, 810–812 | P0 | Layer-collapse + schema inflation |
-| `@scalable` stomps scale every onUpdate tick | VRTraitSystem.ts | 894 | P1 | Layer-collapse |
-| `SkeletonTrait` IK/keyframe share one buffer | SkeletonTrait.ts | 393–402 | P1 | Layer separation missing |
-| D.026 has no test harness | (no file) | — | P1 | Sovereignty unguaranteed |
+| Finding                                           | File             | Line(s)               | Severity | Type                              |
+| ------------------------------------------------- | ---------------- | --------------------- | -------- | --------------------------------- |
+| `@grabbable` stomps position/rotation every frame | VRTraitSystem.ts | 531, 546              | P0       | Layer-collapse                    |
+| `@pointable` stores sentinel in `node.properties` | VRTraitSystem.ts | 707, 720              | P0       | Schema pollution                  |
+| `@hoverable` stomps scale/emissive, adds new keys | VRTraitSystem.ts | 775, 782–783, 810–812 | P0       | Layer-collapse + schema inflation |
+| `@scalable` stomps scale every onUpdate tick      | VRTraitSystem.ts | 894                   | P1       | Layer-collapse                    |
+| `SkeletonTrait` IK/keyframe share one buffer      | SkeletonTrait.ts | 393–402               | P1       | Layer separation missing          |
+| D.026 has no test harness                         | (no file)        | —                     | P1       | Sovereignty unguaranteed          |
 
 ---
 

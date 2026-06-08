@@ -24,7 +24,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { StudioBridge, ASTMutation } from '../StudioBridge';
 import { HotReloadPipeline, type HotReloadPipelineOptions } from './HotReloadPipeline';
 import { type LiveUpdateMessage, type MutationBatchMessage } from './LiveUpdateProtocol';
-import { createTransport, type Transport, type TransportFactoryOptions } from './LiveUpdateTransport';
+import {
+  createTransport,
+  type Transport,
+  type TransportFactoryOptions,
+} from './LiveUpdateTransport';
 
 export interface UseHotReloadOptions {
   /** Pipeline options (filePath, debounceMs, etc.) */
@@ -56,8 +60,12 @@ export function useHotReload(
   bridge: StudioBridge,
   options: UseHotReloadOptions = {}
 ): UseHotReloadResult {
-  const { pipeline: pipelineOpts, transport: transportOpts, onRemoteUpdate, applyRemoteToBridge } =
-    options;
+  const {
+    pipeline: pipelineOpts,
+    transport: transportOpts,
+    onRemoteUpdate,
+    applyRemoteToBridge,
+  } = options;
 
   const pipelineRef = useRef<HotReloadPipeline | null>(null);
   const transportRef = useRef<Transport | null>(null);
@@ -122,7 +130,14 @@ export function useHotReload(
       transportRef.current = null;
       pipeline.onLiveUpdate = null;
     };
-  }, [bridge, pipeline, transportOpts?.kind, transportOpts?.wsUrl, applyRemoteToBridge, onRemoteUpdate]);
+  }, [
+    bridge,
+    pipeline,
+    transportOpts?.kind,
+    transportOpts?.wsUrl,
+    applyRemoteToBridge,
+    onRemoteUpdate,
+  ]);
 
   const pushFullScene = useCallback(() => {
     const ast = bridge.getAST();

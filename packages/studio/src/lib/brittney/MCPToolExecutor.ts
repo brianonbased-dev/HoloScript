@@ -245,9 +245,10 @@ function getDirectMCPConfigs(): Record<string, DirectMCPConfig> {
         title: `[user gap] ${String(args['title'] ?? 'unspecified gap').slice(0, 180)}`,
         ...(args['description'] ? { description: String(args['description']).slice(0, 2000) } : {}),
         category: (args['category'] as string) ?? 'other',
-        evidence: `Surfaced by Brittney from a user session. ${
-          args['evidence'] ?? ''
-        }`.slice(0, 1000),
+        evidence: `Surfaced by Brittney from a user session. ${args['evidence'] ?? ''}`.slice(
+          0,
+          1000
+        ),
       }),
     },
     // Absorb MCP
@@ -358,7 +359,7 @@ async function executeDirectMCPTool(
   // mesh key, not the orchestrator key (which 401s on the mesh). Studio carries
   // HOLOMESH_API_KEY for exactly this; fall back to the default key if unset.
   const apiKey = config.method.startsWith('holomesh')
-    ? process.env['HOLOMESH_API_KEY'] ?? getAPIKey()
+    ? (process.env['HOLOMESH_API_KEY'] ?? getAPIKey())
     : getAPIKey();
   const url = `${config.baseUrl}/mcp`;
 
@@ -422,8 +423,7 @@ const ECO_REPOS: Record<string, string> = {
 
 /** Live @holoscript/* npm inventory + the holoscript PyPI package. Public registries, no auth. */
 async function handleListPackages(args: Record<string, unknown>): Promise<MCPToolResult> {
-  const filter =
-    typeof args['filter'] === 'string' ? (args['filter'] as string).toLowerCase() : '';
+  const filter = typeof args['filter'] === 'string' ? (args['filter'] as string).toLowerCase() : '';
   const registry = (args['registry'] as string) || 'both';
   const out: {
     npm?: Array<{ name: string; version: string; description?: string }>;
@@ -431,19 +431,17 @@ async function handleListPackages(args: Record<string, unknown>): Promise<MCPToo
   } = {};
 
   if (registry === 'npm' || registry === 'both') {
-    const r = await fetch(
-      'https://registry.npmjs.org/-/v1/search?text=%40holoscript&size=250',
-      { signal: AbortSignal.timeout(8000) }
-    );
+    const r = await fetch('https://registry.npmjs.org/-/v1/search?text=%40holoscript&size=250', {
+      signal: AbortSignal.timeout(8000),
+    });
     if (r.ok) {
       const d = (await r.json()) as {
         objects?: Array<{ package?: { name?: string; version?: string; description?: string } }>;
       };
       out.npm = (d.objects ?? [])
         .map((o) => o.package)
-        .filter(
-          (p): p is { name: string; version: string; description?: string } =>
-            Boolean(p?.name && p.name.startsWith('@holoscript/'))
+        .filter((p): p is { name: string; version: string; description?: string } =>
+          Boolean(p?.name && p.name.startsWith('@holoscript/'))
         )
         .map((p) => ({ name: p.name, version: p.version, description: p.description }))
         .filter((p) => !filter || p.name.toLowerCase().includes(filter))
@@ -492,10 +490,20 @@ async function handleReadEcosystemCanon(
     signal: AbortSignal.timeout(8000),
   });
   if (r.status === 404) {
-    return { tool: 'read_ecosystem_canon', success: false, data: null, error: `Not found: ${repo}/${path}` };
+    return {
+      tool: 'read_ecosystem_canon',
+      success: false,
+      data: null,
+      error: `Not found: ${repo}/${path}`,
+    };
   }
   if (!r.ok) {
-    return { tool: 'read_ecosystem_canon', success: false, data: null, error: `GitHub HTTP ${r.status}` };
+    return {
+      tool: 'read_ecosystem_canon',
+      success: false,
+      data: null,
+      error: `GitHub HTTP ${r.status}`,
+    };
   }
   const text = await r.text();
   const capped = text.length > 24000 ? `${text.slice(0, 24000)}\n…[truncated]` : text;

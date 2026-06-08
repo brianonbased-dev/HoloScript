@@ -36,7 +36,9 @@ function makeContext() {
   const emitted: TraitEvent[] = [];
   const ctx: TraitContext = {
     // TraitContext uses emit(eventType, payload) — matches QuantumCircuitTrait/QuantumInspiredTrait pattern
-    emit: (type: string, payload?: unknown) => { emitted.push({ type, payload } as TraitEvent); },
+    emit: (type: string, payload?: unknown) => {
+      emitted.push({ type, payload } as TraitEvent);
+    },
     // Minimal stubs for other TraitContext fields
     getState: () => ({}),
     setState: () => undefined,
@@ -66,7 +68,7 @@ const N2_ATOMS = [
 
 // Helper: wait for async events emitted by dispatchVQE
 async function flushAsync(ms = 200): Promise<void> {
-  await new Promise(r => setTimeout(r, ms));
+  await new Promise((r) => setTimeout(r, ms));
 }
 
 // ---------------------------------------------------------------------------
@@ -115,13 +117,13 @@ describe('VQERunnerTrait', () => {
       });
 
       // started is emitted synchronously before the async dispatchVQE
-      const started = emitted.find(e => e.type === 'vqe:started');
+      const started = emitted.find((e) => e.type === 'vqe:started');
       expect(started).toBeDefined();
       expect((started!.payload as Record<string, unknown>).backend).toBe('aer');
 
       await flushAsync(500);
 
-      const converged = emitted.find(e => e.type === 'vqe:converged');
+      const converged = emitted.find((e) => e.type === 'vqe:converged');
       expect(converged).toBeDefined();
       const result = converged!.payload as VQERunResult;
       expect(result.energy).toBeTypeOf('number');
@@ -148,7 +150,7 @@ describe('VQERunnerTrait', () => {
         payload: { molecule: N2_ATOMS },
       });
 
-      const errors = emitted.filter(e => e.type === 'vqe:error');
+      const errors = emitted.filter((e) => e.type === 'vqe:error');
       expect(errors.length).toBeGreaterThanOrEqual(1);
       expect((errors[0]!.payload as Record<string, unknown>).code).toBe('ALREADY_RUNNING');
 
@@ -176,7 +178,7 @@ describe('VQERunnerTrait', () => {
 
       await flushAsync(500);
 
-      const converged = emitted.find(e => e.type === 'vqe:converged');
+      const converged = emitted.find((e) => e.type === 'vqe:converged');
       // After cancel, converged MUST NOT be emitted
       expect(converged).toBeUndefined();
     });
@@ -194,7 +196,7 @@ describe('VQERunnerTrait', () => {
         payload: undefined,
       });
 
-      const reply = emitted.find(e => e.type === 'vqe:status:reply');
+      const reply = emitted.find((e) => e.type === 'vqe:status:reply');
       expect(reply).toBeDefined();
       expect((reply!.payload as Record<string, unknown>).status).toBe('idle');
     });
@@ -214,7 +216,7 @@ describe('VQERunnerTrait', () => {
 
       await flushAsync(500);
 
-      const receipt = emitted.find(e => e.type === 'vqe:receipt');
+      const receipt = emitted.find((e) => e.type === 'vqe:receipt');
       expect(receipt).toBeDefined();
     });
 
@@ -230,7 +232,7 @@ describe('VQERunnerTrait', () => {
 
       await flushAsync(500);
 
-      const receipt = emitted.find(e => e.type === 'vqe:receipt');
+      const receipt = emitted.find((e) => e.type === 'vqe:receipt');
       expect(receipt).toBeUndefined();
     });
   });
@@ -249,7 +251,7 @@ describe('VQERunnerTrait', () => {
 
       await flushAsync(500);
 
-      const receiptEvent = emitted.find(e => e.type === 'vqe:receipt');
+      const receiptEvent = emitted.find((e) => e.type === 'vqe:receipt');
       expect(receiptEvent).toBeDefined();
       const receipt = receiptEvent!.payload as VQEReceipt;
       expect(receipt.schema).toBe('cael-quantum-v1.vqe-runner');
@@ -272,7 +274,7 @@ describe('VQERunnerTrait', () => {
 
       await flushAsync(500);
 
-      const receiptEvent = emitted.find(e => e.type === 'vqe:receipt');
+      const receiptEvent = emitted.find((e) => e.type === 'vqe:receipt');
       const receipt = receiptEvent?.payload as VQEReceipt | undefined;
       expect(receipt?.payloadHash).toBeTypeOf('string');
       expect(receipt!.payloadHash.length).toBeGreaterThan(0);
@@ -297,7 +299,7 @@ describe('VQERunnerTrait', () => {
       await flushAsync(500);
 
       // After detach+cancel, converged must NOT appear
-      const converged = emitted.find(e => e.type === 'vqe:converged');
+      const converged = emitted.find((e) => e.type === 'vqe:converged');
       expect(converged).toBeUndefined();
     });
   });

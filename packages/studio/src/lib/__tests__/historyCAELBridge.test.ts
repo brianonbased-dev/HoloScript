@@ -14,8 +14,14 @@ describe('installHistoryCAELBridge — Paper 24 CAEL Phase 2 undo/redo wire', ()
 
     // Make a change so there is past to undo into.
     useHistoryStore.getState().addNode({
-      id: 'n1', name: 'cube', type: 'mesh', parentId: null, traits: [],
-      position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
+      id: 'n1',
+      name: 'cube',
+      type: 'mesh',
+      parentId: null,
+      traits: [],
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
     });
     // Filter out any incidental events from the addNode (it shouldn't trigger
     // undo/redo emit because past grows but future doesn't shrink-by-1).
@@ -28,7 +34,11 @@ describe('installHistoryCAELBridge — Paper 24 CAEL Phase 2 undo/redo wire', ()
     // pastDepth/futureDepth are zundo-internal counters (exact values depend
     // on zundo's tracking convention). Verify the fields exist and are
     // non-negative numbers — that's the contract for downstream analysis.
-    const undoData = undoEvents[0].data as { pastDepth: number; futureDepth: number; timestamp: number };
+    const undoData = undoEvents[0].data as {
+      pastDepth: number;
+      futureDepth: number;
+      timestamp: number;
+    };
     expect(typeof undoData.pastDepth).toBe('number');
     expect(typeof undoData.futureDepth).toBe('number');
     expect(undoData.futureDepth).toBeGreaterThanOrEqual(1);
@@ -42,8 +52,14 @@ describe('installHistoryCAELBridge — Paper 24 CAEL Phase 2 undo/redo wire', ()
     const unsub = installHistoryCAELBridge((channel, data) => events.push({ channel, data }));
 
     useHistoryStore.getState().addNode({
-      id: 'n1', name: 'cube', type: 'mesh', parentId: null, traits: [],
-      position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
+      id: 'n1',
+      name: 'cube',
+      type: 'mesh',
+      parentId: null,
+      traits: [],
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
     });
     useHistoryStore.temporal.getState().undo();
     const beforeCount = events.length;
@@ -52,7 +68,11 @@ describe('installHistoryCAELBridge — Paper 24 CAEL Phase 2 undo/redo wire', ()
 
     const redoEvents = events.slice(beforeCount).filter((e) => e.channel === 'ui.redo');
     expect(redoEvents).toHaveLength(1);
-    const redoData = redoEvents[0].data as { pastDepth: number; futureDepth: number; timestamp: number };
+    const redoData = redoEvents[0].data as {
+      pastDepth: number;
+      futureDepth: number;
+      timestamp: number;
+    };
     expect(typeof redoData.pastDepth).toBe('number');
     expect(typeof redoData.futureDepth).toBe('number');
     expect(redoData.pastDepth).toBeGreaterThanOrEqual(1);
@@ -66,11 +86,19 @@ describe('installHistoryCAELBridge — Paper 24 CAEL Phase 2 undo/redo wire', ()
     const unsub = installHistoryCAELBridge((channel, data) => events.push({ channel, data }));
 
     useHistoryStore.getState().addNode({
-      id: 'n2', name: 'sphere', type: 'mesh', parentId: null, traits: [],
-      position: [1, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
+      id: 'n2',
+      name: 'sphere',
+      type: 'mesh',
+      parentId: null,
+      traits: [],
+      position: [1, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
     });
 
-    expect(events.filter((e) => e.channel === 'ui.undo' || e.channel === 'ui.redo')).toHaveLength(0);
+    expect(events.filter((e) => e.channel === 'ui.undo' || e.channel === 'ui.redo')).toHaveLength(
+      0
+    );
 
     unsub();
   });
@@ -80,8 +108,14 @@ describe('installHistoryCAELBridge — Paper 24 CAEL Phase 2 undo/redo wire', ()
     const unsub = installHistoryCAELBridge((channel, data) => events.push({ channel, data }));
 
     useHistoryStore.getState().addNode({
-      id: 'n3', name: 'cone', type: 'mesh', parentId: null, traits: [],
-      position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
+      id: 'n3',
+      name: 'cone',
+      type: 'mesh',
+      parentId: null,
+      traits: [],
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      scale: [1, 1, 1],
     });
     useHistoryStore.temporal.getState().undo();
     expect(events.filter((e) => e.channel === 'ui.undo')).toHaveLength(1);

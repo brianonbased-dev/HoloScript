@@ -54,7 +54,10 @@ export function getKeepAliveStatus(): KeepAliveStatus {
   return {
     enabled: keepAliveTimer !== null,
     intervalMs: resolvedIntervalMs,
-    url: resolvedUrl || process.env.MCP_KEEP_ALIVE_URL || `http://127.0.0.1:${process.env.PORT || '3000'}/health`,
+    url:
+      resolvedUrl ||
+      process.env.MCP_KEEP_ALIVE_URL ||
+      `http://127.0.0.1:${process.env.PORT || '3000'}/health`,
     lastPingStatus,
     lastPingAt,
   };
@@ -65,21 +68,19 @@ export function getKeepAliveStatus(): KeepAliveStatus {
  */
 export function maybeStartKeepAliveLoop(options: { port: number }): void {
   const enabled =
-    process.env.MCP_KEEP_ALIVE_ENABLED === '1' ||
-    process.env.MCP_KEEP_ALIVE_ENABLED === 'true';
+    process.env.MCP_KEEP_ALIVE_ENABLED === '1' || process.env.MCP_KEEP_ALIVE_ENABLED === 'true';
   if (!enabled) return;
 
   if (keepAliveTimer) return; // Already running
 
   const intervalMs = Math.max(
     MIN_INTERVAL_MS,
-    parseInt(process.env.MCP_KEEP_ALIVE_INTERVAL_MS || '', 10) || DEFAULT_INTERVAL_MS,
+    parseInt(process.env.MCP_KEEP_ALIVE_INTERVAL_MS || '', 10) || DEFAULT_INTERVAL_MS
   );
-  const url =
-    process.env.MCP_KEEP_ALIVE_URL || `http://127.0.0.1:${options.port}/health`;
+  const url = process.env.MCP_KEEP_ALIVE_URL || `http://127.0.0.1:${options.port}/health`;
   const timeoutMs = Math.max(
     1_000,
-    parseInt(process.env.MCP_KEEP_ALIVE_TIMEOUT_MS || '', 10) || DEFAULT_TIMEOUT_MS,
+    parseInt(process.env.MCP_KEEP_ALIVE_TIMEOUT_MS || '', 10) || DEFAULT_TIMEOUT_MS
   );
 
   // Capture resolved config for status reporting
@@ -87,7 +88,7 @@ export function maybeStartKeepAliveLoop(options: { port: number }): void {
   resolvedIntervalMs = intervalMs;
 
   console.info(
-    `[keep-alive] Self-ping to ${url} every ${intervalMs}ms (timeout ${timeoutMs}ms) to prevent Railway cold-start`,
+    `[keep-alive] Self-ping to ${url} every ${intervalMs}ms (timeout ${timeoutMs}ms) to prevent Railway cold-start`
   );
 
   const ping = async (): Promise<void> => {

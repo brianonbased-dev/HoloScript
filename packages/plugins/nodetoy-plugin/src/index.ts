@@ -163,10 +163,7 @@ export interface NodeToyCompileResult {
  * - Built-in varyings (vUv, vNormal, vPosition, vViewDir) → structured
  * - Main function → @vertex / @fragment entry points
  */
-export function transpileGLSLToWGSL(
-  glslSource: string,
-  stage: 'vertex' | 'fragment',
-): string {
+export function transpileGLSLToWGSL(glslSource: string, stage: 'vertex' | 'fragment'): string {
   const lines = glslSource.split('\n');
   const wgslLines: string[] = [];
 
@@ -187,7 +184,11 @@ export function transpileGLSLToWGSL(
     const trimmed = line.trim();
 
     // Detect noise function
-    if (trimmed.includes('snoise') || trimmed.includes('mod289_n') || trimmed.includes('permute_n')) {
+    if (
+      trimmed.includes('snoise') ||
+      trimmed.includes('mod289_n') ||
+      trimmed.includes('permute_n')
+    ) {
       hasNoiseFn = true;
     }
 
@@ -247,7 +248,7 @@ export function transpileGLSLToWGSL(
     varyings.forEach((v, i) => {
       const builtinMap: Record<string, string> = {
         vUv: '@builtin(position) pos: vec4f,',
-        vNormal: '',  // handled below
+        vNormal: '', // handled below
       };
       wgslLines.push(`  @location(${i}) ${v.name}: ${v.type},`);
     });
@@ -270,26 +271,40 @@ export function transpileGLSLToWGSL(
   // Noise function in WGSL (if used)
   if (hasNoiseFn) {
     wgslLines.push('// Simplex 2D noise (WGSL)');
-    wgslLines.push('fn mod289_v3(x: vec3f) -> vec3f { return x - floor(x * (1.0 / 289.0)) * 289.0; }');
-    wgslLines.push('fn mod289_v2(x: vec2f) -> vec2f { return x - floor(x * (1.0 / 289.0)) * 289.0; }');
-    wgslLines.push('fn permute_v3(x: vec3f) -> vec3f { return mod289_v3(((x * 34.0) + 1.0) * x); }');
+    wgslLines.push(
+      'fn mod289_v3(x: vec3f) -> vec3f { return x - floor(x * (1.0 / 289.0)) * 289.0; }'
+    );
+    wgslLines.push(
+      'fn mod289_v2(x: vec2f) -> vec2f { return x - floor(x * (1.0 / 289.0)) * 289.0; }'
+    );
+    wgslLines.push(
+      'fn permute_v3(x: vec3f) -> vec3f { return mod289_v3(((x * 34.0) + 1.0) * x); }'
+    );
     wgslLines.push('');
     wgslLines.push('fn snoise(v: vec2f) -> f32 {');
-    wgslLines.push('  let C = vec4f(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);');
+    wgslLines.push(
+      '  let C = vec4f(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);'
+    );
     wgslLines.push('  let i = floor(v + dot(v, C.yy));');
     wgslLines.push('  let x0 = v - i + dot(i, C.xx);');
     wgslLines.push('  let i1 = select(vec2f(1.0, 0.0), vec2f(0.0, 1.0), x0[0] > x0[1]);');
     wgslLines.push('  var x12 = x0.xyxy + C.xxzz;');
     wgslLines.push('  x12 = vec4f(x12.xy - i1, x12.zw);');
     wgslLines.push('  let fi = mod289_v2(i);');
-    wgslLines.push('  let p = permute_v3(permute_v3(vec3f(fi[1], fi[1] + i1[1], 1.0)) + vec3f(fi[0], fi[0] + i1[0], 1.0));');
-    wgslLines.push('  let m_raw = max(vec3f(0.5) - vec3f(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), vec3f(0.0));');
+    wgslLines.push(
+      '  let p = permute_v3(permute_v3(vec3f(fi[1], fi[1] + i1[1], 1.0)) + vec3f(fi[0], fi[0] + i1[0], 1.0));'
+    );
+    wgslLines.push(
+      '  let m_raw = max(vec3f(0.5) - vec3f(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), vec3f(0.0));'
+    );
     wgslLines.push('  var m = m_raw * m_raw; m = m * m;');
     wgslLines.push('  let x = 2.0 * fract(p * C.www) - 1.0;');
     wgslLines.push('  let h = abs(x) - 0.5;');
     wgslLines.push('  let ox = floor(x + 0.5);');
     wgslLines.push('  let a0 = x - ox;');
-    wgslLines.push('  let g = vec3f(a0[0] * x0[0] + h[0] * x0[1], a0[1] * x12[0] + h[1] * x12[1], a0[2] * x12[2] + h[2] * x12[3]);');
+    wgslLines.push(
+      '  let g = vec3f(a0[0] * x0[0] + h[0] * x0[1], a0[1] * x12[0] + h[1] * x12[1], a0[2] * x12[2] + h[2] * x12[3]);'
+    );
     wgslLines.push('  return 130.0 * dot(m, g);');
     wgslLines.push('}');
     wgslLines.push('');
@@ -527,7 +542,7 @@ export interface NodeToyPluginCompileOptions extends NodeToyMappingOptions {
  */
 export function compileNodeToy(
   graph: CoreNodeToyGraph,
-  options: NodeToyPluginCompileOptions = {},
+  options: NodeToyPluginCompileOptions = {}
 ): NodeToyCompileResult {
   const { wgsl: produceWgsl = true, ...coreOptions } = options;
 

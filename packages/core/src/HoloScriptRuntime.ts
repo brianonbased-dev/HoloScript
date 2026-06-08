@@ -119,10 +119,7 @@ import {
   type HoloObjectContext,
 } from './runtime/holo-object-executor';
 // W1-T4 slice 26: Orb executor extracted to ./runtime/orb-executor
-import {
-  executeOrb as executeOrbPure,
-  type OrbExecutorContext,
-} from './runtime/orb-executor';
+import { executeOrb as executeOrbPure, type OrbExecutorContext } from './runtime/orb-executor';
 // W1-T4 slice 27: skills + directives extracted to ./runtime/skills-directives
 import {
   loadSkill as loadSkillPure,
@@ -251,13 +248,14 @@ const StateSynchronizer = lazyPeerSymbol(
 ) as typeof import('@holoscript/mesh').StateSynchronizer;
 // `ws` (optional, server-side only) deferred to first use — see the import-block
 // note above (W.690). Constructed via the `construct` trap in startVisualizationServer.
-const WebSocketServer = lazyPeerSymbol('ws', 'WebSocketServer') as typeof import('ws').WebSocketServer;
+const WebSocketServer = lazyPeerSymbol(
+  'ws',
+  'WebSocketServer'
+) as typeof import('ws').WebSocketServer;
 import { telemetry } from './monitoring/telemetry';
 // Namespace import avoids Vitest SSR named-export hoisting (__vite_ssr_import_N__.x is not a function).
 // definePeerNamespace defers the optional-peer resolution to first member access.
-const engineRuntime = definePeerNamespace(
-  '@holoscript/engine/runtime'
-) as typeof EngineRuntimeNS;
+const engineRuntime = definePeerNamespace('@holoscript/engine/runtime') as typeof EngineRuntimeNS;
 import { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
 import type { IParentRuntime } from './runtime/IParentRuntime';
 import { mitosisHandler } from './traits/MitosisTrait';
@@ -447,7 +445,10 @@ export class HoloScriptRuntime implements IParentRuntime {
     // longer dispatched into the void. Readers query `runtime.stateInvalidations`
     // to detect a cleared value and refetch. (Registers once on the persistent
     // this.eventHandlers map.)
-    attachStateInvalidationConsumer(this.buildEventSystemContext(), defaultStateInvalidationRegistry);
+    attachStateInvalidationConsumer(
+      this.buildEventSystemContext(),
+      defaultStateInvalidationRegistry
+    );
 
     // Attention Graph Query
     // Allows scripts to cull massive global state arrays into top-k attended components efficiently.
@@ -507,7 +508,9 @@ export class HoloScriptRuntime implements IParentRuntime {
     // the last to initialize wins — acceptable today (we instantiate one runtime
     // per workspace), but follow-up if we ever need per-runtime isolation.
     engineRuntime.stateMachineInterpreter.setHookExecutor((code) => this.evaluateExpression(code));
-    engineRuntime.stateMachineInterpreter.setGuardEvaluator((expr) => this.evaluateExpression(expr));
+    engineRuntime.stateMachineInterpreter.setGuardEvaluator((expr) =>
+      this.evaluateExpression(expr)
+    );
   }
 
   /**
@@ -541,12 +544,9 @@ export class HoloScriptRuntime implements IParentRuntime {
    * ./runtime/builtins-registry). Thin wrapper that constructs the
    * context bag + delegates to createBuiltinsMap.
    */
-  private initBuiltins(
-    customFunctions?: Record<string, BuiltinFn>,
-  ): Map<string, BuiltinFn> {
+  private initBuiltins(customFunctions?: Record<string, BuiltinFn>): Map<string, BuiltinFn> {
     return createBuiltinsMap(this.buildBuiltinsContext(), customFunctions);
   }
-
 
   /**
    * Register a global function from an extension
@@ -574,7 +574,7 @@ export class HoloScriptRuntime implements IParentRuntime {
       const incomingOwner = (handler as Record<string, unknown>)[TRAIT_OWNER_KEY] ?? 'unknown';
       logger.warn(
         `Trait '${name}' is already registered by '${String(priorOwner)}'; ignoring the duplicate ` +
-          `from '${String(incomingOwner)}' (keep-first). Trait names must be unique across plugins.`,
+          `from '${String(incomingOwner)}' (keep-first). Trait names must be unique across plugins.`
       );
       return;
     }
@@ -610,7 +610,7 @@ export class HoloScriptRuntime implements IParentRuntime {
       // exercise them via dispatchNode().
       const result = await dispatchNode(
         node,
-        this as unknown as import('./runtime/node-type-registry').RuntimeDispatcher,
+        this as unknown as import('./runtime/node-type-registry').RuntimeDispatcher
       );
       result.executionTime = Date.now() - startTime;
       this.executionHistory.push(result);
@@ -1075,7 +1075,7 @@ export class HoloScriptRuntime implements IParentRuntime {
    */
   private async applyTransformation(
     data: unknown,
-    transform: TransformationNode,
+    transform: TransformationNode
   ): Promise<HoloScriptValue> {
     return applyTransformationPure(data, transform, {
       setVariable: (name, value) => this.setVariable(name, value as HoloScriptValue),
@@ -1178,7 +1178,7 @@ export class HoloScriptRuntime implements IParentRuntime {
     updateAnimationsPure(
       this.animations,
       (name, value) => this.setVariable(name, value as HoloScriptValue),
-      Date.now(),
+      Date.now()
     );
     this.updateSystemVariables();
   }
@@ -1237,7 +1237,7 @@ export class HoloScriptRuntime implements IParentRuntime {
     name: string,
     position: SpatialPosition,
     color: string,
-    count: number,
+    count: number
   ): void {
     createParticleEffectPure(
       this.particleSystems,
@@ -1245,7 +1245,7 @@ export class HoloScriptRuntime implements IParentRuntime {
       position,
       color,
       count,
-      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem,
+      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem
     );
   }
 
@@ -1254,7 +1254,7 @@ export class HoloScriptRuntime implements IParentRuntime {
     to: string,
     fromPos: SpatialPosition,
     toPos: SpatialPosition,
-    dataType: string,
+    dataType: string
   ): void {
     createConnectionStreamPure(this.particleSystems, from, to, fromPos, toPos, dataType);
   }
@@ -1265,7 +1265,7 @@ export class HoloScriptRuntime implements IParentRuntime {
       name,
       position,
       data,
-      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem,
+      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem
     );
   }
 
@@ -1274,7 +1274,7 @@ export class HoloScriptRuntime implements IParentRuntime {
       this.particleSystems,
       name,
       position,
-      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem,
+      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem
     );
   }
 
@@ -1284,7 +1284,7 @@ export class HoloScriptRuntime implements IParentRuntime {
       name,
       data,
       position,
-      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem,
+      RUNTIME_SECURITY_LIMITS.maxParticlesPerSystem
     );
   }
 
@@ -1621,7 +1621,8 @@ export class HoloScriptRuntime implements IParentRuntime {
         this.context.spatialMemory.set(name, pos);
       },
       evaluateExpression: (expr) => this.evaluateExpression(expr),
-      getTemplate: (name) => this.context.templates.get(name) as unknown as TemplateNode | undefined,
+      getTemplate: (name) =>
+        this.context.templates.get(name) as unknown as TemplateNode | undefined,
       setHologramState: (name, hologram) => {
         this.context.hologramState.set(name, hologram);
       },
@@ -1645,7 +1646,8 @@ export class HoloScriptRuntime implements IParentRuntime {
   /** Construct a HoloObjectContext bound to this runtime. (Slice 25) */
   private buildHoloObjectContext(): HoloObjectContext {
     return {
-      getTemplate: (name) => this.context.templates.get(name) as unknown as HoloTemplate | undefined,
+      getTemplate: (name) =>
+        this.context.templates.get(name) as unknown as HoloTemplate | undefined,
       executeOrb: (orbNode) => executeOrbPure(orbNode, this.buildOrbExecutorContext()),
     };
   }
@@ -1689,8 +1691,7 @@ export class HoloScriptRuntime implements IParentRuntime {
       setVariable: (name, value) => this.setVariable(name, value as HoloScriptValue),
       createConnectionStream: (from, to, fromPos, toPos, dataType) =>
         this.createConnectionStream(from, to, fromPos, toPos, dataType),
-      createFlowingStream: (name, position, data) =>
-        this.createFlowingStream(name, position, data),
+      createFlowingStream: (name, position, data) => this.createFlowingStream(name, position, data),
       getDataTypeColor: (dataType) => this.getDataTypeColor(dataType),
       evaluateCondition: (expr) => this.evaluateCondition(expr),
       executeProgram: (nodes, depth) => this.executeProgram(nodes, depth),

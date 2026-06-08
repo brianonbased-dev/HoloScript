@@ -7,10 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import {
-  buildGradientColors,
-  buildPositionBuffer,
-} from '../TrajectoryVisualizer';
+import { buildGradientColors, buildPositionBuffer } from '../TrajectoryVisualizer';
 
 describe('TrajectoryVisualizer — buildPositionBuffer', () => {
   it('translates each trajectory point by origin + floorOffset', () => {

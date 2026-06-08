@@ -62,12 +62,7 @@ import {
   DestructionTrait,
 } from '../traits/PhysicsTraits';
 import { neuralAnimationHandler } from '../traits/NeuralAnimationHandler';
-import {
-  StatTrait,
-  LuckTrait,
-  EncounterTrait,
-  DropTableTrait,
-} from '../traits/HoloLandTraits';
+import { StatTrait, LuckTrait, EncounterTrait, DropTableTrait } from '../traits/HoloLandTraits';
 import {
   RotatableTrait,
   StackableTrait,

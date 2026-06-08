@@ -39,8 +39,8 @@ describe('vincentyInverse', () => {
   it('London → New York distance is in the 5550–5620 km range', () => {
     // Exact value depends on precise coordinates; WGS-84 ellipsoidal geodesic ≈ 5585 km.
     // Published spherical estimates vary 5570–5590 km depending on source.
-    const london   = { latDeg: 51.5074, lonDeg: -0.1278 };
-    const newYork  = { latDeg: 40.7128, lonDeg: -74.0060 };
+    const london = { latDeg: 51.5074, lonDeg: -0.1278 };
+    const newYork = { latDeg: 40.7128, lonDeg: -74.006 };
     const r = vincentyInverse(london, newYork);
     expect(r.distanceM / 1000).toBeGreaterThan(5550);
     expect(r.distanceM / 1000).toBeLessThan(5620);
@@ -49,7 +49,7 @@ describe('vincentyInverse', () => {
   it('London → New York forward azimuth is roughly NW (~288°)', () => {
     const r = vincentyInverse(
       { latDeg: 51.5074, lonDeg: -0.1278 },
-      { latDeg: 40.7128, lonDeg: -74.0060 },
+      { latDeg: 40.7128, lonDeg: -74.006 }
     );
     // Initial bearing London → NY is roughly 288° (NW)
     expect(r.forwardAzimuthDeg).toBeGreaterThan(270);
@@ -111,18 +111,18 @@ describe('llaToECEF and ecefToLLA', () => {
 
   it('ECEF roundtrip preserves LLA within 1 mm altitude and 1e-9 deg lat/lon', () => {
     const original: { latDeg: number; lonDeg: number; altM: number }[] = [
-      { latDeg:  51.5074, lonDeg:   -0.1278, altM:    10 },
-      { latDeg:  40.7128, lonDeg:  -74.0060, altM:    50 },
-      { latDeg: -33.8688, lonDeg:  151.2093, altM:    40 },
-      { latDeg:  35.6762, lonDeg:  139.6503, altM:    40 },
-      { latDeg:  -0.1000, lonDeg:  -78.4678, altM: 2_850 }, // Quito
+      { latDeg: 51.5074, lonDeg: -0.1278, altM: 10 },
+      { latDeg: 40.7128, lonDeg: -74.006, altM: 50 },
+      { latDeg: -33.8688, lonDeg: 151.2093, altM: 40 },
+      { latDeg: 35.6762, lonDeg: 139.6503, altM: 40 },
+      { latDeg: -0.1, lonDeg: -78.4678, altM: 2_850 }, // Quito
     ];
     for (const lla of original) {
-      const ecef     = llaToECEF(lla);
-      const back     = ecefToLLA(ecef);
+      const ecef = llaToECEF(lla);
+      const back = ecefToLLA(ecef);
       expect(Math.abs(back.latDeg - lla.latDeg)).toBeLessThan(1e-9);
       expect(Math.abs(back.lonDeg - lla.lonDeg)).toBeLessThan(1e-9);
-      expect(Math.abs(back.altM   - lla.altM  )).toBeLessThan(0.001); // 1 mm
+      expect(Math.abs(back.altM - lla.altM)).toBeLessThan(0.001); // 1 mm
     }
   });
 
@@ -138,8 +138,8 @@ describe('llaToECEF and ecefToLLA', () => {
 // ─── Great-circle waypoints ───────────────────────────────────────────────────
 
 describe('greatCircleWaypoints', () => {
-  const london  = { latDeg: 51.5074, lonDeg: -0.1278 };
-  const newYork = { latDeg: 40.7128, lonDeg: -74.0060 };
+  const london = { latDeg: 51.5074, lonDeg: -0.1278 };
+  const newYork = { latDeg: 40.7128, lonDeg: -74.006 };
 
   it('returns numIntermediate+2 waypoints (endpoints included)', () => {
     const route = greatCircleWaypoints(london, newYork, 8);
@@ -149,7 +149,7 @@ describe('greatCircleWaypoints', () => {
   it('first waypoint matches origin, last matches destination', () => {
     const route = greatCircleWaypoints(london, newYork, 4);
     const first = route.waypoints[0];
-    const last  = route.waypoints[route.waypoints.length - 1];
+    const last = route.waypoints[route.waypoints.length - 1];
     expect(first.latDeg).toBeCloseTo(london.latDeg, 4);
     expect(first.lonDeg).toBeCloseTo(london.lonDeg, 4);
     expect(last.latDeg).toBeCloseTo(newYork.latDeg, 4);
@@ -165,7 +165,7 @@ describe('greatCircleWaypoints', () => {
   });
 
   it('totalDistanceM matches vincentyInverse result', () => {
-    const route   = greatCircleWaypoints(london, newYork, 4);
+    const route = greatCircleWaypoints(london, newYork, 4);
     const vincenty = vincentyInverse(london, newYork);
     expect(route.totalDistanceM).toBeCloseTo(vincenty.distanceM, 0);
   });
@@ -187,10 +187,10 @@ describe('pointInGeofence', () => {
   const parisFence = {
     id: 'paris-box',
     vertices: [
-      { latDeg: 48.80, lonDeg: 2.25 },
+      { latDeg: 48.8, lonDeg: 2.25 },
       { latDeg: 48.92, lonDeg: 2.25 },
       { latDeg: 48.92, lonDeg: 2.42 },
-      { latDeg: 48.80, lonDeg: 2.42 },
+      { latDeg: 48.8, lonDeg: 2.42 },
     ],
   };
 
@@ -231,7 +231,9 @@ describe('pointInGeofence', () => {
   });
 
   it('degenerate polygon (< 3 vertices) returns false', () => {
-    expect(pointInGeofence({ latDeg: 0, lonDeg: 0 }, { id: 'bad', vertices: [{ latDeg: 0, lonDeg: 0 }] })).toBe(false);
+    expect(
+      pointInGeofence({ latDeg: 0, lonDeg: 0 }, { id: 'bad', vertices: [{ latDeg: 0, lonDeg: 0 }] })
+    ).toBe(false);
   });
 });
 
@@ -239,7 +241,10 @@ describe('pointInGeofence', () => {
 
 describe('analyzeGeodesy', () => {
   it('returns converged=true for non-antipodal points', () => {
-    const r = analyzeGeodesy({ latDeg: 48.8566, lonDeg: 2.3522 }, { latDeg: 35.6762, lonDeg: 139.6503 });
+    const r = analyzeGeodesy(
+      { latDeg: 48.8566, lonDeg: 2.3522 },
+      { latDeg: 35.6762, lonDeg: 139.6503 }
+    );
     expect(r.converged).toBe(true);
   });
 
@@ -252,7 +257,10 @@ describe('analyzeGeodesy', () => {
 
 describe('buildGeodesyReceipt', () => {
   it('produces receipt with plugin=geolocation-gis and CAEL event', () => {
-    const result  = analyzeGeodesy({ latDeg: 51.5074, lonDeg: -0.1278 }, { latDeg: 40.7128, lonDeg: -74.0060 });
+    const result = analyzeGeodesy(
+      { latDeg: 51.5074, lonDeg: -0.1278 },
+      { latDeg: 40.7128, lonDeg: -74.006 }
+    );
     const receipt = buildGeodesyReceipt(result);
     expect(receipt.plugin).toBe('geolocation-gis');
     expect(receipt.cael.event).toBe('geolocation_gis.geodesy');
@@ -260,21 +268,24 @@ describe('buildGeodesyReceipt', () => {
   });
 
   it('accepted=true for convergent analysis', () => {
-    const result  = analyzeGeodesy({ latDeg: 0, lonDeg: 0 }, { latDeg: 1, lonDeg: 1 });
+    const result = analyzeGeodesy({ latDeg: 0, lonDeg: 0 }, { latDeg: 1, lonDeg: 1 });
     const receipt = buildGeodesyReceipt(result);
     expect(receipt.acceptance.accepted).toBe(true);
     expect(receipt.acceptance.violations).toHaveLength(0);
   });
 
   it('resultSummary.distanceKm matches vincenty distance', () => {
-    const result  = analyzeGeodesy({ latDeg: 51.5074, lonDeg: -0.1278 }, { latDeg: 40.7128, lonDeg: -74.0060 });
+    const result = analyzeGeodesy(
+      { latDeg: 51.5074, lonDeg: -0.1278 },
+      { latDeg: 40.7128, lonDeg: -74.006 }
+    );
     const receipt = buildGeodesyReceipt(result);
     // Receipt distance should match the Vincenty result (within floating-point rounding to 4 dp)
     expect(receipt.resultSummary.distanceKm).toBeCloseTo(result.vincenty.distanceM / 1000, 1);
   });
 
   it('uses provided runId', () => {
-    const result  = analyzeGeodesy({ latDeg: 0, lonDeg: 0 }, { latDeg: 10, lonDeg: 10 });
+    const result = analyzeGeodesy({ latDeg: 0, lonDeg: 0 }, { latDeg: 10, lonDeg: 10 });
     const receipt = buildGeodesyReceipt(result, { runId: 'geo-run-1' });
     expect(receipt.runId).toBe('geo-run-1');
   });

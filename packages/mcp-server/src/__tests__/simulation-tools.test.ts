@@ -35,9 +35,15 @@ vi.mock('@holoscript/engine', () => {
 
   class StructuralSolverTET10 {
     solve(): void {}
-    getDisplacements(): number[] { return []; }
-    getVonMisesStress(): number[] { return []; }
-    getSafetyFactor(): number { return 1; }
+    getDisplacements(): number[] {
+      return [];
+    }
+    getVonMisesStress(): number[] {
+      return [];
+    }
+    getSafetyFactor(): number {
+      return 1;
+    }
   }
 
   return {
@@ -45,15 +51,20 @@ vi.mock('@holoscript/engine', () => {
       ThermalSolver,
       StructuralSolverTET10,
       computeStateDigest(
-        solver: { fieldNames?: Iterable<string>; getField(name: string): Float32Array | Float64Array | null },
-        hashMode: 'fnv1a' | 'sha256',
+        solver: {
+          fieldNames?: Iterable<string>;
+          getField(name: string): Float32Array | Float64Array | null;
+        },
+        hashMode: 'fnv1a' | 'sha256'
       ): string {
         const fields = [...(solver.fieldNames ?? [])].sort();
-        const payload = fields.map((name) => {
-          const field = solver.getField(name);
-          const values = field ? Array.from(field).join(',') : '';
-          return `${name}:${values}`;
-        }).join(';');
+        const payload = fields
+          .map((name) => {
+            const field = solver.getField(name);
+            const values = field ? Array.from(field).join(',') : '';
+            return `${name}:${values}`;
+          })
+          .join(';');
         return `${hashMode}:${payload}`;
       },
     },
@@ -83,7 +94,10 @@ describe('simulation tools with CAEL metadata', () => {
       initialTemperature: 20,
     };
 
-    const solve = (await handleSimulationTool('solve_thermal', { config })) as Record<string, unknown>;
+    const solve = (await handleSimulationTool('solve_thermal', { config })) as Record<
+      string,
+      unknown
+    >;
 
     expect(solve.success).toBe(true);
     expect(typeof solve.caelTraceId).toBe('string');
@@ -109,7 +123,10 @@ describe('simulation tools with CAEL metadata', () => {
       initialTemperature: 20,
     };
 
-    const solve = (await handleSimulationTool('solve_thermal', { config, steps: 1 })) as Record<string, unknown>;
+    const solve = (await handleSimulationTool('solve_thermal', { config, steps: 1 })) as Record<
+      string,
+      unknown
+    >;
 
     expect(solve.success).toBe(true);
     expect(typeof solve.traceJSONL).toBe('string');
@@ -127,7 +144,10 @@ describe('simulation tools with CAEL metadata', () => {
       initialTemperature: 20,
     };
 
-    const solve = (await handleSimulationTool('solve_thermal', { config })) as Record<string, unknown>;
+    const solve = (await handleSimulationTool('solve_thermal', { config })) as Record<
+      string,
+      unknown
+    >;
     const original = String(solve.traceJSONL);
 
     const tampered = original.replace('"event":"step"', '"event":"stap"');
@@ -154,7 +174,10 @@ describe('simulation tools with CAEL metadata', () => {
     };
 
     mockReplayState.thermalReplayOffset = 0;
-    const solve = (await handleSimulationTool('solve_thermal', { config, steps: 2 })) as Record<string, unknown>;
+    const solve = (await handleSimulationTool('solve_thermal', { config, steps: 2 })) as Record<
+      string,
+      unknown
+    >;
     const traceJSONL = String(solve.traceJSONL);
 
     const cleanVerify = (await handleSimulationTool('verify_cael_trace', {

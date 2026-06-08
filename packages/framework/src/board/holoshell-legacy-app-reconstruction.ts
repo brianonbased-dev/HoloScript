@@ -75,21 +75,19 @@ export const HOLOSHELL_GEOMETRY_NODE_TYPES = [
   'unknown',
 ] as const;
 
-export type HoloShellGeometryNodeType =
-  (typeof HOLOSHELL_GEOMETRY_NODE_TYPES)[number];
+export type HoloShellGeometryNodeType = (typeof HOLOSHELL_GEOMETRY_NODE_TYPES)[number];
 
 // ── Confidence levels ──
 
 export const HOLOSHELL_CONFIDENCE_LEVELS = [
-  'high',       // Accessibility tree match + OCR corroboration
-  'medium',     // Accessibility tree match, no OCR corroboration
-  'low',        // OCR only, no accessibility tree
-  'inferred',   // Layout heuristic only, no direct evidence
+  'high', // Accessibility tree match + OCR corroboration
+  'medium', // Accessibility tree match, no OCR corroboration
+  'low', // OCR only, no accessibility tree
+  'inferred', // Layout heuristic only, no direct evidence
   'unresolved', // Multiple conflicting interpretations
 ] as const;
 
-export type HoloShellConfidenceLevel =
-  (typeof HOLOSHELL_CONFIDENCE_LEVELS)[number];
+export type HoloShellConfidenceLevel = (typeof HOLOSHELL_CONFIDENCE_LEVELS)[number];
 
 // ── Witness types ──
 
@@ -104,25 +102,23 @@ export const HOLOSHELL_WITNESS_TYPES = [
   'reconstruction_diff',
 ] as const;
 
-export type HoloShellWitnessType =
-  (typeof HOLOSHELL_WITNESS_TYPES)[number];
+export type HoloShellWitnessType = (typeof HOLOSHELL_WITNESS_TYPES)[number];
 
 // ── Control group semantics ──
 
 export const HOLOSHELL_CONTROL_GROUP_SEMANTICS = [
-  'navigation',     // menus, tabs, breadcrumbs, address bar
-  'content',        // main viewport, editor, canvas
-  'form',           // inputs, checkboxes, buttons in a form context
-  'toolbar',        // action buttons, formatting controls
-  'sidebar',        // navigation trees, file explorers, panels
-  'status',         // status bar, progress indicators, notifications
-  'dialog',         // modal overlays, popups, confirmation dialogs
-  'decorative',     // spacers, dividers, branding elements
+  'navigation', // menus, tabs, breadcrumbs, address bar
+  'content', // main viewport, editor, canvas
+  'form', // inputs, checkboxes, buttons in a form context
+  'toolbar', // action buttons, formatting controls
+  'sidebar', // navigation trees, file explorers, panels
+  'status', // status bar, progress indicators, notifications
+  'dialog', // modal overlays, popups, confirmation dialogs
+  'decorative', // spacers, dividers, branding elements
   'unknown',
 ] as const;
 
-export type HoloShellControlGroupSemantic =
-  (typeof HOLOSHELL_CONTROL_GROUP_SEMANTICS)[number];
+export type HoloShellControlGroupSemantic = (typeof HOLOSHELL_CONTROL_GROUP_SEMANTICS)[number];
 
 // ── Core interfaces ──
 
@@ -347,7 +343,11 @@ function validateNumberField(path: string, value: unknown, errors: string[]): vo
 }
 
 function validateEvidence(path: string, value: unknown, errors: string[]): void {
-  if (!Array.isArray(value) || value.length < 1 || value.some((item) => typeof item !== 'string' || !item)) {
+  if (
+    !Array.isArray(value) ||
+    value.length < 1 ||
+    value.some((item) => typeof item !== 'string' || !item)
+  ) {
     errors.push(`${path}.evidence must contain at least one evidence string.`);
   }
 }
@@ -363,7 +363,11 @@ function validateGeometryNode(node: HoloShellGeometryNode, index: number, errors
     errors.push(`${path}.type is unsupported: ${String(node.type)}.`);
   }
   validateStringField(`${path}.label`, node.label, errors);
-  if (!Array.isArray(node.bounds) || node.bounds.length !== 6 || !node.bounds.every((b: number) => typeof b === 'number' && isFinite(b))) {
+  if (
+    !Array.isArray(node.bounds) ||
+    node.bounds.length !== 6 ||
+    !node.bounds.every((b: number) => typeof b === 'number' && isFinite(b))
+  ) {
     errors.push(`${path}.bounds must be [x, y, z, width, height, depth] with 6 finite numbers.`);
   }
   if (!isOneOf(HOLOSHELL_CONFIDENCE_LEVELS, node.confidence)) {
@@ -373,7 +377,10 @@ function validateGeometryNode(node: HoloShellGeometryNode, index: number, errors
   if (node.parentNodeId !== null && typeof node.parentNodeId !== 'string') {
     errors.push(`${path}.parentNodeId must be a string or null.`);
   }
-  if (!Array.isArray(node.childNodeIds) || !node.childNodeIds.every((id: unknown) => typeof id === 'string')) {
+  if (
+    !Array.isArray(node.childNodeIds) ||
+    !node.childNodeIds.every((id: unknown) => typeof id === 'string')
+  ) {
     errors.push(`${path}.childNodeIds must be an array of strings.`);
   }
   validateEvidence(path, node.evidence, errors);
@@ -381,7 +388,9 @@ function validateGeometryNode(node: HoloShellGeometryNode, index: number, errors
     errors.push(`${path}.contested must be a boolean.`);
   }
   if (node.screenshotIsPrimary !== false) {
-    errors.push(`${path}.screenshotIsPrimary must be false — screenshots are evidence anchors, not the primary model.`);
+    errors.push(
+      `${path}.screenshotIsPrimary must be false — screenshots are evidence anchors, not the primary model.`
+    );
   }
 }
 
@@ -396,7 +405,10 @@ function validateControlGroup(group: HoloShellControlGroup, index: number, error
     errors.push(`${path}.semantic is unsupported: ${String(group.semantic)}.`);
   }
   validateStringField(`${path}.label`, group.label, errors);
-  if (!Array.isArray(group.nodeIds) || !group.nodeIds.every((id: unknown) => typeof id === 'string')) {
+  if (
+    !Array.isArray(group.nodeIds) ||
+    !group.nodeIds.every((id: unknown) => typeof id === 'string')
+  ) {
     errors.push(`${path}.nodeIds must be an array of strings.`);
   }
   if (group.parentGroupId !== null && typeof group.parentGroupId !== 'string') {
@@ -408,7 +420,11 @@ function validateControlGroup(group: HoloShellControlGroup, index: number, error
   validateEvidence(path, group.evidence, errors);
 }
 
-function validateWitnessPlaceholder(witness: HoloShellWitnessPlaceholder, index: number, errors: string[]): void {
+function validateWitnessPlaceholder(
+  witness: HoloShellWitnessPlaceholder,
+  index: number,
+  errors: string[]
+): void {
   const path = `witnessPlaceholders[${index}]`;
   if (!isRecord(witness)) {
     errors.push(`${path} must be an object.`);
@@ -431,7 +447,11 @@ function validateWitnessPlaceholder(witness: HoloShellWitnessPlaceholder, index:
   }
 }
 
-function validateLowConfidenceBlock(block: HoloShellLowConfidenceBlock, index: number, errors: string[]): void {
+function validateLowConfidenceBlock(
+  block: HoloShellLowConfidenceBlock,
+  index: number,
+  errors: string[]
+): void {
   const path = `lowConfidenceBlocks[${index}]`;
   if (!isRecord(block)) {
     errors.push(`${path} must be an object.`);
@@ -453,14 +473,19 @@ function validateLowConfidenceBlock(block: HoloShellLowConfidenceBlock, index: n
   }
 }
 
-function validateRedaction(redaction: HoloShellReconstructionRedaction | undefined, errors: string[]): void {
+function validateRedaction(
+  redaction: HoloShellReconstructionRedaction | undefined,
+  errors: string[]
+): void {
   if (!isRecord(redaction)) {
     errors.push('redaction is required.');
     return;
   }
   if (redaction.localOnly !== true) errors.push('redaction.localOnly must be true.');
   if (redaction.screenshotRole !== 'evidence_anchor') {
-    errors.push('redaction.screenshotRole must be "evidence_anchor" — screenshots are never the primary model.');
+    errors.push(
+      'redaction.screenshotRole must be "evidence_anchor" — screenshots are never the primary model.'
+    );
   }
   if (redaction.primaryModel !== 'geometry_nodes_with_semantics') {
     errors.push('redaction.primaryModel must be "geometry_nodes_with_semantics".');
@@ -485,7 +510,10 @@ function validateRedaction(redaction: HoloShellReconstructionRedaction | undefin
   }
 }
 
-function validateReceipt(receipt: HoloShellReconstructionReceipt | undefined, errors: string[]): void {
+function validateReceipt(
+  receipt: HoloShellReconstructionReceipt | undefined,
+  errors: string[]
+): void {
   if (!isRecord(receipt)) {
     errors.push('receipt is required.');
     return;
@@ -525,9 +553,7 @@ export function validateHoloShellLegacyAppReconstruction(
     return ['HoloShellLegacyAppReconstruction must be an object.'];
   }
   if (reconstruction.schemaVersion !== HOLOSHELL_LEGACY_APP_RECONSTRUCTION_SCHEMA_VERSION) {
-    errors.push(
-      `schemaVersion must be ${HOLOSHELL_LEGACY_APP_RECONSTRUCTION_SCHEMA_VERSION}.`
-    );
+    errors.push(`schemaVersion must be ${HOLOSHELL_LEGACY_APP_RECONSTRUCTION_SCHEMA_VERSION}.`);
   }
   if (!isIsoTimestamp(reconstruction.generatedAt)) {
     errors.push('generatedAt must be an ISO timestamp.');
@@ -575,14 +601,18 @@ export function validateHoloShellLegacyAppReconstruction(
   if (!Array.isArray(reconstruction.geometryNodes)) {
     errors.push('geometryNodes must be an array.');
   } else {
-    reconstruction.geometryNodes.forEach((node, index) => validateGeometryNode(node, index, errors));
+    reconstruction.geometryNodes.forEach((node, index) =>
+      validateGeometryNode(node, index, errors)
+    );
   }
 
   // Control groups
   if (!Array.isArray(reconstruction.controlGroups)) {
     errors.push('controlGroups must be an array.');
   } else {
-    reconstruction.controlGroups.forEach((group, index) => validateControlGroup(group, index, errors));
+    reconstruction.controlGroups.forEach((group, index) =>
+      validateControlGroup(group, index, errors)
+    );
   }
 
   // Witness placeholders
@@ -615,12 +645,16 @@ export function validateHoloShellLegacyAppReconstruction(
     }
   }
   if (isRecord(reconstruction.summary) && Array.isArray(reconstruction.witnessPlaceholders)) {
-    if (reconstruction.summary.totalWitnessPlaceholders !== reconstruction.witnessPlaceholders.length) {
+    if (
+      reconstruction.summary.totalWitnessPlaceholders !== reconstruction.witnessPlaceholders.length
+    ) {
       errors.push('summary.totalWitnessPlaceholders must match witnessPlaceholders.length.');
     }
   }
   if (isRecord(reconstruction.summary) && Array.isArray(reconstruction.lowConfidenceBlocks)) {
-    if (reconstruction.summary.totalLowConfidenceBlocks !== reconstruction.lowConfidenceBlocks.length) {
+    if (
+      reconstruction.summary.totalLowConfidenceBlocks !== reconstruction.lowConfidenceBlocks.length
+    ) {
       errors.push('summary.totalLowConfidenceBlocks must match lowConfidenceBlocks.length.');
     }
   }
@@ -637,7 +671,9 @@ export function validateHoloShellLegacyAppReconstruction(
       const cd = reconstruction.summary.confidenceDistribution as Record<string, unknown>;
       for (const level of HOLOSHELL_CONFIDENCE_LEVELS) {
         if (cd[level] !== undefined && cd[level] !== byConfidence.get(level)) {
-          errors.push(`summary.confidenceDistribution.${level} (${cd[level]}) does not match actual count (${byConfidence.get(level)}).`);
+          errors.push(
+            `summary.confidenceDistribution.${level} (${cd[level]}) does not match actual count (${byConfidence.get(level)}).`
+          );
         }
       }
     }
@@ -651,15 +687,21 @@ export function validateHoloShellLegacyAppReconstruction(
 
 // ── Type guards ──
 
-export function isSupportedHoloShellGeometryNodeType(value: string): value is HoloShellGeometryNodeType {
+export function isSupportedHoloShellGeometryNodeType(
+  value: string
+): value is HoloShellGeometryNodeType {
   return isOneOf(HOLOSHELL_GEOMETRY_NODE_TYPES, value);
 }
 
-export function isSupportedHoloShellConfidenceLevel(value: string): value is HoloShellConfidenceLevel {
+export function isSupportedHoloShellConfidenceLevel(
+  value: string
+): value is HoloShellConfidenceLevel {
   return isOneOf(HOLOSHELL_CONFIDENCE_LEVELS, value);
 }
 
-export function isSupportedHoloShellControlGroupSemantic(value: string): value is HoloShellControlGroupSemantic {
+export function isSupportedHoloShellControlGroupSemantic(
+  value: string
+): value is HoloShellControlGroupSemantic {
   return isOneOf(HOLOSHELL_CONTROL_GROUP_SEMANTICS, value);
 }
 
@@ -667,7 +709,9 @@ export function isSupportedHoloShellWitnessType(value: string): value is HoloShe
   return isOneOf(HOLOSHELL_WITNESS_TYPES, value);
 }
 
-export function isSupportedHoloShellReconstructionAction(value: string): value is HoloShellReconstructionReceipt['actionTaken'] {
+export function isSupportedHoloShellReconstructionAction(
+  value: string
+): value is HoloShellReconstructionReceipt['actionTaken'] {
   return isOneOf(['reconstruct_window', 'self_test_reconstruction'], value);
 }
 
@@ -741,12 +785,16 @@ export function generateDenseReconstructionFixture(
   const lowConfidenceBlocks: HoloShellLowConfidenceBlock[] = [];
 
   // Define control group templates representing a typical legacy word processor
-  const groupTemplates: Array<{ semantic: HoloShellControlGroupSemantic; label: string; count: number }> = [
+  const groupTemplates: Array<{
+    semantic: HoloShellControlGroupSemantic;
+    label: string;
+    count: number;
+  }> = [
     { semantic: 'navigation', label: 'Menu Bar', count: Math.floor(nodeCount * 0.08) },
     { semantic: 'toolbar', label: 'Formatting Toolbar', count: Math.floor(nodeCount * 0.12) },
     { semantic: 'toolbar', label: 'Standard Toolbar', count: Math.floor(nodeCount * 0.06) },
     { semantic: 'sidebar', label: 'Document Navigator', count: Math.floor(nodeCount * 0.07) },
-    { semantic: 'content', label: 'Document Viewport', count: Math.floor(nodeCount * 0.40) },
+    { semantic: 'content', label: 'Document Viewport', count: Math.floor(nodeCount * 0.4) },
     { semantic: 'form', label: 'Find/Replace Dialog', count: Math.floor(nodeCount * 0.05) },
     { semantic: 'status', label: 'Status Bar', count: Math.floor(nodeCount * 0.04) },
     { semantic: 'dialog', label: 'Modal Overlays', count: Math.floor(nodeCount * 0.06) },
@@ -756,14 +804,25 @@ export function generateDenseReconstructionFixture(
 
   // Adjust last group to hit exact count
   const allocatedCount = groupTemplates.reduce((sum, g) => sum + g.count, 0);
-  groupTemplates[groupTemplates.length - 1].count += (nodeCount - allocatedCount);
+  groupTemplates[groupTemplates.length - 1].count += nodeCount - allocatedCount;
 
   // Geometry node types per group semantic
   const typeBySemantic: Record<string, HoloShellGeometryNodeType[]> = {
     navigation: ['menu_bar', 'dropdown', 'dropdown_item', 'link', 'text_label'],
     toolbar: ['toolbar', 'icon_button', 'button', 'divider', 'icon', 'dropdown'],
     sidebar: ['sidebar', 'sidebar_item', 'tree_node', 'icon', 'text_label', 'link'],
-    content: ['content_viewport', 'paragraph', 'heading', 'text_label', 'image_thumbnail', 'table', 'table_row', 'table_cell', 'link', 'divider'],
+    content: [
+      'content_viewport',
+      'paragraph',
+      'heading',
+      'text_label',
+      'image_thumbnail',
+      'table',
+      'table_row',
+      'table_cell',
+      'link',
+      'divider',
+    ],
     form: ['text_input', 'button', 'checkbox', 'dropdown', 'text_label', 'dialog', 'dialog_button'],
     status: ['status_bar', 'text_label', 'progress_bar', 'badge', 'icon'],
     dialog: ['dialog', 'dialog_button', 'text_input', 'text_label', 'icon_button', 'divider'],
@@ -798,7 +857,9 @@ export function generateDenseReconstructionFixture(
       const type = types[i % types.length];
       const contested = Math.random() < 0.05; // 5% contested
       const confidence: HoloShellConfidenceLevel = contested
-        ? (Math.random() < 0.5 ? 'low' : 'unresolved')
+        ? Math.random() < 0.5
+          ? 'low'
+          : 'unresolved'
         : defaultConfidence;
 
       const node: HoloShellGeometryNode = {
@@ -817,15 +878,21 @@ export function generateDenseReconstructionFixture(
         controlGroupId: groupId,
         parentNodeId: i === 0 ? null : `node-${nodeIdCounter - 1}`,
         childNodeIds: [],
-        evidence: contested
-          ? ['ocr_only', 'layout_heuristic']
-          : ['accessibility_tree', 'ocr_text'],
+        evidence: contested ? ['ocr_only', 'layout_heuristic'] : ['accessibility_tree', 'ocr_text'],
         contested,
         screenshotIsPrimary: false,
-        ocrText: type.includes('text') || type.includes('label') || type.includes('paragraph')
-          ? `Sample text for ${type} ${i}`
-          : null,
-        accessibilityRole: type === 'button' ? 'button' : type === 'text_input' ? 'textbox' : type === 'link' ? 'link' : type,
+        ocrText:
+          type.includes('text') || type.includes('label') || type.includes('paragraph')
+            ? `Sample text for ${type} ${i}`
+            : null,
+        accessibilityRole:
+          type === 'button'
+            ? 'button'
+            : type === 'text_input'
+              ? 'textbox'
+              : type === 'link'
+                ? 'link'
+                : type,
       };
       groupNodeIds.push(nodeId);
       geometryNodes.push(node);
@@ -878,18 +945,21 @@ export function generateDenseReconstructionFixture(
   }
 
   // Generate low-confidence blocks
-  const lowConfidenceNodes = geometryNodes.filter((n) => n.confidence === 'low' || n.confidence === 'inferred' || n.confidence === 'unresolved');
+  const lowConfidenceNodes = geometryNodes.filter(
+    (n) => n.confidence === 'low' || n.confidence === 'inferred' || n.confidence === 'unresolved'
+  );
   for (let i = 0; i < Math.ceil(lowConfidenceNodes.length / 10); i++) {
     const blockNodes = lowConfidenceNodes.slice(i * 10, (i + 1) * 10);
     if (blockNodes.length > 0) {
       lowConfidenceBlocks.push({
         blockId: `lcb-${i}`,
         nodeIds: blockNodes.map((n) => n.nodeId),
-        reason: blockNodes[0].confidence === 'low'
-          ? 'OCR-only identification without accessibility tree corroboration'
-          : blockNodes[0].confidence === 'inferred'
-            ? 'Layout heuristic only — no direct evidence for this element'
-            : 'Multiple conflicting interpretations — human review needed',
+        reason:
+          blockNodes[0].confidence === 'low'
+            ? 'OCR-only identification without accessibility tree corroboration'
+            : blockNodes[0].confidence === 'inferred'
+              ? 'Layout heuristic only — no direct evidence for this element'
+              : 'Multiple conflicting interpretations — human review needed',
         minConfidence: blockNodes[0].confidence as HoloShellConfidenceLevel,
         suggestedAction: blockNodes[0].confidence === 'unresolved' ? 'human_review' : 're_capture',
         blocking: blockNodes[0].confidence === 'unresolved',

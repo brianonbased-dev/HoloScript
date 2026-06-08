@@ -303,7 +303,11 @@ export class PerformanceTracker {
     const content = this.storage.read(STORAGE_KEY_HISTORY);
     if (content) {
       try {
-        history = readJson(content) as Array<{ label: string; timestamp: string; metrics: PerformanceMetric[] }>;
+        history = readJson(content) as Array<{
+          label: string;
+          timestamp: string;
+          metrics: PerformanceMetric[];
+        }>;
       } catch (e) {
         console.warn('Failed to load history:', e);
       }

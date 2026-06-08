@@ -201,28 +201,19 @@ describe('SteeringBehavior.blend', () => {
   });
 
   it('single output with weight=1 passes through unclamped', () => {
-    const result = SteeringBehavior.blend(
-      [{ force: [3, 0, 4], type: 'seek', weight: 1 }],
-      100
-    );
+    const result = SteeringBehavior.blend([{ force: [3, 0, 4], type: 'seek', weight: 1 }], 100);
     expect(result[0]).toBeCloseTo(3, 4);
     expect(result[2]).toBeCloseTo(4, 4);
   });
 
   it('clamps result magnitude to maxForce', () => {
-    const result = SteeringBehavior.blend(
-      [{ force: [100, 0, 0], type: 'seek', weight: 1 }],
-      5
-    );
+    const result = SteeringBehavior.blend([{ force: [100, 0, 0], type: 'seek', weight: 1 }], 5);
     expect(result[0]).toBeCloseTo(5, 4);
     expect(result[2]).toBeCloseTo(0, 4);
   });
 
   it('weight scales force contribution', () => {
-    const result = SteeringBehavior.blend(
-      [{ force: [10, 0, 0], type: 'seek', weight: 0.5 }],
-      100
-    );
+    const result = SteeringBehavior.blend([{ force: [10, 0, 0], type: 'seek', weight: 0.5 }], 100);
     expect(result[0]).toBeCloseTo(5, 4);
   });
 

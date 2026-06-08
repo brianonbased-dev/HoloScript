@@ -123,7 +123,9 @@ describe('appendAuditEvent', () => {
   });
 
   it('subscriber errors do not prevent other subscribers', () => {
-    const badSub = vi.fn(() => { throw new Error('boom'); });
+    const badSub = vi.fn(() => {
+      throw new Error('boom');
+    });
     const goodSub = vi.fn();
     onAuditEvent(badSub);
     onAuditEvent(goodSub);
@@ -190,7 +192,12 @@ describe('queryAuditEvents', () => {
 
   it('limits results', () => {
     for (let i = 0; i < 10; i++) {
-      auditKeyAccess({ userId: `user-${i}`, publicKeyHash: 'a', accessedBy: 'sys', purpose: 'sign' });
+      auditKeyAccess({
+        userId: `user-${i}`,
+        publicKeyHash: 'a',
+        accessedBy: 'sys',
+        purpose: 'sign',
+      });
     }
 
     const results = queryAuditEvents({ limit: 3 });

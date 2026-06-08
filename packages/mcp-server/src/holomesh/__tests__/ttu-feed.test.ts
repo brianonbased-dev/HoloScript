@@ -83,9 +83,7 @@ describe('ttu-feed: publish + step convergence', () => {
   });
 
   it('rejects step() with a timeout error when no producer answers', async () => {
-    await expect(submitTtuStep('s4', SCENE, 'consumer-z', 60)).rejects.toThrow(
-      /no frame within/,
-    );
+    await expect(submitTtuStep('s4', SCENE, 'consumer-z', 60)).rejects.toThrow(/no frame within/);
   });
 
   it('reports queued + pending counts in stats', async () => {

@@ -95,7 +95,11 @@ function vec3Normalize(v: Vector3): Vector3 {
   return [v[0] / len, v[1] / len, v[2] / len];
 }
 function vec3AtT(ray: Ray, t: number): Vector3 {
-  return [ray.origin[0] + ray.direction[0] * t, ray.origin[1] + ray.direction[1] * t, ray.origin[2] + ray.direction[2] * t];
+  return [
+    ray.origin[0] + ray.direction[0] * t,
+    ray.origin[1] + ray.direction[1] * t,
+    ray.origin[2] + ray.direction[2] * t,
+  ];
 }
 
 export function computeTriangleNormal(tri: Triangle): Vector3 {
@@ -128,7 +132,11 @@ export function aabbSurfaceArea(box: AABB): number {
 }
 
 export function aabbCentroid(box: AABB): Vector3 {
-  return [(box.min[0] + box.max[0]) * 0.5, (box.min[1] + box.max[1]) * 0.5, (box.min[2] + box.max[2]) * 0.5];
+  return [
+    (box.min[0] + box.max[0]) * 0.5,
+    (box.min[1] + box.max[1]) * 0.5,
+    (box.min[2] + box.max[2]) * 0.5,
+  ];
 }
 
 // =============================================================================

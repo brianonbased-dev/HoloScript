@@ -194,17 +194,37 @@ function validateReadinessValidationCheck(check: ReadinessValidationCheck): stri
   if (check.exitCode !== undefined && typeof check.exitCode !== 'number') {
     errors.push(`ReadinessValidationCheck ${check.id || '<unknown>'}.exitCode must be a number.`);
   }
-  if (check.durationMs !== undefined && (typeof check.durationMs !== 'number' || check.durationMs < 0)) {
-    errors.push(`ReadinessValidationCheck ${check.id || '<unknown>'}.durationMs must be a non-negative number.`);
+  if (
+    check.durationMs !== undefined &&
+    (typeof check.durationMs !== 'number' || check.durationMs < 0)
+  ) {
+    errors.push(
+      `ReadinessValidationCheck ${check.id || '<unknown>'}.durationMs must be a non-negative number.`
+    );
   }
-  if (check.fileCount !== undefined && (typeof check.fileCount !== 'number' || check.fileCount < 0)) {
-    errors.push(`ReadinessValidationCheck ${check.id || '<unknown>'}.fileCount must be a non-negative number.`);
+  if (
+    check.fileCount !== undefined &&
+    (typeof check.fileCount !== 'number' || check.fileCount < 0)
+  ) {
+    errors.push(
+      `ReadinessValidationCheck ${check.id || '<unknown>'}.fileCount must be a non-negative number.`
+    );
   }
-  if (check.errorCount !== undefined && (typeof check.errorCount !== 'number' || check.errorCount < 0)) {
-    errors.push(`ReadinessValidationCheck ${check.id || '<unknown>'}.errorCount must be a non-negative number.`);
+  if (
+    check.errorCount !== undefined &&
+    (typeof check.errorCount !== 'number' || check.errorCount < 0)
+  ) {
+    errors.push(
+      `ReadinessValidationCheck ${check.id || '<unknown>'}.errorCount must be a non-negative number.`
+    );
   }
-  if (check.warningCount !== undefined && (typeof check.warningCount !== 'number' || check.warningCount < 0)) {
-    errors.push(`ReadinessValidationCheck ${check.id || '<unknown>'}.warningCount must be a non-negative number.`);
+  if (
+    check.warningCount !== undefined &&
+    (typeof check.warningCount !== 'number' || check.warningCount < 0)
+  ) {
+    errors.push(
+      `ReadinessValidationCheck ${check.id || '<unknown>'}.warningCount must be a non-negative number.`
+    );
   }
   return errors;
 }
@@ -292,7 +312,9 @@ export function validateHoloShellReadinessReceipt(receipt: HoloShellReadinessRec
     receipt.startedAt === '' ||
     Number.isNaN(Date.parse(receipt.startedAt))
   ) {
-    errors.push('HoloShellReadinessReceipt.startedAt is required and must be a valid ISO-8601 timestamp.');
+    errors.push(
+      'HoloShellReadinessReceipt.startedAt is required and must be a valid ISO-8601 timestamp.'
+    );
   }
   if (
     receipt.endedAt === undefined ||
@@ -300,7 +322,9 @@ export function validateHoloShellReadinessReceipt(receipt: HoloShellReadinessRec
     receipt.endedAt === '' ||
     Number.isNaN(Date.parse(receipt.endedAt))
   ) {
-    errors.push('HoloShellReadinessReceipt.endedAt is required and must be a valid ISO-8601 timestamp.');
+    errors.push(
+      'HoloShellReadinessReceipt.endedAt is required and must be a valid ISO-8601 timestamp.'
+    );
   }
 
   if (!receipt.gitStatus || typeof receipt.gitStatus !== 'object') {
@@ -336,7 +360,9 @@ export function validateHoloShellReadinessReceipt(receipt: HoloShellReadinessRec
   }
 
   if (!isSupportedReadinessOutcome(receipt.overallOutcome)) {
-    errors.push(`HoloShellReadinessReceipt.overallOutcome is unsupported: ${String(receipt.overallOutcome)}.`);
+    errors.push(
+      `HoloShellReadinessReceipt.overallOutcome is unsupported: ${String(receipt.overallOutcome)}.`
+    );
   }
 
   if (!receipt.hash) errors.push('HoloShellReadinessReceipt.hash is required.');
@@ -344,7 +370,9 @@ export function validateHoloShellReadinessReceipt(receipt: HoloShellReadinessRec
 
   for (const command of receipt.verificationCommands ?? []) {
     if (!command.command) {
-      errors.push(`HoloShellReadinessReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`);
+      errors.push(
+        `HoloShellReadinessReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`
+      );
     }
   }
 
@@ -359,7 +387,9 @@ export function isSupportedReadinessOutcome(outcome: string): outcome is Readine
 
 const READINESS_STATUSES = ['pass', 'warn', 'fail', 'skipped'] as const;
 
-export function isSupportedReadinessStatus(status: string): status is 'pass' | 'warn' | 'fail' | 'skipped' {
+export function isSupportedReadinessStatus(
+  status: string
+): status is 'pass' | 'warn' | 'fail' | 'skipped' {
   return (READINESS_STATUSES as readonly string[]).includes(status);
 }
 
@@ -403,7 +433,7 @@ function cloneReadinessTaskFiling(tf: ReadinessTaskFiling): ReadinessTaskFiling 
 }
 
 function cloneVerificationCommands(
-  commands: ArtifactVerificationCommand[] | undefined,
+  commands: ArtifactVerificationCommand[] | undefined
 ): ArtifactVerificationCommand[] | undefined {
   if (!commands) return undefined;
   return commands.map((command) => ({
@@ -413,7 +443,7 @@ function cloneVerificationCommands(
 }
 
 function cloneProvenance(
-  provenance: ArtifactProvenanceLink | undefined,
+  provenance: ArtifactProvenanceLink | undefined
 ): ArtifactProvenanceLink | undefined {
   if (!provenance) return undefined;
   return {
@@ -425,7 +455,7 @@ function cloneProvenance(
 }
 
 export function cloneHoloShellReadinessReceipt(
-  receipt: HoloShellReadinessReceipt,
+  receipt: HoloShellReadinessReceipt
 ): HoloShellReadinessReceipt {
   return {
     ...receipt,

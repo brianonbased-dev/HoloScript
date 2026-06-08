@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  maybeStartKeepAliveLoop,
-  stopKeepAliveLoop,
-  getKeepAliveStatus,
-} from '../keep-alive.js';
+import { maybeStartKeepAliveLoop, stopKeepAliveLoop, getKeepAliveStatus } from '../keep-alive.js';
 
 describe('keep-alive', () => {
   const originalEnv = { ...process.env };

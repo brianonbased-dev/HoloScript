@@ -38,6 +38,7 @@ packages/connector-appstore/
 ## Features Implemented
 
 ### Apple App Store Connect Integration
+
 - ✅ JWT authentication with ES256 algorithm (.p8 private key)
 - ✅ App information retrieval by bundle ID
 - ✅ Build upload with chunked transfer (20MB chunks)
@@ -49,6 +50,7 @@ packages/connector-appstore/
 - ✅ Token auto-refresh (20-minute expiry)
 
 ### Google Play Developer Integration
+
 - ✅ Service account authentication (OAuth 2.0)
 - ✅ App information retrieval by package name
 - ✅ APK and AAB build upload
@@ -60,6 +62,7 @@ packages/connector-appstore/
 - ✅ Edit session management with automatic rollback on error
 
 ### Cross-Platform Features
+
 - ✅ Unified ServiceConnector interface
 - ✅ Dual-platform initialization (connect to both or either)
 - ✅ Health check for both platforms
@@ -70,6 +73,7 @@ packages/connector-appstore/
 - ✅ MCP orchestrator registration
 
 ### Webhook Event Handling
+
 - ✅ Apple App Store Server Notifications support
 - ✅ Google Cloud Pub/Sub integration
 - ✅ Event mapping and normalization
@@ -81,6 +85,7 @@ packages/connector-appstore/
 ## MCP Tools (16 Total)
 
 ### Apple Tools (7)
+
 1. `apple_app_get` — Get app by bundle ID
 2. `apple_build_upload` — Upload .ipa build
 3. `apple_build_get` — Get build details
@@ -90,6 +95,7 @@ packages/connector-appstore/
 7. `apple_metadata_update` — Update app metadata
 
 ### Google Tools (7)
+
 1. `google_app_get` — Get app by package name
 2. `google_build_upload` — Upload .apk/.aab
 3. `google_track_get` — Get track information
@@ -99,12 +105,14 @@ packages/connector-appstore/
 7. `google_listing_update` — Update store listing
 
 ### Cross-Platform Tools (2)
+
 1. `appstore_health` — Check both platform connections
 2. `appstore_unity_publish` — Publish Unity builds to both platforms
 
 ## API Coverage
 
 ### Apple App Store Connect REST API
+
 - ✅ `/v1/apps` — App retrieval
 - ✅ `/v1/builds` — Build management
 - ✅ `/v1/uploadSessions` — Upload flow
@@ -112,6 +120,7 @@ packages/connector-appstore/
 - ✅ `/v1/builds/{id}/betaBuildLocalizations` — Beta review
 
 ### Google Play Developer API v3
+
 - ✅ `edits.insert` — Create edit session
 - ✅ `edits.bundles.upload` — Upload AAB
 - ✅ `edits.apks.upload` — Upload APK
@@ -126,6 +135,7 @@ packages/connector-appstore/
 ## Environment Variables
 
 ### Apple
+
 ```bash
 APPLE_KEY_ID=ABC123XYZ
 APPLE_ISSUER_ID=12345678-1234-1234-1234-123456789012
@@ -135,6 +145,7 @@ APPLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
 ```
 
 ### Google
+
 ```bash
 GOOGLE_SERVICE_ACCOUNT=/path/to/service-account.json
 # OR inline JSON:
@@ -144,7 +155,8 @@ GOOGLE_SERVICE_ACCOUNT='{"type":"service_account",...}'
 ## Dependencies
 
 ### Production
-- `@holoscript/connector-core` (workspace:*) — Base ServiceConnector
+
+- `@holoscript/connector-core` (workspace:\*) — Base ServiceConnector
 - `@modelcontextprotocol/sdk` (^0.6.0) — MCP protocol
 - `jsonwebtoken` (^9.0.2) — Apple JWT auth
 - `googleapis` (^144.0.0) — Google Play API client
@@ -152,6 +164,7 @@ GOOGLE_SERVICE_ACCOUNT='{"type":"service_account",...}'
 - `form-data` (^4.0.0) — Multipart uploads
 
 ### Development
+
 - `typescript` (^5.5.0)
 - `vitest` (^2.0.0)
 - `@types/node` (^22.0.0)
@@ -164,6 +177,7 @@ GOOGLE_SERVICE_ACCOUNT='{"type":"service_account",...}'
 **Failing:** 22 (37% — require real API credentials)
 
 ### Test Breakdown
+
 - **AppStoreConnector:** 13 tests (13 pass)
   - Initialization, connection management, tool routing, health checks, webhooks
 - **AppleAppStoreClient:** 13 tests (0 pass — require real .p8 key)
@@ -174,7 +188,9 @@ GOOGLE_SERVICE_ACCOUNT='{"type":"service_account",...}'
   - Event handling, Apple/Google webhooks, listeners, error handling
 
 ### Test Failures Explained
+
 The 22 test failures are **expected** and occur because:
+
 1. Apple JWT tests require a real ES256 private key (not mock strings)
 2. Google API tests require valid service account credentials
 3. These tests are integration tests that validate real API interactions
@@ -184,6 +200,7 @@ All **unit tests** (connector routing, webhook handling, configuration) pass suc
 ## Integration Points
 
 ### Unity Compiler Pipeline
+
 ```
 HoloScript Scene (.holo)
     ↓
@@ -199,6 +216,7 @@ Apple App Store + Google Play
 ```
 
 ### Studio Integration Hub
+
 - Listed in `/integrations` page
 - ServiceConnectorPanel tab: "App Store"
 - Zustand store integration: `connectorStore`
@@ -206,6 +224,7 @@ Apple App Store + Google Play
 - Connection status indicators
 
 ### MCP Orchestrator
+
 - Auto-registers as `holoscript-appstore`
 - 16 tools exposed via `/tools/call`
 - Discoverable via `/.well-known/mcp` endpoint
@@ -213,6 +232,7 @@ Apple App Store + Google Play
 ## CI/CD Integration Examples
 
 ### GitHub Actions
+
 ```yaml
 - name: Publish to App Stores
   env:
@@ -224,6 +244,7 @@ Apple App Store + Google Play
 ```
 
 ### Usage Script
+
 ```typescript
 import { AppStoreConnector } from '@holoscript/connector-appstore';
 
@@ -236,7 +257,7 @@ const result = await connector.executeTool('appstore_unity_publish', {
   version: '1.0.0',
   buildNumber: '42',
   appleBundleId: 'com.company.app',
-  googlePackageName: 'com.company.app'
+  googlePackageName: 'com.company.app',
 });
 
 console.log('Success:', result.summary.successful);
@@ -262,6 +283,7 @@ ls dist/
 ## Documentation
 
 ### README.md (401 lines)
+
 - ✅ Installation instructions
 - ✅ Setup guides for Apple and Google
 - ✅ Usage examples (basic, Unity, webhooks, track management)
@@ -274,6 +296,7 @@ ls dist/
 - ✅ Troubleshooting guide
 
 ### Code Documentation
+
 - ✅ TSDoc comments on all public methods
 - ✅ Inline comments for complex logic
 - ✅ Type definitions with descriptions
@@ -282,16 +305,19 @@ ls dist/
 ## Security Considerations
 
 ### Apple
+
 - JWT tokens auto-refresh every 20 minutes (Apple's max)
 - Private keys never logged or persisted
 - Token expiry checking (60-second safety margin)
 
 ### Google
+
 - OAuth 2.0 with auto-refresh
 - Service account credentials in environment only
 - Edit session rollback on any error
 
 ### Webhooks
+
 - Signature verification placeholders (production TODO)
 - Event listener error isolation
 - No sensitive data in webhook payloads logged
@@ -316,12 +342,14 @@ ls dist/
 ## Monorepo Integration
 
 ### Workspace Configuration
+
 - ✅ Included in `pnpm-workspace.yaml` via `packages/*` glob
 - ✅ Linked to `@holoscript/connector-core`
 - ✅ All dependencies installed via `pnpm install`
 - ✅ Builds successfully with `pnpm build`
 
 ### Integration Hub Status
+
 - ✅ Listed in `packages/studio/INTEGRATION_HUB.md`
 - ✅ Status: Complete (4/6 connectors)
 - ✅ Test coverage documented (60 tests, 38 pass)

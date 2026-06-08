@@ -4,10 +4,7 @@
 // exploit-but-trust-below-target. Each gets a test.
 
 import { describe, expect, it } from 'vitest';
-import {
-  WhitewasherAttack,
-  type WhitewasherConfig,
-} from '../src/whitewasher.js';
+import { WhitewasherAttack, type WhitewasherConfig } from '../src/whitewasher.js';
 import type { AttackContext, AttackResult } from '../src/types.js';
 
 function mockContext(trustSeries: number[]): AttackContext {

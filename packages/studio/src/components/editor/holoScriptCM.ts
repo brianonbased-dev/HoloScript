@@ -5,17 +5,18 @@
 // CodeMirrorEditor.tsx via the CM6 linting + tooltip extension APIs.
 
 import { HighlightStyle, StreamLanguage, syntaxHighlighting } from '@codemirror/language';
-import { autocompletion, type CompletionContext, type CompletionResult, type CompletionSource, snippetCompletion } from '@codemirror/autocomplete';
+import {
+  autocompletion,
+  type CompletionContext,
+  type CompletionResult,
+  type CompletionSource,
+  snippetCompletion,
+} from '@codemirror/autocomplete';
 import { EditorView } from '@codemirror/view';
 import { type Extension } from '@codemirror/state';
 import { tags } from '@lezer/highlight';
 
-import {
-  BUILTIN_FUNCTIONS,
-  BUILTIN_TRAITS,
-  KEYWORDS,
-  TYPE_KEYWORDS,
-} from './holoScriptLanguage';
+import { BUILTIN_FUNCTIONS, BUILTIN_TRAITS, KEYWORDS, TYPE_KEYWORDS } from './holoScriptLanguage';
 
 // ─── StreamLanguage tokenizer ──────────────────────────────────────────────────
 // Ported from the Monarch tokenizer in holoScriptLanguage.ts. Uses CM6's CM5-compat
@@ -72,7 +73,10 @@ const holoScriptStreamLang = StreamLanguage.define<HoloScriptState>({
       stream.next();
       while (!stream.eol()) {
         const ch = stream.next();
-        if (ch === '\\') { stream.next(); continue; }
+        if (ch === '\\') {
+          stream.next();
+          continue;
+        }
         if (ch === '"') break;
       }
       return 'string';
@@ -83,7 +87,10 @@ const holoScriptStreamLang = StreamLanguage.define<HoloScriptState>({
       stream.next();
       while (!stream.eol()) {
         const ch = stream.next();
-        if (ch === '\\') { stream.next(); continue; }
+        if (ch === '\\') {
+          stream.next();
+          continue;
+        }
         if (ch === "'") break;
       }
       return 'string';
@@ -94,7 +101,10 @@ const holoScriptStreamLang = StreamLanguage.define<HoloScriptState>({
       stream.next();
       while (!stream.eol()) {
         const ch = stream.next();
-        if (ch === '\\') { stream.next(); continue; }
+        if (ch === '\\') {
+          stream.next();
+          continue;
+        }
         if (ch === '`') break;
       }
       return 'string';
@@ -110,7 +120,7 @@ const holoScriptStreamLang = StreamLanguage.define<HoloScriptState>({
     if (stream.match(/^[a-zA-Z_]\w*/)) {
       const word = stream.current();
       if (KEYWORDS.includes(word)) return 'keyword';
-      if (TYPE_KEYWORDS.includes(word)) return 'type';  // → tags.typeName (#38bdf8)
+      if (TYPE_KEYWORDS.includes(word)) return 'type'; // → tags.typeName (#38bdf8)
       return null; // identifier — uses default foreground (#ffffff)
     }
 
@@ -139,16 +149,16 @@ const holoScriptStreamLang = StreamLanguage.define<HoloScriptState>({
 // Colors match the Monaco holoscript-dark theme in holoScriptLanguage.ts.
 
 export const holoScriptHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword,       color: '#6366f1', fontWeight: 'bold' },
-  { tag: tags.attributeName, color: '#818cf8' },           // @trait decorators
-  { tag: tags.typeName,      color: '#38bdf8' },           // type keywords
-  { tag: tags.comment,       color: '#4b5563', fontStyle: 'italic' },
-  { tag: tags.string,        color: '#34d399' },
-  { tag: tags.number,        color: '#f59e0b' },
-  { tag: tags.bracket,       color: '#94a3b8' },
-  { tag: tags.operator,      color: '#c084fc' },
-  { tag: tags.punctuation,   color: '#6b7280' },
-  { tag: tags.invalid,       color: '#f87171' },
+  { tag: tags.keyword, color: '#6366f1', fontWeight: 'bold' },
+  { tag: tags.attributeName, color: '#818cf8' }, // @trait decorators
+  { tag: tags.typeName, color: '#38bdf8' }, // type keywords
+  { tag: tags.comment, color: '#4b5563', fontStyle: 'italic' },
+  { tag: tags.string, color: '#34d399' },
+  { tag: tags.number, color: '#f59e0b' },
+  { tag: tags.bracket, color: '#94a3b8' },
+  { tag: tags.operator, color: '#c084fc' },
+  { tag: tags.punctuation, color: '#6b7280' },
+  { tag: tags.invalid, color: '#f87171' },
 ]);
 
 // ─── Editor theme — matches Studio globals.css tokens ─────────────────────────
@@ -226,14 +236,14 @@ export const holoScriptTheme = EditorView.theme(
       opacity: 0.7,
     },
     // Lint gutter + underlines
-    '.cm-lintRange-error':   { backgroundImage: 'none', borderBottom: '2px solid #f87171' },
+    '.cm-lintRange-error': { backgroundImage: 'none', borderBottom: '2px solid #f87171' },
     '.cm-lintRange-warning': { backgroundImage: 'none', borderBottom: '2px dotted #f59e0b' },
-    '.cm-lintRange-info':    { backgroundImage: 'none', borderBottom: '2px dotted #38bdf8' },
-    '.cm-diagnostic-error':  { borderLeft: '3px solid #f87171', paddingLeft: '6px' },
-    '.cm-diagnostic-warning':{ borderLeft: '3px solid #f59e0b', paddingLeft: '6px' },
-    '.cm-diagnostic-info':   { borderLeft: '3px solid #38bdf8', paddingLeft: '6px' },
+    '.cm-lintRange-info': { backgroundImage: 'none', borderBottom: '2px dotted #38bdf8' },
+    '.cm-diagnostic-error': { borderLeft: '3px solid #f87171', paddingLeft: '6px' },
+    '.cm-diagnostic-warning': { borderLeft: '3px solid #f59e0b', paddingLeft: '6px' },
+    '.cm-diagnostic-info': { borderLeft: '3px solid #38bdf8', paddingLeft: '6px' },
   },
-  { dark: true },
+  { dark: true }
 );
 
 // ─── Static autocomplete ──────────────────────────────────────────────────────
@@ -275,7 +285,7 @@ export function holoScriptCompletions(context: CompletionContext): CompletionRes
           label: fn,
           type: 'function' as const,
           detail: 'built-in',
-        }),
+        })
       ),
       snippetCompletion('scene "\${1:MyScene}" {\n\t\${0}\n}', {
         label: 'scene',
@@ -284,7 +294,7 @@ export function holoScriptCompletions(context: CompletionContext): CompletionRes
       }),
       snippetCompletion(
         'object \${1:MyObject} {\n\t@mesh { geometry: "\${2:box}" }\n\t@material { color: "\${3:#ffffff}" }\n\t\${0}\n}',
-        { label: 'object', type: 'keyword' as const, detail: 'object block' },
+        { label: 'object', type: 'keyword' as const, detail: 'object block' }
       ),
       snippetCompletion('trait \${1:MyTrait} {\n\t\${0}\n}', {
         label: 'trait',
@@ -293,15 +303,15 @@ export function holoScriptCompletions(context: CompletionContext): CompletionRes
       }),
       snippetCompletion(
         'world "\${1:MyWorld}" {\n\t@terrain { heightmap: "\${2:flat}" }\n\t@ambient_light { intensity: \${3:0.5} }\n\n\t\${0}\n}',
-        { label: 'world', type: 'keyword' as const, detail: 'world block' },
+        { label: 'world', type: 'keyword' as const, detail: 'world block' }
       ),
       snippetCompletion(
         'object \${1:PhysicsObj} {\n\t@mesh { geometry: "\${2:sphere}" }\n\t@rigidbody { mass: \${3:1.0} }\n\t@collider { shape: "\${4:sphere}" }\n\t\${0}\n}',
-        { label: 'physics-object', type: 'keyword' as const, detail: 'physics object' },
+        { label: 'physics-object', type: 'keyword' as const, detail: 'physics object' }
       ),
       snippetCompletion(
         'object \${1:NPC} {\n\t@mesh { geometry: "humanoid" }\n\t@ai_npc_brain { goals: ["\${2:patrol}"] }\n\t@dialogue { greeting: "\${3:Hello!}" }\n\t\${0}\n}',
-        { label: 'npc', type: 'keyword' as const, detail: 'AI NPC object' },
+        { label: 'npc', type: 'keyword' as const, detail: 'AI NPC object' }
       ),
     ],
     validFor: /[a-zA-Z_]\w*/,

@@ -231,10 +231,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
         {/* Step Content */}
         <div className="p-6">
           {currentStep === 'type' && (
-            <TypeSelectionStep
-              selectedType={selectedType}
-              onChangeType={setSelectedType}
-            />
+            <TypeSelectionStep selectedType={selectedType} onChangeType={setSelectedType} />
           )}
 
           {currentStep === 'file' && (
@@ -254,15 +251,10 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
             />
           )}
 
-          {currentStep === 'analysis' && (
-            <AnalysisStep projectDNA={projectDNA} />
-          )}
+          {currentStep === 'analysis' && <AnalysisStep projectDNA={projectDNA} />}
 
           {currentStep === 'thumbnail' && (
-            <ThumbnailStep
-              thumbnailFile={thumbnailFile}
-              onChangeThumbnail={setThumbnailFile}
-            />
+            <ThumbnailStep thumbnailFile={thumbnailFile} onChangeThumbnail={setThumbnailFile} />
           )}
 
           {currentStep === 'metadata' && (
@@ -296,11 +288,7 @@ export function UploadWizard({ onClose, onSuccess, remixFrom }: UploadWizardProp
           )}
 
           {currentStep === 'submit' && (
-            <SubmitStep
-              uploading={uploading}
-              progress={progress}
-              daemonJobId={daemonJobId}
-            />
+            <SubmitStep uploading={uploading} progress={progress} daemonJobId={daemonJobId} />
           )}
         </div>
 

@@ -273,10 +273,7 @@ const T_DEP_DB: Record<string, TemperatureDependentProperties> = {
  * Uses piecewise-linear interpolation of tabulated data.
  * Falls back to room-temperature values if no T-dependent data exists.
  */
-export function getMaterialAtTemperature(
-  name: string,
-  T: number
-): ThermalMaterial {
+export function getMaterialAtTemperature(name: string, T: number): ThermalMaterial {
   const tDep = T_DEP_DB[name];
   if (!tDep) {
     return getMaterial(name);
@@ -300,7 +297,7 @@ export function getMaterialAtTemperature(
  */
 export function getThermalConductivity(name: string, T: number): number {
   const tDep = T_DEP_DB[name];
-  if (tDep?.conductivity) return (interpolate(tDep.conductivity, T) as any);
+  if (tDep?.conductivity) return interpolate(tDep.conductivity, T) as any;
   return getMaterialFallback(name).conductivity;
 }
 
@@ -309,7 +306,7 @@ export function getThermalConductivity(name: string, T: number): number {
  */
 export function getSpecificHeat(name: string, T: number): number {
   const tDep = T_DEP_DB[name];
-  if (tDep?.specific_heat) return (interpolate(tDep.specific_heat, T) as any);
+  if (tDep?.specific_heat) return interpolate(tDep.specific_heat, T) as any;
   return getMaterialFallback(name).specific_heat;
 }
 
@@ -318,7 +315,7 @@ export function getSpecificHeat(name: string, T: number): number {
  */
 export function getDensity(name: string, T: number): number {
   const tDep = T_DEP_DB[name];
-  if (tDep?.density) return (interpolate(tDep.density, T) as any);
+  if (tDep?.density) return interpolate(tDep.density, T) as any;
   return getMaterialFallback(name).density;
 }
 
@@ -354,8 +351,6 @@ export function listTemperatureDependentMaterials(): string[] {
 }
 
 // ── Internal Helpers ─────────────────────────────────────────────────────────
-
-
 
 /** Lazy import to avoid circular dependency with MaterialDatabase. */
 function getMaterialFallback(name: string): SimulationMaterial {

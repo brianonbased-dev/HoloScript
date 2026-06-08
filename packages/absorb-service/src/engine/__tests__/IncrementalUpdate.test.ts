@@ -28,7 +28,7 @@ function makeFile(
   opts: {
     emitSites?: Array<{ eventName: string; callerId?: string }>;
     listenSites?: Array<{ eventName: string; callerId?: string }>;
-  } = {},
+  } = {}
 ): ScannedFile {
   return {
     path: filePath,
@@ -36,14 +36,14 @@ function makeFile(
     symbols: syms.map((n, i) => makeSym(n, filePath, i + 1)),
     imports: [],
     calls: [],
-    emitSites: (opts.emitSites ?? []).map(e => ({
+    emitSites: (opts.emitSites ?? []).map((e) => ({
       callerId: e.callerId ?? syms[0] ?? 'fn',
       eventName: e.eventName,
       filePath,
       line: 10,
       column: 0,
     })),
-    listenSites: (opts.listenSites ?? []).map(e => ({
+    listenSites: (opts.listenSites ?? []).map((e) => ({
       callerId: e.callerId ?? syms[0] ?? 'fn',
       eventName: e.eventName,
       filePath,
@@ -163,9 +163,7 @@ describe('CodebaseGraph.updateFile', () => {
   });
 
   it('updates event sites on file update', () => {
-    const g = buildGraph([
-      makeFile('/e.ts', ['fn'], { emitSites: [{ eventName: 'old:event' }] }),
-    ]);
+    const g = buildGraph([makeFile('/e.ts', ['fn'], { emitSites: [{ eventName: 'old:event' }] })]);
     g.updateFile(makeFile('/e.ts', ['fn'], { emitSites: [{ eventName: 'new:event' }] }));
     g.buildIndexes();
     expect(g.allEventNames()).toContain('new:event');
@@ -191,9 +189,9 @@ describe('CodebaseGraph.patchFromChanges', () => {
     ]);
 
     g.patchFromChanges(
-      [makeFile('/new.ts', ['newFn'])],       // added
+      [makeFile('/new.ts', ['newFn'])], // added
       [makeFile('/modify.ts', ['updatedFn'])], // modified
-      ['/remove.ts'],                           // removed
+      ['/remove.ts'] // removed
     );
 
     expect(g.findSymbolsByName('keepFn')).toHaveLength(1);
@@ -206,11 +204,7 @@ describe('CodebaseGraph.patchFromChanges', () => {
   it('calls buildIndexes exactly once (all queries work after)', () => {
     const g = buildGraph([makeFile('/a.ts', ['fn'])]);
 
-    g.patchFromChanges(
-      [makeFile('/b.ts', ['bFn'])],
-      [],
-      ['/a.ts'],
-    );
+    g.patchFromChanges([makeFile('/b.ts', ['bFn'])], [], ['/a.ts']);
 
     // If indexes were not rebuilt, these would return empty
     expect(g.findSymbolsByName('bFn')).toHaveLength(1);
@@ -236,7 +230,7 @@ describe('CodebaseGraph.patchFromChanges', () => {
     g.patchFromChanges(
       [],
       [makeFile('/e.ts', ['emitFn'], { emitSites: [{ eventName: 'ev:new' }] })],
-      [],
+      []
     );
 
     // ev:new has no listener → no edges; ev:old still has a listen-side but no emit → no edges
@@ -248,15 +242,8 @@ describe('CodebaseGraph.patchFromChanges', () => {
   });
 
   it('stats are consistent after patch', () => {
-    const g = buildGraph([
-      makeFile('/a.ts', ['f1', 'f2']),
-      makeFile('/b.ts', ['f3']),
-    ]);
-    g.patchFromChanges(
-      [makeFile('/c.ts', ['f4', 'f5', 'f6'])],
-      [],
-      ['/a.ts'],
-    );
+    const g = buildGraph([makeFile('/a.ts', ['f1', 'f2']), makeFile('/b.ts', ['f3'])]);
+    g.patchFromChanges([makeFile('/c.ts', ['f4', 'f5', 'f6'])], [], ['/a.ts']);
     const stats = g.getStats();
     expect(stats.totalFiles).toBe(2); // b + c
     expect(stats.totalSymbols).toBe(4); // f3 + f4 + f5 + f6

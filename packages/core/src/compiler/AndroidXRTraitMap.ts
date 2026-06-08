@@ -28,11 +28,7 @@ import {
   GLASSES_TRAIT_MAP,
   MULTIPLAYER_TRAIT_MAP,
 } from './AndroidXRTraitDispatch';
-import {
-  VISUAL_TRAIT_MAP,
-  V43_TRAIT_MAP,
-  AI_TRAIT_MAP,
-} from './AndroidXRCodeTemplates';
+import { VISUAL_TRAIT_MAP, V43_TRAIT_MAP, AI_TRAIT_MAP } from './AndroidXRCodeTemplates';
 
 // Re-export individual maps for consumers that need domain-scoped access
 export {
@@ -47,12 +43,12 @@ export {
   GLASSES_TRAIT_MAP,
   MULTIPLAYER_TRAIT_MAP,
 } from './AndroidXRTraitDispatch';
-export {
-  VISUAL_TRAIT_MAP,
-  V43_TRAIT_MAP,
-  AI_TRAIT_MAP,
-} from './AndroidXRCodeTemplates';
-export type { AndroidXRComponent, TraitImplementationLevel, AndroidXRTraitMapping } from './AndroidXRComponentTypes';
+export { VISUAL_TRAIT_MAP, V43_TRAIT_MAP, AI_TRAIT_MAP } from './AndroidXRCodeTemplates';
+export type {
+  AndroidXRComponent,
+  TraitImplementationLevel,
+  AndroidXRTraitMapping,
+} from './AndroidXRComponentTypes';
 
 // =============================================================================
 // REGISTRY COMPOSITION

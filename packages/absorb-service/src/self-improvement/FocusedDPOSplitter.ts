@@ -397,7 +397,7 @@ export class FocusedDPOSplitter {
       Dialogue: 'dialogue',
       StateMachine: 'state_machine',
       SpatialGroup: 'spatial_group',
-      TraitDefinition: 'trait'
+      TraitDefinition: 'trait',
     };
 
     const walk = (node: any, depth: number): void => {
@@ -604,7 +604,12 @@ export class FocusedDPOSplitter {
       spatial_group: ['remove_closing_brace', 'invalid_nesting', 'remove_required_property'],
       domain_block: ['remove_closing_brace', 'corrupt_property_value', 'invalid_trait_name'],
       data_source: ['corrupt_property_value', 'remove_colon_separator', 'remove_closing_brace'],
-      team_agent: ['remove_closing_brace', 'invalid_trait_name', 'remove_trait_arguments', 'corrupt_property_value'],
+      team_agent: [
+        'remove_closing_brace',
+        'invalid_trait_name',
+        'remove_trait_arguments',
+        'corrupt_property_value',
+      ],
       import: ['break_string_literal', 'corrupt_property_value'],
     };
 

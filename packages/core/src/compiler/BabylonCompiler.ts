@@ -116,9 +116,10 @@ export class BabylonCompiler extends CompilerBase {
     // Apply @platform() conditional filtering if a target was supplied
     // (first concrete slice for Adaptive Platform Layers + @platform() RFC implementation).
     if (this.options.platformTarget) {
-      const target = typeof this.options.platformTarget === 'string'
-        ? createPlatformTarget(this.options.platformTarget as any)
-        : this.options.platformTarget;
+      const target =
+        typeof this.options.platformTarget === 'string'
+          ? createPlatformTarget(this.options.platformTarget as any)
+          : this.options.platformTarget;
       const platformMixin = new PlatformConditionalCompilerMixin();
       composition = platformMixin.filterForPlatform(composition, target); // returns filtered copy or mutates safely
     }

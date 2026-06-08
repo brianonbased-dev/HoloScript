@@ -44,7 +44,9 @@ export interface UseCultureReturn {
 }
 
 export function useCulture(): UseCultureReturn {
-  const rt = useRef<CultureRuntimeInstance>(new CultureRuntime() as unknown as CultureRuntimeInstance);
+  const rt = useRef<CultureRuntimeInstance>(
+    new CultureRuntime() as unknown as CultureRuntimeInstance
+  );
   const [health, setHealth] = useState(1);
   const [agentCount, setAgentCount] = useState(0);
   const [events, setEvents] = useState<CultureEvent[]>([]);

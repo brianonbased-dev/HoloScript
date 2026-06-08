@@ -22,7 +22,12 @@
 import type { TraitHandler } from '@holoscript/core';
 import { WalletConnection } from '../web3/WalletConnection';
 import { GasEstimator } from '../web3/GasEstimator';
-import { parseEther as _parseEther, formatEther as _formatEther, type Address, type Hex } from 'viem';
+import {
+  parseEther as _parseEther,
+  formatEther as _formatEther,
+  type Address,
+  type Hex,
+} from 'viem';
 import { zoraCreator1155ImplABI } from '@zoralabs/protocol-deployments';
 
 // mintWithRewards is present on some Zora contract versions but not in the

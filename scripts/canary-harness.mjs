@@ -89,8 +89,12 @@ async function runProbe(name, payloadFn, timeoutMs = TIMEOUT_MS) {
     let stdout = '';
     let stderr = '';
 
-    child.stdout.on('data', (d) => { stdout += d; });
-    child.stderr.on('data', (d) => { stderr += d; });
+    child.stdout.on('data', (d) => {
+      stdout += d;
+    });
+    child.stderr.on('data', (d) => {
+      stderr += d;
+    });
 
     child.on('error', (err) => {
       resolve({
@@ -434,10 +438,7 @@ function buildExternalProbes() {
 
   // 1. Absorb health — no auth, JSON response, uptime + database fields
   probes.push(
-    probe(
-      'external-absorb-health',
-      nodeFetchGetProbe('/health', {}, EXTERNAL_SURFACES.absorb.base)
-    )
+    probe('external-absorb-health', nodeFetchGetProbe('/health', {}, EXTERNAL_SURFACES.absorb.base))
   );
 
   // 2. Absorb scan endpoint — POST with API key, expects JSON (shape: heavy payload)
@@ -457,7 +458,11 @@ function buildExternalProbes() {
   probes.push(
     probe(
       'external-orchestrator-health',
-      nodeFetchGetProbe('/health', EXTERNAL_SURFACES.orchestrator.authHeader, EXTERNAL_SURFACES.orchestrator.base)
+      nodeFetchGetProbe(
+        '/health',
+        EXTERNAL_SURFACES.orchestrator.authHeader,
+        EXTERNAL_SURFACES.orchestrator.base
+      )
     )
   );
 

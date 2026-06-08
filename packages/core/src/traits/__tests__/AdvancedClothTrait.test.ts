@@ -109,14 +109,14 @@ describe('AdvancedClothSystem', () => {
     cloth.initialize();
     const p = cloth.getAllParticles()[5]; // not pinned
     const prevVy = p.velocity[1];
-    cloth.applyImpulse(p.position, [0, 10, 0 ], 1.0);
+    cloth.applyImpulse(p.position, [0, 10, 0], 1.0);
     expect(p.velocity[1]).toBeGreaterThan(prevVy);
   });
 
   it('applyImpulse does not affect pinned particles', () => {
     cloth.initialize();
     const pinned = cloth.getAllParticles()[0]; // top row, pinned
-    cloth.applyImpulse(pinned.position, [0, 100, 0 ], 1.0);
+    cloth.applyImpulse(pinned.position, [0, 100, 0], 1.0);
     // pinned → inverseMass is 0 → velocity unchanged
     expect(pinned.velocity[1]).toBe(0);
   });
@@ -124,7 +124,7 @@ describe('AdvancedClothSystem', () => {
   // ── Wind ───────────────────────────────────────────────────────────────────
 
   it('setWind updates wind config', () => {
-    cloth.setWind([1, 0, 0 ]);
+    cloth.setWind([1, 0, 0]);
     expect(cloth.getConfig().wind[0]).toBe(1);
   });
 

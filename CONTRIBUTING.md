@@ -101,15 +101,15 @@ ls -d packages/*/ services/*/
 
 Time is of the utmost importance in HoloScript. Slowness reads as broken in spatial and agent loops—even when correctness holds. We treat performance thresholds as product law. Before opening a PR, ensure your changes do not violate the **NORTH_STAR §5 Performance Thresholds**:
 
-| Operation | Target Budget | Warning |
-|-----------|---------------|---------|
-| Compilation (single file) | < 50ms | > 500ms |
-| Graph absorb (incremental) | < 100ms | > 2s |
-| Test suite (single package) | < 30s | > 120s |
-| Studio dev server start | < 10s | > 30s |
-| VR frame budget (90Hz) | < 11.1ms | dropped frames |
+| Operation                   | Target Budget | Warning        |
+| --------------------------- | ------------- | -------------- |
+| Compilation (single file)   | < 50ms        | > 500ms        |
+| Graph absorb (incremental)  | < 100ms       | > 2s           |
+| Test suite (single package) | < 30s         | > 120s         |
+| Studio dev server start     | < 10s         | > 30s          |
+| VR frame budget (90Hz)      | < 11.1ms      | dropped frames |
 
-*Anchor product UX to these rows before adding features. Features that violate these budgets require architectural review.*
+_Anchor product UX to these rows before adding features. Features that violate these budgets require architectural review._
 
 ## Utility-First Framing (not only 3D/XR)
 
@@ -317,24 +317,24 @@ pnpm vitest run \
 ```
 
 ### Paper Benchmark Tests
- 
- These tests validate the scientific foundations reported in the 17-paper program. Run them to verify algebraic provenance and solver convergence.
- 
- ```bash
- # Paper 0b: Trust by Construction (TET10 Convergence)
- pnpm vitest run packages/engine/src/simulation/__tests__/StructuralSolver.comprehensive.test.ts
- 
- # Paper #2: Browser-Native SNN (LIF Performance)
- pnpm vitest run packages/snn-webgpu/src/__tests__/LIFPerformance.test.ts
- 
- # Paper #3: Conflict-Free Spatial State (Tropical Semiring)
- pnpm vitest run packages/core/src/crdt/__tests__/ProvenanceSemiring.test.ts
- 
- # Paper #4: Sandboxed Embodied Simulation (Attack Detection)
- pnpm vitest run packages/core/src/security/__tests__/SandboxContract.test.ts
- ```
- 
- ### Known Test Limitations
+
+These tests validate the scientific foundations reported in the 17-paper program. Run them to verify algebraic provenance and solver convergence.
+
+```bash
+# Paper 0b: Trust by Construction (TET10 Convergence)
+pnpm vitest run packages/engine/src/simulation/__tests__/StructuralSolver.comprehensive.test.ts
+
+# Paper #2: Browser-Native SNN (LIF Performance)
+pnpm vitest run packages/snn-webgpu/src/__tests__/LIFPerformance.test.ts
+
+# Paper #3: Conflict-Free Spatial State (Tropical Semiring)
+pnpm vitest run packages/core/src/crdt/__tests__/ProvenanceSemiring.test.ts
+
+# Paper #4: Sandboxed Embodied Simulation (Attack Detection)
+pnpm vitest run packages/core/src/security/__tests__/SandboxContract.test.ts
+```
+
+### Known Test Limitations
 
 Three edge cases in ParserEdgeCases.test.ts are expected to fail (non-blocking):
 

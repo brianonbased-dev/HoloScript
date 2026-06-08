@@ -45,12 +45,12 @@ The API route writes only sanitized Quest 3 matrix cells under
 
 Use the headset approval terms from the ecosystem handbook:
 
-| Level | P043 meaning |
-| --- | --- |
-| `local-validated` | The matrix scaffold, artifact validator, and capture runner execute on the host. |
-| `browser-validated` | A browser/WebGPU run writes a non-smoke artifact that passes `--check-results`. |
-| `headset-reviewed` | Quest Browser executes the capture surface or runner, records headset metadata, and the approval packet names the evidence paths. |
-| `paper-ready` | All nine Quest cells pass `--check-results`, the approval packet is complete, and cited artifacts are frozen/anchored if the paper uses them. |
+| Level               | P043 meaning                                                                                                                                  |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `local-validated`   | The matrix scaffold, artifact validator, and capture runner execute on the host.                                                              |
+| `browser-validated` | A browser/WebGPU run writes a non-smoke artifact that passes `--check-results`.                                                               |
+| `headset-reviewed`  | Quest Browser executes the capture surface or runner, records headset metadata, and the approval packet names the evidence paths.             |
+| `paper-ready`       | All nine Quest cells pass `--check-results`, the approval packet is complete, and cited artifacts are frozen/anchored if the paper uses them. |
 
 If Quest Browser cannot execute the capture, leave the row at
 `blocked-no-headset` or `browser-validated`; do not promote host Chromium

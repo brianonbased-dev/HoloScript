@@ -46,9 +46,9 @@ describe('IKTrait', () => {
   });
 
   it('setTarget with Vector3', () => {
-    ik.setTarget([1, 1, 0 ]);
+    ik.setTarget([1, 1, 0]);
     const cfg = ik.getConfig();
-    expect(cfg.targetPosition).toEqual([1, 1, 0 ]);
+    expect(cfg.targetPosition).toEqual([1, 1, 0]);
   });
 
   it('setTarget with string', () => {
@@ -57,12 +57,12 @@ describe('IKTrait', () => {
   });
 
   it('setPoleTarget with Vector3', () => {
-    ik.setPoleTarget([0, 0, 1 ]);
-    expect(ik.getConfig().polePosition).toEqual([0, 0, 1 ]);
+    ik.setPoleTarget([0, 0, 1]);
+    expect(ik.getConfig().polePosition).toEqual([0, 0, 1]);
   });
 
   it('solve returns result', () => {
-    const result = ik.solve([0.5, 0.5, 0 ]);
+    const result = ik.solve([0.5, 0.5, 0]);
     expect(result).toBeDefined();
     expect(result.iterationsUsed).toBeGreaterThan(0);
     expect(typeof result.distanceToTarget).toBe('number');
@@ -73,7 +73,7 @@ describe('IKTrait', () => {
   });
 
   it('getLastResult returns result after solve', () => {
-    ik.solve([0.3, 0.3, 0 ]);
+    ik.solve([0.3, 0.3, 0]);
     expect(ik.getLastResult()).toBeDefined();
   });
 

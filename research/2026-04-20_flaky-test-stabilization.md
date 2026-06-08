@@ -29,34 +29,35 @@ under 30 seconds and route it to the correct sub-task.
 
 Ran grep across all `**/*.test.ts` in `packages/`:
 
-| Pattern | File-level hits | Interpretation |
-|---|---|---|
-| `setTimeout(` | 255 files | candidate for fake-timer conversion |
-| `Date.now()` | 266 files | candidate for `vi.setSystemTime()` |
-| `Math.random()` | 148 files | candidate for seed-injection |
-| `vi.useFakeTimers` | 116 files | **already using fake timers** |
-| `await new Promise(r => setTimeout(r, N))` | 50+ files | explicit real-delay races |
+| Pattern                                    | File-level hits | Interpretation                      |
+| ------------------------------------------ | --------------- | ----------------------------------- |
+| `setTimeout(`                              | 255 files       | candidate for fake-timer conversion |
+| `Date.now()`                               | 266 files       | candidate for `vi.setSystemTime()`  |
+| `Math.random()`                            | 148 files       | candidate for seed-injection        |
+| `vi.useFakeTimers`                         | 116 files       | **already using fake timers**       |
+| `await new Promise(r => setTimeout(r, N))` | 50+ files       | explicit real-delay races           |
 
 On its face, the ratio `(setTimeout users) / (fake-timer users)` ≈ 2.2 suggests
 meaningful room for conversion. But ratio alone doesn't prove flakiness — it
-only proves *potential* for flakiness. See Step 3 for the empirical check.
+only proves _potential_ for flakiness. See Step 3 for the empirical check.
 
 ### Step 2: Failure classification (packages/core, N=587 failures)
 
 Ran `npx vitest run --reporter=json` against `packages/core` and classified
 each failure's top-line error message:
 
-| Class | Count | % | Flake? |
-|---|---:|---:|---|
-| `assertion_failure` (incl. `expected undefined to be …`) | 275 | 47% | No — deterministic |
-| `vite_ssr_resolution` (`__vite_ssr_import_N__.X is not a function`) | 164 | 28% | No — module-resolution bug |
-| `other` (mostly `assertTypes` receiving undefined) | 128 | 22% | No — stale API contract |
-| `not_a_function` (missing class method) | 20 | 3% | No — shape drift |
-| **`test_timeout`** (the vitest `Test timed out in …ms` error) | **0** | **0%** | **would be flake** |
-| **`network`** (ECONNREFUSED, fetch failed) | **0** | **0%** | **would be flake** |
-| **`filesystem_enoent`** | **0** | **0%** | **would be flake** |
+| Class                                                               | Count |      % | Flake?                     |
+| ------------------------------------------------------------------- | ----: | -----: | -------------------------- |
+| `assertion_failure` (incl. `expected undefined to be …`)            |   275 |    47% | No — deterministic         |
+| `vite_ssr_resolution` (`__vite_ssr_import_N__.X is not a function`) |   164 |    28% | No — module-resolution bug |
+| `other` (mostly `assertTypes` receiving undefined)                  |   128 |    22% | No — stale API contract    |
+| `not_a_function` (missing class method)                             |    20 |     3% | No — shape drift           |
+| **`test_timeout`** (the vitest `Test timed out in …ms` error)       | **0** | **0%** | **would be flake**         |
+| **`network`** (ECONNREFUSED, fetch failed)                          | **0** | **0%** | **would be flake**         |
+| **`filesystem_enoent`**                                             | **0** | **0%** | **would be flake**         |
 
 Top files by failure count (all classes):
+
 - `certification-levels.test.ts` — 44 (CertificationChecker.check missing)
 - `HoloScriptRuntime.test.ts` — 31 (SSR resolution)
 - `HoloScriptDebugger.prod.test.ts` — 23 (SSR resolution)
@@ -65,9 +66,9 @@ Top files by failure count (all classes):
 
 **Single dominant root cause**: `stateMachineInterpreter.interpret is not a
 function` surfacing as `__vite_ssr_import_N__` — a Vite SSR barrel-export
-resolution issue. This is the `W.038` wisdom entry in MEMORY.md: *"Docker
+resolution issue. This is the `W.038` wisdom entry in MEMORY.md: _"Docker
 exposes monorepo coupling pnpm hides — barrel re-exports survive, deep
-subpath imports don't."* It applies here: the vitest SSR transformer is
+subpath imports don't."_ It applies here: the vitest SSR transformer is
 failing the same boundary.
 
 ### Step 3: Empirical flake check (rerun-to-flip test)
@@ -76,16 +77,16 @@ Picked the 5 test files with the highest `setTimeout` count AND that actually
 run to completion, ran each 2–3 times back-to-back on the same machine, and
 checked for any result flip:
 
-| File | Runs | Result |
-|---|---:|---|
-| `mesh/WebSocketReconnectionHandler.test.ts` | 3 | 18/18 pass → 18/18 → 18/18 |
-| `mesh/consensus/ConsensusModule.test.ts` | 3 | 31/31 → 31/31 → 31/31 |
-| `framework/swarm/LeaderElection.test.ts` | 3 | 13/13 → 13/13 → 13/13 |
-| `framework/presence.test.ts` | 3 | 13/13 → 13/13 → 13/13 |
-| `runtime/device-and-timing.test.ts` | 3 | 63/63 → 63/63 → 63/63 |
-| `collab-server` (suite) | 2 | 19/19 → 19/19 |
-| `mcp-server/holomesh/http-routes.test.ts` | 2 | 117/117 → 117/117 |
-| `core/certification-levels.test.ts` (**known-failing**) | 2 | 44 fail / 33 pass → 44 fail / 33 pass |
+| File                                                    | Runs | Result                                |
+| ------------------------------------------------------- | ---: | ------------------------------------- |
+| `mesh/WebSocketReconnectionHandler.test.ts`             |    3 | 18/18 pass → 18/18 → 18/18            |
+| `mesh/consensus/ConsensusModule.test.ts`                |    3 | 31/31 → 31/31 → 31/31                 |
+| `framework/swarm/LeaderElection.test.ts`                |    3 | 13/13 → 13/13 → 13/13                 |
+| `framework/presence.test.ts`                            |    3 | 13/13 → 13/13 → 13/13                 |
+| `runtime/device-and-timing.test.ts`                     |    3 | 63/63 → 63/63 → 63/63                 |
+| `collab-server` (suite)                                 |    2 | 19/19 → 19/19                         |
+| `mcp-server/holomesh/http-routes.test.ts`               |    2 | 117/117 → 117/117                     |
+| `core/certification-levels.test.ts` (**known-failing**) |    2 | 44 fail / 33 pass → 44 fail / 33 pass |
 
 **0 flips in 6 candidate files + 1 control file.** The known-failing control
 reproduced identically, confirming the failure set is stable across runs.
@@ -95,25 +96,28 @@ reproduced identically, confirming the failure set is stable across runs.
 **Dominant failure class**: Vite SSR barrel re-export resolution. Not a flake.
 
 The pattern is:
+
 ```
 TypeError: __vite_ssr_import_N__.stateMachineInterpreter.interpret is not a function
   at new HoloScriptRuntime (packages/core/src/HoloScriptRuntime.ts:257)
 ```
 
 This happens because the vitest SSR transformer destructures an import like
+
 ```ts
-import { stateMachineInterpreter } from '…'
+import { stateMachineInterpreter } from '…';
 ```
+
 and at the top of the test-runner process the referenced export has not
-been fully attached to the exported module object yet. It fails *every*
+been fully attached to the exported module object yet. It fails _every_
 time — it's just a cold-path module-graph issue. Same symptom as `W.038`
 but at the vitest-SSR layer rather than the Docker-bundle layer.
 
 **This is a separate task.** Fixing it would stabilize ~164 failures in
 one shot but it is a scope-creep move from "stabilize flaky tests" into
-"repair the vitest SSR pipeline." Per the task directive: *"Do NOT fix
+"repair the vitest SSR pipeline." Per the task directive: _"Do NOT fix
 unrelated test failures that aren't flakes — pre-existing-failing-
-consistently = separate stabilize-mode task."*
+consistently = separate stabilize-mode task."_
 
 ## What DID NOT need fixing (this task)
 
@@ -141,22 +145,23 @@ sometimes for the same code** — apply this recipe:
 ### Recipe A — Time-based flake
 
 ```ts
-import { describe, it, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, beforeEach, afterEach, vi } from 'vitest';
 
 beforeEach(() => {
-  vi.useFakeTimers()
-  vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
-})
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+});
 afterEach(() => {
-  vi.useRealTimers()
-})
+  vi.useRealTimers();
+});
 
 it('works after 1s', async () => {
-  const p = doThingAfter1s()
-  await vi.advanceTimersByTimeAsync(1000) // NOT await new Promise(...setTimeout...)
-  await expect(p).resolves.toBe(true)
-})
+  const p = doThingAfter1s();
+  await vi.advanceTimersByTimeAsync(1000); // NOT await new Promise(...setTimeout...)
+  await expect(p).resolves.toBe(true);
+});
 ```
+
 - Replace every `await new Promise(r => setTimeout(r, N))` with
   `await vi.advanceTimersByTimeAsync(N)`
 - Replace every bare `Date.now()` in test or SUT with a clock injection point,
@@ -190,15 +195,17 @@ it('works after 1s', async () => {
 ### Verification gate
 
 After applying a recipe, run the fixed file **5 times back-to-back** with:
+
 ```bash
 for i in 1 2 3 4 5; do npx vitest run <path> --reporter=default | tail -2; done
 ```
+
 All 5 must show identical pass counts. If any run differs, the flake was
 misdiagnosed — re-triage.
 
 ## Recommended task board items (next agent)
 
-These are out-of-scope for *this* task but should be filed:
+These are out-of-scope for _this_ task but should be filed:
 
 1. **[stabilize] Fix vite-ssr barrel resolution in packages/core** — would clear ~164 failures in one shot. Probable location: `packages/core/src/HoloScriptRuntime.ts:257` + the `stateMachineInterpreter` export site.
 2. **[stabilize] Repair certification-levels suite** — `CertificationChecker.check` method missing; 44 failures all call it.

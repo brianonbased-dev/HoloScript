@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-anatomy-explorer",
-  name: "Anatomy Explorer",
-  description: "3D anatomy visualization with clickable organs and labeled systems",
-  thumbnail: "🫀",
-  tags: ["science","medical","anatomy","education"],
-  category: "science",
+  id: 'wizard-anatomy-explorer',
+  name: 'Anatomy Explorer',
+  description: '3D anatomy visualization with clickable organs and labeled systems',
+  thumbnail: '🫀',
+  tags: ['science', 'medical', 'anatomy', 'education'],
+  category: 'science',
   code: `composition "Anatomy Explorer" {
   environment {
     skybox: "studio"
@@ -110,7 +110,7 @@ export const template: SceneTemplate = {
     color: "#222233"
     label: "Drag to rotate | Scroll to zoom"
   }
-}`
+}`,
 };
 
 export default template;

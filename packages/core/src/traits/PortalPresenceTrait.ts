@@ -213,7 +213,12 @@ export const portalPresenceHandler: TraitHandler<PortalPresenceConfig> = {
   // ===========================================================================
   // onUpdate -- inactivity timeout, heartbeat
   // ===========================================================================
-  onUpdate(node: HSPlusNode, config: PortalPresenceConfig, context: TraitContext, delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    config: PortalPresenceConfig,
+    context: TraitContext,
+    delta: number
+  ): void {
     const state = node.__portalPresenceState as PortalPresenceState | undefined;
     if (!state) return;
 
@@ -246,7 +251,12 @@ export const portalPresenceHandler: TraitHandler<PortalPresenceConfig> = {
   // ===========================================================================
   // onEvent -- handle portal presence events
   // ===========================================================================
-  onEvent(node: HSPlusNode, config: PortalPresenceConfig, context: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: PortalPresenceConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
     const state = node.__portalPresenceState as PortalPresenceState | undefined;
     if (!state) return;
 
@@ -313,11 +323,18 @@ export const portalPresenceHandler: TraitHandler<PortalPresenceConfig> = {
         }
 
         const agentCardPresent = Boolean(payload.agentCardPresent);
-        const requestedScopes = Array.isArray(payload.scopes) ? payload.scopes : config.default_scopes;
-        const requestedRepresentation = (payload.representation as PortalRepresentation) ?? config.default_representation;
+        const requestedScopes = Array.isArray(payload.scopes)
+          ? payload.scopes
+          : config.default_scopes;
+        const requestedRepresentation =
+          (payload.representation as PortalRepresentation) ?? config.default_representation;
 
         // Require agent card for semantic/dual representation
-        if (config.require_agent_card && !agentCardPresent && requestedRepresentation !== 'rendered') {
+        if (
+          config.require_agent_card &&
+          !agentCardPresent &&
+          requestedRepresentation !== 'rendered'
+        ) {
           context.emit?.('portal_presence:entry_rejected', {
             entrantId,
             reason: 'agent_card_required',
@@ -326,7 +343,10 @@ export const portalPresenceHandler: TraitHandler<PortalPresenceConfig> = {
         }
 
         // Validate requested scopes against max_scopes
-        const grantedScopes = validateScopes(requestedScopes as SpatialScope[], config.max_scopes as SpatialScope[]);
+        const grantedScopes = validateScopes(
+          requestedScopes as SpatialScope[],
+          config.max_scopes as SpatialScope[]
+        );
         if (grantedScopes.length === 0) {
           grantedScopes.push('read-only'); // At minimum, read-only is always available
         }
@@ -430,7 +450,11 @@ export const portalPresenceHandler: TraitHandler<PortalPresenceConfig> = {
 
         // Check zone admission if specified
         const deltaZone = String(payload.zone ?? '');
-        if (deltaZone && deltaEntrant.admittedZones.length > 0 && !deltaEntrant.admittedZones.includes(deltaZone)) {
+        if (
+          deltaZone &&
+          deltaEntrant.admittedZones.length > 0 &&
+          !deltaEntrant.admittedZones.includes(deltaZone)
+        ) {
           state.totalViolations++;
           context.emit?.('portal_presence:scope_violation', {
             entrantId: deltaEntrantId,

@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-student-sandbox",
-  name: "Student Sandbox",
-  description: "Safe experimentation space with pre-placed objects to modify",
-  thumbnail: "🎓",
-  tags: ["education","sandbox","beginner","experiment"],
-  category: "education",
+  id: 'wizard-student-sandbox',
+  name: 'Student Sandbox',
+  description: 'Safe experimentation space with pre-placed objects to modify',
+  thumbnail: '🎓',
+  tags: ['education', 'sandbox', 'beginner', 'experiment'],
+  category: 'education',
   code: `composition "Student Sandbox" {
   environment {
     skybox: "studio"
@@ -72,7 +72,7 @@ export const template: SceneTemplate = {
     color: "#bbbbbb"
     label: "Roll objects down!"
   }
-}`
+}`,
 };
 
 export default template;

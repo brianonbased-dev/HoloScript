@@ -120,15 +120,23 @@ export function oneRepMax(weightKg: number, reps: number): OneRepMaxResult {
   if (weightKg <= 0) throw new Error('weightKg must be positive');
   if (reps < 1 || !Number.isInteger(reps)) throw new Error('reps must be a positive integer');
   if (reps === 1) {
-    return { weightKg, reps, epley: weightKg, brzycki: weightKg, lander: weightKg, lombardi: weightKg, average: weightKg };
+    return {
+      weightKg,
+      reps,
+      epley: weightKg,
+      brzycki: weightKg,
+      lander: weightKg,
+      lombardi: weightKg,
+      average: weightKg,
+    };
   }
   if (reps > 30) throw new Error('reps > 30 is outside the validated range');
 
-  const epley    = weightKg * (1 + reps / 30);
-  const brzycki  = weightKg * 36 / (37 - reps);
-  const lander   = 100 * weightKg / (101.3 - 2.67123 * reps);
-  const lombardi = weightKg * Math.pow(reps, 0.10);
-  const average  = (epley + brzycki + lander + lombardi) / 4;
+  const epley = weightKg * (1 + reps / 30);
+  const brzycki = (weightKg * 36) / (37 - reps);
+  const lander = (100 * weightKg) / (101.3 - 2.67123 * reps);
+  const lombardi = weightKg * Math.pow(reps, 0.1);
+  const average = (epley + brzycki + lander + lombardi) / 4;
 
   return { weightKg, reps, epley, brzycki, lander, lombardi, average };
 }
@@ -142,7 +150,11 @@ export function oneRepMax(weightKg: number, reps: number): OneRepMaxResult {
 export function vo2MaxCooper(distanceMeters: number): VO2MaxResult {
   if (distanceMeters <= 0) throw new Error('distanceMeters must be positive');
   const vo2 = (distanceMeters - 504.9) / 44.73;
-  return { vo2MaxMlKgMin: Math.max(0, vo2), method: 'cooper-12min', fitnessClass: classifyVO2(vo2) };
+  return {
+    vo2MaxMlKgMin: Math.max(0, vo2),
+    method: 'cooper-12min',
+    fitnessClass: classifyVO2(vo2),
+  };
 }
 
 /**
@@ -157,7 +169,7 @@ export function vo2MaxAstrand(
   workRateWatts: number,
   hrSteadyState: number,
   bodyMassKg: number,
-  ageYears: number,
+  ageYears: number
 ): VO2MaxResult {
   if (workRateWatts <= 0) throw new Error('workRateWatts must be positive');
   if (hrSteadyState <= 0 || hrSteadyState > 250) throw new Error('hrSteadyState out of range');
@@ -172,7 +184,11 @@ export function vo2MaxAstrand(
   const correctionFactor = hrMax / hrSteadyState;
   const vo2Max = vo2Gross * correctionFactor * 0.836; // empirical scaling
 
-  return { vo2MaxMlKgMin: Math.max(0, vo2Max), method: 'astrand-rhyming', fitnessClass: classifyVO2(vo2Max) };
+  return {
+    vo2MaxMlKgMin: Math.max(0, vo2Max),
+    method: 'astrand-rhyming',
+    fitnessClass: classifyVO2(vo2Max),
+  };
 }
 
 /**
@@ -184,15 +200,21 @@ export function vo2MaxNonExercise(
   ageYears: number,
   bmi: number,
   physicalActivityRating: number, // PA-R: 0-10 Likert scale
-  isMale: boolean,
+  isMale: boolean
 ): VO2MaxResult {
   if (ageYears < 10 || ageYears > 100) throw new Error('ageYears out of range [10, 100]');
   if (bmi <= 10 || bmi > 70) throw new Error('BMI out of plausible range');
-  if (physicalActivityRating < 0 || physicalActivityRating > 10) throw new Error('PA_R must be in [0, 10]');
+  if (physicalActivityRating < 0 || physicalActivityRating > 10)
+    throw new Error('PA_R must be in [0, 10]');
 
   const sex = isMale ? 1 : 0;
-  const vo2 = 56.363 + 1.921 * physicalActivityRating - 0.381 * ageYears - 0.754 * bmi + 10.987 * sex;
-  return { vo2MaxMlKgMin: Math.max(10, vo2), method: 'non-exercise', fitnessClass: classifyVO2(vo2) };
+  const vo2 =
+    56.363 + 1.921 * physicalActivityRating - 0.381 * ageYears - 0.754 * bmi + 10.987 * sex;
+  return {
+    vo2MaxMlKgMin: Math.max(10, vo2),
+    method: 'non-exercise',
+    fitnessClass: classifyVO2(vo2),
+  };
 }
 
 function classifyVO2(vo2: number): VO2MaxResult['fitnessClass'] {
@@ -220,13 +242,15 @@ export function heartRateZones(hrRest: number, hrMax: number): HeartRateZoneResu
   });
 
   return {
-    hrRest, hrMax, hrr,
+    hrRest,
+    hrMax,
+    hrr,
     zones: {
-      zone1: { ...zone(0.50, 0.60), label: 'Recovery / Active Rest' },
-      zone2: { ...zone(0.60, 0.70), label: 'Aerobic Base / Fat Burn' },
-      zone3: { ...zone(0.70, 0.80), label: 'Aerobic / Tempo' },
-      zone4: { ...zone(0.80, 0.90), label: 'Lactate Threshold' },
-      zone5: { ...zone(0.90, 1.00), label: 'VO2max / Neuromuscular' },
+      zone1: { ...zone(0.5, 0.6), label: 'Recovery / Active Rest' },
+      zone2: { ...zone(0.6, 0.7), label: 'Aerobic Base / Fat Burn' },
+      zone3: { ...zone(0.7, 0.8), label: 'Aerobic / Tempo' },
+      zone4: { ...zone(0.8, 0.9), label: 'Lactate Threshold' },
+      zone5: { ...zone(0.9, 1.0), label: 'VO2max / Neuromuscular' },
     },
   };
 }
@@ -235,21 +259,21 @@ export function heartRateZones(hrRest: number, hrMax: number): HeartRateZoneResu
 
 /** Common activity METs from the Compendium of Physical Activities (2011) */
 export const ACTIVITY_METS: Record<string, number> = {
-  running_6mph:        9.8,
-  running_8mph:       11.8,
-  running_10mph:      14.5,
-  cycling_moderate:    8.0,
-  cycling_vigorous:   12.0,
-  swimming_moderate:   6.0,
-  swimming_vigorous:   9.8,
-  walking_3mph:        3.5,
-  walking_4mph:        5.0,
-  strength_training:   3.5,
-  yoga:                2.5,
-  rowing_moderate:     7.0,
-  rowing_vigorous:    12.0,
-  basketball:          8.0,
-  soccer:              7.0,
+  running_6mph: 9.8,
+  running_8mph: 11.8,
+  running_10mph: 14.5,
+  cycling_moderate: 8.0,
+  cycling_vigorous: 12.0,
+  swimming_moderate: 6.0,
+  swimming_vigorous: 9.8,
+  walking_3mph: 3.5,
+  walking_4mph: 5.0,
+  strength_training: 3.5,
+  yoga: 2.5,
+  rowing_moderate: 7.0,
+  rowing_vigorous: 12.0,
+  basketball: 8.0,
+  soccer: 7.0,
 };
 
 /**
@@ -257,7 +281,11 @@ export const ACTIVITY_METS: Record<string, number> = {
  * Gross: MET × bodyMassKg × durationHours
  * Net: gross − BMR_rate × duration (approximate BMR ≈ 1 MET contribution)
  */
-export function calorieBurn(met: number, bodyMassKg: number, durationMin: number): CalorieBurnResult {
+export function calorieBurn(
+  met: number,
+  bodyMassKg: number,
+  durationMin: number
+): CalorieBurnResult {
   if (met <= 0) throw new Error('MET must be positive');
   if (bodyMassKg <= 0) throw new Error('bodyMassKg must be positive');
   if (durationMin <= 0) throw new Error('durationMin must be positive');
@@ -284,9 +312,10 @@ export function jacksonPollockSkinfold(
   s3Mm: number,
   ageYears: number,
   isMale: boolean,
-  bodyMassKg: number,
+  bodyMassKg: number
 ): BodyCompositionResult {
-  if (s1Mm <= 0 || s2Mm <= 0 || s3Mm <= 0) throw new Error('Skinfold measurements must be positive');
+  if (s1Mm <= 0 || s2Mm <= 0 || s3Mm <= 0)
+    throw new Error('Skinfold measurements must be positive');
   if (ageYears < 18 || ageYears > 80) throw new Error('Age must be in [18, 80]');
   if (bodyMassKg <= 0) throw new Error('bodyMassKg must be positive');
 
@@ -304,8 +333,8 @@ export function jacksonPollockSkinfold(
   }
 
   // Siri equation
-  const bodyFatPct = (4.95 / density - 4.50) * 100;
-  const fatMassKg = bodyMassKg * bodyFatPct / 100;
+  const bodyFatPct = (4.95 / density - 4.5) * 100;
+  const fatMassKg = (bodyMassKg * bodyFatPct) / 100;
   const leanMassKg = bodyMassKg - fatMassKg;
 
   return { skinfoldSumMm: sum, bodyDensityGcc: density, bodyFatPct, fatMassKg, leanMassKg };
@@ -356,12 +385,26 @@ export function acuteChronicWorkloadRatio(workloads: number[]): TrainingLoadResu
 
 export interface FitnessAnalysisInput {
   oneRM?: { weightKg: number; reps: number };
-  vo2Max?: { method: 'cooper'; distanceM: number } |
-           { method: 'astrand'; workRateW: number; hrSteady: number; bodyMassKg: number; ageYears: number } |
-           { method: 'non-exercise'; ageYears: number; bmi: number; paRating: number; isMale: boolean };
+  vo2Max?:
+    | { method: 'cooper'; distanceM: number }
+    | {
+        method: 'astrand';
+        workRateW: number;
+        hrSteady: number;
+        bodyMassKg: number;
+        ageYears: number;
+      }
+    | { method: 'non-exercise'; ageYears: number; bmi: number; paRating: number; isMale: boolean };
   hrZones?: { hrRest: number; hrMax: number };
   calories?: { met: number; bodyMassKg: number; durationMin: number };
-  bodyComp?: { s1: number; s2: number; s3: number; ageYears: number; isMale: boolean; bodyMassKg: number };
+  bodyComp?: {
+    s1: number;
+    s2: number;
+    s3: number;
+    ageYears: number;
+    isMale: boolean;
+    bodyMassKg: number;
+  };
   trainingLoad?: { workloads: number[] };
 }
 
@@ -383,17 +426,24 @@ export function analyzeFitness(input: FitnessAnalysisInput): FitnessAnalysisResu
   if (input.vo2Max) {
     const v = input.vo2Max;
     if (v.method === 'cooper') result.vo2Max = vo2MaxCooper(v.distanceM);
-    else if (v.method === 'astrand') result.vo2Max = vo2MaxAstrand(v.workRateW, v.hrSteady, v.bodyMassKg, v.ageYears);
+    else if (v.method === 'astrand')
+      result.vo2Max = vo2MaxAstrand(v.workRateW, v.hrSteady, v.bodyMassKg, v.ageYears);
     else result.vo2Max = vo2MaxNonExercise(v.ageYears, v.bmi, v.paRating, v.isMale);
   }
 
   if (input.hrZones) result.hrZones = heartRateZones(input.hrZones.hrRest, input.hrZones.hrMax);
-  if (input.calories) result.calories = calorieBurn(input.calories.met, input.calories.bodyMassKg, input.calories.durationMin);
+  if (input.calories)
+    result.calories = calorieBurn(
+      input.calories.met,
+      input.calories.bodyMassKg,
+      input.calories.durationMin
+    );
   if (input.bodyComp) {
     const b = input.bodyComp;
     result.bodyComp = jacksonPollockSkinfold(b.s1, b.s2, b.s3, b.ageYears, b.isMale, b.bodyMassKg);
   }
-  if (input.trainingLoad) result.trainingLoad = acuteChronicWorkloadRatio(input.trainingLoad.workloads);
+  if (input.trainingLoad)
+    result.trainingLoad = acuteChronicWorkloadRatio(input.trainingLoad.workloads);
 
   return result;
 }
@@ -402,15 +452,21 @@ export function analyzeFitness(input: FitnessAnalysisInput): FitnessAnalysisResu
 
 export function buildFitnessReceipt(
   result: FitnessAnalysisResult,
-  options?: FitnessReceiptOptions,
+  options?: FitnessReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.bodyComp && (result.bodyComp.bodyFatPct < 3 || result.bodyComp.bodyFatPct > 60)) {
-    violations.push({ criterion: 'body_fat', message: `body fat ${result.bodyComp.bodyFatPct.toFixed(1)}% outside plausible range [3%, 60%]` });
+    violations.push({
+      criterion: 'body_fat',
+      message: `body fat ${result.bodyComp.bodyFatPct.toFixed(1)}% outside plausible range [3%, 60%]`,
+    });
   }
   if (result.trainingLoad && result.trainingLoad.riskCategory === 'very-high') {
-    violations.push({ criterion: 'acwr', message: `ACWR ${result.trainingLoad.acwr.toFixed(2)} is very high (>1.5) — injury risk elevated` });
+    violations.push({
+      criterion: 'acwr',
+      message: `ACWR ${result.trainingLoad.acwr.toFixed(2)} is very high (>1.5) — injury risk elevated`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -425,7 +481,11 @@ export function buildFitnessReceipt(
       bodyFatPct: result.bodyComp?.bodyFatPct ?? null,
       acwr: result.trainingLoad?.acwr ?? null,
     },
-    cael: { version: 'cael.v1', event: 'fitness_wellness.fitness_analysis', solverType: 'fitness-wellness.analytics' },
+    cael: {
+      version: 'cael.v1',
+      event: 'fitness_wellness.fitness_analysis',
+      solverType: 'fitness-wellness.analytics',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

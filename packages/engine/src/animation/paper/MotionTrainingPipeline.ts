@@ -93,7 +93,7 @@ export function serializeClip(clip: MotionClip): string {
         boneId: bone.boneId,
         position: [...bone.position],
         rotation: [...bone.rotation],
-      })),
+      }))
     ),
   });
 }
@@ -148,7 +148,7 @@ export function buildCorpusMerkleRoot(pairs: DPOPair[]): string {
 /** Generate a Merkle proof for a pair at a given index. */
 export function generateMerkleProof(
   pairs: DPOPair[],
-  targetIndex: number,
+  targetIndex: number
 ): { root: string; proof: { siblingHash: string; isLeft: boolean }[] } {
   const leaves = pairs.map((p) => p.pairHash ?? hashDPOPair(p));
   const root = buildMerkleTree(leaves).hash;
@@ -185,13 +185,11 @@ export function generateMerkleProof(
 export function verifyMerkleProof(
   leafHash: string,
   proof: { siblingHash: string; isLeft: boolean }[],
-  expectedRoot: string,
+  expectedRoot: string
 ): boolean {
   let current = leafHash;
   for (const step of proof) {
-    current = step.isLeft
-      ? sha256(step.siblingHash + current)
-      : sha256(current + step.siblingHash);
+    current = step.isLeft ? sha256(step.siblingHash + current) : sha256(current + step.siblingHash);
   }
   return current === expectedRoot;
 }
@@ -276,7 +274,7 @@ const REST_BONES: readonly [string, number, number, number][] = [
 function generateContractedClip(
   category: MotionCategory,
   seed: number,
-  rng: () => number,
+  rng: () => number
 ): MotionClip {
   const frames: MotionClip['frames'] = [];
   const numFrames = 20;
@@ -305,7 +303,10 @@ function generateContractedClip(
       const cosHalf = Math.cos(angle / 2);
       const rot: [number, number, number, number] = [sinHalf * 0.1, sinHalf * 0.995, 0, cosHalf];
       const mag = Math.sqrt(rot[0] ** 2 + rot[1] ** 2 + rot[2] ** 2 + rot[3] ** 2);
-      rot[0] /= mag; rot[1] /= mag; rot[2] /= mag; rot[3] /= mag;
+      rot[0] /= mag;
+      rot[1] /= mag;
+      rot[2] /= mag;
+      rot[3] /= mag;
 
       return {
         boneId,
@@ -327,7 +328,7 @@ function generateContractedClip(
 function generateRejectedClip(
   category: MotionCategory,
   seed: number,
-  rng: () => number,
+  rng: () => number
 ): MotionClip {
   // Start from contracted, then inject a single violation
   const clip = generateContractedClip(category, seed, rng);
@@ -472,7 +473,7 @@ export function buildProvenanceChain(params: {
 export function verifyProvenanceChain(
   chain: ProvenanceChain,
   sampleIndices: number[],
-  corpus: TrainingCorpus,
+  corpus: TrainingCorpus
 ): boolean {
   // 1. Verify corpus hash matches
   if (hashTrainingCorpus(corpus) !== chain.corpusHash) return false;

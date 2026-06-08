@@ -42,29 +42,49 @@ describe('CircuitAutoResetTrait — onAttach', () => {
     const state = node.__circuitAutoResetState as { state: string; failureCount: number };
     expect(state.state).toBe('closed');
     expect(state.failureCount).toBe(0);
-    expect(node.emit).toHaveBeenCalledWith('circuit_auto_initialized', expect.objectContaining({
-      backoff_base: 2, max_attempts: 3,
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'circuit_auto_initialized',
+      expect.objectContaining({
+        backoff_base: 2,
+        max_attempts: 3,
+      })
+    );
   });
 
   it('emits circuit_auto_error when backoff_base < 1', () => {
     const node = makeNode();
-    circuitAutoResetHandler.onAttach!(node as never, {
-      ...defaultConfig, backoff_base: 0,
-    }, makeCtx(node) as never);
-    expect(node.emit).toHaveBeenCalledWith('circuit_auto_error', expect.objectContaining({
-      error: expect.stringContaining('backoff_base'),
-    }));
+    circuitAutoResetHandler.onAttach!(
+      node as never,
+      {
+        ...defaultConfig,
+        backoff_base: 0,
+      },
+      makeCtx(node) as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'circuit_auto_error',
+      expect.objectContaining({
+        error: expect.stringContaining('backoff_base'),
+      })
+    );
   });
 
   it('emits circuit_auto_error when max_attempts < 1', () => {
     const node = makeNode();
-    circuitAutoResetHandler.onAttach!(node as never, {
-      ...defaultConfig, max_attempts: 0,
-    }, makeCtx(node) as never);
-    expect(node.emit).toHaveBeenCalledWith('circuit_auto_error', expect.objectContaining({
-      error: expect.stringContaining('max_attempts'),
-    }));
+    circuitAutoResetHandler.onAttach!(
+      node as never,
+      {
+        ...defaultConfig,
+        max_attempts: 0,
+      },
+      makeCtx(node) as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'circuit_auto_error',
+      expect.objectContaining({
+        error: expect.stringContaining('max_attempts'),
+      })
+    );
   });
 
   it('onDetach removes state', () => {
@@ -80,9 +100,15 @@ describe('CircuitAutoResetTrait — onEvent: circuit_failure', () => {
     const node = makeNode();
     circuitAutoResetHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    circuitAutoResetHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'circuit_failure', error: 'timeout',
-    } as never);
+    circuitAutoResetHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'circuit_failure',
+        error: 'timeout',
+      } as never
+    );
     const state = node.__circuitAutoResetState as { state: string; failureCount: number };
     expect(state.failureCount).toBe(1);
     expect(state.state).toBe('closed');
@@ -94,26 +120,46 @@ describe('CircuitAutoResetTrait — onEvent: circuit_failure', () => {
     circuitAutoResetHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
     for (let i = 0; i < 3; i++) {
-      circuitAutoResetHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-        type: 'circuit_failure', error: 'fail',
-      } as never);
+      circuitAutoResetHandler.onEvent!(
+        node as never,
+        defaultConfig,
+        makeCtx(node) as never,
+        {
+          type: 'circuit_failure',
+          error: 'fail',
+        } as never
+      );
     }
     const state = node.__circuitAutoResetState as { state: string };
     expect(state.state).toBe('open');
-    expect(node.emit).toHaveBeenCalledWith('circuit_open', expect.objectContaining({
-      failureCount: 3,
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'circuit_open',
+      expect.objectContaining({
+        failureCount: 3,
+      })
+    );
   });
 
   it('circuit_success in closed state resets failureCount', () => {
     const node = makeNode();
     circuitAutoResetHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    circuitAutoResetHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'circuit_failure', error: 'oops',
-    } as never);
-    circuitAutoResetHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'circuit_success',
-    } as never);
+    circuitAutoResetHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'circuit_failure',
+        error: 'oops',
+      } as never
+    );
+    circuitAutoResetHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'circuit_success',
+      } as never
+    );
     const state = node.__circuitAutoResetState as { failureCount: number };
     expect(state.failureCount).toBe(0);
   });

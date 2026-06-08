@@ -93,9 +93,7 @@ describe('JEPAEvalBench — §4-6 measurement axes', () => {
     const demand = 0.3; // conservation demand pos_1 ∈ [0,1]; moderate operating point
 
     // Per-prediction penalty via the production regulariser.
-    const penalties = predictions.map((p) =>
-      computeConservationLoss(p, demand, margin, 'energy'),
-    );
+    const penalties = predictions.map((p) => computeConservationLoss(p, demand, margin, 'energy'));
 
     expect(penalties.length).toBe(SAMPLE_COUNT);
 
@@ -110,8 +108,7 @@ describe('JEPAEvalBench — §4-6 measurement axes', () => {
       meanPenalty: penalties.reduce((a, b) => a + b, 0) / penalties.length,
       maxPenalty: Math.max(...penalties),
       sweep: adherence,
-      note:
-        'Eval and runtime call the SAME exported computeConservationLoss (scores predictor output ẑ_t). Resolved the conditioning-vs-prediction defect (see PillarJEPA fix + /founder ruling).',
+      note: 'Eval and runtime call the SAME exported computeConservationLoss (scores predictor output ẑ_t). Resolved the conditioning-vs-prediction defect (see PillarJEPA fix + /founder ruling).',
     };
 
     // adherence is monotonic non-decreasing in ε and bounded in [0, 1].

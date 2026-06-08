@@ -44,18 +44,14 @@ for (const step of buildSteps) {
     .filter(Boolean)
     .join(' ');
 
-  const result = spawnSync(
-    nodeCmd,
-    [tsupCli, '--config', step.config],
-    {
-      cwd: packageRoot,
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        NODE_OPTIONS: nodeOptions,
-      },
-    }
-  );
+  const result = spawnSync(nodeCmd, [tsupCli, '--config', step.config], {
+    cwd: packageRoot,
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      NODE_OPTIONS: nodeOptions,
+    },
+  });
 
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
@@ -64,20 +60,16 @@ for (const step of buildSteps) {
 
 console.log('\n=== Emitting framework declarations with tsc ===');
 
-const declarationResult = spawnSync(
-  nodeCmd,
-  [tscCli, '-p', 'tsconfig.build.json'],
-  {
-    cwd: packageRoot,
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      NODE_OPTIONS: [process.env.NODE_OPTIONS?.trim(), '--max-old-space-size=12288']
-        .filter(Boolean)
-        .join(' '),
-    },
-  }
-);
+const declarationResult = spawnSync(nodeCmd, [tscCli, '-p', 'tsconfig.build.json'], {
+  cwd: packageRoot,
+  stdio: 'inherit',
+  env: {
+    ...process.env,
+    NODE_OPTIONS: [process.env.NODE_OPTIONS?.trim(), '--max-old-space-size=12288']
+      .filter(Boolean)
+      .join(' '),
+  },
+});
 
 if (declarationResult.status !== 0) {
   process.exit(declarationResult.status ?? 1);

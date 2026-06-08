@@ -144,28 +144,28 @@ function itemInfo(theta: number, a: number, b: number, c: number): number {
  * Estimate student ability θ via Newton-Raphson MLE.
  * Iterates until convergence or max 50 steps.
  */
-export function irtAbilityEstimate(
-  items: IRTItem[],
-  responses: IRTResponse[],
-): IRTResult {
+export function irtAbilityEstimate(items: IRTItem[], responses: IRTResponse[]): IRTResult {
   if (items.length === 0) throw new Error('No items provided');
   if (responses.length !== items.length) throw new Error('responses must match items length');
 
-  const itemMap = new Map(items.map(it => [it.id, it]));
-  const responseMap = new Map(responses.map(r => [r.itemId, r.correct ? 1 : 0]));
+  const itemMap = new Map(items.map((it) => [it.id, it]));
+  const responseMap = new Map(responses.map((r) => [r.itemId, r.correct ? 1 : 0]));
 
   // Newton-Raphson MLE
   let theta = 0.0;
   for (let iter = 0; iter < 50; iter++) {
-    let firstDeriv = 0, secondDeriv = 0;
+    let firstDeriv = 0,
+      secondDeriv = 0;
     for (const item of items) {
-      const a = item.a ?? 1.0, b = item.b, c = item.c ?? 0;
+      const a = item.a ?? 1.0,
+        b = item.b,
+        c = item.c ?? 0;
       const P = irt3PL(theta, a, b, c);
       const u = responseMap.get(item.id) ?? 0;
       const W = (P - c) / ((1 - c) * P * (1 - P) + 1e-15);
-      const dP = a * (P - c) * (1 - P) / (1 - c + 1e-15);
-      firstDeriv  += (u - P) * dP / (P * (1 - P) + 1e-15);
-      secondDeriv -= dP * dP / (P * (1 - P) + 1e-15);
+      const dP = (a * (P - c) * (1 - P)) / (1 - c + 1e-15);
+      firstDeriv += ((u - P) * dP) / (P * (1 - P) + 1e-15);
+      secondDeriv -= (dP * dP) / (P * (1 - P) + 1e-15);
     }
     if (Math.abs(secondDeriv) < 1e-12) break;
     const step = firstDeriv / secondDeriv;
@@ -175,16 +175,20 @@ export function irtAbilityEstimate(
   }
 
   // Standard error = 1 / sqrt(test information)
-  const infoArr = items.map(item => {
-    const a = item.a ?? 1.0, b = item.b, c = item.c ?? 0;
+  const infoArr = items.map((item) => {
+    const a = item.a ?? 1.0,
+      b = item.b,
+      c = item.c ?? 0;
     return { itemId: item.id, information: itemInfo(theta, a, b, c) };
   });
   const testInformation = infoArr.reduce((s, x) => s + x.information, 0);
   const standardError = testInformation > 0 ? 1 / Math.sqrt(testInformation) : Infinity;
 
   // Item fit residuals
-  const itemFit = items.map(item => {
-    const a = item.a ?? 1.0, b = item.b, c = item.c ?? 0;
+  const itemFit = items.map((item) => {
+    const a = item.a ?? 1.0,
+      b = item.b,
+      c = item.c ?? 0;
     const P = irt3PL(theta, a, b, c);
     const u = responseMap.get(item.id) ?? 0;
     const residual = (u - P) / Math.sqrt(P * (1 - P) + 1e-15);
@@ -205,7 +209,7 @@ export function irtAbilityEstimate(
 export function sm2Review(card: SM2Card, quality: 0 | 1 | 2 | 3 | 4 | 5): SM2Result {
   if (quality < 0 || quality > 5) throw new Error('quality must be 0-5');
 
-  let ef  = card.ef ?? 2.5;
+  let ef = card.ef ?? 2.5;
   let rep = card.repetitions ?? 0;
   let interval = card.interval ?? 1;
 
@@ -235,29 +239,30 @@ export function sm2Review(card: SM2Card, quality: 0 | 1 | 2 | 3 | 4 | 5): SM2Res
 export function learningPathOptimizer(
   nodes: KnowledgeNode[],
   masteryStates: MasteryState[],
-  masteryThreshold = 0.80,
+  masteryThreshold = 0.8
 ): LearningPathResult {
   if (nodes.length === 0) throw new Error('No knowledge nodes provided');
 
-  const masteryMap = new Map(masteryStates.map(m => [m.nodeId, m.masteryScore]));
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  const masteryMap = new Map(masteryStates.map((m) => [m.nodeId, m.masteryScore]));
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
   // Validate prerequisites exist
   for (const node of nodes) {
     for (const prereq of node.prerequisites) {
-      if (!nodeMap.has(prereq)) throw new Error(`Prerequisite ${prereq} not found for node ${node.id}`);
+      if (!nodeMap.has(prereq))
+        throw new Error(`Prerequisite ${prereq} not found for node ${node.id}`);
     }
   }
 
   // Kahn's topological sort
-  const inDegree = new Map(nodes.map(n => [n.id, 0]));
+  const inDegree = new Map(nodes.map((n) => [n.id, 0]));
   for (const node of nodes) {
     for (const prereq of node.prerequisites) {
       inDegree.set(node.id, (inDegree.get(node.id) ?? 0) + 1);
     }
   }
 
-  const queue: string[] = nodes.filter(n => (inDegree.get(n.id) ?? 0) === 0).map(n => n.id);
+  const queue: string[] = nodes.filter((n) => (inDegree.get(n.id) ?? 0) === 0).map((n) => n.id);
   const topoOrder: string[] = [];
   const adj = new Map<string, string[]>();
   for (const node of nodes) {
@@ -270,7 +275,7 @@ export function learningPathOptimizer(
   while (queue.length > 0) {
     const cur = queue.shift()!;
     topoOrder.push(cur);
-    for (const child of (adj.get(cur) ?? [])) {
+    for (const child of adj.get(cur) ?? []) {
       const newDeg = (inDegree.get(child) ?? 0) - 1;
       inDegree.set(child, newDeg);
       if (newDeg === 0) queue.push(child);
@@ -280,7 +285,7 @@ export function learningPathOptimizer(
   const feasible = topoOrder.length === nodes.length;
 
   // Filter to nodes that need study (mastery < threshold)
-  const path = topoOrder.filter(id => (masteryMap.get(id) ?? 0) < masteryThreshold);
+  const path = topoOrder.filter((id) => (masteryMap.get(id) ?? 0) < masteryThreshold);
   const totalMinutes = path.reduce((acc, id) => acc + (nodeMap.get(id)?.estimatedMinutes ?? 30), 0);
 
   return { path, totalMinutes, feasible };
@@ -303,13 +308,14 @@ export interface GradeEntry {
  */
 export function gradePredictor(
   grades: GradeEntry[],
-  decay = 0.85,
+  decay = 0.85
 ): { predictedGrade: number; letterGrade: string; gpa: number } {
   if (grades.length === 0) throw new Error('No grade entries provided');
   if (decay <= 0 || decay > 1) throw new Error('decay must be in (0, 1]');
 
-  const maxRecency = Math.max(...grades.map(g => g.recencyIndex));
-  let weightedSum = 0, totalWeight = 0;
+  const maxRecency = Math.max(...grades.map((g) => g.recencyIndex));
+  let weightedSum = 0,
+    totalWeight = 0;
   for (const g of grades) {
     const recencyWeight = Math.pow(decay, maxRecency - g.recencyIndex);
     const w = g.weight * recencyWeight;
@@ -320,19 +326,40 @@ export function gradePredictor(
 
   // Letter grade (US standard)
   const letter =
-    predictedGrade >= 0.93 ? 'A'  :
-    predictedGrade >= 0.90 ? 'A-' :
-    predictedGrade >= 0.87 ? 'B+' :
-    predictedGrade >= 0.83 ? 'B'  :
-    predictedGrade >= 0.80 ? 'B-' :
-    predictedGrade >= 0.77 ? 'C+' :
-    predictedGrade >= 0.73 ? 'C'  :
-    predictedGrade >= 0.70 ? 'C-' :
-    predictedGrade >= 0.67 ? 'D+' :
-    predictedGrade >= 0.60 ? 'D'  : 'F';
+    predictedGrade >= 0.93
+      ? 'A'
+      : predictedGrade >= 0.9
+        ? 'A-'
+        : predictedGrade >= 0.87
+          ? 'B+'
+          : predictedGrade >= 0.83
+            ? 'B'
+            : predictedGrade >= 0.8
+              ? 'B-'
+              : predictedGrade >= 0.77
+                ? 'C+'
+                : predictedGrade >= 0.73
+                  ? 'C'
+                  : predictedGrade >= 0.7
+                    ? 'C-'
+                    : predictedGrade >= 0.67
+                      ? 'D+'
+                      : predictedGrade >= 0.6
+                        ? 'D'
+                        : 'F';
 
   const gpaMap: Record<string, number> = {
-    'A':4.0,'A-':3.7,'B+':3.3,'B':3.0,'B-':2.7,'C+':2.3,'C':2.0,'C-':1.7,'D+':1.3,'D':1.0,'F':0.0,
+    A: 4.0,
+    'A-': 3.7,
+    'B+': 3.3,
+    B: 3.0,
+    'B-': 2.7,
+    'C+': 2.3,
+    C: 2.0,
+    'C-': 1.7,
+    'D+': 1.3,
+    D: 1.0,
+    F: 0.0,
   };
 
   return { predictedGrade, letterGrade: letter, gpa: gpaMap[letter] };
@@ -342,38 +369,98 @@ export function gradePredictor(
 
 const BLOOM_VERBS: Record<string, number> = {
   // L1 Remember
-  define:1, list:1, recall:1, recognize:1, identify:1, name:1, state:1, describe:1, memorize:1,
+  define: 1,
+  list: 1,
+  recall: 1,
+  recognize: 1,
+  identify: 1,
+  name: 1,
+  state: 1,
+  describe: 1,
+  memorize: 1,
   // L2 Understand
-  explain:2, summarize:2, paraphrase:2, classify:2, compare:2, interpret:2, discuss:2, review:2,
+  explain: 2,
+  summarize: 2,
+  paraphrase: 2,
+  classify: 2,
+  compare: 2,
+  interpret: 2,
+  discuss: 2,
+  review: 2,
   // L3 Apply
-  apply:3, use:3, demonstrate:3, solve:3, implement:3, compute:3, execute:3, calculate:3, practice:3,
+  apply: 3,
+  use: 3,
+  demonstrate: 3,
+  solve: 3,
+  implement: 3,
+  compute: 3,
+  execute: 3,
+  calculate: 3,
+  practice: 3,
   // L4 Analyze
-  analyze:4, differentiate:4, examine:4, distinguish:4, break:4, deconstruct:4, investigate:4, inspect:4,
+  analyze: 4,
+  differentiate: 4,
+  examine: 4,
+  distinguish: 4,
+  break: 4,
+  deconstruct: 4,
+  investigate: 4,
+  inspect: 4,
   // L5 Evaluate
-  evaluate:5, judge:5, critique:5, justify:5, assess:5, argue:5, defend:5, prioritize:5, rank:5,
+  evaluate: 5,
+  judge: 5,
+  critique: 5,
+  justify: 5,
+  assess: 5,
+  argue: 5,
+  defend: 5,
+  prioritize: 5,
+  rank: 5,
   // L6 Create
-  create:6, design:6, construct:6, develop:6, formulate:6, compose:6, plan:6, produce:6, generate:6,
+  create: 6,
+  design: 6,
+  construct: 6,
+  develop: 6,
+  formulate: 6,
+  compose: 6,
+  plan: 6,
+  produce: 6,
+  generate: 6,
 };
 
-const BLOOM_LABELS = ['','Remember','Understand','Apply','Analyze','Evaluate','Create'] as const;
+const BLOOM_LABELS = [
+  '',
+  'Remember',
+  'Understand',
+  'Apply',
+  'Analyze',
+  'Evaluate',
+  'Create',
+] as const;
 
 /**
  * Classify learning objective text into Bloom's taxonomy level.
  */
 export function bloomClassifier(objectiveText: string): BloomLevel {
-  const words = objectiveText.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
-  const levelCounts = [0,0,0,0,0,0,0];
+  const words = objectiveText
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, '')
+    .split(/\s+/);
+  const levelCounts = [0, 0, 0, 0, 0, 0, 0];
   let matched = 0;
   for (const word of words) {
     const lvl = BLOOM_VERBS[word];
-    if (lvl) { levelCounts[lvl]++; matched++; }
+    if (lvl) {
+      levelCounts[lvl]++;
+      matched++;
+    }
   }
   if (matched === 0) {
     return { level: 1, label: 'Remember', confidence: 0 };
   }
   let bestLevel = 1;
   for (let l = 2; l <= 6; l++) if (levelCounts[l] > levelCounts[bestLevel]) bestLevel = l;
-  const level = bestLevel as 1|2|3|4|5|6;
+  const level = bestLevel as 1 | 2 | 3 | 4 | 5 | 6;
   return { level, label: BLOOM_LABELS[level], confidence: levelCounts[level] / words.length };
 }
 
@@ -384,25 +471,23 @@ export function bloomClassifier(objectiveText: string): BloomLevel {
  * responses: matrix [student][item] = 0/1
  * itemIds: label per item
  */
-export function quizPsychometrics(
-  responses: number[][],
-  itemIds: string[],
-): QuizPsychometrics {
+export function quizPsychometrics(responses: number[][], itemIds: string[]): QuizPsychometrics {
   const n = responses.length;
   if (n < 2) throw new Error('At least 2 respondents required');
   const k = itemIds.length;
-  if (responses.some(row => row.length !== k)) throw new Error('All response rows must match itemIds length');
+  if (responses.some((row) => row.length !== k))
+    throw new Error('All response rows must match itemIds length');
 
   // P-values
   const pValues = itemIds.map((_, j) => {
-    const correct = responses.filter(r => r[j] === 1).length;
+    const correct = responses.filter((r) => r[j] === 1).length;
     return correct / n;
   });
 
   // Total scores
-  const scores = responses.map(row => row.reduce((a, b) => a + b, 0));
+  const scores = responses.map((row) => row.reduce((a, b) => a + b, 0));
   const meanScore = scores.reduce((a, b) => a + b, 0) / n;
-  const variance  = scores.reduce((acc, s) => acc + (s - meanScore) ** 2, 0) / (n - 1);
+  const variance = scores.reduce((acc, s) => acc + (s - meanScore) ** 2, 0) / (n - 1);
   const stdDevScore = Math.sqrt(variance);
 
   // Discrimination indices (upper/lower 27%)
@@ -412,8 +497,8 @@ export function quizPsychometrics(
   const lower = sortedIndices.slice(n - k27);
 
   const discriminationIndices = itemIds.map((_, j) => {
-    const pU = upper.filter(i => responses[i][j] === 1).length / k27;
-    const pL = lower.filter(i => responses[i][j] === 1).length / k27;
+    const pU = upper.filter((i) => responses[i][j] === 1).length / k27;
+    const pL = lower.filter((i) => responses[i][j] === 1).length / k27;
     return pU - pL;
   });
 
@@ -423,13 +508,20 @@ export function quizPsychometrics(
     return p * (1 - p);
   });
   const sumItemVar = itemVariances.reduce((a, b) => a + b, 0);
-  const cronbachAlpha = k > 1 && variance > 0
-    ? (k / (k - 1)) * (1 - sumItemVar / variance)
-    : 0;
+  const cronbachAlpha = k > 1 && variance > 0 ? (k / (k - 1)) * (1 - sumItemVar / variance) : 0;
 
   const poorItems = itemIds.filter((_, j) => discriminationIndices[j] < 0.2);
 
-  return { itemCount: k, n, pValues, discriminationIndices, cronbachAlpha, meanScore, stdDevScore, poorItems };
+  return {
+    itemCount: k,
+    n,
+    pValues,
+    discriminationIndices,
+    cronbachAlpha,
+    meanScore,
+    stdDevScore,
+    poorItems,
+  };
 }
 
 // ─── Receipt ──────────────────────────────────────────────────────────────────
@@ -446,21 +538,30 @@ export interface EducationAnalysisResult {
 
 export function buildEducationReceipt(
   result: EducationAnalysisResult,
-  options?: EducationReceiptOptions,
+  options?: EducationReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.psychometrics) {
     const { cronbachAlpha, poorItems } = result.psychometrics;
-    if (cronbachAlpha < 0.70) {
-      violations.push({ criterion: 'reliability', message: `Cronbach's α ${cronbachAlpha.toFixed(3)} < 0.70 — quiz reliability is poor` });
+    if (cronbachAlpha < 0.7) {
+      violations.push({
+        criterion: 'reliability',
+        message: `Cronbach's α ${cronbachAlpha.toFixed(3)} < 0.70 — quiz reliability is poor`,
+      });
     }
     if (poorItems.length > result.psychometrics.itemCount / 2) {
-      violations.push({ criterion: 'discrimination', message: `${poorItems.length}/${result.psychometrics.itemCount} items have poor discrimination (D < 0.2)` });
+      violations.push({
+        criterion: 'discrimination',
+        message: `${poorItems.length}/${result.psychometrics.itemCount} items have poor discrimination (D < 0.2)`,
+      });
     }
   }
   if (result.learningPath && !result.learningPath.feasible) {
-    violations.push({ criterion: 'prerequisite_cycle', message: 'Prerequisite graph contains a cycle — learning path is infeasible' });
+    violations.push({
+      criterion: 'prerequisite_cycle',
+      message: 'Prerequisite graph contains a cycle — learning path is infeasible',
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -475,7 +576,11 @@ export function buildEducationReceipt(
       learningPathNodes: result.learningPath?.path.length ?? null,
       bloomLevel: result.bloom?.level ?? null,
     },
-    cael: { version: 'cael.v1', event: 'education_lms.learning_analysis', solverType: 'education-lms.irt-3pl' },
+    cael: {
+      version: 'cael.v1',
+      event: 'education_lms.learning_analysis',
+      solverType: 'education-lms.irt-3pl',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

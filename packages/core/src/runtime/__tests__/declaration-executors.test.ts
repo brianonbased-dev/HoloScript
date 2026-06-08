@@ -1,8 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  executeStateDeclaration,
-  executeMemoryDefinition,
-} from '../declaration-executors.js';
+import { executeStateDeclaration, executeMemoryDefinition } from '../declaration-executors.js';
 import type { DeclarationContext } from '../declaration-executors.js';
 
 vi.mock('../../logger.js', () => ({

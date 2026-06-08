@@ -33,10 +33,7 @@ import {
   _resetVaultLeaseRegistryForTests,
   _getActiveLeaseIndexForTests,
 } from '../vault-lease-registry';
-import {
-  _resetAuditLogForTests,
-  _getEventBufferForTests,
-} from '../audit-log';
+import { _resetAuditLogForTests, _getEventBufferForTests } from '../audit-log';
 
 beforeEach(() => {
   _resetVaultLeaseRegistryForTests();
@@ -54,9 +51,7 @@ const ENV_KEYS_FOR_TESTS = [
   'HOLOSCRIPT_API_KEY',
   'ABSORB_API_KEY',
 ];
-const ORIGINAL_ENV = new Map(
-  ENV_KEYS_FOR_TESTS.map((key) => [key, process.env[key]])
-);
+const ORIGINAL_ENV = new Map(ENV_KEYS_FOR_TESTS.map((key) => [key, process.env[key]]));
 
 afterEach(() => {
   for (const key of ENV_KEYS_FOR_TESTS) {
@@ -367,9 +362,7 @@ describe('resolveSecret - failure cases', () => {
       agentId: 'a',
       secretRef: 'env:B',
     });
-    const denied = _getEventBufferForTests().filter(
-      (e) => e.type === 'key_access_denied'
-    );
+    const denied = _getEventBufferForTests().filter((e) => e.type === 'key_access_denied');
     expect(denied).toHaveLength(1);
     expect(denied[0].metadata.reason).toBe('lease_scope_violation');
   });
@@ -510,7 +503,9 @@ describe('revokeLeasesForTask', () => {
 
     // t2 lease still active.
     expect(queryLeases({ taskId: 't2' })[0].status).toBe('active');
-    expect(queryLeases({ taskId: 't1', includeExpired: true }).every(l => l.status === 'revoked')).toBe(true);
+    expect(
+      queryLeases({ taskId: 't1', includeExpired: true }).every((l) => l.status === 'revoked')
+    ).toBe(true);
   });
 
   it('returns empty array when task has no active leases', () => {
@@ -603,9 +598,7 @@ describe('resolveSecretWithLease', () => {
   it('still rejects wallet refs while enforcement is disabled', () => {
     delete process.env.HOLOMESH_VAULT_LEASE_ENFORCE;
 
-    expect(() => resolveSecretWithLease('env:HOLOMESH_WALLET_KEY')).toThrow(
-      VaultLeaseError
-    );
+    expect(() => resolveSecretWithLease('env:HOLOMESH_WALLET_KEY')).toThrow(VaultLeaseError);
     try {
       resolveSecretWithLease('env:HOLOMESH_WALLET_KEY');
     } catch (err) {
@@ -614,9 +607,7 @@ describe('resolveSecretWithLease', () => {
   });
 
   it('rejects non-env refs because this helper only resolves process.env', () => {
-    expect(() => resolveSecretWithLease('x402:CLAUDECODE_X402')).toThrow(
-      VaultLeaseError
-    );
+    expect(() => resolveSecretWithLease('x402:CLAUDECODE_X402')).toThrow(VaultLeaseError);
     try {
       resolveSecretWithLease('x402:CLAUDECODE_X402');
     } catch (err) {
@@ -628,9 +619,7 @@ describe('resolveSecretWithLease', () => {
     process.env.HOLOMESH_VAULT_LEASE_ENFORCE = '1';
     process.env.LEASE_TEST_KEY = 'local-secret';
 
-    expect(() => resolveSecretWithLease('env:LEASE_TEST_KEY')).toThrow(
-      VaultLeaseError
-    );
+    expect(() => resolveSecretWithLease('env:LEASE_TEST_KEY')).toThrow(VaultLeaseError);
     try {
       resolveSecretWithLease('env:LEASE_TEST_KEY');
     } catch (err) {
@@ -721,15 +710,13 @@ describe('resolveSecretWithLease', () => {
     expect(issued.ok).toBe(true);
 
     expect(() =>
-      runWithTaskContext(
-        { taskId: 'task-missing-env', agentId: 'agent-missing-env' },
-        () => resolveSecretWithLease('env:LEASE_TEST_KEY')
+      runWithTaskContext({ taskId: 'task-missing-env', agentId: 'agent-missing-env' }, () =>
+        resolveSecretWithLease('env:LEASE_TEST_KEY')
       )
     ).toThrow(VaultLeaseError);
     try {
-      runWithTaskContext(
-        { taskId: 'task-missing-env', agentId: 'agent-missing-env' },
-        () => resolveSecretWithLease('env:LEASE_TEST_KEY')
+      runWithTaskContext({ taskId: 'task-missing-env', agentId: 'agent-missing-env' }, () =>
+        resolveSecretWithLease('env:LEASE_TEST_KEY')
       );
     } catch (err) {
       expect((err as VaultLeaseError).reason).toBe('env_value_missing');
@@ -865,9 +852,8 @@ describe('Phase 3 wrap-site lease semantics', () => {
     });
     expect(issued.ok).toBe(true);
 
-    const value = runWithTaskContext(
-      { taskId: 'task-mb-1', agentId: 'agent-mb-1' },
-      () => resolveSecretWithLease('env:MOLTBOOK_API_KEY')
+    const value = runWithTaskContext({ taskId: 'task-mb-1', agentId: 'agent-mb-1' }, () =>
+      resolveSecretWithLease('env:MOLTBOOK_API_KEY')
     );
     expect(value).toBe('moltbook-secret-7');
   });
@@ -891,9 +877,8 @@ describe('Phase 3 wrap-site lease semantics', () => {
 
     let caught: VaultLeaseError | null = null;
     try {
-      runWithTaskContext(
-        { taskId: 'task-mb-2', agentId: 'agent-mb-2' },
-        () => resolveSecretWithLease('env:MOLTBOOK_API_KEY')
+      runWithTaskContext({ taskId: 'task-mb-2', agentId: 'agent-mb-2' }, () =>
+        resolveSecretWithLease('env:MOLTBOOK_API_KEY')
       );
     } catch (err) {
       caught = err as VaultLeaseError;
@@ -919,9 +904,8 @@ describe('Phase 3 wrap-site lease semantics', () => {
 
     let caught: VaultLeaseError | null = null;
     try {
-      runWithTaskContext(
-        { taskId: 'task-mb-3', agentId: 'agent-mb-3' },
-        () => resolveSecretWithLease('env:LEASE_TEST_OTHER')
+      runWithTaskContext({ taskId: 'task-mb-3', agentId: 'agent-mb-3' }, () =>
+        resolveSecretWithLease('env:LEASE_TEST_OTHER')
       );
     } catch (err) {
       caught = err as VaultLeaseError;
@@ -949,23 +933,20 @@ describe('Phase 3 wrap-site lease semantics', () => {
     });
     expect(issued.ok).toBe(true);
 
-    runWithTaskContext(
-      { taskId: 'task-oracle-1', agentId: 'agent-oracle-1' },
-      () => {
-        // Primary read succeeds.
-        expect(resolveSecretWithLease('env:HOLOSCRIPT_API_KEY')).toBe('primary-key-99');
+    runWithTaskContext({ taskId: 'task-oracle-1', agentId: 'agent-oracle-1' }, () => {
+      // Primary read succeeds.
+      expect(resolveSecretWithLease('env:HOLOSCRIPT_API_KEY')).toBe('primary-key-99');
 
-        // Secondary read MUST be blocked even though the env value is set.
-        let caught: VaultLeaseError | null = null;
-        try {
-          resolveSecretWithLease('env:ABSORB_API_KEY');
-        } catch (err) {
-          caught = err as VaultLeaseError;
-        }
-        expect(caught).toBeInstanceOf(VaultLeaseError);
-        expect(caught?.reason).toBe('lease_scope_violation');
+      // Secondary read MUST be blocked even though the env value is set.
+      let caught: VaultLeaseError | null = null;
+      try {
+        resolveSecretWithLease('env:ABSORB_API_KEY');
+      } catch (err) {
+        caught = err as VaultLeaseError;
       }
-    );
+      expect(caught).toBeInstanceOf(VaultLeaseError);
+      expect(caught?.reason).toBe('lease_scope_violation');
+    });
   });
 
   it('phase3: oracle fallback-chain — primary ref unset, secondary leased — secondary resolves', () => {
@@ -980,22 +961,19 @@ describe('Phase 3 wrap-site lease semantics', () => {
     });
     expect(issued.ok).toBe(true);
 
-    runWithTaskContext(
-      { taskId: 'task-oracle-2', agentId: 'agent-oracle-2' },
-      () => {
-        // Primary read is out-of-scope → lease_scope_violation.
-        let primaryCaught: VaultLeaseError | null = null;
-        try {
-          resolveSecretWithLease('env:HOLOSCRIPT_API_KEY');
-        } catch (err) {
-          primaryCaught = err as VaultLeaseError;
-        }
-        expect(primaryCaught?.reason).toBe('lease_scope_violation');
-
-        // Secondary read succeeds.
-        expect(resolveSecretWithLease('env:ABSORB_API_KEY')).toBe('secondary-only-42');
+    runWithTaskContext({ taskId: 'task-oracle-2', agentId: 'agent-oracle-2' }, () => {
+      // Primary read is out-of-scope → lease_scope_violation.
+      let primaryCaught: VaultLeaseError | null = null;
+      try {
+        resolveSecretWithLease('env:HOLOSCRIPT_API_KEY');
+      } catch (err) {
+        primaryCaught = err as VaultLeaseError;
       }
-    );
+      expect(primaryCaught?.reason).toBe('lease_scope_violation');
+
+      // Secondary read succeeds.
+      expect(resolveSecretWithLease('env:ABSORB_API_KEY')).toBe('secondary-only-42');
+    });
   });
 
   // ── (7) team-coordinator sub-agent delegation: HOLOMESH_API_KEY || HOLOSCRIPT_API_KEY ──
@@ -1015,21 +993,18 @@ describe('Phase 3 wrap-site lease semantics', () => {
     });
     expect(issued.ok).toBe(true);
 
-    runWithTaskContext(
-      { taskId: 'task-tc-1', agentId: 'agent-tc-1' },
-      () => {
-        expect(resolveSecretWithLease('env:HOLOMESH_API_KEY')).toBe('holomesh-bearer-aa');
+    runWithTaskContext({ taskId: 'task-tc-1', agentId: 'agent-tc-1' }, () => {
+      expect(resolveSecretWithLease('env:HOLOMESH_API_KEY')).toBe('holomesh-bearer-aa');
 
-        let caught: VaultLeaseError | null = null;
-        try {
-          resolveSecretWithLease('env:HOLOSCRIPT_API_KEY');
-        } catch (err) {
-          caught = err as VaultLeaseError;
-        }
-        expect(caught).toBeInstanceOf(VaultLeaseError);
-        expect(caught?.reason).toBe('lease_scope_violation');
+      let caught: VaultLeaseError | null = null;
+      try {
+        resolveSecretWithLease('env:HOLOSCRIPT_API_KEY');
+      } catch (err) {
+        caught = err as VaultLeaseError;
       }
-    );
+      expect(caught).toBeInstanceOf(VaultLeaseError);
+      expect(caught?.reason).toBe('lease_scope_violation');
+    });
   });
 
   // ── G.GOLD.016 belt + suspenders: wallet refs MUST stay raw (Phase 3 must NOT loosen) ──

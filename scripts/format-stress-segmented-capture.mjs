@@ -969,7 +969,9 @@ function worldModelEventTypesForSegment(segmentId) {
 
 function worldModelEventsForSegment(worldModelReplay, segmentId) {
   const eventTypes = new Set(worldModelEventTypesForSegment(segmentId));
-  const events = Array.isArray(worldModelReplay?.result?.events) ? worldModelReplay.result.events : [];
+  const events = Array.isArray(worldModelReplay?.result?.events)
+    ? worldModelReplay.result.events
+    : [];
   return events.filter((event) => eventTypes.has(event?.type));
 }
 
@@ -1010,7 +1012,9 @@ function worldModelEvent(worldModelReplay, type) {
 }
 
 function worldModelObjectCenter(worldModelReplay, objectId) {
-  const objects = Array.isArray(worldModelReplay?.result?.objects) ? worldModelReplay.result.objects : [];
+  const objects = Array.isArray(worldModelReplay?.result?.objects)
+    ? worldModelReplay.result.objects
+    : [];
   const object = objects.find((item) => item?.id === objectId);
   return pointToVector(object?.center);
 }
@@ -1047,7 +1051,8 @@ function worldModelTrajectorySamples(worldModelReplay, { includeImpact = false }
   if (releasePosition) samples.push(releasePosition);
 
   for (const event of events.filter((item) => item?.type === 'ballistic_sample')) {
-    const sample = eventPayloadVector(event, 'rockPosition') ?? eventPayloadVector(event, 'toolPosition');
+    const sample =
+      eventPayloadVector(event, 'rockPosition') ?? eventPayloadVector(event, 'toolPosition');
     if (sample) samples.push(sample);
   }
 
@@ -1108,7 +1113,11 @@ function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldMode
 
   if (segment.id === '01_avatar_approaches') {
     setVector(next.bodies.avatar, 'position', avatarApproachTo);
-    setVector(next.bodies.rightHand, 'position', worldModelObjectCenter(worldModelReplay, 'right-hand'));
+    setVector(
+      next.bodies.rightHand,
+      'position',
+      worldModelObjectCenter(worldModelReplay, 'right-hand')
+    );
     setVector(next.bodies.rock, 'position', initialRockPosition);
     next.bodies.rock.attachedToHand = false;
     next.bodies.rock.released = false;
@@ -1180,7 +1189,9 @@ function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldMode
     const impactPosition = eventPayloadVector(impact, 'rockPosition');
     if (impactPosition) next.bodies.rock.position = impactPosition;
     next.bodies.target.impacted = true;
-    next.physics.arcSamples = worldModelTrajectorySamples(worldModelReplay, { includeImpact: true });
+    next.physics.arcSamples = worldModelTrajectorySamples(worldModelReplay, {
+      includeImpact: true,
+    });
     next.physics.impactImpulseNs = finiteMetric(impact?.payload?.impulseNs);
   }
 
@@ -1188,7 +1199,9 @@ function applyWorldModelPoseOverrides(pose, segment, worldModelReplay, worldMode
     const impactPosition = eventPayloadVector(impact, 'rockPosition');
     if (impactPosition) next.bodies.rock.position = impactPosition;
     next.bodies.target.impacted = Boolean(worldModelEvents[0]?.payload?.observedImpact);
-    next.physics.arcSamples = worldModelTrajectorySamples(worldModelReplay, { includeImpact: true });
+    next.physics.arcSamples = worldModelTrajectorySamples(worldModelReplay, {
+      includeImpact: true,
+    });
     next.physics.provenancePanel = Boolean(worldModelEvents[0]?.payload?.provenancePanel);
   }
 
@@ -1203,7 +1216,9 @@ function applyTwoAgentWorldModelPoseOverrides(pose, segment, worldModelReplay, w
   const toolPosition =
     eventPayloadVector(firstEvent, 'toolPosition') ??
     eventPayloadVector(firstEvent, 'releasePosition') ??
-    (samples.length > 0 ? samples[samples.length - 1] : worldModelObjectCenter(worldModelReplay, 'shared-tool'));
+    (samples.length > 0
+      ? samples[samples.length - 1]
+      : worldModelObjectCenter(worldModelReplay, 'shared-tool'));
   const releasePosition = eventPayloadVector(release, 'releasePosition');
   const releaseVelocity = eventPayloadVelocity(release, 'releaseVelocity');
   const thrower = worldModelObjectCenter(worldModelReplay, 'thrower');
@@ -1233,12 +1248,18 @@ function applyTwoAgentWorldModelPoseOverrides(pose, segment, worldModelReplay, w
   };
 
   setVector(next.bodies.avatar, 'position', segment.id.includes('catch') ? catcher : thrower);
-  setVector(next.bodies.rightHand, 'position', segment.id.includes('catch') ? catcherHand : throwerHand);
+  setVector(
+    next.bodies.rightHand,
+    'position',
+    segment.id.includes('catch') ? catcherHand : throwerHand
+  );
   setVector(next.bodies.rock, 'position', toolPosition ?? releasePosition);
   setVector(next.bodies.target, 'position', catcher);
-  next.bodies.rock.attachedToHand = ['07_catch_constraint', '08_ownership_transfer', '09_receipt_panel'].includes(
-    segment.id
-  );
+  next.bodies.rock.attachedToHand = [
+    '07_catch_constraint',
+    '08_ownership_transfer',
+    '09_receipt_panel',
+  ].includes(segment.id);
   next.bodies.rock.released = [
     '02_release_detach',
     '03_ballistic_arc_early',
@@ -1251,9 +1272,12 @@ function applyTwoAgentWorldModelPoseOverrides(pose, segment, worldModelReplay, w
     : segment.id === '06_catch_volume'
       ? 'catch-volume'
       : null;
-  next.bodies.target.impacted = ['06_catch_volume', '07_catch_constraint', '08_ownership_transfer', '09_receipt_panel'].includes(
-    segment.id
-  );
+  next.bodies.target.impacted = [
+    '06_catch_volume',
+    '07_catch_constraint',
+    '08_ownership_transfer',
+    '09_receipt_panel',
+  ].includes(segment.id);
   next.physics.releaseVelocityMps = releaseVelocity;
   next.physics.clearanceM = finiteMetric(catchVolume?.payload?.clearanceM);
   next.physics.semanticOwner = firstEvent?.payload?.ownerId ?? firstEvent?.payload?.to ?? null;
@@ -1382,20 +1406,19 @@ export function buildSegmentReceipt({
   const hasLiveSegmentScreenshot = stillMode === LIVE_SEGMENT_SCREENSHOT_MODE;
   const hasWorldModelPixelReplay =
     hasWorldModelEvidence && stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE;
-  const status =
-    hasLiveSegmentScreenshot
-      ? LIVE_SEGMENT_SCREENSHOT_MODE
-      : hasWorldModelPixelReplay
-        ? WORLD_MODEL_PIXEL_REPLAY_MODE
-        : hasWorldModelEvidence
-          ? WORLD_MODEL_REPLAY_MODE
-          : screenshot?.success && !dynamicSegment && headless?.success
-            ? 'partial-pass'
-            : replayStill
-              ? 'segment-replay-receipt'
-              : dynamicSegment
-                ? 'blocked-dynamic-replay'
-                : 'partial-pass';
+  const status = hasLiveSegmentScreenshot
+    ? LIVE_SEGMENT_SCREENSHOT_MODE
+    : hasWorldModelPixelReplay
+      ? WORLD_MODEL_PIXEL_REPLAY_MODE
+      : hasWorldModelEvidence
+        ? WORLD_MODEL_REPLAY_MODE
+        : screenshot?.success && !dynamicSegment && headless?.success
+          ? 'partial-pass'
+          : replayStill
+            ? 'segment-replay-receipt'
+            : dynamicSegment
+              ? 'blocked-dynamic-replay'
+              : 'partial-pass';
   const owner = ownerForSegment(segment.id);
 
   return {
@@ -1421,27 +1444,27 @@ export function buildSegmentReceipt({
               `Next owner: ${owner}.`,
             ]
           : hasWorldModelPixelReplay
-          ? [
-              'World-model replay emitted semantic events for this segment.',
-              'The still renderer consumed the replay event payload for rock position and trajectory.',
-              `Next owner: ${owner}.`,
-            ]
-          : hasWorldModelEvidence
             ? [
                 'World-model replay emitted semantic events for this segment.',
-                'The still is still kinematic; event provenance is replay-backed but pixels are not yet event-driven.',
+                'The still renderer consumed the replay event payload for rock position and trajectory.',
                 `Next owner: ${owner}.`,
               ]
-          : replayStill
-            ? [
-                'Segment replay still generated from the segment pose/state payload.',
-                'The still is visual replay evidence, not a full engine physics proof yet.',
-                `Next owner: ${owner}.`,
-              ]
-            : [
-                'Static still exists, but segment-specific camera/pose playback is not implemented yet.',
-                `Next owner: ${owner}.`,
-              ]
+            : hasWorldModelEvidence
+              ? [
+                  'World-model replay emitted semantic events for this segment.',
+                  'The still is still kinematic; event provenance is replay-backed but pixels are not yet event-driven.',
+                  `Next owner: ${owner}.`,
+                ]
+              : replayStill
+                ? [
+                    'Segment replay still generated from the segment pose/state payload.',
+                    'The still is visual replay evidence, not a full engine physics proof yet.',
+                    `Next owner: ${owner}.`,
+                  ]
+                : [
+                    'Static still exists, but segment-specific camera/pose playback is not implemented yet.',
+                    `Next owner: ${owner}.`,
+                  ]
         : [
             'Scene-loaded still and command evidence exist; visual realism remains a separate quality ratchet.',
           ],
@@ -1462,12 +1485,12 @@ export function buildSegmentReceipt({
           ? hasLiveSegmentScreenshot
             ? 'Live segment scene rendered through CLI screenshot; timing is per-segment capture duration.'
             : hasWorldModelPixelReplay
-            ? 'World-model event payload drives this still; frame timing is still command-level evidence.'
-            : hasWorldModelEvidence
-            ? 'World-model event replay exists for this segment; frame timing is still command-level evidence.'
-            : replayStill
-            ? 'Replay still is generated from deterministic segment state; frame timing is command-level evidence.'
-            : 'No real per-frame segment replay yet; timing is command-level evidence.'
+              ? 'World-model event payload drives this still; frame timing is still command-level evidence.'
+              : hasWorldModelEvidence
+                ? 'World-model event replay exists for this segment; frame timing is still command-level evidence.'
+                : replayStill
+                  ? 'Replay still is generated from deterministic segment state; frame timing is command-level evidence.'
+                  : 'No real per-frame segment replay yet; timing is command-level evidence.'
           : 'Scene load command-level timing, not a render-frame profiler.',
       },
     },
@@ -1646,7 +1669,15 @@ async function runEvidenceCommands({ options, manifestPath, manifest, outputDir 
   } else if (manifest.flagship === 'two-agent-handoff-catch') {
     commandPlans.push([
       'world-model-two-agent-handoff-catch',
-      ['world-model', 'replay', '--scene', 'two-agent-handoff-catch-v1', '--seed', '5151', '--json'],
+      [
+        'world-model',
+        'replay',
+        '--scene',
+        'two-agent-handoff-catch-v1',
+        '--seed',
+        '5151',
+        '--json',
+      ],
     ]);
   }
 
@@ -1860,10 +1891,10 @@ export async function runSegmentedCapture(rawOptions = {}) {
             stillMode === LIVE_SEGMENT_SCREENSHOT_MODE
               ? 'live_segment_screenshot_emitted'
               : stillMode === WORLD_MODEL_PIXEL_REPLAY_MODE
-              ? 'world_model_pixel_replay_still_emitted'
-              : stillMode === SEGMENT_REPLAY_MODE
-              ? 'segment_replay_still_emitted'
-              : 'still_evidence_recorded',
+                ? 'world_model_pixel_replay_still_emitted'
+                : stillMode === SEGMENT_REPLAY_MODE
+                  ? 'segment_replay_still_emitted'
+                  : 'still_evidence_recorded',
           segment: segment.id,
           atMs: index * 250 + 1,
           still: rel(outputDir, stillPath),

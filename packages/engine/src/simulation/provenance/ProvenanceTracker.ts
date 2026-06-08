@@ -34,10 +34,7 @@ export class ProvenanceTracker {
    * @param execute  Function that runs the solver and returns results
    * @returns The SimulationRun record
    */
-  track(
-    config: SimulationRunConfig,
-    execute: () => SimulationRunResult
-  ): SimulationRun {
+  track(config: SimulationRunConfig, execute: () => SimulationRunResult): SimulationRun {
     const t0 = performance.now();
     const result = execute();
     const wallTimeMs = performance.now() - t0;
@@ -72,11 +69,7 @@ export class ProvenanceTracker {
    */
   compareLast(tolerance?: number): RunComparison | undefined {
     if (this.runs.length < 2) return undefined;
-    return compareRuns(
-      this.runs[this.runs.length - 2],
-      this.runs[this.runs.length - 1],
-      tolerance
-    );
+    return compareRuns(this.runs[this.runs.length - 2], this.runs[this.runs.length - 1], tolerance);
   }
 
   /**
@@ -109,7 +102,7 @@ export class ProvenanceTracker {
    */
   exportJSON(): string {
     return JSON.stringify(
-      this.runs.map(r => r.metadata),
+      this.runs.map((r) => r.metadata),
       null,
       2
     );

@@ -707,7 +707,8 @@ export const VECTOR_NODES: INodeTemplate[] = [
       { id: 'w', name: 'W', type: 'float', defaultValue: 1 },
     ],
     outputs: [{ id: 'vector', name: 'Vector', type: 'vec4' }],
-    generateCode: (_, inputs) => `vec4<f32>(${inputs[0]}, ${inputs[1]}, ${inputs[2]}, ${inputs[3]})`,
+    generateCode: (_, inputs) =>
+      `vec4<f32>(${inputs[0]}, ${inputs[1]}, ${inputs[2]}, ${inputs[3]})`,
   },
   {
     type: 'vector_split_vec2',

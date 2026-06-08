@@ -147,11 +147,7 @@ export function runUniformRandomOnTable(table: [number, number][], seed: number)
 }
 
 /** Slice policy: run policy logic only on first `len` rounds (re-run from scratch on prefix). */
-export function rewardOnPrefixLinUcb(
-  table: [number, number][],
-  len: number,
-  seed: number
-): number {
+export function rewardOnPrefixLinUcb(table: [number, number][], len: number, seed: number): number {
   const prefix = table.slice(0, len);
   return runLinUcbOnTable(prefix, seed).totalReward;
 }

@@ -20,12 +20,7 @@ export type Vec3 = [number, number, number];
 export type Quat = [number, number, number, number];
 
 export type NodeRef = string | { id?: string; [k: string]: unknown };
-export type TrackingMode =
-  | 'full_6dof'
-  | 'rotation_only'
-  | 'position_only'
-  | 'optical'
-  | 'hybrid';
+export type TrackingMode = 'full_6dof' | 'rotation_only' | 'position_only' | 'optical' | 'hybrid';
 
 export interface Pose {
   position: Vec3;
@@ -93,10 +88,12 @@ export class AccessoryTrackingProvider {
 
   constructor(options: AccessoryTrackingProviderOptions) {
     this.bus = options.bus;
-    this.rawPoseSource = options.rawPoseSource ?? (() => ({
-      position: [...IDENTITY_POSE.position] as Vec3,
-      rotation: [...IDENTITY_POSE.rotation] as Quat,
-    }));
+    this.rawPoseSource =
+      options.rawPoseSource ??
+      (() => ({
+        position: [...IDENTITY_POSE.position] as Vec3,
+        rotation: [...IDENTITY_POSE.rotation] as Quat,
+      }));
     if (options.onResolved) this.handlers.add(options.onResolved);
   }
 
@@ -104,9 +101,7 @@ export class AccessoryTrackingProvider {
     if (this._started) return;
     this._started = true;
     this.unsubscribers.push(
-      this.bus.on<AccessoryRequestPoseEvent>('accessory_request_pose', (e) =>
-        this.onRequest(e)
-      )
+      this.bus.on<AccessoryRequestPoseEvent>('accessory_request_pose', (e) => this.onRequest(e))
     );
   }
 

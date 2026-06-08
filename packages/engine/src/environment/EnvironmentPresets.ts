@@ -88,14 +88,14 @@ export const PRESET_SUNNY_DAY: EnvironmentConfig = {
     topColor: '#1e90ff',
     bottomColor: '#87ceeb',
     horizonColor: '#f0f8ff',
-    sunPosition: [0.5, 0.8, 0.2 ],
+    sunPosition: [0.5, 0.8, 0.2],
   },
   lights: [
     {
       type: 'directional',
       color: '#fff5e6',
       intensity: 1.2,
-      direction: [-0.5, -0.8, -0.2 ],
+      direction: [-0.5, -0.8, -0.2],
       castShadows: true,
       shadowMapSize: 2048,
     },
@@ -120,14 +120,14 @@ export const PRESET_SUNSET: EnvironmentConfig = {
     topColor: '#1a0533',
     bottomColor: '#ff6b35',
     horizonColor: '#ff4500',
-    sunPosition: [0.9, 0.1, 0 ],
+    sunPosition: [0.9, 0.1, 0],
   },
   lights: [
     {
       type: 'directional',
       color: '#ff8c42',
       intensity: 0.8,
-      direction: [-0.9, -0.1, 0 ],
+      direction: [-0.9, -0.1, 0],
       castShadows: true,
       shadowMapSize: 2048,
     },
@@ -152,14 +152,14 @@ export const PRESET_NIGHT: EnvironmentConfig = {
     topColor: '#0a0a1a',
     bottomColor: '#14142b',
     horizonColor: '#1a1a3e',
-    sunPosition: [-0.3, 0.6, 0.5 ], // Moon position
+    sunPosition: [-0.3, 0.6, 0.5], // Moon position
   },
   lights: [
     {
       type: 'directional',
       color: '#b0c4de',
       intensity: 0.15,
-      direction: [0.3, -0.6, -0.5 ],
+      direction: [0.3, -0.6, -0.5],
       castShadows: true,
       shadowMapSize: 1024,
     },
@@ -190,7 +190,7 @@ export const PRESET_OVERCAST: EnvironmentConfig = {
       type: 'directional',
       color: '#c0c0c0',
       intensity: 0.5,
-      direction: [-0.3, -0.8, -0.2 ],
+      direction: [-0.3, -0.8, -0.2],
       castShadows: true,
       shadowMapSize: 1024,
     },
@@ -221,7 +221,7 @@ export const PRESET_SCIFI: EnvironmentConfig = {
       type: 'directional',
       color: '#00ffff',
       intensity: 0.3,
-      direction: [0, -1, 0 ],
+      direction: [0, -1, 0],
       castShadows: true,
       shadowMapSize: 2048,
     },
@@ -271,7 +271,7 @@ export class EnvironmentManager {
     this.weather = {
       type: 'clear',
       intensity: 0,
-      windDirection: [1, 0, 0 ],
+      windDirection: [1, 0, 0],
       windSpeed: 2,
       transitionProgress: 1,
     };
@@ -327,7 +327,7 @@ export class EnvironmentManager {
     if (isDay) {
       const progress = (hour - this.timeOfDay.sunriseHour) / dayLength;
       const angle = progress * Math.PI; // 0 → π over the day
-      this.currentEnv.skybox.sunPosition = [Math.cos(angle) * 0.5, Math.sin(angle), 0.2, ];
+      this.currentEnv.skybox.sunPosition = [Math.cos(angle) * 0.5, Math.sin(angle), 0.2];
       // Interpolate light intensity: peaks at noon
       const sunIntensity = Math.sin(angle);
       if (this.currentEnv.lights[0]) {
@@ -335,7 +335,7 @@ export class EnvironmentManager {
       }
     } else {
       // Night
-      this.currentEnv.skybox.sunPosition = [0, -0.5, 0 ];
+      this.currentEnv.skybox.sunPosition = [0, -0.5, 0];
       if (this.currentEnv.lights[0]) {
         this.currentEnv.lights[0].intensity = 0.1;
       }

@@ -35,7 +35,8 @@ export interface SftExample {
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
-    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -43,24 +44,60 @@ function mulberry32(seed: number): () => number {
 }
 
 const TRAITS: { trait: string; prop: string }[] = [
-  { trait: 'glow', prop: 'intensity' }, { trait: 'audio', prop: 'volume' },
-  { trait: 'rigidbody', prop: 'mass' }, { trait: 'motion', prop: 'speed' },
-  { trait: 'particle', prop: 'rate' }, { trait: 'transform', prop: 'scale' },
-  { trait: 'thermal', prop: 'temp' }, { trait: 'material', prop: 'opacity' },
+  { trait: 'glow', prop: 'intensity' },
+  { trait: 'audio', prop: 'volume' },
+  { trait: 'rigidbody', prop: 'mass' },
+  { trait: 'motion', prop: 'speed' },
+  { trait: 'particle', prop: 'rate' },
+  { trait: 'transform', prop: 'scale' },
+  { trait: 'thermal', prop: 'temp' },
+  { trait: 'material', prop: 'opacity' },
   { trait: 'surface', prop: 'friction' },
 ];
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** Ops over a [min,max] range + current value → (NL instruction, exact target). */
-const OPS: { op: string; instr: (t: string, p: string) => string; calc: (min: number, max: number, cur: number) => number }[] = [
-  { op: 'max', instr: (t) => `Make the ${t} as strong as the scene safely allows.`, calc: (_m, max) => max },
-  { op: 'midpoint', instr: (t) => `Set the ${t} to the exact midpoint of its allowed range.`, calc: (min, max) => (min + max) / 2 },
-  { op: 'pct75', instr: (t) => `Set the ${t} to 75% of the way up its allowed range.`, calc: (min, max) => min + 0.75 * (max - min) },
-  { op: 'pct25', instr: (t) => `Set the ${t} to a quarter of the way up its allowed range.`, calc: (min, max) => min + 0.25 * (max - min) },
-  { op: 'plus30clamp', instr: (t) => `Increase the ${t} by 30% of its current value, staying in bounds.`, calc: (_m, max, cur) => Math.min(cur * 1.3, max) },
-  { op: 'minus25', instr: (t) => `Reduce the ${t} by 25% of its current value.`, calc: (_m, _x, cur) => cur * 0.75 },
-  { op: 'doubleclamp', instr: (t) => `Double the ${t} from its current value, but keep it within bounds.`, calc: (_m, max, cur) => Math.min(cur * 2, max) },
+const OPS: {
+  op: string;
+  instr: (t: string, p: string) => string;
+  calc: (min: number, max: number, cur: number) => number;
+}[] = [
+  {
+    op: 'max',
+    instr: (t) => `Make the ${t} as strong as the scene safely allows.`,
+    calc: (_m, max) => max,
+  },
+  {
+    op: 'midpoint',
+    instr: (t) => `Set the ${t} to the exact midpoint of its allowed range.`,
+    calc: (min, max) => (min + max) / 2,
+  },
+  {
+    op: 'pct75',
+    instr: (t) => `Set the ${t} to 75% of the way up its allowed range.`,
+    calc: (min, max) => min + 0.75 * (max - min),
+  },
+  {
+    op: 'pct25',
+    instr: (t) => `Set the ${t} to a quarter of the way up its allowed range.`,
+    calc: (min, max) => min + 0.25 * (max - min),
+  },
+  {
+    op: 'plus30clamp',
+    instr: (t) => `Increase the ${t} by 30% of its current value, staying in bounds.`,
+    calc: (_m, max, cur) => Math.min(cur * 1.3, max),
+  },
+  {
+    op: 'minus25',
+    instr: (t) => `Reduce the ${t} by 25% of its current value.`,
+    calc: (_m, _x, cur) => cur * 0.75,
+  },
+  {
+    op: 'doubleclamp',
+    instr: (t) => `Double the ${t} from its current value, but keep it within bounds.`,
+    calc: (_m, max, cur) => Math.min(cur * 2, max),
+  },
 ];
 
 /** Generate `count` deterministic SFT examples. The target mutation respects the
@@ -72,7 +109,7 @@ export function generateDataset(count: number, seed = 42): SftExample[] {
   for (let i = 0; i < count; i++) {
     const { trait, prop } = TRAITS[Math.floor(rnd() * TRAITS.length)];
     const { op, instr, calc } = OPS[Math.floor(rnd() * OPS.length)];
-    const max = round2(2 + rnd() * 18);          // 2..20
+    const max = round2(2 + rnd() * 18); // 2..20
     const min = round2(rnd() < 0.5 ? 0 : rnd() * (max * 0.2));
     const cur = round2(min + rnd() * (max - min));
     const expected = round2(Math.max(min, Math.min(max, calc(min, max, cur))));

@@ -339,6 +339,8 @@ describe('NeuralLinkTrait', () => {
   it('onUpdate is a no-op when state is absent', () => {
     const orphanNode = createMockNode('orphan');
     // No onAttach — no state
-    expect(() => neuralLinkHandler.onUpdate!(orphanNode as any, cfg, ctx as any, 1.0)).not.toThrow();
+    expect(() =>
+      neuralLinkHandler.onUpdate!(orphanNode as any, cfg, ctx as any, 1.0)
+    ).not.toThrow();
   });
 });

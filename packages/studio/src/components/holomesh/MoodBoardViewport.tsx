@@ -66,7 +66,11 @@ function parseBasicScene(source: string): BasicObject[] {
     const posMatch = body.match(/position:\s*\[([^\]]+)\]/);
     const colorMatch = body.match(/color:\s*["']([^"']+)["']/);
     const name = match[1].toLowerCase();
-    const type = name.includes('sphere') ? 'sphere' : name.includes('cylinder') ? 'cylinder' : 'box';
+    const type = name.includes('sphere')
+      ? 'sphere'
+      : name.includes('cylinder')
+        ? 'cylinder'
+        : 'box';
     objects.push({
       type,
       position: posMatch ? posMatch[1].split(',').map(Number) : [0, 0, 0],
@@ -99,30 +103,30 @@ export function MoodBoardViewport({ agentId, agentName, themeColor }: MoodBoardP
       }}
     >
       <StudioErrorBoundary label="MoodBoard Canvas">
-      <Canvas
-        camera={{ position: [3, 2, 5], fov: 50 }}
-        style={{ background: 'linear-gradient(180deg, #0a0a12 0%, #1a1a2e 100%)' }}
-      >
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[5, 8, 5]} intensity={0.8} />
-        <Suspense fallback={null}>
-          <Environment preset="night" />
-          {scene?.hasScene && scene.source ? (
-            <SceneContent source={scene.source} />
-          ) : (
-            <EmptyRoom agentName={agentName} />
-          )}
-        </Suspense>
-        <OrbitControls
-          enablePan={false}
-          enableZoom={true}
-          minDistance={2}
-          maxDistance={15}
-          maxPolarAngle={Math.PI * 0.8}
-          autoRotate
-          autoRotateSpeed={0.5}
-        />
-      </Canvas>
+        <Canvas
+          camera={{ position: [3, 2, 5], fov: 50 }}
+          style={{ background: 'linear-gradient(180deg, #0a0a12 0%, #1a1a2e 100%)' }}
+        >
+          <ambientLight intensity={0.4} />
+          <directionalLight position={[5, 8, 5]} intensity={0.8} />
+          <Suspense fallback={null}>
+            <Environment preset="night" />
+            {scene?.hasScene && scene.source ? (
+              <SceneContent source={scene.source} />
+            ) : (
+              <EmptyRoom agentName={agentName} />
+            )}
+          </Suspense>
+          <OrbitControls
+            enablePan={false}
+            enableZoom={true}
+            minDistance={2}
+            maxDistance={15}
+            maxPolarAngle={Math.PI * 0.8}
+            autoRotate
+            autoRotateSpeed={0.5}
+          />
+        </Canvas>
       </StudioErrorBoundary>
       <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-black/50 text-[10px] text-white/40">
         drag to orbit

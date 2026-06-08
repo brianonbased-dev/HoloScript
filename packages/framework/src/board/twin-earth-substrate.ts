@@ -8,10 +8,7 @@
  * Contract: research/2026-05-13_twin-earth-substrate-contract.md
  */
 
-import type {
-  ArtifactHashAlgorithm,
-  ArtifactVerificationCommand,
-} from './board-types';
+import type { ArtifactHashAlgorithm, ArtifactVerificationCommand } from './board-types';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // 1. IDENTITY
@@ -63,16 +60,38 @@ export interface TwinEarthIdentity {
 
 /** Actions that can be granted or executed on the substrate. */
 export type TwinEarthAction =
-  | 'shard:create' | 'shard:update' | 'shard:delete' | 'shard:tick'
-  | 'zone:create' | 'zone:update' | 'zone:publish' | 'zone:delete'
-  | 'place:create' | 'place:update' | 'place:delete'
-  | 'quest:create' | 'quest:update' | 'quest:delete'
-  | 'npc:create' | 'npc:update' | 'npc:delete' | 'npc:dialogue'
-  | 'receipt:capture' | 'receipt:validate'
-  | 'identity:register' | 'identity:renew' | 'identity:revoke'
-  | 'contract:propose' | 'contract:ratify'
-  | 'actuator:command' | 'sensor:read' | 'robot:move' | 'robot:task:execute'
-  | 'ai:inference' | 'ai:plan' | 'ai:invoke';
+  | 'shard:create'
+  | 'shard:update'
+  | 'shard:delete'
+  | 'shard:tick'
+  | 'zone:create'
+  | 'zone:update'
+  | 'zone:publish'
+  | 'zone:delete'
+  | 'place:create'
+  | 'place:update'
+  | 'place:delete'
+  | 'quest:create'
+  | 'quest:update'
+  | 'quest:delete'
+  | 'npc:create'
+  | 'npc:update'
+  | 'npc:delete'
+  | 'npc:dialogue'
+  | 'receipt:capture'
+  | 'receipt:validate'
+  | 'identity:register'
+  | 'identity:renew'
+  | 'identity:revoke'
+  | 'contract:propose'
+  | 'contract:ratify'
+  | 'actuator:command'
+  | 'sensor:read'
+  | 'robot:move'
+  | 'robot:task:execute'
+  | 'ai:inference'
+  | 'ai:plan'
+  | 'ai:invoke';
 
 /** A signed, revocable, substrate-auditable permission grant. */
 export interface PermissionGrant {
@@ -133,11 +152,7 @@ export type TwinEarthReceiptKind =
   | 'contract_upgrade';
 
 /** Execution status recorded in a receipt. */
-export type TwinEarthReceiptStatus =
-  | 'success'
-  | 'failure'
-  | 'timeout'
-  | 'rejected_by_envelope';
+export type TwinEarthReceiptStatus = 'success' | 'failure' | 'timeout' | 'rejected_by_envelope';
 
 /**
  * Twin Earth Receipt — cryptographically signed proof of execution.
@@ -282,7 +297,10 @@ export function validateSafetyEnvelope(envelope: SafetyEnvelope): string[] {
   if (typeof envelope.maxMemoryBytes !== 'number' || envelope.maxMemoryBytes < 0) {
     errors.push('SafetyEnvelope.maxMemoryBytes must be a non-negative number.');
   }
-  if (typeof envelope.maxNetworkCallsPerMinute !== 'number' || envelope.maxNetworkCallsPerMinute < 0) {
+  if (
+    typeof envelope.maxNetworkCallsPerMinute !== 'number' ||
+    envelope.maxNetworkCallsPerMinute < 0
+  ) {
     errors.push('SafetyEnvelope.maxNetworkCallsPerMinute must be a non-negative number.');
   }
   if (!envelope.substrateEnforced) {
@@ -331,7 +349,13 @@ export function validateModeTransitionReceipt(receipt: ModeTransitionReceipt): s
 
 export function isSupportedTwinEarthRole(role: string): role is TwinEarthRole {
   const roles: readonly string[] = [
-    'founder', 'steward', 'operator', 'robot', 'ai', 'brittney', 'visitor',
+    'founder',
+    'steward',
+    'operator',
+    'robot',
+    'ai',
+    'brittney',
+    'visitor',
   ];
   return roles.includes(role);
 }
@@ -347,12 +371,18 @@ export function isSupportedTwinEarthKind(kind: string): kind is TwinEarthKind {
 }
 
 export function isSupportedTwinEarthReceiptKind(kind: string): kind is TwinEarthReceiptKind {
-  const kinds: readonly string[] = ['action', 'validation', 'encounter', 'steward_tick', 'contract_upgrade'];
+  const kinds: readonly string[] = [
+    'action',
+    'validation',
+    'encounter',
+    'steward_tick',
+    'contract_upgrade',
+  ];
   return kinds.includes(kind);
 }
 
 export function isSupportedTwinEarthReceiptStatus(
-  status: string,
+  status: string
 ): status is TwinEarthReceiptStatus {
   const statuses: readonly string[] = ['success', 'failure', 'timeout', 'rejected_by_envelope'];
   return statuses.includes(status);
@@ -369,7 +399,12 @@ export interface ActuationResult {
   /** Human-readable reason for the decision. */
   reason: string;
   /** If denied due to safety envelope, the specific envelope rule that blocked it. */
-  blockingRule?: 'blocked_actions' | 'not_allowed' | 'not_substrate_enforced' | 'expired_grant' | 'revoked_grant';
+  blockingRule?:
+    | 'blocked_actions'
+    | 'not_allowed'
+    | 'not_substrate_enforced'
+    | 'expired_grant'
+    | 'revoked_grant';
   /** Optional receipt if the evaluation itself was logged. */
   receipt?: TwinEarthReceipt;
 }
@@ -391,7 +426,7 @@ export function evaluateActuation(
   grant: PermissionGrant,
   envelope: SafetyEnvelope,
   action: TwinEarthAction,
-  scope: string,
+  scope: string
 ): ActuationResult {
   // 1. Identity validation
   const idErrors = validateTwinEarthIdentity(identity);
@@ -511,7 +546,9 @@ export function cloneSafetyEnvelope(envelope: SafetyEnvelope): SafetyEnvelope {
 export function cloneTwinEarthReceipt(receipt: TwinEarthReceipt): TwinEarthReceipt {
   return {
     ...receipt,
-    ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c })) } : {}),
+    ...(receipt.verificationCommands
+      ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c })) }
+      : {}),
   };
 }
 

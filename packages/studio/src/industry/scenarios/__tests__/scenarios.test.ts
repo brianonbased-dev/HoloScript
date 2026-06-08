@@ -44,7 +44,12 @@ describe('ScenarioEntry type contract', () => {
 
   it('accepts all valid ScenarioCategory values', () => {
     const categories: ScenarioCategory[] = [
-      'science', 'engineering', 'health', 'arts', 'nature', 'society',
+      'science',
+      'engineering',
+      'health',
+      'arts',
+      'nature',
+      'society',
     ];
     for (const category of categories) {
       const entry = createScenarioEntry({ category });
@@ -114,7 +119,12 @@ describe('ScenarioCardProps type contract', () => {
 describe('ScenarioCategory exhaustiveness', () => {
   it('covers all 6 categories', () => {
     const ALL_CATEGORIES: ScenarioCategory[] = [
-      'science', 'engineering', 'health', 'arts', 'nature', 'society',
+      'science',
+      'engineering',
+      'health',
+      'arts',
+      'nature',
+      'society',
     ];
     expect(ALL_CATEGORIES).toHaveLength(6);
     // Verify each category is a string
@@ -128,13 +138,32 @@ describe('ScenarioCategory exhaustiveness', () => {
 
 describe('Scenario entries — 26 industry scenarios', () => {
   const SCENARIO_IDS = [
-    'accessibility', 'archaeology', 'biomechanics', 'brain-mapper',
-    'bridge-lab', 'climate-dashboard', 'constellation', 'courtroom',
-    'disaster-response', 'dna-sequencer', 'dream-journal', 'epidemic',
-    'escape-room', 'fashion-runway', 'film-studio', 'forensic-scene',
-    'geology-lab', 'molecular-lab', 'molecular-viewer', 'music-studio',
-    'ocean-explorer', 'robot-deploy', 'space-mission', 'surgical-rehearsal',
-    'theme-park', 'wine-sommelier',
+    'accessibility',
+    'archaeology',
+    'biomechanics',
+    'brain-mapper',
+    'bridge-lab',
+    'climate-dashboard',
+    'constellation',
+    'courtroom',
+    'disaster-response',
+    'dna-sequencer',
+    'dream-journal',
+    'epidemic',
+    'escape-room',
+    'fashion-runway',
+    'film-studio',
+    'forensic-scene',
+    'geology-lab',
+    'molecular-lab',
+    'molecular-viewer',
+    'music-studio',
+    'ocean-explorer',
+    'robot-deploy',
+    'space-mission',
+    'surgical-rehearsal',
+    'theme-park',
+    'wine-sommelier',
   ];
 
   it('has entries for 26 scenario panels', () => {

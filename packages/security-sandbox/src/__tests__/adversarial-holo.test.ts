@@ -119,8 +119,7 @@ function canonicalGeometry(): {
 } {
   return {
     vertices: new Float64Array([
-      0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
-      1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1,
+      0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1,
     ]),
     elements: new Uint32Array([0, 1, 2, 3, 4, 5, 6, 7]),
   };
@@ -563,7 +562,7 @@ describe('Adversarial: Incorrect Physics', () => {
 
     const claimedHash = hashGeometry(
       new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
-      new Uint32Array([0, 1, 2, 0, 1, 2, 0, 1]), // a "honest" element buffer
+      new Uint32Array([0, 1, 2, 0, 1, 2, 0, 1]) // a "honest" element buffer
     );
     const actualHash = hashGeometry(vertices, disconnectedElements);
 
@@ -615,9 +614,7 @@ describe('Adversarial: Incorrect Physics', () => {
       },
     });
 
-    const stiffnessViolation = violations.find((v) =>
-      v.message.includes('youngs_modulus'),
-    );
+    const stiffnessViolation = violations.find((v) => v.message.includes('youngs_modulus'));
     const hasError = violations.some((v) => v.severity === 'error');
 
     expect(stiffnessViolation).toBeDefined();
@@ -641,7 +638,7 @@ describe('Adversarial: Incorrect Physics', () => {
     const contracted = new ContractedSimulation(
       solver,
       { vertices, elements },
-      { fixedDt: 0.01, solverType: 'thermal' },
+      { fixedDt: 0.01, solverType: 'thermal' }
     );
 
     // First step is fine.
@@ -678,12 +675,7 @@ describe('Adversarial: Incorrect Physics', () => {
 
   it('P6. Hash-consistent mesh with inverted tetrahedron — physics sanity catches it', () => {
     // Mesh passes hashGeometry and validateMeshSanity, but the tet is inverted.
-    const vertices = new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 1,
-    ]);
+    const vertices = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const elements = new Uint32Array([0, 2, 1, 3]); // swapped 1 and 2 → inverted
 
     // Hash is consistent with the vertices/elements
@@ -847,7 +839,7 @@ describe('Adversarial: Non-Determinism', () => {
 
     const replayed = ContractedSimulation.replayFromProvenance(
       () => wallClockSolver(),
-      replayRecord,
+      replayRecord
     );
     for (let i = 0; i < 5; i++) replayed.step(0.01);
     const statsReplayed = replayed.getStats() as { seen: number };
@@ -936,8 +928,8 @@ describe('Adversarial: Non-Determinism', () => {
       JSON.stringify(honest.getStats()) !== JSON.stringify(attacker.getStats()) ||
       honestValue !== attackerValue ||
       true; // If XOR happens to collapse, our upstream check is contract-
-               // level: the attacker-reordered solver doesn't match the honest
-               // provenance record when compared field-by-field downstream.
+    // level: the attacker-reordered solver doesn't match the honest
+    // provenance record when compared field-by-field downstream.
     // We actually detect via CAEL trace finalStats mismatch:
     const recHonest = new CAELRecorder(racySolver(), {}, { fixedDt: 0.01 });
     const recAttacker = new CAELRecorder(shuffledSolver(), {}, { fixedDt: 0.01 });
@@ -948,8 +940,7 @@ describe('Adversarial: Non-Determinism', () => {
     const provH = recHonest.finalize();
     const provA = recAttacker.finalize();
 
-    const statsMatch =
-      JSON.stringify(provH.finalStats) === JSON.stringify(provA.finalStats);
+    const statsMatch = JSON.stringify(provH.finalStats) === JSON.stringify(provA.finalStats);
     const detected = !statsMatch || divergent;
     expect(detected).toBe(true);
 
@@ -1158,7 +1149,7 @@ describe('Adversarial: Post-hoc Tampering', () => {
     const original = new ContractedSimulation(
       makeMockSolver(),
       { vertices, elements, material: { youngs_modulus: 200e9, density: 7850 } },
-      { fixedDt: 0.01, solverType: 'structural' },
+      { fixedDt: 0.01, solverType: 'structural' }
     );
     original.step(0.05);
     original.logInteraction('set_load', { value: 1000 });
@@ -1171,8 +1162,8 @@ describe('Adversarial: Post-hoc Tampering', () => {
       config: {
         ...(replay.config as Record<string, unknown>),
         vertices: new Float64Array([
-          10, 10, 10, 20, 10, 10, 10, 20, 10, 10, 10, 20,
-          20, 20, 10, 20, 10, 20, 10, 20, 20, 20, 20, 20,
+          10, 10, 10, 20, 10, 10, 10, 20, 10, 10, 10, 20, 20, 20, 10, 20, 10, 20, 10, 20, 20, 20,
+          20, 20,
         ]),
       },
     };
@@ -1292,12 +1283,10 @@ describe('Paper #4 Section 7.4 — Adversarial Detection Summary', () => {
     lines.push('| Attack Category | Cases | Detected | Rate |');
     lines.push('|-----------------|-------|----------|------|');
     for (const r of rows) {
-      lines.push(
-        `| ${r.category} | ${r.cases} | ${r.detected} | ${r.rate.toFixed(0)}% |`,
-      );
+      lines.push(`| ${r.category} | ${r.cases} | ${r.detected} | ${r.rate.toFixed(0)}% |`);
     }
     lines.push(
-      `| **Total** | **${total}** | **${totalDetected}** | **${totalRate.toFixed(0)}%** |`,
+      `| **Total** | **${total}** | **${totalDetected}** | **${totalRate.toFixed(0)}%** |`
     );
     lines.push('');
 

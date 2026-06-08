@@ -81,9 +81,7 @@ describe('EyeTrackedTrait', () => {
   // ─── Eye-gaze adapter + device gating ───────────────────────────────────────
 
   it('registers foveated with fixed mode on attach (no eye tracking yet)', () => {
-    const events = (ctx as any).emittedEvents.filter(
-      (e: any) => e.event === 'register_foveated'
-    );
+    const events = (ctx as any).emittedEvents.filter((e: any) => e.event === 'register_foveated');
     expect(events[0].data.foveationMode).toBe('fixed');
     expect(events[0].data.eyeTrackingAvailable).toBe(false);
   });
@@ -107,9 +105,7 @@ describe('EyeTrackedTrait', () => {
       origin: [0, 1.6, 0],
       direction: [0, 0, -1],
     });
-    const events = (ctx as any).emittedEvents.filter(
-      (e: any) => e.event === 'register_foveated'
-    );
+    const events = (ctx as any).emittedEvents.filter((e: any) => e.event === 'register_foveated');
     expect(events.length).toBe(2); // initial fixed + upgrade to eye_gaze_driven
     expect(events[1].data.foveationMode).toBe('eye_gaze_driven');
     expect(events[1].data.eyeTrackingAvailable).toBe(true);

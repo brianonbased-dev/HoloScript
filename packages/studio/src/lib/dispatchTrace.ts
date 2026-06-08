@@ -57,11 +57,7 @@ export interface DispatchPolicyToggle {
   enabled: boolean;
 }
 
-export type DispatchMode =
-  | 'tier-1-only'
-  | 'tier-1-2'
-  | 'all-three'
-  | 'cpu-only';
+export type DispatchMode = 'tier-1-only' | 'tier-1-2' | 'all-three' | 'cpu-only';
 
 export const DISPATCH_MODES: { value: DispatchMode; label: string; description: string }[] = [
   {

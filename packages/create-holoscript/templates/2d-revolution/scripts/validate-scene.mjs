@@ -42,5 +42,7 @@ if (!ok) {
 }
 
 const objectCount = ((result.ast && result.ast.objects) || []).length;
-console.log(`✓ scene.holo is valid — composition "${(result.ast && result.ast.name) || 'Untitled'}", ${objectCount} object(s).`);
+console.log(
+  `✓ scene.holo is valid — composition "${(result.ast && result.ast.name) || 'Untitled'}", ${objectCount} object(s).`
+);
 process.exit(0);

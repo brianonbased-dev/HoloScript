@@ -6,10 +6,7 @@
  */
 
 import { Bench } from 'tinybench';
-import {
-  HoloScriptPlusParser,
-  type HoloComposition,
-} from '@holoscript/core';
+import { HoloScriptPlusParser, type HoloComposition } from '@holoscript/core';
 
 // =============================================================================
 // SCENE FIXTURE GENERATOR
@@ -88,7 +85,9 @@ function generateComplexScene(): string {
     const traits: string[] = [];
     for (let t = 0; t < traitCount; t++) {
       const template = TRAIT_TEMPLATES[(i + t * 7) % TRAIT_TEMPLATES.length];
-      traits.push(template.replace('${x}', String(x)).replace('${y}', String(y)).replace('${z}', String(z)));
+      traits.push(
+        template.replace('${x}', String(x)).replace('${y}', String(y)).replace('${z}', String(z))
+      );
     }
 
     lines.push(`  object bench_obj_${i} {`);
@@ -141,7 +140,8 @@ async function loadCompilers() {
       try {
         const instance = factory();
         if (instance && typeof (instance as { compile?: unknown }).compile === 'function') {
-          compilers[name] = (ast: HoloComposition) => (instance as { compile: (ast: HoloComposition) => unknown }).compile(ast);
+          compilers[name] = (ast: HoloComposition) =>
+            (instance as { compile: (ast: HoloComposition) => unknown }).compile(ast);
         }
       } catch {
         // Compiler not available or misconfigured — skip
@@ -172,7 +172,9 @@ export async function runCrossTargetBench() {
 
   const compilers = await loadCompilers();
   const availableTargets = Object.keys(compilers);
-  console.log(`🔧 Available compiler targets: ${availableTargets.length} / ${TARGET_MODULES.length}`);
+  console.log(
+    `🔧 Available compiler targets: ${availableTargets.length} / ${TARGET_MODULES.length}`
+  );
 
   const bench = new Bench({ time: 500, iterations: 3 });
 

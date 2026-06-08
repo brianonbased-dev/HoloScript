@@ -8,12 +8,12 @@
 
 The HoloScript framework had four colliding capability definitions:
 
-| Location | Shape | Fields | Collision |
-|---|---|---|---|
-| `agents/AgentManifest.ts` | `AgentCapability` | 12 (cost, latency, inputs, output, …) | Name collision with mesh |
-| `mesh/index.ts` | `AgentCapability` | 3 (id, name, kind) | Name collision with agents |
-| `board/agent-steward.ts` | `StewardCapability` | 4 (kind, label, requiredSkillIds) | Ad hoc, no canonical type |
-| `holoshell-human-os-frontier` | `.hsplus` capability blocks | N/A (no TS type) | No canonical TS counterpart |
+| Location                      | Shape                       | Fields                                | Collision                   |
+| ----------------------------- | --------------------------- | ------------------------------------- | --------------------------- |
+| `agents/AgentManifest.ts`     | `AgentCapability`           | 12 (cost, latency, inputs, output, …) | Name collision with mesh    |
+| `mesh/index.ts`               | `AgentCapability`           | 3 (id, name, kind)                    | Name collision with agents  |
+| `board/agent-steward.ts`      | `StewardCapability`         | 4 (kind, label, requiredSkillIds)     | Ad hoc, no canonical type   |
+| `holoshell-human-os-frontier` | `.hsplus` capability blocks | N/A (no TS type)                      | No canonical TS counterpart |
 
 The mesh/agent name collision caused real import ambiguity. Steward and Shell capabilities had no shared spine. Every domain reinvented identifiers, validation, and cloning.
 
@@ -25,12 +25,12 @@ Every capability in the ecosystem extends `Capability`:
 
 ```ts
 export interface Capability {
-  id: string;              // `<context>:<kind>:<name>`
+  id: string; // `<context>:<kind>:<name>`
   name: string;
-  description?: string;    // ~200 char convention
-  version?: string;          // semantic version of this definition
+  description?: string; // ~200 char convention
+  version?: string; // semantic version of this definition
   kind: CapabilityKind;
-  domain?: string;         // cross-cutting label: 'vision', 'nlp', 'spatial'
+  domain?: string; // cross-cutting label: 'vision', 'nlp', 'spatial'
   metadata?: Record<string, unknown>;
 }
 ```
@@ -39,22 +39,22 @@ Base intentionally omits runtime/operational fields. Those live in extensions.
 
 ### 2.2 Extensions
 
-| Extension | File | Adds | Replaces |
-|---|---|---|---|
-| **Agent** | `Capability.ts` | `cost`, `latency`, `inputs`, `output`, `available`, `priority` | 12-field `AgentCapability` from `agents/AgentManifest.ts` |
-| **Steward** | `Capability.ts` | `kind: StewardCapabilityKind`, `label`, `requiredSkillIds` | Ad hoc `StewardCapability` from `board/agent-steward.ts` |
-| **Shell** | `Capability.ts` | `agentSource`, `trustState`, `permissions`, `receiptExpectation`, `replacementPath` | No prior TS type; counterpart to `.hsplus` blocks |
-| **Mesh / A2A** | `Capability.ts` | `tags?: string[]` | 3-field mesh `AgentCapability` (renamed to `MeshCapability`) |
+| Extension      | File            | Adds                                                                                | Replaces                                                     |
+| -------------- | --------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Agent**      | `Capability.ts` | `cost`, `latency`, `inputs`, `output`, `available`, `priority`                      | 12-field `AgentCapability` from `agents/AgentManifest.ts`    |
+| **Steward**    | `Capability.ts` | `kind: StewardCapabilityKind`, `label`, `requiredSkillIds`                          | Ad hoc `StewardCapability` from `board/agent-steward.ts`     |
+| **Shell**      | `Capability.ts` | `agentSource`, `trustState`, `permissions`, `receiptExpectation`, `replacementPath` | No prior TS type; counterpart to `.hsplus` blocks            |
+| **Mesh / A2A** | `Capability.ts` | `tags?: string[]`                                                                   | 3-field mesh `AgentCapability` (renamed to `MeshCapability`) |
 
 The name collision is resolved by renaming the mesh minimal shape to `MeshCapability`.
 
 ### 2.3 Type Guards
 
 ```ts
-isAgentCapability(cap)    // true if cost | latency | inputs | output present
-isStewardCapability(cap)  // true if kind ∈ STEWARD_KINDS
-isShellCapability(cap)    // true if agentSource + permissions + receiptExpectation present
-isMeshCapability(cap)     // true if it lacks fields from richer extensions
+isAgentCapability(cap); // true if cost | latency | inputs | output present
+isStewardCapability(cap); // true if kind ∈ STEWARD_KINDS
+isShellCapability(cap); // true if agentSource + permissions + receiptExpectation present
+isMeshCapability(cap); // true if it lacks fields from richer extensions
 ```
 
 Mesh is the minimal extension — it positively matches only when no richer extension claims the object.
@@ -75,10 +75,10 @@ Every extension carries a `clone*` function that produces a structurally indepen
 
 Two absorption receipt pilots ship alongside the schema:
 
-| Pilot | File | Trust Floor | Evidence |
-|---|---|---|---|
-| **Browser** | `board/holoshell-browser-receipts.ts` | `external` | Screenshots, network log (HAR), cookie/session audit, action sequence |
-| **Local CLI** | `board/holoshell-cli-receipts.ts` | `known` | Exit code, stdout/stderr hashes, lockfile diff, build artifact hash, action sequence |
+| Pilot         | File                                  | Trust Floor | Evidence                                                                             |
+| ------------- | ------------------------------------- | ----------- | ------------------------------------------------------------------------------------ |
+| **Browser**   | `board/holoshell-browser-receipts.ts` | `external`  | Screenshots, network log (HAR), cookie/session audit, action sequence                |
+| **Local CLI** | `board/holoshell-cli-receipts.ts`     | `known`     | Exit code, stdout/stderr hashes, lockfile diff, build artifact hash, action sequence |
 
 Both pilots use the same policy envelope pattern:
 
@@ -89,11 +89,11 @@ Both pilots use the same policy envelope pattern:
 
 The receipt schema mirrors the legacy absorption path taxonomy documented in `experiments/holoshell-human-os-frontier/legacy-absorption-paths.md`:
 
-| Path | Trust Floor | Pilot Status |
-|---|---|---|
-| Native API / MCP | `verified` | Schema ready; no pilot yet |
-| CLI / PowerShell | `known` | **Pilot landed** |
-| Browser Automation | `external` | **Pilot landed** |
+| Path                   | Trust Floor | Pilot Status               |
+| ---------------------- | ----------- | -------------------------- |
+| Native API / MCP       | `verified`  | Schema ready; no pilot yet |
+| CLI / PowerShell       | `known`     | **Pilot landed**           |
+| Browser Automation     | `external`  | **Pilot landed**           |
 | UI Automation / Vision | `untrusted` | Schema ready; no pilot yet |
 
 ## 4. Permission Envelopes
@@ -102,9 +102,9 @@ Shell capabilities use UCAN-style permission slices:
 
 ```ts
 export interface ShellPermission {
-  with: string;   // resource URI
-  can: string;    // action permitted
-  nb?: Record<string, unknown>;  // non-negotiable constraints
+  with: string; // resource URI
+  can: string; // action permitted
+  nb?: Record<string, unknown>; // non-negotiable constraints
 }
 ```
 
@@ -167,15 +167,15 @@ Total: 25 assertions, all passing.
 
 ## 8. Migration Path
 
-| Step | Action | Owner |
-|---|---|---|
-1 | Consume canonical types from new code | All agents |
-2 | Refactor `agents/AgentManifest.ts` to re-export `AgentCapability` | `@holoscript/agents` |
-3 | Refactor `mesh/index.ts` to re-export `MeshCapability` | `@holoscript/mesh` |
-4 | Refactor `board/agent-steward.ts` to use `StewardCapability` | `@holoscript/board` |
-5 | Build UI Automation / Vision receipt pilot | `@holoscript/holoshell` |
-6 | Build Native API / MCP receipt pilot | `@holoscript/holoshell` |
-7 | Remove legacy inline definitions | All agents |
+| Step | Action                                                            | Owner                   |
+| ---- | ----------------------------------------------------------------- | ----------------------- |
+| 1    | Consume canonical types from new code                             | All agents              |
+| 2    | Refactor `agents/AgentManifest.ts` to re-export `AgentCapability` | `@holoscript/agents`    |
+| 3    | Refactor `mesh/index.ts` to re-export `MeshCapability`            | `@holoscript/mesh`      |
+| 4    | Refactor `board/agent-steward.ts` to use `StewardCapability`      | `@holoscript/board`     |
+| 5    | Build UI Automation / Vision receipt pilot                        | `@holoscript/holoshell` |
+| 6    | Build Native API / MCP receipt pilot                              | `@holoscript/holoshell` |
+| 7    | Remove legacy inline definitions                                  | All agents              |
 
 ## 9. References
 

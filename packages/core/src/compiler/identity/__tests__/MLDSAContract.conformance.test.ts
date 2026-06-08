@@ -79,11 +79,7 @@ describe('core MLDSACryptoProvider interops with raw noble (ground-truth cross-c
 
     const sec = new Uint8Array(Buffer.from(kp.privateKey, 'base64'));
     const rawSig = ml_dsa65.sign(message, sec);
-    const ok = await provider.verify(
-      message,
-      Buffer.from(rawSig).toString('base64'),
-      kp.publicKey
-    );
+    const ok = await provider.verify(message, Buffer.from(rawSig).toString('base64'), kp.publicKey);
     expect(ok).toBe(true);
   });
 });

@@ -28,7 +28,10 @@ describe('HololandRenderer', () => {
   it('allows injecting preconfigured managers', () => {
     const adaptive = new AdaptiveFrameRateManager({ thresholds: { warmFrameTimeMs: 12 } });
     const quality = new QualityManager({
-      cool: { ...DEFAULT_QUALITY_POLICY.cool, gaussian: { maxSplats: 2_000_000, maxMemoryMB: 1024 } },
+      cool: {
+        ...DEFAULT_QUALITY_POLICY.cool,
+        gaussian: { maxSplats: 2_000_000, maxMemoryMB: 1024 },
+      },
     });
     const renderer = new HololandRenderer({ adaptiveFrameRate: adaptive, qualityManager: quality });
     expect(renderer.adaptive).toBe(adaptive);

@@ -128,7 +128,9 @@ export function isReportCountsConsistent(report: AdversarialTrajectoryReport): b
 
 // ── Report helpers ──
 
-function buildFailureClusters(trajectories: readonly AdversarialTrajectory[]): readonly FailureCluster[] {
+function buildFailureClusters(
+  trajectories: readonly AdversarialTrajectory[]
+): readonly FailureCluster[] {
   const clusters = new Map<string, FailureCluster>();
 
   for (const t of trajectories) {
@@ -152,7 +154,9 @@ function buildFailureClusters(trajectories: readonly AdversarialTrajectory[]): r
     }
   }
 
-  return Array.from(clusters.values()).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  return Array.from(clusters.values()).sort(
+    (a, b) => b.count - a.count || a.label.localeCompare(b.label)
+  );
 }
 
 function dominantPredicate(
@@ -172,9 +176,14 @@ function dominantPredicate(
   return maxKey;
 }
 
-function buildScoreSummary(trajectories: readonly AdversarialTrajectory[]): import('./AdversarialTrajectory').ScoreSummary {
+function buildScoreSummary(
+  trajectories: readonly AdversarialTrajectory[]
+): import('./AdversarialTrajectory').ScoreSummary {
   const keys = ['violation', 'novelty', 'learnability', 'regression', 'invalidity'] as const;
-  const summary = {} as Record<keyof import('./AdversarialTrajectory').ScoreSummary, { avg: number; min: number; max: number }>;
+  const summary = {} as Record<
+    keyof import('./AdversarialTrajectory').ScoreSummary,
+    { avg: number; min: number; max: number }
+  >;
 
   for (const key of keys) {
     const values = trajectories.map((t) => t.predicateScore[key]);
@@ -187,7 +196,9 @@ function buildScoreSummary(trajectories: readonly AdversarialTrajectory[]): impo
   return summary;
 }
 
-function buildReplaySummary(trajectories: readonly AdversarialTrajectory[]): import('./AdversarialTrajectory').ReplaySummary {
+function buildReplaySummary(
+  trajectories: readonly AdversarialTrajectory[]
+): import('./AdversarialTrajectory').ReplaySummary {
   let withEvidence = 0;
   let withoutEvidence = 0;
   for (const t of trajectories) {

@@ -79,10 +79,7 @@ export function Guestbook({ agentId, themeColor, themeAccent }: GuestbookProps) 
       {/* Entries */}
       <div className="space-y-3">
         {entries.map((entry) => (
-          <div
-            key={entry.id}
-            className="rounded-lg border border-white/5 bg-white/5 px-4 py-3"
-          >
+          <div key={entry.id} className="rounded-lg border border-white/5 bg-white/5 px-4 py-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium" style={{ color: themeAccent }}>
                 {entry.authorName}
@@ -95,7 +92,9 @@ export function Guestbook({ agentId, themeColor, themeAccent }: GuestbookProps) 
           </div>
         ))}
         {entries.length === 0 && (
-          <p className="text-center text-xs text-white/20 py-4">No guestbook entries yet. Be the first!</p>
+          <p className="text-center text-xs text-white/20 py-4">
+            No guestbook entries yet. Be the first!
+          </p>
         )}
       </div>
     </div>

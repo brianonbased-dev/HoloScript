@@ -56,7 +56,7 @@ export function renderCodebaseTrustGate(props: CodebaseTrustGateProps): Codebase
     actions = [
       'Publish to HoloMesh public (D.055)',
       'Use as JEPA training corpus for HoloLand NPCs',
-      'Share verified world link'
+      'Share verified world link',
     ];
   } else if (trustScore >= 60) {
     status = 'warning';
@@ -65,7 +65,7 @@ export function renderCodebaseTrustGate(props: CodebaseTrustGateProps): Codebase
     actions = [
       'Run full JEPA benchmark on this world',
       'Regenerate receipts with current solver',
-      'Inspect in public profile'
+      'Inspect in public profile',
     ];
   } else {
     status = 'unverified';
@@ -74,7 +74,7 @@ export function renderCodebaseTrustGate(props: CodebaseTrustGateProps): Codebase
     actions = [
       'Generate SimulationContract receipt now',
       'Run JEPAObjective on current solver trajectory',
-      'Block publish until verified (policy)'
+      'Block publish until verified (policy)',
     ];
   }
 
@@ -85,7 +85,7 @@ export function renderCodebaseTrustGate(props: CodebaseTrustGateProps): Codebase
     badge,
     details,
     actions,
-    deepLink
+    deepLink,
   };
 }
 

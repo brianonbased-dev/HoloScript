@@ -224,7 +224,8 @@ export const holomeshTools: Tool[] = [
         },
         publisher_agent_id: {
           type: 'string',
-          description: 'Optional publishing agent identity. Defaults to the configured HoloMesh agent.',
+          description:
+            'Optional publishing agent identity. Defaults to the configured HoloMesh agent.',
         },
         endpoint: {
           type: 'object',
@@ -242,7 +243,8 @@ export const holomeshTools: Tool[] = [
         },
         capabilities: {
           type: 'object',
-          description: 'Optional provider Capabilities manifest; true fields become capability tags.',
+          description:
+            'Optional provider Capabilities manifest; true fields become capability tags.',
         },
       },
       required: ['tool_name'],
@@ -257,7 +259,8 @@ export const holomeshTools: Tool[] = [
       properties: {
         capability_query: {
           type: 'string',
-          description: 'Capability phrase or tag query used to select the best mesh-published tool.',
+          description:
+            'Capability phrase or tag query used to select the best mesh-published tool.',
         },
         mesh_tool_id: {
           type: 'string',
@@ -265,7 +268,8 @@ export const holomeshTools: Tool[] = [
         },
         tool_name: {
           type: 'string',
-          description: 'Optional exact published MCP tool name. Used when mesh_tool_id is not supplied.',
+          description:
+            'Optional exact published MCP tool name. Used when mesh_tool_id is not supplied.',
         },
         args: {
           type: 'object',
@@ -273,7 +277,8 @@ export const holomeshTools: Tool[] = [
         },
         provenance_chain: {
           type: 'array',
-          description: 'Existing provenance hops from an upstream mesh invocation; verified before appending.',
+          description:
+            'Existing provenance hops from an upstream mesh invocation; verified before appending.',
           items: { type: 'object' },
         },
         caller_agent_id: {
@@ -282,7 +287,8 @@ export const holomeshTools: Tool[] = [
         },
         dry_run: {
           type: 'boolean',
-          description: 'Return the selected route and attestation without invoking the target tool.',
+          description:
+            'Return the selected route and attestation without invoking the target tool.',
         },
         allow_high_risk: {
           type: 'boolean',
@@ -294,7 +300,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_publish_insight',
-    description: 'Publish a social insight (thought) into the spatial HoloMesh feed. The thought is converted into a physical HoloScript AST object that other agents can interact with. NEXT-GEN VISUALS: Append "@WoTThing" to spawn an IoT physical stream, "@TensorOp" for live SNN WebGPU rings, or "@ZKPrivate" for holographic cryptographic validation shields natively in the spatial viewer.',
+    description:
+      'Publish a social insight (thought) into the spatial HoloMesh feed. The thought is converted into a physical HoloScript AST object that other agents can interact with. NEXT-GEN VISUALS: Append "@WoTThing" to spawn an IoT physical stream, "@TensorOp" for live SNN WebGPU rings, or "@ZKPrivate" for holographic cryptographic validation shields natively in the spatial viewer.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -305,11 +312,13 @@ export const holomeshTools: Tool[] = [
         traits: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Traits to attach (e.g., ["@thought", "@economy", "@WoTThing", "@TensorOp", "@ZKPrivate"])',
+          description:
+            'Traits to attach (e.g., ["@thought", "@economy", "@WoTThing", "@TensorOp", "@ZKPrivate"])',
         },
         custom_hs_code: {
           type: 'string',
-          description: 'Optional overriden HoloScript code string for complex scene layouts or scripting behaviors (e.g. state/behavior blocks). Using this bypasses standard formatting.',
+          description:
+            'Optional overriden HoloScript code string for complex scene layouts or scripting behaviors (e.g. state/behavior blocks). Using this bypasses standard formatting.',
         },
       },
       required: ['content'],
@@ -333,11 +342,13 @@ export const holomeshTools: Tool[] = [
         },
         include_tools: {
           type: 'boolean',
-          description: 'Include mesh-published MCP tool nodes in the response. Enabled automatically when capability_query is set.',
+          description:
+            'Include mesh-published MCP tool nodes in the response. Enabled automatically when capability_query is set.',
         },
         capability_query: {
           type: 'string',
-          description: 'Capability query for mesh-published MCP tools, e.g. "render hologram" or "parse".',
+          description:
+            'Capability query for mesh-published MCP tools, e.g. "render hologram" or "parse".',
         },
         tool_limit: {
           type: 'number',
@@ -348,7 +359,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_contribute',
-    description: 'Contribute a Wisdom, Pattern, or Gotcha (W/P/G) knowledge entry to the HoloMesh network. Entries get provenance hashes and are discoverable by all agents.',
+    description:
+      'Contribute a Wisdom, Pattern, or Gotcha (W/P/G) knowledge entry to the HoloMesh network. Entries get provenance hashes and are discoverable by all agents.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -388,7 +400,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_query',
-    description: "Search the HoloMesh knowledge network. Performs semantic search across all agents' W/P/G entries. Returns entries with provenance and author info.",
+    description:
+      "Search the HoloMesh knowledge network. Performs semantic search across all agents' W/P/G entries. Returns entries with provenance and author info.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -415,7 +428,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_gossip',
-    description: 'Send a gossip message to a specific peer or broadcast to all mesh agents. Used for signals, queries, and lightweight coordination.',
+    description:
+      'Send a gossip message to a specific peer or broadcast to all mesh agents. Used for signals, queries, and lightweight coordination.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -438,7 +452,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_subscribe',
-    description: 'Subscribe to a knowledge topic on the mesh. Receive updates when new entries matching the topic are contributed.',
+    description:
+      'Subscribe to a knowledge topic on the mesh. Receive updates when new entries matching the topic are contributed.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -452,7 +467,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_status',
-    description: "Get the current agent's HoloMesh status including peers, reputation, contribution count, and budget.",
+    description:
+      "Get the current agent's HoloMesh status including peers, reputation, contribution count, and budget.",
     inputSchema: {
       type: 'object',
       properties: {},
@@ -460,7 +476,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_collect',
-    description: 'Collect (pay for) a premium knowledge entry from another agent. Uses the Publishing Protocol for micropayments.',
+    description:
+      'Collect (pay for) a premium knowledge entry from another agent. Uses the Publishing Protocol for micropayments.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -478,7 +495,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_gossip_sync',
-    description: 'V2 gossip round â€” exchange CRDT deltas with P2P peers. Selects random healthy peers, sends Loro CRDT binary deltas, and merges responses. Requires V2 to be enabled.',
+    description:
+      'V2 gossip round â€” exchange CRDT deltas with P2P peers. Selects random healthy peers, sends Loro CRDT binary deltas, and merges responses. Requires V2 to be enabled.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -491,7 +509,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_query_spatial',
-    description: 'Query the spatial location of agents and insights in the HoloMesh. Parses @position(x,y,z) from feed entries and returns entities within a Euclidean radius of a center point. Without a center, returns all entries with parsed positions.',
+    description:
+      'Query the spatial location of agents and insights in the HoloMesh. Parses @position(x,y,z) from feed entries and returns entities within a Euclidean radius of a center point. Without a center, returns all entries with parsed positions.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -512,7 +531,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_feed_source',
-    description: 'Get the raw HoloScript (.hs) document representing the entire spatial feed. This is the raw CRDT text document.',
+    description:
+      'Get the raw HoloScript (.hs) document representing the entire spatial feed. This is the raw CRDT text document.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -521,7 +541,8 @@ export const holomeshTools: Tool[] = [
   {
     name: 'holomesh_wallet_status',
     // OVERCLAIMED (ratchet P5 / D.051): no tier hierarchy enforcement — all seats get the same wallet surface regardless of tier. D.051 describes a per-surface seat identity hierarchy but no code differentiates tier-1/2/3 capabilities.
-    description: 'Get the agent wallet status: address, chain, USDC balance, payment history, and micro-payment ledger stats.',
+    description:
+      'Get the agent wallet status: address, chain, USDC balance, payment history, and micro-payment ledger stats.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -529,7 +550,8 @@ export const holomeshTools: Tool[] = [
   },
   {
     name: 'holomesh_crosspost_moltbook',
-    description: 'Cross-post a HoloMesh knowledge entry to Moltbook for broader agent discoverability. Only the entry author can cross-post. Requires MOLTBOOK_API_KEY in environment.',
+    description:
+      'Cross-post a HoloMesh knowledge entry to Moltbook for broader agent discoverability. Only the entry author can cross-post. Requires MOLTBOOK_API_KEY in environment.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -644,7 +666,8 @@ export async function handleHoloMeshTool(
       return handleLocalToolDiscovery(args);
     }
     return {
-      error: 'HOLOSCRIPT_API_KEY not configured. Set it as an environment variable to enable HoloMesh.',
+      error:
+        'HOLOSCRIPT_API_KEY not configured. Set it as an environment variable to enable HoloMesh.',
     };
   }
 
@@ -740,7 +763,9 @@ async function handlePublishTool(
       await client.registerAgent(['@knowledge-exchange', '@tool-publisher']);
     }
 
-    const manifest = publishMeshToolManifest(buildMeshToolManifest(args, resolvePublisher(client, args)));
+    const manifest = publishMeshToolManifest(
+      buildMeshToolManifest(args, resolvePublisher(client, args))
+    );
     let synced = 0;
     let remoteError: string | undefined;
 
@@ -773,7 +798,10 @@ async function remoteToolManifests(
   if (!client) return [];
   try {
     const search = typeof query === 'string' && query.trim() ? query : 'mesh tool manifest';
-    const entries = await client.queryKnowledge(search, { limit: Math.max(limit, 10), type: 'pattern' });
+    const entries = await client.queryKnowledge(search, {
+      limit: Math.max(limit, 10),
+      type: 'pattern',
+    });
     return entries
       .map((entry) => meshToolManifestFromKnowledgeContent(entry.content))
       .filter((manifest): manifest is MeshToolManifest => manifest !== null);
@@ -880,9 +908,10 @@ async function handleInvokeTool(
     const provenanceChain = [...priorChain, hop];
 
     return {
-      success: typeof result === 'object' && result !== null && 'success' in result
-        ? (result as { success?: boolean }).success
-        : true,
+      success:
+        typeof result === 'object' && result !== null && 'success' in result
+          ? (result as { success?: boolean }).success
+          : true,
       selectedTool: selected,
       candidates: candidates.map((tool) => ({
         id: tool.id,
@@ -1021,7 +1050,8 @@ async function handlePublishAgentTemplate(args: Record<string, unknown>) {
 
   const payload: PublishAgentTemplateArgs = parsed.data;
   const orchestratorUrl = process.env.MCP_ORCHESTRATOR_URL || 'http://localhost:4555';
-  const publishUrl = process.env.HOLOMESH_MARKETPLACE_PUBLISH_URL || `${orchestratorUrl}/api/marketplace/publish`;
+  const publishUrl =
+    process.env.HOLOMESH_MARKETPLACE_PUBLISH_URL || `${orchestratorUrl}/api/marketplace/publish`;
   const author = process.env.HOLOMESH_AGENT_NAME || 'holomesh-swarm';
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8' };
@@ -1308,7 +1338,7 @@ async function handleQuerySpatial(
     const lng = typeof args.lng === 'number' ? args.lng : undefined;
     const radius = typeof args.radius === 'number' ? args.radius : undefined;
 
-    const center = (lat !== undefined && lng !== undefined) ? { lat, lng } : undefined;
+    const center = lat !== undefined && lng !== undefined ? { lat, lng } : undefined;
     const entries = worldState.querySpatialEntries({ center, radius });
 
     return {

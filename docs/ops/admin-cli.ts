@@ -81,7 +81,9 @@ export function renderDashboard(
   const lines: string[] = [
     ANSI.bold + ' HoloScript ops dashboard (P.008.05) ' + ANSI.reset,
     ANSI.dim + bar + ANSI.reset,
-    line(` Overall: ${colorOverall(status.status)}   Replicas: ${status.replicaCount}   Uptime: ${Math.floor(status.uptimeSeconds)}s `),
+    line(
+      ` Overall: ${colorOverall(status.status)}   Replicas: ${status.replicaCount}   Uptime: ${Math.floor(status.uptimeSeconds)}s `
+    ),
     line(` Snapshot: ${status.timestamp} `),
     line(` Anomalies (active): ${status.anomaly.activeAnomalies} `),
     line(
@@ -208,7 +210,8 @@ function parseArgs(argv: string[]) {
   let mock = false;
   for (const a of argv) {
     if (a.startsWith('--url=')) base = a.slice(6);
-    else if (a.startsWith('--interval=')) intervalMs = Math.max(1000, parseInt(a.slice(11), 10) || 5000);
+    else if (a.startsWith('--interval='))
+      intervalMs = Math.max(1000, parseInt(a.slice(11), 10) || 5000);
     else if (a === '--once') once = true;
     else if (a === '--mock') mock = true;
   }

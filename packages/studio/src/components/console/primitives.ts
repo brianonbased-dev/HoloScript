@@ -6,13 +6,7 @@ import { tokens, tapTargetStyle } from './tokens';
 /**
  * The five human-facing interaction primitives. No command/file primitive exists.
  */
-export const interactions = [
-  'tap',
-  'swipe',
-  'click',
-  'talk',
-  'type-conversational',
-] as const;
+export const interactions = ['tap', 'swipe', 'click', 'talk', 'type-conversational'] as const;
 
 export type Interaction = (typeof interactions)[number];
 

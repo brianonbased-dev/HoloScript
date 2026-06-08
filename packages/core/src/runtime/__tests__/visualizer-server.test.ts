@@ -13,7 +13,9 @@ function makeClient(open: boolean) {
 vi.mock('ws', () => {
   return {
     WebSocket: { OPEN: 1 },
-    WebSocketServer: vi.fn(function (this: unknown) { return this; }),
+    WebSocketServer: vi.fn(function (this: unknown) {
+      return this;
+    }),
   };
 });
 
@@ -46,7 +48,9 @@ describe('broadcast', () => {
     const client = makeClient(true);
     const wss = makeWss([client]);
     broadcast(wss, 'myEvent', { x: 1 });
-    expect(client.send).toHaveBeenCalledWith(JSON.stringify({ type: 'myEvent', payload: { x: 1 } }));
+    expect(client.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: 'myEvent', payload: { x: 1 } })
+    );
   });
 
   it('skips non-OPEN clients', () => {

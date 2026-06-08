@@ -63,7 +63,10 @@ class MetricAdapter {
         Array.from(this.histograms.entries()).map(([name, vals]) => {
           const count = vals.length;
           const sum = vals.reduce((a, b) => a + b, 0);
-          return [name, { count, sum, avg: count ? sum / count : 0, max: count ? Math.max(...vals) : 0 }];
+          return [
+            name,
+            { count, sum, avg: count ? sum / count : 0, max: count ? Math.max(...vals) : 0 },
+          ];
         })
       ),
       labels: Object.fromEntries(this.labels),
@@ -166,7 +169,11 @@ export const traceHandler: TraitHandler<TraceConfig> = {
   },
   onAttach(node: HSPlusNode, config: TraceConfig, context: TraitContext) {
     node.__traceState = { config, spans: [] };
-    context.emit?.('trace_attached', { nodeId: node.id, service: config.service, sampler: config.sampler });
+    context.emit?.('trace_attached', {
+      nodeId: node.id,
+      service: config.service,
+      sampler: config.sampler,
+    });
   },
   onDetach(node: HSPlusNode, _config: TraceConfig, context: TraitContext) {
     const state = node.__traceState as TraceState | undefined;

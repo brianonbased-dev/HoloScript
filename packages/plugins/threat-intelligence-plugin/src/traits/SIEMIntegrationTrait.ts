@@ -23,7 +23,12 @@ export const siemIntegrationHandler: TraitHandler<SIEMIntegrationConfig> = {
       indexName: config.indexName,
     });
   },
-  onEvent(node: HSPlusNode, config: SIEMIntegrationConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: SIEMIntegrationConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     if (event.type === 'siem_integration:push') {
       ctx.emit?.('siem_integration:pushed', {
         nodeId: node.id,

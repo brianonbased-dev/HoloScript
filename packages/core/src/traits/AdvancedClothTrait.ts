@@ -294,7 +294,11 @@ export class AdvancedClothSystem {
   /**
    * Apply an impulse force at a world position (radius falloff)
    */
-  applyImpulse(position: Vec3 | [number, number, number], force: Vec3 | [number, number, number], radius: number): void {
+  applyImpulse(
+    position: Vec3 | [number, number, number],
+    force: Vec3 | [number, number, number],
+    radius: number
+  ): void {
     for (const particle of this.particles.values()) {
       if (!particle.active || particle.inverseMass === 0) continue;
 
@@ -343,7 +347,11 @@ export class AdvancedClothSystem {
    * Update wind force
    */
   setWind(wind: Vec3 | [number, number, number]): void {
-    this.config.wind = syncVec([vecComponent(wind, 0), vecComponent(wind, 1), vecComponent(wind, 2)]);
+    this.config.wind = syncVec([
+      vecComponent(wind, 0),
+      vecComponent(wind, 1),
+      vecComponent(wind, 2),
+    ]);
   }
 
   /**

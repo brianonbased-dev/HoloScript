@@ -433,9 +433,7 @@ export async function createHologram(
  * If the worker is not configured or reachable, the provider fails loudly with
  * CreateHologramError('missing_provider'); there is no synthetic fallback.
  */
-export function createNodeProviders(
-  options: CreateNodeProvidersOptions = {}
-): HologramProviders {
+export function createNodeProviders(options: CreateNodeProvidersOptions = {}): HologramProviders {
   return {
     depth: {
       async infer(media, sourceKind) {

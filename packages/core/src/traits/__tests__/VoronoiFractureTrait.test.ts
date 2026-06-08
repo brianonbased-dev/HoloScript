@@ -33,7 +33,7 @@ describe('VoronoiFractureTrait', () => {
 
     it('validates bounds configuration', () => {
       const system = new VoronoiFractureSystem({
-        bounds: { min: [0, 0, 0 ], max: [10, 10, 10 ] },
+        bounds: { min: [0, 0, 0], max: [10, 10, 10] },
       });
       const config = system.getConfig();
 
@@ -71,7 +71,7 @@ describe('VoronoiFractureTrait', () => {
     it('builds neighbor graph', () => {
       const system = new VoronoiFractureSystem({
         voronoiSites: 10,
-        bounds: { min: [-0.5, -0.5, -0.5 ], max: [0.5, 0.5, 0.5 ] },
+        bounds: { min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, 0.5] },
       });
       system.generateVoronoiFracture();
       const fragments = system.getFragments();
@@ -93,7 +93,7 @@ describe('VoronoiFractureTrait', () => {
     it('positions fragments within bounds', () => {
       const system = new VoronoiFractureSystem({
         voronoiSites: 10,
-        bounds: { min: [0, 0, 0 ], max: [5, 5, 5 ] },
+        bounds: { min: [0, 0, 0], max: [5, 5, 5] },
       });
       system.generateVoronoiFracture();
       const fragments = system.getFragments();
@@ -158,7 +158,7 @@ describe('VoronoiFractureTrait', () => {
       const system = new VoronoiFractureSystem({ voronoiSites: 10 });
       system.generateVoronoiFracture();
 
-      const damagePoint = [0, 0, 0 ];
+      const damagePoint = [0, 0, 0];
       system.applyDamage({
         position: damagePoint,
         radius: 2.0,
@@ -381,7 +381,7 @@ describe('VoronoiFractureTrait', () => {
     it('assigns LOD levels based on camera distance', () => {
       const system = new VoronoiFractureSystem({ voronoiSites: 10, enableLOD: true });
       system.generateVoronoiFracture();
-      system.setCameraPosition([0, 0, 0 ]);
+      system.setCameraPosition([0, 0, 0]);
       system.updateLOD();
 
       const fragments = system.getFragments();
@@ -393,7 +393,7 @@ describe('VoronoiFractureTrait', () => {
     it('assigns LOD 0 to closest fragments', () => {
       const system = new VoronoiFractureSystem({ voronoiSites: 10, enableLOD: true });
       system.generateVoronoiFracture();
-      const cameraPos = [0, 0, 0 ];
+      const cameraPos = [0, 0, 0];
       system.setCameraPosition(cameraPos);
       system.updateLOD();
 
@@ -424,7 +424,7 @@ describe('VoronoiFractureTrait', () => {
         lodDistances: [2, 5, 10],
       });
       system.generateVoronoiFracture();
-      system.setCameraPosition([100, 100, 100 ]);
+      system.setCameraPosition([100, 100, 100]);
       system.updateLOD();
 
       const fragments = system.getFragments();
@@ -437,7 +437,7 @@ describe('VoronoiFractureTrait', () => {
     it('can disable LOD system', () => {
       const system = new VoronoiFractureSystem({ voronoiSites: 10, enableLOD: false });
       system.generateVoronoiFracture();
-      system.setCameraPosition([0, 0, 0 ]);
+      system.setCameraPosition([0, 0, 0]);
       system.updateLOD();
 
       const fragments = system.getFragments();
@@ -451,11 +451,11 @@ describe('VoronoiFractureTrait', () => {
       const system = new VoronoiFractureSystem({ voronoiSites: 10, enableLOD: true });
       system.generateVoronoiFracture();
 
-      system.setCameraPosition([0, 0, 0 ]);
+      system.setCameraPosition([0, 0, 0]);
       system.updateLOD();
       const lod1 = system.getFragments().map((f) => f.lodLevel);
 
-      system.setCameraPosition([100, 100, 100 ]);
+      system.setCameraPosition([100, 100, 100]);
       system.updateLOD();
       const lod2 = system.getFragments().map((f) => f.lodLevel);
 
@@ -518,7 +518,7 @@ describe('VoronoiFractureTrait', () => {
     it('gets fragments by LOD level', () => {
       const system = new VoronoiFractureSystem({ voronoiSites: 10, enableLOD: true });
       system.generateVoronoiFracture();
-      system.setCameraPosition([0, 0, 0 ]);
+      system.setCameraPosition([0, 0, 0]);
       system.updateLOD();
 
       const lod0 = system.getFragmentsByLOD(0);

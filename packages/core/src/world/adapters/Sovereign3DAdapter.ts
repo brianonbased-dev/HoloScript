@@ -93,7 +93,7 @@ const DEFAULT_API_KEY =
   (typeof process !== 'undefined' && process.env.HOLOSCRIPT_SOVEREIGN_API_KEY) || '';
 
 const DEFAULT_TIMEOUT_MS =
-  (typeof process !== 'undefined' && process.env.HOLOSCRIPT_SOVEREIGN_TIMEOUT_MS)
+  typeof process !== 'undefined' && process.env.HOLOSCRIPT_SOVEREIGN_TIMEOUT_MS
     ? parseInt(process.env.HOLOSCRIPT_SOVEREIGN_TIMEOUT_MS, 10)
     : 300_000;
 
@@ -194,9 +194,7 @@ export class Sovereign3DAdapter implements WorldGeneratorAdapter {
       await this.sleep(this.pollIntervalMs);
     }
 
-    throw new Error(
-      `[Sovereign3DAdapter] Job ${jobId} timed out after ${this.timeoutMs}ms`
-    );
+    throw new Error(`[Sovereign3DAdapter] Job ${jobId} timed out after ${this.timeoutMs}ms`);
   }
 
   private async fetchJob(jobId: string): Promise<SovereignJobResponse> {
@@ -205,19 +203,24 @@ export class Sovereign3DAdapter implements WorldGeneratorAdapter {
 
   private mapResult(job: SovereignJobResponse): WorldGenerationResult {
     if (!job.asset_url) {
-      throw new Error(
-        `[Sovereign3DAdapter] Job ${job.job_id} completed but returned no asset_url`
-      );
+      throw new Error(`[Sovereign3DAdapter] Job ${job.job_id} completed but returned no asset_url`);
     }
 
     const rawMeta = job.metadata ?? {};
-    const bounds = (rawMeta.bounds as [number, number, number, number, number, number] | undefined) ??
-      [-10, 0, -10, 10, 5, 10];
+    const bounds = (rawMeta.bounds as
+      | [number, number, number, number, number, number]
+      | undefined) ?? [-10, 0, -10, 10, 5, 10];
 
     const metadata: WorldMetadata = {
-      format: job.asset_url.endsWith('.glb') ? 'mesh' : job.asset_url.includes('neural') ? 'neural_field' : '3dgs',
+      format: job.asset_url.endsWith('.glb')
+        ? 'mesh'
+        : job.asset_url.includes('neural')
+          ? 'neural_field'
+          : '3dgs',
       bounds,
-      ...(rawMeta.agent_start ? { agentStart: rawMeta.agent_start as [number, number, number] } : {}),
+      ...(rawMeta.agent_start
+        ? { agentStart: rawMeta.agent_start as [number, number, number] }
+        : {}),
       ...(rawMeta.waypoints ? { waypoints: rawMeta.waypoints as [number, number, number][] } : {}),
       ...(rawMeta.splat_count ? { splatCount: rawMeta.splat_count as number } : {}),
       ...(rawMeta.triangle_count ? { triangleCount: rawMeta.triangle_count as number } : {}),
@@ -240,7 +243,10 @@ export class Sovereign3DAdapter implements WorldGeneratorAdapter {
       ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}),
     };
 
-    const res = await fetch(url, { ...init, headers: { ...headers, ...(init.headers as Record<string, string> ?? {}) } });
+    const res = await fetch(url, {
+      ...init,
+      headers: { ...headers, ...((init.headers as Record<string, string>) ?? {}) },
+    });
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');

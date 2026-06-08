@@ -81,9 +81,7 @@ export interface MeasurementResult {
 export function distance3D(a: Vec3, b: Vec3): number {
   const [ax, ay, az] = toTuple(a);
   const [bx, by, bz] = toTuple(b);
-  return Math.sqrt(
-    (ax - bx) ** 2 + (ay - by) ** 2 + (az - bz) ** 2
-  );
+  return Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2 + (az - bz) ** 2);
 }
 
 export function createMeasurement(from: Vec3, to: Vec3, label: string): MeasurementResult {

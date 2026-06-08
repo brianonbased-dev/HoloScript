@@ -130,7 +130,12 @@ export const astAssetLicenseSchema = z
      */
     expiresAt: z.number().int().min(0).default(0),
     /** Subscription period in seconds. Only used when `kind === 'subscription'`. */
-    subscriptionPeriodSec: z.number().int().min(0).max(60 * 60 * 24 * 366).default(0),
+    subscriptionPeriodSec: z
+      .number()
+      .int()
+      .min(0)
+      .max(60 * 60 * 24 * 366)
+      .default(0),
     /** Whether derivatives may be redistributed. Defaults from `kind`. */
     derivativesAllowed: z.boolean().default(false),
     /** Whether attribution is required when derivatives are allowed. */
@@ -210,9 +215,7 @@ export function hashASTSource(source: string): string {
 }
 
 /** Deterministic JSON for signing/verifying manifests. Keys sorted recursively. */
-export function canonicalManifestBytes(
-  m: Omit<ASTAssetManifest, 'signature'>
-): string {
+export function canonicalManifestBytes(m: Omit<ASTAssetManifest, 'signature'>): string {
   return canonicalJSONStringify({
     assetId: m.assetId,
     contentHash: m.contentHash,
@@ -270,7 +273,8 @@ export function extractASTLicense(root: HSPlusNode): ExtractedLicense | null {
   const stack: HSPlusNode[] = [root];
   while (stack.length > 0) {
     const node = stack.pop()!;
-    const directives = ((node as unknown as Record<string, unknown>).directives ?? []) as HSPlusLikeDirective[];
+    const directives = ((node as unknown as Record<string, unknown>).directives ??
+      []) as HSPlusLikeDirective[];
 
     for (const d of directives) {
       // 1. @license(...) — generic-trait fallback shape
@@ -283,7 +287,10 @@ export function extractASTLicense(root: HSPlusNode): ExtractedLicense | null {
       if (d.type === 'asset') {
         const license = (d as Record<string, unknown>).license;
         if (license && typeof license === 'object') {
-          return { raw: { ...(license as Record<string, unknown>) }, source: 'asset-license-field' };
+          return {
+            raw: { ...(license as Record<string, unknown>) },
+            source: 'asset-license-field',
+          };
         }
       }
 
@@ -630,9 +637,7 @@ export class ASTLicenseGate {
    * licenses get a 24-hour grant (the on-chain receipt is the durable
    * record).
    */
-  async submitPayment(
-    payment: X402PaymentPayload | string
-  ): Promise<AccessAttemptResult> {
+  async submitPayment(payment: X402PaymentPayload | string): Promise<AccessAttemptResult> {
     if (this.license.priceUSDC <= 0) {
       return { granted: true, mode: 'free' };
     }
@@ -646,9 +651,7 @@ export class ASTLicenseGate {
       );
     } else {
       const decoded =
-        typeof payment === 'string'
-          ? X402Facilitator.decodeXPaymentHeader(payment)
-          : payment;
+        typeof payment === 'string' ? X402Facilitator.decodeXPaymentHeader(payment) : payment;
       if (!decoded) {
         return this.attemptAccess();
       }

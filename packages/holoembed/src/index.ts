@@ -45,12 +45,13 @@
 
 export { HoloEmbedEncoder } from './HoloEmbedEncoder.js';
 export { SnnAccelerator, encodeLifPopulationCpu } from './SnnAccelerator.js';
-export { camelSplit, trigramHistogram, hashString, spreadHash, l2Normalize } from './charTrigram.js';
+export {
+  camelSplit,
+  trigramHistogram,
+  hashString,
+  spreadHash,
+  l2Normalize,
+} from './charTrigram.js';
 export type { SymbolInput, GraphEnrichment, EncoderOptions } from './types.js';
 export type { LIFPopulationParams, LIFPopulationCpuOptions } from './SnnAccelerator.js';
-export {
-  HOLOEMBED_DIM,
-  STRUCTURAL_DIM,
-  SUBWORD_BINS,
-  SUBWORD_BLOCKS,
-} from './types.js';
+export { HOLOEMBED_DIM, STRUCTURAL_DIM, SUBWORD_BINS, SUBWORD_BLOCKS } from './types.js';

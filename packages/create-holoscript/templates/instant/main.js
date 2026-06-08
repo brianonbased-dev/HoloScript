@@ -81,12 +81,7 @@ async function main() {
   const threeScene = new THREE.Scene();
   threeScene.background = new THREE.Color('#0a0a1a');
 
-  const camera = new THREE.PerspectiveCamera(
-    60,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 1.6, 3);
 
   const controls = new OrbitControls(camera, renderer.domElement);

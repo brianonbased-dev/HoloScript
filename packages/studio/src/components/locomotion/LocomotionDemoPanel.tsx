@@ -60,12 +60,7 @@ export interface LocomotionDemoPanelProps {
 // ─── SVG helpers ─────────────────────────────────────────────────────────────
 
 /** Map world XZ → SVG XY within a [0, size] × [0, size] square. */
-function worldToSVG(
-  wx: number,
-  wz: number,
-  worldRadius: number,
-  size: number,
-): [number, number] {
+function worldToSVG(wx: number, wz: number, worldRadius: number, size: number): [number, number] {
   const half = size / 2;
   const sx = half + (wx / worldRadius) * half;
   const sy = half + (wz / worldRadius) * half; // z maps to y (top-down)
@@ -75,20 +70,18 @@ function worldToSVG(
 function trajectoryToPolyline(
   trajectory: Array<[number, number, number]>,
   worldRadius: number,
-  size: number,
+  size: number
 ): string {
-  return trajectory
-    .map(([x, , z]) => worldToSVG(x, z, worldRadius, size).join(','))
-    .join(' ');
+  return trajectory.map(([x, , z]) => worldToSVG(x, z, worldRadius, size).join(',')).join(' ');
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const SVG_SIZE = 220;
-const AGENT_COLOR = '#60a5fa';   // blue-400
-const TARGET_COLOR = '#fb923c';  // orange-400
-const TRAJ_NEAR = '#a78bfa';     // violet-400
-const TRAJ_FAR = '#312e81';      // indigo-900
+const AGENT_COLOR = '#60a5fa'; // blue-400
+const TARGET_COLOR = '#fb923c'; // orange-400
+const TRAJ_NEAR = '#a78bfa'; // violet-400
+const TRAJ_FAR = '#312e81'; // indigo-900
 
 export function LocomotionDemoPanel({
   nodeId = 'demo-capsule',
@@ -106,7 +99,7 @@ export function LocomotionDemoPanel({
     nodeId,
     'neural_animation',
     (s) => s.locomotion as LocomotionState,
-    {},
+    {}
   );
 
   const trajectory = locomotion?.trajectory ?? [];
@@ -126,9 +119,12 @@ export function LocomotionDemoPanel({
       const scale = SVG_SIZE / rect.width;
       const x = ((sx * scale - half) / half) * worldRadius;
       const z = ((sy * scale - half) / half) * worldRadius;
-      return { x: Math.max(-worldRadius, Math.min(worldRadius, x)), z: Math.max(-worldRadius, Math.min(worldRadius, z)) };
+      return {
+        x: Math.max(-worldRadius, Math.min(worldRadius, x)),
+        z: Math.max(-worldRadius, Math.min(worldRadius, z)),
+      };
     },
-    [worldRadius],
+    [worldRadius]
   );
 
   const handlePointerDown = useCallback((e: React.PointerEvent<SVGCircleElement>) => {
@@ -144,7 +140,7 @@ export function LocomotionDemoPanel({
       setTarget(pos);
       onTargetChange?.(pos);
     },
-    [svgToWorld, onTargetChange],
+    [svgToWorld, onTargetChange]
   );
 
   const handlePointerUp = useCallback(() => {
@@ -218,8 +214,22 @@ export function LocomotionDemoPanel({
           onPointerLeave={handlePointerUp}
         >
           {/* Grid */}
-          <line x1={SVG_SIZE / 2} y1={0} x2={SVG_SIZE / 2} y2={SVG_SIZE} stroke="#1e293b" strokeWidth={1} />
-          <line x1={0} y1={SVG_SIZE / 2} x2={SVG_SIZE} y2={SVG_SIZE / 2} stroke="#1e293b" strokeWidth={1} />
+          <line
+            x1={SVG_SIZE / 2}
+            y1={0}
+            x2={SVG_SIZE / 2}
+            y2={SVG_SIZE}
+            stroke="#1e293b"
+            strokeWidth={1}
+          />
+          <line
+            x1={0}
+            y1={SVG_SIZE / 2}
+            x2={SVG_SIZE}
+            y2={SVG_SIZE / 2}
+            stroke="#1e293b"
+            strokeWidth={1}
+          />
 
           {/* Trajectory polyline */}
           {hasTrajectory && (
@@ -246,11 +256,12 @@ export function LocomotionDemoPanel({
                 strokeLinejoin="round"
               />
               {/* Endpoint dot */}
-              {trajectory.length > 0 && (() => {
-                const last = trajectory[trajectory.length - 1];
-                const [lx, ly] = worldToSVG(last[0], last[2], worldRadius, SVG_SIZE);
-                return <circle cx={lx} cy={ly} r={3} fill={TRAJ_NEAR} opacity={0.7} />;
-              })()}
+              {trajectory.length > 0 &&
+                (() => {
+                  const last = trajectory[trajectory.length - 1];
+                  const [lx, ly] = worldToSVG(last[0], last[2], worldRadius, SVG_SIZE);
+                  return <circle cx={lx} cy={ly} r={3} fill={TRAJ_NEAR} opacity={0.7} />;
+                })()}
             </>
           )}
 
@@ -308,7 +319,11 @@ export function LocomotionDemoPanel({
         >
           <Stat label="gait" value={gait} testId="locomotion-gait" />
           <Stat label="speed" value={`${speed.toFixed(1)} m/s`} testId="locomotion-speed" />
-          <Stat label="confidence" value={`${Math.round(confidence * 100)}%`} testId="locomotion-confidence" />
+          <Stat
+            label="confidence"
+            value={`${Math.round(confidence * 100)}%`}
+            testId="locomotion-confidence"
+          />
         </div>
 
         {/* Target position readout */}
@@ -323,15 +338,7 @@ export function LocomotionDemoPanel({
   );
 }
 
-function Stat({
-  label,
-  value,
-  testId,
-}: {
-  label: string;
-  value: string;
-  testId?: string;
-}) {
+function Stat({ label, value, testId }: { label: string; value: string; testId?: string }) {
   return (
     <div
       data-testid={testId}

@@ -5,6 +5,7 @@
 **Status**: Phase 1 (internal scope) **DONE**. Phase 2 (cross-engine) handed off below.
 **Source TODO**: `scripts/build/deploy-multi-agents.ts` agent-2-benchmarks (CRITICAL, 6h estimate)
 **Original deliverable list**:
+
 - Unity WebGL vs native WASM performance comparison — **deferred to Phase 2**
 - Bevy + WASM vs Godot 4 benchmarks — **deferred to Phase 2**
 - Public benchmark report (GitHub repo) — **this file + `.bench-logs/`**
@@ -14,15 +15,16 @@
 
 Three new benchmarks landed today, all reproducible, all ship JSON results:
 
-| Suite | Harness | Result |
-|---|---|---|
-| Native Rust parser | `packages/compiler-wasm/src/bin/parser_bench.rs` | small 44.8 µs / medium 564.9 µs / large 822.2 µs (median) |
+| Suite              | Harness                                              | Result                                                                           |
+| ------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Native Rust parser | `packages/compiler-wasm/src/bin/parser_bench.rs`     | small 44.8 µs / medium 564.9 µs / large 822.2 µs (median)                        |
 | WASM parser (Node) | `packages/benchmark/src/suites/wasm-vs-js.bench.mjs` | small 84.0 µs / medium 1078.2 µs / large 1701.5 µs (median, with `wasm-opt -O3`) |
-| JS parser (Node) | same harness | small 37.5 µs / medium 689.5 µs / large 1128.2 µs (median) |
+| JS parser (Node)   | same harness                                         | small 37.5 µs / medium 689.5 µs / large 1128.2 µs (median)                       |
 
 **Headline finding**: the JS parser (`HoloScriptPlusParser` in `@holoscript/core`) is **~1.5–2.2x faster** than the unoptimized WASM parser, and **~1.5–2.2x faster** than the WASM parser even after `wasm-opt -O3`. The README claim that the WASM parser provides "10x faster parsing compared to the JavaScript implementation" (`packages/compiler-wasm/src/lib.rs:4`) is **falsified at the canonical fixture sizes (32/78/142 lines)**.
 
 This does **not** mean the WASM parser is broken. It means:
+
 1. The two parsers are independent algorithms — not a Rust port of the JS parser. They have different work profiles.
 2. WASM has fixed per-call overhead (string marshalling JS↔linear memory) that dominates at small inputs.
 3. The JS parser benefits from V8's deeply-tuned JIT for short-lived allocations and string ops.
@@ -37,7 +39,7 @@ The WASM parser is still useful for browser environments where Node-class V8 isn
 - A working Unity 2023+ install with WebGL build pipeline (~3 hours setup).
 - A Bevy 0.13+ project with the same scene as Unity (~4 hours).
 - A Godot 4.2+ project with HTML5 export (~3 hours).
-- A *common workload* that all three engines can run identically (~6 hours of design — what counts as "1K entities at 60 fps" for a parser benchmark? Apples-to-apples is the hard part).
+- A _common workload_ that all three engines can run identically (~6 hours of design — what counts as "1K entities at 60 fps" for a parser benchmark? Apples-to-apples is the hard part).
 - A controlled WebGL host, not a developer machine with random browser tabs (~2 hours).
 
 **That is not a one-session task.** It also spends most of its hours on engine harness work, not on what the HoloScript program actually needs to know. What HoloScript actually needs to know is:
@@ -56,7 +58,7 @@ Phase 1 (this memo) answers those three. Phase 2 (handoff below) answers the cro
 - **RAM**: 32 GB
 - **OS**: Windows 11
 - **Node.js**: v22.20.0
-- **Rust**: stable, native release profile (`opt-level=3` for the bench binary, *not* the `opt-level="z"` workspace profile used for WASM)
+- **Rust**: stable, native release profile (`opt-level=3` for the bench binary, _not_ the `opt-level="z"` workspace profile used for WASM)
 - **wasm-pack**: installed via `cargo install wasm-pack` in this session
 - **wasm-opt**: 119 (bundled with wasm-pack), invoked separately with `-O3 --enable-bulk-memory --enable-nontrapping-float-to-int` because the workspace `[package.metadata.wasm-pack.profile.release]` setting (`-Oz --enable-bulk-memory`) failed validation on `i32.trunc_sat_f64_s` opcodes emitted by the Rust serializer
 
@@ -64,11 +66,11 @@ Phase 1 (this memo) answers those three. Phase 2 (handoff below) answers the cro
 
 The benchmarks use the existing `.hsplus` fixtures shared with the existing `parser.bench.ts` / `compiler.bench.ts` suites:
 
-| Fixture | Lines | Bytes |
-|---|---|---|
-| `small.hsplus` | 32 | 434 |
-| `medium.hsplus` | 78 | 5,297 |
-| `large.hsplus` | 142 | 8,279 |
+| Fixture         | Lines | Bytes |
+| --------------- | ----- | ----- |
+| `small.hsplus`  | 32    | 434   |
+| `medium.hsplus` | 78    | 5,297 |
+| `large.hsplus`  | 142   | 8,279 |
 
 These are the canonical inputs already cited in `packages/benchmark/src/suites/parser.bench.ts`, so the new numbers slot directly into the existing benchmark canon.
 
@@ -128,21 +130,21 @@ parse-large (142 lines)   median  1128.20 us   p99  4840.90 us       886 ops/s
 
 ### Speedup table (medians)
 
-| Fixture | Native Rust vs JS | WASM (unopt) vs JS | WASM (opt) vs JS |
-|---|---|---|---|
-| small | 1.39x faster | 0.66x (JS faster) | 0.74x (JS faster) |
-| medium | 1.22x faster | 0.67x (JS faster) | 0.64x (JS faster) |
-| large | 1.37x faster | 0.64x (JS faster) | 0.66x (JS faster) |
+| Fixture | Native Rust vs JS | WASM (unopt) vs JS | WASM (opt) vs JS  |
+| ------- | ----------------- | ------------------ | ----------------- |
+| small   | 1.39x faster      | 0.66x (JS faster)  | 0.74x (JS faster) |
+| medium  | 1.22x faster      | 0.67x (JS faster)  | 0.64x (JS faster) |
+| large   | 1.37x faster      | 0.64x (JS faster)  | 0.66x (JS faster) |
 
 ## What changed in the code
 
-| File | Change | Why |
-|---|---|---|
-| `packages/compiler-wasm/src/lib.rs` | Added `__bench_parse(source) -> Result<(), usize>` behind `#[cfg(not(target_arch = "wasm32"))]` and `#[doc(hidden)]` | Lets the bench binary call the parser from native Rust without going through wasm-bindgen marshalling |
-| `packages/compiler-wasm/src/bin/parser_bench.rs` | New native bench binary using only `std::time::Instant` (no criterion dep) | Measures the upper-bound parser speed; emits JSON to stdout matching the existing `AllResults` schema |
-| `packages/benchmark/src/suites/wasm-vs-js.bench.mjs` | New ESM script comparing JS and WASM parsers head-to-head, with skip-on-missing semantics | Generates the apples-to-apples comparison data; fails gracefully if WASM isn't built |
-| `packages/compiler-wasm/pkg-node/` | Generated by `wasm-pack build --target nodejs --out-dir pkg-node --release` | Required artifacts for the bench script; gitignored (build output) |
-| `.bench-logs/todo-r2-*-2026-04-19.{json,log}` | New result snapshots | Variance snapshots per the canon protocol — not promoted to canon yet (see Promotion Decision below) |
+| File                                                 | Change                                                                                                               | Why                                                                                                   |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `packages/compiler-wasm/src/lib.rs`                  | Added `__bench_parse(source) -> Result<(), usize>` behind `#[cfg(not(target_arch = "wasm32"))]` and `#[doc(hidden)]` | Lets the bench binary call the parser from native Rust without going through wasm-bindgen marshalling |
+| `packages/compiler-wasm/src/bin/parser_bench.rs`     | New native bench binary using only `std::time::Instant` (no criterion dep)                                           | Measures the upper-bound parser speed; emits JSON to stdout matching the existing `AllResults` schema |
+| `packages/benchmark/src/suites/wasm-vs-js.bench.mjs` | New ESM script comparing JS and WASM parsers head-to-head, with skip-on-missing semantics                            | Generates the apples-to-apples comparison data; fails gracefully if WASM isn't built                  |
+| `packages/compiler-wasm/pkg-node/`                   | Generated by `wasm-pack build --target nodejs --out-dir pkg-node --release`                                          | Required artifacts for the bench script; gitignored (build output)                                    |
+| `.bench-logs/todo-r2-*-2026-04-19.{json,log}`        | New result snapshots                                                                                                 | Variance snapshots per the canon protocol — not promoted to canon yet (see Promotion Decision below)  |
 
 No existing tests modified. No existing benchmarks changed. Backwards compatible.
 

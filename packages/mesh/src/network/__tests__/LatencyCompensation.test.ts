@@ -98,9 +98,7 @@ describe('IntentPredictor', () => {
   });
 
   it('should return null with insufficient trajectory', () => {
-    predictor.setInteractables([
-      { id: 'x', position: [5, 0, 0], radius: 1, type: 'pickup' },
-    ]);
+    predictor.setInteractables([{ id: 'x', position: [5, 0, 0], radius: 1, type: 'pickup' }]);
     const result = predictor.predictIntent(ZERO_VEC3, { x: 1, y: 0, z: 0 });
     expect(result).toBeNull(); // < 5 trajectory records
   });
@@ -133,9 +131,7 @@ describe('IntentPredictor', () => {
   it('should clear trajectory history', () => {
     for (let i = 0; i < 10; i++) predictor.recordPosition({ x: i, y: 0, z: 0 }, i * 100);
     predictor.clear();
-    predictor.setInteractables([
-      { id: 'x', position: [5, 0, 0], radius: 1, type: 'generic' },
-    ]);
+    predictor.setInteractables([{ id: 'x', position: [5, 0, 0], radius: 1, type: 'generic' }]);
     const result = predictor.predictIntent({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
     expect(result).toBeNull(); // cleared
   });

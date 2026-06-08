@@ -45,7 +45,9 @@ const DEFAULT_CONFIG: Required<Omit<WalkableTraitConfig, 'point_cloud_uri'>> = {
   normal_floor_threshold: 0.85,
 };
 
-export function resolveWalkableConfig(config: WalkableTraitConfig = {}): Required<WalkableTraitConfig> {
+export function resolveWalkableConfig(
+  config: WalkableTraitConfig = {}
+): Required<WalkableTraitConfig> {
   return {
     point_cloud_uri: config.point_cloud_uri ?? '',
     ...DEFAULT_CONFIG,

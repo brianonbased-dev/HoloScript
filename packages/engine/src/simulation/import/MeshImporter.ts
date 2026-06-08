@@ -56,7 +56,15 @@ export function detectFormat(source: string | ArrayBuffer): MeshFormat {
     // Content heuristic for strings that happen to be raw file content
     if (lower.includes('$meshformat')) return 'msh';
     if (lower.includes('solid ') || lower.includes('endsolid')) return 'stl';
-    if (lower.startsWith('v ') || lower.startsWith('f ') || lower.startsWith('vn ') || lower.startsWith('vt ') || lower.startsWith('o ') || lower.startsWith('g ')) return 'obj';
+    if (
+      lower.startsWith('v ') ||
+      lower.startsWith('f ') ||
+      lower.startsWith('vn ') ||
+      lower.startsWith('vt ') ||
+      lower.startsWith('o ') ||
+      lower.startsWith('g ')
+    )
+      return 'obj';
     if (lower.startsWith('# vtk')) return 'vtk';
     return 'unknown';
   }
@@ -88,14 +96,17 @@ export function detectFormat(source: string | ArrayBuffer): MeshFormat {
  */
 export function importMeshSync(
   source: string | ArrayBuffer,
-  options?: ImportOptions,
+  options?: ImportOptions
 ): ImportedMesh {
   const format = detectFormat(source);
 
   switch (format) {
     case 'stl': {
       if (typeof source === 'string') {
-        throw new MeshImportError('STL requires ArrayBuffer; convert file content first', 'GMSH_INVALID');
+        throw new MeshImportError(
+          'STL requires ArrayBuffer; convert file content first',
+          'GMSH_INVALID'
+        );
       }
       const surface = parseSTL(source);
       if (options?.tetrahedralize === false) {
@@ -133,7 +144,7 @@ export function importMeshSync(
     default:
       throw new MeshImportError(
         `Unsupported or undetected mesh format (detected: ${format})`,
-        'GMSH_INVALID',
+        'GMSH_INVALID'
       );
   }
 }
@@ -146,11 +157,11 @@ export function importMeshSync(
  */
 export async function importMesh(
   source: string | ArrayBuffer,
-  options?: ImportOptions,
+  options?: ImportOptions
 ): Promise<ImportedMesh> {
   const result = importMeshSync(source, options);
 
-  if (result.surfaceMesh && (options?.tetrahedralize !== false)) {
+  if (result.surfaceMesh && options?.tetrahedralize !== false) {
     try {
       const tet = await meshSurface(result.surfaceMesh, {
         maxEdgeLength: options?.maxEdgeLength,

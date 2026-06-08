@@ -198,9 +198,8 @@ export const lotusGardenerHandler: TraitHandler<LotusGardenerConfig> = {
 
   onAttach(node, config, context) {
     const ctxState = context.getState?.() ?? {};
-    const initialBloom = (ctxState[config.bloom_state_source] as
-      | LotusAggregateBloomState
-      | undefined) ?? 'sealed';
+    const initialBloom =
+      (ctxState[config.bloom_state_source] as LotusAggregateBloomState | undefined) ?? 'sealed';
     const schedule = deriveLotusGardenerSchedule(initialBloom);
     const seedHash = hashGardenerSeed(config.seed);
 
@@ -251,9 +250,7 @@ export const lotusGardenerHandler: TraitHandler<LotusGardenerConfig> = {
     const droplet_count = Math.max(
       1,
       Math.round(
-        config.base_droplet_count *
-          state.schedule.droplet_mult *
-          (1 + jitter.droplet_jitter * 0.2)
+        config.base_droplet_count * state.schedule.droplet_mult * (1 + jitter.droplet_jitter * 0.2)
       )
     );
 

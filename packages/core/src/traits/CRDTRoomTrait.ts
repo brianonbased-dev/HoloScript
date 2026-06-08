@@ -383,7 +383,7 @@ export function normalizeCenter(
   center: [number, number, number] | [number, number, number]
 ): Vector3 {
   if (Array.isArray(center)) {
-    return [center[0], center[1], center[2] ];
+    return [center[0], center[1], center[2]];
   }
   return [center[0], center[1], center[2]];
 }

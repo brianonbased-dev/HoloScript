@@ -69,7 +69,11 @@ function canonical(value: unknown): unknown {
   if (value === null || value === undefined) return value;
   if (typeof value !== 'object') return value;
   if (ArrayBuffer.isView(value) && !(value instanceof DataView)) {
-    const arr = value as unknown as { constructor: { name: string }; length: number; [index: number]: number };
+    const arr = value as unknown as {
+      constructor: { name: string };
+      length: number;
+      [index: number]: number;
+    };
     return {
       __cael_typed_array: arr.constructor.name,
       data: Array.from({ length: arr.length }, (_, i) => arr[i]),
@@ -235,7 +239,9 @@ function normalizeThermalBoundary(value: unknown): Record<string, unknown> | nul
   if (!bc) return null;
   const faces = Array.isArray(bc.faces)
     ? bc.faces
-    : [LEGACY_THERMAL_FACE_MAP[String(bc.face)] ?? bc.face].filter((face): face is string => typeof face === 'string');
+    : [LEGACY_THERMAL_FACE_MAP[String(bc.face)] ?? bc.face].filter(
+        (face): face is string => typeof face === 'string'
+      );
   return {
     ...bc,
     faces,
@@ -247,7 +253,9 @@ function normalizeThermalConfig(config: Record<string, unknown>): Record<string,
     Math.max(2, Math.trunc(n))
   ) as NumberTriple;
   const spacing = asNumber(config.spacing, 1);
-  const fallbackDomainSize = gridResolution.map((n) => Math.max(spacing, (n - 1) * spacing)) as NumberTriple;
+  const fallbackDomainSize = gridResolution.map((n) =>
+    Math.max(spacing, (n - 1) * spacing)
+  ) as NumberTriple;
   const domainSize = asTriple(config.domainSize, fallbackDomainSize);
   const defaultMaterial = asString(config.defaultMaterial, 'water');
   const materialOverride = asRecord(config.material);
@@ -265,7 +273,9 @@ function normalizeThermalConfig(config: Record<string, unknown>): Record<string,
     .map((source, index) => normalizeThermalSource(source, index))
     .filter((source): source is Record<string, unknown> => source !== null);
 
-  const rawBoundaryConditions = Array.isArray(config.boundaryConditions) ? config.boundaryConditions : [];
+  const rawBoundaryConditions = Array.isArray(config.boundaryConditions)
+    ? config.boundaryConditions
+    : [];
   const boundaryConditions = rawBoundaryConditions
     .map((bc) => normalizeThermalBoundary(bc))
     .filter((bc): bc is Record<string, unknown> => bc !== null);
@@ -283,7 +293,11 @@ function normalizeThermalConfig(config: Record<string, unknown>): Record<string,
   };
 }
 
-function verifyHashChain(trace: TraceEntry[]): { valid: boolean; brokenAt?: number; reason?: string } {
+function verifyHashChain(trace: TraceEntry[]): {
+  valid: boolean;
+  brokenAt?: number;
+  reason?: string;
+} {
   let prev = 'cael.genesis';
   for (let i = 0; i < trace.length; i++) {
     const e = trace[i];
@@ -306,7 +320,7 @@ function verifyHashChain(trace: TraceEntry[]): { valid: boolean; brokenAt?: numb
 
 function getComputeStateDigest(Sim: SimulationModule): ComputeStateDigest | null {
   const candidate = (Sim as unknown as { computeStateDigest?: unknown }).computeStateDigest;
-  return typeof candidate === 'function' ? candidate as ComputeStateDigest : null;
+  return typeof candidate === 'function' ? (candidate as ComputeStateDigest) : null;
 }
 
 function toFloatField(value: Float32Array | Float64Array | number[]): Float32Array | Float64Array {
@@ -317,30 +331,30 @@ function toFloatField(value: Float32Array | Float64Array | number[]): Float32Arr
 function computeThermalStateDigest(
   Sim: SimulationModule,
   solver: ThermalDigestSource,
-  hashMode: HashMode,
+  hashMode: HashMode
 ): string | null {
   const computeStateDigest = getComputeStateDigest(Sim);
   if (!computeStateDigest) return null;
 
-  return computeStateDigest({
-    fieldNames: ['temperature'],
-    getField(name: string): DigestField | null {
-      return name === 'temperature' ? toFloatField(solver.getTemperatureField()) : null;
+  return computeStateDigest(
+    {
+      fieldNames: ['temperature'],
+      getField(name: string): DigestField | null {
+        return name === 'temperature' ? toFloatField(solver.getTemperatureField()) : null;
+      },
     },
-  }, hashMode);
+    hashMode
+  );
 }
 
-function verifyStateDigests(
-  entry: TraceEntry,
-  actualDigests: readonly string[],
-): void {
+function verifyStateDigests(entry: TraceEntry, actualDigests: readonly string[]): void {
   const expected = entry.payload.stateDigests;
   if (!Array.isArray(expected)) return;
 
   if (expected.length !== actualDigests.length) {
     throw new Error(
       `state-digest count mismatch at ${entry.event} event (index ${entry.index}): ` +
-      `expected ${expected.length}, got ${actualDigests.length}`,
+        `expected ${expected.length}, got ${actualDigests.length}`
     );
   }
 
@@ -348,13 +362,13 @@ function verifyStateDigests(
     const expectedDigest = expected[i];
     if (typeof expectedDigest !== 'string') {
       throw new Error(
-        `malformed state digest at ${entry.event} event (index ${entry.index}, digest ${i})`,
+        `malformed state digest at ${entry.event} event (index ${entry.index}, digest ${i})`
       );
     }
     if (expectedDigest !== actualDigests[i]) {
       throw new Error(
         `state-digest mismatch at ${entry.event} event (index ${entry.index}, digest ${i}): ` +
-        `expected ${expectedDigest}, got ${actualDigests[i]}`,
+          `expected ${expectedDigest}, got ${actualDigests[i]}`
       );
     }
   }
@@ -368,7 +382,10 @@ class LocalTraceRecorder {
   private steps = 0;
   private readonly hashMode: HashMode = 'fnv1a';
 
-  constructor(private solverType: string, config: Record<string, unknown>) {
+  constructor(
+    private solverType: string,
+    config: Record<string, unknown>
+  ) {
     this.append('init', {
       solverType,
       config: canonical(config),
@@ -424,7 +441,8 @@ class LocalTraceRecorder {
 export const simulationTools: Tool[] = [
   {
     name: 'solve_structural',
-    description: 'Run a TET10 structural FEA simulation. Returns displacement/stress results + a CAEL trace proving execution integrity. Input: nodes, elements, materials, forces, constraints.',
+    description:
+      'Run a TET10 structural FEA simulation. Returns displacement/stress results + a CAEL trace proving execution integrity. Input: nodes, elements, materials, forces, constraints.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -466,7 +484,8 @@ export const simulationTools: Tool[] = [
   },
   {
     name: 'solve_thermal',
-    description: 'Run a thermal conduction simulation on a structured grid. Returns temperature field + a CAEL trace proving execution integrity. Input: grid, material, sources, BCs.',
+    description:
+      'Run a thermal conduction simulation on a structured grid. Returns temperature field + a CAEL trace proving execution integrity. Input: grid, material, sources, BCs.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -514,11 +533,13 @@ export const simulationTools: Tool[] = [
             },
             sources: {
               type: 'array',
-              description: 'Heat sources: array of { id?, type?, position: [x,y,z], heat_output | power, radius?, active? }.',
+              description:
+                'Heat sources: array of { id?, type?, position: [x,y,z], heat_output | power, radius?, active? }.',
             },
             boundaryConditions: {
               type: 'array',
-              description: 'BCs: engine shape { faces: ["x-"|"x+"|"y-"|"y+"|"z-"|"z+"], type, value } or legacy { face: "x0"|"x1"|"y0"|"y1"|"z0"|"z1", type, value }.',
+              description:
+                'BCs: engine shape { faces: ["x-"|"x+"|"y-"|"y+"|"z-"|"z+"], type, value } or legacy { face: "x0"|"x1"|"y0"|"y1"|"z0"|"z1", type, value }.',
             },
             initialTemperature: {
               type: 'number',
@@ -532,7 +553,8 @@ export const simulationTools: Tool[] = [
   },
   {
     name: 'verify_cael_trace',
-    description: 'Verify a CAEL trace hash-chain for tamper detection. Pass traceId (from solve_* result) or raw JSONL. Returns { valid, entries, brokenAt?, reason? }.',
+    description:
+      'Verify a CAEL trace hash-chain for tamper detection. Pass traceId (from solve_* result) or raw JSONL. Returns { valid, entries, brokenAt?, reason? }.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -542,14 +564,18 @@ export const simulationTools: Tool[] = [
         },
         traceJSONL: {
           type: 'string',
-          description: 'Raw CAEL trace as newline-delimited JSON. Used directly if provided (traceId ignored).',
+          description:
+            'Raw CAEL trace as newline-delimited JSON. Used directly if provided (traceId ignored).',
         },
       },
     },
   },
 ];
 
-export async function handleSimulationTool(name: string, args: Record<string, unknown>): Promise<unknown | null> {
+export async function handleSimulationTool(
+  name: string,
+  args: Record<string, unknown>
+): Promise<unknown | null> {
   if (name === 'verify_cael_trace') {
     return verifyTrace(args);
   }
@@ -561,9 +587,7 @@ export async function handleSimulationTool(name: string, args: Record<string, un
   const { config } = args as { config: Record<string, unknown> };
   if (!config) throw new Error('config is required for simulation tools');
   const solverConfig =
-    name === 'solve_thermal'
-      ? normalizeThermalConfig(config)
-      : normalizeStructuralConfig(config);
+    name === 'solve_thermal' ? normalizeThermalConfig(config) : normalizeStructuralConfig(config);
 
   try {
     let recorder: LocalTraceRecorder;
@@ -572,7 +596,9 @@ export async function handleSimulationTool(name: string, args: Record<string, un
     const Sim = await getSimulation();
 
     if (name === 'solve_structural') {
-      const solver = new Sim.StructuralSolverTET10((solverConfig as unknown) as ConstructorParameters<typeof Sim.StructuralSolverTET10>[0]);
+      const solver = new Sim.StructuralSolverTET10(
+        solverConfig as unknown as ConstructorParameters<typeof Sim.StructuralSolverTET10>[0]
+      );
       recorder = new LocalTraceRecorder(name, solverConfig);
 
       await Promise.resolve(solver.solve());
@@ -583,13 +609,16 @@ export async function handleSimulationTool(name: string, args: Record<string, un
         safetyFactor: solver.getSafetyFactor(),
       };
     } else {
-      const solver = new Sim.ThermalSolver((solverConfig as unknown) as ConstructorParameters<typeof Sim.ThermalSolver>[0]);
+      const solver = new Sim.ThermalSolver(
+        solverConfig as unknown as ConstructorParameters<typeof Sim.ThermalSolver>[0]
+      );
       recorder = new LocalTraceRecorder(name, solverConfig);
 
       const dt = typeof solverConfig.timeStep === 'number' ? solverConfig.timeStep : 0.01;
-      const steps = typeof (args as { steps?: unknown }).steps === 'number'
-        ? ((args as { steps: number }).steps | 0)
-        : 10;
+      const steps =
+        typeof (args as { steps?: unknown }).steps === 'number'
+          ? (args as { steps: number }).steps | 0
+          : 10;
 
       for (let i = 0; i < Math.max(1, steps); i++) {
         solver.step(dt);
@@ -631,7 +660,7 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
   const traceId = typeof args.traceId === 'string' ? args.traceId : null;
   const traceJSONLFromArgs = typeof args.traceJSONL === 'string' ? args.traceJSONL : null;
 
-  const traceJSONL = traceJSONLFromArgs ?? (traceId ? traceRegistry.get(traceId) ?? null : null);
+  const traceJSONL = traceJSONLFromArgs ?? (traceId ? (traceRegistry.get(traceId) ?? null) : null);
   if (!traceJSONL) {
     return {
       success: false,
@@ -662,10 +691,18 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
     const Sim = await getSimulation();
 
     if (solverType === 'solve_structural') {
-      const solver = new Sim.StructuralSolverTET10(((init?.payload?.config ?? {}) as unknown) as ConstructorParameters<typeof Sim.StructuralSolverTET10>[0]);
+      const solver = new Sim.StructuralSolverTET10(
+        (init?.payload?.config ?? {}) as unknown as ConstructorParameters<
+          typeof Sim.StructuralSolverTET10
+        >[0]
+      );
       await Promise.resolve(solver.solve());
     } else if (solverType === 'solve_thermal') {
-      const solver = new Sim.ThermalSolver(((init?.payload?.config ?? {}) as unknown) as ConstructorParameters<typeof Sim.ThermalSolver>[0]);
+      const solver = new Sim.ThermalSolver(
+        (init?.payload?.config ?? {}) as unknown as ConstructorParameters<
+          typeof Sim.ThermalSolver
+        >[0]
+      );
       for (const e of trace) {
         if (e.event === 'step') {
           const dt = Number(e.payload.wallDelta ?? 0.01);

@@ -339,8 +339,7 @@ export interface TaskPolicyDecision {
 }
 
 export type TaskOrchestrationEventType = (typeof TASK_ORCHESTRATION_EVENT_TYPES)[number];
-export type TaskOrchestrationAgentSurface =
-  (typeof TASK_ORCHESTRATION_AGENT_SURFACES)[number];
+export type TaskOrchestrationAgentSurface = (typeof TASK_ORCHESTRATION_AGENT_SURFACES)[number];
 export type TaskDecompositionStrategy = 'manual' | 'llm' | 'rule' | 'hybrid' | 'external';
 export type TaskSubagentStatus =
   | 'pending'
@@ -651,7 +650,12 @@ export const ROOM_PRESETS: Record<string, RoomPreset> = {
   docs: {
     objective:
       'Documentation matches ground truth — docs/NUMBERS.md policy, tier load order, archive banners, public API and MCP surfaces documented',
-    taskSources: ['docs/NUMBERS.md', 'docs/README.md', 'AGENTS.md', 'packages/mcp-server/src/holomesh/holomesh-skill.md'],
+    taskSources: [
+      'docs/NUMBERS.md',
+      'docs/README.md',
+      'AGENTS.md',
+      'packages/mcp-server/src/holomesh/holomesh-skill.md',
+    ],
     rules: [
       'Never hardcode ecosystem counts; reference NUMBERS.md or live /health',
       'Update tier-A/B docs when public API, MCP tools, or CLI change (see NORTH_STAR DT-8)',
@@ -946,7 +950,9 @@ export function validateTaskEnvironmentReceipt(receipt: TaskEnvironmentReceipt):
   }
   for (const command of receipt.verificationCommands ?? []) {
     if (!command.command) {
-      errors.push(`TaskEnvironmentReceipt ${receipt.id} has a verification command without command text.`);
+      errors.push(
+        `TaskEnvironmentReceipt ${receipt.id} has a verification command without command text.`
+      );
     }
   }
   if (receipt.hardwareAudit && !receipt.hardwareAudit.capturedAt) {
@@ -955,7 +961,9 @@ export function validateTaskEnvironmentReceipt(receipt: TaskEnvironmentReceipt):
   return errors;
 }
 
-export function cloneTaskEnvironmentProfile(profile: TaskEnvironmentProfile): TaskEnvironmentProfile {
+export function cloneTaskEnvironmentProfile(
+  profile: TaskEnvironmentProfile
+): TaskEnvironmentProfile {
   return {
     ...profile,
     ...(profile.setup ? { setup: profile.setup.map((step) => ({ ...step })) } : {}),
@@ -965,7 +973,9 @@ export function cloneTaskEnvironmentProfile(profile: TaskEnvironmentProfile): Ta
           network: {
             ...profile.network,
             ...(profile.network.allowlist ? { allowlist: [...profile.network.allowlist] } : {}),
-            ...(profile.network.deniedHosts ? { deniedHosts: [...profile.network.deniedHosts] } : {}),
+            ...(profile.network.deniedHosts
+              ? { deniedHosts: [...profile.network.deniedHosts] }
+              : {}),
           },
         }
       : {}),
@@ -1074,7 +1084,10 @@ function isLoopbackHost(host: string): boolean {
   return host === 'localhost' || host === '127.0.0.1' || host === '::1';
 }
 
-function triggerForAction(kind: TaskPolicyActionKind, outsidePolicy = false): TaskEscalationTrigger {
+function triggerForAction(
+  kind: TaskPolicyActionKind,
+  outsidePolicy = false
+): TaskEscalationTrigger {
   if (outsidePolicy) return 'outside_policy';
   if (kind === 'tool') return 'tool_denied';
   if (kind === 'network') return 'network_denied';
@@ -1127,7 +1140,8 @@ export function validateTaskPolicyProfile(policy: TaskPolicyProfile): string[] {
     }
   }
   if (policy.spendCap) {
-    if (policy.spendCap.amount < 0) errors.push('TaskPolicyProfile.spendCap.amount cannot be negative.');
+    if (policy.spendCap.amount < 0)
+      errors.push('TaskPolicyProfile.spendCap.amount cannot be negative.');
     if (!policy.spendCap.currency) errors.push('TaskPolicyProfile.spendCap.currency is required.');
   }
   for (const rule of policy.escalation ?? []) {
@@ -1247,7 +1261,9 @@ export function validateTaskDecompositionPlan(plan: TaskDecompositionPlan): stri
     errors.push(`TaskDecompositionPlan.strategy is unsupported: ${String(plan.strategy)}.`);
   }
   if (!plan.createdAt) errors.push('TaskDecompositionPlan.createdAt is required.');
-  errors.push(...validateTaskOrchestrationAgentRef(plan.createdBy, 'TaskDecompositionPlan.createdBy'));
+  errors.push(
+    ...validateTaskOrchestrationAgentRef(plan.createdBy, 'TaskDecompositionPlan.createdBy')
+  );
 
   if (!plan.children.length) {
     errors.push('TaskDecompositionPlan.children is required.');
@@ -1267,7 +1283,9 @@ export function validateTaskDecompositionPlan(plan: TaskDecompositionPlan): stri
     }
     childIds.add(child.id);
     if (!Number.isInteger(child.wave) || child.wave < 0) {
-      errors.push(`TaskDecompositionPlan child ${child.id} has invalid wave ${String(child.wave)}.`);
+      errors.push(
+        `TaskDecompositionPlan child ${child.id} has invalid wave ${String(child.wave)}.`
+      );
     }
     for (const dep of child.dependencies ?? []) {
       if (!dep) {
@@ -1277,7 +1295,9 @@ export function validateTaskDecompositionPlan(plan: TaskDecompositionPlan): stri
       }
     }
     if (child.status && !isSupportedTaskSubagentStatus(child.status)) {
-      errors.push(`TaskDecompositionPlan child ${child.id} has unsupported status ${child.status}.`);
+      errors.push(
+        `TaskDecompositionPlan child ${child.id} has unsupported status ${child.status}.`
+      );
     }
     if (child.assignedAgent) {
       errors.push(
@@ -1303,12 +1323,16 @@ export function validateTaskDecompositionPlan(plan: TaskDecompositionPlan): stri
     }
     for (const childId of wave.childIds) {
       if (!childIds.has(childId)) {
-        errors.push(`TaskDecompositionPlan wave ${wave.index} references unknown child ${childId}.`);
+        errors.push(
+          `TaskDecompositionPlan wave ${wave.index} references unknown child ${childId}.`
+        );
       }
     }
     for (const depWave of wave.dependsOnWaves ?? []) {
       if (!Number.isInteger(depWave) || depWave < 0) {
-        errors.push(`TaskDecompositionPlan wave ${wave.index} has invalid dependency wave ${depWave}.`);
+        errors.push(
+          `TaskDecompositionPlan wave ${wave.index} has invalid dependency wave ${depWave}.`
+        );
       }
       if (depWave === wave.index) {
         errors.push(`TaskDecompositionPlan wave ${wave.index} cannot depend on itself.`);
@@ -1317,7 +1341,10 @@ export function validateTaskDecompositionPlan(plan: TaskDecompositionPlan): stri
   }
 
   for (const child of plan.children) {
-    if (child.id && !plan.waves.some((wave) => wave.index === child.wave && wave.childIds.includes(child.id))) {
+    if (
+      child.id &&
+      !plan.waves.some((wave) => wave.index === child.wave && wave.childIds.includes(child.id))
+    ) {
       errors.push(
         `TaskDecompositionPlan child ${child.id} is not listed in its declared wave ${child.wave}.`
       );
@@ -1360,9 +1387,7 @@ export function cloneTaskOrchestrationAgentRef(
   };
 }
 
-export function cloneTaskDecompositionPlan(
-  plan: TaskDecompositionPlan
-): TaskDecompositionPlan {
+export function cloneTaskDecompositionPlan(plan: TaskDecompositionPlan): TaskDecompositionPlan {
   return {
     ...plan,
     createdBy: cloneTaskOrchestrationAgentRef(plan.createdBy),
@@ -1410,12 +1435,13 @@ export function replayTaskCoordination(task: {
     task.childTaskIds ??
     task.decomposition?.children.map((child) => child.taskId ?? child.id) ??
     [];
-  const waves = task.decomposition?.waves.map((wave) => ({
-    ...wave,
-    childIds: [...wave.childIds],
-    ...(wave.dependsOnWaves ? { dependsOnWaves: [...wave.dependsOnWaves] } : {}),
-    ...(wave.metadata ? { metadata: { ...wave.metadata } } : {}),
-  })) ?? [];
+  const waves =
+    task.decomposition?.waves.map((wave) => ({
+      ...wave,
+      childIds: [...wave.childIds],
+      ...(wave.dependsOnWaves ? { dependsOnWaves: [...wave.dependsOnWaves] } : {}),
+      ...(wave.metadata ? { metadata: { ...wave.metadata } } : {}),
+    })) ?? [];
   const events = (task.subagentEvents ?? [])
     .map(cloneSubagentEvent)
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp) || a.id.localeCompare(b.id));
@@ -1450,7 +1476,10 @@ export function evaluateTaskPolicyAction(
     if (matchesAnyPolicyPattern(action.subject, policy.deniedTools)) {
       reasons.push(`Tool "${action.subject}" is denied by task policy.`);
       trigger = triggerForAction(action.kind);
-    } else if (policy.allowedTools?.length && !matchesAnyPolicyPattern(action.subject, policy.allowedTools)) {
+    } else if (
+      policy.allowedTools?.length &&
+      !matchesAnyPolicyPattern(action.subject, policy.allowedTools)
+    ) {
       reasons.push(`Tool "${action.subject}" is outside the task policy allowlist.`);
       trigger = triggerForAction(action.kind, true);
     }
@@ -1485,7 +1514,9 @@ export function evaluateTaskPolicyAction(
       reasons.push('Filesystem access is denied by task policy.');
       trigger = triggerForAction(action.kind);
     } else if (policy.filesystem.allowedPaths?.length) {
-      const allowed = policy.filesystem.allowedPaths.some((path) => pathIsWithin(action.subject, path));
+      const allowed = policy.filesystem.allowedPaths.some((path) =>
+        pathIsWithin(action.subject, path)
+      );
       if (!allowed) {
         reasons.push(`Filesystem path "${action.subject}" is outside the task policy scope.`);
         trigger = triggerForAction(action.kind, true);
@@ -1505,10 +1536,7 @@ export function evaluateTaskPolicyAction(
     if (matchesAnyPolicyPattern(action.subject, policy.secrets.deniedSecretRefs)) {
       reasons.push(`Secret "${action.subject}" is denied by task policy.`);
       trigger = triggerForAction(action.kind);
-    } else if (
-      action.subject.startsWith('env:') &&
-      policy.secrets.allowEnvironment === false
-    ) {
+    } else if (action.subject.startsWith('env:') && policy.secrets.allowEnvironment === false) {
       reasons.push('Environment secret access is denied by task policy.');
       trigger = triggerForAction(action.kind);
     } else if (

@@ -43,7 +43,7 @@ function makeClip(name: string): AnimationClipDef {
 function makeTransition(
   from: string,
   to: string,
-  extra?: Partial<AnimationTransition>,
+  extra?: Partial<AnimationTransition>
 ): AnimationTransition {
   return { from, to, conditions: [], ...extra } as AnimationTransition;
 }
@@ -365,7 +365,7 @@ describe('AnimationStateMachine – evaluateConditions', () => {
       sm.evaluateConditions([
         { parameter: 'a', operator: '==', value: 5 },
         { parameter: 'b', operator: '<', value: 10 },
-      ]),
+      ])
     ).toBe(true);
   });
 
@@ -377,7 +377,7 @@ describe('AnimationStateMachine – evaluateConditions', () => {
       sm.evaluateConditions([
         { parameter: 'a', operator: '==', value: 5 },
         { parameter: 'b', operator: '<', value: 10 },
-      ]),
+      ])
     ).toBe(false);
   });
 
@@ -390,7 +390,7 @@ describe('AnimationStateMachine – evaluateConditions', () => {
       sm.evaluateConditions([
         { parameter: 'a', operator: '==', value: 5, chain: 'or' }, // false, but chain='or' affects next
         { parameter: 'b', operator: '==', value: 1 }, // true
-      ]),
+      ])
     ).toBe(true);
   });
 });
@@ -406,10 +406,12 @@ describe('AnimationStateMachine – checkTransitions', () => {
     sm.setCrossfadeCallback(cb);
     addLayer(sm, 'base', 'idle');
     sm.addParameter({ name: 'speed', type: 'float', default: 0 });
-    sm.addTransition(makeTransition('idle', 'run', {
-      conditions: [{ parameter: 'speed', operator: '>', value: 0.5 }],
-      duration: 0.2,
-    }));
+    sm.addTransition(
+      makeTransition('idle', 'run', {
+        conditions: [{ parameter: 'speed', operator: '>', value: 0.5 }],
+        duration: 0.2,
+      })
+    );
     sm.setFloat('speed', 1.0); // triggers checkTransitions
     expect(cb).toHaveBeenCalledWith('run', 0.2, 0);
   });
@@ -420,9 +422,11 @@ describe('AnimationStateMachine – checkTransitions', () => {
     sm.setCrossfadeCallback(cb);
     addLayer(sm, 'base', 'idle');
     sm.addParameter({ name: 'speed', type: 'float', default: 0 });
-    sm.addTransition(makeTransition('idle', 'run', {
-      conditions: [{ parameter: 'speed', operator: '>', value: 0.5 }],
-    }));
+    sm.addTransition(
+      makeTransition('idle', 'run', {
+        conditions: [{ parameter: 'speed', operator: '>', value: 0.5 }],
+      })
+    );
     sm.setFloat('speed', 0.1);
     expect(cb).not.toHaveBeenCalled();
   });
@@ -571,8 +575,12 @@ describe('AnimationStateMachine – updateLayer crossfade', () => {
     sm.updateLayer(0, 0.1, activeAnimations, crossfades, updateAnimation, emit);
     expect(crossfades.get(0)).toBeNull();
     expect(activeAnimations.get(0)).toBe(toAnim);
-    expect(emit).toHaveBeenCalledWith(expect.objectContaining({ type: 'transition-end', toState: 'run' }));
-    expect(emit).toHaveBeenCalledWith(expect.objectContaining({ type: 'state-enter', state: 'run' }));
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'transition-end', toState: 'run' })
+    );
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'state-enter', state: 'run' })
+    );
     // layer.currentState updated
     const layer = sm.layers.get('base');
     expect(layer?.currentState).toBe('run');

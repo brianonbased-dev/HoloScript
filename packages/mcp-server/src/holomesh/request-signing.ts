@@ -82,7 +82,9 @@ export function canonicalizeBody(value: unknown): string {
  * `{ body, nonce, timestamp }`. Must match
  * `hooks/lib/holomesh-signing.mjs::buildSignedEnvelope` payload assembly.
  */
-export function buildSigningPayload(env: Pick<SignedEnvelope, 'body' | 'nonce' | 'timestamp'>): string {
+export function buildSigningPayload(
+  env: Pick<SignedEnvelope, 'body' | 'nonce' | 'timestamp'>
+): string {
   return canonicalizeBody({ body: env.body, nonce: env.nonce, timestamp: env.timestamp });
 }
 
@@ -159,10 +161,18 @@ export async function verifyEnvelope(
       return { valid: false, signer: env.signer_address, reason: 'registry-check-threw' };
     }
     if (registry.retired) {
-      return { valid: false, signer: env.signer_address, reason: registry.reason ?? 'signer-retired' };
+      return {
+        valid: false,
+        signer: env.signer_address,
+        reason: registry.reason ?? 'signer-retired',
+      };
     }
     if (!registry.attested) {
-      return { valid: false, signer: env.signer_address, reason: registry.reason ?? 'signer-not-attested' };
+      return {
+        valid: false,
+        signer: env.signer_address,
+        reason: registry.reason ?? 'signer-not-attested',
+      };
     }
   }
   return { valid: true, signer: env.signer_address };

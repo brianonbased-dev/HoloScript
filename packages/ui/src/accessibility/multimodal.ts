@@ -54,7 +54,14 @@ export interface AccessibilityIssue {
   /** Severity of the violation. */
   severity: IssueSeverity;
   /** Which modality or modality pair the issue was detected in. */
-  modality: 'visual' | 'language' | 'action' | 'visual-language' | 'visual-action' | 'language-action' | 'all';
+  modality:
+    | 'visual'
+    | 'language'
+    | 'action'
+    | 'visual-language'
+    | 'visual-action'
+    | 'language-action'
+    | 'all';
   /** Description of the specific finding. */
   description: string;
   /** Suggested remediation action. */
@@ -104,14 +111,19 @@ const SEVERITY_ORDER: Record<IssueSeverity, number> = {
 export function checkAlignment(
   visual: VisualDescriptor,
   language: LanguageDescriptor,
-  action: ActionDescriptor,
+  action: ActionDescriptor
 ): AccessibilityReport {
   const issues: AccessibilityIssue[] = [];
 
   // ── Visual modality checks ────────────────────────────────────────────────
 
   // WCAG 1.1.1 Non-text Content: images need alt text unless decorative/hidden
-  if (!visual.isFullyHidden && visual.altText === '' && language.role !== 'presentation' && language.role !== 'none') {
+  if (
+    !visual.isFullyHidden &&
+    visual.altText === '' &&
+    language.role !== 'presentation' &&
+    language.role !== 'none'
+  ) {
     issues.push({
       criterion: '1.1.1',
       criterionLabel: 'Non-text Content',
@@ -129,7 +141,8 @@ export function checkAlignment(
       criterionLabel: 'Contrast (Minimum)',
       severity: 'serious',
       modality: 'visual',
-      description: 'Element does not meet the WCAG AA contrast ratio requirement (4.5:1 for normal text, 3:1 for large).',
+      description:
+        'Element does not meet the WCAG AA contrast ratio requirement (4.5:1 for normal text, 3:1 for large).',
       suggestion: 'Increase foreground/background color contrast to meet WCAG AA requirements.',
     });
   }
@@ -142,7 +155,8 @@ export function checkAlignment(
       severity: 'serious',
       modality: 'visual-action',
       description: 'Keyboard-focusable element lacks a visible focus indicator.',
-      suggestion: 'Add a clearly visible :focus or :focus-visible style (outline, border, or background change).',
+      suggestion:
+        'Add a clearly visible :focus or :focus-visible style (outline, border, or background change).',
     });
   }
 
@@ -219,7 +233,8 @@ export function checkAlignment(
       severity: 'serious',
       modality: 'language-action',
       description: 'Interactive element is hidden from screen readers (aria-hidden or equivalent).',
-      suggestion: 'Remove aria-hidden from interactive elements or provide an equivalent accessible path.',
+      suggestion:
+        'Remove aria-hidden from interactive elements or provide an equivalent accessible path.',
     });
   }
 
@@ -237,7 +252,8 @@ export function checkAlignment(
       criterionLabel: 'Non-text Content',
       severity: 'minor',
       modality: 'visual-language',
-      description: 'Alt text and accessible name differ significantly in length, which may indicate a mismatch.',
+      description:
+        'Alt text and accessible name differ significantly in length, which may indicate a mismatch.',
       suggestion: 'Review whether alt text and accessible name convey the same semantic intent.',
     });
   }
@@ -246,16 +262,16 @@ export function checkAlignment(
   issues.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
 
   // Determine WCAG level
-  const hasCritical = issues.some(i => i.severity === 'critical');
-  const hasSerious = issues.some(i => i.severity === 'serious');
+  const hasCritical = issues.some((i) => i.severity === 'critical');
+  const hasSerious = issues.some((i) => i.severity === 'serious');
   const passes = !hasCritical && !hasSerious;
   const wcagLevel: 'AA' | 'A' | 'none' = hasCritical ? 'none' : hasSerious ? 'A' : 'AA';
 
   const summary =
     issues.length === 0
       ? 'No accessibility issues detected. Meets WCAG 2.1 AA.'
-      : `${issues.length} issue(s) found (${issues.filter(i => i.severity === 'critical').length} critical, ` +
-        `${issues.filter(i => i.severity === 'serious').length} serious). ` +
+      : `${issues.length} issue(s) found (${issues.filter((i) => i.severity === 'critical').length} critical, ` +
+        `${issues.filter((i) => i.severity === 'serious').length} serious). ` +
         `WCAG 2.1 level: ${wcagLevel}.`;
 
   return { passes, issueCount: issues.length, issues, wcagLevel, summary };

@@ -10,11 +10,11 @@
 ## Summary
 
 | Severity | Before | After |
-|----------|--------|-------|
+| -------- | ------ | ----- |
 | Critical | 0      | 0     |
-| High     | 1      | 1*    |
+| High     | 1      | 1\*   |
 | Moderate | 11     | 0     |
-| Low      | 1      | 1*    |
+| Low      | 1      | 1\*   |
 
 \* Remaining issues have no upstream patched version (see Unresolvable section).
 
@@ -24,19 +24,20 @@
 
 All resolved via `pnpm.overrides` bumps in root `package.json`.
 
-| Package | Old Constraint | New Constraint | Issues Fixed |
-|---------|---------------|----------------|--------------|
-| `hono` | `>=4.12.7` | `>=4.12.14` | cookie name validation, IP matching bypass, path traversal in toSSG, serveStatic bypass, HTML injection in JSX SSR |
-| `@hono/node-server` | `>=1.19.10` | `>=1.19.13` | serveStatic middleware bypass |
-| `axios` | *(not overridden)* | `>=1.15.0` | SSRF via NO_PROXY bypass (CVSS 4.8), cloud metadata exfiltration via header injection (CVSS 4.8) |
-| `follow-redirects` | *(not overridden)* | `>=1.16.0` | auth header leak to cross-domain redirects |
-| `dompurify` | *(not overridden)* | `>=3.4.0` | ADD_TAGS + FORBID_TAGS bypass via short-circuit evaluation |
+| Package             | Old Constraint     | New Constraint | Issues Fixed                                                                                                       |
+| ------------------- | ------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `hono`              | `>=4.12.7`         | `>=4.12.14`    | cookie name validation, IP matching bypass, path traversal in toSSG, serveStatic bypass, HTML injection in JSX SSR |
+| `@hono/node-server` | `>=1.19.10`        | `>=1.19.13`    | serveStatic middleware bypass                                                                                      |
+| `axios`             | _(not overridden)_ | `>=1.15.0`     | SSRF via NO_PROXY bypass (CVSS 4.8), cloud metadata exfiltration via header injection (CVSS 4.8)                   |
+| `follow-redirects`  | _(not overridden)_ | `>=1.16.0`     | auth header leak to cross-domain redirects                                                                         |
+| `dompurify`         | _(not overridden)_ | `>=3.4.0`      | ADD_TAGS + FORBID_TAGS bypass via short-circuit evaluation                                                         |
 
 ---
 
 ## Unresolvable Vulnerabilities (No Upstream Fix)
 
 ### [HIGH] bigint-buffer@1.1.5 — Buffer Overflow via toBigIntLE()
+
 - **CVSS:** 7.5
 - **Advisory:** GHSA — bigint-buffer toBigIntLE is vulnerable to buffer over-read
 - **Patched versions:** `<0.0.0` (no fix released by maintainer)
@@ -45,6 +46,7 @@ All resolved via `pnpm.overrides` bumps in root `package.json`.
 - **Action:** Pin `@coinbase/agentkit` to a version that drops `bigint-buffer` once available, or switch to Solana's newer `@solana/spl-token` v0.5+ which removes this dep. Track via `pnpm audit` monthly.
 
 ### [LOW] elliptic@6.6.1 — Risky Cryptographic Primitive
+
 - **CVSS:** 5.6
 - **Advisory:** Use of potentially broken/risky cryptographic primitive in elliptic curve implementation
 - **Patched versions:** `<0.0.0` (no fix released)
@@ -56,10 +58,10 @@ All resolved via `pnpm.overrides` bumps in root `package.json`.
 
 ## Major Upgrade Candidates
 
-| Package | Current | Latest | Notes |
-|---------|---------|--------|-------|
-| `vitest` | `^4.1.0` (root devDep) | v4.x | Already on latest major; connector-core has pre-existing ESM compat issue unrelated to version |
-| `@coinbase/agentkit` | `0.10.4` | Check npm | Upgrading may resolve bigint-buffer chain |
+| Package              | Current                | Latest    | Notes                                                                                          |
+| -------------------- | ---------------------- | --------- | ---------------------------------------------------------------------------------------------- |
+| `vitest`             | `^4.1.0` (root devDep) | v4.x      | Already on latest major; connector-core has pre-existing ESM compat issue unrelated to version |
+| `@coinbase/agentkit` | `0.10.4`               | Check npm | Upgrading may resolve bigint-buffer chain                                                      |
 
 ---
 
@@ -76,6 +78,7 @@ cargo audit
 ```
 
 Rust workspace contains one member: `packages/compiler-wasm` with these direct deps:
+
 - `wasm-bindgen 0.2.93` — current
 - `serde 1.0` — current
 - `serde_json 1.0` — current
@@ -89,6 +92,7 @@ No known advisories at time of audit (manual check against RustSec database).
 ## Recurring Task
 
 This audit should be run monthly:
+
 ```bash
 pnpm audit --json > dep-audit-$(date +%Y-%m-%d).json
 cargo audit

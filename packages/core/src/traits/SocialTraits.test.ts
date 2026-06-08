@@ -11,7 +11,7 @@ describe('SocialTraits', () => {
   const mockNode = {};
   const mockContext = {
     emit: vi.fn(),
-    head: { position: [0, 0, 0], rotation: [0, 0, 0 ] },
+    head: { position: [0, 0, 0], rotation: [0, 0, 0] },
     time: 0,
     deltaTime: 0.16,
   };

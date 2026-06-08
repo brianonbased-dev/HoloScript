@@ -42,7 +42,9 @@ describe('broadcast — send semantics', () => {
     const c = makeClient(WebSocket.OPEN);
     broadcast(makeWss([c]), 'test_event', { foo: 'bar' });
     expect(c.send).toHaveBeenCalledTimes(1);
-    expect(c.send).toHaveBeenCalledWith(JSON.stringify({ type: 'test_event', payload: { foo: 'bar' } }));
+    expect(c.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: 'test_event', payload: { foo: 'bar' } })
+    );
   });
 
   it('skips clients whose readyState is not OPEN', () => {

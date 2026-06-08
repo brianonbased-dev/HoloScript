@@ -130,7 +130,7 @@ export function GIRenderer({
     if (enabled && activeMethod === 'prophetic' && !prophecy) {
       console.warn(
         "[GIRenderer] method='prophetic' requires a `prophecy` prop; " +
-          'falling back to ambient_only for this frame.',
+          'falling back to ambient_only for this frame.'
       );
     }
   }, [enabled, activeMethod, prophecy]);
@@ -264,9 +264,7 @@ export function GIRenderer({
  * Exported (named export) so renderers wiring their own probe-volume
  * materials can reuse the same reduction.
  */
-export function computeAverageRadiance(
-  frame: ProphecyFrame | null,
-): [number, number, number] {
+export function computeAverageRadiance(frame: ProphecyFrame | null): [number, number, number] {
   if (!frame || frame.probes.length === 0) return [0.5, 0.5, 0.55];
   let r = 0;
   let g = 0;

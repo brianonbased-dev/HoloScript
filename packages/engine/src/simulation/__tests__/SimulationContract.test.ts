@@ -33,10 +33,16 @@ function mockSolver(): SimSolver & { time: number } {
     mode: 'transient',
     fieldNames: ['temperature'],
     time: 0,
-    step(dt: number) { this.time += dt; },
+    step(dt: number) {
+      this.time += dt;
+    },
     solve() {},
-    getField(): FieldData | null { return new Float32Array(10); },
-    getStats() { return { currentTime: this.time, converged: true }; },
+    getField(): FieldData | null {
+      return new Float32Array(10);
+    },
+    getStats() {
+      return { currentTime: this.time, converged: true };
+    },
     dispose() {},
   };
 }
@@ -63,8 +69,8 @@ describe('Geometry Hashing', () => {
     const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const e = new Uint32Array([0, 1, 2, 3]);
     const h = hashGeometry(v, e);
-    expect(h).toContain('4n');  // 4 nodes
-    expect(h).toContain('4e');  // 4 element indices
+    expect(h).toContain('4n'); // 4 nodes
+    expect(h).toContain('4e'); // 4 element indices
   });
 
   it('handles no geometry gracefully', () => {
@@ -99,7 +105,9 @@ describe('Geometry Hashing', () => {
     const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 9, 9, 9]); // 4 nodes
     const elements = new Uint32Array([0, 1, 2]); // references 0,1,2. Node 3 is orphaned.
     const vio = validateMeshSanity(v, elements);
-    expect(vio.some((x) => x.rule === 'mesh-connectivity' && x.message.includes('orphaned'))).toBe(true);
+    expect(vio.some((x) => x.rule === 'mesh-connectivity' && x.message.includes('orphaned'))).toBe(
+      true
+    );
   });
 });
 
@@ -109,12 +117,7 @@ describe('Geometry Hashing', () => {
 
 describe('Physics Sanity', () => {
   it('catches inverted tetrahedron (negative Jacobian)', () => {
-    const v = new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 1,
-    ]);
+    const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const e = new Uint32Array([0, 2, 1, 3]); // swapped 1 and 2 → inverted
     const vio = validatePhysicsSanity(v, e, { elementType: 'tet4' });
     expect(vio.some((x) => x.code === 'CAEL-PHYS-001')).toBe(true);
@@ -122,9 +125,15 @@ describe('Physics Sanity', () => {
 
   it('catches degenerate triangle (zero area)', () => {
     const v = new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      2, 0, 0, // collinear
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      2,
+      0,
+      0, // collinear
     ]);
     const e = new Uint32Array([0, 1, 2]);
     const vio = validatePhysicsSanity(v, e, { elementType: 'tri3' });
@@ -147,10 +156,18 @@ describe('Physics Sanity', () => {
 
   it('catches poor element quality (high edge ratio)', () => {
     const v = new Float64Array([
-      0, 0, 0,
-      1e-6, 0, 0,
-      0, 1e-6, 0,
-      0, 0, 1e3, // huge edge
+      0,
+      0,
+      0,
+      1e-6,
+      0,
+      0,
+      0,
+      1e-6,
+      0,
+      0,
+      0,
+      1e3, // huge edge
     ]);
     const e = new Uint32Array([0, 1, 2, 3]);
     const vio = validatePhysicsSanity(v, e, { elementType: 'tet4' });
@@ -158,12 +175,7 @@ describe('Physics Sanity', () => {
   });
 
   it('passes valid structural mesh and material', () => {
-    const v = new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 1,
-    ]);
+    const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const e = new Uint32Array([0, 1, 2, 3]);
     const vio = validatePhysicsSanity(v, e, {
       elementType: 'tet4',
@@ -189,7 +201,7 @@ describe('Unit Validation', () => {
   it('accepts valid engineering values', () => {
     const violations = validateUnits({
       material: {
-        youngs_modulus: 200e9,  // steel
+        youngs_modulus: 200e9, // steel
         poisson_ratio: 0.3,
         yield_strength: 250e6,
         density: 7850,
@@ -201,7 +213,7 @@ describe('Unit Validation', () => {
   it('warns on suspicious values (wrong units)', () => {
     const violations = validateUnits({
       material: {
-        youngs_modulus: 200,  // probably GPa, not Pa — should be 200e9
+        youngs_modulus: 200, // probably GPa, not Pa — should be 200e9
         density: 7850,
       },
     });
@@ -283,10 +295,14 @@ describe('DeterministicStepper', () => {
 describe('ContractedSimulation', () => {
   it('wraps solver with deterministic stepping', () => {
     const solver = mockSolver();
-    const contracted = new ContractedSimulation(solver, {}, {
-      fixedDt: 0.01,
-      solverType: 'thermal',
-    });
+    const contracted = new ContractedSimulation(
+      solver,
+      {},
+      {
+        fixedDt: 0.01,
+        solverType: 'thermal',
+      }
+    );
 
     contracted.step(0.033); // 33ms frame
     expect(solver.time).toBeCloseTo(0.03); // 3 × 0.01 = 0.03
@@ -308,7 +324,7 @@ describe('ContractedSimulation', () => {
     const contracted = new ContractedSimulation(
       mockSolver(),
       { material: { youngs_modulus: 200e9, density: 7850 } },
-      { fixedDt: 0.01, solverType: 'structural-tet10' },
+      { fixedDt: 0.01, solverType: 'structural-tet10' }
     );
 
     contracted.step(0.1);
@@ -349,74 +365,88 @@ describe('ContractedSimulation', () => {
   });
 
   it('catches unit warnings in config', () => {
-    const contracted = new ContractedSimulation(mockSolver(), {
-      material: { youngs_modulus: 200 }, // wrong units (should be 200e9) → warning
-    }, { enforceUnits: true });
+    const contracted = new ContractedSimulation(
+      mockSolver(),
+      {
+        material: { youngs_modulus: 200 }, // wrong units (should be 200e9) → warning
+      },
+      { enforceUnits: true }
+    );
 
     expect(contracted.getViolations().length).toBeGreaterThan(0);
     expect(contracted.getViolations()[0].message).toContain('youngs_modulus');
   });
 
   it('catches extreme unit errors', () => {
-    const contracted = new ContractedSimulation(mockSolver(), {
-      material: { density: -100 }, // negative density → error
-    }, { enforceUnits: true });
+    const contracted = new ContractedSimulation(
+      mockSolver(),
+      {
+        material: { density: -100 }, // negative density → error
+      },
+      { enforceUnits: true }
+    );
 
     expect(contracted.hasErrors()).toBe(true);
   });
 
   it('passes with valid units', () => {
-    const contracted = new ContractedSimulation(mockSolver(), {
-      material: { youngs_modulus: 200e9, poisson_ratio: 0.3, density: 7850 },
-    }, { enforceUnits: true });
+    const contracted = new ContractedSimulation(
+      mockSolver(),
+      {
+        material: { youngs_modulus: 200e9, poisson_ratio: 0.3, density: 7850 },
+      },
+      { enforceUnits: true }
+    );
 
     expect(contracted.hasErrors()).toBe(false);
   });
 
   it('runs physics sanity by default for structural solver (inverted tet)', () => {
-    const v = new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 1,
-    ]);
+    const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const e = new Uint32Array([0, 2, 1, 3]); // inverted
-    const contracted = new ContractedSimulation(mockSolver(), {
-      vertices: v,
-      tetrahedra: e,
-      material: { youngs_modulus: 200e9, poisson_ratio: 0.3 },
-    }, { solverType: 'structural-tet4', fixedDt: 0.01 });
+    const contracted = new ContractedSimulation(
+      mockSolver(),
+      {
+        vertices: v,
+        tetrahedra: e,
+        material: { youngs_modulus: 200e9, poisson_ratio: 0.3 },
+      },
+      { solverType: 'structural-tet4', fixedDt: 0.01 }
+    );
 
     expect(contracted.hasErrors()).toBe(true);
     expect(contracted.getViolations().some((v) => v.code === 'CAEL-PHYS-001')).toBe(true);
     expect(contracted.getProvenance().verified).toBe(false);
     expect(
-      contracted.getProvenance().contractViolations?.some((v) => v.code === 'CAEL-PHYS-001'),
+      contracted.getProvenance().contractViolations?.some((v) => v.code === 'CAEL-PHYS-001')
     ).toBe(true);
   });
 
   it('runs physics sanity by default for thermal solver material ellipticity', () => {
-    const contracted = new ContractedSimulation(mockSolver(), {
-      material: { conductivity: 0 },
-    }, { solverType: 'thermal', fixedDt: 0.01 });
+    const contracted = new ContractedSimulation(
+      mockSolver(),
+      {
+        material: { conductivity: 0 },
+      },
+      { solverType: 'thermal', fixedDt: 0.01 }
+    );
 
     expect(contracted.hasErrors()).toBe(true);
     expect(contracted.getViolations().some((v) => v.code === 'CAEL-PHYS-004')).toBe(true);
   });
 
   it('skips physics sanity by default for non-structural solver', () => {
-    const v = new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 1,
-    ]);
+    const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const e = new Uint32Array([0, 2, 1, 3]); // inverted
-    const contracted = new ContractedSimulation(mockSolver(), {
-      vertices: v,
-      tetrahedra: e,
-      material: { youngs_modulus: 200e9, poisson_ratio: 0.3 },
-    }, { solverType: 'cfd', fixedDt: 0.01 });
+    const contracted = new ContractedSimulation(
+      mockSolver(),
+      {
+        vertices: v,
+        tetrahedra: e,
+        material: { youngs_modulus: 200e9, poisson_ratio: 0.3 },
+      },
+      { solverType: 'cfd', fixedDt: 0.01 }
+    );
 
     // CFD is not structural/thermal, so physics sanity defaults to off
     expect(contracted.hasErrors()).toBe(false);
@@ -424,18 +454,17 @@ describe('ContractedSimulation', () => {
 
   it('emits semantic physics reason codes in CAEL init payload', async () => {
     const { CAELRecorder } = await import('../CAELRecorder');
-    const v = new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 1,
-    ]);
+    const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const e = new Uint32Array([0, 2, 1, 3]); // inverted
-    const recorder = new CAELRecorder(mockSolver(), {
-      vertices: v,
-      tetrahedra: e,
-      material: { youngs_modulus: 200e9, poisson_ratio: 0.3 },
-    }, { solverType: 'structural-tet4', fixedDt: 0.01 });
+    const recorder = new CAELRecorder(
+      mockSolver(),
+      {
+        vertices: v,
+        tetrahedra: e,
+        material: { youngs_modulus: 200e9, poisson_ratio: 0.3 },
+      },
+      { solverType: 'structural-tet4', fixedDt: 0.01 }
+    );
 
     const init = recorder.getTrace()[0];
     expect(init.event).toBe('init');
@@ -448,10 +477,14 @@ describe('ContractedSimulation', () => {
     const v = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const e = new Uint32Array([0, 1, 2, 3]);
 
-    const contracted = new ContractedSimulation(mockSolver(), {
-      vertices: v,
-      tetrahedra: e,
-    }, { fixedDt: 0.01 });
+    const contracted = new ContractedSimulation(
+      mockSolver(),
+      {
+        vertices: v,
+        tetrahedra: e,
+      },
+      { fixedDt: 0.01 }
+    );
 
     // Normal step should work
     expect(() => contracted.step(0.02)).not.toThrow();
@@ -467,9 +500,13 @@ describe('ContractedSimulation', () => {
   it('replays from provenance — Guarantee 6', () => {
     // Original run
     const solver1 = mockSolver();
-    const contracted1 = new ContractedSimulation(solver1, {
-      material: { youngs_modulus: 200e9, density: 7850 },
-    }, { fixedDt: 0.01, solverType: 'thermal' });
+    const contracted1 = new ContractedSimulation(
+      solver1,
+      {
+        material: { youngs_modulus: 200e9, density: 7850 },
+      },
+      { fixedDt: 0.01, solverType: 'thermal' }
+    );
 
     contracted1.step(0.05);
     contracted1.logInteraction('set_temperature', { value: 300 });
@@ -479,10 +516,7 @@ describe('ContractedSimulation', () => {
     const prov1 = contracted1.getProvenance();
 
     // Replay: reconstruct from record
-    const replayed = ContractedSimulation.replayFromProvenance(
-      () => mockSolver(),
-      replay,
-    );
+    const replayed = ContractedSimulation.replayFromProvenance(() => mockSolver(), replay);
 
     // Verify geometry hash matches
     expect(replayed.getProvenance().geometryHash).toBe(prov1.geometryHash);
@@ -508,9 +542,14 @@ describe('ContractedSimulation', () => {
     const v1 = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
     const e1 = new Uint32Array([0, 1, 2, 3]);
 
-    const contracted = new ContractedSimulation(mockSolver(), {
-      vertices: v1, tetrahedra: e1,
-    }, { fixedDt: 0.01 });
+    const contracted = new ContractedSimulation(
+      mockSolver(),
+      {
+        vertices: v1,
+        tetrahedra: e1,
+      },
+      { fixedDt: 0.01 }
+    );
 
     const replay = contracted.createReplay();
 
@@ -519,10 +558,9 @@ describe('ContractedSimulation', () => {
     // To simulate a mismatch, we tamper with the replay record:
     const tamperedReplay = { ...replay, geometryHash: 'geo-deadbeef-4n-4e' };
 
-    expect(() => ContractedSimulation.replayFromProvenance(
-      () => mockSolver(),
-      tamperedReplay,
-    )).toThrow('Replay geometry mismatch');
+    expect(() =>
+      ContractedSimulation.replayFromProvenance(() => mockSolver(), tamperedReplay)
+    ).toThrow('Replay geometry mismatch');
   });
 });
 
@@ -544,10 +582,16 @@ describe('ContractedSimulation state digest (Route 2b)', () => {
       mode: 'transient',
       fieldNames: ['velocity'],
       time: 0,
-      step(dt: number) { this.time += dt; },
+      step(dt: number) {
+        this.time += dt;
+      },
       solve() {},
-      getField(): FieldData | null { return values; },
-      getStats() { return { currentTime: this.time, converged: true }; },
+      getField(): FieldData | null {
+        return values;
+      },
+      getStats() {
+        return { currentTime: this.time, converged: true };
+      },
       dispose() {},
     };
   }
@@ -576,11 +620,13 @@ describe('ContractedSimulation state digest (Route 2b)', () => {
   it('digest is deterministic across independent runs on identical state', () => {
     const a = new ContractedSimulation(
       solverWithMutableField(new Float32Array([0.001, 0.002, 0.003])),
-      {}, { fixedDt: 0.01 },
+      {},
+      { fixedDt: 0.01 }
     );
     const b = new ContractedSimulation(
       solverWithMutableField(new Float32Array([0.001, 0.002, 0.003])),
-      {}, { fixedDt: 0.01 },
+      {},
+      { fixedDt: 0.01 }
     );
     a.step(0.01);
     b.step(0.01);
@@ -613,7 +659,9 @@ describe('ContractedSimulation state digest (Route 2b)', () => {
   it('NaN in state throws with clear diagnostic (fail-closed contract)', () => {
     const values = new Float32Array([1, NaN, 3]);
     const contracted = new ContractedSimulation(
-      solverWithMutableField(values), {}, { fixedDt: 0.01 },
+      solverWithMutableField(values),
+      {},
+      { fixedDt: 0.01 }
     );
     expect(() => contracted.step(0.01)).toThrow(/Non-finite value in field "velocity" at index 1/);
   });
@@ -621,7 +669,9 @@ describe('ContractedSimulation state digest (Route 2b)', () => {
   it('+Infinity in state throws (fail-closed contract)', () => {
     const values = new Float32Array([1, 2, Infinity]);
     const contracted = new ContractedSimulation(
-      solverWithMutableField(values), {}, { fixedDt: 0.01 },
+      solverWithMutableField(values),
+      {},
+      { fixedDt: 0.01 }
     );
     expect(() => contracted.step(0.01)).toThrow(/Non-finite value in field "velocity" at index 2/);
   });
@@ -629,7 +679,9 @@ describe('ContractedSimulation state digest (Route 2b)', () => {
   it('-Infinity in state throws (fail-closed contract)', () => {
     const values = new Float32Array([-Infinity, 2, 3]);
     const contracted = new ContractedSimulation(
-      solverWithMutableField(values), {}, { fixedDt: 0.01 },
+      solverWithMutableField(values),
+      {},
+      { fixedDt: 0.01 }
     );
     expect(() => contracted.step(0.01)).toThrow(/Non-finite value in field "velocity" at index 0/);
   });
@@ -637,7 +689,9 @@ describe('ContractedSimulation state digest (Route 2b)', () => {
   it('error message names the field and index for debuggability', () => {
     const values = new Float32Array([0, 0, 0, 0, NaN, 0, 0]);
     const contracted = new ContractedSimulation(
-      solverWithMutableField(values), {}, { fixedDt: 0.01 },
+      solverWithMutableField(values),
+      {},
+      { fixedDt: 0.01 }
     );
     try {
       contracted.step(0.01);
@@ -667,12 +721,20 @@ describe('ContractedSimulation Route 2d (solve() terminal digest)', () => {
   function steadyStateSolverWith(values: Float32Array): SimSolver & { solved: boolean } {
     return {
       mode: 'steady-state',
-      fieldNames: ['stress'],  // stress → q_f = 1000 Pa from registry
+      fieldNames: ['stress'], // stress → q_f = 1000 Pa from registry
       solved: false,
-      step(_dt: number) { /* not used for steady-state */ },
-      solve() { this.solved = true; },
-      getField(): FieldData | null { return values; },
-      getStats() { return { converged: this.solved }; },
+      step(_dt: number) {
+        /* not used for steady-state */
+      },
+      solve() {
+        this.solved = true;
+      },
+      getField(): FieldData | null {
+        return values;
+      },
+      getStats() {
+        return { converged: this.solved };
+      },
       dispose() {},
     };
   }
@@ -680,7 +742,8 @@ describe('ContractedSimulation Route 2d (solve() terminal digest)', () => {
   it('solve() pushes exactly one terminal digest', async () => {
     const contracted = new ContractedSimulation(
       steadyStateSolverWith(new Float32Array([1e5, 2e5, 3e5])),
-      {}, { fixedDt: 0.01 },
+      {},
+      { fixedDt: 0.01 }
     );
     expect(contracted.getStateDigests().length).toBe(0); // none before
     await contracted.solve();
@@ -691,11 +754,13 @@ describe('ContractedSimulation Route 2d (solve() terminal digest)', () => {
   it('terminal digest is deterministic across independent runs', async () => {
     const a = new ContractedSimulation(
       steadyStateSolverWith(new Float32Array([5e5, 5e5, 5e5])),
-      {}, {},
+      {},
+      {}
     );
     const b = new ContractedSimulation(
       steadyStateSolverWith(new Float32Array([5e5, 5e5, 5e5])),
-      {}, {},
+      {},
+      {}
     );
     await a.solve();
     await b.solve();
@@ -706,11 +771,13 @@ describe('ContractedSimulation Route 2d (solve() terminal digest)', () => {
     // stress q_f = 1000 Pa. A 100 Pa perturbation → same lattice cell.
     const a = new ContractedSimulation(
       steadyStateSolverWith(new Float32Array([2e6, 2e6, 2e6])),
-      {}, {},
+      {},
+      {}
     );
     const b = new ContractedSimulation(
       steadyStateSolverWith(new Float32Array([2e6 + 100, 2e6, 2e6])),
-      {}, {},
+      {},
+      {}
     );
     await a.solve();
     await b.solve();
@@ -720,11 +787,13 @@ describe('ContractedSimulation Route 2d (solve() terminal digest)', () => {
   it('terminal digest changes when stress differs above q_f (1000 Pa)', async () => {
     const a = new ContractedSimulation(
       steadyStateSolverWith(new Float32Array([1e6, 1e6, 1e6])),
-      {}, {},
+      {},
+      {}
     );
     const b = new ContractedSimulation(
       steadyStateSolverWith(new Float32Array([1e6 + 5000, 1e6, 1e6])),
-      {}, {},
+      {},
+      {}
     );
     await a.solve();
     await b.solve();
@@ -734,9 +803,12 @@ describe('ContractedSimulation Route 2d (solve() terminal digest)', () => {
   it('solve() inherits fail-closed NaN guard from computeStateDigest', async () => {
     const contracted = new ContractedSimulation(
       steadyStateSolverWith(new Float32Array([1e5, NaN, 3e5])),
-      {}, {},
+      {},
+      {}
     );
-    await expect(contracted.solve()).rejects.toThrow(/Non-finite value in field "stress" at index 1/);
+    await expect(contracted.solve()).rejects.toThrow(
+      /Non-finite value in field "stress" at index 1/
+    );
   });
 
   it('solve() + step() digests are ordered in the same array (Route 2b + 2d share getStateDigests)', async () => {
@@ -745,10 +817,18 @@ describe('ContractedSimulation Route 2d (solve() terminal digest)', () => {
     const solver: SimSolver = {
       mode: 'transient',
       fieldNames: ['stress'],
-      step(_dt: number) { values[0] += 1000; },  // 1 q_f per sub-step
-      solve() { values[0] += 10000; },           // 10 q_f on solve
-      getField() { return values; },
-      getStats() { return {}; },
+      step(_dt: number) {
+        values[0] += 1000;
+      }, // 1 q_f per sub-step
+      solve() {
+        values[0] += 10000;
+      }, // 10 q_f on solve
+      getField() {
+        return values;
+      },
+      getStats() {
+        return {};
+      },
       dispose() {},
     };
     const contracted = new ContractedSimulation(solver, {}, { fixedDt: 0.01 });
@@ -824,12 +904,11 @@ describe('computeAdapterFingerprint (security helper)', () => {
     // the hashed value (not the raw tuple).
     const { CAELRecorder } = await import('../CAELRecorder');
     const fp = await computeAdapterFingerprint({
-      vendor: 'Apple', device: 'M2 GPU', userAgent: 'Safari/17',
+      vendor: 'Apple',
+      device: 'M2 GPU',
+      userAgent: 'Safari/17',
     });
-    const recorder = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, adapterFingerprint: fp },
-    );
+    const recorder = new CAELRecorder(mockSolver(), {}, { fixedDt: 0.01, adapterFingerprint: fp });
     recorder.finalize();
     const trace = recorder.getTrace();
     expect(trace[0].payload.adapterFingerprint).toBe(fp);
@@ -905,7 +984,7 @@ describe('ContractedSimulation subgrid attestation (TODO-05)', () => {
     expect(att?.canonicalForm).toBe(
       // alphabetical: cooling_table, cooling_threshold, feedback_efficiency,
       // resolution_floor, use_metal_cooling
-      'cooling_table=`wiersma2009`|cooling_threshold=10000|feedback_efficiency=0.5|resolution_floor=100|use_metal_cooling=true',
+      'cooling_table=`wiersma2009`|cooling_threshold=10000|feedback_efficiency=0.5|resolution_floor=100|use_metal_cooling=true'
     );
 
     // Provenance surfaces the envelope.
@@ -931,9 +1010,11 @@ describe('ContractedSimulation subgrid attestation (TODO-05)', () => {
       const trace = recorder.getTrace();
       // First entry is always 'init'.
       expect(trace[0].event).toBe('init');
-      const sa = trace[0].payload.subgridAttestation as
-        | { hash: string; hashMode: string; canonicalForm: string }
-        | null;
+      const sa = trace[0].payload.subgridAttestation as {
+        hash: string;
+        hashMode: string;
+        canonicalForm: string;
+      } | null;
       expect(sa).not.toBeNull();
       expect(sa?.hashMode).toBe('fnv1a');
       expect(sa?.hash).toMatch(/^[0-9a-f]{16}$/);
@@ -1098,7 +1179,13 @@ describe('Scale Tag & Acceptance Envelopes', () => {
   // ── (2) All canonical scale names are accepted ────────────────────────────
 
   it('(2) accepts all five canonical scale names', () => {
-    const scales: SimulationScale[] = ['quantum', 'atomistic', 'mesoscopic', 'continuum', 'empirical-surrogate'];
+    const scales: SimulationScale[] = [
+      'quantum',
+      'atomistic',
+      'mesoscopic',
+      'continuum',
+      'empirical-surrogate',
+    ];
     for (const scale of scales) {
       const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
         fixedDt: 0.001,
@@ -1130,7 +1217,13 @@ describe('Scale Tag & Acceptance Envelopes', () => {
   // ── (4) Default envelope matches scale ────────────────────────────────────
 
   it('(4) provides the correct default envelope for each scale', () => {
-    const scales: SimulationScale[] = ['quantum', 'atomistic', 'mesoscopic', 'continuum', 'empirical-surrogate'];
+    const scales: SimulationScale[] = [
+      'quantum',
+      'atomistic',
+      'mesoscopic',
+      'continuum',
+      'empirical-surrogate',
+    ];
     for (const scale of scales) {
       const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
         fixedDt: 0.001,
@@ -1269,7 +1362,13 @@ describe('Scale Tag & Acceptance Envelopes', () => {
   // ── (13) Default envelopes have valid projections ─────────────────────────
 
   it('(13) each scale has projections to coarser scales only', () => {
-    const scales: SimulationScale[] = ['quantum', 'atomistic', 'mesoscopic', 'continuum', 'empirical-surrogate'];
+    const scales: SimulationScale[] = [
+      'quantum',
+      'atomistic',
+      'mesoscopic',
+      'continuum',
+      'empirical-surrogate',
+    ];
     for (const scale of scales) {
       const envelope = DEFAULT_SCALE_ENVELOPES[scale];
       const projectionTargets = Object.keys(envelope.projectionsTo) as SimulationScale[];
@@ -1279,7 +1378,9 @@ describe('Scale Tag & Acceptance Envelopes', () => {
       }
     }
     // Empirical-surrogate has no projections (coarsest scale)
-    expect(Object.keys(DEFAULT_SCALE_ENVELOPES['empirical-surrogate'].projectionsTo)).toHaveLength(0);
+    expect(Object.keys(DEFAULT_SCALE_ENVELOPES['empirical-surrogate'].projectionsTo)).toHaveLength(
+      0
+    );
   });
 
   // ── (14) acceptsCrossScale — same-scale acceptance ────────────────────────
@@ -1363,7 +1464,7 @@ describe('Scale Tag & Acceptance Envelopes', () => {
   it('(18) warns when envelope scale does not match contract scale', () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const customEnvelope: ScaleEnvelope = {
-      scale: 'quantum',  // envelope says quantum
+      scale: 'quantum', // envelope says quantum
       tolerance: 1e-6,
       replayAllowed: true,
       vvCriteria: { convergence: 1e-6 },
@@ -1371,7 +1472,7 @@ describe('Scale Tag & Acceptance Envelopes', () => {
     };
     const contracted = new ContractedSimulation(mockSolver(), makeConfig(), {
       fixedDt: 0.001,
-      scale: 'continuum',  // but contract says continuum
+      scale: 'continuum', // but contract says continuum
       scaleEnvelope: customEnvelope,
     });
     // Contract scale wins
@@ -1388,7 +1489,13 @@ describe('Scale Tag & Acceptance Envelopes', () => {
   // ── (19) All default envelopes have positive tolerance ─────────────────────
 
   it('(19) all default envelopes have positive tolerance and at least one V&V criterion', () => {
-    const scales: SimulationScale[] = ['quantum', 'atomistic', 'mesoscopic', 'continuum', 'empirical-surrogate'];
+    const scales: SimulationScale[] = [
+      'quantum',
+      'atomistic',
+      'mesoscopic',
+      'continuum',
+      'empirical-surrogate',
+    ];
     for (const scale of scales) {
       const envelope = DEFAULT_SCALE_ENVELOPES[scale];
       expect(envelope.tolerance).toBeGreaterThan(0);
@@ -1399,7 +1506,13 @@ describe('Scale Tag & Acceptance Envelopes', () => {
   // ── (20) Scale order: tolerance increases monotonically (finer → coarser) ─
 
   it('(20) tolerance increases monotonically from quantum to empirical-surrogate', () => {
-    const scales: SimulationScale[] = ['quantum', 'atomistic', 'mesoscopic', 'continuum', 'empirical-surrogate'];
+    const scales: SimulationScale[] = [
+      'quantum',
+      'atomistic',
+      'mesoscopic',
+      'continuum',
+      'empirical-surrogate',
+    ];
     for (let i = 1; i < scales.length; i++) {
       const finer = DEFAULT_SCALE_ENVELOPES[scales[i - 1]].tolerance;
       const coarser = DEFAULT_SCALE_ENVELOPES[scales[i]].tolerance;
@@ -1429,7 +1542,11 @@ describe('Receipt Chaining', () => {
   });
 
   it('getContinuationLink() captures this run as the seed for a successor', () => {
-    const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01, solverType: 'thermal' });
+    const first = new ContractedSimulation(
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, solverType: 'thermal' }
+    );
     first.step(0.05);
     const link = first.getContinuationLink();
     expect(link.fromRunId).toBe(first.getRunId());
@@ -1442,10 +1559,14 @@ describe('Receipt Chaining', () => {
   it('a continuation run records the prior link in its provenance', () => {
     const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
     first.step(0.05);
-    const second = new ContractedSimulation(mockSolver(), {}, {
-      fixedDt: 0.01,
-      continuesFrom: first.getContinuationLink(),
-    });
+    const second = new ContractedSimulation(
+      mockSolver(),
+      {},
+      {
+        fixedDt: 0.01,
+        continuesFrom: first.getContinuationLink(),
+      }
+    );
     second.step(0.05);
     const prov = second.getProvenance();
     expect(prov.continuesFrom).toBeDefined();
@@ -1455,10 +1576,14 @@ describe('Receipt Chaining', () => {
   it('verifyContinuationChain accepts a valid two-run chain (verified carry-over)', () => {
     const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
     first.step(0.05);
-    const second = new ContractedSimulation(mockSolver(), {}, {
-      fixedDt: 0.01,
-      continuesFrom: first.getContinuationLink(),
-    });
+    const second = new ContractedSimulation(
+      mockSolver(),
+      {},
+      {
+        fixedDt: 0.01,
+        continuesFrom: first.getContinuationLink(),
+      }
+    );
     second.step(0.05);
 
     const result = verifyContinuationChain([first.getProvenance(), second.getProvenance()]);
@@ -1483,10 +1608,14 @@ describe('Receipt Chaining', () => {
     const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
     first.step(0.05);
     const link = first.getContinuationLink();
-    const second = new ContractedSimulation(mockSolver(), {}, {
-      fixedDt: 0.01,
-      continuesFrom: { ...link, seedStateDigest: 'forged-seed-digest' },
-    });
+    const second = new ContractedSimulation(
+      mockSolver(),
+      {},
+      {
+        fixedDt: 0.01,
+        continuesFrom: { ...link, seedStateDigest: 'forged-seed-digest' },
+      }
+    );
     second.step(0.05);
 
     const result = verifyContinuationChain([first.getProvenance(), second.getProvenance()]);
@@ -1505,10 +1634,14 @@ describe('Receipt Chaining', () => {
       fromSimTime: first.getProvenance().totalSimTime,
       fromVerified: true,
     };
-    const second = new ContractedSimulation(mockSolver(), {}, {
-      fixedDt: 0.01,
-      continuesFrom: bogusLink,
-    });
+    const second = new ContractedSimulation(
+      mockSolver(),
+      {},
+      {
+        fixedDt: 0.01,
+        continuesFrom: bogusLink,
+      }
+    );
     second.step(0.05);
 
     const result = verifyContinuationChain([first.getProvenance(), second.getProvenance()]);
@@ -1518,17 +1651,35 @@ describe('Receipt Chaining', () => {
 
   it('verifyContinuationChain marks an unverified prior link as not verified carry-over', () => {
     const first: SimulationProvenance = {
-      runId: 'run-a', geometryHash: 'g', contractId: 'g', scale: 'continuum',
-      scaleEnvelope: DEFAULT_SCALE_ENVELOPES.continuum, solverType: 't', config: {},
-      fixedDt: 0.01, totalSteps: 1, totalSimTime: 0.01, wallTimeMs: 1, interactions: [],
-      finalStats: {}, verified: false, finalStateDigest: 'digest-a', deterministic: true,
-      platformVersion: '6.1.0', createdAt: 'x',
+      runId: 'run-a',
+      geometryHash: 'g',
+      contractId: 'g',
+      scale: 'continuum',
+      scaleEnvelope: DEFAULT_SCALE_ENVELOPES.continuum,
+      solverType: 't',
+      config: {},
+      fixedDt: 0.01,
+      totalSteps: 1,
+      totalSimTime: 0.01,
+      wallTimeMs: 1,
+      interactions: [],
+      finalStats: {},
+      verified: false,
+      finalStateDigest: 'digest-a',
+      deterministic: true,
+      platformVersion: '6.1.0',
+      createdAt: 'x',
     };
     const second: SimulationProvenance = {
-      ...first, runId: 'run-b', verified: true,
+      ...first,
+      runId: 'run-b',
+      verified: true,
       continuesFrom: {
-        fromRunId: 'run-a', fromContractId: 'g', seedStateDigest: 'digest-a',
-        fromSimTime: 0.01, fromVerified: false,
+        fromRunId: 'run-a',
+        fromContractId: 'g',
+        seedStateDigest: 'digest-a',
+        fromSimTime: 0.01,
+        fromVerified: false,
       },
     };
     const result = verifyContinuationChain([first, second]);
@@ -1546,10 +1697,14 @@ describe('Receipt Chaining', () => {
   it('lineage survives createReplay()', () => {
     const first = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
     first.step(0.05);
-    const second = new ContractedSimulation(mockSolver(), {}, {
-      fixedDt: 0.01,
-      continuesFrom: first.getContinuationLink(),
-    });
+    const second = new ContractedSimulation(
+      mockSolver(),
+      {},
+      {
+        fixedDt: 0.01,
+        continuesFrom: first.getContinuationLink(),
+      }
+    );
     second.step(0.05);
     const replay = second.createReplay();
     expect(replay.continuesFrom).toBeDefined();

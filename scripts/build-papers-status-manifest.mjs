@@ -34,13 +34,10 @@ const argMap = Object.fromEntries(
   process.argv.slice(2).map((a) => {
     const [k, v] = a.replace(/^--/, '').split('=');
     return [k, v ?? true];
-  }),
+  })
 );
 
-const AI_ECO_ROOT =
-  argMap['ai-eco'] ||
-  process.env.AI_ECO_ROOT ||
-  'C:/Users/josep/.ai-ecosystem';
+const AI_ECO_ROOT = argMap['ai-eco'] || process.env.AI_ECO_ROOT || 'C:/Users/josep/.ai-ecosystem';
 
 const REBUILDER = path.join(AI_ECO_ROOT, 'scripts', 'paper-audit-matrix-auto-rebuild.mjs');
 const OUT_PATH = path.resolve(__dirname, '..', 'docs', 'public', 'papers-status.json');
@@ -73,7 +70,7 @@ function main() {
   const t = totals.cellsByToken || {};
   console.error(
     `[papers-status] wrote ${path.relative(process.cwd(), OUT_PATH)} ` +
-      `(${totals.papers} papers, ${t['✅'] || 0} GREEN / ${t['⚠️'] || 0} AMBER / ${t['❌'] || 0} RED / ${t['➖'] || 0} N/A)`,
+      `(${totals.papers} papers, ${t['✅'] || 0} GREEN / ${t['⚠️'] || 0} AMBER / ${t['❌'] || 0} RED / ${t['➖'] || 0} N/A)`
   );
 }
 

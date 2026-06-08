@@ -27,51 +27,51 @@ Every accepted novice intake must compile to this shape. The fields align with `
 
 ```yaml
 claimIntake:
-  intakeId: "rh-YYYYMMDD-slug"
-  userLevel: "novice | guided | advanced"
-  proposedBy: ""
-  publicPosture: "founder-gated"
+  intakeId: 'rh-YYYYMMDD-slug'
+  userLevel: 'novice | guided | advanced'
+  proposedBy: ''
+  publicPosture: 'founder-gated'
 
-  rawIntuition: ""
-  normalizedStatement: ""
-  domain: "geometry | number-theory | physics | architecture | gameplay | other"
-  claimKind: "geometry.invariant | algebraic.trait | impossibility.boundary | domain-specific"
+  rawIntuition: ''
+  normalizedStatement: ''
+  domain: 'geometry | number-theory | physics | architecture | gameplay | other'
+  claimKind: 'geometry.invariant | algebraic.trait | impossibility.boundary | domain-specific'
 
   scopeBound:
-    population: ""
-    parameterRange: ""
+    population: ''
+    parameterRange: ''
     assumptions: []
     exclusions: []
-    finiteBudget: ""
+    finiteBudget: ''
 
   falsificationCriterion:
-    status: "falsifiable-in-principle | out-of-scope"
-    reason: ""
+    status: 'falsifiable-in-principle | out-of-scope'
+    reason: ''
     accessiblePredictions: []
-    counterexampleShape: ""
+    counterexampleShape: ''
     minimumProbeSet: []
 
   expectedEvidenceShape:
-    receiptType: "conjecture.v1 | conjecture.verdict-ledger.v1 | domain-specific"
+    receiptType: 'conjecture.v1 | conjecture.verdict-ledger.v1 | domain-specific'
     requiredMeasurements: []
     artifactPaths: []
-    rerunCommand: ""
-    noveltyCheck: "required | optional | not-applicable"
-    priorArtCorpus: ""
+    rerunCommand: ''
+    noveltyCheck: 'required | optional | not-applicable'
+    priorArtCorpus: ''
 
   enginePlan:
-    owningPackage: "@holoscript/engine"
-    candidateGenerator: ""
-    probeFamily: ""
-    noveltyGate: ""
+    owningPackage: '@holoscript/engine'
+    candidateGenerator: ''
+    probeFamily: ''
+    noveltyGate: ''
     verdictLedger: true
 
   honestVerdict:
-    state: "PROVEN | FALSIFIED | UNDECIDABLE | UNDER-RESOLVED"
-    noveltyModifier: "novel | rediscovered | not-checked | not-applicable"
-    receiptKey: ""
+    state: 'PROVEN | FALSIFIED | UNDECIDABLE | UNDER-RESOLVED'
+    noveltyModifier: 'novel | rediscovered | not-checked | not-applicable'
+    receiptKey: ''
     assumptionsHeld: []
-    nextAction: ""
+    nextAction: ''
 ```
 
 Reject rules:
@@ -84,11 +84,11 @@ Reject rules:
 
 ## Novice-To-Advanced Ladder
 
-| Level | Human provides | System derives | Gate to next level |
-| --- | --- | --- | --- |
-| Novice | Raw intuition, domain guess, what would convince them, examples if any | Plain-language normalized statement, missing assumptions, possible observable predictions | At least one accessible prediction or an honest `UNDECIDABLE` verdict. |
-| Guided | Candidate scope, examples/non-examples, rough falsifier, allowed data or simulator | Formal scope bound, counterexample shape, probe sketch, expected evidence shape | A concrete probe family or a clear reason no probe exists. |
-| Advanced | Candidate generator, probe family, threshold, corpus/baseline, artifact paths | Engine-ready `ConjectureClaim`, receipt plan, verdict-ledger entry | Engine run produces receipt or refuses as out-of-scope. |
+| Level    | Human provides                                                                     | System derives                                                                            | Gate to next level                                                     |
+| -------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Novice   | Raw intuition, domain guess, what would convince them, examples if any             | Plain-language normalized statement, missing assumptions, possible observable predictions | At least one accessible prediction or an honest `UNDECIDABLE` verdict. |
+| Guided   | Candidate scope, examples/non-examples, rough falsifier, allowed data or simulator | Formal scope bound, counterexample shape, probe sketch, expected evidence shape           | A concrete probe family or a clear reason no probe exists.             |
+| Advanced | Candidate generator, probe family, threshold, corpus/baseline, artifact paths      | Engine-ready `ConjectureClaim`, receipt plan, verdict-ledger entry                        | Engine run produces receipt or refuses as out-of-scope.                |
 
 The ladder is allowed to help the user climb. It is not allowed to skip rungs. If a novice cannot supply enough material for a falsifier, the honest output is `UNDECIDABLE`, not a motivational pseudo-claim.
 
@@ -96,12 +96,12 @@ The ladder is allowed to help the user climb. It is not allowed to skip rungs. I
 
 These are the user-facing verdict states for D.060. They map onto existing engine/ledger statuses without pretending that every receipt is a Lean proof.
 
-| Verdict | Meaning | Engine mapping | User-facing next action |
-| --- | --- | --- | --- |
-| `PROVEN` | The bounded claim survived the required probes under stated assumptions and produced a receipt. This is receipt-tier proof, not necessarily Lean-tier proof. | `survived`; may carry novelty modifier `novel` or `rediscovered` | Preserve receipt, cite scope, optionally escalate to Lean or paper row. |
-| `FALSIFIED` | A probe found a counterexample or failed required criteria. | `falsified` | Preserve counterexample, revise or narrow the claim. |
-| `UNDECIDABLE` | No accessible prediction, finite probe, or falsifier exists in the stated scope. | `out-of-scope` | Reframe into a testable subclaim or stop. |
-| `UNDER-RESOLVED` | The claim is falsifiable in principle, but current budget, data, or probe coverage cannot decide it. | `undecided` | Increase budget, add probes, or record as assumption-bound. |
+| Verdict          | Meaning                                                                                                                                                      | Engine mapping                                                   | User-facing next action                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `PROVEN`         | The bounded claim survived the required probes under stated assumptions and produced a receipt. This is receipt-tier proof, not necessarily Lean-tier proof. | `survived`; may carry novelty modifier `novel` or `rediscovered` | Preserve receipt, cite scope, optionally escalate to Lean or paper row. |
+| `FALSIFIED`      | A probe found a counterexample or failed required criteria.                                                                                                  | `falsified`                                                      | Preserve counterexample, revise or narrow the claim.                    |
+| `UNDECIDABLE`    | No accessible prediction, finite probe, or falsifier exists in the stated scope.                                                                             | `out-of-scope`                                                   | Reframe into a testable subclaim or stop.                               |
+| `UNDER-RESOLVED` | The claim is falsifiable in principle, but current budget, data, or probe coverage cannot decide it.                                                         | `undecided`                                                      | Increase budget, add probes, or record as assumption-bound.             |
 
 Novelty is a separate modifier, not a verdict replacement:
 
@@ -145,54 +145,54 @@ The user provides:
 
 ```yaml
 claimIntake:
-  intakeId: "rh-20260525-square-sheet-euler"
-  userLevel: "novice"
-  proposedBy: "novice-user"
-  publicPosture: "founder-gated"
-  rawIntuition: "I think every generated square sheet keeps Euler characteristic 1, even if the triangle order changes."
-  normalizedStatement: "For HoloScript-generated square-sheet candidates in the configured generator family, Euler characteristic equals 1 and geometry hash is invariant under same-arity primitive reordering."
-  domain: "geometry"
-  claimKind: "geometry.invariant"
+  intakeId: 'rh-20260525-square-sheet-euler'
+  userLevel: 'novice'
+  proposedBy: 'novice-user'
+  publicPosture: 'founder-gated'
+  rawIntuition: 'I think every generated square sheet keeps Euler characteristic 1, even if the triangle order changes.'
+  normalizedStatement: 'For HoloScript-generated square-sheet candidates in the configured generator family, Euler characteristic equals 1 and geometry hash is invariant under same-arity primitive reordering.'
+  domain: 'geometry'
+  claimKind: 'geometry.invariant'
   scopeBound:
-    population: "generated square-sheet candidates from createSquareSheetCandidate or its generator-family successor"
-    parameterRange: "configured generator seed set and triangle sheet family only"
+    population: 'generated square-sheet candidates from createSquareSheetCandidate or its generator-family successor'
+    parameterRange: 'configured generator seed set and triangle sheet family only'
     assumptions:
-      - "triangle primitives are same-arity"
-      - "geometry hash canonicalizes primitive order"
+      - 'triangle primitives are same-arity'
+      - 'geometry hash canonicalizes primitive order'
     exclusions:
-      - "arbitrary non-HoloScript surfaces"
-      - "global mathematical theorem about all triangulated manifolds"
-    finiteBudget: "run configured generated-family suite over named seeds"
+      - 'arbitrary non-HoloScript surfaces'
+      - 'global mathematical theorem about all triangulated manifolds'
+    finiteBudget: 'run configured generated-family suite over named seeds'
   falsificationCriterion:
-    status: "falsifiable-in-principle"
-    reason: "A generated candidate with Euler characteristic not equal to 1, degenerate geometry, or changed hash under reordering is a counterexample."
+    status: 'falsifiable-in-principle'
+    reason: 'A generated candidate with Euler characteristic not equal to 1, degenerate geometry, or changed hash under reordering is a counterexample.'
     accessiblePredictions:
-      - "geometry.euler_characteristic == 1"
-      - "geometry.hash_order_invariant passes"
-      - "geometry.non_degenerate passes"
-    counterexampleShape: "candidate id, seed, geometry hash, failed probe, and measured values"
+      - 'geometry.euler_characteristic == 1'
+      - 'geometry.hash_order_invariant passes'
+      - 'geometry.non_degenerate passes'
+    counterexampleShape: 'candidate id, seed, geometry hash, failed probe, and measured values'
     minimumProbeSet:
-      - "nonDegenerateGeometryProbe"
-      - "geometryHashOrderInvariantProbe"
-      - "eulerCharacteristicProbe(1)"
+      - 'nonDegenerateGeometryProbe'
+      - 'geometryHashOrderInvariantProbe'
+      - 'eulerCharacteristicProbe(1)'
   expectedEvidenceShape:
-    receiptType: "conjecture.v1"
+    receiptType: 'conjecture.v1'
     requiredMeasurements:
-      - "vertexCount"
-      - "elementCount"
-      - "eulerCharacteristic"
-      - "originalHash"
-      - "reorderedHash"
+      - 'vertexCount'
+      - 'elementCount'
+      - 'eulerCharacteristic'
+      - 'originalHash'
+      - 'reorderedHash'
     artifactPaths:
-      - "packages/engine/src/simulation/__tests__/ConjectureEngine.test.ts"
-    rerunCommand: "pnpm --filter @holoscript/engine test -- ConjectureEngine"
-    noveltyCheck: "required"
-    priorArtCorpus: "ConjecturePriorArtCorpus or configured geometry corpus"
+      - 'packages/engine/src/simulation/__tests__/ConjectureEngine.test.ts'
+    rerunCommand: 'pnpm --filter @holoscript/engine test -- ConjectureEngine'
+    noveltyCheck: 'required'
+    priorArtCorpus: 'ConjecturePriorArtCorpus or configured geometry corpus'
   enginePlan:
-    owningPackage: "@holoscript/engine"
-    candidateGenerator: "createSquareSheetCandidate or generated-family successor"
-    probeFamily: "geometry invariant probes"
-    noveltyGate: "assessConjectureNovelty"
+    owningPackage: '@holoscript/engine'
+    candidateGenerator: 'createSquareSheetCandidate or generated-family successor'
+    probeFamily: 'geometry invariant probes'
+    noveltyGate: 'assessConjectureNovelty'
     verdictLedger: true
 ```
 
@@ -202,13 +202,13 @@ If the run produces a receipt with all probes passing:
 
 ```yaml
 honestVerdict:
-  state: "PROVEN"
-  noveltyModifier: "rediscovered"
-  receiptKey: "conjecture.v1-sha-..."
+  state: 'PROVEN'
+  noveltyModifier: 'rediscovered'
+  receiptKey: 'conjecture.v1-sha-...'
   assumptionsHeld:
-    - "triangle primitives are same-arity"
-    - "geometry hash canonicalizes primitive order"
-  nextAction: "Preserve the receipt as a learning artifact; do not claim novelty because the corpus marks this as known topology."
+    - 'triangle primitives are same-arity'
+    - 'geometry hash canonicalizes primitive order'
+  nextAction: 'Preserve the receipt as a learning artifact; do not claim novelty because the corpus marks this as known topology.'
 ```
 
 If a generated candidate fails the Euler characteristic probe, the verdict is `FALSIFIED` with the candidate as the counterexample. If the user widens the claim to "all possible surfaces" without a finite generator/probe, the verdict becomes `UNDECIDABLE`. If the configured budget exhausts before deciding a larger finite family, the verdict becomes `UNDER-RESOLVED`.

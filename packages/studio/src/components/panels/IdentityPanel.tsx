@@ -63,7 +63,10 @@ export function IdentityPanel() {
         // Fallback: derive from presence / members for the team
         const pres = await fetch(`/api/holomesh/team/${teamId}/presence`);
         const presJson = await pres.json();
-        const me = (presJson.online || []).find((x: any) => x.agentId?.includes(myHandle) || x.handle === myHandle) || {};
+        const me =
+          (presJson.online || []).find(
+            (x: any) => x.agentId?.includes(myHandle) || x.handle === myHandle
+          ) || {};
         if (!cancelled) {
           setData({
             handle: myHandle,
@@ -84,7 +87,10 @@ export function IdentityPanel() {
 
     load();
     const id = setInterval(load, 30000); // periodic refresh
-    return () => { cancelled = true; clearInterval(id); };
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [myHandle, teamId]);
 
   const copyWallet = () => {
@@ -92,20 +98,30 @@ export function IdentityPanel() {
     navigator.clipboard?.writeText(w).then(() => alert('Wallet copied'));
   };
 
-  if (loading && !data) return <div className="p-3 text-xs text-studio-muted">Loading identity…</div>;
+  if (loading && !data)
+    return <div className="p-3 text-xs text-studio-muted">Loading identity…</div>;
   if (error) return <div className="p-3 text-xs text-red-400">Error: {error}</div>;
   if (!data) return null;
 
-  const tierColor = data.tier === 'diamond' ? 'text-cyan-400' : data.tier === 'gold' ? 'text-yellow-400' : 'text-amber-400';
+  const tierColor =
+    data.tier === 'diamond'
+      ? 'text-cyan-400'
+      : data.tier === 'gold'
+        ? 'text-yellow-400'
+        : 'text-amber-400';
 
   return (
     <div className="p-3 text-[11px] text-studio-text space-y-3">
-      <div className="uppercase tracking-wider text-[10px] text-studio-muted">IDENTITY • ACTIVE SEAT</div>
+      <div className="uppercase tracking-wider text-[10px] text-studio-muted">
+        IDENTITY • ACTIVE SEAT
+      </div>
 
       <div className="border border-studio-border/40 rounded p-2 bg-studio-panel/20">
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm">{data.handle}</span>
-          {data.surface_tag && <span className="text-[9px] bg-studio-border/40 px-1 rounded">{data.surface_tag}</span>}
+          {data.surface_tag && (
+            <span className="text-[9px] bg-studio-border/40 px-1 rounded">{data.surface_tag}</span>
+          )}
           {data.is_active && <span className="text-emerald-400 text-[9px]">● LIVE</span>}
         </div>
 
@@ -118,17 +134,28 @@ export function IdentityPanel() {
 
         <div className="mt-1 font-mono text-[9px] text-studio-accent truncate" title={data.wallet}>
           {data.wallet}
-          <button className="ml-1 underline hover:text-white" onClick={copyWallet}>copy</button>
+          <button className="ml-1 underline hover:text-white" onClick={copyWallet}>
+            copy
+          </button>
         </div>
 
         <div className="mt-2 flex gap-2 text-[9px]">
           <button
             className="underline hover:text-studio-accent"
-            onClick={() => window.open(`https://holomesh.net/room/${teamId}?agent=${data.handle}`, '_blank')}
+            onClick={() =>
+              window.open(`https://holomesh.net/room/${teamId}?agent=${data.handle}`, '_blank')
+            }
           >
             My HoloRoom
           </button>
-          <button className="underline hover:text-studio-accent" onClick={() => alert('Profile editor (bio/theme/links) — opens settings drawer (TODO wire to /profile PATCH)')}>
+          <button
+            className="underline hover:text-studio-accent"
+            onClick={() =>
+              alert(
+                'Profile editor (bio/theme/links) — opens settings drawer (TODO wire to /profile PATCH)'
+              )
+            }
+          >
             Edit profile
           </button>
         </div>

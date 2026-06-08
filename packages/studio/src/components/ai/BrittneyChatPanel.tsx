@@ -17,7 +17,12 @@ import {
   Wrench,
   ChevronDown,
 } from 'lucide-react';
-import { streamAssistant, buildRichContext, executeTool, SimulationToolExecutor } from '@/lib/brittney';
+import {
+  streamAssistant,
+  buildRichContext,
+  executeTool,
+  SimulationToolExecutor,
+} from '@/lib/brittney';
 import type {
   AssistantMessage,
   ToolCallPayload,
@@ -204,9 +209,7 @@ function ToolBadge({
       : 'bg-red-500/10 text-red-400';
   const canConfirm = Boolean(result.requiresConfirmation && result.pendingAction && onConfirm);
   return (
-    <div
-      className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 text-[11px] ${stateClass}`}
-    >
+    <div className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 text-[11px] ${stateClass}`}>
       {result.success ? (
         <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0" />
       ) : (
@@ -299,7 +302,9 @@ export function BrittneyChatPanel() {
   const [workspaceJobs, setWorkspaceJobs] = useState<BrittneyDaemonJobContext[]>([]);
   const [assistantTeamId, setAssistantTeamId] = useState<string | null>(null);
   const [teamBoard, setTeamBoard] = useState<BrittneyBoardContext | null>(null);
-  const [vibeAbsorbStatus, setVibeAbsorbStatus] = useState<BrittneyAbsorbStatusContext | null>(null);
+  const [vibeAbsorbStatus, setVibeAbsorbStatus] = useState<BrittneyAbsorbStatusContext | null>(
+    null
+  );
 
   const executorRef = useRef<SimulationToolExecutor | null>(null);
   if (!executorRef.current) {
@@ -615,7 +620,10 @@ export function BrittneyChatPanel() {
           let result: ToolResult;
 
           if (executorRef.current?.isSimulationTool(tc.name)) {
-            const simRes = await executorRef.current.execute(tc.name, tc.arguments as Record<string, unknown>);
+            const simRes = await executorRef.current.execute(
+              tc.name,
+              tc.arguments as Record<string, unknown>
+            );
             result = {
               tool: tc.name,
               success: simRes.success,
@@ -668,14 +676,13 @@ export function BrittneyChatPanel() {
           break;
         }
       }
-      
+
       // ─── Semantic Undo Commit ────────────────────────────────────────────────
       if (toolResults.some((r) => r.success && !r.requiresConfirmation)) {
         setNextHistoryLabel(`AI Action: ${text.length > 25 ? text.substring(0, 25) + '…' : text}`);
-        useHistoryStore.getState().syncState(
-          useSceneGraphStore.getState().nodes,
-          useSceneStore.getState().code ?? ''
-        );
+        useHistoryStore
+          .getState()
+          .syncState(useSceneGraphStore.getState().nodes, useSceneStore.getState().code ?? '');
       }
     } catch (err) {
       accumulatedText = `Connection error — is Ollama running? (${String(err)})`;
@@ -767,10 +774,9 @@ export function BrittneyChatPanel() {
       );
 
       if (applied.success) {
-        useHistoryStore.getState().syncState(
-          useSceneGraphStore.getState().nodes,
-          useSceneStore.getState().code ?? ''
-        );
+        useHistoryStore
+          .getState()
+          .syncState(useSceneGraphStore.getState().nodes, useSceneStore.getState().code ?? '');
       }
     },
     [chatMessages, getStoreActions]
@@ -933,55 +939,55 @@ export function BrittneyChatPanel() {
           </button>
         ) : (
           <div className="relative">
-          <textarea
-            value={isListening && interimTranscript ? input + ' ' + interimTranscript : input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder={
-              nodes.length === 0
-                ? 'Create an object first, then ask the assistant to modify it…'
-                : selectedId
-                  ? 'Tell the assistant what to do with the selected object…'
-                  : 'Ask the assistant to build or modify your scene…'
-            }
-            disabled={isThinking}
-            rows={2}
-            className={`w-full resize-none rounded-xl border bg-studio-surface px-3 py-2 pr-16 text-xs text-studio-text placeholder-studio-muted outline-none transition focus:ring-1 disabled:opacity-50 ${
-              isListening
-                ? 'border-red-400/70 focus:border-red-400 focus:ring-red-400/20'
-                : 'border-studio-border focus:border-studio-accent/60 focus:ring-studio-accent/20'
-            }`}
-            aria-label="Message assistant"
-          />
-          <div className="absolute bottom-2.5 right-2 flex items-center gap-1">
-            {voiceSupported && (
-              <button
-                onClick={isListening ? stopListening : startListening}
-                disabled={isThinking}
-                className={`rounded-lg p-1.5 transition ${
-                  isListening
-                    ? 'animate-pulse bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                    : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
-                }`}
-                title={isListening ? 'Stop listening' : 'Voice input'}
-                aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
-              >
-                {isListening ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
-              </button>
-            )}
-            <button
-              onClick={handleSend}
-              disabled={isThinking || !input.trim()}
-              className="rounded-lg bg-studio-accent p-1.5 text-white shadow transition hover:bg-studio-accent/80 disabled:opacity-30"
-              aria-label="Send message to assistant"
-            >
-              {isThinking ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Send className="h-3 w-3" />
+            <textarea
+              value={isListening && interimTranscript ? input + ' ' + interimTranscript : input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKey}
+              placeholder={
+                nodes.length === 0
+                  ? 'Create an object first, then ask the assistant to modify it…'
+                  : selectedId
+                    ? 'Tell the assistant what to do with the selected object…'
+                    : 'Ask the assistant to build or modify your scene…'
+              }
+              disabled={isThinking}
+              rows={2}
+              className={`w-full resize-none rounded-xl border bg-studio-surface px-3 py-2 pr-16 text-xs text-studio-text placeholder-studio-muted outline-none transition focus:ring-1 disabled:opacity-50 ${
+                isListening
+                  ? 'border-red-400/70 focus:border-red-400 focus:ring-red-400/20'
+                  : 'border-studio-border focus:border-studio-accent/60 focus:ring-studio-accent/20'
+              }`}
+              aria-label="Message assistant"
+            />
+            <div className="absolute bottom-2.5 right-2 flex items-center gap-1">
+              {voiceSupported && (
+                <button
+                  onClick={isListening ? stopListening : startListening}
+                  disabled={isThinking}
+                  className={`rounded-lg p-1.5 transition ${
+                    isListening
+                      ? 'animate-pulse bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                      : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
+                  }`}
+                  title={isListening ? 'Stop listening' : 'Voice input'}
+                  aria-label={isListening ? 'Stop voice recording' : 'Start voice recording'}
+                >
+                  {isListening ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                </button>
               )}
-            </button>
-          </div>
+              <button
+                onClick={handleSend}
+                disabled={isThinking || !input.trim()}
+                className="rounded-lg bg-studio-accent p-1.5 text-white shadow transition hover:bg-studio-accent/80 disabled:opacity-30"
+                aria-label="Send message to assistant"
+              >
+                {isThinking ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Send className="h-3 w-3" />
+                )}
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -33,7 +33,9 @@ describe('FITS Viewer Pipeline', () => {
   });
 
   it('parses a synthetic 3D FITS spectral cube', () => {
-    const nx = 4, ny = 3, nz = 5;
+    const nx = 4,
+      ny = 3,
+      nz = 5;
     const data: number[] = [];
     for (let k = 0; k < nz; k++) {
       for (let j = 0; j < ny; j++) {
@@ -107,9 +109,9 @@ describe('FITS Viewer Pipeline', () => {
 
     const fits = parseFITS(buffer);
     // Physical value = BSCALE * raw + BZERO
-    expect(fits.data[0]).toBeCloseTo(50);       // 0.1 * 0 + 50
-    expect(fits.data[1]).toBeCloseTo(60);       // 0.1 * 100 + 50
-    expect(fits.data[3]).toBeCloseTo(80);       // 0.1 * 300 + 50
+    expect(fits.data[0]).toBeCloseTo(50); // 0.1 * 0 + 50
+    expect(fits.data[1]).toBeCloseTo(60); // 0.1 * 100 + 50
+    expect(fits.data[3]).toBeCloseTo(80); // 0.1 * 300 + 50
   });
 
   it('2D image converts to nx×ny×1 grid', () => {

@@ -33,12 +33,11 @@ export function resolveDisplacementPlaneSegments(
   let seg: number | undefined =
     typeof cfg.segments === 'number' ? (cfg.segments as number) : undefined;
   if (seg == null && typeof props.segments === 'number') seg = props.segments;
-  if (seg == null && typeof props.displacementSegments === 'number') seg = props.displacementSegments;
+  if (seg == null && typeof props.displacementSegments === 'number')
+    seg = props.displacementSegments;
 
   const auto =
-    cfg.auto_segments === true ||
-    props.auto_segments === true ||
-    props.autoSegments === true;
+    cfg.auto_segments === true || props.auto_segments === true || props.autoSegments === true;
 
   const hasTrait = traits?.has('displacement') === true;
 
@@ -232,7 +231,9 @@ export function getMaterialProps(
     const cfg = (traits.get('displacement') || {}) as Record<string, unknown>;
     const scale =
       (typeof cfg.scale === 'number' ? cfg.scale : undefined) ??
-      (typeof props.displacementScale === 'number' ? (props.displacementScale as number) : undefined);
+      (typeof props.displacementScale === 'number'
+        ? (props.displacementScale as number)
+        : undefined);
     if (scale !== undefined) matProps.displacementScale = scale;
     const bias =
       (typeof cfg.bias === 'number' ? cfg.bias : undefined) ??

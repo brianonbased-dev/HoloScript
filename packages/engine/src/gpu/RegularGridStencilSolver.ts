@@ -76,7 +76,7 @@ export class RegularGridStencilSolver {
   async stepThermalExplicit(
     temperature: Float32Array,
     source: Float32Array,
-    params: ThermalStencilParams,
+    params: ThermalStencilParams
   ): Promise<Float32Array | null> {
     if (!(await this.ensureReady()) || !this.thermalPipeline) return null;
     const zero = new Float32Array(temperature.length);
@@ -91,7 +91,7 @@ export class RegularGridStencilSolver {
     current: Float32Array,
     previous: Float32Array,
     velocity: Float32Array | null,
-    params: AcousticStencilParams,
+    params: AcousticStencilParams
   ): Promise<Float32Array | null> {
     if (!(await this.ensureReady()) || !this.acousticPipeline) return null;
     const aux = velocity ?? new Float32Array(current.length);
@@ -120,14 +120,18 @@ export class RegularGridStencilSolver {
     inputA: Float32Array,
     inputB: Float32Array,
     aux: Float32Array,
-    params: ThermalStencilParams & { cUniform: number; hasVelocity: boolean } | AcousticStencilParams & { alpha: number; rhoCp: number },
+    params:
+      | (ThermalStencilParams & { cUniform: number; hasVelocity: boolean })
+      | (AcousticStencilParams & { alpha: number; rhoCp: number })
   ): Promise<Float32Array> {
     const device = this.context.getDevice();
     const n = params.nx * params.ny * params.nz;
     const byteLength = n * Float32Array.BYTES_PER_ELEMENT;
 
     if (inputA.length !== n || inputB.length !== n || aux.length !== n) {
-      throw new Error(`RegularGridStencilSolver expected ${n} cells, got ${inputA.length}/${inputB.length}/${aux.length}`);
+      throw new Error(
+        `RegularGridStencilSolver expected ${n} cells, got ${inputA.length}/${inputB.length}/${aux.length}`
+      );
     }
 
     const bufferA = this.createStorageBuffer('stencil-input-a', inputA, GPUBufferUsage.COPY_DST);
@@ -186,7 +190,11 @@ export class RegularGridStencilSolver {
     return out;
   }
 
-  private createStorageBuffer(label: string, data: Float32Array, extraUsage: GPUBufferUsageFlags): GPUBuffer {
+  private createStorageBuffer(
+    label: string,
+    data: Float32Array,
+    extraUsage: GPUBufferUsageFlags
+  ): GPUBuffer {
     const device = this.context.getDevice();
     const upload = new Float32Array(data);
     const buffer = device.createBuffer({
@@ -199,7 +207,9 @@ export class RegularGridStencilSolver {
   }
 
   private packParams(
-    params: ThermalStencilParams & { cUniform: number; hasVelocity: boolean } | AcousticStencilParams & { alpha: number; rhoCp: number },
+    params:
+      | (ThermalStencilParams & { cUniform: number; hasVelocity: boolean })
+      | (AcousticStencilParams & { alpha: number; rhoCp: number })
   ): ArrayBuffer {
     const buffer = new ArrayBuffer(48);
     const u32 = new Uint32Array(buffer);

@@ -57,19 +57,13 @@ export interface DiffractionConfig {
  * Provider function to detect edges in the scene.
  * Implementations should return edges that could cause diffraction.
  */
-export type EdgeDetectionProvider = (
-  sourcePos: Vec3,
-  listenerPos: Vec3
-) => DiffractionEdge[];
+export type EdgeDetectionProvider = (sourcePos: Vec3, listenerPos: Vec3) => DiffractionEdge[];
 
 /**
  * Provider function to check line-of-sight between two points.
  * Returns true if the path is clear, false if obstructed.
  */
-export type LineOfSightProvider = (
-  point1: Vec3,
-  point2: Vec3
-) => boolean;
+export type LineOfSightProvider = (point1: Vec3, point2: Vec3) => boolean;
 
 // =============================================================================
 // AUDIO DIFFRACTION SYSTEM
@@ -116,11 +110,7 @@ export class AudioDiffractionSystem {
    * Compute diffraction paths between source and listener.
    * Returns all valid diffraction paths sorted by coefficient (strongest first).
    */
-  computeDiffraction(
-    sourcePos: Vec3,
-    listenerPos: Vec3,
-    sourceId: string
-  ): DiffractionResult {
+  computeDiffraction(sourcePos: Vec3, listenerPos: Vec3, sourceId: string): DiffractionResult {
     if (!this.config.enabled || !this.edgeProvider || !this.losProvider) {
       return {
         sourceId,
@@ -230,11 +220,7 @@ export class AudioDiffractionSystem {
    * Find the optimal diffraction point on an edge.
    * Uses closest point on line segment to the midpoint between source and listener.
    */
-  private findDiffractionPoint(
-    edge: DiffractionEdge,
-    sourcePos: Vec3,
-    listenerPos: Vec3
-  ): Vec3 {
+  private findDiffractionPoint(edge: DiffractionEdge, sourcePos: Vec3, listenerPos: Vec3): Vec3 {
     // Simplified: use midpoint of source and listener projected onto edge
     const midpoint: Vec3 = [
       (sourcePos[0] + listenerPos[0]) / 2,
@@ -249,17 +235,19 @@ export class AudioDiffractionSystem {
    * Calculate the diffraction angle in radians.
    * This is the angle between source->edge and edge->listener vectors.
    */
-  private calculateDiffractionAngle(
-    sourcePos: Vec3,
-    edgePoint: Vec3,
-    listenerPos: Vec3
-  ): number {
+  private calculateDiffractionAngle(sourcePos: Vec3, edgePoint: Vec3, listenerPos: Vec3): number {
     // Vector from edge to source
-    const v1 = [sourcePos[0] - edgePoint[0], sourcePos[1] - edgePoint[1], sourcePos[2] - edgePoint[2],
+    const v1 = [
+      sourcePos[0] - edgePoint[0],
+      sourcePos[1] - edgePoint[1],
+      sourcePos[2] - edgePoint[2],
     ];
 
     // Vector from edge to listener
-    const v2 = [listenerPos[0] - edgePoint[0], listenerPos[1] - edgePoint[1], listenerPos[2] - edgePoint[2],
+    const v2 = [
+      listenerPos[0] - edgePoint[0],
+      listenerPos[1] - edgePoint[1],
+      listenerPos[2] - edgePoint[2],
     ];
 
     // Normalize
@@ -340,10 +328,7 @@ export class AudioDiffractionSystem {
   // Geometry Utilities
   // ---------------------------------------------------------------------------
 
-  private distance3D(
-    p1: Vec3,
-    p2: Vec3
-  ): number {
+  private distance3D(p1: Vec3, p2: Vec3): number {
     const dx = p2[0] - p1[0];
     const dy = p2[1] - p1[1];
     const dz = p2[2] - p1[2];
@@ -353,13 +338,9 @@ export class AudioDiffractionSystem {
   /**
    * Find closest point on line segment AB to point P.
    */
-  private closestPointOnSegment(
-    a: Vec3,
-    b: Vec3,
-    p: Vec3
-  ): Vec3 {
-    const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2] ];
-    const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2] ];
+  private closestPointOnSegment(a: Vec3, b: Vec3, p: Vec3): Vec3 {
+    const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const ap = [p[0] - a[0], p[1] - a[1], p[2] - a[2]];
 
     const abLenSq = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2];
 
@@ -367,8 +348,7 @@ export class AudioDiffractionSystem {
 
     const t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / abLenSq));
 
-    return [a[0] + t * ab[0], a[1] + t * ab[1], a[2] + t * ab[2],
-    ];
+    return [a[0] + t * ab[0], a[1] + t * ab[1], a[2] + t * ab[2]];
   }
 
   // ---------------------------------------------------------------------------

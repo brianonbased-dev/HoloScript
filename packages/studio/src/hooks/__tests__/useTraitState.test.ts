@@ -68,9 +68,7 @@ describe('useTraitState', () => {
   });
 
   it('returns defaultValue when nodeId is null', () => {
-    const { result } = renderHook(() =>
-      useTraitState(null, 'neural_animation', (s) => s.x, 42)
-    );
+    const { result } = renderHook(() => useTraitState(null, 'neural_animation', (s) => s.x, 42));
     expect(result.current).toBe(42);
   });
 
@@ -85,6 +83,10 @@ describe('useTraitState', () => {
 
     window.removeEventListener('holoTrait:stateUpdate', handler);
     expect(events).toHaveLength(1);
-    expect(events[0].detail).toEqual({ nodeId: 'node-evt', traitName: 'neural_animation', state: { foo: 1 } });
+    expect(events[0].detail).toEqual({
+      nodeId: 'node-evt',
+      traitName: 'neural_animation',
+      state: { foo: 1 },
+    });
   });
 });

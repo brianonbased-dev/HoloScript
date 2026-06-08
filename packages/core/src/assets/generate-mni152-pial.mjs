@@ -1,10 +1,12 @@
 import fs from 'node:fs';
 
 const SCALE = { x: 82, y: 92, z: 72 };
-const SEG_LAT = 10, SEG_LON = 14;
+const SEG_LAT = 10,
+  SEG_LON = 14;
 
 function gen() {
-  const pos = [], idx = [];
+  const pos = [],
+    idx = [];
   for (let lat = 0; lat <= SEG_LAT; lat++) {
     const t = (lat / SEG_LAT) * Math.PI;
     const cy = Math.cos(t);
@@ -34,22 +36,33 @@ function gen() {
   const b64 = data.toString('base64');
 
   const gltf = {
-    asset: { version: "2.0", generator: "HoloScript procedural MNI152 pial v1 (ellipsoid + gyri modulation)" },
+    asset: {
+      version: '2.0',
+      generator: 'HoloScript procedural MNI152 pial v1 (ellipsoid + gyri modulation)',
+    },
     scenes: [{ nodes: [0] }],
-    nodes: [{ mesh: 0, name: "MNI152-pial-v1" }],
-    meshes: [{ name: "pial", primitives: [{ attributes: { POSITION: 0 }, indices: 1, mode: 4 }] }],
-    buffers: [{ uri: "data:application/octet-stream;base64," + b64, byteLength: data.length }],
+    nodes: [{ mesh: 0, name: 'MNI152-pial-v1' }],
+    meshes: [{ name: 'pial', primitives: [{ attributes: { POSITION: 0 }, indices: 1, mode: 4 }] }],
+    buffers: [{ uri: 'data:application/octet-stream;base64,' + b64, byteLength: data.length }],
     bufferViews: [
       { buffer: 0, byteOffset: 0, byteLength: pBuf.length, target: 34962 },
-      { buffer: 0, byteOffset: pBuf.length, byteLength: iBuf.length, target: 34963 }
+      { buffer: 0, byteOffset: pBuf.length, byteLength: iBuf.length, target: 34963 },
     ],
     accessors: [
-      { bufferView: 0, byteOffset: 0, componentType: 5126, count: pos.length / 3, type: "VEC3", min: [-SCALE.x, -SCALE.y, -SCALE.z], max: [SCALE.x, SCALE.y, SCALE.z] },
-      { bufferView: 1, byteOffset: 0, componentType: 5123, count: idx.length, type: "SCALAR" }
-    ]
+      {
+        bufferView: 0,
+        byteOffset: 0,
+        componentType: 5126,
+        count: pos.length / 3,
+        type: 'VEC3',
+        min: [-SCALE.x, -SCALE.y, -SCALE.z],
+        max: [SCALE.x, SCALE.y, SCALE.z],
+      },
+      { bufferView: 1, byteOffset: 0, componentType: 5123, count: idx.length, type: 'SCALAR' },
+    ],
   };
   return JSON.stringify(gltf, null, 2);
 }
 
 fs.writeFileSync('brain-mni152-pial.gltf', gen());
-console.log('Wrote improved MNI152 pial v1 (~' + (SEG_LAT * SEG_LON) + ' verts)');
+console.log('Wrote improved MNI152 pial v1 (~' + SEG_LAT * SEG_LON + ' verts)');

@@ -4,25 +4,39 @@ export const moltbookTools: Tool[] = [
   // ── Feed & Discovery ──────────────────────────────────────────────────────
   {
     name: 'moltbook_feed',
-    description: 'Browse the Moltbook feed. Returns posts sorted by hot/new/best. Use filter=following for posts from agents you follow.',
+    description:
+      'Browse the Moltbook feed. Returns posts sorted by hot/new/best. Use filter=following for posts from agents you follow.',
     inputSchema: {
       type: 'object',
       properties: {
-        sort: { type: 'string', enum: ['hot', 'new', 'best'], description: 'Sort order (default: hot)' },
+        sort: {
+          type: 'string',
+          enum: ['hot', 'new', 'best'],
+          description: 'Sort order (default: hot)',
+        },
         limit: { type: 'number', description: 'Max posts to return (default: 20)' },
         cursor: { type: 'string', description: 'Pagination cursor from previous response' },
-        filter: { type: 'string', enum: ['all', 'following'], description: 'Filter to followed agents only' },
+        filter: {
+          type: 'string',
+          enum: ['all', 'following'],
+          description: 'Filter to followed agents only',
+        },
       },
     },
   },
   {
     name: 'moltbook_search',
-    description: 'Full-text search across Moltbook posts, comments, and agents. Returns relevance-scored results with highlights.',
+    description:
+      'Full-text search across Moltbook posts, comments, and agents. Returns relevance-scored results with highlights.',
     inputSchema: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Search query' },
-        type: { type: 'string', enum: ['posts', 'comments', 'agents'], description: 'What to search (default: posts)' },
+        type: {
+          type: 'string',
+          enum: ['posts', 'comments', 'agents'],
+          description: 'What to search (default: posts)',
+        },
         limit: { type: 'number', description: 'Max results (default: 10)' },
       },
       required: ['query'],
@@ -30,20 +44,25 @@ export const moltbookTools: Tool[] = [
   },
   {
     name: 'moltbook_home',
-    description: 'Get dashboard: karma, notifications count, followed posts, DMs. Use this to check session state at the start of an engagement cycle.',
+    description:
+      'Get dashboard: karma, notifications count, followed posts, DMs. Use this to check session state at the start of an engagement cycle.',
     inputSchema: { type: 'object', properties: {} },
   },
 
   // ── Posts ──────────────────────────────────────────────────────────────────
   {
     name: 'moltbook_post_create',
-    description: 'Create a new post in a submolt. Follow the voice rules: 90% ideas, no product pitching, no HoloScript in titles.',
+    description:
+      'Create a new post in a submolt. Follow the voice rules: 90% ideas, no product pitching, no HoloScript in titles.',
     inputSchema: {
       type: 'object',
       properties: {
         title: { type: 'string', description: 'Post title (no product names)' },
         content: { type: 'string', description: 'Post body (markdown supported)' },
-        submolt: { type: 'string', description: 'Submolt to post in (e.g., "agents", "philosophy", "general")' },
+        submolt: {
+          type: 'string',
+          description: 'Submolt to post in (e.g., "agents", "philosophy", "general")',
+        },
       },
       required: ['title', 'content', 'submolt'],
     },
@@ -79,7 +98,11 @@ export const moltbookTools: Tool[] = [
       type: 'object',
       properties: {
         postId: { type: 'string', description: 'Post ID' },
-        sort: { type: 'string', enum: ['best', 'new', 'old'], description: 'Sort order (default: best)' },
+        sort: {
+          type: 'string',
+          enum: ['best', 'new', 'old'],
+          description: 'Sort order (default: best)',
+        },
         limit: { type: 'number', description: 'Max comments (default: 20)' },
         cursor: { type: 'string', description: 'Pagination cursor' },
       },
@@ -94,7 +117,10 @@ export const moltbookTools: Tool[] = [
       properties: {
         postId: { type: 'string', description: 'Post ID to comment on' },
         content: { type: 'string', description: 'Comment body' },
-        parentId: { type: 'string', description: 'Parent comment ID for nested replies (optional)' },
+        parentId: {
+          type: 'string',
+          description: 'Parent comment ID for nested replies (optional)',
+        },
       },
       required: ['postId', 'content'],
     },
@@ -154,7 +180,8 @@ export const moltbookTools: Tool[] = [
   // ── Submolts ──────────────────────────────────────────────────────────────
   {
     name: 'moltbook_submolts_list',
-    description: 'List all submolts with subscriber and post counts. Pull live — never hardcode these numbers.',
+    description:
+      'List all submolts with subscriber and post counts. Pull live — never hardcode these numbers.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
@@ -172,7 +199,8 @@ export const moltbookTools: Tool[] = [
   // ── Notifications ─────────────────────────────────────────────────────────
   {
     name: 'moltbook_notifications',
-    description: 'Get all notifications. Includes full comment content inline — use to find conversations to engage with.',
+    description:
+      'Get all notifications. Includes full comment content inline — use to find conversations to engage with.',
     inputSchema: { type: 'object', properties: {} },
   },
   {

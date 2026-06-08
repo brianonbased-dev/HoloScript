@@ -101,7 +101,8 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   const measured_runs = Number(process.env.PAPER7_MEASURED_RUNS ?? 5);
   const seed = Number(process.env.PAPER7_SEED ?? 1337);
   const idx = argv.indexOf('--out');
-  const out_path = idx >= 0 && argv[idx + 1] ? argv[idx + 1] : '.bench-logs/paper-7-ik-latency.json';
+  const out_path =
+    idx >= 0 && argv[idx + 1] ? argv[idx + 1] : '.bench-logs/paper-7-ik-latency.json';
 
   const publication = runPaper7IKLatencyBenchmark({ task_count, measured_runs, seed });
   writePaper7Artifact(publication, resolve(process.cwd(), out_path));

@@ -38,7 +38,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -86,7 +88,10 @@ const camera = parseCameraDump(cameraDumpText);
 assertEq(camera.backCameraPresent, true, 'back camera present');
 assertEq(camera.depthMetadataPresent, true, 'depth metadata present');
 assertOk(camera.capabilities.includes('MANUAL_SENSOR'), 'manual sensor capability parsed');
-assertOk(camera.depthMetadataKeys.includes('android.depth.maxDepthSamples'), 'depth sample metadata parsed');
+assertOk(
+  camera.depthMetadataKeys.includes('android.depth.maxDepthSamples'),
+  'depth sample metadata parsed'
+);
 const samsungActivity = parseResolveActivity(`ActivityInfo:
   name=com.sec.android.app.camera.Camera
   packageName=com.sec.android.app.camera
@@ -144,7 +149,10 @@ const missingDepth = buildAndroidArCoreDepthProbeReceipt({
   localToolchain: receipt.localToolchain,
 });
 assertEq(missingDepth.status, 'blocked', 'missing depth metadata blocks');
-assertOk(missingDepth.blockers.includes('camera2-depth-metadata-not-observed'), 'missing depth blocker recorded');
+assertOk(
+  missingDepth.blockers.includes('camera2-depth-metadata-not-observed'),
+  'missing depth blocker recorded'
+);
 
 const missingArCore = buildAndroidArCoreDepthProbeReceipt({
   ...receipt,
@@ -158,7 +166,10 @@ const missingArCore = buildAndroidArCoreDepthProbeReceipt({
   localToolchain: receipt.localToolchain,
 });
 assertEq(missingArCore.status, 'fail', 'missing ARCore fails');
-assertOk(missingArCore.failures.includes('arcore-package-missing'), 'missing ARCore failure recorded');
+assertOk(
+  missingArCore.failures.includes('arcore-package-missing'),
+  'missing ARCore failure recorded'
+);
 
 console.log('Test 5: overclaiming acquired depth frames is rejected');
 const overclaim = {
@@ -169,7 +180,9 @@ const overclaim = {
   },
 };
 assertOk(
-  validateReceipt(overclaim).includes('readiness probe must not claim ARCore depth frames were acquired'),
+  validateReceipt(overclaim).includes(
+    'readiness probe must not claim ARCore depth frames were acquired'
+  ),
   'depth-frame overclaim rejected'
 );
 

@@ -135,17 +135,47 @@ export function meshBox(options: BoxMeshOptions): TetMesh {
         // Alternating decomposition for conforming faces
         // Node orderings verified for positive determinant (right-hand rule)
         if ((i + j + k) % 2 === 0) {
-          tetrahedra[tetIdx++] = v0; tetrahedra[tetIdx++] = v1; tetrahedra[tetIdx++] = v3; tetrahedra[tetIdx++] = v4;
-          tetrahedra[tetIdx++] = v1; tetrahedra[tetIdx++] = v2; tetrahedra[tetIdx++] = v3; tetrahedra[tetIdx++] = v6;
-          tetrahedra[tetIdx++] = v4; tetrahedra[tetIdx++] = v5; tetrahedra[tetIdx++] = v1; tetrahedra[tetIdx++] = v6;
-          tetrahedra[tetIdx++] = v4; tetrahedra[tetIdx++] = v7; tetrahedra[tetIdx++] = v6; tetrahedra[tetIdx++] = v3;
-          tetrahedra[tetIdx++] = v1; tetrahedra[tetIdx++] = v4; tetrahedra[tetIdx++] = v6; tetrahedra[tetIdx++] = v3;
+          tetrahedra[tetIdx++] = v0;
+          tetrahedra[tetIdx++] = v1;
+          tetrahedra[tetIdx++] = v3;
+          tetrahedra[tetIdx++] = v4;
+          tetrahedra[tetIdx++] = v1;
+          tetrahedra[tetIdx++] = v2;
+          tetrahedra[tetIdx++] = v3;
+          tetrahedra[tetIdx++] = v6;
+          tetrahedra[tetIdx++] = v4;
+          tetrahedra[tetIdx++] = v5;
+          tetrahedra[tetIdx++] = v1;
+          tetrahedra[tetIdx++] = v6;
+          tetrahedra[tetIdx++] = v4;
+          tetrahedra[tetIdx++] = v7;
+          tetrahedra[tetIdx++] = v6;
+          tetrahedra[tetIdx++] = v3;
+          tetrahedra[tetIdx++] = v1;
+          tetrahedra[tetIdx++] = v4;
+          tetrahedra[tetIdx++] = v6;
+          tetrahedra[tetIdx++] = v3;
         } else {
-          tetrahedra[tetIdx++] = v1; tetrahedra[tetIdx++] = v0; tetrahedra[tetIdx++] = v5; tetrahedra[tetIdx++] = v2;
-          tetrahedra[tetIdx++] = v3; tetrahedra[tetIdx++] = v0; tetrahedra[tetIdx++] = v2; tetrahedra[tetIdx++] = v7;
-          tetrahedra[tetIdx++] = v4; tetrahedra[tetIdx++] = v5; tetrahedra[tetIdx++] = v0; tetrahedra[tetIdx++] = v7;
-          tetrahedra[tetIdx++] = v6; tetrahedra[tetIdx++] = v5; tetrahedra[tetIdx++] = v7; tetrahedra[tetIdx++] = v2;
-          tetrahedra[tetIdx++] = v0; tetrahedra[tetIdx++] = v5; tetrahedra[tetIdx++] = v2; tetrahedra[tetIdx++] = v7;
+          tetrahedra[tetIdx++] = v1;
+          tetrahedra[tetIdx++] = v0;
+          tetrahedra[tetIdx++] = v5;
+          tetrahedra[tetIdx++] = v2;
+          tetrahedra[tetIdx++] = v3;
+          tetrahedra[tetIdx++] = v0;
+          tetrahedra[tetIdx++] = v2;
+          tetrahedra[tetIdx++] = v7;
+          tetrahedra[tetIdx++] = v4;
+          tetrahedra[tetIdx++] = v5;
+          tetrahedra[tetIdx++] = v0;
+          tetrahedra[tetIdx++] = v7;
+          tetrahedra[tetIdx++] = v6;
+          tetrahedra[tetIdx++] = v5;
+          tetrahedra[tetIdx++] = v7;
+          tetrahedra[tetIdx++] = v2;
+          tetrahedra[tetIdx++] = v0;
+          tetrahedra[tetIdx++] = v5;
+          tetrahedra[tetIdx++] = v2;
+          tetrahedra[tetIdx++] = v7;
         }
       }
     }
@@ -163,21 +193,29 @@ export function meshBox(options: BoxMeshOptions): TetMesh {
 export function findNodesOnFace(
   mesh: TetMesh,
   face: 'x-' | 'x+' | 'y-' | 'y+' | 'z-' | 'z+',
-  tolerance = 1e-10,
+  tolerance = 1e-10
 ): number[] {
   const verts = mesh.vertices;
   const nodeCount = mesh.nodeCount;
 
   // Find bounding box
-  let minX = Infinity, maxX = -Infinity;
-  let minY = Infinity, maxY = -Infinity;
-  let minZ = Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    maxX = -Infinity;
+  let minY = Infinity,
+    maxY = -Infinity;
+  let minZ = Infinity,
+    maxZ = -Infinity;
 
   for (let i = 0; i < nodeCount; i++) {
-    const x = verts[i * 3], y = verts[i * 3 + 1], z = verts[i * 3 + 2];
-    if (x < minX) minX = x; if (x > maxX) maxX = x;
-    if (y < minY) minY = y; if (y > maxY) maxY = y;
-    if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+    const x = verts[i * 3],
+      y = verts[i * 3 + 1],
+      z = verts[i * 3 + 2];
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
   }
 
   const targets: Record<string, { axis: number; value: number }> = {
@@ -208,7 +246,7 @@ export function findNodesOnFace(
 export function findNodesInSphere(
   mesh: TetMesh,
   center: [number, number, number],
-  radius: number,
+  radius: number
 ): number[] {
   const verts = mesh.vertices;
   const r2 = radius * radius;
@@ -246,7 +284,7 @@ export function registerWasmMesher(mesher: WasmMesher): void {
  */
 export async function meshSurface(
   surface: SurfaceMesh,
-  options?: SurfaceMeshOptions,
+  options?: SurfaceMeshOptions
 ): Promise<TetMesh> {
   if (registeredMesher) {
     try {
@@ -256,22 +294,32 @@ export async function meshSurface(
       // bounding-box meshing so the pipeline stays alive for MVP demos.
       const reason = err instanceof Error ? err.message : String(err);
       // eslint-disable-next-line no-console
-      console.warn(`[AutoMesher] WASM mesher failed: ${reason}. Falling back to bounding-box meshing.`);
+      console.warn(
+        `[AutoMesher] WASM mesher failed: ${reason}. Falling back to bounding-box meshing.`
+      );
     }
   }
 
   // Fallback: mesh the bounding box of the surface
   const verts = surface.vertices;
   const nodeCount = verts.length / 3;
-  let minX = Infinity, maxX = -Infinity;
-  let minY = Infinity, maxY = -Infinity;
-  let minZ = Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    maxX = -Infinity;
+  let minY = Infinity,
+    maxY = -Infinity;
+  let minZ = Infinity,
+    maxZ = -Infinity;
 
   for (let i = 0; i < nodeCount; i++) {
-    const x = verts[i * 3], y = verts[i * 3 + 1], z = verts[i * 3 + 2];
-    if (x < minX) minX = x; if (x > maxX) maxX = x;
-    if (y < minY) minY = y; if (y > maxY) maxY = y;
-    if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+    const x = verts[i * 3],
+      y = verts[i * 3 + 1],
+      z = verts[i * 3 + 2];
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
   }
 
   const lx = maxX - minX || 1;
@@ -303,21 +351,33 @@ export function meshQuality(mesh: TetMesh): {
 } {
   const verts = mesh.vertices;
   const tets = mesh.tetrahedra;
-  let minVol = Infinity, maxVol = -Infinity, sumVol = 0;
+  let minVol = Infinity,
+    maxVol = -Infinity,
+    sumVol = 0;
   let minAR = Infinity;
   let inverted = 0;
 
   for (let e = 0; e < mesh.elementCount; e++) {
     const base = e * 4;
-    const n0 = tets[base], n1 = tets[base + 1], n2 = tets[base + 2], n3 = tets[base + 3];
+    const n0 = tets[base],
+      n1 = tets[base + 1],
+      n2 = tets[base + 2],
+      n3 = tets[base + 3];
 
     // Edge vectors from n0
-    const dx1 = verts[n1 * 3] - verts[n0 * 3], dy1 = verts[n1 * 3 + 1] - verts[n0 * 3 + 1], dz1 = verts[n1 * 3 + 2] - verts[n0 * 3 + 2];
-    const dx2 = verts[n2 * 3] - verts[n0 * 3], dy2 = verts[n2 * 3 + 1] - verts[n0 * 3 + 1], dz2 = verts[n2 * 3 + 2] - verts[n0 * 3 + 2];
-    const dx3 = verts[n3 * 3] - verts[n0 * 3], dy3 = verts[n3 * 3 + 1] - verts[n0 * 3 + 1], dz3 = verts[n3 * 3 + 2] - verts[n0 * 3 + 2];
+    const dx1 = verts[n1 * 3] - verts[n0 * 3],
+      dy1 = verts[n1 * 3 + 1] - verts[n0 * 3 + 1],
+      dz1 = verts[n1 * 3 + 2] - verts[n0 * 3 + 2];
+    const dx2 = verts[n2 * 3] - verts[n0 * 3],
+      dy2 = verts[n2 * 3 + 1] - verts[n0 * 3 + 1],
+      dz2 = verts[n2 * 3 + 2] - verts[n0 * 3 + 2];
+    const dx3 = verts[n3 * 3] - verts[n0 * 3],
+      dy3 = verts[n3 * 3 + 1] - verts[n0 * 3 + 1],
+      dz3 = verts[n3 * 3 + 2] - verts[n0 * 3 + 2];
 
     // Signed volume = det(J) / 6
-    const det = dx1 * (dy2 * dz3 - dz2 * dy3) - dy1 * (dx2 * dz3 - dz2 * dx3) + dz1 * (dx2 * dy3 - dy2 * dx3);
+    const det =
+      dx1 * (dy2 * dz3 - dz2 * dy3) - dy1 * (dx2 * dz3 - dz2 * dx3) + dz1 * (dx2 * dy3 - dy2 * dx3);
     const vol = det / 6;
 
     if (vol < 0) inverted++;

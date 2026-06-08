@@ -70,7 +70,10 @@ export interface ResourceDispatchConfig {
 // =============================================================================
 
 const unitEtaCountdowns = new Map<string, number>();
-const dispatchLog = new Map<string, Array<{ timestamp: number; status: DispatchStatus; note?: string }>>();
+const dispatchLog = new Map<
+  string,
+  Array<{ timestamp: number; status: DispatchStatus; note?: string }>
+>();
 
 // =============================================================================
 // TRAIT HANDLER
@@ -92,11 +95,13 @@ export const resourceDispatchHandler: TraitHandler<ResourceDispatchConfig> = {
     const id = node.id ?? 'unknown';
 
     // Initialize dispatch log
-    dispatchLog.set(id, [{
-      timestamp: Date.now(),
-      status: config.status,
-      note: 'Unit registered',
-    }]);
+    dispatchLog.set(id, [
+      {
+        timestamp: Date.now(),
+        status: config.status,
+        note: 'Unit registered',
+      },
+    ]);
 
     // Initialize ETA countdown
     unitEtaCountdowns.set(id, config.etaSeconds);
@@ -116,7 +121,12 @@ export const resourceDispatchHandler: TraitHandler<ResourceDispatchConfig> = {
     ctx.emit?.('resource_dispatch:detached', { nodeId: id });
   },
 
-  onUpdate(node: HSPlusNode, config: ResourceDispatchConfig, ctx: TraitContext, delta: number): void {
+  onUpdate(
+    node: HSPlusNode,
+    config: ResourceDispatchConfig,
+    ctx: TraitContext,
+    delta: number
+  ): void {
     const id = node.id ?? 'unknown';
 
     // Count down ETA when en_route
@@ -139,7 +149,12 @@ export const resourceDispatchHandler: TraitHandler<ResourceDispatchConfig> = {
     }
   },
 
-  onEvent(node: HSPlusNode, config: ResourceDispatchConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: ResourceDispatchConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     const id = node.id ?? 'unknown';
     const eventType = typeof event === 'string' ? event : event.type;
 
@@ -247,15 +262,68 @@ export const RESOURCE_DISPATCH_TRAIT = {
   compileTargets: ['node', 'python', 'headless', 'r3f'],
   requiresRenderer: false,
   parameters: [
-    { name: 'unitType', type: 'enum', required: true, enumValues: ['fire', 'ems', 'police', 'hazmat', 'search_rescue'], description: 'Type of response unit' },
+    {
+      name: 'unitType',
+      type: 'enum',
+      required: true,
+      enumValues: ['fire', 'ems', 'police', 'hazmat', 'search_rescue'],
+      description: 'Type of response unit',
+    },
     { name: 'unitId', type: 'string', required: true, description: 'Unique unit identifier' },
-    { name: 'status', type: 'enum', required: false, enumValues: ['available', 'dispatched', 'en_route', 'on_scene', 'returning', 'out_of_service'], default: 'available', description: 'Dispatch status' },
-    { name: 'etaSeconds', type: 'number', required: false, default: 0, description: 'ETA in seconds' },
-    { name: 'position', type: 'object', required: false, description: 'Current position {lat, lng, alt}' },
-    { name: 'destination', type: 'object', required: false, description: 'Destination {lat, lng, alt}' },
-    { name: 'personnelCount', type: 'number', required: false, default: 2, description: 'Number of personnel' },
-    { name: 'specializedEquipment', type: 'array', required: false, default: [], description: 'Specialized equipment list' },
-    { name: 'radioChannel', type: 'string', required: false, description: 'Assigned radio channel' },
+    {
+      name: 'status',
+      type: 'enum',
+      required: false,
+      enumValues: [
+        'available',
+        'dispatched',
+        'en_route',
+        'on_scene',
+        'returning',
+        'out_of_service',
+      ],
+      default: 'available',
+      description: 'Dispatch status',
+    },
+    {
+      name: 'etaSeconds',
+      type: 'number',
+      required: false,
+      default: 0,
+      description: 'ETA in seconds',
+    },
+    {
+      name: 'position',
+      type: 'object',
+      required: false,
+      description: 'Current position {lat, lng, alt}',
+    },
+    {
+      name: 'destination',
+      type: 'object',
+      required: false,
+      description: 'Destination {lat, lng, alt}',
+    },
+    {
+      name: 'personnelCount',
+      type: 'number',
+      required: false,
+      default: 2,
+      description: 'Number of personnel',
+    },
+    {
+      name: 'specializedEquipment',
+      type: 'array',
+      required: false,
+      default: [],
+      description: 'Specialized equipment list',
+    },
+    {
+      name: 'radioChannel',
+      type: 'string',
+      required: false,
+      description: 'Assigned radio channel',
+    },
     { name: 'incidentId', type: 'string', required: false, description: 'Assigned incident ID' },
   ],
 };

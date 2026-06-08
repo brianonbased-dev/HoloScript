@@ -64,46 +64,42 @@ export function ContentCard({
         <p className="line-clamp-2 text-xs text-studio-muted">{item.description}</p>
         <div className="mt-auto flex flex-col gap-1 text-xs text-studio-muted">
           {priceCents != null && priceCents > 0 && (
-            <span className="font-medium text-studio-text">
-              ${(priceCents / 100).toFixed(2)}
-            </span>
+            <span className="font-medium text-studio-text">${(priceCents / 100).toFixed(2)}</span>
           )}
-          {cognitiveHz != null && (
-            <span>{cognitiveHz} Hz</span>
-          )}
+          {cognitiveHz != null && <span>{cognitiveHz} Hz</span>}
           <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1">
-            <Star className="h-3 w-3 text-yellow-500" />
-            {item.rating.toFixed(1)}
-          </span>
+            <span className="flex items-center gap-1">
+              <Star className="h-3 w-3 text-yellow-500" />
+              {item.rating.toFixed(1)}
+            </span>
             <div className="flex gap-1">
-            {onDownload && (
-              <button
-                type="button"
-                className="rounded p-1 hover:bg-studio-surface"
-                aria-label="Download"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDownload(item.id);
-                }}
-              >
-                <Download className="h-4 w-4" />
-              </button>
-            )}
-            {onFavorite && (
-              <button
-                type="button"
-                className="rounded p-1 hover:bg-studio-surface"
-                aria-label={isFavorited ? 'Unfavorite' : 'Favorite'}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFavorite(item.id);
-                }}
-              >
-                <Heart className={`h-4 w-4 ${isFavorited ? 'fill-red-400 text-red-400' : ''}`} />
-              </button>
-            )}
-          </div>
+              {onDownload && (
+                <button
+                  type="button"
+                  className="rounded p-1 hover:bg-studio-surface"
+                  aria-label="Download"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDownload(item.id);
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+              )}
+              {onFavorite && (
+                <button
+                  type="button"
+                  className="rounded p-1 hover:bg-studio-surface"
+                  aria-label={isFavorited ? 'Unfavorite' : 'Favorite'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFavorite(item.id);
+                  }}
+                >
+                  <Heart className={`h-4 w-4 ${isFavorited ? 'fill-red-400 text-red-400' : ''}`} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

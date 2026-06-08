@@ -146,11 +146,7 @@ function StatusPillar({
       {/* Status light on top */}
       <mesh position={[0, height + 0.15, 0]}>
         <sphereGeometry args={[0.1, 12, 8]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={0.8}
-        />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} />
       </mesh>
     </group>
   );
@@ -216,8 +212,8 @@ export function VnVSpace({
 }: VnVSpaceProps) {
   const hasConvergence = convergenceSeries && convergenceSeries.length > 0;
   const hasMeshLevels = meshLevels && meshLevels.length > 0;
-  const hasUncertainty = uncertaintyNodePositions && uncertaintyValues
-    && uncertaintyNodePositions.length > 0;
+  const hasUncertainty =
+    uncertaintyNodePositions && uncertaintyValues && uncertaintyNodePositions.length > 0;
 
   if (!visible) return null;
 

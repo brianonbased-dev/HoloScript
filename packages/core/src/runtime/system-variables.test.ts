@@ -11,17 +11,21 @@
 import { describe, it, expect, vi } from 'vitest';
 import { updateSystemVariables, type SystemVariablesContext } from './system-variables';
 
-function makeCtx(opts: {
-  existingVars?: Record<string, unknown>;
-  apiKeysJson?: string | null;
-} = {}): {
+function makeCtx(
+  opts: {
+    existingVars?: Record<string, unknown>;
+    apiKeysJson?: string | null;
+  } = {}
+): {
   ctx: SystemVariablesContext;
   writes: Record<string, unknown>;
 } {
   const writes: Record<string, unknown> = {};
   const existing = opts.existingVars ?? {};
   const ctx: SystemVariablesContext = {
-    setVariable: (name, value) => { writes[name] = value; },
+    setVariable: (name, value) => {
+      writes[name] = value;
+    },
     getVariable: (name) => existing[name],
     brittneyApiKeysJson: opts.apiKeysJson ?? null,
   };
@@ -149,7 +153,7 @@ describe('updateSystemVariables — $ai_config parsing', () => {
   it('adversarial JSON with __proto__ does not crash', () => {
     // Prototype pollution smoke test — readJson should reject or at
     // least not pollute Object.prototype.
-    const json = JSON.stringify({ '__proto__': { polluted: true } });
+    const json = JSON.stringify({ __proto__: { polluted: true } });
     const { ctx } = makeCtx({ apiKeysJson: json });
     expect(() => updateSystemVariables(ctx)).not.toThrow();
     // Check Object.prototype is clean
@@ -186,7 +190,9 @@ describe('updateSystemVariables — idempotence', () => {
 
     // Second tick: mock-defaults exist from first tick's writes; should NOT re-write them
     const ctx2: SystemVariablesContext = {
-      setVariable: (name, value) => { writes2[name] = value; },
+      setVariable: (name, value) => {
+        writes2[name] = value;
+      },
       getVariable: (name) => firstCallVars[name],
       brittneyApiKeysJson: null,
     };

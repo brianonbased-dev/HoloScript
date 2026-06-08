@@ -91,12 +91,12 @@ import { SimulationContractReceipt } from '@holoscript/core';
 
 ## Receipt pattern
 
-| Field | Value |
-|-------|-------|
+| Field                   | Value                         |
+| ----------------------- | ----------------------------- |
 | `sourceCompositionHash` | SHA-256 of the `.holo` source |
-| `targetFormat` | `dtdl/v3` |
-| `dtdlInterfaceId` | `dtmi:holoscript:<name>;1` |
-| `bridgeVersion` | `holoscript-dtdl-compiler/v1` |
+| `targetFormat`          | `dtdl/v3`                     |
+| `dtdlInterfaceId`       | `dtmi:holoscript:<name>;1`    |
+| `bridgeVersion`         | `holoscript-dtdl-compiler/v1` |
 
 ## Integration with HoloLand and Paper 26
 
@@ -109,6 +109,7 @@ import { SimulationContractReceipt } from '@holoscript/core';
 ## Verified compilation targets
 
 Check which DTDL targets are live:
+
 ```bash
 find packages -name "DTDLCompiler.ts" | xargs head -3
 ```

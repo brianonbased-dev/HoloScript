@@ -54,10 +54,18 @@ export interface UseBrittneyVoiceActionsReturn {
 // ── Ordinal word → 1-based index ──────────────────────────────────────────────
 
 const ORDINALS: Readonly<Record<string, number>> = {
-  one: 1, first: 1, '1': 1,
-  two: 2, second: 2, '2': 2,
-  three: 3, third: 3, '3': 3,
-  four: 4, fourth: 4, '4': 4,
+  one: 1,
+  first: 1,
+  '1': 1,
+  two: 2,
+  second: 2,
+  '2': 2,
+  three: 3,
+  third: 3,
+  '3': 3,
+  four: 4,
+  fourth: 4,
+  '4': 4,
 };
 
 /**

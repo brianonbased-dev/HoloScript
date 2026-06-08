@@ -190,7 +190,7 @@ describe('setLoadedState', () => {
   it('should emit urdf_loaded event', () => {
     const t = new URDFRobotTrait();
     const events: URDFRobotEvent[] = [];
-    t.on('urdf_loaded', e => events.push(e));
+    t.on('urdf_loaded', (e) => events.push(e));
     t.setLoadedState('Bot', 4, 2, []);
     expect(events.length).toBe(1);
     expect((events[0] as any).robotName).toBe('Bot');
@@ -227,7 +227,7 @@ describe('joint positions', () => {
   it('setJointPosition should emit joint_change event', () => {
     const t = new URDFRobotTrait();
     const events: URDFRobotEvent[] = [];
-    t.on('joint_change', e => events.push(e));
+    t.on('joint_change', (e) => events.push(e));
     t.setJointPosition('wrist', 1.2);
     expect(events.length).toBe(1);
     expect((events[0] as any).jointName).toBe('wrist');
@@ -237,7 +237,7 @@ describe('joint positions', () => {
   it('joint_change event should include timestamp', () => {
     const t = new URDFRobotTrait();
     const events: URDFRobotEvent[] = [];
-    t.on('joint_change', e => events.push(e));
+    t.on('joint_change', (e) => events.push(e));
     t.setJointPosition('wrist', 0);
     expect(typeof (events[0] as any).timestamp).toBe('number');
   });
@@ -277,7 +277,7 @@ describe('setError', () => {
   it('should emit urdf_error event', () => {
     const t = new URDFRobotTrait();
     const events: URDFRobotEvent[] = [];
-    t.on('urdf_error', e => events.push(e));
+    t.on('urdf_error', (e) => events.push(e));
     t.setError('parse failed');
     expect(events.length).toBe(1);
     expect((events[0] as any).error).toBe('parse failed');
@@ -298,7 +298,7 @@ describe('USDA cache', () => {
   it('should emit usdz_generated with correct size', () => {
     const t = new URDFRobotTrait();
     const events: URDFRobotEvent[] = [];
-    t.on('usdz_generated', e => events.push(e));
+    t.on('usdz_generated', (e) => events.push(e));
     t.setCachedUSDA('hello');
     expect((events[0] as any).size).toBe(5);
   });
@@ -428,14 +428,14 @@ describe('urdfRobotHandler.onAttach', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     urdfRobotHandler.onAttach(node, BASE_CONFIG, context);
-    expect(emitted.some(e => e.type === 'urdf_robot:attached')).toBe(true);
+    expect(emitted.some((e) => e.type === 'urdf_robot:attached')).toBe(true);
   });
 
   it('attached payload should include source and format', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     urdfRobotHandler.onAttach(node, { ...BASE_CONFIG, urdf_source: 'r.urdf' }, context);
-    const ev = emitted.find(e => e.type === 'urdf_robot:attached');
+    const ev = emitted.find((e) => e.type === 'urdf_robot:attached');
     expect((ev!.payload as any).source).toBe('r.urdf');
     expect((ev!.payload as any).format).toBe('usdz');
   });
@@ -457,7 +457,7 @@ describe('urdfRobotHandler.onDetach', () => {
     const { node, config } = setupHandler();
     const { context, emitted } = makeContext();
     urdfRobotHandler.onDetach(node, config, context);
-    expect(emitted.some(e => e.type === 'urdf_robot:detached')).toBe(true);
+    expect(emitted.some((e) => e.type === 'urdf_robot:detached')).toBe(true);
   });
 });
 

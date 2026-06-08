@@ -72,12 +72,16 @@ export interface TraitDispatchContext {
 
 export interface RuntimeTraitHandler {
   name: string;
-  onAttach?: (node: unknown, config: FixedIncomeSolverTraitConfig, context: TraitDispatchContext) => void;
+  onAttach?: (
+    node: unknown,
+    config: FixedIncomeSolverTraitConfig,
+    context: TraitDispatchContext
+  ) => void;
   onUpdate?: (
     node: unknown,
     config: FixedIncomeSolverTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -92,7 +96,7 @@ interface FixedIncomeSolverNode {
 function solveOntoNode(
   node: unknown,
   config: FixedIncomeSolverTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as FixedIncomeSolverNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

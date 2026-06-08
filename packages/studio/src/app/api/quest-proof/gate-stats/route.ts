@@ -68,7 +68,9 @@ async function readEvents(): Promise<GateEvent[]> {
     if (!trimmed) continue;
     try {
       events.push(JSON.parse(trimmed) as GateEvent);
-    } catch { /* skip malformed lines */ }
+    } catch {
+      /* skip malformed lines */
+    }
   }
   return events;
 }
@@ -92,8 +94,14 @@ function computeStats(events: GateEvent[], now: Date): GateStats {
     const in48h = ts >= window48Start && ts <= now;
 
     if (ev.event === 'pushed') {
-      if (inToday) { todayProposals++; todayPushed++; }
-      if (in48h) { last48hProposals++; last48hPushed++; }
+      if (inToday) {
+        todayProposals++;
+        todayPushed++;
+      }
+      if (in48h) {
+        last48hProposals++;
+        last48hPushed++;
+      }
     } else if (ev.event === 'bounced' || ev.event === 'push-failed') {
       if (inToday) {
         todayProposals++;

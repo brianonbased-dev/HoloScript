@@ -31,7 +31,7 @@ export const Easing = {
   easeOutQuad: (t: number) => t * (2 - t),
   easeInOutQuad: (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
   easeInCubic: (t: number) => t * t * t,
-  easeOutCubic: (t: number) => (--t) * t * t + 1,
+  easeOutCubic: (t: number) => --t * t * t + 1,
   easeInOutCubic: (t: number) =>
     t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1,
   easeOutBounce: (t: number) => {
@@ -51,8 +51,7 @@ function interpolateKeyframes(keyframes: Keyframe[], t: number): number {
 
   // Clamp to bounds
   if (t <= keyframes[0].time) return keyframes[0].value;
-  if (t >= keyframes[keyframes.length - 1].time)
-    return keyframes[keyframes.length - 1].value;
+  if (t >= keyframes[keyframes.length - 1].time) return keyframes[keyframes.length - 1].value;
 
   for (let i = 0; i < keyframes.length - 1; i++) {
     const a = keyframes[i];
@@ -105,7 +104,10 @@ export class AnimationEngine {
       } else {
         if (t >= dur) {
           entry.callback(
-            interpolateKeyframes(clip.keyframes, clip.keyframes[clip.keyframes.length - 1]?.time ?? dur)
+            interpolateKeyframes(
+              clip.keyframes,
+              clip.keyframes[clip.keyframes.length - 1]?.time ?? dur
+            )
           );
           this.active.delete(id);
           continue;
@@ -113,9 +115,7 @@ export class AnimationEngine {
       }
 
       // Normalize t to keyframe space
-      const normalizedT = clip.keyframes.length > 0
-        ? t
-        : t / dur;
+      const normalizedT = clip.keyframes.length > 0 ? t : t / dur;
 
       entry.callback(interpolateKeyframes(clip.keyframes, normalizedT));
     }

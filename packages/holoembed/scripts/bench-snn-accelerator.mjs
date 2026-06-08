@@ -32,14 +32,15 @@ const outputPath = path.resolve(
   repoRoot,
   argValue('--out') ??
     process.env.HOLOEMBED_SNN_BENCH_OUTPUT ??
-    '.bench-logs/holoembed-snn-accelerator-bench.json',
+    '.bench-logs/holoembed-snn-accelerator-bench.json'
 );
 const iterations = numberArg('--iterations', process.env.HOLOEMBED_SNN_BENCH_ITERS, 8);
 const warmups = numberArg('--warmups', process.env.HOLOEMBED_SNN_BENCH_WARMUPS, 2);
 const batchSize = numberArg('--batch-size', process.env.HOLOEMBED_SNN_BENCH_BATCH, 96);
 const timeSteps = numberArg('--timesteps', process.env.HOLOEMBED_SNN_TIMESTEPS, 64);
 const currentScale = numberArg('--current-scale', process.env.HOLOEMBED_SNN_CURRENT_SCALE, 240);
-const requireWebGpu = hasFlag('--require-webgpu') || process.env.HOLOEMBED_SNN_REQUIRE_WEBGPU === '1';
+const requireWebGpu =
+  hasFlag('--require-webgpu') || process.env.HOLOEMBED_SNN_REQUIRE_WEBGPU === '1';
 
 const lifParams = { currentScale };
 const texts = buildWorkloadTexts(batchSize);
@@ -63,10 +64,10 @@ if (!accel.available) {
 }
 
 const cpuLatency = await measure('cpu-lif-reference', warmups, iterations, () =>
-  histograms.map((hist) => encodeLifPopulationCpu(hist, { timeSteps, lifParams })),
+  histograms.map((hist) => encodeLifPopulationCpu(hist, { timeSteps, lifParams }))
 );
 const gpuLatency = await measure('webgpu-lif-shader', warmups, iterations, () =>
-  accel.encodeBatch(histograms),
+  accel.encodeBatch(histograms)
 );
 
 const parity = await measureParity(accel, histograms);
@@ -105,9 +106,10 @@ const artifact = {
     shaderParityPass: parity.maxAbsDiff <= 1e-6,
     recallEquivalent: recall.deltaAt1 === 0 && recall.deltaAt3 === 0,
     speedupObserved: speedupMean > 1,
-    speedupClaim: speedupMean > 1
-      ? 'WebGPU faster than CPU LIF reference on this measured run.'
-      : 'No WebGPU speedup observed on this measured run; do not market as acceleration.',
+    speedupClaim:
+      speedupMean > 1
+        ? 'WebGPU faster than CPU LIF reference on this measured run.'
+        : 'No WebGPU speedup observed on this measured run; do not market as acceleration.',
   },
 };
 
@@ -150,13 +152,37 @@ function buildWorkloadTexts(size) {
 function buildRecallCases() {
   return [
     ['pillar-slice-emitter', 'PillarSliceEmitter event class', 'pillar slice emitter'],
-    ['brain-coord-node-mapper', 'BrainCoordNodeMapper spatial memory mapper', 'brain coord node mapper'],
+    [
+      'brain-coord-node-mapper',
+      'BrainCoordNodeMapper spatial memory mapper',
+      'brain coord node mapper',
+    ],
     ['snn-accelerator', 'SnnAccelerator LIF WebGPU trigram encoder', 'snn accelerator webgpu'],
-    ['simulation-contract-receipt', 'SimulationContractReceipt CAEL solver evidence', 'simulation contract receipt'],
-    ['multi-target-tracking', 'MultiTargetTrackingTrait kalman hungarian reid assignment', 'multi target tracking'],
-    ['fabric-simulation', 'FabricSimulationTrait cloth weave stretch drape', 'fabric simulation cloth'],
-    ['energy-grid-optimizer', 'EnergyGridOptimizer solar battery feeder topology', 'energy grid optimizer'],
-    ['alphafold-docking', 'AlphaFoldDockingBridge binding affinity admet', 'alphafold docking bridge'],
+    [
+      'simulation-contract-receipt',
+      'SimulationContractReceipt CAEL solver evidence',
+      'simulation contract receipt',
+    ],
+    [
+      'multi-target-tracking',
+      'MultiTargetTrackingTrait kalman hungarian reid assignment',
+      'multi target tracking',
+    ],
+    [
+      'fabric-simulation',
+      'FabricSimulationTrait cloth weave stretch drape',
+      'fabric simulation cloth',
+    ],
+    [
+      'energy-grid-optimizer',
+      'EnergyGridOptimizer solar battery feeder topology',
+      'energy grid optimizer',
+    ],
+    [
+      'alphafold-docking',
+      'AlphaFoldDockingBridge binding affinity admet',
+      'alphafold docking bridge',
+    ],
   ].map(([id, document, query]) => ({ id, document, query }));
 }
 
@@ -214,8 +240,12 @@ async function measureRecall(accelerator, cases) {
   const documentHists = cases.map((c) => buildHistogram(c.document));
   const queryHists = cases.map((c) => buildHistogram(c.query));
 
-  const cpuDocuments = documentHists.map((hist) => encodeLifPopulationCpu(hist, { timeSteps, lifParams }));
-  const cpuQueries = queryHists.map((hist) => encodeLifPopulationCpu(hist, { timeSteps, lifParams }));
+  const cpuDocuments = documentHists.map((hist) =>
+    encodeLifPopulationCpu(hist, { timeSteps, lifParams })
+  );
+  const cpuQueries = queryHists.map((hist) =>
+    encodeLifPopulationCpu(hist, { timeSteps, lifParams })
+  );
   const gpuDocuments = await accelerator.encodeBatch(documentHists);
   const gpuQueries = await accelerator.encodeBatch(queryHists);
 

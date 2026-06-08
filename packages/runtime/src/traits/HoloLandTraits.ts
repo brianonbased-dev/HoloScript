@@ -62,7 +62,7 @@ function makeCoreContext(runtimeCtx: TraitContext): CoreTraitContext {
     emit: (event: string, payload?: unknown) => {
       dispatchCustomEvent(runtimeCtx.object, {
         type: event,
-        ...(payload as Record<string, unknown> ?? {}),
+        ...((payload as Record<string, unknown>) ?? {}),
       });
     },
     vr: {

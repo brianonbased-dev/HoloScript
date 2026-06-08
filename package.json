@@ -184,7 +184,9 @@
   "packageManager": "pnpm@8.12.0",
   "pnpm": {
     "peerDependencyRules": {
-      "ignoreMissing": ["@neondatabase/serverless"]
+      "ignoreMissing": [
+        "@neondatabase/serverless"
+      ]
     },
     "overrides": {
       "hono": ">=4.12.14",

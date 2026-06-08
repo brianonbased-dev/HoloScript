@@ -41,8 +41,16 @@ describe('PluginManager', () => {
     it('registers multiple tools at once', async () => {
       await PluginManager.registerPlugin(
         [
-          { name: '_unit_multi_1', description: 'Multi 1', inputSchema: { type: 'object' as const } },
-          { name: '_unit_multi_2', description: 'Multi 2', inputSchema: { type: 'object' as const } },
+          {
+            name: '_unit_multi_1',
+            description: 'Multi 1',
+            inputSchema: { type: 'object' as const },
+          },
+          {
+            name: '_unit_multi_2',
+            description: 'Multi 2',
+            inputSchema: { type: 'object' as const },
+          },
         ],
         async () => ({ result: 'multi' })
       );
@@ -52,7 +60,13 @@ describe('PluginManager', () => {
     it('blocks hostile plugin manifest', async () => {
       await expect(
         PluginManager.registerPlugin(
-          [{ name: '_unit_bad_tool', description: 'bad', inputSchema: { type: 'object' as const } }],
+          [
+            {
+              name: '_unit_bad_tool',
+              description: 'bad',
+              inputSchema: { type: 'object' as const },
+            },
+          ],
           async () => 'bad',
           { name: 'bad', scopeName: '@evil', version: '1.0.0', trustTier: 'unverified' }
         )
@@ -61,7 +75,13 @@ describe('PluginManager', () => {
 
     it('allows benign plugin manifest', async () => {
       await PluginManager.registerPlugin(
-        [{ name: '_unit_good_tool', description: 'good', inputSchema: { type: 'object' as const } }],
+        [
+          {
+            name: '_unit_good_tool',
+            description: 'good',
+            inputSchema: { type: 'object' as const },
+          },
+        ],
         async () => 'good',
         { name: 'good', scopeName: '@holoscript', version: '1.0.0', trustTier: 'verified' }
       );
@@ -79,7 +99,13 @@ describe('PluginManager', () => {
   describe('handleTool', () => {
     it('dispatches to registered handler', async () => {
       await PluginManager.registerPlugin(
-        [{ name: '_unit_dispatch_test', description: 'Test', inputSchema: { type: 'object' as const } }],
+        [
+          {
+            name: '_unit_dispatch_test',
+            description: 'Test',
+            inputSchema: { type: 'object' as const },
+          },
+        ],
         async (name, args) => ({ handled: true, name, args })
       );
       const result = await PluginManager.handleTool('_unit_dispatch_test', { x: 1 });
@@ -95,7 +121,13 @@ describe('PluginManager', () => {
   describe('reset', () => {
     it('clears all registered tools and handlers', async () => {
       await PluginManager.registerPlugin(
-        [{ name: '_unit_reset_tool', description: 'Reset test', inputSchema: { type: 'object' as const } }],
+        [
+          {
+            name: '_unit_reset_tool',
+            description: 'Reset test',
+            inputSchema: { type: 'object' as const },
+          },
+        ],
         async () => 'ok'
       );
       expect(PluginManager.getTools().length).toBe(1);

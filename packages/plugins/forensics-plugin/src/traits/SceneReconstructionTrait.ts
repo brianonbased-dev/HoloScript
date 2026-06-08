@@ -19,10 +19,18 @@ export const sceneReconstructionHandler: TraitHandler<SceneReconstructionConfig>
   },
   onAttach(node: HSPlusNode, config: SceneReconstructionConfig, ctx: TraitContext): void {
     const id = node.id ?? config.sceneId ?? 'unknown';
-    reconstructionState.set(id, { confidence: config.confidence, annotations: config.annotationCount });
+    reconstructionState.set(id, {
+      confidence: config.confidence,
+      annotations: config.annotationCount,
+    });
     ctx.emit?.('scene_reconstruction:attached', { nodeId: id, sceneId: config.sceneId });
   },
-  onEvent(node: HSPlusNode, config: SceneReconstructionConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: SceneReconstructionConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     const id = node.id ?? config.sceneId ?? 'unknown';
     const state = reconstructionState.get(id) ?? { confidence: 0, annotations: 0 };
 

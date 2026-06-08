@@ -65,13 +65,9 @@ describe('retireCustodialSigner — happy path', () => {
     // Event payload shape.
     expect(events[0].userId).toBe(USER);
     expect(events[0].metadata.newWalletAddress).toBe(WALLET);
-    expect(events[0].metadata.retiredCustodialSignerId).toBe(
-      result.retiredCustodialSignerId
-    );
+    expect(events[0].metadata.retiredCustodialSignerId).toBe(result.retiredCustodialSignerId);
     expect(events[1].userId).toBe(USER);
-    expect(events[1].metadata.retiredCustodialSignerId).toBe(
-      result.retiredCustodialSignerId
-    );
+    expect(events[1].metadata.retiredCustodialSignerId).toBe(result.retiredCustodialSignerId);
   });
 
   it('delivers audit events to subscribers', () => {
@@ -95,9 +91,7 @@ describe('retireCustodialSigner — atomicity (acceptance test #5)', () => {
     (stage) => {
       _setFailAfterStageForTests(stage);
 
-      expect(() => retireCustodialSigner(USER, WALLET)).toThrow(
-        /injected failure at/
-      );
+      expect(() => retireCustodialSigner(USER, WALLET)).toThrow(/injected failure at/);
 
       // All three stores MUST be unchanged.
       expect(isSelfCustodyActive(USER)).toBe(false);
@@ -194,9 +188,7 @@ describe('retireCustodialSigner — input validation', () => {
   });
 
   it('throws on empty newWalletAddress', () => {
-    expect(() => retireCustodialSigner(USER, '')).toThrow(
-      /newWalletAddress required/
-    );
+    expect(() => retireCustodialSigner(USER, '')).toThrow(/newWalletAddress required/);
   });
 });
 

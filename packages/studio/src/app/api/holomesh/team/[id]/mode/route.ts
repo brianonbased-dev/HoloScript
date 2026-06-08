@@ -152,7 +152,8 @@ const MODE_TASKS: Record<TeamMode, DerivedTask[]> = {
     },
     {
       title: 'Dependency audit triage',
-      description: 'Run pnpm audit (or npm audit) at repo root; file tasks for high/critical with minimal upgrade path.',
+      description:
+        'Run pnpm audit (or npm audit) at repo root; file tasks for high/critical with minimal upgrade path.',
       role: 'coder',
       priority: 2,
       source: 'auto-derive',
@@ -353,7 +354,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     tasks: posted,
   });
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

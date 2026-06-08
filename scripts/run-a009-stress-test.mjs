@@ -51,10 +51,14 @@ function compileComposition(filePath) {
     let stdout = '';
     let stderr = '';
 
-    const proc = spawn('npx', ['tsx', 'packages/core/src/compiler/main.ts', '--input', fullPath, '--target', 'webgpu'], {
-      cwd: ROOT,
-      timeout: 30000,
-    });
+    const proc = spawn(
+      'npx',
+      ['tsx', 'packages/core/src/compiler/main.ts', '--input', fullPath, '--target', 'webgpu'],
+      {
+        cwd: ROOT,
+        timeout: 30000,
+      }
+    );
 
     proc.stdout?.on('data', (data) => {
       stdout += data.toString();
@@ -120,7 +124,7 @@ function extractGapFromError(filePath, errorOutput) {
  * Main routine
  */
 async function main() {
-  const runId = process.argv.includes('--run-id') 
+  const runId = process.argv.includes('--run-id')
     ? process.argv[process.argv.indexOf('--run-id') + 1]
     : `stress-${Date.now()}`;
   const dryRun = process.argv.includes('--dry-run');
@@ -179,7 +183,9 @@ async function main() {
         try {
           const { execSync } = await import('child_process');
           execSync(`git add "${outputFile}"`, { cwd: ROOT });
-          execSync(`git commit -m "audit: A-009 gap seeds from stress-test run ${runId}"`, { cwd: ROOT });
+          execSync(`git commit -m "audit: A-009 gap seeds from stress-test run ${runId}"`, {
+            cwd: ROOT,
+          });
           execSync(`git push origin main`, { cwd: ROOT });
           console.log(`[A-009] Committed and pushed to main`);
         } catch (err) {

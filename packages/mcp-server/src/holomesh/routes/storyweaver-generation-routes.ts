@@ -50,12 +50,16 @@ export const storyWeaverNarrativeTextRequestSchema = z.object({
   focus: z.enum(['intro', 'rising', 'climax', 'resolution']).optional(),
 });
 
-export type StoryWeaverQuestNarrativeRequest = z.infer<typeof storyWeaverQuestNarrativeRequestSchema>;
+export type StoryWeaverQuestNarrativeRequest = z.infer<
+  typeof storyWeaverQuestNarrativeRequestSchema
+>;
 export type StoryWeaverNarrativeTextRequest = z.infer<typeof storyWeaverNarrativeTextRequestSchema>;
 
 // ── Test hooks (vitest) ───────────────────────────────────────────────────
 
-export type QuestNarrativeGenerator = (input: StoryWeaverQuestNarrativeRequest) => Promise<GeneratedQuest>;
+export type QuestNarrativeGenerator = (
+  input: StoryWeaverQuestNarrativeRequest
+) => Promise<GeneratedQuest>;
 export type StoryTextGenerator = (input: StoryWeaverNarrativeTextRequest) => Promise<{
   narrative: string;
   beats: string[];
@@ -107,7 +111,11 @@ export async function generateQuestNarrativeFromContext(
  */
 export async function generateStoryTextFromContext(
   input: StoryWeaverNarrativeTextRequest
-): Promise<{ narrative: string; beats: string[]; meta: { theme: string; difficulty: string; focus: string } }> {
+): Promise<{
+  narrative: string;
+  beats: string[];
+  meta: { theme: string; difficulty: string; focus: string };
+}> {
   if (storyTextOverride) {
     const r = await storyTextOverride(input);
     return {

@@ -88,8 +88,7 @@ function rotr32(x: number, n: number): number {
 function sha256PureJS(bytes: Uint8Array): string {
   // Initial hash values (FIPS 180-4 §5.3.3)
   const H = new Uint32Array([
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
   ]);
 
   // Pre-processing: padding to 512-bit block alignment with bit length
@@ -113,7 +112,8 @@ function sha256PureJS(bytes: Uint8Array): string {
   for (let off = 0; off < paddedLen; off += 64) {
     for (let t = 0; t < 16; t++) {
       const b = off + t * 4;
-      W[t] = ((padded[b] << 24) | (padded[b + 1] << 16) | (padded[b + 2] << 8) | padded[b + 3]) >>> 0;
+      W[t] =
+        ((padded[b] << 24) | (padded[b + 1] << 16) | (padded[b + 2] << 8) | padded[b + 3]) >>> 0;
     }
     for (let t = 16; t < 64; t++) {
       const s0 = rotr32(W[t - 15], 7) ^ rotr32(W[t - 15], 18) ^ (W[t - 15] >>> 3);
@@ -121,23 +121,38 @@ function sha256PureJS(bytes: Uint8Array): string {
       W[t] = (W[t - 16] + s0 + W[t - 7] + s1) >>> 0;
     }
 
-    let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+    let a = H[0],
+      b = H[1],
+      c = H[2],
+      d = H[3],
+      e = H[4],
+      f = H[5],
+      g = H[6],
+      h = H[7];
     for (let t = 0; t < 64; t++) {
       const S1 = rotr32(e, 6) ^ rotr32(e, 11) ^ rotr32(e, 25);
-      const ch = (e & f) ^ ((~e) & g);
+      const ch = (e & f) ^ (~e & g);
       const T1 = (h + S1 + ch + SHA256_K[t] + W[t]) >>> 0;
       const S0 = rotr32(a, 2) ^ rotr32(a, 13) ^ rotr32(a, 22);
       const mj = (a & b) ^ (a & c) ^ (b & c);
       const T2 = (S0 + mj) >>> 0;
-      h = g; g = f; f = e;
+      h = g;
+      g = f;
+      f = e;
       e = (d + T1) >>> 0;
-      d = c; c = b; b = a;
+      d = c;
+      c = b;
+      b = a;
       a = (T1 + T2) >>> 0;
     }
-    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0;
-    H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
-    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0;
-    H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+    H[0] = (H[0] + a) >>> 0;
+    H[1] = (H[1] + b) >>> 0;
+    H[2] = (H[2] + c) >>> 0;
+    H[3] = (H[3] + d) >>> 0;
+    H[4] = (H[4] + e) >>> 0;
+    H[5] = (H[5] + f) >>> 0;
+    H[6] = (H[6] + g) >>> 0;
+    H[7] = (H[7] + h) >>> 0;
   }
 
   let hex = '';
@@ -197,8 +212,8 @@ const TRACE_PAYLOAD_SIZES: ReadonlyArray<{ name: string; bytes: number }> = [
 // whole-project manifest aggregation.
 const PROVENANCE_SOURCE_SIZES: ReadonlyArray<{ name: string; paper: string; chars: number }> = [
   { name: 'single-object snippet   (0.5 KB)', paper: 'Paper-1/2/3', chars: 512 },
-  { name: 'medium composition      (5 KB)',   paper: 'Paper-1/2/3', chars: 5_120 },
-  { name: 'large composition       (50 KB)',  paper: 'Paper-1/2/3', chars: 51_200 },
+  { name: 'medium composition      (5 KB)', paper: 'Paper-1/2/3', chars: 5_120 },
+  { name: 'large composition       (50 KB)', paper: 'Paper-1/2/3', chars: 51_200 },
   { name: 'full-project manifest   (200 KB)', paper: 'Paper-1/2/3', chars: 204_800 },
 ];
 
@@ -251,9 +266,11 @@ function measure(fn: (input: Uint8Array) => string, input: Uint8Array): number {
 
 describe('FNV-1a vs SHA-256 — contract hash site overhead', () => {
   it('measures three hash implementations across paper-3 state-vector scales', () => {
-    console.log('\n[security-item-3][Paper-3 §7.5] FNV-1a vs SHA-256 (native + pure-JS) — state-vector hashing');
     console.log(
-      'scenario                          fnv1a (μs)   native (μs)   pureJS (μs)   nat-×   pjs-×   pjs-Δ (μs)',
+      '\n[security-item-3][Paper-3 §7.5] FNV-1a vs SHA-256 (native + pure-JS) — state-vector hashing'
+    );
+    console.log(
+      'scenario                          fnv1a (μs)   native (μs)   pureJS (μs)   nat-×   pjs-×   pjs-Δ (μs)'
     );
     for (const s of STATE_VECTOR_SIZES) {
       const input = randomFloatBytes(s.floats, s.floats * 7919);
@@ -270,45 +287,49 @@ describe('FNV-1a vs SHA-256 — contract hash site overhead', () => {
           `${(pjsMs * 1000).toFixed(3).padStart(10)}   ` +
           `${natRatio.toFixed(2).padStart(5)}×  ` +
           `${pjsRatio.toFixed(2).padStart(5)}×  ` +
-          `${pjsDeltaUs.toFixed(3).padStart(9)}`,
+          `${pjsDeltaUs.toFixed(3).padStart(9)}`
       );
     }
   });
 
-  it('measures three hash implementations across CAEL trace payload sizes', { timeout: 60_000 }, () => {
-    console.log('\n[security-item-3][Paper-3 CAEL] FNV-1a vs SHA-256 (native + pure-JS) — CAEL trace payload hashing');
-    console.log(
-      'scenario                          fnv1a (μs)   native (μs)   pureJS (μs)   nat-×   pjs-×   pjs-Δ (μs)',
-    );
-    for (const s of TRACE_PAYLOAD_SIZES) {
-      const input = randomBytes(s.bytes, s.bytes * 6311);
-      const fnvMs = measure(fnv1a, input);
-      const natMs = measure(sha256Native, input);
-      const pjsMs = measure(sha256PureJS, input);
-      const natRatio = natMs / fnvMs;
-      const pjsRatio = pjsMs / fnvMs;
-      const pjsDeltaUs = (pjsMs - fnvMs) * 1000;
+  it(
+    'measures three hash implementations across CAEL trace payload sizes',
+    { timeout: 60_000 },
+    () => {
       console.log(
-        `  ${s.name.padEnd(33)} ` +
-          `${(fnvMs * 1000).toFixed(3).padStart(10)}   ` +
-          `${(natMs * 1000).toFixed(3).padStart(10)}   ` +
-          `${(pjsMs * 1000).toFixed(3).padStart(10)}   ` +
-          `${natRatio.toFixed(2).padStart(5)}×  ` +
-          `${pjsRatio.toFixed(2).padStart(5)}×  ` +
-          `${pjsDeltaUs.toFixed(3).padStart(9)}`,
+        '\n[security-item-3][Paper-3 CAEL] FNV-1a vs SHA-256 (native + pure-JS) — CAEL trace payload hashing'
       );
-    }
+      console.log(
+        'scenario                          fnv1a (μs)   native (μs)   pureJS (μs)   nat-×   pjs-×   pjs-Δ (μs)'
+      );
+      for (const s of TRACE_PAYLOAD_SIZES) {
+        const input = randomBytes(s.bytes, s.bytes * 6311);
+        const fnvMs = measure(fnv1a, input);
+        const natMs = measure(sha256Native, input);
+        const pjsMs = measure(sha256PureJS, input);
+        const natRatio = natMs / fnvMs;
+        const pjsRatio = pjsMs / fnvMs;
+        const pjsDeltaUs = (pjsMs - fnvMs) * 1000;
+        console.log(
+          `  ${s.name.padEnd(33)} ` +
+            `${(fnvMs * 1000).toFixed(3).padStart(10)}   ` +
+            `${(natMs * 1000).toFixed(3).padStart(10)}   ` +
+            `${(pjsMs * 1000).toFixed(3).padStart(10)}   ` +
+            `${natRatio.toFixed(2).padStart(5)}×  ` +
+            `${pjsRatio.toFixed(2).padStart(5)}×  ` +
+            `${pjsDeltaUs.toFixed(3).padStart(9)}`
+        );
+      }
 
-    console.log(
-      '\n[security-item-3] nat-× is Native SHA-256 vs FNV-1a; pjs-× is Pure-JS SHA-256 vs FNV-1a.',
-    );
-    console.log(
-      '                  Pure-JS is the Path 3 deployment target (Node+browser universal, sync).',
-    );
-    console.log(
-      '                  Native numbers are informational (upper-bound performance).',
-    );
-  });
+      console.log(
+        '\n[security-item-3] nat-× is Native SHA-256 vs FNV-1a; pjs-× is Pure-JS SHA-256 vs FNV-1a.'
+      );
+      console.log(
+        '                  Pure-JS is the Path 3 deployment target (Node+browser universal, sync).'
+      );
+      console.log('                  Native numbers are informational (upper-bound performance).');
+    }
+  );
 
   // RFC 6234 Appendix B.1-2 test vectors: validates our pure-JS SHA-256
   // produces standards-compliant output, not just a plausible-looking
@@ -318,16 +339,16 @@ describe('FNV-1a vs SHA-256 — contract hash site overhead', () => {
     const te = new TextEncoder();
     // RFC 6234 §B.1: SHA-256("abc")
     expect(sha256PureJS(te.encode('abc'))).toBe(
-      'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+      'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
     );
     // SHA-256("") — NIST standard empty-input vector
     expect(sha256PureJS(new Uint8Array(0))).toBe(
-      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
     );
     // RFC 6234 §B.2: SHA-256(longer multi-block input)
     const longer = te.encode('abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq');
     expect(sha256PureJS(longer)).toBe(
-      '248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1',
+      '248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1'
     );
   });
 
@@ -382,11 +403,13 @@ describe('FNV-1a vs SHA-256 — contract hash site overhead', () => {
     { timeout: 60_000 },
     () => {
       console.log(
-        '\n[security-item-3][Paper-1/2/3 provenance] FNV-1a vs SHA-256 (native + pure-JS) — computeContentHash() path',
+        '\n[security-item-3][Paper-1/2/3 provenance] FNV-1a vs SHA-256 (native + pure-JS) — computeContentHash() path'
       );
-      console.log('  deploy/provenance.ts → createHash(sha256).update(source, utf8) — BuildCache key derivation');
       console.log(
-        'scenario                               paper        fnv1a (μs)   native (μs)   pureJS (μs)   nat-×   pjs-×',
+        '  deploy/provenance.ts → createHash(sha256).update(source, utf8) — BuildCache key derivation'
+      );
+      console.log(
+        'scenario                               paper        fnv1a (μs)   native (μs)   pureJS (μs)   nat-×   pjs-×'
       );
       for (const s of PROVENANCE_SOURCE_SIZES) {
         const input = syntheticSource(s.chars, s.chars * 3571);
@@ -401,18 +424,16 @@ describe('FNV-1a vs SHA-256 — contract hash site overhead', () => {
             `${(natMs * 1000).toFixed(3).padStart(10)}   ` +
             `${(pjsMs * 1000).toFixed(3).padStart(10)}   ` +
             `${natRatio.toFixed(2).padStart(5)}×  ` +
-            `${pjsRatio.toFixed(2).padStart(5)}×`,
+            `${pjsRatio.toFixed(2).padStart(5)}×`
         );
       }
+      console.log('\n  nat-× = Native SHA-256 overhead vs FNV-1a on UTF-8 source.');
       console.log(
-        '\n  nat-× = Native SHA-256 overhead vs FNV-1a on UTF-8 source.',
+        '  pjs-× = Pure-JS SHA-256 overhead vs FNV-1a — Path 3 deployment cost on source hashing.'
       );
       console.log(
-        '  pjs-× = Pure-JS SHA-256 overhead vs FNV-1a — Path 3 deployment cost on source hashing.',
+        '  At 5 KB (medium composition), pure-JS should dominate the per-file compile budget if > ~10× FNV.'
       );
-      console.log(
-        '  At 5 KB (medium composition), pure-JS should dominate the per-file compile budget if > ~10× FNV.',
-      );
-    },
+    }
   );
-}, /* no timeout — bench is fast */);
+} /* no timeout — bench is fast */);

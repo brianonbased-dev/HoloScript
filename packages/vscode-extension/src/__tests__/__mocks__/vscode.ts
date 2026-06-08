@@ -67,13 +67,25 @@ export class Position {
     if (this.isAfter(other)) return 1;
     return 0;
   }
-  translate(lineDeltaOrChange?: number | { lineDelta?: number; characterDelta?: number }, characterDelta?: number): Position {
+  translate(
+    lineDeltaOrChange?: number | { lineDelta?: number; characterDelta?: number },
+    characterDelta?: number
+  ): Position {
     if (typeof lineDeltaOrChange === 'object' && lineDeltaOrChange !== null) {
-      return new Position(this.line + (lineDeltaOrChange.lineDelta ?? 0), this.character + (lineDeltaOrChange.characterDelta ?? 0));
+      return new Position(
+        this.line + (lineDeltaOrChange.lineDelta ?? 0),
+        this.character + (lineDeltaOrChange.characterDelta ?? 0)
+      );
     }
-    return new Position(this.line + (lineDeltaOrChange ?? 0), this.character + (characterDelta ?? 0));
+    return new Position(
+      this.line + (lineDeltaOrChange ?? 0),
+      this.character + (characterDelta ?? 0)
+    );
   }
-  with(lineOrChange?: number | { line?: number; character?: number }, character?: number): Position {
+  with(
+    lineOrChange?: number | { line?: number; character?: number },
+    character?: number
+  ): Position {
     if (typeof lineOrChange === 'object' && lineOrChange !== null) {
       return new Position(lineOrChange.line ?? this.line, lineOrChange.character ?? this.character);
     }

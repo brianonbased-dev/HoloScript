@@ -1,9 +1,9 @@
-import { cn } from '@/lib/cn'
+import { cn } from '@/lib/cn';
 
 interface StatusBadgeProps {
-  online: boolean
-  lastSeen?: string
-  className?: string
+  online: boolean;
+  lastSeen?: string;
+  className?: string;
 }
 
 export function StatusBadge({ online, lastSeen, className }: StatusBadgeProps) {
@@ -19,5 +19,5 @@ export function StatusBadge({ online, lastSeen, className }: StatusBadgeProps) {
         {online ? 'online' : lastSeen ? `last seen ${lastSeen}` : 'offline'}
       </span>
     </span>
-  )
+  );
 }

@@ -11,7 +11,7 @@ describe('RopeSystem — Production', () => {
   // ─── Creation ─────────────────────────────────────────────────────
   it('createRope generates nodes from start to end', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', [0, 0, 0 ], [10, 0, 0 ]);
+    rs.createRope('r1', [0, 0, 0], [10, 0, 0]);
     const nodes = rs.getRopeNodes('r1');
     expect(nodes.length).toBe(11); // 10 segments + 1
     expect(rs.getRopeCount()).toBe(1);
@@ -19,14 +19,14 @@ describe('RopeSystem — Production', () => {
 
   it('custom segment count is respected', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', [0, 0, 0 ], [5, 0, 0 ], { segmentCount: 5 });
+    rs.createRope('r1', [0, 0, 0], [5, 0, 0], { segmentCount: 5 });
     expect(rs.getRopeNodes('r1').length).toBe(6);
   });
 
   // ─── Pin / Attach ─────────────────────────────────────────────────
   it('pinNode prevents node movement', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', [0, 0, 0 ], [5, 0, 0 ]);
+    rs.createRope('r1', [0, 0, 0], [5, 0, 0]);
     rs.pinNode('r1', 0);
     const before = { ...rs.getRopeNodes('r1')[0].position };
     rs.update(1 / 60);
@@ -37,7 +37,7 @@ describe('RopeSystem — Production', () => {
 
   it('unpinNode allows movement', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', [0, 5, 0 ], [5, 5, 0 ]);
+    rs.createRope('r1', [0, 5, 0], [5, 5, 0]);
     rs.pinNode('r1', 0);
     rs.unpinNode('r1', 0);
     rs.update(1 / 60);
@@ -47,8 +47,8 @@ describe('RopeSystem — Production', () => {
 
   it('attach adds attachment to rope', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', [0, 0, 0 ], [5, 0, 0 ]);
-    rs.attach('r1', { nodeIndex: 5, entityId: 'obj1', offset: [0, 0, 0 ] });
+    rs.createRope('r1', [0, 0, 0], [5, 0, 0]);
+    rs.attach('r1', { nodeIndex: 5, entityId: 'obj1', offset: [0, 0, 0] });
     // no crash, attachment stored
     expect(rs.getRopeCount()).toBe(1);
   });
@@ -56,7 +56,7 @@ describe('RopeSystem — Production', () => {
   // ─── Simulation ───────────────────────────────────────────────────
   it('update applies gravity to unpinned nodes', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', [0, 10, 0 ], [10, 10, 0 ]);
+    rs.createRope('r1', [0, 10, 0], [10, 10, 0]);
     rs.update(1 / 60);
     // all nodes should have fallen
     const nodes = rs.getRopeNodes('r1');
@@ -68,20 +68,20 @@ describe('RopeSystem — Production', () => {
   // ─── Queries ──────────────────────────────────────────────────────
   it('getRopeLength returns total length', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', [0, 0, 0 ], [10, 0, 0 ]);
+    rs.createRope('r1', [0, 0, 0], [10, 0, 0]);
     expect(rs.getRopeLength('r1')).toBeCloseTo(10, 0);
   });
 
   it('getTension for a zero-displacement rope is near 0', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', [0, 0, 0 ], [10, 0, 0 ]);
+    rs.createRope('r1', [0, 0, 0], [10, 0, 0]);
     // before any simulation, tension should be close to 0
     expect(rs.getTension('r1', 0)).toBeCloseTo(0, 1);
   });
 
   it('getTension returns 0 for invalid index', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', [0, 0, 0 ], [5, 0, 0 ]);
+    rs.createRope('r1', [0, 0, 0], [5, 0, 0]);
     expect(rs.getTension('r1', -1)).toBe(0);
     expect(rs.getTension('r1', 100)).toBe(0);
   });
@@ -94,7 +94,7 @@ describe('RopeSystem — Production', () => {
   // ─── Remove ───────────────────────────────────────────────────────
   it('removeRope deletes rope', () => {
     const rs = new RopeSystem();
-    rs.createRope('r1', [0, 0, 0 ], [5, 0, 0 ]);
+    rs.createRope('r1', [0, 0, 0], [5, 0, 0]);
     rs.removeRope('r1');
     expect(rs.getRopeCount()).toBe(0);
   });

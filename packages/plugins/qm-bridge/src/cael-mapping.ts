@@ -56,7 +56,7 @@ export function qmConfigToCael(config: QmSolverConfig): CaelQmSolverConfig {
     convergence_threshold: config.convergenceThreshold ?? 1e-6,
     max_scf_iterations: config.maxScfIterations ?? 100,
     memory_mb: config.memoryMb ?? 4000,
-    num_threads: config.numThreads ?? 0,  // 0 = auto
+    num_threads: config.numThreads ?? 0, // 0 = auto
     scale: 'quantum',
     solverType: `qm-${config.backend}`,
     extra_keywords: config.extraKeywords ?? {},
@@ -99,7 +99,7 @@ export function qmResultToCaelSummary(
     wallTimeSeconds: number;
     solverConfig: QmSolverConfig;
   },
-  numAtoms: number,
+  numAtoms: number
 ): CaelQmResultSummary {
   return {
     converged: result.converged,
@@ -136,7 +136,7 @@ export const QM_ACCEPTANCE_CRITERIA = {
   /** Maximum acceptable gradient norm for geometry convergence in Hartree/Bohr. */
   gradientNormTolerance: 4.5e-4,
   /** Maximum acceptable frequency deviation in cm^-1. */
-  frequencyTolerance: 10,  // cm^-1 — generous for harmonic vs anharmonic
+  frequencyTolerance: 10, // cm^-1 — generous for harmonic vs anharmonic
 } as const;
 
 /**
@@ -154,7 +154,7 @@ export function verifyQmAcceptance(
   },
   reference?: {
     totalEnergy: number;
-  },
+  }
 ): Array<{ criterion: string; message: string }> {
   const violations: Array<{ criterion: string; message: string }> = [];
 

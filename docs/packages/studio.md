@@ -255,18 +255,15 @@ Multiple users can edit simultaneously:
 ### Getting Started Templates
 
 ```yaml
-
 Templates:
-
-- Empty Scene
-- First-Person Shooter
-- Multiplayer Arena
-- Marketplace Showcase
-- VRChat World
-- Mobile AR Experience
-- Godot Game
-- Web Experience
-
+  - Empty Scene
+  - First-Person Shooter
+  - Multiplayer Arena
+  - Marketplace Showcase
+  - VRChat World
+  - Mobile AR Experience
+  - Godot Game
+  - Web Experience
 ```
 
 Choose template → Start with structured project
@@ -278,12 +275,10 @@ Choose template → Start with structured project
 **Tools** → **Performance Monitor**
 
 ```yaml
-
 FPS: 60
 Memory: 128 MB / 256 MB (50%)
 Draw Calls: 45
 Triangles: 125,000
-
 ```
 
 ### Optimization Tips

@@ -445,11 +445,7 @@ export class BinaryReader {
    * Read a 3D vector
    */
   readVector3(): IVector3 {
-    return [
-      this.readFloat32(),
-      this.readFloat32(),
-      this.readFloat32(),
-    ];
+    return [this.readFloat32(), this.readFloat32(), this.readFloat32()];
   }
 
   /**

@@ -101,10 +101,7 @@ export type { CPUNeuronState, StepResult } from './poc/index.js';
 
 // Paper #2 empirical probe — pairs with @holoscript/core/testing's DeterminismHarness
 // for cross-backend LIF determinism validation.
-export {
-  runLIFDeterminismProbe,
-  PAPER_2_CANONICAL_CONFIG,
-} from './paper/LIFDeterminismProbe.js';
+export { runLIFDeterminismProbe, PAPER_2_CANONICAL_CONFIG } from './paper/LIFDeterminismProbe.js';
 export type { LIFProbeOptions } from './paper/LIFDeterminismProbe.js';
 
 // Prophetic GI pipeline (Phase 2 foundation) — consumed by

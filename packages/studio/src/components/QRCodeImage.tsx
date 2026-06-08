@@ -10,10 +10,7 @@ interface QRCodeImageProps {
   className?: string;
 }
 
-type QRCodeState =
-  | { status: 'loading' }
-  | { status: 'ready'; src: string }
-  | { status: 'error' };
+type QRCodeState = { status: 'loading' } | { status: 'ready'; src: string } | { status: 'error' };
 
 export function QRCodeImage({
   url,
@@ -37,7 +34,7 @@ export function QRCodeImage({
             dark: '#0f172a',
             light: '#ffffff',
           },
-        }),
+        })
       )
       .then((src) => {
         if (isCurrent) {

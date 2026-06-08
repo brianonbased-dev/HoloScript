@@ -80,7 +80,7 @@ function extractBoundaryFaces(
   nodesPerElement: number,
   elementScalars?: Float64Array | Float32Array,
   displacements?: Float64Array | Float32Array,
-  displacementScale = 1.0,
+  displacementScale = 1.0
 ): { positions: Float32Array; scalars: Float32Array; normals: Float32Array; triCount: number } {
   const elementCount = tetrahedra.length / nodesPerElement;
   const FACE_DEFS = [
@@ -90,7 +90,10 @@ function extractBoundaryFaces(
     [1, 2, 3],
   ];
 
-  const faceMap = new Map<string, { elem: number; nodes: [number, number, number]; count: number }>();
+  const faceMap = new Map<
+    string,
+    { elem: number; nodes: [number, number, number]; count: number }
+  >();
 
   for (let e = 0; e < elementCount; e++) {
     const base = e * nodesPerElement;
@@ -147,7 +150,11 @@ function extractBoundaryFaces(
     let ny = az * bx - ax * bz;
     let nz = ax * by - ay * bx;
     const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
-    if (len > 1e-12) { nx /= len; ny /= len; nz /= len; }
+    if (len > 1e-12) {
+      nx /= len;
+      ny /= len;
+      nz /= len;
+    }
     for (let v = 0; v < 3; v++) {
       normals[i * 9 + v * 3] = nx;
       normals[i * 9 + v * 3 + 1] = ny;
@@ -208,11 +215,7 @@ function linearPosition(index: number, total: number, spacing: number): [number,
 function radialPosition(index: number, total: number, spacing: number): [number, number, number] {
   const radius = (total * spacing) / Math.PI;
   const angle = (index / Math.max(total - 1, 1)) * Math.PI;
-  return [
-    Math.cos(angle) * radius,
-    0,
-    -Math.sin(angle) * radius,
-  ];
+  return [Math.cos(angle) * radius, 0, -Math.sin(angle) * radius];
 }
 
 function stackedPosition(index: number, _total: number, spacing: number): [number, number, number] {
@@ -251,7 +254,7 @@ function MeshLevelVisualization({
       level.nodesPerElement ?? 4,
       level.elementScalars,
       level.displacements,
-      displacementScale,
+      displacementScale
     );
 
     const geo = new THREE.BufferGeometry();
@@ -264,12 +267,24 @@ function MeshLevelVisualization({
     for (let i = 0; i < surface.triCount; i++) {
       const p = surface.positions;
       const base = i * 9;
-      wirePositions[i * 18] = p[base]; wirePositions[i * 18 + 1] = p[base + 1]; wirePositions[i * 18 + 2] = p[base + 2];
-      wirePositions[i * 18 + 3] = p[base + 3]; wirePositions[i * 18 + 4] = p[base + 4]; wirePositions[i * 18 + 5] = p[base + 5];
-      wirePositions[i * 18 + 6] = p[base + 3]; wirePositions[i * 18 + 7] = p[base + 4]; wirePositions[i * 18 + 8] = p[base + 5];
-      wirePositions[i * 18 + 9] = p[base + 6]; wirePositions[i * 18 + 10] = p[base + 7]; wirePositions[i * 18 + 11] = p[base + 8];
-      wirePositions[i * 18 + 12] = p[base + 6]; wirePositions[i * 18 + 13] = p[base + 7]; wirePositions[i * 18 + 14] = p[base + 8];
-      wirePositions[i * 18 + 15] = p[base]; wirePositions[i * 18 + 16] = p[base + 1]; wirePositions[i * 18 + 17] = p[base + 2];
+      wirePositions[i * 18] = p[base];
+      wirePositions[i * 18 + 1] = p[base + 1];
+      wirePositions[i * 18 + 2] = p[base + 2];
+      wirePositions[i * 18 + 3] = p[base + 3];
+      wirePositions[i * 18 + 4] = p[base + 4];
+      wirePositions[i * 18 + 5] = p[base + 5];
+      wirePositions[i * 18 + 6] = p[base + 3];
+      wirePositions[i * 18 + 7] = p[base + 4];
+      wirePositions[i * 18 + 8] = p[base + 5];
+      wirePositions[i * 18 + 9] = p[base + 6];
+      wirePositions[i * 18 + 10] = p[base + 7];
+      wirePositions[i * 18 + 11] = p[base + 8];
+      wirePositions[i * 18 + 12] = p[base + 6];
+      wirePositions[i * 18 + 13] = p[base + 7];
+      wirePositions[i * 18 + 14] = p[base + 8];
+      wirePositions[i * 18 + 15] = p[base];
+      wirePositions[i * 18 + 16] = p[base + 1];
+      wirePositions[i * 18 + 17] = p[base + 2];
     }
     const wGeo = new THREE.BufferGeometry();
     wGeo.setAttribute('position', new THREE.BufferAttribute(wirePositions, 3));
@@ -331,7 +346,7 @@ function EvolutionRibbon({
 }) {
   const geometry = useMemo(() => {
     if (positions.length < 2) return new THREE.BufferGeometry();
-    const points = positions.map(p => new THREE.Vector3(...p));
+    const points = positions.map((p) => new THREE.Vector3(...p));
     const curve = new THREE.CatmullRomCurve3(points);
     return new THREE.TubeGeometry(curve, 32, 0.03, 8, false);
   }, [positions]);
@@ -367,7 +382,8 @@ export function MeshRefinementCompare({
   // Compute shared scalar range across all levels
   const sharedRange = useMemo<[number, number]>(() => {
     if (range) return range;
-    let min = Infinity, max = -Infinity;
+    let min = Infinity,
+      max = -Infinity;
     for (const level of levels) {
       if (level.elementScalars) {
         for (let i = 0; i < level.elementScalars.length; i++) {
@@ -382,18 +398,15 @@ export function MeshRefinementCompare({
     return [min, max];
   }, [range, levels]);
 
-  const layoutFn = layout === 'radial' ? radialPosition
-    : layout === 'stacked' ? stackedPosition
-    : linearPosition;
+  const layoutFn =
+    layout === 'radial' ? radialPosition : layout === 'stacked' ? stackedPosition : linearPosition;
 
   const levelPositions = useMemo(
     () => levels.map((_, i) => layoutFn(i, levels.length, spacing)),
     [levels.length, spacing, layout]
   );
 
-  const levelOpacity = layout === 'stacked'
-    ? 0.5 + 0.5 * (1 / levels.length)
-    : 0.9;
+  const levelOpacity = layout === 'stacked' ? 0.5 + 0.5 * (1 / levels.length) : 0.9;
 
   if (!visible || levels.length === 0) return null;
 
@@ -416,11 +429,7 @@ export function MeshRefinementCompare({
 
       {/* Evolution ribbon connecting levels */}
       {showEvolutionRibbon && levelPositions.length >= 2 && (
-        <EvolutionRibbon
-          positions={levelPositions}
-          color={0x4488ff}
-          opacity={0.4}
-        />
+        <EvolutionRibbon positions={levelPositions} color={0x4488ff} opacity={0.4} />
       )}
     </group>
   );

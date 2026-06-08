@@ -35,7 +35,9 @@ function assertEq(actual, expected, name) {
     console.log(`  PASS ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -58,7 +60,9 @@ function assertThrows(fn, expectedSubstring, name) {
   } catch (error) {
     if (expectedSubstring && !String(error.message).includes(expectedSubstring)) {
       testsFailed += 1;
-      console.error(`  FAIL ${name}: expected "${expectedSubstring}" in error, got "${error.message}"`);
+      console.error(
+        `  FAIL ${name}: expected "${expectedSubstring}" in error, got "${error.message}"`
+      );
     } else {
       console.log(`  PASS ${name}`);
     }
@@ -84,7 +88,14 @@ const validRequest = {
   riskLevel: 'low',
   commandPreview: 'haptic pulse 200ms left-controller',
   safeRanges: [
-    { parameter: 'pulse_duration_ms', unit: 'ms', min: 0, max: 500, defaultValue: 100, autoStopOnViolation: true },
+    {
+      parameter: 'pulse_duration_ms',
+      unit: 'ms',
+      min: 0,
+      max: 500,
+      defaultValue: 100,
+      autoStopOnViolation: true,
+    },
   ],
   maxSensorAgeMs: 5000,
   maxApprovalAgeMs: 30000,
@@ -110,7 +121,11 @@ assertEq(plan.executionEnabled, false, 'executionEnabled is false in plan');
 assertOk(plan.nonce?.length > 0, 'nonce is present');
 assertOk(plan.replayKey?.length > 0, 'replayKey is present');
 assertOk(validateActuationPlanPack(plan).length === 0, 'plan validates');
-assertEq(plan.envelope.deviceMutationAllowed, false, 'envelope.deviceMutationAllowed is false in plan');
+assertEq(
+  plan.envelope.deviceMutationAllowed,
+  false,
+  'envelope.deviceMutationAllowed is false in plan'
+);
 const planJson = JSON.stringify(plan);
 assertOk(!planJson.includes('aabbcc1122'), 'raw device ID fragment is absent from receipt');
 
@@ -124,11 +139,12 @@ assertOk(validateActuationPlanPack(simulated).length === 0, 'simulated pack vali
 // ── Test 3: safe-range violation is rejected ──
 console.log('Test 3: simulate rejects safe-range violations');
 assertThrows(
-  () => buildSimulatedPack(plan, {
-    ...simulateInput,
-    paramValues: { pulse_duration_ms: 600 }, // > max 500
-    durationMs: 600,
-  }),
+  () =>
+    buildSimulatedPack(plan, {
+      ...simulateInput,
+      paramValues: { pulse_duration_ms: 600 }, // > max 500
+      durationMs: 600,
+    }),
   'safe-range constraints',
   'safe-range violation throws'
 );
@@ -142,14 +158,18 @@ const approved = buildApprovedPack(simulated, {
 });
 assertEq(approved.status, 'approved', 'approved status');
 assertEq(approved.executionEnabled, true, 'executionEnabled is true after approve');
-assertOk(approved.envelope.deviceMutationAllowed === true, 'envelope.deviceMutationAllowed is true after approve');
+assertOk(
+  approved.envelope.deviceMutationAllowed === true,
+  'envelope.deviceMutationAllowed is true after approve'
+);
 assertOk(approved.sensorFreshness?.fresh === true, 'sensorFreshness.fresh is true');
 assertOk(validateActuationPlanPack(approved).length === 0, 'approved pack validates');
 
 // ── Test 5: wrong nonce is rejected ──
 console.log('Test 5: approve rejects wrong nonce');
 assertThrows(
-  () => buildApprovedPack(simulated, { now: '2026-05-20T00:00:10.000Z', approveNonce: 'wrong-nonce' }),
+  () =>
+    buildApprovedPack(simulated, { now: '2026-05-20T00:00:10.000Z', approveNonce: 'wrong-nonce' }),
   'Nonce mismatch',
   'wrong nonce throws nonce mismatch'
 );
@@ -165,19 +185,26 @@ assertThrows(
 // ── Test 7: stale approval is rejected ──
 console.log('Test 7: stale approval is rejected');
 const stalePlan = buildActuationPlanPack({ ...validRequest, now: '2026-04-01T00:00:00.000Z' });
-const staleSimulated = buildSimulatedPack(stalePlan, { ...simulateInput, now: '2026-04-01T00:01:00.000Z' });
+const staleSimulated = buildSimulatedPack(stalePlan, {
+  ...simulateInput,
+  now: '2026-04-01T00:01:00.000Z',
+});
 assertThrows(
-  () => buildApprovedPack(staleSimulated, {
-    now: '2026-05-20T12:00:00.000Z',
-    approveNonce: stalePlan.nonce,
-  }),
+  () =>
+    buildApprovedPack(staleSimulated, {
+      now: '2026-05-20T12:00:00.000Z',
+      approveNonce: stalePlan.nonce,
+    }),
   'Freshness gate',
   'stale approval throws freshness gate error'
 );
 
 // ── Test 8: abort from planned produces safeStop receipt ──
 console.log('Test 8: abort produces safeStop receipt with execution disabled');
-const aborted = buildAbortedPack(plan, { now: '2026-05-20T00:03:00.000Z', abortReason: 'operator_request' });
+const aborted = buildAbortedPack(plan, {
+  now: '2026-05-20T00:03:00.000Z',
+  abortReason: 'operator_request',
+});
 assertEq(aborted.status, 'aborted', 'aborted status');
 assertEq(aborted.executionEnabled, false, 'executionEnabled is false after abort');
 assertOk(aborted.safeStop?.safeCategoryReached === true, 'safeStop.safeCategoryReached is true');
@@ -186,10 +213,16 @@ assertOk(validateActuationPlanPack(aborted).length === 0, 'aborted pack validate
 
 // ── Test 9: abort from simulated also works ──
 console.log('Test 9: abort from simulated state works');
-const abortedFromSim = buildAbortedPack(simulated, { now: '2026-05-20T00:03:00.000Z', abortReason: 'timeout' });
+const abortedFromSim = buildAbortedPack(simulated, {
+  now: '2026-05-20T00:03:00.000Z',
+  abortReason: 'timeout',
+});
 assertEq(abortedFromSim.status, 'aborted', 'aborted from simulated status');
 assertEq(abortedFromSim.safeStop?.trigger, 'timeout', 'safeStop trigger is timeout');
-assertOk(validateActuationPlanPack(abortedFromSim).length === 0, 'aborted-from-simulated validates');
+assertOk(
+  validateActuationPlanPack(abortedFromSim).length === 0,
+  'aborted-from-simulated validates'
+);
 
 // ── Test 10: CLI plan -> simulate -> approve -> abort round trip ──
 console.log('Test 10: CLI plan -> simulate -> approve round trip writes receipts');
@@ -206,38 +239,54 @@ const abortedPath = join(tmp, 'aborted.json');
 writeJson(requestPath, validRequest);
 writeJson(simulatePath, simulateInput);
 
-const planCli = spawnSync(process.execPath, [SCRIPT, 'plan', '--input', requestPath, '--out', planPath], {
-  cwd: REPO_ROOT,
-  encoding: 'utf8',
-});
+const planCli = spawnSync(
+  process.execPath,
+  [SCRIPT, 'plan', '--input', requestPath, '--out', planPath],
+  {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  }
+);
 assertEq(planCli.status, 0, 'CLI plan exits 0');
 assertOk(existsSync(planPath), 'CLI plan file exists');
 
 const cliPlan = JSON.parse(readFileSync(planPath, 'utf8'));
 assertOk(cliPlan.nonce?.length > 0, 'CLI plan has nonce');
 
-const simulateCli = spawnSync(process.execPath, [SCRIPT, 'simulate', '--pack', planPath, '--input', simulatePath, '--out', simulatedPath], {
-  cwd: REPO_ROOT,
-  encoding: 'utf8',
-});
+const simulateCli = spawnSync(
+  process.execPath,
+  [SCRIPT, 'simulate', '--pack', planPath, '--input', simulatePath, '--out', simulatedPath],
+  {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  }
+);
 assertEq(simulateCli.status, 0, 'CLI simulate exits 0');
 assertOk(existsSync(simulatedPath), 'CLI simulated file exists');
 
 writeJson(approvePath, { now: '2026-05-20T00:00:20.000Z', approveNonce: cliPlan.nonce });
-const approveCli = spawnSync(process.execPath, [SCRIPT, 'approve', '--pack', simulatedPath, '--input', approvePath, '--out', approvedPath], {
-  cwd: REPO_ROOT,
-  encoding: 'utf8',
-});
+const approveCli = spawnSync(
+  process.execPath,
+  [SCRIPT, 'approve', '--pack', simulatedPath, '--input', approvePath, '--out', approvedPath],
+  {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  }
+);
 assertEq(approveCli.status, 0, 'CLI approve exits 0');
 const cliApproved = JSON.parse(readFileSync(approvedPath, 'utf8'));
 assertEq(cliApproved.status, 'approved', 'CLI approved status');
 assertEq(cliApproved.executionEnabled, true, 'CLI approved executionEnabled');
 
 writeJson(abortPath, { now: '2026-05-20T00:03:00.000Z', abortReason: 'operator_request' });
-const abortCli = spawnSync(process.execPath, [SCRIPT, 'abort', '--pack', simulatedPath, '--input', abortPath, '--out', abortedPath], {
-  cwd: REPO_ROOT,
-  encoding: 'utf8',
-});
+const abortCli = spawnSync(
+  process.execPath,
+  [SCRIPT, 'abort', '--pack', simulatedPath, '--input', abortPath, '--out', abortedPath],
+  {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  }
+);
 assertEq(abortCli.status, 0, 'CLI abort exits 0');
 const cliAborted = JSON.parse(readFileSync(abortedPath, 'utf8'));
 assertEq(cliAborted.status, 'aborted', 'CLI aborted status');
@@ -264,7 +313,14 @@ const robotPlan = buildActuationPlanPack({
   riskLevel: 'high',
   commandPreview: 'move joint J1 +10deg at 20deg/s',
   safeRanges: [
-    { parameter: 'joint_velocity_deg_s', unit: 'deg/s', min: 0, max: 30, defaultValue: 10, autoStopOnViolation: true },
+    {
+      parameter: 'joint_velocity_deg_s',
+      unit: 'deg/s',
+      min: 0,
+      max: 30,
+      defaultValue: 10,
+      autoStopOnViolation: true,
+    },
   ],
 });
 assertEq(robotPlan.envelope.actionClass, 'command', 'robot plan actionClass');

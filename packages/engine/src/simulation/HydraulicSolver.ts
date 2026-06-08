@@ -250,7 +250,7 @@ export class HydraulicSolver {
           const Q = pipe.flowRate;
 
           sumHf += hf;
-          sumDhf += Math.abs(Q) > 1e-12 ? 2 * Math.abs(hf) / Math.abs(Q) : 0;
+          sumDhf += Math.abs(Q) > 1e-12 ? (2 * Math.abs(hf)) / Math.abs(Q) : 0;
         }
 
         if (Math.abs(sumDhf) < 1e-20) continue;
@@ -267,14 +267,24 @@ export class HydraulicSolver {
       if (maxCorrection < tol) {
         this.computeNodePressures();
         this.updateOutputArrays();
-        this.solveResult = { converged: true, iterations: iter + 1, residual: maxCorrection, maxChange: maxCorrection };
+        this.solveResult = {
+          converged: true,
+          iterations: iter + 1,
+          residual: maxCorrection,
+          maxChange: maxCorrection,
+        };
         return this.solveResult;
       }
     }
 
     this.computeNodePressures();
     this.updateOutputArrays();
-    this.solveResult = { converged: false, iterations: iter, residual: maxCorrection, maxChange: maxCorrection };
+    this.solveResult = {
+      converged: false,
+      iterations: iter,
+      residual: maxCorrection,
+      maxChange: maxCorrection,
+    };
     return this.solveResult;
   }
 
@@ -354,7 +364,7 @@ export class HydraulicSolver {
     // We already have a spanning tree via findLoops!
     // Wait, let's just build a fresh spanning tree to satisfy continuity.
     const adj: [number, number, number][][] = Array.from({ length: n }, () => []);
-    
+
     for (const pipe of this.pipes) {
       adj[pipe.fromNode].push([pipe.toNode, pipe.index, 1]); // 1 = flows out
       adj[pipe.toNode].push([pipe.fromNode, pipe.index, -1]); // -1 = flows in
@@ -363,69 +373,69 @@ export class HydraulicSolver {
 
     const treeEdges = new Set<number>();
     const visited = new Set<number>();
-    
+
     // BFS to find a spanning tree component by component
     for (let i = 0; i < n; i++) {
-        if (!visited.has(i)) {
-            const queue = [i];
-            visited.add(i);
-            while(queue.length > 0) {
-                const u = queue.shift()!;
-                for (const [v, pipeIdx] of adj[u]) {
-                    if (!visited.has(v)) {
-                        visited.add(v);
-                        treeEdges.add(pipeIdx);
-                        queue.push(v);
-                    }
-                }
+      if (!visited.has(i)) {
+        const queue = [i];
+        visited.add(i);
+        while (queue.length > 0) {
+          const u = queue.shift()!;
+          for (const [v, pipeIdx] of adj[u]) {
+            if (!visited.has(v)) {
+              visited.add(v);
+              treeEdges.add(pipeIdx);
+              queue.push(v);
             }
+          }
         }
+      }
     }
 
     // Now compute degree internally ONLY counting tree edges
     const degree = new Int32Array(n);
     for (const pipe of this.pipes) {
-        if (treeEdges.has(pipe.index)) {
-            degree[pipe.fromNode]++;
-            degree[pipe.toNode]++;
-        }
+      if (treeEdges.has(pipe.index)) {
+        degree[pipe.fromNode]++;
+        degree[pipe.toNode]++;
+      }
     }
 
     const demands = new Float64Array(n);
     for (let i = 0; i < n; i++) {
-        demands[i] = this.nodes[i].config.demand ?? 0;
+      demands[i] = this.nodes[i].config.demand ?? 0;
     }
 
     // Process from leaves
     const q: number[] = [];
     for (let i = 0; i < n; i++) {
-        // Reservoirs are typically root. We push degree 1 junctions to peel them.
-        if (degree[i] === 1 && this.nodes[i].config.type !== 'reservoir') {
-            q.push(i);
-        }
+      // Reservoirs are typically root. We push degree 1 junctions to peel them.
+      if (degree[i] === 1 && this.nodes[i].config.type !== 'reservoir') {
+        q.push(i);
+      }
     }
 
     while (q.length > 0) {
-        const u = q.shift()!;
-        degree[u]--;
+      const u = q.shift()!;
+      degree[u]--;
 
-        for (const [v, pipeIdx, dir] of adj[u]) {
-            if (treeEdges.has(pipeIdx) && degree[v] > 0) {
-                const reqFlow = demands[u];
-                // if dir=1, u -> v. Node u has demand reqFlow, so flow must enter u.
-                // Flow entering u via pipe is -pipeFlow. So -pipeFlow = reqFlow => pipeFlow = -reqFlow.
-                const pipeFlow = dir === 1 ? -reqFlow : reqFlow;
-                this.pipes[pipeIdx].flowRate = pipeFlow;
-                
-                demands[v] += reqFlow; // passed demand up the tree
-                degree[v]--;
-                
-                if (degree[v] === 1 && this.nodes[v].config.type !== 'reservoir') {
-                    q.push(v);
-                }
-                break;
-            }
+      for (const [v, pipeIdx, dir] of adj[u]) {
+        if (treeEdges.has(pipeIdx) && degree[v] > 0) {
+          const reqFlow = demands[u];
+          // if dir=1, u -> v. Node u has demand reqFlow, so flow must enter u.
+          // Flow entering u via pipe is -pipeFlow. So -pipeFlow = reqFlow => pipeFlow = -reqFlow.
+          const pipeFlow = dir === 1 ? -reqFlow : reqFlow;
+          this.pipes[pipeIdx].flowRate = pipeFlow;
+
+          demands[v] += reqFlow; // passed demand up the tree
+          degree[v]--;
+
+          if (degree[v] === 1 && this.nodes[v].config.type !== 'reservoir') {
+            q.push(v);
+          }
+          break;
         }
+      }
     }
   }
 
@@ -437,7 +447,7 @@ export class HydraulicSolver {
     const n = this.nodes.length;
     const adj: [number, number][][] = Array.from({ length: n }, () => []);
     const degree = new Int32Array(n);
-    
+
     for (const pipe of this.pipes) {
       adj[pipe.fromNode].push([pipe.toNode, pipe.index]);
       adj[pipe.toNode].push([pipe.fromNode, pipe.index]);
@@ -447,40 +457,40 @@ export class HydraulicSolver {
 
     const demands = new Float64Array(n);
     for (let i = 0; i < n; i++) {
-        demands[i] = this.nodes[i].config.demand ?? 0;
+      demands[i] = this.nodes[i].config.demand ?? 0;
     }
 
     const queue: number[] = [];
     for (let i = 0; i < n; i++) {
-        if (degree[i] === 1 && this.nodes[i].config.type !== 'reservoir') {
-            queue.push(i);
-        }
+      if (degree[i] === 1 && this.nodes[i].config.type !== 'reservoir') {
+        queue.push(i);
+      }
     }
 
     while (queue.length > 0) {
-        const curr = queue.shift()!;
-        degree[curr]--;
+      const curr = queue.shift()!;
+      degree[curr]--;
 
-        for (const [neighbor, pipeIdx] of adj[curr]) {
-            if (degree[neighbor] > 0) {
-                const pipe = this.pipes[pipeIdx];
-                const requiredFlow = demands[curr];
-                
-                if (pipe.toNode === curr) {
-                    pipe.flowRate = requiredFlow;
-                } else {
-                    pipe.flowRate = -requiredFlow;
-                }
+      for (const [neighbor, pipeIdx] of adj[curr]) {
+        if (degree[neighbor] > 0) {
+          const pipe = this.pipes[pipeIdx];
+          const requiredFlow = demands[curr];
 
-                demands[neighbor] += requiredFlow;
-                degree[neighbor]--;
+          if (pipe.toNode === curr) {
+            pipe.flowRate = requiredFlow;
+          } else {
+            pipe.flowRate = -requiredFlow;
+          }
 
-                if (degree[neighbor] === 1 && this.nodes[neighbor].config.type !== 'reservoir') {
-                    queue.push(neighbor);
-                }
-                break;
-            }
+          demands[neighbor] += requiredFlow;
+          degree[neighbor]--;
+
+          if (degree[neighbor] === 1 && this.nodes[neighbor].config.type !== 'reservoir') {
+            queue.push(neighbor);
+          }
+          break;
         }
+      }
     }
   }
 
@@ -580,7 +590,6 @@ export class HydraulicSolver {
     return path;
   }
 
-
   private updateOutputArrays(): void {
     for (const node of this.nodes) {
       this.pressures[node.index] = node.head;
@@ -628,7 +637,9 @@ export class HydraulicSolver {
   }
 
   getStats(): HydraulicStats {
-    let maxP = -Infinity, minP = Infinity, totalD = 0;
+    let maxP = -Infinity,
+      minP = Infinity,
+      totalD = 0;
     for (const node of this.nodes) {
       if (node.head > maxP) maxP = node.head;
       if (node.head < minP) minP = node.head;

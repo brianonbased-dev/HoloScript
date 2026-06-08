@@ -18,8 +18,9 @@ const COMPILER_DIR = join(ROOT, 'packages/core/src/compiler');
 // ─── 1. Read all trait categories ───────────────────────────────────────────
 
 function readTraitCategories() {
-  const files = readdirSync(CONSTANTS_DIR)
-    .filter(f => f.endsWith('.ts') && f !== 'index.ts' && !f.includes('.test.'));
+  const files = readdirSync(CONSTANTS_DIR).filter(
+    (f) => f.endsWith('.ts') && f !== 'index.ts' && !f.includes('.test.')
+  );
 
   const categories = [];
 
@@ -50,8 +51,9 @@ function readCompilerTraitSupport() {
   const compilers = {};
 
   // Dedicated trait map files
-  const traitMapFiles = readdirSync(COMPILER_DIR)
-    .filter(f => f.includes('TraitMap') && f.endsWith('.ts') && !f.includes('.test.'));
+  const traitMapFiles = readdirSync(COMPILER_DIR).filter(
+    (f) => f.includes('TraitMap') && f.endsWith('.ts') && !f.includes('.test.')
+  );
 
   for (const file of traitMapFiles) {
     const content = readFileSync(join(COMPILER_DIR, file), 'utf8');
@@ -66,8 +68,9 @@ function readCompilerTraitSupport() {
   }
 
   // Inline trait handling in compilers
-  const compilerFiles = readdirSync(COMPILER_DIR)
-    .filter(f => f.endsWith('Compiler.ts') && !f.includes('Base') && !f.includes('.test.'));
+  const compilerFiles = readdirSync(COMPILER_DIR).filter(
+    (f) => f.endsWith('Compiler.ts') && !f.includes('Base') && !f.includes('.test.')
+  );
 
   for (const file of compilerFiles) {
     const content = readFileSync(join(COMPILER_DIR, file), 'utf8');
@@ -136,13 +139,16 @@ function generateMarkdown(categories, compilers) {
   md += `|----------|--------|--------|-------------------|\n`;
 
   for (const cat of categories) {
-    const sample = cat.traits.slice(0, 3).map(t => `\`${t}\``).join(', ');
+    const sample = cat.traits
+      .slice(0, 3)
+      .map((t) => `\`${t}\``)
+      .join(', ');
     const more = cat.traits.length > 3 ? ` +${cat.traits.length - 3}` : '';
 
     // Check which compilers handle any trait from this category
     const coverage = [];
     for (const [compName, comp] of Object.entries(compilers)) {
-      const overlap = cat.traits.filter(t => comp.traits.has(t));
+      const overlap = cat.traits.filter((t) => comp.traits.has(t));
       if (overlap.length > 0) {
         const pct = Math.round((overlap.length / cat.traits.length) * 100);
         coverage.push(`${compName.replace('Compiler', '')}(${pct}%)`);

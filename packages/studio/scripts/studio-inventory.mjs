@@ -227,7 +227,8 @@ function collectSnapshotDiffs(expected, actual, path = 'snapshot') {
     const keys = [...new Set([...Object.keys(expected), ...Object.keys(actual)])].sort();
     return keys.flatMap((key) => {
       if (!(key in expected)) return [`${path}.${key}: unexpected ${formatValue(actual[key])}`];
-      if (!(key in actual)) return [`${path}.${key}: missing, expected ${formatValue(expected[key])}`];
+      if (!(key in actual))
+        return [`${path}.${key}: missing, expected ${formatValue(expected[key])}`];
       return collectSnapshotDiffs(expected[key], actual[key], `${path}.${key}`);
     });
   }
@@ -259,16 +260,22 @@ function runSnapshotCheck(checkPath, inventory) {
   const diffs = collectSnapshotDiffs(expected, actual);
 
   if (diffs.length === 0) {
-    console.log(`[studio-inventory] snapshot matches ${normalizePath(relative(process.cwd(), resolvedPath))}`);
+    console.log(
+      `[studio-inventory] snapshot matches ${normalizePath(relative(process.cwd(), resolvedPath))}`
+    );
     return;
   }
 
-  console.error(`[studio-inventory] snapshot drift detected in ${normalizePath(relative(process.cwd(), resolvedPath))}`);
+  console.error(
+    `[studio-inventory] snapshot drift detected in ${normalizePath(relative(process.cwd(), resolvedPath))}`
+  );
   for (const diff of diffs.slice(0, 30)) console.error(`  - ${diff}`);
   if (diffs.length > 30) console.error(`  ... ${diffs.length - 30} more differences`);
   console.error('');
   console.error('Refresh intentionally with:');
-  console.error('  node packages/studio/scripts/studio-inventory.mjs --snapshot > packages/studio/docs/STUDIO_INVENTORY_SNAPSHOT.json');
+  console.error(
+    '  node packages/studio/scripts/studio-inventory.mjs --snapshot > packages/studio/docs/STUDIO_INVENTORY_SNAPSHOT.json'
+  );
   console.error('');
   console.error('Current snapshot:');
   console.error(JSON.stringify(actual, null, 2));

@@ -224,7 +224,12 @@ export class ShaderEditorService {
 
     // Trigger sync if enabled
     if (this.syncEnabled && this.syncHooks.onUpdate) {
-      this.syncHooks.onUpdate(graph).then(() => { this.lastSyncTime = Date.now(); }).catch(logger.error);
+      this.syncHooks
+        .onUpdate(graph)
+        .then(() => {
+          this.lastSyncTime = Date.now();
+        })
+        .catch(logger.error);
     }
   }
 
@@ -460,12 +465,8 @@ export class ShaderEditorService {
     const oldNodeIds = new Set(oldGraph.nodes.map((n) => n.id));
     const newNodeIds = new Set(newGraph.nodes.map((n) => n.id));
 
-    const nodesAdded = newGraph.nodes
-      .filter((n) => !oldNodeIds.has(n.id))
-      .map((n) => n.id);
-    const nodesRemoved = oldGraph.nodes
-      .filter((n) => !newNodeIds.has(n.id))
-      .map((n) => n.id);
+    const nodesAdded = newGraph.nodes.filter((n) => !oldNodeIds.has(n.id)).map((n) => n.id);
+    const nodesRemoved = oldGraph.nodes.filter((n) => !newNodeIds.has(n.id)).map((n) => n.id);
 
     const nodesModified: string[] = [];
     const propertiesChanged: Record<string, { old: unknown; new: unknown }> = {};

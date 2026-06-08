@@ -176,7 +176,6 @@ function parsePorcelain(raw: string, filePath: string): ParsedEntry[] {
   return entries;
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

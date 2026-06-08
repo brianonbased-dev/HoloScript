@@ -18,7 +18,11 @@ async function run() {
   console.log('--- Phase 1: Scan ---');
   const scanStart = performance.now();
   const scanner = new CodebaseScanner();
-  const scanResult = await scanner.scan({ rootDir: REPO_PATH, rootDirs: [REPO_PATH], shallow: true });
+  const scanResult = await scanner.scan({
+    rootDir: REPO_PATH,
+    rootDirs: [REPO_PATH],
+    shallow: true,
+  });
   const scanTime = performance.now() - scanStart;
 
   const graph = scanResult.graph || scanResult;
@@ -38,7 +42,11 @@ async function run() {
     { category: 'Dependency', q: 'callers of hashGeometry', runs: 10 },
     { category: 'Impact', q: 'what files import from SimulationContract', runs: 5 },
     { category: 'Architectural', q: 'how does the CAEL agent loop work', runs: 3 },
-    { category: 'Reasoning', q: 'explain the relationship between SNN cognition and CAEL provenance in the simulation engine', runs: 3 },
+    {
+      category: 'Reasoning',
+      q: 'explain the relationship between SNN cognition and CAEL provenance in the simulation engine',
+      runs: 3,
+    },
   ];
 
   const results = [];
@@ -52,7 +60,7 @@ async function run() {
       try {
         if (typeof graph.query === 'function') {
           const r = await graph.query(q, { maxResults: 10 });
-          resultCount = Array.isArray(r) ? r.length : (r?.results?.length || 0);
+          resultCount = Array.isArray(r) ? r.length : r?.results?.length || 0;
         } else if (typeof graph.search === 'function') {
           const r = graph.search(q, 10);
           resultCount = Array.isArray(r) ? r.length : 0;
@@ -65,7 +73,9 @@ async function run() {
 
     const median = [...timings].sort((a, b) => a - b)[Math.floor(timings.length / 2)];
     results.push({ category, median, resultCount, runs });
-    console.log(`${category.padEnd(15)} | ${median.toFixed(1).padStart(8)}ms (median of ${runs}) | ${resultCount} results`);
+    console.log(
+      `${category.padEnd(15)} | ${median.toFixed(1).padStart(8)}ms (median of ${runs}) | ${resultCount} results`
+    );
   }
 
   // 3. PROVENANCE ENVELOPE overhead
@@ -102,7 +112,9 @@ async function run() {
     JSON.stringify(envelope);
   }
   const provElapsed = performance.now() - provStart;
-  console.log(`Provenance envelope: ${(provElapsed / PROV_RUNS * 1000).toFixed(2)} µs/query (${PROV_RUNS} runs)`);
+  console.log(
+    `Provenance envelope: ${((provElapsed / PROV_RUNS) * 1000).toFixed(2)} µs/query (${PROV_RUNS} runs)`
+  );
 
   // Staleness check
   const STALE_RUNS = 100000;
@@ -114,7 +126,9 @@ async function run() {
     if (current !== cached) staleCount++;
   }
   const staleElapsed = performance.now() - staleStart;
-  console.log(`Staleness check: ${(staleElapsed / STALE_RUNS * 1000000).toFixed(1)} ns/check (${STALE_RUNS} runs, ${staleCount} stale)`);
+  console.log(
+    `Staleness check: ${((staleElapsed / STALE_RUNS) * 1000000).toFixed(1)} ns/check (${STALE_RUNS} runs, ${staleCount} stale)`
+  );
 
   // 4. SUMMARY
   console.log('');
@@ -126,11 +140,11 @@ async function run() {
   for (const r of results) {
     console.log(`${r.category}: ${r.median.toFixed(1)}ms median`);
   }
-  console.log(`Provenance: ${(provElapsed / PROV_RUNS * 1000).toFixed(2)} µs/query`);
-  console.log(`Staleness: ${(staleElapsed / STALE_RUNS * 1000000).toFixed(1)} ns/check`);
+  console.log(`Provenance: ${((provElapsed / PROV_RUNS) * 1000).toFixed(2)} µs/query`);
+  console.log(`Staleness: ${((staleElapsed / STALE_RUNS) * 1000000).toFixed(1)} ns/check`);
 }
 
-run().catch(e => {
+run().catch((e) => {
   console.error('Benchmark failed:', e.message);
   console.error(e.stack);
   process.exit(1);

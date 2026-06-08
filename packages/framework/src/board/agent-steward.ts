@@ -51,10 +51,7 @@ import type {
   ArtifactProvenanceLink,
   ArtifactVerificationCommand,
 } from './board-types';
-import type {
-  AgentActionReceipt,
-  ValidationReceipt,
-} from './hololand-receipts';
+import type { AgentActionReceipt, ValidationReceipt } from './hololand-receipts';
 
 // ── Steward identity ──
 
@@ -188,13 +185,7 @@ export interface AgentSteward {
  * - high     — blocks a quest or zone, should be triaged immediately
  * - critical — safety/integrity breach, authorizes emergency rollback
  */
-export const WORLD_ISSUE_SEVERITIES = [
-  'info',
-  'low',
-  'medium',
-  'high',
-  'critical',
-] as const;
+export const WORLD_ISSUE_SEVERITIES = ['info', 'low', 'medium', 'high', 'critical'] as const;
 
 export type WorldIssueSeverity = (typeof WORLD_ISSUE_SEVERITIES)[number];
 
@@ -461,57 +452,38 @@ export function isSupportedStewardRole(role: string): role is StewardRole {
   return (STEWARD_ROLES as readonly string[]).includes(role);
 }
 
-export function isSupportedStewardCapabilityKind(
-  kind: string,
-): kind is StewardCapabilityKind {
+export function isSupportedStewardCapabilityKind(kind: string): kind is StewardCapabilityKind {
   return (STEWARD_CAPABILITY_KINDS as readonly string[]).includes(kind);
 }
 
-export function isSupportedWorldIssueSeverity(
-  severity: string,
-): severity is WorldIssueSeverity {
+export function isSupportedWorldIssueSeverity(severity: string): severity is WorldIssueSeverity {
   return (WORLD_ISSUE_SEVERITIES as readonly string[]).includes(severity);
 }
 
-export function isSupportedWorldIssueCategory(
-  category: string,
-): category is WorldIssueCategory {
+export function isSupportedWorldIssueCategory(category: string): category is WorldIssueCategory {
   return (WORLD_ISSUE_CATEGORIES as readonly string[]).includes(category);
 }
 
-export function isSupportedWorldIssueStatus(
-  status: string,
-): status is WorldIssueStatus {
+export function isSupportedWorldIssueStatus(status: string): status is WorldIssueStatus {
   return (WORLD_ISSUE_STATUSES as readonly string[]).includes(status);
 }
 
-export function isSupportedRollbackStepKind(
-  kind: string,
-): kind is RollbackStepKind {
+export function isSupportedRollbackStepKind(kind: string): kind is RollbackStepKind {
   return (ROLLBACK_STEP_KINDS as readonly string[]).includes(kind);
 }
 
-export function isSupportedStewardProposalStatus(
-  status: string,
-): status is StewardProposalStatus {
+export function isSupportedStewardProposalStatus(status: string): status is StewardProposalStatus {
   return (STEWARD_PROPOSAL_STATUSES as readonly string[]).includes(status);
 }
 
-export function isSupportedProposalImpactKind(
-  kind: string,
-): kind is ProposalImpactKind {
+export function isSupportedProposalImpactKind(kind: string): kind is ProposalImpactKind {
   return (PROPOSAL_IMPACT_KINDS as readonly string[]).includes(kind);
 }
 
-const STEWARD_ACTION_RECEIPT_STATUSES = [
-  'enacted',
-  'rolled-back',
-  'partial',
-  'failed',
-] as const;
+const STEWARD_ACTION_RECEIPT_STATUSES = ['enacted', 'rolled-back', 'partial', 'failed'] as const;
 
 export function isSupportedStewardActionReceiptStatus(
-  status: string,
+  status: string
 ): status is StewardActionReceipt['status'] {
   return (STEWARD_ACTION_RECEIPT_STATUSES as readonly string[]).includes(status);
 }
@@ -583,11 +555,7 @@ export function validateWorldIssue(issue: WorldIssue): string[] {
   }
   if (!issue.reporter) errors.push(`WorldIssue ${issue.id}.reporter is required.`);
   if (!issue.summary) errors.push(`WorldIssue ${issue.id}.summary is required.`);
-  if (
-    issue.raisedAt === undefined ||
-    issue.raisedAt === null ||
-    issue.raisedAt === ''
-  ) {
+  if (issue.raisedAt === undefined || issue.raisedAt === null || issue.raisedAt === '') {
     errors.push(`WorldIssue ${issue.id}.raisedAt is required.`);
   }
   if (issue.status === 'duplicate' && !issue.duplicateOf) {
@@ -614,7 +582,7 @@ export function validateRollbackStep(step: RollbackStep): string[] {
     }
     if (step.targetStateHash && !step.targetStateHashAlgorithm) {
       errors.push(
-        `RollbackStep ${step.id} kind=state-restore requires targetStateHashAlgorithm when targetStateHash is set.`,
+        `RollbackStep ${step.id} kind=state-restore requires targetStateHashAlgorithm when targetStateHash is set.`
       );
     }
   }
@@ -653,7 +621,8 @@ export function validateProposalImpact(impact: ProposalImpact): string[] {
 export function validateStewardProposal(proposal: StewardProposal): string[] {
   const errors: string[] = [];
   if (!proposal.id) errors.push('StewardProposal.id is required.');
-  if (!proposal.stewardId) errors.push(`StewardProposal ${proposal.id || '<unknown>'}.stewardId is required.`);
+  if (!proposal.stewardId)
+    errors.push(`StewardProposal ${proposal.id || '<unknown>'}.stewardId is required.`);
   if (!isSupportedStewardProposalStatus(proposal.status)) {
     errors.push(`StewardProposal.status is unsupported: ${String(proposal.status)}.`);
   }
@@ -671,7 +640,7 @@ export function validateStewardProposal(proposal: StewardProposal): string[] {
       const cap = proposal.capabilities[i];
       if (!isSupportedStewardCapabilityKind(cap)) {
         errors.push(
-          `StewardProposal ${proposal.id}.capabilities[${i}] is unsupported: ${String(cap)}.`,
+          `StewardProposal ${proposal.id}.capabilities[${i}] is unsupported: ${String(cap)}.`
         );
       }
     }
@@ -688,12 +657,11 @@ export function validateStewardProposal(proposal: StewardProposal): string[] {
   }
   // Rollback plan required for any non-cosmetic-only proposal
   const impactKinds = (proposal.impact ?? []).map((i) => i.kind);
-  const onlyCosmetic =
-    impactKinds.length > 0 && impactKinds.every((k) => k === 'cosmetic');
+  const onlyCosmetic = impactKinds.length > 0 && impactKinds.every((k) => k === 'cosmetic');
   if (!onlyCosmetic) {
     if (!proposal.rollback) {
       errors.push(
-        `StewardProposal ${proposal.id} requires a rollback plan when impact is not exclusively cosmetic.`,
+        `StewardProposal ${proposal.id} requires a rollback plan when impact is not exclusively cosmetic.`
       );
     } else {
       for (const e of validateRollbackPlan(proposal.rollback)) {
@@ -711,9 +679,7 @@ export function validateStewardProposal(proposal: StewardProposal): string[] {
     proposal.requiredApprovals < 0 ||
     !Number.isInteger(proposal.requiredApprovals)
   ) {
-    errors.push(
-      `StewardProposal ${proposal.id}.requiredApprovals must be a non-negative integer.`,
-    );
+    errors.push(`StewardProposal ${proposal.id}.requiredApprovals must be a non-negative integer.`);
   }
   if (
     proposal.status === 'approved' ||
@@ -726,7 +692,7 @@ export function validateStewardProposal(proposal: StewardProposal): string[] {
       approvalCount < proposal.requiredApprovals
     ) {
       errors.push(
-        `StewardProposal ${proposal.id} status=${proposal.status} requires approvedBy.length (${approvalCount}) >= requiredApprovals (${proposal.requiredApprovals}).`,
+        `StewardProposal ${proposal.id} status=${proposal.status} requires approvedBy.length (${approvalCount}) >= requiredApprovals (${proposal.requiredApprovals}).`
       );
     }
   }
@@ -737,7 +703,7 @@ export function validateStewardProposal(proposal: StewardProposal): string[] {
   for (const command of proposal.verificationCommands ?? []) {
     if (!command.command) {
       errors.push(
-        `StewardProposal ${proposal.id} has a verification command without command text.`,
+        `StewardProposal ${proposal.id} has a verification command without command text.`
       );
     }
   }
@@ -753,20 +719,17 @@ export function validateStewardProposal(proposal: StewardProposal): string[] {
 export function validateStewardActionReceipt(
   receipt: StewardActionReceipt,
   validateAction: (a: AgentActionReceipt) => string[],
-  validateValidation: (v: ValidationReceipt) => string[],
+  validateValidation: (v: ValidationReceipt) => string[]
 ): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('StewardActionReceipt.id is required.');
-  if (!receipt.proposalId) errors.push(`StewardActionReceipt ${receipt.id || '<unknown>'}.proposalId is required.`);
+  if (!receipt.proposalId)
+    errors.push(`StewardActionReceipt ${receipt.id || '<unknown>'}.proposalId is required.`);
   if (!receipt.stewardId) errors.push(`StewardActionReceipt ${receipt.id}.stewardId is required.`);
   if (!isSupportedStewardActionReceiptStatus(receipt.status)) {
     errors.push(`StewardActionReceipt.status is unsupported: ${String(receipt.status)}.`);
   }
-  if (
-    receipt.sealedAt === undefined ||
-    receipt.sealedAt === null ||
-    receipt.sealedAt === ''
-  ) {
+  if (receipt.sealedAt === undefined || receipt.sealedAt === null || receipt.sealedAt === '') {
     errors.push(`StewardActionReceipt ${receipt.id}.sealedAt is required.`);
   }
   if (!receipt.hash) errors.push(`StewardActionReceipt ${receipt.id}.hash is required.`);
@@ -786,7 +749,7 @@ export function validateStewardActionReceipt(
   for (const command of receipt.verificationCommands ?? []) {
     if (!command.command) {
       errors.push(
-        `StewardActionReceipt ${receipt.id} has a verification command without command text.`,
+        `StewardActionReceipt ${receipt.id} has a verification command without command text.`
       );
     }
   }
@@ -796,7 +759,7 @@ export function validateStewardActionReceipt(
 // ── Cloning ──
 
 function cloneVerificationCommands(
-  commands: ArtifactVerificationCommand[] | undefined,
+  commands: ArtifactVerificationCommand[] | undefined
 ): ArtifactVerificationCommand[] | undefined {
   if (!commands) return undefined;
   return commands.map((command) => ({
@@ -806,7 +769,7 @@ function cloneVerificationCommands(
 }
 
 function cloneProvenance(
-  provenance: ArtifactProvenanceLink | undefined,
+  provenance: ArtifactProvenanceLink | undefined
 ): ArtifactProvenanceLink | undefined {
   if (!provenance) return undefined;
   return {
@@ -883,9 +846,7 @@ export function cloneStewardProposal(proposal: StewardProposal): StewardProposal
     capabilities: [...proposal.capabilities],
     impact: proposal.impact.map(cloneProposalImpact),
     ...(proposal.rollback ? { rollback: cloneRollbackPlan(proposal.rollback) } : {}),
-    ...(proposal.addressesIssueIds
-      ? { addressesIssueIds: [...proposal.addressesIssueIds] }
-      : {}),
+    ...(proposal.addressesIssueIds ? { addressesIssueIds: [...proposal.addressesIssueIds] } : {}),
     ...(proposal.approvedBy ? { approvedBy: [...proposal.approvedBy] } : {}),
     ...(proposal.provenance ? { provenance: cloneProvenance(proposal.provenance) } : {}),
     ...(proposal.verificationCommands
@@ -898,19 +859,15 @@ export function cloneStewardProposal(proposal: StewardProposal): StewardProposal
 export function cloneStewardActionReceipt(
   receipt: StewardActionReceipt,
   cloneAction: (a: AgentActionReceipt) => AgentActionReceipt,
-  cloneValidation: (v: ValidationReceipt) => ValidationReceipt,
+  cloneValidation: (v: ValidationReceipt) => ValidationReceipt
 ): StewardActionReceipt {
   return {
     ...receipt,
-    ...(receipt.agentActions
-      ? { agentActions: receipt.agentActions.map(cloneAction) }
-      : {}),
+    ...(receipt.agentActions ? { agentActions: receipt.agentActions.map(cloneAction) } : {}),
     ...(receipt.validationReceipts
       ? { validationReceipts: receipt.validationReceipts.map(cloneValidation) }
       : {}),
-    ...(receipt.resolvedIssueIds
-      ? { resolvedIssueIds: [...receipt.resolvedIssueIds] }
-      : {}),
+    ...(receipt.resolvedIssueIds ? { resolvedIssueIds: [...receipt.resolvedIssueIds] } : {}),
     ...(receipt.provenance ? { provenance: cloneProvenance(receipt.provenance) } : {}),
     ...(receipt.verificationCommands
       ? { verificationCommands: cloneVerificationCommands(receipt.verificationCommands) }

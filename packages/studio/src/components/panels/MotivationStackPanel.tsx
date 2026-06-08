@@ -55,7 +55,10 @@ export function MotivationStackPanel({
 
   return (
     <div
-      className={clsx('space-y-2 rounded-lg border border-studio-border/60 bg-studio-panel/20 p-2', className)}
+      className={clsx(
+        'space-y-2 rounded-lg border border-studio-border/60 bg-studio-panel/20 p-2',
+        className
+      )}
       role="region"
       aria-label={title}
     >
@@ -76,10 +79,15 @@ export function MotivationStackPanel({
               <li key={s.id} className="space-y-0.5">
                 <div className="flex items-center justify-between gap-2 text-[10px]">
                   <span className="flex min-w-0 items-center gap-1.5 text-studio-text">
-                    <span className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', styles.dot)} title={kind} />
+                    <span
+                      className={clsx('h-1.5 w-1.5 shrink-0 rounded-full', styles.dot)}
+                      title={kind}
+                    />
                     <span className="truncate font-medium">{s.label}</span>
                   </span>
-                  <span className="shrink-0 tabular-nums text-studio-muted">{(v * 100).toFixed(0)}%</span>
+                  <span className="shrink-0 tabular-nums text-studio-muted">
+                    {(v * 100).toFixed(0)}%
+                  </span>
                 </div>
                 <div
                   className="h-1.5 w-full overflow-hidden rounded bg-studio-panel/50"
@@ -94,7 +102,10 @@ export function MotivationStackPanel({
                   />
                 </div>
                 {s.source ? (
-                  <div className="truncate font-mono text-[9px] text-studio-muted/90" title={s.source}>
+                  <div
+                    className="truncate font-mono text-[9px] text-studio-muted/90"
+                    title={s.source}
+                  >
                     {s.source}
                   </div>
                 ) : null}

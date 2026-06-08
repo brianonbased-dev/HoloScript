@@ -100,7 +100,9 @@ function stableStringify(v: unknown): string {
   const keys = Object.keys(v as object).sort();
   return (
     '{' +
-    keys.map((k) => JSON.stringify(k) + ':' + stableStringify((v as Record<string, unknown>)[k])).join(',') +
+    keys
+      .map((k) => JSON.stringify(k) + ':' + stableStringify((v as Record<string, unknown>)[k]))
+      .join(',') +
     '}'
   );
 }
@@ -150,7 +152,7 @@ describe('Android trio characterization (W4-T3 pre-split lock for W1-T3)', () =>
 
     it('[A2] composition with single object locks codegen', () => {
       expect(
-        hashResult(compileAndroid(createComposition({ objects: [createObject('Cube')] }))),
+        hashResult(compileAndroid(createComposition({ objects: [createObject('Cube')] })))
       ).toMatchSnapshot('A2-singleObject');
     });
 
@@ -160,20 +162,24 @@ describe('Android trio characterization (W4-T3 pre-split lock for W1-T3)', () =>
           compileAndroid(
             createComposition({
               objects: [createObject('Cube'), createObject('Sphere'), createObject('Plane')],
-            }),
-          ),
-        ),
+            })
+          )
+        )
       ).toMatchSnapshot('A3-multiObject');
     });
 
     it('[A4] manifestFile isolated lock', () => {
       const result = compileAndroid(createComposition({ name: 'NamedScene' }));
-      expect(hashResult({ manifestFile: result.manifestFile })).toMatchSnapshot('A4-manifestIsolated');
+      expect(hashResult({ manifestFile: result.manifestFile })).toMatchSnapshot(
+        'A4-manifestIsolated'
+      );
     });
 
     it('[A5] buildGradle isolated lock', () => {
       const result = compileAndroid(createComposition());
-      expect(hashResult({ buildGradle: result.buildGradle })).toMatchSnapshot('A5-buildGradleIsolated');
+      expect(hashResult({ buildGradle: result.buildGradle })).toMatchSnapshot(
+        'A5-buildGradleIsolated'
+      );
     });
   });
 
@@ -182,9 +188,9 @@ describe('Android trio characterization (W4-T3 pre-split lock for W1-T3)', () =>
       expect(
         hashResult(
           compileAndroid(
-            createComposition({ objects: [objectWithTrait('Scene', 'npu_scene_understanding')] }),
-          ),
-        ),
+            createComposition({ objects: [objectWithTrait('Scene', 'npu_scene_understanding')] })
+          )
+        )
       ).toMatchSnapshot('A6-npu');
     });
 
@@ -192,9 +198,9 @@ describe('Android trio characterization (W4-T3 pre-split lock for W1-T3)', () =>
       expect(
         hashResult(
           compileAndroid(
-            createComposition({ objects: [objectWithTrait('Haptic', 'haptic_feedback')] }),
-          ),
-        ),
+            createComposition({ objects: [objectWithTrait('Haptic', 'haptic_feedback')] })
+          )
+        )
       ).toMatchSnapshot('A7-haptic');
     });
 
@@ -202,9 +208,9 @@ describe('Android trio characterization (W4-T3 pre-split lock for W1-T3)', () =>
       expect(
         hashResult(
           compileAndroid(
-            createComposition({ objects: [objectWithTrait('Beacon', 'nearby_connect')] }),
-          ),
-        ),
+            createComposition({ objects: [objectWithTrait('Beacon', 'nearby_connect')] })
+          )
+        )
       ).toMatchSnapshot('A8-nearby');
     });
 
@@ -212,9 +218,9 @@ describe('Android trio characterization (W4-T3 pre-split lock for W1-T3)', () =>
       expect(
         hashResult(
           compileAndroid(
-            createComposition({ objects: [objectWithTrait('Display', 'foldable_hinge')] }),
-          ),
-        ),
+            createComposition({ objects: [objectWithTrait('Display', 'foldable_hinge')] })
+          )
+        )
       ).toMatchSnapshot('A9-foldable');
     });
 
@@ -222,9 +228,9 @@ describe('Android trio characterization (W4-T3 pre-split lock for W1-T3)', () =>
       expect(
         hashResult(
           compileAndroid(
-            createComposition({ objects: [objectWithTrait('Lens', 'lens_recognize')] }),
-          ),
-        ),
+            createComposition({ objects: [objectWithTrait('Lens', 'lens_recognize')] })
+          )
+        )
       ).toMatchSnapshot('A10-lens');
     });
   });
@@ -236,20 +242,22 @@ describe('Android trio characterization (W4-T3 pre-split lock for W1-T3)', () =>
 
     it('[A12] XR composition with single object locks codegen', () => {
       expect(
-        hashResult(compileAndroidXR(createComposition({ objects: [createObject('Cube')] }))),
+        hashResult(compileAndroidXR(createComposition({ objects: [createObject('Cube')] })))
       ).toMatchSnapshot('A12-xrSingleObject');
     });
 
     it('[A13] XR composition activityFile isolated lock', () => {
-      const result = compileAndroidXR(
-        createComposition({ objects: [createObject('Spatial')] }),
+      const result = compileAndroidXR(createComposition({ objects: [createObject('Spatial')] }));
+      expect(hashResult({ activityFile: result.activityFile })).toMatchSnapshot(
+        'A13-xrActivityIsolated'
       );
-      expect(hashResult({ activityFile: result.activityFile })).toMatchSnapshot('A13-xrActivityIsolated');
     });
 
     it('[A14] XR manifestFile isolated lock', () => {
       const result = compileAndroidXR(createComposition());
-      expect(hashResult({ manifestFile: result.manifestFile })).toMatchSnapshot('A14-xrManifestIsolated');
+      expect(hashResult({ manifestFile: result.manifestFile })).toMatchSnapshot(
+        'A14-xrManifestIsolated'
+      );
     });
   });
 
@@ -260,9 +268,9 @@ describe('Android trio characterization (W4-T3 pre-split lock for W1-T3)', () =>
       expect(
         hashResult(
           compileAndroidXR(
-            createComposition({ objects: [objectWithTrait('Panel', 'spatial_panel')] }),
-          ),
-        ),
+            createComposition({ objects: [objectWithTrait('Panel', 'spatial_panel')] })
+          )
+        )
       ).toMatchSnapshot('A15-xrTraitMap');
     });
   });
@@ -282,7 +290,9 @@ describe('Android trio characterization (W4-T3 pre-split lock for W1-T3)', () =>
       // Lock the diff-envelope: both outputs, canonicalized, hashed
       // together. Split must preserve the relationship between the
       // two compilers, not just each individually.
-      expect(hashResult({ android: a, androidXR: xr })).toMatchSnapshot('A16-crossCompositeDiffLock');
+      expect(hashResult({ android: a, androidXR: xr })).toMatchSnapshot(
+        'A16-crossCompositeDiffLock'
+      );
     });
   });
 });

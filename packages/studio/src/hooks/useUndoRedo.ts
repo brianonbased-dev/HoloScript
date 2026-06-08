@@ -20,7 +20,7 @@ import {
   useHistoryStore,
   beginHistoryReplay,
   endHistoryReplay,
-  installSpatialTraitHistoryBridge
+  installSpatialTraitHistoryBridge,
 } from '@/lib/historyStore';
 import { useSceneStore, useSceneGraphStore } from '@/lib/stores';
 

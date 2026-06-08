@@ -1,8 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    `${__dirname}/src/**/*.{js,ts,jsx,tsx}`,
-  ],
+  content: [`${__dirname}/src/**/*.{js,ts,jsx,tsx}`],
   safelist: [
     { pattern: /^bg-mesh-.+/ },
     { pattern: /^text-mesh-.+/ },
@@ -45,4 +43,4 @@ module.exports = {
     },
   },
   plugins: [],
-}
+};

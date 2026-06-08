@@ -45,11 +45,11 @@ describe('oneRepMax', () => {
 
   it('Brzycki formula: 100 kg × 5 reps ≈ 112.5 kg', () => {
     const r = oneRepMax(100, 5);
-    expect(r.brzycki).toBeCloseTo(100 * 36 / 32, 3);
+    expect(r.brzycki).toBeCloseTo((100 * 36) / 32, 3);
   });
 
   it('higher reps → higher 1RM estimate', () => {
-    const r5  = oneRepMax(100, 5);
+    const r5 = oneRepMax(100, 5);
     const r10 = oneRepMax(100, 10);
     expect(r10.average).toBeGreaterThan(r5.average);
   });
@@ -125,7 +125,7 @@ describe('vo2MaxNonExercise', () => {
 
   it('older age → lower VO2max (all else equal)', () => {
     const rYoung = vo2MaxNonExercise(25, 25, 5, true);
-    const rOld   = vo2MaxNonExercise(55, 25, 5, true);
+    const rOld = vo2MaxNonExercise(55, 25, 5, true);
     expect(rOld.vo2MaxMlKgMin).toBeLessThan(rYoung.vo2MaxMlKgMin);
   });
 
@@ -241,7 +241,7 @@ describe('jacksonPollockSkinfold', () => {
 
   it('body density ~1.07 (plausible for lean male)', () => {
     expect(male.bodyDensityGcc).toBeGreaterThan(1.04);
-    expect(male.bodyDensityGcc).toBeLessThan(1.10);
+    expect(male.bodyDensityGcc).toBeLessThan(1.1);
   });
 
   it('higher skinfolds → higher body fat %', () => {
@@ -357,7 +357,7 @@ describe('acuteChronicWorkloadRatio — risk-band classification', () => {
 describe('analyzeFitness', () => {
   it('returns all sub-results when all inputs provided', () => {
     const r = analyzeFitness({
-      oneRM:  { weightKg: 100, reps: 5 },
+      oneRM: { weightKg: 100, reps: 5 },
       vo2Max: { method: 'cooper', distanceM: 2400 },
       hrZones: { hrRest: 60, hrMax: 190 },
       calories: { met: 9.8, bodyMassKg: 70, durationMin: 30 },

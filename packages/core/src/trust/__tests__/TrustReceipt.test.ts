@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  validateTrustReceipt,
-  TrustReceipt,
-} from '../TrustReceipt';
+import { validateTrustReceipt, TrustReceipt } from '../TrustReceipt';
 
 describe('TrustReceipt', () => {
   const validReceipt: TrustReceipt = {
@@ -13,7 +10,11 @@ describe('TrustReceipt', () => {
       passportDid: 'did:holoscript:abc123',
       bindings: [
         { value: 'lane_1', type: 'lane' },
-        { value: '0xabc1234567890123456789012345678901234567', type: 'wallet', verifiedAt: '2026-05-14T09:00:00Z' },
+        {
+          value: '0xabc1234567890123456789012345678901234567',
+          type: 'wallet',
+          verifiedAt: '2026-05-14T09:00:00Z',
+        },
       ],
     },
     permissionEnvelope: 'guarded_execute',
@@ -85,14 +86,20 @@ describe('TrustReceipt', () => {
   });
 
   it('rejects missing action.name', () => {
-    const r = { ...validReceipt, action: { resource: 'x', outcome: 'success' } } as unknown as TrustReceipt;
+    const r = {
+      ...validReceipt,
+      action: { resource: 'x', outcome: 'success' },
+    } as unknown as TrustReceipt;
     const result = validateTrustReceipt(r);
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Missing action.name');
   });
 
   it('rejects missing action.resource', () => {
-    const r = { ...validReceipt, action: { name: 'x', outcome: 'success' } } as unknown as TrustReceipt;
+    const r = {
+      ...validReceipt,
+      action: { name: 'x', outcome: 'success' },
+    } as unknown as TrustReceipt;
     const result = validateTrustReceipt(r);
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Missing action.resource');
@@ -120,7 +127,10 @@ describe('TrustReceipt', () => {
   });
 
   it('rejects missing algebraicTrust.layer2HistoryRef', () => {
-    const r = { ...validReceipt, algebraicTrust: { layer1Strategy: 'authority_weighted' } } as unknown as TrustReceipt;
+    const r = {
+      ...validReceipt,
+      algebraicTrust: { layer1Strategy: 'authority_weighted' },
+    } as unknown as TrustReceipt;
     const result = validateTrustReceipt(r);
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Missing algebraicTrust.layer2HistoryRef');
@@ -134,7 +144,9 @@ describe('TrustReceipt', () => {
     } as unknown as TrustReceipt;
     const result = validateTrustReceipt(r);
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain('Missing algebraicTrust.layer3OracleRef for simulation/digital-twin receipts');
+    expect(result.errors).toContain(
+      'Missing algebraicTrust.layer3OracleRef for simulation/digital-twin receipts'
+    );
   });
 
   it('rejects wallet binding without evidence.commandHash', () => {
@@ -148,7 +160,9 @@ describe('TrustReceipt', () => {
     } as unknown as TrustReceipt;
     const result = validateTrustReceipt(r);
     expect(result.valid).toBe(false);
-    expect(result.errors).toContain('Wallet binding requires evidence.commandHash (transaction evidence)');
+    expect(result.errors).toContain(
+      'Wallet binding requires evidence.commandHash (transaction evidence)'
+    );
   });
 
   it('rejects synced receipt without redactedFields', () => {

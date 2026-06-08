@@ -39,6 +39,8 @@ describe('tensor-ops', () => {
   });
 
   it('matmul throws on inner-dim mismatch (negative control)', () => {
-    expect(() => matmul(createTensor([2, 3], [1, 2, 3, 4, 5, 6]), createTensor([2, 2], [1, 2, 3, 4]))).toThrow();
+    expect(() =>
+      matmul(createTensor([2, 3], [1, 2, 3, 4, 5, 6]), createTensor([2, 2], [1, 2, 3, 4]))
+    ).toThrow();
   });
 });

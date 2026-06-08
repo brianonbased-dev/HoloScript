@@ -215,7 +215,9 @@ function makeValidUnregistrationReceipt(): StartupUnregistrationReceipt {
   };
 }
 
-function makeValidReplayReceipt(status: StartupGateStatus | string = 'registered'): StartupReplayReceipt {
+function makeValidReplayReceipt(
+  status: StartupGateStatus | string = 'registered'
+): StartupReplayReceipt {
   return {
     id: 'startup-replay-abc123',
     schemaVersion: HOLOSHELL_STARTUP_GATE_RECEIPT_VERSION,
@@ -272,7 +274,7 @@ describe('validateStartupRegistrationState', () => {
     state.commandPreview = 'C:\\Users\\joseph\\holoshell.exe --minimized';
     const errors: string[] = [];
     validateStartupRegistrationState(state, errors);
-    expect(errors.some(e => e.includes('absolute path'))).toBe(true);
+    expect(errors.some((e) => e.includes('absolute path'))).toBe(true);
   });
 
   it('requires commandHash', () => {
@@ -280,7 +282,7 @@ describe('validateStartupRegistrationState', () => {
     state.commandHash = '';
     const errors: string[] = [];
     validateStartupRegistrationState(state, errors);
-    expect(errors.some(e => e.includes('commandHash'))).toBe(true);
+    expect(errors.some((e) => e.includes('commandHash'))).toBe(true);
   });
 });
 
@@ -303,7 +305,7 @@ describe('validateStartupRegistrationRequestReceipt', () => {
     receipt.schemaVersion = 'wrong';
     const errors: string[] = [];
     validateStartupRegistrationRequestReceipt(receipt, errors);
-    expect(errors.some(e => e.includes('schemaVersion'))).toBe(true);
+    expect(errors.some((e) => e.includes('schemaVersion'))).toBe(true);
   });
 
   it('rejects absolute paths in commandPreview', () => {
@@ -311,7 +313,7 @@ describe('validateStartupRegistrationRequestReceipt', () => {
     receipt.commandPreview = '/usr/local/bin/holoshell --minimized';
     const errors: string[] = [];
     validateStartupRegistrationRequestReceipt(receipt, errors);
-    expect(errors.some(e => e.includes('absolute path'))).toBe(true);
+    expect(errors.some((e) => e.includes('absolute path'))).toBe(true);
   });
 
   it('enforces commandPreviewContainsAbsolutePath = false', () => {
@@ -319,7 +321,7 @@ describe('validateStartupRegistrationRequestReceipt', () => {
     (receipt as any).commandPreviewContainsAbsolutePath = true;
     const errors: string[] = [];
     validateStartupRegistrationRequestReceipt(receipt, errors);
-    expect(errors.some(e => e.includes('commandPreviewContainsAbsolutePath'))).toBe(true);
+    expect(errors.some((e) => e.includes('commandPreviewContainsAbsolutePath'))).toBe(true);
   });
 
   it('requires freshUserGesture to be boolean', () => {
@@ -327,7 +329,7 @@ describe('validateStartupRegistrationRequestReceipt', () => {
     (receipt as any).requiresFreshUserGesture = 'yes';
     const errors: string[] = [];
     validateStartupRegistrationRequestReceipt(receipt, errors);
-    expect(errors.some(e => e.includes('requiresFreshUserGesture'))).toBe(true);
+    expect(errors.some((e) => e.includes('requiresFreshUserGesture'))).toBe(true);
   });
 });
 
@@ -349,7 +351,7 @@ describe('validateStartupRegistrationApprovalReceipt', () => {
     receipt.freshUserGestureCaptured = false;
     const errors: string[] = [];
     validateStartupRegistrationApprovalReceipt(receipt, errors);
-    expect(errors.some(e => e.includes('freshUserGestureCaptured'))).toBe(true);
+    expect(errors.some((e) => e.includes('freshUserGestureCaptured'))).toBe(true);
   });
 
   it('enforces hiddenAutomationUsed = false', () => {
@@ -357,7 +359,7 @@ describe('validateStartupRegistrationApprovalReceipt', () => {
     (receipt as any).hiddenAutomationUsed = true;
     const errors: string[] = [];
     validateStartupRegistrationApprovalReceipt(receipt, errors);
-    expect(errors.some(e => e.includes('hiddenAutomationUsed'))).toBe(true);
+    expect(errors.some((e) => e.includes('hiddenAutomationUsed'))).toBe(true);
   });
 });
 
@@ -373,7 +375,7 @@ describe('validateStartupRegistrationVerificationReceipt', () => {
     (receipt as any).systemLevelOverride = true;
     const errors: string[] = [];
     validateStartupRegistrationVerificationReceipt(receipt, errors);
-    expect(errors.some(e => e.includes('systemLevelOverride'))).toBe(true);
+    expect(errors.some((e) => e.includes('systemLevelOverride'))).toBe(true);
   });
 });
 
@@ -389,7 +391,7 @@ describe('validateStartupUnregistrationReceipt', () => {
     (receipt as any).removalConfirmed = 'yes';
     const errors: string[] = [];
     validateStartupUnregistrationReceipt(receipt, errors);
-    expect(errors.some(e => e.includes('removalConfirmed'))).toBe(true);
+    expect(errors.some((e) => e.includes('removalConfirmed'))).toBe(true);
   });
 });
 
@@ -405,7 +407,7 @@ describe('validateStartupReplayReceipt', () => {
     replay.workflow = 'wrong' as any;
     const errors: string[] = [];
     validateStartupReplayReceipt(replay, errors);
-    expect(errors.some(e => e.includes('workflow'))).toBe(true);
+    expect(errors.some((e) => e.includes('workflow'))).toBe(true);
   });
 
   it('enforces rawCredentialCaptured = false', () => {
@@ -413,7 +415,7 @@ describe('validateStartupReplayReceipt', () => {
     (replay as any).rawCredentialCaptured = true;
     const errors: string[] = [];
     validateStartupReplayReceipt(replay, errors);
-    expect(errors.some(e => e.includes('rawCredentialCaptured'))).toBe(true);
+    expect(errors.some((e) => e.includes('rawCredentialCaptured'))).toBe(true);
   });
 
   it('enforces overbroadScopeAccepted = false', () => {
@@ -421,7 +423,7 @@ describe('validateStartupReplayReceipt', () => {
     (replay as any).overbroadScopeAccepted = true;
     const errors: string[] = [];
     validateStartupReplayReceipt(replay, errors);
-    expect(errors.some(e => e.includes('overbroadScopeAccepted'))).toBe(true);
+    expect(errors.some((e) => e.includes('overbroadScopeAccepted'))).toBe(true);
   });
 });
 
@@ -467,21 +469,21 @@ describe('validateHoloShellStartupGateReceiptPack', () => {
     const pack = makeValidRegisteredPack();
     pack.schemaVersion = 'wrong';
     const errors = validateHoloShellStartupGateReceiptPack(pack);
-    expect(errors.some(e => e.includes('schemaVersion'))).toBe(true);
+    expect(errors.some((e) => e.includes('schemaVersion'))).toBe(true);
   });
 
   it('rejects wrong workflow', () => {
     const pack = makeValidRegisteredPack();
     pack.workflow = 'wrong' as any;
     const errors = validateHoloShellStartupGateReceiptPack(pack);
-    expect(errors.some(e => e.includes('workflow'))).toBe(true);
+    expect(errors.some((e) => e.includes('workflow'))).toBe(true);
   });
 
   it('rejects mismatched pack/replay status', () => {
     const pack = makeValidRegisteredPack();
     pack.replay.status = 'unregistered';
     const errors = validateHoloShellStartupGateReceiptPack(pack);
-    expect(errors.some(e => e.includes('must match'))).toBe(true);
+    expect(errors.some((e) => e.includes('must match'))).toBe(true);
   });
 
   it('requires sub-receipts for registration_approved status', () => {
@@ -499,7 +501,7 @@ describe('validateHoloShellStartupGateReceiptPack', () => {
     const pack = makeValidRegisteredPack();
     (pack as any).hash = 'access_token=secret123';
     const errors = validateHoloShellStartupGateReceiptPack(pack);
-    expect(errors.some(e => e.includes('credential'))).toBe(true);
+    expect(errors.some((e) => e.includes('credential'))).toBe(true);
   });
 
   it('rejects null pack', () => {

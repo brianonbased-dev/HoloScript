@@ -194,7 +194,7 @@ export class AgentTrustLedger {
 export function byzantineResilientMerge(
   agentDags: SCMDAG[],
   ledger: AgentTrustLedger,
-  options: ByzantineMergeOptions = {},
+  options: ByzantineMergeOptions = {}
 ): ByzantineMergeResult {
   const sigma = options.outlierSigma ?? DEFAULT_OUTLIER_SIGMA;
   const decay = options.decayPerEpoch ?? DEFAULT_DECAY;
@@ -208,14 +208,10 @@ export function byzantineResilientMerge(
     throw new RangeError(`decayPerEpoch must be in [0, 1]; got ${decay}`);
   }
   if (dropThreshold < 0 || dropThreshold > 1) {
-    throw new RangeError(
-      `dropThreshold must be in [0, 1]; got ${dropThreshold}`,
-    );
+    throw new RangeError(`dropThreshold must be in [0, 1]; got ${dropThreshold}`);
   }
   if (minCluster < 2 || !Number.isInteger(minCluster)) {
-    throw new RangeError(
-      `minClusterAgents must be an integer >= 2; got ${minCluster}`,
-    );
+    throw new RangeError(`minClusterAgents must be an integer >= 2; got ${minCluster}`);
   }
 
   // Step 1: stable agent IDs.
@@ -254,8 +250,7 @@ export function byzantineResilientMerge(
   for (const [edgeKey, obs] of edgeObservations) {
     if (obs.length < minCluster) continue;
     const mean = obs.reduce((s, o) => s + o.weight, 0) / obs.length;
-    const variance =
-      obs.reduce((s, o) => s + (o.weight - mean) ** 2, 0) / obs.length;
+    const variance = obs.reduce((s, o) => s + (o.weight - mean) ** 2, 0) / obs.length;
     const std = Math.sqrt(variance);
     if (std === 0) continue; // perfect agreement; no outliers definable
     const cutoff = sigma * std;

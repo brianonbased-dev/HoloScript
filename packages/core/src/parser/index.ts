@@ -1,8 +1,4 @@
-export {
-  HoloScriptPlusParser,
-  createParser,
-  parse,
-} from './HoloScriptPlusParser';
+export { HoloScriptPlusParser, createParser, parse } from './HoloScriptPlusParser';
 
 export {
   HoloCompositionParser,
@@ -20,8 +16,4 @@ export {
 export { ParseCache, globalParseCache } from './ParseCache';
 export type { CachedNode, ParseCacheStats } from './ParseCache';
 
-export type {
-  HoloParseResult,
-  HoloParseError,
-  HoloParserOptions,
-} from './HoloCompositionTypes';
+export type { HoloParseResult, HoloParseError, HoloParserOptions } from './HoloCompositionTypes';

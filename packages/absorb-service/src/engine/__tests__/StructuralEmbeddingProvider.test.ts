@@ -8,15 +8,15 @@ import type { ExternalSymbolDefinition } from '../types';
 
 function makeSym(overrides: Partial<ExternalSymbolDefinition> = {}): ExternalSymbolDefinition {
   return {
-    name:       'myFunction',
-    type:       'function',
-    language:   'typescript',
+    name: 'myFunction',
+    type: 'function',
+    language: 'typescript',
     visibility: 'public',
-    filePath:   'packages/core/src/traits/pillar/GyriSulciPartitioner.ts',
-    line:       10,
+    filePath: 'packages/core/src/traits/pillar/GyriSulciPartitioner.ts',
+    line: 10,
     isExported: true,
-    signature:  'function myFunction(coord: BrainCoord): CacheRoute',
-    lineCount:  40,
+    signature: 'function myFunction(coord: BrainCoord): CacheRoute',
+    lineCount: 40,
     ...overrides,
   };
 }
@@ -70,7 +70,7 @@ describe('StructuralEmbeddingProvider', () => {
 
   it('same file path → high cosine similarity even with different names', () => {
     const filePath = 'packages/core/src/traits/pillar/Classifier.ts';
-    const v1 = provider.embedSymbol(makeSym({ filePath, name: 'classifyCoord',   line: 10 }));
+    const v1 = provider.embedSymbol(makeSym({ filePath, name: 'classifyCoord', line: 10 }));
     const v2 = provider.embedSymbol(makeSym({ filePath, name: 'classifyBrainCoord', line: 50 }));
     const dot = Array.from(v1).reduce((s, x, i) => s + x * v2[i]!, 0);
     // Same file/package/traits → should share a lot of structural features
@@ -78,12 +78,16 @@ describe('StructuralEmbeddingProvider', () => {
   });
 
   it('test file gets flagged in embedding (dim 6 reflects test heuristic)', () => {
-    const testVec = provider.embedSymbol(makeSym({
-      filePath: 'packages/core/src/__tests__/MyModule.test.ts',
-    }));
-    const prodVec = provider.embedSymbol(makeSym({
-      filePath: 'packages/core/src/MyModule.ts',
-    }));
+    const testVec = provider.embedSymbol(
+      makeSym({
+        filePath: 'packages/core/src/__tests__/MyModule.test.ts',
+      })
+    );
+    const prodVec = provider.embedSymbol(
+      makeSym({
+        filePath: 'packages/core/src/MyModule.ts',
+      })
+    );
     // Vectors from test vs prod files should differ
     const dot = Array.from(testVec).reduce((s, x, i) => s + x * prodVec[i]!, 0);
     expect(dot).toBeLessThan(0.99);
@@ -91,22 +95,29 @@ describe('StructuralEmbeddingProvider', () => {
 
   it('event-chain enrichment changes the vector', () => {
     const sym = makeSym();
-    const base  = provider.embedSymbol(sym);
-    const enr   = provider.embedSymbol(sym, { emitCount: 3, eventNames: ['pillar:slice', 'pillar:training'] });
-    const dot   = Array.from(base).reduce((s, x, i) => s + x * enr[i]!, 0);
+    const base = provider.embedSymbol(sym);
+    const enr = provider.embedSymbol(sym, {
+      emitCount: 3,
+      eventNames: ['pillar:slice', 'pillar:training'],
+    });
+    const dot = Array.from(base).reduce((s, x, i) => s + x * enr[i]!, 0);
     expect(dot).toBeLessThan(0.9999); // not identical
   });
 
   it('gyrus-type symbol (gyral package) vs sulcal produce distinct vectors', () => {
-    const gyral  = provider.embedSymbol(makeSym({ filePath: 'packages/core/src/traits/pillar/SliceEmitter.ts' }));
-    const sulcal = provider.embedSymbol(makeSym({ filePath: 'packages/plugins/robotics/src/RoboticsPlugin.ts' }));
+    const gyral = provider.embedSymbol(
+      makeSym({ filePath: 'packages/core/src/traits/pillar/SliceEmitter.ts' })
+    );
+    const sulcal = provider.embedSymbol(
+      makeSym({ filePath: 'packages/plugins/robotics/src/RoboticsPlugin.ts' })
+    );
     const dot = Array.from(gyral).reduce((s, x, i) => s + x * sulcal[i]!, 0);
     expect(dot).toBeLessThan(0.95);
   });
 
   it('private method has lower visibility score than public', () => {
     // Both vectors deterministic — just check they differ
-    const pub  = provider.embedSymbol(makeSym({ visibility: 'public',  name: 'api'  }));
+    const pub = provider.embedSymbol(makeSym({ visibility: 'public', name: 'api' }));
     const priv = provider.embedSymbol(makeSym({ visibility: 'private', name: 'impl' }));
     expect(Array.from(pub)).not.toEqual(Array.from(priv));
   });

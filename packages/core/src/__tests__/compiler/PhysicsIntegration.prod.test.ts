@@ -31,19 +31,34 @@ function makeFragment(id: number, active: boolean, volume: number, pos = [0, 0, 
 function makeNamedVec3(x = 0, y = 0, z = 0) {
   const obj: { x: number; y: number; z: number; 0?: number; 1?: number; 2?: number } = { x, y, z };
   Object.defineProperty(obj, '0', {
-    get() { return obj.x; },
-    set(v: number) { obj.x = v; },
-    enumerable: false, configurable: true,
+    get() {
+      return obj.x;
+    },
+    set(v: number) {
+      obj.x = v;
+    },
+    enumerable: false,
+    configurable: true,
   });
   Object.defineProperty(obj, '1', {
-    get() { return obj.y; },
-    set(v: number) { obj.y = v; },
-    enumerable: false, configurable: true,
+    get() {
+      return obj.y;
+    },
+    set(v: number) {
+      obj.y = v;
+    },
+    enumerable: false,
+    configurable: true,
   });
   Object.defineProperty(obj, '2', {
-    get() { return obj.z; },
-    set(v: number) { obj.z = v; },
-    enumerable: false, configurable: true,
+    get() {
+      return obj.z;
+    },
+    set(v: number) {
+      obj.z = v;
+    },
+    enumerable: false,
+    configurable: true,
   });
   return obj;
 }

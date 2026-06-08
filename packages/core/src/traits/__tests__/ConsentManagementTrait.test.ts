@@ -49,20 +49,37 @@ describe('ConsentManagementTrait — onEvent', () => {
   it('consent:grant stores consent and emits consent:granted', () => {
     const node = makeNode();
     consentManagementHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    consentManagementHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent:grant', userId: 'u1', purpose: 'analytics',
-    } as never);
+    consentManagementHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent:grant',
+        userId: 'u1',
+        purpose: 'analytics',
+      } as never
+    );
     const state = node.__consentState as { consents: Map<string, Map<string, boolean>> };
     expect(state.consents.get('u1')?.get('analytics')).toBe(true);
-    expect(node.emit).toHaveBeenCalledWith('consent:granted', { userId: 'u1', purpose: 'analytics' });
+    expect(node.emit).toHaveBeenCalledWith('consent:granted', {
+      userId: 'u1',
+      purpose: 'analytics',
+    });
   });
 
   it('consent:grant creates user entry if missing', () => {
     const node = makeNode();
     consentManagementHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    consentManagementHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent:grant', userId: 'newUser', purpose: 'marketing',
-    } as never);
+    consentManagementHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent:grant',
+        userId: 'newUser',
+        purpose: 'marketing',
+      } as never
+    );
     const state = node.__consentState as { consents: Map<string, Map<string, boolean>> };
     expect(state.consents.has('newUser')).toBe(true);
   });
@@ -70,52 +87,108 @@ describe('ConsentManagementTrait — onEvent', () => {
   it('consent:revoke sets consent to false', () => {
     const node = makeNode();
     consentManagementHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    consentManagementHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent:grant', userId: 'u2', purpose: 'analytics',
-    } as never);
-    consentManagementHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent:revoke', userId: 'u2', purpose: 'analytics',
-    } as never);
+    consentManagementHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent:grant',
+        userId: 'u2',
+        purpose: 'analytics',
+      } as never
+    );
+    consentManagementHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent:revoke',
+        userId: 'u2',
+        purpose: 'analytics',
+      } as never
+    );
     const state = node.__consentState as { consents: Map<string, Map<string, boolean>> };
     expect(state.consents.get('u2')?.get('analytics')).toBe(false);
-    expect(node.emit).toHaveBeenCalledWith('consent:revoked', { userId: 'u2', purpose: 'analytics' });
+    expect(node.emit).toHaveBeenCalledWith('consent:revoked', {
+      userId: 'u2',
+      purpose: 'analytics',
+    });
   });
 
   it('consent:check returns true when granted', () => {
     const node = makeNode();
     consentManagementHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    consentManagementHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent:grant', userId: 'u3', purpose: 'marketing',
-    } as never);
+    consentManagementHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent:grant',
+        userId: 'u3',
+        purpose: 'marketing',
+      } as never
+    );
     node.emit.mockClear();
-    consentManagementHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent:check', userId: 'u3', purpose: 'marketing',
-    } as never);
+    consentManagementHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent:check',
+        userId: 'u3',
+        purpose: 'marketing',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('consent:status', {
-      userId: 'u3', purpose: 'marketing', granted: true,
+      userId: 'u3',
+      purpose: 'marketing',
+      granted: true,
     });
   });
 
   it('consent:check returns false for unknown user', () => {
     const node = makeNode();
     consentManagementHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    consentManagementHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent:check', userId: 'nobody', purpose: 'analytics',
-    } as never);
+    consentManagementHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent:check',
+        userId: 'nobody',
+        purpose: 'analytics',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('consent:status', {
-      userId: 'nobody', purpose: 'analytics', granted: false,
+      userId: 'nobody',
+      purpose: 'analytics',
+      granted: false,
     });
   });
 
   it('multiple users have independent consent maps', () => {
     const node = makeNode();
     consentManagementHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    consentManagementHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent:grant', userId: 'alice', purpose: 'analytics',
-    } as never);
-    consentManagementHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'consent:grant', userId: 'bob', purpose: 'marketing',
-    } as never);
+    consentManagementHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent:grant',
+        userId: 'alice',
+        purpose: 'analytics',
+      } as never
+    );
+    consentManagementHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'consent:grant',
+        userId: 'bob',
+        purpose: 'marketing',
+      } as never
+    );
     const state = node.__consentState as { consents: Map<string, Map<string, boolean>> };
     expect(state.consents.get('alice')?.get('marketing')).toBeUndefined();
     expect(state.consents.get('bob')?.get('analytics')).toBeUndefined();

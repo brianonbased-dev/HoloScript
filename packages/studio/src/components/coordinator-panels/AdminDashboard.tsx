@@ -139,7 +139,9 @@ function StatCell({
         borderLeft: `3px solid ${accent ?? '#38bdf8'}`,
       }}
     >
-      <div style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+      <div
+        style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}
+      >
         {label}
       </div>
       <div style={{ fontSize: 22, fontWeight: 600, color: accent ?? '#e2e8f0' }}>{primary}</div>

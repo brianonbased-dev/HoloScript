@@ -22,7 +22,7 @@ export function emptyAggregate(): AggregatedScanGeometry {
 export function appendStepToAggregate(
   agg: AggregatedScanGeometry,
   step: ReconstructionStep,
-  maxPoints: number,
+  maxPoints: number
 ): void {
   const pos = step.points.positions;
   const col = step.points.colors;
@@ -45,10 +45,12 @@ export function appendStepToAggregate(
   });
 }
 
-export function boundsFromPositions(positions: number[]): {
-  min: [number, number, number];
-  max: [number, number, number];
-} | undefined {
+export function boundsFromPositions(positions: number[]):
+  | {
+      min: [number, number, number];
+      max: [number, number, number];
+    }
+  | undefined {
   const nv = positions.length / 3;
   if (nv < 1) return undefined;
   let minx = positions[0];
@@ -110,7 +112,7 @@ export function encodeTrajectoryJson(poses: AggregatedScanGeometry['poses']): st
 /** Prefer a tight AABB from sampled points; fall back to manifest bounds. */
 export function effectiveBoundsForExport(
   m: ReconstructionManifest,
-  fromPoints?: { min: [number, number, number]; max: [number, number, number] },
+  fromPoints?: { min: [number, number, number]; max: [number, number, number] }
 ): { min: [number, number, number]; max: [number, number, number] } {
   return fromPoints ?? m.bounds;
 }

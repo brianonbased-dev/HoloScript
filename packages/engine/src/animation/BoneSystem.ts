@@ -193,7 +193,7 @@ export class BoneSystem {
     const bone = this.bones.get(id);
     if (!bone) return null;
     this.updateWorldTransforms();
-    return [bone.world.tx, bone.world.ty, bone.world.tz ];
+    return [bone.world.tx, bone.world.ty, bone.world.tz];
   }
 
   getChain(leafId: string): string[] {

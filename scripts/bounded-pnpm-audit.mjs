@@ -183,10 +183,9 @@ function emitCachedOrSkip(reason, details = {}) {
 function runAudit() {
   return new Promise((resolveRun) => {
     const start = Date.now();
-    const childCommand = process.platform === 'win32' ? (process.env.ComSpec || 'cmd.exe') : pnpmCommand;
-    const childArgs = process.platform === 'win32'
-      ? ['/d', '/s', '/c', commandText]
-      : auditArgs;
+    const childCommand =
+      process.platform === 'win32' ? process.env.ComSpec || 'cmd.exe' : pnpmCommand;
+    const childArgs = process.platform === 'win32' ? ['/d', '/s', '/c', commandText] : auditArgs;
     const child = spawn(childCommand, childArgs, {
       cwd: ROOT,
       windowsHide: true,
@@ -207,11 +206,15 @@ function runAudit() {
 
     function killProcessTree() {
       if (process.platform === 'win32' && child.pid) {
-        spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', `taskkill /pid ${child.pid} /T /F`], {
-          cwd: ROOT,
-          stdio: 'ignore',
-          windowsHide: true,
-        });
+        spawn(
+          process.env.ComSpec || 'cmd.exe',
+          ['/d', '/s', '/c', `taskkill /pid ${child.pid} /T /F`],
+          {
+            cwd: ROOT,
+            stdio: 'ignore',
+            windowsHide: true,
+          }
+        );
         return;
       }
 

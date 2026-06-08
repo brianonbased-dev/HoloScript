@@ -73,10 +73,7 @@ export function Step5Ownership({ nonce, onContinue, onBack }: Step5Props) {
     } catch (err) {
       setState({
         kind: 'failed',
-        message:
-          err instanceof Error
-            ? err.message
-            : 'Unable to generate wallet keypair.',
+        message: err instanceof Error ? err.message : 'Unable to generate wallet keypair.',
       });
     }
   }
@@ -85,9 +82,9 @@ export function Step5Ownership({ nonce, onContinue, onBack }: Step5Props) {
     <div>
       <h2 style={{ fontSize: 18, marginBottom: 12 }}>Step 5 — Prove ownership of the new wallet</h2>
       <p style={{ color: '#aaa', fontSize: 13, marginBottom: 16 }}>
-        We generated an Ed25519 keypair in your browser and signed the server
-        nonce. Finalizing below binds this public key to your account — the
-        custodial signer is retired atomically in the same request.
+        We generated an Ed25519 keypair in your browser and signed the server nonce. Finalizing
+        below binds this public key to your account — the custodial signer is retired atomically in
+        the same request.
       </p>
 
       <div
@@ -102,7 +99,9 @@ export function Step5Ownership({ nonce, onContinue, onBack }: Step5Props) {
       >
         <div style={{ marginBottom: 6 }}>
           <span style={{ color: '#888' }}>Server nonce: </span>
-          <code style={{ color: '#8cf' }}>{nonce.slice(0, 16)}...{nonce.slice(-8)}</code>
+          <code style={{ color: '#8cf' }}>
+            {nonce.slice(0, 16)}...{nonce.slice(-8)}
+          </code>
         </div>
 
         {state.kind === 'generating' && (
@@ -121,9 +120,7 @@ export function Step5Ownership({ nonce, onContinue, onBack }: Step5Props) {
             </div>
             <div style={{ marginBottom: 6 }}>
               <span style={{ color: '#888' }}>Signature (b64): </span>
-              <code style={{ color: '#8cf', fontSize: 10 }}>
-                {state.signature.slice(0, 32)}...
-              </code>
+              <code style={{ color: '#8cf', fontSize: 10 }}>{state.signature.slice(0, 32)}...</code>
             </div>
             <button
               type="button"

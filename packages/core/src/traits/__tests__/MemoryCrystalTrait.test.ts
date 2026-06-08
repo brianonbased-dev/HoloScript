@@ -94,14 +94,14 @@ describe('memoryCrystalHandler.onAttach', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     memoryCrystalHandler.onAttach(node, BASE_CONFIG, context);
-    expect(emitted.some(e => e.type === 'crystal_initialized')).toBe(true);
+    expect(emitted.some((e) => e.type === 'crystal_initialized')).toBe(true);
   });
 
   it('crystal_initialized payload includes capacity/backend', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     memoryCrystalHandler.onAttach(node, BASE_CONFIG, context);
-    const ev = emitted.find(e => e.type === 'crystal_initialized');
+    const ev = emitted.find((e) => e.type === 'crystal_initialized');
     expect((ev!.payload as any).capacity).toBe(BASE_CONFIG.capacity);
     expect((ev!.payload as any).backend).toBe(BASE_CONFIG.backend);
   });
@@ -110,7 +110,7 @@ describe('memoryCrystalHandler.onAttach', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     memoryCrystalHandler.onAttach(node, { ...BASE_CONFIG, warn_unpaired: true }, context);
-    expect(emitted.some(e => e.type === 'crystal_threshold_warn')).toBe(true);
+    expect(emitted.some((e) => e.type === 'crystal_threshold_warn')).toBe(true);
   });
 
   it('does not warn unpaired when forget_policy is present', () => {
@@ -118,7 +118,7 @@ describe('memoryCrystalHandler.onAttach', () => {
     node.traits?.add('forget_policy');
     const { context, emitted } = makeContext();
     memoryCrystalHandler.onAttach(node, { ...BASE_CONFIG, warn_unpaired: true }, context);
-    const warns = emitted.filter(e => e.type === 'crystal_threshold_warn');
+    const warns = emitted.filter((e) => e.type === 'crystal_threshold_warn');
     expect(warns.length).toBe(0);
   });
 
@@ -126,7 +126,7 @@ describe('memoryCrystalHandler.onAttach', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     memoryCrystalHandler.onAttach(node, { ...BASE_CONFIG, warn_unpaired: false }, context);
-    const warns = emitted.filter(e => e.type === 'crystal_threshold_warn');
+    const warns = emitted.filter((e) => e.type === 'crystal_threshold_warn');
     expect(warns.length).toBe(0);
   });
 
@@ -134,14 +134,14 @@ describe('memoryCrystalHandler.onAttach', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     memoryCrystalHandler.onAttach(node, { ...BASE_CONFIG, prune_threshold: -0.1 }, context);
-    expect(emitted.some(e => e.type === 'crystal_error')).toBe(true);
+    expect(emitted.some((e) => e.type === 'crystal_error')).toBe(true);
   });
 
   it('emits crystal_error for prune_threshold > 1', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     memoryCrystalHandler.onAttach(node, { ...BASE_CONFIG, prune_threshold: 1.1 }, context);
-    expect(emitted.some(e => e.type === 'crystal_error')).toBe(true);
+    expect(emitted.some((e) => e.type === 'crystal_error')).toBe(true);
   });
 
   it('warns semantic mode fallback when memory state has no db', () => {
@@ -158,7 +158,7 @@ describe('memoryCrystalHandler.onAttach', () => {
     memoryCrystalHandler.onAttach(node, { ...BASE_CONFIG, capacity: 'semantic' }, context);
     expect(
       emitted.some(
-        e =>
+        (e) =>
           e.type === 'crystal_threshold_warn' &&
           String((e.payload as any).warning).includes('embedding-capable backend')
       )
@@ -216,7 +216,7 @@ describe('memoryCrystalHandler.onUpdate pruning', () => {
     for (let i = 0; i < 7; i++) mem.memories.set(`k${i}`, makeMemory({ key: `k${i}` })); // 70%
     memoryCrystalHandler.onUpdate(node, config, context);
     expect(mem.memories.size).toBe(7);
-    expect(emitted.some(e => e.type === 'crystal_prune')).toBe(false);
+    expect(emitted.some((e) => e.type === 'crystal_prune')).toBe(false);
   });
 
   it('prunes in raw mode by oldest first', () => {
@@ -234,7 +234,7 @@ describe('memoryCrystalHandler.onUpdate pruning', () => {
     // raw mode removes oldest by createdAt ascending; with createdAt=(now-(1000+i)), k7 is oldest
     expect(mem.memories.has('k7')).toBe(false);
     expect(mem.memories.has('k0')).toBe(true);
-    expect(emitted.some(e => e.type === 'crystal_prune')).toBe(true);
+    expect(emitted.some((e) => e.type === 'crystal_prune')).toBe(true);
   });
 
   it('prunes in semantic mode by lowest accessCount first', () => {
@@ -281,9 +281,9 @@ describe('memoryCrystalHandler.onUpdate pruning', () => {
     const mem = node.__agentMemoryState!;
     for (let i = 0; i < 8; i++) mem.memories.set(`k${i}`, makeMemory({ key: `k${i}` }));
     memoryCrystalHandler.onUpdate(node, config, context);
-    const ev = emitted.find(e => e.type === 'crystal_prune');
-    expect((ev!.payload as any)).toHaveProperty('prunedCount');
-    expect((ev!.payload as any)).toHaveProperty('remaining');
+    const ev = emitted.find((e) => e.type === 'crystal_prune');
+    expect(ev!.payload as any).toHaveProperty('prunedCount');
+    expect(ev!.payload as any).toHaveProperty('remaining');
     expect((ev!.payload as any).capacity).toBe('raw');
   });
 
@@ -295,7 +295,7 @@ describe('memoryCrystalHandler.onUpdate pruning', () => {
     const mem = node.__agentMemoryState!;
     for (let i = 0; i < 2; i++) mem.memories.set(`k${i}`, makeMemory({ key: `k${i}` }));
     memoryCrystalHandler.onUpdate(node, config, context);
-    expect(emitted.some(e => e.type === 'crystal_prune')).toBe(false);
+    expect(emitted.some((e) => e.type === 'crystal_prune')).toBe(false);
   });
 });
 
@@ -308,7 +308,7 @@ describe('memory_stored event', () => {
     const { node, config, context, emitted } = setup({ capacity: 'raw' }, true);
     const m = makeMemory({ key: 'abc' });
     memoryCrystalHandler.onEvent(node, config, context, { type: 'memory_stored', memory: m });
-    const ev = emitted.find(e => e.type === 'crystal_write');
+    const ev = emitted.find((e) => e.type === 'crystal_write');
     expect(ev).toBeDefined();
     expect((ev!.payload as any).key).toBe('abc');
     expect((ev!.payload as any).capacity).toBe('raw');
@@ -317,9 +317,15 @@ describe('memory_stored event', () => {
 
   it('increments writeCount across multiple writes', () => {
     const { node, config, context, emitted } = setup({}, true);
-    memoryCrystalHandler.onEvent(node, config, context, { type: 'memory_stored', memory: makeMemory() });
-    memoryCrystalHandler.onEvent(node, config, context, { type: 'memory_stored', memory: makeMemory() });
-    const writes = emitted.filter(e => e.type === 'crystal_write');
+    memoryCrystalHandler.onEvent(node, config, context, {
+      type: 'memory_stored',
+      memory: makeMemory(),
+    });
+    memoryCrystalHandler.onEvent(node, config, context, {
+      type: 'memory_stored',
+      memory: makeMemory(),
+    });
+    const writes = emitted.filter((e) => e.type === 'crystal_write');
     expect((writes[1].payload as any).writeCount).toBe(2);
   });
 
@@ -357,7 +363,7 @@ describe('memory_stored event', () => {
     });
     expect(
       emitted.some(
-        e =>
+        (e) =>
           e.type === 'crystal_threshold_warn' &&
           typeof (e.payload as any).usage === 'number' &&
           typeof (e.payload as any).threshold === 'number'
@@ -372,10 +378,7 @@ describe('memory_stored event', () => {
 
 describe('crystal_force_prune event', () => {
   it('forces prune and emits crystal_prune with forced=true', () => {
-    const { node, config, context, emitted } = setup(
-      { max_entries: 10, capacity: 'raw' },
-      true
-    );
+    const { node, config, context, emitted } = setup({ max_entries: 10, capacity: 'raw' }, true);
     const mem = node.__agentMemoryState!;
     for (let i = 0; i < 10; i++) mem.memories.set(`k${i}`, makeMemory({ key: `k${i}` }));
     memoryCrystalHandler.onEvent(node, config, context, {
@@ -383,7 +386,7 @@ describe('crystal_force_prune event', () => {
       keep_percent: 0.5,
     });
     expect(mem.memories.size).toBe(5);
-    const ev = emitted.find(e => e.type === 'crystal_prune');
+    const ev = emitted.find((e) => e.type === 'crystal_prune');
     expect((ev!.payload as any).forced).toBe(true);
   });
 

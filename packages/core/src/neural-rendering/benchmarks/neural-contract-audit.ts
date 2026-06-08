@@ -163,7 +163,8 @@ export function writeBenchmarkArtifact(
 export async function main(argv: string[] = process.argv.slice(2)): Promise<number> {
   const exercise_fail_path = argv.includes('--fail-path');
   const idx = argv.indexOf('--out');
-  const out_path = idx >= 0 && argv[idx + 1] ? argv[idx + 1] : '.bench-logs/neural-contract-audit.json';
+  const out_path =
+    idx >= 0 && argv[idx + 1] ? argv[idx + 1] : '.bench-logs/neural-contract-audit.json';
 
   const result = await runContractAuditBenchmark({ exercise_fail_path });
   writeBenchmarkArtifact(result, resolve(process.cwd(), out_path));

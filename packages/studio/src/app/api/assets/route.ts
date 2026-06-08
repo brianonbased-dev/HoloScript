@@ -316,7 +316,6 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ asset: updated });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

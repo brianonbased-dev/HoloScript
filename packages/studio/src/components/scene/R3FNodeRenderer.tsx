@@ -101,13 +101,7 @@ function StudioDraftMeshBatch({ nodes }: { nodes: R3FNode[] }) {
   const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
   const wireframe = nodes.some((n) => n.props.draftWireframe);
   if (nodes.length === 0) return null;
-  return (
-    <DraftMeshNode
-      nodes={nodes}
-      onSelect={setSelectedId}
-      wireframe={wireframe}
-    />
-  );
+  return <DraftMeshNode nodes={nodes} onSelect={setSelectedId} wireframe={wireframe} />;
 }
 
 export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {

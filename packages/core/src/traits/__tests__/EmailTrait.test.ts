@@ -47,23 +47,49 @@ describe('EmailTrait — onEvent', () => {
   it('email:send emits email:sent with messageId and to', () => {
     const node = makeNode();
     emailHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    emailHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'email:send', to: 'user@example.com', subject: 'Hello',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('email:sent', expect.objectContaining({
-      to: 'user@example.com', subject: 'Hello', from: 'test@example.com',
-    }));
+    emailHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'email:send',
+        to: 'user@example.com',
+        subject: 'Hello',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'email:sent',
+      expect.objectContaining({
+        to: 'user@example.com',
+        subject: 'Hello',
+        from: 'test@example.com',
+      })
+    );
   });
 
   it('email:send increments sent counter', () => {
     const node = makeNode();
     emailHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    emailHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'email:send', to: 'a@b.com', subject: 'S',
-    } as never);
-    emailHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'email:send', to: 'c@d.com', subject: 'S2',
-    } as never);
+    emailHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'email:send',
+        to: 'a@b.com',
+        subject: 'S',
+      } as never
+    );
+    emailHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'email:send',
+        to: 'c@d.com',
+        subject: 'S2',
+      } as never
+    );
     const state = node.__emailState as { sent: number };
     expect(state.sent).toBe(2);
   });
@@ -71,11 +97,21 @@ describe('EmailTrait — onEvent', () => {
   it('email:get_status emits email:status', () => {
     const node = makeNode();
     emailHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    emailHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'email:get_status',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('email:status', expect.objectContaining({
-      queued: 0, sent: 0, failed: 0,
-    }));
+    emailHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'email:get_status',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'email:status',
+      expect.objectContaining({
+        queued: 0,
+        sent: 0,
+        failed: 0,
+      })
+    );
   });
 });

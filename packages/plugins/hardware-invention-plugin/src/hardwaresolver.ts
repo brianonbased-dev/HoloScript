@@ -169,20 +169,26 @@ export interface HardwareReceiptOptions {
  */
 export function microstripImpedance(
   params: MicrostripParams,
-  targetOhms?: number,
+  targetOhms?: number
 ): ImpedanceResult {
-  const { traceWidthMm: W, dielectricHeightMm: H, traceThicknessMm: T = 0.035, relativePermittivity: er = 4.3 } = params;
+  const {
+    traceWidthMm: W,
+    dielectricHeightMm: H,
+    traceThicknessMm: T = 0.035,
+    relativePermittivity: er = 4.3,
+  } = params;
 
   if (W <= 0) throw new Error('traceWidthMm must be positive');
   if (H <= 0) throw new Error('dielectricHeightMm must be positive');
   if (T <= 0) throw new Error('traceThicknessMm must be positive');
   if (er <= 0) throw new Error('relativePermittivity must be positive');
 
-  const impedanceOhms = (87 / Math.sqrt(er + 1.41)) * Math.log(5.98 * H / (0.8 * W + T));
-  const effectivePermittivity = (er + 1) / 2 + (er - 1) / 2 / Math.sqrt(1 + 12 * H / W);
+  const impedanceOhms = (87 / Math.sqrt(er + 1.41)) * Math.log((5.98 * H) / (0.8 * W + T));
+  const effectivePermittivity = (er + 1) / 2 + (er - 1) / 2 / Math.sqrt(1 + (12 * H) / W);
   // Propagation delay pd = sqrt(ε_eff) × 3.336 ps/mm
   const propagationDelayPsMm = Math.sqrt(effectivePermittivity) * 3.336;
-  const withinTolerance = targetOhms != null ? Math.abs(impedanceOhms - targetOhms) / targetOhms <= 0.10 : null;
+  const withinTolerance =
+    targetOhms != null ? Math.abs(impedanceOhms - targetOhms) / targetOhms <= 0.1 : null;
 
   return { impedanceOhms, effectivePermittivity, propagationDelayPsMm, withinTolerance };
 }
@@ -192,11 +198,13 @@ export function microstripImpedance(
  * Z₀ = (60 / √ε_r) × ln(4B / (0.67π(0.8W + T)))
  * where B = distance between planes = 2H.
  */
-export function striplineImpedance(
-  params: StriplineParams,
-  targetOhms?: number,
-): ImpedanceResult {
-  const { traceWidthMm: W, dielectricHeightMm: H, traceThicknessMm: T = 0.035, relativePermittivity: er = 4.3 } = params;
+export function striplineImpedance(params: StriplineParams, targetOhms?: number): ImpedanceResult {
+  const {
+    traceWidthMm: W,
+    dielectricHeightMm: H,
+    traceThicknessMm: T = 0.035,
+    relativePermittivity: er = 4.3,
+  } = params;
 
   if (W <= 0 || H <= 0 || T <= 0 || er <= 0) throw new Error('All parameters must be positive');
 
@@ -204,7 +212,8 @@ export function striplineImpedance(
   const impedanceOhms = (60 / Math.sqrt(er)) * Math.log((4 * B) / (0.67 * Math.PI * (0.8 * W + T)));
   const effectivePermittivity = er;
   const propagationDelayPsMm = Math.sqrt(er) * 3.336;
-  const withinTolerance = targetOhms != null ? Math.abs(impedanceOhms - targetOhms) / targetOhms <= 0.10 : null;
+  const withinTolerance =
+    targetOhms != null ? Math.abs(impedanceOhms - targetOhms) / targetOhms <= 0.1 : null;
 
   return { impedanceOhms, effectivePermittivity, propagationDelayPsMm, withinTolerance };
 }
@@ -223,18 +232,21 @@ export function irDropAnalysis(
   traceWidthMm: number,
   currentA: number,
   traceThicknessMm = 0.035,
-  budgetMv = 50,
+  budgetMv = 50
 ): PowerRailResult {
   if (traceLengthMm <= 0) throw new Error('traceLengthMm must be positive');
   if (traceWidthMm <= 0) throw new Error('traceWidthMm must be positive');
   if (currentA < 0) throw new Error('currentA must be non-negative');
 
-  const R_trace = COPPER_RESISTIVITY_OHM_MM * traceLengthMm / (traceWidthMm * traceThicknessMm); // Ω
+  const R_trace = (COPPER_RESISTIVITY_OHM_MM * traceLengthMm) / (traceWidthMm * traceThicknessMm); // Ω
   const irDropMv = currentA * R_trace * 1000; // mV
   const sheetResistanceMOhmSq = (COPPER_RESISTIVITY_OHM_MM / traceThicknessMm) * 1000; // mΩ/sq
 
   return {
-    traceLengthMm, currentA, traceWidthMm, traceThicknessMm,
+    traceLengthMm,
+    currentA,
+    traceWidthMm,
+    traceThicknessMm,
     sheetResistanceMOhmSq,
     traceResistanceMOhm: R_trace * 1000,
     irDropMv,
@@ -254,13 +266,13 @@ export function decouplingCapacitor(
   capacitanceUF: number,
   parasiticsInductanceNH: number,
   esr: number,
-  targetFreqMHz?: number,
+  targetFreqMHz?: number
 ): DecouplingCapResult {
   if (capacitanceUF <= 0) throw new Error('capacitanceUF must be positive');
   if (parasiticsInductanceNH <= 0) throw new Error('parasiticsInductanceNH must be positive');
 
   const L = parasiticsInductanceNH * 1e-9; // H
-  const C = capacitanceUF * 1e-6;          // F
+  const C = capacitanceUF * 1e-6; // F
 
   const selfResonantFreqMHz = 1 / (2 * Math.PI * Math.sqrt(L * C)) / 1e6;
 
@@ -304,12 +316,12 @@ export interface DFMInput {
 
 /** IPC-2221B Class B (commercial) minimums */
 const IPC2221B_MINIMUMS = {
-  minTraceWidthMm:       0.100,
-  minTraceSpacingMm:     0.100,
-  viaDrillDiamMm:        0.200,
-  annularRingMm:         0.050,
-  silkscreenClearanceMm: 0.100,
-  edgeClearanceMm:       0.300,
+  minTraceWidthMm: 0.1,
+  minTraceSpacingMm: 0.1,
+  viaDrillDiamMm: 0.2,
+  annularRingMm: 0.05,
+  silkscreenClearanceMm: 0.1,
+  edgeClearanceMm: 0.3,
 };
 
 export function dfmCheck(design: DFMInput): DFMResult {
@@ -318,20 +330,17 @@ export function dfmCheck(design: DFMInput): DFMResult {
     return { rule, actual, minimum, passed: actual >= minimum };
   });
 
-  const failures = checks.filter(c => !c.passed).length;
+  const failures = checks.filter((c) => !c.passed).length;
   return { checks, failures, manufacturable: failures === 0 };
 }
 
 // ─── BOM Cost Estimator ───────────────────────────────────────────────────────
 
-export function bomCostEstimator(
-  bomLines: BOMLine[],
-  assemblyCostFraction = 0.20,
-): BOMResult {
+export function bomCostEstimator(bomLines: BOMLine[], assemblyCostFraction = 0.2): BOMResult {
   if (bomLines.length === 0) throw new Error('BOM has no lines');
 
   let firstPassYield = 1.0;
-  const lines = bomLines.map(line => {
+  const lines = bomLines.map((line) => {
     const lineCostUSD = line.quantity * line.unitCostUSD;
     const dr = line.defectRate ?? 0;
     const yieldFactor = Math.pow(1 - dr, line.quantity);
@@ -359,7 +368,7 @@ export function thermalBudget(
   thetaJC: number, // junction-to-case °C/W
   thetaCS: number, // case-to-sink °C/W
   thetaSA: number, // sink-to-ambient °C/W
-  maxJunctionTempC = 125,
+  maxJunctionTempC = 125
 ): ThermalBudgetResult {
   if (powerDissipationW < 0) throw new Error('powerDissipationW must be non-negative');
 
@@ -367,7 +376,15 @@ export function thermalBudget(
   const junctionTempC = ambientTempC + powerDissipationW * thetaJA;
   const thermalHeadroomC = maxJunctionTempC - junctionTempC;
 
-  return { ambientTempC, powerDissipationW, thetaJA, junctionTempC, maxJunctionTempC, thermalHeadroomC, withinBudget: junctionTempC <= maxJunctionTempC };
+  return {
+    ambientTempC,
+    powerDissipationW,
+    thetaJA,
+    junctionTempC,
+    maxJunctionTempC,
+    thermalHeadroomC,
+    withinBudget: junctionTempC <= maxJunctionTempC,
+  };
 }
 
 // ─── Signal Integrity Jitter Budget ──────────────────────────────────────────
@@ -382,15 +399,15 @@ export function signalIntegrityBudget(
   traceLengthMm: number,
   propagationDelayPsMm: number,
   setupTimePs: number,
-  holdTimePs: number,
+  holdTimePs: number
 ): SignalIntegrityResult {
   if (bitRateGbps <= 0) throw new Error('bitRateGbps must be positive');
   if (traceLengthMm < 0) throw new Error('traceLengthMm must be non-negative');
 
-  const bitPeriodPs = 1000 / bitRateGbps;          // ps
+  const bitPeriodPs = 1000 / bitRateGbps; // ps
   const traceDelayPs = traceLengthMm * propagationDelayPsMm;
   const bwGHz = bitRateGbps / 2;
-  const riseTimePs = (0.35 / bwGHz) * 1000;        // ps
+  const riseTimePs = (0.35 / bwGHz) * 1000; // ps
 
   // Setup margin: bit period - trace delay - setup time - rise time
   const setupMarginPs = bitPeriodPs - traceDelayPs - setupTimePs - riseTimePs;
@@ -401,7 +418,16 @@ export function signalIntegrityBudget(
   const totalJitter = riseTimePs + Math.abs(Math.min(0, setupMarginPs));
   const eyeOpeningPct = Math.max(0, (1 - totalJitter / bitPeriodPs) * 100);
 
-  return { bitRateGbps, bitPeriodPs, traceDelayPs, riseTimePs, setupMarginPs, holdMarginPs, eyeOpeningPct, adequate: eyeOpeningPct > 30 };
+  return {
+    bitRateGbps,
+    bitPeriodPs,
+    traceDelayPs,
+    riseTimePs,
+    setupMarginPs,
+    holdMarginPs,
+    eyeOpeningPct,
+    adequate: eyeOpeningPct > 30,
+  };
 }
 
 // ─── Receipt ──────────────────────────────────────────────────────────────────
@@ -419,24 +445,39 @@ export interface HardwareAnalysisResult {
 
 export function buildHardwareReceipt(
   result: HardwareAnalysisResult,
-  options?: HardwareReceiptOptions,
+  options?: HardwareReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.impedance?.withinTolerance === false) {
-    violations.push({ criterion: 'impedance', message: `Trace impedance ${result.impedance.impedanceOhms.toFixed(1)} Ω is outside ±10% of target` });
+    violations.push({
+      criterion: 'impedance',
+      message: `Trace impedance ${result.impedance.impedanceOhms.toFixed(1)} Ω is outside ±10% of target`,
+    });
   }
   if (result.irDrop && !result.irDrop.withinBudget) {
-    violations.push({ criterion: 'ir_drop', message: `IR drop ${result.irDrop.irDropMv.toFixed(1)} mV exceeds 50 mV budget` });
+    violations.push({
+      criterion: 'ir_drop',
+      message: `IR drop ${result.irDrop.irDropMv.toFixed(1)} mV exceeds 50 mV budget`,
+    });
   }
   if (result.dfm && !result.dfm.manufacturable) {
-    violations.push({ criterion: 'dfm', message: `${result.dfm.failures} DFM rule(s) violated — board may not be manufacturable` });
+    violations.push({
+      criterion: 'dfm',
+      message: `${result.dfm.failures} DFM rule(s) violated — board may not be manufacturable`,
+    });
   }
   if (result.thermal && !result.thermal.withinBudget) {
-    violations.push({ criterion: 'thermal', message: `Junction temperature ${result.thermal.junctionTempC.toFixed(1)}°C exceeds ${result.thermal.maxJunctionTempC}°C maximum` });
+    violations.push({
+      criterion: 'thermal',
+      message: `Junction temperature ${result.thermal.junctionTempC.toFixed(1)}°C exceeds ${result.thermal.maxJunctionTempC}°C maximum`,
+    });
   }
   if (result.signalIntegrity && !result.signalIntegrity.adequate) {
-    violations.push({ criterion: 'signal_integrity', message: `Eye opening ${result.signalIntegrity.eyeOpeningPct.toFixed(1)}% < 30% — signal integrity marginal` });
+    violations.push({
+      criterion: 'signal_integrity',
+      message: `Eye opening ${result.signalIntegrity.eyeOpeningPct.toFixed(1)}% < 30% — signal integrity marginal`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -452,7 +493,11 @@ export function buildHardwareReceipt(
       eyeOpeningPct: result.signalIntegrity?.eyeOpeningPct ?? null,
       totalBOMCostUSD: result.bom?.totalUnitCostUSD ?? null,
     },
-    cael: { version: 'cael.v1', event: 'hardware_invention.hardware_analysis', solverType: 'hardware-invention.ipc2141a' },
+    cael: {
+      version: 'cael.v1',
+      event: 'hardware_invention.hardware_analysis',
+      solverType: 'hardware-invention.ipc2141a',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

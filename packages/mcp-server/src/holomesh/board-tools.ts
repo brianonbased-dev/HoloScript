@@ -22,11 +22,7 @@ import {
   type TeamTask,
   type SuggestionCategory,
 } from '@holoscript/framework';
-import {
-  teamStore,
-  teamPresenceStore,
-  persistTeamStore,
-} from './state';
+import { teamStore, teamPresenceStore, persistTeamStore } from './state';
 import { broadcastToTeam } from './team-room';
 import { recordTeamModeChange } from './mode-provenance';
 import { normalizePresenceSurface, getPresenceTtlMs, pruneStalePresence } from './utils';
@@ -35,7 +31,10 @@ import { normalizePresenceSurface, getPresenceTtlMs, pruneStalePresence } from '
 
 function getTeam(teamId: string) {
   const team = teamStore.get(teamId);
-  if (!team) throw new Error(`Team not found: ${teamId} — verify HOLOMESH_TEAM_ID matches a registered team (the team store is in-memory; a restarted server has no teams until they re-register).`);
+  if (!team)
+    throw new Error(
+      `Team not found: ${teamId} — verify HOLOMESH_TEAM_ID matches a registered team (the team store is in-memory; a restarted server has no teams until they re-register).`
+    );
   if (!team.taskBoard) team.taskBoard = [];
   if (!team.doneLog) team.doneLog = [];
   return team;
@@ -46,7 +45,8 @@ function getTeam(teamId: string) {
 export const boardTools: Tool[] = [
   {
     name: 'holomesh_board_list',
-    description: 'List all tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles.',
+    description:
+      'List all tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -60,7 +60,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_board_add',
-    description: 'Add one or more tasks to a team board. Each task needs a title; optional: description, priority (1-10), source, role.',
+    description:
+      'Add one or more tasks to a team board. Each task needs a title; optional: description, priority (1-10), source, role.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -79,7 +80,8 @@ export const boardTools: Tool[] = [
               },
               description: {
                 type: 'string',
-                description: 'Task description (max 2000 chars; longer values are truncated and surface a description_truncated warning)',
+                description:
+                  'Task description (max 2000 chars; longer values are truncated and surface a description_truncated warning)',
               },
               priority: {
                 type: 'number',
@@ -105,7 +107,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_board_claim',
-    description: 'Claim an open task on a team board. The task must be in "open" status. The calling agent becomes the assignee.',
+    description:
+      'Claim an open task on a team board. The task must be in "open" status. The calling agent becomes the assignee.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -123,7 +126,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_board_complete',
-    description: 'Mark a claimed task as done. Requires verification_evidence naming the concrete test, build, audit, receipt, or peer-review proof.',
+    description:
+      'Mark a claimed task as done. Requires verification_evidence naming the concrete test, build, audit, receipt, or peer-review proof.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -145,7 +149,8 @@ export const boardTools: Tool[] = [
         },
         verification_evidence: {
           type: 'string',
-          description: 'Concrete evidence required before closure: test/build output, audit diff, receipt, or peer review handle.',
+          description:
+            'Concrete evidence required before closure: test/build output, audit diff, receipt, or peer review handle.',
         },
       },
       required: ['team_id', 'task_id', 'verification_evidence'],
@@ -153,7 +158,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_board_append_commit',
-    description: 'Append a follow-up commit to an existing done-log entry. Use when a completed task receives additional commits post-closure.',
+    description:
+      'Append a follow-up commit to an existing done-log entry. Use when a completed task receives additional commits post-closure.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -179,7 +185,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_slot_assign',
-    description: "Set slot roles for a team. Provide an array of roles matching the team's max_slots count. Valid roles: coder, tester, researcher, reviewer, flex.",
+    description:
+      "Set slot roles for a team. Provide an array of roles matching the team's max_slots count. Valid roles: coder, tester, researcher, reviewer, flex.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -230,7 +237,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_scout',
-    description: 'Trigger an on-demand scout scan to populate the board when it is empty. Pass grep TODO/FIXME output as todo_content, or doc file contents as sources. Any agent can call this — it does NOT consume a team slot.',
+    description:
+      'Trigger an on-demand scout scan to populate the board when it is empty. Pass grep TODO/FIXME output as todo_content, or doc file contents as sources. Any agent can call this — it does NOT consume a team slot.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -240,7 +248,8 @@ export const boardTools: Tool[] = [
         },
         todo_content: {
           type: 'string',
-          description: 'Grep output of TODO/FIXME markers (path:line: // TODO: message format). Each line becomes a task.',
+          description:
+            'Grep output of TODO/FIXME markers (path:line: // TODO: message format). Each line becomes a task.',
         },
         sources: {
           type: 'array',
@@ -264,7 +273,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_suggest',
-    description: 'Propose an improvement to the team. Other agents can vote on it. If enough agents upvote, it auto-promotes to a real board task. Categories: process, tooling, architecture, testing, docs, performance, other.',
+    description:
+      'Propose an improvement to the team. Other agents can vote on it. If enough agents upvote, it auto-promotes to a real board task. Categories: process, tooling, architecture, testing, docs, performance, other.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -295,7 +305,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_suggest_vote',
-    description: 'Vote on a team suggestion. +1 to support, -1 to oppose. Suggestions auto-promote to board tasks when they reach majority support, or auto-dismiss at majority opposition.',
+    description:
+      'Vote on a team suggestion. +1 to support, -1 to oppose. Suggestions auto-promote to board tasks when they reach majority support, or auto-dismiss at majority opposition.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -322,7 +333,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_suggest_list',
-    description: 'List all suggestions for a team, sorted by score. Optionally filter by status: open, promoted, dismissed.',
+    description:
+      'List all suggestions for a team, sorted by score. Optionally filter by status: open, promoted, dismissed.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -341,7 +353,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_heartbeat',
-    description: 'Send a presence heartbeat to keep the agent alive on the team. Call every 60 seconds during active work. Missing 2 heartbeats marks the agent as offline and releases its slot.',
+    description:
+      'Send a presence heartbeat to keep the agent alive on the team. Call every 60 seconds during active work. Missing 2 heartbeats marks the agent as offline and releases its slot.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -367,7 +380,8 @@ export const boardTools: Tool[] = [
   },
   {
     name: 'holomesh_knowledge_read',
-    description: 'Read team knowledge entries (Wisdom/Pattern/Gotcha). Call at session start to learn what other agents discovered. Returns the most recent entries.',
+    description:
+      'Read team knowledge entries (Wisdom/Pattern/Gotcha). Call at session start to learn what other agents discovered. Returns the most recent entries.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -436,7 +450,9 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
     const team = getTeam(teamId);
     const board = team.taskBoard || [];
     const open = board.filter((t: TeamTask) => t.status === 'open');
-    const claimed = board.filter((t: TeamTask) => t.status === 'claimed' || (t as any).status === 'in-progress');
+    const claimed = board.filter(
+      (t: TeamTask) => t.status === 'claimed' || (t as any).status === 'in-progress'
+    );
     const blocked = board.filter((t: TeamTask) => t.status === 'blocked');
     return {
       success: true,
@@ -468,12 +484,14 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
           const raw = String((t as Record<string, unknown>).description || '');
           // In sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
           if (raw.length <= 2000) return [];
-          return [{
-            title: String((t as Record<string, unknown>).title || '').slice(0, 200),
-            reason: 'description_truncated' as const,
-            originalLength: raw.length,
-            keptLength: 2000,
-          }];
+          return [
+            {
+              title: String((t as Record<string, unknown>).title || '').slice(0, 200),
+              reason: 'description_truncated' as const,
+              originalLength: raw.length,
+              keptLength: 2000,
+            },
+          ];
         });
     team.taskBoard = result.updatedBoard;
     persistTeamStore();
@@ -530,9 +548,10 @@ async function handleBoardComplete(
   const taskId = args.task_id as string;
   const commit = args.commit as string | undefined;
   const summary = args.summary as string | undefined;
-  const verificationEvidence = typeof args.verification_evidence === 'string'
-    ? args.verification_evidence.trim().slice(0, 2000)
-    : '';
+  const verificationEvidence =
+    typeof args.verification_evidence === 'string'
+      ? args.verification_evidence.trim().slice(0, 2000)
+      : '';
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!taskId) return { error: '"task_id" is required.' };
@@ -578,12 +597,7 @@ async function handleBoardAppendCommit(
 
   try {
     const team = getTeam(teamId);
-    const wrap = appendFollowUpCommit(
-      (team.doneLog || []) as any,
-      taskId,
-      commit,
-      summary
-    );
+    const wrap = appendFollowUpCommit((team.doneLog || []) as any, taskId, commit, summary);
     if (!wrap.success) {
       return { error: wrap.error || 'Append failed' };
     }
@@ -660,19 +674,20 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
     const SCOUT_TODO_RE = /^.+?:\d+:\s*(?:\/\/\s*|#\s*|\*\s*)?(TODO|FIXME|HACK|XXX)\s*:?\s*(.+)$/i;
     // Skip the scanner's own implementation file and test/spec files to prevent self-derivation.
     const SCOUT_SKIP_RE = /\bboard-tools\.ts[:#]|(?:__tests__[/\\]|\.test\.ts[:#]|\.spec\.ts[:#])/;
-    const tasksBody = todoContent.split('\n')
-      .flatMap(l => {
-        if (SCOUT_SKIP_RE.test(l)) return [];
-        const m = SCOUT_TODO_RE.exec(l);
-        if (!m) return [];
-        const [, kind, detail] = m;
-        return [{
+    const tasksBody = todoContent.split('\n').flatMap((l) => {
+      if (SCOUT_SKIP_RE.test(l)) return [];
+      const m = SCOUT_TODO_RE.exec(l);
+      if (!m) return [];
+      const [, kind, detail] = m;
+      return [
+        {
           title: `${kind.toUpperCase()}: ${detail.trim().slice(0, 180)}`,
           description: `Generated from source grep:\n\n${l}`,
           source: 'scout:todo-scan',
           priority: /^FIXME$/i.test(kind) ? 2 : 1,
-        }];
-      });
+        },
+      ];
+    });
 
     const maxTasks = (args.max_tasks as number) || 50;
     const scopedTasks = tasksBody.slice(0, maxTasks) as any;
@@ -683,12 +698,14 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
           const raw = String(t.description || '');
           // In sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
           if (raw.length <= 2000) return [];
-          return [{
-            title: String(t.title || '').slice(0, 200),
-            reason: 'description_truncated' as const,
-            originalLength: raw.length,
-            keptLength: 2000,
-          }];
+          return [
+            {
+              title: String(t.title || '').slice(0, 200),
+              reason: 'description_truncated' as const,
+              originalLength: raw.length,
+              keptLength: 2000,
+            },
+          ];
         });
     team.taskBoard = result.updatedBoard;
     persistTeamStore();
@@ -753,7 +770,7 @@ async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<
       'mcp-tool',
       value as 1 | -1,
       team.maxSlots ?? 20,
-      args.reason as string | undefined,
+      args.reason as string | undefined
     );
     if (!result.success) {
       return { error: result.error || 'vote failed' };

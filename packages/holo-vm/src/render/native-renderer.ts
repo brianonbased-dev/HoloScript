@@ -16,10 +16,20 @@
  * drops in next — see WebGPURenderBackend stub note at the bottom.
  */
 
-import { ECSWorld, type TransformComponent, type GeometryComponent, type MaterialComponent } from '../executor';
+import {
+  ECSWorld,
+  type TransformComponent,
+  type GeometryComponent,
+  type MaterialComponent,
+} from '../executor';
 import { ComponentType } from '../opcodes';
 
-export interface RGBA { r: number; g: number; b: number; a: number }
+export interface RGBA {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
 
 /** Unpack a packed 0xRRGGBB material color (HoloVM MaterialComponent.color) to RGBA. */
 export function unpackColor(packed: number, opacity = 1): RGBA {
@@ -45,7 +55,10 @@ export class NativeFramebuffer {
 
   clear(c: RGBA): void {
     for (let i = 0; i < this.data.length; i += 4) {
-      this.data[i] = c.r; this.data[i + 1] = c.g; this.data[i + 2] = c.b; this.data[i + 3] = c.a;
+      this.data[i] = c.r;
+      this.data[i + 1] = c.g;
+      this.data[i + 2] = c.b;
+      this.data[i + 3] = c.a;
     }
   }
 
@@ -82,12 +95,17 @@ export class SoftwareRasterBackend implements RenderBackend {
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
         const i = (y * this.fb.width + x) * 4;
-        this.fb.data[i] = color.r; this.fb.data[i + 1] = color.g; this.fb.data[i + 2] = color.b; this.fb.data[i + 3] = color.a;
+        this.fb.data[i] = color.r;
+        this.fb.data[i + 1] = color.g;
+        this.fb.data[i + 2] = color.b;
+        this.fb.data[i + 3] = color.a;
       }
     }
   }
 
-  end(): void { /* CPU backend writes directly; nothing to flush */ }
+  end(): void {
+    /* CPU backend writes directly; nothing to flush */
+  }
 }
 
 /** Orthographic camera: world units → pixels. Camera looks down -Z; X right, Y up. */
@@ -115,7 +133,7 @@ export class NativeHoloRenderer {
     world: ECSWorld,
     fb: { width: number; height: number },
     camera: OrthoCamera,
-    clear: RGBA = { r: 18, g: 18, b: 22, a: 255 },
+    clear: RGBA = { r: 18, g: 18, b: 22, a: 255 }
   ): RenderStats {
     this.backend.begin(clear);
     const cx0 = fb.width / 2;

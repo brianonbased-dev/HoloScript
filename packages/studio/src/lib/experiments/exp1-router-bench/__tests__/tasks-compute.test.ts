@@ -13,7 +13,8 @@ function expectedValueOf(task: BenchTask): number {
   // accept() checks a single value; binary-search-free probe over a fine grid.
   for (let v = 0; v <= 12; v += 0.001) {
     const rounded = Math.round(v * 1000) / 1000;
-    if (task.accept!({ tool: 'set_trait_property', input: { property_value: rounded } })) return rounded;
+    if (task.accept!({ tool: 'set_trait_property', input: { property_value: rounded } }))
+      return rounded;
   }
   throw new Error(`no accepted value found for ${task.id}`);
 }

@@ -62,7 +62,12 @@ export interface MarkdownResult {
   /** Days until season end */
   daysRemaining: number;
   /** Optimal markdown schedule */
-  schedule: Array<{ dayOfMarkdown: number; discountPct: number; price: number; expectedUnits: number }>;
+  schedule: Array<{
+    dayOfMarkdown: number;
+    discountPct: number;
+    price: number;
+    expectedUnits: number;
+  }>;
   /** Expected total revenue */
   expectedRevenue: number;
   /** Expected unsold units */
@@ -126,7 +131,7 @@ export function economicOrderQuantity(
   orderingCost: number,
   holdingCostPerUnit: number,
   leadTimeDays = 0,
-  workingDaysPerYear = 250,
+  workingDaysPerYear = 250
 ): EOQResult {
   if (annualDemand <= 0) throw new Error('annualDemand must be positive');
   if (orderingCost <= 0) throw new Error('orderingCost must be positive');
@@ -138,7 +143,15 @@ export function economicOrderQuantity(
   const dailyDemand = annualDemand / workingDaysPerYear;
   const reorderPoint = dailyDemand * leadTimeDays;
 
-  return { annualDemand, orderingCost, holdingCostPerUnit, eoq, ordersPerYear, totalAnnualCost, reorderPoint };
+  return {
+    annualDemand,
+    orderingCost,
+    holdingCostPerUnit,
+    eoq,
+    ordersPerYear,
+    totalAnnualCost,
+    reorderPoint,
+  };
 }
 
 // ─── Price optimization via demand elasticity ─────────────────────────────────
@@ -159,7 +172,7 @@ export function priceOptimization(
   currentDemand: number,
   elasticity: number,
   variableCost = 0,
-  priceRange?: [number, number],
+  priceRange?: [number, number]
 ): PriceOptimizationResult {
   if (currentPrice <= 0) throw new Error('currentPrice must be positive');
   if (currentDemand <= 0) throw new Error('currentDemand must be positive');
@@ -167,22 +180,24 @@ export function priceOptimization(
 
   const demandAt = (p: number) => currentDemand * Math.pow(p / currentPrice, elasticity);
   const revenueAt = (p: number) => p * demandAt(p);
-  const profitAt  = (p: number) => (p - variableCost) * demandAt(p);
+  const profitAt = (p: number) => (p - variableCost) * demandAt(p);
 
   // Profit-maximizing price via ternary search
   const pLo = priceRange ? priceRange[0] : variableCost * 1.01;
   const pHi = priceRange ? priceRange[1] : currentPrice * 3;
 
-  let lo = Math.max(pLo, variableCost + 0.01), hi = pHi;
+  let lo = Math.max(pLo, variableCost + 0.01),
+    hi = pHi;
   for (let i = 0; i < 100; i++) {
     const m1 = lo + (hi - lo) / 3;
     const m2 = hi - (hi - lo) / 3;
-    if (profitAt(m1) < profitAt(m2)) lo = m1; else hi = m2;
+    if (profitAt(m1) < profitAt(m2)) lo = m1;
+    else hi = m2;
   }
   const optimalPrice = (lo + hi) / 2;
 
-  const currentRevenue  = revenueAt(currentPrice);
-  const optimalRevenue  = revenueAt(optimalPrice);
+  const currentRevenue = revenueAt(currentPrice);
+  const optimalRevenue = revenueAt(optimalPrice);
   const revenueUpliftPct = ((optimalRevenue - currentRevenue) / currentRevenue) * 100;
 
   // Price-demand curve: 20 points from 50% to 200% of current price
@@ -191,7 +206,15 @@ export function priceOptimization(
     return { price: p, demand: demandAt(p), revenue: revenueAt(p) };
   });
 
-  return { currentPrice, elasticity, optimalPrice, currentRevenue, optimalRevenue, revenueUpliftPct, priceDemandCurve };
+  return {
+    currentPrice,
+    elasticity,
+    optimalPrice,
+    currentRevenue,
+    optimalRevenue,
+    revenueUpliftPct,
+    priceDemandCurve,
+  };
 }
 
 // ─── Markdown optimization ────────────────────────────────────────────────────
@@ -206,7 +229,7 @@ export function markdownOptimization(
   daysRemaining: number,
   baseDailySalesRate: number,
   elasticity: number,
-  markdownSteps: number[] = [10, 20, 30, 50],
+  markdownSteps: number[] = [10, 20, 30, 50]
 ): MarkdownResult {
   if (originalPrice <= 0) throw new Error('originalPrice must be positive');
   if (inventory <= 0) throw new Error('inventory must be positive');
@@ -236,7 +259,12 @@ export function markdownOptimization(
     totalRevenue += unitsSold * currentPrice;
     remaining = Math.max(0, remaining - unitsSold);
 
-    schedule.push({ dayOfMarkdown, discountPct, price: newPrice, expectedUnits: Math.round(newRate * stepSize) });
+    schedule.push({
+      dayOfMarkdown,
+      discountPct,
+      price: newPrice,
+      expectedUnits: Math.round(newRate * stepSize),
+    });
 
     currentPrice = newPrice;
     currentRate = newRate;
@@ -249,7 +277,14 @@ export function markdownOptimization(
   totalRevenue += finalUnits * currentPrice;
   remaining = Math.max(0, remaining - finalUnits);
 
-  return { originalPrice, inventory, daysRemaining, schedule, expectedRevenue: totalRevenue, expectedUnsold: remaining };
+  return {
+    originalPrice,
+    inventory,
+    daysRemaining,
+    schedule,
+    expectedRevenue: totalRevenue,
+    expectedUnsold: remaining,
+  };
 }
 
 // ─── Customer Lifetime Value ──────────────────────────────────────────────────
@@ -264,7 +299,7 @@ export function customerLifetimeValue(
   purchaseFrequency: number,
   lifespanYears: number,
   discountRate: number,
-  cac?: number,
+  cac?: number
 ): CLVResult {
   if (avgOrderValue <= 0) throw new Error('avgOrderValue must be positive');
   if (purchaseFrequency <= 0) throw new Error('purchaseFrequency must be positive');
@@ -283,7 +318,15 @@ export function customerLifetimeValue(
 
   const clvToCac = cac != null && cac > 0 ? discountedCLV / cac : null;
 
-  return { avgOrderValue, purchaseFrequency, lifespanYears, discountRate, simpleCLV, discountedCLV, clvToCac };
+  return {
+    avgOrderValue,
+    purchaseFrequency,
+    lifespanYears,
+    discountRate,
+    simpleCLV,
+    discountedCLV,
+    clvToCac,
+  };
 }
 
 // ─── Conversion funnel analysis ───────────────────────────────────────────────
@@ -294,25 +337,25 @@ export function customerLifetimeValue(
 export function conversionFunnelAnalysis(
   stages: string[],
   counts: number[],
-  avgOrderValue: number,
+  avgOrderValue: number
 ): FunnelAnalysisResult {
   if (stages.length !== counts.length) throw new Error('stages and counts must have same length');
   if (stages.length < 2) throw new Error('Funnel needs at least 2 stages');
-  if (counts.some(c => c < 0)) throw new Error('counts must be non-negative');
+  if (counts.some((c) => c < 0)) throw new Error('counts must be non-negative');
   if (avgOrderValue <= 0) throw new Error('avgOrderValue must be positive');
 
-  const stepConversions = counts.slice(1).map((c, i) => counts[i] > 0 ? c / counts[i] : 0);
+  const stepConversions = counts.slice(1).map((c, i) => (counts[i] > 0 ? c / counts[i] : 0));
   const overallConversion = counts[0] > 0 ? counts[counts.length - 1] / counts[0] : 0;
   const currentRevenue = counts[counts.length - 1] * avgOrderValue;
 
   // Sensitivity: if step i conversion improves by 10pp, how much extra revenue?
   const sensitivityRevenue = stepConversions.map((conv, i) => {
-    const newConv = Math.min(1, conv + 0.10);
+    const newConv = Math.min(1, conv + 0.1);
     const upliftFactor = newConv / (conv || 1e-9);
     // Downstream: all subsequent stages are multiplied by this factor
     let newFinal = counts[i + 1] * upliftFactor;
     for (let j = i + 2; j < counts.length; j++) {
-      newFinal *= (counts[j - 1] > 0 ? counts[j] / counts[j - 1] : 1);
+      newFinal *= counts[j - 1] > 0 ? counts[j] / counts[j - 1] : 1;
     }
     return (newFinal - counts[counts.length - 1]) * avgOrderValue;
   });
@@ -329,21 +372,23 @@ export function conversionFunnelAnalysis(
  * C: remaining 5% of value
  */
 export function abcClassification(
-  items: Array<{ id: string; annualVolume: number; unitCost: number }>,
+  items: Array<{ id: string; annualVolume: number; unitCost: number }>
 ): ABCClassification {
   if (items.length === 0) throw new Error('No items provided');
 
-  const withValues = items.map(item => ({
-    id: item.id,
-    annualValue: item.annualVolume * item.unitCost,
-  })).sort((a, b) => b.annualValue - a.annualValue);
+  const withValues = items
+    .map((item) => ({
+      id: item.id,
+      annualValue: item.annualVolume * item.unitCost,
+    }))
+    .sort((a, b) => b.annualValue - a.annualValue);
 
   const totalValue = withValues.reduce((a, b) => a + b.annualValue, 0);
   let cumulative = 0;
   const classCounts = { A: 0, B: 0, C: 0 };
-  const classValue  = { A: 0, B: 0, C: 0 };
+  const classValue = { A: 0, B: 0, C: 0 };
 
-  const classified = withValues.map(item => {
+  const classified = withValues.map((item) => {
     cumulative += item.annualValue;
     const cumulativePct = (cumulative / totalValue) * 100;
     const cls: 'A' | 'B' | 'C' = cumulativePct <= 80 ? 'A' : cumulativePct <= 95 ? 'B' : 'C';
@@ -381,7 +426,7 @@ export interface InventoryMetrics {
 export function inventoryMetrics(
   cogs: number,
   avgInventory: number,
-  targetDsi?: number,
+  targetDsi?: number
 ): InventoryMetrics {
   if (cogs <= 0) throw new Error('COGS must be positive');
   if (avgInventory <= 0) throw new Error('avgInventory must be positive');
@@ -390,7 +435,10 @@ export function inventoryMetrics(
   const dsi = 365 / inventoryTurnover;
 
   return {
-    cogs, avgInventory, inventoryTurnover, dsi,
+    cogs,
+    avgInventory,
+    inventoryTurnover,
+    dsi,
     targetDsi,
     withinTarget: targetDsi != null ? dsi <= targetDsi : undefined,
   };
@@ -411,7 +459,7 @@ export interface RetailAnalysisResult {
 
 export function buildRetailReceipt(
   result: RetailAnalysisResult,
-  options?: RetailReceiptOptions,
+  options?: RetailReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
@@ -440,7 +488,11 @@ export function buildRetailReceipt(
       clv: result.clv?.discountedCLV ?? null,
       overallConversion: result.funnel?.overallConversion ?? null,
     },
-    cael: { version: 'cael.v1', event: 'retail_ecommerce.retail_analysis', solverType: 'retail-ecommerce.analytics' },
+    cael: {
+      version: 'cael.v1',
+      event: 'retail_ecommerce.retail_analysis',
+      solverType: 'retail-ecommerce.analytics',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-product-configurator",
-  name: "Product Configurator",
-  description: "3D product viewer with rotation, color variants, and option panels",
-  thumbnail: "🔧",
-  tags: ["web","product","configurator","ecommerce"],
-  category: "web",
+  id: 'wizard-product-configurator',
+  name: 'Product Configurator',
+  description: '3D product viewer with rotation, color variants, and option panels',
+  thumbnail: '🔧',
+  tags: ['web', 'product', 'configurator', 'ecommerce'],
+  category: 'web',
   code: `composition "Product Configurator" {
   environment {
     skybox: "studio"
@@ -79,7 +79,7 @@ export const template: SceneTemplate = {
     intensity: 2.5
     angle: 0.5
   }
-}`
+}`,
 };
 
 export default template;

@@ -184,7 +184,10 @@ interface ScalingMemo {
   };
 }
 
-function linearRegression(xs: number[], ys: number[]): { slope: number; intercept: number; rSquared: number } {
+function linearRegression(
+  xs: number[],
+  ys: number[]
+): { slope: number; intercept: number; rSquared: number } {
   const n = xs.length;
   const sumX = xs.reduce((a, b) => a + b, 0);
   const sumY = ys.reduce((a, b) => a + b, 0);
@@ -530,7 +533,9 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
     const rows: ScalingMemoRow[] = [];
 
     console.log('\n[paper-cael-replay-benchmark] === scaling memo sweep ===');
-    console.log('[paper-cael-replay-benchmark] entries | bytes | bytes/entry | verify med µs | µs/entry');
+    console.log(
+      '[paper-cael-replay-benchmark] entries | bytes | bytes/entry | verify med µs | µs/entry'
+    );
 
     for (const { steps, expectedEntries } of sweepTargets) {
       const { jsonl, entryCount } = buildTrace(steps);
@@ -578,7 +583,7 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
     const projectedBytes = Math.round(reg.slope * N1M + reg.intercept);
     const projectedBytesPerEntry = projectedBytes / N1M;
     // H1 median µs/entry from last row; project H3 with ~3.4× improvement from the paper.
-    const h1UsPerEntry = (rows[rows.length - 1]?.verifyUsPerEntry) ?? 3.4;
+    const h1UsPerEntry = rows[rows.length - 1]?.verifyUsPerEntry ?? 3.4;
     const h3Factor = 3.4;
     const projectedVerifyUs = (h1UsPerEntry / h3Factor) * N1M;
 
@@ -603,8 +608,7 @@ describe('Paper #1 — CAEL verifier / replay benchmark (PAPER-GAP-06)', () => {
 
     const memo: ScalingMemo = {
       generatedAt: new Date().toISOString(),
-      harness:
-        'packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts',
+      harness: 'packages/engine/src/simulation/__tests__/paper-cael-replay-benchmark.test.ts',
       host: { platform: process.platform, arch: process.arch, node: process.version },
       rows,
       regression: {

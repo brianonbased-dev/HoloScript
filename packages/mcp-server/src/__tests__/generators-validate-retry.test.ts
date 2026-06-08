@@ -45,7 +45,8 @@ describe('normalizeGeneratedHoloScript — tail-variability repairs', () => {
 
   it('is idempotent on already-valid output (no over-repair)', async () => {
     const { normalizeGeneratedHoloScript } = await import('../generators');
-    const valid = 'composition "X" {\n  object "C" {\n    position: [0,1,0]\n    color: "#3366ff"\n  }\n}';
+    const valid =
+      'composition "X" {\n  object "C" {\n    position: [0,1,0]\n    color: "#3366ff"\n  }\n}';
     expect(normalizeGeneratedHoloScript(valid, 'holo')).toBe(valid);
   });
 

@@ -33,9 +33,7 @@ function makeCompositionWithGaussian(params?: {
           rotations: params?.rotations ?? new Float32Array([0, 0, 0, 1, 0, 0, 0, 1]),
           colors: params?.colors ?? new Float32Array([1, 0, 0, 1, 0, 1, 0, 1]),
           opacities: params?.opacities ?? new Float32Array([1, 1]),
-          ...(params?.shCoefficients
-            ? { shCoefficients: params.shCoefficients }
-            : {}),
+          ...(params?.shCoefficients ? { shCoefficients: params.shCoefficients } : {}),
         },
       },
     ],
@@ -209,12 +207,10 @@ describe('GaussianSplattingCompiler', () => {
   it('should compute covariance from raw point cloud (positions + RGB colors)', () => {
     // 8 points in a 2x2x2 grid — covariance should produce small anisotropic scales
     const positions = new Float32Array([
-      0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1,
-      1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1,
+      0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1,
     ]);
     const colors = new Float32Array([
-      1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0,
-      1, 0, 1, 0, 1, 1, 1, 1, 1, 0.5, 0.5, 0.5,
+      1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0.5, 0.5, 0.5,
     ]);
     const compiler = new GaussianSplattingCompiler();
     const composition = makeCompositionWithGaussian({
@@ -230,12 +226,8 @@ describe('GaussianSplattingCompiler', () => {
   });
 
   it('should compute covariance from raw point cloud with RGBA colors', () => {
-    const positions = new Float32Array([
-      0, 0, 0, 0.5, 0, 0, 1, 0, 0,
-    ]);
-    const colors = new Float32Array([
-      1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1,
-    ]);
+    const positions = new Float32Array([0, 0, 0, 0.5, 0, 0, 1, 0, 0]);
+    const colors = new Float32Array([1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1]);
     const compiler = new GaussianSplattingCompiler({ format: 'gltf' });
     const composition = makeCompositionWithGaussian({
       positions,

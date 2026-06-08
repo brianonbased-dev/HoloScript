@@ -193,7 +193,7 @@ export class CodebaseGraph {
     this.calls.push(...file.calls);
 
     // HoloGraph: collect event sites for later cross-file resolution
-    if (file.emitSites)  this.allEmitSites.push(...file.emitSites);
+    if (file.emitSites) this.allEmitSites.push(...file.emitSites);
     if (file.listenSites) this.allListenSites.push(...file.listenSites);
   }
 
@@ -281,13 +281,13 @@ export class CodebaseGraph {
       const listeners = listenByEvent.get(es.eventName) ?? [];
       for (const ls of listeners) {
         const edge: EventEdge = {
-          eventName:      es.eventName,
-          emitterFile:    es.filePath,
-          emitterSymbol:  es.callerId,
-          emitLine:       es.line,
-          listenerFile:   ls.filePath,
+          eventName: es.eventName,
+          emitterFile: es.filePath,
+          emitterSymbol: es.callerId,
+          emitLine: es.line,
+          listenerFile: ls.filePath,
           listenerSymbol: ls.callerId,
-          listenLine:     ls.line,
+          listenLine: ls.line,
         };
         this.eventEdges.push(edge);
 
@@ -355,13 +355,21 @@ export class CodebaseGraph {
   searchSymbolsByName(
     name: string,
     opts?: { limit?: number }
-  ): { matchMode: 'exact' | 'fuzzy' | 'none'; truncated: boolean; results: ExternalSymbolDefinition[] } {
+  ): {
+    matchMode: 'exact' | 'fuzzy' | 'none';
+    truncated: boolean;
+    results: ExternalSymbolDefinition[];
+  } {
     const limit = Math.max(1, opts?.limit ?? 50);
 
     // 1. Exact match — preserve precise behavior when the symbol name is known.
     const exact = this.findSymbolsByName(name);
     if (exact.length > 0) {
-      return { matchMode: 'exact', truncated: exact.length > limit, results: exact.slice(0, limit) };
+      return {
+        matchMode: 'exact',
+        truncated: exact.length > limit,
+        results: exact.slice(0, limit),
+      };
     }
 
     // 2. Ranked case-insensitive fallback: exact-ci(0) > prefix(1) > substring(2).
@@ -596,9 +604,7 @@ export class CodebaseGraph {
         reason: 'target_symbol_missing',
         sourceFile: call.filePath,
         sourceSymbol: call.callerId,
-        targetSymbol: call.calleeOwner
-          ? `${call.calleeOwner}.${call.calleeName}`
-          : call.calleeName,
+        targetSymbol: call.calleeOwner ? `${call.calleeOwner}.${call.calleeName}` : call.calleeName,
         line: call.line,
         staleTargetFiles,
         liveTargetFiles,
@@ -853,9 +859,8 @@ export class CodebaseGraph {
       gitCommitHash: this.gitCommitHash,
       fileHashes: this.fileHashes,
       // Persist brain-coordinate node positions (HoloGraph Phase 2)
-      nodePositions: this.nodePositions.size > 0
-        ? Object.fromEntries(this.nodePositions)
-        : undefined,
+      nodePositions:
+        this.nodePositions.size > 0 ? Object.fromEntries(this.nodePositions) : undefined,
     };
     return JSON.stringify(data);
   }
@@ -919,9 +924,9 @@ export class CodebaseGraph {
   } {
     return {
       eventName,
-      emitters: this.allEmitSites.filter(s => s.eventName === eventName),
-      listeners: this.allListenSites.filter(s => s.eventName === eventName),
-      edges: this.eventEdges.filter(e => e.eventName === eventName),
+      emitters: this.allEmitSites.filter((s) => s.eventName === eventName),
+      listeners: this.allListenSites.filter((s) => s.eventName === eventName),
+      edges: this.eventEdges.filter((e) => e.eventName === eventName),
     };
   }
 
@@ -930,10 +935,7 @@ export class CodebaseGraph {
    * Useful for: "what events does this codebase use?" queries.
    */
   allEventNames(): string[] {
-    const names = new Set<string>([
-      ...this.eventEmitIndex.keys(),
-      ...this.eventListenIndex.keys(),
-    ]);
+    const names = new Set<string>([...this.eventEmitIndex.keys(), ...this.eventListenIndex.keys()]);
     return Array.from(names).sort();
   }
 
@@ -1015,10 +1017,10 @@ export class CodebaseGraph {
     }
 
     // Remove all edges that touch this file
-    this.imports        = this.imports.filter(e => e.fromFile !== filePath);
-    this.calls          = this.calls.filter(e => e.filePath !== filePath);
-    this.allEmitSites   = this.allEmitSites.filter(e => e.filePath !== filePath);
-    this.allListenSites = this.allListenSites.filter(e => e.filePath !== filePath);
+    this.imports = this.imports.filter((e) => e.fromFile !== filePath);
+    this.calls = this.calls.filter((e) => e.filePath !== filePath);
+    this.allEmitSites = this.allEmitSites.filter((e) => e.filePath !== filePath);
+    this.allListenSites = this.allListenSites.filter((e) => e.filePath !== filePath);
 
     this.files.delete(filePath);
     this._communities = null; // invalidate
@@ -1043,14 +1045,10 @@ export class CodebaseGraph {
    * @param modified Updated ScannedFile objects for modified files.
    * @param removed  File paths that were deleted.
    */
-  patchFromChanges(
-    added: ScannedFile[],
-    modified: ScannedFile[],
-    removed: string[],
-  ): void {
-    for (const p of removed)  this.removeFile(p);
+  patchFromChanges(added: ScannedFile[], modified: ScannedFile[], removed: string[]): void {
+    for (const p of removed) this.removeFile(p);
     for (const f of modified) this.updateFile(f);
-    for (const f of added)    this.addFile(f);
+    for (const f of added) this.addFile(f);
     this.buildIndexes();
   }
 
@@ -1103,7 +1101,7 @@ export class CodebaseGraph {
    */
   sliceDiversity(filePath: string): number {
     const edges = this.provenanceByFile.get(filePath) ?? [];
-    return new Set(edges.map(e => e.contractHash)).size;
+    return new Set(edges.map((e) => e.contractHash)).size;
   }
 
   /**

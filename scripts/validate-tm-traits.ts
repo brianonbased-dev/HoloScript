@@ -14,7 +14,9 @@ async function runValidation() {
   console.log('🔍 Validating TrainingMonkey traits against unified HS Registry...');
 
   if (!fs.existsSync(REGISTRY_PATH)) {
-    console.error(`❌ Registry not found at ${REGISTRY_PATH}. Run 'pnpm run build' or the generate-trait-registry script first.`);
+    console.error(
+      `❌ Registry not found at ${REGISTRY_PATH}. Run 'pnpm run build' or the generate-trait-registry script first.`
+    );
     process.exit(1);
   }
 
@@ -23,19 +25,20 @@ async function runValidation() {
 
   console.log(`📊 Loaded ${hsTraitIds.size} canonical trait IDs from registry.`);
 
-  // Dynamically import Mappings 
+  // Dynamically import Mappings
   // We use relative path or tsx resolution to the core source
   const mappingsPath = path.resolve(CORE_DIR, 'src/training/trait-mappings.ts');
-  
+
   if (!fs.existsSync(mappingsPath)) {
-      console.error(`❌ Mappings not found at ${mappingsPath}`);
-      process.exit(1);
+    console.error(`❌ Mappings not found at ${mappingsPath}`);
+    process.exit(1);
   }
 
   // To avoid dealing with ES module resolution issues within tsx of external packages,
-  // we will parse the file or rely on the build if it exists. 
+  // we will parse the file or rely on the build if it exists.
   // But wait, we can just import from the source using standard syntax in this env:
-  const { TM_REGISTERED_TRAITS, generateValidationReport } = await import('../packages/framework/src/training/trait-mappings');
+  const { TM_REGISTERED_TRAITS, generateValidationReport } =
+    await import('../packages/framework/src/training/trait-mappings');
 
   // Generate Report
   const deprecatedTraits = new Set<string>();

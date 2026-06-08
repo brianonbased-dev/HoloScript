@@ -19,7 +19,12 @@ import type {
 // TEST FIXTURES
 // =============================================================================
 
-function createSourceLocation(line: number, column: number, endLine?: number, endColumn?: number): SourceLocation {
+function createSourceLocation(
+  line: number,
+  column: number,
+  endLine?: number,
+  endColumn?: number
+): SourceLocation {
   return {
     start: { line, column },
     end: endLine ? { line: endLine, column: endColumn ?? 0 } : undefined,
@@ -157,7 +162,9 @@ describe('HoloASTMapper', () => {
 
       const { edges } = mapper.mapComposition(comp);
 
-      const traitEdges = edges.filter((e) => e.context === 'trait-applied' && e.traitName === 'collidable');
+      const traitEdges = edges.filter(
+        (e) => e.context === 'trait-applied' && e.traitName === 'collidable'
+      );
       expect(traitEdges.length).toBeGreaterThan(0);
       expect(traitEdges[0].from).toContain('template:');
       expect(traitEdges[0].traitName).toBe('collidable');
@@ -222,11 +229,15 @@ describe('HoloASTMapper', () => {
       expect(objectNode?.type).toBe('object');
 
       // Check template-usage edge
-      const templateEdges = edges.filter((e) => e.context === 'template-usage' && e.templateName === 'Button');
+      const templateEdges = edges.filter(
+        (e) => e.context === 'template-usage' && e.templateName === 'Button'
+      );
       expect(templateEdges.length).toBeGreaterThan(0);
 
       // Check trait-applied edge
-      const traitEdges = edges.filter((e) => e.context === 'trait-applied' && e.traitName === 'clickable');
+      const traitEdges = edges.filter(
+        (e) => e.context === 'trait-applied' && e.traitName === 'clickable'
+      );
       expect(traitEdges.length).toBeGreaterThan(0);
     });
 
@@ -378,7 +389,13 @@ describe('HoloASTMapper', () => {
     });
 
     it('should handle column=0 in serialization', () => {
-      const id = serializeNodeId({ kind: 'trait', filePath: 'test.holo', name: 'X', line: 1, column: 0 });
+      const id = serializeNodeId({
+        kind: 'trait',
+        filePath: 'test.holo',
+        name: 'X',
+        line: 1,
+        column: 0,
+      });
       expect(id).toBe('trait:test.holo:X:1:0');
     });
   });
@@ -394,7 +411,13 @@ describe('HoloASTMapper', () => {
 
       // Define nested objects
       const label = createObject('Label', 40);
-      const button = createObject('ClickButton', 35, 'Button', [{ name: 'interactive', config: {} }], [label]);
+      const button = createObject(
+        'ClickButton',
+        35,
+        'Button',
+        [{ name: 'interactive', config: {} }],
+        [label]
+      );
       const panel = createObject('ControlPanel', 30, undefined, [], [button]);
 
       const comp = createComposition('UIScene', [template], [panel], [baseTrait, advTrait]);

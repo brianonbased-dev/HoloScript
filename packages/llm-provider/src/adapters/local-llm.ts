@@ -89,16 +89,16 @@ Rules:
  * without instantiating the adapter — single source of truth per W.GOLD.006.
  */
 export const LOCAL_LLM_CAPABILITIES: Capabilities = {
-  contextWindow: 0,              // per-model — populate per deployment
+  contextWindow: 0, // per-model — populate per deployment
   maxOutput: 0,
 
   streaming: true,
-  tools: false,                  // model-dependent; many local models don't tool-call reliably
-  vision: false,                 // model-dependent
+  tools: false, // model-dependent; many local models don't tool-call reliably
+  vision: false, // model-dependent
 
-  local: true,                   // hardware-native deployment
-  zeroMarginalInference: true,   // compute paid via GPU rental, $0 per-call
-  bearerTokenAccess: false,      // local server, no auth required
+  local: true, // hardware-native deployment
+  zeroMarginalInference: true, // compute paid via GPU rental, $0 per-call
+  bearerTokenAccess: false, // local server, no auth required
 };
 
 export class LocalLLMAdapter extends BaseLLMAdapter {
@@ -142,7 +142,10 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
     const body = JSON.stringify({
       model,
-      messages: request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) })),
+      messages: request.messages.map((m) => ({
+        role: m.role,
+        content: messageContentAsString(m.content),
+      })),
       max_tokens: request.maxTokens ?? 2048,
       temperature: request.temperature ?? 0.4,
       top_p: request.topP ?? 1,
@@ -398,9 +401,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
           }
 
           // --- Tool calls ---
-          const toolCalls = message?.tool_calls as
-            | Array<Record<string, unknown>>
-            | undefined;
+          const toolCalls = message?.tool_calls as Array<Record<string, unknown>> | undefined;
           if (toolCalls && toolCalls.length > 0) {
             hadToolCalls = true;
             for (const tc of toolCalls) {
@@ -470,10 +471,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     };
 
     if (streamErrored) {
-      throw new LLMProviderError(
-        'Stream error during local LLM completion',
-        'local-llm'
-      );
+      throw new LLMProviderError('Stream error during local LLM completion', 'local-llm');
     }
   }
 

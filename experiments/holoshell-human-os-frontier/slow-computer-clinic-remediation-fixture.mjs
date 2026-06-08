@@ -14,7 +14,9 @@ const DEFAULT_OUTPUT = path.join(
   'slow-computer-remediation-fixture-receipt.json'
 );
 
-const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+const repoRoot = path.resolve(
+  new URL('../..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
+);
 
 function parseArgs(argv) {
   const args = {
@@ -28,7 +30,9 @@ function parseArgs(argv) {
     else if (arg === '--self-test') args.selfTest = true;
     else if (arg === '--json') args.json = true;
     else if (arg === '--help' || arg === '-h') {
-      console.log(`Usage: node experiments/holoshell-human-os-frontier/slow-computer-clinic-remediation-fixture.mjs [--self-test] [--json] [--output <path>]`);
+      console.log(
+        `Usage: node experiments/holoshell-human-os-frontier/slow-computer-clinic-remediation-fixture.mjs [--self-test] [--json] [--output <path>]`
+      );
       process.exit(0);
     } else {
       throw new Error(`Unknown argument: ${arg}`);
@@ -48,7 +52,10 @@ function stableHash(value) {
 function atomicWriteJson(filePath, value) {
   const resolved = resolveRepoPath(filePath);
   mkdirSync(path.dirname(resolved), { recursive: true });
-  const temp = path.join(path.dirname(resolved), `.${path.basename(resolved)}.${process.pid}.${Date.now()}.tmp`);
+  const temp = path.join(
+    path.dirname(resolved),
+    `.${path.basename(resolved)}.${process.pid}.${Date.now()}.tmp`
+  );
   writeFileSync(temp, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
   renameSync(temp, resolved);
   return resolved;
@@ -78,18 +85,22 @@ async function waitFor(predicate, timeoutMs, intervalMs = 50) {
 }
 
 function spawnFixtureProcess() {
-  const child = spawn(process.execPath, [
-    '-e',
+  const child = spawn(
+    process.execPath,
     [
-      'process.title = "holoshell-slow-clinic-fixture";',
-      'process.on("SIGTERM", () => setTimeout(() => process.exit(0), 20));',
-      'setInterval(() => {}, 1000);',
-    ].join(''),
-  ], {
-    cwd: repoRoot,
-    stdio: ['ignore', 'ignore', 'ignore'],
-    windowsHide: true,
-  });
+      '-e',
+      [
+        'process.title = "holoshell-slow-clinic-fixture";',
+        'process.on("SIGTERM", () => setTimeout(() => process.exit(0), 20));',
+        'setInterval(() => {}, 1000);',
+      ].join(''),
+    ],
+    {
+      cwd: repoRoot,
+      stdio: ['ignore', 'ignore', 'ignore'],
+      windowsHide: true,
+    }
+  );
   return child;
 }
 
@@ -178,7 +189,8 @@ async function runFixture(args) {
       room: 'experiments/holoshell-human-os-frontier/slow-computer-clinic-room.holo',
       policy: 'experiments/holoshell-human-os-frontier/slow-computer-clinic-policy.hsplus',
       pipeline: 'experiments/holoshell-human-os-frontier/slow-computer-clinic-pipeline.hs',
-      fixture: 'experiments/holoshell-human-os-frontier/slow-computer-clinic-remediation-fixture.mjs',
+      fixture:
+        'experiments/holoshell-human-os-frontier/slow-computer-clinic-remediation-fixture.mjs',
     },
     host: {
       platform: os.platform(),

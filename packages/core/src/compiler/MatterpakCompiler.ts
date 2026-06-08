@@ -80,18 +80,21 @@ export interface ParsedOBJGroup {
 }
 
 export interface ParsedMTL {
-  materials: Map<string, {
-    baseColor: [number, number, number];
-    metallic: number;
-    roughness: number;
-    textureMap?: string;
-    normalMap?: string;
-  }>;
+  materials: Map<
+    string,
+    {
+      baseColor: [number, number, number];
+      metallic: number;
+      roughness: number;
+      textureMap?: string;
+      normalMap?: string;
+    }
+  >;
 }
 
 export interface PointCloud {
   points: Float64Array; // x,y,z interleaved
-  colors?: Uint8Array;    // r,g,b interleaved (optional)
+  colors?: Uint8Array; // r,g,b interleaved (optional)
   intensity?: Float64Array;
   count: number;
 }
@@ -154,22 +157,11 @@ function parseOBJExtended(text: string): ParsedOBJGroup[] {
     const cmd = parts[0];
 
     if (cmd === 'v' && parts.length >= 4) {
-      allVertices.push(
-        parseFloat(parts[1]),
-        parseFloat(parts[2]),
-        parseFloat(parts[3])
-      );
+      allVertices.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
     } else if (cmd === 'vn' && parts.length >= 4) {
-      allNormals.push(
-        parseFloat(parts[1]),
-        parseFloat(parts[2]),
-        parseFloat(parts[3])
-      );
+      allNormals.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
     } else if (cmd === 'vt' && parts.length >= 3) {
-      allUVs.push(
-        parseFloat(parts[1]),
-        parseFloat(parts[2])
-      );
+      allUVs.push(parseFloat(parts[1]), parseFloat(parts[2]));
     } else if (cmd === 'g' || cmd === 'o') {
       const name = parts.slice(1).join(' ') || `group_${groups.length}`;
       startGroup(name);
@@ -195,7 +187,12 @@ function parseOBJExtended(text: string): ParsedOBJGroup[] {
 
       // Triangulate fan
       for (let t = 1; t < indices.length - 1; t++) {
-        currentGroup!.triangles = appendTri(currentGroup!.triangles, indices[0], indices[t], indices[t + 1]);
+        currentGroup!.triangles = appendTri(
+          currentGroup!.triangles,
+          indices[0],
+          indices[t],
+          indices[t + 1]
+        );
       }
     }
   }
@@ -214,11 +211,7 @@ function parseOBJExtended(text: string): ParsedOBJGroup[] {
     const verts: number[] = [];
     for (const idx of usedVerts) {
       remap.set(idx, next++);
-      verts.push(
-        allVertices[idx * 3],
-        allVertices[idx * 3 + 1],
-        allVertices[idx * 3 + 2]
-      );
+      verts.push(allVertices[idx * 3], allVertices[idx * 3 + 1], allVertices[idx * 3 + 2]);
     }
     g.vertices = new Float64Array(verts);
 
@@ -228,14 +221,18 @@ function parseOBJExtended(text: string): ParsedOBJGroup[] {
     }
   }
 
-  return groups.length > 0 ? groups : [{
-    name: 'default',
-    vertices: new Float64Array(allVertices),
-    normals: new Float64Array(allNormals),
-    uvs: new Float64Array(allUVs),
-    triangles: new Uint32Array(0),
-    materialName: currentMaterial,
-  }];
+  return groups.length > 0
+    ? groups
+    : [
+        {
+          name: 'default',
+          vertices: new Float64Array(allVertices),
+          normals: new Float64Array(allNormals),
+          uvs: new Float64Array(allUVs),
+          triangles: new Uint32Array(0),
+          materialName: currentMaterial,
+        },
+      ];
 }
 
 function appendTri(arr: Uint32Array, a: number, b: number, c: number): Uint32Array {
@@ -252,13 +249,16 @@ function appendTri(arr: Uint32Array, a: number, b: number, c: number): Uint32Arr
 // ---------------------------------------------------------------------------
 
 function parseMTL(text: string): ParsedMTL {
-  const materials = new Map<string, {
-    baseColor: [number, number, number];
-    metallic: number;
-    roughness: number;
-    textureMap?: string;
-    normalMap?: string;
-  }>();
+  const materials = new Map<
+    string,
+    {
+      baseColor: [number, number, number];
+      metallic: number;
+      roughness: number;
+      textureMap?: string;
+      normalMap?: string;
+    }
+  >();
 
   let current: string | null = null;
   const lines = text.split('\n');
@@ -278,11 +278,7 @@ function parseMTL(text: string): ParsedMTL {
     } else if (current) {
       const mat = materials.get(current)!;
       if (cmd === 'Kd' && parts.length >= 4) {
-        mat.baseColor = [
-          parseFloat(parts[1]),
-          parseFloat(parts[2]),
-          parseFloat(parts[3]),
-        ];
+        mat.baseColor = [parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])];
       } else if (cmd === 'map_Kd' && parts.length >= 2) {
         mat.textureMap = parts.slice(1).join(' ');
       } else if (cmd === 'map_Bump' && parts.length >= 2) {
@@ -315,18 +311,10 @@ function parseXYZ(text: string): PointCloud {
     const parts = line.split(/\s+/);
     if (parts.length < 3) continue;
 
-    points.push(
-      parseFloat(parts[0]),
-      parseFloat(parts[1]),
-      parseFloat(parts[2])
-    );
+    points.push(parseFloat(parts[0]), parseFloat(parts[1]), parseFloat(parts[2]));
 
     if (parts.length >= 6) {
-      colors.push(
-        parseInt(parts[3], 10),
-        parseInt(parts[4], 10),
-        parseInt(parts[5], 10)
-      );
+      colors.push(parseInt(parts[3], 10), parseInt(parts[4], 10), parseInt(parts[5], 10));
     } else {
       hasColor = false;
     }
@@ -363,9 +351,15 @@ function parseE57(buffer: ArrayBuffer): PointCloud {
     const x = view.getFloat64(off, true);
     const y = view.getFloat64(off + 8, true);
     const z = view.getFloat64(off + 16, true);
-    if (isFinite(x) && isFinite(y) && isFinite(z) &&
-        Math.abs(x) < 1e6 && Math.abs(y) < 1e6 && Math.abs(z) < 1e6 &&
-        (x !== 0 || y !== 0 || z !== 0)) {
+    if (
+      isFinite(x) &&
+      isFinite(y) &&
+      isFinite(z) &&
+      Math.abs(x) < 1e6 &&
+      Math.abs(y) < 1e6 &&
+      Math.abs(z) < 1e6 &&
+      (x !== 0 || y !== 0 || z !== 0)
+    ) {
       points.push(x, y, z);
       off += 16; // Skip ahead to avoid reading the same point multiple times
     }
@@ -409,8 +403,8 @@ export class MatterpakCompiler extends CompilerBase {
   compile(..._args: unknown[]): string {
     throw new Error(
       'MatterpakCompiler.compile() is not supported. ' +
-      'Use compileBundle(bundle: MatterpakBundle) to ingest a Matterpak bundle ' +
-      'into a HoloComposition AST.'
+        'Use compileBundle(bundle: MatterpakBundle) to ingest a Matterpak bundle ' +
+        'into a HoloComposition AST.'
     );
   }
 
@@ -451,7 +445,9 @@ export class MatterpakCompiler extends CompilerBase {
       if (e57Cloud.count > 0) {
         stats.pointCount += e57Cloud.count;
       } else {
-        warnings.push('E57 parsing produced zero points (header-only or unsupported format variant)');
+        warnings.push(
+          'E57 parsing produced zero points (header-only or unsupported format variant)'
+        );
       }
     }
 
@@ -461,16 +457,23 @@ export class MatterpakCompiler extends CompilerBase {
     const lights: HoloLight[] = [];
 
     // Compute bounds for centering
-    let minX = Infinity, minY = Infinity, minZ = Infinity;
-    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      minZ = Infinity;
+    let maxX = -Infinity,
+      maxY = -Infinity,
+      maxZ = -Infinity;
     for (const g of objGroups) {
       for (let i = 0; i < g.vertices.length; i += 3) {
         const x = g.vertices[i];
         const y = g.vertices[i + 1];
         const z = g.vertices[i + 2];
-        if (x < minX) minX = x; if (x > maxX) maxX = x;
-        if (y < minY) minY = y; if (y > maxY) maxY = y;
-        if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+        if (z < minZ) minZ = z;
+        if (z > maxZ) maxZ = z;
       }
     }
     const cx = (minX + maxX) / 2;
@@ -513,14 +516,18 @@ export class MatterpakCompiler extends CompilerBase {
         });
 
         // Compute group center
-        let gx = 0, gy = 0, gz = 0;
+        let gx = 0,
+          gy = 0,
+          gz = 0;
         for (let i = 0; i < g.vertices.length; i += 3) {
           gx += g.vertices[i];
           gy += g.vertices[i + 1];
           gz += g.vertices[i + 2];
         }
         const vc = g.vertices.length / 3;
-        gx /= vc; gy /= vc; gz /= vc;
+        gx /= vc;
+        gy /= vc;
+        gz /= vc;
 
         const obj: HoloObjectDecl = {
           type: 'ObjectDecl',
@@ -550,15 +557,17 @@ export class MatterpakCompiler extends CompilerBase {
     } else {
       // Single spatial group, multiple objects
       for (const g of objGroups) {
-        const traits: HoloObjectTrait[] = [{
-          type: 'ObjectTrait' as const,
-          name: 'geometry',
-          config: {
-            primitive: 'mesh',
-            vertices: Array.from(g.vertices),
-            indices: Array.from(g.triangles),
+        const traits: HoloObjectTrait[] = [
+          {
+            type: 'ObjectTrait' as const,
+            name: 'geometry',
+            config: {
+              primitive: 'mesh',
+              vertices: Array.from(g.vertices),
+              indices: Array.from(g.triangles),
+            },
           },
-        }];
+        ];
         const matName = g.materialName;
         if (matName && mtl.materials.has(matName)) {
           const mat = mtl.materials.get(matName)!;
@@ -616,11 +625,7 @@ export class MatterpakCompiler extends CompilerBase {
           const x = pc.points[i * 3];
           const y = pc.points[i * 3 + 1];
           const z = pc.points[i * 3 + 2];
-          particles.push(
-            (x - cx) * scale,
-            (y - cy) * scale,
-            (z - cz) * scale
-          );
+          particles.push((x - cx) * scale, (y - cy) * scale, (z - cz) * scale);
           if (pc.colors) {
             particleColors.push(
               pc.colors[i * 3] / 255,
@@ -638,17 +643,19 @@ export class MatterpakCompiler extends CompilerBase {
           position: { x: 0, y: 0, z: 0 },
           scale: { x: 1, y: 1, z: 1 },
           rotation: { x: 0, y: 0, z: 0 },
-          traits: [{
-            type: 'ObjectTrait' as const,
-            name: 'particleSystem',
-            config: {
-              count: particles.length / 3,
-              positions: particles,
-              ...(particleColors.length > 0 ? { colors: particleColors } : {}),
-              size: 0.02 * scale,
-              billboard: true,
+          traits: [
+            {
+              type: 'ObjectTrait' as const,
+              name: 'particleSystem',
+              config: {
+                count: particles.length / 3,
+                positions: particles,
+                ...(particleColors.length > 0 ? { colors: particleColors } : {}),
+                size: 0.02 * scale,
+                billboard: true,
+              },
             },
-          }],
+          ],
         });
         systemIndex++;
       }
@@ -717,22 +724,24 @@ export class MatterpakCompiler extends CompilerBase {
       timelines: [],
       audio: [],
       zones: [],
-      worlds: [{
-        type: 'World',
-        id: 'property_world',
-        name: 'Imported Property',
-        properties: [
-          { type: 'WorldProperty', key: 'gravityX', value: 0 },
-          { type: 'WorldProperty', key: 'gravityY', value: -9.81 },
-          { type: 'WorldProperty', key: 'gravityZ', value: 0 },
-          { type: 'WorldProperty', key: 'boundsMinX', value: (minX - cx) * scale },
-          { type: 'WorldProperty', key: 'boundsMinY', value: (minY - cy) * scale },
-          { type: 'WorldProperty', key: 'boundsMinZ', value: (minZ - cz) * scale },
-          { type: 'WorldProperty', key: 'boundsMaxX', value: (maxX - cx) * scale },
-          { type: 'WorldProperty', key: 'boundsMaxY', value: (maxY - cy) * scale },
-          { type: 'WorldProperty', key: 'boundsMaxZ', value: (maxZ - cz) * scale },
-        ],
-      }],
+      worlds: [
+        {
+          type: 'World',
+          id: 'property_world',
+          name: 'Imported Property',
+          properties: [
+            { type: 'WorldProperty', key: 'gravityX', value: 0 },
+            { type: 'WorldProperty', key: 'gravityY', value: -9.81 },
+            { type: 'WorldProperty', key: 'gravityZ', value: 0 },
+            { type: 'WorldProperty', key: 'boundsMinX', value: (minX - cx) * scale },
+            { type: 'WorldProperty', key: 'boundsMinY', value: (minY - cy) * scale },
+            { type: 'WorldProperty', key: 'boundsMinZ', value: (minZ - cz) * scale },
+            { type: 'WorldProperty', key: 'boundsMaxX', value: (maxX - cx) * scale },
+            { type: 'WorldProperty', key: 'boundsMaxY', value: (maxY - cy) * scale },
+            { type: 'WorldProperty', key: 'boundsMaxZ', value: (maxZ - cz) * scale },
+          ],
+        },
+      ],
       ui: {
         type: 'UI',
         elements: [],

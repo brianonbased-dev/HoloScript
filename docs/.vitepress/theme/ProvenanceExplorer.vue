@@ -74,8 +74,7 @@ function fmtDate(iso) {
 
 function githubRawUrl(sourcePath) {
   return (
-    'https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/' +
-    encodeURI(sourcePath)
+    'https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/' + encodeURI(sourcePath)
   );
 }
 
@@ -110,17 +109,15 @@ function copyText(t) {
     <header class="prov-header">
       <h1>Live Provenance Explorer</h1>
       <p class="prov-sub">
-        Every load-bearing artifact in the HoloScript research program is
-        anchored to two independent public ledgers: the Bitcoin blockchain
-        (via OpenTimestamps) and Base mainnet (an Ethereum L2). Both receipts
-        are committed to the open-source repository alongside the file they
-        prove.
+        Every load-bearing artifact in the HoloScript research program is anchored to two
+        independent public ledgers: the Bitcoin blockchain (via OpenTimestamps) and Base mainnet (an
+        Ethereum L2). Both receipts are committed to the open-source repository alongside the file
+        they prove.
       </p>
       <p class="prov-sub">
-        This page reads a manifest generated from those receipts. Every claim
-        on this page is verifiable against the original public sources —
-        BaseScan, mempool.space, and the ai-ecosystem GitHub repo. The
-        canonical verifier is
+        This page reads a manifest generated from those receipts. Every claim on this page is
+        verifiable against the original public sources — BaseScan, mempool.space, and the
+        ai-ecosystem GitHub repo. The canonical verifier is
         <a :href="verifyScriptUrl" target="_blank" rel="noopener"
           ><code>scripts/verify_provenance.py</code></a
         >; the page below mirrors what that script reports.
@@ -128,16 +125,16 @@ function copyText(t) {
     </header>
 
     <div v-if="loading" class="prov-loading">Loading manifest…</div>
-    <div v-else-if="loadError" class="prov-error">
-      Failed to load manifest: {{ loadError }}
-    </div>
+    <div v-else-if="loadError" class="prov-error">Failed to load manifest: {{ loadError }}</div>
 
     <template v-else-if="manifest">
       <section class="prov-summary">
         <div class="prov-meta">
           <span>Manifest generated {{ fmtDate(manifest.generatedAt) }}</span>
           <span class="prov-sep">•</span>
-          <span>Source: <code>{{ manifest.sourceRepo }}</code></span>
+          <span
+            >Source: <code>{{ manifest.sourceRepo }}</code></span
+          >
         </div>
 
         <div class="prov-totals">
@@ -169,15 +166,11 @@ function copyText(t) {
             class="prov-bucket"
             :class="{ active: filterBucket === key }"
             :style="{
-              borderColor:
-                filterBucket === key ? bucketColor[key] : 'var(--vp-c-divider)',
+              borderColor: filterBucket === key ? bucketColor[key] : 'var(--vp-c-divider)',
             }"
             @click="filterBucket = key"
           >
-            <span
-              class="prov-bucket-dot"
-              :style="{ background: bucketColor[key] }"
-            ></span>
+            <span class="prov-bucket-dot" :style="{ background: bucketColor[key] }"></span>
             {{ label }}
             <span class="prov-bucket-count">{{ manifest.counts.buckets[key] || 0 }}</span>
           </button>
@@ -200,17 +193,14 @@ function copyText(t) {
 
         <div class="prov-notes">
           <strong>How statuses are determined.</strong> A receipt is
-          <em>Bitcoin + Base confirmed</em> when the Base L2 transaction is
-          mined and the OpenTimestamps receipt is older than 48 hours
-          (Bitcoin calendars witness new receipts within ~24h).
-          <em>Base confirmed, Bitcoin pending</em> means the Base L2 anchor
-          is on-chain but the Bitcoin attestation has not yet been observed
-          (typical for receipts under 48h old). <em>Drifted</em> means the
-          file's current SHA-256 no longer matches the receipt — this is
-          not a tampering signal; it means the file was amended after the
-          anchor. The prior receipt remains on-chain as evidence of the
-          prior content state, and a new anchor round re-establishes the
-          canonical triple.
+          <em>Bitcoin + Base confirmed</em> when the Base L2 transaction is mined and the
+          OpenTimestamps receipt is older than 48 hours (Bitcoin calendars witness new receipts
+          within ~24h). <em>Base confirmed, Bitcoin pending</em> means the Base L2 anchor is
+          on-chain but the Bitcoin attestation has not yet been observed (typical for receipts under
+          48h old). <em>Drifted</em> means the file's current SHA-256 no longer matches the receipt
+          — this is not a tampering signal; it means the file was amended after the anchor. The
+          prior receipt remains on-chain as evidence of the prior content state, and a new anchor
+          round re-establishes the canonical triple.
         </div>
       </section>
 
@@ -244,10 +234,7 @@ function copyText(t) {
             <dl class="prov-dl">
               <dt>Source file</dt>
               <dd>
-                <a
-                  :href="githubRawUrl(e.sourcePath)"
-                  target="_blank"
-                  rel="noopener"
+                <a :href="githubRawUrl(e.sourcePath)" target="_blank" rel="noopener"
                   ><code>research/{{ e.sourcePath }}</code></a
                 >
               </dd>
@@ -263,42 +250,27 @@ function copyText(t) {
               </dd>
               <dd v-else>
                 <code class="prov-mono">{{ e.currentSha256 }}</code>
-                <span v-if="e.drift === true" class="prov-drift-flag">
-                  drift detected
-                </span>
-                <span v-else-if="e.drift === false" class="prov-match-flag">
-                  match
-                </span>
+                <span v-if="e.drift === true" class="prov-drift-flag"> drift detected </span>
+                <span v-else-if="e.drift === false" class="prov-match-flag"> match </span>
               </dd>
 
               <dt>Base L2 transaction</dt>
               <dd>
-                <a
-                  :href="e.basescanUrl"
-                  target="_blank"
-                  rel="noopener"
-                  class="prov-link-prim"
-                >
+                <a :href="e.basescanUrl" target="_blank" rel="noopener" class="prov-link-prim">
                   {{ shortHash(e.txHash, 14, 10) }}
                 </a>
-                <button class="prov-copy" @click="copyText(e.txHash)">
-                  copy
-                </button>
+                <button class="prov-copy" @click="copyText(e.txHash)">copy</button>
               </dd>
 
               <dt>Base block</dt>
               <dd>
                 <a
-                  :href="
-                    'https://basescan.org/block/' + e.blockNumber
-                  "
+                  :href="'https://basescan.org/block/' + e.blockNumber"
                   target="_blank"
                   rel="noopener"
                   >{{ e.blockNumber }}</a
                 >
-                <span v-if="e.gasUsed">
-                  · {{ e.gasUsed }} gas used
-                </span>
+                <span v-if="e.gasUsed"> · {{ e.gasUsed }} gas used </span>
               </dd>
 
               <dt>Wallet</dt>
@@ -314,10 +286,7 @@ function copyText(t) {
 
               <dt>OpenTimestamps receipt</dt>
               <dd>
-                <a
-                  :href="githubOtsUrl(e.sourcePath)"
-                  target="_blank"
-                  rel="noopener"
+                <a :href="githubOtsUrl(e.sourcePath)" target="_blank" rel="noopener"
                   ><code>{{ e.sourcePath }}.ots</code></a
                 >
                 <span class="prov-ots-status">
@@ -327,10 +296,7 @@ function copyText(t) {
 
               <dt>Base receipt JSON</dt>
               <dd>
-                <a
-                  :href="githubBaseJsonUrl(e.sourcePath)"
-                  target="_blank"
-                  rel="noopener"
+                <a :href="githubBaseJsonUrl(e.sourcePath)" target="_blank" rel="noopener"
                   ><code>{{ e.sourcePath }}.base.json</code></a
                 >
               </dd>
@@ -342,12 +308,7 @@ function copyText(t) {
                 >
                 <button
                   class="prov-copy"
-                  @click="
-                    copyText(
-                      'python scripts/verify_provenance.py research/' +
-                        e.sourcePath,
-                    )
-                  "
+                  @click="copyText('python scripts/verify_provenance.py research/' + e.sourcePath)"
                 >
                   copy
                 </button>
@@ -370,10 +331,9 @@ function copyText(t) {
             rel="noopener"
             ><code>0x0C57…660E3</code></a
           >
-          (Trezor-controlled). The OpenTimestamps receipts are independently
-          witnessed by three public calendars that aggregate into the Bitcoin
-          blockchain. Both ledgers are external to the project — neither the
-          founder nor any agent can amend or back-date the public record.
+          (Trezor-controlled). The OpenTimestamps receipts are independently witnessed by three
+          public calendars that aggregate into the Bitcoin blockchain. Both ledgers are external to
+          the project — neither the founder nor any agent can amend or back-date the public record.
         </p>
         <p>
           The full anchor-round ledgers are committed in
@@ -382,11 +342,9 @@ function copyText(t) {
             target="_blank"
             rel="noopener"
             ><code>research/anchor-rounds/</code></a
-          >. This page is regenerated from
-          <code>docs/public/provenance-manifest.json</code> on every site
-          rebuild; the manifest is itself produced by
-          <code>scripts/build-provenance-manifest.mjs</code> walking the
-          ai-ecosystem research tree.
+          >. This page is regenerated from <code>docs/public/provenance-manifest.json</code> on
+          every site rebuild; the manifest is itself produced by
+          <code>scripts/build-provenance-manifest.mjs</code> walking the ai-ecosystem research tree.
         </p>
       </footer>
     </template>
@@ -491,7 +449,9 @@ function copyText(t) {
   border-radius: 999px;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
 }
 .prov-bucket:hover {
   background: var(--vp-c-bg-soft);
@@ -553,7 +513,9 @@ function copyText(t) {
   border-radius: 8px;
   margin-bottom: 0.6rem;
   background: var(--vp-c-bg);
-  transition: border-color 0.12s, background 0.12s;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
 }
 .prov-card:hover {
   border-color: var(--vp-c-divider-hover, var(--vp-c-divider));

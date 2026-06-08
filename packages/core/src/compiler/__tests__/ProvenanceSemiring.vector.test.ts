@@ -29,7 +29,11 @@ function semiring(rules?: ConflictResolutionRule[]): ProvenanceSemiring {
   return new ProvenanceSemiring(rules);
 }
 
-function trait(name: string, config: Record<string, unknown>, authorityLevel = 50): TraitApplication {
+function trait(
+  name: string,
+  config: Record<string, unknown>,
+  authorityLevel = 50
+): TraitApplication {
   return { name, config, context: { authorityLevel } };
 }
 
@@ -203,9 +207,7 @@ describe('ProvenanceSemiring — vec-component-max', () => {
 });
 
 describe('ProvenanceSemiring — vec-component-min', () => {
-  const rules: ConflictResolutionRule[] = [
-    { property: 'strain', strategy: 'vec-component-min' },
-  ];
+  const rules: ConflictResolutionRule[] = [{ property: 'strain', strategy: 'vec-component-min' }];
 
   it('picks per-component minimum (conservative strain merge)', () => {
     const ps = semiring(rules);
@@ -225,9 +227,7 @@ describe('ProvenanceSemiring — vec-component-min', () => {
 });
 
 describe('ProvenanceSemiring — vec-component-sum', () => {
-  const rules: ConflictResolutionRule[] = [
-    { property: 'velocity', strategy: 'vec-component-sum' },
-  ];
+  const rules: ConflictResolutionRule[] = [{ property: 'velocity', strategy: 'vec-component-sum' }];
 
   it('sums velocity vectors from multiple force contributors', () => {
     const ps = semiring(rules);
@@ -240,14 +240,8 @@ describe('ProvenanceSemiring — vec-component-sum', () => {
 
   it('is commutative', () => {
     const ps = semiring(rules);
-    const r1 = ps.add([
-      trait('a', { velocity: [1, 2, 3] }),
-      trait('b', { velocity: [4, 5, 6] }),
-    ]);
-    const r2 = ps.add([
-      trait('b', { velocity: [4, 5, 6] }),
-      trait('a', { velocity: [1, 2, 3] }),
-    ]);
+    const r1 = ps.add([trait('a', { velocity: [1, 2, 3] }), trait('b', { velocity: [4, 5, 6] })]);
+    const r2 = ps.add([trait('b', { velocity: [4, 5, 6] }), trait('a', { velocity: [1, 2, 3] })]);
     expect(r1.config.velocity).toEqual(r2.config.velocity);
   });
 
@@ -270,8 +264,8 @@ describe('ProvenanceSemiring — vec-magnitude-max', () => {
   it('picks vector with larger magnitude', () => {
     const ps = semiring(rules);
     const result = ps.add([
-      trait('coarse', { displacementField: [1, 0, 0] }),   // mag=1
-      trait('fine',   { displacementField: [3, 4, 0] }),   // mag=5
+      trait('coarse', { displacementField: [1, 0, 0] }), // mag=1
+      trait('fine', { displacementField: [3, 4, 0] }), // mag=5
     ]);
     expect(result.config.displacementField).toEqual([3, 4, 0]);
   });
@@ -293,10 +287,10 @@ describe('ProvenanceSemiring — vec-magnitude-max', () => {
     const ps = semiring(rules);
     const r1 = ps.add([
       trait('alpha', { displacementField: [1, 0, 0] }),
-      trait('beta',  { displacementField: [0, 1, 0] }),
+      trait('beta', { displacementField: [0, 1, 0] }),
     ]);
     const r2 = ps.add([
-      trait('beta',  { displacementField: [0, 1, 0] }),
+      trait('beta', { displacementField: [0, 1, 0] }),
       trait('alpha', { displacementField: [1, 0, 0] }),
     ]);
     expect(r1.config.displacementField).toEqual(r2.config.displacementField);
@@ -311,8 +305,16 @@ describe('ProvenanceSemiring — vec-authority-weighted', () => {
   it('picks higher-authority vector', () => {
     const ps = semiring(rules);
     const result = ps.add([
-      { name: 'npc-agent', config: { forceField: [1, 0, 0] }, context: { authorityLevel: AuthorityTier.AGENT } },
-      { name: 'founder',   config: { forceField: [0, 0, 5] }, context: { authorityLevel: AuthorityTier.FOUNDER } },
+      {
+        name: 'npc-agent',
+        config: { forceField: [1, 0, 0] },
+        context: { authorityLevel: AuthorityTier.AGENT },
+      },
+      {
+        name: 'founder',
+        config: { forceField: [0, 0, 5] },
+        context: { authorityLevel: AuthorityTier.FOUNDER },
+      },
     ]);
     expect(result.config.forceField).toEqual([0, 0, 5]);
   });
@@ -321,10 +323,10 @@ describe('ProvenanceSemiring — vec-authority-weighted', () => {
     const ps = semiring(rules);
     const r1 = ps.add([
       { name: 'high', config: { forceField: [1, 2, 3] }, context: { authorityLevel: 80 } },
-      { name: 'low',  config: { forceField: [9, 9, 9] }, context: { authorityLevel: 20 } },
+      { name: 'low', config: { forceField: [9, 9, 9] }, context: { authorityLevel: 20 } },
     ]);
     const r2 = ps.add([
-      { name: 'low',  config: { forceField: [9, 9, 9] }, context: { authorityLevel: 20 } },
+      { name: 'low', config: { forceField: [9, 9, 9] }, context: { authorityLevel: 20 } },
       { name: 'high', config: { forceField: [1, 2, 3] }, context: { authorityLevel: 80 } },
     ]);
     expect(r1.config.forceField).toEqual(r2.config.forceField);

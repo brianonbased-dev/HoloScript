@@ -54,7 +54,7 @@ describe('selectTargets', () => {
 
   it('throws on unknown device hint', () => {
     expect(() =>
-      selectTargets({ mediaType: 'image', deviceHint: 'unknown-device' as DeviceHint }),
+      selectTargets({ mediaType: 'image', deviceHint: 'unknown-device' as DeviceHint })
     ).toThrow('Unknown deviceHint');
   });
 

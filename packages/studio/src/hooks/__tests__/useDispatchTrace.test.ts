@@ -21,7 +21,9 @@ describe('useDispatchTrace', () => {
   });
 
   it('defaults to all-three mode and auto-starts', () => {
-    const { result } = renderHook(() => useDispatchTrace({ autoStart: true, simulatedIntervalMs: 100 }));
+    const { result } = renderHook(() =>
+      useDispatchTrace({ autoStart: true, simulatedIntervalMs: 100 })
+    );
     expect(result.current.mode).toBe('all-three');
     expect(result.current.isRunning).toBe(true);
   });

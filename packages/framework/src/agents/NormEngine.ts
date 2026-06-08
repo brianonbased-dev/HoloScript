@@ -18,15 +18,10 @@
  * @version 1.0.0
  */
 
-import type {
-  NormEnforcement,
-  NormScope,
-  NormCategory,
-  CulturalNorm,
-} from '@holoscript/core';
+import type { NormEnforcement, NormScope, NormCategory, CulturalNorm } from '@holoscript/core';
 
 /**
- * VR Effect alias. 
+ * VR Effect alias.
  * Re-defined locally to resolve persistent TS2305 error in dts build.
  */
 type VREffect = string;

@@ -46,7 +46,12 @@ export class AccessControl {
 
   createOrg(name: string, ownerId: string, displayName?: string): OrganizationAC {
     if (this.orgs.has(name)) throw new Error(`Organization "${name}" already exists`);
-    const org: OrganizationAC = { id: name, name, displayName: displayName ?? name, createdAt: new Date() };
+    const org: OrganizationAC = {
+      id: name,
+      name,
+      displayName: displayName ?? name,
+      createdAt: new Date(),
+    };
     this.orgs.set(name, org);
     this.addMember(name, ownerId, 'owner');
     return org;
@@ -63,7 +68,10 @@ export class AccessControl {
   addMember(orgId: string, userId: string, role: OrgRoleAC = 'member'): OrgMembershipAC {
     const members = this.memberships.get(orgId) ?? [];
     const existing = members.find((m) => m.userId === userId);
-    if (existing) { existing.role = role; return existing; }
+    if (existing) {
+      existing.role = role;
+      return existing;
+    }
     const membership: OrgMembershipAC = { orgId, userId, role, joinedAt: new Date() };
     members.push(membership);
     this.memberships.set(orgId, members);
@@ -110,11 +118,25 @@ export class AccessControl {
     return this.getVisibility(packageName).visibility === 'public';
   }
 
-  grantAccess(packageName: string, userId: string, access: PackageAccessAC, grantedBy: string): PackagePermissionAC {
+  grantAccess(
+    packageName: string,
+    userId: string,
+    access: PackageAccessAC,
+    grantedBy: string
+  ): PackagePermissionAC {
     const perms = this.packagePermissions.get(packageName) ?? [];
     const existing = perms.find((p) => p.userId === userId);
-    if (existing) { existing.access = access; return existing; }
-    const perm: PackagePermissionAC = { packageName, userId, access, grantedAt: new Date(), grantedBy };
+    if (existing) {
+      existing.access = access;
+      return existing;
+    }
+    const perm: PackagePermissionAC = {
+      packageName,
+      userId,
+      access,
+      grantedAt: new Date(),
+      grantedBy,
+    };
     perms.push(perm);
     this.packagePermissions.set(packageName, perms);
     return perm;

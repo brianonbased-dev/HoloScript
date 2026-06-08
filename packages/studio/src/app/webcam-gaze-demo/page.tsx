@@ -68,9 +68,7 @@ export default function WebcamGazeDemoPage() {
           <aside className="flex flex-col gap-3 border-l border-zinc-800 pl-0 lg:pl-5">
             <div className="rounded-md border border-zinc-800 bg-zinc-900 p-4">
               <div className="text-xs uppercase tracking-normal text-zinc-500">Tracking</div>
-              <div className="mt-2 text-2xl font-semibold">
-                {gaze.tracking ? 'active' : 'idle'}
-              </div>
+              <div className="mt-2 text-2xl font-semibold">{gaze.tracking ? 'active' : 'idle'}</div>
             </div>
             <div className="rounded-md border border-zinc-800 bg-zinc-900 p-4">
               <div className="text-xs uppercase tracking-normal text-zinc-500">Foveal Center</div>

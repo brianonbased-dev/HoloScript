@@ -8,7 +8,6 @@ export async function POST(req: NextRequest) {
   return proxyHoloMesh('/api/holomesh/contribute', req);
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

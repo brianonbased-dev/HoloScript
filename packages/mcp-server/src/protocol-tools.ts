@@ -174,14 +174,18 @@ const VALID_LICENSES = new Set([
 
 function validateContentHash(value: unknown): string {
   if (typeof value !== 'string' || !CONTENT_HASH_RE.test(value)) {
-    throw new Error(`Invalid contentHash ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â must be a 64-character lowercase hex string`);
+    throw new Error(
+      `Invalid contentHash ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â must be a 64-character lowercase hex string`
+    );
   }
   return value;
 }
 
 function validateAuthor(value: unknown): string {
   if (typeof value !== 'string' || !AUTHOR_RE.test(value)) {
-    throw new Error(`Invalid author ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â must contain only word characters, dots, and hyphens`);
+    throw new Error(
+      `Invalid author ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â must contain only word characters, dots, and hyphens`
+    );
   }
   return value;
 }

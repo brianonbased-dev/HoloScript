@@ -43,7 +43,7 @@ export function pixelAt(grid: PixelGrid, x: number, y: number): [number, number,
 export async function renderSolidColor(
   device: GPUDevice,
   color: [number, number, number, number] = [1, 0, 0, 1],
-  size = 64,
+  size = 64
 ): Promise<PixelGrid> {
   const format: GPUTextureFormat = 'rgba8unorm';
   const [r, g, b, a] = color;
@@ -75,12 +75,14 @@ export async function renderSolidColor(
 
   const encoder = device.createCommandEncoder();
   const pass = encoder.beginRenderPass({
-    colorAttachments: [{
-      view: texture.createView(),
-      clearValue: { r: 0, g: 0, b: 0, a: 1 },
-      loadOp: 'clear',
-      storeOp: 'store',
-    }],
+    colorAttachments: [
+      {
+        view: texture.createView(),
+        clearValue: { r: 0, g: 0, b: 0, a: 1 },
+        loadOp: 'clear',
+        storeOp: 'store',
+      },
+    ],
   });
   pass.setPipeline(pipeline);
   pass.draw(3);
@@ -94,7 +96,7 @@ export async function renderSolidColor(
   encoder.copyTextureToBuffer(
     { texture },
     { buffer: readback, bytesPerRow, rowsPerImage: size },
-    { width: size, height: size, depthOrArrayLayers: 1 },
+    { width: size, height: size, depthOrArrayLayers: 1 }
   );
   device.queue.submit([encoder.finish()]);
 

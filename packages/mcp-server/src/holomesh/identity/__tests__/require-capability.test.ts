@@ -84,7 +84,9 @@ describe('requireCapability — guards', () => {
     };
     const r = requireCapability(ctx, NEEDED);
     expect(r.authorized).toBe(false);
-    expect((r as Extract<AuthorizationResult, { authorized: false }>).reason).toBe('signing-invalid');
+    expect((r as Extract<AuthorizationResult, { authorized: false }>).reason).toBe(
+      'signing-invalid'
+    );
   });
 
   it('FALSE: signingValid=true but signer=null (inconsistent ctx) → reason=signing-invalid (defense-in-depth)', () => {
@@ -96,7 +98,9 @@ describe('requireCapability — guards', () => {
     };
     const r = requireCapability(ctx, NEEDED);
     expect(r.authorized).toBe(false);
-    expect((r as Extract<AuthorizationResult, { authorized: false }>).reason).toBe('signing-invalid');
+    expect((r as Extract<AuthorizationResult, { authorized: false }>).reason).toBe(
+      'signing-invalid'
+    );
   });
 });
 
@@ -201,9 +205,7 @@ describe('requireCapability — classical protocol', () => {
 
   it('FALSE: classical ctx with allowClassical=false explicit → still rejected', () => {
     const ctx = classicalSignedCtx();
-    expect(
-      requireCapability(ctx, NEEDED, { allowClassical: false }).authorized
-    ).toBe(false);
+    expect(requireCapability(ctx, NEEDED, { allowClassical: false }).authorized).toBe(false);
   });
 });
 

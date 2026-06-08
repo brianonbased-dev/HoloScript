@@ -38,7 +38,11 @@ import {
  */
 export function adaptToChatProvider(provider: ILLMProvider): LLMProvider {
   return {
-    async chat(params: { system: string; prompt: string; maxTokens: number }): Promise<{ text: string }> {
+    async chat(params: {
+      system: string;
+      prompt: string;
+      maxTokens: number;
+    }): Promise<{ text: string }> {
       const response = await provider.complete({
         messages: [
           { role: 'system', content: params.system },

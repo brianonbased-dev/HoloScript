@@ -59,7 +59,7 @@ describe('medical -> HoloScript runtime integration (parkland_resuscitation)', (
     });
 
     await runtime.executeNode(
-      parklandResuscitationOrb({ weightKg: WEIGHT_KG, tbsaPct: TBSA_PCT }) as never,
+      parklandResuscitationOrb({ weightKg: WEIGHT_KG, tbsaPct: TBSA_PCT }) as never
     );
     await flush();
 
@@ -80,7 +80,7 @@ describe('medical -> HoloScript runtime integration (parkland_resuscitation)', (
     runtime.on('parkland_resuscitation_solved', (e: unknown) => solved.push(e));
 
     await runtime.executeNode(
-      parklandResuscitationOrb({ weightKg: WEIGHT_KG, tbsaPct: TBSA_PCT }) as never,
+      parklandResuscitationOrb({ weightKg: WEIGHT_KG, tbsaPct: TBSA_PCT }) as never
     );
     await flush();
 
@@ -92,7 +92,7 @@ describe('medical -> HoloScript runtime integration (parkland_resuscitation)', (
     registerMedicalTraitHandlers(runtime);
 
     await runtime.executeNode(
-      parklandResuscitationOrb({ weightKg: WEIGHT_KG, tbsaPct: TBSA_PCT }) as never,
+      parklandResuscitationOrb({ weightKg: WEIGHT_KG, tbsaPct: TBSA_PCT }) as never
     );
     await flush();
 
@@ -120,7 +120,7 @@ describe('medical -> HoloScript runtime integration (parkland_resuscitation)', (
     // handler's try/catch turns that into a parkland_resuscitation_error rather
     // than a throw propagating through the runtime.
     await runtime.executeNode(
-      parklandResuscitationOrb({ weightKg: -70, tbsaPct: TBSA_PCT }) as never,
+      parklandResuscitationOrb({ weightKg: -70, tbsaPct: TBSA_PCT }) as never
     );
     await flush();
 

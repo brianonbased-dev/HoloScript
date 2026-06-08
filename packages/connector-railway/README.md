@@ -8,11 +8,11 @@ Wraps the Railway GraphQL API at `https://backboard.railway.com/graphql/v2` as M
 
 ## Delivery status (Integration Hub)
 
-| Capability | Status |
-|------------|--------|
-| GraphQL MCP tools (`RailwayConnector`, deploy / project / variables / domain) | Shipped — see `src/RailwayConnector.ts` and `src/tools.ts` |
-| Orchestrator registration on `connect()` | Shipped — `McpRegistrar` |
-| HoloClaw skill `railway-deploy.hsplus` | **Deferred** — existing `compositions/skills/*.hsplus` files use a legacy top-level `state` shape the current `holoscript parse` rejects; skill shell should be added when the daemon/parser align on one `.hsplus` dialect. MCP tools are ready for daemon binding. |
+| Capability                                                                    | Status                                                                                                                                                                                                                                                               |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GraphQL MCP tools (`RailwayConnector`, deploy / project / variables / domain) | Shipped — see `src/RailwayConnector.ts` and `src/tools.ts`                                                                                                                                                                                                           |
+| Orchestrator registration on `connect()`                                      | Shipped — `McpRegistrar`                                                                                                                                                                                                                                             |
+| HoloClaw skill `railway-deploy.hsplus`                                        | **Deferred** — existing `compositions/skills/*.hsplus` files use a legacy top-level `state` shape the current `holoscript parse` rejects; skill shell should be added when the daemon/parser align on one `.hsplus` dialect. MCP tools are ready for daemon binding. |
 
 ## Installation
 
@@ -212,10 +212,10 @@ List all projects accessible to the current token.
 
 Two token types are supported:
 
-| Token Type | Env Var | Header | Scope |
-|-----------|---------|--------|-------|
-| Account | `RAILWAY_API_TOKEN` | `Authorization: Bearer` | All projects (recommended for agents) |
-| Project | `RAILWAY_TOKEN` | `Project-Access-Token` | One project + environment (CI/CD) |
+| Token Type | Env Var             | Header                  | Scope                                 |
+| ---------- | ------------------- | ----------------------- | ------------------------------------- |
+| Account    | `RAILWAY_API_TOKEN` | `Authorization: Bearer` | All projects (recommended for agents) |
+| Project    | `RAILWAY_TOKEN`     | `Project-Access-Token`  | One project + environment (CI/CD)     |
 
 The connector auto-detects which token is available and uses the correct header.
 Priority: `RAILWAY_API_TOKEN` (account) → `RAILWAY_TOKEN` (project).

@@ -30,7 +30,14 @@ export const ACCOUNT_EXPORT_DELIVERY_METHODS = [
 ] as const;
 export type AccountExportDeliveryMethod = (typeof ACCOUNT_EXPORT_DELIVERY_METHODS)[number];
 
-export const ACCOUNT_EXPORT_ARCHIVE_FORMATS = ['zip', 'tgz', 'json', 'csv', 'mixed', 'unknown'] as const;
+export const ACCOUNT_EXPORT_ARCHIVE_FORMATS = [
+  'zip',
+  'tgz',
+  'json',
+  'csv',
+  'mixed',
+  'unknown',
+] as const;
 export type AccountExportArchiveFormat = (typeof ACCOUNT_EXPORT_ARCHIVE_FORMATS)[number];
 
 export const ACCOUNT_EXPORT_STATUSES = [
@@ -64,8 +71,7 @@ export const ACCOUNT_EXPORT_PERMISSION_ENVELOPES = [
   'read_only_verify',
   'break_glass',
 ] as const;
-export type AccountExportPermissionEnvelope =
-  (typeof ACCOUNT_EXPORT_PERMISSION_ENVELOPES)[number];
+export type AccountExportPermissionEnvelope = (typeof ACCOUNT_EXPORT_PERMISSION_ENVELOPES)[number];
 
 export const ACCOUNT_EXPORT_WARNING_KINDS = [
   'provider_delay',
@@ -302,8 +308,7 @@ function isOneOf<T extends readonly string[]>(values: T, value: string): value i
 
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
-    typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
+    typeof value === 'string' && /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
   );
 }
 
@@ -385,7 +390,9 @@ export function validateBrowserAccountBoundaryReceipt(
   const errors: string[] = [];
   if (!receipt.id) errors.push('BrowserAccountBoundaryReceipt.id is required.');
   if (!isSupportedAccountExportProvider(String(receipt.provider))) {
-    errors.push(`BrowserAccountBoundaryReceipt.provider is unsupported: ${String(receipt.provider)}.`);
+    errors.push(
+      `BrowserAccountBoundaryReceipt.provider is unsupported: ${String(receipt.provider)}.`
+    );
   }
   if (!receipt.redactedAccountLabel) {
     errors.push('BrowserAccountBoundaryReceipt.redactedAccountLabel is required.');
@@ -393,10 +400,13 @@ export function validateBrowserAccountBoundaryReceipt(
   if (!Array.isArray(receipt.scopes) || receipt.scopes.length === 0) {
     errors.push('BrowserAccountBoundaryReceipt.scopes must include at least one export scope.');
   }
-  if (!receipt.browserProfile) errors.push('BrowserAccountBoundaryReceipt.browserProfile is required.');
-  if (!receipt.browserSession) errors.push('BrowserAccountBoundaryReceipt.browserSession is required.');
+  if (!receipt.browserProfile)
+    errors.push('BrowserAccountBoundaryReceipt.browserProfile is required.');
+  if (!receipt.browserSession)
+    errors.push('BrowserAccountBoundaryReceipt.browserSession is required.');
   if (!receipt.cookiePolicy) errors.push('BrowserAccountBoundaryReceipt.cookiePolicy is required.');
-  if (!receipt.screenshotPolicy) errors.push('BrowserAccountBoundaryReceipt.screenshotPolicy is required.');
+  if (!receipt.screenshotPolicy)
+    errors.push('BrowserAccountBoundaryReceipt.screenshotPolicy is required.');
   if (receipt.credentialAdjacent !== true) {
     errors.push('BrowserAccountBoundaryReceipt.credentialAdjacent must be true.');
   }
@@ -404,7 +414,9 @@ export function validateBrowserAccountBoundaryReceipt(
     errors.push('BrowserAccountBoundaryReceipt.credentialExtrusionAllowed must be false.');
   }
   if (receipt.accountMutationAllowedWithoutApproval !== false) {
-    errors.push('BrowserAccountBoundaryReceipt.accountMutationAllowedWithoutApproval must be false.');
+    errors.push(
+      'BrowserAccountBoundaryReceipt.accountMutationAllowedWithoutApproval must be false.'
+    );
   }
   if (receipt.publicReceiptMayContainAbsolutePath !== false) {
     errors.push('BrowserAccountBoundaryReceipt.publicReceiptMayContainAbsolutePath must be false.');
@@ -419,13 +431,21 @@ export function validateAccountExportApprovalReceipt(
   if (!receipt.id) errors.push('AccountExportApprovalReceipt.id is required.');
   if (!receipt.nonce) errors.push('AccountExportApprovalReceipt.nonce is required.');
   if (!isSupportedAccountExportProvider(String(receipt.provider))) {
-    errors.push(`AccountExportApprovalReceipt.provider is unsupported: ${String(receipt.provider)}.`);
+    errors.push(
+      `AccountExportApprovalReceipt.provider is unsupported: ${String(receipt.provider)}.`
+    );
   }
   if (!receipt.exportKind) errors.push('AccountExportApprovalReceipt.exportKind is required.');
   if (!isSupportedAccountExportArchiveFormat(String(receipt.exportFormat))) {
-    errors.push(`AccountExportApprovalReceipt.exportFormat is unsupported: ${String(receipt.exportFormat)}.`);
+    errors.push(
+      `AccountExportApprovalReceipt.exportFormat is unsupported: ${String(receipt.exportFormat)}.`
+    );
   }
-  validatePublicPath('AccountExportApprovalReceipt.destinationFolder', receipt.destinationFolder, errors);
+  validatePublicPath(
+    'AccountExportApprovalReceipt.destinationFolder',
+    receipt.destinationFolder,
+    errors
+  );
   if (receipt.requiresFreshUserGesture !== true) {
     errors.push('AccountExportApprovalReceipt.requiresFreshUserGesture must be true.');
   }
@@ -433,14 +453,14 @@ export function validateAccountExportApprovalReceipt(
     errors.push('AccountExportApprovalReceipt.credentialExtrusionAllowed must be false.');
   }
   if (hasAbsolutePath(receipt.commandPreview)) {
-    errors.push('AccountExportApprovalReceipt.commandPreview must not expose absolute local paths.');
+    errors.push(
+      'AccountExportApprovalReceipt.commandPreview must not expose absolute local paths.'
+    );
   }
   return errors;
 }
 
-export function validateProviderExportWaitReceipt(
-  receipt: ProviderExportWaitReceipt
-): string[] {
+export function validateProviderExportWaitReceipt(receipt: ProviderExportWaitReceipt): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('ProviderExportWaitReceipt.id is required.');
   if (!isSupportedAccountExportProvider(String(receipt.provider))) {
@@ -471,7 +491,9 @@ export function validateLocalDownloadQuarantineReceipt(
   const errors: string[] = [];
   if (!receipt.id) errors.push('LocalDownloadQuarantineReceipt.id is required.');
   if (!isSupportedAccountExportProvider(String(receipt.provider))) {
-    errors.push(`LocalDownloadQuarantineReceipt.provider is unsupported: ${String(receipt.provider)}.`);
+    errors.push(
+      `LocalDownloadQuarantineReceipt.provider is unsupported: ${String(receipt.provider)}.`
+    );
   }
   if (!receipt.exportKind) errors.push('LocalDownloadQuarantineReceipt.exportKind is required.');
   if (receipt.importMode !== 'preview_only') {
@@ -488,10 +510,16 @@ export function validateLocalDownloadQuarantineReceipt(
     errors.push('LocalDownloadQuarantineReceipt.publicRelativePaths must be an array.');
   } else {
     for (const publicPath of receipt.publicRelativePaths) {
-      validatePublicPath('LocalDownloadQuarantineReceipt.publicRelativePaths[]', publicPath, errors);
+      validatePublicPath(
+        'LocalDownloadQuarantineReceipt.publicRelativePaths[]',
+        publicPath,
+        errors
+      );
     }
     if (receipt.publicRelativePaths.length !== receipt.fileCount) {
-      errors.push('LocalDownloadQuarantineReceipt.publicRelativePaths length must match fileCount.');
+      errors.push(
+        'LocalDownloadQuarantineReceipt.publicRelativePaths length must match fileCount.'
+      );
     }
   }
   if (!receipt.privateAbsolutePathReceipt) {
@@ -518,24 +546,39 @@ export function validateProviderExportRollbackLimitReceipt(
   const errors: string[] = [];
   if (!receipt.id) errors.push('ProviderExportRollbackLimitReceipt.id is required.');
   if (!isSupportedAccountExportProvider(String(receipt.provider))) {
-    errors.push(`ProviderExportRollbackLimitReceipt.provider is unsupported: ${String(receipt.provider)}.`);
+    errors.push(
+      `ProviderExportRollbackLimitReceipt.provider is unsupported: ${String(receipt.provider)}.`
+    );
   }
-  if (!isOneOf(['export_request', 'archive_download', 'local_preview_import'] as const, String(receipt.mutation))) {
-    errors.push(`ProviderExportRollbackLimitReceipt.mutation is unsupported: ${String(receipt.mutation)}.`);
+  if (
+    !isOneOf(
+      ['export_request', 'archive_download', 'local_preview_import'] as const,
+      String(receipt.mutation)
+    )
+  ) {
+    errors.push(
+      `ProviderExportRollbackLimitReceipt.mutation is unsupported: ${String(receipt.mutation)}.`
+    );
   }
-  if (!isOneOf(['provider_cancel', 'local_delete', 'receipt_delete', 'not_supported'] as const, String(receipt.rollback))) {
-    errors.push(`ProviderExportRollbackLimitReceipt.rollback is unsupported: ${String(receipt.rollback)}.`);
+  if (
+    !isOneOf(
+      ['provider_cancel', 'local_delete', 'receipt_delete', 'not_supported'] as const,
+      String(receipt.rollback)
+    )
+  ) {
+    errors.push(
+      `ProviderExportRollbackLimitReceipt.rollback is unsupported: ${String(receipt.rollback)}.`
+    );
   }
   if (typeof receipt.reversible !== 'boolean') {
     errors.push('ProviderExportRollbackLimitReceipt.reversible must be a boolean.');
   }
-  if (!receipt.explanation) errors.push('ProviderExportRollbackLimitReceipt.explanation is required.');
+  if (!receipt.explanation)
+    errors.push('ProviderExportRollbackLimitReceipt.explanation is required.');
   return errors;
 }
 
-export function validateProviderExportPlanReceipt(
-  receipt: ProviderExportPlanReceipt
-): string[] {
+export function validateProviderExportPlanReceipt(receipt: ProviderExportPlanReceipt): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('ProviderExportPlanReceipt.id is required.');
   if (!isSupportedAccountExportProvider(String(receipt.provider))) {
@@ -598,11 +641,7 @@ export function validateProviderExportPlanReceipt(
     errors.push('ProviderExportPlanReceipt.createdAt must be a valid ISO-8601 timestamp.');
   }
   validateWarnings(receipt.warnings, 'ProviderExportPlanReceipt', errors);
-  validateVerificationCommands(
-    receipt.verificationCommands,
-    'ProviderExportPlanReceipt',
-    errors
-  );
+  validateVerificationCommands(receipt.verificationCommands, 'ProviderExportPlanReceipt', errors);
   validateHashFields('ProviderExportPlanReceipt', receipt.hash, receipt.hashAlgorithm, errors);
   return errors;
 }
@@ -612,7 +651,8 @@ export function validateProviderExportRequestReceipt(
 ): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('ProviderExportRequestReceipt.id is required.');
-  if (!receipt.planReceiptId) errors.push('ProviderExportRequestReceipt.planReceiptId is required.');
+  if (!receipt.planReceiptId)
+    errors.push('ProviderExportRequestReceipt.planReceiptId is required.');
   if (!isSupportedAccountExportProvider(String(receipt.provider))) {
     errors.push(
       `ProviderExportRequestReceipt.provider is unsupported: ${String(receipt.provider)}.`
@@ -631,12 +671,16 @@ export function validateProviderExportRequestReceipt(
   if (receipt.hiddenAutomationUsed !== false) {
     errors.push('ProviderExportRequestReceipt.hiddenAutomationUsed must be false.');
   }
-  if (!isOneOf(['submitted', 'blocked', 'unknown'] as const, String(receipt.providerRequestState))) {
+  if (
+    !isOneOf(['submitted', 'blocked', 'unknown'] as const, String(receipt.providerRequestState))
+  ) {
     errors.push(
       `ProviderExportRequestReceipt.providerRequestState is unsupported: ${String(receipt.providerRequestState)}.`
     );
   }
-  if (!isOneOf(['minutes', 'hours', 'days', 'unknown'] as const, String(receipt.expectedWaitState))) {
+  if (
+    !isOneOf(['minutes', 'hours', 'days', 'unknown'] as const, String(receipt.expectedWaitState))
+  ) {
     errors.push(
       `ProviderExportRequestReceipt.expectedWaitState is unsupported: ${String(receipt.expectedWaitState)}.`
     );
@@ -657,10 +701,21 @@ export function validateProviderExportReadyReceipt(receipt: ProviderExportReadyR
   if (!isIsoTimestamp(receipt.observedAt)) {
     errors.push('ProviderExportReadyReceipt.observedAt must be a valid ISO-8601 timestamp.');
   }
-  if (!isOneOf(['not_ready', 'ready', 'expired', 'blocked', 'unknown'] as const, String(receipt.readyState))) {
-    errors.push(`ProviderExportReadyReceipt.readyState is unsupported: ${String(receipt.readyState)}.`);
+  if (
+    !isOneOf(
+      ['not_ready', 'ready', 'expired', 'blocked', 'unknown'] as const,
+      String(receipt.readyState)
+    )
+  ) {
+    errors.push(
+      `ProviderExportReadyReceipt.readyState is unsupported: ${String(receipt.readyState)}.`
+    );
   }
-  if (receipt.readyState === 'ready' && !receipt.downloadLinkHash && !receipt.cloudDestinationReady) {
+  if (
+    receipt.readyState === 'ready' &&
+    !receipt.downloadLinkHash &&
+    !receipt.cloudDestinationReady
+  ) {
     errors.push(
       'ProviderExportReadyReceipt ready state requires a downloadLinkHash or cloudDestinationReady=true.'
     );
@@ -707,7 +762,9 @@ export function validateLocalArchiveDownloadReceipt(
     }
   }
   if (receipt.partialFilesPresent) {
-    errors.push('LocalArchiveDownloadReceipt.partialFilesPresent must be false before verification.');
+    errors.push(
+      'LocalArchiveDownloadReceipt.partialFilesPresent must be false before verification.'
+    );
   }
   if (receipt.diskSpaceChecked !== true) {
     errors.push('LocalArchiveDownloadReceipt.diskSpaceChecked must be true.');
@@ -715,11 +772,7 @@ export function validateLocalArchiveDownloadReceipt(
   if (receipt.sourceCloudDataMutated !== false) {
     errors.push('LocalArchiveDownloadReceipt.sourceCloudDataMutated must be false.');
   }
-  validateVerificationCommands(
-    receipt.verificationCommands,
-    'LocalArchiveDownloadReceipt',
-    errors
-  );
+  validateVerificationCommands(receipt.verificationCommands, 'LocalArchiveDownloadReceipt', errors);
   validateHashFields('LocalArchiveDownloadReceipt', receipt.hash, receipt.hashAlgorithm, errors);
   return errors;
 }
@@ -774,9 +827,7 @@ export function validateAccountExportArchiveReceipt(
   return errors;
 }
 
-export function validateAccountExportReplayReceipt(
-  receipt: AccountExportReplayReceipt
-): string[] {
+export function validateAccountExportReplayReceipt(receipt: AccountExportReplayReceipt): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('AccountExportReplayReceipt.id is required.');
   if (receipt.workflow !== 'browser-account-export') {
@@ -857,14 +908,25 @@ export function cloneHoloShellAccountExportReceiptPack(
     ...pack,
     plan: cloneProviderExportPlanReceipt(pack.plan),
     ...(pack.request ? { request: { ...pack.request } } : {}),
-    ...(pack.ready ? { ready: { ...pack.ready, warning: pack.ready.warning ? { ...pack.ready.warning } : undefined } } : {}),
+    ...(pack.ready
+      ? {
+          ready: {
+            ...pack.ready,
+            warning: pack.ready.warning ? { ...pack.ready.warning } : undefined,
+          },
+        }
+      : {}),
     ...(pack.download
       ? {
           download: {
             ...pack.download,
             archiveParts: pack.download.archiveParts.map((part) => ({ ...part })),
             ...(pack.download.verificationCommands
-              ? { verificationCommands: cloneVerificationCommands(pack.download.verificationCommands) }
+              ? {
+                  verificationCommands: cloneVerificationCommands(
+                    pack.download.verificationCommands
+                  ),
+                }
               : {}),
           },
         }

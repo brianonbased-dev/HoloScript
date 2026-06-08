@@ -13,12 +13,12 @@ as an OpenUSD schema plugin, against a pinned upstream tag.
 
 ## Files in this directory (authored, not generated)
 
-| File | What it is |
-|------|------------|
-| `schema.usda` | Schema authoring file. Input to `usdGenSchema`. |
-| `plugInfo.json` | Plugin manifest. USD's `PlugRegistry` reads this to load the schema types. |
-| `tokens.h` | Hand-authored representative slice of the C++ token header `usdGenSchema` produces from `schema.usda`. |
-| `CMakeLists.txt` | Canonical pxr-style schema-plugin CMake build. |
+| File             | What it is                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `schema.usda`    | Schema authoring file. Input to `usdGenSchema`.                                                        |
+| `plugInfo.json`  | Plugin manifest. USD's `PlugRegistry` reads this to load the schema types.                             |
+| `tokens.h`       | Hand-authored representative slice of the C++ token header `usdGenSchema` produces from `schema.usda`. |
+| `CMakeLists.txt` | Canonical pxr-style schema-plugin CMake build.                                                         |
 
 ## Canonical toolchain steps (v25.11)
 
@@ -42,10 +42,10 @@ loaded shared library that `Usd.Stage` can instantiate prims from:
    `RESOURCE_FILES` (must include the generated `generatedSchema.usda` and
    `plugInfo.json`).
 5. **Configure with CMake** — `cmake -DCMAKE_PREFIX_PATH=$PXR_USD_LOCATION
-   -B build .` (requires Python 3.9+, Boost.Python, TBB, and a C++17
+-B build .` (requires Python 3.9+, Boost.Python, TBB, and a C++17
    compiler in addition to the pxr install).
 6. **Build with CMake** — `cmake --build build --target install --config
-   Release` produces the shared library + installs the resource files into
+Release` produces the shared library + installs the resource files into
    the layout `PlugRegistry` expects.
 7. **Set `PXR_PLUGINPATH_NAME`** — point USD at the install prefix so
    `PlugRegistry::GetInstance().GetPlugin("usdStructBio")` resolves at
@@ -56,7 +56,7 @@ loaded shared library that `Usd.Stage` can instantiate prims from:
 
 ## Why this dir is the LOC-counted artifact, not a working build
 
-Producing the *generated* outputs of step 3 requires a full pxr toolchain
+Producing the _generated_ outputs of step 3 requires a full pxr toolchain
 install (build of `OpenUSD/v25.11` from source with Boost.Python +
 TBB + ~6 GB of build artifacts; the upstream README's typical-build-time
 quote is 25-45 minutes on a 16-core developer host before any schema-plugin

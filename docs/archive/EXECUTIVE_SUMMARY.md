@@ -19,18 +19,19 @@
 
 ### Winner's Circle
 
-| Category | Winner | Performance |
-|----------|--------|-------------|
-| 🏃 **Fastest Compilation** | DTDL (Digital Twins) | 28ms average |
-| 📉 **Smallest Output** | DTDL (Digital Twins) | 4.5 KB average |
-| 🎖️ **Highest Feature Parity** | Unreal Engine 5 | 95% average |
-| 🌟 **Most Versatile Target** | Unity | 15/15 verticals (100% coverage) |
+| Category                      | Winner               | Performance                     |
+| ----------------------------- | -------------------- | ------------------------------- |
+| 🏃 **Fastest Compilation**    | DTDL (Digital Twins) | 28ms average                    |
+| 📉 **Smallest Output**        | DTDL (Digital Twins) | 4.5 KB average                  |
+| 🎖️ **Highest Feature Parity** | Unreal Engine 5      | 95% average                     |
+| 🌟 **Most Versatile Target**  | Unity                | 15/15 verticals (100% coverage) |
 
 ---
 
 ## 📊 Vertical Coverage
 
 **100% Success Rate (10 Verticals):**
+
 - ✅ Aerospace (7/7 targets)
 - ✅ Architecture (7/7 targets)
 - ✅ Art (7/7 targets)
@@ -44,10 +45,12 @@
 - ✅ Tourism (8/8 targets)
 
 **90%+ Success Rate (2 Verticals):**
+
 - ⚠️ Automotive (89%, 8/9 targets)
 - ⚠️ Real Estate (88%, 7/8 targets)
 
 **80%+ Success Rate (2 Verticals):**
+
 - ⚠️ Education (88%, 7/8 targets)
 - ⚠️ Retail (86%, 6/7 targets)
 
@@ -57,50 +60,50 @@
 
 ### Game Engines
 
-| Target | Verticals | Success | Avg Time | Avg Size | Avg Parity |
-|--------|-----------|---------|----------|----------|------------|
-| **Unity** | 15 | 100% | 45ms | 15.0 KB | 92% |
-| **Unreal** | 11 | 100% | 78ms | 28.0 KB | **95%** |
-| **Godot** | 1 | 100% | 56ms | 13.1 KB | 84% |
+| Target     | Verticals | Success | Avg Time | Avg Size | Avg Parity |
+| ---------- | --------- | ------- | -------- | -------- | ---------- |
+| **Unity**  | 15        | 100%    | 45ms     | 15.0 KB  | 92%        |
+| **Unreal** | 11        | 100%    | 78ms     | 28.0 KB  | **95%**    |
+| **Godot**  | 1         | 100%    | 56ms     | 13.1 KB  | 84%        |
 
 ### Web Platforms
 
-| Target | Verticals | Success | Avg Time | Avg Size | Avg Parity |
-|--------|-----------|---------|----------|----------|------------|
-| **WebXR (R3F)** | 12 | 100% | **36ms** | **10.8 KB** | 87% |
-| **Babylon.js** | 12 | 92% | 38ms | 11.0 KB | 86% |
-| **React Three Fiber** | 12 | 100% | **35ms** | **10.5 KB** | 87% |
-| **PlayCanvas** | 2 | 50% | 42ms | 11.0 KB | 85% |
+| Target                | Verticals | Success | Avg Time | Avg Size    | Avg Parity |
+| --------------------- | --------- | ------- | -------- | ----------- | ---------- |
+| **WebXR (R3F)**       | 12        | 100%    | **36ms** | **10.8 KB** | 87%        |
+| **Babylon.js**        | 12        | 92%     | 38ms     | 11.0 KB     | 86%        |
+| **React Three Fiber** | 12        | 100%    | **35ms** | **10.5 KB** | 87%        |
+| **PlayCanvas**        | 2         | 50%     | 42ms     | 11.0 KB     | 85%        |
 
 ### Mobile AR
 
-| Target | Verticals | Success | Avg Time | Avg Size | Avg Parity |
-|--------|-----------|---------|----------|----------|------------|
-| **iOS/ARKit** | 5 | 100% | 50ms | 16.5 KB | 91% |
-| **Android/ARCore** | 5 | 80% | 49ms | 14.5 KB | 88% |
-| **Generic AR** | 6 | 100% | 48ms | 14.0 KB | 87% |
+| Target             | Verticals | Success | Avg Time | Avg Size | Avg Parity |
+| ------------------ | --------- | ------- | -------- | -------- | ---------- |
+| **iOS/ARKit**      | 5         | 100%    | 50ms     | 16.5 KB  | 91%        |
+| **Android/ARCore** | 5         | 80%     | 49ms     | 14.5 KB  | 88%        |
+| **Generic AR**     | 6         | 100%    | 48ms     | 14.0 KB  | 87%        |
 
 ### XR Platforms
 
-| Target | Verticals | Success | Avg Time | Avg Size | Avg Parity |
-|--------|-----------|---------|----------|----------|------------|
-| **OpenXR** | 12 | 100% | 55ms | 16.0 KB | 90% |
-| **VisionOS** | 9 | 100% | 62ms | 22.0 KB | **94%** |
-| **VRChat** | 3 | 100% | 68ms | 18.0 KB | 85% |
+| Target       | Verticals | Success | Avg Time | Avg Size | Avg Parity |
+| ------------ | --------- | ------- | -------- | -------- | ---------- |
+| **OpenXR**   | 12        | 100%    | 55ms     | 16.0 KB  | 90%        |
+| **VisionOS** | 9         | 100%    | 62ms     | 22.0 KB  | **94%**    |
+| **VRChat**   | 3         | 100%    | 68ms     | 18.0 KB  | 85%        |
 
 ### Robotics/IoT
 
-| Target | Verticals | Success | Avg Time | Avg Size | Avg Parity |
-|--------|-----------|---------|----------|----------|------------|
-| **URDF** | 2 | 100% | **32ms** | **5.5 KB** | 78% |
-| **SDF** | 2 | 100% | **34ms** | **6.0 KB** | 79% |
-| **DTDL** | 3 | 100% | **28ms** ⚡ | **4.5 KB** 📦 | 75% |
+| Target   | Verticals | Success | Avg Time    | Avg Size      | Avg Parity |
+| -------- | --------- | ------- | ----------- | ------------- | ---------- |
+| **URDF** | 2         | 100%    | **32ms**    | **5.5 KB**    | 78%        |
+| **SDF**  | 2         | 100%    | **34ms**    | **6.0 KB**    | 79%        |
+| **DTDL** | 3         | 100%    | **28ms** ⚡ | **4.5 KB** 📦 | 75%        |
 
 ### Compute
 
-| Target | Verticals | Success | Avg Time | Avg Size | Avg Parity |
-|--------|-----------|---------|----------|----------|------------|
-| **WebGPU** | 2 | 100% | 42ms | 9.5 KB | 84% |
+| Target     | Verticals | Success | Avg Time | Avg Size | Avg Parity |
+| ---------- | --------- | ------- | -------- | -------- | ---------- |
+| **WebGPU** | 2         | 100%    | 42ms     | 9.5 KB   | 84%        |
 
 ---
 
@@ -109,12 +112,14 @@
 ### Compilation Speed Tiers
 
 **⚡ Blazing Fast (< 35ms)**
+
 - DTDL (28ms) - Lightweight JSON format
 - URDF (32ms) - Declarative XML
 - SDF (34ms) - Simulation format
 - R3F (35ms) - React JSX generation
 
 **🚀 Fast (35-55ms)**
+
 - WebXR (36ms)
 - Babylon.js (38ms)
 - WebGPU (42ms)
@@ -123,16 +128,19 @@
 - Godot (56ms)
 
 **⏱️ Moderate (55-70ms)**
+
 - OpenXR (55ms)
 - VisionOS (62ms)
 - VRChat (68ms)
 
 **🐌 Slow (> 70ms)**
+
 - Unreal (78ms) - Complex C++ generation
 
 ### Output Size Tiers
 
 **📦 Micro (< 10 KB)**
+
 - DTDL (4.5 KB) - JSON schema
 - URDF (5.5 KB) - XML description
 - SDF (6.0 KB) - XML simulation
@@ -140,6 +148,7 @@
 - R3F (10.5 KB) - React components
 
 **📄 Small (10-20 KB)**
+
 - Babylon.js (11 KB)
 - WebXR (10.8 KB)
 - Unity (15 KB)
@@ -148,18 +157,21 @@
 - VRChat (18 KB)
 
 **📚 Large (> 20 KB)**
+
 - VisionOS (22 KB) - Swift/SwiftUI
 - Unreal (28 KB) - Full C++ scene
 
 ### Feature Parity Tiers
 
 **🎖️ Excellent (90%+)**
+
 - Unreal (95%) - Most comprehensive compiler
 - VisionOS (94%) - Advanced Apple ecosystem integration
 - Unity (92%) - Mature, battle-tested compiler
 - OpenXR (90%) - Cross-platform VR standard
 
 **✅ Good (85-90%)**
+
 - iOS (91%)
 - Android (88%)
 - WebXR (87%)
@@ -169,11 +181,13 @@
 - VRChat (85%)
 
 **⚠️ Fair (75-85%)**
+
 - Godot (84%)
 - WebGPU (84%)
 - PlayCanvas (85%)
 
 **❌ Limited (< 75%)**
+
 - URDF (78%) - Robotics-specific features only
 - SDF (79%) - Simulation-specific features only
 - DTDL (75%) - IoT/telemetry focus
@@ -253,22 +267,27 @@
 This benchmark suite provides:
 
 ✅ **15 Production-Quality Compositions** (`compositions/*.holo`)
+
 - Representative examples for each vertical
 - 1.2-1.9 KB each, 12-20 features per composition
 
 ✅ **Comprehensive Results** (`BENCHMARK_REPORT.md`)
+
 - 728 lines, 25 KB
 - Detailed tables, rankings, failure analysis
 
 ✅ **Machine-Readable Data** (`results/benchmark-results.json`)
+
 - 112 compilation results
 - 46 KB JSON, ready for analysis/CI integration
 
 ✅ **Automated Harness** (`run-benchmark-mock.ts`)
+
 - Runnable in ~2 seconds
 - Extensible to new verticals/targets
 
 ✅ **Documentation** (`README.md`, `INDEX.md`)
+
 - Usage guide, methodology, file structure
 - Quick reference for developers
 

@@ -22,10 +22,16 @@ export interface CfPoolResult {
   [key: string]: unknown;
 }
 
-async function parseCfJson(res: Response): Promise<{ success: boolean; result?: CfPoolResult; errors?: Array<{ message?: string }> }> {
+async function parseCfJson(
+  res: Response
+): Promise<{ success: boolean; result?: CfPoolResult; errors?: Array<{ message?: string }> }> {
   const text = await res.text();
   try {
-    return JSON.parse(text) as { success: boolean; result?: CfPoolResult; errors?: Array<{ message?: string }> };
+    return JSON.parse(text) as {
+      success: boolean;
+      result?: CfPoolResult;
+      errors?: Array<{ message?: string }>;
+    };
   } catch {
     throw new Error(`Cloudflare response not JSON: ${text.slice(0, 200)}`);
   }

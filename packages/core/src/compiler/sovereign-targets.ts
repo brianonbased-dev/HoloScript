@@ -43,9 +43,28 @@ export const SOVEREIGN_TARGETS = [
  * led with these names — the registry exists to give the sovereign set equal billing.)
  */
 export const BRIDGE_TARGETS = [
-  'urdf', 'sdf', 'unity', 'unreal', 'godot', 'vrchat', 'openxr', 'android', 'android-xr',
-  'ios', 'visionos', 'ar', 'babylon', 'r3f', 'playcanvas', 'usd', 'usdz', 'dtdl',
-  'a2a-agent-card', 'openxr-spatial-entities', 'phone-sleeve-vr', '3dgs',
+  'urdf',
+  'sdf',
+  'unity',
+  'unreal',
+  'godot',
+  'vrchat',
+  'openxr',
+  'android',
+  'android-xr',
+  'ios',
+  'visionos',
+  'ar',
+  'babylon',
+  'r3f',
+  'playcanvas',
+  'usd',
+  'usdz',
+  'dtdl',
+  'a2a-agent-card',
+  'openxr-spatial-entities',
+  'phone-sleeve-vr',
+  '3dgs',
 ] as const satisfies readonly ExportTarget[];
 
 /**

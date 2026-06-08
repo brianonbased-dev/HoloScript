@@ -44,7 +44,7 @@ describe('telemetry.incrementCounter', () => {
   it('supports labels (does not throw)', () => {
     const name = `counter_labeled_${Date.now()}_d`;
     expect(() =>
-      telemetry.incrementCounter(name, 1, { env: 'test', service: 'core' }),
+      telemetry.incrementCounter(name, 1, { env: 'test', service: 'core' })
     ).not.toThrow();
   });
 
@@ -169,7 +169,7 @@ describe('telemetry.measureLatency', () => {
     await expect(
       telemetry.measureLatency(name, async () => {
         throw new Error('expected error');
-      }),
+      })
     ).rejects.toThrow('expected error');
   });
 
@@ -190,7 +190,7 @@ describe('telemetry.measureLatency', () => {
   it('supports labels (does not throw)', async () => {
     const name = `latency_labels_${Date.now()}_i`;
     await expect(
-      telemetry.measureLatency(name, async () => true, { target: 'webgpu' }),
+      telemetry.measureLatency(name, async () => true, { target: 'webgpu' })
     ).resolves.toBe(true);
   });
 

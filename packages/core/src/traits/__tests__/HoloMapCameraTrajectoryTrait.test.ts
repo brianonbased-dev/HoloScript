@@ -28,7 +28,10 @@ describe('HoloMapCameraTrajectoryTrait', () => {
     const node = makeNode();
     holomapCameraTrajectoryHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     const state = (node as unknown as Record<string, unknown>).__holomapTrajectoryState as {
-      poses: unknown[]; keyframes: unknown[]; currentFrameIndex: number; estimatedDriftMeters: number;
+      poses: unknown[];
+      keyframes: unknown[];
+      currentFrameIndex: number;
+      estimatedDriftMeters: number;
     };
     expect(state.poses).toEqual([]);
     expect(state.keyframes).toEqual([]);
@@ -48,43 +51,63 @@ describe('HoloMapCameraTrajectoryTrait', () => {
     holomapCameraTrajectoryHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     const fakePose = { position: [0, 0, 0], rotation: [0, 0, 0, 1] };
     for (let i = 0; i < 15; i++) {
-      holomapCameraTrajectoryHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-        type: 'holomap:step_result',
-        payload: {
-          pose: fakePose,
-          frameIndex: i,
-          trajectory: {
-            keyframes: [{ frameIndex: i, pose: fakePose, embedding: new Float32Array([i]) }],
-            estimatedDriftMeters: i * 0.1,
+      holomapCameraTrajectoryHandler.onEvent!(
+        node as never,
+        defaultConfig,
+        makeCtx(node) as never,
+        {
+          type: 'holomap:step_result',
+          payload: {
+            pose: fakePose,
+            frameIndex: i,
+            trajectory: {
+              keyframes: [{ frameIndex: i, pose: fakePose, embedding: new Float32Array([i]) }],
+              estimatedDriftMeters: i * 0.1,
+            },
           },
-        },
-      } as never);
+        } as never
+      );
     }
     const state = (node as unknown as Record<string, unknown>).__holomapTrajectoryState as {
-      poses: unknown[]; keyframes: unknown[]; estimatedDriftMeters: number;
+      poses: unknown[];
+      keyframes: unknown[];
+      estimatedDriftMeters: number;
     };
     expect(state.poses.length).toBe(15);
     expect(state.keyframes.length).toBe(1);
     expect(state.estimatedDriftMeters).toBeCloseTo(1.4);
-    expect(node.emit).toHaveBeenCalledWith('trajectory:tick', expect.objectContaining({
-      frameIndex: 0,
-      keyframes: 1,
-      estimatedDriftMeters: 0,
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'trajectory:tick',
+      expect.objectContaining({
+        frameIndex: 0,
+        keyframes: 1,
+        estimatedDriftMeters: 0,
+      })
+    );
 
-    holomapCameraTrajectoryHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'holomap:step_result',
-      payload: { pose: fakePose, frameIndex: 15, trajectory: { keyframes: [] } },
-    } as never);
+    holomapCameraTrajectoryHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'holomap:step_result',
+        payload: { pose: fakePose, frameIndex: 15, trajectory: { keyframes: [] } },
+      } as never
+    );
     expect(state.keyframes).toEqual([]);
   });
 
   it('holomap:step_result does not emit for non-matching events', () => {
     const node = makeNode();
     holomapCameraTrajectoryHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    holomapCameraTrajectoryHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'other:event',
-    } as never);
+    holomapCameraTrajectoryHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'other:event',
+      } as never
+    );
     expect(node.emit).not.toHaveBeenCalled();
   });
 });

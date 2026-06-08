@@ -16,11 +16,7 @@
  * @see AccountExportArchiveVerifier
  */
 
-import {
-  TrustReceiptInput,
-  TrustPermissionEnvelope,
-  generateReceiptId,
-} from './TrustReceipt';
+import { TrustReceiptInput, TrustPermissionEnvelope, generateReceiptId } from './TrustReceipt';
 
 import type { VerificationResult } from './AccountExportArchiveReceipt';
 
@@ -140,8 +136,13 @@ export interface ReplayDiffEntry {
   path: string;
 
   /** Type of difference detected. */
-  diffType: 'content_hash_mismatch' | 'missing_in_replay' | 'extra_in_replay'
-    | 'sensitivity_drift' | 'executable_drift' | 'size_mismatch';
+  diffType:
+    | 'content_hash_mismatch'
+    | 'missing_in_replay'
+    | 'extra_in_replay'
+    | 'sensitivity_drift'
+    | 'executable_drift'
+    | 'size_mismatch';
 
   /** Original value (hash, sensitivity level, etc.). */
   originalValue: string;
@@ -191,7 +192,7 @@ export interface AccountExportReplayAdapterOptions {
  */
 export function replayToReceiptInput(
   payload: AccountExportReplayPayload,
-  options: AccountExportReplayAdapterOptions,
+  options: AccountExportReplayAdapterOptions
 ): TrustReceiptInput {
   const permissionEnvelope: TrustPermissionEnvelope =
     options.permissionEnvelope ?? replayOutcomeToEnvelope(payload.replayOutcome);
@@ -319,7 +320,7 @@ export interface ReplayValidationResult {
  * - If replayOutcome is 'match', no diff entries should exist
  */
 export function validateReplayVerification(
-  payload: AccountExportReplayPayload,
+  payload: AccountExportReplayPayload
 ): ReplayValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -338,10 +339,14 @@ export function validateReplayVerification(
     errors.push('sourceFileMutationPerformed must be false — replay must not mutate source files');
   }
   if (payload.rawPrivateDataPublished) {
-    errors.push('rawPrivateDataPublished must be false — raw private data must not be published during replay');
+    errors.push(
+      'rawPrivateDataPublished must be false — raw private data must not be published during replay'
+    );
   }
   if (payload.privatePathLeakedToPublicReceipt) {
-    errors.push('privatePathLeakedToPublicReceipt must be false — private paths must not leak into replay receipts');
+    errors.push(
+      'privatePathLeakedToPublicReceipt must be false — private paths must not leak into replay receipts'
+    );
   }
 
   // Outcome consistency
@@ -353,8 +358,14 @@ export function validateReplayVerification(
     errors.push('replayOutcome is "match" but filesDiffered is non-zero');
   }
 
-  if (payload.replayOutcome.startsWith('mismatch') && payload.archiveHashMatch && payload.fileContentMatch) {
-    warnings.push('replayOutcome indicates mismatch but archiveHashMatch and fileContentMatch are both true');
+  if (
+    payload.replayOutcome.startsWith('mismatch') &&
+    payload.archiveHashMatch &&
+    payload.fileContentMatch
+  ) {
+    warnings.push(
+      'replayOutcome indicates mismatch but archiveHashMatch and fileContentMatch are both true'
+    );
   }
 
   if (payload.replayOutcome === 'replay_failed' && payload.replayDurationMs > 0) {

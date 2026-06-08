@@ -27,7 +27,14 @@ import type {
 
 export type { HSPlusDirective, HSPlusAST, ASTProgram, HSPlusCompileResult, HSPlusNode };
 
-export type { VRTraitName, ASTNode, SpatialPosition, HologramShape, HologramProperties, TraitBehavior };
+export type {
+  VRTraitName,
+  ASTNode,
+  SpatialPosition,
+  HologramShape,
+  HologramProperties,
+  TraitBehavior,
+};
 export type { Vector3, Transform };
 
 // ============================================================================
@@ -1426,4 +1433,9 @@ export interface UIElementState {
 }
 
 export type { TraitContext, TraitHandler } from './traits/TraitTypes';
-export type { HoloObjectDecl, HoloTemplate, HoloValue, HoloComposition } from './parser/HoloCompositionTypes';
+export type {
+  HoloObjectDecl,
+  HoloTemplate,
+  HoloValue,
+  HoloComposition,
+} from './parser/HoloCompositionTypes';

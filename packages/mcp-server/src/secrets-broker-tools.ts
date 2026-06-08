@@ -116,7 +116,14 @@ export const secretsBrokerTools: Tool[] = [
         },
         reason: {
           type: 'string',
-          enum: ['task_completed', 'task_released', 'agent_compromise', 'expired_sweep', 'rotation', 'manual'],
+          enum: [
+            'task_completed',
+            'task_released',
+            'agent_compromise',
+            'expired_sweep',
+            'rotation',
+            'manual',
+          ],
           description: 'Reason for revocation',
         },
         by: {

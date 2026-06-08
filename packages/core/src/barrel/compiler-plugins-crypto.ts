@@ -121,11 +121,7 @@ export const resetHybridCryptoProvider = lazyPeerSymbol(
   PLATFORM,
   'resetHybridCryptoProvider'
 ) as typeof import('@holoscript/platform').resetHybridCryptoProvider;
-export type {
-  HybridKeyPair,
-  HybridSignature,
-  HybridCryptoConfig,
-} from '@holoscript/platform';
+export type { HybridKeyPair, HybridSignature, HybridCryptoConfig } from '@holoscript/platform';
 
 // -- Economy Module ----------------------------------------------------------
 // NOTE: Economy implementations (X402Facilitator, PaymentWebhookService,

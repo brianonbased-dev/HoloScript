@@ -23,7 +23,10 @@ import {
   type BenchmarkResult,
 } from '@holoscript/engine/simulation/verification/ReportGenerator';
 import { runConvergenceStudy } from '@holoscript/engine/simulation/verification/ConvergenceAnalysis';
-import { hashGeometry, ContractedSimulation } from '@holoscript/engine/simulation/SimulationContract';
+import {
+  hashGeometry,
+  ContractedSimulation,
+} from '@holoscript/engine/simulation/SimulationContract';
 
 // Reused NAFEMS LE1 family parameters (beam-bending / membrane category)
 const E = 210_000;
@@ -37,7 +40,10 @@ const TRAIN_PRESSURES = [5, 8, 10, 12, 15];
 // Novel test distribution (structurally equivalent but outside training support)
 const NOVEL_ASPECT_RATIOS = [0.7, 2.5, 3.0]; // extrapolation
 const NOVEL_PRESSURES = [3, 20]; // edge cases
-const NOVEL_MATERIALS = [{ E: 100_000, nu: 0.25 }, { E: 300_000, nu: 0.35 }]; // unseen
+const NOVEL_MATERIALS = [
+  { E: 100_000, nu: 0.25 },
+  { E: 300_000, nu: 0.35 },
+]; // unseen
 
 interface Scenario {
   id: string;
@@ -65,7 +71,12 @@ function buildTinyTetConfig(pressure: number, Emod: number, nu: number): Structu
     },
     constraints: [{ id: 'fix-base', type: 'fixed', nodes: [0] }],
     loads: [
-      { id: 'p-load', type: 'point', nodeIndex: 3, force: [0, 0, scaledLoad] as [number, number, number] },
+      {
+        id: 'p-load',
+        type: 'point',
+        nodeIndex: 3,
+        force: [0, 0, scaledLoad] as [number, number, number],
+      },
     ],
     maxIterations: 200,
     tolerance: 1e-6,

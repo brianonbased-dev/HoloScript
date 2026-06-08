@@ -8,10 +8,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  receiptQueryTools,
-  handleReceiptQueryTool,
-} from '../receipt-query-tools';
+import { receiptQueryTools, handleReceiptQueryTool } from '../receipt-query-tools';
 
 describe('Receipt Query Tools', () => {
   describe('Tool definitions', () => {

@@ -26,10 +26,7 @@ import type {
   VoteInput,
   InitiateOptions,
 } from '@holoscript/framework/negotiation';
-import type {
-  NegotiationProtocol,
-  AuditEntry,
-} from '@holoscript/framework/negotiation';
+import type { NegotiationProtocol, AuditEntry } from '@holoscript/framework/negotiation';
 
 // Lazy-loaded optional peer module (@holoscript/framework is an optional peer dep)
 let _negotiationMod: typeof import('@holoscript/framework/negotiation') | null = null;

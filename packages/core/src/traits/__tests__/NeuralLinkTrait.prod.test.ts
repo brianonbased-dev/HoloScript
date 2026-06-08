@@ -128,10 +128,7 @@ describe('neuralLinkHandler.onUpdate — heartbeat', () => {
     ctx.emit.mockClear();
     neuralLinkHandler.onUpdate!(node, cfg, ctx, 2.5);
     neuralLinkHandler.onUpdate!(node, cfg, ctx, 2.6);
-    expect(ctx.emit).toHaveBeenCalledWith(
-      'neural_link_heartbeat',
-      expect.anything()
-    );
+    expect(ctx.emit).toHaveBeenCalledWith('neural_link_heartbeat', expect.anything());
   });
   it('resets heartbeat_elapsed after emission', () => {
     const { node, cfg, ctx } = attachNode();

@@ -7,7 +7,10 @@ export interface ChainOfCustodyConfig {
   location?: string;
 }
 
-const custodyTimeline = new Map<string, Array<{ ts: number; holder: string; status: CustodyStatus }>>();
+const custodyTimeline = new Map<
+  string,
+  Array<{ ts: number; holder: string; status: CustodyStatus }>
+>();
 
 export const chainOfCustodyHandler: TraitHandler<ChainOfCustodyConfig> = {
   name: 'chain_of_custody',
@@ -18,10 +21,17 @@ export const chainOfCustodyHandler: TraitHandler<ChainOfCustodyConfig> = {
   },
   onAttach(node: HSPlusNode, config: ChainOfCustodyConfig, ctx: TraitContext): void {
     const id = node.id ?? config.itemId ?? 'unknown';
-    custodyTimeline.set(id, [{ ts: Date.now(), holder: config.currentHolder, status: config.status }]);
+    custodyTimeline.set(id, [
+      { ts: Date.now(), holder: config.currentHolder, status: config.status },
+    ]);
     ctx.emit?.('chain_of_custody:attached', { nodeId: id, itemId: config.itemId });
   },
-  onEvent(node: HSPlusNode, config: ChainOfCustodyConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: ChainOfCustodyConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     const id = node.id ?? config.itemId ?? 'unknown';
     const entries = custodyTimeline.get(id) ?? [];
 
@@ -32,7 +42,12 @@ export const chainOfCustodyHandler: TraitHandler<ChainOfCustodyConfig> = {
       config.status = status;
       entries.push({ ts: Date.now(), holder, status });
       custodyTimeline.set(id, entries);
-      ctx.emit?.('chain_of_custody:handoff_recorded', { nodeId: id, itemId: config.itemId, holder, status });
+      ctx.emit?.('chain_of_custody:handoff_recorded', {
+        nodeId: id,
+        itemId: config.itemId,
+        holder,
+        status,
+      });
     }
 
     if (event.type === 'chain_of_custody:get_timeline') {

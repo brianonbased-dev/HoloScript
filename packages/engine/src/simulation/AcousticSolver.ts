@@ -145,7 +145,7 @@ export class AcousticSolver {
     this.cflLimit = minDx / (cMax * Math.sqrt(3));
 
     const safety = config.cflSafety ?? 0.9;
-    this.dt = config.timeStep ?? (this.cflLimit * safety);
+    this.dt = config.timeStep ?? this.cflLimit * safety;
 
     if (this.dt > this.cflLimit) {
       console.warn(`AcousticSolver: dt=${this.dt} exceeds CFL limit=${this.cflLimit}. Clamping.`);
@@ -184,12 +184,9 @@ export class AcousticSolver {
       for (let j = 1; j < ny - 1; j++) {
         for (let i = 1; i < nx - 1; i++) {
           const c = vField ? vField.get(i, j, k) : cUniform;
-          const c2dt2 = (c * actualDt) * (c * actualDt);
+          const c2dt2 = c * actualDt * (c * actualDt);
           const lap = curr.laplacian(i, j, k);
-          next.set(
-            i, j, k,
-            2 * curr.get(i, j, k) - prev.get(i, j, k) + c2dt2 * lap,
-          );
+          next.set(i, j, k, 2 * curr.get(i, j, k) - prev.get(i, j, k) + c2dt2 * lap);
         }
       }
     }
@@ -279,7 +276,7 @@ export class AcousticSolver {
           dt,
           cUniform: this.speedOfSound,
           hasVelocity: this.velocityField !== null,
-        },
+        }
       );
 
       if (!out) return false;
@@ -334,7 +331,14 @@ export class AcousticSolver {
     const cUniform = this.speedOfSound;
 
     // Helper: apply BC to a single boundary cell
-    const applyBC = (i: number, j: number, k: number, face: string, normalDir: number, inward: [number, number, number]) => {
+    const applyBC = (
+      i: number,
+      j: number,
+      k: number,
+      face: string,
+      normalDir: number,
+      inward: [number, number, number]
+    ) => {
       const bcType = this.bcMap.get(face) ?? 'absorbing';
 
       switch (bcType) {
@@ -355,7 +359,7 @@ export class AcousticSolver {
           const dxBC = normalDir === 0 ? next.dx : normalDir === 1 ? next.dy : next.dz;
           const pBound = curr.get(i, j, k);
           const pInter = curr.get(i + inward[0], j + inward[1], k + inward[2]);
-          next.set(i, j, k, pBound + (c * dt / dxBC) * (pInter - pBound));
+          next.set(i, j, k, pBound + ((c * dt) / dxBC) * (pInter - pBound));
           break;
         }
       }
@@ -364,15 +368,18 @@ export class AcousticSolver {
     // x- face (i=0)
     for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) applyBC(0, j, k, 'x-', 0, [1, 0, 0]);
     // x+ face (i=nx-1)
-    for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) applyBC(nx - 1, j, k, 'x+', 0, [-1, 0, 0]);
+    for (let k = 0; k < nz; k++)
+      for (let j = 0; j < ny; j++) applyBC(nx - 1, j, k, 'x+', 0, [-1, 0, 0]);
     // y- face (j=0)
     for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) applyBC(i, 0, k, 'y-', 1, [0, 1, 0]);
     // y+ face (j=ny-1)
-    for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) applyBC(i, ny - 1, k, 'y+', 1, [0, -1, 0]);
+    for (let k = 0; k < nz; k++)
+      for (let i = 0; i < nx; i++) applyBC(i, ny - 1, k, 'y+', 1, [0, -1, 0]);
     // z- face (k=0)
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) applyBC(i, j, 0, 'z-', 2, [0, 0, 1]);
     // z+ face (k=nz-1)
-    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) applyBC(i, j, nz - 1, 'z+', 2, [0, 0, -1]);
+    for (let j = 0; j < ny; j++)
+      for (let i = 0; i < nx; i++) applyBC(i, j, nz - 1, 'z+', 2, [0, 0, -1]);
   }
 
   // ── Public API ──────────────────────────────────────────────────────────
@@ -394,7 +401,8 @@ export class AcousticSolver {
 
   getStats(): AcousticStats {
     const data = this.pressureCurr.data;
-    let maxP = 0, sumP2 = 0;
+    let maxP = 0,
+      sumP2 = 0;
     for (let i = 0; i < data.length; i++) {
       const p = Math.abs(data[i]);
       if (p > maxP) maxP = p;
@@ -457,7 +465,7 @@ function maxFieldValue(grid: RegularGrid3D): number {
 export function buildLayeredVelocity(
   resolution: [number, number, number],
   domainSize: [number, number, number],
-  layers: { depth: number; velocity: number }[],
+  layers: { depth: number; velocity: number }[]
 ): RegularGrid3D {
   const grid = new RegularGrid3D(resolution, domainSize);
   const [nx, ny, nz] = resolution;

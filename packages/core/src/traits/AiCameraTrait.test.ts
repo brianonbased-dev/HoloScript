@@ -44,7 +44,12 @@ describe('AiCameraTrait', () => {
     });
 
     it('onUpdate should exist but be a no-op', () => {
-      const result = aiCameraHandler.onUpdate(mockNode as HSPlusNode, { tracking_speed: 1.0 }, mockContext, 0.016);
+      const result = aiCameraHandler.onUpdate(
+        mockNode as HSPlusNode,
+        { tracking_speed: 1.0 },
+        mockContext,
+        0.016
+      );
       expect(result).toBeUndefined();
     });
   });

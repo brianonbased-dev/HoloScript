@@ -34,7 +34,7 @@ const VERB_TO_CLIP: Record<CavemanVerb, string> = {
   eat: 'Eating',
   drink: 'Drinking',
   flee: 'Run',
-  inspect: 'Inspect',      // may fall back to idle + head turn
+  inspect: 'Inspect', // may fall back to idle + head turn
   rest: 'Sit',
   idle: 'Idle',
   grunt: 'Gesture',
@@ -64,12 +64,7 @@ export function mapVerbToClip(
 
   if (availableClips.length > 0) {
     // Try exact + common variants
-    const candidates = [
-      clip,
-      clip.toLowerCase(),
-      `${clip}_loop`,
-      `Armature|${clip}`,
-    ];
+    const candidates = [clip, clip.toLowerCase(), `${clip}_loop`, `Armature|${clip}`];
     const match = candidates.find((c) => availableClips.includes(c));
     if (!match) {
       fallback = true;
@@ -82,7 +77,11 @@ export function mapVerbToClip(
 
   // Drive qualifier example (future: can emit richer target_pose)
   // Only override when 'Run' is actually available (or no clip list was provided).
-  if (normalized === 'flee' && driveFear > 0.7 && (availableClips.length === 0 || availableClips.includes('Run'))) {
+  if (
+    normalized === 'flee' &&
+    driveFear > 0.7 &&
+    (availableClips.length === 0 || availableClips.includes('Run'))
+  ) {
     clip = 'Run'; // or a panicked variant if present
   }
 
@@ -97,7 +96,7 @@ export function mapVerbToClip(
  * HumanoidLoader glTF animation data does the heavy lifting.
  */
 export function dispatchCavemanAction(
-  entity: any,                 // the HoloScript entity / node
+  entity: any, // the HoloScript entity / node
   verb: string,
   target?: string,
   driveState?: { fear?: number },

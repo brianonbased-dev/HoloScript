@@ -38,7 +38,7 @@ export class AssetBrowserPanel {
         color: '#222222',
         borderRadius: 0.02,
         position: [0.8, 1.5, -0.5],
-        rotation: [0, -0.5, 0 ], // Angled towards user
+        rotation: [0, -0.5, 0], // Angled towards user
       },
       children: [],
     });
@@ -129,7 +129,7 @@ export class AssetBrowserPanel {
             text: asset.name.length > 10 ? asset.name.substring(0, 10) + '...' : asset.name,
             width: 0.2,
             height: 0.15,
-            position: [startX + col * gapX, startY - row * gapY, 0.02,],
+            position: [startX + col * gapX, startY - row * gapY, 0.02],
             color: '#3a3a3a',
           },
         },

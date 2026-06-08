@@ -4,12 +4,7 @@
 import { describe, it, expect } from 'vitest';
 // LODManager (engine) moved to the /runtime subpath (cold-consume fix); the rest stay cold.
 import { LODManager } from '../runtime';
-import {
-  SaveManager,
-  Profiler,
-  createDefaultPolicy,
-  createStrictPolicy,
-} from '../index';
+import { SaveManager, Profiler, createDefaultPolicy, createStrictPolicy } from '../index';
 
 describe('SaveManager exports', () => {
   it('creates manager and saves a slot', () => {

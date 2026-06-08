@@ -59,12 +59,12 @@ export interface PlausibilityResult {
 // ---------------------------------------------------------------------------
 
 const FOOT_FLOOR_THRESHOLD = -0.05; // metres below ground = floor violation
-const ZMP_HALF_SUPPORT = 0.35;       // metres from root centre-line
+const ZMP_HALF_SUPPORT = 0.35; // metres from root centre-line
 const JOINT_ANGLE_LIMIT_RAD = 2.094; // ~120° (radians) — max single-axis arc
-const COLLISION_RADIUS = 0.1;         // metres — min bone-to-bone distance
-const MAX_IMPULSE_MPS = 5.0;          // m/s — max velocity change per frame
-const MICRO_MAX_METRES = 0.05;        // metres — upper bound for micro-gesture
-const MICRO_MIN_METRES = 1e-4;        // metres — below this is frozen jitter
+const COLLISION_RADIUS = 0.1; // metres — min bone-to-bone distance
+const MAX_IMPULSE_MPS = 5.0; // m/s — max velocity change per frame
+const MICRO_MAX_METRES = 0.05; // metres — upper bound for micro-gesture
+const MICRO_MIN_METRES = 1e-4; // metres — below this is frozen jitter
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -78,10 +78,7 @@ function quatAngle(r: readonly [number, number, number, number]): number {
 }
 
 /** Squared Euclidean distance between two 3-vectors. */
-function dist2(
-  a: readonly [number, number, number],
-  b: readonly [number, number, number],
-): number {
+function dist2(a: readonly [number, number, number], b: readonly [number, number, number]): number {
   const dx = a[0] - b[0];
   const dy = a[1] - b[1];
   const dz = a[2] - b[2];
@@ -89,10 +86,7 @@ function dist2(
 }
 
 /** Euclidean distance. */
-function dist(
-  a: readonly [number, number, number],
-  b: readonly [number, number, number],
-): number {
+function dist(a: readonly [number, number, number], b: readonly [number, number, number]): number {
   return Math.sqrt(dist2(a, b));
 }
 

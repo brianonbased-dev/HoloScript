@@ -119,7 +119,9 @@ export interface TrainingCorpus {
 
 export function validateTrainingFrame(frame: TrainingFrame): void {
   if (typeof frame.frameIndex !== 'number' || frame.frameIndex < 0) {
-    throw new Error(`TrainingFrame: frameIndex must be a non-negative number, got ${frame.frameIndex}`);
+    throw new Error(
+      `TrainingFrame: frameIndex must be a non-negative number, got ${frame.frameIndex}`
+    );
   }
   if (typeof frame.phase !== 'number' || frame.phase < 0 || frame.phase >= 1) {
     throw new Error(`TrainingFrame: phase must be in [0, 1), got ${frame.phase}`);
@@ -132,7 +134,9 @@ export function validateTrainingFrame(frame: TrainingFrame): void {
   }
   const validGaits: Gait[] = ['idle', 'walk', 'trot', 'run', 'crouch'];
   if (!validGaits.includes(frame.gait)) {
-    throw new Error(`TrainingFrame: gait must be one of ${validGaits.join(', ')}, got ${frame.gait}`);
+    throw new Error(
+      `TrainingFrame: gait must be one of ${validGaits.join(', ')}, got ${frame.gait}`
+    );
   }
 }
 
@@ -161,7 +165,7 @@ export function validateMotionCapture(capture: MotionCapture): void {
   if (blockedSpdx.includes(capture.license.spdx)) {
     throw new Error(
       `MotionCapture: license ${capture.license.spdx} is incompatible with @holoscript/core commercial distribution. ` +
-      `Permitted: MIT, Apache-2.0, BSD-3-Clause, CC-BY-4.0 (with attribution), proprietary-with-grant.`
+        `Permitted: MIT, Apache-2.0, BSD-3-Clause, CC-BY-4.0 (with attribution), proprietary-with-grant.`
     );
   }
   if (!Array.isArray(capture.frames) || capture.frames.length === 0) {

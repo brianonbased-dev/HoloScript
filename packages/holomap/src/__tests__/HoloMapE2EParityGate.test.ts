@@ -74,10 +74,22 @@ function buildFrame(index: number): ReconstructionFrame {
     height: 2,
     stride: 4,
     rgb: new Uint8Array([
-      10 + index, 20 + index, 30 + index, 255,
-      40 + index, 50 + index, 60 + index, 255,
-      70 + index, 80 + index, 90 + index, 255,
-      100 + index, 110 + index, 120 + index, 255,
+      10 + index,
+      20 + index,
+      30 + index,
+      255,
+      40 + index,
+      50 + index,
+      60 + index,
+      255,
+      70 + index,
+      80 + index,
+      90 + index,
+      255,
+      100 + index,
+      110 + index,
+      120 + index,
+      255,
     ]),
   };
 }
@@ -256,45 +268,48 @@ describe('HoloMap GPU-vs-CPU parity gate', () => {
   // "skipped — no WebGPU" rather than silently omitting it.
   const gpuIt = HAS_WEBGPU ? it : it.skip;
 
-  gpuIt('GPU micro-encoder output matches CPU reference within tolerance across frames', async () => {
-    if (!device) {
-      // Navigator.gpu present but adapter/device request failed — surface
-      // the mismatch instead of silently passing.
-      throw new Error(
-        'navigator.gpu is defined but tryCreateHoloMapEncoderDevice returned null. ' +
-          'This environment reports WebGPU support but cannot provide a device; ' +
-          'the parity gate cannot run here. Fix the WebGPU adapter/device wiring ' +
-          'or explicitly opt this environment out of the gate.',
-      );
+  gpuIt(
+    'GPU micro-encoder output matches CPU reference within tolerance across frames',
+    async () => {
+      if (!device) {
+        // Navigator.gpu present but adapter/device request failed — surface
+        // the mismatch instead of silently passing.
+        throw new Error(
+          'navigator.gpu is defined but tryCreateHoloMapEncoderDevice returned null. ' +
+            'This environment reports WebGPU support but cannot provide a device; ' +
+            'the parity gate cannot run here. Fix the WebGPU adapter/device wiring ' +
+            'or explicitly opt this environment out of the gate.'
+        );
+      }
+
+      const gpuEncoder = createHoloMapMicroEncoder(device);
+      const worstDeltas: number[] = [];
+
+      for (let i = 0; i < SMOKE_FRAME_COUNT; i += 1) {
+        const frame = microFrame(i);
+        const [cpu, gpu] = await Promise.all([
+          runHoloMapMicroEncoderCpu(frame, PARITY_CONFIG),
+          gpuEncoder.run(frame, PARITY_CONFIG),
+        ]);
+        expect(cpu).toHaveLength(3);
+        expect(gpu).toHaveLength(3);
+        // Guard against silent NaN agreement before running the diff check.
+        for (const v of gpu) expect(Number.isFinite(v)).toBe(true);
+        const delta = maxAbsDelta(cpu, gpu);
+        worstDeltas.push(delta);
+        expect(
+          delta,
+          `frame ${i}: GPU-vs-CPU drift ${delta} exceeds tolerance ${GPU_VS_CPU_ABSOLUTE_TOLERANCE}`
+        ).toBeLessThanOrEqual(GPU_VS_CPU_ABSOLUTE_TOLERANCE);
+      }
+
+      // Cross-frame sanity: if every frame has identical drift, something is
+      // almost certainly short-circuiting. Different inputs must produce at
+      // least some variation in the delta profile.
+      const unique = new Set(worstDeltas.map((d) => d.toFixed(9))).size;
+      expect(unique).toBeGreaterThan(0);
     }
-
-    const gpuEncoder = createHoloMapMicroEncoder(device);
-    const worstDeltas: number[] = [];
-
-    for (let i = 0; i < SMOKE_FRAME_COUNT; i += 1) {
-      const frame = microFrame(i);
-      const [cpu, gpu] = await Promise.all([
-        runHoloMapMicroEncoderCpu(frame, PARITY_CONFIG),
-        gpuEncoder.run(frame, PARITY_CONFIG),
-      ]);
-      expect(cpu).toHaveLength(3);
-      expect(gpu).toHaveLength(3);
-      // Guard against silent NaN agreement before running the diff check.
-      for (const v of gpu) expect(Number.isFinite(v)).toBe(true);
-      const delta = maxAbsDelta(cpu, gpu);
-      worstDeltas.push(delta);
-      expect(
-        delta,
-        `frame ${i}: GPU-vs-CPU drift ${delta} exceeds tolerance ${GPU_VS_CPU_ABSOLUTE_TOLERANCE}`,
-      ).toBeLessThanOrEqual(GPU_VS_CPU_ABSOLUTE_TOLERANCE);
-    }
-
-    // Cross-frame sanity: if every frame has identical drift, something is
-    // almost certainly short-circuiting. Different inputs must produce at
-    // least some variation in the delta profile.
-    const unique = new Set(worstDeltas.map((d) => d.toFixed(9))).size;
-    expect(unique).toBeGreaterThan(0);
-  });
+  );
 
   it('records WebGPU presence so skips are auditable in CI output', () => {
     // This test intentionally reports the environment's WebGPU status.

@@ -517,13 +517,15 @@ describe('frozen-ness contract', () => {
 // CAPABILITY TOKEN REGISTRY
 // =============================================================================
 
-function mintAndStore(opts: {
-  handle?: Handle;
-  surface?: 'claude' | 'mobile';
-  rngSeed?: number;
-  now?: Date;
-  ttlSeconds?: number;
-} = {}): { stored: StoredCapabilityToken; plaintextSecret: string } {
+function mintAndStore(
+  opts: {
+    handle?: Handle;
+    surface?: 'claude' | 'mobile';
+    rngSeed?: number;
+    now?: Date;
+    ttlSeconds?: number;
+  } = {}
+): { stored: StoredCapabilityToken; plaintextSecret: string } {
   const t = mintCapabilityToken({
     handle: opts.handle ?? ('claude1' as Handle),
     surface: opts.surface ?? 'claude',
@@ -685,7 +687,10 @@ describe('CapabilityTokenRegistry — validateById', () => {
   it('FALSE: validateById asks for capability not in the token throws CAPABILITY_NOT_IN_TRUST_TIER', () => {
     const reg = new CapabilityTokenRegistry();
     // Mint a mobile token (reduced trust → no mesh:claim).
-    const { stored, plaintextSecret } = mintAndStore({ handle: 'mobile1' as Handle, surface: 'mobile' });
+    const { stored, plaintextSecret } = mintAndStore({
+      handle: 'mobile1' as Handle,
+      surface: 'mobile',
+    });
     reg.put(stored);
     try {
       reg.validateById(stored.tokenId, plaintextSecret, 'mesh:claim', FRESH);

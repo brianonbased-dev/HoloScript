@@ -5,15 +5,15 @@
 
 ## What the ecosystem already standardizes
 
-- **URDF / MJCF / SDF** are common in robotics; simulators (e.g. **Isaac Sim** on **Omniverse**) import URDF and map links, joints, collision, and visuals into **OpenUSD** prim hierarchies. NVIDIA’s learning docs describe this **anatomy of robot asset structure** and **URDF import** path (see *NVIDIA docs: “Anatomy of a Robot Asset Structure”* and *“Importing URDF Assets”* in Isaac Sim getting started).
-- **OpenUSD** is a **scene composition and interchange** system (layers, references, variants). It is the right *camp* for DCC, simulation, and high-end pipelines, not a small JSON blob by itself.
+- **URDF / MJCF / SDF** are common in robotics; simulators (e.g. **Isaac Sim** on **Omniverse**) import URDF and map links, joints, collision, and visuals into **OpenUSD** prim hierarchies. NVIDIA’s learning docs describe this **anatomy of robot asset structure** and **URDF import** path (see _NVIDIA docs: “Anatomy of a Robot Asset Structure”_ and _“Importing URDF Assets”_ in Isaac Sim getting started).
+- **OpenUSD** is a **scene composition and interchange** system (layers, references, variants). It is the right _camp_ for DCC, simulation, and high-end pipelines, not a small JSON blob by itself.
 
 ## Where HoloScript fits
 
 - HoloScript is best positioned as a **authoring and behavior** layer that **compiles to**:
   - **Web / real-time** targets (glTF, R3F, engine exporters already in-repo), and/or
   - **Interchange** steps that emit or sync **USD** where a studio pipeline requires it.
-- A practical bridge is **not** “HoloScript *is* USD,” but “HoloScript **exports** a structured scene + rig + physics hints that a **toolchain** (Python USD APIs, Omniverse Connectors) turns into prims and layers.”
+- A practical bridge is **not** “HoloScript _is_ USD,” but “HoloScript **exports** a structured scene + rig + physics hints that a **toolchain** (Python USD APIs, Omniverse Connectors) turns into prims and layers.”
 
 ## Recommendation
 
@@ -22,8 +22,8 @@
 
 ## References (external)
 
-- NVIDIA: *Using OpenUSD for modular and scalable robotic simulation* (NVIDIA technical blog; Physical AI / Omniverse material).  
-- Isaac Sim: URDF import → USD.  
+- NVIDIA: _Using OpenUSD for modular and scalable robotic simulation_ (NVIDIA technical blog; Physical AI / Omniverse material).
+- Isaac Sim: URDF import → USD.
 - OpenUSD: https://openusd.org/
 
 ## Related

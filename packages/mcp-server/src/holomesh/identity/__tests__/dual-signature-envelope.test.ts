@@ -458,9 +458,7 @@ describe('signDual founder-gated NoopPQCSigner', () => {
   });
 
   it('FALSE — throws when classical signer missing in classical_only mode', async () => {
-    await expect(signDual(TEST_PAYLOAD, 'classical_only', {})).rejects.toThrow(
-      /classical signer/
-    );
+    await expect(signDual(TEST_PAYLOAD, 'classical_only', {})).rejects.toThrow(/classical signer/);
   });
 
   it('FALSE — throws when pqc signer missing in pqc_only mode', async () => {

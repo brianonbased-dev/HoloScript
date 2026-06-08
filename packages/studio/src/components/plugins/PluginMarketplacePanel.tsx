@@ -105,8 +105,7 @@ export function PluginMarketplacePanel({ onClose }: PluginMarketplacePanelProps)
 
       try {
         const fallback: SandboxPermission[] = ['scene:read', 'ui:panel'];
-        const permissions: SandboxPermission[] =
-          CATEGORY_PERMISSIONS[plugin.category] ?? fallback;
+        const permissions: SandboxPermission[] = CATEGORY_PERMISSIONS[plugin.category] ?? fallback;
 
         await loadPlugin({
           pluginId: plugin.id,

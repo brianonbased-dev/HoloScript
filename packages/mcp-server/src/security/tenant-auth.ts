@@ -40,9 +40,7 @@ let pgPool: any = null;
  *
  * `DATABASE_SSL=false` still disables SSL entirely for local non-TLS DBs.
  */
-function buildPostgresSslOptions():
-  | false
-  | { rejectUnauthorized: boolean; ca?: string } {
+function buildPostgresSslOptions(): false | { rejectUnauthorized: boolean; ca?: string } {
   if (process.env.DATABASE_SSL === 'false') {
     return false;
   }
@@ -153,12 +151,9 @@ export async function validateTenantKey(
   ) {
     try {
       const encodedKey = encodeURIComponent(apiKey);
-      const resp = await fetch(
-        `${process.env.UPSTASH_REDIS_REST_URL}/get/apikey:${encodedKey}`,
-        {
-          headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
-        }
-      );
+      const resp = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/apikey:${encodedKey}`, {
+        headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` },
+      });
       const data = await resp.json();
       if (data && data.result) {
         tenant = JSON.parse(data.result);

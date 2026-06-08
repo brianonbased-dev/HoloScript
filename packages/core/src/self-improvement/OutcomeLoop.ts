@@ -141,7 +141,9 @@ export interface OutcomeReceipt {
 }
 
 export interface OutcomeLoopOptions {
-  implementer: (input: OutcomeImplementerInput) => OutcomeImplementerResult | Promise<OutcomeImplementerResult>;
+  implementer: (
+    input: OutcomeImplementerInput
+  ) => OutcomeImplementerResult | Promise<OutcomeImplementerResult>;
   grader: (input: OutcomeGraderInput) => OutcomeGraderResult | Promise<OutcomeGraderResult>;
   validationRunner?: (
     command: OutcomeValidationCommand,
@@ -209,7 +211,10 @@ function clampScore(score: number): number {
 function scoreFromCriteria(spec: OutcomeSpec, criteria: OutcomeCriterionGrade[]): number {
   if (criteria.length === 0) return 0;
   const weights = new Map(spec.rubric.map((criterion) => [criterion.id, criterion.weight ?? 1]));
-  const totalWeight = criteria.reduce((sum, criterion) => sum + Math.max(0, weights.get(criterion.criterionId) ?? 1), 0);
+  const totalWeight = criteria.reduce(
+    (sum, criterion) => sum + Math.max(0, weights.get(criterion.criterionId) ?? 1),
+    0
+  );
   if (totalWeight === 0) return 0;
   const weighted = criteria.reduce((sum, criterion) => {
     const weight = Math.max(0, weights.get(criterion.criterionId) ?? 1);
@@ -218,7 +223,10 @@ function scoreFromCriteria(spec: OutcomeSpec, criteria: OutcomeCriterionGrade[])
   return Math.round((weighted / totalWeight) * 10000) / 10000;
 }
 
-function normalizeGrade(spec: OutcomeSpec, grade: OutcomeGraderResult): OutcomeGraderResult & { score: number } {
+function normalizeGrade(
+  spec: OutcomeSpec,
+  grade: OutcomeGraderResult
+): OutcomeGraderResult & { score: number } {
   const returned = new Map(
     grade.criteria.map((criterion) => [
       criterion.criterionId,
@@ -245,7 +253,11 @@ function normalizeGrade(spec: OutcomeSpec, grade: OutcomeGraderResult): OutcomeG
   };
 }
 
-function makeContext(specId: string, role: OutcomeLoopContext['role'], iteration: number): OutcomeLoopContext {
+function makeContext(
+  specId: string,
+  role: OutcomeLoopContext['role'],
+  iteration: number
+): OutcomeLoopContext {
   return {
     role,
     iteration,
@@ -405,6 +417,9 @@ export class OutcomeLoop {
   }
 }
 
-export function runOutcomeLoop(spec: OutcomeSpec, options: OutcomeLoopOptions): Promise<OutcomeReceipt> {
+export function runOutcomeLoop(
+  spec: OutcomeSpec,
+  options: OutcomeLoopOptions
+): Promise<OutcomeReceipt> {
   return new OutcomeLoop(options).run(spec);
 }

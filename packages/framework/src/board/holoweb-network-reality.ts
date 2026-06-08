@@ -9,8 +9,7 @@
 export const HOLOWEB_NETWORK_REALITY_SCHEMA_VERSION =
   'hololand.holoshell.network-reality.v0.1.0' as const;
 
-export type HoloWebNetworkRealitySchemaVersion =
-  typeof HOLOWEB_NETWORK_REALITY_SCHEMA_VERSION;
+export type HoloWebNetworkRealitySchemaVersion = typeof HOLOWEB_NETWORK_REALITY_SCHEMA_VERSION;
 
 export type HoloWebJsonValue =
   | string
@@ -90,8 +89,7 @@ export const HOLOWEB_UNDERLAY_CLASSIFICATIONS = [
   'unknown_protective',
 ] as const;
 
-export type HoloWebUnderlayClassification =
-  (typeof HOLOWEB_UNDERLAY_CLASSIFICATIONS)[number];
+export type HoloWebUnderlayClassification = (typeof HOLOWEB_UNDERLAY_CLASSIFICATIONS)[number];
 
 export const HOLOWEB_CONFIDENCE_LEVELS = [
   'owner_declared',
@@ -122,25 +120,13 @@ export const HOLOWEB_OWNER_DECLARED_SOURCES = [
   'receipt',
 ] as const;
 
-export type HoloWebOwnerDeclaredSource =
-  (typeof HOLOWEB_OWNER_DECLARED_SOURCES)[number];
+export type HoloWebOwnerDeclaredSource = (typeof HOLOWEB_OWNER_DECLARED_SOURCES)[number];
 
-export const HOLOWEB_INTERFACE_KINDS = [
-  'wifi',
-  'wwan',
-  'ethernet',
-  'vpn',
-  'unknown',
-] as const;
+export const HOLOWEB_INTERFACE_KINDS = ['wifi', 'wwan', 'ethernet', 'vpn', 'unknown'] as const;
 
 export type HoloWebInterfaceKind = (typeof HOLOWEB_INTERFACE_KINDS)[number];
 
-export const HOLOWEB_VPN_STATES = [
-  'active',
-  'inactive',
-  'not_detected',
-  'unknown',
-] as const;
+export const HOLOWEB_VPN_STATES = ['active', 'inactive', 'not_detected', 'unknown'] as const;
 
 export type HoloWebVpnState = (typeof HOLOWEB_VPN_STATES)[number];
 
@@ -493,10 +479,7 @@ export function validateHoloWebLocationProof(
   if (proof.revocable !== true) {
     errors.push(`${prefix}.revocable must be true.`);
   }
-  if (
-    proof.precision === 'exact_local_only' &&
-    proof.scope !== 'local_only'
-  ) {
+  if (proof.precision === 'exact_local_only' && proof.scope !== 'local_only') {
     errors.push(`${prefix}.precision exact_local_only cannot leave local_only scope.`);
   }
   if (
@@ -537,18 +520,28 @@ function validateWifiEvidence(wifi: HoloWebWifiEvidence | undefined, errors: str
     errors.push('HoloWebUnderlay.wifi is required.');
     return;
   }
-  if (typeof wifi.available !== 'boolean') errors.push('HoloWebWifiEvidence.available must be a boolean.');
-  if (typeof wifi.connected !== 'boolean') errors.push('HoloWebWifiEvidence.connected must be a boolean.');
+  if (typeof wifi.available !== 'boolean')
+    errors.push('HoloWebWifiEvidence.available must be a boolean.');
+  if (typeof wifi.connected !== 'boolean')
+    errors.push('HoloWebWifiEvidence.connected must be a boolean.');
   if (wifi.signalPercent !== null && !isNonNegativeNumber(wifi.signalPercent)) {
     errors.push('HoloWebWifiEvidence.signalPercent must be a non-negative number or null.');
   }
   if (wifi.channel !== null && !isNonNegativeNumber(wifi.channel)) {
     errors.push('HoloWebWifiEvidence.channel must be a non-negative number or null.');
   }
-  if (wifi.receiveRateMbps !== undefined && wifi.receiveRateMbps !== null && !isNonNegativeNumber(wifi.receiveRateMbps)) {
+  if (
+    wifi.receiveRateMbps !== undefined &&
+    wifi.receiveRateMbps !== null &&
+    !isNonNegativeNumber(wifi.receiveRateMbps)
+  ) {
     errors.push('HoloWebWifiEvidence.receiveRateMbps must be a non-negative number or null.');
   }
-  if (wifi.transmitRateMbps !== undefined && wifi.transmitRateMbps !== null && !isNonNegativeNumber(wifi.transmitRateMbps)) {
+  if (
+    wifi.transmitRateMbps !== undefined &&
+    wifi.transmitRateMbps !== null &&
+    !isNonNegativeNumber(wifi.transmitRateMbps)
+  ) {
     errors.push('HoloWebWifiEvidence.transmitRateMbps must be a non-negative number or null.');
   }
   if (wifi.ssidRedacted !== true) errors.push('HoloWebWifiEvidence.ssidRedacted must be true.');
@@ -568,9 +561,12 @@ function validateCostEvidence(cost: HoloWebCostEvidence | undefined, errors: str
     errors.push('HoloWebUnderlay.cost is required.');
     return;
   }
-  if (typeof cost.available !== 'boolean') errors.push('HoloWebCostEvidence.available must be a boolean.');
-  if (typeof cost.roaming !== 'boolean') errors.push('HoloWebCostEvidence.roaming must be a boolean.');
-  if (typeof cost.overDataLimit !== 'boolean') errors.push('HoloWebCostEvidence.overDataLimit must be a boolean.');
+  if (typeof cost.available !== 'boolean')
+    errors.push('HoloWebCostEvidence.available must be a boolean.');
+  if (typeof cost.roaming !== 'boolean')
+    errors.push('HoloWebCostEvidence.roaming must be a boolean.');
+  if (typeof cost.overDataLimit !== 'boolean')
+    errors.push('HoloWebCostEvidence.overDataLimit must be a boolean.');
   if (typeof cost.approachingDataLimit !== 'boolean') {
     errors.push('HoloWebCostEvidence.approachingDataLimit must be a boolean.');
   }
@@ -607,22 +603,30 @@ function validateUnderlay(underlay: HoloWebUnderlay | undefined, errors: string[
     return;
   }
   if (!isSupportedHoloWebUnderlayClassification(String(underlay.classification))) {
-    errors.push(`HoloWebUnderlay.classification is unsupported: ${String(underlay.classification)}.`);
+    errors.push(
+      `HoloWebUnderlay.classification is unsupported: ${String(underlay.classification)}.`
+    );
   }
   if (!isOneOf(HOLOWEB_CONFIDENCE_LEVELS, String(underlay.confidence))) {
     errors.push(`HoloWebUnderlay.confidence is unsupported: ${String(underlay.confidence)}.`);
   }
   if (!isOneOf(HOLOWEB_OWNER_DECLARED_KINDS, String(underlay.ownerDeclaredKind))) {
-    errors.push(`HoloWebUnderlay.ownerDeclaredKind is unsupported: ${String(underlay.ownerDeclaredKind)}.`);
+    errors.push(
+      `HoloWebUnderlay.ownerDeclaredKind is unsupported: ${String(underlay.ownerDeclaredKind)}.`
+    );
   }
   if (
     underlay.ownerDeclaredSource !== undefined &&
     !isOneOf(HOLOWEB_OWNER_DECLARED_SOURCES, String(underlay.ownerDeclaredSource))
   ) {
-    errors.push(`HoloWebUnderlay.ownerDeclaredSource is unsupported: ${String(underlay.ownerDeclaredSource)}.`);
+    errors.push(
+      `HoloWebUnderlay.ownerDeclaredSource is unsupported: ${String(underlay.ownerDeclaredSource)}.`
+    );
   }
   if (!isOneOf(HOLOWEB_INTERFACE_KINDS, String(underlay.osInterfaceKind))) {
-    errors.push(`HoloWebUnderlay.osInterfaceKind is unsupported: ${String(underlay.osInterfaceKind)}.`);
+    errors.push(
+      `HoloWebUnderlay.osInterfaceKind is unsupported: ${String(underlay.osInterfaceKind)}.`
+    );
   }
   if (!underlay.osCost) errors.push('HoloWebUnderlay.osCost is required.');
   if (!underlay.connectivity) errors.push('HoloWebUnderlay.connectivity is required.');
@@ -634,7 +638,9 @@ function validateUnderlay(underlay: HoloWebUnderlay | undefined, errors: string[
   validateCostEvidence(underlay.cost, errors);
   validateAdapterEvidence(underlay.adapters, errors);
   if (underlay.locationProof) {
-    errors.push(...validateHoloWebLocationProof(underlay.locationProof, 'HoloWebUnderlay.locationProof'));
+    errors.push(
+      ...validateHoloWebLocationProof(underlay.locationProof, 'HoloWebUnderlay.locationProof')
+    );
   }
 }
 
@@ -664,12 +670,17 @@ function validateNetworkConsumer(
     errors.push(`HoloWebNetworkConsumer[${index}].pid must be a non-negative number.`);
   }
   if (!consumer.pidHash) errors.push(`HoloWebNetworkConsumer[${index}].pidHash is required.`);
-  if (!consumer.processName) errors.push(`HoloWebNetworkConsumer[${index}].processName is required.`);
+  if (!consumer.processName)
+    errors.push(`HoloWebNetworkConsumer[${index}].processName is required.`);
   if (!isOneOf(HOLOWEB_PROCESS_KINDS, String(consumer.processKind))) {
-    errors.push(`HoloWebNetworkConsumer[${index}].processKind is unsupported: ${String(consumer.processKind)}.`);
+    errors.push(
+      `HoloWebNetworkConsumer[${index}].processKind is unsupported: ${String(consumer.processKind)}.`
+    );
   }
   if (!isNonNegativeNumber(consumer.establishedConnectionCount)) {
-    errors.push(`HoloWebNetworkConsumer[${index}].establishedConnectionCount must be a non-negative number.`);
+    errors.push(
+      `HoloWebNetworkConsumer[${index}].establishedConnectionCount must be a non-negative number.`
+    );
   }
   if (consumer.endpointDetailsRedacted !== true) {
     errors.push(`HoloWebNetworkConsumer[${index}].endpointDetailsRedacted must be true.`);
@@ -715,7 +726,9 @@ function validateAgentLane(lanes: HoloWebAgentLane | undefined, errors: string[]
   if (!Array.isArray(lanes.topConsumers)) {
     errors.push('HoloWebAgentLane.topConsumers must be an array.');
   } else {
-    lanes.topConsumers.forEach((consumer, index) => validateNetworkConsumer(consumer, index, errors));
+    lanes.topConsumers.forEach((consumer, index) =>
+      validateNetworkConsumer(consumer, index, errors)
+    );
   }
   validateOptionalStringArray('HoloWebAgentLane.evidenceRequired', lanes.evidenceRequired, errors);
 }
@@ -726,7 +739,9 @@ function validatePolicy(policy: HoloWebPolicy | undefined, errors: string[]): vo
     return;
   }
   if (!isOneOf(HOLOWEB_BANDWIDTH_POSTURES, String(policy.bandwidthPosture))) {
-    errors.push(`HoloWebPolicy.bandwidthPosture is unsupported: ${String(policy.bandwidthPosture)}.`);
+    errors.push(
+      `HoloWebPolicy.bandwidthPosture is unsupported: ${String(policy.bandwidthPosture)}.`
+    );
   }
   if (!isOneOf(HOLOWEB_HEAVY_WORK_POLICIES, String(policy.heavyWorkPolicy))) {
     errors.push(`HoloWebPolicy.heavyWorkPolicy is unsupported: ${String(policy.heavyWorkPolicy)}.`);
@@ -737,7 +752,11 @@ function validatePolicy(policy: HoloWebPolicy | undefined, errors: string[]): vo
   if (!isOneOf(HOLOWEB_BRITTNEY_STANCES, String(policy.brittneyStance))) {
     errors.push(`HoloWebPolicy.brittneyStance is unsupported: ${String(policy.brittneyStance)}.`);
   }
-  validateStringArray('HoloWebPolicy.allowedWithoutOwnerGesture', policy.allowedWithoutOwnerGesture, errors);
+  validateStringArray(
+    'HoloWebPolicy.allowedWithoutOwnerGesture',
+    policy.allowedWithoutOwnerGesture,
+    errors
+  );
   validateStringArray('HoloWebPolicy.requiresOwnerGesture', policy.requiresOwnerGesture, errors);
 }
 
@@ -763,10 +782,14 @@ function validateRedaction(redaction: HoloWebRedactionPolicy | undefined, errors
     errors.push('HoloWebNetworkRealitySnapshot.redaction is required.');
     return;
   }
-  if (redaction.rawSsidIncluded !== false) errors.push('HoloWebRedactionPolicy.rawSsidIncluded must be false.');
-  if (redaction.rawBssidIncluded !== false) errors.push('HoloWebRedactionPolicy.rawBssidIncluded must be false.');
-  if (redaction.ipAddressIncluded !== false) errors.push('HoloWebRedactionPolicy.ipAddressIncluded must be false.');
-  if (redaction.gatewayIncluded !== false) errors.push('HoloWebRedactionPolicy.gatewayIncluded must be false.');
+  if (redaction.rawSsidIncluded !== false)
+    errors.push('HoloWebRedactionPolicy.rawSsidIncluded must be false.');
+  if (redaction.rawBssidIncluded !== false)
+    errors.push('HoloWebRedactionPolicy.rawBssidIncluded must be false.');
+  if (redaction.ipAddressIncluded !== false)
+    errors.push('HoloWebRedactionPolicy.ipAddressIncluded must be false.');
+  if (redaction.gatewayIncluded !== false)
+    errors.push('HoloWebRedactionPolicy.gatewayIncluded must be false.');
   if (redaction.remoteEndpointIncluded !== false) {
     errors.push('HoloWebRedactionPolicy.remoteEndpointIncluded must be false.');
   }
@@ -823,7 +846,9 @@ export function validateHoloWebNetworkRealitySnapshot(
     );
   }
   if (!isIsoTimestamp(snapshot.generatedAt)) {
-    errors.push('HoloWebNetworkRealitySnapshot.generatedAt is required and must be a valid ISO-8601 timestamp.');
+    errors.push(
+      'HoloWebNetworkRealitySnapshot.generatedAt is required and must be a valid ISO-8601 timestamp.'
+    );
   }
 
   validateNode(snapshot.node, errors);
@@ -835,7 +860,12 @@ export function validateHoloWebNetworkRealitySnapshot(
   validateRedaction(snapshot.redaction, errors);
   validateReceipt(snapshot.receipt, errors);
   if (snapshot.locationProof) {
-    errors.push(...validateHoloWebLocationProof(snapshot.locationProof, 'HoloWebNetworkRealitySnapshot.locationProof'));
+    errors.push(
+      ...validateHoloWebLocationProof(
+        snapshot.locationProof,
+        'HoloWebNetworkRealitySnapshot.locationProof'
+      )
+    );
   }
 
   return errors;
@@ -863,9 +893,7 @@ function cloneUnderlay(underlay: HoloWebUnderlay): HoloWebUnderlay {
     evidence: [...underlay.evidence],
     wifi: {
       ...underlay.wifi,
-      ...(underlay.wifi.identifiers
-        ? { identifiers: { ...underlay.wifi.identifiers } }
-        : {}),
+      ...(underlay.wifi.identifiers ? { identifiers: { ...underlay.wifi.identifiers } } : {}),
     },
     cost: { ...underlay.cost },
     adapters: { ...underlay.adapters },

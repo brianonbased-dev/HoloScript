@@ -10,21 +10,11 @@
  * Pre-condition: D.040 sovereign trait skeletons (packages/core/src/traits/)
  */
 
-import type {
-  VerbalFingerprintConfig,
-} from '../traits/VerbalFingerprintTrait';
-import type {
-  AutonomousAgendaConfig,
-} from '../traits/AutonomousAgendaTrait';
-import type {
-  ReputationLedgerConfig,
-} from '../traits/ReputationLedgerTrait';
-import type {
-  VocabularyRegisterConfig,
-} from '../traits/VocabularyRegisterTrait';
-import type {
-  SpeechAwareEncounterConfig,
-} from '../traits/SpeechAwareEncounterTrait';
+import type { VerbalFingerprintConfig } from '../traits/VerbalFingerprintTrait';
+import type { AutonomousAgendaConfig } from '../traits/AutonomousAgendaTrait';
+import type { ReputationLedgerConfig } from '../traits/ReputationLedgerTrait';
+import type { VocabularyRegisterConfig } from '../traits/VocabularyRegisterTrait';
+import type { SpeechAwareEncounterConfig } from '../traits/SpeechAwareEncounterTrait';
 
 // =============================================================================
 // ANCESTRY — Where the item came from

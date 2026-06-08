@@ -10,21 +10,21 @@
 
 ## Hardware-gated queue (owner + trigger)
 
-| Field | Value |
-|--------|--------|
-| **Owner** | Release / benchmarking (repo) with **HW delegate** for physical machines (NVIDIA / AMD / Apple / Intel adapter rows as available). |
-| **Trigger (human)** | Before any Paper-3 narrative freeze that cites **cross-adapter** WebGPU numbers; or on-demand when a tagged release candidate needs empirical rows. |
-| **Trigger (automation stub)** | CI continues to run **mock only** (`WEBGPU_HARNESS_MOCK=1`); it does **not** satisfy cross-vendor empirical claims. |
+| Field                         | Value                                                                                                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Owner**                     | Release / benchmarking (repo) with **HW delegate** for physical machines (NVIDIA / AMD / Apple / Intel adapter rows as available).                  |
+| **Trigger (human)**           | Before any Paper-3 narrative freeze that cites **cross-adapter** WebGPU numbers; or on-demand when a tagged release candidate needs empirical rows. |
+| **Trigger (automation stub)** | CI continues to run **mock only** (`WEBGPU_HARNESS_MOCK=1`); it does **not** satisfy cross-vendor empirical claims.                                 |
 
 ## Required adapter matrix (template — fill when hardware is booked)
 
 Aligned with WISDOM **P.3**: aim for **≥2 vendor-disjoint physical devices** plus **≥1 software-only control** (mock or CPU-only control path). Minimum rows to capture before “cross-vendor” language in paper body:
 
-| Row | Role | Vendor / GPU | OS | Browser | Build fingerprint (driver + browser build) |
-|-----|------|----------------|-----|---------|---------------------------------------------|
-| A | Physical | _e.g. NVIDIA_ | _fill_ | Chromium / Chrome | _fill_ |
-| B | Physical | _e.g. AMD or Apple Silicon_ | _fill_ | Chromium / Chrome or Safari (WebGPU) | _fill_ |
-| C | Control | Mock harness | any | N/A (CLI) | `WEBGPU_HARNESS_MOCK=1` trace only |
+| Row | Role     | Vendor / GPU                | OS     | Browser                              | Build fingerprint (driver + browser build) |
+| --- | -------- | --------------------------- | ------ | ------------------------------------ | ------------------------------------------ |
+| A   | Physical | _e.g. NVIDIA_               | _fill_ | Chromium / Chrome                    | _fill_                                     |
+| B   | Physical | _e.g. AMD or Apple Silicon_ | _fill_ | Chromium / Chrome or Safari (WebGPU) | _fill_                                     |
+| C   | Control  | Mock harness                | any    | N/A (CLI)                            | `WEBGPU_HARNESS_MOCK=1` trace only         |
 
 For each **physical** row: run Property 4 / ContractedSimulation probes per **P.3**, `N ≥ 30` trials, log ε drift + CRDT merge metadata + hash stability; drop JSON under:
 

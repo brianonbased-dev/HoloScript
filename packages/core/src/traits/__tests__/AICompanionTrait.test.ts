@@ -59,11 +59,14 @@ describe('AICompanionTrait — onAttach', () => {
   it('emits ai_companion_create with config info', () => {
     const node = makeNode();
     aiCompanionHandler.onAttach!(node as never, defaultConfig, makeContext(node) as never);
-    expect(node.emit).toHaveBeenCalledWith('ai_companion_create', expect.objectContaining({
-      personality: 'friendly',
-      interactionRange: 10,
-      idleBehavior: 'wander',
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'ai_companion_create',
+      expect.objectContaining({
+        personality: 'friendly',
+        interactionRange: 10,
+        idleBehavior: 'wander',
+      })
+    );
   });
 
   it('initial emotions are half-neutral', () => {
@@ -103,10 +106,13 @@ describe('AICompanionTrait — onUpdate', () => {
     aiCompanionHandler.onAttach!(node as never, defaultConfig, makeContext(node) as never);
     node.emit.mockClear();
     aiCompanionHandler.onUpdate!(node as never, defaultConfig, makeContext(node) as never, 0.016);
-    expect(node.emit).toHaveBeenCalledWith('ai_companion_update', expect.objectContaining({
-      deltaTime: 0.016,
-      currentAction: 'idle',
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'ai_companion_update',
+      expect.objectContaining({
+        deltaTime: 0.016,
+        currentAction: 'idle',
+      })
+    );
   });
 
   it('decays emotions toward neutral', () => {
@@ -115,7 +121,12 @@ describe('AICompanionTrait — onUpdate', () => {
     aiCompanionHandler.onAttach!(node as never, cfg, makeContext(node) as never);
     const state = node.__aiCompanionState as { emotion: { fear: number } };
     // Force fear high
-    aiCompanionHandler.onEvent!(node as never, cfg, makeContext(node) as never, { type: 'ai_companion_emotion_stimulus', fear: 1 } as never);
+    aiCompanionHandler.onEvent!(
+      node as never,
+      cfg,
+      makeContext(node) as never,
+      { type: 'ai_companion_emotion_stimulus', fear: 1 } as never
+    );
     const fearBefore = state.emotion.fear;
     aiCompanionHandler.onUpdate!(node as never, cfg, makeContext(node) as never, 0.1);
     expect(state.emotion.fear).toBeLessThan(fearBefore);
@@ -127,29 +138,48 @@ describe('AICompanionTrait — onEvent', () => {
     const node = makeNode();
     aiCompanionHandler.onAttach!(node as never, defaultConfig, makeContext(node) as never);
     node.emit.mockClear();
-    aiCompanionHandler.onEvent!(node as never, defaultConfig, makeContext(node) as never, {
-      type: 'ai_companion_interact', playerId: 'player-1', message: 'Hello',
-    } as never);
+    aiCompanionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeContext(node) as never,
+      {
+        type: 'ai_companion_interact',
+        playerId: 'player-1',
+        message: 'Hello',
+      } as never
+    );
     const state = node.__aiCompanionState as { interactingWith: string; currentAction: string };
     expect(state.interactingWith).toBe('player-1');
     expect(state.currentAction).toBe('interacting');
-    expect(node.emit).toHaveBeenCalledWith('ai_companion_response_start', expect.objectContaining({
-      playerId: 'player-1',
-      latency: 0.5,
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'ai_companion_response_start',
+      expect.objectContaining({
+        playerId: 'player-1',
+        latency: 0.5,
+      })
+    );
   });
 
   it('ai_companion_response increments memoryCount and emits speak', () => {
     const node = makeNode();
     aiCompanionHandler.onAttach!(node as never, defaultConfig, makeContext(node) as never);
     const state = node.__aiCompanionState as { memoryCount: number };
-    aiCompanionHandler.onEvent!(node as never, defaultConfig, makeContext(node) as never, {
-      type: 'ai_companion_response', text: 'Hi there!',
-    } as never);
+    aiCompanionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeContext(node) as never,
+      {
+        type: 'ai_companion_response',
+        text: 'Hi there!',
+      } as never
+    );
     expect(state.memoryCount).toBe(1);
-    expect(node.emit).toHaveBeenCalledWith('on_ai_companion_speak', expect.objectContaining({
-      text: 'Hi there!',
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'on_ai_companion_speak',
+      expect.objectContaining({
+        text: 'Hi there!',
+      })
+    );
   });
 
   it('memory is capped at memory_capacity', () => {
@@ -158,9 +188,15 @@ describe('AICompanionTrait — onEvent', () => {
     aiCompanionHandler.onAttach!(node as never, cfg, makeContext(node) as never);
     const state = node.__aiCompanionState as { memoryCount: number };
     for (let i = 0; i < 5; i++) {
-      aiCompanionHandler.onEvent!(node as never, cfg, makeContext(node) as never, {
-        type: 'ai_companion_response', text: `msg${i}`,
-      } as never);
+      aiCompanionHandler.onEvent!(
+        node as never,
+        cfg,
+        makeContext(node) as never,
+        {
+          type: 'ai_companion_response',
+          text: `msg${i}`,
+        } as never
+      );
     }
     expect(state.memoryCount).toBe(2);
   });
@@ -168,10 +204,20 @@ describe('AICompanionTrait — onEvent', () => {
   it('ai_companion_emotion_stimulus adjusts emotions', () => {
     const node = makeNode();
     aiCompanionHandler.onAttach!(node as never, defaultConfig, makeContext(node) as never);
-    const state = node.__aiCompanionState as { emotion: { happiness: number; fear: number; trust: number } };
-    aiCompanionHandler.onEvent!(node as never, defaultConfig, makeContext(node) as never, {
-      type: 'ai_companion_emotion_stimulus', happiness: 0.3, fear: 0.5, trust: -0.2,
-    } as never);
+    const state = node.__aiCompanionState as {
+      emotion: { happiness: number; fear: number; trust: number };
+    };
+    aiCompanionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeContext(node) as never,
+      {
+        type: 'ai_companion_emotion_stimulus',
+        happiness: 0.3,
+        fear: 0.5,
+        trust: -0.2,
+      } as never
+    );
     expect(state.emotion.happiness).toBeCloseTo(0.8, 5);
     expect(state.emotion.fear).toBeCloseTo(0.5, 5);
     expect(state.emotion.trust).toBeCloseTo(0.3, 5);
@@ -181,9 +227,16 @@ describe('AICompanionTrait — onEvent', () => {
     const node = makeNode();
     aiCompanionHandler.onAttach!(node as never, defaultConfig, makeContext(node) as never);
     const state = node.__aiCompanionState as { emotion: { happiness: number; fear: number } };
-    aiCompanionHandler.onEvent!(node as never, defaultConfig, makeContext(node) as never, {
-      type: 'ai_companion_emotion_stimulus', happiness: 5, fear: -5,
-    } as never);
+    aiCompanionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeContext(node) as never,
+      {
+        type: 'ai_companion_emotion_stimulus',
+        happiness: 5,
+        fear: -5,
+      } as never
+    );
     expect(state.emotion.happiness).toBe(1);
     expect(state.emotion.fear).toBe(0);
   });
@@ -191,9 +244,15 @@ describe('AICompanionTrait — onEvent', () => {
   it('ai_companion_set_action updates currentAction', () => {
     const node = makeNode();
     aiCompanionHandler.onAttach!(node as never, defaultConfig, makeContext(node) as never);
-    aiCompanionHandler.onEvent!(node as never, defaultConfig, makeContext(node) as never, {
-      type: 'ai_companion_set_action', action: 'patrol',
-    } as never);
+    aiCompanionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeContext(node) as never,
+      {
+        type: 'ai_companion_set_action',
+        action: 'patrol',
+      } as never
+    );
     const state = node.__aiCompanionState as { currentAction: string };
     expect(state.currentAction).toBe('patrol');
   });
@@ -202,12 +261,23 @@ describe('AICompanionTrait — onEvent', () => {
     const node = makeNode();
     const cfg = { ...defaultConfig, idle_behavior: 'patrol' as const };
     aiCompanionHandler.onAttach!(node as never, cfg, makeContext(node) as never);
-    aiCompanionHandler.onEvent!(node as never, cfg, makeContext(node) as never, {
-      type: 'ai_companion_interact', playerId: 'p1',
-    } as never);
-    aiCompanionHandler.onEvent!(node as never, cfg, makeContext(node) as never, {
-      type: 'ai_companion_end_interaction',
-    } as never);
+    aiCompanionHandler.onEvent!(
+      node as never,
+      cfg,
+      makeContext(node) as never,
+      {
+        type: 'ai_companion_interact',
+        playerId: 'p1',
+      } as never
+    );
+    aiCompanionHandler.onEvent!(
+      node as never,
+      cfg,
+      makeContext(node) as never,
+      {
+        type: 'ai_companion_end_interaction',
+      } as never
+    );
     const state = node.__aiCompanionState as { interactingWith: null; currentAction: string };
     expect(state.interactingWith).toBeNull();
     expect(state.currentAction).toBe('patrol');
@@ -217,9 +287,14 @@ describe('AICompanionTrait — onEvent', () => {
     const node = makeNode();
     const cfg = { ...defaultConfig, idle_behavior: 'stationary' as const };
     aiCompanionHandler.onAttach!(node as never, cfg, makeContext(node) as never);
-    aiCompanionHandler.onEvent!(node as never, cfg, makeContext(node) as never, {
-      type: 'ai_companion_end_interaction',
-    } as never);
+    aiCompanionHandler.onEvent!(
+      node as never,
+      cfg,
+      makeContext(node) as never,
+      {
+        type: 'ai_companion_end_interaction',
+      } as never
+    );
     const state = node.__aiCompanionState as { currentAction: string };
     expect(state.currentAction).toBe('idle');
   });
@@ -229,9 +304,14 @@ describe('AICompanionTrait — onEvent', () => {
     aiCompanionHandler.onAttach!(node as never, defaultConfig, makeContext(node) as never);
     node.emit.mockClear();
     expect(() =>
-      aiCompanionHandler.onEvent!(node as never, defaultConfig, makeContext(node) as never, {
-        type: 'something_random',
-      } as never)
+      aiCompanionHandler.onEvent!(
+        node as never,
+        defaultConfig,
+        makeContext(node) as never,
+        {
+          type: 'something_random',
+        } as never
+      )
     ).not.toThrow();
     expect(node.emit).not.toHaveBeenCalled();
   });

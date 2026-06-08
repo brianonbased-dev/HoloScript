@@ -87,8 +87,7 @@ async function main(): Promise<void> {
   const here = dirname(fileURLToPath(import.meta.url));
   const migrationsFolder = join(here, '..', 'drizzle');
 
-  const useSsl =
-    process.env.DRIZZLE_SSL === '1' || /\.proxy\.rlwy\.net|\.railway\.app/.test(url);
+  const useSsl = process.env.DRIZZLE_SSL === '1' || /\.proxy\.rlwy\.net|\.railway\.app/.test(url);
 
   const client = new Client({
     connectionString: url,

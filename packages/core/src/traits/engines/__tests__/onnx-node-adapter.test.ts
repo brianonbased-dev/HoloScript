@@ -54,7 +54,7 @@ describe('PureJsInferenceAdapter (real PFNN, no native dep)', () => {
     const sync = (a as PureJsInferenceAdapter).runSync(rampInput(INPUT_DIM));
     const async = await a.run(rampInput(INPUT_DIM));
     expect(Array.from(async.outputs.motion_output.data)).toEqual(
-      Array.from(sync.outputs.motion_output.data),
+      Array.from(sync.outputs.motion_output.data)
     );
   });
 
@@ -73,7 +73,10 @@ describe('PureJsInferenceAdapter (real PFNN, no native dep)', () => {
       const p = phase * 2 * Math.PI;
       data[INPUT_DIM - 4] = Math.sin(p);
       data[INPUT_DIM - 3] = Math.cos(p);
-      return { inputs: { motion_input: { data, shape: [1, INPUT_DIM] } }, outputs: ['motion_output'] };
+      return {
+        inputs: { motion_input: { data, shape: [1, INPUT_DIM] } },
+        outputs: ['motion_output'],
+      };
     };
     const r0 = a.runSync(mk(0.0)).outputs.motion_output.data;
     const r5 = a.runSync(mk(0.5)).outputs.motion_output.data;
@@ -148,7 +151,8 @@ describe('OnnxNodeInferenceAdapter (real onnxruntime-node)', () => {
     const jsOut = net.forwardControlPoint(input, 0);
 
     let maxDiff = 0;
-    for (let i = 0; i < OUTPUT_DIM; i++) maxDiff = Math.max(maxDiff, Math.abs(onnxOut[i] - jsOut[i]));
+    for (let i = 0; i < OUTPUT_DIM; i++)
+      maxDiff = Math.max(maxDiff, Math.abs(onnxOut[i] - jsOut[i]));
     // float32 epsilon — both paths run the identical real computation.
     expect(maxDiff).toBeLessThan(1e-4);
 

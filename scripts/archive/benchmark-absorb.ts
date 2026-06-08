@@ -121,35 +121,41 @@ async function main() {
   // Output machine-readable JSON summary
   console.log('');
   console.log('=== JSON SUMMARY ===');
-  console.log(JSON.stringify({
-    tool: 'HoloScript Absorb',
-    target: targetDir,
-    timing: {
-      scan_ms: scanElapsed,
-      graph_ms: graphElapsed,
-      community_ms: commElapsed,
-      total_ms: totalElapsed,
-    },
-    stats: {
-      files: stats.totalFiles,
-      symbols: symbols.length,
-      imports: stats.totalImports,
-      calls: stats.totalCalls,
-      edges: stats.totalImports + stats.totalCalls,
-      loc: stats.totalLoc,
-      communities: communities.size,
-      errors: stats.errors.length,
-    },
-    languages: stats.filesByLanguage,
-    symbolTypes: typeCounts,
-    queryTimes: {
-      findByName_ms: q1Time,
-      getCallers_ms: q2Time,
-      getCallees_ms: q3Time,
-      impactAnalysis_ms: q4Time,
-      getImports_ms: q5Time,
-    },
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        tool: 'HoloScript Absorb',
+        target: targetDir,
+        timing: {
+          scan_ms: scanElapsed,
+          graph_ms: graphElapsed,
+          community_ms: commElapsed,
+          total_ms: totalElapsed,
+        },
+        stats: {
+          files: stats.totalFiles,
+          symbols: symbols.length,
+          imports: stats.totalImports,
+          calls: stats.totalCalls,
+          edges: stats.totalImports + stats.totalCalls,
+          loc: stats.totalLoc,
+          communities: communities.size,
+          errors: stats.errors.length,
+        },
+        languages: stats.filesByLanguage,
+        symbolTypes: typeCounts,
+        queryTimes: {
+          findByName_ms: q1Time,
+          getCallers_ms: q2Time,
+          getCallees_ms: q3Time,
+          impactAnalysis_ms: q4Time,
+          getImports_ms: q5Time,
+        },
+      },
+      null,
+      2
+    )
+  );
 }
 
 main().catch((err) => {

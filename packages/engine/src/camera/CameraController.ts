@@ -49,7 +49,7 @@ export interface CameraConfig {
 const DEFAULT_CAMERA: CameraConfig = {
   mode: 'follow',
   smoothing: 0.1,
-  followOffset: [0, 5, -10 ],
+  followOffset: [0, 5, -10],
   orbitDistance: 10,
   orbitMinDistance: 2,
   orbitMaxDistance: 50,

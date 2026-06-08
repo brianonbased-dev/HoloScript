@@ -6,7 +6,6 @@
 import { ApolloServerPlugin, GraphQLRequestListener, BaseContext } from '@apollo/server';
 import { GraphQLError } from 'graphql';
 
-
 export interface RateLimitPluginOptions {
   /**
    * Global rate limit: requests per window

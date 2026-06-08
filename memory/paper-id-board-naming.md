@@ -10,11 +10,11 @@
 
 ## Mapping snapshot (examples — not an automated migration)
 
-| Legacy / noisy pattern | Normalized title prefix |
-|------------------------|-------------------------|
-| `[PAPER] … (paper-11)` | `[paper-11] …` |
-| `[paper-3] …` | Keep (already canonical) |
-| `Paper-13 (DumbGlass) …` | `[paper-13] …` |
+| Legacy / noisy pattern   | Normalized title prefix  |
+| ------------------------ | ------------------------ |
+| `[PAPER] … (paper-11)`   | `[paper-11] …`           |
+| `[paper-3] …`            | Keep (already canonical) |
+| `Paper-13 (DumbGlass) …` | `[paper-13] …`           |
 
 ## Execution note (when headers land)
 

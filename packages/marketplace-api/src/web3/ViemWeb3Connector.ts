@@ -21,14 +21,37 @@ export interface Web3ConnectorConfig {
 
 export interface Web3Connector {
   readonly name: string;
-  connectWallet(params: { provider: string; chainId: number }): Promise<{ address: string; chainId: number }>;
-  verifyNFTOwnership(params: { chain: string; contractAddress: string; tokenId: string; standard?: string; rpcEndpoint?: string }): Promise<{ ownerAddress: string; standard: string }>;
-  checkTokenBalance(params: { chain: string; contractAddress: string; tokenId?: string; tokenType: string; address: string }): Promise<{ balance: number }>;
-  resolveENS(params: { address: string }): Promise<{ ensName: string | null; ensAvatar: string | null }>;
+  connectWallet(params: {
+    provider: string;
+    chainId: number;
+  }): Promise<{ address: string; chainId: number }>;
+  verifyNFTOwnership(params: {
+    chain: string;
+    contractAddress: string;
+    tokenId: string;
+    standard?: string;
+    rpcEndpoint?: string;
+  }): Promise<{ ownerAddress: string; standard: string }>;
+  checkTokenBalance(params: {
+    chain: string;
+    contractAddress: string;
+    tokenId?: string;
+    tokenType: string;
+    address: string;
+  }): Promise<{ balance: number }>;
+  resolveENS(params: {
+    address: string;
+  }): Promise<{ ensName: string | null; ensAvatar: string | null }>;
   getBalance(params: { address: string; chainId: number }): Promise<{ balance: string }>;
   switchChain(params: { targetChainId: number }): Promise<void>;
   signMessage(params: { address: string; message: string }): Promise<void>;
-  transferNFT(params: { chain: string; contract: string; tokenId: string; from: string; to: string }): Promise<void>;
+  transferNFT(params: {
+    chain: string;
+    contract: string;
+    tokenId: string;
+    from: string;
+    to: string;
+  }): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------

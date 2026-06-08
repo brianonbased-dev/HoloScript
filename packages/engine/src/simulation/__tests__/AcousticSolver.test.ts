@@ -16,7 +16,7 @@ describe('AcousticSolver', () => {
 
       const config: AcousticConfig = {
         gridResolution: [nx, 3, 3], // thin slab approximating 1D
-        domainSize: [L, L * 3 / nx, L * 3 / nx],
+        domainSize: [L, (L * 3) / nx, (L * 3) / nx],
         speedOfSound: c,
         boundaryConditions: [
           { face: 'x-', type: 'hard_wall' },
@@ -33,7 +33,7 @@ describe('AcousticSolver', () => {
 
       // Initialize with fundamental mode: sin(pi*x/L)
       const dx = L / (nx - 1);
-      solver.setInitialPressure((x) => Math.sin(Math.PI * x / L));
+      solver.setInitialPressure((x) => Math.sin((Math.PI * x) / L));
 
       // Expected frequency: f1 = c/(2L) = 343/2 = 171.5 Hz
       // Period: T = 1/f1 = 1/171.5 ≈ 0.00583s
@@ -74,13 +74,15 @@ describe('AcousticSolver', () => {
           { face: 'z-', type: 'soft_wall' },
           { face: 'z+', type: 'soft_wall' },
         ],
-        sources: [{
-          id: 'pulse',
-          position: [20, 20, 1],
-          type: 'gaussian_pulse',
-          amplitude: 1000,
-          pulseWidth: 0.0005,
-        }],
+        sources: [
+          {
+            id: 'pulse',
+            position: [20, 20, 1],
+            type: 'gaussian_pulse',
+            amplitude: 1000,
+            pulseWidth: 0.0005,
+          },
+        ],
       };
 
       const solver = new AcousticSolver(config);
@@ -105,13 +107,15 @@ describe('AcousticSolver', () => {
         gridResolution: [60, 3, 3],
         domainSize: [1, 0.05, 0.05],
         speedOfSound: c,
-        sources: [{
-          id: 'pulse',
-          position: [10, 1, 1],
-          type: 'gaussian_pulse',
-          amplitude: 1000,
-          pulseWidth: 0.0003,
-        }],
+        sources: [
+          {
+            id: 'pulse',
+            position: [10, 1, 1],
+            type: 'gaussian_pulse',
+            amplitude: 1000,
+            pulseWidth: 0.0003,
+          },
+        ],
       };
 
       // Hard wall case
@@ -120,8 +124,10 @@ describe('AcousticSolver', () => {
         boundaryConditions: [
           { face: 'x-', type: 'hard_wall' },
           { face: 'x+', type: 'hard_wall' },
-          { face: 'y-', type: 'soft_wall' }, { face: 'y+', type: 'soft_wall' },
-          { face: 'z-', type: 'soft_wall' }, { face: 'z+', type: 'soft_wall' },
+          { face: 'y-', type: 'soft_wall' },
+          { face: 'y+', type: 'soft_wall' },
+          { face: 'z-', type: 'soft_wall' },
+          { face: 'z+', type: 'soft_wall' },
         ],
       };
 
@@ -131,8 +137,10 @@ describe('AcousticSolver', () => {
         boundaryConditions: [
           { face: 'x-', type: 'absorbing' },
           { face: 'x+', type: 'absorbing' },
-          { face: 'y-', type: 'soft_wall' }, { face: 'y+', type: 'soft_wall' },
-          { face: 'z-', type: 'soft_wall' }, { face: 'z+', type: 'soft_wall' },
+          { face: 'y-', type: 'soft_wall' },
+          { face: 'y+', type: 'soft_wall' },
+          { face: 'z-', type: 'soft_wall' },
+          { face: 'z+', type: 'soft_wall' },
         ],
       };
 

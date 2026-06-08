@@ -4,13 +4,18 @@ import type { SegmentationConfig } from './SegmentTrait';
 import type { HSPlusNode } from './TraitTypes';
 
 // Mock HSPlusNode for testing
-const createMockNode = (): HSPlusNode => ({
-  __typename: 'HSPlusNode',
-  id: 'test-node',
-  userData: { imageSource: { /* mock image source */ } },
-  emit: vi.fn(),
-  on: vi.fn(),
-} as any);
+const createMockNode = (): HSPlusNode =>
+  ({
+    __typename: 'HSPlusNode',
+    id: 'test-node',
+    userData: {
+      imageSource: {
+        /* mock image source */
+      },
+    },
+    emit: vi.fn(),
+    on: vi.fn(),
+  }) as any;
 
 describe('SegmentTrait', () => {
   describe('handler properties', () => {
@@ -40,9 +45,7 @@ describe('SegmentTrait', () => {
     });
 
     it('should attach without error', async () => {
-      await expect(
-        segmentTraitHandler.onAttach(node, {}, undefined)
-      ).resolves.not.toThrow();
+      await expect(segmentTraitHandler.onAttach(node, {}, undefined)).resolves.not.toThrow();
     });
 
     it('should emit segment:ready=false initially', async () => {
@@ -90,7 +93,9 @@ describe('SegmentTrait', () => {
     beforeEach(() => {
       node = createMockNode();
       (node as any).__segmentState = {
-        pipeline: { /* mock pipeline */ },
+        pipeline: {
+          /* mock pipeline */
+        },
         ready: true,
         loading: false,
         error: null,
@@ -128,7 +133,9 @@ describe('SegmentTrait', () => {
     beforeEach(() => {
       node = createMockNode();
       (node as any).__segmentState = {
-        pipeline: { /* mock pipeline */ },
+        pipeline: {
+          /* mock pipeline */
+        },
         ready: true,
         loading: false,
         error: null,
@@ -298,7 +305,10 @@ describe('SegmentTrait', () => {
     it('should accept custom prompt points for SAM2', async () => {
       const config: SegmentationConfig = {
         method: 'sam2',
-        promptPoints: [[256, 256], [512, 512]],
+        promptPoints: [
+          [256, 256],
+          [512, 512],
+        ],
       };
       await segmentTraitHandler.onAttach(node, config, undefined);
       const state = (node as any).__segmentState;

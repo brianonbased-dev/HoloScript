@@ -35,7 +35,11 @@ describe('vrm-avatar-plugin stub', () => {
   });
 
   it('partial bone coverage reports fractional score', () => {
-    const r = mapVrmToAvatar({ name: 'h', version: '1.0', humanoid_bones: { hips: 'x', spine: 'y' } });
+    const r = mapVrmToAvatar({
+      name: 'h',
+      version: '1.0',
+      humanoid_bones: { hips: 'x', spine: 'y' },
+    });
     expect(r.bone_coverage).toBeCloseTo(2 / 7);
   });
 });

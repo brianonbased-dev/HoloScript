@@ -24,9 +24,7 @@ import { getServerSession } from 'next-auth';
 import { getDb } from '../../../db/client';
 
 const mockSession = (id: string | null) =>
-  (getServerSession as ReturnType<typeof vi.fn>).mockResolvedValue(
-    id ? { user: { id } } : null
-  );
+  (getServerSession as ReturnType<typeof vi.fn>).mockResolvedValue(id ? { user: { id } } : null);
 
 function postReq(body: unknown) {
   return {

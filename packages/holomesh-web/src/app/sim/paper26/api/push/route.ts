@@ -24,7 +24,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const token = process.env['SIM_PUSH_TOKEN'] ?? process.env['HOLOSCRIPT_API_KEY'];
   if (token) {
     const auth = req.headers.get('authorization') ?? '';
-    const key  = req.headers.get('x-sim-key') ?? '';
+    const key = req.headers.get('x-sim-key') ?? '';
     const provided = auth.replace(/^Bearer\s+/i, '') || key;
     if (provided !== token) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   };
 
   try {
-    body = await req.json() as typeof body;
+    body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: 'invalid JSON' }, { status: 400 });
   }
@@ -52,12 +52,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   pushMetrics(body.metrics, {
-    label:       body.label,
-    agents:      body.agents,
+    label: body.label,
+    agents: body.agents,
     targetTicks: body.targetTicks,
-    running:     body.running,
-    elapsedMs:   body.elapsedMs,
-    config:      body.config,
+    running: body.running,
+    elapsedMs: body.elapsedMs,
+    config: body.config,
   });
 
   return NextResponse.json({ ok: true, tick: body.metrics.tick });

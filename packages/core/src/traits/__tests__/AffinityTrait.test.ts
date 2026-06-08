@@ -13,11 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { affinityHandler, type AffinityTraitConfig } from '../AffinityTrait';
-import {
-  createMockContext,
-  createMockNode,
-  type MockContext,
-} from './traitTestHelpers';
+import { createMockContext, createMockNode, type MockContext } from './traitTestHelpers';
 
 // ─── Mock SimulationSolverFactory ─────────────────────────────────────────────
 //
@@ -38,7 +34,9 @@ vi.mock('../SimulationSolverFactory', () => {
       create: vi.fn().mockReturnValue(mockSolver),
     },
     // Re-export the type so imports don't break
-    get SimulationSolver() { return {}; },
+    get SimulationSolver() {
+      return {};
+    },
   };
 });
 
@@ -154,7 +152,8 @@ describe('affinityHandler', () => {
       const ctx = makeCtx();
       affinityHandler.onAttach!(node as never, {}, ctx as never);
 
-      const mockSolver = (node.__affinityState as { solver: { step: ReturnType<typeof vi.fn> } }).solver;
+      const mockSolver = (node.__affinityState as { solver: { step: ReturnType<typeof vi.fn> } })
+        .solver;
       affinityHandler.onUpdate!(node as never, {}, ctx as never, 200);
 
       expect(mockSolver.step).toHaveBeenCalledWith(0.2);
@@ -167,18 +166,14 @@ describe('affinityHandler', () => {
       affinityHandler.onAttach!(node as never, {}, ctx as never);
 
       // Should not throw
-      expect(() =>
-        affinityHandler.onUpdate!(node as never, {}, ctx as never, 100)
-      ).not.toThrow();
+      expect(() => affinityHandler.onUpdate!(node as never, {}, ctx as never, 100)).not.toThrow();
     });
 
     it('is a no-op when __affinityState is absent', () => {
       const node = makeNode();
       const ctx = makeCtx();
       // Do NOT attach — state is absent
-      expect(() =>
-        affinityHandler.onUpdate!(node as never, {}, ctx as never, 100)
-      ).not.toThrow();
+      expect(() => affinityHandler.onUpdate!(node as never, {}, ctx as never, 100)).not.toThrow();
     });
   });
 
@@ -188,7 +183,8 @@ describe('affinityHandler', () => {
       const ctx = makeCtx();
       affinityHandler.onAttach!(node as never, {}, ctx as never);
 
-      const mockSolver = (node.__affinityState as { solver: { dispose: ReturnType<typeof vi.fn> } }).solver;
+      const mockSolver = (node.__affinityState as { solver: { dispose: ReturnType<typeof vi.fn> } })
+        .solver;
       affinityHandler.onDetach!(node as never, {}, ctx as never);
 
       expect(mockSolver.dispose).toHaveBeenCalled();
@@ -217,9 +213,7 @@ describe('affinityHandler', () => {
     it('is a no-op when called without prior attach', () => {
       const node = makeNode();
       const ctx = makeCtx();
-      expect(() =>
-        affinityHandler.onDetach!(node as never, {}, ctx as never)
-      ).not.toThrow();
+      expect(() => affinityHandler.onDetach!(node as never, {}, ctx as never)).not.toThrow();
     });
   });
 });

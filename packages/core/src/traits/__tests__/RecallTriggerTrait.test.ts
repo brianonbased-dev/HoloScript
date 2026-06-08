@@ -43,7 +43,9 @@ function makeContext() {
   return { context, emitted, stateSet };
 }
 
-function makeNode(overrides: Partial<Record<string, unknown>> = {}): HSPlusNode & Record<string, unknown> {
+function makeNode(
+  overrides: Partial<Record<string, unknown>> = {}
+): HSPlusNode & Record<string, unknown> {
   return { traits: undefined, ...overrides } as unknown as HSPlusNode & Record<string, unknown>;
 }
 
@@ -271,8 +273,12 @@ describe('recallTriggerHandler', () => {
       const { context } = makeContext();
       recallTriggerHandler.onAttach!(node, { ...baseConfig, cooldown_ms: 0 }, context);
       const state = (node as any).__recallTriggerState;
-      recallTriggerHandler.onEvent!(node, { ...baseConfig, cooldown_ms: 0 }, context, { type: 'recall_execute' });
-      recallTriggerHandler.onEvent!(node, { ...baseConfig, cooldown_ms: 0 }, context, { type: 'recall_execute' });
+      recallTriggerHandler.onEvent!(node, { ...baseConfig, cooldown_ms: 0 }, context, {
+        type: 'recall_execute',
+      });
+      recallTriggerHandler.onEvent!(node, { ...baseConfig, cooldown_ms: 0 }, context, {
+        type: 'recall_execute',
+      });
       expect(state.totalRecalls).toBe(2);
     });
 
@@ -282,7 +288,9 @@ describe('recallTriggerHandler', () => {
       const { context } = makeContext();
       recallTriggerHandler.onAttach!(node, { ...baseConfig, cooldown_ms: 0 }, context);
       const state = (node as any).__recallTriggerState;
-      recallTriggerHandler.onEvent!(node, { ...baseConfig, cooldown_ms: 0 }, context, { type: 'recall_execute' });
+      recallTriggerHandler.onEvent!(node, { ...baseConfig, cooldown_ms: 0 }, context, {
+        type: 'recall_execute',
+      });
       expect(state.totalHits).toBe(1);
       expect(state.totalMisses).toBe(0);
     });
@@ -293,7 +301,9 @@ describe('recallTriggerHandler', () => {
       const { context } = makeContext();
       recallTriggerHandler.onAttach!(node, { ...baseConfig, cooldown_ms: 0 }, context);
       const state = (node as any).__recallTriggerState;
-      recallTriggerHandler.onEvent!(node, { ...baseConfig, cooldown_ms: 0 }, context, { type: 'recall_execute' });
+      recallTriggerHandler.onEvent!(node, { ...baseConfig, cooldown_ms: 0 }, context, {
+        type: 'recall_execute',
+      });
       expect(state.totalMisses).toBe(1);
       expect(state.totalHits).toBe(0);
     });

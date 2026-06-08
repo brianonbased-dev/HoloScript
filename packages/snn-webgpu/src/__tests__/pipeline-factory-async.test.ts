@@ -69,9 +69,9 @@ describe('PipelineFactory async compilation', () => {
 
     it('should work for all available entry points', async () => {
       const entryPoints = factory.getAvailableEntryPoints();
-      const pipelines = await Promise.all(entryPoints.map(ep => factory.getPipelineAsync(ep)));
+      const pipelines = await Promise.all(entryPoints.map((ep) => factory.getPipelineAsync(ep)));
       expect(pipelines).toHaveLength(entryPoints.length);
-      pipelines.forEach(p => expect(p).toBeDefined());
+      pipelines.forEach((p) => expect(p).toBeDefined());
     });
   });
 

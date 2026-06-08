@@ -7,10 +7,16 @@ function mockSolver(): SimSolver & { time: number } {
     mode: 'transient',
     fieldNames: ['temperature'],
     time: 0,
-    step(dt: number) { this.time += dt; },
+    step(dt: number) {
+      this.time += dt;
+    },
     solve() {},
-    getField(): FieldData | null { return new Float32Array(10); },
-    getStats() { return { currentTime: this.time, converged: true }; },
+    getField(): FieldData | null {
+      return new Float32Array(10);
+    },
+    getStats() {
+      return { currentTime: this.time, converged: true };
+    },
     dispose() {},
   };
 }
@@ -22,7 +28,7 @@ describe('SimulationContract Overhead Benchmarks', () => {
   const config = {
     vertices: new Float32Array(3000), // simulate 1k node mesh
     tetrahedra: new Uint32Array(4000), // simulate 1k element mesh
-    material: { youngs_modulus: 200e9, poisson_ratio: 0.3, density: 7850 }
+    material: { youngs_modulus: 200e9, poisson_ratio: 0.3, density: 7850 },
   };
 
   const contracted = new ContractedSimulation(solverA, config, { fixedDt: 0.016 });

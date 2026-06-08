@@ -16,15 +16,24 @@ function isTypedArrayEnvelope(value: unknown): value is CAELTypedArrayEnvelope {
 
 export function constructTypedArray(type: string, data: number[]): unknown {
   switch (type) {
-    case 'Float32Array': return new Float32Array(data);
-    case 'Float64Array': return new Float64Array(data);
-    case 'Uint32Array': return new Uint32Array(data);
-    case 'Int32Array': return new Int32Array(data);
-    case 'Uint16Array': return new Uint16Array(data);
-    case 'Int16Array': return new Int16Array(data);
-    case 'Uint8Array': return new Uint8Array(data);
-    case 'Int8Array': return new Int8Array(data);
-    default: return data;
+    case 'Float32Array':
+      return new Float32Array(data);
+    case 'Float64Array':
+      return new Float64Array(data);
+    case 'Uint32Array':
+      return new Uint32Array(data);
+    case 'Int32Array':
+      return new Int32Array(data);
+    case 'Uint16Array':
+      return new Uint16Array(data);
+    case 'Int16Array':
+      return new Int16Array(data);
+    case 'Uint8Array':
+      return new Uint8Array(data);
+    case 'Int8Array':
+      return new Int8Array(data);
+    default:
+      return data;
   }
 }
 
@@ -35,7 +44,11 @@ export function toCanonical(value: unknown): unknown {
   if (typeof value !== 'object') return value;
 
   if (ArrayBuffer.isView(value) && !(value instanceof DataView)) {
-    const typed = value as unknown as { constructor: { name: string }; length: number; [index: number]: number };
+    const typed = value as unknown as {
+      constructor: { name: string };
+      length: number;
+      [index: number]: number;
+    };
     const out: CAELTypedArrayEnvelope = {
       __cael_typed_array: typed.constructor.name,
       data: Array.from({ length: typed.length }, (_, i) => typed[i]),

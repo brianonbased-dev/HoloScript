@@ -6,7 +6,12 @@ export default defineConfig({
     environment: 'node',
     server: {
       deps: {
-        inline: ['@octokit/rest', '@octokit/core', '@octokit/plugin-rest-endpoint-methods', '@octokit/plugin-paginate-rest'],
+        inline: [
+          '@octokit/rest',
+          '@octokit/core',
+          '@octokit/plugin-rest-endpoint-methods',
+          '@octokit/plugin-paginate-rest',
+        ],
       },
     },
     coverage: {

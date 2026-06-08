@@ -117,7 +117,7 @@ function windowsCommandQuote(value) {
 
 function runCommand(bin, args, options = {}) {
   const batchOnWindows = process.platform === 'win32' && /\.(bat|cmd)$/i.test(bin);
-  const spawnBin = batchOnWindows ? process.env.ComSpec ?? 'cmd.exe' : bin;
+  const spawnBin = batchOnWindows ? (process.env.ComSpec ?? 'cmd.exe') : bin;
   const spawnArgs = batchOnWindows
     ? ['/d', '/c', [windowsCommandQuote(bin), ...args.map(windowsCommandQuote)].join(' ')]
     : args;
@@ -159,7 +159,13 @@ function defaultToolchain(args) {
   const androidHome = args.androidHome ? abs(args.androidHome) : join(tc, 'android-sdk');
   const gradle = args.gradle
     ? abs(args.gradle)
-    : join(tc, 'gradle', 'gradle-9.5.1', 'bin', process.platform === 'win32' ? 'gradle.bat' : 'gradle');
+    : join(
+        tc,
+        'gradle',
+        'gradle-9.5.1',
+        'bin',
+        process.platform === 'win32' ? 'gradle.bat' : 'gradle'
+      );
   const adb = args.adb
     ? abs(args.adb)
     : join(androidHome, 'platform-tools', process.platform === 'win32' ? 'adb.exe' : 'adb');
@@ -203,10 +209,14 @@ export function validateFrameReceipt(receipt) {
     if (!receipt.depthImage16Bits?.width || !receipt.depthImage16Bits?.height) {
       errors.push('depthImage16Bits dimensions missing');
     }
-    if (!Array.isArray(receipt.cameraTransformColumnMajor4x4) || receipt.cameraTransformColumnMajor4x4.length !== 16) {
+    if (
+      !Array.isArray(receipt.cameraTransformColumnMajor4x4) ||
+      receipt.cameraTransformColumnMajor4x4.length !== 16
+    ) {
       errors.push('camera transform missing');
     }
-    if (!receipt.intrinsics?.fx || !receipt.intrinsics?.fy) errors.push('camera intrinsics missing');
+    if (!receipt.intrinsics?.fx || !receipt.intrinsics?.fy)
+      errors.push('camera intrinsics missing');
   }
   if (receipt.status === 'blocked' && !receipt.blockedReason) {
     errors.push('blocked receipt missing blockedReason');
@@ -216,8 +226,10 @@ export function validateFrameReceipt(receipt) {
 
 export function frameReceiptToArCoreBundleInput(receipt) {
   const errors = validateFrameReceipt(receipt);
-  if (errors.length > 0) throw new Error(`Invalid ARCore depth frame receipt: ${errors.join('; ')}`);
-  if (receipt.status !== 'pass') throw new Error(`Cannot replay blocked receipt: ${receipt.blockedReason}`);
+  if (errors.length > 0)
+    throw new Error(`Invalid ARCore depth frame receipt: ${errors.join('; ')}`);
+  if (receipt.status !== 'pass')
+    throw new Error(`Cannot replay blocked receipt: ${receipt.blockedReason}`);
 
   const sample = receipt.sample;
   const sx = sample.width / receipt.intrinsics.imageWidth;
@@ -225,7 +237,10 @@ export function frameReceiptToArCoreBundleInput(receipt) {
   return {
     bundleId:
       's23-arcore-depth-' +
-      createHash('sha256').update(JSON.stringify(receipt.hashes ?? sample.depthMillimeters.slice(0, 64))).digest('hex').slice(0, 12),
+      createHash('sha256')
+        .update(JSON.stringify(receipt.hashes ?? sample.depthMillimeters.slice(0, 64)))
+        .digest('hex')
+        .slice(0, 12),
     deviceModel: receipt.deviceModel,
     intrinsics: {
       width: sample.width,
@@ -269,7 +284,8 @@ export async function replayFrameReceipt(receiptPath, outPath) {
   } = await import('../packages/core/dist/reconstruction/index.js');
   const bundle = createArCoreDepthMobileSensorBundle(bundleInput);
   const errors = validateMobileSensorBundle(bundle);
-  if (errors.length > 0) throw new Error(`Generated invalid mobile sensor bundle: ${errors.join('; ')}`);
+  if (errors.length > 0)
+    throw new Error(`Generated invalid mobile sensor bundle: ${errors.join('; ')}`);
   const replay = await replayMobileSensorBundle(bundle, { pointBudget: 4096, minKeyframes: 1 });
   const receipt = {
     schemaVersion: REPLAY_RECEIPT_VERSION,
@@ -294,11 +310,21 @@ export async function replayFrameReceipt(receiptPath, outPath) {
 }
 
 function pullReceipt(adb, outPath) {
-  const result = runCommand(adb, ['exec-out', 'run-as', 'com.holoscript.depthprobe', 'cat', 'files/holomap-arcore-depth-frame.json'], {
-    encoding: 'buffer',
-    timeoutMs: 20000,
-    maxBuffer: 1024 * 1024 * 4,
-  });
+  const result = runCommand(
+    adb,
+    [
+      'exec-out',
+      'run-as',
+      'com.holoscript.depthprobe',
+      'cat',
+      'files/holomap-arcore-depth-frame.json',
+    ],
+    {
+      encoding: 'buffer',
+      timeoutMs: 20000,
+      maxBuffer: 1024 * 1024 * 4,
+    }
+  );
   if (!result.ok) {
     throw new Error(`pull receipt failed: ${result.error ?? result.stderr}`);
   }
@@ -311,7 +337,10 @@ async function runHardware(args) {
   const toolchain = defaultToolchain(args);
   requireFile(toolchain.gradle, 'Gradle');
   requireFile(toolchain.adb, 'ADB');
-  requireFile(join(toolchain.javaHome, 'bin', process.platform === 'win32' ? 'java.exe' : 'java'), 'Java');
+  requireFile(
+    join(toolchain.javaHome, 'bin', process.platform === 'win32' ? 'java.exe' : 'java'),
+    'Java'
+  );
 
   const project = generateProject(args.project);
   const env = buildEnv(toolchain);
@@ -339,19 +368,43 @@ async function runHardware(args) {
   const outDir = abs(join('.scratch', 'android-arcore-depth', args.date));
   const framePath = args.out ? abs(args.out) : join(outDir, 'native-depth-frame.json');
   pullReceipt(toolchain.adb, framePath);
-  const replay = await replayFrameReceipt(framePath, join(outDir, 'native-depth-holomap-replay.json'));
+  const replay = await replayFrameReceipt(
+    framePath,
+    join(outDir, 'native-depth-holomap-replay.json')
+  );
   return { framePath, replayPath: replay.out, replay: replay.receipt.replay };
 }
 
 function runSelfTest() {
-  const main = readFileSync(join(TEMPLATE_DIR, 'app', 'src', 'main', 'java', 'com', 'holoscript', 'depthprobe', 'MainActivity.java'), 'utf8');
-  const manifest = readFileSync(join(TEMPLATE_DIR, 'app', 'src', 'main', 'AndroidManifest.xml'), 'utf8');
+  const main = readFileSync(
+    join(
+      TEMPLATE_DIR,
+      'app',
+      'src',
+      'main',
+      'java',
+      'com',
+      'holoscript',
+      'depthprobe',
+      'MainActivity.java'
+    ),
+    'utf8'
+  );
+  const manifest = readFileSync(
+    join(TEMPLATE_DIR, 'app', 'src', 'main', 'AndroidManifest.xml'),
+    'utf8'
+  );
   const gradle = readFileSync(join(TEMPLATE_DIR, 'app', 'build.gradle'), 'utf8');
-  if (!main.includes('Frame.acquireDepthImage16Bits()')) throw new Error('template missing depth frame API');
-  if (!main.includes('Config.DepthMode.AUTOMATIC')) throw new Error('template missing depth mode config');
-  if (!main.includes('acquireCameraImage()')) throw new Error('template missing camera image acquisition');
-  if (!manifest.includes('android.permission.CAMERA')) throw new Error('template missing camera permission');
-  if (!gradle.includes('com.google.ar:core:1.54.0')) throw new Error('template missing ARCore dependency');
+  if (!main.includes('Frame.acquireDepthImage16Bits()'))
+    throw new Error('template missing depth frame API');
+  if (!main.includes('Config.DepthMode.AUTOMATIC'))
+    throw new Error('template missing depth mode config');
+  if (!main.includes('acquireCameraImage()'))
+    throw new Error('template missing camera image acquisition');
+  if (!manifest.includes('android.permission.CAMERA'))
+    throw new Error('template missing camera permission');
+  if (!gradle.includes('com.google.ar:core:1.54.0'))
+    throw new Error('template missing ARCore dependency');
 
   const fixture = {
     schemaVersion: FRAME_RECEIPT_VERSION,
@@ -394,7 +447,9 @@ async function main() {
   }
   if (args.command === 'self-test') {
     const result = runSelfTest();
-    process.stdout.write(`android-arcore-depth-apk-runner self-test PASS ${JSON.stringify(result)}\n`);
+    process.stdout.write(
+      `android-arcore-depth-apk-runner self-test PASS ${JSON.stringify(result)}\n`
+    );
     return;
   }
   if (args.command === 'generate') {
@@ -404,20 +459,29 @@ async function main() {
   }
   if (args.command === 'replay') {
     if (!args.receipt) throw new Error('replay requires --receipt');
-    const out = args.out ?? join('.scratch', 'android-arcore-depth', args.date, 'native-depth-holomap-replay.json');
+    const out =
+      args.out ??
+      join('.scratch', 'android-arcore-depth', args.date, 'native-depth-holomap-replay.json');
     const result = await replayFrameReceipt(abs(args.receipt), abs(out));
-    process.stdout.write(`${JSON.stringify({ ok: true, out: rel(result.out), replay: result.receipt.replay }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ ok: true, out: rel(result.out), replay: result.receipt.replay }, null, 2)}\n`
+    );
     return;
   }
   if (args.command === 'run') {
     const result = await runHardware(args);
-    process.stdout.write(`${JSON.stringify({ ok: true, framePath: rel(result.framePath), replayPath: rel(result.replayPath), replay: result.replay }, null, 2)}\n`);
+    process.stdout.write(
+      `${JSON.stringify({ ok: true, framePath: rel(result.framePath), replayPath: rel(result.replayPath), replay: result.replay }, null, 2)}\n`
+    );
     return;
   }
   throw new Error(`Unknown command: ${args.command}`);
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('android-arcore-depth-apk-runner.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('android-arcore-depth-apk-runner.mjs')
+) {
   main().catch((error) => {
     process.stderr.write(`android-arcore-depth-apk-runner FAIL: ${error.stack ?? error.message}\n`);
     process.exitCode = 1;

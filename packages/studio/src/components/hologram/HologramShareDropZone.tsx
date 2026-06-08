@@ -227,9 +227,7 @@ export function HologramShareDropZone({
         role="region"
         aria-label="HoloGram share drop zone"
         className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition ${
-          isDragging
-            ? 'border-purple-500/80 bg-purple-500/10'
-            : 'border-studio-border bg-black/20'
+          isDragging ? 'border-purple-500/80 bg-purple-500/10' : 'border-studio-border bg-black/20'
         }`}
       >
         <p className="text-sm font-medium text-studio-text">
@@ -295,9 +293,7 @@ async function defaultBuildBundle(
   // Dynamic import keeps the heavy WebGPU/Three.js stack out of the
   // SSR / API bundles. Only mounted dropzone instances pay the cost.
   const { createHologram } = await import('@holoscript/engine/hologram');
-  const { createBrowserProviders } = await import(
-    '@holoscript/engine/hologram/browser'
-  );
+  const { createBrowserProviders } = await import('@holoscript/engine/hologram/browser');
   const bundle = await createHologram(media, kind, createBrowserProviders());
   return {
     meta: bundle.meta,

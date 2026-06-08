@@ -125,7 +125,7 @@ const RIGHT_OBS_PILLAR: Pillar = {
 const BILATERAL_PHYSICS_PARALLEL = makeParallelPillar(
   'bilateral_physics_observer',
   LEFT_OBS_PILLAR,
-  RIGHT_OBS_PILLAR,
+  RIGHT_OBS_PILLAR
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -156,7 +156,7 @@ function sampleGamma(
   d: number,
   s1: number,
   s2: number,
-  rho: number,
+  rho: number
 ): GammaSample {
   // Split variance d^2 into common (rho) and independent (1-rho) parts.
   const commonStd = d * Math.sqrt(rho);
@@ -237,9 +237,7 @@ function main(): void {
   const RHO = 0.5; // hemisphere error correlation (shared common-mode)
   const STATES_PER_LEVEL = 100; // (s1,s2) grid samples per divergence level
   const REPS_PER_STATE = 12; // noise repetitions per state
-  const DIVERGENCE_LEVELS = [
-    0.0, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.7, 1.0,
-  ];
+  const DIVERGENCE_LEVELS = [0.0, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.7, 1.0];
 
   const rng = mulberry32(SEED);
 
@@ -394,7 +392,7 @@ Two REAL physics-domain (\`pillar_domain: 'physics'\`) hemisphere Pillars each o
 ${perLevel
   .map(
     (l) =>
-      `| ${l.divergence.toFixed(2)} | ${l.n} | ${l.mean_gamma.toFixed(5)} | ${l.std_gamma.toFixed(5)} | ${l.min_gamma.toFixed(5)} | ${l.max_gamma.toFixed(5)} | ${l.mean_box_area.toFixed(5)} |`,
+      `| ${l.divergence.toFixed(2)} | ${l.n} | ${l.mean_gamma.toFixed(5)} | ${l.std_gamma.toFixed(5)} | ${l.min_gamma.toFixed(5)} | ${l.max_gamma.toFixed(5)} | ${l.mean_box_area.toFixed(5)} |`
   )
   .join('\n')}
 
@@ -426,10 +424,14 @@ Artifact JSON: \`research/paper-26-artifacts/tropical-gamma-experiment-${date}.j
   /* eslint-disable no-console */
   console.log('=== Paper 26 C1 — Tropical γ experiment ===');
   console.log(`samples: ${N}`);
-  console.log(`global mean γ: ${globalMean.toFixed(6)}  std: ${globalStd.toFixed(6)}  range:[${globalMin.toFixed(4)}, ${globalMax.toFixed(4)}]`);
+  console.log(
+    `global mean γ: ${globalMean.toFixed(6)}  std: ${globalStd.toFixed(6)}  range:[${globalMin.toFixed(4)}, ${globalMax.toFixed(4)}]`
+  );
   console.log('divergence → mean γ:');
   for (const l of perLevel) {
-    console.log(`  d=${l.divergence.toFixed(2)}  γ=${l.mean_gamma.toFixed(5)}  box_area=${l.mean_box_area.toFixed(5)}`);
+    console.log(
+      `  d=${l.divergence.toFixed(2)}  γ=${l.mean_gamma.toFixed(5)}  box_area=${l.mean_box_area.toFixed(5)}`
+    );
   }
   console.log(`γ↔divergence corr: ${corrGammaDiv.toFixed(4)}`);
   console.log(`γ∈[0,1]: ${inRange}  monotonic↓: ${monotonic}  γ(d=0)=1: ${perfectAtZero}`);

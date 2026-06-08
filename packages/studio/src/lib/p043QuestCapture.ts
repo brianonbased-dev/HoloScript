@@ -56,7 +56,9 @@ export const P043_QUEST_SCENES: readonly P043QuestScene[] = Object.freeze([
 
 export const P043_QUEST_VIEW_COUNTS = Object.freeze([2, 3, 4]);
 
-export function artifactPathForP043QuestCell(cell: Pick<P043QuestCell, 'sceneId' | 'views'>): string {
+export function artifactPathForP043QuestCell(
+  cell: Pick<P043QuestCell, 'sceneId' | 'views'>
+): string {
   return `.bench-logs/p043-sku-matrix/${P043_QUEST_SKU_ID}/${cell.sceneId}/n${cell.views}.json`;
 }
 
@@ -241,7 +243,10 @@ export function validateP043QuestArtifact(artifact: unknown): P043QuestArtifactV
   if (!Array.isArray(obj.runs) || obj.runs.length < P043_REQUIRED_RUNS) {
     errors.push(`runs must contain at least ${P043_REQUIRED_RUNS} entries`);
   }
-  if (!Array.isArray(getPath(obj, 'frameTimeMs.samples')) || getPath(obj, 'frameTimeMs.samples.length') === 0) {
+  if (
+    !Array.isArray(getPath(obj, 'frameTimeMs.samples')) ||
+    getPath(obj, 'frameTimeMs.samples.length') === 0
+  ) {
     errors.push('frameTimeMs.samples must be a non-empty array');
   }
 

@@ -116,16 +116,17 @@ describe('resolveProfileBone', () => {
 // =============================================================================
 
 describe('buildReverseMap', () => {
-  const profiles: SkeletonStandardId[] = [
-    'vrm1', 'mixamo', 'rpm', 'ue_mannequin', 'holoscript_65',
-  ];
+  const profiles: SkeletonStandardId[] = ['vrm1', 'mixamo', 'rpm', 'ue_mannequin', 'holoscript_65'];
 
   for (const id of profiles) {
     it(`reverseMap for ${id} correctly maps platform → canonical`, () => {
       const profile = SKELETON_PROFILES[id];
       const reverse = buildReverseMap(id);
 
-      for (const [canonical, entry] of Object.entries(profile.boneMap) as [string, { platformName: string }][]) {
+      for (const [canonical, entry] of Object.entries(profile.boneMap) as [
+        string,
+        { platformName: string },
+      ][]) {
         const recovered = reverse.get(entry.platformName);
         expect(recovered).toBe(canonical);
       }

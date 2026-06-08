@@ -33,12 +33,12 @@
 
 ## Package Locations (Historical → Current)
 
-| Package       | Historical Location       | Current Status / Replacement                                      |
-| ------------- | --------------------------- | ----------------------------------------------------------------- |
-| Creator Tools | `packages/creator-tools/`   | Migrated to Hololand platform repo; absorbed by `packages/studio/` |
-| Demo Apps     | `packages/demo-apps/`       | Deleted (unfinished); demos live in `examples/` and `docs/demos/`  |
-| Core          | `packages/core/`            | Active                                                            |
-| CLI           | `packages/cli/`             | Active                                                            |
+| Package       | Historical Location       | Current Status / Replacement                                       |
+| ------------- | ------------------------- | ------------------------------------------------------------------ |
+| Creator Tools | `packages/creator-tools/` | Migrated to Hololand platform repo; absorbed by `packages/studio/` |
+| Demo Apps     | `packages/demo-apps/`     | Deleted (unfinished); demos live in `examples/` and `docs/demos/`  |
+| Core          | `packages/core/`          | Active                                                             |
+| CLI           | `packages/cli/`           | Active                                                             |
 
 ## Documentation
 

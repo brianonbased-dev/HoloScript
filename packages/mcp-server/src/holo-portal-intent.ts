@@ -38,8 +38,17 @@ export type PortalIntent =
   | { kind: 'grab'; entityId: string; targetId: string }
   | { kind: 'say'; entityId: string; utterance: string };
 
-export interface Vec3 { x: number; y: number; z: number }
-export interface Quat { x: number; y: number; z: number; w?: number }
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+export interface Quat {
+  x: number;
+  y: number;
+  z: number;
+  w?: number;
+}
 
 export interface IntentValidation {
   allowed: boolean;
@@ -62,7 +71,12 @@ export function matchesZoneGlob(id: string, globs: string[] | undefined): boolea
   if (!globs || globs.length === 0) return false;
   return globs.some((g) => {
     const re = new RegExp(
-      '^' + g.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$',
+      '^' +
+        g
+          .split('*')
+          .map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+          .join('.*') +
+        '$'
     );
     return re.test(id);
   });
@@ -80,7 +94,7 @@ export function validatePortalIntent(
   intent: PortalIntent,
   policy: SpatialPolicy | undefined,
   requestedScope?: SpatialScope,
-  driveAvatarActiveCount = 0,
+  driveAvatarActiveCount = 0
 ): IntentValidation {
   const p: SpatialPolicy = policy ?? {};
   const scope: SpatialScope = requestedScope ?? p.defaultScope ?? 'read-only';
@@ -111,7 +125,7 @@ export function validatePortalIntent(
       if (rank >= SCOPE_RANK['drive-avatar']) return allow();
       if (matchesZoneGlob(targetId, p.mutableZoneGlobs)) return allow();
       return deny(
-        `'${intent.kind}' on '${targetId}' requires it to match a mutableZoneGlob under scope 'mutate-zone'`,
+        `'${intent.kind}' on '${targetId}' requires it to match a mutableZoneGlob under scope 'mutate-zone'`
       );
     }
     case 'look':
@@ -137,17 +151,26 @@ export function validatePortalIntent(
 /** Convert a validated intent into an authoritative state delta. */
 export function intentToDelta(
   intent: PortalIntent,
-  nowMs: number = Date.now(),
+  nowMs: number = Date.now()
 ): { entityId: string; payload: Record<string, unknown> } {
   switch (intent.kind) {
     case 'move':
-      return { entityId: intent.entityId, payload: { transform: { position: intent.position }, updatedAt: nowMs } };
+      return {
+        entityId: intent.entityId,
+        payload: { transform: { position: intent.position }, updatedAt: nowMs },
+      };
     case 'look':
-      return { entityId: intent.entityId, payload: { transform: { rotation: intent.rotation }, updatedAt: nowMs } };
+      return {
+        entityId: intent.entityId,
+        payload: { transform: { rotation: intent.rotation }, updatedAt: nowMs },
+      };
     case 'grab':
       return { entityId: intent.entityId, payload: { holding: intent.targetId, updatedAt: nowMs } };
     case 'say':
-      return { entityId: intent.entityId, payload: { lastUtterance: intent.utterance, utteranceTs: nowMs } };
+      return {
+        entityId: intent.entityId,
+        payload: { lastUtterance: intent.utterance, utteranceTs: nowMs },
+      };
   }
 }
 
@@ -159,7 +182,10 @@ export function intentToDelta(
  *
  * Board task: task_1779436414662_8b0d (concurrency edge).
  */
-export function deepMerge<T extends Record<string, any>>(target: T, source: Record<string, any>): T {
+export function deepMerge<T extends Record<string, any>>(
+  target: T,
+  source: Record<string, any>
+): T {
   const out: Record<string, any> = { ...target };
   for (const key of Object.keys(source)) {
     const sv = source[key];

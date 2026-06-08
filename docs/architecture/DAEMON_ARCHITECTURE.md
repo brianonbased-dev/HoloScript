@@ -436,7 +436,7 @@ composition "AutoImprove" {
 ### Regression Tests
 
 - **E2E Suite**: 8/8 existing tests still pass
-- **Full Core Suite**: 45,331/[see NUMBERS.md]  pass (5 pre-existing failures unrelated to daemon)
+- **Full Core Suite**: 45,331/[see NUMBERS.md] pass (5 pre-existing failures unrelated to daemon)
 
 ---
 

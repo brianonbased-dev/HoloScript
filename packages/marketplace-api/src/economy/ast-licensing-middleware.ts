@@ -38,11 +38,16 @@ import { safeParseX402PaymentPayload } from '@holoscript/framework/economy';
 // (no `.match`) while `router@2.x` expects `pathRegexp.match(...)`.
 // Mutate the cached export once so express/router can create routes reliably.
 // -----------------------------------------------------------------------------
-type PathToRegexpMatch = (path: string, options?: unknown) => (pathname: string) => false | {
-  path: string;
-  index: number;
-  params: Record<string, string>;
-};
+type PathToRegexpMatch = (
+  path: string,
+  options?: unknown
+) => (pathname: string) =>
+  | false
+  | {
+      path: string;
+      index: number;
+      params: Record<string, string>;
+    };
 
 type PathToRegexpFunction = (
   path: string,
@@ -52,7 +57,9 @@ type PathToRegexpFunction = (
 
 type PathToRegexpModule = {
   (...args: unknown[]): RegExp;
-  default?: PathToRegexpFunction | { match?: PathToRegexpMatch; pathToRegexp?: PathToRegexpFunction };
+  default?:
+    | PathToRegexpFunction
+    | { match?: PathToRegexpMatch; pathToRegexp?: PathToRegexpFunction };
   match?: PathToRegexpMatch;
   pathToRegexp?: PathToRegexpFunction;
 };
@@ -78,7 +85,10 @@ if (typeof pathRegexpAnyLoose.match !== 'function' && pathToRegexpFn) {
     const keys: Array<{ name: string }> = [];
     const compiled = pathToRegexpFn(path, keys, options);
     const re = compiled instanceof RegExp ? compiled : (compiled as { regexp: RegExp }).regexp;
-    const compiledKeys = compiled instanceof RegExp ? keys : ((compiled as { keys?: Array<{ name: string }> }).keys ?? keys);
+    const compiledKeys =
+      compiled instanceof RegExp
+        ? keys
+        : ((compiled as { keys?: Array<{ name: string }> }).keys ?? keys);
     return (pathname: string) => {
       const m = re.exec(pathname);
       if (!m) return false;
@@ -192,7 +202,12 @@ function decodeXPaymentHeader(raw: unknown): X402PaymentPayload | null {
 function respond402(
   res: Response,
   gate: ASTLicenseGate,
-  attempt: { granted: false; paymentRequired: unknown; requiredAmountBaseUnits: string; resource: string }
+  attempt: {
+    granted: false;
+    paymentRequired: unknown;
+    requiredAmountBaseUnits: string;
+    resource: string;
+  }
 ) {
   const license = gate.getPublicManifest().license;
   res
@@ -251,21 +266,23 @@ export function createASTAssetRouter(opts: ASTLicenseRouteOptions = {}): Router 
         ? astAssetLicenseSchema.partial().safeParse(body.license)
         : { success: true as const, data: undefined };
       if (!validatedLicense.success) {
-        res.status(400).json({ error: 'Invalid license override', detail: validatedLicense.error.issues });
+        res
+          .status(400)
+          .json({ error: 'Invalid license override', detail: validatedLicense.error.issues });
         return;
       }
       const reg = await createLicensedASTAsset({
         source: body.source,
         author: body.author,
-        license: validatedLicense.data as Partial<import('@holoscript/framework/economy').ASTAssetLicense>,
+        license: validatedLicense.data as Partial<
+          import('@holoscript/framework/economy').ASTAssetLicense
+        >,
         assetId: body.assetId,
       });
       try {
         registry.register(reg.asset);
       } catch (err) {
-        res
-          .status(409)
-          .json({ error: 'Asset already registered', detail: (err as Error).message });
+        res.status(409).json({ error: 'Asset already registered', detail: (err as Error).message });
         return;
       }
       res.status(201).json({
@@ -295,23 +312,19 @@ export function createASTAssetRouter(opts: ASTLicenseRouteOptions = {}): Router 
   });
 
   // ── GATED RETRIEVAL ────────────────────────────────────────────────────────
-  router.get(
-    '/ast-assets/:assetId',
-    requireASTLicense(registry),
-    (req: Request, res: Response) => {
-      const gate = (req as Request & { astGate?: ASTLicenseGate }).astGate;
-      if (!gate) {
-        res.status(500).json({ error: 'Gate missing on granted request — internal error' });
-        return;
-      }
-      const payload = gate.releasePayload();
-      res.json({
-        manifest: payload.manifest,
-        source: payload.source,
-        ast: payload.astRoot,
-      });
+  router.get('/ast-assets/:assetId', requireASTLicense(registry), (req: Request, res: Response) => {
+    const gate = (req as Request & { astGate?: ASTLicenseGate }).astGate;
+    if (!gate) {
+      res.status(500).json({ error: 'Gate missing on granted request — internal error' });
+      return;
     }
-  );
+    const payload = gate.releasePayload();
+    res.json({
+      manifest: payload.manifest,
+      source: payload.source,
+      ast: payload.astRoot,
+    });
+  });
 
   // Expose the registry for tests and ops endpoints.
   (router as Router & { _registry?: ASTLicenseRegistry })._registry = registry;

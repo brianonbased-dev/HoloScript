@@ -712,7 +712,10 @@ describe('AndroidXRTraitMap — Upgraded Audio Traits (batch 4)', () => {
     const mapping = getTraitMapping('reverb_zone');
     expect(mapping).toBeDefined();
     expect(mapping!.level).toBe('full');
-    const code = generateTraitCode('reverb_zone', 'hall', { preset: 'largeHall', decay_time: 2000 });
+    const code = generateTraitCode('reverb_zone', 'hall', {
+      preset: 'largeHall',
+      decay_time: 2000,
+    });
     expect(code.some((l) => l.includes('EnvironmentalReverb'))).toBe(true);
     expect(code.some((l) => l.includes('PresetReverb'))).toBe(true);
     expect(code.some((l) => l.includes('hallReverb'))).toBe(true);
@@ -728,7 +731,10 @@ describe('AndroidXRTraitMap — Upgraded Audio Traits (batch 4)', () => {
     const mapping = getTraitMapping('audio_occlusion');
     expect(mapping).toBeDefined();
     expect(mapping!.level).toBe('full');
-    const code = generateTraitCode('audio_occlusion', 'src', { attenuation: 0.2, low_pass_cutoff: 600 });
+    const code = generateTraitCode('audio_occlusion', 'src', {
+      attenuation: 0.2,
+      low_pass_cutoff: 600,
+    });
     expect(code.some((l) => l.includes('AudioOcclusionProcessor'))).toBe(true);
     expect(code.some((l) => l.includes('raycastOcclusion'))).toBe(true);
     expect(code.some((l) => l.includes('srcSoundPool') || l.includes('setVolume'))).toBe(true);
@@ -760,7 +766,11 @@ describe('AndroidXRTraitMap — Upgraded Physics Traits (batch 5)', () => {
     const mapping = getTraitMapping('physics');
     expect(mapping).toBeDefined();
     expect(mapping!.level).toBe('full');
-    const code = generateTraitCode('physics', 'ball', { mass: 2.5, friction: 0.4, restitution: 0.6 });
+    const code = generateTraitCode('physics', 'ball', {
+      mass: 2.5,
+      friction: 0.4,
+      restitution: 0.6,
+    });
     expect(code.some((l) => l.includes('PhysicsComponent'))).toBe(true);
     expect(code.some((l) => l.includes('2.5'))).toBe(true);
     expect(code.some((l) => l.includes('0.4'))).toBe(true);
@@ -806,7 +816,6 @@ describe('AndroidXRTraitMap — Upgraded Physics Traits (batch 5)', () => {
   });
 });
 
-
 describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () => {
   it('soft_body is full and generates XPBDSoftBodySolver with GLES31 dispatch', () => {
     const mapping = getTraitMapping('soft_body');
@@ -832,7 +841,11 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
     const mapping = getTraitMapping('pbd_constraint');
     expect(mapping).toBeDefined();
     expect(mapping!.level).toBe('full');
-    const code = generateTraitCode('pbd_constraint', 'rope', { type: 'distance', stiffness: 0.9, rest_length: 2.0 });
+    const code = generateTraitCode('pbd_constraint', 'rope', {
+      type: 'distance',
+      stiffness: 0.9,
+      rest_length: 2.0,
+    });
     expect(code.some((l) => l.includes('PBDConstraint'))).toBe(true);
     expect(code.some((l) => l.includes('distance') || l.includes('DISTANCE'))).toBe(true);
     expect(code.some((l) => l.includes('0.9'))).toBe(true);
@@ -842,7 +855,11 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
     const mapping = getTraitMapping('xpbd_solver');
     expect(mapping).toBeDefined();
     expect(mapping!.level).toBe('full');
-    const code = generateTraitCode('xpbd_solver', 'body', { substeps: 8, gravity: -9.81, max_particles: 50000 });
+    const code = generateTraitCode('xpbd_solver', 'body', {
+      substeps: 8,
+      gravity: -9.81,
+      max_particles: 50000,
+    });
     expect(code.some((l) => l.includes('XPBDSolver'))).toBe(true);
     expect(code.some((l) => l.includes('8'))).toBe(true);
     expect(code.some((l) => l.includes('step') || l.includes('bindEntity'))).toBe(true);
@@ -852,7 +869,11 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
     const mapping = getTraitMapping('sph_pressure');
     expect(mapping).toBeDefined();
     expect(mapping!.level).toBe('full');
-    const code = generateTraitCode('sph_pressure', 'fluid', { kernel_radius: 0.05, gas_constant: 2000, rest_density: 1000 });
+    const code = generateTraitCode('sph_pressure', 'fluid', {
+      kernel_radius: 0.05,
+      gas_constant: 2000,
+      rest_density: 1000,
+    });
     expect(code.some((l) => l.includes('SPHPressureKernel'))).toBe(true);
     expect(code.some((l) => l.includes('2000'))).toBe(true);
     expect(code.some((l) => l.includes('attachTo') || l.includes('Pressure'))).toBe(true);
@@ -864,7 +885,9 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(mapping).toBeDefined();
       expect(mapping!.level).toBe('full');
       const code = generateTraitCode('mesh_detection', 'scene', {});
-      expect(code.some((l) => l.includes('createMeshReconstruction') || l.includes('mesh'))).toBe(true);
+      expect(code.some((l) => l.includes('createMeshReconstruction') || l.includes('mesh'))).toBe(
+        true
+      );
     });
 
     it('eye_tracking is full and generates InteractableComponent hover events', () => {
@@ -888,8 +911,14 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       const mapping = getTraitMapping('geospatial');
       expect(mapping).toBeDefined();
       expect(mapping!.level).toBe('full');
-      const code = generateTraitCode('geospatial', 'marker', { latitude: 37.7749, longitude: -122.4194, altitude: 10 });
-      expect(code.some((l) => l.includes('createAnchor') || l.includes('Earth') || l.includes('earth'))).toBe(true);
+      const code = generateTraitCode('geospatial', 'marker', {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        altitude: 10,
+      });
+      expect(
+        code.some((l) => l.includes('createAnchor') || l.includes('Earth') || l.includes('earth'))
+      ).toBe(true);
       expect(code.some((l) => l.includes('37.7749'))).toBe(true);
     });
 
@@ -898,15 +927,25 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(mapping).toBeDefined();
       expect(mapping!.level).toBe('full');
       const code = generateTraitCode('billboard', 'label', {});
-      expect(code.some((l) => l.includes('lookRotation') || l.includes('setPose') || l.includes('addOnUpdateListener'))).toBe(true);
+      expect(
+        code.some(
+          (l) =>
+            l.includes('lookRotation') || l.includes('setPose') || l.includes('addOnUpdateListener')
+        )
+      ).toBe(true);
     });
 
     it('particle_emitter is full and generates GPU compute particle system', () => {
       const mapping = getTraitMapping('particle_emitter');
       expect(mapping).toBeDefined();
       expect(mapping!.level).toBe('full');
-      const code = generateTraitCode('particle_emitter', 'sparks', { rate: 200, max_particles: 2000 });
-      expect(code.some((l) => l.includes('GLES31') || l.includes('GL_SHADER_STORAGE_BUFFER'))).toBe(true);
+      const code = generateTraitCode('particle_emitter', 'sparks', {
+        rate: 200,
+        max_particles: 2000,
+      });
+      expect(code.some((l) => l.includes('GLES31') || l.includes('GL_SHADER_STORAGE_BUFFER'))).toBe(
+        true
+      );
       expect(code.some((l) => l.includes('2000'))).toBe(true);
     });
 
@@ -940,7 +979,11 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(mapping).toBeDefined();
       expect(mapping!.level).toBe('full');
       const code = generateTraitCode('instancing', 'tree', { count: 500 });
-      expect(code.some((l) => l.includes('VertexBuffer') || l.includes('InstanceCount') || l.includes('instanc'))).toBe(true);
+      expect(
+        code.some(
+          (l) => l.includes('VertexBuffer') || l.includes('InstanceCount') || l.includes('instanc')
+        )
+      ).toBe(true);
       expect(code.some((l) => l.includes('500'))).toBe(true);
     });
   });
@@ -951,70 +994,132 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('gpu_culling', 'scene', { frustum: true, occlusion: false });
-      expect(code.some((l) => l.includes('View') || l.includes('culling') || l.includes('Culling') || l.includes('setEnabled'))).toBe(true);
+      expect(
+        code.some(
+          (l) =>
+            l.includes('View') ||
+            l.includes('culling') ||
+            l.includes('Culling') ||
+            l.includes('setEnabled')
+        )
+      ).toBe(true);
     });
     it('screen_space_reflections is full and generates Filament SSR options', () => {
       const m = getTraitMapping('screen_space_reflections');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('screen_space_reflections', 'view', { quality: 'high' });
-      expect(code.some((l) => l.includes('ScreenSpaceReflections') || l.includes('ssrOptions') || l.includes('reflection'))).toBe(true);
+      expect(
+        code.some(
+          (l) =>
+            l.includes('ScreenSpaceReflections') ||
+            l.includes('ssrOptions') ||
+            l.includes('reflection')
+        )
+      ).toBe(true);
     });
     it('volumetric_fog is full and generates Filament FogOptions', () => {
       const m = getTraitMapping('volumetric_fog');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('volumetric_fog', 'scene', { density: 0.05 });
-      expect(code.some((l) => l.includes('FogOptions') || l.includes('fog') || l.includes('density'))).toBe(true);
+      expect(
+        code.some((l) => l.includes('FogOptions') || l.includes('fog') || l.includes('density'))
+      ).toBe(true);
     });
     it('decal_projector is full and generates decal texture projection', () => {
       const m = getTraitMapping('decal_projector');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('decal_projector', 'wall', { texture: 'cracks.png' });
-      expect(code.some((l) => l.includes('decal') || l.includes('Decal') || l.includes('Material') || l.includes('texture'))).toBe(true);
+      expect(
+        code.some(
+          (l) =>
+            l.includes('decal') ||
+            l.includes('Decal') ||
+            l.includes('Material') ||
+            l.includes('texture')
+        )
+      ).toBe(true);
     });
     it('wireframe is full and generates wireframe material', () => {
       const m = getTraitMapping('wireframe');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('wireframe', 'mesh', {});
-      expect(code.some((l) => l.includes('wireframe') || l.includes('Wireframe') || l.includes('Material'))).toBe(true);
+      expect(
+        code.some(
+          (l) => l.includes('wireframe') || l.includes('Wireframe') || l.includes('Material')
+        )
+      ).toBe(true);
     });
     it('outline is full and generates back-face outline pass', () => {
       const m = getTraitMapping('outline');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('outline', 'obj', { color: '#ff0000', width: 2 });
-      expect(code.some((l) => l.includes('outline') || l.includes('Outline') || l.includes('backFace') || l.includes('Material'))).toBe(true);
+      expect(
+        code.some(
+          (l) =>
+            l.includes('outline') ||
+            l.includes('Outline') ||
+            l.includes('backFace') ||
+            l.includes('Material')
+        )
+      ).toBe(true);
     });
     it('bloom is full and generates Filament BloomOptions', () => {
       const m = getTraitMapping('bloom');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('bloom', 'view', { strength: 0.5, threshold: 0.8 });
-      expect(code.some((l) => l.includes('BloomOptions') || l.includes('bloom') || l.includes('strength'))).toBe(true);
+      expect(
+        code.some(
+          (l) => l.includes('BloomOptions') || l.includes('bloom') || l.includes('strength')
+        )
+      ).toBe(true);
     });
     it('chromatic_aberration is full and generates CA post-process material', () => {
       const m = getTraitMapping('chromatic_aberration');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('chromatic_aberration', 'camera', { offset: 0.005 });
-      expect(code.some((l) => l.includes('chromatic') || l.includes('Chromatic') || l.includes('Material') || l.includes('offset'))).toBe(true);
+      expect(
+        code.some(
+          (l) =>
+            l.includes('chromatic') ||
+            l.includes('Chromatic') ||
+            l.includes('Material') ||
+            l.includes('offset')
+        )
+      ).toBe(true);
     });
     it('depth_of_field is full and generates Filament DepthOfFieldOptions', () => {
       const m = getTraitMapping('depth_of_field');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
-      const code = generateTraitCode('depth_of_field', 'cam', { focus_distance: 3.0, aperture: 2.8 });
-      expect(code.some((l) => l.includes('DepthOfField') || l.includes('depthOfField') || l.includes('focusDistance'))).toBe(true);
+      const code = generateTraitCode('depth_of_field', 'cam', {
+        focus_distance: 3.0,
+        aperture: 2.8,
+      });
+      expect(
+        code.some(
+          (l) =>
+            l.includes('DepthOfField') || l.includes('depthOfField') || l.includes('focusDistance')
+        )
+      ).toBe(true);
     });
     it('color_grading is full and generates Filament ColorGrading', () => {
       const m = getTraitMapping('color_grading');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('color_grading', 'view', { exposure: 0.5, contrast: 1.2 });
-      expect(code.some((l) => l.includes('ColorGrading') || l.includes('colorGrading') || l.includes('toneMapping'))).toBe(true);
+      expect(
+        code.some(
+          (l) =>
+            l.includes('ColorGrading') || l.includes('colorGrading') || l.includes('toneMapping')
+        )
+      ).toBe(true);
     });
   });
 
@@ -1024,70 +1129,123 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('ui_hand_menu', 'menu', { hand: 'right' });
-      expect(code.some((l) => l.includes('Hand') || l.includes('palm') || l.includes('handState'))).toBe(true);
+      expect(
+        code.some((l) => l.includes('Hand') || l.includes('palm') || l.includes('handState'))
+      ).toBe(true);
     });
     it('ui_billboard is full and generates billboard panel code', () => {
       const m = getTraitMapping('ui_billboard');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('ui_billboard', 'hud', {});
-      expect(code.some((l) => l.includes('BillboardComponent') || l.includes('SpatialPanel') || l.includes('billboard'))).toBe(true);
+      expect(
+        code.some(
+          (l) =>
+            l.includes('BillboardComponent') ||
+            l.includes('SpatialPanel') ||
+            l.includes('billboard')
+        )
+      ).toBe(true);
     });
     it('portal is full and generates stencil portal code', () => {
       const m = getTraitMapping('portal');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('portal', 'gate', { target_world: 'cavern', radius: 1.5 });
-      expect(code.some((l) => l.includes('portal') || l.includes('stencil') || l.includes('GltfModel'))).toBe(true);
+      expect(
+        code.some((l) => l.includes('portal') || l.includes('stencil') || l.includes('GltfModel'))
+      ).toBe(true);
     });
     it('spatial_persona is full and generates avatar tracking code', () => {
       const m = getTraitMapping('spatial_persona');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
-      const code = generateTraitCode('spatial_persona', 'avatar', { style: 'cartoon', model: 'hero.glb' });
-      expect(code.some((l) => l.includes('GltfModel') || l.includes('avatar') || l.includes('headPose'))).toBe(true);
+      const code = generateTraitCode('spatial_persona', 'avatar', {
+        style: 'cartoon',
+        model: 'hero.glb',
+      });
+      expect(
+        code.some((l) => l.includes('GltfModel') || l.includes('avatar') || l.includes('headPose'))
+      ).toBe(true);
     });
     it('shareplay is full and generates Nearby Connections code', () => {
       const m = getTraitMapping('shareplay');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
-      const code = generateTraitCode('shareplay', 'session', { activity_type: 'chess', max_participants: 2 });
-      expect(code.some((l) => l.includes('Nearby') || l.includes('Connection') || l.includes('Payload'))).toBe(true);
+      const code = generateTraitCode('shareplay', 'session', {
+        activity_type: 'chess',
+        max_participants: 2,
+      });
+      expect(
+        code.some((l) => l.includes('Nearby') || l.includes('Connection') || l.includes('Payload'))
+      ).toBe(true);
     });
     it('object_tracking is full and generates ARCore AugmentedImage code', () => {
       const m = getTraitMapping('object_tracking');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
-      const code = generateTraitCode('object_tracking', 'marker', { reference_object: 'Logo', mode: 'image' });
-      expect(code.some((l) => l.includes('AugmentedImage') || l.includes('ImageDb') || l.includes('trackingState'))).toBe(true);
+      const code = generateTraitCode('object_tracking', 'marker', {
+        reference_object: 'Logo',
+        mode: 'image',
+      });
+      expect(
+        code.some(
+          (l) =>
+            l.includes('AugmentedImage') || l.includes('ImageDb') || l.includes('trackingState')
+        )
+      ).toBe(true);
     });
     it('scene_reconstruction is full and generates depth-based point cloud code', () => {
       const m = getTraitMapping('scene_reconstruction');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
-      const code = generateTraitCode('scene_reconstruction', 'scan', { mode: 'mesh', max_points: 3000 });
-      expect(code.some((l) => l.includes('depthImage') || l.includes('PointCloud') || l.includes('depth'))).toBe(true);
+      const code = generateTraitCode('scene_reconstruction', 'scan', {
+        mode: 'mesh',
+        max_points: 3000,
+      });
+      expect(
+        code.some(
+          (l) => l.includes('depthImage') || l.includes('PointCloud') || l.includes('depth')
+        )
+      ).toBe(true);
     });
     it('spatial_navigation is full and generates InteractableComponent nav code', () => {
       const m = getTraitMapping('spatial_navigation');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('spatial_navigation', 'nav', { mode: 'gaze' });
-      expect(code.some((l) => l.includes('NavTarget') || l.includes('InteractableComponent') || l.includes('HOVER'))).toBe(true);
+      expect(
+        code.some(
+          (l) =>
+            l.includes('NavTarget') || l.includes('InteractableComponent') || l.includes('HOVER')
+        )
+      ).toBe(true);
     });
     it('eye_tracked is full and generates hover-based gaze code', () => {
       const m = getTraitMapping('eye_tracked');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('eye_tracked', 'target', {});
-      expect(code.some((l) => l.includes('HOVER') || l.includes('gaze') || l.includes('InteractableComponent'))).toBe(true);
+      expect(
+        code.some(
+          (l) => l.includes('HOVER') || l.includes('gaze') || l.includes('InteractableComponent')
+        )
+      ).toBe(true);
     });
     it('eye_hand_fusion is full and generates combined gaze+hand interaction code', () => {
       const m = getTraitMapping('eye_hand_fusion');
       expect(m).toBeDefined();
       expect(m!.level).toBe('full');
       const code = generateTraitCode('eye_hand_fusion', 'obj', {});
-      expect(code.some((l) => l.includes('Hand') || l.includes('HOVER') || l.includes('InteractableComponent') || l.includes('fusion'))).toBe(true);
+      expect(
+        code.some(
+          (l) =>
+            l.includes('Hand') ||
+            l.includes('HOVER') ||
+            l.includes('InteractableComponent') ||
+            l.includes('fusion')
+        )
+      ).toBe(true);
     });
   });
 
@@ -1097,7 +1255,11 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(mapping!.level).toBe('full');
       const code = generateTraitCode('controlnet', 'cn', {});
       expect(code.some((l) => l.includes('ControlNetInfer'))).toBe(true);
-      expect(code.some((l) => l.includes('TensorImage') || l.includes('tflite') || l.includes('Interpreter'))).toBe(true);
+      expect(
+        code.some(
+          (l) => l.includes('TensorImage') || l.includes('tflite') || l.includes('Interpreter')
+        )
+      ).toBe(true);
       expect(code.every((l) => !l.toUpperCase().includes('TODO'))).toBe(true);
     });
 
@@ -1125,7 +1287,9 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
 
     it('diffusion_realtime with vulkan backend emits Vulkan stub', () => {
       const code = generateTraitCode('diffusion_realtime', 'diff', { backend: 'vulkan' });
-      expect(code.some((l) => l.includes('Vulkan') || l.includes('SPIR-V') || l.includes('vulkan'))).toBe(true);
+      expect(
+        code.some((l) => l.includes('Vulkan') || l.includes('SPIR-V') || l.includes('vulkan'))
+      ).toBe(true);
     });
 
     it('ai_upscaling is full and generates Upscale function', () => {
@@ -1206,7 +1370,9 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
 
     it('vision generates text_recognition pipeline', () => {
       const code = generateTraitCode('vision', 'vis', { task: 'text_recognition' });
-      expect(code.some((l) => l.includes('TextRecognition') || l.includes('Recognizer'))).toBe(true);
+      expect(code.some((l) => l.includes('TextRecognition') || l.includes('Recognizer'))).toBe(
+        true
+      );
       expect(code.every((l) => !l.includes('TODO'))).toBe(true);
     });
 
@@ -1233,13 +1399,17 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(m!.level).toBe('full');
       const code = generateTraitCode('spatial_awareness', 'sa', {});
       expect(code.length).toBeGreaterThan(0);
-      expect(code.some((l) => l.includes('planeFindingMode') || l.includes('depthMode'))).toBe(true);
+      expect(code.some((l) => l.includes('planeFindingMode') || l.includes('depthMode'))).toBe(
+        true
+      );
       expect(code.every((l) => !l.includes('TODO'))).toBe(true);
     });
 
     it('spatial_awareness generates plane detection callback', () => {
       const code = generateTraitCode('spatial_awareness', 'sa', {});
-      expect(code.some((l) => l.includes('OnFrame') || l.includes('Trackable') || l.includes('Plane'))).toBe(true);
+      expect(
+        code.some((l) => l.includes('OnFrame') || l.includes('Trackable') || l.includes('Plane'))
+      ).toBe(true);
       expect(code.every((l) => !l.includes('TODO'))).toBe(true);
     });
 
@@ -1286,7 +1456,9 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
       expect(m!.level).toBe('full');
       const code = generateTraitCode('ai_vision', 'aiv', { task: 'detection' });
       expect(code.length).toBeGreaterThan(0);
-      expect(code.some((l) => l.includes('ObjectDetect') || l.includes('ObjectDetector'))).toBe(true);
+      expect(code.some((l) => l.includes('ObjectDetect') || l.includes('ObjectDetector'))).toBe(
+        true
+      );
       expect(code.every((l) => !l.includes('TODO'))).toBe(true);
     });
 
@@ -1551,7 +1723,9 @@ describe('AndroidXRTraitMap — Upgraded Advanced Physics Traits (batch 6)', () 
     });
 
     it('gesture_recognition uses custom gestures config', () => {
-      const code = generateTraitCode('gesture_recognition', 'g', { gestures: ['wave', 'thumbs_up'] });
+      const code = generateTraitCode('gesture_recognition', 'g', {
+        gestures: ['wave', 'thumbs_up'],
+      });
       expect(code.some((l) => l.includes('WAVE'))).toBe(true);
       expect(code.some((l) => l.includes('THUMBS_UP'))).toBe(true);
     });

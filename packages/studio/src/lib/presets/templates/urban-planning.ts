@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-urban-planning",
-  name: "Urban Planning Model",
-  description: "City-scale block model with roads, buildings, and green spaces",
-  thumbnail: "🏙️",
-  tags: ["architecture","urban","city","planning"],
-  category: "architecture",
+  id: 'wizard-urban-planning',
+  name: 'Urban Planning Model',
+  description: 'City-scale block model with roads, buildings, and green spaces',
+  thumbnail: '🏙️',
+  tags: ['architecture', 'urban', 'city', 'planning'],
+  category: 'architecture',
   code: `composition "Urban Plan" {
   environment {
     skybox: "day"
@@ -61,7 +61,7 @@ export const template: SceneTemplate = {
     scale: [1, 2, 1]
     color: "#2e8b2e"
   }
-}`
+}`,
 };
 
 export default template;

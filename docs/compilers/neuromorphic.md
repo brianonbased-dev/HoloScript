@@ -103,8 +103,8 @@ This is backed by `@holoscript/snn-webgpu` (successor to the retired `@holoscrip
 
 ## Related Packages
 
-| Package                  | Role                                 |
-| ------------------------ | ------------------------------------ |
+| Package                  | Role                                                               |
+| ------------------------ | ------------------------------------------------------------------ |
 | `@holoscript/snn-webgpu` | GPU-accelerated SNN compute shaders + reference LIF implementation |
 
 ## Compiler Options

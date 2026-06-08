@@ -1,10 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  luckHandler,
-  seededRand01,
-  modifiedThreshold,
-  type LuckConfig,
-} from '../LuckTrait';
+import { luckHandler, seededRand01, modifiedThreshold, type LuckConfig } from '../LuckTrait';
 import {
   createMockContext,
   createMockNode,
@@ -65,7 +60,11 @@ describe('LuckTrait', () => {
     // To keep test stable: use a seed where the first roll is in (0.3, 0.8) range.
     const cfg: Partial<LuckConfig> = { baseChance: 0.5, luckBonus: 0.5, seed };
     attachTrait(luckHandler, node, cfg, ctx);
-    sendEvent(luckHandler, node, cfg, ctx, { type: 'luck:roll', threshold: 0.01, rollId: 'r-bonus' });
+    sendEvent(luckHandler, node, cfg, ctx, {
+      type: 'luck:roll',
+      threshold: 0.01,
+      rollId: 'r-bonus',
+    });
     const ev = getLastEvent(ctx, 'luck:roll_result') as {
       outcome: boolean;
       baseThreshold: number;

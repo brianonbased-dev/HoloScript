@@ -59,7 +59,10 @@ describe('extractFrustumPlanes', () => {
   it('produces 24 floats (6 planes x 4 components) from identity VP', () => {
     // Identity view-projection matrix (16 floats)
     const identity = new Float32Array(16);
-    identity[0] = 1; identity[5] = 1; identity[10] = 1; identity[15] = 1;
+    identity[0] = 1;
+    identity[5] = 1;
+    identity[10] = 1;
+    identity[15] = 1;
 
     const planes = extractFrustumPlanes(identity);
     expect(planes.length).toBe(24);
@@ -67,7 +70,10 @@ describe('extractFrustumPlanes', () => {
 
   it('normalizes all 6 planes', () => {
     const identity = new Float32Array(16);
-    identity[0] = 1; identity[5] = 1; identity[10] = 1; identity[15] = 1;
+    identity[0] = 1;
+    identity[5] = 1;
+    identity[10] = 1;
+    identity[15] = 1;
 
     const planes = extractFrustumPlanes(identity);
     for (let i = 0; i < 6; i++) {
@@ -85,8 +91,12 @@ describe('extractFrustumPlanes', () => {
   it('produces a valid frustum from a perspective VP', () => {
     // Simple perspective VP matrix
     const vp = new Float32Array(16);
-    vp[0] = 2.414; vp[5] = 2.414; vp[10] = -1.001; vp[11] = -1;
-    vp[14] = -0.1; vp[15] = 0;
+    vp[0] = 2.414;
+    vp[5] = 2.414;
+    vp[10] = -1.001;
+    vp[11] = -1;
+    vp[14] = -0.1;
+    vp[15] = 0;
 
     const planes = extractFrustumPlanes(vp);
     expect(planes.length).toBe(24);
@@ -108,7 +118,12 @@ describe('spatialAnchorsToObjectInstances', () => {
   it('converts basic anchors preserving position and lodLevel', () => {
     const anchors = [
       { position: [1, 2, 3] as [number, number, number], scale: 5, lodLevel: 0, importance: 0.5 },
-      { position: [10, 20, 30] as [number, number, number], scale: 15, lodLevel: 1, importance: 0.3 },
+      {
+        position: [10, 20, 30] as [number, number, number],
+        scale: 15,
+        lodLevel: 1,
+        importance: 0.3,
+      },
     ];
 
     const instances = spatialAnchorsToObjectInstances(anchors);
@@ -182,7 +197,12 @@ describe('spatialAnchorsToObjectInstances', () => {
 
   it('preserves exact position tuple for all anchors', () => {
     const anchors = [
-      { position: [-100.5, 200.3, 0.001] as [number, number, number], scale: 10, lodLevel: 2, importance: 0.1 },
+      {
+        position: [-100.5, 200.3, 0.001] as [number, number, number],
+        scale: 10,
+        lodLevel: 2,
+        importance: 0.1,
+      },
     ];
 
     const instances = spatialAnchorsToObjectInstances(anchors);
@@ -240,6 +260,8 @@ describe('GPUCullingSystem types', () => {
     };
 
     expect(stats.totalObjects).toBe(100);
-    expect(stats.visibleObjects + stats.frustumCulled + stats.occlusionCulled).toBe(stats.totalObjects);
+    expect(stats.visibleObjects + stats.frustumCulled + stats.occlusionCulled).toBe(
+      stats.totalObjects
+    );
   });
 });

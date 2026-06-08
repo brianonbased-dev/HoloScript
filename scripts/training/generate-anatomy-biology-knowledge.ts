@@ -31,7 +31,7 @@ console.log('[1/3] Generating Human Anatomy examples...');
 
 const ANATOMY_SYSTEMS = [
   {
-    name: "Human Heart",
+    name: 'Human Heart',
     code: `composition "Cardiac_Anatomy" {
   object "left_ventricle" {
     @anatomical_model
@@ -72,10 +72,10 @@ const ANATOMY_SYSTEMS = [
     blood_flow_rate: 5  // 5 L/min cardiac output
     pressure: 120  // 120 mmHg systolic
   }
-}`
+}`,
   },
   {
-    name: "Skeletal System",
+    name: 'Skeletal System',
     code: `composition "Human_Skeleton" {
   object "skull" {
     @bone_structure
@@ -119,10 +119,10 @@ const ANATOMY_SYSTEMS = [
     length: 0.48  // Average 48cm (longest bone)
     tensile_strength: 130e6  // 130 MPa (stronger than concrete!)
   }
-}`
+}`,
   },
   {
-    name: "Brain Anatomy",
+    name: 'Brain Anatomy',
     code: `composition "Human_Brain" {
   object "cerebrum" {
     @brain_region
@@ -162,8 +162,8 @@ const ANATOMY_SYSTEMS = [
     controls: ["breathing", "heart_rate", "consciousness"]
     critical_for_survival: true
   }
-}`
-  }
+}`,
+  },
 ];
 
 for (let i = 0; i < 20000; i++) {
@@ -173,13 +173,13 @@ for (let i = 0; i < 20000; i++) {
     `Build an interactive anatomy lesson demonstrating ${system.name}`,
     `Generate HoloScript for a 3D anatomical model of ${system.name}`,
     `Design a medical VR scene with accurate ${system.name} anatomy`,
-    `Create an educational VR experience explaining ${system.name} structure and function`
+    `Create an educational VR experience explaining ${system.name} structure and function`,
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: system.code
+    output: system.code,
   });
 }
 
@@ -189,11 +189,11 @@ console.log(`  ✓ 20,000 examples generated`);
 console.log('[2/3] Generating Cell Biology examples...');
 
 const CELL_STRUCTURES = [
-  { name: "Plant Cell", code: "composition \"Plant_Cell\" { }" },
-  { name: "Animal Cell", code: "composition \"Animal_Cell\" { }" },
-  { name: "DNA Double Helix", code: "composition \"DNA_Structure\" { }" },
-  { name: "Mitochondria", code: "composition \"Powerhouse_Cell\" { }" },
-  { name: "Cell Membrane", code: "composition \"Phospholipid_Bilayer\" { }" }
+  { name: 'Plant Cell', code: 'composition "Plant_Cell" { }' },
+  { name: 'Animal Cell', code: 'composition "Animal_Cell" { }' },
+  { name: 'DNA Double Helix', code: 'composition "DNA_Structure" { }' },
+  { name: 'Mitochondria', code: 'composition "Powerhouse_Cell" { }' },
+  { name: 'Cell Membrane', code: 'composition "Phospholipid_Bilayer" { }' },
 ];
 
 for (let i = 0; i < 15000; i++) {
@@ -201,7 +201,7 @@ for (let i = 0; i < 15000; i++) {
   allExamples.push({
     instruction: `Create a VR biology lesson showing ${cell.name} structure`,
     input: '',
-    output: cell.code
+    output: cell.code,
   });
 }
 
@@ -211,11 +211,11 @@ console.log(`  ✓ 15,000 examples generated`);
 console.log('[3/3] Generating Ecosystems & Organisms examples...');
 
 const BIOLOGY_CONCEPTS = [
-  { name: "Food Chain", code: "composition \"Ecosystem_Food_Chain\" { }" },
-  { name: "Photosynthesis", code: "composition \"Plant_Photosynthesis\" { }" },
-  { name: "Evolution", code: "composition \"Natural_Selection\" { }" },
-  { name: "Cellular Respiration", code: "composition \"ATP_Production\" { }" },
-  { name: "Genetics", code: "composition \"Mendelian_Inheritance\" { }" }
+  { name: 'Food Chain', code: 'composition "Ecosystem_Food_Chain" { }' },
+  { name: 'Photosynthesis', code: 'composition "Plant_Photosynthesis" { }' },
+  { name: 'Evolution', code: 'composition "Natural_Selection" { }' },
+  { name: 'Cellular Respiration', code: 'composition "ATP_Production" { }' },
+  { name: 'Genetics', code: 'composition "Mendelian_Inheritance" { }' },
 ];
 
 for (let i = 0; i < 15000; i++) {
@@ -223,7 +223,7 @@ for (let i = 0; i < 15000; i++) {
   allExamples.push({
     instruction: `Create an educational VR scene demonstrating ${concept.name}`,
     input: '',
-    output: concept.code
+    output: concept.code,
   });
 }
 
@@ -235,7 +235,7 @@ async function writeDataset() {
   console.log('[EXPORT] Writing anatomy & biology dataset...');
 
   const outputFile = path.join(__dirname, '../datasets/anatomy-biology-knowledge.jsonl');
-  const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
+  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
 
   await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 

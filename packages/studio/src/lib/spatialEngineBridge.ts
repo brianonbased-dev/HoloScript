@@ -130,7 +130,9 @@ let bridgeBackend: BridgeBackend = 'fallback';
  */
 export async function initWasmBridge(_wasmUrl?: string): Promise<BridgeStatus> {
   // WASM spatial engine retired in c5887f4e7; TS fallback is the only backend.
-  console.warn('[spatialEngineBridge] WASM spatial engine retired (c5887f4e7). Using pure-TS fallback.');
+  console.warn(
+    '[spatialEngineBridge] WASM spatial engine retired (c5887f4e7). Using pure-TS fallback.'
+  );
   bridgeBackend = 'fallback';
   return getBridgeStatus();
 }

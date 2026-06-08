@@ -49,7 +49,14 @@ describe('Phase 13: SimulationInterpreter', () => {
 });
 
 describe('Phase 13: SimulationQuery', () => {
-  const safeStats = { minSafetyFactor: 3.0, maxVonMises: 100e6, converged: true, solveTimeMs: 250, nodeCount: 1000, elementCount: 500 };
+  const safeStats = {
+    minSafetyFactor: 3.0,
+    maxVonMises: 100e6,
+    converged: true,
+    solveTimeMs: 250,
+    nodeCount: 1000,
+    elementCount: 500,
+  };
   const unsafeStats = { minSafetyFactor: 0.5, maxVonMises: 500e6, converged: true };
 
   it('"is this safe?" → yes for SF > 2', () => {
@@ -85,16 +92,20 @@ describe('Phase 13: SimulationQuery', () => {
 
   it('unknown question → helpful fallback', () => {
     const answer = querySimulation('what is the meaning of life?', safeStats);
-    expect(answer).toContain('couldn\'t find');
+    expect(answer).toContain("couldn't find");
   });
 });
 
 describe('Phase 13: Auto-Report', () => {
   it('generates Markdown report with all sections', () => {
     const stats = {
-      nodeCount: 2000, elementCount: 800,
-      converged: true, iterations: 45, solveTimeMs: 320,
-      minSafetyFactor: 2.5, maxVonMises: 150e6,
+      nodeCount: 2000,
+      elementCount: 800,
+      converged: true,
+      iterations: 45,
+      solveTimeMs: 320,
+      minSafetyFactor: 2.5,
+      maxVonMises: 150e6,
     };
 
     const report = generateAutoReport('structural-tet10', stats);

@@ -58,7 +58,11 @@ export function BrittneyPresenceHUD({
           className="shrink-0 rounded p-0.5 text-purple-400 hover:text-white transition"
           aria-label={collapsed ? 'Expand' : 'Collapse'}
         >
-          {collapsed ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {collapsed ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
         </button>
       </div>
 

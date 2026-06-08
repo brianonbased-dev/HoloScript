@@ -46,7 +46,7 @@ export interface CGSolveResult {
   /** Whether the solver converged within tolerance */
   converged: boolean;
 }
- 
+
 /** Result from a CG solve that returns a live GPU buffer */
 export interface DirectSolverResult {
   /** Solution vector x on the GPU */
@@ -115,35 +115,43 @@ export class SparseLinearSolver {
 
     const [spmv, spmvVec, saxpy, dot, finalReduce, vecCopy, vecZero, pUpdate] = await Promise.all([
       this.device.createComputePipelineAsync({
-        label: 'SpMV Scalar', layout: 'auto',
+        label: 'SpMV Scalar',
+        layout: 'auto',
         compute: { module: this.shaderModule, entryPoint: 'spmv' },
       }),
       this.device.createComputePipelineAsync({
-        label: 'SpMV Vector', layout: 'auto',
+        label: 'SpMV Vector',
+        layout: 'auto',
         compute: { module: this.shaderModule, entryPoint: 'spmv_vector' },
       }),
       this.device.createComputePipelineAsync({
-        label: 'SAXPY', layout: 'auto',
+        label: 'SAXPY',
+        layout: 'auto',
         compute: { module: this.shaderModule, entryPoint: 'saxpy' },
       }),
       this.device.createComputePipelineAsync({
-        label: 'Dot Product', layout: 'auto',
+        label: 'Dot Product',
+        layout: 'auto',
         compute: { module: this.shaderModule, entryPoint: 'dot_product' },
       }),
       this.device.createComputePipelineAsync({
-        label: 'Final Reduce', layout: 'auto',
+        label: 'Final Reduce',
+        layout: 'auto',
         compute: { module: this.shaderModule, entryPoint: 'final_reduce' },
       }),
       this.device.createComputePipelineAsync({
-        label: 'Vec Copy', layout: 'auto',
+        label: 'Vec Copy',
+        layout: 'auto',
         compute: { module: this.shaderModule, entryPoint: 'vec_copy' },
       }),
       this.device.createComputePipelineAsync({
-        label: 'Vec Zero', layout: 'auto',
+        label: 'Vec Zero',
+        layout: 'auto',
         compute: { module: this.shaderModule, entryPoint: 'vec_zero' },
       }),
       this.device.createComputePipelineAsync({
-        label: 'P-Update', layout: 'auto',
+        label: 'P-Update',
+        layout: 'auto',
         compute: { module: this.shaderModule, entryPoint: 'p_update' },
       }),
     ]);
@@ -158,32 +166,39 @@ export class SparseLinearSolver {
     this.pUpdatePipeline = pUpdate;
 
     // Jacobi preconditioner + on-device scalar kernels
-    const [extractInvDiag, applyPrecond, divideScalar, saxpyBuf, saxpyNegBuf, pUpdateBuf] = await Promise.all([
-      this.device.createComputePipelineAsync({
-        label: 'Extract Inv Diagonal', layout: 'auto',
-        compute: { module: this.shaderModule, entryPoint: 'extract_inv_diagonal' },
-      }),
-      this.device.createComputePipelineAsync({
-        label: 'Apply Precond', layout: 'auto',
-        compute: { module: this.shaderModule, entryPoint: 'apply_precond' },
-      }),
-      this.device.createComputePipelineAsync({
-        label: 'Divide Scalar', layout: 'auto',
-        compute: { module: this.shaderModule, entryPoint: 'divide_scalar' },
-      }),
-      this.device.createComputePipelineAsync({
-        label: 'SAXPY (buf)', layout: 'auto',
-        compute: { module: this.shaderModule, entryPoint: 'saxpy_buf' },
-      }),
-      this.device.createComputePipelineAsync({
-        label: 'SAXPY-neg (buf)', layout: 'auto',
-        compute: { module: this.shaderModule, entryPoint: 'saxpy_neg_buf' },
-      }),
-      this.device.createComputePipelineAsync({
-        label: 'P-Update (buf)', layout: 'auto',
-        compute: { module: this.shaderModule, entryPoint: 'p_update_buf' },
-      }),
-    ]);
+    const [extractInvDiag, applyPrecond, divideScalar, saxpyBuf, saxpyNegBuf, pUpdateBuf] =
+      await Promise.all([
+        this.device.createComputePipelineAsync({
+          label: 'Extract Inv Diagonal',
+          layout: 'auto',
+          compute: { module: this.shaderModule, entryPoint: 'extract_inv_diagonal' },
+        }),
+        this.device.createComputePipelineAsync({
+          label: 'Apply Precond',
+          layout: 'auto',
+          compute: { module: this.shaderModule, entryPoint: 'apply_precond' },
+        }),
+        this.device.createComputePipelineAsync({
+          label: 'Divide Scalar',
+          layout: 'auto',
+          compute: { module: this.shaderModule, entryPoint: 'divide_scalar' },
+        }),
+        this.device.createComputePipelineAsync({
+          label: 'SAXPY (buf)',
+          layout: 'auto',
+          compute: { module: this.shaderModule, entryPoint: 'saxpy_buf' },
+        }),
+        this.device.createComputePipelineAsync({
+          label: 'SAXPY-neg (buf)',
+          layout: 'auto',
+          compute: { module: this.shaderModule, entryPoint: 'saxpy_neg_buf' },
+        }),
+        this.device.createComputePipelineAsync({
+          label: 'P-Update (buf)',
+          layout: 'auto',
+          compute: { module: this.shaderModule, entryPoint: 'p_update_buf' },
+        }),
+      ]);
 
     this.extractInvDiagPipeline = extractInvDiag;
     this.applyPrecondPipeline = applyPrecond;
@@ -213,7 +228,7 @@ export class SparseLinearSolver {
     A: CSRMatrix,
     b: Float32Array,
     xGuess: Float32Array,
-    options: CGSolveOptions = {},
+    options: CGSolveOptions = {}
   ): Promise<CGSolveResult> {
     if (!this.initialized) {
       throw new Error('SparseLinearSolver not initialized. Call initialize() first.');
@@ -246,15 +261,30 @@ export class SparseLinearSolver {
     const bufPartials = this.emptyVec(numWgDot, 'partial-sums');
     const bufScalar = this.emptyVec(1, 'scalar-result');
     const bufStaging = this.device.createBuffer({
-      label: 'staging', size: 4,
+      label: 'staging',
+      size: 4,
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
     const bufArgs = this.device.createBuffer({
-      label: 'solver-args', size: 16,
+      label: 'solver-args',
+      size: 16,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    const allBuffers = [csrVal, csrCol, csrRow, bufB, bufX, bufR, bufP, bufAp, bufPartials, bufScalar, bufStaging, bufArgs];
+    const allBuffers = [
+      csrVal,
+      csrCol,
+      csrRow,
+      bufB,
+      bufX,
+      bufR,
+      bufP,
+      bufAp,
+      bufPartials,
+      bufScalar,
+      bufStaging,
+      bufArgs,
+    ];
 
     // ── r = b - A·x₀, p = r ───────────────────────────────────────
     // Step 1: Ap = A·x (use bufAp as temp)
@@ -291,7 +321,16 @@ export class SparseLinearSolver {
     }
 
     // Initial rDotR
-    let rDotR = await this.dotProduct(bufR, bufR, bufPartials, bufScalar, bufStaging, bufArgs, n, numWgDot);
+    let rDotR = await this.dotProduct(
+      bufR,
+      bufR,
+      bufPartials,
+      bufScalar,
+      bufStaging,
+      bufArgs,
+      n,
+      numWgDot
+    );
 
     if (rDotR < toleranceSq) {
       const x = await this.readback(bufX, n);
@@ -313,7 +352,16 @@ export class SparseLinearSolver {
       }
 
       // pAp = p·Ap
-      const pAp = await this.dotProduct(bufP, bufAp, bufPartials, bufScalar, bufStaging, bufArgs, n, numWgDot);
+      const pAp = await this.dotProduct(
+        bufP,
+        bufAp,
+        bufPartials,
+        bufScalar,
+        bufStaging,
+        bufArgs,
+        n,
+        numWgDot
+      );
 
       if (Math.abs(pAp) < 1e-30) {
         converged = rDotR < toleranceSq;
@@ -341,7 +389,16 @@ export class SparseLinearSolver {
       }
 
       // rNewDotRNew = r·r (single computation — no double-dot bug)
-      const rNewDotRNew = await this.dotProduct(bufR, bufR, bufPartials, bufScalar, bufStaging, bufArgs, n, numWgDot);
+      const rNewDotRNew = await this.dotProduct(
+        bufR,
+        bufR,
+        bufPartials,
+        bufScalar,
+        bufStaging,
+        bufArgs,
+        n,
+        numWgDot
+      );
 
       if (rNewDotRNew < toleranceSq) {
         rDotR = rNewDotRNew;
@@ -351,7 +408,7 @@ export class SparseLinearSolver {
         break;
       }
 
-      if (onProgress && (iteration % convergenceCheckInterval === 0)) {
+      if (onProgress && iteration % convergenceCheckInterval === 0) {
         onProgress(iteration, rNewDotRNew);
       }
 
@@ -445,26 +502,48 @@ export class SparseLinearSolver {
     const sAlpha = this.emptyVec(1, 'sAlpha');
     const sBeta = this.emptyVec(1, 'sBeta');
     const rrStaging = this.device.createBuffer({
-      size: 4, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+      size: 4,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
 
     // Fixed-purpose uniforms (written once, never per-iteration)
     const mkArgs = (numRows: number, vw: number, nn: number, alpha: number): GPUBuffer => {
-      const buf = this.device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+      const buf = this.device.createBuffer({
+        size: 16,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
       this.writeArgs(buf, numRows, vw, nn, alpha);
       return buf;
     };
-    const argsSpmv = mkArgs(n, vectorWidth, n, 0);      // spmv_vector: num_rows + vector_width
-    const argsVec = mkArgs(n, 0, n, 0);                 // saxpy/copy/apply/p_update/dot-phase1: .n = n
+    const argsSpmv = mkArgs(n, vectorWidth, n, 0); // spmv_vector: num_rows + vector_width
+    const argsVec = mkArgs(n, 0, n, 0); // saxpy/copy/apply/p_update/dot-phase1: .n = n
     const argsReduce = mkArgs(numWgDot, 0, numWgDot, 0); // final_reduce: .n = partial count
-    const argsNegOne = mkArgs(n, 0, n, -1.0);           // init saxpy with constant -1
+    const argsNegOne = mkArgs(n, 0, n, -1.0); // init saxpy with constant -1
 
     // 2. Init: invDiag = 1/diag(A); r = b - A·x; z = M⁻¹r; p = z; sRZold = r·z; sRR = r·r
     {
       const enc = this.device.createCommandEncoder({ label: 'pcg-init' });
-      this.dispatchExtractInvDiag(enc, valBuffer, colIndBuffer, rowPtrBuffer, invDiagBuffer, argsSpmv, numWgVec);
+      this.dispatchExtractInvDiag(
+        enc,
+        valBuffer,
+        colIndBuffer,
+        rowPtrBuffer,
+        invDiagBuffer,
+        argsSpmv,
+        numWgVec
+      );
       this.dispatchVecCopy(enc, bBuffer, rBuffer, argsVec, numWgVec);
-      this.dispatchSpmv(enc, valBuffer, colIndBuffer, rowPtrBuffer, xBuffer, ApBuffer, argsSpmv, numWgSpmvVec, true);
+      this.dispatchSpmv(
+        enc,
+        valBuffer,
+        colIndBuffer,
+        rowPtrBuffer,
+        xBuffer,
+        ApBuffer,
+        argsSpmv,
+        numWgSpmvVec,
+        true
+      );
       this.dispatchSaxpy(enc, ApBuffer, rBuffer, argsNegOne, numWgVec); // r += -1·Ap
       this.dispatchApplyPrecond(enc, rBuffer, zBuffer, invDiagBuffer, argsVec, numWgVec);
       this.dispatchVecCopy(enc, zBuffer, pBuffer, argsVec, numWgVec);
@@ -489,7 +568,17 @@ export class SparseLinearSolver {
       const enc = this.device.createCommandEncoder({ label: 'pcg-batch' });
       for (let j = 0; j < batch; j++) {
         // Ap = A·p
-        this.dispatchSpmv(enc, valBuffer, colIndBuffer, rowPtrBuffer, pBuffer, ApBuffer, argsSpmv, numWgSpmvVec, true);
+        this.dispatchSpmv(
+          enc,
+          valBuffer,
+          colIndBuffer,
+          rowPtrBuffer,
+          pBuffer,
+          ApBuffer,
+          argsSpmv,
+          numWgSpmvVec,
+          true
+        );
         // pAp = p·Ap
         this.encodeDot(enc, pBuffer, ApBuffer, partials, sPAp, argsVec, argsReduce, numWgDot);
         // alpha = (r·z) / (p·Ap)
@@ -520,10 +609,27 @@ export class SparseLinearSolver {
     }
 
     this.cleanup([
-      valBuffer, colIndBuffer, rowPtrBuffer, bBuffer,
-      rBuffer, pBuffer, ApBuffer, zBuffer, invDiagBuffer, partials,
-      sPAp, sRR, sRZ, sRZold, sAlpha, sBeta, rrStaging,
-      argsSpmv, argsVec, argsReduce, argsNegOne,
+      valBuffer,
+      colIndBuffer,
+      rowPtrBuffer,
+      bBuffer,
+      rBuffer,
+      pBuffer,
+      ApBuffer,
+      zBuffer,
+      invDiagBuffer,
+      partials,
+      sPAp,
+      sRR,
+      sRZ,
+      sRZold,
+      sAlpha,
+      sBeta,
+      rrStaging,
+      argsSpmv,
+      argsVec,
+      argsReduce,
+      argsNegOne,
     ]);
 
     return { xBuffer, iterations: iteration, residualNormSq: rDotR, converged };
@@ -536,32 +642,46 @@ export class SparseLinearSolver {
   /** SpMV: groups 0 (CSR), 1 (vecs), 2 (args) */
   private dispatchSpmv(
     enc: GPUCommandEncoder,
-    val: GPUBuffer, col: GPUBuffer, row: GPUBuffer,
-    x: GPUBuffer, y: GPUBuffer,
-    args: GPUBuffer, numWgs: number, useVector: boolean,
+    val: GPUBuffer,
+    col: GPUBuffer,
+    row: GPUBuffer,
+    x: GPUBuffer,
+    y: GPUBuffer,
+    args: GPUBuffer,
+    numWgs: number,
+    useVector: boolean
   ): void {
     const pipeline = useVector ? this.spmvVectorPipeline : this.spmvPipeline;
     const pass = enc.beginComputePass({ label: 'spmv' });
     pass.setPipeline(pipeline);
-    pass.setBindGroup(0, this.device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: val } },
-        { binding: 1, resource: { buffer: col } },
-        { binding: 2, resource: { buffer: row } },
-      ],
-    }));
-    pass.setBindGroup(1, this.device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(1),
-      entries: [
-        { binding: 0, resource: { buffer: x } },
-        { binding: 1, resource: { buffer: y } },
-      ],
-    }));
-    pass.setBindGroup(2, this.device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(2),
-      entries: [{ binding: 0, resource: { buffer: args } }],
-    }));
+    pass.setBindGroup(
+      0,
+      this.device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: val } },
+          { binding: 1, resource: { buffer: col } },
+          { binding: 2, resource: { buffer: row } },
+        ],
+      })
+    );
+    pass.setBindGroup(
+      1,
+      this.device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(1),
+        entries: [
+          { binding: 0, resource: { buffer: x } },
+          { binding: 1, resource: { buffer: y } },
+        ],
+      })
+    );
+    pass.setBindGroup(
+      2,
+      this.device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(2),
+        entries: [{ binding: 0, resource: { buffer: args } }],
+      })
+    );
     pass.dispatchWorkgroups(numWgs);
     pass.end();
   }
@@ -569,22 +689,30 @@ export class SparseLinearSolver {
   /** SAXPY: groups 1 (vecs), 2 (args) */
   private dispatchSaxpy(
     enc: GPUCommandEncoder,
-    x: GPUBuffer, y: GPUBuffer,
-    args: GPUBuffer, numWgs: number,
+    x: GPUBuffer,
+    y: GPUBuffer,
+    args: GPUBuffer,
+    numWgs: number
   ): void {
     const pass = enc.beginComputePass({ label: 'saxpy' });
     pass.setPipeline(this.saxpyPipeline);
-    pass.setBindGroup(1, this.device.createBindGroup({
-      layout: this.saxpyPipeline.getBindGroupLayout(1),
-      entries: [
-        { binding: 0, resource: { buffer: x } },
-        { binding: 1, resource: { buffer: y } },
-      ],
-    }));
-    pass.setBindGroup(2, this.device.createBindGroup({
-      layout: this.saxpyPipeline.getBindGroupLayout(2),
-      entries: [{ binding: 0, resource: { buffer: args } }],
-    }));
+    pass.setBindGroup(
+      1,
+      this.device.createBindGroup({
+        layout: this.saxpyPipeline.getBindGroupLayout(1),
+        entries: [
+          { binding: 0, resource: { buffer: x } },
+          { binding: 1, resource: { buffer: y } },
+        ],
+      })
+    );
+    pass.setBindGroup(
+      2,
+      this.device.createBindGroup({
+        layout: this.saxpyPipeline.getBindGroupLayout(2),
+        entries: [{ binding: 0, resource: { buffer: args } }],
+      })
+    );
     pass.dispatchWorkgroups(numWgs);
     pass.end();
   }
@@ -592,22 +720,30 @@ export class SparseLinearSolver {
   /** Fused p = r + beta*p: groups 1 (vecs), 2 (args) */
   private dispatchPUpdate(
     enc: GPUCommandEncoder,
-    r: GPUBuffer, p: GPUBuffer,
-    args: GPUBuffer, numWgs: number,
+    r: GPUBuffer,
+    p: GPUBuffer,
+    args: GPUBuffer,
+    numWgs: number
   ): void {
     const pass = enc.beginComputePass({ label: 'p-update' });
     pass.setPipeline(this.pUpdatePipeline);
-    pass.setBindGroup(1, this.device.createBindGroup({
-      layout: this.pUpdatePipeline.getBindGroupLayout(1),
-      entries: [
-        { binding: 0, resource: { buffer: r } },
-        { binding: 1, resource: { buffer: p } },
-      ],
-    }));
-    pass.setBindGroup(2, this.device.createBindGroup({
-      layout: this.pUpdatePipeline.getBindGroupLayout(2),
-      entries: [{ binding: 0, resource: { buffer: args } }],
-    }));
+    pass.setBindGroup(
+      1,
+      this.device.createBindGroup({
+        layout: this.pUpdatePipeline.getBindGroupLayout(1),
+        entries: [
+          { binding: 0, resource: { buffer: r } },
+          { binding: 1, resource: { buffer: p } },
+        ],
+      })
+    );
+    pass.setBindGroup(
+      2,
+      this.device.createBindGroup({
+        layout: this.pUpdatePipeline.getBindGroupLayout(2),
+        entries: [{ binding: 0, resource: { buffer: args } }],
+      })
+    );
     pass.dispatchWorkgroups(numWgs);
     pass.end();
   }
@@ -615,22 +751,30 @@ export class SparseLinearSolver {
   /** Vec copy: groups 1 (vecs), 2 (args) */
   private dispatchVecCopy(
     enc: GPUCommandEncoder,
-    src: GPUBuffer, dst: GPUBuffer,
-    args: GPUBuffer, numWgs: number,
+    src: GPUBuffer,
+    dst: GPUBuffer,
+    args: GPUBuffer,
+    numWgs: number
   ): void {
     const pass = enc.beginComputePass({ label: 'vec-copy' });
     pass.setPipeline(this.vecCopyPipeline);
-    pass.setBindGroup(1, this.device.createBindGroup({
-      layout: this.vecCopyPipeline.getBindGroupLayout(1),
-      entries: [
-        { binding: 0, resource: { buffer: src } },
-        { binding: 1, resource: { buffer: dst } },
-      ],
-    }));
-    pass.setBindGroup(2, this.device.createBindGroup({
-      layout: this.vecCopyPipeline.getBindGroupLayout(2),
-      entries: [{ binding: 0, resource: { buffer: args } }],
-    }));
+    pass.setBindGroup(
+      1,
+      this.device.createBindGroup({
+        layout: this.vecCopyPipeline.getBindGroupLayout(1),
+        entries: [
+          { binding: 0, resource: { buffer: src } },
+          { binding: 1, resource: { buffer: dst } },
+        ],
+      })
+    );
+    pass.setBindGroup(
+      2,
+      this.device.createBindGroup({
+        layout: this.vecCopyPipeline.getBindGroupLayout(2),
+        entries: [{ binding: 0, resource: { buffer: args } }],
+      })
+    );
     pass.dispatchWorkgroups(numWgs);
     pass.end();
   }
@@ -638,28 +782,41 @@ export class SparseLinearSolver {
   /** Extract inverse diagonal (Jacobi M⁻¹): groups 0 (CSR), 1 (binding 1 = out), 2 (binding 0 = args) */
   private dispatchExtractInvDiag(
     enc: GPUCommandEncoder,
-    val: GPUBuffer, col: GPUBuffer, row: GPUBuffer,
-    out: GPUBuffer, args: GPUBuffer, numWgs: number,
+    val: GPUBuffer,
+    col: GPUBuffer,
+    row: GPUBuffer,
+    out: GPUBuffer,
+    args: GPUBuffer,
+    numWgs: number
   ): void {
     const p = this.extractInvDiagPipeline;
     const pass = enc.beginComputePass({ label: 'extract-inv-diag' });
     pass.setPipeline(p);
-    pass.setBindGroup(0, this.device.createBindGroup({
-      layout: p.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: val } },
-        { binding: 1, resource: { buffer: col } },
-        { binding: 2, resource: { buffer: row } },
-      ],
-    }));
-    pass.setBindGroup(1, this.device.createBindGroup({
-      layout: p.getBindGroupLayout(1),
-      entries: [{ binding: 1, resource: { buffer: out } }],
-    }));
-    pass.setBindGroup(2, this.device.createBindGroup({
-      layout: p.getBindGroupLayout(2),
-      entries: [{ binding: 0, resource: { buffer: args } }],
-    }));
+    pass.setBindGroup(
+      0,
+      this.device.createBindGroup({
+        layout: p.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: val } },
+          { binding: 1, resource: { buffer: col } },
+          { binding: 2, resource: { buffer: row } },
+        ],
+      })
+    );
+    pass.setBindGroup(
+      1,
+      this.device.createBindGroup({
+        layout: p.getBindGroupLayout(1),
+        entries: [{ binding: 1, resource: { buffer: out } }],
+      })
+    );
+    pass.setBindGroup(
+      2,
+      this.device.createBindGroup({
+        layout: p.getBindGroupLayout(2),
+        entries: [{ binding: 0, resource: { buffer: args } }],
+      })
+    );
     pass.dispatchWorkgroups(numWgs);
     pass.end();
   }
@@ -667,26 +824,35 @@ export class SparseLinearSolver {
   /** Apply preconditioner z = invDiag ∘ r: group1 {r, z}, group2 {args, invDiag} */
   private dispatchApplyPrecond(
     enc: GPUCommandEncoder,
-    r: GPUBuffer, z: GPUBuffer, invDiag: GPUBuffer,
-    args: GPUBuffer, numWgs: number,
+    r: GPUBuffer,
+    z: GPUBuffer,
+    invDiag: GPUBuffer,
+    args: GPUBuffer,
+    numWgs: number
   ): void {
     const p = this.applyPrecondPipeline;
     const pass = enc.beginComputePass({ label: 'apply-precond' });
     pass.setPipeline(p);
-    pass.setBindGroup(1, this.device.createBindGroup({
-      layout: p.getBindGroupLayout(1),
-      entries: [
-        { binding: 0, resource: { buffer: r } },
-        { binding: 1, resource: { buffer: z } },
-      ],
-    }));
-    pass.setBindGroup(2, this.device.createBindGroup({
-      layout: p.getBindGroupLayout(2),
-      entries: [
-        { binding: 0, resource: { buffer: args } },
-        { binding: 1, resource: { buffer: invDiag } },
-      ],
-    }));
+    pass.setBindGroup(
+      1,
+      this.device.createBindGroup({
+        layout: p.getBindGroupLayout(1),
+        entries: [
+          { binding: 0, resource: { buffer: r } },
+          { binding: 1, resource: { buffer: z } },
+        ],
+      })
+    );
+    pass.setBindGroup(
+      2,
+      this.device.createBindGroup({
+        layout: p.getBindGroupLayout(2),
+        entries: [
+          { binding: 0, resource: { buffer: args } },
+          { binding: 1, resource: { buffer: invDiag } },
+        ],
+      })
+    );
     pass.dispatchWorkgroups(numWgs);
     pass.end();
   }
@@ -694,19 +860,24 @@ export class SparseLinearSolver {
   /** Scalar divide out = num/(den+eps): group2 {b2=num, b3=den, b4=out} */
   private dispatchDivide(
     enc: GPUCommandEncoder,
-    num: GPUBuffer, den: GPUBuffer, out: GPUBuffer,
+    num: GPUBuffer,
+    den: GPUBuffer,
+    out: GPUBuffer
   ): void {
     const p = this.divideScalarPipeline;
     const pass = enc.beginComputePass({ label: 'divide-scalar' });
     pass.setPipeline(p);
-    pass.setBindGroup(2, this.device.createBindGroup({
-      layout: p.getBindGroupLayout(2),
-      entries: [
-        { binding: 2, resource: { buffer: num } },
-        { binding: 3, resource: { buffer: den } },
-        { binding: 4, resource: { buffer: out } },
-      ],
-    }));
+    pass.setBindGroup(
+      2,
+      this.device.createBindGroup({
+        layout: p.getBindGroupLayout(2),
+        entries: [
+          { binding: 2, resource: { buffer: num } },
+          { binding: 3, resource: { buffer: den } },
+          { binding: 4, resource: { buffer: out } },
+        ],
+      })
+    );
     pass.dispatchWorkgroups(1);
     pass.end();
   }
@@ -714,26 +885,36 @@ export class SparseLinearSolver {
   /** SAXPY with scalar from buffer: vec_out = (±)s·vec_in + vec_out. group1 {in,out}, group2 {args, scalar@b2} */
   private dispatchSaxpyBuf(
     enc: GPUCommandEncoder,
-    x: GPUBuffer, y: GPUBuffer, scalar: GPUBuffer,
-    args: GPUBuffer, numWgs: number, negate: boolean,
+    x: GPUBuffer,
+    y: GPUBuffer,
+    scalar: GPUBuffer,
+    args: GPUBuffer,
+    numWgs: number,
+    negate: boolean
   ): void {
     const p = negate ? this.saxpyNegBufPipeline : this.saxpyBufPipeline;
     const pass = enc.beginComputePass({ label: negate ? 'saxpy-neg-buf' : 'saxpy-buf' });
     pass.setPipeline(p);
-    pass.setBindGroup(1, this.device.createBindGroup({
-      layout: p.getBindGroupLayout(1),
-      entries: [
-        { binding: 0, resource: { buffer: x } },
-        { binding: 1, resource: { buffer: y } },
-      ],
-    }));
-    pass.setBindGroup(2, this.device.createBindGroup({
-      layout: p.getBindGroupLayout(2),
-      entries: [
-        { binding: 0, resource: { buffer: args } },
-        { binding: 2, resource: { buffer: scalar } },
-      ],
-    }));
+    pass.setBindGroup(
+      1,
+      this.device.createBindGroup({
+        layout: p.getBindGroupLayout(1),
+        entries: [
+          { binding: 0, resource: { buffer: x } },
+          { binding: 1, resource: { buffer: y } },
+        ],
+      })
+    );
+    pass.setBindGroup(
+      2,
+      this.device.createBindGroup({
+        layout: p.getBindGroupLayout(2),
+        entries: [
+          { binding: 0, resource: { buffer: args } },
+          { binding: 2, resource: { buffer: scalar } },
+        ],
+      })
+    );
     pass.dispatchWorkgroups(numWgs);
     pass.end();
   }
@@ -741,26 +922,35 @@ export class SparseLinearSolver {
   /** p = vec_in + s·p with scalar from buffer: group1 {in, p}, group2 {args, scalar@b2} */
   private dispatchPUpdateBuf(
     enc: GPUCommandEncoder,
-    vin: GPUBuffer, p: GPUBuffer, scalar: GPUBuffer,
-    args: GPUBuffer, numWgs: number,
+    vin: GPUBuffer,
+    p: GPUBuffer,
+    scalar: GPUBuffer,
+    args: GPUBuffer,
+    numWgs: number
   ): void {
     const pl = this.pUpdateBufPipeline;
     const pass = enc.beginComputePass({ label: 'p-update-buf' });
     pass.setPipeline(pl);
-    pass.setBindGroup(1, this.device.createBindGroup({
-      layout: pl.getBindGroupLayout(1),
-      entries: [
-        { binding: 0, resource: { buffer: vin } },
-        { binding: 1, resource: { buffer: p } },
-      ],
-    }));
-    pass.setBindGroup(2, this.device.createBindGroup({
-      layout: pl.getBindGroupLayout(2),
-      entries: [
-        { binding: 0, resource: { buffer: args } },
-        { binding: 2, resource: { buffer: scalar } },
-      ],
-    }));
+    pass.setBindGroup(
+      1,
+      this.device.createBindGroup({
+        layout: pl.getBindGroupLayout(1),
+        entries: [
+          { binding: 0, resource: { buffer: vin } },
+          { binding: 1, resource: { buffer: p } },
+        ],
+      })
+    );
+    pass.setBindGroup(
+      2,
+      this.device.createBindGroup({
+        layout: pl.getBindGroupLayout(2),
+        entries: [
+          { binding: 0, resource: { buffer: args } },
+          { binding: 2, resource: { buffer: scalar } },
+        ],
+      })
+    );
     pass.dispatchWorkgroups(numWgs);
     pass.end();
   }
@@ -772,29 +962,42 @@ export class SparseLinearSolver {
    */
   private encodeDot(
     enc: GPUCommandEncoder,
-    v1: GPUBuffer, v2: GPUBuffer,
-    partials: GPUBuffer, targetScalar: GPUBuffer,
-    argsVec: GPUBuffer, argsReduce: GPUBuffer, numWgDot: number,
+    v1: GPUBuffer,
+    v2: GPUBuffer,
+    partials: GPUBuffer,
+    targetScalar: GPUBuffer,
+    argsVec: GPUBuffer,
+    argsReduce: GPUBuffer,
+    numWgDot: number
   ): void {
     // Phase 1: per-workgroup partial sums
     {
       const pass = enc.beginComputePass({ label: 'dot-p1' });
       pass.setPipeline(this.dotPipeline);
-      pass.setBindGroup(1, this.device.createBindGroup({
-        layout: this.dotPipeline.getBindGroupLayout(1),
-        entries: [{ binding: 0, resource: { buffer: v1 } }],
-      }));
-      pass.setBindGroup(2, this.device.createBindGroup({
-        layout: this.dotPipeline.getBindGroupLayout(2),
-        entries: [
-          { binding: 0, resource: { buffer: argsVec } },
-          { binding: 1, resource: { buffer: v2 } },
-        ],
-      }));
-      pass.setBindGroup(3, this.device.createBindGroup({
-        layout: this.dotPipeline.getBindGroupLayout(3),
-        entries: [{ binding: 0, resource: { buffer: partials } }],
-      }));
+      pass.setBindGroup(
+        1,
+        this.device.createBindGroup({
+          layout: this.dotPipeline.getBindGroupLayout(1),
+          entries: [{ binding: 0, resource: { buffer: v1 } }],
+        })
+      );
+      pass.setBindGroup(
+        2,
+        this.device.createBindGroup({
+          layout: this.dotPipeline.getBindGroupLayout(2),
+          entries: [
+            { binding: 0, resource: { buffer: argsVec } },
+            { binding: 1, resource: { buffer: v2 } },
+          ],
+        })
+      );
+      pass.setBindGroup(
+        3,
+        this.device.createBindGroup({
+          layout: this.dotPipeline.getBindGroupLayout(3),
+          entries: [{ binding: 0, resource: { buffer: partials } }],
+        })
+      );
       pass.dispatchWorkgroups(numWgDot);
       pass.end();
     }
@@ -802,17 +1005,23 @@ export class SparseLinearSolver {
     {
       const pass = enc.beginComputePass({ label: 'dot-p2' });
       pass.setPipeline(this.finalReducePipeline);
-      pass.setBindGroup(2, this.device.createBindGroup({
-        layout: this.finalReducePipeline.getBindGroupLayout(2),
-        entries: [{ binding: 0, resource: { buffer: argsReduce } }],
-      }));
-      pass.setBindGroup(3, this.device.createBindGroup({
-        layout: this.finalReducePipeline.getBindGroupLayout(3),
-        entries: [
-          { binding: 0, resource: { buffer: partials } },
-          { binding: 1, resource: { buffer: targetScalar } },
-        ],
-      }));
+      pass.setBindGroup(
+        2,
+        this.device.createBindGroup({
+          layout: this.finalReducePipeline.getBindGroupLayout(2),
+          entries: [{ binding: 0, resource: { buffer: argsReduce } }],
+        })
+      );
+      pass.setBindGroup(
+        3,
+        this.device.createBindGroup({
+          layout: this.finalReducePipeline.getBindGroupLayout(3),
+          entries: [
+            { binding: 0, resource: { buffer: partials } },
+            { binding: 1, resource: { buffer: targetScalar } },
+          ],
+        })
+      );
       pass.dispatchWorkgroups(1);
       pass.end();
     }
@@ -825,9 +1034,14 @@ export class SparseLinearSolver {
    *   Readback: staging mapAsync → CPU f32
    */
   private async dotProduct(
-    v1: GPUBuffer, v2: GPUBuffer,
-    partials: GPUBuffer, scalar: GPUBuffer, staging: GPUBuffer,
-    args: GPUBuffer, n: number, numWgDot: number,
+    v1: GPUBuffer,
+    v2: GPUBuffer,
+    partials: GPUBuffer,
+    scalar: GPUBuffer,
+    staging: GPUBuffer,
+    args: GPUBuffer,
+    n: number,
+    numWgDot: number
   ): Promise<number> {
     // Phase 1: per-workgroup partial sums
     {
@@ -835,21 +1049,30 @@ export class SparseLinearSolver {
       const enc = this.device.createCommandEncoder({ label: 'dot-phase1' });
       const pass = enc.beginComputePass();
       pass.setPipeline(this.dotPipeline);
-      pass.setBindGroup(1, this.device.createBindGroup({
-        layout: this.dotPipeline.getBindGroupLayout(1),
-        entries: [{ binding: 0, resource: { buffer: v1 } }],
-      }));
-      pass.setBindGroup(2, this.device.createBindGroup({
-        layout: this.dotPipeline.getBindGroupLayout(2),
-        entries: [
-          { binding: 0, resource: { buffer: args } },
-          { binding: 1, resource: { buffer: v2 } },
-        ],
-      }));
-      pass.setBindGroup(3, this.device.createBindGroup({
-        layout: this.dotPipeline.getBindGroupLayout(3),
-        entries: [{ binding: 0, resource: { buffer: partials } }],
-      }));
+      pass.setBindGroup(
+        1,
+        this.device.createBindGroup({
+          layout: this.dotPipeline.getBindGroupLayout(1),
+          entries: [{ binding: 0, resource: { buffer: v1 } }],
+        })
+      );
+      pass.setBindGroup(
+        2,
+        this.device.createBindGroup({
+          layout: this.dotPipeline.getBindGroupLayout(2),
+          entries: [
+            { binding: 0, resource: { buffer: args } },
+            { binding: 1, resource: { buffer: v2 } },
+          ],
+        })
+      );
+      pass.setBindGroup(
+        3,
+        this.device.createBindGroup({
+          layout: this.dotPipeline.getBindGroupLayout(3),
+          entries: [{ binding: 0, resource: { buffer: partials } }],
+        })
+      );
       pass.dispatchWorkgroups(numWgDot);
       pass.end();
       this.device.queue.submit([enc.finish()]);
@@ -861,17 +1084,23 @@ export class SparseLinearSolver {
       const enc = this.device.createCommandEncoder({ label: 'dot-phase2' });
       const pass = enc.beginComputePass();
       pass.setPipeline(this.finalReducePipeline);
-      pass.setBindGroup(2, this.device.createBindGroup({
-        layout: this.finalReducePipeline.getBindGroupLayout(2),
-        entries: [{ binding: 0, resource: { buffer: args } }],
-      }));
-      pass.setBindGroup(3, this.device.createBindGroup({
-        layout: this.finalReducePipeline.getBindGroupLayout(3),
-        entries: [
-          { binding: 0, resource: { buffer: partials } },
-          { binding: 1, resource: { buffer: scalar } },
-        ],
-      }));
+      pass.setBindGroup(
+        2,
+        this.device.createBindGroup({
+          layout: this.finalReducePipeline.getBindGroupLayout(2),
+          entries: [{ binding: 0, resource: { buffer: args } }],
+        })
+      );
+      pass.setBindGroup(
+        3,
+        this.device.createBindGroup({
+          layout: this.finalReducePipeline.getBindGroupLayout(3),
+          entries: [
+            { binding: 0, resource: { buffer: partials } },
+            { binding: 1, resource: { buffer: scalar } },
+          ],
+        })
+      );
       pass.dispatchWorkgroups(1);
       pass.end();
       enc.copyBufferToBuffer(scalar, 0, staging, 0, 4);
@@ -888,17 +1117,29 @@ export class SparseLinearSolver {
   // Buffer helpers
   // ═══════════════════════════════════════════════════════════════════
 
-  private writeArgs(buf: GPUBuffer, numRows: number, vectorWidth: number, n: number, alpha: number): void {
+  private writeArgs(
+    buf: GPUBuffer,
+    numRows: number,
+    vectorWidth: number,
+    n: number,
+    alpha: number
+  ): void {
     const data = new ArrayBuffer(16);
     new Uint32Array(data, 0, 3).set([numRows, vectorWidth, n]);
     new Float32Array(data, 12, 1).set([alpha]);
     this.device.queue.writeBuffer(buf, 0, data);
   }
 
-  public uploadStorage(data: Float32Array | Uint32Array, label: string, extraUsage: GPUBufferUsageFlags = 0): GPUBuffer {
+  public uploadStorage(
+    data: Float32Array | Uint32Array,
+    label: string,
+    extraUsage: GPUBufferUsageFlags = 0
+  ): GPUBuffer {
     const buf = this.device.createBuffer({
-      label, size: data.byteLength,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | extraUsage,
+      label,
+      size: data.byteLength,
+      usage:
+        GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | extraUsage,
       mappedAtCreation: true,
     });
     if (data instanceof Float32Array) new Float32Array(buf.getMappedRange()).set(data);
@@ -909,8 +1150,10 @@ export class SparseLinearSolver {
 
   public emptyVec(n: number, label: string, extraUsage: GPUBufferUsageFlags = 0): GPUBuffer {
     return this.device.createBuffer({
-      label, size: Math.max(4, n * 4),
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | extraUsage,
+      label,
+      size: Math.max(4, n * 4),
+      usage:
+        GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | extraUsage,
     });
   }
 
@@ -924,7 +1167,8 @@ export class SparseLinearSolver {
 
   public async readback(buf: GPUBuffer, n: number): Promise<Float32Array> {
     const staging = this.device.createBuffer({
-      size: n * 4, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+      size: n * 4,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
     const enc = this.device.createCommandEncoder();
     enc.copyBufferToBuffer(buf, 0, staging, 0, n * 4);

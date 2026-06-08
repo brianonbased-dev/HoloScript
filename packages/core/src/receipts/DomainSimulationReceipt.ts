@@ -76,7 +76,7 @@ export interface DomainSimulationReceiptVerification {
 }
 
 export function buildDomainSimulationReceipt(
-  input: DomainSimulationReceiptInput,
+  input: DomainSimulationReceiptInput
 ): DomainSimulationReceipt {
   if (!input.plugin?.trim()) {
     throw new Error('[domain-receipt] plugin is required and must be a non-empty string');
@@ -114,7 +114,7 @@ export function buildDomainSimulationReceipt(
 }
 
 export function verifyDomainSimulationReceipt(
-  receipt: DomainSimulationReceipt,
+  receipt: DomainSimulationReceipt
 ): DomainSimulationReceiptVerification {
   const errors: string[] = [];
   const { payloadHash, hashAlgorithm, ...receiptWithoutHash } = receipt;
@@ -167,7 +167,9 @@ export function canonicalizeDomainReceiptPayload(payload: unknown): string {
 
 function toDomainReceiptJson(value: unknown, depth: number): DomainReceiptJson {
   if (depth > MAX_RECEIPT_DEPTH) {
-    throw new Error(`[domain-receipt] Receipt payload exceeds max depth (${MAX_RECEIPT_DEPTH}). Possible circular reference or excessively nested structure.`);
+    throw new Error(
+      `[domain-receipt] Receipt payload exceeds max depth (${MAX_RECEIPT_DEPTH}). Possible circular reference or excessively nested structure.`
+    );
   }
   if (value === null) return null;
   if (value === undefined) return null;
@@ -179,10 +181,14 @@ function toDomainReceiptJson(value: unknown, depth: number): DomainReceiptJson {
     return value;
   }
   if (typeof value === 'bigint') {
-    throw new Error('[domain-receipt] BigInt values are not receipt-safe; convert to string or number before hashing');
+    throw new Error(
+      '[domain-receipt] BigInt values are not receipt-safe; convert to string or number before hashing'
+    );
   }
   if (value instanceof Date) {
-    throw new Error(`[domain-receipt] Date objects are not receipt-safe; serialize to ISO string before hashing (got ${value.toISOString()})`);
+    throw new Error(
+      `[domain-receipt] Date objects are not receipt-safe; serialize to ISO string before hashing (got ${value.toISOString()})`
+    );
   }
   if (Array.isArray(value)) {
     return value.map((item) => toDomainReceiptJson(item, depth + 1));

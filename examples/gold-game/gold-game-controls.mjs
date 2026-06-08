@@ -19,12 +19,29 @@ export function initState() {
 // Normalize a key (KeyboardEvent.key) to a control verb. Returns null if unmapped.
 export function keyToVerb(key) {
   switch (key) {
-    case 'w': case 'W': case 'ArrowUp': return 'ascend';
-    case 's': case 'S': case 'ArrowDown': return 'descend';
-    case 'a': case 'A': case 'ArrowLeft': return 'left';
-    case 'd': case 'D': case 'ArrowRight': return 'right';
-    case 'e': case 'E': case ' ': case 'Enter': return 'graduate';
-    default: return null;
+    case 'w':
+    case 'W':
+    case 'ArrowUp':
+      return 'ascend';
+    case 's':
+    case 'S':
+    case 'ArrowDown':
+      return 'descend';
+    case 'a':
+    case 'A':
+    case 'ArrowLeft':
+      return 'left';
+    case 'd':
+    case 'D':
+    case 'ArrowRight':
+      return 'right';
+    case 'e':
+    case 'E':
+    case ' ':
+    case 'Enter':
+      return 'graduate';
+    default:
+      return null;
   }
 }
 
@@ -40,8 +57,10 @@ export function applyInput(state, key) {
   else if (verb === 'right') s.x += 1;
   else if (verb === 'graduate') {
     const tier = TIERS[s.tierIndex];
-    if (!s.graduated.includes(tier)) { s.graduated.push(tier); action = 'graduate:' + tier; }
-    else action = 'graduate:noop';
+    if (!s.graduated.includes(tier)) {
+      s.graduated.push(tier);
+      action = 'graduate:' + tier;
+    } else action = 'graduate:noop';
   }
   return { state: s, action };
 }
@@ -50,6 +69,10 @@ export function applyInput(state, key) {
 export function runTrace(keys) {
   let state = initState();
   const log = [];
-  for (const k of keys) { const r = applyInput(state, k); state = r.state; if (r.action) log.push(r.action); }
+  for (const k of keys) {
+    const r = applyInput(state, k);
+    state = r.state;
+    if (r.action) log.push(r.action);
+  }
   return { state, log };
 }

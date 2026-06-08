@@ -59,7 +59,7 @@ describe('travel-hospitality -> HoloScript runtime integration (revpar)', () => 
         availableRooms: AVAILABLE_ROOMS,
         occupiedRooms: OCCUPIED_ROOMS,
         totalRevenue: TOTAL_REVENUE,
-      }) as never,
+      }) as never
     );
     await flush();
 
@@ -84,7 +84,7 @@ describe('travel-hospitality -> HoloScript runtime integration (revpar)', () => 
         availableRooms: AVAILABLE_ROOMS,
         occupiedRooms: OCCUPIED_ROOMS,
         totalRevenue: TOTAL_REVENUE,
-      }) as never,
+      }) as never
     );
     await flush();
 
@@ -100,7 +100,7 @@ describe('travel-hospitality -> HoloScript runtime integration (revpar)', () => 
         availableRooms: AVAILABLE_ROOMS,
         occupiedRooms: OCCUPIED_ROOMS,
         totalRevenue: TOTAL_REVENUE,
-      }) as never,
+      }) as never
     );
     await flush();
 
@@ -127,7 +127,7 @@ describe('travel-hospitality -> HoloScript runtime integration (revpar)', () => 
     // `availableRooms <= 0` first and throws "availableRooms must be positive",
     // which the handler's try/catch turns into a revpar_error rather than a throw.
     await runtime.executeNode(
-      revparOrb({ availableRooms: 0, occupiedRooms: 0, totalRevenue: -5_000 }) as never,
+      revparOrb({ availableRooms: 0, occupiedRooms: 0, totalRevenue: -5_000 }) as never
     );
     await flush();
 

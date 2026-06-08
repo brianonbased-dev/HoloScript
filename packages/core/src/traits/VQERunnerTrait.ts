@@ -212,7 +212,7 @@ async function payloadHash(data: Record<string, unknown>): Promise<string> {
     const encoded = new TextEncoder().encode(json);
     const buf = await globalThis.crypto.subtle.digest('SHA-256', encoded);
     return Array.from(new Uint8Array(buf))
-      .map(b => b.toString(16).padStart(2, '0'))
+      .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
   }
   // RATCHET (was THIN P3): Formerly djb2 fallback padded to look like SHA-256.
@@ -234,7 +234,7 @@ async function payloadHash(data: Record<string, unknown>): Promise<string> {
 async function buildReceipt(
   result: VQERunResult,
   config: VQERunnerConfig,
-  molecule: string,
+  molecule: string
 ): Promise<VQEReceipt> {
   // RATCHET: canonical payload expanded to match quantum_receipt_verify.py
   // expectations (energy + jobId + ansatz + optimizer, not just energy + jobId).
@@ -271,7 +271,7 @@ async function buildReceipt(
 async function dispatchVQE(
   config: VQERunnerConfig,
   moleculeAtoms: Array<{ symbol: string; x: number; y: number; z: number }>,
-  onEnergy?: (iteration: number, energy: number) => void,
+  onEnergy?: (iteration: number, energy: number) => void
 ): Promise<VQERunResult> {
   const t0 = Date.now();
 
@@ -279,8 +279,12 @@ async function dispatchVQE(
     // Dynamic import Ã¢â‚¬â€ keeps core free of a hard compile-time dependency.
     const qmBridge = await import('@holoscript/qm-bridge' as string).catch(() => null);
 
-    if (qmBridge && typeof (qmBridge as Record<string, unknown>).createIBMQuantumBackend === 'function') {
-      const createBackend = (qmBridge as Record<string, (...args: unknown[]) => unknown>).createIBMQuantumBackend;
+    if (
+      qmBridge &&
+      typeof (qmBridge as Record<string, unknown>).createIBMQuantumBackend === 'function'
+    ) {
+      const createBackend = (qmBridge as Record<string, (...args: unknown[]) => unknown>)
+        .createIBMQuantumBackend;
       const backend = createBackend({
         backend: config.backend === 'ibm-quantum' ? 'ibm-quantum' : 'ibm-quantum',
         method: config.method,
@@ -327,16 +331,17 @@ async function dispatchVQE(
       backend: 'unavailable',
       tier: 'stub',
       jobId: undefined,
-      error: 'qm-bridge not installed and VQE_ALLOW_STUB not set. Install @holoscript/qm-bridge or set VQE_ALLOW_STUB=1 for development stub.',
+      error:
+        'qm-bridge not installed and VQE_ALLOW_STUB not set. Install @holoscript/qm-bridge or set VQE_ALLOW_STUB=1 for development stub.',
     };
   }
   return {
-    energy: -1.1175,          // HÃ¢â€šâ€š/STO-3G HF reference Ã¢â‚¬â€ a recognisable placeholder
+    energy: -1.1175, // HÃ¢â€šâ€š/STO-3G HF reference Ã¢â‚¬â€ a recognisable placeholder
     unit: 'Ha',
     evaluations: 0,
     wallSeconds: (Date.now() - t0) / 1000,
     backend: 'aer-stub',
-    tier: 'stub',             // always present Ã¢â‚¬â€ distinguishes from real results
+    tier: 'stub', // always present Ã¢â‚¬â€ distinguishes from real results
     jobId: undefined,
   };
 }
@@ -377,7 +382,7 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
     node: HSPlusNode,
     config: VQERunnerConfig,
     context: TraitContext,
-    event: TraitEvent,
+    event: TraitEvent
   ): void {
     const state = getState(node);
 
@@ -411,13 +416,13 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
 
       // Extract molecule from @quantumCircuit sibling trait if not overridden
       const moleculeAtoms: Array<{ symbol: string; x: number; y: number; z: number }> =
-        (overrides as Record<string, unknown>).molecule as typeof moleculeAtoms ??
+        ((overrides as Record<string, unknown>).molecule as typeof moleculeAtoms) ??
         // Attempt to read from node's quantumCircuit config (structural coupling)
-        (node as unknown as Record<string, unknown>).quantumCircuitConfig as typeof moleculeAtoms ??
+        ((node as unknown as Record<string, unknown>)
+          .quantumCircuitConfig as typeof moleculeAtoms) ??
         [];
 
-      const moleculeLabel =
-        moleculeAtoms.map(a => a.symbol).join('') || 'molecule';
+      const moleculeLabel = moleculeAtoms.map((a) => a.symbol).join('') || 'molecule';
 
       state.status = 'running';
       state.cancelRequested = false;
@@ -427,14 +432,10 @@ export const vqeRunnerHandler: TraitHandler<VQERunnerConfig> = {
       // Async execution Ã¢â‚¬â€ fire and forget from the sync event handler
       void (async () => {
         try {
-          const result = await dispatchVQE(
-            merged,
-            moleculeAtoms,
-            (iteration, energy) => {
-              if (state.cancelRequested) return;
-              context.emit?.('vqe:energy', { iteration, energy, unit: 'Ha' });
-            },
-          );
+          const result = await dispatchVQE(merged, moleculeAtoms, (iteration, energy) => {
+            if (state.cancelRequested) return;
+            context.emit?.('vqe:energy', { iteration, energy, unit: 'Ha' });
+          });
 
           if (state.cancelRequested) {
             state.status = 'idle';

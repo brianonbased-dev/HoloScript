@@ -14,7 +14,7 @@ import {
 function cellFor(
   cells: MotionBenchmarkCell[],
   category: string,
-  system: string,
+  system: string
 ): MotionBenchmarkCell {
   const found = cells.find((c) => c.category === category && c.system === system);
   if (!found) throw new Error(`Cell not found: ${category} × ${system}`);
@@ -32,9 +32,7 @@ describe('Paper-9 MotionPlausibility 5-category benchmark', () => {
 
   it('produces a complete 20-cell matrix (5 categories × 4 systems)', () => {
     const matrix = runMotionPlausibilityBenchmark({ clipCount: CLIP_COUNT, seed: SEED });
-    expect(matrix.cells).toHaveLength(
-      PAPER_9_CATEGORIES.length * PAPER_9_BASELINES.length,
-    );
+    expect(matrix.cells).toHaveLength(PAPER_9_CATEGORIES.length * PAPER_9_BASELINES.length);
     for (const cell of matrix.cells) {
       expect(PAPER_9_CATEGORIES).toContain(cell.category);
       expect(PAPER_9_BASELINES).toContain(cell.system);
@@ -55,7 +53,7 @@ describe('Paper-9 MotionPlausibility 5-category benchmark', () => {
     for (const category of PAPER_9_CATEGORIES) {
       const cell = cellFor(matrix.cells, category, 'animgan');
       // passRate ≤ 0.90 means at least 10% failure rate
-      expect(cell.passRate).toBeLessThanOrEqual(0.90);
+      expect(cell.passRate).toBeLessThanOrEqual(0.9);
     }
   });
 
@@ -63,7 +61,7 @@ describe('Paper-9 MotionPlausibility 5-category benchmark', () => {
     const matrix = runMotionPlausibilityBenchmark({ clipCount: CLIP_COUNT, seed: SEED });
     for (const category of PAPER_9_CATEGORIES) {
       const cell = cellFor(matrix.cells, category, 'motionvae');
-      expect(cell.passRate).toBeLessThanOrEqual(0.90);
+      expect(cell.passRate).toBeLessThanOrEqual(0.9);
     }
   });
 
@@ -71,7 +69,7 @@ describe('Paper-9 MotionPlausibility 5-category benchmark', () => {
     const matrix = runMotionPlausibilityBenchmark({ clipCount: CLIP_COUNT, seed: SEED });
     for (const category of PAPER_9_CATEGORIES) {
       const cell = cellFor(matrix.cells, category, 'mdm');
-      expect(cell.passRate).toBeLessThanOrEqual(0.90);
+      expect(cell.passRate).toBeLessThanOrEqual(0.9);
     }
   });
 
@@ -79,8 +77,7 @@ describe('Paper-9 MotionPlausibility 5-category benchmark', () => {
     const matrix = runMotionPlausibilityBenchmark({ clipCount: CLIP_COUNT, seed: SEED });
     for (const system of ['animgan', 'motionvae', 'mdm'] as const) {
       const cells = matrix.cells.filter((c) => c.system === system);
-      const avgPassRate =
-        cells.reduce((sum, c) => sum + c.passRate, 0) / cells.length;
+      const avgPassRate = cells.reduce((sum, c) => sum + c.passRate, 0) / cells.length;
       expect(avgPassRate).toBeLessThan(0.85); // ≥15% failure on average
     }
   });
@@ -142,8 +139,9 @@ describe('Paper-9 MotionPlausibility 5-category benchmark', () => {
         const cell = cellFor(matrix.cells, category, sys);
         return `${(cell.passRate * 100).toFixed(1)}%`.padEnd(12);
       });
-      const timing = cellFor(matrix.cells, category, 'contracted')
-        .checkMicrosecondsPerClip.toFixed(2);
+      const timing = cellFor(matrix.cells, category, 'contracted').checkMicrosecondsPerClip.toFixed(
+        2
+      );
       console.log(`${category.padEnd(16)} | ${values.join(' | ')} | ${timing} µs`);
     }
     console.log('-'.repeat(header.length));
@@ -156,8 +154,8 @@ describe('Paper-9 MotionPlausibility 5-category benchmark', () => {
 
       for (const baseline of ['animgan', 'motionvae', 'mdm'] as const) {
         const cell = cellFor(matrix.cells, category, baseline);
-        expect(cell.passRate).toBeLessThan(0.90);
-        expect(cell.passRate).toBeGreaterThan(0.50); // shouldn't be >50% failure
+        expect(cell.passRate).toBeLessThan(0.9);
+        expect(cell.passRate).toBeGreaterThan(0.5); // shouldn't be >50% failure
       }
     }
   });

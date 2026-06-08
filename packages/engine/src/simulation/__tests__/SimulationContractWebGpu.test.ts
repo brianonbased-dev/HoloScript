@@ -14,10 +14,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import {
-  hashGpuOutput,
-  ContractedSimulation,
-} from '../SimulationContract';
+import { hashGpuOutput, ContractedSimulation } from '../SimulationContract';
 import type { SimSolver, FieldData } from '../SimSolver';
 import { isGpuBackedSolver } from '../SimSolver';
 import type { GpuBackedSolver } from '../SimSolver';
@@ -31,8 +28,12 @@ function cpuSolver(fields: Record<string, Float32Array> = {}): SimSolver {
     fieldNames: Object.keys(fields),
     step: vi.fn(),
     solve: vi.fn(),
-    getField(name: string): FieldData | null { return fields[name] ?? null; },
-    getStats() { return {}; },
+    getField(name: string): FieldData | null {
+      return fields[name] ?? null;
+    },
+    getStats() {
+      return {};
+    },
     dispose: vi.fn(),
   };
 }
@@ -40,15 +41,19 @@ function cpuSolver(fields: Record<string, Float32Array> = {}): SimSolver {
 /** Minimal GpuBackedSolver mock — readbackOutput returns a fresh copy of `buf` each call */
 function gpuSolver(
   fields: Record<string, Float32Array> = {},
-  outputBuf: Float32Array = new Float32Array([1, 2, 3, 4]),
+  outputBuf: Float32Array = new Float32Array([1, 2, 3, 4])
 ): GpuBackedSolver {
   return {
     mode: 'transient',
     fieldNames: Object.keys(fields),
     step: vi.fn().mockResolvedValue(undefined),
     solve: vi.fn().mockResolvedValue(undefined),
-    getField(name: string): FieldData | null { return fields[name] ?? null; },
-    getStats() { return {}; },
+    getField(name: string): FieldData | null {
+      return fields[name] ?? null;
+    },
+    getStats() {
+      return {};
+    },
     dispose: vi.fn(),
     readbackOutput: vi.fn().mockResolvedValue(outputBuf),
   };

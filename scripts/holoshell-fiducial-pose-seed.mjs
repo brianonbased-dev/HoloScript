@@ -12,7 +12,13 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyzeTargetInFrame } from './holoshell-target-in-frame-analyzer.mjs';
 import { generateFiducialBoard } from './holoshell-fiducial-board.mjs';
-import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import {
+  chainReceipt,
+  sha256Bytes,
+  sha256Text,
+  stageReceipt,
+  withHash,
+} from './holoshell/chain/receipts.mjs';
 
 export const RECEIPT_VERSION = 'holoshell-fiducial-pose-seed/v1';
 const VERSION = '0.1.0';
@@ -90,7 +96,8 @@ function parseArgs(argv) {
   }
   if (args.help || args.selfTest) return args;
   if (!args.targetInFrame) throw new Error('--target-in-frame is required');
-  if (!(args.fovDeg > 5 && args.fovDeg < 175)) throw new Error('--fov-deg must be between 5 and 175');
+  if (!(args.fovDeg > 5 && args.fovDeg < 175))
+    throw new Error('--fov-deg must be between 5 and 175');
   if (!(args.maxRms >= 0)) throw new Error('--max-rms must be non-negative');
   return args;
 }
@@ -135,11 +142,7 @@ function vecSub(a, b) {
 }
 
 function vecCross(a, b) {
-  return [
-    a[1] * b[2] - a[2] * b[1],
-    a[2] * b[0] - a[0] * b[2],
-    a[0] * b[1] - a[1] * b[0],
-  ];
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 }
 
 function vecNormalize(v) {
@@ -179,10 +182,11 @@ function inverseIntrinsicMatrix(intrinsics) {
 function intrinsicsFromReceipt(receipt, options = {}) {
   const width = Number(receipt?.frame?.width);
   const height = Number(receipt?.frame?.height);
-  if (!(width > 0) || !(height > 0)) throw new Error('target-in-frame receipt frame dimensions missing');
+  if (!(width > 0) || !(height > 0))
+    throw new Error('target-in-frame receipt frame dimensions missing');
   const hasExplicitFocal = Number.isFinite(options.fx) && Number.isFinite(options.fy);
   const fovDeg = Number.isFinite(options.fovDeg) ? options.fovDeg : 60;
-  const focalFromFov = (width / 2) / Math.tan((fovDeg * Math.PI) / 360);
+  const focalFromFov = width / 2 / Math.tan((fovDeg * Math.PI) / 360);
   const fx = hasExplicitFocal ? options.fx : focalFromFov;
   const fy = hasExplicitFocal ? options.fy : focalFromFov;
   const cx = Number.isFinite(options.cx) ? options.cx : width / 2;
@@ -199,10 +203,9 @@ function intrinsicsFromReceipt(receipt, options = {}) {
     calibrated: false,
     calibrationReady: false,
     distortionCoefficientsKnown: false,
-    honestScope:
-      hasExplicitFocal
-        ? 'Explicit pinhole intrinsics were supplied to seed planar pose. This still does not prove lens distortion calibration.'
-        : 'Pinhole focal length estimated from frame width and field-of-view. This is an anchor seed, not camera calibration.',
+    honestScope: hasExplicitFocal
+      ? 'Explicit pinhole intrinsics were supplied to seed planar pose. This still does not prove lens distortion calibration.'
+      : 'Pinhole focal length estimated from frame width and field-of-view. This is an anchor seed, not camera calibration.',
   };
 }
 
@@ -284,13 +287,19 @@ function reprojectionFromPose(intrinsics, pose, points) {
       markerId: point.markerId,
       cornerIndex: point.cornerIndex,
       source: point.source,
-      projected: projected ? { x: round(projected.x, 3), y: round(projected.y, 3), z: round(projected.z, 6) } : undefined,
+      projected: projected
+        ? { x: round(projected.x, 3), y: round(projected.y, 3), z: round(projected.z, 6) }
+        : undefined,
       observed: point.observed,
       error: round(error, 6),
     };
   });
-  const finiteErrors = residuals.map((point) => point.error).filter((error) => Number.isFinite(error));
-  const rmsPixels = Math.sqrt(finiteErrors.reduce((sum, error) => sum + error * error, 0) / Math.max(1, finiteErrors.length));
+  const finiteErrors = residuals
+    .map((point) => point.error)
+    .filter((error) => Number.isFinite(error));
+  const rmsPixels = Math.sqrt(
+    finiteErrors.reduce((sum, error) => sum + error * error, 0) / Math.max(1, finiteErrors.length)
+  );
   const maxPixels = finiteErrors.length > 0 ? Math.max(...finiteErrors) : Infinity;
   return {
     rmsPixels: round(rmsPixels),
@@ -386,21 +395,33 @@ export function estimateFiducialPoseSeed({
   cy,
   maxRms = 4,
 } = {}) {
-  const receipt = targetInFrameReceipt ?? (targetInFramePath ? readJson(targetInFramePath) : undefined);
+  const receipt =
+    targetInFrameReceipt ?? (targetInFramePath ? readJson(targetInFramePath) : undefined);
   if (!receipt) throw new Error('--target-in-frame is required');
   const intrinsics = intrinsicsFromReceipt(receipt, { fovDeg, fx, fy, cx, cy });
   const boardPose = receipt.detection?.boardPose;
   const blockers = [];
-  if (receipt.detection?.boardHomographyReady !== true || boardPose?.status !== 'homography-estimated') {
+  if (
+    receipt.detection?.boardHomographyReady !== true ||
+    boardPose?.status !== 'homography-estimated'
+  ) {
     blockers.push('board-homography-unavailable');
   }
-  if (!Array.isArray(boardPose?.matrix) || boardPose.matrix.length !== 3) blockers.push('homography-matrix-missing');
+  if (!Array.isArray(boardPose?.matrix) || boardPose.matrix.length !== 3)
+    blockers.push('homography-matrix-missing');
   const points = homographyResidualPoints(boardPose);
   if (points.length < 8) blockers.push('board-correspondences-missing');
   if (blockers.length > 0) {
-    const blocked = blockedReceipt({ targetInFrameReceipt: receipt, targetInFramePath, intrinsics, blockers, out });
+    const blocked = blockedReceipt({
+      targetInFrameReceipt: receipt,
+      targetInFramePath,
+      intrinsics,
+      blockers,
+      out,
+    });
     const errors = validateReceipt(blocked);
-    if (errors.length > 0) throw new Error(`Invalid fiducial pose seed receipt: ${errors.join('; ')}`);
+    if (errors.length > 0)
+      throw new Error(`Invalid fiducial pose seed receipt: ${errors.join('; ')}`);
     if (out) writeJson(out, blocked);
     return blocked;
   }
@@ -415,12 +436,14 @@ export function estimateFiducialPoseSeed({
       out,
     });
     const errors = validateReceipt(blocked);
-    if (errors.length > 0) throw new Error(`Invalid fiducial pose seed receipt: ${errors.join('; ')}`);
+    if (errors.length > 0)
+      throw new Error(`Invalid fiducial pose seed receipt: ${errors.join('; ')}`);
     if (out) writeJson(out, blocked);
     return blocked;
   }
   const reprojection = reprojectionFromPose(intrinsics, pose, points);
-  const reprojectionPass = Number.isFinite(reprojection.rmsPixels) && reprojection.rmsPixels <= maxRms;
+  const reprojectionPass =
+    Number.isFinite(reprojection.rmsPixels) && reprojection.rmsPixels <= maxRms;
   if (!reprojectionPass) {
     const blocked = blockedReceipt({
       targetInFrameReceipt: receipt,
@@ -430,7 +453,8 @@ export function estimateFiducialPoseSeed({
       out,
     });
     const errors = validateReceipt(blocked);
-    if (errors.length > 0) throw new Error(`Invalid fiducial pose seed receipt: ${errors.join('; ')}`);
+    if (errors.length > 0)
+      throw new Error(`Invalid fiducial pose seed receipt: ${errors.join('; ')}`);
     if (out) writeJson(out, blocked);
     return blocked;
   }
@@ -510,7 +534,8 @@ export function estimateFiducialPoseSeed({
     outputPath: out ? rel(out) : undefined,
   });
   const errors = validateReceipt(poseReceipt);
-  if (errors.length > 0) throw new Error(`Invalid fiducial pose seed receipt: ${errors.join('; ')}`);
+  if (errors.length > 0)
+    throw new Error(`Invalid fiducial pose seed receipt: ${errors.join('; ')}`);
   if (out) writeJson(out, poseReceipt);
   return poseReceipt;
 }
@@ -521,24 +546,37 @@ export function validateReceipt(receipt) {
   if (receipt.schemaVersion !== RECEIPT_VERSION) errors.push('schemaVersion mismatch');
   if (!['pass', 'blocked'].includes(receipt.status)) errors.push('status must be pass or blocked');
   if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
-  if (!receipt.targetInFrame?.receiptHash?.startsWith('sha256:')) errors.push('target-in-frame receipt hash missing');
-  if (!(receipt.intrinsics?.width > 0) || !(receipt.intrinsics?.height > 0)) errors.push('intrinsics dimensions missing');
-  if (!(receipt.intrinsics?.fx > 0) || !(receipt.intrinsics?.fy > 0)) errors.push('intrinsics focal length missing');
-  if (receipt.intrinsics?.calibrationReady !== false) errors.push('intrinsics must not claim calibration readiness');
-  if (receipt.poseSeed?.calibrationReady !== false) errors.push('pose seed must not claim camera calibration');
-  if (receipt.poseSeed?.solvePnPReady !== false) errors.push('pose seed must not claim solvePnP readiness');
+  if (!receipt.targetInFrame?.receiptHash?.startsWith('sha256:'))
+    errors.push('target-in-frame receipt hash missing');
+  if (!(receipt.intrinsics?.width > 0) || !(receipt.intrinsics?.height > 0))
+    errors.push('intrinsics dimensions missing');
+  if (!(receipt.intrinsics?.fx > 0) || !(receipt.intrinsics?.fy > 0))
+    errors.push('intrinsics focal length missing');
+  if (receipt.intrinsics?.calibrationReady !== false)
+    errors.push('intrinsics must not claim calibration readiness');
+  if (receipt.poseSeed?.calibrationReady !== false)
+    errors.push('pose seed must not claim camera calibration');
+  if (receipt.poseSeed?.solvePnPReady !== false)
+    errors.push('pose seed must not claim solvePnP readiness');
   if (receipt.status === 'pass') {
-    if (receipt.poseSeed?.status !== 'pose-seed-estimated') errors.push('pose seed status mismatch');
+    if (receipt.poseSeed?.status !== 'pose-seed-estimated')
+      errors.push('pose seed status mismatch');
     if (receipt.poseSeed?.poseSeedReady !== true) errors.push('poseSeedReady missing');
-    if (!(receipt.poseSeed?.reprojection?.rmsPixels >= 0)) errors.push('pose reprojection RMS missing');
-    if (!Array.isArray(receipt.poseSeed?.cameraFromBoard?.rotationMatrix)) errors.push('rotation matrix missing');
-    if (!(receipt.poseSeed?.cameraFromBoard?.translationTargetPixels?.[2] > 0)) errors.push('positive camera-depth translation missing');
+    if (!(receipt.poseSeed?.reprojection?.rmsPixels >= 0))
+      errors.push('pose reprojection RMS missing');
+    if (!Array.isArray(receipt.poseSeed?.cameraFromBoard?.rotationMatrix))
+      errors.push('rotation matrix missing');
+    if (!(receipt.poseSeed?.cameraFromBoard?.translationTargetPixels?.[2] > 0))
+      errors.push('positive camera-depth translation missing');
   }
   if (receipt.status === 'blocked') {
-    if (!Array.isArray(receipt.poseSeed?.blockers) || receipt.poseSeed.blockers.length === 0) errors.push('blocked receipt needs blockers');
-    if (receipt.poseSeed?.poseSeedReady !== false) errors.push('blocked receipt must not be pose ready');
+    if (!Array.isArray(receipt.poseSeed?.blockers) || receipt.poseSeed.blockers.length === 0)
+      errors.push('blocked receipt needs blockers');
+    if (receipt.poseSeed?.poseSeedReady !== false)
+      errors.push('blocked receipt must not be pose ready');
   }
-  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:'))
+    errors.push('chain receipt hash missing');
   return errors;
 }
 
@@ -551,7 +589,9 @@ async function writeSolidPng(path, width, height, rgb) {
     data[i + 2] = rgb[2];
   }
   mkdirSync(dirname(resolve(REPO_ROOT, path)), { recursive: true });
-  await sharp(data, { raw: { width, height, channels: 3 } }).png({ compressionLevel: 9 }).toFile(resolve(REPO_ROOT, path));
+  await sharp(data, { raw: { width, height, channels: 3 } })
+    .png({ compressionLevel: 9 })
+    .toFile(resolve(REPO_ROOT, path));
 }
 
 export async function selfTest() {
@@ -573,8 +613,10 @@ export async function selfTest() {
     out: join(dir, 'pose-seed-receipt.json'),
     fovDeg: 60,
   });
-  if (poseSeed.status !== 'pass') throw new Error('self-test fiducial board should produce a pose seed');
-  if (poseSeed.poseSeed.reprojection.rmsPixels > 1.5) throw new Error('self-test pose seed RMS should be low');
+  if (poseSeed.status !== 'pass')
+    throw new Error('self-test fiducial board should produce a pose seed');
+  if (poseSeed.poseSeed.reprojection.rmsPixels > 1.5)
+    throw new Error('self-test pose seed RMS should be low');
   await writeSolidPng(join(dir, 'blank.png'), 640, 360, [128, 128, 128]);
   const missing = await analyzeTargetInFrame({
     framePath: join(dir, 'blank.png'),
@@ -598,7 +640,9 @@ async function main() {
   }
   if (args.selfTest) {
     const { poseSeed, blocked } = await selfTest();
-    process.stdout.write(`holoshell-fiducial-pose-seed self-test PASS ${poseSeed.hash} ${blocked.hash}\n`);
+    process.stdout.write(
+      `holoshell-fiducial-pose-seed self-test PASS ${poseSeed.hash} ${blocked.hash}\n`
+    );
     return;
   }
   const out = resolve(REPO_ROOT, args.out ?? defaultOutput(args.date));
@@ -612,18 +656,27 @@ async function main() {
     cy: args.cy,
     maxRms: args.maxRms,
   });
-  process.stdout.write(`${JSON.stringify({
-    receiptPath: rel(out),
-    status: receipt.status,
-    poseSeedReady: receipt.poseSeed.poseSeedReady,
-    calibrationReady: receipt.poseSeed.calibrationReady,
-    reprojectionRms: receipt.poseSeed.reprojection?.rmsPixels,
-    intrinsicsSource: receipt.intrinsics.source,
-    blockers: receipt.poseSeed.blockers,
-  }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        receiptPath: rel(out),
+        status: receipt.status,
+        poseSeedReady: receipt.poseSeed.poseSeedReady,
+        calibrationReady: receipt.poseSeed.calibrationReady,
+        reprojectionRms: receipt.poseSeed.reprojection?.rmsPixels,
+        intrinsicsSource: receipt.intrinsics.source,
+        blockers: receipt.poseSeed.blockers,
+      },
+      null,
+      2
+    )}\n`
+  );
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('holoshell-fiducial-pose-seed.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('holoshell-fiducial-pose-seed.mjs')
+) {
   main().catch((error) => {
     process.stderr.write(`holoshell-fiducial-pose-seed FAIL: ${error.stack ?? error.message}\n`);
     process.exitCode = 1;

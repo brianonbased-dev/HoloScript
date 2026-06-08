@@ -11,11 +11,7 @@
 export const WEBGL_MEDIA_RECORDER_NOTES =
   'WebGL canvases use HTMLCanvasElement.captureStream(). If the recording is black or empty, try: lower FPS, ensure the frame loop is running, or use the WebCodecs export path in videoExporter.';
 
-const WEBM_CANDIDATES = [
-  'video/webm;codecs=vp9',
-  'video/webm;codecs=vp8',
-  'video/webm',
-] as const;
+const WEBM_CANDIDATES = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'] as const;
 
 export function getBestWebmMimeForMediaRecorder(): string {
   if (typeof MediaRecorder === 'undefined') {
@@ -30,8 +26,10 @@ export function getBestWebmMimeForMediaRecorder(): string {
 }
 
 export function hasCanvasCaptureStream(): boolean {
-  return typeof HTMLCanvasElement !== 'undefined' &&
-    typeof HTMLCanvasElement.prototype.captureStream === 'function';
+  return (
+    typeof HTMLCanvasElement !== 'undefined' &&
+    typeof HTMLCanvasElement.prototype.captureStream === 'function'
+  );
 }
 
 export interface WebglMediaCaptureSupport {

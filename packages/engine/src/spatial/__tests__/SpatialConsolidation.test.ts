@@ -35,7 +35,7 @@ const makePiece = (
   position: [number, number, number] = [0, 0, 0],
   scale = 1.0,
   importance = 0.5,
-  sourceFile?: string,
+  sourceFile?: string
 ) => ({
   id,
   position,
@@ -148,8 +148,8 @@ describe('SpatialConsolidation — consolidate()', () => {
     // LOD 3: p3 alone → 1 anchor
     expect(result.anchors.length).toBe(2);
 
-    const lod0 = result.anchors.find(a => a.lodLevel === 0);
-    const lod3 = result.anchors.find(a => a.lodLevel === 3);
+    const lod0 = result.anchors.find((a) => a.lodLevel === 0);
+    const lod3 = result.anchors.find((a) => a.lodLevel === 3);
 
     expect(lod0).toBeDefined();
     expect(lod3).toBeDefined();
@@ -209,10 +209,7 @@ describe('SpatialConsolidation — consolidate()', () => {
   });
 
   it('skips deduplication when option is false', () => {
-    const pieces = [
-      makePiece('p1', 'same_hash', 0, 1000),
-      makePiece('p2', 'same_hash', 0, 2000),
-    ];
+    const pieces = [makePiece('p1', 'same_hash', 0, 1000), makePiece('p2', 'same_hash', 0, 2000)];
 
     const result = consolidate(pieces, { deduplicatePieces: false });
 
@@ -261,10 +258,7 @@ describe('SpatialConsolidation — receipt verification (F.069)', () => {
   });
 
   it('rejects a forged Merkle root (leaf hashes no longer match)', () => {
-    const pieces = [
-      makePiece('p1', 'hash_alpha', 0, 1000),
-      makePiece('p2', 'hash_beta', 0, 2000),
-    ];
+    const pieces = [makePiece('p1', 'hash_alpha', 0, 1000), makePiece('p2', 'hash_beta', 0, 2000)];
 
     const result = consolidate(pieces);
     const forged: ConsolidationResult = {
@@ -355,10 +349,7 @@ describe('SpatialConsolidation — recursion (D.059)', () => {
 
   it('three-level recursion produces distinct Merkle roots at each level', () => {
     // Level 1: atoms
-    const atoms = [
-      makePiece('a1', 'atom1', 0, 100),
-      makePiece('a2', 'atom2', 0, 100),
-    ];
+    const atoms = [makePiece('a1', 'atom1', 0, 100), makePiece('a2', 'atom2', 0, 100)];
     const l1 = consolidate(atoms);
 
     // Level 2: molecules (use l1 selfHash as provenance)

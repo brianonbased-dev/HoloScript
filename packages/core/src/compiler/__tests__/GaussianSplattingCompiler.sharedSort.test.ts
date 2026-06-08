@@ -247,7 +247,8 @@ describe('GaussianSplattingCompiler.compileExtended — emit branch wiring', () 
     const result = compiler.compile(comp);
     expect(result.binary).toBeDefined();
     // No extended fields leaked onto the basic result.
-    expect((result as unknown as { multiUserSharedSort?: boolean }).multiUserSharedSort)
-      .toBeUndefined();
+    expect(
+      (result as unknown as { multiUserSharedSort?: boolean }).multiUserSharedSort
+    ).toBeUndefined();
   });
 });

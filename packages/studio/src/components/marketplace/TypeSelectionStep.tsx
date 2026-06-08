@@ -20,9 +20,10 @@ export const TypeSelectionStep: React.FC<TypeSelectionStepProps> = ({
             // ContentTypeMetadata.icon is the lucide-react icon name (e.g. "Box",
             // "Workflow"); resolve it dynamically and fall back to a generic icon
             // if the name isn't present in the lucide bundle.
-            const IconComp = (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[
-              meta.icon
-            ] ?? Icons.Box;
+            const IconComp =
+              (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[
+                meta.icon
+              ] ?? Icons.Box;
             return (
               <button
                 key={key}

@@ -66,11 +66,20 @@ describe('Paper 11 Benchmark: trait inventory', () => {
     fs.writeFileSync(outFile, JSON.stringify(payload, null, 2), 'utf8');
 
     console.log('[paper-trait-inventory] category files:', payload.categoryFileCount);
-    console.log('[paper-trait-inventory] exported *_TRAITS arrays:', payload.exportedTraitArraysCount);
-    console.log('[paper-trait-inventory] total trait definitions (sum of arrays):', payload.totalTraitDefinitions);
+    console.log(
+      '[paper-trait-inventory] exported *_TRAITS arrays:',
+      payload.exportedTraitArraysCount
+    );
+    console.log(
+      '[paper-trait-inventory] total trait definitions (sum of arrays):',
+      payload.totalTraitDefinitions
+    );
     console.log('[paper-trait-inventory] VR_TRAITS count:', payload.vrTraitsCount);
     console.log('[paper-trait-inventory] unique VR_TRAITS count:', payload.uniqueVRTraitsCount);
-    console.log('[paper-trait-inventory] duplicate entries in VR_TRAITS:', payload.duplicateCountInVRTraits);
+    console.log(
+      '[paper-trait-inventory] duplicate entries in VR_TRAITS:',
+      payload.duplicateCountInVRTraits
+    );
     console.log('[paper-trait-inventory] JSON artifact:', outFile);
 
     expect(payload.categoryFileCount).toBeGreaterThan(0);

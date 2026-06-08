@@ -116,7 +116,10 @@ describe('ReplicationManager', () => {
 
 describe('ClientPrediction', () => {
   const initialState = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 };
-  const predictor = (state: { x: number; y: number; z: number; vx: number; vy: number; vz: number }, input: { deltaTime: number; actions: Record<string, number> }) => ({
+  const predictor = (
+    state: { x: number; y: number; z: number; vx: number; vy: number; vz: number },
+    input: { deltaTime: number; actions: Record<string, number> }
+  ) => ({
     ...state,
     x: state.x + (input.actions.moveX || 0) * input.deltaTime,
     z: state.z + (input.actions.moveZ || 0) * input.deltaTime,

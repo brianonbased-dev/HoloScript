@@ -100,7 +100,9 @@ export function PlatformPicker({
             {groupedByCat[cat]?.map((info: PlatformInfo) => (
               <button
                 key={String(info.target)}
-                style={String(info.target) === String(selected) ? styles.targetActive : styles.target}
+                style={
+                  String(info.target) === String(selected) ? styles.targetActive : styles.target
+                }
                 onClick={() => handleSelect(String(info.target) as XRPlatformTarget)}
               >
                 {String(info.target)}

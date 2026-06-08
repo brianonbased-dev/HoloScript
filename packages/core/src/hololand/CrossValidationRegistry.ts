@@ -294,8 +294,7 @@ export class CrossValidationRegistry {
   private readonly emittedFor: Map<string, Set<string>> = new Map();
 
   constructor(config: CrossValidationRegistryConfig = {}) {
-    this.defaultMinObservers =
-      config.defaultMinObservers ?? DEFAULT_MIN_OBSERVERS;
+    this.defaultMinObservers = config.defaultMinObservers ?? DEFAULT_MIN_OBSERVERS;
     this.tolerance = {
       defaultNumericTolerance:
         config.tolerance?.defaultNumericTolerance ?? DEFAULT_NUMERIC_TOLERANCE,
@@ -313,18 +312,11 @@ export class CrossValidationRegistry {
           '(consensus requires at least two observers)'
       );
     }
-    if (
-      this.agreementSeverityThreshold < 0 ||
-      this.agreementSeverityThreshold > 100
-    ) {
-      throw new Error(
-        'CrossValidationRegistry: agreementSeverityThreshold must be in [0,100]'
-      );
+    if (this.agreementSeverityThreshold < 0 || this.agreementSeverityThreshold > 100) {
+      throw new Error('CrossValidationRegistry: agreementSeverityThreshold must be in [0,100]');
     }
     if (this.tolerance.defaultNumericTolerance <= 0) {
-      throw new Error(
-        'CrossValidationRegistry: defaultNumericTolerance must be > 0'
-      );
+      throw new Error('CrossValidationRegistry: defaultNumericTolerance must be > 0');
     }
     if (this.maxRounds < 1) {
       throw new Error('CrossValidationRegistry: maxRounds must be >= 1');
@@ -365,9 +357,11 @@ export class CrossValidationRegistry {
    * Returns a `SubmissionResult` describing whether quorum was reached
    * (and therefore whether risk feedback was emitted).
    */
-  submitObservation(observation: Omit<Observation, 'submittedAt'> & {
-    submittedAt?: number;
-  }): SubmissionResult {
+  submitObservation(
+    observation: Omit<Observation, 'submittedAt'> & {
+      submittedAt?: number;
+    }
+  ): SubmissionResult {
     const submittedAt = observation.submittedAt ?? this.now();
     const round = this.openRound(observation.eventId);
 
@@ -430,9 +424,7 @@ export class CrossValidationRegistry {
       }
     }
 
-    const openedAt = local
-      ? Math.min(local.openedAt, remote.openedAt)
-      : remote.openedAt;
+    const openedAt = local ? Math.min(local.openedAt, remote.openedAt) : remote.openedAt;
     const minObservers = local
       ? Math.min(local.minObservers, remote.minObservers)
       : remote.minObservers;
@@ -593,11 +585,7 @@ export class CrossValidationRegistry {
     return emitted;
   }
 
-  private emitForObserver(
-    eventId: string,
-    agentId: string,
-    severity: number
-  ): RiskEvent | null {
+  private emitForObserver(eventId: string, agentId: string, severity: number): RiskEvent | null {
     if (severity < this.agreementSeverityThreshold) {
       // Within agreement band — positive reinforcement.
       this.riskRegistry.recordSuccess(agentId);
@@ -744,8 +732,7 @@ export function computeConsensus(
       for (const [field, v] of Object.entries(obs.claim.numeric)) {
         const cons = consensusNumeric[field];
         if (!cons) continue;
-        const tol =
-          tolerance.perField?.[field] ?? tolerance.defaultNumericTolerance;
+        const tol = tolerance.perField?.[field] ?? tolerance.defaultNumericTolerance;
         // L∞ over present components.
         let lInf = 0;
         const dim = Math.min(v.length, cons.length);

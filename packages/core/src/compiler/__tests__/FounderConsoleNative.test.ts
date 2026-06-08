@@ -53,8 +53,16 @@ const FOUNDER_CONSOLE_HOLO = `composition "FounderConsole" {
 }`;
 
 const SAMPLE_ITEMS = [
-  { label: 'Approve $40 GPU spend — fleet B-1 validation', url: 'https://holoscript.studio/t/abc/decide?t=1', vetting: { glance: 'pre-vetted · tests GREEN · reviewed by /founder' } },
-  { label: 'Approve Base anchor — Paper 17 launch packet', url: 'https://holoscript.studio/t/abc/decide?t=2', vetting: { glance: 'pre-vetted · calldata verified · reviewed by /critic' } },
+  {
+    label: 'Approve $40 GPU spend — fleet B-1 validation',
+    url: 'https://holoscript.studio/t/abc/decide?t=1',
+    vetting: { glance: 'pre-vetted · tests GREEN · reviewed by /founder' },
+  },
+  {
+    label: 'Approve Base anchor — Paper 17 launch packet',
+    url: 'https://holoscript.studio/t/abc/decide?t=2',
+    vetting: { glance: 'pre-vetted · calldata verified · reviewed by /critic' },
+  },
 ];
 
 function compileHtml(): string {
@@ -86,7 +94,7 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     expect(html).toContain('data-holo-template');
     expect(html).toContain('{{label}}');
     expect(html).toContain('{{vetting.glance}}');
-    expect(html).toContain('querySelectorAll(\'[data-holo-fetch]\')'); // the vanilla runtime
+    expect(html).toContain("querySelectorAll('[data-holo-fetch]')"); // the vanilla runtime
     expect(html).toMatch(/onclick=/i);
 
     const out = 'C:/tmp/founder-console-native/console.html';
@@ -109,7 +117,9 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
 
   it('also compiles to React (proves the compiler does BOTH targets)', () => {
     const comp = parseHoloStrict(FOUNDER_CONSOLE_HOLO);
-    const react = new Native2DCompiler().compile(comp, '', undefined, { format: 'react' }) as string;
+    const react = new Native2DCompiler().compile(comp, '', undefined, {
+      format: 'react',
+    }) as string;
     expect(react).toMatch(/import React/);
     expect(react).toContain('FounderConsoleComponent');
   });
@@ -121,7 +131,9 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     } catch {
       // jsdom not available in this package — structural assertions above cover wiring.
       // eslint-disable-next-line no-console
-      console.log('[skip] jsdom unavailable; runtime render proof skipped (wiring asserted structurally)');
+      console.log(
+        '[skip] jsdom unavailable; runtime render proof skipped (wiring asserted structurally)'
+      );
       return;
     }
     const html = compileHtml();
@@ -143,7 +155,9 @@ describe('Founder Console — HoloScript-native (N1/N2)', () => {
     // {{tokens}} — it's the source clones are made from).
     const rendered = container.querySelectorAll('[data-holo-fetch] > *:not([data-holo-template])');
     expect(rendered.length).toBe(SAMPLE_ITEMS.length); // one row per fetched item
-    const renderedText = Array.from(rendered).map((r) => r.textContent || '').join(' ');
+    const renderedText = Array.from(rendered)
+      .map((r) => r.textContent || '')
+      .join(' ');
     // live items rendered from the mocked endpoint, tokens interpolated
     expect(renderedText).toContain('Approve $40 GPU spend');
     expect(renderedText).toContain('Approve Base anchor');

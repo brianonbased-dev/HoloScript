@@ -57,14 +57,26 @@ describe('executeVisualize', () => {
 describe('executeUIElement', () => {
   it('registers element in ctx.uiElements', async () => {
     const ctx = makeCtx();
-    const node = { type: 'ui_element', name: 'btn1', elementType: 'button', label: 'Click', properties: {} };
+    const node = {
+      type: 'ui_element',
+      name: 'btn1',
+      elementType: 'button',
+      label: 'Click',
+      properties: {},
+    };
     await executeUIElement(node, ctx);
     expect(ctx.uiElements.has('btn1')).toBe(true);
   });
 
   it('returns success', async () => {
     const ctx = makeCtx();
-    const node = { type: 'ui_element', name: 'el1', elementType: 'button', label: 'OK', properties: {} };
+    const node = {
+      type: 'ui_element',
+      name: 'el1',
+      elementType: 'button',
+      label: 'OK',
+      properties: {},
+    };
     const result = await executeUIElement(node, ctx);
     expect(result.success).toBe(true);
   });
@@ -72,7 +84,11 @@ describe('executeUIElement', () => {
   it('sets slider initial value from value or min or 0', async () => {
     const ctx = makeCtx();
     const nodeWithMin = {
-      type: 'ui_element', name: 'slider1', elementType: 'slider', label: 'Vol', properties: { min: 5 },
+      type: 'ui_element',
+      name: 'slider1',
+      elementType: 'slider',
+      label: 'Vol',
+      properties: { min: 5 },
     };
     await executeUIElement(nodeWithMin, ctx);
     const el = ctx.uiElements.get('slider1') as { value: number };
@@ -81,7 +97,13 @@ describe('executeUIElement', () => {
 
   it('sets textinput initial value from value or empty string', async () => {
     const ctx = makeCtx();
-    const node = { type: 'ui_element', name: 'inp1', elementType: 'textinput', label: 'Name', properties: {} };
+    const node = {
+      type: 'ui_element',
+      name: 'inp1',
+      elementType: 'textinput',
+      label: 'Name',
+      properties: {},
+    };
     await executeUIElement(node, ctx);
     const el = ctx.uiElements.get('inp1') as { value: string };
     expect(el.value).toBe('');
@@ -89,7 +111,13 @@ describe('executeUIElement', () => {
 
   it('sets toggle initial checked from checked or false', async () => {
     const ctx = makeCtx();
-    const node = { type: 'ui_element', name: 'tog1', elementType: 'toggle', label: 'On', properties: {} };
+    const node = {
+      type: 'ui_element',
+      name: 'tog1',
+      elementType: 'toggle',
+      label: 'On',
+      properties: {},
+    };
     await executeUIElement(node, ctx);
     const el = ctx.uiElements.get('tog1') as { value: unknown };
     expect(el.value).toBe(false);
@@ -97,7 +125,13 @@ describe('executeUIElement', () => {
 
   it('output contains element info', async () => {
     const ctx = makeCtx();
-    const node = { type: 'ui_element', name: 'e2', elementType: 'button', label: 'Go', properties: {} };
+    const node = {
+      type: 'ui_element',
+      name: 'e2',
+      elementType: 'button',
+      label: 'Go',
+      properties: {},
+    };
     const result = await executeUIElement(node, ctx);
     expect(result.output).toBeDefined();
   });

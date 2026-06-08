@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-product-viz",
-  name: "Product Showcase",
-  description: "Clean studio setup for product visualization and turntables",
-  thumbnail: "📦",
-  tags: ["film","product","showcase","studio"],
-  category: "film",
+  id: 'wizard-product-viz',
+  name: 'Product Showcase',
+  description: 'Clean studio setup for product visualization and turntables',
+  thumbnail: '📦',
+  tags: ['film', 'product', 'showcase', 'studio'],
+  category: 'film',
   code: `composition "Product Showcase" {
   environment {
     skybox: "studio"
@@ -81,7 +81,7 @@ export const template: SceneTemplate = {
     intensity: 1.5
     angle: 0.4
   }
-}`
+}`,
 };
 
 export default template;

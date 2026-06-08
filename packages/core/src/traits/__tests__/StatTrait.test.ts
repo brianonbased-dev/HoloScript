@@ -1,10 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  statHandler,
-  applyStatModifiers,
-  type StatConfig,
-  type StatModifier,
-} from '../StatTrait';
+import { statHandler, applyStatModifiers, type StatConfig, type StatModifier } from '../StatTrait';
 import {
   createMockContext,
   createMockNode,

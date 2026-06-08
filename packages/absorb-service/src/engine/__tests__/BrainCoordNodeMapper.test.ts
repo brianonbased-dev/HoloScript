@@ -75,12 +75,16 @@ describe('BrainCoordNodeMapper.detectDomain', () => {
 
   it('detects truth_approval for /integrity/ path (no /trait/ prefix)', () => {
     // /traits/ triggers 'agent' first; a plain /integrity/ path goes to truth_approval
-    expect(mapper.detectDomain('/packages/core/src/integrity/LatentLayer.ts')).toBe('truth_approval');
+    expect(mapper.detectDomain('/packages/core/src/integrity/LatentLayer.ts')).toBe(
+      'truth_approval'
+    );
   });
 
   it('detects coordination for /pillar/ path (no /trait/ prefix)', () => {
     // /traits/ triggers 'agent'; a plain /pillar/ path goes to coordination
-    expect(mapper.detectDomain('/packages/core/src/pillar/SliceDispatcher.ts')).toBe('coordination');
+    expect(mapper.detectDomain('/packages/core/src/pillar/SliceDispatcher.ts')).toBe(
+      'coordination'
+    );
   });
 
   it('detects init for /config/ path', () => {
@@ -168,9 +172,7 @@ describe('BrainCoordNodeMapper.populate', () => {
   });
 
   it('physics files get gyrus/hot classification', () => {
-    const graph = buildGraph([
-      makeFile('/packages/snn/src/solver/SpikeSolver.ts', 'solve'),
-    ]);
+    const graph = buildGraph([makeFile('/packages/snn/src/solver/SpikeSolver.ts', 'solve')]);
     const result = mapper.populate(graph);
     expect(result.hotNodes).toBe(1);
     expect(result.coldNodes).toBe(0);
@@ -187,9 +189,7 @@ describe('BrainCoordNodeMapper.populate', () => {
   });
 
   it('compiler files get hot classification', () => {
-    const graph = buildGraph([
-      makeFile('/packages/core/src/compilers/VRCompiler.ts', 'compile'),
-    ]);
+    const graph = buildGraph([makeFile('/packages/core/src/compilers/VRCompiler.ts', 'compile')]);
     const result = mapper.populate(graph);
     expect(result.hotNodes).toBe(1);
   });
@@ -205,9 +205,7 @@ describe('BrainCoordNodeMapper.populate', () => {
   });
 
   it('nodePositions contain valid MNI triples', () => {
-    const graph = buildGraph([
-      makeFile('/packages/snn/src/solver/SpikeSolver.ts', 'solve'),
-    ]);
+    const graph = buildGraph([makeFile('/packages/snn/src/solver/SpikeSolver.ts', 'solve')]);
     mapper.populate(graph);
     for (const [, pos] of graph.nodePositions) {
       expect(pos).toHaveLength(3);
@@ -218,9 +216,7 @@ describe('BrainCoordNodeMapper.populate', () => {
   });
 
   it('physics symbols cluster at physics centroid', () => {
-    const graph = buildGraph([
-      makeFile('/packages/snn/src/solver/SpikeSolver.ts', 'solve'),
-    ]);
+    const graph = buildGraph([makeFile('/packages/snn/src/solver/SpikeSolver.ts', 'solve')]);
     mapper.populate(graph);
     const [pos] = Array.from(graph.nodePositions.values());
     const [cx, cy, cz] = mapper.domainCentroid('physics');
@@ -259,7 +255,9 @@ describe('BrainCoordNodeMapper.populate', () => {
   });
 
   it('getTier returns cold for sulcal symbol', () => {
-    const graph = buildGraph([makeFile('/packages/core/src/pillar/SliceDispatcher.ts', 'dispatch')]);
+    const graph = buildGraph([
+      makeFile('/packages/core/src/pillar/SliceDispatcher.ts', 'dispatch'),
+    ]);
     mapper.populate(graph);
     const key = Array.from(graph.nodePositions.keys())[0];
     expect(mapper.getTier(key)).toBe('cold');

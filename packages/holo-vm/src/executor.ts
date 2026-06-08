@@ -576,7 +576,11 @@ export class HoloVM {
       case HoloOpCode.TRANSFORM: {
         const entityId = operands[0] as number;
         const transform: TransformComponent = {
-          position: { x: operands[1] as number, y: operands[2] as number, z: operands[3] as number },
+          position: {
+            x: operands[1] as number,
+            y: operands[2] as number,
+            z: operands[3] as number,
+          },
           rotation: {
             x: operands[4] as number,
             y: operands[5] as number,

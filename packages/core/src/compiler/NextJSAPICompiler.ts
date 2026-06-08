@@ -307,9 +307,13 @@ function emitHandler(
     lines.push(`  try {`);
     lines.push(`    body = await _request.json();`);
     lines.push(`  } catch {`);
-    lines.push(`    return NextResponse.json({ ok: false, error: 'Invalid JSON body' }, { status: 400 });`);
+    lines.push(
+      `    return NextResponse.json({ ok: false, error: 'Invalid JSON body' }, { status: 400 });`
+    );
     lines.push(`  }`);
-    lines.push(`  const record = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : null;`);
+    lines.push(
+      `  const record = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : null;`
+    );
     lines.push(`  if (!record) {`);
     lines.push(
       `    return NextResponse.json({ ok: false, error: 'JSON body must be an object' }, { status: 400 });`
@@ -420,21 +424,29 @@ export function compileToNextJSAPI(
   // ── Spatial request validation middleware (generated) ──────────────────
   if (includeValidation && hasBodyHandlers) {
     lines.push(`function isTuple3(value: unknown): value is [number, number, number] {`);
-    lines.push(`  return Array.isArray(value) && value.length === 3 && value.every((n) => typeof n === 'number');`);
+    lines.push(
+      `  return Array.isArray(value) && value.length === 3 && value.every((n) => typeof n === 'number');`
+    );
     lines.push(`}`);
     lines.push(``);
     lines.push(`function isTuple4(value: unknown): value is [number, number, number, number] {`);
-    lines.push(`  return Array.isArray(value) && value.length === 4 && value.every((n) => typeof n === 'number');`);
+    lines.push(
+      `  return Array.isArray(value) && value.length === 4 && value.every((n) => typeof n === 'number');`
+    );
     lines.push(`}`);
     lines.push(``);
     lines.push(
       `function validateSpatialRequestBody(record: Record<string, unknown>): { valid: true } | { valid: false; error: string; field: string } {`
     );
     lines.push(`  if ('position' in record && !isTuple3(record.position)) {`);
-    lines.push(`    return { valid: false, error: 'position must be [x, y, z] numeric tuple', field: 'position' };`);
+    lines.push(
+      `    return { valid: false, error: 'position must be [x, y, z] numeric tuple', field: 'position' };`
+    );
     lines.push(`  }`);
     lines.push(`  if ('scale' in record && !isTuple3(record.scale)) {`);
-    lines.push(`    return { valid: false, error: 'scale must be [x, y, z] numeric tuple', field: 'scale' };`);
+    lines.push(
+      `    return { valid: false, error: 'scale must be [x, y, z] numeric tuple', field: 'scale' };`
+    );
     lines.push(`  }`);
     lines.push(`  if ('rotation' in record) {`);
     lines.push(`    const rotation = record.rotation;`);

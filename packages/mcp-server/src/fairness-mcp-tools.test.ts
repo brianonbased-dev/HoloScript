@@ -4,17 +4,16 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  handleFairnessTool,
-  isFairnessToolName,
-  fairnessTools,
-} from './fairness-mcp-tools';
+import { handleFairnessTool, isFairnessToolName, fairnessTools } from './fairness-mcp-tools';
 
 // Deterministic, RNG-free cohort with unambiguous disparate impact: group A has
 // low proxy risk (approved), group B has high proxy risk (rejected) under the
 // biased weights below. A plumbing smoke test wants a guaranteed verdict, not a
 // statistical threshold — the engine-level suite covers the sampled case.
-function makeCohort(_seed: number, n = 200): Array<{ group: string; features: Record<string, number> }> {
+function makeCohort(
+  _seed: number,
+  n = 200
+): Array<{ group: string; features: Record<string, number> }> {
   const rows = [];
   for (let i = 0; i < n; i++) {
     const group = i % 2 === 0 ? 'A' : 'B';
@@ -24,7 +23,12 @@ function makeCohort(_seed: number, n = 200): Array<{ group: string; features: Re
 }
 
 // Additive linear model: zip_risk is a PENALTY, so its weight is negative.
-const biased = { id: 'underwriting', weights: { income: 1.0, zip_risk: -1.0 }, bias: 0, threshold: 0.25 };
+const biased = {
+  id: 'underwriting',
+  weights: { income: 1.0, zip_risk: -1.0 },
+  bias: 0,
+  threshold: 0.25,
+};
 
 describe('fairness MCP tools', () => {
   it('registers both tools with required schemas', () => {
@@ -43,7 +47,10 @@ describe('fairness MCP tools', () => {
       cohort,
       model: biased,
       seed: 1,
-    })) as { receipt: { kind: string; decision: string; replayFingerprint: string }; decision: string };
+    })) as {
+      receipt: { kind: string; decision: string; replayFingerprint: string };
+      decision: string;
+    };
 
     expect(res.receipt.kind).toBe('fairness.receipt.v1');
     expect(res.receipt.decision).toBe('FLAG-DISPARATE-IMPACT');
@@ -63,7 +70,10 @@ describe('fairness MCP tools', () => {
       model: biased,
     })) as { receipt: Record<string, unknown> & { metrics: Record<string, unknown> } };
 
-    const forged = { ...res.receipt, metrics: { ...res.receipt.metrics, adverseImpactRatio: 0.99 } };
+    const forged = {
+      ...res.receipt,
+      metrics: { ...res.receipt.metrics, adverseImpactRatio: 0.99 },
+    };
     const explain = (await handleFairnessTool('explain_fairness_receipt', {
       receipt: forged,
     })) as { integrity: boolean };
@@ -71,7 +81,11 @@ describe('fairness MCP tools', () => {
   });
 
   it('rejects malformed input', async () => {
-    await expect(handleFairnessTool('fairness_sweep', { cohort: [], model: biased })).rejects.toThrow();
-    await expect(handleFairnessTool('fairness_sweep', { cohort: makeCohort(1, 4) })).rejects.toThrow();
+    await expect(
+      handleFairnessTool('fairness_sweep', { cohort: [], model: biased })
+    ).rejects.toThrow();
+    await expect(
+      handleFairnessTool('fairness_sweep', { cohort: makeCohort(1, 4) })
+    ).rejects.toThrow();
   });
 });

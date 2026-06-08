@@ -86,12 +86,12 @@ function storageBuffer(device: GPUDevice, data: Float32Array): GPUBuffer {
 // ---------------------------------------------------------------------------
 
 export interface ImagePatchEmbedParams {
-  imgH:        number;
-  imgW:        number;
-  patchH:      number;
-  patchW:      number;
+  imgH: number;
+  imgW: number;
+  patchH: number;
+  patchW: number;
   numChannels: number;
-  embedDim:    number;
+  embedDim: number;
 }
 
 export interface ImagePatchEmbedKernel {
@@ -100,7 +100,11 @@ export interface ImagePatchEmbedKernel {
    * @param proj   Projection matrix [embedDim, patchLen], patchLen = patchH*patchW*numChannels
    * @returns      [numPatches, embedDim] where numPatches = (imgH/patchH)*(imgW/patchW)
    */
-  run(image: Float32Array, proj: Float32Array, params: ImagePatchEmbedParams): Promise<Float32Array>;
+  run(
+    image: Float32Array,
+    proj: Float32Array,
+    params: ImagePatchEmbedParams
+  ): Promise<Float32Array>;
 }
 
 export function createImagePatchEmbedKernel(device: GPUDevice): ImagePatchEmbedKernel {
@@ -114,20 +118,24 @@ export function createImagePatchEmbedKernel(device: GPUDevice): ImagePatchEmbedK
     async run(
       image: Float32Array,
       proj: Float32Array,
-      params: ImagePatchEmbedParams,
+      params: ImagePatchEmbedParams
     ): Promise<Float32Array> {
       const { imgH, imgW, patchH, patchW, numChannels, embedDim } = params;
 
-      if (imgH % patchH !== 0) throw new Error(`imagePatchEmbed: imgH=${imgH} not divisible by patchH=${patchH}`);
-      if (imgW % patchW !== 0) throw new Error(`imagePatchEmbed: imgW=${imgW} not divisible by patchW=${patchW}`);
+      if (imgH % patchH !== 0)
+        throw new Error(`imagePatchEmbed: imgH=${imgH} not divisible by patchH=${patchH}`);
+      if (imgW % patchW !== 0)
+        throw new Error(`imagePatchEmbed: imgW=${imgW} not divisible by patchW=${patchW}`);
 
       const patchLen = patchH * patchW * numChannels;
       const numPatchesY = imgH / patchH;
       const numPatchesX = imgW / patchW;
       const numPatches = numPatchesY * numPatchesX;
 
-      if (image.length !== imgH * imgW * numChannels) throw new Error(`imagePatchEmbed: image size mismatch`);
-      if (proj.length !== embedDim * patchLen) throw new Error(`imagePatchEmbed: proj size mismatch`);
+      if (image.length !== imgH * imgW * numChannels)
+        throw new Error(`imagePatchEmbed: image size mismatch`);
+      if (proj.length !== embedDim * patchLen)
+        throw new Error(`imagePatchEmbed: proj size mismatch`);
 
       const outBytes = numPatches * embedDim * 4;
 
@@ -140,8 +148,14 @@ export function createImagePatchEmbedKernel(device: GPUDevice): ImagePatchEmbedK
 
       const paramAB = new ArrayBuffer(32);
       const pu = new Uint32Array(paramAB);
-      pu[0] = imgH; pu[1] = imgW; pu[2] = patchH; pu[3] = patchW;
-      pu[4] = numChannels; pu[5] = embedDim; pu[6] = patchLen; pu[7] = numPatchesX;
+      pu[0] = imgH;
+      pu[1] = imgW;
+      pu[2] = patchH;
+      pu[3] = patchW;
+      pu[4] = numChannels;
+      pu[5] = embedDim;
+      pu[6] = patchLen;
+      pu[7] = numPatchesX;
       const paramsBuf = device.createBuffer({
         size: paramAB.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -176,8 +190,11 @@ export function createImagePatchEmbedKernel(device: GPUDevice): ImagePatchEmbedK
       const result = new Float32Array(staging.getMappedRange().slice(0));
       staging.unmap();
 
-      imgBuf.destroy(); projBuf.destroy(); outBuf.destroy();
-      paramsBuf.destroy(); staging.destroy();
+      imgBuf.destroy();
+      projBuf.destroy();
+      outBuf.destroy();
+      paramsBuf.destroy();
+      staging.destroy();
 
       return result;
     },

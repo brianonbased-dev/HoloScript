@@ -151,7 +151,12 @@ describe('CONTRACT: talkinghead-plugin adapter', () => {
     const ext = new OfflineVisemeExtractor();
     expect(typeof ext.extract).toBe('function');
     const silence = new Float32Array(2205);
-    const result = ext.extract({ samples: silence, sampleRate: 44100, channels: 1, durationMs: 50 });
+    const result = ext.extract({
+      samples: silence,
+      sampleRate: 44100,
+      channels: 1,
+      durationMs: 50,
+    });
     expect(Array.isArray(result)).toBe(true);
   });
 
@@ -159,7 +164,12 @@ describe('CONTRACT: talkinghead-plugin adapter', () => {
     const ext = new WebAudioVisemeExtractor();
     expect(typeof ext.extract).toBe('function');
     const silence = new Float32Array(2205);
-    const result = ext.extract({ samples: silence, sampleRate: 44100, channels: 1, durationMs: 50 });
+    const result = ext.extract({
+      samples: silence,
+      sampleRate: 44100,
+      channels: 1,
+      durationMs: 50,
+    });
     expect(Array.isArray(result)).toBe(true);
   });
 

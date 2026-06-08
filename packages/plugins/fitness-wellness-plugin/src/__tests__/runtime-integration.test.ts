@@ -57,9 +57,7 @@ describe('fitness-wellness -> HoloScript runtime integration (one_rep_max)', () 
       solved.push(e as Record<string, unknown>);
     });
 
-    await runtime.executeNode(
-      oneRepMaxOrb({ weightKg: TEST_WEIGHT_KG, reps: TEST_REPS }) as never,
-    );
+    await runtime.executeNode(oneRepMaxOrb({ weightKg: TEST_WEIGHT_KG, reps: TEST_REPS }) as never);
     await flush();
 
     expect(solved).toHaveLength(1);
@@ -79,9 +77,7 @@ describe('fitness-wellness -> HoloScript runtime integration (one_rep_max)', () 
     const solved: unknown[] = [];
     runtime.on('one_rep_max_solved', (e: unknown) => solved.push(e));
 
-    await runtime.executeNode(
-      oneRepMaxOrb({ weightKg: TEST_WEIGHT_KG, reps: TEST_REPS }) as never,
-    );
+    await runtime.executeNode(oneRepMaxOrb({ weightKg: TEST_WEIGHT_KG, reps: TEST_REPS }) as never);
     await flush();
 
     expect(solved).toHaveLength(0);
@@ -91,9 +87,7 @@ describe('fitness-wellness -> HoloScript runtime integration (one_rep_max)', () 
     const runtime = new HoloScriptRuntime();
     registerFitnessWellnessTraitHandlers(runtime);
 
-    await runtime.executeNode(
-      oneRepMaxOrb({ weightKg: TEST_WEIGHT_KG, reps: TEST_REPS }) as never,
-    );
+    await runtime.executeNode(oneRepMaxOrb({ weightKg: TEST_WEIGHT_KG, reps: TEST_REPS }) as never);
     await flush();
 
     const state = runtime.getState() as Record<string, unknown>;
@@ -119,9 +113,7 @@ describe('fitness-wellness -> HoloScript runtime integration (one_rep_max)', () 
     // reps = 0 is invalid — the real solver throws "reps must be a positive
     // integer", which the handler's try/catch turns into a one_rep_max_error
     // rather than a throw through the runtime.
-    await runtime.executeNode(
-      oneRepMaxOrb({ weightKg: TEST_WEIGHT_KG, reps: 0 }) as never,
-    );
+    await runtime.executeNode(oneRepMaxOrb({ weightKg: TEST_WEIGHT_KG, reps: 0 }) as never);
     await flush();
 
     expect(errors).toHaveLength(1);

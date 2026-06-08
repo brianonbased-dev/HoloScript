@@ -2,19 +2,26 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { ILLMProvider, LLMCompletionRequest, LLMCompletionResponse } from '@holoscript/llm-provider';
+import type {
+  ILLMProvider,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+} from '@holoscript/llm-provider';
 import { runAblation, renderAblationMarkdown } from '../ablation.js';
 import type { AblationProviderSpec, AblationTaskSpec } from '../ablation.js';
 import { CostGuard } from '../cost-guard.js';
 
-function provider(name: 'anthropic' | 'openai' | 'gemini' | 'mock', opts: {
-  model: string;
-  content?: string;
-  promptTokens?: number;
-  completionTokens?: number;
-  throwError?: string;
-  delayMs?: number;
-}): ILLMProvider {
+function provider(
+  name: 'anthropic' | 'openai' | 'gemini' | 'mock',
+  opts: {
+    model: string;
+    content?: string;
+    promptTokens?: number;
+    completionTokens?: number;
+    throwError?: string;
+    delayMs?: number;
+  }
+): ILLMProvider {
   return {
     name,
     models: [opts.model],
@@ -61,21 +68,28 @@ describe('runAblation', () => {
         label: 'opus',
         provider: 'anthropic',
         model: 'claude-opus-4-7',
-        build: () => provider('anthropic', { model: 'claude-opus-4-7', promptTokens: 200, completionTokens: 100 }),
+        build: () =>
+          provider('anthropic', {
+            model: 'claude-opus-4-7',
+            promptTokens: 200,
+            completionTokens: 100,
+          }),
         pricer: (u) => (u.promptTokens * 15 + u.completionTokens * 75) / 1_000_000,
       },
       {
         label: 'gpt5',
         provider: 'openai',
         model: 'gpt-5',
-        build: () => provider('openai', { model: 'gpt-5', promptTokens: 200, completionTokens: 100 }),
+        build: () =>
+          provider('openai', { model: 'gpt-5', promptTokens: 200, completionTokens: 100 }),
         pricer: () => 0.01,
       },
       {
         label: 'gemini',
         provider: 'gemini',
         model: 'gemini-2.5-pro',
-        build: () => provider('gemini', { model: 'gemini-2.5-pro', promptTokens: 200, completionTokens: 100 }),
+        build: () =>
+          provider('gemini', { model: 'gemini-2.5-pro', promptTokens: 200, completionTokens: 100 }),
         pricer: () => 0.005,
       },
     ];
@@ -108,7 +122,8 @@ describe('runAblation', () => {
         label: 'openai-rate-limit',
         provider: 'openai',
         model: 'gpt-5',
-        build: () => provider('openai', { model: 'gpt-5', throwError: 'rate limit exceeded for openai' }),
+        build: () =>
+          provider('openai', { model: 'gpt-5', throwError: 'rate limit exceeded for openai' }),
       },
       {
         label: 'gemini-ok',
@@ -216,24 +231,26 @@ describe('renderAblationMarkdown', () => {
           label: 'opus',
           provider: 'anthropic',
           model: 'claude-opus-4-7',
-          build: () => provider('anthropic', {
-            model: 'claude-opus-4-7',
-            content: 'Inferred traits: color=red, grabbable=true',
-            promptTokens: 50,
-            completionTokens: 12,
-          }),
+          build: () =>
+            provider('anthropic', {
+              model: 'claude-opus-4-7',
+              content: 'Inferred traits: color=red, grabbable=true',
+              promptTokens: 50,
+              completionTokens: 12,
+            }),
           pricer: () => 0.001,
         },
         {
           label: 'gpt5',
           provider: 'openai',
           model: 'gpt-5',
-          build: () => provider('openai', {
-            model: 'gpt-5',
-            content: 'traits = {color: red, grabbable: yes}',
-            promptTokens: 48,
-            completionTokens: 14,
-          }),
+          build: () =>
+            provider('openai', {
+              model: 'gpt-5',
+              content: 'traits = {color: red, grabbable: yes}',
+              promptTokens: 48,
+              completionTokens: 14,
+            }),
           pricer: () => 0.0008,
         },
       ],
@@ -242,7 +259,9 @@ describe('renderAblationMarkdown', () => {
     const md = renderAblationMarkdown(matrix);
 
     expect(md).toContain('# Ablation: Paper 19 trait-inference accuracy across providers');
-    expect(md).toContain('| Label | Provider | Model | Tokens (in/out) | Cost (USD) | Duration (ms) | Finish | Excerpt |');
+    expect(md).toContain(
+      '| Label | Provider | Model | Tokens (in/out) | Cost (USD) | Duration (ms) | Finish | Excerpt |'
+    );
     expect(md).toContain('| opus | anthropic | claude-opus-4-7 | 50/12 |');
     expect(md).toContain('| gpt5 | openai | gpt-5 | 48/14 |');
     expect(md).toContain(`prompt_hash: \`${matrix.promptHash}\``);

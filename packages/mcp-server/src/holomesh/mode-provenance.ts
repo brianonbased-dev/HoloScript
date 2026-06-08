@@ -41,7 +41,8 @@ export function getBoardModeFields(team: Team) {
     modeChangedAt: prov?.changedAt ?? null,
     /** Agent id, or e.g. `mcp-tool` for MCP; null if unknown (pre-audit team). */
     modeChangedBy: prov?.changedByAgentId ?? null,
-    modeChangeSource: (prov?.source as ModeHistoryEntry['source'] | 'unknown' | undefined) ?? 'unknown',
+    modeChangeSource:
+      (prov?.source as ModeHistoryEntry['source'] | 'unknown' | undefined) ?? 'unknown',
     modeHistory: history,
   };
 }

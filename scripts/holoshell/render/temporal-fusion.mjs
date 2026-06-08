@@ -37,11 +37,14 @@ function inferFrameLayout(points, source) {
   if (!Number.isInteger(pointsPerFrame) || pointsPerFrame < 1) return undefined;
   if (pointsPerFrame * frameCount !== points.length) return undefined;
   const expectedGridPoints =
-    Number.isInteger(source?.tileGrid) && source.tileGrid > 0 ? source.tileGrid * source.tileGrid : undefined;
+    Number.isInteger(source?.tileGrid) && source.tileGrid > 0
+      ? source.tileGrid * source.tileGrid
+      : undefined;
   return {
     frameCount,
     pointsPerFrame,
-    layoutMatchesTileGrid: expectedGridPoints === undefined || expectedGridPoints === pointsPerFrame,
+    layoutMatchesTileGrid:
+      expectedGridPoints === undefined || expectedGridPoints === pointsPerFrame,
   };
 }
 
@@ -59,11 +62,17 @@ function frameEntriesForLayout(source, layout) {
   const explicitFrames = Array.isArray(source?.frames) ? source.frames : [];
   const frames = explicitFrames
     .map((frame, index) => {
-      const pointOffset = Number.isInteger(frame.pointOffset) ? frame.pointOffset : index * layout.pointsPerFrame;
-      const pointCount = Number.isInteger(frame.pointCount) ? frame.pointCount : layout.pointsPerFrame;
+      const pointOffset = Number.isInteger(frame.pointOffset)
+        ? frame.pointOffset
+        : index * layout.pointsPerFrame;
+      const pointCount = Number.isInteger(frame.pointCount)
+        ? frame.pointCount
+        : layout.pointsPerFrame;
       return {
         frameIndex: Number.isInteger(frame.frameIndex) ? frame.frameIndex : index,
-        timestampMs: Number.isFinite(Number(frame.timestampMs)) ? Number(frame.timestampMs) : undefined,
+        timestampMs: Number.isFinite(Number(frame.timestampMs))
+          ? Number(frame.timestampMs)
+          : undefined,
         pointOffset,
         pointCount,
         pose: frame.pose,
@@ -106,8 +115,12 @@ function usableTileCorrespondence(source, layout, frames) {
     .map((match) => {
       const frameIndex = Number.isInteger(match.frameIndex) ? match.frameIndex : undefined;
       const frame = frameIndex !== undefined ? framesByIndex.get(frameIndex) : undefined;
-      const shiftTiles = Array.isArray(match.shiftTiles) ? match.shiftTiles.map((value) => Math.trunc(Number(value))) : [];
-      const pointOffset = Number.isInteger(match.pointOffset) ? match.pointOffset : frame?.pointOffset;
+      const shiftTiles = Array.isArray(match.shiftTiles)
+        ? match.shiftTiles.map((value) => Math.trunc(Number(value)))
+        : [];
+      const pointOffset = Number.isInteger(match.pointOffset)
+        ? match.pointOffset
+        : frame?.pointOffset;
       const score = Number(match.score);
       if (!frame || shiftTiles.length < 2 || !Number.isInteger(pointOffset)) return undefined;
       return {
@@ -116,8 +129,12 @@ function usableTileCorrespondence(source, layout, frames) {
         pointOffset,
         shiftTiles: [shiftTiles[0], shiftTiles[1]],
         score: Number.isFinite(score) ? Math.max(0, Math.min(1, score)) : 1,
-        matchedPointCount: Number.isInteger(match.matchedPointCount) ? match.matchedPointCount : undefined,
-        overlapRatio: Number.isFinite(Number(match.overlapRatio)) ? Number(match.overlapRatio) : undefined,
+        matchedPointCount: Number.isInteger(match.matchedPointCount)
+          ? match.matchedPointCount
+          : undefined,
+        overlapRatio: Number.isFinite(Number(match.overlapRatio))
+          ? Number(match.overlapRatio)
+          : undefined,
       };
     })
     .filter(Boolean);
@@ -140,11 +157,19 @@ function usableTileCorrespondence(source, layout, frames) {
     gridSize,
     referenceFrame,
     referenceFrameIndex: referenceFrame.frameIndex,
-    searchRadiusTiles: Number.isInteger(correspondence.searchRadiusTiles) ? correspondence.searchRadiusTiles : undefined,
-    trackCount: Number.isInteger(correspondence.trackCount) ? correspondence.trackCount : layout.pointsPerFrame,
+    searchRadiusTiles: Number.isInteger(correspondence.searchRadiusTiles)
+      ? correspondence.searchRadiusTiles
+      : undefined,
+    trackCount: Number.isInteger(correspondence.trackCount)
+      ? correspondence.trackCount
+      : layout.pointsPerFrame,
     meanMatchScore: Number.isFinite(Number(correspondence.meanMatchScore))
       ? Number(correspondence.meanMatchScore)
-      : mean(matches.filter((match) => match.frameIndex !== referenceFrame.frameIndex).map((match) => match.score)),
+      : mean(
+          matches
+            .filter((match) => match.frameIndex !== referenceFrame.frameIndex)
+            .map((match) => match.score)
+        ),
     meanOverlapRatio: Number.isFinite(Number(correspondence.meanOverlapRatio))
       ? Number(correspondence.meanOverlapRatio)
       : mean(matches.map((match) => match.overlapRatio ?? 0)),
@@ -211,7 +236,12 @@ function fuseTemporalFrames(points, layout, frames, options = {}) {
 
 function fuseTrackedFrames(points, layout, correspondence) {
   const referencePose = posePosition(correspondence.referenceFrame);
-  const cell = referenceCellSize(points, layout, correspondence.referenceFrame, correspondence.gridSize);
+  const cell = referenceCellSize(
+    points,
+    layout,
+    correspondence.referenceFrame,
+    correspondence.gridSize
+  );
   const fused = [];
   const observationCounts = [];
   for (let i = 0; i < layout.pointsPerFrame; i += 1) {
@@ -229,7 +259,12 @@ function fuseTrackedFrames(points, layout, correspondence) {
     for (const match of correspondence.matches) {
       const sourceX = refX + match.shiftTiles[0];
       const sourceY = refY + match.shiftTiles[1];
-      if (sourceX < 0 || sourceY < 0 || sourceX >= correspondence.gridSize || sourceY >= correspondence.gridSize) {
+      if (
+        sourceX < 0 ||
+        sourceY < 0 ||
+        sourceX >= correspondence.gridSize ||
+        sourceY >= correspondence.gridSize
+      ) {
         continue;
       }
       const localIndex = sourceY * correspondence.gridSize + sourceX;
@@ -239,7 +274,10 @@ function fuseTrackedFrames(points, layout, correspondence) {
       const dx = currentPose && referencePose ? referencePose[0] - currentPose[0] : 0;
       const dy = currentPose && referencePose ? referencePose[1] - currentPose[1] : 0;
       const dz = currentPose && referencePose ? referencePose[2] - currentPose[2] : 0;
-      const confidenceWeight = Math.max(0.05, Number.isFinite(point.confidence) ? point.confidence : 1);
+      const confidenceWeight = Math.max(
+        0.05,
+        Number.isFinite(point.confidence) ? point.confidence : 1
+      );
       const matchWeight = Math.max(0.08, match.score);
       const weight = confidenceWeight * matchWeight;
       weightSum += weight;
@@ -306,7 +344,10 @@ export function selectTemporalPoints(points, source, requestedMode) {
         ...base,
         temporalMode: !layout && mode !== 'all' ? 'all' : mode,
         renderedPointCount: points.length,
-        fallbackReason: !layout && mode !== 'all' ? 'frame layout could not be inferred from bridge metadata' : undefined,
+        fallbackReason:
+          !layout && mode !== 'all'
+            ? 'frame layout could not be inferred from bridge metadata'
+            : undefined,
       },
     };
   }
@@ -355,7 +396,14 @@ export function selectTemporalPoints(points, source, requestedMode) {
     points: fused,
     info: {
       ...base,
-      temporalMode: mode === 'tracked' && !correspondence ? (canAlign ? 'aligned' : 'fuse') : mode === 'aligned' && !canAlign ? 'fuse' : mode,
+      temporalMode:
+        mode === 'tracked' && !correspondence
+          ? canAlign
+            ? 'aligned'
+            : 'fuse'
+          : mode === 'aligned' && !canAlign
+            ? 'fuse'
+            : mode,
       renderedPointCount: fused.length,
       fusedFrameCount: frames.length,
       alignmentMethod: align ? 'pose-centroid-translation' : undefined,

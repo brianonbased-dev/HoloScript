@@ -5,12 +5,13 @@
 **Scope (as claimed)**: "feed" direction only — produce a minimal, auditable consumable bundle (USD + physics metadata + domain randomization + actuator config + task stub) + `SimToRealFeedReceipt` with source hash + semantic match proof. Policy training & real-robot eval remain downstream.
 
 **Delivered**:
+
 - Public entrypoint: `generateIsaacLabFeed(ast: CompositionNode, opts?: { isaacLabVersion?: string }): IsaacLabFeedBundle`
 - Bundle shape:
   ```ts
   interface IsaacLabFeedBundle {
-    usd: string;                    // Full USD with PhysicsDriveAPI, PhysxJointAxisAPI, domain rand comments
-    taskConfig: Record<string, unknown>;  // Minimal env stub (4096 envs, joint_pos/vel/imu obs, joint_torques actions, randomization, actuator_groups)
+    usd: string; // Full USD with PhysicsDriveAPI, PhysxJointAxisAPI, domain rand comments
+    taskConfig: Record<string, unknown>; // Minimal env stub (4096 envs, joint_pos/vel/imu obs, joint_torques actions, randomization, actuator_groups)
     randomization: DomainRandomizationConfig | undefined;
     actuators: ActuatorGroupConfig[];
     receipt: IsaacLabFeedReceipt;
@@ -25,7 +26,7 @@
     generatedAt: string;
     isaacLabVersion: string;
     readyForTraining: boolean;
-    notes: string;  // "Narrow feed bundle — assets + randomization + actuator config. Policy training & real-robot eval are downstream."
+    notes: string; // "Narrow feed bundle — assets + randomization + actuator config. Policy training & real-robot eval are downstream."
   }
   ```
 - Re-uses the already-shipped `USDCodeGen` (emits PhysicsDriveAPI, PhysxJointAxisAPI, actuator group hints, latency, domain randomization blocks).
@@ -33,11 +34,13 @@
 - Exposed in `@holoscript/robotics-plugin` public API and default export.
 
 **Verification** (executed 2026-05-21):
+
 - `pnpm --filter @holoscript/robotics-plugin run build` → clean tsc (0 errors)
 - `pnpm --filter @holoscript/robotics-plugin run test` → 9/9 green in `src/__tests__/isaac-lab-interop.test.ts`
 - All existing URDF + USD paths continue to work; the feed is a pure additive narrow surface.
 
 **Evidence**:
+
 - Commit that landed the feed + receipt types: (prior in wave; function present and passing)
 - This receipt file: 2026-05-21_isaac-lab-narrow-feed-delivered.md
 - Related prior notes: 2026-04-19_isaac-lab-sim-to-real.md, 2026-05-14_isaac-lab-path-a-spike.md, 2026-05-12 interop memo, 2026-03-09 impossible-doors Door 8

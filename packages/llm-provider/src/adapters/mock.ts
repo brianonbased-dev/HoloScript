@@ -103,15 +103,15 @@ const MOCK_SCENES: Record<string, string> = {
  * without instantiating the adapter — single source of truth per W.GOLD.006.
  */
 export const MOCK_CAPABILITIES: Capabilities = {
-  contextWindow: 200_000,        // generous test window
+  contextWindow: 200_000, // generous test window
   maxOutput: 64_000,
 
   streaming: true,
   tools: true,
-  vision: true,                  // mock images for test paths
+  vision: true, // mock images for test paths
   structuredOutputs: true,
 
-  bearerTokenAccess: false,      // no auth for mock
+  bearerTokenAccess: false, // no auth for mock
 };
 
 export class MockAdapter extends BaseLLMAdapter {

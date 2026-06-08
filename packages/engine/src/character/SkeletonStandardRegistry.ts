@@ -257,7 +257,8 @@ const rpmProfile: SkeletonStandardProfile = {
   displayName: 'Ready Player Me',
   version: '1.0.0',
   mappingConfidence: 0.95,
-  specUrl: 'https://docs.readyplayer.me/ready-player-me/api-reference/rest-api/avatars/get-3d-avatars',
+  specUrl:
+    'https://docs.readyplayer.me/ready-player-me/api-reference/rest-api/avatars/get-3d-avatars',
   boneMap: {
     hips: { platformName: 'Hips' },
     spine: { platformName: 'Spine' },
@@ -347,7 +348,14 @@ const ueMannequinProfile: SkeletonStandardProfile = {
     right_foot: { platformName: 'foot_r' },
     right_toes: { platformName: 'ball_r' },
   },
-  unmappedPlatformBones: ['root', 'ik_foot_root', 'ik_hand_root', 'ik_hand_gun', 'ik_foot_l', 'ik_foot_r'],
+  unmappedPlatformBones: [
+    'root',
+    'ik_foot_root',
+    'ik_hand_root',
+    'ik_hand_gun',
+    'ik_foot_l',
+    'ik_foot_r',
+  ],
 };
 
 /** MetaHuman (UE-native, same pelvis/spine naming as UE Mannequin but with face bones). */
@@ -383,8 +391,12 @@ const metahumanProfile: SkeletonStandardProfile = {
   },
   unmappedPlatformBones: [
     // MetaHuman has extensive facial rig + spine_04/05
-    'spine_04', 'spine_05', 'neck_02',
-    'FACIAL_C_FacialRoot', 'FACIAL_L_Eye', 'FACIAL_R_Eye',
+    'spine_04',
+    'spine_05',
+    'neck_02',
+    'FACIAL_C_FacialRoot',
+    'FACIAL_L_Eye',
+    'FACIAL_R_Eye',
   ],
 };
 
@@ -552,9 +564,7 @@ export function resolveProfileBone(
  * Build the reverse map: platform-specific name → canonical HumanoidBoneName.
  * Useful when ingesting an unknown rig and trying to identify its standard.
  */
-export function buildReverseMap(
-  standard: SkeletonStandardId
-): Map<string, HumanoidBoneName> {
+export function buildReverseMap(standard: SkeletonStandardId): Map<string, HumanoidBoneName> {
   const profile = SKELETON_PROFILES[standard];
   const result = new Map<string, HumanoidBoneName>();
   for (const [canonical, entry] of Object.entries(profile.boneMap) as [
@@ -593,10 +603,7 @@ export interface SkeletonMatchCandidate {
  * @param inputBones - Raw bone names from the rig (case-sensitive).
  * @param topN        - Maximum number of candidates to return (default 5).
  */
-export function matchSkeletonStandard(
-  inputBones: string[],
-  topN = 5
-): SkeletonMatchCandidate[] {
+export function matchSkeletonStandard(inputBones: string[], topN = 5): SkeletonMatchCandidate[] {
   const inputSet = new Set(inputBones);
   const results: SkeletonMatchCandidate[] = [];
 
@@ -617,9 +624,7 @@ export function matchSkeletonStandard(
     });
   }
 
-  return results
-    .sort((a, b) => b.weightedScore - a.weightedScore)
-    .slice(0, topN);
+  return results.sort((a, b) => b.weightedScore - a.weightedScore).slice(0, topN);
 }
 
 /**

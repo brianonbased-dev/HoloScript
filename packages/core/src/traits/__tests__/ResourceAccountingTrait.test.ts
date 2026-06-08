@@ -142,13 +142,18 @@ describe('resourceAccountingHandler', () => {
     };
 
     resourceAccountingHandler.onAttach!(node as never, config, { emit } as never);
-    resourceAccountingHandler.onEvent!(node as never, config, { emit } as never, {
-      type: 'resource_accounting:record',
-      payload: {
-        ...claimFor(cases[0], cases[0].driftQuantity),
-        adapterId: adapter.adapterId,
-      },
-    } as never);
+    resourceAccountingHandler.onEvent!(
+      node as never,
+      config,
+      { emit } as never,
+      {
+        type: 'resource_accounting:record',
+        payload: {
+          ...claimFor(cases[0], cases[0].driftQuantity),
+          adapterId: adapter.adapterId,
+        },
+      } as never
+    );
 
     expect(emit).toHaveBeenCalledWith(
       'resource_accounting_drift_detected',

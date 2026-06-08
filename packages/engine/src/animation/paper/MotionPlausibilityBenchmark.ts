@@ -55,16 +55,16 @@ const VIOLATION_RATES: Record<BaselineSystem, Record<MotionCategory, number>> = 
   },
   animgan: {
     locomotion: 0.22, // 22% floor/ZMP violations (foot artefacts)
-    gesture: 0.18,    // joint-limit bursts in sharp poses
+    gesture: 0.18, // joint-limit bursts in sharp poses
     interaction: 0.15, // mesh interpenetration
     acrobatics: 0.38, // GAN transition artefacts → high impulse
-    'micro-gesture': 0.20,
+    'micro-gesture': 0.2,
   },
   motionvae: {
     locomotion: 0.17,
-    gesture: 0.25,    // latent-space edges → joint limit exceedance
-    interaction: 0.20,
-    acrobatics: 0.30,
+    gesture: 0.25, // latent-space edges → joint limit exceedance
+    interaction: 0.2,
+    acrobatics: 0.3,
     'micro-gesture': 0.15,
   },
   mdm: {
@@ -110,7 +110,7 @@ function buildFrame(
   rng: () => number,
   category: MotionCategory,
   frameIdx: number,
-  violate: boolean,
+  violate: boolean
 ): MotionBonePose[] {
   const frame: MotionBonePose[] = [];
   const t = frameIdx / (NUM_FRAMES - 1); // 0→1
@@ -128,7 +128,10 @@ function buildFrame(
     const cosHalf = Math.cos(angle / 2);
     const rot: [number, number, number, number] = [sinHalf * 0.1, sinHalf * 0.995, 0, cosHalf];
     const mag = Math.sqrt(rot[0] ** 2 + rot[1] ** 2 + rot[2] ** 2 + rot[3] ** 2);
-    rot[0] /= mag; rot[1] /= mag; rot[2] /= mag; rot[3] /= mag;
+    rot[0] /= mag;
+    rot[1] /= mag;
+    rot[2] /= mag;
+    rot[3] /= mag;
 
     // Apply category-specific valid motion (smooth, deterministic)
     if (category === 'locomotion') {
@@ -190,7 +193,7 @@ function buildFrame(
           // only produced ~6.6 mm/step and never triggered the check).
           if (boneId === 'l_hand' || boneId === 'r_hand') {
             const dir = boneId === 'l_hand' ? 1 : -1;
-            px = rest[0] + dir * 0.10 * frameIdx; // 10 cm × frameIdx → Δ=10 cm per step
+            px = rest[0] + dir * 0.1 * frameIdx; // 10 cm × frameIdx → Δ=10 cm per step
           }
           break;
       }
@@ -209,7 +212,7 @@ function generateClips(
   category: MotionCategory,
   system: BaselineSystem,
   count: number,
-  seed: number,
+  seed: number
 ): MotionClip[] {
   const rng = mulberry32(seed);
   const violationRate = VIOLATION_RATES[system][category];
@@ -283,7 +286,7 @@ export interface MotionBenchmarkOptions {
  * Returns measured pass rates and latency per clip.
  */
 export function runMotionPlausibilityBenchmark(
-  options: MotionBenchmarkOptions = {},
+  options: MotionBenchmarkOptions = {}
 ): MotionBenchmarkMatrix {
   const clipCount = options.clipCount ?? 400;
   const seed = options.seed ?? 0xdeadbeef;

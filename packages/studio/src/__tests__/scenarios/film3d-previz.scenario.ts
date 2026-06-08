@@ -8,7 +8,7 @@ const mockSpatialAnchorService = {
   renderMesh: async (meshId: string, position: number[]) => {
     console.log(`[Film3D Previz] Anchored Splat ${meshId} natively at ${position.join(',')}`);
     return true;
-  }
+  },
 };
 
 describe('Film3D Virtual Production Pre-Viz MVP', () => {
@@ -17,7 +17,7 @@ describe('Film3D Virtual Production Pre-Viz MVP', () => {
     let nativeRenderFired = false;
 
     // 1. Hook the Native handler exactly as described in Ticket 2 execution
-    vm.registerHandler(0xB1 /* OP_RENDER_HOLOGRAM */, async (proxy, operands) => {
+    vm.registerHandler(0xb1 /* OP_RENDER_HOLOGRAM */, async (proxy, operands) => {
       const [meshId, position] = operands;
       await mockSpatialAnchorService.renderMesh(meshId, position);
       nativeRenderFired = true;
@@ -28,9 +28,9 @@ describe('Film3D Virtual Production Pre-Viz MVP', () => {
     const directorLogic = {
       version: 1,
       instructions: [
-        { opCode: 0xB1, operands: ['splat_scene_001_vfx', [0, 1.5, -2]] }, // Native Render Call
-        { opCode: 255 } // HALT
-      ]
+        { opCode: 0xb1, operands: ['splat_scene_001_vfx', [0, 1.5, -2]] }, // Native Render Call
+        { opCode: 255 }, // HALT
+      ],
     };
 
     // 3. Execute scene
@@ -40,7 +40,7 @@ describe('Film3D Virtual Production Pre-Viz MVP', () => {
 
     expect(nativeRenderFired).toBe(true);
     expect(end - start).toBeLessThan(50); // Guarantee zero LLM dependency (sub 50ms physical drop)
-    
+
     // Check results output
     const topStack = vm.peek();
     expect(topStack.rendered).toBe(true);

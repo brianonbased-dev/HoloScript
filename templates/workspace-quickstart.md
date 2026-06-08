@@ -6,14 +6,14 @@
 
 ## What You Can Build
 
-| Platform Type          | Examples                                  | Time to MVP | Difficulty   |
-| ---------------------- | ----------------------------------------- | ----------- | ------------ |
-| **VR Social**          | VR social platform, immersive events      | 3-6 months  | Advanced     |
-| **Corporate Training** | VR safety training, onboarding simulations| 1-3 months  | Intermediate |
+| Platform Type          | Examples                                   | Time to MVP | Difficulty   |
+| ---------------------- | ------------------------------------------ | ----------- | ------------ |
+| **VR Social**          | VR social platform, immersive events       | 3-6 months  | Advanced     |
+| **Corporate Training** | VR safety training, onboarding simulations | 1-3 months  | Intermediate |
 | **Robotics Platform**  | ROS2/Gazebo simulation, digital twin       | 2-4 months  | Advanced     |
-| **AR E-Commerce**      | "Try before you buy" furniture app        | 1-2 months  | Beginner     |
-| **Digital Twin**       | IoT platform with DTDL output            | 2-4 months  | Intermediate |
-| **VR Game**            | Multi-platform game (Unity/Unreal/Web)   | 3-6 months  | Intermediate |
+| **AR E-Commerce**      | "Try before you buy" furniture app         | 1-2 months  | Beginner     |
+| **Digital Twin**       | IoT platform with DTDL output              | 2-4 months  | Intermediate |
+| **VR Game**            | Multi-platform game (Unity/Unreal/Web)     | 3-6 months  | Intermediate |
 
 HoloLand, the reference VR social platform, is built entirely on public HoloScript APIs.
 
@@ -227,11 +227,11 @@ class AssetSystem {
 
 ## Deployment Paths
 
-| Path | Best For | Trade-offs |
-|------|----------|------------|
-| **HoloScript Runtime (WebXR)** | Fastest iteration, cross-platform | Limited to WebXR capabilities |
-| **Compile to Unity** | Native Quest, iOS, Android, Steam | App store review, slower iteration |
-| **Compile to Unreal** | High-fidelity PC VR, PSVR2 | Larger binaries, powerful hardware required |
+| Path                           | Best For                          | Trade-offs                                  |
+| ------------------------------ | --------------------------------- | ------------------------------------------- |
+| **HoloScript Runtime (WebXR)** | Fastest iteration, cross-platform | Limited to WebXR capabilities               |
+| **Compile to Unity**           | Native Quest, iOS, Android, Steam | App store review, slower iteration          |
+| **Compile to Unreal**          | High-fidelity PC VR, PSVR2        | Larger binaries, powerful hardware required |
 
 ### WebXR (Fastest)
 
@@ -259,11 +259,11 @@ The HoloScript Foundation is a neutral, community-driven nonprofit governing the
 
 ### Governance Snapshot
 
-| Body | Role | Decision Scope |
-|------|------|----------------|
-| **Board of Directors** | Fiduciary + strategic | Budget, partnerships, ED hiring |
-| **Technical Steering Committee (TSC)** | Technical roadmap | RFC approval, compiler priorities, API stability |
-| **Community Committee** | Health + events | Code of Conduct, docs, grants, onboarding |
+| Body                                   | Role                  | Decision Scope                                   |
+| -------------------------------------- | --------------------- | ------------------------------------------------ |
+| **Board of Directors**                 | Fiduciary + strategic | Budget, partnerships, ED hiring                  |
+| **Technical Steering Committee (TSC)** | Technical roadmap     | RFC approval, compiler priorities, API stability |
+| **Community Committee**                | Health + events       | Code of Conduct, docs, grants, onboarding        |
 
 ### RFC Process
 
@@ -291,12 +291,12 @@ HoloScript is positioned across several verticals. Key strategic positioning:
 
 ### Competitive Differentiation
 
-| Competitor Landscape | HoloScript Angle |
-|---------------------|------------------|
-| Visualization-focused tools (Forma, Enscape, Twinmotion) | Programmatic scene composition + multi-target export |
-| Game engines (Unity, Unreal, Godot) | Unified authoring layer above engines, not replacement |
-| Robotics simulators (Isaac, Gazebo) | Visual scene authoring that outputs URDF/SDF/DTDL |
-| VR training (Osso VR, ImmersiveTouch) | Trait-level haptic + procedural authoring |
+| Competitor Landscape                                     | HoloScript Angle                                       |
+| -------------------------------------------------------- | ------------------------------------------------------ |
+| Visualization-focused tools (Forma, Enscape, Twinmotion) | Programmatic scene composition + multi-target export   |
+| Game engines (Unity, Unreal, Godot)                      | Unified authoring layer above engines, not replacement |
+| Robotics simulators (Isaac, Gazebo)                      | Visual scene authoring that outputs URDF/SDF/DTDL      |
+| VR training (Osso VR, ImmersiveTouch)                    | Trait-level haptic + procedural authoring              |
 
 ---
 
@@ -337,4 +337,3 @@ Free. MIT licensed, no royalties, no runtime fees.
 ---
 
 _The AI-Native Spatial OS is ready. Build the next platform._
-

@@ -52,7 +52,9 @@ function getAPIConfig() {
   // attacker-controlled host even if env config is tampered with.
   for (const [provider, cfg] of Object.entries(config)) {
     if (!cfg.baseUrl.startsWith('/') || cfg.baseUrl.startsWith('//')) {
-      throw new Error(`AI provider '${provider}' baseUrl must be a relative path, got: ${cfg.baseUrl}`);
+      throw new Error(
+        `AI provider '${provider}' baseUrl must be a relative path, got: ${cfg.baseUrl}`
+      );
     }
   }
   return config;
@@ -97,9 +99,7 @@ export function assertTrustedImageUrl(imageUrl: string | undefined): void {
     (h) => parsed.hostname === h || parsed.hostname.endsWith(`.${h}`)
   );
   if (!hostAllowed) {
-    throw new Error(
-      `imageUrl host '${parsed.hostname}' is not in the trusted-host allowlist`
-    );
+    throw new Error(`imageUrl host '${parsed.hostname}' is not in the trusted-host allowlist`);
   }
 }
 

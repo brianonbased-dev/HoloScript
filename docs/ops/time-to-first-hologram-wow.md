@@ -4,10 +4,10 @@
 
 ## Roles
 
-| Role | Responsibility |
-|------|----------------|
+| Role            | Responsibility                                                |
+| --------------- | ------------------------------------------------------------- |
 | **Facilitator** | Times steps, records notes, no coaching beyond printed script |
-| **Participant** | Must **not** have edited HoloScript in the last 90 days |
+| **Participant** | Must **not** have edited HoloScript in the last 90 days       |
 
 ## Environment
 
@@ -24,12 +24,12 @@
 
 ## Timestamps to log
 
-| Marker | Start | Stop |
-|--------|-------|------|
-| T0 | First page interactive | — |
-| T1 | First media dropped / generate clicked | — |
-| T2 | HoloScript visible in editor | — |
-| T3 | Preview shows hologram treatment | — |
+| Marker | Start                                  | Stop |
+| ------ | -------------------------------------- | ---- |
+| T0     | First page interactive                 | —    |
+| T1     | First media dropped / generate clicked | —    |
+| T2     | HoloScript visible in editor           | —    |
+| T3     | Preview shows hologram treatment       | —    |
 
 **TTFHW (strict):** `T3 - T0`  
 **TTFHW (generate-only):** `T3 - T1` (isolates media → wow)

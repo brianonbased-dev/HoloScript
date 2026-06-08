@@ -22,7 +22,8 @@ function collectSourceFiles(dir) {
     for (const ent of fs.readdirSync(d, { withFileTypes: true })) {
       const full = path.join(d, ent.name);
       if (ent.isDirectory()) {
-        if (ent.name === '__tests__' || ent.name === 'node_modules' || ent.name === 'dist') continue;
+        if (ent.name === '__tests__' || ent.name === 'node_modules' || ent.name === 'dist')
+          continue;
         walk(full);
       } else if (ent.isFile() && ent.name.endsWith('.ts') && !ent.name.endsWith('.test.ts')) {
         files.push(full);
@@ -219,11 +220,20 @@ function resolveArrayByName(name, visited = new Set()) {
 
   const result = [];
   // Re-parse the specific file for this array to resolve spreads
-  const sf = ts.createSourceFile(info.file, fs.readFileSync(info.file, 'utf-8'), ts.ScriptTarget.Latest, true);
+  const sf = ts.createSourceFile(
+    info.file,
+    fs.readFileSync(info.file, 'utf-8'),
+    ts.ScriptTarget.Latest,
+    true
+  );
   function findArray(node) {
     if (ts.isVariableStatement(node)) {
       for (const decl of node.declarationList.declarations) {
-        if (decl.name.getText(sf) === name && decl.initializer && ts.isArrayLiteralExpression(decl.initializer)) {
+        if (
+          decl.name.getText(sf) === name &&
+          decl.initializer &&
+          ts.isArrayLiteralExpression(decl.initializer)
+        ) {
           return decl.initializer;
         }
       }
@@ -288,12 +298,15 @@ function findAllAvailable(node) {
           );
           if (nameProp && ts.isPropertyAssignment(nameProp)) {
             const resolved = getName(nameProp.initializer, indexSource);
-            if (resolved) allAvailableEntries.push({ name: resolved, source: 'inline', generated: false });
+            if (resolved)
+              allAvailableEntries.push({ name: resolved, source: 'inline', generated: false });
           }
         } else if (ts.isSpreadElement(elem)) {
           const expr = elem.expression;
           if (ts.isIdentifier(expr)) {
-            allAvailableEntries.push(...resolveArrayByName(expr.text).map((e) => ({ ...e, source: expr.text })));
+            allAvailableEntries.push(
+              ...resolveArrayByName(expr.text).map((e) => ({ ...e, source: expr.text }))
+            );
           }
         }
       }
@@ -419,7 +432,9 @@ if (JSON_MODE) {
   }
 
   if (inAllAvailableButNotTools.length) {
-    console.log(`HTTP-ONLY (in ALL_AVAILABLE_TOOLS but NOT in tools.ts) — ${inAllAvailableButNotTools.length}`);
+    console.log(
+      `HTTP-ONLY (in ALL_AVAILABLE_TOOLS but NOT in tools.ts) — ${inAllAvailableButNotTools.length}`
+    );
     for (const { name, classification } of inAllAvailableButNotTools) {
       console.log(`  [${classification}] ${name}`);
     }

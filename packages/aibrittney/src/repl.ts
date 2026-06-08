@@ -1,6 +1,11 @@
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
-import { Session, type SessionConfig, DEFAULT_SYSTEM_PROMPT, looksLikeRemoteOllama } from './session.js';
+import {
+  Session,
+  type SessionConfig,
+  DEFAULT_SYSTEM_PROMPT,
+  looksLikeRemoteOllama,
+} from './session.js';
 import { streamChatFromOllama } from './ollama-stream.js';
 import { runAgentTurn, type AgentEvent } from './agent.js';
 import { McpClient, defaultMcpConfig } from './mcp-client.js';
@@ -29,7 +34,7 @@ function banner(session: Session, toolsOn: boolean): void {
     stdout.write(
       `${YELLOW}warn: host is non-localhost but OLLAMA_API_KEY is not set. ` +
         `Cloud / hosted endpoints will reject requests as unauthorized. ` +
-        `Pass --api-key or export OLLAMA_API_KEY.${RESET}\n`,
+        `Pass --api-key or export OLLAMA_API_KEY.${RESET}\n`
     );
   }
   stdout.write('\n');
@@ -39,8 +44,12 @@ function help(): void {
   stdout.write(`${CYAN}commands${RESET}\n`);
   stdout.write(`  ${GREEN}/help${RESET}           show this\n`);
   stdout.write(`  ${GREEN}/exit${RESET} | /quit   leave\n`);
-  stdout.write(`  ${GREEN}/clear${RESET}          forget conversation history (keeps system prompt)\n`);
-  stdout.write(`  ${GREEN}/model${RESET} <name>   switch ollama model (e.g. qwen2.5-coder:7b, brittney-qwen:latest)\n`);
+  stdout.write(
+    `  ${GREEN}/clear${RESET}          forget conversation history (keeps system prompt)\n`
+  );
+  stdout.write(
+    `  ${GREEN}/model${RESET} <name>   switch ollama model (e.g. qwen2.5-coder:7b, brittney-qwen:latest)\n`
+  );
   stdout.write(`  ${GREEN}/system${RESET} <text>  replace system prompt for this session\n`);
   stdout.write(`  ${GREEN}/show${RESET}           print current session config\n`);
   stdout.write(`  ${GREEN}/tools${RESET}          toggle MCP tool calling on/off\n`);
@@ -54,7 +63,7 @@ interface ReplState {
 async function handleSlash(
   cmd: string,
   session: Session,
-  state: ReplState,
+  state: ReplState
 ): Promise<'continue' | 'exit'> {
   const [verb, ...rest] = cmd.slice(1).split(/\s+/);
   const arg = rest.join(' ').trim();
@@ -98,7 +107,9 @@ async function handleSlash(
         ? DEFAULT_SYSTEM_PROMPT + TOOL_USE_SYSTEM_GUIDANCE
         : DEFAULT_SYSTEM_PROMPT;
       session.setSystemPrompt(newPrompt);
-      stdout.write(`${DIM}tools -> ${state.toolsOn ? 'ON' : 'OFF'}; system prompt + history reset${RESET}\n`);
+      stdout.write(
+        `${DIM}tools -> ${state.toolsOn ? 'ON' : 'OFF'}; system prompt + history reset${RESET}\n`
+      );
       return 'continue';
     }
     default:
@@ -120,7 +131,7 @@ async function streamReply(session: Session): Promise<void> {
       session.config.model,
       session.messages(),
       ac.signal,
-      session.config.apiKey || undefined,
+      session.config.apiKey || undefined
     )) {
       if (chunk.type === 'token') {
         if (firstToken) {
@@ -134,7 +145,9 @@ async function streamReply(session: Session): Promise<void> {
         stdout.write('\n');
         if (chunk.totalTokens && chunk.evalDurationMs) {
           const tps = chunk.totalTokens / (chunk.evalDurationMs / 1000);
-          stdout.write(`${DIM}${chunk.totalTokens} tok in ${chunk.evalDurationMs.toFixed(0)}ms (${tps.toFixed(1)} tok/s)${RESET}\n`);
+          stdout.write(
+            `${DIM}${chunk.totalTokens} tok in ${chunk.evalDurationMs.toFixed(0)}ms (${tps.toFixed(1)} tok/s)${RESET}\n`
+          );
         }
       } else if (chunk.type === 'error') {
         stdout.write(`\n${RED}error:${RESET} ${chunk.content}\n`);
@@ -167,7 +180,7 @@ export async function runRepl(initial: RunReplOptions = {}): Promise<number> {
   if (state.toolsOn && mcp && !mcp.config.apiKey) {
     stdout.write(
       `${YELLOW}warn: tools requested but HOLOSCRIPT_API_KEY (or MCP_API_KEY) is not set. ` +
-        `Tool calls will fail until you set one.${RESET}\n`,
+        `Tool calls will fail until you set one.${RESET}\n`
     );
   }
   banner(session, state.toolsOn);
@@ -202,7 +215,7 @@ export async function runRepl(initial: RunReplOptions = {}): Promise<number> {
 async function agentReply(
   session: Session,
   mcp: McpClient,
-  mutationController?: RefusableMutationController,
+  mutationController?: RefusableMutationController
 ): Promise<void> {
   const ac = new AbortController();
   const onSigint = () => ac.abort();

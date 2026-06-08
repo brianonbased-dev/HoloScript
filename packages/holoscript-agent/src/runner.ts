@@ -77,7 +77,10 @@ export class AgentRunner {
           // If this agent has no board-task capability tags (Brittney is
           // governance-only), return early so the tick result reflects message
           // work rather than falling through to no-claimable-task.
-          if (brain.capabilityTags.length === 0 || brain.capabilityTags.every((t) => t.startsWith('delegated'))) {
+          if (
+            brain.capabilityTags.length === 0 ||
+            brain.capabilityTags.every((t) => t.startsWith('delegated'))
+          ) {
             return {
               action: 'messages-processed',
               spentUsd: costGuard.getState().spentUsd,
@@ -187,7 +190,12 @@ export class AgentRunner {
       };
       // If model called tools, execute them and feed results back.
       if (resp.finishReason === 'tool_use' && resp.toolUses && resp.toolUses.length > 0) {
-        log({ ev: 'tool-call', taskId: target.id, iter: iters, tools: resp.toolUses.map((t) => t.name) });
+        log({
+          ev: 'tool-call',
+          taskId: target.id,
+          iter: iters,
+          tools: resp.toolUses.map((t) => t.name),
+        });
         // Track tool names for the artifact-grounding gate.
         for (const u of resp.toolUses) {
           toolsCalled.add(u.name);
@@ -279,7 +287,11 @@ export class AgentRunner {
       tokens: aggUsage.totalTokens,
       tool_iters: iters,
     });
-    const response = { ...(lastResponse ?? { content: finalText, usage: aggUsage }), content: finalText, usage: aggUsage };
+    const response = {
+      ...(lastResponse ?? { content: finalText, usage: aggUsage }),
+      content: finalText,
+      usage: aggUsage,
+    };
 
     const execResult: ExecutionResult = {
       taskId: target.id,
@@ -322,7 +334,12 @@ export class AgentRunner {
       });
       const posted = await mesh.postAuditRecords(identity.handle, [caelRecord]);
       this.prevCaelChain = caelRecord.fnv1a_chain;
-      log({ ev: 'cael-posted', taskId: target.id, appended: posted.appended, rejected: posted.rejected });
+      log({
+        ev: 'cael-posted',
+        taskId: target.id,
+        appended: posted.appended,
+        rejected: posted.rejected,
+      });
     } catch (err) {
       log({ ev: 'cael-post-error', message: err instanceof Error ? err.message : String(err) });
     }
@@ -344,7 +361,11 @@ export class AgentRunner {
       await mesh.markDone(target.id, finalText.slice(0, 500), lastCommitHash);
       log({ ev: 'mark-done', taskId: target.id, commitHash: lastCommitHash });
     } catch (err) {
-      log({ ev: 'mark-done-error', taskId: target.id, message: err instanceof Error ? err.message : String(err) });
+      log({
+        ev: 'mark-done-error',
+        taskId: target.id,
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
 
     return {

@@ -4,6 +4,7 @@
 > **GOLD Drive**: Vault root = **`GOLD_ROOT`** env or default (`D:\GOLD` / `/mnt/d/GOLD`). 5-tier knowledge (Diamond > Platinum > GOLD). Overrides knowledge store. See `~/.ai-ecosystem/CLAUDE.md` (GOLD Drive).
 
 ## Role
+
 Core platform. Language, compilers, traits, MCP server, Studio, renderer. The center of everything.
 
 > **Any family, one substrate.** Build with HoloScript through the shared MCP surface — the same for every family (Claude/Codex/Copilot/Grok/Gemini). Consume and verify the ecosystem surface before recreating a family-native substitute. See `AGENT_INTERFACE.md` Key Principles + ai-ecosystem `INTENT.md` §3a.
@@ -21,6 +22,7 @@ Core platform. Language, compilers, traits, MCP server, Studio, renderer. The ce
 If MCP is unavailable: diagnose → start server → retry. If still down, **skip generation and notify** — do not hand-code. There is no CLI fallback for `suggest_traits` or `generate_*`.
 
 ## Rules
+
 - Strict TypeScript. No `any` (use `unknown`).
 - dist/index.d.ts is hand-crafted via generate-types.mjs -- not tsc.
 - Never hardcode domain vocabulary into core. Plugins are data, not code.
@@ -30,6 +32,7 @@ If MCP is unavailable: diagnose → start server → retry. If still down, **ski
 - Stage explicitly: `git add <file>`, never `git add -A`
 
 ## Decision Tree (stop at first match)
+
 ```
 |- Code question? -> holo_query_codebase / holo_ask_codebase
 |- Real or placeholder? -> always real
@@ -43,6 +46,7 @@ If MCP is unavailable: diagnose → start server → retry. If still down, **ski
 Full decision trees (10 total): ~/.ai-ecosystem/NORTH_STAR.md
 
 ## Key Paths
+
 - packages/core/ -- AST, compilers, traits, identity, physics
 - packages/mcp-server/ -- MCP tools + REST + JSON-RPC
 - packages/engine/ -- runtime, GPU compute
@@ -50,6 +54,7 @@ Full decision trees (10 total): ~/.ai-ecosystem/NORTH_STAR.md
 - packages/r3f-renderer/ -- React Three Fiber
 
 ## Credentials
+
 ```bash
 ENV_FILE="C:/Users/Josep/.ai-ecosystem/.env"; set -a && source "$ENV_FILE" 2>/dev/null && set +a
 ```

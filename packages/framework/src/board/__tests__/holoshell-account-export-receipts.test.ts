@@ -47,7 +47,8 @@ function makeApproval(
     requiresFreshUserGesture: true,
     executionAllowed: false,
     credentialExtrusionAllowed: false,
-    commandPreview: 'node scripts/holoshell-action-executor.mjs --action open_url --approval-nonce [nonce-bound]',
+    commandPreview:
+      'node scripts/holoshell-action-executor.mjs --action open_url --approval-nonce [nonce-bound]',
     ...overrides,
   };
 }
@@ -129,15 +130,17 @@ describe('HoloShell browser account export receipts', () => {
     expect(validateHoloShellAccountExportReceiptPack(makeLegacyPack())).toEqual([]);
     expect(validateBrowserAccountBoundaryReceipt(makeBoundary())).toEqual([]);
     expect(validateAccountExportApprovalReceipt(makeApproval())).toEqual([]);
-    expect(validateProviderExportWaitReceipt({
-      id: 'wait-001',
-      provider: 'google',
-      exportKind: 'takeout',
-      state: 'provider_waiting',
-      providerRequestId: 'provider-export-001',
-      requestedAt: '2026-05-18T10:00:00Z',
-      mutationPerformed: true,
-    })).toEqual([]);
+    expect(
+      validateProviderExportWaitReceipt({
+        id: 'wait-001',
+        provider: 'google',
+        exportKind: 'takeout',
+        state: 'provider_waiting',
+        providerRequestId: 'provider-export-001',
+        requestedAt: '2026-05-18T10:00:00Z',
+        mutationPerformed: true,
+      })
+    ).toEqual([]);
     expect(validateLocalDownloadQuarantineReceipt(makeQuarantine())).toEqual([]);
   });
 
@@ -198,13 +201,17 @@ describe('HoloShell browser account export receipts', () => {
   });
 
   it('rejects missing provider wait state and archive hash', () => {
-    expect(validateProviderExportWaitReceipt({
-      id: 'wait-001',
-      provider: 'google',
-      exportKind: 'takeout',
-      state: 'sent_email' as unknown as 'provider_waiting',
-      mutationPerformed: true,
-    })).toEqual(expect.arrayContaining(['ProviderExportWaitReceipt.state is unsupported: sent_email.']));
+    expect(
+      validateProviderExportWaitReceipt({
+        id: 'wait-001',
+        provider: 'google',
+        exportKind: 'takeout',
+        state: 'sent_email' as unknown as 'provider_waiting',
+        mutationPerformed: true,
+      })
+    ).toEqual(
+      expect.arrayContaining(['ProviderExportWaitReceipt.state is unsupported: sent_email.'])
+    );
 
     expect(validateLocalDownloadQuarantineReceipt(makeQuarantine({ archiveHash: '' }))).toEqual(
       expect.arrayContaining(['LocalDownloadQuarantineReceipt.archiveHash is required.'])

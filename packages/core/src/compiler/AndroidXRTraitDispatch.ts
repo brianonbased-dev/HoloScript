@@ -1039,7 +1039,11 @@ export const AR_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'mesh_detection',
     components: ['MeshReconstruction'],
     level: 'full',
-    imports: ['com.google.ar.core.Config', 'com.google.ar.core.Frame', 'com.google.ar.core.Trackable'],
+    imports: [
+      'com.google.ar.core.Config',
+      'com.google.ar.core.Frame',
+      'com.google.ar.core.Trackable',
+    ],
     generate: (varName) => [
       `// @mesh_detection -- ARCore scene mesh reconstruction`,
       `// android.permission.SCENE_UNDERSTANDING_COARSE required`,
@@ -1285,7 +1289,10 @@ export const UI_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
     trait: 'gaze_interactable',
     components: ['InteractableComponent'],
     level: 'full',
-    imports: ['androidx.xr.scenecore.InteractableComponent', 'androidx.xr.scenecore.InteractableType'],
+    imports: [
+      'androidx.xr.scenecore.InteractableComponent',
+      'androidx.xr.scenecore.InteractableType',
+    ],
     generate: (varName) => [
       `// Combine Android SceneCore Gaze entity with Hand tracking pinch`,
       `${varName}.addComponent(InteractableComponent(InteractableType.GAZE_AND_PINCH))`,
@@ -2296,4 +2303,3 @@ export const MULTIPLAYER_TRAIT_MAP: Record<string, AndroidXRTraitMapping> = {
 // =============================================================================
 // AI / NPC TRAITS
 // =============================================================================
-

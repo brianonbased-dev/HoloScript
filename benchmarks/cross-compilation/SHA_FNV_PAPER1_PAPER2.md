@@ -23,22 +23,22 @@ Warmup and iteration counts are **inside the test** (decision bench, not a CI ga
 
 ## Captured run (regenerate when updating papers)
 
-| Field | Value |
-|-------|--------|
-| **Host OS** | win32 x64 |
-| **Node** | v22.22.0 |
+| Field        | Value                                       |
+| ------------ | ------------------------------------------- |
+| **Host OS**  | win32 x64                                   |
+| **Node**     | v22.22.0                                    |
 | **Captured** | 2026-04-21 (local; replace when re-running) |
 
 ### Paper-1 / Paper-2 / Paper-3 — UTF-8 source (computeContentHash-style)
 
 Scenario — median **μs** per call; **nat-×** = native SHA-256 / FNV-1a; **pjs-×** = pure-JS SHA-256 / FNV-1a.
 
-| Scenario | FNV-1a (μs) | Native SHA-256 (μs) | Pure-JS SHA-256 (μs) | nat-× | pjs-× |
-|----------|-------------|----------------------|------------------------|-------|------|
-| single-object snippet (0.5 KB) | 1.009 | 3.605 | 18.827 | 3.57× | 18.66× |
-| medium composition (5 KB) | 11.010 | 13.571 | 120.291 | 1.23× | 10.93× |
-| large composition (50 KB) | 124.752 | 78.675 | 1119.388 | 0.63× | 8.97× |
-| full-project manifest (200 KB) | 451.911 | 322.853 | 4386.195 | 0.71× | 9.71× |
+| Scenario                       | FNV-1a (μs) | Native SHA-256 (μs) | Pure-JS SHA-256 (μs) | nat-× | pjs-×  |
+| ------------------------------ | ----------- | ------------------- | -------------------- | ----- | ------ |
+| single-object snippet (0.5 KB) | 1.009       | 3.605               | 18.827               | 3.57× | 18.66× |
+| medium composition (5 KB)      | 11.010      | 13.571              | 120.291              | 1.23× | 10.93× |
+| large composition (50 KB)      | 124.752     | 78.675              | 1119.388             | 0.63× | 8.97×  |
+| full-project manifest (200 KB) | 451.911     | 322.853             | 4386.195             | 0.71× | 9.71×  |
 
 **Takeaway for prose:** for small snippets (0.5 KB), **pure-JS** SHA-256 is ~**19×** FNV-1a on this run; for larger sources the gap narrows because OpenSSL- backed native SHA-256 wins on bulk but Path 3 (pure-JS) remains ~**9–10×** FNV-1a at 50–200 KB.
 

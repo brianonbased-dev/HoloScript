@@ -360,7 +360,10 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
       const { id } = req.params as { id: string };
       const { version } = req.query;
 
-      const trait = await marketplace.getTrait(id, typeof version === 'string' ? version : undefined);
+      const trait = await marketplace.getTrait(
+        id,
+        typeof version === 'string' ? version : undefined
+      );
 
       res.json({
         success: true,
@@ -431,7 +434,10 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
       const { id } = req.params as { id: string };
       const { version } = req.query;
 
-      const trait = await marketplace.getTrait(id, typeof version === 'string' ? version : undefined);
+      const trait = await marketplace.getTrait(
+        id,
+        typeof version === 'string' ? version : undefined
+      );
 
       // Record download
       await marketplace.recordDownload(id, trait.version);
@@ -530,7 +536,10 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
       try {
         const token = (req as AuthenticatedRequest).token;
         const { id } = req.params as { id: string };
-        const { rating, review } = (req as AuthenticatedRequest).validated as { rating: number; review?: string };
+        const { rating, review } = (req as AuthenticatedRequest).validated as {
+          rating: number;
+          review?: string;
+        };
 
         await marketplace.rateTrait(id, rating, review, token);
 
@@ -556,7 +565,9 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     validate(dependencyResolveSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { traits } = (req as AuthenticatedRequest).validated as { traits: Array<{ name: string; version: string }> };
+        const { traits } = (req as AuthenticatedRequest).validated as {
+          traits: Array<{ name: string; version: string }>;
+        };
         const result = await marketplace.resolveDependencies(traits);
 
         res.json({
@@ -577,7 +588,9 @@ export function createMarketplaceRoutes(marketplace: MarketplaceService): Router
     validate(dependencyResolveSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const { traits } = (req as AuthenticatedRequest).validated as { traits: Array<{ name: string; version: string }> };
+        const { traits } = (req as AuthenticatedRequest).validated as {
+          traits: Array<{ name: string; version: string }>;
+        };
         const result = await marketplace.checkCompatibility(traits);
 
         res.json({

@@ -125,8 +125,7 @@ export function scoreTrajectory(inputs: ScorerInputs): ScorerOutput {
   const learnability = clamp01(learnabilityEstimate);
 
   // Regression: 1 if previously solved and now violates.
-  const regression =
-    previousStatus === 'solved' && (violation > 0 || invalidity > 0) ? 1 : 0;
+  const regression = previousStatus === 'solved' && (violation > 0 || invalidity > 0) ? 1 : 0;
 
   const predicateScore: SemanticPredicateScore = {
     violation,

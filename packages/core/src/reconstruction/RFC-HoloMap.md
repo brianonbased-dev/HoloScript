@@ -4,7 +4,7 @@
 **Author:** HoloScript Core team
 **Reviewers:** Joseph (founder approval gate), Copilot, Gemini
 **Date:** 2026-04-18
-**Related:** research/2026-04-18_lingbot-map-vs-holoscript*.md, `LINGBOT_FAMILY_LICENSE_AUDIT.md`, D.015 HoloX brand architecture, W.058 Babylon.js MCP threat, W.061 Trust by Construction, I.007 Lotus Genesis Trigger
+**Related:** research/2026-04-18_lingbot-map-vs-holoscript\*.md, `LINGBOT_FAMILY_LICENSE_AUDIT.md`, D.015 HoloX brand architecture, W.058 Babylon.js MCP threat, W.061 Trust by Construction, I.007 Lotus Genesis Trigger
 
 ## 1. Problem
 
@@ -47,22 +47,22 @@ video/webcam frames ─► HoloMapRuntime (WebGPU transformer)
 
 ### 4.1 Runtime modules (scaffolded Sprint 1)
 
-| Module | File | Sprint 1 state | Sprint 2 work |
-|--------|------|----------------|---------------|
-| HoloMapRuntime | `HoloMapRuntime.ts` | TS interfaces + deterministic `step/finalize` scaffold (CPU/WebGPU micro-encoder path, frame byte validation, dynamic bounds) | WGSL transformer pass, weight loader |
-| PagedKVCache | `PagedKVCache.ts` | Page-table interface | GPU buffer mgmt, eviction policy |
-| TrajectoryMemory | `TrajectoryMemory.ts` | Keyframe state shape | Ring buffer, loop-closure matcher |
-| AnchorContext | `AnchorContext.ts` | State shape, policy config | Descriptor extraction, re-anchor logic |
+| Module           | File                  | Sprint 1 state                                                                                                                | Sprint 2 work                          |
+| ---------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| HoloMapRuntime   | `HoloMapRuntime.ts`   | TS interfaces + deterministic `step/finalize` scaffold (CPU/WebGPU micro-encoder path, frame byte validation, dynamic bounds) | WGSL transformer pass, weight loader   |
+| PagedKVCache     | `PagedKVCache.ts`     | Page-table interface                                                                                                          | GPU buffer mgmt, eviction policy       |
+| TrajectoryMemory | `TrajectoryMemory.ts` | Keyframe state shape                                                                                                          | Ring buffer, loop-closure matcher      |
+| AnchorContext    | `AnchorContext.ts`    | State shape, policy config                                                                                                    | Descriptor extraction, re-anchor logic |
 
 ### 4.2 Trait family (scaffolded Sprint 1)
 
-| Trait | Binds to | Purpose |
-|-------|----------|---------|
-| `holomap_reconstruct` | Node (root of a session) | Declares a HoloMap reconstruction session |
-| `holomap_camera_trajectory` | Node | Exposes per-frame pose stream as attribute |
-| `holomap_anchor_context` | Node | Declares coordinate-frame anchor policy |
-| `holomap_drift_correction` | Node | Declares drift-correction / loop-closure policy |
-| `holomap_splat_output` | Node | Requests Gaussian splat output alongside point cloud |
+| Trait                       | Binds to                 | Purpose                                              |
+| --------------------------- | ------------------------ | ---------------------------------------------------- |
+| `holomap_reconstruct`       | Node (root of a session) | Declares a HoloMap reconstruction session            |
+| `holomap_camera_trajectory` | Node                     | Exposes per-frame pose stream as attribute           |
+| `holomap_anchor_context`    | Node                     | Declares coordinate-frame anchor policy              |
+| `holomap_drift_correction`  | Node                     | Declares drift-correction / loop-closure policy      |
+| `holomap_splat_output`      | Node                     | Requests Gaussian splat output alongside point cloud |
 
 **Why a new family and not an extension of `scene_reconstruction`:** The existing `SceneReconstructionTrait` (`scene_reconstruction`) is a **declarative route** to ARCore/RealityKit — the host platform performs the scan. HoloMap traits declare sessions against a **HoloScript-owned runtime** (WebGPU, deterministic). Collapsing them would conflate "who runs the scan" with "what kind of scan" and leak routing concerns into semantic traits.
 
@@ -95,11 +95,11 @@ Recommendation: run path 3 for the demo, path 2 in parallel for the production w
 
 **Decision (2026-04-19):** Ship weights as **content-addressed blobs**, not embedded inside `.holo` compositions.
 
-| Mode | When | Behavior |
-|------|------|----------|
-| **Default (production)** | Studio, MCP, HoloLand desktop | `HoloMapConfig` carries **`weightCid`** (multihash / CID) plus optional **`weightUrl`** (HTTPS CDN or gateway). Runtime **fetches once**, verifies hash against `weightCid`, then caches in **IndexedDB** (browser) or temp dir (Node). Replay fingerprint already keys on `weightCid` + `modelHash` — mismatched bytes fail closed. |
-| **Bundled / offline** | CI golden tests, air-gapped demos | Same tensors shipped as **versioned assets** under `packages/core/src/reconstruction/__fixtures__/weights/` (or package `dist`); loader accepts **`weightCid`** with **local `file://` or package-relative path** in `weightUrl`. Documented exception only — not the default for consumer builds. |
-| **HoloLand / XR consumer** | Quest, phone-as-bridge | **Pointer-only in session:** app ships **no** large weights in the APK; session manifest lists `weightCid` + signed URL or mesh-local cache handle. Aligns with U.001 (no developer toolchain in the user loop). |
+| Mode                       | When                              | Behavior                                                                                                                                                                                                                                                                                                                             |
+| -------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Default (production)**   | Studio, MCP, HoloLand desktop     | `HoloMapConfig` carries **`weightCid`** (multihash / CID) plus optional **`weightUrl`** (HTTPS CDN or gateway). Runtime **fetches once**, verifies hash against `weightCid`, then caches in **IndexedDB** (browser) or temp dir (Node). Replay fingerprint already keys on `weightCid` + `modelHash` — mismatched bytes fail closed. |
+| **Bundled / offline**      | CI golden tests, air-gapped demos | Same tensors shipped as **versioned assets** under `packages/core/src/reconstruction/__fixtures__/weights/` (or package `dist`); loader accepts **`weightCid`** with **local `file://` or package-relative path** in `weightUrl`. Documented exception only — not the default for consumer builds.                                   |
+| **HoloLand / XR consumer** | Quest, phone-as-bridge            | **Pointer-only in session:** app ships **no** large weights in the APK; session manifest lists `weightCid` + signed URL or mesh-local cache handle. Aligns with U.001 (no developer toolchain in the user loop).                                                                                                                     |
 
 **Rationale:** Keeps compositions small, preserves provenance (CID is the contract), and matches SimulationContract replay identity. Studio surfaces fetch + verify progress; failed verify is a blocking error before inference starts.
 
@@ -152,7 +152,4 @@ Planning/burndown should therefore track Sprint-1 completion against **RFC/scaff
 ## 10. Hygiene tracking updates
 
 - **2026-04-19 / Hygiene A**: core plumbing commit isolation completed (`types/parser/traits` path-scoped commit).
-- **2026-04-19 / Hygiene B**: runtime + docs deltas updated for deterministic scaffold behavior:
-       - input frame byte-length guard in `step()`
-       - computed bounds from emitted points in `finalize()`
-       - explicit self-attested provenance placeholder (`anchorHash`) pending external anchoring path
+- **2026-04-19 / Hygiene B**: runtime + docs deltas updated for deterministic scaffold behavior: - input frame byte-length guard in `step()` - computed bounds from emitted points in `finalize()` - explicit self-attested provenance placeholder (`anchorHash`) pending external anchoring path

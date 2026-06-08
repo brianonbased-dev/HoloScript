@@ -51,7 +51,7 @@ describe('Reactive ECS', () => {
     const entity = world.createEntity();
     world.addComponent(entity, 'Transform', {
       position: [0, 0, 0],
-      scale: [1, 1, 1 ],
+      scale: [1, 1, 1],
     });
 
     const transform = world.getComponent<any>(entity, 'Transform')!;

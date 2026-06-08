@@ -51,8 +51,12 @@ function seedCosineMode(solver: ReactionDiffusionSolver): void {
 /** Measured mode amplitude = (max − min)/2 over the field. */
 function modeAmplitude(solver: ReactionDiffusionSolver): number {
   const u = solver.getConcentrationField(0);
-  let mn = Infinity, mx = -Infinity;
-  for (const v of u) { if (v < mn) mn = v; if (v > mx) mx = v; }
+  let mn = Infinity,
+    mx = -Infinity;
+  for (const v of u) {
+    if (v < mn) mn = v;
+    if (v > mx) mx = v;
+  }
   return (mx - mn) / 2;
 }
 
@@ -64,7 +68,7 @@ function cflLimit(D: number): number {
 describe('ReactionDiffusionSolver diffusion — 2-D correctness + implicit stiff path', () => {
   it('EXPLICIT: 2-D cosine mode decays per analytical exp(−Dπ²t) (catches the nz=1 no-op)', () => {
     const D = 0.05;
-    const dt = 0.01;        // > CFL → solver sub-cycles explicitly (still stable)
+    const dt = 0.01; // > CFL → solver sub-cycles explicitly (still stable)
     const steps = 200;
     const solver = new ReactionDiffusionSolver(diffusionConfig(D, 'explicit'));
     seedCosineMode(solver);
@@ -77,15 +81,15 @@ describe('ReactionDiffusionSolver diffusion — 2-D correctness + implicit stiff
     const measured = a1 / a0;
 
     // Pre-fix this FAILS: the nz=1 loop was empty so a1≈a0 (factor≈1, no decay).
-    expect(measured).toBeLessThan(0.6);                       // it actually decayed
-    expect(measured).toBeCloseTo(analytical, 1);             // within ~0.05 of analytical
+    expect(measured).toBeLessThan(0.6); // it actually decayed
+    expect(measured).toBeCloseTo(analytical, 1); // within ~0.05 of analytical
     expect(Math.abs(measured - analytical) / analytical).toBeLessThan(0.15);
   });
 
   it('IMPLICIT: stable + accurate at dt PAST the explicit CFL limit (stiff regime)', () => {
     const D = 0.05;
     const cfl = cflLimit(D);
-    const dt = 8 * cfl;     // far past explicit stability — explicit alone would blow up
+    const dt = 8 * cfl; // far past explicit stability — explicit alone would blow up
     const steps = Math.round(2.0 / dt);
     const solver = new ReactionDiffusionSolver(diffusionConfig(D, 'implicit'));
     seedCosineMode(solver);
@@ -97,8 +101,8 @@ describe('ReactionDiffusionSolver diffusion — 2-D correctness + implicit stiff
     const analytical = Math.exp(-D * Math.PI * Math.PI * t);
     const measured = a1 / a0;
 
-    expect(Number.isFinite(a1)).toBe(true);                  // bounded — no blow-up
-    expect(dt).toBeGreaterThan(cfl);                         // we really are past CFL
+    expect(Number.isFinite(a1)).toBe(true); // bounded — no blow-up
+    expect(dt).toBeGreaterThan(cfl); // we really are past CFL
     expect(Math.abs(measured - analytical) / analytical).toBeLessThan(0.15);
   });
 
@@ -108,7 +112,9 @@ describe('ReactionDiffusionSolver diffusion — 2-D correctness + implicit stiff
     seedCosineMode(solver);
     const total = (s: ReactionDiffusionSolver) => {
       const u = s.getConcentrationField(0);
-      let acc = 0; for (const v of u) acc += v; return acc;
+      let acc = 0;
+      for (const v of u) acc += v;
+      return acc;
     };
     const before = total(solver);
     for (let s = 0; s < 100; s += 1) solver.step(0.01);

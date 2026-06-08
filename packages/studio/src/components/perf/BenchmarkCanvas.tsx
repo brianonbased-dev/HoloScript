@@ -131,22 +131,22 @@ export default function BenchmarkCanvas({
 }: BenchmarkCanvasProps) {
   return (
     <StudioErrorBoundary label="Benchmark Canvas">
-    <Canvas
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
-      camera={{ position: [0, 0, 30], fov: 60 }}
-      className="h-full w-full"
-    >
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[10, 20, 10]} intensity={1.2} castShadow />
-      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#8b5cf6" />
+      <Canvas
+        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        camera={{ position: [0, 0, 30], fov: 60 }}
+        className="h-full w-full"
+      >
+        <ambientLight intensity={0.4} />
+        <directionalLight position={[10, 20, 10]} intensity={1.2} castShadow />
+        <pointLight position={[-10, -10, -10]} intensity={0.5} color="#8b5cf6" />
 
-      <InstancedObjects count={objectCount} geometry={geometry} animated={animated} />
-      <FpsSampler onFpsUpdate={onFpsUpdate} />
-      <OrbitControls makeDefault />
+        <InstancedObjects count={objectCount} geometry={geometry} animated={animated} />
+        <FpsSampler onFpsUpdate={onFpsUpdate} />
+        <OrbitControls makeDefault />
 
-      {/* drei Stats overlay (top-left) */}
-      <Stats className="!top-2 !left-2 !bottom-auto" />
-    </Canvas>
+        {/* drei Stats overlay (top-left) */}
+        <Stats className="!top-2 !left-2 !bottom-auto" />
+      </Canvas>
     </StudioErrorBoundary>
   );
 }

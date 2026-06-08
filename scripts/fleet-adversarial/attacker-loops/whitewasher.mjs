@@ -26,8 +26,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const ATTACK_CLASS = 'whitewasher';
-const LEGITIMATE_TRIALS_DEFAULT = 5;       // Paper 21 §4.1 step 1: build trust
-const TRUST_THRESHOLD_DEFAULT = 0.75;       // §4.1 step 2: exploit threshold
+const LEGITIMATE_TRIALS_DEFAULT = 5; // Paper 21 §4.1 step 1: build trust
+const TRUST_THRESHOLD_DEFAULT = 0.75; // §4.1 step 2: exploit threshold
 
 export async function runWhitewasher(opts) {
   const {
@@ -69,7 +69,15 @@ export async function runWhitewasher(opts) {
       route: `${AUDIT_PREFIX_LOCAL}trial`,
       target_handle,
       policy: effectiveDryRun ? 'dry-run' : 'production',
-      payload: { phase, trial, duration_ms, defense_state, legitimate_trials, trust_threshold, run_id },
+      payload: {
+        phase,
+        trial,
+        duration_ms,
+        defense_state,
+        legitimate_trials,
+        trust_threshold,
+        run_id,
+      },
     },
   });
 
@@ -88,7 +96,12 @@ export async function runWhitewasher(opts) {
         route: `${AUDIT_PREFIX_LOCAL}legitimate`,
         target_handle,
         policy: effectiveDryRun ? 'dry-run' : 'production',
-        payload: { sequence: i + 1, of: legitimate_trials, trust_gain: trustGain, accumulated: accumulatedTrust },
+        payload: {
+          sequence: i + 1,
+          of: legitimate_trials,
+          trust_gain: trustGain,
+          accumulated: accumulatedTrust,
+        },
       },
     });
 
@@ -183,17 +196,20 @@ if (isMainModule) {
     else if (argv[i] === '--phase') args.phase = Number(argv[++i]);
     else if (argv[i] === '--run-id') args.run_id = argv[++i];
     else if (argv[i] === '--no-dry-run') args.dry_run = false;
-    else if (argv[i] === '--i-acknowledge-blockers-d2jx-8bav-open') args.acknowledge_blockers = true;
+    else if (argv[i] === '--i-acknowledge-blockers-d2jx-8bav-open')
+      args.acknowledge_blockers = true;
   }
   if (!args.target_handle) {
     console.error('[whitewasher] FATAL: --target required');
     process.exit(2);
   }
-  runWhitewasher(args).then((result) => {
-    console.log(JSON.stringify(result, null, 2));
-    process.exit(result.status.startsWith('OK') ? 0 : 1);
-  }).catch((err) => {
-    console.error(`[whitewasher] FATAL: ${err.stack || err.message}`);
-    process.exit(1);
-  });
+  runWhitewasher(args)
+    .then((result) => {
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(result.status.startsWith('OK') ? 0 : 1);
+    })
+    .catch((err) => {
+      console.error(`[whitewasher] FATAL: ${err.stack || err.message}`);
+      process.exit(1);
+    });
 }

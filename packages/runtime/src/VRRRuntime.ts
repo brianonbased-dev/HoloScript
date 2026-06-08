@@ -273,11 +273,7 @@ export interface VRRRuntimeOptions {
    * When omitted, `requirePayment` logs once and returns true (dev-only default).
    */
   payments?: {
-    verifyPayment?: (opts: {
-      price: number;
-      asset: string;
-      network: string;
-    }) => Promise<boolean>;
+    verifyPayment?: (opts: { price: number; asset: string; network: string }) => Promise<boolean>;
   };
   /**
    * Optional integration hooks (crowd sim, instancing, etc.).
@@ -287,11 +283,7 @@ export interface VRRRuntimeOptions {
       position: { x: number; y: number; z: number };
       count: number;
     }) => void;
-    onAffectEvent?: (args: {
-      sceneId: string;
-      valence: number;
-      arousal: number;
-    }) => void;
+    onAffectEvent?: (args: { sceneId: string; valence: number; arousal: number }) => void;
   };
 }
 
@@ -612,10 +604,8 @@ export class VRRRuntime {
             location: String(
               (evt._embedded as Record<string, unknown[]>)?.venues?.[0]
                 ? ((
-                    (evt._embedded as Record<string, Record<string, unknown>[]>).venues[0] as Record<
-                      string,
-                      unknown
-                    >
+                    (evt._embedded as Record<string, Record<string, unknown>[]>)
+                      .venues[0] as Record<string, unknown>
                   ).name ?? 'Unknown')
                 : 'Unknown'
             ),
@@ -797,10 +787,7 @@ export class VRRRuntime {
   /**
    * Update local player position and action for next broadcast tick.
    */
-  updateLocalPlayer(
-    position: [number, number, number],
-    action: PlayerData['action']
-  ): void {
+  updateLocalPlayer(position: [number, number, number], action: PlayerData['action']): void {
     if (this.localPlayer) {
       this.localPlayer.position = position;
       this.localPlayer.action = action;
@@ -1164,7 +1151,9 @@ export class VRRRuntime {
     if (!targets || targets.length === 0) {
       return ['browser', 'headset'];
     }
-    const normalized = targets.filter((t): t is VRRRenderTarget => t === 'browser' || t === 'headset');
+    const normalized = targets.filter(
+      (t): t is VRRRenderTarget => t === 'browser' || t === 'headset'
+    );
     return normalized.length > 0 ? [...new Set(normalized)] : ['browser', 'headset'];
   }
 
@@ -1387,7 +1376,10 @@ export class VRRRuntime {
     return `0x${hex}`;
   }
 
-  showPaywallUI(_contentId: string, _details: { price: number; asset: string; network: string }): void {
+  showPaywallUI(
+    _contentId: string,
+    _details: { price: number; asset: string; network: string }
+  ): void {
     console.warn('[VRR] showPaywallUI — integrate marketplace UI');
   }
 
@@ -1466,10 +1458,7 @@ export class VRRRuntime {
     };
   }
 
-  createQuestHub(config: {
-    business_id: string;
-    quests: unknown[];
-  }): QuestHubHandle {
+  createQuestHub(config: { business_id: string; quests: unknown[] }): QuestHubHandle {
     return new QuestHubHandle(config);
   }
 

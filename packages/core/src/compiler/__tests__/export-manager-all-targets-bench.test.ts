@@ -95,76 +95,72 @@ function median(samples: number[]): number {
 }
 
 describe('ExportManager — all targets compile bench', () => {
-  it(
-    'times trait-heavy composition export per supported target (bottleneck report)',
-    async () => {
-      const ast = parseFixture(buildBenchFixture(BENCH_OBJECT_COUNT));
-      const mgr = new ExportManager({
-        useMemoryMonitoring: false,
-        enableGaussianBudgetWarnings: false,
-        agentToken: 'export-manager-all-targets-bench',
-        generateDocs: false,
-      });
-      const targets = mgr.getSupportedTargets();
-      const WARMUP = 2;
-      const N = 4;
+  it('times trait-heavy composition export per supported target (bottleneck report)', async () => {
+    const ast = parseFixture(buildBenchFixture(BENCH_OBJECT_COUNT));
+    const mgr = new ExportManager({
+      useMemoryMonitoring: false,
+      enableGaussianBudgetWarnings: false,
+      agentToken: 'export-manager-all-targets-bench',
+      generateDocs: false,
+    });
+    const targets = mgr.getSupportedTargets();
+    const WARMUP = 2;
+    const N = 4;
 
-      console.log('\n[export-manager-all-targets-bench] === per-target ExportManager.compile ===');
+    console.log('\n[export-manager-all-targets-bench] === per-target ExportManager.compile ===');
+    console.log(
+      `[export-manager-all-targets-bench] objects=${BENCH_OBJECT_COUNT} targets=${targets.length} warmup=${WARMUP} iters=${N}`
+    );
+
+    const rows: {
+      target: ExportTarget;
+      medianMs: number;
+      successRate: number;
+    }[] = [];
+
+    for (const target of targets) {
+      for (let w = 0; w < WARMUP; w++) {
+        await mgr.export(target, ast, {});
+      }
+      const times: number[] = [];
+      let successes = 0;
+      for (let i = 0; i < N; i++) {
+        const r = await mgr.export(target, ast, {});
+        times.push(r.executionTime);
+        if (r.success) successes++;
+      }
+      const med = median(times);
+      const successRate = successes / N;
+      rows.push({ target, medianMs: med, successRate });
       console.log(
-        `[export-manager-all-targets-bench] objects=${BENCH_OBJECT_COUNT} targets=${targets.length} warmup=${WARMUP} iters=${N}`
+        `[export-manager-all-targets-bench] ${target} | med=${med.toFixed(2)}ms | success=${successes}/${N}`
       );
+    }
 
-      const rows: {
-        target: ExportTarget;
-        medianMs: number;
-        successRate: number;
-      }[] = [];
+    const okRows = rows.filter((r) => r.successRate >= 1);
+    const sorted = [...okRows].sort((a, b) => b.medianMs - a.medianMs);
+    console.log('[export-manager-all-targets-bench] slowest (all iterations succeeded):');
+    for (const r of sorted.slice(0, 10)) {
+      console.log(`  ${r.target}: ${r.medianMs.toFixed(2)}ms`);
+    }
 
-      for (const target of targets) {
-        for (let w = 0; w < WARMUP; w++) {
-          await mgr.export(target, ast, {});
-        }
-        const times: number[] = [];
-        let successes = 0;
-        for (let i = 0; i < N; i++) {
-          const r = await mgr.export(target, ast, {});
-          times.push(r.executionTime);
-          if (r.success) successes++;
-        }
-        const med = median(times);
-        const successRate = successes / N;
-        rows.push({ target, medianMs: med, successRate });
-        console.log(
-          `[export-manager-all-targets-bench] ${target} | med=${med.toFixed(2)}ms | success=${successes}/${N}`
-        );
-      }
+    const flaky = rows.filter((r) => r.successRate > 0 && r.successRate < 1);
+    if (flaky.length) {
+      console.log(
+        '[export-manager-all-targets-bench] partial failures:',
+        flaky.map((f) => `${f.target}(${f.successRate.toFixed(2)})`).join(', ')
+      );
+    }
 
-      const okRows = rows.filter((r) => r.successRate >= 1);
-      const sorted = [...okRows].sort((a, b) => b.medianMs - a.medianMs);
-      console.log('[export-manager-all-targets-bench] slowest (all iterations succeeded):');
-      for (const r of sorted.slice(0, 10)) {
-        console.log(`  ${r.target}: ${r.medianMs.toFixed(2)}ms`);
-      }
+    const failed = rows.filter((r) => r.successRate === 0);
+    if (failed.length) {
+      console.log(
+        '[export-manager-all-targets-bench] all-iteration failures:',
+        failed.map((f) => f.target).join(', ')
+      );
+    }
 
-      const flaky = rows.filter((r) => r.successRate > 0 && r.successRate < 1);
-      if (flaky.length) {
-        console.log(
-          '[export-manager-all-targets-bench] partial failures:',
-          flaky.map((f) => `${f.target}(${f.successRate.toFixed(2)})`).join(', ')
-        );
-      }
-
-      const failed = rows.filter((r) => r.successRate === 0);
-      if (failed.length) {
-        console.log(
-          '[export-manager-all-targets-bench] all-iteration failures:',
-          failed.map((f) => f.target).join(', ')
-        );
-      }
-
-      expect(rows.length).toBe(targets.length);
-      expect(okRows.length).toBeGreaterThan(0);
-    },
-    600_000
-  );
+    expect(rows.length).toBe(targets.length);
+    expect(okRows.length).toBeGreaterThan(0);
+  }, 600_000);
 });

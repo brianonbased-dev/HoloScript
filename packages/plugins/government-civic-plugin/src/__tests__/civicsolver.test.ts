@@ -23,12 +23,12 @@ import {
 describe('permitScoring', () => {
   it('compositeScore = weighted sum of criterion scores', () => {
     const criteria = [
-      { name: 'safety',    weight: 0.40, score: 80 },
-      { name: 'zoning',    weight: 0.35, score: 90 },
-      { name: 'env',       weight: 0.25, score: 70 },
+      { name: 'safety', weight: 0.4, score: 80 },
+      { name: 'zoning', weight: 0.35, score: 90 },
+      { name: 'env', weight: 0.25, score: 70 },
     ];
     const r = permitScoring(criteria);
-    const expected = 0.40 * 80 + 0.35 * 90 + 0.25 * 70;
+    const expected = 0.4 * 80 + 0.35 * 90 + 0.25 * 70;
     expect(r.compositeScore).toBeCloseTo(expected, 4);
   });
 
@@ -46,12 +46,12 @@ describe('permitScoring', () => {
 
   it('breakdown includes contribution = score × weight', () => {
     const criteria = [
-      { name: 'env', weight: 0.60, score: 75 },
-      { name: 'traffic', weight: 0.40, score: 50 },
+      { name: 'env', weight: 0.6, score: 75 },
+      { name: 'traffic', weight: 0.4, score: 50 },
     ];
     const r = permitScoring(criteria);
-    expect(r.breakdown[0].contribution).toBeCloseTo(0.60 * 75, 4);
-    expect(r.breakdown[1].contribution).toBeCloseTo(0.40 * 50, 4);
+    expect(r.breakdown[0].contribution).toBeCloseTo(0.6 * 75, 4);
+    expect(r.breakdown[1].contribution).toBeCloseTo(0.4 * 50, 4);
   });
 
   it('throws when weights do not sum to 1.0', () => {
@@ -76,14 +76,14 @@ describe('mcdaAnalysis', () => {
     { id: 'project-C', scores: [50, 90, 70] },
   ];
   const criteria = [
-    { name: 'cost-effectiveness', weight: 0.50, isBenefit: true },
-    { name: 'community-impact',   weight: 0.30, isBenefit: true },
-    { name: 'implementation-ease',weight: 0.20, isBenefit: true },
+    { name: 'cost-effectiveness', weight: 0.5, isBenefit: true },
+    { name: 'community-impact', weight: 0.3, isBenefit: true },
+    { name: 'implementation-ease', weight: 0.2, isBenefit: true },
   ];
 
   it('winner is a valid candidate id', () => {
     const r = mcdaAnalysis(candidates, criteria);
-    const ids = candidates.map(c => c.id);
+    const ids = candidates.map((c) => c.id);
     expect(ids).toContain(r.winner);
   });
 
@@ -102,7 +102,7 @@ describe('mcdaAnalysis', () => {
 
   it('ranks are 1-indexed and sequential', () => {
     const r = mcdaAnalysis(candidates, criteria);
-    const ranks = r.ranking.map(x => x.rank).sort((a, b) => a - b);
+    const ranks = r.ranking.map((x) => x.rank).sort((a, b) => a - b);
     expect(ranks).toEqual([1, 2, 3]);
   });
 
@@ -190,19 +190,19 @@ describe('votingCohesion', () => {
     { memberId: 'A2', partyId: 'A', vote: 'yes' as const },
     { memberId: 'A3', partyId: 'A', vote: 'yes' as const },
     { memberId: 'B1', partyId: 'B', vote: 'yes' as const },
-    { memberId: 'B2', partyId: 'B', vote: 'no'  as const },
-    { memberId: 'B3', partyId: 'B', vote: 'no'  as const },
+    { memberId: 'B2', partyId: 'B', vote: 'no' as const },
+    { memberId: 'B3', partyId: 'B', vote: 'no' as const },
   ];
 
   it('unanimous party cohesion = 1.0', () => {
     const r = votingCohesion(votes);
-    const partyA = r.partyCohesion.find(p => p.partyId === 'A');
+    const partyA = r.partyCohesion.find((p) => p.partyId === 'A');
     expect(partyA!.cohesion).toBeCloseTo(1.0, 4);
   });
 
   it('split party cohesion < 1', () => {
     const r = votingCohesion(votes);
-    const partyB = r.partyCohesion.find(p => p.partyId === 'B');
+    const partyB = r.partyCohesion.find((p) => p.partyId === 'B');
     expect(partyB!.cohesion).toBeGreaterThanOrEqual(0);
     expect(partyB!.cohesion).toBeLessThan(1);
   });
@@ -219,7 +219,10 @@ describe('votingCohesion', () => {
   });
 
   it('majority=no when more no than yes', () => {
-    const noMajority = votes.map(v => ({ ...v, vote: (v.partyId === 'A' ? 'no' : v.vote) as 'yes' | 'no' | 'abstain' }));
+    const noMajority = votes.map((v) => ({
+      ...v,
+      vote: (v.partyId === 'A' ? 'no' : v.vote) as 'yes' | 'no' | 'abstain',
+    }));
     const r = votingCohesion(noMajority); // 1 yes, 5 no
     expect(r.majority).toBe('no');
   });
@@ -252,7 +255,7 @@ describe('polsbyPopper', () => {
     // Very elongated: narrow strip, A=1, P=100 → PP = 4π/10000 ≈ 0.00125
     const r = polsbyPopper(1, 100);
     expect(r.classification).toBe('gerrymandered');
-    expect(r.compactnessScore).toBeLessThan(0.20);
+    expect(r.compactnessScore).toBeLessThan(0.2);
   });
 
   it('moderate classification for 0.20 ≤ score < 0.50', () => {
@@ -264,9 +267,10 @@ describe('polsbyPopper', () => {
   });
 
   it('compactnessScore = 4π × area / perimeter²', () => {
-    const A = 5, P = 15;
+    const A = 5,
+      P = 15;
     const r = polsbyPopper(A, P);
-    expect(r.compactnessScore).toBeCloseTo((4 * Math.PI * A) / (P ** 2), 6);
+    expect(r.compactnessScore).toBeCloseTo((4 * Math.PI * A) / P ** 2, 6);
   });
 
   it('throws for non-positive area', () => {
@@ -278,9 +282,9 @@ describe('polsbyPopper', () => {
 
 describe('budgetVariance', () => {
   const lines = [
-    { category: 'Roads',       budgeted: 100_000, actual: 95_000  }, // under → favorable
-    { category: 'Parks',       budgeted:  50_000, actual: 60_000  }, // over → unfavorable
-    { category: 'Admin',       budgeted:  75_000, actual: 75_500  }, // near → on-target
+    { category: 'Roads', budgeted: 100_000, actual: 95_000 }, // under → favorable
+    { category: 'Parks', budgeted: 50_000, actual: 60_000 }, // over → unfavorable
+    { category: 'Admin', budgeted: 75_000, actual: 75_500 }, // near → on-target
   ];
 
   it('variance = actual - budgeted', () => {
@@ -306,7 +310,7 @@ describe('budgetVariance', () => {
   });
 
   it('flaggedLines contains categories with |variance%| > threshold', () => {
-    const r = budgetVariance(lines, 0.10); // 10% threshold
+    const r = budgetVariance(lines, 0.1); // 10% threshold
     // Parks: 20% over → flagged. Roads: 5% under → not flagged (below 10%)
     expect(r.flaggedLines).toContain('Parks');
     expect(r.flaggedLines).not.toContain('Roads');

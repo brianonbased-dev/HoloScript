@@ -47,17 +47,30 @@ function getState(node: HSPlusNode): RetryState {
 }
 
 // Execute an action and return its retryId
-function executeAction(node: HSPlusNode, config: RetryConfig, ctx: TraitContext, action: string, params?: Record<string, unknown>) {
+function executeAction(
+  node: HSPlusNode,
+  config: RetryConfig,
+  ctx: TraitContext,
+  action: string,
+  params?: Record<string, unknown>
+) {
   retryHandler.onEvent!(node, config, ctx, { type: 'retry:execute', payload: { action, params } });
   const state = getState(node);
   // The retryId is the most recently emitted attempt's retryId
   const emitted = (ctx.emit as ReturnType<typeof vi.fn>).mock.calls;
-  const attemptCall = [...emitted].reverse().find(c => c[0] === 'retry:attempt');
+  const attemptCall = [...emitted].reverse().find((c) => c[0] === 'retry:attempt');
   return attemptCall?.[1]?.retryId as string;
 }
 
 // Report a result for a pending retryId
-function reportResult(node: HSPlusNode, config: RetryConfig, ctx: TraitContext, retryId: string, success: boolean, error?: string) {
+function reportResult(
+  node: HSPlusNode,
+  config: RetryConfig,
+  ctx: TraitContext,
+  retryId: string,
+  success: boolean,
+  error?: string
+) {
   retryHandler.onEvent!(node, config, ctx, {
     type: 'retry:action_result',
     payload: { retryId, success, error },
@@ -150,7 +163,7 @@ describe('RetryTrait – onUpdate circuit auto-reset', () => {
     state.circuitOpenedAt = Date.now() - 70000; // 70s ago > 60s reset
     retryHandler.onUpdate!(node, defaultCfg(), ctx, 0.016);
     expect(state.circuit).toBe('half-open');
-    expect(emitted.some(e => e.type === 'retry:circuit_half')).toBe(true);
+    expect(emitted.some((e) => e.type === 'retry:circuit_half')).toBe(true);
   });
 
   it('does NOT transition open→half-open when cooldown not elapsed', () => {
@@ -188,10 +201,10 @@ describe('RetryTrait – retry:execute', () => {
       type: 'retry:execute',
       payload: { action: 'myAction' },
     });
-    const failure = emitted.find(e => e.type === 'retry:failure');
+    const failure = emitted.find((e) => e.type === 'retry:failure');
     expect(failure).toBeDefined();
-    expect((failure!.payload as Record<string,unknown>).actionName).toBe('myAction');
-    expect((failure!.payload as Record<string,unknown>).error).toContain('Circuit');
+    expect((failure!.payload as Record<string, unknown>).actionName).toBe('myAction');
+    expect((failure!.payload as Record<string, unknown>).error).toContain('Circuit');
   });
 
   it('emits retry:attempt and the action itself when circuit closed', () => {
@@ -202,13 +215,13 @@ describe('RetryTrait – retry:execute', () => {
       type: 'retry:execute',
       payload: { action: 'doWork', params: { x: 1 } },
     });
-    const attempt = emitted.find(e => e.type === 'retry:attempt');
+    const attempt = emitted.find((e) => e.type === 'retry:attempt');
     expect(attempt).toBeDefined();
-    expect((attempt!.payload as Record<string,unknown>).actionName).toBe('doWork');
-    expect((attempt!.payload as Record<string,unknown>).attempt).toBe(0);
-    const action = emitted.find(e => e.type === 'doWork');
+    expect((attempt!.payload as Record<string, unknown>).actionName).toBe('doWork');
+    expect((attempt!.payload as Record<string, unknown>).attempt).toBe(0);
+    const action = emitted.find((e) => e.type === 'doWork');
     expect(action).toBeDefined();
-    expect((action!.payload as Record<string,unknown>).x).toBe(1);
+    expect((action!.payload as Record<string, unknown>).x).toBe(1);
   });
 
   it('increments totalAttempts on execute', () => {
@@ -240,7 +253,7 @@ describe('RetryTrait – retry:execute', () => {
       retryHandler.onEvent!(node, defaultCfg(), ctx, {
         type: 'retry:execute',
         payload: { action: 'act' },
-      }),
+      })
     ).not.toThrow();
   });
 });
@@ -256,7 +269,7 @@ describe('RetryTrait – retry:action_result success', () => {
     retryHandler.onAttach!(node, defaultCfg(), ctx);
     const retryId = executeAction(node, defaultCfg(), ctx, 'act');
     reportResult(node, defaultCfg(), ctx, retryId, true);
-    expect(emitted.some(e => e.type === 'retry:success')).toBe(true);
+    expect(emitted.some((e) => e.type === 'retry:success')).toBe(true);
     expect(getState(node).pendingActions.size).toBe(0);
   });
 
@@ -287,7 +300,7 @@ describe('RetryTrait – retry:action_result success', () => {
     const retryId = executeAction(node, defaultCfg(), ctx, 'act');
     reportResult(node, defaultCfg(), ctx, retryId, true);
     expect(getState(node).circuit).toBe('closed');
-    expect(emitted.some(e => e.type === 'retry:circuit_close')).toBe(true);
+    expect(emitted.some((e) => e.type === 'retry:circuit_close')).toBe(true);
   });
 
   it('ignores unknown retryId', () => {
@@ -304,8 +317,12 @@ describe('RetryTrait – retry:action_result success', () => {
 // ---------------------------------------------------------------------------
 
 describe('RetryTrait – retry:action_result failure', () => {
-  beforeEach(() => { vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); });
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('emits retry:failure and increments totalFailures', () => {
     const node = makeNode();
@@ -313,7 +330,7 @@ describe('RetryTrait – retry:action_result failure', () => {
     retryHandler.onAttach!(node, defaultCfg(), ctx);
     const retryId = executeAction(node, defaultCfg(), ctx, 'act');
     reportResult(node, defaultCfg(), ctx, retryId, false, 'timeout');
-    expect(emitted.some(e => e.type === 'retry:failure')).toBe(true);
+    expect(emitted.some((e) => e.type === 'retry:failure')).toBe(true);
     expect(getState(node).totalFailures).toBe(1);
   });
 
@@ -335,7 +352,7 @@ describe('RetryTrait – retry:action_result failure', () => {
     reportResult(node, cfg, ctx, retryId, false, 'err');
     // Advance timers to trigger the scheduled retry
     vi.advanceTimersByTime(200);
-    const attempts = emitted.filter(e => e.type === 'retry:attempt');
+    const attempts = emitted.filter((e) => e.type === 'retry:attempt');
     expect(attempts.length).toBeGreaterThanOrEqual(2); // initial + scheduled
   });
 
@@ -351,7 +368,7 @@ describe('RetryTrait – retry:action_result failure', () => {
     vi.advanceTimersByTime(10);
     // Get the new emitted retry:attempt's retryId (same retryId is reused)
     reportResult(node, cfg, ctx, retryId, false, 'e2');
-    expect(emitted.some(e => e.type === 'retry:exhausted')).toBe(true);
+    expect(emitted.some((e) => e.type === 'retry:exhausted')).toBe(true);
     expect(getState(node).pendingActions.size).toBe(0);
   });
 
@@ -366,7 +383,7 @@ describe('RetryTrait – retry:action_result failure', () => {
       reportResult(node, cfg, ctx, rid, false, 'err');
     }
     expect(getState(node).circuit).toBe('open');
-    expect(emitted.some(e => e.type === 'retry:circuit_open')).toBe(true);
+    expect(emitted.some((e) => e.type === 'retry:circuit_open')).toBe(true);
   });
 
   it('circuit_open payload has consecutiveFailures and resetMs', () => {
@@ -376,10 +393,10 @@ describe('RetryTrait – retry:action_result failure', () => {
     retryHandler.onAttach!(node, cfg, ctx);
     const rid = executeAction(node, cfg, ctx, 'act');
     reportResult(node, cfg, ctx, rid, false, 'err');
-    const circuitOpen = emitted.find(e => e.type === 'retry:circuit_open');
+    const circuitOpen = emitted.find((e) => e.type === 'retry:circuit_open');
     expect(circuitOpen).toBeDefined();
-    expect((circuitOpen!.payload as Record<string,unknown>).consecutiveFailures).toBe(1);
-    expect((circuitOpen!.payload as Record<string,unknown>).resetMs).toBe(cfg.circuit_reset_ms);
+    expect((circuitOpen!.payload as Record<string, unknown>).consecutiveFailures).toBe(1);
+    expect((circuitOpen!.payload as Record<string, unknown>).resetMs).toBe(cfg.circuit_reset_ms);
   });
 
   it('reopens circuit on failure in half-open state', () => {
@@ -391,7 +408,7 @@ describe('RetryTrait – retry:action_result failure', () => {
     const rid = executeAction(node, cfg, ctx, 'act');
     reportResult(node, cfg, ctx, rid, false, 'err');
     expect(getState(node).circuit).toBe('open');
-    expect(emitted.some(e => e.type === 'retry:circuit_open')).toBe(true);
+    expect(emitted.some((e) => e.type === 'retry:circuit_open')).toBe(true);
   });
 });
 
@@ -409,7 +426,7 @@ describe('RetryTrait – retry:reset_circuit', () => {
     retryHandler.onEvent!(node, defaultCfg(), ctx, { type: 'retry:reset_circuit', payload: {} });
     expect(getState(node).circuit).toBe('closed');
     expect(getState(node).consecutiveFailures).toBe(0);
-    expect(emitted.some(e => e.type === 'retry:circuit_close')).toBe(true);
+    expect(emitted.some((e) => e.type === 'retry:circuit_close')).toBe(true);
   });
 
   it('circuit_close recoveredAfterMs is 0 on manual reset', () => {
@@ -417,8 +434,8 @@ describe('RetryTrait – retry:reset_circuit', () => {
     const { ctx, emitted } = makeContext();
     retryHandler.onAttach!(node, defaultCfg(), ctx);
     retryHandler.onEvent!(node, defaultCfg(), ctx, { type: 'retry:reset_circuit', payload: {} });
-    const close = emitted.find(e => e.type === 'retry:circuit_close');
-    expect((close!.payload as Record<string,unknown>).recoveredAfterMs).toBe(0);
+    const close = emitted.find((e) => e.type === 'retry:circuit_close');
+    expect((close!.payload as Record<string, unknown>).recoveredAfterMs).toBe(0);
   });
 });
 
@@ -436,9 +453,9 @@ describe('RetryTrait – retry:get_status', () => {
     state.totalSuccesses = 3;
     state.totalFailures = 2;
     retryHandler.onEvent!(node, defaultCfg(), ctx, { type: 'retry:get_status', payload: {} });
-    const status = emitted.find(e => e.type === 'retry:status');
+    const status = emitted.find((e) => e.type === 'retry:status');
     expect(status).toBeDefined();
-    const p = status!.payload as Record<string,unknown>;
+    const p = status!.payload as Record<string, unknown>;
     expect(p.circuit).toBe('closed');
     expect(p.totalAttempts).toBe(5);
     expect(p.totalSuccesses).toBe(3);
@@ -453,8 +470,8 @@ describe('RetryTrait – retry:get_status', () => {
     executeAction(node, defaultCfg(), ctx, 'act1');
     executeAction(node, defaultCfg(), ctx, 'act2');
     retryHandler.onEvent!(node, defaultCfg(), ctx, { type: 'retry:get_status', payload: {} });
-    const status = emitted.find(e => e.type === 'retry:status');
-    expect((status!.payload as Record<string,unknown>).pending).toBe(2);
+    const status = emitted.find((e) => e.type === 'retry:status');
+    expect((status!.payload as Record<string, unknown>).pending).toBe(2);
   });
 });
 
@@ -463,22 +480,32 @@ describe('RetryTrait – retry:get_status', () => {
 // ---------------------------------------------------------------------------
 
 describe('RetryTrait – backoff strategies (via retry delays)', () => {
-  beforeEach(() => { vi.useFakeTimers(); });
-  afterEach(() => { vi.useRealTimers(); });
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('constant backoff always uses base_delay_ms', () => {
     const node = makeNode();
     const { ctx, emitted } = makeContext();
-    const cfg = defaultCfg({ backoff: 'constant', base_delay_ms: 50, max_delay_ms: 30000, jitter: 0, max_retries: 2 });
+    const cfg = defaultCfg({
+      backoff: 'constant',
+      base_delay_ms: 50,
+      max_delay_ms: 30000,
+      jitter: 0,
+      max_retries: 2,
+    });
     retryHandler.onAttach!(node, cfg, ctx);
     const rid = executeAction(node, cfg, ctx, 'act');
     reportResult(node, cfg, ctx, rid, false);
     // Should schedule next attempt at exactly 50ms
     vi.advanceTimersByTime(49);
-    let attempts = emitted.filter(e => e.type === 'retry:attempt');
+    let attempts = emitted.filter((e) => e.type === 'retry:attempt');
     expect(attempts).toHaveLength(1); // not yet
     vi.advanceTimersByTime(2);
-    attempts = emitted.filter(e => e.type === 'retry:attempt');
+    attempts = emitted.filter((e) => e.type === 'retry:attempt');
     expect(attempts).toHaveLength(2); // now scheduled
   });
 
@@ -488,23 +515,35 @@ describe('RetryTrait – backoff strategies (via retry delays)', () => {
     // We just check it fires within the expected window
     const node = makeNode();
     const { ctx, emitted } = makeContext();
-    const cfg = defaultCfg({ backoff: 'linear', base_delay_ms: 100, max_delay_ms: 30000, jitter: 0, max_retries: 3 });
+    const cfg = defaultCfg({
+      backoff: 'linear',
+      base_delay_ms: 100,
+      max_delay_ms: 30000,
+      jitter: 0,
+      max_retries: 3,
+    });
     retryHandler.onAttach!(node, cfg, ctx);
     const rid = executeAction(node, cfg, ctx, 'act');
     reportResult(node, cfg, ctx, rid, false);
     vi.advanceTimersByTime(150);
-    expect(emitted.filter(e => e.type === 'retry:attempt').length).toBeGreaterThanOrEqual(2);
+    expect(emitted.filter((e) => e.type === 'retry:attempt').length).toBeGreaterThanOrEqual(2);
   });
 
   it('max_delay_ms caps the computed delay', () => {
     const node = makeNode();
     const { ctx, emitted } = makeContext();
-    const cfg = defaultCfg({ backoff: 'exponential', base_delay_ms: 1000, max_delay_ms: 100, jitter: 0, max_retries: 5 });
+    const cfg = defaultCfg({
+      backoff: 'exponential',
+      base_delay_ms: 1000,
+      max_delay_ms: 100,
+      jitter: 0,
+      max_retries: 5,
+    });
     retryHandler.onAttach!(node, cfg, ctx);
     const rid = executeAction(node, cfg, ctx, 'act');
     reportResult(node, cfg, ctx, rid, false);
     vi.advanceTimersByTime(110);
-    expect(emitted.filter(e => e.type === 'retry:attempt').length).toBeGreaterThanOrEqual(2);
+    expect(emitted.filter((e) => e.type === 'retry:attempt').length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -526,7 +565,12 @@ describe('RetryTrait – unknown events', () => {
     const { ctx } = makeContext();
     retryHandler.onAttach!(node, defaultCfg(), ctx);
     expect(() =>
-      retryHandler.onEvent!(node, defaultCfg(), ctx, 'retry:get_status' as unknown as { type: string; payload: unknown }),
+      retryHandler.onEvent!(
+        node,
+        defaultCfg(),
+        ctx,
+        'retry:get_status' as unknown as { type: string; payload: unknown }
+      )
     ).not.toThrow();
   });
 });

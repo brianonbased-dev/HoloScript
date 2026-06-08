@@ -90,15 +90,15 @@ Rules: Return code only. y >= 0. Use @static on floors.`;
  * without instantiating the adapter — single source of truth per W.GOLD.006.
  */
 export const BITNET_CAPABILITIES: Capabilities = {
-  contextWindow: 0,              // BitNet 2B-4T: ~4K context typical
+  contextWindow: 0, // BitNet 2B-4T: ~4K context typical
   maxOutput: 0,
 
   streaming: true,
-  tools: false,                  // BitNet 2B-4T not reliable at function calling
+  tools: false, // BitNet 2B-4T not reliable at function calling
   vision: false,
 
   local: true,
-  zeroMarginalInference: true,   // CPU-local, $0
+  zeroMarginalInference: true, // CPU-local, $0
   bearerTokenAccess: false,
 };
 
@@ -135,7 +135,10 @@ export class BitNetAdapter extends BaseLLMAdapter {
 
     const body = JSON.stringify({
       model,
-      messages: request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) })),
+      messages: request.messages.map((m) => ({
+        role: m.role,
+        content: messageContentAsString(m.content),
+      })),
       max_tokens: request.maxTokens ?? 512, // BitNet 2B has shorter optimal generation length
       temperature: request.temperature ?? 0.1, // Low temp for deterministic code output
       top_p: request.topP ?? 1,

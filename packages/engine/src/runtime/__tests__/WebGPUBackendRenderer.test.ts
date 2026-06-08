@@ -33,13 +33,7 @@ const GPU_LIVE =
 // Helpers
 // ---------------------------------------------------------------------------
 
-function addCube(
-  world: ECSWorld,
-  name: string,
-  x: number,
-  y: number,
-  color: number
-): number {
+function addCube(world: ECSWorld, name: string, x: number, y: number, color: number): number {
   const id = world.spawn(name);
   world.setComponent(id, ComponentType.Transform, {
     position: [x, y, 0] as [number, number, number],
@@ -163,26 +157,34 @@ describe('WebGPUBackendRenderer — ECSWorld→IDrawCall connector (stubbed GPU)
 
   it('produces zero IDrawCalls for an empty world', () => {
     // Access private buildDrawCalls via type assertion
-    const calls = (renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }).buildDrawCalls(device);
+    const calls = (
+      renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }
+    ).buildDrawCalls(device);
     expect(calls).toHaveLength(0);
   });
 
   it('produces one IDrawCall per renderable cube entity', () => {
     addCube(world, 'red', 0, 0, 0xff0000);
     addCube(world, 'blue', 2, 0, 0x0000ff);
-    const calls = (renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }).buildDrawCalls(device);
+    const calls = (
+      renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }
+    ).buildDrawCalls(device);
     expect(calls).toHaveLength(2);
   });
 
   it('each IDrawCall has the correct pipelineId (unlit-native)', () => {
     addCube(world, 'cube', 0, 0, 0xff0000);
-    const calls = (renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }).buildDrawCalls(device);
+    const calls = (
+      renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }
+    ).buildDrawCalls(device);
     expect(calls[0].material.pipelineId).toBe('unlit-native');
   });
 
   it('each IDrawCall mesh has an index buffer (indexed draw)', () => {
     addCube(world, 'cube', 0, 0, 0xff0000);
-    const calls = (renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }).buildDrawCalls(device);
+    const calls = (
+      renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }
+    ).buildDrawCalls(device);
     expect(calls[0].mesh.indexBuffer).toBeDefined();
     expect(calls[0].mesh.indexBuffer!.indexCount).toBeGreaterThan(0);
   });
@@ -197,11 +199,17 @@ describe('WebGPUBackendRenderer — ECSWorld→IDrawCall connector (stubbed GPU)
     });
     world.setComponent(id, ComponentType.Geometry, { type: GeometryType.Mesh, params: {} });
     world.setComponent(id, ComponentType.Material, {
-      color: 0xffffff, metalness: 0, roughness: 1, emissive: 0, opacity: 1,
+      color: 0xffffff,
+      metalness: 0,
+      roughness: 1,
+      emissive: 0,
+      opacity: 1,
     });
     addCube(world, 'cube', 0, 0, 0xff0000); // one real primitive
 
-    const calls = (renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }).buildDrawCalls(device);
+    const calls = (
+      renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }
+    ).buildDrawCalls(device);
     // Only the cube should produce a draw call; mesh entity skipped
     expect(calls).toHaveLength(1);
   });
@@ -215,10 +223,16 @@ describe('WebGPUBackendRenderer — ECSWorld→IDrawCall connector (stubbed GPU)
     });
     world.setComponent(id, ComponentType.Geometry, { type: GeometryType.Cube, params: {} });
     world.setComponent(id, ComponentType.Material, {
-      color: 0xffffff, metalness: 0, roughness: 1, emissive: 0, opacity: 0.5,
+      color: 0xffffff,
+      metalness: 0,
+      roughness: 1,
+      emissive: 0,
+      opacity: 0.5,
     });
 
-    const calls = (renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }).buildDrawCalls(device);
+    const calls = (
+      renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }
+    ).buildDrawCalls(device);
     expect(calls[0].material.transparent).toBe(true);
   });
 
@@ -231,10 +245,16 @@ describe('WebGPUBackendRenderer — ECSWorld→IDrawCall connector (stubbed GPU)
     });
     world.setComponent(id, ComponentType.Geometry, { type: GeometryType.Cube, params: {} });
     world.setComponent(id, ComponentType.Material, {
-      color: 0xff0000, metalness: 0, roughness: 1, emissive: 0, opacity: 1,
+      color: 0xff0000,
+      metalness: 0,
+      roughness: 1,
+      emissive: 0,
+      opacity: 1,
     });
 
-    const calls = (renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }).buildDrawCalls(device);
+    const calls = (
+      renderer as unknown as { buildDrawCalls(d: GPUDevice): IDrawCallLike[] }
+    ).buildDrawCalls(device);
     expect(calls[0].modelMatrix[0]).toBeCloseTo(3); // Sx
     expect(calls[0].modelMatrix[5]).toBeCloseTo(3); // Sy
     expect(calls[0].modelMatrix[10]).toBeCloseTo(3); // Sz

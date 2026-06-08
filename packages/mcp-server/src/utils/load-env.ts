@@ -36,11 +36,7 @@ const IS_RAILWAY = Boolean(
 );
 
 /** Keys that should never be injected from .env — let OS keyring / shell auth own them. */
-const ENV_SHADOW_DENYLIST = new Set([
-  'GITHUB_TOKEN',
-  'GH_TOKEN',
-  'PERSONAL_ACCESS_TOKEN',
-]);
+const ENV_SHADOW_DENYLIST = new Set(['GITHUB_TOKEN', 'GH_TOKEN', 'PERSONAL_ACCESS_TOKEN']);
 
 /**
  * Keys that must be refreshed from disk even when already set in process.env.
@@ -66,7 +62,7 @@ const MESH_RUNTIME_REFRESH_KEYS = new Set([
  * below the monorepo root, so the relative path math is stable across both.
  */
 const MCP_SERVER_DIR = resolve(__dirname, '..', '..');
-const MONOREPO_ROOT  = resolve(__dirname, '..', '..', '..', '..');
+const MONOREPO_ROOT = resolve(__dirname, '..', '..', '..', '..');
 
 const ENV_CANDIDATES: string[] = [
   resolve(MCP_SERVER_DIR, '.env'),
@@ -165,9 +161,7 @@ export function loadMcpEnv(
   // when the first file didn't have them (e.g. HOLOMESH_API_KEY in ~/.ai-ecosystem/.env
   // but not in packages/mcp-server/.env).
   if (loadedFrom !== null) {
-    const missingRefreshKeys = Array.from(MESH_RUNTIME_REFRESH_KEYS).filter(
-      (k) => !process.env[k]
-    );
+    const missingRefreshKeys = Array.from(MESH_RUNTIME_REFRESH_KEYS).filter((k) => !process.env[k]);
     if (missingRefreshKeys.length > 0) {
       for (const envPath of candidates) {
         if (envPath === loadedFrom) continue;

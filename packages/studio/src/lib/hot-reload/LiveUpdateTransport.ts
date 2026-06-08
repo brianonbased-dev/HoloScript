@@ -10,11 +10,7 @@
  * @package @holoscript/studio
  */
 
-import {
-  type LiveUpdateMessage,
-  serializeMessage,
-  deserializeMessage,
-} from './LiveUpdateProtocol';
+import { type LiveUpdateMessage, serializeMessage, deserializeMessage } from './LiveUpdateProtocol';
 
 export interface Transport {
   /** True when the transport is connected and ready to send. */

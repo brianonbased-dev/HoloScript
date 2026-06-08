@@ -10,13 +10,35 @@
  */
 
 export type VrmHumanoidBone =
-  | 'hips' | 'spine' | 'chest' | 'neck' | 'head'
-  | 'leftUpperArm' | 'leftLowerArm' | 'leftHand'
-  | 'rightUpperArm' | 'rightLowerArm' | 'rightHand'
-  | 'leftUpperLeg' | 'leftLowerLeg' | 'leftFoot'
-  | 'rightUpperLeg' | 'rightLowerLeg' | 'rightFoot';
+  | 'hips'
+  | 'spine'
+  | 'chest'
+  | 'neck'
+  | 'head'
+  | 'leftUpperArm'
+  | 'leftLowerArm'
+  | 'leftHand'
+  | 'rightUpperArm'
+  | 'rightLowerArm'
+  | 'rightHand'
+  | 'leftUpperLeg'
+  | 'leftLowerLeg'
+  | 'leftFoot'
+  | 'rightUpperLeg'
+  | 'rightLowerLeg'
+  | 'rightFoot';
 
-export type VrmExpressionPreset = 'happy' | 'angry' | 'sad' | 'relaxed' | 'surprised' | 'neutral' | 'blink' | 'aa' | 'ih' | 'ou';
+export type VrmExpressionPreset =
+  | 'happy'
+  | 'angry'
+  | 'sad'
+  | 'relaxed'
+  | 'surprised'
+  | 'neutral'
+  | 'blink'
+  | 'aa'
+  | 'ih'
+  | 'ou';
 
 export interface VrmAvatar {
   name: string;
@@ -31,7 +53,15 @@ export interface HoloAvatarEmission {
   bone_coverage: number; // 0..1 fraction of required-humanoid bones present
 }
 
-const REQUIRED_BONES: VrmHumanoidBone[] = ['hips', 'spine', 'head', 'leftUpperArm', 'rightUpperArm', 'leftUpperLeg', 'rightUpperLeg'];
+const REQUIRED_BONES: VrmHumanoidBone[] = [
+  'hips',
+  'spine',
+  'head',
+  'leftUpperArm',
+  'rightUpperArm',
+  'leftUpperLeg',
+  'rightUpperLeg',
+];
 
 export function mapVrmToAvatar(vrm: VrmAvatar): HoloAvatarEmission {
   const present = REQUIRED_BONES.filter((b) => !!vrm.humanoid_bones[b]);

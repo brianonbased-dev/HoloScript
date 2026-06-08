@@ -81,7 +81,8 @@ const validPack: HoloShellCloudPermissionCleanupReceiptPack = {
       'files[].permissions[].emailAddress',
       'files[].permissions[].permissionDetails[].inheritedFrom',
     ],
-    redactionPolicy: 'hash provider item ids; redact account and subject labels; never include content or tokens',
+    redactionPolicy:
+      'hash provider item ids; redact account and subject labels; never include content or tokens',
     redactionApplied: true,
     metadataOnly: true,
     blockedFieldsAbsent: true,
@@ -199,13 +200,21 @@ describe('HoloShell cloud permission cleanup receipts', () => {
   });
 
   it('accepts metadata-only provider inventory witness receipts', () => {
-    expect(validateProviderMetadataInventoryWitnessReceipt(validPack.providerMetadataWitness)).toEqual([]);
+    expect(
+      validateProviderMetadataInventoryWitnessReceipt(validPack.providerMetadataWitness)
+    ).toEqual([]);
   });
 
   it('rejects provider metadata witnesses that allow content or credential fields', () => {
     const witness = {
       ...validPack.providerMetadataWitness!,
-      fieldAllowlist: ['files[].id', 'files[].content', 'access_token', 'files[]', 'files[].permissions.*'],
+      fieldAllowlist: [
+        'files[].id',
+        'files[].content',
+        'access_token',
+        'files[]',
+        'files[].permissions.*',
+      ],
       metadataOnly: false,
       blockedFieldsAbsent: false,
       rawContentCaptured: true,
@@ -255,7 +264,9 @@ describe('HoloShell cloud permission cleanup receipts', () => {
       ...validPack.exposureDiff,
       publicLinkItemIds: ['missing-item'],
     };
-    expect(validateHoloShellCloudPermissionCleanupReceiptPack({ ...validPack, exposureDiff: diff })).toContain(
+    expect(
+      validateHoloShellCloudPermissionCleanupReceiptPack({ ...validPack, exposureDiff: diff })
+    ).toContain(
       'CloudExposureDiffReceipt.publicLinkItemIds references unknown inventory item: missing-item.'
     );
   });

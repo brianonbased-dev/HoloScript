@@ -72,21 +72,21 @@ This matrix assigns a support level to each documented package so contributors c
 
 The following packages have been removed from the monorepo. Historical docs are archived under `docs/archive/packages/`. Canonical record: [Cross-Language Deletion Ledger](../cross-language-deletion-ledger.md).
 
-| Package                              | Disposition  | Replacement / Owner          |
-| ------------------------------------ | ------------ | ---------------------------- |
-| `@holoscript/parser`                 | merged       | `@holoscript/core`           |
-| `@holoscript/compiler`               | merged       | `@holoscript/core`           |
-| `@holoscript/traits`                 | merged       | `@holoscript/core`           |
-| `@holoscript/fs`                     | merged       | `@holoscript/std/fs`         |
-| `@holoscript/test`                   | retired      | Root-level vitest            |
-| `@holoscript/neovim`                 | retired      | —                            |
-| `@holoscript/playground`             | merged       | `@holoscript/studio`         |
-| `@holoscript/unity-sdk`              | retired      | —                            |
-| `@holoscript/agent-sdk`              | superseded   | `@holoscript/framework`      |
-| `@holoscript/intelligence`           | retired      | —                            |
-| `@holoscript/vm-bridge`              | bad-idea     | Direct compiler targets      |
-| `@holoscript/collab-server`          | merged       | `@holoscript/mcp-server`     |
-| `@holoscript/snn-poc`                | superseded   | `@holoscript/snn-webgpu`     |
+| Package                     | Disposition | Replacement / Owner      |
+| --------------------------- | ----------- | ------------------------ |
+| `@holoscript/parser`        | merged      | `@holoscript/core`       |
+| `@holoscript/compiler`      | merged      | `@holoscript/core`       |
+| `@holoscript/traits`        | merged      | `@holoscript/core`       |
+| `@holoscript/fs`            | merged      | `@holoscript/std/fs`     |
+| `@holoscript/test`          | retired     | Root-level vitest        |
+| `@holoscript/neovim`        | retired     | —                        |
+| `@holoscript/playground`    | merged      | `@holoscript/studio`     |
+| `@holoscript/unity-sdk`     | retired     | —                        |
+| `@holoscript/agent-sdk`     | superseded  | `@holoscript/framework`  |
+| `@holoscript/intelligence`  | retired     | —                        |
+| `@holoscript/vm-bridge`     | bad-idea    | Direct compiler targets  |
+| `@holoscript/collab-server` | merged      | `@holoscript/mcp-server` |
+| `@holoscript/snn-poc`       | superseded  | `@holoscript/snn-webgpu` |
 
 ## Compatibility Note
 

@@ -27,7 +27,9 @@ describe('WalkableTrait.validate', () => {
 
   it('rejects invalid navmesh resolution settings', () => {
     expect(() => WalkableTrait.validate({ cell_size_m: 0 })).toThrow(/cell_size_m/);
-    expect(() => WalkableTrait.validate({ source_format: 'las' as never })).toThrow(/source_format/);
+    expect(() => WalkableTrait.validate({ source_format: 'las' as never })).toThrow(
+      /source_format/
+    );
     expect(() => WalkableTrait.validate({ physics_engine: 'ammo' as never })).toThrow(/cannon-es/);
   });
 });
@@ -95,11 +97,7 @@ describe('WalkableNavmeshBuilder', () => {
 
   it('blocks paths through detected walls so users cannot clip rooms', () => {
     const navmesh = deriveWalkableNavmesh(
-      [
-        floorCell(0, 0),
-        floorCell(1, 0),
-        wallOnXBoundary(1, 0),
-      ],
+      [floorCell(0, 0), floorCell(1, 0), wallOnXBoundary(1, 0)],
       { cell_size_m: 1, min_plane_points: 1 }
     );
 
@@ -124,12 +122,7 @@ describe('WalkableNavmeshBuilder', () => {
 
   it('links multi-level floor clusters through stair-height steps', () => {
     const navmesh = deriveWalkableNavmesh(
-      [
-        floorCell(0, 0, 0),
-        floorCell(1, 0, 0.2),
-        floorCell(2, 0, 0.4),
-        floorCell(3, 0, 0.6),
-      ],
+      [floorCell(0, 0, 0), floorCell(1, 0, 0.2), floorCell(2, 0, 0.4), floorCell(3, 0, 0.6)],
       { cell_size_m: 1, min_plane_points: 1, max_step_height_m: 0.25 }
     );
 
@@ -140,10 +133,10 @@ describe('WalkableNavmeshBuilder', () => {
 
   it('fails loudly when a capture has walls but no floor plane', () => {
     expect(() =>
-      deriveWalkableNavmesh(
-        [wallOnXBoundary(1, 0), wallOnXBoundary(1, 1)],
-        { cell_size_m: 1, min_plane_points: 1 }
-      )
+      deriveWalkableNavmesh([wallOnXBoundary(1, 0), wallOnXBoundary(1, 1)], {
+        cell_size_m: 1,
+        min_plane_points: 1,
+      })
     ).toThrow(/no floor plane detected/);
   });
 });

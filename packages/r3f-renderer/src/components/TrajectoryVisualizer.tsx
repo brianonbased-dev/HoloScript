@@ -134,11 +134,7 @@ export function TrajectoryVisualizer({
           args={[positions, 3]}
           count={trajectory.length}
         />
-        <bufferAttribute
-          attach="attributes-color"
-          args={[colors, 3]}
-          count={trajectory.length}
-        />
+        <bufferAttribute attach="attributes-color" args={[colors, 3]} count={trajectory.length} />
       </bufferGeometry>
       <lineBasicMaterial vertexColors linewidth={lineWidth} />
     </line>

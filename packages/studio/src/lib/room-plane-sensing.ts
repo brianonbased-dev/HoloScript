@@ -44,7 +44,7 @@ function countBits(value: number): number {
 
 export function analyzeRoomPlaneFrame(
   frame: ImageData,
-  previousLuma: Uint8Array | null,
+  previousLuma: Uint8Array | null
 ): RoomPlaneSensing & { luma: Uint8Array } {
   const { data, width, height } = frame;
   const luma = new Uint8Array(width * height);
@@ -107,7 +107,7 @@ function estimateHorizontalShift(
   luma: Uint8Array,
   previousLuma: Uint8Array | null,
   width: number,
-  height: number,
+  height: number
 ): number {
   if (!previousLuma || previousLuma.length !== luma.length) return 0;
 
@@ -152,7 +152,10 @@ function accumulateCoverage(previous: number, evidence: number): number {
   return clamp01(Math.max(previous, previous + steadyGain + catchUpGain));
 }
 
-export function accumulatePlaneSensing(previous: RoomPlaneSensing, next: RoomPlaneSensing): RoomPlaneSensing {
+export function accumulatePlaneSensing(
+  previous: RoomPlaneSensing,
+  next: RoomPlaneSensing
+): RoomPlaneSensing {
   return {
     floorConfidence: accumulateCoverage(previous.floorConfidence, next.floorConfidence),
     wallConfidence: accumulateCoverage(previous.wallConfidence, next.wallConfidence),
@@ -173,7 +176,7 @@ export function normalizeHeadingDegrees(value: number | null | undefined): numbe
 export function observeRoomSweep(
   previous: RoomSweepCoverage,
   headingDegrees: number | null | undefined,
-  motion: number,
+  motion: number
 ): RoomSweepCoverage {
   const heading = normalizeHeadingDegrees(headingDegrees);
   let bucketMask = previous.bucketMask;
@@ -184,7 +187,9 @@ export function observeRoomSweep(
   }
 
   const motionGain = heading === null && motion > 0.08 ? Math.min(0.045, 0.012 + motion * 0.04) : 0;
-  const fallbackCoverage = clamp01(Math.max(previous.fallbackCoverage, previous.fallbackCoverage + motionGain));
+  const fallbackCoverage = clamp01(
+    Math.max(previous.fallbackCoverage, previous.fallbackCoverage + motionGain)
+  );
 
   return {
     bucketMask,

@@ -6,10 +6,10 @@
 
 ## Proof Artifacts
 
-| Format | File | Lines | Size | Status |
-|--------|------|-------|------|--------|
-| URDF (ROS 2) | [`two-dof-arm.urdf`](./two-dof-arm.urdf) | 184 | 5,382 bytes | Validated |
-| SDF (Gazebo) | [`two-dof-arm.sdf`](./two-dof-arm.sdf) | 233 | 6,595 bytes | Validated |
+| Format       | File                                     | Lines | Size        | Status    |
+| ------------ | ---------------------------------------- | ----- | ----------- | --------- |
+| URDF (ROS 2) | [`two-dof-arm.urdf`](./two-dof-arm.urdf) | 184   | 5,382 bytes | Validated |
+| SDF (Gazebo) | [`two-dof-arm.sdf`](./two-dof-arm.sdf)   | 233   | 6,595 bytes | Validated |
 
 ## Validation Checks
 

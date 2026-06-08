@@ -8,12 +8,12 @@ GitHub MCP Connector for HoloScript Studio Integration Hub.
 
 ## Delivery status (Integration Hub)
 
-| Capability | Status |
-|------------|--------|
-| GitHub MCP bridge (`GitHubConnector`, `listTools` / `executeTool`) | Shipped — see `src/tools.ts` and tests |
-| Actions workflow templates | Shipped — `templates/.github/workflows/holoscript-ci.yml`, `holoscript-agentic.yml` |
-| HoloScript compile preview tool (`github_holoscript_compile_preview`) | Shipped |
-| PR comments with **rich 3D scene diffs** | Not a connector-only feature — depends on Studio / render pipeline integration (track separately) |
+| Capability                                                            | Status                                                                                            |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| GitHub MCP bridge (`GitHubConnector`, `listTools` / `executeTool`)    | Shipped — see `src/tools.ts` and tests                                                            |
+| Actions workflow templates                                            | Shipped — `templates/.github/workflows/holoscript-ci.yml`, `holoscript-agentic.yml`               |
+| HoloScript compile preview tool (`github_holoscript_compile_preview`) | Shipped                                                                                           |
+| PR comments with **rich 3D scene diffs**                              | Not a connector-only feature — depends on Studio / render pipeline integration (track separately) |
 
 ## Features
 

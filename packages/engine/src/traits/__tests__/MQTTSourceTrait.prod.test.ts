@@ -77,7 +77,11 @@ import {
   isMQTTSourceConnected,
 } from '../MQTTSourceTrait';
 // @ts-expect-error - TS doesn't resolve peerDep workspace paths correctly
-import { createMQTTClient, getMQTTClient, MQTTClient } from '@holoscript/engine/runtime/protocols/MQTTClient';
+import {
+  createMQTTClient,
+  getMQTTClient,
+  MQTTClient,
+} from '@holoscript/engine/runtime/protocols/MQTTClient';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 let _nodeId = 0;

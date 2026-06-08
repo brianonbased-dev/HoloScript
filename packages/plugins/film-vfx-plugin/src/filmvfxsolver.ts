@@ -101,7 +101,9 @@ export interface RenderBudgetResult {
   secondsPerFrameDistributed: number;
 }
 
-export interface FilmVFXReceiptOptions { runId?: string; }
+export interface FilmVFXReceiptOptions {
+  runId?: string;
+}
 
 export interface FilmVFXAnalysisResult {
   exposure?: ExposureResult;
@@ -146,13 +148,12 @@ export function depthOfField(input: DoFInput): DoFResult {
   const f = input.focalLengthMm / 1000; // convert to m
   const cocMm = input.sensorDiagonalMm / 1500;
   const coc = cocMm / 1000; // m
-  const hyperfocalDistanceM = (f ** 2) / (input.aperture * coc);
+  const hyperfocalDistanceM = f ** 2 / (input.aperture * coc);
   const s = input.subjectDistanceM;
 
   const nearLimitM = (s * hyperfocalDistanceM) / (hyperfocalDistanceM + s - f);
-  const farLimitM  = s >= hyperfocalDistanceM
-    ? Infinity
-    : (s * hyperfocalDistanceM) / (hyperfocalDistanceM - s + f);
+  const farLimitM =
+    s >= hyperfocalDistanceM ? Infinity : (s * hyperfocalDistanceM) / (hyperfocalDistanceM - s + f);
 
   const dofM = farLimitM === Infinity ? Infinity : farLimitM - nearLimitM;
 
@@ -194,11 +195,7 @@ export function alphaComposite(layers: CompositingLayer[]): CompositingResult {
   }
 
   return {
-    color: [
-      Math.max(0, Math.min(1, r)),
-      Math.max(0, Math.min(1, g)),
-      Math.max(0, Math.min(1, b)),
-    ],
+    color: [Math.max(0, Math.min(1, r)), Math.max(0, Math.min(1, g)), Math.max(0, Math.min(1, b))],
     alpha: Math.max(0, Math.min(1, alpha)),
   };
 }
@@ -210,13 +207,15 @@ export function alphaComposite(layers: CompositingLayer[]): CompositingResult {
  * secondsPerFrame = totalRays / (nodes × raysPerSecond)
  */
 export function renderBudget(input: RenderBudgetInput): RenderBudgetResult {
-  if (input.resolutionPx[0] <= 0 || input.resolutionPx[1] <= 0) throw new Error('Resolution must be positive');
+  if (input.resolutionPx[0] <= 0 || input.resolutionPx[1] <= 0)
+    throw new Error('Resolution must be positive');
   if (input.samplesPerPixel <= 0) throw new Error('samplesPerPixel must be positive');
   if (input.maxBounces <= 0) throw new Error('maxBounces must be positive');
   if (input.renderNodes <= 0) throw new Error('renderNodes must be positive');
   if (input.raysPerSecondMPerNode <= 0) throw new Error('raysPerSecondMPerNode must be positive');
 
-  const totalRays = input.resolutionPx[0] * input.resolutionPx[1] * input.samplesPerPixel * input.maxBounces;
+  const totalRays =
+    input.resolutionPx[0] * input.resolutionPx[1] * input.samplesPerPixel * input.maxBounces;
   const raysPerSecond = input.raysPerSecondMPerNode * 1e6;
   const secondsPerFrame = totalRays / raysPerSecond;
   const secondsPerFrameDistributed = secondsPerFrame / input.renderNodes;
@@ -230,12 +229,16 @@ export function renderBudget(input: RenderBudgetInput): RenderBudgetResult {
  * 180° shutter rule: shutterSpeed = 1 / (2 × frameRate)
  * For arbitrary shutter angle θ: shutterSpeed = θ / (360 × frameRate)
  */
-export function shutterAngle(frameRateFps: number, shutterAngleDeg: number): {
+export function shutterAngle(
+  frameRateFps: number,
+  shutterAngleDeg: number
+): {
   shutterSpeedS: number;
   motionBlurFactor: number;
 } {
   if (frameRateFps <= 0) throw new Error('Frame rate must be positive');
-  if (shutterAngleDeg <= 0 || shutterAngleDeg > 360) throw new Error('Shutter angle must be in (0, 360]');
+  if (shutterAngleDeg <= 0 || shutterAngleDeg > 360)
+    throw new Error('Shutter angle must be in (0, 360]');
 
   const shutterSpeedS = shutterAngleDeg / (360 * frameRateFps);
   const motionBlurFactor = shutterAngleDeg / 180; // 1.0 = standard 180° rule
@@ -247,15 +250,21 @@ export function shutterAngle(frameRateFps: number, shutterAngleDeg: number): {
 
 export function buildFilmVFXReceipt(
   result: FilmVFXAnalysisResult,
-  options?: FilmVFXReceiptOptions,
+  options?: FilmVFXReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.exposure && (result.exposure.ev100 < 3 || result.exposure.ev100 > 17)) {
-    violations.push({ criterion: 'exposure', message: `EV100 ${result.exposure.ev100.toFixed(1)} outside typical cinematic range [3, 17]` });
+    violations.push({
+      criterion: 'exposure',
+      message: `EV100 ${result.exposure.ev100.toFixed(1)} outside typical cinematic range [3, 17]`,
+    });
   }
   if (result.renderBudget && result.renderBudget.secondsPerFrameDistributed > 14400) {
-    violations.push({ criterion: 'render_budget', message: `Render time ${(result.renderBudget.secondsPerFrameDistributed / 3600).toFixed(1)} h/frame exceeds 4 h target` });
+    violations.push({
+      criterion: 'render_budget',
+      message: `Render time ${(result.renderBudget.secondsPerFrameDistributed / 3600).toFixed(1)} h/frame exceeds 4 h target`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -269,7 +278,11 @@ export function buildFilmVFXReceipt(
       compositeAlpha: result.composite?.alpha ?? null,
       secondsPerFrame: result.renderBudget?.secondsPerFrameDistributed ?? null,
     },
-    cael: { version: 'cael.v1', event: 'film_vfx.production_analysis', solverType: 'film-vfx.compositing' },
+    cael: {
+      version: 'cael.v1',
+      event: 'film_vfx.production_analysis',
+      solverType: 'film-vfx.compositing',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

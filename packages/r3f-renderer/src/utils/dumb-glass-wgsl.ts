@@ -170,7 +170,7 @@ export interface DumbGlassGpuPipelineOptions {
  */
 export async function dumbGlassHash(
   data: Uint8Array,
-  options: DumbGlassGpuPipelineOptions = {},
+  options: DumbGlassGpuPipelineOptions = {}
 ): Promise<DumbGlassHashResult> {
   // Attempt WebGPU path
   if (typeof navigator !== 'undefined' && navigator.gpu) {
@@ -194,7 +194,7 @@ export async function dumbGlassHash(
 
 async function _gpuHash(
   data: Uint8Array,
-  opts: DumbGlassGpuPipelineOptions,
+  opts: DumbGlassGpuPipelineOptions
 ): Promise<DumbGlassHashResult> {
   const gpu: GPU = navigator.gpu;
   const adapter = await gpu.requestAdapter({ powerPreference: 'high-performance' });
@@ -211,15 +211,27 @@ async function _gpuHash(
   const wgCount = Math.ceil(nWords / 256);
 
   // Buffers
-  const dataBuf = device.createBuffer({ size: paddedLen, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+  const dataBuf = device.createBuffer({
+    size: paddedLen,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
   device.queue.writeBuffer(dataBuf, 0, padded);
 
   const partialBuf = device.createBuffer({ size: wgCount * 4, usage: GPUBufferUsage.STORAGE });
-  const resultBuf  = device.createBuffer({ size: 4, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
-  const readBuf    = device.createBuffer({ size: 4, usage: GPUBufferUsage.MAP_READ  | GPUBufferUsage.COPY_DST });
+  const resultBuf = device.createBuffer({
+    size: 4,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+  });
+  const readBuf = device.createBuffer({
+    size: 4,
+    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+  });
 
   const paramData = new Uint32Array([data.byteLength, opts.seed ?? 0, nWords, 0]);
-  const paramBuf  = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  const paramBuf = device.createBuffer({
+    size: 16,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
   device.queue.writeBuffer(paramBuf, 0, paramData);
 
   // Shader module
@@ -282,7 +294,7 @@ async function _gpuHash(
   const gpuMs = performance.now() - t0;
 
   // Cleanup
-  [dataBuf, partialBuf, resultBuf, readBuf, paramBuf].forEach(b => b.destroy());
+  [dataBuf, partialBuf, resultBuf, readBuf, paramBuf].forEach((b) => b.destroy());
   if (!opts.device) device.destroy();
 
   return {
@@ -322,10 +334,14 @@ export function xxHash32Cpu(data: Uint8Array, seed = 0): number {
 
     const limit = len - 16;
     while (i <= limit) {
-      v1 = u32(rotl(u32(v1 + u32(read32(i)     * PRIME2)), 13) * PRIME1); i += 4;
-      v2 = u32(rotl(u32(v2 + u32(read32(i)     * PRIME2)), 13) * PRIME1); i += 4;
-      v3 = u32(rotl(u32(v3 + u32(read32(i)     * PRIME2)), 13) * PRIME1); i += 4;
-      v4 = u32(rotl(u32(v4 + u32(read32(i)     * PRIME2)), 13) * PRIME1); i += 4;
+      v1 = u32(rotl(u32(v1 + u32(read32(i) * PRIME2)), 13) * PRIME1);
+      i += 4;
+      v2 = u32(rotl(u32(v2 + u32(read32(i) * PRIME2)), 13) * PRIME1);
+      i += 4;
+      v3 = u32(rotl(u32(v3 + u32(read32(i) * PRIME2)), 13) * PRIME1);
+      i += 4;
+      v4 = u32(rotl(u32(v4 + u32(read32(i) * PRIME2)), 13) * PRIME1);
+      i += 4;
     }
     h32 = u32(rotl(v1, 1) + rotl(v2, 7) + rotl(v3, 12) + rotl(v4, 18));
   } else {
@@ -363,16 +379,13 @@ export interface TileHashBatch {
  * Hash multiple pixel tiles.  GPU path pipelines all tiles into a single
  * command buffer; CPU fallback hashes serially.
  */
-export async function hashTileBatch(
-  tiles: Uint8Array[],
-  seed = 0,
-): Promise<TileHashBatch> {
+export async function hashTileBatch(tiles: Uint8Array[], seed = 0): Promise<TileHashBatch> {
   const t0 = performance.now();
-  const results = await Promise.all(tiles.map(t => dumbGlassHash(t, { seed })));
+  const results = await Promise.all(tiles.map((t) => dumbGlassHash(t, { seed })));
   const totalGpuMs = performance.now() - t0;
   return {
-    hashes: results.map(r => r.hash),
+    hashes: results.map((r) => r.hash),
     totalGpuMs,
-    gpuPath: results.some(r => r.gpuPath),
+    gpuPath: results.some((r) => r.gpuPath),
   };
 }

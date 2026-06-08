@@ -338,13 +338,15 @@ export function validateHardwareReceipt(receipt: HardwareReceipt): string[] {
     errors.push(`HardwareReceipt.kind is unsupported: ${String(receipt.kind)}.`);
   }
   if (receipt.kind === 'hardware-other' && !receipt.deviceModel) {
-    errors.push(
-      `HardwareReceipt ${receipt.id} kind=hardware-other requires deviceModel.`,
-    );
+    errors.push(`HardwareReceipt ${receipt.id} kind=hardware-other requires deviceModel.`);
   }
   if (!receipt.hash) errors.push('HardwareReceipt.hash is required.');
   if (!receipt.hashAlgorithm) errors.push('HardwareReceipt.hashAlgorithm is required.');
-  if (receipt.capturedAt === undefined || receipt.capturedAt === null || receipt.capturedAt === '') {
+  if (
+    receipt.capturedAt === undefined ||
+    receipt.capturedAt === null ||
+    receipt.capturedAt === ''
+  ) {
     errors.push('HardwareReceipt.capturedAt is required.');
   }
   for (const command of receipt.verificationCommands ?? []) {
@@ -379,7 +381,7 @@ export function validateReplayOutcome(outcome: ReplayOutcome): string[] {
   }
   if (outcome.stateHash && !outcome.stateHashAlgorithm) {
     errors.push(
-      `ReplayOutcome ${outcome.id}.stateHashAlgorithm is required when stateHash is set.`,
+      `ReplayOutcome ${outcome.id}.stateHashAlgorithm is required when stateHash is set.`
     );
   }
   return errors;
@@ -392,9 +394,7 @@ export function validateAgentActionReceipt(receipt: AgentActionReceipt): string[
     errors.push(`AgentActionReceipt.kind is unsupported: ${String(receipt.kind)}.`);
   }
   if (receipt.kind === 'agent-other' && !receipt.actionLabel) {
-    errors.push(
-      `AgentActionReceipt ${receipt.id} kind=agent-other requires actionLabel.`,
-    );
+    errors.push(`AgentActionReceipt ${receipt.id} kind=agent-other requires actionLabel.`);
   }
   if (!receipt.actor) errors.push('AgentActionReceipt.actor is required.');
   if (!receipt.hash) errors.push('AgentActionReceipt.hash is required.');
@@ -406,7 +406,7 @@ export function validateAgentActionReceipt(receipt: AgentActionReceipt): string[
 }
 
 export function validateQualcommNIRModelExportReceipt(
-  receipt: QualcommNIRModelExportReceipt,
+  receipt: QualcommNIRModelExportReceipt
 ): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('QualcommNIRModelExportReceipt.id is required.');
@@ -418,22 +418,22 @@ export function validateQualcommNIRModelExportReceipt(
   }
   if (!isSupportedQualcommNIRRuntimeTarget(receipt.runtime)) {
     errors.push(
-      `QualcommNIRModelExportReceipt.runtime is unsupported: ${String(receipt.runtime)}.`,
+      `QualcommNIRModelExportReceipt.runtime is unsupported: ${String(receipt.runtime)}.`
     );
   }
   if (typeof receipt.latencyMs !== 'number' || receipt.latencyMs < 0) {
     errors.push(
-      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.latencyMs must be a non-negative number.`,
+      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.latencyMs must be a non-negative number.`
     );
   }
   if (typeof receipt.loadTimeMs !== 'number' || receipt.loadTimeMs < 0) {
     errors.push(
-      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.loadTimeMs must be a non-negative number.`,
+      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.loadTimeMs must be a non-negative number.`
     );
   }
   if (typeof receipt.memoryBytes !== 'number' || receipt.memoryBytes < 0) {
     errors.push(
-      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.memoryBytes must be a non-negative number.`,
+      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.memoryBytes must be a non-negative number.`
     );
   }
   if (
@@ -442,27 +442,28 @@ export function validateQualcommNIRModelExportReceipt(
     receipt.computeUnitUtilization > 1
   ) {
     errors.push(
-      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.computeUnitUtilization must be between 0 and 1.`,
+      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.computeUnitUtilization must be between 0 and 1.`
     );
   }
   if (!receipt.numericalCorrectness || typeof receipt.numericalCorrectness !== 'object') {
     errors.push(
-      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.numericalCorrectness is required.`,
+      `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.numericalCorrectness is required.`
     );
   } else {
     if (typeof receipt.numericalCorrectness.maxAbsoluteError !== 'number') {
       errors.push(
-        `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.numericalCorrectness.maxAbsoluteError is required.`,
+        `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.numericalCorrectness.maxAbsoluteError is required.`
       );
     }
     if (typeof receipt.numericalCorrectness.meanAbsoluteError !== 'number') {
       errors.push(
-        `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.numericalCorrectness.meanAbsoluteError is required.`,
+        `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'}.numericalCorrectness.meanAbsoluteError is required.`
       );
     }
   }
   if (!receipt.hash) errors.push('QualcommNIRModelExportReceipt.hash is required.');
-  if (!receipt.hashAlgorithm) errors.push('QualcommNIRModelExportReceipt.hashAlgorithm is required.');
+  if (!receipt.hashAlgorithm)
+    errors.push('QualcommNIRModelExportReceipt.hashAlgorithm is required.');
   if (
     receipt.capturedAt === undefined ||
     receipt.capturedAt === null ||
@@ -473,7 +474,7 @@ export function validateQualcommNIRModelExportReceipt(
   for (const command of receipt.verificationCommands ?? []) {
     if (!command.command) {
       errors.push(
-        `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`,
+        `QualcommNIRModelExportReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`
       );
     }
   }
@@ -485,14 +486,15 @@ export function validateQualcommNIRModelExportReceipt(
  * empty array means the receipt is structurally valid.
  */
 export function validateCrossHardwareCompilationReceipt(
-  receipt: CrossHardwareCompilationReceipt,
+  receipt: CrossHardwareCompilationReceipt
 ): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('CrossHardwareCompilationReceipt.id is required.');
-  if (!receipt.exportTarget) errors.push('CrossHardwareCompilationReceipt.exportTarget is required.');
+  if (!receipt.exportTarget)
+    errors.push('CrossHardwareCompilationReceipt.exportTarget is required.');
   if (!isSupportedHardwareCompilationTarget(receipt.deviceFamily)) {
     errors.push(
-      `CrossHardwareCompilationReceipt.deviceFamily is unsupported: ${String(receipt.deviceFamily)}.`,
+      `CrossHardwareCompilationReceipt.deviceFamily is unsupported: ${String(receipt.deviceFamily)}.`
     );
   }
   if (!receipt.runtime) errors.push('CrossHardwareCompilationReceipt.runtime is required.');
@@ -500,7 +502,8 @@ export function validateCrossHardwareCompilationReceipt(
     errors.push('CrossHardwareCompilationReceipt.compilerVersion is required.');
   }
   if (!receipt.hash) errors.push('CrossHardwareCompilationReceipt.hash is required.');
-  if (!receipt.hashAlgorithm) errors.push('CrossHardwareCompilationReceipt.hashAlgorithm is required.');
+  if (!receipt.hashAlgorithm)
+    errors.push('CrossHardwareCompilationReceipt.hashAlgorithm is required.');
   if (
     receipt.capturedAt === undefined ||
     receipt.capturedAt === null ||
@@ -514,22 +517,22 @@ export function validateCrossHardwareCompilationReceipt(
     const c = receipt.constraints;
     if (c.maxMemoryMB !== undefined && c.maxMemoryMB < 0) {
       errors.push(
-        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.maxMemoryMB must be non-negative.`,
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.maxMemoryMB must be non-negative.`
       );
     }
     if (c.maxComputeUnits !== undefined && c.maxComputeUnits < 0) {
       errors.push(
-        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.maxComputeUnits must be non-negative.`,
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.maxComputeUnits must be non-negative.`
       );
     }
     if (c.powerBudgetW !== undefined && c.powerBudgetW < 0) {
       errors.push(
-        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.powerBudgetW must be non-negative.`,
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.powerBudgetW must be non-negative.`
       );
     }
     if (c.targetLatencyMs !== undefined && c.targetLatencyMs < 0) {
       errors.push(
-        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.targetLatencyMs must be non-negative.`,
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.constraints.targetLatencyMs must be non-negative.`
       );
     }
   }
@@ -539,17 +542,17 @@ export function validateCrossHardwareCompilationReceipt(
     const m = receipt.measuredResults;
     if (m.latencyMs !== undefined && m.latencyMs < 0) {
       errors.push(
-        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.latencyMs must be non-negative.`,
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.latencyMs must be non-negative.`
       );
     }
     if (m.peakMemoryBytes !== undefined && m.peakMemoryBytes < 0) {
       errors.push(
-        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.peakMemoryBytes must be non-negative.`,
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.peakMemoryBytes must be non-negative.`
       );
     }
     if (m.powerDrawW !== undefined && m.powerDrawW < 0) {
       errors.push(
-        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.powerDrawW must be non-negative.`,
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.powerDrawW must be non-negative.`
       );
     }
     if (
@@ -557,7 +560,7 @@ export function validateCrossHardwareCompilationReceipt(
       (m.accuracyVsReference < 0 || m.accuracyVsReference > 1)
     ) {
       errors.push(
-        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.accuracyVsReference must be between 0 and 1.`,
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'}.measuredResults.accuracyVsReference must be between 0 and 1.`
       );
     }
   }
@@ -574,7 +577,7 @@ export function validateCrossHardwareCompilationReceipt(
   for (const command of receipt.verificationCommands ?? []) {
     if (!command.command) {
       errors.push(
-        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`,
+        `CrossHardwareCompilationReceipt ${receipt.id || '<unknown>'} has a verification command without command text.`
       );
     }
   }
@@ -595,7 +598,11 @@ export function validateValidationReceipt(receipt: ValidationReceipt): string[] 
   }
   if (!receipt.hash) errors.push('ValidationReceipt.hash is required.');
   if (!receipt.hashAlgorithm) errors.push('ValidationReceipt.hashAlgorithm is required.');
-  if (receipt.validatedAt === undefined || receipt.validatedAt === null || receipt.validatedAt === '') {
+  if (
+    receipt.validatedAt === undefined ||
+    receipt.validatedAt === null ||
+    receipt.validatedAt === ''
+  ) {
     errors.push('ValidationReceipt.validatedAt is required.');
   }
 
@@ -621,7 +628,9 @@ export function validateValidationReceipt(receipt: ValidationReceipt): string[] 
   }
   for (const command of receipt.verificationCommands ?? []) {
     if (!command.command) {
-      errors.push(`ValidationReceipt ${receipt.id} has a verification command without command text.`);
+      errors.push(
+        `ValidationReceipt ${receipt.id} has a verification command without command text.`
+      );
     }
   }
   return errors;
@@ -638,35 +647,31 @@ export function isSupportedAgentActionKind(kind: string): kind is AgentActionKin
 }
 
 const REPLAY_OUTCOME_STATUSES = ['matched', 'diverged', 'errored', 'skipped'] as const;
-export function isSupportedReplayOutcomeStatus(
-  status: string,
-): status is ReplayOutcome['status'] {
+export function isSupportedReplayOutcomeStatus(status: string): status is ReplayOutcome['status'] {
   return (REPLAY_OUTCOME_STATUSES as readonly string[]).includes(status);
 }
 
 export function isSupportedQualcommNIRRuntimeTarget(
-  target: string,
+  target: string
 ): target is QualcommNIRRuntimeTarget {
   return (QUALCOMM_NIR_RUNTIME_TARGETS as readonly string[]).includes(target);
 }
 
 export function isSupportedHardwareCompilationTarget(
-  target: string,
+  target: string
 ): target is HardwareCompilationTargetKind {
   return (HARDWARE_COMPILATION_TARGET_KINDS as readonly string[]).includes(target);
 }
 
 const VALIDATION_STATUSES = ['passed', 'failed', 'inconclusive'] as const;
-export function isSupportedValidationStatus(
-  status: string,
-): status is ValidationReceipt['status'] {
+export function isSupportedValidationStatus(status: string): status is ValidationReceipt['status'] {
   return (VALIDATION_STATUSES as readonly string[]).includes(status);
 }
 
 // ── Cloning ──
 
 function cloneVerificationCommands(
-  commands: ArtifactVerificationCommand[] | undefined,
+  commands: ArtifactVerificationCommand[] | undefined
 ): ArtifactVerificationCommand[] | undefined {
   if (!commands) return undefined;
   return commands.map((command) => ({
@@ -676,7 +681,7 @@ function cloneVerificationCommands(
 }
 
 function cloneProvenance(
-  provenance: ArtifactProvenanceLink | undefined,
+  provenance: ArtifactProvenanceLink | undefined
 ): ArtifactProvenanceLink | undefined {
   if (!provenance) return undefined;
   return {
@@ -730,9 +735,7 @@ export function cloneValidationReceipt(receipt: ValidationReceipt): ValidationRe
     ...(receipt.hardwareReceipts
       ? { hardwareReceipts: receipt.hardwareReceipts.map(cloneHardwareReceipt) }
       : {}),
-    ...(receipt.replayInputs
-      ? { replayInputs: receipt.replayInputs.map(cloneReplayInput) }
-      : {}),
+    ...(receipt.replayInputs ? { replayInputs: receipt.replayInputs.map(cloneReplayInput) } : {}),
     ...(receipt.replayOutcomes
       ? { replayOutcomes: receipt.replayOutcomes.map(cloneReplayOutcome) }
       : {}),
@@ -748,7 +751,7 @@ export function cloneValidationReceipt(receipt: ValidationReceipt): ValidationRe
 }
 
 export function cloneQualcommNIRModelExportReceipt(
-  receipt: QualcommNIRModelExportReceipt,
+  receipt: QualcommNIRModelExportReceipt
 ): QualcommNIRModelExportReceipt {
   return {
     ...receipt,
@@ -762,7 +765,7 @@ export function cloneQualcommNIRModelExportReceipt(
 }
 
 export function cloneCrossHardwareCompilationReceipt(
-  receipt: CrossHardwareCompilationReceipt,
+  receipt: CrossHardwareCompilationReceipt
 ): CrossHardwareCompilationReceipt {
   return {
     ...receipt,
@@ -833,7 +836,7 @@ export function isSupportedTrustTier(tier: string): tier is PackageProvenanceRec
 }
 
 export function isSupportedAdmissionDecision(
-  decision: string,
+  decision: string
 ): decision is PackageProvenanceReceipt['admissionDecision'] {
   return (PACKAGE_PROVENANCE_ADMISSION_DECISIONS as readonly string[]).includes(decision);
 }
@@ -842,7 +845,9 @@ export function validatePackageProvenanceReceipt(receipt: PackageProvenanceRecei
   const errors: string[] = [];
   if (!receipt.id) errors.push('PackageProvenanceReceipt.id is required.');
   if (!receipt.sourceHash || receipt.sourceHash.length !== 64) {
-    errors.push('PackageProvenanceReceipt.sourceHash is required and must be a 64-character SHA-256 hex string.');
+    errors.push(
+      'PackageProvenanceReceipt.sourceHash is required and must be a 64-character SHA-256 hex string.'
+    );
   }
   if (!receipt.packageId) errors.push('PackageProvenanceReceipt.packageId is required.');
   if (!receipt.version || !/^\d+\.\d+\.\d+/.test(receipt.version)) {
@@ -853,26 +858,34 @@ export function validatePackageProvenanceReceipt(receipt: PackageProvenanceRecei
     errors.push(`PackageProvenanceReceipt.trustTier is unsupported: ${String(receipt.trustTier)}.`);
   }
   if (!isSupportedAdmissionDecision(receipt.admissionDecision)) {
-    errors.push(`PackageProvenanceReceipt.admissionDecision is unsupported: ${String(receipt.admissionDecision)}.`);
+    errors.push(
+      `PackageProvenanceReceipt.admissionDecision is unsupported: ${String(receipt.admissionDecision)}.`
+    );
   }
   if (receipt.trustTier === 'unverified' && receipt.admissionDecision === 'admitted') {
     errors.push(`PackageProvenanceReceipt ${receipt.id} unverified signer cannot be admitted.`);
   }
   if (!receipt.checkedAt || Number.isNaN(Date.parse(receipt.checkedAt))) {
-    errors.push('PackageProvenanceReceipt.checkedAt is required and must be a valid ISO-8601 timestamp.');
+    errors.push(
+      'PackageProvenanceReceipt.checkedAt is required and must be a valid ISO-8601 timestamp.'
+    );
   }
   if (receipt.signature && !receipt.keyFingerprint) {
     errors.push(`PackageProvenanceReceipt ${receipt.id} has signature but no keyFingerprint.`);
   }
   for (const command of receipt.verificationCommands ?? []) {
     if (!command.command) {
-      errors.push(`PackageProvenanceReceipt ${receipt.id} has a verification command without command text.`);
+      errors.push(
+        `PackageProvenanceReceipt ${receipt.id} has a verification command without command text.`
+      );
     }
   }
   return errors;
 }
 
-export function clonePackageProvenanceReceipt(receipt: PackageProvenanceReceipt): PackageProvenanceReceipt {
+export function clonePackageProvenanceReceipt(
+  receipt: PackageProvenanceReceipt
+): PackageProvenanceReceipt {
   return {
     ...receipt,
     ...(receipt.provenance ? { provenance: cloneProvenance(receipt.provenance) } : {}),
@@ -882,4 +895,3 @@ export function clonePackageProvenanceReceipt(receipt: PackageProvenanceReceipt)
     ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
   };
 }
-

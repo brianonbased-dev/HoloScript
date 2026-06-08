@@ -10,8 +10,8 @@
  */
 
 export interface WorldModelFrame {
-  t: number;           // timestep in seconds
-  image_uri: string;   // reference to frame bytes (content-addressed)
+  t: number; // timestep in seconds
+  image_uri: string; // reference to frame bytes (content-addressed)
   latent_hash?: string; // stable over a generation run
 }
 
@@ -28,10 +28,10 @@ export interface WorldModelInput {
 export interface HoloWorldModelEmission {
   neural_asset: {
     asset_id: string;
-    tier: 'T1';                      // per paper-13 — neural-approximated
+    tier: 'T1'; // per paper-13 — neural-approximated
     representation: 'world_model';
     checkpoint_hash: string;
-    canonical_viewpoints: number;    // count of frames that can serve as golden
+    canonical_viewpoints: number; // count of frames that can serve as golden
   };
   traits: Array<{ kind: '@world_frame'; target_id: string; params: Record<string, unknown> }>;
 }

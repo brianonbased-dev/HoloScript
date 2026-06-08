@@ -94,7 +94,13 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 `;
 
 /** One of the vendor matrix rows from the protocol. */
-export type AdapterTag = 'intel-uhd' | 'nvidia-rtx3060' | 'apple-m' | 'amd-rdna' | 'qualcomm-adreno' | 'swiftshader';
+export type AdapterTag =
+  | 'intel-uhd'
+  | 'nvidia-rtx3060'
+  | 'apple-m'
+  | 'amd-rdna'
+  | 'qualcomm-adreno'
+  | 'swiftshader';
 
 /** Serialized adapter identity as captured at run time (for the JSON artifact). */
 export interface AdapterIdentity {
@@ -210,7 +216,10 @@ export function isHarnessMockMode(): boolean {
   } catch {
     /* ignore */
   }
-  return typeof globalThis !== 'undefined' && (globalThis as { __WEBGPU_HARNESS_MOCK__?: boolean }).__WEBGPU_HARNESS_MOCK__ === true;
+  return (
+    typeof globalThis !== 'undefined' &&
+    (globalThis as { __WEBGPU_HARNESS_MOCK__?: boolean }).__WEBGPU_HARNESS_MOCK__ === true
+  );
 }
 
 function toUint8Array(input: Uint8Array | string): Uint8Array {
@@ -231,7 +240,10 @@ function fnv1a64Hex(bytes: Uint8Array): string {
   return hash.toString(16).padStart(16, '0');
 }
 
-async function hashBytes(input: Uint8Array | string, algo: 'sha256' | 'fnv1a' = 'sha256'): Promise<string> {
+async function hashBytes(
+  input: Uint8Array | string,
+  algo: 'sha256' | 'fnv1a' = 'sha256'
+): Promise<string> {
   const bytes = toUint8Array(input);
   if (algo === 'sha256') {
     const subtle = globalThis.crypto?.subtle;
@@ -398,7 +410,10 @@ async function buildMockHarnessArtifact(config: HarnessConfig): Promise<HarnessA
   };
 }
 
-async function readAdapterIdentity(adapter: GPUAdapter, adapterTag: AdapterTag): Promise<AdapterIdentity> {
+async function readAdapterIdentity(
+  adapter: GPUAdapter,
+  adapterTag: AdapterTag
+): Promise<AdapterIdentity> {
   const nav = (globalThis as { navigator?: Navigator }).navigator;
   const adapterWithInfo = adapter as GPUAdapter & {
     info?: Partial<GPUAdapterInfo>;
@@ -439,7 +454,9 @@ async function acquireWebGPU(config: HarnessConfig): Promise<{
 }> {
   const nav = (globalThis as { navigator?: Navigator & { gpu?: GPU } }).navigator;
   if (!nav?.gpu) {
-    throw new WebGPUUnavailableError('navigator.gpu is unavailable; run in Chrome/Edge with WebGPU enabled');
+    throw new WebGPUUnavailableError(
+      'navigator.gpu is unavailable; run in Chrome/Edge with WebGPU enabled'
+    );
   }
 
   const adapter = await nav.gpu.requestAdapter({ powerPreference: 'high-performance' });
@@ -458,14 +475,7 @@ async function acquireWebGPU(config: HarnessConfig): Promise<{
 
 function makeOutputSeed(): Uint32Array {
   return new Uint32Array([
-    0x6a09e667,
-    0xbb67ae85,
-    0x3c6ef372,
-    0xa54ff53a,
-    0x510e527f,
-    0x9b05688c,
-    0x1f83d9ab,
-    0x5be0cd19,
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
   ]);
 }
 
@@ -474,7 +484,7 @@ async function runScenarioReplication(
   scenarioName: string,
   trace: CAELTrace,
   replication: number,
-  captureFields: boolean,
+  captureFields: boolean
 ): Promise<ReplicationResult> {
   const rows = traceRowsForScenario(scenarioName, trace);
   const scenarioSalt = fnv1a32(`scenario:${scenarioName}`);
@@ -499,7 +509,13 @@ async function runScenarioReplication(
     size: rows.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(inputBuffer, 0, rows.buffer as ArrayBuffer, rows.byteOffset, rows.byteLength);
+  device.queue.writeBuffer(
+    inputBuffer,
+    0,
+    rows.buffer as ArrayBuffer,
+    rows.byteOffset,
+    rows.byteLength
+  );
 
   const outputSeed = makeOutputSeed();
   const outputBuffer = device.createBuffer({
@@ -512,7 +528,7 @@ async function runScenarioReplication(
     0,
     outputSeed.buffer as ArrayBuffer,
     outputSeed.byteOffset,
-    outputSeed.byteLength,
+    outputSeed.byteLength
   );
 
   const params = new Uint32Array([trace.length, scenarioSalt, replication, 0]);
@@ -521,7 +537,13 @@ async function runScenarioReplication(
     size: params.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(paramsBuffer, 0, params.buffer as ArrayBuffer, params.byteOffset, params.byteLength);
+  device.queue.writeBuffer(
+    paramsBuffer,
+    0,
+    params.buffer as ArrayBuffer,
+    params.byteOffset,
+    params.byteLength
+  );
 
   const readbackBuffer = device.createBuffer({
     label: `${HARNESS_KERNEL_NAME}:${scenarioName}:readback`,
@@ -583,7 +605,7 @@ async function buildWebGPUHarnessArtifact(config: HarnessConfig): Promise<Harnes
       const replications: ReplicationResult[] = [];
       for (let i = 0; i < config.replications; i++) {
         replications.push(
-          await runScenarioReplication(device, scenarioName, trace, i, config.captureFields),
+          await runScenarioReplication(device, scenarioName, trace, i, config.captureFields)
         );
       }
       scenarios[scenarioName] = {
@@ -613,7 +635,7 @@ export async function runDeterminismHarness(config: HarnessConfig): Promise<Harn
   if (isHarnessMockMode()) {
     if (config.productionEvidence) {
       throw new WebGPUProductionEvidenceMockError(
-        'WEBGPU_HARNESS_MOCK cannot be used when productionEvidence=true',
+        'WEBGPU_HARNESS_MOCK cannot be used when productionEvidence=true'
       );
     }
     return buildMockHarnessArtifact(config);
@@ -630,7 +652,7 @@ export async function runDeterminismHarness(config: HarnessConfig): Promise<Harn
  * dumped JSON artifacts.
  */
 export function compareAdapterArtifacts(
-  artifacts: readonly HarnessArtifact[],
+  artifacts: readonly HarnessArtifact[]
 ): CrossAdapterVerdict {
   if (artifacts.length < 2) {
     throw new Error('need at least 2 adapter artifacts to compare');
@@ -694,7 +716,12 @@ export function compareAdapterArtifacts(
 }
 
 export interface CrossAdapterVerdict {
-  readonly verdict: 'H0_HOLDS' | 'H0_REJECTED_H2_PENDING' | 'H2_HOLDS' | 'H2_REJECTED' | 'HARNESS_BUG';
+  readonly verdict:
+    | 'H0_HOLDS'
+    | 'H0_REJECTED_H2_PENDING'
+    | 'H2_HOLDS'
+    | 'H2_REJECTED'
+    | 'HARNESS_BUG';
   readonly reason: string;
   readonly selfConsistencyFailures: ReadonlyArray<{ adapter: AdapterTag; scenario: string }>;
   readonly perScenarioH0: Readonly<Record<string, boolean>>;

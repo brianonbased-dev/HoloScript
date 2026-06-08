@@ -53,7 +53,9 @@ const NightCampfireScene: React.FC<NightCampfireSceneProps> = ({
     const stops: Array<() => void> = [];
     const timers: Array<ReturnType<typeof setTimeout>> = [];
     try {
-      const audioCtx: AudioContext = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
+      const audioCtx: AudioContext = new (
+        (window as any).AudioContext || (window as any).webkitAudioContext
+      )();
       ctx = audioCtx;
       const master = audioCtx.createGain();
       master.gain.value = 0.028; // extremely faint night bed
@@ -93,7 +95,12 @@ const NightCampfireScene: React.FC<NightCampfireSceneProps> = ({
       wG.connect(master);
       wind.start();
       wLfo.start();
-      stops.push(() => { try { wind.stop(); wLfo.stop(); } catch {} });
+      stops.push(() => {
+        try {
+          wind.stop();
+          wLfo.stop();
+        } catch {}
+      });
 
       // fire crackle — continuous noise bed with random short gain bursts (pops/snaps)
       const crackleBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 1.6, audioCtx.sampleRate);
@@ -116,7 +123,11 @@ const NightCampfireScene: React.FC<NightCampfireSceneProps> = ({
       cHp.connect(cG);
       cG.connect(master);
       crackle.start();
-      stops.push(() => { try { crackle.stop(); } catch {} });
+      stops.push(() => {
+        try {
+          crackle.stop();
+        } catch {}
+      });
 
       // schedule irregular crackle bursts
       const doCrackle = () => {
@@ -152,7 +163,12 @@ const NightCampfireScene: React.FC<NightCampfireSceneProps> = ({
         hG.gain.setValueAtTime(0.0001, now);
         hG.gain.linearRampToValueAtTime(0.38, now + 0.18);
         hG.gain.linearRampToValueAtTime(0.0001, now + 1.15);
-        stops.push(() => { try { hoot.stop(); fm.stop(); } catch {} });
+        stops.push(() => {
+          try {
+            hoot.stop();
+            fm.stop();
+          } catch {}
+        });
         // softer second hoot
         setTimeout(() => {
           if (!audioCtx) return;
@@ -168,7 +184,11 @@ const NightCampfireScene: React.FC<NightCampfireSceneProps> = ({
           h2G.gain.setValueAtTime(0.0001, n2);
           h2G.gain.linearRampToValueAtTime(0.21, n2 + 0.22);
           h2G.gain.linearRampToValueAtTime(0.0001, n2 + 0.95);
-          setTimeout(() => { try { h2.stop(); } catch {} }, 1200);
+          setTimeout(() => {
+            try {
+              h2.stop();
+            } catch {}
+          }, 1200);
         }, 720);
         timers.push(setTimeout(scheduleOwl, 4200 + Math.random() * 6800));
       };
@@ -196,7 +216,11 @@ const NightCampfireScene: React.FC<NightCampfireSceneProps> = ({
         pBp.connect(pG);
         pG.connect(master);
         pop.start(now);
-        setTimeout(() => { try { pop.stop(); } catch {} }, 400);
+        setTimeout(() => {
+          try {
+            pop.stop();
+          } catch {}
+        }, 400);
         timers.push(setTimeout(doWoodPop, 3400 + Math.random() * 9200));
       };
       timers.push(setTimeout(doWoodPop, 1800 + Math.random() * 2500));

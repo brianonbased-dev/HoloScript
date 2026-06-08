@@ -280,8 +280,8 @@ describe('USDZExporter', () => {
 
     it('should apply transforms correctly', async () => {
       const node = createEmptyNode('node1', 'TransformedNode');
-      node.transform.position = [1, 2, 3 ];
-      node.transform.scale = [2, 2, 2 ];
+      node.transform.position = [1, 2, 3];
+      node.transform.scale = [2, 2, 2];
       sceneGraph.root.children = [node];
 
       const result = await exporter.export(sceneGraph);
@@ -500,9 +500,9 @@ describe('USDZExporter', () => {
     });
   });
 
-// ========================================================================
-// Animation Export Tests
-// ========================================================================
+  // ========================================================================
+  // Animation Export Tests
+  // ========================================================================
 
   describe('Animation Export', () => {
     it('should export translation animation with time samples', async () => {
@@ -532,32 +532,70 @@ describe('USDZExporter', () => {
 
       sceneGraph.bufferViews.push(
         { id: 'bv_pos', bufferIndex: 0, byteOffset: 0, byteLength: positions.byteLength },
-        { id: 'bv_times', bufferIndex: 0, byteOffset: positions.byteLength, byteLength: times.byteLength },
-        { id: 'bv_values', bufferIndex: 0, byteOffset: positions.byteLength + times.byteLength, byteLength: values.byteLength }
+        {
+          id: 'bv_times',
+          bufferIndex: 0,
+          byteOffset: positions.byteLength,
+          byteLength: times.byteLength,
+        },
+        {
+          id: 'bv_values',
+          bufferIndex: 0,
+          byteOffset: positions.byteLength + times.byteLength,
+          byteLength: values.byteLength,
+        }
       );
 
       sceneGraph.accessors.push(
-        { id: 'acc_pos', bufferViewIndex: 0, byteOffset: 0, componentType: 'float', type: 'vec3', count: 4, normalized: false },
-        { id: 'acc_times', bufferViewIndex: 1, byteOffset: 0, componentType: 'float', type: 'scalar', count: 3, normalized: false },
-        { id: 'acc_values', bufferViewIndex: 2, byteOffset: 0, componentType: 'float', type: 'vec3', count: 3, normalized: false }
+        {
+          id: 'acc_pos',
+          bufferViewIndex: 0,
+          byteOffset: 0,
+          componentType: 'float',
+          type: 'vec3',
+          count: 4,
+          normalized: false,
+        },
+        {
+          id: 'acc_times',
+          bufferViewIndex: 1,
+          byteOffset: 0,
+          componentType: 'float',
+          type: 'scalar',
+          count: 3,
+          normalized: false,
+        },
+        {
+          id: 'acc_values',
+          bufferViewIndex: 2,
+          byteOffset: 0,
+          componentType: 'float',
+          type: 'vec3',
+          count: 3,
+          normalized: false,
+        }
       );
 
       sceneGraph.animations.push({
         id: 'anim1',
         name: 'MoveAnimation',
         duration: 2,
-        channels: [
-          { targetNode: 'animated', targetPath: 'translation', samplerIndex: 0 },
-        ],
-        samplers: [
-          { inputBufferView: 1, outputBufferView: 2, interpolation: 'linear' },
-        ],
+        channels: [{ targetNode: 'animated', targetPath: 'translation', samplerIndex: 0 }],
+        samplers: [{ inputBufferView: 1, outputBufferView: 2, interpolation: 'linear' }],
       });
 
       const mesh = createSimpleTriangleMesh();
       sceneGraph.meshes.push(mesh);
       node.components = [
-        { type: 'mesh', meshRef: mesh.id, materialRefs: [], castShadows: true, receiveShadows: true, enabled: true, properties: {} },
+        {
+          type: 'mesh',
+          meshRef: mesh.id,
+          materialRefs: [],
+          castShadows: true,
+          receiveShadows: true,
+          enabled: true,
+          properties: {},
+        },
       ];
 
       const result = await exporter.export(sceneGraph);
@@ -587,30 +625,55 @@ describe('USDZExporter', () => {
 
       sceneGraph.bufferViews.push(
         { id: 'bv_times', bufferIndex: 0, byteOffset: 0, byteLength: times.byteLength },
-        { id: 'bv_values', bufferIndex: 0, byteOffset: times.byteLength, byteLength: values.byteLength }
+        {
+          id: 'bv_values',
+          bufferIndex: 0,
+          byteOffset: times.byteLength,
+          byteLength: values.byteLength,
+        }
       );
 
       sceneGraph.accessors.push(
-        { id: 'acc_times', bufferViewIndex: 0, byteOffset: 0, componentType: 'float', type: 'scalar', count: 2, normalized: false },
-        { id: 'acc_values', bufferViewIndex: 1, byteOffset: 0, componentType: 'float', type: 'vec4', count: 2, normalized: false }
+        {
+          id: 'acc_times',
+          bufferViewIndex: 0,
+          byteOffset: 0,
+          componentType: 'float',
+          type: 'scalar',
+          count: 2,
+          normalized: false,
+        },
+        {
+          id: 'acc_values',
+          bufferViewIndex: 1,
+          byteOffset: 0,
+          componentType: 'float',
+          type: 'vec4',
+          count: 2,
+          normalized: false,
+        }
       );
 
       sceneGraph.animations.push({
         id: 'anim1',
         name: 'RotateAnimation',
         duration: 1,
-        channels: [
-          { targetNode: 'rotated', targetPath: 'rotation', samplerIndex: 0 },
-        ],
-        samplers: [
-          { inputBufferView: 0, outputBufferView: 1, interpolation: 'linear' },
-        ],
+        channels: [{ targetNode: 'rotated', targetPath: 'rotation', samplerIndex: 0 }],
+        samplers: [{ inputBufferView: 0, outputBufferView: 1, interpolation: 'linear' }],
       });
 
       const mesh = createSimpleTriangleMesh();
       sceneGraph.meshes.push(mesh);
       node.components = [
-        { type: 'mesh', meshRef: mesh.id, materialRefs: [], castShadows: true, receiveShadows: true, enabled: true, properties: {} },
+        {
+          type: 'mesh',
+          meshRef: mesh.id,
+          materialRefs: [],
+          castShadows: true,
+          receiveShadows: true,
+          enabled: true,
+          properties: {},
+        },
       ];
 
       const result = await exporter.export(sceneGraph);
@@ -620,9 +683,9 @@ describe('USDZExporter', () => {
     });
   });
 
-// ========================================================================
-// GLTF Conversion Tests
-// ========================================================================
+  // ========================================================================
+  // GLTF Conversion Tests
+  // ========================================================================
 
   describe('GLTF Conversion', () => {
     it('should convert GLTF document to USDZ', async () => {

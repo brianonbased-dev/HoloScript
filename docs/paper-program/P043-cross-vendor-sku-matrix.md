@@ -11,21 +11,21 @@ promoted out of projected status.
 
 ## Matrix
 
-| SKU | GPU class | N values | Required capture notes |
-| --- | --- | --- | --- |
-| Quest 3 / Adreno 740 | mobile XR | 2, 3, 4 | Record browser/WebXR shell, OS version, battery state, and thermal state after each 60 s sample; use [the Quest 3 headset capture workflow](p043-quest3-headset-capture-workflow.md). |
-| RTX 4090 | desktop discrete | 2, 4, 8 | Primary high-end desktop cell. |
-| RTX 3090 | desktop discrete | 2, 4, 8 | Ampere comparison point. |
-| Apple M3 GPU | desktop integrated | 2, 4, 8 | Capture macOS and browser version because the WebGPU path is Metal-backed. |
-| Intel Arc | desktop discrete | 2, 4, 8 | Non-NVIDIA discrete WebGPU sanity cell. |
+| SKU                  | GPU class          | N values | Required capture notes                                                                                                                                                                |
+| -------------------- | ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Quest 3 / Adreno 740 | mobile XR          | 2, 3, 4  | Record browser/WebXR shell, OS version, battery state, and thermal state after each 60 s sample; use [the Quest 3 headset capture workflow](p043-quest3-headset-capture-workflow.md). |
+| RTX 4090             | desktop discrete   | 2, 4, 8  | Primary high-end desktop cell.                                                                                                                                                        |
+| RTX 3090             | desktop discrete   | 2, 4, 8  | Ampere comparison point.                                                                                                                                                              |
+| Apple M3 GPU         | desktop integrated | 2, 4, 8  | Capture macOS and browser version because the WebGPU path is Metal-backed.                                                                                                            |
+| Intel Arc            | desktop discrete   | 2, 4, 8  | Non-NVIDIA discrete WebGPU sanity cell.                                                                                                                                               |
 
 Scenes are fixed at three stress profiles:
 
-| Scene | Gaussian count | Why it exists |
-| --- | ---: | --- |
-| `indoor-500k` | 500,000 | Medium occlusion, near-field geometry, laptop-webcam foveation demo scale. |
-| `outdoor-1m` | 1,000,000 | Wide field of view and long depth range for centroid sort quality. |
-| `dense-2m` | 2,000,000 | Alpha overdraw and visibility-mask stress case. |
+| Scene         | Gaussian count | Why it exists                                                              |
+| ------------- | -------------: | -------------------------------------------------------------------------- |
+| `indoor-500k` |        500,000 | Medium occlusion, near-field geometry, laptop-webcam foveation demo scale. |
+| `outdoor-1m`  |      1,000,000 | Wide field of view and long depth range for centroid sort quality.         |
+| `dense-2m`    |      2,000,000 | Alpha overdraw and visibility-mask stress case.                            |
 
 Total required cells: 5 SKUs x 3 scenes x 3 N values = 45 artifacts.
 Each cell is sampled for 60 s after a 5 s warmup, with three repeated runs
@@ -67,18 +67,18 @@ prevents placeholder numbers from masquerading as benchmark data.
 
 Each captured artifact must include:
 
-| Field | Requirement |
-| --- | --- |
-| `adapterInfo` | WebGPU adapter/vendor/device details; must match the SKU tokens. |
-| `browserVersion` | Browser or WebXR shell version. |
-| `osVersion` | Host OS/headset version. |
-| `frameTimeMs.samples` | Raw frame-time sample array covering 60 s after warmup. |
-| `frameTimeMs.p50/p95/p99` | Whole-frame percentiles. |
-| `perUserFrameTimeMs.p95` | P043 headline metric denominator. |
-| `sharedSortMs.p95` | Shared-sort kernel cost. |
-| `visibilityMaskMs.p95` | Per-view visibility bitmask cost. |
-| `droppedFrameCount` | Count during the 60 s measurement window. |
-| `thermalState` | Device thermal state, battery state, or `unknown` when the platform cannot report it. |
+| Field                     | Requirement                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| `adapterInfo`             | WebGPU adapter/vendor/device details; must match the SKU tokens.                      |
+| `browserVersion`          | Browser or WebXR shell version.                                                       |
+| `osVersion`               | Host OS/headset version.                                                              |
+| `frameTimeMs.samples`     | Raw frame-time sample array covering 60 s after warmup.                               |
+| `frameTimeMs.p50/p95/p99` | Whole-frame percentiles.                                                              |
+| `perUserFrameTimeMs.p95`  | P043 headline metric denominator.                                                     |
+| `sharedSortMs.p95`        | Shared-sort kernel cost.                                                              |
+| `visibilityMaskMs.p95`    | Per-view visibility bitmask cost.                                                     |
+| `droppedFrameCount`       | Count during the 60 s measurement window.                                             |
+| `thermalState`            | Device thermal state, battery state, or `unknown` when the platform cannot report it. |
 
 Capture protocol:
 

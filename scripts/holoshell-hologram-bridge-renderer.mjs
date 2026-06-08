@@ -8,18 +8,18 @@
  * preview PNG plus a receipt.
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { canonical, chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import {
+  canonical,
+  chainReceipt,
+  sha256Bytes,
+  sha256Text,
+  stageReceipt,
+  withHash,
+} from './holoshell/chain/receipts.mjs';
 import { parseAsciiPly } from './holoshell/render/parse-ply.mjs';
 import { analyzeQuiltQuality } from './holoshell/render/quilt-quality.mjs';
 import { boundsFor, selectTemporalPoints } from './holoshell/render/temporal-fusion.mjs';
@@ -82,25 +82,46 @@ function parseArgs(argv) {
   if (!Number.isInteger(args.tileHeight) || args.tileHeight < 16 || args.tileHeight > 1024) {
     throw new Error('--tile-height must be an integer from 16 to 1024');
   }
-  if (args.views !== undefined && (!Number.isInteger(args.views) || args.views < 1 || args.views > 128)) {
+  if (
+    args.views !== undefined &&
+    (!Number.isInteger(args.views) || args.views < 1 || args.views > 128)
+  ) {
     throw new Error('--views must be an integer from 1 to 128');
   }
-  if (args.columns !== undefined && (!Number.isInteger(args.columns) || args.columns < 1 || args.columns > 16)) {
+  if (
+    args.columns !== undefined &&
+    (!Number.isInteger(args.columns) || args.columns < 1 || args.columns > 16)
+  ) {
     throw new Error('--columns must be an integer from 1 to 16');
   }
-  if (args.rows !== undefined && (!Number.isInteger(args.rows) || args.rows < 1 || args.rows > 16)) {
+  if (
+    args.rows !== undefined &&
+    (!Number.isInteger(args.rows) || args.rows < 1 || args.rows > 16)
+  ) {
     throw new Error('--rows must be an integer from 1 to 16');
   }
-  if (args.exposure !== undefined && (!Number.isFinite(args.exposure) || args.exposure <= 0 || args.exposure > 16)) {
+  if (
+    args.exposure !== undefined &&
+    (!Number.isFinite(args.exposure) || args.exposure <= 0 || args.exposure > 16)
+  ) {
     throw new Error('--exposure must be a number greater than 0 and at most 16');
   }
-  if (args.parallaxScale !== undefined && (!Number.isFinite(args.parallaxScale) || args.parallaxScale <= 0 || args.parallaxScale > 8)) {
+  if (
+    args.parallaxScale !== undefined &&
+    (!Number.isFinite(args.parallaxScale) || args.parallaxScale <= 0 || args.parallaxScale > 8)
+  ) {
     throw new Error('--parallax-scale must be a number greater than 0 and at most 8');
   }
-  if (args.pointRadius !== undefined && (!Number.isInteger(args.pointRadius) || args.pointRadius < 1 || args.pointRadius > 32)) {
+  if (
+    args.pointRadius !== undefined &&
+    (!Number.isInteger(args.pointRadius) || args.pointRadius < 1 || args.pointRadius > 32)
+  ) {
     throw new Error('--point-radius must be an integer from 1 to 32');
   }
-  if (args.glowRadius !== undefined && (!Number.isInteger(args.glowRadius) || args.glowRadius < 0 || args.glowRadius > 64)) {
+  if (
+    args.glowRadius !== undefined &&
+    (!Number.isInteger(args.glowRadius) || args.glowRadius < 0 || args.glowRadius > 64)
+  ) {
     throw new Error('--glow-radius must be an integer from 0 to 64');
   }
   if (args.temporalMode !== undefined && !TEMPORAL_MODES.has(args.temporalMode)) {
@@ -158,7 +179,11 @@ function computeRenderStyle({ points, tileWidth, tileHeight, args, tileGrid, tem
     tileGrid > 1 &&
     points.length === tileGrid * tileGrid;
   const temporalCoverageGain = temporalCollapsed
-    ? 1 + Math.min(useSurfaceFill ? 0.15 : 0.8, Math.log2(temporal.originalPointCount / temporal.renderedPointCount) / 4)
+    ? 1 +
+      Math.min(
+        useSurfaceFill ? 0.15 : 0.8,
+        Math.log2(temporal.originalPointCount / temporal.renderedPointCount) / 4
+      )
     : 1;
   const exposure = args.exposure ?? Math.max(autoGain, temporalCoverageGain);
   const spacing = Math.sqrt((tileWidth * tileHeight) / Math.max(1, points.length));
@@ -167,12 +192,19 @@ function computeRenderStyle({ points, tileWidth, tileHeight, args, tileGrid, tem
   const gridDivisor = temporalCollapsed ? 0.95 : 1.4;
   const gridRadius =
     Number.isInteger(tileGrid) && tileGrid > 0
-      ? Math.max(2, Math.min(12, Math.round(Math.min(tileWidth, tileHeight) / (tileGrid * gridDivisor))))
+      ? Math.max(
+          2,
+          Math.min(12, Math.round(Math.min(tileWidth, tileHeight) / (tileGrid * gridDivisor)))
+        )
       : Math.max(1, Math.min(resolutionRadius, densityRadius));
   const baseRadius = args.pointRadius ?? gridRadius;
   const glowRadius = args.glowRadius ?? Math.max(baseRadius + 2, Math.round(baseRadius * 1.25));
-  const surfaceCellWidth = useSurfaceFill ? Math.ceil((tileWidth * 0.8 * 1.35) / tileGrid) : undefined;
-  const surfaceCellHeight = useSurfaceFill ? Math.ceil((tileHeight * 0.8 * 1.35) / tileGrid) : undefined;
+  const surfaceCellWidth = useSurfaceFill
+    ? Math.ceil((tileWidth * 0.8 * 1.35) / tileGrid)
+    : undefined;
+  const surfaceCellHeight = useSurfaceFill
+    ? Math.ceil((tileHeight * 0.8 * 1.35) / tileGrid)
+    : undefined;
   const parallaxScale = args.parallaxScale ?? (temporalCollapsed ? 2 : 1.25);
   const surfacePointOverlay = useSurfaceFill && args.surfacePointOverlay;
   return {
@@ -189,7 +221,9 @@ function computeRenderStyle({ points, tileWidth, tileHeight, args, tileGrid, tem
     surfaceMeshGrid: useSurfaceFill ? tileGrid : undefined,
     surfaceMeshAlpha: useSurfaceFill ? 0.82 : undefined,
     surfacePointOverlay,
-    surfacePointRadius: surfacePointOverlay ? Math.max(1, Math.round(baseRadius * 0.65)) : undefined,
+    surfacePointRadius: surfacePointOverlay
+      ? Math.max(1, Math.round(baseRadius * 0.65))
+      : undefined,
     surfacePointAlpha: surfacePointOverlay ? 0.34 : undefined,
     averageSourceLuminance: Number(avgLum.toFixed(4)),
     averagePointSpacingPx: Number(spacing.toFixed(3)),
@@ -270,7 +304,16 @@ function plotPoint(rgba, quiltWidth, quiltHeight, x, y, radius, color, alpha, so
       const radiusSq = radius * radius;
       if (distSq > radiusSq) continue;
       const falloff = softness > 0 ? Math.max(0, 1 - Math.sqrt(distSq) / Math.max(1, radius)) : 1;
-      blendPixel(rgba, quiltWidth, px, py, color[0], color[1], color[2], alpha * (softness > 0 ? falloff : 1));
+      blendPixel(
+        rgba,
+        quiltWidth,
+        px,
+        py,
+        color[0],
+        color[1],
+        color[2],
+        alpha * (softness > 0 ? falloff : 1)
+      );
     }
   }
 }
@@ -289,7 +332,17 @@ function plotRect(rgba, quiltWidth, quiltHeight, x, y, width, height, color, alp
   }
 }
 
-function projectPoint(point, bounds, zRange, tileX, tileY, tileWidth, tileHeight, cameraOffset, style = {}) {
+function projectPoint(
+  point,
+  bounds,
+  zRange,
+  tileX,
+  tileY,
+  tileWidth,
+  tileHeight,
+  cameraOffset,
+  style = {}
+) {
   const nx = normalize(point.x, bounds.min[0], bounds.max[0]);
   const ny = normalize(point.y, bounds.min[1], bounds.max[1]);
   const nz = (point.z - bounds.min[2]) / zRange;
@@ -334,12 +387,31 @@ function rasterizeTriangle(rgba, quiltWidth, quiltHeight, vertices, alpha) {
   }
 }
 
-function renderSurfaceMesh(rgba, quiltWidth, quiltHeight, points, bounds, tile, cameraOffset, style) {
+function renderSurfaceMesh(
+  rgba,
+  quiltWidth,
+  quiltHeight,
+  points,
+  bounds,
+  tile,
+  cameraOffset,
+  style
+) {
   const gridSize = style.surfaceMeshGrid;
   if (!Number.isInteger(gridSize) || gridSize < 2 || points.length !== gridSize * gridSize) return;
   const zRange = Math.max(1e-9, bounds.max[2] - bounds.min[2]);
   const projected = points.map((point) => ({
-    ...projectPoint(point, bounds, zRange, tile.x, tile.y, tile.width, tile.height, cameraOffset, style),
+    ...projectPoint(
+      point,
+      bounds,
+      zRange,
+      tile.x,
+      tile.y,
+      tile.width,
+      tile.height,
+      cameraOffset,
+      style
+    ),
     color: applyExposure(point, style),
   }));
   const triangles = [];
@@ -359,7 +431,13 @@ function renderSurfaceMesh(rgba, quiltWidth, quiltHeight, points, bounds, tile, 
   }
   triangles.sort((a, b) => a.z - b.z);
   for (const triangle of triangles) {
-    rasterizeTriangle(rgba, quiltWidth, quiltHeight, triangle.vertices, style.surfaceMeshAlpha ?? 0.6);
+    rasterizeTriangle(
+      rgba,
+      quiltWidth,
+      quiltHeight,
+      triangle.vertices,
+      style.surfaceMeshAlpha ?? 0.6
+    );
   }
 }
 
@@ -372,7 +450,16 @@ async function encodePng(rgba, width, height) {
     .toBuffer();
 }
 
-async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views, columns, rows, style }) {
+async function renderQuiltPreview({
+  points,
+  bounds,
+  tileWidth,
+  tileHeight,
+  views,
+  columns,
+  rows,
+  style,
+}) {
   const quiltWidth = tileWidth * columns;
   const quiltHeight = tileHeight * rows;
   const rgba = new Uint8Array(quiltWidth * quiltHeight * 4);
@@ -400,7 +487,17 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
     }
 
     for (const point of sorted) {
-      const projected = projectPoint(point, bounds, zRange, tileX, tileY, tileWidth, tileHeight, cameraOffset, style);
+      const projected = projectPoint(
+        point,
+        bounds,
+        zRange,
+        tileX,
+        tileY,
+        tileWidth,
+        tileHeight,
+        cameraOffset,
+        style
+      );
       const px = projected.x;
       const py = projected.y;
       const confidence = projected.confidence;
@@ -420,7 +517,12 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
         );
         continue;
       }
-      if (style.surfaceFill && !style.surfaceMesh && style.surfaceCellWidth > 0 && style.surfaceCellHeight > 0) {
+      if (
+        style.surfaceFill &&
+        !style.surfaceMesh &&
+        style.surfaceCellWidth > 0 &&
+        style.surfaceCellHeight > 0
+      ) {
         plotRect(
           rgba,
           quiltWidth,
@@ -434,15 +536,44 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
         );
       }
       if (!style.surfaceMesh && style.glowRadius > style.pointRadius) {
-        plotPoint(rgba, quiltWidth, quiltHeight, px, py, style.glowRadius, color, 0.12 + confidence * 0.1, 1);
+        plotPoint(
+          rgba,
+          quiltWidth,
+          quiltHeight,
+          px,
+          py,
+          style.glowRadius,
+          color,
+          0.12 + confidence * 0.1,
+          1
+        );
       }
-      plotPoint(rgba, quiltWidth, quiltHeight, px, py, style.pointRadius, color, 0.58 + confidence * 0.36, 0.35);
+      plotPoint(
+        rgba,
+        quiltWidth,
+        quiltHeight,
+        px,
+        py,
+        style.pointRadius,
+        color,
+        0.58 + confidence * 0.36,
+        0.35
+      );
     }
   }
 
   return {
     png: await encodePng(rgba, quiltWidth, quiltHeight),
-    quality: analyzeQuiltQuality({ rgba, width: quiltWidth, height: quiltHeight, tileWidth, tileHeight, columns, rows, views }),
+    quality: analyzeQuiltQuality({
+      rgba,
+      width: quiltWidth,
+      height: quiltHeight,
+      tileWidth,
+      tileHeight,
+      columns,
+      rows,
+      views,
+    }),
     width: quiltWidth,
     height: quiltHeight,
   };
@@ -450,7 +581,8 @@ async function renderQuiltPreview({ points, bounds, tileWidth, tileHeight, views
 
 export async function renderBridge(args) {
   const bridgePath = resolveInputPath(args.bridge);
-  if (!bridgePath || !existsSync(bridgePath)) throw new Error(`Bridge JSON not found: ${args.bridge}`);
+  if (!bridgePath || !existsSync(bridgePath))
+    throw new Error(`Bridge JSON not found: ${args.bridge}`);
   const bridgeText = readFileSync(bridgePath, 'utf8');
   const bridgeHash = `sha256:${sha256Bytes(Buffer.from(bridgeText, 'utf8'))}`;
   const bridge = JSON.parse(bridgeText);
@@ -460,7 +592,8 @@ export async function renderBridge(args) {
 
   const sourceAssets = bridge.source?.assets ?? {};
   const plyPath = resolveInputPath(sourceAssets.ply, dirname(bridgePath));
-  if (!plyPath || !existsSync(plyPath)) throw new Error(`PLY asset not found: ${sourceAssets.ply ?? 'missing'}`);
+  if (!plyPath || !existsSync(plyPath))
+    throw new Error(`PLY asset not found: ${sourceAssets.ply ?? 'missing'}`);
   const plyHash = `sha256:${sha256Bytes(readFileSync(plyPath))}`;
   const points = parseAsciiPly(plyPath);
   const temporal = selectTemporalPoints(points, bridge.source, args.temporalMode);
@@ -469,7 +602,8 @@ export async function renderBridge(args) {
   const columns = args.columns ?? bridge.targets?.quilt?.columns ?? 8;
   const rows = args.rows ?? bridge.targets?.quilt?.rows ?? 6;
   const views = args.views ?? bridge.targets?.quilt?.views ?? columns * rows;
-  if (views > columns * rows) throw new Error(`views (${views}) cannot exceed columns*rows (${columns * rows})`);
+  if (views > columns * rows)
+    throw new Error(`views (${views}) cannot exceed columns*rows (${columns * rows})`);
   const style = computeRenderStyle({
     points: renderPoints,
     tileWidth: args.tileWidth,
@@ -480,18 +614,26 @@ export async function renderBridge(args) {
   });
 
   const outPath = resolve(args.out ?? defaultOutputForBridge(bridgePath));
-  const replay = bridge.source?.replayFingerprint ?? sha256Text(readFileSync(bridgePath, 'utf8')).slice(0, 16);
-  const variant = sha256Text(JSON.stringify(canonical({
-    rendererVersion: VERSION,
-    tileWidth: args.tileWidth,
-    tileHeight: args.tileHeight,
-    views,
-    columns,
-    rows,
-    style,
-    temporal: temporal.info,
-  }))).slice(0, 8);
-  const pngPath = resolve(dirname(outPath), `holoshell-quilt-${String(replay).slice(0, 12)}-${variant}.png`);
+  const replay =
+    bridge.source?.replayFingerprint ?? sha256Text(readFileSync(bridgePath, 'utf8')).slice(0, 16);
+  const variant = sha256Text(
+    JSON.stringify(
+      canonical({
+        rendererVersion: VERSION,
+        tileWidth: args.tileWidth,
+        tileHeight: args.tileHeight,
+        views,
+        columns,
+        rows,
+        style,
+        temporal: temporal.info,
+      })
+    )
+  ).slice(0, 8);
+  const pngPath = resolve(
+    dirname(outPath),
+    `holoshell-quilt-${String(replay).slice(0, 12)}-${variant}.png`
+  );
   mkdirSync(dirname(outPath), { recursive: true });
 
   const quilt = await renderQuiltPreview({
@@ -651,8 +793,10 @@ export function validateReceipt(receipt) {
   if (!receipt.quilt?.pngHash?.startsWith('sha256:')) errors.push('quilt PNG hash missing');
   if (!(receipt.quilt?.quality?.score >= 0)) errors.push('quilt quality score missing');
   if (!(receipt.source?.pointCount > 0)) errors.push('point count missing');
-  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
-  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1) errors.push('chain stages missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:'))
+    errors.push('chain receipt hash missing');
+  if (!Array.isArray(receipt.chain?.stages) || receipt.chain.stages.length < 1)
+    errors.push('chain stages missing');
   return errors;
 }
 
@@ -733,12 +877,19 @@ async function main() {
   const receipt = await renderBridge(args);
   const errors = validateReceipt(receipt);
   if (errors.length > 0) throw new Error(`Invalid receipt: ${errors.join('; ')}`);
-  process.stdout.write(`${JSON.stringify({ status: receipt.status, receiptPath: receipt.outputPath, quilt: receipt.quilt }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ status: receipt.status, receiptPath: receipt.outputPath, quilt: receipt.quilt }, null, 2)}\n`
+  );
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('holoshell-hologram-bridge-renderer.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('holoshell-hologram-bridge-renderer.mjs')
+) {
   main().catch((error) => {
-    process.stderr.write(`holoshell-hologram-bridge-renderer FAIL: ${error.stack ?? error.message}\n`);
+    process.stderr.write(
+      `holoshell-hologram-bridge-renderer FAIL: ${error.stack ?? error.message}\n`
+    );
     process.exitCode = 1;
   });
 }

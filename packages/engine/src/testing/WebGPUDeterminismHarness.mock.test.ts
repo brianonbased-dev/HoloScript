@@ -73,7 +73,7 @@ describe('WebGPUDeterminismHarness (mock)', () => {
 
   it('rejects mock mode for production evidence runs', async () => {
     await expect(
-      runDeterminismHarness(mockConfig({ productionEvidence: true })),
+      runDeterminismHarness(mockConfig({ productionEvidence: true }))
     ).rejects.toBeInstanceOf(WebGPUProductionEvidenceMockError);
   });
 

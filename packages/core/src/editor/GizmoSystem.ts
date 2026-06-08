@@ -70,7 +70,7 @@ export class GizmoSystem {
     const targetPos = this.world.getComponent<any>(target, 'Transform')?.position || [0, 0, 0];
     this.world.addComponent(gizmoRoot, 'Transform', {
       position: [...targetPos],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
       scale: [1, 1, 1],
     });
 
@@ -100,7 +100,7 @@ export class GizmoSystem {
     // Initial relative transform
     this.world.addComponent(axis, 'Transform', {
       position: [0, 0, 0], // Relative to parent (simulated)
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
       scale: [this.axisLength, this.axisThickness, this.axisThickness],
     });
 

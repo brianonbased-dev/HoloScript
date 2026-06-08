@@ -7,22 +7,22 @@ This document is a **repeatable procedure + metrics template**. A full run needs
 
 ## Time box
 
-| Suggestion | Owner |
-|------------|--------|
-| 60–120 minutes wall clock for first successful pass | Whoever runs PLAYGROUND |
-| Stop after first **deployed health check** if meter wiring is not configured | Avoid fake “done” |
+| Suggestion                                                                   | Owner                   |
+| ---------------------------------------------------------------------------- | ----------------------- |
+| 60–120 minutes wall clock for first successful pass                          | Whoever runs PLAYGROUND |
+| Stop after first **deployed health check** if meter wiring is not configured | Avoid fake “done”       |
 
 ## Chain → concrete surfaces (code truth)
 
-| README step | Primary mechanism | Where to look |
-|-------------|-------------------|---------------|
-| `.holo` / service description | Composition or contract-generated `.holo` | `examples/services/`, Studio, or output of `generate_service_contract` |
-| `generate_service_contract` | MCP tool | `packages/mcp-server/src/service-contract-tools.ts` |
-| `compile_to_node_service` | MCP compiler tool | `packages/mcp-server/src/compiler-tools.ts` (targets include `compile_to_node_service`) |
-| `connector-railway` (deploy) | Connector layer | `packages/connector-railway/`, env + Railway CLI / dashboard |
-| `economy` (meter) | Economy / metering traits & routes | Trace via product MCP `economy` tools if enabled for workspace |
-| `observability` (monitor) | Health / monitoring hooks | Deploy URL `/health` or connector-reported status |
-| `self-improve` (iterate) | Absorb / self-improve pipeline | `packages/mcp-server/src/self-improve-tools.ts`, absorb-service |
+| README step                   | Primary mechanism                         | Where to look                                                                           |
+| ----------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| `.holo` / service description | Composition or contract-generated `.holo` | `examples/services/`, Studio, or output of `generate_service_contract`                  |
+| `generate_service_contract`   | MCP tool                                  | `packages/mcp-server/src/service-contract-tools.ts`                                     |
+| `compile_to_node_service`     | MCP compiler tool                         | `packages/mcp-server/src/compiler-tools.ts` (targets include `compile_to_node_service`) |
+| `connector-railway` (deploy)  | Connector layer                           | `packages/connector-railway/`, env + Railway CLI / dashboard                            |
+| `economy` (meter)             | Economy / metering traits & routes        | Trace via product MCP `economy` tools if enabled for workspace                          |
+| `observability` (monitor)     | Health / monitoring hooks                 | Deploy URL `/health` or connector-reported status                                       |
+| `self-improve` (iterate)      | Absorb / self-improve pipeline            | `packages/mcp-server/src/self-improve-tools.ts`, absorb-service                         |
 
 ## Metrics capture template (fill per run)
 

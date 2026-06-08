@@ -28,8 +28,8 @@ export interface CausalVariable {
 
 /** A directed causal edge: `from` causally affects `to`. */
 export interface CausalEdge {
-  from: string;  // variable id
-  to: string;    // variable id
+  from: string; // variable id
+  to: string; // variable id
   /** Linear coefficient — effect = coefficient × parent value */
   coefficient: number;
 }
@@ -75,7 +75,7 @@ export class CausalWorldModel {
 
   removeVariable(id: string): void {
     this.variables.delete(id);
-    this.edges = this.edges.filter(e => e.from !== id && e.to !== id);
+    this.edges = this.edges.filter((e) => e.from !== id && e.to !== id);
   }
 
   addEdge(edge: CausalEdge): void {
@@ -116,7 +116,7 @@ export class CausalWorldModel {
     }
 
     // Mutilated graph: remove incoming edges to the intervened variable
-    const mutilatedEdges = this.edges.filter(e => e.to !== variableId);
+    const mutilatedEdges = this.edges.filter((e) => e.to !== variableId);
 
     // Topological sort over the DAG
     const order = this._topologicalSort();
@@ -130,7 +130,7 @@ export class CausalWorldModel {
 
     for (const id of order) {
       if (id === variableId) continue;
-      const incoming = mutilatedEdges.filter(e => e.to === id);
+      const incoming = mutilatedEdges.filter((e) => e.to === id);
       if (incoming.length === 0) continue;
       // Additive linear structural equation: X_i = base + Σ coeff_j * X_j
       const base = this.variables.get(id)!.value;
@@ -180,7 +180,7 @@ export class CausalWorldModel {
     // Step 1: Abduction — compute noise terms U_i
     const noise: Record<string, number> = {};
     for (const id of order) {
-      const incoming = this.edges.filter(e => e.to === id);
+      const incoming = this.edges.filter((e) => e.to === id);
       let predicted = this.variables.get(id)!.value;
       for (const edge of incoming) {
         const parentDelta = obs[edge.from] - this.variables.get(edge.from)!.value;
@@ -190,13 +190,13 @@ export class CausalWorldModel {
     }
 
     // Step 2 + 3: Action + prediction — apply intervention, propagate with noise
-    const mutilatedEdges = this.edges.filter(e => e.to !== variableId);
+    const mutilatedEdges = this.edges.filter((e) => e.to !== variableId);
     const values: Record<string, number> = { ...obs };
     values[variableId] = counterfactualValue;
 
     for (const id of order) {
       if (id === variableId) continue;
-      const incoming = mutilatedEdges.filter(e => e.to === id);
+      const incoming = mutilatedEdges.filter((e) => e.to === id);
       let val = this.variables.get(id)!.value + noise[id];
       for (const edge of incoming) {
         const parentDelta = values[edge.from] - this.variables.get(edge.from)!.value;
@@ -219,7 +219,7 @@ export class CausalWorldModel {
   simulateScenarios(
     scenarios: Array<{ label: string; variableId: string; value: number }>
   ): Array<{ label: string; result: CausalQueryResult }> {
-    return scenarios.map(s => ({
+    return scenarios.map((s) => ({
       label: s.label,
       result: this.intervention(s.variableId, s.value),
     }));
@@ -308,27 +308,27 @@ export function createVRPhysicsModel(): CausalWorldModel {
   const model = new CausalWorldModel();
 
   // Root variables (no parents)
-  model.addVariable({ id: 'gravity',        name: 'Gravity',         value: 9.8,  unit: 'm/s²' });
-  model.addVariable({ id: 'friction',       name: 'Surface Friction', value: 0.5,  unit: 'μ' });
-  model.addVariable({ id: 'objectMass',     name: 'Object Mass',      value: 1.0,  unit: 'kg' });
-  model.addVariable({ id: 'playerSpeed',    name: 'Player Speed',     value: 5.0,  unit: 'm/s' });
+  model.addVariable({ id: 'gravity', name: 'Gravity', value: 9.8, unit: 'm/s²' });
+  model.addVariable({ id: 'friction', name: 'Surface Friction', value: 0.5, unit: 'μ' });
+  model.addVariable({ id: 'objectMass', name: 'Object Mass', value: 1.0, unit: 'kg' });
+  model.addVariable({ id: 'playerSpeed', name: 'Player Speed', value: 5.0, unit: 'm/s' });
 
   // Derived variables
-  model.addVariable({ id: 'jumpHeight',     name: 'Jump Height',      value: 1.2,  unit: 'm' });
-  model.addVariable({ id: 'slideDistance',  name: 'Slide Distance',   value: 3.0,  unit: 'm' });
-  model.addVariable({ id: 'collisionForce', name: 'Collision Force',  value: 10.0, unit: 'N' });
+  model.addVariable({ id: 'jumpHeight', name: 'Jump Height', value: 1.2, unit: 'm' });
+  model.addVariable({ id: 'slideDistance', name: 'Slide Distance', value: 3.0, unit: 'm' });
+  model.addVariable({ id: 'collisionForce', name: 'Collision Force', value: 10.0, unit: 'N' });
 
   // Causal edges
   // Higher gravity → lower jump height
-  model.addEdge({ from: 'gravity',     to: 'jumpHeight',     coefficient: -0.1 });
+  model.addEdge({ from: 'gravity', to: 'jumpHeight', coefficient: -0.1 });
   // Higher friction → less slide
-  model.addEdge({ from: 'friction',    to: 'slideDistance',  coefficient: -2.0 });
+  model.addEdge({ from: 'friction', to: 'slideDistance', coefficient: -2.0 });
   // Higher gravity → more collision force
-  model.addEdge({ from: 'gravity',     to: 'collisionForce', coefficient: 0.5 });
+  model.addEdge({ from: 'gravity', to: 'collisionForce', coefficient: 0.5 });
   // Heavier objects → more collision force
-  model.addEdge({ from: 'objectMass',  to: 'collisionForce', coefficient: 2.0 });
+  model.addEdge({ from: 'objectMass', to: 'collisionForce', coefficient: 2.0 });
   // Faster player → more slide distance
-  model.addEdge({ from: 'playerSpeed', to: 'slideDistance',  coefficient: 0.4 });
+  model.addEdge({ from: 'playerSpeed', to: 'slideDistance', coefficient: 0.4 });
 
   return model;
 }

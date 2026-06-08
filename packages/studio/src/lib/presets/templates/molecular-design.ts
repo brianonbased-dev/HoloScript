@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-molecular-design",
-  name: "Molecular Design Lab",
-  description: "Drug design workspace with protein, ligand, and binding site visualization",
-  thumbnail: "🧬",
-  tags: ["science","molecular","drug","pdb","pharma"],
-  category: "science",
+  id: 'wizard-molecular-design',
+  name: 'Molecular Design Lab',
+  description: 'Drug design workspace with protein, ligand, and binding site visualization',
+  thumbnail: '🧬',
+  tags: ['science', 'molecular', 'drug', 'pdb', 'pharma'],
+  category: 'science',
   code: `composition "Molecular Design Lab" {
   environment {
     skybox: "night"
@@ -120,7 +120,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 0.15
     label: "Lipinski Score: --\\nBinding Energy: --"
   }
-}`
+}`,
 };
 
 export default template;

@@ -259,10 +259,7 @@ describe('QualityGateEvaluator', () => {
   describe('evaluate() with per-target metrics', () => {
     it('accepts perTargetMetrics map', () => {
       const perTargetMetrics = new Map([
-        [
-          'r3f' as const,
-          { consecutiveFailures: 0, p95CompilationTimeMs: 2000, failureRate: 2 },
-        ],
+        ['r3f' as const, { consecutiveFailures: 0, p95CompilationTimeMs: 2000, failureRate: 2 }],
       ]);
       const result = evaluator.evaluate({ ...goodMetrics(), perTargetMetrics });
       expect(result).toBeDefined();
@@ -270,10 +267,7 @@ describe('QualityGateEvaluator', () => {
 
     it('fails with per-target metrics exceeding critical threshold', () => {
       const perTargetMetrics = new Map([
-        [
-          'r3f' as const,
-          { consecutiveFailures: 5, p95CompilationTimeMs: 5000, failureRate: 8 },
-        ],
+        ['r3f' as const, { consecutiveFailures: 5, p95CompilationTimeMs: 5000, failureRate: 8 }],
       ]);
       const result = evaluator.evaluate({ ...goodMetrics(), perTargetMetrics });
       // r3f is a critical target with stricter thresholds

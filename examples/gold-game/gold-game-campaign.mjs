@@ -21,8 +21,16 @@ export const CAMPAIGN_KEY = 'goldGame.campaign.v1';
 export const QUEST_DEFS = [
   { id: 'one-climb', title: 'One Climb', desc: 'Graduate your first glowing GOLD entry' },
   { id: 'read-record', title: 'Read the Record', desc: 'Open a full GOLD record (F / inspect)' },
-  { id: 'three-summits', title: 'Three Summits', desc: 'Graduate three entries — the campaign deepens' },
-  { id: 'lineage-walk', title: 'Lineage Walk', desc: 'Open the HoloGraph constellation (G) and follow a link' },
+  {
+    id: 'three-summits',
+    title: 'Three Summits',
+    desc: 'Graduate three entries — the campaign deepens',
+  },
+  {
+    id: 'lineage-walk',
+    title: 'Lineage Walk',
+    desc: 'Open the HoloGraph constellation (G) and follow a link',
+  },
 ];
 
 export const NEXT_RATCHET = 'Gate 26 — prove the shared-world shape before claiming MMO';
@@ -47,7 +55,11 @@ function refreshComplete(state) {
 // Mark a quest done. Returns true only if it FLIPPED from open→done (a real delta).
 export function setQuestDone(state, id) {
   const q = state.questLog.find((x) => x.id === id);
-  if (q && !q.done) { q.done = true; refreshComplete(state); return true; }
+  if (q && !q.done) {
+    q.done = true;
+    refreshComplete(state);
+    return true;
+  }
   return false;
 }
 
@@ -100,7 +112,11 @@ export function deserialize(raw) {
   const state = initCampaign();
   if (!raw) return state;
   let saved;
-  try { saved = JSON.parse(raw); } catch (_) { return state; }
+  try {
+    saved = JSON.parse(raw);
+  } catch (_) {
+    return state;
+  }
   if (!saved || saved.version !== 1) return state;
   state.graduatedIds = Array.isArray(saved.graduatedIds) ? saved.graduatedIds.slice(0, 256) : [];
   state.oneClimbComplete = Boolean(saved.oneClimbComplete);
@@ -117,5 +133,7 @@ export function deserialize(raw) {
 
 // Does a saved campaign represent real prior progress worth a "Continue" button?
 export function hasResumableProgress(state) {
-  return Boolean(state && (state.oneClimbComplete || (state.graduatedIds && state.graduatedIds.length > 0)));
+  return Boolean(
+    state && (state.oneClimbComplete || (state.graduatedIds && state.graduatedIds.length > 0))
+  );
 }

@@ -148,8 +148,12 @@ describe('simulation-registry', () => {
     await thermal!.step(0.01);
     await acoustic!.step(0.0001);
 
-    expect(await (thermal as { readbackOutput(): Promise<Float32Array> }).readbackOutput()).toHaveLength(64);
-    expect(await (acoustic as { readbackOutput(): Promise<Float32Array> }).readbackOutput()).toHaveLength(64);
+    expect(
+      await (thermal as { readbackOutput(): Promise<Float32Array> }).readbackOutput()
+    ).toHaveLength(64);
+    expect(
+      await (acoustic as { readbackOutput(): Promise<Float32Array> }).readbackOutput()
+    ).toHaveLength(64);
 
     thermal!.dispose();
     acoustic!.dispose();
@@ -176,14 +180,18 @@ describe('simulation-registry', () => {
     expect(typeof solver!.dispose).toBe('function');
 
     // Full step cycle — validates end-to-end runtime
-    const stateBefore = (solver as unknown as { getState(): { R: number; J: number; stepCount: number } }).getState();
+    const stateBefore = (
+      solver as unknown as { getState(): { R: number; J: number; stepCount: number } }
+    ).getState();
     expect(stateBefore.R).toBeCloseTo(0.5, 5);
     expect(stateBefore.J).toBeCloseTo(0.3, 5);
     expect(stateBefore.stepCount).toBe(0);
 
     solver!.step(0.1);
     solver!.step(0.1);
-    const stateAfter = (solver as unknown as { getState(): { R: number; J: number; stepCount: number } }).getState();
+    const stateAfter = (
+      solver as unknown as { getState(): { R: number; J: number; stepCount: number } }
+    ).getState();
     expect(stateAfter.stepCount).toBeGreaterThan(0);
     // Feelings should have evolved (not identical to initial)
     expect(stateAfter.R !== stateBefore.R || stateAfter.J !== stateBefore.J).toBe(true);

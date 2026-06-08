@@ -396,7 +396,9 @@ describe('DeviceSafetyEnvelopeReceipt validator', () => {
       ...validEnvelopeReceipt,
       commandPreviewContainsAbsolutePaths: true as false,
     });
-    expect(errors.some((e) => e.includes('commandPreviewContainsAbsolutePaths must be false'))).toBe(true);
+    expect(
+      errors.some((e) => e.includes('commandPreviewContainsAbsolutePaths must be false'))
+    ).toBe(true);
   });
 
   it('rejects invalid consent scopes', () => {
@@ -742,18 +744,23 @@ describe('ActuationSimulationReceipt', () => {
   });
 
   it('rejects wrong schemaVersion', () => {
-    const r = { ...valid, schemaVersion: 'wrong/v1' as typeof ACTUATION_SIMULATION_RECEIPT_VERSION };
-    expect(validateActuationSimulationReceipt(r).some(e => e.includes('schemaVersion'))).toBe(true);
+    const r = {
+      ...valid,
+      schemaVersion: 'wrong/v1' as typeof ACTUATION_SIMULATION_RECEIPT_VERSION,
+    };
+    expect(validateActuationSimulationReceipt(r).some((e) => e.includes('schemaVersion'))).toBe(
+      true
+    );
   });
 
   it('rejects missing id', () => {
     const r = { ...valid, id: '' };
-    expect(validateActuationSimulationReceipt(r).some(e => e.includes('.id'))).toBe(true);
+    expect(validateActuationSimulationReceipt(r).some((e) => e.includes('.id'))).toBe(true);
   });
 
   it('rejects negative durationMs', () => {
     const r = { ...valid, durationMs: -1 };
-    expect(validateActuationSimulationReceipt(r).some(e => e.includes('durationMs'))).toBe(true);
+    expect(validateActuationSimulationReceipt(r).some((e) => e.includes('durationMs'))).toBe(true);
   });
 });
 
@@ -778,7 +785,9 @@ describe('SensorFreshnessReceipt', () => {
 
   it('rejects fresh=true when sensorFresh=false', () => {
     const r = { ...valid, sensorFresh: false, fresh: true };
-    expect(validateSensorFreshnessReceipt(r).some(e => e.includes('fresh must equal'))).toBe(true);
+    expect(validateSensorFreshnessReceipt(r).some((e) => e.includes('fresh must equal'))).toBe(
+      true
+    );
   });
 
   it('accepts fresh=false when one sub-flag is false', () => {
@@ -806,7 +815,7 @@ describe('SafeStopReceipt', () => {
 
   it('rejects unknown trigger', () => {
     const r = { ...valid, trigger: 'unknown_trigger' as SafeStopReceipt['trigger'] };
-    expect(validateSafeStopReceipt(r).some(e => e.includes('trigger'))).toBe(true);
+    expect(validateSafeStopReceipt(r).some((e) => e.includes('trigger'))).toBe(true);
   });
 
   it('SAFE_STOP_TRIGGERS covers all expected values', () => {
@@ -834,7 +843,9 @@ describe('PhysicalRollbackLimitReceipt', () => {
 
   it('rejects rollbackSucceeded set when rollbackAttempted=false', () => {
     const r = { ...valid, rollbackAttempted: false, rollbackSucceeded: true };
-    expect(validatePhysicalRollbackLimitReceipt(r).some(e => e.includes('rollbackSucceeded'))).toBe(true);
+    expect(
+      validatePhysicalRollbackLimitReceipt(r).some((e) => e.includes('rollbackSucceeded'))
+    ).toBe(true);
   });
 
   it('accepts rollbackSucceeded when rollbackAttempted=true', () => {

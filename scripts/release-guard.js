@@ -70,7 +70,10 @@ function checkGitTreeClean() {
   }
 
   if (staged.stdout.trim().length > 0) {
-    fail('Staged but uncommitted changes detected. Commit or unstage them before publishing:\n' + staged.stdout.trim());
+    fail(
+      'Staged but uncommitted changes detected. Commit or unstage them before publishing:\n' +
+        staged.stdout.trim()
+    );
     return false;
   }
 
@@ -78,7 +81,10 @@ function checkGitTreeClean() {
 }
 
 function checkVersionPolicyStrict() {
-  const result = run(process.execPath, [path.join('scripts', 'check-version-policy.js'), '--strict']);
+  const result = run(process.execPath, [
+    path.join('scripts', 'check-version-policy.js'),
+    '--strict',
+  ]);
   if (result.status !== 0) {
     fail("Version policy violations found. Run 'pnpm version:check:strict' to see details.");
     if (result.stdout.trim()) {
@@ -145,7 +151,12 @@ function checkTagWarning() {
 }
 
 function main() {
-  const checks = [checkGitTreeClean, checkRootSemver, checkVersionPolicyStrict, checkPrivatePackages];
+  const checks = [
+    checkGitTreeClean,
+    checkRootSemver,
+    checkVersionPolicyStrict,
+    checkPrivatePackages,
+  ];
   let allPassed = true;
 
   for (const check of checks) {

@@ -24,7 +24,6 @@ import {
   defaultMaterial,
 } from './PhysicsTypes';
 
-
 // ---------------------------------------------------------------------------
 // Vec3 helpers — normalize any vec3-like input, return {x,y,z} output that
 // also supports [0],[1],[2] indexing (non-enumerable, so toEqual({x,y,z}) passes)
@@ -35,15 +34,17 @@ type AnyQuat = IQuaternion | { x: number; y: number; z: number; w: number };
 function toVec3(v: AnyVec3): IVector3 {
   if (Array.isArray(v)) return [v[0], v[1], v[2]] as IVector3;
   const o = v as { x: number; y: number; z: number };
-  return [(o.x ?? 0), (o.y ?? 0), (o.z ?? 0)] as IVector3;
+  return [o.x ?? 0, o.y ?? 0, o.z ?? 0] as IVector3;
 }
 function toQuat(v: AnyQuat): IQuaternion {
   if (Array.isArray(v)) return [v[0], v[1], v[2], v[3]] as IQuaternion;
   const o = v as { x: number; y: number; z: number; w: number };
-  return [(o.x ?? 0), (o.y ?? 0), (o.z ?? 0), (o.w ?? 1)] as IQuaternion;
+  return [o.x ?? 0, o.y ?? 0, o.z ?? 0, o.w ?? 1] as IQuaternion;
 }
 type Vec3Out = { x: number; y: number; z: number };
-function vec3out(arr: IVector3): Vec3Out & { readonly 0: number; readonly 1: number; readonly 2: number } {
+function vec3out(
+  arr: IVector3
+): Vec3Out & { readonly 0: number; readonly 1: number; readonly 2: number } {
   const obj: Vec3Out = { x: arr[0], y: arr[1], z: arr[2] };
   Object.defineProperty(obj, '0', { value: arr[0], enumerable: false, configurable: true });
   Object.defineProperty(obj, '1', { value: arr[1], enumerable: false, configurable: true });
@@ -583,12 +584,7 @@ export class RigidBody {
   private normalizeQuaternion(q: IQuaternion): IQuaternion {
     const len = Math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]);
     if (len === 0) return identityQuaternion();
-    return [
-      q[0] / len,
-      q[1] / len,
-      q[2] / len,
-      q[3] / len,
-    ] as IQuaternion;
+    return [q[0] / len, q[1] / len, q[2] / len, q[3] / len] as IQuaternion;
   }
 
   /**

@@ -346,22 +346,17 @@ export const spatialAgentHandler = {
     ctx.emit('scene_generation_started', { node, requestId, prompt: payload.prompt });
     ctx.emit('scene_generation_progress', { node, requestId, step: 'blueprint', pct: 5 });
 
-    this._runGeneration(
-      state,
-      node,
-      config,
-      ctx,
-      requestId,
-      payload.prompt as string
-    ).catch((err: Error) => {
-      state.activeGenerations.delete(requestId);
-      ctx.emit('scene_generation_failed', {
-        node,
-        requestId,
-        error: err.message,
-        step: state.activeGenerations.get(requestId)?.step ?? 'unknown',
-      });
-    });
+    this._runGeneration(state, node, config, ctx, requestId, payload.prompt as string).catch(
+      (err: Error) => {
+        state.activeGenerations.delete(requestId);
+        ctx.emit('scene_generation_failed', {
+          node,
+          requestId,
+          error: err.message,
+          step: state.activeGenerations.get(requestId)?.step ?? 'unknown',
+        });
+      }
+    );
   },
 
   async _runGeneration(

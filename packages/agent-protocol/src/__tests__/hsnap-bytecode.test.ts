@@ -6,7 +6,9 @@ import { compileHSNAPToUAAL, compileHSNAPToUAALDetailed } from '../hsnap-bytecod
 
 describe('hsnap-bytecode (deprecated stubs)', () => {
   it('compileHSNAPToUAALDetailed throws with migration hint to @holoscript/hsnap-compiler', () => {
-    expect(() => compileHSNAPToUAALDetailed('composition X {}')).toThrow('@holoscript/hsnap-compiler');
+    expect(() => compileHSNAPToUAALDetailed('composition X {}')).toThrow(
+      '@holoscript/hsnap-compiler'
+    );
   });
 
   it('compileHSNAPToUAAL throws with migration hint to @holoscript/hsnap-compiler', () => {

@@ -59,7 +59,7 @@ export interface ControlFlowContext {
  */
 export async function executeForLoop(
   node: { variable: string; iterable: string | unknown; body: ASTNode[] },
-  ctx: ControlFlowContext,
+  ctx: ControlFlowContext
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
   const { variable, iterable, body } = node;
@@ -116,11 +116,11 @@ export async function executeForLoop(
  */
 export async function executeForEachLoop(
   node: { variable: string; collection: string | unknown; body: ASTNode[] },
-  ctx: ControlFlowContext,
+  ctx: ControlFlowContext
 ): Promise<ExecutionResult> {
   return executeForLoop(
     { variable: node.variable, iterable: node.collection, body: node.body },
-    ctx,
+    ctx
   );
 }
 
@@ -130,7 +130,7 @@ export async function executeForEachLoop(
  */
 export async function executeWhileLoop(
   node: { condition: string | unknown; body: ASTNode[] },
-  ctx: ControlFlowContext,
+  ctx: ControlFlowContext
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
   const { condition, body } = node;
@@ -177,7 +177,7 @@ export async function executeWhileLoop(
  */
 export async function executeIfStatement(
   node: { condition: string | unknown; body: ASTNode[]; elseBody?: ASTNode[] },
-  ctx: ControlFlowContext,
+  ctx: ControlFlowContext
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
   const { condition, body, elseBody } = node;
@@ -220,9 +220,13 @@ export async function executeIfStatement(
 export async function executeMatch(
   node: {
     subject: string | unknown;
-    cases: Array<{ pattern: string | unknown; guard?: string | unknown; body: ASTNode[] | unknown }>;
+    cases: Array<{
+      pattern: string | unknown;
+      guard?: string | unknown;
+      body: ASTNode[] | unknown;
+    }>;
   },
-  ctx: ControlFlowContext,
+  ctx: ControlFlowContext
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
   const { subject, cases } = node;
@@ -247,7 +251,11 @@ export async function executeMatch(
           return lastResult;
         } else {
           const result = ctx.evaluateExpression(String(matchCase.body));
-          return { success: true, output: result as HoloScriptValue, executionTime: Date.now() - startTime };
+          return {
+            success: true,
+            output: result as HoloScriptValue,
+            executionTime: Date.now() - startTime,
+          };
         }
       }
     }

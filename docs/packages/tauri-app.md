@@ -43,14 +43,14 @@ pnpm tauri dev
 
 ## Key Capabilities
 
-| Feature | IPC Command | Description |
-| ------- | ----------- | ----------- |
-| GPU Info | `get_gpu_info` | Native wgpu adapter detection |
-| App Version | `get_app_version` | Version from Cargo.toml |
-| Shader Preview | `shader_preview_init/frame/update/resize/destroy/benchmark` | Headless wgpu render pipeline |
-| Save Project | `save_project` | Native file save to disk |
-| Load Project | `load_project` | Native file load from disk |
-| List Projects | `list_projects` | List .holo/.hsplus files in directory |
+| Feature        | IPC Command                                                 | Description                           |
+| -------------- | ----------------------------------------------------------- | ------------------------------------- |
+| GPU Info       | `get_gpu_info`                                              | Native wgpu adapter detection         |
+| App Version    | `get_app_version`                                           | Version from Cargo.toml               |
+| Shader Preview | `shader_preview_init/frame/update/resize/destroy/benchmark` | Headless wgpu render pipeline         |
+| Save Project   | `save_project`                                              | Native file save to disk              |
+| Load Project   | `load_project`                                              | Native file load from disk            |
+| List Projects  | `list_projects`                                             | List .holo/.hsplus files in directory |
 
 ## Development
 

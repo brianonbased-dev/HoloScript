@@ -17,7 +17,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { logger } from '@/lib/logger';
 
-
 export interface UseAssistantVoiceReturn {
   isListening: boolean;
   isSupported: boolean;

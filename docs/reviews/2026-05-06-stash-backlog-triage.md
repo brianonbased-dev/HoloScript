@@ -14,16 +14,16 @@ Current policy:
 
 ## Manifest
 
-| Ref | Commit | Date | Subject | Files | Classification | Action |
-| --- | --- | --- | --- | ---: | --- | --- |
-| `stash@{0}` | `1c39e6de07f4` | 2026-05-05 00:34 -0700 | generated benchmark and dev artifacts 2026-05-05 | 9 | generated-artifact archive | Keep named. Do not apply whole stash; rerun benchmarks instead. |
-| `stash@{1}` | `7c8c7c1e6529` | 2026-05-04 16:08 -0700 | in-flight PipelineNodeCompiler edits before cherry-pick recovery | 1 | recovered | Recovered as fail-fast unsupported source/sink handling in `PipelineNodeCompiler`; dropped after recovery commit. |
-| `stash@{2}` | `a81225fa1118` | 2026-05-04 14:39 -0700 | wip-pattern-gamma-push-2026-05-04 | 11 | generated-artifact archive | Keep named. Mostly benchmark logs plus `packages/holoscript-cli/package.json` / lockfile drift; split only if CLI dependency intent is still needed. |
-| `stash@{3}` | `eba3ba8f5027` | 2026-05-03 18:40 -0700 | pre-merge-184001 | 67 | unsafe mega-stash | Keep named. Do not apply whole stash: includes generated `dist`, `generate-types.mjs`, `board.json` deletion, marketplace, MCP, Studio, and scripts. Split by owner. |
-| `stash@{4}` | `4ceb4f054cc8` | 2026-05-01 17:41 -0700 | absorb FILTER aggregate WIP | 64 | unsafe mixed stash | Keep named. Do not apply whole stash: includes `.claude/settings.json`, deleted `packages/fs`, deleted playground configs, broad test-config edits, and Studio changes. |
-| `stash@{5}` | `e972d5837e16` | 2026-04-29 13:28 -0700 | peer-wip-during-aibrittney-push | 59 | unsafe mixed stash | Keep named. Similar to `stash@{4}` without the large deletion block; split if trait/test-config work is still relevant. |
-| `stash@{6}` | `57f2ee167015` | 2026-04-24 11:24 -0700 | return-to-main-2026-04-24 | 469 | branch archive | Keep named. Originated on `deploy/w087-vertex-c`; too broad for direct main apply. Recover by subsystem only. |
-| `stash@{7}` | `4821660fef01` | 2026-04-16 12:56 -0700 | temp: main local NodeGraph overlay | 1 | superseded | Current `NodeGraphPanel` already has execution result callback, execution bridge, `Play`, and `ChevronDown`; dropped after manifest commit. |
+| Ref         | Commit         | Date                   | Subject                                                          | Files | Classification             | Action                                                                                                                                                                  |
+| ----------- | -------------- | ---------------------- | ---------------------------------------------------------------- | ----: | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stash@{0}` | `1c39e6de07f4` | 2026-05-05 00:34 -0700 | generated benchmark and dev artifacts 2026-05-05                 |     9 | generated-artifact archive | Keep named. Do not apply whole stash; rerun benchmarks instead.                                                                                                         |
+| `stash@{1}` | `7c8c7c1e6529` | 2026-05-04 16:08 -0700 | in-flight PipelineNodeCompiler edits before cherry-pick recovery |     1 | recovered                  | Recovered as fail-fast unsupported source/sink handling in `PipelineNodeCompiler`; dropped after recovery commit.                                                       |
+| `stash@{2}` | `a81225fa1118` | 2026-05-04 14:39 -0700 | wip-pattern-gamma-push-2026-05-04                                |    11 | generated-artifact archive | Keep named. Mostly benchmark logs plus `packages/holoscript-cli/package.json` / lockfile drift; split only if CLI dependency intent is still needed.                    |
+| `stash@{3}` | `eba3ba8f5027` | 2026-05-03 18:40 -0700 | pre-merge-184001                                                 |    67 | unsafe mega-stash          | Keep named. Do not apply whole stash: includes generated `dist`, `generate-types.mjs`, `board.json` deletion, marketplace, MCP, Studio, and scripts. Split by owner.    |
+| `stash@{4}` | `4ceb4f054cc8` | 2026-05-01 17:41 -0700 | absorb FILTER aggregate WIP                                      |    64 | unsafe mixed stash         | Keep named. Do not apply whole stash: includes `.claude/settings.json`, deleted `packages/fs`, deleted playground configs, broad test-config edits, and Studio changes. |
+| `stash@{5}` | `e972d5837e16` | 2026-04-29 13:28 -0700 | peer-wip-during-aibrittney-push                                  |    59 | unsafe mixed stash         | Keep named. Similar to `stash@{4}` without the large deletion block; split if trait/test-config work is still relevant.                                                 |
+| `stash@{6}` | `57f2ee167015` | 2026-04-24 11:24 -0700 | return-to-main-2026-04-24                                        |   469 | branch archive             | Keep named. Originated on `deploy/w087-vertex-c`; too broad for direct main apply. Recover by subsystem only.                                                           |
+| `stash@{7}` | `4821660fef01` | 2026-04-16 12:56 -0700 | temp: main local NodeGraph overlay                               |     1 | superseded                 | Current `NodeGraphPanel` already has execution result callback, execution bridge, `Play`, and `ChevronDown`; dropped after manifest commit.                             |
 
 ## Recovered Work
 
@@ -65,10 +65,10 @@ Post-cleanup `git stash list` contains 6 named stashes.
 
 Closed by `claudecode-claude-x402` after re-inspection. Original `stash@{0}` and `stash@{1}` (post-cleanup indices, formerly `stash@{0}` and `stash@{2}` in the original manifest) contained:
 
-| Stash | SHA | Real intent | Status on `main` |
-| --- | --- | --- | --- |
-| `stash@{0}` | `1c39e6de07f4b1b055fad85985e519f817acd226` | bench-log JSON drift + `packages/studio/next-env.d.ts` (auto-regenerated by Next.js — comment says "should not be edited") | superseded — re-run benchmarks instead; `next-env.d.ts` regenerates on `next dev`/`next build` |
-| `stash@{1}` | `a81225fa111807938d12afbed8b0e1e0e2d9ceb0` | bench-log JSON drift + bumped `packages/holoscript-cli/package.json` from 0.1.0 to 0.1.1 + lockfile drift | superseded — `packages/holoscript-cli` is no longer git-tracked (moved to `packages/cli` + `packages/holoscript-agent`); the version bump targets a retired package |
+| Stash       | SHA                                        | Real intent                                                                                                                | Status on `main`                                                                                                                                                    |
+| ----------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stash@{0}` | `1c39e6de07f4b1b055fad85985e519f817acd226` | bench-log JSON drift + `packages/studio/next-env.d.ts` (auto-regenerated by Next.js — comment says "should not be edited") | superseded — re-run benchmarks instead; `next-env.d.ts` regenerates on `next dev`/`next build`                                                                      |
+| `stash@{1}` | `a81225fa111807938d12afbed8b0e1e0e2d9ceb0` | bench-log JSON drift + bumped `packages/holoscript-cli/package.json` from 0.1.0 to 0.1.1 + lockfile drift                  | superseded — `packages/holoscript-cli` is no longer git-tracked (moved to `packages/cli` + `packages/holoscript-agent`); the version bump targets a retired package |
 
 Both stashes contain **only** generated/auto-regenerated artifacts and a version bump for a retired package. Per the original triage policy ("Do not apply whole stashes; rerun benchmark producers instead"), there is no recoverable real work to split.
 
@@ -85,10 +85,10 @@ Post-closure `git stash list` should contain 4 named stashes (`stash@{3}`/`{4}`/
 
 Closed by Codex after read-only re-inspection of the two mixed absorb/trait stashes. The original manifest refs shifted after benchmark stash cleanup; the current refs are:
 
-| Current ref | SHA | Original ref | Subject |
-| --- | --- | --- | --- |
-| `stash@{1}` | `4ceb4f054cc87095c23501d057e6a8b17556cddc` | `stash@{4}` | `WIP on main: b26fef5fe fix(absorb): parenthesize FILTER aggregate before ::int cast` |
-| `stash@{2}` | `e972d5837e160ccb215c8c1f8f65201777b2ad71` | `stash@{5}` | `On main: peer-wip-during-aibrittney-push` |
+| Current ref | SHA                                        | Original ref | Subject                                                                               |
+| ----------- | ------------------------------------------ | ------------ | ------------------------------------------------------------------------------------- |
+| `stash@{1}` | `4ceb4f054cc87095c23501d057e6a8b17556cddc` | `stash@{4}`  | `WIP on main: b26fef5fe fix(absorb): parenthesize FILTER aggregate before ::int cast` |
+| `stash@{2}` | `e972d5837e160ccb215c8c1f8f65201777b2ad71` | `stash@{5}`  | `On main: peer-wip-during-aibrittney-push`                                            |
 
 The stash-local deltas contain some target-looking trait and test-config edits: tuple/object pose shape changes, Vitest exact-alias edits, `legacy-exports.ts` registry comments, and trait handler import adjustments. However, comparing each stash tree against current `HEAD` shows both snapshots are too stale to split safely:
 
@@ -108,9 +108,9 @@ The deletions are current mainline trait and test coverage that did not exist wh
 
 Closed by Codex after read-only re-inspection of the deploy branch archive. The original manifest ref shifted after benchmark cleanup; the current ref is:
 
-| Current ref | SHA | Original ref | Subject |
-| --- | --- | --- | --- |
-| `stash@{3}` | `57f2ee167015aaf86908a8d14076eef38343ae5b` | `stash@{6}` | `On deploy/w087-vertex-c: return-to-main-2026-04-24` |
+| Current ref | SHA                                        | Original ref | Subject                                              |
+| ----------- | ------------------------------------------ | ------------ | ---------------------------------------------------- |
+| `stash@{3}` | `57f2ee167015aaf86908a8d14076eef38343ae5b` | `stash@{6}`  | `On deploy/w087-vertex-c: return-to-main-2026-04-24` |
 
 The stash-local delta is a broad archive, not a deploy patch:
 

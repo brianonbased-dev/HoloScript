@@ -41,17 +41,19 @@ function makeCtx(): TraitContext & { emitted: Array<{ name: string; payload: unk
   const emitted: Array<{ name: string; payload: unknown }> = [];
   return {
     emitted,
-    emit(name: string, payload: unknown) { emitted.push({ name, payload }); },
+    emit(name: string, payload: unknown) {
+      emitted.push({ name, payload });
+    },
   } as unknown as TraitContext & { emitted: typeof emitted };
 }
 
 describe('routeDepth()', () => {
   const cases: [SliceStage, number][] = [
-    ['raw',         4],
+    ['raw', 4],
     ['association', 3],
-    ['output',      5],
-    ['monitoring',  1],
-    ['shutdown',    6],
+    ['output', 5],
+    ['monitoring', 1],
+    ['shutdown', 6],
   ];
 
   for (const [stage, expectedDepth] of cases) {
@@ -142,12 +144,11 @@ describe('inferStage()', () => {
 describe('corticalDepthRouterHandler (TraitHandler)', () => {
   it('emits cortical:routed with enriched coord', () => {
     const ctx = makeCtx();
-    corticalDepthRouterHandler.onEvent?.(
-      makeNode(),
-      { emit_events: true },
-      ctx,
-      { type: 'cortical:route', stage: 'output', brain_coord: BASE_COORD } as never,
-    );
+    corticalDepthRouterHandler.onEvent?.(makeNode(), { emit_events: true }, ctx, {
+      type: 'cortical:route',
+      stage: 'output',
+      brain_coord: BASE_COORD,
+    } as never);
     expect(ctx.emitted).toHaveLength(1);
     const ev = ctx.emitted[0]!;
     expect(ev.name).toBe('cortical:routed');
@@ -161,34 +162,27 @@ describe('corticalDepthRouterHandler (TraitHandler)', () => {
 
   it('does NOT emit when emit_events=false', () => {
     const ctx = makeCtx();
-    corticalDepthRouterHandler.onEvent?.(
-      makeNode(),
-      { emit_events: false },
-      ctx,
-      { type: 'cortical:route', stage: 'raw', brain_coord: BASE_COORD } as never,
-    );
+    corticalDepthRouterHandler.onEvent?.(makeNode(), { emit_events: false }, ctx, {
+      type: 'cortical:route',
+      stage: 'raw',
+      brain_coord: BASE_COORD,
+    } as never);
     expect(ctx.emitted).toHaveLength(0);
   });
 
   it('ignores unrelated event types', () => {
     const ctx = makeCtx();
-    corticalDepthRouterHandler.onEvent?.(
-      makeNode(),
-      { emit_events: true },
-      ctx,
-      { type: 'some:other:event' } as never,
-    );
+    corticalDepthRouterHandler.onEvent?.(makeNode(), { emit_events: true }, ctx, {
+      type: 'some:other:event',
+    } as never);
     expect(ctx.emitted).toHaveLength(0);
   });
 
   it('does nothing when stage or brain_coord is missing', () => {
     const ctx = makeCtx();
-    corticalDepthRouterHandler.onEvent?.(
-      makeNode(),
-      { emit_events: true },
-      ctx,
-      { type: 'cortical:route' } as never,
-    );
+    corticalDepthRouterHandler.onEvent?.(makeNode(), { emit_events: true }, ctx, {
+      type: 'cortical:route',
+    } as never);
     expect(ctx.emitted).toHaveLength(0);
   });
 

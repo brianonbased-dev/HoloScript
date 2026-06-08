@@ -6,22 +6,31 @@ import type { BenchTask } from '../types';
 
 describe('parseMutation — tolerant model-output → SceneMutation', () => {
   it('parses a bare JSON mutation', () => {
-    const m = parseMutation('{"tool":"add_trait","input":{"object_name":"orb","trait_name":"glow"}}');
+    const m = parseMutation(
+      '{"tool":"add_trait","input":{"object_name":"orb","trait_name":"glow"}}'
+    );
     expect(m).toEqual({ tool: 'add_trait', input: { object_name: 'orb', trait_name: 'glow' } });
   });
 
   it('parses a fenced ```json block', () => {
-    const raw = 'Here you go:\n```json\n{"tool":"move_object","input":{"object_name":"ball"}}\n```\n';
+    const raw =
+      'Here you go:\n```json\n{"tool":"move_object","input":{"object_name":"ball"}}\n```\n';
     expect(parseMutation(raw)).toEqual({ tool: 'move_object', input: { object_name: 'ball' } });
   });
 
   it('tolerates trailing prose after the JSON object', () => {
-    const raw = '{"tool":"set_trait_property","input":{"object_name":"lamp"}}  -- this respects the contract.';
-    expect(parseMutation(raw)).toEqual({ tool: 'set_trait_property', input: { object_name: 'lamp' } });
+    const raw =
+      '{"tool":"set_trait_property","input":{"object_name":"lamp"}}  -- this respects the contract.';
+    expect(parseMutation(raw)).toEqual({
+      tool: 'set_trait_property',
+      input: { object_name: 'lamp' },
+    });
   });
 
   it('maps OpenAI-style {name, arguments} to {tool, input}', () => {
-    const m = parseMutation('{"name":"add_trait","arguments":{"object_name":"x","trait_name":"spin"}}');
+    const m = parseMutation(
+      '{"name":"add_trait","arguments":{"object_name":"x","trait_name":"spin"}}'
+    );
     expect(m).toEqual({ tool: 'add_trait', input: { object_name: 'x', trait_name: 'spin' } });
   });
 

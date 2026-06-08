@@ -39,9 +39,7 @@ describe('updateAnimations', () => {
   // ── basic interpolation ──────────────────────────────────────────────────
 
   it('interpolates 50% through a linear animation', () => {
-    const animations = new Map<string, Animation>([
-      ['a1', makeAnimation({ startTime: 0 })],
-    ]);
+    const animations = new Map<string, Animation>([['a1', makeAnimation({ startTime: 0 })]]);
     updateAnimations(animations, setVariable, 500); // now=500, elapsed=500, duration=1000
     expect(setVariable).toHaveBeenCalledWith('orb1.x', 50);
   });
@@ -63,17 +61,13 @@ describe('updateAnimations', () => {
   });
 
   it('passes 0% at startTime == now', () => {
-    const animations = new Map<string, Animation>([
-      ['a1', makeAnimation({ startTime: 100 })],
-    ]);
+    const animations = new Map<string, Animation>([['a1', makeAnimation({ startTime: 100 })]]);
     updateAnimations(animations, setVariable, 100); // elapsed=0
     expect(setVariable).toHaveBeenCalledWith('orb1.x', 0);
   });
 
   it('caps progress at 100% even when far past duration', () => {
-    const animations = new Map<string, Animation>([
-      ['a1', makeAnimation({ startTime: 0 })],
-    ]);
+    const animations = new Map<string, Animation>([['a1', makeAnimation({ startTime: 0 })]]);
     updateAnimations(animations, setVariable, 99999);
     expect(setVariable).toHaveBeenCalledWith('orb1.x', 100);
   });
@@ -81,9 +75,7 @@ describe('updateAnimations', () => {
   // ── completion / removal ─────────────────────────────────────────────────
 
   it('removes a completed non-looping animation', () => {
-    const animations = new Map<string, Animation>([
-      ['a1', makeAnimation({ startTime: 0 })],
-    ]);
+    const animations = new Map<string, Animation>([['a1', makeAnimation({ startTime: 0 })]]);
     updateAnimations(animations, setVariable, 1000); // progress = 1
     expect(animations.has('a1')).toBe(false);
   });
@@ -97,9 +89,7 @@ describe('updateAnimations', () => {
   });
 
   it('keeps animation in map while still in progress', () => {
-    const animations = new Map<string, Animation>([
-      ['a1', makeAnimation({ startTime: 0 })],
-    ]);
+    const animations = new Map<string, Animation>([['a1', makeAnimation({ startTime: 0 })]]);
     updateAnimations(animations, setVariable, 499);
     expect(animations.has('a1')).toBe(true);
   });

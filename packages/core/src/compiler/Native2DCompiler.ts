@@ -549,18 +549,14 @@ export default ${safeName}Component;
     // semantic_layout supports both positional arg (_arg0) and named key (flow/type/layout).
     // semantic_entity supports both positional arg (_arg0) and named key (type/name/entity).
     // Both config shapes are emitted depending on how traits are authored in .holo source.
-    const layoutType = (
-      traits.semantic_layout?._arg0 ||
+    const layoutType = (traits.semantic_layout?._arg0 ||
       traits.semantic_layout?.flow ||
       traits.semantic_layout?.layout ||
-      traits.semantic_layout?.type
-    ) as string | undefined;
-    const entityName = (
-      traits.semantic_entity?._arg0 ||
+      traits.semantic_layout?.type) as string | undefined;
+    const entityName = (traits.semantic_entity?._arg0 ||
       traits.semantic_entity?.type ||
       traits.semantic_entity?.name ||
-      traits.semantic_entity?.entity
-    ) as string | undefined;
+      traits.semantic_entity?.entity) as string | undefined;
     const bgColor = traits.color?._arg0 as string | undefined;
     const textContent = traits.content?._arg0 as string | undefined;
 
@@ -578,7 +574,10 @@ export default ${safeName}Component;
     if (layoutType === 'table' || (isTableEntity && !layoutType)) {
       const columns = (traits.semantic_layout?.columns as string[] | undefined) || [];
       const headerCells = columns
-        .map((col) => `<th style="padding:0.5rem 1rem;text-align:left;border-bottom:2px solid #334;">${col}</th>`)
+        .map(
+          (col) =>
+            `<th style="padding:0.5rem 1rem;text-align:left;border-bottom:2px solid #334;">${col}</th>`
+        )
         .join('');
       // Render two sample rows so the table body is non-empty and selectors match.
       const sampleRow = columns
@@ -633,11 +632,15 @@ export default ${safeName}Component;
     // ── Entity with @content (e.g. title text or button) ────────────────────────
     if (entityName && textContent) {
       const isButton =
-        entityName.includes('button') || entityName.includes('btn') || entityName.includes('submit');
+        entityName.includes('button') ||
+        entityName.includes('btn') ||
+        entityName.includes('submit');
       if (isButton) {
-        return `<div${styleAttr} data-holo-entity="${entityName}">` +
+        return (
+          `<div${styleAttr} data-holo-entity="${entityName}">` +
           `<button type="button" style="padding:0.4rem 1rem;border-radius:0.25rem;background:#3b82f6;color:#fff;border:none;cursor:pointer;">${textContent}</button>` +
-          `</div>`;
+          `</div>`
+        );
       }
       return `<div${styleAttr} data-holo-entity="${entityName}"><span>${textContent}</span></div>`;
     }

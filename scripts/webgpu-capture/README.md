@@ -32,10 +32,10 @@ node scripts/webgpu-capture/capture-bench.mjs \
 
 **CRITICAL**: vast.ai's default `nvidia/cuda:*-runtime-ubuntu*` images ship CUDA only — they do NOT include the NVIDIA Vulkan ICD. Chromium will still acquire a WebGPU adapter, but via llvmpipe software rasterization (CPU). Verify with `vulkaninfo`:
 
-| `vulkaninfo` shows | adapter is | acceptable for real-GPU capture? |
-|---|---|---|
-| `deviceName = llvmpipe (LLVM ...)` | CPU software | NO — receipt should mark path as `cpu-substitute` or relabel |
-| `deviceName = NVIDIA GeForce/Tesla/A100/...` + `deviceType = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU` | real NVIDIA GPU | YES |
+| `vulkaninfo` shows                                                                              | adapter is      | acceptable for real-GPU capture?                             |
+| ----------------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------ |
+| `deviceName = llvmpipe (LLVM ...)`                                                              | CPU software    | NO — receipt should mark path as `cpu-substitute` or relabel |
+| `deviceName = NVIDIA GeForce/Tesla/A100/...` + `deviceType = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU` | real NVIDIA GPU | YES                                                          |
 
 **Verified working recipe**:
 
@@ -71,14 +71,14 @@ The artifact lands under `.bench-logs/<ISO>/<paper>-<entry>.json`.
 
 Every capture emits a v2 receipt with these load-bearing fields:
 
-| Field | Purpose |
-|---|---|
-| `path` | `webgpu-browser` / `cpu-substitute` / `cuda-native` / `wasm-simd` |
-| `kernel.wgsl_sha256` | SHA-256 of the shader source — reviewer can verify same bytes were dispatched |
-| `protocol_commit` | Git HEAD at capture time — pins the harness version |
-| `adapter_info` | `navigator.gpu.requestAdapterInfo()` result — pins the GPU vendor/arch |
-| `browser` | userAgent + executablePath + launchArgs — pins the runtime |
-| `ots_proof_path` / `anchor_chain` | Reserved for follow-up OTS + Base anchoring (F.071, Paper 22) |
+| Field                             | Purpose                                                                       |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| `path`                            | `webgpu-browser` / `cpu-substitute` / `cuda-native` / `wasm-simd`             |
+| `kernel.wgsl_sha256`              | SHA-256 of the shader source — reviewer can verify same bytes were dispatched |
+| `protocol_commit`                 | Git HEAD at capture time — pins the harness version                           |
+| `adapter_info`                    | `navigator.gpu.requestAdapterInfo()` result — pins the GPU vendor/arch        |
+| `browser`                         | userAgent + executablePath + launchArgs — pins the runtime                    |
+| `ots_proof_path` / `anchor_chain` | Reserved for follow-up OTS + Base anchoring (F.071, Paper 22)                 |
 
 ## Adding a new paper
 
@@ -95,7 +95,13 @@ Every capture emits a v2 receipt with these load-bearing fields:
        "dispatch_size": [16, 1, 1]
      },
      "buffers": [
-       { "name": "input", "binding": 0, "size_bytes": 16384, "init": "iota-f32", "usage": ["storage", "copy_dst", "copy_src"] }
+       {
+         "name": "input",
+         "binding": 0,
+         "size_bytes": 16384,
+         "init": "iota-f32",
+         "usage": ["storage", "copy_dst", "copy_src"]
+       }
      ],
      "trials": 200,
      "warmup": 20
@@ -110,14 +116,14 @@ Phase 1 (this driver + smoke) shipped 2026-05-29.
 
 Application phase per program:
 
-| Paper | Status |
-|---|---|
-| Paper 4 §7.8 (sandbox) | H1/H3 CPU-path captured; GPU-path acquisition pending via this driver |
-| TVCG §5.1 (`cg_kernels.wgsl`, 14 entry points) | First target of Phase 2 |
-| Paper 3 §CRDT (`WebGPUDeterminismHarness.ts`) | Cleanest application — module already exists |
-| Paper 2 SNN (9 WGSL shaders) | Phase 2 batch 2 |
-| Paper 13 DumbGlass (E2 → E1) | Phase 3 |
-| Paper 8 JEPA | CUDA-native path, not WebGPU — different driver, deferred |
-| Capstone-UIST + Capstone-P2 | Roll-up after Phase 2 lands |
+| Paper                                          | Status                                                                |
+| ---------------------------------------------- | --------------------------------------------------------------------- |
+| Paper 4 §7.8 (sandbox)                         | H1/H3 CPU-path captured; GPU-path acquisition pending via this driver |
+| TVCG §5.1 (`cg_kernels.wgsl`, 14 entry points) | First target of Phase 2                                               |
+| Paper 3 §CRDT (`WebGPUDeterminismHarness.ts`)  | Cleanest application — module already exists                          |
+| Paper 2 SNN (9 WGSL shaders)                   | Phase 2 batch 2                                                       |
+| Paper 13 DumbGlass (E2 → E1)                   | Phase 3                                                               |
+| Paper 8 JEPA                                   | CUDA-native path, not WebGPU — different driver, deferred             |
+| Capstone-UIST + Capstone-P2                    | Roll-up after Phase 2 lands                                           |
 
 Plan reference: ai-ecosystem session 2026-05-29 "plan ratchet improvements for GPU".

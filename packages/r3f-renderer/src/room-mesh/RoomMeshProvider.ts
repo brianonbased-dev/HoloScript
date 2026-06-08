@@ -35,7 +35,9 @@ export interface MeshProviderResult {
   complete?: boolean;
 }
 
-export type MeshProviderCallback = (node: unknown) => MeshProviderResult | Promise<MeshProviderResult>;
+export type MeshProviderCallback = (
+  node: unknown
+) => MeshProviderResult | Promise<MeshProviderResult>;
 
 export interface RoomMeshEventBus {
   on<T = unknown>(event: string, callback: (payload: T) => void): () => void;

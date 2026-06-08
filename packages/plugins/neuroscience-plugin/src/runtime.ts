@@ -77,7 +77,7 @@ export interface RuntimeTraitHandler {
     node: unknown,
     config: LifNeuronTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -92,7 +92,7 @@ interface LifNeuronNode {
 function solveOntoNode(
   node: unknown,
   config: LifNeuronTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as LifNeuronNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';
@@ -101,8 +101,7 @@ function solveOntoNode(
   if (typeof Iapp !== 'number' || !Number.isFinite(Iapp)) {
     context.emit('lif_neuron_error', {
       nodeId,
-      error:
-        'lif_neuron trait requires config.Iapp (applied current, mV/ms) as a finite number',
+      error: 'lif_neuron trait requires config.Iapp (applied current, mV/ms) as a finite number',
     });
     return;
   }

@@ -57,10 +57,12 @@ function walk(dir: string, visit: (abs: string) => void): void {
 function makeEntry(abs: string, appRoot: string, repoRoot: string): PageEntry {
   const rel = relative(appRoot, abs).split(sep).join('/');
   const dir = rel.replace(/\/page\.tsx$/, '');
-  const route = '/' + dir
-    .split('/')
-    .filter((seg) => seg && !(seg.startsWith('(') && seg.endsWith(')')))
-    .join('/');
+  const route =
+    '/' +
+    dir
+      .split('/')
+      .filter((seg) => seg && !(seg.startsWith('(') && seg.endsWith(')')))
+      .join('/');
   const id = idFromRoute(route);
   const file = relative(repoRoot, abs).split(sep).join('/');
   return { id, route: route === '/' ? '/' : route, file, abs };

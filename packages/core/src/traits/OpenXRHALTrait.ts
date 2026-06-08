@@ -1210,7 +1210,12 @@ function pollHandTracking(
 /**
  * Calculate forward direction vector from quaternion (Phase 3)
  */
-function _calculateForwardVector(quaternion: { x: number; y: number; z: number; w: number }): [number, number, number] {
+function _calculateForwardVector(quaternion: {
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+}): [number, number, number] {
   const { x, y, z, w } = quaternion;
 
   // Forward is -Z axis rotated by quaternion
@@ -1238,20 +1243,16 @@ function pollEyeTracking(
   if (frame && state.referenceSpace && gazeSource.targetRaySpace) {
     try {
       const gazePose = frame.getPose(gazeSource.targetRaySpace, state.referenceSpace);
-        if (gazePose) {
-          const t = gazePose.transform.position;
-          const r = gazePose.transform.orientation;
-          // Compute forward from quaternion: rotate -Z by orientation
-          const { x, y, z, w } = r;
-          return {
-            origin: [t[0], t[1], t[2]],
-            direction: [
-              2 * (x * z + w * y),
-              2 * (y * z - w * x),
-              1 - 2 * (x * x + y * y),
-            ],
-          };
-        }
+      if (gazePose) {
+        const t = gazePose.transform.position;
+        const r = gazePose.transform.orientation;
+        // Compute forward from quaternion: rotate -Z by orientation
+        const { x, y, z, w } = r;
+        return {
+          origin: [t[0], t[1], t[2]],
+          direction: [2 * (x * z + w * y), 2 * (y * z - w * x), 1 - 2 * (x * x + y * y)],
+        };
+      }
     } catch {
       // Gaze pose unavailable
     }

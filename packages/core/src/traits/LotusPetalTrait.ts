@@ -114,9 +114,7 @@ export function deriveLotusPetalVisual(
   // Reserved-capacity petals are pinned to sealed. This is the project_lotus-
   // genesis-trigger.md contract: future-capacity slots stay dark until a real
   // paper binds. Even if some upstream signal flips them, we override here.
-  const effectiveState: LotusPetalBloomState = isReservedPaperId(paperId)
-    ? 'sealed'
-    : state;
+  const effectiveState: LotusPetalBloomState = isReservedPaperId(paperId) ? 'sealed' : state;
 
   switch (effectiveState) {
     case 'sealed':
@@ -189,9 +187,8 @@ export const lotusPetalHandler: TraitHandler<LotusPetalConfig> = {
 
   onAttach(node, config, context) {
     const ctxState = context.getState?.() ?? {};
-    const initialBloomRaw = (ctxState[config.bloom_state_source] as
-      | LotusPetalBloomState
-      | undefined) ?? 'sealed';
+    const initialBloomRaw =
+      (ctxState[config.bloom_state_source] as LotusPetalBloomState | undefined) ?? 'sealed';
     const visual = deriveLotusPetalVisual(initialBloomRaw, config.paper_id);
 
     const state: LotusPetalState = {

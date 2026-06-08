@@ -122,32 +122,49 @@ export interface RuntimeDispatcher {
 
   // Inline executors — not yet purified (loops, control flow, memory,
   // template legacy, target, generic).
-  executeForLoop(node: ASTNode & {
-    variable: string; iterable: string | unknown; body: ASTNode[];
-  }): Promise<ExecutionResult>;
-  executeForEachLoop(node: ASTNode & {
-    variable: string; collection: string | unknown; body: ASTNode[];
-  }): Promise<ExecutionResult>;
-  executeWhileLoop(node: ASTNode & {
-    condition: string | unknown; body: ASTNode[];
-  }): Promise<ExecutionResult>;
-  executeIfStatement(node: ASTNode & {
-    condition: string | unknown; body: ASTNode[]; elseBody?: ASTNode[];
-  }): Promise<ExecutionResult>;
-  executeMatch(node: ASTNode & {
-    subject: string | unknown;
-    cases: Array<{
-      pattern: string | unknown;
-      guard?: string | unknown;
-      body: ASTNode[] | unknown;
-    }>;
-  }): Promise<ExecutionResult>;
+  executeForLoop(
+    node: ASTNode & {
+      variable: string;
+      iterable: string | unknown;
+      body: ASTNode[];
+    }
+  ): Promise<ExecutionResult>;
+  executeForEachLoop(
+    node: ASTNode & {
+      variable: string;
+      collection: string | unknown;
+      body: ASTNode[];
+    }
+  ): Promise<ExecutionResult>;
+  executeWhileLoop(
+    node: ASTNode & {
+      condition: string | unknown;
+      body: ASTNode[];
+    }
+  ): Promise<ExecutionResult>;
+  executeIfStatement(
+    node: ASTNode & {
+      condition: string | unknown;
+      body: ASTNode[];
+      elseBody?: ASTNode[];
+    }
+  ): Promise<ExecutionResult>;
+  executeMatch(
+    node: ASTNode & {
+      subject: string | unknown;
+      cases: Array<{
+        pattern: string | unknown;
+        guard?: string | unknown;
+        body: ASTNode[] | unknown;
+      }>;
+    }
+  ): Promise<ExecutionResult>;
   executeMemory(node: import('../types').MemoryNode): Promise<ExecutionResult>;
   executeMemoryDefinition(
     node:
       | import('../types').SemanticMemoryNode
       | import('../types').EpisodicMemoryNode
-      | import('../types').ProceduralMemoryNode,
+      | import('../types').ProceduralMemoryNode
   ): Promise<ExecutionResult>;
   executeGeneric(node: ASTNode): Promise<ExecutionResult>;
   executeTemplate(node: TemplateNode): Promise<ExecutionResult>;
@@ -155,9 +172,11 @@ export interface RuntimeDispatcher {
   executeDatabaseNode(node: DatabaseNode): Promise<ExecutionResult>;
   executeFetchNode(node: FetchNode): Promise<ExecutionResult>;
   executeTarget(node: ExecuteNode): Promise<ExecutionResult>;
-  executeStateDeclaration(node: ASTNode & {
-    directives?: import('../types/AdvancedTypeSystem').HSPlusDirective[];
-  }): Promise<ExecutionResult>;
+  executeStateDeclaration(
+    node: ASTNode & {
+      directives?: import('../types/AdvancedTypeSystem').HSPlusDirective[];
+    }
+  ): Promise<ExecutionResult>;
   executeDebug(node: ASTNode & { target?: string }): Promise<ExecutionResult>;
 
   // Environment read (used by `core_config`)
@@ -165,10 +184,7 @@ export interface RuntimeDispatcher {
 }
 
 /** Handler signature — one per node-type key. */
-export type NodeHandler = (
-  node: ASTNode,
-  runtime: RuntimeDispatcher,
-) => Promise<ExecutionResult>;
+export type NodeHandler = (node: ASTNode, runtime: RuntimeDispatcher) => Promise<ExecutionResult>;
 
 /**
  * The dispatch registry. 30+ entries, one per supported node.type.
@@ -197,19 +213,19 @@ export const NODE_TYPE_HANDLERS: Record<string, NodeHandler> = {
   call: (node, r) =>
     executeCallPure(
       node as ASTNode & { target?: string; args?: unknown[] },
-      r.buildSimpleExecutorContext(),
+      r.buildSimpleExecutorContext()
     ),
   assignment: (node, r) =>
     executeAssignmentPure(
       node as ASTNode & { name: string; value: unknown },
-      r.buildSimpleExecutorContext(),
+      r.buildSimpleExecutorContext()
     ),
   return: (node, r) =>
     executeReturnPure(node as ASTNode & { value: unknown }, r.buildSimpleExecutorContext()),
   'expression-statement': (node, r) =>
     executeExpressionStatementPure(
       node as ASTNode & { expression: string },
-      r.buildSimpleExecutorContext(),
+      r.buildSimpleExecutorContext()
     ),
   scale: (node, r) => executeScalePure(node as ScaleNode, r.buildSimpleExecutorContext()),
   focus: (node, r) => executeFocusPure(node as FocusNode, r.buildSimpleExecutorContext()),
@@ -229,15 +245,12 @@ export const NODE_TYPE_HANDLERS: Record<string, NodeHandler> = {
   composition: (node, r) =>
     executeCompositionPure(node as CompositionNode, r.buildSimpleExecutorContext()),
   Composition: (node, r) =>
-    executeHoloCompositionPure(
-      node as unknown as HoloComposition,
-      r.buildHoloCompositionContext(),
-    ),
+    executeHoloCompositionPure(node as unknown as HoloComposition, r.buildHoloCompositionContext()),
   template: (node, r) => r.executeTemplate(node as TemplateNode),
   Template: (node, r) =>
     executeHoloTemplatePure(
       node as unknown as { name: string } & Record<string, unknown>,
-      r.buildSimpleExecutorContext(),
+      r.buildSimpleExecutorContext()
     ),
 
   // State family
@@ -247,7 +260,7 @@ export const NODE_TYPE_HANDLERS: Record<string, NodeHandler> = {
     r.executeStateDeclaration(
       node as ASTNode & {
         directives?: import('../types/AdvancedTypeSystem').HSPlusDirective[];
-      },
+      }
     ),
 
   // System
@@ -255,7 +268,7 @@ export const NODE_TYPE_HANDLERS: Record<string, NodeHandler> = {
   core_config: (node, r) =>
     executeCoreConfigPure(
       node as CoreConfigNode,
-      r.context.environment as Record<string, HoloScriptValue>,
+      r.context.environment as Record<string, HoloScriptValue>
     ),
 
   // Migration: accepted but no executor — plain success record
@@ -277,43 +290,41 @@ export const NODE_TYPE_HANDLERS: Record<string, NodeHandler> = {
       node as
         | import('../types').SemanticMemoryNode
         | import('../types').EpisodicMemoryNode
-        | import('../types').ProceduralMemoryNode,
+        | import('../types').ProceduralMemoryNode
     ),
   'episodic-memory': (node, r) =>
     r.executeMemoryDefinition(
       node as
         | import('../types').SemanticMemoryNode
         | import('../types').EpisodicMemoryNode
-        | import('../types').ProceduralMemoryNode,
+        | import('../types').ProceduralMemoryNode
     ),
   'procedural-memory': (node, r) =>
     r.executeMemoryDefinition(
       node as
         | import('../types').SemanticMemoryNode
         | import('../types').EpisodicMemoryNode
-        | import('../types').ProceduralMemoryNode,
+        | import('../types').ProceduralMemoryNode
     ),
 
   // Control-flow family
   for: (node, r) =>
     r.executeForLoop(
-      node as ASTNode & { variable: string; iterable: string | unknown; body: ASTNode[] },
+      node as ASTNode & { variable: string; iterable: string | unknown; body: ASTNode[] }
     ),
   forEach: (node, r) =>
     r.executeForEachLoop(
-      node as ASTNode & { variable: string; collection: string | unknown; body: ASTNode[] },
+      node as ASTNode & { variable: string; collection: string | unknown; body: ASTNode[] }
     ),
   while: (node, r) =>
-    r.executeWhileLoop(
-      node as ASTNode & { condition: string | unknown; body: ASTNode[] },
-    ),
+    r.executeWhileLoop(node as ASTNode & { condition: string | unknown; body: ASTNode[] }),
   if: (node, r) =>
     r.executeIfStatement(
       node as ASTNode & {
         condition: string | unknown;
         body: ASTNode[];
         elseBody?: ASTNode[];
-      },
+      }
     ),
   match: (node, r) =>
     r.executeMatch(
@@ -324,7 +335,7 @@ export const NODE_TYPE_HANDLERS: Record<string, NodeHandler> = {
           guard?: string | unknown;
           body: ASTNode[] | unknown;
         }>;
-      },
+      }
     ),
 
   // Debug + generic
@@ -339,7 +350,7 @@ export const NODE_TYPE_HANDLERS: Record<string, NodeHandler> = {
  */
 export async function dispatchNode(
   node: ASTNode,
-  runtime: RuntimeDispatcher,
+  runtime: RuntimeDispatcher
 ): Promise<ExecutionResult> {
   const nodeType = (node as unknown as Record<string, unknown>).type as string;
   const handler = NODE_TYPE_HANDLERS[nodeType];

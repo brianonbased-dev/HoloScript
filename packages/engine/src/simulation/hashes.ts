@@ -8,12 +8,7 @@
 
 import type { FieldData, SimSolver } from './SimSolver';
 import type { CAELTraceEntry } from './CAELTrace';
-import {
-  type HashMode,
-  HASH_MODE_DEFAULT,
-  hashBytes,
-  hashStringForCAEL,
-} from './sha256';
+import { type HashMode, HASH_MODE_DEFAULT, hashBytes, hashStringForCAEL } from './sha256';
 import { toCanonical } from './cael-canon';
 
 // Re-export for callers that want a single `hashes` import surface
@@ -61,7 +56,7 @@ function canonicalizeConnectivity(elements: Uint32Array): Uint32Array {
 export function hashGeometry(
   vertices: Float64Array | Float32Array | undefined,
   elements: Uint32Array | undefined,
-  mode: HashMode = HASH_MODE_DEFAULT,
+  mode: HashMode = HASH_MODE_DEFAULT
 ): string {
   if (!vertices || !elements) return 'no-geometry';
 
@@ -74,14 +69,19 @@ export function hashGeometry(
     const buf = new Uint8Array(totalBytes);
     const view = new DataView(buf.buffer);
     let off = 0;
-    view.setUint32(off, nCoord >>> 0, true); off += 4;
+    view.setUint32(off, nCoord >>> 0, true);
+    off += 4;
     for (let i = 0; i < nCoord; i++) {
-      view.setInt32(off, Math.round(vertices[i] * 1e6) | 0, true); off += 4;
+      view.setInt32(off, Math.round(vertices[i] * 1e6) | 0, true);
+      off += 4;
     }
-    view.setUint32(off, 0x9e3779b9, true); off += 4;
-    view.setUint32(off, nIdx >>> 0, true); off += 4;
+    view.setUint32(off, 0x9e3779b9, true);
+    off += 4;
+    view.setUint32(off, nIdx >>> 0, true);
+    off += 4;
     for (let i = 0; i < nIdx; i++) {
-      view.setUint32(off, canon[i] >>> 0, true); off += 4;
+      view.setUint32(off, canon[i] >>> 0, true);
+      off += 4;
     }
     return `geo-sha-${hashBytes(buf, 'sha256')}-${nCoord / 3}n-${nIdx}e`;
   }
@@ -128,10 +128,7 @@ export function hashGeometry(
 
 const GPU_OUTPUT_QUANTUM = 1e-6;
 
-export function hashGpuOutput(
-  data: Float32Array,
-  mode: HashMode = HASH_MODE_DEFAULT,
-): string {
+export function hashGpuOutput(data: Float32Array, mode: HashMode = HASH_MODE_DEFAULT): string {
   if (data.length === 0) {
     return mode === 'sha256' ? `gpu-sha-${'0'.repeat(64)}-0` : 'gpu-00000000-0';
   }
@@ -147,7 +144,7 @@ export function hashGpuOutput(
       const v = data[i];
       if (!Number.isFinite(v)) {
         throw new Error(
-          `[SimulationContract] hashGpuOutput: non-finite value at index ${i}: ${v}.`,
+          `[SimulationContract] hashGpuOutput: non-finite value at index ${i}: ${v}.`
         );
       }
       view.setInt32(4 + i * 4, Math.round(v * invQ) | 0, true);
@@ -163,15 +160,17 @@ export function hashGpuOutput(
   for (let i = 0; i < n; i++) {
     const v = data[i];
     if (!Number.isFinite(v)) {
-      throw new Error(
-        `[SimulationContract] hashGpuOutput: non-finite value at index ${i}: ${v}.`,
-      );
+      throw new Error(`[SimulationContract] hashGpuOutput: non-finite value at index ${i}: ${v}.`);
     }
     const q = Math.round(v * invQ) | 0;
-    h ^= q & 0xff; h = Math.imul(h, 16777619);
-    h ^= (q >>> 8) & 0xff; h = Math.imul(h, 16777619);
-    h ^= (q >>> 16) & 0xff; h = Math.imul(h, 16777619);
-    h ^= (q >>> 24) & 0xff; h = Math.imul(h, 16777619);
+    h ^= q & 0xff;
+    h = Math.imul(h, 16777619);
+    h ^= (q >>> 8) & 0xff;
+    h = Math.imul(h, 16777619);
+    h ^= (q >>> 16) & 0xff;
+    h = Math.imul(h, 16777619);
+    h ^= (q >>> 24) & 0xff;
+    h = Math.imul(h, 16777619);
   }
   return `gpu-${(h >>> 0).toString(16).padStart(8, '0')}-${n}`;
 }
@@ -204,7 +203,10 @@ export function quantumForField(name: string): number {
 
 type SolverForDigest = {
   getField: SimSolver['getField'];
-  fieldNames?: SimSolver['fieldNames'] | Iterable<string> | { [Symbol.iterator]?: () => Iterator<string> };
+  fieldNames?:
+    | SimSolver['fieldNames']
+    | Iterable<string>
+    | { [Symbol.iterator]?: () => Iterator<string> };
 };
 
 /**
@@ -214,7 +216,10 @@ type SolverForDigest = {
  */
 export function computeStateDigest(solver: SolverForDigest, hashMode: HashMode): string {
   const rawFieldNames = (solver as { fieldNames?: Iterable<string> }).fieldNames;
-  if (!rawFieldNames || typeof (rawFieldNames as Iterable<string>)[Symbol.iterator] !== 'function') {
+  if (
+    !rawFieldNames ||
+    typeof (rawFieldNames as Iterable<string>)[Symbol.iterator] !== 'function'
+  ) {
     return '';
   }
   const fieldNames = [...rawFieldNames].sort();
@@ -245,8 +250,8 @@ export function computeStateDigest(solver: SolverForDigest, hashMode: HashMode):
         if (!Number.isFinite(v)) {
           throw new Error(
             `[SimulationContract] Non-finite value in field "${name}" at index ${i}: ${v}. ` +
-            `State integrity violation — the contract's state digest is fail-closed on NaN/±Infinity. ` +
-            `Investigate solver.step() for the stepping that produced this state.`,
+              `State integrity violation — the contract's state digest is fail-closed on NaN/±Infinity. ` +
+              `Investigate solver.step() for the stepping that produced this state.`
           );
         }
         view.setInt32(i * 4, Math.round(v * invQf) | 0, true);
@@ -257,8 +262,10 @@ export function computeStateDigest(solver: SolverForDigest, hashMode: HashMode):
     const buf = new Uint8Array(totalBytes);
     let off = 0;
     for (const blk of blocks) {
-      buf.set(blk.nameBytes, off); off += blk.nameBytes.length;
-      buf.set(blk.intBytes, off); off += blk.intBytes.length;
+      buf.set(blk.nameBytes, off);
+      off += blk.nameBytes.length;
+      buf.set(blk.intBytes, off);
+      off += blk.intBytes.length;
     }
     return hashBytes(buf, 'sha256');
   }
@@ -291,8 +298,8 @@ export function computeStateDigest(solver: SolverForDigest, hashMode: HashMode):
       if (!Number.isFinite(v)) {
         throw new Error(
           `[SimulationContract] Non-finite value in field "${name}" at index ${i}: ${v}. ` +
-          `State integrity violation — the contract's state digest is fail-closed on NaN/±Infinity. ` +
-          `Investigate solver.step() for the stepping that produced this state.`,
+            `State integrity violation — the contract's state digest is fail-closed on NaN/±Infinity. ` +
+            `Investigate solver.step() for the stepping that produced this state.`
         );
       }
       const q = Math.round(v * invQf) | 0;
@@ -314,7 +321,7 @@ export function computeStateDigest(solver: SolverForDigest, hashMode: HashMode):
 
 export function hashCAELEntry(
   entry: Omit<CAELTraceEntry, 'hash'>,
-  mode: HashMode = HASH_MODE_DEFAULT,
+  mode: HashMode = HASH_MODE_DEFAULT
 ): string {
   const canonical = toCanonical(entry);
   return hashStringForCAEL(JSON.stringify(canonical), mode);

@@ -568,10 +568,7 @@ function generateReachableTrait(
   return `@spatial_reachable(${parts.join(', ')})`;
 }
 
-function computeDistance(
-  a: [number, number, number],
-  b: [number, number, number]
-): number {
+function computeDistance(a: [number, number, number], b: [number, number, number]): number {
   const dx = b[0] - a[0];
   const dy = b[1] - a[1];
   const dz = b[2] - a[2];
@@ -1251,11 +1248,7 @@ export class SpatialTrainingDataGenerator {
             midpoint[2] + (perpZ / perpLen) * offset * side,
           ];
         } else {
-          obsPos = [
-            midpoint[0] + offset * side,
-            midpoint[1],
-            midpoint[2],
-          ];
+          obsPos = [midpoint[0] + offset * side, midpoint[1], midpoint[2]];
         }
       }
 
@@ -1494,11 +1487,7 @@ export class SpatialTrainingDataGenerator {
       const s = this.rng.float(0.3, 2.5);
       return [s, s, s];
     }
-    return [
-      this.rng.float(0.3, 3.0),
-      this.rng.float(0.3, 3.0),
-      this.rng.float(0.3, 3.0),
-    ];
+    return [this.rng.float(0.3, 3.0), this.rng.float(0.3, 3.0), this.rng.float(0.3, 3.0)];
   }
 
   private pickUniqueName(pool: string[], used: string[]): string {

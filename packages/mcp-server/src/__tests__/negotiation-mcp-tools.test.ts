@@ -30,10 +30,7 @@ import {
   isNegotiationToolName,
   negotiationToolDefinitions,
 } from '../negotiation-mcp-tools';
-import {
-  _resetNegotiations,
-  type NegotiationQuote,
-} from '../holomesh/agent-negotiation';
+import { _resetNegotiations, type NegotiationQuote } from '../holomesh/agent-negotiation';
 
 const TEAM_ID = 'team_test_xk5l';
 const ALICE = 'agent_alice_xk5l';
@@ -61,7 +58,12 @@ async function startCycle(opts: { id?: string } = {}) {
     request: { toolName: 'analyze_code', capabilityQuery: 'code-quality:typescript' },
     signerAddress: ALICE_ADDR,
     ...(opts.id ? { id: opts.id } : {}),
-  })) as { ok: boolean; negotiation?: { id: string; state: string }; event?: unknown; error?: string };
+  })) as {
+    ok: boolean;
+    negotiation?: { id: string; state: string };
+    event?: unknown;
+    error?: string;
+  };
 }
 
 describe('negotiation MCP tool registration', () => {
@@ -79,7 +81,7 @@ describe('negotiation MCP tool registration', () => {
         'negotiation_reject',
         'negotiation_request_quote',
         'negotiation_settle',
-      ].sort(),
+      ].sort()
     );
   });
 
@@ -94,16 +96,16 @@ describe('negotiation MCP tool registration', () => {
   it('input schemas declare required fields per tool', () => {
     const byName = new Map(negotiationToolDefinitions.map((t) => [t.name, t]));
     expect(
-      (byName.get('negotiation_request_quote')!.inputSchema as { required?: string[] }).required,
+      (byName.get('negotiation_request_quote')!.inputSchema as { required?: string[] }).required
     ).toContain('teamId');
     expect(
-      (byName.get('negotiation_quote')!.inputSchema as { required?: string[] }).required,
+      (byName.get('negotiation_quote')!.inputSchema as { required?: string[] }).required
     ).toContain('quote');
     expect(
-      (byName.get('negotiation_settle')!.inputSchema as { required?: string[] }).required,
+      (byName.get('negotiation_settle')!.inputSchema as { required?: string[] }).required
     ).toContain('initiatorSignature');
     expect(
-      (byName.get('negotiation_dispute')!.inputSchema as { required?: string[] }).required,
+      (byName.get('negotiation_dispute')!.inputSchema as { required?: string[] }).required
     ).toContain('authorAgentId');
   });
 });
@@ -228,7 +230,7 @@ describe('negotiation MCP tools — full happy-path cycle', () => {
     expect(list.ok).toBe(true);
     expect(list.count).toBe(2);
     expect(new Set(list.negotiations.map((n) => n.id))).toEqual(
-      new Set(['nego_test_a', 'nego_test_b']),
+      new Set(['nego_test_a', 'nego_test_b'])
     );
 
     const got = (await handleNegotiationTool('negotiation_get', {

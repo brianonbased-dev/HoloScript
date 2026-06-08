@@ -66,14 +66,20 @@ vi.mock('next-auth/react', () => ({
 vi.mock('@holoscript/core', () => ({
   CollaborationSession: class {
     constructor() {}
-    getPeers() { return []; }
-    getOpenDocuments() { return []; }
-    getStats() { return null; }
+    getPeers() {
+      return [];
+    }
+    getOpenDocuments() {
+      return [];
+    }
+    getStats() {
+      return null;
+    }
     addPeer() {}
     removePeer() {}
     openDocument() {}
     closeDocument() {}
-  }
+  },
 }));
 describe('useCollaboration', () => {
   let mockSocket: MockWebSocket;

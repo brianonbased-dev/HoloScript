@@ -60,7 +60,10 @@ function brainClassFromPath(p) {
 
 function vastInstances() {
   try {
-    const raw = execSync('vastai show instances --raw', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const raw = execSync('vastai show instances --raw', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     return JSON.parse(raw).filter((i) => i.actual_status === 'running');
   } catch (err) {
     console.error(`[audit-brain] vastai show instances failed: ${err.message}`);
@@ -183,9 +186,13 @@ for (const agent of planned) {
       drift = 'absent';
       runningClass = 'BRAIN-MISSING-ON-INSTANCE';
       absentCount++;
-    } else if (expectedClass !== probe.class || (expectedSha && probe.sha256 && expectedSha !== probe.sha256)) {
+    } else if (
+      expectedClass !== probe.class ||
+      (expectedSha && probe.sha256 && expectedSha !== probe.sha256)
+    ) {
       drift = 'drift';
-      const shaSuffix = expectedSha && probe.sha256 && expectedSha !== probe.sha256 ? '(sha-mismatch)' : '';
+      const shaSuffix =
+        expectedSha && probe.sha256 && expectedSha !== probe.sha256 ? '(sha-mismatch)' : '';
       runningClass = `${probe.class}${shaSuffix}`;
       driftCount++;
     } else {
@@ -194,22 +201,30 @@ for (const agent of planned) {
     }
   }
 
-  console.log(`${handle.padEnd(28)} instance=${instId.padEnd(10)} expected=${expectedClass.padEnd(28)} running=${runningClass.padEnd(35)} drift=${drift}`);
+  console.log(
+    `${handle.padEnd(28)} instance=${instId.padEnd(10)} expected=${expectedClass.padEnd(28)} running=${runningClass.padEnd(35)} drift=${drift}`
+  );
 }
 
 // Step 5: Report identity collisions (multiple instances claiming same handle)
 // and unplanned instances (instance running but no template entry — usually
 // means agents-template.json drifted from the live fleet).
 for (const { inst, probe, claimed } of collisions) {
-  console.log(`COLLISION: instance=${inst.id} also claims handle=${claimed} (already taken by another live instance) — W.087-class identity collision`);
+  console.log(
+    `COLLISION: instance=${inst.id} also claims handle=${claimed} (already taken by another live instance) — W.087-class identity collision`
+  );
 }
 for (const { inst, probe, reason } of unplanned) {
   const handle = probe?.handle ?? '(no-handle)';
-  console.log(`UNPLANNED: instance=${inst.id} handle=${handle} reason=${reason} — fleet has live instance with no template entry`);
+  console.log(
+    `UNPLANNED: instance=${inst.id} handle=${handle} reason=${reason} — fleet has live instance with no template entry`
+  );
 }
 
 console.log('');
-console.log(`[audit-brain] summary: ok=${okCount} drift=${driftCount} absent=${absentCount} unreachable=${unreachableCount} collisions=${collisionCount} unplanned=${unplannedCount}`);
+console.log(
+  `[audit-brain] summary: ok=${okCount} drift=${driftCount} absent=${absentCount} unreachable=${unreachableCount} collisions=${collisionCount} unplanned=${unplannedCount}`
+);
 
 // Exit non-zero on any drift / collision / unplanned so this can be a CI gate.
 if (driftCount > 0 || absentCount > 0 || collisionCount > 0 || unplannedCount > 0) {

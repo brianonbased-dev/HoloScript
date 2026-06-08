@@ -50,7 +50,10 @@ interface NodeRow {
 }
 
 function parseNodesBlock(block: string): NodeRow[] {
-  const lines = block.split(/\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+  const lines = block
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   if (lines.length === 0) throw new MeshImportError('Empty $Nodes section', 'GMSH_INVALID');
   const n = parseInt(lines[0], 10);
   if (!Number.isFinite(n) || n < 0) {
@@ -69,7 +72,12 @@ function parseNodesBlock(block: string): NodeRow[] {
     const x = parseFloat(parts[1]);
     const y = parseFloat(parts[2]);
     const z = parseFloat(parts[3]);
-    if (!Number.isFinite(tag) || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+    if (
+      !Number.isFinite(tag) ||
+      !Number.isFinite(x) ||
+      !Number.isFinite(y) ||
+      !Number.isFinite(z)
+    ) {
       throw new MeshImportError(`Bad node values: ${lines[i]}`, 'GMSH_INVALID');
     }
     out.push({ tag, x, y, z });
@@ -143,7 +151,10 @@ export function parseGmsh(text: string): VTKUnstructuredResult {
   }
 
   const elementsBlock = extractBlock(src, '$Elements', '$EndElements');
-  const elLines = elementsBlock.split(/\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+  const elLines = elementsBlock
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   if (elLines.length === 0) throw new MeshImportError('Empty $Elements section', 'GMSH_INVALID');
   const numEl = parseInt(elLines[0], 10);
   if (!Number.isFinite(numEl) || numEl < 0) {
@@ -172,7 +183,10 @@ export function parseGmsh(text: string): VTKUnstructuredResult {
   }
 
   if (tetTags.length === 0) {
-    throw new MeshImportError('No 4-node tetrahedra (type 4) found in $Elements', 'GMSH_UNSUPPORTED');
+    throw new MeshImportError(
+      'No 4-node tetrahedra (type 4) found in $Elements',
+      'GMSH_UNSUPPORTED'
+    );
   }
 
   const tetrahedra = new Uint32Array(tetTags.length * 4);

@@ -64,17 +64,16 @@ export const x402PaymentPayloadSchema = z
 
 export type X402PaymentPayloadParsed = z.infer<typeof x402PaymentPayloadSchema>;
 
-export const x402RequiredAmountSchema = z.string().regex(/^\d+$/, 'requiredAmount must be base-units digits only');
+export const x402RequiredAmountSchema = z
+  .string()
+  .regex(/^\d+$/, 'requiredAmount must be base-units digits only');
 
 /** Single accepted payment line in HTTP 402 (trait / gateway must not inject oversized or malformed options). */
 export const x402PaymentOptionSchema = z
   .object({
     scheme: z.literal('exact'),
     network: x402SettlementChainSchema,
-    maxAmountRequired: z
-      .string()
-      .regex(/^\d+$/)
-      .max(48, 'maxAmountRequired too long'),
+    maxAmountRequired: z.string().regex(/^\d+$/).max(48, 'maxAmountRequired too long'),
     resource: z.string().min(1).max(2048),
     description: z.string().max(4096),
     payTo: z.string().min(1).max(128),
@@ -110,9 +109,7 @@ export function safeParseX402PaymentPayload(
 
 export function safeParseX402PaymentRequired(
   input: unknown
-):
-  | { success: true; data: X402PaymentRequiredParsed }
-  | { success: false; error: string } {
+): { success: true; data: X402PaymentRequiredParsed } | { success: false; error: string } {
   const r = x402PaymentRequiredSchema.safeParse(input);
   if (r.success) return { success: true, data: r.data };
   return { success: false, error: formatX402ParseError(r.error) };
@@ -139,9 +136,9 @@ export function validateX402MicropaymentBoundary(input: {
   return { ok: true, payment: pay.data, requiredAmount: req.data };
 }
 
-export function validateX402PaymentRequiredBoundary(input: unknown):
-  | { ok: true; data: X402PaymentRequiredParsed }
-  | { ok: false; error: string } {
+export function validateX402PaymentRequiredBoundary(
+  input: unknown
+): { ok: true; data: X402PaymentRequiredParsed } | { ok: false; error: string } {
   const r = safeParseX402PaymentRequired(input);
   if (r.success) return { ok: true, data: r.data };
   return { ok: false, error: r.error };

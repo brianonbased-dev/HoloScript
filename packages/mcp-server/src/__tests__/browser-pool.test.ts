@@ -38,7 +38,9 @@ const EXECUTABLE_ENV_KEYS = [
 
 describe('BrowserPool Chromium resolution', () => {
   let tempDir: string;
-  let previousEnv: Partial<Record<(typeof EXECUTABLE_ENV_KEYS)[number] | 'DISPLAY' | 'CI', string | undefined>>;
+  let previousEnv: Partial<
+    Record<(typeof EXECUTABLE_ENV_KEYS)[number] | 'DISPLAY' | 'CI', string | undefined>
+  >;
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'browser-pool-test-'));
@@ -49,7 +51,9 @@ describe('BrowserPool Chromium resolution', () => {
       delete process.env[key];
     }
 
-    vi.mocked(chromium.executablePath).mockReturnValue(join(tempDir, 'missing-playwright-cache', 'chrome-headless-shell'));
+    vi.mocked(chromium.executablePath).mockReturnValue(
+      join(tempDir, 'missing-playwright-cache', 'chrome-headless-shell')
+    );
     vi.mocked(chromium.launch).mockClear();
     vi.mocked(chromium.launch).mockResolvedValue(mockBrowser as never);
     mockBrowser.close.mockClear();
@@ -108,7 +112,9 @@ describe('BrowserPool Chromium resolution', () => {
 
   it('turns a missing Playwright browser cache into an actionable deployment error', async () => {
     vi.mocked(chromium.launch).mockRejectedValueOnce(
-      new Error("Executable doesn't exist at /home/nodejs/.cache/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-linux64/chrome-headless-shell")
+      new Error(
+        "Executable doesn't exist at /home/nodejs/.cache/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-linux64/chrome-headless-shell"
+      )
     );
 
     const pool = new BrowserPool();

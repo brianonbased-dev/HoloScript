@@ -188,8 +188,8 @@ describe('DropTableTrait', () => {
     }
     for (const k of ['A', 'B', 'C', 'D']) {
       const p = counts[k] / N;
-      expect(p).toBeGreaterThan(0.20);
-      expect(p).toBeLessThan(0.30);
+      expect(p).toBeGreaterThan(0.2);
+      expect(p).toBeLessThan(0.3);
     }
   });
 
@@ -233,9 +233,7 @@ describe('DropTableTrait', () => {
     });
 
     it('FALSE: respectLuck=false returns raw weight regardless of rareModifier', () => {
-      expect(
-        effectiveWeight({ itemId: 'x', weight: 10, rareModifier: 99 }, 5, false)
-      ).toBe(10);
+      expect(effectiveWeight({ itemId: 'x', weight: 10, rareModifier: 99 }, 5, false)).toBe(10);
     });
 
     it('TRUE: respectLuck=true scales by (1 + luckBonus * rareModifier)', () => {

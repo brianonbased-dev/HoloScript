@@ -55,7 +55,11 @@ function twoFactorRequired(): boolean {
   return v === 'true' || v === '1' || v === 'yes';
 }
 
-function checkTwoFactor(body: Record<string, unknown>, userId: string, action: string): {
+function checkTwoFactor(
+  body: Record<string, unknown>,
+  userId: string,
+  action: string
+): {
   ok: boolean;
   error?: string;
 } {
@@ -92,10 +96,7 @@ function checkTwoFactor(body: Record<string, unknown>, userId: string, action: s
  *   403: user migrated to self-custody
  *   500: internal error (missing KMS key, etc.)
  */
-async function handleProvision(
-  req: http.IncomingMessage,
-  res: http.ServerResponse
-): Promise<void> {
+async function handleProvision(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const agent = requireAuth(req, res);
   if (!agent) return;
 
@@ -144,7 +145,10 @@ async function handleProvision(
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('[custodial-wallet] provision failed:', redactForLogging({ error: message, userId }));
+    console.error(
+      '[custodial-wallet] provision failed:',
+      redactForLogging({ error: message, userId })
+    );
     json(res, 500, { success: false, error: 'provision_failed', message });
   }
 }
@@ -165,10 +169,7 @@ async function handleProvision(
  *   403: user migrated to self-custody or 2FA required
  *   404: user has no custodial wallet
  */
-async function handleSign(
-  req: http.IncomingMessage,
-  res: http.ServerResponse
-): Promise<void> {
+async function handleSign(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const agent = requireAuth(req, res);
   if (!agent) return;
 
@@ -182,9 +183,10 @@ async function handleSign(
   // 2FA check (when enabled — signing always requires 2FA if the user has
   // it enabled, regardless of the global REQUIRE_2FA flag)
   if (isTwoFactorEnabled(userId)) {
-    const token = typeof (body as Record<string, unknown>).two_factor_token === 'string'
-      ? ((body as Record<string, unknown>).two_factor_token as string)
-      : undefined;
+    const token =
+      typeof (body as Record<string, unknown>).two_factor_token === 'string'
+        ? ((body as Record<string, unknown>).two_factor_token as string)
+        : undefined;
     if (!verifyTwoFactorToken(token)) {
       json(res, 403, {
         success: false,
@@ -206,9 +208,10 @@ async function handleSign(
     }
   }
 
-  const payloadBase64 = typeof (body as Record<string, unknown>).payload_base64 === 'string'
-    ? ((body as Record<string, unknown>).payload_base64 as string)
-    : '';
+  const payloadBase64 =
+    typeof (body as Record<string, unknown>).payload_base64 === 'string'
+      ? ((body as Record<string, unknown>).payload_base64 as string)
+      : '';
 
   if (!payloadBase64) {
     json(res, 400, { success: false, error: 'payload_base64_required' });
@@ -239,11 +242,23 @@ async function handleSign(
     console.error('[custodial-wallet] sign failed:', redactForLogging({ error: message, userId }));
 
     if (message.includes('no wallet found')) {
-      json(res, 404, { success: false, error: 'no_wallet_found', message: 'User has no custodial wallet. Provision one first.' });
+      json(res, 404, {
+        success: false,
+        error: 'no_wallet_found',
+        message: 'User has no custodial wallet. Provision one first.',
+      });
     } else if (message.includes('not authorized')) {
-      json(res, 403, { success: false, error: 'not_authorized', message: 'Caller is not authorized to sign on behalf of this user.' });
+      json(res, 403, {
+        success: false,
+        error: 'not_authorized',
+        message: 'Caller is not authorized to sign on behalf of this user.',
+      });
     } else if (message.includes('migrated to self-custody')) {
-      json(res, 403, { success: false, error: 'user_migrated_to_self_custody', message: 'User has migrated to self-custody. Custodial signing is permanently disabled.' });
+      json(res, 403, {
+        success: false,
+        error: 'user_migrated_to_self_custody',
+        message: 'User has migrated to self-custody. Custodial signing is permanently disabled.',
+      });
     } else {
       json(res, 500, { success: false, error: 'signing_failed', message });
     }
@@ -259,10 +274,7 @@ async function handleSign(
  *   200: { success: true, wallet: { ... } } or { success: true, has_wallet: false }
  *   401: not authenticated
  */
-async function handleGetWallet(
-  req: http.IncomingMessage,
-  res: http.ServerResponse
-): Promise<void> {
+async function handleGetWallet(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const agent = requireAuth(req, res);
   if (!agent) return;
 
@@ -293,10 +305,7 @@ async function handleGetWallet(
  *   403: user migrated to self-custody or 2FA required
  *   404: user has no custodial wallet
  */
-async function handleRotate(
-  req: http.IncomingMessage,
-  res: http.ServerResponse
-): Promise<void> {
+async function handleRotate(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const agent = requireAuth(req, res);
   if (!agent) return;
 
@@ -342,10 +351,17 @@ async function handleRotate(
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error('[custodial-wallet] rotate failed:', redactForLogging({ error: message, userId }));
+    console.error(
+      '[custodial-wallet] rotate failed:',
+      redactForLogging({ error: message, userId })
+    );
 
     if (message.includes('no wallet found')) {
-      json(res, 404, { success: false, error: 'no_wallet_found', message: 'User has no custodial wallet. Provision one first.' });
+      json(res, 404, {
+        success: false,
+        error: 'no_wallet_found',
+        message: 'User has no custodial wallet. Provision one first.',
+      });
     } else {
       json(res, 500, { success: false, error: 'rotation_failed', message });
     }
@@ -364,17 +380,18 @@ async function handleRotate(
  *   401: not authenticated
  *   404: user has no wallet
  */
-async function handleEnable2FA(
-  req: http.IncomingMessage,
-  res: http.ServerResponse
-): Promise<void> {
+async function handleEnable2FA(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const agent = requireAuth(req, res);
   if (!agent) return;
 
   const userId = agent.id;
 
   if (!hasCustodialWallet(userId)) {
-    json(res, 404, { success: false, error: 'no_wallet_found', message: 'User has no custodial wallet. Provision one first.' });
+    json(res, 404, {
+      success: false,
+      error: 'no_wallet_found',
+      message: 'User has no custodial wallet. Provision one first.',
+    });
     return;
   }
 
@@ -387,10 +404,7 @@ async function handleEnable2FA(
  *
  * Check 2FA status for the authenticated user.
  */
-async function handle2FAStatus(
-  req: http.IncomingMessage,
-  res: http.ServerResponse
-): Promise<void> {
+async function handle2FAStatus(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const agent = requireAuth(req, res);
   if (!agent) return;
 
@@ -412,10 +426,7 @@ async function handle2FAStatus(
  *   since: ISO 8601 timestamp — only events after this time
  *   limit: maximum number of events to return (default 50)
  */
-async function handleAuditLog(
-  req: http.IncomingMessage,
-  res: http.ServerResponse
-): Promise<void> {
+async function handleAuditLog(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   const agent = requireAuth(req, res);
   if (!agent) return;
 

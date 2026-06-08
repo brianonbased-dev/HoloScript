@@ -73,13 +73,13 @@ export interface LIFProbeOptions {
  * would defeat the cross-backend determinism claim).
  */
 function xorshift32(seed: number): () => number {
-  let state = (seed | 0) || 1; // avoid 0 state
+  let state = seed | 0 || 1; // avoid 0 state
   return () => {
     state ^= state << 13;
     state ^= state >>> 17;
     state ^= state << 5;
     // Return in [0, 1)
-    return ((state >>> 0) / 0x100000000);
+    return (state >>> 0) / 0x100000000;
   };
 }
 
@@ -117,7 +117,9 @@ export async function runLIFDeterminismProbe(
   const stimulusAmplitude = options.stimulusAmplitude ?? { min: 0, max: 1.2 };
 
   if (neuronCount <= 0 || !Number.isInteger(neuronCount)) {
-    throw new Error(`LIFDeterminismProbe: neuronCount must be a positive integer, got ${neuronCount}`);
+    throw new Error(
+      `LIFDeterminismProbe: neuronCount must be a positive integer, got ${neuronCount}`
+    );
   }
   if (tickCount <= 0 || !Number.isInteger(tickCount)) {
     throw new Error(`LIFDeterminismProbe: tickCount must be a positive integer, got ${tickCount}`);
@@ -137,11 +139,7 @@ export async function runLIFDeterminismProbe(
     // Return the membrane-potential bytes verbatim. The harness
     // hashes them; any numerical divergence between backends
     // surfaces as a different hash.
-    return new Uint8Array(
-      readback.data.buffer,
-      readback.data.byteOffset,
-      readback.data.byteLength
-    );
+    return new Uint8Array(readback.data.buffer, readback.data.byteOffset, readback.data.byteLength);
   } finally {
     sim.destroy();
   }

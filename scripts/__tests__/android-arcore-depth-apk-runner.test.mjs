@@ -33,7 +33,9 @@ function assertEq(actual, expected, name) {
   if (actual === expected) console.log(`  PASS ${name}`);
   else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -57,14 +59,21 @@ const fixture = {
 };
 assertEq(validateFrameReceipt(fixture).length, 0, 'valid receipt validates');
 const bundleInput = frameReceiptToArCoreBundleInput(fixture);
-assertEq(bundleInput.frames[0].depthImage16Bits.millimeters[1], 1000, 'depth millimeters preserved');
+assertEq(
+  bundleInput.frames[0].depthImage16Bits.millimeters[1],
+  1000,
+  'depth millimeters preserved'
+);
 assertEq(bundleInput.intrinsics.fx, 2, 'fx scaled to sample frame');
 assertEq(bundleInput.intrinsics.cx, 1, 'cx scaled to sample frame');
 assertEq(bundleInput.frames[0].rawDepthConfidenceImage.values[0], 255, 'confidence preserved');
 
 console.log('Test 2: invalid receipts fail closed');
 const badDepth = { ...fixture, sample: { ...fixture.sample, depthMillimeters: [500] } };
-assertOk(validateFrameReceipt(badDepth).includes('sample depth length invalid'), 'bad depth length rejected');
+assertOk(
+  validateFrameReceipt(badDepth).includes('sample depth length invalid'),
+  'bad depth length rejected'
+);
 const blocked = {
   schemaVersion: FRAME_RECEIPT_VERSION,
   status: 'blocked',
@@ -72,7 +81,9 @@ const blocked = {
 };
 assertEq(validateFrameReceipt(blocked).length, 0, 'blocked receipt validates with reason');
 assertOk(
-  validateFrameReceipt({ schemaVersion: FRAME_RECEIPT_VERSION, status: 'blocked' }).includes('blocked receipt missing blockedReason'),
+  validateFrameReceipt({ schemaVersion: FRAME_RECEIPT_VERSION, status: 'blocked' }).includes(
+    'blocked receipt missing blockedReason'
+  ),
   'blocked receipt requires reason'
 );
 

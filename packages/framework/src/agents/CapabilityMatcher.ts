@@ -134,22 +134,28 @@ function meetsMaxLatency(
 // ============================================================================
 
 function pointInBounds(point: Vector3, min: Vector3, max: Vector3): boolean {
-  return (point.x >= min.x &&
-  point.x <= max.x &&
-  point.y >= min.y &&
-  point.y <= max.y &&
-  point.z >= min.z && point.z <= max.z);
+  return (
+    point.x >= min.x &&
+    point.x <= max.x &&
+    point.y >= min.y &&
+    point.y <= max.y &&
+    point.z >= min.z &&
+    point.z <= max.z
+  );
 }
 
 function boundsOverlap(
   a: { min: Vector3; max: Vector3 },
   b: { min: Vector3; max: Vector3 }
 ): boolean {
-  return (a.min.x <= b.max.x &&
-  a.max.x >= b.min.x &&
-  a.min.y <= b.max.y &&
-  a.max.y >= b.min.y &&
-  a.min.z <= b.max.z && a.max.z >= b.min.z);
+  return (
+    a.min.x <= b.max.x &&
+    a.max.x >= b.min.x &&
+    a.min.y <= b.max.y &&
+    a.max.y >= b.min.y &&
+    a.min.z <= b.max.z &&
+    a.max.z >= b.min.z
+  );
 }
 
 function matchesSpatialQuery(scope: SpatialScope | undefined, query: SpatialQuery): boolean {

@@ -11,9 +11,9 @@ const pkgRoot = resolve(__dir, '..');
 const runVitest = resolve(pkgRoot, 'run-vitest.mjs');
 const testFile = 'src/compiler/__tests__/paper-6-mecanim-divergence-matrix.bench.test.ts';
 
-const r = spawnSync(
-  process.execPath,
-  ['--max-old-space-size=16384', runVitest, testFile],
-  { stdio: 'inherit', env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=16384' }, cwd: pkgRoot }
-);
+const r = spawnSync(process.execPath, ['--max-old-space-size=16384', runVitest, testFile], {
+  stdio: 'inherit',
+  env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=16384' },
+  cwd: pkgRoot,
+});
 process.exit(r.status ?? 1);

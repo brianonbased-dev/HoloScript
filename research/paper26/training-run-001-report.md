@@ -14,14 +14,14 @@
 
 ## Results
 
-| Metric                        | Value     |
-|-------------------------------|-----------|
-| Episodes                      | 30        |
-| Total steps                   | 1,361     |
-| Receipts generated            | 1,361     |
-| Avg loss (first pass)         | 0.1275    |
-| % steps within 3% tolerance   | 12.3%     |
-| Loss curve (5 epochs)         | [0.1275, 0.1173, 0.1071, 0.0969, 0.0867] |
+| Metric                      | Value                                    |
+| --------------------------- | ---------------------------------------- |
+| Episodes                    | 30                                       |
+| Total steps                 | 1,361                                    |
+| Receipts generated          | 1,361                                    |
+| Avg loss (first pass)       | 0.1275                                   |
+| % steps within 3% tolerance | 12.3%                                    |
+| Loss curve (5 epochs)       | [0.1275, 0.1173, 0.1071, 0.0969, 0.0867] |
 
 ## Artifacts
 

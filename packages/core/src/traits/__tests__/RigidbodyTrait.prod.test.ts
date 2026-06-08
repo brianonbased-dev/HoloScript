@@ -35,7 +35,7 @@ describe('RigidbodyTrait — constructor', () => {
   it('starts enabled', () => expect(mkRb().isEnabled()).toBe(true));
   it('initial velocity is zero vector', () => {
     const v = mkRb().getVelocity();
-    expect(v).toEqual([0, 0, 0 ]);
+    expect(v).toEqual([0, 0, 0]);
   });
   it('accepts initial velocity', () => {
     const rb = mkRb({ velocity: V(1, 2, 3) });
@@ -191,7 +191,7 @@ describe('RigidbodyTrait — kinematic', () => {
 
   it('moveRotation updates rotation only when kinematic', () => {
     const rb = mkRb({ isKinematic: true });
-    rb.moveRotation([0, 0.707, 0, 0.707 ]);
+    rb.moveRotation([0, 0.707, 0, 0.707]);
     expect(rb.getState().rotation[1]).toBeCloseTo(0.707);
   });
 

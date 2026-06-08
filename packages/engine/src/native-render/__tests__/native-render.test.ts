@@ -10,11 +10,27 @@ import { ComponentType, GeometryType } from '../../vm/opcodes';
 import { extractDrawSpecs, geometryKindFromType, composeTRS } from '../draw-spec';
 import { primitiveToMesh } from '../primitive-mesh';
 
-function addCube(world: ECSWorld, name: string, pos: { x: number; y: number; z: number }, scale: number, color: number) {
+function addCube(
+  world: ECSWorld,
+  name: string,
+  pos: { x: number; y: number; z: number },
+  scale: number,
+  color: number
+) {
   const id = world.spawn(name);
-  world.setComponent(id, ComponentType.Transform, { position: pos, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: { x: scale, y: scale, z: scale } });
+  world.setComponent(id, ComponentType.Transform, {
+    position: pos,
+    rotation: { x: 0, y: 0, z: 0, w: 1 },
+    scale: { x: scale, y: scale, z: scale },
+  });
   world.setComponent(id, ComponentType.Geometry, { type: GeometryType.Cube, params: {} });
-  world.setComponent(id, ComponentType.Material, { color, metalness: 0, roughness: 1, emissive: 0, opacity: 1 });
+  world.setComponent(id, ComponentType.Material, {
+    color,
+    metalness: 0,
+    roughness: 1,
+    emissive: 0,
+    opacity: 1,
+  });
   return id;
 }
 
@@ -31,14 +47,20 @@ describe('draw-spec — pure-data scene extraction from engine/vm ECSWorld', () 
     expect(specs[0].modelMatrix[0]).toBeCloseTo(2);
     expect(specs[0].modelMatrix[5]).toBeCloseTo(2);
     expect(specs[0].modelMatrix[10]).toBeCloseTo(2);
-    expect([specs[0].modelMatrix[12], specs[0].modelMatrix[13], specs[0].modelMatrix[14]]).toEqual([1, 2, 3]);
+    expect([specs[0].modelMatrix[12], specs[0].modelMatrix[13], specs[0].modelMatrix[14]]).toEqual([
+      1, 2, 3,
+    ]);
   });
 
   it('skips non-renderable entities (missing Material) and orders by id', () => {
     const w = new ECSWorld();
     addCube(w, 'a', { x: -2, y: 0, z: 0 }, 1, 0x00ff00);
     const bare = w.spawn('no-material');
-    w.setComponent(bare, ComponentType.Transform, { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: { x: 1, y: 1, z: 1 } });
+    w.setComponent(bare, ComponentType.Transform, {
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      scale: { x: 1, y: 1, z: 1 },
+    });
     w.setComponent(bare, ComponentType.Geometry, { type: GeometryType.Cube, params: {} });
     addCube(w, 'b', { x: 2, y: 0, z: 0 }, 1, 0x0000ff);
 
@@ -54,7 +76,9 @@ describe('draw-spec — pure-data scene extraction from engine/vm ECSWorld', () 
 
   it('composeTRS produces a column-major TRS matrix', () => {
     const m = composeTRS({ x: 5, y: 6, z: 7 }, { x: 0, y: 0, z: 0, w: 1 }, { x: 2, y: 3, z: 4 });
-    expect(m[0]).toBeCloseTo(2); expect(m[5]).toBeCloseTo(3); expect(m[10]).toBeCloseTo(4);
+    expect(m[0]).toBeCloseTo(2);
+    expect(m[5]).toBeCloseTo(3);
+    expect(m[10]).toBeCloseTo(4);
     expect([m[12], m[13], m[14], m[15]]).toEqual([5, 6, 7, 1]);
   });
 });
@@ -64,8 +88,12 @@ describe('primitive-mesh — CPU geometry generation', () => {
     const m = primitiveToMesh('cube');
     expect(m.vertexCount).toBe(8);
     expect(m.indices.length).toBe(36); // 12 triangles
-    let min = Infinity, max = -Infinity;
-    for (const v of m.positions) { min = Math.min(min, v); max = Math.max(max, v); }
+    let min = Infinity,
+      max = -Infinity;
+    for (const v of m.positions) {
+      min = Math.min(min, v);
+      max = Math.max(max, v);
+    }
     expect(min).toBeCloseTo(-0.5);
     expect(max).toBeCloseTo(0.5);
     // every index in range

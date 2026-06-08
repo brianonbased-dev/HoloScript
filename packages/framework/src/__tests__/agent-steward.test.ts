@@ -199,7 +199,7 @@ function makeValidation(overrides: Partial<ValidationReceipt> = {}): ValidationR
 }
 
 function makeStewardActionReceipt(
-  overrides: Partial<StewardActionReceipt> = {},
+  overrides: Partial<StewardActionReceipt> = {}
 ): StewardActionReceipt {
   return {
     id: 'srcpt_steward_oasis_001_20260507',
@@ -331,8 +331,8 @@ describe('StewardCapability', () => {
   it('accepts capability-other when label is supplied', () => {
     expect(
       validateStewardCapability(
-        makeCapability({ kind: 'capability-other', label: 'soul-engineering' }),
-      ),
+        makeCapability({ kind: 'capability-other', label: 'soul-engineering' })
+      )
     ).toEqual([]);
   });
 });
@@ -379,26 +379,24 @@ describe('AgentSteward', () => {
 
   it('requires roleLabel when role is steward-other', () => {
     const errors = validateAgentSteward(
-      makeSteward({ role: 'steward-other', roleLabel: undefined }),
+      makeSteward({ role: 'steward-other', roleLabel: undefined })
     );
-    expect(errors.some((e) => e.includes('role=steward-other requires roleLabel.'))).toBe(
-      true,
-    );
+    expect(errors.some((e) => e.includes('role=steward-other requires roleLabel.'))).toBe(true);
   });
 
   it('rejects empty capabilities array', () => {
     const errors = validateAgentSteward(makeSteward({ capabilities: [] }));
-    expect(errors.some((e) => e.includes('.capabilities must be a non-empty array.'))).toBe(
-      true,
-    );
+    expect(errors.some((e) => e.includes('.capabilities must be a non-empty array.'))).toBe(true);
   });
 
   it('propagates capability errors with grep-friendly prefix', () => {
     const errors = validateAgentSteward(
-      makeSteward({ capabilities: [makeCapability({ kind: 'capability-other' })] }),
+      makeSteward({ capabilities: [makeCapability({ kind: 'capability-other' })] })
     );
     expect(
-      errors.some((e) => e.includes('.capabilities[0]: StewardCapability kind=capability-other requires label.')),
+      errors.some((e) =>
+        e.includes('.capabilities[0]: StewardCapability kind=capability-other requires label.')
+      )
     ).toBe(true);
   });
 });
@@ -443,37 +441,31 @@ describe('WorldIssue', () => {
 
   it('requires categoryLabel when category is issue-other', () => {
     const errors = validateWorldIssue(
-      makeIssue({ category: 'issue-other', categoryLabel: undefined }),
+      makeIssue({ category: 'issue-other', categoryLabel: undefined })
     );
-    expect(
-      errors.some((e) => e.includes('category=issue-other requires categoryLabel.')),
-    ).toBe(true);
+    expect(errors.some((e) => e.includes('category=issue-other requires categoryLabel.'))).toBe(
+      true
+    );
   });
 
   it('requires duplicateOf when status is duplicate', () => {
-    const errors = validateWorldIssue(
-      makeIssue({ status: 'duplicate', duplicateOf: undefined }),
-    );
-    expect(
-      errors.some((e) => e.includes('status=duplicate requires duplicateOf.')),
-    ).toBe(true);
+    const errors = validateWorldIssue(makeIssue({ status: 'duplicate', duplicateOf: undefined }));
+    expect(errors.some((e) => e.includes('status=duplicate requires duplicateOf.'))).toBe(true);
   });
 
   it('accepts duplicate status when duplicateOf is supplied', () => {
     expect(
-      validateWorldIssue(
-        makeIssue({ status: 'duplicate', duplicateOf: 'issue_canonical_001' }),
-      ),
+      validateWorldIssue(makeIssue({ status: 'duplicate', duplicateOf: 'issue_canonical_001' }))
     ).toEqual([]);
   });
 
   it('rejects hash without hashAlgorithm', () => {
     const errors = validateWorldIssue(
-      makeIssue({ hash: 'x'.repeat(64), hashAlgorithm: undefined }),
+      makeIssue({ hash: 'x'.repeat(64), hashAlgorithm: undefined })
     );
-    expect(
-      errors.some((e) => e.includes('.hashAlgorithm is required when hash is set.')),
-    ).toBe(true);
+    expect(errors.some((e) => e.includes('.hashAlgorithm is required when hash is set.'))).toBe(
+      true
+    );
   });
 
   it('rejects missing reporter, summary, raisedAt, id', () => {
@@ -501,9 +493,7 @@ describe('RollbackStep', () => {
   });
 
   it('rejects unsupported kind', () => {
-    const errors = validateRollbackStep(
-      makeRollbackStep({ kind: 'time-travel' as never }),
-    );
+    const errors = validateRollbackStep(makeRollbackStep({ kind: 'time-travel' as never }));
     expect(errors).toContain('RollbackStep.kind is unsupported: time-travel.');
   });
 
@@ -514,18 +504,18 @@ describe('RollbackStep', () => {
         label: undefined,
         targetStateHash: undefined,
         targetStateHashAlgorithm: undefined,
-      }),
+      })
     );
     expect(errors.some((e) => e.includes('kind=rollback-other requires label.'))).toBe(true);
   });
 
   it('requires targetStateHash when kind is state-restore', () => {
     const errors = validateRollbackStep(
-      makeRollbackStep({ kind: 'state-restore', targetStateHash: undefined }),
+      makeRollbackStep({ kind: 'state-restore', targetStateHash: undefined })
     );
-    expect(
-      errors.some((e) => e.includes('kind=state-restore requires targetStateHash.')),
-    ).toBe(true);
+    expect(errors.some((e) => e.includes('kind=state-restore requires targetStateHash.'))).toBe(
+      true
+    );
   });
 
   it('requires targetStateHashAlgorithm when targetStateHash is set', () => {
@@ -534,12 +524,14 @@ describe('RollbackStep', () => {
         kind: 'state-restore',
         targetStateHash: 'x'.repeat(64),
         targetStateHashAlgorithm: undefined,
-      }),
+      })
     );
     expect(
       errors.some((e) =>
-        e.includes('kind=state-restore requires targetStateHashAlgorithm when targetStateHash is set.'),
-      ),
+        e.includes(
+          'kind=state-restore requires targetStateHashAlgorithm when targetStateHash is set.'
+        )
+      )
     ).toBe(true);
   });
 
@@ -550,11 +542,11 @@ describe('RollbackStep', () => {
         invertActionId: undefined,
         targetStateHash: undefined,
         targetStateHashAlgorithm: undefined,
-      }),
+      })
     );
-    expect(
-      errors.some((e) => e.includes('kind=inverse-action requires invertActionId.')),
-    ).toBe(true);
+    expect(errors.some((e) => e.includes('kind=inverse-action requires invertActionId.'))).toBe(
+      true
+    );
   });
 
   it('accepts inverse-action when invertActionId is supplied', () => {
@@ -565,8 +557,8 @@ describe('RollbackStep', () => {
           invertActionId: 'act_economy_tune_001',
           targetStateHash: undefined,
           targetStateHashAlgorithm: undefined,
-        }),
-      ),
+        })
+      )
     ).toEqual([]);
   });
 
@@ -577,7 +569,7 @@ describe('RollbackStep', () => {
         instructions: undefined,
         targetStateHash: undefined,
         targetStateHashAlgorithm: undefined,
-      }),
+      })
     );
     expect(errors.some((e) => e.includes('kind=manual requires instructions.'))).toBe(true);
   });
@@ -590,8 +582,8 @@ describe('RollbackStep', () => {
           instructions: 'Invoke ops runbook RB-OASIS-MARKET-001.',
           targetStateHash: undefined,
           targetStateHashAlgorithm: undefined,
-        }),
-      ),
+        })
+      )
     ).toEqual([]);
   });
 });
@@ -612,10 +604,12 @@ describe('RollbackPlan', () => {
     const errors = validateRollbackPlan(
       makeRollbackPlan({
         steps: [makeRollbackStep({ kind: 'time-travel' as never })],
-      }),
+      })
     );
     expect(
-      errors.some((e) => e.includes('.steps[rstep_001]: RollbackStep.kind is unsupported: time-travel.')),
+      errors.some((e) =>
+        e.includes('.steps[rstep_001]: RollbackStep.kind is unsupported: time-travel.')
+      )
     ).toBe(true);
   });
 });
@@ -653,18 +647,14 @@ describe('StewardProposal', () => {
 
   it('rejects empty capabilities array', () => {
     const errors = validateStewardProposal(makeProposal({ capabilities: [] }));
-    expect(
-      errors.some((e) => e.includes('.capabilities must be a non-empty array.')),
-    ).toBe(true);
+    expect(errors.some((e) => e.includes('.capabilities must be a non-empty array.'))).toBe(true);
   });
 
   it('rejects unsupported capability entry', () => {
-    const errors = validateStewardProposal(
-      makeProposal({ capabilities: ['hyperdrive' as never] }),
+    const errors = validateStewardProposal(makeProposal({ capabilities: ['hyperdrive' as never] }));
+    expect(errors.some((e) => e.includes('.capabilities[0] is unsupported: hyperdrive.'))).toBe(
+      true
     );
-    expect(
-      errors.some((e) => e.includes('.capabilities[0] is unsupported: hyperdrive.')),
-    ).toBe(true);
   });
 
   it('rejects empty impact array', () => {
@@ -674,29 +664,29 @@ describe('StewardProposal', () => {
 
   it('propagates impact errors with grep-friendly prefix', () => {
     const errors = validateStewardProposal(
-      makeProposal({ impact: [makeImpact({ kind: 'cataclysmic' as never })] }),
+      makeProposal({ impact: [makeImpact({ kind: 'cataclysmic' as never })] })
     );
     expect(
-      errors.some((e) => e.includes('.impact[0]: ProposalImpact.kind is unsupported: cataclysmic.')),
+      errors.some((e) => e.includes('.impact[0]: ProposalImpact.kind is unsupported: cataclysmic.'))
     ).toBe(true);
   });
 
   it('requires rollback plan when impact is not exclusively cosmetic', () => {
     const errors = validateStewardProposal(
-      makeProposal({ impact: [makeImpact({ kind: 'shard-wide' })], rollback: undefined }),
+      makeProposal({ impact: [makeImpact({ kind: 'shard-wide' })], rollback: undefined })
     );
     expect(
       errors.some((e) =>
-        e.includes('requires a rollback plan when impact is not exclusively cosmetic.'),
-      ),
+        e.includes('requires a rollback plan when impact is not exclusively cosmetic.')
+      )
     ).toBe(true);
   });
 
   it('does not require rollback plan when impact is exclusively cosmetic', () => {
     expect(
       validateStewardProposal(
-        makeProposal({ impact: [makeImpact({ kind: 'cosmetic' })], rollback: undefined }),
-      ),
+        makeProposal({ impact: [makeImpact({ kind: 'cosmetic' })], rollback: undefined })
+      )
     ).toEqual([]);
   });
 
@@ -705,7 +695,7 @@ describe('StewardProposal', () => {
       makeProposal({
         impact: [makeImpact({ kind: 'cosmetic' })],
         rollback: makeRollbackPlan({ steps: [] }),
-      }),
+      })
     );
     expect(errors.some((e) => e.includes('.rollback: '))).toBe(true);
   });
@@ -713,36 +703,36 @@ describe('StewardProposal', () => {
   it('rejects negative requiredApprovals', () => {
     const errors = validateStewardProposal(makeProposal({ requiredApprovals: -1 }));
     expect(
-      errors.some((e) => e.includes('.requiredApprovals must be a non-negative integer.')),
+      errors.some((e) => e.includes('.requiredApprovals must be a non-negative integer.'))
     ).toBe(true);
   });
 
   it('rejects non-integer requiredApprovals', () => {
     const errors = validateStewardProposal(makeProposal({ requiredApprovals: 1.5 }));
     expect(
-      errors.some((e) => e.includes('.requiredApprovals must be a non-negative integer.')),
+      errors.some((e) => e.includes('.requiredApprovals must be a non-negative integer.'))
     ).toBe(true);
   });
 
   it('rejects approved status with insufficient approvers', () => {
     const errors = validateStewardProposal(
-      makeProposal({ status: 'approved', requiredApprovals: 2, approvedBy: ['alice'] }),
+      makeProposal({ status: 'approved', requiredApprovals: 2, approvedBy: ['alice'] })
     );
     expect(
       errors.some((e) =>
-        e.includes('status=approved requires approvedBy.length (1) >= requiredApprovals (2).'),
-      ),
+        e.includes('status=approved requires approvedBy.length (1) >= requiredApprovals (2).')
+      )
     ).toBe(true);
   });
 
   it('rejects enacted status with no approvers when requiredApprovals > 0', () => {
     const errors = validateStewardProposal(
-      makeProposal({ status: 'enacted', requiredApprovals: 1, approvedBy: [] }),
+      makeProposal({ status: 'enacted', requiredApprovals: 1, approvedBy: [] })
     );
     expect(
       errors.some((e) =>
-        e.includes('status=enacted requires approvedBy.length (0) >= requiredApprovals (1).'),
-      ),
+        e.includes('status=enacted requires approvedBy.length (0) >= requiredApprovals (1).')
+      )
     ).toBe(true);
   });
 
@@ -753,26 +743,26 @@ describe('StewardProposal', () => {
           status: 'enacted',
           requiredApprovals: 2,
           approvedBy: ['alice', 'bob'],
-        }),
-      ),
+        })
+      )
     ).toEqual([]);
   });
 
   it('accepts enacted status when requiredApprovals is 0 (auto-enact)', () => {
     expect(
       validateStewardProposal(
-        makeProposal({ status: 'enacted', requiredApprovals: 0, approvedBy: [] }),
-      ),
+        makeProposal({ status: 'enacted', requiredApprovals: 0, approvedBy: [] })
+      )
     ).toEqual([]);
   });
 
   it('rejects verification command without command text', () => {
     const errors = validateStewardProposal(
-      makeProposal({ verificationCommands: [{ command: '' }] }),
+      makeProposal({ verificationCommands: [{ command: '' }] })
     );
-    expect(
-      errors.some((e) => e.includes('has a verification command without command text.')),
-    ).toBe(true);
+    expect(errors.some((e) => e.includes('has a verification command without command text.'))).toBe(
+      true
+    );
   });
 });
 
@@ -784,8 +774,8 @@ describe('StewardActionReceipt', () => {
       validateStewardActionReceipt(
         makeStewardActionReceipt(),
         validateAgentActionReceipt,
-        validateValidationReceipt,
-      ),
+        validateValidationReceipt
+      )
     ).toEqual([]);
   });
 
@@ -793,7 +783,7 @@ describe('StewardActionReceipt', () => {
     const errors = validateStewardActionReceipt(
       makeStewardActionReceipt({ status: 'queued' as never }),
       validateAgentActionReceipt,
-      validateValidationReceipt,
+      validateValidationReceipt
     );
     expect(errors).toContain('StewardActionReceipt.status is unsupported: queued.');
   });
@@ -810,7 +800,7 @@ describe('StewardActionReceipt', () => {
         hashAlgorithm: '' as never,
       },
       validateAgentActionReceipt,
-      validateValidationReceipt,
+      validateValidationReceipt
     );
     expect(errors).toContain('StewardActionReceipt.id is required.');
     expect(errors.some((e) => e.includes('.proposalId is required.'))).toBe(true);
@@ -825,12 +815,10 @@ describe('StewardActionReceipt', () => {
     const errors = validateStewardActionReceipt(
       makeStewardActionReceipt({ agentActions: [badAction] }),
       validateAgentActionReceipt,
-      validateValidationReceipt,
+      validateValidationReceipt
     );
     expect(
-      errors.some((e) =>
-        e.includes('agentActions[<unknown>]: AgentActionReceipt.id is required.'),
-      ),
+      errors.some((e) => e.includes('agentActions[<unknown>]: AgentActionReceipt.id is required.'))
     ).toBe(true);
   });
 
@@ -839,12 +827,12 @@ describe('StewardActionReceipt', () => {
     const errors = validateStewardActionReceipt(
       makeStewardActionReceipt({ validationReceipts: [badValidation] }),
       validateAgentActionReceipt,
-      validateValidationReceipt,
+      validateValidationReceipt
     );
     expect(
       errors.some((e) =>
-        e.includes('validationReceipts[<unknown>]: ValidationReceipt.id is required.'),
-      ),
+        e.includes('validationReceipts[<unknown>]: ValidationReceipt.id is required.')
+      )
     ).toBe(true);
   });
 
@@ -852,11 +840,11 @@ describe('StewardActionReceipt', () => {
     const errors = validateStewardActionReceipt(
       makeStewardActionReceipt({ verificationCommands: [{ command: '' }] }),
       validateAgentActionReceipt,
-      validateValidationReceipt,
+      validateValidationReceipt
     );
-    expect(
-      errors.some((e) => e.includes('has a verification command without command text.')),
-    ).toBe(true);
+    expect(errors.some((e) => e.includes('has a verification command without command text.'))).toBe(
+      true
+    );
   });
 });
 
@@ -901,9 +889,7 @@ describe('Agent steward cloning', () => {
     clone.capabilities[0].requiredSkillIds!.push('skill_extra');
     clone.scope.shardIds!.push('shard_other');
     (clone.metadata as Record<string, unknown>).handlerVersion = 2;
-    expect(steward.capabilities[0].requiredSkillIds).toEqual([
-      'skill_event_designer_basic',
-    ]);
+    expect(steward.capabilities[0].requiredSkillIds).toEqual(['skill_event_designer_basic']);
     expect(steward.scope.shardIds).toEqual(['shard_oasis_0']);
     expect(steward.metadata).toEqual({ handlerVersion: 1 });
   });
@@ -986,7 +972,7 @@ describe('Agent steward cloning', () => {
     const clone = cloneStewardActionReceipt(
       receipt,
       cloneAgentActionReceipt,
-      cloneValidationReceipt,
+      cloneValidationReceipt
     );
     clone.agentActions![0].id = 'mutated';
     clone.validationReceipts![0].id = 'mutated';

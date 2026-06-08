@@ -132,9 +132,7 @@ describe('DeterminismHarness.compareResults', () => {
     expect(report.uniqueHashes).toBe(2);
     expect(report.groups.length).toBe(2);
     // The larger group should carry 2 results.
-    const largest = report.groups.reduce((a, b) =>
-      a.results.length >= b.results.length ? a : b
-    );
+    const largest = report.groups.reduce((a, b) => (a.results.length >= b.results.length ? a : b));
     expect(largest.results.length).toBe(2);
     expect(report.summary).toMatch(/^DIVERGENT/);
   });

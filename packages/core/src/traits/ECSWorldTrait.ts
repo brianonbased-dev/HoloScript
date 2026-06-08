@@ -124,13 +124,25 @@ export class ECSWorld {
   ): TransformComponent & Record<string | number, unknown> {
     const pos = Array.isArray(t.position)
       ? (t.position as [number, number, number])
-      : ([(t['x'] as number) ?? 0, (t['y'] as number) ?? 0, (t['z'] as number) ?? 0] as [number, number, number]);
+      : ([(t['x'] as number) ?? 0, (t['y'] as number) ?? 0, (t['z'] as number) ?? 0] as [
+          number,
+          number,
+          number,
+        ]);
     const rot = Array.isArray(t.rotation)
       ? (t.rotation as [number, number, number])
-      : ([(t['rx'] as number) ?? 0, (t['ry'] as number) ?? 0, (t['rz'] as number) ?? 0] as [number, number, number]);
+      : ([(t['rx'] as number) ?? 0, (t['ry'] as number) ?? 0, (t['rz'] as number) ?? 0] as [
+          number,
+          number,
+          number,
+        ]);
     const scale = Array.isArray(t.scale)
       ? (t.scale as [number, number, number])
-      : ([(t['sx'] as number) ?? 1, (t['sy'] as number) ?? 1, (t['sz'] as number) ?? 1] as [number, number, number]);
+      : ([(t['sx'] as number) ?? 1, (t['sy'] as number) ?? 1, (t['sz'] as number) ?? 1] as [
+          number,
+          number,
+          number,
+        ]);
 
     t.position = pos;
     t.rotation = rot;
@@ -155,7 +167,10 @@ export class ECSWorld {
   }
 
   addTransform(id: EntityId, t: TransformComponent): this {
-    this.transforms.set(id, this.normalizeTransform(t as TransformComponent & Record<string | number, unknown>));
+    this.transforms.set(
+      id,
+      this.normalizeTransform(t as TransformComponent & Record<string | number, unknown>)
+    );
     this.masks.set(id, (this.masks.get(id) ?? 0) | ComponentType.Transform);
     return this;
   }
@@ -185,7 +200,9 @@ export class ECSWorld {
   }
 
   getTransform(id: EntityId): TransformComponent | undefined {
-    const t = this.transforms.get(id) as (TransformComponent & Record<string | number, unknown>) | undefined;
+    const t = this.transforms.get(id) as
+      | (TransformComponent & Record<string | number, unknown>)
+      | undefined;
     if (!t) return undefined;
     return this.normalizeTransform(t);
   }

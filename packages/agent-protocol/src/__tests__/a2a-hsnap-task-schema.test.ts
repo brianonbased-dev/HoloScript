@@ -55,9 +55,7 @@ function makeA2ATask(overrides: Partial<A2ATask> = {}): A2ATask {
       },
     ],
     metadata: {
-      stateBindings: [
-        { target: 'position.x', source: 'input.x', mode: 'one-way' },
-      ],
+      stateBindings: [{ target: 'position.x', source: 'input.x', mode: 'one-way' }],
     },
     ...overrides,
   };
@@ -66,12 +64,8 @@ function makeA2ATask(overrides: Partial<A2ATask> = {}): A2ATask {
 function makeHSNAPPayload(overrides: Partial<HSNAPPayload> = {}): HSNAPPayload {
   return {
     composition: 'TestComposition',
-    traits: [
-      { name: 'Renderable', config: { mesh: 'cube', mimeType: 'model/gltf', data: null } },
-    ],
-    stateBindings: [
-      { target: 'opacity', source: 'input.alpha', mode: 'two-way' },
-    ],
+    traits: [{ name: 'Renderable', config: { mesh: 'cube', mimeType: 'model/gltf', data: null } }],
+    stateBindings: [{ target: 'opacity', source: 'input.alpha', mode: 'two-way' }],
     task: {
       id: 'hsnap-task-001',
       from: 'planner',
@@ -105,7 +99,14 @@ function makeHSNAPPayload(overrides: Partial<HSNAPPayload> = {}): HSNAPPayload {
 describe('Zod schemas', () => {
   describe('A2ATaskStatusSchema', () => {
     it('accepts valid status values', () => {
-      for (const status of ['submitted', 'working', 'input-required', 'completed', 'failed', 'canceled']) {
+      for (const status of [
+        'submitted',
+        'working',
+        'input-required',
+        'completed',
+        'failed',
+        'canceled',
+      ]) {
         expect(A2ATaskStatusSchema.parse(status)).toBe(status);
       }
     });

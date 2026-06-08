@@ -34,7 +34,10 @@ export interface LoadHoloMapWeightsOptions {
 async function sha256Digest(bytes: Uint8Array): Promise<string> {
   const c = globalThis.crypto;
   if (c?.subtle) {
-    const buf = await c.subtle.digest('SHA-256', (bytes.buffer as ArrayBuffer).slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    const buf = await c.subtle.digest(
+      'SHA-256',
+      (bytes.buffer as ArrayBuffer).slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+    );
     return bufferToHex(new Uint8Array(buf));
   }
   const { createHash } = await import('node:crypto');
@@ -61,13 +64,13 @@ export async function assertWeightCid(bytes: Uint8Array, weightCid: string): Pro
   const expect = normalizeWeightCidDigest(weightCid);
   if (!/^[0-9a-f]{64}$/.test(expect)) {
     throw new Error(
-      `HoloMap weights: weightCid must be sha256:hex64 or 64-char hex (got "${weightCid.slice(0, 24)}...")`,
+      `HoloMap weights: weightCid must be sha256:hex64 or 64-char hex (got "${weightCid.slice(0, 24)}...")`
     );
   }
   const actual = await sha256Digest(bytes);
   if (actual !== expect) {
     throw new Error(
-      `HoloMap weights: digest mismatch — expected ${expect.slice(0, 12)}… got ${actual.slice(0, 12)}…`,
+      `HoloMap weights: digest mismatch — expected ${expect.slice(0, 12)}… got ${actual.slice(0, 12)}…`
     );
   }
 }
@@ -102,7 +105,9 @@ async function sleep(ms: number): Promise<void> {
  *   3. On successful network fetch, verify CID (if given), cache the verified blob, return.
  *   4. `file://` and package-relative paths bypass the network and go straight to disk.
  */
-export async function loadHoloMapWeightBlob(options: LoadHoloMapWeightsOptions): Promise<LoadResult> {
+export async function loadHoloMapWeightBlob(
+  options: LoadHoloMapWeightsOptions
+): Promise<LoadResult> {
   const { weightUrl, weightUrls = [], weightCid, fetchImpl, skipCache, localResolver } = options;
   const f = fetchImpl ?? globalThis.fetch;
 

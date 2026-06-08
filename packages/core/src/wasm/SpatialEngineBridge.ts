@@ -201,7 +201,9 @@ export class SpatialEngineBridge {
    */
   async load(_source: string | ArrayBuffer): Promise<boolean> {
     // WASM spatial engine retired in c5887f4e7; TS fallback is the only backend.
-    console.warn('[SpatialEngineBridge] WASM spatial engine retired (c5887f4e7). Using pure-TS fallback.');
+    console.warn(
+      '[SpatialEngineBridge] WASM spatial engine retired (c5887f4e7). Using pure-TS fallback.'
+    );
     this.status = {
       wasmLoaded: false,
       fallbackMode: true,

@@ -13,8 +13,18 @@ import { createGeofenceHandler } from './traits/GeofenceTrait';
 
 export * from './geodesy';
 
-export const pluginMeta = { name: '@holoscript/plugin-geolocation-gis', version: '1.0.0', traits: ['map_view', 'route', 'poi', 'geocode', 'geofence', 'vincenty_geodesy'] };
-export const traitHandlers = [createMapViewHandler(), createRouteHandler(), createPOIHandler(), createGeocodeHandler(), createGeofenceHandler()];
+export const pluginMeta = {
+  name: '@holoscript/plugin-geolocation-gis',
+  version: '1.0.0',
+  traits: ['map_view', 'route', 'poi', 'geocode', 'geofence', 'vincenty_geodesy'],
+};
+export const traitHandlers = [
+  createMapViewHandler(),
+  createRouteHandler(),
+  createPOIHandler(),
+  createGeocodeHandler(),
+  createGeofenceHandler(),
+];
 
 // Runtime integration — behavioral `vincenty_geodesy` handler + opt-in registrar
 // that wire the real Vincenty solver into HoloScriptRuntime via the shared P1

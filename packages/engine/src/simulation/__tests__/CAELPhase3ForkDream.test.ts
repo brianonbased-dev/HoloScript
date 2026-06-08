@@ -71,11 +71,10 @@ describe('CAEL Phase 3: forking + dreaming', () => {
       tetrahedra: new Uint32Array([0, 1, 2, 3]),
     };
 
-    const wakingRecorder = new CAELRecorder(
-      mockStructuralFactory(baseConfig),
-      baseConfig,
-      { fixedDt: 0.01, solverType: 'mock-structural' }
-    );
+    const wakingRecorder = new CAELRecorder(mockStructuralFactory(baseConfig), baseConfig, {
+      fixedDt: 0.01,
+      solverType: 'mock-structural',
+    });
 
     for (let i = 0; i < 5; i++) wakingRecorder.step(0.01);
     wakingRecorder.finalize();
@@ -136,11 +135,10 @@ describe('CAEL Phase 3: forking + dreaming', () => {
       tetrahedra: new Uint32Array([0, 1, 2, 3]),
     };
 
-    const wakingRecorder = new CAELRecorder(
-      mockStructuralFactory(wakingConfig),
-      wakingConfig,
-      { fixedDt: 0.01, solverType: 'mock-structural' }
-    );
+    const wakingRecorder = new CAELRecorder(mockStructuralFactory(wakingConfig), wakingConfig, {
+      fixedDt: 0.01,
+      solverType: 'mock-structural',
+    });
 
     for (let i = 0; i < 10; i++) wakingRecorder.step(0.01);
     wakingRecorder.finalize();

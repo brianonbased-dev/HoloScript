@@ -155,25 +155,25 @@ export function GenerativeArtPanel() {
         </div>
 
         <StudioErrorBoundary label="Generative Art Canvas">
-        <Canvas
-          camera={{ position: [0, 0, 5], fov: 60 }}
-          gl={{ antialias: true, alpha: false }}
-          style={{ background: '#05050f' }}
-        >
-          <ambientLight intensity={0.3} />
-          <Stars radius={80} depth={50} count={3000} factor={3} fade />
-          {particleCount > 0 && (
-            <ParticleSystem
-              count={particleCount}
-              speed={speed}
-              spread={spread}
-              colorA={activePreset.particles?.colorA ?? '#ffffff'}
-              colorB={activePreset.particles?.colorB ?? '#888888'}
-              lifetime={lifetime}
-            />
-          )}
-          <OrbitControls enableZoom enablePan={false} autoRotate autoRotateSpeed={0.4} />
-        </Canvas>
+          <Canvas
+            camera={{ position: [0, 0, 5], fov: 60 }}
+            gl={{ antialias: true, alpha: false }}
+            style={{ background: '#05050f' }}
+          >
+            <ambientLight intensity={0.3} />
+            <Stars radius={80} depth={50} count={3000} factor={3} fade />
+            {particleCount > 0 && (
+              <ParticleSystem
+                count={particleCount}
+                speed={speed}
+                spread={spread}
+                colorA={activePreset.particles?.colorA ?? '#ffffff'}
+                colorB={activePreset.particles?.colorB ?? '#888888'}
+                lifetime={lifetime}
+              />
+            )}
+            <OrbitControls enableZoom enablePan={false} autoRotate autoRotateSpeed={0.4} />
+          </Canvas>
         </StudioErrorBoundary>
       </div>
 

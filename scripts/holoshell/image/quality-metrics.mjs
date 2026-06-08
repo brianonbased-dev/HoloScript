@@ -25,7 +25,10 @@ export function analyzeFrameQuality(frame) {
   let bright = 0;
   for (let i = 0; i < pixels; i += 1) {
     const p = i * frame.stride;
-    const y = 0.2126 * (frame.rgb[p] ?? 0) + 0.7152 * (frame.rgb[p + 1] ?? 0) + 0.0722 * (frame.rgb[p + 2] ?? 0);
+    const y =
+      0.2126 * (frame.rgb[p] ?? 0) +
+      0.7152 * (frame.rgb[p + 1] ?? 0) +
+      0.0722 * (frame.rgb[p + 2] ?? 0);
     lum[i] = y;
     sum += y;
     sumSq += y * y;

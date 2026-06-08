@@ -9,12 +9,12 @@
 
 HoloShell absorbs legacy apps through four ordered paths. The path chosen for a given archetype depends on what surface the legacy app exposes, what permissions the user has granted, and whether a deterministic receipt can be produced.
 
-| Path | Trigger | Mechanism | Receipt Quality | Trust Floor |
-|---|---|---|---|---|
-| **Native API / MCP** | App exposes a programmatic surface (REST, SDK, MCP server, COM, WMI). | Call the API directly via HoloScript `@connector` traits or MCP tool dispatch. | Structured, signed, replayable. | `verified` |
-| **CLI / PowerShell** | App ships a command-line interface or is reachable through OS shell primitives. | HoloScript `.hs` pipeline invokes `exec` / `Start-Process` with argument validation and stdout/stderr capture. | Exit-code + stdout/stderr + artifact hash. | `known` |
-| **Browser Automation** | App is a web service with no local API, but a browser can drive it. | Playwright/Chrome agent behind a HoloScript policy envelope. DOM state + screenshot as evidence. | Screenshot + network log + cookie/session audit. | `external` |
-| **UI Automation / Vision Fallback** | App is GUI-only, closed, or opaque. No API, no CLI, no web surface. | OS accessibility tree + pixel-level vision model. Slowest, least deterministic, highest risk. | Before/after screenshot + bounding-box trace + confidence score. | `untrusted` |
+| Path                                | Trigger                                                                         | Mechanism                                                                                                      | Receipt Quality                                                  | Trust Floor |
+| ----------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------- |
+| **Native API / MCP**                | App exposes a programmatic surface (REST, SDK, MCP server, COM, WMI).           | Call the API directly via HoloScript `@connector` traits or MCP tool dispatch.                                 | Structured, signed, replayable.                                  | `verified`  |
+| **CLI / PowerShell**                | App ships a command-line interface or is reachable through OS shell primitives. | HoloScript `.hs` pipeline invokes `exec` / `Start-Process` with argument validation and stdout/stderr capture. | Exit-code + stdout/stderr + artifact hash.                       | `known`     |
+| **Browser Automation**              | App is a web service with no local API, but a browser can drive it.             | Playwright/Chrome agent behind a HoloScript policy envelope. DOM state + screenshot as evidence.               | Screenshot + network log + cookie/session audit.                 | `external`  |
+| **UI Automation / Vision Fallback** | App is GUI-only, closed, or opaque. No API, no CLI, no web surface.             | OS accessibility tree + pixel-level vision model. Slowest, least deterministic, highest risk.                  | Before/after screenshot + bounding-box trace + confidence score. | `untrusted` |
 
 Path selection is **not** permanent. As a legacy app gains a better surface (e.g., a vendor ships an MCP server), HoloShell reclassifies the archetype and migrates active workflows to the higher-trust path.
 
@@ -212,27 +212,33 @@ capability "CommunicationHub" {
 ## 3. Cross-Cutting Rules
 
 ### 3.1 Permission Grants Are Capability Tokens
+
 Every permission in the `permissions:` array is a UCAN `Capability` (`with`, `can`, `nb`). HoloShell stores them in the agent's local capability token cache. The user grants them through a HoloLand permissions room, not through opaque OS dialogs.
 
 ### 3.2 Receipts Are Source of Truth
+
 A legacy-app action without a receipt did not happen in the HoloShell model. Receipts include:
+
 - **Lifecycle events** (plan, spawn/authenticate/navigate, act, verify)
 - **Artifact hashes** (stdout, screenshots, file hashes, diff outputs)
 - **Rollback triggers** (conditions that auto-queue a compensating action)
 - **Confidence scores** (for vision/UIA fallbacks)
 
 ### 3.3 Replacement Path Is Not Optional
+
 Every legacy absorption must name the sovereign HoloScript primitive that eventually replaces it. If no replacement exists, the archetype is a **substrate gap** and must file a task against `packages/core` or `packages/holoshell-agent`.
 
 ### 3.4 Trust Floor by Path
-| Path | Default Trust | Elevation Condition |
-|---|---|---|
-| Native API / MCP | `verified` | API returns structured, signed responses |
-| CLI / PowerShell | `known` | Binary is in a signed package manager lockfile |
-| Browser Automation | `external` | Domain is in user's allowlist + OAuth scope is narrow |
-| UI Automation / Vision | `untrusted` | Accessibility tree is parseable and matches vision model output |
+
+| Path                   | Default Trust | Elevation Condition                                             |
+| ---------------------- | ------------- | --------------------------------------------------------------- |
+| Native API / MCP       | `verified`    | API returns structured, signed responses                        |
+| CLI / PowerShell       | `known`       | Binary is in a signed package manager lockfile                  |
+| Browser Automation     | `external`    | Domain is in user's allowlist + OAuth scope is narrow           |
+| UI Automation / Vision | `untrusted`   | Accessibility tree is parseable and matches vision model output |
 
 ### 3.5 No Private Inventory
+
 This document contains no list of Joseph's installed programs, no system paths, no local file trees, and no personally identifiable workflow data. All examples are archetypes. If an agent needs to map this classification to a specific machine, it performs a local scan at runtime and binds archetypes to concrete binaries through the `holoshell-human-os-frontier` automation loop (see `README.md`).
 
 ## 4. Next Steps

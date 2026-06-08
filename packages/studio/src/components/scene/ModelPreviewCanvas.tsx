@@ -170,32 +170,32 @@ export function ModelPreviewCanvas({
       style={{ width, height }}
     >
       <StudioErrorBoundary label="ModelPreview Canvas">
-      <Canvas
-        camera={{ position: [0, 0.2, 2.2], fov: 40 }}
-        dpr={[1, 1.5]}
-        gl={{ antialias: true, alpha: true }}
-        style={{ background: 'transparent' }}
-      >
-        {/* Ambient + directional */}
-        <ambientLight intensity={0.3} />
-        <directionalLight position={[3, 4, 5]} intensity={1} color="#ffffff" />
-        <directionalLight position={[-2, -1, -3]} intensity={0.3} color="#818cf8" />
+        <Canvas
+          camera={{ position: [0, 0.2, 2.2], fov: 40 }}
+          dpr={[1, 1.5]}
+          gl={{ antialias: true, alpha: true }}
+          style={{ background: 'transparent' }}
+        >
+          {/* Ambient + directional */}
+          <ambientLight intensity={0.3} />
+          <directionalLight position={[3, 4, 5]} intensity={1} color="#ffffff" />
+          <directionalLight position={[-2, -1, -3]} intensity={0.3} color="#818cf8" />
 
-        <Suspense fallback={null}>
-          {isTree ? (
-            <TreePreview />
-          ) : isLight ? (
-            <LightPreview type={modelType} />
-          ) : (
-            <SpinningMesh type={modelType} color={color} />
+          <Suspense fallback={null}>
+            {isTree ? (
+              <TreePreview />
+            ) : isLight ? (
+              <LightPreview type={modelType} />
+            ) : (
+              <SpinningMesh type={modelType} color={color} />
+            )}
+            <Environment preset="studio" environmentIntensity={0.3} />
+          </Suspense>
+
+          {interactive && (
+            <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={2} />
           )}
-          <Environment preset="studio" environmentIntensity={0.3} />
-        </Suspense>
-
-        {interactive && (
-          <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={2} />
-        )}
-      </Canvas>
+        </Canvas>
       </StudioErrorBoundary>
     </div>
   );

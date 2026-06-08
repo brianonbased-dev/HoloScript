@@ -2,8 +2,13 @@ import type { VRHand, Vector3 } from '@holoscript/core';
 import type { HoloScriptPlusRuntimeImpl } from './HoloScriptPlusRuntime';
 
 type UIComponent = any;
-const createUIButton = (id: string, props: any) => ({id, type: 'button', properties: props});
-const createUIPanel = (id: string, props: any, children: any[]) => ({id, type: 'panel', properties: props, children});
+const createUIButton = (id: string, props: any) => ({ id, type: 'button', properties: props });
+const createUIPanel = (id: string, props: any, children: any[]) => ({
+  id,
+  type: 'panel',
+  properties: props,
+  children,
+});
 import { TransitionSystem } from '../animation/TransitionSystem';
 import { AnimationEngine } from '../animation/AnimationEngine';
 
@@ -79,11 +84,7 @@ export class HandMenuSystem {
     );
 
     // Position near the hand
-    menu.properties!.position = [
-      hand.position[0],
-      hand.position[1] + 0.1,
-      hand.position[2],
-    ];
+    menu.properties!.position = [hand.position[0], hand.position[1] + 0.1, hand.position[2]];
 
     // Start invisible for transition
     menu.properties!.opacity = 0;

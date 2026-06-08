@@ -18,11 +18,7 @@
  *   = log₂(N²/t) − log₂(ISO/100). The ISO term is applied by the solver.
  */
 import { registerPluginTraits } from '@holoscript/core/runtime';
-import {
-  exposureValue,
-  type ExposureSettings,
-  type ExposureResult,
-} from './filmvfxsolver';
+import { exposureValue, type ExposureSettings, type ExposureResult } from './filmvfxsolver';
 
 /** Stable id for this plugin's trait ownership tagging. */
 export const FILM_VFX_PLUGIN_ID = 'film-vfx' as const;
@@ -76,13 +72,13 @@ export interface RuntimeTraitHandler {
   onAttach?: (
     node: unknown,
     config: CinematographyExposureTraitConfig,
-    context: TraitDispatchContext,
+    context: TraitDispatchContext
   ) => void;
   onUpdate?: (
     node: unknown,
     config: CinematographyExposureTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -100,7 +96,7 @@ interface CinematographyExposureNode {
 function solveOntoNode(
   node: unknown,
   config: CinematographyExposureTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as CinematographyExposureNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

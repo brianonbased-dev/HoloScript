@@ -265,7 +265,7 @@ describe('robot-ai-mcp-tools', () => {
         offset: 1,
       })) as Record<string, unknown>;
       expect(result.total).toBe(3);
-      expect((result.identities as unknown[])).toHaveLength(1);
+      expect(result.identities as unknown[]).toHaveLength(1);
     });
   });
 
@@ -397,8 +397,14 @@ describe('robot-ai-mcp-tools', () => {
     it('lists with agentId filter', async () => {
       await registerIdentity({ agentId: 'e1' });
       await registerIdentity({ agentId: 'e2' });
-      await handleRobotAiMcpTool('twin_earth_create_safety_envelope', { agentId: 'e1', envelopeId: 'env1' });
-      await handleRobotAiMcpTool('twin_earth_create_safety_envelope', { agentId: 'e2', envelopeId: 'env2' });
+      await handleRobotAiMcpTool('twin_earth_create_safety_envelope', {
+        agentId: 'e1',
+        envelopeId: 'env1',
+      });
+      await handleRobotAiMcpTool('twin_earth_create_safety_envelope', {
+        agentId: 'e2',
+        envelopeId: 'env2',
+      });
       const result = (await handleRobotAiMcpTool('twin_earth_list_safety_envelopes', {
         agentId: 'e1',
       })) as Record<string, unknown>;
@@ -559,8 +565,16 @@ describe('robot-ai-mcp-tools', () => {
       await registerIdentity({ agentId: 'g1' });
       await registerIdentity({ agentId: 'g2' });
       await registerIdentity({ agentId: 'granter' });
-      await handleRobotAiMcpTool('twin_earth_grant_permission', { granteeId: 'g1', granterId: 'granter', action: 'a' });
-      await handleRobotAiMcpTool('twin_earth_grant_permission', { granteeId: 'g2', granterId: 'granter', action: 'b' });
+      await handleRobotAiMcpTool('twin_earth_grant_permission', {
+        granteeId: 'g1',
+        granterId: 'granter',
+        action: 'a',
+      });
+      await handleRobotAiMcpTool('twin_earth_grant_permission', {
+        granteeId: 'g2',
+        granterId: 'granter',
+        action: 'b',
+      });
       const result = (await handleRobotAiMcpTool('twin_earth_list_permissions', {
         granteeId: 'g1',
       })) as Record<string, unknown>;

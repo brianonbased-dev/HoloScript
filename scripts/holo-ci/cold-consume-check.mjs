@@ -56,7 +56,9 @@ const optionalPeers = [
   ]),
 ].filter((p) => /^@holoscript\//.test(p));
 
-console.log(`\n[cold-consume] ${PKG_NAME}: pack + cold-install (no optional peers) + assert barrel loads + ${optionalPeers.length} optional peer(s) absent`);
+console.log(
+  `\n[cold-consume] ${PKG_NAME}: pack + cold-install (no optional peers) + assert barrel loads + ${optionalPeers.length} optional peer(s) absent`
+);
 
 if (!fs.existsSync(path.join(PKG_DIR, 'dist'))) {
   console.error(`  [FAIL] ${PKG_DIR}/dist missing — build the package first`);
@@ -92,7 +94,12 @@ try {
   sh(`npm install "${tgz}" --no-audit --no-fund`, DIR);
 } catch (e) {
   console.error(
-    `  [FAIL] cold npm install — ${String(e.stdout || e.stderr || e.message).split('\n').filter(Boolean).slice(-2).join(' ').slice(0, 220)}`
+    `  [FAIL] cold npm install — ${String(e.stdout || e.stderr || e.message)
+      .split('\n')
+      .filter(Boolean)
+      .slice(-2)
+      .join(' ')
+      .slice(0, 220)}`
   );
   fs.rmSync(tgz, { force: true });
   fs.rmSync(DIR, { recursive: true, force: true });
@@ -121,7 +128,9 @@ let detail = '';
 try {
   detail = sh('node consume.mjs', DIR, 60000).trim();
 } catch (e) {
-  const out = String(e.stdout || e.stderr || e.message).split('\n').filter(Boolean);
+  const out = String(e.stdout || e.stderr || e.message)
+    .split('\n')
+    .filter(Boolean);
   detail = out.find((l) => l.startsWith('COLD_FAIL')) || out.slice(-1)[0] || 'unknown failure';
   ok = false;
 }
@@ -130,5 +139,7 @@ fs.rmSync(tgz, { force: true });
 fs.rmSync(DIR, { recursive: true, force: true });
 
 console.log(`  ${ok ? '[ok]  ' : '[FAIL]'} ${detail}`);
-console.log(`\nRESULT: ${ok ? `COLD-CONSUMABLE — ${PKG_NAME} installs + imports clean with no optional peers` : `BROKEN — ${PKG_NAME} is not cold-consumable (fix before publishing)`}`);
+console.log(
+  `\nRESULT: ${ok ? `COLD-CONSUMABLE — ${PKG_NAME} installs + imports clean with no optional peers` : `BROKEN — ${PKG_NAME} is not cold-consumable (fix before publishing)`}`
+);
 process.exit(ok ? 0 : 1);

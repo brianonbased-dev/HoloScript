@@ -17,11 +17,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  ContextCompiler,
-  ContextCompileError,
-  createContextCompiler,
-} from '../ContextCompiler';
+import { ContextCompiler, ContextCompileError, createContextCompiler } from '../ContextCompiler';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 // --- Fixture builders ------------------------------------------------
@@ -262,7 +258,7 @@ function makeFullV1Composition(): HoloComposition {
             name: 'invocation_mode',
             config: {
               mode: 'wrap-other-skill',
-              when: 'embedded inside another skill\'s flow',
+              when: "embedded inside another skill's flow",
               effect: 'wrapping skill calls /founder for a sub-decision and proceeds',
             },
           },
@@ -314,7 +310,11 @@ function makeFullV1Composition(): HoloComposition {
             config: {
               target: 'SKILL.md (this file)',
               action_type: 'skill-edit',
-              requires: ['backup before write', 'edit via normal Edit/Write tool', 'log after write with cited reason'],
+              requires: [
+                'backup before write',
+                'edit via normal Edit/Write tool',
+                'log after write with cited reason',
+              ],
               founder_ratification_required: false,
               notes: 'editing the contract',
             },
@@ -336,7 +336,11 @@ function makeFullV1Composition(): HoloComposition {
             config: {
               target: 'Vision pillar mutation',
               action_type: 'pillar-mutate',
-              requires: ['explicit founder line in same session', 'backup before write', 'log ratification quote'],
+              requires: [
+                'explicit founder line in same session',
+                'backup before write',
+                'log ratification quote',
+              ],
               founder_ratification_required: true,
               notes: 'adding or retiring a pillar',
             },
@@ -347,7 +351,11 @@ function makeFullV1Composition(): HoloComposition {
             config: {
               target: 'Authority order rewrite',
               action_type: 'authority-rewrite',
-              requires: ['explicit founder line in same session', 'backup before write', 'log ratification quote'],
+              requires: [
+                'explicit founder line in same session',
+                'backup before write',
+                'log ratification quote',
+              ],
               founder_ratification_required: true,
               notes: 'reordering the 7-tier hierarchy',
             },
@@ -358,12 +366,21 @@ function makeFullV1Composition(): HoloComposition {
             name: 'date_discipline',
             config: {
               wisdom_id: 'W.317',
-              refusal_contract: 'Refuse to surface a bare date for any HoloScript milestone; date must carry blockers + staleness + readiness',
-              required_components: ['open_blockers', 'matrix_row_staleness', 'engineering_readiness'],
+              refusal_contract:
+                'Refuse to surface a bare date for any HoloScript milestone; date must carry blockers + staleness + readiness',
+              required_components: [
+                'open_blockers',
+                'matrix_row_staleness',
+                'engineering_readiness',
+              ],
               shape_template:
                 'DATE: 2026-MM-DD\nOPEN BLOCKERS:\n  - <named blocker 1>\n  - <named blocker 2>\nMATRIX-ROW STALENESS: <last-verified + ✅/⚠️/❌>\nENGINEERING-READINESS: <green/yellow/red across W.310-W.317>',
-              reason: 'Bare optimistic dates burn credibility on contact with reality (W.317 + W.099)',
-              cross_references: ['F.030 paper-audit-matrix-always-stale', 'W.099 deploy-date-without-blocker'],
+              reason:
+                'Bare optimistic dates burn credibility on contact with reality (W.317 + W.099)',
+              cross_references: [
+                'F.030 paper-audit-matrix-always-stale',
+                'W.099 deploy-date-without-blocker',
+              ],
             },
           },
           // Vocabulary v2 (Iteration 2 G-3 fourth slice)
@@ -733,7 +750,12 @@ describe('compile() - vocabulary v1 -> agents_md', () => {
               {
                 type: 'ObjectTrait',
                 name: 'refusal',
-                config: { name: 'demote', when: 'silent scope cut', do: 'name it', do_not: ['silently descope'] },
+                config: {
+                  name: 'demote',
+                  when: 'silent scope cut',
+                  do: 'name it',
+                  do_not: ['silently descope'],
+                },
               },
             ],
           },
@@ -836,7 +858,12 @@ describe('compile() - BLOCK rules', () => {
   it('allows ordinary prose using the word any while still blocking TypeScript any', () => {
     const compiler = new ContextCompiler();
 
-    expect(() => compiler.compile(compositionWithDefault('handle any request by checking source authority'), '')).not.toThrow();
+    expect(() =>
+      compiler.compile(
+        compositionWithDefault('handle any request by checking source authority'),
+        ''
+      )
+    ).not.toThrow();
     expect(() => compiler.compile(compositionWithDefault('use value: any'), '')).toThrow(
       /no `any` in TypeScript/
     );
@@ -912,7 +939,11 @@ describe('compile() - BLOCK rules', () => {
             {
               type: 'ObjectTrait',
               name: 'graduated_wisdom',
-              config: { id: 'P.GOLD.001', claim: 'Failure knowledge decays slower', tier: 'diamond' },
+              config: {
+                id: 'P.GOLD.001',
+                claim: 'Failure knowledge decays slower',
+                tier: 'diamond',
+              },
             },
           ],
         },
@@ -1315,7 +1346,12 @@ describe('compile() - vocabulary v1 -> cursor_rules', () => {
             {
               type: 'ObjectTrait',
               name: 'refusal',
-              config: { name: 'demote', when: 'silent scope cut', do: 'name it', do_not: ['silently descope'] },
+              config: {
+                name: 'demote',
+                when: 'silent scope cut',
+                do: 'name it',
+                do_not: ['silently descope'],
+              },
             },
           ],
         },
@@ -1517,9 +1553,7 @@ describe('compile() - vocabulary v1 -> skill_md', () => {
       }),
       ''
     ).files['SKILL.md'];
-    expect(md).toContain(
-      'allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch'
-    );
+    expect(md).toContain('allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch');
   });
 
   it('formats multi-line description as YAML folded scalar (>)', () => {
@@ -1556,7 +1590,9 @@ describe('compile() - vocabulary v1 -> skill_md', () => {
 
   it('THROWS when @identity is missing (skill discovery requires name)', () => {
     const compilerLocal = new ContextCompiler({ formats: ['skill_md'] });
-    expect(() => compilerLocal.compile(makeComposition(), '')).toThrow(/requires an @identity trait/);
+    expect(() => compilerLocal.compile(makeComposition(), '')).toThrow(
+      /requires an @identity trait/
+    );
   });
 
   it('THROWS when @identity.description is missing (skill discovery refuses)', () => {
@@ -1589,7 +1625,13 @@ describe('compile() - vocabulary v1 -> skill_md', () => {
   it('extracts identity.allowedTools into the AST when @identity.allowed_tools is set', () => {
     const result = compiler.compile(makeFullV1WithSkillFields(), '');
     expect(result.ast.identity?.allowedTools).toEqual([
-      'Bash', 'Read', 'Write', 'Edit', 'Grep', 'Glob', 'WebFetch',
+      'Bash',
+      'Read',
+      'Write',
+      'Edit',
+      'Grep',
+      'Glob',
+      'WebFetch',
     ]);
     expect(result.ast.identity?.description).toContain('AUTO-FIRE founder');
   });
@@ -1805,28 +1847,33 @@ describe('compile() - vocabulary v2 -> @embodied_projection', () => {
     expect(md).toContain('- **Surface**: quest-3');
     expect(md).toContain('- **Projection kind**: interactive');
     expect(md).toContain('- **Trigger**: daily founder architecture review');
-    expect(md).toContain('- **Notes**: project decisive agent state into a Quest 3 spatial surface');
+    expect(md).toContain(
+      '- **Notes**: project decisive agent state into a Quest 3 spatial surface'
+    );
   });
 
   it('emits ## Embodied projections in agents_md, skill_md, and cursor_rules', () => {
-    const agents = new ContextCompiler({ formats: ['agents_md'] })
-      .compile(makeFullV1Composition(), '')
-      .files['AGENTS.md'];
+    const agents = new ContextCompiler({ formats: ['agents_md'] }).compile(
+      makeFullV1Composition(),
+      ''
+    ).files['AGENTS.md'];
     expect(agents).toContain('## Embodied projections');
     expect(agents).toContain('### spatial-photo / read-only');
 
     const fixture = makeFullV1Composition();
     const identity = fixture.objects[0]!.traits!.find((t) => t.name === 'identity')!;
-    identity.config.description = 'Test skill description for embodied_projection emit verification.';
-    const skill = new ContextCompiler({ formats: ['skill_md'] })
-      .compile(fixture, '')
-      .files['SKILL.md'];
+    identity.config.description =
+      'Test skill description for embodied_projection emit verification.';
+    const skill = new ContextCompiler({ formats: ['skill_md'] }).compile(fixture, '').files[
+      'SKILL.md'
+    ];
     expect(skill).toContain('## Embodied projections');
     expect(skill).toContain('### quest-3 / interactive');
 
-    const cursor = new ContextCompiler({ formats: ['cursor_rules'] })
-      .compile(makeFullV1Composition(), '')
-      .files['.cursor/rules/_ecosystem-context.mdc'];
+    const cursor = new ContextCompiler({ formats: ['cursor_rules'] }).compile(
+      makeFullV1Composition(),
+      ''
+    ).files['.cursor/rules/_ecosystem-context.mdc'];
     expect(cursor).toContain('## Embodied projections');
     expect(cursor).toContain('### quest-3 / interactive');
   });
@@ -1946,7 +1993,9 @@ describe('compile() - vocabulary v2 -> @date_discipline', () => {
     expect(md).toContain('- engineering_readiness');
     expect(md).toContain('**Output shape**:');
     expect(md).toContain('DATE: 2026-MM-DD');
-    expect(md).toContain('**Cross-references**: F.030 paper-audit-matrix-always-stale, W.099 deploy-date-without-blocker');
+    expect(md).toContain(
+      '**Cross-references**: F.030 paper-audit-matrix-always-stale, W.099 deploy-date-without-blocker'
+    );
     // False case: must NOT print the wisdomId as a bare line outside the heading
     expect(md).not.toContain('\nwisdomId: W.317');
   });
@@ -2231,16 +2280,12 @@ describe('compile() - vocabulary v2 -> @authority', () => {
     const result = compiler.compile(makeFullV1Composition(), '');
     expect(result.ast.trackBAuthorities).toHaveLength(4);
 
-    const skillEdit = result.ast.trackBAuthorities.find(
-      (row) => row.actionType === 'skill-edit'
-    );
+    const skillEdit = result.ast.trackBAuthorities.find((row) => row.actionType === 'skill-edit');
     expect(skillEdit?.target).toBe('SKILL.md (this file)');
     expect(skillEdit?.founderRatificationRequired).toBe(false);
     expect(skillEdit?.requires).toContain('backup before write');
 
-    const pillar = result.ast.trackBAuthorities.find(
-      (row) => row.actionType === 'pillar-mutate'
-    );
+    const pillar = result.ast.trackBAuthorities.find((row) => row.actionType === 'pillar-mutate');
     expect(pillar?.founderRatificationRequired).toBe(true);
     expect(pillar?.requires).toContain('explicit founder line in same session');
     // False case: action_type must stay separate from the target label
@@ -2257,9 +2302,13 @@ describe('compile() - vocabulary v2 -> @authority', () => {
     expect(md).toContain('| references/preferences.md | `preferences-edit` |');
     expect(md).toContain('| Vision pillar mutation | `pillar-mutate` |');
     expect(md).toContain('| Authority order rewrite | `authority-rewrite` |');
-    expect(md).toContain('| Vision pillar mutation | `pillar-mutate` | explicit founder line in same session<br>backup before write<br>log ratification quote | Yes |');
+    expect(md).toContain(
+      '| Vision pillar mutation | `pillar-mutate` | explicit founder line in same session<br>backup before write<br>log ratification quote | Yes |'
+    );
     // False case: founder-ratified rows must not be rendered as mutable "No" rows
-    expect(md).not.toContain('| Vision pillar mutation | `pillar-mutate` | explicit founder line in same session<br>backup before write<br>log ratification quote | No |');
+    expect(md).not.toContain(
+      '| Vision pillar mutation | `pillar-mutate` | explicit founder line in same session<br>backup before write<br>log ratification quote | No |'
+    );
   });
 
   it('emits Track-B authority in agents_md (cross-tool surface)', () => {
@@ -2335,7 +2384,9 @@ describe('compile() - vocabulary v2 -> @authority', () => {
     );
     expect(result.ast.trackBAuthorities[0]?.founderRatificationRequired).toBe(false);
     const md = result.files['CLAUDE.md'];
-    expect(md).toContain('| D:/GOLD/<tier>/<id>.md write | `gold-write` | backup before write | No |  |');
+    expect(md).toContain(
+      '| D:/GOLD/<tier>/<id>.md write | `gold-write` | backup before write | No |  |'
+    );
     // False case: missing notes should not leak as "undefined"
     expect(md).not.toContain('undefined');
   });
@@ -2374,7 +2425,9 @@ describe('compile() - vocabulary v2 -> @editorial_default + @research_default', 
     expect(md).toContain('| program / all | Can I change a paper byline? |');
     expect(md).toContain('**No. Josep Valls-Vargas is the byline.**');
     expect(md).toContain('| tvcg-revision-1 / held | Can I push a revised bundle to the editor? |');
-    expect(md).toContain('| program / validation | New result needs validation across how many sessions? |');
+    expect(md).toContain(
+      '| program / validation | New result needs validation across how many sessions? |'
+    );
     // False case: section must not collapse editorial + research into Known defaults
     const knownDefaults = md.slice(
       md.indexOf('## Known defaults'),
@@ -2455,7 +2508,9 @@ describe('compile() - vocabulary v2 -> @editorial_default + @research_default', 
       }),
       ''
     ).files['CLAUDE.md'];
-    expect(md).toContain('| program-wide | Can I ship locally? | **Yes, if validation passes.** | *(no citation)* |');
+    expect(md).toContain(
+      '| program-wide | Can I ship locally? | **Yes, if validation passes.** | *(no citation)* |'
+    );
     // False case: no empty slash from missing paper_id / paper_phase
     expect(md).not.toContain('|  /  |');
   });
@@ -2613,7 +2668,13 @@ describe('compile() - vocabulary v4 -> skill_md (domain_dispatch + corpus_mutabi
             {
               type: 'ObjectTrait',
               name: 'identity',
-              config: { name: 'v4-agent', role: 'r', domain: 'd', surface: 'claude', description: 'v4 test agent' },
+              config: {
+                name: 'v4-agent',
+                role: 'r',
+                domain: 'd',
+                surface: 'claude',
+                description: 'v4 test agent',
+              },
             },
           ],
         },
@@ -2659,9 +2720,7 @@ describe('compile() - vocabulary v4 -> skill_md (domain_dispatch + corpus_mutabi
     const compiler = new ContextCompiler({ formats: ['skill_md'] });
     const md = compiler.compile(makeV4Composition(), '').files['SKILL.md'];
     expect(md).toContain('## Corpus mutability');
-    expect(md).toContain(
-      '- **Mutable via Track B**: maintenance edits to corpus/defaults.md'
-    );
+    expect(md).toContain('- **Mutable via Track B**: maintenance edits to corpus/defaults.md');
     // false-case: no corpus section when the trait is absent
     const empty = compiler.compile(makeIdentityOnly(), '').files['SKILL.md'];
     expect(empty).not.toContain('## Corpus mutability');

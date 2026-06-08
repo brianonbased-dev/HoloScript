@@ -70,7 +70,10 @@ export async function provisionBrokeredSession(
  * without creating a runtime dependency on that package.
  */
 export function localFileProvisionAdapter(
-  impl: (input: ProvisionSurfaceInput, opts: { execute: boolean; force?: boolean }) => Promise<DeviceFlowProvisionResult>
+  impl: (
+    input: ProvisionSurfaceInput,
+    opts: { execute: boolean; force?: boolean }
+  ) => Promise<DeviceFlowProvisionResult>
 ): ProvisionAdapter {
   return { provisionAgent: impl };
 }

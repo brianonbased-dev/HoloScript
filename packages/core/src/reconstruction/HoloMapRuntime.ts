@@ -270,7 +270,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   /** Frame index of the last detected loop closure (−1 if none). */
   private lastLoopClosureFrameIdx = -1;
   /** Compact camera-pose history for loop-closure (revisit) detection. */
-  private readonly poseHistory: Array<{ frameIndex: number; position: [number, number, number] }> = [];
+  private readonly poseHistory: Array<{ frameIndex: number; position: [number, number, number] }> =
+    [];
   /** Compact trajectory snapshot emitted with every accepted step. */
   private readonly trajectoryKeyframes: TrajectoryKeyframe[] = [];
   private static readonly LOOP_CLOSURE_MIN_GAP = 3;
@@ -361,8 +362,16 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private updateBounds(positions: Float32Array): void {
     if (positions.length === 0) return;
     if (!this.boundsValid) {
-      this.boundsMin = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
-      this.boundsMax = [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY];
+      this.boundsMin = [
+        Number.POSITIVE_INFINITY,
+        Number.POSITIVE_INFINITY,
+        Number.POSITIVE_INFINITY,
+      ];
+      this.boundsMax = [
+        Number.NEGATIVE_INFINITY,
+        Number.NEGATIVE_INFINITY,
+        Number.NEGATIVE_INFINITY,
+      ];
     }
     for (let i = 0; i < positions.length; i += 3) {
       const x = positions[i] ?? 0;
@@ -426,9 +435,9 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private static poseRotationDeltaRadians(a: CameraPose, b: CameraPose): number {
     const dot = Math.abs(
       a.rotation[0] * b.rotation[0] +
-      a.rotation[1] * b.rotation[1] +
-      a.rotation[2] * b.rotation[2] +
-      a.rotation[3] * b.rotation[3]
+        a.rotation[1] * b.rotation[1] +
+        a.rotation[2] * b.rotation[2] +
+        a.rotation[3] * b.rotation[3]
     );
     const clamped = Math.max(-1, Math.min(1, dot));
     return 2 * Math.acos(clamped);
@@ -509,7 +518,13 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.globalConfSum = 0;
     this.lastAcceptedFrameTimestampMs = null;
     this.sessionStartMs = performance.now();
-    this.perfMetrics = { stepCount: 0, throttledCount: 0, totalStepMs: 0, maxStepMs: 0, minStepMs: Infinity };
+    this.perfMetrics = {
+      stepCount: 0,
+      throttledCount: 0,
+      totalStepMs: 0,
+      maxStepMs: 0,
+      minStepMs: Infinity,
+    };
 
     this.replayKey = computeHoloMapReplayFingerprint({
       modelHash: this.config.modelHash,
@@ -579,10 +594,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
    * Tiles inherit `frame.index` shifted by tile id so micro-encoder
    * per-frame seeds remain deterministic and distinct across tiles.
    */
-  private static tileFrame(
-    frame: ReconstructionFrame,
-    gridN: number,
-  ): HoloMapTileSample[] {
+  private static tileFrame(frame: ReconstructionFrame, gridN: number): HoloMapTileSample[] {
     const out: HoloMapTileSample[] = [];
     const tileW = Math.max(1, Math.floor(frame.width / gridN));
     const tileH = Math.max(1, Math.floor(frame.height / gridN));
@@ -647,18 +659,17 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
           ],
           luminance: meanLuma / 255,
           texture: Math.sqrt(lumaVariance) / 255,
-          meanColor: [
-            Math.round(rSum / denom),
-            Math.round(gSum / denom),
-            Math.round(bSum / denom),
-          ],
+          meanColor: [Math.round(rSum / denom), Math.round(gSum / denom), Math.round(bSum / denom)],
         });
       }
     }
     return out;
   }
 
-  private async encodeTile(tile: HoloMapMicroFrame, microCfg: HoloMapMicroConfig): Promise<Float32Array> {
+  private async encodeTile(
+    tile: HoloMapMicroFrame,
+    microCfg: HoloMapMicroConfig
+  ): Promise<Float32Array> {
     if (!this.microEncoder) {
       return runHoloMapMicroEncoderCpu(tile, microCfg);
     }
@@ -872,7 +883,10 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     let interFrameDeltaMeters = 0;
     let interFrameRotationRadians = 0;
     if (this.prevCameraPose) {
-      interFrameDeltaMeters = HoloMapRuntimeImpl.poseDistanceMeters(cameraPose, this.prevCameraPose);
+      interFrameDeltaMeters = HoloMapRuntimeImpl.poseDistanceMeters(
+        cameraPose,
+        this.prevCameraPose
+      );
       interFrameRotationRadians = HoloMapRuntimeImpl.poseRotationDeltaRadians(
         cameraPose,
         this.prevCameraPose
@@ -958,7 +972,9 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         interFrameRotationRadians
       ),
     });
-    const trajectoryKeyframes = HoloMapRuntimeImpl.cloneTrajectoryKeyframes(this.trajectoryKeyframes);
+    const trajectoryKeyframes = HoloMapRuntimeImpl.cloneTrajectoryKeyframes(
+      this.trajectoryKeyframes
+    );
 
     const step: ReconstructionStep = {
       frame,
@@ -1083,7 +1099,13 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.globalConfSum = 0;
     this.boundsValid = false;
     this.lastAcceptedFrameTimestampMs = null;
-    this.perfMetrics = { stepCount: 0, throttledCount: 0, totalStepMs: 0, maxStepMs: 0, minStepMs: Infinity };
+    this.perfMetrics = {
+      stepCount: 0,
+      throttledCount: 0,
+      totalStepMs: 0,
+      maxStepMs: 0,
+      minStepMs: Infinity,
+    };
   }
 }
 

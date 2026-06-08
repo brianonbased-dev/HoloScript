@@ -19,18 +19,23 @@ function makeMessage(overrides: Partial<TeamMessage> = {}): TeamMessage {
   };
 }
 
-function makeHandler(opts: {
-  messages?: TeamMessage[];
-  allowList?: Set<string>;
-  permittedActions?: Set<string>;
-  provider?: ILLMProvider;
-  systemPrompt?: string;
-} = {}) {
+function makeHandler(
+  opts: {
+    messages?: TeamMessage[];
+    allowList?: Set<string>;
+    permittedActions?: Set<string>;
+    provider?: ILLMProvider;
+    systemPrompt?: string;
+  } = {}
+) {
   const mesh = {
     getTeamMessages: vi.fn(async () => opts.messages ?? []),
     sendTeamMessage: vi.fn(async () => {}),
     setTeamMode: vi.fn(async (mode: string) => ({ mode, unchanged: false })),
-    patchRoomPrefs: vi.fn(async (prefs) => ({ communicationStyle: prefs.communicationStyle ?? 'task_first', objective: prefs.objective ?? '' })),
+    patchRoomPrefs: vi.fn(async (prefs) => ({
+      communicationStyle: prefs.communicationStyle ?? 'task_first',
+      objective: prefs.objective ?? '',
+    })),
     updateTask: vi.fn(async () => ({ success: true })),
     deleteTask: vi.fn(async () => ({ success: true })),
     delegateTask: vi.fn(async () => ({ success: true })),
@@ -76,7 +81,9 @@ describe('DelegatedAuthorityHandler.parseRequest', () => {
 
   it('parses plain-text shorthand @brittney founder-gated', () => {
     const { handler } = makeHandler();
-    const msg = makeMessage({ content: '@brittney founder-gated: should we descope the SNN package?' });
+    const msg = makeMessage({
+      content: '@brittney founder-gated: should we descope the SNN package?',
+    });
     const req = handler.parseRequest(msg);
     expect(req).toBeTruthy();
     expect(req!.requestType).toBe('founder-gated');
@@ -121,7 +128,10 @@ describe('DelegatedAuthorityHandler.handleRequest — owner-op', () => {
     };
     const receipt = await handler.handleRequest(req);
     expect(receipt.status).toBe('executed');
-    expect(mesh.patchRoomPrefs).toHaveBeenCalledWith({ communicationStyle: 'balanced', objective: 'close blockers' });
+    expect(mesh.patchRoomPrefs).toHaveBeenCalledWith({
+      communicationStyle: 'balanced',
+      objective: 'close blockers',
+    });
   });
 
   it('rejects unknown owner-op action', async () => {
@@ -193,7 +203,8 @@ describe('DelegatedAuthorityHandler.handleRequest — founder-gated', () => {
   it('rules via LLM when provider is wired', async () => {
     const provider = {
       complete: vi.fn(async () => ({
-        content: 'RULING: Yes, descope it.\nREASON: The SNN package lacks benchmarks.\nESCALATE: no',
+        content:
+          'RULING: Yes, descope it.\nREASON: The SNN package lacks benchmarks.\nESCALATE: no',
         usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
       })),
     } as unknown as ILLMProvider;

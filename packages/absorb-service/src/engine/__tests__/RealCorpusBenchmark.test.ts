@@ -50,8 +50,8 @@ import { StructuralEmbeddingProvider } from '../providers/StructuralEmbeddingPro
 // =============================================================================
 
 // Resolve corpus roots relative to this test file
-const ENGINE_DIR = path.resolve(__dirname, '..');           // absorb-service/src/engine
-const ABSORB_SRC_DIR = path.resolve(__dirname, '../..');    // absorb-service/src
+const ENGINE_DIR = path.resolve(__dirname, '..'); // absorb-service/src/engine
+const ABSORB_SRC_DIR = path.resolve(__dirname, '../..'); // absorb-service/src
 
 // =============================================================================
 // HELPERS
@@ -76,17 +76,14 @@ interface RealCorpusResult {
   numSymbols: number;
   numEventEdges: number;
   distinctEvents: string[];
-  holoGraphQueryUs: number;     // per-event median, or per-dummy-query if no events
+  holoGraphQueryUs: number; // per-event median, or per-dummy-query if no events
   embeddingQueryUs: number;
   speedupRatio: number;
   /** Per-event recall — only populated when events > 0 */
   holoGraphRecall: number | null;
 }
 
-async function benchmarkRealCorpus(
-  label: string,
-  rootDir: string,
-): Promise<RealCorpusResult> {
+async function benchmarkRealCorpus(label: string, rootDir: string): Promise<RealCorpusResult> {
   // ── 1. Scan real TypeScript source ────────────────────────────────────────
   const scanner = new CodebaseScanner();
   const scanResult = await scanner.scan({
@@ -106,15 +103,17 @@ async function benchmarkRealCorpus(
   // ── 3. HoloGraph latency ──────────────────────────────────────────────────
   // If events exist: measure getEventChain() per-event latency.
   // If no events: measure on a dummy name (still O(1) hash-map miss).
-  const queryTargets = distinctEvents.length > 0
-    ? distinctEvents.slice(0, Math.min(20, distinctEvents.length))
-    : ['nonexistent:event:dummy'];
+  const queryTargets =
+    distinctEvents.length > 0
+      ? distinctEvents.slice(0, Math.min(20, distinctEvents.length))
+      : ['nonexistent:event:dummy'];
 
-  const holoGraphQueryUs = measureLatencyUs(() => {
-    for (const ev of queryTargets) {
-      void graph.getEventChain(ev);
-    }
-  }, 500) / queryTargets.length;
+  const holoGraphQueryUs =
+    measureLatencyUs(() => {
+      for (const ev of queryTargets) {
+        void graph.getEventChain(ev);
+      }
+    }, 500) / queryTargets.length;
 
   // ── 4. Structural integrity check ────────────────────────────────────────
   // There is no external ground truth for real corpus — HoloGraph is built
@@ -127,7 +126,7 @@ async function benchmarkRealCorpus(
   let holoGraphRecall: number | null = null;
   if (distinctEvents.length > 0) {
     // Filter to events with real edges (paired emit + listen)
-    const pairedEvents = queryTargets.filter(ev => {
+    const pairedEvents = queryTargets.filter((ev) => {
       const chain = graph.getEventChain(ev);
       return chain.edges.length > 0;
     });
@@ -138,11 +137,17 @@ async function benchmarkRealCorpus(
         const chain = graph.getEventChain(ev);
         // Every emitter must be tagged with this event (no cross-bucket leak)
         for (const emitter of chain.emitters) {
-          if (emitter.eventName !== ev) { integrityOk = false; break; }
+          if (emitter.eventName !== ev) {
+            integrityOk = false;
+            break;
+          }
         }
         // Every listener must be tagged with this event
         for (const listener of chain.listeners) {
-          if (listener.eventName !== ev) { integrityOk = false; break; }
+          if (listener.eventName !== ev) {
+            integrityOk = false;
+            break;
+          }
         }
         if (!integrityOk) break;
       }
@@ -158,7 +163,7 @@ async function benchmarkRealCorpus(
   const index = new EmbeddingIndex({ provider, batchSize: 100, useWorkers: false });
   await index.buildIndex(graph);
 
-  const queryTexts = queryTargets.map(ev => `handler for event ${ev}`);
+  const queryTexts = queryTargets.map((ev) => `handler for event ${ev}`);
   let totalEmbUs = 0;
   const embIters = 20;
   for (let i = 0; i < embIters; i++) {
@@ -260,8 +265,10 @@ describe('Paper 26: Real Corpus — HoloGraph generalizes beyond synthetic graph
     }
 
     // Log for paper appendix
-    console.log(`\n[Real corpus integrity] ${r.numFiles} files, ${r.numSymbols} symbols, ` +
-      `${r.numEventEdges} EventEdges, ${r.distinctEvents.length} distinct events — all well-formed.`);
+    console.log(
+      `\n[Real corpus integrity] ${r.numFiles} files, ${r.numSymbols} symbols, ` +
+        `${r.numEventEdges} EventEdges, ${r.distinctEvents.length} distinct events — all well-formed.`
+    );
   }, 90_000);
 });
 
@@ -276,14 +283,15 @@ function logRealCorpusResult(r: RealCorpusResult): void {
   console.log('% Files | Syms  | Edges | Events | HG µs   | Emb µs  | Speedup | Recall | Notes');
   console.log('% ------|-------|-------|--------|---------|---------|---------|--------|------');
   const recallStr = r.holoGraphRecall !== null ? fmt(r.holoGraphRecall, 3) : '  N/A ';
-  const edgeNote = r.numEventEdges === 0
-    ? '(no emit/on patterns in scope — latency comparison still valid)'
-    : `(${r.numEventEdges} EventEdges across ${r.distinctEvents.length} events)`;
+  const edgeNote =
+    r.numEventEdges === 0
+      ? '(no emit/on patterns in scope — latency comparison still valid)'
+      : `(${r.numEventEdges} EventEdges across ${r.distinctEvents.length} events)`;
   console.log(
     `%  ${String(r.numFiles).padStart(5)} | ${String(r.numSymbols).padStart(5)} | ` +
-    `${String(r.numEventEdges).padStart(5)} | ${String(r.distinctEvents.length).padStart(6)} | ` +
-    `${fmt(r.holoGraphQueryUs, 3).padStart(7)} | ${fmt(r.embeddingQueryUs, 1).padStart(7)} | ` +
-    `${fmt(r.speedupRatio, 1).padStart(7)}× | ${recallStr.padStart(6)} | Real TS ${edgeNote}`
+      `${String(r.numEventEdges).padStart(5)} | ${String(r.distinctEvents.length).padStart(6)} | ` +
+      `${fmt(r.holoGraphQueryUs, 3).padStart(7)} | ${fmt(r.embeddingQueryUs, 1).padStart(7)} | ` +
+      `${fmt(r.speedupRatio, 1).padStart(7)}× | ${recallStr.padStart(6)} | Real TS ${edgeNote}`
   );
   console.log('%');
   if (r.numEventEdges === 0) {

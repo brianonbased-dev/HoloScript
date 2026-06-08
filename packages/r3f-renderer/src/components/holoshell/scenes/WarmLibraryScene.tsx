@@ -61,7 +61,9 @@ const WarmLibraryScene: React.FC<WarmLibrarySceneProps> = ({
     const stops: Array<() => void> = [];
     const timers: Array<ReturnType<typeof setTimeout>> = [];
     try {
-      const audioCtx: AudioContext = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
+      const audioCtx: AudioContext = new (
+        (window as any).AudioContext || (window as any).webkitAudioContext
+      )();
       ctx = audioCtx;
       const master = audioCtx.createGain();
       master.gain.value = 0.022; // extremely faint library bed — page study quiet
@@ -97,7 +99,11 @@ const WarmLibraryScene: React.FC<WarmLibrarySceneProps> = ({
         pG.gain.setValueAtTime(0.0001, now);
         pG.gain.linearRampToValueAtTime(0.32, now + 0.18);
         pG.gain.linearRampToValueAtTime(0.0001, now + 1.35);
-        setTimeout(() => { try { page.stop(); } catch {} }, 1600);
+        setTimeout(() => {
+          try {
+            page.stop();
+          } catch {}
+        }, 1600);
         timers.push(setTimeout(doPageTurn, 6800 + Math.random() * 9200));
       };
       timers.push(setTimeout(doPageTurn, 1400 + Math.random() * 2200));
@@ -124,7 +130,11 @@ const WarmLibraryScene: React.FC<WarmLibrarySceneProps> = ({
         cBp.connect(cG);
         cG.connect(master);
         crack.start(now);
-        setTimeout(() => { try { crack.stop(); } catch {} }, 380);
+        setTimeout(() => {
+          try {
+            crack.stop();
+          } catch {}
+        }, 380);
         timers.push(setTimeout(doCrackle, 2400 + Math.random() * 6800));
       };
       timers.push(setTimeout(doCrackle, 3200 + Math.random() * 1800));
@@ -156,7 +166,12 @@ const WarmLibraryScene: React.FC<WarmLibrarySceneProps> = ({
           mbG.gain.setValueAtTime(0.0001, t);
           mbG.gain.linearRampToValueAtTime(0.19, t + 0.09);
           mbG.gain.linearRampToValueAtTime(0.0001, t + 0.72);
-          setTimeout(() => { try { mb.stop(); det.stop(); } catch {} }, 1100);
+          setTimeout(() => {
+            try {
+              mb.stop();
+              det.stop();
+            } catch {}
+          }, 1100);
         });
         timers.push(setTimeout(scheduleMusicBox, 9200 + Math.random() * 3100));
       };
@@ -226,21 +241,30 @@ const WarmLibraryScene: React.FC<WarmLibrarySceneProps> = ({
       {[-2.8, -1.1, 0.6, 2.0, 3.4].map((x, i) => (
         <mesh key={`s1-${i}`} position={[x, 0.85, -2.85]}>
           <boxGeometry args={[0.22, 0.72, 0.38]} />
-          <meshStandardMaterial color={['#3f2a18', '#2c2119', '#35291f', '#2a2118', '#3a2f22'][i]} roughness={0.85} />
+          <meshStandardMaterial
+            color={['#3f2a18', '#2c2119', '#35291f', '#2a2118', '#3a2f22'][i]}
+            roughness={0.85}
+          />
         </mesh>
       ))}
       {/* Shelf 2 */}
       {[-3.1, -1.6, -0.2, 1.4, 2.9].map((x, i) => (
         <mesh key={`s2-${i}`} position={[x, 0.0, -2.85]}>
           <boxGeometry args={[0.18, 0.68, 0.36]} />
-          <meshStandardMaterial color={['#2f241a', '#352b20', '#3c2f24', '#2a2219', '#31281f'][i]} roughness={0.87} />
+          <meshStandardMaterial
+            color={['#2f241a', '#352b20', '#3c2f24', '#2a2219', '#31281f'][i]}
+            roughness={0.87}
+          />
         </mesh>
       ))}
       {/* Shelf 3 (lower) */}
       {[-2.5, -0.9, 0.8, 2.3].map((x, i) => (
         <mesh key={`s3-${i}`} position={[x, -0.85, -2.85]}>
           <boxGeometry args={[0.24, 0.65, 0.4]} />
-          <meshStandardMaterial color={['#2c2119', '#3a2a1f', '#2a2218', '#35291f'][i]} roughness={0.9} />
+          <meshStandardMaterial
+            color={['#2c2119', '#3a2a1f', '#2a2218', '#35291f'][i]}
+            roughness={0.9}
+          />
         </mesh>
       ))}
 
@@ -278,13 +302,7 @@ const WarmLibraryScene: React.FC<WarmLibrarySceneProps> = ({
       {/* Warm ambient color wash plane (subtle volume behind fire) */}
       <mesh position={[0, -0.2, -2.42]} rotation={[0.02, 0, 0]}>
         <planeGeometry args={[5.8, 3.4]} />
-        <meshBasicMaterial
-          color="#331100"
-          transparent
-          opacity={0.32}
-          depthWrite={false}
-          side={2}
-        />
+        <meshBasicMaterial color="#331100" transparent opacity={0.32} depthWrite={false} side={2} />
       </mesh>
 
       {/* === HEART: FIRE SOURCE === */}
@@ -299,7 +317,12 @@ const WarmLibraryScene: React.FC<WarmLibrarySceneProps> = ({
       {/* === CANDLE ON MANTEL (tiny living flame) === */}
       <mesh position={[1.22, 0.78, -2.32]}>
         <cylinderGeometry args={[0.035, 0.038, 0.22, 5]} />
-        <meshStandardMaterial color="#f4e9d8" roughness={0.6} emissive="#ffdd88" emissiveIntensity={0.35} />
+        <meshStandardMaterial
+          color="#f4e9d8"
+          roughness={0.6}
+          emissive="#ffdd88"
+          emissiveIntensity={0.35}
+        />
       </mesh>
       {/* Candle flame glow (micro GlowField) */}
       <GlowField

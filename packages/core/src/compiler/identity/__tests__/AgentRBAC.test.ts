@@ -10,13 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import {
-  AgentRBAC,
-  getRBAC,
-  resetRBAC,
-  ResourceType,
-  type AccessDecision,
-} from '../AgentRBAC';
+import { AgentRBAC, getRBAC, resetRBAC, ResourceType, type AccessDecision } from '../AgentRBAC';
 import { AgentTokenIssuer, resetTokenIssuer, type TokenRequest } from '../AgentTokenIssuer';
 import {
   AgentRole,

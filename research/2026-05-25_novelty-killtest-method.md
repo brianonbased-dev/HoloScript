@@ -32,13 +32,13 @@ It only survives this bounded pass.
 
 Sample these papers first, in order:
 
-| Order | Paper | Why first | Primary kill surface |
-|---:|---|---|---|
-| 1 | Paper 36: HoloScript Conjecture Engine | Highest current novelty ambiguity. The local matrix already names LeanConjecturer, AlphaEvolve, and FunSearch as near-neighbor systems; the engine/generate leg shipped, while the render leg is still an honest gap. | Any public system that binds discovery, proof/probe, rendered geometry, and deterministic receipts under one evaluator. |
-| 2 | Paper 34: Differentiable + Neural Surrogate + SimContract Receipts | The seed already names PhysicsNeMo, Newton, DiffTaichi, and FNO as kill-test prior-art classes. This makes it a clean early calibration row. | Any prior artifact that binds source solver, learned checkpoint, training corpus, differentiable trace, V&V envelope, and consumed receipt. |
-| 3 | Paper 19: Trait Inference | The gated matrix explicitly says novelty is undefined versus LLM-tagging baselines. Undefined novelty is higher priority than weak novelty. | Any LLM-based annotation or program-understanding system that already hits the same `.hsplus` trait target, held-out evaluation, and production corpus loop. |
-| 4 | Paper 21: Adversarial Trust Injection | Security reviewers will search for prior attack/defense taxonomies aggressively. The paper has shipped measurement scaffolding, so the risk is claim breadth rather than artifact absence. | Any MCP/tool-use trust-chain attack paper that already covers the same attack classes and deployed defenses with measured efficacy. |
-| 5 | Paper 12: HoloLand | Main-program paper with HoloLand/HoloShell scope pressure and I3D venue fit. It needs exact wording around scene composition, OS-layer evidence, and what is only a prototype. | Any spatial authoring or scene-composition system that already provides the same semantic source, runtime receipts, user-study evidence, and headset/world artifact. |
+| Order | Paper                                                              | Why first                                                                                                                                                                                                             | Primary kill surface                                                                                                                                                 |
+| ----: | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|     1 | Paper 36: HoloScript Conjecture Engine                             | Highest current novelty ambiguity. The local matrix already names LeanConjecturer, AlphaEvolve, and FunSearch as near-neighbor systems; the engine/generate leg shipped, while the render leg is still an honest gap. | Any public system that binds discovery, proof/probe, rendered geometry, and deterministic receipts under one evaluator.                                              |
+|     2 | Paper 34: Differentiable + Neural Surrogate + SimContract Receipts | The seed already names PhysicsNeMo, Newton, DiffTaichi, and FNO as kill-test prior-art classes. This makes it a clean early calibration row.                                                                          | Any prior artifact that binds source solver, learned checkpoint, training corpus, differentiable trace, V&V envelope, and consumed receipt.                          |
+|     3 | Paper 19: Trait Inference                                          | The gated matrix explicitly says novelty is undefined versus LLM-tagging baselines. Undefined novelty is higher priority than weak novelty.                                                                           | Any LLM-based annotation or program-understanding system that already hits the same `.hsplus` trait target, held-out evaluation, and production corpus loop.         |
+|     4 | Paper 21: Adversarial Trust Injection                              | Security reviewers will search for prior attack/defense taxonomies aggressively. The paper has shipped measurement scaffolding, so the risk is claim breadth rather than artifact absence.                            | Any MCP/tool-use trust-chain attack paper that already covers the same attack classes and deployed defenses with measured efficacy.                                  |
+|     5 | Paper 12: HoloLand                                                 | Main-program paper with HoloLand/HoloShell scope pressure and I3D venue fit. It needs exact wording around scene composition, OS-layer evidence, and what is only a prototype.                                        | Any spatial authoring or scene-composition system that already provides the same semantic source, runtime receipts, user-study evidence, and headset/world artifact. |
 
 If any of the first two papers are killed or heavily narrowed, pause the sweep
 and update the method before sampling the remaining three. If both survive with
@@ -67,22 +67,22 @@ Do this at the claim level, not the paper-title level.
 
 3. Search the four mandatory databases and record the top results.
 
-| Database | Use it for | Required query shape | Evidence to capture |
-|---|---|---|---|
-| arXiv API | Recent preprints, fast-moving ML/math/systems/physics claims. Official docs: https://info.arxiv.org/help/api/user-manual.html | `search_query` over exact names, title/abstract terms, and atom combinations; use `start`, `max_results`, and relevance/date sorting. | arXiv id, title, date, query URL, and why each top hit matches or does not match the exact scope. |
-| DBLP search API | CS venue coverage, conference lineage, author/system names, and CoRR records. Official docs: https://dblp.org/faq/How+to+use+the+dblp+search+API.html | `https://dblp.org/search/publ/api?q=<terms>&format=json&h=<n>` for exact names and atom clusters. | DBLP key, venue/year, DOI/ee URL, type, and whether the result is peer-reviewed or CoRR-only. |
-| OpenAlex Works API | Broad cross-domain coverage, DOI graph, concept drift, and citation neighborhoods. Official docs: https://developers.openalex.org/api-reference/works | Works search by exact name first, then atom clusters; use work ids and DOI fields to de-duplicate arXiv/DBLP hits. | OpenAlex id, DOI, title, year, name-collision notes, and related/cited-by follow-up target. |
-| Semantic Scholar Graph API | Semantic near-neighbor search, corpus ids, abstracts, and citation context. Official docs: https://api.semanticscholar.org/api-docs/graph | Paper search for exact names, then semantic atom clusters; capture rate limits as under-resolved evidence rather than skipping the database. | Corpus id, paper id, title/year, external ids, abstract snippet if available, and citation-neighborhood follow-up. |
+| Database                   | Use it for                                                                                                                                            | Required query shape                                                                                                                         | Evidence to capture                                                                                                |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| arXiv API                  | Recent preprints, fast-moving ML/math/systems/physics claims. Official docs: https://info.arxiv.org/help/api/user-manual.html                         | `search_query` over exact names, title/abstract terms, and atom combinations; use `start`, `max_results`, and relevance/date sorting.        | arXiv id, title, date, query URL, and why each top hit matches or does not match the exact scope.                  |
+| DBLP search API            | CS venue coverage, conference lineage, author/system names, and CoRR records. Official docs: https://dblp.org/faq/How+to+use+the+dblp+search+API.html | `https://dblp.org/search/publ/api?q=<terms>&format=json&h=<n>` for exact names and atom clusters.                                            | DBLP key, venue/year, DOI/ee URL, type, and whether the result is peer-reviewed or CoRR-only.                      |
+| OpenAlex Works API         | Broad cross-domain coverage, DOI graph, concept drift, and citation neighborhoods. Official docs: https://developers.openalex.org/api-reference/works | Works search by exact name first, then atom clusters; use work ids and DOI fields to de-duplicate arXiv/DBLP hits.                           | OpenAlex id, DOI, title, year, name-collision notes, and related/cited-by follow-up target.                        |
+| Semantic Scholar Graph API | Semantic near-neighbor search, corpus ids, abstracts, and citation context. Official docs: https://api.semanticscholar.org/api-docs/graph             | Paper search for exact names, then semantic atom clusters; capture rate limits as under-resolved evidence rather than skipping the database. | Corpus id, paper id, title/year, external ids, abstract snippet if available, and citation-neighborhood follow-up. |
 
 4. Use the database order by claim type.
 
-| Claim type | First pass order | Reason |
-|---|---|---|
-| Formal methods, PL, theorem proving | DBLP -> arXiv -> OpenAlex -> Semantic Scholar | Venue lineage and CoRR coverage matter before broad graph search. |
-| Systems, security, provenance, tool-use | DBLP -> Semantic Scholar -> OpenAlex -> arXiv | Security reviewers care about venue work and citation neighborhoods; arXiv catches fresh systems. |
-| Graphics, VR/AR, HoloLand, interaction | DBLP -> Semantic Scholar -> OpenAlex -> arXiv | I3D/SIGGRAPH/CHI lineage first, then cross-domain spatial computing. |
-| ML, learned models, data generation | Semantic Scholar -> arXiv -> OpenAlex -> DBLP | Semantic neighbors and preprints are the fastest-moving surface. |
-| Quantum, physics, chemistry, numerical methods | arXiv -> OpenAlex -> Semantic Scholar -> DBLP | arXiv and DOI graph coverage dominate; DBLP catches CS overlap. |
+| Claim type                                     | First pass order                              | Reason                                                                                            |
+| ---------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Formal methods, PL, theorem proving            | DBLP -> arXiv -> OpenAlex -> Semantic Scholar | Venue lineage and CoRR coverage matter before broad graph search.                                 |
+| Systems, security, provenance, tool-use        | DBLP -> Semantic Scholar -> OpenAlex -> arXiv | Security reviewers care about venue work and citation neighborhoods; arXiv catches fresh systems. |
+| Graphics, VR/AR, HoloLand, interaction         | DBLP -> Semantic Scholar -> OpenAlex -> arXiv | I3D/SIGGRAPH/CHI lineage first, then cross-domain spatial computing.                              |
+| ML, learned models, data generation            | Semantic Scholar -> arXiv -> OpenAlex -> DBLP | Semantic neighbors and preprints are the fastest-moving surface.                                  |
+| Quantum, physics, chemistry, numerical methods | arXiv -> OpenAlex -> Semantic Scholar -> DBLP | arXiv and DOI graph coverage dominate; DBLP catches CS overlap.                                   |
 
 5. Decide the verdict.
    - `killed`: a prior artifact matches the exact claim scope, external
@@ -100,42 +100,42 @@ Every sampled paper gets one row per claim. Keep the record falsifiable and
 machine-diffable:
 
 ```yaml
-paper: "Paper 36: HoloScript Conjecture Engine"
-claim_id: "P36.C1"
-minimum_claim_scope: ""
+paper: 'Paper 36: HoloScript Conjecture Engine'
+claim_id: 'P36.C1'
+minimum_claim_scope: ''
 holoscript_artifact:
   paths: []
-  commit_or_receipt: ""
-evidence_envelope: ""
-kill_target: ""
+  commit_or_receipt: ''
+evidence_envelope: ''
+kill_target: ''
 databases:
-  - name: "arXiv"
-    date_utc: "2026-05-25"
+  - name: 'arXiv'
+    date_utc: '2026-05-25'
     queries: []
     top_hits:
-      - title: ""
-        id_or_url: ""
-        year: ""
-        include_reason: ""
-        exclude_reason: ""
-  - name: "DBLP"
-    date_utc: "2026-05-25"
+      - title: ''
+        id_or_url: ''
+        year: ''
+        include_reason: ''
+        exclude_reason: ''
+  - name: 'DBLP'
+    date_utc: '2026-05-25'
     queries: []
     top_hits: []
-  - name: "OpenAlex"
-    date_utc: "2026-05-25"
+  - name: 'OpenAlex'
+    date_utc: '2026-05-25'
     queries: []
     top_hits: []
-  - name: "Semantic Scholar"
-    date_utc: "2026-05-25"
+  - name: 'Semantic Scholar'
+    date_utc: '2026-05-25'
     queries: []
     top_hits: []
-verdict: "killed | survives | survives-narrowed | under-resolved"
-kill_artifact: ""
-surviving_delta: ""
-required_wording_change: ""
-next_action: ""
-reviewer_risk: "low | medium | high"
+verdict: 'killed | survives | survives-narrowed | under-resolved'
+kill_artifact: ''
+surviving_delta: ''
+required_wording_change: ''
+next_action: ''
+reviewer_risk: 'low | medium | high'
 ```
 
 The `kill_artifact` field is required for `killed`. The `surviving_delta` and
@@ -160,15 +160,15 @@ render artifact exists.
 
 Date: 2026-05-25.
 
-| Database | Query | Result summary |
-|---|---|---|
-| arXiv | `all:"LeanConjecturer" OR all:"FunSearch" OR all:"AlphaEvolve"` | Top hits included `AlphaEvolve: A coding agent for scientific and algorithmic discovery` (`arXiv:2506.13131`), `LeanConjecturer: Automatic Generation of Mathematical Conjectures for Theorem Proving` (`arXiv:2506.22005`), `ImprovEvolve` (`arXiv:2602.10233`), and AlphaEvolve derivative/improvement papers. |
-| DBLP | `LeanConjecturer` | One CoRR hit: `LeanConjecturer: Automatic Generation of Mathematical Conjectures for Theorem Proving`, DOI `10.48550/ARXIV.2506.22005`. |
-| DBLP | `AlphaEvolve` | Nine hits. Relevant hits include the AlphaEvolve CoRR paper (`abs/2506.13131`) and derivative works such as Magellan, ImprovEvolve, and hardware/matrix-multiplication implementations. |
-| DBLP | `FunSearch` | Three hits, including FunBO and selection-operator synthesis works using FunSearch. |
-| DBLP | `LeanConjecturer FunSearch AlphaEvolve` | Zero hits. This is useful as a negative control only; the combined query is too strict to prove absence. |
-| OpenAlex | `AlphaEvolve` | Top hits included a name-collision finance paper from 2021, the AlphaEvolve 2025 arXiv work, AlphaEvolve improvement papers, and a 2026 FHE-on-TPU adaptation. Name collisions must be excluded explicitly. |
-| Semantic Scholar | `LeanConjecturer FunSearch AlphaEvolve` | One broad hit: `Effective Harness Engineering for Algorithm Discovery with Coding Agents` (2026). Exact follow-up queries returned API 429 rate-limit responses, so this database remains under-resolved for the example row. |
+| Database         | Query                                                           | Result summary                                                                                                                                                                                                                                                                                                   |
+| ---------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| arXiv            | `all:"LeanConjecturer" OR all:"FunSearch" OR all:"AlphaEvolve"` | Top hits included `AlphaEvolve: A coding agent for scientific and algorithmic discovery` (`arXiv:2506.13131`), `LeanConjecturer: Automatic Generation of Mathematical Conjectures for Theorem Proving` (`arXiv:2506.22005`), `ImprovEvolve` (`arXiv:2602.10233`), and AlphaEvolve derivative/improvement papers. |
+| DBLP             | `LeanConjecturer`                                               | One CoRR hit: `LeanConjecturer: Automatic Generation of Mathematical Conjectures for Theorem Proving`, DOI `10.48550/ARXIV.2506.22005`.                                                                                                                                                                          |
+| DBLP             | `AlphaEvolve`                                                   | Nine hits. Relevant hits include the AlphaEvolve CoRR paper (`abs/2506.13131`) and derivative works such as Magellan, ImprovEvolve, and hardware/matrix-multiplication implementations.                                                                                                                          |
+| DBLP             | `FunSearch`                                                     | Three hits, including FunBO and selection-operator synthesis works using FunSearch.                                                                                                                                                                                                                              |
+| DBLP             | `LeanConjecturer FunSearch AlphaEvolve`                         | Zero hits. This is useful as a negative control only; the combined query is too strict to prove absence.                                                                                                                                                                                                         |
+| OpenAlex         | `AlphaEvolve`                                                   | Top hits included a name-collision finance paper from 2021, the AlphaEvolve 2025 arXiv work, AlphaEvolve improvement papers, and a 2026 FHE-on-TPU adaptation. Name collisions must be excluded explicitly.                                                                                                      |
+| Semantic Scholar | `LeanConjecturer FunSearch AlphaEvolve`                         | One broad hit: `Effective Harness Engineering for Algorithm Discovery with Coding Agents` (2026). Exact follow-up queries returned API 429 rate-limit responses, so this database remains under-resolved for the example row.                                                                                    |
 
 ### Verdict
 

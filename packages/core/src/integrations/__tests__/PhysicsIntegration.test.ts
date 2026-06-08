@@ -205,7 +205,7 @@ describe('PhysicsIntegration', () => {
           [
             targetFragment.position[0],
             targetFragment.position[1] + 1 + i * 0.1,
-            targetFragment.position[2]
+            targetFragment.position[2],
           ],
           0.05
         );
@@ -224,11 +224,7 @@ describe('PhysicsIntegration', () => {
 
       // Add particle below fragment
       granularSystem.addParticle(
-        [
-          targetFragment.position[0],
-          targetFragment.position[1] - 1,
-          targetFragment.position[2]
-        ],
+        [targetFragment.position[0], targetFragment.position[1] - 1, targetFragment.position[2]],
         0.05
       );
 
@@ -248,7 +244,7 @@ describe('PhysicsIntegration', () => {
         [
           targetFragment.position[0] + 10,
           targetFragment.position[1] + 1,
-          targetFragment.position[2]
+          targetFragment.position[2],
         ],
         0.05
       );
@@ -281,11 +277,7 @@ describe('PhysicsIntegration', () => {
       // Add 10 particles above fragment1 (more mass)
       for (let i = 0; i < 10; i++) {
         granularSystem.addParticle(
-          [
-            fragment1.position[0],
-            fragment1.position[1] + 1 + i * 0.1,
-            fragment1.position[2]
-          ],
+          [fragment1.position[0], fragment1.position[1] + 1 + i * 0.1, fragment1.position[2]],
           0.05
         );
       }
@@ -293,11 +285,7 @@ describe('PhysicsIntegration', () => {
       // Add 2 particles above fragment2 (less mass)
       for (let i = 0; i < 2; i++) {
         granularSystem.addParticle(
-          [
-            fragment2.position[0],
-            fragment2.position[1] + 1 + i * 0.1,
-            fragment2.position[2]
-          ],
+          [fragment2.position[0], fragment2.position[1] + 1 + i * 0.1, fragment2.position[2]],
           0.05
         );
       }
@@ -359,7 +347,7 @@ describe('PhysicsIntegration', () => {
           [
             fragments[0].position[0],
             fragments[0].position[1] + 1 + i * 0.1,
-            fragments[0].position[2]
+            fragments[0].position[2],
           ],
           0.05
         );
@@ -433,11 +421,7 @@ describe('PhysicsIntegration', () => {
       const particleCount = 5;
       for (let i = 0; i < particleCount; i++) {
         granularSystem.addParticle(
-          [
-            fragment.position[0],
-            fragment.position[1] + 0.5 + i * 0.1,
-            fragment.position[2],
-          ],
+          [fragment.position[0], fragment.position[1] + 0.5 + i * 0.1, fragment.position[2]],
           particleRadius
         );
       }

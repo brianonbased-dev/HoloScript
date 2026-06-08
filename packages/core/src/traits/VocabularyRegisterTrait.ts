@@ -68,8 +68,16 @@ export const DEFAULT_REGISTERS: VocabularyRegister[] = [
     description: 'High-fantasy register with feudal, arcane, and heraldic terminology.',
     toneHint: 'Speak as a chronicler of the Age of Kings.',
     entries: [
-      { term: 'liege', definition: 'A lord to whom a vassal owes allegiance.', usageExample: 'My liege commands the muster at dawn.' },
-      { term: 'grimoire', definition: 'A book of magic spells and invocations.', usageExample: 'The grimoire was bound in dragon hide.' },
+      {
+        term: 'liege',
+        definition: 'A lord to whom a vassal owes allegiance.',
+        usageExample: 'My liege commands the muster at dawn.',
+      },
+      {
+        term: 'grimoire',
+        definition: 'A book of magic spells and invocations.',
+        usageExample: 'The grimoire was bound in dragon hide.',
+      },
     ],
   },
   {
@@ -77,8 +85,16 @@ export const DEFAULT_REGISTERS: VocabularyRegister[] = [
     description: 'Post-collapse science-fiction register with tech-archaeology flavor.',
     toneHint: 'Speak as a salvager of the Old Networks.',
     entries: [
-      { term: 'void-sig', definition: 'A faint electromagnetic trace left by faster-than-light transit.', usageExample: 'The void-sig decayed before we could triangulate.' },
-      { term: 'synth-bay', definition: 'An automated fabrication chamber.', usageExample: 'The synth-bay churned out filters until it seized.' },
+      {
+        term: 'void-sig',
+        definition: 'A faint electromagnetic trace left by faster-than-light transit.',
+        usageExample: 'The void-sig decayed before we could triangulate.',
+      },
+      {
+        term: 'synth-bay',
+        definition: 'An automated fabrication chamber.',
+        usageExample: 'The synth-bay churned out filters until it seized.',
+      },
     ],
   },
   {
@@ -86,8 +102,17 @@ export const DEFAULT_REGISTERS: VocabularyRegister[] = [
     description: 'Contemporary business register with metrics and stakeholder vocabulary.',
     toneHint: 'Speak as a senior operations strategist.',
     entries: [
-      { term: 'synergy', definition: 'The interaction of elements that when combined produce a total effect greater than the sum of individual elements.', usageExample: 'We need synergy between marketing and engineering.' },
-      { term: 'stakeholder alignment', definition: 'Ensuring all parties with interest in an outcome share the same goals.', usageExample: 'Stakeholder alignment is the first milestone.' },
+      {
+        term: 'synergy',
+        definition:
+          'The interaction of elements that when combined produce a total effect greater than the sum of individual elements.',
+        usageExample: 'We need synergy between marketing and engineering.',
+      },
+      {
+        term: 'stakeholder alignment',
+        definition: 'Ensuring all parties with interest in an outcome share the same goals.',
+        usageExample: 'Stakeholder alignment is the first milestone.',
+      },
     ],
   },
   {
@@ -95,8 +120,16 @@ export const DEFAULT_REGISTERS: VocabularyRegister[] = [
     description: 'Classical register with solemn, ceremonial diction.',
     toneHint: 'Speak as a priest of the First Temple.',
     entries: [
-      { term: 'vestal', definition: 'A consecrated priestess bound to chastity and service.', usageExample: 'The vestal tended the eternal flame.' },
-      { term: 'oblation', definition: 'A offering made to a deity.', usageExample: 'The oblation of grain pleased the harvest god.' },
+      {
+        term: 'vestal',
+        definition: 'A consecrated priestess bound to chastity and service.',
+        usageExample: 'The vestal tended the eternal flame.',
+      },
+      {
+        term: 'oblation',
+        definition: 'A offering made to a deity.',
+        usageExample: 'The oblation of grain pleased the harvest god.',
+      },
     ],
   },
   {
@@ -104,8 +137,16 @@ export const DEFAULT_REGISTERS: VocabularyRegister[] = [
     description: 'Register of heist, smuggling, and street-hierarchy slang.',
     toneHint: 'Speak as a fixer who knows every backroom in the sprawl.',
     entries: [
-      { term: 'cutter', definition: 'A freelance assassin or enforcer.', usageExample: 'The cutter only works for verified clients.' },
-      { term: 'drop-bag', definition: 'A secure container left at a blind exchange point.', usageExample: 'Check the drop-bag under the north pier.' },
+      {
+        term: 'cutter',
+        definition: 'A freelance assassin or enforcer.',
+        usageExample: 'The cutter only works for verified clients.',
+      },
+      {
+        term: 'drop-bag',
+        definition: 'A secure container left at a blind exchange point.',
+        usageExample: 'Check the drop-bag under the north pier.',
+      },
     ],
   },
   {
@@ -113,8 +154,16 @@ export const DEFAULT_REGISTERS: VocabularyRegister[] = [
     description: 'Academic register with Latinate and Hellenic terminology.',
     toneHint: 'Speak as a philologian of the Third Academy.',
     entries: [
-      { term: 'aporia', definition: 'An irresolvable internal contradiction in a text or argument.', usageExample: 'The aporia in Parmenides haunts metaphysics still.' },
-      { term: 'palimpsest', definition: 'A manuscript on which later writing has been superimposed on earlier writing.', usageExample: 'The palimpsest revealed a lost comedy underneath.' },
+      {
+        term: 'aporia',
+        definition: 'An irresolvable internal contradiction in a text or argument.',
+        usageExample: 'The aporia in Parmenides haunts metaphysics still.',
+      },
+      {
+        term: 'palimpsest',
+        definition: 'A manuscript on which later writing has been superimposed on earlier writing.',
+        usageExample: 'The palimpsest revealed a lost comedy underneath.',
+      },
     ],
   },
 ];
@@ -185,10 +234,16 @@ export const vocabularyRegisterHandler: TraitHandler<VocabularyRegisterConfig> =
       domain: 'language',
       axis_vocabulary: ['register_diversity', 'injection_rate'] as const,
       generate(ctx: PillarContext): PillarSlice {
-        const state = (node as any).__vocabularyRegisterState as VocabularyRegisterState | undefined;
+        const state = (node as any).__vocabularyRegisterState as
+          | VocabularyRegisterState
+          | undefined;
         const activeReg = state?.registers?.get(state.activeName ?? '');
-        const diversity = activeReg ? Math.min(1, (activeReg.entries?.length ?? 2) / 12) : ((ctx.metadata as Record<string, number> | undefined)?.register_diversity ?? 0.7);
-        const rate = state ? Math.min(1, (state.injectedCount ?? 0) / 50) : ((ctx.metadata as Record<string, number> | undefined)?.injection_rate ?? 0.4);
+        const diversity = activeReg
+          ? Math.min(1, (activeReg.entries?.length ?? 2) / 12)
+          : ((ctx.metadata as Record<string, number> | undefined)?.register_diversity ?? 0.7);
+        const rate = state
+          ? Math.min(1, (state.injectedCount ?? 0) / 50)
+          : ((ctx.metadata as Record<string, number> | undefined)?.injection_rate ?? 0.4);
         return {
           axis_1_id: 'register_diversity',
           axis_2_id: 'injection_rate',

@@ -142,7 +142,10 @@ function aspectScale(photo: MLSPhoto): { x: number; y: number } {
   return { x: (base * w) / h, y: base };
 }
 
-function placePhotosInRoom(photos: MLSPhoto[], roomSize: number): Array<{
+function placePhotosInRoom(
+  photos: MLSPhoto[],
+  roomSize: number
+): Array<{
   photo: MLSPhoto;
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number };
@@ -191,7 +194,7 @@ function placePhotosInRoom(photos: MLSPhoto[], roomSize: number): Array<{
         photo: photos[i],
         position: {
           x: wall.x === 0 ? offset : wall.x,
-          y: wallHeight + (offsetIndex * 0.3),
+          y: wallHeight + offsetIndex * 0.3,
           z: wall.z === 0 ? offset : wall.z,
         },
         rotation: { x: 0, y: wall.ry, z: 0 },
@@ -237,7 +240,7 @@ export class HoloGramMLSCompiler extends CompilerBase {
   compile(..._args: unknown[]): string {
     throw new Error(
       'HoloGramMLSCompiler.compile() is not supported. ' +
-      'Use compileBundle(bundle: HoloGramMLSBundle) to ingest an MLS bundle.'
+        'Use compileBundle(bundle: HoloGramMLSBundle) to ingest an MLS bundle.'
     );
   }
 
@@ -293,13 +296,13 @@ export class HoloGramMLSCompiler extends CompilerBase {
             type: 'ObjectTrait',
             name: 'geometry',
             config: {},
-          params: { primitive: 'plane' },
+            params: { primitive: 'plane' },
           },
           {
             type: 'ObjectTrait',
             name: 'material',
             config: {},
-          params: {
+            params: {
               color: this.options.floorColor,
               roughness: 0.1,
               metalness: 0.6,
@@ -317,13 +320,13 @@ export class HoloGramMLSCompiler extends CompilerBase {
             type: 'ObjectTrait',
             name: 'image',
             config: {},
-          params: { src: placement.photo.url },
+            params: { src: placement.photo.url },
           },
           {
             type: 'ObjectTrait',
             name: 'depth_estimation',
             config: {},
-          params: {
+            params: {
               model: this.options.depthModel,
               backend: this.options.depthBackend,
             },
@@ -332,7 +335,7 @@ export class HoloGramMLSCompiler extends CompilerBase {
             type: 'ObjectTrait',
             name: 'displacement',
             config: {},
-          params: {
+            params: {
               scale: this.options.displacementScale,
               segments: this.options.displacementSegments,
             },
@@ -341,13 +344,13 @@ export class HoloGramMLSCompiler extends CompilerBase {
             type: 'ObjectTrait',
             name: 'depth_to_normal',
             config: {},
-          params: {},
+            params: {},
           },
           {
             type: 'ObjectTrait',
             name: 'geometry',
             config: {},
-          params: { primitive: 'plane' },
+            params: { primitive: 'plane' },
           },
         ];
 
@@ -356,7 +359,7 @@ export class HoloGramMLSCompiler extends CompilerBase {
             type: 'ObjectTrait',
             name: 'billboard',
             config: {},
-          params: { label: placement.photo.caption },
+            params: { label: placement.photo.caption },
           });
         }
 
@@ -395,7 +398,7 @@ export class HoloGramMLSCompiler extends CompilerBase {
             type: 'ObjectTrait',
             name: 'material',
             config: {},
-          params: { color: '#0a0a20', emissive: '#4422cc', emissiveIntensity: 1.2 },
+            params: { color: '#0a0a20', emissive: '#4422cc', emissiveIntensity: 1.2 },
           },
         ],
       });
@@ -424,11 +427,14 @@ export class HoloGramMLSCompiler extends CompilerBase {
         type: 'SpatialGroup',
         id: `room_${roomName.replace(/\s+/g, '_')}`,
         name: roomName,
-        objects: objects.filter((o) => o.id?.startsWith(`floor_${roomName.replace(/\s+/g, '_')}`) ||
-          o.id?.startsWith(`label_${roomName.replace(/\s+/g, '_')}`) ||
-          (o.traits?.some((t) => t.name === 'image') &&
-            Math.abs((o.position?.x ?? 0) - pos.x) < roomSize &&
-            Math.abs((o.position?.z ?? 0) - pos.z) < roomSize)),
+        objects: objects.filter(
+          (o) =>
+            o.id?.startsWith(`floor_${roomName.replace(/\s+/g, '_')}`) ||
+            o.id?.startsWith(`label_${roomName.replace(/\s+/g, '_')}`) ||
+            (o.traits?.some((t) => t.name === 'image') &&
+              Math.abs((o.position?.x ?? 0) - pos.x) < roomSize &&
+              Math.abs((o.position?.z ?? 0) - pos.z) < roomSize)
+        ),
         properties: [],
       });
 
@@ -493,18 +499,20 @@ export class HoloGramMLSCompiler extends CompilerBase {
       lights,
       camera,
       waypointSets: waypoints,
-      worlds: [{
-        type: 'World',
-        name: 'gallery_world',
-        bounds: {
-          minX: -this.options.roomSpacing * 2,
-          minY: 0,
-          minZ: -this.options.roomSpacing * 2,
-          maxX: this.options.roomSpacing * 2,
-          maxY: 10,
-          maxZ: this.options.roomSpacing * 2,
+      worlds: [
+        {
+          type: 'World',
+          name: 'gallery_world',
+          bounds: {
+            minX: -this.options.roomSpacing * 2,
+            minY: 0,
+            minZ: -this.options.roomSpacing * 2,
+            maxX: this.options.roomSpacing * 2,
+            maxY: 10,
+            maxZ: this.options.roomSpacing * 2,
+          },
         },
-      }],
+      ],
       templates: [],
       imports: [],
       transitions: [],
@@ -564,6 +572,8 @@ export class HoloGramMLSCompiler extends CompilerBase {
   }
 }
 
-export function createHoloGramMLSCompiler(options?: HoloGramMLSCompilerOptions): HoloGramMLSCompiler {
+export function createHoloGramMLSCompiler(
+  options?: HoloGramMLSCompilerOptions
+): HoloGramMLSCompiler {
   return new HoloGramMLSCompiler(options);
 }

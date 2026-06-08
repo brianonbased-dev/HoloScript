@@ -21,6 +21,7 @@ visual representation of a 16-paper research program."**
 
 The Lotus Flower (per `docs/strategy/lotus-architecture.md` + memory
 `project_lotus-genesis-trigger.md`):
+
 - **Roots** = parser, multi-target compiler, provenance semiring (substrate)
 - **Stalk** = `.hs` / `.hsplus` / `.holo` / `.hs.md` (formats)
 - **Petals** = 16 papers across Programs 1, 2, 3 (each a proof instrument)
@@ -34,6 +35,7 @@ ground truth + suggest what evidence is needed for the next bloom.
 
 **Why this framing is stronger** (vs the original SimulationContract grounding
 on generic scenes):
+
 1. **W.GOLD.001 Architecture beats alignment** — Brittney can't hallucinate a
    paper's bloom-state because the state is a pure function of repo evidence.
    Architecturally impossible to lie. This is the ideal demonstration of the
@@ -75,39 +77,42 @@ No deadline surfaced (per [W.317 date discipline](research/2026-04-27_martinis-n
 
 Verified [packages/studio/src/app/api/brittney/route.ts](packages/studio/src/app/api/brittney/route.ts) on 2026-04-27:
 
-| Capability | Where | Status |
-|---|---|---|
-| Spatial-native chat with scene-context injection | [route.ts:138](packages/studio/src/app/api/brittney/route.ts:138) — `buildContextualPrompt(sceneContext)` | ✅ shipped |
-| Four-toolset orchestration in single loop | [route.ts:31-53](packages/studio/src/app/api/brittney/route.ts:31) — `BRITTNEY_TOOLS + STUDIO_API_TOOLS + MCP_TOOLS + SIMULATION_TOOLS` | ✅ shipped |
-| Bounded tool rounds (5) | [route.ts:158](packages/studio/src/app/api/brittney/route.ts:158) — `MAX_TOOL_ROUNDS = 5` | ✅ shipped |
-| Streaming with 16K tokens (safe boundary) | [route.ts:187-191](packages/studio/src/app/api/brittney/route.ts:187) — `stream: true` | ✅ shipped, comment correctly explains the SDK timeout boundary |
-| Production gating (auth + rate-limit + credits) | [route.ts:65-136](packages/studio/src/app/api/brittney/route.ts:65) | ✅ shipped |
+| Capability                                       | Where                                                                                                                                   | Status                                                          |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Spatial-native chat with scene-context injection | [route.ts:138](packages/studio/src/app/api/brittney/route.ts:138) — `buildContextualPrompt(sceneContext)`                               | ✅ shipped                                                      |
+| Four-toolset orchestration in single loop        | [route.ts:31-53](packages/studio/src/app/api/brittney/route.ts:31) — `BRITTNEY_TOOLS + STUDIO_API_TOOLS + MCP_TOOLS + SIMULATION_TOOLS` | ✅ shipped                                                      |
+| Bounded tool rounds (5)                          | [route.ts:158](packages/studio/src/app/api/brittney/route.ts:158) — `MAX_TOOL_ROUNDS = 5`                                               | ✅ shipped                                                      |
+| Streaming with 16K tokens (safe boundary)        | [route.ts:187-191](packages/studio/src/app/api/brittney/route.ts:187) — `stream: true`                                                  | ✅ shipped, comment correctly explains the SDK timeout boundary |
+| Production gating (auth + rate-limit + credits)  | [route.ts:65-136](packages/studio/src/app/api/brittney/route.ts:65)                                                                     | ✅ shipped                                                      |
 
 ## What the doctrine claims that has NO implementation
 
 From [docs/agents/studio-first-agents.md](docs/agents/studio-first-agents.md):
 
-| Claim | Reality | F.029 violation? |
-|---|---|---|
-| "Project memory and taste accumulates around Brittney" | No persistence layer in route.ts; each request stateless beyond `messages` array | YES — claim has zero implementation hook |
-| "Spatial understanding accumulates" | No embedding store, no scene-history, no learning loop | YES — pure aspiration |
-| Polyglot output across .holo/.hsplus/.hs/TS/Python (per 20-day-old project memory) | Unverified — needs `BrittneyTools.ts` audit | UNVERIFIED |
+| Claim                                                                              | Reality                                                                          | F.029 violation?                         |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------- |
+| "Project memory and taste accumulates around Brittney"                             | No persistence layer in route.ts; each request stateless beyond `messages` array | YES — claim has zero implementation hook |
+| "Spatial understanding accumulates"                                                | No embedding store, no scene-history, no learning loop                           | YES — pure aspiration                    |
+| Polyglot output across .holo/.hsplus/.hs/TS/Python (per 20-day-old project memory) | Unverified — needs `BrittneyTools.ts` audit                                      | UNVERIFIED                               |
 
 ## The framing that survives /critic
 
 Three candidate framings, ruled in order of strength:
 
 ### ❌ REJECTED: "Scene-grounded prompt context yields measurable accuracy lift"
+
 - CHI/IUI flavor, weakest framing.
 - Already published widely in adjacent literature (Voyager, MineDojo, MultiPLY, Cradle).
 - Reviewer pushback: "Why not just use any of the existing scene-grounded LLM frameworks?"
 
 ### ❌ REJECTED: "Four-toolset agentic orchestration outperforms single-toolset"
+
 - UIST flavor, engineering-paper.
 - Tool-orchestration papers are a saturated subgenre at UIST 2024-2026.
 - Reviewer pushback: "What's the principled selection? Why these four toolsets and not three or five?"
 
 ### ❌ REJECTED: "Polyglot format dispatch reduces task-completion time"
+
 - PLDI/OOPSLA flavor.
 - Premature — polyglot is unverified-aspirational. Cannot frame around a feature that may not exist.
 
@@ -122,6 +127,7 @@ Three candidate framings, ruled in order of strength:
 ## REVISED Engineering gates (post-Lotus reframe)
 
 ### Gate 1 (REVISED) — Lotus Flower seed scene + bloom-state derivation utility
+
 **Why**: Brittney can't tend a garden that doesn't exist. The first concrete
 artifact must be (a) the .holo scene defining the Lotus and (b) the pure
 function that derives each petal's bloom-state from real evidence. The
@@ -129,6 +135,7 @@ derivation function is the **algebraic-trust hook** — Brittney's mutations
 must agree with it, and any disagreement is detectable architecturally.
 
 **What to build (this gate)**:
+
 1. `examples/lotus-flower/garden.holo` — seed scene with 16 petal nodes,
    stalk segments, root nodes, and the Dumb Glass center node. Spatial
    layout per the lotus-architecture.md ASCII diagram.
@@ -144,12 +151,14 @@ mirrors the actual paper-audit-matrix.md row schema.
 **Status (2026-04-27 commit pending)**: Built this session as Gate 1 seed.
 
 ### Gate 2 (REVISED) — Lotus tools wired into Brittney + system prompt
+
 **Why**: Brittney needs LOTUS_TOOLS (`bloom_petal`, `wilt_petal`,
 `read_garden_state`, `tend_garden`, `propose_evidence`) wired into route.ts.
 Tools must REJECT mutations that don't agree with derivePetalBloomState's
 output. This is the architectural-trust enforcement.
 
 **Where to wire**:
+
 - New file `packages/studio/src/lib/brittney/lotus/LotusTools.ts` defining the tool schemas + executors.
 - Append to [route.ts:31-53](packages/studio/src/app/api/brittney/route.ts:31) `convertToolsToClaudeFormat()`.
 - Update [systemPrompt.ts](packages/studio/src/lib/brittney/systemPrompt.ts) to teach Brittney about the garden.
@@ -159,12 +168,14 @@ respond with the derived bloom-state + the evidence backing it. Asking her
 to "bloom Paper 11" with no evidence returns is_error and an explanation.
 
 ### Gate 3 (REVISED) — Live garden tending against ai-ecosystem
+
 **Why**: The eval that survives review: human curator tends the garden by
 hand for N=10 paper-program updates, then Brittney tends the same updates
 autonomously. Compare bloom-state agreement rate, evidence-citation accuracy,
 and time-to-correct-state.
 
 **What to build**:
+
 - Snapshot the ai-ecosystem `paper-audit-matrix.md` at 10 historical commits.
 - For each snapshot, compute the human-baseline bloom-state for all 16 petals.
 - Run Brittney's `tend_garden` against each snapshot.
@@ -182,6 +193,7 @@ out of 16); median tend time ≤ 30s. Markdown report committed.
 ## Session 2026-04-29 update — gate state + harness shipped
 
 **Lotus-reframe Gate 1 + Gate 2 — SHIPPED** (peer commits):
+
 - `04adb85c0` feat(lotus): seed Lotus Flower garden + bloom-state derivation (Gate 1)
 - `c2253cd15` feat(lotus): seed Lotus Flower garden + bloom-state derivation
 - `7ec336078` feat(brittney): SimContract grounding + CAEL audit trail (Gates 1+2)
@@ -201,6 +213,7 @@ by the Lotus reframe, the harness was built this session because gate
 3 measurement of "creation-completion against unverified-baselines" was
 specified verbatim in the original memo body and has standalone value
 for any future application-paper comparison:
+
 - Harness shipped at `packages/studio/src/__benchmarks__/brittney-vs-baselines/`
   (commits `4284dda32` + `aabb1f8f8` + chain).
 - 270-cell baselines-only run completed 2026-04-29 ($42.93 / $100 budget).
@@ -231,7 +244,7 @@ This is a real Paper 26 methodology open question, not a benchmark bug.
 **Naming clarification**: this scoping memo's "Paper 26" is a placeholder —
 no paper number has been allocated to Brittney. The
 `paper-audit-matrix.md` row "Paper 26: Brain-Composed LLM Agents (BCLA)"
-is a *different* paper. Per the original memo body §"Slot status":
+is a _different_ paper. Per the original memo body §"Slot status":
 "scoping memo only. No paper number assigned."
 
 ## Out of scope for THIS memo (do NOT bundle)
@@ -245,6 +258,7 @@ is a *different* paper. Per the original memo body §"Slot status":
 ## Connection to existing program
 
 Brittney's framing **slots between**:
+
 - Paper 22 (Mechanized SimulationContract → CAV/FM) — supplies the verification primitive Brittney's gate-1 wires.
 - Paper 23 (Formal Semantics of HoloScript Core → POPL/TyDe) — supplies the trait-composition formal foundation Brittney generates against.
 - Paper 17 (SESL training → MLSys) — provides the per-domain SESL embeddings Brittney's scene-context could use (currently doesn't).
@@ -255,12 +269,14 @@ Brittney as Paper 26 = **the application paper** that demonstrates Papers 17 + 2
 ## When to reconvene
 
 After ALL three engineering gates close, reconvene this memo and either:
+
 1. Promote to Paper 26 slot allocation in `paper-audit-matrix.md` (with W.317-compliant date + 5 readiness columns).
 2. Or, if gate data shows weak/null lift over baselines, archive this memo to `research/archive/` with a "negative result" note.
 
 ## Anti-citations (per F.023)
 
 Do NOT cite the following — they are wrong / drifted / different entry:
+
 - W.GOLD.044 — that's Affective Causality Pattern, NOT trust. The trust framing is W.GOLD.188 + W.GOLD.189 (per founder skill anti-citation explicit warning).
 - "Brittney is novel because she has tool use" — saturated subgenre; novelty must be in the architectural grounding, not the tool-use mechanism.
 - 20-day-old [project_brittney-polyglot.md](C:/Users/josep/.claude/projects/C--Users-josep--ai-ecosystem/memory/project_brittney-polyglot.md) — VERIFY before citing the polyglot claim; memory may be stale.

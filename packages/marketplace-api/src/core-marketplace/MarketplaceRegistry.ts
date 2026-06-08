@@ -216,7 +216,9 @@ export class MarketplaceRegistry {
       version: listing.metadata.version,
       safetyVerdict: listing.safetyReport.verdict,
       dangerScore: listing.safetyReport.dangerScore,
-      requiredCapabilities: listing.safetyReport.capabilities.required.map((r: { scope: string }) => r.scope),
+      requiredCapabilities: listing.safetyReport.capabilities.required.map(
+        (r: { scope: string }) => r.scope
+      ),
       targetPlatforms: listing.metadata.platforms,
       dependencies: listing.metadata.dependencies,
       installedAt: new Date().toISOString(),

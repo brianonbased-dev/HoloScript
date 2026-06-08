@@ -11,7 +11,10 @@ const packageRoot = join(__dirname, '..');
 const buildDir = join(packageRoot, 'build');
 const isWindows = process.platform === 'win32';
 const treeSitterPackageJson = require.resolve('tree-sitter-cli/package.json');
-const treeSitterBin = join(dirname(treeSitterPackageJson), isWindows ? 'tree-sitter.exe' : 'tree-sitter');
+const treeSitterBin = join(
+  dirname(treeSitterPackageJson),
+  isWindows ? 'tree-sitter.exe' : 'tree-sitter'
+);
 const nodeGypBin = require.resolve('node-gyp/bin/node-gyp.js');
 
 function run(command, args) {

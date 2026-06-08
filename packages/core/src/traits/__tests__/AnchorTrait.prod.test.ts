@@ -130,7 +130,7 @@ describe('anchorHandler.onEvent — anchor_created', () => {
 describe('anchorHandler.onEvent — anchor_pose_update', () => {
   const pose = {
     position: [1, 2, 3],
-    rotation: [0, 0, 0, 1 ],
+    rotation: [0, 0, 0, 1],
     confidence: 0.95,
   };
   it('updates pose', () => {
@@ -296,7 +296,7 @@ describe('anchorHandler.onUpdate — fallback: interpolate', () => {
     node.__anchorState.trackingState = 'lost';
     node.__anchorState.lastValidPose = {
       position: [5, 1, 2],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
       confidence: 1,
     };
     ctx.emit.mockClear();
@@ -314,7 +314,7 @@ describe('anchorHandler.onUpdate — offset application', () => {
     createAnchor(node, ctx, config);
     node.__anchorState.pose = {
       position: [2, 1, 0],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
       confidence: 1,
     };
     ctx.emit.mockClear();
@@ -327,7 +327,7 @@ describe('anchorHandler.onUpdate — offset application', () => {
   it('emits set_rotation when tracking', () => {
     const { node, ctx, config } = attach();
     createAnchor(node, ctx, config);
-    const rot = [0, 0.7, 0, 0.7 ];
+    const rot = [0, 0.7, 0, 0.7];
     node.__anchorState.pose = { position: [0, 0, 0], rotation: rot, confidence: 1 };
     ctx.emit.mockClear();
     anchorHandler.onUpdate!(node, config, ctx, 0.1);

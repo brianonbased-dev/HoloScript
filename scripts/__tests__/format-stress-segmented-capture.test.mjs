@@ -393,7 +393,10 @@ try {
     sceneSnapshot,
     worldModelReplay,
   });
-  assertOk(liveScene.includes('composition "Live Segment 06_release Release Frame"'), 'live scene names segment');
+  assertOk(
+    liveScene.includes('composition "Live Segment 06_release Release Frame"'),
+    'live scene names segment'
+  );
   assertOk(liveScene.includes('object "ThrowRock"'), 'live scene includes rock transform object');
   assertOk(liveScene.includes('released rock transform'), 'live scene labels released rock');
   assertOk(liveScene.includes('object "ProvenancePanel"'), 'live scene includes provenance panel');

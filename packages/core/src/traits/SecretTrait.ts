@@ -129,7 +129,7 @@ export const secretHandler: TraitHandler<SecretConfig> = {
       case 'secret:delete': {
         const id = payload.secretId as string;
         const box = state.vault.get(id);
-        
+
         if (!box) {
           context.emit?.('secret:error', { error: 'not_found', secretId: id });
           break;
@@ -140,10 +140,10 @@ export const secretHandler: TraitHandler<SecretConfig> = {
         const validNonce = box.deletionNonce && box.deletionNonce === payload.deletionNonce;
 
         if (!validNonce && !isOwner) {
-          context.emit?.('secret:error', { 
-            error: 'unauthorized_deletion', 
+          context.emit?.('secret:error', {
+            error: 'unauthorized_deletion',
             secretId: id,
-            details: 'Requires valid deletionNonce or node owner authorization'
+            details: 'Requires valid deletionNonce or node owner authorization',
           });
           break;
         }

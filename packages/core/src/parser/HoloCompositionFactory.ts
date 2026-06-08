@@ -10,7 +10,7 @@ import type {
   HoloExpression,
   HoloValue,
   PlatformConstraint,
-  SourceRange
+  SourceRange,
 } from './HoloCompositionTypes';
 
 export const factory = {
@@ -42,7 +42,7 @@ export const factory = {
       achievements: options.achievements || [],
       talentTrees: options.talentTrees || [],
       shapes: options.shapes || [],
-      ...options
+      ...options,
     };
   },
 
@@ -56,20 +56,16 @@ export const factory = {
       name,
       traits,
       properties: options.properties || [],
-      ...options
+      ...options,
     };
   },
 
-  trait(
-    name: string,
-    config: Record<string, HoloValue> = {},
-    args?: HoloValue[]
-  ): HoloObjectTrait {
+  trait(name: string, config: Record<string, HoloValue> = {}, args?: HoloValue[]): HoloObjectTrait {
     return {
       type: 'ObjectTrait',
       name,
       config,
-      args
+      args,
     };
   },
 
@@ -83,15 +79,15 @@ export const factory = {
       name,
       objects,
       properties: options.properties || [],
-      ...options
+      ...options,
     };
   },
-  
+
   logic(handlers: HoloEventHandler[] = [], actions: HoloAction[] = []): HoloLogic {
     return {
       type: 'Logic',
       handlers,
-      actions
+      actions,
     };
-  }
+  },
 };

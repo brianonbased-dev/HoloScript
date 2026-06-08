@@ -134,7 +134,8 @@ export class PerceptionSystem {
             const fLen =
               Math.sqrt(entity.facing[0] ** 2 + entity.facing[1] ** 2 + entity.facing[2] ** 2) || 1;
             const dot =
-              (dx * entity.facing[0] + dy * entity.facing[1] + dz * entity.facing[2]) / (dist * fLen);
+              (dx * entity.facing[0] + dy * entity.facing[1] + dz * entity.facing[2]) /
+              (dist * fLen);
             const halfFovRad = (sense.fov / 2) * (Math.PI / 180);
             if (dot < Math.cos(halfFovRad)) continue;
           }

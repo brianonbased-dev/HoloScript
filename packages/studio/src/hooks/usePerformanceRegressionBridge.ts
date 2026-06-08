@@ -30,8 +30,7 @@ import type { AssetMaturity } from '@holoscript/core';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-export interface UsePerformanceRegressionBridgeOptions
-  extends UsePerformanceRegressionOptions {
+export interface UsePerformanceRegressionBridgeOptions extends UsePerformanceRegressionOptions {
   /**
    * Whether to auto-update the editor store's geometricViewMode during
    * regression. Default: true. Set to false if you only want scene graph
@@ -260,9 +259,7 @@ export function usePerformanceRegressionBridge(
  * Component wrapper for usePerformanceRegressionBridge.
  * Must be placed inside a React Three Fiber <Canvas>.
  */
-export function PerformanceRegressionBridge(
-  props: UsePerformanceRegressionBridgeOptions = {}
-) {
+export function PerformanceRegressionBridge(props: UsePerformanceRegressionBridgeOptions = {}) {
   usePerformanceRegressionBridge(props);
   return null;
 }

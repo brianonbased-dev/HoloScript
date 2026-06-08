@@ -41,7 +41,7 @@ export interface SpatialAwarenessTraitConfig extends SpatialAwarenessConfig {
  */
 export const DEFAULT_TRAIT_CONFIG: SpatialAwarenessTraitConfig = {
   ...DEFAULT_SPATIAL_CONFIG,
-  initialPosition: [0, 0, 0 ],
+  initialPosition: [0, 0, 0],
   autoStart: true,
 };
 
@@ -101,7 +101,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
   private provider: SpatialContextProvider;
   private ownsProvider: boolean = false;
   private position: Vector3;
-  private velocity: Vector3 = [0, 0, 0 ];
+  private velocity: Vector3 = [0, 0, 0];
   private isActive: boolean = false;
   private lastContext: SpatialContext | null = null;
 
@@ -112,7 +112,7 @@ export class SpatialAwarenessTrait extends EventEmitter {
     super();
     this.id = id;
     this.config = { ...DEFAULT_TRAIT_CONFIG, ...config };
-    this.position = this.config.initialPosition || [0, 0, 0 ];
+    this.position = this.config.initialPosition || [0, 0, 0];
 
     // Use shared provider or create own
     if (this.config.sharedProvider) {

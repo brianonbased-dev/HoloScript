@@ -158,8 +158,9 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
     // mockSolver is deterministic; record + replay on the same adapter
     // produce identical digests under the strict-enforcement path.
     const recorder = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, adapterFingerprint: 'test-adapter-A' },
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, adapterFingerprint: 'test-adapter-A' }
     );
     recorder.step(0.03);
     recorder.step(0.02);
@@ -177,10 +178,7 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
   it('rejects one flipped solver output value while the trace hash chain remains valid', async () => {
     const adapterFingerprint = 'test-adapter-receipt-replay';
     const solver = receiptReplaySolver();
-    const recorder = new CAELRecorder(
-      solver, {},
-      { fixedDt: 0.01, adapterFingerprint },
-    );
+    const recorder = new CAELRecorder(solver, {}, { fixedDt: 0.01, adapterFingerprint });
 
     recorder.step(0.01);
     recorder.finalize();
@@ -194,7 +192,7 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
 
     const cleanReplay = await new CAELReplayer(recorder.toJSONL()).replay(
       () => receiptReplaySolver(),
-      { currentAdapterFingerprint: adapterFingerprint },
+      { currentAdapterFingerprint: adapterFingerprint }
     );
     expect(cleanReplay.getStateDigests()).toEqual(recordedDigests);
     cleanReplay.dispose();
@@ -202,16 +200,17 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
     await expect(
       new CAELReplayer(recorder.toJSONL()).replay(
         () => receiptReplaySolver({ flipOutputValue: true }),
-        { currentAdapterFingerprint: adapterFingerprint },
-      ),
+        { currentAdapterFingerprint: adapterFingerprint }
+      )
     ).rejects.toThrow(/state-digest mismatch at step event/);
   });
 
   it('throws on tampered step digest (trace divergence)', async () => {
     // Fingerprint both sides to engage same-adapter strict mode
     const recorder = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, adapterFingerprint: 'test-adapter-A' },
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, adapterFingerprint: 'test-adapter-A' }
     );
     recorder.step(0.02);
     recorder.finalize();
@@ -266,14 +265,15 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
     const replayer = new CAELReplayer(trace);
     // Pass matching fingerprint to engage same-adapter strict mode
     await expect(
-      replayer.replay(() => mockSolver(), { currentAdapterFingerprint: 'test-adapter-A' }),
+      replayer.replay(() => mockSolver(), { currentAdapterFingerprint: 'test-adapter-A' })
     ).rejects.toThrow(/state-digest mismatch at step event/);
   });
 
   it('throws on digest count mismatch (sub-step count diverged)', async () => {
     const recorder = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, adapterFingerprint: 'test-adapter-A' },
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, adapterFingerprint: 'test-adapter-A' }
     );
     recorder.step(0.02);
     recorder.finalize();
@@ -301,8 +301,14 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
     for (let i = stepEventIndex + 1; i < trace.length; i++) {
       const e = trace[i];
       const h = hashCAELEntry({
-        version: e.version, runId: e.runId, index: e.index, event: e.event,
-        timestamp: e.timestamp, simTime: e.simTime, prevHash, payload: e.payload,
+        version: e.version,
+        runId: e.runId,
+        index: e.index,
+        event: e.event,
+        timestamp: e.timestamp,
+        simTime: e.simTime,
+        prevHash,
+        payload: e.payload,
       });
       trace[i] = { ...e, prevHash, hash: h };
       prevHash = h;
@@ -311,7 +317,7 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
     const replayer = new CAELReplayer(trace);
     // Pass matching fingerprint to engage same-adapter strict mode
     await expect(
-      replayer.replay(() => mockSolver(), { currentAdapterFingerprint: 'test-adapter-A' }),
+      replayer.replay(() => mockSolver(), { currentAdapterFingerprint: 'test-adapter-A' })
     ).rejects.toThrow(/state-digest count mismatch/);
   });
 
@@ -332,15 +338,27 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
         const { stateDigests: _omit, ...strippedPayload } = e.payload as Record<string, unknown>;
         void _omit;
         const newHash = hashCAELEntry({
-          version: e.version, runId: e.runId, index: e.index, event: e.event,
-          timestamp: e.timestamp, simTime: e.simTime, prevHash, payload: strippedPayload,
+          version: e.version,
+          runId: e.runId,
+          index: e.index,
+          event: e.event,
+          timestamp: e.timestamp,
+          simTime: e.simTime,
+          prevHash,
+          payload: strippedPayload,
         });
         trace[i] = { ...e, prevHash, hash: newHash, payload: strippedPayload };
         prevHash = newHash;
       } else {
         const newHash = hashCAELEntry({
-          version: e.version, runId: e.runId, index: e.index, event: e.event,
-          timestamp: e.timestamp, simTime: e.simTime, prevHash, payload: e.payload,
+          version: e.version,
+          runId: e.runId,
+          index: e.index,
+          event: e.event,
+          timestamp: e.timestamp,
+          simTime: e.simTime,
+          prevHash,
+          payload: e.payload,
         });
         trace[i] = { ...e, prevHash, hash: newHash };
         prevHash = newHash;
@@ -368,8 +386,9 @@ describe('CAEL digest capture + replay enforcement (Wave-2 item 5a)', () => {
 describe('CAEL 5b cross-adapter dispatch (Wave-2)', () => {
   it('records adapterFingerprint in cael.init payload when provided', () => {
     const recorder = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, adapterFingerprint: 'vendor=Intel;arch=gen12;device=UHD' },
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, adapterFingerprint: 'vendor=Intel;arch=gen12;device=UHD' }
     );
     recorder.finalize();
 
@@ -392,7 +411,7 @@ describe('CAEL 5b cross-adapter dispatch (Wave-2)', () => {
     expect(CAELReplayer.sameAdapter('A', null)).toBe(false);
     expect(CAELReplayer.sameAdapter(null, 'A')).toBe(false);
     expect(CAELReplayer.sameAdapter(null, null)).toBe(false);
-    expect(CAELReplayer.sameAdapter('', 'A')).toBe(false);  // empty fingerprint treated as absent
+    expect(CAELReplayer.sameAdapter('', 'A')).toBe(false); // empty fingerprint treated as absent
     expect(CAELReplayer.sameAdapter(undefined, 'A')).toBe(false);
   });
 
@@ -402,8 +421,9 @@ describe('CAEL 5b cross-adapter dispatch (Wave-2)', () => {
     // not throw — cross-adapter is the expected regime and digest
     // mismatch is handled by the dispute oracle's metric comparison.
     const recorder = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, adapterFingerprint: 'adapter-A' },
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, adapterFingerprint: 'adapter-A' }
     );
     recorder.step(0.02);
     recorder.finalize();
@@ -418,17 +438,28 @@ describe('CAEL 5b cross-adapter dispatch (Wave-2)', () => {
     const { hashCAELEntry } = await import('../CAELTrace');
     const newEntry = { ...trace[stepEventIndex], payload: tamperedPayload };
     const newHash = hashCAELEntry({
-      version: newEntry.version, runId: newEntry.runId, index: newEntry.index,
-      event: newEntry.event, timestamp: newEntry.timestamp, simTime: newEntry.simTime,
-      prevHash: newEntry.prevHash, payload: newEntry.payload,
+      version: newEntry.version,
+      runId: newEntry.runId,
+      index: newEntry.index,
+      event: newEntry.event,
+      timestamp: newEntry.timestamp,
+      simTime: newEntry.simTime,
+      prevHash: newEntry.prevHash,
+      payload: newEntry.payload,
     });
     trace[stepEventIndex] = { ...newEntry, hash: newHash };
     let prevHash = newHash;
     for (let i = stepEventIndex + 1; i < trace.length; i++) {
       const e = trace[i];
       const h = hashCAELEntry({
-        version: e.version, runId: e.runId, index: e.index, event: e.event,
-        timestamp: e.timestamp, simTime: e.simTime, prevHash, payload: e.payload,
+        version: e.version,
+        runId: e.runId,
+        index: e.index,
+        event: e.event,
+        timestamp: e.timestamp,
+        simTime: e.simTime,
+        prevHash,
+        payload: e.payload,
       });
       trace[i] = { ...e, prevHash, hash: h };
       prevHash = h;
@@ -445,8 +476,9 @@ describe('CAEL 5b cross-adapter dispatch (Wave-2)', () => {
 
   it('replay without currentAdapterFingerprint → cross-adapter fallback (skip)', async () => {
     const recorder = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, adapterFingerprint: 'adapter-A' },
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, adapterFingerprint: 'adapter-A' }
     );
     recorder.step(0.02);
     recorder.finalize();
@@ -461,17 +493,28 @@ describe('CAEL 5b cross-adapter dispatch (Wave-2)', () => {
     const { hashCAELEntry } = await import('../CAELTrace');
     const newEntry = { ...trace[stepEventIndex], payload: tamperedPayload };
     const newHash = hashCAELEntry({
-      version: newEntry.version, runId: newEntry.runId, index: newEntry.index,
-      event: newEntry.event, timestamp: newEntry.timestamp, simTime: newEntry.simTime,
-      prevHash: newEntry.prevHash, payload: newEntry.payload,
+      version: newEntry.version,
+      runId: newEntry.runId,
+      index: newEntry.index,
+      event: newEntry.event,
+      timestamp: newEntry.timestamp,
+      simTime: newEntry.simTime,
+      prevHash: newEntry.prevHash,
+      payload: newEntry.payload,
     });
     trace[stepEventIndex] = { ...newEntry, hash: newHash };
     let prevHash = newHash;
     for (let i = stepEventIndex + 1; i < trace.length; i++) {
       const e = trace[i];
       const h = hashCAELEntry({
-        version: e.version, runId: e.runId, index: e.index, event: e.event,
-        timestamp: e.timestamp, simTime: e.simTime, prevHash, payload: e.payload,
+        version: e.version,
+        runId: e.runId,
+        index: e.index,
+        event: e.event,
+        timestamp: e.timestamp,
+        simTime: e.simTime,
+        prevHash,
+        payload: e.payload,
       });
       trace[i] = { ...e, prevHash, hash: h };
       prevHash = h;
@@ -507,17 +550,28 @@ describe('CAEL 5b cross-adapter dispatch (Wave-2)', () => {
     const { hashCAELEntry } = await import('../CAELTrace');
     const newEntry = { ...trace[stepEventIndex], payload: tamperedPayload };
     const newHash = hashCAELEntry({
-      version: newEntry.version, runId: newEntry.runId, index: newEntry.index,
-      event: newEntry.event, timestamp: newEntry.timestamp, simTime: newEntry.simTime,
-      prevHash: newEntry.prevHash, payload: newEntry.payload,
+      version: newEntry.version,
+      runId: newEntry.runId,
+      index: newEntry.index,
+      event: newEntry.event,
+      timestamp: newEntry.timestamp,
+      simTime: newEntry.simTime,
+      prevHash: newEntry.prevHash,
+      payload: newEntry.payload,
     });
     trace[stepEventIndex] = { ...newEntry, hash: newHash };
     let prevHash = newHash;
     for (let i = stepEventIndex + 1; i < trace.length; i++) {
       const e = trace[i];
       const h = hashCAELEntry({
-        version: e.version, runId: e.runId, index: e.index, event: e.event,
-        timestamp: e.timestamp, simTime: e.simTime, prevHash, payload: e.payload,
+        version: e.version,
+        runId: e.runId,
+        index: e.index,
+        event: e.event,
+        timestamp: e.timestamp,
+        simTime: e.simTime,
+        prevHash,
+        payload: e.payload,
       });
       trace[i] = { ...e, prevHash, hash: h };
       prevHash = h;
@@ -566,7 +620,7 @@ describe('Option C — useCryptographicHash feature flag', () => {
         vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
         tetrahedra: new Uint32Array([0, 1, 2, 3]),
       },
-      { fixedDt: 0.01, useCryptographicHash: true },
+      { fixedDt: 0.01, useCryptographicHash: true }
     );
     recorder.step(0.03);
     recorder.finalize();
@@ -599,7 +653,7 @@ describe('Option C — useCryptographicHash feature flag', () => {
         vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
         tetrahedra: new Uint32Array([0, 1, 2, 3]),
       },
-      { fixedDt: 0.01, useCryptographicHash: true },
+      { fixedDt: 0.01, useCryptographicHash: true }
     );
     recorder.step(0.05);
     recorder.step(0.03);
@@ -634,7 +688,7 @@ describe('Option C — useCryptographicHash feature flag', () => {
         vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
         tetrahedra: new Uint32Array([0, 1, 2, 3]),
       },
-      { fixedDt: 0.01, useCryptographicHash: false },
+      { fixedDt: 0.01, useCryptographicHash: false }
     );
     recorder.step(0.03);
     recorder.finalize();
@@ -657,12 +711,14 @@ describe('Option C — useCryptographicHash feature flag', () => {
 
   it('Prereq 1 — per-recorder flag scope: two recorders can have different modes', () => {
     const recFNV = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, useCryptographicHash: false },
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, useCryptographicHash: false }
     );
     const recSHA = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, useCryptographicHash: true },
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, useCryptographicHash: true }
     );
     recFNV.step(0.02);
     recSHA.step(0.02);
@@ -677,8 +733,9 @@ describe('Option C — useCryptographicHash feature flag', () => {
 
   it('SHA-256 trace replays successfully end-to-end (integration)', async () => {
     const recorder = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, useCryptographicHash: true },
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, useCryptographicHash: true }
     );
     recorder.step(0.05);
     recorder.logInteraction('set_boundary', { face: 'left' });
@@ -700,17 +757,16 @@ describe('Option C — useCryptographicHash feature flag', () => {
 
   it('Prereq 3 — mid-trace mode tamper detected (SHA → FNV hash swap)', () => {
     const recorder = new CAELRecorder(
-      mockSolver(), {},
-      { fixedDt: 0.01, useCryptographicHash: true },
+      mockSolver(),
+      {},
+      { fixedDt: 0.01, useCryptographicHash: true }
     );
     recorder.step(0.02);
     recorder.finalize();
 
     const trace = recorder.getTrace();
     const stepIdx = trace.findIndex((e) => e.event === 'step');
-    const tampered = trace.map((e, i) =>
-      i === stepIdx ? { ...e, hash: 'cael-deadbeef' } : e,
-    );
+    const tampered = trace.map((e, i) => (i === stepIdx ? { ...e, hash: 'cael-deadbeef' } : e));
 
     const result = verifyCAELHashChain(tampered);
     expect(result.valid).toBe(false);
@@ -726,9 +782,7 @@ describe('Option C — useCryptographicHash feature flag', () => {
     const trace = recorder.getTrace();
     const fakeSha = 'cael-sha-' + 'b'.repeat(64);
     const stepIdx = trace.findIndex((e) => e.event === 'step');
-    const tampered = trace.map((e, i) =>
-      i === stepIdx ? { ...e, hash: fakeSha } : e,
-    );
+    const tampered = trace.map((e, i) => (i === stepIdx ? { ...e, hash: fakeSha } : e));
 
     const result = verifyCAELHashChain(tampered);
     expect(result.valid).toBe(false);

@@ -92,11 +92,7 @@ function makeFakePhysics(): {
           calls.applyForce.push(f);
         },
         applyImpulse: () => {},
-        getPosition: () => [
-          config.position[0],
-          config.position[1],
-          config.position[2],
-        ],
+        getPosition: () => [config.position[0], config.position[1], config.position[2]],
         getVelocity: () => [0, 0, 0],
         destroy: () => {},
       };
@@ -218,10 +214,7 @@ describe('computeConsensus — enum plurality', () => {
   it('tie: lex-first plurality wins', () => {
     const r = computeConsensus(
       'e',
-      [
-        obs('a', { enum: { zone: 'beta' } }),
-        obs('b', { enum: { zone: 'alpha' } }),
-      ],
+      [obs('a', { enum: { zone: 'beta' } }), obs('b', { enum: { zone: 'alpha' } })],
       TOL
     );
     expect(r.consensus.enum).toEqual({ zone: 'alpha' });
@@ -577,9 +570,7 @@ describe('CrossValidationRegistry — LWW + CRDT merge', () => {
     expect(result.consensus!.consensus.numeric).toEqual({
       position: [0, 0, 0],
     });
-    expect(
-      result.emittedRiskEvents.find((e) => e.agentId === 'c')
-    ).toBeDefined();
+    expect(result.emittedRiskEvents.find((e) => e.agentId === 'c')).toBeDefined();
   });
 
   it('mergeRound preserves resolved=true (sticky)', () => {
@@ -662,9 +653,7 @@ describe('CrossValidationRegistry — closes loop with PhysicsBoundsRegistry', (
     // X should now be in MEDIUM tier or higher (3 events of severity 100 with
     // 1h half-life — total > 75 → QUARANTINED).
     const xTier = risk.getTier('X');
-    expect(
-      xTier === RiskTier.HIGH || xTier === RiskTier.QUARANTINED
-    ).toBe(true);
+    expect(xTier === RiskTier.HIGH || xTier === RiskTier.QUARANTINED).toBe(true);
 
     // Wrap a physics service for X — mutation envelope should be tight.
     const { service, bodyCalls } = makeFakePhysics();
@@ -838,9 +827,7 @@ describe('CrossValidationRegistry — singleton + admin', () => {
           tolerance: { defaultNumericTolerance: 0 },
         })
     ).toThrow(/defaultNumericTolerance must be > 0/);
-    expect(
-      () => new CrossValidationRegistry({ maxRounds: 0 })
-    ).toThrow(/maxRounds must be >= 1/);
+    expect(() => new CrossValidationRegistry({ maxRounds: 0 })).toThrow(/maxRounds must be >= 1/);
   });
 });
 
@@ -850,29 +837,22 @@ describe('CrossValidationRegistry — singleton + admin', () => {
 
 describe('suggestedQuorum', () => {
   it('all-LOW observers → base quorum', () => {
-    expect(
-      suggestedQuorum([RiskTier.LOW, RiskTier.LOW, RiskTier.LOW])
-    ).toBe(3);
+    expect(suggestedQuorum([RiskTier.LOW, RiskTier.LOW, RiskTier.LOW])).toBe(3);
   });
 
   it('one MEDIUM observer adds 1', () => {
-    expect(
-      suggestedQuorum([RiskTier.LOW, RiskTier.MEDIUM, RiskTier.LOW])
-    ).toBe(4);
+    expect(suggestedQuorum([RiskTier.LOW, RiskTier.MEDIUM, RiskTier.LOW])).toBe(4);
   });
 
   it('one QUARANTINED observer adds 3', () => {
-    expect(
-      suggestedQuorum([RiskTier.LOW, RiskTier.QUARANTINED, RiskTier.LOW])
-    ).toBe(6);
+    expect(suggestedQuorum([RiskTier.LOW, RiskTier.QUARANTINED, RiskTier.LOW])).toBe(6);
   });
 
   it('saturates at maxObservers', () => {
     expect(
-      suggestedQuorum(
-        [RiskTier.QUARANTINED, RiskTier.QUARANTINED, RiskTier.QUARANTINED],
-        { maxObservers: 5 }
-      )
+      suggestedQuorum([RiskTier.QUARANTINED, RiskTier.QUARANTINED, RiskTier.QUARANTINED], {
+        maxObservers: 5,
+      })
     ).toBe(5);
   });
 

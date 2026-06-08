@@ -66,8 +66,21 @@ export interface HoloTunnelSharePacket {
 
 type TunnelMessage =
   | { type: 'hello'; tunnelId: string; publicUrl: string }
-  | { type: 'request'; reqId: string; method: string; path: string; headers: Record<string, string>; body: string }
-  | { type: 'response'; reqId: string; status: number; headers: Record<string, string>; body: string }
+  | {
+      type: 'request';
+      reqId: string;
+      method: string;
+      path: string;
+      headers: Record<string, string>;
+      body: string;
+    }
+  | {
+      type: 'response';
+      reqId: string;
+      status: number;
+      headers: Record<string, string>;
+      body: string;
+    }
   | { type: 'ping' }
   | { type: 'pong' };
 
@@ -80,9 +93,7 @@ export function normalizeHoloTunnelRelayBase(relayBase: string = DEFAULT_RELAY):
     .replace(/^ws:/, 'http:')
     .replace(/\/+$/, '');
 
-  return normalized.endsWith('/tunnel-ws')
-    ? normalized.slice(0, -'/tunnel-ws'.length)
-    : normalized;
+  return normalized.endsWith('/tunnel-ws') ? normalized.slice(0, -'/tunnel-ws'.length) : normalized;
 }
 
 export function buildHoloTunnelWsUrl(relayBase: string = DEFAULT_RELAY): string {
@@ -141,15 +152,18 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
     const wsUrl = buildHoloTunnelWsUrl(relayBase);
     const token = resolveHoloTunnelClientToken(clientToken);
     const ws = token
-      ? new WebSocketImpl(wsUrl, { headers: { 'x-holotunnel-token': token } }) as WebSocket
-      : new WebSocketImpl(wsUrl) as WebSocket;
+      ? (new WebSocketImpl(wsUrl, { headers: { 'x-holotunnel-token': token } }) as WebSocket)
+      : (new WebSocketImpl(wsUrl) as WebSocket);
 
     let tunnelId = '';
     let publicUrl = '';
     let closed = false;
 
     const close = () => {
-      if (!closed) { closed = true; ws.close(); }
+      if (!closed) {
+        closed = true;
+        ws.close();
+      }
     };
 
     ws.on('open', () => {
@@ -158,7 +172,11 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
 
     ws.on('message', async (raw: Buffer | string) => {
       let msg: TunnelMessage;
-      try { msg = JSON.parse(raw.toString()); } catch { return; }
+      try {
+        msg = JSON.parse(raw.toString());
+      } catch {
+        return;
+      }
 
       if (msg.type === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' } satisfies TunnelMessage));
@@ -201,7 +219,8 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
         // Node fetch auto-decompresses, so we must not ask for gzip or the
         // Content-Encoding response header will mismatch the actual body bytes.
         const fwdHeaders: Record<string, string> = { ...headers };
-        for (const h of ['host', 'connection', 'transfer-encoding', 'accept-encoding']) delete fwdHeaders[h];
+        for (const h of ['host', 'connection', 'transfer-encoding', 'accept-encoding'])
+          delete fwdHeaders[h];
         fwdHeaders['host'] = `${localHost}:${localPort}`;
 
         let status = 502;
@@ -225,7 +244,9 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
           clearTimeout(timeout);
 
           status = resp.status;
-          resp.headers.forEach((v, k) => { respHeaders[k] = v; });
+          resp.headers.forEach((v, k) => {
+            respHeaders[k] = v;
+          });
           // Drop body framing and encoding headers. The WebSocket relay
           // reconstructs the HTTP response from base64 bytes, and stale
           // chunk/content headers can make compressed browser requests render
@@ -249,13 +270,15 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
         }
 
         if (!closed && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: 'response',
-            reqId,
-            status,
-            headers: respHeaders,
-            body: respBody,
-          } satisfies TunnelMessage));
+          ws.send(
+            JSON.stringify({
+              type: 'response',
+              reqId,
+              status,
+              headers: respHeaders,
+              body: respBody,
+            } satisfies TunnelMessage)
+          );
         }
       }
     });

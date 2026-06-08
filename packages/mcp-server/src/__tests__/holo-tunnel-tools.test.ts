@@ -94,7 +94,7 @@ describe('holo_tunnel MCP tools', () => {
         sessionName: 'Studio Preview',
         sourceRef: 'scene.holo',
         expiresAt: '2026-05-19T10:00:00.000Z',
-      }),
+      })
     );
 
     expect(created).toMatchObject({
@@ -155,7 +155,7 @@ describe('holo_tunnel MCP tools', () => {
     });
 
     const closed = parseToolJson(
-      await handleHoloTunnelTool('holo_tunnel_close', { tunnelId: 'test-tunnel' }),
+      await handleHoloTunnelTool('holo_tunnel_close', { tunnelId: 'test-tunnel' })
     );
     expect(closed).toEqual({ success: true, closed: true, tunnelId: 'test-tunnel' });
     expect(close).toHaveBeenCalledOnce();

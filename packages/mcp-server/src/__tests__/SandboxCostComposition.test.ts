@@ -99,15 +99,15 @@ describe('SandboxCostComposition — composition_preserves_both (Paper 29)', () 
 describe('SandboxCostComposition — sandbox_preservation', () => {
   it('if composed allows, sandbox must allow', () => {
     const sandbox = new TrustSandboxPolicy({
-      permitsNetwork: true, permitsFile: true,
-      permitsCompute: false, permitsNested: false,
+      permitsNetwork: true,
+      permitsFile: true,
+      permitsCompute: false,
+      permitsNested: false,
     });
     const costGuard = new CostGuard({ budgetLimit: 100, spent: 0 });
 
     for (const cap of ALL_CAPS) {
-      expect(verifySandboxPreservation(
-        new ComposedPolicy(sandbox, costGuard), cap,
-      )).toBe(true);
+      expect(verifySandboxPreservation(new ComposedPolicy(sandbox, costGuard), cap)).toBe(true);
     }
   });
 
@@ -150,7 +150,10 @@ describe('SandboxCostComposition — budget_preservation', () => {
 
 describe('SandboxCostComposition — execute classification', () => {
   it('allowed when both sandbox and budget permit', () => {
-    const composed = new ComposedPolicy(TrustSandboxPolicy.allowAll, new CostGuard({ budgetLimit: 10, spent: 5 }));
+    const composed = new ComposedPolicy(
+      TrustSandboxPolicy.allowAll,
+      new CostGuard({ budgetLimit: 10, spent: 5 })
+    );
     const result = composed.execute('network');
     expect(result.kind).toBe('allowed');
     expect(result.sandboxPermitted).toBe(true);
@@ -158,7 +161,10 @@ describe('SandboxCostComposition — execute classification', () => {
   });
 
   it('deniedSandbox when sandbox denies but budget allows', () => {
-    const composed = new ComposedPolicy(TrustSandboxPolicy.denyAll, new CostGuard({ budgetLimit: 10, spent: 5 }));
+    const composed = new ComposedPolicy(
+      TrustSandboxPolicy.denyAll,
+      new CostGuard({ budgetLimit: 10, spent: 5 })
+    );
     const result = composed.execute('network');
     expect(result.kind).toBe('deniedSandbox');
     expect(result.sandboxPermitted).toBe(false);
@@ -166,7 +172,10 @@ describe('SandboxCostComposition — execute classification', () => {
   });
 
   it('deniedBudget when sandbox allows but budget exceeded', () => {
-    const composed = new ComposedPolicy(TrustSandboxPolicy.allowAll, new CostGuard({ budgetLimit: 10, spent: 15 }));
+    const composed = new ComposedPolicy(
+      TrustSandboxPolicy.allowAll,
+      new CostGuard({ budgetLimit: 10, spent: 15 })
+    );
     const result = composed.execute('network');
     expect(result.kind).toBe('deniedBudget');
     expect(result.sandboxPermitted).toBe(true);
@@ -174,7 +183,10 @@ describe('SandboxCostComposition — execute classification', () => {
   });
 
   it('deniedBoth when both sandbox and budget deny', () => {
-    const composed = new ComposedPolicy(TrustSandboxPolicy.denyAll, new CostGuard({ budgetLimit: 10, spent: 15 }));
+    const composed = new ComposedPolicy(
+      TrustSandboxPolicy.denyAll,
+      new CostGuard({ budgetLimit: 10, spent: 15 })
+    );
     const result = composed.execute('network');
     expect(result.kind).toBe('deniedBoth');
     expect(result.sandboxPermitted).toBe(false);
@@ -217,8 +229,10 @@ describe('SandboxCostComposition — identity and annihilator laws', () => {
 
   it('budget identity: unlimited budget preserves sandbox permissions', () => {
     const sandbox = new TrustSandboxPolicy({
-      permitsNetwork: true, permitsFile: false,
-      permitsCompute: true, permitsNested: false,
+      permitsNetwork: true,
+      permitsFile: false,
+      permitsCompute: true,
+      permitsNested: false,
     });
     const budget = new CostGuard({ budgetLimit: 0, spent: 0 });
     const composed = new ComposedPolicy(sandbox, budget);

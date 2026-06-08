@@ -19,10 +19,7 @@
  * @version 1.0.0
  */
 
-import type {
-  HoloExpression,
-  SourceLocation,
-} from '../HoloCompositionTypes';
+import type { HoloExpression, SourceLocation } from '../HoloCompositionTypes';
 import type { Token, TokenType } from './tokens';
 
 // =============================================================================
@@ -145,7 +142,10 @@ function parseConditionalExpr(api: ExpressionParserApi): HoloExpression {
     const alternate = parseConditionalExpr(api);
     return {
       loc: { start: startLoc, end: api.currentLocation() },
-      type: 'ConditionalExpression', test: expr, consequent, alternate,
+      type: 'ConditionalExpression',
+      test: expr,
+      consequent,
+      alternate,
     };
   }
 
@@ -222,7 +222,9 @@ function parseUnaryExpr(api: ExpressionParserApi): HoloExpression {
     const argument = parseUnaryExpr(api);
     return {
       loc: { start: startLoc, end: api.currentLocation() },
-      type: 'UnaryExpression', operator: op, argument,
+      type: 'UnaryExpression',
+      operator: op,
+      argument,
     };
   }
   return parsePostfixExpr(api);
@@ -288,25 +290,29 @@ function parsePrimaryExpr(api: ExpressionParserApi): HoloExpression {
   if (api.match('NUMBER')) {
     return {
       loc: { start: startLoc, end: api.currentLocation() },
-      type: 'Literal', value: parseFloat(api.previous().value),
+      type: 'Literal',
+      value: parseFloat(api.previous().value),
     };
   }
   if (api.match('STRING')) {
     return {
       loc: { start: startLoc, end: api.currentLocation() },
-      type: 'Literal', value: api.previous().value,
+      type: 'Literal',
+      value: api.previous().value,
     };
   }
   if (api.match('BOOLEAN')) {
     return {
       loc: { start: startLoc, end: api.currentLocation() },
-      type: 'Literal', value: api.previous().value === 'true',
+      type: 'Literal',
+      value: api.previous().value === 'true',
     };
   }
   if (api.match('NULL')) {
     return {
       loc: { start: startLoc, end: api.currentLocation() },
-      type: 'Literal', value: null,
+      type: 'Literal',
+      value: null,
     };
   }
 
@@ -314,7 +320,8 @@ function parsePrimaryExpr(api: ExpressionParserApi): HoloExpression {
   if (api.match('IDENTIFIER')) {
     return {
       loc: { start: startLoc, end: api.currentLocation() },
-      type: 'Identifier', name: api.previous().value,
+      type: 'Identifier',
+      name: api.previous().value,
     };
   }
 
@@ -322,7 +329,8 @@ function parsePrimaryExpr(api: ExpressionParserApi): HoloExpression {
   if (isKeywordAsIdentifier(api)) {
     return {
       loc: { start: startLoc, end: api.currentLocation() },
-      type: 'Identifier', name: api.previous().value,
+      type: 'Identifier',
+      name: api.previous().value,
     };
   }
 
@@ -342,7 +350,8 @@ function parsePrimaryExpr(api: ExpressionParserApi): HoloExpression {
   api.advance();
   return {
     loc: { start: startLoc, end: api.currentLocation() },
-    type: 'Literal', value: null,
+    type: 'Literal',
+    value: null,
   };
 }
 
@@ -361,7 +370,8 @@ function parseArrayExpression(api: ExpressionParserApi): HoloExpression {
   api.expect('RBRACKET');
   return {
     loc: { start: startLoc, end: api.currentLocation() },
-    type: 'ArrayExpression', elements,
+    type: 'ArrayExpression',
+    elements,
   };
 }
 
@@ -383,6 +393,7 @@ function parseObjectExpression(api: ExpressionParserApi): HoloExpression {
   api.expect('RBRACE');
   return {
     loc: { start: startLoc, end: api.currentLocation() },
-    type: 'ObjectExpression', properties,
+    type: 'ObjectExpression',
+    properties,
   };
 }

@@ -56,24 +56,33 @@ describe('attachSemanticAdvisory — receipt non-contamination + gating (pure in
     expect(r.semanticAdvisory).toBeNull();
     expect(r.advisorySkippedReason).toBe('empty-index');
   });
-
 });
 
 // Model-gated: real query embedding against a tiny real index.
 describe(`attachSemanticAdvisory — learned model (${SEMANTIC_NOVELTY_MODEL})`, () => {
   let available = false;
   beforeAll(async () => {
-    try { await embedSemantic('warmup'); available = true; } catch { available = false; }
+    try {
+      await embedSemantic('warmup');
+      available = true;
+    } catch {
+      available = false;
+    }
   }, 120_000);
 
   it('attaches an advisory near-duplicate for a paraphrase of an indexed result', async (ctx) => {
     if (!available) return ctx.skip();
     const index = await buildSemanticCorpusIndex([
-      { id: 'prior.topology.euler', title: 'Euler', source: 'Euler 1758', statement: 'For every convex polyhedron, vertices minus edges plus faces equals two.' },
+      {
+        id: 'prior.topology.euler',
+        title: 'Euler',
+        source: 'Euler 1758',
+        statement: 'For every convex polyhedron, vertices minus edges plus faces equals two.',
+      },
     ]);
     const r = await attachSemanticAdvisory(
       fakeReceipt('survived', 'Any convex solid: corners minus edges plus faces is two.'),
-      index,
+      index
     );
     expect(r.receipt.receiptKey).toBe('conjecture.v1-sha-deadbeef'); // still untouched
     expect(r.semanticAdvisory?.binding).toBe('advisory');

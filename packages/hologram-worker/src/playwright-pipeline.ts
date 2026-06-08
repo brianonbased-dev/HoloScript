@@ -51,7 +51,9 @@ export interface BrowserRenderResult {
   preview: Buffer;
 }
 
-export async function runQuiltBrowserRender(payload: BrowserRenderPayload): Promise<BrowserRenderResult> {
+export async function runQuiltBrowserRender(
+  payload: BrowserRenderPayload
+): Promise<BrowserRenderResult> {
   const fileUrl = pathToFileURL(payload.pngPath).href;
   const comp = buildComposition('image', fileUrl);
   const quiltPlan = new QuiltCompiler().compileQuilt(comp);
@@ -69,7 +71,7 @@ export async function runQuiltBrowserRender(payload: BrowserRenderPayload): Prom
         (window as unknown as Record<string, unknown>).__INJECTED_DEPTH_MAP = new Float32Array(map);
         (window as unknown as Record<string, unknown>).__INJECTED_DEPTH_BACKEND = depthBackend;
       },
-      { map: mapArray, depthBackend: payload.depthBackendLabel },
+      { map: mapArray, depthBackend: payload.depthBackendLabel }
     );
 
     await page.setContent(buildWorkerRenderHtml(fileUrl, 'image', payload.width, payload.height), {
@@ -85,10 +87,13 @@ export async function runQuiltBrowserRender(payload: BrowserRenderPayload): Prom
         if (w.__HOLOGRAM_RENDER_ERROR) throw new Error(w.__HOLOGRAM_RENDER_ERROR);
         return w.__HOLOGRAM_READY === true;
       },
-      { timeout: 120_000 },
+      { timeout: 120_000 }
     );
 
-    const maxAbsOffset = quiltPlan.tiles.reduce((m, t) => Math.max(m, Math.abs(t.cameraOffset)), 0.0001);
+    const maxAbsOffset = quiltPlan.tiles.reduce(
+      (m, t) => Math.max(m, Math.abs(t.cameraOffset)),
+      0.0001
+    );
     const stereoMax = mvPlan.views.reduce((m, v) => Math.max(m, Math.abs(v.cameraOffset)), 0.0001);
 
     const evaluated = await page.evaluate(
@@ -124,7 +129,7 @@ export async function runQuiltBrowserRender(payload: BrowserRenderPayload): Prom
                 quiltWidth: number,
                 quiltHeight: number,
                 tileWidth: number,
-                tileHeight: number,
+                tileHeight: number
               ): string;
             };
           }
@@ -133,8 +138,14 @@ export async function runQuiltBrowserRender(payload: BrowserRenderPayload): Prom
         return {
           previewPngDataUrl: runtime.renderViewDataUrl(0, 0),
           quiltPngDataUrl: runtime.renderQuiltDataUrl(tiles, quiltWidth, quiltHeight, tw, th),
-          leftPngDataUrl: runtime.renderViewDataUrl(stereoViews.left.offset, stereoViews.left.shear),
-          rightPngDataUrl: runtime.renderViewDataUrl(stereoViews.right.offset, stereoViews.right.shear),
+          leftPngDataUrl: runtime.renderViewDataUrl(
+            stereoViews.left.offset,
+            stereoViews.left.shear
+          ),
+          rightPngDataUrl: runtime.renderViewDataUrl(
+            stereoViews.right.offset,
+            stereoViews.right.shear
+          ),
         };
       },
       {
@@ -158,7 +169,7 @@ export async function runQuiltBrowserRender(payload: BrowserRenderPayload): Prom
             shear: mvPlan.views.find((v) => v.eye === 'right')?.viewShear ?? 0,
           },
         },
-      },
+      }
     );
 
     return {

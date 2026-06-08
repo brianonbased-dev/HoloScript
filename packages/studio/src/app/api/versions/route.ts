@@ -126,7 +126,6 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ version }, { status: 201 });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

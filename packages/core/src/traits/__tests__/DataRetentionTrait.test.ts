@@ -46,9 +46,16 @@ describe('DataRetentionTrait — onEvent', () => {
   it('retention:set stores policy and emits retention:policy_set', () => {
     const node = makeNode();
     dataRetentionHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    dataRetentionHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'retention:set', dataType: 'logs', ttl_days: 30,
-    } as never);
+    dataRetentionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'retention:set',
+        dataType: 'logs',
+        ttl_days: 30,
+      } as never
+    );
     const state = node.__retentionState as { policies: Map<string, { ttl: number }> };
     expect(state.policies.get('logs')?.ttl).toBe(30);
     expect(node.emit).toHaveBeenCalledWith('retention:policy_set', { dataType: 'logs' });
@@ -57,9 +64,15 @@ describe('DataRetentionTrait — onEvent', () => {
   it('retention:set uses default_ttl_days when ttl_days not provided', () => {
     const node = makeNode();
     dataRetentionHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    dataRetentionHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'retention:set', dataType: 'events',
-    } as never);
+    dataRetentionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'retention:set',
+        dataType: 'events',
+      } as never
+    );
     const state = node.__retentionState as { policies: Map<string, { ttl: number }> };
     expect(state.policies.get('events')?.ttl).toBe(90);
   });
@@ -67,15 +80,30 @@ describe('DataRetentionTrait — onEvent', () => {
   it('retention:purge emits retention:purged with purged list', () => {
     const node = makeNode();
     dataRetentionHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    dataRetentionHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'retention:set', dataType: 'metrics', ttl_days: 7,
-    } as never);
+    dataRetentionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'retention:set',
+        dataType: 'metrics',
+        ttl_days: 7,
+      } as never
+    );
     node.emit.mockClear();
-    dataRetentionHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'retention:purge',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('retention:purged', expect.objectContaining({
-      purged: expect.arrayContaining(['metrics']),
-    }));
+    dataRetentionHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'retention:purge',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'retention:purged',
+      expect.objectContaining({
+        purged: expect.arrayContaining(['metrics']),
+      })
+    );
   });
 });

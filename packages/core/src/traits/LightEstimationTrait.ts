@@ -88,7 +88,7 @@ export const lightEstimationHandler: TraitHandler<LightEstimationConfig> = {
       intensity: 1.0,
       colorTemperature: 6500,
       colorCorrection: { r: 1, g: 1, b: 1 },
-      primaryDirection: [0, -1, 0 ],
+      primaryDirection: [0, -1, 0],
       sphericalHarmonics: null,
       environmentMap: null,
       updateAccumulator: 0,

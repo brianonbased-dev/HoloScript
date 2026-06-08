@@ -60,15 +60,19 @@ function parseJsonFromText(text) {
 function runPnpmAuditJson() {
   return new Promise((resolve) => {
     const isWin = process.platform === 'win32';
-    const cmd = isWin ? (process.env.ComSpec || 'cmd.exe') : 'pnpm';
+    const cmd = isWin ? process.env.ComSpec || 'cmd.exe' : 'pnpm';
     const args = isWin ? ['/d', '/s', '/c', ['pnpm', ...jsonArgs].join(' ')] : jsonArgs;
 
     const child = spawn(cmd, args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
 
-    child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
-    child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
 
     child.on('close', (code) => resolve({ code: code ?? 1, stdout, stderr }));
     child.on('error', (err) => resolve({ code: 1, stdout: '', stderr: err.message }));
@@ -85,8 +89,8 @@ if (!auditJson) {
 }
 
 const advisories = auditJson?.advisories ?? {};
-const allHigh = Object.values(advisories).filter(
-  (a) => ['high', 'critical'].includes(String(a?.severity ?? '').toLowerCase())
+const allHigh = Object.values(advisories).filter((a) =>
+  ['high', 'critical'].includes(String(a?.severity ?? '').toLowerCase())
 );
 
 const ignored = allHigh.filter((a) => {
@@ -100,8 +104,12 @@ const unfixed = allHigh.filter((a) => !ignored.includes(a));
 
 // Summary output
 const meta = auditJson?.metadata?.vulnerabilities ?? {};
-console.log(`[security-audit] pnpm audit results (audit-level=${auditLevel}, prod=${prod.length > 0})`);
-console.log(`  low=${meta.low ?? 0} moderate=${meta.moderate ?? 0} high=${meta.high ?? 0} critical=${meta.critical ?? 0}`);
+console.log(
+  `[security-audit] pnpm audit results (audit-level=${auditLevel}, prod=${prod.length > 0})`
+);
+console.log(
+  `  low=${meta.low ?? 0} moderate=${meta.moderate ?? 0} high=${meta.high ?? 0} critical=${meta.critical ?? 0}`
+);
 
 if (ignored.length > 0) {
   console.log(`[security-audit] Ignored (no upstream fix): ${ignored.length}`);
@@ -112,10 +120,14 @@ if (ignored.length > 0) {
 }
 
 if (unfixed.length > 0) {
-  console.error(`[security-audit] FAIL: ${unfixed.length} high+ advisories without upstream fix or ignore entry:`);
+  console.error(
+    `[security-audit] FAIL: ${unfixed.length} high+ advisories without upstream fix or ignore entry:`
+  );
   for (const a of unfixed) {
     const ghsa = (a.github_advisories ?? [a.url?.replace(/.*\/advisories\//, '')])[0] ?? a.id;
-    console.error(`  - [${a.severity.toUpperCase()}] ${a.module_name}  ${ghsa}  ${a.title?.slice(0, 80)}`);
+    console.error(
+      `  - [${a.severity.toUpperCase()}] ${a.module_name}  ${ghsa}  ${a.title?.slice(0, 80)}`
+    );
     console.error(`    patched_versions: ${a.patched_versions ?? 'none'}`);
   }
   process.exit(1);

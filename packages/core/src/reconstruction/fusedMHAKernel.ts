@@ -120,11 +120,11 @@ function storageBuffer(device: GPUDevice, data: Float32Array): GPUBuffer {
 
 export interface FusedMHAParams {
   numHeads: number;
-  qLen:     number;
-  kLen:     number;
-  dHead:    number;
+  qLen: number;
+  kLen: number;
+  dHead: number;
   /** If omitted, defaults to dHead */
-  vHead?:   number;
+  vHead?: number;
 }
 
 export interface FusedMHAKernel {
@@ -135,7 +135,12 @@ export interface FusedMHAKernel {
    * @param V [numHeads, kLen, vHead]
    * @returns  [numHeads, qLen, vHead]
    */
-  run(Q: Float32Array, K: Float32Array, V: Float32Array, params: FusedMHAParams): Promise<Float32Array>;
+  run(
+    Q: Float32Array,
+    K: Float32Array,
+    V: Float32Array,
+    params: FusedMHAParams
+  ): Promise<Float32Array>;
 }
 
 export function createFusedMHAKernel(device: GPUDevice): FusedMHAKernel {
@@ -150,7 +155,7 @@ export function createFusedMHAKernel(device: GPUDevice): FusedMHAKernel {
       Q: Float32Array,
       K: Float32Array,
       V: Float32Array,
-      params: FusedMHAParams,
+      params: FusedMHAParams
     ): Promise<Float32Array> {
       const { numHeads, qLen, kLen, dHead } = params;
       const vHead = params.vHead ?? dHead;
@@ -172,7 +177,11 @@ export function createFusedMHAKernel(device: GPUDevice): FusedMHAKernel {
 
       const paramAB = new ArrayBuffer(24);
       const pu = new Uint32Array(paramAB);
-      pu[0] = numHeads; pu[1] = qLen; pu[2] = kLen; pu[3] = dHead; pu[4] = vHead;
+      pu[0] = numHeads;
+      pu[1] = qLen;
+      pu[2] = kLen;
+      pu[3] = dHead;
+      pu[4] = vHead;
       const paramsBuf = device.createBuffer({
         size: paramAB.byteLength,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -210,8 +219,12 @@ export function createFusedMHAKernel(device: GPUDevice): FusedMHAKernel {
       const result = new Float32Array(staging.getMappedRange().slice(0));
       staging.unmap();
 
-      qBuf.destroy(); kBuf.destroy(); vBuf.destroy(); oBuf.destroy();
-      paramsBuf.destroy(); staging.destroy();
+      qBuf.destroy();
+      kBuf.destroy();
+      vBuf.destroy();
+      oBuf.destroy();
+      paramsBuf.destroy();
+      staging.destroy();
 
       return result;
     },

@@ -21,7 +21,8 @@
 export function mulberry32(seed) {
   let a = seed >>> 0;
   return () => {
-    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -31,10 +32,14 @@ export function mulberry32(seed) {
 // Hidden TRUE curation value: linear (3L + 2D + 1·Tinv) PLUS a non-linear keystone
 // interaction (4·L·D). Max = 3+2+1+4 = 10. The agent never sees this; it learns.
 export const TRUE_LINEAR = [3, 2, 1]; // [L, D, Tinv]
-export const TRUE_INTERACTION = 4;    // weight on L·D
+export const TRUE_INTERACTION = 4; // weight on L·D
 export const TRUE_MAX = TRUE_LINEAR[0] + TRUE_LINEAR[1] + TRUE_LINEAR[2] + TRUE_INTERACTION;
 export const trueVal = (f) =>
-  (TRUE_LINEAR[0] * f[0] + TRUE_LINEAR[1] * f[1] + TRUE_LINEAR[2] * f[2] + TRUE_INTERACTION * f[0] * f[1]) / TRUE_MAX;
+  (TRUE_LINEAR[0] * f[0] +
+    TRUE_LINEAR[1] * f[1] +
+    TRUE_LINEAR[2] * f[2] +
+    TRUE_INTERACTION * f[0] * f[1]) /
+  TRUE_MAX;
 
 // Feature lift: the learned model sees the raw 3 features PLUS the interaction L·D.
 // A linear hand-rule only ever sees the raw 3 — that asymmetry is the whole point.
@@ -64,9 +69,11 @@ export function makeEpisodes(rng, n) {
 export function train(episodes, featureFn, epochs = 800, lr = 0.4) {
   const rows = episodes.flatMap((e) => e.pool.map((p) => ({ x: featureFn(p.f), y: p.v })));
   const dim = rows.length ? rows[0].x.length : 0;
-  let w = new Array(dim).fill(0), b = 0;
+  let w = new Array(dim).fill(0),
+    b = 0;
   for (let ep = 0; ep < epochs; ep++) {
-    const gw = new Array(dim).fill(0); let gb = 0;
+    const gw = new Array(dim).fill(0);
+    let gb = 0;
     for (const { x, y } of rows) {
       let pred = b;
       for (let d = 0; d < dim; d++) pred += w[d] * x[d];
@@ -102,6 +109,7 @@ export function top1(episodes, pick) {
 // FAIR hand-authored heuristic: uses ALL THREE raw features with the true LINEAR
 // weights (the best a knowledgeable human could hand-write) — but it is linear, so it
 // cannot express the L·D keystone interaction. This is the honest bar to beat.
-export const fairLinearScore = (f) => TRUE_LINEAR[0] * f[0] + TRUE_LINEAR[1] * f[1] + TRUE_LINEAR[2] * f[2];
+export const fairLinearScore = (f) =>
+  TRUE_LINEAR[0] * f[0] + TRUE_LINEAR[1] * f[1] + TRUE_LINEAR[2] * f[2];
 // CRIPPLED heuristic (kept only to show the progression): lineage-only.
 export const crippledLineageScore = (f) => f[0];

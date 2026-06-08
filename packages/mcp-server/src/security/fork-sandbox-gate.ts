@@ -359,7 +359,8 @@ export async function runForkSandboxGate(
     }
   }
 
-  const policy = options.policy ?? resolvePolicy({ ...subject, source: effectiveSource }, options.toolName);
+  const policy =
+    options.policy ?? resolvePolicy({ ...subject, source: effectiveSource }, options.toolName);
 
   // Admin bypass: full authority scope short-circuits all checks
   if (options.grantedScopes?.includes('admin:*')) {
@@ -373,10 +374,7 @@ export async function runForkSandboxGate(
   const checks: Array<{ name: string; passed: boolean; detail?: string }> = [];
 
   // Check 1: Capability manifest
-  const manifestCheck = validateCapabilityManifest(
-    { ...subject, source: effectiveSource },
-    policy
-  );
+  const manifestCheck = validateCapabilityManifest({ ...subject, source: effectiveSource }, policy);
   checks.push({ name: 'capability_manifest', ...manifestCheck });
   if (!manifestCheck.passed) {
     const receipt = await createDenialReceipt(

@@ -409,7 +409,7 @@ export class TypeScriptAdapter implements LanguageAdapter {
   private _extractEventSites(
     tree: ParseTree,
     filePath: string,
-    methodNames: Set<string>,
+    methodNames: Set<string>
   ): EmitSite[] {
     const sites: EmitSite[] = [];
     const contextStack: string[] = [];
@@ -459,18 +459,22 @@ export class TypeScriptAdapter implements LanguageAdapter {
     if (!node) return null;
     // tree-sitter-typescript: string → '"' string_fragment '"'
     if (node.type === 'string') {
-      const fragment = node.namedChildren.find(c => c.type === 'string_fragment');
+      const fragment = node.namedChildren.find((c) => c.type === 'string_fragment');
       if (fragment) return fragment.text;
       // fallback: strip quotes from raw text
       const raw = node.text;
-      if ((raw.startsWith('"') && raw.endsWith('"')) ||
-          (raw.startsWith("'") && raw.endsWith("'"))) {
+      if (
+        (raw.startsWith('"') && raw.endsWith('"')) ||
+        (raw.startsWith("'") && raw.endsWith("'"))
+      ) {
         return raw.slice(1, -1);
       }
     }
     // template_string without interpolation: `event:name`
     if (node.type === 'template_string') {
-      const parts = node.namedChildren.filter(c => c.type === 'string_fragment' || c.type === 'template_chars');
+      const parts = node.namedChildren.filter(
+        (c) => c.type === 'string_fragment' || c.type === 'template_chars'
+      );
       if (parts.length === 1 && parts[0]) return parts[0].text;
     }
     return null;

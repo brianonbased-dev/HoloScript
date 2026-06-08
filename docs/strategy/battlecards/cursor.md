@@ -4,18 +4,18 @@
 **Threat level**: 🟡 **MEDIUM** (different layer — partnership opportunity more than competition)
 **Primary risk**: Cursor adds generic "domain compilers" via MCP-pluggable registry, eating the dev-facing wedge
 
-**Strategic note**: Cursor is best treated as a distribution channel, not a competitor. HoloScript MCP should be *inside* Cursor, not against it.
+**Strategic note**: Cursor is best treated as a distribution channel, not a competitor. HoloScript MCP should be _inside_ Cursor, not against it.
 
 ---
 
 ## Quick Overview
 
-| | |
-|---|---|
-| **Tagline** | "The best way to code with AI" — agent-native IDE |
-| **Audience** | Professional developers (ICs → enterprise eng orgs) |
-| **Pricing** | Hobby free · Pro $20/mo · Pro+/Ultra · Teams $40/user/mo · Enterprise |
-| **Latest** | Cursor 3 (April 2026), Composer 2 RL-trained every ~5h on real usage |
+|              |                                                                       |
+| ------------ | --------------------------------------------------------------------- |
+| **Tagline**  | "The best way to code with AI" — agent-native IDE                     |
+| **Audience** | Professional developers (ICs → enterprise eng orgs)                   |
+| **Pricing**  | Hobby free · Pro $20/mo · Pro+/Ultra · Teams $40/user/mo · Enterprise |
+| **Latest**   | Cursor 3 (April 2026), Composer 2 RL-trained every ~5h on real usage  |
 
 ## Their Pitch
 
@@ -48,14 +48,14 @@
 
 ## Our Differentiators (vs Cursor)
 
-| Differentiator | Why it matters | Proof |
-|---|---|---|
-| **Domain coverage beyond code** | Spatial, simulation, molecular, agent-native content | `packages/core/src/compilers/` 30+ targets |
-| **Platform, not IDE** | Absorb + HoloMesh work outside any editor | mcp.holoscript.net, absorb.holoscript.net |
-| **Cross-agent coordination** | HoloMesh = multi-agent team infrastructure Cursor lacks | `packages/mesh/`, HoloMesh Teams API |
-| **Verifiable artifacts** | Cursor outputs code; HoloScript outputs code + provenance + contracts | CAEL hash chain, W.GOLD.014 |
-| **Zero IDE lock-in** | `.holo` files work in any editor including Cursor | — |
-| **Built for agent-as-user** | MCP tools as core architecture, not marketplace bolt-on | 215 tools at mcp.holoscript.net |
+| Differentiator                  | Why it matters                                                        | Proof                                      |
+| ------------------------------- | --------------------------------------------------------------------- | ------------------------------------------ |
+| **Domain coverage beyond code** | Spatial, simulation, molecular, agent-native content                  | `packages/core/src/compilers/` 30+ targets |
+| **Platform, not IDE**           | Absorb + HoloMesh work outside any editor                             | mcp.holoscript.net, absorb.holoscript.net  |
+| **Cross-agent coordination**    | HoloMesh = multi-agent team infrastructure Cursor lacks               | `packages/mesh/`, HoloMesh Teams API       |
+| **Verifiable artifacts**        | Cursor outputs code; HoloScript outputs code + provenance + contracts | CAEL hash chain, W.GOLD.014                |
+| **Zero IDE lock-in**            | `.holo` files work in any editor including Cursor                     | —                                          |
+| **Built for agent-as-user**     | MCP tools as core architecture, not marketplace bolt-on               | 215 tools at mcp.holoscript.net            |
 
 ## Strategic Posture: **Partnership, Not Competition**
 
@@ -68,13 +68,13 @@ Cursor is a distribution channel for HoloScript, not a rival. Actions:
 
 ## Objection Handling
 
-| Prospect says... | Respond with... |
-|---|---|
-| "I already use Cursor — why HoloScript?" | "Cursor is where you write code. HoloScript is what that code compiles. They work together — you write `.holo` in Cursor, and Cursor's Composer uses HoloScript MCP to understand, compile, and deploy it." |
-| "Cursor has MCP for everything" | "Cursor is a great MCP *client*. HoloScript is an MCP *server* that gives Cursor spatial, simulation, and provenance capabilities it doesn't have natively." |
-| "Cursor agents run in VMs — why do I need HoloMesh?" | "Cursor Background Agents are per-user, per-repo. HoloMesh is cross-team, cross-session — the difference between agents that help *you* code and agents that coordinate *the team*." |
-| "Cursor will add simulation eventually" | "They might add a simulation MCP plugin. That plugin will likely be HoloScript. We want to be the default when they do." |
-| "I don't want another IDE lock-in" | "HoloScript doesn't lock you in — `.holo` files are plain text, work in any editor including Cursor. We're the IR; Cursor is the editor." |
+| Prospect says...                                     | Respond with...                                                                                                                                                                                             |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "I already use Cursor — why HoloScript?"             | "Cursor is where you write code. HoloScript is what that code compiles. They work together — you write `.holo` in Cursor, and Cursor's Composer uses HoloScript MCP to understand, compile, and deploy it." |
+| "Cursor has MCP for everything"                      | "Cursor is a great MCP _client_. HoloScript is an MCP _server_ that gives Cursor spatial, simulation, and provenance capabilities it doesn't have natively."                                                |
+| "Cursor agents run in VMs — why do I need HoloMesh?" | "Cursor Background Agents are per-user, per-repo. HoloMesh is cross-team, cross-session — the difference between agents that help _you_ code and agents that coordinate _the team_."                        |
+| "Cursor will add simulation eventually"              | "They might add a simulation MCP plugin. That plugin will likely be HoloScript. We want to be the default when they do."                                                                                    |
+| "I don't want another IDE lock-in"                   | "HoloScript doesn't lock you in — `.holo` files are plain text, work in any editor including Cursor. We're the IR; Cursor is the editor."                                                                   |
 
 ## Landmines to Set
 

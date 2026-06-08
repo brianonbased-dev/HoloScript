@@ -81,7 +81,7 @@ export const geospatialAnchorHandler: TraitHandler<GeospatialAnchorConfig> = {
       accuracy: Infinity,
       headingAccuracy: Infinity,
       resolvedPosition: null,
-      localPosition: [0, 0, 0 ],
+      localPosition: [0, 0, 0],
       retryCount: 0,
       lastUpdateTime: 0,
       anchorHandle: null,

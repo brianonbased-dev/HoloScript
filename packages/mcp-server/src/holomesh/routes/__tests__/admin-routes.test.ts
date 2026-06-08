@@ -18,10 +18,7 @@ import {
   _resetVaultLeaseRegistryForTests,
 } from '../../identity/vault-lease-registry';
 import { _resetAuditLogForTests } from '../../identity/audit-log';
-import {
-  resetAdminOperationsAudit,
-  queryAdminOperationsAudit,
-} from '../../admin-operations-audit';
+import { resetAdminOperationsAudit, queryAdminOperationsAudit } from '../../admin-operations-audit';
 
 const FOUNDER_KEY = 'founder-admin-key';
 const FOUNDER_ID = 'agent-founder';
@@ -156,9 +153,7 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
     expect(res._body.is_founder).toBe(false);
 
     // Registry should contain the new key
-    const record = Array.from(keyRegistry.values()).find(
-      (r) => r.agentId === res._body.agent_id
-    );
+    const record = Array.from(keyRegistry.values()).find((r) => r.agentId === res._body.agent_id);
     expect(record).toBeDefined();
     expect(record?.rotationCount).toBe(0);
     expect(record?.lastRotatedAt).toBeNull();
@@ -308,9 +303,7 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
     expect(res._body.revoked_keys).toBeGreaterThanOrEqual(1);
 
     // Key registry should no longer contain the agent
-    const remaining = Array.from(keyRegistry.values()).filter(
-      (r) => r.agentId === agentId
-    );
+    const remaining = Array.from(keyRegistry.values()).filter((r) => r.agentId === agentId);
     expect(remaining).toHaveLength(0);
   });
 
@@ -482,7 +475,11 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
 
   // ── Transfer Ownership ──
 
-  function seedTeam(ownerId: string, ownerName: string, members: { agentId: string; agentName: string; role: string }[]): void {
+  function seedTeam(
+    ownerId: string,
+    ownerName: string,
+    members: { agentId: string; agentName: string; role: string }[]
+  ): void {
     const team = {
       id: 'team_test_transfer',
       name: 'Transfer Test Team',
@@ -569,7 +566,14 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
       visibility: 'private',
       ownerId: oldOwnerId,
       ownerName: 'OldOwner',
-      members: [{ agentId: oldOwnerId, agentName: 'OldOwner', role: 'owner', joinedAt: new Date().toISOString() }],
+      members: [
+        {
+          agentId: oldOwnerId,
+          agentName: 'OldOwner',
+          role: 'owner',
+          joinedAt: new Date().toISOString(),
+        },
+      ],
       maxSlots: 10,
       waitlist: [],
       createdAt: new Date().toISOString(),
@@ -583,7 +587,9 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
 
     expect(res2._status).toBe(200);
     const updatedTeam = teamStore.get('team_test_transfer2');
-    expect(updatedTeam!.members.some((m) => m.agentId === newOwnerId && m.role === 'owner')).toBe(true);
+    expect(updatedTeam!.members.some((m) => m.agentId === newOwnerId && m.role === 'owner')).toBe(
+      true
+    );
   });
 
   it('POST /api/holomesh/admin/transfer-ownership rejects missing fields', async () => {
@@ -605,9 +611,7 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
 
   it('POST /api/holomesh/admin/transfer-ownership rejects no-op transfer', async () => {
     const ownerId = 'agent_same';
-    seedTeam(ownerId, 'SameOwner', [
-      { agentId: ownerId, agentName: 'SameOwner', role: 'owner' },
-    ]);
+    seedTeam(ownerId, 'SameOwner', [{ agentId: ownerId, agentName: 'SameOwner', role: 'owner' }]);
     const res = await callAdmin('POST', '/api/holomesh/admin/transfer-ownership', {
       team_id: 'team_test_transfer',
       new_owner_agent_id: ownerId,

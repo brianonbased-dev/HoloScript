@@ -68,7 +68,9 @@ describe('LotusGardenerTrait — deriveLotusGardenerSchedule (pure)', () => {
   });
 
   it('is deterministic', () => {
-    expect(deriveLotusGardenerSchedule('blooming')).toEqual(deriveLotusGardenerSchedule('blooming'));
+    expect(deriveLotusGardenerSchedule('blooming')).toEqual(
+      deriveLotusGardenerSchedule('blooming')
+    );
   });
 });
 
@@ -240,7 +242,11 @@ describe('LotusGardenerTrait — handler lifecycle', () => {
     const node = createMockNode('gardener-test');
     attachTrait(lotusGardenerHandler, node, { seed: '0x0000DEAD' }, ctx);
     ctx.clearEvents();
-    lotusGardenerHandler.onDetach?.(node as never, lotusGardenerHandler.defaultConfig as never, ctx as never);
+    lotusGardenerHandler.onDetach?.(
+      node as never,
+      lotusGardenerHandler.defaultConfig as never,
+      ctx as never
+    );
     expect(getEventCount(ctx, 'lotus_gardener_detached')).toBe(1);
   });
 

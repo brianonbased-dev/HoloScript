@@ -152,8 +152,8 @@ export class BuildingGenerator {
       floorPlans,
       meshData,
       boundingBox: {
-        min: [-halfW, 0, -halfD ],
-        max: [halfW, config.floors * config.floorHeight, halfD ],
+        min: [-halfW, 0, -halfD],
+        max: [halfW, config.floors * config.floorHeight, halfD],
       },
     };
   }
@@ -317,14 +317,14 @@ export class BuildingGenerator {
     // 8 corners of the building box
     const base = vertices.length;
     vertices.push(
-      [-hw, 0, -hd ], // 0: bottom-front-left
-      [hw, 0, -hd ], // 1: bottom-front-right
-      [hw, 0, hd ], // 2: bottom-back-right
-      [-hw, 0, hd ], // 3: bottom-back-left
-      [-hw, h, -hd ], // 4: top-front-left
-      [hw, h, -hd ], // 5: top-front-right
-      [hw, h, hd ], // 6: top-back-right
-      [-hw, h, hd ] // 7: top-back-left
+      [-hw, 0, -hd], // 0: bottom-front-left
+      [hw, 0, -hd], // 1: bottom-front-right
+      [hw, 0, hd], // 2: bottom-back-right
+      [-hw, 0, hd], // 3: bottom-back-left
+      [-hw, h, -hd], // 4: top-front-left
+      [hw, h, -hd], // 5: top-front-right
+      [hw, h, hd], // 6: top-back-right
+      [-hw, h, hd] // 7: top-back-left
     );
 
     // 6 faces (2 triangles each)

@@ -20,9 +20,7 @@ const CONTRACT: SimulationContractReference = {
   hashMode: 'fnv1a',
   adapterFingerprint: null,
   replayDigestMode: 'epsilon-cross-adapter',
-  fieldQuantization: [
-    { fieldPattern: 'position', quantum: 1e-5, units: 'm' },
-  ],
+  fieldQuantization: [{ fieldPattern: 'position', quantum: 1e-5, units: 'm' }],
 };
 
 function buildTrajectory(actions: ActionStep[] = []): AdversarialTrajectory {
@@ -177,11 +175,7 @@ describe('scoreTrajectory', () => {
       historyActionTypes: new Set(),
     });
     const long = scoreTrajectory({
-      trajectory: buildTrajectory([
-        action(0, 'a'),
-        action(1, 'b'),
-        action(2, 'c'),
-      ]),
+      trajectory: buildTrajectory([action(0, 'a'), action(1, 'b'), action(2, 'c')]),
       hardAnchors: [],
       softAnchors: [violating],
       historyActionTypes: new Set(),

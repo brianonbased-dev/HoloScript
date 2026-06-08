@@ -195,7 +195,11 @@ describe('ScrollableTrait — onUpdate: inertia + hard-clamp', () => {
   it('applies friction to velocity each tick', async () => {
     const node = makeNode();
     // Large contentHeight so bottom clamp doesn't interfere with inertia decay
-    const { cfg, ctx } = await attach(node, { friction: 0.9, contentHeight: 10.0, viewportHeight: 0.5 });
+    const { cfg, ctx } = await attach(node, {
+      friction: 0.9,
+      contentHeight: 10.0,
+      viewportHeight: 0.5,
+    });
     // Drag downward so offset is negative (inside valid scroll range)
     await fire(node, cfg, ctx, { type: 'ui_press_start', position: [0, 0, 0] });
     await fire(node, cfg, ctx, { type: 'ui_drag', position: [0, -0.1, 0] }); // velocity ≈ -6.25

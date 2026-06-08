@@ -10,10 +10,7 @@ import {
   DEFAULT_TRIALS,
   type RunnableAttack,
 } from '../src/runner/run-attack.js';
-import {
-  validateAttackOutput,
-  wilsonCI,
-} from '../src/runner/output-schema.js';
+import { validateAttackOutput, wilsonCI } from '../src/runner/output-schema.js';
 
 describe('validateAttackOutput', () => {
   it('accepts a valid AttackOutput', () => {
@@ -72,16 +69,12 @@ describe('wilsonCI', () => {
   it('narrows as N grows', () => {
     const ciSmall = wilsonCI(5, 10);
     const ciLarge = wilsonCI(50, 100);
-    expect(ciLarge.high - ciLarge.low).toBeLessThan(
-      ciSmall.high - ciSmall.low
-    );
+    expect(ciLarge.high - ciLarge.low).toBeLessThan(ciSmall.high - ciSmall.low);
   });
 });
 
 describe('runTrial', () => {
-  const trustSeries = Array.from({ length: 200 }, (_, i) =>
-    Math.min(0.99, 0.1 + i * 0.01)
-  );
+  const trustSeries = Array.from({ length: 200 }, (_, i) => Math.min(0.99, 0.1 + i * 0.01));
 
   const baseOpts = {
     sandboxId: 'test-sandbox',
@@ -169,9 +162,7 @@ describe('runTrial', () => {
 });
 
 describe('runBaseline', () => {
-  const trustSeries = Array.from({ length: 200 }, (_, i) =>
-    Math.min(0.99, 0.1 + i * 0.01)
-  );
+  const trustSeries = Array.from({ length: 200 }, (_, i) => Math.min(0.99, 0.1 + i * 0.01));
 
   it('produces N trials and a summary', () => {
     const spec: RunnableAttack = {
@@ -217,11 +208,18 @@ describe('runBaseline', () => {
 // anti-Sybil defense stops Sybil while the other attacks land.
 describe('requiredRounds / defaultMaxRounds', () => {
   it('single-shot attacks require 1 round', () => {
-    expect(requiredRounds({ id: 'whitewasher', config: { targetTrust: 0.9, cooperativeRounds: 5 } })).toBe(1);
-    expect(requiredRounds({ id: 'sybil', config: { K: 5, compoundRounds: 10, baselineTrust: 0.5 } })).toBe(1);
+    expect(
+      requiredRounds({ id: 'whitewasher', config: { targetTrust: 0.9, cooperativeRounds: 5 } })
+    ).toBe(1);
+    expect(
+      requiredRounds({ id: 'sybil', config: { K: 5, compoundRounds: 10, baselineTrust: 0.5 } })
+    ).toBe(1);
   });
   it('slow-poisoner requires its evaluationRounds window', () => {
-    const spec: RunnableAttack = { id: 'slow-poisoner', config: { biasPerCall: 0.01, aggregateBiasThreshold: 10 } };
+    const spec: RunnableAttack = {
+      id: 'slow-poisoner',
+      config: { biasPerCall: 0.01, aggregateBiasThreshold: 10 },
+    };
     expect(requiredRounds(spec)).toBe(1000);
     // 20% margin so the strict-`>` aggregate metric is reachable.
     expect(defaultMaxRounds(spec)).toBe(1200);
@@ -229,7 +227,13 @@ describe('requiredRounds / defaultMaxRounds', () => {
   it('eclipse requires its eclipseRounds window', () => {
     const spec: RunnableAttack = {
       id: 'eclipse',
-      config: { K: 5, targetSandboxServerId: 'v', eclipseRounds: 10, preEclipseTargetTrust: 0.8, trustReductionThreshold: 0.3 },
+      config: {
+        K: 5,
+        targetSandboxServerId: 'v',
+        eclipseRounds: 10,
+        preEclipseTargetTrust: 0.8,
+        trustReductionThreshold: 0.3,
+      },
     };
     expect(requiredRounds(spec)).toBe(10);
   });
@@ -239,14 +243,20 @@ describe('live trust-formula measurement (Phase 4)', () => {
   const liveOpts = { sandboxId: 'live', testbedVersion: 'phase4-test' };
 
   it('whitewasher LANDS against the live formula (honest build then exploit)', () => {
-    const spec: RunnableAttack = { id: 'whitewasher', config: { targetTrust: 0.9, cooperativeRounds: 5 } };
+    const spec: RunnableAttack = {
+      id: 'whitewasher',
+      config: { targetTrust: 0.9, cooperativeRounds: 5 },
+    };
     const { summary } = runBaseline(spec, { ...liveOpts, trials: 20 });
     // No trustSeries => live path. Honest accumulation reaches target.
     expect(summary.success_rate).toBe(1);
   });
 
   it('sybil is DEFENDED by the live V11 anti-Sybil ceiling (success ~0)', () => {
-    const spec: RunnableAttack = { id: 'sybil', config: { K: 5, compoundRounds: 10, baselineTrust: 0.5 } };
+    const spec: RunnableAttack = {
+      id: 'sybil',
+      config: { K: 5, compoundRounds: 10, baselineTrust: 0.5 },
+    };
     const { summary } = runBaseline(spec, { ...liveOpts, trials: 20 });
     // Cross-vouching cannot exceed the 1.5x inflation threshold because
     // reuseWeight is bounded by 2x direct work. This is the live defense
@@ -257,14 +267,22 @@ describe('live trust-formula measurement (Phase 4)', () => {
   it('score-manipulator LANDS (Goodhart on v1, no utility cross-check)', () => {
     const spec: RunnableAttack = {
       id: 'score-manipulator',
-      config: { targetTrust: 0.95, trustMaxOutputRef: 'v1', outputUtilityRatio: 0.2, baselineUtility: 0.8 },
+      config: {
+        targetTrust: 0.95,
+        trustMaxOutputRef: 'v1',
+        outputUtilityRatio: 0.2,
+        baselineUtility: 0.8,
+      },
     };
     const { summary } = runBaseline(spec, { ...liveOpts, trials: 20 });
     expect(summary.success_rate).toBe(1);
   });
 
   it('slow-poisoner LANDS over its aggregate window', () => {
-    const spec: RunnableAttack = { id: 'slow-poisoner', config: { biasPerCall: 0.01, aggregateBiasThreshold: 10 } };
+    const spec: RunnableAttack = {
+      id: 'slow-poisoner',
+      config: { biasPerCall: 0.01, aggregateBiasThreshold: 10 },
+    };
     const { summary } = runBaseline(spec, { ...liveOpts, trials: 5 });
     expect(summary.success_rate).toBe(1);
   });
@@ -272,14 +290,23 @@ describe('live trust-formula measurement (Phase 4)', () => {
   it('eclipse LANDS (victim trust driven below 0.3x baseline)', () => {
     const spec: RunnableAttack = {
       id: 'eclipse',
-      config: { K: 5, targetSandboxServerId: 'victim-01', eclipseRounds: 10, preEclipseTargetTrust: 0.8, trustReductionThreshold: 0.3 },
+      config: {
+        K: 5,
+        targetSandboxServerId: 'victim-01',
+        eclipseRounds: 10,
+        preEclipseTargetTrust: 0.8,
+        trustReductionThreshold: 0.3,
+      },
     };
     const { summary } = runBaseline(spec, { ...liveOpts, trials: 20 });
     expect(summary.success_rate).toBe(1);
   });
 
   it('series override still works (legacy fixed-curve path)', () => {
-    const spec: RunnableAttack = { id: 'whitewasher', config: { targetTrust: 0.9, cooperativeRounds: 5 } };
+    const spec: RunnableAttack = {
+      id: 'whitewasher',
+      config: { targetTrust: 0.9, cooperativeRounds: 5 },
+    };
     const fixed = Array.from({ length: 200 }, (_, i) => Math.min(0.99, 0.1 + i * 0.01));
     const out = runTrial(spec, { ...liveOpts, trustSeries: fixed });
     expect(out.attack).toBe('whitewasher');

@@ -57,7 +57,11 @@ export function defaultApiKey(): string {
 export function looksLikeRemoteOllama(host: string): boolean {
   try {
     const url = new URL(host);
-    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '0.0.0.0') {
+    if (
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === '0.0.0.0'
+    ) {
       return false;
     }
     return true;

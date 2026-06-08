@@ -60,24 +60,22 @@ function scoreInformationGain(baselineTraits, finetunedTraits) {
 
 describe('scoreTraitCorrectness', () => {
   it('returns 1.0 for perfect match', () => {
-    assert.equal(scoreTraitCorrectness(
-      'object "X" { @structural @physics }',
-      ['structural', 'physics']
-    ), 1);
+    assert.equal(
+      scoreTraitCorrectness('object "X" { @structural @physics }', ['structural', 'physics']),
+      1
+    );
   });
 
   it('returns 0.5 for partial match', () => {
-    assert.ok(Math.abs(scoreTraitCorrectness(
-      'object "X" { @structural }',
-      ['structural', 'physics']
-    ) - 0.5) < 0.01);
+    assert.ok(
+      Math.abs(
+        scoreTraitCorrectness('object "X" { @structural }', ['structural', 'physics']) - 0.5
+      ) < 0.01
+    );
   });
 
   it('returns 0 for no match', () => {
-    assert.equal(scoreTraitCorrectness(
-      'object "X" { @visual }',
-      ['structural', 'physics']
-    ), 0);
+    assert.equal(scoreTraitCorrectness('object "X" { @visual }', ['structural', 'physics']), 0);
   });
 
   it('returns 0 for null response', () => {
@@ -87,9 +85,9 @@ describe('scoreTraitCorrectness', () => {
 
 describe('scoreCompositionShape', () => {
   it('returns ~1.0 for complete hsplus composition', () => {
-    assert.ok(scoreCompositionShape(
-      'object "Bridge" {\n  @structural\n  geometry: "bridge"\n}'
-    ) >= 0.99);
+    assert.ok(
+      scoreCompositionShape('object "Bridge" {\n  @structural\n  geometry: "bridge"\n}') >= 0.99
+    );
   });
 
   it('returns 0.33 for traits-only response', () => {
@@ -111,10 +109,7 @@ describe('scoreInformationGain', () => {
   });
 
   it('penalizes losing baseline traits', () => {
-    const score = scoreInformationGain(
-      ['structural', 'physics'],
-      ['structural', 'hologram']
-    );
+    const score = scoreInformationGain(['structural', 'physics'], ['structural', 'hologram']);
     assert.ok(Math.abs(score - 0.5) < 0.1);
   });
 

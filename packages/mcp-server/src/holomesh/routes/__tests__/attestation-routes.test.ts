@@ -52,7 +52,9 @@ function seedKey(key: string, agentId: string, isFounder = false): void {
   keyRegistry.set(key, record);
 }
 
-function buildAttestationEnvelope(overrides: Partial<AttestationEnvelope> = {}): AttestationEnvelope {
+function buildAttestationEnvelope(
+  overrides: Partial<AttestationEnvelope> = {}
+): AttestationEnvelope {
   return {
     seat_id: 'claude-claudecode-abc-default-x402',
     seat_pubkey: SEAT_PUBKEY,
@@ -156,16 +158,21 @@ describe('processAttestation — rejection paths', () => {
   });
 
   it('rejects when seat_pubkey is malformed', async () => {
-    const r = await processAttestation(buildAttestationEnvelope({ seat_pubkey: 'not-an-address' }), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN,
-    });
+    const r = await processAttestation(
+      buildAttestationEnvelope({ seat_pubkey: 'not-an-address' }),
+      {
+        founderAnchor: FOUNDER_ANCHOR,
+        domain: DOMAIN,
+      }
+    );
     expect(r.status).toBe('rejected');
     expect(r.reason).toBe('malformed-seat-pubkey');
   });
 
   it('rejects when authorized_by is malformed', async () => {
     const r = await processAttestation(buildAttestationEnvelope({ authorized_by: 'short' }), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN,
+      founderAnchor: FOUNDER_ANCHOR,
+      domain: DOMAIN,
     });
     expect(r.status).toBe('rejected');
     expect(r.reason).toBe('malformed-authorized-by');
@@ -173,7 +180,8 @@ describe('processAttestation — rejection paths', () => {
 
   it('rejects when signature is malformed (too short)', async () => {
     const r = await processAttestation(buildAttestationEnvelope({ signature: '0xabcd' }), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN,
+      founderAnchor: FOUNDER_ANCHOR,
+      domain: DOMAIN,
     });
     expect(r.status).toBe('rejected');
     expect(r.reason).toBe('malformed-signature');
@@ -182,7 +190,8 @@ describe('processAttestation — rejection paths', () => {
   it('rejects when verifyTypedData returns false', async () => {
     mockVerifyTypedData.mockResolvedValue(false);
     const r = await processAttestation(buildAttestationEnvelope(), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN,
+      founderAnchor: FOUNDER_ANCHOR,
+      domain: DOMAIN,
     });
     expect(r.status).toBe('rejected');
     expect(r.reason).toBe('signature-mismatch');
@@ -191,7 +200,8 @@ describe('processAttestation — rejection paths', () => {
   it('rejects with reason=verify-threw when viem rejects', async () => {
     mockVerifyTypedData.mockRejectedValue(new Error('viem boom'));
     const r = await processAttestation(buildAttestationEnvelope(), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN,
+      founderAnchor: FOUNDER_ANCHOR,
+      domain: DOMAIN,
     });
     expect(r.status).toBe('rejected');
     expect(r.reason).toBe('verify-threw');
@@ -201,7 +211,9 @@ describe('processAttestation — rejection paths', () => {
     mockVerifyTypedData.mockResolvedValue(false);
     const registry = new AttestationRegistry();
     await processAttestation(buildAttestationEnvelope(), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN, registry,
+      founderAnchor: FOUNDER_ANCHOR,
+      domain: DOMAIN,
+      registry,
     });
     expect(registry.size()).toBe(0);
   });
@@ -211,7 +223,8 @@ describe('processAttestation — verifyTypedData call shape', () => {
   it('passes the canonical EIP-712 typed data + signature to viem', async () => {
     mockVerifyTypedData.mockResolvedValue(true);
     await processAttestation(buildAttestationEnvelope(), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN,
+      founderAnchor: FOUNDER_ANCHOR,
+      domain: DOMAIN,
     });
     expect(mockVerifyTypedData).toHaveBeenCalledTimes(1);
     const call = mockVerifyTypedData.mock.calls[0][0];
@@ -220,9 +233,18 @@ describe('processAttestation — verifyTypedData call shape', () => {
     expect(call.primaryType).toBe('Attestation');
     expect(call.signature).toBe(VALID_SIG);
     // Message should be the envelope minus signature, with all 8 typed fields.
-    expect(Object.keys(call.message).sort()).toEqual([
-      'authorized_by', 'expires_at', 'issued_at', 'role', 'seat_id', 'seat_pubkey', 'surface', 'model',
-    ].sort());
+    expect(Object.keys(call.message).sort()).toEqual(
+      [
+        'authorized_by',
+        'expires_at',
+        'issued_at',
+        'role',
+        'seat_id',
+        'seat_pubkey',
+        'surface',
+        'model',
+      ].sort()
+    );
   });
 });
 
@@ -241,7 +263,9 @@ describe('processRevocation', () => {
       expiresAt: null,
     });
     const r = await processRevocation(buildRevocationEnvelope(), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN, registry,
+      founderAnchor: FOUNDER_ANCHOR,
+      domain: DOMAIN,
+      registry,
     });
     expect(r.status).toBe('retired');
     expect(registry.isRetired(SEAT_PUBKEY)).toBe(true);
@@ -251,7 +275,9 @@ describe('processRevocation', () => {
     mockVerifyTypedData.mockResolvedValue(true);
     const registry = new AttestationRegistry();
     const r = await processRevocation(buildRevocationEnvelope(), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN, registry,
+      founderAnchor: FOUNDER_ANCHOR,
+      domain: DOMAIN,
+      registry,
     });
     expect(r.status).toBe('rejected');
     expect(r.reason).toBe('unknown-pubkey');
@@ -268,7 +294,9 @@ describe('processRevocation', () => {
       expiresAt: null,
     });
     const r = await processRevocation(buildRevocationEnvelope(), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN, registry,
+      founderAnchor: FOUNDER_ANCHOR,
+      domain: DOMAIN,
+      registry,
     });
     expect(r.status).toBe('rejected');
     expect(r.reason).toBe('signature-mismatch');
@@ -286,7 +314,9 @@ describe('processRevocation', () => {
       expiresAt: null,
     });
     await processRevocation(buildRevocationEnvelope(), {
-      founderAnchor: FOUNDER_ANCHOR, domain: DOMAIN, registry,
+      founderAnchor: FOUNDER_ANCHOR,
+      domain: DOMAIN,
+      registry,
     });
     expect(mockVerifyTypedData.mock.calls[0][0].address).toBe(FOUNDER_ANCHOR);
     expect(mockVerifyTypedData.mock.calls[0][0].primaryType).toBe('Revocation');

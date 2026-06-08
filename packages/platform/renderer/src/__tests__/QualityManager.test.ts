@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  QualityManager,
-  DEFAULT_QUALITY_POLICY,
-} from '../QualityManager';
+import { QualityManager, DEFAULT_QUALITY_POLICY } from '../QualityManager';
 
 describe('QualityManager', () => {
   it('starts in cool state with full budget', () => {
@@ -68,7 +65,10 @@ describe('QualityManager', () => {
 
   it('allows custom policy overrides', () => {
     const qm = new QualityManager({
-      cool: { ...DEFAULT_QUALITY_POLICY.cool, gaussian: { maxSplats: 2_000_000, maxMemoryMB: 1024 } },
+      cool: {
+        ...DEFAULT_QUALITY_POLICY.cool,
+        gaussian: { maxSplats: 2_000_000, maxMemoryMB: 1024 },
+      },
     });
     expect(qm.getGaussianBudget().maxSplats).toBe(2_000_000);
   });

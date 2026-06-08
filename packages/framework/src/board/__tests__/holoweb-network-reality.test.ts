@@ -122,8 +122,7 @@ function makeSnapshot(
     },
     brittney: {
       stance: 'protect_bandwidth',
-      firstMessage:
-        'I will protect bandwidth before downloads, uploads, or parallel agent work.',
+      firstMessage: 'I will protect bandwidth before downloads, uploads, or parallel agent work.',
       protectBandwidth: true,
       canExplainToNonDeveloper: true,
     },
@@ -151,9 +150,7 @@ function makeSnapshot(
   };
 }
 
-function makeLocationProof(
-  overrides: Partial<HoloWebLocationProof> = {}
-): HoloWebLocationProof {
+function makeLocationProof(overrides: Partial<HoloWebLocationProof> = {}): HoloWebLocationProof {
   return {
     proofId: 'loc_20260515_phoenix_local',
     scope: 'local_only',

@@ -66,10 +66,7 @@ const FIVE_MINUTES_SECONDS = 300;
  * burn_rate = (bad_rate_in_window) / (budget_rate)
  * where budget_rate = totalBudget / budgetPeriodSeconds
  */
-export function calculateBurnRate(
-  window: BurnRateWindow,
-  budget: BurnRateBudget
-): number {
+export function calculateBurnRate(window: BurnRateWindow, budget: BurnRateBudget): number {
   if (budget.totalBudget <= 0 || budget.budgetPeriodSeconds <= 0) {
     return 0;
   }
@@ -102,10 +99,7 @@ export function severityFromBurnRate(burnRate: number): BurnRateSeverity {
  *
  * hours = (budgetPeriodSeconds / 3600) / burn_rate
  */
-export function hoursRemaining(
-  burnRate: number,
-  budgetPeriodSeconds: number
-): number {
+export function hoursRemaining(burnRate: number, budgetPeriodSeconds: number): number {
   if (burnRate <= 0 || !Number.isFinite(burnRate)) {
     return Infinity;
   }
@@ -162,10 +156,7 @@ export function evaluateBurnRate(
 /**
  * Convenience: create a standard 30-day error budget.
  */
-export function createMonthlyBudget(
-  monthlyEvents: number,
-  sloPercent: number
-): BurnRateBudget {
+export function createMonthlyBudget(monthlyEvents: number, sloPercent: number): BurnRateBudget {
   const allowedBadEvents = Math.round(monthlyEvents * (1 - sloPercent / 100));
   return {
     totalBudget: allowedBadEvents,

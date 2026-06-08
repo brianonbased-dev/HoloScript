@@ -28,11 +28,7 @@ export const EXP1_SYSTEM_PROMPT = [
   'trait mutations use input {object_name, trait_name}; compose uses {object_name, trait_names:[...]}.',
 ].join(' ');
 
-export function assembleArmPrompt(
-  task: BenchTask,
-  arm: Arm,
-  retrieval?: string
-): string {
+export function assembleArmPrompt(task: BenchTask, arm: Arm, retrieval?: string): string {
   const instruction = arm === 'A' ? task.prompt.A : task.prompt.B;
   const sceneBlock = `Scene:\n${task.sceneContext}`;
   const offload = retrieval ? `\n\nRetrieved context (offload):\n${retrieval}` : '';

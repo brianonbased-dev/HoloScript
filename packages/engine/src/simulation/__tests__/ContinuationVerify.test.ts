@@ -69,13 +69,19 @@ describe('verifyContinuation (PROB-003 lineage primitive)', () => {
   it('rejects when the prior provenance has no terminalStateDigest', () => {
     const noDigest = makePriorProvenance();
     delete (noDigest as { terminalStateDigest?: string }).terminalStateDigest;
-    const r = verifyContinuation(makeContinuation(), { provenance: noDigest, receiptHash: 'receipt-hash-xyz' });
+    const r = verifyContinuation(makeContinuation(), {
+      provenance: noDigest,
+      receiptHash: 'receipt-hash-xyz',
+    });
     expect(r.valid).toBe(false);
     expect(r.reason).toMatch(/terminalStateDigest/);
   });
 
   it('rejects when priorReceiptHash is forged', () => {
-    const r = verifyContinuation(makeContinuation({ priorReceiptHash: 'receipt-hash-FAKE' }), prior);
+    const r = verifyContinuation(
+      makeContinuation({ priorReceiptHash: 'receipt-hash-FAKE' }),
+      prior
+    );
     expect(r.valid).toBe(false);
     expect(r.reason).toMatch(/priorReceiptHash/);
   });

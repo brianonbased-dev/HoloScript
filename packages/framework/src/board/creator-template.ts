@@ -32,17 +32,11 @@ import type {
   ArtifactProvenanceLink,
   ArtifactVerificationCommand,
 } from './board-types';
-import type {
-  ValidationReceipt,
-} from './hololand-receipts';
+import type { ValidationReceipt } from './hololand-receipts';
 export type { ValidationReceipt } from './hololand-receipts';
-import type {
-  Shard,
-} from './frontier-shard';
+import type { Shard } from './frontier-shard';
 export type { Shard } from './frontier-shard';
-import {
-  validateShard,
-} from './frontier-shard';
+import { validateShard } from './frontier-shard';
 
 // ── Template Parameter ──
 
@@ -55,12 +49,7 @@ import {
  * - enum      — closed-set choice (biome, trigger kind, rarity)
  * - shard-ref — reference to an existing Shard (for remix/sequel templates)
  */
-export const TEMPLATE_PARAMETER_KINDS = [
-  'string',
-  'number',
-  'enum',
-  'shard-ref',
-] as const;
+export const TEMPLATE_PARAMETER_KINDS = ['string', 'number', 'enum', 'shard-ref'] as const;
 
 export type TemplateParameterKind = (typeof TEMPLATE_PARAMETER_KINDS)[number];
 
@@ -228,7 +217,10 @@ export function validateTemplateParameter(param: TemplateParameter): string[] {
   if (!isSupportedTemplateParameterKind(param.kind)) {
     errors.push(`TemplateParameter ${param.id}.kind is unsupported: ${String(param.kind)}.`);
   }
-  if (param.kind === 'enum' && (!Array.isArray(param.allowedValues) || param.allowedValues.length === 0)) {
+  if (
+    param.kind === 'enum' &&
+    (!Array.isArray(param.allowedValues) || param.allowedValues.length === 0)
+  ) {
     errors.push(`TemplateParameter ${param.id} kind=enum requires non-empty allowedValues.`);
   }
   return errors;
@@ -260,7 +252,8 @@ export function validatePlayabilityRequirements(req: PlayabilityRequirements): s
 export function validateCreatorTemplate(template: CreatorTemplate): string[] {
   const errors: string[] = [];
   if (!template.id) errors.push('CreatorTemplate.id is required.');
-  if (!template.name) errors.push(`CreatorTemplate ${template.id || '<unknown>'}.name is required.`);
+  if (!template.name)
+    errors.push(`CreatorTemplate ${template.id || '<unknown>'}.name is required.`);
   if (!template.baseShard) {
     errors.push(`CreatorTemplate ${template.id}.baseShard is required.`);
   } else {
@@ -288,7 +281,8 @@ export function validateCreatorTemplate(template: CreatorTemplate): string[] {
 export function validatePlayableChallenge(challenge: PlayableChallenge): string[] {
   const errors: string[] = [];
   if (!challenge.id) errors.push('PlayableChallenge.id is required.');
-  if (!challenge.name) errors.push(`PlayableChallenge ${challenge.id || '<unknown>'}.name is required.`);
+  if (!challenge.name)
+    errors.push(`PlayableChallenge ${challenge.id || '<unknown>'}.name is required.`);
   if (!challenge.generatedShard) {
     errors.push(`PlayableChallenge ${challenge.id}.generatedShard is required.`);
   } else {
@@ -296,7 +290,11 @@ export function validatePlayableChallenge(challenge: PlayableChallenge): string[
       errors.push(`PlayableChallenge ${challenge.id}.generatedShard: ${e}`);
     }
   }
-  if (!Number.isFinite(challenge.playabilityScore) || challenge.playabilityScore < 0 || challenge.playabilityScore > 1) {
+  if (
+    !Number.isFinite(challenge.playabilityScore) ||
+    challenge.playabilityScore < 0 ||
+    challenge.playabilityScore > 1
+  ) {
     errors.push(`PlayableChallenge ${challenge.id}.playabilityScore must be in [0, 1].`);
   }
   if (!challenge.validationReceipt) {
@@ -332,7 +330,9 @@ export function validatePlayableChallenge(challenge: PlayableChallenge): string[
   }
   const validStatuses = ['draft', 'playable', 'published', 'rejected'] as const;
   if (!validStatuses.includes(challenge.status)) {
-    errors.push(`PlayableChallenge ${challenge.id}.status is unsupported: ${String(challenge.status)}.`);
+    errors.push(
+      `PlayableChallenge ${challenge.id}.status is unsupported: ${String(challenge.status)}.`
+    );
   }
   return errors;
 }
@@ -340,7 +340,8 @@ export function validatePlayableChallenge(challenge: PlayableChallenge): string[
 export function validatePublishReview(review: PublishReview): string[] {
   const errors: string[] = [];
   if (!review.id) errors.push('PublishReview.id is required.');
-  if (!review.challengeId) errors.push(`PublishReview ${review.id || '<unknown>'}.challengeId is required.`);
+  if (!review.challengeId)
+    errors.push(`PublishReview ${review.id || '<unknown>'}.challengeId is required.`);
   const validStatuses = ['pending', 'approved', 'rejected'] as const;
   if (!validStatuses.includes(review.status)) {
     errors.push(`PublishReview ${review.id}.status is unsupported: ${String(review.status)}.`);
@@ -348,9 +349,10 @@ export function validatePublishReview(review: PublishReview): string[] {
   if ((review.status === 'approved' || review.status === 'rejected') && !review.reviewerId) {
     errors.push(`PublishReview ${review.id} status=${review.status} requires reviewerId.`);
   }
-  if ((review.status === 'approved' || review.status === 'rejected') && (
-    review.reviewedAt === undefined || review.reviewedAt === null || review.reviewedAt === ''
-  )) {
+  if (
+    (review.status === 'approved' || review.status === 'rejected') &&
+    (review.reviewedAt === undefined || review.reviewedAt === null || review.reviewedAt === '')
+  ) {
     errors.push(`PublishReview ${review.id} status=${review.status} requires reviewedAt.`);
   }
   return errors;
@@ -374,7 +376,7 @@ export function validatePublishReview(review: PublishReview): string[] {
  */
 export function checkPlayability(
   shard: Shard,
-  requirements: PlayabilityRequirements = DEFAULT_PLAYABILITY_REQUIREMENTS,
+  requirements: PlayabilityRequirements = DEFAULT_PLAYABILITY_REQUIREMENTS
 ): { score: number; passed: boolean; violations: string[] } {
   const violations: string[] = [];
   let satisfied = 0;
@@ -401,12 +403,14 @@ export function checkPlayability(
   // Cross-reference integrity
   total++;
   const structuralErrors = validateShard(shard);
-  const hasCrossRefErrors = structuralErrors.some((e) =>
-    e.includes('references unknown') || e.includes('references unknown'),
+  const hasCrossRefErrors = structuralErrors.some(
+    (e) => e.includes('references unknown') || e.includes('references unknown')
   );
   if (requirements.requireCrossReferences) {
     if (hasCrossRefErrors) {
-      violations.push(`crossReferences: structural errors present (${structuralErrors.filter((e) => e.includes('references unknown')).length} cross-ref failures)`);
+      violations.push(
+        `crossReferences: structural errors present (${structuralErrors.filter((e) => e.includes('references unknown')).length} cross-ref failures)`
+      );
     } else {
       satisfied++;
     }
@@ -439,7 +443,10 @@ export function checkPlayability(
     if (!hasReward) {
       for (const table of shard.lootTables ?? []) {
         for (const entry of table.entries ?? []) {
-          if ((entry.itemId && itemIds.has(entry.itemId)) || (entry.skillId && skillIds.has(entry.skillId))) {
+          if (
+            (entry.itemId && itemIds.has(entry.itemId)) ||
+            (entry.skillId && skillIds.has(entry.skillId))
+          ) {
             hasReward = true;
             break;
           }
@@ -451,7 +458,9 @@ export function checkPlayability(
     if (hasReward) {
       satisfied++;
     } else {
-      violations.push('rewardPath: no reachable item or skill reward via quest steps or loot tables');
+      violations.push(
+        'rewardPath: no reachable item or skill reward via quest steps or loot tables'
+      );
     }
   } else {
     satisfied++; // not required = auto-satisfied
@@ -464,7 +473,7 @@ export function checkPlayability(
 // ── Cloning ──
 
 function cloneProvenance(
-  provenance: ArtifactProvenanceLink | undefined,
+  provenance: ArtifactProvenanceLink | undefined
 ): ArtifactProvenanceLink | undefined {
   if (!provenance) return undefined;
   return {
@@ -483,7 +492,9 @@ export function cloneTemplateParameter(param: TemplateParameter): TemplateParame
   };
 }
 
-export function clonePlayabilityRequirements(req: PlayabilityRequirements): PlayabilityRequirements {
+export function clonePlayabilityRequirements(
+  req: PlayabilityRequirements
+): PlayabilityRequirements {
   return { ...req };
 }
 

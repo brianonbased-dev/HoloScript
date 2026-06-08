@@ -10,7 +10,6 @@
 
 **Success Rate:** 0.0%
 
-
 ---
 
 ## Executive Summary
@@ -27,39 +26,33 @@ This benchmark suite validates HoloScript's WebGPU compute shader compilation ca
 - **Successful:** 0 (0.0%)
 - **Failed:** 5 (100.0%)
 
-
 ---
 
 ## Detailed Results
 
-| Example | Status | Parse (ms) | Compile (ms) | Size | WGSL Shaders | Target FPS | Est. FPS | Meets Target |
-|---------|--------|------------|--------------|------|--------------|------------|----------|--------------|
-| gpu-fluid-simulation.holo | ❌ | - | - | - | - | 60 | 115 | - |
-| gpu-particles-million.holo | ❌ | - | - | - | - | 60 | 94 | - |
-| gpu-cloth-simulation.holo | ❌ | - | - | - | - | 60 | 87 | - |
-| gpu-physics-rigid-body.holo | ❌ | - | - | - | - | 60 | 98 | - |
-| n-body-gravity.holo | ❌ | - | - | - | - | 60 | 106 | - |
-
-
+| Example                     | Status | Parse (ms) | Compile (ms) | Size | WGSL Shaders | Target FPS | Est. FPS | Meets Target |
+| --------------------------- | ------ | ---------- | ------------ | ---- | ------------ | ---------- | -------- | ------------ |
+| gpu-fluid-simulation.holo   | ❌     | -          | -            | -    | -            | 60         | 115      | -            |
+| gpu-particles-million.holo  | ❌     | -          | -            | -    | -            | 60         | 94       | -            |
+| gpu-cloth-simulation.holo   | ❌     | -          | -            | -    | -            | 60         | 87       | -            |
+| gpu-physics-rigid-body.holo | ❌     | -          | -            | -    | -            | 60         | 98       | -            |
+| n-body-gravity.holo         | ❌     | -          | -            | -    | -            | 60         | 106      | -            |
 
 ---
 
 ## Performance Analysis (RTX 3080 Baseline)
 
-
 ---
 
 ## Validation Summary
 
-| Validation Check | Pass Rate |
-|------------------|-----------|
-| WGSL Syntax Valid | 0/0 (NaN%) |
-| Compute Shaders Found | 0/0 (NaN%) |
-| GPU Buffers Allocated | 0/0 (NaN%) |
+| Validation Check       | Pass Rate  |
+| ---------------------- | ---------- |
+| WGSL Syntax Valid      | 0/0 (NaN%) |
+| Compute Shaders Found  | 0/0 (NaN%) |
+| GPU Buffers Allocated  | 0/0 (NaN%) |
 | Dispatch Calls Present | 0/0 (NaN%) |
-| GPU Timing Enabled | 0/0 (NaN%) |
-
-
+| GPU Timing Enabled     | 0/0 (NaN%) |
 
 ---
 
@@ -67,15 +60,13 @@ This benchmark suite validates HoloScript's WebGPU compute shader compilation ca
 
 **Total Failures:** 5
 
-| Example | Error |
-|---------|-------|
-| gpu-fluid-simulation.holo | Expected identifier, got STRING (in composition > domain-material) |
-| gpu-particles-million.holo | Expected identifier, got STRING (in composition > domain-material) |
-| gpu-cloth-simulation.holo | Expected identifier, got STRING (in composition > domain-material) |
+| Example                     | Error                                                              |
+| --------------------------- | ------------------------------------------------------------------ |
+| gpu-fluid-simulation.holo   | Expected identifier, got STRING (in composition > domain-material) |
+| gpu-particles-million.holo  | Expected identifier, got STRING (in composition > domain-material) |
+| gpu-cloth-simulation.holo   | Expected identifier, got STRING (in composition > domain-material) |
 | gpu-physics-rigid-body.holo | Expected identifier, got STRING (in composition > domain-material) |
-| n-body-gravity.holo | Expected identifier, got STRING (in composition > domain-material) |
-
-
+| n-body-gravity.holo         | Expected identifier, got STRING (in composition > domain-material) |
 
 ---
 
@@ -101,6 +92,7 @@ All performance targets are documented within each `.holo` file and validated ag
 ### WGSL Validation
 
 WGSL shader validation includes:
+
 - Presence of compute shader stage attributes (`@compute`)
 - Workgroup size attributes (`@workgroup_size`)
 - Buffer binding declarations (`@group`, `@binding`)

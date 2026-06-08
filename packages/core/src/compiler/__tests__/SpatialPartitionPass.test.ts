@@ -74,7 +74,17 @@ function gaussianObject(
   // AND in properties[] (matching real parser output where the parser stores
   // all properties in the properties array, not top-level fields).
   const posProperties = pos
-    ? [{ type: 'ObjectProperty' as const, key: 'position', value: [pos.x, pos.y, pos.z] as unknown as import('../../parser/HoloCompositionTypes').HoloValue }]
+    ? [
+        {
+          type: 'ObjectProperty' as const,
+          key: 'position',
+          value: [
+            pos.x,
+            pos.y,
+            pos.z,
+          ] as unknown as import('../../parser/HoloCompositionTypes').HoloValue,
+        },
+      ]
     : [];
   return {
     type: 'ObjectDecl',
@@ -186,8 +196,8 @@ describe('SpatialPartitionPass', () => {
     it('coarser object (more splats) gets a lower lodLevel than finer object', () => {
       const comp = emptyComposition();
       comp.objects = [
-        gaussianObject('LargeCloud', 2_000_000),  // coarsest
-        gaussianObject('SmallDust',  10),          // finest
+        gaussianObject('LargeCloud', 2_000_000), // coarsest
+        gaussianObject('SmallDust', 10), // finest
       ];
       const result = spatialPartition(comp);
       const large = result.anchors.find((a) => a.id.includes('LargeCloud'))!;
@@ -197,10 +207,7 @@ describe('SpatialPartitionPass', () => {
 
     it('same-splat-count objects get the same lodLevel', () => {
       const comp = emptyComposition();
-      comp.objects = [
-        gaussianObject('A', 50_000),
-        gaussianObject('B', 50_000),
-      ];
+      comp.objects = [gaussianObject('A', 50_000), gaussianObject('B', 50_000)];
       const result = spatialPartition(comp);
       const [a, b] = result.anchors;
       expect(a!.lodLevel).toBe(b!.lodLevel);
@@ -208,10 +215,7 @@ describe('SpatialPartitionPass', () => {
 
     it('lodLevel is in range [0, maxDepth-1]', () => {
       const comp = emptyComposition();
-      comp.objects = [
-        gaussianObject('Huge', 10_000_000),
-        gaussianObject('Tiny', 1),
-      ];
+      comp.objects = [gaussianObject('Huge', 10_000_000), gaussianObject('Tiny', 1)];
       const result = spatialPartition(comp);
       for (const a of result.anchors) {
         expect(a.lodLevel).toBeGreaterThanOrEqual(0);
@@ -240,12 +244,8 @@ describe('SpatialPartitionPass', () => {
         type: 'ObjectDecl',
         name: 'ParserObj',
         objectType: 'object',
-        properties: [
-          { type: 'ObjectProperty', key: 'position', value: [5, 10, -3] as any },
-        ],
-        traits: [
-          { type: 'Trait', name: 'gaussian_splat', config: { max_splats: 1_000 } as any },
-        ],
+        properties: [{ type: 'ObjectProperty', key: 'position', value: [5, 10, -3] as any }],
+        traits: [{ type: 'Trait', name: 'gaussian_splat', config: { max_splats: 1_000 } as any }],
         children: [],
         handlers: [],
         // no top-level position field — matches real parser output
@@ -272,15 +272,13 @@ describe('SpatialPartitionPass', () => {
       const comp = emptyComposition();
       // Add in random order
       comp.objects = [
-        gaussianObject('Fine',    100),
-        gaussianObject('Coarse',  500_000),
-        gaussianObject('Medium',  10_000),
+        gaussianObject('Fine', 100),
+        gaussianObject('Coarse', 500_000),
+        gaussianObject('Medium', 10_000),
       ];
       const result = spatialPartition(comp);
       for (let i = 1; i < result.anchors.length; i++) {
-        expect(result.anchors[i]!.lodLevel).toBeGreaterThanOrEqual(
-          result.anchors[i - 1]!.lodLevel
-        );
+        expect(result.anchors[i]!.lodLevel).toBeGreaterThanOrEqual(result.anchors[i - 1]!.lodLevel);
       }
     });
   });
@@ -294,8 +292,8 @@ describe('SpatialPartitionPass', () => {
       const comp = emptyComposition();
       comp.objects = [
         gaussianObject('A', 1_000, { x: -10, y: 0, z: 0 }),
-        gaussianObject('B', 1_000, { x: 10,  y: 0, z: 0 }),
-        gaussianObject('C', 1_000, { x: 0,   y: 5, z: 0 }),
+        gaussianObject('B', 1_000, { x: 10, y: 0, z: 0 }),
+        gaussianObject('C', 1_000, { x: 0, y: 5, z: 0 }),
       ];
       const result = spatialPartition(comp);
       for (const a of result.anchors) {
@@ -311,7 +309,7 @@ describe('SpatialPartitionPass', () => {
       const comp = emptyComposition();
       comp.objects = [
         gaussianObject('A', 1_000, { x: -20, y: 0, z: 0 }),
-        gaussianObject('B', 1_000, { x:  20, y: 0, z: 0 }),
+        gaussianObject('B', 1_000, { x: 20, y: 0, z: 0 }),
       ];
       const result = spatialPartition(comp);
       expect(result.bounds.halfSize).toBeGreaterThan(0);
@@ -380,10 +378,7 @@ describe('SpatialPartitionPass', () => {
         gaussianObject('C', 100),
       ];
       const result = spatialPartition(comp);
-      const distSum = Object.values(result.stats.lodLevelDistribution).reduce(
-        (s, v) => s + v,
-        0
-      );
+      const distSum = Object.values(result.stats.lodLevelDistribution).reduce((s, v) => s + v, 0);
       expect(distSum).toBe(result.stats.anchorsEmitted);
     });
   });

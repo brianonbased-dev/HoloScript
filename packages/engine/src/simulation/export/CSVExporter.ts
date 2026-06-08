@@ -20,10 +20,7 @@ export function exportConvergenceHistory(
   options: { solverName?: string } = {}
 ): string {
   const header = `# Solver: ${options.solverName ?? 'unknown'}, Converged: ${result.converged}, Total iterations: ${result.iterations}`;
-  const lines: string[] = [
-    header,
-    'iteration,residual_norm',
-  ];
+  const lines: string[] = [header, 'iteration,residual_norm'];
 
   const history = result.residualHistory ?? [];
   for (let i = 0; i < history.length; i++) {
@@ -56,9 +53,7 @@ export function exportScalarFieldCSV(
 ): string {
   const fieldName = options.fieldName ?? 'value';
   const unit = options.unit ? ` [${options.unit}]` : '';
-  const lines: string[] = [
-    `x [m],y [m],z [m],${fieldName}${unit}`,
-  ];
+  const lines: string[] = [`x [m],y [m],z [m],${fieldName}${unit}`];
 
   for (let k = 0; k < nz; k++) {
     for (let j = 0; j < ny; j++) {
@@ -92,7 +87,7 @@ export function exportTable(
   }
   lines.push(headers.join(','));
   for (const row of rows) {
-    lines.push(row.map(v => typeof v === 'number' ? v.toExponential(8) : v).join(','));
+    lines.push(row.map((v) => (typeof v === 'number' ? v.toExponential(8) : v)).join(','));
   }
   return lines.join('\n') + '\n';
 }
@@ -118,12 +113,12 @@ export function exportMaterialTable(materials: MaterialRow[]): string {
     'density [kg/m3]',
     'source',
   ];
-  const rows = materials.map(m => [
+  const rows = materials.map((m) => [
     m.name,
     m.conductivity.toFixed(4),
     m.specific_heat.toFixed(2),
     m.density.toFixed(2),
     `"${m.source}"`,
   ]);
-  return [headers.join(','), ...rows.map(r => r.join(','))].join('\n') + '\n';
+  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n') + '\n';
 }

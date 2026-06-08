@@ -298,15 +298,15 @@ world PhysicsGallery {
 
 ## 物理Traitリファレンス
 
-| Trait | VRChat出力 | メモ |
-|-------|------------|------|
-| `@physics { mass, restitution, friction }` | Rigidbody + PhysicsMaterial | `mass: 0, static: true` はStatic Collider相当 |
-| `@interaction { pickup: true }` | VRC_Pickup + Udon | `throwable: true` で投げられる |
-| `@sync { networked: true }` | UdonSynced + VRC_ObjectSync | Pickupや投擲物に使う |
-| `@cloth { stiffness, damping, pinTopEdge }` | Unity Cloth + constraints | HoloScriptソルバーからベイク |
-| `@structural { material, yieldStrength }` | 破壊メッシュ + Udon状態機械 | 破断はコンパイル時に計算 |
-| `domain fluid { ... }` | Particle System + Udon | Quest向けには粒子数を抑える |
-| `domain audio { ReverbZone }` | VRC_SpatialAudioSource zone | 空間音響のデモに使う |
+| Trait                                       | VRChat出力                  | メモ                                          |
+| ------------------------------------------- | --------------------------- | --------------------------------------------- |
+| `@physics { mass, restitution, friction }`  | Rigidbody + PhysicsMaterial | `mass: 0, static: true` はStatic Collider相当 |
+| `@interaction { pickup: true }`             | VRC_Pickup + Udon           | `throwable: true` で投げられる                |
+| `@sync { networked: true }`                 | UdonSynced + VRC_ObjectSync | Pickupや投擲物に使う                          |
+| `@cloth { stiffness, damping, pinTopEdge }` | Unity Cloth + constraints   | HoloScriptソルバーからベイク                  |
+| `@structural { material, yieldStrength }`   | 破壊メッシュ + Udon状態機械 | 破断はコンパイル時に計算                      |
+| `domain fluid { ... }`                      | Particle System + Udon      | Quest向けには粒子数を抑える                   |
+| `domain audio { ReverbZone }`               | VRC_SpatialAudioSource zone | 空間音響のデモに使う                          |
 
 ---
 

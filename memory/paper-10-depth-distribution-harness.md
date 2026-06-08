@@ -10,13 +10,13 @@ Synthetic HoloComposition **forests**: `width` parallel root chains, each chain 
 
 When `PAPER10_FULL=1` (or `--full` on the runner script):
 
-| Axis | Values |
-|------|--------|
-| Seeds | 20 |
-| Depths | 1, 2, 3, 4, 5, 6, 8 |
+| Axis                     | Values                 |
+| ------------------------ | ---------------------- |
+| Seeds                    | 20                     |
+| Depths                   | 1, 2, 3, 4, 5, 6, 8    |
 | Widths (parallel chains) | 1, 2, 4, 8, 16, 24, 32 |
 
-**Cells:** 20 × 7 × 7 = **980** compile-matrix cells per full run (the board “50×k” wording refers to this **depth × width × seed** sweep; *k* indexes the grid dimensions).
+**Cells:** 20 × 7 × 7 = **980** compile-matrix cells per full run (the board “50×k” wording refers to this **depth × width × seed** sweep; _k_ indexes the grid dimensions).
 
 ## How to run
 

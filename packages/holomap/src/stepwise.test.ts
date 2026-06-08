@@ -112,8 +112,6 @@ describe('StepwiseVideoReconstructor', () => {
 
   it('throws when correcting a stage that has not been run', () => {
     const recon = new StepwiseVideoReconstructor();
-    expect(() =>
-      recon.correct('depth', (s) => s),
-    ).toThrow('Cannot correct stage "depth"');
+    expect(() => recon.correct('depth', (s) => s)).toThrow('Cannot correct stage "depth"');
   });
 });

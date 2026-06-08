@@ -16,23 +16,23 @@ Frontier Shard 0 is **fully wired on the app side** (HoloLand platform + framewo
 
 ### 1.1 HoloLand Platform (`@holoscript/hololand-platform`)
 
-| File | Role | Consumption |
-|------|------|-------------|
-| `src/world/frontier-shard-zero.ts` | **Canonical definition** | Builds `shard_oasis_0` with 1 Zone, 1 Encounter, 1 Quest, 1 Item, 1 Skill, 1 LootTable. Exports `buildFrontierShardZero()` and `validateFrontierShardZero()`. |
-| `src/world/frontier-shard-zero.test.ts` | Validation gate | Proves the shard validates clean, consumes every primitive class, uses only registered enums, passes clone-mutation safety, and rejects deliberately-broken variants (G.GOLD.013 false-case pairs). |
-| `src/index.ts` | Public API surface | Re-exports `buildFrontierShardZero` and `validateFrontierShardZero` as part of the HoloLand platform package. |
-| `src/creator/template-pipeline.test.ts` | Creator pipeline test | Uses `buildFrontierShardZero()` as the `baseShard` in `compileTemplateToChallenge` tests. |
-| `src/creator/kiosk.test.ts` | Kiosk presentation test | Uses `buildFrontierShardZero()` to generate `PlayableChallenge` fixtures for `buildKioskCard` tests. |
+| File                                    | Role                     | Consumption                                                                                                                                                                                         |
+| --------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/world/frontier-shard-zero.ts`      | **Canonical definition** | Builds `shard_oasis_0` with 1 Zone, 1 Encounter, 1 Quest, 1 Item, 1 Skill, 1 LootTable. Exports `buildFrontierShardZero()` and `validateFrontierShardZero()`.                                       |
+| `src/world/frontier-shard-zero.test.ts` | Validation gate          | Proves the shard validates clean, consumes every primitive class, uses only registered enums, passes clone-mutation safety, and rejects deliberately-broken variants (G.GOLD.013 false-case pairs). |
+| `src/index.ts`                          | Public API surface       | Re-exports `buildFrontierShardZero` and `validateFrontierShardZero` as part of the HoloLand platform package.                                                                                       |
+| `src/creator/template-pipeline.test.ts` | Creator pipeline test    | Uses `buildFrontierShardZero()` as the `baseShard` in `compileTemplateToChallenge` tests.                                                                                                           |
+| `src/creator/kiosk.test.ts`             | Kiosk presentation test  | Uses `buildFrontierShardZero()` to generate `PlayableChallenge` fixtures for `buildKioskCard` tests.                                                                                                |
 
 ### 1.2 Framework (`@holoscript/framework`)
 
-| File | Role | Consumption |
-|------|------|-------------|
-| `src/board/frontier-shard.ts` | **Primitive definitions** | Defines `Shard`, `Zone`, `Encounter`, `Quest`, `Item`, `Skill`, `LootTable` interfaces, enums, validators, and clones. Shard 0 is the reference consumer of these primitives. |
-| `src/board/index.ts` | Re-export | Re-exports all frontier-shard symbols. |
-| `src/index.ts` | Re-export | Re-exports frontier-shard symbols at package root. |
-| `src/__tests__/frontier-shard.test.ts` | Framework validator tests | Uses `shard_oasis_0` as a test fixture for `validateShard`, `cloneShard`, and `validateShardReceipt`. |
-| `src/__tests__/agent-steward.test.ts` | Agent scope tests | References `shard_oasis_0` in steward `scope.shardIds` and proposal `impact.shardIds`. |
+| File                                   | Role                      | Consumption                                                                                                                                                                   |
+| -------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/board/frontier-shard.ts`          | **Primitive definitions** | Defines `Shard`, `Zone`, `Encounter`, `Quest`, `Item`, `Skill`, `LootTable` interfaces, enums, validators, and clones. Shard 0 is the reference consumer of these primitives. |
+| `src/board/index.ts`                   | Re-export                 | Re-exports all frontier-shard symbols.                                                                                                                                        |
+| `src/index.ts`                         | Re-export                 | Re-exports frontier-shard symbols at package root.                                                                                                                            |
+| `src/__tests__/frontier-shard.test.ts` | Framework validator tests | Uses `shard_oasis_0` as a test fixture for `validateShard`, `cloneShard`, and `validateShardReceipt`.                                                                         |
+| `src/__tests__/agent-steward.test.ts`  | Agent scope tests         | References `shard_oasis_0` in steward `scope.shardIds` and proposal `impact.shardIds`.                                                                                        |
 
 ### 1.3 App Surface Verdict
 
@@ -44,15 +44,15 @@ Frontier Shard 0 is **fully wired on the app side** (HoloLand platform + framewo
 
 ### 2.1 Studio (`@holoscript/studio`)
 
-| File | HoloLand Awareness | Shard 0 Consumption |
-|------|-------------------|---------------------|
-| `src/components/editor/DeployButton.tsx` | Deploys compiled output to HoloLand | **None** — triggers deployment, does not read shard data. |
-| `src/components/gallery/ExampleGallery.tsx` | Gallery category includes `hololand` emoji | **None** — no shard content in gallery. |
-| `src/components/registry/TraitRegistryExplorer.tsx` | Filters traits by `hololand` source | **None** — trait registry, not shard content. |
-| `src/components/wizard/ConversionRecommendations.tsx` | Suggests `hololand-scene` as conversion target | **None** — advisory, not consumption. |
-| `src/lib/workspace/conversionAdvisor.ts` | Recommends `hololand-scene` target | **None** — static rule-based advice. |
-| `src/lib/workspace/publishWorthinessDetector.ts` | Scores `hololand-scene` as publish target | **None** — scoring heuristic. |
-| `src/lib/stores/workspaceStore.ts` | Workspace type includes `hololand-scene` | **None** — type definition only. |
+| File                                                  | HoloLand Awareness                             | Shard 0 Consumption                                       |
+| ----------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------- |
+| `src/components/editor/DeployButton.tsx`              | Deploys compiled output to HoloLand            | **None** — triggers deployment, does not read shard data. |
+| `src/components/gallery/ExampleGallery.tsx`           | Gallery category includes `hololand` emoji     | **None** — no shard content in gallery.                   |
+| `src/components/registry/TraitRegistryExplorer.tsx`   | Filters traits by `hololand` source            | **None** — trait registry, not shard content.             |
+| `src/components/wizard/ConversionRecommendations.tsx` | Suggests `hololand-scene` as conversion target | **None** — advisory, not consumption.                     |
+| `src/lib/workspace/conversionAdvisor.ts`              | Recommends `hololand-scene` target             | **None** — static rule-based advice.                      |
+| `src/lib/workspace/publishWorthinessDetector.ts`      | Scores `hololand-scene` as publish target      | **None** — scoring heuristic.                             |
+| `src/lib/stores/workspaceStore.ts`                    | Workspace type includes `hololand-scene`       | **None** — type definition only.                          |
 
 ### 2.2 Browser Surface Verdict
 
@@ -64,13 +64,13 @@ This is **expected and healthy** — the shard is a runtime data structure for t
 
 ## 3. Cross-Surface Boundaries
 
-| Boundary | Status | Notes |
-|----------|--------|-------|
-| Studio → HoloLand deploy | ✅ Wired | `DeployButton.tsx` sends compiled scenes to HoloLand. |
-| Studio → Shard preview | ❌ Not built | No Studio component renders `Shard`, `KioskCard`, or quest graphs. |
-| HoloLand → Studio telemetry | ❌ Not built | No reverse channel from HoloLand runtime back to Studio. |
-| Framework → Both surfaces | ✅ Shared | `@holoscript/framework` primitives are the shared contract. |
-| Shard 0 → Browser kiosk | ❌ Not built | A web-based kiosk (browse published challenges) would consume `KioskCard` + `getKioskSlice`. |
+| Boundary                    | Status       | Notes                                                                                        |
+| --------------------------- | ------------ | -------------------------------------------------------------------------------------------- |
+| Studio → HoloLand deploy    | ✅ Wired     | `DeployButton.tsx` sends compiled scenes to HoloLand.                                        |
+| Studio → Shard preview      | ❌ Not built | No Studio component renders `Shard`, `KioskCard`, or quest graphs.                           |
+| HoloLand → Studio telemetry | ❌ Not built | No reverse channel from HoloLand runtime back to Studio.                                     |
+| Framework → Both surfaces   | ✅ Shared    | `@holoscript/framework` primitives are the shared contract.                                  |
+| Shard 0 → Browser kiosk     | ❌ Not built | A web-based kiosk (browse published challenges) would consume `KioskCard` + `getKioskSlice`. |
 
 ---
 
@@ -102,4 +102,4 @@ grep -rn "frontier-shard-zero\|shard_oasis_0" packages/studio/ --include="*.ts" 
 
 ---
 
-*Audit closed. No blockers. Shard 0 is cleanly scoped to app runtime with expected zero browser footprint.*
+_Audit closed. No blockers. Shard 0 is cleanly scoped to app runtime with expected zero browser footprint._

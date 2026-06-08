@@ -60,7 +60,9 @@ describe('Proof-carrying SDF conjecture sub-class', () => {
   });
 
   it('is deterministic — identical receipt key across runs', () => {
-    expect(runProofCarryingSdfConjecture().receiptKey).toBe(runProofCarryingSdfConjecture().receiptKey);
+    expect(runProofCarryingSdfConjecture().receiptKey).toBe(
+      runProofCarryingSdfConjecture().receiptKey
+    );
   });
 
   it('rejects invalid primitives', () => {

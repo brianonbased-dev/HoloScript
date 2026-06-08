@@ -47,7 +47,13 @@ export const SYNTHETIC_WALK_JOINTS = [
  * always produce the same pose. No timestamp in the joint values themselves
  * (timestamp is set by the engine on the SkeletonPose wrapper).
  */
-export function buildSyntheticBipedPose(phase: number, speed: number): Record<string, { position: [number, number, number]; rotation: [number, number, number, number] }> {
+export function buildSyntheticBipedPose(
+  phase: number,
+  speed: number
+): Record<
+  string,
+  { position: [number, number, number]; rotation: [number, number, number, number] }
+> {
   // Two-foot cycle: left foot leads in [0, 0.5), right foot leads in [0.5, 1).
   const leftSwing = Math.sin(phase * 2 * Math.PI);
   const rightSwing = Math.sin((phase + 0.5) * 2 * Math.PI);
@@ -57,25 +63,60 @@ export function buildSyntheticBipedPose(phase: number, speed: number): Record<st
   const hipY = 1.0 + Math.cos(phase * 4 * Math.PI) * HIP_BOB_AMPLITUDE * speedScale;
   // Hip rotates around vertical to follow stride
   const hipYawRad = leftSwing * 0.05 * speedScale;
-  const hipQuat: [number, number, number, number] = [0, Math.sin(hipYawRad / 2), 0, Math.cos(hipYawRad / 2)];
+  const hipQuat: [number, number, number, number] = [
+    0,
+    Math.sin(hipYawRad / 2),
+    0,
+    Math.cos(hipYawRad / 2),
+  ];
 
   // Thighs swing fore/aft (rotation around X axis = pitch)
   const leftThighPitchRad = leftSwing * STRIDE_AMPLITUDE_RAD * speedScale;
   const rightThighPitchRad = rightSwing * STRIDE_AMPLITUDE_RAD * speedScale;
-  const leftThighQuat: [number, number, number, number] = [Math.sin(leftThighPitchRad / 2), 0, 0, Math.cos(leftThighPitchRad / 2)];
-  const rightThighQuat: [number, number, number, number] = [Math.sin(rightThighPitchRad / 2), 0, 0, Math.cos(rightThighPitchRad / 2)];
+  const leftThighQuat: [number, number, number, number] = [
+    Math.sin(leftThighPitchRad / 2),
+    0,
+    0,
+    Math.cos(leftThighPitchRad / 2),
+  ];
+  const rightThighQuat: [number, number, number, number] = [
+    Math.sin(rightThighPitchRad / 2),
+    0,
+    0,
+    Math.cos(rightThighPitchRad / 2),
+  ];
 
   // Knees flex when foot is in front of root (positive thigh pitch + lift phase)
   const leftKneeRad = Math.max(0, leftSwing) * KNEE_FLEXION_AMPLITUDE_RAD * speedScale;
   const rightKneeRad = Math.max(0, rightSwing) * KNEE_FLEXION_AMPLITUDE_RAD * speedScale;
-  const leftKneeQuat: [number, number, number, number] = [Math.sin(leftKneeRad / 2), 0, 0, Math.cos(leftKneeRad / 2)];
-  const rightKneeQuat: [number, number, number, number] = [Math.sin(rightKneeRad / 2), 0, 0, Math.cos(rightKneeRad / 2)];
+  const leftKneeQuat: [number, number, number, number] = [
+    Math.sin(leftKneeRad / 2),
+    0,
+    0,
+    Math.cos(leftKneeRad / 2),
+  ];
+  const rightKneeQuat: [number, number, number, number] = [
+    Math.sin(rightKneeRad / 2),
+    0,
+    0,
+    Math.cos(rightKneeRad / 2),
+  ];
 
   // Ankles compensate so foot stays parallel to ground when planted
   const leftFootRad = -leftThighPitchRad * 0.5;
   const rightFootRad = -rightThighPitchRad * 0.5;
-  const leftFootQuat: [number, number, number, number] = [Math.sin(leftFootRad / 2), 0, 0, Math.cos(leftFootRad / 2)];
-  const rightFootQuat: [number, number, number, number] = [Math.sin(rightFootRad / 2), 0, 0, Math.cos(rightFootRad / 2)];
+  const leftFootQuat: [number, number, number, number] = [
+    Math.sin(leftFootRad / 2),
+    0,
+    0,
+    Math.cos(leftFootRad / 2),
+  ];
+  const rightFootQuat: [number, number, number, number] = [
+    Math.sin(rightFootRad / 2),
+    0,
+    0,
+    Math.cos(rightFootRad / 2),
+  ];
 
   return {
     hip: { position: [0, hipY, 0], rotation: hipQuat },
@@ -107,7 +148,7 @@ export class SyntheticWalkCycleEngine implements MotionMatchingEngine {
     // Phase advances proportional to speed (faster walking = quicker cycle).
     // At 1 m/s, cycle period ~1.0s. At idle, phase still drifts slowly to
     // animate idle sway.
-    const phaseAdvance = (Math.max(speed, 0.1) * 0.5) * input.delta;
+    const phaseAdvance = Math.max(speed, 0.1) * 0.5 * input.delta;
     const phase = (input.currentPhase + phaseAdvance) % 1.0;
 
     const joints = buildSyntheticBipedPose(phase, speed);

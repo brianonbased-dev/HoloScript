@@ -59,13 +59,7 @@ function startDaemon(): DaemonHarness {
     : (() => {
         const tsxPkgDir = path.dirname(require.resolve('tsx/package.json'));
         const tsxCliPath = path.join(tsxPkgDir, 'dist', 'cli.mjs');
-        return [
-          tsxCliPath,
-          sourceRunnerPath,
-          'run',
-          sourcePath,
-          '--daemon',
-        ];
+        return [tsxCliPath, sourceRunnerPath, 'run', sourcePath, '--daemon'];
       })();
 
   const proc = spawn(process.execPath, spawnArgs, {

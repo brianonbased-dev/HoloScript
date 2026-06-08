@@ -51,7 +51,9 @@ export async function publishKnowledgeEntries({
           type: entry.type?.toLowerCase() || 'wisdom',
           content: entry.content || '',
           domain: entry.domain || workspaceId,
-          tags: isPremium ? Array.from(new Set(['premium', ...(entry.tags ?? [])])) : (entry.tags ?? []),
+          tags: isPremium
+            ? Array.from(new Set(['premium', ...(entry.tags ?? [])]))
+            : (entry.tags ?? []),
           is_premium: isPremium,
         }),
       });

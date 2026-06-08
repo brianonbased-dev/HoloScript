@@ -38,7 +38,6 @@ export async function GET() {
   });
 }
 
-
 // PUBLIC-CORS: documented-public endpoint, intentional wildcard (SEC-T11)
 export function OPTIONS() {
   return new Response(null, {

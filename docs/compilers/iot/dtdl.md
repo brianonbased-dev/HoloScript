@@ -234,14 +234,14 @@ multi-target rendering, replay, and provenance.
 
 ## What DTDL Carries vs What HoloScript Carries
 
-| Concern | Azure DTDL / Digital Twins | HoloScript |
-|---|---|---|
-| Asset vocabulary | Interfaces, components, properties, telemetry, relationships | Source composition, templates, objects, traits |
-| Live graph | Twins, relationships, query, routes, data history | Runtime state mirror and simulation inputs |
-| Physics | Not the core model; represented as state or component metadata | SimulationContract, solvers, units, replay |
-| Rendering/XR | Explorer and 3D Scenes Studio, not compiler-wide target proof | Web, WebXR, Unreal, Unity, visionOS, VRChat, USD, HoloTunnel |
-| Provenance | Azure resource history and event streams | Source hashes, compiler receipts, target-device receipts |
-| Validation | DTDL parser, Azure model APIs | Compiler tests, semantic validation, simulation receipts |
+| Concern          | Azure DTDL / Digital Twins                                     | HoloScript                                                   |
+| ---------------- | -------------------------------------------------------------- | ------------------------------------------------------------ |
+| Asset vocabulary | Interfaces, components, properties, telemetry, relationships   | Source composition, templates, objects, traits               |
+| Live graph       | Twins, relationships, query, routes, data history              | Runtime state mirror and simulation inputs                   |
+| Physics          | Not the core model; represented as state or component metadata | SimulationContract, solvers, units, replay                   |
+| Rendering/XR     | Explorer and 3D Scenes Studio, not compiler-wide target proof  | Web, WebXR, Unreal, Unity, visionOS, VRChat, USD, HoloTunnel |
+| Provenance       | Azure resource history and event streams                       | Source hashes, compiler receipts, target-device receipts     |
+| Validation       | DTDL parser, Azure model APIs                                  | Compiler tests, semantic validation, simulation receipts     |
 
 ## Known Limits
 

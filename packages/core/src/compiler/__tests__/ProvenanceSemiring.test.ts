@@ -571,7 +571,7 @@ describe('ProvenanceSemiring v2 (L3 Batch 1)', () => {
 
       // All 1000 merges must produce the identical deterministic result
       const first = results[0];
-      expect(results.every(r => r === first)).toBe(true);
+      expect(results.every((r) => r === first)).toBe(true);
     });
   });
 });

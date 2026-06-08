@@ -238,10 +238,14 @@ export async function handleCompileToTarget(
   };
 
   if (!code) {
-    throw new Error('code is required: pass the HoloScript source (.hs/.hsplus/.holo) to compile as the "code" field.');
+    throw new Error(
+      'code is required: pass the HoloScript source (.hs/.hsplus/.holo) to compile as the "code" field.'
+    );
   }
   if (!target) {
-    throw new Error('target is required: call the list_export_targets tool to see valid compile targets (e.g. unity, unreal, webgpu, gltf, ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦), then pass one as "target".');
+    throw new Error(
+      'target is required: call the list_export_targets tool to see valid compile targets (e.g. unity, unreal, webgpu, gltf, ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦), then pass one as "target".'
+    );
   }
 
   const jobId = providedJobId || generateJobId();
@@ -452,9 +456,7 @@ export async function handleGetCompilationStatus(
  * handleCompileMCPConfig) so this file can be type-checked before the core
  * dist is rebuilt.
  */
-export async function handleCompileToQasm(
-  args: Record<string, unknown>
-): Promise<unknown> {
+export async function handleCompileToQasm(args: Record<string, unknown>): Promise<unknown> {
   const { source } = args as { source?: string };
 
   if (!source || typeof source !== 'string' || source.trim().length === 0) {
@@ -1389,7 +1391,10 @@ export const compilerTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        code: { type: 'string', description: 'HoloScript source (.hs/.holo) with @code_editor traits' },
+        code: {
+          type: 'string',
+          description: 'HoloScript source (.hs/.holo) with @code_editor traits',
+        },
         options: {
           type: 'object',
           description: 'Compiler options: indent (number), strictTraits (boolean)',
@@ -1415,7 +1420,10 @@ export const compilerTools: Tool[] = [
           description: 'Compiler options',
           properties: {
             timeLimit: { type: 'number', description: 'Seconds on the game timer (default 70)' },
-            title: { type: 'string', description: 'Game title / banner (defaults to composition name)' },
+            title: {
+              type: 'string',
+              description: 'Game title / banner (defaults to composition name)',
+            },
           },
         },
       },

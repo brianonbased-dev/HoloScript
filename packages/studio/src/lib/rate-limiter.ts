@@ -77,7 +77,7 @@ function deriveKey(req: NextRequest, suffix: string): string {
 export function rateLimit(
   req: NextRequest,
   options: RateLimitOptions,
-  keySuffix = 'default',
+  keySuffix = 'default'
 ): RateLimitOutcome {
   const { max, windowMs = 60_000, label = 'Too many requests' } = options;
   const now = Date.now();
@@ -112,7 +112,7 @@ export function rateLimit(
             'X-RateLimit-Reset': String(reset),
             'Retry-After': String(reset - Math.floor(now / 1000)),
           },
-        },
+        }
       ),
     };
   }
@@ -130,10 +130,22 @@ export function rateLimit(
 
 /** Write operations: 20 PATCH/POST per minute per IP+key */
 export function boardWriteLimit(req: NextRequest, teamId: string) {
-  return rateLimit(req, { max: 20, windowMs: 60_000, label: 'Too many board write operations. Retry after the window resets.' }, `board-write:${teamId}`);
+  return rateLimit(
+    req,
+    {
+      max: 20,
+      windowMs: 60_000,
+      label: 'Too many board write operations. Retry after the window resets.',
+    },
+    `board-write:${teamId}`
+  );
 }
 
 /** Read operations: 120 GETs per minute per IP+key */
 export function boardReadLimit(req: NextRequest, teamId: string) {
-  return rateLimit(req, { max: 120, windowMs: 60_000, label: 'Too many board read requests.' }, `board-read:${teamId}`);
+  return rateLimit(
+    req,
+    { max: 120, windowMs: 60_000, label: 'Too many board read requests.' },
+    `board-read:${teamId}`
+  );
 }

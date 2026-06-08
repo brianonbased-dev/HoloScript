@@ -14,15 +14,12 @@
  *   WGS-84: NIMA TR8350.2 (3rd ed., 2000)
  */
 
-import {
-  DOMAIN_SIMULATION_RECEIPT_SCHEMA,
-  buildDomainSimulationReceipt,
-} from '@holoscript/core';
+import { DOMAIN_SIMULATION_RECEIPT_SCHEMA, buildDomainSimulationReceipt } from '@holoscript/core';
 
 // ─── WGS-84 constants ─────────────────────────────────────────────────────────
-const WGS84_A  = 6_378_137.0;                // semi-major axis (m)
-const WGS84_F  = 1 / 298.257_223_563;        // flattening
-const WGS84_B  = WGS84_A * (1 - WGS84_F);   // semi-minor axis (m)
+const WGS84_A = 6_378_137.0; // semi-major axis (m)
+const WGS84_F = 1 / 298.257_223_563; // flattening
+const WGS84_B = WGS84_A * (1 - WGS84_F); // semi-minor axis (m)
 const WGS84_E2 = 2 * WGS84_F - WGS84_F ** 2; // first eccentricity squared
 // second eccentricity squared
 const WGS84_EP2 = WGS84_E2 / (1 - WGS84_E2);
@@ -31,9 +28,9 @@ const WGS84_EP2 = WGS84_E2 / (1 - WGS84_E2);
 
 /** Geodetic coordinates (WGS-84). Lat/lon in decimal degrees, altitude in metres. */
 export interface LatLonAlt {
-  latDeg:  number; // −90 … +90
-  lonDeg:  number; // −180 … +180
-  altM:    number; // metres above WGS-84 ellipsoid
+  latDeg: number; // −90 … +90
+  lonDeg: number; // −180 … +180
+  altM: number; // metres above WGS-84 ellipsoid
 }
 
 /** Earth-Centered Earth-Fixed Cartesian coordinates (metres). */
@@ -45,47 +42,47 @@ export interface ECEF {
 
 /** Geofence defined by an ordered list of vertices forming a closed polygon. */
 export interface GeofencePolygon {
-  id:       string;
+  id: string;
   vertices: { latDeg: number; lonDeg: number }[];
 }
 
 /** Result of Vincenty inverse computation. */
 export interface VincentyResult {
-  distanceM:        number; // geodesic distance (m)
+  distanceM: number; // geodesic distance (m)
   forwardAzimuthDeg: number; // bearing from p1 → p2 (deg, 0=N, 90=E)
-  backAzimuthDeg:   number; // bearing from p2 → p1 (deg)
+  backAzimuthDeg: number; // bearing from p2 → p1 (deg)
   /** true if points are antipodal (distance undefined within machine epsilon) */
-  antipodal:        boolean;
+  antipodal: boolean;
 }
 
 /** A sequence of waypoints along a great-circle path. */
 export interface GreatCircleRoute {
-  origin:      { latDeg: number; lonDeg: number };
+  origin: { latDeg: number; lonDeg: number };
   destination: { latDeg: number; lonDeg: number };
-  waypoints:   { latDeg: number; lonDeg: number; fractionOfTotal: number }[];
+  waypoints: { latDeg: number; lonDeg: number; fractionOfTotal: number }[];
   totalDistanceM: number;
 }
 
 /** Combined result from a full geodesy analysis session. */
 export interface GeodesyAnalysisResult {
-  vincenty:   VincentyResult;
-  route:      GreatCircleRoute;
+  vincenty: VincentyResult;
+  route: GreatCircleRoute;
   ecefOrigin: ECEF;
-  ecefDest:   ECEF;
-  converged:  boolean;
+  ecefDest: ECEF;
+  converged: boolean;
 }
 
 export interface GeodesyReceipt {
-  plugin:        string;
-  runId:         string;
-  payloadHash:   string;
+  plugin: string;
+  runId: string;
+  payloadHash: string;
   hashAlgorithm: string;
-  cael:          { event: string; schemaVersion: string; ts: string };
-  acceptance:    { accepted: boolean; violations: string[] };
+  cael: { event: string; schemaVersion: string; ts: string };
+  acceptance: { accepted: boolean; violations: string[] };
   resultSummary: {
-    distanceKm:         number;
-    forwardAzimuthDeg:  number;
-    waypointCount:      number;
+    distanceKm: number;
+    forwardAzimuthDeg: number;
+    waypointCount: number;
   };
 }
 
@@ -94,9 +91,15 @@ export interface GeodesyReceipt {
 const DEG = Math.PI / 180;
 const RAD = 180 / Math.PI;
 
-function toRad(deg: number): number { return deg * DEG; }
-function toDeg(rad: number): number { return rad * RAD; }
-function normalizeDeg(d: number): number { return ((d % 360) + 360) % 360; }
+function toRad(deg: number): number {
+  return deg * DEG;
+}
+function toDeg(rad: number): number {
+  return rad * RAD;
+}
+function normalizeDeg(d: number): number {
+  return ((d % 360) + 360) % 360;
+}
 
 /** Prime vertical radius of curvature N(φ) */
 function primeVerticalRadius(sinPhi: number): number {
@@ -112,17 +115,19 @@ function primeVerticalRadius(sinPhi: number): number {
  */
 export function vincentyInverse(
   p1: { latDeg: number; lonDeg: number },
-  p2: { latDeg: number; lonDeg: number },
+  p2: { latDeg: number; lonDeg: number }
 ): VincentyResult {
   const phi1 = toRad(p1.latDeg);
   const phi2 = toRad(p2.latDeg);
-  const L    = toRad(p2.lonDeg - p1.lonDeg);
+  const L = toRad(p2.lonDeg - p1.lonDeg);
 
   const U1 = Math.atan((1 - WGS84_F) * Math.tan(phi1));
   const U2 = Math.atan((1 - WGS84_F) * Math.tan(phi2));
 
-  const sinU1 = Math.sin(U1), cosU1 = Math.cos(U1);
-  const sinU2 = Math.sin(U2), cosU2 = Math.cos(U2);
+  const sinU1 = Math.sin(U1),
+    cosU1 = Math.cos(U1);
+  const sinU2 = Math.sin(U2),
+    cosU2 = Math.cos(U2);
 
   let lambda = L;
   let lambdaP: number;
@@ -137,8 +142,7 @@ export function vincentyInverse(
     cosLambda = Math.cos(lambda);
 
     sinSigma = Math.sqrt(
-      (cosU2 * sinLambda) ** 2 +
-      (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda) ** 2,
+      (cosU2 * sinLambda) ** 2 + (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda) ** 2
     );
 
     if (sinSigma === 0) {
@@ -146,35 +150,37 @@ export function vincentyInverse(
       return { distanceM: 0, forwardAzimuthDeg: 0, backAzimuthDeg: 0, antipodal: false };
     }
 
-    cosSigma  = sinU1 * sinU2 + cosU1 * cosU2 * cosLambda;
-    sigma     = Math.atan2(sinSigma, cosSigma);
-    sinAlpha  = (cosU1 * cosU2 * sinLambda) / sinSigma;
+    cosSigma = sinU1 * sinU2 + cosU1 * cosU2 * cosLambda;
+    sigma = Math.atan2(sinSigma, cosSigma);
+    sinAlpha = (cosU1 * cosU2 * sinLambda) / sinSigma;
     cos2Alpha = 1 - sinAlpha * sinAlpha;
 
-    cos2SigmaM = cos2Alpha !== 0
-      ? cosSigma - (2 * sinU1 * sinU2) / cos2Alpha
-      : 0; // equatorial line
+    cos2SigmaM = cos2Alpha !== 0 ? cosSigma - (2 * sinU1 * sinU2) / cos2Alpha : 0; // equatorial line
 
     C = (WGS84_F / 16) * cos2Alpha * (4 + WGS84_F * (4 - 3 * cos2Alpha));
 
     lambdaP = lambda;
-    lambda  = L + (1 - C) * WGS84_F * sinAlpha *
-              (sigma + C * sinSigma * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM ** 2)));
-
+    lambda =
+      L +
+      (1 - C) *
+        WGS84_F *
+        sinAlpha *
+        (sigma + C * sinSigma * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM ** 2)));
   } while (Math.abs(lambda - lambdaP) > 1e-12 && ++iterations < 200);
 
   const antipodal = iterations >= 200;
 
-  const uSq  = cos2Alpha * WGS84_EP2;
+  const uSq = cos2Alpha * WGS84_EP2;
   const A_vc = 1 + (uSq / 16384) * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)));
   const B_vc = (uSq / 1024) * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)));
 
-  const deltaSigma = B_vc * sinSigma * (
-    cos2SigmaM + (B_vc / 4) * (
-      cosSigma * (-1 + 2 * cos2SigmaM ** 2) -
-      (B_vc / 6) * cos2SigmaM * (-3 + 4 * sinSigma ** 2) * (-3 + 4 * cos2SigmaM ** 2)
-    )
-  );
+  const deltaSigma =
+    B_vc *
+    sinSigma *
+    (cos2SigmaM +
+      (B_vc / 4) *
+        (cosSigma * (-1 + 2 * cos2SigmaM ** 2) -
+          (B_vc / 6) * cos2SigmaM * (-3 + 4 * sinSigma ** 2) * (-3 + 4 * cos2SigmaM ** 2)));
 
   const distanceM = WGS84_B * A_vc * (sigma - deltaSigma);
 
@@ -184,7 +190,7 @@ export function vincentyInverse(
   return {
     distanceM,
     forwardAzimuthDeg: normalizeDeg(toDeg(fwdAz)),
-    backAzimuthDeg:    normalizeDeg(toDeg(bakAz)),
+    backAzimuthDeg: normalizeDeg(toDeg(bakAz)),
     antipodal,
   };
 }
@@ -193,13 +199,13 @@ export function vincentyInverse(
 
 /** Convert WGS-84 geodetic coordinates to ECEF Cartesian. */
 export function llaToECEF(lla: LatLonAlt): ECEF {
-  const phi    = toRad(lla.latDeg);
+  const phi = toRad(lla.latDeg);
   const lambda = toRad(lla.lonDeg);
-  const h      = lla.altM;
+  const h = lla.altM;
 
   const sinPhi = Math.sin(phi);
   const cosPhi = Math.cos(phi);
-  const N      = primeVerticalRadius(sinPhi);
+  const N = primeVerticalRadius(sinPhi);
 
   return {
     xM: (N + h) * cosPhi * Math.cos(lambda),
@@ -214,7 +220,7 @@ export function llaToECEF(lla: LatLonAlt): ECEF {
  */
 export function ecefToLLA(ecef: ECEF): LatLonAlt {
   const { xM, yM, zM } = ecef;
-  const p      = Math.sqrt(xM * xM + yM * yM);
+  const p = Math.sqrt(xM * xM + yM * yM);
   const lambda = Math.atan2(yM, xM);
 
   // Initial estimate (Bowring)
@@ -222,20 +228,23 @@ export function ecefToLLA(ecef: ECEF): LatLonAlt {
 
   for (let i = 0; i < 10; i++) {
     const sinPhi = Math.sin(phi);
-    const N      = primeVerticalRadius(sinPhi);
+    const N = primeVerticalRadius(sinPhi);
     const phiNew = Math.atan2(zM + WGS84_E2 * N * sinPhi, p);
-    if (Math.abs(phiNew - phi) < 1e-12) { phi = phiNew; break; }
+    if (Math.abs(phiNew - phi) < 1e-12) {
+      phi = phiNew;
+      break;
+    }
     phi = phiNew;
   }
 
   const sinPhi = Math.sin(phi);
-  const N      = primeVerticalRadius(sinPhi);
-  const h      = p / Math.cos(phi) - N;
+  const N = primeVerticalRadius(sinPhi);
+  const h = p / Math.cos(phi) - N;
 
   return {
     latDeg: toDeg(phi),
     lonDeg: toDeg(lambda),
-    altM:   h,
+    altM: h,
   };
 }
 
@@ -249,21 +258,22 @@ export function ecefToLLA(ecef: ECEF): LatLonAlt {
 export function greatCircleWaypoints(
   p1: { latDeg: number; lonDeg: number },
   p2: { latDeg: number; lonDeg: number },
-  numIntermediate = 8,
+  numIntermediate = 8
 ): GreatCircleRoute {
   const vincenty = vincentyInverse(p1, p2);
 
   // Convert to ECEF unit vectors (ignoring altitude — surface only)
   const toUnitVec = (p: { latDeg: number; lonDeg: number }) => {
-    const phi = toRad(p.latDeg), lam = toRad(p.lonDeg);
-    const cp  = Math.cos(phi);
+    const phi = toRad(p.latDeg),
+      lam = toRad(p.lonDeg);
+    const cp = Math.cos(phi);
     return { x: cp * Math.cos(lam), y: cp * Math.sin(lam), z: Math.sin(phi) };
   };
 
   const v1 = toUnitVec(p1);
   const v2 = toUnitVec(p2);
 
-  const dot   = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+  const dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
   const omega = Math.acos(Math.max(-1, Math.min(1, dot))); // angular separation
 
   const total = numIntermediate + 2;
@@ -271,7 +281,9 @@ export function greatCircleWaypoints(
     const t = k / (total - 1);
     let vx: number, vy: number, vz: number;
     if (omega < 1e-10) {
-      vx = v1.x; vy = v1.y; vz = v1.z;
+      vx = v1.x;
+      vy = v1.y;
+      vz = v1.z;
     } else {
       const s = Math.sin(omega);
       const a = Math.sin((1 - t) * omega) / s;
@@ -287,8 +299,8 @@ export function greatCircleWaypoints(
   });
 
   return {
-    origin:        { latDeg: p1.latDeg, lonDeg: p1.lonDeg },
-    destination:   { latDeg: p2.latDeg, lonDeg: p2.lonDeg },
+    origin: { latDeg: p1.latDeg, lonDeg: p1.lonDeg },
+    destination: { latDeg: p2.latDeg, lonDeg: p2.lonDeg },
     waypoints,
     totalDistanceM: vincenty.distanceM,
   };
@@ -303,36 +315,36 @@ export function greatCircleWaypoints(
  * Returns true if the point is inside or on the boundary.
  */
 export function pointInGeofence(
-  point:   { latDeg: number; lonDeg: number },
-  polygon: GeofencePolygon,
+  point: { latDeg: number; lonDeg: number },
+  polygon: GeofencePolygon
 ): boolean {
   const verts = polygon.vertices;
   if (verts.length < 3) return false;
 
   // Project all vertices and test point onto flat plane using gnomonic projection
   // centred on the first vertex (good for polygons up to ~500 km wide).
-  const phi0   = toRad(verts[0].latDeg);
-  const lam0   = toRad(verts[0].lonDeg);
+  const phi0 = toRad(verts[0].latDeg);
+  const lam0 = toRad(verts[0].lonDeg);
   const cosPhi0 = Math.cos(phi0);
   const sinPhi0 = Math.sin(phi0);
 
   const project = (lat: number, lon: number): [number, number] => {
-    const phi = toRad(lat), lam = toRad(lon);
-    const c   = sinPhi0 * Math.sin(phi) + cosPhi0 * Math.cos(phi) * Math.cos(lam - lam0);
-    const x   = Math.cos(phi) * Math.sin(lam - lam0) / c;
-    const y   = (cosPhi0 * Math.sin(phi) - sinPhi0 * Math.cos(phi) * Math.cos(lam - lam0)) / c;
+    const phi = toRad(lat),
+      lam = toRad(lon);
+    const c = sinPhi0 * Math.sin(phi) + cosPhi0 * Math.cos(phi) * Math.cos(lam - lam0);
+    const x = (Math.cos(phi) * Math.sin(lam - lam0)) / c;
+    const y = (cosPhi0 * Math.sin(phi) - sinPhi0 * Math.cos(phi) * Math.cos(lam - lam0)) / c;
     return [x, y];
   };
 
   const [px, py] = project(point.latDeg, point.lonDeg);
-  const n        = verts.length;
-  let inside     = false;
+  const n = verts.length;
+  let inside = false;
 
   for (let i = 0, j = n - 1; i < n; j = i++) {
     const [xi, yi] = project(verts[i].latDeg, verts[i].lonDeg);
     const [xj, yj] = project(verts[j].latDeg, verts[j].lonDeg);
-    const intersect = yi > py !== yj > py &&
-                      px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+    const intersect = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
     if (intersect) inside = !inside;
   }
 
@@ -347,17 +359,17 @@ export function pointInGeofence(
 export function analyzeGeodesy(
   origin: { latDeg: number; lonDeg: number; altM?: number },
   destination: { latDeg: number; lonDeg: number; altM?: number },
-  numWaypoints = 8,
+  numWaypoints = 8
 ): GeodesyAnalysisResult {
-  const p1  = { latDeg: origin.latDeg, lonDeg: origin.lonDeg };
-  const p2  = { latDeg: destination.latDeg, lonDeg: destination.lonDeg };
+  const p1 = { latDeg: origin.latDeg, lonDeg: origin.lonDeg };
+  const p2 = { latDeg: destination.latDeg, lonDeg: destination.lonDeg };
   const lla1: LatLonAlt = { ...p1, altM: origin.altM ?? 0 };
   const lla2: LatLonAlt = { ...p2, altM: destination.altM ?? 0 };
 
-  const vincenty   = vincentyInverse(p1, p2);
-  const route      = greatCircleWaypoints(p1, p2, numWaypoints);
+  const vincenty = vincentyInverse(p1, p2);
+  const route = greatCircleWaypoints(p1, p2, numWaypoints);
   const ecefOrigin = llaToECEF(lla1);
-  const ecefDest   = llaToECEF(lla2);
+  const ecefDest = llaToECEF(lla2);
 
   return { vincenty, route, ecefOrigin, ecefDest, converged: !vincenty.antipodal };
 }
@@ -366,31 +378,34 @@ export function analyzeGeodesy(
 
 export function buildGeodesyReceipt(
   result: GeodesyAnalysisResult,
-  options?: { runId?: string },
+  options?: { runId?: string }
 ): GeodesyReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
   if (result.vincenty.antipodal)
-    violations.push({ criterion: 'convergence', message: 'points are antipodal — geodesic undefined' });
+    violations.push({
+      criterion: 'convergence',
+      message: 'points are antipodal — geodesic undefined',
+    });
   if (!result.converged)
     violations.push({ criterion: 'convergence', message: 'Vincenty iteration did not converge' });
 
   const raw = buildDomainSimulationReceipt({
-    plugin:        'geolocation-gis',
+    plugin: 'geolocation-gis',
     pluginVersion: '1.0.0',
-    runId:         options?.runId ?? `geo-${Date.now().toString(36)}`,
-    modelId:       'geodesy-analysis',
+    runId: options?.runId ?? `geo-${Date.now().toString(36)}`,
+    modelId: 'geodesy-analysis',
     solverConfig: {
       solverType: 'vincenty-wgs84',
-      scale:      'global',
+      scale: 'global',
     },
     resultSummary: {
-      distanceKm:        +(result.vincenty.distanceM / 1000).toFixed(4),
+      distanceKm: +(result.vincenty.distanceM / 1000).toFixed(4),
       forwardAzimuthDeg: +result.vincenty.forwardAzimuthDeg.toFixed(4),
-      waypointCount:     result.route.waypoints.length,
+      waypointCount: result.route.waypoints.length,
     },
     cael: {
-      version:    'cael.v1',
-      event:      'geolocation_gis.geodesy',
+      version: 'cael.v1',
+      event: 'geolocation_gis.geodesy',
       solverType: 'geolocation-gis.vincenty-wgs84',
     },
     acceptance: { accepted: violations.length === 0, violations },

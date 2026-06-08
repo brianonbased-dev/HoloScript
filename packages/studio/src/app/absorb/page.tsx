@@ -253,7 +253,8 @@ function AgentConfigEditor({ agent, onSaved }: { agent: MoltbookAgent; onSaved: 
             Configuration
           </h5>
           <button
-            aria-label="Edit configuration" onClick={() => setEditing(true)}
+            aria-label="Edit configuration"
+            onClick={() => setEditing(true)}
             className="text-[10px] text-studio-accent hover:underline"
           >
             Edit
@@ -294,7 +295,8 @@ function AgentConfigEditor({ agent, onSaved }: { agent: MoltbookAgent; onSaved: 
           {PILLARS.map((p) => (
             <button
               key={p}
-              aria-label={`Toggle ${p} pillar`} onClick={() => togglePillar(p)}
+              aria-label={`Toggle ${p} pillar`}
+              onClick={() => togglePillar(p)}
               className={`rounded px-2 py-1 text-[10px] font-medium border transition-colors ${
                 pillars.includes(p)
                   ? 'bg-studio-accent/20 text-studio-accent border-studio-accent/30'
@@ -338,14 +340,16 @@ function AgentConfigEditor({ agent, onSaved }: { agent: MoltbookAgent; onSaved: 
       </label>
       <div className="flex gap-2">
         <button
-          aria-label="Save changes" onClick={handleSave}
+          aria-label="Save changes"
+          onClick={handleSave}
           disabled={saving}
           className="rounded-lg bg-studio-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-studio-accent/80 disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save'}
         </button>
         <button
-          aria-label="Cancel editing" onClick={handleCancel}
+          aria-label="Cancel editing"
+          onClick={handleCancel}
           className="rounded-lg bg-studio-bg px-3 py-1.5 text-xs font-medium text-studio-muted border border-studio-border hover:border-studio-accent/20"
         >
           Cancel
@@ -384,7 +388,8 @@ function AgentActivityFeed({ agentId }: { agentId: string }) {
   return (
     <div className="mt-3 pt-3 border-t border-studio-border/50">
       <button
-        aria-label={expanded ? "Collapse details" : "Expand details"} onClick={() => setExpanded(!expanded)}
+        aria-label={expanded ? 'Collapse details' : 'Expand details'}
+        onClick={() => setExpanded(!expanded)}
         className="text-[10px] font-medium text-studio-accent hover:underline"
       >
         {expanded ? 'Hide' : 'Show'} Activity Log
@@ -723,14 +728,16 @@ function MoltbookAgentsTab() {
               )
             </h3>
             <button
-              aria-label="Start all agents" onClick={handleStartAll}
+              aria-label="Start all agents"
+              onClick={handleStartAll}
               disabled={!!bulkLoading || !moltbookAgents.some((a) => !a.heartbeatEnabled)}
               className="rounded bg-green-500/10 px-2.5 py-1 text-[10px] font-medium text-green-400 hover:bg-green-500/20 disabled:opacity-50"
             >
               {bulkLoading === 'start' ? 'Starting...' : 'Start All'}
             </button>
             <button
-              aria-label="Stop all agents" onClick={handleStopAll}
+              aria-label="Stop all agents"
+              onClick={handleStopAll}
               disabled={!!bulkLoading || !moltbookAgents.some((a) => a.heartbeatEnabled)}
               className="rounded bg-yellow-500/10 px-2.5 py-1 text-[10px] font-medium text-yellow-400 hover:bg-yellow-500/20 disabled:opacity-50"
             >
@@ -794,7 +801,8 @@ function MoltbookAgentsTab() {
                       </div>
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         <button
-                          aria-label={`Trigger agent ${agent.agentName || agent.id}`} onClick={() => handleTrigger(agent.id)}
+                          aria-label={`Trigger agent ${agent.agentName || agent.id}`}
+                          onClick={() => handleTrigger(agent.id)}
                           disabled={!!loading}
                           title="Trigger heartbeat now"
                           className="rounded bg-studio-accent/10 px-2.5 py-1.5 text-xs font-medium text-studio-accent hover:bg-studio-accent/20 disabled:opacity-50"
@@ -802,7 +810,8 @@ function MoltbookAgentsTab() {
                           {loading === 'trigger' ? 'Running...' : 'Trigger'}
                         </button>
                         <button
-                          aria-label={`${agent.heartbeatEnabled ? "Pause" : "Resume"} agent ${agent.agentName || agent.id}`} onClick={() => handleToggle(agent.id, agent.heartbeatEnabled)}
+                          aria-label={`${agent.heartbeatEnabled ? 'Pause' : 'Resume'} agent ${agent.agentName || agent.id}`}
+                          onClick={() => handleToggle(agent.id, agent.heartbeatEnabled)}
                           disabled={!!loading}
                           className={`rounded px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 ${
                             agent.heartbeatEnabled
@@ -813,7 +822,8 @@ function MoltbookAgentsTab() {
                           {loading === 'toggle' ? '...' : agent.heartbeatEnabled ? 'Stop' : 'Start'}
                         </button>
                         <button
-                          aria-label={`Delete agent ${agent.agentName || agent.id}`} onClick={() => handleDelete(agent)}
+                          aria-label={`Delete agent ${agent.agentName || agent.id}`}
+                          onClick={() => handleDelete(agent)}
                           disabled={!!loading}
                           className="rounded bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50"
                         >
@@ -923,7 +933,8 @@ function MoltbookAgentsTab() {
               </div>
             )}
             <button
-              aria-label="Create new project" onClick={handleCreate}
+              aria-label="Create new project"
+              onClick={handleCreate}
               disabled={creating || !projectId || !agentName || !apiKey}
               className="mt-2 rounded-lg bg-studio-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-studio-accent/80 disabled:opacity-50"
             >
@@ -1033,7 +1044,13 @@ function HoloDaemonSubPanel() {
         projectDna: {
           kind: 'spatial',
           confidence: 0.95,
-          detectedStack: ['typescript', 'react', 'holoscript', 'three.js', `daemon:${selectedDaemonMission.id}`],
+          detectedStack: [
+            'typescript',
+            'react',
+            'holoscript',
+            'three.js',
+            `daemon:${selectedDaemonMission.id}`,
+          ],
           recommendedProfile: daemonMode,
           notes: [
             `HoloDaemon mission: ${selectedDaemonMission.id}`,
@@ -1108,7 +1125,8 @@ function HoloDaemonSubPanel() {
             <option value="deep">Deep</option>
           </select>
           <button
-            aria-label="Start daemon" onClick={handleStartDaemon}
+            aria-label="Start daemon"
+            onClick={handleStartDaemon}
             disabled={creating || daemonStatus === 'running'}
             className="rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
           >
@@ -1387,7 +1405,11 @@ function AuthenticatedDashboard() {
         {error && (
           <div className="mb-4 flex items-center justify-between rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {error}
-            <button aria-label="Dismiss error" onClick={() => setError(null)} className="ml-4 text-xs hover:text-red-300">
+            <button
+              aria-label="Dismiss error"
+              onClick={() => setError(null)}
+              className="ml-4 text-xs hover:text-red-300"
+            >
               Dismiss
             </button>
           </div>
@@ -1563,7 +1585,8 @@ function AuthenticatedDashboard() {
                         All Premium (earn 4c/access)
                       </label>
                       <button
-                        aria-label="Publish knowledge" onClick={handlePublishKnowledge}
+                        aria-label="Publish knowledge"
+                        onClick={handlePublishKnowledge}
                         disabled={
                           isPublishing ||
                           extractedKnowledge.every((e: any) => excludedEntries.has(e.id))
@@ -1663,7 +1686,8 @@ function AuthenticatedDashboard() {
                             )}
                             <div className="ml-auto flex items-center gap-1">
                               <button
-                                aria-label="Toggle premium status" onClick={() => toggleEntryPremium(entry.id)}
+                                aria-label="Toggle premium status"
+                                onClick={() => toggleEntryPremium(entry.id)}
                                 disabled={isExcluded}
                                 className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
                                   isPremium
@@ -1758,7 +1782,8 @@ function AuthenticatedDashboard() {
                           Manage Agents
                         </button>
                         <button
-                          aria-label="Dismiss publish result" onClick={() => setPublishResult(null)}
+                          aria-label="Dismiss publish result"
+                          onClick={() => setPublishResult(null)}
                           className="ml-auto text-xs text-studio-muted hover:text-studio-text transition-colors"
                         >
                           Dismiss
@@ -1781,7 +1806,8 @@ function AuthenticatedDashboard() {
                   Projects ({projects.length})
                 </h3>
                 <button
-                  aria-label="Refresh projects" onClick={() => fetchProjects()}
+                  aria-label="Refresh projects"
+                  onClick={() => fetchProjects()}
                   className="text-xs text-studio-muted hover:text-studio-text"
                 >
                   Refresh

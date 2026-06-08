@@ -87,7 +87,9 @@ export type CreditGateResult = CreditGateSuccess | CreditGateFailure;
  * x-user-id header (for API/CLI clients), then to the absorb API key
  * as an admin identity.
  */
-async function resolveUser(request: Request): Promise<{ id: string | null; githubUsername: string }> {
+async function resolveUser(
+  request: Request
+): Promise<{ id: string | null; githubUsername: string }> {
   // 1. Benchmark bypass — if BRITTNEY_BENCHMARK_KEY is configured and the
   // request carries a matching x-benchmark-key header, treat as benchmark user.
   if (process.env.BRITTNEY_BENCHMARK_KEY) {
@@ -101,7 +103,7 @@ async function resolveUser(request: Request): Promise<{ id: string | null; githu
   try {
     const session = await getSession();
     if (session?.user?.id) {
-      const ghUser = (session.user as Record<string, unknown>).githubUsername as string || '';
+      const ghUser = ((session.user as Record<string, unknown>).githubUsername as string) || '';
       return { id: session.user.id, githubUsername: ghUser };
     }
   } catch {
@@ -278,10 +280,7 @@ if (typeof setInterval !== 'undefined') {
   }, 60 * 1000);
 }
 
-export async function deductCredits(
-  userId: string,
-  operation: StudioOperation
-): Promise<void> {
+export async function deductCredits(userId: string, operation: StudioOperation): Promise<void> {
   try {
     const res = await fetch(`${ABSORB_BASE}/api/credits/deduct`, {
       method: 'POST',
@@ -293,9 +292,10 @@ export async function deductCredits(
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  }  catch (_err) {
+  } catch (_err) {
     dlq.push({ userId, operation, timestamp: Date.now() });
-    console.error(`[creditGate] Failed to deduct credits for ${userId}/${operation}. Queued for retry.`);
+    console.error(
+      `[creditGate] Failed to deduct credits for ${userId}/${operation}. Queued for retry.`
+    );
   }
 }
-

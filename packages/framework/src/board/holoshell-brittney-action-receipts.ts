@@ -68,8 +68,7 @@ export const BRITTNEY_FIELD_PERMISSION_ENVELOPES = [
   'break_glass',
   'break_glass_blocked',
 ] as const;
-export type BrittneyFieldPermissionEnvelope =
-  (typeof BRITTNEY_FIELD_PERMISSION_ENVELOPES)[number];
+export type BrittneyFieldPermissionEnvelope = (typeof BRITTNEY_FIELD_PERMISSION_ENVELOPES)[number];
 
 export const BRITTNEY_FIELD_OUTCOMES = [
   'success',
@@ -280,9 +279,7 @@ export interface HoloShellBrittneyActionReceiptPack {
 
 // ── Type guards ──
 
-export function isSupportedBrittneyFieldActionKind(
-  kind: string
-): kind is BrittneyFieldActionKind {
+export function isSupportedBrittneyFieldActionKind(kind: string): kind is BrittneyFieldActionKind {
   return (BRITTNEY_FIELD_ACTION_KINDS as readonly string[]).includes(kind);
 }
 
@@ -292,21 +289,15 @@ export function isSupportedBrittneyFieldPermissionEnvelope(
   return (BRITTNEY_FIELD_PERMISSION_ENVELOPES as readonly string[]).includes(envelope);
 }
 
-export function isSupportedBrittneyFieldOutcome(
-  outcome: string
-): outcome is BrittneyFieldOutcome {
+export function isSupportedBrittneyFieldOutcome(outcome: string): outcome is BrittneyFieldOutcome {
   return (BRITTNEY_FIELD_OUTCOMES as readonly string[]).includes(outcome);
 }
 
-export function isSupportedBrittneyFieldRepairKind(
-  kind: string
-): kind is BrittneyFieldRepairKind {
+export function isSupportedBrittneyFieldRepairKind(kind: string): kind is BrittneyFieldRepairKind {
   return (BRITTNEY_FIELD_REPAIR_KINDS as readonly string[]).includes(kind);
 }
 
-export function isSupportedBrittneyFieldSourceKind(
-  kind: string
-): kind is BrittneyFieldSourceKind {
+export function isSupportedBrittneyFieldSourceKind(kind: string): kind is BrittneyFieldSourceKind {
   return (BRITTNEY_FIELD_SOURCE_KINDS as readonly string[]).includes(kind);
 }
 
@@ -367,16 +358,17 @@ function validateVerificationCommands(
   }
 }
 
-export function validateBrittneyFieldSourceContext(
-  source: BrittneyFieldSourceContext
-): string[] {
+export function validateBrittneyFieldSourceContext(source: BrittneyFieldSourceContext): string[] {
   const errors: string[] = [];
   if (!source.id) errors.push('BrittneyFieldSourceContext.id is required.');
   if (!isSupportedBrittneyFieldSourceKind(String(source.sourceKind))) {
-    errors.push(`BrittneyFieldSourceContext.sourceKind is unsupported: ${String(source.sourceKind)}.`);
+    errors.push(
+      `BrittneyFieldSourceContext.sourceKind is unsupported: ${String(source.sourceKind)}.`
+    );
   }
   if (!source.initiatedBy) errors.push('BrittneyFieldSourceContext.initiatedBy is required.');
-  if (!source.triggerDescription) errors.push('BrittneyFieldSourceContext.triggerDescription is required.');
+  if (!source.triggerDescription)
+    errors.push('BrittneyFieldSourceContext.triggerDescription is required.');
   if (source.autoInitiated !== true) {
     errors.push('BrittneyFieldSourceContext.autoInitiated must be true for autonomous actions.');
   }
@@ -384,7 +376,9 @@ export function validateBrittneyFieldSourceContext(
     errors.push('BrittneyFieldSourceContext.humanApprovalRequired must be a boolean.');
   }
   if (source.humanApprovalRequired && typeof source.humanApprovalObtained !== 'boolean') {
-    errors.push('BrittneyFieldSourceContext.humanApprovalObtained must be a boolean when humanApprovalRequired is true.');
+    errors.push(
+      'BrittneyFieldSourceContext.humanApprovalObtained must be a boolean when humanApprovalRequired is true.'
+    );
   }
   validateHashFields('BrittneyFieldSourceContext', source.hash, source.hashAlgorithm, errors);
   return errors;
@@ -396,7 +390,9 @@ export function validateBrittneyFieldPermissionEnvelopeData(
   const errors: string[] = [];
   if (!envelope.id) errors.push('BrittneyFieldPermissionEnvelope.id is required.');
   if (!isSupportedBrittneyFieldPermissionEnvelope(String(envelope.envelopeKind))) {
-    errors.push(`BrittneyFieldPermissionEnvelope.envelopeKind is unsupported: ${String(envelope.envelopeKind)}.`);
+    errors.push(
+      `BrittneyFieldPermissionEnvelope.envelopeKind is unsupported: ${String(envelope.envelopeKind)}.`
+    );
   }
   if (!envelope.scopeDescription) {
     errors.push('BrittneyFieldPermissionEnvelope.scopeDescription is required.');
@@ -419,17 +415,22 @@ export function validateBrittneyFieldPermissionEnvelopeData(
   if (envelope.envelopeKind === 'break_glass_blocked' && envelope.mutationAllowed) {
     errors.push('BrittneyFieldPermissionEnvelope break_glass_blocked cannot allow mutations.');
   }
-  validateHashFields('BrittneyFieldPermissionEnvelope', envelope.hash, envelope.hashAlgorithm, errors);
+  validateHashFields(
+    'BrittneyFieldPermissionEnvelope',
+    envelope.hash,
+    envelope.hashAlgorithm,
+    errors
+  );
   return errors;
 }
 
-export function validateBrittneyFieldTimelineEntry(
-  entry: BrittneyFieldTimelineEntry
-): string[] {
+export function validateBrittneyFieldTimelineEntry(entry: BrittneyFieldTimelineEntry): string[] {
   const errors: string[] = [];
   if (!entry.id) errors.push('BrittneyFieldTimelineEntry.id is required.');
   if (!isSupportedBrittneyTimelineVisibility(String(entry.visibility))) {
-    errors.push(`BrittneyFieldTimelineEntry.visibility is unsupported: ${String(entry.visibility)}.`);
+    errors.push(
+      `BrittneyFieldTimelineEntry.visibility is unsupported: ${String(entry.visibility)}.`
+    );
   }
   if (!entry.summary) errors.push('BrittneyFieldTimelineEntry.summary is required.');
   if (typeof entry.roomChange !== 'boolean') {
@@ -443,9 +444,7 @@ export function validateBrittneyFieldTimelineEntry(
   return errors;
 }
 
-export function validateBrittneyFieldRepairPath(
-  repair: BrittneyFieldRepairPath
-): string[] {
+export function validateBrittneyFieldRepairPath(repair: BrittneyFieldRepairPath): string[] {
   const errors: string[] = [];
   if (!isSupportedBrittneyFieldRepairKind(String(repair.repairKind))) {
     errors.push(`BrittneyFieldRepairPath.repairKind is unsupported: ${String(repair.repairKind)}.`);
@@ -459,7 +458,9 @@ export function validateBrittneyFieldRepairPath(
   }
   // If repairKind is not_repairable, reversible must be false.
   if (repair.repairKind === 'not_repairable' && repair.reversible) {
-    errors.push('BrittneyFieldRepairPath.reversible must be false when repairKind is not_repairable.');
+    errors.push(
+      'BrittneyFieldRepairPath.reversible must be false when repairKind is not_repairable.'
+    );
   }
   // If autoRolledBack is true, undoReceiptId should be present.
   if (repair.autoRolledBack && !repair.undoReceiptId) {
@@ -468,16 +469,18 @@ export function validateBrittneyFieldRepairPath(
   return errors;
 }
 
-export function validateBrittneyFieldActionReceipt(
-  receipt: BrittneyFieldActionReceipt
-): string[] {
+export function validateBrittneyFieldActionReceipt(receipt: BrittneyFieldActionReceipt): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('BrittneyFieldActionReceipt.id is required.');
   if (!isSupportedBrittneyFieldActionKind(String(receipt.actionKind))) {
-    errors.push(`BrittneyFieldActionReceipt.actionKind is unsupported: ${String(receipt.actionKind)}.`);
+    errors.push(
+      `BrittneyFieldActionReceipt.actionKind is unsupported: ${String(receipt.actionKind)}.`
+    );
   }
   if (receipt.actionKind === 'agent-other' && !receipt.actionLabel) {
-    errors.push('BrittneyFieldActionReceipt.actionLabel is required when actionKind is agent-other.');
+    errors.push(
+      'BrittneyFieldActionReceipt.actionLabel is required when actionKind is agent-other.'
+    );
   }
   if (!receipt.target) errors.push('BrittneyFieldActionReceipt.target is required.');
   if (!receipt.inputsHash) errors.push('BrittneyFieldActionReceipt.inputsHash is required.');
@@ -518,8 +521,14 @@ export function validateBrittneyFieldActionReceipt(
   if (receipt.nonDestructiveDefault !== true) {
     errors.push('BrittneyFieldActionReceipt.nonDestructiveDefault must be true.');
   }
-  if (receipt.mutationExecuted && !receipt.repairPath?.reversible && receipt.repairPath?.repairKind !== 'not_repairable') {
-    errors.push('BrittneyFieldActionReceipt: mutating action must have reversible repair path or explicitly declare not_repairable.');
+  if (
+    receipt.mutationExecuted &&
+    !receipt.repairPath?.reversible &&
+    receipt.repairPath?.repairKind !== 'not_repairable'
+  ) {
+    errors.push(
+      'BrittneyFieldActionReceipt: mutating action must have reversible repair path or explicitly declare not_repairable.'
+    );
   }
   if (receipt.mutationExecuted && receipt.permissionEnvelope?.envelopeKind === 'read_only') {
     errors.push('BrittneyFieldActionReceipt: read_only envelope cannot execute mutations.');
@@ -545,9 +554,7 @@ export function validateBrittneyFieldActionReceipt(
   return errors;
 }
 
-export function validateBrittneyFieldReplayReceipt(
-  receipt: BrittneyFieldReplayReceipt
-): string[] {
+export function validateBrittneyFieldReplayReceipt(receipt: BrittneyFieldReplayReceipt): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('BrittneyFieldReplayReceipt.id is required.');
   if (receipt.workflow !== 'brittney-field-action') {
@@ -593,7 +600,9 @@ export function validateHoloShellBrittneyActionReceiptPack(
     errors.push(...validateBrittneyFieldReplayReceipt(pack.replay));
   }
   if (!isSupportedBrittneyFieldOutcome(String(pack.outcome))) {
-    errors.push(`HoloShellBrittneyActionReceiptPack.outcome is unsupported: ${String(pack.outcome)}.`);
+    errors.push(
+      `HoloShellBrittneyActionReceiptPack.outcome is unsupported: ${String(pack.outcome)}.`
+    );
   }
   validateHashFields('HoloShellBrittneyActionReceiptPack', pack.hash, pack.hashAlgorithm, errors);
   return errors;
@@ -604,7 +613,9 @@ export function validateHoloShellBrittneyActionReceiptPack(
 function cloneProvenance(provenance: ArtifactProvenanceLink): ArtifactProvenanceLink {
   return {
     ...provenance,
-    ...(provenance.parentArtifactIds ? { parentArtifactIds: [...provenance.parentArtifactIds] } : {}),
+    ...(provenance.parentArtifactIds
+      ? { parentArtifactIds: [...provenance.parentArtifactIds] }
+      : {}),
   };
 }
 
@@ -648,11 +659,15 @@ export function cloneBrittneyFieldActionReceipt(
     ...receipt,
     permissionEnvelope: cloneBrittneyFieldPermissionEnvelopeData(receipt.permissionEnvelope),
     sourceContext: cloneBrittneyFieldSourceContext(receipt.sourceContext),
-    ...(receipt.timelineEntry ? { timelineEntry: cloneBrittneyFieldTimelineEntry(receipt.timelineEntry) } : {}),
+    ...(receipt.timelineEntry
+      ? { timelineEntry: cloneBrittneyFieldTimelineEntry(receipt.timelineEntry) }
+      : {}),
     checks: receipt.checks.map((check) => ({ ...check })),
     repairPath: cloneBrittneyFieldRepairPath(receipt.repairPath),
     ...(receipt.provenance ? { provenance: cloneProvenance(receipt.provenance) } : {}),
-    ...(receipt.verificationCommands ? { verificationCommands: cloneVerificationCommands(receipt.verificationCommands) } : {}),
+    ...(receipt.verificationCommands
+      ? { verificationCommands: cloneVerificationCommands(receipt.verificationCommands) }
+      : {}),
   };
 }
 

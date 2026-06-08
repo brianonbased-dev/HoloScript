@@ -78,7 +78,8 @@ export const railwayTools: Tool[] = [
   },
   {
     name: 'railway_redeploy',
-    description: 'Redeploy a service instance from the latest commit. Use this after pushing code to trigger a fresh build and deploy without needing GitHub Actions.',
+    description:
+      'Redeploy a service instance from the latest commit. Use this after pushing code to trigger a fresh build and deploy without needing GitHub Actions.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -90,7 +91,8 @@ export const railwayTools: Tool[] = [
   },
   {
     name: 'railway_service_restart',
-    description: 'Restart a service instance without redeploying. Useful for clearing in-memory state or recovering from crashes.',
+    description:
+      'Restart a service instance without redeploying. Useful for clearing in-memory state or recovering from crashes.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -102,11 +104,15 @@ export const railwayTools: Tool[] = [
   },
   {
     name: 'railway_deployment_logs',
-    description: 'Fetch runtime logs from a deployment (stdout/stderr after the container starts). Use railway_build_logs for build-phase output.',
+    description:
+      'Fetch runtime logs from a deployment (stdout/stderr after the container starts). Use railway_build_logs for build-phase output.',
     inputSchema: {
       type: 'object',
       properties: {
-        deploymentId: { type: 'string', description: 'Deployment ID (use railway_latest_deployment to find it)' },
+        deploymentId: {
+          type: 'string',
+          description: 'Deployment ID (use railway_latest_deployment to find it)',
+        },
         limit: { type: 'number', description: 'Max log lines to return (default: 100)' },
       },
       required: ['deploymentId'],
@@ -114,11 +120,15 @@ export const railwayTools: Tool[] = [
   },
   {
     name: 'railway_build_logs',
-    description: 'Fetch build logs from a deployment (Dockerfile/Nixpacks output, compile errors, healthcheck results). Use this to debug failed deploys.',
+    description:
+      'Fetch build logs from a deployment (Dockerfile/Nixpacks output, compile errors, healthcheck results). Use this to debug failed deploys.',
     inputSchema: {
       type: 'object',
       properties: {
-        deploymentId: { type: 'string', description: 'Deployment ID (use railway_latest_deployment to find it)' },
+        deploymentId: {
+          type: 'string',
+          description: 'Deployment ID (use railway_latest_deployment to find it)',
+        },
         limit: { type: 'number', description: 'Max log lines to return (default: 100)' },
       },
       required: ['deploymentId'],
@@ -126,7 +136,8 @@ export const railwayTools: Tool[] = [
   },
   {
     name: 'railway_latest_deployment',
-    description: 'Get the latest deployment for a service — returns deployment ID, status, and creation time. Essential for feeding into railway_build_logs and railway_deployment_logs.',
+    description:
+      'Get the latest deployment for a service — returns deployment ID, status, and creation time. Essential for feeding into railway_build_logs and railway_deployment_logs.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -138,7 +149,8 @@ export const railwayTools: Tool[] = [
   },
   {
     name: 'railway_variable_list',
-    description: 'List all environment variables for a service in a specific environment. Values are included — do NOT log or expose them.',
+    description:
+      'List all environment variables for a service in a specific environment. Values are included — do NOT log or expose them.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -162,7 +174,8 @@ export const railwayTools: Tool[] = [
   },
   {
     name: 'railway_tcp_proxy',
-    description: 'Create a TCP proxy for a service (expose a port to the internet). Useful for database access or custom protocols.',
+    description:
+      'Create a TCP proxy for a service (expose a port to the internet). Useful for database access or custom protocols.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -175,11 +188,15 @@ export const railwayTools: Tool[] = [
   },
   {
     name: 'railway_service_list',
-    description: 'List all services in a project with their IDs and names. Essential for finding the serviceId needed by other tools.',
+    description:
+      'List all services in a project with their IDs and names. Essential for finding the serviceId needed by other tools.',
     inputSchema: {
       type: 'object',
       properties: {
-        projectId: { type: 'string', description: 'Project ID (see GOLD vault w_gold_034 for registry)' },
+        projectId: {
+          type: 'string',
+          description: 'Project ID (see GOLD vault w_gold_034 for registry)',
+        },
       },
       required: ['projectId'],
     },

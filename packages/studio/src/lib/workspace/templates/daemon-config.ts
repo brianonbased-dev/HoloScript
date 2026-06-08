@@ -137,10 +137,7 @@ function budgetForTier(tier: UserTier): number {
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
-export function generateDaemonConfig(
-  dna: ScaffoldDNA,
-  tier: UserTier = 'free',
-): DaemonConfig {
+export function generateDaemonConfig(dna: ScaffoldDNA, tier: UserTier = 'free'): DaemonConfig {
   return {
     enabled: true,
     runtime: {

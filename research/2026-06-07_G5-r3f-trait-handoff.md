@@ -51,10 +51,12 @@ Design notes: emissive routes to `materialProps` (not top-level) because the ren
 **Secondary (out of scope, flag):** the AST/`directives` path `compileNode`→`compileProperties` (~4128) has the same missing handlers with **no** fallthrough, so `@color`/`@emissive` are silently ignored there if `compile_to_r3f` is ever fed `.hs`/AST input. Separate fix.
 
 ## Validation
+
 ```
 pnpm --filter @holoscript/core build
 pnpm --filter @holoscript/core test -- R3FCompiler
 ```
+
 Add a case to `packages/core/src/compiler/R3FCompiler.lotusEmission.test.ts` (it already has the parse→compileComposition→assert-materialProps pattern): parse an object with `@color("#c2b280") @emissive("#1a5c3a")`, assert `props.color === "#c2b280"`, `props.materialProps.emissive === "#1a5c3a"`, `emissiveIntensity === 1.0`, and none of color/emissive/position/scale in `__unrecognizedTraits`.
 
 — claude, 2026-06-07 (companion to the G1/G2/G4/G7 fixes shipped in mcp-server commit 1702f4bc4)

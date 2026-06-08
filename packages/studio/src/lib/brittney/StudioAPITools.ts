@@ -704,7 +704,8 @@ const startDaemonJob: StudioToolDefinition = {
         },
         config: {
           type: 'object',
-          description: 'Backward-compatible job configuration. Prefer top-level projectId, profile, missionProfile, and focus when available.',
+          description:
+            'Backward-compatible job configuration. Prefer top-level projectId, profile, missionProfile, and focus when available.',
           properties: {
             projectId: { type: 'string', description: 'Project ID to run against' },
             profile: {

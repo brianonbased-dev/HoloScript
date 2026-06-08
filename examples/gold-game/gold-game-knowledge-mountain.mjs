@@ -58,7 +58,7 @@ export function buildMountainMount(coords) {
     const wy = MOUNT.origin[1] + c.y * MOUNT.tierHeight;
     const size = Math.min(
       MOUNT.crystalMax,
-      MOUNT.crystalBase + (c.lineage_in || 0) * MOUNT.crystalPerLineage,
+      MOUNT.crystalBase + (c.lineage_in || 0) * MOUNT.crystalPerLineage
     );
     const node = {
       id: c.id,
@@ -94,7 +94,9 @@ export function buildMountainMount(coords) {
     terrainDigest: coords.terrainDigest || coords.terrain_digest || null,
   };
   payload.mountDigest = createHash('sha256')
-    .update(JSON.stringify({ origin: payload.origin, nodes: payload.nodes, cables: payload.cables }))
+    .update(
+      JSON.stringify({ origin: payload.origin, nodes: payload.nodes, cables: payload.cables })
+    )
     .digest('hex');
   return payload;
 }

@@ -50,8 +50,14 @@ export function SafetyPanel({
 
   /** Typed view of the nested report structure for UI rendering */
   interface SafetyReportView {
-    effects: { totalEffects: number; categories: string[]; violations: { message: string; severity: string }[] };
-    budget: { diagnostics: { category: string; used: number; max: number; usagePercent: number }[] };
+    effects: {
+      totalEffects: number;
+      categories: string[];
+      violations: { message: string; severity: string }[];
+    };
+    budget: {
+      diagnostics: { category: string; used: number; max: number; usagePercent: number }[];
+    };
     capabilities: { missing: { scope: string; requiredBy: string }[] };
     verdict: string;
     moduleId: string;
@@ -60,7 +66,7 @@ export function SafetyPanel({
   useEffect(() => {
     if (autoAnalyze && nodes.length > 0) {
       analyze(nodes, {
-        targetPlatforms: targetPlatform ? [targetPlatform] as string[] : undefined,
+        targetPlatforms: targetPlatform ? ([targetPlatform] as string[]) : undefined,
         trustLevel,
       });
     }

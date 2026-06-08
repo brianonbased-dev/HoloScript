@@ -20,7 +20,10 @@ function testSession(overrides: Partial<ScanSession> = {}): ScanSession {
   };
 }
 
-function framePayload(index: number, offset = 0): {
+function framePayload(
+  index: number,
+  offset = 0
+): {
   index: number;
   timestampMs: number;
   width: number;

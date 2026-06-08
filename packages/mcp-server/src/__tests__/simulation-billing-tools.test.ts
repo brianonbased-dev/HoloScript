@@ -208,7 +208,7 @@ describe('simulation billing tools', () => {
       solver: 'thermal',
       estimate_seconds: 10,
       rate: 0.0001,
-      margin: 0.30,
+      margin: 0.3,
     })) as Record<string, unknown>;
 
     const quote = result.quote as Record<string, unknown>;

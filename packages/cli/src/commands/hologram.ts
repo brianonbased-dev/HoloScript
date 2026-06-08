@@ -72,9 +72,7 @@ function parseTargets(raw: string): HologramTarget[] {
 
   for (const t of parts) {
     if (!VALID_TARGETS.has(t)) {
-      throw new Error(
-        `Unknown target '${t}'. Valid targets: ${[...VALID_TARGETS].join(', ')}`
-      );
+      throw new Error(`Unknown target '${t}'. Valid targets: ${[...VALID_TARGETS].join(', ')}`);
     }
   }
   return parts;
@@ -94,8 +92,7 @@ export async function hologramCommand(
 ): Promise<void> {
   // Lazy imports keep browser bundles clean (engine imports node:fs at the
   // module level — dynamic import defers that to execution time).
-  const { createHologram, createNodeProviders } =
-    await import('@holoscript/engine/hologram');
+  const { createHologram, createNodeProviders } = await import('@holoscript/engine/hologram');
   const { FileSystemHologramStore } =
     await import('@holoscript/engine/hologram/FileSystemHologramStore');
 
@@ -105,9 +102,7 @@ export async function hologramCommand(
   const sourceKind = detectSourceKind(inputPath);
 
   const targets: HologramTarget[] =
-    options.targets !== undefined
-      ? parseTargets(options.targets)
-      : ['quilt', 'mvhevc', 'parallax'];
+    options.targets !== undefined ? parseTargets(options.targets) : ['quilt', 'mvhevc', 'parallax'];
 
   // ── Read media bytes ──────────────────────────────────────────────────────
 

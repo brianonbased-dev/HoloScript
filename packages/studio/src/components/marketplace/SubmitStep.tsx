@@ -6,24 +6,29 @@ interface SubmitStepProps {
   daemonJobId?: string | null;
 }
 
-export const SubmitStep: React.FC<SubmitStepProps> = ({
-  uploading,
-  progress,
-  daemonJobId,
-}) => {
+export const SubmitStep: React.FC<SubmitStepProps> = ({ uploading, progress, daemonJobId }) => {
   if (uploading) {
     // Calculate progress classes - use discrete Tailwind width classes
-    const progressClass = 
-      progress >= 90 ? 'w-[90%]' :
-      progress >= 80 ? 'w-[80%]' :
-      progress >= 70 ? 'w-[70%]' :
-      progress >= 60 ? 'w-[60%]' :
-      progress >= 50 ? 'w-1/2' :
-      progress >= 40 ? 'w-[40%]' :
-      progress >= 30 ? 'w-[30%]' :
-      progress >= 20 ? 'w-1/5' :
-      progress >= 10 ? 'w-1/10' :
-      'w-0';
+    const progressClass =
+      progress >= 90
+        ? 'w-[90%]'
+        : progress >= 80
+          ? 'w-[80%]'
+          : progress >= 70
+            ? 'w-[70%]'
+            : progress >= 60
+              ? 'w-[60%]'
+              : progress >= 50
+                ? 'w-1/2'
+                : progress >= 40
+                  ? 'w-[40%]'
+                  : progress >= 30
+                    ? 'w-[30%]'
+                    : progress >= 20
+                      ? 'w-1/5'
+                      : progress >= 10
+                        ? 'w-1/10'
+                        : 'w-0';
 
     return (
       <div className="flex flex-col items-center justify-center p-12 space-y-4">

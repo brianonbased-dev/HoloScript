@@ -84,13 +84,13 @@ for (let i = 0; i < 3000; i++) {
     'Create networked object with state synchronization',
     'Add network sync for multiplayer VR object',
     'Generate HoloScript with client-server state sync',
-    'Build networked player with interpolation'
+    'Build networked player with interpolation',
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: STATE_SYNC_TEMPLATE
+    output: STATE_SYNC_TEMPLATE,
   });
 }
 
@@ -194,13 +194,13 @@ for (let i = 0; i < 4000; i++) {
     'Implement lag compensation with client prediction',
     'Add server reconciliation for networked shooter',
     'Create lag-compensated multiplayer VR game',
-    'Generate network code with hit validation'
+    'Generate network code with hit validation',
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: LAG_COMP_TEMPLATE
+    output: LAG_COMP_TEMPLATE,
   });
 }
 
@@ -294,13 +294,13 @@ for (let i = 0; i < 3000; i++) {
     'Optimize network bandwidth with delta compression',
     'Add snapshot interpolation for smooth multiplayer',
     'Implement interest management for large multiplayer worlds',
-    'Create bandwidth-optimized networked object'
+    'Create bandwidth-optimized networked object',
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: BANDWIDTH_TEMPLATE
+    output: BANDWIDTH_TEMPLATE,
   });
 }
 
@@ -315,7 +315,7 @@ async function writeDataset() {
   console.log('[EXPORT] Writing networking dataset...');
 
   const outputFile = path.join(__dirname, '../datasets/networking-basics.jsonl');
-  const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
+  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
 
   await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 

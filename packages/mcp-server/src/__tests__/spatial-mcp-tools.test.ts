@@ -268,8 +268,6 @@ describe('compile_to_spatial - round-trip', () => {
       spatialContext: baseCtx,
       spawnId: 'custom-id-42',
     })) as SpatialMCPResponse & { ok: boolean };
-    expect(result.scenePatch).toEqual([
-      { op: 'spawn', id: 'custom-id-42', position: [0, 0, 0] },
-    ]);
+    expect(result.scenePatch).toEqual([{ op: 'spawn', id: 'custom-id-42', position: [0, 0, 0] }]);
   });
 });

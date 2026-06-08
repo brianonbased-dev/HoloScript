@@ -10,10 +10,7 @@
  * dedicated priority queue with frame-deadline enforcement.
  */
 
-import {
-  AdaptiveFrameRateManager,
-  type ThermalState,
-} from './AdaptiveFrameRateManager';
+import { AdaptiveFrameRateManager, type ThermalState } from './AdaptiveFrameRateManager';
 import { QualityManager } from './QualityManager';
 import {
   InferencePriorityScheduler,

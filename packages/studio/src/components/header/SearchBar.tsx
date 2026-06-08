@@ -9,7 +9,11 @@ export function SearchBar() {
 
   return (
     <div className="flex items-center gap-3 min-w-0">
-      <Link href="/" aria-label="Back to home" className="text-studio-muted transition hover:text-studio-text shrink-0">
+      <Link
+        href="/"
+        aria-label="Back to home"
+        className="text-studio-muted transition hover:text-studio-text shrink-0"
+      >
         <ArrowLeft className="h-4 w-4" />
       </Link>
       <span className="text-sm font-semibold hidden sm:inline shrink-0">
@@ -25,10 +29,7 @@ export function SearchBar() {
         placeholder="Untitled Scene"
       />
       {isDirty && (
-        <span
-          className="h-2 w-2 rounded-full bg-studio-warning shrink-0"
-          title="Unsaved changes"
-        />
+        <span className="h-2 w-2 rounded-full bg-studio-warning shrink-0" title="Unsaved changes" />
       )}
     </div>
   );

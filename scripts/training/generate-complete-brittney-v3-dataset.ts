@@ -42,11 +42,27 @@ async function generateAll() {
   console.log();
 
   const generators = [
-    { name: 'HoloScript v3.0 (850K)', script: 'generate-brittney-v3-1M-dataset.ts', expected: 850000 },
-    { name: 'uAA2++ Protocol (100K)', script: 'generate-complete-uaa2-dataset.ts', expected: 100000 },
+    {
+      name: 'HoloScript v3.0 (850K)',
+      script: 'generate-brittney-v3-1M-dataset.ts',
+      expected: 850000,
+    },
+    {
+      name: 'uAA2++ Protocol (100K)',
+      script: 'generate-complete-uaa2-dataset.ts',
+      expected: 100000,
+    },
     { name: 'Physics Knowledge (50K)', script: 'generate-physics-knowledge.ts', expected: 50000 },
-    { name: 'Anatomy/Biology (50K)', script: 'generate-anatomy-biology-knowledge.ts', expected: 50000 },
-    { name: 'Chemistry/Materials (50K)', script: 'generate-chemistry-materials-knowledge.ts', expected: 50000 },
+    {
+      name: 'Anatomy/Biology (50K)',
+      script: 'generate-anatomy-biology-knowledge.ts',
+      expected: 50000,
+    },
+    {
+      name: 'Chemistry/Materials (50K)',
+      script: 'generate-chemistry-materials-knowledge.ts',
+      expected: 50000,
+    },
   ];
 
   for (const gen of generators) {
@@ -54,7 +70,7 @@ async function generateAll() {
 
     try {
       const { stdout, stderr } = await execAsync(`npx tsx "${path.join(scriptsDir, gen.script)}"`, {
-        maxBuffer: 1024 * 1024 * 100 // 100MB buffer
+        maxBuffer: 1024 * 1024 * 100, // 100MB buffer
       });
 
       console.log(stdout);
@@ -92,7 +108,7 @@ async function generateAll() {
       instruction: `Compress this learning into wisdom format`,
       input: '',
       output: `W.${id} | ${domain} System Best Practice | ⚡${(Math.random() * 0.3 + 0.7).toFixed(2)}
-When implementing ${domain.toLowerCase()} systems, always validate inputs at boundaries and use fail-fast patterns. This prevents cascade failures and makes debugging significantly easier. Pattern observed across 15+ production deployments.`
+When implementing ${domain.toLowerCase()} systems, always validate inputs at boundaries and use fail-fast patterns. This prevents cascade failures and makes debugging significantly easier. Pattern observed across 15+ production deployments.`,
     });
   }
 
@@ -109,7 +125,7 @@ When implementing ${domain.toLowerCase()} systems, always validate inputs at bou
 **Pattern:** Use layered architecture with clear separation of concerns
 **Why:** Enables independent scaling and testing of each layer
 **When:** Building complex ${domain.toLowerCase()} systems with multiple responsibilities
-**Result:** Maintainable codebase with 50% faster iteration speed`
+**Result:** Maintainable codebase with 50% faster iteration speed`,
     });
   }
 
@@ -126,13 +142,13 @@ When implementing ${domain.toLowerCase()} systems, always validate inputs at bou
 **Issue:** Forgetting to handle edge cases in ${domain.toLowerCase()} logic
 **Impact:** 60% of production bugs stem from this oversight
 **Solution:** Always test with null, empty, and boundary values
-**Prevention:** Add automated edge case test generation to CI pipeline`
+**Prevention:** Add automated edge case test generation to CI pipeline`,
     });
   }
 
   // Write knowledge compression dataset
   const knowledgeFile = path.join(datasetsDir, 'knowledge-compression.jsonl');
-  const knowledgeContent = knowledgeExamples.map(ex => JSON.stringify(ex)).join('\n') + '\n';
+  const knowledgeContent = knowledgeExamples.map((ex) => JSON.stringify(ex)).join('\n') + '\n';
   await writeFile(knowledgeFile, knowledgeContent, 'utf-8');
 
   console.log(`  ✓ Knowledge Compression: ${knowledgeExamples.length.toLocaleString()} examples`);
@@ -166,9 +182,14 @@ When implementing ${domain.toLowerCase()} systems, always validate inputs at bou
     try {
       console.log(`Reading ${dataset.name}...`);
       const content = await readFile(filePath, 'utf-8');
-      const lines = content.trim().split('\n').filter(line => line.length > 0);
+      const lines = content
+        .trim()
+        .split('\n')
+        .filter((line) => line.length > 0);
 
-      console.log(`  ✓ ${lines.length.toLocaleString()} examples (expected ${dataset.expected.toLocaleString()})`);
+      console.log(
+        `  ✓ ${lines.length.toLocaleString()} examples (expected ${dataset.expected.toLocaleString()})`
+      );
 
       allLines = allLines.concat(lines);
       totalExamples += lines.length;
@@ -223,13 +244,15 @@ When implementing ${domain.toLowerCase()} systems, always validate inputs at bou
   console.log(`  TOTAL:                 1,150,000 (100%)`);
   console.log();
   console.log('Next Steps:');
-  console.log('  1. Upload to Vast.ai: scp brittney-v3.0-complete-1.15M.jsonl root@<vast-ip>:/workspace/datasets/');
+  console.log(
+    '  1. Upload to Vast.ai: scp brittney-v3.0-complete-1.15M.jsonl root@<vast-ip>:/workspace/datasets/'
+  );
   console.log('  2. Train Brittney v3.0 (~10-12 hours on RTX 6000 Ada)');
   console.log('  3. Estimated cost: ~$12');
   console.log();
 }
 
-generateAll().catch(error => {
+generateAll().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

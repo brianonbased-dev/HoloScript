@@ -81,25 +81,29 @@ describe('SovereignWorldAdapter', () => {
     const body = readJson(postCall[1].body as string);
     expect(body.prompt).toBe('lush alien jungle');
     expect(body.quality_preset).toBe('standard'); // 'medium' maps to 'standard'
-    expect(body.output_format).toBe('splat');    // '3dgs' maps to 'splat'
+    expect(body.output_format).toBe('splat'); // '3dgs' maps to 'splat'
   });
 
   it('polls until job is done', async () => {
     fetchMock
       .mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => ({ job_id: 'job_poll_123' }),
       })
       .mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => makeJobResponse({ status: 'processing', progress: 0.3 }),
       })
       .mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => makeJobResponse({ status: 'processing', progress: 0.7 }),
       })
       .mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => makeJobResponse({ job_id: 'job_poll_123', status: 'done', progress: 1 }),
       });
 
@@ -113,27 +117,32 @@ describe('SovereignWorldAdapter', () => {
   it('throws on job error status', async () => {
     fetchMock
       .mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => ({ job_id: 'job_err' }),
       })
       .mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => makeJobResponse({ status: 'error', error: 'Out of memory' }),
       });
 
     const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
-    await expect(adapter.generate({ prompt: 'test', format: '3dgs', quality: 'low' }))
-      .rejects.toThrow('Out of memory');
+    await expect(
+      adapter.generate({ prompt: 'test', format: '3dgs', quality: 'low' })
+    ).rejects.toThrow('Out of memory');
   });
 
   it('throws on timeout if job never completes', async () => {
     fetchMock
       .mockResolvedValueOnce({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => ({ job_id: 'job_timeout' }),
       })
       .mockResolvedValue({
-        ok: true, status: 200,
+        ok: true,
+        status: 200,
         json: async () => makeJobResponse({ status: 'processing', progress: 0.1 }),
       });
 
@@ -143,8 +152,9 @@ describe('SovereignWorldAdapter', () => {
       timeoutMs: 1, // immediate timeout
     });
 
-    await expect(adapter.generate({ prompt: 'test', format: '3dgs', quality: 'low' }))
-      .rejects.toThrow(/timed out/i);
+    await expect(
+      adapter.generate({ prompt: 'test', format: '3dgs', quality: 'low' })
+    ).rejects.toThrow(/timed out/i);
   });
 
   it('maps quality low → draft, ultra → ultra', async () => {
@@ -194,7 +204,8 @@ describe('SovereignWorldAdapter', () => {
 
   it('getProgress() returns progress from job status', async () => {
     fetchMock.mockResolvedValueOnce({
-      ok: true, status: 200,
+      ok: true,
+      status: 200,
       json: async () => makeJobResponse({ progress: 0.65 }),
     });
     const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
@@ -204,7 +215,8 @@ describe('SovereignWorldAdapter', () => {
 
   it('getProgress() returns 1 when job is done with no progress field', async () => {
     fetchMock.mockResolvedValueOnce({
-      ok: true, status: 200,
+      ok: true,
+      status: 200,
       json: async () => makeJobResponse({ progress: undefined }),
     });
     const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
@@ -214,12 +226,14 @@ describe('SovereignWorldAdapter', () => {
 
   it('throws on non-ok HTTP response', async () => {
     fetchMock.mockResolvedValueOnce({
-      ok: false, status: 503,
+      ok: false,
+      status: 503,
       text: async () => 'Service Unavailable',
     });
     const adapter = new SovereignWorldAdapter({ apiKey: 'key', pollIntervalMs: 0 });
-    await expect(adapter.generate({ prompt: 'test', format: '3dgs', quality: 'low' }))
-      .rejects.toThrow(/503/);
+    await expect(
+      adapter.generate({ prompt: 'test', format: '3dgs', quality: 'low' })
+    ).rejects.toThrow(/503/);
   });
 
   it('includes Authorization header when apiKey is provided', async () => {

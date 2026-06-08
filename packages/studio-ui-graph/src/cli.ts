@@ -39,8 +39,7 @@ function parseArgs(argv: string[]): ParsedArgs {
         process.exit(2);
       }
       out.format = v;
-    }
-    else if (a === '--watch' || a === '-w') out.watch = true;
+    } else if (a === '--watch' || a === '-w') out.watch = true;
     else if (a === '--endpoint') out.publishEndpoint = argv[++i];
     else if (a === '--workspace') out.publishWorkspace = argv[++i];
     else if (a === '--api-key') out.publishApiKey = argv[++i];
@@ -55,7 +54,9 @@ function parseArgs(argv: string[]): ParsedArgs {
 function readVersion(): string {
   try {
     const here = dirname(fileURLToPath(import.meta.url));
-    const pkg = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8')) as { version?: string };
+    const pkg = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8')) as {
+      version?: string;
+    };
     return pkg.version ?? '0.0.0';
   } catch {
     return '0.0.0';
@@ -122,7 +123,9 @@ async function main(): Promise<number> {
 
   // v1.0: 'publish' subcommand — POST current .holo to mesh knowledge store
   if (args.subcommand === 'publish') {
-    const log = (msg: string) => { if (!args.quiet) process.stderr.write(msg); };
+    const log = (msg: string) => {
+      if (!args.quiet) process.stderr.write(msg);
+    };
     const holoPath = resolve(repoRoot, args.output ?? join(studioRoot, '.holo', 'studio.ui.holo'));
     if (!existsSync(holoPath)) {
       process.stderr.write(`error: ${holoPath} not found — run 'generate' first\n`);
@@ -155,15 +158,24 @@ async function main(): Promise<number> {
 
   const appRoot = join(studioRoot, 'src', 'app');
   if (!existsSync(appRoot)) {
-    process.stderr.write(`error: ${appRoot} not found — pass --root to point at a Studio package\n`);
+    process.stderr.write(
+      `error: ${appRoot} not found — pass --root to point at a Studio package\n`
+    );
     return 2;
   }
   const format: Format = args.format ?? 'holo';
-  const defaultOutput = join(studioRoot, '.holo', format === 'mermaid' ? 'studio.ui.mmd' : 'studio.ui.holo');
+  const defaultOutput = join(
+    studioRoot,
+    '.holo',
+    format === 'mermaid' ? 'studio.ui.mmd' : 'studio.ui.holo'
+  );
   const output = resolve(repoRoot, args.output ?? defaultOutput);
-  const log = (msg: string) => { if (!args.quiet) process.stderr.write(msg); };
+  const log = (msg: string) => {
+    if (!args.quiet) process.stderr.write(msg);
+  };
 
-  const generate = () => generateOnce({ appRoot, studioRoot, repoRoot, output, format, log, quiet: args.quiet });
+  const generate = () =>
+    generateOnce({ appRoot, studioRoot, repoRoot, output, format, log, quiet: args.quiet });
 
   generate();
   if (!args.watch) return 0;
@@ -186,7 +198,9 @@ async function main(): Promise<number> {
     const f = filename.toString();
     if (f.endsWith('.ts') || f.endsWith('.tsx')) debounce();
   });
-  return new Promise<number>(() => { /* run forever */ });
+  return new Promise<number>(() => {
+    /* run forever */
+  });
 }
 
 interface GenerateContext {
@@ -223,26 +237,30 @@ function generateOnce(ctx: GenerateContext): void {
   }
 
   const uniqueComponents = countUnique(graphs);
-  const content = format === 'mermaid'
-    ? emitMermaid(graphs)
-    : emitHolo(graphs, {
-        generatedAt: new Date().toISOString(),
-        studioRoot: 'packages/studio',
-        pageCount: pages.length,
-        uniqueComponentCount: uniqueComponents,
-        source: 'studio-ui-graph v0.6',
-      });
+  const content =
+    format === 'mermaid'
+      ? emitMermaid(graphs)
+      : emitHolo(graphs, {
+          generatedAt: new Date().toISOString(),
+          studioRoot: 'packages/studio',
+          pageCount: pages.length,
+          uniqueComponentCount: uniqueComponents,
+          source: 'studio-ui-graph v0.6',
+        });
 
   mkdirSync(dirname(output), { recursive: true });
   writeFileSync(output, content);
-  log(`  wrote ${output} (${content.length} bytes, ${uniqueComponents} unique components, format=${format})\n`);
+  log(
+    `  wrote ${output} (${content.length} bytes, ${uniqueComponents} unique components, format=${format})\n`
+  );
 }
 
 function countUnique(graphs: PageGraph[]): number {
   const set = new Set<string>();
   function walk(node: { name: string; children: { name: string; children: unknown[] }[] }): void {
     set.add(node.name);
-    for (const c of node.children) walk(c as { name: string; children: { name: string; children: unknown[] }[] });
+    for (const c of node.children)
+      walk(c as { name: string; children: { name: string; children: unknown[] }[] });
   }
   for (const g of graphs) walk(g.tree);
   return set.size;
@@ -253,5 +271,5 @@ main().then(
   (err) => {
     process.stderr.write(`fatal: ${(err as Error).stack ?? String(err)}\n`);
     process.exit(1);
-  },
+  }
 );

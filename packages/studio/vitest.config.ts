@@ -101,7 +101,10 @@ export default defineConfig({
         find: '@holoscript/core/traits',
         replacement: path.resolve(__dirname, '../core/src/traits/index.ts'),
       },
-      { find: /^@holoscript\/core\/runtime$/, replacement: path.resolve(__dirname, '../core/src/runtime.ts') },
+      {
+        find: /^@holoscript\/core\/runtime$/,
+        replacement: path.resolve(__dirname, '../core/src/runtime.ts'),
+      },
       { find: /^@holoscript\/core$/, replacement: path.resolve(__dirname, '../core/src/index.ts') },
       {
         find: '@holoscript/engine/runtime/TraitRuntimeIntegration',

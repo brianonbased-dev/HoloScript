@@ -1,6 +1,9 @@
 import type { CreatorRevenueAggregator } from './CreatorRevenueAggregator';
 import type { UrbanPlanningDensityClass } from './urbanPlanningEconomyBridge';
-import { recordUrbanPlanningSimulationRevenue, type RecordUrbanPlanningSimulationInput } from './urbanPlanningEconomyBridge';
+import {
+  recordUrbanPlanningSimulationRevenue,
+  type RecordUrbanPlanningSimulationInput,
+} from './urbanPlanningEconomyBridge';
 
 /**
  * Fixed creator/payer ids with a {@link CreatorRevenueAggregator}; call {@link tick}

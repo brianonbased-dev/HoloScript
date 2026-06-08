@@ -68,27 +68,36 @@ function makeManifest(
 
 describe('classifyTrustTier — provenance-field-based tiering', () => {
   it('returns "untrusted" when no anchor fields are populated', () => {
-    const m = makeManifest({}, {
-      anchorHash: undefined,
-      opentimestampsProof: undefined,
-      baseCalldataTx: undefined,
-    });
+    const m = makeManifest(
+      {},
+      {
+        anchorHash: undefined,
+        opentimestampsProof: undefined,
+        baseCalldataTx: undefined,
+      }
+    );
     expect(classifyTrustTier(m)).toBe('untrusted');
   });
 
   it('returns "untrusted" when all anchor fields are empty strings', () => {
-    const m = makeManifest({}, {
-      anchorHash: '',
-      opentimestampsProof: '',
-      baseCalldataTx: '',
-    });
+    const m = makeManifest(
+      {},
+      {
+        anchorHash: '',
+        opentimestampsProof: '',
+        baseCalldataTx: '',
+      }
+    );
     expect(classifyTrustTier(m)).toBe('untrusted');
   });
 
   it('returns "self-attested" when only anchorHash is populated', () => {
-    const m = makeManifest({}, {
-      anchorHash: 'self-attested:abc123def456',
-    });
+    const m = makeManifest(
+      {},
+      {
+        anchorHash: 'self-attested:abc123def456',
+      }
+    );
     expect(classifyTrustTier(m)).toBe('self-attested');
   });
 
@@ -98,36 +107,48 @@ describe('classifyTrustTier — provenance-field-based tiering', () => {
   });
 
   it('returns "ots-anchored" when OTS proof is populated', () => {
-    const m = makeManifest({}, {
-      anchorHash: 'sha256:abc',
-      opentimestampsProof: 'https://example.com/proof.ots',
-    });
+    const m = makeManifest(
+      {},
+      {
+        anchorHash: 'sha256:abc',
+        opentimestampsProof: 'https://example.com/proof.ots',
+      }
+    );
     expect(classifyTrustTier(m)).toBe('ots-anchored');
   });
 
   it('returns "ots-anchored" even without anchorHash if OTS is set', () => {
-    const m = makeManifest({}, {
-      opentimestampsProof: 'https://example.com/proof.ots',
-    });
+    const m = makeManifest(
+      {},
+      {
+        opentimestampsProof: 'https://example.com/proof.ots',
+      }
+    );
     expect(classifyTrustTier(m)).toBe('ots-anchored');
   });
 
   it('returns "fully-anchored" when BOTH OTS and Base calldata are populated', () => {
-    const m = makeManifest({}, {
-      anchorHash: 'sha256:abc',
-      opentimestampsProof: 'https://example.com/proof.ots',
-      baseCalldataTx: '0xdeadbeef',
-    });
+    const m = makeManifest(
+      {},
+      {
+        anchorHash: 'sha256:abc',
+        opentimestampsProof: 'https://example.com/proof.ots',
+        baseCalldataTx: '0xdeadbeef',
+      }
+    );
     expect(classifyTrustTier(m)).toBe('fully-anchored');
   });
 
   it('does NOT return "fully-anchored" if only Base calldata is set (no OTS)', () => {
     // OTS is required; Base alone is treated as "self-attested" since the
     // OTS gate isn't crossed.
-    const m = makeManifest({}, {
-      anchorHash: 'sha256:abc',
-      baseCalldataTx: '0xdeadbeef',
-    });
+    const m = makeManifest(
+      {},
+      {
+        anchorHash: 'sha256:abc',
+        baseCalldataTx: '0xdeadbeef',
+      }
+    );
     expect(classifyTrustTier(m)).toBe('self-attested');
   });
 
@@ -136,20 +157,26 @@ describe('classifyTrustTier — provenance-field-based tiering', () => {
   // self-attested tier. Base calldata alone IS evidentiary and should
   // qualify as self-attested per S.ANC dual-anchor pattern.
   it('returns "self-attested" when ONLY Base calldata is set (no OTS, no anchorHash)', () => {
-    const m = makeManifest({}, {
-      anchorHash: undefined,
-      opentimestampsProof: undefined,
-      baseCalldataTx: '0xdeadbeef',
-    });
+    const m = makeManifest(
+      {},
+      {
+        anchorHash: undefined,
+        opentimestampsProof: undefined,
+        baseCalldataTx: '0xdeadbeef',
+      }
+    );
     expect(classifyTrustTier(m)).toBe('self-attested');
   });
 
   it('returns "self-attested" when ONLY Base calldata is set with empty anchorHash', () => {
-    const m = makeManifest({}, {
-      anchorHash: '',
-      opentimestampsProof: '',
-      baseCalldataTx: '0xdeadbeef',
-    });
+    const m = makeManifest(
+      {},
+      {
+        anchorHash: '',
+        opentimestampsProof: '',
+        baseCalldataTx: '0xdeadbeef',
+      }
+    );
     expect(classifyTrustTier(m)).toBe('self-attested');
   });
 });
@@ -237,17 +264,23 @@ describe('verifyReplay — trust tier flows through from classifyTrustTier', () 
   });
 
   it('flows ots-anchored tier through', () => {
-    const m = makeManifest({}, {
-      opentimestampsProof: 'proof.ots',
-    });
+    const m = makeManifest(
+      {},
+      {
+        opentimestampsProof: 'proof.ots',
+      }
+    );
     expect(verifyReplay(m, m.replayHash).trustTier).toBe('ots-anchored');
   });
 
   it('flows fully-anchored tier through', () => {
-    const m = makeManifest({}, {
-      opentimestampsProof: 'proof.ots',
-      baseCalldataTx: '0xdeadbeef',
-    });
+    const m = makeManifest(
+      {},
+      {
+        opentimestampsProof: 'proof.ots',
+        baseCalldataTx: '0xdeadbeef',
+      }
+    );
     expect(verifyReplay(m, m.replayHash).trustTier).toBe('fully-anchored');
   });
 });
@@ -258,10 +291,13 @@ describe('verifyReplay — trust tier flows through from classifyTrustTier', () 
 
 describe('verifyReplay — notes accumulation', () => {
   it('emits empty notes for matched + fully-anchored manifest', () => {
-    const m = makeManifest({}, {
-      opentimestampsProof: 'proof.ots',
-      baseCalldataTx: '0xdeadbeef',
-    });
+    const m = makeManifest(
+      {},
+      {
+        opentimestampsProof: 'proof.ots',
+        baseCalldataTx: '0xdeadbeef',
+      }
+    );
     const result = verifyReplay(m, m.replayHash);
     expect(result.notes).toEqual([]);
   });
@@ -300,10 +336,13 @@ describe('verifyReplay — notes accumulation', () => {
   });
 
   it('notes is always a non-null array', () => {
-    const m = makeManifest({}, {
-      opentimestampsProof: 'proof.ots',
-      baseCalldataTx: '0xdeadbeef',
-    });
+    const m = makeManifest(
+      {},
+      {
+        opentimestampsProof: 'proof.ots',
+        baseCalldataTx: '0xdeadbeef',
+      }
+    );
     const result = verifyReplay(m, m.replayHash);
     expect(Array.isArray(result.notes)).toBe(true);
   });

@@ -31,7 +31,7 @@ Maintain production stability and act as the local node for the HoloScript mesh.
 Assigned Daemon: **${dna.recommendedProfile}**
 Running Mode: **${dna.recommendedMode}**
 Repository DNA: ${dna.kind.toUpperCase()} (${dna.languages.join(', ')})
-`
+`,
   });
 
   // 2. MEMORY.md
@@ -55,7 +55,7 @@ Repository DNA: ${dna.kind.toUpperCase()} (${dna.languages.join(', ')})
 
 ### P.001 - Agent Execution
 - Local actions should follow the defined \`absorb-orchestrator-funnel.md\` workflow.
-`
+`,
   });
 
   // 3. AGENTS.md (Dynamic based on repo DNA)
@@ -70,12 +70,12 @@ Repository DNA: ${dna.kind.toUpperCase()} (${dna.languages.join(', ')})
 - **Shape:** ${dna.repoShape}
 
 ## Foundative Frameworks Detected
-${dna.frameworks.map(f => `- ${f}`).join('\n')}
+${dna.frameworks.map((f) => `- ${f}`).join('\n')}
 
 ## Security Rules
 - ${dna.kind === 'spatial' ? 'WARNING: Do not place heavy Neural Net execution directly in the VR render loop (11.1ms timeout limit).' : 'Standard process guardrails active.'}
-${dna.riskSignals.map(r => `- RISK: ${r}`).join('\n')}
-`
+${dna.riskSignals.map((r) => `- RISK: ${r}`).join('\n')}
+`,
   });
 
   // 4. Workflow definition
@@ -90,7 +90,7 @@ description: Ensure local mesh telemetry and safe job execution
 2. Claim task from HoloMesh board (if remote).
 3. Execute localized code changes.
 4. Summarize changes into \`.claude/memory/MEMORY.md\` and run GraphRAG sync.
-`
+`,
   });
 
   return files;

@@ -66,7 +66,7 @@ export interface HoloObjectContext {
  */
 export async function executeHoloObject(
   node: HoloObjectDecl,
-  ctx: HoloObjectContext,
+  ctx: HoloObjectContext
 ): Promise<ExecutionResult> {
   const properties: Record<string, HoloScriptValue> = {};
 
@@ -88,8 +88,7 @@ export async function executeHoloObject(
   const hologram: HologramProperties = {
     shape: (properties.geometry as string) || DEFAULT_SHAPE,
     color: (properties.color as string) || DEFAULT_COLOR,
-    size:
-      (properties.scale as number) || (properties.size as number) || DEFAULT_SIZE,
+    size: (properties.scale as number) || (properties.size as number) || DEFAULT_SIZE,
     glow: (properties.glow as boolean) || false,
     // interactive defaults to true unless explicitly set false
     interactive: properties.interactive !== false,
@@ -116,9 +115,7 @@ export async function executeHoloObject(
       })),
       ...(template?.directives || []),
     ],
-    traits: new Map(
-      (node.traits || []).map((t) => [t.name as VRTraitName, t.config]),
-    ),
+    traits: new Map((node.traits || []).map((t) => [t.name as VRTraitName, t.config])),
     children: (node.children as unknown as ASTNode[]) || [],
   };
 

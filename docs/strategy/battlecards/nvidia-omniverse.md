@@ -8,13 +8,13 @@
 
 ## Quick Overview
 
-| | |
-|---|---|
-| **Tagline** | "Develop Physical AI Applications" (re-branded from "metaverse collaboration") |
-| **Backer** | NVIDIA |
-| **Audience** | Enterprise — manufacturing, AEC, automotive, robotics |
-| **Pricing** | Individual free (collab with 1); **Enterprise from $9,000/year**; RTX GPU required (L40 ~$11,300) |
-| **Latest** | Ongoing Physical AI rebrand; Apple Vision Pro via CloudXR (GTC 2025) |
+|              |                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------- |
+| **Tagline**  | "Develop Physical AI Applications" (re-branded from "metaverse collaboration")                    |
+| **Backer**   | NVIDIA                                                                                            |
+| **Audience** | Enterprise — manufacturing, AEC, automotive, robotics                                             |
+| **Pricing**  | Individual free (collab with 1); **Enterprise from $9,000/year**; RTX GPU required (L40 ~$11,300) |
+| **Latest**   | Ongoing Physical AI rebrand; Apple Vision Pro via CloudXR (GTC 2025)                              |
 
 ## Their Pitch
 
@@ -48,25 +48,25 @@
 
 ## Our Differentiators (vs Omniverse)
 
-| Differentiator | Why it matters | Proof |
-|---|---|---|
-| **Browser-native, zero install** | Indies, academia, medical/legal who can't install Omniverse | WebGPU compile targets |
-| **No GPU floor** | Works on any WebGPU-capable device, not just RTX | r3f-renderer + WebGPU path |
-| **Free individual tier without throttling** | No "collab with one person" limit | — |
-| **`.holo → USD` compile target** | We're *upstream* of USD; consume Omniverse output too | `packages/core/src/compilers/` USDCompiler |
-| **Contracted simulation with replay** | Byte-identical reproduction; Omniverse doesn't guarantee this | TVCG paper |
-| **Agent-native MCP at platform layer** | Omniverse Kit is dev tooling; HoloScript MCP is a platform capability | mcp.holoscript.net |
-| **`npx create-holoscript` time-to-wow** | 30 sec vs multi-hour install + license procurement | (shipping) |
+| Differentiator                              | Why it matters                                                        | Proof                                      |
+| ------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------ |
+| **Browser-native, zero install**            | Indies, academia, medical/legal who can't install Omniverse           | WebGPU compile targets                     |
+| **No GPU floor**                            | Works on any WebGPU-capable device, not just RTX                      | r3f-renderer + WebGPU path                 |
+| **Free individual tier without throttling** | No "collab with one person" limit                                     | —                                          |
+| **`.holo → USD` compile target**            | We're _upstream_ of USD; consume Omniverse output too                 | `packages/core/src/compilers/` USDCompiler |
+| **Contracted simulation with replay**       | Byte-identical reproduction; Omniverse doesn't guarantee this         | TVCG paper                                 |
+| **Agent-native MCP at platform layer**      | Omniverse Kit is dev tooling; HoloScript MCP is a platform capability | mcp.holoscript.net                         |
+| **`npx create-holoscript` time-to-wow**     | 30 sec vs multi-hour install + license procurement                    | (shipping)                                 |
 
 ## Objection Handling
 
-| Prospect says... | Respond with... |
-|---|---|
-| "Omniverse is the industry standard" | "For industrial digital twins with budgets over $50K and in-house GPU clusters, yes. For everyone else — education, prosumers, medical, legal, browser-first apps — it's inaccessible. HoloScript is Omniverse for everyone else." |
-| "Omniverse uses OpenUSD" | "So do we. HoloScript compiles `.holo` to USD. You can use our source and their runtime, or our source and any other USD consumer. They're one USD endpoint; we're all of them." |
-| "NVIDIA has simulation via Isaac Sim" | "Isaac Sim is robotics-specific and desktop-bound. Our simulation is multi-domain (FEM, molecular, cellular), browser-native, and contract-verified. Different problem space, different guarantees." |
-| "$9K/year is reasonable for enterprise" | "It is — for the 5% of teams it's reasonable for. The other 95% — education, indies, medical research, legal, most AEC — can't justify it. We serve that 95%." |
-| "NVIDIA is partnering with Apple" | "For Vision Pro streaming. Our WebXR compile target runs natively in Vision Pro Safari — no streaming, no latency, no licensing." |
+| Prospect says...                        | Respond with...                                                                                                                                                                                                                    |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Omniverse is the industry standard"    | "For industrial digital twins with budgets over $50K and in-house GPU clusters, yes. For everyone else — education, prosumers, medical, legal, browser-first apps — it's inaccessible. HoloScript is Omniverse for everyone else." |
+| "Omniverse uses OpenUSD"                | "So do we. HoloScript compiles `.holo` to USD. You can use our source and their runtime, or our source and any other USD consumer. They're one USD endpoint; we're all of them."                                                   |
+| "NVIDIA has simulation via Isaac Sim"   | "Isaac Sim is robotics-specific and desktop-bound. Our simulation is multi-domain (FEM, molecular, cellular), browser-native, and contract-verified. Different problem space, different guarantees."                               |
+| "$9K/year is reasonable for enterprise" | "It is — for the 5% of teams it's reasonable for. The other 95% — education, indies, medical research, legal, most AEC — can't justify it. We serve that 95%."                                                                     |
+| "NVIDIA is partnering with Apple"       | "For Vision Pro streaming. Our WebXR compile target runs natively in Vision Pro Safari — no streaming, no latency, no licensing."                                                                                                  |
 
 ## Landmines to Set
 

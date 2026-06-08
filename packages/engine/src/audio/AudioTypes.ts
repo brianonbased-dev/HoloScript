@@ -687,7 +687,7 @@ export interface ISequencer {
  * Create a zero vector
  */
 export function zeroVector(): IVector3 {
-  return [0, 0, 0 ];
+  return [0, 0, 0];
 }
 
 /**
@@ -695,8 +695,8 @@ export function zeroVector(): IVector3 {
  */
 export function defaultOrientation(): IAudioOrientation {
   return {
-    forward: [0, 0, -1 ],
-    up: [0, 1, 0 ],
+    forward: [0, 0, -1],
+    up: [0, 1, 0],
   };
 }
 

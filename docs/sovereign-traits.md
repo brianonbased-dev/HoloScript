@@ -2,7 +2,7 @@
 
 > **Version**: D.040 (FW-0.6)  
 > **Scope**: HoloLand NPCs, Items, and HoloMesh teammates  
-> **Reference**: `research/2026-05-11_d040-sovereign-trait-scoping.md`  
+> **Reference**: `research/2026-05-11_d040-sovereign-trait-scoping.md`
 
 ## Overview
 
@@ -10,14 +10,14 @@ Sovereign traits are composable HoloScript-core primitives that give NPCs, items
 
 ## The Six Traits
 
-| Trait | File | Population | Purpose |
-|-------|------|------------|---------|
-| `@verbalFingerprint` | `VerbalFingerprintTrait.ts` | NPCs, Items, Agents | Post-generation text fingerprint — survives model swaps |
-| `@autonomousAgenda` | `AutonomousAgendaTrait.ts` | NPCs, Agents | Rolling action agenda with cost-ceiling enforcement |
-| `@reputationLedger` | `ReputationLedgerTrait.ts` | NPCs, Items, Agents | Trust + behavior log per world/peer |
-| `@vocabularyRegister` | `VocabularyRegisterTrait.ts` | NPCs, Items | Domain vocabulary injection into prompts |
-| `@speechAwareEncounter` | `SpeechAwareEncounterTrait.ts` | NPCs | Voice/text encounter engine with ReID speaker attribution |
-| `@avatarIntent` | `AvatarIntentTrait.ts` | Avatars | Input-device abstraction → high-level intents |
+| Trait                   | File                           | Population          | Purpose                                                   |
+| ----------------------- | ------------------------------ | ------------------- | --------------------------------------------------------- |
+| `@verbalFingerprint`    | `VerbalFingerprintTrait.ts`    | NPCs, Items, Agents | Post-generation text fingerprint — survives model swaps   |
+| `@autonomousAgenda`     | `AutonomousAgendaTrait.ts`     | NPCs, Agents        | Rolling action agenda with cost-ceiling enforcement       |
+| `@reputationLedger`     | `ReputationLedgerTrait.ts`     | NPCs, Items, Agents | Trust + behavior log per world/peer                       |
+| `@vocabularyRegister`   | `VocabularyRegisterTrait.ts`   | NPCs, Items         | Domain vocabulary injection into prompts                  |
+| `@speechAwareEncounter` | `SpeechAwareEncounterTrait.ts` | NPCs                | Voice/text encounter engine with ReID speaker attribution |
+| `@avatarIntent`         | `AvatarIntentTrait.ts`         | Avatars             | Input-device abstraction → high-level intents             |
 
 ## Quick Start
 
@@ -59,7 +59,7 @@ const npc = createHoloLandItem('npc_elara_01', 'elara', {
   autonomousAgenda: {
     agent_class: 'npc',
     tick_interval_ms: 60_000, // per in-world hour
-    daily_budget_usd: 0.50,
+    daily_budget_usd: 0.5,
     max_actions_per_tick: 3,
     max_actions_per_day: 20,
     pause_on_ceiling: true,
@@ -86,7 +86,12 @@ import { verbalFingerprintHandler } from '@holoscript/core/traits/VerbalFingerpr
 
 node.attach(avatarIntentHandler, {
   intent_mapping: [
-    { devices: ['hand_tracking_right'], predicate: { 'hand_tracking_right:pinch': true }, intent: 'grab', weight: 1.0 },
+    {
+      devices: ['hand_tracking_right'],
+      predicate: { 'hand_tracking_right:pinch': true },
+      intent: 'grab',
+      weight: 1.0,
+    },
   ],
   smoothing_window_ms: 150,
   dead_zone: 0.05,
@@ -101,12 +106,14 @@ node.attach(avatarIntentHandler, {
 **Purpose**: Compute a fingerprint OVER generated text (not injected into the prompt). Survives model swaps because it validates output, not input.
 
 **Config**: `VerbalFingerprintConfig`
+
 - `fingerprint_key`: unique voice identifier
 - `style`: sentence length bounds, forbidden/required phrases, tone label
 - `enforce`: if true, reject text that fails fingerprint check
 - `rolling_window`: number of recent utterances to include in fingerprint
 
 **Events**:
+
 - `verbal_fingerprint_verify` — request verification
 - `verbal_fingerprint_verified` — passed
 - `verbal_fingerprint_rejected` — failed (with reason)
@@ -119,6 +126,7 @@ node.attach(avatarIntentHandler, {
 **Purpose**: Rolling agenda of actions with cost-ceiling enforcement. Integrates with `packages/holoscript-agent/` daily-loop runner.
 
 **Config**: `AutonomousAgendaConfig`
+
 - `agent_class`: `'npc' | 'teammate' | 'service'`
 - `tick_interval_ms`: how often the agenda ticks
 - `daily_budget_usd`: hard cost ceiling ($0.50/NPC/day, $5/agent/day headless)
@@ -126,6 +134,7 @@ node.attach(avatarIntentHandler, {
 - `pause_on_ceiling`: stop when budget exhausted
 
 **Events**:
+
 - `agenda_tick`
 - `agenda_item_added/completed`
 - `agenda_cost_ceiling_breach`
@@ -138,6 +147,7 @@ node.attach(avatarIntentHandler, {
 **Purpose**: Per-world, per-peer trust score (0–100) + sliding behavior log. Extends x402 attestation with behavioral evidence.
 
 **Config**: `ReputationLedgerConfig`
+
 - `world_id`, `subject_id`: scope
 - `initial_trust`: starting score
 - `max_behavior_facts`: retention window
@@ -150,6 +160,7 @@ node.attach(avatarIntentHandler, {
 **Purpose**: Inject domain-specific vocabulary into LLM prompts/context windows.
 
 **Default Registers** (6 shipped):
+
 1. `medieval-fantasy`
 2. `sci-fi-remnant`
 3. `modern-corporate`
@@ -158,11 +169,13 @@ node.attach(avatarIntentHandler, {
 6. `scholarly-archaic`
 
 **Config**: `VocabularyRegisterConfig`
+
 - `active_register`: which register is live
 - `max_injected_entries`: token budget guard
 - `prepend_tone_hint`: add tone marker to prompt
 
 **Events**:
+
 - `vocabulary_switch`
 - `vocabulary_inject`
 - `vocabulary_register_load`
@@ -172,6 +185,7 @@ node.attach(avatarIntentHandler, {
 **Purpose**: Voice/text encounter engine. v2 uses ReID-backed speaker attribution; v1 falls back to text.
 
 **Config**: `SpeechAwareEncounterConfig`
+
 - `voice_enabled`, `reid_confidence_threshold`
 - `fallback_to_text`, `max_turns`
 - `reid_backend`: which ReID model to use
@@ -189,6 +203,7 @@ node.attach(avatarIntentHandler, {
 **Intents**: `idle`, `move`, `rotate`, `grab`, `release`, `point`, `select`, `emote`, `speak`, `rest`
 
 **Config**: `AvatarIntentConfig`
+
 - `intent_mapping`: ordered rules (first match wins unless weight overrides)
 - `smoothing_window_ms`, `dead_zone`, `max_sample_buffer`
 
@@ -215,11 +230,13 @@ See `examples/templates/d040-sovereign-npc.holo` and `examples/templates/d040-so
 ## CI Verification
 
 Run:
+
 ```bash
 node scripts/__tests__/d040-sovereign-trait-canary.test.mjs
 ```
 
 This verifies:
+
 - All 6 trait source files exist and export their config type
 - All 6 test files exist
 - `traits/index.ts` exports all 6 traits

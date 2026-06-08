@@ -7,7 +7,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LODStreamer, type StreamableAsset } from '../LODStreamer';
 
-function makeAsset(id: string, priority = 1, position: [number, number, number] = [0, 0, 0]): StreamableAsset {
+function makeAsset(
+  id: string,
+  priority = 1,
+  position: [number, number, number] = [0, 0, 0]
+): StreamableAsset {
   return {
     id,
     position,

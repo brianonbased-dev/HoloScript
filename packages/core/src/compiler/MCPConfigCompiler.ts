@@ -74,7 +74,7 @@ interface MCPServerDef {
 
 interface EnvRef {
   name: string;
-  header?: string;  // e.g., "Authorization: Bearer" or "x-mcp-api-key"
+  header?: string; // e.g., "Authorization: Bearer" or "x-mcp-api-key"
 }
 
 // =============================================================================
@@ -97,11 +97,7 @@ export class MCPConfigCompiler extends CompilerBase {
     };
   }
 
-  compile(
-    composition: HoloComposition,
-    agentToken: string,
-    outputPath?: string
-  ): string {
+  compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateCompilerAccess(agentToken, outputPath);
     this.servers = [];
 
@@ -146,9 +142,11 @@ export class MCPConfigCompiler extends CompilerBase {
 
     // Determine transport from @connector trait config
     let transport: 'http' | 'stdio' | 'sse' = 'http';
-    const connectorTrait = traits.find(t => t.name === 'connector');
+    const connectorTrait = traits.find((t) => t.name === 'connector');
     if (connectorTrait?.config) {
-      const t = this.resolveString(connectorTrait.config['transport'] || connectorTrait.config['_arg1']);
+      const t = this.resolveString(
+        connectorTrait.config['transport'] || connectorTrait.config['_arg1']
+      );
       if (t === 'stdio' || t === 'sse' || t === 'http') transport = t;
     }
 
@@ -177,7 +175,7 @@ export class MCPConfigCompiler extends CompilerBase {
   }
 
   private hasConnectorTrait(obj: HoloObjectDecl): boolean {
-    return (obj.traits || []).some(t => t.name === 'connector');
+    return (obj.traits || []).some((t) => t.name === 'connector');
   }
 
   // ── Config Generation ─────────────────────────────────────────────────────
@@ -276,9 +274,7 @@ export class MCPConfigCompiler extends CompilerBase {
     switch (this.options.target) {
       case 'antigravity':
         // Antigravity doesn't interpolate — inject literal values
-        return this.options.envValues[varName]
-          || this.readEnvFile(varName)
-          || `MISSING_${varName}`;
+        return this.options.envValues[varName] || this.readEnvFile(varName) || `MISSING_${varName}`;
 
       case 'vscode':
         // VS Code uses ${env:VAR} syntax
@@ -329,7 +325,7 @@ export class MCPConfigCompiler extends CompilerBase {
   private resolveArray(value: HoloValue | undefined): string[] | undefined {
     if (!value) return undefined;
     if (Array.isArray(value)) {
-      return value.map(v => {
+      return value.map((v) => {
         if (typeof v === 'string') return v;
         if (typeof v === 'object' && v && 'value' in v) return String(v.value);
         return String(v);

@@ -8,7 +8,15 @@ describe('mixamo-plugin stub', () => {
       name: 'Walking',
       duration_seconds: 1.5,
       fps: 30,
-      bone_names: ['mixamorig:Hips', 'mixamorig:Spine', 'mixamorig:Head', 'mixamorig:LeftArm', 'mixamorig:RightArm', 'mixamorig:LeftLeg', 'mixamorig:RightLeg'],
+      bone_names: [
+        'mixamorig:Hips',
+        'mixamorig:Spine',
+        'mixamorig:Head',
+        'mixamorig:LeftArm',
+        'mixamorig:RightArm',
+        'mixamorig:LeftLeg',
+        'mixamorig:RightLeg',
+      ],
       in_place: true,
     });
     expect(r.retarget_compat).toBe('vrm');

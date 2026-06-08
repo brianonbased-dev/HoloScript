@@ -25,9 +25,9 @@ if (full) env.PAPER10_FULL = '1';
 const runVitest = resolve(pkgRoot, 'run-vitest.mjs');
 const testFile = 'src/compiler/__tests__/paper-10-compile-matrix-depth.bench.test.ts';
 
-const r = spawnSync(
-  process.execPath,
-  ['--max-old-space-size=16384', runVitest, testFile],
-  { stdio: 'inherit', env, cwd: pkgRoot }
-);
+const r = spawnSync(process.execPath, ['--max-old-space-size=16384', runVitest, testFile], {
+  stdio: 'inherit',
+  env,
+  cwd: pkgRoot,
+});
 process.exit(r.status ?? 1);

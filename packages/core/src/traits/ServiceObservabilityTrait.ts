@@ -132,7 +132,9 @@ export function createApiQuotaAlertRule(
   dailyCeilingUsd = subject === 'headless_agent'
     ? DEFAULT_HEADLESS_AGENT_DAILY_COST_CEILING_USD
     : DEFAULT_NPC_DAILY_COST_CEILING_USD,
-  name = subject === 'headless_agent' ? 'headless_agent_daily_cost_ceiling' : 'npc_daily_cost_ceiling'
+  name = subject === 'headless_agent'
+    ? 'headless_agent_daily_cost_ceiling'
+    : 'npc_daily_cost_ceiling'
 ): AlertRule {
   return {
     name,
@@ -167,7 +169,8 @@ export function createAttributionCiOperationMetric(
 ): OperationMetricRequirement {
   return {
     name: 'attribution_ci_accuracy',
-    description: 'CI attribution accuracy gate; build fails when the observed metric is below this floor.',
+    description:
+      'CI attribution accuracy gate; build fails when the observed metric is below this floor.',
     minimum: floor,
     fail_ci_below: floor,
     metadata: {
@@ -190,7 +193,13 @@ export const serviceObservabilityHandler: TraitHandler<ServiceObservabilityConfi
 
   defaultConfig: {
     service_name: '',
-    required_tables: ['system_metrics', 'operation_metrics', 'alerts', 'alert_triggers', 'error_logs'],
+    required_tables: [
+      'system_metrics',
+      'operation_metrics',
+      'alerts',
+      'alert_triggers',
+      'error_logs',
+    ],
     health_probes: [],
     alert_rules: [],
     scheduled_jobs: [createMetricsCleanupJob()],

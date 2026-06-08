@@ -119,7 +119,8 @@ export const KNOWN_RESULTS_CORPUS: ReadonlyArray<ConjecturePriorArtEntry> = [
     id: 'prior.graph.four-color',
     title: 'Four color theorem',
     source: 'Appel & Haken 1976',
-    statement: 'Every planar map can be colored with four colors so no adjacent regions share a color.',
+    statement:
+      'Every planar map can be colored with four colors so no adjacent regions share a color.',
   },
 ];
 
@@ -131,7 +132,7 @@ export const KNOWN_RESULTS_CORPUS: ReadonlyArray<ConjecturePriorArtEntry> = [
  */
 export function assessNoveltyAgainstKnownResults(
   claim: string,
-  threshold: number = CONJECTURE_NOVELTY_THRESHOLD,
+  threshold: number = CONJECTURE_NOVELTY_THRESHOLD
 ): ConjectureNoveltyAssessment {
   return assessConjectureNovelty(claim, KNOWN_RESULTS_CORPUS, threshold);
 }

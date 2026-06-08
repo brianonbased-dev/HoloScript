@@ -47,59 +47,87 @@ describe('GitChangeDetector', () => {
   }, GIT_TEST_TIMEOUT_MS);
 
   describe('isGitRepo', () => {
-    it('returns true for a git repo fixture', () => {
-      expect(detector.isGitRepo()).toBe(true);
-    }, GIT_TEST_TIMEOUT_MS);
+    it(
+      'returns true for a git repo fixture',
+      () => {
+        expect(detector.isGitRepo()).toBe(true);
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
 
-    it('returns false for non-git directory', () => {
-      const tempDir = path.join(os.tmpdir(), `holoscript-test-${Date.now()}`);
-      fs.mkdirSync(tempDir, { recursive: true });
-      const nonGitDetector = new GitChangeDetector(tempDir);
-      expect(nonGitDetector.isGitRepo()).toBe(false);
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }, GIT_TEST_TIMEOUT_MS);
+    it(
+      'returns false for non-git directory',
+      () => {
+        const tempDir = path.join(os.tmpdir(), `holoscript-test-${Date.now()}`);
+        fs.mkdirSync(tempDir, { recursive: true });
+        const nonGitDetector = new GitChangeDetector(tempDir);
+        expect(nonGitDetector.isGitRepo()).toBe(false);
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
   });
 
   describe('getHeadCommit', () => {
-    it('returns 40-character hex string', () => {
-      const headCommit = detector.getHeadCommit();
-      expect(headCommit).toBeTruthy();
-      expect(headCommit).toMatch(/^[0-9a-f]{40}$/);
-    }, GIT_TEST_TIMEOUT_MS);
+    it(
+      'returns 40-character hex string',
+      () => {
+        const headCommit = detector.getHeadCommit();
+        expect(headCommit).toBeTruthy();
+        expect(headCommit).toMatch(/^[0-9a-f]{40}$/);
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
   });
 
   describe('detectChanges', () => {
-    it('returns storedCommitMissing=true when storedCommit is null', () => {
-      const result = detector.detectChanges(null);
-      expect(result.storedCommitMissing).toBe(true);
-      expect(result.notGitRepo).toBe(false);
-    }, GIT_TEST_TIMEOUT_MS);
+    it(
+      'returns storedCommitMissing=true when storedCommit is null',
+      () => {
+        const result = detector.detectChanges(null);
+        expect(result.storedCommitMissing).toBe(true);
+        expect(result.notGitRepo).toBe(false);
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
 
-    it('returns no committed changes when comparing HEAD to itself', () => {
-      const headCommit = detector.getHeadCommit()!;
-      const result = detector.detectChanges(headCommit);
-      expect(result.headCommit).toBe(headCommit);
-      // modified + deleted should be 0 (no committed diff)
-      // added may include untracked files in a dirty working tree
-      expect(result.modified.length).toBe(0);
-      expect(result.deleted.length).toBe(0);
-      expect(result.storedCommitMissing).toBe(false);
-    }, GIT_TEST_TIMEOUT_MS);
+    it(
+      'returns no committed changes when comparing HEAD to itself',
+      () => {
+        const headCommit = detector.getHeadCommit()!;
+        const result = detector.detectChanges(headCommit);
+        expect(result.headCommit).toBe(headCommit);
+        // modified + deleted should be 0 (no committed diff)
+        // added may include untracked files in a dirty working tree
+        expect(result.modified.length).toBe(0);
+        expect(result.deleted.length).toBe(0);
+        expect(result.storedCommitMissing).toBe(false);
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
 
-    it('returns storedCommitMissing=true for non-existent commit', () => {
-      const fakeCommit = '0000000000000000000000000000000000000000';
-      const result = detector.detectChanges(fakeCommit);
-      expect(result.storedCommitMissing).toBe(true);
-    }, GIT_TEST_TIMEOUT_MS);
+    it(
+      'returns storedCommitMissing=true for non-existent commit',
+      () => {
+        const fakeCommit = '0000000000000000000000000000000000000000';
+        const result = detector.detectChanges(fakeCommit);
+        expect(result.storedCommitMissing).toBe(true);
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
 
-    it('returns notGitRepo=true for non-git directory', () => {
-      const tempDir = path.join(os.tmpdir(), `holoscript-test-${Date.now()}`);
-      fs.mkdirSync(tempDir, { recursive: true });
-      const nonGitDetector = new GitChangeDetector(tempDir);
-      const result = nonGitDetector.detectChanges(null);
-      expect(result.notGitRepo).toBe(true);
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }, GIT_TEST_TIMEOUT_MS);
+    it(
+      'returns notGitRepo=true for non-git directory',
+      () => {
+        const tempDir = path.join(os.tmpdir(), `holoscript-test-${Date.now()}`);
+        fs.mkdirSync(tempDir, { recursive: true });
+        const nonGitDetector = new GitChangeDetector(tempDir);
+        const result = nonGitDetector.detectChanges(null);
+        expect(result.notGitRepo).toBe(true);
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
   });
 
   describe('computeFileHashes', () => {
@@ -159,16 +187,24 @@ describe('GitChangeDetector', () => {
   });
 
   describe('getUntrackedFiles', () => {
-    it('returns array (may be empty)', () => {
-      const untracked = detector.getUntrackedFiles();
-      expect(Array.isArray(untracked)).toBe(true);
-    }, GIT_TEST_TIMEOUT_MS);
+    it(
+      'returns array (may be empty)',
+      () => {
+        const untracked = detector.getUntrackedFiles();
+        expect(Array.isArray(untracked)).toBe(true);
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
 
-    it('returns forward-slash normalized paths', () => {
-      const untracked = detector.getUntrackedFiles();
-      for (const f of untracked) {
-        expect(f).not.toMatch(/\\/); // No backslashes
-      }
-    }, GIT_TEST_TIMEOUT_MS);
+    it(
+      'returns forward-slash normalized paths',
+      () => {
+        const untracked = detector.getUntrackedFiles();
+        for (const f of untracked) {
+          expect(f).not.toMatch(/\\/); // No backslashes
+        }
+      },
+      GIT_TEST_TIMEOUT_MS
+    );
   });
 });

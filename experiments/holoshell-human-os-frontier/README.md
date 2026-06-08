@@ -60,16 +60,16 @@ then ask how HoloShell should wrap it.
 
 Use this scorecard before claiming an idea works.
 
-| Axis | Question |
-|---|---|
-| Human determinism | Can the user see what will happen before it happens? |
-| Non-developer clarity | Could a non-technical person operate it without terminal/API knowledge? |
-| Hardware reality | Does it touch real local machine, app, file, device, GPU, or service state? |
-| AI containment | Is AI operating behind a visible plan with receipts instead of freewheeling? |
-| HoloScript source | Is the workflow represented in `.holo`, `.hs`, or `.hsplus`? |
-| Multi-agent value | Do extra agents make the outcome clearer, faster, safer, or more capable? |
-| Reversibility | Can the action be replayed, inspected, rolled back, or explained? |
-| HoloLand path | Can the experience become a world, room, NPC, tool, quest, or creator surface? |
+| Axis                  | Question                                                                       |
+| --------------------- | ------------------------------------------------------------------------------ |
+| Human determinism     | Can the user see what will happen before it happens?                           |
+| Non-developer clarity | Could a non-technical person operate it without terminal/API knowledge?        |
+| Hardware reality      | Does it touch real local machine, app, file, device, GPU, or service state?    |
+| AI containment        | Is AI operating behind a visible plan with receipts instead of freewheeling?   |
+| HoloScript source     | Is the workflow represented in `.holo`, `.hs`, or `.hsplus`?                   |
+| Multi-agent value     | Do extra agents make the outcome clearer, faster, safer, or more capable?      |
+| Reversibility         | Can the action be replayed, inspected, rolled back, or explained?              |
+| HoloLand path         | Can the experience become a world, room, NPC, tool, quest, or creator surface? |
 
 ## First Flagship Scenario
 

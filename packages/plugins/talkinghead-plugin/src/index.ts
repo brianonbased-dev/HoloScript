@@ -194,7 +194,7 @@ export class OfflineVisemeExtractor implements VisemeExtractor {
   private zeroCrossingRate(samples: Float32Array): number {
     let crossings = 0;
     for (let i = 1; i < samples.length; i++) {
-      if ((samples[i] >= 0) !== (samples[i - 1] >= 0)) {
+      if (samples[i] >= 0 !== samples[i - 1] >= 0) {
         crossings++;
       }
     }
@@ -254,11 +254,12 @@ export class WebAudioVisemeExtractor implements VisemeExtractor {
     } else {
       // Node.js 18+ — file path or file:// URI
       const { readFile } = await import('node:fs/promises');
-      const filePath = audioURI.startsWith('file://')
-        ? new URL(audioURI).pathname
-        : audioURI;
+      const filePath = audioURI.startsWith('file://') ? new URL(audioURI).pathname : audioURI;
       const buf = await readFile(filePath);
-      arrayBuffer = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+      arrayBuffer = buf.buffer.slice(
+        buf.byteOffset,
+        buf.byteOffset + buf.byteLength
+      ) as ArrayBuffer;
     }
 
     // ── 2. Decode with Web Audio (browser) or fall back to heuristic ────────
@@ -291,9 +292,7 @@ export class WebAudioVisemeExtractor implements VisemeExtractor {
     }
 
     const monoSamples =
-      decoded.numberOfChannels > 1
-        ? mixToMono(decoded)
-        : decoded.getChannelData(0).slice();
+      decoded.numberOfChannels > 1 ? mixToMono(decoded) : decoded.getChannelData(0).slice();
 
     return this.offlineExtractor.extract({
       samples: monoSamples,
@@ -385,7 +384,9 @@ export function mapTalkingHead(input: TalkingHeadInput): HoloLipsyncEmission {
       gapMs += input.duration_ms - lastEnd;
     }
     if (gapMs > 0) {
-      warnings.push(`silence gaps cover ${((gapMs / input.duration_ms) * 100).toFixed(1)}% of duration`);
+      warnings.push(
+        `silence gaps cover ${((gapMs / input.duration_ms) * 100).toFixed(1)}% of duration`
+      );
     }
   } else if (input.duration_ms > 0) {
     warnings.push('no viseme events — full silence');

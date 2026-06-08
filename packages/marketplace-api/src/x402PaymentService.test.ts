@@ -23,9 +23,7 @@ function createBaseOptions(
   overrides: Partial<x402PaymentServiceOptions> = {}
 ): x402PaymentServiceOptions {
   return {
-    facilitators: [
-      { name: 'coinbase', endpoint: 'https://facilitator.example/x402' },
-    ],
+    facilitators: [{ name: 'coinbase', endpoint: 'https://facilitator.example/x402' }],
     networks: [
       { name: 'base', rpc_url: 'http://127.0.0.1:8545', chain_id: 8453 },
       { name: 'ethereum', rpc_url: 'http://127.0.0.1:8546', chain_id: 1 },

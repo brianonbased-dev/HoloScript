@@ -53,7 +53,7 @@ describe('government-civic -> HoloScript runtime integration (civic_decision)', 
     });
 
     await runtime.executeNode(
-      civicDecisionOrb({ candidates: TWO_CANDIDATES, criteria: TWO_CANDIDATE_CRITERIA }) as never,
+      civicDecisionOrb({ candidates: TWO_CANDIDATES, criteria: TWO_CANDIDATE_CRITERIA }) as never
     );
     await flush();
 
@@ -79,7 +79,7 @@ describe('government-civic -> HoloScript runtime integration (civic_decision)', 
     runtime.on('civic_decision_solved', (e: unknown) => solved.push(e));
 
     await runtime.executeNode(
-      civicDecisionOrb({ candidates: TWO_CANDIDATES, criteria: TWO_CANDIDATE_CRITERIA }) as never,
+      civicDecisionOrb({ candidates: TWO_CANDIDATES, criteria: TWO_CANDIDATE_CRITERIA }) as never
     );
     await flush();
 
@@ -91,7 +91,7 @@ describe('government-civic -> HoloScript runtime integration (civic_decision)', 
     registerGovernmentCivicTraitHandlers(runtime);
 
     await runtime.executeNode(
-      civicDecisionOrb({ candidates: TWO_CANDIDATES, criteria: TWO_CANDIDATE_CRITERIA }) as never,
+      civicDecisionOrb({ candidates: TWO_CANDIDATES, criteria: TWO_CANDIDATE_CRITERIA }) as never
     );
     await flush();
 
@@ -118,7 +118,7 @@ describe('government-civic -> HoloScript runtime integration (civic_decision)', 
     // handler's try/catch turns into a civic_decision_error rather than a throw.
     const mismatched: MCDACandidate[] = [{ id: 'A', scores: [1, 2] }];
     await runtime.executeNode(
-      civicDecisionOrb({ candidates: mismatched, criteria: TWO_CANDIDATE_CRITERIA }) as never,
+      civicDecisionOrb({ candidates: mismatched, criteria: TWO_CANDIDATE_CRITERIA }) as never
     );
     await flush();
 

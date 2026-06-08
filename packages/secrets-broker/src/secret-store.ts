@@ -35,12 +35,7 @@
  * @module secrets-broker/secret-store
  */
 
-import {
-  createCipheriv,
-  createDecipheriv,
-  randomBytes,
-  randomUUID,
-} from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, randomUUID } from 'node:crypto';
 
 import type { SecretRef } from './types';
 
@@ -309,10 +304,7 @@ function sealValue(
   // Encrypt the value with the DEK.
   const iv = randomBytes(IV_BYTES);
   const valueCipher = createCipheriv(CIPHER, dek, iv, { authTagLength: AUTH_TAG_BYTES });
-  const ciphertext = Buffer.concat([
-    valueCipher.update(plaintext, 'utf8'),
-    valueCipher.final(),
-  ]);
+  const ciphertext = Buffer.concat([valueCipher.update(plaintext, 'utf8'), valueCipher.final()]);
   const authTag = valueCipher.getAuthTag();
 
   // Wrap the DEK with the KEK.

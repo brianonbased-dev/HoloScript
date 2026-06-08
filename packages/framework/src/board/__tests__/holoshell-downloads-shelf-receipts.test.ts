@@ -138,7 +138,11 @@ const validDuplicateGroupReceipt: DuplicateGroupReceipt = {
   canonicalContentHash: 'sha256contenthash',
   entries: [
     { file: validFileProxy, isCanonical: true, matchReason: 'content_hash' },
-    { file: { ...validFileProxy, id: 'fp_002', redactedFilename: 'report-2026-copy.pdf' }, isCanonical: false, matchReason: 'content_hash' },
+    {
+      file: { ...validFileProxy, id: 'fp_002', redactedFilename: 'report-2026-copy.pdf' },
+      isCanonical: false,
+      matchReason: 'content_hash',
+    },
   ],
   groupSize: 2,
   canonicalCount: 1,
@@ -324,7 +328,10 @@ describe('validateDownloadedFileProxy', () => {
   });
 
   it('rejects permissionEnvelope other than preview_only (import mode)', () => {
-    const proxy = { ...validFileProxy, permissionEnvelope: 'full_access' as unknown as 'preview_only' };
+    const proxy = {
+      ...validFileProxy,
+      permissionEnvelope: 'full_access' as unknown as 'preview_only',
+    };
     const errors = validateDownloadedFileProxy(proxy);
     expect(errors).toContain('DownloadedFileProxy.permissionEnvelope must be preview_only.');
   });
@@ -357,17 +364,27 @@ describe('validateDownloadsInventoryReceipt', () => {
 
   it('rejects missing id', () => {
     const receipt = { ...validInventoryReceipt, id: '' };
-    expect(validateDownloadsInventoryReceipt(receipt)).toContain('DownloadsInventoryReceipt.id is required.');
+    expect(validateDownloadsInventoryReceipt(receipt)).toContain(
+      'DownloadsInventoryReceipt.id is required.'
+    );
   });
 
   it('rejects anyFileContainsAbsolutePath=true (path leakage)', () => {
-    const receipt = { ...validInventoryReceipt, anyFileContainsAbsolutePath: true as unknown as false };
+    const receipt = {
+      ...validInventoryReceipt,
+      anyFileContainsAbsolutePath: true as unknown as false,
+    };
     const errors = validateDownloadsInventoryReceipt(receipt);
-    expect(errors).toContain('DownloadsInventoryReceipt.anyFileContainsAbsolutePath must be false.');
+    expect(errors).toContain(
+      'DownloadsInventoryReceipt.anyFileContainsAbsolutePath must be false.'
+    );
   });
 
   it('rejects importMode other than preview_only', () => {
-    const receipt = { ...validInventoryReceipt, importMode: 'full_access' as unknown as 'preview_only' };
+    const receipt = {
+      ...validInventoryReceipt,
+      importMode: 'full_access' as unknown as 'preview_only',
+    };
     const errors = validateDownloadsInventoryReceipt(receipt);
     expect(errors).toContain('DownloadsInventoryReceipt.importMode must be preview_only.');
   });
@@ -379,7 +396,13 @@ describe('validateDownloadsInventoryReceipt', () => {
   });
 
   it('rejects empty files array', () => {
-    const receipt = { ...validInventoryReceipt, files: [], fileCount: 0, totalSizeBytes: 0, categoriesFound: [] };
+    const receipt = {
+      ...validInventoryReceipt,
+      files: [],
+      fileCount: 0,
+      totalSizeBytes: 0,
+      categoriesFound: [],
+    };
     const errors = validateDownloadsInventoryReceipt(receipt);
     expect(errors.some((e) => e.includes('must include at least one file'))).toBe(true);
   });
@@ -399,7 +422,10 @@ describe('validateArchiveQuarantineReceipt', () => {
   });
 
   it('rejects rawPrivateDataPublished=true (raw private data publication)', () => {
-    const receipt = { ...validQuarantineReceipt, rawPrivateDataPublished: true as unknown as false };
+    const receipt = {
+      ...validQuarantineReceipt,
+      rawPrivateDataPublished: true as unknown as false,
+    };
     const errors = validateArchiveQuarantineReceipt(receipt);
     expect(errors).toContain('ArchiveQuarantineReceipt.rawPrivateDataPublished must be false.');
   });
@@ -407,7 +433,9 @@ describe('validateArchiveQuarantineReceipt', () => {
   it('rejects scannedFileCount > totalFileCount', () => {
     const receipt = { ...validQuarantineReceipt, scannedFileCount: 5, totalFileCount: 3 };
     const errors = validateArchiveQuarantineReceipt(receipt);
-    expect(errors).toContain('ArchiveQuarantineReceipt.scannedFileCount must be <= totalFileCount.');
+    expect(errors).toContain(
+      'ArchiveQuarantineReceipt.scannedFileCount must be <= totalFileCount.'
+    );
   });
 });
 
@@ -419,19 +447,28 @@ describe('validateExecutableBlockReceipt', () => {
   });
 
   it('rejects executionAttempted=true', () => {
-    const receipt = { ...validExecutableBlockReceipt, executionAttempted: true as unknown as false };
+    const receipt = {
+      ...validExecutableBlockReceipt,
+      executionAttempted: true as unknown as false,
+    };
     const errors = validateExecutableBlockReceipt(receipt);
     expect(errors).toContain('ExecutableBlockReceipt.executionAttempted must be false.');
   });
 
   it('rejects executableLaunched=true (executable launch)', () => {
-    const receipt = { ...validExecutableBlockReceipt, executableLaunched: true as unknown as false };
+    const receipt = {
+      ...validExecutableBlockReceipt,
+      executableLaunched: true as unknown as false,
+    };
     const errors = validateExecutableBlockReceipt(receipt);
     expect(errors).toContain('ExecutableBlockReceipt.executableLaunched must be false.');
   });
 
   it('rejects unsupported blockReason', () => {
-    const receipt = { ...validExecutableBlockReceipt, blockReason: 'whim' as unknown as 'executable_detected' };
+    const receipt = {
+      ...validExecutableBlockReceipt,
+      blockReason: 'whim' as unknown as 'executable_detected',
+    };
     const errors = validateExecutableBlockReceipt(receipt);
     expect(errors.some((e) => e.includes('blockReason is unsupported'))).toBe(true);
   });
@@ -445,7 +482,11 @@ describe('validateDuplicateGroupReceipt', () => {
   });
 
   it('rejects group with < 2 entries', () => {
-    const receipt = { ...validDuplicateGroupReceipt, entries: [validDuplicateGroupReceipt.entries[0]], groupSize: 1 };
+    const receipt = {
+      ...validDuplicateGroupReceipt,
+      entries: [validDuplicateGroupReceipt.entries[0]],
+      groupSize: 1,
+    };
     const errors = validateDuplicateGroupReceipt(receipt);
     expect(errors.some((e) => e.includes('must include at least 2 entries'))).toBe(true);
   });
@@ -457,7 +498,10 @@ describe('validateDuplicateGroupReceipt', () => {
   });
 
   it('rejects sourceFileMutationPerformed=true', () => {
-    const receipt = { ...validDuplicateGroupReceipt, sourceFileMutationPerformed: true as unknown as false };
+    const receipt = {
+      ...validDuplicateGroupReceipt,
+      sourceFileMutationPerformed: true as unknown as false,
+    };
     const errors = validateDuplicateGroupReceipt(receipt);
     expect(errors).toContain('DuplicateGroupReceipt.sourceFileMutationPerformed must be false.');
   });
@@ -477,37 +521,55 @@ describe('validateSafePreviewReceipt', () => {
   });
 
   it('rejects previewContainsAbsolutePaths=true (path leakage)', () => {
-    const receipt = { ...validSafePreviewReceipt, previewContainsAbsolutePaths: true as unknown as false };
+    const receipt = {
+      ...validSafePreviewReceipt,
+      previewContainsAbsolutePaths: true as unknown as false,
+    };
     const errors = validateSafePreviewReceipt(receipt);
     expect(errors).toContain('SafePreviewReceipt.previewContainsAbsolutePaths must be false.');
   });
 
   it('rejects previewContainsRawPrivateData=true (raw private data publication)', () => {
-    const receipt = { ...validSafePreviewReceipt, previewContainsRawPrivateData: true as unknown as false };
+    const receipt = {
+      ...validSafePreviewReceipt,
+      previewContainsRawPrivateData: true as unknown as false,
+    };
     const errors = validateSafePreviewReceipt(receipt);
     expect(errors).toContain('SafePreviewReceipt.previewContainsRawPrivateData must be false.');
   });
 
   it('rejects importMode other than preview_only', () => {
-    const receipt = { ...validSafePreviewReceipt, importMode: 'full_access' as unknown as 'preview_only' };
+    const receipt = {
+      ...validSafePreviewReceipt,
+      importMode: 'full_access' as unknown as 'preview_only',
+    };
     const errors = validateSafePreviewReceipt(receipt);
     expect(errors).toContain('SafePreviewReceipt.importMode must be preview_only.');
   });
 
   it('rejects partialDownloadMarkedSafe=true (partial downloads marked safe)', () => {
-    const receipt = { ...validSafePreviewReceipt, partialDownloadMarkedSafe: true as unknown as false };
+    const receipt = {
+      ...validSafePreviewReceipt,
+      partialDownloadMarkedSafe: true as unknown as false,
+    };
     const errors = validateSafePreviewReceipt(receipt);
     expect(errors).toContain('SafePreviewReceipt.partialDownloadMarkedSafe must be false.');
   });
 
   it('rejects sourceFileModificationAllowed=true', () => {
-    const receipt = { ...validSafePreviewReceipt, sourceFileModificationAllowed: true as unknown as false };
+    const receipt = {
+      ...validSafePreviewReceipt,
+      sourceFileModificationAllowed: true as unknown as false,
+    };
     const errors = validateSafePreviewReceipt(receipt);
     expect(errors).toContain('SafePreviewReceipt.sourceFileModificationAllowed must be false.');
   });
 
   it('rejects absolute path in redactedPreviewPath', () => {
-    const receipt = { ...validSafePreviewReceipt, redactedPreviewPath: 'C:\\Users\\secret\\file.pdf' };
+    const receipt = {
+      ...validSafePreviewReceipt,
+      redactedPreviewPath: 'C:\\Users\\secret\\file.pdf',
+    };
     const errors = validateSafePreviewReceipt(receipt);
     expect(errors.some((e) => e.includes('must be redacted or repo-relative'))).toBe(true);
   });
@@ -521,31 +583,46 @@ describe('validateDeleteDecisionReceipt', () => {
   });
 
   it('rejects requiresFreshUserGesture=false (delete without fresh user gesture)', () => {
-    const receipt = { ...validDeleteDecisionReceipt, requiresFreshUserGesture: false as unknown as true };
+    const receipt = {
+      ...validDeleteDecisionReceipt,
+      requiresFreshUserGesture: false as unknown as true,
+    };
     const errors = validateDeleteDecisionReceipt(receipt);
     expect(errors).toContain('DeleteDecisionReceipt.requiresFreshUserGesture must be true.');
   });
 
   it('rejects freshUserGestureReceived=false (delete without fresh user gesture)', () => {
-    const receipt = { ...validDeleteDecisionReceipt, freshUserGestureReceived: false as unknown as true };
+    const receipt = {
+      ...validDeleteDecisionReceipt,
+      freshUserGestureReceived: false as unknown as true,
+    };
     const errors = validateDeleteDecisionReceipt(receipt);
     expect(errors).toContain('DeleteDecisionReceipt.freshUserGestureReceived must be true.');
   });
 
   it('rejects deleteWithoutFreshUserGesture=true (delete without fresh user gesture)', () => {
-    const receipt = { ...validDeleteDecisionReceipt, deleteWithoutFreshUserGesture: true as unknown as false };
+    const receipt = {
+      ...validDeleteDecisionReceipt,
+      deleteWithoutFreshUserGesture: true as unknown as false,
+    };
     const errors = validateDeleteDecisionReceipt(receipt);
     expect(errors).toContain('DeleteDecisionReceipt.deleteWithoutFreshUserGesture must be false.');
   });
 
   it('rejects sourceFileMutationPerformed=true', () => {
-    const receipt = { ...validDeleteDecisionReceipt, sourceFileMutationPerformed: true as unknown as false };
+    const receipt = {
+      ...validDeleteDecisionReceipt,
+      sourceFileMutationPerformed: true as unknown as false,
+    };
     const errors = validateDeleteDecisionReceipt(receipt);
     expect(errors).toContain('DeleteDecisionReceipt.sourceFileMutationPerformed must be false.');
   });
 
   it('rejects unsupported reason', () => {
-    const receipt = { ...validDeleteDecisionReceipt, reason: 'arbitrary' as unknown as 'user_explicit' };
+    const receipt = {
+      ...validDeleteDecisionReceipt,
+      reason: 'arbitrary' as unknown as 'user_explicit',
+    };
     const errors = validateDeleteDecisionReceipt(receipt);
     expect(errors.some((e) => e.includes('reason is unsupported'))).toBe(true);
   });
@@ -577,9 +654,14 @@ describe('validateDownloadsShelfReplayReceipt', () => {
   });
 
   it('rejects deleteWithoutFreshUserGesture=true', () => {
-    const receipt = { ...validReplayReceipt, deleteWithoutFreshUserGesture: true as unknown as false };
+    const receipt = {
+      ...validReplayReceipt,
+      deleteWithoutFreshUserGesture: true as unknown as false,
+    };
     const errors = validateDownloadsShelfReplayReceipt(receipt);
-    expect(errors).toContain('DownloadsShelfReplayReceipt.deleteWithoutFreshUserGesture must be false.');
+    expect(errors).toContain(
+      'DownloadsShelfReplayReceipt.deleteWithoutFreshUserGesture must be false.'
+    );
   });
 
   it('rejects anyFileHashMissing=true (missing file hashes)', () => {
@@ -589,9 +671,14 @@ describe('validateDownloadsShelfReplayReceipt', () => {
   });
 
   it('rejects wrong workflow', () => {
-    const receipt = { ...validReplayReceipt, workflow: 'wrong-workflow' as unknown as 'downloads-import-shelf' };
+    const receipt = {
+      ...validReplayReceipt,
+      workflow: 'wrong-workflow' as unknown as 'downloads-import-shelf',
+    };
     const errors = validateDownloadsShelfReplayReceipt(receipt);
-    expect(errors).toContain('DownloadsShelfReplayReceipt.workflow must be downloads-import-shelf.');
+    expect(errors).toContain(
+      'DownloadsShelfReplayReceipt.workflow must be downloads-import-shelf.'
+    );
   });
 });
 
@@ -609,13 +696,19 @@ describe('validateHoloShellDownloadsShelfReceiptPack', () => {
   });
 
   it('rejects missing inventory', () => {
-    const pack = { ...validReceiptPack, inventory: undefined as unknown as DownloadsInventoryReceipt };
+    const pack = {
+      ...validReceiptPack,
+      inventory: undefined as unknown as DownloadsInventoryReceipt,
+    };
     const errors = validateHoloShellDownloadsShelfReceiptPack(pack);
     expect(errors).toContain('HoloShellDownloadsShelfReceiptPack.inventory is required.');
   });
 
   it('rejects missing replay', () => {
-    const pack = { ...validReceiptPack, replay: undefined as unknown as DownloadsShelfReplayReceipt };
+    const pack = {
+      ...validReceiptPack,
+      replay: undefined as unknown as DownloadsShelfReplayReceipt,
+    };
     const errors = validateHoloShellDownloadsShelfReceiptPack(pack);
     expect(errors).toContain('HoloShellDownloadsShelfReceiptPack.replay is required.');
   });
@@ -623,7 +716,9 @@ describe('validateHoloShellDownloadsShelfReceiptPack', () => {
   it('requires preview when status=completed', () => {
     const pack = { ...validReceiptPack, preview: undefined, status: 'completed' as const };
     const errors = validateHoloShellDownloadsShelfReceiptPack(pack);
-    expect(errors).toContain('HoloShellDownloadsShelfReceiptPack.preview is required when status=completed.');
+    expect(errors).toContain(
+      'HoloShellDownloadsShelfReceiptPack.preview is required when status=completed.'
+    );
   });
 
   it('validates executable blocks within pack', () => {

@@ -74,7 +74,9 @@ export function buildInboxPayload(input: InboxPushInput): InboxPushPayload {
   const url = typeof input.url === 'string' ? input.url.trim() : '';
   const label = typeof input.label === 'string' ? input.label.trim() : '';
   if (!/^https?:\/\//i.test(url)) {
-    throw new Error('push-to-founder-console: --url must be an http(s) URL the founder can open on his headset');
+    throw new Error(
+      'push-to-founder-console: --url must be an http(s) URL the founder can open on his headset'
+    );
   }
   if (!label) {
     throw new Error('push-to-founder-console: --label is required (what is this artifact?)');
@@ -174,12 +176,18 @@ export function parseFounderInboxEntries(feedItems: unknown, limit = 25): Founde
     const url = typeof parsed.url === 'string' ? parsed.url : '';
     const label = typeof parsed.label === 'string' ? parsed.label.trim() : '';
     if (!/^https?:\/\//i.test(url) || !label) continue;
-    const kind = typeof parsed.kind === 'string' && ARTIFACT_KINDS.has(parsed.kind) ? parsed.kind : 'artifact';
-    const ts = (typeof parsed.ts === 'string' && parsed.ts) || raw.ts || raw.createdAt || new Date(0).toISOString();
+    const kind =
+      typeof parsed.kind === 'string' && ARTIFACT_KINDS.has(parsed.kind) ? parsed.kind : 'artifact';
+    const ts =
+      (typeof parsed.ts === 'string' && parsed.ts) ||
+      raw.ts ||
+      raw.createdAt ||
+      new Date(0).toISOString();
     const taskId = typeof parsed.taskId === 'string' ? parsed.taskId : null;
     const state = normalizeState(parsed.state);
     const dedupKey =
-      (typeof parsed.dedupKey === 'string' && parsed.dedupKey) || defaultDedupKey(kind, url, taskId);
+      (typeof parsed.dedupKey === 'string' && parsed.dedupKey) ||
+      defaultDedupKey(kind, url, taskId);
     // ── Pre-Vetted Approval Gate fields (G2) ──────────────────────────────────
     const preVetted = parsed.preVetted === true;
     let vetting: InboxVettingSummary | null = null;
@@ -189,8 +197,12 @@ export function parseFounderInboxEntries(feedItems: unknown, limit = 25): Founde
         schema: typeof v.schema === 'string' ? v.schema : 'holoscript.founder-vetting.v1',
         glance: typeof v.glance === 'string' ? v.glance : null,
         tests: typeof v.tests === 'string' ? v.tests : null,
-        reviewers: Array.isArray(v.reviewers) ? (v.reviewers as unknown[]).filter((r): r is string => typeof r === 'string') : [],
-        classes: Array.isArray(v.classes) ? (v.classes as unknown[]).filter((c): c is string => typeof c === 'string') : [],
+        reviewers: Array.isArray(v.reviewers)
+          ? (v.reviewers as unknown[]).filter((r): r is string => typeof r === 'string')
+          : [],
+        classes: Array.isArray(v.classes)
+          ? (v.classes as unknown[]).filter((c): c is string => typeof c === 'string')
+          : [],
         express: v.express === true,
       };
     }

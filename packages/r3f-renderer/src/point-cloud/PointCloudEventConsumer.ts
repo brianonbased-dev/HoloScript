@@ -1,5 +1,11 @@
 export type PointCloudFormat = 'ply' | 'las' | 'laz' | 'xyz' | 'pcd' | 'e57' | string;
-export type PointCloudColorMode = 'rgb' | 'intensity' | 'height' | 'classification' | 'normal' | string;
+export type PointCloudColorMode =
+  | 'rgb'
+  | 'intensity'
+  | 'height'
+  | 'classification'
+  | 'normal'
+  | string;
 
 export const POINT_CLOUD_TRAIT_EVENTS = [
   'point_cloud_load',
@@ -120,10 +126,13 @@ export class PointCloudEventConsumer {
         const handle = this.handles.get(nodeIdFor(payload.node));
         if (handle && Number.isFinite(payload.size)) handle.pointSize = Number(payload.size);
       }),
-      this.bus.on<{ node: unknown; mode?: PointCloudColorMode }>('point_cloud_update_color', (payload) => {
-        const handle = this.handles.get(nodeIdFor(payload.node));
-        if (handle && payload.mode) handle.colorMode = payload.mode;
-      }),
+      this.bus.on<{ node: unknown; mode?: PointCloudColorMode }>(
+        'point_cloud_update_color',
+        (payload) => {
+          const handle = this.handles.get(nodeIdFor(payload.node));
+          if (handle && payload.mode) handle.colorMode = payload.mode;
+        }
+      ),
       this.bus.on<{ node: unknown; classification?: number[]; heightRange?: [number, number] }>(
         'point_cloud_apply_filter',
         (payload) => this.applyFilter(payload.node, payload)
@@ -247,9 +256,10 @@ export class PointCloudEventConsumer {
     direction?: [number, number, number];
   }): void {
     const handle = this.handles.get(nodeIdFor(payload.node));
-    const point = handle && payload.origin && payload.direction
-      ? pickNearestPointOnRay(handle, payload.origin, normalizeVector(payload.direction))
-      : null;
+    const point =
+      handle && payload.origin && payload.direction
+        ? pickNearestPointOnRay(handle, payload.origin, normalizeVector(payload.direction))
+        : null;
 
     this.bus.emit('point_cloud_pick_result', {
       node: payload.node,
@@ -295,9 +305,10 @@ export function parsePointCloudText(
   }
 
   const rows = extractAsciiPointRows(text, format);
-  const maxPoints = options.maxPoints === undefined
-    ? Number.POSITIVE_INFINITY
-    : Math.max(0, Math.floor(options.maxPoints));
+  const maxPoints =
+    options.maxPoints === undefined
+      ? Number.POSITIVE_INFINITY
+      : Math.max(0, Math.floor(options.maxPoints));
   const positions: number[] = [];
   const colors: number[] = [];
 
@@ -388,9 +399,9 @@ function extractAsciiPointRows(text: string, format: string): string[] {
   return lines;
 }
 
-function parseAsciiPoint(row: string):
-  | { position: [number, number, number]; color: [number, number, number] }
-  | null {
+function parseAsciiPoint(
+  row: string
+): { position: [number, number, number]; color: [number, number, number] } | null {
   const trimmed = row.trim();
   if (!trimmed || trimmed.startsWith('#')) return null;
   const parts = trimmed.split(/[,\s]+/).map(Number);

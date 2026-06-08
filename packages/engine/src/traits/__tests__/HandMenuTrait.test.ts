@@ -30,7 +30,7 @@ describe('HandMenuTrait', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     node = createMockNode('menu1');
-    (node as any).properties = { position: [0, 0, 0], scale: [1, 1, 1 ] };
+    (node as any).properties = { position: [0, 0, 0], scale: [1, 1, 1] };
     ctx = {
       ...createMockContext(),
       vr: {
@@ -43,7 +43,7 @@ describe('HandMenuTrait', () => {
   });
 
   it('sets initial scale to zero on attach', () => {
-    expect((node as any).properties.scale).toEqual([0, 0, 0 ]);
+    expect((node as any).properties.scale).toEqual([0, 0, 0]);
   });
 
   it('sets initial opacity to zero on attach', () => {

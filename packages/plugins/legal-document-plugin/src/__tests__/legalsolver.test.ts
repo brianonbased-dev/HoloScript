@@ -33,7 +33,8 @@ describe('fleschKincaid', () => {
   });
 
   it('complex legal text → lower reading ease', () => {
-    const complex = 'The indemnification obligations hereunder shall be construed notwithstanding ' +
+    const complex =
+      'The indemnification obligations hereunder shall be construed notwithstanding ' +
       'the limitations and qualifications set forth in the preceding subsections. ' +
       'The parties acknowledge and agree that arbitration shall constitute the exclusive ' +
       'and binding mechanism for dispute resolution, irrespective of jurisdictional considerations.';
@@ -63,7 +64,15 @@ describe('fleschKincaid', () => {
     if (easy.readingEase >= 90) expect(easy.difficulty).toBe('very-easy');
     else if (easy.readingEase >= 80) expect(easy.difficulty).toBe('easy');
     // Just verify it's one of the valid values
-    const validDifficulties = ['very-easy','easy','fairly-easy','standard','fairly-difficult','difficult','very-difficult'];
+    const validDifficulties = [
+      'very-easy',
+      'easy',
+      'fairly-easy',
+      'standard',
+      'fairly-difficult',
+      'difficult',
+      'very-difficult',
+    ];
     expect(validDifficulties).toContain(easy.difficulty);
   });
 
@@ -82,7 +91,8 @@ describe('fleschKincaid', () => {
 
 describe('clauseRiskScorer', () => {
   it('contract with indemnify/unlimited liability → high or critical risk', () => {
-    const text = 'The contractor shall indemnify and hold harmless the client from all unlimited liability ' +
+    const text =
+      'The contractor shall indemnify and hold harmless the client from all unlimited liability ' +
       'arising from breach, including liquidated damages and penalty clauses.';
     const r = clauseRiskScorer(text);
     expect(['high', 'critical']).toContain(r.riskCategory);
@@ -90,7 +100,8 @@ describe('clauseRiskScorer', () => {
   });
 
   it('simple clean contract → low risk', () => {
-    const text = 'The parties agree to mutual cooperation and limitation of liability as set forth herein.';
+    const text =
+      'The parties agree to mutual cooperation and limitation of liability as set forth herein.';
     const r = clauseRiskScorer(text);
     expect(r.riskScore).toBeLessThan(50);
   });
@@ -98,8 +109,8 @@ describe('clauseRiskScorer', () => {
   it('flaggedTerms contains matched risk terms', () => {
     const text = 'The party shall indemnify and arbitrate any disputes.';
     const r = clauseRiskScorer(text);
-    const terms = r.flaggedTerms.map(t => t.term);
-    expect(terms.some(t => t.includes('indemnif') || t.includes('arbitration'))).toBe(true);
+    const terms = r.flaggedTerms.map((t) => t.term);
+    expect(terms.some((t) => t.includes('indemnif') || t.includes('arbitration'))).toBe(true);
   });
 
   it('riskScore in [0, 100]', () => {
@@ -115,8 +126,12 @@ describe('clauseRiskScorer', () => {
   });
 
   it('protective terms reduce risk score', () => {
-    const risky   = clauseRiskScorer('The party shall indemnify all losses penalty liquidated damages.');
-    const balanced = clauseRiskScorer('The party shall indemnify, subject to limitation of liability and mutual agreement, penalty liquidated damages.');
+    const risky = clauseRiskScorer(
+      'The party shall indemnify all losses penalty liquidated damages.'
+    );
+    const balanced = clauseRiskScorer(
+      'The party shall indemnify, subject to limitation of liability and mutual agreement, penalty liquidated damages.'
+    );
     expect(balanced.riskScore).toBeLessThan(risky.riskScore);
   });
 
@@ -134,22 +149,25 @@ describe('clauseRiskScorer', () => {
 
 describe('extractObligations', () => {
   it('extracts SHALL obligations', () => {
-    const text = 'The Vendor shall deliver the goods within 30 days. The Client shall pay the invoice.';
+    const text =
+      'The Vendor shall deliver the goods within 30 days. The Client shall pay the invoice.';
     const r = extractObligations(text);
     expect(r.length).toBeGreaterThan(0);
-    expect(r.some(o => o.type === 'shall')).toBe(true);
+    expect(r.some((o) => o.type === 'shall')).toBe(true);
   });
 
   it('extracts MUST obligations', () => {
-    const text = 'Contractor must comply with all applicable regulations and must submit monthly reports.';
+    const text =
+      'Contractor must comply with all applicable regulations and must submit monthly reports.';
     const r = extractObligations(text);
-    expect(r.some(o => o.type === 'must')).toBe(true);
+    expect(r.some((o) => o.type === 'must')).toBe(true);
   });
 
   it('extracts negative obligations (shall not, must not)', () => {
-    const text = 'The Licensee shall not sublicense the software. Vendor must not disclose confidential information.';
+    const text =
+      'The Licensee shall not sublicense the software. Vendor must not disclose confidential information.';
     const r = extractObligations(text);
-    expect(r.some(o => o.type === 'shall-not' || o.type === 'must-not')).toBe(true);
+    expect(r.some((o) => o.type === 'shall-not' || o.type === 'must-not')).toBe(true);
   });
 
   it('each obligation has text and clauseIndex', () => {
@@ -176,7 +194,7 @@ describe('buildDeadlineCalendar', () => {
     const text = 'Payment is due on 2026-06-30. Delivery must occur by 2026-07-15.';
     const r = buildDeadlineCalendar(text);
     expect(r.length).toBeGreaterThan(0);
-    expect(r.some(d => d.deadlineType === 'absolute')).toBe(true);
+    expect(r.some((d) => d.deadlineType === 'absolute')).toBe(true);
   });
 
   it('deadline entries have text and dateString', () => {
@@ -243,28 +261,29 @@ describe('contractSimilarity', () => {
 
 describe('penaltyExposure', () => {
   it('extracts liquidated damages amounts', () => {
-    const text = 'In the event of breach, the party shall pay liquidated damages of $50,000 per month. ' +
+    const text =
+      'In the event of breach, the party shall pay liquidated damages of $50,000 per month. ' +
       'A penalty of $10,000 applies for late delivery.';
-    const r = penaltyExposure(text, 0.20);
+    const r = penaltyExposure(text, 0.2);
     expect(r.penalties.length).toBeGreaterThan(0);
   });
 
   it('totalExpectedExposureUSD = sum of expectedValues', () => {
     const text = 'Liquidated damages of $100,000 apply. Additional penalty of $25,000 for breach.';
-    const r = penaltyExposure(text, 0.10);
+    const r = penaltyExposure(text, 0.1);
     const manualSum = r.penalties.reduce((acc, p) => acc + (p.expectedValueUSD ?? 0), 0);
     expect(r.totalExpectedExposureUSD).toBeCloseTo(manualSum, 2);
   });
 
   it('maxExposureUSD ≥ totalExpectedExposureUSD', () => {
     const text = 'Penalty clause: $200,000 liquidated damages per occurrence.';
-    const r = penaltyExposure(text, 0.30);
+    const r = penaltyExposure(text, 0.3);
     expect(r.maxExposureUSD).toBeGreaterThanOrEqual(r.totalExpectedExposureUSD);
   });
 
   it('zero exposure for clean contract', () => {
     const text = 'The parties agree to cooperate in good faith and resolve disputes amicably.';
-    const r = penaltyExposure(text, 0.10);
+    const r = penaltyExposure(text, 0.1);
     expect(r.totalExpectedExposureUSD).toBeGreaterThanOrEqual(0);
   });
 });
@@ -272,8 +291,10 @@ describe('penaltyExposure', () => {
 // ─── Receipt ─────────────────────────────────────────────────────────────────
 
 describe('buildLegalReceipt', () => {
-  const cleanText = 'The vendor shall deliver goods on time. The client shall pay the fee. Both parties agree to mutual cooperation.';
-  const riskyText = 'The party shall indemnify and hold harmless from unlimited liability. ' +
+  const cleanText =
+    'The vendor shall deliver goods on time. The client shall pay the fee. Both parties agree to mutual cooperation.';
+  const riskyText =
+    'The party shall indemnify and hold harmless from unlimited liability. ' +
     'Terminate immediately without cause. Sole discretion for all decisions. ' +
     'Liquidated damages of $500,000 apply. Penalty of $200,000 for any breach. ' +
     'The indemnification obligations are irrevocable and perpetual.';
@@ -289,7 +310,11 @@ describe('buildLegalReceipt', () => {
   it('accepted=true for clean low-risk contract', () => {
     const result = analyzeLegalDocument({ text: cleanText });
     // A short simple contract should have low grade level and low risk
-    if (result.readability.gradeLevel <= 16 && result.risk.riskScore <= 70 && result.penaltyExposure.maxExposureUSD <= 100_000) {
+    if (
+      result.readability.gradeLevel <= 16 &&
+      result.risk.riskScore <= 70 &&
+      result.penaltyExposure.maxExposureUSD <= 100_000
+    ) {
       const receipt = buildLegalReceipt(result);
       expect(receipt.acceptance.accepted).toBe(true);
     }

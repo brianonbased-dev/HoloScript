@@ -40,14 +40,19 @@ export interface UICommandContext {
   /** Active animations registry. */
   animations: Map<string, Animation>;
   /** Particle-effect creator (HSR wrapper that threads the Map + security limit). */
-  createParticleEffect: (name: string, position: SpatialPosition, color: string, count: number) => void;
+  createParticleEffect: (
+    name: string,
+    position: SpatialPosition,
+    color: string,
+    count: number
+  ) => void;
   /** Connection-stream creator (HSR wrapper). */
   createConnectionStream: (
     from: string,
     to: string,
     fromPos: SpatialPosition,
     toPos: SpatialPosition,
-    dataType: string,
+    dataType: string
   ) => void;
 }
 
@@ -91,7 +96,7 @@ const PULSE_SCALE_TO = 1.5;
 export async function executeShowCommand(
   target: string,
   node: ASTNode & { position?: SpatialPosition; hologram?: HologramProperties },
-  ctx: UICommandContext,
+  ctx: UICommandContext
 ): Promise<Record<string, unknown>> {
   const hologram = node.hologram || DEFAULT_SHOW_HOLOGRAM;
   const position = node.position || ([0, 0, 0] as SpatialPosition);
@@ -107,7 +112,7 @@ export async function executeShowCommand(
 export async function executeHideCommand(
   target: string,
   _node: ASTNode,
-  ctx: UICommandContext,
+  ctx: UICommandContext
 ): Promise<Record<string, unknown>> {
   const position = ctx.spatialMemory.get(target) || ([0, 0, 0] as SpatialPosition);
   ctx.createParticleEffect(`${target}_hide`, position, HIDE_COLOR, HIDE_PARTICLE_COUNT);
@@ -121,7 +126,7 @@ export async function executeHideCommand(
 export async function executeCreateCommand(
   tokens: string[],
   node: ASTNode & { position?: SpatialPosition; hologram?: HologramProperties },
-  ctx: UICommandContext,
+  ctx: UICommandContext
 ): Promise<Record<string, unknown>> {
   if (tokens.length < 2) {
     return { error: 'Create command requires shape and name' };
@@ -152,7 +157,7 @@ export async function executeAnimateCommand(
   target: string,
   tokens: string[],
   _node: ASTNode,
-  ctx: UICommandContext,
+  ctx: UICommandContext
 ): Promise<Record<string, unknown>> {
   const property = tokens[0] || DEFAULT_ANIMATE_PROPERTY;
   const duration = parseInt(tokens[1] || String(DEFAULT_ANIMATE_DURATION_MS), 10);
@@ -179,7 +184,7 @@ export async function executePulseCommand(
   target: string,
   tokens: string[],
   _node: ASTNode,
-  ctx: UICommandContext,
+  ctx: UICommandContext
 ): Promise<Record<string, unknown>> {
   const duration = parseInt(tokens[0] || String(DEFAULT_PULSE_DURATION_MS), 10);
   const position = ctx.spatialMemory.get(target) || ([0, 0, 0] as SpatialPosition);
@@ -210,7 +215,7 @@ export async function executeMoveCommand(
   target: string,
   tokens: string[],
   _node: ASTNode,
-  ctx: UICommandContext,
+  ctx: UICommandContext
 ): Promise<Record<string, unknown>> {
   const x = parseFloat(tokens[0] || '0');
   const y = parseFloat(tokens[1] || '0');
@@ -234,7 +239,7 @@ export async function executeMoveCommand(
 export async function executeDeleteCommand(
   target: string,
   _node: ASTNode,
-  ctx: UICommandContext,
+  ctx: UICommandContext
 ): Promise<Record<string, unknown>> {
   const position = ctx.spatialMemory.get(target);
   if (position) {

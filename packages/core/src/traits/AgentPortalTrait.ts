@@ -377,9 +377,10 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       case 'portal:ws_disconnected': {
         state.connected = false;
-        const reason = (payload && typeof payload === 'object' && 'reason' in payload) 
-          ? String((payload as Record<string, any>).reason) 
-          : 'unknown';
+        const reason =
+          payload && typeof payload === 'object' && 'reason' in payload
+            ? String((payload as Record<string, any>).reason)
+            : 'unknown';
         context.emit?.('portal:disconnected', {
           sceneId: config.scene_id,
           reason,
@@ -405,12 +406,12 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
       case 'portal:send': {
         if (!payload || typeof payload !== 'object') return;
         const p = payload as Record<string, any>;
-        
+
         const msg = createPortalMessage(
           state,
           config,
           p.to as FederatedAgentId | null,
-          p.messageType as string ?? 'data',
+          (p.messageType as string) ?? 'data',
           p.data
         );
         if (p.correlationId) msg.correlationId = String(p.correlationId);
@@ -439,7 +440,7 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
           state,
           config,
           null, // broadcast
-          p.messageType as string ?? 'broadcast',
+          (p.messageType as string) ?? 'broadcast',
           p.data
         );
 
@@ -491,9 +492,10 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
 
       // ─── Federation queries ───────────────────────────────────────────
       case 'portal:query_agents': {
-        const capability = (payload && typeof payload === 'object' && 'capability' in payload) 
-          ? String((payload as Record<string, any>).capability) 
-          : '';
+        const capability =
+          payload && typeof payload === 'object' && 'capability' in payload
+            ? String((payload as Record<string, any>).capability)
+            : '';
         const results: RemoteAgent[] = [];
 
         for (const agent of state.remoteAgents.values()) {
@@ -530,8 +532,9 @@ export const agentPortalHandler: TraitHandler<PortalConfig> = {
           agentId: String(p.agentId),
           name: String(p.name ?? p.agentId),
           capabilities: Array.isArray(p.capabilities) ? p.capabilities : [],
-          memory: (p.memory && typeof p.memory === 'object') ? (p.memory as Record<string, unknown>) : {},
-          state: (p.state && typeof p.state === 'object') ? (p.state as Record<string, unknown>) : {},
+          memory:
+            p.memory && typeof p.memory === 'object' ? (p.memory as Record<string, unknown>) : {},
+          state: p.state && typeof p.state === 'object' ? (p.state as Record<string, unknown>) : {},
           sourceScene: config.scene_id,
           targetScene: String(p.targetScene),
           timestamp: Date.now(),

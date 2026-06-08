@@ -121,7 +121,8 @@ export function SpectralCubeViewer({
 
   // Data range for colormap normalization
   const [min, max] = useMemo(() => {
-    let lo = Infinity, hi = -Infinity;
+    let lo = Infinity,
+      hi = -Infinity;
     for (let i = 0; i < channelData.length; i++) {
       if (channelData[i] < lo) lo = channelData[i];
       if (channelData[i] > hi) hi = channelData[i];
@@ -131,7 +132,12 @@ export function SpectralCubeViewer({
 
   // Build geometry: flat plane with per-pixel intensity attribute
   const geometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(nx / Math.max(nx, ny), ny / Math.max(nx, ny), nx - 1, ny - 1);
+    const geo = new THREE.PlaneGeometry(
+      nx / Math.max(nx, ny),
+      ny / Math.max(nx, ny),
+      nx - 1,
+      ny - 1
+    );
     const intensities = new Float32Array(nx * ny);
     for (let j = 0; j < ny; j++) {
       for (let i = 0; i < nx; i++) {
@@ -155,10 +161,13 @@ export function SpectralCubeViewer({
 
   const fragmentShader = useMemo(() => makeFrag(colormap), [colormap]);
 
-  const uniforms = useMemo(() => ({
-    uMin: { value: min },
-    uMax: { value: max },
-  }), [min, max]);
+  const uniforms = useMemo(
+    () => ({
+      uMin: { value: min },
+      uMax: { value: max },
+    }),
+    [min, max]
+  );
 
   // Channel label from WCS
   const channelLabel = useMemo(() => {
@@ -215,15 +224,17 @@ export function FITSViewerPanel({ fitsBuffer, onClose }: FITSViewerPanelProps) {
   useEffect(() => {
     try {
       // Dynamic import to avoid bundling FITS parser unless needed
-      import('../fits/FITSParser').then(({ parseFITS }) => {
-        const fits = parseFITS(fitsBuffer);
-        setFitsData({
-          data: fits.data,
-          shape: fits.shape,
-          wcs: fits.wcs,
-          object: fits.object || 'Unknown Object',
-        });
-      }).catch((e) => setError(String(e)));
+      import('../fits/FITSParser')
+        .then(({ parseFITS }) => {
+          const fits = parseFITS(fitsBuffer);
+          setFitsData({
+            data: fits.data,
+            shape: fits.shape,
+            wcs: fits.wcs,
+            object: fits.object || 'Unknown Object',
+          });
+        })
+        .catch((e) => setError(String(e)));
     } catch (e) {
       setError(String(e));
     }
@@ -249,20 +260,23 @@ export function FITSViewerPanel({ fitsBuffer, onClose }: FITSViewerPanelProps) {
   const is3D = fitsData.shape.length >= 3 && nz > 1;
 
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', gap: 8,
-      padding: 12, background: '#1a1a2e', borderRadius: 8,
-      border: '1px solid #2a2a3e', color: '#e4e4e7',
-      fontFamily: "'Space Mono', monospace",
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        padding: 12,
+        background: '#1a1a2e',
+        borderRadius: 8,
+        border: '1px solid #2a2a3e',
+        color: '#e4e4e7',
+        fontFamily: "'Space Mono', monospace",
+      }}
+    >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>
-          {fitsData.object}
-        </span>
-        <span style={{ fontSize: 10, color: '#71717a' }}>
-          {fitsData.shape.join(' × ')} px
-        </span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>{fitsData.object}</span>
+        <span style={{ fontSize: 10, color: '#71717a' }}>{fitsData.shape.join(' × ')} px</span>
       </div>
 
       {/* Channel Slider (only for 3D cubes) */}
@@ -272,8 +286,12 @@ export function FITSViewerPanel({ fitsBuffer, onClose }: FITSViewerPanelProps) {
             onClick={() => setPlaying(!playing)}
             style={{
               background: playing ? '#ef4444' : '#3b82f6',
-              border: 'none', borderRadius: 4, padding: '4px 10px',
-              color: 'white', fontSize: 11, cursor: 'pointer',
+              border: 'none',
+              borderRadius: 4,
+              padding: '4px 10px',
+              color: 'white',
+              fontSize: 11,
+              cursor: 'pointer',
             }}
           >
             {playing ? 'Stop' : 'Play'}
@@ -283,7 +301,10 @@ export function FITSViewerPanel({ fitsBuffer, onClose }: FITSViewerPanelProps) {
             min={0}
             max={nz - 1}
             value={channel}
-            onChange={(e) => { setChannel(Number(e.target.value)); setPlaying(false); }}
+            onChange={(e) => {
+              setChannel(Number(e.target.value));
+              setPlaying(false);
+            }}
             style={{ flex: 1 }}
           />
           <span style={{ fontSize: 10, color: '#71717a', minWidth: 80, textAlign: 'right' }}>
@@ -294,14 +315,18 @@ export function FITSViewerPanel({ fitsBuffer, onClose }: FITSViewerPanelProps) {
 
       {/* Data range */}
       <div style={{ fontSize: 10, color: '#71717a' }}>
-        Range: {dataRange(fitsData.data).map((v) => v.toExponential(2)).join(' → ')}
+        Range:{' '}
+        {dataRange(fitsData.data)
+          .map((v) => v.toExponential(2))
+          .join(' → ')}
       </div>
     </div>
   );
 }
 
 function dataRange(data: Float32Array): [number, number] {
-  let min = Infinity, max = -Infinity;
+  let min = Infinity,
+    max = -Infinity;
   for (let i = 0; i < data.length; i++) {
     if (data[i] < min) min = data[i];
     if (data[i] > max) max = data[i];

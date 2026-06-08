@@ -218,11 +218,7 @@ describe('EnvironmentalAudioSystem.setDoppler', () => {
 describe('EnvironmentalAudioSystem.calculateDopplerShift', () => {
   it('stationary source and listener → 1.0', () => {
     const sys = new EnvironmentalAudioSystem();
-    const pShift = sys.calculateDopplerShift(
-      [0, 0, 0 ],
-      [0, 0, 0 ],
-      [0, 0, 10 ]
-    );
+    const pShift = sys.calculateDopplerShift([0, 0, 0], [0, 0, 0], [0, 0, 10]);
     expect(pShift).toBeCloseTo(1.0, 5);
   });
   it('approaching source raises pitch above 1.0', () => {
@@ -231,9 +227,9 @@ describe('EnvironmentalAudioSystem.calculateDopplerShift', () => {
     // Source vel = +z, dir = +z (listener in +z from source):
     // sourceSpeed = -(30 * 1) = -30 → pitch = (c+0)/(c-30) > 1.0 (approaching)
     const pShift = sys.calculateDopplerShift(
-      [0, 0, 30 ], // moving toward listener
-      [0, 0, 0 ],
-      [0, 0, 1 ] // listener is in +z direction from source
+      [0, 0, 30], // moving toward listener
+      [0, 0, 0],
+      [0, 0, 1] // listener is in +z direction from source
     );
     expect(pShift).toBeGreaterThan(1.0);
   });
@@ -241,30 +237,22 @@ describe('EnvironmentalAudioSystem.calculateDopplerShift', () => {
     const sys = new EnvironmentalAudioSystem();
     // Source vel = -z, listener in +z: sourceSpeed = -(-30 * 1) = +30 → pitch = (c+0)/(c+30) < 1.0
     const pShift = sys.calculateDopplerShift(
-      [0, 0, -30 ], // moving away from listener
-      [0, 0, 0 ],
-      [0, 0, 1 ]
+      [0, 0, -30], // moving away from listener
+      [0, 0, 0],
+      [0, 0, 1]
     );
     expect(pShift).toBeLessThan(1.0);
   });
   it('returns 1.0 if distance is zero', () => {
     const sys = new EnvironmentalAudioSystem();
-    const pShift = sys.calculateDopplerShift(
-      [0, 0, 0 ],
-      [0, 0, 0 ],
-      [0, 0, 0 ]
-    );
+    const pShift = sys.calculateDopplerShift([0, 0, 0], [0, 0, 0], [0, 0, 0]);
     expect(pShift).toBe(1.0);
   });
   it('clamps to maxPitchShift', () => {
     const sys = new EnvironmentalAudioSystem();
     sys.setDoppler(true, 343, 1.2);
     // very fast source moving toward listener (+z at extreme velocity) → above-max pitch gets clamped
-    const pShift = sys.calculateDopplerShift(
-      [0, 0, 9999 ],
-      [0, 0, 0 ],
-      [0, 0, 1 ]
-    );
+    const pShift = sys.calculateDopplerShift([0, 0, 9999], [0, 0, 0], [0, 0, 1]);
     expect(pShift).toBeLessThanOrEqual(1.2);
   });
 });

@@ -258,7 +258,7 @@ describe('GLTFExporter Node Export', () => {
     const sg = createTestSceneGraph();
     sg.root.transform = {
       position: [1, 2, 3],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
       scale: [2, 2, 2],
     };
 
@@ -990,8 +990,8 @@ describe('GLTFExporter Edge Cases', () => {
     const sg = createTestSceneGraph();
     sg.root.transform = {
       position: [0, 0, 0],
-      rotation: [0, 0, 0, 1 ],
-      scale: [1, 1, 1 ],
+      rotation: [0, 0, 0, 1],
+      scale: [1, 1, 1],
     };
 
     const result = await exporter.export(sg);

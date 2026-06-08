@@ -12,9 +12,7 @@ describe('sanitizeClientGitMessage (SEC-T04)', () => {
 
   it('strips user:password@ form', () => {
     const msg = 'remote: error: https://oauth-user:supersecret@github.com/x.git';
-    expect(sanitizeClientGitMessage(msg)).toBe(
-      'remote: error: https://github.com/x.git'
-    );
+    expect(sanitizeClientGitMessage(msg)).toBe('remote: error: https://github.com/x.git');
   });
 
   it('redacts ghp_ PATs if they appear without a URL', () => {

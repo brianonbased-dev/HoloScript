@@ -119,24 +119,61 @@ export const BUNDLED_MODELS: Record<string, ModelDescriptor> = {
 // ── Joint name tables ─────────────────────────────────────────────────────────
 
 const BIPED_JOINTS: readonly string[] = [
-  'root', 'pelvis', 'spine_01', 'spine_02', 'spine_03',
-  'neck_01', 'head',
-  'clavicle_l', 'upper_arm_l', 'lower_arm_l', 'hand_l',
-  'clavicle_r', 'upper_arm_r', 'lower_arm_r', 'hand_r',
-  'thigh_l', 'calf_l', 'foot_l', 'ball_l',
-  'thigh_r', 'calf_r', 'foot_r', 'ball_r',
+  'root',
+  'pelvis',
+  'spine_01',
+  'spine_02',
+  'spine_03',
+  'neck_01',
+  'head',
+  'clavicle_l',
+  'upper_arm_l',
+  'lower_arm_l',
+  'hand_l',
+  'clavicle_r',
+  'upper_arm_r',
+  'lower_arm_r',
+  'hand_r',
+  'thigh_l',
+  'calf_l',
+  'foot_l',
+  'ball_l',
+  'thigh_r',
+  'calf_r',
+  'foot_r',
+  'ball_r',
   'center_of_mass',
 ] as const;
 
 const QUADRUPED_JOINTS: readonly string[] = [
-  'root', 'spine_01', 'spine_02', 'spine_03', 'neck_01', 'head',
-  'front_upper_arm_l', 'front_lower_arm_l', 'front_foot_l',
-  'front_upper_arm_r', 'front_lower_arm_r', 'front_foot_r',
-  'rear_thigh_l', 'rear_calf_l', 'rear_foot_l',
-  'rear_thigh_r', 'rear_calf_r', 'rear_foot_r',
-  'tail_01', 'tail_02', 'tail_03',
-  'front_left_toe', 'front_right_toe', 'rear_left_toe', 'rear_right_toe',
-  'center_of_mass', 'jaw', 'left_ear',
+  'root',
+  'spine_01',
+  'spine_02',
+  'spine_03',
+  'neck_01',
+  'head',
+  'front_upper_arm_l',
+  'front_lower_arm_l',
+  'front_foot_l',
+  'front_upper_arm_r',
+  'front_lower_arm_r',
+  'front_foot_r',
+  'rear_thigh_l',
+  'rear_calf_l',
+  'rear_foot_l',
+  'rear_thigh_r',
+  'rear_calf_r',
+  'rear_foot_r',
+  'tail_01',
+  'tail_02',
+  'tail_03',
+  'front_left_toe',
+  'front_right_toe',
+  'rear_left_toe',
+  'rear_right_toe',
+  'center_of_mass',
+  'jaw',
+  'left_ear',
 ] as const;
 
 // ── Tensor encoding helpers ───────────────────────────────────────────────────
@@ -170,9 +207,10 @@ export function encodeInputTensor(input: MotionInferenceInput): Float32Tensor {
   // Trajectory: linear projection from velocity at 12 sample points
   const trajectory = projectLinearTrajectory(input.targetVelocity);
   const speed = magnitude(input.targetVelocity);
-  const velDir = speed > 1e-6
-    ? { x: input.targetVelocity.x / speed, z: input.targetVelocity.z / speed }
-    : { x: 0, z: 0 };
+  const velDir =
+    speed > 1e-6
+      ? { x: input.targetVelocity.x / speed, z: input.targetVelocity.z / speed }
+      : { x: 0, z: 0 };
 
   for (let i = 0; i < TRAJ_SAMPLES; i++) {
     const pt = trajectory[i] ?? [0, 0, 0];
@@ -196,7 +234,11 @@ export function encodeInputTensor(input: MotionInferenceInput): Float32Tensor {
 }
 
 const GAIT_LABELS: ReadonlyArray<'idle' | 'walk' | 'trot' | 'run' | 'crouch'> = [
-  'idle', 'walk', 'trot', 'run', 'crouch',
+  'idle',
+  'walk',
+  'trot',
+  'run',
+  'crouch',
 ];
 
 /**
@@ -212,7 +254,7 @@ const GAIT_LABELS: ReadonlyArray<'idle' | 'walk' | 'trot' | 'run' | 'crouch'> = 
 export function decodeOutputTensor(
   output: Float32Tensor,
   skeletonType: 'biped' | 'quadruped',
-  prevPhase: number,
+  prevPhase: number
 ): MotionInferenceResult {
   const d = output.data;
 
@@ -254,13 +296,19 @@ export function decodeOutputTensor(
   let gaitIdx = 0;
   for (let i = 0; i < 5; i++) {
     const logit = d[45 + i] ?? 0;
-    if (logit > maxLogit) { maxLogit = logit; gaitIdx = i; }
+    if (logit > maxLogit) {
+      maxLogit = logit;
+      gaitIdx = i;
+    }
   }
   const gait = GAIT_LABELS[gaitIdx] ?? 'idle';
 
   // Pose: zero-pose (joint transforms come from a separate skinning pass in production).
   // Engines that decode per-joint rotations from the output extend this stub.
-  const joints: Record<string, { position: [number, number, number]; rotation: [number, number, number, number] }> = {};
+  const joints: Record<
+    string,
+    { position: [number, number, number]; rotation: [number, number, number, number] }
+  > = {};
   const names = skeletonType === 'biped' ? BIPED_JOINTS : QUADRUPED_JOINTS;
   for (const name of names) {
     joints[name] = { position: [0, 0, 0], rotation: [0, 0, 0, 1] };
@@ -317,7 +365,7 @@ export class OnnxMotionMatchingEngine implements MotionMatchingEngine {
     if (!desc) {
       throw new Error(
         `OnnxMotionMatchingEngine: unknown modelId "${modelId}". ` +
-        `Available: ${Object.keys(BUNDLED_MODELS).join(', ')}`,
+          `Available: ${Object.keys(BUNDLED_MODELS).join(', ')}`
       );
     }
     this.descriptor = desc;
@@ -399,7 +447,7 @@ export class OnnxMotionMatchingEngine implements MotionMatchingEngine {
     throw new Error(
       `OnnxMotionMatchingEngine(${this.modelId}): adapter "${this.adapter.name}" has no ` +
         `synchronous run path. Use inferAsync() with this adapter, or inject a ` +
-        `synchronous adapter (PureJsInferenceAdapter) for infer().`,
+        `synchronous adapter (PureJsInferenceAdapter) for infer().`
     );
   }
 }
@@ -426,10 +474,10 @@ export interface BatchInferenceResult {
  */
 export async function batchInferAsync(
   engine: OnnxMotionMatchingEngine,
-  batch: BatchInferenceInput,
+  batch: BatchInferenceInput
 ): Promise<BatchInferenceResult> {
   const start = performance.now();
-  const results = await Promise.all(batch.agents.map(a => engine.inferAsync(a)));
+  const results = await Promise.all(batch.agents.map((a) => engine.inferAsync(a)));
   const batchMs = performance.now() - start;
   return { results, batchMs, agentCount: batch.agents.length };
 }
@@ -444,7 +492,7 @@ export async function batchInferAsync(
  */
 export async function createOnnxMotionMatchingEngine(
   modelId: string,
-  options: OnnxMotionMatchingEngineOptions = {},
+  options: OnnxMotionMatchingEngineOptions = {}
 ): Promise<OnnxMotionMatchingEngine> {
   const engine = new OnnxMotionMatchingEngine(modelId, options);
   await engine.load();

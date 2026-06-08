@@ -21,5 +21,10 @@ export interface TraitHandler<TConfig = unknown> {
   onEvent?: (node: HSPlusNode, config: TConfig, ctx: TraitContext, event: TraitEvent) => void;
 }
 
-export type EvidenceClassification = 'physical' | 'digital' | 'biological' | 'trace' | 'documentary';
+export type EvidenceClassification =
+  | 'physical'
+  | 'digital'
+  | 'biological'
+  | 'trace'
+  | 'documentary';
 export type CustodyStatus = 'collected' | 'sealed' | 'in_transit' | 'in_storage' | 'released';

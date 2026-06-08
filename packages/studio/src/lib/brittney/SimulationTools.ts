@@ -13,18 +13,30 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'setup_simulation',
-      description: 'Set up a simulation on the active scene object. Configures mesh, material, constraints, loads, and solver type. Translate the request into explicit config, and ask for missing geometry, units, loads, constraints, or validation context before treating the result as evidence.',
+      description:
+        'Set up a simulation on the active scene object. Configures mesh, material, constraints, loads, and solver type. Translate the request into explicit config, and ask for missing geometry, units, loads, constraints, or validation context before treating the result as evidence.',
       parameters: {
         type: 'object',
         properties: {
           solver_type: {
             type: 'string',
-            enum: ['thermal', 'structural', 'structural-tet10', 'hydraulic', 'acoustic', 'fdtd', 'navier-stokes', 'multiphase', 'molecular-dynamics'],
+            enum: [
+              'thermal',
+              'structural',
+              'structural-tet10',
+              'hydraulic',
+              'acoustic',
+              'fdtd',
+              'navier-stokes',
+              'multiphase',
+              'molecular-dynamics',
+            ],
             description: 'Which physics solver to use',
           },
           config: {
             type: 'object',
-            description: 'Solver-specific configuration. For structural: {material, constraints, loads, mesh}. For thermal: {grid_resolution, materials, sources}. For acoustic: {speed_of_sound, sources}. For CFD: {viscosity, boundary_conditions}.',
+            description:
+              'Solver-specific configuration. For structural: {material, constraints, loads, mesh}. For thermal: {grid_resolution, materials, sources}. For acoustic: {speed_of_sound, sources}. For CFD: {viscosity, boundary_conditions}.',
           },
           description: {
             type: 'string',
@@ -39,12 +51,19 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'run_simulation',
-      description: 'Execute the configured simulation and return results. Use after setup_simulation.',
+      description:
+        'Execute the configured simulation and return results. Use after setup_simulation.',
       parameters: {
         type: 'object',
         properties: {
-          steps: { type: 'number', description: 'Number of timesteps for transient solvers (default: 100)' },
-          record: { type: 'boolean', description: 'Record snapshots for playback animation (default: true)' },
+          steps: {
+            type: 'number',
+            description: 'Number of timesteps for transient solvers (default: 100)',
+          },
+          record: {
+            type: 'boolean',
+            description: 'Record snapshots for playback animation (default: true)',
+          },
         },
       },
     },
@@ -53,7 +72,8 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'query_results',
-      description: 'Ask a question about simulation results in plain English. Examples: "what is the max stress?", "did it converge?", "give me a summary". Do not certify safety; report assumptions and missing validation.',
+      description:
+        'Ask a question about simulation results in plain English. Examples: "what is the max stress?", "did it converge?", "give me a summary". Do not certify safety; report assumptions and missing validation.',
       parameters: {
         type: 'object',
         properties: {
@@ -67,7 +87,8 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'generate_report',
-      description: 'Generate a simulation report draft with assumptions, metrics, findings, limitations, and recommendations. Returns Markdown.',
+      description:
+        'Generate a simulation report draft with assumptions, metrics, findings, limitations, and recommendations. Returns Markdown.',
       parameters: {
         type: 'object',
         properties: {
@@ -80,17 +101,24 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'run_parameter_sweep',
-      description: 'Run multiple simulations with varying parameters to find the optimal design. Specify which parameter to sweep and the range.',
+      description:
+        'Run multiple simulations with varying parameters to find the optimal design. Specify which parameter to sweep and the range.',
       parameters: {
         type: 'object',
         properties: {
-          parameter_path: { type: 'string', description: 'Dot-path to the parameter, e.g. "material.youngs_modulus"' },
+          parameter_path: {
+            type: 'string',
+            description: 'Dot-path to the parameter, e.g. "material.youngs_modulus"',
+          },
           values: {
             type: 'array',
             items: { type: 'number' },
             description: 'Values to sweep through',
           },
-          objective: { type: 'string', description: 'Which result to optimize, e.g. "maxVonMises", "minSafetyFactor"' },
+          objective: {
+            type: 'string',
+            description: 'Which result to optimize, e.g. "maxVonMises", "minSafetyFactor"',
+          },
         },
         required: ['parameter_path', 'values'],
       },
@@ -100,7 +128,8 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'import_data',
-      description: 'Import scientific or engineering data from a file that the user dropped into the scene. Supports FITS (astronomy), STL/OBJ surface meshes, CSV (tabular), and VTK (simulation results). STEP/IGES CAD import is not part of this tool.',
+      description:
+        'Import scientific or engineering data from a file that the user dropped into the scene. Supports FITS (astronomy), STL/OBJ surface meshes, CSV (tabular), and VTK (simulation results). STEP/IGES CAD import is not part of this tool.',
       parameters: {
         type: 'object',
         properties: {
@@ -111,7 +140,12 @@ export const SIMULATION_TOOLS = [
           },
           purpose: {
             type: 'string',
-            enum: ['visualize', 'mesh_for_simulation', 'compare_with_simulation', 'load_initial_conditions'],
+            enum: [
+              'visualize',
+              'mesh_for_simulation',
+              'compare_with_simulation',
+              'load_initial_conditions',
+            ],
             description: 'What to do with the imported data',
           },
         },
@@ -123,14 +157,22 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'set_visualization',
-      description: 'Configure how simulation results are displayed. Change colormap, opacity, displacement scale, or toggle between stress/displacement/pressure views.',
+      description:
+        'Configure how simulation results are displayed. Change colormap, opacity, displacement scale, or toggle between stress/displacement/pressure views.',
       parameters: {
         type: 'object',
         properties: {
-          field: { type: 'string', description: 'Which field to show: "stress", "displacement", "temperature", "velocity", "pressure", "E_field"' },
+          field: {
+            type: 'string',
+            description:
+              'Which field to show: "stress", "displacement", "temperature", "velocity", "pressure", "E_field"',
+          },
           colormap: { type: 'string', enum: ['turbo', 'viridis', 'jet', 'inferno', 'coolwarm'] },
           opacity: { type: 'number', description: '0-1' },
-          displacement_scale: { type: 'number', description: 'Magnification for deformed shape (default: 1)' },
+          displacement_scale: {
+            type: 'number',
+            description: 'Magnification for deformed shape (default: 1)',
+          },
           wireframe: { type: 'boolean' },
         },
       },
@@ -140,11 +182,15 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'animate_simulation',
-      description: 'Control simulation animation playback. Play, pause, rewind, change speed, or seek to a specific time.',
+      description:
+        'Control simulation animation playback. Play, pause, rewind, change speed, or seek to a specific time.',
       parameters: {
         type: 'object',
         properties: {
-          action: { type: 'string', enum: ['play', 'pause', 'stop', 'rewind', 'step_forward', 'step_backward'] },
+          action: {
+            type: 'string',
+            enum: ['play', 'pause', 'stop', 'rewind', 'step_forward', 'step_backward'],
+          },
           speed: { type: 'number', description: 'Playback speed multiplier (0.25 to 4x)' },
           seek_to: { type: 'number', description: 'Seek to this time in seconds' },
         },
@@ -156,13 +202,26 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'measure_in_3d',
-      description: 'Measure distance between two points on the simulation results, probing scalar values at each location. The measurement lives in 3D space — not a screenshot.',
+      description:
+        'Measure distance between two points on the simulation results, probing scalar values at each location. The measurement lives in 3D space — not a screenshot.',
       parameters: {
         type: 'object',
         properties: {
-          point_a: { type: 'array', items: { type: 'number' }, description: '[x, y, z] world coordinates' },
-          point_b: { type: 'array', items: { type: 'number' }, description: '[x, y, z] world coordinates' },
-          field: { type: 'string', description: 'Which field to probe at each point (e.g., "von_mises_stress", "temperature")' },
+          point_a: {
+            type: 'array',
+            items: { type: 'number' },
+            description: '[x, y, z] world coordinates',
+          },
+          point_b: {
+            type: 'array',
+            items: { type: 'number' },
+            description: '[x, y, z] world coordinates',
+          },
+          field: {
+            type: 'string',
+            description:
+              'Which field to probe at each point (e.g., "von_mises_stress", "temperature")',
+          },
         },
         required: ['point_a', 'point_b'],
       },
@@ -172,12 +231,20 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'add_annotation',
-      description: 'Pin a text note to a specific 3D location on the simulation results. Creates a visible marker with label in the scene.',
+      description:
+        'Pin a text note to a specific 3D location on the simulation results. Creates a visible marker with label in the scene.',
       parameters: {
         type: 'object',
         properties: {
-          position: { type: 'array', items: { type: 'number' }, description: '[x, y, z] world coordinates' },
-          text: { type: 'string', description: 'Note text (e.g., "Peak stress here — reinforce this corner")' },
+          position: {
+            type: 'array',
+            items: { type: 'number' },
+            description: '[x, y, z] world coordinates',
+          },
+          text: {
+            type: 'string',
+            description: 'Note text (e.g., "Peak stress here — reinforce this corner")',
+          },
           color: { type: 'string', description: 'Hex color for the pin (default: #ffaa00)' },
         },
         required: ['position', 'text'],
@@ -188,12 +255,21 @@ export const SIMULATION_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'set_coordinate_system',
-      description: 'Set the coordinate display system. Engineering shows mm, astronomy shows RA/Dec/Freq, geophysics shows depth/offset.',
+      description:
+        'Set the coordinate display system. Engineering shows mm, astronomy shows RA/Dec/Freq, geophysics shows depth/offset.',
       parameters: {
         type: 'object',
         properties: {
-          system: { type: 'string', enum: ['engineering', 'astronomical', 'geophysical', 'scene'], description: 'Coordinate system' },
-          wcs: { type: 'object', description: 'WCS metadata for astronomical coordinates (crpix, crval, cdelt from FITS header)' },
+          system: {
+            type: 'string',
+            enum: ['engineering', 'astronomical', 'geophysical', 'scene'],
+            description: 'Coordinate system',
+          },
+          wcs: {
+            type: 'object',
+            description:
+              'WCS metadata for astronomical coordinates (crpix, crval, cdelt from FITS header)',
+          },
         },
         required: ['system'],
       },

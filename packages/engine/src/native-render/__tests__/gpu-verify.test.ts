@@ -12,11 +12,14 @@ import { renderSolidColor, pixelAt } from '../gpu-verify';
 
 describe('gpu-verify — native WebGPU render→readback', () => {
   // Only assert real pixels on a live device. Mock/no-GPU → skip (never false-green).
-  (GPU_LIVE ? it : it.skip)('renders a red full-viewport triangle and reads back red pixels (no Three.js)', async () => {
-    const grid = await renderSolidColor(testDevice!, [1, 0, 0, 1], 64);
-    expect(pixelAt(grid, 32, 32)).toEqual([255, 0, 0, 255]); // center is the rendered red
-    expect(pixelAt(grid, 0, 0)).toEqual([255, 0, 0, 255]);   // full-viewport triangle covers corners too
-  });
+  (GPU_LIVE ? it : it.skip)(
+    'renders a red full-viewport triangle and reads back red pixels (no Three.js)',
+    async () => {
+      const grid = await renderSolidColor(testDevice!, [1, 0, 0, 1], 64);
+      expect(pixelAt(grid, 32, 32)).toEqual([255, 0, 0, 255]); // center is the rendered red
+      expect(pixelAt(grid, 0, 0)).toEqual([255, 0, 0, 255]); // full-viewport triangle covers corners too
+    }
+  );
 
   (GPU_LIVE ? it : it.skip)('renders distinct colors faithfully (green, then blue)', async () => {
     const green = await renderSolidColor(testDevice!, [0, 1, 0, 1], 64);

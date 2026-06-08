@@ -17,6 +17,7 @@ Investigated how HoloScript represents, registers, validates, and extends "seman
 Method: file-system investigation across the surfaces below. No regex parsing of `.hs/.hsplus/.holo` (per F.014); examined TypeScript source, JSON registry, doc Markdown, and the trait-mappings generator script.
 
 Surfaces inspected:
+
 - `packages/core/src/traits/` — handler implementations (`*Trait.ts`)
 - `packages/core/src/traits/VRTraitSystem.ts` — runtime registry (class `VRTraitRegistry`)
 - `packages/core/src/traits/index.ts` — barrel
@@ -31,13 +32,13 @@ Surfaces inspected:
 
 The "trait system" is not one thing. It is five overlapping layers, each with its own source of truth:
 
-| Layer | Location | Counted shape | Authority |
-|------|----------|---------------|-----------|
-| **L1 — Handler implementations** | `packages/core/src/traits/*Trait.ts` | 366 `*Trait.ts` files | Runtime behavior (lifecycle hooks) |
-| **L2 — Runtime registry** | `VRTraitRegistry` constructor in `VRTraitSystem.ts` | 371 `this.register(...)` calls importing 326 files | What the engine actually instantiates |
-| **L3 — Public barrel** | `packages/core/src/traits/index.ts` | 225 of 366 files re-exported | What downstream packages can import |
-| **L4 — Category constants** | `traits/constants/<category>.ts` (115 categories) | 2,775 trait-name strings, 133 exported arrays | Compile-target dispatch + completion |
-| **L5 — Declarative registry** | `traits/trait-registry.json` | 275 entries | Documentation, AI prompts (intended) |
+| Layer                            | Location                                            | Counted shape                                      | Authority                             |
+| -------------------------------- | --------------------------------------------------- | -------------------------------------------------- | ------------------------------------- |
+| **L1 — Handler implementations** | `packages/core/src/traits/*Trait.ts`                | 366 `*Trait.ts` files                              | Runtime behavior (lifecycle hooks)    |
+| **L2 — Runtime registry**        | `VRTraitRegistry` constructor in `VRTraitSystem.ts` | 371 `this.register(...)` calls importing 326 files | What the engine actually instantiates |
+| **L3 — Public barrel**           | `packages/core/src/traits/index.ts`                 | 225 of 366 files re-exported                       | What downstream packages can import   |
+| **L4 — Category constants**      | `traits/constants/<category>.ts` (115 categories)   | 2,775 trait-name strings, 133 exported arrays      | Compile-target dispatch + completion  |
+| **L5 — Declarative registry**    | `traits/trait-registry.json`                        | 275 entries                                        | Documentation, AI prompts (intended)  |
 
 These layers do not agree with each other — see §4.
 
@@ -92,12 +93,13 @@ There is no script that reconciles these. `scripts/audit-traits.ts` was built to
 ### G2. `trait-registry.json` is a placeholder, not a declarative source of truth
 
 275 entries, but:
+
 - 235 / 275 (85%) have `category: "other"`
 - 275 / 275 (100%) have `properties: []`
 - 275 / 275 (100%) have `composable: []`
 - 275 / 275 (100%) have `conflicts: []`
 
-The JSON has the right *shape* for a real declarative registry (composability, conflicts, compile hints) but every meaningful field is empty. AI agents reading this file to "understand traits" learn nothing they could not learn from the file list.
+The JSON has the right _shape_ for a real declarative registry (composability, conflicts, compile hints) but every meaningful field is empty. AI agents reading this file to "understand traits" learn nothing they could not learn from the file list.
 
 ### G3. `registerTrait` is documented but not exported
 
@@ -109,6 +111,7 @@ registerTrait({ name: '@pulse_glow', defaultConfig: {...}, onAttach: ... });
 ```
 
 `registerTrait` is **not exported** from `@holoscript/core` (verified via grep over `packages/core/src`). The actual mechanism is constructor registration inside `VRTraitRegistry`, which is closed for extension at runtime. To add a trait, a developer today must either:
+
 1. Add a `this.register(...)` line in `VRTraitSystem.ts` (core code change), or
 2. Patch the `VRTraitRegistry` instance after construction (no public API for this).
 
@@ -127,12 +130,16 @@ Inspected `packages/plugins/*`:
   i.e., the plugin does not even import `@holoscript/core` types.
 - **trait-audit-plugin** (the only one that does it right) exports `pluginMeta + traitHandlers` array:
   ```typescript
-  export const pluginMeta = { name: '@holoscript/plugin-trait-audit', version: '1.0.0', traits: ['interoperability_badge'] };
+  export const pluginMeta = {
+    name: '@holoscript/plugin-trait-audit',
+    version: '1.0.0',
+    traits: ['interoperability_badge'],
+  };
   export const traitHandlers = [createInteroperabilityBadgeHandler()];
   ```
   But nothing in core consumes that convention.
 
-There is no `loadPlugin(plugin)` call anywhere in core that walks `traitHandlers` and registers them. The plugins exist as *type packages* and *codegen helpers* (URDF, USD, DICOM), not as runtime trait providers.
+There is no `loadPlugin(plugin)` call anywhere in core that walks `traitHandlers` and registers them. The plugins exist as _type packages_ and _codegen helpers_ (URDF, USD, DICOM), not as runtime trait providers.
 
 ### G5. Semantic taxonomy is forked — `@semantic` (14 cats) vs. trait categories (115 cats)
 
@@ -155,7 +162,7 @@ A typed extraction (use `@holoscript/core`'s exported constants directly via `ts
 ## 5. What is actually working well
 
 - **Lifecycle contract** (`TraitHandler<TConfig>` in `TraitTypes.ts`) is clean and stable: `onAttach / onDetach / onUpdate / onEvent` with explicit `TraitContext` (vr, physics, audio, haptics, accessibility, host capabilities). Plugins that follow this pattern slot in cleanly when registration is done by hand.
-- **Compile-target dispatch** via dedicated `*TraitMap.ts` files (AndroidXR, VisionOS, NIR, AIGlasses) is the right abstraction — separates trait *meaning* from target-native *emission*.
+- **Compile-target dispatch** via dedicated `*TraitMap.ts` files (AndroidXR, VisionOS, NIR, AIGlasses) is the right abstraction — separates trait _meaning_ from target-native _emission_.
 - **`SemanticValidator`** (independent of the trait registry) cleanly validates a node against a `@semantic` definition. It is a real contract checker and could become the foundation of L5 (the trait-registry).
 - **Auto-generated `docs/trait-mappings.md`** is a good idea (single source-of-truth doc derived from code). The implementation just needs to be moved off regex (G6).
 
@@ -166,17 +173,20 @@ The prompt asked whether the system could serve as ground-truth labels for ScanN
 **Not today, but the path is short if G1–G5 are fixed.**
 
 What scene-understanding benchmarks need from a label system:
+
 1. **Stable, enumerated label set** with categorical hierarchy (NYU40, Matterport, ScanNet 200).
 2. **Object affordances** beyond category — graspable, sittable, openable, supports, contains.
 3. **Inter-object relations** — supports / hangs-from / part-of / aligned-with.
 4. **Multi-domain coverage** — furniture, appliances, structural, vegetation, text.
 
 What HoloScript already has that maps:
+
 - `@grabbable / @throwable / @pointable / @hoverable / @scalable / @rotatable / @stackable / @snappable / @breakable / @openable / @closable / @lockable / @sittable / @rideable / @driveable / @mountable` — these are exactly the affordance vocabulary 3D-scene-understanding papers reach for.
 - Categories `furniture-decor` (36), `containers-storage` (30), `architecture-realestate` (37), `cooking-food` (39), `object-interaction` (25), `material-properties` (33) cover a large fraction of ScanNet 200.
 - `@spatial_constraint`, `@anchor`, `@plane_detection`, `@mesh_detection`, `@scene_reconstruction` cover the spatial-relation primitives.
 
 Blockers to using it as ground truth:
+
 - **G2** — without populated `composable / conflicts / properties` in the registry, traits cannot be projected onto a benchmark label set programmatically.
 - **G5** — the missing bridge between `SemanticCategory` (14) and trait categories (115) means there is no canonical "what does this trait mean" answer for a labeler.
 - **No mapping table** from trait name → ScanNet/NYU40/Matterport/3RScan label exists. This would be net-new work, but small (one-time JSON of ~200 entries).
@@ -187,14 +197,14 @@ Recommendation: tag this as a downstream initiative, gated on G1+G2+G5. Don't do
 
 These are scoped at "small enough to do in a single session." Listed by impact-per-hour, not by urgency.
 
-| ID | Action | Effort | Unblocks |
-|----|--------|--------|----------|
-| **T1** | Add a CI check that fails when a `*Trait.ts` file is not imported by `VRTraitSystem.ts` AND not in the `index.ts` barrel. (G1) | ~30 min | Stops the 40-orphan / 141-unexported drift from getting worse. |
-| **T2** | Export a real `registerTrait()` and `unregisterTrait()` from `@holoscript/core` that mutates a singleton `VRTraitRegistry` instance, and update `docs/traits/extending.md` if the API differs. (G3) | ~1 h | Plugins can extend the runtime. Docs become true. |
-| **T3** | Replace `scripts/generate-trait-mappings.mjs` regex extraction with `tsx scripts/generate-trait-mappings.ts` that imports `traits/constants/index.ts` and uses the exported arrays directly. (G6) | ~1 h | Counts in `docs/trait-mappings.md` become correct under refactors. |
-| **T4** | Add a `composable[] / conflicts[] / properties[]` migration: walk handler defaultConfig + handler imports to populate `trait-registry.json` per-trait. Even partial coverage (top-50 traits) makes the file useful. (G2) | ~3 h | AI agents reading the registry actually learn something. |
-| **T5** | Define a `SemanticCategory → trait-category` mapping (14 → 115) as a JSON file, surface it in `SemanticValidator` so a `@semantic(category: "spatial")` definition can be checked against trait membership. (G5) | ~1 h | Closes the L4↔L6 fork. Foundation for §6. |
-| **T6** | Add a `loadPlugin(pkg)` API to core that reads `pkg.traitHandlers` (the `trait-audit-plugin` convention) and calls `registerTrait` on each. Document the convention in `packages/plugins/README.md`. (G4) | ~2 h | Domain plugins become first-class trait providers. |
+| ID     | Action                                                                                                                                                                                                                   | Effort  | Unblocks                                                           |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ------------------------------------------------------------------ |
+| **T1** | Add a CI check that fails when a `*Trait.ts` file is not imported by `VRTraitSystem.ts` AND not in the `index.ts` barrel. (G1)                                                                                           | ~30 min | Stops the 40-orphan / 141-unexported drift from getting worse.     |
+| **T2** | Export a real `registerTrait()` and `unregisterTrait()` from `@holoscript/core` that mutates a singleton `VRTraitRegistry` instance, and update `docs/traits/extending.md` if the API differs. (G3)                      | ~1 h    | Plugins can extend the runtime. Docs become true.                  |
+| **T3** | Replace `scripts/generate-trait-mappings.mjs` regex extraction with `tsx scripts/generate-trait-mappings.ts` that imports `traits/constants/index.ts` and uses the exported arrays directly. (G6)                        | ~1 h    | Counts in `docs/trait-mappings.md` become correct under refactors. |
+| **T4** | Add a `composable[] / conflicts[] / properties[]` migration: walk handler defaultConfig + handler imports to populate `trait-registry.json` per-trait. Even partial coverage (top-50 traits) makes the file useful. (G2) | ~3 h    | AI agents reading the registry actually learn something.           |
+| **T5** | Define a `SemanticCategory → trait-category` mapping (14 → 115) as a JSON file, surface it in `SemanticValidator` so a `@semantic(category: "spatial")` definition can be checked against trait membership. (G5)         | ~1 h    | Closes the L4↔L6 fork. Foundation for §6.                          |
+| **T6** | Add a `loadPlugin(pkg)` API to core that reads `pkg.traitHandlers` (the `trait-audit-plugin` convention) and calls `registerTrait` on each. Document the convention in `packages/plugins/README.md`. (G4)                | ~2 h    | Domain plugins become first-class trait providers.                 |
 
 T1+T3 alone close the "we don't know how many traits we have" problem and require almost no design work. T2 closes the documented-but-missing API gap. T4+T5+T6 are the structural fixes that turn the trait system from a code convention into an actual platform.
 

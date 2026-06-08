@@ -22,8 +22,6 @@ import type { TraitHandler } from './TraitTypes';
 export type RoomMeshResolution = 'low' | 'medium' | 'high';
 export type SemanticSurface = 'floor' | 'wall' | 'ceiling' | 'furniture' | 'unknown';
 
-
-
 interface MeshBlock {
   id: string;
   vertices: Float32Array;
@@ -107,7 +105,7 @@ function computeRoomBounds(blocks: Map<string, MeshBlock>): { min: Vector3; max:
     maxY = Math.max(maxY, block.bounds.max[1]);
     maxZ = Math.max(maxZ, block.bounds.max[2]);
   }
-  return { min: [minX, minY, minZ ], max: [maxX, maxY, maxZ ] };
+  return { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] };
 }
 
 // =============================================================================

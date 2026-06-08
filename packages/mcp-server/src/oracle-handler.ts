@@ -7,10 +7,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  resolveSecretWithLease,
-  VaultLeaseError,
-} from './holomesh/identity/vault-lease-registry';
+import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
 
 /**
  * Phase 3 wrapper around the orchestrator-knowledge-fetch API key. This is

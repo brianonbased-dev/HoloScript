@@ -17,7 +17,7 @@ export interface HoloMapAnchorUrls {
 /** Merge anchor URLs into a finalized manifest (Studio / paper figures). */
 export function mergeAnchoredProvenance(
   manifest: ReconstructionManifest,
-  urls: HoloMapAnchorUrls,
+  urls: HoloMapAnchorUrls
 ): ReconstructionManifest {
   return {
     ...manifest,

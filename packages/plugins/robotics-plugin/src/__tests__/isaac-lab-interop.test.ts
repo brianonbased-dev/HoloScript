@@ -92,12 +92,7 @@ describe('Isaac Lab Interop (Path A)', () => {
       expect(ast.domainRandomization?.actuator?.kdNoise).toBe(0.05);
       expect(ast.domainRandomization?.initialState?.jointPosRange?.joint1).toEqual([-0.1, 0.1]);
       expect(ast.domainRandomization?.initialState?.rootPoseRange).toEqual([
-        -0.5,
-        0.5,
-        -0.5,
-        0.5,
-        0,
-        1,
+        -0.5, 0.5, -0.5, 0.5, 0, 1,
       ]);
     });
 
@@ -133,8 +128,12 @@ describe('Isaac Lab Interop (Path A)', () => {
       expect(usd).toContain('# Generated for Isaac Lab 2.3');
       expect(usd).toContain('metersPerUnit = 1.0');
       expect(usd).toContain('kilogramsPerMass = 1.0');
-      expect(usd).toContain('# Units: meters, kilograms, seconds; HoloScript angular inputs are radians.');
-      expect(usd).toContain('prepend apiSchemas = ["PhysicsArticulationRootAPI", "PhysxArticulationAPI"]');
+      expect(usd).toContain(
+        '# Units: meters, kilograms, seconds; HoloScript angular inputs are radians.'
+      );
+      expect(usd).toContain(
+        'prepend apiSchemas = ["PhysicsArticulationRootAPI", "PhysxArticulationAPI"]'
+      );
       expect(usd).toContain('bool physxArticulation:articulationEnabled = true');
       expect(usd).not.toContain('physxArticulation:jointFriction');
     });
@@ -142,7 +141,9 @@ describe('Isaac Lab Interop (Path A)', () => {
     it('emits applied DriveAPI and PhysxJointAxisAPI schemas on actuated joints', () => {
       const usd = new USDCodeGen().generate(parseHoloScript());
 
-      expect(usd).toContain('prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAxisAPI:angular"]');
+      expect(usd).toContain(
+        'prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAxisAPI:angular"]'
+      );
       expect(usd).toContain('float drive:angular:physics:stiffness = 100');
       expect(usd).toContain('float drive:angular:physics:damping = 10');
       expect(usd).toContain('float drive:angular:physics:maxForce = 50');
@@ -173,7 +174,9 @@ describe('Isaac Lab Interop (Path A)', () => {
       expect(usd).toContain('#   kpNoise: 0.1');
       expect(usd).toContain('#   kdNoise: 0.05');
       expect(usd).toContain('custom float holoscript:isaacLab:actuatorLatencySeconds = 0.005');
-      expect(usd).toContain('#   arm_group: type=DelayedPDActuator joints=[joint1, joint2, joint3]');
+      expect(usd).toContain(
+        '#   arm_group: type=DelayedPDActuator joints=[joint1, joint2, joint3]'
+      );
     });
 
     it('disables DriveAPI and PhysX joint-axis output when configured off', () => {

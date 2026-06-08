@@ -26,10 +26,7 @@ function makeCtx() {
   return { emit: vi.fn() };
 }
 
-function attach(
-  cfg: Partial<typeof headTrackedAudioHandler.defaultConfig> = {},
-  pos?: Vector3
-) {
+function attach(cfg: Partial<typeof headTrackedAudioHandler.defaultConfig> = {}, pos?: Vector3) {
   const node = makeNode(pos);
   const ctx = makeCtx();
   const config = { ...headTrackedAudioHandler.defaultConfig!, ...cfg };
@@ -66,13 +63,13 @@ describe('headTrackedAudioHandler.onAttach', () => {
   });
 
   it('captures node.position as worldPosition', () => {
-    const { node } = attach({}, [3, 4, 5 ]);
-    expect((node as any).__headTrackedAudioState.worldPosition).toEqual([3, 4, 5 ]);
+    const { node } = attach({}, [3, 4, 5]);
+    expect((node as any).__headTrackedAudioState.worldPosition).toEqual([3, 4, 5]);
   });
 
   it('worldPosition stays {0,0,0} when node has no position', () => {
     const { node } = attach();
-    expect((node as any).__headTrackedAudioState.worldPosition).toEqual([0, 0, 0 ]);
+    expect((node as any).__headTrackedAudioState.worldPosition).toEqual([0, 0, 0]);
   });
 
   it('emits audio_load_source when source is provided', () => {
@@ -164,9 +161,9 @@ describe('headTrackedAudioHandler.onUpdate — anchor_mode=world', () => {
     const { node, ctx, config } = attach({ anchor_mode: 'world', stabilization: 0 });
     const state = (node as any).__headTrackedAudioState;
     state.isPlaying = true;
-    state.worldPosition = [1, 0, 0 ];
-    state.headRotation = [0, 0, 0, 1 ]; // identity → no rotation
-    state.stabilizedPosition = [99, 99, 99 ]; // starts far away
+    state.worldPosition = [1, 0, 0];
+    state.headRotation = [0, 0, 0, 1]; // identity → no rotation
+    state.stabilizedPosition = [99, 99, 99]; // starts far away
     ctx.emit.mockClear();
     headTrackedAudioHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     // With identity quaternion applyInverseRotation([1, 0, 0], {0,0,0,1}) should ≈ [1, 0, 0]
@@ -180,7 +177,7 @@ describe('headTrackedAudioHandler.onUpdate — anchor_mode=world', () => {
     const { node, ctx, config } = attach({ anchor_mode: 'world', stabilization: 1.0 });
     const state = (node as any).__headTrackedAudioState;
     state.isPlaying = true;
-    state.stabilizedPosition = [5, 0, 0 ];
+    state.stabilizedPosition = [5, 0, 0];
     ctx.emit.mockClear();
     headTrackedAudioHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     // s=1.0 → newPos = old*1 + compensated*0 = old
@@ -196,11 +193,11 @@ describe('headTrackedAudioHandler.onUpdate — anchor_mode=head', () => {
     const { node, ctx, config } = attach({ anchor_mode: 'head' });
     const state = (node as any).__headTrackedAudioState;
     state.isPlaying = true;
-    state.relativePosition = [0.5, 0, -1 ];
+    state.relativePosition = [0.5, 0, -1];
     ctx.emit.mockClear();
     headTrackedAudioHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     const call = ctx.emit.mock.calls.find((c: any[]) => c[0] === 'audio_set_position');
-    expect(call![1].position).toEqual([0.5, 0, -1 ]);
+    expect(call![1].position).toEqual([0.5, 0, -1]);
   });
 });
 
@@ -211,8 +208,8 @@ describe('headTrackedAudioHandler.onUpdate — anchor_mode=hybrid', () => {
     const { node, ctx, config } = attach({ anchor_mode: 'hybrid', stabilization: 0.5 });
     const state = (node as any).__headTrackedAudioState;
     state.isPlaying = true;
-    state.relativePosition = [0, 0, 0 ];
-    state.worldPosition = [0, 0, 0 ];
+    state.relativePosition = [0, 0, 0];
+    state.worldPosition = [0, 0, 0];
     ctx.emit.mockClear();
     headTrackedAudioHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith('audio_set_position', expect.any(Object));
@@ -226,14 +223,9 @@ describe('headTrackedAudioHandler.onEvent', () => {
     const { node, ctx, config } = attach();
     headTrackedAudioHandler.onEvent!(node as any, config, ctx as any, {
       type: 'head_rotation_update',
-      rotation: [0.1, 0.2, 0.3, 0.9 ],
+      rotation: [0.1, 0.2, 0.3, 0.9],
     });
-    expect((node as any).__headTrackedAudioState.headRotation).toEqual([
-      0.1,
-      0.2,
-      0.3,
-      0.9,
-    ]);
+    expect((node as any).__headTrackedAudioState.headRotation).toEqual([0.1, 0.2, 0.3, 0.9]);
   });
 
   it('audio_source_loaded stores sourceId', () => {
@@ -282,7 +274,7 @@ describe('headTrackedAudioHandler.onEvent', () => {
       type: 'audio_set_world_position',
       position: [10, 5, -3],
     });
-    expect((node as any).__headTrackedAudioState.worldPosition).toEqual([10, 5, -3 ]);
+    expect((node as any).__headTrackedAudioState.worldPosition).toEqual([10, 5, -3]);
   });
 
   it('audio_set_relative_position updates relativePosition', () => {
@@ -291,6 +283,6 @@ describe('headTrackedAudioHandler.onEvent', () => {
       type: 'audio_set_relative_position',
       position: [0, -0.5, 1],
     });
-    expect((node as any).__headTrackedAudioState.relativePosition).toEqual([0, -0.5, 1 ]);
+    expect((node as any).__headTrackedAudioState.relativePosition).toEqual([0, -0.5, 1]);
   });
 });

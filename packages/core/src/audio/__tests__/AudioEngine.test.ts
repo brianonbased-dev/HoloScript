@@ -150,10 +150,7 @@ describe('AudioEngine', () => {
 
     it('can set listener orientation', () => {
       expect(() =>
-        engine.setListenerOrientation(
-          { x: 0, y: 0, z: -1 },
-          { x: 0, y: 1, z: 0 },
-        ),
+        engine.setListenerOrientation({ x: 0, y: 0, z: -1 }, { x: 0, y: 1, z: 0 })
       ).not.toThrow();
     });
 

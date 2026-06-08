@@ -525,7 +525,7 @@ export class GraphToCode {
         return `(${a} ${op} ${b})`;
       }
 
-            case 'compare':
+      case 'compare':
         const left = this.resolveInputValue(ctx, 'a');
         const right = this.resolveInputValue(ctx, 'b');
         const cmpOp = props.operator || '==';

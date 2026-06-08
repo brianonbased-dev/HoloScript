@@ -191,7 +191,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info,./packages/*/coverage/lcov.info
-          fail_ci_if_error: false  # Codecov is informational — outages and missing tokens should not block CI
+          fail_ci_if_error: false # Codecov is informational — outages and missing tokens should not block CI
           verbose: true
           flags: ${{ matrix.package || 'all' }}
 
@@ -499,4 +499,3 @@ jobs:
 
       - name: Validate docker-compose.yml syntax
         run: docker compose -f docker-compose.yml config --quiet
-

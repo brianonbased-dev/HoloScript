@@ -46,10 +46,13 @@ describe('BiofeedbackTrait — onAttach / onDetach', () => {
     const state = node.__biofeedbackState as BiofeedbackState;
     expect(state.isConnected).toBe(false);
     expect(state.samples).toBeInstanceOf(Map);
-    expect(node.emit).toHaveBeenCalledWith('biofeedback_connect', expect.objectContaining({
-      sources: ['heart_rate'],
-      sampleRateHz: 10,
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'biofeedback_connect',
+      expect.objectContaining({
+        sources: ['heart_rate'],
+        sampleRateHz: 10,
+      })
+    );
   });
 
   it('onDetach removes state (no disconnect emit when not connected)', () => {
@@ -66,9 +69,14 @@ describe('BiofeedbackTrait — onAttach / onDetach', () => {
     const node = makeNode();
     biofeedbackHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     // Connect the device
-    biofeedbackHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'biofeedback_device_connected',
-    } as never);
+    biofeedbackHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_device_connected',
+      } as never
+    );
     node.emit.mockClear();
     biofeedbackHandler.onDetach!(node as never, defaultConfig, makeCtx(node) as never);
     expect(node.emit).toHaveBeenCalledWith('biofeedback_disconnect', expect.anything());
@@ -80,9 +88,14 @@ describe('BiofeedbackTrait — onEvent', () => {
     const node = makeNode();
     biofeedbackHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    biofeedbackHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'biofeedback_device_connected',
-    } as never);
+    biofeedbackHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_device_connected',
+      } as never
+    );
     const state = node.__biofeedbackState as BiofeedbackState;
     expect(state.isConnected).toBe(true);
     expect(node.emit).toHaveBeenCalledWith('on_biofeedback_ready', expect.anything());
@@ -91,12 +104,22 @@ describe('BiofeedbackTrait — onEvent', () => {
   it('biofeedback_device_disconnected sets isConnected=false', () => {
     const node = makeNode();
     biofeedbackHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    biofeedbackHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'biofeedback_device_connected',
-    } as never);
-    biofeedbackHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'biofeedback_device_disconnected',
-    } as never);
+    biofeedbackHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_device_connected',
+      } as never
+    );
+    biofeedbackHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_device_disconnected',
+      } as never
+    );
     const state = node.__biofeedbackState as BiofeedbackState;
     expect(state.isConnected).toBe(false);
   });
@@ -105,25 +128,43 @@ describe('BiofeedbackTrait — onEvent', () => {
     const node = makeNode();
     biofeedbackHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     // heart_rate range 40-200, value 120 → normalized = (120-40)/(200-40) = 80/160 = 0.5
-    biofeedbackHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'biofeedback_sample', source: 'heart_rate', value: 120,
-    } as never);
+    biofeedbackHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_sample',
+        source: 'heart_rate',
+        value: 120,
+      } as never
+    );
     const state = node.__biofeedbackState as BiofeedbackState;
     const sample = state.samples.get('heart_rate')!;
     expect(sample.raw).toBe(120);
     expect(sample.normalized).toBeCloseTo(0.5, 3);
-    expect(node.emit).toHaveBeenCalledWith('biofeedback_reading', expect.objectContaining({
-      source: 'heart_rate', raw: 120,
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'biofeedback_reading',
+      expect.objectContaining({
+        source: 'heart_rate',
+        raw: 120,
+      })
+    );
   });
 
   it('biofeedback_sample ignores sources not in config', () => {
     const node = makeNode();
     biofeedbackHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    biofeedbackHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'biofeedback_sample', source: 'gsr', value: 5,
-    } as never);
+    biofeedbackHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_sample',
+        source: 'gsr',
+        value: 5,
+      } as never
+    );
     expect(node.emit).not.toHaveBeenCalledWith('biofeedback_reading', expect.anything());
   });
 
@@ -137,12 +178,23 @@ describe('BiofeedbackTrait — onEvent', () => {
     biofeedbackHandler.onAttach!(node as never, cfg, makeCtx(node) as never);
     node.emit.mockClear();
     // Send low reading (< 60)
-    biofeedbackHandler.onEvent!(node as never, cfg, makeCtx(node) as never, {
-      type: 'biofeedback_sample', source: 'heart_rate', value: 50,
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('biofeedback_threshold_crossed', expect.objectContaining({
-      source: 'heart_rate', direction: 'low',
-    }));
+    biofeedbackHandler.onEvent!(
+      node as never,
+      cfg,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_sample',
+        source: 'heart_rate',
+        value: 50,
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'biofeedback_threshold_crossed',
+      expect.objectContaining({
+        source: 'heart_rate',
+        direction: 'low',
+      })
+    );
   });
 
   it('biofeedback_threshold_crossed not emitted when edge unchanged', () => {
@@ -154,43 +206,87 @@ describe('BiofeedbackTrait — onEvent', () => {
     };
     biofeedbackHandler.onAttach!(node as never, cfg, makeCtx(node) as never);
     // First reading — normal range
-    biofeedbackHandler.onEvent!(node as never, cfg, makeCtx(node) as never, {
-      type: 'biofeedback_sample', source: 'heart_rate', value: 100,
-    } as never);
+    biofeedbackHandler.onEvent!(
+      node as never,
+      cfg,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_sample',
+        source: 'heart_rate',
+        value: 100,
+      } as never
+    );
     node.emit.mockClear();
     // Second reading — still normal
-    biofeedbackHandler.onEvent!(node as never, cfg, makeCtx(node) as never, {
-      type: 'biofeedback_sample', source: 'heart_rate', value: 110,
-    } as never);
+    biofeedbackHandler.onEvent!(
+      node as never,
+      cfg,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_sample',
+        source: 'heart_rate',
+        value: 110,
+      } as never
+    );
     expect(node.emit).not.toHaveBeenCalledWith('biofeedback_threshold_crossed', expect.anything());
   });
 
   it('biofeedback_query returns specific sample', () => {
     const node = makeNode();
     biofeedbackHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    biofeedbackHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'biofeedback_sample', source: 'heart_rate', value: 75,
-    } as never);
+    biofeedbackHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_sample',
+        source: 'heart_rate',
+        value: 75,
+      } as never
+    );
     node.emit.mockClear();
-    biofeedbackHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'biofeedback_query', source: 'heart_rate', queryId: 'q1',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('biofeedback_response', expect.objectContaining({
-      queryId: 'q1', source: 'heart_rate',
-    }));
+    biofeedbackHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_query',
+        source: 'heart_rate',
+        queryId: 'q1',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'biofeedback_response',
+      expect.objectContaining({
+        queryId: 'q1',
+        source: 'heart_rate',
+      })
+    );
   });
 
   it('biofeedback_calibrate clears samples and thresholdEdge', () => {
     const node = makeNode();
     biofeedbackHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    biofeedbackHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'biofeedback_sample', source: 'heart_rate', value: 90,
-    } as never);
+    biofeedbackHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_sample',
+        source: 'heart_rate',
+        value: 90,
+      } as never
+    );
     const state = node.__biofeedbackState as BiofeedbackState;
     expect(state.samples.size).toBeGreaterThan(0);
-    biofeedbackHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'biofeedback_calibrate',
-    } as never);
+    biofeedbackHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'biofeedback_calibrate',
+      } as never
+    );
     expect(state.samples.size).toBe(0);
     expect(state.thresholdEdge.size).toBe(0);
   });

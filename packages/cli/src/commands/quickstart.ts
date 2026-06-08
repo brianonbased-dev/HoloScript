@@ -225,7 +225,8 @@ animate();
 document.getElementById('loading')?.classList.add('hidden');
 `;
 
-const HOLOSCRIPT_CONFIG = JSON.stringify({ version: '1', entrypoint: 'src/scene.holo', target: 'threejs' }, null, 2) + '\n';
+const HOLOSCRIPT_CONFIG =
+  JSON.stringify({ version: '1', entrypoint: 'src/scene.holo', target: 'threejs' }, null, 2) + '\n';
 
 function buildReadme(projectName: string, port: number): string {
   return `# ${projectName}
@@ -262,12 +263,12 @@ Edit \`src/scene.holo\` and refresh the browser to see changes.
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
-  '.js':   'application/javascript; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
-  '.css':  'text/css; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
   '.holo': 'text/plain; charset=utf-8',
-  '.hs':   'text/plain; charset=utf-8',
-  '.md':   'text/plain; charset=utf-8',
+  '.hs': 'text/plain; charset=utf-8',
+  '.md': 'text/plain; charset=utf-8',
 };
 
 function getMime(filePath: string): string {
@@ -325,12 +326,16 @@ function startServer(root: string, port: number): Promise<number> {
 
 function openBrowser(url: string): void {
   const cmd =
-    process.platform === 'win32'  ? `start "" "${url}"` :
-    process.platform === 'darwin' ? `open "${url}"` :
-                                    `xdg-open "${url}"`;
+    process.platform === 'win32'
+      ? `start "" "${url}"`
+      : process.platform === 'darwin'
+        ? `open "${url}"`
+        : `xdg-open "${url}"`;
   exec(cmd, (err) => {
     if (err) {
-      console.log(`  \x1b[33m⚠\x1b[0m  Could not auto-open browser — navigate to: \x1b[1m${url}\x1b[0m`);
+      console.log(
+        `  \x1b[33m⚠\x1b[0m  Could not auto-open browser — navigate to: \x1b[1m${url}\x1b[0m`
+      );
     }
   });
 }
@@ -355,7 +360,9 @@ export async function quickstartCommand(opts: QuickstartOptions = {}): Promise<v
   // Banner
   console.log();
   console.log('\x1b[36m  ╔══════════════════════════════════════╗\x1b[0m');
-  console.log('\x1b[36m  ║\x1b[0m\x1b[1m  \u{1F310} HoloScript Quickstart             \x1b[0m\x1b[36m║\x1b[0m');
+  console.log(
+    '\x1b[36m  ║\x1b[0m\x1b[1m  \u{1F310} HoloScript Quickstart             \x1b[0m\x1b[36m║\x1b[0m'
+  );
   console.log('\x1b[36m  ╚══════════════════════════════════════╝\x1b[0m');
   console.log();
 
@@ -365,7 +372,9 @@ export async function quickstartCommand(opts: QuickstartOptions = {}): Promise<v
   if (fs.existsSync(projectDir)) {
     const entries = fs.readdirSync(projectDir);
     if (entries.length > 0) {
-      console.error(`\x1b[31m  ✗ Directory "${projectName}" already exists and is not empty.\x1b[0m`);
+      console.error(
+        `\x1b[31m  ✗ Directory "${projectName}" already exists and is not empty.\x1b[0m`
+      );
       console.log(`  Tip: choose a different name or remove the directory first.`);
       process.exit(1);
     }
@@ -375,11 +384,15 @@ export async function quickstartCommand(opts: QuickstartOptions = {}): Promise<v
   console.log(`  \x1b[32m●\x1b[0m  Scaffolding \x1b[1m${projectName}\x1b[0m...`);
   fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
 
-  fs.writeFileSync(path.join(projectDir, 'src', 'scene.holo'),      SCENE_HOLO,                          'utf8');
-  fs.writeFileSync(path.join(projectDir, 'index.html'),              buildIndexHtml(projectName),          'utf8');
-  fs.writeFileSync(path.join(projectDir, 'main.js'),                 MAIN_JS,                             'utf8');
-  fs.writeFileSync(path.join(projectDir, 'holoscript.config.json'),  HOLOSCRIPT_CONFIG,                   'utf8');
-  fs.writeFileSync(path.join(projectDir, 'README.md'),               buildReadme(projectName, preferredPort), 'utf8');
+  fs.writeFileSync(path.join(projectDir, 'src', 'scene.holo'), SCENE_HOLO, 'utf8');
+  fs.writeFileSync(path.join(projectDir, 'index.html'), buildIndexHtml(projectName), 'utf8');
+  fs.writeFileSync(path.join(projectDir, 'main.js'), MAIN_JS, 'utf8');
+  fs.writeFileSync(path.join(projectDir, 'holoscript.config.json'), HOLOSCRIPT_CONFIG, 'utf8');
+  fs.writeFileSync(
+    path.join(projectDir, 'README.md'),
+    buildReadme(projectName, preferredPort),
+    'utf8'
+  );
 
   console.log(`  \x1b[32m✓\x1b[0m  Project created: \x1b[2m${projectDir}\x1b[0m`);
   console.log(`  \x1b[32m✓\x1b[0m  Entry point: \x1b[1msrc/scene.holo\x1b[0m`);
@@ -406,7 +419,9 @@ export async function quickstartCommand(opts: QuickstartOptions = {}): Promise<v
   console.log();
   console.log('\x1b[32m  ✓ Your HoloScript scene is live!\x1b[0m');
   console.log();
-  console.log(`  \x1b[2mEdit\x1b[0m \x1b[1m${path.join(projectName, 'src', 'scene.holo')}\x1b[0m \x1b[2mand refresh to see changes.\x1b[0m`);
+  console.log(
+    `  \x1b[2mEdit\x1b[0m \x1b[1m${path.join(projectName, 'src', 'scene.holo')}\x1b[0m \x1b[2mand refresh to see changes.\x1b[0m`
+  );
   console.log(`  \x1b[2mPress\x1b[0m \x1b[1mCtrl+C\x1b[0m \x1b[2mto stop.\x1b[0m`);
   console.log();
 

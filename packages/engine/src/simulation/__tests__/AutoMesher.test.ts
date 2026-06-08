@@ -107,16 +107,45 @@ describe('AutoMesher', () => {
     it('generates a tet mesh from surface triangles (bbox fallback)', async () => {
       // Simple cube surface: 8 vertices, 12 triangles
       const vertices = new Float64Array([
-        0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0,
-        0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1,
+        0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1,
       ]);
       const triangles = new Uint32Array([
-        0, 1, 2, 0, 2, 3, // -z
-        4, 6, 5, 4, 7, 6, // +z
-        0, 4, 5, 0, 5, 1, // -y
-        2, 6, 7, 2, 7, 3, // +y
-        0, 3, 7, 0, 7, 4, // -x
-        1, 5, 6, 1, 6, 2, // +x
+        0,
+        1,
+        2,
+        0,
+        2,
+        3, // -z
+        4,
+        6,
+        5,
+        4,
+        7,
+        6, // +z
+        0,
+        4,
+        5,
+        0,
+        5,
+        1, // -y
+        2,
+        6,
+        7,
+        2,
+        7,
+        3, // +y
+        0,
+        3,
+        7,
+        0,
+        7,
+        4, // -x
+        1,
+        5,
+        6,
+        1,
+        6,
+        2, // +x
       ]);
 
       const mesh = await meshSurface({ vertices, triangles });

@@ -10,10 +10,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import {
-  BrowserDepthProvider,
-  type ImageDecoder,
-} from './BrowserDepthProvider';
+import { BrowserDepthProvider, type ImageDecoder } from './BrowserDepthProvider';
 import type { DepthEstimationService } from '../DepthEstimationService';
 
 // ── Stubs ───────────────────────────────────────────────────────────────────
@@ -215,9 +212,7 @@ describe('BrowserDepthProvider — input validation', () => {
       height: 0,
     });
     const provider = new BrowserDepthProvider({ service, imageDecoder: badDecoder });
-    await expect(provider.infer(new Uint8Array([1]), 'image')).rejects.toThrow(
-      /invalid frame/
-    );
+    await expect(provider.infer(new Uint8Array([1]), 'image')).rejects.toThrow(/invalid frame/);
   });
 });
 
@@ -256,9 +251,9 @@ describe('BrowserDepthProvider — error propagation', () => {
 
   it('lets estimateDepth errors bubble', async () => {
     const { service, state } = makeStubService({ initialized: true });
-    const spy = vi.spyOn(service, 'estimateDepth').mockRejectedValueOnce(
-      new Error('inference OOM')
-    );
+    const spy = vi
+      .spyOn(service, 'estimateDepth')
+      .mockRejectedValueOnce(new Error('inference OOM'));
     const provider = new BrowserDepthProvider({
       service,
       imageDecoder: SYNTHETIC_DECODER(4, 4),

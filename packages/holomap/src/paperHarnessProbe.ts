@@ -71,10 +71,6 @@ export async function runPaperHarnessIngestProbe(options: {
     rows.push(await probeHolomapRow(options.paperId));
   }
 
-  const reportMarkdown = formatIngestComparisonMarkdown(
-    options.paperId,
-    options.ingestPath,
-    rows,
-  );
+  const reportMarkdown = formatIngestComparisonMarkdown(options.paperId, options.ingestPath, rows);
   return { rows, reportMarkdown };
 }

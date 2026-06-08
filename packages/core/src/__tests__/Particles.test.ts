@@ -179,11 +179,15 @@ describe('Cycle 112: Particle System', () => {
     const particles = emitter.getAliveParticles();
     if (particles.length > 0) {
       const speed0 = Math.sqrt(
-        particles[0].velocity[0] ** 2 + particles[0].velocity[1] ** 2 + particles[0].velocity[2] ** 2
+        particles[0].velocity[0] ** 2 +
+          particles[0].velocity[1] ** 2 +
+          particles[0].velocity[2] ** 2
       );
       forces.apply(particles, 0.5);
       const speed1 = Math.sqrt(
-        particles[0].velocity[0] ** 2 + particles[0].velocity[1] ** 2 + particles[0].velocity[2] ** 2
+        particles[0].velocity[0] ** 2 +
+          particles[0].velocity[1] ** 2 +
+          particles[0].velocity[2] ** 2
       );
       // Drag should reduce speed
       expect(speed1).toBeLessThan(speed0);

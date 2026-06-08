@@ -177,7 +177,10 @@ describe('POST /api/public/tool — anonymous tier', () => {
 
     it('returns a callable example that uses an allowlisted tool with the schema-required field name', async () => {
       const res = await publicToolHandler('GET', null);
-      const example = (res.body.usage as Record<string, unknown>).example as Record<string, unknown>;
+      const example = (res.body.usage as Record<string, unknown>).example as Record<
+        string,
+        unknown
+      >;
       expect(PUBLIC_ANON_TOOLS.has(example.tool as string)).toBe(true);
       // parse_holo's input schema (tools.ts:90) requires `code`, NOT `source`.
       // This caught a real bug 2026-05-10 — both the prod discovery payload
@@ -202,7 +205,9 @@ describe('POST /api/public/tool — anonymous tier', () => {
       });
 
       expect(res.status).toBe(200);
-      expect(handleSingleToolMock).toHaveBeenCalledWith('parse_holo', { source: 'composition "X" {}' });
+      expect(handleSingleToolMock).toHaveBeenCalledWith('parse_holo', {
+        source: 'composition "X" {}',
+      });
       expect(res.body).toMatchObject({ content: expect.any(Array) });
     });
 

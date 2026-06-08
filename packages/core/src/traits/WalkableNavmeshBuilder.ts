@@ -190,7 +190,9 @@ export function deriveWalkableNavmesh(
 export function normalizePointCloud(
   input: WalkablePointCloudInput | WalkablePointInput[]
 ): WalkablePoint[] {
-  const source: WalkablePointCloudInput = Array.isArray(input) ? { format: 'points', points: input } : input;
+  const source: WalkablePointCloudInput = Array.isArray(input)
+    ? { format: 'points', points: input }
+    : input;
   const scale = source.units === 'cm' ? 0.01 : source.units === 'mm' ? 0.001 : 1;
   const points: WalkablePoint[] = [];
 
@@ -208,9 +210,7 @@ export function normalizePointCloud(
       }
       const position: WalkableVec3 = [parts[0] * scale, parts[1] * scale, parts[2] * scale];
       const normal =
-        parts.length >= 6
-          ? normalizeNormal([parts[3], parts[4], parts[5]])
-          : undefined;
+        parts.length >= 6 ? normalizeNormal([parts[3], parts[4], parts[5]]) : undefined;
       points.push(normal ? { position, normal } : { position });
     }
   }
@@ -335,7 +335,7 @@ function assertVec3(value: unknown, label: string): asserts value is WalkableVec
 
 function axesFor(upAxis: WalkableAxis): { up: number; horizontal: [number, number] } {
   const up = AXIS_INDEX[upAxis];
-  const horizontal = ([0, 1, 2].filter((idx) => idx !== up) as [number, number]);
+  const horizontal = [0, 1, 2].filter((idx) => idx !== up) as [number, number];
   return { up, horizontal };
 }
 
@@ -345,7 +345,8 @@ function detectFloorLevels(
   axes: { up: number; horizontal: [number, number] }
 ): FloorLevel[] {
   const floorPoints = points.filter((p) => isFloorPoint(p, opts, axes.up));
-  const candidates = floorPoints.length > 0 ? floorPoints : inferHorizontalPoints(points, opts, axes.up);
+  const candidates =
+    floorPoints.length > 0 ? floorPoints : inferHorizontalPoints(points, opts, axes.up);
   const sorted = [...candidates].sort((a, b) => a.position[axes.up] - b.position[axes.up]);
   const clusters: WalkablePoint[][] = [];
 
@@ -406,9 +407,7 @@ function inferHorizontalPoints(
     if (!groups.has(bucket)) groups.set(bucket, []);
     groups.get(bucket)!.push(point);
   }
-  return [...groups.values()]
-    .filter((group) => group.length >= opts.min_plane_points)
-    .flat();
+  return [...groups.values()].filter((group) => group.length >= opts.min_plane_points).flat();
 }
 
 function detectCeilings(
@@ -458,7 +457,8 @@ function buildBlockedEdges(
   const blocked = new Map<string, BlockedEdge>();
   for (const point of wallPoints) {
     const normal = point.normal!;
-    const dominant = Math.abs(normal[axes.horizontal[0]]) >= Math.abs(normal[axes.horizontal[1]]) ? 0 : 1;
+    const dominant =
+      Math.abs(normal[axes.horizontal[0]]) >= Math.abs(normal[axes.horizontal[1]]) ? 0 : 1;
     const wallCoord = point.position[axes.horizontal[dominant]];
     const otherCoord = point.position[axes.horizontal[dominant === 0 ? 1 : 0]];
     const boundary = Math.round(wallCoord / opts.cell_size_m);
@@ -493,7 +493,10 @@ function buildReachabilityGraph(
   const seen = new Set<string>();
 
   for (const cell of orderedCells) {
-    for (const [da, db] of [[1, 0], [0, 1]] as const) {
+    for (const [da, db] of [
+      [1, 0],
+      [0, 1],
+    ] as const) {
       const next = cells.get(cellKey(cell.level, cell.a + da, cell.b + db));
       if (!next) continue;
       if (isBlocked(cell, next, blockedEdges)) continue;
@@ -510,7 +513,14 @@ function buildReachabilityGraph(
       if (manhattan > 1) continue;
       const heightDelta = Math.abs(a.height - b.height);
       if (heightDelta <= opts.max_step_height_m + opts.plane_tolerance_m) {
-        addUndirectedEdge(edges, seen, a.key, b.key, 'stair', Math.hypot(opts.cell_size_m, heightDelta));
+        addUndirectedEdge(
+          edges,
+          seen,
+          a.key,
+          b.key,
+          'stair',
+          Math.hypot(opts.cell_size_m, heightDelta)
+        );
       }
     }
   }
@@ -539,7 +549,11 @@ function buildCollisionMesh(
       fromHorizontal(cell.a, cell.b + 1, cell.height, opts.cell_size_m, axes)
     );
     triangles.push([base, base + 1, base + 2], [base, base + 2, base + 3]);
-    surfaces.push({ id: `surface:${cell.key}`, kind: 'floor', vertex_indices: [base, base + 1, base + 2, base + 3] });
+    surfaces.push({
+      id: `surface:${cell.key}`,
+      kind: 'floor',
+      vertex_indices: [base, base + 1, base + 2, base + 3],
+    });
   }
 
   for (const edge of [...blockedEdges.values()].sort(compareBlockedEdges)) {
@@ -564,7 +578,11 @@ function buildCollisionMesh(
       );
     }
     triangles.push([base, base + 1, base + 2], [base, base + 2, base + 3]);
-    surfaces.push({ id: `surface:wall:${blockedKey(edge)}`, kind: 'wall', vertex_indices: [base, base + 1, base + 2, base + 3] });
+    surfaces.push({
+      id: `surface:wall:${blockedKey(edge)}`,
+      kind: 'wall',
+      vertex_indices: [base, base + 1, base + 2, base + 3],
+    });
   }
 
   return {
@@ -600,7 +618,12 @@ function detectHoles(
 
     while (queue.length > 0) {
       const [a, b] = queue.shift()!;
-      for (const [da, db] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      for (const [da, db] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ] as const) {
         const na = a + da;
         const nb = b + db;
         if (na < minA || na > maxA || nb < minB || nb > maxB) continue;
@@ -633,9 +656,11 @@ function summarizeWallPlanes(
   const buckets = new Map<string, WalkablePoint[]>();
   for (const point of wallPoints) {
     const normal = point.normal!;
-    const dominant = Math.abs(normal[axes.horizontal[0]]) >= Math.abs(normal[axes.horizontal[1]]) ? 0 : 1;
+    const dominant =
+      Math.abs(normal[axes.horizontal[0]]) >= Math.abs(normal[axes.horizontal[1]]) ? 0 : 1;
     const axis = axes.horizontal[dominant];
-    const value = Math.round(point.position[axis] / opts.plane_tolerance_m) * opts.plane_tolerance_m;
+    const value =
+      Math.round(point.position[axis] / opts.plane_tolerance_m) * opts.plane_tolerance_m;
     const key = `${axis}:${round(value)}`;
     if (!buckets.has(key)) buckets.set(key, []);
     buckets.get(key)!.push(point);

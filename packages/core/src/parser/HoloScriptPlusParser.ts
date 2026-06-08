@@ -1009,8 +1009,13 @@ export class HoloScriptPlusParser {
           for (const [traitName] of nodeAny.traits) {
             const name = String(traitName);
             if (name === 'state') this.hasState = true;
-            if (name === 'grabbable' || name === 'throwable' || name === 'hoverable'
-              || name === 'clickable' || name === 'collidable') {
+            if (
+              name === 'grabbable' ||
+              name === 'throwable' ||
+              name === 'hoverable' ||
+              name === 'clickable' ||
+              name === 'collidable'
+            ) {
               this.hasVRTraits = true;
             }
           }
@@ -1023,17 +1028,20 @@ export class HoloScriptPlusParser {
     // including proper fragment assembly and dependency tracking.
     const root: HSPlusNode =
       incrementalResult.ast.type === 'fragment'
-        ? incrementalResult.ast as HSPlusNode
-        : {
+        ? (incrementalResult.ast as HSPlusNode)
+        : ({
             type: 'fragment',
             id: 'root',
             properties: {},
             directives: [],
             children: [incrementalResult.ast as HSPlusNode],
             traits: new Map(),
-            loc: incrementalResult.ast.loc || { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } },
+            loc: incrementalResult.ast.loc || {
+              start: { line: 1, column: 1 },
+              end: { line: 1, column: 1 },
+            },
             body: [incrementalResult.ast as HSPlusNode],
-          } as unknown as HSPlusNode;
+          } as unknown as HSPlusNode);
 
     // Fix fragment loc to span the full document
     if (root.type === 'fragment' && root.loc) {
@@ -2768,7 +2776,11 @@ export class HoloScriptPlusParser {
               end: { line: this.current().line, column: this.current().column },
             },
           } as unknown as HSPlusNode);
-        } else if (token.type === 'IDENTIFIER' && token.value === 'page' && next.type === 'STRING') {
+        } else if (
+          token.type === 'IDENTIFIER' &&
+          token.value === 'page' &&
+          next.type === 'STRING'
+        ) {
           const startToken = this.advance();
           const name = this.advance().value;
           const properties: Record<string, unknown> = {};
@@ -2825,7 +2837,10 @@ export class HoloScriptPlusParser {
         // Child node keyword followed by { or "name"
         else if (
           childNodeKeywords.includes(token.value) &&
-          (next.type === 'LBRACE' || next.type === 'STRING' || next.type === 'IDENTIFIER' || next.type === 'HASH')
+          (next.type === 'LBRACE' ||
+            next.type === 'STRING' ||
+            next.type === 'IDENTIFIER' ||
+            next.type === 'HASH')
         ) {
           const keyword = this.current().value;
           const node = this.parseNode();
@@ -2852,7 +2867,12 @@ export class HoloScriptPlusParser {
           result.properties[key] = this.parseValue();
         }
         // Custom node type followed by name or body
-        else if (next.type === 'LBRACE' || next.type === 'IDENTIFIER' || next.type === 'STRING' || next.type === 'HASH') {
+        else if (
+          next.type === 'LBRACE' ||
+          next.type === 'IDENTIFIER' ||
+          next.type === 'STRING' ||
+          next.type === 'HASH'
+        ) {
           const keyword = this.current().value;
           const node = this.parseNode();
           node.directives = [...currentDirectives, ...(node.directives || [])];

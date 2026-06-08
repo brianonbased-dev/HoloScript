@@ -26,10 +26,20 @@ function mockRes(): http.ServerResponse & { _status?: number; _body?: any } {
   let _status: number | undefined;
   let _body: any;
   const res: any = {
-    writeHead: (s: number) => { _status = s; return res; },
-    end: (b?: any) => { _body = b ? JSON.parse(b) : undefined; return res; },
-    get _status() { return _status; },
-    get _body() { return _body; },
+    writeHead: (s: number) => {
+      _status = s;
+      return res;
+    },
+    end: (b?: any) => {
+      _body = b ? JSON.parse(b) : undefined;
+      return res;
+    },
+    get _status() {
+      return _status;
+    },
+    get _body() {
+      return _body;
+    },
   };
   return res;
 }

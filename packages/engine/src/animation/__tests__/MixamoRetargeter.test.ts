@@ -108,7 +108,11 @@ describe('VRM retargeting', () => {
   });
 
   it('retargets multiple bones', () => {
-    const source = makeSource([WALK_HIPS_ANIMATION, WALK_LEFT_LEG_ANIMATION, WALK_RIGHT_LEG_ANIMATION]);
+    const source = makeSource([
+      WALK_HIPS_ANIMATION,
+      WALK_LEFT_LEG_ANIMATION,
+      WALK_RIGHT_LEG_ANIMATION,
+    ]);
     const clip = retargetToVRM(source);
 
     const tracks = clip.getTracks();

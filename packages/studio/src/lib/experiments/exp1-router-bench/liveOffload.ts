@@ -21,10 +21,27 @@ import { EXP1_COMPUTE_SUITE } from './tasks-compute';
 import type { BenchTask } from './types';
 import type { ResolvedContract } from '../../brittney/SimContractGate';
 
-const TRAITS = ['glow', 'audio', 'rigidbody', 'motion', 'particle', 'transform', 'thermal', 'material', 'surface'];
+const TRAITS = [
+  'glow',
+  'audio',
+  'rigidbody',
+  'motion',
+  'particle',
+  'transform',
+  'thermal',
+  'material',
+  'surface',
+];
 const PROP_OF: Record<string, string> = {
-  glow: 'intensity', audio: 'volume', rigidbody: 'mass', motion: 'speed', particle: 'rate',
-  transform: 'scale', thermal: 'temp', material: 'opacity', surface: 'friction',
+  glow: 'intensity',
+  audio: 'volume',
+  rigidbody: 'mass',
+  motion: 'speed',
+  particle: 'rate',
+  transform: 'scale',
+  thermal: 'temp',
+  material: 'opacity',
+  surface: 'friction',
 };
 
 /** Deterministic distractor contracts: real trait names, DIFFERENT bounds, plausible ids. */
@@ -57,7 +74,12 @@ function buildCorpus(): ResolvedContract[] {
 const CORPUS = buildCorpus();
 
 function tokens(s: string): Set<string> {
-  return new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter((t) => t.length > 1));
+  return new Set(
+    s
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length > 1)
+  );
 }
 
 /** Token-overlap (Jaccard-ish) score between a query and a contract's id+traits. */

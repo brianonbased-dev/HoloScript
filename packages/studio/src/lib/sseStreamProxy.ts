@@ -44,7 +44,9 @@ export function createSSEHeartbeatStream<TChunk extends Uint8Array>(
       }
 
       if (typeof options.retryMs === 'number' && Number.isFinite(options.retryMs)) {
-        controller.enqueue(encoder.encode(`retry: ${Math.max(0, Math.floor(options.retryMs))}\n\n`));
+        controller.enqueue(
+          encoder.encode(`retry: ${Math.max(0, Math.floor(options.retryMs))}\n\n`)
+        );
       }
 
       controller.enqueue(encoder.encode(`: heartbeat open\n\n`));

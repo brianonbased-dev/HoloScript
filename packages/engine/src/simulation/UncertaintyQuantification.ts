@@ -159,7 +159,7 @@ export class UncertaintyQuantification implements SimSolver {
   constructor(
     config: UQConfig,
     solverFactory: (type: string, config: Record<string, unknown>) => UQSolverHandle,
-    tracker?: ProvenanceTracker,
+    tracker?: ProvenanceTracker
   ) {
     this.config = config;
     this.solverFactory = solverFactory;
@@ -176,11 +176,7 @@ export class UncertaintyQuantification implements SimSolver {
    */
   async solve(): Promise<void> {
     const t0 = performance.now();
-    const {
-      sampleCount = 50,
-      confidenceLevel = 0.95,
-      concurrency = 1,
-    } = this.config;
+    const { sampleCount = 50, confidenceLevel = 0.95, concurrency = 1 } = this.config;
 
     // ── Phase 1: Run ensemble via ExperimentOrchestrator ──────────────────
 
@@ -204,7 +200,9 @@ export class UncertaintyQuantification implements SimSolver {
           if (discoveredFieldNames === null) {
             discoveredFieldNames = this.config.fieldNames
               ? [...this.config.fieldNames]
-              : (solver.fieldNames ? [...solver.fieldNames] : []);
+              : solver.fieldNames
+                ? [...solver.fieldNames]
+                : [];
           }
 
           // Collect field data
@@ -302,7 +300,7 @@ export class UncertaintyQuantification implements SimSolver {
    * Returns a Float64Array (not Float32Array) for precision.
    */
   getField(name: string): FieldData | null {
-    return this.meanFields.get(name) as FieldData | null ?? null;
+    return (this.meanFields.get(name) as FieldData | null) ?? null;
   }
 
   /**
@@ -369,7 +367,7 @@ export class UncertaintyQuantification implements SimSolver {
  */
 export function computeScalarDistribution(
   values: number[],
-  confidenceLevel = 0.95,
+  confidenceLevel = 0.95
 ): ScalarDistribution {
   const n = values.length;
   const sorted = [...values].sort((a, b) => a - b);
@@ -391,34 +389,33 @@ export function computeScalarDistribution(
   const cov = Math.abs(mean) > 1e-20 ? std / Math.abs(mean) : Infinity;
 
   // Skewness (Fisher's)
-  const skewness = n > 2 && std > 1e-20
-    ? (n / ((n - 1) * (n - 2))) * (m3 / (std * std * std) * n / n)
-    : 0;
+  const skewness =
+    n > 2 && std > 1e-20 ? (n / ((n - 1) * (n - 2))) * (((m3 / (std * std * std)) * n) / n) : 0;
 
   // Actually compute skewness correctly using centered moments
   const m2n = m2 / n; // biased variance
   const stdBiased = Math.sqrt(m2n);
-  const skewnessCorrect = n > 2 && stdBiased > 1e-20
-    ? ((m3 / n) / (stdBiased ** 3)) * (n * n) / ((n - 1) * (n - 2))
-    : 0;
+  const skewnessCorrect =
+    n > 2 && stdBiased > 1e-20 ? ((m3 / n / stdBiased ** 3) * (n * n)) / ((n - 1) * (n - 2)) : 0;
 
   // Excess kurtosis
-  const kurtosis = n > 3 && m2n > 1e-20
-    ? ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) * (m4 / (m2n * m2n))
-      - (3 * (n - 1) * (n - 1)) / ((n - 2) * (n - 3))
-    : 0;
+  const kurtosis =
+    n > 3 && m2n > 1e-20
+      ? ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) * (m4 / (m2n * m2n)) -
+        (3 * (n - 1) * (n - 1)) / ((n - 2) * (n - 3))
+      : 0;
 
   // Percentiles via linear interpolation
   const p5 = percentile(sorted, 0.05);
   const p25 = percentile(sorted, 0.25);
-  const p50 = percentile(sorted, 0.50);
+  const p50 = percentile(sorted, 0.5);
   const p75 = percentile(sorted, 0.75);
   const p95 = percentile(sorted, 0.95);
 
   // Confidence interval using t-distribution approximation
   const alpha = 1 - confidenceLevel;
   const tValue = tQuantile(1 - alpha / 2, n - 1);
-  const margin = tValue * std / Math.sqrt(n);
+  const margin = (tValue * std) / Math.sqrt(n);
 
   return {
     n,
@@ -445,7 +442,7 @@ export function computeScalarDistribution(
 export function computeFieldDistribution(
   name: string,
   samples: Float64Array[],
-  confidenceLevel = 0.95,
+  confidenceLevel = 0.95
 ): FieldDistribution {
   const n = samples.length;
   const len = samples[0].length;
@@ -487,7 +484,7 @@ export function computeFieldDistribution(
     const sd = Math.sqrt(variance);
     std[i] = sd;
 
-    const margin = tValue * sd / Math.sqrt(n);
+    const margin = (tValue * sd) / Math.sqrt(n);
     ciLower[i] = m - margin;
     ciUpper[i] = m + margin;
     covArr[i] = Math.abs(m) > 1e-20 ? sd / Math.abs(m) : 0;
@@ -495,7 +492,7 @@ export function computeFieldDistribution(
     // Sort for percentiles
     scratch.sort();
     p5Arr[i] = percentileFromSorted(scratch, 0.05);
-    p50Arr[i] = percentileFromSorted(scratch, 0.50);
+    p50Arr[i] = percentileFromSorted(scratch, 0.5);
     p95Arr[i] = percentileFromSorted(scratch, 0.95);
   }
 
@@ -584,24 +581,18 @@ function tQuantile(p: number, df: number): number {
 function normalQuantile(p: number): number {
   // Rational approximation coefficients
   const a = [
-    -3.969683028665376e+01, 2.209460984245205e+02,
-    -2.759285104469687e+02, 1.383577518672690e+02,
-    -3.066479806614716e+01, 2.506628277459239e+00,
+    -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2,
+    -3.066479806614716e1, 2.506628277459239,
   ];
   const b = [
-    -5.447609879822406e+01, 1.615858368580409e+02,
-    -1.556989798598866e+02, 6.680131188771972e+01,
-    -1.328068155288572e+01,
+    -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1,
+    -1.328068155288572e1,
   ];
   const c = [
-    -7.784894002430293e-03, -3.223964580411365e-01,
-    -2.400758277161838e+00, -2.549732539343734e+00,
-    4.374664141464968e+00, 2.938163982698783e+00,
+    -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734,
+    4.374664141464968, 2.938163982698783,
   ];
-  const d = [
-    7.784695709041462e-03, 3.224671290700398e-01,
-    2.445134137142996e+00, 3.754408661907416e+00,
-  ];
+  const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
 
   const pLow = 0.02425;
   const pHigh = 1 - pLow;
@@ -611,18 +602,24 @@ function normalQuantile(p: number): number {
   if (p < pLow) {
     // Rational approximation for lower region
     q = Math.sqrt(-2 * Math.log(p));
-    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
-           ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+    return (
+      (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+    );
   } else if (p <= pHigh) {
     // Rational approximation for central region
     q = p - 0.5;
     const r = q * q;
-    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
-           (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+    return (
+      ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) /
+      (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1)
+    );
   } else {
     // Rational approximation for upper region
     q = Math.sqrt(-2 * Math.log(1 - p));
-    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
-            ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+    return (
+      -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+    );
   }
 }

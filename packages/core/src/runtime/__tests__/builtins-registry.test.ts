@@ -66,7 +66,13 @@ describe('createBuiltinsMap', () => {
 
   it('show builtin returns result with shown key', () => {
     const ctx = makeCtx();
-    ctx.hologramState.set('obj1', { shape: 'cube', color: '#fff', size: 1, glow: false, interactive: false });
+    ctx.hologramState.set('obj1', {
+      shape: 'cube',
+      color: '#fff',
+      size: 1,
+      glow: false,
+      interactive: false,
+    });
     const builtins = createBuiltinsMap(ctx);
     const showFn = builtins.get('show')!;
     const result = showFn(['obj1'] as never);

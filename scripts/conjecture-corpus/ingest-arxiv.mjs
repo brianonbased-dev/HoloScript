@@ -31,15 +31,22 @@ function arg(name, dflt) {
 const PER_CAT = parseInt(arg('--per-cat', '180'), 10);
 const OUT = arg('--out', 'scripts/conjecture-corpus/corpus.arxiv.json');
 const CATEGORIES = arg('--categories', '')
-  ? arg('--categories', '').split(',').map((c) => c.trim()).filter(Boolean)
+  ? arg('--categories', '')
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean)
   : DEFAULT_CATEGORIES;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const clean = (s) => s.replace(/\s+/g, ' ').trim();
 function decodeEntities(s) {
   return s
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n));
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n));
 }
 function tag(block, name) {
   const m = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`));
@@ -58,7 +65,9 @@ function parseFeed(xml) {
     const summary = tag(block, 'summary');
     const published = tag(block, 'published');
     const year = (published.match(/^(\d{4})/) || [])[1] || '';
-    const authors = [...block.matchAll(/<name>([\s\S]*?)<\/name>/g)].map((m) => decodeEntities(clean(m[1])));
+    const authors = [...block.matchAll(/<name>([\s\S]*?)<\/name>/g)].map((m) =>
+      decodeEntities(clean(m[1]))
+    );
     if (arxivId && title && summary) out.push({ arxivId, title, summary, year, authors });
   }
   return out;
@@ -68,8 +77,13 @@ async function fetchCategory(cat, want) {
   const entries = [];
   for (let start = 0; entries.length < want; start += PAGE) {
     const url = `${ARXIV}?search_query=cat:${cat}&start=${start}&max_results=${PAGE}&sortBy=submittedDate&sortOrder=descending`;
-    const res = await fetch(url, { headers: { 'User-Agent': 'HoloScript-ConjectureCorpus/1.0 (research)' } });
-    if (!res.ok) { console.error(`[ingest] ${cat} start=${start} HTTP ${res.status}`); break; }
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'HoloScript-ConjectureCorpus/1.0 (research)' },
+    });
+    if (!res.ok) {
+      console.error(`[ingest] ${cat} start=${start} HTTP ${res.status}`);
+      break;
+    }
     const xml = await res.text();
     const parsed = parseFeed(xml);
     if (parsed.length === 0) break; // exhausted
@@ -88,7 +102,9 @@ for (const cat of CATEGORIES) {
     const id = `prior.arxiv.${e.arxivId}`;
     if (seen.has(id)) continue;
     seen.add(id);
-    const authorStr = e.authors.length ? `${e.authors.slice(0, 3).join(', ')}${e.authors.length > 3 ? ' et al.' : ''}` : 'unknown';
+    const authorStr = e.authors.length
+      ? `${e.authors.slice(0, 3).join(', ')}${e.authors.length > 3 ? ' et al.' : ''}`
+      : 'unknown';
     corpus.push({
       id,
       title: e.title,

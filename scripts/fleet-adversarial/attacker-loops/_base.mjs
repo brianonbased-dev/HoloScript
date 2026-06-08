@@ -33,7 +33,9 @@ export const AUDIT_PREFIX_LOCAL = 'audit/';
  * mirrored in slow-poisoner + sybil + worker-dispatch-consumer +
  * oracle/divergence-detector.)
  */
-export const DEFAULT_API_BASE = (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(/\/api\/holomesh\/?$/, '');
+export const DEFAULT_API_BASE = (
+  process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net'
+).replace(/\/api\/holomesh\/?$/, '');
 
 /**
  * Build a 7-layer CAEL record matching task _d2jx GET endpoint contract.
@@ -67,7 +69,11 @@ export function buildCaelRecord({ agentHandle, operation, prevHash, vvFingerprin
   return {
     tick_iso: tickIso,
     layer_hashes: layerHashes,
-    operation: { kind: operation.kind, route: operation.route, target_handle: operation.target_handle },
+    operation: {
+      kind: operation.kind,
+      route: operation.route,
+      target_handle: operation.target_handle,
+    },
     prev_hash: prevHash || null,
     fnv1a_chain: fnv.toString(16),
     version_vector_fingerprint: vvFingerprint || null,
@@ -105,7 +111,12 @@ export class AuditEmitter {
   }
 
   async emit({ agentHandle, operation, vvFingerprint }) {
-    const record = buildCaelRecord({ agentHandle, operation, prevHash: this.prevHash, vvFingerprint });
+    const record = buildCaelRecord({
+      agentHandle,
+      operation,
+      prevHash: this.prevHash,
+      vvFingerprint,
+    });
     this.records.push(record);
     this.prevHash = record.layer_hashes[record.layer_hashes.length - 1];
     await appendFile(this.logPath, `${JSON.stringify(record)}\n`, 'utf8');
@@ -118,11 +129,13 @@ export class AuditEmitter {
           ...record,
           operation: typeof op === 'string' ? op : `${op.route || 'audit/'}${op.kind || 'unknown'}`,
           attack_class: this.attackClass,
-          ...(typeof op === 'object' && op !== null ? {
-            target_handle: op.target_handle,
-            defense_state: op.defense_state,
-            trial: op.trial,
-          } : {}),
+          ...(typeof op === 'object' && op !== null
+            ? {
+                target_handle: op.target_handle,
+                defense_state: op.defense_state,
+                trial: op.trial,
+              }
+            : {}),
         };
         const response = await fetch(url, {
           method: 'POST',
@@ -154,8 +167,8 @@ export function liveAllowedFromArgs({ dry_run, acknowledge_blockers }) {
   if (dry_run) return false;
   if (!acknowledge_blockers) {
     throw new Error(
-      `live-mode refused: pass --i-acknowledge-blockers-d2jx-8bav-open if you accept the trial may run with reduced fidelity. `
-      + `Recommended: keep dry_run=true unless explicitly running a production trial.`
+      `live-mode refused: pass --i-acknowledge-blockers-d2jx-8bav-open if you accept the trial may run with reduced fidelity. ` +
+        `Recommended: keep dry_run=true unless explicitly running a production trial.`
     );
   }
   return true;

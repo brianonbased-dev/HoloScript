@@ -1,5 +1,4 @@
-import type { Vector3 } from '../types';
-﻿/**
+import type { Vector3 } from '../types'; /**
  * VoronoiFractureTrait.ts
  * Advanced procedural destruction and fracture simulation with Voronoi cells
  *
@@ -13,7 +12,6 @@ import type { Vector3 } from '../types';
  *
  * @module VoronoiFractureTrait
  */
-
 // ============================================================================
 // Types and Interfaces
 // ============================================================================
@@ -114,10 +112,7 @@ interface FragmentNeighbor {
 /**
  * Computes distance between two 3D points
  */
-function distance3D(
-  a: Vector3,
-  b: Vector3
-): number {
+function distance3D(a: Vector3, b: Vector3): number {
   const dx = a[0] - b[0];
   const dy = a[1] - b[1];
   const dz = a[2] - b[2];
@@ -127,10 +122,7 @@ function distance3D(
 /**
  * Generates a random point within bounds
  */
-function randomPointInBounds(bounds: {
-  min: Vector3;
-  max: Vector3;
-}): Vector3 {
+function randomPointInBounds(bounds: { min: Vector3; max: Vector3 }): Vector3 {
   return [
     bounds.min[0] + Math.random() * (bounds.max[0] - bounds.min[0]),
     bounds.min[1] + Math.random() * (bounds.max[1] - bounds.min[1]),
@@ -147,8 +139,8 @@ function computeBoundingBox(vertices: Array<[number, number, number]>): {
 } {
   if (vertices.length === 0) {
     return {
-      min: [0, 0, 0 ],
-      max: [0, 0, 0 ],
+      min: [0, 0, 0],
+      max: [0, 0, 0],
     };
   }
 
@@ -170,10 +162,7 @@ function computeBoundingBox(vertices: Array<[number, number, number]>): {
 /**
  * Computes volume of a bounding box
  */
-function computeVolume(bounds: {
-  min: Vector3;
-  max: Vector3;
-}): number {
+function computeVolume(bounds: { min: Vector3; max: Vector3 }): number {
   const dx = bounds.max[0] - bounds.min[0];
   const dy = bounds.max[1] - bounds.min[1];
   const dz = bounds.max[2] - bounds.min[2];
@@ -194,14 +183,14 @@ export class VoronoiFractureSystem {
   private config: VoronoiFractureConfig;
   private nextFragmentId: number = 0;
   private voronoiSites: VoronoiSite[] = [];
-  private cameraPosition: Vector3 = [0, 0, 0 ];
+  private cameraPosition: Vector3 = [0, 0, 0];
 
   constructor(config: Partial<VoronoiFractureConfig> = {}) {
     this.config = {
       voronoiSites: config.voronoiSites ?? 10,
       bounds: config.bounds ?? {
-        min: [-1, -1, -1 ],
-        max: [1, 1, 1 ],
+        min: [-1, -1, -1],
+        max: [1, 1, 1],
       },
       destructionThreshold: config.destructionThreshold ?? 0.2,
       maxHealth: config.maxHealth ?? 100,

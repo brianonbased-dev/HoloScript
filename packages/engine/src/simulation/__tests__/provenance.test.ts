@@ -129,10 +129,7 @@ describe('ProvenanceTracker', () => {
     const tracker = new ProvenanceTracker('6.1.0');
 
     // A pure solver function should produce identical results
-    const { deterministic, comparison } = tracker.verifyDeterminism(
-      testConfig,
-      () => testResult
-    );
+    const { deterministic, comparison } = tracker.verifyDeterminism(testConfig, () => testResult);
 
     expect(deterministic).toBe(true);
     expect(comparison.configMatch).toBe(true);
@@ -144,13 +141,10 @@ describe('ProvenanceTracker', () => {
     const tracker = new ProvenanceTracker('6.1.0');
     let callCount = 0;
 
-    const { deterministic } = tracker.verifyDeterminism(
-      testConfig,
-      () => {
-        callCount++;
-        return { ...testResult, max: callCount === 1 ? 100 : 200 };
-      }
-    );
+    const { deterministic } = tracker.verifyDeterminism(testConfig, () => {
+      callCount++;
+      return { ...testResult, max: callCount === 1 ? 100 : 200 };
+    });
 
     expect(deterministic).toBe(false);
   });

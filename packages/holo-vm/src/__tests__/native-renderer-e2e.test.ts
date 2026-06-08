@@ -13,7 +13,10 @@ import { HoloBytecodeBuilder, type HoloBytecode } from '../bytecode';
 import { HoloVM } from '../executor';
 import { ComponentType, GeometryType } from '../opcodes';
 import {
-  NativeFramebuffer, SoftwareRasterBackend, NativeHoloRenderer, type OrthoCamera,
+  NativeFramebuffer,
+  SoftwareRasterBackend,
+  NativeHoloRenderer,
+  type OrthoCamera,
 } from '../render/native-renderer';
 
 const CAM: OrthoCamera = { pixelsPerUnit: 8, centerWorld: { x: 0, y: 0 } };
@@ -26,10 +29,21 @@ describe('e2e: HoloBytecode → HoloVM.load → NativeHoloRenderer', () => {
     // Component values in the canonical TransformComponent/Geometry/Material shapes the
     // VM's opcode handlers also use — initializeEntities stores them as-is on vm.world.
     b.addComponentToEntity(idx, ComponentType.Transform, {
-      position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: { x: 2, y: 2, z: 2 },
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      scale: { x: 2, y: 2, z: 2 },
     } as unknown as Record<string, never>);
-    b.addComponentToEntity(idx, ComponentType.Geometry, { type: GeometryType.Cube, params: {} } as unknown as Record<string, never>);
-    b.addComponentToEntity(idx, ComponentType.Material, { color: 0xff0000, metalness: 0, roughness: 1, emissive: 0, opacity: 1 } as unknown as Record<string, never>);
+    b.addComponentToEntity(idx, ComponentType.Geometry, {
+      type: GeometryType.Cube,
+      params: {},
+    } as unknown as Record<string, never>);
+    b.addComponentToEntity(idx, ComponentType.Material, {
+      color: 0xff0000,
+      metalness: 0,
+      roughness: 1,
+      emissive: 0,
+      opacity: 1,
+    } as unknown as Record<string, never>);
 
     const bytecode: HoloBytecode = b.build();
 
@@ -38,7 +52,12 @@ describe('e2e: HoloBytecode → HoloVM.load → NativeHoloRenderer', () => {
     expect(vm.world.entityCount).toBe(1);
 
     const fb = new NativeFramebuffer(64, 64);
-    const stats = new NativeHoloRenderer(new SoftwareRasterBackend(fb)).render(vm.world, fb, CAM, CLEAR);
+    const stats = new NativeHoloRenderer(new SoftwareRasterBackend(fb)).render(
+      vm.world,
+      fb,
+      CAM,
+      CLEAR
+    );
 
     expect(stats.entitiesDrawn).toBe(1);
     expect(fb.pixel(32, 32)).toEqual({ r: 255, g: 0, b: 0, a: 255 }); // the loaded cube
@@ -49,9 +68,22 @@ describe('e2e: HoloBytecode → HoloVM.load → NativeHoloRenderer', () => {
     const b = new HoloBytecodeBuilder();
     const mk = (name: string, x: number, color: number) => {
       const i = b.addEntity(name);
-      b.addComponentToEntity(i, ComponentType.Transform, { position: { x, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: { x: 1, y: 1, z: 1 } } as unknown as Record<string, never>);
-      b.addComponentToEntity(i, ComponentType.Geometry, { type: GeometryType.Cube, params: {} } as unknown as Record<string, never>);
-      b.addComponentToEntity(i, ComponentType.Material, { color, metalness: 0, roughness: 1, emissive: 0, opacity: 1 } as unknown as Record<string, never>);
+      b.addComponentToEntity(i, ComponentType.Transform, {
+        position: { x, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        scale: { x: 1, y: 1, z: 1 },
+      } as unknown as Record<string, never>);
+      b.addComponentToEntity(i, ComponentType.Geometry, {
+        type: GeometryType.Cube,
+        params: {},
+      } as unknown as Record<string, never>);
+      b.addComponentToEntity(i, ComponentType.Material, {
+        color,
+        metalness: 0,
+        roughness: 1,
+        emissive: 0,
+        opacity: 1,
+      } as unknown as Record<string, never>);
     };
     mk('a', -2, 0xff0000);
     mk('b', 2, 0x0000ff);
@@ -61,7 +93,12 @@ describe('e2e: HoloBytecode → HoloVM.load → NativeHoloRenderer', () => {
     expect(vm.world.entityCount).toBe(2);
 
     const fb = new NativeFramebuffer(64, 64);
-    const stats = new NativeHoloRenderer(new SoftwareRasterBackend(fb)).render(vm.world, fb, CAM, CLEAR);
+    const stats = new NativeHoloRenderer(new SoftwareRasterBackend(fb)).render(
+      vm.world,
+      fb,
+      CAM,
+      CLEAR
+    );
     expect(stats.entitiesDrawn).toBe(2);
     expect(fb.pixel(16, 32)).toEqual({ r: 255, g: 0, b: 0, a: 255 }); // left cube
     expect(fb.pixel(48, 32)).toEqual({ r: 0, g: 0, b: 255, a: 255 }); // right cube

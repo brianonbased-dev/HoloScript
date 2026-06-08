@@ -97,7 +97,11 @@
  */
 
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from '../TraitTypes';
-import { jepObjectiveHandler, type JEPAObjectiveConfig, type JEPALossPayload } from '../JEPAObjective';
+import {
+  jepObjectiveHandler,
+  type JEPAObjectiveConfig,
+  type JEPALossPayload,
+} from '../JEPAObjective';
 import {
   pillarRegistryHandler,
   type PillarRegistryConfig,
@@ -297,18 +301,14 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
 
     // Register seed Pillars (both are seeds but explicit registration ensures
     // they are available even if a custom registry config excludes them)
-    pillarRegistryHandler.onEvent?.(
-      registryNode,
-      toRegistryConfig(),
-      silentContext(),
-      { type: 'pillar:register', pillar: PHYSICS_CONSERVATION_PILLAR }
-    );
-    pillarRegistryHandler.onEvent?.(
-      registryNode,
-      toRegistryConfig(),
-      silentContext(),
-      { type: 'pillar:register', pillar: TEMPORAL_PILLAR }
-    );
+    pillarRegistryHandler.onEvent?.(registryNode, toRegistryConfig(), silentContext(), {
+      type: 'pillar:register',
+      pillar: PHYSICS_CONSERVATION_PILLAR,
+    });
+    pillarRegistryHandler.onEvent?.(registryNode, toRegistryConfig(), silentContext(), {
+      type: 'pillar:register',
+      pillar: TEMPORAL_PILLAR,
+    });
 
     const initialState: PillarJEPAState = {
       step: 0,
@@ -344,12 +344,13 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
 
     // ── Weight update forwarded to JEPAObjective ──────────────────────────────
     if (eventType === 'pillarjepa:update_weights') {
-      jepObjectiveHandler.onEvent?.(
-        state.jepaNode,
-        toJepaConfig(config),
-        context,
-        { type: 'jepa:update_weights', W1: event.W1, W2: event.W2, b1: event.b1, b2: event.b2 }
-      );
+      jepObjectiveHandler.onEvent?.(state.jepaNode, toJepaConfig(config), context, {
+        type: 'jepa:update_weights',
+        W1: event.W1,
+        W2: event.W2,
+        b1: event.b1,
+        b2: event.b2,
+      });
       return;
     }
 
@@ -361,13 +362,21 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
     // 1. Validate inputs
     const contextStr = readString(event.context);
     if (!contextStr) {
-      emitError(context, { code: 'PJEPA_CONTEXT_REQUIRED', message: 'pillarjepa:step requires a non-empty context string', step });
+      emitError(context, {
+        code: 'PJEPA_CONTEXT_REQUIRED',
+        message: 'pillarjepa:step requires a non-empty context string',
+        step,
+      });
       return;
     }
 
     const targetVec = toFloat32Array(event.targetVec);
     if (!targetVec) {
-      emitError(context, { code: 'PJEPA_TARGET_VEC_REQUIRED', message: 'pillarjepa:step requires targetVec (Float32Array or number[])', step });
+      emitError(context, {
+        code: 'PJEPA_TARGET_VEC_REQUIRED',
+        message: 'pillarjepa:step requires targetVec (Float32Array or number[])',
+        step,
+      });
       return;
     }
 
@@ -390,21 +399,16 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
 
     const captureCtx = buildCaptureContext(context, state);
 
-    jepObjectiveHandler.onEvent?.(
-      state.jepaNode,
-      toJepaConfig(config),
-      captureCtx,
-      {
-        type: 'jepa:encode_pair',
-        context: contextStr,
-        targetVec,
-        conditioning: config.condDim > 0 ? conditioning : undefined,
-      }
-    );
+    jepObjectiveHandler.onEvent?.(state.jepaNode, toJepaConfig(config), captureCtx, {
+      type: 'jepa:encode_pair',
+      context: contextStr,
+      targetVec,
+      conditioning: config.condDim > 0 ? conditioning : undefined,
+    });
 
     // TS control-flow does not track closure mutations on object properties,
     // so we read back with a type assertion after the JEPA call completes.
-    const capturedError = state.pendingJepaError as ({ code: string; message: string } | null);
+    const capturedError = state.pendingJepaError as { code: string; message: string } | null;
     if (capturedError) {
       emitError(context, {
         code: 'PJEPA_JEPA_ERROR',
@@ -414,7 +418,7 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
       return;
     }
 
-    const jepaLoss = state.pendingJepaLoss as (JEPALossPayload | null);
+    const jepaLoss = state.pendingJepaLoss as JEPALossPayload | null;
     if (!jepaLoss) {
       // JEPAObjective didn't emit — shouldn't happen, treat as zero loss
       emitError(context, {
@@ -455,14 +459,15 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
     //    computed deterministically from the slice, independent of the model) —
     //    a constant offset, not a regulariser. Scoring the prediction makes the
     //    loss a function of θ and matches Paper 26 Eq.(eq:lc): max(0, p_1−ε_c−ẑ_t·u_c).
-    const conservationLoss = effectiveConservationWeight > 0
-      ? computeConservationLoss(
-          jepaLoss.predicted,
-          physicsSlice.pos_1,
-          config.conservationMargin,
-          physicsSlice.axis_1_id
-        )
-      : 0;
+    const conservationLoss =
+      effectiveConservationWeight > 0
+        ? computeConservationLoss(
+            jepaLoss.predicted,
+            physicsSlice.pos_1,
+            config.conservationMargin,
+            physicsSlice.axis_1_id
+          )
+        : 0;
 
     // 7. Symmetry equivariance regulariser
     //    When a parallel_slice is available, symmetry = 1 − hemisphere_agreement:
@@ -475,9 +480,7 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
     if (parallelSlice) {
       hemisphereAgreement = parallelSlice.hemisphere_agreement;
       // Symmetry loss = disagreement between hemispheres
-      symmetryLoss = config.symmetryWeight > 0
-        ? (1 - hemisphereAgreement)
-        : 0;
+      symmetryLoss = config.symmetryWeight > 0 ? 1 - hemisphereAgreement : 0;
 
       // Bilateral loss — MSE between left and right conditioning vectors
       if (config.bilateralWeight > 0 && config.condDim > 0) {
@@ -485,9 +488,10 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
         bilateralLoss = computeBilateralLoss(conditioning, rightConditioning);
       }
     } else {
-      symmetryLoss = config.symmetryWeight > 0
-        ? computeSymmetryLoss(conditioning, config.symmetryDelta, step)
-        : 0;
+      symmetryLoss =
+        config.symmetryWeight > 0
+          ? computeSymmetryLoss(conditioning, config.symmetryDelta, step)
+          : 0;
     }
 
     // 8. Total loss
@@ -510,7 +514,7 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
       temporalConvergence,
       effectiveConservationWeight,
       ...(hemisphereAgreement !== undefined && { hemisphereAgreement }),
-      ...(bilateralLoss      !== undefined && { bilateralLoss }),
+      ...(bilateralLoss !== undefined && { bilateralLoss }),
     };
     context.emit?.('pillarjepa:loss', lossPayload);
 
@@ -534,10 +538,7 @@ export const pillarJepaHandler: TraitHandler<PillarJEPAConfig> = {
 // Physics slice generation
 // ─────────────────────────────────────────────────────────────────────────────
 
-function generatePhysicsSlice(
-  state: PillarJEPAState,
-  config: PillarJEPAConfig
-): PillarSlice {
+function generatePhysicsSlice(state: PillarJEPAState, config: PillarJEPAConfig): PillarSlice {
   // Query PillarRegistry synchronously via a capture context
   let capturedSlice: PillarSlice | null = null;
 
@@ -563,26 +564,23 @@ function generatePhysicsSlice(
     timestamp_ms: Date.now(),
   };
 
-  pillarRegistryHandler.onEvent?.(
-    state.registryNode,
-    toRegistryConfig(),
-    captureCtx,
-    {
-      type: 'pillar:generate',
-      pillar_id: config.physicsPillarId,
-      context: pillarCtx,
-    }
-  );
+  pillarRegistryHandler.onEvent?.(state.registryNode, toRegistryConfig(), captureCtx, {
+    type: 'pillar:generate',
+    pillar_id: config.physicsPillarId,
+    context: pillarCtx,
+  });
 
   // Fallback: synthesize a default slice if registry didn't respond
-  return capturedSlice ?? {
-    axis_1_id: 'energy',
-    axis_2_id: 'momentum',
-    pos_1: 1.0,
-    pos_2: 0.0,
-    pillar_id: config.physicsPillarId,
-    pillar_domain: 'physics',
-  };
+  return (
+    capturedSlice ?? {
+      axis_1_id: 'energy',
+      axis_2_id: 'momentum',
+      pos_1: 1.0,
+      pos_2: 0.0,
+      pillar_id: config.physicsPillarId,
+      pillar_domain: 'physics',
+    }
+  );
 }
 
 /**
@@ -616,28 +614,25 @@ function generateTemporalSlice(state: PillarJEPAState): PillarSlice {
     timestamp_ms: Date.now(),
   };
 
-  pillarRegistryHandler.onEvent?.(
-    state.registryNode,
-    toRegistryConfig(),
-    captureCtx,
-    {
-      type: 'pillar:generate',
-      pillar_id: TEMPORAL_PILLAR.id,
-      context: pillarCtx,
-    }
-  );
+  pillarRegistryHandler.onEvent?.(state.registryNode, toRegistryConfig(), captureCtx, {
+    type: 'pillar:generate',
+    pillar_id: TEMPORAL_PILLAR.id,
+    context: pillarCtx,
+  });
 
   // Fallback: steady-state (convergence = 1.0) → conservation pressure = 0.
   // This is the safe default: don't add spurious pressure when temporal state
   // is unknown (e.g. first step before any metadata is available).
-  return capturedSlice ?? {
-    axis_1_id: 'steady_state',
-    axis_2_id: 'convergence',
-    pos_1: 1.0,
-    pos_2: 1.0,          // fully converged → effective conservation weight = 0
-    pillar_id: TEMPORAL_PILLAR.id,
-    pillar_domain: 'steady_state',
-  };
+  return (
+    capturedSlice ?? {
+      axis_1_id: 'steady_state',
+      axis_2_id: 'convergence',
+      pos_1: 1.0,
+      pos_2: 1.0, // fully converged → effective conservation weight = 0
+      pillar_id: TEMPORAL_PILLAR.id,
+      pillar_domain: 'steady_state',
+    }
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -662,7 +657,7 @@ function generateTemporalSlice(state: PillarJEPAState): PillarSlice {
  */
 export function computeConservationLoss(
   predicted: Float32Array,
-  energyConservation: number,   // pos_1: 1 = fully conserved, 0 = depleted
+  energyConservation: number, // pos_1: 1 = fully conserved, 0 = depleted
   margin: number,
   axisId: string
 ): number {
@@ -730,10 +725,7 @@ export function axisIdToDirection(axisId: string, dim: number): Float32Array {
  * Gradient descent on this loss drives the predictor to find a common
  * representation that satisfies both hemispheres simultaneously.
  */
-function computeBilateralLoss(
-  leftCond: Float32Array,
-  rightCond: Float32Array,
-): number {
+function computeBilateralLoss(leftCond: Float32Array, rightCond: Float32Array): number {
   if (leftCond.length === 0 || rightCond.length !== leftCond.length) return 0;
   let sum = 0;
   for (let i = 0; i < leftCond.length; i++) {
@@ -762,11 +754,7 @@ function computeBilateralLoss(
  * its forward() method; this penalty approximates it via the conditioning
  * projection alone, which is sufficient for the soft prior.
  */
-function computeSymmetryLoss(
-  conditioning: Float32Array,
-  delta: number,
-  step: number
-): number {
+function computeSymmetryLoss(conditioning: Float32Array, delta: number, step: number): number {
   if (conditioning.length === 0) return 0;
 
   // Deterministic unit perturbation direction seeded by step
@@ -849,10 +837,7 @@ function sliceToConditioning(slice: PillarSlice, condDim: number): Float32Array 
  * and stores them on the PillarJEPAState, while forwarding all other events
  * to the parent context.
  */
-function buildCaptureContext(
-  parent: TraitContext,
-  state: PillarJEPAState
-): TraitContext {
+function buildCaptureContext(parent: TraitContext, state: PillarJEPAState): TraitContext {
   return {
     ...parent,
     emit(eventName: string, payload: unknown) {

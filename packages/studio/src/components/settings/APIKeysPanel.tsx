@@ -163,8 +163,9 @@ export default function APIKeysPanel({ onClose, autoFocus }: APIKeysPanelProps) 
           unlocks the vision model.
         </p>
         <p className="privacy-note">
-          🔒 <strong>Privacy & Security:</strong> Keys are stored securely in ephemeral browser session memory. 
-          Keys are automatically wiped when you close the tab and are <em>never</em> sent to HoloScript servers.
+          🔒 <strong>Privacy & Security:</strong> Keys are stored securely in ephemeral browser
+          session memory. Keys are automatically wiped when you close the tab and are <em>never</em>{' '}
+          sent to HoloScript servers.
         </p>
       </div>
 

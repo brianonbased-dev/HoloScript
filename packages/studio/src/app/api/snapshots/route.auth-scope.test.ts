@@ -70,9 +70,9 @@ describe('/api/snapshots per-user auth scope', () => {
     expect((await saveSnapshot('shared', 'A-snap')).status).toBe(200);
 
     asUser('user-A');
-    const ownBody = await (await GET(
-      new NextRequest('http://localhost/api/snapshots?sceneId=shared')
-    )).json();
+    const ownBody = await (
+      await GET(new NextRequest('http://localhost/api/snapshots?sceneId=shared'))
+    ).json();
     expect(ownBody.snapshots).toHaveLength(1);
     expect(ownBody.snapshots[0].sceneId).toBe('shared'); // bare sceneId re-exposed, not the scoped key
 
@@ -96,9 +96,9 @@ describe('/api/snapshots per-user auth scope', () => {
 
     // user-A's snapshot survives
     asUser('user-A');
-    const stillBody = await (await GET(
-      new NextRequest('http://localhost/api/snapshots?sceneId=iso')
-    )).json();
+    const stillBody = await (
+      await GET(new NextRequest('http://localhost/api/snapshots?sceneId=iso'))
+    ).json();
     expect(stillBody.snapshots).toHaveLength(1);
   });
 
@@ -112,9 +112,9 @@ describe('/api/snapshots per-user auth scope', () => {
     );
     expect(delRes.status).toBe(200);
 
-    const afterBody = await (await GET(
-      new NextRequest('http://localhost/api/snapshots?sceneId=mine')
-    )).json();
+    const afterBody = await (
+      await GET(new NextRequest('http://localhost/api/snapshots?sceneId=mine'))
+    ).json();
     expect(afterBody.snapshots).toHaveLength(0);
   });
 });

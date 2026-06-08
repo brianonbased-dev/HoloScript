@@ -228,7 +228,9 @@ export class HoloScriptAgentRuntime {
     this.wallet = stringProperty(properties.wallet);
     this.handle = stringProperty(properties.handle) ?? this.agentNode.name;
     this.brainCompositionRef =
-      stringProperty(properties.brainCompositionRef) ?? this.agentNode.template ?? this.agentNode.name;
+      stringProperty(properties.brainCompositionRef) ??
+      this.agentNode.template ??
+      this.agentNode.name;
     this.memorySnapshotHash = stringProperty(properties.memorySnapshotHash);
     this.resumeStepId = stringProperty(properties.resumeStepId);
   }
@@ -332,7 +334,7 @@ export class HoloScriptAgentRuntime {
       this.semanticFacts.push(...newFacts);
       this.rawEpisodes = this.rawEpisodes.filter((e) => !prunedEpisodes.includes(e.id));
     }
-    
+
     // Actively prevent Memory Degradation (G.USER.002) by pruning stale context
     this.semanticFacts = MemoryConsolidator.pruneStaleFacts(this.semanticFacts);
   }
@@ -343,11 +345,7 @@ export class HoloScriptAgentRuntime {
   private ensureJepaObjectiveAttached(): void {
     if (!this.jepaObjectiveAttached) {
       const config = this.getJepaObjectiveConfig();
-      jepObjectiveHandler.onAttach?.(
-        this.jepaObjectiveNode,
-        config,
-        this.buildJepaTraitContext()
-      );
+      jepObjectiveHandler.onAttach?.(this.jepaObjectiveNode, config, this.buildJepaTraitContext());
       this.jepaObjectiveAttached = true;
     }
   }
@@ -414,17 +412,12 @@ export class HoloScriptAgentRuntime {
       : `failure:${String(outcome.error ?? '')}`;
     const targetVec = textToEmbeddingFloat32(outcomeStr, latentDim);
 
-    jepObjectiveHandler.onEvent?.(
-      this.jepaObjectiveNode,
-      config,
-      this.buildJepaTraitContext(),
-      {
-        type: 'jepa:encode_pair',
-        context: contextStr,
-        targetVec,
-        conditioning: undefined,
-      }
-    );
+    jepObjectiveHandler.onEvent?.(this.jepaObjectiveNode, config, this.buildJepaTraitContext(), {
+      type: 'jepa:encode_pair',
+      context: contextStr,
+      targetVec,
+      conditioning: undefined,
+    });
   }
 
   /**
@@ -440,7 +433,9 @@ export class HoloScriptAgentRuntime {
     for (const val of Object.values(this.agentNode.properties || {})) {
       if (typeof val === 'string') sources.push(val);
     }
-    const directives = this.agentNode.directives as unknown as Array<{ body?: unknown }> | undefined;
+    const directives = this.agentNode.directives as unknown as
+      | Array<{ body?: unknown }>
+      | undefined;
     if (directives) {
       for (const d of directives) {
         if (typeof d.body === 'string') sources.push(d.body);
@@ -448,8 +443,16 @@ export class HoloScriptAgentRuntime {
     }
 
     const blockedKeywords = [
-      'process', 'fs', 'require', 'eval', 'exec', 'spawn',
-      'child_process', 'constructor', 'prototype', 'globalThis',
+      'process',
+      'fs',
+      'require',
+      'eval',
+      'exec',
+      'spawn',
+      'child_process',
+      'constructor',
+      'prototype',
+      'globalThis',
     ];
     const canonicalVersions = ['7.0.0', '6.0.2', '6.0.1', '6.0.0'];
 
@@ -499,7 +502,9 @@ export class HoloScriptAgentRuntime {
     // Reject actions from agents whose brain composition or template looks forked.
     const forkCheck = this.checkForkSandbox();
     if (!forkCheck.allowed) {
-      logger.warn(`[Agent:${this.agentNode.name}] ForkSandboxGate blocked action "${actionName}": ${forkCheck.reason}`);
+      logger.warn(
+        `[Agent:${this.agentNode.name}] ForkSandboxGate blocked action "${actionName}": ${forkCheck.reason}`
+      );
       return { success: false, error: `ForkSandboxGate: ${forkCheck.reason}` };
     }
 
@@ -588,9 +593,7 @@ export class HoloScriptAgentRuntime {
     try {
       this.trainJepaOffline(stateBefore, actionName, executionResult);
     } catch (trainErr) {
-      logger.warn(
-        `[JEPA:${this.agentNode.name}] trainJepaOffline error: ${String(trainErr)}`
-      );
+      logger.warn(`[JEPA:${this.agentNode.name}] trainJepaOffline error: ${String(trainErr)}`);
     }
 
     return executionResult;
@@ -626,7 +629,7 @@ export class HoloScriptAgentRuntime {
       jepaSuggestion = planResult.action;
       logger.info(
         `[JEPA:${this.agentNode.name}] plan() → "${planResult.action}" ` +
-        `confidence=${planResult.confidence.toFixed(4)}`
+          `confidence=${planResult.confidence.toFixed(4)}`
       );
     }
 

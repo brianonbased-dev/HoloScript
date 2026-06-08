@@ -56,11 +56,13 @@ export function emitHolo(graphs: PageGraph[], meta: EmitMeta): string {
     collectRollup(g.tree, stores, apis);
     for (const a of apis) {
       const set = apiToPages.get(a) ?? new Set<string>();
-      set.add(g.page.id); apiToPages.set(a, set);
+      set.add(g.page.id);
+      apiToPages.set(a, set);
     }
     for (const s of stores) {
       const set = storeToPages.get(s) ?? new Set<string>();
-      set.add(g.page.id); storeToPages.set(s, set);
+      set.add(g.page.id);
+      storeToPages.set(s, set);
     }
   }
   if (apiToPages.size > 0) {
@@ -87,7 +89,12 @@ export function emitHolo(graphs: PageGraph[], meta: EmitMeta): string {
   return lines.join('\n');
 }
 
-function emitPage(g: PageGraph, reuse: Map<string, Set<string>>, indent: number, out: string[]): void {
+function emitPage(
+  g: PageGraph,
+  reuse: Map<string, Set<string>>,
+  indent: number,
+  out: string[]
+): void {
   const pad = '  '.repeat(indent);
   // Roll up stores + APIs across the page's whole tree so the page block
   // shows what the route consumes without burying it in deep components.
@@ -95,8 +102,10 @@ function emitPage(g: PageGraph, reuse: Map<string, Set<string>>, indent: number,
   const pageApis = new Set<string>();
   collectRollup(g.tree, pageStores, pageApis);
   const pageTraits = [`@route("${g.page.route}")`, `@file("${g.page.file}")`];
-  if (pageStores.size > 0) pageTraits.push(`@uses_stores([${[...pageStores].sort().map(quote).join(', ')}])`);
-  if (pageApis.size > 0) pageTraits.push(`@calls_apis([${[...pageApis].sort().map(quote).join(', ')}])`);
+  if (pageStores.size > 0)
+    pageTraits.push(`@uses_stores([${[...pageStores].sort().map(quote).join(', ')}])`);
+  if (pageApis.size > 0)
+    pageTraits.push(`@calls_apis([${[...pageApis].sort().map(quote).join(', ')}])`);
   out.push(`${pad}page ${g.page.id} { ${pageTraits.join(' ')}`);
   for (const child of g.tree.children) {
     emitNode(child, g.page.id, reuse, indent + 1, out);
@@ -104,7 +113,13 @@ function emitPage(g: PageGraph, reuse: Map<string, Set<string>>, indent: number,
   out.push(`${pad}}`);
 }
 
-function emitNode(node: ComponentNode, pageId: string, reuse: Map<string, Set<string>>, indent: number, out: string[]): void {
+function emitNode(
+  node: ComponentNode,
+  pageId: string,
+  reuse: Map<string, Set<string>>,
+  indent: number,
+  out: string[]
+): void {
   const pad = '  '.repeat(indent);
   const traits: string[] = [`@file("${node.file}")`];
   const reusedIn = reuse.get(node.name);

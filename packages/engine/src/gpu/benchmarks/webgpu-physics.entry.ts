@@ -210,7 +210,8 @@ async function runWebGPUPhysicsBenchmark(): Promise<void> {
           vendor: info.vendor || null,
           architecture: info.architecture || null,
           device: info.device || null,
-          description: [info.vendor, info.architecture, info.device].filter(Boolean).join(' ') || null,
+          description:
+            [info.vendor, info.architecture, info.device].filter(Boolean).join(' ') || null,
         };
       } else {
         note('WebGPU adapter request returned null (software renderer or blocked).');
@@ -224,7 +225,10 @@ async function runWebGPUPhysicsBenchmark(): Promise<void> {
 
   if (!artifact.adapter) {
     artifact.status = 'unsupported';
-    fail('adapter_detection', 'WebGPU adapter unavailable — benchmark requires Chrome/Edge with WebGPU enabled.');
+    fail(
+      'adapter_detection',
+      'WebGPU adapter unavailable — benchmark requires Chrome/Edge with WebGPU enabled.'
+    );
     window.__WEBGPU_PHYSICS_ARTIFACT__ = artifact;
     return;
   }
@@ -244,7 +248,7 @@ async function runWebGPUPhysicsBenchmark(): Promise<void> {
       artifact.cells.push(cell);
       note(
         `${cfg.particleCount} particles: ${cell.avgStepMs.toFixed(3)} ms/step ` +
-        `(${cell.fps.toFixed(1)} FPS) — ${cell.passed ? 'PASS' : 'FAIL'}`
+          `(${cell.fps.toFixed(1)} FPS) — ${cell.passed ? 'PASS' : 'FAIL'}`
       );
     } catch (e: any) {
       fail(`cell_${cfg.particleCount}`, e.message || String(e));

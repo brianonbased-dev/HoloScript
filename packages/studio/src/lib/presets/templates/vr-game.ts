@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-vr-game",
-  name: "VR Game Starter",
-  description: "Interactive VR scene with grabbable objects and physics",
-  thumbnail: "🎮",
-  tags: ["vr","game","physics","interactive"],
-  category: "game",
+  id: 'wizard-vr-game',
+  name: 'VR Game Starter',
+  description: 'Interactive VR scene with grabbable objects and physics',
+  thumbnail: '🎮',
+  tags: ['vr', 'game', 'physics', 'interactive'],
+  category: 'game',
   code: `composition "VR Game" {
   environment {
     skybox: "studio"
@@ -72,7 +72,7 @@ export const template: SceneTemplate = {
     scale: [16, 3, 0.3]
     color: "#223344"
   }
-}`
+}`,
 };
 
 export default template;

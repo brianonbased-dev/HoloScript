@@ -11,7 +11,8 @@ import { UIHandMenuTrait } from './UITraits';
 import type { SpringAnimator } from '@holoscript/engine/animation/SpringAnimator';
 
 // Lazy-loaded optional peer (@holoscript/engine/animation/SpringAnimator)
-let _springAnimatorModule: typeof import('@holoscript/engine/animation/SpringAnimator') | null = null;
+let _springAnimatorModule: typeof import('@holoscript/engine/animation/SpringAnimator') | null =
+  null;
 
 const getCoord = (v: Vector3, idx: 0 | 1 | 2, key: 'x' | 'y' | 'z') =>
   (Array.isArray(v) ? v[idx] : v[key]) ?? 0;
@@ -29,7 +30,7 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
   defaultValue: {
     hand: 'left',
     trigger: 'palm_up',
-    offset: [0, 0.2, 0 ],
+    offset: [0, 0.2, 0],
     scale: 1,
   },
 
@@ -39,7 +40,7 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
     const spring = new SpringAnimator(0, SpringPresets.gentle);
     menuSprings.set(node.id!, spring);
     if (node.properties) {
-      node.properties.scale = [0, 0, 0 ];
+      node.properties.scale = [0, 0, 0];
       node.properties!.opacity = 0;
     }
   },
@@ -67,26 +68,29 @@ export const handMenuHandler: TraitHandler<UIHandMenuTrait> = {
     if (!hand) {
       if (node.properties) {
         const s = visibility * (config.scale || 1);
-        node.properties.scale = [s, s, s ];
+        node.properties.scale = [s, s, s];
         node.properties!.opacity = visibility;
       }
       return;
     }
 
     // Position: Smooth follow via lerp
-const targetPos = add(hand.position, config.offset || [0, 0.2, 0 ]);
+    const targetPos = add(hand.position, config.offset || [0, 0.2, 0]);
     const currentPos = (node.properties?.position as Vector3 | undefined) || targetPos;
     const lerpFactor = Math.min(1, 10 * delta);
     const newPos: [number, number, number] = [
-      getCoord(currentPos, 0, 'x') + (getCoord(targetPos, 0, 'x') - getCoord(currentPos, 0, 'x')) * lerpFactor,
-      getCoord(currentPos, 1, 'y') + (getCoord(targetPos, 1, 'y') - getCoord(currentPos, 1, 'y')) * lerpFactor,
-      getCoord(currentPos, 2, 'z') + (getCoord(targetPos, 2, 'z') - getCoord(currentPos, 2, 'z')) * lerpFactor,
+      getCoord(currentPos, 0, 'x') +
+        (getCoord(targetPos, 0, 'x') - getCoord(currentPos, 0, 'x')) * lerpFactor,
+      getCoord(currentPos, 1, 'y') +
+        (getCoord(targetPos, 1, 'y') - getCoord(currentPos, 1, 'y')) * lerpFactor,
+      getCoord(currentPos, 2, 'z') +
+        (getCoord(targetPos, 2, 'z') - getCoord(currentPos, 2, 'z')) * lerpFactor,
     ];
 
     if (node.properties) {
       node.properties.position = newPos;
       const s = visibility * (config.scale || 1);
-      node.properties.scale = [s, s, s ];
+      node.properties.scale = [s, s, s];
       node.properties!.opacity = visibility;
     }
   },

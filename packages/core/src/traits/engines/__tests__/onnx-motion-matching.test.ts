@@ -37,7 +37,10 @@ import type { MotionInferenceInput } from '../motion-matching';
 function seededInput(seed: number): MotionInferenceInput {
   const lcg = (s: number) => (s * 1664525 + 1013904223) & 0xffffffff;
   let s = seed;
-  const f = () => { s = lcg(s); return (s >>> 0) / 0xffffffff; };
+  const f = () => {
+    s = lcg(s);
+    return (s >>> 0) / 0xffffffff;
+  };
   return {
     targetVelocity: { x: f() * 4 - 2, y: 0, z: f() * 4 - 2 },
     currentPhase: f(),
@@ -52,13 +55,13 @@ function seededInput(seed: number): MotionInferenceInput {
 describe('bundled model catalog', () => {
   it('biped_humanoid_v2 is registered', () => {
     const models = listBundledModels();
-    const ids = models.map(m => m.id);
+    const ids = models.map((m) => m.id);
     expect(ids).toContain('biped_humanoid_v2');
   });
 
   it('quadruped_dog_v2 is registered', () => {
     const models = listBundledModels();
-    const ids = models.map(m => m.id);
+    const ids = models.map((m) => m.id);
     expect(ids).toContain('quadruped_dog_v2');
   });
 
@@ -290,11 +293,15 @@ describe('OnnxMotionMatchingEngine.infer() sync', () => {
   it('is deterministic: same input → same output', () => {
     const input = seededInput(42);
     // Re-create engine so phase state is reset
-    const e1 = new OnnxMotionMatchingEngine('biped_humanoid_v2', { adapter: createNoOpInferenceAdapter() });
+    const e1 = new OnnxMotionMatchingEngine('biped_humanoid_v2', {
+      adapter: createNoOpInferenceAdapter(),
+    });
     void e1.load();
     // load() is async but NoOp resolves synchronously in the microtask queue
     // We need the sync shim path — just infer after explicit load
-    const e2 = new OnnxMotionMatchingEngine('biped_humanoid_v2', { adapter: createNoOpInferenceAdapter() });
+    const e2 = new OnnxMotionMatchingEngine('biped_humanoid_v2', {
+      adapter: createNoOpInferenceAdapter(),
+    });
 
     const doInfer = async (e: OnnxMotionMatchingEngine) => {
       await e.load();

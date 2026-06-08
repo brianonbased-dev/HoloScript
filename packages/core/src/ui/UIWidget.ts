@@ -55,8 +55,8 @@ export class UIWidget {
     const widget: UIWidgetDef = {
       id,
       type,
-        x: opts.x ?? 0,
-        y: opts.y ?? 0,
+      x: opts.x ?? 0,
+      y: opts.y ?? 0,
       width: opts.width ?? 100,
       height: opts.height ?? 40,
       anchor: opts.anchor ?? 'top-left',

@@ -76,7 +76,7 @@ export function quantizeToken(x: number, precision: number): string {
  */
 export function vectorFingerprint(
   vector: ReadonlyArray<number>,
-  precision: number = DETERMINISM_DEFAULT_PRECISION,
+  precision: number = DETERMINISM_DEFAULT_PRECISION
 ): string {
   if (vector.length === 0) {
     throw new Error('determinism-gate: cannot fingerprint an empty vector');
@@ -121,7 +121,7 @@ export interface BuildDeterminismManifestOptions {
  * Async (runs the local model). The emitted manifest is the portable artifact the fleet compares.
  */
 export async function buildDeterminismManifest(
-  options: BuildDeterminismManifestOptions,
+  options: BuildDeterminismManifestOptions
 ): Promise<DeterminismManifest> {
   const { machineLabel } = options;
   if (typeof machineLabel !== 'string' || machineLabel.length === 0) {
@@ -152,7 +152,11 @@ export async function buildDeterminismManifest(
       }
     }
     if (!stable) allStable = false;
-    entries.push({ text, fingerprint: vectorFingerprint(first, precision), sameMachineStable: stable });
+    entries.push({
+      text,
+      fingerprint: vectorFingerprint(first, precision),
+      sameMachineStable: stable,
+    });
   }
 
   return {
@@ -181,9 +185,13 @@ export interface ManifestComparison {
 /** Pure pairwise comparison of two manifests. No model required. */
 export function compareDeterminismManifests(
   a: DeterminismManifest,
-  b: DeterminismManifest,
+  b: DeterminismManifest
 ): ManifestComparison {
-  const base = { machineA: a.machineLabel, machineB: b.machineLabel, mismatchedTexts: [] as string[] };
+  const base = {
+    machineA: a.machineLabel,
+    machineB: b.machineLabel,
+    mismatchedTexts: [] as string[],
+  };
   if (a.manifestVersion !== b.manifestVersion) {
     return { ...base, comparable: false, reason: 'manifest version mismatch', identical: false };
   }
@@ -237,7 +245,7 @@ export interface DeterminismGateAssessment {
  * fingerprints all match and whose runs were all same-machine stable. No model required.
  */
 export function assessDeterminismGate(
-  manifests: ReadonlyArray<DeterminismManifest>,
+  manifests: ReadonlyArray<DeterminismManifest>
 ): DeterminismGateAssessment {
   // Dedupe by machineLabel (first occurrence wins) — distinct machines are what matters.
   const distinct: DeterminismManifest[] = [];
@@ -366,19 +374,41 @@ export interface RawToleranceComparison {
 export function compareRawWithinTolerance(
   a: RawVectorManifest,
   b: RawVectorManifest,
-  epsilon: number = DEFAULT_DETERMINISM_TOLERANCE,
+  epsilon: number = DEFAULT_DETERMINISM_TOLERANCE
 ): RawToleranceComparison {
-  const base = { machineA: a.machineLabel, machineB: b.machineLabel, exceedingTexts: [] as string[] };
+  const base = {
+    machineA: a.machineLabel,
+    machineB: b.machineLabel,
+    exceedingTexts: [] as string[],
+  };
   if (a.modelId !== b.modelId) {
-    return { ...base, comparable: false, reason: 'model id mismatch', withinTolerance: false, maxAbsDelta: Infinity };
+    return {
+      ...base,
+      comparable: false,
+      reason: 'model id mismatch',
+      withinTolerance: false,
+      maxAbsDelta: Infinity,
+    };
   }
   if (a.dim !== b.dim) {
-    return { ...base, comparable: false, reason: 'embedding dim mismatch', withinTolerance: false, maxAbsDelta: Infinity };
+    return {
+      ...base,
+      comparable: false,
+      reason: 'embedding dim mismatch',
+      withinTolerance: false,
+      maxAbsDelta: Infinity,
+    };
   }
   const aTexts = Object.keys(a.vectors).sort();
   const bTexts = Object.keys(b.vectors).sort();
   if (aTexts.length !== bTexts.length || !aTexts.every((t, i) => t === bTexts[i])) {
-    return { ...base, comparable: false, reason: 'probe text set mismatch', withinTolerance: false, maxAbsDelta: Infinity };
+    return {
+      ...base,
+      comparable: false,
+      reason: 'probe text set mismatch',
+      withinTolerance: false,
+      maxAbsDelta: Infinity,
+    };
   }
   let maxAbsDelta = 0;
   const exceedingTexts: string[] = [];
@@ -393,7 +423,13 @@ export function compareRawWithinTolerance(
     if (probeMax > maxAbsDelta) maxAbsDelta = probeMax;
     if (probeMax > epsilon) exceedingTexts.push(t);
   }
-  return { ...base, comparable: true, withinTolerance: exceedingTexts.length === 0, maxAbsDelta, exceedingTexts };
+  return {
+    ...base,
+    comparable: true,
+    withinTolerance: exceedingTexts.length === 0,
+    maxAbsDelta,
+    exceedingTexts,
+  };
 }
 
 export interface RawToleranceGateAssessment {
@@ -416,19 +452,28 @@ export interface RawToleranceGateAssessment {
  */
 export function assessRawToleranceGate(
   manifests: ReadonlyArray<RawVectorManifest>,
-  epsilon: number = DEFAULT_DETERMINISM_TOLERANCE,
+  epsilon: number = DEFAULT_DETERMINISM_TOLERANCE
 ): RawToleranceGateAssessment {
   const distinct: RawVectorManifest[] = [];
   const seen = new Set<string>();
   for (const m of manifests) {
-    if (!seen.has(m.machineLabel)) { seen.add(m.machineLabel); distinct.push(m); }
+    if (!seen.has(m.machineLabel)) {
+      seen.add(m.machineLabel);
+      distinct.push(m);
+    }
   }
   const machineLabels = distinct.map((m) => m.machineLabel);
   const modelId = SEMANTIC_NOVELTY_MODEL;
   if (distinct.length < 2) {
     return {
-      verdict: 'insufficient-evidence', receiptBindingEligible: false, epsilon, maxAbsDelta: 0,
-      machineCount: distinct.length, machineLabels, modelId, exceedingTexts: [],
+      verdict: 'insufficient-evidence',
+      receiptBindingEligible: false,
+      epsilon,
+      maxAbsDelta: 0,
+      machineCount: distinct.length,
+      machineLabels,
+      modelId,
+      exceedingTexts: [],
       notes: 'Need ≥2 distinct machines to prove cross-fleet reproducibility. Stays advisory.',
     };
   }
@@ -439,8 +484,14 @@ export function assessRawToleranceGate(
     const cmp = compareRawWithinTolerance(reference, distinct[i], epsilon);
     if (!cmp.comparable) {
       return {
-        verdict: 'incomparable', receiptBindingEligible: false, epsilon, maxAbsDelta: Infinity,
-        machineCount: distinct.length, machineLabels, modelId, exceedingTexts: [],
+        verdict: 'incomparable',
+        receiptBindingEligible: false,
+        epsilon,
+        maxAbsDelta: Infinity,
+        machineCount: distinct.length,
+        machineLabels,
+        modelId,
+        exceedingTexts: [],
         notes: `Manifests not comparable (${cmp.reason}); align model/probe-set across the fleet.`,
       };
     }
@@ -449,14 +500,26 @@ export function assessRawToleranceGate(
   }
   if (exceeding.size > 0) {
     return {
-      verdict: 'divergent', receiptBindingEligible: false, epsilon, maxAbsDelta,
-      machineCount: distinct.length, machineLabels, modelId, exceedingTexts: [...exceeding],
+      verdict: 'divergent',
+      receiptBindingEligible: false,
+      epsilon,
+      maxAbsDelta,
+      machineCount: distinct.length,
+      machineLabels,
+      modelId,
+      exceedingTexts: [...exceeding],
       notes: `${exceeding.size} probe(s) exceed ε=${epsilon} (maxΔ=${maxAbsDelta.toExponential(3)}). Stays advisory.`,
     };
   }
   return {
-    verdict: 'within-tolerance', receiptBindingEligible: true, epsilon, maxAbsDelta,
-    machineCount: distinct.length, machineLabels, modelId, exceedingTexts: [],
+    verdict: 'within-tolerance',
+    receiptBindingEligible: true,
+    epsilon,
+    maxAbsDelta,
+    machineCount: distinct.length,
+    machineLabels,
+    modelId,
+    exceedingTexts: [],
     notes: `All ${distinct.length} machines agree to within ε=${epsilon} (maxΔ=${maxAbsDelta.toExponential(3)}). ELIGIBLE for receipt-binding promotion via a tolerance comparator.`,
   };
 }

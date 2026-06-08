@@ -18,7 +18,10 @@ export interface FormalTraitWrites {
  * Curated batch (expand via PRs). Not exhaustive — targets paper-11 limitation text.
  */
 export const PAPER11_FORMAL_WRITE_SAMPLES: readonly FormalTraitWrites[] = [
-  { trait: 'gaussian_splat', writes: ['splatCount', 'visibleSplats', 'gaussianBudgetUsed', 'needsSort'] },
+  {
+    trait: 'gaussian_splat',
+    writes: ['splatCount', 'visibleSplats', 'gaussianBudgetUsed', 'needsSort'],
+  },
   { trait: 'grabbable', writes: ['grabState', 'constraintHandle', 'lastInteractorId'] },
   { trait: 'rigid_body', writes: ['linearVelocity', 'angularVelocity', 'sleeping'] },
   { trait: 'animation_graph', writes: ['activeState', 'blendWeights', 'normalizedTime'] },

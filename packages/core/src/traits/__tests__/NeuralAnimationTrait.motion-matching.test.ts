@@ -13,7 +13,11 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { neuralAnimationHandler, type SkeletonPose } from '../NeuralAnimationTrait';
-import { createNullMotionMatchingEngine, type MotionMatchingEngine, type MotionInferenceResult } from '../engines/motion-matching';
+import {
+  createNullMotionMatchingEngine,
+  type MotionMatchingEngine,
+  type MotionInferenceResult,
+} from '../engines/motion-matching';
 import {
   createMockContext,
   createMockNode,

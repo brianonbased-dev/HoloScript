@@ -154,18 +154,10 @@ export class SecurityEventBus {
     );
 
     // SSO events
-    this.unsubscribers.push(
-      this.bus.on<SsoEvent>('sso:login', (e) => this.handleSso(e))
-    );
-    this.unsubscribers.push(
-      this.bus.on<SsoEvent>('sso:logout', (e) => this.handleSso(e))
-    );
-    this.unsubscribers.push(
-      this.bus.on<SsoEvent>('sso:token_refresh', (e) => this.handleSso(e))
-    );
-    this.unsubscribers.push(
-      this.bus.on<SsoEvent>('sso:session_expired', (e) => this.handleSso(e))
-    );
+    this.unsubscribers.push(this.bus.on<SsoEvent>('sso:login', (e) => this.handleSso(e)));
+    this.unsubscribers.push(this.bus.on<SsoEvent>('sso:logout', (e) => this.handleSso(e)));
+    this.unsubscribers.push(this.bus.on<SsoEvent>('sso:token_refresh', (e) => this.handleSso(e)));
+    this.unsubscribers.push(this.bus.on<SsoEvent>('sso:session_expired', (e) => this.handleSso(e)));
 
     // Quota events
     this.unsubscribers.push(
@@ -193,9 +185,7 @@ export class SecurityEventBus {
     );
 
     // Audit log events
-    this.unsubscribers.push(
-      this.bus.on<AuditLogEvent>('audit:log', (e) => this.handleAudit(e))
-    );
+    this.unsubscribers.push(this.bus.on<AuditLogEvent>('audit:log', (e) => this.handleAudit(e)));
     this.unsubscribers.push(
       this.bus.on<AuditLogEvent>('audit:security_event', (e) => this.handleAudit(e))
     );

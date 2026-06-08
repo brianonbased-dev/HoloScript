@@ -83,10 +83,7 @@ export class PostgresTeamStoreBackend implements TeamStoreBackend {
 
   async get(teamId: string): Promise<Team | undefined> {
     await this.ready;
-    const result = await this.pool.query(
-      'SELECT data FROM holomesh_teams WHERE id = $1',
-      [teamId]
-    );
+    const result = await this.pool.query('SELECT data FROM holomesh_teams WHERE id = $1', [teamId]);
     if (result.rows.length === 0) return undefined;
     return result.rows[0].data as Team;
   }

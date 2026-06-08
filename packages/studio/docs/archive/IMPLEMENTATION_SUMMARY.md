@@ -7,13 +7,16 @@
 ## Completed Features
 
 ### ✅ MEME-013: Hotkeys for Viral Workflow
+
 **Priority**: High | **Estimate**: 3 hours | **Status**: ✅ COMPLETE
 
 **Files Created**:
+
 - `src/hooks/useHotkeys.ts` (395 lines)
 - `src/components/character/HotkeyGuide.tsx` (165 lines)
 
 **Features Implemented**:
+
 - ✅ R: Start recording
 - ✅ S: Stop recording
 - ✅ SPACE: Play/pause animation
@@ -27,6 +30,7 @@
 - ✅ ESC: Close guide
 
 **Usage**:
+
 ```tsx
 import { useHotkeys } from '@/hooks/useHotkeys';
 import { HotkeyGuide, HotkeyHint } from '@/components/character/HotkeyGuide';
@@ -45,6 +49,7 @@ function CharacterLayout() {
 ```
 
 **Test Coverage**:
+
 ```typescript
 it('should support hotkeys for viral workflow', () => {
   expect(HOTKEYS.RECORD).toBe('r');
@@ -56,12 +61,15 @@ it('should support hotkeys for viral workflow', () => {
 ---
 
 ### ✅ MEME-001: Meme Character Template Recognition
+
 **Priority**: High | **Estimate**: 3 hours | **Status**: ✅ COMPLETE
 
 **Files Created**:
+
 - `src/lib/memeTemplates.ts` (580 lines)
 
 **Templates Implemented**:
+
 1. ✅ **Pepe** - The OG meme frog (classic)
    - Auto-detects: `pepe`, `pepega`, `monkas`, `feelsgood`
    - Default traits: Physics wiggle, emoji reactions
@@ -99,6 +107,7 @@ it('should support hotkeys for viral workflow', () => {
    - Default traits: Brain expansion, glow
 
 **API**:
+
 ```typescript
 import { detectMemeTemplate, getPopularTemplates, searchTemplates } from '@/lib/memeTemplates';
 
@@ -116,6 +125,7 @@ const config = getTemplateConfiguration(template);
 ```
 
 **Test Coverage**:
+
 ```typescript
 it('should recognize meme character templates', () => {
   const pepeTemplate = detectMemeTemplate('my-pepe-character.glb');
@@ -127,12 +137,15 @@ it('should recognize meme character templates', () => {
 ---
 
 ### ✅ MEME-006: Auto-Loop Animations
+
 **Priority**: High | **Estimate**: 2 hours | **Status**: ✅ COMPLETE
 
 **Files Created**:
+
 - `src/lib/animationLooping.ts` (410 lines)
 
 **Features Implemented**:
+
 - ✅ Loop quality analysis (perfect/good/fair/poor)
 - ✅ Quaternion distance calculation
 - ✅ Seamless loop generation with frame blending
@@ -144,6 +157,7 @@ it('should recognize meme character templates', () => {
 - ✅ Loop recommendations
 
 **API**:
+
 ```typescript
 import { analyzeLoop, generateSeamlessLoop, createPalindromeLoop } from '@/lib/animationLooping';
 
@@ -162,12 +176,14 @@ const tips = getLoopRecommendations(analysis);
 ```
 
 **Loop Quality Thresholds**:
+
 - **Perfect**: Distance < 0.01 (no blending needed)
 - **Good**: Distance < 0.05 (blend 3 frames)
 - **Fair**: Distance < 0.10 (blend 5 frames)
 - **Poor**: Distance > 0.10 (blend 10 frames, consider re-recording)
 
 **Test Coverage**:
+
 ```typescript
 it('should auto-loop animations', () => {
   const analysis = analyzeLoop(mockClip);
@@ -182,14 +198,17 @@ it('should auto-loop animations', () => {
 ---
 
 ### ✅ MEME-012: Load Character in <500ms
+
 **Priority**: Critical | **Estimate**: 4 hours | **Status**: ✅ COMPLETE
 
 **Files Created**:
+
 - `src/lib/glbOptimizer.ts` (700+ lines)
 - `src/components/character/OptimizedGlbViewer.tsx` (250+ lines)
 - `src/components/character/LoadingProgress.tsx` (120+ lines)
 
 **Features Implemented**:
+
 - ✅ Draco compression decoder (geometry compression)
 - ✅ Meshopt decoder (additional compression)
 - ✅ KTX2 texture decoder (compressed textures)
@@ -202,6 +221,7 @@ it('should auto-loop animations', () => {
 - ✅ Visual loading progress UI with stage indicators
 
 **Architecture**:
+
 ```typescript
 class OptimizedGLBLoader {
   // Compression decoders
@@ -231,17 +251,20 @@ class OptimizedGLBLoader {
 ```
 
 **Performance**:
+
 - **First load**: 300-800ms (depending on model size + network)
 - **Cached load**: 50-150ms (IndexedDB retrieval + parsing)
 - **Draco compression**: 60-80% file size reduction
 - **Target met**: ✅ <500ms average load time
 
 **Integration**:
+
 - Updated [CharacterLayout.tsx:24](C:\Users\josep\Documents\GitHub\HoloScript\packages\studio\src\components\character\CharacterLayout.tsx#L24) to use OptimizedGlbViewer
 - LoadingProgress component shows real-time progress overlay
 - Automatic cache management (7-day expiry, LRU eviction)
 
 **Test Coverage**:
+
 ```typescript
 it('should load character in <500ms', () => {
   const { OptimizedGLBLoader, glbCache } = require('../../lib/glbOptimizer');
@@ -251,12 +274,21 @@ it('should load character in <500ms', () => {
   expect(glbCache.get).toBeDefined();
 
   // Verify progressive loading stages
-  const stages = ['cache-check', 'downloading', 'parsing', 'skeleton', 'mesh', 'textures', 'complete'];
+  const stages = [
+    'cache-check',
+    'downloading',
+    'parsing',
+    'skeleton',
+    'mesh',
+    'textures',
+    'complete',
+  ];
   expect(stages).toHaveLength(7);
 });
 ```
 
 **Cache Statistics**:
+
 - Cache name: `holoscript-glb-cache-v1`
 - Max age: 7 days
 - Max size: 500MB total
@@ -265,13 +297,16 @@ it('should load character in <500ms', () => {
 ---
 
 ### ✅ MEME-008: Export Clip as MP4
+
 **Priority**: Critical | **Estimate**: 6 hours | **Status**: ✅ COMPLETE
 
 **Files Created**:
+
 - `src/lib/videoExporter.ts` (650+ lines)
 - `src/components/character/ExportModal.tsx` (300+ lines)
 
 **Features Implemented**:
+
 - ✅ MediaRecorder API fallback (cross-browser support)
 - ✅ WebCodecs API for high-quality encoding (when available)
 - ✅ TikTok format presets (1080x1080 square)
@@ -285,6 +320,7 @@ it('should load character in <500ms', () => {
 - ✅ Export to MP4/WebM
 
 **Architecture**:
+
 ```typescript
 class VideoExporter {
   // Two export strategies
@@ -308,6 +344,7 @@ class VideoExporter {
 ```
 
 **Export Presets**:
+
 - **TikTok Square**: 1080x1080 (optimized for social)
 - **Instagram Story**: 1080x1350 (9:16)
 - **Twitter**: 1280x720 (16:9)
@@ -315,16 +352,19 @@ class VideoExporter {
 - **Custom**: User-defined resolution
 
 **Performance**:
+
 - **WebCodecs**: ~2-5 seconds per second of video (high quality)
 - **MediaRecorder**: ~1-2 seconds per second of video (real-time)
 - **File sizes**: 1-5MB per second (depending on codec/bitrate)
 
 **Integration**:
+
 - Added export button to [ClipRow](C:\Users\josep\Documents\GitHub\HoloScript\packages\studio\src\components\character\ClipLibrary.tsx#L62) component
 - Export modal with live progress tracking
 - Download support with auto-generated filenames
 
 **Test Coverage**:
+
 ```typescript
 it('should export clip as MP4 for social media', () => {
   const { VideoExporter } = require('../../lib/videoExporter');
@@ -341,13 +381,16 @@ it('should export clip as MP4 for social media', () => {
 ---
 
 ### ✅ MEME-003: Emoji Reaction Trait
+
 **Priority**: High | **Estimate**: 5 hours | **Status**: ✅ COMPLETE
 
 **Files Created**:
+
 - `src/lib/traits/emojiReactionTrait.ts` (420+ lines)
 - `src/components/character/EmojiReactionPanel.tsx` (180+ lines)
 
 **Features Implemented**:
+
 - ✅ Particle system for 3D emoji sprites
 - ✅ Event-driven spawning (interaction, achievement, hype, love, death, money)
 - ✅ Float-up animation with physics simulation
@@ -360,6 +403,7 @@ it('should export clip as MP4 for social media', () => {
 - ✅ 8 default emojis: 💀, 🔥, 😂, 💎, 🚀, 💯, ❤️, 👀
 
 **Emoji Events**:
+
 - **Interaction**: 👋, 👍, ✨, 💫
 - **Achievement**: 🎉, 🏆, ⭐, 💎
 - **Hype**: 🔥, 🚀, 💯, ⚡
@@ -368,6 +412,7 @@ it('should export clip as MP4 for social media', () => {
 - **Money**: 💰, 💵, 💎, 🤑
 
 **Architecture**:
+
 ```typescript
 class EmojiReactionTrait {
   // Particle management
@@ -396,6 +441,7 @@ class EmojiReactionTrait {
 ```
 
 **Control Panel Features**:
+
 - Quick spawn buttons for 8 preset emojis
 - Burst control with adjustable count (1-20)
 - Event trigger buttons (6 event types)
@@ -403,6 +449,7 @@ class EmojiReactionTrait {
 - Live particle count display
 
 **Test Coverage**:
+
 ```typescript
 it('should add emoji reaction trait', () => {
   const { EmojiReactionTrait } = require('../../lib/traits/emojiReactionTrait');
@@ -422,13 +469,16 @@ it('should add emoji reaction trait', () => {
 ---
 
 ### ✅ MEME-007: Audio Sync for TikTok Sounds
+
 **Priority**: High | **Estimate**: 8 hours | **Status**: ✅ COMPLETE
 
 **Files Created**:
+
 - `src/lib/audioSync.ts` (650+ lines)
 - `src/components/character/AudioTimeline.tsx` (350+ lines)
 
 **Features Implemented**:
+
 - ✅ Audio file import (MP3, WAV, OGG)
 - ✅ Web Audio API integration
 - ✅ Beat detection (energy-based algorithm)
@@ -443,6 +493,7 @@ it('should add emoji reaction trait', () => {
 - ✅ Progress tracking and time display
 
 **Architecture**:
+
 ```typescript
 class AudioSyncManager {
   // Web Audio API components
@@ -487,9 +538,10 @@ class AudioSyncManager {
 ```
 
 **Beat Detection Algorithm**:
+
 ```typescript
 // Energy-based beat detection
-for (let i = windowSize; i < channelData.length - windowSize; i += windowSize/2) {
+for (let i = windowSize; i < channelData.length - windowSize; i += windowSize / 2) {
   // Calculate RMS energy for current window
   let energy = 0;
   for (let j = 0; j < windowSize; j++) {
@@ -507,13 +559,14 @@ for (let i = windowSize; i < channelData.length - windowSize; i += windowSize/2)
   if (energy > threshold && timeSinceLastBeat > minInterval) {
     beats.push({
       time: i / sampleRate,
-      strength: energy / avgEnergy  // Normalized strength
+      strength: energy / avgEnergy, // Normalized strength
     });
   }
 }
 ```
 
 **Timeline Features**:
+
 - **Canvas Waveform**: Renders amplitude bars with transparency based on amplitude
 - **Beat Markers**: Vertical lines (red for strong beats >0.7, gray for weak)
 - **Playhead**: White vertical line tracking current time
@@ -522,6 +575,7 @@ for (let i = windowSize; i < channelData.length - windowSize; i += windowSize/2)
 - **Info Display**: Shows current time / duration, BPM, beat count
 
 **Integration Points**:
+
 ```typescript
 import { AudioSyncManager, useAudioSync } from '@/lib/audioSync';
 import { AudioTimeline } from '@/components/character/AudioTimeline';
@@ -547,12 +601,14 @@ function CharacterEditor() {
 ```
 
 **Performance**:
+
 - **Beat Detection**: ~50-100ms for 3-minute audio file
 - **Waveform Generation**: ~20-50ms (512 samples)
 - **Canvas Rendering**: 60fps smooth animation
 - **Audio Playback**: Real-time with <10ms latency
 
 **Test Coverage**:
+
 ```typescript
 it('should add audio sync for TikTok sounds', () => {
   const { AudioSyncManager, useAudioSync } = require('../../lib/audioSync');
@@ -574,15 +630,19 @@ it('should add audio sync for TikTok sounds', () => {
 ---
 
 ### ✅ MEME-002: Character Preset Library UI
+
 **Priority**: Medium | **Estimate**: 4 hours | **Status**: ✅ COMPLETE
 
 **Files Created**:
+
 - `src/components/character/CharacterLibrary.tsx` (320+ lines)
 
 **Files Modified**:
+
 - `src/components/character/GlbDropZone.tsx` (added library integration)
 
 **Features Implemented**:
+
 - ✅ Visual gallery of all character templates
 - ✅ Search functionality with real-time filtering
 - ✅ Category filtering (all, classic, viral, trending)
@@ -593,6 +653,7 @@ it('should add audio sync for TikTok sounds', () => {
 - ✅ Integration with GlbDropZone
 
 **UI Components**:
+
 ```tsx
 <CharacterLibrary>
   {/* Search bar with instant filtering */}
@@ -603,7 +664,7 @@ it('should add audio sync for TikTok sounds', () => {
 
   {/* Template grid */}
   <TemplateGrid>
-    {templates.map(template => (
+    {templates.map((template) => (
       <TemplateCard
         emoji={template.emoji}
         name={template.name}
@@ -616,16 +677,13 @@ it('should add audio sync for TikTok sounds', () => {
 
   {/* Detail modal */}
   {selectedTemplate && (
-    <TemplateDetailModal
-      template={selectedTemplate}
-      onApply={handleApply}
-      onClose={closeModal}
-    />
+    <TemplateDetailModal template={selectedTemplate} onApply={handleApply} onClose={closeModal} />
   )}
 </CharacterLibrary>
 ```
 
 **Template Display Features**:
+
 - **Emoji Icon**: Large visual identifier for each character
 - **Category Badge**: Color-coded badge (classic/viral/trending)
 - **Trait Count**: Shows number of default traits
@@ -634,6 +692,7 @@ it('should add audio sync for TikTok sounds', () => {
 - **Suggested Animations**: Displays recommended animation names
 
 **Search & Filter**:
+
 ```typescript
 // Real-time search across all fields
 const results = searchTemplates(query);
@@ -651,6 +710,7 @@ const trendingTemplates = getTemplatesByCategory('trending');
 ```
 
 **Integration**:
+
 ```tsx
 import { CharacterLibrary } from '@/components/character/CharacterLibrary';
 
@@ -671,9 +731,7 @@ function GlbDropZone() {
       <Divider text="or" />
 
       {/* Browse button */}
-      <Button onClick={() => setLibraryOpen(true)}>
-        Browse Character Library
-      </Button>
+      <Button onClick={() => setLibraryOpen(true)}>Browse Character Library</Button>
 
       <CharacterLibrary
         isOpen={libraryOpen}
@@ -686,16 +744,19 @@ function GlbDropZone() {
 ```
 
 **Template Categories**:
+
 - **Classic** (4 templates): Pepe, Wojak, Doge, Trollface
 - **Viral** (2 templates): Gigachad, Cursed Cat
 - **Trending** (2 templates): Mocking SpongeBob, Big Brain
 
 **Performance**:
+
 - **Search latency**: <5ms for instant filtering
 - **Modal open/close**: Smooth 60fps animations
 - **Grid rendering**: Virtualized for 100+ templates (future-proof)
 
 **Test Coverage**:
+
 ```typescript
 it('should show character preset library (Pepe variants, Doge, Wojak)', () => {
   const { CharacterLibrary } = require('../../components/character/CharacterLibrary');
@@ -719,14 +780,17 @@ it('should show character preset library (Pepe variants, Doge, Wojak)', () => {
 ---
 
 ### ✅ MEME-004: Viral Pose Trait
+
 **Priority**: Medium | **Estimate**: 6 hours | **Status**: ✅ COMPLETE
 
 **Files Created**:
+
 - `src/lib/poseLibrary.ts` (550+ lines)
 - `src/lib/traits/viralPoseTrait.ts` (480+ lines)
 - `src/components/character/ViralPosePanel.tsx` (250+ lines)
 
 **Features Implemented**:
+
 - ✅ Pose library with 10 viral poses (dab, floss, griddy, t-pose, etc.)
 - ✅ Auto-cycling pose system with smooth transitions
 - ✅ Manual pose triggering
@@ -740,6 +804,7 @@ it('should show character preset library (Pepe variants, Doge, Wojak)', () => {
 - ✅ Pose sequence customization
 
 **Viral Poses Included**:
+
 - **Classic**: Dab (2016), T-Pose, Peace Sign
 - **Viral**: Floss (Fortnite), Griddy (NFL/TikTok)
 - **Dance**: Nae Nae, dance moves
@@ -747,6 +812,7 @@ it('should show character preset library (Pepe variants, Doge, Wojak)', () => {
 - **Trending**: Heart Hands (K-pop), others
 
 **Architecture**:
+
 ```typescript
 class ViralPoseTrait {
   private poseSequence: ViralPose[];
@@ -779,6 +845,7 @@ class ViralPoseTrait {
 ```
 
 **Pose Library Features**:
+
 ```typescript
 // Pose definition
 interface ViralPose {
@@ -810,6 +877,7 @@ interpolatePoses(from, to, progress): BonePose[]; // SLERP
 ```
 
 **Transition System**:
+
 - **SLERP (Spherical Linear Interpolation)**: Smooth quaternion interpolation
 - **Easing Functions**: linear, easeIn, easeOut, easeInOut, bounce
 - **Configurable Duration**: 100ms - 5000ms transition times
@@ -817,6 +885,7 @@ interpolatePoses(from, to, progress): BonePose[]; // SLERP
 - **Manual Control**: Previous/next/specific pose triggering
 
 **UI Control Panel**:
+
 - **Playback Controls**: Play/pause auto-cycling, next/previous pose
 - **Current Pose Display**: Shows emoji, name, description, category, difficulty
 - **Category Filters**: Filter by trending, all, classic, viral, dance, emote, flex
@@ -825,6 +894,7 @@ interpolatePoses(from, to, progress): BonePose[]; // SLERP
 - **Progress Indicator**: Shows current position in sequence (e.g., "3 / 10")
 
 **Integration**:
+
 ```tsx
 import { ViralPoseTrait, useViralPose } from '@/lib/traits/viralPoseTrait';
 import { ViralPosePanel } from '@/components/character/ViralPosePanel';
@@ -832,20 +902,13 @@ import { ViralPosePanel } from '@/components/character/ViralPosePanel';
 function CharacterEditor() {
   const skeleton = characterRef.current?.skeleton;
 
-  const {
-    currentPose,
-    triggerPose,
-    triggerNext,
-    triggerPrevious,
-    start,
-    stop,
-    poseSequence,
-  } = useViralPose(skeleton, {
-    poses: 'trending', // or ['dab', 'floss', 'griddy']
-    autoCycle: true,
-    transitionDuration: 500,
-    transitionEasing: 'easeInOut',
-  });
+  const { currentPose, triggerPose, triggerNext, triggerPrevious, start, stop, poseSequence } =
+    useViralPose(skeleton, {
+      poses: 'trending', // or ['dab', 'floss', 'griddy']
+      autoCycle: true,
+      transitionDuration: 500,
+      transitionEasing: 'easeInOut',
+    });
 
   return (
     <ViralPosePanel
@@ -863,15 +926,22 @@ function CharacterEditor() {
 ```
 
 **Performance**:
+
 - **Transition interpolation**: <1ms per frame (SLERP on 5-10 bones)
 - **Pose switching**: Instant (no lag)
 - **Memory footprint**: ~50KB for 10 poses with bone data
 
 **Test Coverage**:
+
 ```typescript
 it('should add viral-pose trait (automatically hit trending poses)', () => {
   const { ViralPoseTrait, useViralPose } = require('../../lib/traits/viralPoseTrait');
-  const { getAllPoses, getPoseById, getTrendingPoses, searchPoses } = require('../../lib/poseLibrary');
+  const {
+    getAllPoses,
+    getPoseById,
+    getTrendingPoses,
+    searchPoses,
+  } = require('../../lib/poseLibrary');
 
   expect(ViralPoseTrait).toBeDefined();
   expect(useViralPose).toBeDefined();
@@ -897,14 +967,17 @@ it('should add viral-pose trait (automatically hit trending poses)', () => {
 ---
 
 ### ✅ MEME-009: Discord Reaction Triggers
+
 **Priority**: Medium | **Estimate**: 10 hours | **Status**: ✅ COMPLETE
 
 **Files Created**:
+
 - `src/integrations/discordWebhook.ts` (520+ lines)
 - `src/lib/traits/reactionTriggerTrait.ts` (450+ lines)
 - `src/components/character/DiscordReactionPanel.tsx` (350+ lines)
 
 **Features Implemented**:
+
 - ✅ Discord webhook integration
 - ✅ WebSocket-based real-time listening (Discord Gateway)
 - ✅ Reaction event parsing and handling
@@ -920,6 +993,7 @@ it('should add viral-pose trait (automatically hit trending poses)', () => {
 - ✅ Multi-channel support
 
 **Discord Integration Architecture**:
+
 ```typescript
 class DiscordWebhookManager {
   // Connection methods
@@ -955,6 +1029,7 @@ class DiscordWebhookManager {
 ```
 
 **Reaction Trigger Trait**:
+
 ```typescript
 class ReactionTriggerTrait {
   // Integration with other traits
@@ -983,11 +1058,13 @@ class ReactionTriggerTrait {
 ```
 
 **Default Emoji Triggers**:
+
 - **Poses**: 🔥 (flex), 💀 (dab), 💎 (griddy), 💯 (t-pose), 👀 (thinking), ⚡ (floss), 🤷 (shrug), 💪 (flex)
 - **Emoji Bursts**: 😂, ❤️, 🚀, 🎉, 👍, ✨
 - **Events**: 🎯 (achievement), 💰 (money), 💕 (love), ☠️ (death)
 
 **UI Control Panel Features**:
+
 - **Connection Status**: Live indicator (connected/disconnected, listening/paused)
 - **Configuration**: Webhook URL + Bot Token input fields
 - **Live Feedback**: Shows recent reactions with timestamp
@@ -997,6 +1074,7 @@ class ReactionTriggerTrait {
 - **Help Text**: Usage instructions
 
 **Connection Flow**:
+
 1. **Configure**: Enter Discord webhook URL or bot token
 2. **Connect**: WebSocket connection to Discord Gateway
 3. **Listen**: Real-time reaction event streaming
@@ -1004,11 +1082,14 @@ class ReactionTriggerTrait {
 5. **Feedback**: Visual confirmation in UI
 
 **Event System**:
+
 ```typescript
 // Discord webhook dispatches custom events
-window.dispatchEvent(new CustomEvent('discord-reaction-trigger', {
-  detail: { trigger, reaction }
-}));
+window.dispatchEvent(
+  new CustomEvent('discord-reaction-trigger', {
+    detail: { trigger, reaction },
+  })
+);
 
 // Reaction trigger trait listens for events
 window.addEventListener('discord-reaction-trigger', handleReactionEvent);
@@ -1019,12 +1100,14 @@ emojiReactionTrait.burst(5, '🎉'); // 🎉 emoji triggers emoji burst
 ```
 
 **Cooldown System**:
+
 - **Global Cooldown**: 500ms default (prevents spam)
 - **Per-Emoji Cooldown**: Optional per-trigger cooldown
 - **Per-User Tracking**: Prevents single user from spamming
 - **Time-based Expiry**: Automatic cooldown reset
 
 **Testing & Simulation**:
+
 ```typescript
 // Simulate reaction for testing without Discord
 manager.simulateReaction('🔥', 'TestUser');
@@ -1035,6 +1118,7 @@ onSimulateReaction('😂'); // Triggers emoji burst
 ```
 
 **Integration Example**:
+
 ```tsx
 import { useDiscordWebhook } from '@/integrations/discordWebhook';
 import { useReactionTrigger } from '@/lib/traits/reactionTriggerTrait';
@@ -1056,15 +1140,14 @@ function CharacterEditor() {
     autoStart: true,
   });
 
-  const {
-    feedback,
-    addTrigger,
-    removeTrigger,
-    clearFeedback,
-  } = useReactionTrigger(viralPoseTrait, emojiReactionTrait, {
-    useDefaults: true,
-    globalCooldown: 500,
-  });
+  const { feedback, addTrigger, removeTrigger, clearFeedback } = useReactionTrigger(
+    viralPoseTrait,
+    emojiReactionTrait,
+    {
+      useDefaults: true,
+      globalCooldown: 500,
+    }
+  );
 
   return (
     <DiscordReactionPanel
@@ -1084,12 +1167,14 @@ function CharacterEditor() {
 ```
 
 **Performance**:
+
 - **WebSocket Latency**: <50ms reaction time (real-time)
 - **Polling Latency**: ~2 seconds (fallback mode)
 - **Cooldown Overhead**: <1ms per reaction
 - **Memory Usage**: ~500KB for webhook manager + trait
 
 **Production Considerations**:
+
 - **Discord Gateway**: Requires bot token + proper intents (GUILD_MESSAGE_REACTIONS)
 - **Webhook-only Mode**: Limited to sending messages, no reaction listening
 - **Polling Fallback**: For environments without WebSocket support
@@ -1097,10 +1182,14 @@ function CharacterEditor() {
 - **Security**: Store bot tokens securely (environment variables)
 
 **Test Coverage**:
+
 ```typescript
 it('should trigger animation on Discord reaction (via webhook)', () => {
   const { DiscordWebhookManager, useDiscordWebhook } = require('../../integrations/discordWebhook');
-  const { ReactionTriggerTrait, useReactionTrigger } = require('../../lib/traits/reactionTriggerTrait');
+  const {
+    ReactionTriggerTrait,
+    useReactionTrigger,
+  } = require('../../lib/traits/reactionTriggerTrait');
   const { DiscordReactionPanel } = require('../../components/character/DiscordReactionPanel');
 
   expect(DiscordWebhookManager).toBeDefined();
@@ -1170,6 +1259,7 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 **Lines of Code Added**: ~8,070 lines
 
 **By Priority**:
+
 - Critical: 2/2 complete (100%) ✅✅ **ALL DONE!**
 - High: 5/5 complete (100%) ✅✅✅✅✅ **ALL DONE!**
 - Medium: 3/7 complete (43%) ✅✅✅
@@ -1183,23 +1273,19 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 ## Next Steps
 
 **Critical Priority** ✅ **ALL COMPLETE!**:
+
 1. ✅ ~~MEME-013: Hotkeys~~ COMPLETE
 2. ✅ ~~MEME-001: Templates~~ COMPLETE
 3. ✅ ~~MEME-006: Auto-loop~~ COMPLETE
 4. ✅ ~~MEME-012: Loading optimization~~ COMPLETE
 5. ✅ ~~MEME-008: MP4 export~~ COMPLETE
 
-**High Priority** ✅ **ALL COMPLETE!**:
-6. ✅ ~~MEME-003: Emoji reactions~~ COMPLETE
-7. ✅ ~~MEME-007: Audio sync~~ COMPLETE
+**High Priority** ✅ **ALL COMPLETE!**: 6. ✅ ~~MEME-003: Emoji reactions~~ COMPLETE 7. ✅ ~~MEME-007: Audio sync~~ COMPLETE
 
-**Medium Priority** (In Progress):
-8. ✅ ~~MEME-002: Character preset library UI~~ COMPLETE
-9. ✅ ~~MEME-004: Viral pose trait~~ COMPLETE
-10. ✅ ~~MEME-009: Discord reaction triggers~~ COMPLETE
-11. ⏭️ **MEME-014: Batch render variations** (8 hours) ← NEXT
+**Medium Priority** (In Progress): 8. ✅ ~~MEME-002: Character preset library UI~~ COMPLETE 9. ✅ ~~MEME-004: Viral pose trait~~ COMPLETE 10. ✅ ~~MEME-009: Discord reaction triggers~~ COMPLETE 11. ⏭️ **MEME-014: Batch render variations** (8 hours) ← NEXT
 
 **Integration**:
+
 - ✅ Updated CharacterLayout to use OptimizedGlbViewer
 - ✅ Hotkey system integrated
 - ✅ Export button added to ClipLibrary
@@ -1214,6 +1300,7 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 ---
 
 ### ✅ MEME-018: Character & Avatar Creation System
+
 **Priority**: Critical | **Estimate**: 20 hours | **Actual**: 4 hours | **Status**: ✅ COMPLETE
 
 **Challenge**: ReadyPlayerMe defunct. Users had no way to create/obtain characters. "Degens will make fun of us if they can only generate geometric shapes like little kids toys."
@@ -1221,6 +1308,7 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 **Solution**: Multi-path character creation system with **NO DEPENDENCIES** on third-party services. 6 creation paths ensure no single point of failure.
 
 **Files Created**:
+
 - `src/lib/aiCharacterGeneration.ts` (500+ lines) - AI character generation (Meshy/Rodin)
 - `src/lib/vrmImport.ts` (400+ lines) - VRM avatar import & metadata extraction
 - `src/lib/mixamoIntegration.ts` (350+ lines) - Mixamo character library & auto-rigging
@@ -1229,6 +1317,7 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 - `MEME-018_CHARACTER_CREATION.md` (400+ lines) - Complete documentation
 
 **Files Updated**:
+
 - `src/components/character/CharacterCreationModal.tsx` (1200+ lines) - Full 6-tab modal
   - PresetModelsTab (150+ lines) - 9 hosted meme characters (Pepe, Wojak, Doge, etc.)
   - AIGenerationTab (200+ lines) - Text/image → 3D in ~2 minutes
@@ -1241,6 +1330,7 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 **Features Implemented**:
 
 **1. Preset Models (INSTANT)**
+
 - 9 hosted meme characters (Pepe, Wojak, Doge, Gigachad, Cursed Cat, etc.)
 - CDN-hosted GLB files with fallback URLs
 - Category filtering (classic, viral, trending, custom)
@@ -1248,6 +1338,7 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 - Popularity rankings and poly count display
 
 **2. AI Character Generation (2026 STANDARD)**
+
 - Providers: Meshy.ai, Rodin AI
 - Input: Text prompts OR image references
 - Time: ~2 minutes per generation
@@ -1257,6 +1348,7 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 - Mock mode for development (no API keys needed)
 
 **3. VRoid Import (VRM AVATARS)**
+
 - VRM file format support (VRoid Studio, VRoid Hub)
 - Metadata extraction (name, author, license, usage rights)
 - License compatibility checking (commercial/violent/sexual usage)
@@ -1264,6 +1356,7 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 - Drag & drop upload
 
 **4. Mixamo Integration (AUTO-RIGGING)**
+
 - Browse 60+ free rigged characters
 - Type filtering (human, creature, robot)
 - Download instructions for each character
@@ -1271,6 +1364,7 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 - Direct links to Mixamo website
 
 **5. Sketchfab Search (3M+ MODELS)**
+
 - Full-text search via Sketchfab API
 - Category filtering (characters, fantasy, sci-fi, anime, etc.)
 - Sort by relevance, likes, views, or recency
@@ -1280,12 +1374,14 @@ it('should trigger animation on Discord reaction (via webhook)', () => {
 - Manual download fallback
 
 **6. Upload File (DRAG & DROP)**
+
 - Formats: GLB, GLTF, VRM
 - Drag & drop or click to browse
 - File type validation
 - Instant object URL creation
 
 **Usage**:
+
 ```tsx
 import { CharacterCreationModal } from '@/components/character/CharacterCreationModal';
 
@@ -1299,9 +1395,7 @@ function GlbDropZone() {
 
   return (
     <>
-      <button onClick={() => setCreationModalOpen(true)}>
-        Create Character
-      </button>
+      <button onClick={() => setCreationModalOpen(true)}>Create Character</button>
 
       <CharacterCreationModal
         isOpen={creationModalOpen}
@@ -1314,6 +1408,7 @@ function GlbDropZone() {
 ```
 
 **Environment Variables** (Optional - enables full features):
+
 ```env
 # AI Character Generation
 NEXT_PUBLIC_MESHY_API_KEY=your_meshy_api_key
@@ -1324,12 +1419,14 @@ NEXT_PUBLIC_SKETCHFAB_API_KEY=your_sketchfab_api_key
 ```
 
 **Behavior Without API Keys**:
+
 - AI Generate: Uses mock mode (30-second simulation, returns sample model)
 - Sketchfab: Search works, download requires manual process
 - Mixamo: Shows character library, provides manual download instructions
 - All other tabs: Work without any configuration
 
 **Test Coverage**:
+
 ```typescript
 it('should create character from multi-path creation system', () => {
   const { CharacterCreationModal } = require('../../components/character/CharacterCreationModal');
@@ -1350,6 +1447,7 @@ it('should create character from multi-path creation system', () => {
 ```
 
 **Production Readiness**:
+
 - ✅ All 6 creation paths fully implemented
 - ✅ Graceful degradation without API keys
 - ✅ Clear user guidance for manual workflows
@@ -1359,6 +1457,7 @@ it('should create character from multi-path creation system', () => {
 - ✅ Production-ready UI/UX
 
 **Minimum Viable Product** (Ships TODAY):
+
 - ✅ Preset Models (with mock CDN URLs)
 - ✅ Upload File (fully functional)
 - ✅ VRoid Import (fully functional)
@@ -1367,6 +1466,7 @@ it('should create character from multi-path creation system', () => {
 - ✅ Sketchfab (search works, manual download)
 
 **Architecture**:
+
 - **Multi-Path Resilience**: No single point of failure
 - **User Choice**: Different users prefer different workflows
 - **Future-Proof**: Easy to add/remove paths as services change
@@ -1379,6 +1479,7 @@ it('should create character from multi-path creation system', () => {
 ## Files Modified
 
 **New Files** (35):
+
 1. `src/hooks/useHotkeys.ts`
 2. `src/components/character/HotkeyGuide.tsx`
 3. `src/lib/memeTemplates.ts`
@@ -1411,6 +1512,7 @@ it('should create character from multi-path creation system', () => {
 30. `SCENARIO_TESTING_GUIDE.md`
 
 **Updated Files** (8):
+
 1. `src/__tests__/scenarios/degen-meme-creator.scenario.skip.ts` (updated tests for MEME-012, MEME-008, MEME-003, MEME-007, MEME-002, MEME-004, MEME-018)
 2. `src/components/character/CharacterLayout.tsx` (switched to OptimizedGlbViewer)
 3. `src/components/character/ClipLibrary.tsx` (added export button)
@@ -1420,6 +1522,7 @@ it('should create character from multi-path creation system', () => {
 7. `IMPLEMENTATION_SUMMARY.md` (this file)
 
 **Lines of Code**:
+
 - useHotkeys: 395 lines
 - HotkeyGuide: 165 lines
 - memeTemplates: 580 lines
@@ -1453,6 +1556,7 @@ it('should create character from multi-path creation system', () => {
 ## Test Coverage
 
 **Scenario Tests**: 13 passing, 7 pending
+
 - ✅ Load character from GLB
 - ✅ Extract skeleton bones
 - ✅ Add physics wiggle trait
@@ -1470,6 +1574,7 @@ it('should create character from multi-path creation system', () => {
 - ⏳ 7 remaining TODOs...
 
 **Run Tests**:
+
 ```bash
 pnpm test degen-meme-creator.scenario
 ```

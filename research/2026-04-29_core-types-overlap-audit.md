@@ -1,20 +1,20 @@
 # core-types ⟷ core/src/types overlap audit
 
 **Date**: 2026-04-29
-**Scope**: Audit item from session — *"core-types exports ~200+ interfaces that likely overlap with core/src internal types. Worth an audit."*
+**Scope**: Audit item from session — _"core-types exports ~200+ interfaces that likely overlap with core/src internal types. Worth an audit."_
 **Methodology**: name-collision diff via `comm -12` of sorted `^export interface` names, followed by full-body diff of every collision.
 
 ## TL;DR
 
 The audit's framing was misleading. The actual numbers:
 
-| | Count | Status |
-|---|---|---|
-| Name collisions between core-types and core/src/types | **43** | most are correct mirrors |
-| Of those, IDENTICAL bodies | **41** | mirror is working |
-| Of those, DRIFTED bodies | **2** | real bugs — see below |
-| In `core-types` only (no collision) | 240 | legitimate type-only extractions (animation, capability, cutscenes, etc.) |
-| In `core/src/types` only (no collision) | 184 | legitimate internal-only types (trait interfaces — runtime-bound) |
+|                                                       | Count  | Status                                                                    |
+| ----------------------------------------------------- | ------ | ------------------------------------------------------------------------- |
+| Name collisions between core-types and core/src/types | **43** | most are correct mirrors                                                  |
+| Of those, IDENTICAL bodies                            | **41** | mirror is working                                                         |
+| Of those, DRIFTED bodies                              | **2**  | real bugs — see below                                                     |
+| In `core-types` only (no collision)                   | 240    | legitimate type-only extractions (animation, capability, cutscenes, etc.) |
+| In `core/src/types` only (no collision)               | 184    | legitimate internal-only types (trait interfaces — runtime-bound)         |
 
 Total interfaces: 283 in core-types, 227 in core/src/types. The "200+ overlap" framing conflated total surface with collision surface.
 
@@ -85,11 +85,11 @@ The audit's catastrophising framing ("200+ interfaces overlap") would have justi
 
 Filed against the HoloMesh team board (`team_1775935947314_f0noxi`):
 
-| Task ID | Priority | Title |
-|---|---|---|
-| `task_1777526366319_mobj` | high | Fix ASTNode drift in @holoscript/core-types |
-| `task_1777526366932_d16p` | high | Fix HSPlusNode drift in @holoscript/core-types |
-| `task_1777526367629_270g` | medium | Build pnpm sync script for @holoscript/core-types |
+| Task ID                   | Priority | Title                                             |
+| ------------------------- | -------- | ------------------------------------------------- |
+| `task_1777526366319_mobj` | high     | Fix ASTNode drift in @holoscript/core-types       |
+| `task_1777526366932_d16p` | high     | Fix HSPlusNode drift in @holoscript/core-types    |
+| `task_1777526367629_270g` | medium   | Build pnpm sync script for @holoscript/core-types |
 
 Trace artifacts (debug-probe tasks left open during the response-shape investigation; safe to ignore or close): `task_1777529045078_rg8h`, `task_1777529108397_5fwt`.
 
@@ -97,8 +97,8 @@ Trace artifacts (debug-probe tasks left open during the response-shape investiga
 
 Three entries posted to the HoloMesh team knowledge store:
 
-| ID | Type | Lesson |
-|---|---|---|
-| `W.team.1777542370210.fai` | gotcha | core-types is a manual mirror; the planned sync script doesn't exist yet, so the mirror drifts silently |
-| `W.team.1777542370210.q93` | pattern | cheap interface-overlap audit method (`comm -12` over sorted exports + `awk` body diff against `.ts` source, NOT `.d.ts`) |
-| `W.team.1777542370210.834` | wisdom | when an audit cites overlap counts, separate name-collision from total-surface BEFORE estimating effort — catastrophising framing wastes sessions |
+| ID                         | Type    | Lesson                                                                                                                                            |
+| -------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `W.team.1777542370210.fai` | gotcha  | core-types is a manual mirror; the planned sync script doesn't exist yet, so the mirror drifts silently                                           |
+| `W.team.1777542370210.q93` | pattern | cheap interface-overlap audit method (`comm -12` over sorted exports + `awk` body diff against `.ts` source, NOT `.d.ts`)                         |
+| `W.team.1777542370210.834` | wisdom  | when an audit cites overlap counts, separate name-collision from total-surface BEFORE estimating effort — catastrophising framing wastes sessions |

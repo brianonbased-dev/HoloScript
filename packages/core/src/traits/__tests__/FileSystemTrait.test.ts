@@ -47,9 +47,16 @@ describe('FileSystemTrait — onEvent', () => {
   it('fs:write stores file and emits fs:written', () => {
     const node = makeNode();
     fileSystemHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fileSystemHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fs:write', path: 'notes.txt', content: 'Hello World',
-    } as never);
+    fileSystemHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fs:write',
+        path: 'notes.txt',
+        content: 'Hello World',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('fs:written', { path: '/sandbox/notes.txt' });
     const state = node.__fsState as { files: Map<string, string> };
     expect(state.files.get('/sandbox/notes.txt')).toBe('Hello World');
@@ -58,39 +65,75 @@ describe('FileSystemTrait — onEvent', () => {
   it('fs:read returns content and exists=true for existing file', () => {
     const node = makeNode();
     fileSystemHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fileSystemHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fs:write', path: 'data.txt', content: 'test content',
-    } as never);
+    fileSystemHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fs:write',
+        path: 'data.txt',
+        content: 'test content',
+      } as never
+    );
     node.emit.mockClear();
-    fileSystemHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fs:read', path: 'data.txt',
-    } as never);
+    fileSystemHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fs:read',
+        path: 'data.txt',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('fs:read_result', {
-      path: '/sandbox/data.txt', content: 'test content', exists: true,
+      path: '/sandbox/data.txt',
+      content: 'test content',
+      exists: true,
     });
   });
 
   it('fs:read returns exists=false for missing file', () => {
     const node = makeNode();
     fileSystemHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fileSystemHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fs:read', path: 'missing.txt',
-    } as never);
+    fileSystemHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fs:read',
+        path: 'missing.txt',
+      } as never
+    );
     expect(node.emit).toHaveBeenCalledWith('fs:read_result', {
-      path: '/sandbox/missing.txt', content: undefined, exists: false,
+      path: '/sandbox/missing.txt',
+      content: undefined,
+      exists: false,
     });
   });
 
   it('fs:delete removes file and emits fs:deleted', () => {
     const node = makeNode();
     fileSystemHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fileSystemHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fs:write', path: 'temp.txt', content: 'data',
-    } as never);
+    fileSystemHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fs:write',
+        path: 'temp.txt',
+        content: 'data',
+      } as never
+    );
     node.emit.mockClear();
-    fileSystemHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fs:delete', path: 'temp.txt',
-    } as never);
+    fileSystemHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fs:delete',
+        path: 'temp.txt',
+      } as never
+    );
     const state = node.__fsState as { files: Map<string, string> };
     expect(state.files.has('/sandbox/temp.txt')).toBe(false);
     expect(node.emit).toHaveBeenCalledWith('fs:deleted', { path: '/sandbox/temp.txt' });
@@ -99,11 +142,21 @@ describe('FileSystemTrait — onEvent', () => {
   it('fs:write emits fs:error for path traversal attempt', () => {
     const node = makeNode();
     fileSystemHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    fileSystemHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'fs:write', path: '../../etc/passwd', content: 'evil',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('fs:error', expect.objectContaining({
-      error: expect.stringContaining('escapes'),
-    }));
+    fileSystemHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'fs:write',
+        path: '../../etc/passwd',
+        content: 'evil',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'fs:error',
+      expect.objectContaining({
+        error: expect.stringContaining('escapes'),
+      })
+    );
   });
 });

@@ -77,14 +77,9 @@ export { HologramImage } from './components/HologramImage';
 export type { HologramImageProps } from './components/HologramImage';
 
 // Hologram MCP Content (task_1778114362909_zp7u - content_type protocol)
-export {
-  HologramMcpContentRenderer,
-} from './components/HologramMcpContentRenderer';
+export { HologramMcpContentRenderer } from './components/HologramMcpContentRenderer';
 export type { HologramMcpContentRendererProps } from './components/HologramMcpContentRenderer';
-export {
-  useHologramMcpContent,
-  resolveHologramMcpContent,
-} from './hooks/useHologramMcpContent';
+export { useHologramMcpContent, resolveHologramMcpContent } from './hooks/useHologramMcpContent';
 export type {
   ResolvedHologramContent,
   UseHologramMcpContentResult,
@@ -235,24 +230,54 @@ export type {
 
 // Simulation Visualization Components (Phase R2 + Phase R3)
 export { SimulationProvider } from './components/SimulationProvider';
-export type { SimulationProviderProps, SimulationContextValue } from './components/SimulationProvider';
+export type {
+  SimulationProviderProps,
+  SimulationContextValue,
+} from './components/SimulationProvider';
 export { ScalarFieldOverlay, type ColormapName } from './components/ScalarFieldOverlay';
 export type { ScalarFieldOverlayProps } from './components/ScalarFieldOverlay';
 export { SimResultsMesh } from './components/SimResultsMesh';
 export type { SimResultsMeshProps } from './components/SimResultsMesh';
 
 // Spatial Toolkits — Domain-specific measurement/annotation/coordinate configs
-export { getSpatialToolkit, inferToolkit, listToolkits, getAllToolkits } from './components/spatial-tools/SpatialToolkit';
+export {
+  getSpatialToolkit,
+  inferToolkit,
+  listToolkits,
+  getAllToolkits,
+} from './components/spatial-tools/SpatialToolkit';
 export type { SpatialToolkitConfig } from './components/spatial-tools/SpatialToolkit';
-export { DOMAIN_TAXONOMY, matchDomains, getDomainsByCategory, getCategories, coverageSummary, TOTAL_DOMAINS } from './components/spatial-tools/DomainTaxonomy';
+export {
+  DOMAIN_TAXONOMY,
+  matchDomains,
+  getDomainsByCategory,
+  getCategories,
+  coverageSummary,
+  TOTAL_DOMAINS,
+} from './components/spatial-tools/DomainTaxonomy';
 export type { DomainEntry, CoverageLevel } from './components/spatial-tools/DomainTaxonomy';
 export { handleGap, logGapRequest } from './components/spatial-tools/GapHandler';
 export type { GapResponse } from './components/spatial-tools/GapHandler';
 
 // Spatial Measurement, Annotation, and Coordinate Tools
-export { SpatialMeasurement, SpatialAnnotations, CoordinateOverlay } from './components/SpatialMeasurement';
-export { engineeringTransform, astronomicalTransform, geophysicalTransform } from './components/SpatialMeasurement';
-export type { MeasurementPoint, Measurement, SpatialMeasurementProps, SpatialAnnotation, SpatialAnnotationsProps, CoordinateOverlayProps } from './components/SpatialMeasurement';
+export {
+  SpatialMeasurement,
+  SpatialAnnotations,
+  CoordinateOverlay,
+} from './components/SpatialMeasurement';
+export {
+  engineeringTransform,
+  astronomicalTransform,
+  geophysicalTransform,
+} from './components/SpatialMeasurement';
+export type {
+  MeasurementPoint,
+  Measurement,
+  SpatialMeasurementProps,
+  SpatialAnnotation,
+  SpatialAnnotationsProps,
+  CoordinateOverlayProps,
+} from './components/SpatialMeasurement';
 
 // V&V Visualization Space (Phase R5 — Walkable Verification & Validation)
 export { VnVSpace } from './components/VnVSpace';
@@ -350,7 +375,11 @@ export type {
   UsePerformanceRegressionResult,
 } from './hooks/usePerformanceRegression';
 export { useGpuSplatSort } from './hooks/useGpuSplatSort';
-export type { GpuSplatSortOptions, GpuSplatSortResult, SplatUploadPayload } from './hooks/useGpuSplatSort';
+export type {
+  GpuSplatSortOptions,
+  GpuSplatSortResult,
+  SplatUploadPayload,
+} from './hooks/useGpuSplatSort';
 export { useVolumetricRenderUpdate } from './hooks/useVolumetricRenderUpdate';
 export type {
   UseVolumetricRenderUpdateOptions,

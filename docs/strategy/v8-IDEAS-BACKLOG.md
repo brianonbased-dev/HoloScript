@@ -34,14 +34,17 @@
 **v6 dependency:** Semantic trait-graph generation from natural language in Studio.
 
 **Step 1 — `/journalist` verdict (hypothetical run):**
+
 > "Journalist report 2026-06-07: Studio's `generate_semantic_ui` MCP tool accepts a natural-language prompt and returns a `.holo` scene stub. Verified against public install path (mcp.holoscript.net `get_examples`). Capability is present but outputs a flat trait list, not a subgraph with depth-of-field or volumetric traits specifically. Truth: THIN — the base generation hook exists; the Film3D-specific vocabulary is absent."
 
 **Step 2 — `/deep-ratchet` verdict (hypothetical run):**
+
 > "Deep-ratchet 2026-06-07: `generate_semantic_ui` THIN — function exists, domain vocabulary for Film3D/volumetrics not in trait registry (zero `@gaussian-splat`, `@depth-of-field` traits at v6). Blocking severity: MEDIUM (feature premise partially invalidated — the 'exact corresponding trait subgraph' claim requires traits that don't exist yet)."
 
 **Gate result:** THIN + MEDIUM blocking → **DO NOT REVIVE as-is.** Board task required: "Add `@gaussian-splat` and `@depth-of-field` traits to registry (Film3D vocab gap)." Once that ships and re-ratchet returns THIN non-blocking or REAL, the AI Co-Pilot item may be promoted.
 
 **Annotation on item (add inline when a real verdict runs):**
+
 ```
 <!-- REVIVAL-GATE: journalist=THIN (2026-06-07, commit <hash>), ratchet=THIN/MEDIUM-blocking -->
 <!-- STATUS: BLOCKED — Film3D trait vocab gap. Dependency task: <board-id> -->
@@ -49,7 +52,7 @@
 
 ---
 
-*Original RFC content preserved below. Do not edit; treat as ideas archive.*
+_Original RFC content preserved below. Do not edit; treat as ideas archive._
 
 ---
 
@@ -61,7 +64,7 @@
 
 ## The Trajectory
 
-HoloScript v6.0 "Universal Semantic Platform" has officially shipped, bringing [see NUMBERS.md]  (at time of writing; see [NUMBERS.md](../NUMBERS.md) for current), the bidirectional absorb loop, and a foundational three-tier language architecture. We have leveled the playing field. Now, we go wide open.
+HoloScript v6.0 "Universal Semantic Platform" has officially shipped, bringing [see NUMBERS.md] (at time of writing; see [NUMBERS.md](../NUMBERS.md) for current), the bidirectional absorb loop, and a foundational three-tier language architecture. We have leveled the playing field. Now, we go wide open.
 
 This RFC outlines the next 12–36 months of iterations, culminating in **v8.0: The Universal Semantic OS**.
 
@@ -101,7 +104,7 @@ Our traits are our superpower. Let’s aggressively expand the core repository:
 
 ## 3. Agent Swarm & Autonomous Economy (x402 + uAAL native)
 
-Using the [see NUMBERS.md]  (at time of writing; see [NUMBERS.md](../NUMBERS.md) for current) and recursive self-improvement loops:
+Using the [see NUMBERS.md] (at time of writing; see [NUMBERS.md](../NUMBERS.md) for current) and recursive self-improvement loops:
 
 - **Agent Marketplace with Built-in x402 Settlement**
   - Autonomous agents buy/sell traits, skills, or entire sub-worlds. Need a scene blocked out? Rent the "Film3D Director Agent" template for the afternoon.

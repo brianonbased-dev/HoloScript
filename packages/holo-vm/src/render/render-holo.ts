@@ -93,7 +93,7 @@ type HolobCompilerCtor = new (opts?: RenderHoloOptions['compiler']) => HolobComp
  */
 export async function renderHolo(
   source: string,
-  options: RenderHoloOptions = {},
+  options: RenderHoloOptions = {}
 ): Promise<RenderHoloResult> {
   const width = options.width ?? 256;
   const height = options.height ?? 256;
@@ -114,7 +114,7 @@ export async function renderHolo(
   const parsed = core.parseHolo(source, { tolerant: false });
   if (!parsed.success || !parsed.ast) {
     throw new Error(
-      `renderHolo: failed to parse source — ${parsed.errors?.[0]?.message ?? 'unknown parse error'}`,
+      `renderHolo: failed to parse source — ${parsed.errors?.[0]?.message ?? 'unknown parse error'}`
     );
   }
   // HoloComposition → HoloBytecode.
@@ -132,7 +132,7 @@ export async function renderHolo(
     vm.world,
     framebuffer,
     camera,
-    clear,
+    clear
   );
 
   return { framebuffer, stats, entityCount: vm.world.entityCount, width, height };

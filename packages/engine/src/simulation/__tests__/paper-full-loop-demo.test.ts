@@ -54,7 +54,10 @@ function loadEnv(path: string): void {
       const key = trimmed.slice(0, eq).trim();
       let val = trimmed.slice(eq + 1).trim();
       // Strip surrounding quotes
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
         val = val.slice(1, -1);
       }
       if (!process.env[key]) process.env[key] = val;
@@ -91,7 +94,8 @@ import type { FieldData, SimSolver } from '../SimSolver';
 
 // Knowledge sync goes through the orchestrator (W/P/G store), NOT absorb.
 // Absorb is for codebase graph scans; orchestrator is for knowledge entries.
-const ORCHESTRATOR_URL = process.env.ORCHESTRATOR_URL ?? 'https://mcp-orchestrator-production-45f9.up.railway.app';
+const ORCHESTRATOR_URL =
+  process.env.ORCHESTRATOR_URL ?? 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const NETWORK_TIMEOUT_MS = 3000;
 const PLATFORM_VERSION = '6.0.4';
 
@@ -146,7 +150,7 @@ function now(): number {
 async function fetchWithTimeout(
   url: string,
   init: RequestInit = {},
-  timeoutMs = NETWORK_TIMEOUT_MS,
+  timeoutMs = NETWORK_TIMEOUT_MS
 ): Promise<Response | null> {
   if (typeof fetch !== 'function') return null;
   try {
@@ -190,21 +194,20 @@ interface BridgeSolver extends SimSolver {
 function createBridgeSolver(): BridgeSolver {
   // 8 corner vertices of a 10x0.5x3 box centered on origin, y in [0.75, 1.25]
   const vertices = new Float64Array([
-    -5, 0.75, -1.5, 5, 0.75, -1.5, 5, 0.75, 1.5, -5, 0.75, 1.5,
-    -5, 1.25, -1.5, 5, 1.25, -1.5, 5, 1.25, 1.5, -5, 1.25, 1.5,
+    -5, 0.75, -1.5, 5, 0.75, -1.5, 5, 0.75, 1.5, -5, 0.75, 1.5, -5, 1.25, -1.5, 5, 1.25, -1.5, 5,
+    1.25, 1.5, -5, 1.25, 1.5,
   ]);
   // 5-tet decomposition of the hex, wound for positive Jacobians under
   // SimulationContract's tet4 determinant convention.
-  const tetrahedra = new Uint32Array([
-    0, 2, 1, 5, 0, 3, 2, 7, 0, 5, 4, 7, 2, 6, 5, 7, 0, 2, 5, 7,
-  ]);
+  const tetrahedra = new Uint32Array([0, 2, 1, 5, 0, 3, 2, 7, 0, 5, 4, 7, 2, 6, 5, 7, 0, 2, 5, 7]);
 
   // Initial stress field: peak under the load (x=5, z=1.5), decaying with distance
   const stressAt = (i: number): number => {
     // Map tet index → representative position
     const x = i === 0 || i === 3 ? 4.5 : i === 2 ? 0 : -4.5;
     const z = i <= 2 ? 1.0 : -1.0;
-    const loadX = 5, loadZ = 1.5;
+    const loadX = 5,
+      loadZ = 1.5;
     const d2 = (x - loadX) ** 2 + (z - loadZ) ** 2;
     // Peak ~120 MPa under load, tail at ~5 MPa far side
     return 5_000_000 + 115_000_000 * Math.exp(-d2 / 8);
@@ -271,7 +274,7 @@ async function runPhase<T>(
   state: LoopState,
   phase: number,
   name: string,
-  body: () => Promise<{ hash: string; value: T; note?: string }>,
+  body: () => Promise<{ hash: string; value: T; note?: string }>
 ): Promise<T | null> {
   const start = now();
   try {
@@ -332,7 +335,9 @@ function renderLatexTable(phases: PhaseRecord[]): string {
   for (const p of phases) {
     const status = p.success ? 'verified' : 'mocked';
     const safeName = p.name.replace(/[&%$#_{}]/g, '\\$&');
-    lines.push(`${p.phase} & ${safeName} & ${p.durationMs.toFixed(2)} & \\texttt{${p.outputHash}} & ${status} \\\\`);
+    lines.push(
+      `${p.phase} & ${safeName} & ${p.durationMs.toFixed(2)} & \\texttt{${p.outputHash}} & ${status} \\\\`
+    );
   }
   lines.push('\\bottomrule');
   lines.push('\\end{tabular}');
@@ -355,9 +360,7 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
       const parser = new HoloCompositionParser({ tolerant: true });
       const result = parser.parse(BRIDGE_HOLO_SOURCE);
       if (!result || !result.ast) {
-        throw new Error(
-          `parser returned no ast (errors=${(result?.errors ?? []).length})`,
-        );
+        throw new Error(`parser returned no ast (errors=${(result?.errors ?? []).length})`);
       }
       const ast = result.ast;
       const hash = fnv1a(JSON.stringify(ast.objects ?? []));
@@ -384,8 +387,11 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
       const urdf = new URDFCompiler().compile(comp, '', undefined);
       state.compiled = { unity, webgpu, urdf };
 
-      const combined = `${unity.length}|${webgpu.length}|${urdf.length}|` +
-        fnv1a(unity) + fnv1a(webgpu) + fnv1a(urdf);
+      const combined =
+        `${unity.length}|${webgpu.length}|${urdf.length}|` +
+        fnv1a(unity) +
+        fnv1a(webgpu) +
+        fnv1a(urdf);
       return {
         hash: fnv1a(combined),
         value: state.compiled,
@@ -408,13 +414,13 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
           vertices: solver.geometryConfig.vertices,
           tetrahedra: solver.geometryConfig.tetrahedra,
         },
-        { fixedDt: 0.01, solverType: 'structural-bridge-demo' },
+        { fixedDt: 0.01, solverType: 'structural-bridge-demo' }
       );
       state.recorder = recorder;
 
       const geomHash = hashGeometry(
         solver.geometryConfig.vertices,
-        solver.geometryConfig.tetrahedra,
+        solver.geometryConfig.tetrahedra
       );
 
       // Two steps of 10ms each — establishes a non-trivial hash chain.
@@ -427,9 +433,7 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
       // Sanity: deterministic stepping actually ran.
       if (prov.totalSteps < 1) throw new Error(`no steps taken (totalSteps=${prov.totalSteps})`);
       if (!prov.verified) {
-        const reasons = (prov.contractViolations ?? [])
-          .map((v) => v.code ?? v.rule)
-          .join(', ');
+        const reasons = (prov.contractViolations ?? []).map((v) => v.code ?? v.rule).join(', ');
         throw new Error(`SimulationContract provenance is not verified (${reasons || 'unknown'})`);
       }
 
@@ -490,10 +494,13 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
       const utility = decision.chosen.utility ?? 0;
       return {
         hash: fnv1a(
-          (decision.chosen.type ?? '') + '|' +
-          utility.toFixed(3) + '|' +
-          (state.preReinforcePeak ?? 0).toFixed(0) + '|' +
-          (state.postReinforcePeak ?? 0).toFixed(0),
+          (decision.chosen.type ?? '') +
+            '|' +
+            utility.toFixed(3) +
+            '|' +
+            (state.preReinforcePeak ?? 0).toFixed(0) +
+            '|' +
+            (state.postReinforcePeak ?? 0).toFixed(0)
         ),
         value: decision,
         note: `action=${decision.chosen.type} peakMPa ${(state.preReinforcePeak! / 1e6).toFixed(1)}->${(state.postReinforcePeak! / 1e6).toFixed(1)}`,
@@ -525,7 +532,7 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
         localWorld.setObject('bridge-beam-A', {
           position: [0, 1, 0],
           rotation: [0, 0, 0, 1],
-          scale: [1.2, 1, 1],                    // local: scale beam to 1.2
+          scale: [1.2, 1, 1], // local: scale beam to 1.2
           mesh: 'bridge.beam',
           traits: ['@physics', '@collidable'],
           owner: 'did:agent:bridge-inspector',
@@ -622,38 +629,35 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
       const apiKey = process.env.HOLOSCRIPT_API_KEY ?? process.env.MCP_API_KEY;
       if (apiKey && typeof fetch === 'function') {
         try {
-          const res = await fetchWithTimeout(
-            `${ORCHESTRATOR_URL}/knowledge/sync`,
-            {
-              method: 'POST',
-              headers: {
-                'content-type': 'application/json',
-                'x-mcp-api-key': apiKey,
-              },
-              body: JSON.stringify({
-                workspace_id: 'ai-ecosystem',
-                entries: [
-                  {
-                    id: `capstone-bridge-${provenance.runId}`,
-                    workspace_id: 'ai-ecosystem',
-                    type: 'pattern',
-                    domain: 'simulation.bridge-reinforcement',
-                    content:
-                      'Bridge subjected to point load; SNN agent perceived stress field, ' +
-                      'invoked reinforce action, peak von Mises stress dropped ~40%. ' +
-                      'Full CAEL trace attached. Demonstrates provenance-backed agent decision.',
-                    confidence: 0.85,
-                    metadata: {
-                      title: 'Paper Demo Bridge — Reinforcement Episode',
-                      runId: provenance.runId,
-                      traceSize: jsonl.length,
-                      source: 'capstone-full-loop-demo',
-                    },
-                  },
-                ],
-              }),
+          const res = await fetchWithTimeout(`${ORCHESTRATOR_URL}/knowledge/sync`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-mcp-api-key': apiKey,
             },
-          );
+            body: JSON.stringify({
+              workspace_id: 'ai-ecosystem',
+              entries: [
+                {
+                  id: `capstone-bridge-${provenance.runId}`,
+                  workspace_id: 'ai-ecosystem',
+                  type: 'pattern',
+                  domain: 'simulation.bridge-reinforcement',
+                  content:
+                    'Bridge subjected to point load; SNN agent perceived stress field, ' +
+                    'invoked reinforce action, peak von Mises stress dropped ~40%. ' +
+                    'Full CAEL trace attached. Demonstrates provenance-backed agent decision.',
+                  confidence: 0.85,
+                  metadata: {
+                    title: 'Paper Demo Bridge — Reinforcement Episode',
+                    runId: provenance.runId,
+                    traceSize: jsonl.length,
+                    source: 'capstone-full-loop-demo',
+                  },
+                },
+              ],
+            }),
+          });
           if (res && res.ok) {
             mocked = false;
             try {
@@ -734,7 +738,7 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
               limit: 20,
             }),
           },
-          6000,
+          6000
         );
         if (queryRes && queryRes.ok) {
           try {
@@ -742,7 +746,7 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
               results?: Array<{ id?: string; content?: string }>;
             };
             const hit = (data.results ?? []).find(
-              (r) => typeof r.id === 'string' && r.id.startsWith('capstone-bridge-'),
+              (r) => typeof r.id === 'string' && r.id.startsWith('capstone-bridge-')
             );
             if (hit?.id) {
               externalCitation = hit.id;
@@ -758,7 +762,7 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
 
       const answer =
         reinforceEvents.length > 0
-          ? `The bridge was reinforced by ${(state.reinforceAction ?? 'unknown')} — ` +
+          ? `The bridge was reinforced by ${state.reinforceAction ?? 'unknown'} — ` +
             `peak von Mises stress dropped from ` +
             `${((state.preReinforcePeak ?? 0) / 1e6).toFixed(1)} MPa to ` +
             `${((state.postReinforcePeak ?? 0) / 1e6).toFixed(1)} MPa. ` +
@@ -766,9 +770,7 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
             (externalCitation ? `; cross-stored as ${externalCitation}.` : '.')
           : 'No reinforcement action found in trace.';
 
-      const allCitations = externalCitation
-        ? [...citations, externalCitation]
-        : citations;
+      const allCitations = externalCitation ? [...citations, externalCitation] : citations;
 
       state.query = {
         question: 'How was this bridge reinforced?',
@@ -800,14 +802,10 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
 
       const verification = verifyCAELHashChain(trace);
       if (!verification.valid) {
-        throw new Error(
-          `hash chain invalid (broken at entry ${verification.brokenAt ?? '?'})`,
-        );
+        throw new Error(`hash chain invalid (broken at entry ${verification.brokenAt ?? '?'})`);
       }
 
-      const pipelineFingerprint = fnv1a(
-        state.phases.map((p) => p.outputHash).join('|'),
-      );
+      const pipelineFingerprint = fnv1a(state.phases.map((p) => p.outputHash).join('|'));
 
       return {
         hash: pipelineFingerprint,
@@ -857,10 +855,14 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
 
     // Skipped layers are reported inline; list them so the paper can be
     // honest about what was exercised live vs mocked.
-    const mockedPhases = state.phases.filter((p) => !p.success || (p.note ?? '').startsWith('Layer'));
+    const mockedPhases = state.phases.filter(
+      (p) => !p.success || (p.note ?? '').startsWith('Layer')
+    );
     const livePhases = state.phases.filter((p) => p.success && !(p.note ?? '').startsWith('Layer'));
     // eslint-disable-next-line no-console
-    console.log(`\n-- Live vs mocked: ${livePhases.length}/${state.phases.length} live, ${mockedPhases.length} mocked --`);
+    console.log(
+      `\n-- Live vs mocked: ${livePhases.length}/${state.phases.length} live, ${mockedPhases.length} mocked --`
+    );
     if (mockedPhases.length > 0) {
       // eslint-disable-next-line no-console
       console.log('-- Mocked / skipped layers --');
@@ -903,11 +905,8 @@ describe('Capstone Full Loop Demo — all 8 phases compose', () => {
     // Bookkeeping for paper-capstone Section 7 timing table: surface the
     // measured live count on the test object so a future reporter hook
     // can consume it without reparsing the table.
-    (
-      state as LoopState & { _liveCount?: number; _mockedCount?: number }
-    )._liveCount = liveCount;
-    (
-      state as LoopState & { _liveCount?: number; _mockedCount?: number }
-    )._mockedCount = mockedPhases.length;
+    (state as LoopState & { _liveCount?: number; _mockedCount?: number })._liveCount = liveCount;
+    (state as LoopState & { _liveCount?: number; _mockedCount?: number })._mockedCount =
+      mockedPhases.length;
   }, 30_000);
 });

@@ -60,8 +60,9 @@ const r4 = (n) => Number(n.toFixed(6));
 const maxStress = stress ? Math.max(...stress) : null;
 const loadedNodeDisp = disp ? Math.hypot(disp[9] || 0, disp[10] || 0, disp[11] || 0) : null; // node 3 = dof 9,10,11
 
-const realSolver = r1.hasStress && r1.hasDisp && stress instanceof Float32Array && disp instanceof Float32Array;
-const stressed = maxStress !== null && maxStress > 0;        // structure genuinely responds to the load
+const realSolver =
+  r1.hasStress && r1.hasDisp && stress instanceof Float32Array && disp instanceof Float32Array;
+const stressed = maxStress !== null && maxStress > 0; // structure genuinely responds to the load
 const displaced = loadedNodeDisp !== null && loadedNodeDisp > 0; // loaded node actually moves
 const r2 = run();
 const deterministic = r1.digest === r2.digest && r1.digest.length > 0;
@@ -71,11 +72,37 @@ const receipt = {
   track: 'flagship',
   name: 'multi-physics solver — real StructuralSolver (TET4 FEM) over the vault keystone',
   verifier: 'examples/gold-game/gate-12-solvers-verify.mjs',
-  solver: { name: 'StructuralSolver (TET4)', adapter: 'StructuralSolverAdapter (SimSolver interface)', source: 'packages/engine/src/simulation/StructuralSolver.ts', tier: 'CPU (sim-tier)' },
-  scene: { meaning: 'a vault keystone tetrahedron; node 0 anchored (bedrock), node 3 bears the curation-weight load', tetrahedra: 1, nodes: 4, loadN: 1000, material: 'steel (E=200GPa, ν=0.3)' },
-  result: { stressFieldLen: stress?.length, dispFieldLen: disp?.length, maxVonMisesStress: r4(maxStress), loadedNodeDisplacement: r4(loadedNodeDisp), stressed, displaced, deterministic },
-  contract: { spine: 'REAL computeStateDigest(adapter, hashMode) — same fn SimulationContract pushes on solve()', stateDigest: r1.digest, reproducible: 'run the verifier to re-derive' },
-  honestScope: 'Runs the GENUINE StructuralSolver (TET4 FEM — one of the 15+ shipped multi-physics solvers, S.SIM) via the real StructuralSolverAdapter on a CPU sim-tier; the state digest is the real computeStateDigest. PROVEN: a real HoloScript physics solver executes over a vault-world element, the structure genuinely responds to load (non-zero von-Mises stress + displacement), and the contract digest reproduces deterministically. NOT proven here: full CouplingManagerV2 multi-domain coupling (structural+thermal+fluid in one coupled step) and GPU-backed solves — available in the stack, they deepen later. (Note: the ThermalSolver source-field path does not inject heat in step(), so this gate uses the structural solver, which evolves under load.)',
+  solver: {
+    name: 'StructuralSolver (TET4)',
+    adapter: 'StructuralSolverAdapter (SimSolver interface)',
+    source: 'packages/engine/src/simulation/StructuralSolver.ts',
+    tier: 'CPU (sim-tier)',
+  },
+  scene: {
+    meaning:
+      'a vault keystone tetrahedron; node 0 anchored (bedrock), node 3 bears the curation-weight load',
+    tetrahedra: 1,
+    nodes: 4,
+    loadN: 1000,
+    material: 'steel (E=200GPa, ν=0.3)',
+  },
+  result: {
+    stressFieldLen: stress?.length,
+    dispFieldLen: disp?.length,
+    maxVonMisesStress: r4(maxStress),
+    loadedNodeDisplacement: r4(loadedNodeDisp),
+    stressed,
+    displaced,
+    deterministic,
+  },
+  contract: {
+    spine:
+      'REAL computeStateDigest(adapter, hashMode) — same fn SimulationContract pushes on solve()',
+    stateDigest: r1.digest,
+    reproducible: 'run the verifier to re-derive',
+  },
+  honestScope:
+    'Runs the GENUINE StructuralSolver (TET4 FEM — one of the 15+ shipped multi-physics solvers, S.SIM) via the real StructuralSolverAdapter on a CPU sim-tier; the state digest is the real computeStateDigest. PROVEN: a real HoloScript physics solver executes over a vault-world element, the structure genuinely responds to load (non-zero von-Mises stress + displacement), and the contract digest reproduces deterministically. NOT proven here: full CouplingManagerV2 multi-domain coupling (structural+thermal+fluid in one coupled step) and GPU-backed solves — available in the stack, they deepen later. (Note: the ThermalSolver source-field path does not inject heat in step(), so this gate uses the structural solver, which evolves under load.)',
   verifiedAt: new Date().toISOString(),
 };
 
@@ -83,21 +110,41 @@ const emit = process.argv.includes('--emit');
 if (emit) {
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n');
   console.log('GATE-12 RECEIPT EMITTED ->', receiptPath);
-  console.log('  realSolver=' + realSolver, 'stressed=' + stressed, 'displaced=' + displaced, 'deterministic=' + deterministic);
+  console.log(
+    '  realSolver=' + realSolver,
+    'stressed=' + stressed,
+    'displaced=' + displaced,
+    'deterministic=' + deterministic
+  );
   console.log('  maxVonMises=' + r4(maxStress), 'loadedNodeDisp=' + r4(loadedNodeDisp));
   console.log('  stateDigest=' + r1.digest);
 } else {
-  let existing; try { existing = JSON.parse(readFileSync(receiptPath, 'utf8')); } catch { console.error('No Gate-12 receipt. Run --emit first.'); process.exit(2); }
+  let existing;
+  try {
+    existing = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  } catch {
+    console.error('No Gate-12 receipt. Run --emit first.');
+    process.exit(2);
+  }
   const checks = [
-    ['REAL StructuralSolver via adapter (von_mises_stress + displacements fields)', realSolver === true],
+    [
+      'REAL StructuralSolver via adapter (von_mises_stress + displacements fields)',
+      realSolver === true,
+    ],
     ['structure responds to the curation load (max von-Mises stress > 0)', stressed === true],
     ['loaded node genuinely displaces (FEM solved, not static)', displaced === true],
     ['deterministic: identical state digest across independent solves', deterministic === true],
-    ['state digest reproduces vs receipt (real computeStateDigest)', r1.digest === existing.contract.stateDigest],
+    [
+      'state digest reproduces vs receipt (real computeStateDigest)',
+      r1.digest === existing.contract.stateDigest,
+    ],
   ];
   let ok = true;
   console.log('GATE-12 (MULTI-PHYSICS SOLVER) VERIFICATION:');
-  for (const [label, pass] of checks) { console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label); ok = ok && pass; }
+  for (const [label, pass] of checks) {
+    console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label);
+    ok = ok && pass;
+  }
   console.log('  => GATE 12', ok ? 'VERIFIED' : 'BROKEN');
   process.exit(ok ? 0 : 1);
 }

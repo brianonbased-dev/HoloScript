@@ -162,7 +162,13 @@ export interface CAELActionSelector {
  */
 export interface WorldDelta {
   /** What type of modification was made */
-  type: 'add_load' | 'remove_load' | 'modify_material' | 'modify_constraint' | 'modify_geometry' | 'custom';
+  type:
+    | 'add_load'
+    | 'remove_load'
+    | 'modify_material'
+    | 'modify_constraint'
+    | 'modify_geometry'
+    | 'custom';
   /** Human-readable description */
   description: string;
   /** The modification details (solver-specific) */
@@ -351,9 +357,7 @@ export class FieldSensorBridge implements CAELSensorBridge {
       if (!field) continue;
 
       const values = this.sampleField(field, this.points);
-      const positions = new Float64Array(
-        this.points.flatMap((p) => [p.x, p.y ?? 0, p.z ?? 0])
-      );
+      const positions = new Float64Array(this.points.flatMap((p) => [p.x, p.y ?? 0, p.z ?? 0]));
 
       readings.push({ fieldName, simTime, values, positions });
     }
@@ -515,7 +519,12 @@ export class StructuralActionMapper implements CAELActionMapper {
         mut.updateLoad(loadId, [fx, fy, fz]);
         details = { applied: true, loadId, force: [fx, fy, fz] };
       } else {
-        details = { applied: false, reason: 'solver_has_no_updateLoad', loadId, force: [fx, fy, fz] };
+        details = {
+          applied: false,
+          reason: 'solver_has_no_updateLoad',
+          loadId,
+          force: [fx, fy, fz],
+        };
       }
     } else {
       details = { applied: false, reason: 'unsupported_action_type', actionType: action.type };
@@ -544,9 +553,10 @@ export class StructuralActionMapper implements CAELActionMapper {
   }
 
   private hashWorldState(solver: SimSolver): string {
-    const geoHash = this.vertices && this.elements
-      ? hashGeometry(this.vertices, this.elements)
-      : 'geo-unavailable';
+    const geoHash =
+      this.vertices && this.elements
+        ? hashGeometry(this.vertices, this.elements)
+        : 'geo-unavailable';
 
     const field = solver.getField(this.integrityFieldName);
     const fieldHash = this.hashFieldData(field);
@@ -556,19 +566,24 @@ export class StructuralActionMapper implements CAELActionMapper {
   private hashFieldData(field: FieldData | null): string {
     if (!field) return 'field-none';
 
-    const arr = field instanceof RegularGrid3D
-      ? field.data
-      : field instanceof Float64Array
-        ? new Float32Array(field)
-        : field;
+    const arr =
+      field instanceof RegularGrid3D
+        ? field.data
+        : field instanceof Float64Array
+          ? new Float32Array(field)
+          : field;
 
     let h = 2166136261;
     for (let i = 0; i < arr.length; i++) {
       const q = Math.round(arr[i] * 1e6);
-      h ^= (q & 0xff); h = Math.imul(h, 16777619);
-      h ^= ((q >> 8) & 0xff); h = Math.imul(h, 16777619);
-      h ^= ((q >> 16) & 0xff); h = Math.imul(h, 16777619);
-      h ^= ((q >> 24) & 0xff); h = Math.imul(h, 16777619);
+      h ^= q & 0xff;
+      h = Math.imul(h, 16777619);
+      h ^= (q >> 8) & 0xff;
+      h = Math.imul(h, 16777619);
+      h ^= (q >> 16) & 0xff;
+      h = Math.imul(h, 16777619);
+      h ^= (q >> 24) & 0xff;
+      h = Math.imul(h, 16777619);
     }
     return `field-${(h >>> 0).toString(16).padStart(8, '0')}`;
   }

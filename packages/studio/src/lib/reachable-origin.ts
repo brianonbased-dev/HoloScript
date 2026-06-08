@@ -41,11 +41,7 @@ function isLoopbackHost(hostname: string): boolean {
 
 function isPrivateIpv4(address: string): boolean {
   const [a, b] = address.split('.').map((part) => Number(part));
-  return (
-    a === 10 ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168)
-  );
+  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
 }
 
 function scoreInterface(name: string, address: string): number {
@@ -81,11 +77,11 @@ function findLanIpv4(interfaces: NodeJS.Dict<NetworkInterfaceInfo[]>): string | 
 
 export function resolveReachableStudioOrigin(
   request: OriginRequest,
-  options: ResolveReachableOriginOptions = {},
+  options: ResolveReachableOriginOptions = {}
 ): string {
   const env = options.env ?? process.env;
   const explicitMobileOrigin = parseOrigin(
-    env.STUDIO_MOBILE_ORIGIN ?? env.NEXT_PUBLIC_STUDIO_MOBILE_ORIGIN,
+    env.STUDIO_MOBILE_ORIGIN ?? env.NEXT_PUBLIC_STUDIO_MOBILE_ORIGIN
   );
   if (explicitMobileOrigin) return explicitMobileOrigin.origin;
 
@@ -98,8 +94,7 @@ export function resolveReachableStudioOrigin(
   }
 
   const lanHost =
-    env.STUDIO_LAN_HOST?.trim() ||
-    findLanIpv4(options.interfaces ?? networkInterfaces());
+    env.STUDIO_LAN_HOST?.trim() || findLanIpv4(options.interfaces ?? networkInterfaces());
   if (!lanHost) return origin.origin;
 
   const port = origin.port ? `:${origin.port}` : '';

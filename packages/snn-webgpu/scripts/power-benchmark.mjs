@@ -87,7 +87,10 @@ function strEnv(name, defaultValue) {
 
 function parseNeuronCounts(raw) {
   if (!raw) return [1024, 4096, 16384, 65536, 262144, 1048576];
-  return raw.split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n > 0);
+  return raw
+    .split(',')
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0);
 }
 
 async function exec(cmd, args) {
@@ -95,8 +98,12 @@ async function exec(cmd, args) {
     const proc = spawn(cmd, args, { shell: false });
     let stdout = '';
     let stderr = '';
-    proc.stdout.on('data', (d) => { stdout += d; });
-    proc.stderr.on('data', (d) => { stderr += d; });
+    proc.stdout.on('data', (d) => {
+      stdout += d;
+    });
+    proc.stderr.on('data', (d) => {
+      stderr += d;
+    });
     proc.on('close', (code) => {
       if (code !== 0) {
         reject(new Error(`${cmd} exited ${code}: ${stderr.trim() || stdout.trim()}`));

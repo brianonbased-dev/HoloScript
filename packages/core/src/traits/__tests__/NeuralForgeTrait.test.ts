@@ -123,7 +123,11 @@ describe('NeuralForgeTrait — external synthesis mode (v1.1.0)', () => {
     sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'B' });
     sendEvent(neuralForgeHandler, node, cfg, ctx, { type: 'npc_ai_response', text: 'C' });
     const lastReq = ctx.emittedEvents.filter((e) => e.event === 'neural_synthesis_request').pop();
-    const payload = lastReq?.data as { mode: string; experiences: string[]; currentWeights: Record<string, number> };
+    const payload = lastReq?.data as {
+      mode: string;
+      experiences: string[];
+      currentWeights: Record<string, number>;
+    };
     expect(payload.mode).toBe('external');
     expect(payload.experiences).toEqual(['A', 'B', 'C']);
     expect(payload.currentWeights.openness).toBe(0.5);

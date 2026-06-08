@@ -36,7 +36,7 @@ function architectureSummary(dna: ScaffoldDNA): string {
   }
 
   // Stack tooling
-  const tooling = dna.techStack.filter(t =>
+  const tooling = dna.techStack.filter((t) =>
     ['pnpm', 'npm', 'yarn', 'docker', 'terraform', 'kubernetes'].includes(t)
   );
   if (tooling.length > 0) {
@@ -97,7 +97,9 @@ function keyPatterns(dna: ScaffoldDNA): string {
   }
 
   if (patterns.length === 0) {
-    patterns.push('- No specific patterns auto-detected. Explore the codebase to discover conventions.');
+    patterns.push(
+      '- No specific patterns auto-detected. Explore the codebase to discover conventions.'
+    );
   }
 
   return `## Key Patterns Detected\n\n${patterns.join('\n')}`;

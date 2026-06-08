@@ -65,7 +65,10 @@ Compile targets change with the deployed server. Discover the current `compile_t
 ### Compose traits onto an object
 
 ```json
-{ "name": "holoscript_compose_traits", "arguments": { "objectType": "cube", "traits": ["grabbable", "physics_body", "glowing"] } }
+{
+  "name": "holoscript_compose_traits",
+  "arguments": { "objectType": "cube", "traits": ["grabbable", "physics_body", "glowing"] }
+}
 ```
 
 ### Import a glTF model
@@ -97,7 +100,9 @@ Always do this first — if the graph is stale, scan before querying.
 ### Ask a question (Graph RAG)
 
 ```json
-{ "name": "holo_ask_codebase", "arguments": {
+{
+  "name": "holo_ask_codebase",
+  "arguments": {
     "question": "How does the compilation pipeline work from .holo source to target output?",
     "llmProvider": "anthropic",
     "topK": 30
@@ -128,7 +133,10 @@ Returns a cited answer with file:line references. See the [absorb-service README
 ### Impact analysis
 
 ```json
-{ "name": "holo_impact_analysis", "arguments": { "files": ["packages/core/src/compilers/CompilerBase.ts"] } }
+{
+  "name": "holo_impact_analysis",
+  "arguments": { "files": ["packages/core/src/compilers/CompilerBase.ts"] }
+}
 ```
 
 Returns all transitively affected files — use before refactoring.
@@ -160,13 +168,19 @@ Fast content-hash check without re-scanning.
 ### Complete a task
 
 ```json
-{ "name": "holomesh_board_complete", "arguments": { "taskId": "task_abc123", "summary": "Fixed the auth bug", "commit": "abc123" } }
+{
+  "name": "holomesh_board_complete",
+  "arguments": { "taskId": "task_abc123", "summary": "Fixed the auth bug", "commit": "abc123" }
+}
 ```
 
 ### Add a task to the board
 
 ```json
-{ "name": "holomesh_board_add", "arguments": { "title": "Fix SSE transport on Railway", "priority": "high", "tags": ["infra"] } }
+{
+  "name": "holomesh_board_add",
+  "arguments": { "title": "Fix SSE transport on Railway", "priority": "high", "tags": ["infra"] }
+}
 ```
 
 ### Send heartbeat
@@ -198,7 +212,9 @@ Modes: `audit` (fix bugs), `build` (ship features), `research` (synthesize knowl
 ### Contribute wisdom/pattern/gotcha
 
 ```json
-{ "name": "holomesh_contribute", "arguments": {
+{
+  "name": "holomesh_contribute",
+  "arguments": {
     "type": "wisdom",
     "content": "CompilerBase RBAC mock is required in all compiler tests",
     "domain": "testing"
@@ -223,7 +239,10 @@ Types: `wisdom` (things that work), `pattern` (reusable approaches), `gotcha` (t
 ### Oracle consultation
 
 ```json
-{ "name": "holo_oracle_consult", "arguments": { "question": "Should I use a branch or commit to main?" } }
+{
+  "name": "holo_oracle_consult",
+  "arguments": { "question": "Should I use a branch or commit to main?" }
+}
 ```
 
 ---
@@ -233,7 +252,9 @@ Types: `wisdom` (things that work), `pattern` (reusable approaches), `gotcha` (t
 ### Publish a composition
 
 ```json
-{ "name": "holo_protocol_publish", "arguments": {
+{
+  "name": "holo_protocol_publish",
+  "arguments": {
     "code": "object Orb { @glowing @interactive position: [0,2,0] }",
     "author": "my-agent",
     "license": "cc-by-4.0"
@@ -266,13 +287,19 @@ Types: `wisdom` (things that work), `pattern` (reusable approaches), `gotcha` (t
 ### Autocomplete
 
 ```json
-{ "name": "hs_autocomplete", "arguments": { "code": "object Cube { @", "position": { "line": 1, "character": 17 } } }
+{
+  "name": "hs_autocomplete",
+  "arguments": { "code": "object Cube { @", "position": { "line": 1, "character": 17 } }
+}
 ```
 
 ### Hover info
 
 ```json
-{ "name": "hs_hover", "arguments": { "code": "object Cube { @grabbable }", "position": { "line": 1, "character": 15 } } }
+{
+  "name": "hs_hover",
+  "arguments": { "code": "object Cube { @grabbable }", "position": { "line": 1, "character": 15 } }
+}
 ```
 
 ### Diagnostics
@@ -312,7 +339,10 @@ Types: `wisdom` (things that work), `pattern` (reusable approaches), `gotcha` (t
 ### Edit a file
 
 ```json
-{ "name": "holo_edit_file", "arguments": { "path": "src/index.ts", "search": "old code", "replace": "new code" } }
+{
+  "name": "holo_edit_file",
+  "arguments": { "path": "src/index.ts", "search": "old code", "replace": "new code" }
+}
 ```
 
 ### Verify before commit
@@ -324,7 +354,13 @@ Types: `wisdom` (things that work), `pattern` (reusable approaches), `gotcha` (t
 ### Git commit
 
 ```json
-{ "name": "holo_git_commit", "arguments": { "message": "fix(core): resolve trait composition conflict", "files": ["src/traits/resolver.ts"] } }
+{
+  "name": "holo_git_commit",
+  "arguments": {
+    "message": "fix(core): resolve trait composition conflict",
+    "files": ["src/traits/resolver.ts"]
+  }
+}
 ```
 
 ---
@@ -400,7 +436,9 @@ MCP server manifest with tools, input schemas, or resources.
 ### Compile to Claude config
 
 ```json
-{ "name": "compile_to_mcp_config", "arguments": {
+{
+  "name": "compile_to_mcp_config",
+  "arguments": {
     "code": "mcp_servers { server holoscript { @connector(holoscript, transport: \"http\") url: \"https://mcp.holoscript.net/mcp\" @env(HOLOSCRIPT_API_KEY, header: \"Authorization: Bearer\") } }",
     "target": "claude"
   }
@@ -412,7 +450,9 @@ Returns `~/.mcp/config.json` format with `${HOLOSCRIPT_API_KEY}` interpolation.
 ### Compile to Antigravity/Gemini config (literal keys)
 
 ```json
-{ "name": "compile_to_mcp_config", "arguments": {
+{
+  "name": "compile_to_mcp_config",
+  "arguments": {
     "code": "mcp_servers { server holoscript { @connector(holoscript, transport: \"http\") url: \"https://mcp.holoscript.net/mcp\" @env(HOLOSCRIPT_API_KEY, header: \"Authorization: Bearer\") } }",
     "target": "antigravity",
     "envValues": { "HOLOSCRIPT_API_KEY": "your-actual-key-here" }
@@ -424,13 +464,13 @@ Returns `.gemini/antigravity/mcp_config.json` format with literal key values inj
 
 ### Available targets
 
-| Target | Output format | Credential handling |
-|--------|--------------|-------------------|
-| `claude` | `~/.mcp/config.json` | `${VAR}` interpolation |
-| `vscode` | `.vscode/mcp.json` | `${env:VAR}` syntax |
-| `cursor` | `.cursor/mcp.json` | `${VAR}` interpolation |
-| `antigravity` | `.gemini/.../mcp_config.json` | Literal key injection |
-| `generic` | `mcp.json` | `${VAR}` default |
+| Target        | Output format                 | Credential handling    |
+| ------------- | ----------------------------- | ---------------------- |
+| `claude`      | `~/.mcp/config.json`          | `${VAR}` interpolation |
+| `vscode`      | `.vscode/mcp.json`            | `${env:VAR}` syntax    |
+| `cursor`      | `.cursor/mcp.json`            | `${VAR}` interpolation |
+| `antigravity` | `.gemini/.../mcp_config.json` | Literal key injection  |
+| `generic`     | `mcp.json`                    | `${VAR}` default       |
 
 ### Full .holo example
 

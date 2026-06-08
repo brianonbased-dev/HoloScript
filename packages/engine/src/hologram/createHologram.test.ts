@@ -266,18 +266,14 @@ describe('verifyBundleHash', () => {
 
 describe('createHologram — input validation', () => {
   it('rejects empty media', async () => {
-    await expect(
-      createHologram(new Uint8Array(0), 'image', fullProviders())
-    ).rejects.toThrowError(/empty_media|non-empty/);
+    await expect(createHologram(new Uint8Array(0), 'image', fullProviders())).rejects.toThrowError(
+      /empty_media|non-empty/
+    );
   });
 
   it('rejects invalid sourceKind', async () => {
     await expect(
-      createHologram(
-        new Uint8Array([1]),
-        'mp3' as unknown as 'image',
-        fullProviders()
-      )
+      createHologram(new Uint8Array([1]), 'mp3' as unknown as 'image', fullProviders())
     ).rejects.toThrowError(/sourceKind must be one of/);
   });
 
@@ -291,19 +287,20 @@ describe('createHologram — input validation', () => {
 
   it('rejects missing depth provider', async () => {
     await expect(
-      createHologram(
-        new Uint8Array([1]),
-        'image',
-        { depth: undefined as unknown as DepthProvider }
-      )
+      createHologram(new Uint8Array([1]), 'image', { depth: undefined as unknown as DepthProvider })
     ).rejects.toThrowError(/providers\.depth is required/);
   });
 
   it('rejects target=quilt when quilt provider is absent', async () => {
     await expect(
-      createHologram(new Uint8Array([1]), 'image', { depth: makeDepthProvider() }, {
-        targets: ['quilt'],
-      })
+      createHologram(
+        new Uint8Array([1]),
+        'image',
+        { depth: makeDepthProvider() },
+        {
+          targets: ['quilt'],
+        }
+      )
     ).rejects.toThrowError(/target 'quilt' requested but providers\.quilt is not configured/);
   });
 
@@ -342,12 +339,9 @@ describe('createHologram — happy path', () => {
   });
 
   it('omits targets that were not requested', async () => {
-    const bundle = await createHologram(
-      new Uint8Array([1]),
-      'image',
-      fullProviders(),
-      { targets: ['quilt'] }
-    );
+    const bundle = await createHologram(new Uint8Array([1]), 'image', fullProviders(), {
+      targets: ['quilt'],
+    });
     expect(bundle.quiltPng).toBeDefined();
     expect(bundle.mvhevcMp4).toBeUndefined();
     expect(bundle.parallaxWebm).toBeUndefined();
@@ -383,8 +377,12 @@ describe('createHologram — happy path', () => {
         },
       },
     };
-    const a = await createHologram(new Uint8Array([1]), 'image', providersA, { targets: ['quilt'] });
-    const b = await createHologram(new Uint8Array([1]), 'image', providersB, { targets: ['quilt'] });
+    const a = await createHologram(new Uint8Array([1]), 'image', providersA, {
+      targets: ['quilt'],
+    });
+    const b = await createHologram(new Uint8Array([1]), 'image', providersB, {
+      targets: ['quilt'],
+    });
     expect(a.hash).not.toBe(b.hash);
   });
 
@@ -584,18 +582,19 @@ describe('createNodeProviders', () => {
   });
 
   it('keeps createNodeProvidersStub as a compatibility alias', async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          depthMapBase64: float32ToBase64(makeDepth()),
-          width: 4,
-          height: 4,
-          frames: 1,
-          backend: 'cpu',
-          modelId: 'worker-depth',
-        }),
-        { status: 200 }
-      )
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            depthMapBase64: float32ToBase64(makeDepth()),
+            width: 4,
+            height: 4,
+            frames: 1,
+            backend: 'cpu',
+            modelId: 'worker-depth',
+          }),
+          { status: 200 }
+        )
     ) as typeof fetch;
 
     const providers = createNodeProvidersStub({ workerUrl: 'https://worker.test' });

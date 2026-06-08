@@ -73,8 +73,8 @@ export {
   weiToEth,
 } from '../deploy/revenue-splitter';
 
-  // parse — convenience re-export for dynamic importers (e.g. protocol-tools)
-  export { parse } from '../parser/HoloScriptPlusParser';
+// parse — convenience re-export for dynamic importers (e.g. protocol-tools)
+export { parse } from '../parser/HoloScriptPlusParser';
 
 // ============================================================================
 // Pillar 2: Native Neural Streaming & Splat Transport
@@ -117,15 +117,6 @@ export {
   type Keyframe,
 } from '../animation/AnimationEngine';
 
-export {
-  AudioEngine,
-  type AudioSource,
-  type AudioSourceOptions,
-} from '../audio/AudioEngine';
+export { AudioEngine, type AudioSource, type AudioSourceOptions } from '../audio/AudioEngine';
 
-export {
-  TileMap,
-  TileFlags,
-  type Tile,
-  type AutoTileRule,
-} from '../tilemap/TileMap';
+export { TileMap, TileFlags, type Tile, type AutoTileRule } from '../tilemap/TileMap';

@@ -89,7 +89,7 @@ function resolveInputPath(explicit) {
       'No SESL corpus input found.',
       'Pass --input=<jsonl-or-index-json> or set SESL_CORPUS_PATH.',
       `Checked: ${candidates.map((c) => path.resolve(String(c))).join('; ')}`,
-    ].join(' '),
+    ].join(' ')
   );
 }
 
@@ -157,8 +157,7 @@ function summaryFromIndexLike(doc, input, options) {
 
   const measuredPairs = labeled ?? (passed ?? 0) + (failed ?? 0);
   const passRateComputed =
-    passRate ??
-    (measuredPairs > 0 && passed !== null ? round(passed / measuredPairs, 6) : null);
+    passRate ?? (measuredPairs > 0 && passed !== null ? round(passed / measuredPairs, 6) : null);
   const passRateOk = passRateComputed !== null && passRateComputed >= options.targetPassRate;
   const volumeOk = measuredPairs >= options.targetPairs;
   const caelVolumeOk = caelVerifiedPairs >= options.targetPairs;
@@ -177,8 +176,13 @@ function summaryFromIndexLike(doc, input, options) {
       measuredPairs,
       caelVerifiedPairs,
       staticSeedPairs,
-      passed: passed ?? (passRateComputed !== null ? Math.round(passRateComputed * measuredPairs) : 0),
-      failed: failed ?? (passRateComputed !== null ? measuredPairs - Math.round(passRateComputed * measuredPairs) : 0),
+      passed:
+        passed ?? (passRateComputed !== null ? Math.round(passRateComputed * measuredPairs) : 0),
+      failed:
+        failed ??
+        (passRateComputed !== null
+          ? measuredPairs - Math.round(passRateComputed * measuredPairs)
+          : 0),
       unmeasuredPairs: Math.max(0, (totalRecordsFromIndex ?? measuredPairs) - measuredPairs),
       malformedRecords: numeric(totals.malformed) ?? 0,
     },
@@ -244,8 +248,7 @@ function summarizeRecords(records, input, options) {
     }
   }
 
-  const passRate =
-    counts.measuredPairs > 0 ? round(counts.passed / counts.measuredPairs, 6) : null;
+  const passRate = counts.measuredPairs > 0 ? round(counts.passed / counts.measuredPairs, 6) : null;
   const passRateOk = passRate !== null && passRate >= options.targetPassRate;
   const volumeOk = counts.measuredPairs >= options.targetPairs;
   const caelVolumeOk = counts.caelVerifiedPairs >= options.targetPairs;
@@ -295,10 +298,7 @@ function extractCaelVerification(record) {
     record.caelTrace?.verification?.valid,
   ]);
   const hasTrace = Boolean(
-    record.cael_trace ||
-    record.caelTrace ||
-    record.cael_trace_hash ||
-    record.caelTraceHash,
+    record.cael_trace || record.caelTrace || record.cael_trace_hash || record.caelTraceHash
   );
   if (direct === true && hasTrace) return { verified: true, reason: 'hash_chain_valid' };
   if (hasTrace) return { verified: false, reason: 'cael_trace_unverified' };

@@ -60,7 +60,11 @@ interface PowerBenchmarkArtifact {
   };
   results: PowerBenchmarkResult[];
   peak: { neuronCount: number; throughputMPerS: number; energyPerNeuronTimestepJ: number } | null;
-  mostEfficient: { neuronCount: number; efficiencyMPerJoule: number; energyPerNeuronTimestepJ: number } | null;
+  mostEfficient: {
+    neuronCount: number;
+    efficiencyMPerJoule: number;
+    energyPerNeuronTimestepJ: number;
+  } | null;
   failures: Array<{ stage: string; neuronCount?: number; message: string }>;
   notes: string[];
 }
@@ -156,7 +160,9 @@ async function runPowerBenchmark(
 
     proc.on('close', async (code) => {
       if (code !== 0) {
-        reject(new Error(`Power benchmark exited ${code}.\nstdout:\n${stdout}\nstderr:\n${stderr}`));
+        reject(
+          new Error(`Power benchmark exited ${code}.\nstdout:\n${stdout}\nstderr:\n${stderr}`)
+        );
         return;
       }
       try {

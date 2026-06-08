@@ -10,10 +10,7 @@ export async function POST(request: NextRequest) {
     const { sessionId } = body;
 
     if (!sessionId) {
-      return NextResponse.json(
-        { ok: false, error: 'sessionId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'sessionId is required' }, { status: 400 });
     }
 
     // In production:

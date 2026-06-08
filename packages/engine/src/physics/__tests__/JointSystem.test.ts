@@ -71,8 +71,8 @@ describe('JointSystem', () => {
     const j = sys.createJoint('spring', 'a', 'b', {
       breakForce: 0.001,
       stiffness: 100,
-      anchorA: [0, 0, 0 ],
-      anchorB: [0, 0, 0 ],
+      anchorA: [0, 0, 0],
+      anchorB: [0, 0, 0],
     });
     // Set a large distance to generate high force
     sys.setDistance(j.id, 100);

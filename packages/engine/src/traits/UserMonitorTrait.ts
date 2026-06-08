@@ -156,11 +156,7 @@ function calculateStability(positions: [number, number, number][]): number {
   for (let i = 1; i < positions.length; i++) {
     const p1 = positions[i - 1];
     const p2 = positions[i];
-    totalDelta += Math.sqrt(
-      (p2[0] - p1[0]) ** 2 +
-        (p2[1] - p1[1]) ** 2 +
-        (p2[2] - p1[2]) ** 2
-    );
+    totalDelta += Math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2 + (p2[2] - p1[2]) ** 2);
   }
 
   const avgDelta = totalDelta / (positions.length - 1);

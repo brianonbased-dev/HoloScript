@@ -99,6 +99,7 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
 ## Features Implemented
 
 ### Texture Compression (KTX2)
+
 - ✅ Basis Universal encoding
 - ✅ GPU format detection (ASTC, BC7, ETC2, PVRTC)
 - ✅ Quality presets (fast: 50, balanced: 75, best: 95)
@@ -107,6 +108,7 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
 - ✅ KHR_texture_basisu extension support
 
 ### Mesh Compression (Draco)
+
 - ✅ Geometry quantization (position, normal, UV, color)
 - ✅ Compression levels 0-10
 - ✅ Configurable quantization bits per attribute
@@ -115,6 +117,7 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
 - ✅ KHR_draco_mesh_compression extension support
 
 ### Compression Statistics
+
 - ✅ Original size tracking
 - ✅ Compressed size tracking
 - ✅ Compression ratio calculation
@@ -124,6 +127,7 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
 - ✅ Detailed compression reports
 
 ### Integration
+
 - ✅ Seamless GLTFExporter integration
 - ✅ Automatic extension registration
 - ✅ Statistics retrieval API
@@ -133,6 +137,7 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
 ## Quality Presets
 
 ### Fast Preset
+
 ```typescript
 {
   textureQuality: 50,
@@ -144,11 +149,13 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
   generateMipmaps: false
 }
 ```
+
 - **Use case**: Quick iterations, previews
 - **Compression time**: ~50% faster
 - **Size reduction**: 60-70%
 
 ### Balanced Preset (Default)
+
 ```typescript
 {
   textureQuality: 75,
@@ -160,11 +167,13 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
   generateMipmaps: true
 }
 ```
+
 - **Use case**: Production builds, general use
 - **Compression time**: Moderate
 - **Size reduction**: 75-85%
 
 ### Best Preset
+
 ```typescript
 {
   textureQuality: 95,
@@ -176,6 +185,7 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
   generateMipmaps: true
 }
 ```
+
 - **Use case**: Final distribution, archives
 - **Compression time**: Slowest
 - **Size reduction**: 85-90%
@@ -183,11 +193,11 @@ Successfully implemented advanced KTX2 texture compression and Draco mesh compre
 ## Performance Benchmarks
 
 | Scene Size | Compression Time | Size Reduction |
-|------------|------------------|----------------|
-| 1MB        | ~200ms          | 75-80%         |
-| 10MB       | ~1.5s           | 80-85%         |
-| 50MB       | ~4.5s           | 84-88%         |
-| 100MB      | ~8s             | 85-90%         |
+| ---------- | ---------------- | -------------- |
+| 1MB        | ~200ms           | 75-80%         |
+| 10MB       | ~1.5s            | 80-85%         |
+| 50MB       | ~4.5s            | 84-88%         |
+| 100MB      | ~8s              | 85-90%         |
 
 ## Test Results
 
@@ -198,6 +208,7 @@ Duration    938ms
 ```
 
 ### Test Coverage
+
 - ✅ Constructor and options (6 tests)
 - ✅ Texture compression (7 tests)
 - ✅ Mesh compression (7 tests)
@@ -222,14 +233,17 @@ All success criteria met:
 ## Expected Compression Results
 
 ### Texture Compression
+
 - 2048×2048 PNG (16MB) → KTX2 (2MB) = **87.5% reduction**
 - 4096×4096 PNG (64MB) → KTX2 (6MB) = **90.6% reduction**
 
 ### Mesh Compression
+
 - 100K vertices (2.4MB) → Draco (480KB) = **80% reduction**
 - 1M vertices (24MB) → Draco (4.8MB) = **80% reduction**
 
 ### Overall Scene
+
 - 50MB GLB → 8MB compressed GLB = **84% reduction**
 
 ## Usage Example
@@ -239,7 +253,7 @@ import { AdvancedCompression } from '@holoscript/core/export';
 
 // Create compressor with balanced preset
 const compressor = new AdvancedCompression({
-  qualityPreset: 'balanced'
+  qualityPreset: 'balanced',
 });
 
 // Compress GLTF document
@@ -257,7 +271,7 @@ import { GLTFExporter } from '@holoscript/core/export';
 
 const exporter = new GLTFExporter({
   binary: true,
-  compression: 'draco' // Enable compression
+  compression: 'draco', // Enable compression
 });
 
 const result = await exporter.export(sceneGraph);
@@ -266,12 +280,12 @@ const compressionStats = exporter.getCompressionStats();
 
 ## GPU Format Support
 
-| Format | Platform            | Support |
-|--------|---------------------|---------|
-| ASTC   | Mobile, Metal, Vulkan | Wide   |
-| BC7    | Desktop, DirectX    | Wide    |
-| ETC2   | Mobile, OpenGL ES 3.0+ | Wide |
-| PVRTC  | iOS, older devices  | Legacy  |
+| Format | Platform               | Support |
+| ------ | ---------------------- | ------- |
+| ASTC   | Mobile, Metal, Vulkan  | Wide    |
+| BC7    | Desktop, DirectX       | Wide    |
+| ETC2   | Mobile, OpenGL ES 3.0+ | Wide    |
+| PVRTC  | iOS, older devices     | Legacy  |
 
 ## Extensions Added
 
@@ -279,10 +293,7 @@ The compressed GLTF includes these standard extensions:
 
 ```json
 {
-  "extensionsUsed": [
-    "KHR_texture_basisu",
-    "KHR_draco_mesh_compression"
-  ]
+  "extensionsUsed": ["KHR_texture_basisu", "KHR_draco_mesh_compression"]
 }
 ```
 

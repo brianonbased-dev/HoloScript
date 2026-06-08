@@ -58,13 +58,18 @@
   font-size: 0.85em;
 }
 
-
 /* CSS-ONLY TABS STYLES */
-.css-only-tabs input[type='radio'] { display: none; }
-.css-only-tabs .tab-body { display: none; }
+.css-only-tabs input[type='radio'] {
+  display: none;
+}
+.css-only-tabs .tab-body {
+  display: none;
+}
 #tab1:checked ~ .tab-bodies .content-tab1,
 #tab2:checked ~ .tab-bodies .content-tab2,
-#tab3:checked ~ .tab-bodies .content-tab3 { display: block; }
+#tab3:checked ~ .tab-bodies .content-tab3 {
+  display: block;
+}
 
 .css-only-tabs .tab-label {
   cursor: pointer;
@@ -90,4 +95,6 @@
   border-color: var(--cyan);
   box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
 }
-.tab-bodies { margin-top: 1rem; }
+.tab-bodies {
+  margin-top: 1rem;
+}

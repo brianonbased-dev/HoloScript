@@ -323,7 +323,7 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
     const yNorm = Math.hypot(...yRotation);
     const rotationDiff = xRotation.reduce(
       (sum, value, i) => sum + Math.abs(value - yRotation[i]!),
-      0,
+      0
     );
 
     expect(xNorm).toBeCloseTo(1, 5);
@@ -349,9 +349,12 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
     expect(second.trajectory.keyframes.map((keyframe) => keyframe.frameIndex)).toEqual([0, 1]);
     expect(second.trajectory.estimatedDriftMeters).toBeGreaterThan(0);
     expect(Array.from(second.trajectory.keyframes[0]!.embedding)).not.toEqual(
-      Array.from(second.trajectory.keyframes[1]!.embedding),
+      Array.from(second.trajectory.keyframes[1]!.embedding)
     );
-    expect(second.trajectory.keyframes[1]!.pose.position[2]).toBeCloseTo(second.pose.position[2], 5);
+    expect(second.trajectory.keyframes[1]!.pose.position[2]).toBeCloseTo(
+      second.pose.position[2],
+      5
+    );
 
     await runtime.dispose();
   });

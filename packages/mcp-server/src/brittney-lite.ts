@@ -789,7 +789,9 @@ async function tryModelScaffold(
 
   const raw = await queryOllama(prompt, undefined, { requiresDeepReasoning: true }); // Needs cloud reasoning for full codebase scaffolding
   if (!raw) {
-    console.warn(`[brittney-lite] AI model returned empty response for: "${description.slice(0, 60)}". Check Ollama is running and model is loaded.`);
+    console.warn(
+      `[brittney-lite] AI model returned empty response for: "${description.slice(0, 60)}". Check Ollama is running and model is loaded.`
+    );
     return null;
   }
 
@@ -801,19 +803,31 @@ async function tryModelScaffold(
     if (format === 'holo') {
       const result = parseHolo(code);
       if (result.errors?.length > 0) {
-        console.warn(`[brittney-lite] Generated .holo has ${result.errors.length} parse errors: ${result.errors.slice(0, 2).map((e: any) => e.message || e).join(', ')}. Returning null — caller should retry or adjust prompt.`);
+        console.warn(
+          `[brittney-lite] Generated .holo has ${result.errors.length} parse errors: ${result.errors
+            .slice(0, 2)
+            .map((e: any) => e.message || e)
+            .join(', ')}. Returning null — caller should retry or adjust prompt.`
+        );
         return null;
       }
     } else {
       const parser = new HoloScriptPlusParser();
       const result = parser.parse(code);
       if (result.errors?.length > 0) {
-        console.warn(`[brittney-lite] Generated .hsplus has ${result.errors.length} parse errors: ${result.errors.slice(0, 2).map((e: any) => e.message || e).join(', ')}. Returning null.`);
+        console.warn(
+          `[brittney-lite] Generated .hsplus has ${result.errors.length} parse errors: ${result.errors
+            .slice(0, 2)
+            .map((e: any) => e.message || e)
+            .join(', ')}. Returning null.`
+        );
         return null;
       }
     }
   } catch (e) {
-    console.warn(`[brittney-lite] Parser crashed on generated code: ${(e as Error)?.message ?? e}. The AI model may have produced invalid syntax.`);
+    console.warn(
+      `[brittney-lite] Parser crashed on generated code: ${(e as Error)?.message ?? e}. The AI model may have produced invalid syntax.`
+    );
     return null;
   }
 

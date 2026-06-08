@@ -29,9 +29,7 @@ export function Step4PreviewLaunch({
 
       {/* What's included */}
       <div>
-        <p className="text-xs font-medium text-studio-text mb-2">
-          Your studio will include:
-        </p>
+        <p className="text-xs font-medium text-studio-text mb-2">Your studio will include:</p>
         <div className="flex flex-wrap gap-1.5">
           {finalPanels.map((panel) => (
             <span

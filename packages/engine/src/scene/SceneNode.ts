@@ -66,7 +66,11 @@ export class SceneNode {
     this.markDirty();
   }
 
-  getLocalTransform(): { position: { x: number; y: number; z: number }; rotation: { x: number; y: number; z: number }; scale: { x: number; y: number; z: number } } {
+  getLocalTransform(): {
+    position: { x: number; y: number; z: number };
+    rotation: { x: number; y: number; z: number };
+    scale: { x: number; y: number; z: number };
+  } {
     const [px, py, pz] = this.local.position;
     const [rx, ry, rz] = this.local.rotation;
     const [sx, sy, sz] = this.local.scale;

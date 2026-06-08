@@ -25,7 +25,9 @@ describe('botanical material extraction', () => {
     expect(result.diagnostics.confidence).toBeGreaterThan(0.75);
     expect(result.material.subsurface_scattering).toBeGreaterThanOrEqual(0.55);
     expect(result.material.subsurface_scattering).toBeLessThanOrEqual(0.82);
-    expect(result.material.petal_translucency_base).toBeGreaterThan(result.material.petal_translucency_edge);
+    expect(result.material.petal_translucency_base).toBeGreaterThan(
+      result.material.petal_translucency_edge
+    );
     expect(result.material.vein_normal_intensity).toBeGreaterThan(0.02);
     expect(result.geometry.petal_rings.map((ring) => ring.count)).toEqual([8, 13, 21]);
     expect(result.colors.petal_mid).toMatch(/^#[0-9a-f]{6}$/);

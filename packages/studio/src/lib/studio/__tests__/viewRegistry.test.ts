@@ -1,9 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 
-import {
-  STUDIO_COMMAND_REGISTRY,
-  runStudioCommand,
-} from '../commandRegistry';
+import { STUDIO_COMMAND_REGISTRY, runStudioCommand } from '../commandRegistry';
 import {
   DEFAULT_OPEN_STUDIO_VIEW_IDS,
   STUDIO_VIEW_IDS,

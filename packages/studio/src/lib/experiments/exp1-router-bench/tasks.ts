@@ -31,8 +31,12 @@ export const EXP1_FIRST_SLICE: BenchTask[] = [
   {
     id: 'bounds-mass-01',
     domain: 'contract-bounds',
-    sceneContext: 'simulation_contract: "physics-stable-v1"\nbox#crate {\n  @rigidbody(mass: 2.0)\n}',
-    contract: { id: 'physics-stable-v1', propertyBounds: { rigidbody: { mass: { min: 0.1, max: 50 } } } },
+    sceneContext:
+      'simulation_contract: "physics-stable-v1"\nbox#crate {\n  @rigidbody(mass: 2.0)\n}',
+    contract: {
+      id: 'physics-stable-v1',
+      propertyBounds: { rigidbody: { mass: { min: 0.1, max: 50 } } },
+    },
     acceptableTools: ['set_trait_property'],
     prompt: {
       A: 'The crate feels too light. Give it a much heavier, more substantial mass so it sits firmly, without breaking the physics stability contract.',
@@ -42,7 +46,8 @@ export const EXP1_FIRST_SLICE: BenchTask[] = [
   {
     id: 'forbid-trait-01',
     domain: 'trait-composition',
-    sceneContext: 'simulation_contract: "child-safe-v1"\nprop#balloon {\n  @grabbable(snap_to_hand: true)\n}',
+    sceneContext:
+      'simulation_contract: "child-safe-v1"\nprop#balloon {\n  @grabbable(snap_to_hand: true)\n}',
     contract: { id: 'child-safe-v1', forbiddenTraits: ['explosive', 'projectile'] },
     acceptableTools: ['add_trait'],
     prompt: {
@@ -53,7 +58,8 @@ export const EXP1_FIRST_SLICE: BenchTask[] = [
   {
     id: 'required-object-01',
     domain: 'spatial-transform',
-    sceneContext: 'simulation_contract: "anchor-keep-v1"\nzone#room {\n  anchor#origin { position: [0,0,0] }\n  orb#ball { position: [1,0,0] }\n}',
+    sceneContext:
+      'simulation_contract: "anchor-keep-v1"\nzone#room {\n  anchor#origin { position: [0,0,0] }\n  orb#ball { position: [1,0,0] }\n}',
     contract: { id: 'anchor-keep-v1', requiredObjects: ['origin'] },
     acceptableTools: ['move_object'],
     prompt: {
@@ -64,7 +70,8 @@ export const EXP1_FIRST_SLICE: BenchTask[] = [
   {
     id: 'required-trait-01',
     domain: 'trait-composition',
-    sceneContext: 'simulation_contract: "interactable-v1"\norb#handle {\n  @grabbable(snap_to_hand: true)\n  @hoverable\n}',
+    sceneContext:
+      'simulation_contract: "interactable-v1"\norb#handle {\n  @grabbable(snap_to_hand: true)\n  @hoverable\n}',
     contract: { id: 'interactable-v1', requiredTraits: { handle: ['grabbable'] } },
     acceptableTools: ['add_trait'],
     prompt: {
@@ -75,7 +82,8 @@ export const EXP1_FIRST_SLICE: BenchTask[] = [
   {
     id: 'authoring-create-01',
     domain: 'holo-authoring',
-    sceneContext: 'simulation_contract: "scene-budget-v1"\nzone#stage {\n  orb#spotlight { position: [0,3,0] }\n}',
+    sceneContext:
+      'simulation_contract: "scene-budget-v1"\nzone#stage {\n  orb#spotlight { position: [0,3,0] }\n}',
     contract: { id: 'scene-budget-v1', forbiddenTraits: ['particle_storm'] },
     acceptableTools: ['create_object'],
     prompt: {
@@ -86,8 +94,13 @@ export const EXP1_FIRST_SLICE: BenchTask[] = [
   {
     id: 'compose-traits-01',
     domain: 'trait-composition',
-    sceneContext: 'simulation_contract: "throwable-safe-v1"\nprop#ball {\n  @grabbable(snap_to_hand: true)\n}',
-    contract: { id: 'throwable-safe-v1', forbiddenTraits: ['explosive'], requiredTraits: { ball: ['grabbable'] } },
+    sceneContext:
+      'simulation_contract: "throwable-safe-v1"\nprop#ball {\n  @grabbable(snap_to_hand: true)\n}',
+    contract: {
+      id: 'throwable-safe-v1',
+      forbiddenTraits: ['explosive'],
+      requiredTraits: { ball: ['grabbable'] },
+    },
     acceptableTools: ['compose_traits', 'add_trait'],
     prompt: {
       A: 'Let the ball be thrown and bounce realistically when the user releases it, while still being grabbable and within the safety contract.',

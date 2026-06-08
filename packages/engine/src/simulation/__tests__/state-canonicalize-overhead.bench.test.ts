@@ -46,10 +46,10 @@ import { describe, it, expect } from 'vitest';
 
 // --- State shapes matching paper-3 §7 scenarios ---
 const SCENARIOS: ReadonlyArray<{ name: string; stateFloats: number }> = [
-  { name: 'bridge',         stateFloats: 60 },
-  { name: 'truss',          stateFloats: 300 },
-  { name: 'multi-story',    stateFloats: 1_200 },
-  { name: 'full-building',  stateFloats: 6_000 },
+  { name: 'bridge', stateFloats: 60 },
+  { name: 'truss', stateFloats: 300 },
+  { name: 'multi-story', stateFloats: 1_200 },
+  { name: 'full-building', stateFloats: 6_000 },
 ];
 
 const ITERATIONS_PER_SIZE = 100;
@@ -60,7 +60,7 @@ const RUNS = 5; // report min/median/max across 5 back-to-back runs
 // Same FNV-1a constants as CAELTrace (kept consistent with the existing
 // hash chain to keep the determinism claim in one algebraic family).
 const FNV_OFFSET = 0x811c9dc5;
-const FNV_PRIME  = 0x01000193;
+const FNV_PRIME = 0x01000193;
 
 function canonicalize(state: Float32Array, out: Uint32Array): number {
   // Step 1: quantize each float to int32 via *1e6 + round (same quantum as
@@ -97,7 +97,7 @@ function seedState(n: number, seed: number): Float32Array {
   // just need deterministic pseudorandom floats across runs
   let a = seed >>> 0;
   for (let i = 0; i < n; i++) {
-    a = (a + 0x6D2B79F5) >>> 0;
+    a = (a + 0x6d2b79f5) >>> 0;
     let t = a;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -117,7 +117,7 @@ interface BenchResult {
   canonMsMedian: number;
   overheadPct: number;
   overheadAbsMs: number;
-  runsRange: { min: number; max: number; };
+  runsRange: { min: number; max: number };
 }
 
 function runOneSize(scenario: string, sizeFloats: number): BenchResult {
@@ -180,15 +180,17 @@ describe('Route 2b vs 2c — per-step state canonicalization overhead', () => {
 
     // Print in a format the decision rule can read
     console.log('\n[route-2-decision] state-canonicalize-overhead.bench results:');
-    console.log('scenario          size    baseline(ms)   canon(ms)     overhead(ms)   overhead(%)');
+    console.log(
+      'scenario          size    baseline(ms)   canon(ms)     overhead(ms)   overhead(%)'
+    );
     for (const r of results) {
       console.log(
         `  ${r.scenario.padEnd(15)} ` +
-        `${String(r.sizeFloats).padStart(6)}  ` +
-        `${r.baselineMsMedian.toFixed(6).padStart(12)}  ` +
-        `${r.canonMsMedian.toFixed(6).padStart(12)}  ` +
-        `${r.overheadAbsMs.toFixed(6).padStart(12)}  ` +
-        `${r.overheadPct.toFixed(2).padStart(8)}%`,
+          `${String(r.sizeFloats).padStart(6)}  ` +
+          `${r.baselineMsMedian.toFixed(6).padStart(12)}  ` +
+          `${r.canonMsMedian.toFixed(6).padStart(12)}  ` +
+          `${r.overheadAbsMs.toFixed(6).padStart(12)}  ` +
+          `${r.overheadPct.toFixed(2).padStart(8)}%`
       );
     }
 
@@ -201,20 +203,20 @@ describe('Route 2b vs 2c — per-step state canonicalization overhead', () => {
     // research/benchmark-paper-3-crdt-canonical-run.md).
     const PRODUCTION_STEP_MS_REF = 3.082; // paper-3 §7 canonical median
     const maxOverheadVsProduction = Math.max(
-      ...results.map((r) => (r.canonMsMedian / PRODUCTION_STEP_MS_REF) * 100),
+      ...results.map((r) => (r.canonMsMedian / PRODUCTION_STEP_MS_REF) * 100)
     );
     const route = maxOverheadVsProduction < 2 ? '2b (always-on)' : '2c (mode-scoped)';
     console.log(
-      `\n[route-2-decision] canonicalize overhead vs paper-3 §7 production-step median (3.082 ms):`,
+      `\n[route-2-decision] canonicalize overhead vs paper-3 §7 production-step median (3.082 ms):`
     );
     for (const r of results) {
       const pct = (r.canonMsMedian / PRODUCTION_STEP_MS_REF) * 100;
       console.log(
-        `  ${r.scenario.padEnd(15)} canonicalize ${r.canonMsMedian.toFixed(6)} ms = ${pct.toFixed(3)}% of production step`,
+        `  ${r.scenario.padEnd(15)} canonicalize ${r.canonMsMedian.toFixed(6)} ms = ${pct.toFixed(3)}% of production step`
       );
     }
     console.log(
-      `[route-2-decision] max canonicalize-vs-production-step: ${maxOverheadVsProduction.toFixed(3)}%`,
+      `[route-2-decision] max canonicalize-vs-production-step: ${maxOverheadVsProduction.toFixed(3)}%`
     );
     console.log(`[route-2-decision] RECOMMENDED ROUTE: ${route}`);
 
@@ -223,7 +225,7 @@ describe('Route 2b vs 2c — per-step state canonicalization overhead', () => {
     // harness was aware of the distinction.
     const naiveOverheadPct = Math.max(...results.map((r) => r.overheadPct));
     console.log(
-      `[route-2-decision] (naive overhead-vs-noop, NOT used for routing: ${naiveOverheadPct.toFixed(2)}%)`,
+      `[route-2-decision] (naive overhead-vs-noop, NOT used for routing: ${naiveOverheadPct.toFixed(2)}%)`
     );
 
     // Sanity guard — the canonicalize primitive should be positive cost;

@@ -7,17 +7,17 @@ This repo clone may not ship LaTeX; when `.tex` lives in the full monorepo, use 
 
 ## In-scope papers and files
 
-| Paper | Theme (short) | Canonical TeX path (full monorepo) |
-|-------|----------------|--------------------------------------|
-| P2 | SNN / spatial neural | `research/paper-2-snn-neurips.tex` |
-| P3 | Spatial CRDT | `research/paper-3-spatial-crdt-ecoop.tex` |
-| P12 | HoloLand ecosystem | `research/paper-12-hololand-ecosystem-i3d.tex` |
-| P13 | Dumbglass / display | `research/paper-13-dumbglass-siggraph.tex` |
+| Paper | Theme (short)        | Canonical TeX path (full monorepo)             |
+| ----- | -------------------- | ---------------------------------------------- |
+| P2    | SNN / spatial neural | `research/paper-2-snn-neurips.tex`             |
+| P3    | Spatial CRDT         | `research/paper-3-spatial-crdt-ecoop.tex`      |
+| P12   | HoloLand ecosystem   | `research/paper-12-hololand-ecosystem-i3d.tex` |
+| P13   | Dumbglass / display  | `research/paper-13-dumbglass-siggraph.tex`     |
 
 ## Reviewer checklist (acceptance gates)
 
 1. **Provenance** — Each throughput / ops / “average” timing claim cites a **bench log, JSON, or trace path** with a **date or commit** (same bar as [D.011 benchmark reproducibility](./D011-benchmark-reproducibility.md)).
-2. **Extrapolation** — Projected or modeled values appear in their **own sentence or table column**, labeled *extrapolated* or *modeled*, never mixed into a “measured” column without separation.
+2. **Extrapolation** — Projected or modeled values appear in their **own sentence or table column**, labeled _extrapolated_ or _modeled_, never mixed into a “measured” column without separation.
 3. **Variance** — Where a mean is stated, the artifact should support **spread** (stdev, IQR, or n runs) or the prose must state a **single-run / pilot** limitation.
 4. **Camera-ready hygiene (esp. P12)** — Placeholder figures/tables are either **final** or moved to an explicit **“Remaining work”** block with owner + target date (no silent `TODO` in camera-ready text).
 

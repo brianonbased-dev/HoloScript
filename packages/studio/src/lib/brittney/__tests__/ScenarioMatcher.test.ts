@@ -100,7 +100,9 @@ describe('ScenarioMatcher', () => {
       const result = matchScenarios('I want to build with MIDI and audio');
       expect(result.best).not.toBeNull();
       expect(result.best!.reasons.length).toBeGreaterThan(0);
-      expect(result.best!.reasons.some((r) => r.includes('midi') || r.includes('audio'))).toBe(true);
+      expect(result.best!.reasons.some((r) => r.includes('midi') || r.includes('audio'))).toBe(
+        true
+      );
     });
 
     it('ranked results are sorted by score descending', () => {

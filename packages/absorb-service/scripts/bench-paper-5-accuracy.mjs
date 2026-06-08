@@ -262,12 +262,7 @@ function keywordSearch(graph, scanResult, query, topK) {
   const allSymbols = graph.getAllSymbols ? graph.getAllSymbols() : [];
 
   for (const sym of allSymbols) {
-    const haystack = [
-      sym.name ?? '',
-      sym.filePath ?? '',
-      sym.signature ?? '',
-      sym.docComment ?? '',
-    ]
+    const haystack = [sym.name ?? '', sym.filePath ?? '', sym.signature ?? '', sym.docComment ?? '']
       .join(' ')
       .toLowerCase();
     let score = 0;
@@ -291,7 +286,7 @@ function keywordSearch(graph, scanResult, query, topK) {
 
   const ranked = [...fileBest.entries()]
     .map(([file, score]) => ({ file, score }))
-    .sort((a, b) => (b.score - a.score) || a.file.localeCompare(b.file))
+    .sort((a, b) => b.score - a.score || a.file.localeCompare(b.file))
     .slice(0, topK);
 
   return ranked;
@@ -309,9 +304,7 @@ async function semanticSearch(index, query, topK) {
     const prev = fileBest.get(r.file);
     if (!prev || r.score > prev.score) fileBest.set(r.file, { file: r.file, score: r.score });
   }
-  return [...fileBest.values()]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, topK);
+  return [...fileBest.values()].sort((a, b) => b.score - a.score).slice(0, topK);
 }
 
 /**
@@ -327,9 +320,7 @@ async function graphRagSearch(engine, query, topK) {
     const prev = fileBest.get(r.file);
     if (!prev || r.score > prev.score) fileBest.set(r.file, { file: r.file, score: r.score });
   }
-  return [...fileBest.values()]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, topK);
+  return [...fileBest.values()].sort((a, b) => b.score - a.score).slice(0, topK);
 }
 
 // =============================================================================
@@ -339,8 +330,7 @@ async function graphRagSearch(engine, query, topK) {
 function scoreQuery(retrieved, goldFile, pAt, repoRoot) {
   // Normalize gold file to absolute, then compare via suffix match so
   // both relative and absolute scanner outputs work.
-  const goldAbs = resolve(repoRoot, 'packages/absorb-service', goldFile)
-    .replace(/\\/g, '/');
+  const goldAbs = resolve(repoRoot, 'packages/absorb-service', goldFile).replace(/\\/g, '/');
   const norm = (p) => p.replace(/\\/g, '/');
   const hits = retrieved.map((r) => {
     const np = norm(r.file);
@@ -367,11 +357,8 @@ function detectHardware() {
     ['--query-gpu=name,driver_version', '--format=csv,noheader'],
     { encoding: 'utf8', timeout: 5_000, shell: true }
   );
-  const firstGpu =
-    nvidia.status === 0 ? (nvidia.stdout || '').trim().split(/\r?\n/)[0] : '';
-  const [gpuName, driverVersion] = firstGpu
-    ? firstGpu.split(',').map((p) => p.trim())
-    : ['', ''];
+  const firstGpu = nvidia.status === 0 ? (nvidia.stdout || '').trim().split(/\r?\n/)[0] : '';
+  const [gpuName, driverVersion] = firstGpu ? firstGpu.split(',').map((p) => p.trim()) : ['', ''];
   return {
     os: `${platform()} ${release()}`,
     node: process.version,
@@ -441,9 +428,7 @@ export async function main(argv = process.argv.slice(2), config = {}) {
   );
 
   // ── 2. Verify every gold file is actually in the scanned corpus ──────────
-  const scannedPaths = new Set(
-    (scanResult.files ?? []).map((f) => f.path.replace(/\\/g, '/'))
-  );
+  const scannedPaths = new Set((scanResult.files ?? []).map((f) => f.path.replace(/\\/g, '/')));
   const goldCheck = QUERY_SET.map((q) => {
     const found = [...scannedPaths].some((p) => p.endsWith(q.goldFile));
     return { id: q.id, gold: q.goldFile, in_corpus: found };
@@ -490,22 +475,17 @@ export async function main(argv = process.argv.slice(2), config = {}) {
     for (const q of QUERY_SET) {
       try {
         const retrieved = await sys.run(q.query);
-        const { p, rr, firstHitIdx } = scoreQuery(
-          retrieved,
-          q.goldFile,
-          options.pAt,
-          repoRoot
-        );
+        const { p, rr, firstHitIdx } = scoreQuery(retrieved, q.goldFile, options.pAt, repoRoot);
         perQuery.push({
           id: q.id,
           category: q.category,
           query: q.query,
           gold: q.goldFile,
           retrieved: retrieved.map((r) => ({
-            file: relative(
-              resolve(repoRoot, 'packages/absorb-service'),
-              r.file
-            ).replace(/\\/g, '/'),
+            file: relative(resolve(repoRoot, 'packages/absorb-service'), r.file).replace(
+              /\\/g,
+              '/'
+            ),
             score: round(r.score),
           })),
           [`p_at_${options.pAt}`]: round(p),
@@ -615,12 +595,7 @@ export async function main(argv = process.argv.slice(2), config = {}) {
   // Also drop a timestamped copy so successive runs are auditable
   // (`.bench-logs/<timestamp>/paper-5-accuracy-bench.json`).
   const ts = ranAt.replace(/[:.]/g, '-');
-  const tsPath = resolve(
-    repoRoot,
-    '.bench-logs',
-    ts,
-    'paper-5-accuracy-bench.json'
-  );
+  const tsPath = resolve(repoRoot, '.bench-logs', ts, 'paper-5-accuracy-bench.json');
   mkdirSync(dirname(tsPath), { recursive: true });
   writeFileSync(tsPath, `${JSON.stringify(artifact, null, 2)}\n`, 'utf8');
 

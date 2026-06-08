@@ -45,13 +45,7 @@ describe('P3 Board Starters - Mood + Persistent Traits (task_1779183224900_z051)
 
     it('should handle set_mood event and emit change', () => {
       attachTrait(moodHandler, node, { initial: 'serene' }, ctx);
-      sendEvent(
-        moodHandler,
-        node,
-        {},
-        ctx,
-        { type: 'set_mood', mood: 'excited', intensity: 0.95 }
-      );
+      sendEvent(moodHandler, node, {}, ctx, { type: 'set_mood', mood: 'excited', intensity: 0.95 });
 
       const change = getLastEvent(ctx, 'mood_changed') as MoodEventPayload | undefined;
       expect(change?.mood).toBe('excited');
@@ -81,13 +75,11 @@ describe('P3 Board Starters - Mood + Persistent Traits (task_1779183224900_z051)
 
     it('should support persistent_set event and update', () => {
       attachTrait(persistentHandler, node, { key: 'p3-test-key' }, ctx);
-      sendEvent(
-        persistentHandler,
-        node,
-        {},
-        ctx,
-        { type: 'persistent_set', key: 'p3-test-key', value: 'persisted!' }
-      );
+      sendEvent(persistentHandler, node, {}, ctx, {
+        type: 'persistent_set',
+        key: 'p3-test-key',
+        value: 'persisted!',
+      });
 
       const updated = getLastEvent(ctx, 'persistent_updated') as PersistentEventPayload | undefined;
       expect(updated?.value).toBe('persisted!');
@@ -97,22 +89,27 @@ describe('P3 Board Starters - Mood + Persistent Traits (task_1779183224900_z051)
       // First "process"
       const node1 = createMockNode('file-persist-node');
       const ctx1 = createMockContext();
-      attachTrait(persistentHandler, node1, { key: 'durable-test', defaultValue: { version: 7 }, backend: 'file' }, ctx1);
-
-      sendEvent(
+      attachTrait(
         persistentHandler,
         node1,
-        {},
-        ctx1,
-        { type: 'persistent_set', key: 'durable-test', value: { version: 42, savedAt: 'now' } }
+        { key: 'durable-test', defaultValue: { version: 7 }, backend: 'file' },
+        ctx1
       );
+
+      sendEvent(persistentHandler, node1, {}, ctx1, {
+        type: 'persistent_set',
+        key: 'durable-test',
+        value: { version: 42, savedAt: 'now' },
+      });
 
       // Simulate restart: new node + re-attach with same key + file backend
       const node2 = createMockNode('file-persist-node-restart');
       const ctx2 = createMockContext();
       attachTrait(persistentHandler, node2, { key: 'durable-test', backend: 'file' }, ctx2);
 
-      const attached = getLastEvent(ctx2, 'persistent_attached') as PersistentEventPayload | undefined;
+      const attached = getLastEvent(ctx2, 'persistent_attached') as
+        | PersistentEventPayload
+        | undefined;
       expect(attached?.backend).toBe('file');
       // The value written in "first process" should be visible after "restart"
       expect((attached?.value as any)?.version).toBe(42);

@@ -19,7 +19,9 @@ const DEFAULT_OUTPUT = path.join(
   'slow-computer-guarded-stop-dry-run-receipt.json'
 );
 
-const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+const repoRoot = path.resolve(
+  new URL('../..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
+);
 
 function parseArgs(argv) {
   const args = {
@@ -43,7 +45,9 @@ function parseArgs(argv) {
     else if (arg === '--json') args.json = true;
     else if (arg === '--self-test') args.selfTest = true;
     else if (arg === '--help' || arg === '-h') {
-      console.log(`Usage: node experiments/holoshell-human-os-frontier/slow-computer-clinic-guarded-stop-dry-run.mjs [--process-health <path>] [--pid <pid>] [--approval-id <id>] [--owner-ack <text>] [--json]`);
+      console.log(
+        `Usage: node experiments/holoshell-human-os-frontier/slow-computer-clinic-guarded-stop-dry-run.mjs [--process-health <path>] [--pid <pid>] [--approval-id <id>] [--owner-ack <text>] [--json]`
+      );
       process.exit(0);
     } else {
       throw new Error(`Unknown argument: ${arg}`);
@@ -63,7 +67,10 @@ function stableHash(value) {
 function atomicWriteJson(filePath, value) {
   const resolved = resolveRepoPath(filePath);
   mkdirSync(path.dirname(resolved), { recursive: true });
-  const temp = path.join(path.dirname(resolved), `.${path.basename(resolved)}.${process.pid}.${Date.now()}.tmp`);
+  const temp = path.join(
+    path.dirname(resolved),
+    `.${path.basename(resolved)}.${process.pid}.${Date.now()}.tmp`
+  );
   writeFileSync(temp, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
   renameSync(temp, resolved);
   return resolved;
@@ -103,10 +110,13 @@ function buildReceipt({ health, args, now = new Date(), visibleNow = null }) {
   if (!stopPlan) blockedReasons.push('no_stop_plan_for_exact_pid');
   if (!Number.isInteger(targetPid) || targetPid <= 0) blockedReasons.push('missing_exact_pid');
   if (policy.readOnlyByDefault !== true) blockedReasons.push('read_only_policy_missing');
-  if (policy.automaticTerminationAllowed !== false) blockedReasons.push('automatic_termination_policy_not_false');
+  if (policy.automaticTerminationAllowed !== false)
+    blockedReasons.push('automatic_termination_policy_not_false');
   if (policy.exactPidRequired !== true) blockedReasons.push('exact_pid_policy_missing');
-  if (stopPlan && stopPlan.approvalRequired !== true) blockedReasons.push('stop_plan_missing_approval_requirement');
-  if (stopPlan && stopPlan.safeToExecuteAutomatically !== false) blockedReasons.push('stop_plan_allows_automatic_execution');
+  if (stopPlan && stopPlan.approvalRequired !== true)
+    blockedReasons.push('stop_plan_missing_approval_requirement');
+  if (stopPlan && stopPlan.safeToExecuteAutomatically !== false)
+    blockedReasons.push('stop_plan_allows_automatic_execution');
   if (!args.approvalId) blockedReasons.push('approval_id_required');
   if (ownerHandoffRequired && !args.ownerAck) blockedReasons.push('owner_ack_required');
   if (!liveVisible) blockedReasons.push('target_pid_not_visible_at_recheck');
@@ -133,7 +143,8 @@ function buildReceipt({ health, args, now = new Date(), visibleNow = null }) {
       room: 'experiments/holoshell-human-os-frontier/slow-computer-clinic-room.holo',
       policy: 'experiments/holoshell-human-os-frontier/slow-computer-clinic-policy.hsplus',
       pipeline: 'experiments/holoshell-human-os-frontier/slow-computer-clinic-pipeline.hs',
-      adapter: 'experiments/holoshell-human-os-frontier/slow-computer-clinic-guarded-stop-dry-run.mjs',
+      adapter:
+        'experiments/holoshell-human-os-frontier/slow-computer-clinic-guarded-stop-dry-run.mjs',
       processHealth: args.processHealth,
     },
     host: {
@@ -144,16 +155,16 @@ function buildReceipt({ health, args, now = new Date(), visibleNow = null }) {
     stopReadiness,
     target: stopPlan
       ? {
-        pid: stopPlan.pid,
-        name: stopPlan.name,
-        category: stopPlan.category,
-        ageMinutes: stopPlan.ageMinutes,
-        memoryMb: stopPlan.memoryMb,
-        findings: stopPlan.findings || [],
-        ownerLane: stopPlan.custody?.ownerLane || null,
-        ownerHandoffRequired,
-        cleanupEligible: Boolean(stopPlan.custody?.cleanupEligible),
-      }
+          pid: stopPlan.pid,
+          name: stopPlan.name,
+          category: stopPlan.category,
+          ageMinutes: stopPlan.ageMinutes,
+          memoryMb: stopPlan.memoryMb,
+          findings: stopPlan.findings || [],
+          ownerLane: stopPlan.custody?.ownerLane || null,
+          ownerHandoffRequired,
+          cleanupEligible: Boolean(stopPlan.custody?.cleanupEligible),
+        }
       : null,
     execution: {
       attempted: false,
@@ -245,7 +256,13 @@ function selfTest() {
 
   const ready = buildReceipt({
     health,
-    args: { pid: 12345, approvalId: 'approval-fixture', ownerAck: '', reason: 'test', processHealth: 'fixture' },
+    args: {
+      pid: 12345,
+      approvalId: 'approval-fixture',
+      ownerAck: '',
+      reason: 'test',
+      processHealth: 'fixture',
+    },
     visibleNow: true,
   });
   assert.equal(ready.summary.status, 'ready_for_runtime_approval');
@@ -254,7 +271,13 @@ function selfTest() {
 
   const missing = buildReceipt({
     health,
-    args: { pid: 12345, approvalId: 'approval-fixture', ownerAck: '', reason: 'test', processHealth: 'fixture' },
+    args: {
+      pid: 12345,
+      approvalId: 'approval-fixture',
+      ownerAck: '',
+      reason: 'test',
+      processHealth: 'fixture',
+    },
     visibleNow: false,
   });
   assert.equal(missing.summary.status, 'blocked');

@@ -55,12 +55,7 @@ import type { TraitHandler } from './TraitTypes';
  * but none are full). The lotus orchestrator computes this and stamps it
  * onto context state where this trait reads it.
  */
-export type LotusAggregateBloomState =
-  | 'sealed'
-  | 'budding'
-  | 'blooming'
-  | 'full'
-  | 'wilted';
+export type LotusAggregateBloomState = 'sealed' | 'budding' | 'blooming' | 'full' | 'wilted';
 
 /**
  * Substrate identifier — which infrastructure tier this root represents.
@@ -182,9 +177,8 @@ export const lotusRootHandler: TraitHandler<LotusRootConfig> = {
     // pushing 'lotus.api.bloom_state' into setState before mounting; this
     // trait is a read-only consumer.
     const ctxState = context.getState?.() ?? {};
-    const initialBloomRaw = (ctxState[config.bloom_state_source] as
-      | LotusAggregateBloomState
-      | undefined) ?? 'sealed';
+    const initialBloomRaw =
+      (ctxState[config.bloom_state_source] as LotusAggregateBloomState | undefined) ?? 'sealed';
     const emissive = deriveLotusRootEmissive(initialBloomRaw, config);
 
     const state: LotusRootState = {

@@ -72,10 +72,13 @@ export interface OrbExecutorContext {
   /** Hologram state registry (post-build save). */
   setHologramState: (name: string, hologram: HologramProperties) => void;
   /** Migration executor (Phase 6). */
-  executeMigrationBlock: (existingOrb: Record<string, unknown>, migration: MigrationBlock) => Promise<void>;
+  executeMigrationBlock: (
+    existingOrb: Record<string, unknown>,
+    migration: MigrationBlock
+  ) => Promise<void>;
   /** Builtin-function registry lookup (for show/hide/pulse orb methods). */
   getBuiltinFunction: (
-    name: string,
+    name: string
   ) => ((args: HoloScriptValue[]) => HoloScriptValue | Promise<HoloScriptValue>) | undefined;
   /** Apply directives — trait handlers, @state, @method processing. */
   applyDirectives: (node: ASTNode) => void;
@@ -89,7 +92,12 @@ export interface OrbExecutorContext {
   /** Parent runtime reference passed into AgentRuntime.reset(). */
   parentRuntime: IParentRuntime;
   /** Particle-effect creator (creation puff). */
-  createParticleEffect: (name: string, position: [number, number, number], color: string, count: number) => void;
+  createParticleEffect: (
+    name: string,
+    position: [number, number, number],
+    color: string,
+    count: number
+  ) => void;
   /** Broadcast creator/updater event to visualizer clients. */
   broadcast: (event: string, payload: Record<string, unknown>) => void;
 }
@@ -111,16 +119,10 @@ const CREATION_PUFF_COLOR = '#00ffff';
 const CREATION_PUFF_COUNT = 20;
 
 /** Normalize a (possibly array-like) node.position to a concrete triple. */
-function normalizePosition(
-  position: OrbNode['position'],
-): [number, number, number] {
+function normalizePosition(position: OrbNode['position']): [number, number, number] {
   if (!position) return [0, 0, 0];
   if (Array.isArray(position)) {
-    return [
-      Number(position[0]) || 0,
-      Number(position[1]) || 0,
-      Number(position[2]) || 0,
-    ];
+    return [Number(position[0]) || 0, Number(position[1]) || 0, Number(position[2]) || 0];
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const p = position as any;
@@ -132,10 +134,7 @@ function normalizePosition(
  * `output` is the orbData record (or the updated existing orb
  * reference — same object, not a copy, for reference equality).
  */
-export async function executeOrb(
-  node: OrbNode,
-  ctx: OrbExecutorContext,
-): Promise<ExecutionResult> {
+export async function executeOrb(node: OrbNode, ctx: OrbExecutorContext): Promise<ExecutionResult> {
   const scale = ctx.getCurrentScale() || 1;
 
   // ── Phase 1: state reconciliation ────────────────────────────
@@ -210,12 +209,14 @@ export async function executeOrb(
   // ── Phase 6: migration logic (version upgrade) ───────────────
   if (isUpdate && node.template) {
     const tpl = ctx.getTemplate(node.template);
-    const oldTpl = (existingOrb as Record<string, unknown>)?._templateRef as TemplateNode | undefined;
+    const oldTpl = (existingOrb as Record<string, unknown>)?._templateRef as
+      | TemplateNode
+      | undefined;
 
     if (tpl && oldTpl && tpl.version !== undefined && oldTpl.version !== undefined) {
       if (Number(tpl.version) > Number(oldTpl.version)) {
         logger.info(
-          `Template version increase detected for ${node.name}: ${oldTpl.version} -> ${tpl.version}`,
+          `Template version increase detected for ${node.name}: ${oldTpl.version} -> ${tpl.version}`
         );
         const migrations = tpl.migrations || [];
         const migration = migrations.find((m) => m.fromVersion === Number(oldTpl.version));
@@ -223,7 +224,7 @@ export async function executeOrb(
           logger.info(`Executing migration from version ${oldTpl.version} for ${node.name}`);
           await ctx.executeMigrationBlock(
             existingOrb as unknown as Record<string, unknown>,
-            migration,
+            migration
           );
         }
       }
@@ -281,7 +282,12 @@ export async function executeOrb(
   }
 
   if (!isUpdate) {
-    ctx.createParticleEffect(`${node.name}_creation`, adjustedPos, CREATION_PUFF_COLOR, CREATION_PUFF_COUNT);
+    ctx.createParticleEffect(
+      `${node.name}_creation`,
+      adjustedPos,
+      CREATION_PUFF_COLOR,
+      CREATION_PUFF_COUNT
+    );
   }
 
   // Agent initialization — LLM-backed orbs get an AgentRuntime

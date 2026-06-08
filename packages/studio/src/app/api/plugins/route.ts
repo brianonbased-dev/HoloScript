@@ -218,7 +218,6 @@ export async function GET(request: Request) {
   return NextResponse.json({ plugins: results, total: results.length, categories });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

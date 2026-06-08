@@ -3,25 +3,42 @@ import { DEBUG_HOLOGRAM, executeDebug } from '../debug-executor.js';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
-function makeCtx(overrides: Partial<{
-  scopeVariables: Map<string, unknown>;
-  contextVariables: Map<string, unknown>;
-  functions: Map<string, unknown>;
-  connections: unknown[];
-  callStack: string[];
-  uiElements: Map<string, unknown>;
-  animations: Map<string, unknown>;
-  executionHistory: { success: boolean; output: unknown }[];
-  setHologramState: ReturnType<typeof vi.fn>;
-  logInfo: ReturnType<typeof vi.fn>;
-}> = {}) {
+function makeCtx(
+  overrides: Partial<{
+    scopeVariables: Map<string, unknown>;
+    contextVariables: Map<string, unknown>;
+    functions: Map<string, unknown>;
+    connections: unknown[];
+    callStack: string[];
+    uiElements: Map<string, unknown>;
+    animations: Map<string, unknown>;
+    executionHistory: { success: boolean; output: unknown }[];
+    setHologramState: ReturnType<typeof vi.fn>;
+    logInfo: ReturnType<typeof vi.fn>;
+  }> = {}
+) {
   return {
-    scopeVariables: overrides.scopeVariables ?? new Map([['x', 1], ['y', 2]]),
+    scopeVariables:
+      overrides.scopeVariables ??
+      new Map([
+        ['x', 1],
+        ['y', 2],
+      ]),
     contextVariables: overrides.contextVariables ?? new Map([['$time', '10:00']]),
-    functions: overrides.functions ?? new Map([['greet', vi.fn()], ['add', vi.fn()]]),
+    functions:
+      overrides.functions ??
+      new Map([
+        ['greet', vi.fn()],
+        ['add', vi.fn()],
+      ]),
     connections: overrides.connections ?? ['conn-a', 'conn-b', 'conn-c'],
     callStack: overrides.callStack ?? ['main', 'inner'],
-    uiElements: overrides.uiElements ?? new Map([['btn', {}], ['input', {}]]),
+    uiElements:
+      overrides.uiElements ??
+      new Map([
+        ['btn', {}],
+        ['input', {}],
+      ]),
     animations: overrides.animations ?? new Map([['spin', {}]]),
     executionHistory: overrides.executionHistory ?? [{ success: true, output: 'ok' }],
     setHologramState: overrides.setHologramState ?? vi.fn(),
@@ -84,12 +101,16 @@ describe('executeDebug', () => {
 
   it('includes contextVariables as plain object in output', async () => {
     const result = await executeDebug({ type: 'debug' }, ctx);
-    expect((result.output as Record<string, unknown>).contextVariables).toMatchObject({ '$time': '10:00' });
+    expect((result.output as Record<string, unknown>).contextVariables).toMatchObject({
+      $time: '10:00',
+    });
   });
 
   it('includes function keys as an array in output', async () => {
     const result = await executeDebug({ type: 'debug' }, ctx);
-    expect((result.output as Record<string, unknown>).functions).toEqual(expect.arrayContaining(['greet', 'add']));
+    expect((result.output as Record<string, unknown>).functions).toEqual(
+      expect.arrayContaining(['greet', 'add'])
+    );
   });
 
   it('reports connection count (not the array itself)', async () => {
@@ -104,7 +125,9 @@ describe('executeDebug', () => {
 
   it('includes uiElement keys as an array', async () => {
     const result = await executeDebug({ type: 'debug' }, ctx);
-    expect((result.output as Record<string, unknown>).uiElements).toEqual(expect.arrayContaining(['btn', 'input']));
+    expect((result.output as Record<string, unknown>).uiElements).toEqual(
+      expect.arrayContaining(['btn', 'input'])
+    );
   });
 
   it('includes animation keys as an array', async () => {
@@ -132,7 +155,10 @@ describe('executeDebug', () => {
 
   it('calls setHologramState with key "debug_program" when target absent', async () => {
     await executeDebug({ type: 'debug' }, ctx);
-    expect(ctx.setHologramState).toHaveBeenCalledWith('debug_program', expect.objectContaining({ shape: 'pyramid' }));
+    expect(ctx.setHologramState).toHaveBeenCalledWith(
+      'debug_program',
+      expect.objectContaining({ shape: 'pyramid' })
+    );
   });
 
   it('calls setHologramState with key "debug_<target>" when target provided', async () => {

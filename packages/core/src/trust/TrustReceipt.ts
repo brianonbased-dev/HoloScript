@@ -9,23 +9,11 @@
 
 import { createHash } from 'crypto';
 
-export type TrustReceiptStatus =
-  | 'success'
-  | 'failure'
-  | 'denied'
-  | 'staged'
-  | 'witnessed';
+export type TrustReceiptStatus = 'success' | 'failure' | 'denied' | 'staged' | 'witnessed';
 
-export type TrustPermissionEnvelope =
-  | 'read_only'
-  | 'guarded_execute'
-  | 'break_glass';
+export type TrustPermissionEnvelope = 'read_only' | 'guarded_execute' | 'break_glass';
 
-export type TrustSyncState =
-  | 'local_only'
-  | 'synced'
-  | 'redacted_sync'
-  | 'sync_failed';
+export type TrustSyncState = 'local_only' | 'synced' | 'redacted_sync' | 'sync_failed';
 
 export type TrustLayer1Strategy =
   | 'authority_weighted'
@@ -159,7 +147,8 @@ export function validateTrustReceipt(r: unknown): { valid: boolean; errors: stri
   const rec = r as Record<string, unknown>;
 
   if (!rec.receiptId || typeof rec.receiptId !== 'string') errors.push('Missing receiptId');
-  if (!rec.schemaVersion || typeof rec.schemaVersion !== 'string') errors.push('Missing schemaVersion');
+  if (!rec.schemaVersion || typeof rec.schemaVersion !== 'string')
+    errors.push('Missing schemaVersion');
   if (!rec.recordedAt || typeof rec.recordedAt !== 'string') errors.push('Missing recordedAt');
 
   if (!rec.actor || typeof rec.actor !== 'object') {
@@ -174,7 +163,11 @@ export function validateTrustReceipt(r: unknown): { valid: boolean; errors: stri
         errors.push('actor.bindings must be an array');
       } else {
         for (const b of actor.bindings) {
-          if (!b || typeof b !== 'object' || typeof (b as Record<string, unknown>).value !== 'string') {
+          if (
+            !b ||
+            typeof b !== 'object' ||
+            typeof (b as Record<string, unknown>).value !== 'string'
+          ) {
             errors.push('Each actor.binding must have a value string');
             break;
           }
@@ -194,8 +187,10 @@ export function validateTrustReceipt(r: unknown): { valid: boolean; errors: stri
   } else {
     const action = rec.action as Record<string, unknown>;
     if (!action.name || typeof action.name !== 'string') errors.push('Missing action.name');
-    if (!action.resource || typeof action.resource !== 'string') errors.push('Missing action.resource');
-    if (!action.outcome || typeof action.outcome !== 'string') errors.push('Missing action.outcome');
+    if (!action.resource || typeof action.resource !== 'string')
+      errors.push('Missing action.resource');
+    if (!action.outcome || typeof action.outcome !== 'string')
+      errors.push('Missing action.outcome');
   }
 
   if (!rec.evidence || typeof rec.evidence !== 'object') {
@@ -209,10 +204,15 @@ export function validateTrustReceipt(r: unknown): { valid: boolean; errors: stri
     errors.push('Missing algebraicTrust');
   } else {
     const at = rec.algebraicTrust as Record<string, unknown>;
-    if (!at.layer1Strategy || typeof at.layer1Strategy !== 'string') errors.push('Missing algebraicTrust.layer1Strategy');
-    if (!at.layer2HistoryRef || typeof at.layer2HistoryRef !== 'string') errors.push('Missing algebraicTrust.layer2HistoryRef');
+    if (!at.layer1Strategy || typeof at.layer1Strategy !== 'string')
+      errors.push('Missing algebraicTrust.layer1Strategy');
+    if (!at.layer2HistoryRef || typeof at.layer2HistoryRef !== 'string')
+      errors.push('Missing algebraicTrust.layer2HistoryRef');
     const action = (rec.action as Record<string, unknown> | undefined) ?? {};
-    if (isSimulationRelated(action as unknown as TrustAction) && (!at.layer3OracleRef || typeof at.layer3OracleRef !== 'string')) {
+    if (
+      isSimulationRelated(action as unknown as TrustAction) &&
+      (!at.layer3OracleRef || typeof at.layer3OracleRef !== 'string')
+    ) {
       errors.push('Missing algebraicTrust.layer3OracleRef for simulation/digital-twin receipts');
     }
   }
@@ -221,9 +221,13 @@ export function validateTrustReceipt(r: unknown): { valid: boolean; errors: stri
     errors.push('Missing storage');
   } else {
     const storage = rec.storage as Record<string, unknown>;
-    if (!storage.syncState || typeof storage.syncState !== 'string') errors.push('Missing storage.syncState');
+    if (!storage.syncState || typeof storage.syncState !== 'string')
+      errors.push('Missing storage.syncState');
     const syncState = storage.syncState as TrustSyncState;
-    if ((syncState === 'synced' || syncState === 'redacted_sync') && !Array.isArray(storage.redactedFields)) {
+    if (
+      (syncState === 'synced' || syncState === 'redacted_sync') &&
+      !Array.isArray(storage.redactedFields)
+    ) {
       errors.push('Missing storage.redactedFields for synced receipts');
     }
   }

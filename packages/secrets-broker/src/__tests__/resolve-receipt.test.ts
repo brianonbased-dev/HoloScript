@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { sealResolveReceipt, verifyResolveReceiptChain, type SecretResolveReceipt } from '../resolve-receipt';
+import {
+  sealResolveReceipt,
+  verifyResolveReceiptChain,
+  type SecretResolveReceipt,
+} from '../resolve-receipt';
 import type { SecretResolveAudit } from '../secret-resolver';
 
 function audit(over: Partial<SecretResolveAudit> = {}): SecretResolveAudit {

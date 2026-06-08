@@ -189,11 +189,11 @@ export function rectSolidAngle(
 
   // Van Oosterom–Strackee solid angle formula
   const dot_ = (a: Vector3, b: Vector3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-  const cross_ = (a: Vector3, b: Vector3): Vector3 => ([
+  const cross_ = (a: Vector3, b: Vector3): Vector3 => [
     a[1] * b[2] - a[2] * b[1],
     a[2] * b[0] - a[0] * b[2],
     a[0] * b[1] - a[1] * b[0],
-  ]);
+  ];
   const len_ = (v: Vector3) => Math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2);
 
   let solidAngle = 0;

@@ -205,11 +205,19 @@ export const neuralAnimationHandler: TraitHandler<NeuralAnimationConfig> = {
 
       // Foot-contact transition events — drive @ik bridge (WIRE-1)
       if (result.contactFeatures.leftFoot !== state.prev_left_contact) {
-        context.emit?.('on_foot_contact', { node, side: 'left', state: result.contactFeatures.leftFoot });
+        context.emit?.('on_foot_contact', {
+          node,
+          side: 'left',
+          state: result.contactFeatures.leftFoot,
+        });
         state.prev_left_contact = result.contactFeatures.leftFoot;
       }
       if (result.contactFeatures.rightFoot !== state.prev_right_contact) {
-        context.emit?.('on_foot_contact', { node, side: 'right', state: result.contactFeatures.rightFoot });
+        context.emit?.('on_foot_contact', {
+          node,
+          side: 'right',
+          state: result.contactFeatures.rightFoot,
+        });
         state.prev_right_contact = result.contactFeatures.rightFoot;
       }
 

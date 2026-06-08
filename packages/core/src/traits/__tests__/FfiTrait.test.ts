@@ -47,9 +47,16 @@ describe('FfiTrait — onEvent', () => {
   it('ffi:bind stores symbol-lib binding and emits ffi:bound', () => {
     const node = makeNode();
     ffiHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    ffiHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'ffi:bind', symbol: 'malloc', lib: 'libc.so',
-    } as never);
+    ffiHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'ffi:bind',
+        symbol: 'malloc',
+        lib: 'libc.so',
+      } as never
+    );
     const state = node.__ffiState as { bindings: Map<string, string> };
     expect(state.bindings.get('malloc')).toBe('libc.so');
     expect(node.emit).toHaveBeenCalledWith('ffi:bound', { symbol: 'malloc', lib: 'libc.so' });
@@ -58,12 +65,24 @@ describe('FfiTrait — onEvent', () => {
   it('ffi:call increments call counter and emits ffi:result', () => {
     const node = makeNode();
     ffiHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    ffiHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'ffi:call', symbol: 'malloc',
-    } as never);
-    ffiHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'ffi:call', symbol: 'free',
-    } as never);
+    ffiHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'ffi:call',
+        symbol: 'malloc',
+      } as never
+    );
+    ffiHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'ffi:call',
+        symbol: 'free',
+      } as never
+    );
     const state = node.__ffiState as { calls: number };
     expect(state.calls).toBe(2);
     expect(node.emit).toHaveBeenLastCalledWith('ffi:result', { symbol: 'free', callCount: 2 });

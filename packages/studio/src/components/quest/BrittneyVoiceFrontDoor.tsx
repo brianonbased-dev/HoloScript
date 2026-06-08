@@ -83,7 +83,11 @@ export function BrittneyVoiceFrontDoor({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: tokens.space.sm }}>
           <span
-            style={{ color: voiceActive ? '#60a5fa' : tokens.color.successText, fontWeight: tokens.weight.heavy, fontSize: tokens.font.tile }}
+            style={{
+              color: voiceActive ? '#60a5fa' : tokens.color.successText,
+              fontWeight: tokens.weight.heavy,
+              fontSize: tokens.font.tile,
+            }}
           >
             Next
           </span>

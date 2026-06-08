@@ -5,7 +5,7 @@
 
 ## Intent
 
-Treat **UI behavior** as a **structural causal model (SCM)** over **observable variables** (props, UI state, URL/query, feature flags, async outcomes) so tests can ask **counterfactuals**: “If we had set *X* differently while holding ancestors fixed, would *Y* still occur?” The goal is **targeted edge-case generation** and **regression explanations**, not replacing snapshot or interaction tests wholesale.
+Treat **UI behavior** as a **structural causal model (SCM)** over **observable variables** (props, UI state, URL/query, feature flags, async outcomes) so tests can ask **counterfactuals**: “If we had set _X_ differently while holding ancestors fixed, would _Y_ still occur?” The goal is **targeted edge-case generation** and **regression explanations**, not replacing snapshot or interaction tests wholesale.
 
 This memo is **design-only**—no implementation shipped here.
 
@@ -13,12 +13,12 @@ This memo is **design-only**—no implementation shipped here.
 
 The source doc proposes `packages/frontend/src/testing/causal.ts`. This repository **does not** have a root `packages/frontend` app; UI surfaces live in packages such as:
 
-| Surface | Package | Test stack (typical) |
-|--------|---------|----------------------|
-| Studio | `packages/studio` | Vitest, Testing Library, Playwright |
-| Visual editor | `packages/visual` | Vitest, Testing Library |
-| Marketplace web | `packages/marketplace-web` | Vitest, Testing Library |
-| Agent SDK | `packages/react-agent-sdk` | Vitest, Storybook |
+| Surface         | Package                    | Test stack (typical)                |
+| --------------- | -------------------------- | ----------------------------------- |
+| Studio          | `packages/studio`          | Vitest, Testing Library, Playwright |
+| Visual editor   | `packages/visual`          | Vitest, Testing Library             |
+| Marketplace web | `packages/marketplace-web` | Vitest, Testing Library             |
+| Agent SDK       | `packages/react-agent-sdk` | Vitest, Storybook                   |
 
 Any future `causal.ts` (or `@holoscript/causal-ui-testing`) should be **extracted as a small shared dev-only package** or live under `packages/devtools/` once boundaries are clear—**not** assumed to sit under a non-existent `frontend` tree.
 
@@ -28,7 +28,7 @@ Classical UI tests excel at **replaying scripts** (“click A then expect B”).
 
 1. Enumerate **minimal interventions** (do-operators) that flip an outcome.
 2. Flag **ambiguous tails** where the same assertion could pass for multiple reasons (weak identifiability).
-3. Attach **failure explanations** (“counterfactual passing run would require *Z* false”).
+3. Attach **failure explanations** (“counterfactual passing run would require _Z_ false”).
 
 ## Causal view of a component
 
@@ -81,10 +81,10 @@ Classical UI tests excel at **replaying scripts** (“click A then expect B”).
 
 ## Success criteria (from source audit — engineering interpretation)
 
-| Source KPI | Pragmatic proxy |
-|------------|-----------------|
-| 100+ counterfactual cases | Parametrized test rows + CI-generated combinations from a small SCM per package |
-| 20+ novel edge bugs | Tracked issues with “causal case id” linking to graph node(s) — not claimed without triage |
+| Source KPI                | Pragmatic proxy                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------ |
+| 100+ counterfactual cases | Parametrized test rows + CI-generated combinations from a small SCM per package            |
+| 20+ novel edge bugs       | Tracked issues with “causal case id” linking to graph node(s) — not claimed without triage |
 
 ## What remains after this memo
 

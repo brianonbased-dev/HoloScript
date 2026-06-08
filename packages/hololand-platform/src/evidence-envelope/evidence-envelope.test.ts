@@ -109,10 +109,10 @@ describe('HoloScript evidence envelope', () => {
       'trace-corpus',
     ]);
     expect(manifest.reproducibility.rerunCommand).toContain(
-      'pnpm --filter @holoscript/hololand-platform run evidence-envelope',
+      'pnpm --filter @holoscript/hololand-platform run evidence-envelope'
     );
     expect(manifest.artifacts.map((artifact) => artifact.path)).toContain(
-      'docs/public/evidence/evidence-envelope.schema.json',
+      'docs/public/evidence/evidence-envelope.schema.json'
     );
     expect(verifyEvidenceEnvelope(manifest).valid).toBe(true);
   });

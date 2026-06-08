@@ -1,12 +1,17 @@
 import fs from 'fs';
 import path from 'path';
 import { parseHolo } from '@holoscript/core';
-import { TEAM_AGENT_PROFILES, type TeamAgentProfile, type AgentRole, type AIProvider } from '@holoscript/framework';
+import {
+  TEAM_AGENT_PROFILES,
+  type TeamAgentProfile,
+  type AgentRole,
+  type AIProvider,
+} from '@holoscript/framework';
 
 export function loadNativeAgentCompositions() {
   const rootDir = path.join(__dirname, '..', 'src', 'holomesh');
   const galleryDir = path.join(rootDir, 'gallery');
-  
+
   const filesToScan = [
     path.join(rootDir, 'plaza.hsplus'),
     path.join(galleryDir, 'glass-cathedral.hsplus'),
@@ -17,11 +22,11 @@ export function loadNativeAgentCompositions() {
   for (const filePath of filesToScan) {
     try {
       if (!fs.existsSync(filePath)) continue;
-      
+
       const content = fs.readFileSync(filePath, 'utf-8');
       const parseResult = parseHolo(content);
       const ast = parseResult.ast;
-      
+
       if (!ast) continue;
 
       // Traverse AST to find objects of type "team_agent"
@@ -30,7 +35,9 @@ export function loadNativeAgentCompositions() {
           const profile = extractAgentProfile(obj);
           if (profile) {
             TEAM_AGENT_PROFILES.set(profile.id, profile);
-            console.log(`[HoloMesh] Registered native agent composition: ${profile.name} (from ${path.basename(filePath)})`);
+            console.log(
+              `[HoloMesh] Registered native agent composition: ${profile.name} (from ${path.basename(filePath)})`
+            );
           }
         }
       }
@@ -44,7 +51,7 @@ function extractAgentProfile(obj: any): TeamAgentProfile | null {
   try {
     // Look for traits in directives or traits
     const allTraits = [...(obj.traits || []), ...(obj.directives || [])];
-    
+
     const agentTrait = allTraits.find((t: any) => t.name === 'agent');
     const capabilitiesTrait = allTraits.find((t: any) => t.name === 'capabilities');
     const claimFilterTrait = allTraits.find((t: any) => t.name === 'claimFilter');

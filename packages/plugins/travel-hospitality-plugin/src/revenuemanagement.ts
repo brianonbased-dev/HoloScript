@@ -106,23 +106,22 @@ export interface RevenueReceiptOptions {
 function normalCDF(x: number): number {
   if (x < -6) return 0;
   if (x > 6) return 1;
-  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
-  const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const a1 = 0.254829592,
+    a2 = -0.284496736,
+    a3 = 1.421413741;
+  const a4 = -1.453152027,
+    a5 = 1.061405429,
+    p = 0.3275911;
   const sign = x >= 0 ? 1 : -1;
   const absX = Math.abs(x);
   const t = 1 / (1 + p * absX);
-  const poly = ((((a5 * t + a4) * t) + a3) * t + a2) * t + a1;
+  const poly = (((a5 * t + a4) * t + a3) * t + a2) * t + a1;
   const erfVal = 1 - poly * t * Math.exp(-absX * absX);
   return 0.5 * (1 + sign * erfVal);
 }
 
 /** Littlewood's rule: P(demand ≥ x) ≥ r_low/r_high → protect x seats for high class */
-function littlewoodProtection(
-  rLow: number,
-  rHigh: number,
-  mu: number,
-  sigma: number,
-): number {
+function littlewoodProtection(rLow: number, rHigh: number, mu: number, sigma: number): number {
   // Find x such that P(D_high ≥ x) = r_low / r_high
   const threshold = rLow / rHigh;
   // P(D ≥ x) = 1 - Φ((x - μ)/σ)
@@ -137,28 +136,42 @@ function littlewoodProtection(
 function normInvApprox(p: number): number {
   if (p <= 0) return -6;
   if (p >= 1) return 6;
-  const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
-              1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
-  const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
-              6.680131188771972e+01, -1.328068155288572e+01];
-  const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
-              -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
-  const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
-  const pLow = 0.02425, pHigh = 1 - pLow;
+  const a = [
+    -3.969683028665376e1, 2.209460984245205e2, -2.759285104469687e2, 1.38357751867269e2,
+    -3.066479806614716e1, 2.506628277459239,
+  ];
+  const b = [
+    -5.447609879822406e1, 1.615858368580409e2, -1.556989798598866e2, 6.680131188771972e1,
+    -1.328068155288572e1,
+  ];
+  const c = [
+    -7.784894002430293e-3, -3.223964580411365e-1, -2.400758277161838, -2.549732539343734,
+    4.374664141464968, 2.938163982698783,
+  ];
+  const d = [7.784695709041462e-3, 3.224671290700398e-1, 2.445134137142996, 3.754408661907416];
+  const pLow = 0.02425,
+    pHigh = 1 - pLow;
 
   let q: number, r: number;
   if (p < pLow) {
     q = Math.sqrt(-2 * Math.log(p));
-    return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
-           ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+    return (
+      (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+    );
   } else if (p <= pHigh) {
-    q = p - 0.5; r = q * q;
-    return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q /
-           (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+    q = p - 0.5;
+    r = q * q;
+    return (
+      ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) /
+      (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1)
+    );
   } else {
     q = Math.sqrt(-2 * Math.log(1 - p));
-    return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
-             ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+    return (
+      -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
+    );
   }
 }
 
@@ -167,10 +180,7 @@ function normInvApprox(p: number): number {
  * Rate classes must be provided in any order; sorted high→low ADR internally.
  * capacity: total rooms available.
  */
-export function emsrYieldManagement(
-  capacity: number,
-  rateClasses: RateClass[],
-): EMSRResult {
+export function emsrYieldManagement(capacity: number, rateClasses: RateClass[]): EMSRResult {
   if (capacity <= 0) throw new Error('capacity must be positive');
   if (rateClasses.length === 0) throw new Error('At least one rate class required');
 
@@ -182,13 +192,14 @@ export function emsrYieldManagement(
 
   // EMSR-b: aggregate demand from classes j+1..n and find protection for class j
   for (let j = 0; j < sorted.length - 1; j++) {
-    const r_j   = sorted[j].adr;       // higher class fare
-    const r_j1  = sorted[j + 1].adr;   // lower class fare
+    const r_j = sorted[j].adr; // higher class fare
+    const r_j1 = sorted[j + 1].adr; // lower class fare
 
     // Aggregate demand for classes 0..j (high-value classes)
-    let aggMu = 0, aggVar = 0;
+    let aggMu = 0,
+      aggVar = 0;
     for (let k = 0; k <= j; k++) {
-      aggMu  += sorted[k].expectedDemand;
+      aggMu += sorted[k].expectedDemand;
       aggVar += sorted[k].demandStdDev ** 2;
     }
     const aggSigma = Math.sqrt(aggVar);
@@ -222,7 +233,7 @@ export function emsrYieldManagement(
 export function revparAnalysis(
   availableRooms: number,
   occupiedRooms: number,
-  totalRevenue: number,
+  totalRevenue: number
 ): RevPARResult {
   if (availableRooms <= 0) throw new Error('availableRooms must be positive');
   if (occupiedRooms < 0) throw new Error('occupiedRooms must be non-negative');
@@ -249,7 +260,7 @@ export function overbookingOptimization(
   noShowRate: number,
   adr: number,
   walkCostPerGuest: number,
-  expectedBookings: number,
+  expectedBookings: number
 ): OverbookingResult {
   if (capacity <= 0) throw new Error('capacity must be positive');
   if (noShowRate < 0 || noShowRate > 1) throw new Error('noShowRate must be in [0, 1]');
@@ -282,7 +293,8 @@ export function overbookingOptimization(
   // Expected walks = E[max(0, shows - capacity)] where shows = bookings - noShows
   let expectedWalks = 0;
   for (let w = 1; w <= optOverbook + 5; w++) {
-    const pWalk = 1 - normalCDF((w - 0.5 - (authorizedBookings - mu - capacity)) / Math.max(sigma, 0.1));
+    const pWalk =
+      1 - normalCDF((w - 0.5 - (authorizedBookings - mu - capacity)) / Math.max(sigma, 0.1));
     expectedWalks += pWalk;
     if (pWalk < 1e-6) break;
   }
@@ -292,7 +304,15 @@ export function overbookingOptimization(
   // Revenue gain vs no-overbooking: each additional booking accepted at ADR, less expected walk cost
   const expectedRevenueGain = Math.max(0, optOverbook * adr * noShowRate - expectedWalkCost);
 
-  return { capacity, overbook: optOverbook, authorizedBookings, noShowRate, walkCostPerGuest, expectedWalkCost, expectedRevenueGain };
+  return {
+    capacity,
+    overbook: optOverbook,
+    authorizedBookings,
+    noShowRate,
+    walkCostPerGuest,
+    expectedWalkCost,
+    expectedRevenueGain,
+  };
 }
 
 // ─── Group displacement ───────────────────────────────────────────────────────
@@ -304,14 +324,15 @@ export function groupDisplacementAnalysis(
   groupAdr: number,
   groupRoomNights: number,
   transientAdr: number,
-  transientDemandProbability = 1.0,
+  transientDemandProbability = 1.0
 ): GroupDisplacementResult {
   if (groupAdr <= 0) throw new Error('groupAdr must be positive');
   if (groupRoomNights <= 0) throw new Error('groupRoomNights must be positive');
   if (transientAdr <= 0) throw new Error('transientAdr must be positive');
 
   const displacementCost = (transientAdr - groupAdr) * groupRoomNights * transientDemandProbability;
-  const netValue = groupAdr * groupRoomNights - (transientAdr * groupRoomNights * transientDemandProbability);
+  const netValue =
+    groupAdr * groupRoomNights - transientAdr * groupRoomNights * transientDemandProbability;
   const profitable = netValue > 0;
 
   return { groupAdr, groupRoomNights, transientAdr, displacementCost, netValue, profitable };
@@ -325,9 +346,10 @@ export function groupDisplacementAnalysis(
  */
 export function hotelDemandForecast(
   historical: number[],
-  forecastDays: number,
+  forecastDays: number
 ): HotelForecastResult {
-  if (historical.length < 14) throw new Error('At least 14 days of history required for seasonal estimation');
+  if (historical.length < 14)
+    throw new Error('At least 14 days of history required for seasonal estimation');
   if (forecastDays < 1) throw new Error('forecastDays must be ≥ 1');
 
   // Estimate weekly seasonal indices (7 days)
@@ -341,7 +363,7 @@ export function hotelDemandForecast(
     dayCounts[dow]++;
   });
   seasonalIndices.forEach((s, i) => {
-    seasonalIndices[i] = overallMean > 0 ? (s / dayCounts[i]) / overallMean : 1;
+    seasonalIndices[i] = overallMean > 0 ? s / dayCounts[i] / overallMean : 1;
   });
 
   // Deseasonalise
@@ -385,11 +407,11 @@ export interface TravelAnalysisResult {
 
 export function buildTravelReceipt(
   result: TravelAnalysisResult,
-  options?: RevenueReceiptOptions,
+  options?: RevenueReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
-  if (result.revpar && result.revpar.occupancyRate < 0.40) {
+  if (result.revpar && result.revpar.occupancyRate < 0.4) {
     violations.push({
       criterion: 'occupancy',
       message: `Occupancy ${(result.revpar.occupancyRate * 100).toFixed(1)}% is critically low (<40%)`,
@@ -413,7 +435,11 @@ export function buildTravelReceipt(
       emsrExpectedRevenue: result.emsr?.expectedRevenue ?? null,
       overbookLevel: result.overbooking?.overbook ?? null,
     },
-    cael: { version: 'cael.v1', event: 'travel_hospitality.revenue_management', solverType: 'travel-hospitality.emsr-b' },
+    cael: {
+      version: 'cael.v1',
+      event: 'travel_hospitality.revenue_management',
+      solverType: 'travel-hospitality.emsr-b',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

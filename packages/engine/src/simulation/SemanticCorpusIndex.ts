@@ -52,7 +52,7 @@ export interface BuildIndexOptions {
  */
 export async function buildSemanticCorpusIndex(
   corpus: ReadonlyArray<ConjecturePriorArtEntry>,
-  options: BuildIndexOptions = {},
+  options: BuildIndexOptions = {}
 ): Promise<SemanticCorpusIndex> {
   if (corpus.length === 0) {
     throw new Error('semantic-corpus-index: cannot build an index from an empty corpus');
@@ -69,7 +69,12 @@ export async function buildSemanticCorpusIndex(
     entries.push({ ...entry, vector });
     options.onProgress?.(i + 1, corpus.length);
   }
-  return { indexVersion: SEMANTIC_CORPUS_INDEX_VERSION, modelId: SEMANTIC_NOVELTY_MODEL, dim, entries };
+  return {
+    indexVersion: SEMANTIC_CORPUS_INDEX_VERSION,
+    modelId: SEMANTIC_NOVELTY_MODEL,
+    dim,
+    entries,
+  };
 }
 
 /**
@@ -78,7 +83,7 @@ export async function buildSemanticCorpusIndex(
  */
 export function nearestByCosine(
   queryVector: ReadonlyArray<number>,
-  index: SemanticCorpusIndex,
+  index: SemanticCorpusIndex
 ): SemanticNoveltyMatch | null {
   let nearest: SemanticNoveltyMatch | null = null;
   for (const entry of index.entries) {
@@ -108,7 +113,7 @@ export function nearestByCosine(
 export async function assessSemanticNoveltyIndexed(
   query: string,
   index: SemanticCorpusIndex,
-  threshold: number = SEMANTIC_NOVELTY_THRESHOLD,
+  threshold: number = SEMANTIC_NOVELTY_THRESHOLD
 ): Promise<SemanticNoveltyAssessment> {
   if (typeof query !== 'string' || query.length === 0) {
     throw new Error('semantic-corpus-index: query must be a non-empty string');
@@ -145,7 +150,9 @@ export function deserializeIndex(json: string): SemanticCorpusIndex {
     throw new Error(`semantic-corpus-index: unsupported index version ${parsed.indexVersion}`);
   }
   if (parsed.modelId !== SEMANTIC_NOVELTY_MODEL) {
-    throw new Error(`semantic-corpus-index: index model ${parsed.modelId} != ${SEMANTIC_NOVELTY_MODEL}`);
+    throw new Error(
+      `semantic-corpus-index: index model ${parsed.modelId} != ${SEMANTIC_NOVELTY_MODEL}`
+    );
   }
   if (!Array.isArray(parsed.entries) || parsed.entries.some((e) => !Array.isArray(e.vector))) {
     throw new Error('semantic-corpus-index: malformed entries (missing vectors)');

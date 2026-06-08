@@ -22,7 +22,7 @@
 
 ## Sample memos reviewed
 
-- `research/2026-04-22_urdformer-urdf-holoscript-bridge.md` — integration framing; date aligns with wave slot.  
+- `research/2026-04-22_urdformer-urdf-holoscript-bridge.md` — integration framing; date aligns with wave slot.
 - `research/2026-04-26_tree-sitter-wasm-fallback.md` — design note tied to board estimate; date aligns with wave slot.
 
 ## Memory

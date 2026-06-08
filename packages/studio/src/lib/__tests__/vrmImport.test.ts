@@ -60,11 +60,7 @@ describe('vrmImport', () => {
             licenseUrl: 'https://example.com/license',
           },
           humanoid: {
-            humanBones: [
-              { bone: 'hips' },
-              { bone: 'spine' },
-              { bone: 'head' },
-            ],
+            humanBones: [{ bone: 'hips' }, { bone: 'spine' }, { bone: 'head' }],
           },
           expressions: {},
           lookAt: {},

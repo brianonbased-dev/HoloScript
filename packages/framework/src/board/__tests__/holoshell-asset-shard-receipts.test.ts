@@ -198,9 +198,7 @@ function makeWitness(
   };
 }
 
-function makeIntake(
-  overrides: Partial<AssetIntakeReceipt> = {}
-): AssetIntakeReceipt {
+function makeIntake(overrides: Partial<AssetIntakeReceipt> = {}): AssetIntakeReceipt {
   return {
     schemaVersion: 'hololand.holoshell.asset-intake.v0.1.0',
     intakeId: 'intake-demo-001',
@@ -239,9 +237,7 @@ function makeIntake(
   };
 }
 
-function makeConversion(
-  overrides: Partial<AssetConversionReceipt> = {}
-): AssetConversionReceipt {
+function makeConversion(overrides: Partial<AssetConversionReceipt> = {}): AssetConversionReceipt {
   return {
     schemaVersion: 'hololand.holoshell.asset-conversion.v0.1.0',
     conversionId: 'conversion-model-001',
@@ -332,12 +328,14 @@ function makeRollbackContract(
 
 describe('HoloShell asset shard receipts', () => {
   it('accepts a complete workflow, approval, import, and visual witness bundle', () => {
-    expect(validateAssetShardReceiptBundle({
-      workflow: makeWorkflow(),
-      approval: makeApproval(),
-      importReceipt: makeImportReceipt(),
-      witness: makeWitness(),
-    })).toEqual([]);
+    expect(
+      validateAssetShardReceiptBundle({
+        workflow: makeWorkflow(),
+        approval: makeApproval(),
+        importReceipt: makeImportReceipt(),
+        witness: makeWitness(),
+      })
+    ).toEqual([]);
   });
 
   it('rejects absolute public paths in workflow output and asset proxies', () => {
@@ -396,11 +394,13 @@ describe('HoloShell asset shard receipts', () => {
   });
 
   it('rejects completed imports without a playable visual witness', () => {
-    expect(validateAssetShardReceiptBundle({
-      workflow: makeWorkflow(),
-      approval: makeApproval(),
-      importReceipt: makeImportReceipt(),
-    })).toEqual(
+    expect(
+      validateAssetShardReceiptBundle({
+        workflow: makeWorkflow(),
+        approval: makeApproval(),
+        importReceipt: makeImportReceipt(),
+      })
+    ).toEqual(
       expect.arrayContaining([
         'AssetShardReceiptBundle.witness is required when importReceipt is completed.',
       ])
@@ -522,12 +522,14 @@ describe('HoloShell asset shard receipts', () => {
   });
 
   it('accepts a completed import bundle with playable shard visual witness', () => {
-    expect(validateAssetShardReceiptBundle({
-      workflow: makeWorkflow(),
-      approval: makeApproval(),
-      importReceipt: makeImportReceipt(),
-      witness: makeWitness(),
-    })).toEqual([]);
+    expect(
+      validateAssetShardReceiptBundle({
+        workflow: makeWorkflow(),
+        approval: makeApproval(),
+        importReceipt: makeImportReceipt(),
+        witness: makeWitness(),
+      })
+    ).toEqual([]);
   });
 
   it('rejects playable shard witnesses with status fail or missing required fields', () => {
@@ -600,9 +602,7 @@ describe('AssetShardWorkflowReceipt blocked-file gate and preview source validat
 
     const errors = validateAssetShardWorkflowReceipt(receipt);
     expect(errors).not.toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('secretLikeAssetGate'),
-      ])
+      expect.arrayContaining([expect.stringContaining('secretLikeAssetGate')])
     );
   });
 
@@ -616,9 +616,7 @@ describe('AssetShardWorkflowReceipt blocked-file gate and preview source validat
 
     const errors = validateAssetShardWorkflowReceipt(receipt);
     expect(errors).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('previewSourceValidation'),
-      ])
+      expect.arrayContaining([expect.stringContaining('previewSourceValidation')])
     );
   });
 
@@ -632,9 +630,7 @@ describe('AssetShardWorkflowReceipt blocked-file gate and preview source validat
 
     const errors = validateAssetShardWorkflowReceipt(receipt);
     expect(errors).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('previewSourceValidation'),
-      ])
+      expect.arrayContaining([expect.stringContaining('previewSourceValidation')])
     );
   });
 
@@ -648,9 +644,7 @@ describe('AssetShardWorkflowReceipt blocked-file gate and preview source validat
 
     const errors = validateAssetShardWorkflowReceipt(receipt);
     expect(errors).not.toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('previewSourceValidation'),
-      ])
+      expect.arrayContaining([expect.stringContaining('previewSourceValidation')])
     );
   });
 });
@@ -693,7 +687,9 @@ describe('AssetIntakeReceipt', () => {
       },
     });
     expect(validateAssetIntakeReceipt(receipt)).toEqual(
-      expect.arrayContaining(['AssetIntakeReceipt.source.pathPolicy must keep absolute paths private.'])
+      expect.arrayContaining([
+        'AssetIntakeReceipt.source.pathPolicy must keep absolute paths private.',
+      ])
     );
   });
 
@@ -717,7 +713,9 @@ describe('AssetIntakeReceipt', () => {
       },
     });
     expect(validateAssetIntakeReceipt(receipt)).toEqual(
-      expect.arrayContaining(['AssetIntakeReceipt.summary.blockedFileGate must be pass or blocked.'])
+      expect.arrayContaining([
+        'AssetIntakeReceipt.summary.blockedFileGate must be pass or blocked.',
+      ])
     );
   });
 
@@ -816,9 +814,7 @@ describe('AssetIntakeReceipt', () => {
       ],
     });
     expect(validateAssetIntakeReceipt(receipt)).toEqual(
-      expect.arrayContaining([
-        'AssetIntakeReceipt file(asset.model.001).hashSha256 is required.',
-      ])
+      expect.arrayContaining(['AssetIntakeReceipt file(asset.model.001).hashSha256 is required.'])
     );
   });
 
@@ -885,7 +881,9 @@ describe('AssetConversionReceipt', () => {
   it('rejects conversion receipts with invalid timestamp', () => {
     const receipt = makeConversion({ generatedAt: 'not-a-date' });
     expect(validateAssetConversionReceipt(receipt)).toEqual(
-      expect.arrayContaining(['AssetConversionReceipt.generatedAt must be a valid ISO-8601 timestamp.'])
+      expect.arrayContaining([
+        'AssetConversionReceipt.generatedAt must be a valid ISO-8601 timestamp.',
+      ])
     );
   });
 
@@ -916,7 +914,9 @@ describe('AssetConversionReceipt', () => {
       },
     });
     expect(validateAssetConversionReceipt(receipt)).toEqual(
-      expect.arrayContaining(['AssetConversionReceipt.source.pathPolicy must keep absolute paths private.'])
+      expect.arrayContaining([
+        'AssetConversionReceipt.source.pathPolicy must keep absolute paths private.',
+      ])
     );
   });
 
@@ -958,9 +958,7 @@ describe('AssetConversionReceipt', () => {
       },
     });
     const errors = validateAssetConversionReceipt(receipt);
-    expect(errors).not.toEqual(
-      expect.arrayContaining([expect.stringContaining('output')])
-    );
+    expect(errors).not.toEqual(expect.arrayContaining([expect.stringContaining('output')]));
   });
 
   it('clones conversion receipts without retaining mutable references', () => {
@@ -990,7 +988,9 @@ describe('PreviewShardSourceReceipt', () => {
   it('rejects preview receipts with invalid timestamp', () => {
     const receipt = makePreview({ generatedAt: 'not-a-date' });
     expect(validatePreviewShardSourceReceipt(receipt)).toEqual(
-      expect.arrayContaining(['PreviewShardSourceReceipt.generatedAt must be a valid ISO-8601 timestamp.'])
+      expect.arrayContaining([
+        'PreviewShardSourceReceipt.generatedAt must be a valid ISO-8601 timestamp.',
+      ])
     );
   });
 
@@ -1002,7 +1002,9 @@ describe('PreviewShardSourceReceipt', () => {
       },
     });
     expect(validatePreviewShardSourceReceipt(receipt)).toEqual(
-      expect.arrayContaining(['PreviewShardSourceReceipt.source.pathPolicy must keep absolute paths private.'])
+      expect.arrayContaining([
+        'PreviewShardSourceReceipt.source.pathPolicy must keep absolute paths private.',
+      ])
     );
   });
 
@@ -1026,7 +1028,9 @@ describe('PreviewShardSourceReceipt', () => {
       },
     });
     expect(validatePreviewShardSourceReceipt(receipt)).toEqual(
-      expect.arrayContaining(['PreviewShardSourceReceipt.summary.sourceAssetsMutated must be false.'])
+      expect.arrayContaining([
+        'PreviewShardSourceReceipt.summary.sourceAssetsMutated must be false.',
+      ])
     );
   });
 
@@ -1052,7 +1056,9 @@ describe('PreviewShardSourceReceipt', () => {
       },
     });
     expect(validatePreviewShardSourceReceipt(receipt)).toEqual(
-      expect.arrayContaining(['PreviewShardSourceReceipt.rollback.sourceAssetsMutated must be false.'])
+      expect.arrayContaining([
+        'PreviewShardSourceReceipt.rollback.sourceAssetsMutated must be false.',
+      ])
     );
   });
 
@@ -1095,7 +1101,9 @@ describe('AssetShardRollbackContract', () => {
   it('rejects rollback contracts with empty rollbackPoints', () => {
     const contract = makeRollbackContract({ rollbackPoints: [] });
     expect(validateAssetShardRollbackContract(contract)).toEqual(
-      expect.arrayContaining(['AssetShardRollbackContract.rollbackPoints must contain at least one rollback point.'])
+      expect.arrayContaining([
+        'AssetShardRollbackContract.rollbackPoints must contain at least one rollback point.',
+      ])
     );
   });
 

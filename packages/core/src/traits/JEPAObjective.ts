@@ -188,13 +188,21 @@ export const jepObjectiveHandler: TraitHandler<JEPAObjectiveConfig> = {
     // 1. Validate inputs
     const contextStr = readString(event.context);
     if (!contextStr) {
-      emitError(context, { code: 'JEPA_CONTEXT_REQUIRED', message: 'jepa:encode_pair requires a non-empty context string', step });
+      emitError(context, {
+        code: 'JEPA_CONTEXT_REQUIRED',
+        message: 'jepa:encode_pair requires a non-empty context string',
+        step,
+      });
       return;
     }
 
     const targetVec = toFloat32Array(event.targetVec);
     if (!targetVec) {
-      emitError(context, { code: 'JEPA_TARGET_VEC_REQUIRED', message: 'jepa:encode_pair requires targetVec (Float32Array or number[])', step });
+      emitError(context, {
+        code: 'JEPA_TARGET_VEC_REQUIRED',
+        message: 'jepa:encode_pair requires targetVec (Float32Array or number[])',
+        step,
+      });
       return;
     }
     if (targetVec.length !== config.latentDim) {
@@ -209,7 +217,11 @@ export const jepObjectiveHandler: TraitHandler<JEPAObjectiveConfig> = {
     // 2. Encode context via EmbeddingTrait (synchronous deterministic path)
     const contextEmb = encodeContext(state, config, contextStr);
     if (!contextEmb) {
-      emitError(context, { code: 'JEPA_ENCODE_FAILED', message: 'Context encoding returned null vector', step });
+      emitError(context, {
+        code: 'JEPA_ENCODE_FAILED',
+        message: 'Context encoding returned null vector',
+        step,
+      });
       return;
     }
 
@@ -219,11 +231,7 @@ export const jepObjectiveHandler: TraitHandler<JEPAObjectiveConfig> = {
 
     // 4. Compute losses
     const predictionLoss = mseLoss(predicted, targetVec);
-    const sigregLoss = computeSIGReg(
-      predicted,
-      config.sigregProjections,
-      config.sigregSigma
-    );
+    const sigregLoss = computeSIGReg(predicted, config.sigregProjections, config.sigregSigma);
     const totalLoss = predictionLoss + config.sigregWeight * sigregLoss;
 
     // 5. Emit loss event
@@ -275,17 +283,12 @@ function encodeContext(
 
   const mockNode = {} as HSPlusNode;
   embeddingHandler.onAttach?.(mockNode, state.embeddingConfig, captureContext);
-  embeddingHandler.onEvent?.(
-    mockNode,
-    state.embeddingConfig,
-    captureContext,
-    {
-      type: 'embedding:generate',
-      input: contextStr,
-      model: config.embeddingModel,
-      dimensions: config.latentDim,
-    }
-  );
+  embeddingHandler.onEvent?.(mockNode, state.embeddingConfig, captureContext, {
+    type: 'embedding:generate',
+    input: contextStr,
+    model: config.embeddingModel,
+    dimensions: config.latentDim,
+  });
   embeddingHandler.onDetach?.(mockNode, state.embeddingConfig, captureContext);
 
   return result;
@@ -310,11 +313,7 @@ function encodeContext(
  *
  * This is a scalar ≥ 0; it equals 0 iff z is drawn from N(0, σ²I).
  */
-function computeSIGReg(
-  z: Float32Array,
-  numProjections: number,
-  sigma: number
-): number {
+function computeSIGReg(z: Float32Array, numProjections: number, sigma: number): number {
   const dim = z.length;
   const sigmaSquared = sigma * sigma;
   let total = 0;
@@ -363,11 +362,7 @@ function computeSIGReg(
 // Weight update handler
 // ─────────────────────────────────────────────────────────────────────────────
 
-function handleWeightUpdate(
-  state: JEPAState,
-  context: TraitContext,
-  event: TraitEvent
-): void {
+function handleWeightUpdate(state: JEPAState, context: TraitContext, event: TraitEvent): void {
   try {
     state.predictor.setWeights({
       W1: requireFloat32(event.W1, 'W1'),

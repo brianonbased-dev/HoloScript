@@ -29,10 +29,7 @@ import {
   createPlatformTarget,
   validatePlatformConstraints,
 } from '../../PlatformConditionalCompilerMixin';
-import {
-  ALL_PLATFORMS,
-  PLATFORM_CATEGORIES,
-} from '../PlatformConditional';
+import { ALL_PLATFORMS, PLATFORM_CATEGORIES } from '../PlatformConditional';
 
 // =============================================================================
 // HELPERS

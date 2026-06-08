@@ -67,10 +67,15 @@ const defaultConfig: GCodeSlicerConfig = {
   adhesionLayerCount: 3,
   adhesionLayerHeightMm: 0.25,
   adhesionBrimMm: 2,
-  printSpeedMmS: 50
+  printSpeedMmS: 50,
 };
 
-function bbox2D(vertices: [number, number, number][]): { minX: number; maxX: number; minY: number; maxY: number } {
+function bbox2D(vertices: [number, number, number][]): {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+} {
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
@@ -92,7 +97,9 @@ export function buildAdhesionLayerPlan(c: GCodeSlicerConfig): AdhesionLayerPlanE
   const out: AdhesionLayerPlanEntry[] = [];
   let z = 0;
   for (let i = 0; i < c.adhesionLayerCount; i++) {
-    const temp = c.nozzleTempC + (i === 0 ? c.firstLayerNozzleBoostC : Math.max(0, c.firstLayerNozzleBoostC - i * 3));
+    const temp =
+      c.nozzleTempC +
+      (i === 0 ? c.firstLayerNozzleBoostC : Math.max(0, c.firstLayerNozzleBoostC - i * 3));
     out.push({ layerIndex: i, zMm: z + c.adhesionLayerHeightMm, nozzleTempC: Math.round(temp) });
     z += c.adhesionLayerHeightMm;
   }
@@ -120,7 +127,7 @@ export function buildInsetPerimeterTraversal(
       [maxX, minY, layerZMm],
       [maxX, maxY, layerZMm],
       [minX, maxY, layerZMm],
-      [minX, minY, layerZMm]
+      [minX, minY, layerZMm],
     ];
   }
   const edge = (x0: number, y0: number, x1: number, y1: number): [number, number, number][] => {
@@ -135,7 +142,7 @@ export function buildInsetPerimeterTraversal(
     ...edge(ix0, iy0, ix1, iy0),
     ...edge(ix1, iy0, ix1, iy1).slice(1),
     ...edge(ix1, iy1, ix0, iy1).slice(1),
-    ...edge(ix0, iy1, ix0, iy0).slice(1)
+    ...edge(ix0, iy1, ix0, iy0).slice(1),
   ];
 }
 
@@ -148,7 +155,7 @@ export function buildSemanticGCodePreamble(c: GCodeSlicerConfig, mesh?: MeshSlic
     `M140 S${Math.round(c.bedTempC)} ; bed target`,
     `M104 S${Math.round(c.nozzleTempC)} ; nozzle standby → target`,
     `M190 S${Math.round(c.bedTempC)} ; wait for bed`,
-    `M109 S${Math.round(c.nozzleTempC + c.firstLayerNozzleBoostC)} ; first layer nozzle (boosted)`
+    `M109 S${Math.round(c.nozzleTempC + c.firstLayerNozzleBoostC)} ; first layer nozzle (boosted)`,
   ];
   const adhesion = buildAdhesionLayerPlan(c);
   for (const layer of adhesion) {
@@ -164,18 +171,23 @@ export function buildSemanticGCodePreamble(c: GCodeSlicerConfig, mesh?: MeshSlic
       `; vertices=${mesh.verticesMm.length}`
     );
   }
-  lines.push(`; layerHeight=${c.layerHeightMm} infill=${c.infillPercent}% F=${c.printSpeedMmS}mm/s`);
+  lines.push(
+    `; layerHeight=${c.layerHeightMm} infill=${c.infillPercent}% F=${c.printSpeedMmS}mm/s`
+  );
   return lines.join('\n');
 }
 
-export function buildTraversalStackFromMesh(c: GCodeSlicerConfig, mesh: MeshSliceInput): TraversalLayerPlan[] {
+export function buildTraversalStackFromMesh(
+  c: GCodeSlicerConfig,
+  mesh: MeshSliceInput
+): TraversalLayerPlan[] {
   if (!mesh.verticesMm.length) return [];
   const plans: TraversalLayerPlan[] = [];
   const adhesion = buildAdhesionLayerPlan(c);
   for (const layer of adhesion) {
     plans.push({
       layerZMm: layer.zMm,
-      pointsMm: buildInsetPerimeterTraversal(mesh.verticesMm, layer.zMm, c.adhesionBrimMm)
+      pointsMm: buildInsetPerimeterTraversal(mesh.verticesMm, layer.zMm, c.adhesionBrimMm),
     });
   }
   let z = adhesion.length ? adhesion[adhesion.length - 1]!.zMm : 0;
@@ -184,7 +196,11 @@ export function buildTraversalStackFromMesh(c: GCodeSlicerConfig, mesh: MeshSlic
     z += c.layerHeightMm;
     plans.push({
       layerZMm: z,
-      pointsMm: buildInsetPerimeterTraversal(mesh.verticesMm, z, c.adhesionBrimMm + c.layerHeightMm * 2)
+      pointsMm: buildInsetPerimeterTraversal(
+        mesh.verticesMm,
+        z,
+        c.adhesionBrimMm + c.layerHeightMm * 2
+      ),
     });
   }
   return plans;
@@ -205,9 +221,11 @@ export function createGCodeSlicerHandler(): TraitHandler<GCodeSlicerConfig> {
         mesh,
         adhesionPlan,
         traversal,
-        gcodePreamble: buildSemanticGCodePreamble(c, mesh.verticesMm.length ? mesh : undefined)
+        gcodePreamble: buildSemanticGCodePreamble(c, mesh.verticesMm.length ? mesh : undefined),
       };
-      ctx.emit?.('gcode_slicer:ready', { semantic: { adhesionPlan, traversalLayers: traversal.length } });
+      ctx.emit?.('gcode_slicer:ready', {
+        semantic: { adhesionPlan, traversalLayers: traversal.length },
+      });
     },
     onDetach(n: HSPlusNode, _c: GCodeSlicerConfig, ctx: TraitContext) {
       delete n.__slicerState;
@@ -223,7 +241,7 @@ export function createGCodeSlicerHandler(): TraitHandler<GCodeSlicerConfig> {
       s.gcodePreamble = buildSemanticGCodePreamble(c, mesh.verticesMm.length ? mesh : undefined);
       ctx.emit?.('gcode_slicer:semantic_updated', {
         adhesionPlan: s.adhesionPlan,
-        traversalLayers: s.traversal?.length ?? 0
+        traversalLayers: s.traversal?.length ?? 0,
       });
     },
     onEvent(n: HSPlusNode, c: GCodeSlicerConfig, ctx: TraitContext, e: TraitEvent) {
@@ -239,7 +257,10 @@ export function createGCodeSlicerHandler(): TraitHandler<GCodeSlicerConfig> {
         s.adhesionPlan = buildAdhesionLayerPlan(c);
         s.traversal = buildTraversalStackFromMesh(c, mesh);
         s.gcodePreamble = buildSemanticGCodePreamble(c, mesh);
-        ctx.emit?.('gcode_slicer:mesh_bound', { vertexCount: verts.length, layers: s.traversal?.length ?? 0 });
+        ctx.emit?.('gcode_slicer:mesh_bound', {
+          vertexCount: verts.length,
+          layers: s.traversal?.length ?? 0,
+        });
       }
 
       if (e.type === 'gcode_slicer:slice' && !s.isSlicing) {
@@ -250,9 +271,12 @@ export function createGCodeSlicerHandler(): TraitHandler<GCodeSlicerConfig> {
         const meshVol = s.mesh?.verticesMm.length
           ? bbox2D(s.mesh.verticesMm)
           : { minX: 0, maxX: 50, minY: 0, maxY: 50 };
-        const xyArea = Math.max(1, meshVol.maxX - meshVol.minX) * Math.max(1, meshVol.maxY - meshVol.minY);
-        const volumeEstimate = xyArea * (c.adhesionLayerCount * c.adhesionLayerHeightMm + c.layerHeightMm * 12);
-        s.estimatedPrintTimeMs = (volumeEstimate / Math.max(0.01, c.printSpeedMmS * c.layerHeightMm)) * 1000;
+        const xyArea =
+          Math.max(1, meshVol.maxX - meshVol.minX) * Math.max(1, meshVol.maxY - meshVol.minY);
+        const volumeEstimate =
+          xyArea * (c.adhesionLayerCount * c.adhesionLayerHeightMm + c.layerHeightMm * 12);
+        s.estimatedPrintTimeMs =
+          (volumeEstimate / Math.max(0.01, c.printSpeedMmS * c.layerHeightMm)) * 1000;
 
         setTimeout(() => {
           s.isSlicing = false;
@@ -264,10 +288,10 @@ export function createGCodeSlicerHandler(): TraitHandler<GCodeSlicerConfig> {
             estimatedTimeMs: s.estimatedPrintTimeMs,
             preamble,
             adhesionPlan: s.adhesionPlan,
-            traversal: s.traversal
+            traversal: s.traversal,
           });
         }, 1500);
       }
-    }
+    },
   };
 }

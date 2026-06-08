@@ -113,9 +113,7 @@ describe('neuroscience -> HoloScript runtime integration (lif_neuron)', () => {
     // which the handler's try/catch turns into a lif_neuron_error rather than a
     // throw. (Iapp is supplied so it gets past the required-field guard and
     // actually reaches the solver, exercising the try/catch path.)
-    await runtime.executeNode(
-      lifNeuronOrb({ Iapp: 1.0, tauM: 0 }) as never,
-    );
+    await runtime.executeNode(lifNeuronOrb({ Iapp: 1.0, tauM: 0 }) as never);
     await flush();
 
     expect(errors).toHaveLength(1);

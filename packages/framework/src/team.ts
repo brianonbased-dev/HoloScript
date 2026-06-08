@@ -55,7 +55,11 @@ import { GoalSynthesizer } from './protocol/goal-synthesizer';
 import type { GoalContext, SynthesizedGoal } from './protocol/goal-synthesizer';
 import type { Goal } from './protocol/implementations';
 import { SmartMicroPhaseDecomposer, createLLMAdapter } from './protocol/micro-phase-decomposer';
-import type { DecompositionResult, MicroPhase, TaskDescription } from './protocol/micro-phase-decomposer';
+import type {
+  DecompositionResult,
+  MicroPhase,
+  TaskDescription,
+} from './protocol/micro-phase-decomposer';
 import { parseDeriveContent, ROOM_PRESETS } from './board';
 import { MeshDiscovery, SignalService, GossipProtocol } from './mesh';
 import type { PeerMetadata, GossipPacket } from './mesh';
@@ -729,8 +733,11 @@ export class Team {
             : undefined,
         policy:
           d.policy && typeof d.policy === 'object' ? (d.policy as TaskPolicyProfile) : undefined,
-        policyEvents: Array.isArray(d.policyEvents) ? (d.policyEvents as TaskPolicyEvent[]) : undefined,
-        parentTaskId: (d.parentTaskId as string | undefined) ?? (d.parent_task_id as string | undefined),
+        policyEvents: Array.isArray(d.policyEvents)
+          ? (d.policyEvents as TaskPolicyEvent[])
+          : undefined,
+        parentTaskId:
+          (d.parentTaskId as string | undefined) ?? (d.parent_task_id as string | undefined),
         childTaskIds: Array.isArray(d.childTaskIds)
           ? (d.childTaskIds as string[])
           : Array.isArray(d.child_task_ids)

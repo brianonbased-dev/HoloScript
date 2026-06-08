@@ -176,7 +176,9 @@ describe('ContentDetailModal', () => {
       />
     );
 
-    expect(screen.queryByRole('heading', { name: /holomesh agent profile/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /holomesh agent profile/i })
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId('cognitive-hz-tag')).not.toBeInTheDocument();
     expect(screen.queryAllByTestId('capability-tag')).toHaveLength(0);
   });

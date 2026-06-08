@@ -136,9 +136,7 @@ describe('PhysicsBoundsRegistry — envelope table', () => {
     expect(reg.getEnvelope(RiskTier.LOW)).toEqual(DEFAULT_ENVELOPES[RiskTier.LOW]);
     expect(reg.getEnvelope(RiskTier.MEDIUM)).toEqual(DEFAULT_ENVELOPES[RiskTier.MEDIUM]);
     expect(reg.getEnvelope(RiskTier.HIGH)).toEqual(DEFAULT_ENVELOPES[RiskTier.HIGH]);
-    expect(reg.getEnvelope(RiskTier.QUARANTINED)).toEqual(
-      DEFAULT_ENVELOPES[RiskTier.QUARANTINED]
-    );
+    expect(reg.getEnvelope(RiskTier.QUARANTINED)).toEqual(DEFAULT_ENVELOPES[RiskTier.QUARANTINED]);
   });
 
   it('default envelopes form a monotone schedule on magnitude caps', () => {

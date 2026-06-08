@@ -37,7 +37,7 @@ describe('tsiolkovskyDeltaV', () => {
   it('two stages sum to total ΔV', () => {
     const stages = [
       { wetMassKg: 10000, dryMassKg: 3000, isp: 300 },
-      { wetMassKg: 3000,  dryMassKg: 1000, isp: 420 },
+      { wetMassKg: 3000, dryMassKg: 1000, isp: 420 },
     ];
     const r = tsiolkovskyDeltaV(stages);
     expect(r.totalDeltaV).toBeCloseTo(r.stagesDeltaV[0] + r.stagesDeltaV[1], 4);
@@ -49,7 +49,7 @@ describe('tsiolkovskyDeltaV', () => {
   });
 
   it('higher Isp → higher ΔV for same mass ratio', () => {
-    const low  = tsiolkovskyDeltaV([{ wetMassKg: 5000, dryMassKg: 1000, isp: 300 }]);
+    const low = tsiolkovskyDeltaV([{ wetMassKg: 5000, dryMassKg: 1000, isp: 300 }]);
     const high = tsiolkovskyDeltaV([{ wetMassKg: 5000, dryMassKg: 1000, isp: 450 }]);
     expect(high.totalDeltaV).toBeGreaterThan(low.totalDeltaV);
   });
@@ -100,7 +100,9 @@ describe('keplerOrbit', () => {
   });
 
   it('throws for eccentricity ≥ 1', () => {
-    expect(() => keplerOrbit({ semiMajorAxisM: 7e6, eccentricity: 1.0, inclinationDeg: 0 })).toThrow();
+    expect(() =>
+      keplerOrbit({ semiMajorAxisM: 7e6, eccentricity: 1.0, inclinationDeg: 0 })
+    ).toThrow();
   });
 });
 
@@ -111,25 +113,41 @@ describe('aerodynamicDrag', () => {
    * F = Cd × A × 0.5ρv² = 0.5 × Cd × A × ρ × v²
    */
   it('drag force = Cd × A × q', () => {
-    const cd = 0.5, A = 2.0, rho = 1.225, v = 100;
+    const cd = 0.5,
+      A = 2.0,
+      rho = 1.225,
+      v = 100;
     const r = aerodynamicDrag({ cd, referenceAreaM2: A, airDensityKgM3: rho, velocityMs: v });
     const q = 0.5 * rho * v * v;
     expect(r.dragForceN).toBeCloseTo(cd * A * q, 4);
   });
 
   it('dynamic pressure q = 0.5ρv²', () => {
-    const rho = 1.225, v = 50;
-    const r = aerodynamicDrag({ cd: 1.0, referenceAreaM2: 1.0, airDensityKgM3: rho, velocityMs: v });
+    const rho = 1.225,
+      v = 50;
+    const r = aerodynamicDrag({
+      cd: 1.0,
+      referenceAreaM2: 1.0,
+      airDensityKgM3: rho,
+      velocityMs: v,
+    });
     expect(r.dynamicPressurePa).toBeCloseTo(0.5 * rho * v * v, 4);
   });
 
   it('zero velocity → zero drag', () => {
-    const r = aerodynamicDrag({ cd: 1.0, referenceAreaM2: 1.0, airDensityKgM3: 1.225, velocityMs: 0 });
+    const r = aerodynamicDrag({
+      cd: 1.0,
+      referenceAreaM2: 1.0,
+      airDensityKgM3: 1.225,
+      velocityMs: 0,
+    });
     expect(r.dragForceN).toBe(0);
   });
 
   it('throws for negative area', () => {
-    expect(() => aerodynamicDrag({ cd: 1.0, referenceAreaM2: -1, airDensityKgM3: 1.225, velocityMs: 100 })).toThrow();
+    expect(() =>
+      aerodynamicDrag({ cd: 1.0, referenceAreaM2: -1, airDensityKgM3: 1.225, velocityMs: 100 })
+    ).toThrow();
   });
 });
 
@@ -162,7 +180,7 @@ describe('machNumber', () => {
   });
 
   it('stagnationTempRiseK increases with Mach', () => {
-    const low  = machNumber(200, 340);
+    const low = machNumber(200, 340);
     const high = machNumber(2000, 340);
     expect(high.stagnationTempRiseK).toBeGreaterThan(low.stagnationTempRiseK);
   });
@@ -200,7 +218,10 @@ describe('axialStress', () => {
   });
 
   it('deformation δ = FL/AE', () => {
-    const F = 10000, A = 0.01, E = 200e9, L = 1.0;
+    const F = 10000,
+      A = 0.01,
+      E = 200e9,
+      L = 1.0;
     const r = axialStress(F, A, E, L, 300e6);
     expect(r.deformationM).toBeCloseTo((F * L) / (A * E), 10);
   });

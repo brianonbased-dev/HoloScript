@@ -52,11 +52,7 @@ function decodeRateCoded(spikes: Spike[] | undefined, quantum: number): number {
   return polarity === 1 ? magnitude : -magnitude;
 }
 
-export function decodeStep(
-  step: number,
-  spikes: Spike[],
-  opts: DecodeOptions
-): DecodedStep {
+export function decodeStep(step: number, spikes: Spike[], opts: DecodeOptions): DecodedStep {
   const byNeuron = groupByNeuron(spikes);
   const out: DecodedStep = { step, floats: {}, vectors: {}, action_neuron_ids: [] };
 
@@ -123,7 +119,14 @@ export function verifyBoundedLoss(
       for (let k = 0; k < 3; k++) {
         const delta = Math.abs(got[k] - expected[k]);
         if (delta > q / 2) {
-          violations.push({ field, component: k, expected: expected[k], decoded: got[k], delta, bound: q / 2 });
+          violations.push({
+            field,
+            component: k,
+            expected: expected[k],
+            decoded: got[k],
+            delta,
+            bound: q / 2,
+          });
         }
       }
     }

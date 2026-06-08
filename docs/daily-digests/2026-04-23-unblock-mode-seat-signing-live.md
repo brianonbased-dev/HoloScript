@@ -1,7 +1,7 @@
 # Milestone digest — 2026-04-23 (wave 2)
 
-* **Program / theme:** `unblock` team mode canonicalized + per-seat git-signing end-to-end validated + tool-count regression investigated (false alarm → clean dedupe + wisdom graduated)
-* **PR / commit:** HoloScript `a4f62a39e` (TEAM_MODES + ROOM_PRESETS.unblock + PERMISSIONS.md), ai-ecosystem `4dffe01` (room-skill docs), plus this commit signed end-to-end by the `claudecode-claude-x402` seat as the proof-of-life for `scripts/seat-signing-bootstrap.mjs` slice-2 wire-up.
+- **Program / theme:** `unblock` team mode canonicalized + per-seat git-signing end-to-end validated + tool-count regression investigated (false alarm → clean dedupe + wisdom graduated)
+- **PR / commit:** HoloScript `a4f62a39e` (TEAM_MODES + ROOM_PRESETS.unblock + PERMISSIONS.md), ai-ecosystem `4dffe01` (room-skill docs), plus this commit signed end-to-end by the `claudecode-claude-x402` seat as the proof-of-life for `scripts/seat-signing-bootstrap.mjs` slice-2 wire-up.
 
 ## Three bullets
 

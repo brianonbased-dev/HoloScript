@@ -72,10 +72,11 @@ function toToolCall(value: unknown, index: number): ToolCall | null {
   if (typeof value !== 'object' || value === null) return null;
   const obj = value as Record<string, unknown>;
 
-  const inner =
-    isRecord(obj.tool_call) ? obj.tool_call :
-    isRecord(obj.function) ? obj.function :
-    obj;
+  const inner = isRecord(obj.tool_call)
+    ? obj.tool_call
+    : isRecord(obj.function)
+      ? obj.function
+      : obj;
 
   const name = inner.name;
   if (typeof name !== 'string' || !name.trim()) return null;

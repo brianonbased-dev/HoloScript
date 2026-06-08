@@ -28,7 +28,9 @@ const {
     mockGetType: vi.fn<[], WeatherType>().mockReturnValue('clear'),
     mockGetState: vi.fn<[], WeatherState>(),
     mockUpdateWeatherBlackboard: vi.fn(),
-    mockComputeSunPosition: vi.fn<[number, number?], [number, number, number]>().mockReturnValue([0.5, 0.866, 0]),
+    mockComputeSunPosition: vi
+      .fn<[number, number?], [number, number, number]>()
+      .mockReturnValue([0.5, 0.866, 0]),
     mockComputeSunIntensity: vi.fn<[number], number>().mockReturnValue(1.0),
   };
 });
@@ -359,7 +361,10 @@ describe('WeatherHubTrait', () => {
     it('ignores events if state is missing', async () => {
       const node = makeNode();
       expect(() =>
-        weatherHubHandler.onEvent!(node, defaultConfig, noopContext, { type: 'weather_set', weather: 'rain' })
+        weatherHubHandler.onEvent!(node, defaultConfig, noopContext, {
+          type: 'weather_set',
+          weather: 'rain',
+        })
       ).not.toThrow();
     });
 
@@ -429,8 +434,8 @@ describe('WeatherHubTrait', () => {
           direction: [3, 4, 0] as [number, number, number], // len=5
         });
         expect(mockSetWind).toHaveBeenCalledWith(
-          expect.closeTo(3 / 5 * 6, 4),
-          expect.closeTo(4 / 5 * 6, 4),
+          expect.closeTo((3 / 5) * 6, 4),
+          expect.closeTo((4 / 5) * 6, 4),
           expect.closeTo(0, 5),
           6
         );
@@ -672,7 +677,11 @@ describe('WeatherHubTrait', () => {
     it('uses computeSunPosition for sun_position', async () => {
       mockComputeSunPosition.mockReturnValue([0.3, 0.8, 0.1] as [number, number, number]);
       const node = makeNode();
-      await weatherHubHandler.onAttach!(node, makeConfig({ start_time: 14, latitude: 50 }), noopContext);
+      await weatherHubHandler.onAttach!(
+        node,
+        makeConfig({ start_time: 14, latitude: 50 }),
+        noopContext
+      );
       expect(mockComputeSunPosition).toHaveBeenCalledWith(14, 50);
       const call = mockUpdateWeatherBlackboard.mock.calls.at(-1)![0] as Record<string, unknown>;
       expect(call.sun_position).toEqual([0.3, 0.8, 0.1]);

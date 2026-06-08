@@ -93,10 +93,7 @@ export class DelegatedAuthorityHandler {
       receipts.push(receipt);
 
       // Respond on team feed so the requesting agent sees the receipt.
-      await this.mesh.sendTeamMessage(
-        formatReceiptForTeamFeed(receipt, msg.fromAgentName),
-        'dm'
-      );
+      await this.mesh.sendTeamMessage(formatReceiptForTeamFeed(receipt, msg.fromAgentName), 'dm');
     }
 
     return receipts;
@@ -218,14 +215,20 @@ export class DelegatedAuthorityHandler {
             return rejectReceipt(req, 'Missing payload.mode for set-team-mode.');
           }
           const result = await this.mesh.setTeamMode(mode, String(req.payload.reason ?? ''));
-          return executedReceipt(req, { modeSet: result.mode, unchanged: result.unchanged ?? false });
+          return executedReceipt(req, {
+            modeSet: result.mode,
+            unchanged: result.unchanged ?? false,
+          });
         }
 
         case 'set-room-prefs': {
           const style = req.payload.communicationStyle as string | undefined;
           const objective = req.payload.objective as string | undefined;
           if (!style && objective === undefined) {
-            return rejectReceipt(req, 'Missing payload.communicationStyle or payload.objective for set-room-prefs.');
+            return rejectReceipt(
+              req,
+              'Missing payload.communicationStyle or payload.objective for set-room-prefs.'
+            );
           }
           const result = await this.mesh.patchRoomPrefs({ communicationStyle: style, objective });
           return executedReceipt(req, result);
@@ -258,7 +261,10 @@ export class DelegatedAuthorityHandler {
           const taskId = String(req.payload.taskId ?? '');
           const toAgentId = String(req.payload.toAgentId ?? '');
           if (!taskId || !toAgentId) {
-            return rejectReceipt(req, 'Missing payload.taskId or payload.toAgentId for delegate-task.');
+            return rejectReceipt(
+              req,
+              'Missing payload.taskId or payload.toAgentId for delegate-task.'
+            );
           }
           const result = await this.mesh.delegateTask(taskId, toAgentId);
           return executedReceipt(req, result);
@@ -390,6 +396,7 @@ function formatReceiptForTeamFeed(receipt: AuthorityReceipt, toAgentName: string
 
 function coerceRequestType(raw: unknown): AuthorityRequestType | null {
   if (raw === 'owner-op' || raw === 'owner_op' || raw === 'ownerop') return 'owner-op';
-  if (raw === 'founder-gated' || raw === 'founder_gated' || raw === 'foundergated') return 'founder-gated';
+  if (raw === 'founder-gated' || raw === 'founder_gated' || raw === 'foundergated')
+    return 'founder-gated';
   return null;
 }

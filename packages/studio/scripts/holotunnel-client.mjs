@@ -21,7 +21,8 @@ import path from 'node:path';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const DEFAULT_RELAY_URL = process.env.HOLOTUNNEL_RELAY ?? 'wss://mcp-orchestrator-production-45f9.up.railway.app/tunnel-ws';
+const DEFAULT_RELAY_URL =
+  process.env.HOLOTUNNEL_RELAY ?? 'wss://mcp-orchestrator-production-45f9.up.railway.app/tunnel-ws';
 const LOCAL_HOST = process.env.HOLOTUNNEL_HOST ?? 'localhost';
 const DEFAULT_LOCAL_PORT = parseInt(process.env.HOLOTUNNEL_PORT ?? '3101', 10);
 const PING_TIMEOUT_MS = 40_000; // disconnect if no ping in 40s
@@ -76,9 +77,7 @@ function normalizeRelayBase(value) {
     .replace(/^wss:/, 'https:')
     .replace(/^ws:/, 'http:')
     .replace(/\/+$/, '');
-  return normalized.endsWith('/tunnel-ws')
-    ? normalized.slice(0, -'/tunnel-ws'.length)
-    : normalized;
+  return normalized.endsWith('/tunnel-ws') ? normalized.slice(0, -'/tunnel-ws'.length) : normalized;
 }
 
 function buildSharePacket({ publicUrl }) {
@@ -155,9 +154,9 @@ function forwardRequest({ method, path, headers, body }) {
       log(`⚠  local request failed: ${err.message}`);
       const body502 = Buffer.from(
         `<html><body style="font:14px monospace;padding:1rem;background:#1a0010;color:#f87;"><h2>HoloTunnel: Local Server Unreachable</h2>` +
-        `<p>Cannot reach http://${LOCAL_HOST}:${localPort}${path}</p>` +
-        `<p>Error: ${err.message}</p>` +
-        `<p>Is the Next.js dev server running? → <code>pnpm dev</code> in packages/studio</p></body></html>`
+          `<p>Cannot reach http://${LOCAL_HOST}:${localPort}${path}</p>` +
+          `<p>Error: ${err.message}</p>` +
+          `<p>Is the Next.js dev server running? → <code>pnpm dev</code> in packages/studio</p></body></html>`
       );
       resolve({
         status: 502,
@@ -203,7 +202,11 @@ function connect() {
   ws.on('message', async (raw) => {
     resetPingTimer();
     let msg;
-    try { msg = JSON.parse(raw.toString()); } catch { return; }
+    try {
+      msg = JSON.parse(raw.toString());
+    } catch {
+      return;
+    }
 
     if (msg.type === 'hello') {
       tunnelId = msg.tunnelId;
@@ -241,7 +244,9 @@ function connect() {
 
   ws.on('close', (code, reason) => {
     clearTimeout(pingTimer);
-    log(`disconnected (code=${code}${reason?.length ? ` reason=${reason}` : ''}) — reconnecting in ${reconnectDelay / 1000}s…`);
+    log(
+      `disconnected (code=${code}${reason?.length ? ` reason=${reason}` : ''}) — reconnecting in ${reconnectDelay / 1000}s…`
+    );
     setTimeout(connect, reconnectDelay);
     reconnectDelay = Math.min(reconnectDelay * 2, 30_000);
   });

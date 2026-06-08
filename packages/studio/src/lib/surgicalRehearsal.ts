@@ -144,9 +144,15 @@ export function distance3D(a: Vec3Like, b: Vec3Like): number {
  * Calculates the shortest distance from point P to the line segment AB.
  */
 export function distanceToSegment(p: Vec3Like, a: Vec3Like, b: Vec3Like): number {
-  const ax = coordX(a), ay = coordY(a), az = coordZ(a);
-  const bx = coordX(b), by = coordY(b), bz = coordZ(b);
-  const px = coordX(p), py = coordY(p), pz = coordZ(p);
+  const ax = coordX(a),
+    ay = coordY(a),
+    az = coordZ(a);
+  const bx = coordX(b),
+    by = coordY(b),
+    bz = coordZ(b);
+  const px = coordX(p),
+    py = coordY(p),
+    pz = coordZ(p);
 
   const ab = [bx - ax, by - ay, bz - az];
   const ap = [px - ax, py - ay, pz - az];

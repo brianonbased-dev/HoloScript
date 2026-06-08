@@ -130,7 +130,7 @@ describe('treatmentOutcome', () => {
 
   it('small change within error → no-change', () => {
     // pre=10, post=11, tiny change below RCI threshold
-    const r = treatmentOutcome(10, 11, 5, 0.50, 10);
+    const r = treatmentOutcome(10, 11, 5, 0.5, 10);
     expect(r.direction).toBe('no-change');
   });
 
@@ -251,8 +251,14 @@ describe('buildTherapyReceipt', () => {
 
   it('accepted=true for low-risk, sub-threshold scores', () => {
     const phq9 = phq9Score([0, 1, 0, 1, 0, 0, 0, 0, 0]); // score=2, none
-    const gad7 = gad7Score([0, 1, 0, 1, 0, 0, 0]);         // score=2, minimal
-    const risk = riskStratification({ suicidalIdeationScore: 0, recentSelfHarm: false, hasPlan: false, hasAccess: false, protectiveFactors: 3 });
+    const gad7 = gad7Score([0, 1, 0, 1, 0, 0, 0]); // score=2, minimal
+    const risk = riskStratification({
+      suicidalIdeationScore: 0,
+      recentSelfHarm: false,
+      hasPlan: false,
+      hasAccess: false,
+      protectiveFactors: 3,
+    });
     const receipt = buildTherapyReceipt({ phq9, gad7, risk, converged: true });
     expect(receipt.acceptance.accepted).toBe(true);
   });
@@ -273,7 +279,13 @@ describe('buildTherapyReceipt', () => {
   });
 
   it('accepted=false for crisis risk level', () => {
-    const risk = riskStratification({ suicidalIdeationScore: 3, recentSelfHarm: true, hasPlan: true, hasAccess: true, protectiveFactors: 0 });
+    const risk = riskStratification({
+      suicidalIdeationScore: 3,
+      recentSelfHarm: true,
+      hasPlan: true,
+      hasAccess: true,
+      protectiveFactors: 0,
+    });
     const receipt = buildTherapyReceipt({ risk, converged: true });
     expect(receipt.acceptance.accepted).toBe(false);
   });

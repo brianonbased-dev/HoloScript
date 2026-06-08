@@ -426,16 +426,8 @@ export class SpatialConstraintValidator {
       // Box containment
       const box = bounds as BoundingBox;
       const shrunk: BoundingBox = {
-        min: [
-          box.min[0] + margin,
-          box.min[1] + margin,
-          box.min[2] + margin,
-        ],
-        max: [
-          box.max[0] - margin,
-          box.max[1] - margin,
-          box.max[2] - margin,
-        ],
+        min: [box.min[0] + margin, box.min[1] + margin, box.min[2] + margin],
+        max: [box.max[0] - margin, box.max[1] - margin, box.max[2] - margin],
       };
       isInside = isPointInBox(point, shrunk);
     }
@@ -1304,16 +1296,8 @@ export class SpatialConstraintValidator {
 
     const box = bounds as BoundingBox;
     const expanded: BoundingBox = {
-      min: [
-        box.min[0] - extraRadius,
-        box.min[1] - extraRadius,
-        box.min[2] - extraRadius,
-      ],
-      max: [
-        box.max[0] + extraRadius,
-        box.max[1] + extraRadius,
-        box.max[2] + extraRadius,
-      ],
+      min: [box.min[0] - extraRadius, box.min[1] - extraRadius, box.min[2] - extraRadius],
+      max: [box.max[0] + extraRadius, box.max[1] + extraRadius, box.max[2] + extraRadius],
     };
     return isPointInBox(point, expanded);
   }

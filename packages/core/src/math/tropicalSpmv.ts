@@ -36,7 +36,11 @@ export function mulberry32(seed: number): () => number {
  * Min-plus SpMV: y_i = min_k (values[k] + x[colIdx[k]]) for entries in row i.
  * Rows with no entries get y_i = TROPICAL_INF.
  */
-export function tropicalMinPlusSpmv(csr: TropicalCsrMatrix, x: Float32Array, y: Float32Array): void {
+export function tropicalMinPlusSpmv(
+  csr: TropicalCsrMatrix,
+  x: Float32Array,
+  y: Float32Array
+): void {
   const { n, rowPtr, colIdx, values } = csr;
   if (x.length < n || y.length < n) {
     throw new Error(`tropicalMinPlusSpmv: x and y must have length >= n (${n})`);

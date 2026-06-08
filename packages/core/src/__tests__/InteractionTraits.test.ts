@@ -32,8 +32,8 @@ function mockNode(id = 'obj-1', props: Record<string, any> = {}) {
     id,
     properties: {
       position: [0, 0, 0],
-      scale: [1, 1, 1 ],
-      rotation: [0, 0, 0 ],
+      scale: [1, 1, 1],
+      rotation: [0, 0, 0],
       ...props,
     },
   };
@@ -43,7 +43,7 @@ function mockHand(pos: [number, number, number], pinch = 0): any {
   return {
     position: { ...pos },
     pinchStrength: pinch,
-    rotation: [0, 0, 0, 1 ],
+    rotation: [0, 0, 0, 1],
   };
 }
 

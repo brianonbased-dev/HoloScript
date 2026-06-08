@@ -95,7 +95,7 @@ export interface ScaffoldResult {
 export class ScaffoldValidationError extends Error {
   constructor(
     message: string,
-    public readonly field: string,
+    public readonly field: string
   ) {
     super(message);
     this.name = 'ScaffoldValidationError';
@@ -113,10 +113,7 @@ function validateDNA(dna: ProjectDNA): void {
 
   // Basic URL validation
   if (!dna.repoUrl.startsWith('https://') && !dna.repoUrl.startsWith('git@')) {
-    throw new ScaffoldValidationError(
-      'Repository URL must start with https:// or git@',
-      'repoUrl',
-    );
+    throw new ScaffoldValidationError('Repository URL must start with https:// or git@', 'repoUrl');
   }
 
   if (!Array.isArray(dna.techStack)) {
@@ -132,31 +129,26 @@ function validateDNA(dna: ProjectDNA): void {
   }
 
   if (typeof dna.packageCount !== 'number' || dna.packageCount < 0) {
-    throw new ScaffoldValidationError(
-      'packageCount must be a non-negative number',
-      'packageCount',
-    );
+    throw new ScaffoldValidationError('packageCount must be a non-negative number', 'packageCount');
   }
 
   if (typeof dna.testCoverage !== 'number' || dna.testCoverage < 0 || dna.testCoverage > 100) {
-    throw new ScaffoldValidationError(
-      'testCoverage must be between 0 and 100',
-      'testCoverage',
-    );
+    throw new ScaffoldValidationError('testCoverage must be between 0 and 100', 'testCoverage');
   }
 
-  if (typeof dna.codeHealthScore !== 'number' || dna.codeHealthScore < 0 || dna.codeHealthScore > 10) {
+  if (
+    typeof dna.codeHealthScore !== 'number' ||
+    dna.codeHealthScore < 0 ||
+    dna.codeHealthScore > 10
+  ) {
     throw new ScaffoldValidationError(
       'codeHealthScore must be between 0 and 10',
-      'codeHealthScore',
+      'codeHealthScore'
     );
   }
 
   if (!Array.isArray(dna.compilationTargets)) {
-    throw new ScaffoldValidationError(
-      'compilationTargets must be an array',
-      'compilationTargets',
-    );
+    throw new ScaffoldValidationError('compilationTargets must be an array', 'compilationTargets');
   }
 
   if (!Array.isArray(dna.traits)) {

@@ -116,7 +116,10 @@ import process from 'node:process';
  * staging dry-runs only — never for live attacks.
  */
 // Bare base; URL builders append /api/holomesh/... See _base.mjs for canonical.
-const DEFAULT_API_BASE = (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(/\/api\/holomesh\/?$/, '');
+const DEFAULT_API_BASE = (process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net').replace(
+  /\/api\/holomesh\/?$/,
+  ''
+);
 
 /**
  * The audit/ prefix is the ONLY route this loop is permitted to write to.
@@ -135,7 +138,7 @@ const AUDIT_PREFIX_LOCAL = 'audit/'; // local-file fallback prefix (W.090 invari
  * detectable parameter regions.
  */
 const BIAS_RATE_MIN = 0.005; // 0.5% — at-or-below the §5.4 ρ=0.01 canary rate
-const BIAS_RATE_MAX = 0.20;  // 20% — well under any reasonable per-call threshold
+const BIAS_RATE_MAX = 0.2; // 20% — well under any reasonable per-call threshold
 const BIAS_RATE_DEFAULT = 0.05; // 5% — interior of measured range
 
 /**
@@ -146,8 +149,8 @@ const BIAS_RATE_DEFAULT = 0.05; // 5% — interior of measured range
  * tell, §5.4.1 step 2).
  */
 const PROBE_CADENCE_MS_DEFAULT = 1_000; // 1 probe/sec — matches typical mesh canary cadence
-const PROBE_CADENCE_MS_MIN = 100;       // floor: faster than 100ms is detectable as a side channel
-const PROBE_CADENCE_MS_MAX = 60_000;    // ceil: slower than 1/min is too few samples for a 30s smoke
+const PROBE_CADENCE_MS_MIN = 100; // floor: faster than 100ms is detectable as a side channel
+const PROBE_CADENCE_MS_MAX = 60_000; // ceil: slower than 1/min is too few samples for a 30s smoke
 
 /**
  * Detection-poll cadence: how often we read the target's audit slice to
@@ -210,7 +213,11 @@ function buildCaelRecord({ agentHandle, operation, prevHash, vvFingerprint }) {
   return {
     tick_iso: tickIso,
     layer_hashes: layerHashes, // 7 layers
-    operation: { kind: operation.kind, route: operation.route, target_handle: operation.target_handle },
+    operation: {
+      kind: operation.kind,
+      route: operation.route,
+      target_handle: operation.target_handle,
+    },
     prev_hash: prevHash || null,
     fnv1a_chain: fnv.toString(16),
     version_vector_fingerprint: vvFingerprint || null,
@@ -270,15 +277,15 @@ class AuditEmitter {
         const op = record.operation;
         const flatRecord = {
           ...record,
-          operation: typeof op === 'string'
-            ? op
-            : `${op.route || 'audit/'}${op.kind || 'unknown'}`,
+          operation: typeof op === 'string' ? op : `${op.route || 'audit/'}${op.kind || 'unknown'}`,
           attack_class: 'slow-poisoner',
-          ...(typeof op === 'object' && op !== null ? {
-            target_handle: op.target_handle,
-            defense_state: op.defense_state,
-            trial: op.trial,
-          } : {}),
+          ...(typeof op === 'object' && op !== null
+            ? {
+                target_handle: op.target_handle,
+                defense_state: op.defense_state,
+                trial: op.trial,
+              }
+            : {}),
         };
         const response = await fetch(url, {
           method: 'POST',
@@ -414,7 +421,7 @@ async function readTargetTrustScore({ target, apiBase, attackerBearer, sinceIso 
   const since = encodeURIComponent(sinceIso);
   const auditUrl = `${apiBase}/agent/${encodeURIComponent(target)}/audit?since=${since}`;
   const res = await fetch(auditUrl, {
-    headers: { 'authorization': `Bearer ${attackerBearer}` },
+    headers: { authorization: `Bearer ${attackerBearer}` },
   });
   if (!res.ok) {
     return { score: null, blocker: `GET ${auditUrl} returned ${res.status}` };
@@ -425,7 +432,10 @@ async function readTargetTrustScore({ target, apiBase, attackerBearer, sinceIso 
   const ticks = tickStream.records || [];
   if (ticks.length === 0) return { score: null, blocker: 'no-ticks-in-window' };
   const latest = ticks[ticks.length - 1];
-  return { score: typeof latest.trust_score === 'number' ? latest.trust_score : null, blocker: null };
+  return {
+    score: typeof latest.trust_score === 'number' ? latest.trust_score : null,
+    blocker: null,
+  };
 }
 
 /**
@@ -489,8 +499,16 @@ function syntheticDetectionRound({ defenseState, anomalousProbeCount, biasRate, 
  * Returns {probe_class, probe_record, biased: bool}.
  */
 async function emitProbeTick({
-  attackerHandle, targetHandle, probeIdx, runId, biasRate, biasCategory,
-  apiBase, dryRun, audit, deterministicTossSeed,
+  attackerHandle,
+  targetHandle,
+  probeIdx,
+  runId,
+  biasRate,
+  biasCategory,
+  apiBase,
+  dryRun,
+  audit,
+  deterministicTossSeed,
 }) {
   // Deterministic Bernoulli toss — the bias-rate stream is reproducible
   // across smoke-pass runs (W.090). Production would use RNG seeded from
@@ -541,13 +559,21 @@ async function emitProbeTick({
  * BLOCKED on _d2jx; falls back to "blocker" mode when endpoint absent.
  */
 async function measureLiveDetection({
-  target, apiBase, attackerBearer, sinceIso, baselineScore,
-  startMs, durationMs,
+  target,
+  apiBase,
+  attackerBearer,
+  sinceIso,
+  baselineScore,
+  startMs,
+  durationMs,
 }) {
   const deadlineMs = startMs + durationMs;
   while (Date.now() < deadlineMs) {
     const { score, blocker } = await readTargetTrustScore({
-      target, apiBase, attackerBearer, sinceIso,
+      target,
+      apiBase,
+      attackerBearer,
+      sinceIso,
     });
     if (blocker) {
       return { time_to_detect_seconds: null, mode: 'live-blocked-on-d2jx', blocker };
@@ -601,17 +627,17 @@ export async function runSlowPoisoner(opts) {
   // Bounds-check parameters before any side effects.
   if (bias_rate < BIAS_RATE_MIN || bias_rate > BIAS_RATE_MAX) {
     throw new Error(
-      `[slow-poisoner] bias_rate=${bias_rate} out of bounds `
-      + `[${BIAS_RATE_MIN}, ${BIAS_RATE_MAX}] (Paper 21 §4.3 step 2: bias must be `
-      + `subtle enough per-call, large enough in aggregate; harness window is the `
-      + `interior of the §5.4 measurement plan).`
+      `[slow-poisoner] bias_rate=${bias_rate} out of bounds ` +
+        `[${BIAS_RATE_MIN}, ${BIAS_RATE_MAX}] (Paper 21 §4.3 step 2: bias must be ` +
+        `subtle enough per-call, large enough in aggregate; harness window is the ` +
+        `interior of the §5.4 measurement plan).`
     );
   }
   if (probe_cadence_ms < PROBE_CADENCE_MS_MIN || probe_cadence_ms > PROBE_CADENCE_MS_MAX) {
     throw new Error(
-      `[slow-poisoner] probe_cadence_ms=${probe_cadence_ms} out of bounds `
-      + `[${PROBE_CADENCE_MS_MIN}, ${PROBE_CADENCE_MS_MAX}] (§5.4.1 step 2: cadence `
-      + `outside this window is a side-channel tell that breaks indistinguishability).`
+      `[slow-poisoner] probe_cadence_ms=${probe_cadence_ms} out of bounds ` +
+        `[${PROBE_CADENCE_MS_MIN}, ${PROBE_CADENCE_MS_MAX}] (§5.4.1 step 2: cadence ` +
+        `outside this window is a side-channel tell that breaks indistinguishability).`
     );
   }
 
@@ -621,10 +647,10 @@ export async function runSlowPoisoner(opts) {
   const liveAllowed = !dry_run && acknowledge_blockers === true;
   if (!dry_run && !acknowledge_blockers) {
     throw new Error(
-      `[slow-poisoner] live-mode refused: tasks _d2jx (agent audit GET) `
-      + `and _8bav (agent defense PATCH) are open. Pass --i-acknowledge-blockers-d2jx-8bav-open `
-      + `if you accept that the trial will run with stubbed detection measurement and stubbed `
-      + `defense-state toggling. Recommended: keep dry_run=true until both endpoints land.`
+      `[slow-poisoner] live-mode refused: tasks _d2jx (agent audit GET) ` +
+        `and _8bav (agent defense PATCH) are open. Pass --i-acknowledge-blockers-d2jx-8bav-open ` +
+        `if you accept that the trial will run with stubbed detection measurement and stubbed ` +
+        `defense-state toggling. Recommended: keep dry_run=true until both endpoints land.`
     );
   }
 
@@ -659,20 +685,24 @@ export async function runSlowPoisoner(opts) {
       target_handle,
       policy: effectiveDryRun ? 'dry-run' : 'production',
       payload: {
-        phase, trial, duration_ms, defense_state, bias_rate,
-        probe_cadence_ms, bias_category, run_id,
+        phase,
+        trial,
+        duration_ms,
+        defense_state,
+        bias_rate,
+        probe_cadence_ms,
+        bias_category,
+        run_id,
       },
     },
   });
 
   // (a/b) Probe stream — interleave legit + biased canaries until duration_ms
   //       elapses or per-phase cap is hit.
-  const phase0MaxProbes = 5;   // single-cell smoke: enough to exercise toss + emit
-  const phase1MaxProbes = 30;  // class-coverage smoke: ~30s @ 1/sec
+  const phase0MaxProbes = 5; // single-cell smoke: enough to exercise toss + emit
+  const phase1MaxProbes = 30; // class-coverage smoke: ~30s @ 1/sec
   const phase2MaxProbes = Math.max(1, Math.floor(duration_ms / probe_cadence_ms));
-  const maxProbes = phase === 0 ? phase0MaxProbes
-                  : phase === 1 ? phase1MaxProbes
-                  : phase2MaxProbes;
+  const maxProbes = phase === 0 ? phase0MaxProbes : phase === 1 ? phase1MaxProbes : phase2MaxProbes;
 
   let probeIdx = 0;
   let anomalousProbeCount = 0;
@@ -707,10 +737,14 @@ export async function runSlowPoisoner(opts) {
     // Sleep to next probe (with ±30% jitter, §5.4.1 step 4 time-randomization).
     if (probeIdx < maxProbes) {
       const remaining = duration_ms - (Date.now() - trialStartedAtMs);
-      const jitter = (parseInt(
-        createHash('sha256').update(`${tossSeed}:jitter:${probeIdx}`).digest('hex').slice(0, 4),
-        16,
-      ) / 0xffff) * 0.6 - 0.3; // [-0.3, +0.3]
+      const jitter =
+        (parseInt(
+          createHash('sha256').update(`${tossSeed}:jitter:${probeIdx}`).digest('hex').slice(0, 4),
+          16
+        ) /
+          0xffff) *
+          0.6 -
+        0.3; // [-0.3, +0.3]
       const cadenceJittered = Math.max(0, probe_cadence_ms * (1 + jitter));
       const sleep = Math.min(cadenceJittered, Math.max(0, remaining));
       if (sleep > 0) await new Promise((r) => setTimeout(r, sleep));
@@ -733,8 +767,8 @@ export async function runSlowPoisoner(opts) {
     if (detectionAt !== null && firstAnomalousProbeAtMs !== null) {
       // We caught at probe N; estimate wall-time as N × cadence-from-first.
       const probesSinceFirst = anomalousProbeCount; // already conditional on detection
-      timeToDetectSeconds = (probesSinceFirst / Math.max(bias_rate, BIAS_RATE_MIN))
-        * (probe_cadence_ms / 1000);
+      timeToDetectSeconds =
+        (probesSinceFirst / Math.max(bias_rate, BIAS_RATE_MIN)) * (probe_cadence_ms / 1000);
     }
     await audit.emit({
       agentHandle: 'slow-poisoner-oracle-stub',
@@ -760,7 +794,9 @@ export async function runSlowPoisoner(opts) {
   } else {
     // LIVE PATH (post-_d2jx). Read baseline trust score, then poll for drop.
     const baselineRead = await readTargetTrustScore({
-      target: target_handle, apiBase: api_base, attackerBearer: attacker_bearer,
+      target: target_handle,
+      apiBase: api_base,
+      attackerBearer: attacker_bearer,
       sinceIso: trialStartIso,
     });
     const baselineScore = baselineRead.score;
@@ -802,7 +838,8 @@ export async function runSlowPoisoner(opts) {
       target_handle,
       policy: effectiveDryRun ? 'dry-run' : 'production',
       payload: {
-        phase, trial,
+        phase,
+        trial,
         probes_emitted: probeIdx,
         anomalous_probes: anomalousProbeCount,
         time_to_detect_seconds: detectionResult.time_to_detect_seconds,
@@ -897,12 +934,14 @@ function parseCliArgs(argv) {
 async function cliMain() {
   const args = parseCliArgs(process.argv.slice(2));
   console.log(
-    `[slow-poisoner] phase=${args.phase} target=${args.target_handle} `
-    + `bias_rate=${args.bias_rate} cadence_ms=${args.probe_cadence_ms} `
-    + `dry_run=${args.dry_run} defense=${args.defense_state}`
+    `[slow-poisoner] phase=${args.phase} target=${args.target_handle} ` +
+      `bias_rate=${args.bias_rate} cadence_ms=${args.probe_cadence_ms} ` +
+      `dry_run=${args.dry_run} defense=${args.defense_state}`
   );
   if (!args.dry_run && !args.acknowledge_blockers) {
-    console.error(`[slow-poisoner] FATAL: live mode requested but blocker acknowledgement missing.`);
+    console.error(
+      `[slow-poisoner] FATAL: live mode requested but blocker acknowledgement missing.`
+    );
     console.error(`  Pass --i-acknowledge-blockers-d2jx-8bav-open to override (operator only).`);
     process.exit(2);
   }
@@ -913,7 +952,9 @@ async function cliMain() {
   await writeFile(rowPath, JSON.stringify(result, null, 2), 'utf8');
   console.log(`[slow-poisoner] wrote ${rowPath}`);
   if (result.foreign_route_writes !== 0) {
-    console.error(`[slow-poisoner] INVARIANT VIOLATED: foreign_route_writes=${result.foreign_route_writes} (must be 0)`);
+    console.error(
+      `[slow-poisoner] INVARIANT VIOLATED: foreign_route_writes=${result.foreign_route_writes} (must be 0)`
+    );
     process.exit(3);
   }
 }

@@ -83,9 +83,7 @@ export class SaturationManager {
   constructor(config: SaturationConfig) {
     this.config = config;
     this.cellCount =
-      config.field instanceof RegularGrid3D
-        ? config.field.cellCount
-        : config.field.length;
+      config.field instanceof RegularGrid3D ? config.field.cellCount : config.field.length;
     this.cellStates = new Uint8Array(this.cellCount);
     this.phaseTransitionCells = new Set();
   }
@@ -97,9 +95,7 @@ export class SaturationManager {
     const events: SaturationEvent[] = [];
     const { warning, critical, recovery } = this.config.thresholds;
     const field =
-      this.config.field instanceof RegularGrid3D
-        ? this.config.field.data
-        : this.config.field;
+      this.config.field instanceof RegularGrid3D ? this.config.field.data : this.config.field;
 
     for (let i = 0; i < this.cellCount; i++) {
       const value = field[i];
@@ -175,12 +171,20 @@ export class SaturationManager {
   }
 
   getStats(): SaturationStats {
-    let normal = 0, warning = 0, critical = 0;
+    let normal = 0,
+      warning = 0,
+      critical = 0;
     for (let i = 0; i < this.cellCount; i++) {
       switch (this.cellStates[i]) {
-        case 0: normal++; break;
-        case 1: warning++; break;
-        case 2: critical++; break;
+        case 0:
+          normal++;
+          break;
+        case 1:
+          warning++;
+          break;
+        case 2:
+          critical++;
+          break;
       }
     }
     return {
@@ -197,8 +201,7 @@ export class SaturationManager {
   /** Update the monitored field reference (e.g., after solver re-allocation) */
   setField(field: RegularGrid3D | Float32Array): void {
     this.config.field = field;
-    const newCount =
-      field instanceof RegularGrid3D ? field.cellCount : field.length;
+    const newCount = field instanceof RegularGrid3D ? field.cellCount : field.length;
     if (newCount !== this.cellCount) {
       this.cellCount = newCount;
       this.cellStates = new Uint8Array(newCount);

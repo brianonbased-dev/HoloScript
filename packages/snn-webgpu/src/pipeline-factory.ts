@@ -174,7 +174,7 @@ export class PipelineFactory {
 
     const promise = this.ctx
       .createComputePipelineAsync(module, entryPoint, 'auto', `snn-pipeline-async-${entryPoint}`)
-      .then(pipeline => {
+      .then((pipeline) => {
         this.pipelineCache.set(entryPoint, { pipeline, module, category, entryPoint });
         this.pendingAsync.delete(entryPoint);
         return pipeline;
@@ -191,7 +191,7 @@ export class PipelineFactory {
    */
   async warmupAsync(entryPoints?: ShaderEntryPoint[]): Promise<void> {
     const targets = entryPoints ?? this.getAvailableEntryPoints();
-    await Promise.all(targets.map(ep => this.getPipelineAsync(ep)));
+    await Promise.all(targets.map((ep) => this.getPipelineAsync(ep)));
   }
 
   /**

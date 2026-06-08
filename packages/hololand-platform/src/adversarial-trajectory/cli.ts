@@ -64,7 +64,7 @@ function runGenerate(args: CliOptions): void {
 
   console.error(`[adversarial-trajectory] wrote ${relativeFromCwd(cwd, out)}`);
   console.error(
-    `[adversarial-trajectory] ${report.summary.total} traces: ${report.summary.solved} solved, ${report.summary.unresolved} unresolved, ${report.summary.invalid} invalid`,
+    `[adversarial-trajectory] ${report.summary.total} traces: ${report.summary.solved} solved, ${report.summary.unresolved} unresolved, ${report.summary.invalid} invalid`
   );
   console.error(`[adversarial-trajectory] report ${report.reportHash}`);
 }
@@ -97,7 +97,7 @@ function runReplay(args: CliOptions): void {
   for (const delta of result.predicateDeltas) {
     const mark = delta.stable ? 'PASS' : 'FAIL';
     console.log(
-      `- ${mark} ${delta.name}: expected=${delta.expected} actual=${delta.actual} delta=${delta.delta} threshold=${delta.threshold}`,
+      `- ${mark} ${delta.name}: expected=${delta.expected} actual=${delta.actual} delta=${delta.delta} threshold=${delta.threshold}`
     );
   }
 

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildInboxPayload, parseFounderInboxEntries, extractFeedArray, type InboxState } from './parse';
+import {
+  buildInboxPayload,
+  parseFounderInboxEntries,
+  extractFeedArray,
+  type InboxState,
+} from './parse';
 
 export const runtime = 'nodejs';
 
@@ -40,7 +45,7 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(
       `${BASE}/api/holomesh/team/${TEAM_ID}/feed?limit=${Math.min(limit * 4, 200)}`,
-      { headers: feedHeaders(), cache: 'no-store' },
+      { headers: feedHeaders(), cache: 'no-store' }
     );
     if (!res.ok) {
       return NextResponse.json({ ok: false, items: [], error: `feed upstream ${res.status}` });
@@ -66,7 +71,7 @@ export async function POST(req: NextRequest) {
   if (!TEAM_ID) {
     return NextResponse.json(
       { ok: false, error: 'HOLOMESH_TEAM_ID not configured' },
-      { status: 503 },
+      { status: 503 }
     );
   }
   let raw: Record<string, unknown>;
@@ -90,7 +95,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : 'invalid push' },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -104,7 +109,7 @@ export async function POST(req: NextRequest) {
       const text = await res.text().catch(() => '');
       return NextResponse.json(
         { ok: false, error: `feed upstream ${res.status}: ${text.slice(0, 200)}` },
-        { status: 502 },
+        { status: 502 }
       );
     }
     const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
@@ -113,7 +118,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : 'feed post failed' },
-      { status: 502 },
+      { status: 502 }
     );
   }
 }

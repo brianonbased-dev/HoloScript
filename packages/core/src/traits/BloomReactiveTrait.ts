@@ -193,11 +193,7 @@ export function resolveBloomStage(
  * canonical frequency is in effect per stage — pulse rates do not
  * compound or beat against each other.
  */
-export function resolvePulseHz(
-  stage: BloomStageConfig,
-  slowHz: number,
-  fastHz: number
-): number {
+export function resolvePulseHz(stage: BloomStageConfig, slowHz: number, fastHz: number): number {
   if (stage.pulse_fast) return fastHz;
   if (stage.pulse) return slowHz;
   return 0;

@@ -133,7 +133,8 @@ const DAEMONS: DaemonInfo[] = [
     id: 'holodaemon',
     name: 'HoloDaemon',
     composition: 'holodaemon.hsplus + holoheal.hsplus',
-    description: 'Resident runtime — HoloHeal default, customizable builder, launch, research, spatial, secrets, and fleet missions',
+    description:
+      'Resident runtime — HoloHeal default, customizable builder, launch, research, spatial, secrets, and fleet missions',
     command: 'holoscript holodaemon compositions/holodaemon.hsplus --mission holoheal',
     color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
     dotColor: 'bg-emerald-400',
@@ -206,7 +207,9 @@ function SkillCard({ skill }: { skill: SkillWithStatus }) {
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${cfg.dot} ${skill.status === 'running' ? 'animate-pulse' : ''}`} />
+            <span
+              className={`h-2 w-2 shrink-0 rounded-full ${cfg.dot} ${skill.status === 'running' ? 'animate-pulse' : ''}`}
+            />
             <h3 className="text-sm font-semibold text-studio-text truncate">{displayName}</h3>
             {skill.marketplace?.published && (
               <span className="shrink-0 rounded border border-violet-500/40 bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-medium text-violet-300">
@@ -214,16 +217,18 @@ function SkillCard({ skill }: { skill: SkillWithStatus }) {
               </span>
             )}
           </div>
-          {blurb && (
-            <p className="mt-1 ml-4 text-xs text-studio-muted line-clamp-2">{blurb}</p>
-          )}
+          {blurb && <p className="mt-1 ml-4 text-xs text-studio-muted line-clamp-2">{blurb}</p>}
         </div>
         <div className="ml-2 flex items-center gap-2">
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-            skill.status === 'running' ? 'bg-green-500/20 text-green-400' :
-            skill.status === 'error' ? 'bg-red-500/20 text-red-400' :
-            'bg-yellow-500/20 text-yellow-400'
-          }`}>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+              skill.status === 'running'
+                ? 'bg-green-500/20 text-green-400'
+                : skill.status === 'error'
+                  ? 'bg-red-500/20 text-red-400'
+                  : 'bg-yellow-500/20 text-yellow-400'
+            }`}
+          >
             {cfg.label}
           </span>
           <span className="rounded bg-studio-panel px-2 py-0.5 text-[10px] text-studio-muted">
@@ -249,8 +254,12 @@ function SkillCard({ skill }: { skill: SkillWithStatus }) {
       </div>
 
       <div className="mt-2 ml-4 flex items-center gap-3 text-[10px] text-studio-muted">
-        <span>{skill.actions.length} action{skill.actions.length !== 1 ? 's' : ''}</span>
-        <span>{skill.states} state{skill.states !== 1 ? 's' : ''}</span>
+        <span>
+          {skill.actions.length} action{skill.actions.length !== 1 ? 's' : ''}
+        </span>
+        <span>
+          {skill.states} state{skill.states !== 1 ? 's' : ''}
+        </span>
         {skill.pid && <span className="font-mono">PID {skill.pid}</span>}
         <span className="ml-auto">{timeSince(skill.startedAt || skill.modifiedAt)}</span>
       </div>
@@ -279,7 +288,9 @@ function LiveStream() {
       }
       if (!cancelled) setLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -299,13 +310,19 @@ function LiveStream() {
   }, []);
 
   if (loading) {
-    return <div className="text-sm text-studio-muted animate-pulse py-8 text-center">Loading stream...</div>;
+    return (
+      <div className="text-sm text-studio-muted animate-pulse py-8 text-center">
+        Loading stream...
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-[10px] text-studio-muted">
-        <div className={`h-2 w-2 rounded-full ${streaming ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`} />
+        <div
+          className={`h-2 w-2 rounded-full ${streaming ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`}
+        />
         {streaming ? 'Live' : 'Disconnected'}
         <span className="ml-auto">{entries.length} entries</span>
       </div>
@@ -332,13 +349,17 @@ function LiveStream() {
                   {new Date(e.timestamp).toLocaleTimeString()}
                 </div>
                 {e.channel && (
-                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${
-                    isError ? 'bg-red-500/20 text-red-400' : 'bg-studio-panel text-studio-muted'
-                  }`}>
+                  <span
+                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${
+                      isError ? 'bg-red-500/20 text-red-400' : 'bg-studio-panel text-studio-muted'
+                    }`}
+                  >
                     #{e.channel}
                   </span>
                 )}
-                <span className={`text-xs ${isError ? 'text-red-300' : 'text-studio-text'} min-w-0 break-words`}>
+                <span
+                  className={`text-xs ${isError ? 'text-red-300' : 'text-studio-text'} min-w-0 break-words`}
+                >
                   {e.message || '(empty)'}
                 </span>
               </div>
@@ -379,7 +400,9 @@ function EconomyWidget({ skills }: { skills: SkillWithStatus[] }) {
         </div>
         <div className="rounded-lg border border-studio-border bg-[#0f172a] p-3 text-center">
           <div className="text-lg font-bold text-emerald-400">{economySkills.length}</div>
-          <div className="text-[10px] uppercase tracking-wider text-studio-muted">Economy-Tracked</div>
+          <div className="text-[10px] uppercase tracking-wider text-studio-muted">
+            Economy-Tracked
+          </div>
         </div>
       </div>
 
@@ -418,7 +441,9 @@ function EconomyWidget({ skills }: { skills: SkillWithStatus[] }) {
                 <div key={skill.name}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-studio-muted">{econLabel}</span>
-                    <span className="text-[10px] text-studio-muted">{skillSpend.toFixed(1)} cr</span>
+                    <span className="text-[10px] text-studio-muted">
+                      {skillSpend.toFixed(1)} cr
+                    </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-[#0f172a] overflow-hidden">
                     <div
@@ -448,8 +473,18 @@ function BountiesWidget() {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="mb-3 rounded-full bg-studio-panel p-3">
-          <svg className="h-6 w-6 text-studio-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            className="h-6 w-6 text-studio-muted"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
           </svg>
         </div>
         <p className="text-sm text-studio-muted">No bounties posted</p>
@@ -470,10 +505,7 @@ function BountiesWidget() {
   return (
     <div className="space-y-2">
       {bounties.map((b) => (
-        <div
-          key={b.id}
-          className="rounded-lg border border-studio-border bg-[#111827] p-3"
-        >
+        <div key={b.id} className="rounded-lg border border-studio-border bg-[#111827] p-3">
           <div className="flex items-start justify-between">
             <div className="min-w-0 flex-1">
               <div className="text-xs font-medium text-studio-text">{b.title}</div>
@@ -482,7 +514,9 @@ function BountiesWidget() {
               )}
             </div>
             <div className="ml-2 flex items-center gap-2">
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[b.status] || ''}`}>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[b.status] || ''}`}
+              >
                 {b.status}
               </span>
               <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-mono text-emerald-400">
@@ -507,8 +541,18 @@ function CommitLogWidget() {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="mb-3 rounded-full bg-studio-panel p-3">
-          <svg className="h-6 w-6 text-studio-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          <svg
+            className="h-6 w-6 text-studio-muted"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
           </svg>
         </div>
         <p className="text-sm text-studio-muted">No signed commits yet</p>
@@ -529,14 +573,34 @@ function CommitLogWidget() {
           <div className="shrink-0 mt-0.5">
             {c.verified ? (
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500/20">
-                <svg className="h-3 w-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg
+                  className="h-3 w-3 text-green-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </span>
             ) : (
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500/20">
-                <svg className="h-3 w-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-3 w-3 text-red-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </span>
             )}
@@ -586,7 +650,7 @@ export function HoloClawTab() {
         const runEntry = running.find((r) => r.name === s.name);
         return {
           ...s,
-          status: runEntry ? 'running' as const : 'idle' as const,
+          status: runEntry ? ('running' as const) : ('idle' as const),
           pid: runEntry?.pid,
           startedAt: runEntry?.startedAt,
         };
@@ -622,7 +686,9 @@ export function HoloClawTab() {
       {/* Pipeline header bar */}
       <div className="shrink-0 flex items-center gap-4 border-b border-studio-border bg-[#0d0d14] px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <div className={`h-2 w-2 rounded-full ${runningCount > 0 ? 'bg-green-400 animate-pulse' : 'bg-gray-600'}`} />
+          <div
+            className={`h-2 w-2 rounded-full ${runningCount > 0 ? 'bg-green-400 animate-pulse' : 'bg-gray-600'}`}
+          />
           <span className="text-xs font-medium text-studio-text">HoloClaw</span>
         </div>
         <div className="flex items-center gap-3 text-[10px] text-studio-muted">
@@ -666,7 +732,8 @@ export function HoloClawTab() {
         {section === 'daemons' && (
           <div className="space-y-3">
             <p className="text-xs text-studio-muted mb-4">
-              HoloDaemon hosts resident mission profiles; HoloMesh and Moltbook connect those agents to network knowledge and social surfaces.
+              HoloDaemon hosts resident mission profiles; HoloMesh and Moltbook connect those agents
+              to network knowledge and social surfaces.
             </p>
             {DAEMONS.map((d) => (
               <div
@@ -676,12 +743,16 @@ export function HoloClawTab() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${d.dotColor} animate-pulse`} />
+                      <span
+                        className={`h-2.5 w-2.5 shrink-0 rounded-full ${d.dotColor} animate-pulse`}
+                      />
                       <h3 className="text-sm font-semibold">{d.name}</h3>
                     </div>
                     <p className="mt-1 ml-5 text-xs opacity-80">{d.description}</p>
                     <div className="mt-2 ml-5 flex items-center gap-2">
-                      <code className="rounded bg-black/30 px-2 py-0.5 text-[10px] font-mono opacity-70">{d.composition}</code>
+                      <code className="rounded bg-black/30 px-2 py-0.5 text-[10px] font-mono opacity-70">
+                        {d.composition}
+                      </code>
                     </div>
                   </div>
                   <div className="ml-3 flex gap-2">
@@ -698,11 +769,14 @@ export function HoloClawTab() {
           </div>
         )}
 
-        {section === 'skills' && (
-          loading ? (
+        {section === 'skills' &&
+          (loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 rounded-xl border border-studio-border bg-[#111827] animate-pulse" />
+                <div
+                  key={i}
+                  className="h-24 rounded-xl border border-studio-border bg-[#111827] animate-pulse"
+                />
               ))}
             </div>
           ) : skills.length === 0 ? (
@@ -718,12 +792,13 @@ export function HoloClawTab() {
                 <SkillCard key={s.path} skill={s} />
               ))}
             </div>
-          )
-        )}
-        
+          ))}
+
         {section === 'network' && (
           <div className="h-[600px] w-full relative group">
-            <HoloClaw3DDeck skills={skills.map(s => ({ name: s.name, status: s.status, traits: s.traits }))} />
+            <HoloClaw3DDeck
+              skills={skills.map((s) => ({ name: s.name, status: s.status, traits: s.traits }))}
+            />
             <div className="absolute bottom-4 right-4 text-xs font-mono text-studio-muted opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-2 py-1 rounded backdrop-blur border border-studio-border">
               LMB to Rotate · Scroll to Zoom
             </div>

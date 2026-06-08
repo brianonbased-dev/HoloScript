@@ -11,11 +11,7 @@ import MonacoEditor, { type Monaco, type OnMount } from '@monaco-editor/react';
 import { useSceneStore, useWorkspaceStore } from '@/lib/stores';
 import { EditorToolbar } from './EditorToolbar';
 import { SpatialBlameOverlay } from '@/components/versionControl/SpatialBlameOverlay';
-import {
-  HOLOSCRIPT_LANGUAGE_ID,
-  formatHoloScript,
-  registerHoloScript,
-} from './holoScriptLanguage';
+import { HOLOSCRIPT_LANGUAGE_ID, formatHoloScript, registerHoloScript } from './holoScriptLanguage';
 
 /** Minimal IStandaloneCodeEditor surface used by this component. */
 interface IStandaloneCodeEditor {
@@ -85,7 +81,7 @@ export function HoloScriptEditor({ height: _height = '100%' }: HoloScriptEditorP
     monaco.editor.setModelMarkers(
       model as unknown as Parameters<typeof monaco.editor.setModelMarkers>[0],
       'holoscript',
-      markers as unknown as Parameters<typeof monaco.editor.setModelMarkers>[2],
+      markers as unknown as Parameters<typeof monaco.editor.setModelMarkers>[2]
     );
   }, [errors]);
 
@@ -105,7 +101,7 @@ export function HoloScriptEditor({ height: _height = '100%' }: HoloScriptEditorP
       if (model) {
         monaco.editor.setModelLanguage(
           model as unknown as Parameters<typeof monaco.editor.setModelLanguage>[0],
-          HOLOSCRIPT_LANGUAGE_ID,
+          HOLOSCRIPT_LANGUAGE_ID
         );
       }
 

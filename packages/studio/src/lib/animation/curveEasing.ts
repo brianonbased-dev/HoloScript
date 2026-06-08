@@ -188,12 +188,7 @@ export const CSS_EASE_IN_OUT = cubicBezier(0.42, 0, 0.58, 1.0);
  * @param t  raw linear progress [0,1]
  * @param easingName  easing type (matches Keyframe.easing)
  */
-export function applyEasing(
-  a: number,
-  b: number,
-  t: number,
-  easingName: EasingName
-): number {
+export function applyEasing(a: number, b: number, t: number, easingName: EasingName): number {
   let et: number;
   switch (easingName) {
     case 'ease-in':

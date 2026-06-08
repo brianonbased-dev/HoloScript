@@ -8,7 +8,10 @@
 import { importAssimp, type AssimpScene, type AssimpNode } from '@holoscript/assimp-plugin';
 import type { ImportResult, ImportedMesh, ImportedMaterial } from './ModelImporter';
 
-function computeBoundsFromTransform(node: AssimpNode): { min: [number, number, number]; max: [number, number, number] } {
+function computeBoundsFromTransform(node: AssimpNode): {
+  min: [number, number, number];
+  max: [number, number, number];
+} {
   // If a 4x4 transform is present, extract translation as centroid and
   // use a default 1m box; otherwise return a unit box at origin.
   if (node.transform && node.transform.length === 16) {

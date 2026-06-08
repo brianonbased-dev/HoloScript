@@ -77,7 +77,19 @@ async function invoke(
   req: Partial<Request> = {}
 ): Promise<MockResponse & Response> {
   const res = mockRes();
-  const layers = (router as unknown as { stack: Array<{ route?: { path: string; stack: Array<{ method: string; handle: (req: Request, res: Response, next: () => void) => unknown }> } }> }).stack;
+  const layers = (
+    router as unknown as {
+      stack: Array<{
+        route?: {
+          path: string;
+          stack: Array<{
+            method: string;
+            handle: (req: Request, res: Response, next: () => void) => unknown;
+          }>;
+        };
+      }>;
+    }
+  ).stack;
   for (const layer of layers) {
     if (!layer.route) continue;
     // Convert express path patterns like "/ast-assets/:assetId" into a regex.

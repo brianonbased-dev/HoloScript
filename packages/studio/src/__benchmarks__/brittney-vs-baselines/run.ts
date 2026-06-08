@@ -117,9 +117,7 @@ async function main(): Promise<void> {
   const budgetUsdMax = args.budgetUsdMax ?? (args.quick ? 2 : 50);
 
   const endpoint =
-    args.brittneyEndpoint ??
-    process.env.BRITTNEY_PROD_URL ??
-    'http://localhost:3100/api/brittney';
+    args.brittneyEndpoint ?? process.env.BRITTNEY_PROD_URL ?? 'http://localhost:3100/api/brittney';
 
   let allConfigs = buildAllConfigs({
     anthropicApiKey: apiKey ?? ollamaKey ?? '',
@@ -189,7 +187,11 @@ async function main(): Promise<void> {
       if (e.type === 'cell_complete') {
         const o = e.outcome;
         const retryTag = o.retry_of_trial !== undefined ? ' [RETRY]' : '';
-        const status = o.error ? `ERR(${o.error.slice(0, 40)})` : o.creation_completion ? 'PASS' : 'FAIL';
+        const status = o.error
+          ? `ERR(${o.error.slice(0, 40)})`
+          : o.creation_completion
+            ? 'PASS'
+            : 'FAIL';
         const objInfo = o.create_object_count !== undefined ? ` objs=${o.create_object_count}` : '';
         console.log(
           `  ${o.task_id} ${o.config} t${o.trial}${retryTag}: ${status} cost=$${o.token_cost_usd.toFixed(4)} wall=${o.wall_clock_seconds.toFixed(1)}s${objInfo}`

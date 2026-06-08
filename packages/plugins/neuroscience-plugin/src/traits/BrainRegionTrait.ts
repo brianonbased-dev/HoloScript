@@ -10,7 +10,14 @@ export interface BrainRegionConfig {
   name: string;
   hemisphere: Hemisphere;
   brodmannArea?: number;
-  cortexZone?: 'frontal' | 'parietal' | 'temporal' | 'occipital' | 'insular' | 'limbic' | 'cerebellar';
+  cortexZone?:
+    | 'frontal'
+    | 'parietal'
+    | 'temporal'
+    | 'occipital'
+    | 'insular'
+    | 'limbic'
+    | 'cerebellar';
   volumeMm3?: number;
   activationLevel: number;
   connections: string[];
@@ -22,17 +29,29 @@ export interface BrainRegionState {
   lastUpdateMs: number;
 }
 
-const defaultConfig: BrainRegionConfig = { name: '', hemisphere: 'left', activationLevel: 0, connections: [] };
+const defaultConfig: BrainRegionConfig = {
+  name: '',
+  hemisphere: 'left',
+  activationLevel: 0,
+  connections: [],
+};
 
 export function createBrainRegionHandler(): TraitHandler<BrainRegionConfig> {
   return {
     name: 'brain_region',
     defaultConfig,
     onAttach(node: HSPlusNode, config: BrainRegionConfig, ctx: TraitContext) {
-      node.__brainRegionState = { currentActivation: config.activationLevel, peakActivation: config.activationLevel, lastUpdateMs: Date.now() };
+      node.__brainRegionState = {
+        currentActivation: config.activationLevel,
+        peakActivation: config.activationLevel,
+        lastUpdateMs: Date.now(),
+      };
       ctx.emit?.('brain_region:attached', { region: config.name, hemisphere: config.hemisphere });
     },
-    onDetach(node: HSPlusNode, _c: BrainRegionConfig, ctx: TraitContext) { delete node.__brainRegionState; ctx.emit?.('brain_region:detached'); },
+    onDetach(node: HSPlusNode, _c: BrainRegionConfig, ctx: TraitContext) {
+      delete node.__brainRegionState;
+      ctx.emit?.('brain_region:detached');
+    },
     onUpdate(node: HSPlusNode, _c: BrainRegionConfig, _ctx: TraitContext, delta: number) {
       const s = node.__brainRegionState as BrainRegionState | undefined;
       if (s) s.lastUpdateMs += delta;

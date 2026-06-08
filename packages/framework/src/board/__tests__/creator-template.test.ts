@@ -25,7 +25,13 @@ import {
   clonePlayableChallenge,
   clonePublishReview,
 } from '../creator-template';
-import type { Shard, CreatorTemplate, PlayableChallenge, PublishReview, ValidationReceipt } from '../creator-template';
+import type {
+  Shard,
+  CreatorTemplate,
+  PlayableChallenge,
+  PublishReview,
+  ValidationReceipt,
+} from '../creator-template';
 
 /** Minimal valid Shard for framework-level testing (no hololand-platform dependency). */
 function makeMinimalShard(): Shard {
@@ -180,12 +186,15 @@ describe('CreatorTemplate — validation', () => {
     const template = makeValidTemplate();
     template.baseShard = { ...template.baseShard, id: '' };
     const errors = validateCreatorTemplate(template);
-    expect(errors.some((e) => e.includes('baseShard') && e.includes('Shard.id is required'))).toBe(true);
+    expect(errors.some((e) => e.includes('baseShard') && e.includes('Shard.id is required'))).toBe(
+      true
+    );
   });
 
   it('rejects a template parameter with unsupported kind', () => {
     const template = makeValidTemplate();
-    template.parameters[0].kind = 'invalid-kind' as unknown as typeof template.parameters[0]['kind'];
+    template.parameters[0].kind =
+      'invalid-kind' as unknown as (typeof template.parameters)[0]['kind'];
     const errors = validateCreatorTemplate(template);
     expect(errors.some((e) => e.includes('kind is unsupported'))).toBe(true);
   });
@@ -338,7 +347,10 @@ describe('Playability gates', () => {
   it('fails when encounters are below minimum', () => {
     const shard = makeMinimalShard();
     shard.encounters = [];
-    const result = checkPlayability(shard, { ...DEFAULT_PLAYABILITY_REQUIREMENTS, minEncounters: 1 });
+    const result = checkPlayability(shard, {
+      ...DEFAULT_PLAYABILITY_REQUIREMENTS,
+      minEncounters: 1,
+    });
     expect(result.passed).toBe(false);
     expect(result.violations.some((v) => v.includes('encounters'))).toBe(true);
     expect(result.score).toBeLessThan(1.0);
@@ -355,7 +367,10 @@ describe('Playability gates', () => {
   it('fails when quest steps are below minimum', () => {
     const shard = makeMinimalShard();
     shard.quests[0].steps = [];
-    const result = checkPlayability(shard, { ...DEFAULT_PLAYABILITY_REQUIREMENTS, minQuestSteps: 1 });
+    const result = checkPlayability(shard, {
+      ...DEFAULT_PLAYABILITY_REQUIREMENTS,
+      minQuestSteps: 1,
+    });
     expect(result.passed).toBe(false);
     expect(result.violations.some((v) => v.includes('questSteps'))).toBe(true);
   });
@@ -379,7 +394,10 @@ describe('Playability gates', () => {
   it('fails when loot tables are below minimum', () => {
     const shard = makeMinimalShard();
     shard.lootTables = [];
-    const result = checkPlayability(shard, { ...DEFAULT_PLAYABILITY_REQUIREMENTS, minLootTables: 1 });
+    const result = checkPlayability(shard, {
+      ...DEFAULT_PLAYABILITY_REQUIREMENTS,
+      minLootTables: 1,
+    });
     expect(result.passed).toBe(false);
     expect(result.violations.some((v) => v.includes('lootTables'))).toBe(true);
   });
@@ -387,7 +405,10 @@ describe('Playability gates', () => {
   it('fails when cross-references are broken and required', () => {
     const shard = makeMinimalShard();
     shard.encounters[0].zoneId = 'zone_does_not_exist';
-    const result = checkPlayability(shard, { ...DEFAULT_PLAYABILITY_REQUIREMENTS, requireCrossReferences: true });
+    const result = checkPlayability(shard, {
+      ...DEFAULT_PLAYABILITY_REQUIREMENTS,
+      requireCrossReferences: true,
+    });
     expect(result.passed).toBe(false);
     expect(result.violations.some((v) => v.includes('crossReferences'))).toBe(true);
   });
@@ -395,7 +416,10 @@ describe('Playability gates', () => {
   it('passes cross-references when requirement is disabled', () => {
     const shard = makeMinimalShard();
     shard.encounters[0].zoneId = 'zone_does_not_exist';
-    const result = checkPlayability(shard, { ...DEFAULT_PLAYABILITY_REQUIREMENTS, requireCrossReferences: false });
+    const result = checkPlayability(shard, {
+      ...DEFAULT_PLAYABILITY_REQUIREMENTS,
+      requireCrossReferences: false,
+    });
     expect(result.violations.some((v) => v.includes('crossReferences'))).toBe(false);
   });
 
@@ -404,7 +428,10 @@ describe('Playability gates', () => {
     // Remove all reward paths
     shard.quests[0].steps[0].rewardItemIds = [];
     shard.lootTables = [];
-    const result = checkPlayability(shard, { ...DEFAULT_PLAYABILITY_REQUIREMENTS, requireRewardPath: true });
+    const result = checkPlayability(shard, {
+      ...DEFAULT_PLAYABILITY_REQUIREMENTS,
+      requireRewardPath: true,
+    });
     expect(result.passed).toBe(false);
     expect(result.violations.some((v) => v.includes('rewardPath'))).toBe(true);
   });
@@ -413,7 +440,10 @@ describe('Playability gates', () => {
     const shard = makeMinimalShard();
     shard.quests[0].steps[0].rewardItemIds = [];
     shard.lootTables = [];
-    const result = checkPlayability(shard, { ...DEFAULT_PLAYABILITY_REQUIREMENTS, requireRewardPath: false });
+    const result = checkPlayability(shard, {
+      ...DEFAULT_PLAYABILITY_REQUIREMENTS,
+      requireRewardPath: false,
+    });
     expect(result.violations.some((v) => v.includes('rewardPath'))).toBe(false);
   });
 

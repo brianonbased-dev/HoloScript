@@ -162,7 +162,7 @@ function toObjectInstance(a: SpatialAnchorLike, idx: number): ObjectInstance {
  */
 export function loadSpatialPartition(
   result: SpatialPartitionResultLike,
-  lodConfig?: Partial<OctreeLODConfig>,
+  lodConfig?: Partial<OctreeLODConfig>
 ): SpatialLoadResult {
   const octreeLOD = new OctreeLODSystem(lodConfig);
 
@@ -248,8 +248,8 @@ export class SpatialSceneBridge {
     const activeLevels = new Set(lodSelection.selectedLevels);
 
     // Filter to only instances at active LOD levels (GPU culling skips the rest)
-    const objectInstances = this.allInstances.filter(
-      (_, idx) => activeLevels.has(this.anchorLodLevels[idx]),
+    const objectInstances = this.allInstances.filter((_, idx) =>
+      activeLevels.has(this.anchorLodLevels[idx])
     );
 
     return {

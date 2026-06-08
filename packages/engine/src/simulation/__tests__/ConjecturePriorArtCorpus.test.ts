@@ -26,7 +26,9 @@ describe('ConjecturePriorArtCorpus — real-content novelty check', () => {
   });
 
   it('flags a restatement of Euler/Pythagoras as rediscovered (the novice-overclaim guard)', () => {
-    const euler = KNOWN_RESULTS_CORPUS.find((e) => e.id === 'prior.topology.euler-polyhedron-formula')!;
+    const euler = KNOWN_RESULTS_CORPUS.find(
+      (e) => e.id === 'prior.topology.euler-polyhedron-formula'
+    )!;
     expect(assessNoveltyAgainstKnownResults(euler.statement).status).toBe('near-duplicate');
     const pyth = KNOWN_RESULTS_CORPUS.find((e) => e.id === 'prior.geometry.pythagoras')!;
     expect(assessNoveltyAgainstKnownResults(pyth.statement).status).toBe('near-duplicate');
@@ -34,7 +36,7 @@ describe('ConjecturePriorArtCorpus — real-content novelty check', () => {
 
   it('returns novel for a claim with no match in the seed corpus', () => {
     const a = assessNoveltyAgainstKnownResults(
-      'Agent worldlines form a braid whose word determines hash-equal CRDT shared state.',
+      'Agent worldlines form a braid whose word determines hash-equal CRDT shared state.'
     );
     expect(a.status).toBe('novel');
   });
@@ -42,7 +44,7 @@ describe('ConjecturePriorArtCorpus — real-content novelty check', () => {
   it('is deterministic across runs', () => {
     const q = KNOWN_RESULTS_CORPUS[0].statement;
     expect(assessNoveltyAgainstKnownResults(q).nearest?.similarity).toBe(
-      assessNoveltyAgainstKnownResults(q).nearest?.similarity,
+      assessNoveltyAgainstKnownResults(q).nearest?.similarity
     );
   });
 });

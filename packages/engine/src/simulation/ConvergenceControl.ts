@@ -115,7 +115,7 @@ export function conjugateGradient(
     iterations: iter,
     residual: finalRNorm,
     maxChange,
-    residualHistory
+    residualHistory,
   };
 }
 
@@ -233,12 +233,12 @@ export function variableCoefficientJacobiIteration(
           const aKP = aCoeff.get(i, j, k + 1);
           const aKM = aCoeff.get(i, j, k - 1);
 
-          const aFaceIP = 2 * ac * aIP / (ac + aIP + 1e-30);
-          const aFaceIM = 2 * ac * aIM / (ac + aIM + 1e-30);
-          const aFaceJP = 2 * ac * aJP / (ac + aJP + 1e-30);
-          const aFaceJM = 2 * ac * aJM / (ac + aJM + 1e-30);
-          const aFaceKP = 2 * ac * aKP / (ac + aKP + 1e-30);
-          const aFaceKM = 2 * ac * aKM / (ac + aKM + 1e-30);
+          const aFaceIP = (2 * ac * aIP) / (ac + aIP + 1e-30);
+          const aFaceIM = (2 * ac * aIM) / (ac + aIM + 1e-30);
+          const aFaceJP = (2 * ac * aJP) / (ac + aJP + 1e-30);
+          const aFaceJM = (2 * ac * aJM) / (ac + aJM + 1e-30);
+          const aFaceKP = (2 * ac * aKP) / (ac + aKP + 1e-30);
+          const aFaceKM = (2 * ac * aKM) / (ac + aKM + 1e-30);
 
           const denom = aFaceIP + aFaceIM + aFaceJP + aFaceJM + aFaceKP + aFaceKM;
 

@@ -3,7 +3,8 @@ import type { TraitHandler, HSPlusNode, TraitEvent, TraitContext } from './Trait
 import type { SpringAnimator } from '@holoscript/engine/animation/SpringAnimator';
 
 // Lazy-loaded optional peer (@holoscript/engine/animation/SpringAnimator)
-let _springAnimatorModule: typeof import('@holoscript/engine/animation/SpringAnimator') | null = null;
+let _springAnimatorModule: typeof import('@holoscript/engine/animation/SpringAnimator') | null =
+  null;
 
 export interface ScrollableConfig {
   contentHeight: number;
@@ -117,8 +118,7 @@ export const scrollableHandler: TraitHandler<ScrollableConfig> = {
 
     if (event.type === 'ui_press_start') {
       state.isDragging = true;
-      state.lastY =
-        ((event as Record<string, unknown>).position as Vector3 | undefined)?.[1] || 0;
+      state.lastY = ((event as Record<string, unknown>).position as Vector3 | undefined)?.[1] || 0;
       state.velocity = 0;
     } else if (event.type === 'ui_press_end') {
       state.isDragging = false;

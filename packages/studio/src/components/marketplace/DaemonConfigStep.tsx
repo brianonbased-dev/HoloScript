@@ -27,7 +27,10 @@ export const DaemonConfigStep: React.FC<DaemonConfigStepProps> = ({
             onChange={(e) => onChangeEnableDaemon(e.target.checked)}
             className="w-4 h-4 cursor-pointer"
           />
-          <label htmlFor="enable-daemon" className="flex-1 font-medium text-studio-text cursor-pointer">
+          <label
+            htmlFor="enable-daemon"
+            className="flex-1 font-medium text-studio-text cursor-pointer"
+          >
             Enable daemon analysis & optimization
           </label>
         </div>
@@ -35,7 +38,10 @@ export const DaemonConfigStep: React.FC<DaemonConfigStepProps> = ({
         {enableDaemon && (
           <div className="mt-6 space-y-4">
             <div>
-              <label htmlFor="profile-select" className="block text-sm font-medium text-studio-text mb-3">
+              <label
+                htmlFor="profile-select"
+                className="block text-sm font-medium text-studio-text mb-3"
+              >
                 Analysis Profile
               </label>
               <div className="space-y-3">
@@ -52,8 +58,10 @@ export const DaemonConfigStep: React.FC<DaemonConfigStepProps> = ({
                     <div className="font-medium text-studio-text capitalize">{profile}</div>
                     <div className="mt-1 text-xs text-studio-text-muted">
                       {profile === 'quick' && 'Fast analysis (1-2 minutes)'}
-                      {profile === 'balanced' && 'Recommended: Balance quality & speed (5-10 minutes)'}
-                      {profile === 'thorough' && 'Deep analysis with extensive optimization (15-30 minutes)'}
+                      {profile === 'balanced' &&
+                        'Recommended: Balance quality & speed (5-10 minutes)'}
+                      {profile === 'thorough' &&
+                        'Deep analysis with extensive optimization (15-30 minutes)'}
                     </div>
                   </div>
                 ))}
@@ -62,7 +70,8 @@ export const DaemonConfigStep: React.FC<DaemonConfigStepProps> = ({
 
             <div className="mt-4 rounded-lg bg-studio-info/10 p-4 border border-studio-info/30">
               <div className="text-sm text-studio-text">
-                🤖 The daemon will analyze your content for quality improvements, performance optimization, and compatibility checks.
+                🤖 The daemon will analyze your content for quality improvements, performance
+                optimization, and compatibility checks.
               </div>
             </div>
           </div>

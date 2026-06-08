@@ -20,8 +20,7 @@ function transform(file) {
   let s = fs.readFileSync(file, 'utf8');
   const orig = s;
 
-  const re =
-    /\b(import|export)\s+(type\s+)?\{([^}]*)\}\s+from\s+['"]([^'"]+)['"]/gs;
+  const re = /\b(import|export)\s+(type\s+)?\{([^}]*)\}\s+from\s+['"]([^'"]+)['"]/gs;
   s = s.replace(re, (full, _kw, _typeKw, inner, _mod) => {
     const fixed = inner.replace(/\b_([A-Za-z][a-zA-Z0-9]*)\b/g, (_, name) => name);
     return full.replace(inner, fixed);

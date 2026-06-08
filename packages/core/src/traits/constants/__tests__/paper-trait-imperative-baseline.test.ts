@@ -52,8 +52,7 @@ function traitApp(name: string, index: number): TraitApplication {
 function calcStats(samples: number[]): { median: number; p99: number; min: number; max: number } {
   const sorted = [...samples].sort((a, b) => a - b);
   const n = sorted.length;
-  const median =
-    n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+  const median = n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
   const p99 = sorted[Math.min(n - 1, Math.floor(n * 0.99))];
   return { median, p99, min: sorted[0], max: sorted[n - 1] };
 }

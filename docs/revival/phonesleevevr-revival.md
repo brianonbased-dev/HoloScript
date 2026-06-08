@@ -86,6 +86,7 @@ The sovereign compiler turns it into a Cardboard-compatible experience with mode
 ---
 
 **Verification Evidence**:
+
 - Sovereign PhoneSleeveVRCompiler.ts already exists and is classified SOVEREIGN in the NMoS.
 - This guide + the pattern from the ROS 2 / VisionOS D.007 bridges gives the first concrete revival artifact.
 - Ties directly to D.037 (AI revival of abandoned categories), F.047 (sentiment alive), I.012 (revival scan), and the prone-bed accessibility thesis.

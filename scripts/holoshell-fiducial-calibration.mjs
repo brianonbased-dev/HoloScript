@@ -14,7 +14,13 @@ import {
   estimateFiducialPoseSeed,
   selfTest as poseSeedSelfTest,
 } from './holoshell-fiducial-pose-seed.mjs';
-import { chainReceipt, sha256Bytes, sha256Text, stageReceipt, withHash } from './holoshell/chain/receipts.mjs';
+import {
+  chainReceipt,
+  sha256Bytes,
+  sha256Text,
+  stageReceipt,
+  withHash,
+} from './holoshell/chain/receipts.mjs';
 
 export const RECEIPT_VERSION = 'holoshell-fiducial-calibration/v1';
 const VERSION = '0.1.0';
@@ -29,7 +35,12 @@ function rel(path) {
 }
 
 function defaultOutput(date) {
-  return join('.scratch', 'holoshell-fiducial-calibration', date, 'fiducial-calibration-receipt.json');
+  return join(
+    '.scratch',
+    'holoshell-fiducial-calibration',
+    date,
+    'fiducial-calibration-receipt.json'
+  );
 }
 
 function readJson(path) {
@@ -138,7 +149,10 @@ function summarizePoseSeed(receipt, path) {
 function declaredDistortion({ distortionCoefficients, assumeZeroDistortion, calibrationSource }) {
   if (Array.isArray(distortionCoefficients)) {
     return {
-      model: distortionCoefficients.length === 8 ? 'opencv-radtan-k1-k2-p1-p2-k3-k4-k5-k6' : 'opencv-radtan-k1-k2-p1-p2-k3',
+      model:
+        distortionCoefficients.length === 8
+          ? 'opencv-radtan-k1-k2-p1-p2-k3-k4-k5-k6'
+          : 'opencv-radtan-k1-k2-p1-p2-k3',
       coefficients: distortionCoefficients,
       known: true,
       declaredZero: distortionCoefficients.every((value) => value === 0),
@@ -173,11 +187,20 @@ function collectBlockers({ poseSeedReceipt, calibrationSource, distortion, rmsGa
   if (!calibrationSource) blockers.push('calibration-source-required');
   if (!distortion) blockers.push('distortion-declaration-required');
   const rms = Number(poseSeedReceipt?.poseSeed?.reprojection?.rmsPixels);
-  if (Number.isFinite(rms) && rms > rmsGate) blockers.push(`pose-seed-rms-above-gate:${round(rms)}`);
+  if (Number.isFinite(rms) && rms > rmsGate)
+    blockers.push(`pose-seed-rms-above-gate:${round(rms)}`);
   return blockers;
 }
 
-function blockedReceipt({ poseSeedReceipt, poseSeedPath, calibrationSource, distortion, blockers, rmsGate, out }) {
+function blockedReceipt({
+  poseSeedReceipt,
+  poseSeedPath,
+  calibrationSource,
+  distortion,
+  blockers,
+  rmsGate,
+  out,
+}) {
   const stage = stageReceipt({
     name: 'fiducial.promote-calibrated-anchor',
     input: {
@@ -254,8 +277,17 @@ export function calibrateFiducialAnchor({
   rmsGate = DEFAULT_RMS_GATE,
 } = {}) {
   const receipt = poseSeedReceipt ?? (poseSeedPath ? readJson(poseSeedPath) : undefined);
-  const distortion = declaredDistortion({ distortionCoefficients, assumeZeroDistortion, calibrationSource });
-  const blockers = collectBlockers({ poseSeedReceipt: receipt, calibrationSource, distortion, rmsGate });
+  const distortion = declaredDistortion({
+    distortionCoefficients,
+    assumeZeroDistortion,
+    calibrationSource,
+  });
+  const blockers = collectBlockers({
+    poseSeedReceipt: receipt,
+    calibrationSource,
+    distortion,
+    rmsGate,
+  });
   if (blockers.length > 0) {
     const blocked = blockedReceipt({
       poseSeedReceipt: receipt,
@@ -267,7 +299,8 @@ export function calibrateFiducialAnchor({
       out,
     });
     const errors = validateReceipt(blocked);
-    if (errors.length > 0) throw new Error(`Invalid fiducial calibration receipt: ${errors.join('; ')}`);
+    if (errors.length > 0)
+      throw new Error(`Invalid fiducial calibration receipt: ${errors.join('; ')}`);
     if (out) writeJson(out, blocked);
     return blocked;
   }
@@ -363,7 +396,8 @@ export function calibrateFiducialAnchor({
     outputPath: out ? rel(out) : undefined,
   });
   const errors = validateReceipt(calibrationReceipt);
-  if (errors.length > 0) throw new Error(`Invalid fiducial calibration receipt: ${errors.join('; ')}`);
+  if (errors.length > 0)
+    throw new Error(`Invalid fiducial calibration receipt: ${errors.join('; ')}`);
   if (out) writeJson(out, calibrationReceipt);
   return calibrationReceipt;
 }
@@ -374,28 +408,44 @@ export function validateReceipt(receipt) {
   if (receipt.schemaVersion !== RECEIPT_VERSION) errors.push('schemaVersion mismatch');
   if (!['pass', 'blocked'].includes(receipt.status)) errors.push('status must be pass or blocked');
   if (!receipt.hash?.startsWith('sha256:')) errors.push('hash missing');
-  if (!receipt.poseSeed?.receiptHash?.startsWith('sha256:')) errors.push('pose seed receipt hash missing');
-  if (receipt.cameraModel?.intrinsics?.calibrationReady === true && receipt.cameraModel?.intrinsics?.source !== 'explicit-pinhole-intrinsics') {
+  if (!receipt.poseSeed?.receiptHash?.startsWith('sha256:'))
+    errors.push('pose seed receipt hash missing');
+  if (
+    receipt.cameraModel?.intrinsics?.calibrationReady === true &&
+    receipt.cameraModel?.intrinsics?.source !== 'explicit-pinhole-intrinsics'
+  ) {
     errors.push('calibrated intrinsics must be explicit');
   }
   if (receipt.status === 'pass') {
-    if (receipt.calibration?.status !== 'calibrated-anchor-ready') errors.push('calibration status mismatch');
+    if (receipt.calibration?.status !== 'calibrated-anchor-ready')
+      errors.push('calibration status mismatch');
     if (receipt.calibration?.calibrationReady !== true) errors.push('calibrationReady missing');
     if (receipt.calibration?.cameraModelReady !== true) errors.push('cameraModelReady missing');
-    if (receipt.calibration?.calibratedAnchorReady !== true) errors.push('calibratedAnchorReady missing');
-    if (receipt.calibration?.solvePnPReady !== false) errors.push('calibration must not claim solvePnP');
-    if (receipt.cameraModel?.distortion?.known !== true) errors.push('distortion provenance missing');
-    if (!Array.isArray(receipt.cameraModel?.distortion?.coefficients)) errors.push('distortion coefficients missing');
-    if (!(receipt.calibration?.reprojection?.rmsPixels >= 0)) errors.push('calibration reprojection RMS missing');
-    if (receipt.poseSeed?.intrinsics?.source !== 'explicit-pinhole-intrinsics') errors.push('pose seed explicit intrinsics missing');
+    if (receipt.calibration?.calibratedAnchorReady !== true)
+      errors.push('calibratedAnchorReady missing');
+    if (receipt.calibration?.solvePnPReady !== false)
+      errors.push('calibration must not claim solvePnP');
+    if (receipt.cameraModel?.distortion?.known !== true)
+      errors.push('distortion provenance missing');
+    if (!Array.isArray(receipt.cameraModel?.distortion?.coefficients))
+      errors.push('distortion coefficients missing');
+    if (!(receipt.calibration?.reprojection?.rmsPixels >= 0))
+      errors.push('calibration reprojection RMS missing');
+    if (receipt.poseSeed?.intrinsics?.source !== 'explicit-pinhole-intrinsics')
+      errors.push('pose seed explicit intrinsics missing');
   }
   if (receipt.status === 'blocked') {
-    if (!Array.isArray(receipt.calibration?.blockers) || receipt.calibration.blockers.length === 0) {
+    if (
+      !Array.isArray(receipt.calibration?.blockers) ||
+      receipt.calibration.blockers.length === 0
+    ) {
       errors.push('blocked receipt needs blockers');
     }
-    if (receipt.calibration?.calibrationReady !== false) errors.push('blocked receipt must not claim calibration');
+    if (receipt.calibration?.calibrationReady !== false)
+      errors.push('blocked receipt must not claim calibration');
   }
-  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:')) errors.push('chain receipt hash missing');
+  if (!receipt.chain?.receipt?.hash?.startsWith('sha256:'))
+    errors.push('chain receipt hash missing');
   return errors;
 }
 
@@ -404,7 +454,11 @@ export async function selfTest() {
   const { poseSeed: estimatedPoseSeed, targetInFrame } = await poseSeedSelfTest();
   const explicitPoseSeed = estimateFiducialPoseSeed({
     targetInFrameReceipt: targetInFrame,
-    targetInFramePath: join('.scratch', 'holoshell-fiducial-pose-seed-self-test', 'target-in-frame-receipt.json'),
+    targetInFramePath: join(
+      '.scratch',
+      'holoshell-fiducial-pose-seed-self-test',
+      'target-in-frame-receipt.json'
+    ),
     out: join(dir, 'explicit-pose-seed-receipt.json'),
     fx: 500,
     fy: 505,
@@ -430,8 +484,10 @@ export async function selfTest() {
     calibrationSource: 'synthetic-self-test-pinhole',
   });
   if (calibrated.status !== 'pass') throw new Error('explicit pose seed should calibrate');
-  if (blockedEstimated.status !== 'blocked') throw new Error('estimated intrinsics should block calibration');
-  if (blockedNoDistortion.status !== 'blocked') throw new Error('missing distortion should block calibration');
+  if (blockedEstimated.status !== 'blocked')
+    throw new Error('estimated intrinsics should block calibration');
+  if (blockedNoDistortion.status !== 'blocked')
+    throw new Error('missing distortion should block calibration');
   return { calibrated, blockedEstimated, blockedNoDistortion, explicitPoseSeed };
 }
 
@@ -457,19 +513,28 @@ async function main() {
     assumeZeroDistortion: args.assumeZeroDistortion,
     rmsGate: args.rmsGate,
   });
-  process.stdout.write(`${JSON.stringify({
-    receiptPath: rel(out),
-    status: receipt.status,
-    calibrationReady: receipt.calibration.calibrationReady,
-    cameraModelReady: receipt.calibration.cameraModelReady,
-    calibratedAnchorReady: receipt.calibration.calibratedAnchorReady,
-    solvePnPReady: receipt.calibration.solvePnPReady,
-    reprojectionRms: receipt.calibration.reprojection?.rmsPixels,
-    blockers: receipt.calibration.blockers,
-  }, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        receiptPath: rel(out),
+        status: receipt.status,
+        calibrationReady: receipt.calibration.calibrationReady,
+        cameraModelReady: receipt.calibration.cameraModelReady,
+        calibratedAnchorReady: receipt.calibration.calibratedAnchorReady,
+        solvePnPReady: receipt.calibration.solvePnPReady,
+        reprojectionRms: receipt.calibration.reprojection?.rmsPixels,
+        blockers: receipt.calibration.blockers,
+      },
+      null,
+      2
+    )}\n`
+  );
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` || process.argv[1]?.endsWith('holoshell-fiducial-calibration.mjs')) {
+if (
+  import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}` ||
+  process.argv[1]?.endsWith('holoshell-fiducial-calibration.mjs')
+) {
   main().catch((error) => {
     process.stderr.write(`holoshell-fiducial-calibration FAIL: ${error.stack ?? error.message}\n`);
     process.exitCode = 1;

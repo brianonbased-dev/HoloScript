@@ -67,7 +67,10 @@ function ProvenanceFlowParticles({
     const state = particleState.current;
     const positions = state.positions;
     const colors = state.colors;
-    const particleCount = Math.max(MIN_FLOW_PARTICLES, Math.min(MAX_FLOW_PARTICLES, targetParticleCount));
+    const particleCount = Math.max(
+      MIN_FLOW_PARTICLES,
+      Math.min(MAX_FLOW_PARTICLES, targetParticleCount)
+    );
 
     // Update particle positions along edges
     for (let i = 0; i < particleCount; i++) {
@@ -82,7 +85,7 @@ function ProvenanceFlowParticles({
       state.progress += delta * (0.5 + edge.weight * 0.5);
       if (state.progress > 1) state.progress = 0;
 
-      const t = (state.progress + (i / MAX_FLOW_PARTICLES)) % 1;
+      const t = (state.progress + i / MAX_FLOW_PARTICLES) % 1;
       const x = source.position[0] + (target.position[0] - source.position[0]) * t;
       const y = source.position[1] + (target.position[1] - source.position[1]) * t;
       const z = source.position[2] + (target.position[2] - source.position[2]) * t;
@@ -192,11 +195,7 @@ function InstancedVoxels({
       castShadow
       receiveShadow
     >
-      <meshStandardMaterial
-        transparent
-        opacity={0.9}
-        emissiveIntensity={0.3}
-      />
+      <meshStandardMaterial transparent opacity={0.9} emissiveIntensity={0.3} />
     </instancedMesh>
   );
 }
@@ -205,13 +204,7 @@ function InstancedVoxels({
 // INSTANCED EDGE RENDERER (LineSegments2)
 // =============================================================================
 
-function InstancedEdges({
-  edges,
-  voxels,
-}: {
-  edges: EdgeData[];
-  voxels: Map<string, VoxelData>;
-}) {
+function InstancedEdges({ edges, voxels }: { edges: EdgeData[]; voxels: Map<string, VoxelData> }) {
   const geometry = useMemo(() => {
     const positions: number[] = [];
     const colors: number[] = [];
@@ -317,19 +310,25 @@ function InfoPanel({
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-gray-400">Hubble δ:</span>
-          <span className={`font-semibold ${Math.abs(hubbleCorrection) > 0.05 ? 'text-yellow-400' : 'text-green-400'}`}>
+          <span
+            className={`font-semibold ${Math.abs(hubbleCorrection) > 0.05 ? 'text-yellow-400' : 'text-green-400'}`}
+          >
             {(hubbleCorrection * 100).toFixed(2)}%
           </span>
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-gray-400">Ricci violations:</span>
-          <span className={`font-semibold ${violationCount > 0 ? 'text-red-400' : 'text-green-400'}`}>
+          <span
+            className={`font-semibold ${violationCount > 0 ? 'text-red-400' : 'text-green-400'}`}
+          >
             {violationCount}
           </span>
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-gray-400">FPS:</span>
-          <span className={`font-semibold ${fps < 30 ? 'text-red-400' : fps < 50 ? 'text-yellow-400' : 'text-green-400'}`}>
+          <span
+            className={`font-semibold ${fps < 30 ? 'text-red-400' : fps < 50 ? 'text-yellow-400' : 'text-green-400'}`}
+          >
             {fps}
           </span>
         </div>
@@ -339,7 +338,9 @@ function InfoPanel({
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-gray-400">LOD:</span>
-          <span className={`font-semibold ${lodLevel === 0 ? 'text-green-400' : 'text-yellow-400'}`}>
+          <span
+            className={`font-semibold ${lodLevel === 0 ? 'text-green-400' : 'text-yellow-400'}`}
+          >
             {lodLevel === 0 ? 'High' : 'Low'}
           </span>
         </div>
@@ -361,7 +362,9 @@ function SceneContent({
   setFps,
   setDebugInfo,
 }: {
-  setStats: React.Dispatch<React.SetStateAction<{ voxels: number; edges: number; hubble: number; violations: number }>>;
+  setStats: React.Dispatch<
+    React.SetStateAction<{ voxels: number; edges: number; hubble: number; violations: number }>
+  >;
   setFps: React.Dispatch<React.SetStateAction<number>>;
   setDebugInfo: React.Dispatch<React.SetStateAction<{ particleCount: number; lodLevel: number }>>;
 }) {
@@ -433,16 +436,21 @@ function SceneContent({
     const node = traitNodeRef.current;
 
     // Update trait (config is stable from useEffect)
-    emergentSpacetimeHandler.onUpdate(node, {
-      initial_voxels: 1000,
-      max_voxels: 1000,
-      seed: 42,
-      force_layout_guard: true,
-      ricci_error_bound: 1e-4,
-      ricci_heatmap: true,
-      loop_threshold: 0.03,
-      real_time_budget_ms: 33, // 30Hz target
-    }, {} as any, delta);
+    emergentSpacetimeHandler.onUpdate(
+      node,
+      {
+        initial_voxels: 1000,
+        max_voxels: 1000,
+        seed: 42,
+        force_layout_guard: true,
+        ricci_error_bound: 1e-4,
+        ricci_heatmap: true,
+        loop_threshold: 0.03,
+        real_time_budget_ms: 33, // 30Hz target
+      },
+      {} as any,
+      delta
+    );
 
     // Sync state to visualization
     const state_ = (node as any).__emergentSpacetimeState;
@@ -505,7 +513,10 @@ function SceneContent({
     frameTimeRef.current = frameTime;
     if (frameTime > FRAME_TIME_TARGET_MS && targetParticleCountRef.current > MIN_FLOW_PARTICLES) {
       targetParticleCountRef.current -= 10;
-    } else if (frameTime < FRAME_TIME_TARGET_MS * 0.8 && targetParticleCountRef.current < MAX_FLOW_PARTICLES) {
+    } else if (
+      frameTime < FRAME_TIME_TARGET_MS * 0.8 &&
+      targetParticleCountRef.current < MAX_FLOW_PARTICLES
+    ) {
       targetParticleCountRef.current += 10;
     }
 
@@ -527,7 +538,11 @@ function SceneContent({
         <>
           <InstancedVoxels voxels={networkRef.current.voxels} lodLevel={lodLevelRef.current} />
           <InstancedEdges edges={networkRef.current.edges} voxels={networkRef.current.voxels} />
-          <ProvenanceFlowParticles edges={networkRef.current.edges} voxels={networkRef.current.voxels} targetParticleCount={targetParticleCountRef.current} />
+          <ProvenanceFlowParticles
+            edges={networkRef.current.edges}
+            voxels={networkRef.current.voxels}
+            targetParticleCount={targetParticleCountRef.current}
+          />
         </>
       )}
       <OrbitControls
@@ -540,17 +555,8 @@ function SceneContent({
         autoRotateSpeed={0.5}
       />
       <EffectComposer enableNormalPass={false}>
-        <Bloom
-          intensity={0.4}
-          luminanceThreshold={0.85}
-          luminanceSmoothing={0.05}
-          mipmapBlur
-        />
-        <SSAO
-          radius={0.3}
-          intensity={4}
-          luminanceInfluence={0.3}
-        />
+        <Bloom intensity={0.4} luminanceThreshold={0.85} luminanceSmoothing={0.05} mipmapBlur />
+        <SSAO radius={0.3} intensity={4} luminanceInfluence={0.3} />
         <Vignette offset={0.4} darkness={0.4} />
         <ToneMapping />
       </EffectComposer>
@@ -603,7 +609,12 @@ export default function EmergentSpacetimeDemo() {
       const timeSeriesData = {
         frame: 0,
         timestamp: Date.now(),
-        voxels: [] as Array<{ id: string; position: [number, number, number]; provenance: number; ricci: number }>,
+        voxels: [] as Array<{
+          id: string;
+          position: [number, number, number];
+          provenance: number;
+          ricci: number;
+        }>,
         edges: [] as Array<{ source: string; target: string; weight: number; provenance: number }>,
         hubbleCorrection: stats.hubble,
         violationCount: stats.violations,
@@ -672,18 +683,28 @@ export default function EmergentSpacetimeDemo() {
             exportState.status === 'exporting'
               ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
               : exportState.status === 'done'
-              ? 'bg-green-600 text-white hover:bg-green-700'
-              : exportState.status === 'error'
-              ? 'bg-red-600 text-white hover:bg-red-700'
-              : 'bg-purple-600 text-white hover:bg-purple-700'
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : exportState.status === 'error'
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
           }`}
         >
-          {exportState.status === 'exporting' ? 'Exporting...' : exportState.status === 'done' ? '✓ Exported' : exportState.status === 'error' ? '✗ Error' : '📊 Export Data'}
+          {exportState.status === 'exporting'
+            ? 'Exporting...'
+            : exportState.status === 'done'
+              ? '✓ Exported'
+              : exportState.status === 'error'
+                ? '✗ Error'
+                : '📊 Export Data'}
         </button>
         {exportState.status !== 'idle' && exportState.message && (
-          <div className={`mt-2 px-3 py-2 rounded-lg text-xs font-mono ${
-            exportState.status === 'done' ? 'bg-green-900/80 text-green-200' : 'bg-red-900/80 text-red-200'
-          }`}>
+          <div
+            className={`mt-2 px-3 py-2 rounded-lg text-xs font-mono ${
+              exportState.status === 'done'
+                ? 'bg-green-900/80 text-green-200'
+                : 'bg-red-900/80 text-red-200'
+            }`}
+          >
             {exportState.message}
             {exportState.status === 'done' && exportState.exportId && (
               <div className="mt-1 space-x-2">

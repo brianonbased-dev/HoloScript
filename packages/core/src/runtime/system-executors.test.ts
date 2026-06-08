@@ -16,12 +16,7 @@ import {
   setupNetworking,
   setupPhysics,
 } from './system-executors';
-import type {
-  CoreConfigNode,
-  HoloScriptValue,
-  SystemNode,
-  VisualMetadataNode,
-} from '../types';
+import type { CoreConfigNode, HoloScriptValue, SystemNode, VisualMetadataNode } from '../types';
 
 describe('setupNetworking', () => {
   it('returns success envelope', async () => {

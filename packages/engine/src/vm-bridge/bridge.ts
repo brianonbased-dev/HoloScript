@@ -74,7 +74,7 @@ function lazyUaal(): UaalModule {
     } catch {
       throw new Error(
         "VMBridge requires the optional peer dependency '@holoscript/uaal', which is not installed. " +
-          "Install it (e.g. `npm install @holoscript/uaal`) to use SpatialCognitiveAgent and the VM bridge."
+          'Install it (e.g. `npm install @holoscript/uaal`) to use SpatialCognitiveAgent and the VM bridge.'
       );
     }
   }
@@ -167,8 +167,8 @@ export function applyActions(world: ECSWorld, actions: AgentAction[]): number[] 
           world.setComponent(id, 0x01, {
             // ComponentType.Transform
             position: action.position,
-            rotation: [0, 0, 0, 1 ],
-            scale: [1, 1, 1 ],
+            rotation: [0, 0, 0, 1],
+            scale: [1, 1, 1],
           });
         }
         if (action.geometryType !== undefined) {
@@ -184,8 +184,8 @@ export function applyActions(world: ECSWorld, actions: AgentAction[]): number[] 
         const existing = world.getComponent<TransformComponent>(action.entityId, 0x01);
         const transform = existing ?? {
           position: [0, 0, 0],
-          rotation: [0, 0, 0, 1 ],
-          scale: [1, 1, 1 ],
+          rotation: [0, 0, 0, 1],
+          scale: [1, 1, 1],
         };
         transform.position = action.position;
         world.setComponent(action.entityId, 0x01, transform);
@@ -294,7 +294,7 @@ export class SpatialCognitiveAgent {
           // ComponentType.Transform
           position: [x, y, z],
           rotation: [0, 0, 0],
-          scale: [1, 1, 1 ],
+          scale: [1, 1, 1],
         });
         proxy.push(id);
       }
@@ -329,7 +329,7 @@ export class SpatialCognitiveAgent {
           // ComponentType.Transform
           position: [x, y, z],
           rotation: [0, 0, 0],
-          scale: [1, 1, 1 ],
+          scale: [1, 1, 1],
         });
         proxy.push({ teleported: true, entityId, position: [x, y, z] });
       }

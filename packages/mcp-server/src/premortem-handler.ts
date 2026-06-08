@@ -8,7 +8,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { createProviderManager, type LLMProviderName, type MessageRole } from '@holoscript/llm-provider';
+import {
+  createProviderManager,
+  type LLMProviderName,
+  type MessageRole,
+} from '@holoscript/llm-provider';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -270,11 +274,7 @@ function readModeDirective(): string | undefined {
 // Prompt builder
 // ---------------------------------------------------------------------------
 
-function buildPremortemPrompt(
-  target: string,
-  content: string,
-  context: string
-): string {
+function buildPremortemPrompt(target: string, content: string, context: string): string {
   const parts: string[] = [];
 
   parts.push(`PRE-MORTEM TARGET: ${target}`);
@@ -306,7 +306,11 @@ async function tryCompleteWithAI(request: {
   messages: Array<{ role: MessageRole; content: string }>;
   maxTokens: number;
   temperature: number;
-}): Promise<{ content: string; provider: LLMProviderName | undefined; attemptedProviders: LLMProviderName[] }> {
+}): Promise<{
+  content: string;
+  provider: LLMProviderName | undefined;
+  attemptedProviders: LLMProviderName[];
+}> {
   let manager;
 
   try {
@@ -315,18 +319,21 @@ async function tryCompleteWithAI(request: {
     return {
       content: JSON.stringify({
         verdict: 'FATAL_FLAW',
-        summary: 'No LLM providers are configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or another supported provider.',
+        summary:
+          'No LLM providers are configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or another supported provider.',
         failureStories: {
           mostLikely: {
             name: 'Missing LLM provider',
-            whatHappened: 'The premortem tool was invoked but no LLM provider was available to analyze the plan.',
+            whatHappened:
+              'The premortem tool was invoked but no LLM provider was available to analyze the plan.',
             why: 'No API keys or local LLM server configured.',
             whenWeKnew: 'At invocation time.',
             whatItCost: 'The pre-mortem analysis could not be performed.',
           },
           mostDangerous: {
             name: 'Blind execution',
-            whatHappened: 'The plan proceeds without pre-mortem analysis because the tool cannot reach any LLM.',
+            whatHappened:
+              'The plan proceeds without pre-mortem analysis because the tool cannot reach any LLM.',
             why: 'Infrastructure dependency on LLM provider was not verified before relying on the tool.',
             whenWeKnew: 'At invocation time.',
             whatItCost: 'Unknown risks in the plan remain unexamined.',
@@ -381,7 +388,8 @@ async function tryCompleteWithAI(request: {
         },
         mostDangerous: {
           name: 'Cascading tool failure',
-          whatHappened: 'If this tool fails, other LLM-backed tools may also be failing undetected.',
+          whatHappened:
+            'If this tool fails, other LLM-backed tools may also be failing undetected.',
           why: 'Shared dependency on external LLM providers without circuit breakers.',
           whenWeKnew: 'At invocation time.',
           whatItCost: 'Degraded automation across the ecosystem.',
@@ -394,7 +402,8 @@ async function tryCompleteWithAI(request: {
         cascadeIfWrong: 'All LLM-backed analysis tools return degraded output.',
         howToVerify: 'Run a health check on configured LLM providers before critical operations.',
       },
-      revisedPlan: 'Add circuit breaker and fallback logic for LLM provider failures; consider local-llm as a backup.',
+      revisedPlan:
+        'Add circuit breaker and fallback logic for LLM provider failures; consider local-llm as a backup.',
       irreducibleRisks: [],
     }),
     provider: undefined,
@@ -453,7 +462,10 @@ function normalizeFailureStories(v: unknown): PremortemResult['failureStories'] 
   });
 
   if (!v || typeof v !== 'object') {
-    return { mostLikely: fallback('Most likely failure'), mostDangerous: fallback('Most dangerous failure') };
+    return {
+      mostLikely: fallback('Most likely failure'),
+      mostDangerous: fallback('Most dangerous failure'),
+    };
   }
 
   const obj = v as Record<string, unknown>;
@@ -525,7 +537,9 @@ function normalizeIrreducibleRisks(v: unknown): PremortemIrreducibleRisk[] {
       const obj = item as Record<string, unknown>;
       return {
         risk: String(obj.risk ?? ''),
-        consequenceIfAccepted: String(obj.consequenceIfAccepted ?? obj.consequence_if_accepted ?? ''),
+        consequenceIfAccepted: String(
+          obj.consequenceIfAccepted ?? obj.consequence_if_accepted ?? ''
+        ),
       };
     })
     .filter((item): item is PremortemIrreducibleRisk => item !== null && item.risk.length > 0);
@@ -541,7 +555,9 @@ function heuristicParse(raw: string): Omit<PremortemResult, 'meta'> {
   });
 
   // Extract verdict from markdown header
-  const verdictMatch = raw.match(/VERDICT[:\s]+(SOUND|PROCEED WITH CAUTION|RESTRUCTURE REQUIRED|FATAL FLAW)/i);
+  const verdictMatch = raw.match(
+    /VERDICT[:\s]+(SOUND|PROCEED WITH CAUTION|RESTRUCTURE REQUIRED|FATAL FLAW)/i
+  );
   const verdict = verdictMatch ? normalizeVerdict(verdictMatch[1]) : 'PROCEED_WITH_CAUTION';
 
   // Summary

@@ -11,9 +11,23 @@ describe('holo_service_scaffold', () => {
   it('emits SQL, StartupHealthCheck wiring, cleanup, quota alerts, and attribution metric scaffolding', async () => {
     const result = (await handleObservabilityTool('holo_service_scaffold', {
       serviceName: 'slf_npc_runtime',
-      requiredTables: ['system_metrics', 'operation_metrics', 'alerts', 'alert_triggers', 'behavior_facts'],
+      requiredTables: [
+        'system_metrics',
+        'operation_metrics',
+        'alerts',
+        'alert_triggers',
+        'behavior_facts',
+      ],
       healthChecks: [{ service: 'CostGovernor', check: 'method-exists', method: 'enforceBudget' }],
-      alertRules: [{ name: 'runtime_error_rate', rule_type: 'error_rate', severity: 'warning', threshold: 0.05, rule_config: {} }],
+      alertRules: [
+        {
+          name: 'runtime_error_rate',
+          rule_type: 'error_rate',
+          severity: 'warning',
+          threshold: 0.05,
+          rule_config: {},
+        },
+      ],
     })) as {
       sql: string;
       startupHealthCheck: string;
@@ -32,8 +46,16 @@ describe('holo_service_scaffold', () => {
     expect(result.hsplusTraitSnippet).toContain('@serviceObservability');
     expect(result.alertRules).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ name: 'npc_daily_cost_ceiling', rule_type: 'api_quota', threshold: 0.5 }),
-        expect.objectContaining({ name: 'headless_agent_daily_cost_ceiling', rule_type: 'api_quota', threshold: 5 }),
+        expect.objectContaining({
+          name: 'npc_daily_cost_ceiling',
+          rule_type: 'api_quota',
+          threshold: 0.5,
+        }),
+        expect.objectContaining({
+          name: 'headless_agent_daily_cost_ceiling',
+          rule_type: 'api_quota',
+          threshold: 5,
+        }),
       ])
     );
     expect(result.scheduledJobs[0].retention_days).toBe(90);

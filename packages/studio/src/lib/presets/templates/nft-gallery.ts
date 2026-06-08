@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-nft-gallery",
-  name: "NFT Gallery Space",
-  description: "Virtual art exhibition for displaying and minting NFTs",
-  thumbnail: "🖼️",
-  tags: ["creator","nft","gallery","art"],
-  category: "creator",
+  id: 'wizard-nft-gallery',
+  name: 'NFT Gallery Space',
+  description: 'Virtual art exhibition for displaying and minting NFTs',
+  thumbnail: '🖼️',
+  tags: ['creator', 'nft', 'gallery', 'art'],
+  category: 'creator',
   code: `composition "NFT Gallery" {
   environment {
     skybox: "night"
@@ -87,7 +87,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 2.0
     label: "Mint NFT"
   }
-}`
+}`,
 };
 
 export default template;

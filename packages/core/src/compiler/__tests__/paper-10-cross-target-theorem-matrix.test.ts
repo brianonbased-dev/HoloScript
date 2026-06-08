@@ -60,7 +60,7 @@ describe('Paper 10 — Cross-Target Hash Theorem (foundational)', () => {
     const targets = [
       { name: 'WebGPU', Ctor: WebGPUCompiler },
       { name: 'VRChat', Ctor: VRChatCompiler },
-      { name: 'Unity',  Ctor: UnityCompiler },
+      { name: 'Unity', Ctor: UnityCompiler },
     ];
 
     const outHashes: Record<string, string> = {};
@@ -74,7 +74,7 @@ describe('Paper 10 — Cross-Target Hash Theorem (foundational)', () => {
     let v = 0;
     const pairs: string[] = [];
     for (let a = 0; a < targets.length; a++) {
-      for (let b = a+1; b < targets.length; b++) {
+      for (let b = a + 1; b < targets.length; b++) {
         const c = tropical(outHashes[targets[a].name], outHashes[targets[b].name]);
         const ok = !(c > srcH);
         if (!ok) v++;
@@ -82,7 +82,7 @@ describe('Paper 10 — Cross-Target Hash Theorem (foundational)', () => {
       }
     }
 
-    console.log('[paper-10-theorem] sourceHash=', srcH.slice(0,16)+'...');
+    console.log('[paper-10-theorem] sourceHash=', srcH.slice(0, 16) + '...');
     console.log('[paper-10-theorem] hashes=', outHashes);
     console.log('[paper-10-theorem] pairs=', pairs);
     console.log('[paper-10-theorem] violations=', v);

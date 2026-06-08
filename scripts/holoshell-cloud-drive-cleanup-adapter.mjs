@@ -235,10 +235,39 @@ function buildInventoryReceipt(input, args = {}) {
 function buildPermissionGateSubPack(input, inventory, args = {}) {
   const PG_VERSION = 'hololand.holoshell.permission-gate.v0.1.0';
   const PG_WORKFLOW = 'provider-app-device-permission-gate';
-  const PG_SUBJECT_KINDS = new Set(['provider_account', 'oauth_app', 'browser_profile', 'os_app_permission', 'device', 'connector', 'cloud_service', 'local_app']);
-  const PG_ENVELOPES = new Set(['read_only', 'guarded_grant', 'break_glass_permission', 'revoke_only']);
-  const PG_STATUSES = new Set(['planned', 'requested', 'granted', 'verified', 'revoked', 'blocked', 'failed']);
-  const PG_VERIFICATION_METHODS = new Set(['oauth_tokeninfo', 'provider_settings', 'os_permission_probe', 'device_permission_probe', 'connector_probe', 'manual_redacted_witness']);
+  const PG_SUBJECT_KINDS = new Set([
+    'provider_account',
+    'oauth_app',
+    'browser_profile',
+    'os_app_permission',
+    'device',
+    'connector',
+    'cloud_service',
+    'local_app',
+  ]);
+  const PG_ENVELOPES = new Set([
+    'read_only',
+    'guarded_grant',
+    'break_glass_permission',
+    'revoke_only',
+  ]);
+  const PG_STATUSES = new Set([
+    'planned',
+    'requested',
+    'granted',
+    'verified',
+    'revoked',
+    'blocked',
+    'failed',
+  ]);
+  const PG_VERIFICATION_METHODS = new Set([
+    'oauth_tokeninfo',
+    'provider_settings',
+    'os_permission_probe',
+    'device_permission_probe',
+    'connector_probe',
+    'manual_redacted_witness',
+  ]);
   const NEVER = ['*', 'admin', 'billing', 'delete', 'full_access', 'write_all', 'manage_all'];
   const at = inventory.observedAt;
 
@@ -301,7 +330,12 @@ function buildPermissionGateSubPack(input, inventory, args = {}) {
     status: 'planned',
     subjectReceiptId: subject.id,
     requestReceiptId: request.id,
-    replayKey: hashValue({ workflow: PG_WORKFLOW, subject: subject.hash, request: request.hash, adapterVersion: VERSION }),
+    replayKey: hashValue({
+      workflow: PG_WORKFLOW,
+      subject: subject.hash,
+      request: request.hash,
+      adapterVersion: VERSION,
+    }),
     rawCredentialCaptured: false,
     overbroadScopeAccepted: false,
     readyForHoloLand: false,
@@ -332,7 +366,12 @@ function buildCleanupPack(input, args = {}) {
     inventoryReceiptId: inventory.id,
     permissionPackId: permissionGate.id,
     revocationReceiptIds: [],
-    replayKey: hashValue({ workflow: WORKFLOW, inventory: inventory.hash, permissionGate: permissionGate.hash, adapterVersion: VERSION }),
+    replayKey: hashValue({
+      workflow: WORKFLOW,
+      inventory: inventory.hash,
+      permissionGate: permissionGate.hash,
+      adapterVersion: VERSION,
+    }),
     rawCredentialCaptured: false,
     sourceCloudDataMutated: false,
     previewOnlyImport: true,
@@ -412,7 +451,14 @@ function runCommand(args) {
       );
       return { ok: true, pack };
     }
-    const out = args.out ?? join('.bench-logs', 'holoshell-human-os-frontier', new Date().toISOString().slice(0, 10), 'cloud-drive-cleanup-pack.json');
+    const out =
+      args.out ??
+      join(
+        '.bench-logs',
+        'holoshell-human-os-frontier',
+        new Date().toISOString().slice(0, 10),
+        'cloud-drive-cleanup-pack.json'
+      );
     const written = writeJson(out, pack);
     process.stdout.write(
       `${JSON.stringify({ ok: true, out: written, packId: pack.id, inventoryId: pack.inventory.id, permissionPackId: pack.permissionGate.id, status: pack.status }, null, 2)}\n`
@@ -460,7 +506,9 @@ function runSelfTest() {
   writeJson(inputPath, testInput);
 
   // Test inventory command
-  const { receipt } = runCommand(parseArgs(['inventory', '--input', inputPath, '--out', invOutPath]));
+  const { receipt } = runCommand(
+    parseArgs(['inventory', '--input', inputPath, '--out', invOutPath])
+  );
   let errors = validateInventoryReceipt(receipt);
   const publicJson = JSON.stringify(receipt);
   if (publicJson.includes('private-human@example.com')) errors.push('raw account label leaked');
@@ -474,27 +522,39 @@ function runSelfTest() {
   if (!pack.permissionGate) errors.push('pack.permissionGate is missing');
   if (!pack.replay) errors.push('pack.replay is missing');
   if (pack.revocations.length !== 0) errors.push('pack should start with empty revocations');
-  if (pack.schemaVersion !== RECEIPT_VERSION) errors.push(`pack.schemaVersion mismatch: ${pack.schemaVersion}`);
+  if (pack.schemaVersion !== RECEIPT_VERSION)
+    errors.push(`pack.schemaVersion mismatch: ${pack.schemaVersion}`);
   if (pack.workflow !== WORKFLOW) errors.push(`pack.workflow mismatch: ${pack.workflow}`);
-  if (pack.status !== 'inventoried') errors.push(`pack.status should be inventoried, got ${pack.status}`);
-  if (pack.replay.inventoryReceiptId !== pack.inventory.id) errors.push('replay.inventoryReceiptId must match inventory.id');
-  if (pack.replay.permissionPackId !== pack.permissionGate.id) errors.push('replay.permissionPackId must match permissionGate.id');
-  if (pack.replay.rawCredentialCaptured !== false) errors.push('replay.rawCredentialCaptured must be false');
-  if (pack.replay.sourceCloudDataMutated !== false) errors.push('replay.sourceCloudDataMutated must be false');
+  if (pack.status !== 'inventoried')
+    errors.push(`pack.status should be inventoried, got ${pack.status}`);
+  if (pack.replay.inventoryReceiptId !== pack.inventory.id)
+    errors.push('replay.inventoryReceiptId must match inventory.id');
+  if (pack.replay.permissionPackId !== pack.permissionGate.id)
+    errors.push('replay.permissionPackId must match permissionGate.id');
+  if (pack.replay.rawCredentialCaptured !== false)
+    errors.push('replay.rawCredentialCaptured must be false');
+  if (pack.replay.sourceCloudDataMutated !== false)
+    errors.push('replay.sourceCloudDataMutated must be false');
   if (pack.replay.previewOnlyImport !== true) errors.push('replay.previewOnlyImport must be true');
 
   // Verify no credential leak in pack JSON
   const packJson = JSON.stringify(pack);
   if (packJson.includes('private-human@example.com')) errors.push('pack leaks raw account label');
-  if (packJson.includes('app-1') || packJson.includes('app-2')) errors.push('pack leaks raw app IDs');
-  if (/\b(access_token|refresh_token|client_secret|id_token)=/i.test(packJson)) errors.push('pack contains credential material');
+  if (packJson.includes('app-1') || packJson.includes('app-2'))
+    errors.push('pack leaks raw app IDs');
+  if (/\b(access_token|refresh_token|client_secret|id_token)=/i.test(packJson))
+    errors.push('pack contains credential material');
 
   // Verify permission gate sub-pack integrity
   const pg = pack.permissionGate;
-  if (pg.schemaVersion !== 'hololand.holoshell.permission-gate.v0.1.0') errors.push('permission gate schema version mismatch');
-  if (pg.subject.subjectKind !== 'cloud_service') errors.push('permission gate subject kind must be cloud_service');
-  if (pg.request.permissionEnvelope !== 'read_only') errors.push('permission gate envelope must be read_only for inventory');
-  if (pg.replay.rawCredentialCaptured !== false) errors.push('permission gate replay must not capture credentials');
+  if (pg.schemaVersion !== 'hololand.holoshell.permission-gate.v0.1.0')
+    errors.push('permission gate schema version mismatch');
+  if (pg.subject.subjectKind !== 'cloud_service')
+    errors.push('permission gate subject kind must be cloud_service');
+  if (pg.request.permissionEnvelope !== 'read_only')
+    errors.push('permission gate envelope must be read_only for inventory');
+  if (pg.replay.rawCredentialCaptured !== false)
+    errors.push('permission gate replay must not capture credentials');
 
   if (errors.length > 0) throw new Error(`Self-test failures:\n${errors.join('\n')}`);
   process.stdout.write(

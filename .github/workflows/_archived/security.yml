@@ -52,8 +52,8 @@ jobs:
       - name: Dependency Review
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v5 (no v5 tag — pinned to v4.9.0)
         with:
-          fail-on-severity: moderate  # Blocks moderate+ new deps. Override: open an issue with justification
-          deny-licenses: GPL-3.0, AGPL-3.0  # Copyleft licenses would require HoloScript to also be GPL. Exception: open an issue with license justification
+          fail-on-severity: moderate # Blocks moderate+ new deps. Override: open an issue with justification
+          deny-licenses: GPL-3.0, AGPL-3.0 # Copyleft licenses would require HoloScript to also be GPL. Exception: open an issue with license justification
 
   codeql-analysis:
     name: CodeQL Analysis
@@ -80,7 +80,7 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4
-        continue-on-error: true  # CodeQL is informational — outages or timeouts should not block PRs
+        continue-on-error: true # CodeQL is informational — outages or timeouts should not block PRs
         with:
           category: '/language:${{matrix.language}}'
 

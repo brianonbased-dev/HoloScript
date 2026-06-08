@@ -15,22 +15,22 @@ Cutover would NARROW the live founder skill by ~37% (147 lines lost). At least o
 
 Section structure parity is high — 13 of 14 live sections have a vocabulary v2 equivalent:
 
-| Live section | Vocabulary v2 trait | Cutover status |
-|---|---|---|
-| Authority order | `@authority_order` | ✅ structural parity |
-| The Four Refusals | `@refusal` × 4 | ✅ structural parity |
-| Date discipline (W.317) | `@date_discipline` | ✅ structural parity (G-3 second slice) |
-| Known founder defaults | `@default` × 8 | ⚠️ count narrowed (live has ~25 rows) |
-| Domain preferences | `@domain_preference` × 6 | ✅ row parity |
-| Self-edit + tier-write authority (Track B) | `@authority` | ✅ structural parity (G-3 codex slice) |
-| Vision pillars | `@vision_pillar` × 4 | ⚠️ count narrowed (live has more) |
-| Production-only rule | `@production_rule` | ✅ structural parity |
-| Papers program | `@editorial_default` + `@research_default` | ✅ structural parity (G-3 codex slice) |
-| Citation discipline | `@citation_rule` | ✅ structural parity |
-| Output shape | `@output_shape` | ✅ structural parity |
-| Invocation modes | `@invocation_mode` × 3 | ✅ row parity |
-| Escape hatch | `@escalation` | ✅ structural parity (renamed "Escalation") |
-| Embodied projection | `@embodied_projection` × 2 | ✅ structural parity (G-3 codex slice) |
+| Live section                               | Vocabulary v2 trait                        | Cutover status                              |
+| ------------------------------------------ | ------------------------------------------ | ------------------------------------------- |
+| Authority order                            | `@authority_order`                         | ✅ structural parity                        |
+| The Four Refusals                          | `@refusal` × 4                             | ✅ structural parity                        |
+| Date discipline (W.317)                    | `@date_discipline`                         | ✅ structural parity (G-3 second slice)     |
+| Known founder defaults                     | `@default` × 8                             | ⚠️ count narrowed (live has ~25 rows)       |
+| Domain preferences                         | `@domain_preference` × 6                   | ✅ row parity                               |
+| Self-edit + tier-write authority (Track B) | `@authority`                               | ✅ structural parity (G-3 codex slice)      |
+| Vision pillars                             | `@vision_pillar` × 4                       | ⚠️ count narrowed (live has more)           |
+| Production-only rule                       | `@production_rule`                         | ✅ structural parity                        |
+| Papers program                             | `@editorial_default` + `@research_default` | ✅ structural parity (G-3 codex slice)      |
+| Citation discipline                        | `@citation_rule`                           | ✅ structural parity                        |
+| Output shape                               | `@output_shape`                            | ✅ structural parity                        |
+| Invocation modes                           | `@invocation_mode` × 3                     | ✅ row parity                               |
+| Escape hatch                               | `@escalation`                              | ✅ structural parity (renamed "Escalation") |
+| Embodied projection                        | `@embodied_projection` × 2                 | ✅ structural parity (G-3 codex slice)      |
 
 ## What gets LOST on cutover (vocabulary v3 enrichment targets)
 
@@ -55,6 +55,7 @@ This is the **frame-setter** for the entire skill — without it, agents reading
 ### Loss-3 (CONTENT): verbose `description:` frontmatter
 
 Live description enumerates concrete trigger phrases:
+
 - "propose a workaround/mock/fallback/'simpler version for now'/.skip()/@ts-ignore/as any"
 - "reach for a local/dev/mocked service where production exists"
 - "post '@joseph' on the team feed"
@@ -68,6 +69,7 @@ Emitted description is shorter and generic. Skill discovery still works, but the
 ### Loss-4 (CONTENT): per-section verification prose
 
 Many live sections have prose AFTER the structured list. Examples:
+
 - Authority order: "If you cite the wrong GOLD ID, you failed. Verify IDs before quoting them (F.023). Run `python D:/GOLD/graduate.py list` or `cat D:/GOLD/INDEX.md` when in doubt..."
 - Date discipline: detailed Martinis-quantum-engineering rationale paragraphs
 - Self-edit Track B: prose around the mutable-targets table about backup discipline
@@ -93,18 +95,18 @@ Live has more vision pillars and more known-default rows than `compositions/foun
 
 Live ↔ Emitted title differences:
 
-| Live | Emitted |
-|---|---|
-| `## The Four Refusals` | `## The Refusals` |
-| `## Known founder defaults (answer immediately)` | `## Known defaults (answer immediately - do not re-litigate)` |
-| `## Production-only rule (no dev, no mock, no localhost)` | `## Production-only rule` |
-| `## Output shape — SILENT-TO-JOSEPH, LOUD-TO-THE-AGENT` | `## Output shape` |
-| `## Domain preferences (beyond engineering)` | `## Domain preferences` |
-| `## Vision pillars (follow; do not drift)` | `## Vision pillars (follow; do not drift)` *(matches)* |
-| `## Date discipline (W.317)` | `## Date discipline` |
-| `## Invocation modes (Track D)` | `## Invocation modes` |
-| `## Papers program (research + editorial decisions)` | `## Papers program defaults` |
-| `## Escape hatch` | `## Escalation` |
+| Live                                                      | Emitted                                                       |
+| --------------------------------------------------------- | ------------------------------------------------------------- |
+| `## The Four Refusals`                                    | `## The Refusals`                                             |
+| `## Known founder defaults (answer immediately)`          | `## Known defaults (answer immediately - do not re-litigate)` |
+| `## Production-only rule (no dev, no mock, no localhost)` | `## Production-only rule`                                     |
+| `## Output shape — SILENT-TO-JOSEPH, LOUD-TO-THE-AGENT`   | `## Output shape`                                             |
+| `## Domain preferences (beyond engineering)`              | `## Domain preferences`                                       |
+| `## Vision pillars (follow; do not drift)`                | `## Vision pillars (follow; do not drift)` _(matches)_        |
+| `## Date discipline (W.317)`                              | `## Date discipline`                                          |
+| `## Invocation modes (Track D)`                           | `## Invocation modes`                                         |
+| `## Papers program (research + editorial decisions)`      | `## Papers program defaults`                                  |
+| `## Escape hatch`                                         | `## Escalation`                                               |
 
 **Fix**: pick whichever convention is canonical (live or emitted) and align the other. Per the founder skill's own self-narrative, the live conventions are more specific and informative — recommend updating ContextCompiler emitter section labels to match the live conventions exactly.
 

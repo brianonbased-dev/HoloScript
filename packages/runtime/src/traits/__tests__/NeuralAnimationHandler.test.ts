@@ -93,7 +93,7 @@ describe('NeuralAnimationHandler — runtime bridge (RULING 2 pilot)', () => {
     const speed = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
     const delta = 0.1;
     // SyntheticWalkCycleEngine.infer phase advance: max(speed,0.1)*0.5*delta
-    const expectedPhase = (Math.max(speed, 0.1) * 0.5) * delta;
+    const expectedPhase = Math.max(speed, 0.1) * 0.5 * delta;
     const expectedPose = buildSyntheticBipedPose(expectedPhase, speed);
 
     neuralAnimationHandler.onApply!(ctx);
@@ -115,7 +115,9 @@ describe('NeuralAnimationHandler — runtime bridge (RULING 2 pilot)', () => {
   it('Critical #3: onUpdate is no-op when engine is not yet loaded (load race)', () => {
     // Custom engine with manually-controlled load() — caller resolves it later.
     let resolveLoad: () => void;
-    const loadPromise = new Promise<void>((resolve) => { resolveLoad = resolve; });
+    const loadPromise = new Promise<void>((resolve) => {
+      resolveLoad = resolve;
+    });
     let inferCallCount = 0;
     const slowLoadingEngine: MotionMatchingEngine = {
       modelId: 'slow_load',

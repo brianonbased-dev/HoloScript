@@ -32,10 +32,7 @@ export interface HoloFileWatcherOptions {
 export class HoloFileWatcher {
   private watcher: FSWatcher | null = null;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  private pendingFiles = new Map<
-    string,
-    { event: WatchEventType; mtime: number }
-  >();
+  private pendingFiles = new Map<string, { event: WatchEventType; mtime: number }>();
   private options: HoloFileWatcherOptions;
   private targetPath: string;
   private isDirectory: boolean;
@@ -58,28 +55,33 @@ export class HoloFileWatcher {
     const handler = onChange ?? this.options.onChange;
 
     try {
-      this.watcher = watch(this.targetPath, { recursive: this.isDirectory }, (eventType, filename) => {
-        if (!filename) return;
-        const filePath = this.isDirectory ? resolve(this.targetPath, filename) : this.targetPath;
+      this.watcher = watch(
+        this.targetPath,
+        { recursive: this.isDirectory },
+        (eventType, filename) => {
+          if (!filename) return;
+          const filePath = this.isDirectory ? resolve(this.targetPath, filename) : this.targetPath;
 
-        // Filter to .holo files only
-        if (!filePath.endsWith('.holo')) return;
+          // Filter to .holo files only
+          if (!filePath.endsWith('.holo')) return;
 
-        const kind: WatchEventType = eventType === 'rename' && !existsSync(filePath)
-          ? 'deleted'
-          : existsSync(filePath) && !this.pendingFiles.has(filePath)
-          ? 'created'
-          : 'modified';
+          const kind: WatchEventType =
+            eventType === 'rename' && !existsSync(filePath)
+              ? 'deleted'
+              : existsSync(filePath) && !this.pendingFiles.has(filePath)
+                ? 'created'
+                : 'modified';
 
-        this.pendingFiles.set(filePath, { event: kind, mtime: Date.now() });
+          this.pendingFiles.set(filePath, { event: kind, mtime: Date.now() });
 
-        if (this.debounceTimer) {
-          clearTimeout(this.debounceTimer);
+          if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+          }
+          this.debounceTimer = setTimeout(() => {
+            this.flush(handler);
+          }, this.options.debounceMs);
         }
-        this.debounceTimer = setTimeout(() => {
-          this.flush(handler);
-        }, this.options.debounceMs);
-      });
+      );
 
       this.watcher.on('error', (err) => {
         this.options.onError?.(err);

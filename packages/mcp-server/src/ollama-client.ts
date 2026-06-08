@@ -30,7 +30,10 @@ type LLMProviderName = 'hybrid-gemma' | 'openrouter' | 'anthropic' | 'openai' | 
 
 function detectProvider(): LLMProviderName {
   const explicit = process.env.LLM_PROVIDER as LLMProviderName;
-  if (explicit && ['hybrid-gemma', 'openrouter', 'anthropic', 'openai', 'ollama'].includes(explicit))
+  if (
+    explicit &&
+    ['hybrid-gemma', 'openrouter', 'anthropic', 'openai', 'ollama'].includes(explicit)
+  )
     return explicit;
   // Auto-detect from available keys
   if (process.env.OPENROUTER_API_KEY) return 'openrouter';
@@ -140,7 +143,11 @@ function getOllamaAdapter(): LocalLLMAdapter | null {
 // with withRetry from BaseLLMAdapter — exponential backoff + Retry-After)
 // =============================================================================
 
-async function queryOpenRouterProvider(prompt: string, system: string, modelOverride?: string): Promise<string | null> {
+async function queryOpenRouterProvider(
+  prompt: string,
+  system: string,
+  modelOverride?: string
+): Promise<string | null> {
   const adapter = getOpenRouterAdapter();
   if (!adapter) return null;
   try {
@@ -192,7 +199,11 @@ async function queryOpenAIProvider(prompt: string, system: string): Promise<stri
   }
 }
 
-async function queryOllamaProvider(prompt: string, system: string, modelOverride?: string): Promise<string | null> {
+async function queryOllamaProvider(
+  prompt: string,
+  system: string,
+  modelOverride?: string
+): Promise<string | null> {
   const adapter = getOllamaAdapter();
   if (!adapter) return null;
   try {
@@ -233,7 +244,11 @@ export interface RoutingOptions {
 // source. Ref: ai-ecosystem/research/2026-05-31_self-hosted-fleet-inference-plan.md.
 let __mcpActive = 0;
 
-export async function queryOllama(prompt: string, system?: string, options?: RoutingOptions): Promise<string | null> {
+export async function queryOllama(
+  prompt: string,
+  system?: string,
+  options?: RoutingOptions
+): Promise<string | null> {
   const sysPrompt = system || HOLOSCRIPT_SYSTEM_PROMPT;
   const __start = Date.now();
   __mcpActive += 1;

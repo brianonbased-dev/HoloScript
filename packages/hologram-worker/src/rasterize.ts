@@ -27,7 +27,7 @@ function tempPath(suffix: string): string {
 }
 
 async function resizeToCapPipeline(
-  sharpInput: sharp.Sharp,
+  sharpInput: sharp.Sharp
 ): Promise<{ buffer: Buffer; width: number; height: number }> {
   const meta = await sharpInput.metadata();
   let w = meta.width ?? 1;
@@ -51,7 +51,7 @@ async function resizeToCapPipeline(
  */
 export async function prepareRasterPng(
   media: Uint8Array,
-  sourceKind: HologramSourceKind,
+  sourceKind: HologramSourceKind
 ): Promise<PreparedRaster & { dispose: () => Promise<void> }> {
   const pngPath = tempPath('.png');
   const dispose = async () => {
@@ -66,7 +66,7 @@ export async function prepareRasterPng(
 
   if (sourceKind === 'gif') {
     const { buffer, width, height } = await resizeToCapPipeline(
-      sharp(Buffer.from(media), { animated: true, pages: 1 }).gif(),
+      sharp(Buffer.from(media), { animated: true, pages: 1 }).gif()
     );
     await fs.writeFile(pngPath, buffer);
     return { pngPath, width, height, sourceKind, compositionMediaType: 'image', dispose };
@@ -81,7 +81,9 @@ export async function prepareRasterPng(
   await fs.unlink(vidPath).catch(() => {});
   if (r.status !== 0) {
     await fs.unlink(rawFrame).catch(() => {});
-    throw new Error(`ffmpeg frame extract failed: ${(r.stderr as string)?.slice(-300) ?? 'unknown'}`);
+    throw new Error(
+      `ffmpeg frame extract failed: ${(r.stderr as string)?.slice(-300) ?? 'unknown'}`
+    );
   }
   const { buffer, width, height } = await resizeToCapPipeline(sharp(await fs.readFile(rawFrame)));
   await fs.unlink(rawFrame).catch(() => {});

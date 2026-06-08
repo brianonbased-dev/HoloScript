@@ -9,14 +9,7 @@
  */
 
 import React, { useCallback } from 'react';
-import {
-  FolderTree,
-  Scan,
-  Globe,
-  Bot,
-  ShieldCheck,
-  ChevronRight,
-} from 'lucide-react';
+import { FolderTree, Scan, Globe, Bot, ShieldCheck, ChevronRight } from 'lucide-react';
 import type { ConsentGates } from '@/lib/brittney/WizardFlow';
 import { isConsentSufficient } from '@/lib/brittney/WizardFlow';
 
@@ -117,9 +110,7 @@ function PermissionCard({
   return (
     <div
       className={`rounded-xl border p-4 transition-all duration-200 ${
-        checked
-          ? 'border-purple-500/40 bg-purple-500/5'
-          : 'border-studio-border bg-[#111827]'
+        checked ? 'border-purple-500/40 bg-purple-500/5' : 'border-studio-border bg-[#111827]'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -133,18 +124,14 @@ function PermissionCard({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-white">
-                {permission.title}
-              </span>
+              <span className="text-sm font-medium text-white">{permission.title}</span>
               {permission.key === 'publishKnowledge' && (
                 <span className="text-[10px] font-medium text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
                   public
                 </span>
               )}
             </div>
-            <p className="text-xs text-studio-muted mt-0.5">
-              {permission.description}
-            </p>
+            <p className="text-xs text-studio-muted mt-0.5">{permission.description}</p>
           </div>
         </div>
         <Toggle checked={checked} onChange={onChange} />
@@ -195,12 +182,8 @@ export function ConsentStep({ consent, onConsentChange, onContinue }: ConsentSte
           <ShieldCheck className="h-5 w-5 text-purple-400" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-white">
-            Your permissions
-          </h3>
-          <p className="text-xs text-studio-muted">
-            Choose what Brittney can do with your project
-          </p>
+          <h3 className="text-lg font-semibold text-white">Your permissions</h3>
+          <p className="text-xs text-studio-muted">Choose what Brittney can do with your project</p>
         </div>
       </div>
 

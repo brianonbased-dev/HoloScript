@@ -67,7 +67,7 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
     let finalPosition = [
       rawPosition[0] * currentScale,
       rawPosition[2] * currentScale,
-      rawPosition[1] * currentScale
+      rawPosition[1] * currentScale,
     ];
 
     // Get parent position if this is a moon/satellite
@@ -94,7 +94,7 @@ export const orbitalHandler: TraitHandler<OrbitalTraitConfig> = {
         finalPosition = [
           finalPosition[0] + (parentNode.position[0] || 0),
           finalPosition[1] + (parentNode.position[1] || 0),
-          finalPosition[2] + (parentNode.position[2] || 0)
+          finalPosition[2] + (parentNode.position[2] || 0),
         ];
       } else {
         // Failure to find parent - Moon will end up in the Sun (0, 0, 0)

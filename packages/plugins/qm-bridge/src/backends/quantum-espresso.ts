@@ -66,7 +66,7 @@ interface QuantumEspressoRawResult {
 function generateQeScfInput(
   crystal: CrystalSpec,
   method: QmMethod,
-  config: QuantumEspressoConfig,
+  config: QuantumEspressoConfig
 ): string {
   const ecutwfc = config.ecutwfc ?? 60;
   const ecutrho = config.ecutrho ?? 480;
@@ -88,9 +88,7 @@ function generateQeScfInput(
 
   // Build atomic species block
   const species = [...new Set(crystal.atoms.map((a) => a.symbol))];
-  const atomicSpecies = species
-    .map((s) => `${s}  ${s}.upf  ${functional}`)
-    .join('\n');
+  const atomicSpecies = species.map((s) => `${s}  ${s}.upf  ${functional}`).join('\n');
 
   // Build atomic positions block
   const atomicPositions = crystal.atoms
@@ -207,15 +205,21 @@ export class QuantumEspressoBackend implements QmSolver {
   // ── Capability implementations ────────────────────────────────────────
 
   async computeEnergy(_molecule: MoleculeSpec): Promise<QmEnergyResult> {
-    throw new Error('[qm-bridge] Quantum ESPRESSO does not support molecular energy calculations. Use psi4 backend.');
+    throw new Error(
+      '[qm-bridge] Quantum ESPRESSO does not support molecular energy calculations. Use psi4 backend.'
+    );
   }
 
   async optimizeGeometry(_molecule: MoleculeSpec): Promise<never> {
-    throw new Error('[qm-bridge] Quantum ESPRESSO does not support molecular geometry optimization. Use psi4 backend.');
+    throw new Error(
+      '[qm-bridge] Quantum ESPRESSO does not support molecular geometry optimization. Use psi4 backend.'
+    );
   }
 
   async computeVibrations(_molecule: MoleculeSpec): Promise<never> {
-    throw new Error('[qm-bridge] Quantum ESPRESSO does not support molecular vibrational analysis. Use psi4 backend.');
+    throw new Error(
+      '[qm-bridge] Quantum ESPRESSO does not support molecular vibrational analysis. Use psi4 backend.'
+    );
   }
 
   async computeChargeDensity(): Promise<never> {
@@ -225,7 +229,11 @@ export class QuantumEspressoBackend implements QmSolver {
   async computeBandStructure(crystal: CrystalSpec): Promise<QmBandStructureResult> {
     requireCapability('quantum-espresso', 'periodic');
     const startTime = performance.now();
-    const input = generateQeScfInput(crystal, this.qmConfig.method, this.qmConfig as QuantumEspressoConfig);
+    const input = generateQeScfInput(
+      crystal,
+      this.qmConfig.method,
+      this.qmConfig as QuantumEspressoConfig
+    );
     const raw = await this.runQe(input);
     const wallTime = (performance.now() - startTime) / 1000;
 
@@ -244,7 +252,9 @@ export class QuantumEspressoBackend implements QmSolver {
   }
 
   async computeDipoleMoment(): Promise<never> {
-    throw new Error('[qm-bridge] Quantum ESPRESSO does not support molecular dipole calculations. Use psi4 backend.');
+    throw new Error(
+      '[qm-bridge] Quantum ESPRESSO does not support molecular dipole calculations. Use psi4 backend.'
+    );
   }
 
   async computeDftMaterials(crystal: CrystalSpec): Promise<{
@@ -255,7 +265,11 @@ export class QuantumEspressoBackend implements QmSolver {
     const startTime = performance.now();
 
     // Run SCF calculation
-    const scfInput = generateQeScfInput(crystal, this.qmConfig.method, this.qmConfig as QuantumEspressoConfig);
+    const scfInput = generateQeScfInput(
+      crystal,
+      this.qmConfig.method,
+      this.qmConfig as QuantumEspressoConfig
+    );
     const raw = await this.runQe(scfInput);
     const wallTimeEnergy = (performance.now() - startTime) / 1000;
 
@@ -281,11 +295,15 @@ export class QuantumEspressoBackend implements QmSolver {
   }
 
   async computeSemiEmpiricalEnergy(): Promise<never> {
-    throw new Error('[qm-bridge] Quantum ESPRESSO does not support semi-empirical. Use tblite backend.');
+    throw new Error(
+      '[qm-bridge] Quantum ESPRESSO does not support semi-empirical. Use tblite backend.'
+    );
   }
 
   async computeTransitionState(): Promise<never> {
-    throw new Error('[qm-bridge] Quantum ESPRESSO does not support NEB/TS search. Use psi4 backend.');
+    throw new Error(
+      '[qm-bridge] Quantum ESPRESSO does not support NEB/TS search. Use psi4 backend.'
+    );
   }
 
   async computeQmMm(): Promise<never> {
@@ -313,7 +331,7 @@ export class QuantumEspressoBackend implements QmSolver {
     return {
       total_energy: -340.5 + Math.random() * 0.01,
       fermi_energy: 2.1,
-      band_gap: 1.9,  // SrTiO3 experimental ~3.2 eV; DFT typically underestimates
+      band_gap: 1.9, // SrTiO3 experimental ~3.2 eV; DFT typically underestimates
       is_metallic: false,
       scf_iterations: 12,
       converged: true,

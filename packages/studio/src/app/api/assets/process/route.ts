@@ -200,7 +200,6 @@ export async function GET(req: Request) {
   });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

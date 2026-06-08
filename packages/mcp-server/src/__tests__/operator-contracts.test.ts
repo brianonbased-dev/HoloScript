@@ -63,13 +63,15 @@ describe('operator contracts', () => {
 
     expect(registeredToolNames.length).toBeGreaterThan(250);
     expect(new Set(registeredToolNames).size).toBe(registeredToolNames.length);
-    expect(registeredToolNames).toEqual(expect.arrayContaining([
-      'parse_hs',
-      'holomesh_board_list',
-      'holoscript_compile_healthcare',
-      'holo_query_receipts',
-      'sim_run_paid',
-    ]));
+    expect(registeredToolNames).toEqual(
+      expect.arrayContaining([
+        'parse_hs',
+        'holomesh_board_list',
+        'holoscript_compile_healthcare',
+        'holo_query_receipts',
+        'sim_run_paid',
+      ])
+    );
   });
 
   it('fails closed when a new MCP tool lacks an operator contract', () => {
@@ -99,7 +101,7 @@ class StaticToolRegistry {
     filePath: string,
     symbolName: string,
     bindings: Map<string, string>,
-    seen: Set<string>,
+    seen: Set<string>
   ): string[] {
     const key = `${filePath}#${symbolName}`;
     if (seen.has(key)) return [];
@@ -117,7 +119,7 @@ class StaticToolRegistry {
         this.resolveModulePath(filePath, imported.source),
         imported.importedName,
         bindings,
-        seen,
+        seen
       );
     }
 
@@ -135,7 +137,7 @@ class StaticToolRegistry {
       sourceText,
       ts.ScriptTarget.Latest,
       true,
-      ts.ScriptKind.TS,
+      ts.ScriptKind.TS
     );
     const sourceModule: SourceModule = {
       declarations: new Map(),
@@ -164,7 +166,7 @@ class StaticToolRegistry {
 
   private collectImport(
     statement: ts.ImportDeclaration,
-    imports: Map<string, SymbolReference>,
+    imports: Map<string, SymbolReference>
   ): void {
     const source = this.moduleSpecifierText(statement.moduleSpecifier);
     const namedBindings = statement.importClause?.namedBindings;
@@ -180,7 +182,7 @@ class StaticToolRegistry {
 
   private collectReExport(
     statement: ts.ExportDeclaration,
-    reExports: Map<string, SymbolReference>,
+    reExports: Map<string, SymbolReference>
   ): void {
     const source = this.moduleSpecifierText(statement.moduleSpecifier);
     if (!source || !statement.exportClause || !ts.isNamedExports(statement.exportClause)) return;
@@ -197,7 +199,7 @@ class StaticToolRegistry {
     expression: ts.Expression,
     filePath: string,
     bindings: Map<string, string>,
-    seen: Set<string>,
+    seen: Set<string>
   ): string[] {
     const unwrapped = unwrapExpression(expression);
     if (ts.isArrayLiteralExpression(unwrapped)) {
@@ -237,13 +239,14 @@ class StaticToolRegistry {
     callExpression: ts.CallExpression,
     filePath: string,
     bindings: Map<string, string>,
-    seen: Set<string>,
+    seen: Set<string>
   ): string[] {
     const mapAccess = callExpression.expression;
     if (!ts.isPropertyAccessExpression(mapAccess)) return [];
     const values = this.evaluateExpression(mapAccess.expression, filePath, bindings, seen);
     const callback = callExpression.arguments[0];
-    if (!callback || (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback))) return [];
+    if (!callback || (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)))
+      return [];
     const parameter = callback.parameters[0]?.name;
     if (!parameter || !ts.isIdentifier(parameter)) return [];
 
@@ -261,7 +264,7 @@ class StaticToolRegistry {
 
   private extractToolName(
     objectLiteral: ts.ObjectLiteralExpression,
-    bindings: Map<string, string>,
+    bindings: Map<string, string>
   ): string | undefined {
     for (const property of objectLiteral.properties) {
       if (!ts.isPropertyAssignment(property)) continue;
@@ -271,7 +274,10 @@ class StaticToolRegistry {
     return undefined;
   }
 
-  private evaluateString(expression: ts.Expression, bindings: Map<string, string>): string | undefined {
+  private evaluateString(
+    expression: ts.Expression,
+    bindings: Map<string, string>
+  ): string | undefined {
     const unwrapped = unwrapExpression(expression);
     if (ts.isStringLiteralLike(unwrapped)) return unwrapped.text;
     if (ts.isIdentifier(unwrapped)) return bindings.get(unwrapped.text);
@@ -317,10 +323,10 @@ class StaticToolRegistry {
 function unwrapExpression(expression: ts.Expression): ts.Expression {
   let current = expression;
   while (
-    ts.isAsExpression(current)
-    || ts.isSatisfiesExpression(current)
-    || ts.isParenthesizedExpression(current)
-    || ts.isTypeAssertionExpression(current)
+    ts.isAsExpression(current) ||
+    ts.isSatisfiesExpression(current) ||
+    ts.isParenthesizedExpression(current) ||
+    ts.isTypeAssertionExpression(current)
   ) {
     current = current.expression;
   }
@@ -328,8 +334,10 @@ function unwrapExpression(expression: ts.Expression): ts.Expression {
 }
 
 function isMapCall(expression: ts.CallExpression): boolean {
-  return ts.isPropertyAccessExpression(expression.expression)
-    && expression.expression.name.text === 'map';
+  return (
+    ts.isPropertyAccessExpression(expression.expression) &&
+    expression.expression.name.text === 'map'
+  );
 }
 
 function propertyNameText(name: ts.PropertyName): string | undefined {
@@ -342,7 +350,9 @@ function propertyNameText(name: ts.PropertyName): string | undefined {
 function firstExistingPath(candidates: string[]): string {
   const existing = candidates.find((candidate) => fs.existsSync(candidate));
   if (!existing) {
-    throw new Error(`Unable to resolve operator-contract registry source. Tried: ${candidates.join(', ')}`);
+    throw new Error(
+      `Unable to resolve operator-contract registry source. Tried: ${candidates.join(', ')}`
+    );
   }
   return existing;
 }

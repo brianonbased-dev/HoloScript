@@ -10,7 +10,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as mod from '../index';
-import { mapNodeToyToShader, compileNodeToy, transpileGLSLToWGSL, type NodeToyGraph } from '../index';
+import {
+  mapNodeToyToShader,
+  compileNodeToy,
+  transpileGLSLToWGSL,
+  type NodeToyGraph,
+} from '../index';
 import type { NodeToyGraph as CoreNodeToyGraph } from '@holoscript/core/compiler/nodetoy';
 
 function graph(overrides: Partial<NodeToyGraph> = {}): NodeToyGraph {
@@ -107,9 +112,7 @@ describe('CONTRACT: nodetoy-plugin adapter', () => {
     const r = mapNodeToyToShader({
       name: 'Dangling',
       output_node_id: 'out',
-      nodes: [
-        { id: 'out', family: 'output', inputs: { color: 'missing_node' } },
-      ],
+      nodes: [{ id: 'out', family: 'output', inputs: { color: 'missing_node' } }],
     });
     expect(r.validation_errors.some((e) => /missing/.test(e))).toBe(true);
   });

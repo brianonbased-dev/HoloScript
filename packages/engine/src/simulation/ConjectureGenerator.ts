@@ -117,9 +117,7 @@ function collectTraitSums(
   return sums;
 }
 
-function uniqueTraitSums(
-  sums: ReadonlyArray<TraitSumDirective>
-): ReadonlyArray<TraitSumDirective> {
+function uniqueTraitSums(sums: ReadonlyArray<TraitSumDirective>): ReadonlyArray<TraitSumDirective> {
   const byKey = new Map<string, TraitSumDirective>();
   for (const sum of sums) {
     byKey.set(JSON.stringify(sum.alternatives), sum);
@@ -127,11 +125,7 @@ function uniqueTraitSums(
   return [...byKey.values()];
 }
 
-function numericConfig(
-  config: Record<string, unknown>,
-  key: string,
-  fallback: number
-): number {
+function numericConfig(config: Record<string, unknown>, key: string, fallback: number): number {
   const value = config[key] ?? fallback;
   const numeric = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(numeric)) {
@@ -470,14 +464,7 @@ export function curvatureConeCandidate(
   }
 
   const id = options.id ?? `curvature-cone-${apexHeight}`;
-  const vertices: number[] = [
-    0,
-    0,
-    apexHeight,
-    0,
-    0,
-    -apexHeight,
-  ];
+  const vertices: number[] = [0, 0, apexHeight, 0, 0, -apexHeight];
   for (let i = 0; i < sides; i++) {
     const angle = (TWO_PI * i) / sides;
     vertices.push(radius * Math.cos(angle), radius * Math.sin(angle), 0);

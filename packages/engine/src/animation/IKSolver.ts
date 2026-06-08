@@ -132,7 +132,7 @@ export class IKSolver {
     mid.position = [
       root.position[0] + Math.cos(totalRootAngle) * a * (dx / (dist || 1)),
       root.position[1] + Math.sin(totalRootAngle) * a,
-      root.position[2] + Math.cos(totalRootAngle) * a * (dz / (dist || 1))
+      root.position[2] + Math.cos(totalRootAngle) * a * (dz / (dist || 1)),
     ];
 
     // Position end bone (if exists)
@@ -140,7 +140,7 @@ export class IKSolver {
       const blendedTarget: Vec3 = [
         end.position[0] + (target[0] - end.position[0]) * chain.weight,
         end.position[1] + (target[1] - end.position[1]) * chain.weight,
-        end.position[2] + (target[2] - end.position[2]) * chain.weight
+        end.position[2] + (target[2] - end.position[2]) * chain.weight,
       ];
       end.position = blendedTarget;
     }
@@ -168,14 +168,14 @@ export class IKSolver {
         const toEnd = [
           endEffector.position[0] - bone.position[0],
           endEffector.position[1] - bone.position[1],
-          endEffector.position[2] - bone.position[2]
+          endEffector.position[2] - bone.position[2],
         ];
 
         // Vector from bone to target
         const toTarget = [
           target[0] - bone.position[0],
           target[1] - bone.position[1],
-          target[2] - bone.position[2]
+          target[2] - bone.position[2],
         ];
 
         // Compute rotation angle (2D simplification in XY plane)
@@ -198,7 +198,7 @@ export class IKSolver {
           child.position = [
             bone.position[0] + rx * cosA - ry * sinA,
             bone.position[1] + rx * sinA + ry * cosA,
-            child.position[2]
+            child.position[2],
           ];
         }
       }
@@ -224,11 +224,7 @@ export class IKSolver {
 
     const bones = chain.bones;
     const target = chain.target;
-    const rootOrigin: Vec3 = [
-      bones[0].position[0],
-      bones[0].position[1],
-      bones[0].position[2],
-    ];
+    const rootOrigin: Vec3 = [bones[0].position[0], bones[0].position[1], bones[0].position[2]];
 
     const segmentLengths: number[] = [];
     let totalLength = 0;
@@ -252,11 +248,7 @@ export class IKSolver {
         const dz = target[2] - base[2];
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
         const scale = segmentLengths[i] / dist;
-        bones[i + 1].position = [
-          base[0] + dx * scale,
-          base[1] + dy * scale,
-          base[2] + dz * scale,
-        ];
+        bones[i + 1].position = [base[0] + dx * scale, base[1] + dy * scale, base[2] + dz * scale];
       }
       return true;
     }
@@ -334,11 +326,7 @@ export class IKSolver {
     return { ...this.footConfig };
   }
 
-  updateFootPlacement(
-    footId: string,
-    groundHeight: number,
-    dt: number
-  ): Vec3 {
+  updateFootPlacement(footId: string, groundHeight: number, dt: number): Vec3 {
     const current = this.footPositions.get(footId) ?? [0, 0, 0];
     const targetY = groundHeight + this.footConfig.footOffset;
     const blend = Math.min(1, this.footConfig.blendSpeed * dt);

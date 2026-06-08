@@ -17,12 +17,12 @@ Provides reusable R3F (React Three Fiber) components that render HoloScript comp
 
 ### Hologram & quilt (2D → 3D)
 
-| Component       | Purpose |
-| --------------- | ------- |
+| Component       | Purpose                                 |
+| --------------- | --------------------------------------- |
 | `HologramImage` | Still image as depth-displaced hologram |
-| `HologramGif`   | Animated GIF holographic sprite |
-| `HologramVideo` | Video texture on displaced surface |
-| `QuiltViewer`   | Looking Glass–style quilt image viewer |
+| `HologramGif`   | Animated GIF holographic sprite         |
+| `HologramVideo` | Video texture on displaced surface      |
+| `QuiltViewer`   | Looking Glass–style quilt image viewer  |
 
 All are exported from `@holoscript/r3f-renderer` (see `src/index.ts`). Studio **`/playground`** wires drag-and-drop media to generated HoloScript via `HologramDropZone`.
 

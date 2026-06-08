@@ -1,7 +1,20 @@
-export { createPolicyHandler, type PolicyConfig, type PolicyType, type PolicyStatus } from './traits/PolicyTrait';
+export {
+  createPolicyHandler,
+  type PolicyConfig,
+  type PolicyType,
+  type PolicyStatus,
+} from './traits/PolicyTrait';
 export { createClaimHandler, type ClaimConfig, type ClaimStatus } from './traits/ClaimTrait';
-export { createRiskAssessmentHandler, type RiskAssessmentConfig, type RiskFactor } from './traits/RiskAssessmentTrait';
-export { createUnderwritingHandler, type UnderwritingConfig, type UnderwritingDecision } from './traits/UnderwritingTrait';
+export {
+  createRiskAssessmentHandler,
+  type RiskAssessmentConfig,
+  type RiskFactor,
+} from './traits/RiskAssessmentTrait';
+export {
+  createUnderwritingHandler,
+  type UnderwritingConfig,
+  type UnderwritingDecision,
+} from './traits/UnderwritingTrait';
 export * from './traits/types';
 
 import { createPolicyHandler } from './traits/PolicyTrait';
@@ -12,5 +25,14 @@ import { createUnderwritingHandler } from './traits/UnderwritingTrait';
 export * from './actuarial';
 export * from './fairness-underwriting';
 
-export const pluginMeta = { name: '@holoscript/plugin-insurance', version: '1.0.0', traits: ['policy', 'claim', 'risk_assessment', 'underwriting', 'actuarial_math'] };
-export const traitHandlers = [createPolicyHandler(), createClaimHandler(), createRiskAssessmentHandler(), createUnderwritingHandler()];
+export const pluginMeta = {
+  name: '@holoscript/plugin-insurance',
+  version: '1.0.0',
+  traits: ['policy', 'claim', 'risk_assessment', 'underwriting', 'actuarial_math'],
+};
+export const traitHandlers = [
+  createPolicyHandler(),
+  createClaimHandler(),
+  createRiskAssessmentHandler(),
+  createUnderwritingHandler(),
+];

@@ -37,7 +37,8 @@ console.log('[1/7] Generating Classical Mechanics examples...');
 const MECHANICS_TOPICS = [
   {
     topic: "Newton's First Law (Inertia)",
-    description: "An object at rest stays at rest, an object in motion stays in motion unless acted upon by an external force.",
+    description:
+      'An object at rest stays at rest, an object in motion stays in motion unless acted upon by an external force.',
     holoscript: `composition "Inertia_Demo" {
   object "moving_ball" {
     @rigidbody
@@ -65,11 +66,12 @@ const MECHANICS_TOPICS = [
     mass: 1.0
     // Will remain stationary unless external force applied
   }
-}`
+}`,
   },
   {
     topic: "Newton's Second Law (F=ma)",
-    description: "Force equals mass times acceleration. Greater force or less mass results in greater acceleration.",
+    description:
+      'Force equals mass times acceleration. Greater force or less mass results in greater acceleration.',
     holoscript: `composition "Force_Acceleration" {
   object "heavy_object" {
     @rigidbody
@@ -96,11 +98,11 @@ const MECHANICS_TOPICS = [
     // Same force: a = 100/1 = 100 m/s² (10x faster acceleration!)
     apply_force: [100, 0, 0]
   }
-}`
+}`,
   },
   {
     topic: "Newton's Third Law (Action-Reaction)",
-    description: "For every action, there is an equal and opposite reaction.",
+    description: 'For every action, there is an equal and opposite reaction.',
     holoscript: `composition "Action_Reaction" {
   object "rocket" {
     @rigidbody
@@ -130,11 +132,11 @@ const MECHANICS_TOPICS = [
     particle_velocity: [0, -10, 0]  // Action: particles ejected downward
     particle_lifetime: 1.0
   }
-}`
+}`,
   },
   {
-    topic: "Gravitational Force",
-    description: "F_gravity = G * (m1 * m2) / r². All objects with mass attract each other.",
+    topic: 'Gravitational Force',
+    description: 'F_gravity = G * (m1 * m2) / r². All objects with mass attract each other.',
     holoscript: `composition "Gravity_Simulation" {
   object "earth" {
     @rigidbody
@@ -163,11 +165,12 @@ const MECHANICS_TOPICS = [
     // F_gravity = (6.674e-11 * 5.972e24 * 1000) / (6.371e6 + 400e3)²
     // ≈ 8,900 N (centripetal force for circular orbit)
   }
-}`
+}`,
   },
   {
-    topic: "Projectile Motion",
-    description: "Objects in projectile motion follow parabolic trajectories under constant gravitational acceleration.",
+    topic: 'Projectile Motion',
+    description:
+      'Objects in projectile motion follow parabolic trajectories under constant gravitational acceleration.',
     holoscript: `composition "Projectile_Arc" {
   object "cannon" {
     @interactive
@@ -197,11 +200,12 @@ const MECHANICS_TOPICS = [
     // y(t) = v_y * t - 0.5 * g * t² = 20t - 4.9t²
     // Range = v² * sin(2θ) / g = 400 * sin(90°) / 9.8 ≈ 40.8 m
   }
-}`
+}`,
   },
   {
-    topic: "Conservation of Energy",
-    description: "Total energy in an isolated system remains constant. Potential energy converts to kinetic energy and vice versa.",
+    topic: 'Conservation of Energy',
+    description:
+      'Total energy in an isolated system remains constant. Potential energy converts to kinetic energy and vice versa.',
     holoscript: `composition "Energy_Conservation" {
   object "pendulum_bob" {
     @rigidbody
@@ -237,11 +241,12 @@ const MECHANICS_TOPICS = [
     Total = 39.2 J"
     font_size: 0.08
   }
-}`
+}`,
   },
   {
-    topic: "Conservation of Momentum",
-    description: "In a closed system, total momentum before collision equals total momentum after collision.",
+    topic: 'Conservation of Momentum',
+    description:
+      'In a closed system, total momentum before collision equals total momentum after collision.',
     holoscript: `composition "Elastic_Collision" {
   object "ball_A" {
     @rigidbody
@@ -279,11 +284,12 @@ const MECHANICS_TOPICS = [
     // v_B' = [2 * m_A / (m_A + m_B)] * v_A = [2*2/(2+3)] * 5 = 4 m/s
     // Check: p_total' = 2*(-1) + 3*4 = -2 + 12 = 10 kg⋅m/s ✓
   }
-}`
+}`,
   },
   {
-    topic: "Centripetal Force",
-    description: "Objects in circular motion require centripetal force directed toward the center: F_c = mv²/r",
+    topic: 'Centripetal Force',
+    description:
+      'Objects in circular motion require centripetal force directed toward the center: F_c = mv²/r',
     holoscript: `composition "Circular_Motion" {
   object "rotating_platform" {
     @rotator
@@ -314,8 +320,8 @@ const MECHANICS_TOPICS = [
     // Tension in rope provides this force
     rope_tension: 6.0
   }
-}`
-  }
+}`,
+  },
 ];
 
 // Generate variations of each mechanics topic
@@ -348,7 +354,7 @@ for (const topic of MECHANICS_TOPICS) {
     allExamples.push({
       instruction,
       input: '',
-      output
+      output,
     });
   }
 }
@@ -363,7 +369,7 @@ console.log('[2/7] Generating Electromagnetism examples...');
 
 const EM_TEMPLATES = [
   {
-    name: "Electric Field Visualization",
+    name: 'Electric Field Visualization',
     code: `composition "Electric_Field" {
   object "positive_charge" {
     @charge_source
@@ -406,10 +412,10 @@ const EM_TEMPLATES = [
     // Force: F = kQ₁Q₂/r² = 8.99e9 * 1e-6 * (-1e-7) / 2²
     //        = -2.25e-4 N (attractive, toward positive charge)
   }
-}`
+}`,
   },
   {
-    name: "Magnetic Field Lines",
+    name: 'Magnetic Field Lines',
     code: `composition "Magnetic_Field" {
   object "bar_magnet" {
     @magnetic_source
@@ -447,7 +453,7 @@ const EM_TEMPLATES = [
     particle_count: 500
     align_with_field: true  // Each filing aligns with local B-field
   }
-}`
+}`,
   },
   {
     name: "Circuit with Ohm's Law",
@@ -506,8 +512,8 @@ const EM_TEMPLATES = [
     P = I²R = 0.81W"
     font_size: 0.06
   }
-}`
-  }
+}`,
+  },
 ];
 
 for (let i = 0; i < 10000; i++) {
@@ -533,7 +539,7 @@ for (let i = 0; i < 10000; i++) {
   allExamples.push({
     instruction,
     input: '',
-    output: template.code
+    output: template.code,
   });
 }
 
@@ -547,11 +553,11 @@ console.log(`  ✓ 10,000 examples generated`);
 console.log('[3/7] Generating remaining physics domains (25K examples)...');
 
 const QUICK_TEMPLATES = [
-  { domain: "Thermodynamics", concept: "Heat Transfer", code: "composition \"Heat_Demo\" { }" },
-  { domain: "Waves", concept: "Interference", code: "composition \"Wave_Interference\" { }" },
-  { domain: "Optics", concept: "Refraction", code: "composition \"Light_Refraction\" { }" },
-  { domain: "Quantum", concept: "Wave-Particle Duality", code: "composition \"Double_Slit\" { }" },
-  { domain: "Relativity", concept: "Time Dilation", code: "composition \"Time_Dilation_Demo\" { }" }
+  { domain: 'Thermodynamics', concept: 'Heat Transfer', code: 'composition "Heat_Demo" { }' },
+  { domain: 'Waves', concept: 'Interference', code: 'composition "Wave_Interference" { }' },
+  { domain: 'Optics', concept: 'Refraction', code: 'composition "Light_Refraction" { }' },
+  { domain: 'Quantum', concept: 'Wave-Particle Duality', code: 'composition "Double_Slit" { }' },
+  { domain: 'Relativity', concept: 'Time Dilation', code: 'composition "Time_Dilation_Demo" { }' },
 ];
 
 for (let i = 0; i < 25000; i++) {
@@ -560,7 +566,7 @@ for (let i = 0; i < 25000; i++) {
   allExamples.push({
     instruction: `Create a VR demonstration of ${template.concept} in ${template.domain}`,
     input: '',
-    output: template.code
+    output: template.code,
   });
 }
 
@@ -575,7 +581,7 @@ async function writeDataset() {
   console.log('[EXPORT] Writing physics knowledge dataset...');
 
   const outputFile = path.join(__dirname, '../datasets/physics-domain-knowledge.jsonl');
-  const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
+  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
 
   await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 

@@ -36,33 +36,30 @@
  *    with ≥ 15 percentage-point margin over the keyword-match baseline."
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { createHash } from "node:crypto";
-import { execSync } from "node:child_process";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { execSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = join(__dirname, "..", "..");
+const REPO_ROOT = join(__dirname, '..', '..');
 const DATASET_PATH = join(
   REPO_ROOT,
-  "research/paper-19/datasets/phase-3-trait-inference-2000row-v2.jsonl",
+  'research/paper-19/datasets/phase-3-trait-inference-2000row-v2.jsonl'
 );
-const FAMILY_MAP_PATH = join(
-  REPO_ROOT,
-  "research/paper-19/datasets/trait-family-map-v1.json",
-);
+const FAMILY_MAP_PATH = join(REPO_ROOT, 'research/paper-19/datasets/trait-family-map-v1.json');
 const KEYWORD_BASELINE_PATH = join(
   REPO_ROOT,
-  "research/paper-19/measurements/keyword-baseline-v2.json",
+  'research/paper-19/measurements/keyword-baseline-v2.json'
 );
-const OUT_DIR = join(REPO_ROOT, "research/paper-19-trait-inference");
-const OUT_JSON = join(OUT_DIR, "f1-report-structural-extraction.json");
-const OUT_README = join(OUT_DIR, "f1-report-structural-extraction.README.md");
+const OUT_DIR = join(REPO_ROOT, 'research/paper-19-trait-inference');
+const OUT_JSON = join(OUT_DIR, 'f1-report-structural-extraction.json');
+const OUT_README = join(OUT_DIR, 'f1-report-structural-extraction.README.md');
 
-const DATASET_VERSION = "phase-3-trait-inference-2000row-v2";
-const EVAL_SPLIT_ROLE = "novel-combination-test";
-const IN_DIST_SPLIT_ROLE = "in-distribution-test";
+const DATASET_VERSION = 'phase-3-trait-inference-2000row-v2';
+const EVAL_SPLIT_ROLE = 'novel-combination-test';
+const IN_DIST_SPLIT_ROLE = 'in-distribution-test';
 
 // ---------------------------------------------------------------------------
 // IO helpers
@@ -74,20 +71,19 @@ function fail(msg) {
 
 function sha256OfFile(p) {
   const buf = readFileSync(p);
-  return createHash("sha256").update(buf).digest("hex");
+  return createHash('sha256').update(buf).digest('hex');
 }
 
 function gitHead() {
   try {
-    return execSync("git rev-parse HEAD", { cwd: REPO_ROOT, encoding: "utf8" })
-      .trim();
+    return execSync('git rev-parse HEAD', { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
   } catch {
-    return "unknown";
+    return 'unknown';
   }
 }
 
 function readJsonl(path) {
-  const raw = readFileSync(path, "utf8");
+  const raw = readFileSync(path, 'utf8');
   const rows = [];
   for (const line of raw.split(/\r?\n/)) {
     if (!line.trim()) continue;
@@ -103,7 +99,7 @@ function extractAtTokens(snippet) {
   const tokens = new Set();
   const re = /@([a-zA-Z_][a-zA-Z0-9_]*)/g;
   let m;
-  while ((m = re.exec(snippet || "")) !== null) {
+  while ((m = re.exec(snippet || '')) !== null) {
     tokens.add(`@${m[1]}`);
   }
   return tokens;
@@ -162,20 +158,23 @@ const STRUCTURAL_HEURISTICS = [
   {
     // If snippet contains "state { ... }" or "state:" or "state." patterns
     // without @state_machine, predict @state_machine
-    trait: "@state_machine",
+    trait: '@state_machine',
     test: (snippet) => /\bstate\s*[{:.]/i.test(snippet) && !/@state_machine\b/.test(snippet),
   },
   {
     // If snippet contains glow/emissive/light-emitting patterns
     // without @glowing, predict @glowing
-    trait: "@glowing",
-    test: (snippet) => /\bglow\b|\bemissive\b|\blight_emitting\b/i.test(snippet) && !/@glowing\b/.test(snippet),
+    trait: '@glowing',
+    test: (snippet) =>
+      /\bglow\b|\bemissive\b|\blight_emitting\b/i.test(snippet) && !/@glowing\b/.test(snippet),
   },
   {
     // If snippet contains skill/ability tree patterns
     // without @skill_tree, predict @skill_tree
-    trait: "@skill_tree",
-    test: (snippet) => /\bskill_tree\b|\bskill_tree\b|\bability_tree\b/i.test(snippet) && !/@skill_tree\b/.test(snippet),
+    trait: '@skill_tree',
+    test: (snippet) =>
+      /\bskill_tree\b|\bskill_tree\b|\bability_tree\b/i.test(snippet) &&
+      !/@skill_tree\b/.test(snippet),
   },
 ];
 
@@ -221,21 +220,17 @@ function rowMetrics(predicted, gold) {
   for (const g of goldSet) if (predSet.has(g)) tp += 1;
   const fp = predSet.size - tp;
   const fn = goldSet.size - tp;
-  const precision = predSet.size === 0
-    ? (goldSet.size === 0 ? 1 : 0)
-    : tp / predSet.size;
-  const recall = goldSet.size === 0
-    ? (predSet.size === 0 ? 1 : 0)
-    : tp / goldSet.size;
-  const f1 = (precision + recall) === 0
-    ? 0
-    : (2 * precision * recall) / (precision + recall);
+  const precision = predSet.size === 0 ? (goldSet.size === 0 ? 1 : 0) : tp / predSet.size;
+  const recall = goldSet.size === 0 ? (predSet.size === 0 ? 1 : 0) : tp / goldSet.size;
+  const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
   return { tp, fp, fn, precision, recall, f1 };
 }
 
 function macroAverage(perRow) {
   if (perRow.length === 0) return { precision: 0, recall: 0, f1: 0 };
-  let p = 0, r = 0, f = 0;
+  let p = 0,
+    r = 0,
+    f = 0;
   for (const m of perRow) {
     p += m.precision;
     r += m.recall;
@@ -249,17 +244,17 @@ function macroAverage(perRow) {
 }
 
 function microF1(perRow) {
-  let tp = 0, fp = 0, fn = 0;
+  let tp = 0,
+    fp = 0,
+    fn = 0;
   for (const m of perRow) {
     tp += m.tp;
     fp += m.fp;
     fn += m.fn;
   }
-  const precision = (tp + fp) === 0 ? 0 : tp / (tp + fp);
-  const recall = (tp + fn) === 0 ? 0 : tp / (tp + fn);
-  const f1 = (precision + recall) === 0
-    ? 0
-    : (2 * precision * recall) / (precision + recall);
+  const precision = tp + fp === 0 ? 0 : tp / (tp + fp);
+  const recall = tp + fn === 0 ? 0 : tp / (tp + fn);
+  const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
   return { tp, fp, fn, precision, recall, f1 };
 }
 
@@ -271,7 +266,9 @@ function macroF1OverLabels(rowsPredictedGold) {
   }
   const perLabel = {};
   for (const label of labels) {
-    let tp = 0, fp = 0, fn = 0;
+    let tp = 0,
+      fp = 0,
+      fn = 0;
     for (const { predicted, gold } of rowsPredictedGold) {
       const inPred = predicted.includes(label);
       const inGold = gold.includes(label);
@@ -279,17 +276,17 @@ function macroF1OverLabels(rowsPredictedGold) {
       else if (inPred && !inGold) fp += 1;
       else if (!inPred && inGold) fn += 1;
     }
-    const precision = (tp + fp) === 0 ? 0 : tp / (tp + fp);
-    const recall = (tp + fn) === 0 ? 0 : tp / (tp + fn);
-    const f1 = (precision + recall) === 0
-      ? 0
-      : (2 * precision * recall) / (precision + recall);
+    const precision = tp + fp === 0 ? 0 : tp / (tp + fp);
+    const recall = tp + fn === 0 ? 0 : tp / (tp + fn);
+    const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
     perLabel[label] = { tp, fp, fn, precision, recall, f1 };
   }
   if (labels.size === 0) {
     return { f1: 0, precision: 0, recall: 0, perLabel: {} };
   }
-  let pSum = 0, rSum = 0, fSum = 0;
+  let pSum = 0,
+    rSum = 0,
+    fSum = 0;
   for (const label of labels) {
     pSum += perLabel[label].precision;
     rSum += perLabel[label].recall;
@@ -305,7 +302,7 @@ function macroF1OverLabels(rowsPredictedGold) {
 }
 
 function round(x, d = 6) {
-  if (typeof x === "number" && isFinite(x)) {
+  if (typeof x === 'number' && isFinite(x)) {
     const f = Math.pow(10, d);
     return Math.round(x * f) / f;
   }
@@ -324,19 +321,15 @@ function main() {
   const familyMapSha = sha256OfFile(FAMILY_MAP_PATH);
   const generatorCommit = gitHead();
 
-  const familyMap = JSON.parse(readFileSync(FAMILY_MAP_PATH, "utf8"));
+  const familyMap = JSON.parse(readFileSync(FAMILY_MAP_PATH, 'utf8'));
   const familyTraitSet = new Set(Object.keys(familyMap.trait_to_families || {}));
 
   const allRows = readJsonl(DATASET_PATH);
-  const trainRows = allRows.filter((r) => r.split === "train");
-  const devRows = allRows.filter((r) => r.split === "dev");
-  const testRows = allRows.filter((r) => r.split === "test");
-  const novelTestRows = allRows.filter(
-    (r) => r.metadata?.split_role === EVAL_SPLIT_ROLE,
-  );
-  const inDistTestRows = allRows.filter(
-    (r) => r.metadata?.split_role === IN_DIST_SPLIT_ROLE,
-  );
+  const trainRows = allRows.filter((r) => r.split === 'train');
+  const devRows = allRows.filter((r) => r.split === 'dev');
+  const testRows = allRows.filter((r) => r.split === 'test');
+  const novelTestRows = allRows.filter((r) => r.metadata?.split_role === EVAL_SPLIT_ROLE);
+  const inDistTestRows = allRows.filter((r) => r.metadata?.split_role === IN_DIST_SPLIT_ROLE);
 
   if (novelTestRows.length === 0) {
     fail(`no rows with metadata.split_role == "${EVAL_SPLIT_ROLE}"`);
@@ -348,24 +341,24 @@ function main() {
   // Load keyword baseline for comparison
   let keywordBaseline = null;
   if (existsSync(KEYWORD_BASELINE_PATH)) {
-    keywordBaseline = JSON.parse(readFileSync(KEYWORD_BASELINE_PATH, "utf8"));
+    keywordBaseline = JSON.parse(readFileSync(KEYWORD_BASELINE_PATH, 'utf8'));
   }
 
   // Evaluate multiple classifier configurations
   const configs = [
-    { name: "structural-extraction", threshold: 1.0, heuristics: false },
-    { name: "structural-extraction+heuristics", threshold: 1.0, heuristics: true },
-    { name: "structural+cooccurrence-0.5", threshold: 0.5, heuristics: true },
-    { name: "structural+cooccurrence-0.7", threshold: 0.7, heuristics: true },
+    { name: 'structural-extraction', threshold: 1.0, heuristics: false },
+    { name: 'structural-extraction+heuristics', threshold: 1.0, heuristics: true },
+    { name: 'structural+cooccurrence-0.5', threshold: 0.5, heuristics: true },
+    { name: 'structural+cooccurrence-0.7', threshold: 0.7, heuristics: true },
   ];
 
   const results = {};
 
   for (const config of configs) {
     const evalSets = [
-      { name: "novel-combination-test", rows: novelTestRows },
-      { name: "in-distribution-test", rows: inDistTestRows },
-      { name: "full-test", rows: testRows },
+      { name: 'novel-combination-test', rows: novelTestRows },
+      { name: 'in-distribution-test', rows: inDistTestRows },
+      { name: 'full-test', rows: testRows },
     ];
 
     const configResults = {};
@@ -376,7 +369,7 @@ function main() {
 
       for (const r of evalSet.rows) {
         const gold = Array.isArray(r.gold_traits) ? [...r.gold_traits].sort() : [];
-        const predicted = classifyRow(r.snippet || "", model, {
+        const predicted = classifyRow(r.snippet || '', model, {
           cooccurrenceThreshold: config.threshold,
           useHeuristics: config.heuristics,
         });
@@ -410,12 +403,12 @@ function main() {
   }
 
   // The headline configuration is structural-extraction (Layer 1 only)
-  const headline = results["structural-extraction"]["novel-combination-test"];
+  const headline = results['structural-extraction']['novel-combination-test'];
 
   // Adversarial mislabel evaluation (if available)
   const adversarialPath = join(
     REPO_ROOT,
-    "research/paper-19/datasets/adversarial-mislabel/phase-3-mislabel-attractors-v2.jsonl",
+    'research/paper-19/datasets/adversarial-mislabel/phase-3-mislabel-attractors-v2.jsonl'
   );
   let adversarialResults = null;
   if (existsSync(adversarialPath)) {
@@ -423,7 +416,7 @@ function main() {
     const advMetrics = [];
     for (const r of adversarialRows) {
       const gold = Array.isArray(r.gold_traits) ? [...r.gold_traits].sort() : [];
-      const predicted = classifyRow(r.snippet || "", model, {
+      const predicted = classifyRow(r.snippet || '', model, {
         cooccurrenceThreshold: 1.0,
         useHeuristics: true,
       });
@@ -447,11 +440,11 @@ function main() {
     dataset_sha256: datasetSha,
     family_map_sha256: familyMapSha,
     generator_commit: generatorCommit,
-    classifier_name: "structural-extraction",
+    classifier_name: 'structural-extraction',
     classifier_description:
-      "Layer 1: Extract all @name tokens from .hsplus snippet via regex. " +
-      "Layer 2 (optional): Co-occurrence expansion from training data. " +
-      "Layer 3 (optional): Structural property heuristics for @state_machine, @glowing, @skill_tree.",
+      'Layer 1: Extract all @name tokens from .hsplus snippet via regex. ' +
+      'Layer 2 (optional): Co-occurrence expansion from training data. ' +
+      'Layer 3 (optional): Structural property heuristics for @state_machine, @glowing, @skill_tree.',
     eval_split_role: EVAL_SPLIT_ROLE,
     novel_combination_test_rows: novelTestRows.length,
     in_distribution_test_rows: inDistTestRows.length,
@@ -462,17 +455,17 @@ function main() {
 
     // All configurations on novel-combination-test
     configs_on_novel_test: Object.fromEntries(
-      Object.entries(results).map(([name, r]) => [name, r["novel-combination-test"]]),
+      Object.entries(results).map(([name, r]) => [name, r['novel-combination-test']])
     ),
 
     // All configurations on in-distribution-test
     configs_on_in_dist_test: Object.fromEntries(
-      Object.entries(results).map(([name, r]) => [name, r["in-distribution-test"]]),
+      Object.entries(results).map(([name, r]) => [name, r['in-distribution-test']])
     ),
 
     // Full test set
     configs_on_full_test: Object.fromEntries(
-      Object.entries(results).map(([name, r]) => [name, r["full-test"]]),
+      Object.entries(results).map(([name, r]) => [name, r['full-test']])
     ),
 
     // Comparison with keyword baseline
@@ -481,17 +474,13 @@ function main() {
           keyword_macro_f1_row: keywordBaseline.macro_f1_row,
           classifier_macro_f1_row: headline.macro_f1_row,
           delta_pp: round((headline.macro_f1_row - keywordBaseline.macro_f1_row) * 100),
-          gate_floor: 0.80,
+          gate_floor: 0.8,
           gate_margin_pp: 15,
-          gate_floor_passed: headline.macro_f1_row >= 0.80,
-          gate_margin_passed:
-            (headline.macro_f1_row - keywordBaseline.macro_f1_row) >= 0.15,
-          effective_floor: round(
-            Math.max(0.80, keywordBaseline.macro_f1_row + 0.15),
-          ),
+          gate_floor_passed: headline.macro_f1_row >= 0.8,
+          gate_margin_passed: headline.macro_f1_row - keywordBaseline.macro_f1_row >= 0.15,
+          effective_floor: round(Math.max(0.8, keywordBaseline.macro_f1_row + 0.15)),
           effective_floor_passed:
-            headline.macro_f1_row >=
-            Math.max(0.80, keywordBaseline.macro_f1_row + 0.15),
+            headline.macro_f1_row >= Math.max(0.8, keywordBaseline.macro_f1_row + 0.15),
         }
       : null,
 
@@ -500,45 +489,46 @@ function main() {
 
     // Pre-registration gate check
     pre_registration: {
-      requirement: "F1 (macro) >= 0.80 on novel-combination test split, >= 15pp margin over keyword baseline",
+      requirement:
+        'F1 (macro) >= 0.80 on novel-combination test split, >= 15pp margin over keyword baseline',
       novel_combination_f1: headline.macro_f1_row,
       keyword_baseline_f1: keywordBaseline?.macro_f1_row ?? null,
-      gate_passed: headline.macro_f1_row >= 0.80,
+      gate_passed: headline.macro_f1_row >= 0.8,
       margin_pp: keywordBaseline
         ? round((headline.macro_f1_row - keywordBaseline.macro_f1_row) * 100)
         : null,
       margin_gate_passed: keywordBaseline
-        ? (headline.macro_f1_row - keywordBaseline.macro_f1_row) >= 0.15
+        ? headline.macro_f1_row - keywordBaseline.macro_f1_row >= 0.15
         : null,
     },
 
     locked_at: new Date().toISOString(),
-    generator_script: "scripts/paper-19/run-trait-inference-classifier.mjs",
+    generator_script: 'scripts/paper-19/run-trait-inference-classifier.mjs',
   };
 
-  writeFileSync(OUT_JSON, JSON.stringify(out, null, 2) + "\n", "utf8");
+  writeFileSync(OUT_JSON, JSON.stringify(out, null, 2) + '\n', 'utf8');
 
   // Write README
   const readme = renderReadme(out);
-  writeFileSync(OUT_README, readme, "utf8");
+  writeFileSync(OUT_README, readme, 'utf8');
 
   // Console summary
   console.log(
     `[trait-inference-classifier] novel-combination-test F1=${headline.macro_f1_row} ` +
-      `(P=${headline.precision_macro} R=${headline.recall_macro})`,
+      `(P=${headline.precision_macro} R=${headline.recall_macro})`
   );
   console.log(
     `[trait-inference-classifier] micro-F1=${headline.micro_f1} ` +
-      `label-macro-F1=${headline.macro_f1_label}`,
+      `label-macro-F1=${headline.macro_f1_label}`
   );
   if (keywordBaseline) {
     console.log(
       `[trait-inference-classifier] keyword baseline F1=${keywordBaseline.macro_f1_row} ` +
-        `delta=${out.keyword_baseline_comparison.delta_pp}pp`,
+        `delta=${out.keyword_baseline_comparison.delta_pp}pp`
     );
     console.log(
-      `[trait-inference-classifier] gate: floor=${out.pre_registration.gate_passed ? "PASS" : "FAIL"} ` +
-        `margin=${out.pre_registration.margin_gate_passed ? "PASS" : "FAIL"}`,
+      `[trait-inference-classifier] gate: floor=${out.pre_registration.gate_passed ? 'PASS' : 'FAIL'} ` +
+        `margin=${out.pre_registration.margin_gate_passed ? 'PASS' : 'FAIL'}`
     );
   }
   console.log(`[trait-inference-classifier] wrote ${OUT_JSON}`);
@@ -546,7 +536,7 @@ function main() {
 }
 
 function renderReadme(out) {
-  const fmt = (x) => (typeof x === "number" ? x.toFixed(4) : String(x));
+  const fmt = (x) => (typeof x === 'number' ? x.toFixed(4) : String(x));
   const headline = out.headline;
   const kbComp = out.keyword_baseline_comparison;
 
@@ -586,40 +576,36 @@ The headline configuration uses Layer 1 only (extract all @-tokens). This is the
 
 | Configuration | Row-macro F1 | Precision | Recall | Micro F1 |
 |---|---|---|---|---|
-${
-    Object.entries(out.configs_on_novel_test)
-      .map(
-        ([name, r]) =>
-          `| ${name} | ${fmt(r.macro_f1_row)} | ${fmt(r.precision_macro)} | ${fmt(r.recall_macro)} | ${fmt(r.micro_f1)} |`,
-      )
-      .join("\n")
-  }
+${Object.entries(out.configs_on_novel_test)
+  .map(
+    ([name, r]) =>
+      `| ${name} | ${fmt(r.macro_f1_row)} | ${fmt(r.precision_macro)} | ${fmt(r.recall_macro)} | ${fmt(r.micro_f1)} |`
+  )
+  .join('\n')}
 
 ## In-distribution-test results
 
 | Configuration | Row-macro F1 | Precision | Recall | Micro F1 |
 |---|---|---|---|---|
-${
-    Object.entries(out.configs_on_in_dist_test)
-      .map(
-        ([name, r]) =>
-          `| ${name} | ${fmt(r.macro_f1_row)} | ${fmt(r.precision_macro)} | ${fmt(r.recall_macro)} | ${fmt(r.micro_f1)} |`,
-      )
-      .join("\n")
-  }
+${Object.entries(out.configs_on_in_dist_test)
+  .map(
+    ([name, r]) =>
+      `| ${name} | ${fmt(r.macro_f1_row)} | ${fmt(r.precision_macro)} | ${fmt(r.recall_macro)} | ${fmt(r.micro_f1)} |`
+  )
+  .join('\n')}
 
 ## Comparison with keyword-match baseline
 
 | Quantity | Value |
 |---|---|
-| Keyword-match baseline (row-macro F1) | ${kbComp ? fmt(kbComp.keyword_macro_f1_row) : "N/A"} |
+| Keyword-match baseline (row-macro F1) | ${kbComp ? fmt(kbComp.keyword_macro_f1_row) : 'N/A'} |
 | **Structural extraction (row-macro F1)** | **${fmt(kbComp ? kbComp.classifier_macro_f1_row : headline.macro_f1_row)}** |
-| **Delta** | **${kbComp ? fmt(kbComp.delta_pp) : "N/A"}pp** |
+| **Delta** | **${kbComp ? fmt(kbComp.delta_pp) : 'N/A'}pp** |
 | Pre-registration floor | 0.8000 |
 | Margin requirement | +15pp over keyword baseline |
-| Effective floor (max of floor vs +15pp) | ${kbComp ? fmt(kbComp.effective_floor) : "N/A"} |
-| **Gate: floor passed** | **${out.pre_registration.gate_passed ? "YES" : "NO"}** |
-| **Gate: margin passed** | **${out.pre_registration.margin_gate_passed ? "YES" : "NO"}** |
+| Effective floor (max of floor vs +15pp) | ${kbComp ? fmt(kbComp.effective_floor) : 'N/A'} |
+| **Gate: floor passed** | **${out.pre_registration.gate_passed ? 'YES' : 'NO'}** |
+| **Gate: margin passed** | **${out.pre_registration.margin_gate_passed ? 'YES' : 'NO'}** |
 
 ## Pre-registration gate check
 
@@ -628,22 +614,22 @@ ${
 | Check | Result |
 |---|---|
 | Novel-combination F1 | ${fmt(out.pre_registration.novel_combination_f1)} |
-| Keyword baseline F1 | ${out.pre_registration.keyword_baseline_f1 ? fmt(out.pre_registration.keyword_baseline_f1) : "N/A"} |
-| Margin over baseline | ${out.pre_registration.margin_pp ? fmt(out.pre_registration.margin_pp) + "pp" : "N/A"} |
-| Floor (≥0.80) | ${out.pre_registration.gate_passed ? "PASS" : "FAIL"} |
-| Margin (≥15pp) | ${out.pre_registration.margin_gate_passed ? "PASS" : "FAIL"} |
+| Keyword baseline F1 | ${out.pre_registration.keyword_baseline_f1 ? fmt(out.pre_registration.keyword_baseline_f1) : 'N/A'} |
+| Margin over baseline | ${out.pre_registration.margin_pp ? fmt(out.pre_registration.margin_pp) + 'pp' : 'N/A'} |
+| Floor (≥0.80) | ${out.pre_registration.gate_passed ? 'PASS' : 'FAIL'} |
+| Margin (≥15pp) | ${out.pre_registration.margin_gate_passed ? 'PASS' : 'FAIL'} |
 
 ${
-    kbComp && out.pre_registration.gate_passed && out.pre_registration.margin_gate_passed
-      ? "**GATE PASSED**: Both floor (≥0.80) and margin (≥15pp) requirements met."
-      : kbComp
-        ? "**GATE STATUS**: " +
-          (out.pre_registration.gate_passed ? "Floor PASS" : "Floor FAIL") +
-          ", " +
-          (out.pre_registration.margin_gate_passed ? "Margin PASS" : "Margin FAIL") +
-          "."
-      : "Cannot determine gate status without keyword baseline."
-  }
+  kbComp && out.pre_registration.gate_passed && out.pre_registration.margin_gate_passed
+    ? '**GATE PASSED**: Both floor (≥0.80) and margin (≥15pp) requirements met.'
+    : kbComp
+      ? '**GATE STATUS**: ' +
+        (out.pre_registration.gate_passed ? 'Floor PASS' : 'Floor FAIL') +
+        ', ' +
+        (out.pre_registration.margin_gate_passed ? 'Margin PASS' : 'Margin FAIL') +
+        '.'
+      : 'Cannot determine gate status without keyword baseline.'
+}
 
 ## Analysis: why structural extraction works
 
@@ -660,15 +646,12 @@ The 3 gold traits not present as @-tokens (\`@state_machine\`, \`@glowing\`, \`@
 ## Adversarial mislabel results
 
 ${
-    out.adversarial_mislabel
-      ? out.adversarial_mislabel
-          .map(
-            (r) =>
-              `- ${r.kind}: id=${r.id}, P=${r.precision}, R=${r.recall}, F1=${r.f1}`,
-          )
-          .join("\n")
-      : "No adversarial mislabel data available."
-  }
+  out.adversarial_mislabel
+    ? out.adversarial_mislabel
+        .map((r) => `- ${r.kind}: id=${r.id}, P=${r.precision}, R=${r.recall}, F1=${r.f1}`)
+        .join('\n')
+    : 'No adversarial mislabel data available.'
+}
 
 ## Reproducing
 
@@ -680,7 +663,7 @@ Re-running on the same dataset + family-map SHA produces byte-identical output. 
 
 ## Naive LLM-tagging baseline definition
 
-The "naive LLM-tagging baseline" is the MCP \`suggestTraits()\` function in \`packages/mcp-server/src/generators.ts\`, which maps NL keywords to trait lists via a static keyword→traits dictionary. This baseline is distinct from the snippet-@-token baseline because it operates on **natural-language descriptions** rather than structured source code. The structural-extraction classifier's advantage comes from leveraging the structured format of .hsplus snippets (explicit \`@\` annotations), which the LLM baseline cannot access when given only an NL description. The delta between structural extraction and keyword matching (the locked baseline at ${kbComp ? fmt(kbComp.keyword_macro_f1_row) : "N/A"} F1) quantifies the value of the structured annotation format for trait inference.
+The "naive LLM-tagging baseline" is the MCP \`suggestTraits()\` function in \`packages/mcp-server/src/generators.ts\`, which maps NL keywords to trait lists via a static keyword→traits dictionary. This baseline is distinct from the snippet-@-token baseline because it operates on **natural-language descriptions** rather than structured source code. The structural-extraction classifier's advantage comes from leveraging the structured format of .hsplus snippets (explicit \`@\` annotations), which the LLM baseline cannot access when given only an NL description. The delta between structural extraction and keyword matching (the locked baseline at ${kbComp ? fmt(kbComp.keyword_macro_f1_row) : 'N/A'} F1) quantifies the value of the structured annotation format for trait inference.
 `;
 }
 

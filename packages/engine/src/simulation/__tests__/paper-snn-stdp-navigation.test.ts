@@ -48,7 +48,10 @@ import { describe, it, expect } from 'vitest';
 
 // ── 2D Navigation Environment (mirrors paper-snn-navigation.test.ts) ────────
 
-interface Vec2 { x: number; y: number }
+interface Vec2 {
+  x: number;
+  y: number;
+}
 
 interface NavEnvironment {
   width: number;
@@ -81,8 +84,14 @@ function castSensorRays(env: NavEnvironment): Float32Array {
   const distances = new Float32Array(8);
   const maxDist = Math.sqrt(env.width ** 2 + env.height ** 2);
   const angles = [
-    0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4,
-    Math.PI, (5 * Math.PI) / 4, (3 * Math.PI) / 2, (7 * Math.PI) / 4,
+    0,
+    Math.PI / 4,
+    Math.PI / 2,
+    (3 * Math.PI) / 4,
+    Math.PI,
+    (5 * Math.PI) / 4,
+    (3 * Math.PI) / 2,
+    (7 * Math.PI) / 4,
   ];
 
   for (let i = 0; i < 8; i++) {
@@ -128,10 +137,18 @@ function moveAgent(env: NavEnvironment, action: string, stepSize: number = 0.8):
   let ny = env.agentPos.y;
 
   switch (action) {
-    case 'move_east': nx += stepSize; break;
-    case 'move_west': nx -= stepSize; break;
-    case 'move_north': ny += stepSize; break;
-    case 'move_south': ny -= stepSize; break;
+    case 'move_east':
+      nx += stepSize;
+      break;
+    case 'move_west':
+      nx -= stepSize;
+      break;
+    case 'move_north':
+      ny += stepSize;
+      break;
+    case 'move_south':
+      ny -= stepSize;
+      break;
   }
 
   nx = Math.max(env.agentRadius, Math.min(env.width - env.agentRadius, nx));
@@ -174,12 +191,12 @@ const ACTION_NAMES = ['move_north', 'move_east', 'move_south', 'move_west'] as c
 // ── Deterministic PRNG (xorshift32) ────────────────────────────────────────
 
 function makePrng(seed: number): () => number {
-  let state = (seed >>> 0) || 1;
+  let state = seed >>> 0 || 1;
   return () => {
     state ^= state << 13;
     state ^= state >>> 17;
     state ^= state << 5;
-    return ((state >>> 0) / 0xffffffff);
+    return (state >>> 0) / 0xffffffff;
   };
 }
 
@@ -202,14 +219,14 @@ interface NetworkParams {
   preCount: number;
   postCount: number;
   learningRate: number;
-  ltdRatio: number;        // LTD strength relative to LTP (0.5 matches WGSL)
+  ltdRatio: number; // LTD strength relative to LTP (0.5 matches WGSL)
   weightSeed: number;
 }
 
 class STDPNet {
   readonly preCount: number;
   readonly postCount: number;
-  readonly weights: Float32Array;       // postCount × preCount (row-major)
+  readonly weights: Float32Array; // postCount × preCount (row-major)
   readonly preMembrane: Float32Array;
   readonly preRefractory: Float32Array;
   readonly preSpikes: Float32Array;
@@ -351,7 +368,7 @@ class STDPNet {
    */
   forward(
     inputCurrent: Float32Array,
-    lifSteps: number,
+    lifSteps: number
   ): { preSpikeTotal: number; postSpikeCounts: Int32Array } {
     const counts = new Int32Array(this.postCount);
     let preSpikeTotal = 0;
@@ -459,14 +476,14 @@ function encodeSensorInput(env: NavEnvironment): Float32Array {
   // ray 0=E, 1=NE, 2=N, 3=NW, 4=W, 5=SW, 6=S, 7=SE — same mapping as the
   // reactive baseline NavSensorBridge in paper-snn-navigation.test.ts.
   const rayToDirs: number[][] = [
-    [1],     // E
-    [0, 1],  // NE
-    [0],     // N
-    [0, 3],  // NW
-    [3],     // W
-    [2, 3],  // SW
-    [2],     // S
-    [1, 2],  // SE
+    [1], // E
+    [0, 1], // NE
+    [0], // N
+    [0, 3], // NW
+    [3], // W
+    [2, 3], // SW
+    [2], // S
+    [1, 2], // SE
   ];
 
   for (let r = 0; r < 8; r++) {
@@ -485,8 +502,16 @@ function encodeSensorInput(env: NavEnvironment): Float32Array {
 
   // Goal bias: align rays whose direction matches goal angle.
   const dirAngles = [Math.PI / 2, 0, -Math.PI / 2, Math.PI]; // N, E, S, W
-  const rayDirs = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4,
-                   Math.PI, (5 * Math.PI) / 4, (3 * Math.PI) / 2, (7 * Math.PI) / 4];
+  const rayDirs = [
+    0,
+    Math.PI / 4,
+    Math.PI / 2,
+    (3 * Math.PI) / 4,
+    Math.PI,
+    (5 * Math.PI) / 4,
+    (3 * Math.PI) / 2,
+    (7 * Math.PI) / 4,
+  ];
   void dirAngles;
   for (let r = 0; r < 8; r++) {
     let angleDiff = Math.abs(gv.angle - rayDirs[r]);
@@ -520,7 +545,7 @@ function runEpisode(
   net: STDPNet,
   learn: boolean,
   maxTicks: number,
-  env: NavEnvironment,
+  env: NavEnvironment
 ): {
   pathLength: number;
   manhattanDist: number;
@@ -578,8 +603,7 @@ function runEpisode(
     const dy = path[i].y - path[i - 1].y;
     pathLength += Math.sqrt(dx * dx + dy * dy);
   }
-  const manhattanDist =
-    Math.abs(env.goal.x - startPos.x) + Math.abs(env.goal.y - startPos.y);
+  const manhattanDist = Math.abs(env.goal.x - startPos.x) + Math.abs(env.goal.y - startPos.y);
 
   // Path efficiency, paper-2 §5.4 definition: manhattan / actual_path,
   // but ONLY if the goal was reached. If not reached, we report 0 — a
@@ -588,9 +612,7 @@ function runEpisode(
   // by getting stuck against a wall and recording an artificially short
   // path; see audit comment in the harness file.)
   const pathEfficiency =
-    reachedGoal && pathLength > 0
-      ? Math.min(1, manhattanDist / pathLength)
-      : 0;
+    reachedGoal && pathLength > 0 ? Math.min(1, manhattanDist / pathLength) : 0;
 
   return {
     pathLength,
@@ -632,7 +654,7 @@ describe('Paper #2 Benchmark: STDP-Learned SNN Navigation', () => {
       if (r.reachedGoal) baselineGoalReached++;
       log.push(
         `[baseline ep ${ep}] reached=${r.reachedGoal} ticks=${r.ticks} ` +
-        `path=${r.pathLength.toFixed(2)} eff=${(r.pathEfficiency * 100).toFixed(1)}%`,
+          `path=${r.pathLength.toFixed(2)} eff=${(r.pathEfficiency * 100).toFixed(1)}%`
       );
     }
     const baselineEff = baselineEffSum / EVAL_EPISODES;
@@ -660,7 +682,7 @@ describe('Paper #2 Benchmark: STDP-Learned SNN Navigation', () => {
       const r = runEpisode(trainedNet, true, MAX_TICKS, env);
       log.push(
         `[train ep ${ep}] reached=${r.reachedGoal} ticks=${r.ticks} ` +
-        `eff=${(r.pathEfficiency * 100).toFixed(1)}% spikes=${r.totalPostSpikes}`,
+          `eff=${(r.pathEfficiency * 100).toFixed(1)}% spikes=${r.totalPostSpikes}`
       );
     }
     const trainedWeightStats = trainedNet.weightStats();
@@ -684,7 +706,7 @@ describe('Paper #2 Benchmark: STDP-Learned SNN Navigation', () => {
       if (r.reachedGoal) trainedGoalReached++;
       log.push(
         `[trained eval ep ${ep}] reached=${r.reachedGoal} ticks=${r.ticks} ` +
-        `path=${r.pathLength.toFixed(2)} eff=${(r.pathEfficiency * 100).toFixed(1)}%`,
+          `path=${r.pathLength.toFixed(2)} eff=${(r.pathEfficiency * 100).toFixed(1)}%`
       );
     }
     const trainedEff = trainedEffSum / EVAL_EPISODES;
@@ -697,25 +719,25 @@ describe('Paper #2 Benchmark: STDP-Learned SNN Navigation', () => {
     console.log('[stdp-nav-experiment]');
     console.log(
       `[stdp-nav-experiment] Baseline mean efficiency:  ${(baselineEff * 100).toFixed(1)}% ` +
-      `(${baselineGoalReached}/${EVAL_EPISODES} reached goal)`,
+        `(${baselineGoalReached}/${EVAL_EPISODES} reached goal)`
     );
     console.log(
       `[stdp-nav-experiment] Trained mean efficiency:   ${(trainedEff * 100).toFixed(1)}% ` +
-      `(${trainedGoalReached}/${EVAL_EPISODES} reached goal)`,
+        `(${trainedGoalReached}/${EVAL_EPISODES} reached goal)`
     );
     console.log(
-      `[stdp-nav-experiment] Improvement:               ${(improvement * 100).toFixed(1)} pp`,
+      `[stdp-nav-experiment] Improvement:               ${(improvement * 100).toFixed(1)} pp`
     );
     console.log(
       `[stdp-nav-experiment] Weights changed by STDP:   ` +
-      `${weightsChanged}/${trainedWeights0.length}, max |Δw|=${weightDeltaMax.toFixed(4)}`,
+        `${weightsChanged}/${trainedWeights0.length}, max |Δw|=${weightDeltaMax.toFixed(4)}`
     );
     console.log(
       `[stdp-nav-experiment] Trained weight stats:      ` +
-      `mean=${trainedWeightStats.mean.toFixed(3)} ` +
-      `min=${trainedWeightStats.min.toFixed(3)} ` +
-      `max=${trainedWeightStats.max.toFixed(3)} ` +
-      `nonzero=${trainedWeightStats.nonzero}/${trainedWeights0.length}`,
+        `mean=${trainedWeightStats.mean.toFixed(3)} ` +
+        `min=${trainedWeightStats.min.toFixed(3)} ` +
+        `max=${trainedWeightStats.max.toFixed(3)} ` +
+        `nonzero=${trainedWeightStats.nonzero}/${trainedWeights0.length}`
     );
     console.log(`[stdp-nav-experiment] Baseline weight drift:     ${baselineDrift} (must be 0)`);
     console.log(`[stdp-nav-experiment] Wall time:                 ${wallMs.toFixed(0)} ms`);
@@ -723,7 +745,9 @@ describe('Paper #2 Benchmark: STDP-Learned SNN Navigation', () => {
     // ── LaTeX table for the paper ──────────────────────────────────────────
     console.log('\n% ── LaTeX: STDP Navigation Experiment (Paper #2) ──');
     console.log('\\begin{table}[h]\\centering');
-    console.log('\\caption{STDP learning improves path efficiency past the 20\\% reactive baseline (Section~5.4). 64 LIF pre-neurons $\\to$ 4 action neurons; soft-bounded Hebbian STDP; CPU reference (deterministic).}');
+    console.log(
+      '\\caption{STDP learning improves path efficiency past the 20\\% reactive baseline (Section~5.4). 64 LIF pre-neurons $\\to$ 4 action neurons; soft-bounded Hebbian STDP; CPU reference (deterministic).}'
+    );
     console.log('\\label{tab:stdp-nav-experiment}');
     console.log('\\begin{tabular}{lr}');
     console.log('\\toprule');
@@ -731,8 +755,12 @@ describe('Paper #2 Benchmark: STDP-Learned SNN Navigation', () => {
     console.log('\\midrule');
     console.log(`Training episodes & ${TRAIN_EPISODES} \\\\`);
     console.log(`Evaluation episodes (each phase) & ${EVAL_EPISODES} \\\\`);
-    console.log(`Baseline path efficiency (random weights) & ${(baselineEff * 100).toFixed(1)}\\% \\\\`);
-    console.log(`Trained path efficiency (post-STDP, frozen) & ${(trainedEff * 100).toFixed(1)}\\% \\\\`);
+    console.log(
+      `Baseline path efficiency (random weights) & ${(baselineEff * 100).toFixed(1)}\\% \\\\`
+    );
+    console.log(
+      `Trained path efficiency (post-STDP, frozen) & ${(trainedEff * 100).toFixed(1)}\\% \\\\`
+    );
     console.log(`Improvement & ${(improvement * 100).toFixed(1)} pp \\\\`);
     console.log(`Plastic synapses updated & ${weightsChanged} / ${trainedWeights0.length} \\\\`);
     console.log(`Max $|\\Delta w|$ across training & ${weightDeltaMax.toFixed(4)} \\\\`);
@@ -754,7 +782,7 @@ describe('Paper #2 Benchmark: STDP-Learned SNN Navigation', () => {
     // attributable to STDP, not to any prior in the architecture.)
     expect(trainedEff).toBeGreaterThan(baselineEff);
     // Public-facing claim cited in paper-2 §5.4: efficiency past 20%.
-    expect(trainedEff).toBeGreaterThan(0.20);
+    expect(trainedEff).toBeGreaterThan(0.2);
     // And the trained agent must actually reach the goal in eval (no
     // efficiency-by-getting-stuck loophole — already enforced by the
     // metric, asserted here for clarity).

@@ -75,13 +75,13 @@ Options:
 
 Total time (warm npx cache, typical broadband): ~15–25 seconds. Compare:
 
-| Tool | Time-to-wow |
-|---|---|
-| **create-holoscript --go** | **~15–25s** |
-| A-Frame (HTML paste) | 30–60s |
-| Babylon.js (playground + edit) | 1–2 min |
-| Three.js from scratch | ~5 min |
-| Unity WebGL export | multi-hour |
+| Tool                           | Time-to-wow |
+| ------------------------------ | ----------- |
+| **create-holoscript --go**     | **~15–25s** |
+| A-Frame (HTML paste)           | 30–60s      |
+| Babylon.js (playground + edit) | 1–2 min     |
+| Three.js from scratch          | ~5 min      |
+| Unity WebGL export             | multi-hour  |
 
 ## What You Get
 

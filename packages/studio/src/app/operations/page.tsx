@@ -76,7 +76,12 @@ interface StabilizerTelemetry {
   provenanceBadge: 'corpus-replay' | 'live-fleet';
   determinismGrade: string;
   verdict: string;
-  threshold: { independent: number | null; burst3: number | null; burst3AboveGrid?: boolean; note?: string };
+  threshold: {
+    independent: number | null;
+    burst3: number | null;
+    burst3AboveGrid?: boolean;
+    note?: string;
+  };
   syndrome: {
     cssProvenanceError: number;
     voteProvenanceError: number;
@@ -108,7 +113,15 @@ function timeAgo(iso?: string): string {
   return `${Math.round(s / 3600)}h ago`;
 }
 
-function Card({ title, accent, children }: { title: string; accent?: string; children: React.ReactNode }) {
+function Card({
+  title,
+  accent,
+  children,
+}: {
+  title: string;
+  accent?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg border border-studio-border bg-studio-panel/30 p-4">
       <h2 className={`text-sm font-semibold mb-3 ${accent ?? 'text-studio-text'}`}>{title}</h2>
@@ -127,7 +140,17 @@ function Stat({ label, value, tone }: { label: string; value: React.ReactNode; t
 }
 
 // Compact inline sparkline (values in [0,1]) — logical-error-vs-p curve for one distance.
-function Sparkline({ values, color, w = 120, h = 28 }: { values: number[]; color: string; w?: number; h?: number }) {
+function Sparkline({
+  values,
+  color,
+  w = 120,
+  h = 28,
+}: {
+  values: number[];
+  color: string;
+  w?: number;
+  h?: number;
+}) {
   if (!values || values.length < 2) return null;
   const max = Math.max(...values, 0.0001);
   const pts = values
@@ -249,8 +272,8 @@ export default function OperationsPage() {
       <div className="p-6 text-studio-text">
         <h1 className="text-xl font-bold mb-2">Operations</h1>
         <p className="text-sm text-studio-muted">
-          This is the founder operate surface (live fleet, CI, Lotus gate, and board).
-          Sign in as the founder to view it.
+          This is the founder operate surface (live fleet, CI, Lotus gate, and board). Sign in as
+          the founder to view it.
         </p>
       </div>
     );
@@ -262,7 +285,8 @@ export default function OperationsPage() {
         <div>
           <h1 className="text-xl font-bold">Operations</h1>
           <p className="text-xs text-studio-muted">
-            Live fleet · CI · Lotus · board — the infra that used to live only in CLI/cron. Read-only (brick-1).
+            Live fleet · CI · Lotus · board — the infra that used to live only in CLI/cron.
+            Read-only (brick-1).
           </p>
         </div>
         <div className="text-right text-[10px] text-studio-muted">
@@ -273,7 +297,10 @@ export default function OperationsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* LOTUS GATE */}
-        <Card title="🪷 Lotus Genesis Gate" accent={gateOpen ? 'text-emerald-400' : 'text-studio-text'}>
+        <Card
+          title="🪷 Lotus Genesis Gate"
+          accent={gateOpen ? 'text-emerald-400' : 'text-studio-text'}
+        >
           {errors.lotus ? (
             <div className="text-xs text-red-400">Error: {errors.lotus}</div>
           ) : gate ? (
@@ -292,13 +319,13 @@ export default function OperationsPage() {
               </div>
               {gate.unverified_legacy?.length > 0 && (
                 <div className="text-[10px] text-amber-300/80">
-                  {gate.unverified_legacy.length} legacy papers claim a bench but lack verified evidence
-                  (provenance only — not counted): {gate.unverified_legacy.join(', ')}
+                  {gate.unverified_legacy.length} legacy papers claim a bench but lack verified
+                  evidence (provenance only — not counted): {gate.unverified_legacy.join(', ')}
                 </div>
               )}
               <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
-                Source: orchestrator gate (evidence-required). The public bloom on holoscript.net derives
-                separately and may differ until single-sourced.
+                Source: orchestrator gate (evidence-required). The public bloom on holoscript.net
+                derives separately and may differ until single-sourced.
               </div>
             </div>
           ) : (
@@ -314,14 +341,18 @@ export default function OperationsPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded border border-studio-border/40 p-2">
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">GPU lane</div>
+                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+                    GPU lane
+                  </div>
                   <div className="flex gap-4">
                     <Stat label="queued" value={gpuLane?.queued ?? '—'} />
                     <Stat label="running" value={gpuLane?.running ?? '—'} tone="text-emerald-400" />
                   </div>
                 </div>
                 <div className="rounded border border-studio-border/40 p-2">
-                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">CI lane</div>
+                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+                    CI lane
+                  </div>
                   <div className="flex gap-4">
                     <Stat
                       label="queued"
@@ -357,7 +388,11 @@ export default function OperationsPage() {
           ) : fleet ? (
             <div className="space-y-2">
               <div className="flex items-end gap-6">
-                <Stat label="agents online" value={fleet.onlineCount ?? '—'} tone="text-emerald-400" />
+                <Stat
+                  label="agents online"
+                  value={fleet.onlineCount ?? '—'}
+                  tone="text-emerald-400"
+                />
                 <div className="flex flex-col">
                   <span
                     className={`text-lg font-mono ${
@@ -366,13 +401,17 @@ export default function OperationsPage() {
                   >
                     {fleet.status ?? 'unknown'}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider text-studio-muted">health</span>
+                  <span className="text-[10px] uppercase tracking-wider text-studio-muted">
+                    health
+                  </span>
                 </div>
               </div>
               {fleet.reasons && fleet.reasons.length > 0 && (
                 <div className="text-[10px] text-amber-300/80">{fleet.reasons.join(', ')}</div>
               )}
-              <div className="text-[9px] text-studio-muted">snapshot {timeAgo(fleet.publishedAt)}</div>
+              <div className="text-[9px] text-studio-muted">
+                snapshot {timeAgo(fleet.publishedAt)}
+              </div>
             </div>
           ) : (
             <div className="text-xs text-studio-muted">Loading…</div>
@@ -388,17 +427,26 @@ export default function OperationsPage() {
               <div className="flex items-end gap-5">
                 <Stat label="open" value={board.open.length} />
                 <Stat label="claimed" value={board.claimed.length} tone="text-amber-300" />
-                <Stat label="blocked" value={board.blocked.length} tone={board.blocked.length ? 'text-red-400' : 'text-studio-text'} />
+                <Stat
+                  label="blocked"
+                  value={board.blocked.length}
+                  tone={board.blocked.length ? 'text-red-400' : 'text-studio-text'}
+                />
                 <Stat label="done" value={board.doneTotal} tone="text-emerald-400" />
               </div>
               <div className="space-y-0.5">
                 {board.claimed.slice(0, 5).map((t) => (
                   <div key={t.id} className="text-[10px] text-studio-muted truncate">
-                    ◗ {t.title} <span className="text-studio-accent">· {t.claimedByName || t.claimedBy || '?'}</span>
+                    ◗ {t.title}{' '}
+                    <span className="text-studio-accent">
+                      · {t.claimedByName || t.claimedBy || '?'}
+                    </span>
                   </div>
                 ))}
                 {board.open.slice(0, 3).map((t) => (
-                  <div key={t.id} className="text-[10px] text-studio-muted/70 truncate">○ {t.title}</div>
+                  <div key={t.id} className="text-[10px] text-studio-muted/70 truncate">
+                    ○ {t.title}
+                  </div>
                 ))}
               </div>
             </div>
@@ -431,7 +479,9 @@ export default function OperationsPage() {
                 </span>
                 <span
                   className={`px-2 py-0.5 rounded text-[10px] font-mono ${
-                    stabilizer.verdict === 'PROVE' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                    stabilizer.verdict === 'PROVE'
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : 'bg-amber-500/20 text-amber-300'
                   }`}
                 >
                   {stabilizer.verdict}
@@ -439,15 +489,27 @@ export default function OperationsPage() {
               </div>
 
               <div className="flex items-end gap-6">
-                <Stat label="provenance err (CSS)" value={`${(stabilizer.syndrome.cssProvenanceError * 100).toFixed(1)}%`} tone="text-emerald-400" />
-                <Stat label="provenance err (voting)" value={`${(stabilizer.syndrome.voteProvenanceError * 100).toFixed(1)}%`} tone="text-amber-300" />
+                <Stat
+                  label="provenance err (CSS)"
+                  value={`${(stabilizer.syndrome.cssProvenanceError * 100).toFixed(1)}%`}
+                  tone="text-emerald-400"
+                />
+                <Stat
+                  label="provenance err (voting)"
+                  value={`${(stabilizer.syndrome.voteProvenanceError * 100).toFixed(1)}%`}
+                  tone="text-amber-300"
+                />
               </div>
               <div className="text-[10px] text-studio-muted">
-                CSS syndrome gates sycophancy ({stabilizer.syndrome.sycophancyChannel}); value-voting is blind to it.
+                CSS syndrome gates sycophancy ({stabilizer.syndrome.sycophancyChannel});
+                value-voting is blind to it.
               </div>
 
               <div className="flex items-end gap-6">
-                <Stat label="threshold p_c (indep)" value={stabilizer.threshold.independent?.toFixed(3) ?? '—'} />
+                <Stat
+                  label="threshold p_c (indep)"
+                  value={stabilizer.threshold.independent?.toFixed(3) ?? '—'}
+                />
                 <Stat
                   label="p_c (burst-3)"
                   value={
@@ -475,14 +537,17 @@ export default function OperationsPage() {
               {stabilizer.realFleet && (
                 <div className="rounded border border-emerald-500/30 bg-emerald-500/5 p-2">
                   <div className="text-[10px] text-emerald-300">
-                    live-fleet verifier · {stabilizer.realFleet.recordsVerified}/{stabilizer.realFleet.recordsTotal} real CAEL records verify clean
+                    live-fleet verifier · {stabilizer.realFleet.recordsVerified}/
+                    {stabilizer.realFleet.recordsTotal} real CAEL records verify clean
                     {stabilizer.realFleet.tamperEvident ? ' · tamper-evident' : ''}
                   </div>
                 </div>
               )}
 
               <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1 flex gap-3">
-                <span>{stabilizer.syndrome.realVerifier ? '✓ real CAEL verifier' : '✗ verifier'}</span>
+                <span>
+                  {stabilizer.syndrome.realVerifier ? '✓ real CAEL verifier' : '✗ verifier'}
+                </span>
                 <span>{stabilizer.syndrome.tamperEvidence ? '✓ tamper-evident' : '✗ tamper'}</span>
               </div>
             </div>
@@ -493,8 +558,8 @@ export default function OperationsPage() {
       </div>
 
       <p className="mt-5 text-[10px] text-studio-muted">
-        D.081 brick-1 · read-only. Next: founder-gated actions (provision worker, dispatch CI, claim task) and
-        single-sourcing the Lotus gate so the public bloom can&apos;t overclaim past it.
+        D.081 brick-1 · read-only. Next: founder-gated actions (provision worker, dispatch CI, claim
+        task) and single-sourcing the Lotus gate so the public bloom can&apos;t overclaim past it.
       </p>
     </div>
   );

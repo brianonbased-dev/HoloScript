@@ -30,7 +30,9 @@ describe('/api/daemon/jobs route', () => {
   });
 
   it('returns 401 when requireAuth fails', async () => {
-    requireAuthMock.mockResolvedValue(NextResponse.json({ error: 'Authentication required' }, { status: 401 }));
+    requireAuthMock.mockResolvedValue(
+      NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    );
 
     const res = await GET(new Request('http://localhost/api/daemon/jobs'));
     expect(res.status).toBe(401);

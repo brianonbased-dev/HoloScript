@@ -45,14 +45,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import {
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-  readFileSync,
-  readdirSync,
-  existsSync,
-} from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, isAbsolute, dirname, basename } from 'node:path';
 
@@ -209,12 +202,7 @@ function resolveWorkspaceSpec(name, spec, versionMap, looseMode = false) {
 }
 
 function rewriteWorkspaceSpecs(manifest, versionMap, looseMode = false) {
-  const fields = [
-    'dependencies',
-    'optionalDependencies',
-    'peerDependencies',
-    'devDependencies',
-  ];
+  const fields = ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies'];
   let rewrites = 0;
   for (const field of fields) {
     const block = manifest[field];
@@ -230,9 +218,7 @@ function rewriteWorkspaceSpecs(manifest, versionMap, looseMode = false) {
 }
 
 function makeTarball(pkgDirArg) {
-  const pkgDir = resolve(
-    pkgDirArg || join(process.cwd(), 'packages', 'core')
-  );
+  const pkgDir = resolve(pkgDirArg || join(process.cwd(), 'packages', 'core'));
   if (!existsSync(join(pkgDir, 'package.json'))) {
     fail('setup-error', `no package.json at ${pkgDir}`);
   }

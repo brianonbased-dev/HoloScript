@@ -12,7 +12,12 @@
  * Imports only the engine VM's own world/types — zero foreign-engine imports.
  */
 
-import { ECSWorld, type TransformComponent, type GeometryComponent, type MaterialComponent } from '../vm/executor';
+import {
+  ECSWorld,
+  type TransformComponent,
+  type GeometryComponent,
+  type MaterialComponent,
+} from '../vm/executor';
 import { ComponentType, GeometryType } from '../vm/opcodes';
 
 // ---------------------------------------------------------------------------
@@ -21,10 +26,17 @@ import { ComponentType, GeometryType } from '../vm/opcodes';
 // ---------------------------------------------------------------------------
 
 type Vec3Like = { x: number; y: number; z: number } | [number, number, number] | readonly number[];
-type QuatLike = { x: number; y: number; z: number; w: number } | [number, number, number, number] | readonly number[];
+type QuatLike =
+  | { x: number; y: number; z: number; w: number }
+  | [number, number, number, number]
+  | readonly number[];
 
 function vec3(v: Vec3Like): { x: number; y: number; z: number } {
-  if (Array.isArray(v) || (v as readonly number[]).length !== undefined && typeof (v as readonly number[])[0] === 'number') {
+  if (
+    Array.isArray(v) ||
+    ((v as readonly number[]).length !== undefined &&
+      typeof (v as readonly number[])[0] === 'number')
+  ) {
     const a = v as readonly number[];
     return { x: a[0] ?? 0, y: a[1] ?? 0, z: a[2] ?? 0 };
   }
@@ -33,7 +45,11 @@ function vec3(v: Vec3Like): { x: number; y: number; z: number } {
 }
 
 function quat(q: QuatLike): { x: number; y: number; z: number; w: number } {
-  if (Array.isArray(q) || (q as readonly number[]).length !== undefined && typeof (q as readonly number[])[0] === 'number') {
+  if (
+    Array.isArray(q) ||
+    ((q as readonly number[]).length !== undefined &&
+      typeof (q as readonly number[])[0] === 'number')
+  ) {
     const a = q as readonly number[];
     return { x: a[0] ?? 0, y: a[1] ?? 0, z: a[2] ?? 0, w: a[3] ?? 1 };
   }
@@ -42,11 +58,19 @@ function quat(q: QuatLike): { x: number; y: number; z: number; w: number } {
 }
 
 export type GeometryKind =
-  | 'cube' | 'sphere' | 'cylinder' | 'plane' | 'cone' | 'torus' | 'capsule' | 'mesh' | 'unknown';
+  | 'cube'
+  | 'sphere'
+  | 'cylinder'
+  | 'plane'
+  | 'cone'
+  | 'torus'
+  | 'capsule'
+  | 'mesh'
+  | 'unknown';
 
 /** Pure-data material (no GPUBindGroup) — the GPU backend resolves this to a pipeline+bind group. */
 export interface MaterialSpec {
-  color: number;      // packed 0xRRGGBB
+  color: number; // packed 0xRRGGBB
   metalness: number;
   roughness: number;
   emissive: number;
@@ -84,18 +108,38 @@ export function geometryKindFromType(type: number): GeometryKind {
 export function composeTRS(
   t: { x: number; y: number; z: number },
   q: { x: number; y: number; z: number; w: number },
-  s: { x: number; y: number; z: number },
+  s: { x: number; y: number; z: number }
 ): Float32Array {
   const { x, y, z, w } = q;
-  const x2 = x + x, y2 = y + y, z2 = z + z;
-  const xx = x * x2, xy = x * y2, xz = x * z2;
-  const yy = y * y2, yz = y * z2, zz = z * z2;
-  const wx = w * x2, wy = w * y2, wz = w * z2;
+  const x2 = x + x,
+    y2 = y + y,
+    z2 = z + z;
+  const xx = x * x2,
+    xy = x * y2,
+    xz = x * z2;
+  const yy = y * y2,
+    yz = y * z2,
+    zz = z * z2;
+  const wx = w * x2,
+    wy = w * y2,
+    wz = w * z2;
   const m = new Float32Array(16);
-  m[0] = (1 - (yy + zz)) * s.x; m[1] = (xy + wz) * s.x;       m[2] = (xz - wy) * s.x;       m[3] = 0;
-  m[4] = (xy - wz) * s.y;       m[5] = (1 - (xx + zz)) * s.y; m[6] = (yz + wx) * s.y;       m[7] = 0;
-  m[8] = (xz + wy) * s.z;       m[9] = (yz - wx) * s.z;       m[10] = (1 - (xx + yy)) * s.z; m[11] = 0;
-  m[12] = t.x; m[13] = t.y; m[14] = t.z; m[15] = 1;
+  m[0] = (1 - (yy + zz)) * s.x;
+  m[1] = (xy + wz) * s.x;
+  m[2] = (xz - wy) * s.x;
+  m[3] = 0;
+  m[4] = (xy - wz) * s.y;
+  m[5] = (1 - (xx + zz)) * s.y;
+  m[6] = (yz + wx) * s.y;
+  m[7] = 0;
+  m[8] = (xz + wy) * s.z;
+  m[9] = (yz - wx) * s.z;
+  m[10] = (1 - (xx + yy)) * s.z;
+  m[11] = 0;
+  m[12] = t.x;
+  m[13] = t.y;
+  m[14] = t.z;
+  m[15] = 1;
   return m;
 }
 
@@ -105,7 +149,10 @@ export function composeTRS(
  */
 export function extractDrawSpecs(world: ECSWorld): DrawSpec[] {
   const specs: DrawSpec[] = [];
-  const entities = world.getAllEntities().filter((e) => e.alive).sort((a, b) => a.id - b.id);
+  const entities = world
+    .getAllEntities()
+    .filter((e) => e.alive)
+    .sort((a, b) => a.id - b.id);
   for (const e of entities) {
     const t = world.getComponent<TransformComponent>(e.id, ComponentType.Transform);
     const g = world.getComponent<GeometryComponent>(e.id, ComponentType.Geometry);
@@ -114,11 +161,17 @@ export function extractDrawSpecs(world: ECSWorld): DrawSpec[] {
     specs.push({
       entityId: e.id,
       geometry: { kind: geometryKindFromType(g.type), params: { ...g.params } },
-      material: { color: m.color, metalness: m.metalness, roughness: m.roughness, emissive: m.emissive, opacity: m.opacity },
+      material: {
+        color: m.color,
+        metalness: m.metalness,
+        roughness: m.roughness,
+        emissive: m.emissive,
+        opacity: m.opacity,
+      },
       modelMatrix: composeTRS(
         vec3(t.position as Vec3Like),
         quat(t.rotation as QuatLike),
-        vec3(t.scale as Vec3Like),
+        vec3(t.scale as Vec3Like)
       ),
     });
   }

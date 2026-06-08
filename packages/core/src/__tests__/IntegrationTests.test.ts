@@ -252,13 +252,13 @@ describe('Cycle 110: Integration Tests', () => {
       entityId: 'crate',
       timestamp: 0,
       position: [0, 1, 0],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
     });
     interp.pushSnapshot({
       entityId: 'crate',
       timestamp: 100,
       position: [5, 1, 0],
-      rotation: [0, 0, 0, 1 ],
+      rotation: [0, 0, 0, 1],
     });
 
     // Interpolate at midpoint

@@ -26,6 +26,7 @@ hs import-dtdl myFactory.json --output factory.holo --with-receipt \
 ```
 
 Produces:
+
 - Entities as HoloScript objects
 - Relationships as first-class links
 - Telemetry streams as time-series traits
@@ -35,12 +36,12 @@ Produces:
 
 Map Azure DT notifications and telemetry to HoloScript traits.
 
-| Azure DT                          | HoloScript Trait/Event             | Notes |
-|-----------------------------------|------------------------------------|-------|
-| Twin property update              | `property_update`                  | Drives simulation state |
-| Relationship change               | `relationship_update`              | Graph delta for world models |
-| Telemetry (temperature, vibration)| `sensor_stream` + `time_series`    | Perfect JEPA training data |
-| Command / method invocation       | `intent` / `action`                | For NPC / agent control |
+| Azure DT                           | HoloScript Trait/Event          | Notes                        |
+| ---------------------------------- | ------------------------------- | ---------------------------- |
+| Twin property update               | `property_update`               | Drives simulation state      |
+| Relationship change                | `relationship_update`           | Graph delta for world models |
+| Telemetry (temperature, vibration) | `sensor_stream` + `time_series` | Perfect JEPA training data   |
+| Command / method invocation        | `intent` / `action`             | For NPC / agent control      |
 
 A small Azure Function or Event Grid bridge can emit these as HoloScript events with embedded receipts.
 

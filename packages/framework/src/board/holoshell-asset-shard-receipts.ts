@@ -197,12 +197,16 @@ function isOneOf<T extends readonly string[]>(values: T, value: string): value i
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
     typeof value === 'string' &&
-    /(^|[\s"'`=])(?:file:\/\/\/(?:[A-Za-z]:[\\/]|(?!\/)[^\s"'`]+)|[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/i.test(value)
+    /(^|[\s"'`=])(?:file:\/\/\/(?:[A-Za-z]:[\\/]|(?!\/)[^\s"'`]+)|[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/i.test(
+      value
+    )
   );
 }
 
 function commandPreviewArtifactAlias(flag: string): string | undefined {
-  if (Object.prototype.hasOwnProperty.call(ASSET_SHARD_IMPORT_COMMAND_PREVIEW_ARTIFACT_FLAGS, flag)) {
+  if (
+    Object.prototype.hasOwnProperty.call(ASSET_SHARD_IMPORT_COMMAND_PREVIEW_ARTIFACT_FLAGS, flag)
+  ) {
     return ASSET_SHARD_IMPORT_COMMAND_PREVIEW_ARTIFACT_FLAGS[
       flag as AssetShardImportCommandPreviewArtifactFlag
     ];
@@ -228,7 +232,9 @@ function redactAssetShardImportCommandPreviewToken(
 
 export function redactAssetShardImportCommandPreview(command: readonly string[]): string {
   return command
-    .map((token, index) => shellPreviewToken(redactAssetShardImportCommandPreviewToken(command, index)))
+    .map((token, index) =>
+      shellPreviewToken(redactAssetShardImportCommandPreviewToken(command, index))
+    )
     .join(' ');
 }
 
@@ -289,7 +295,9 @@ export function validateAssetShardWorkflowReceipt(receipt: AssetShardWorkflowRec
   }
 
   if (!isSupportedAssetShardStatus(String(receipt.summary?.status))) {
-    errors.push(`AssetShardWorkflowReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`);
+    errors.push(
+      `AssetShardWorkflowReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`
+    );
   }
   for (const [field, value] of [
     ['assetCount', receipt.summary?.assetCount],
@@ -307,12 +315,24 @@ export function validateAssetShardWorkflowReceipt(receipt: AssetShardWorkflowRec
     errors.push('AssetShardWorkflowReceipt.summary.mutationExecuted must be false.');
   }
   // Blocked-file gate: secretLikeAssetGate must be 'pass' or 'blocked' (never absent/invalid)
-  if (receipt.validation?.secretLikeAssetGate !== 'pass' && receipt.validation?.secretLikeAssetGate !== 'blocked') {
-    errors.push('AssetShardWorkflowReceipt.validation.secretLikeAssetGate must be pass or blocked.');
+  if (
+    receipt.validation?.secretLikeAssetGate !== 'pass' &&
+    receipt.validation?.secretLikeAssetGate !== 'blocked'
+  ) {
+    errors.push(
+      'AssetShardWorkflowReceipt.validation.secretLikeAssetGate must be pass or blocked.'
+    );
   }
   // Preview source validation gate: must be 'pass', 'blocked', or 'fail'
-  if (!isOneOf(['pass', 'blocked', 'fail'] as const, String(receipt.validation?.previewSourceValidation))) {
-    errors.push(`AssetShardWorkflowReceipt.validation.previewSourceValidation is unsupported: ${String(receipt.validation?.previewSourceValidation)}.`);
+  if (
+    !isOneOf(
+      ['pass', 'blocked', 'fail'] as const,
+      String(receipt.validation?.previewSourceValidation)
+    )
+  ) {
+    errors.push(
+      `AssetShardWorkflowReceipt.validation.previewSourceValidation is unsupported: ${String(receipt.validation?.previewSourceValidation)}.`
+    );
   }
   if (receipt.validation?.browserPathRedaction !== 'pass') {
     errors.push('AssetShardWorkflowReceipt.validation.browserPathRedaction must pass.');
@@ -327,12 +347,23 @@ export function validateAssetShardWorkflowReceipt(receipt: AssetShardWorkflowRec
     errors.push('AssetShardWorkflowReceipt.rollback.sourceAssetsMutated must be false.');
   }
 
-  pushPathErrors('AssetShardWorkflowReceipt.output.previewSourcePath', receipt.output?.previewSourcePath, errors);
-  pushPathErrors('AssetShardWorkflowReceipt.output.privateReceiptPath', receipt.output?.privateReceiptPath, errors);
+  pushPathErrors(
+    'AssetShardWorkflowReceipt.output.previewSourcePath',
+    receipt.output?.previewSourcePath,
+    errors
+  );
+  pushPathErrors(
+    'AssetShardWorkflowReceipt.output.privateReceiptPath',
+    receipt.output?.privateReceiptPath,
+    errors
+  );
 
-  if (!receipt.shardPlan?.shardId) errors.push('AssetShardWorkflowReceipt.shardPlan.shardId is required.');
+  if (!receipt.shardPlan?.shardId)
+    errors.push('AssetShardWorkflowReceipt.shardPlan.shardId is required.');
   if (receipt.shardPlan?.importMode !== 'guarded_execute_after_preview') {
-    errors.push('AssetShardWorkflowReceipt.shardPlan.importMode must be guarded_execute_after_preview.');
+    errors.push(
+      'AssetShardWorkflowReceipt.shardPlan.importMode must be guarded_execute_after_preview.'
+    );
   }
   for (const asset of receipt.shardPlan?.assets ?? []) {
     validateAssetProxy(asset, errors);
@@ -344,7 +375,9 @@ export function validateAssetShardWorkflowReceipt(receipt: AssetShardWorkflowRec
     errors.push('AssetShardWorkflowReceipt requires a guarded_execute approval.');
   }
   if (receipt.approvals?.some((approval) => approval.executionAllowed)) {
-    errors.push('AssetShardWorkflowReceipt approvals must not be executable before human approval.');
+    errors.push(
+      'AssetShardWorkflowReceipt approvals must not be executable before human approval.'
+    );
   }
 
   return errors;
@@ -353,18 +386,28 @@ export function validateAssetShardWorkflowReceipt(receipt: AssetShardWorkflowRec
 function validateAssetProxy(asset: AssetShardFileProxy, errors: string[]): void {
   if (!asset.id) errors.push('AssetShardFileProxy.id is required.');
   if (!asset.name) errors.push('AssetShardFileProxy.name is required.');
-  pushPathErrors(`AssetShardFileProxy(${asset.id || 'unknown'}).relativePath`, asset.relativePath, errors);
+  pushPathErrors(
+    `AssetShardFileProxy(${asset.id || 'unknown'}).relativePath`,
+    asset.relativePath,
+    errors
+  );
   if (!isSupportedAssetShardKind(String(asset.kind))) {
     errors.push(`AssetShardFileProxy.kind is unsupported: ${String(asset.kind)}.`);
   }
   if (!isNonNegativeInteger(asset.sizeBytes)) {
-    errors.push(`AssetShardFileProxy(${asset.id || 'unknown'}).sizeBytes must be a non-negative integer.`);
+    errors.push(
+      `AssetShardFileProxy(${asset.id || 'unknown'}).sizeBytes must be a non-negative integer.`
+    );
   }
   if (asset.blocked && !asset.blockReason) {
-    errors.push(`AssetShardFileProxy(${asset.id || 'unknown'}).blockReason is required when blocked.`);
+    errors.push(
+      `AssetShardFileProxy(${asset.id || 'unknown'}).blockReason is required when blocked.`
+    );
   }
   if (!asset.blocked && !asset.hashSha256) {
-    errors.push(`AssetShardFileProxy(${asset.id || 'unknown'}).hashSha256 is required for non-blocked assets.`);
+    errors.push(
+      `AssetShardFileProxy(${asset.id || 'unknown'}).hashSha256 is required for non-blocked assets.`
+    );
   }
 }
 
@@ -375,18 +418,24 @@ export function validateAssetShardImportApprovalReceipt(
   if (!receipt.approvalId) errors.push('AssetShardImportApprovalReceipt.approvalId is required.');
   if (!receipt.nonce) errors.push('AssetShardImportApprovalReceipt.nonce is required.');
   if (!isIsoTimestamp(receipt.approval?.expiresAt)) {
-    errors.push('AssetShardImportApprovalReceipt.approval.expiresAt must be a valid ISO-8601 timestamp.');
+    errors.push(
+      'AssetShardImportApprovalReceipt.approval.expiresAt must be a valid ISO-8601 timestamp.'
+    );
   }
   if (receipt.approval?.requiresFreshUserGesture !== true) {
     errors.push('AssetShardImportApprovalReceipt.approval.requiresFreshUserGesture must be true.');
   }
   if (receipt.execution?.allowed !== true) {
-    errors.push('AssetShardImportApprovalReceipt.execution.allowed must be true only after approval bundle creation.');
+    errors.push(
+      'AssetShardImportApprovalReceipt.execution.allowed must be true only after approval bundle creation.'
+    );
   }
   if (!receipt.execution?.commandPreview) {
     errors.push('AssetShardImportApprovalReceipt.execution.commandPreview is required.');
   } else if (hasAbsolutePath(receipt.execution.commandPreview)) {
-    errors.push('AssetShardImportApprovalReceipt.execution.commandPreview must not expose absolute local paths.');
+    errors.push(
+      'AssetShardImportApprovalReceipt.execution.commandPreview must not expose absolute local paths.'
+    );
   }
   if (!receipt.witness?.workflowHash) {
     errors.push('AssetShardImportApprovalReceipt.witness.workflowHash is required.');
@@ -419,11 +468,25 @@ export function validateAssetShardImportReceipt(receipt: AssetShardImportReceipt
   }
   if (receipt.summary?.status === 'completed') {
     if (receipt.summary.runtimeMutationExecuted !== true) {
-      errors.push('AssetShardImportReceipt.summary.runtimeMutationExecuted must be true for completed imports.');
+      errors.push(
+        'AssetShardImportReceipt.summary.runtimeMutationExecuted must be true for completed imports.'
+      );
     }
-    pushPathErrors('AssetShardImportReceipt.output.manifestPath', receipt.output?.manifestPath, errors);
-    pushPathErrors('AssetShardImportReceipt.output.shardSourcePath', receipt.output?.shardSourcePath, errors);
-    pushPathErrors('AssetShardImportReceipt.output.receiptPath', receipt.output?.receiptPath, errors);
+    pushPathErrors(
+      'AssetShardImportReceipt.output.manifestPath',
+      receipt.output?.manifestPath,
+      errors
+    );
+    pushPathErrors(
+      'AssetShardImportReceipt.output.shardSourcePath',
+      receipt.output?.shardSourcePath,
+      errors
+    );
+    pushPathErrors(
+      'AssetShardImportReceipt.output.receiptPath',
+      receipt.output?.receiptPath,
+      errors
+    );
   }
   return errors;
 }
@@ -436,7 +499,9 @@ export function validatePlayableShardWitnessReceipt(
     errors.push('PlayableShardWitnessReceipt.generatedAt must be a valid ISO-8601 timestamp.');
   }
   if (receipt.status !== 'pass') {
-    errors.push('PlayableShardWitnessReceipt.status must be pass before publishing/import completion can be trusted.');
+    errors.push(
+      'PlayableShardWitnessReceipt.status must be pass before publishing/import completion can be trusted.'
+    );
   }
   if (!receipt.shardWitness?.enabled) {
     errors.push('PlayableShardWitnessReceipt.shardWitness.enabled must be true.');
@@ -466,7 +531,9 @@ export function validateAssetShardReceiptBundle(bundle: {
   witness?: PlayableShardWitnessReceipt;
 }): string[] {
   const errors = [
-    ...(bundle.workflow ? validateAssetShardWorkflowReceipt(bundle.workflow) : ['AssetShardReceiptBundle.workflow is required.']),
+    ...(bundle.workflow
+      ? validateAssetShardWorkflowReceipt(bundle.workflow)
+      : ['AssetShardReceiptBundle.workflow is required.']),
     ...(bundle.approval ? validateAssetShardImportApprovalReceipt(bundle.approval) : []),
     ...(bundle.importReceipt ? validateAssetShardImportReceipt(bundle.importReceipt) : []),
     ...(bundle.importReceipt?.summary?.status === 'completed' && !bundle.witness
@@ -648,7 +715,9 @@ export function validateAssetIntakeReceipt(receipt: AssetIntakeReceipt): string[
   }
 
   if (!isOneOf(ASSET_INTAKE_STATUSES, String(receipt.summary?.status))) {
-    errors.push(`AssetIntakeReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`);
+    errors.push(
+      `AssetIntakeReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`
+    );
   }
   for (const [field, value] of [
     ['fileCount', receipt.summary?.fileCount],
@@ -659,7 +728,10 @@ export function validateAssetIntakeReceipt(receipt: AssetIntakeReceipt): string[
       errors.push(`AssetIntakeReceipt.summary.${field} must be a non-negative integer.`);
     }
   }
-  if (receipt.summary?.blockedFileGate !== 'pass' && receipt.summary?.blockedFileGate !== 'blocked') {
+  if (
+    receipt.summary?.blockedFileGate !== 'pass' &&
+    receipt.summary?.blockedFileGate !== 'blocked'
+  ) {
     errors.push('AssetIntakeReceipt.summary.blockedFileGate must be pass or blocked.');
   }
   if (receipt.summary?.requiresApproval !== true) {
@@ -674,19 +746,27 @@ export function validateAssetIntakeReceipt(receipt: AssetIntakeReceipt): string[
     if (!file.id) errors.push('AssetIntakeReceipt file entry id is required.');
     if (!file.name) errors.push('AssetIntakeReceipt file entry name is required.');
     if (hasAbsolutePath(file.relativePath)) {
-      errors.push(`AssetIntakeReceipt file(${file.id || 'unknown'}).relativePath must be repo-relative/redacted, not an absolute path.`);
+      errors.push(
+        `AssetIntakeReceipt file(${file.id || 'unknown'}).relativePath must be repo-relative/redacted, not an absolute path.`
+      );
     }
     if (!isOneOf(ASSET_SHARD_KINDS, String(file.kind))) {
-      errors.push(`AssetIntakeReceipt file(${file.id || 'unknown'}).kind is unsupported: ${String(file.kind)}.`);
+      errors.push(
+        `AssetIntakeReceipt file(${file.id || 'unknown'}).kind is unsupported: ${String(file.kind)}.`
+      );
     }
     if (!isNonNegativeInteger(file.sizeBytes)) {
-      errors.push(`AssetIntakeReceipt file(${file.id || 'unknown'}).sizeBytes must be a non-negative integer.`);
+      errors.push(
+        `AssetIntakeReceipt file(${file.id || 'unknown'}).sizeBytes must be a non-negative integer.`
+      );
     }
     if (!file.hashSha256) {
       errors.push(`AssetIntakeReceipt file(${file.id || 'unknown'}).hashSha256 is required.`);
     }
     if (file.blocked && !file.blockReason) {
-      errors.push(`AssetIntakeReceipt file(${file.id || 'unknown'}).blockReason is required when blocked.`);
+      errors.push(
+        `AssetIntakeReceipt file(${file.id || 'unknown'}).blockReason is required when blocked.`
+      );
     }
   }
 
@@ -710,7 +790,9 @@ export function validateAssetConversionReceipt(receipt: AssetConversionReceipt):
     errors.push('AssetConversionReceipt.generatedAt must be a valid ISO-8601 timestamp.');
   }
   if (!isOneOf(ASSET_CONVERSION_KINDS, String(receipt.conversionKind))) {
-    errors.push(`AssetConversionReceipt.conversionKind is unsupported: ${String(receipt.conversionKind)}.`);
+    errors.push(
+      `AssetConversionReceipt.conversionKind is unsupported: ${String(receipt.conversionKind)}.`
+    );
   }
   if (!receipt.source?.sourceFileId) {
     errors.push('AssetConversionReceipt.source.sourceFileId is required.');
@@ -729,16 +811,22 @@ export function validateAssetConversionReceipt(receipt: AssetConversionReceipt):
     errors.push('AssetConversionReceipt.summary.sourceMutated must be false.');
   }
   if (!isOneOf(ASSET_CONVERSION_STATUSES, String(receipt.summary?.status))) {
-    errors.push(`AssetConversionReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`);
+    errors.push(
+      `AssetConversionReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`
+    );
   }
 
   // Output validation — reject absolute paths, require hash for completed
   if (receipt.summary?.status === 'completed') {
     if (!receipt.output?.outputFileName) {
-      errors.push('AssetConversionReceipt.output.outputFileName is required for completed conversions.');
+      errors.push(
+        'AssetConversionReceipt.output.outputFileName is required for completed conversions.'
+      );
     }
     if (!receipt.output?.outputFileHash) {
-      errors.push('AssetConversionReceipt.output.outputFileHash is required for completed conversions.');
+      errors.push(
+        'AssetConversionReceipt.output.outputFileHash is required for completed conversions.'
+      );
     }
     pushPathErrors('AssetConversionReceipt.output.outputPath', receipt.output?.outputPath, errors);
   }
@@ -768,7 +856,9 @@ export function validatePreviewShardSourceReceipt(receipt: PreviewShardSourceRec
   }
 
   if (!isOneOf(PREVIEW_SOURCE_STATUSES, String(receipt.summary?.status))) {
-    errors.push(`PreviewShardSourceReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`);
+    errors.push(
+      `PreviewShardSourceReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`
+    );
   }
   if (!isNonNegativeInteger(Number(receipt.summary?.assetCount))) {
     errors.push('PreviewShardSourceReceipt.summary.assetCount must be a non-negative integer.');
@@ -781,8 +871,16 @@ export function validatePreviewShardSourceReceipt(receipt: PreviewShardSourceRec
   }
 
   // Path validation — reject absolute paths in output
-  pushPathErrors('PreviewShardSourceReceipt.output.previewSourcePath', receipt.output?.previewSourcePath, errors);
-  pushPathErrors('PreviewShardSourceReceipt.output.privateReceiptPath', receipt.output?.privateReceiptPath, errors);
+  pushPathErrors(
+    'PreviewShardSourceReceipt.output.previewSourcePath',
+    receipt.output?.previewSourcePath,
+    errors
+  );
+  pushPathErrors(
+    'PreviewShardSourceReceipt.output.privateReceiptPath',
+    receipt.output?.privateReceiptPath,
+    errors
+  );
 
   if (receipt.rollback?.sourceAssetsMutated !== false) {
     errors.push('PreviewShardSourceReceipt.rollback.sourceAssetsMutated must be false.');
@@ -797,16 +895,22 @@ export function validateAssetShardRollbackContract(contract: AssetShardRollbackC
   if (!contract.workflowId) errors.push('AssetShardRollbackContract.workflowId is required.');
 
   if (!contract.rollbackPoints || contract.rollbackPoints.length === 0) {
-    errors.push('AssetShardRollbackContract.rollbackPoints must contain at least one rollback point.');
+    errors.push(
+      'AssetShardRollbackContract.rollbackPoints must contain at least one rollback point.'
+    );
   }
 
   for (const point of contract.rollbackPoints ?? []) {
     if (!point.step) errors.push('AssetShardRollbackContract rollback point step is required.');
     if (point.sourceAssetsMutated !== false) {
-      errors.push(`AssetShardRollbackContract rollback point(${point.step || 'unknown'}).sourceAssetsMutated must be false.`);
+      errors.push(
+        `AssetShardRollbackContract rollback point(${point.step || 'unknown'}).sourceAssetsMutated must be false.`
+      );
     }
     if (!point.replayKey) {
-      errors.push(`AssetShardRollbackContract rollback point(${point.step || 'unknown'}).replayKey is required.`);
+      errors.push(
+        `AssetShardRollbackContract rollback point(${point.step || 'unknown'}).replayKey is required.`
+      );
     }
   }
 
@@ -876,8 +980,12 @@ export function validateAssetShardFullReceiptChain(chain: {
 
   // Cross-receipt consistency checks
   if (chain.intake && chain.workflow) {
-    if (chain.intake.source.assetFolderFingerprint !== chain.workflow.source.assetFolderFingerprint) {
-      errors.push('AssetShardFullReceiptChain: intake and workflow source fingerprints must match.');
+    if (
+      chain.intake.source.assetFolderFingerprint !== chain.workflow.source.assetFolderFingerprint
+    ) {
+      errors.push(
+        'AssetShardFullReceiptChain: intake and workflow source fingerprints must match.'
+      );
     }
   }
   if (chain.preview && chain.workflow) {
@@ -893,15 +1001,21 @@ export function cloneAssetIntakeReceipt(receipt: AssetIntakeReceipt): AssetIntak
   return JSON.parse(JSON.stringify(receipt)) as AssetIntakeReceipt;
 }
 
-export function cloneAssetConversionReceipt(receipt: AssetConversionReceipt): AssetConversionReceipt {
+export function cloneAssetConversionReceipt(
+  receipt: AssetConversionReceipt
+): AssetConversionReceipt {
   return JSON.parse(JSON.stringify(receipt)) as AssetConversionReceipt;
 }
 
-export function clonePreviewShardSourceReceipt(receipt: PreviewShardSourceReceipt): PreviewShardSourceReceipt {
+export function clonePreviewShardSourceReceipt(
+  receipt: PreviewShardSourceReceipt
+): PreviewShardSourceReceipt {
   return JSON.parse(JSON.stringify(receipt)) as PreviewShardSourceReceipt;
 }
 
-export function cloneAssetShardRollbackContract(contract: AssetShardRollbackContract): AssetShardRollbackContract {
+export function cloneAssetShardRollbackContract(
+  contract: AssetShardRollbackContract
+): AssetShardRollbackContract {
   return JSON.parse(JSON.stringify(contract)) as AssetShardRollbackContract;
 }
 

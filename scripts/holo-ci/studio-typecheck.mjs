@@ -18,9 +18,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 
-const ROOT = path.resolve(
-  process.env.HOLO_ROOT || process.cwd()
-);
+const ROOT = path.resolve(process.env.HOLO_ROOT || process.cwd());
 const TSCONFIG = path.join(ROOT, 'packages', 'studio', 'tsconfig.json');
 const TAG = '[studio-typecheck]';
 
@@ -32,10 +30,12 @@ if (!fs.existsSync(TSCONFIG)) {
 console.log(`\n${TAG} tsc --noEmit -p packages/studio/tsconfig.json`);
 
 try {
-  const result = execSync(
-    `npx tsc --noEmit -p "${TSCONFIG}"`,
-    { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 300_000 }
-  );
+  const result = execSync(`npx tsc --noEmit -p "${TSCONFIG}"`, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 300_000,
+  });
   if (result && result.trim()) {
     process.stdout.write(result);
   }

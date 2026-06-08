@@ -5,7 +5,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { logAggregatorHandler } from '../LogAggregatorTrait';
 
 const makeNode = () => ({
-  id: 'n1', traits: new Set<string>(), emit: vi.fn(),
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
   __logAggregatorState: undefined as unknown,
 });
 const makeCtx = (node: ReturnType<typeof makeNode>) => ({
@@ -33,9 +35,17 @@ describe('LogAggregatorTrait', () => {
   it('log:write stores entry above min_level', () => {
     const node = makeNode();
     logAggregatorHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    logAggregatorHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'log:write', level: 'error', message: 'Crash!', source: 'api',
-    } as never);
+    logAggregatorHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'log:write',
+        level: 'error',
+        message: 'Crash!',
+        source: 'api',
+      } as never
+    );
     const state = node.__logAggregatorState as { entries: { level: string }[] };
     expect(state.entries.length).toBe(1);
     expect(state.entries[0].level).toBe('error');
@@ -44,9 +54,17 @@ describe('LogAggregatorTrait', () => {
   it('log:write ignores entries below min_level', () => {
     const node = makeNode();
     logAggregatorHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    logAggregatorHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'log:write', level: 'debug', message: 'verbose', source: 'app',
-    } as never);
+    logAggregatorHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'log:write',
+        level: 'debug',
+        message: 'verbose',
+        source: 'app',
+      } as never
+    );
     const state = node.__logAggregatorState as { entries: unknown[] };
     expect(state.entries.length).toBe(0);
   });
@@ -54,30 +72,68 @@ describe('LogAggregatorTrait', () => {
   it('log:query emits log:result with filtered entries', () => {
     const node = makeNode();
     logAggregatorHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    logAggregatorHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'log:write', level: 'warn', message: 'Slow query', source: 'db',
-    } as never);
-    logAggregatorHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'log:write', level: 'error', message: 'Crash', source: 'api',
-    } as never);
+    logAggregatorHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'log:write',
+        level: 'warn',
+        message: 'Slow query',
+        source: 'db',
+      } as never
+    );
+    logAggregatorHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'log:write',
+        level: 'error',
+        message: 'Crash',
+        source: 'api',
+      } as never
+    );
     node.emit.mockClear();
-    logAggregatorHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'log:query', level: 'warn',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('log:result', expect.objectContaining({
-      count: 1,
-    }));
+    logAggregatorHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'log:query',
+        level: 'warn',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'log:result',
+      expect.objectContaining({
+        count: 1,
+      })
+    );
   });
 
   it('log:flush clears entries', () => {
     const node = makeNode();
     logAggregatorHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    logAggregatorHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'log:write', level: 'info', message: 'Hello', source: 'app',
-    } as never);
-    logAggregatorHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'log:flush',
-    } as never);
+    logAggregatorHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'log:write',
+        level: 'info',
+        message: 'Hello',
+        source: 'app',
+      } as never
+    );
+    logAggregatorHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'log:flush',
+      } as never
+    );
     const state = node.__logAggregatorState as { entries: unknown[] };
     expect(state.entries.length).toBe(0);
   });

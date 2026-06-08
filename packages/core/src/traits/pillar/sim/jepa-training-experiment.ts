@@ -73,17 +73,17 @@ import type { HSPlusNode, TraitContext, TraitEvent } from '../../TraitTypes.js';
 // Hyperparameters
 // ─────────────────────────────────────────────────────────────────────────────
 
-const LATENT_DIM = 32;          // smaller than the 128 default → fast, still real
+const LATENT_DIM = 32; // smaller than the 128 default → fast, still real
 const COND_DIM = 4;
 const STEPS = 1500;
 const LR = 5e-3;
-const BATCH = 16;               // minibatch — average loss+grad over B samples per
-                                // step. Single-sample SGD on a regulariser-heavy
-                                // objective with a fresh random target each step is
-                                // pure noise floor and does not reflect the expected
-                                // objective; a minibatch is the standard, correct
-                                // way to measure convergence.
-const EVAL_BATCH = 256;         // fixed held-out batch for the clean convergence signal
+const BATCH = 16; // minibatch — average loss+grad over B samples per
+// step. Single-sample SGD on a regulariser-heavy
+// objective with a fresh random target each step is
+// pure noise floor and does not reflect the expected
+// objective; a minibatch is the standard, correct
+// way to measure convergence.
+const EVAL_BATCH = 256; // fixed held-out batch for the clean convergence signal
 const SIGREG_WEIGHT = 0.05;
 const SIGREG_PROJECTIONS = 64;
 const SIGREG_SIGMA = 1.0;
@@ -92,7 +92,7 @@ const CONSERVATION_MARGIN = 0.05;
 const SYMMETRY_WEIGHT = 0.02;
 const SYMMETRY_DELTA = 0.1;
 const CONSERVATION_AXIS = 'energy';
-const TAIL_WINDOW = 200;        // window over which we check non-increase
+const TAIL_WINDOW = 200; // window over which we check non-increase
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Deterministic RNG (reproducible run)
@@ -105,7 +105,7 @@ function makeRng(seed: number): () => number {
     return s / 0x100000000;
   };
 }
-const rng = makeRng(0x5EED1234);
+const rng = makeRng(0x5eed1234);
 function gauss(): number {
   // Box–Muller
   const u1 = Math.max(1e-12, rng());
@@ -148,7 +148,10 @@ function sampleConditioning(): Float32Array {
   // mirrors PillarJEPA.sliceToConditioning shape: unit-ish conditioning
   const cond = new Float32Array(COND_DIM);
   let n = 0;
-  for (let i = 0; i < COND_DIM; i++) { cond[i] = gauss(); n += cond[i] * cond[i]; }
+  for (let i = 0; i < COND_DIM; i++) {
+    cond[i] = gauss();
+    n += cond[i] * cond[i];
+  }
   n = Math.sqrt(n) || 1;
   for (let i = 0; i < COND_DIM; i++) cond[i] /= n;
   return cond;
@@ -161,7 +164,10 @@ function sampleConditioning(): Float32Array {
 
 function mseLoss(a: Float32Array, b: Float32Array): number {
   let s = 0;
-  for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; }
+  for (let i = 0; i < a.length; i++) {
+    const d = a[i] - b[i];
+    s += d * d;
+  }
   return s / a.length;
 }
 
@@ -208,7 +214,10 @@ function computeSymmetryLoss(conditioning: Float32Array, delta: number, step: nu
   };
   const perturbation = new Float32Array(conditioning.length);
   let pNorm = 0;
-  for (let i = 0; i < perturbation.length; i++) { perturbation[i] = lcg(); pNorm += perturbation[i] * perturbation[i]; }
+  for (let i = 0; i < perturbation.length; i++) {
+    perturbation[i] = lcg();
+    pNorm += perturbation[i] * perturbation[i];
+  }
   pNorm = Math.sqrt(pNorm) || 1;
   const scale = delta / pNorm;
   let sum = 0;
@@ -242,7 +251,10 @@ function gradSIGReg(z: Float32Array, numProjections: number, sigma: number): Flo
   const g = new Float32Array(dim);
   const sigmaSquared = sigma * sigma;
   let seed = 0xcafe1234;
-  const lcg = (): number => { seed = Math.imul(seed, 1664525) + 1013904223; return ((seed >>> 0) / 0x100000000) * 2 - 1; };
+  const lcg = (): number => {
+    seed = Math.imul(seed, 1664525) + 1013904223;
+    return ((seed >>> 0) / 0x100000000) * 2 - 1;
+  };
   const gaussianPair = (): [number, number] => {
     const u1 = Math.max(1e-12, (lcg() + 1) / 2);
     const u2 = (lcg() + 1) / 2;
@@ -256,12 +268,16 @@ function gradSIGReg(z: Float32Array, numProjections: number, sigma: number): Flo
     const scale = 1 / Math.sqrt(dim);
     for (let i = 0; i < dim; i += 2) {
       const [g1, g2] = gaussianPair();
-      rp[i] = g1 * scale; dot += z[i] * rp[i];
-      if (i + 1 < dim) { rp[i + 1] = g2 * scale; dot += z[i + 1] * rp[i + 1]; }
+      rp[i] = g1 * scale;
+      dot += z[i] * rp[i];
+      if (i + 1 < dim) {
+        rp[i + 1] = g2 * scale;
+        dot += z[i + 1] * rp[i + 1];
+      }
     }
     const q = (dot * dot) / sigmaSquared;
     if (q > 1e-12) {
-      const dKdq = 1 - 1 / q;            // d/dq [q - 1 - log q]
+      const dKdq = 1 - 1 / q; // d/dq [q - 1 - log q]
       const dqddot = (2 * dot) / sigmaSquared;
       const coeff = (dKdq * dqddot) / numProjections;
       for (let i = 0; i < dim; i++) g[i] += coeff * rp[i];
@@ -270,15 +286,24 @@ function gradSIGReg(z: Float32Array, numProjections: number, sigma: number): Flo
   return g;
 }
 
-function gradConservation(z: Float32Array, pos1: number, margin: number, axisId: string): Float32Array {
+function gradConservation(
+  z: Float32Array,
+  pos1: number,
+  margin: number,
+  axisId: string
+): Float32Array {
   // L_c = v², v = max(0, thr - score), score = (z·u)/||z||, thr = pos1 - margin
   // dL_c/dz = 2v · (-1) · d(score)/dz   when v>0 else 0
   // d(score)/dz = u/||z|| - (z·u) z / ||z||³
   const dim = z.length;
   const g = new Float32Array(dim);
   const u = axisIdToDirection(axisId, dim);
-  let dot = 0, nrm2 = 0;
-  for (let i = 0; i < dim; i++) { dot += z[i] * u[i]; nrm2 += z[i] * z[i]; }
+  let dot = 0,
+    nrm2 = 0;
+  for (let i = 0; i < dim; i++) {
+    dot += z[i] * u[i];
+    nrm2 += z[i] * z[i];
+  }
   const nrm = Math.sqrt(nrm2) || 1;
   const score = dot / nrm;
   const thr = pos1 - margin;
@@ -288,7 +313,7 @@ function gradConservation(z: Float32Array, pos1: number, margin: number, axisId:
   const nrm3 = nrm * nrm * nrm;
   for (let i = 0; i < dim; i++) {
     const dScore = u[i] / nrm - (dot * z[i]) / nrm3;
-    g[i] = dLdv * (-1) * dScore;
+    g[i] = dLdv * -1 * dScore;
   }
   return g;
 }
@@ -303,7 +328,12 @@ function gradConservation(z: Float32Array, pos1: number, margin: number, axisId:
 //  W2: latent×latent).
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface Grads { W1: Float32Array; b1: Float32Array; W2: Float32Array; b2: Float32Array; }
+interface Grads {
+  W1: Float32Array;
+  b1: Float32Array;
+  W2: Float32Array;
+  b2: Float32Array;
+}
 
 function backprop(
   w: JEPAPredictorWeights,
@@ -311,16 +341,20 @@ function backprop(
   cond: Float32Array,
   dLdOut: Float32Array
 ): Grads {
-  const latent = LATENT_DIM, inputDim = LATENT_DIM + COND_DIM;
+  const latent = LATENT_DIM,
+    inputDim = LATENT_DIM + COND_DIM;
   const x = new Float32Array(inputDim);
-  x.set(context, 0); x.set(cond, latent);
+  x.set(context, 0);
+  x.set(cond, latent);
   // forward (recompute hidden activations)
-  const a = new Float32Array(latent);   // pre-ReLU
-  const h = new Float32Array(latent);   // post-ReLU
+  const a = new Float32Array(latent); // pre-ReLU
+  const h = new Float32Array(latent); // post-ReLU
   for (let i = 0; i < latent; i++) {
-    let acc = w.b1[i]; const base = i * inputDim;
+    let acc = w.b1[i];
+    const base = i * inputDim;
     for (let k = 0; k < inputDim; k++) acc += w.W1[base + k] * x[k];
-    a[i] = acc; h[i] = acc > 0 ? acc : 0;
+    a[i] = acc;
+    h[i] = acc > 0 ? acc : 0;
   }
   const gW2 = new Float32Array(latent * latent);
   const gb2 = new Float32Array(latent);
@@ -354,22 +388,33 @@ class Adam {
   private m: Record<string, Float32Array> = {};
   private v: Record<string, Float32Array> = {};
   private t = 0;
-  constructor(private lr: number, private b1 = 0.9, private b2 = 0.999, private eps = 1e-8) {}
+  constructor(
+    private lr: number,
+    private b1 = 0.9,
+    private b2 = 0.999,
+    private eps = 1e-8
+  ) {}
   step(w: JEPAPredictorWeights, g: Grads): JEPAPredictorWeights {
     this.t++;
     const out = {} as JEPAPredictorWeights;
     for (const key of ['W1', 'b1', 'W2', 'b2'] as const) {
-      const wv = w[key], gv = g[key];
-      if (!this.m[key]) { this.m[key] = new Float32Array(wv.length); this.v[key] = new Float32Array(wv.length); }
-      const m = this.m[key], v = this.v[key];
+      const wv = w[key],
+        gv = g[key];
+      if (!this.m[key]) {
+        this.m[key] = new Float32Array(wv.length);
+        this.v[key] = new Float32Array(wv.length);
+      }
+      const m = this.m[key],
+        v = this.v[key];
       const nw = new Float32Array(wv.length);
       const bc1 = 1 - Math.pow(this.b1, this.t);
       const bc2 = 1 - Math.pow(this.b2, this.t);
       for (let i = 0; i < wv.length; i++) {
         m[i] = this.b1 * m[i] + (1 - this.b1) * gv[i];
         v[i] = this.b2 * v[i] + (1 - this.b2) * gv[i] * gv[i];
-        const mhat = m[i] / bc1, vhat = v[i] / bc2;
-        nw[i] = wv[i] - this.lr * mhat / (Math.sqrt(vhat) + this.eps);
+        const mhat = m[i] / bc1,
+          vhat = v[i] / bc2;
+        nw[i] = wv[i] - (this.lr * mhat) / (Math.sqrt(vhat) + this.eps);
       }
       out[key] = nw;
     }
@@ -388,8 +433,14 @@ function makePillarRig(config: PillarJEPAConfig) {
     emit(event: string, payload?: unknown) {
       if (event === 'pillarjepa:loss') lastLoss = payload as PillarJEPALoss;
     },
-    getState: () => ({}), setState: () => {}, getScaleMultiplier: () => 1, setScaleContext: () => {},
-    vr: null, physics: null, audio: null, haptics: null,
+    getState: () => ({}),
+    setState: () => {},
+    getScaleMultiplier: () => 1,
+    setScaleContext: () => {},
+    vr: null,
+    physics: null,
+    audio: null,
+    haptics: null,
   } as unknown as TraitContext;
   pillarJepaHandler.onAttach?.(node, config, ctx);
   return { node, ctx, getLoss: () => lastLoss };
@@ -401,28 +452,45 @@ function makePillarRig(config: PillarJEPAConfig) {
 
 interface StepLog {
   step: number;
-  totalLoss: number;             // minibatch-mean training loss
+  totalLoss: number; // minibatch-mean training loss
   mse: number;
   sigreg: number;
   conservation: number;
   symmetry: number;
-  kappa: number;                 // temporal convergence coordinate
+  kappa: number; // temporal convergence coordinate
   effConservationWeight: number;
-  handlerTotalLoss: number;      // from the REAL pillarJepaHandler (synced weights)
-  evalLoss: number;              // loss on the FIXED held-out batch (NaN when not sampled)
+  handlerTotalLoss: number; // from the REAL pillarJepaHandler (synced weights)
+  evalLoss: number; // loss on the FIXED held-out batch (NaN when not sampled)
 }
 
-interface Sample { context: Float32Array; target: Float32Array; cond: Float32Array; }
+interface Sample {
+  context: Float32Array;
+  target: Float32Array;
+  cond: Float32Array;
+}
 
 /** Evaluate mean L_total over a fixed held-out batch with the current weights. */
-function evalBatch(predictor: JEPAPredictor, batch: Sample[], effConsW: number, pos1: number): { total: number; mse: number; sig: number; cons: number } {
-  let tot = 0, mse = 0, sig = 0, cons = 0;
+function evalBatch(
+  predictor: JEPAPredictor,
+  batch: Sample[],
+  effConsW: number,
+  pos1: number
+): { total: number; mse: number; sig: number; cons: number } {
+  let tot = 0,
+    mse = 0,
+    sig = 0,
+    cons = 0;
   for (const s of batch) {
     const { predicted } = predictor.forward(s.context, s.cond);
     const m = mseLoss(predicted, s.target);
     const g = computeSIGReg(predicted, SIGREG_PROJECTIONS, SIGREG_SIGMA);
-    const c = effConsW > 0 ? computeConservationLoss(predicted, pos1, CONSERVATION_MARGIN, CONSERVATION_AXIS) : 0;
-    mse += m; sig += g; cons += c;
+    const c =
+      effConsW > 0
+        ? computeConservationLoss(predicted, pos1, CONSERVATION_MARGIN, CONSERVATION_AXIS)
+        : 0;
+    mse += m;
+    sig += g;
+    cons += c;
     tot += m + SIGREG_WEIGHT * g + effConsW * c;
   }
   const n = batch.length;
@@ -433,11 +501,13 @@ function main(): void {
   const predictor = new JEPAPredictor({ latentDim: LATENT_DIM, condDim: COND_DIM });
 
   const pillarConfig: PillarJEPAConfig = {
-    latentDim: LATENT_DIM, condDim: COND_DIM,
+    latentDim: LATENT_DIM,
+    condDim: COND_DIM,
     sigregWeight: SIGREG_WEIGHT,
     conservationWeight: CONSERVATION_WEIGHT,
     conservationMargin: CONSERVATION_MARGIN,
-    symmetryWeight: SYMMETRY_WEIGHT, symmetryDelta: SYMMETRY_DELTA,
+    symmetryWeight: SYMMETRY_WEIGHT,
+    symmetryDelta: SYMMETRY_DELTA,
     embeddingModel: 'jepa-context-encoder',
     emitToGrpo: false,
     physicsPillarId: 'physics_conservation',
@@ -460,9 +530,12 @@ function main(): void {
   // Fixed held-out eval batch (κ=0 weighting → full objective) — the clean
   // convergence signal that is NOT corrupted by per-step sampling noise.
   const evalSet: Sample[] = Array.from({ length: EVAL_BATCH }, () => ({
-    context: sampleContext(), target: sampleTarget(), cond: sampleConditioning(),
+    context: sampleContext(),
+    target: sampleTarget(),
+    cond: sampleConditioning(),
   }));
-  let firstEvalLoss = NaN, lastEvalLoss = NaN;
+  let firstEvalLoss = NaN,
+    lastEvalLoss = NaN;
 
   for (let step = 1; step <= STEPS; step++) {
     // Temporal convergence coordinate κ rises with training progress (a transient
@@ -474,10 +547,15 @@ function main(): void {
     const w = predictor.getWeights() as JEPAPredictorWeights;
 
     // ── Minibatch: accumulate mean loss + mean gradient over BATCH samples ───
-    let Lmse = 0, Lsig = 0, Lcons = 0, Lsym = 0;
+    let Lmse = 0,
+      Lsig = 0,
+      Lcons = 0,
+      Lsym = 0;
     const accG: Grads = {
-      W1: new Float32Array(w.W1.length), b1: new Float32Array(w.b1.length),
-      W2: new Float32Array(w.W2.length), b2: new Float32Array(w.b2.length),
+      W1: new Float32Array(w.W1.length),
+      b1: new Float32Array(w.b1.length),
+      W2: new Float32Array(w.W2.length),
+      b2: new Float32Array(w.b2.length),
     };
     let lastContext!: Float32Array, lastCond!: Float32Array, lastTarget!: Float32Array;
 
@@ -485,7 +563,9 @@ function main(): void {
       const context = sampleContext();
       const target = sampleTarget();
       const cond = sampleConditioning();
-      lastContext = context; lastCond = cond; lastTarget = target;
+      lastContext = context;
+      lastCond = cond;
+      lastTarget = target;
 
       // ── Forward through the REAL predictor ─────────────────────────────────
       const { predicted } = predictor.forward(context, cond);
@@ -493,17 +573,19 @@ function main(): void {
       // ── Loss components (REAL functions) ───────────────────────────────────
       Lmse += mseLoss(predicted, target);
       Lsig += computeSIGReg(predicted, SIGREG_PROJECTIONS, SIGREG_SIGMA);
-      Lcons += effConsW > 0
-        ? computeConservationLoss(predicted, POS1, CONSERVATION_MARGIN, CONSERVATION_AXIS) // IMPORTED
-        : 0;
+      Lcons +=
+        effConsW > 0
+          ? computeConservationLoss(predicted, POS1, CONSERVATION_MARGIN, CONSERVATION_AXIS) // IMPORTED
+          : 0;
       Lsym += computeSymmetryLoss(cond, SYMMETRY_DELTA, step * BATCH + b);
 
       // ── Gradient dL/dẑ (MSE + SIGReg + gated conservation) ─────────────────
       const dMse = gradMse(predicted, target);
       const dSig = gradSIGReg(predicted, SIGREG_PROJECTIONS, SIGREG_SIGMA);
-      const dCons = effConsW > 0
-        ? gradConservation(predicted, POS1, CONSERVATION_MARGIN, CONSERVATION_AXIS)
-        : new Float32Array(LATENT_DIM);
+      const dCons =
+        effConsW > 0
+          ? gradConservation(predicted, POS1, CONSERVATION_MARGIN, CONSERVATION_AXIS)
+          : new Float32Array(LATENT_DIM);
       const dLdOut = new Float32Array(LATENT_DIM);
       for (let i = 0; i < LATENT_DIM; i++) {
         dLdOut[i] = dMse[i] + SIGREG_WEIGHT * dSig[i] + effConsW * dCons[i];
@@ -516,20 +598,34 @@ function main(): void {
       for (let i = 0; i < accG.b2.length; i++) accG.b2[i] += g.b2[i];
     }
     // mean over batch
-    Lmse /= BATCH; Lsig /= BATCH; Lcons /= BATCH; Lsym /= BATCH;
+    Lmse /= BATCH;
+    Lsig /= BATCH;
+    Lcons /= BATCH;
+    Lsym /= BATCH;
     for (let i = 0; i < accG.W1.length; i++) accG.W1[i] /= BATCH;
     for (let i = 0; i < accG.b1.length; i++) accG.b1[i] /= BATCH;
     for (let i = 0; i < accG.W2.length; i++) accG.W2[i] /= BATCH;
     for (let i = 0; i < accG.b2.length; i++) accG.b2[i] /= BATCH;
 
-    const totalLoss =
-      Lmse + SIGREG_WEIGHT * Lsig + effConsW * Lcons + SYMMETRY_WEIGHT * Lsym;
+    const totalLoss = Lmse + SIGREG_WEIGHT * Lsig + effConsW * Lcons + SYMMETRY_WEIGHT * Lsym;
 
-    if (!Number.isFinite(totalLoss)) { sawNaN = true; nanStep = step; break; }
+    if (!Number.isFinite(totalLoss)) {
+      sawNaN = true;
+      nanStep = step;
+      break;
+    }
 
     // ── One-time gradcheck on a single sample (central finite diff vs analytic)
     if (step === 5) {
-      gradCheckRelErr = gradCheck(predictor, lastContext, lastCond, lastTarget, step, effConsW, POS1);
+      gradCheckRelErr = gradCheck(
+        predictor,
+        lastContext,
+        lastCond,
+        lastTarget,
+        step,
+        effConsW,
+        POS1
+      );
     }
 
     // ── Adam update → push into the REAL predictor ──────────────────────────
@@ -545,7 +641,9 @@ function main(): void {
       if (!Number.isFinite(firstEvalLoss)) firstEvalLoss = evalLoss;
       lastEvalLoss = evalLoss;
     }
-    const context = lastContext, cond = lastCond, target = lastTarget;
+    const context = lastContext,
+      cond = lastCond,
+      target = lastTarget;
 
     // ── CROSS-CHECK against the REAL pillarJepaHandler with synced weights ───
     // Sync weights into the handler's internal JEPAObjective predictor, then
@@ -555,12 +653,17 @@ function main(): void {
     let handlerTotal = NaN;
     if (step % 25 === 0 || step <= 5 || step === STEPS) {
       pillarJepaHandler.onEvent?.(rig.node, pillarConfig, rig.ctx, {
-        type: 'pillarjepa:update_weights', W1: newW.W1, b1: newW.b1, W2: newW.W2, b2: newW.b2,
+        type: 'pillarjepa:update_weights',
+        W1: newW.W1,
+        b1: newW.b1,
+        W2: newW.W2,
+        b2: newW.b2,
       } as TraitEvent);
       // re-derive our own total on the NEW weights for a matched comparison
       const { predicted: zNew } = predictor.forward(context, cond);
       const ourNewTotal =
-        mseLoss(zNew, target) + SIGREG_WEIGHT * computeSIGReg(zNew, SIGREG_PROJECTIONS, SIGREG_SIGMA);
+        mseLoss(zNew, target) +
+        SIGREG_WEIGHT * computeSIGReg(zNew, SIGREG_PROJECTIONS, SIGREG_SIGMA);
       pillarJepaHandler.onEvent?.(rig.node, pillarConfig, rig.ctx, {
         type: 'pillarjepa:step',
         context: 'training-step-' + step,
@@ -569,7 +672,14 @@ function main(): void {
         // the JEPA core (MSE+SIGReg) the handler computes vs ours — the handler's
         // context encoder produces its OWN context embedding, so MSE differs;
         // we report the gap honestly rather than claim bit-identity.
-        temporal_slice: { axis_1_id: 'steady_state', axis_2_id: 'convergence', pos_1: 1, pos_2: 1, pillar_id: 'temporal_dynamics', pillar_domain: 'steady_state' },
+        temporal_slice: {
+          axis_1_id: 'steady_state',
+          axis_2_id: 'convergence',
+          pos_1: 1,
+          pos_2: 1,
+          pillar_id: 'temporal_dynamics',
+          pillar_domain: 'steady_state',
+        },
       } as TraitEvent);
       const hl = rig.getLoss();
       if (hl) {
@@ -579,8 +689,16 @@ function main(): void {
     }
 
     log.push({
-      step, totalLoss, mse: Lmse, sigreg: Lsig, conservation: Lcons, symmetry: Lsym,
-      kappa, effConservationWeight: effConsW, handlerTotalLoss: handlerTotal, evalLoss,
+      step,
+      totalLoss,
+      mse: Lmse,
+      sigreg: Lsig,
+      conservation: Lcons,
+      symmetry: Lsym,
+      kappa,
+      effConservationWeight: effConsW,
+      handlerTotalLoss: handlerTotal,
+      evalLoss,
     });
   }
 
@@ -595,14 +713,23 @@ function main(): void {
   // smooth the eval curve lightly (3-pt) for the monotone check
   const smoothed: number[] = [];
   for (let i = 0; i < evalVals.length; i++) {
-    const lo = Math.max(0, i - 1), hi = Math.min(evalVals.length - 1, i + 1);
-    let s = 0, n = 0; for (let j = lo; j <= hi; j++) { s += evalVals[j]; n++; }
+    const lo = Math.max(0, i - 1),
+      hi = Math.min(evalVals.length - 1, i + 1);
+    let s = 0,
+      n = 0;
+    for (let j = lo; j <= hi; j++) {
+      s += evalVals[j];
+      n++;
+    }
     smoothed.push(s / n);
   }
   // non-increase check on the smoothed eval curve: allow tiny up-jitter ≤5%
   let monotoneOk = true;
   for (let i = 1; i < smoothed.length; i++) {
-    if (smoothed[i] > smoothed[i - 1] * 1.05) { monotoneOk = false; break; }
+    if (smoothed[i] > smoothed[i - 1] * 1.05) {
+      monotoneOk = false;
+      break;
+    }
   }
   const evalQuarter = Math.max(1, Math.floor(evalVals.length / 4));
   const headMean = evalVals.slice(0, evalQuarter).reduce((a, b) => a + b, 0) / evalQuarter;
@@ -616,7 +743,9 @@ function main(): void {
   // Tail stability = the plateau does not drift UP and its variability is bounded
   // (coefficient of variation < 25%) — i.e. it settled, did not diverge.
   const tailSlice = evalVals.slice(-evalQuarter);
-  const tailSd = Math.sqrt(tailSlice.reduce((a, b) => a + (b - tailMean) ** 2, 0) / tailSlice.length);
+  const tailSd = Math.sqrt(
+    tailSlice.reduce((a, b) => a + (b - tailMean) ** 2, 0) / tailSlice.length
+  );
   const tailCv = tailSd / (tailMean || 1);
   const tailStable = tailCv < 0.25 && tailMean <= headMean * 1.05;
   const converged = reducedSubstantially && tailStable;
@@ -625,8 +754,13 @@ function main(): void {
     log[0].effConservationWeight > log[log.length - 1].effConservationWeight &&
     log[log.length - 1].effConservationWeight < 1e-6;
 
-  const trainsStably = !sawNaN && converged && monotoneOk && gatingMonotone &&
-    Number.isFinite(lastEvalLoss) && lastEvalLoss < firstEvalLoss;
+  const trainsStably =
+    !sawNaN &&
+    converged &&
+    monotoneOk &&
+    gatingMonotone &&
+    Number.isFinite(lastEvalLoss) &&
+    lastEvalLoss < firstEvalLoss;
 
   const date = new Date().toISOString().slice(0, 10);
   const everyN = Math.max(1, Math.floor(log.length / 150)); // ≤150 points in the curve
@@ -649,17 +783,34 @@ function main(): void {
       'packages/core/src/traits/pillar/PillarJEPA.ts :: pillarJepaHandler (driven for cross-check of assembled L_total)',
     ],
     method: {
-      latent_dim: LATENT_DIM, cond_dim: COND_DIM, steps: STEPS,
-      optimizer: 'Adam', lr: LR,
-      gradients: 'EXACT analytic backprop through the real MLP (dL/dẑ closed-form for MSE+SIGReg+conservation; conservation hinge is the IMPORTED function). NOT finite-difference, NOT autodiff dependency.',
+      latent_dim: LATENT_DIM,
+      cond_dim: COND_DIM,
+      steps: STEPS,
+      optimizer: 'Adam',
+      lr: LR,
+      gradients:
+        'EXACT analytic backprop through the real MLP (dL/dẑ closed-form for MSE+SIGReg+conservation; conservation hinge is the IMPORTED function). NOT finite-difference, NOT autodiff dependency.',
       gradcheck_rel_err_at_step5: gradCheckRelErr,
       data: 'conservation-respecting synthetic transitions: target lies near axisIdToDirection("energy") with conserved magnitude ∈[0.85,1.0] + small Gaussian noise.',
       temporal_gating: 'κ rises 0→1 over training; λ_c_eff = λ_c·(1−κ).',
-      handler_crosscheck: 'real pillarJepaHandler driven with synced weights; jepaTotalLoss compared to ours. NOTE: the handler uses its OWN context encoder (EmbeddingTrait deterministic hash of a string), so its MSE term differs from our structured-context MSE by construction — the reported max_handler_delta is that expected gap, not an error.',
+      handler_crosscheck:
+        'real pillarJepaHandler driven with synced weights; jepaTotalLoss compared to ours. NOTE: the handler uses its OWN context encoder (EmbeddingTrait deterministic hash of a string), so its MSE term differs from our structured-context MSE by construction — the reported max_handler_delta is that expected gap, not an error.',
     },
     measured: {
-      initial: { totalLoss: first.totalLoss, mse: first.mse, sigreg: first.sigreg, conservation: first.conservation, symmetry: first.symmetry },
-      final: { totalLoss: last.totalLoss, mse: last.mse, sigreg: last.sigreg, conservation: last.conservation, symmetry: last.symmetry },
+      initial: {
+        totalLoss: first.totalLoss,
+        mse: first.mse,
+        sigreg: first.sigreg,
+        conservation: first.conservation,
+        symmetry: first.symmetry,
+      },
+      final: {
+        totalLoss: last.totalLoss,
+        mse: last.mse,
+        sigreg: last.sigreg,
+        conservation: last.conservation,
+        symmetry: last.symmetry,
+      },
       eval_initial: firstEvalLoss,
       eval_final: lastEvalLoss,
       eval_reduction_factor: firstEvalLoss / lastEvalLoss,
@@ -822,22 +973,33 @@ function gradCheck(
     const tmp: JEPAPredictorWeights = { W1: w.W1, b1: w.b1, W2: wW2, b2: w.b2 };
     const p = new JEPAPredictor({ latentDim: LATENT_DIM, condDim: COND_DIM }, tmp);
     const { predicted } = p.forward(context, cond);
-    return mseLoss(predicted, target)
-      + SIGREG_WEIGHT * computeSIGReg(predicted, SIGREG_PROJECTIONS, SIGREG_SIGMA)
-      + (effConsW > 0 ? effConsW * computeConservationLoss(predicted, pos1, CONSERVATION_MARGIN, CONSERVATION_AXIS) : 0);
+    return (
+      mseLoss(predicted, target) +
+      SIGREG_WEIGHT * computeSIGReg(predicted, SIGREG_PROJECTIONS, SIGREG_SIGMA) +
+      (effConsW > 0
+        ? effConsW *
+          computeConservationLoss(predicted, pos1, CONSERVATION_MARGIN, CONSERVATION_AXIS)
+        : 0)
+    );
   };
 
-  const wp = new Float32Array(w.W2); wp[idx] += eps;
-  const wm = new Float32Array(w.W2); wm[idx] -= eps;
+  const wp = new Float32Array(w.W2);
+  wp[idx] += eps;
+  const wm = new Float32Array(w.W2);
+  wm[idx] -= eps;
   const fd = (lossAt(wp) - lossAt(wm)) / (2 * eps);
 
   // analytic
   const { predicted } = predictor.forward(context, cond);
   const dMse = gradMse(predicted, target);
   const dSig = gradSIGReg(predicted, SIGREG_PROJECTIONS, SIGREG_SIGMA);
-  const dCons = effConsW > 0 ? gradConservation(predicted, pos1, CONSERVATION_MARGIN, CONSERVATION_AXIS) : new Float32Array(LATENT_DIM);
+  const dCons =
+    effConsW > 0
+      ? gradConservation(predicted, pos1, CONSERVATION_MARGIN, CONSERVATION_AXIS)
+      : new Float32Array(LATENT_DIM);
   const dLdOut = new Float32Array(LATENT_DIM);
-  for (let i = 0; i < LATENT_DIM; i++) dLdOut[i] = dMse[i] + SIGREG_WEIGHT * dSig[i] + effConsW * dCons[i];
+  for (let i = 0; i < LATENT_DIM; i++)
+    dLdOut[i] = dMse[i] + SIGREG_WEIGHT * dSig[i] + effConsW * dCons[i];
   const g = backprop(w, context, cond, dLdOut);
   const analytic = g.W2[idx];
 

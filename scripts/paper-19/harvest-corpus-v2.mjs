@@ -27,29 +27,41 @@
  *  10. Write JSONL.
  */
 
-import { readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { dirname, join, resolve, relative } from "node:path";
-import { fileURLToPath } from "node:url";
-import { createHash } from "node:crypto";
+import { readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { dirname, join, resolve, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 import {
   traitPermutation,
   traitRemoval,
   propertyStripping,
   crossDomainTransfer,
-} from "./synth-strategies-v2.mjs";
+} from './synth-strategies-v2.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, "..", "..");
-const FAMILY_MAP_PATH = join(REPO_ROOT, "research", "paper-19", "datasets", "trait-family-map-v1.json");
-const OUT_PATH = join(REPO_ROOT, "research", "paper-19", "datasets", "phase-3-trait-inference-2000row-v2.jsonl");
+const REPO_ROOT = resolve(__dirname, '..', '..');
+const FAMILY_MAP_PATH = join(
+  REPO_ROOT,
+  'research',
+  'paper-19',
+  'datasets',
+  'trait-family-map-v1.json'
+);
+const OUT_PATH = join(
+  REPO_ROOT,
+  'research',
+  'paper-19',
+  'datasets',
+  'phase-3-trait-inference-2000row-v2.jsonl'
+);
 
 const SOURCE_GLOBS = [
-  "benchmarks/scenarios",
-  "benchmarks/cross-compilation",
-  "examples",
-  "bio-demo",
-  "test",
+  'benchmarks/scenarios',
+  'benchmarks/cross-compilation',
+  'examples',
+  'bio-demo',
+  'test',
 ];
 
 const SYNTH_CAP_RATIO = 0.6; // <= 60% synth
@@ -72,7 +84,7 @@ function listFilesRec(dir, exts) {
     }
     if (st.isDirectory()) {
       // Skip node_modules + dist + .git
-      if (name === "node_modules" || name === "dist" || name === ".git") continue;
+      if (name === 'node_modules' || name === 'dist' || name === '.git') continue;
       out.push(...listFilesRec(p, exts));
     } else if (st.isFile()) {
       if (exts.some((e) => name.endsWith(e))) out.push(p);
@@ -82,19 +94,19 @@ function listFilesRec(dir, exts) {
 }
 
 function gatherSources() {
-  const exts = [".holo", ".hsplus"];
+  const exts = ['.holo', '.hsplus'];
   const files = [];
   for (const sub of SOURCE_GLOBS) {
     const dir = join(REPO_ROOT, sub);
     if (existsSync(dir)) files.push(...listFilesRec(dir, exts));
   }
   // Also: packages/*/test/ if any test fixtures live there
-  const pkgs = join(REPO_ROOT, "packages");
+  const pkgs = join(REPO_ROOT, 'packages');
   if (existsSync(pkgs)) {
     for (const pkg of readdirSync(pkgs)) {
-      const testDir = join(pkgs, pkg, "test");
+      const testDir = join(pkgs, pkg, 'test');
       if (existsSync(testDir)) files.push(...listFilesRec(testDir, exts));
-      const fixturesDir = join(pkgs, pkg, "fixtures");
+      const fixturesDir = join(pkgs, pkg, 'fixtures');
       if (existsSync(fixturesDir)) files.push(...listFilesRec(fixturesDir, exts));
     }
   }
@@ -118,7 +130,7 @@ function parseBlocks(src) {
 
   function lineNumberAt(idx) {
     let n = 1;
-    for (let k = 0; k < idx; k++) if (src[k] === "\n") n++;
+    for (let k = 0; k < idx; k++) if (src[k] === '\n') n++;
     return n;
   }
 
@@ -126,13 +138,13 @@ function parseBlocks(src) {
     // Skip whitespace and line comments.
     while (i < N && /\s/.test(src[i])) i++;
     if (i >= N) break;
-    if (src[i] === "/" && src[i + 1] === "/") {
-      while (i < N && src[i] !== "\n") i++;
+    if (src[i] === '/' && src[i + 1] === '/') {
+      while (i < N && src[i] !== '\n') i++;
       continue;
     }
-    if (src[i] === "/" && src[i + 1] === "*") {
+    if (src[i] === '/' && src[i + 1] === '*') {
       i += 2;
-      while (i < N && !(src[i] === "*" && src[i + 1] === "/")) i++;
+      while (i < N && !(src[i] === '*' && src[i + 1] === '/')) i++;
       i += 2;
       continue;
     }
@@ -142,11 +154,11 @@ function parseBlocks(src) {
     let kind = null;
     let kindLen = 0;
     if (/^object[\s\(]/.test(head) || /^object\s/.test(head)) {
-      kind = "object";
-      kindLen = "object".length;
+      kind = 'object';
+      kindLen = 'object'.length;
     } else if (/^template[\s\(]/.test(head) || /^template\s/.test(head)) {
-      kind = "template";
-      kindLen = "template".length;
+      kind = 'template';
+      kindLen = 'template'.length;
     }
 
     if (!kind) {
@@ -165,13 +177,13 @@ function parseBlocks(src) {
     const nameStart = p + 1;
     p++;
     while (p < N && src[p] !== '"') {
-      if (src[p] === "\\") p++;
+      if (src[p] === '\\') p++;
       p++;
     }
     const name = src.slice(nameStart, p);
     p++; // past closing quote
     // Now scan for the opening brace, handling possible inheritance like `using "Base"`.
-    while (p < N && src[p] !== "{") p++;
+    while (p < N && src[p] !== '{') p++;
     if (p >= N) {
       i = blockStart + 1;
       continue;
@@ -181,28 +193,28 @@ function parseBlocks(src) {
     let q = p + 1;
     while (q < N && depth > 0) {
       const ch = src[q];
-      if (ch === "/" && src[q + 1] === "/") {
-        while (q < N && src[q] !== "\n") q++;
+      if (ch === '/' && src[q + 1] === '/') {
+        while (q < N && src[q] !== '\n') q++;
         continue;
       }
-      if (ch === "/" && src[q + 1] === "*") {
+      if (ch === '/' && src[q + 1] === '*') {
         q += 2;
-        while (q < N && !(src[q] === "*" && src[q + 1] === "/")) q++;
+        while (q < N && !(src[q] === '*' && src[q + 1] === '/')) q++;
         q += 2;
         continue;
       }
-      if (ch === '"' || ch === "'" || ch === "`") {
+      if (ch === '"' || ch === "'" || ch === '`') {
         const quote = ch;
         q++;
         while (q < N && src[q] !== quote) {
-          if (src[q] === "\\") q++;
+          if (src[q] === '\\') q++;
           q++;
         }
         q++;
         continue;
       }
-      if (ch === "{") depth++;
-      else if (ch === "}") depth--;
+      if (ch === '{') depth++;
+      else if (ch === '}') depth--;
       q++;
     }
     if (depth !== 0) {
@@ -227,7 +239,7 @@ function parseBlocks(src) {
 
 /** Extract `@trait` tokens from the consecutive trait-only lines after `{`. */
 function extractTraitTokens(snippet) {
-  const lines = snippet.split("\n");
+  const lines = snippet.split('\n');
   // Find header line ending with `{`
   let headerIdx = lines.findIndex((l) => /(?:object|template)\s+"[^"]+"[^{]*\{/.test(l));
   if (headerIdx === -1) return { traits: [], traitArgs: [] };
@@ -236,11 +248,11 @@ function extractTraitTokens(snippet) {
   const traitArgs = [];
   while (i < lines.length) {
     const trimmed = lines[i].trim();
-    if (trimmed === "" || trimmed.startsWith("//")) {
+    if (trimmed === '' || trimmed.startsWith('//')) {
       i++;
       continue;
     }
-    if (!trimmed.startsWith("@")) break;
+    if (!trimmed.startsWith('@')) break;
     // strip args: @physics(mass: 1.0) -> @physics
     const m = /^(@[A-Za-z_][A-Za-z0-9_]*)/.exec(trimmed);
     if (m) {
@@ -253,15 +265,15 @@ function extractTraitTokens(snippet) {
 }
 
 function snippetHash(s) {
-  return createHash("sha256").update(s.trim(), "utf-8").digest("hex");
+  return createHash('sha256').update(s.trim(), 'utf-8').digest('hex');
 }
 
 function splitFromHash(s) {
   const h = snippetHash(s);
   const slot = parseInt(h.slice(0, 8), 16) % 100;
-  if (slot < 70) return "train";
-  if (slot < 85) return "dev";
-  return "test";
+  if (slot < 70) return 'train';
+  if (slot < 85) return 'dev';
+  return 'test';
 }
 
 const NOVEL_COMBO_TEST_TARGET = 300;
@@ -290,7 +302,7 @@ function assignSplits(rows) {
   // Group by combo key.
   const byCombo = new Map();
   for (const r of rows) {
-    const key = r.gold_traits.slice().sort().join("|");
+    const key = r.gold_traits.slice().sort().join('|');
     if (!byCombo.has(key)) byCombo.set(key, []);
     byCombo.get(key).push(r);
   }
@@ -299,11 +311,14 @@ function assignSplits(rows) {
   const heldOut = new Set();
   let heldOutRowCount = 0;
   const orderedCombos = [...byCombo.entries()]
-    .filter(([key]) => key !== "") // never hold out empty-trait combinations
+    .filter(([key]) => key !== '') // never hold out empty-trait combinations
     .sort((a, b) => {
       // Sort by row count ascending (singletons first), then by hash for stability.
       if (a[1].length !== b[1].length) return a[1].length - b[1].length;
-      return createHash("sha256").update(a[0]).digest("hex").localeCompare(createHash("sha256").update(b[0]).digest("hex"));
+      return createHash('sha256')
+        .update(a[0])
+        .digest('hex')
+        .localeCompare(createHash('sha256').update(b[0]).digest('hex'));
     });
   for (const [key, group] of orderedCombos) {
     if (heldOutRowCount >= NOVEL_COMBO_TEST_TARGET) break;
@@ -314,12 +329,12 @@ function assignSplits(rows) {
   // Apply assignments.
   const out = new Map();
   for (const r of rows) {
-    const key = r.gold_traits.slice().sort().join("|");
+    const key = r.gold_traits.slice().sort().join('|');
     if (heldOut.has(key)) {
-      out.set(r, { split: "test", splitRole: "novel-combination-test" });
+      out.set(r, { split: 'test', splitRole: 'novel-combination-test' });
     } else {
       const s = splitFromHash(r.snippet);
-      const role = s === "test" ? "in-distribution-test" : s;
+      const role = s === 'test' ? 'in-distribution-test' : s;
       out.set(r, { split: s, splitRole: role });
     }
   }
@@ -327,7 +342,7 @@ function assignSplits(rows) {
 }
 
 function loadFamilyMap() {
-  const raw = readFileSync(FAMILY_MAP_PATH, "utf-8");
+  const raw = readFileSync(FAMILY_MAP_PATH, 'utf-8');
   return JSON.parse(raw);
 }
 
@@ -335,7 +350,7 @@ function familiesForTraits(goldTraits, familyMap) {
   const fams = new Set();
   const uncategorized = [];
   for (const t of goldTraits) {
-    const bare = t.startsWith("@") ? t.slice(1) : t;
+    const bare = t.startsWith('@') ? t.slice(1) : t;
     const flist = familyMap.trait_to_families[bare];
     if (flist && flist.length > 0) {
       for (const f of flist) fams.add(f);
@@ -347,15 +362,17 @@ function familiesForTraits(goldTraits, familyMap) {
 }
 
 function bucketize(traitCount) {
-  if (traitCount === 0) return "zero";
-  if (traitCount === 1) return "solo";
-  if (traitCount <= 3) return "two-to-three";
-  return "four-plus";
+  if (traitCount === 0) return 'zero';
+  if (traitCount === 1) return 'solo';
+  if (traitCount <= 3) return 'two-to-three';
+  return 'four-plus';
 }
 
 function main() {
   const familyMap = loadFamilyMap();
-  console.log(`Loaded family map: ${familyMap.family_count} families, ${familyMap.distinct_trait_count} distinct traits`);
+  console.log(
+    `Loaded family map: ${familyMap.family_count} families, ${familyMap.distinct_trait_count} distinct traits`
+  );
 
   const sourceFiles = gatherSources();
   console.log(`Source files: ${sourceFiles.length}`);
@@ -367,11 +384,11 @@ function main() {
   for (const fpath of sourceFiles) {
     let src;
     try {
-      src = readFileSync(fpath, "utf-8");
+      src = readFileSync(fpath, 'utf-8');
     } catch {
       continue;
     }
-    const rel = relative(REPO_ROOT, fpath).split("\\").join("/");
+    const rel = relative(REPO_ROOT, fpath).split('\\').join('/');
     const blocks = parseBlocks(src);
     totalBlocks += blocks.length;
     for (const b of blocks) {
@@ -388,7 +405,7 @@ function main() {
         provenance: {
           source: rel,
           lines: `${b.startLine}-${b.endLine}`,
-          kind: "verbatim",
+          kind: 'verbatim',
         },
         metadata: {
           trait_families: families,
@@ -447,15 +464,19 @@ function main() {
   }
 
   const allRows = [...verbatimUnique, ...synthFinal];
-  console.log(`Total before split: ${allRows.length} (verbatim=${verbatimUnique.length}, synth=${synthFinal.length})`);
+  console.log(
+    `Total before split: ${allRows.length} (verbatim=${verbatimUnique.length}, synth=${synthFinal.length})`
+  );
 
   // Phase 5: combination-aware split assignment.
   const splitInfo = assignSplits(allRows);
-  console.log(`Held-out combinations for novel-combo test: ${splitInfo.heldOutCombos} (${splitInfo.heldOutRows} rows)`);
+  console.log(
+    `Held-out combinations for novel-combo test: ${splitInfo.heldOutCombos} (${splitInfo.heldOutRows} rows)`
+  );
 
   const finalRows = allRows.map((r, i) => {
     const a = splitInfo.assignments.get(r);
-    const pad = String(i + 1).padStart(5, "0");
+    const pad = String(i + 1).padStart(5, '0');
     const id = r.id ? r.id : `row-${pad}`;
     const { traitArgs: _ta, ...rest } = r;
     return {
@@ -469,47 +490,55 @@ function main() {
   // Phase 6: novel-combination flag verification (sanity-check for the test set).
   const trainCombos = new Set();
   for (const r of finalRows) {
-    if (r.split === "train") trainCombos.add(r.gold_traits.slice().sort().join("|"));
+    if (r.split === 'train') trainCombos.add(r.gold_traits.slice().sort().join('|'));
   }
   let novelCount = 0;
   for (const r of finalRows) {
-    const key = r.gold_traits.slice().sort().join("|");
-    const isNovel = (r.split === "test" || r.split === "dev") && r.gold_traits.length > 0 && !trainCombos.has(key);
+    const key = r.gold_traits.slice().sort().join('|');
+    const isNovel =
+      (r.split === 'test' || r.split === 'dev') &&
+      r.gold_traits.length > 0 &&
+      !trainCombos.has(key);
     r.metadata.novel_combination = isNovel;
-    if (isNovel && r.split === "test") novelCount++;
+    if (isNovel && r.split === 'test') novelCount++;
   }
 
   // Phase 7: write JSONL.
   mkdirSync(dirname(OUT_PATH), { recursive: true });
-  const lines = finalRows.map((r) => JSON.stringify(r)).join("\n") + "\n";
-  writeFileSync(OUT_PATH, lines, "utf-8");
+  const lines = finalRows.map((r) => JSON.stringify(r)).join('\n') + '\n';
+  writeFileSync(OUT_PATH, lines, 'utf-8');
 
   // Stats
   const splits = { train: 0, dev: 0, test: 0 };
   for (const r of finalRows) splits[r.split]++;
-  const verb = finalRows.filter((r) => r.provenance.kind === "verbatim").length;
-  const synth = finalRows.filter((r) => r.provenance.kind === "synth").length;
+  const verb = finalRows.filter((r) => r.provenance.kind === 'verbatim').length;
+  const synth = finalRows.filter((r) => r.provenance.kind === 'synth').length;
   const synthByStrategy = {};
   for (const r of finalRows) {
-    if (r.provenance.kind === "synth") {
-      const s = r.provenance.synth_strategy || "unknown";
+    if (r.provenance.kind === 'synth') {
+      const s = r.provenance.synth_strategy || 'unknown';
       synthByStrategy[s] = (synthByStrategy[s] || 0) + 1;
     }
   }
   const fams = new Set();
   for (const r of finalRows) for (const f of r.metadata.trait_families) fams.add(f);
   const uncategorized = new Set();
-  for (const r of finalRows) for (const t of (r.metadata.uncategorized_traits || [])) uncategorized.add(t);
+  for (const r of finalRows)
+    for (const t of r.metadata.uncategorized_traits || []) uncategorized.add(t);
 
-  console.log("");
-  console.log(`OK: wrote ${finalRows.length} rows to ${OUT_PATH.replace(REPO_ROOT, ".")}`);
+  console.log('');
+  console.log(`OK: wrote ${finalRows.length} rows to ${OUT_PATH.replace(REPO_ROOT, '.')}`);
   console.log(`  splits: train=${splits.train} dev=${splits.dev} test=${splits.test}`);
-  console.log(`  verbatim=${verb} synth=${synth} (synth ratio=${(synth / finalRows.length * 100).toFixed(1)}%)`);
+  console.log(
+    `  verbatim=${verb} synth=${synth} (synth ratio=${((synth / finalRows.length) * 100).toFixed(1)}%)`
+  );
   console.log(`  synth by strategy: ${JSON.stringify(synthByStrategy)}`);
   console.log(`  trait families covered: ${fams.size}`);
   console.log(`  novel-combination test rows: ${novelCount}`);
   if (uncategorized.size > 0) {
-    console.log(`  uncategorized traits (no family in map): ${uncategorized.size} -> ${[...uncategorized].slice(0, 10).join(", ")}${uncategorized.size > 10 ? "..." : ""}`);
+    console.log(
+      `  uncategorized traits (no family in map): ${uncategorized.size} -> ${[...uncategorized].slice(0, 10).join(', ')}${uncategorized.size > 10 ? '...' : ''}`
+    );
   }
 }
 

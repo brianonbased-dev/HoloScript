@@ -157,7 +157,7 @@ export class MultiphaseNSSolver {
           if (delta > 1e-10) {
             const kappa = this.curvature(i, j, k);
             const [gx, gy, gz] = this.phi.gradient(i, j, k);
-            const scale = this.sigma * kappa * delta * dt / rho;
+            const scale = (this.sigma * kappa * delta * dt) / rho;
             this.vx.set(i, j, k, this.vx.get(i, j, k) + scale * gx);
             this.vy.set(i, j, k, this.vy.get(i, j, k) + scale * gy);
             this.vz.set(i, j, k, this.vz.get(i, j, k) + scale * gz);
@@ -197,9 +197,9 @@ export class MultiphaseNSSolver {
           const u = this.vx.get(i, j, k);
           const v = this.vy.get(i, j, k);
           const w = this.vz.get(i, j, k);
-          const si = Math.max(0.5, Math.min(nx - 1.5, i - u * dt / dx));
-          const sj = Math.max(0.5, Math.min(ny - 1.5, j - v * dt / dy));
-          const sk = Math.max(0.5, Math.min(nz - 1.5, k - w * dt / dz));
+          const si = Math.max(0.5, Math.min(nx - 1.5, i - (u * dt) / dx));
+          const sj = Math.max(0.5, Math.min(ny - 1.5, j - (v * dt) / dy));
+          const sk = Math.max(0.5, Math.min(nz - 1.5, k - (w * dt) / dz));
           dst.set(i, j, k, trilinear(src, si, sj, sk));
         }
       }
@@ -227,9 +227,10 @@ export class MultiphaseNSSolver {
     for (let k = 1; k < nz - 1; k++) {
       for (let j = 1; j < ny - 1; j++) {
         for (let i = 1; i < nx - 1; i++) {
-          const d = (this.vx.get(i + 1, j, k) - this.vx.get(i - 1, j, k)) / (2 * dx)
-                  + (this.vy.get(i, j + 1, k) - this.vy.get(i, j - 1, k)) / (2 * dy)
-                  + (this.vz.get(i, j, k + 1) - this.vz.get(i, j, k - 1)) / (2 * dz);
+          const d =
+            (this.vx.get(i + 1, j, k) - this.vx.get(i - 1, j, k)) / (2 * dx) +
+            (this.vy.get(i, j + 1, k) - this.vy.get(i, j - 1, k)) / (2 * dy) +
+            (this.vz.get(i, j, k + 1) - this.vz.get(i, j, k - 1)) / (2 * dz);
           div.set(i, j, k, -d);
 
           const rho = this.blendedDensity(this.phi.get(i, j, k), eps);
@@ -259,8 +260,13 @@ export class MultiphaseNSSolver {
     // (requires at least 200 iterations for stable convergence at high density ratios)
     if (this.pressureIter >= 200) {
       variableCoefficientJacobiIteration(
-        this.pressure, div, this.invRho, dx,
-        this.pressureIter, 1e-6, 0.5  // under-relaxed for stability
+        this.pressure,
+        div,
+        this.invRho,
+        dx,
+        this.pressureIter,
+        1e-6,
+        0.5 // under-relaxed for stability
       );
     } else {
       // Fallback: density-weighted constant-coefficient Poisson
@@ -311,13 +317,13 @@ export class MultiphaseNSSolver {
   private smoothedHeaviside(phi: number, eps: number): number {
     if (phi < -eps) return 1;
     if (phi > eps) return 0;
-    return 0.5 * (1 - phi / eps - (1 / Math.PI) * Math.sin(Math.PI * phi / eps));
+    return 0.5 * (1 - phi / eps - (1 / Math.PI) * Math.sin((Math.PI * phi) / eps));
   }
 
   /** Smoothed delta function: derivative of Heaviside. Nonzero only near interface. */
   private smoothedDelta(phi: number, eps: number): number {
     if (Math.abs(phi) > eps) return 0;
-    return (1 / (2 * eps)) * (1 + Math.cos(Math.PI * phi / eps));
+    return (1 / (2 * eps)) * (1 + Math.cos((Math.PI * phi) / eps));
   }
 
   private blendedDensity(phi: number, eps: number): number {
@@ -363,48 +369,74 @@ export class MultiphaseNSSolver {
     const { nx, ny, nz } = this.vx;
     for (let k = 0; k < nz; k++) {
       for (let j = 0; j < ny; j++) {
-        this.vx.set(0, j, k, 0); this.vy.set(0, j, k, 0); this.vz.set(0, j, k, 0);
-        this.vx.set(nx - 1, j, k, 0); this.vy.set(nx - 1, j, k, 0); this.vz.set(nx - 1, j, k, 0);
+        this.vx.set(0, j, k, 0);
+        this.vy.set(0, j, k, 0);
+        this.vz.set(0, j, k, 0);
+        this.vx.set(nx - 1, j, k, 0);
+        this.vy.set(nx - 1, j, k, 0);
+        this.vz.set(nx - 1, j, k, 0);
       }
     }
     for (let k = 0; k < nz; k++) {
       for (let i = 0; i < nx; i++) {
-        this.vx.set(i, 0, k, 0); this.vy.set(i, 0, k, 0); this.vz.set(i, 0, k, 0);
-        this.vx.set(i, ny - 1, k, 0); this.vy.set(i, ny - 1, k, 0); this.vz.set(i, ny - 1, k, 0);
+        this.vx.set(i, 0, k, 0);
+        this.vy.set(i, 0, k, 0);
+        this.vz.set(i, 0, k, 0);
+        this.vx.set(i, ny - 1, k, 0);
+        this.vy.set(i, ny - 1, k, 0);
+        this.vz.set(i, ny - 1, k, 0);
       }
     }
     for (let j = 0; j < ny; j++) {
       for (let i = 0; i < nx; i++) {
-        this.vx.set(i, j, 0, 0); this.vy.set(i, j, 0, 0); this.vz.set(i, j, 0, 0);
-        this.vx.set(i, j, nz - 1, 0); this.vy.set(i, j, nz - 1, 0); this.vz.set(i, j, nz - 1, 0);
+        this.vx.set(i, j, 0, 0);
+        this.vy.set(i, j, 0, 0);
+        this.vz.set(i, j, 0, 0);
+        this.vx.set(i, j, nz - 1, 0);
+        this.vy.set(i, j, nz - 1, 0);
+        this.vz.set(i, j, nz - 1, 0);
       }
     }
   }
 
   // ── Public API ──────────────────────────────────────────────────────────
 
-  getLevelSet(): Float32Array { return this.phi.toFloat32Array(); }
+  getLevelSet(): Float32Array {
+    return this.phi.toFloat32Array();
+  }
   getVelocityMagnitude(): Float32Array {
     const { nx, ny, nz } = this.vx;
     const r = new Float32Array(nx * ny * nz);
-    for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
-      const idx = (k * ny + j) * nx + i;
-      r[idx] = Math.sqrt(this.vx.get(i, j, k) ** 2 + this.vy.get(i, j, k) ** 2 + this.vz.get(i, j, k) ** 2);
-    }
+    for (let k = 0; k < nz; k++)
+      for (let j = 0; j < ny; j++)
+        for (let i = 0; i < nx; i++) {
+          const idx = (k * ny + j) * nx + i;
+          r[idx] = Math.sqrt(
+            this.vx.get(i, j, k) ** 2 + this.vy.get(i, j, k) ** 2 + this.vz.get(i, j, k) ** 2
+          );
+        }
     return r;
   }
-  getPressureField(): Float32Array { return this.pressure.toFloat32Array(); }
+  getPressureField(): Float32Array {
+    return this.pressure.toFloat32Array();
+  }
 
   getStats(): MultiphaseStats {
     const { nx, ny, nz } = this.vx;
-    let maxV = 0, liquidCells = 0, interfaceCells = 0;
+    let maxV = 0,
+      liquidCells = 0,
+      interfaceCells = 0;
     const eps = 1.5 * this.vx.dx;
-    for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
-      const v = Math.sqrt(this.vx.get(i, j, k) ** 2 + this.vy.get(i, j, k) ** 2 + this.vz.get(i, j, k) ** 2);
-      if (v > maxV) maxV = v;
-      if (this.phi.get(i, j, k) < 0) liquidCells++;
-      if (Math.abs(this.phi.get(i, j, k)) < eps) interfaceCells++;
-    }
+    for (let k = 0; k < nz; k++)
+      for (let j = 0; j < ny; j++)
+        for (let i = 0; i < nx; i++) {
+          const v = Math.sqrt(
+            this.vx.get(i, j, k) ** 2 + this.vy.get(i, j, k) ** 2 + this.vz.get(i, j, k) ** 2
+          );
+          if (v > maxV) maxV = v;
+          if (this.phi.get(i, j, k) < 0) liquidCells++;
+          if (Math.abs(this.phi.get(i, j, k)) < eps) interfaceCells++;
+        }
     const total = nx * ny * nz;
     return {
       currentTime: this.currentTime,
@@ -419,11 +451,23 @@ export class MultiphaseNSSolver {
 }
 
 function trilinear(grid: RegularGrid3D, fi: number, fj: number, fk: number): number {
-  const i0 = Math.floor(fi), j0 = Math.floor(fj), k0 = Math.floor(fk);
-  const i1 = Math.min(i0 + 1, grid.nx - 1), j1 = Math.min(j0 + 1, grid.ny - 1), k1 = Math.min(k0 + 1, grid.nz - 1);
-  const s = fi - i0, t = fj - j0, u = fk - k0;
-  return grid.get(i0, j0, k0) * (1 - s) * (1 - t) * (1 - u) + grid.get(i1, j0, k0) * s * (1 - t) * (1 - u)
-       + grid.get(i0, j1, k0) * (1 - s) * t * (1 - u) + grid.get(i1, j1, k0) * s * t * (1 - u)
-       + grid.get(i0, j0, k1) * (1 - s) * (1 - t) * u + grid.get(i1, j0, k1) * s * (1 - t) * u
-       + grid.get(i0, j1, k1) * (1 - s) * t * u + grid.get(i1, j1, k1) * s * t * u;
+  const i0 = Math.floor(fi),
+    j0 = Math.floor(fj),
+    k0 = Math.floor(fk);
+  const i1 = Math.min(i0 + 1, grid.nx - 1),
+    j1 = Math.min(j0 + 1, grid.ny - 1),
+    k1 = Math.min(k0 + 1, grid.nz - 1);
+  const s = fi - i0,
+    t = fj - j0,
+    u = fk - k0;
+  return (
+    grid.get(i0, j0, k0) * (1 - s) * (1 - t) * (1 - u) +
+    grid.get(i1, j0, k0) * s * (1 - t) * (1 - u) +
+    grid.get(i0, j1, k0) * (1 - s) * t * (1 - u) +
+    grid.get(i1, j1, k0) * s * t * (1 - u) +
+    grid.get(i0, j0, k1) * (1 - s) * (1 - t) * u +
+    grid.get(i1, j0, k1) * s * (1 - t) * u +
+    grid.get(i0, j1, k1) * (1 - s) * t * u +
+    grid.get(i1, j1, k1) * s * t * u
+  );
 }

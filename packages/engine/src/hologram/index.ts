@@ -101,11 +101,7 @@ export {
   isAssetName,
 } from './HologramStore';
 
-export type {
-  AssetName,
-  HologramStore,
-  HologramStorePutResult,
-} from './HologramStore';
+export type { AssetName, HologramStore, HologramStorePutResult } from './HologramStore';
 
 // HologramShareRegistry — share metadata + expiry policy (Wave B Stream 5).
 // Node-only (imports node:fs); NOT exported from this barrel for browser safety.

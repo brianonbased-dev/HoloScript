@@ -32,10 +32,7 @@ import { getClient } from '../orchestrator-client';
 import { findKnowledgeEntryById } from '../entry-lookup';
 import { getConsolidationBridge } from '../consolidation-bridge';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../../moltbook/moltbook-post.js';
-import {
-  resolveSecretWithLease,
-  VaultLeaseError,
-} from '../identity/vault-lease-registry';
+import { resolveSecretWithLease, VaultLeaseError } from '../identity/vault-lease-registry';
 
 /**
  * Phase 3 wrapper around `process.env.MOLTBOOK_API_KEY` for the per-request
@@ -390,7 +387,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -473,7 +472,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -558,7 +559,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -618,7 +621,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -685,7 +690,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -721,7 +728,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -828,7 +837,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -840,11 +851,14 @@ export async function handleKnowledgeRoutes(
     const agentCount = Number.isFinite(parsedAgentCount) ? Math.max(1, parsedAgentCount) : 1;
 
     const lifePodId = `lifepod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const agentState = toLifePodJsonValue(body.agentState ?? body.state ?? {
-      worldId,
-      sourceCluster,
-      agentCount,
-    });
+    const agentState = toLifePodJsonValue(
+      body.agentState ??
+        body.state ?? {
+          worldId,
+          sourceCluster,
+          agentCount,
+        }
+    );
     const keyPair = getOrCreateAuditKeyPair();
     const createdAt = new Date().toISOString();
     const signedSnapshot = createLifePodSnapshot(agentState, {
@@ -882,16 +896,21 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
     }
     const body: any = effectiveBody;
-    const requestSnapshot = body.snapshot && typeof body.snapshot === 'object'
-      ? body.snapshot as LifePodSnapshot
-      : null;
-    const lifePodId = ((body.lifePodId as string | undefined) ?? requestSnapshot?.lifePodId)?.trim();
+    const requestSnapshot =
+      body.snapshot && typeof body.snapshot === 'object'
+        ? (body.snapshot as LifePodSnapshot)
+        : null;
+    const lifePodId = (
+      (body.lifePodId as string | undefined) ?? requestSnapshot?.lifePodId
+    )?.trim();
     const targetCluster = (body.targetCluster as string | undefined)?.trim() || 'cluster_2';
     if (!lifePodId) {
       json(res, 400, { error: 'Missing lifePodId' });
@@ -926,7 +945,8 @@ export async function handleKnowledgeRoutes(
 
     const metadata = restored.metadata;
     const restoredWorldId = lifePodMetadataValue(metadata, 'worldId') ?? snapshot.worldId;
-    const restoredSourceCluster = lifePodMetadataValue(metadata, 'sourceCluster') ?? snapshot.sourceCluster;
+    const restoredSourceCluster =
+      lifePodMetadataValue(metadata, 'sourceCluster') ?? snapshot.sourceCluster;
     const restoredAgentCount = lifePodMetadataValue(metadata, 'agentCount') ?? snapshot.agentCount;
 
     json(res, 200, {
@@ -966,7 +986,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1011,7 +1033,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1087,7 +1111,9 @@ export async function handleKnowledgeRoutes(
     }
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1154,7 +1180,9 @@ export async function handleKnowledgeRoutes(
     }
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1220,7 +1248,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1325,7 +1355,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1396,7 +1428,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1623,7 +1657,9 @@ export async function handleKnowledgeRoutes(
     }
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1661,7 +1697,9 @@ export async function handleKnowledgeRoutes(
 
     const worldId = extractParam(url, '/api/holomesh/worlds/').replace('/self-improve/plan', '');
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1708,7 +1746,9 @@ export async function handleKnowledgeRoutes(
       ''
     );
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1763,7 +1803,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1845,7 +1887,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1910,7 +1954,9 @@ export async function handleKnowledgeRoutes(
 
     const entryId = extractParam(url, '/api/holomesh/consolidation/review/').replace('/reject', '');
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -1951,7 +1997,9 @@ export async function handleKnowledgeRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;

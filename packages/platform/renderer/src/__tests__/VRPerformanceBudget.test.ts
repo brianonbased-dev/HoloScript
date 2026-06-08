@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  VRPerformanceBudget,
-  DEFAULT_BUDGET_CONFIG,
-} from '../VRPerformanceBudget';
+import { VRPerformanceBudget, DEFAULT_BUDGET_CONFIG } from '../VRPerformanceBudget';
 
 describe('VRPerformanceBudget', () => {
   it('uses default config when no options given', () => {

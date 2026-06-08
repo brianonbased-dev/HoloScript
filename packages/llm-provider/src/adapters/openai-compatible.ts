@@ -281,10 +281,7 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
         ...(toolUses.length > 0
           ? {
               toolUses,
-              assistantBlocks: [
-                { type: 'text' as const, text: content },
-                ...toolUses,
-              ],
+              assistantBlocks: [{ type: 'text' as const, text: content }, ...toolUses],
             }
           : {}),
         raw,
@@ -537,10 +534,7 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
     };
 
     if (streamErrored) {
-      throw new LLMProviderError(
-        'Stream error during OpenAI-compatible completion',
-        'openrouter'
-      );
+      throw new LLMProviderError('Stream error during OpenAI-compatible completion', 'openrouter');
     }
   }
 

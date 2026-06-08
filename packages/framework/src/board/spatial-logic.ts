@@ -181,20 +181,32 @@ export function validateSpatialPredicate(predicate: SpatialPredicate): string[] 
   if (predicate.kind === 'predicate-other' && !predicate.kindLabel) {
     errors.push(`SpatialPredicate ${predicate.id} kind=predicate-other requires kindLabel.`);
   }
-  if (predicate.radius !== undefined && (!Number.isFinite(predicate.radius) || predicate.radius < 0)) {
+  if (
+    predicate.radius !== undefined &&
+    (!Number.isFinite(predicate.radius) || predicate.radius < 0)
+  ) {
     errors.push(`SpatialPredicate ${predicate.id}.radius must be a non-negative finite number.`);
   }
   if (predicate.timeRange !== undefined) {
     const [start, end] = predicate.timeRange;
     if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end > 24 || start >= end) {
-      errors.push(`SpatialPredicate ${predicate.id}.timeRange must be [start, end] with 0 <= start < end <= 24.`);
+      errors.push(
+        `SpatialPredicate ${predicate.id}.timeRange must be [start, end] with 0 <= start < end <= 24.`
+      );
     }
   }
-  if (predicate.chance !== undefined && (!Number.isFinite(predicate.chance) || predicate.chance < 0 || predicate.chance > 1)) {
+  if (
+    predicate.chance !== undefined &&
+    (!Number.isFinite(predicate.chance) || predicate.chance < 0 || predicate.chance > 1)
+  ) {
     errors.push(`SpatialPredicate ${predicate.id}.chance must be a finite number in [0, 1].`);
   }
   if (predicate.position !== undefined) {
-    if (!Array.isArray(predicate.position) || predicate.position.length !== 3 || !predicate.position.every(Number.isFinite)) {
+    if (
+      !Array.isArray(predicate.position) ||
+      predicate.position.length !== 3 ||
+      !predicate.position.every(Number.isFinite)
+    ) {
       errors.push(`SpatialPredicate ${predicate.id}.position must be a finite [x, y, z] tuple.`);
     }
   }
@@ -214,7 +226,11 @@ export function validateSpatialAction(action: SpatialAction): string[] {
     errors.push(`SpatialAction ${action.id}.quantity must be a finite number >= 1.`);
   }
   if (action.spawnPosition !== undefined) {
-    if (!Array.isArray(action.spawnPosition) || action.spawnPosition.length !== 3 || !action.spawnPosition.every(Number.isFinite)) {
+    if (
+      !Array.isArray(action.spawnPosition) ||
+      action.spawnPosition.length !== 3 ||
+      !action.spawnPosition.every(Number.isFinite)
+    ) {
       errors.push(`SpatialAction ${action.id}.spawnPosition must be a finite [x, y, z] tuple.`);
     }
   }
@@ -245,7 +261,11 @@ export function validateSpatialRule(rule: SpatialRule): string[] {
       }
     }
   }
-  if (rule.predicateMode !== undefined && rule.predicateMode !== 'all' && rule.predicateMode !== 'any') {
+  if (
+    rule.predicateMode !== undefined &&
+    rule.predicateMode !== 'all' &&
+    rule.predicateMode !== 'any'
+  ) {
     errors.push(`SpatialRule ${rule.id}.predicateMode must be 'all' or 'any'.`);
   }
   if (rule.priority !== undefined && !Number.isFinite(rule.priority)) {
@@ -260,7 +280,9 @@ export function cloneSpatialPredicate(predicate: SpatialPredicate): SpatialPredi
   return {
     ...predicate,
     ...(predicate.timeRange ? { timeRange: [...predicate.timeRange] as [number, number] } : {}),
-    ...(predicate.position ? { position: [...predicate.position] as [number, number, number] } : {}),
+    ...(predicate.position
+      ? { position: [...predicate.position] as [number, number, number] }
+      : {}),
     ...(predicate.metadata ? { metadata: { ...predicate.metadata } } : {}),
   };
 }
@@ -268,7 +290,9 @@ export function cloneSpatialPredicate(predicate: SpatialPredicate): SpatialPredi
 export function cloneSpatialAction(action: SpatialAction): SpatialAction {
   return {
     ...action,
-    ...(action.spawnPosition ? { spawnPosition: [...action.spawnPosition] as [number, number, number] } : {}),
+    ...(action.spawnPosition
+      ? { spawnPosition: [...action.spawnPosition] as [number, number, number] }
+      : {}),
     ...(action.metadata ? { metadata: { ...action.metadata } } : {}),
   };
 }

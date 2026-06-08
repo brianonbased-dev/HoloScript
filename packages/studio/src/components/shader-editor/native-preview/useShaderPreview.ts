@@ -326,7 +326,9 @@ export function useShaderPreview(
       }
       // Best-effort cleanup — don't await
       if (invokeRef.current) {
-        invokeRef.current('shader_preview_destroy').catch((err) => logger.warn('Swallowed error caught:', err));
+        invokeRef
+          .current('shader_preview_destroy')
+          .catch((err) => logger.warn('Swallowed error caught:', err));
       }
     };
   }, []);

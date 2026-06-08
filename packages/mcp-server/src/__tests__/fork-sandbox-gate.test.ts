@@ -93,14 +93,21 @@ describe('detectForkedPlugin', () => {
   });
 
   it('returns benign for canonical plugin', () => {
-    const result = detectForkedPlugin({ scopeName: '@holoscript/plugin', version: '1.0.0', trustTier: 'verified' });
+    const result = detectForkedPlugin({
+      scopeName: '@holoscript/plugin',
+      version: '1.0.0',
+      trustTier: 'verified',
+    });
     expect(result.isSuspicious).toBe(false);
   });
 });
 
 describe('resolvePolicy', () => {
   it('benign for canonical + non-sensitive tool', () => {
-    const policy = resolvePolicy({ kind: 'holoscript_code', source: 'canonical' }, 'hs_diagnostics');
+    const policy = resolvePolicy(
+      { kind: 'holoscript_code', source: 'canonical' },
+      'hs_diagnostics'
+    );
     expect(policy.policyId).toBe(DEFAULT_BENIGN_POLICY.policyId);
   });
 
@@ -263,16 +270,24 @@ describe('gateMcpTool', () => {
   });
 
   it('blocks sensitive tool with manifest but without scopes', async () => {
-    const result = await gateMcpTool('create_world', { name: 'MyWorld' }, { manifest: validManifest });
+    const result = await gateMcpTool(
+      'create_world',
+      { name: 'MyWorld' },
+      { manifest: validManifest }
+    );
     expect(result.allowed).toBe(false);
     expect(result.checks.some((c) => c.name === 'permissions' && !c.passed)).toBe(true);
   });
 
   it('allows sensitive tool with manifest + admin scope', async () => {
-    const result = await gateMcpTool('create_world', { name: 'MyWorld' }, {
-      grantedScopes: ['admin:*'],
-      manifest: validManifest,
-    });
+    const result = await gateMcpTool(
+      'create_world',
+      { name: 'MyWorld' },
+      {
+        grantedScopes: ['admin:*'],
+        manifest: validManifest,
+      }
+    );
     expect(result.allowed).toBe(true);
   });
 });

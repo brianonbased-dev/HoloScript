@@ -42,7 +42,7 @@ export interface AnchoredExport {
  */
 export function measureBoundsDimension(
   manifest: ReconstructionManifest,
-  axis: 'x' | 'y' | 'z' = 'y',
+  axis: 'x' | 'y' | 'z' = 'y'
 ): number {
   const idx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
   return manifest.bounds.max[idx]! - manifest.bounds.min[idx]!;
@@ -58,14 +58,14 @@ export function measureBoundsDimension(
  */
 export function anchorReconstruction(
   manifest: ReconstructionManifest,
-  spec: AnchorSpec,
+  spec: AnchorSpec
 ): AnchoredExport {
   const tolerance = spec.tolerance ?? 0.05;
   const measured = measureBoundsDimension(manifest, spec.axis);
 
   if (!Number.isFinite(measured) || measured <= 0) {
     throw new Error(
-      `Invalid measured dimension ${measured}. Manifest bounds may be corrupted or uninitialised.`,
+      `Invalid measured dimension ${measured}. Manifest bounds may be corrupted or uninitialised.`
     );
   }
 
@@ -91,16 +91,16 @@ export function anchorReconstruction(
  */
 export function assertAnchoredDimension(
   manifest: ReconstructionManifest,
-  spec: AnchorSpec,
+  spec: AnchorSpec
 ): AnchoredExport {
   const result = anchorReconstruction(manifest, spec);
   if (!result.isAnchored) {
     throw new Error(
       `Anchor assertion failed: measured ${result.measuredDimension.toFixed(4)}m ` +
         `differs from reference ${spec.referenceDimension}m by ${Math.abs(
-          result.measuredDimension - spec.referenceDimension,
+          result.measuredDimension - spec.referenceDimension
         ).toFixed(4)}m (tolerance ${result.tolerance}m). ` +
-        `Export tagged: ${result.tag}`,
+        `Export tagged: ${result.tag}`
     );
   }
   return result;

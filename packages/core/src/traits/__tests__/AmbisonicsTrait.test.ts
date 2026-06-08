@@ -81,7 +81,7 @@ describe('AmbisonicsTrait', () => {
   it('listener_rotation_update updates rotation', () => {
     sendEvent(ambisonicsHandler, node, cfg, ctx, {
       type: 'listener_rotation_update',
-      rotation: [1, 0, 0, 0 ],
+      rotation: [1, 0, 0, 0],
     });
     expect((node as any).__ambisonicsState.rotation[0]).toBe(1);
   });

@@ -64,7 +64,10 @@ export interface BalanceCheck {
  */
 export async function getOrCreateAccount(userId: string): Promise<CreditAccount | null> {
   const db = getDb();
-  if (!db) { console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.'); return null; }
+  if (!db) {
+    console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
+    return null;
+  }
 
   const [existing] = await db
     .select()
@@ -159,7 +162,10 @@ export async function deductCredits(
   metadata: Record<string, unknown> = {}
 ): Promise<{ balanceCents: number } | null> {
   const db = getDb();
-  if (!db) { console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.'); return null; }
+  if (!db) {
+    console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
+    return null;
+  }
 
   // Atomic: decrement balance only if sufficient, return new balance
   const [updated] = await db
@@ -198,7 +204,10 @@ export async function addCredits(
   opts: { type?: string; stripeSessionId?: string; metadata?: Record<string, unknown> } = {}
 ): Promise<{ balanceCents: number } | null> {
   const db = getDb();
-  if (!db) { console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.'); return null; }
+  if (!db) {
+    console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
+    return null;
+  }
 
   // Ensure account exists
   await getOrCreateAccount(userId);

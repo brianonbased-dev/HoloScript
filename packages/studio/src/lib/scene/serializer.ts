@@ -169,7 +169,10 @@ export async function decodeSceneFromURL(encoded: string): Promise<DeserializeRe
       const ds = new DecompressionStream('deflate-raw');
       const writer = ds.writable.getWriter();
       // Write and close, suppressing writer-side errors (read side will surface them)
-      const writePromise = writer.write(bytes).then(() => writer.close()).catch(() => {});
+      const writePromise = writer
+        .write(bytes)
+        .then(() => writer.close())
+        .catch(() => {});
       const readPromise = new Response(ds.readable).text();
       const [, readResult] = await Promise.allSettled([writePromise, readPromise]);
       if (readResult.status === 'rejected') {

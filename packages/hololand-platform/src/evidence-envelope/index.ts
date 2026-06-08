@@ -185,7 +185,7 @@ export function buildPaper12HololandEvidenceEnvelope(
     hololandRoot?: string;
     outputPath?: string;
     artifacts?: EvidenceArtifactInput[];
-  } = {},
+  } = {}
 ): EvidenceEnvelopeManifest {
   const cwd = resolve(options.cwd ?? process.cwd());
   const hololandRoot = resolve(options.hololandRoot ?? `${cwd}/../Hololand`);
@@ -236,47 +236,45 @@ export function buildPaper12HololandEvidenceEnvelope(
         artifactRole: 'trace-corpus',
       },
     ],
-    artifacts:
-      options.artifacts ??
-      [
-        {
-          repo: 'HoloScript',
-          path: 'packages/hololand-platform/src/evidence-envelope/index.ts',
-          role: 'generator',
-          description: 'Canonical TypeScript generator for evidence envelopes.',
-        },
-        {
-          repo: 'HoloScript',
-          path: 'packages/hololand-platform/src/evidence-envelope/cli.ts',
-          role: 'harness',
-          description: 'One-command envelope generation CLI.',
-        },
-        {
-          repo: 'HoloScript',
-          path: 'packages/hololand-platform/src/device-lab/index.ts',
-          role: 'harness',
-          description: 'Hardware-native HoloLand readiness receipt builder.',
-        },
-        {
-          repo: 'HoloScript',
-          path: 'docs/public/evidence/evidence-envelope.schema.json',
-          role: 'schema',
-          description: 'Public JSON schema for reviewer validation.',
-        },
-        {
-          repo: 'HoloScript',
-          path: 'docs/paper-program/evidence-envelope-manifests.md',
-          role: 'documentation',
-          description: 'Paper citation and rerun instructions.',
-        },
-        {
-          repo: 'Hololand',
-          path: 'examples/hololand-central/src/evidence/cael-user-study-corpus.hsplus',
-          localPath: `${hololandRoot}/examples/hololand-central/src/evidence/cael-user-study-corpus.hsplus`,
-          role: 'trace-corpus',
-          description: 'Paper 12 HoloLand CAEL/user-study corpus source.',
-        },
-      ],
+    artifacts: options.artifacts ?? [
+      {
+        repo: 'HoloScript',
+        path: 'packages/hololand-platform/src/evidence-envelope/index.ts',
+        role: 'generator',
+        description: 'Canonical TypeScript generator for evidence envelopes.',
+      },
+      {
+        repo: 'HoloScript',
+        path: 'packages/hololand-platform/src/evidence-envelope/cli.ts',
+        role: 'harness',
+        description: 'One-command envelope generation CLI.',
+      },
+      {
+        repo: 'HoloScript',
+        path: 'packages/hololand-platform/src/device-lab/index.ts',
+        role: 'harness',
+        description: 'Hardware-native HoloLand readiness receipt builder.',
+      },
+      {
+        repo: 'HoloScript',
+        path: 'docs/public/evidence/evidence-envelope.schema.json',
+        role: 'schema',
+        description: 'Public JSON schema for reviewer validation.',
+      },
+      {
+        repo: 'HoloScript',
+        path: 'docs/paper-program/evidence-envelope-manifests.md',
+        role: 'documentation',
+        description: 'Paper citation and rerun instructions.',
+      },
+      {
+        repo: 'Hololand',
+        path: 'examples/hololand-central/src/evidence/cael-user-study-corpus.hsplus',
+        localPath: `${hololandRoot}/examples/hololand-central/src/evidence/cael-user-study-corpus.hsplus`,
+        role: 'trace-corpus',
+        description: 'Paper 12 HoloLand CAEL/user-study corpus source.',
+      },
+    ],
     notes: options.notes ?? [
       'Paper 12 cites this envelope for the Calibration/Setup/Reproducibility row.',
       'The manifest hash covers the runtime, source revisions, calibration checks, rerun command, and artifact hashes.',
@@ -284,7 +282,9 @@ export function buildPaper12HololandEvidenceEnvelope(
   });
 }
 
-export function verifyEvidenceEnvelope(manifest: EvidenceEnvelopeManifest): EvidenceEnvelopeVerification {
+export function verifyEvidenceEnvelope(
+  manifest: EvidenceEnvelopeManifest
+): EvidenceEnvelopeVerification {
   if (manifest.schemaVersion !== EVIDENCE_ENVELOPE_SCHEMA) {
     return {
       valid: false,

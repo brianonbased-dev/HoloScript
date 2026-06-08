@@ -6,11 +6,11 @@ Practical workflow for exporting HoloScript scenes to Unity projects and VRChat 
 
 Current export flow is compiler-target based.
 
-| Tool                 | Role                             |
-| -------------------- | -------------------------------- |
-| @holoscript/cli      | Primary compile/export interface |
-| @holoscript/core     | Parsing, AST, and programmatic compiler entrypoint |
-| @holoscript/core     | Parsing and AST utilities        |
+| Tool             | Role                                               |
+| ---------------- | -------------------------------------------------- |
+| @holoscript/cli  | Primary compile/export interface                   |
+| @holoscript/core | Parsing, AST, and programmatic compiler entrypoint |
+| @holoscript/core | Parsing and AST utilities                          |
 
 ## Recommended Workflow
 

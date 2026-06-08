@@ -194,7 +194,12 @@ describe('AiUpscalingTrait', () => {
       aiUpscalingHandler.onAttach(mockNode as HSPlusNode, config, mockContext as TraitContext);
       mockContext.emit?.mockClear();
 
-      aiUpscalingHandler.onUpdate(mockNode as HSPlusNode, config, mockContext as TraitContext, 0.016);
+      aiUpscalingHandler.onUpdate(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        0.016
+      );
 
       expect(mockContext.emit).not.toHaveBeenCalledWith('ai_upscaling_request', expect.any(Object));
     });
@@ -260,7 +265,12 @@ describe('AiUpscalingTrait', () => {
       const config = aiUpscalingHandler.defaultConfig;
 
       expect(() => {
-        aiUpscalingHandler.onUpdate(mockNode as HSPlusNode, config, mockContext as TraitContext, 0.016);
+        aiUpscalingHandler.onUpdate(
+          mockNode as HSPlusNode,
+          config,
+          mockContext as TraitContext,
+          0.016
+        );
       }).not.toThrow();
     });
   });
@@ -354,7 +364,12 @@ describe('AiUpscalingTrait', () => {
         processingTime: 1000,
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith('material_set_texture', {
         node: mockNode,
@@ -370,12 +385,14 @@ describe('AiUpscalingTrait', () => {
         processingTime: 1000,
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
-
-      expect(mockContext.emit).not.toHaveBeenCalledWith(
-        'material_set_texture',
-        expect.any(Object)
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
       );
+
+      expect(mockContext.emit).not.toHaveBeenCalledWith('material_set_texture', expect.any(Object));
     });
 
     it('should emit on_upscaling_complete event', () => {
@@ -459,8 +476,8 @@ describe('AiUpscalingTrait', () => {
         event
       );
 
-      const hasMidRequest = (mockContext.emit as any).mock.calls.some((c: any) =>
-        c[0] === 'ai_upscaling_request'
+      const hasMidRequest = (mockContext.emit as any).mock.calls.some(
+        (c: any) => c[0] === 'ai_upscaling_request'
       );
       expect(hasMidRequest).toBe(false);
     });
@@ -479,7 +496,12 @@ describe('AiUpscalingTrait', () => {
       mockContext.emit?.mockClear();
       const event: TraitEvent = { type: 'ai_upscaling_request' };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       expect(mockContext.emit).toHaveBeenCalledWith(
         'ai_upscaling_request',
@@ -628,7 +650,11 @@ describe('AiUpscalingTrait', () => {
     });
 
     it('should support all input sources', () => {
-      const sources: Array<'live' | 'texture' | 'rendertarget'> = ['live', 'texture', 'rendertarget'];
+      const sources: Array<'live' | 'texture' | 'rendertarget'> = [
+        'live',
+        'texture',
+        'rendertarget',
+      ];
 
       for (const source of sources) {
         mockNode = {};
@@ -706,7 +732,12 @@ describe('AiUpscalingTrait', () => {
         processingTime: 2000,
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, resultEvent);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        resultEvent
+      );
 
       expect(state.is_processing).toBe(false);
       expect(state.output_texture).toBe('upscaled_url');
@@ -727,7 +758,12 @@ describe('AiUpscalingTrait', () => {
         processingTime: 1500,
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, result1);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        result1
+      );
       expect(state.output_texture).toBe('texture1');
       expect(state.is_processing).toBe(false);
 
@@ -735,7 +771,12 @@ describe('AiUpscalingTrait', () => {
       const requestEvent: TraitEvent = { type: 'ai_upscaling_request' };
       mockContext.emit?.mockClear();
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, requestEvent);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        requestEvent
+      );
       expect(state.is_processing).toBe(true);
 
       // Second result
@@ -745,7 +786,12 @@ describe('AiUpscalingTrait', () => {
         processingTime: 1800,
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, result2);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        result2
+      );
       expect(state.output_texture).toBe('texture2');
       expect(state.is_processing).toBe(false);
     });
@@ -764,7 +810,12 @@ describe('AiUpscalingTrait', () => {
         error: 'Model loading timeout',
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, errorEvent);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        errorEvent
+      );
 
       expect(state.is_processing).toBe(false);
       expect(mockContext.emit).toHaveBeenCalledWith('on_upscaling_error', expect.any(Object));
@@ -773,7 +824,12 @@ describe('AiUpscalingTrait', () => {
       const retryEvent: TraitEvent = { type: 'ai_upscaling_request' };
       mockContext.emit?.mockClear();
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, retryEvent);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        retryEvent
+      );
 
       expect(state.is_processing).toBe(true);
       expect(mockContext.emit).toHaveBeenCalledWith('ai_upscaling_request', expect.any(Object));
@@ -800,7 +856,12 @@ describe('AiUpscalingTrait', () => {
         processingTime: 1200,
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, resultEvent);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        resultEvent
+      );
 
       // Timer reset, check next update doesn't trigger immediately
       expect(state.last_upscale).toBe(0);
@@ -810,8 +871,8 @@ describe('AiUpscalingTrait', () => {
       aiUpscalingHandler.onUpdate(mockNode as HSPlusNode, config, mockContext as TraitContext, 0.5);
 
       // Should not request again (only 500ms elapsed)
-      const hasRequest = (mockContext.emit as any).mock.calls.some((c: any) =>
-        c[0] === 'ai_upscaling_request'
+      const hasRequest = (mockContext.emit as any).mock.calls.some(
+        (c: any) => c[0] === 'ai_upscaling_request'
       );
       expect(hasRequest).toBe(false);
     });
@@ -819,7 +880,11 @@ describe('AiUpscalingTrait', () => {
 
   describe('cache management', () => {
     it('should populate cache with model_scale key', () => {
-      const config = { ...aiUpscalingHandler.defaultConfig, upscale_model: 'swinir', scale_factor: 3 as const };
+      const config = {
+        ...aiUpscalingHandler.defaultConfig,
+        upscale_model: 'swinir',
+        scale_factor: 3 as const,
+      };
       aiUpscalingHandler.onAttach(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
       const state = mockNode.__aiUpscalingState as any;
@@ -830,7 +895,12 @@ describe('AiUpscalingTrait', () => {
         processingTime: 1500,
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       const cacheKey = 'swinir_3x';
       expect(state.cache.has(cacheKey)).toBe(true);
@@ -850,7 +920,12 @@ describe('AiUpscalingTrait', () => {
         processingTime: 1000,
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, event);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event
+      );
 
       const afterTime = Date.now();
       const cacheKey = 'realesrgan_4x';
@@ -874,7 +949,12 @@ describe('AiUpscalingTrait', () => {
         processingTime: 1000,
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, event1);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event1
+      );
       expect(state.cache.get(cacheKey).texture).toBe('texture1');
 
       // Second entry (overwrites)
@@ -884,7 +964,12 @@ describe('AiUpscalingTrait', () => {
         processingTime: 1000,
       };
 
-      aiUpscalingHandler.onEvent(mockNode as HSPlusNode, config, mockContext as TraitContext, event2);
+      aiUpscalingHandler.onEvent(
+        mockNode as HSPlusNode,
+        config,
+        mockContext as TraitContext,
+        event2
+      );
       expect(state.cache.get(cacheKey).texture).toBe('texture2');
       expect(state.cache.size).toBe(1); // Still only one entry
     });

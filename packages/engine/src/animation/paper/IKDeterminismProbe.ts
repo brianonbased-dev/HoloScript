@@ -54,9 +54,24 @@ export const PAPER_P2_IK_CANONICAL_SPEC: Readonly<IKProbeSpec> = Object.freeze({
       weight: 1.0,
       iterations: 10,
       bones: [
-        { id: 'b1', position: [0, 0, 0] as [number, number, number], rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 1.0 },
-        { id: 'b2', position: [0, 1, 0] as [number, number, number], rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 1.0 },
-        { id: 'b3', position: [0, 2, 0] as [number, number, number], rotation: { x: 0, y: 0, z: 0, w: 1 }, length: 1.0 },
+        {
+          id: 'b1',
+          position: [0, 0, 0] as [number, number, number],
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          length: 1.0,
+        },
+        {
+          id: 'b2',
+          position: [0, 1, 0] as [number, number, number],
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          length: 1.0,
+        },
+        {
+          id: 'b3',
+          position: [0, 2, 0] as [number, number, number],
+          rotation: { x: 0, y: 0, z: 0, w: 1 },
+          length: 1.0,
+        },
       ],
     },
   ],

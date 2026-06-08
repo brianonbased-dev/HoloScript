@@ -128,14 +128,22 @@ function healthySlice(rng: () => number, step: number): { slice: PillarSlice; ag
   const pillar = HEALTHY_PILLARS[Math.floor(rng() * HEALTHY_PILLARS.length)];
   const r = () => Math.round(rng() * 100) / 100; // 2-decimal grid (matches fingerprint .toFixed(2))
   const metadata: Record<string, unknown> = {
-    energy_conservation: r(), violation_pressure: r(),
-    truth_score: r(), approval_pressure: r(),
-    lod_level: r(), distance: r(),
-    goal_priority: r(), goal_progress: r(),
-    budget_used: r(), value_delivered: r(),
-    convergence: r(), timestep: r(),
-    consensus: r(), trust: r(),
-    retrieval_load: r(), compression: r(),
+    energy_conservation: r(),
+    violation_pressure: r(),
+    truth_score: r(),
+    approval_pressure: r(),
+    lod_level: r(),
+    distance: r(),
+    goal_priority: r(),
+    goal_progress: r(),
+    budget_used: r(),
+    value_delivered: r(),
+    convergence: r(),
+    timestep: r(),
+    consensus: r(),
+    trust: r(),
+    retrieval_load: r(),
+    compression: r(),
   };
   const ctx: PillarContext = {
     layer: 'inner_loop',
@@ -262,7 +270,10 @@ function reward(slice: PillarSlice): number {
  * We report the within-group reward variance (the un-normalised driver) so the
  * collapse → zero-signal effect is visible without the eps regulariser hiding it.
  */
-function advantageStats(slices: PillarSlice[], groupSize = 8): {
+function advantageStats(
+  slices: PillarSlice[],
+  groupSize = 8
+): {
   mean_reward_variance: number;
   mean_abs_advantage: number;
   groups: number;
@@ -293,8 +304,8 @@ function advantageStats(slices: PillarSlice[], groupSize = 8): {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function main(): void {
-  const healthy = runStream('healthy', healthySlice, 0xC0FFEE);
-  const collapsed = runStream('collapsed', collapsedSlice, 0xBADBEEF);
+  const healthy = runStream('healthy', healthySlice, 0xc0ffee);
+  const collapsed = runStream('collapsed', collapsedSlice, 0xbadbeef);
 
   const healthyAdv = advantageStats(healthy.slices);
   const collapsedAdv = advantageStats(collapsed.slices);
@@ -402,11 +413,13 @@ Diversity ratio ρ = unique_fingerprints / total, fingerprint =
 
 | N | healthy ρ | collapsed ρ |
 |--:|----------:|------------:|
-${[10, 100, 1000].map((n) => {
-  const h = m.diversity_guarantee.healthy.checkpoints.find((c) => c.n === n);
-  const c = m.diversity_guarantee.collapsed.checkpoints.find((cp) => cp.n === n);
-  return `| ${n} | ${h ? h.diversity_ratio.toFixed(4) : '—'} | ${c ? c.diversity_ratio.toFixed(4) : '—'} |`;
-}).join('\n')}
+${[10, 100, 1000]
+  .map((n) => {
+    const h = m.diversity_guarantee.healthy.checkpoints.find((c) => c.n === n);
+    const c = m.diversity_guarantee.collapsed.checkpoints.find((cp) => cp.n === n);
+    return `| ${n} | ${h ? h.diversity_ratio.toFixed(4) : '—'} | ${c ? c.diversity_ratio.toFixed(4) : '—'} |`;
+  })
+  .join('\n')}
 
 **Collapse detected: ${m.diversity_guarantee.collapse_detected}** — the collapsed agent's
 ρ drops to ${m.diversity_guarantee.collapsed.diversity_ratio.toFixed(4)} and the alert fires (true positive; the mode-collapse

@@ -5,7 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const defaultBenchDir = '.bench-logs/format-stress/2026-05-20_codex-format-realism-ratchet-2054Z/novel';
+const defaultBenchDir =
+  '.bench-logs/format-stress/2026-05-20_codex-format-realism-ratchet-2054Z/novel';
 
 function usage() {
   console.log(`Usage:
@@ -78,7 +79,12 @@ function makeSignedReceipt(payload, keyPair) {
   const canonical = stableStringify(payload);
   const signature = sign(null, Buffer.from(canonical), keyPair.privateKey).toString('base64');
   const publicKeyPem = keyPair.publicKey.export({ type: 'spki', format: 'pem' });
-  const verified = verify(null, Buffer.from(canonical), publicKeyPem, Buffer.from(signature, 'base64'));
+  const verified = verify(
+    null,
+    Buffer.from(canonical),
+    publicKeyPem,
+    Buffer.from(signature, 'base64')
+  );
   if (!verified) {
     throw new Error(`signature verification failed for ${payload.kind}`);
   }
@@ -114,10 +120,26 @@ function main() {
     return;
   }
 
-  const sceneRel = argValue(args, '--scene', path.join(defaultBenchDir, 'robot-avatar-mirror-handoff.holo'));
-  const thingRel = argValue(args, '--thing', path.join(defaultBenchDir, 'robot-avatar-mirror-handoff.wot.json'));
-  const outRel = argValue(args, '--out', path.join(defaultBenchDir, 'robot-avatar-live-sim-receipts.json'));
-  const receiptOutRel = argValue(args, '--receipt-out', path.join(defaultBenchDir, 'robot-avatar-handoff-sim-receipt.json'));
+  const sceneRel = argValue(
+    args,
+    '--scene',
+    path.join(defaultBenchDir, 'robot-avatar-mirror-handoff.holo')
+  );
+  const thingRel = argValue(
+    args,
+    '--thing',
+    path.join(defaultBenchDir, 'robot-avatar-mirror-handoff.wot.json')
+  );
+  const outRel = argValue(
+    args,
+    '--out',
+    path.join(defaultBenchDir, 'robot-avatar-live-sim-receipts.json')
+  );
+  const receiptOutRel = argValue(
+    args,
+    '--receipt-out',
+    path.join(defaultBenchDir, 'robot-avatar-handoff-sim-receipt.json')
+  );
   const forceN = Number(argValue(args, '--force-n', '9.4'));
   const ageMs = Number(argValue(args, '--age-ms', '36'));
   const runId = argValue(args, '--run-id', `robot-avatar-sim-${Date.now()}`);
@@ -186,7 +208,7 @@ function main() {
         minTransferForceN: 6,
       },
     },
-    keyPair,
+    keyPair
   );
 
   const avatarIkReceipt = makeSignedReceipt(
@@ -203,7 +225,7 @@ function main() {
       locked: ikLocked,
       consumedAction: thing.actionName,
     },
-    keyPair,
+    keyPair
   );
 
   const payloadTransferReceipt = makeSignedReceipt(
@@ -228,7 +250,7 @@ function main() {
       ],
       transferEnabled,
     },
-    keyPair,
+    keyPair
   );
 
   const rows = [
@@ -267,7 +289,9 @@ function main() {
       path: path.relative(repoRoot, scenePath).replace(/\\/g, '/'),
       objectCount: sceneObjects.length,
       requiredObjects: ['RobotGripper', 'AvatarHand', 'Payload'],
-      requiredObjectsPresent: ['RobotGripper', 'AvatarHand', 'Payload'].every((name) => sceneObjects.includes(name)),
+      requiredObjectsPresent: ['RobotGripper', 'AvatarHand', 'Payload'].every((name) =>
+        sceneObjects.includes(name)
+      ),
     },
     thingDescription: {
       path: path.relative(repoRoot, thingPath).replace(/\\/g, '/'),
@@ -301,8 +325,8 @@ function main() {
         receiptOut: path.relative(repoRoot, receiptOutPath).replace(/\\/g, '/'),
       },
       null,
-      2,
-    ),
+      2
+    )
   );
 }
 

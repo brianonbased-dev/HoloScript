@@ -94,9 +94,7 @@ export class SpectatorCameraCoordinator {
     if (this._started) return;
     this._started = true;
     this.unsubscribers.push(
-      this.bus.on<SpectatorFollowEvent>('spectator_update_follow', (e) =>
-        this.onFollow(e)
-      )
+      this.bus.on<SpectatorFollowEvent>('spectator_update_follow', (e) => this.onFollow(e))
     );
   }
 

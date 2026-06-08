@@ -1,9 +1,4 @@
-import {
-  createHash,
-  generateKeyPairSync,
-  sign,
-  verify,
-} from 'node:crypto';
+import { createHash, generateKeyPairSync, sign, verify } from 'node:crypto';
 
 export type LifePodJsonValue =
   | null
@@ -63,7 +58,8 @@ export function canonicalLifePodJson(value: unknown): string {
   const kind = typeof value;
   if (kind === 'string' || kind === 'boolean') return JSON.stringify(value);
   if (kind === 'number') {
-    if (!Number.isFinite(value)) throw new TypeError('LifePod state cannot contain non-finite numbers');
+    if (!Number.isFinite(value))
+      throw new TypeError('LifePod state cannot contain non-finite numbers');
     return JSON.stringify(value);
   }
   if (kind === 'undefined') throw new TypeError('LifePod state cannot contain undefined');
@@ -137,7 +133,9 @@ export function createLifePodSnapshot<TState extends LifePodJsonValue>(
     metadata: options.metadata ?? {},
     stateType: options.stateType,
   };
-  const signature = sign(null, signedPayload(unsigned), options.keyPair.privateKeyPem).toString('base64');
+  const signature = sign(null, signedPayload(unsigned), options.keyPair.privateKeyPem).toString(
+    'base64'
+  );
 
   return {
     ...unsigned,
@@ -153,7 +151,9 @@ export function restoreLifePodSnapshot<TState extends LifePodJsonValue = LifePod
   const stateBytes = Buffer.from(snapshot.stateBytesBase64, 'base64');
   const stateSha256 = sha256Hex(stateBytes);
   if (stateSha256 !== snapshot.stateSha256) {
-    throw new LifePodSignatureVerificationError('LifePod signature verification failed: state digest mismatch');
+    throw new LifePodSignatureVerificationError(
+      'LifePod signature verification failed: state digest mismatch'
+    );
   }
 
   const publicKeyPem = options.publicKeyPem ?? snapshot.publicKeyPem;
@@ -170,7 +170,9 @@ export function restoreLifePodSnapshot<TState extends LifePodJsonValue = LifePod
   const state = parseStateBytes<TState>(stateBytes);
   const restoredBytes = lifePodStateBytes(state);
   if (Buffer.compare(Buffer.from(restoredBytes), stateBytes) !== 0) {
-    throw new LifePodSignatureVerificationError('LifePod signature verification failed: non-canonical state bytes');
+    throw new LifePodSignatureVerificationError(
+      'LifePod signature verification failed: non-canonical state bytes'
+    );
   }
 
   return {

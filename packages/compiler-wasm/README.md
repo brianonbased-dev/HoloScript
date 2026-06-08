@@ -142,11 +142,11 @@ fixture sizes** due to JS↔linear-memory string marshalling overhead.
 Measured on i7-11800H / Node v22.20.0 / `wasm-pack` release build
 (`wasm-opt -O3 --enable-bulk-memory --enable-nontrapping-float-to-int`):
 
-| Fixture            | WASM vs JS speedup       |
-| ------------------ | ------------------------ |
-| small (32 lines)   | 0.66-0.74x (JS faster)   |
-| medium (78 lines)  | 0.64-0.67x (JS faster)   |
-| large (142 lines)  | 0.64-0.66x (JS faster)   |
+| Fixture           | WASM vs JS speedup     |
+| ----------------- | ---------------------- |
+| small (32 lines)  | 0.66-0.74x (JS faster) |
+| medium (78 lines) | 0.64-0.67x (JS faster) |
+| large (142 lines) | 0.64-0.66x (JS faster) |
 
 Native Rust (no WASM boundary) is ~1.3-1.4x faster than JS, so the
 parser logic itself is competitive — the boundary is the bottleneck.

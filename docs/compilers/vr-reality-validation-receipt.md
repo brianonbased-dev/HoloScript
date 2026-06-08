@@ -52,7 +52,7 @@ and the generated file contained both `VRRRuntime` and `THREE.Scene`.
 
 - A checked-in Hololand geo-commerce example was attempted as an E2E source,
   but it failed before VRR compilation with `HSP101: Unexpected token in
-  properties: STRING`. That is parser/input syntax debt, not a VRR compiler or
+properties: STRING`. That is parser/input syntax debt, not a VRR compiler or
   runtime dependency blocker.
 - The CLI smoke emitted the expected warning for a non-reality-mirror source:
   no `@vrr_twin` traits were present, so the compiler produced standard 3D VRR

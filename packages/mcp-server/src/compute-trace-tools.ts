@@ -44,12 +44,19 @@ export const computeTraceTools: Tool[] = [
       type: 'object' as const,
       properties: {
         sessionId: { type: 'string', description: 'Stable session/agent id (provenance + dedup).' },
-        instruction: { type: 'string', description: 'The natural-language instruction the agent was given.' },
-        contractId: { type: 'string', description: 'The SimulationContract id the mutation must respect.' },
+        instruction: {
+          type: 'string',
+          description: 'The natural-language instruction the agent was given.',
+        },
+        contractId: {
+          type: 'string',
+          description: 'The SimulationContract id the mutation must respect.',
+        },
         scene: { type: 'string', description: 'The scene source the instruction was applied to.' },
         bound: {
           type: 'object',
-          description: 'The declared SimulationContract property bound: { trait, property, min, max, current }.',
+          description:
+            'The declared SimulationContract property bound: { trait, property, min, max, current }.',
           properties: {
             trait: { type: 'string' },
             property: { type: 'string' },
@@ -61,7 +68,8 @@ export const computeTraceTools: Tool[] = [
         },
         mutation: {
           type: 'object',
-          description: 'The proposed mutation: { tool, objectName, traitName, propertyKey, propertyValue }.',
+          description:
+            'The proposed mutation: { tool, objectName, traitName, propertyKey, propertyValue }.',
           properties: {
             tool: { type: 'string' },
             objectName: { type: 'string' },
@@ -71,11 +79,29 @@ export const computeTraceTools: Tool[] = [
           },
           required: ['tool', 'objectName', 'traitName', 'propertyKey', 'propertyValue'],
         },
-        expectedValue: { type: 'number', description: 'Ground-truth expected value the gate grades against.' },
-        opLabel: { type: 'string', description: 'Op family label (e.g. "midpoint", "plus30") — corpus-balance signal. Optional.' },
-        caelReceiptRef: { type: 'string', description: 'Reference to the CAEL receipt anchoring this grade. Optional.' },
+        expectedValue: {
+          type: 'number',
+          description: 'Ground-truth expected value the gate grades against.',
+        },
+        opLabel: {
+          type: 'string',
+          description:
+            'Op family label (e.g. "midpoint", "plus30") — corpus-balance signal. Optional.',
+        },
+        caelReceiptRef: {
+          type: 'string',
+          description: 'Reference to the CAEL receipt anchoring this grade. Optional.',
+        },
       },
-      required: ['sessionId', 'instruction', 'contractId', 'scene', 'bound', 'mutation', 'expectedValue'],
+      required: [
+        'sessionId',
+        'instruction',
+        'contractId',
+        'scene',
+        'bound',
+        'mutation',
+        'expectedValue',
+      ],
     },
   },
   {
@@ -98,7 +124,8 @@ export const computeTraceTools: Tool[] = [
         },
         passedOnly: {
           type: 'boolean',
-          description: 'Keep only rows whose mutation PASSED the SimContract (default true — positive supervision).',
+          description:
+            'Keep only rows whose mutation PASSED the SimContract (default true — positive supervision).',
         },
       },
     },
@@ -116,7 +143,7 @@ export const computeTraceTools: Tool[] = [
 
 export async function handleComputeTraceTool(
   name: string,
-  args: Record<string, unknown>,
+  args: Record<string, unknown>
 ): Promise<unknown | null> {
   switch (name) {
     case 'holo_grade_compute_mutation': {

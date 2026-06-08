@@ -127,14 +127,20 @@ describe('InferencePriorityScheduler', () => {
       priority: 'low',
       input: null,
       createdAt: 0,
-      execute: () => { order.push('low'); return 'low'; },
+      execute: () => {
+        order.push('low');
+        return 'low';
+      },
     });
     scheduler.schedule({
       id: 'critical',
       priority: 'critical',
       input: null,
       createdAt: 1,
-      execute: () => { order.push('critical'); return 'critical'; },
+      execute: () => {
+        order.push('critical');
+        return 'critical';
+      },
     });
 
     scheduler.tick();

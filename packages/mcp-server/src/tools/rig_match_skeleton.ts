@@ -157,11 +157,7 @@ export function handleRigMatchSkeleton(input: RigMatchSkeletonInput): RigMatchSk
 
   // Build RefusableDiff from the top candidate
   const topCandidate = candidates[0];
-  const refusableDiff = buildRefusableDiff(
-    boneNames,
-    topCandidate,
-    refusalThreshold
-  );
+  const refusableDiff = buildRefusableDiff(boneNames, topCandidate, refusalThreshold);
 
   const summary = buildSummary(boneNames, topCandidate, refusableDiff);
 
@@ -219,9 +215,7 @@ function buildRefusableDiff(
   const mappedCanonicals = new Set(
     entries.filter((e) => e.canonicalBone !== null).map((e) => e.canonicalBone!)
   );
-  const missingCanonicalBones = HUMANOID_BONE_NAMES.filter(
-    (b) => !mappedCanonicals.has(b)
-  );
+  const missingCanonicalBones = HUMANOID_BONE_NAMES.filter((b) => !mappedCanonicals.has(b));
 
   const refusedCount = entries.filter((e) => e.refused).length;
 
@@ -254,9 +248,10 @@ function buildSummary(
 
   if (topCandidate.unmatchedBones.length > 0) {
     const preview = topCandidate.unmatchedBones.slice(0, 5).join(', ');
-    const more = topCandidate.unmatchedBones.length > 5
-      ? ` … +${topCandidate.unmatchedBones.length - 5} more`
-      : '';
+    const more =
+      topCandidate.unmatchedBones.length > 5
+        ? ` … +${topCandidate.unmatchedBones.length - 5} more`
+        : '';
     lines.push(`Unmatched: ${preview}${more}`);
   }
 
@@ -270,9 +265,7 @@ function buildSummary(
   if (diff.autoApprovable) {
     lines.push('RefusableDiff: AUTO-APPROVABLE — all mappings above confidence threshold.');
   } else {
-    lines.push(
-      `RefusableDiff: ${diff.refusedCount} mapping(s) REFUSED — require human review.`
-    );
+    lines.push(`RefusableDiff: ${diff.refusedCount} mapping(s) REFUSED — require human review.`);
   }
 
   return lines.join('\n');

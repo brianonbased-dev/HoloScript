@@ -51,10 +51,10 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
   const ollamaStatus = useAIStore((s) => s.ollamaStatus);
   const metadata = useSceneStore((s) => s.metadata);
   const showLabs = isStudioLabNavigationEnabled();
-  
+
   const studioMode = useEditorStore((s) => s.studioMode);
   const isExpert = studioMode === 'expert';
-  
+
   const _showBenchmark = useEditorStore((s) => s.showBenchmark);
   const showPerfOverlay = useEditorStore((s) => s.showPerfOverlay);
   const setShowBenchmark = useEditorStore((s) => s.setShowBenchmark);
@@ -111,11 +111,7 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
   const shouldShowViewControl = useCallback(
     (viewId: StudioViewId) => {
       const surfaceClass = getStudioView(viewId).surfaceClass;
-      return (
-        showLabs ||
-        surfaceClass === 'core-workbench' ||
-        surfaceClass === 'account-workspace'
-      );
+      return showLabs || surfaceClass === 'core-workbench' || surfaceClass === 'account-workspace';
     },
     [showLabs]
   );
@@ -242,9 +238,15 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
         </Link>
       )}
 
-      <UserMenu 
-        setShowSetupWizard={(v) => { if(typeof setShowSetupWizard !== 'function') logger.warn('Missing setSetupWizardOpen'); else setShowSetupWizard(v); }}
-        setShowImportWizard={(v) => { if(typeof setShowImportWizard !== 'function') logger.warn('Missing setImportWizardOpen'); else setShowImportWizard(v); }}
+      <UserMenu
+        setShowSetupWizard={(v) => {
+          if (typeof setShowSetupWizard !== 'function') logger.warn('Missing setSetupWizardOpen');
+          else setShowSetupWizard(v);
+        }}
+        setShowImportWizard={(v) => {
+          if (typeof setShowImportWizard !== 'function') logger.warn('Missing setImportWizardOpen');
+          else setShowImportWizard(v);
+        }}
       />
 
       {showLabs && (
@@ -563,20 +565,20 @@ export function Toolbar({ setShowSetupWizard, setShowImportWizard }: ToolbarProp
               )
                 .filter(({ viewId }) => viewId === null || shouldShowViewControl(viewId))
                 .map(({ label, icon: Icon, active, onClick, color }) => (
-                <button
-                  key={label}
-                  onClick={onClick}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium transition ${
-                    active
-                      ? `bg-${color}-500/20 text-${color}-300`
-                      : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {label}
-                  {active && <span className="ml-auto text-[8px] opacity-60">ON</span>}
-                </button>
-              ))}
+                  <button
+                    key={label}
+                    onClick={onClick}
+                    className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium transition ${
+                      active
+                        ? `bg-${color}-500/20 text-${color}-300`
+                        : 'text-studio-muted hover:bg-studio-surface hover:text-studio-text'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {label}
+                    {active && <span className="ml-auto text-[8px] opacity-60">ON</span>}
+                  </button>
+                ))}
             </div>
           </div>
         )}
@@ -661,15 +663,22 @@ function WalletChip() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetch('/api/holomesh/agent/self').then((r) => r.ok ? r.json() : null).catch(() => null),
-      fetch('/api/holomesh/dashboard/earnings').then((r) => r.ok ? r.json() : null).catch(() => null),
+      fetch('/api/holomesh/agent/self')
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+      fetch('/api/holomesh/dashboard/earnings')
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
     ]).then(([self, earnings]) => {
       if (cancelled) return;
       if (self?.agent?.walletAddress) setAddress(self.agent.walletAddress as string);
-      if (earnings?.totalRevenueCents != null) setBalanceUsd((earnings.totalRevenueCents as number) / 100);
+      if (earnings?.totalRevenueCents != null)
+        setBalanceUsd((earnings.totalRevenueCents as number) / 100);
       setLoading(false);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading || (!address && balanceUsd === null)) return null;
@@ -684,9 +693,7 @@ function WalletChip() {
     >
       <Wallet className="h-3.5 w-3.5 shrink-0" />
       {shortAddr && <span className="hidden lg:inline font-mono">{shortAddr}</span>}
-      {balanceUsd !== null && (
-        <span className="text-emerald-400">${balanceUsd.toFixed(2)}</span>
-      )}
+      {balanceUsd !== null && <span className="text-emerald-400">${balanceUsd.toFixed(2)}</span>}
     </a>
   );
 }

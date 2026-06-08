@@ -37,7 +37,10 @@ describe('buildLotusPetalGeometryData', () => {
 
   it('petalUv spans the full [0,1]×[0,1] parametric domain', () => {
     const g = buildLotusPetalGeometryData({ segmentsU: 10, segmentsV: 10 });
-    let uMin = 1, uMax = 0, vMin = 1, vMax = 0;
+    let uMin = 1,
+      uMax = 0,
+      vMin = 1,
+      vMax = 0;
     for (let i = 0; i < g.vertexCount; i += 1) {
       uMin = Math.min(uMin, g.petalUv[i * 2]);
       uMax = Math.max(uMax, g.petalUv[i * 2]);
@@ -66,7 +69,8 @@ describe('buildLotusPetalGeometryData', () => {
     const cols = 21;
     const halfWidthAtRow = (j: number): number => {
       let maxX = 0;
-      for (let i = 0; i < cols; i += 1) maxX = Math.max(maxX, Math.abs(g.positions[(j * cols + i) * 3]));
+      for (let i = 0; i < cols; i += 1)
+        maxX = Math.max(maxX, Math.abs(g.positions[(j * cols + i) * 3]));
       return maxX;
     };
     const base = halfWidthAtRow(0);
@@ -90,7 +94,8 @@ describe('buildLotusPetalGeometryData', () => {
 
   it('is non-flat (the cup + ridge give real z relief)', () => {
     const g = buildLotusPetalGeometryData({ cup: 0.34, ridge: 0.12 });
-    let zMin = Infinity, zMax = -Infinity;
+    let zMin = Infinity,
+      zMax = -Infinity;
     for (let i = 0; i < g.vertexCount; i += 1) {
       zMin = Math.min(zMin, g.positions[i * 3 + 2]);
       zMax = Math.max(zMax, g.positions[i * 3 + 2]);

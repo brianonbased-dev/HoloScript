@@ -22,7 +22,12 @@ describe('assimp-plugin stub', () => {
   });
 
   it('preserves format tag', () => {
-    const r = importAssimp({ source_format: 'obj', root: { name: 'x' }, mesh_count: 0, material_count: 0 });
+    const r = importAssimp({
+      source_format: 'obj',
+      root: { name: 'x' },
+      mesh_count: 0,
+      material_count: 0,
+    });
     expect(r.format).toBe('obj');
   });
 });

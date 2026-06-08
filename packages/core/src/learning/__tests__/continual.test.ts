@@ -27,7 +27,7 @@ function makeTraitDescriptor(
   name: string,
   embedding: number[],
   version = 'v1.0.0',
-  category = 'interaction',
+  category = 'interaction'
 ): TraitDescriptor {
   return { name, embedding: makeEmbedding(embedding), version, category };
 }

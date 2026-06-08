@@ -164,9 +164,13 @@ describe('emit — dispatch pipeline', () => {
 
   it('local handler errors are caught — does not crash emit', async () => {
     const ctx = makeCtx();
-    onEvent('oops', vi.fn(() => {
-      throw new Error('handler crashed');
-    }) as EventHandler, ctx);
+    onEvent(
+      'oops',
+      vi.fn(() => {
+        throw new Error('handler crashed');
+      }) as EventHandler,
+      ctx
+    );
     await expect(emit('oops', null, ctx)).resolves.not.toThrow();
   });
 });
@@ -237,7 +241,7 @@ describe('emit — TECHNIQUE (b) fingerprint invariants — Q2 empirical proof',
           localHandlers: localFires,
           globalBus: 'evt',
           stateMachine: 'msg-1',
-        }),
+        })
       );
     }
 
@@ -270,7 +274,7 @@ describe('emit — TECHNIQUE (b) fingerprint invariants — Q2 empirical proof',
           localHandlers: [],
           globalBus: 'evt',
           stateMachine: null,
-        }),
+        })
       );
     }
 
@@ -293,7 +297,7 @@ describe('emit — TECHNIQUE (b) fingerprint invariants — Q2 empirical proof',
           localHandlers: fires,
           globalBus: 'e',
           stateMachine: null,
-        }),
+        })
       );
     }
 
@@ -316,7 +320,7 @@ describe('emit — TECHNIQUE (b) fingerprint invariants — Q2 empirical proof',
           localHandlers: [],
           globalBus: 'e',
           stateMachine: smFires[0] || null,
-        }),
+        })
       );
     }
 
@@ -380,16 +384,17 @@ describe('triggerUIEvent', () => {
 describe('forwardToTraits', () => {
   it('no-op when orb has no directives', async () => {
     const ctx = makeCtx();
-    await expect(
-      forwardToTraits({ name: 'o' }, 'evt', null, ctx),
-    ).resolves.not.toThrow();
+    await expect(forwardToTraits({ name: 'o' }, 'evt', null, ctx)).resolves.not.toThrow();
   });
 
   it('skips non-trait directives', async () => {
     const traitHandler = { onEvent: vi.fn() };
     const ctx = makeCtx({
       traitHandlers: new Map([
-        ['physics' as VRTraitName, traitHandler as unknown as TraitHandler<Record<string, unknown>>],
+        [
+          'physics' as VRTraitName,
+          traitHandler as unknown as TraitHandler<Record<string, unknown>>,
+        ],
       ]),
     });
     await forwardToTraits(
@@ -401,7 +406,7 @@ describe('forwardToTraits', () => {
       },
       'evt',
       null,
-      ctx,
+      ctx
     );
     expect(traitHandler.onEvent).not.toHaveBeenCalled();
   });
@@ -410,9 +415,12 @@ describe('forwardToTraits', () => {
     const onEventMock = vi.fn();
     const ctx = makeCtx({
       traitHandlers: new Map([
-        ['physics' as VRTraitName, {
-          onEvent: onEventMock,
-        } as unknown as TraitHandler<Record<string, unknown>>],
+        [
+          'physics' as VRTraitName,
+          {
+            onEvent: onEventMock,
+          } as unknown as TraitHandler<Record<string, unknown>>,
+        ],
       ]),
     });
     await forwardToTraits(
@@ -421,7 +429,7 @@ describe('forwardToTraits', () => {
       },
       'collide',
       { other: 'enemy' },
-      ctx,
+      ctx
     );
     expect(onEventMock).toHaveBeenCalled();
     const [, config, , traitEvent] = onEventMock.mock.calls[0];
@@ -434,12 +442,7 @@ describe('forwardToTraits', () => {
       traitHandlers: new Map(), // empty
     });
     await expect(
-      forwardToTraits(
-        { directives: [{ type: 'trait', name: 'unknown' }] },
-        'e',
-        null,
-        ctx,
-      ),
+      forwardToTraits({ directives: [{ type: 'trait', name: 'unknown' }] }, 'e', null, ctx)
     ).resolves.not.toThrow();
   });
 });

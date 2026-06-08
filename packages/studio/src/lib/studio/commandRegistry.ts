@@ -6,10 +6,7 @@ import {
   type StudioViewCommandId,
   type StudioViewId,
 } from './viewRegistry';
-import {
-  usePanelVisibilityStore,
-  type PanelVisibilityState,
-} from '../stores/panelVisibilityStore';
+import { usePanelVisibilityStore, type PanelVisibilityState } from '../stores/panelVisibilityStore';
 
 export type StudioCommandCategory = 'view';
 

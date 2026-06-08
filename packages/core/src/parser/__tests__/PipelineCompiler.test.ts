@@ -60,8 +60,10 @@ describe('PipelineCompiler (parser target)', () => {
     const result = compilePipelineSourceToNode(source);
     expect(result.success).toBe(true);
     expect(result.code).toContain("const { Client } = await import('pg');");
-    expect(result.code).toContain('await DbIn_client.query(interpolate(`SELECT id, stock FROM inventory`));');
-    expect(result.code).toContain("INSERT INTO inventory_events (payload) VALUES ($1)");
+    expect(result.code).toContain(
+      'await DbIn_client.query(interpolate(`SELECT id, stock FROM inventory`));'
+    );
+    expect(result.code).toContain('INSERT INTO inventory_events (payload) VALUES ($1)');
   });
 
   it('compiles mcp sink with JSON-RPC tool call payload', () => {
@@ -83,7 +85,7 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.success).toBe(true);
     expect(result.code).toContain("const ToolOut_url = ToolOut_base.replace(/\\/$/, '') + '/mcp';");
     expect(result.code).toContain("method: 'tools/call'");
-    expect(result.code).toContain("name: \"knowledge_write\"");
+    expect(result.code).toContain('name: "knowledge_write"');
     expect(result.code).toContain('await ToolOut_invoke(records);');
     expect(result.code).not.toContain(
       `${GENERATED_TASK_COMMENT} mcp sink ${OLD_UNSUPPORTED_SUFFIX}`
@@ -106,9 +108,11 @@ describe('PipelineCompiler (parser target)', () => {
 
     const result = compilePipelineSourceToNode(source);
     expect(result.success).toBe(true);
-    expect(result.code).toContain("const PullData_url = PullData_base.replace(/\\/$/, '') + '/mcp';");
+    expect(result.code).toContain(
+      "const PullData_url = PullData_base.replace(/\\/$/, '') + '/mcp';"
+    );
     expect(result.code).toContain("method: 'tools/call'");
-    expect(result.code).toContain("name: \"knowledge_query\"");
+    expect(result.code).toContain('name: "knowledge_query"');
     expect(result.code).toContain('const PullData_content = PullData_json?.result?.content;');
     expect(result.code).not.toContain(
       `${GENERATED_TASK_COMMENT} mcp source ${OLD_UNSUPPORTED_SUFFIX}`
@@ -138,8 +142,10 @@ describe('PipelineCompiler (parser target)', () => {
     expect(result.success).toBe(true);
     expect(result.code).toContain("const Enrich_url = Enrich_base.replace(/\\/$/, '') + '/mcp';");
     expect(result.code).toContain("method: 'tools/call'");
-    expect(result.code).toContain("name: \"knowledge_enrich\"");
-    expect(result.code).toContain('arguments: { ...{"namespace":"products","limit":5}, records, output },');
+    expect(result.code).toContain('name: "knowledge_enrich"');
+    expect(result.code).toContain(
+      'arguments: { ...{"namespace":"products","limit":5}, records, output },'
+    );
     expect(result.code).toContain('const Enrich_content = Enrich_json?.result?.content;');
     expect(result.code).not.toContain(
       `${GENERATED_TASK_COMMENT} mcp transform ${OLD_UNSUPPORTED_SUFFIX}`
@@ -159,9 +165,9 @@ describe('PipelineCompiler (parser target)', () => {
 
     const result = compilePipelineSourceToNode(source);
     expect(result.success).toBe(true);
-    expect(result.code).toContain("const Events_resp = await fetch(interpolate(");
-    expect(result.code).toContain("EVENTS_URL:-https://api.example.com/events");
-    expect(result.code).toContain("const Events_text = await Events_resp.text();");
+    expect(result.code).toContain('const Events_resp = await fetch(interpolate(');
+    expect(result.code).toContain('EVENTS_URL:-https://api.example.com/events');
+    expect(result.code).toContain('const Events_text = await Events_resp.text();');
     expect(result.code).toContain("data: '");
     expect(result.code).not.toContain(
       `${GENERATED_TASK_COMMENT} stream source ${OLD_UNSUPPORTED_SUFFIX}`
@@ -188,13 +194,13 @@ describe('PipelineCompiler (parser target)', () => {
 
     const result = compilePipelineSourceToNode(source);
     expect(result.success).toBe(true);
-    expect(result.code).toContain("const Summarise_model = interpolate(`gpt-4o-mini`)");
-    expect(result.code).toContain("const Summarise_apiKey = process.env.OPENAI_API_KEY");
-    expect(result.code).toContain("/chat/completions");
+    expect(result.code).toContain('const Summarise_model = interpolate(`gpt-4o-mini`)');
+    expect(result.code).toContain('const Summarise_apiKey = process.env.OPENAI_API_KEY');
+    expect(result.code).toContain('/chat/completions');
     expect(result.code).toContain('"Summarize: {{input}}"');
     expect(result.code).toContain('"title"');
     expect(result.code).toContain('"summary"');
-    expect(result.code).toContain("records = Summarise_results;");
+    expect(result.code).toContain('records = Summarise_results;');
     expect(result.code).not.toContain(
       `${GENERATED_TASK_COMMENT} llm transform ${OLD_UNSUPPORTED_SUFFIX}`
     );
@@ -218,11 +224,11 @@ describe('PipelineCompiler (parser target)', () => {
 
     const result = compilePipelineSourceToNode(source);
     expect(result.success).toBe(true);
-    expect(result.code).toContain("const Enrich_results = [];");
-    expect(result.code).toContain("for (const r of records)");
-    expect(result.code).toContain("ENRICH_API:-https://api.example.com/enrich");
+    expect(result.code).toContain('const Enrich_results = [];');
+    expect(result.code).toContain('for (const r of records)');
+    expect(result.code).toContain('ENRICH_API:-https://api.example.com/enrich');
     expect(result.code).toContain("method: 'POST'");
-    expect(result.code).toContain("records = Enrich_results;");
+    expect(result.code).toContain('records = Enrich_results;');
     expect(result.code).not.toContain(
       `${GENERATED_TASK_COMMENT} http transform ${OLD_UNSUPPORTED_SUFFIX}`
     );

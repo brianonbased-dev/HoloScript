@@ -31,7 +31,7 @@ function makeDynamic(id = 'b1', x = 0, y = 0, z = 0): RigidBody {
   return new RigidBody({
     id,
     type: 'dynamic',
-    transform: { position: [x, y, z], rotation: [0, 0, 0, 1 ] },
+    transform: { position: [x, y, z], rotation: [0, 0, 0, 1] },
     shape: { type: 'sphere', radius: 0.5 },
     mass: 2,
   } as IRigidBodyConfig);
@@ -41,7 +41,7 @@ function makeStatic(id = 'wall'): RigidBody {
   return new RigidBody({
     id,
     type: 'static',
-    transform: { position: [0, 0, 0], rotation: [0, 0, 0, 1 ] },
+    transform: { position: [0, 0, 0], rotation: [0, 0, 0, 1] },
     shape: { type: 'box', halfExtents: [1, 1, 1] },
   } as IRigidBodyConfig);
 }
@@ -302,11 +302,7 @@ describe('Feature 2B: RaycastSystem â€” raycasting', () => {
   });
 
   it('layerMask 0 returns no hits', () => {
-    const hit = sys.raycast(
-      { origin: [-5, 0, 0], direction: [1, 0, 0] },
-      Infinity,
-      0
-    );
+    const hit = sys.raycast({ origin: [-5, 0, 0], direction: [1, 0, 0] }, Infinity, 0);
     expect(hit).toBeNull();
   });
 

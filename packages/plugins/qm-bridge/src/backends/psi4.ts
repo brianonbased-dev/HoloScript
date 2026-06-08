@@ -64,7 +64,7 @@ function generatePsi4Input(
   method: QmMethod,
   basis: string,
   task: string,
-  config: Psi4Config,
+  config: Psi4Config
 ): string {
   const charge = molecule.charge ?? 0;
   const mult = molecule.multiplicity ?? 1;
@@ -76,12 +76,12 @@ function generatePsi4Input(
   // Map our method names to Psi4 method strings
   const psi4MethodMap: Record<string, string> = {
     hf: 'scf',
-    dft: 'scf',       // DFT via Psi4 SCF with functional keyword
+    dft: 'scf', // DFT via Psi4 SCF with functional keyword
     mp2: 'mp2',
     ccsd: 'ccsd',
     'ccsd(t)': 'ccsd(t)',
-    b3lyp: 'scf',     // B3LYP is DFT
-    pbe0: 'scf',      // PBE0 is DFT
+    b3lyp: 'scf', // B3LYP is DFT
+    pbe0: 'scf', // PBE0 is DFT
   };
 
   const psi4Method = psi4MethodMap[method] ?? 'scf';
@@ -98,7 +98,7 @@ psi4.set_options({
     'MAXITER': ${config.maxScfIterations ?? 100},
     'E_CONVERGENCE': ${config.convergenceThreshold ?? 1e-6},
     'D_CONVERGENCE': ${config.convergenceThreshold ?? 1e-6}},
-    'MEMORY': '${(config.memoryMb ?? 4000)} MB',
+    'MEMORY': '${config.memoryMb ?? 4000} MB',
 ${config.numThreads ? `    'NUM_THREADS': ${config.numThreads},` : ''}
 })
 `;
@@ -243,7 +243,13 @@ export class Psi4Backend implements QmSolver {
 
   async computeEnergy(molecule: MoleculeSpec): Promise<QmEnergyResult> {
     const startTime = performance.now();
-    const input = generatePsi4Input(molecule, this.qmConfig.method, this.qmConfig.basis, 'energy', this.qmConfig as Psi4Config);
+    const input = generatePsi4Input(
+      molecule,
+      this.qmConfig.method,
+      this.qmConfig.basis,
+      'energy',
+      this.qmConfig as Psi4Config
+    );
     const raw = await this.runPsi4(input);
     const wallTime = (performance.now() - startTime) / 1000;
 
@@ -263,12 +269,18 @@ export class Psi4Backend implements QmSolver {
 
   async optimizeGeometry(molecule: MoleculeSpec): Promise<QmGeometryResult> {
     const startTime = performance.now();
-    const input = generatePsi4Input(molecule, this.qmConfig.method, this.qmConfig.basis, 'optimize', this.qmConfig as Psi4Config);
+    const input = generatePsi4Input(
+      molecule,
+      this.qmConfig.method,
+      this.qmConfig.basis,
+      'optimize',
+      this.qmConfig as Psi4Config
+    );
     const raw = await this.runPsi4(input);
     const wallTime = (performance.now() - startTime) / 1000;
 
     return {
-      molecule,  // In a real implementation, would parse optimized geometry from output
+      molecule, // In a real implementation, would parse optimized geometry from output
       totalEnergy: raw.total_energy ?? 0,
       converged: raw.converged ?? false,
       optimizationSteps: raw.optimization_steps ?? 0,
@@ -280,13 +292,19 @@ export class Psi4Backend implements QmSolver {
 
   async computeVibrations(molecule: MoleculeSpec): Promise<QmVibrationalResult> {
     const startTime = performance.now();
-    const input = generatePsi4Input(molecule, this.qmConfig.method, this.qmConfig.basis, 'frequency', this.qmConfig as Psi4Config);
+    const input = generatePsi4Input(
+      molecule,
+      this.qmConfig.method,
+      this.qmConfig.basis,
+      'frequency',
+      this.qmConfig as Psi4Config
+    );
     const raw = await this.runPsi4(input);
     const wallTime = (performance.now() - startTime) / 1000;
 
     return {
       frequencies: raw.frequencies ?? [],
-      intensities: [],  // Requires additional Psi4 properties
+      intensities: [], // Requires additional Psi4 properties
       reducedMasses: [],
       zeroPointEnergy: raw.zero_point_energy ?? 0,
       thermochemistry: {
@@ -301,7 +319,7 @@ export class Psi4Backend implements QmSolver {
 
   async computeChargeDensity(
     molecule: MoleculeSpec,
-    gridDimensions?: [number, number, number],
+    gridDimensions?: [number, number, number]
   ): Promise<QmChargeDensityResult> {
     requireCapability('psi4', 'molecular');
     const startTime = performance.now();
@@ -314,14 +332,18 @@ export class Psi4Backend implements QmSolver {
       gridDimensions: dims,
       gridOrigin: [0, 0, 0],
       gridSpacing: [0.1, 0.1, 0.1],
-      totalElectrons: molecule.atoms.reduce((sum, a) => sum + getAtomicNumber(a.symbol), 0) - (molecule.charge ?? 0),
+      totalElectrons:
+        molecule.atoms.reduce((sum, a) => sum + getAtomicNumber(a.symbol), 0) -
+        (molecule.charge ?? 0),
       solverConfig: this.qmConfig,
       wallTimeSeconds: wallTime,
     };
   }
 
   async computeBandStructure(): Promise<never> {
-    throw new Error('[qm-bridge] Psi4 does not support periodic/band structure calculations. Use quantum-espresso backend.');
+    throw new Error(
+      '[qm-bridge] Psi4 does not support periodic/band structure calculations. Use quantum-espresso backend.'
+    );
   }
 
   async computeDipoleMoment(molecule: MoleculeSpec): Promise<[number, number, number]> {
@@ -331,13 +353,21 @@ export class Psi4Backend implements QmSolver {
   }
 
   async computeDftMaterials(): Promise<never> {
-    throw new Error('[qm-bridge] Psi4 does not support periodic/materials DFT. Use quantum-espresso backend.');
+    throw new Error(
+      '[qm-bridge] Psi4 does not support periodic/materials DFT. Use quantum-espresso backend.'
+    );
   }
 
   async computeNmrSpectrum(molecule: MoleculeSpec): Promise<QmNmrResult> {
     requireCapability('psi4', 'nmrGiao');
     const startTime = performance.now();
-    const input = generatePsi4Input(molecule, this.qmConfig.method, this.qmConfig.basis, 'nmr', this.qmConfig as Psi4Config);
+    const input = generatePsi4Input(
+      molecule,
+      this.qmConfig.method,
+      this.qmConfig.basis,
+      'nmr',
+      this.qmConfig as Psi4Config
+    );
     const raw = await this.runPsi4(input);
     const wallTime = (performance.now() - startTime) / 1000;
 
@@ -347,8 +377,8 @@ export class Psi4Backend implements QmSolver {
       '13C': 184.133,
     };
 
-    const nucleusLabels = molecule.atoms.map((a) =>
-      `${getAtomicNumber(a.symbol) === 1 ? '1' : a.symbol}H`,
+    const nucleusLabels = molecule.atoms.map(
+      (a) => `${getAtomicNumber(a.symbol) === 1 ? '1' : a.symbol}H`
     );
 
     const shieldings = raw.shieldings ?? new Array<number>(molecule.atoms.length).fill(0);
@@ -368,13 +398,15 @@ export class Psi4Backend implements QmSolver {
   }
 
   async computeSemiEmpiricalEnergy(): Promise<never> {
-    throw new Error('[qm-bridge] Psi4 does not support semi-empirical methods. Use tblite backend.');
+    throw new Error(
+      '[qm-bridge] Psi4 does not support semi-empirical methods. Use tblite backend.'
+    );
   }
 
   async computeTransitionState(
     reactant: MoleculeSpec,
     product: MoleculeSpec,
-    numImages = 7,
+    numImages = 7
   ): Promise<QmTransitionStateResult> {
     requireCapability('psi4', 'transitionStates');
     const startTime = performance.now();
@@ -384,7 +416,9 @@ export class Psi4Backend implements QmSolver {
     const midpointAtoms = reactant.atoms.map((a, i) => {
       const productAtom = product.atoms[i];
       if (!productAtom) {
-        throw new Error('[qm-bridge] Reactant/product atom counts must match for transition state search.');
+        throw new Error(
+          '[qm-bridge] Reactant/product atom counts must match for transition state search.'
+        );
       }
       return {
         symbol: a.symbol,
@@ -399,10 +433,10 @@ export class Psi4Backend implements QmSolver {
 
     return {
       molecule: midpoint,
-      forwardBarrier: 0,  // Requires reactant energy + product energy
+      forwardBarrier: 0, // Requires reactant energy + product energy
       reverseBarrier: 0,
       transitionStateEnergy: energyResult.totalEnergy,
-      converged: false,  // NEB not implemented in stage 1
+      converged: false, // NEB not implemented in stage 1
       numImages,
       solverConfig: this.qmConfig,
       wallTimeSeconds: wallTime,
@@ -412,7 +446,7 @@ export class Psi4Backend implements QmSolver {
   async computeQmMm(
     qmRegion: MoleculeSpec,
     mmRegion: MoleculeSpec,
-    mmForceField = 'UFF',
+    mmForceField = 'UFF'
   ): Promise<QmEnergyResult> {
     requireCapability('psi4', 'qmMm');
     const startTime = performance.now();
@@ -468,7 +502,7 @@ export class Psi4Backend implements QmSolver {
   /** Mock result for testing without Psi4 installed. */
   private mockPsi4Result(_input: string): Psi4RawResult {
     return {
-      total_energy: -75.0 + Math.random() * 0.001,  // Typical water energy
+      total_energy: -75.0 + Math.random() * 0.001, // Typical water energy
       nuclear_repulsion_energy: 9.0,
       converged: true,
       scf_iterations: 8,
@@ -485,12 +519,53 @@ export class Psi4Backend implements QmSolver {
 
 /** Approximate atomic numbers for element symbols. */
 const ATOMIC_NUMBERS: Record<string, number> = {
-  H: 1, He: 2, Li: 3, Be: 4, B: 5, C: 6, N: 7, O: 8, F: 9, Ne: 10,
-  Na: 11, Mg: 12, Al: 13, Si: 14, P: 15, S: 16, Cl: 17, Ar: 18,
-  K: 19, Ca: 20, Sc: 21, Ti: 22, V: 23, Cr: 24, Mn: 25, Fe: 26,
-  Co: 27, Ni: 28, Cu: 29, Zn: 30, Ga: 31, Ge: 32, As: 33, Se: 34,
-  Br: 35, Kr: 36, Rb: 37, Sr: 38, Pd: 46, Ag: 47, Cd: 48, I: 53,
-  Pt: 78, Au: 79, Hg: 80, Pb: 82, Bi: 83,
+  H: 1,
+  He: 2,
+  Li: 3,
+  Be: 4,
+  B: 5,
+  C: 6,
+  N: 7,
+  O: 8,
+  F: 9,
+  Ne: 10,
+  Na: 11,
+  Mg: 12,
+  Al: 13,
+  Si: 14,
+  P: 15,
+  S: 16,
+  Cl: 17,
+  Ar: 18,
+  K: 19,
+  Ca: 20,
+  Sc: 21,
+  Ti: 22,
+  V: 23,
+  Cr: 24,
+  Mn: 25,
+  Fe: 26,
+  Co: 27,
+  Ni: 28,
+  Cu: 29,
+  Zn: 30,
+  Ga: 31,
+  Ge: 32,
+  As: 33,
+  Se: 34,
+  Br: 35,
+  Kr: 36,
+  Rb: 37,
+  Sr: 38,
+  Pd: 46,
+  Ag: 47,
+  Cd: 48,
+  I: 53,
+  Pt: 78,
+  Au: 79,
+  Hg: 80,
+  Pb: 82,
+  Bi: 83,
 };
 
 function getAtomicNumber(symbol: string): number {

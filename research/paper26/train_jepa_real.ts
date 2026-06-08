@@ -102,7 +102,11 @@ function computeSIGReg(z: Float32Array, numProjections: number, sigma: number): 
   return total / numProjections;
 }
 
-function computeTotalLoss(predicted: Float32Array, target: Float32Array, sigregWeight = 0.05): number {
+function computeTotalLoss(
+  predicted: Float32Array,
+  target: Float32Array,
+  sigregWeight = 0.05
+): number {
   let mse = 0;
   const dim = predicted.length;
   for (let k = 0; k < dim; k++) {
@@ -211,13 +215,13 @@ function loadLatestCheckpoint(runId: string): Paper26Checkpoint | null {
 
 async function main() {
   // Allow overriding the corpus for scaling experiments (Paper 26 P1)
-  const corpusArg = process.argv.find(a => a.startsWith('--corpus='));
+  const corpusArg = process.argv.find((a) => a.startsWith('--corpus='));
   const corpusDir = corpusArg
     ? corpusArg.split('=')[1]
     : path.join(process.cwd(), 'research/paper26/corpus/slice-001');
 
   const manifestPath = path.join(corpusDir, 'manifest.json');
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Array<{id: string}>;
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Array<{ id: string }>;
 
   // Scaled dimensions for this run (infrastructure now supports it via durable checkpoints)
   const LATENT_DIM = 16;
@@ -243,7 +247,11 @@ async function main() {
 
       // Use the real predictor.plan (action-conditioned)
       const stateStr = JSON.stringify({ obs, act });
-      const { action: chosen, predicted, confidence } = predictor.plan(stateStr, [JSON.stringify(act)]);
+      const {
+        action: chosen,
+        predicted,
+        confidence,
+      } = predictor.plan(stateStr, [JSON.stringify(act)]);
 
       // Proper latent target: embed the canonical next-state description using the
       // exact same deterministic embedding the JEPA stack uses at inference time.
@@ -330,7 +338,9 @@ async function main() {
   if (loadedCp) {
     const loadedDim = loadedCp.metadata.latentDim || 8;
     if (loadedDim !== LATENT_DIM) {
-      console.log(`[checkpoint] dimension mismatch (loaded ${loadedDim}, current ${LATENT_DIM}) — starting fresh run`);
+      console.log(
+        `[checkpoint] dimension mismatch (loaded ${loadedDim}, current ${LATENT_DIM}) — starting fresh run`
+      );
     } else {
       (trainedPredictor as any).setWeights({
         W1: arrayToFloat32(loadedCp.weights.W1),
@@ -344,7 +354,12 @@ async function main() {
     }
   }
 
-  function sgdStep(pred: JEPAPredictor, contextEmb: Float32Array, target: Float32Array, lr: number) {
+  function sgdStep(
+    pred: JEPAPredictor,
+    contextEmb: Float32Array,
+    target: Float32Array,
+    lr: number
+  ) {
     // Full forward to get hidden activations
     const { predicted, hidden } = (pred as any).forward(contextEmb, null);
 
@@ -355,7 +370,7 @@ async function main() {
     // Output gradient: dL/dy = 2*(y - t) / outDim  (MSE)
     const dOut = new Float32Array(outDim);
     for (let i = 0; i < outDim; i++) {
-      dOut[i] = 2 * (predicted[i] - target[i]) / outDim;
+      dOut[i] = (2 * (predicted[i] - target[i])) / outDim;
     }
 
     // --- Output layer gradients (W2, b2) ---
@@ -379,7 +394,7 @@ async function main() {
       for (let o = 0; o < outDim; o++) {
         g += dOut[o] * w2[o * hDim + h];
       }
-      dHidden[h] = g * (hidden[h] > 0 ? 1 : 0);   // ReLU derivative
+      dHidden[h] = g * (hidden[h] > 0 ? 1 : 0); // ReLU derivative
     }
 
     // --- Input layer gradients (W1, b1) ---
@@ -490,7 +505,7 @@ async function main() {
     baseline_curve: baselineCurve,
     trained_curve: trainedCurve,
     improvement_first_epoch_pct: Number(
-      ((baselineCurve[0] - trainedCurve[0]) / baselineCurve[0] * 100).toFixed(1)
+      (((baselineCurve[0] - trainedCurve[0]) / baselineCurve[0]) * 100).toFixed(1)
     ),
     verification: {
       avg_l2_error_on_real_latent_targets: Number(avgVerificationL2.toFixed(4)),
@@ -498,7 +513,8 @@ async function main() {
       pct_steps_within_tol: Number(pctWithinTol.toFixed(1)),
       verification_steps: verificationSteps,
     },
-    notes: 'First run with real latent targets (textToEmbedding of next ground-truth state) + full backprop + post-training verification pass. This is the first honest "prediction error vs real latent targets + % within tolerance" slice on solver data.',
+    notes:
+      'First run with real latent targets (textToEmbedding of next ground-truth state) + full backprop + post-training verification pass. This is the first honest "prediction error vs real latent targets + % within tolerance" slice on solver data.',
   };
 
   const outDir = path.join(process.cwd(), 'research/paper26/results');
@@ -510,7 +526,11 @@ async function main() {
 
   fs.writeFileSync(
     path.join(outDir, 'loss-curve-slice-001.json'),
-    JSON.stringify({ baseline_curve: baselineCurve, trained_curve: trainedCurve, epochs: 5 }, null, 2)
+    JSON.stringify(
+      { baseline_curve: baselineCurve, trained_curve: trainedCurve, epochs: 5 },
+      null,
+      2
+    )
   );
 
   console.log('=== Paper 26 Real JEPA Training Slice ===');

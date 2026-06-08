@@ -54,58 +54,49 @@ import type {
 // =============================================================================
 
 /** Provider status in the matrix. */
-export type LLMProviderStatus =
-  | 'live'
-  | 'partial'
-  | 'teammate'
-  | 'runtime'
-  | 'planned';
+export type LLMProviderStatus = 'live' | 'partial' | 'teammate' | 'runtime' | 'planned';
 
 /** Per-model lifecycle status. */
-export type LLMModelStatus =
-  | 'active'
-  | 'active-recommended'
-  | 'active-legacy'
-  | 'deprecated';
+export type LLMModelStatus = 'active' | 'active-recommended' | 'active-legacy' | 'deprecated';
 
 /** Top-level block: matrix-wide metadata. */
 export interface LLMCapabilityMatrixMeta {
   version: string;
-  generatedAt: string;            // ISO date
-  noMonopolyRule: boolean;        // founder ruling 2026-05-06
-  refreshCadenceDays: number;     // F.014 / W.GOLD.341 staleness gate
+  generatedAt: string; // ISO date
+  noMonopolyRule: boolean; // founder ruling 2026-05-06
+  refreshCadenceDays: number; // F.014 / W.GOLD.341 staleness gate
 }
 
 /** Per-rule: one provider in the matrix. */
 export interface LLMProvider {
-  name: string;                   // "anthropic", "openai", "xai", etc.
+  name: string; // "anthropic", "openai", "xai", etc.
   vendorUrl: string;
-  authEnv: string;                // "ANTHROPIC_API_KEY"
+  authEnv: string; // "ANTHROPIC_API_KEY"
   baseUrl?: string;
   docsRoot?: string;
   status: LLMProviderStatus;
-  uniqueSuperpower: string;       // one-line summary (matrix row)
-  lastVerified: string;           // YYYY-MM-DD
+  uniqueSuperpower: string; // one-line summary (matrix row)
+  lastVerified: string; // YYYY-MM-DD
 }
 
 /** Per-rule: one model entry. */
 export interface LLMModel {
-  provider: string;               // FK to @llm_provider.name
-  friendlyName: string;           // "Opus 4.7"
-  modelId: string;                // "claude-opus-4-7"
-  contextWindow: number;          // tokens
-  maxOutput: number;              // tokens
-  inputPerMTok: number;           // USD
-  outputPerMTok: number;          // USD
+  provider: string; // FK to @llm_provider.name
+  friendlyName: string; // "Opus 4.7"
+  modelId: string; // "claude-opus-4-7"
+  contextWindow: number; // tokens
+  maxOutput: number; // tokens
+  inputPerMTok: number; // USD
+  outputPerMTok: number; // USD
   status: LLMModelStatus;
-  lastVerified: string;           // YYYY-MM-DD
-  retiresOn?: string;             // YYYY-MM-DD (deprecated models)
+  lastVerified: string; // YYYY-MM-DD
+  retiresOn?: string; // YYYY-MM-DD (deprecated models)
 }
 
 /** Per-rule: one capability flag. */
 export interface LLMCapability {
-  provider: string;               // FK to @llm_provider.name
-  name: string;                   // "streaming", "vision", "highResVision"
+  provider: string; // FK to @llm_provider.name
+  name: string; // "streaming", "vision", "highResVision"
   value: boolean | string | number;
   notes?: string;
   lastVerified?: string;
@@ -117,15 +108,15 @@ export interface LLMCapability {
  * `req.provider.<name>.*` namespace targets.
  */
 export interface LLMSuperpower {
-  provider: string;               // FK to @llm_provider.name
-  name: string;                   // "Adaptive thinking", "Live web search"
+  provider: string; // FK to @llm_provider.name
+  name: string; // "Adaptive thinking", "Live web search"
   description: string;
-  betaHeader?: string;            // e.g. "task-budgets-2026-03-13"
+  betaHeader?: string; // e.g. "task-budgets-2026-03-13"
 }
 
 /** Per-rule: routing recommendation block. */
 export interface LLMRoutingRecommendation {
-  provider: string;               // FK to @llm_provider.name
+  provider: string; // FK to @llm_provider.name
   useWhen: string[];
   avoidWhen: string[];
   defaultFor: string[];
@@ -141,7 +132,7 @@ export interface LLMHardDont {
   name: string;
   reason: string;
   alternative?: string;
-  appliesTo: string[];            // provider names or ["all-providers"]
+  appliesTo: string[]; // provider names or ["all-providers"]
 }
 
 /** Diagnostic surfaced from validation. */
@@ -198,9 +189,18 @@ export interface LLMCapabilityCompilerOptions {
  * list in ContextCompiler.ts.
  */
 const VENDOR_AS_SUBSTRATE_PATTERNS: ReadonlyArray<{ pattern: RegExp; rule: string }> = [
-  { pattern: /managed_agents_replaces_holomesh/i, rule: 'W.GOLD.002 - vendor framework cannot replace HoloMesh' },
-  { pattern: /vector_store_as_source_of_truth/i, rule: 'docs/LLM_CAPABILITIES.md hard-don\'ts - vendor stores never source-of-truth' },
-  { pattern: /api_keys_as_identity/i, rule: 'W.GOLD.004 - wallets are identity, API keys are sessions' },
+  {
+    pattern: /managed_agents_replaces_holomesh/i,
+    rule: 'W.GOLD.002 - vendor framework cannot replace HoloMesh',
+  },
+  {
+    pattern: /vector_store_as_source_of_truth/i,
+    rule: "docs/LLM_CAPABILITIES.md hard-don'ts - vendor stores never source-of-truth",
+  },
+  {
+    pattern: /api_keys_as_identity/i,
+    rule: 'W.GOLD.004 - wallets are identity, API keys are sessions',
+  },
 ];
 
 /**
@@ -271,11 +271,7 @@ const ADAPTER_OPTIONAL_BOOLEAN_FIELDS = ADAPTER_CAPABILITY_FIELD_ORDER.filter(
 );
 
 type AdapterCapabilityField = (typeof ADAPTER_CAPABILITY_FIELD_ORDER)[number];
-type TsCapabilityValue =
-  | boolean
-  | number
-  | string
-  | { input: number; output: number };
+type TsCapabilityValue = boolean | number | string | { input: number; output: number };
 
 // =============================================================================
 // COMPILER
@@ -407,7 +403,7 @@ export class LLMProviderCapabilitiesCompiler extends CompilerBase {
           authEnv: stringField(cfg, 'auth_env', ''),
           baseUrl: stringFieldOrUndef(cfg, 'base_url'),
           docsRoot: stringFieldOrUndef(cfg, 'docs_root'),
-          status: (stringField(cfg, 'status', 'planned') as LLMProviderStatus),
+          status: stringField(cfg, 'status', 'planned') as LLMProviderStatus,
           uniqueSuperpower: stringField(cfg, 'unique_superpower', ''),
           lastVerified: stringField(cfg, 'last_verified', ''),
         });
@@ -421,7 +417,7 @@ export class LLMProviderCapabilitiesCompiler extends CompilerBase {
           maxOutput: numberField(cfg, 'max_output', 0, 'llm_model.max_output'),
           inputPerMTok: numberField(cfg, 'input_per_mtok', 0, 'llm_model.input_per_mtok'),
           outputPerMTok: numberField(cfg, 'output_per_mtok', 0, 'llm_model.output_per_mtok'),
-          status: (stringField(cfg, 'status', 'active') as LLMModelStatus),
+          status: stringField(cfg, 'status', 'active') as LLMModelStatus,
           lastVerified: stringField(cfg, 'last_verified', ''),
           retiresOn: stringFieldOrUndef(cfg, 'retires_on'),
         });
@@ -492,11 +488,7 @@ export class LLMProviderCapabilitiesCompiler extends CompilerBase {
 
     // BLOCK: orphan FK references (model/capability/superpower/routing
     // pointing at a provider that doesn't exist in the matrix)
-    const orphanCheck = (
-      providerName: string,
-      fromTrait: string,
-      fromName: string
-    ): void => {
+    const orphanCheck = (providerName: string, fromTrait: string, fromName: string): void => {
       if (providerName && !providerNames.has(providerName)) {
         throw new LLMCapabilityCompileError(
           `@${fromTrait} "${fromName}" references provider "${providerName}" ` +
@@ -730,9 +722,7 @@ export class LLMProviderCapabilitiesCompiler extends CompilerBase {
       }
 
       // Routing
-      const routing = ast.routingRecommendations.filter(
-        (r) => r.provider === provider.name
-      );
+      const routing = ast.routingRecommendations.filter((r) => r.provider === provider.name);
       if (routing.length > 0) {
         lines.push('### Routing recommendations');
         lines.push('');
@@ -960,10 +950,7 @@ function stringField(cfg: Record<string, HoloValue>, key: string, fallback: stri
   return fallback;
 }
 
-function stringFieldOrUndef(
-  cfg: Record<string, HoloValue>,
-  key: string
-): string | undefined {
+function stringFieldOrUndef(cfg: Record<string, HoloValue>, key: string): string | undefined {
   const v = cfg[key];
   return typeof v === 'string' ? v : undefined;
 }
@@ -986,11 +973,7 @@ function numberField(
   return fallback;
 }
 
-function boolField(
-  cfg: Record<string, HoloValue>,
-  key: string,
-  fallback: boolean
-): boolean {
+function boolField(cfg: Record<string, HoloValue>, key: string, fallback: boolean): boolean {
   const v = cfg[key];
   return typeof v === 'boolean' ? v : fallback;
 }
@@ -1047,8 +1030,14 @@ function buildAdapterCapabilities(
   }
 
   const entries = new Map<AdapterCapabilityField, TsCapabilityValue>();
-  entries.set('contextWindow', numericCapability(byName, 'contextWindow') ?? maxModelNumber(models, 'contextWindow'));
-  entries.set('maxOutput', numericCapability(byName, 'maxOutput') ?? maxModelNumber(models, 'maxOutput'));
+  entries.set(
+    'contextWindow',
+    numericCapability(byName, 'contextWindow') ?? maxModelNumber(models, 'contextWindow')
+  );
+  entries.set(
+    'maxOutput',
+    numericCapability(byName, 'maxOutput') ?? maxModelNumber(models, 'maxOutput')
+  );
 
   const costPerMillion = uniformCostPerMillion(models);
   if (costPerMillion) {
@@ -1072,32 +1061,21 @@ function buildAdapterCapabilities(
   return entries;
 }
 
-function numericCapability(
-  byName: Map<string, LLMCapability>,
-  field: string
-): number | undefined {
+function numericCapability(byName: Map<string, LLMCapability>, field: string): number | undefined {
   const value = byName.get(field)?.value;
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
-function booleanCapability(
-  byName: Map<string, LLMCapability>,
-  field: string
-): boolean | undefined {
+function booleanCapability(byName: Map<string, LLMCapability>, field: string): boolean | undefined {
   const value = byName.get(field)?.value;
   return typeof value === 'boolean' ? value : undefined;
 }
 
-function maxModelNumber(
-  models: LLMModel[],
-  field: 'contextWindow' | 'maxOutput'
-): number {
+function maxModelNumber(models: LLMModel[], field: 'contextWindow' | 'maxOutput'): number {
   return Math.max(0, ...models.map((model) => model[field]).filter(Number.isFinite));
 }
 
-function uniformCostPerMillion(
-  models: LLMModel[]
-): { input: number; output: number } | undefined {
+function uniformCostPerMillion(models: LLMModel[]): { input: number; output: number } | undefined {
   const pricedModels = models.filter(
     (model) =>
       Number.isFinite(model.inputPerMTok) &&
@@ -1108,12 +1086,9 @@ function uniformCostPerMillion(
   const first = pricedModels[0];
   const allSame = pricedModels.every(
     (model) =>
-      model.inputPerMTok === first.inputPerMTok &&
-      model.outputPerMTok === first.outputPerMTok
+      model.inputPerMTok === first.inputPerMTok && model.outputPerMTok === first.outputPerMTok
   );
-  return allSame
-    ? { input: first.inputPerMTok, output: first.outputPerMTok }
-    : undefined;
+  return allSame ? { input: first.inputPerMTok, output: first.outputPerMTok } : undefined;
 }
 
 function formatTsCapabilityValue(value: TsCapabilityValue | undefined): string {
@@ -1128,7 +1103,12 @@ function formatTsNumber(value: number): string {
   if (!Number.isFinite(value)) return '0';
   if (!Number.isInteger(value) || Math.abs(value) < 1000) return String(value);
   const sign = value < 0 ? '-' : '';
-  return sign + Math.abs(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '_');
+  return (
+    sign +
+    Math.abs(value)
+      .toString()
+      .replace(/\B(?=(\d{3})+(?!\d))/g, '_')
+  );
 }
 
 function capabilityValueMap(

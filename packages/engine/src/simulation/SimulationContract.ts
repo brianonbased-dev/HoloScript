@@ -152,8 +152,8 @@ export const DEFAULT_SCALE_ENVELOPES: Record<SimulationScale, ScaleEnvelope> = {
     tolerance: 1e-6,
     replayAllowed: true,
     vvCriteria: {
-      convergence: 1e-6,    // SCF convergence threshold (Hartree)
-      energy_drift: 1e-8,  // Max total energy drift per step
+      convergence: 1e-6, // SCF convergence threshold (Hartree)
+      energy_drift: 1e-8, // Max total energy drift per step
     },
     projectionsTo: {
       atomistic: 'Born-Oppenheimer extraction of forces + partial charges',
@@ -167,8 +167,8 @@ export const DEFAULT_SCALE_ENVELOPES: Record<SimulationScale, ScaleEnvelope> = {
     tolerance: 1e-4,
     replayAllowed: true,
     vvCriteria: {
-      convergence: 1e-4,    // MD force convergence (eV/Å)
-      energy_drift: 1e-5,  // Max energy drift per ps
+      convergence: 1e-4, // MD force convergence (eV/Å)
+      energy_drift: 1e-5, // Max energy drift per ps
     },
     projectionsTo: {
       mesoscopic: 'coarse-graining atom groups → beads',
@@ -181,8 +181,8 @@ export const DEFAULT_SCALE_ENVELOPES: Record<SimulationScale, ScaleEnvelope> = {
     tolerance: 1e-3,
     replayAllowed: true,
     vvCriteria: {
-      convergence: 1e-3,    // DPD force convergence
-      energy_drift: 1e-4,  // Per timestep
+      convergence: 1e-3, // DPD force convergence
+      energy_drift: 1e-4, // Per timestep
     },
     projectionsTo: {
       continuum: 'coarse-grained field averaging',
@@ -194,9 +194,9 @@ export const DEFAULT_SCALE_ENVELOPES: Record<SimulationScale, ScaleEnvelope> = {
     tolerance: 1e-2,
     replayAllowed: true,
     vvCriteria: {
-      convergence: 1e-2,             // FEM residual convergence
-      grid_convergence_index: 1.5,    // GCI threshold
-      energy_drift: 1e-3,            // Max energy drift per step
+      convergence: 1e-2, // FEM residual convergence
+      grid_convergence_index: 1.5, // GCI threshold
+      energy_drift: 1e-3, // Max energy drift per step
     },
     projectionsTo: {
       'empirical-surrogate': 'training data from FEM/CFD fields',
@@ -204,13 +204,13 @@ export const DEFAULT_SCALE_ENVELOPES: Record<SimulationScale, ScaleEnvelope> = {
   },
   'empirical-surrogate': {
     scale: 'empirical-surrogate',
-    tolerance: 5e-2,  // 5% — learned surrogates are inherently approximate
+    tolerance: 5e-2, // 5% — learned surrogates are inherently approximate
     replayAllowed: true,
     vvCriteria: {
-      convergence: 5e-2,          // Prediction error tolerance
-      held_out_rmse: 1e-2,       // Max RMSE on held-out test set
+      convergence: 5e-2, // Prediction error tolerance
+      held_out_rmse: 1e-2, // Max RMSE on held-out test set
     },
-    projectionsTo: {},  // Surrogates don't project to coarser scales
+    projectionsTo: {}, // Surrogates don't project to coarser scales
   },
 };
 
@@ -234,7 +234,7 @@ export const DEFAULT_SCALE_ENVELOPES: Record<SimulationScale, ScaleEnvelope> = {
 export function acceptsCrossScale(
   sourceScale: SimulationScale,
   targetScale: SimulationScale,
-  fieldTolerance: number,
+  fieldTolerance: number
 ): { accepted: boolean; diagnostic?: string } {
   const sourceEnvelope = DEFAULT_SCALE_ENVELOPES[sourceScale];
   const targetEnvelope = DEFAULT_SCALE_ENVELOPES[targetScale];
@@ -261,7 +261,8 @@ export function acceptsCrossScale(
   if (!sourceEnvelope.projectionsTo[targetScale]) {
     return {
       accepted: false,
-      diagnostic: `No projection from ${sourceScale} to ${targetScale}. ` +
+      diagnostic:
+        `No projection from ${sourceScale} to ${targetScale}. ` +
         `Available projections: ${Object.keys(sourceEnvelope.projectionsTo).join(', ') || 'none'}`,
     };
   }
@@ -307,22 +308,22 @@ export const SCALE_ORDER: Record<SimulationScale, number> = {
  * observables to the coarsest common scale before applying the acceptance
  * envelope.
  */
-export function coarsestCommonScale(
-  a: SimulationScale,
-  b: SimulationScale,
-): SimulationScale {
+export function coarsestCommonScale(a: SimulationScale, b: SimulationScale): SimulationScale {
   // The coarsest common scale is the one with the higher order number
   // that both can project to.
   const orderA = SCALE_ORDER[a];
   const orderB = SCALE_ORDER[b];
   const maxOrder = Math.max(orderA, orderB);
-  const targetScale = (Object.entries(SCALE_ORDER) as [SimulationScale, number][])
-    .find(([, order]) => order === maxOrder)![0];
+  const targetScale = (Object.entries(SCALE_ORDER) as [SimulationScale, number][]).find(
+    ([, order]) => order === maxOrder
+  )![0];
 
   // Verify both can project to this scale (directly or transitively)
   // If the coarser scale can't be reached, fall back to the coarser of the two
-  const aCanProject = a === targetScale || DEFAULT_SCALE_ENVELOPES[a].projectionsTo[targetScale] !== undefined;
-  const bCanProject = b === targetScale || DEFAULT_SCALE_ENVELOPES[b].projectionsTo[targetScale] !== undefined;
+  const aCanProject =
+    a === targetScale || DEFAULT_SCALE_ENVELOPES[a].projectionsTo[targetScale] !== undefined;
+  const bCanProject =
+    b === targetScale || DEFAULT_SCALE_ENVELOPES[b].projectionsTo[targetScale] !== undefined;
 
   if (aCanProject && bCanProject) {
     return targetScale;
@@ -640,25 +641,40 @@ export interface ReceiptContinuation {
  */
 export function verifyContinuation(
   continuation: ReceiptContinuation,
-  prior: { provenance: SimulationProvenance; receiptHash: string },
+  prior: { provenance: SimulationProvenance; receiptHash: string }
 ): { valid: boolean; reason?: string } {
   if (prior.provenance.verified !== true) {
-    return { valid: false, reason: 'prior run is not contract-verified; cannot continue from an unverified receipt' };
+    return {
+      valid: false,
+      reason: 'prior run is not contract-verified; cannot continue from an unverified receipt',
+    };
   }
-  if (typeof prior.provenance.terminalStateDigest !== 'string' || prior.provenance.terminalStateDigest.length === 0) {
-    return { valid: false, reason: 'prior provenance has no terminalStateDigest; nothing to seed from' };
+  if (
+    typeof prior.provenance.terminalStateDigest !== 'string' ||
+    prior.provenance.terminalStateDigest.length === 0
+  ) {
+    return {
+      valid: false,
+      reason: 'prior provenance has no terminalStateDigest; nothing to seed from',
+    };
   }
   if (continuation.priorReceiptHash !== prior.receiptHash) {
     return { valid: false, reason: 'priorReceiptHash does not match the prior receipt hash' };
   }
   if (continuation.priorContractId !== prior.provenance.contractId) {
-    return { valid: false, reason: 'priorContractId does not match the prior provenance contractId' };
+    return {
+      valid: false,
+      reason: 'priorContractId does not match the prior provenance contractId',
+    };
   }
   if (continuation.priorRunId !== prior.provenance.runId) {
     return { valid: false, reason: 'priorRunId does not match the prior provenance runId' };
   }
   if (continuation.seedStateDigest !== prior.provenance.terminalStateDigest) {
-    return { valid: false, reason: 'seedStateDigest does not match the prior run terminalStateDigest' };
+    return {
+      valid: false,
+      reason: 'seedStateDigest does not match the prior run terminalStateDigest',
+    };
   }
   return { valid: true };
 }
@@ -713,9 +729,12 @@ export interface ContinuationLink {
  * the multi-run counterpart to {@link verifyContinuation} (which checks one
  * receipt-hash-anchored link).
  */
-export function verifyContinuationChain(
-  provenances: readonly SimulationProvenance[],
-): { valid: boolean; verifiedCarryOver: boolean; brokenAt?: number; diagnostic?: string } {
+export function verifyContinuationChain(provenances: readonly SimulationProvenance[]): {
+  valid: boolean;
+  verifiedCarryOver: boolean;
+  brokenAt?: number;
+  diagnostic?: string;
+} {
   let verifiedCarryOver = true;
   for (let i = 1; i < provenances.length; i++) {
     const run = provenances[i];
@@ -739,7 +758,10 @@ export function verifyContinuationChain(
           `but the actual predecessor is runId=${prior.runId}/contractId=${prior.contractId}`,
       };
     }
-    if (typeof prior.finalStateDigest !== 'string' || link.seedStateDigest !== prior.finalStateDigest) {
+    if (
+      typeof prior.finalStateDigest !== 'string' ||
+      link.seedStateDigest !== prior.finalStateDigest
+    ) {
       return {
         valid: false,
         verifiedCarryOver: false,
@@ -930,7 +952,7 @@ export interface ContractConfig {
  */
 function buildSubgridAttestationSync(
   params: SubgridParams,
-  hashMode: HashMode,
+  hashMode: HashMode
 ): SubgridAttestation {
   const canonicalForm = canonicalizeSubgridParams(params);
   if (hashMode === 'fnv1a') {
@@ -1024,7 +1046,7 @@ export async function computeAdapterFingerprint(info: AdapterInfo): Promise<stri
  */
 export function validateMeshSanity(
   vertices: Float64Array | Float32Array | undefined,
-  elements: Uint32Array | undefined,
+  elements: Uint32Array | undefined
 ): ContractViolation[] {
   if (!vertices || !elements) return [];
 
@@ -1093,7 +1115,11 @@ export function validateMeshSanity(
   }
 
   // SEC-03 extension: call the semantic physics layer (Jacobian sign etc.)
-  const physicsViolations = checkJacobianSign(vertices, elements, inferElementType({} as any, vertices, elements));
+  const physicsViolations = checkJacobianSign(
+    vertices,
+    elements,
+    inferElementType({} as any, vertices, elements)
+  );
   out.push(...physicsViolations);
 
   return out;
@@ -1123,17 +1149,28 @@ export function checkJacobianSign(
     if (i0 >= n || i1 >= n || i2 >= n) continue;
 
     // For tri3/tet4 first three nodes give two edges; for tet we use the fourth for volume sign
-    const x0 = vertices[i0 * 3], y0 = vertices[i0 * 3 + 1], z0 = vertices[i0 * 3 + 2];
-    const dx1 = vertices[i1 * 3] - x0, dy1 = vertices[i1 * 3 + 1] - y0, dz1 = vertices[i1 * 3 + 2] - z0;
-    const dx2 = vertices[i2 * 3] - x0, dy2 = vertices[i2 * 3 + 1] - y0, dz2 = vertices[i2 * 3 + 2] - z0;
+    const x0 = vertices[i0 * 3],
+      y0 = vertices[i0 * 3 + 1],
+      z0 = vertices[i0 * 3 + 2];
+    const dx1 = vertices[i1 * 3] - x0,
+      dy1 = vertices[i1 * 3 + 1] - y0,
+      dz1 = vertices[i1 * 3 + 2] - z0;
+    const dx2 = vertices[i2 * 3] - x0,
+      dy2 = vertices[i2 * 3 + 1] - y0,
+      dz2 = vertices[i2 * 3 + 2] - z0;
 
     // 2D cross for tri, 3D scalar triple for tet volume sign
     let sign = dx1 * dy2 - dy1 * dx2; // default 2D
     if (elementType === 'tet4' && e + 3 < elements.length) {
       const i3 = elements[e + 3];
       if (i3 < n) {
-        const dx3 = vertices[i3 * 3] - x0, dy3 = vertices[i3 * 3 + 1] - y0, dz3 = vertices[i3 * 3 + 2] - z0;
-        sign = dx1 * (dy2 * dz3 - dz2 * dy3) - dy1 * (dx2 * dz3 - dz2 * dx3) + dz1 * (dx2 * dy3 - dy2 * dx3);
+        const dx3 = vertices[i3 * 3] - x0,
+          dy3 = vertices[i3 * 3 + 1] - y0,
+          dz3 = vertices[i3 * 3 + 2] - z0;
+        sign =
+          dx1 * (dy2 * dz3 - dz2 * dy3) -
+          dy1 * (dx2 * dz3 - dz2 * dx3) +
+          dz1 * (dx2 * dy3 - dy2 * dx3);
       }
     }
     if (sign < 0) {
@@ -1159,7 +1196,7 @@ export function checkJacobianSign(
 function inferElementType(
   config: Record<string, unknown>,
   vertices: Float64Array | Float32Array,
-  elements: Uint32Array,
+  elements: Uint32Array
 ): 'tet4' | 'tri3' | 'unknown' {
   const explicit = config.elementType;
   if (typeof explicit === 'string') {
@@ -1205,7 +1242,7 @@ function findConfigNumber(obj: Record<string, unknown>, key: string): number | u
 
 function checkTet4Jacobian(
   vertices: Float64Array | Float32Array,
-  elements: Uint32Array,
+  elements: Uint32Array
 ): ContractViolation[] {
   const out: ContractViolation[] = [];
   const numNodes = Math.floor(vertices.length / 3);
@@ -1218,14 +1255,28 @@ function checkTet4Jacobian(
     const i3 = elements[e * 4 + 3];
     if (i0 >= numNodes || i1 >= numNodes || i2 >= numNodes || i3 >= numNodes) continue;
 
-    const x0 = vertices[i0 * 3], y0 = vertices[i0 * 3 + 1], z0 = vertices[i0 * 3 + 2];
-    const x1 = vertices[i1 * 3], y1 = vertices[i1 * 3 + 1], z1 = vertices[i1 * 3 + 2];
-    const x2 = vertices[i2 * 3], y2 = vertices[i2 * 3 + 1], z2 = vertices[i2 * 3 + 2];
-    const x3 = vertices[i3 * 3], y3 = vertices[i3 * 3 + 1], z3 = vertices[i3 * 3 + 2];
+    const x0 = vertices[i0 * 3],
+      y0 = vertices[i0 * 3 + 1],
+      z0 = vertices[i0 * 3 + 2];
+    const x1 = vertices[i1 * 3],
+      y1 = vertices[i1 * 3 + 1],
+      z1 = vertices[i1 * 3 + 2];
+    const x2 = vertices[i2 * 3],
+      y2 = vertices[i2 * 3 + 1],
+      z2 = vertices[i2 * 3 + 2];
+    const x3 = vertices[i3 * 3],
+      y3 = vertices[i3 * 3 + 1],
+      z3 = vertices[i3 * 3 + 2];
 
-    const dx1 = x1 - x0, dy1 = y1 - y0, dz1 = z1 - z0;
-    const dx2 = x2 - x0, dy2 = y2 - y0, dz2 = z2 - z0;
-    const dx3 = x3 - x0, dy3 = y3 - y0, dz3 = z3 - z0;
+    const dx1 = x1 - x0,
+      dy1 = y1 - y0,
+      dz1 = z1 - z0;
+    const dx2 = x2 - x0,
+      dy2 = y2 - y0,
+      dz2 = z2 - z0;
+    const dx3 = x3 - x0,
+      dy3 = y3 - y0,
+      dz3 = z3 - z0;
 
     const cx = dy2 * dz3 - dz2 * dy3;
     const cy = dz2 * dx3 - dx2 * dz3;
@@ -1249,7 +1300,7 @@ function checkTet4Jacobian(
 
 function checkTet4Quality(
   vertices: Float64Array | Float32Array,
-  elements: Uint32Array,
+  elements: Uint32Array
 ): ContractViolation[] {
   const out: ContractViolation[] = [];
   const numNodes = Math.floor(vertices.length / 3);
@@ -1257,12 +1308,7 @@ function checkTet4Quality(
   const EDGE_RATIO_THRESHOLD = 100;
 
   for (let e = 0; e < numElements; e++) {
-    const idx = [
-      elements[e * 4],
-      elements[e * 4 + 1],
-      elements[e * 4 + 2],
-      elements[e * 4 + 3],
-    ];
+    const idx = [elements[e * 4], elements[e * 4 + 1], elements[e * 4 + 2], elements[e * 4 + 3]];
     if (idx.some((i) => i >= numNodes)) continue;
 
     // Gather corner coordinates
@@ -1273,7 +1319,12 @@ function checkTet4Quality(
     }));
 
     const edgePairs = [
-      [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],
+      [0, 1],
+      [0, 2],
+      [0, 3],
+      [1, 2],
+      [1, 3],
+      [2, 3],
     ];
     let minEdge = Infinity;
     let maxEdge = 0;
@@ -1319,7 +1370,7 @@ function checkTet4Quality(
 
 function checkTri3Jacobian(
   vertices: Float64Array | Float32Array,
-  elements: Uint32Array,
+  elements: Uint32Array
 ): ContractViolation[] {
   const out: ContractViolation[] = [];
   const numNodes = Math.floor(vertices.length / 3);
@@ -1331,12 +1382,22 @@ function checkTri3Jacobian(
     const i2 = elements[e * 3 + 2];
     if (i0 >= numNodes || i1 >= numNodes || i2 >= numNodes) continue;
 
-    const x0 = vertices[i0 * 3], y0 = vertices[i0 * 3 + 1], z0 = vertices[i0 * 3 + 2];
-    const x1 = vertices[i1 * 3], y1 = vertices[i1 * 3 + 1], z1 = vertices[i1 * 3 + 2];
-    const x2 = vertices[i2 * 3], y2 = vertices[i2 * 3 + 1], z2 = vertices[i2 * 3 + 2];
+    const x0 = vertices[i0 * 3],
+      y0 = vertices[i0 * 3 + 1],
+      z0 = vertices[i0 * 3 + 2];
+    const x1 = vertices[i1 * 3],
+      y1 = vertices[i1 * 3 + 1],
+      z1 = vertices[i1 * 3 + 2];
+    const x2 = vertices[i2 * 3],
+      y2 = vertices[i2 * 3 + 1],
+      z2 = vertices[i2 * 3 + 2];
 
-    const dx1 = x1 - x0, dy1 = y1 - y0, dz1 = z1 - z0;
-    const dx2 = x2 - x0, dy2 = y2 - y0, dz2 = z2 - z0;
+    const dx1 = x1 - x0,
+      dy1 = y1 - y0,
+      dz1 = z1 - z0;
+    const dx2 = x2 - x0,
+      dy2 = y2 - y0,
+      dz2 = z2 - z0;
 
     const cx = dy1 * dz2 - dz1 * dy2;
     const cy = dz1 * dx2 - dx1 * dz2;
@@ -1358,7 +1419,7 @@ function checkTri3Jacobian(
 
 function checkTri3Quality(
   vertices: Float64Array | Float32Array,
-  elements: Uint32Array,
+  elements: Uint32Array
 ): ContractViolation[] {
   const out: ContractViolation[] = [];
   const numNodes = Math.floor(vertices.length / 3);
@@ -1427,21 +1488,19 @@ function checkConstitutivePD(config: Record<string, unknown>): ContractViolation
       out.push({
         rule: 'physics-sanity',
         code: 'CAEL-PHYS-003',
-        message:
-          `Poisson's ratio ${nu} is outside the positive-definite range (-1, 0.5).`,
+        message: `Poisson's ratio ${nu} is outside the positive-definite range (-1, 0.5).`,
         severity: 'error',
       });
     }
   }
 
-  const k = findConfigNumber(config, 'conductivity') ?? findConfigNumber(config, 'thermal_conductivity');
+  const k =
+    findConfigNumber(config, 'conductivity') ?? findConfigNumber(config, 'thermal_conductivity');
   if (k !== undefined && k <= 0) {
     out.push({
       rule: 'physics-sanity',
       code: 'CAEL-PHYS-004',
-      message:
-        `Thermal conductivity ${k} is not positive. ` +
-        `Heat equation loses ellipticity.`,
+      message: `Thermal conductivity ${k} is not positive. ` + `Heat equation loses ellipticity.`,
       severity: 'error',
     });
   }
@@ -1462,7 +1521,7 @@ function checkConstitutivePD(config: Record<string, unknown>): ContractViolation
 export function validatePhysicsSanity(
   vertices: Float64Array | Float32Array | undefined,
   elements: Uint32Array | undefined,
-  config: Record<string, unknown>,
+  config: Record<string, unknown>
 ): ContractViolation[] {
   const out: ContractViolation[] = [];
 
@@ -1487,13 +1546,13 @@ export function validatePhysicsSanity(
 
 /** Known physical quantity ranges for sanity checking. */
 const UNIT_RANGES: Record<string, { min: number; max: number; unit: string }> = {
-  youngs_modulus: { min: 1e3, max: 2e12, unit: 'Pa' },         // rubber to diamond
+  youngs_modulus: { min: 1e3, max: 2e12, unit: 'Pa' }, // rubber to diamond
   poisson_ratio: { min: -1, max: 0.5, unit: 'dimensionless' },
   yield_strength: { min: 1e3, max: 5e9, unit: 'Pa' },
-  density: { min: 0.01, max: 25000, unit: 'kg/m³' },           // aerogel to osmium
-  speed_of_sound: { min: 100, max: 20000, unit: 'm/s' },       // gas to diamond
-  viscosity: { min: 1e-7, max: 1e6, unit: 'm²/s' },            // superfluid to pitch
-  conductivity: { min: 0.001, max: 500, unit: 'W/(m·K)' },     // aerogel to copper
+  density: { min: 0.01, max: 25000, unit: 'kg/m³' }, // aerogel to osmium
+  speed_of_sound: { min: 100, max: 20000, unit: 'm/s' }, // gas to diamond
+  viscosity: { min: 1e-7, max: 1e6, unit: 'm²/s' }, // superfluid to pitch
+  conductivity: { min: 0.001, max: 500, unit: 'W/(m·K)' }, // aerogel to copper
   permittivity: { min: 1, max: 1e5, unit: 'relative' },
   temperature: { min: 0, max: 1e6, unit: 'K' },
 };
@@ -1555,7 +1614,7 @@ export class DeterministicStepper {
 
   constructor(
     private fixedDt: number,
-    private maxAccumulator = 0.1,
+    private maxAccumulator = 0.1
   ) {}
 
   /**
@@ -1592,15 +1651,27 @@ export class DeterministicStepper {
     return steps;
   }
 
-  getStepCount(): number { return this.stepCount; }
-  getSimTime(): number { return this.simTime; }
+  getStepCount(): number {
+    return this.stepCount;
+  }
+  getSimTime(): number {
+    return this.simTime;
+  }
   /** The EXACT configured fixed timestep. Provenance records MUST use this
    *  rather than recomputing simTime/stepCount — the recompute carries a
    *  last-ULP fp error that makes serialized replay drift off the original
    *  dt (non-bit-identical replay). See createReplay(). */
-  getFixedDt(): number { return this.fixedDt; }
-  getAccumulator(): number { return this.accumulator; }
-  reset(): void { this.accumulator = 0; this.stepCount = 0; this.simTime = 0; }
+  getFixedDt(): number {
+    return this.fixedDt;
+  }
+  getAccumulator(): number {
+    return this.accumulator;
+  }
+  reset(): void {
+    this.accumulator = 0;
+    this.stepCount = 0;
+    this.simTime = 0;
+  }
 }
 
 // ── Contracted Simulation ────────────────────────────────────────────────────
@@ -1768,7 +1839,7 @@ export class ContractedSimulation {
   constructor(
     solver: SimSolver,
     config: Record<string, unknown>,
-    contractConfig: ContractConfig = {},
+    contractConfig: ContractConfig = {}
   ) {
     this.solver = solver;
 
@@ -1799,7 +1870,7 @@ export class ContractedSimulation {
       // still use the contract's declared scale. Log a warning.
       console.warn(
         `[SimulationContract] scaleEnvelope.scale (${this.scaleEnvelope.scale}) ` +
-        `does not match contract scale (${this.scale}). Using contract scale.`
+          `does not match contract scale (${this.scale}). Using contract scale.`
       );
     }
 
@@ -1828,7 +1899,7 @@ export class ContractedSimulation {
     if (contractConfig.subgridParams !== undefined) {
       this.subgridAttestation = buildSubgridAttestationSync(
         contractConfig.subgridParams,
-        this.hashMode,
+        this.hashMode
       );
     }
 
@@ -1839,7 +1910,7 @@ export class ContractedSimulation {
     this.contractId = this.composeContractId(
       this.geometryHash,
       contractConfig.adapterFingerprint,
-      this.subgridAttestation,
+      this.subgridAttestation
     );
 
     this.violations = [];
@@ -1923,7 +1994,9 @@ export class ContractedSimulation {
 
       // GPU output digest (paper-4 §5.2)
       if (gpuBacked) {
-        const gpuData = await (this.solver as import('./SimSolver').GpuBackedSolver).readbackOutput();
+        const gpuData = await (
+          this.solver as import('./SimSolver').GpuBackedSolver
+        ).readbackOutput();
         this.gpuOutputDigests.push(hashGpuOutput(gpuData, this.hashMode));
       }
 
@@ -2003,11 +2076,15 @@ export class ContractedSimulation {
   private composeContractId(
     geometryHash: string,
     adapterFingerprint: string | undefined,
-    subgridAttestation: SubgridAttestation | undefined,
+    subgridAttestation: SubgridAttestation | undefined
   ): string {
     // Backward-compat fast path: no optional identity inputs AND
     // default scale → pass geometryHash through unchanged.
-    if (adapterFingerprint === undefined && subgridAttestation === undefined && this.scale === 'continuum') {
+    if (
+      adapterFingerprint === undefined &&
+      subgridAttestation === undefined &&
+      this.scale === 'continuum'
+    ) {
       return geometryHash;
     }
     const canonical = [
@@ -2034,8 +2111,8 @@ export class ContractedSimulation {
     if (currentHash !== this.geometryHash) {
       throw new Error(
         `[SimulationContract] Geometry integrity violation: ` +
-        `expected ${this.geometryHash}, got ${currentHash}. ` +
-        `The mesh has been modified since contract construction.`
+          `expected ${this.geometryHash}, got ${currentHash}. ` +
+          `The mesh has been modified since contract construction.`
       );
     }
   }
@@ -2152,10 +2229,7 @@ export class ContractedSimulation {
 
   /** Verify that the current geometry matches the contracted hash
    *  under the contract's hash mode. */
-  verifyGeometry(
-    vertices: Float64Array | Float32Array,
-    elements: Uint32Array,
-  ): boolean {
+  verifyGeometry(vertices: Float64Array | Float32Array, elements: Uint32Array): boolean {
     const currentHash = hashGeometry(vertices, elements, this.hashMode);
     return currentHash === this.geometryHash;
   }
@@ -2184,7 +2258,7 @@ export class ContractedSimulation {
       /** Hash mode of the original run (createReplay records this). When
        *  omitted, falls back to the default mode for backward compatibility. */
       useCryptographicHash?: boolean;
-    },
+    }
   ): ContractedSimulation {
     // Reconstruct solver from config
     const solver = solverFactory(replay.config);
@@ -2202,8 +2276,8 @@ export class ContractedSimulation {
     if (contracted.geometryHash !== replay.geometryHash) {
       throw new Error(
         `[SimulationContract] Replay geometry mismatch: ` +
-        `expected ${replay.geometryHash}, got ${contracted.geometryHash}. ` +
-        `The config does not produce the same mesh as the original run.`
+          `expected ${replay.geometryHash}, got ${contracted.geometryHash}. ` +
+          `The config does not produce the same mesh as the original run.`
       );
     }
 
@@ -2250,7 +2324,7 @@ export class ContractedSimulation {
    */
   async generateWorldModelReceipt(
     jepaPredictor?: (state: PhysicsState) => LatentVector | Promise<LatentVector>,
-    stateEncoder?: (state: PhysicsState) => Float32Array,
+    stateEncoder?: (state: PhysicsState) => Float32Array
   ): Promise<WorldModelReceipt> {
     // 1. Capture current solver state as ground truth.
     //
@@ -2261,7 +2335,7 @@ export class ContractedSimulation {
     // acoustic pressure_grid, etc.) throw "field.slice is not a function".
     // This mirrors the canonical FieldData handling in hashes.ts.
     const capturedFields: Record<string, Float32Array | Float64Array> = {};
-    for (const fieldName of (this.solver.fieldNames ?? [])) {
+    for (const fieldName of this.solver.fieldNames ?? []) {
       const field = this.solver.getField(fieldName);
       if (field === null) continue;
       if (field instanceof Float64Array || field instanceof Float32Array) {

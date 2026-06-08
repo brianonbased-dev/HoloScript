@@ -329,15 +329,15 @@ Phase 2: Implementation Agents (2 agents) [████░░░░░░░░�
 
 ### Into HoloScript Roadmap
 
-| Agent Finding                  | Roadmap Impact                                                   |
-| ------------------------------ | ---------------------------------------------------------------- |
+| Agent Finding                  | Roadmap Impact                                                    |
+| ------------------------------ | ----------------------------------------------------------------- |
 | Agent 1 (Moderation)           | Validates v3.2 Zora Coins economics, informs Film3D safety budget |
-| Agent 2 (WASM Benchmarks)      | Proves v3.3 Spatial Export performance claims                    |
-| Agent 3 (Migration)            | Enables Unity→HoloScript converter tool by v3.2                  |
-| Agent 4 (Remix Economy)        | Designs v4.0 viral loops, revenue attribution model              |
-| Agent 5 (ECS Prototype)        | Validates v3.1 ECS architecture technical feasibility            |
-| Agent 6 (Networking)           | Confirms NetworkedTrait.ts is production-ready                   |
-| Agent 7 (Developer Interviews) | Validates competitive positioning, builds Founders pipeline      |
+| Agent 2 (WASM Benchmarks)      | Proves v3.3 Spatial Export performance claims                     |
+| Agent 3 (Migration)            | Enables Unity→HoloScript converter tool by v3.2                   |
+| Agent 4 (Remix Economy)        | Designs v4.0 viral loops, revenue attribution model               |
+| Agent 5 (ECS Prototype)        | Validates v3.1 ECS architecture technical feasibility             |
+| Agent 6 (Networking)           | Confirms NetworkedTrait.ts is production-ready                    |
+| Agent 7 (Developer Interviews) | Validates competitive positioning, builds Founders pipeline       |
 
 ### Into uAA2++ Research
 

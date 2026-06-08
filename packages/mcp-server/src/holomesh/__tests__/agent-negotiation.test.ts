@@ -128,7 +128,7 @@ describe('agent-negotiation: lifecycle', () => {
         responderAgentId: ALICE,
         responderAgentName: 'alice',
         request: { toolName: 't', capabilityQuery: 'q' },
-      }),
+      })
     ).toThrow(/distinct/);
   });
 
@@ -270,15 +270,24 @@ describe('agent-negotiation: lifecycle', () => {
   it('dispute path: from executed (skip-settle)', () => {
     const n = freshOpenNegotiation();
     advanceNegotiation({
-      negotiationId: n.id, action: 'quote', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { quote: VALID_QUOTE },
+      negotiationId: n.id,
+      action: 'quote',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { quote: VALID_QUOTE },
     });
     advanceNegotiation({
-      negotiationId: n.id, action: 'accept', authorAgentId: ALICE, signerAddress: ALICE_ADDR,
+      negotiationId: n.id,
+      action: 'accept',
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
     });
     advanceNegotiation({
-      negotiationId: n.id, action: 'execute', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { result: { ok: false } },
+      negotiationId: n.id,
+      action: 'execute',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { result: { ok: false } },
     });
     const r = advanceNegotiation({
       negotiationId: n.id,
@@ -294,15 +303,24 @@ describe('agent-negotiation: lifecycle', () => {
   it('dispute path: responder can dispute from executed', () => {
     const n = freshOpenNegotiation();
     advanceNegotiation({
-      negotiationId: n.id, action: 'quote', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { quote: VALID_QUOTE },
+      negotiationId: n.id,
+      action: 'quote',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { quote: VALID_QUOTE },
     });
     advanceNegotiation({
-      negotiationId: n.id, action: 'accept', authorAgentId: ALICE, signerAddress: ALICE_ADDR,
+      negotiationId: n.id,
+      action: 'accept',
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
     });
     advanceNegotiation({
-      negotiationId: n.id, action: 'execute', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { result: { ok: true } },
+      negotiationId: n.id,
+      action: 'execute',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { result: { ok: true } },
     });
     const r = advanceNegotiation({
       negotiationId: n.id,
@@ -319,23 +337,39 @@ describe('agent-negotiation: lifecycle', () => {
   it('dispute path: from settled', () => {
     const n = freshOpenNegotiation();
     advanceNegotiation({
-      negotiationId: n.id, action: 'quote', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { quote: VALID_QUOTE },
+      negotiationId: n.id,
+      action: 'quote',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { quote: VALID_QUOTE },
     });
     advanceNegotiation({
-      negotiationId: n.id, action: 'accept', authorAgentId: ALICE, signerAddress: ALICE_ADDR,
+      negotiationId: n.id,
+      action: 'accept',
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
     });
     advanceNegotiation({
-      negotiationId: n.id, action: 'execute', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { result: { ok: true } },
+      negotiationId: n.id,
+      action: 'execute',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { result: { ok: true } },
     });
     settleNegotiation({
-      negotiationId: n.id, authorAgentId: ALICE, signerAddress: ALICE_ADDR,
-      initiatorSignature: '0x1', initiatorAddress: ALICE_ADDR,
-      responderSignature: '0x2', responderAddress: BOB_ADDR,
+      negotiationId: n.id,
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
+      initiatorSignature: '0x1',
+      initiatorAddress: ALICE_ADDR,
+      responderSignature: '0x2',
+      responderAddress: BOB_ADDR,
     });
     const r = advanceNegotiation({
-      negotiationId: n.id, action: 'dispute', authorAgentId: ALICE, signerAddress: ALICE_ADDR,
+      negotiationId: n.id,
+      action: 'dispute',
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
       payload: { reason: 'reviewer flagged result post hoc' },
     });
     expect(r.ok).toBe(true);
@@ -351,7 +385,9 @@ describe('agent-negotiation: invariant enforcement', () => {
   it('rejects accept before a quote is on the table', () => {
     const n = freshOpenNegotiation();
     const r = advanceNegotiation({
-      negotiationId: n.id, action: 'accept', authorAgentId: ALICE,
+      negotiationId: n.id,
+      action: 'accept',
+      authorAgentId: ALICE,
     });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe('illegal-transition');
@@ -360,11 +396,17 @@ describe('agent-negotiation: invariant enforcement', () => {
   it('rejects responder accepting their own quote (wrong actor)', () => {
     const n = freshOpenNegotiation();
     advanceNegotiation({
-      negotiationId: n.id, action: 'quote', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { quote: VALID_QUOTE },
+      negotiationId: n.id,
+      action: 'quote',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { quote: VALID_QUOTE },
     });
     const r = advanceNegotiation({
-      negotiationId: n.id, action: 'accept', authorAgentId: BOB, signerAddress: BOB_ADDR,
+      negotiationId: n.id,
+      action: 'accept',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
     });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe('wrong-actor');
@@ -373,7 +415,9 @@ describe('agent-negotiation: invariant enforcement', () => {
   it('rejects third party (not a negotiation party)', () => {
     const n = freshOpenNegotiation();
     const r = advanceNegotiation({
-      negotiationId: n.id, action: 'quote', authorAgentId: CAROL,
+      negotiationId: n.id,
+      action: 'quote',
+      authorAgentId: CAROL,
     });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe('not-a-party');
@@ -381,10 +425,18 @@ describe('agent-negotiation: invariant enforcement', () => {
 
   it('rejects malformed quote (missing required fields)', () => {
     const n = freshOpenNegotiation();
-    const badQuote = { toolName: 'x', description: 'y', price: -1, currency: 'USD',
-      slaSeconds: 10, expiresAt: VALID_QUOTE.expiresAt } as any;
+    const badQuote = {
+      toolName: 'x',
+      description: 'y',
+      price: -1,
+      currency: 'USD',
+      slaSeconds: 10,
+      expiresAt: VALID_QUOTE.expiresAt,
+    } as any;
     const r = advanceNegotiation({
-      negotiationId: n.id, action: 'quote', authorAgentId: BOB,
+      negotiationId: n.id,
+      action: 'quote',
+      authorAgentId: BOB,
       payload: { quote: badQuote },
     });
     expect(r.ok).toBe(false);
@@ -394,17 +446,27 @@ describe('agent-negotiation: invariant enforcement', () => {
   it('rejects settle without prior execute', () => {
     const n = freshOpenNegotiation();
     advanceNegotiation({
-      negotiationId: n.id, action: 'quote', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { quote: VALID_QUOTE },
+      negotiationId: n.id,
+      action: 'quote',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { quote: VALID_QUOTE },
     });
     advanceNegotiation({
-      negotiationId: n.id, action: 'accept', authorAgentId: ALICE, signerAddress: ALICE_ADDR,
+      negotiationId: n.id,
+      action: 'accept',
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
     });
     // Note: no execute step — settle must fail.
     const r = settleNegotiation({
-      negotiationId: n.id, authorAgentId: ALICE, signerAddress: ALICE_ADDR,
-      initiatorSignature: '0x1', initiatorAddress: ALICE_ADDR,
-      responderSignature: '0x2', responderAddress: BOB_ADDR,
+      negotiationId: n.id,
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
+      initiatorSignature: '0x1',
+      initiatorAddress: ALICE_ADDR,
+      responderSignature: '0x2',
+      responderAddress: BOB_ADDR,
     });
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/execute/);
@@ -413,15 +475,24 @@ describe('agent-negotiation: invariant enforcement', () => {
   it('rejects partial settle without mutating a receipt', () => {
     const n = freshOpenNegotiation();
     advanceNegotiation({
-      negotiationId: n.id, action: 'quote', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { quote: VALID_QUOTE },
+      negotiationId: n.id,
+      action: 'quote',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { quote: VALID_QUOTE },
     });
     advanceNegotiation({
-      negotiationId: n.id, action: 'accept', authorAgentId: ALICE, signerAddress: ALICE_ADDR,
+      negotiationId: n.id,
+      action: 'accept',
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
     });
     advanceNegotiation({
-      negotiationId: n.id, action: 'execute', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { result: { ok: true } },
+      negotiationId: n.id,
+      action: 'execute',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { result: { ok: true } },
     });
 
     const r = advanceNegotiation({
@@ -445,7 +516,9 @@ describe('agent-negotiation: invariant enforcement', () => {
 
   it('returns not-found for unknown negotiationId', () => {
     const r = advanceNegotiation({
-      negotiationId: 'nego_does_not_exist', action: 'quote', authorAgentId: BOB,
+      negotiationId: 'nego_does_not_exist',
+      action: 'quote',
+      authorAgentId: BOB,
     });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe('not-found');
@@ -454,40 +527,66 @@ describe('agent-negotiation: invariant enforcement', () => {
   it('produces deterministic resultHash from execute payload', () => {
     const n1 = freshOpenNegotiation();
     advanceNegotiation({
-      negotiationId: n1.id, action: 'quote', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { quote: VALID_QUOTE },
+      negotiationId: n1.id,
+      action: 'quote',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { quote: VALID_QUOTE },
     });
     advanceNegotiation({
-      negotiationId: n1.id, action: 'accept', authorAgentId: ALICE, signerAddress: ALICE_ADDR,
+      negotiationId: n1.id,
+      action: 'accept',
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
     });
     advanceNegotiation({
-      negotiationId: n1.id, action: 'execute', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { result: { findings: 7, score: 0.91 } },
+      negotiationId: n1.id,
+      action: 'execute',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { result: { findings: 7, score: 0.91 } },
     });
     const r1 = settleNegotiation({
-      negotiationId: n1.id, authorAgentId: ALICE, signerAddress: ALICE_ADDR,
-      initiatorSignature: '0x1', initiatorAddress: ALICE_ADDR,
-      responderSignature: '0x2', responderAddress: BOB_ADDR,
+      negotiationId: n1.id,
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
+      initiatorSignature: '0x1',
+      initiatorAddress: ALICE_ADDR,
+      responderSignature: '0x2',
+      responderAddress: BOB_ADDR,
     });
 
     // Build a second identical negotiation and confirm hash determinism.
     _resetNegotiations();
     const n2 = freshOpenNegotiation();
     advanceNegotiation({
-      negotiationId: n2.id, action: 'quote', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { quote: VALID_QUOTE },
+      negotiationId: n2.id,
+      action: 'quote',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { quote: VALID_QUOTE },
     });
     advanceNegotiation({
-      negotiationId: n2.id, action: 'accept', authorAgentId: ALICE, signerAddress: ALICE_ADDR,
+      negotiationId: n2.id,
+      action: 'accept',
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
     });
     advanceNegotiation({
-      negotiationId: n2.id, action: 'execute', authorAgentId: BOB,
-      signerAddress: BOB_ADDR, payload: { result: { findings: 7, score: 0.91 } },
+      negotiationId: n2.id,
+      action: 'execute',
+      authorAgentId: BOB,
+      signerAddress: BOB_ADDR,
+      payload: { result: { findings: 7, score: 0.91 } },
     });
     const r2 = settleNegotiation({
-      negotiationId: n2.id, authorAgentId: ALICE, signerAddress: ALICE_ADDR,
-      initiatorSignature: '0x1', initiatorAddress: ALICE_ADDR,
-      responderSignature: '0x2', responderAddress: BOB_ADDR,
+      negotiationId: n2.id,
+      authorAgentId: ALICE,
+      signerAddress: ALICE_ADDR,
+      initiatorSignature: '0x1',
+      initiatorAddress: ALICE_ADDR,
+      responderSignature: '0x2',
+      responderAddress: BOB_ADDR,
     });
     expect(r1.negotiation?.receipt?.resultHash).toBe(r2.negotiation?.receipt?.resultHash);
   });

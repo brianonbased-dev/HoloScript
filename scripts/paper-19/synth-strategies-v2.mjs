@@ -15,21 +15,21 @@
  */
 
 const FOREIGN_NAMES = [
-  "Widget",
-  "Module",
-  "Probe",
-  "Beacon",
-  "Console",
-  "Panel",
-  "Anchor",
-  "Stub",
-  "Gizmo",
-  "Marker",
-  "Slot",
-  "Pad",
-  "Bracket",
-  "Cradle",
-  "Bay",
+  'Widget',
+  'Module',
+  'Probe',
+  'Beacon',
+  'Console',
+  'Panel',
+  'Anchor',
+  'Stub',
+  'Gizmo',
+  'Marker',
+  'Slot',
+  'Pad',
+  'Bracket',
+  'Cradle',
+  'Bay',
 ];
 
 function toTraitLine(t) {
@@ -59,9 +59,9 @@ function generatePermutations(traits, maxOut) {
   const out = [];
   let curr = sorted.slice();
   // Skip the identity if it equals input order.
-  const inputKey = traits.join("|");
+  const inputKey = traits.join('|');
   while (out.length < maxOut) {
-    const key = curr.join("|");
+    const key = curr.join('|');
     if (key !== inputKey) out.push(curr.slice());
     const nxt = nextPermutation(curr);
     if (!nxt) break;
@@ -86,7 +86,7 @@ function extractObjectHeader(snippet) {
 
 function rebuildSnippet(headerLine, traits, body) {
   // body lines stay as-is; trait list is injected right after header.
-  const traitLines = traits.map((t) => `  ${t}`).join("\n");
+  const traitLines = traits.map((t) => `  ${t}`).join('\n');
   return `${headerLine}\n${traitLines}\n${body}`;
 }
 
@@ -98,7 +98,7 @@ function extractBodyAfterTraits(snippet) {
   //     <body lines>
   //   }
   // Returns { headerLine, traitLines, body, originalTraitOrder }.
-  const lines = snippet.split("\n");
+  const lines = snippet.split('\n');
   const headerIdx = lines.findIndex((l) => /(?:object|template)\s+"[^"]+"\s*\{/.test(l));
   if (headerIdx === -1) return null;
   const headerLine = lines[headerIdx];
@@ -107,7 +107,7 @@ function extractBodyAfterTraits(snippet) {
   const traitOrder = [];
   while (i < lines.length) {
     const trimmed = lines[i].trim();
-    if (!trimmed.startsWith("@")) break;
+    if (!trimmed.startsWith('@')) break;
     traitLines.push(lines[i]);
     traitOrder.push(stripArgs(trimmed));
     i++;
@@ -118,7 +118,7 @@ function extractBodyAfterTraits(snippet) {
     traitLines,
     traitArgs: traitLines.map((l) => l.trim()), // preserves args
     traitOrder, // bare @trait order (no args)
-    body: bodyLines.join("\n"),
+    body: bodyLines.join('\n'),
   };
 }
 
@@ -130,7 +130,7 @@ export function traitPermutation(row) {
   // Generate up to 3 distinct permutations.
   const perms = generatePermutations(parsed.traitArgs, 3);
   return perms.map((permTraitArgs, i) => {
-    const newSnippet = `${parsed.headerLine}\n${permTraitArgs.map((l) => `  ${l}`).join("\n")}\n${parsed.body}`;
+    const newSnippet = `${parsed.headerLine}\n${permTraitArgs.map((l) => `  ${l}`).join('\n')}\n${parsed.body}`;
     // Gold traits update too — same set, different order.
     const newGold = permTraitArgs.map((a) => stripArgs(a));
     return {
@@ -138,7 +138,12 @@ export function traitPermutation(row) {
       id: `${row.id}-perm${i + 1}`,
       snippet: newSnippet,
       gold_traits: newGold,
-      provenance: { ...row.provenance, kind: "synth", synth_strategy: "trait-permutation", parent: row.id },
+      provenance: {
+        ...row.provenance,
+        kind: 'synth',
+        synth_strategy: 'trait-permutation',
+        parent: row.id,
+      },
     };
   });
 }
@@ -149,14 +154,19 @@ export function traitRemoval(row) {
   if (!parsed) return [];
   const newTraitArgs = parsed.traitArgs.slice(0, -1);
   const newGold = parsed.traitOrder.slice(0, -1);
-  const newSnippet = `${parsed.headerLine}\n${newTraitArgs.map((l) => `  ${l}`).join("\n")}\n${parsed.body}`;
+  const newSnippet = `${parsed.headerLine}\n${newTraitArgs.map((l) => `  ${l}`).join('\n')}\n${parsed.body}`;
   return [
     {
       ...row,
       id: `${row.id}-rem`,
       snippet: newSnippet,
       gold_traits: newGold,
-      provenance: { ...row.provenance, kind: "synth", synth_strategy: "trait-removal", parent: row.id },
+      provenance: {
+        ...row.provenance,
+        kind: 'synth',
+        synth_strategy: 'trait-removal',
+        parent: row.id,
+      },
     },
   ];
 }
@@ -165,15 +175,20 @@ export function propertyStripping(row) {
   const parsed = extractBodyAfterTraits(row.snippet);
   if (!parsed) return [];
   // Reduce body to just the closing brace (preserve indentation of last line).
-  const lastLine = parsed.body.split("\n").slice(-1)[0] || "}";
-  const newSnippet = `${parsed.headerLine}\n${parsed.traitArgs.map((l) => `  ${l}`).join("\n")}\n${lastLine}`;
+  const lastLine = parsed.body.split('\n').slice(-1)[0] || '}';
+  const newSnippet = `${parsed.headerLine}\n${parsed.traitArgs.map((l) => `  ${l}`).join('\n')}\n${lastLine}`;
   return [
     {
       ...row,
       id: `${row.id}-strip`,
       snippet: newSnippet,
       gold_traits: row.gold_traits,
-      provenance: { ...row.provenance, kind: "synth", synth_strategy: "property-stripping", parent: row.id },
+      provenance: {
+        ...row.provenance,
+        kind: 'synth',
+        synth_strategy: 'property-stripping',
+        parent: row.id,
+      },
     },
   ];
 }
@@ -191,7 +206,14 @@ export function crossDomainTransfer(row, seed) {
       id: `${row.id}-xdom`,
       snippet: newHeader,
       gold_traits: row.gold_traits,
-      provenance: { ...row.provenance, kind: "synth", synth_strategy: "cross-domain-transfer", parent: row.id, original_name: header.idLiteral, new_name: newName },
+      provenance: {
+        ...row.provenance,
+        kind: 'synth',
+        synth_strategy: 'cross-domain-transfer',
+        parent: row.id,
+        original_name: header.idLiteral,
+        new_name: newName,
+      },
     },
   ];
 }

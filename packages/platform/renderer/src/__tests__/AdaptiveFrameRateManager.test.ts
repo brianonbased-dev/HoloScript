@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  AdaptiveFrameRateManager,
-  DEFAULT_THRESHOLDS,
-} from '../AdaptiveFrameRateManager';
+import { AdaptiveFrameRateManager, DEFAULT_THRESHOLDS } from '../AdaptiveFrameRateManager';
 
 describe('AdaptiveFrameRateManager', () => {
   it('starts in cool state', () => {

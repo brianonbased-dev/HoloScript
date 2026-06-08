@@ -222,10 +222,27 @@ export { emotionalVoiceHandler, type EmotionalVoiceConfig } from './traits/Emoti
 
 export { userMonitorHandler, type UserMonitorConfig } from './traits/UserMonitorTrait';
 
-export { statHandler, type StatConfig, type StatModifier, type StatState } from './traits/StatTrait';
+export {
+  statHandler,
+  type StatConfig,
+  type StatModifier,
+  type StatState,
+} from './traits/StatTrait';
 export { luckHandler, type LuckConfig, type LuckState } from './traits/LuckTrait';
-export { encounterHandler, type EncounterConfig, type EncounterState, shouldFire } from './traits/EncounterTrait';
-export { dropTableHandler, type DropTableConfig, type DropTableEntry, type DropTableState, effectiveWeight, pickByWeight } from './traits/DropTableTrait';
+export {
+  encounterHandler,
+  type EncounterConfig,
+  type EncounterState,
+  shouldFire,
+} from './traits/EncounterTrait';
+export {
+  dropTableHandler,
+  type DropTableConfig,
+  type DropTableEntry,
+  type DropTableState,
+  effectiveWeight,
+  pickByWeight,
+} from './traits/DropTableTrait';
 
 // Core UI Components (Sprint 6)
 export { createUIButton, type UIButtonConfig } from './ui/UIButton';
@@ -243,9 +260,6 @@ export {
 } from './state/ReactiveState';
 
 // HoloScript+ State Sync & Networking (NEW - Phase 5)
-
-
-
 
 // Performance Monitoring (Phase 7)
 export { telemetry } from './monitoring/telemetry';
@@ -281,7 +295,7 @@ export {
   SumProductSemiring,
   strategyToSemiring,
   type Semiring,
-  type NumericStrategySemiringName
+  type NumericStrategySemiringName,
 } from './compiler/traits/Semiring';
 
 /** @deprecated Import from '@holoscript/core' barrel instead. */
@@ -298,7 +312,7 @@ export {
   type ProvenanceConfig,
   type TraitApplication,
   type ConflictResolutionRule,
-  type CompositionResult
+  type CompositionResult,
 } from './compiler/traits/ProvenanceSemiring';
 
 // HoloScript Optimization Pass (NEW - Auto-optimization)
@@ -1573,16 +1587,8 @@ export type {
 // ============================================================================
 
 // Core-internal types that exist but were not wired into the public barrel
-export {
-  AgentDebugger,
-  getAgentDebugger,
-  resetAgentDebugger,
-} from './debug';
-export {
-  DelegationEngine,
-  getDelegationEngine,
-  resetDelegationEngine,
-} from './hierarchy';
+export { AgentDebugger, getAgentDebugger, resetAgentDebugger } from './debug';
+export { DelegationEngine, getDelegationEngine, resetDelegationEngine } from './hierarchy';
 export type { DelegatedTask } from './hierarchy';
 
 // Framework agents & swarm (migrated from core during A.011.02a)
@@ -1601,10 +1607,7 @@ export type {
 // Engine choreography (migrated from core during A.011.02a)
 // VALUE exports (ChoreographyEngine, getDefaultEngine, resetDefaultEngine) moved to
 // '@holoscript/core/runtime' (optional peer @holoscript/engine).
-export type {
-  ChoreographyPlan,
-  ChoreographyResult,
-} from '@holoscript/engine/choreography';
+export type { ChoreographyPlan, ChoreographyResult } from '@holoscript/engine/choreography';
 
 // Mesh consensus & messaging (migrated from core during A.011.02a)
 // VALUE exports (ConsensusManager, AgentMessaging) moved to '@holoscript/core/runtime'

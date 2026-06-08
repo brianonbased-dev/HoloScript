@@ -14,6 +14,7 @@ node benchmarks/p11-trait-gpu-bench.mjs
 ```
 
 **Capture log (2026-05-20)**:
+
 - Playwright Chromium launched with --enable-unsafe-webgpu + vulkan flags.
 - Navigated to local `p11-trait-gpu.html`.
 - HTML executed: JS browser baseline timing loop + WGSL compute path reached.

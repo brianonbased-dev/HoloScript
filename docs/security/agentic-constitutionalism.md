@@ -7,8 +7,8 @@ HoloScript implements a multi-layered security model designed specifically for a
 The most innovative layer is the **Lexical Firewall**. The HoloScript compiler (`HoloScriptCodeParser`) rejects any script that even mentions dangerous keywords at the syntax level.
 
 - **Blocked Keywords**: `process`, `fs`, `require`, `eval`, `exec`, `spawn`, `child_process`, `constructor`, `prototype`.
-- **Enforcement**: If these tokens appear (respecting word boundaries), the compiler returns a `SecurityViolation (HS010)`. 
-- **Philosophical Shift**: Traditional security attempts to *sandbox* the execution of these functions; HoloScript *removes them from the dictionary* of the agentic world.
+- **Enforcement**: If these tokens appear (respecting word boundaries), the compiler returns a `SecurityViolation (HS010)`.
+- **Philosophical Shift**: Traditional security attempts to _sandbox_ the execution of these functions; HoloScript _removes them from the dictionary_ of the agentic world.
 
 ## 2. Declarative Security Traits
 

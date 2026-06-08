@@ -213,23 +213,26 @@ function generateHolo(
     for (const p of resiliencePatterns) {
       serviceTraits.push(holoFactory.trait(p));
     }
-    
+
     const epObjects: HoloObjectDecl[] = [];
     for (const ep of endpoints) {
       const epTraits = [holoFactory.trait('endpoint', {}, [ep.method + ' ' + ep.path])];
       if (ep.handlerName) {
         epTraits.push(holoFactory.trait('handler', {}, [ep.handlerName]));
       }
-      
-      const epObj = holoFactory.node(`endpoint_${ep.method}_${ep.path.replace(/[^a-zA-Z0-9]/g, '_')}`, epTraits);
-      
+
+      const epObj = holoFactory.node(
+        `endpoint_${ep.method}_${ep.path.replace(/[^a-zA-Z0-9]/g, '_')}`,
+        epTraits
+      );
+
       if (ep.body) {
         // Simplified mapping of imperative body
         epObj.traits.push(holoFactory.trait('imperative', { code: ep.body }));
       }
       epObjects.push(epObj);
     }
-    
+
     rootGroupObjects.push(holoFactory.node('service', serviceTraits, { children: epObjects }));
   }
 
@@ -237,24 +240,45 @@ function generateHolo(
   if (models.length > 0) {
     const modelObjects: HoloObjectDecl[] = [];
     for (const model of models) {
-      const fieldsStr = model.fields.map(f => `${f.name}${f.optional ? '?' : ''}: ${f.type}`).join('\\n');
-      modelObjects.push(holoFactory.node(model.name, [holoFactory.trait('model', {}, [model.name]), holoFactory.trait('fields', { definition: fieldsStr })]));
+      const fieldsStr = model.fields
+        .map((f) => `${f.name}${f.optional ? '?' : ''}: ${f.type}`)
+        .join('\\n');
+      modelObjects.push(
+        holoFactory.node(model.name, [
+          holoFactory.trait('model', {}, [model.name]),
+          holoFactory.trait('fields', { definition: fieldsStr }),
+        ])
+      );
     }
-    rootGroupObjects.push(holoFactory.node('data', [holoFactory.trait('db')], { children: modelObjects }));
+    rootGroupObjects.push(
+      holoFactory.node('data', [holoFactory.trait('db')], { children: modelObjects })
+    );
   }
 
   // Pipeline block
   if (queues.length > 0) {
     const queueObjects: HoloObjectDecl[] = [];
     for (const q of queues) {
-      queueObjects.push(holoFactory.node(q.name, [holoFactory.trait('queue', {}, [q.name]), holoFactory.trait('worker')]));
+      queueObjects.push(
+        holoFactory.node(q.name, [
+          holoFactory.trait('queue', {}, [q.name]),
+          holoFactory.trait('worker'),
+        ])
+      );
     }
-    rootGroupObjects.push(holoFactory.node('pipeline', [holoFactory.trait('pipeline')], { children: queueObjects }));
+    rootGroupObjects.push(
+      holoFactory.node('pipeline', [holoFactory.trait('pipeline')], { children: queueObjects })
+    );
   }
 
   // Container block
   if (containerPatterns.length > 0) {
-    rootGroupObjects.push(holoFactory.node('container', containerPatterns.map(p => holoFactory.trait(p))));
+    rootGroupObjects.push(
+      holoFactory.node(
+        'container',
+        containerPatterns.map((p) => holoFactory.trait(p))
+      )
+    );
   }
 
   // If nothing was detected, produce a skeleton
@@ -267,9 +291,11 @@ function generateHolo(
     rootGroupObjects.push(holoFactory.node('service', [holoFactory.trait('service')]));
   }
 
-  const ast = holoFactory.composition(serviceName, [], [
-    holoFactory.spatialGroup('root', rootGroupObjects)
-  ]);
+  const ast = holoFactory.composition(
+    serviceName,
+    [],
+    [holoFactory.spatialGroup('root', rootGroupObjects)]
+  );
 
   return generateHoloSource(ast);
 }

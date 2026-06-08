@@ -8,10 +8,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { EventBus } from '../events';
-import {
-  HolographicCompositor,
-  createHolographicCompositor,
-} from '../HolographicCompositor';
+import { HolographicCompositor, createHolographicCompositor } from '../HolographicCompositor';
 import { holographicSpriteTraitHandler } from '../../../core/src/traits/HolographicSpriteTrait';
 
 /** Context whose emit forwards into the EventBus (mirrors the runtime bridge). */
@@ -39,8 +36,7 @@ function mountContinuous(bus: EventBus, nodeId = 'hologram_1') {
   return {
     node,
     ctx,
-    tick: (delta = 0.016) =>
-      holographicSpriteTraitHandler.onUpdate(node, cfg, ctx as any, delta),
+    tick: (delta = 0.016) => holographicSpriteTraitHandler.onUpdate(node, cfg, ctx as any, delta),
   };
 }
 

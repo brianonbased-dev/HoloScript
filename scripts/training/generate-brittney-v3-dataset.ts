@@ -28,8 +28,14 @@ console.log();
 // ============================================================================
 
 const TRAITS_DIR = path.join(__dirname, '../packages/core/src/traits');
-const traitFiles = readdirSync(TRAITS_DIR).filter(f => f.endsWith('Trait.ts'));
-const traitNames = traitFiles.map(f => f.replace('Trait.ts', '').toLowerCase().replace(/([A-Z])/g, '_$1').replace(/^_/, ''));
+const traitFiles = readdirSync(TRAITS_DIR).filter((f) => f.endsWith('Trait.ts'));
+const traitNames = traitFiles.map((f) =>
+  f
+    .replace('Trait.ts', '')
+    .toLowerCase()
+    .replace(/([A-Z])/g, '_$1')
+    .replace(/^_/, '')
+);
 
 console.log(`[DISCOVERY] Found ${traitNames.length} traits in ${TRAITS_DIR}`);
 console.log(`First 10: ${traitNames.slice(0, 10).join(', ')}`);
@@ -40,22 +46,37 @@ console.log();
 // ============================================================================
 
 const GEOMETRIES = [
-  'box', 'sphere', 'cylinder', 'plane', 'torus', 'cone', 'capsule',
-  'heart', 'crystal', 'gear', 'lightning', 'diamond', 'star'
+  'box',
+  'sphere',
+  'cylinder',
+  'plane',
+  'torus',
+  'cone',
+  'capsule',
+  'heart',
+  'crystal',
+  'gear',
+  'lightning',
+  'diamond',
+  'star',
 ];
 
 const MATERIALS = [
-  'standard', 'pbr', 'physical', 'glass', 'emissive', 'metallic',
-  'chrome', 'gold', 'hologram', 'neon'
+  'standard',
+  'pbr',
+  'physical',
+  'glass',
+  'emissive',
+  'metallic',
+  'chrome',
+  'gold',
+  'hologram',
+  'neon',
 ];
 
-const COLORS = [
-  '"#ff0000"', '"#00ff00"', '"#0000ff"', '"#ff6600"', '"#3498db"'
-];
+const COLORS = ['"#ff0000"', '"#00ff00"', '"#0000ff"', '"#ff6600"', '"#3498db"'];
 
-const ANIMATIONS = [
-  'spin', 'float', 'bounce', 'pulse', 'breathe', 'glow'
-];
+const ANIMATIONS = ['spin', 'float', 'bounce', 'pulse', 'breathe', 'glow'];
 
 function random<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -102,7 +123,7 @@ function generateTraitExample(traitName: string, _difficulty: string): TrainingE
   return {
     instruction: `Create a HoloScript object with @${traitName} trait`,
     input: '',
-    output: code
+    output: code,
   };
 }
 
@@ -128,7 +149,9 @@ for (let i = 0; i < traitNames.length; i++) {
 
   if ((i + 1) % 20 === 0) {
     const elapsed = ((Date.now() - START_TIME) / 1000 / 60).toFixed(1);
-    console.log(`  Progress: ${i + 1}/${traitNames.length} traits | ${allExamples.length.toLocaleString()} examples | ${elapsed}min`);
+    console.log(
+      `  Progress: ${i + 1}/${traitNames.length} traits | ${allExamples.length.toLocaleString()} examples | ${elapsed}min`
+    );
   }
 }
 
@@ -148,7 +171,7 @@ for (let i = 0; i < 5000; i++) {
   allExamples.push({
     instruction: `Create a HoloScript file that imports @${trait1} from a module`,
     input: '',
-    output: `@import "./traits.hs" { @${trait1} }\n\ncomposition "ImportExample" {\n  object "Entity" {\n    @${trait1}\n\n    geometry: "${random(GEOMETRIES)}"\n    position: [0, 1, 0]\n  }\n}`
+    output: `@import "./traits.hs" { @${trait1} }\n\ncomposition "ImportExample" {\n  object "Entity" {\n    @${trait1}\n\n    geometry: "${random(GEOMETRIES)}"\n    position: [0, 1, 0]\n  }\n}`,
   });
 }
 
@@ -169,7 +192,7 @@ for (let i = 0; i < 10000; i++) {
   allExamples.push({
     instruction: `Create a composed HoloScript trait @${composedName}`,
     input: '',
-    output: `@${composedName} = @${trait1} + @${trait2}\n\ncomposition "ComposedExample" {\n  object "Entity" {\n    @${composedName}\n\n    geometry: "${random(GEOMETRIES)}"\n    position: [0, 1, 0]\n  }\n}`
+    output: `@${composedName} = @${trait1} + @${trait2}\n\ncomposition "ComposedExample" {\n  object "Entity" {\n    @${composedName}\n\n    geometry: "${random(GEOMETRIES)}"\n    position: [0, 1, 0]\n  }\n}`,
   });
 }
 
@@ -186,7 +209,7 @@ for (let i = 0; i < 3000; i++) {
   allExamples.push({
     instruction: 'Create a HoloScript object with async handler',
     input: '',
-    output: `composition "AsyncExample" {\n  object "Loader" {\n    @networked\n\n    geometry: "box"\n    position: [0, 1, 0]\n\n    async on_init: {\n      const data = await fetch("/api/data")\n      this.content = await data.json()\n    }\n  }\n}`
+    output: `composition "AsyncExample" {\n  object "Loader" {\n    @networked\n\n    geometry: "box"\n    position: [0, 1, 0]\n\n    async on_init: {\n      const data = await fetch("/api/data")\n      this.content = await data.json()\n    }\n  }\n}`,
   });
 }
 
@@ -205,7 +228,7 @@ async function writeDataset() {
   console.log('[EXPORT] Writing JSONL file...');
 
   const outputFile = path.join(__dirname, '../datasets/brittney-v3.0-complete.jsonl');
-  const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
+  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
 
   await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 

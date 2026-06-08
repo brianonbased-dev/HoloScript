@@ -177,10 +177,11 @@ const realToolRunner: RewardToolRunner = {
     const timeout = options?.timeout ?? 30_000;
     const workDir = path.dirname(filePath);
     try {
-      const { stdout, stderr } = await execAsync(
-        `npx eslint "${filePath}" --format json 2>&1`,
-        { cwd: workDir, timeout, maxBuffer: 5 * 1024 * 1024 }
-      );
+      const { stdout, stderr } = await execAsync(`npx eslint "${filePath}" --format json 2>&1`, {
+        cwd: workDir,
+        timeout,
+        maxBuffer: 5 * 1024 * 1024,
+      });
       const output = stdout + stderr;
       try {
         const result = JSON.parse(output);

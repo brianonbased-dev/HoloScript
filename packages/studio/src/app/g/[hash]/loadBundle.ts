@@ -20,10 +20,7 @@
  */
 
 import type { HologramMeta } from '@holoscript/engine/hologram';
-import {
-  assertValidHash,
-  HologramStoreError,
-} from '@holoscript/engine/hologram';
+import { assertValidHash, HologramStoreError } from '@holoscript/engine/hologram';
 
 import { getHologramStore, getShareRegistry } from '@/app/api/hologram/_lib/store';
 
@@ -80,8 +77,14 @@ export async function loadBundle(rawHash: unknown): Promise<LoadResult> {
   // need to know which optional renderer outputs exist so the viewer can
   // pick a path. Existence checks are cheap (HEAD-equivalent).
   const [quilt, mvhevc, parallax] = await Promise.all([
-    store.getAsset(hash, 'quilt.png').then((b) => b !== null).catch(() => false),
-    store.getAsset(hash, 'mvhevc.mp4').then((b) => b !== null).catch(() => false),
+    store
+      .getAsset(hash, 'quilt.png')
+      .then((b) => b !== null)
+      .catch(() => false),
+    store
+      .getAsset(hash, 'mvhevc.mp4')
+      .then((b) => b !== null)
+      .catch(() => false),
     store
       .getAsset(hash, 'parallax.webm')
       .then((b) => b !== null)

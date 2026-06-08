@@ -492,11 +492,7 @@ export class CharacterTrait {
 
     // In walking mode, use look direction for movement
     // This is a simplified version - real implementation would use camera transform
-    return [
-      input.strafe * speed,
-      0,
-      input.forward * speed,
-    ];
+    return [input.strafe * speed, 0, input.forward * speed];
   }
 
   /**

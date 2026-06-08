@@ -31,9 +31,7 @@ import type { PillarSlice } from './SemanticCollaborationContract';
 import type { RecursiveLinkMessage } from './RecursiveLinkTrait';
 
 // Re-export the shared reasons for convenience (they live in the contract today)
-export type {
-  IntegrityFailReason,
-} from './SemanticCollaborationContract';
+export type { IntegrityFailReason } from './SemanticCollaborationContract';
 
 // --- Latent Byzantine Detector (cosine anomaly on RecursiveLink vectors) -----
 
@@ -64,9 +62,9 @@ export class LatentByzantineDetector {
     // Simple 4D cosine on positions (extend with domain encoding if richer features needed)
     const va = [a.pos_1, a.pos_2, 0, 0]; // pad for domain if desired
     const vb = [b.pos_1, b.pos_2, 0, 0];
-    const dot = va[0]*vb[0] + va[1]*vb[1];
-    const na = Math.sqrt(va[0]*va[0] + va[1]*va[1]);
-    const nb = Math.sqrt(vb[0]*vb[0] + vb[1]*vb[1]);
+    const dot = va[0] * vb[0] + va[1] * vb[1];
+    const na = Math.sqrt(va[0] * va[0] + va[1] * va[1]);
+    const nb = Math.sqrt(vb[0] * vb[0] + vb[1] * vb[1]);
     return dot / (na * nb || 1);
   }
 
@@ -81,13 +79,14 @@ export class LatentByzantineDetector {
 
     // Compare against mean of recent slices for the same pillar/domain context
     const similarities = recentSlices
-      .filter(s => s.pillar_domain === incoming.slice.pillar_domain)
-      .map(s => this.cosine(incoming.slice, s));
+      .filter((s) => s.pillar_domain === incoming.slice.pillar_domain)
+      .map((s) => this.cosine(incoming.slice, s));
 
     if (similarities.length === 0) return { isAnomalous: false, cosineSimilarity: 1.0 };
 
     const mean = similarities.reduce((a, b) => a + b, 0) / similarities.length;
-    const variance = similarities.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / similarities.length;
+    const variance =
+      similarities.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / similarities.length;
     const std = Math.sqrt(variance) || 0.001;
 
     const sim = this.cosine(incoming.slice, recentSlices[recentSlices.length - 1]);
@@ -99,7 +98,9 @@ export class LatentByzantineDetector {
       isAnomalous,
       cosineSimilarity: sim,
       deviationSigma: z,
-      reason: isAnomalous ? `Latent Byzantine anomaly: ${z.toFixed(2)}σ deviation on ${incoming.slice.pillar_domain}` : undefined,
+      reason: isAnomalous
+        ? `Latent Byzantine anomaly: ${z.toFixed(2)}σ deviation on ${incoming.slice.pillar_domain}`
+        : undefined,
     };
   }
 }
@@ -149,7 +150,8 @@ export class LatentSycophancyProbe {
     const s = incoming.slice;
     const approvalComponent = this.centroid[1];
     const incomingPressure = s.pos_2;
-    const driftScore = Math.abs(approvalComponent - 0.5) * 0.5 + Math.abs(incomingPressure - 0.5) * 0.5;
+    const driftScore =
+      Math.abs(approvalComponent - 0.5) * 0.5 + Math.abs(incomingPressure - 0.5) * 0.5;
 
     const isDrifting = driftScore > this.config.driftThreshold;
 

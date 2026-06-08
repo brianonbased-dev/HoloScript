@@ -113,7 +113,7 @@ export class MemoryConsolidator {
     for (const fact of facts) {
       if (!fact.lastAccessed) fact.lastAccessed = now;
       if (!fact.accessCount) fact.accessCount = 0;
-      
+
       const ageHours = (now - fact.lastAccessed) / (1000 * 60 * 60);
       // Decay confidence by 5% every hour it isn't used
       if (ageHours > 1) {
@@ -122,7 +122,7 @@ export class MemoryConsolidator {
     }
 
     // Filter out facts whose confidence dropped below threshold
-    const activeFacts = facts.filter(f => f.confidence >= 0.3);
+    const activeFacts = facts.filter((f) => f.confidence >= 0.3);
 
     // Keep only the top 'maxFacts' based on confidence and utility
     activeFacts.sort((a, b) => {

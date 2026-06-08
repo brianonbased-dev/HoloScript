@@ -102,9 +102,7 @@ describe('validateA2AAgentCard', () => {
   });
 
   it('should reject card with empty authentication.schemes', () => {
-    const result = validateA2AAgentCard(
-      makeValidCard({ authentication: { schemes: [] } })
-    );
+    const result = validateA2AAgentCard(makeValidCard({ authentication: { schemes: [] } }));
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('authentication.schemes'))).toBe(true);
   });
@@ -134,7 +132,11 @@ describe('validateA2AAgentCard', () => {
   it('should reject skills missing id', () => {
     const card = makeValidCard({
       skills: [
-        { name: 'BadSkill', description: 'No ID', tags: ['test'] } as unknown as A2AAgentCard['skills'][0],
+        {
+          name: 'BadSkill',
+          description: 'No ID',
+          tags: ['test'],
+        } as unknown as A2AAgentCard['skills'][0],
       ],
     });
     const result = validateA2AAgentCard(card);
@@ -145,7 +147,11 @@ describe('validateA2AAgentCard', () => {
   it('should reject skills missing name', () => {
     const card = makeValidCard({
       skills: [
-        { id: 'test', description: 'No name', tags: ['test'] } as unknown as A2AAgentCard['skills'][0],
+        {
+          id: 'test',
+          description: 'No name',
+          tags: ['test'],
+        } as unknown as A2AAgentCard['skills'][0],
       ],
     });
     const result = validateA2AAgentCard(card);
@@ -421,7 +427,11 @@ describe('executeA2AHandshake', () => {
 
   it('should allow rendered lane even without card when not required', () => {
     const result = executeA2AHandshake(
-      makeOptions({ incomingCard: null, requireAgentCard: false, defaultRepresentation: 'rendered' })
+      makeOptions({
+        incomingCard: null,
+        requireAgentCard: false,
+        defaultRepresentation: 'rendered',
+      })
     );
     expect(result.success).toBe(true);
     expect(result.representation).toBe('rendered');
@@ -501,9 +511,7 @@ describe('executeA2AHandshake', () => {
   });
 
   it('should use read-only as minimum fallback when default scopes empty', () => {
-    const result = executeA2AHandshake(
-      makeOptions({ incomingCard: null, defaultScopes: [] })
-    );
+    const result = executeA2AHandshake(makeOptions({ incomingCard: null, defaultScopes: [] }));
     expect(result.scopes).toEqual(['read-only']);
   });
 });

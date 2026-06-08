@@ -107,7 +107,10 @@ describe('JEPAPredictor', () => {
     const dim = 4;
     // Set identity-ish W1, W2 to make output predictable
     const identW = new Float32Array(dim * dim);
-    identW[0] = 1; identW[5] = 1; identW[10] = 1; identW[15] = 1; // diagonal
+    identW[0] = 1;
+    identW[5] = 1;
+    identW[10] = 1;
+    identW[15] = 1; // diagonal
     predictor.setWeights({
       W1: identW.slice(),
       b1: new Float32Array(dim),
@@ -128,7 +131,11 @@ describe('JEPAObjective — trait lifecycle', () => {
     const ctx = createMockContext();
     attachTrait(jepObjectiveHandler, node, DEFAULT_CONFIG, ctx);
     expect((node as Record<string, unknown>).__jepaState).toBeDefined();
-    jepObjectiveHandler.onDetach!(node as any, { ...jepObjectiveHandler.defaultConfig!, ...DEFAULT_CONFIG }, ctx as any);
+    jepObjectiveHandler.onDetach!(
+      node as any,
+      { ...jepObjectiveHandler.defaultConfig!, ...DEFAULT_CONFIG },
+      ctx as any
+    );
     expect((node as Record<string, unknown>).__jepaState).toBeUndefined();
   });
 

@@ -114,9 +114,29 @@ export class RailwayConnector extends ServiceConnector {
         variables = { projectId: args.projectId };
         // Post-process: filter to the requested serviceId
         return this.executeGraphQLWithBackoff(query, variables).then((result: unknown) => {
-          const data = result as { data?: { project?: { services?: { edges?: Array<{ node: { id: string; name: string; serviceInstances?: { edges?: Array<{ node: { latestDeployment?: { id: string; status: string; createdAt: string } } }> } } }> } } } };
+          const data = result as {
+            data?: {
+              project?: {
+                services?: {
+                  edges?: Array<{
+                    node: {
+                      id: string;
+                      name: string;
+                      serviceInstances?: {
+                        edges?: Array<{
+                          node: {
+                            latestDeployment?: { id: string; status: string; createdAt: string };
+                          };
+                        }>;
+                      };
+                    };
+                  }>;
+                };
+              };
+            };
+          };
           const services = data?.data?.project?.services?.edges || [];
-          const match = services.find(s => s.node.id === args.serviceId);
+          const match = services.find((s) => s.node.id === args.serviceId);
           if (!match) {
             return { data: { error: `Service ${args.serviceId} not found in project` } };
           }
@@ -132,7 +152,11 @@ export class RailwayConnector extends ServiceConnector {
         });
       case 'railway_variable_list':
         query = `query Variables($projectId: String!, $environmentId: String!, $serviceId: String!) { variables(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId) }`;
-        variables = { projectId: args.projectId, environmentId: args.environmentId, serviceId: args.serviceId };
+        variables = {
+          projectId: args.projectId,
+          environmentId: args.environmentId,
+          serviceId: args.serviceId,
+        };
         break;
       case 'railway_volume_list':
         query = `query Volumes($projectId: String!) { project(id: $projectId) { volumes { edges { node { id name mountPath sizeGB } } } } }`;
@@ -140,7 +164,11 @@ export class RailwayConnector extends ServiceConnector {
         break;
       case 'railway_tcp_proxy':
         query = `mutation TcpProxy($serviceId: String!, $environmentId: String!, $applicationPort: Int!) { tcpProxyCreate(input: {serviceId: $serviceId, environmentId: $environmentId, applicationPort: $applicationPort}) { id proxyPort domain } }`;
-        variables = { serviceId: args.serviceId, environmentId: args.environmentId, applicationPort: args.applicationPort };
+        variables = {
+          serviceId: args.serviceId,
+          environmentId: args.environmentId,
+          applicationPort: args.applicationPort,
+        };
         break;
       case 'railway_service_list':
         query = `query Services($projectId: String!) { project(id: $projectId) { services { edges { node { id name } } } } }`;

@@ -73,7 +73,7 @@ function extractSurface(
   elementScalars?: Float64Array | Float32Array,
   displacements?: Float64Array | Float32Array,
   displacementScale = 1.0,
-  useGPU = false,
+  useGPU = false
 ): SurfaceMesh {
   const elementCount = tetrahedra.length / nodesPerElement;
 
@@ -85,7 +85,10 @@ function extractSurface(
     [1, 2, 3], // face 3
   ];
 
-  const faceMap = new Map<string, { elem: number; nodes: [number, number, number]; count: number }>();
+  const faceMap = new Map<
+    string,
+    { elem: number; nodes: [number, number, number]; count: number }
+  >();
 
   for (let e = 0; e < elementCount; e++) {
     const base = e * nodesPerElement;
@@ -153,7 +156,11 @@ function extractSurface(
     let ny = az * bx - ax * bz;
     let nz = ax * by - ay * bx;
     const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
-    if (len > 1e-12) { nx /= len; ny /= len; nz /= len; }
+    if (len > 1e-12) {
+      nx /= len;
+      ny /= len;
+      nz /= len;
+    }
 
     for (let v = 0; v < 3; v++) {
       normals[i * 9 + v * 3] = nx;
@@ -294,7 +301,8 @@ export function SimResultsMesh({
   const effectiveRange = useMemo<[number, number]>(() => {
     if (range) return range;
     if (!elementScalars || elementScalars.length === 0) return [0, 1];
-    let min = Infinity, max = -Infinity;
+    let min = Infinity,
+      max = -Infinity;
     for (let i = 0; i < elementScalars.length; i++) {
       if (elementScalars[i] < min) min = elementScalars[i];
       if (elementScalars[i] > max) max = elementScalars[i];
@@ -309,9 +317,13 @@ export function SimResultsMesh({
     }
 
     const surface = extractSurface(
-      vertices, tetrahedra, nodesPerElement,
-      elementScalars, displacements, displacementScale,
-      !!gpuDisplacementBuffer,
+      vertices,
+      tetrahedra,
+      nodesPerElement,
+      elementScalars,
+      displacements,
+      displacementScale,
+      !!gpuDisplacementBuffer
     );
 
     const geo = new THREE.BufferGeometry();
@@ -324,18 +336,38 @@ export function SimResultsMesh({
     for (let i = 0; i < surface.triangleCount; i++) {
       const p = surface.positions;
       const base = i * 9;
-      wirePositions[i * 18] = p[base]; wirePositions[i * 18 + 1] = p[base + 1]; wirePositions[i * 18 + 2] = p[base + 2];
-      wirePositions[i * 18 + 3] = p[base + 3]; wirePositions[i * 18 + 4] = p[base + 4]; wirePositions[i * 18 + 5] = p[base + 5];
-      wirePositions[i * 18 + 6] = p[base + 3]; wirePositions[i * 18 + 7] = p[base + 4]; wirePositions[i * 18 + 8] = p[base + 5];
-      wirePositions[i * 18 + 9] = p[base + 6]; wirePositions[i * 18 + 10] = p[base + 7]; wirePositions[i * 18 + 11] = p[base + 8];
-      wirePositions[i * 18 + 12] = p[base + 6]; wirePositions[i * 18 + 13] = p[base + 7]; wirePositions[i * 18 + 14] = p[base + 8];
-      wirePositions[i * 18 + 15] = p[base]; wirePositions[i * 18 + 16] = p[base + 1]; wirePositions[i * 18 + 17] = p[base + 2];
+      wirePositions[i * 18] = p[base];
+      wirePositions[i * 18 + 1] = p[base + 1];
+      wirePositions[i * 18 + 2] = p[base + 2];
+      wirePositions[i * 18 + 3] = p[base + 3];
+      wirePositions[i * 18 + 4] = p[base + 4];
+      wirePositions[i * 18 + 5] = p[base + 5];
+      wirePositions[i * 18 + 6] = p[base + 3];
+      wirePositions[i * 18 + 7] = p[base + 4];
+      wirePositions[i * 18 + 8] = p[base + 5];
+      wirePositions[i * 18 + 9] = p[base + 6];
+      wirePositions[i * 18 + 10] = p[base + 7];
+      wirePositions[i * 18 + 11] = p[base + 8];
+      wirePositions[i * 18 + 12] = p[base + 6];
+      wirePositions[i * 18 + 13] = p[base + 7];
+      wirePositions[i * 18 + 14] = p[base + 8];
+      wirePositions[i * 18 + 15] = p[base];
+      wirePositions[i * 18 + 16] = p[base + 1];
+      wirePositions[i * 18 + 17] = p[base + 2];
     }
     const wGeo = new THREE.BufferGeometry();
     wGeo.setAttribute('position', new THREE.BufferAttribute(wirePositions, 3));
 
     return { geometry: geo, wireGeometry: wGeo };
-  }, [vertices, tetrahedra, nodesPerElement, elementScalars, displacements, displacementScale, gpuDisplacementBuffer]);
+  }, [
+    vertices,
+    tetrahedra,
+    nodesPerElement,
+    elementScalars,
+    displacements,
+    displacementScale,
+    gpuDisplacementBuffer,
+  ]);
 
   const fragmentShader = useMemo(() => makeResultsFrag(colormap), [colormap]);
 
@@ -358,11 +390,14 @@ export function SimResultsMesh({
     uniforms.uUseGPU.value = !!gpuDisplacementBuffer;
   });
 
-  const onBeforeCompile = useCallback((shader: { defines: Record<string, string | undefined> }) => {
-    if (gpuDisplacementBuffer) {
-      shader.defines.USE_GPU_BUFFERS = '';
-    }
-  }, [gpuDisplacementBuffer]);
+  const onBeforeCompile = useCallback(
+    (shader: { defines: Record<string, string | undefined> }) => {
+      if (gpuDisplacementBuffer) {
+        shader.defines.USE_GPU_BUFFERS = '';
+      }
+    },
+    [gpuDisplacementBuffer]
+  );
 
   if (!visible || !vertices || vertices.length === 0) return null;
 

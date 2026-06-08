@@ -289,8 +289,7 @@ export class AerospaceTrajectorySolver implements SimSolver {
 
   constructor(private readonly model: AerospaceMissionModel) {
     const massKg =
-      model.initialState.massKg ??
-      model.vehicle.dryMassKg + model.vehicle.propellantMassKg;
+      model.initialState.massKg ?? model.vehicle.dryMassKg + model.vehicle.propellantMassKg;
     this.state = {
       timeSeconds: model.initialState.epochSeconds,
       positionM: [...model.initialState.positionM],
@@ -305,7 +304,10 @@ export class AerospaceTrajectorySolver implements SimSolver {
       throw new Error('[aerospace] trajectory step dt must be positive');
     }
     const next = integrateRK4(this.model, this.state, dt);
-    next.massKg = Math.max(this.model.vehicle.dryMassKg, next.massKg - propellantUseDuring(this.model, this.state.timeSeconds, dt));
+    next.massKg = Math.max(
+      this.model.vehicle.dryMassKg,
+      next.massKg - propellantUseDuring(this.model, this.state.timeSeconds, dt)
+    );
     this.state = next;
     this.recordSample();
   }
@@ -368,7 +370,9 @@ export class AerospaceTrajectorySolver implements SimSolver {
   }
 }
 
-export function createAerospaceTrajectorySolver(model: AerospaceMissionModel): AerospaceTrajectorySolver {
+export function createAerospaceTrajectorySolver(
+  model: AerospaceMissionModel
+): AerospaceTrajectorySolver {
   return new AerospaceTrajectorySolver(model);
 }
 
@@ -377,7 +381,10 @@ export function validateAerospaceMissionModel(model: AerospaceMissionModel): Aer
   const warnings: string[] = [];
 
   if (!model.id) errors.push('model id is required');
-  if (!Number.isFinite(model.centralBody.gravitationalParameterM3S2) || model.centralBody.gravitationalParameterM3S2 <= 0) {
+  if (
+    !Number.isFinite(model.centralBody.gravitationalParameterM3S2) ||
+    model.centralBody.gravitationalParameterM3S2 <= 0
+  ) {
     errors.push('centralBody.gravitationalParameterM3S2 must be positive');
   }
   if (!Number.isFinite(model.centralBody.radiusM) || model.centralBody.radiusM <= 0) {
@@ -389,14 +396,19 @@ export function validateAerospaceMissionModel(model: AerospaceMissionModel): Aer
   if (!Number.isFinite(model.vehicle.propellantMassKg) || model.vehicle.propellantMassKg < 0) {
     errors.push('vehicle.propellantMassKg must be non-negative');
   }
-  if (!Number.isFinite(model.vehicle.specificImpulseSeconds) || model.vehicle.specificImpulseSeconds <= 0) {
+  if (
+    !Number.isFinite(model.vehicle.specificImpulseSeconds) ||
+    model.vehicle.specificImpulseSeconds <= 0
+  ) {
     errors.push('vehicle.specificImpulseSeconds must be positive');
   }
   if (!Number.isFinite(model.vehicle.referenceAreaM2) || model.vehicle.referenceAreaM2 <= 0) {
     errors.push('vehicle.referenceAreaM2 must be positive');
   }
-  if (!isFiniteVector(model.initialState.positionM)) errors.push('initialState.positionM must contain finite values');
-  if (!isFiniteVector(model.initialState.velocityMps)) errors.push('initialState.velocityMps must contain finite values');
+  if (!isFiniteVector(model.initialState.positionM))
+    errors.push('initialState.positionM must contain finite values');
+  if (!isFiniteVector(model.initialState.velocityMps))
+    errors.push('initialState.velocityMps must contain finite values');
   if (magnitude(model.initialState.positionM) <= model.centralBody.radiusM) {
     errors.push('initialState.positionM must start above the central-body surface');
   }
@@ -411,9 +423,12 @@ export function validateAerospaceMissionModel(model: AerospaceMissionModel): Aer
   }
 
   for (const burn of model.burns ?? []) {
-    if (!Number.isFinite(burn.thrustN) || burn.thrustN < 0) errors.push(`burn ${burn.id} thrustN must be non-negative`);
-    if (!Number.isFinite(burn.durationSeconds) || burn.durationSeconds < 0) errors.push(`burn ${burn.id} durationSeconds must be non-negative`);
-    if (!isFiniteVector(burn.direction) || magnitude(burn.direction) === 0) errors.push(`burn ${burn.id} direction must be a finite non-zero vector`);
+    if (!Number.isFinite(burn.thrustN) || burn.thrustN < 0)
+      errors.push(`burn ${burn.id} thrustN must be non-negative`);
+    if (!Number.isFinite(burn.durationSeconds) || burn.durationSeconds < 0)
+      errors.push(`burn ${burn.id} durationSeconds must be non-negative`);
+    if (!isFiniteVector(burn.direction) || magnitude(burn.direction) === 0)
+      errors.push(`burn ${burn.id} direction must be a finite non-zero vector`);
   }
 
   if (model.reentry !== undefined) {
@@ -436,17 +451,23 @@ export function solveAerospaceMission(model: AerospaceMissionModel): AerospaceMi
   trajectorySolver.solve();
   const trajectory = trajectorySolver.getSamples();
   const propulsion = estimatePropulsionSummary(model);
-  const reentry = model.reentry ? generateReentryProfile(model.centralBody, model.vehicle, model.reentry) : undefined;
-  const thermal = reentry && model.thermalHarness
-    ? runReentryThermalHarness(reentry, model.thermalHarness)
+  const reentry = model.reentry
+    ? generateReentryProfile(model.centralBody, model.vehicle, model.reentry)
     : undefined;
-  const structural = reentry && model.structuralHarness
-    ? runAerospaceStructuralHarness(reentry, model.vehicle, model.structuralHarness)
-    : undefined;
+  const thermal =
+    reentry && model.thermalHarness
+      ? runReentryThermalHarness(reentry, model.thermalHarness)
+      : undefined;
+  const structural =
+    reentry && model.structuralHarness
+      ? runAerospaceStructuralHarness(reentry, model.vehicle, model.structuralHarness)
+      : undefined;
 
   return {
     solverType: 'aerospace-coupled',
-    converged: trajectory.every((sample) => isFiniteVector(sample.positionM) && isFiniteVector(sample.velocityMps)),
+    converged: trajectory.every(
+      (sample) => isFiniteVector(sample.positionM) && isFiniteVector(sample.velocityMps)
+    ),
     trajectory,
     propulsion,
     reentry,
@@ -459,13 +480,15 @@ export function estimatePropulsionSummary(model: AerospaceMissionModel): Propuls
   let totalImpulseNs = 0;
   let propellantUsedKg = 0;
   let idealDeltaVMps = 0;
-  let massKg = model.initialState.massKg ?? model.vehicle.dryMassKg + model.vehicle.propellantMassKg;
+  let massKg =
+    model.initialState.massKg ?? model.vehicle.dryMassKg + model.vehicle.propellantMassKg;
   const minMassKg = model.vehicle.dryMassKg;
 
   for (const burn of model.burns ?? []) {
     const duration = Math.max(0, burn.durationSeconds);
     const impulse = burn.thrustN * duration;
-    const massFlow = burn.massFlowKgps ?? burn.thrustN / (model.vehicle.specificImpulseSeconds * G0);
+    const massFlow =
+      burn.massFlowKgps ?? burn.thrustN / (model.vehicle.specificImpulseSeconds * G0);
     const requestedPropellant = massFlow * duration;
     const used = Math.min(Math.max(0, requestedPropellant), Math.max(0, massKg - minMassKg));
     const nextMassKg = massKg - used;
@@ -488,15 +511,16 @@ export function estimatePropulsionSummary(model: AerospaceMissionModel): Propuls
 export function generateReentryProfile(
   centralBody: CentralBody,
   vehicle: AerospaceVehicle,
-  config: ReentryProfileConfig,
+  config: ReentryProfileConfig
 ): ReentryProfile {
   const scaleHeight = centralBody.atmosphereScaleHeightM ?? DEFAULT_EARTH_SCALE_HEIGHT_M;
   const seaLevelDensity = centralBody.seaLevelDensityKgM3 ?? DEFAULT_EARTH_SEA_LEVEL_DENSITY_KG_M3;
   const samples: ReentrySample[] = [];
   const count = Math.max(2, Math.floor(config.sampleCount));
-  const flightPath = Math.abs(config.flightPathAngleDeg) * Math.PI / 180;
+  const flightPath = (Math.abs(config.flightPathAngleDeg) * Math.PI) / 180;
   const descentRate = Math.max(1, config.initialVelocityMps * Math.sin(flightPath));
-  const duration = config.durationSeconds ?? (config.startAltitudeM - config.endAltitudeM) / descentRate;
+  const duration =
+    config.durationSeconds ?? (config.startAltitudeM - config.endAltitudeM) / descentRate;
   const noseRadiusM = vehicle.noseRadiusM ?? 0.5;
 
   for (let index = 0; index < count; index++) {
@@ -508,7 +532,14 @@ export function generateReentryProfile(
     const velocityMps = Math.max(0, config.initialVelocityMps * dragSlowdown);
     const dynamicPressurePa = 0.5 * densityKgM3 * velocityMps * velocityMps;
     const heatFluxWm2 = 1.83e-4 * Math.sqrt(densityKgM3 / noseRadiusM) * velocityMps ** 3;
-    samples.push({ timeSeconds, altitudeM, velocityMps, densityKgM3, dynamicPressurePa, heatFluxWm2 });
+    samples.push({
+      timeSeconds,
+      altitudeM,
+      velocityMps,
+      densityKgM3,
+      dynamicPressurePa,
+      heatFluxWm2,
+    });
   }
 
   return {
@@ -520,7 +551,7 @@ export function generateReentryProfile(
 
 export function runReentryThermalHarness(
   profile: ReentryProfile,
-  config: ReentryThermalHarnessConfig = {},
+  config: ReentryThermalHarnessConfig = {}
 ): ThermalHarnessResult {
   const gridResolution = config.gridResolution ?? [5, 5, 3];
   const domainSizeM = config.domainSizeM ?? [1, 1, 0.25];
@@ -572,10 +603,11 @@ export function runReentryThermalHarness(
 export function runAerospaceStructuralHarness(
   profile: ReentryProfile,
   vehicle: AerospaceVehicle,
-  config: AerospaceStructuralHarnessConfig,
+  config: AerospaceStructuralHarnessConfig
 ): StructuralHarnessResult {
   const loadDirection = normalize(config.loadDirection ?? [1, 0, 0]);
-  const appliedLoadN = profile.peakDynamicPressurePa * vehicle.referenceAreaM2 * (config.loadScale ?? 1);
+  const appliedLoadN =
+    profile.peakDynamicPressurePa * vehicle.referenceAreaM2 * (config.loadScale ?? 1);
   const structuralConfig: StructuralConfig = {
     vertices: config.vertices,
     tetrahedra: config.tetrahedra,
@@ -618,7 +650,7 @@ export function runAerospaceStructuralHarness(
 export function buildAerospaceReceipt(
   model: AerospaceMissionModel,
   result: AerospaceMissionResult,
-  options: string | AerospaceReceiptOptions = {},
+  options: string | AerospaceReceiptOptions = {}
 ): AerospaceReceipt {
   const normalizedOptions = typeof options === 'string' ? { runId: options } : options;
   const summary = aerospaceResultSummary(result);
@@ -637,7 +669,8 @@ export function buildAerospaceReceipt(
       },
       thermalHarness: result.thermal !== undefined,
       structuralHarness: result.structural !== undefined,
-      scale: result.structural !== undefined || result.thermal !== undefined ? 'vehicle' : 'mission',
+      scale:
+        result.structural !== undefined || result.thermal !== undefined ? 'vehicle' : 'mission',
     },
     resultSummary: summary,
     cael: {
@@ -653,19 +686,28 @@ export function buildAerospaceReceipt(
 
 export function verifyAerospaceAcceptance(
   model: AerospaceMissionModel,
-  result: AerospaceMissionResult,
+  result: AerospaceMissionResult
 ): AerospaceReceipt['acceptance'] {
   const violations: Array<{ criterion: string; message: string }> = [];
   const summary = aerospaceResultSummary(result);
 
   if (!result.converged) {
-    violations.push({ criterion: 'trajectory_convergence', message: 'trajectory contains non-finite state samples' });
+    violations.push({
+      criterion: 'trajectory_convergence',
+      message: 'trajectory contains non-finite state samples',
+    });
   }
   if (summary.minAltitudeM <= -1e-6) {
-    violations.push({ criterion: 'surface_intersection', message: `minimum altitude ${summary.minAltitudeM} m intersects the central body` });
+    violations.push({
+      criterion: 'surface_intersection',
+      message: `minimum altitude ${summary.minAltitudeM} m intersects the central body`,
+    });
   }
   if (result.propulsion.propellantUsedKg - model.vehicle.propellantMassKg > 1e-9) {
-    violations.push({ criterion: 'propellant_budget', message: 'propulsion summary exceeds onboard propellant' });
+    violations.push({
+      criterion: 'propellant_budget',
+      message: 'propulsion summary exceeds onboard propellant',
+    });
   }
   if (
     model.acceptance?.maxPeakTemperatureC !== undefined &&
@@ -725,7 +767,7 @@ function aerospaceResultSummary(result: AerospaceMissionResult): AerospaceReceip
 function integrateRK4(
   model: AerospaceMissionModel,
   state: MutableTrajectoryState,
-  dt: number,
+  dt: number
 ): MutableTrajectoryState {
   const deriv = (input: MutableTrajectoryState): [Vector3, Vector3] => [
     input.velocityMps,
@@ -739,13 +781,30 @@ function integrateRK4(
 
   return {
     timeSeconds: state.timeSeconds + dt,
-    positionM: addVectors(state.positionM, scaleVector(addVectors(addVectors(k1r, scaleVector(k2r, 2)), addVectors(scaleVector(k3r, 2), k4r)), dt / 6)),
-    velocityMps: addVectors(state.velocityMps, scaleVector(addVectors(addVectors(k1v, scaleVector(k2v, 2)), addVectors(scaleVector(k3v, 2), k4v)), dt / 6)),
+    positionM: addVectors(
+      state.positionM,
+      scaleVector(
+        addVectors(addVectors(k1r, scaleVector(k2r, 2)), addVectors(scaleVector(k3r, 2), k4r)),
+        dt / 6
+      )
+    ),
+    velocityMps: addVectors(
+      state.velocityMps,
+      scaleVector(
+        addVectors(addVectors(k1v, scaleVector(k2v, 2)), addVectors(scaleVector(k3v, 2), k4v)),
+        dt / 6
+      )
+    ),
     massKg: state.massKg,
   };
 }
 
-function offsetState(state: MutableTrajectoryState, dr: Vector3, dv: Vector3, dt: number): MutableTrajectoryState {
+function offsetState(
+  state: MutableTrajectoryState,
+  dr: Vector3,
+  dv: Vector3,
+  dt: number
+): MutableTrajectoryState {
   return {
     timeSeconds: state.timeSeconds + dt,
     positionM: addVectors(state.positionM, scaleVector(dr, dt)),
@@ -757,23 +816,36 @@ function offsetState(state: MutableTrajectoryState, dr: Vector3, dv: Vector3, dt
 function accelerationAt(model: AerospaceMissionModel, state: MutableTrajectoryState): Vector3 {
   const r = state.positionM;
   const radius = magnitude(r);
-  const gravity = scaleVector(r, -model.centralBody.gravitationalParameterM3S2 / (radius ** 3));
+  const gravity = scaleVector(r, -model.centralBody.gravitationalParameterM3S2 / radius ** 3);
   const thrust = activeThrustAcceleration(model, state);
   return addVectors(gravity, thrust);
 }
 
-function activeThrustAcceleration(model: AerospaceMissionModel, state: MutableTrajectoryState): Vector3 {
+function activeThrustAcceleration(
+  model: AerospaceMissionModel,
+  state: MutableTrajectoryState
+): Vector3 {
   let acceleration: Vector3 = [0, 0, 0];
   for (const burn of model.burns ?? []) {
-    if (state.timeSeconds < burn.startSeconds || state.timeSeconds > burn.startSeconds + burn.durationSeconds) {
+    if (
+      state.timeSeconds < burn.startSeconds ||
+      state.timeSeconds > burn.startSeconds + burn.durationSeconds
+    ) {
       continue;
     }
-    acceleration = addVectors(acceleration, scaleVector(normalize(burn.direction), burn.thrustN / state.massKg));
+    acceleration = addVectors(
+      acceleration,
+      scaleVector(normalize(burn.direction), burn.thrustN / state.massKg)
+    );
   }
   return acceleration;
 }
 
-function propellantUseDuring(model: AerospaceMissionModel, startSeconds: number, dt: number): number {
+function propellantUseDuring(
+  model: AerospaceMissionModel,
+  startSeconds: number,
+  dt: number
+): number {
   let used = 0;
   const endSeconds = startSeconds + dt;
   for (const burn of model.burns ?? []) {
@@ -781,7 +853,8 @@ function propellantUseDuring(model: AerospaceMissionModel, startSeconds: number,
     const burnEnd = burn.startSeconds + burn.durationSeconds;
     const overlap = Math.max(0, Math.min(endSeconds, burnEnd) - Math.max(startSeconds, burnStart));
     if (overlap <= 0) continue;
-    const massFlow = burn.massFlowKgps ?? burn.thrustN / (model.vehicle.specificImpulseSeconds * G0);
+    const massFlow =
+      burn.massFlowKgps ?? burn.thrustN / (model.vehicle.specificImpulseSeconds * G0);
     used += massFlow * overlap;
   }
   return used;

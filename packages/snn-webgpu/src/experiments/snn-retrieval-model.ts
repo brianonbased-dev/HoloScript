@@ -410,7 +410,10 @@ export class SNNRetrievalModel implements FactRetrievalModel {
     // Confidence: high when total activity is moderate AND pattern is selective (high CV)
     // Normalize total activity relative to threshold * timesteps as ceiling
     const activityCeiling = this.config.vThreshold * this.config.timestepsPerInference;
-    const totalActivityRatio = Math.min(1.0, hiddenTotal / (this.hiddenSize * activityCeiling * 0.5));
+    const totalActivityRatio = Math.min(
+      1.0,
+      hiddenTotal / (this.hiddenSize * activityCeiling * 0.5)
+    );
     const selectivity = Math.min(1.0, cv / 1.5); // CV > 1.5 is very selective
     const confidence = totalActivityRatio * selectivity;
     const abstentionThreshold = this.config.abstentionThreshold ?? 0.85;

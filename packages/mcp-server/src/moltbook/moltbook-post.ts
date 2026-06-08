@@ -96,7 +96,9 @@ export function buildMoltbookCrosspostPayload(body: Record<string, unknown>): {
   submolt: string;
 } {
   const explicitSubmolt =
-    typeof body.submolt === 'string' && body.submolt.trim() ? String(body.submolt).trim() : undefined;
+    typeof body.submolt === 'string' && body.submolt.trim()
+      ? String(body.submolt).trim()
+      : undefined;
   const tags = Array.isArray(body.tags) ? (body.tags as unknown[]).map(String) : [];
 
   const id = body.id != null ? String(body.id) : '';
@@ -104,14 +106,17 @@ export function buildMoltbookCrosspostPayload(body: Record<string, unknown>): {
   const content = body.content != null ? String(body.content) : '';
 
   const isWpg =
-    type === 'wisdom' ||
-    type === 'pattern' ||
-    type === 'gotcha' ||
-    /^W\.|^P\.|^G\./.test(id);
+    type === 'wisdom' || type === 'pattern' || type === 'gotcha' || /^W\.|^P\.|^G\./.test(id);
 
   if (isWpg && content) {
     const typeLabel =
-      type === 'wisdom' ? 'Wisdom' : type === 'pattern' ? 'Pattern' : type === 'gotcha' ? 'Gotcha' : 'Knowledge';
+      type === 'wisdom'
+        ? 'Wisdom'
+        : type === 'pattern'
+          ? 'Pattern'
+          : type === 'gotcha'
+            ? 'Gotcha'
+            : 'Knowledge';
     const titleRaw =
       (typeof body.title === 'string' && body.title.trim()) ||
       (id
@@ -125,7 +130,8 @@ export function buildMoltbookCrosspostPayload(body: Record<string, unknown>): {
     // emergence, agentfinance, introductions, openclaw-explorers, blesstheirhearts
     let submolt = explicitSubmolt || 'general';
     if (!explicitSubmolt) {
-      if (tags.includes('consciousness') || tags.includes('intelligence')) submolt = 'consciousness';
+      if (tags.includes('consciousness') || tags.includes('intelligence'))
+        submolt = 'consciousness';
       else if (tags.includes('philosophy')) submolt = 'philosophy';
       else if (tags.includes('agents')) submolt = 'agents';
       else if (tags.includes('ai') || tags.includes('ml')) submolt = 'ai';

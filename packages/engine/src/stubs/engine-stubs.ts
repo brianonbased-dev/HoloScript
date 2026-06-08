@@ -1,15 +1,20 @@
-
 // Stubs for @holoscript/engine modules used by @holoscript/core
 // This breaks circular dependencies during testing.
 
 // Orbital
 export const calculatePosition = () => [0, 0, 0];
 export class TimeManager {
-  static getInstance() { return new TimeManager(); }
-  getJulianDate() { return 2460000; }
+  static getInstance() {
+    return new TimeManager();
+  }
+  getJulianDate() {
+    return 2460000;
+  }
 }
 export class AttentionEngine {
-  static getTopKEntities() { return []; }
+  static getTopKEntities() {
+    return [];
+  }
 }
 
 // Runtime — matches the real singleton surface in runtime/StateMachineInterpreter.ts
@@ -20,11 +25,17 @@ export const stateMachineInterpreter = {
   createInstance(_id: string, _definition: unknown, _context: Record<string, unknown>) {
     return { definition: _definition, currentState: '', context: _context };
   },
-  sendEvent(_id: string, _event: string) { return false; },
+  sendEvent(_id: string, _event: string) {
+    return false;
+  },
   transitionTo(_id: string, _target: string) {},
-  getInstance(_id: string): undefined { return undefined; },
+  getInstance(_id: string): undefined {
+    return undefined;
+  },
   removeInstance(_id: string) {},
-  interpret() { return {}; },
+  interpret() {
+    return {};
+  },
 };
 export class BaseVoiceSynthesizer {}
 export function registerVoiceSynthesizer() {}
@@ -34,8 +45,10 @@ export class MockSpeechRecognizer {}
 export function registerSpeechRecognizer() {}
 export const MethodMemoize = () => (target: any) => target;
 export class ObjectPool {
-  acquire() { return {}; }
-  release() { }
+  acquire() {
+    return {};
+  }
+  release() {}
 }
 
 // Scene
@@ -127,7 +140,9 @@ export class GPUComputePipeline {}
 export const GPU_WORKGROUP_SIZE = [16, 16, 1];
 
 // Navigation
-export function getNavigationEngine() { return {}; }
+export function getNavigationEngine() {
+  return {};
+}
 
 // Framework
 export class X402Facilitator {}

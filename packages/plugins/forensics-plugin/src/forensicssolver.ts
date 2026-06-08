@@ -122,34 +122,45 @@ export function estimateTOD(
   bodyTempC: number,
   ambientTempC: number,
   bodyMassKg: number,
-  correctiveFactor = 1.0,
+  correctiveFactor = 1.0
 ): TODResult {
-  if (bodyTempC <= ambientTempC) throw new Error('Body temperature must exceed ambient temperature');
+  if (bodyTempC <= ambientTempC)
+    throw new Error('Body temperature must exceed ambient temperature');
   if (bodyMassKg <= 0) throw new Error('bodyMassKg must be positive');
   if (correctiveFactor <= 0) throw new Error('correctiveFactor must be positive');
 
   const T_r = 37.2; // Normal rectal temperature °C
 
   // Henssge B constant: cooling time constant
-  const B = correctiveFactor * Math.pow(bodyMassKg, 0.625) / 1.07;
+  const B = (correctiveFactor * Math.pow(bodyMassKg, 0.625)) / 1.07;
 
   // Normalise temperature: Q = (T_body - T_ambient) / (T_r - T_ambient)
   const Q = (bodyTempC - ambientTempC) / (T_r - ambientTempC);
 
   // Solve for t numerically (bisection):
   // Q = 1.25 × exp(−t/B) − 0.25 × exp(−5t/B)
-  const f = (t: number) => 1.25 * Math.exp(-t / B) - 0.25 * Math.exp(-5 * t / B) - Q;
+  const f = (t: number) => 1.25 * Math.exp(-t / B) - 0.25 * Math.exp((-5 * t) / B) - Q;
 
   if (Q >= 1.0) {
     // Body hasn't cooled yet — very recent death
-    return { pmiLowHours: 0, pmiHighHours: 1, pmiCentralHours: 0.5, correctiveFactor, ambientTempC, bodyTempC };
+    return {
+      pmiLowHours: 0,
+      pmiHighHours: 1,
+      pmiCentralHours: 0.5,
+      correctiveFactor,
+      ambientTempC,
+      bodyTempC,
+    };
   }
-  if (Q <= 0) throw new Error('Temperature ratio Q ≤ 0: body may be at or below ambient temperature');
+  if (Q <= 0)
+    throw new Error('Temperature ratio Q ≤ 0: body may be at or below ambient temperature');
 
-  let lo = 0, hi = 200;
+  let lo = 0,
+    hi = 200;
   for (let iter = 0; iter < 100; iter++) {
     const mid = (lo + hi) / 2;
-    if (f(mid) > 0) lo = mid; else hi = mid;
+    if (f(mid) > 0) lo = mid;
+    else hi = mid;
   }
   const pmiCentralHours = (lo + hi) / 2;
 
@@ -157,8 +168,8 @@ export function estimateTOD(
   const uncertainty = 2.8;
 
   return {
-    pmiLowHours:    Math.max(0, pmiCentralHours - uncertainty),
-    pmiHighHours:   pmiCentralHours + uncertainty,
+    pmiLowHours: Math.max(0, pmiCentralHours - uncertainty),
+    pmiHighHours: pmiCentralHours + uncertainty,
     pmiCentralHours,
     correctiveFactor,
     ambientTempC,
@@ -177,14 +188,23 @@ export function locardScore(
   evidenceType: string,
   transferProbability: number,
   persistenceProbability: number,
-  backgroundFrequency: number,
+  backgroundFrequency: number
 ): LocardScore {
-  if (transferProbability < 0 || transferProbability > 1) throw new Error('transferProbability must be in [0,1]');
-  if (persistenceProbability < 0 || persistenceProbability > 1) throw new Error('persistenceProbability must be in [0,1]');
-  if (backgroundFrequency <= 0 || backgroundFrequency > 1) throw new Error('backgroundFrequency must be in (0,1]');
+  if (transferProbability < 0 || transferProbability > 1)
+    throw new Error('transferProbability must be in [0,1]');
+  if (persistenceProbability < 0 || persistenceProbability > 1)
+    throw new Error('persistenceProbability must be in [0,1]');
+  if (backgroundFrequency <= 0 || backgroundFrequency > 1)
+    throw new Error('backgroundFrequency must be in (0,1]');
 
   const likelihoodRatio = (transferProbability * persistenceProbability) / backgroundFrequency;
-  return { evidenceType, transferProbability, persistenceProbability, backgroundFrequency, likelihoodRatio };
+  return {
+    evidenceType,
+    transferProbability,
+    persistenceProbability,
+    backgroundFrequency,
+    likelihoodRatio,
+  };
 }
 
 // ─── Bayesian evidence integration ───────────────────────────────────────────
@@ -199,11 +219,12 @@ export function locardScore(
  */
 export function bayesianEvidenceUpdate(
   priorOdds: number,
-  likelihoodRatios: number[],
+  likelihoodRatios: number[]
 ): BayesianEvidenceResult {
   if (priorOdds <= 0) throw new Error('priorOdds must be positive');
   if (likelihoodRatios.length === 0) throw new Error('At least one likelihood ratio required');
-  if (likelihoodRatios.some(lr => lr <= 0)) throw new Error('All likelihood ratios must be positive');
+  if (likelihoodRatios.some((lr) => lr <= 0))
+    throw new Error('All likelihood ratios must be positive');
 
   const posteriorOdds = priorOdds * likelihoodRatios.reduce((acc, lr) => acc * lr, 1);
   const posteriorProbability = posteriorOdds / (1 + posteriorOdds);
@@ -231,15 +252,17 @@ export function bayesianEvidenceUpdate(
 export function bloodSpatterAngle(widthMm: number, lengthMm: number): BloodSpatterResult {
   if (widthMm <= 0) throw new Error('widthMm must be positive');
   if (lengthMm <= 0) throw new Error('lengthMm must be positive');
-  if (widthMm > lengthMm) throw new Error('widthMm must be ≤ lengthMm (width ≤ length for ellipse)');
+  if (widthMm > lengthMm)
+    throw new Error('widthMm must be ≤ lengthMm (width ≤ length for ellipse)');
 
   const sinAlpha = widthMm / lengthMm;
   const angleOfImpactDeg = Math.asin(Math.min(1, sinAlpha)) * (180 / Math.PI);
-  const directionComment = angleOfImpactDeg < 30
-    ? 'Shallow angle — source likely distant or moving fast'
-    : angleOfImpactDeg < 60
-    ? 'Moderate angle — intermediate distance/velocity'
-    : 'Steep angle — source likely near or directly above';
+  const directionComment =
+    angleOfImpactDeg < 30
+      ? 'Shallow angle — source likely distant or moving fast'
+      : angleOfImpactDeg < 60
+        ? 'Moderate angle — intermediate distance/velocity'
+        : 'Steep angle — source likely near or directly above';
 
   return { widthMm, lengthMm, angleOfImpactDeg, directionComment };
 }
@@ -269,13 +292,20 @@ export function trajectoryBackCalculation(stains: SpatterStain[]): TrajectoryRes
   // Each stain i defines line: (x − x_i) × sin(θ_i) − (y − y_i) × cos(θ_i) = 0
   // → a_i × x + b_i × y = c_i
   // a_i = sin(dir_i), b_i = −cos(dir_i), c_i = x_i×sin(dir_i) − y_i×cos(dir_i)
-  let sumAA = 0, sumAB = 0, sumBB = 0, sumAC = 0, sumBC = 0;
+  let sumAA = 0,
+    sumAB = 0,
+    sumBB = 0,
+    sumAC = 0,
+    sumBC = 0;
   for (const s of stains) {
     const a = Math.sin(s.directionRad);
     const b = -Math.cos(s.directionRad);
     const c = s.x * a + s.y * b;
-    sumAA += a * a; sumAB += a * b; sumBB += b * b;
-    sumAC += a * c; sumBC += b * c;
+    sumAA += a * a;
+    sumAB += a * b;
+    sumBB += b * b;
+    sumAC += a * c;
+    sumBC += b * c;
   }
 
   // Normal equations: [sumAA sumAB; sumAB sumBB] [x; y] = [sumAC; sumBC]
@@ -297,11 +327,11 @@ export function trajectoryBackCalculation(stains: SpatterStain[]): TrajectoryRes
   const fittingRmse = Math.sqrt(sumErr2 / stains.length);
 
   // Estimate height from stringing method
-  const heights = stains.map(s => {
+  const heights = stains.map((s) => {
     const dx = convergenceX - s.x;
     const dy = convergenceY - s.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    return dist * Math.tan(s.angleOfImpactDeg * Math.PI / 180);
+    return dist * Math.tan((s.angleOfImpactDeg * Math.PI) / 180);
   });
   const originHeightMm = heights.reduce((a, b) => a + b, 0) / heights.length;
 
@@ -319,7 +349,7 @@ export function trajectoryBackCalculation(stains: SpatterStain[]): TrajectoryRes
  */
 export function dnaMatchProbability(
   alleleFrequencies: Array<[number, number]>,
-  thetaCorrection = 0.01,
+  thetaCorrection = 0.01
 ): DNAMatchResult {
   if (alleleFrequencies.length === 0) throw new Error('At least 1 locus required');
   if (alleleFrequencies.some(([p1, p2]) => p1 <= 0 || p2 <= 0 || p1 > 1 || p2 > 1)) {
@@ -331,13 +361,16 @@ export function dnaMatchProbability(
     let locusProb: number;
     if (Math.abs(p1 - p2) < 1e-9) {
       // Homozygous: theta-correction formula
-      locusProb = (2 * thetaCorrection + (1 - thetaCorrection) * p1) *
-                  (3 * thetaCorrection + (1 - thetaCorrection) * p1);
+      locusProb =
+        (2 * thetaCorrection + (1 - thetaCorrection) * p1) *
+        (3 * thetaCorrection + (1 - thetaCorrection) * p1);
       locusProb /= (1 + thetaCorrection) * (1 + 2 * thetaCorrection);
     } else {
       // Heterozygous
-      locusProb = 2 * (thetaCorrection + (1 - thetaCorrection) * p1) *
-                      (thetaCorrection + (1 - thetaCorrection) * p2);
+      locusProb =
+        2 *
+        (thetaCorrection + (1 - thetaCorrection) * p1) *
+        (thetaCorrection + (1 - thetaCorrection) * p2);
       locusProb /= (1 + thetaCorrection) * (1 + 2 * thetaCorrection);
     }
     rmp *= locusProb;
@@ -352,7 +385,13 @@ export function dnaMatchProbability(
   else if (log10LR < 9) verbalEquivalent = 'Very strong match (1 in billion+)';
   else verbalEquivalent = 'Extremely strong match (> 1 in billion)';
 
-  return { lociCount: alleleFrequencies.length, randomMatchProbability: rmp, likelihoodRatio, log10LR, verbalEquivalent };
+  return {
+    lociCount: alleleFrequencies.length,
+    randomMatchProbability: rmp,
+    likelihoodRatio,
+    log10LR,
+    verbalEquivalent,
+  };
 }
 
 // ─── Chain of custody scoring ─────────────────────────────────────────────────
@@ -410,7 +449,11 @@ export function chainOfCustodyIntegrity(entries: CustodyEntry[]): CustodyIntegri
     }
 
     // Consecutive handlers in different locations need explicit transfer
-    if (curr.handler !== prev.handler && curr.action !== 'transferred' && curr.locationId !== prev.locationId) {
+    if (
+      curr.handler !== prev.handler &&
+      curr.action !== 'transferred' &&
+      curr.locationId !== prev.locationId
+    ) {
       issues.push(`Handler change without transfer event at entry ${i}`);
       score -= 10;
       gaps++;
@@ -442,7 +485,7 @@ export interface ForensicsAnalysisResult {
 
 export function buildForensicsReceipt(
   result: ForensicsAnalysisResult,
-  options?: ForensicsReceiptOptions,
+  options?: ForensicsReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
@@ -452,7 +495,11 @@ export function buildForensicsReceipt(
       message: `Custody integrity score ${result.custody.integrityScore}/100 — not admissible`,
     });
   }
-  if (result.bayesian && result.bayesian.posteriorProbability < 0.5 && result.bayesian.likelihoodRatios.length > 1) {
+  if (
+    result.bayesian &&
+    result.bayesian.posteriorProbability < 0.5 &&
+    result.bayesian.likelihoodRatios.length > 1
+  ) {
     violations.push({
       criterion: 'bayesian_evidence',
       message: `Posterior probability ${(result.bayesian.posteriorProbability * 100).toFixed(1)}% — evidence does not support hypothesis`,
@@ -471,7 +518,11 @@ export function buildForensicsReceipt(
       custodyScore: result.custody?.integrityScore ?? null,
       impactAngleDeg: result.bloodSpatter?.angleOfImpactDeg ?? null,
     },
-    cael: { version: 'cael.v1', event: 'forensics.forensic_analysis', solverType: 'forensics.bayesian-locard' },
+    cael: {
+      version: 'cael.v1',
+      event: 'forensics.forensic_analysis',
+      solverType: 'forensics.bayesian-locard',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

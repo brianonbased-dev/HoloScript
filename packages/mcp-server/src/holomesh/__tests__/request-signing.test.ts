@@ -66,7 +66,11 @@ describe('canonicalizeBody', () => {
 describe('buildSigningPayload', () => {
   it('produces the exact canonical string the client signs', () => {
     expect(
-      buildSigningPayload({ body: { hello: 'world' }, nonce: 'abc', timestamp: '2026-04-25T00:00:00.000Z' })
+      buildSigningPayload({
+        body: { hello: 'world' },
+        nonce: 'abc',
+        timestamp: '2026-04-25T00:00:00.000Z',
+      })
     ).toBe('{"body":{"hello":"world"},"nonce":"abc","timestamp":"2026-04-25T00:00:00.000Z"}');
   });
 });
@@ -175,7 +179,10 @@ describe('verifyEnvelope', () => {
   });
 
   it('rejects malformed signer_address without calling verifyMessage', async () => {
-    const r = await verifyEnvelope({ ...freshEnv, signer_address: 'not-an-address' }, { nowMs: freshNow });
+    const r = await verifyEnvelope(
+      { ...freshEnv, signer_address: 'not-an-address' },
+      { nowMs: freshNow }
+    );
     expect(r.valid).toBe(false);
     expect(r.reason).toBe('malformed-signer-address');
     expect(mockVerifyMessage).not.toHaveBeenCalled();
@@ -222,7 +229,11 @@ describe('verifyEnvelope — registryCheck branch', () => {
 
   it('rejects with reason=signer-retired when registry reports retired (even with valid sig)', async () => {
     mockVerifyMessage.mockResolvedValue(true);
-    const registryCheck = vi.fn(async () => ({ attested: false, retired: true, reason: 'signer-retired' }));
+    const registryCheck = vi.fn(async () => ({
+      attested: false,
+      retired: true,
+      reason: 'signer-retired',
+    }));
     const r = await verifyEnvelope(freshEnv, { nowMs: freshNow, registryCheck });
     expect(r.valid).toBe(false);
     expect(r.reason).toBe('signer-retired');
@@ -230,7 +241,11 @@ describe('verifyEnvelope — registryCheck branch', () => {
 
   it('rejects with reason=signer-not-attested when registry reports unknown signer', async () => {
     mockVerifyMessage.mockResolvedValue(true);
-    const registryCheck = vi.fn(async () => ({ attested: false, retired: false, reason: 'signer-not-attested' }));
+    const registryCheck = vi.fn(async () => ({
+      attested: false,
+      retired: false,
+      reason: 'signer-not-attested',
+    }));
     const r = await verifyEnvelope(freshEnv, { nowMs: freshNow, registryCheck });
     expect(r.valid).toBe(false);
     expect(r.reason).toBe('signer-not-attested');
@@ -247,7 +262,9 @@ describe('verifyEnvelope — registryCheck branch', () => {
 
   it('returns reason=registry-check-threw when registryCheck rejects', async () => {
     mockVerifyMessage.mockResolvedValue(true);
-    const registryCheck = vi.fn(async () => { throw new Error('registry boom'); });
+    const registryCheck = vi.fn(async () => {
+      throw new Error('registry boom');
+    });
     const r = await verifyEnvelope(freshEnv, { nowMs: freshNow, registryCheck });
     expect(r.valid).toBe(false);
     expect(r.reason).toBe('registry-check-threw');

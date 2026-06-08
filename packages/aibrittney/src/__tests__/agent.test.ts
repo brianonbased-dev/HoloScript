@@ -31,7 +31,11 @@ class StubMcpClient extends McpClient {
   constructor(private result: CallToolResult) {
     super({ endpoint: 'http://stub', apiKey: 'stub', timeoutMs: 1000 });
   }
-  async callTool(args: { server: string; tool: string; args: Record<string, unknown> }): Promise<CallToolResult> {
+  async callTool(args: {
+    server: string;
+    tool: string;
+    args: Record<string, unknown>;
+  }): Promise<CallToolResult> {
     this.calls.push(args);
     return this.result;
   }
@@ -47,7 +51,11 @@ describe('runAgentTurn', () => {
       mcp: new StubMcpClient({ ok: true, status: 200, data: {} }),
       onEvent: (e) => events.push(e),
       fetchImpl: fakeOllamaFetch([
-        { message: { role: 'assistant', content: 'hi there' }, eval_count: 3, eval_duration: 1_000_000 },
+        {
+          message: { role: 'assistant', content: 'hi there' },
+          eval_count: 3,
+          eval_duration: 1_000_000,
+        },
       ]),
     });
     expect(result.ok).toBe(true);
@@ -112,7 +120,13 @@ describe('runAgentTurn', () => {
     });
     // Session history should now contain: system, user, assistant (with tool_calls), tool, assistant (final)
     const history = session.messages();
-    expect(history.map((m) => m.role)).toEqual(['system', 'user', 'assistant', 'tool', 'assistant']);
+    expect(history.map((m) => m.role)).toEqual([
+      'system',
+      'user',
+      'assistant',
+      'tool',
+      'assistant',
+    ]);
     const toolMsg = history[3];
     expect(toolMsg.tool_call_id).toBe('call_1');
     expect(toolMsg.name).toBe('holo_query_codebase');
@@ -130,9 +144,7 @@ describe('runAgentTurn', () => {
           message: {
             role: 'assistant',
             content: '',
-            tool_calls: [
-              { id: 'x', function: { name: 'made_up_tool', arguments: {} } },
-            ],
+            tool_calls: [{ id: 'x', function: { name: 'made_up_tool', arguments: {} } }],
           },
         },
         { message: { role: 'assistant', content: 'sorry, I cannot do that.' } },
@@ -182,7 +194,9 @@ describe('runAgentTurn', () => {
             ],
           },
         },
-        { message: { role: 'assistant', content: 'I have a diff preview ready for confirmation.' } },
+        {
+          message: { role: 'assistant', content: 'I have a diff preview ready for confirmation.' },
+        },
       ]),
     });
 
@@ -191,7 +205,9 @@ describe('runAgentTurn', () => {
     expect(store.read('active')).toBe('cube { @color(red) }\n');
     expect(events.some((event) => event.kind === 'mutation-preview')).toBe(true);
 
-    const toolMsg = session.messages().find((message) => message.role === 'tool' && message.name === 'edit_holo');
+    const toolMsg = session
+      .messages()
+      .find((message) => message.role === 'tool' && message.name === 'edit_holo');
     const preview = JSON.parse(toolMsg?.content ?? '{}') as MutationPreview;
     expect(preview).toMatchObject({
       type: 'mutation-preview',

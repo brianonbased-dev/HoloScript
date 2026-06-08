@@ -94,7 +94,9 @@ export default function UiGraphPage() {
     return (
       <main className="min-h-screen bg-neutral-950 text-neutral-100 p-8 font-mono">
         <h1 className="text-2xl font-semibold mb-4">UI Graph not generated</h1>
-        <p className="text-neutral-400">No file at <code>{HOLO_PATH}</code>.</p>
+        <p className="text-neutral-400">
+          No file at <code>{HOLO_PATH}</code>.
+        </p>
         <pre className="mt-4 p-4 bg-neutral-900 rounded text-sm overflow-auto">
           {`# generate the graph
 node packages/studio-ui-graph/dist/cli.js`}
@@ -111,11 +113,20 @@ node packages/studio-ui-graph/dist/cli.js`}
       <header className="mb-6 border-b border-neutral-800 pb-4">
         <h1 className="text-2xl font-semibold mb-2">Studio UI Graph</h1>
         <p className="text-neutral-400 text-xs">
-          Server-rendered from <code className="text-cyan-400">{HOLO_PATH.replace(process.cwd(), '.')}</code>
+          Server-rendered from{' '}
+          <code className="text-cyan-400">{HOLO_PATH.replace(process.cwd(), '.')}</code>
           {summary.generatedAt && (
-            <> · graph generated <time className="text-neutral-300">{summary.generatedAt}</time></>
+            <>
+              {' '}
+              · graph generated <time className="text-neutral-300">{summary.generatedAt}</time>
+            </>
           )}
-          {mtime && <> · file mtime <time className="text-neutral-500">{mtime}</time></>}
+          {mtime && (
+            <>
+              {' '}
+              · file mtime <time className="text-neutral-500">{mtime}</time>
+            </>
+          )}
         </p>
       </header>
 
@@ -147,13 +158,24 @@ node packages/studio-ui-graph/dist/cli.js`}
                   <td className="px-3 py-2 text-cyan-300">{p.route}</td>
                   <td className="px-3 py-2 text-neutral-300">{p.id}</td>
                   <td className="px-3 py-2 text-right tabular-nums">
-                    <Bar value={p.componentCount} max={Math.max(...summary.pages.map((q) => q.componentCount), 1)} />
+                    <Bar
+                      value={p.componentCount}
+                      max={Math.max(...summary.pages.map((q) => q.componentCount), 1)}
+                    />
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
-                    <Bar value={p.stores.length} max={Math.max(...summary.pages.map((q) => q.stores.length), 1)} accent="amber" />
+                    <Bar
+                      value={p.stores.length}
+                      max={Math.max(...summary.pages.map((q) => q.stores.length), 1)}
+                      accent="amber"
+                    />
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
-                    <Bar value={p.apis.length} max={Math.max(...summary.pages.map((q) => q.apis.length), 1)} accent="violet" />
+                    <Bar
+                      value={p.apis.length}
+                      max={Math.max(...summary.pages.map((q) => q.apis.length), 1)}
+                      accent="violet"
+                    />
                   </td>
                   <td className="px-3 py-2 text-neutral-500 hidden lg:table-cell">{p.file}</td>
                 </tr>
@@ -166,8 +188,8 @@ node packages/studio-ui-graph/dist/cli.js`}
       <section className="mt-10">
         <h2 className="text-lg font-semibold mb-3 text-neutral-200">Per-page rollups</h2>
         <p className="text-xs text-neutral-500 mb-4">
-          Pages are sorted by total backend surface (stores + APIs). Highest-surface pages at the top
-          are the primary candidates for decomposition.
+          Pages are sorted by total backend surface (stores + APIs). Highest-surface pages at the
+          top are the primary candidates for decomposition.
         </p>
         <div className="space-y-3">
           {[...summary.pages]
@@ -189,14 +211,20 @@ node packages/studio-ui-graph/dist/cli.js`}
                   <div>
                     <div className="text-amber-400 mb-1">stores ({p.stores.length})</div>
                     <ul className="space-y-1 text-neutral-300">
-                      {p.stores.map((s) => <li key={s}>· {s}</li>)}
+                      {p.stores.map((s) => (
+                        <li key={s}>· {s}</li>
+                      ))}
                       {p.stores.length === 0 && <li className="text-neutral-600">— none —</li>}
                     </ul>
                   </div>
                   <div>
                     <div className="text-violet-400 mb-1">apis ({p.apis.length})</div>
                     <ul className="space-y-1 text-neutral-300">
-                      {p.apis.map((a) => <li key={a}>· <code>{a}</code></li>)}
+                      {p.apis.map((a) => (
+                        <li key={a}>
+                          · <code>{a}</code>
+                        </li>
+                      ))}
                       {p.apis.length === 0 && <li className="text-neutral-600">— none —</li>}
                     </ul>
                   </div>
@@ -207,8 +235,15 @@ node packages/studio-ui-graph/dist/cli.js`}
       </section>
 
       <footer className="mt-12 pt-4 border-t border-neutral-900 text-xs text-neutral-600">
-        graph format: <a className="underline" href="https://github.com/brianonbased-dev/HoloScript/tree/main/packages/studio-ui-graph">@holoscript/studio-ui-graph</a>
-        {' '}· regenerate: <code className="text-neutral-400">node packages/studio-ui-graph/dist/cli.js</code>
+        graph format:{' '}
+        <a
+          className="underline"
+          href="https://github.com/brianonbased-dev/HoloScript/tree/main/packages/studio-ui-graph"
+        >
+          @holoscript/studio-ui-graph
+        </a>{' '}
+        · regenerate:{' '}
+        <code className="text-neutral-400">node packages/studio-ui-graph/dist/cli.js</code>
       </footer>
     </main>
   );
@@ -225,7 +260,12 @@ function Stat({ label, value }: { label: string; value: number }) {
 
 function Bar({ value, max, accent }: { value: number; max: number; accent?: 'amber' | 'violet' }) {
   const pct = Math.max(2, Math.round((value / Math.max(max, 1)) * 100));
-  const color = accent === 'amber' ? 'bg-amber-500/40' : accent === 'violet' ? 'bg-violet-500/40' : 'bg-cyan-500/40';
+  const color =
+    accent === 'amber'
+      ? 'bg-amber-500/40'
+      : accent === 'violet'
+        ? 'bg-violet-500/40'
+        : 'bg-cyan-500/40';
   return (
     <div className="flex items-center gap-2 justify-end">
       <div className="w-16 h-1.5 rounded bg-neutral-900 overflow-hidden">

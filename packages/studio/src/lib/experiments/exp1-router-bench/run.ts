@@ -148,10 +148,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   runExp1Live()
     .then((out) => {
       // eslint-disable-next-line no-console
-      console.log(JSON.stringify({ kind: out.kind, taskCount: out.taskCount, arms: out.report.arms, verdict: out.verdict }, null, 2));
+      console.log(
+        JSON.stringify(
+          { kind: out.kind, taskCount: out.taskCount, arms: out.report.arms, verdict: out.verdict },
+          null,
+          2
+        )
+      );
       if (out.kind !== 'verdict') {
         // eslint-disable-next-line no-console
-        console.log(`\n⚠  ${out.kind.toUpperCase()} (n=${out.taskCount}) — not a full thesis verdict. Expand the suite to N≈50–100 (+ adversarial cases) for a defensible C1/C2/C3 result.`);
+        console.log(
+          `\n⚠  ${out.kind.toUpperCase()} (n=${out.taskCount}) — not a full thesis verdict. Expand the suite to N≈50–100 (+ adversarial cases) for a defensible C1/C2/C3 result.`
+        );
       }
     })
     .catch((err) => {

@@ -19,7 +19,13 @@ function fakeIndex(): SemanticCorpusIndex {
     entries: [
       { id: 'b.east', source: 's', title: 'East', statement: 'east', vector: [1, 0] },
       { id: 'a.north', source: 's', title: 'North', statement: 'north', vector: [0, 1] },
-      { id: 'c.northeast', source: 's', title: 'NE', statement: 'ne', vector: [Math.SQRT1_2, Math.SQRT1_2] },
+      {
+        id: 'c.northeast',
+        source: 's',
+        title: 'NE',
+        statement: 'ne',
+        vector: [Math.SQRT1_2, Math.SQRT1_2],
+      },
     ],
   };
 }
@@ -52,7 +58,9 @@ describe('SemanticCorpusIndex — pure nearest-search (always run)', () => {
     expect(() => deserializeIndex(JSON.stringify({ ...idx, indexVersion: 99 }))).toThrow();
     expect(() => deserializeIndex(JSON.stringify({ ...idx, modelId: 'other/model' }))).toThrow();
     expect(() =>
-      deserializeIndex(JSON.stringify({ ...idx, entries: [{ id: 'x', statement: 's', source: 's' }] })),
+      deserializeIndex(
+        JSON.stringify({ ...idx, entries: [{ id: 'x', statement: 's', source: 's' }] })
+      )
     ).toThrow();
   });
 
@@ -76,20 +84,31 @@ describe(`SemanticCorpusIndex — learned model (${SEMANTIC_NOVELTY_MODEL})`, ()
   it('flags a paraphrase of an indexed result as near-duplicate, unrelated stays novel', async (ctx) => {
     if (!available) return ctx.skip();
     const index = await buildSemanticCorpusIndex([
-      { id: 'prior.topology.euler', title: 'Euler', source: 'Euler 1758', statement: 'For every convex polyhedron, vertices minus edges plus faces equals two.' },
-      { id: 'prior.geometry.pythagoras', title: 'Pythagoras', source: 'classical', statement: 'In a right triangle the hypotenuse squared equals the sum of the other two sides squared.' },
+      {
+        id: 'prior.topology.euler',
+        title: 'Euler',
+        source: 'Euler 1758',
+        statement: 'For every convex polyhedron, vertices minus edges plus faces equals two.',
+      },
+      {
+        id: 'prior.geometry.pythagoras',
+        title: 'Pythagoras',
+        source: 'classical',
+        statement:
+          'In a right triangle the hypotenuse squared equals the sum of the other two sides squared.',
+      },
     ]);
     expect(index.dim).toBeGreaterThan(0);
     const dup = await assessSemanticNoveltyIndexed(
       'Any convex solid has its corner count minus edge count plus face count equal to 2.',
-      index,
+      index
     );
     expect(dup.status).toBe('near-duplicate');
     expect(dup.nearest?.priorArtId).toBe('prior.topology.euler');
 
     const novel = await assessSemanticNoveltyIndexed(
       'Agent worldlines form a braid whose word determines hash-equal shared state.',
-      index,
+      index
     );
     expect(novel.status).toBe('novel');
   }, 120_000);

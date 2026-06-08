@@ -11,8 +11,8 @@ describe('CausalWorldModel', () => {
 
   beforeEach(() => {
     model = new CausalWorldModel();
-    model.addVariable({ id: 'gravity',     name: 'Gravity',     value: 9.8  });
-    model.addVariable({ id: 'jumpHeight',  name: 'Jump Height', value: 1.2  });
+    model.addVariable({ id: 'gravity', name: 'Gravity', value: 9.8 });
+    model.addVariable({ id: 'jumpHeight', name: 'Jump Height', value: 1.2 });
     model.addEdge({ from: 'gravity', to: 'jumpHeight', coefficient: -0.1 });
   });
 
@@ -23,8 +23,8 @@ describe('CausalWorldModel', () => {
   it('stores added variables', () => {
     const vars = model.getVariables();
     expect(vars).toHaveLength(2);
-    expect(vars.map(v => v.id)).toContain('gravity');
-    expect(vars.map(v => v.id)).toContain('jumpHeight');
+    expect(vars.map((v) => v.id)).toContain('gravity');
+    expect(vars.map((v) => v.id)).toContain('jumpHeight');
   });
 
   it('stores added edges', () => {
@@ -34,21 +34,21 @@ describe('CausalWorldModel', () => {
   });
 
   it('throws when adding edge with unknown source', () => {
-    expect(() =>
-      model.addEdge({ from: 'unknown', to: 'jumpHeight', coefficient: 1 })
-    ).toThrow(/Unknown source variable/);
+    expect(() => model.addEdge({ from: 'unknown', to: 'jumpHeight', coefficient: 1 })).toThrow(
+      /Unknown source variable/
+    );
   });
 
   it('throws when adding edge with unknown target', () => {
-    expect(() =>
-      model.addEdge({ from: 'gravity', to: 'unknown', coefficient: 1 })
-    ).toThrow(/Unknown target variable/);
+    expect(() => model.addEdge({ from: 'gravity', to: 'unknown', coefficient: 1 })).toThrow(
+      /Unknown target variable/
+    );
   });
 
   it('throws when adding an edge that would create a cycle', () => {
-    expect(() =>
-      model.addEdge({ from: 'jumpHeight', to: 'gravity', coefficient: 1 })
-    ).toThrow(/cycle/);
+    expect(() => model.addEdge({ from: 'jumpHeight', to: 'gravity', coefficient: 1 })).toThrow(
+      /cycle/
+    );
   });
 
   it('removes a variable and its incident edges', () => {
@@ -105,7 +105,7 @@ describe('CausalWorldModel', () => {
 
   it('counterfactual: matches intervention when observed equals model defaults', () => {
     const intResult = model.intervention('gravity', 19.6);
-    const cfResult  = model.counterfactual('gravity', 19.6);
+    const cfResult = model.counterfactual('gravity', 19.6);
     expect(cfResult.values.jumpHeight).toBeCloseTo(intResult.values.jumpHeight, 4);
   });
 
@@ -131,9 +131,9 @@ describe('CausalWorldModel', () => {
 
   it('simulateScenarios returns one result per scenario', () => {
     const scenarios = [
-      { label: 'double gravity',  variableId: 'gravity', value: 19.6 },
-      { label: 'half gravity',    variableId: 'gravity', value: 4.9  },
-      { label: 'zero gravity',    variableId: 'gravity', value: 0    },
+      { label: 'double gravity', variableId: 'gravity', value: 19.6 },
+      { label: 'half gravity', variableId: 'gravity', value: 4.9 },
+      { label: 'zero gravity', variableId: 'gravity', value: 0 },
     ];
     const results = model.simulateScenarios(scenarios);
     expect(results).toHaveLength(3);
@@ -142,11 +142,11 @@ describe('CausalWorldModel', () => {
 
   it('simulateScenarios: zero gravity gives maximum jump', () => {
     const results = model.simulateScenarios([
-      { label: 'zero',   variableId: 'gravity', value: 0 },
+      { label: 'zero', variableId: 'gravity', value: 0 },
       { label: 'normal', variableId: 'gravity', value: 9.8 },
     ]);
-    const zero   = results.find(r => r.label === 'zero')!;
-    const normal = results.find(r => r.label === 'normal')!;
+    const zero = results.find((r) => r.label === 'zero')!;
+    const normal = results.find((r) => r.label === 'normal')!;
     expect(zero.result.values.jumpHeight).toBeGreaterThan(normal.result.values.jumpHeight);
   });
 
@@ -189,7 +189,7 @@ describe('CausalWorldModel', () => {
     });
 
     it('contains all expected variables', () => {
-      const ids = vrModel.getVariables().map(v => v.id);
+      const ids = vrModel.getVariables().map((v) => v.id);
       expect(ids).toContain('gravity');
       expect(ids).toContain('friction');
       expect(ids).toContain('objectMass');
@@ -205,18 +205,18 @@ describe('CausalWorldModel', () => {
 
     it('intervention: doubling gravity increases collision force', () => {
       const normal = vrModel.intervention('gravity', 9.8);
-      const heavy  = vrModel.intervention('gravity', 19.6);
+      const heavy = vrModel.intervention('gravity', 19.6);
       expect(heavy.values.collisionForce).toBeGreaterThan(normal.values.collisionForce);
     });
 
     it('intervention: doubling gravity reduces jump height', () => {
       const normal = vrModel.intervention('gravity', 9.8);
-      const heavy  = vrModel.intervention('gravity', 19.6);
+      const heavy = vrModel.intervention('gravity', 19.6);
       expect(heavy.values.jumpHeight).toBeLessThan(normal.values.jumpHeight);
     });
 
     it('intervention: higher friction reduces slide distance', () => {
-      const lowFriction  = vrModel.intervention('friction', 0.1);
+      const lowFriction = vrModel.intervention('friction', 0.1);
       const highFriction = vrModel.intervention('friction', 0.9);
       expect(highFriction.values.slideDistance).toBeLessThan(lowFriction.values.slideDistance);
     });
@@ -241,7 +241,7 @@ describe('CausalWorldModel', () => {
       }));
       const results = vrModel.simulateScenarios(scenarios);
       expect(results).toHaveLength(50);
-      results.forEach(r => expect(r.result.values).toBeDefined());
+      results.forEach((r) => expect(r.result.values).toBeDefined());
     });
   });
 });

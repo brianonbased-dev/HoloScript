@@ -83,11 +83,7 @@ const RouterInner: React.FC<Omit<HoloShellRouterProps, 'initialScene'>> = ({
       aria-label={`HoloShell — ${currentScene}`}
     >
       {/* The live 3D canvas */}
-      <HoloShellScene
-        sceneId={currentScene}
-        cameraPosition={cameraPosition}
-        fov={fov}
-      />
+      <HoloShellScene sceneId={currentScene} cameraPosition={cameraPosition} fov={fov} />
 
       {/* Crossfade overlay (pure DOM, above Canvas) */}
       <div
@@ -150,11 +146,7 @@ export const HoloShellRouter: React.FC<HoloShellRouterProps> = ({
           </div>
         }
       >
-        <RouterInner
-          className={className}
-          cameraPosition={cameraPosition}
-          fov={fov}
-        />
+        <RouterInner className={className} cameraPosition={cameraPosition} fov={fov} />
       </Suspense>
     </HoloShellProvider>
   );

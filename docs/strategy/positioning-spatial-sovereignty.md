@@ -10,13 +10,14 @@
 
 Three major terms own the 2026 spatial/3D narrative:
 
-| Term | Owner | Meaning |
-|---|---|---|
-| **Spatial Computing** | Apple | Consumer XR — "computers you wear" |
-| **Physical AI** | NVIDIA | Industrial simulation + robotics — "AI in the physical world" |
-| **Spatial Collaboration** | Cavrnus, Spatial.io | Multi-user in existing 3D apps |
+| Term                      | Owner               | Meaning                                                       |
+| ------------------------- | ------------------- | ------------------------------------------------------------- |
+| **Spatial Computing**     | Apple               | Consumer XR — "computers you wear"                            |
+| **Physical AI**           | NVIDIA              | Industrial simulation + robotics — "AI in the physical world" |
+| **Spatial Collaboration** | Cavrnus, Spatial.io | Multi-user in existing 3D apps                                |
 
 None of these cover:
+
 - **Data sovereignty** — your scene is yours, not streamed from their cloud
 - **Platform sovereignty** — your scene isn't locked to one vendor's runtime
 - **Agent sovereignty** — your content is first-class comprehensible to AI, not wrapped in their API
@@ -39,16 +40,19 @@ That's HoloScript's corner. It needs a name.
 HoloScript's Spatial Sovereignty manifests as three concrete doors (per W.GOLD.011, Platinum):
 
 ### Door 1: The Headless Door (Agents)
+
 - `.holo` files are AST-native, semantic, and hash-verifiable
 - MCP + Absorb make them comprehensible to any agent in any IDE
 - No API wrapping — agents read the source of truth directly
 
 ### Door 2: The Spatial Door (Humans)
+
 - Studio compiles `.holo` to any target: Three.js, R3F, Unity, Unreal, USD
 - Browser-native WebGPU path needs no install
 - Works on any device with a modern browser
 
 ### Door 3: The Economy Door (Creators)
+
 - Ed25519 wallets are identity (W.GOLD.004)
 - x402 protocol settles interactions (P.GOLD.004)
 - Creators keep custody; platforms are projections
@@ -94,24 +98,28 @@ HoloScript's Spatial Sovereignty manifests as three concrete doors (per W.GOLD.0
 Four pillars support the Spatial Sovereignty claim. Each needs dedicated proof.
 
 ### Pillar 1: Source Sovereignty
+
 - `.holo` files are plain text — readable, diffable, version-controlled
 - Semantic IR, not serialized runtime state
 - One source of truth that every target consumes
 - **Proof**: `.holo → Three.js + R3F + Unity + Unreal + USD` flagship demo
 
 ### Pillar 2: Runtime Sovereignty
+
 - Browser WebGPU means no install, no RTX floor, no enterprise license
 - Compile targets span every major engine — you're never stuck
 - Open compile-target specification so third parties can add more
 - **Proof**: `npx create-holoscript` 30-second time-to-wow
 
 ### Pillar 3: Agent Sovereignty
+
 - MCP server exposes 215+ tools; agents use the platform natively
 - Absorb gives agents GraphRAG-powered codebase intelligence
 - HoloMesh coordinates agents without centralized platform
 - **Proof**: Live demo of Claude / GPT compiling `.holo` via MCP tools
 
 ### Pillar 4: Verification Sovereignty
+
 - Trust by Construction — solver + renderer share hash-verified same object
 - Deterministic replay — any simulation reproducible bit-identical
 - Provenance semirings — algebraic trust composition (W.GOLD.037)
@@ -121,15 +129,15 @@ Four pillars support the Spatial Sovereignty claim. Each needs dedicated proof.
 
 ## Who This Appeals To (Audience Map)
 
-| Segment | Why Spatial Sovereignty resonates | Primary competitor they're escaping |
-|---|---|---|
+| Segment                  | Why Spatial Sovereignty resonates                              | Primary competitor they're escaping        |
+| ------------------------ | -------------------------------------------------------------- | ------------------------------------------ |
 | **Medical device teams** | Data can't leave premises; audit trails must be byte-identical | SimScale (cloud egress), ANSYS (licensing) |
-| **Legal forensics** | Simulations as court-admissible evidence | Nobody serves this — green field |
-| **Academic researchers** | Locked out of Omniverse + ANSYS by price | NVIDIA Omniverse, ANSYS |
-| **Climate / policy** | Models must be reproducible by non-modelers | Black-box HPC models |
-| **Indie XR creators** | Apple Vision Pro apps without Apple Store approval | WebXR limitations |
-| **Multi-engine shops** | Same scene across Unity + Unreal + web | Engine-specific runtimes |
-| **Agent-first startups** | Spatial content that agents can read | LangChain tool wrapping |
+| **Legal forensics**      | Simulations as court-admissible evidence                       | Nobody serves this — green field           |
+| **Academic researchers** | Locked out of Omniverse + ANSYS by price                       | NVIDIA Omniverse, ANSYS                    |
+| **Climate / policy**     | Models must be reproducible by non-modelers                    | Black-box HPC models                       |
+| **Indie XR creators**    | Apple Vision Pro apps without Apple Store approval             | WebXR limitations                          |
+| **Multi-engine shops**   | Same scene across Unity + Unreal + web                         | Engine-specific runtimes                   |
+| **Agent-first startups** | Spatial content that agents can read                           | LangChain tool wrapping                    |
 
 ---
 
@@ -150,13 +158,13 @@ Avoid these framings (they dilute the narrative):
 
 For marketing pages, each pillar maps to a CTA:
 
-| Page | CTA | Destination |
-|---|---|---|
-| Homepage | "Try Spatial Sovereignty" | `npx create-holoscript` one-liner |
-| Enterprise | "Get a Verifiable Digital Twin demo" | Book intro call |
-| Researchers | "Publish a replayable simulation" | TVCG paper + starter template |
-| Developers | "Ship to every runtime from one source" | GitHub + playground |
-| Agent builders | "Give your agents a comprehensible world" | MCP server docs |
+| Page           | CTA                                       | Destination                       |
+| -------------- | ----------------------------------------- | --------------------------------- |
+| Homepage       | "Try Spatial Sovereignty"                 | `npx create-holoscript` one-liner |
+| Enterprise     | "Get a Verifiable Digital Twin demo"      | Book intro call                   |
+| Researchers    | "Publish a replayable simulation"         | TVCG paper + starter template     |
+| Developers     | "Ship to every runtime from one source"   | GitHub + playground               |
+| Agent builders | "Give your agents a comprehensible world" | MCP server docs                   |
 
 ---
 
@@ -164,9 +172,10 @@ For marketing pages, each pillar maps to a CTA:
 
 **Risk**: "Sovereignty" is a loaded word with political connotations. Some audiences may find it off-putting.
 
-**Counter**: It's used extensively in data sovereignty (GDPR, Schrems II), digital sovereignty (EU policy), and wallet sovereignty (crypto). The audiences who *would* react negatively are mostly not our target. The audiences we want (sovereign-minded builders, data-responsible enterprises, research-publishing scientists) respond positively to the term.
+**Counter**: It's used extensively in data sovereignty (GDPR, Schrems II), digital sovereignty (EU policy), and wallet sovereignty (crypto). The audiences who _would_ react negatively are mostly not our target. The audiences we want (sovereign-minded builders, data-responsible enterprises, research-publishing scientists) respond positively to the term.
 
 **Fallback positioning** if "Sovereignty" tests poorly:
+
 - **"Spatial IR"** (Intermediate Representation) — accurate but too technical for non-compiler audiences
 - **"Spatial Source"** — emphasizes the "source of truth" angle but weaker than sovereignty
 - **"Portable Spatial"** — descriptive, weaker than sovereignty

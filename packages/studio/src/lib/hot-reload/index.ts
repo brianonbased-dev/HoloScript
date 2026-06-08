@@ -5,7 +5,11 @@
  */
 
 export { diffScenes, type DiffResult } from './SceneDiffer';
-export { HoloFileWatcher, type HoloFileWatcherOptions, type WatchEventType } from './HoloFileWatcher';
+export {
+  HoloFileWatcher,
+  type HoloFileWatcherOptions,
+  type WatchEventType,
+} from './HoloFileWatcher';
 export {
   HotReloadPipeline,
   type HotReloadPipelineOptions,

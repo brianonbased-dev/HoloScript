@@ -37,7 +37,10 @@ export default function AvatarAuthoringPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <header data-testid="avatar-header" className="flex h-12 shrink-0 items-center justify-between border-b border-studio-border bg-studio-panel px-4">
+      <header
+        data-testid="avatar-header"
+        className="flex h-12 shrink-0 items-center justify-between border-b border-studio-border bg-studio-panel px-4"
+      >
         <div className="flex items-center gap-4">
           <Link
             href="/create"
@@ -66,12 +69,17 @@ export default function AvatarAuthoringPage() {
             Reset
           </button>
 
-          <div data-testid="avatar-tabs" className="flex rounded-lg border border-studio-border overflow-hidden">
-            {([
-              { id: 'compose', label: 'Compose', icon: Sparkles },
-              { id: 'preview', label: 'Preview', icon: User },
-              { id: 'export', label: 'Export', icon: Download },
-            ] as const).map((tab) => {
+          <div
+            data-testid="avatar-tabs"
+            className="flex rounded-lg border border-studio-border overflow-hidden"
+          >
+            {(
+              [
+                { id: 'compose', label: 'Compose', icon: Sparkles },
+                { id: 'preview', label: 'Preview', icon: User },
+                { id: 'export', label: 'Export', icon: Download },
+              ] as const
+            ).map((tab) => {
               const Icon = tab.icon;
               const isActive = activePanel === tab.id;
               return (

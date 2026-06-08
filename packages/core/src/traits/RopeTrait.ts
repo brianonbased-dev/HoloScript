@@ -1,5 +1,4 @@
-import type { Vector3 } from '../types';
-﻿/**
+import type { Vector3 } from '../types'; /**
  * Rope Trait
  *
  * Rope/cable simulation with attachment points and breakability.
@@ -7,7 +6,6 @@ import type { Vector3 } from '../types';
  *
  * @version 2.0.0
  */
-
 import type { TraitHandler } from './TraitTypes';
 
 // =============================================================================
@@ -86,8 +84,8 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
     for (let i = 0; i <= config.segments; i++) {
       state.segments.push({
         position: [0, -i * segmentLength, 0],
-        prevPosition: [0, -i * segmentLength, 0 ],
-        velocity: [0, 0, 0 ],
+        prevPosition: [0, -i * segmentLength, 0],
+        velocity: [0, 0, 0],
       });
     }
 
@@ -193,7 +191,7 @@ export const ropeHandler: TraitHandler<RopeConfig> = {
     } else if (event.type === 'rope_attach') {
       const endpoint = event.endpoint as 'start' | 'end';
       const targetNodeId = event.targetNodeId as string;
-      const offset = (event.offset as [number, number, number]) || [0, 0, 0 ];
+      const offset = (event.offset as [number, number, number]) || [0, 0, 0];
 
       context.emit?.('rope_create_attachment', {
         node,

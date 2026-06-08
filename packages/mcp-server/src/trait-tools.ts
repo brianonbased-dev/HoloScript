@@ -6,33 +6,38 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 export const traitTools: Tool[] = [
   {
     name: 'compile_trait_composition',
-    description: 'Compile a HoloScript trait composition using algebraic conflict resolution (Provenance Semiring). ' +
+    description:
+      'Compile a HoloScript trait composition using algebraic conflict resolution (Provenance Semiring). ' +
       'Resolves conflicts based on authority weights and provenance traces. ' +
       'Returns the merged defaultConfig and any composition errors.',
     inputSchema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'Name of the composed trait to create (e.g. "Warrior")' },
-        components: { 
-          type: 'array', 
+        name: {
+          type: 'string',
+          description: 'Name of the composed trait to create (e.g. "Warrior")',
+        },
+        components: {
+          type: 'array',
           items: { type: 'string' },
-          description: 'List of component trait names (e.g. ["@grabbable", "@physics"])' 
+          description: 'List of component trait names (e.g. ["@grabbable", "@physics"])',
         },
         overrides: {
           type: 'object',
-          description: 'Optional property overrides that win over component defaults.'
+          description: 'Optional property overrides that win over component defaults.',
         },
         authorityLevel: {
           type: 'number',
-          description: 'The authority level of the caller (0-100+). High authority wins conflicts.'
-        }
+          description: 'The authority level of the caller (0-100+). High authority wins conflicts.',
+        },
       },
-      required: ['name', 'components']
-    }
+      required: ['name', 'components'],
+    },
   },
   {
     name: 'sync_hardware_loop',
-    description: 'Synchronize a virtual HoloScript scene with a physical ROS2 hardware loop. ' +
+    description:
+      'Synchronize a virtual HoloScript scene with a physical ROS2 hardware loop. ' +
       'STUB: No ROS2 bridge is connected. Returns simulated handshake data; contractVerified is always false. ' +
       'Do not gate safety-critical decisions on this tool until the ROS2 runtime ships.',
     inputSchema: {
@@ -41,34 +46,41 @@ export const traitTools: Tool[] = [
         nodeName: { type: 'string', description: 'ROS2 node name for the hardware bridge' },
         topicPrefix: { type: 'string', description: 'Prefix for ROS2 topics (default: /holo)' },
         frequency: { type: 'number', description: 'Sync frequency in Hz (default: 60)' },
-        bidirectional: { type: 'boolean', description: 'Enable bidirectional command flow' }
+        bidirectional: { type: 'boolean', description: 'Enable bidirectional command flow' },
       },
-      required: ['nodeName']
-    }
+      required: ['nodeName'],
+    },
   },
   {
     name: 'execute_economic_contract',
-    description: 'STUB: Execute a sovereign economic contract (x402). No real x402 facilitator is connected — returns failure unless ALLOW_MOCK_X402=1 is set. ' +
+    description:
+      'STUB: Execute a sovereign economic contract (x402). No real x402 facilitator is connected — returns failure unless ALLOW_MOCK_X402=1 is set. ' +
       'No wallet signature, no provisioning, no real transaction occurs.',
     inputSchema: {
       type: 'object',
       properties: {
-        contractId: { type: 'string', description: 'The unique ID of the economic contract (from code)' },
+        contractId: {
+          type: 'string',
+          description: 'The unique ID of the economic contract (from code)',
+        },
         payer: { type: 'string', description: 'The agent ID or wallet of the payer' },
         amount: { type: 'number', description: 'Amount to authorize in USDC (micro-units)' },
-        resourceType: { 
-          type: 'string', 
+        resourceType: {
+          type: 'string',
           enum: ['compute', 'storage', 'data', 'inference'],
-          description: 'Type of resource being rented'
-        }
+          description: 'Type of resource being rented',
+        },
       },
-      required: ['contractId', 'payer', 'amount']
-    }
-  }
+      required: ['contractId', 'payer', 'amount'],
+    },
+  },
 ];
 
-import { TraitCompositionCompiler, vrTraitRegistry, type TraitCompositionDecl } from '@holoscript/core';
-
+import {
+  TraitCompositionCompiler,
+  vrTraitRegistry,
+  type TraitCompositionDecl,
+} from '@holoscript/core';
 
 // THIN (ratchet P4): provenanceHash is a SHA-256 of the JSON-serialized composition output,
 // not a cryptographic commitment to the source trait definitions. The hash covers the
@@ -89,8 +101,8 @@ export async function handleTraitTool(name: string, args: Record<string, any>) {
       components: args.components,
       overrides: args.overrides,
       provenance: {
-        context: { authorityLevel: args.authorityLevel ?? 0 }
-      }
+        context: { authorityLevel: args.authorityLevel ?? 0 },
+      },
     };
 
     try {
@@ -98,22 +110,21 @@ export async function handleTraitTool(name: string, args: Record<string, any>) {
       const getHandler = (n: string) => {
         const normalized = n.startsWith('@') ? n.slice(1) : n;
         return (
-          vrTraitRegistry.getHandler(normalized as never) ??
-          vrTraitRegistry.getHandler(n as never)
+          vrTraitRegistry.getHandler(normalized as never) ?? vrTraitRegistry.getHandler(n as never)
         );
       };
-      
+
       const [result] = compiler.compile([decl], getHandler);
       return {
         success: true,
         composedTrait: result,
-        provenanceHash: await computeProvenanceHash(result) // sha256 of deterministic JSON serialization
+        provenanceHash: await computeProvenanceHash(result), // sha256 of deterministic JSON serialization
       };
     } catch (error: any) {
       return {
         success: false,
         error: error.message,
-        type: error.name
+        type: error.name,
       };
     }
   }
@@ -126,7 +137,8 @@ export async function handleTraitTool(name: string, args: Record<string, any>) {
       node: args.nodeName,
       latencyMs: -1,
       contractVerified: false,
-      message: 'ROS2 bridge not connected. sync_hardware_loop is a stub — no real hardware handshake performed. Do not gate safety decisions on this result.',
+      message:
+        'ROS2 bridge not connected. sync_hardware_loop is a stub — no real hardware handshake performed. Do not gate safety decisions on this result.',
     };
   }
 
@@ -148,7 +160,8 @@ export async function handleTraitTool(name: string, args: Record<string, any>) {
       success: false,
       status: 'no_x402_facilitator',
       amount: args.amount,
-      message: 'No x402 facilitator is connected. execute_economic_contract is a stub — no wallet signature, no provisioning, no real transaction. Set ALLOW_MOCK_X402=1 for development mock.',
+      message:
+        'No x402 facilitator is connected. execute_economic_contract is a stub — no wallet signature, no provisioning, no real transaction. Set ALLOW_MOCK_X402=1 for development mock.',
     };
   }
 

@@ -106,10 +106,7 @@ export async function createCheckoutSession(opts: {
 /**
  * Verify a Stripe webhook signature and parse the event.
  */
-export function constructWebhookEvent(
-  payload: string | Buffer,
-  signature: string
-): Stripe.Event {
+export function constructWebhookEvent(payload: string | Buffer, signature: string): Stripe.Event {
   const stripe = getStripe();
   if (!stripe) throw new Error('Stripe not configured');
 

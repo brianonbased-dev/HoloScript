@@ -5,7 +5,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { magnifiableHandler } from '../MagnifiableTrait';
 
 function makeNode(scale?: Vector3) {
-  return { id: 'mag_node', scale: scale ?? [1, 1, 1 ] };
+  return { id: 'mag_node', scale: scale ?? [1, 1, 1] };
 }
 function makeContext() {
   return { emit: vi.fn() };
@@ -47,8 +47,8 @@ describe('magnifiableHandler.onAttach', () => {
   it('lensPosition = null', () =>
     expect((attachNode().node as any).__magnifiableState.lensPosition).toBeNull());
   it('captures originalScale from node.scale', () => {
-    const { node } = attachNode({}, [2, 3, 4 ]);
-    expect((node as any).__magnifiableState.originalScale).toEqual([2, 3, 4 ]);
+    const { node } = attachNode({}, [2, 3, 4]);
+    expect((node as any).__magnifiableState.originalScale).toEqual([2, 3, 4]);
   });
   it('emits magnifiable_register with trigger and lensMode', () => {
     const { ctx } = attachNode({ trigger: 'gaze', lens_mode: true });
@@ -68,7 +68,7 @@ describe('magnifiableHandler.onDetach', () => {
     expect((node as any).__magnifiableState).toBeUndefined();
   });
   it('restores originalScale on node.scale', () => {
-    const { node, cfg, ctx } = attachNode({}, [3, 2, 1 ]);
+    const { node, cfg, ctx } = attachNode({}, [3, 2, 1]);
     // Simulate magnification applied by dirtying scale
     node.scale[0] = 9;
     node.scale[1] = 6;
@@ -150,9 +150,9 @@ describe('magnifiableHandler.onEvent — magnify_start / pinch_start', () => {
     const { node, cfg, ctx } = attachNode();
     magnifiableHandler.onEvent!(node, cfg, ctx, {
       type: 'magnify_start',
-      center: [1, 2, 3 ],
+      center: [1, 2, 3],
     });
-    expect((node as any).__magnifiableState.zoomCenter).toEqual([1, 2, 3 ]);
+    expect((node as any).__magnifiableState.zoomCenter).toEqual([1, 2, 3]);
   });
   it('magnify_start emits on_magnify_start', () => {
     const { node, cfg, ctx } = attachNode();

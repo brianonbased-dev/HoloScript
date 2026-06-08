@@ -57,7 +57,12 @@ export interface FabricWasteResult {
   nestingEfficiency: number;
 }
 
-export type ColorHarmony = 'complementary' | 'analogous' | 'triadic' | 'split-complementary' | 'neutral';
+export type ColorHarmony =
+  | 'complementary'
+  | 'analogous'
+  | 'triadic'
+  | 'split-complementary'
+  | 'neutral';
 
 export interface ColorHarmonyResult {
   harmony: ColorHarmony;
@@ -87,7 +92,9 @@ export interface CostPerWearResult {
   estimatedWears: number;
 }
 
-export interface FashionReceiptOptions { runId?: string; }
+export interface FashionReceiptOptions {
+  runId?: string;
+}
 
 export interface FashionAnalysisResult {
   grading?: PatternGradingResult;
@@ -106,11 +113,12 @@ export interface FashionAnalysisResult {
 export function patternGrading(
   rules: GradingRule[],
   sizes: string[],
-  baseSizeIndex: number,
+  baseSizeIndex: number
 ): PatternGradingResult {
   if (rules.length === 0) throw new Error('No grading rules');
   if (sizes.length === 0) throw new Error('No sizes');
-  if (baseSizeIndex < 0 || baseSizeIndex >= sizes.length) throw new Error('baseSizeIndex out of range');
+  if (baseSizeIndex < 0 || baseSizeIndex >= sizes.length)
+    throw new Error('baseSizeIndex out of range');
 
   const gradedSizes: GradedSize[] = sizes.map((size, idx) => {
     const step = idx - baseSizeIndex;
@@ -139,7 +147,7 @@ export function patternGrading(
 export function fabricWasteEstimator(
   pieces: PatternPiece[],
   fabricWidthCm: number,
-  nestingEfficiencyFactor = 0.82,
+  nestingEfficiencyFactor = 0.82
 ): FabricWasteResult {
   if (pieces.length === 0) throw new Error('No pattern pieces');
   if (fabricWidthCm <= 0) throw new Error('Fabric width must be positive');
@@ -166,8 +174,11 @@ export function fabricWasteEstimator(
  * Analogous:     |Δhue| ≤ 30°  → low contrast, harmonious
  * Triadic:       |Δhue| ≈ 120° → balanced
  */
-export function colorHarmonyScore(primaryHueDeg: number, secondaryHueDeg: number): ColorHarmonyResult {
-  const diff = Math.abs(((primaryHueDeg - secondaryHueDeg) % 360 + 360) % 360);
+export function colorHarmonyScore(
+  primaryHueDeg: number,
+  secondaryHueDeg: number
+): ColorHarmonyResult {
+  const diff = Math.abs((((primaryHueDeg - secondaryHueDeg) % 360) + 360) % 360);
   const norm = diff > 180 ? 360 - diff : diff;
 
   let harmony: ColorHarmony;
@@ -210,7 +221,7 @@ export function trendMomentum(periods: SalesPeriod[]): TrendResult {
 
   const firstHalf = periods.slice(0, Math.floor(n / 2));
   const secondHalf = periods.slice(Math.ceil(n / 2));
-  const avgFirst  = firstHalf.reduce((s, p) => s + p.unitsSold, 0) / firstHalf.length;
+  const avgFirst = firstHalf.reduce((s, p) => s + p.unitsSold, 0) / firstHalf.length;
   const avgSecond = secondHalf.reduce((s, p) => s + p.unitsSold, 0) / secondHalf.length;
 
   const changePct = avgFirst > 0 ? (avgSecond - avgFirst) / avgFirst : 0;
@@ -230,7 +241,7 @@ export function trendMomentum(periods: SalesPeriod[]): TrendResult {
 export function costPerWear(
   purchasePriceUSD: number,
   careCostPerWearUSD: number,
-  estimatedWears: number,
+  estimatedWears: number
 ): CostPerWearResult {
   if (purchasePriceUSD < 0) throw new Error('Purchase price must be ≥ 0');
   if (estimatedWears <= 0) throw new Error('estimatedWears must be positive');
@@ -247,18 +258,27 @@ export function costPerWear(
 
 export function buildFashionReceipt(
   result: FashionAnalysisResult,
-  options?: FashionReceiptOptions,
+  options?: FashionReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.fabricWaste && result.fabricWaste.wastePct > 0.25) {
-    violations.push({ criterion: 'fabric_waste', message: `Fabric waste ${(result.fabricWaste.wastePct * 100).toFixed(1)}% exceeds 25% threshold — review nesting` });
+    violations.push({
+      criterion: 'fabric_waste',
+      message: `Fabric waste ${(result.fabricWaste.wastePct * 100).toFixed(1)}% exceeds 25% threshold — review nesting`,
+    });
   }
   if (result.colorHarmony && result.colorHarmony.harmonyScore < 50) {
-    violations.push({ criterion: 'color_harmony', message: `Color harmony score ${result.colorHarmony.harmonyScore} below 50 — consider palette revision` });
+    violations.push({
+      criterion: 'color_harmony',
+      message: `Color harmony score ${result.colorHarmony.harmonyScore} below 50 — consider palette revision`,
+    });
   }
   if (result.trend && result.trend.trend === 'down') {
-    violations.push({ criterion: 'trend', message: `Category showing declining trend (velocity ${result.trend.velocity.toFixed(1)} units/period)` });
+    violations.push({
+      criterion: 'trend',
+      message: `Category showing declining trend (velocity ${result.trend.velocity.toFixed(1)} units/period)`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -272,7 +292,11 @@ export function buildFashionReceipt(
       colorHarmonyScore: result.colorHarmony?.harmonyScore ?? null,
       trendDirection: result.trend?.trend ?? null,
     },
-    cael: { version: 'cael.v1', event: 'fashion.design_analysis', solverType: 'fashion.pattern-grading' },
+    cael: {
+      version: 'cael.v1',
+      event: 'fashion.design_analysis',
+      solverType: 'fashion.pattern-grading',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

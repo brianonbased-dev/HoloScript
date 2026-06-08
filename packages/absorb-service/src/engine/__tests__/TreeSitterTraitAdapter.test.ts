@@ -72,9 +72,24 @@ function rubyTree(): ParseTree {
     ],
   });
   const innerCall = node({ type: 'call', row: 4, fields: { method: id('compute_sum') } });
-  const method = node({ type: 'method', row: 3, fields: { name: id('total') }, children: [innerCall] });
-  const klass = node({ type: 'class', row: 2, fields: { name: constant('Invoice') }, children: [method] });
-  const mod = node({ type: 'module', row: 1, fields: { name: constant('Billing') }, children: [klass] });
+  const method = node({
+    type: 'method',
+    row: 3,
+    fields: { name: id('total') },
+    children: [innerCall],
+  });
+  const klass = node({
+    type: 'class',
+    row: 2,
+    fields: { name: constant('Invoice') },
+    children: [method],
+  });
+  const mod = node({
+    type: 'module',
+    row: 1,
+    fields: { name: constant('Billing') },
+    children: [klass],
+  });
   const root = node({ type: 'program', children: [requireCall, mod] });
   return { rootNode: root };
 }

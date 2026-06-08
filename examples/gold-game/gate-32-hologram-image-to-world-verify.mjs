@@ -41,9 +41,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, '..', '..');
 const imp = (p) => import(pathToFileURL(p).href);
 const core = await imp(join(repo, 'packages', 'core', 'dist', 'index.js'));
-const { computeStateDigest } = await imp(join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'));
+const { computeStateDigest } = await imp(
+  join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts')
+);
 const { DepthEstimationService, depthToNormalMap } = await imp(
-  join(repo, 'packages', 'engine', 'src', 'hologram', 'DepthEstimationService.ts'),
+  join(repo, 'packages', 'engine', 'src', 'hologram', 'DepthEstimationService.ts')
 );
 
 const receiptPath = join(here, 'GATE-32-HOLOGRAM-IMAGE-TO-WORLD-receipt.json');
@@ -72,7 +74,8 @@ const { data: rgba, info } = await sharp(readFileSync(artPath))
   .ensureAlpha()
   .raw()
   .toBuffer({ resolveWithObject: true });
-const artIngested = info.width === GRID_W && info.height === GRID_H && rgba.length === GRID_W * GRID_H * 4;
+const artIngested =
+  info.width === GRID_W && info.height === GRID_H && rgba.length === GRID_W * GRID_H * 4;
 
 // ── 3. REAL depth + normals via the shipped DepthEstimationService ─────────────
 // estimateDepth runs the genuine Depth Anything V2 pipeline when transformers.js
@@ -95,7 +98,9 @@ const depthResult = await depthService.estimateDepth({
   data: new Uint8ClampedArray(rgba),
 });
 const { depthMap, normalMap, width: dW, height: dH, backend } = depthResult;
-const depthPath = neuralPipelineLoaded ? `depth-anything-v2 (${backend})` : 'luminance-fallback (deterministic)';
+const depthPath = neuralPipelineLoaded
+  ? `depth-anything-v2 (${backend})`
+  : 'luminance-fallback (deterministic)';
 const realDepthSurface =
   depthMap instanceof Float32Array &&
   depthMap.length === dW * dH &&
@@ -118,7 +123,8 @@ if (normalsMatch) {
 }
 
 // Depth must carry real variation (a flat map = no world). Range over the field.
-let dMin = Infinity, dMax = -Infinity;
+let dMin = Infinity,
+  dMax = -Infinity;
 for (let i = 0; i < depthMap.length; i++) {
   if (depthMap[i] < dMin) dMin = depthMap[i];
   if (depthMap[i] > dMax) dMax = depthMap[i];
@@ -131,8 +137,8 @@ const depthHasVariation = depthRange > 0.05;
 // pushed by the inferred depth (near=closer to camera, far=deeper). This is the
 // "2D art → 3D GOLD world" — geometry the founder image becomes.
 const q = (v) => Math.round(v * 1e4); // 1e-4 quantum, deterministic int field
-const posField = [];   // quantized [x,y,z] per vertex
-const normField = [];  // quantized [nx,ny,nz] per vertex
+const posField = []; // quantized [x,y,z] per vertex
+const normField = []; // quantized [nx,ny,nz] per vertex
 const worldVertices = [];
 for (let y = 0; y < dH; y++) {
   for (let x = 0; x < dW; x++) {
@@ -146,7 +152,11 @@ for (let y = 0; y < dH; y++) {
     const ni = (y * dW + x) * 3;
     normField.push(q(normalMap[ni]), q(normalMap[ni + 1]), q(normalMap[ni + 2]));
     if (worldVertices.length < 6) {
-      worldVertices.push({ grid: [x, y], world: [+wx.toFixed(4), +wy.toFixed(4), +wz.toFixed(4)], depth: +d.toFixed(4) });
+      worldVertices.push({
+        grid: [x, y],
+        world: [+wx.toFixed(4), +wy.toFixed(4), +wz.toFixed(4)],
+        depth: +d.toFixed(4),
+      });
     }
   }
 }
@@ -171,12 +181,14 @@ const generatedWorld = {
     // playable build) can reconstruct the EXACT displaced surface this gate proved.
     // Digest is over posField (above), so persisting this does not change worldDigest.
     depthGrid: {
-      width: dW, height: dH,
+      width: dW,
+      height: dH,
       depths: Array.from(depthMap, (d) => +d.toFixed(4)),
       backdrop: { ...BACKDROP },
     },
   },
-  feedsBackInto: 'a world source for the playable vault scene behind DiamondPeak; the visible render is Gate 34 (holographic outputs) — NOT yet mounted in drive-build',
+  feedsBackInto:
+    'a world source for the playable vault scene behind DiamondPeak; the visible render is Gate 34 (holographic outputs) — NOT yet mounted in drive-build',
 };
 
 // ── 5. Digest over the generated world geometry (REAL computeStateDigest) ──────
@@ -185,7 +197,7 @@ const worldDigest = computeStateDigest(
     fieldNames: ['vista_position', 'vista_normal'],
     getField: (n) => Float32Array.from(n === 'vista_normal' ? normField : posField),
   },
-  HASH,
+  HASH
 );
 // re-derive independently (same arrays, rebuilt) → "reproduces twice" property
 const posField2 = [];
@@ -208,7 +220,7 @@ const worldDigest2 = computeStateDigest(
     fieldNames: ['vista_position', 'vista_normal'],
     getField: (n) => Float32Array.from(n === 'vista_normal' ? normField2 : posField2),
   },
-  HASH,
+  HASH
 );
 const deterministic = worldDigest === worldDigest2 && worldDigest.length > 0;
 
@@ -220,7 +232,8 @@ const receipt = {
   implementation: {
     depthService:
       'packages/engine/src/hologram/DepthEstimationService.ts (SHIPPED — Depth Anything V2 pipeline; deterministic luminance fallback in Node, same algorithm as packages/hologram-worker/src/depth-infer.ts)',
-    normalMap: 'packages/engine/src/hologram/DepthEstimationService.ts depthToNormalMap (genuine Sobel, W.155)',
+    normalMap:
+      'packages/engine/src/hologram/DepthEstimationService.ts depthToNormalMap (genuine Sobel, W.155)',
     sourceImage: 'examples/gold-game/assets/gold-vault-vista-wlNgg.jpg (the founder art)',
     sourceScene: 'examples/gold-game/gold-vault-game.holo (parsed via @holoscript/core parseHolo)',
     contractSpine: 'packages/engine/src/simulation/hashes.ts computeStateDigest',
@@ -234,16 +247,38 @@ const receipt = {
     depthMax: +dMax.toFixed(4),
     depthRange: +depthRange.toFixed(4),
     note: neuralPipelineLoaded
-      ? 'REAL Depth Anything V2 neural inference loaded and ran on detected backend "' + backend + '"'
-      : 'Depth Anything V2 pipeline did NOT load in this env (transformers.js present but no usable ONNX device for "' + backend + '"); ran the SHIPPED deterministic luminance fallback (identical algorithm to packages/hologram-worker/src/depth-infer.ts). The neural backend is a runtime/model-availability upgrade, NOT a code change — the image-to-world pipeline below is backend-agnostic.',
+      ? 'REAL Depth Anything V2 neural inference loaded and ran on detected backend "' +
+        backend +
+        '"'
+      : 'Depth Anything V2 pipeline did NOT load in this env (transformers.js present but no usable ONNX device for "' +
+        backend +
+        '"); ran the SHIPPED deterministic luminance fallback (identical algorithm to packages/hologram-worker/src/depth-infer.ts). The neural backend is a runtime/model-availability upgrade, NOT a code change — the image-to-world pipeline below is backend-agnostic.',
   },
   generatedWorld,
   scene: { parseClean, existingGroups, generatedGroup: 'VaultVistaBackdrop' },
-  checks: { parseClean, artIngested, realDepthSurface, normalsMatch, depthHasVariation, worldGenerated, deterministic },
-  contract: { spine: 'REAL computeStateDigest(field-bag, sha256)', worldDigest, reproducible: 'run the verifier to re-derive' },
+  checks: {
+    parseClean,
+    artIngested,
+    realDepthSurface,
+    normalsMatch,
+    depthHasVariation,
+    worldGenerated,
+    deterministic,
+  },
+  contract: {
+    spine: 'REAL computeStateDigest(field-bag, sha256)',
+    worldDigest,
+    reproducible: 'run the verifier to re-derive',
+  },
   honestScope:
     'Consumes the GENUINE shipped HoloGram depth surface (packages/engine/src/hologram/DepthEstimationService.ts — the same DepthEstimationService + depthToNormalMap the production hologram path uses) for its ACTUAL image-to-world job. PROVEN: the REAL founder 2D art is ingested (sharp → raw RGBA), the SHIPPED service infers a real per-pixel depth map with genuine variation, the SHIPPED Sobel depthToNormalMap derives per-vertex normals (independently re-derived to prove they are not fabricated), those maps DISPLACE a vertex grid into a 3D world source (a VaultVistaBackdrop spatial_group that extends the real parsed vault scene; it is emitted as a world SOURCE — rendering it visibly in the playable build is Gate 34 holographic outputs + the Gate-1-pattern textured render, NOT yet mounted in drive-build), and the generated world geometry digest reproduces deterministically via the real computeStateDigest. ' +
-    'NOT proven here (out of scope, requires a usable on-device neural runtime): (a) Depth Anything V2 NEURAL depth — in THIS run the service detected backend "' + backend + '" but the ONNX/transformers.js pipeline did not initialize (neuralPipelineLoaded=' + neuralPipelineLoaded + '), so it ran the SHIPPED deterministic luminance fallback (actualDepthPath="' + depthPath + '", the identical algorithm to packages/hologram-worker/src/depth-infer.ts); the neural backend is a runtime/model-availability upgrade, not a code change, and the world-generation pipeline below is backend-agnostic (it consumes whatever depth+normals the shipped service returns); (b) RASTERIZED pixels of the backdrop — the textured/lit render is the headless-Chromium / browser render path (Gate 1 pattern), not this pure-geometry verifier; (c) full mesh tessellation + UV atlas — this gate proves the depth-displaced point/vertex field (the world SOURCE), the polygonal surfacing is the deepening. This gate proves the deterministic IMAGE-to-DEPTH-to-3D-WORLD-SOURCE pipeline over the real founder art using the real shipped service — the compiler/service-side artifact; the neural-depth backend + pixel raster are the model-download/hardware-in-the-loop deepening, the same pattern as Gates 1/13.',
+    'NOT proven here (out of scope, requires a usable on-device neural runtime): (a) Depth Anything V2 NEURAL depth — in THIS run the service detected backend "' +
+    backend +
+    '" but the ONNX/transformers.js pipeline did not initialize (neuralPipelineLoaded=' +
+    neuralPipelineLoaded +
+    '), so it ran the SHIPPED deterministic luminance fallback (actualDepthPath="' +
+    depthPath +
+    '", the identical algorithm to packages/hologram-worker/src/depth-infer.ts); the neural backend is a runtime/model-availability upgrade, not a code change, and the world-generation pipeline below is backend-agnostic (it consumes whatever depth+normals the shipped service returns); (b) RASTERIZED pixels of the backdrop — the textured/lit render is the headless-Chromium / browser render path (Gate 1 pattern), not this pure-geometry verifier; (c) full mesh tessellation + UV atlas — this gate proves the depth-displaced point/vertex field (the world SOURCE), the polygonal surfacing is the deepening. This gate proves the deterministic IMAGE-to-DEPTH-to-3D-WORLD-SOURCE pipeline over the real founder art using the real shipped service — the compiler/service-side artifact; the neural-depth backend + pixel raster are the model-download/hardware-in-the-loop deepening, the same pattern as Gates 1/13.',
   verifiedAt: new Date().toISOString(),
 };
 
@@ -253,8 +288,16 @@ if (emit) {
   writeFileSync(worldOutPath, JSON.stringify(generatedWorld, null, 2) + '\n');
   console.log('GATE-32 RECEIPT EMITTED ->', receiptPath);
   console.log('  WORLD SOURCE EMITTED ->', worldOutPath);
-  console.log('  artIngested=' + artIngested, 'depthPath=' + depthPath, 'grid=' + GRID_W + 'x' + GRID_H);
-  console.log('  depthRange=' + (+depthRange.toFixed(4)), 'normalsMatch=' + normalsMatch, 'vertices=' + vertexCount);
+  console.log(
+    '  artIngested=' + artIngested,
+    'depthPath=' + depthPath,
+    'grid=' + GRID_W + 'x' + GRID_H
+  );
+  console.log(
+    '  depthRange=' + +depthRange.toFixed(4),
+    'normalsMatch=' + normalsMatch,
+    'vertices=' + vertexCount
+  );
   console.log('  worldDigest=' + worldDigest.slice(0, 24), 'deterministic=' + deterministic);
 } else {
   let existing;
@@ -268,11 +311,23 @@ if (emit) {
     ['vault scene parses clean (@holoscript/core)', parseClean === true],
     ['founder 2D art ingested to raw RGBA grid (sharp)', artIngested === true],
     ['REAL shipped DepthEstimationService produces depth + normal maps', realDepthSurface === true],
-    ['normals re-derive from the SAME depth via shipped Sobel depthToNormalMap (not fabricated)', normalsMatch === true],
+    [
+      'normals re-derive from the SAME depth via shipped Sobel depthToNormalMap (not fabricated)',
+      normalsMatch === true,
+    ],
     ['inferred depth carries genuine variation (range > 0.05)', depthHasVariation === true],
-    ['depth+normals displace a vertex grid into a 3D world source (VaultVistaBackdrop)', worldGenerated === true],
-    ['generated world geometry digest reproduces deterministically (twice)', deterministic === true],
-    ['world digest reproduces vs receipt (real computeStateDigest)', worldDigest === existing.contract.worldDigest],
+    [
+      'depth+normals displace a vertex grid into a 3D world source (VaultVistaBackdrop)',
+      worldGenerated === true,
+    ],
+    [
+      'generated world geometry digest reproduces deterministically (twice)',
+      deterministic === true,
+    ],
+    [
+      'world digest reproduces vs receipt (real computeStateDigest)',
+      worldDigest === existing.contract.worldDigest,
+    ],
   ];
   let ok = true;
   console.log('GATE-32 (HOLOGRAM IMAGE-TO-WORLD) VERIFICATION:');

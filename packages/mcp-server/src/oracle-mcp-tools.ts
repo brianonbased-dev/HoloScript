@@ -28,7 +28,8 @@ const ORCHESTRATOR_URL =
   process.env.MCP_ORCHESTRATOR_PUBLIC_URL ||
   'https://mcp-orchestrator-production-45f9.up.railway.app';
 
-const HOLOMESH_API_BASE = process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net/api/holomesh';
+const HOLOMESH_API_BASE =
+  process.env.HOLOMESH_API_BASE || 'https://mcp.holoscript.net/api/holomesh';
 
 function getApiKey(): string | undefined {
   return process.env.HOLOSCRIPT_API_KEY || process.env.HOLOMESH_API_KEY || undefined;
@@ -223,7 +224,10 @@ async function queryHoloMeshKnowledge(domain?: string, limit = 20): Promise<Know
 // WEB SEARCH (optional external gap filling)
 // =============================================================================
 
-async function webSearchForGaps(query: string, limit = 3): Promise<Array<{ title: string; url: string; snippet: string }>> {
+async function webSearchForGaps(
+  query: string,
+  limit = 3
+): Promise<Array<{ title: string; url: string; snippet: string }>> {
   // NOTE: This is a lightweight wrapper. In production, wire to an actual search API
   // (e.g. Brave, Serper, or a hosted search MCP). For now, return an empty array
   // with instructions so the caller knows the gap exists externally.
@@ -247,17 +251,20 @@ export const oracleMcpTools: Tool[] = [
       properties: {
         topic: {
           type: 'string',
-          description: 'Topic to discover (e.g. "compilation as gossip", "thermodynamic trust", "security x rendering")',
+          description:
+            'Topic to discover (e.g. "compilation as gossip", "thermodynamic trust", "security x rendering")',
         },
         depth: {
           type: 'string',
           enum: ['brief', 'deep'],
-          description: 'brief = top 5 files + 5 knowledge entries. deep = full text of top files + 10 entries.',
+          description:
+            'brief = top 5 files + 5 knowledge entries. deep = full text of top files + 10 entries.',
         },
         sources: {
           type: 'string',
           enum: ['internal', 'external', 'both'],
-          description: 'internal = research archive + knowledge store only. external = include web search. both = all.',
+          description:
+            'internal = research archive + knowledge store only. external = include web search. both = all.',
         },
       },
       required: ['topic'],
@@ -275,12 +282,14 @@ export const oracleMcpTools: Tool[] = [
         research_files: {
           type: 'array',
           items: { type: 'string' },
-          description: 'List of research file paths (relative to research root or absolute) to synthesize.',
+          description:
+            'List of research file paths (relative to research root or absolute) to synthesize.',
         },
         target_format: {
           type: 'string',
           enum: ['wisdom', 'pattern', 'gotcha', 'all'],
-          description: 'Which knowledge type(s) to produce. all = one of each if material supports it.',
+          description:
+            'Which knowledge type(s) to produce. all = one of each if material supports it.',
         },
         topic: {
           type: 'string',
@@ -331,7 +340,8 @@ export const oracleMcpTools: Tool[] = [
         depth: {
           type: 'string',
           enum: ['hypothesis', 'research', 'implementation'],
-          description: 'hypothesis = quick intersection map. research = include archive files. implementation = include blueprints.',
+          description:
+            'hypothesis = quick intersection map. research = include archive files. implementation = include blueprints.',
         },
       },
       required: ['domain1', 'domain2'],
@@ -441,19 +451,29 @@ async function handleDiscover(args: Record<string, unknown>): Promise<unknown> {
   }
 
   if (findings.length === 0) {
-    findings.push('## No Findings\nThe oracle found no research files, knowledge entries, or web results for this topic. This itself is a signal — the topic may be unexplored territory.');
+    findings.push(
+      '## No Findings\nThe oracle found no research files, knowledge entries, or web results for this topic. This itself is a signal — the topic may be unexplored territory.'
+    );
   }
 
   // 5. Propose next steps
   findings.push('\n## Next Steps');
   if (researchFiles.length === 0 && knowledgeEntries.length === 0) {
-    findings.push('- This topic appears unexplored. Consider filing a research task or running a collision with an adjacent domain.');
+    findings.push(
+      '- This topic appears unexplored. Consider filing a research task or running a collision with an adjacent domain.'
+    );
   } else if (researchFiles.length > 0 && knowledgeEntries.length === 0) {
-    findings.push('- Research exists but has not been graduated to the knowledge store. Run `holo_oracle_synthesize` on the research files.');
+    findings.push(
+      '- Research exists but has not been graduated to the knowledge store. Run `holo_oracle_synthesize` on the research files.'
+    );
   } else if (researchFiles.length > 0 && knowledgeEntries.length > 0) {
-    findings.push('- Both research and knowledge exist. Consider a collision exploration (`holo_oracle_explore`) with a third domain to find deeper connections.');
+    findings.push(
+      '- Both research and knowledge exist. Consider a collision exploration (`holo_oracle_explore`) with a third domain to find deeper connections.'
+    );
   } else {
-    findings.push('- Knowledge exists but no deep research files found. Consider deepening with a targeted research cycle.');
+    findings.push(
+      '- Knowledge exists but no deep research files found. Consider deepening with a targeted research cycle.'
+    );
   }
 
   return {
@@ -504,7 +524,8 @@ async function handleSynthesize(args: Record<string, unknown>): Promise<unknown>
         lower.startsWith('**key insight') ||
         /^#{1,3}\s+finding\s+\d*\s*:/.test(lower) ||
         /^#{1,3}\s+key insight/.test(lower) ||
-        (lower.startsWith('- ') && (lower.includes('finding') || lower.includes('insight') || lower.includes('key:')));
+        (lower.startsWith('- ') &&
+          (lower.includes('finding') || lower.includes('insight') || lower.includes('key:')));
 
       if (isFindingHeader) {
         if (buffer.length > 0) insights.push(buffer.join(' ').trim());
@@ -617,7 +638,17 @@ async function handleGaps(args: Record<string, unknown>): Promise<unknown> {
     const entryCount = deduped.length;
     // Heuristic coverage score: 0 entries = 0, 1-2 = 10, 3-5 = 25, 6-10 = 50, 11-20 = 75, 21+ = 100
     const coverageScore =
-      entryCount >= 21 ? 100 : entryCount >= 11 ? 75 : entryCount >= 6 ? 50 : entryCount >= 3 ? 25 : entryCount >= 1 ? 10 : 0;
+      entryCount >= 21
+        ? 100
+        : entryCount >= 11
+          ? 75
+          : entryCount >= 6
+            ? 50
+            : entryCount >= 3
+              ? 25
+              : entryCount >= 1
+                ? 10
+                : 0;
 
     const gaps: string[] = [];
     if (entryCount === 0) gaps.push('Zero knowledge entries — completely unexplored');
@@ -638,7 +669,10 @@ async function handleGaps(args: Record<string, unknown>): Promise<unknown> {
     topGaps: flagged.slice(0, 5).map((g) => ({
       domain: g.domain,
       score: g.coverageScore,
-      action: g.entryCount === 0 ? 'Run holo_oracle_discover' : 'Run holo_oracle_synthesize on existing research',
+      action:
+        g.entryCount === 0
+          ? 'Run holo_oracle_discover'
+          : 'Run holo_oracle_synthesize on existing research',
     })),
   };
 }
@@ -670,32 +704,50 @@ async function handleExplore(args: Record<string, unknown>): Promise<unknown> {
   // Until then, each hypothesis is prefixed to signal its evidence level.
   const hypotheses: string[] = [];
   if (researchFiles.length > 0) {
-    hypotheses.push(`[file-count] ${researchFiles.length} research file(s) match "${domain1} x ${domain2}" — prior collision work exists; deepen it.`);
+    hypotheses.push(
+      `[file-count] ${researchFiles.length} research file(s) match "${domain1} x ${domain2}" — prior collision work exists; deepen it.`
+    );
   } else {
-    hypotheses.push(`[file-count] No research files match "${domain1} x ${domain2}" — greenfield exploration.`);
+    hypotheses.push(
+      `[file-count] No research files match "${domain1} x ${domain2}" — greenfield exploration.`
+    );
   }
   if (k1.length > 0 && k2.length > 0) {
-    hypotheses.push(`[ks-count] Both domains have knowledge entries (${k1.length}, ${k2.length}) but cross-tagging is untested — bridge may be missing.`);
+    hypotheses.push(
+      `[ks-count] Both domains have knowledge entries (${k1.length}, ${k2.length}) but cross-tagging is untested — bridge may be missing.`
+    );
   } else if (k1.length > 0 || k2.length > 0) {
     const present = k1.length > 0 ? domain1 : domain2;
     const absent = k1.length > 0 ? domain2 : domain1;
-    hypotheses.push(`[ks-count] Only "${present}" has knowledge entries; "${absent}" is unrepresented in the knowledge store.`);
+    hypotheses.push(
+      `[ks-count] Only "${present}" has knowledge entries; "${absent}" is unrepresented in the knowledge store.`
+    );
   } else {
     hypotheses.push(`[ks-count] Neither domain has knowledge entries — both are unrepresented.`);
   }
-  hypotheses.push(`[structural] "${domain1}" and "${domain2}" may share isomorphic structure — untested without content analysis.`);
+  hypotheses.push(
+    `[structural] "${domain1}" and "${domain2}" may share isomorphic structure — untested without content analysis.`
+  );
 
   // 4. Proposed explorations (actionable next steps based on observed data)
   const proposed: string[] = [];
   if (researchFiles.length > 0) {
-    proposed.push(`Read top research files and synthesize actual content overlap (not just filename matches).`);
+    proposed.push(
+      `Read top research files and synthesize actual content overlap (not just filename matches).`
+    );
   }
   if (k1.length > 0 && k2.length > 0) {
-    proposed.push(`Cross-reference knowledge store tags between "${domain1}" and "${domain2}" for shared/disjoint concepts.`);
+    proposed.push(
+      `Cross-reference knowledge store tags between "${domain1}" and "${domain2}" for shared/disjoint concepts.`
+    );
   }
-  proposed.push(`Run holo_oracle_discover on "${domain1} x ${domain2}" to expand the search radius.`);
+  proposed.push(
+    `Run holo_oracle_discover on "${domain1} x ${domain2}" to expand the search radius.`
+  );
   if (depth === 'implementation') {
-    proposed.push(`Query codebase for files importing from both "${domain1}" and "${domain2}" subsystems.`);
+    proposed.push(
+      `Query codebase for files importing from both "${domain1}" and "${domain2}" subsystems.`
+    );
   }
 
   return {
@@ -708,7 +760,11 @@ async function handleExplore(args: Record<string, unknown>): Promise<unknown> {
     collisionHypotheses: hypotheses,
     hypothesisSource: 'structural', // not content-derived — each hypothesis prefixed with evidence level
     proposedExplorations: proposed,
-    researchCitations: researchFiles.map((f) => ({ file: f.filename, date: f.date, topic: f.topic })),
+    researchCitations: researchFiles.map((f) => ({
+      file: f.filename,
+      date: f.date,
+      topic: f.topic,
+    })),
   };
 }
 
@@ -718,9 +774,22 @@ async function handleCurate(args: Record<string, unknown>): Promise<unknown> {
   const domain = (args.domain as string) || 'all';
   const minEntries = (args.min_entries as number) || 5;
 
-  const domainsToCheck = domain === 'all'
-    ? ['security', 'rendering', 'compilation', 'gossip', 'physics', 'reputation', 'economics', 'neuroscience', 'memory', 'behavior-trees', 'game-theory']
-    : [domain];
+  const domainsToCheck =
+    domain === 'all'
+      ? [
+          'security',
+          'rendering',
+          'compilation',
+          'gossip',
+          'physics',
+          'reputation',
+          'economics',
+          'neuroscience',
+          'memory',
+          'behavior-trees',
+          'game-theory',
+        ]
+      : [domain];
 
   const reports: Array<{
     domain: string;
@@ -745,7 +814,17 @@ async function handleCurate(args: Record<string, unknown>): Promise<unknown> {
     const totalEntries = deduped.length;
 
     const coverageScore =
-      totalEntries >= 21 ? 100 : totalEntries >= 11 ? 75 : totalEntries >= 6 ? 50 : totalEntries >= 3 ? 25 : totalEntries >= 1 ? 10 : 0;
+      totalEntries >= 21
+        ? 100
+        : totalEntries >= 11
+          ? 75
+          : totalEntries >= 6
+            ? 50
+            : totalEntries >= 3
+              ? 25
+              : totalEntries >= 1
+                ? 10
+                : 0;
 
     const health: 'strong' | 'weak' | 'critical' =
       totalEntries >= minEntries && patternCount > 0 && gotchaCount > 0
@@ -755,10 +834,15 @@ async function handleCurate(args: Record<string, unknown>): Promise<unknown> {
           : 'critical';
 
     const recommendations: string[] = [];
-    if (totalEntries < minEntries) recommendations.push(`Below minimum threshold (${minEntries}). Run holo_oracle_discover.`);
-    if (patternCount === 0) recommendations.push('No patterns documented. Synthesize from research.');
+    if (totalEntries < minEntries)
+      recommendations.push(`Below minimum threshold (${minEntries}). Run holo_oracle_discover.`);
+    if (patternCount === 0)
+      recommendations.push('No patterns documented. Synthesize from research.');
     if (gotchaCount === 0) recommendations.push('No gotchas documented. Audit for failure modes.');
-    if (health === 'strong') recommendations.push('Domain is healthy. Consider collision exploration with an adjacent domain.');
+    if (health === 'strong')
+      recommendations.push(
+        'Domain is healthy. Consider collision exploration with an adjacent domain.'
+      );
 
     reports.push({
       domain: d,

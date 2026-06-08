@@ -219,10 +219,11 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
       m.polygonOffsetUnits = -ring;
       return built;
     };
-    return { 1: make(RING_TINT[1], 1), 2: make(RING_TINT[2], 2), 3: make(RING_TINT[3], 3) } as Record<
-      number,
-      ReturnType<typeof buildCompiledMaterial>
-    >;
+    return {
+      1: make(RING_TINT[1], 1),
+      2: make(RING_TINT[2], 2),
+      3: make(RING_TINT[3], 3),
+    } as Record<number, ReturnType<typeof buildCompiledMaterial>>;
   }, [spec]);
   const geometry = useMemo(() => wrapCompiledGeometry(petalGeometry), [petalGeometry]);
 
@@ -352,7 +353,10 @@ export function CompiledLotusMeshNode({ node }: { node: R3FNode }) {
       <group ref={bloomRef} position={[0, stemHeight, 0]} scale={1.8}>
         {/* Receptacle: the green flower base every petal emerges from — closes the
             underside and ties the petals into one connected bloom (dims compiled). */}
-        <mesh position={[0, scaffold.receptacle.lift, 0]} scale={[1, scaffold.receptacle.squashY, 1]}>
+        <mesh
+          position={[0, scaffold.receptacle.lift, 0]}
+          scale={[1, scaffold.receptacle.squashY, 1]}
+        >
           <sphereGeometry args={[scaffold.receptacle.radius, 28, 20]} />
           <meshStandardMaterial color={center?.seedPodRim ?? leaf} roughness={0.75} />
         </mesh>

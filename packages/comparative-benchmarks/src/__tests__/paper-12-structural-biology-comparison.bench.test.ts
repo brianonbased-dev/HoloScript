@@ -57,7 +57,13 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dir, '..', '..', '..', '..');
 
 const HOLO_PLUGIN_DIR = resolve(repoRoot, 'packages', 'plugins', 'structural-biology-plugin');
-const USD_DIR = resolve(repoRoot, 'packages', 'comparative-benchmarks', 'usd-comparison', 'structural-biology');
+const USD_DIR = resolve(
+  repoRoot,
+  'packages',
+  'comparative-benchmarks',
+  'usd-comparison',
+  'structural-biology'
+);
 
 const HOLO_AUTHORED_FILES = [
   resolve(HOLO_PLUGIN_DIR, 'src', 'index.ts'),
@@ -125,10 +131,10 @@ function countLoc(filePath: string): LocBreakdown {
     }
 
     // Pure comment / preamble lines.
-    if (line.startsWith('//')) continue;     // .ts, .h
-    if (line.startsWith('* ') || line === '*' || line.startsWith('*/')) continue;  // jsdoc continuation
-    if (line.startsWith('# ') || line === '#') continue;  // CMakeLists.txt comments
-    if (line.startsWith('"""') && line.endsWith('"""')) continue;  // single-line .usda docstring
+    if (line.startsWith('//')) continue; // .ts, .h
+    if (line.startsWith('* ') || line === '*' || line.startsWith('*/')) continue; // jsdoc continuation
+    if (line.startsWith('# ') || line === '#') continue; // CMakeLists.txt comments
+    if (line.startsWith('"""') && line.endsWith('"""')) continue; // single-line .usda docstring
 
     effective++;
   }
@@ -163,50 +169,61 @@ interface ToolchainStep {
 const HOLO_TOOLCHAIN: ToolchainStep[] = [
   {
     step: 1,
-    description: '`import { register } from "@holoscript/structural-biology-plugin"; register(host)` from any host site.',
-    artifact: 'in-process registration; the plugin is type-checked + transpiled by the workspace build.',
+    description:
+      '`import { register } from "@holoscript/structural-biology-plugin"; register(host)` from any host site.',
+    artifact:
+      'in-process registration; the plugin is type-checked + transpiled by the workspace build.',
   },
 ];
 
 const USD_TOOLCHAIN: ToolchainStep[] = [
   {
     step: 1,
-    description: 'Author `schema.usda` declaring concrete-typed + API schema classes with their inheritance and customData.',
+    description:
+      'Author `schema.usda` declaring concrete-typed + API schema classes with their inheritance and customData.',
     artifact: 'schema.usda',
   },
   {
     step: 2,
-    description: 'Author `plugInfo.json` declaring each schema type alias, bases, and `schemaKind`.',
+    description:
+      'Author `plugInfo.json` declaring each schema type alias, bases, and `schemaKind`.',
     artifact: 'plugInfo.json',
   },
   {
     step: 3,
-    description: 'Run `usdGenSchema schema.usda .` to produce per-class .h/.cpp pairs, wrap*.cpp Python bindings, module.cpp, moduleDeps.cpp, tokens.h/cpp, __init__.py, and generatedSchema.usda.',
-    artifact: 'tokens.h, tokens.cpp, protein.{h,cpp}, ligand.{h,cpp}, chain.{h,cpp}, foldableAPI.{h,cpp}, helixAPI.{h,cpp}, sheetAPI.{h,cpp}, residueAnchorAPI.{h,cpp}, wrap*.cpp ×7, module.cpp, moduleDeps.cpp, generatedSchema.usda, __init__.py',
+    description:
+      'Run `usdGenSchema schema.usda .` to produce per-class .h/.cpp pairs, wrap*.cpp Python bindings, module.cpp, moduleDeps.cpp, tokens.h/cpp, __init__.py, and generatedSchema.usda.',
+    artifact:
+      'tokens.h, tokens.cpp, protein.{h,cpp}, ligand.{h,cpp}, chain.{h,cpp}, foldableAPI.{h,cpp}, helixAPI.{h,cpp}, sheetAPI.{h,cpp}, residueAnchorAPI.{h,cpp}, wrap*.cpp ×7, module.cpp, moduleDeps.cpp, generatedSchema.usda, __init__.py',
   },
   {
     step: 4,
-    description: 'Author `CMakeLists.txt` calling `pxr_library(...)` with LIBRARIES, PUBLIC_HEADERS, CPPFILES, PYMODULE_CPPFILES, PYMODULE_FILES, RESOURCE_FILES.',
+    description:
+      'Author `CMakeLists.txt` calling `pxr_library(...)` with LIBRARIES, PUBLIC_HEADERS, CPPFILES, PYMODULE_CPPFILES, PYMODULE_FILES, RESOURCE_FILES.',
     artifact: 'CMakeLists.txt',
   },
   {
     step: 5,
-    description: 'CMake configure: `cmake -DCMAKE_PREFIX_PATH=$PXR_USD_LOCATION -B build .` (requires Python 3.9+, Boost.Python, TBB, C++17 compiler).',
+    description:
+      'CMake configure: `cmake -DCMAKE_PREFIX_PATH=$PXR_USD_LOCATION -B build .` (requires Python 3.9+, Boost.Python, TBB, C++17 compiler).',
     artifact: 'build/CMakeCache.txt',
   },
   {
     step: 6,
-    description: 'CMake build + install: `cmake --build build --target install --config Release` produces the shared library + installs resource files into the layout PlugRegistry expects.',
+    description:
+      'CMake build + install: `cmake --build build --target install --config Release` produces the shared library + installs resource files into the layout PlugRegistry expects.',
     artifact: 'usdStructBio.{so,dll}, plugInfo.json (installed), generatedSchema.usda (installed)',
   },
   {
     step: 7,
-    description: 'Set `PXR_PLUGINPATH_NAME=$INSTALL_PREFIX/usd/plugin` so PlugRegistry resolves the new plugin at runtime.',
+    description:
+      'Set `PXR_PLUGINPATH_NAME=$INSTALL_PREFIX/usd/plugin` so PlugRegistry resolves the new plugin at runtime.',
     artifact: 'environment variable',
   },
   {
     step: 8,
-    description: 'Author host code (C++ or Python via Boost.Python) that creates prims of the new schema types and applies the API schemas.',
+    description:
+      'Author host code (C++ or Python via Boost.Python) that creates prims of the new schema types and applies the API schemas.',
     artifact: 'host_demo.cpp / host_demo.py',
   },
 ];
@@ -224,7 +241,12 @@ function renderArtifact(
   date: string,
   holoBreakdown: LocBreakdown[],
   usdBreakdown: LocBreakdown[],
-  provenance: { holoChainHash: string; tamperDetected: boolean; pluginId: string; residueCount: number }
+  provenance: {
+    holoChainHash: string;
+    tamperDetected: boolean;
+    pluginId: string;
+    residueCount: number;
+  }
 ): string {
   const lines: string[] = [];
   const holoSum = sumLoc(holoBreakdown);
@@ -233,10 +255,16 @@ function renderArtifact(
   lines.push(`# Paper-12 §"Remaining Work" item 2 — Structural-Biology USD Comparison`);
   lines.push('');
   lines.push(`- Date: ${date}`);
-  lines.push(`- Pinned upstream: PixarAnimationStudios/OpenUSD **v25.11** (commit 363a7c8da8d1937072a5f0989e91faf72eb1fa76, 2024-10-24)`);
+  lines.push(
+    `- Pinned upstream: PixarAnimationStudios/OpenUSD **v25.11** (commit 363a7c8da8d1937072a5f0989e91faf72eb1fa76, 2024-10-24)`
+  );
   lines.push(`- HoloScript plugin: \`packages/plugins/structural-biology-plugin/\``);
-  lines.push(`- OpenUSD comparison: \`packages/comparative-benchmarks/usd-comparison/structural-biology/\``);
-  lines.push(`- Item 1 (scene-suite mean/median overhead) closed by \`paper-12-scene-suite-overhead.bench.test.ts\` (2026-04-27).`);
+  lines.push(
+    `- OpenUSD comparison: \`packages/comparative-benchmarks/usd-comparison/structural-biology/\``
+  );
+  lines.push(
+    `- Item 1 (scene-suite mean/median overhead) closed by \`paper-12-scene-suite-overhead.bench.test.ts\` (2026-04-27).`
+  );
   lines.push('');
 
   lines.push(`## LOC — HoloScript side`);
@@ -244,7 +272,9 @@ function renderArtifact(
   lines.push(`| File | Total | Non-empty | Effective (code) |`);
   lines.push(`|------|-------|-----------|------------------|`);
   for (const b of holoBreakdown) lines.push(renderRow(b, repoRoot));
-  lines.push(`| **Sum** | **${holoSum.total}** | **${holoSum.nonEmpty}** | **${holoSum.effective}** |`);
+  lines.push(
+    `| **Sum** | **${holoSum.total}** | **${holoSum.nonEmpty}** | **${holoSum.effective}** |`
+  );
   lines.push('');
 
   lines.push(`## LOC — OpenUSD side (pinned v25.11)`);
@@ -252,17 +282,25 @@ function renderArtifact(
   lines.push(`| File | Total | Non-empty | Effective (code) |`);
   lines.push(`|------|-------|-----------|------------------|`);
   for (const b of usdBreakdown) lines.push(renderRow(b, repoRoot));
-  lines.push(`| **Sum** | **${usdSum.total}** | **${usdSum.nonEmpty}** | **${usdSum.effective}** |`);
+  lines.push(
+    `| **Sum** | **${usdSum.total}** | **${usdSum.nonEmpty}** | **${usdSum.effective}** |`
+  );
   lines.push('');
 
-  const ratioEff = holoSum.effective > 0 ? (usdSum.effective / holoSum.effective).toFixed(2) : 'n/a';
-  const ratioNonEmpty = holoSum.nonEmpty > 0 ? (usdSum.nonEmpty / holoSum.nonEmpty).toFixed(2) : 'n/a';
+  const ratioEff =
+    holoSum.effective > 0 ? (usdSum.effective / holoSum.effective).toFixed(2) : 'n/a';
+  const ratioNonEmpty =
+    holoSum.nonEmpty > 0 ? (usdSum.nonEmpty / holoSum.nonEmpty).toFixed(2) : 'n/a';
   lines.push(`## LOC differential`);
   lines.push('');
   lines.push(`| Metric | HoloScript | OpenUSD (v25.11 authored) | USD/Holo ratio |`);
   lines.push(`|--------|------------|----------------------------|-----------------|`);
-  lines.push(`| Effective code LOC | ${holoSum.effective} | ${usdSum.effective} | **${ratioEff}×** |`);
-  lines.push(`| Non-empty LOC | ${holoSum.nonEmpty} | ${usdSum.nonEmpty} | **${ratioNonEmpty}×** |`);
+  lines.push(
+    `| Effective code LOC | ${holoSum.effective} | ${usdSum.effective} | **${ratioEff}×** |`
+  );
+  lines.push(
+    `| Non-empty LOC | ${holoSum.nonEmpty} | ${usdSum.nonEmpty} | **${ratioNonEmpty}×** |`
+  );
   lines.push('');
   lines.push(
     `Note: the OpenUSD authored set above does NOT include the .h/.cpp pairs, wrap*.cpp Python bindings, module.cpp, moduleDeps.cpp, tokens.cpp, or generatedSchema.usda that step 3 (\`usdGenSchema schema.usda .\`) produces. Including those generated files (typically 600–1200 LOC for a plugin of this surface) widens the gap further. The numbers above measure only the lines a USD plugin author actually writes by hand on top of the v25.11 codegen.`
@@ -273,8 +311,12 @@ function renderArtifact(
   lines.push('');
   lines.push(`| Side | Steps | Source |`);
   lines.push(`|------|-------|--------|`);
-  lines.push(`| HoloScript | **${HOLO_TOOLCHAIN.length}** | This harness; mirrors paper-12 §"Comparison with OpenUSD Schema Plugins". |`);
-  lines.push(`| OpenUSD v25.11 | **${USD_TOOLCHAIN.length}** | Documented in \`usd-comparison/structural-biology/README.md\`; sourced from upstream pxr/usd/usd/usdGenSchema.py + USDDOC/userDocs/howto/code/SchemaCreation.html in the v25.11 source tree. |`);
+  lines.push(
+    `| HoloScript | **${HOLO_TOOLCHAIN.length}** | This harness; mirrors paper-12 §"Comparison with OpenUSD Schema Plugins". |`
+  );
+  lines.push(
+    `| OpenUSD v25.11 | **${USD_TOOLCHAIN.length}** | Documented in \`usd-comparison/structural-biology/README.md\`; sourced from upstream pxr/usd/usd/usdGenSchema.py + USDDOC/userDocs/howto/code/SchemaCreation.html in the v25.11 source tree. |`
+  );
   lines.push('');
 
   lines.push(`### HoloScript steps`);
@@ -291,26 +333,50 @@ function renderArtifact(
   lines.push('');
   lines.push(`### HoloScript side — measured`);
   lines.push('');
-  lines.push(`- Plugin id fused into per-residue anchor + per-object chain hash via \`@holoscript/structural-biology-plugin/chainHash()\`.`);
-  lines.push(`- Test protein \`EGFR\` with ${provenance.residueCount} residues hashes to \`${provenance.holoChainHash}\`.`);
+  lines.push(
+    `- Plugin id fused into per-residue anchor + per-object chain hash via \`@holoscript/structural-biology-plugin/chainHash()\`.`
+  );
+  lines.push(
+    `- Test protein \`EGFR\` with ${provenance.residueCount} residues hashes to \`${provenance.holoChainHash}\`.`
+  );
   lines.push(`- Plugin attribution recovered from the artifact: **${provenance.pluginId}**.`);
-  lines.push(`- Tamper test (mutated trait list, unchanged residues): rejected by \`verifyChain\` → **${provenance.tamperDetected ? 'PASS' : 'FAIL'}**.`);
-  lines.push(`- Result: a downstream consumer can prove "this object was authored by structural-biology@${PLUGIN_DESCRIPTOR.version}" from the compiled artifact alone.`);
+  lines.push(
+    `- Tamper test (mutated trait list, unchanged residues): rejected by \`verifyChain\` → **${provenance.tamperDetected ? 'PASS' : 'FAIL'}**.`
+  );
+  lines.push(
+    `- Result: a downstream consumer can prove "this object was authored by structural-biology@${PLUGIN_DESCRIPTOR.version}" from the compiled artifact alone.`
+  );
   lines.push('');
   lines.push(`### OpenUSD v25.11 — break point`);
   lines.push('');
-  lines.push(`- After \`Stage.Export()\` to a binary \`.usdc\`, downstream consumers can recover prim type names (\`Protein\`, \`Ligand\`, \`Chain\`) but NOT the source-of-truth plugin id. Schema composition flattens the layer stack; the resulting prim is hash-indistinguishable from a same-typed prim authored by another plugin.`);
-  lines.push(`- USD's per-prim metadata can carry a \`pluginId\` string by convention, but that string is opaque to USD's composition engine — it is not algebraically fused into prim identity, and tampering with a residue annotation does not invalidate the prim's hash.`);
-  lines.push(`- Verdict: USD provenance break is structural to the composition model, not a missing feature in v25.11. The pinned-tag artifacts in \`usd-comparison/structural-biology/\` document this as the canonical surface; the \`structBio:residueAnchor:anchorHex\` opaque-string attribute exists to make the comparison explicit.`);
+  lines.push(
+    `- After \`Stage.Export()\` to a binary \`.usdc\`, downstream consumers can recover prim type names (\`Protein\`, \`Ligand\`, \`Chain\`) but NOT the source-of-truth plugin id. Schema composition flattens the layer stack; the resulting prim is hash-indistinguishable from a same-typed prim authored by another plugin.`
+  );
+  lines.push(
+    `- USD's per-prim metadata can carry a \`pluginId\` string by convention, but that string is opaque to USD's composition engine — it is not algebraically fused into prim identity, and tampering with a residue annotation does not invalidate the prim's hash.`
+  );
+  lines.push(
+    `- Verdict: USD provenance break is structural to the composition model, not a missing feature in v25.11. The pinned-tag artifacts in \`usd-comparison/structural-biology/\` document this as the canonical surface; the \`structBio:residueAnchor:anchorHex\` opaque-string attribute exists to make the comparison explicit.`
+  );
   lines.push('');
 
   lines.push(`## Source pointers`);
   lines.push('');
-  lines.push(`- HoloScript plugin source: \`packages/plugins/structural-biology-plugin/src/index.ts\``);
-  lines.push(`- HoloScript plugin tests: \`packages/plugins/structural-biology-plugin/src/__tests__/index.test.ts\``);
-  lines.push(`- OpenUSD authored set: \`packages/comparative-benchmarks/usd-comparison/structural-biology/{schema.usda,plugInfo.json,tokens.h,CMakeLists.txt}\``);
-  lines.push(`- OpenUSD pin + toolchain notes: \`packages/comparative-benchmarks/usd-comparison/structural-biology/README.md\``);
-  lines.push(`- Harness: \`packages/comparative-benchmarks/src/__tests__/paper-12-structural-biology-comparison.bench.test.ts\` (this file)`);
+  lines.push(
+    `- HoloScript plugin source: \`packages/plugins/structural-biology-plugin/src/index.ts\``
+  );
+  lines.push(
+    `- HoloScript plugin tests: \`packages/plugins/structural-biology-plugin/src/__tests__/index.test.ts\``
+  );
+  lines.push(
+    `- OpenUSD authored set: \`packages/comparative-benchmarks/usd-comparison/structural-biology/{schema.usda,plugInfo.json,tokens.h,CMakeLists.txt}\``
+  );
+  lines.push(
+    `- OpenUSD pin + toolchain notes: \`packages/comparative-benchmarks/usd-comparison/structural-biology/README.md\``
+  );
+  lines.push(
+    `- Harness: \`packages/comparative-benchmarks/src/__tests__/paper-12-structural-biology-comparison.bench.test.ts\` (this file)`
+  );
   lines.push('');
 
   return lines.join('\n');
@@ -320,7 +386,8 @@ function renderArtifact(
 
 describe('[Paper-12 §RemainingWork item 2] structural-biology HoloScript-vs-OpenUSD comparison', () => {
   it('all authored files exist on both sides (HoloScript + USD pinned-tag fixtures)', () => {
-    for (const f of HOLO_AUTHORED_FILES) expect(existsSync(f), `missing HoloScript file: ${f}`).toBe(true);
+    for (const f of HOLO_AUTHORED_FILES)
+      expect(existsSync(f), `missing HoloScript file: ${f}`).toBe(true);
     for (const f of USD_AUTHORED_FILES) expect(existsSync(f), `missing USD file: ${f}`).toBe(true);
   });
 
@@ -371,7 +438,9 @@ describe('[Paper-12 §RemainingWork item 2] structural-biology HoloScript-vs-Ope
         index: i + 1,
         resname: ['MET', 'GLY', 'PRO', 'ALA'][i % 4],
         secondary: (i % 3 === 0 ? 'helix' : i % 3 === 1 ? 'sheet' : 'loop') as
-          'helix' | 'sheet' | 'loop',
+          | 'helix'
+          | 'sheet'
+          | 'loop',
       })),
       traits: ['foldable', 'helix', 'sheet', 'residue_anchor'],
     };

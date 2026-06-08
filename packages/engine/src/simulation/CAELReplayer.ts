@@ -1,11 +1,6 @@
 import type { SimSolver } from './SimSolver';
 import { ContractedSimulation, type ContractConfig } from './SimulationContract';
-import {
-  type CAELTrace,
-  decodeCAELValue,
-  parseCAELJSONL,
-  verifyCAELHashChain,
-} from './CAELTrace';
+import { type CAELTrace, decodeCAELValue, parseCAELJSONL, verifyCAELHashChain } from './CAELTrace';
 
 type SolverFactory = (config: Record<string, unknown>) => SimSolver;
 
@@ -59,7 +54,7 @@ export class CAELReplayer {
    */
   static sameAdapter(
     recordedFingerprint: string | null | undefined,
-    currentFingerprint: string | null | undefined,
+    currentFingerprint: string | null | undefined
   ): boolean {
     if (!recordedFingerprint || !currentFingerprint) return false;
     return recordedFingerprint === currentFingerprint;
@@ -67,7 +62,7 @@ export class CAELReplayer {
 
   async replay(
     solverFactory: SolverFactory,
-    options: ReplayOptions = {},
+    options: ReplayOptions = {}
   ): Promise<ContractedSimulation> {
     const verification = this.verify();
     if (!verification.valid) {
@@ -83,7 +78,8 @@ export class CAELReplayer {
     }
 
     const config = decodeCAELValue(init.payload.config) as Record<string, unknown>;
-    const contractConfig = (decodeCAELValue(init.payload.contractConfig) as ContractConfig | undefined) ?? {};
+    const contractConfig =
+      (decodeCAELValue(init.payload.contractConfig) as ContractConfig | undefined) ?? {};
 
     // Item 5b dispatch: compare the trace's recorded adapter fingerprint
     // (captured at record-time by CAELRecorder) against the replay
@@ -92,13 +88,12 @@ export class CAELReplayer {
     // Cross-adapter → skip digest enforcement (fall through to
     // metric-comparison in the dispute oracle, per Appendix A Lemma 3
     // regime boundary for cross-adapter replay).
-    const recordedAdapterFingerprint = typeof init.payload.adapterFingerprint === 'string'
-      ? init.payload.adapterFingerprint
-      : null;
+    const recordedAdapterFingerprint =
+      typeof init.payload.adapterFingerprint === 'string' ? init.payload.adapterFingerprint : null;
     const currentAdapterFingerprint = options.currentAdapterFingerprint ?? null;
     const isSameAdapter = CAELReplayer.sameAdapter(
       recordedAdapterFingerprint,
-      currentAdapterFingerprint,
+      currentAdapterFingerprint
     );
 
     const solver = solverFactory(config);
@@ -139,7 +134,13 @@ export class CAELReplayer {
           const digestsBefore = contracted.getStateDigests().length;
           await contracted.solve();
           const actualDigests = contracted.getStateDigests().slice(digestsBefore);
-          this.validateDigests(i, 'solve', entry.payload.stateDigests, actualDigests, isSameAdapter);
+          this.validateDigests(
+            i,
+            'solve',
+            entry.payload.stateDigests,
+            actualDigests,
+            isSameAdapter
+          );
           break;
         }
         case 'final':
@@ -194,7 +195,7 @@ export class CAELReplayer {
     eventLabel: string,
     expected: unknown,
     actual: readonly string[],
-    isSameAdapter: boolean,
+    isSameAdapter: boolean
   ): void {
     // Backward compat: absent or malformed field → skip validation
     if (!Array.isArray(expected)) return;
@@ -207,9 +208,9 @@ export class CAELReplayer {
     if (expected.length !== actual.length) {
       throw new Error(
         `[CAELReplayer] state-digest count mismatch at ${eventLabel} event (index ${eventIndex}): ` +
-        `expected ${expected.length} digest(s), got ${actual.length}. ` +
-        `Replay produced a different number of sub-steps/solves than the recorded trace — ` +
-        `this indicates the replay diverged before the digest comparison could even run.`,
+          `expected ${expected.length} digest(s), got ${actual.length}. ` +
+          `Replay produced a different number of sub-steps/solves than the recorded trace — ` +
+          `this indicates the replay diverged before the digest comparison could even run.`
       );
     }
 
@@ -219,15 +220,15 @@ export class CAELReplayer {
       if (typeof e !== 'string') {
         throw new Error(
           `[CAELReplayer] malformed expected digest at ${eventLabel} event (index ${eventIndex}, sub-step ${j}): ` +
-          `expected string, got ${typeof e}.`,
+            `expected string, got ${typeof e}.`
         );
       }
       if (e !== a) {
         throw new Error(
           `[CAELReplayer] state-digest mismatch at ${eventLabel} event (index ${eventIndex}, sub-step ${j}): ` +
-          `expected "${e}", got "${a}". Trace divergence detected — replay state drifted from recorded state. ` +
-          `For same-adapter replay this is a state-integrity violation. For cross-adapter replay this can be ` +
-          `expected per Appendix A Lemma 3 regime (founder-routed 5a/5b dispatch pending).`,
+            `expected "${e}", got "${a}". Trace divergence detected — replay state drifted from recorded state. ` +
+            `For same-adapter replay this is a state-integrity violation. For cross-adapter replay this can be ` +
+            `expected per Appendix A Lemma 3 regime (founder-routed 5a/5b dispatch pending).`
         );
       }
     }

@@ -57,15 +57,18 @@ export const SandCanvas: React.FC<SandCanvasProps> = ({
   });
 
   // Convert world pointer to local UV on the plane
-  const getLocalUV = useCallback((e: any): [number, number] | null => {
-    if (!planeRef.current) return null;
-    const point = e.point as THREE.Vector3;
-    // Plane is 8x8 by default (we use args [8,8])
-    const localX = (point.x - position[0]) / 8 + 0.5;
-    const localZ = (point.z - position[2]) / 8 + 0.5;
-    if (localX < 0 || localX > 1 || localZ < 0 || localZ > 1) return null;
-    return [localX, localZ];
-  }, [position]);
+  const getLocalUV = useCallback(
+    (e: any): [number, number] | null => {
+      if (!planeRef.current) return null;
+      const point = e.point as THREE.Vector3;
+      // Plane is 8x8 by default (we use args [8,8])
+      const localX = (point.x - position[0]) / 8 + 0.5;
+      const localZ = (point.z - position[2]) / 8 + 0.5;
+      if (localX < 0 || localX > 1 || localZ < 0 || localZ > 1) return null;
+      return [localX, localZ];
+    },
+    [position]
+  );
 
   const handlePointerDown = useCallback(
     (e: any) => {
@@ -121,10 +124,8 @@ export const SandCanvas: React.FC<SandCanvasProps> = ({
 
   // Age + fade traces
   useFrame(() => {
-    setTraces((prev) =>
-      prev
-        .map((t) => ({ ...t, age: t.age + 1 }))
-        .filter((t) => t.age < 420) // ~7 seconds at 60fps
+    setTraces(
+      (prev) => prev.map((t) => ({ ...t, age: t.age + 1 })).filter((t) => t.age < 420) // ~7 seconds at 60fps
     );
   });
 
@@ -132,11 +133,7 @@ export const SandCanvas: React.FC<SandCanvasProps> = ({
   const traceDents = traces.map((trace) => {
     const opacity = Math.max(0.12, 0.55 - trace.age / 380);
     return (
-      <mesh
-        key={trace.id}
-        position={trace.position}
-        renderOrder={2}
-      >
+      <mesh key={trace.id} position={trace.position} renderOrder={2}>
         <sphereGeometry args={[trace.radius * (1 - trace.age / 520), 12, 12]} />
         <meshStandardMaterial
           color={isUnderwater ? '#a38a5e' : '#b89f6b'}
@@ -158,11 +155,7 @@ export const SandCanvas: React.FC<SandCanvasProps> = ({
     for (let i = 0; i < count; i++) {
       const r = 0.6 + i * 0.55;
       ridges.push(
-        <mesh
-          key={i}
-          position={[0, 0.012, 0]}
-          rotation={[Math.PI * -0.5, 0, 0]}
-        >
+        <mesh key={i} position={[0, 0.012, 0]} rotation={[Math.PI * -0.5, 0, 0]}>
           <ringGeometry args={[r, r + 0.028, 64]} />
           <meshStandardMaterial
             color={isUnderwater ? '#9c7f52' : '#a98f64'}

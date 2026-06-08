@@ -125,7 +125,8 @@ function scanFile(filePath) {
   const content = fs.readFileSync(filePath, 'utf8');
   const lines = content.split(/\r?\n/);
   const sourceCodeFile = sourceCodeExtensions.has(extension);
-  const archivedDocInActivePath = isActiveDoc(relativePath) && /\bARCHIVED\b|historical archive/i.test(content.slice(0, 600));
+  const archivedDocInActivePath =
+    isActiveDoc(relativePath) && /\bARCHIVED\b|historical archive/i.test(content.slice(0, 600));
 
   if (archivedDocInActivePath) {
     add(
@@ -134,39 +135,93 @@ function scanFile(filePath) {
       relativePath,
       1,
       'Document says it is archived but still lives under an active docs path.',
-      lines[0] ?? '',
+      lines[0] ?? ''
     );
   }
 
   lines.forEach((line, index) => {
     const lineNumber = index + 1;
-    const testFile = /(?:^|\/)(?:__tests__|test|tests)\//.test(relativePath) || /\.(?:test|spec)\.[cm]?[jt]sx?$/.test(relativePath);
+    const testFile =
+      /(?:^|\/)(?:__tests__|test|tests)\//.test(relativePath) ||
+      /\.(?:test|spec)\.[cm]?[jt]sx?$/.test(relativePath);
 
     if (sourceCodeFile && /@ts-ignore\s*-\s*Automatic remediation/i.test(line)) {
-      add('critical', 'automatic-remediation', relativePath, lineNumber, 'TypeScript error was suppressed by an automatic remediation comment.', line);
+      add(
+        'critical',
+        'automatic-remediation',
+        relativePath,
+        lineNumber,
+        'TypeScript error was suppressed by an automatic remediation comment.',
+        line
+      );
       return;
     }
 
     if (sourceCodeFile && /\b(?:it|test|describe)\.only\s*\(/.test(line)) {
-      add('critical', 'focused-test', relativePath, lineNumber, 'Focused test would hide the rest of the suite.', line);
+      add(
+        'critical',
+        'focused-test',
+        relativePath,
+        lineNumber,
+        'Focused test would hide the rest of the suite.',
+        line
+      );
     }
 
     if (sourceCodeFile && /\b(?:it|test|describe)\.skip\s*\(/.test(line)) {
-      add('serious', 'skipped-test', relativePath, lineNumber, 'Skipped test can mask a broken behavior contract.', line);
+      add(
+        'serious',
+        'skipped-test',
+        relativePath,
+        lineNumber,
+        'Skipped test can mask a broken behavior contract.',
+        line
+      );
     }
 
-    if (sourceCodeFile && /(?:@ts-ignore|@ts-expect-error|eslint-disable|as\s+unknown\s+as|as\s+any\b)/.test(line)) {
-      add(testFile ? 'warning' : 'serious', 'type-suppression', relativePath, lineNumber, 'Type or lint suppression weakens the source contract.', line);
+    if (
+      sourceCodeFile &&
+      /(?:@ts-ignore|@ts-expect-error|eslint-disable|as\s+unknown\s+as|as\s+any\b)/.test(line)
+    ) {
+      add(
+        testFile ? 'warning' : 'serious',
+        'type-suppression',
+        relativePath,
+        lineNumber,
+        'Type or lint suppression weakens the source contract.',
+        line
+      );
     }
 
     const marker = line.match(/\b(FIXME|TODO|HACK|XXX)\b(?::|\s|-)?\s*(.*)/);
     if (marker) {
       const severity = marker[1] === 'FIXME' ? 'serious' : 'warning';
-      add(severity, 'work-marker', relativePath, lineNumber, `${marker[1]} marker: ${marker[2].trim() || 'no detail provided'}`, line);
+      add(
+        severity,
+        'work-marker',
+        relativePath,
+        lineNumber,
+        `${marker[1]} marker: ${marker[2].trim() || 'no detail provided'}`,
+        line
+      );
     }
 
-    if (isActiveDoc(relativePath) && !archivedDocInActivePath && !isMetricsPatternDoc(relativePath) && /(?:\b(?:1,800|2,000|3,300)\+\s*(?:named\s*)?traits?|\b(?:25|30|45)\+\s*(?:compiler\s*|compile\s*)?targets?|\b(?:60|103)\+\s*(?:packages|tools?)|\b\d{1,3},\d{3}\+\s*tests?)/i.test(line)) {
-      add('serious', 'hardcoded-live-count', relativePath, lineNumber, 'Active docs should cite docs/NUMBERS.md instead of hardcoding mutable counts.', line);
+    if (
+      isActiveDoc(relativePath) &&
+      !archivedDocInActivePath &&
+      !isMetricsPatternDoc(relativePath) &&
+      /(?:\b(?:1,800|2,000|3,300)\+\s*(?:named\s*)?traits?|\b(?:25|30|45)\+\s*(?:compiler\s*|compile\s*)?targets?|\b(?:60|103)\+\s*(?:packages|tools?)|\b\d{1,3},\d{3}\+\s*tests?)/i.test(
+        line
+      )
+    ) {
+      add(
+        'serious',
+        'hardcoded-live-count',
+        relativePath,
+        lineNumber,
+        'Active docs should cite docs/NUMBERS.md instead of hardcoding mutable counts.',
+        line
+      );
     }
   });
 }
@@ -180,10 +235,10 @@ function scanDirectoryEntrypoints() {
 
   for (const item of directories) {
     const candidates =
-      item.kind === 'doc-directory'
-        ? ['README.md', 'index.md']
-        : ['README.md', 'package.json'];
-    const hasEntrypoint = candidates.some((candidate) => fs.existsSync(path.join(root, item.path, candidate)));
+      item.kind === 'doc-directory' ? ['README.md', 'index.md'] : ['README.md', 'package.json'];
+    const hasEntrypoint = candidates.some((candidate) =>
+      fs.existsSync(path.join(root, item.path, candidate))
+    );
     if (!hasEntrypoint) {
       add(
         'warning',
@@ -191,7 +246,7 @@ function scanDirectoryEntrypoints() {
         item.path,
         1,
         `Directory lacks an AI-readable entrypoint (${candidates.join(' or ')}).`,
-        item.path,
+        item.path
       );
     }
   }
@@ -210,7 +265,7 @@ function scanUppercaseGuideNames() {
         `docs/guides/${entry.name}`,
         1,
         'Active guide filename is uppercase; AI-first docs prefer lowercase stable routes unless explicitly legacy.',
-        entry.name,
+        entry.name
       );
     }
   }
@@ -268,11 +323,13 @@ function printReport(report, items) {
   console.log('Red Flag Audit');
   console.log('==============');
   console.log(
-    `Total: ${report.total} | critical: ${report.bySeverity.critical} | serious: ${report.bySeverity.serious} | warning: ${report.bySeverity.warning}`,
+    `Total: ${report.total} | critical: ${report.bySeverity.critical} | serious: ${report.bySeverity.serious} | warning: ${report.bySeverity.warning}`
   );
   console.log('');
 
-  const categories = Object.keys(report.byCategory).sort((a, b) => report.byCategory[b] - report.byCategory[a]);
+  const categories = Object.keys(report.byCategory).sort(
+    (a, b) => report.byCategory[b] - report.byCategory[a]
+  );
   for (const category of categories) {
     const categoryItems = items.filter((item) => item.category === category);
     console.log(`${category.toUpperCase()} (${categoryItems.length})`);
@@ -285,12 +342,15 @@ function printReport(report, items) {
     console.log('');
   }
 
-  console.log('Use --json for machine-readable output. Use --fail-on=critical or --fail-on=serious to gate.');
+  console.log(
+    'Use --json for machine-readable output. Use --fail-on=critical or --fail-on=serious to gate.'
+  );
 }
 
 function shouldFail(report, level) {
   if (level === 'critical') return report.bySeverity.critical > 0;
   if (level === 'serious') return report.bySeverity.critical + report.bySeverity.serious > 0;
-  if (level === 'warning') return report.bySeverity.critical + report.bySeverity.serious + report.bySeverity.warning > 0;
+  if (level === 'warning')
+    return report.bySeverity.critical + report.bySeverity.serious + report.bySeverity.warning > 0;
   throw new Error(`Unknown --fail-on level: ${level}`);
 }

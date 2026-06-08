@@ -10,7 +10,10 @@ const DIRECT_THROTTLE_MS = 200;
 /**
  * Forwards throttled Film3D samples from a dedicated Worker when available; otherwise throttles on the main thread.
  */
-export function useFilm3dXrMetricsWorker(enabled: boolean, onSample?: (sample: Film3DXrVerificationSample) => void) {
+export function useFilm3dXrMetricsWorker(
+  enabled: boolean,
+  onSample?: (sample: Film3DXrVerificationSample) => void
+) {
   const workerRef = useRef<Worker | null>(null);
   const onSampleRef = useRef(onSample);
   onSampleRef.current = onSample;
@@ -24,7 +27,9 @@ export function useFilm3dXrMetricsWorker(enabled: boolean, onSample?: (sample: F
     }
 
     try {
-      const w = new Worker(new URL('./film3dXrMetrics.worker.ts', import.meta.url), { type: 'module' });
+      const w = new Worker(new URL('./film3dXrMetrics.worker.ts', import.meta.url), {
+        type: 'module',
+      });
       workerRef.current = w;
 
       w.onmessage = (ev: MessageEvent<Film3dWorkerToMain>) => {

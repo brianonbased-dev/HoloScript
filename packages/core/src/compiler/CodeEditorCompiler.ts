@@ -16,11 +16,7 @@
  * the field is passed through to the bundle as-is.
  */
 
-import type {
-  HoloComposition,
-  HoloObjectTrait,
-  HoloValue,
-} from '../parser/HoloCompositionTypes';
+import type { HoloComposition, HoloObjectTrait, HoloValue } from '../parser/HoloCompositionTypes';
 
 // ─── Known trait keys ────────────────────────────────────────────────────────
 

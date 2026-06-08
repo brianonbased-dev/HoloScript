@@ -149,7 +149,7 @@ describe('HoloLand trace corpus exporter', () => {
         corpusId: 'corpus-privacy',
         generatedAt: FIXED_NOW,
         subjectSalt: 'private-salt',
-      },
+      }
     );
 
     expect(jsonl).not.toContain('raw-subject-id-123');
@@ -174,9 +174,7 @@ describe('HoloLand trace corpus exporter', () => {
     const ingestion = ingestHololandTraceCorpus(jsonl);
 
     expect(ingestion.verification.valid).toBe(true);
-    expect(ingestion.learnedSceneComposition.acceptedTemplateIds).toEqual([
-      'training-room-v2',
-    ]);
+    expect(ingestion.learnedSceneComposition.acceptedTemplateIds).toEqual(['training-room-v2']);
     expect(ingestion.learnedSceneComposition.editedObjectTypes).toEqual(['modular-wall']);
     expect(ingestion.preferredVariantsByExperiment).toEqual({
       'toolbelt-layout': 'compact-radial',
@@ -191,7 +189,7 @@ describe('HoloLand trace corpus exporter', () => {
           gateId: 'preference:toolbelt-layout:compact-radial',
           status: 'pass',
         }),
-      ]),
+      ])
     );
   });
 });

@@ -10,8 +10,14 @@ export default defineConfig({
       // The cold-consume refactor moved those runtime classes onto the
       // `@holoscript/core/runtime` subpath — route it to the same mesh compat
       // bridge so mesh tests keep resolving mesh's own implementations.
-      { find: /^@holoscript\/core\/runtime$/, replacement: resolve(__dirname, 'src/testing/core-compat.ts') },
-      { find: /^@holoscript\/core$/, replacement: resolve(__dirname, 'src/testing/core-compat.ts') },
+      {
+        find: /^@holoscript\/core\/runtime$/,
+        replacement: resolve(__dirname, 'src/testing/core-compat.ts'),
+      },
+      {
+        find: /^@holoscript\/core$/,
+        replacement: resolve(__dirname, 'src/testing/core-compat.ts'),
+      },
     ],
   },
   test: {

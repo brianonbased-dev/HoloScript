@@ -28,8 +28,7 @@ export interface HoloSemanticImport {
 
 export function importMsf(asset: MsfAssetBody): HoloSemanticImport {
   const scale =
-    asset.header.unit === 'millimeter' ? 0.001 :
-    asset.header.unit === 'inch' ? 0.0254 : 1;
+    asset.header.unit === 'millimeter' ? 0.001 : asset.header.unit === 'inch' ? 0.0254 : 1;
 
   const partAnnotations = asset.annotations.map((a) => ({
     part_id: a.part_id,

@@ -17,7 +17,7 @@ import { validateTrustReceipt } from '../TrustReceipt';
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 function makeValidArchivePayload(
-  overrides: Partial<AccountExportArchivePayload> = {},
+  overrides: Partial<AccountExportArchivePayload> = {}
 ): AccountExportArchivePayload {
   return {
     workflow: 'browser_account_export',
@@ -82,7 +82,7 @@ function makeValidArchivePayload(
 }
 
 function makeValidArchiveOptions(
-  overrides: Partial<AccountExportArchiveAdapterOptions> = {},
+  overrides: Partial<AccountExportArchiveAdapterOptions> = {}
 ): AccountExportArchiveAdapterOptions {
   return {
     passportDid: 'did:holoscript:test_actor',
@@ -130,8 +130,18 @@ describe('isExecutableFile', () => {
 
   it('detects all known executable extensions', () => {
     const knownExtensions = [
-      '.exe', '.bat', '.cmd', '.ps1', '.vbs', '.vbe',
-      '.msi', '.sh', '.app', '.dmg', '.jar', '.dll',
+      '.exe',
+      '.bat',
+      '.cmd',
+      '.ps1',
+      '.vbs',
+      '.vbe',
+      '.msi',
+      '.sh',
+      '.app',
+      '.dmg',
+      '.jar',
+      '.dll',
     ];
     for (const ext of knownExtensions) {
       const result = isExecutableFile(`file${ext}`);
@@ -190,7 +200,12 @@ describe('classifyFileSensitivity', () => {
 
   it('supports custom sensitivity patterns', () => {
     const customPatterns = [
-      { pattern: 'supersecret', level: 'restricted' as const, categories: ['credentials' as const], flags: ['auto_detected' as const] },
+      {
+        pattern: 'supersecret',
+        level: 'restricted' as const,
+        categories: ['credentials' as const],
+        flags: ['auto_detected' as const],
+      },
     ];
     const result = classifyFileSensitivity('data/supersecret.csv', customPatterns);
     expect(result.level).toBe('restricted');
@@ -245,7 +260,7 @@ describe('validateArchiveVerification', () => {
 
   it('rejects sourceFileMutationPerformed=true', () => {
     const result = validateArchiveVerification(
-      makeValidArchivePayload({ sourceFileMutationPerformed: true }),
+      makeValidArchivePayload({ sourceFileMutationPerformed: true })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('sourceFileMutationPerformed'))).toBe(true);
@@ -253,7 +268,7 @@ describe('validateArchiveVerification', () => {
 
   it('rejects rawPrivateDataPublished=true', () => {
     const result = validateArchiveVerification(
-      makeValidArchivePayload({ rawPrivateDataPublished: true }),
+      makeValidArchivePayload({ rawPrivateDataPublished: true })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('rawPrivateDataPublished'))).toBe(true);
@@ -261,7 +276,7 @@ describe('validateArchiveVerification', () => {
 
   it('rejects privatePathLeakedToPublicReceipt=true', () => {
     const result = validateArchiveVerification(
-      makeValidArchivePayload({ privatePathLeakedToPublicReceipt: true }),
+      makeValidArchivePayload({ privatePathLeakedToPublicReceipt: true })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('privatePathLeakedToPublicReceipt'))).toBe(true);
@@ -269,7 +284,18 @@ describe('validateArchiveVerification', () => {
 
   it('detects parts.length mismatch with totalParts', () => {
     const result = validateArchiveVerification(
-      makeValidArchivePayload({ totalParts: 3, parts: [{ partIndex: 0, totalParts: 3, partHash: 'sha256:x', partSizeBytes: 100, status: 'present_intact' }] }),
+      makeValidArchivePayload({
+        totalParts: 3,
+        parts: [
+          {
+            partIndex: 0,
+            totalParts: 3,
+            partHash: 'sha256:x',
+            partSizeBytes: 100,
+            status: 'present_intact',
+          },
+        ],
+      })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('parts.length'))).toBe(true);
@@ -278,8 +304,16 @@ describe('validateArchiveVerification', () => {
   it('detects corrupt parts', () => {
     const result = validateArchiveVerification(
       makeValidArchivePayload({
-        parts: [{ partIndex: 0, totalParts: 1, partHash: 'sha256:x', partSizeBytes: 100, status: 'present_corrupt' }],
-      }),
+        parts: [
+          {
+            partIndex: 0,
+            totalParts: 1,
+            partHash: 'sha256:x',
+            partSizeBytes: 100,
+            status: 'present_corrupt',
+          },
+        ],
+      })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('present_corrupt'))).toBe(true);
@@ -290,8 +324,16 @@ describe('validateArchiveVerification', () => {
       makeValidArchivePayload({
         totalParts: 1,
         partsComplete: true,
-        parts: [{ partIndex: 0, totalParts: 1, partHash: 'sha256:x', partSizeBytes: 100, status: 'missing' }],
-      }),
+        parts: [
+          {
+            partIndex: 0,
+            totalParts: 1,
+            partHash: 'sha256:x',
+            partSizeBytes: 100,
+            status: 'missing',
+          },
+        ],
+      })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('missing'))).toBe(true);
@@ -303,7 +345,7 @@ describe('validateArchiveVerification', () => {
         executablesDetected: true,
         executableBlockImport: false,
         executableFiles: ['malware.exe'],
-      }),
+      })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('executableBlockImport'))).toBe(true);
@@ -331,7 +373,7 @@ describe('validateArchiveVerification', () => {
           },
         ],
         fileCount: 3,
-      }),
+      })
     );
     expect(result.valid).toBe(true);
   });
@@ -340,15 +382,24 @@ describe('validateArchiveVerification', () => {
     const result = validateArchiveVerification(
       makeValidArchivePayload({
         totalParts: 1,
-        parts: [{ partIndex: 0, totalParts: 1, partHash: 'sha256:x', partSizeBytes: 100, status: 'present_size_mismatch', expectedSizeBytes: 200 }],
-      }),
+        parts: [
+          {
+            partIndex: 0,
+            totalParts: 1,
+            partHash: 'sha256:x',
+            partSizeBytes: 100,
+            status: 'present_size_mismatch',
+            expectedSizeBytes: 200,
+          },
+        ],
+      })
     );
     expect(result.warnings.some((w) => w.includes('present_size_mismatch'))).toBe(true);
   });
 
   it('warns about manifest/fileCount mismatch', () => {
     const result = validateArchiveVerification(
-      makeValidArchivePayload({ fileCount: 5, manifestExtracted: true }),
+      makeValidArchivePayload({ fileCount: 5, manifestExtracted: true })
     );
     expect(result.warnings.some((w) => w.includes('fileManifest'))).toBe(true);
   });
@@ -357,10 +408,18 @@ describe('validateArchiveVerification', () => {
     const result = validateArchiveVerification(
       makeValidArchivePayload({
         fileManifest: [
-          { path: 'missing_hash.txt', contentHash: '', sizeBytes: 10, isExecutable: false, sensitivityLevel: 'general', sensitivityCategories: [], sensitivityFlags: [] },
+          {
+            path: 'missing_hash.txt',
+            contentHash: '',
+            sizeBytes: 10,
+            isExecutable: false,
+            sensitivityLevel: 'general',
+            sensitivityCategories: [],
+            sensitivityFlags: [],
+          },
         ],
         fileCount: 1,
-      }),
+      })
     );
     expect(result.valid).toBe(false);
     expect(result.errors.some((e) => e.includes('contentHash'))).toBe(true);
@@ -467,7 +526,7 @@ describe('archiveVerificationToReceiptInput', () => {
   it('passes archiveHash as commandHash', () => {
     const input = archiveVerificationToReceiptInput(
       makeValidArchivePayload({ archiveHash: 'sha256:deadbeef' }),
-      makeValidArchiveOptions(),
+      makeValidArchiveOptions()
     );
     expect(input.evidence.commandHash).toBe('sha256:deadbeef');
   });

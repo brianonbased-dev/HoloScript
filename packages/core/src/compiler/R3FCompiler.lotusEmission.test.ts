@@ -108,7 +108,10 @@ describe('R3FCompiler — botanical_lotus compiled-material emission', () => {
 
     const root = compiler.compileComposition(parsed.ast as never);
     const lotus = findWithCompiledMaterial(root);
-    expect(lotus, 'a node carrying __compiledMaterial must exist in the compiled tree').toBeDefined();
+    expect(
+      lotus,
+      'a node carrying __compiledMaterial must exist in the compiled tree'
+    ).toBeDefined();
 
     const spec = lotus!.props.__compiledMaterial as {
       physical?: { transparent?: boolean };

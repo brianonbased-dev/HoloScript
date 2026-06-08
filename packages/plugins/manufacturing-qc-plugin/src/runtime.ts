@@ -15,11 +15,7 @@
  * traits follow the same registrar shape.
  */
 import { registerPluginTraits } from '@holoscript/core/runtime';
-import {
-  computeCapability,
-  type Subgroup,
-  type ProcessCapability,
-} from './spc';
+import { computeCapability, type Subgroup, type ProcessCapability } from './spc';
 
 /** Stable id for this plugin's trait ownership tagging. */
 export const MANUFACTURING_QC_PLUGIN_ID = 'manufacturing-qc' as const;
@@ -76,7 +72,7 @@ export interface RuntimeTraitHandler {
     node: unknown,
     config: SpcTraitConfig,
     context: TraitDispatchContext,
-    delta: number,
+    delta: number
   ) => void;
 }
 
@@ -91,7 +87,7 @@ interface SpcNode {
 function solveOntoNode(
   node: unknown,
   config: SpcTraitConfig | undefined,
-  context: TraitDispatchContext,
+  context: TraitDispatchContext
 ): void {
   const carrier = node as SpcNode;
   const nodeId = carrier.id ?? carrier.name ?? 'unknown';

@@ -233,7 +233,11 @@ export interface ExecutableBlockReceipt {
   /** ISO-8601 timestamp of when the block was applied. */
   blockedAt: string;
   /** Reason the executable was blocked. */
-  blockReason: 'executable_detected' | 'archive_contains_executable' | 'security_risk' | 'not_scanned';
+  blockReason:
+    | 'executable_detected'
+    | 'archive_contains_executable'
+    | 'security_risk'
+    | 'not_scanned';
   /** Whether execution was attempted (must be false). */
   executionAttempted: false;
   /** Whether the executable was launched (must be false). */
@@ -384,7 +388,8 @@ export const DOWNLOADS_SHELF_STATUSES = [
 ] as const;
 export type DownloadsShelfStatus = (typeof DOWNLOADS_SHELF_STATUSES)[number];
 
-export const DOWNLOADS_SHELF_REPLAY_RECEIPT_VERSION = 'holoscript-downloads-shelf-replay-receipt/v1';
+export const DOWNLOADS_SHELF_REPLAY_RECEIPT_VERSION =
+  'holoscript-downloads-shelf-replay-receipt/v1';
 
 export interface DownloadsShelfReplayReceipt {
   /** Unique receipt identifier. */
@@ -470,8 +475,7 @@ function isNonNegativeInteger(value: number): boolean {
 
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
-    typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
+    typeof value === 'string' && /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
   );
 }
 
@@ -519,11 +523,7 @@ function validateWarnings(
   }
 }
 
-function validateFileProxyFields(
-  file: DownloadedFileProxy,
-  label: string,
-  errors: string[]
-): void {
+function validateFileProxyFields(file: DownloadedFileProxy, label: string, errors: string[]): void {
   if (!file.id) errors.push(`${label}.id is required.`);
   if (file.schemaVersion !== DOWNLOADED_FILE_PROXY_VERSION) {
     errors.push(`${label}.schemaVersion must be ${DOWNLOADED_FILE_PROXY_VERSION}.`);
@@ -586,11 +586,15 @@ export function isSupportedDeleteDecisionReason(value: string): value is DeleteD
   return isOneOf(DELETE_DECISION_REASONS, value);
 }
 
-export function isSupportedDownloadsShelfWarningKind(value: string): value is DownloadsShelfWarningKind {
+export function isSupportedDownloadsShelfWarningKind(
+  value: string
+): value is DownloadsShelfWarningKind {
   return isOneOf(DOWNLOADS_SHELF_WARNING_KINDS, value);
 }
 
-export function isSupportedDownloadsShelfWarningSeverity(value: string): value is DownloadsShelfWarningSeverity {
+export function isSupportedDownloadsShelfWarningSeverity(
+  value: string
+): value is DownloadsShelfWarningSeverity {
   return isOneOf(DOWNLOADS_SHELF_WARNING_SEVERITIES, value);
 }
 
@@ -608,7 +612,9 @@ export function validateDownloadsInventoryReceipt(receipt: DownloadsInventoryRec
   const errors: string[] = [];
   if (!receipt.id) errors.push('DownloadsInventoryReceipt.id is required.');
   if (receipt.schemaVersion !== DOWNLOADS_INVENTORY_RECEIPT_VERSION) {
-    errors.push(`DownloadsInventoryReceipt.schemaVersion must be ${DOWNLOADS_INVENTORY_RECEIPT_VERSION}.`);
+    errors.push(
+      `DownloadsInventoryReceipt.schemaVersion must be ${DOWNLOADS_INVENTORY_RECEIPT_VERSION}.`
+    );
   }
   if (!isIsoTimestamp(receipt.inventoriedAt)) {
     errors.push('DownloadsInventoryReceipt.inventoriedAt must be a valid ISO-8601 timestamp.');
@@ -627,7 +633,11 @@ export function validateDownloadsInventoryReceipt(receipt: DownloadsInventoryRec
   if (receipt.fileCount !== receipt.files.length) {
     errors.push('DownloadsInventoryReceipt.fileCount must match files array length.');
   }
-  if (typeof receipt.totalSizeBytes !== 'number' || !Number.isFinite(receipt.totalSizeBytes) || receipt.totalSizeBytes < 0) {
+  if (
+    typeof receipt.totalSizeBytes !== 'number' ||
+    !Number.isFinite(receipt.totalSizeBytes) ||
+    receipt.totalSizeBytes < 0
+  ) {
     errors.push('DownloadsInventoryReceipt.totalSizeBytes must be a non-negative finite number.');
   }
   if (!Array.isArray(receipt.categoriesFound)) {
@@ -635,7 +645,9 @@ export function validateDownloadsInventoryReceipt(receipt: DownloadsInventoryRec
   } else {
     for (const category of receipt.categoriesFound) {
       if (!isSupportedDownloadCategory(String(category))) {
-        errors.push(`DownloadsInventoryReceipt.categoriesFound has unsupported category: ${String(category)}.`);
+        errors.push(
+          `DownloadsInventoryReceipt.categoriesFound has unsupported category: ${String(category)}.`
+        );
       }
     }
   }
@@ -663,9 +675,12 @@ export function validateArchiveQuarantineReceipt(receipt: ArchiveQuarantineRecei
   const errors: string[] = [];
   if (!receipt.id) errors.push('ArchiveQuarantineReceipt.id is required.');
   if (receipt.schemaVersion !== ARCHIVE_QUARANTINE_RECEIPT_VERSION) {
-    errors.push(`ArchiveQuarantineReceipt.schemaVersion must be ${ARCHIVE_QUARANTINE_RECEIPT_VERSION}.`);
+    errors.push(
+      `ArchiveQuarantineReceipt.schemaVersion must be ${ARCHIVE_QUARANTINE_RECEIPT_VERSION}.`
+    );
   }
-  if (!receipt.inventoryReceiptId) errors.push('ArchiveQuarantineReceipt.inventoryReceiptId is required.');
+  if (!receipt.inventoryReceiptId)
+    errors.push('ArchiveQuarantineReceipt.inventoryReceiptId is required.');
   if (!isIsoTimestamp(receipt.quarantinedAt)) {
     errors.push('ArchiveQuarantineReceipt.quarantinedAt must be a valid ISO-8601 timestamp.');
   }
@@ -703,14 +718,28 @@ export function validateExecutableBlockReceipt(receipt: ExecutableBlockReceipt):
   const errors: string[] = [];
   if (!receipt.id) errors.push('ExecutableBlockReceipt.id is required.');
   if (receipt.schemaVersion !== EXECUTABLE_BLOCK_RECEIPT_VERSION) {
-    errors.push(`ExecutableBlockReceipt.schemaVersion must be ${EXECUTABLE_BLOCK_RECEIPT_VERSION}.`);
+    errors.push(
+      `ExecutableBlockReceipt.schemaVersion must be ${EXECUTABLE_BLOCK_RECEIPT_VERSION}.`
+    );
   }
   validateFileProxyFields(receipt.blockedFile, 'ExecutableBlockReceipt.blockedFile', errors);
   if (!isIsoTimestamp(receipt.blockedAt)) {
     errors.push('ExecutableBlockReceipt.blockedAt must be a valid ISO-8601 timestamp.');
   }
-  if (!isOneOf(['executable_detected', 'archive_contains_executable', 'security_risk', 'not_scanned'] as const, String(receipt.blockReason))) {
-    errors.push(`ExecutableBlockReceipt.blockReason is unsupported: ${String(receipt.blockReason)}.`);
+  if (
+    !isOneOf(
+      [
+        'executable_detected',
+        'archive_contains_executable',
+        'security_risk',
+        'not_scanned',
+      ] as const,
+      String(receipt.blockReason)
+    )
+  ) {
+    errors.push(
+      `ExecutableBlockReceipt.blockReason is unsupported: ${String(receipt.blockReason)}.`
+    );
   }
   if (receipt.executionAttempted !== false) {
     errors.push('ExecutableBlockReceipt.executionAttempted must be false.');
@@ -748,7 +777,9 @@ export function validateDuplicateGroupReceipt(receipt: DuplicateGroupReceipt): s
         errors.push('DuplicateGroupEntry.isCanonical must be a boolean.');
       }
       if (!isOneOf(['content_hash', 'filename', 'metadata'] as const, String(entry.matchReason))) {
-        errors.push(`DuplicateGroupEntry.matchReason is unsupported: ${String(entry.matchReason)}.`);
+        errors.push(
+          `DuplicateGroupEntry.matchReason is unsupported: ${String(entry.matchReason)}.`
+        );
       }
     }
   }
@@ -844,11 +875,15 @@ export function validateDeleteDecisionReceipt(receipt: DeleteDecisionReceipt): s
   return errors;
 }
 
-export function validateDownloadsShelfReplayReceipt(receipt: DownloadsShelfReplayReceipt): string[] {
+export function validateDownloadsShelfReplayReceipt(
+  receipt: DownloadsShelfReplayReceipt
+): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('DownloadsShelfReplayReceipt.id is required.');
   if (receipt.schemaVersion !== DOWNLOADS_SHELF_REPLAY_RECEIPT_VERSION) {
-    errors.push(`DownloadsShelfReplayReceipt.schemaVersion must be ${DOWNLOADS_SHELF_REPLAY_RECEIPT_VERSION}.`);
+    errors.push(
+      `DownloadsShelfReplayReceipt.schemaVersion must be ${DOWNLOADS_SHELF_REPLAY_RECEIPT_VERSION}.`
+    );
   }
   if (receipt.workflow !== 'downloads-import-shelf') {
     errors.push('DownloadsShelfReplayReceipt.workflow must be downloads-import-shelf.');
@@ -856,7 +891,8 @@ export function validateDownloadsShelfReplayReceipt(receipt: DownloadsShelfRepla
   if (!isSupportedDownloadsShelfStatus(String(receipt.status))) {
     errors.push(`DownloadsShelfReplayReceipt.status is unsupported: ${String(receipt.status)}.`);
   }
-  if (!receipt.inventoryReceiptId) errors.push('DownloadsShelfReplayReceipt.inventoryReceiptId is required.');
+  if (!receipt.inventoryReceiptId)
+    errors.push('DownloadsShelfReplayReceipt.inventoryReceiptId is required.');
   if (!receipt.replayKey) errors.push('DownloadsShelfReplayReceipt.replayKey is required.');
   if (receipt.importOutsidePreviewOnly !== false) {
     errors.push('DownloadsShelfReplayReceipt.importOutsidePreviewOnly must be false.');
@@ -887,7 +923,9 @@ export function validateHoloShellDownloadsShelfReceiptPack(
   const errors: string[] = [];
   if (!pack.id) errors.push('HoloShellDownloadsShelfReceiptPack.id is required.');
   if (pack.schemaVersion !== DOWNLOADS_SHELF_RECEIPT_PACK_VERSION) {
-    errors.push(`HoloShellDownloadsShelfReceiptPack.schemaVersion must be ${DOWNLOADS_SHELF_RECEIPT_PACK_VERSION}.`);
+    errors.push(
+      `HoloShellDownloadsShelfReceiptPack.schemaVersion must be ${DOWNLOADS_SHELF_RECEIPT_PACK_VERSION}.`
+    );
   }
   if (!pack.inventory) {
     errors.push('HoloShellDownloadsShelfReceiptPack.inventory is required.');
@@ -923,7 +961,9 @@ export function validateHoloShellDownloadsShelfReceiptPack(
     errors.push(...validateDownloadsShelfReplayReceipt(pack.replay));
   }
   if (!isSupportedDownloadsShelfStatus(String(pack.status))) {
-    errors.push(`HoloShellDownloadsShelfReceiptPack.status is unsupported: ${String(pack.status)}.`);
+    errors.push(
+      `HoloShellDownloadsShelfReceiptPack.status is unsupported: ${String(pack.status)}.`
+    );
   }
   if (pack.status === 'completed' && !pack.preview) {
     errors.push('HoloShellDownloadsShelfReceiptPack.preview is required when status=completed.');
@@ -938,31 +978,85 @@ export function cloneDownloadedFileProxy(file: DownloadedFileProxy): DownloadedF
   return { ...file };
 }
 
-export function cloneDownloadsInventoryReceipt(receipt: DownloadsInventoryReceipt): DownloadsInventoryReceipt {
+export function cloneDownloadsInventoryReceipt(
+  receipt: DownloadsInventoryReceipt
+): DownloadsInventoryReceipt {
   return {
     ...receipt,
     files: receipt.files.map(cloneDownloadedFileProxy),
     categoriesFound: [...receipt.categoriesFound],
-    ...(receipt.provenance ? { provenance: { ...receipt.provenance, parentArtifactIds: receipt.provenance.parentArtifactIds ? [...receipt.provenance.parentArtifactIds] : undefined } } : {}),
-    ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c, artifactIds: c.artifactIds ? [...c.artifactIds] : undefined })) } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            parentArtifactIds: receipt.provenance.parentArtifactIds
+              ? [...receipt.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
+    ...(receipt.verificationCommands
+      ? {
+          verificationCommands: receipt.verificationCommands.map((c) => ({
+            ...c,
+            artifactIds: c.artifactIds ? [...c.artifactIds] : undefined,
+          })),
+        }
+      : {}),
   };
 }
 
-export function cloneArchiveQuarantineReceipt(receipt: ArchiveQuarantineReceipt): ArchiveQuarantineReceipt {
+export function cloneArchiveQuarantineReceipt(
+  receipt: ArchiveQuarantineReceipt
+): ArchiveQuarantineReceipt {
   return {
     ...receipt,
     warnings: receipt.warnings.map((w) => ({ ...w })),
-    ...(receipt.provenance ? { provenance: { ...receipt.provenance, parentArtifactIds: receipt.provenance.parentArtifactIds ? [...receipt.provenance.parentArtifactIds] : undefined } } : {}),
-    ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c, artifactIds: c.artifactIds ? [...c.artifactIds] : undefined })) } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            parentArtifactIds: receipt.provenance.parentArtifactIds
+              ? [...receipt.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
+    ...(receipt.verificationCommands
+      ? {
+          verificationCommands: receipt.verificationCommands.map((c) => ({
+            ...c,
+            artifactIds: c.artifactIds ? [...c.artifactIds] : undefined,
+          })),
+        }
+      : {}),
   };
 }
 
-export function cloneExecutableBlockReceipt(receipt: ExecutableBlockReceipt): ExecutableBlockReceipt {
+export function cloneExecutableBlockReceipt(
+  receipt: ExecutableBlockReceipt
+): ExecutableBlockReceipt {
   return {
     ...receipt,
     blockedFile: cloneDownloadedFileProxy(receipt.blockedFile),
-    ...(receipt.provenance ? { provenance: { ...receipt.provenance, parentArtifactIds: receipt.provenance.parentArtifactIds ? [...receipt.provenance.parentArtifactIds] : undefined } } : {}),
-    ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c, artifactIds: c.artifactIds ? [...c.artifactIds] : undefined })) } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            parentArtifactIds: receipt.provenance.parentArtifactIds
+              ? [...receipt.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
+    ...(receipt.verificationCommands
+      ? {
+          verificationCommands: receipt.verificationCommands.map((c) => ({
+            ...c,
+            artifactIds: c.artifactIds ? [...c.artifactIds] : undefined,
+          })),
+        }
+      : {}),
   };
 }
 
@@ -977,7 +1071,16 @@ export function cloneDuplicateGroupReceipt(receipt: DuplicateGroupReceipt): Dupl
   return {
     ...receipt,
     entries: receipt.entries.map(cloneDuplicateGroupEntry),
-    ...(receipt.provenance ? { provenance: { ...receipt.provenance, parentArtifactIds: receipt.provenance.parentArtifactIds ? [...receipt.provenance.parentArtifactIds] : undefined } } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            parentArtifactIds: receipt.provenance.parentArtifactIds
+              ? [...receipt.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
   };
 }
 
@@ -985,8 +1088,24 @@ export function cloneSafePreviewReceipt(receipt: SafePreviewReceipt): SafePrevie
   return {
     ...receipt,
     file: cloneDownloadedFileProxy(receipt.file),
-    ...(receipt.provenance ? { provenance: { ...receipt.provenance, parentArtifactIds: receipt.provenance.parentArtifactIds ? [...receipt.provenance.parentArtifactIds] : undefined } } : {}),
-    ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c, artifactIds: c.artifactIds ? [...c.artifactIds] : undefined })) } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            parentArtifactIds: receipt.provenance.parentArtifactIds
+              ? [...receipt.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
+    ...(receipt.verificationCommands
+      ? {
+          verificationCommands: receipt.verificationCommands.map((c) => ({
+            ...c,
+            artifactIds: c.artifactIds ? [...c.artifactIds] : undefined,
+          })),
+        }
+      : {}),
   };
 }
 
@@ -994,12 +1113,30 @@ export function cloneDeleteDecisionReceipt(receipt: DeleteDecisionReceipt): Dele
   return {
     ...receipt,
     file: cloneDownloadedFileProxy(receipt.file),
-    ...(receipt.provenance ? { provenance: { ...receipt.provenance, parentArtifactIds: receipt.provenance.parentArtifactIds ? [...receipt.provenance.parentArtifactIds] : undefined } } : {}),
-    ...(receipt.verificationCommands ? { verificationCommands: receipt.verificationCommands.map((c) => ({ ...c, artifactIds: c.artifactIds ? [...c.artifactIds] : undefined })) } : {}),
+    ...(receipt.provenance
+      ? {
+          provenance: {
+            ...receipt.provenance,
+            parentArtifactIds: receipt.provenance.parentArtifactIds
+              ? [...receipt.provenance.parentArtifactIds]
+              : undefined,
+          },
+        }
+      : {}),
+    ...(receipt.verificationCommands
+      ? {
+          verificationCommands: receipt.verificationCommands.map((c) => ({
+            ...c,
+            artifactIds: c.artifactIds ? [...c.artifactIds] : undefined,
+          })),
+        }
+      : {}),
   };
 }
 
-export function cloneDownloadsShelfReplayReceipt(receipt: DownloadsShelfReplayReceipt): DownloadsShelfReplayReceipt {
+export function cloneDownloadsShelfReplayReceipt(
+  receipt: DownloadsShelfReplayReceipt
+): DownloadsShelfReplayReceipt {
   return { ...receipt };
 }
 

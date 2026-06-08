@@ -15,15 +15,26 @@ const ENABLED = process.env.EMIT_DETERMINISM_VERDICT === '1';
 const SNAP = join(process.cwd(), '..', '..', 'scripts', 'fleet-corpus-snapshot');
 
 describe('semantic-novelty determinism verdict (P1)', () => {
-  it(ENABLED ? 'computes the cross-fleet verdict from collected manifests' : 'inert unless EMIT_DETERMINISM_VERDICT=1', (ctx) => {
-    if (!ENABLED) return ctx.skip();
-    const manifests: DeterminismManifest[] = [
-      'determinism-manifest.local-win-x64.json',
-      'determinism-manifest.vast-linux-x64.json',
-    ].map((f) => JSON.parse(readFileSync(join(SNAP, f), 'utf8')) as DeterminismManifest);
-    const verdict = assessDeterminismGate(manifests);
-    writeFileSync(join(SNAP, 'determinism-verdict.json'), JSON.stringify(verdict, null, 2), 'utf8');
-    expect(verdict.machineCount).toBe(2);
-    expect(['byte-identical', 'divergent', 'unstable', 'incomparable']).toContain(verdict.verdict);
-  });
+  it(
+    ENABLED
+      ? 'computes the cross-fleet verdict from collected manifests'
+      : 'inert unless EMIT_DETERMINISM_VERDICT=1',
+    (ctx) => {
+      if (!ENABLED) return ctx.skip();
+      const manifests: DeterminismManifest[] = [
+        'determinism-manifest.local-win-x64.json',
+        'determinism-manifest.vast-linux-x64.json',
+      ].map((f) => JSON.parse(readFileSync(join(SNAP, f), 'utf8')) as DeterminismManifest);
+      const verdict = assessDeterminismGate(manifests);
+      writeFileSync(
+        join(SNAP, 'determinism-verdict.json'),
+        JSON.stringify(verdict, null, 2),
+        'utf8'
+      );
+      expect(verdict.machineCount).toBe(2);
+      expect(['byte-identical', 'divergent', 'unstable', 'incomparable']).toContain(
+        verdict.verdict
+      );
+    }
+  );
 });

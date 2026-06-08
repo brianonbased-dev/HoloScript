@@ -107,7 +107,9 @@ export function getEventCount(context: AnyRecord): number {
   return Array.isArray(context?.__events) ? context.__events.length : 0;
 }
 
-export function getLastEvent(context: AnyRecord): { type: string; payload?: AnyRecord } | undefined {
+export function getLastEvent(
+  context: AnyRecord
+): { type: string; payload?: AnyRecord } | undefined {
   if (!Array.isArray(context?.__events) || context.__events.length === 0) return undefined;
   return context.__events[context.__events.length - 1];
 }

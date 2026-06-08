@@ -137,7 +137,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, synced, total: entries.length });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

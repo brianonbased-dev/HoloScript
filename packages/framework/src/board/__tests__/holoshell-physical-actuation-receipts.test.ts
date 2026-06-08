@@ -78,7 +78,8 @@ const validRollback: PhysicalRollbackLimitReceipt = {
   rollbackClass: 'physical_limited',
   softwareReplayAvailable: true,
   physicalUndoGuaranteed: false,
-  rollbackNote: 'Receipt and software state replay are deterministic; the physical pulse cannot be un-felt.',
+  rollbackNote:
+    'Receipt and software state replay are deterministic; the physical pulse cannot be un-felt.',
   hash: 'sha256-rollback',
   hashAlgorithm: 'sha256',
 };
@@ -121,7 +122,9 @@ describe('HoloShell physical actuation receipts', () => {
       status: 'failed',
       deterministicPreview: false,
     });
-    expect(errors).toContain('ActuationSimulationReceipt.failureReason is required unless status=passed.');
+    expect(errors).toContain(
+      'ActuationSimulationReceipt.failureReason is required unless status=passed.'
+    );
   });
 
   it('accepts a valid freshness receipt', () => {
@@ -158,7 +161,9 @@ describe('HoloShell physical actuation receipts', () => {
       ...validSafeStop,
       stopAvailable: false,
     });
-    expect(errors).toContain('SafeStopReceipt.stopAvailable must be true when status is armed or triggered.');
+    expect(errors).toContain(
+      'SafeStopReceipt.stopAvailable must be true when status is armed or triggered.'
+    );
   });
 
   it('accepts a valid rollback limit receipt', () => {

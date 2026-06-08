@@ -25,10 +25,14 @@ describe('handlers AI generation path', () => {
       attemptedProviders: ['bitnet'],
     } as Awaited<ReturnType<typeof generators.generateSceneForMCP>>);
 
-    const result = (await handleTool('generate_scene', {
-      description: 'a small arena',
-      features: ['logic'],
-    }, mockSigningCtx)) as {
+    const result = (await handleTool(
+      'generate_scene',
+      {
+        description: 'a small arena',
+        features: ['logic'],
+      },
+      mockSigningCtx
+    )) as {
       code: string;
       source: string;
       provider: string;

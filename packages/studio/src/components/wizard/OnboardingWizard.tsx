@@ -32,7 +32,8 @@ const PATHS = [
     id: 'quickstart' as const,
     icon: ArrowRight,
     title: 'Quick start (5 minutes)',
-    description: 'GitHub → Pick a starter → Deploy → Live. The fastest way to get a live composition running.',
+    description:
+      'GitHub → Pick a starter → Deploy → Live. The fastest way to get a live composition running.',
     examples: 'Dashboard, 3D canvas, robot simulator, VR world',
     color: 'amber',
     borderColor: 'border-amber-500/30',
@@ -44,7 +45,8 @@ const PATHS = [
     id: 'import' as const,
     icon: Upload,
     title: 'I have existing code or data',
-    description: 'GitHub repo, CSV inventory, API schema, POS export — Absorb scans it, classifies it, and tells you what to build.',
+    description:
+      'GitHub repo, CSV inventory, API schema, POS export — Absorb scans it, classifies it, and tells you what to build.',
     examples: 'Express APIs, React apps, dispensary menus, IoT configs',
     color: 'blue',
     borderColor: 'border-blue-500/30',
@@ -55,7 +57,8 @@ const PATHS = [
     id: 'create' as const,
     icon: Sparkles,
     title: 'Start from scratch',
-    description: 'Pick a category, configure your IDE, and build. Game, robotics, healthcare, architecture, retail — 13 domains with tailored panels.',
+    description:
+      'Pick a category, configure your IDE, and build. Game, robotics, healthcare, architecture, retail — 13 domains with tailored panels.',
     examples: 'VR games, digital twins, 3D art, web experiences',
     color: 'emerald',
     borderColor: 'border-emerald-500/30',
@@ -66,7 +69,8 @@ const PATHS = [
     id: 'describe' as const,
     icon: MessageSquare,
     title: 'Describe what I want',
-    description: 'Tell Brittney about your business in plain language. She generates the compositions, picks the compilers, and builds your simulation.',
+    description:
+      'Tell Brittney about your business in plain language. She generates the compositions, picks the compilers, and builds your simulation.',
     examples: '"I run a dispensary with 200 SKUs and 3 locations"',
     color: 'purple',
     borderColor: 'border-purple-500/30',
@@ -79,9 +83,9 @@ export function OnboardingWizard({ onClose }: OnboardingWizardProps) {
   const [path, setPath] = useState<OnboardingPath>(null);
 
   // Delegate to the appropriate wizard once a path is chosen
-    if (path === 'quickstart') {
-      return <FirstRunWizard onComplete={onClose} />;
-    }
+  if (path === 'quickstart') {
+    return <FirstRunWizard onComplete={onClose} />;
+  }
 
   if (path === 'import') {
     return <ImportRepoWizard onClose={onClose} />;
@@ -106,7 +110,7 @@ export function OnboardingWizard({ onClose }: OnboardingWizardProps) {
             <p className="text-sm text-studio-muted">How are you starting?</p>
           </div>
           <button
-                        title="Close"
+            title="Close"
             onClick={onClose}
             className="rounded-lg p-1.5 text-studio-muted transition hover:bg-white/5 hover:text-white"
           >
@@ -125,7 +129,9 @@ export function OnboardingWizard({ onClose }: OnboardingWizardProps) {
                 className={`w-full text-left rounded-xl border ${p.borderColor} bg-[#111827] hover:bg-[#161f33] p-5 transition-all group`}
               >
                 <div className="flex items-start gap-4">
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${p.bgColor}`}>
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${p.bgColor}`}
+                  >
                     <Icon className={`h-5 w-5 ${p.textColor}`} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -145,7 +151,8 @@ export function OnboardingWizard({ onClose }: OnboardingWizardProps) {
         {/* Footer */}
         <div className="border-t border-studio-border px-6 py-3">
           <p className="text-xs text-studio-muted text-center">
-            All paths lead to the same platform. Registered compilers. Every device that has a supported target.
+            All paths lead to the same platform. Registered compilers. Every device that has a
+            supported target.
           </p>
         </div>
       </div>

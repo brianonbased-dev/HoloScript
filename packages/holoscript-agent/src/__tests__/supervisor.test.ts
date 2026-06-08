@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { ILLMProvider, LLMCompletionRequest, LLMCompletionResponse } from '@holoscript/llm-provider';
+import type {
+  ILLMProvider,
+  LLMCompletionRequest,
+  LLMCompletionResponse,
+} from '@holoscript/llm-provider';
 import { Supervisor } from '../supervisor.js';
 import type { SupervisorConfig, AgentSpec } from '../supervisor-config.js';
 
@@ -44,7 +48,14 @@ function provider(content = 'mock response'): ILLMProvider {
           provider: 'mock',
           finishReason: 'tool_use',
           toolUses: [{ id: 'sup-tu', name: 'bash', input: { cmd: 'vitest run --no-coverage' } }],
-          assistantBlocks: [{ type: 'tool_use' as const, id: 'sup-tu', name: 'bash', input: { cmd: 'vitest run --no-coverage' } }],
+          assistantBlocks: [
+            {
+              type: 'tool_use' as const,
+              id: 'sup-tu',
+              name: 'bash',
+              input: { cmd: 'vitest run --no-coverage' },
+            },
+          ],
         } as unknown as LLMCompletionResponse;
       }
       return {
@@ -55,8 +66,12 @@ function provider(content = 'mock response'): ILLMProvider {
         finishReason: 'stop',
       };
     },
-    async generateHoloScript() { throw new Error('not used'); },
-    async healthCheck() { return { ok: true, latencyMs: 1 }; },
+    async generateHoloScript() {
+      throw new Error('not used');
+    },
+    async healthCheck() {
+      return { ok: true, latencyMs: 1 };
+    },
   };
 }
 
@@ -85,12 +100,24 @@ describe('Supervisor', () => {
     process.env.BEARER_TEST = 'test-bearer';
   });
 
-  function buildFetch(tasks: Array<{ id: string; title: string; tags: string[]; status?: string }> = []): typeof fetch {
+  function buildFetch(
+    tasks: Array<{ id: string; title: string; tags: string[]; status?: string }> = []
+  ): typeof fetch {
     return (async (_url: string | URL | Request, init?: RequestInit) => {
       const method = init?.method ?? 'GET';
       if (method === 'POST') return new Response(null, { status: 204 });
       if (method === 'PATCH') return new Response('{}', { status: 200 });
-      return new Response(JSON.stringify({ tasks: tasks.map((t) => ({ ...t, status: t.status ?? 'open', description: '', priority: 'high' })) }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          tasks: tasks.map((t) => ({
+            ...t,
+            status: t.status ?? 'open',
+            description: '',
+            priority: 'high',
+          })),
+        }),
+        { status: 200 }
+      );
     }) as unknown as typeof fetch;
   }
 
@@ -98,7 +125,12 @@ describe('Supervisor', () => {
     const config: SupervisorConfig = {
       agents: [
         specForBrain(brainPath, { handle: 'security-auditor', enabled: true }),
-        specForBrain(brainPath, { handle: 'lean-theorist', enabled: false, walletEnvKey: 'WALLET_TEST', bearerEnvKey: 'BEARER_TEST' }),
+        specForBrain(brainPath, {
+          handle: 'lean-theorist',
+          enabled: false,
+          walletEnvKey: 'WALLET_TEST',
+          bearerEnvKey: 'BEARER_TEST',
+        }),
       ],
     };
     const sup = new Supervisor({

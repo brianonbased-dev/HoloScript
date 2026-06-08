@@ -210,7 +210,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

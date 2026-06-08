@@ -47,19 +47,9 @@ const SceneRenderer: React.FC<InnerSceneProps> = ({
   const Comp = SCENE_COMPONENTS[sceneId];
   if (!Comp) {
     console.warn(`[HoloShellScene] Unknown sceneId: ${sceneId}, falling back to UnderwaterScene`);
-    return (
-      <UnderwaterScene
-        onNavigateRequest={onNavigateRequest}
-        onInteraction={onInteraction}
-      />
-    );
+    return <UnderwaterScene onNavigateRequest={onNavigateRequest} onInteraction={onInteraction} />;
   }
-  return (
-    <Comp
-      onNavigateRequest={onNavigateRequest}
-      onInteraction={onInteraction}
-    />
-  );
+  return <Comp onNavigateRequest={onNavigateRequest} onInteraction={onInteraction} />;
 };
 
 /**
@@ -120,11 +110,7 @@ export const HoloShellScene: React.FC<HoloShellSceneProps> = ({
         <ambientLight intensity={0.18} color="#aaccff" />
 
         {/* Gentle key light from top-front (matches most scene designs) */}
-        <directionalLight
-          position={[2, 6, 4]}
-          intensity={0.55}
-          color="#e8f0ff"
-        />
+        <directionalLight position={[2, 6, 4]} intensity={0.55} color="#e8f0ff" />
 
         <Suspense
           fallback={

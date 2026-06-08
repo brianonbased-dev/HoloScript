@@ -39,11 +39,7 @@ import {
 } from './charTrigram.js';
 import { SnnAccelerator } from './SnnAccelerator.js';
 import type { SymbolInput, GraphEnrichment, EncoderOptions } from './types.js';
-import {
-  STRUCTURAL_DIM,
-  SUBWORD_BINS,
-  HOLOEMBED_DIM,
-} from './types.js';
+import { STRUCTURAL_DIM, SUBWORD_BINS, HOLOEMBED_DIM } from './types.js';
 
 // =============================================================================
 // KNOWN PACKAGES / DIRS (structural base — mirrors StructuralEmbeddingProvider)
@@ -77,7 +73,9 @@ export class HoloEmbedEncoder {
   }
 
   /** Whether the GPU SNN path is active. */
-  get snnActive(): boolean { return this._snnEnabled; }
+  get snnActive(): boolean {
+    return this._snnEnabled;
+  }
 
   /**
    * Encode a symbol to a 768-dim L2-normalized Float32Array.
@@ -129,11 +127,11 @@ export class HoloEmbedEncoder {
    */
   async encodeTexts(texts: string[]): Promise<Float32Array[]> {
     if (!this._snnEnabled) {
-      return texts.map(t => this.encodeText(t));
+      return texts.map((t) => this.encodeText(t));
     }
 
     // GPU path: compute trigram histograms on CPU, run SNN batch on GPU
-    const histograms = texts.map(t => {
+    const histograms = texts.map((t) => {
       const hist = new Float32Array(SUBWORD_BINS);
       const tmp = new Float32Array(HOLOEMBED_DIM);
       trigramHistogram(t, tmp, STRUCTURAL_DIM, SUBWORD_BINS);
@@ -167,7 +165,7 @@ export class HoloEmbedEncoder {
       vec[i] = fp.includes(KNOWN_PACKAGES[i]!) ? 1 : 0;
     }
     // Dims 6–9: structural directory flags
-    vec[6] = (fp.includes('__tests__') || fp.includes('.test.') || fp.includes('.spec.')) ? 1 : 0;
+    vec[6] = fp.includes('__tests__') || fp.includes('.test.') || fp.includes('.spec.') ? 1 : 0;
     vec[7] = fp.includes('/traits/') ? 1 : 0;
     vec[8] = fp.includes('/adapters/') ? 1 : 0;
     vec[9] = fp.includes('/providers/') ? 1 : 0;
@@ -213,7 +211,7 @@ export class HoloEmbedEncoder {
     for (let i = 0; i < KNOWN_PACKAGES.length; i++) {
       vec[i] = fp.includes(KNOWN_PACKAGES[i]!) ? 1 : 0;
     }
-    vec[6] = (fp.includes('__tests__') || fp.includes('.test.') || fp.includes('.spec.')) ? 1 : 0;
+    vec[6] = fp.includes('__tests__') || fp.includes('.test.') || fp.includes('.spec.') ? 1 : 0;
     vec[7] = fp.includes('/traits/') ? 1 : 0;
     vec[8] = fp.includes('/adapters/') ? 1 : 0;
     vec[9] = fp.includes('/providers/') ? 1 : 0;
@@ -230,20 +228,28 @@ export class HoloEmbedEncoder {
     // Block 1 (384–511): name + type + signature
     trigramHistogram(
       `${sym.name} ${sym.type} ${sym.signature ?? ''}`,
-      vec, STRUCTURAL_DIM, SUBWORD_BINS,
+      vec,
+      STRUCTURAL_DIM,
+      SUBWORD_BINS
     );
     // Block 2 (512–639): docComment
     trigramHistogram(sym.docComment ?? '', vec, STRUCTURAL_DIM + SUBWORD_BINS, SUBWORD_BINS);
     // Block 3 (640–767): event names
     trigramHistogram(
       camelSplit((graph.eventNames ?? []).join(' ')),
-      vec, STRUCTURAL_DIM + 2 * SUBWORD_BINS, SUBWORD_BINS,
+      vec,
+      STRUCTURAL_DIM + 2 * SUBWORD_BINS,
+      SUBWORD_BINS
     );
   }
 
   // ── Private: subword blocks (GPU SNN) ────────────────────────────────────
 
-  private async _fillSubwordSnn(vec: Float32Array, sym: SymbolInput, graph: GraphEnrichment): Promise<void> {
+  private async _fillSubwordSnn(
+    vec: Float32Array,
+    sym: SymbolInput,
+    graph: GraphEnrichment
+  ): Promise<void> {
     // Build CPU histograms first, then replace with SNN rates
     const h1 = new Float32Array(SUBWORD_BINS);
     const h2 = new Float32Array(SUBWORD_BINS);
@@ -254,7 +260,9 @@ export class HoloEmbedEncoder {
     trigramHistogram(sym.docComment ?? '', tmp, SUBWORD_BINS, SUBWORD_BINS);
     trigramHistogram(
       camelSplit((graph.eventNames ?? []).join(' ')),
-      tmp, 2 * SUBWORD_BINS, SUBWORD_BINS,
+      tmp,
+      2 * SUBWORD_BINS,
+      SUBWORD_BINS
     );
 
     h1.set(tmp.slice(0, SUBWORD_BINS));
@@ -276,25 +284,39 @@ export class HoloEmbedEncoder {
 
 function symbolTypeScore(type: string): number {
   switch (type) {
-    case 'function':   return 1.0;
-    case 'method':     return 0.9;
-    case 'class':      return 0.7;
-    case 'interface':  return 0.5;
-    case 'type_alias': return 0.4;
-    case 'enum':       return 0.3;
-    case 'constant':   return 0.2;
-    case 'field':      return 0.15;
-    default:           return 0.1;
+    case 'function':
+      return 1.0;
+    case 'method':
+      return 0.9;
+    case 'class':
+      return 0.7;
+    case 'interface':
+      return 0.5;
+    case 'type_alias':
+      return 0.4;
+    case 'enum':
+      return 0.3;
+    case 'constant':
+      return 0.2;
+    case 'field':
+      return 0.15;
+    default:
+      return 0.1;
   }
 }
 
 function visibilityScore(v: string | undefined): number {
   switch (v) {
-    case 'public':    return 1.0;
-    case 'protected': return 0.5;
-    case 'internal':  return 0.3;
-    case 'private':   return 0.0;
-    default:          return 0.8;
+    case 'public':
+      return 1.0;
+    case 'protected':
+      return 0.5;
+    case 'internal':
+      return 0.3;
+    case 'private':
+      return 0.0;
+    default:
+      return 0.8;
   }
 }
 

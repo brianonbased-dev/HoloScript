@@ -37,10 +37,12 @@ describe('SimulationSolverFactory', () => {
   });
 
   it('create() calls factory and returns solver', () => {
-    const factoryFn = vi.fn((_cfg: Record<string, unknown>): SimulationSolver => ({
-      dispose: vi.fn(),
-      step: vi.fn(),
-    }));
+    const factoryFn = vi.fn(
+      (_cfg: Record<string, unknown>): SimulationSolver => ({
+        dispose: vi.fn(),
+        step: vi.fn(),
+      })
+    );
     SimulationSolverFactory.register('hydraulic', factoryFn);
     const solver = SimulationSolverFactory.create('hydraulic', { pressure: 1.0 });
     expect(factoryFn).toHaveBeenCalledWith({ pressure: 1.0 });

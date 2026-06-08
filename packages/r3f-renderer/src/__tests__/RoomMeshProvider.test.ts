@@ -128,7 +128,10 @@ describe('RoomMeshProvider', () => {
       vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
       indices: new Uint32Array([0, 1, 2]),
       normals: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]),
-      bounds: { min: [0, 0, 0] as [number, number, number], max: [1, 1, 0] as [number, number, number] },
+      bounds: {
+        min: [0, 0, 0] as [number, number, number],
+        max: [1, 1, 0] as [number, number, number],
+      },
       semanticLabel: 'floor' as const,
       vertexCount: 3,
       triangleCount: 1,
@@ -188,7 +191,10 @@ describe('RoomMeshProvider', () => {
       vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
       indices: new Uint32Array([0, 1, 2]),
       normals: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]),
-      bounds: { min: [0, 0, 0] as [number, number, number], max: [1, 1, 0] as [number, number, number] },
+      bounds: {
+        min: [0, 0, 0] as [number, number, number],
+        max: [1, 1, 0] as [number, number, number],
+      },
       semanticLabel: 'floor' as const,
       vertexCount: 3,
       triangleCount: 1,

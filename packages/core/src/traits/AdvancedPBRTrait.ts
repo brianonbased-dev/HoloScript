@@ -351,7 +351,9 @@ function compileGodot(config: AdvancedPBRConfig): string {
   }
 
   if (config.roughness_map) {
-    lines.push(`    material.roughness_texture = load(${formatGodotResource(config.roughness_map)})`);
+    lines.push(
+      `    material.roughness_texture = load(${formatGodotResource(config.roughness_map)})`
+    );
   }
 
   if (config.metallic_map) {

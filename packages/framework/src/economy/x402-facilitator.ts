@@ -26,7 +26,10 @@
 
 // Import real trait types from @holoscript/core
 import type { HSPlusNode, TraitHandler, TraitContext, TraitEvent } from '@holoscript/core';
-import { safeParseX402PaymentPayload, validateX402MicropaymentBoundary } from './x402-boundary-schemas';
+import {
+  safeParseX402PaymentPayload,
+  validateX402MicropaymentBoundary,
+} from './x402-boundary-schemas';
 
 // =============================================================================
 // x402 PROTOCOL TYPES

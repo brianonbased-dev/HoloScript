@@ -12,7 +12,7 @@ function ropeCpu(
   numHeads: number,
   headDim: number,
   base = 10000,
-  posOffset = 0,
+  posOffset = 0
 ): Float32Array {
   const out = new Float32Array(input);
   const pairs = headDim / 2;
@@ -78,13 +78,16 @@ describe('RoPE kernel — CPU reference', () => {
   });
 
   it('matches manual calculation for 2-token, 1-head, headDim=4', () => {
-    const seqLen = 2, numHeads = 1, headDim = 4, base = 10000;
-    const input = new Float32Array([1, 0, 0, 1,   0, 1, 1, 0]);
+    const seqLen = 2,
+      numHeads = 1,
+      headDim = 4,
+      base = 10000;
+    const input = new Float32Array([1, 0, 0, 1, 0, 1, 1, 0]);
     const out = ropeCpu(input, seqLen, numHeads, headDim, base, 0);
 
     for (let t = 0; t < seqLen; t++) {
       for (let d = 0; d < headDim / 2; d++) {
-        const theta = t * Math.pow(base, -2 * d / headDim);
+        const theta = t * Math.pow(base, (-2 * d) / headDim);
         const c = Math.cos(theta);
         const s = Math.sin(theta);
         const i0 = t * headDim + 2 * d;
@@ -95,25 +98,33 @@ describe('RoPE kernel — CPU reference', () => {
   });
 
   it('posOffset shifts positions correctly', () => {
-    const seqLen = 3, numHeads = 1, headDim = 4;
+    const seqLen = 3,
+      numHeads = 1,
+      headDim = 4;
     const rng = mulberry32(7);
     const input = randomArray(seqLen * numHeads * headDim, rng, -1, 1);
 
-    const outNoOffset   = ropeCpu(input, seqLen, numHeads, headDim, 10000, 0);
+    const outNoOffset = ropeCpu(input, seqLen, numHeads, headDim, 10000, 0);
     const outWithOffset = ropeCpu(input, seqLen, numHeads, headDim, 10000, 10);
     expect(Array.from(outNoOffset)).not.toEqual(Array.from(outWithOffset));
 
     const inputToken0 = input.slice(0, numHeads * headDim);
     const ropeToken0atPos10 = ropeCpu(
       new Float32Array(inputToken0),
-      1, numHeads, headDim, 10000, 10,
+      1,
+      numHeads,
+      headDim,
+      10000,
+      10
     );
     const fromFull = outWithOffset.slice(0, numHeads * headDim);
     expect(allClose(ropeToken0atPos10, new Float32Array(fromFull), 1e-6)).toBe(true);
   });
 
   it('multihead: each head gets same rotation at same position', () => {
-    const seqLen = 1, numHeads = 3, headDim = 4;
+    const seqLen = 1,
+      numHeads = 3,
+      headDim = 4;
     const rng = mulberry32(13);
     const data = randomArray(seqLen * numHeads * headDim, rng, -1, 1);
     // Set all heads to same values
@@ -143,7 +154,10 @@ describe('RoPE kernel — WebGPU', () => {
     if (!adapter) return;
     const device = await adapter.requestDevice();
 
-    const seqLen = 4, numHeads = 2, headDim = 8, base = 10000;
+    const seqLen = 4,
+      numHeads = 2,
+      headDim = 8,
+      base = 10000;
     const rng = mulberry32(42);
     const input = randomArray(seqLen * numHeads * headDim, rng, -2, 2);
 
@@ -166,7 +180,11 @@ describe('RoPE kernel — WebGPU', () => {
     if (!adapter) return;
     const device = await adapter.requestDevice();
 
-    const seqLen = 2, numHeads = 1, headDim = 16, base = 500, posOffset = 7;
+    const seqLen = 2,
+      numHeads = 1,
+      headDim = 16,
+      base = 500,
+      posOffset = 7;
     const rng = mulberry32(99);
     const input = randomArray(seqLen * numHeads * headDim, rng, -1, 1);
 
@@ -187,7 +205,7 @@ describe('RoPE kernel — WebGPU', () => {
 
     const kernel = createRopeKernel(device);
     await expect(
-      kernel.run(new Float32Array(3), { seqLen: 1, numHeads: 1, headDim: 3 }),
+      kernel.run(new Float32Array(3), { seqLen: 1, numHeads: 1, headDim: 3 })
     ).rejects.toThrow('headDim must be even');
 
     device.destroy();
@@ -201,7 +219,7 @@ describe('RoPE kernel — WebGPU', () => {
 
     const kernel = createRopeKernel(device);
     await expect(
-      kernel.run(new Float32Array(4), { seqLen: 2, numHeads: 1, headDim: 4 }),
+      kernel.run(new Float32Array(4), { seqLen: 2, numHeads: 1, headDim: 4 })
     ).rejects.toThrow('input length');
 
     device.destroy();

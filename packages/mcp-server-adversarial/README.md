@@ -11,18 +11,18 @@
 Stubs for the five attack classes specified in
 `research/paper-21-ati/threat-model.md` §4 (in the `ai-ecosystem` repo):
 
-| File | Attack | Spec |
-|------|--------|------|
-| `src/whitewasher.ts` | Whitewasher (build-then-betray) | §4.1 |
-| `src/sybil.ts` | Sybil (K colluding identities) | §4.2 |
-| `src/slow-poisoner.ts` | Slow Poisoner (long-tail bias) | §4.3 |
+| File                       | Attack                                          | Spec |
+| -------------------------- | ----------------------------------------------- | ---- |
+| `src/whitewasher.ts`       | Whitewasher (build-then-betray)                 | §4.1 |
+| `src/sybil.ts`             | Sybil (K colluding identities)                  | §4.2 |
+| `src/slow-poisoner.ts`     | Slow Poisoner (long-tail bias)                  | §4.3 |
 | `src/score-manipulator.ts` | Score Manipulator (Goodhart on Paper 1 formula) | §4.4 |
-| `src/eclipse.ts` | Eclipse (routing-level isolation) | §4.5 |
+| `src/eclipse.ts`           | Eclipse (routing-level isolation)               | §4.5 |
 
 Each file is a stub class implementing the `AdversarialAttack` interface
 (see `src/types.ts`). Stub methods throw `'not implemented'` errors that
 name the corresponding board task ID. Implementations land in the
-ATI-3-* tasks (one task per attack).
+ATI-3-\* tasks (one task per attack).
 
 ## What this is NOT
 
@@ -64,15 +64,15 @@ const attack = new WhitewasherAttack({ targetTrust: 0.9, cooperativeRounds: 100 
 
 ## Phase 3 task tracking (HoloMesh board)
 
-| Code | Task |
-|------|------|
-| ATI-3-testbed | Stand up sandboxed HoloMesh testbed |
-| **ATI-3-scaffold** | **(this package — claimed)** |
-| ATI-3-whitewasher | Implement `whitewasher.ts` step() + evaluateSuccess() |
-| ATI-3-sybil | Implement `sybil.ts` step() + evaluateSuccess() |
-| ATI-3-score-manip | Implement `score-manipulator.ts` step() + evaluateSuccess() |
-| ATI-3-slow-poisoner | Implement `slow-poisoner.ts` step() + evaluateSuccess() |
-| ATI-3-eclipse | Implement `eclipse.ts` step() + evaluateSuccess() |
+| Code                | Task                                                        |
+| ------------------- | ----------------------------------------------------------- |
+| ATI-3-testbed       | Stand up sandboxed HoloMesh testbed                         |
+| **ATI-3-scaffold**  | **(this package — claimed)**                                |
+| ATI-3-whitewasher   | Implement `whitewasher.ts` step() + evaluateSuccess()       |
+| ATI-3-sybil         | Implement `sybil.ts` step() + evaluateSuccess()             |
+| ATI-3-score-manip   | Implement `score-manipulator.ts` step() + evaluateSuccess() |
+| ATI-3-slow-poisoner | Implement `slow-poisoner.ts` step() + evaluateSuccess()     |
+| ATI-3-eclipse       | Implement `eclipse.ts` step() + evaluateSuccess()           |
 
 Phase 4 (defenses + measurements + paper authoring) is gated behind
 Phase 3 baselines and is NOT yet filed as board tasks.

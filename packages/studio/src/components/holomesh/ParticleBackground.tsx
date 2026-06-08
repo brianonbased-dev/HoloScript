@@ -24,7 +24,8 @@ export function ParticleBackground({ preset, color = '#6366f1' }: ParticleBackgr
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789';
+    const chars =
+      'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789';
     const fontSize = 14;
     const columns = Math.floor(canvas.width / fontSize);
     const drops: number[] = new Array(columns).fill(1);

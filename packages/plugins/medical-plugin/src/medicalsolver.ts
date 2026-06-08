@@ -28,12 +28,12 @@ import { buildDomainSimulationReceipt, type DomainSimulationReceipt } from '@hol
 export type BiologicalSex = 'male' | 'female';
 
 export type BMICategory =
-  | 'underweight'       // < 18.5
-  | 'normal'            // 18.5–24.9
-  | 'overweight'        // 25–29.9
-  | 'obese-I'           // 30–34.9
-  | 'obese-II'          // 35–39.9
-  | 'obese-III';        // ≥ 40
+  | 'underweight' // < 18.5
+  | 'normal' // 18.5–24.9
+  | 'overweight' // 25–29.9
+  | 'obese-I' // 30–34.9
+  | 'obese-II' // 35–39.9
+  | 'obese-III'; // ≥ 40
 
 export interface BMIResult {
   bmi: number;
@@ -128,7 +128,9 @@ export interface FraminghamResult {
   riskCategory: 'low' | 'intermediate' | 'high';
 }
 
-export interface MedicalReceiptOptions { runId?: string; }
+export interface MedicalReceiptOptions {
+  runId?: string;
+}
 
 export interface MedicalAnalysisResult {
   bmi?: BMIResult;
@@ -148,24 +150,20 @@ export interface MedicalAnalysisResult {
  * IBW (Devine): male = 50 + 2.3×(inches−60); female = 45.5 + 2.3×(inches−60)
  * AdjBW = IBW + 0.4 × (actualWeight − IBW)
  */
-export function bmiCalculation(
-  weightKg: number,
-  heightCm: number,
-  sex: BiologicalSex,
-): BMIResult {
+export function bmiCalculation(weightKg: number, heightCm: number, sex: BiologicalSex): BMIResult {
   if (weightKg <= 0) throw new Error('weightKg must be positive');
   if (heightCm <= 0) throw new Error('heightCm must be positive');
 
   const heightM = heightCm / 100;
-  const bmi = +(weightKg / (heightM ** 2)).toFixed(1);
+  const bmi = +(weightKg / heightM ** 2).toFixed(1);
 
   let category: BMICategory;
-  if (bmi < 18.5)       category = 'underweight';
-  else if (bmi < 25.0)  category = 'normal';
-  else if (bmi < 30.0)  category = 'overweight';
-  else if (bmi < 35.0)  category = 'obese-I';
-  else if (bmi < 40.0)  category = 'obese-II';
-  else                  category = 'obese-III';
+  if (bmi < 18.5) category = 'underweight';
+  else if (bmi < 25.0) category = 'normal';
+  else if (bmi < 30.0) category = 'overweight';
+  else if (bmi < 35.0) category = 'obese-I';
+  else if (bmi < 40.0) category = 'obese-II';
+  else category = 'obese-III';
 
   // DuBois BSA
   const bsaM2 = +(0.007184 * Math.pow(heightCm, 0.725) * Math.pow(weightKg, 0.425)).toFixed(3);
@@ -173,7 +171,7 @@ export function bmiCalculation(
   // Devine IBW
   const heightInches = heightCm / 2.54;
   const inchesOver5ft = Math.max(0, heightInches - 60);
-  const ibwKg = +(( sex === 'male' ? 50 : 45.5) + 2.3 * inchesOver5ft).toFixed(1);
+  const ibwKg = +((sex === 'male' ? 50 : 45.5) + 2.3 * inchesOver5ft).toFixed(1);
 
   // Adjusted body weight (for obese patients)
   const adjBodyWeightKg = +(ibwKg + 0.4 * (weightKg - ibwKg)).toFixed(1);
@@ -193,26 +191,29 @@ export function egfrCockcroftGault(
   weightKg: number,
   serumCreatinineMgDl: number,
   sex: BiologicalSex,
-  bsaM2?: number,
+  bsaM2?: number
 ): EGFRResult {
   if (ageYears <= 0 || ageYears > 120) throw new Error('ageYears must be in (0, 120]');
   if (weightKg <= 0) throw new Error('weightKg must be positive');
   if (serumCreatinineMgDl <= 0) throw new Error('serumCreatinine must be positive');
 
   const sexFactor = sex === 'female' ? 0.85 : 1.0;
-  const egfrMlMin = +((140 - ageYears) * weightKg * sexFactor / (72 * serumCreatinineMgDl)).toFixed(1);
+  const egfrMlMin = +(
+    ((140 - ageYears) * weightKg * sexFactor) /
+    (72 * serumCreatinineMgDl)
+  ).toFixed(1);
 
   // Normalise per 1.73 m² if BSA provided
   const bsa = bsaM2 ?? 1.73;
-  const egfrNormalized = +(egfrMlMin * 1.73 / bsa).toFixed(1);
+  const egfrNormalized = +((egfrMlMin * 1.73) / bsa).toFixed(1);
 
   let ckdStage: EGFRResult['ckdStage'];
-  if (egfrNormalized >= 90)      ckdStage = 'G1';
+  if (egfrNormalized >= 90) ckdStage = 'G1';
   else if (egfrNormalized >= 60) ckdStage = 'G2';
   else if (egfrNormalized >= 45) ckdStage = 'G3a';
   else if (egfrNormalized >= 30) ckdStage = 'G3b';
   else if (egfrNormalized >= 15) ckdStage = 'G4';
-  else                           ckdStage = 'G5';
+  else ckdStage = 'G5';
 
   return { egfrMlMin, egfrNormalized, ckdStage };
 }
@@ -239,7 +240,7 @@ export function oneCompartmentPK(input: PKOneCompartmentInput): PKResult {
   const cpeakMgL = +(input.doseMg / vdL).toFixed(3);
   const ctroughMgL = +(cpeakMgL * Math.exp(-keH * input.intervalH)).toFixed(3);
   // AUC over one dosing interval
-  const aucMgHL = +(cpeakMgL * (1 - Math.exp(-keH * input.intervalH)) / keH).toFixed(2);
+  const aucMgHL = +((cpeakMgL * (1 - Math.exp(-keH * input.intervalH))) / keH).toFixed(2);
 
   return { cpeakMgL, ctroughMgL, keH, halfLifeH, vdL, aucMgHL };
 }
@@ -270,14 +271,16 @@ export function news2Score(input: NEWS2Input): NEWS2Result {
 
   // Heart rate
   const hr = input.heartRate;
-  subscores.heartRate = hr <= 40 ? 3 : hr <= 50 ? 1 : hr <= 90 ? 0 : hr <= 110 ? 1 : hr <= 130 ? 2 : 3;
+  subscores.heartRate =
+    hr <= 40 ? 3 : hr <= 50 ? 1 : hr <= 90 ? 0 : hr <= 110 ? 1 : hr <= 130 ? 2 : 3;
 
   // Consciousness (AVPU)
   subscores.avpu = input.avpu === 'A' ? 0 : 3;
 
   // Temperature
   const temp = input.temperatureC;
-  subscores.temperature = temp <= 35.0 ? 3 : temp <= 36.0 ? 1 : temp <= 38.0 ? 0 : temp <= 39.0 ? 1 : 2;
+  subscores.temperature =
+    temp <= 35.0 ? 3 : temp <= 36.0 ? 1 : temp <= 38.0 ? 0 : temp <= 39.0 ? 1 : 2;
 
   const totalScore = Object.values(subscores).reduce((s, v) => s + v, 0);
 
@@ -287,7 +290,7 @@ export function news2Score(input: NEWS2Input): NEWS2Result {
   if (totalScore >= 7) {
     risk = 'high';
     monitoringFrequency = 'Continuous monitoring; urgent clinical review';
-  } else if (totalScore >= 5 || Object.values(subscores).some(v => v === 3)) {
+  } else if (totalScore >= 5 || Object.values(subscores).some((v) => v === 3)) {
     risk = 'medium';
     monitoringFrequency = 'Minimum 1-hourly';
   } else {
@@ -309,8 +312,8 @@ export function parklandFormula(weightKg: number, tbsaPct: number): ParklandResu
   if (tbsaPct <= 0 || tbsaPct > 100) throw new Error('tbsaPct must be in (0, 100]');
 
   const totalFluidMl = Math.round(4 * weightKg * tbsaPct);
-  const first8hMl    = Math.round(totalFluidMl / 2);
-  const next16hMl    = totalFluidMl - first8hMl;
+  const first8hMl = Math.round(totalFluidMl / 2);
+  const next16hMl = totalFluidMl - first8hMl;
   const hourlyRateFirst8h = Math.round(first8hMl / 8);
 
   return { totalFluidMl, first8hMl, next16hMl, hourlyRateFirst8h };
@@ -333,7 +336,8 @@ export function framinghamRisk(params: {
   smoker: boolean;
   diabetic: boolean;
 }): FraminghamResult {
-  const { ageYears, sex, totalCholMgDl, hdlCholMgDl, systolicBP, bpTreated, smoker, diabetic } = params;
+  const { ageYears, sex, totalCholMgDl, hdlCholMgDl, systolicBP, bpTreated, smoker, diabetic } =
+    params;
 
   if (ageYears < 20 || ageYears > 79) throw new Error('ageYears must be in [20, 79]');
   if (totalCholMgDl <= 0) throw new Error('totalCholMgDl must be positive');
@@ -344,13 +348,47 @@ export function framinghamRisk(params: {
 
   // Age points (male / female differ)
   if (sex === 'male') {
-    points += ageYears < 35 ? -9 : ageYears < 40 ? -4 : ageYears < 45 ? 0
-            : ageYears < 50 ? 3  : ageYears < 55 ? 6  : ageYears < 60 ? 8
-            : ageYears < 65 ? 10 : ageYears < 70 ? 11 : ageYears < 75 ? 12 : 13;
+    points +=
+      ageYears < 35
+        ? -9
+        : ageYears < 40
+          ? -4
+          : ageYears < 45
+            ? 0
+            : ageYears < 50
+              ? 3
+              : ageYears < 55
+                ? 6
+                : ageYears < 60
+                  ? 8
+                  : ageYears < 65
+                    ? 10
+                    : ageYears < 70
+                      ? 11
+                      : ageYears < 75
+                        ? 12
+                        : 13;
   } else {
-    points += ageYears < 35 ? -7 : ageYears < 40 ? -3 : ageYears < 45 ? 0
-            : ageYears < 50 ? 3  : ageYears < 55 ? 6  : ageYears < 60 ? 8
-            : ageYears < 65 ? 10 : ageYears < 70 ? 12 : ageYears < 75 ? 14 : 16;
+    points +=
+      ageYears < 35
+        ? -7
+        : ageYears < 40
+          ? -3
+          : ageYears < 45
+            ? 0
+            : ageYears < 50
+              ? 3
+              : ageYears < 55
+                ? 6
+                : ageYears < 60
+                  ? 8
+                  : ageYears < 65
+                    ? 10
+                    : ageYears < 70
+                      ? 12
+                      : ageYears < 75
+                        ? 14
+                        : 16;
   }
 
   // Total cholesterol points
@@ -381,8 +419,23 @@ export function framinghamRisk(params: {
 
   // Point → % risk lookup (male; roughly same table for both genders at this simplification)
   const maleLookup: Record<number, number> = {
-    [-3]: 1, [-2]: 2, [-1]: 2, 0: 3, 1: 4, 2: 4, 3: 6, 4: 7, 5: 9,
-    6: 11, 7: 14, 8: 18, 9: 22, 10: 27, 11: 33, 12: 40, 13: 47,
+    [-3]: 1,
+    [-2]: 2,
+    [-1]: 2,
+    0: 3,
+    1: 4,
+    2: 4,
+    3: 6,
+    4: 7,
+    5: 9,
+    6: 11,
+    7: 14,
+    8: 18,
+    9: 22,
+    10: 27,
+    11: 33,
+    12: 40,
+    13: 47,
   };
   const clampedPoints = Math.max(-3, Math.min(13, points));
   const tenYearRiskPct = maleLookup[clampedPoints] ?? (clampedPoints < -3 ? 1 : 47);
@@ -397,23 +450,41 @@ export function framinghamRisk(params: {
 
 export function buildMedicalReceipt(
   result: MedicalAnalysisResult,
-  options?: MedicalReceiptOptions,
+  options?: MedicalReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
-  if (result.bmi && (result.bmi.category === 'underweight' || result.bmi.category === 'obese-III')) {
-    violations.push({ criterion: 'bmi_extreme', message: `BMI ${result.bmi.bmi} (${result.bmi.category}) — clinical intervention required` });
+  if (
+    result.bmi &&
+    (result.bmi.category === 'underweight' || result.bmi.category === 'obese-III')
+  ) {
+    violations.push({
+      criterion: 'bmi_extreme',
+      message: `BMI ${result.bmi.bmi} (${result.bmi.category}) — clinical intervention required`,
+    });
   }
   if (result.egfr && (result.egfr.ckdStage === 'G4' || result.egfr.ckdStage === 'G5')) {
-    violations.push({ criterion: 'renal_impairment', message: `eGFR ${result.egfr.egfrNormalized} mL/min/1.73m² — ${result.egfr.ckdStage} (severe); dose adjustment and nephrology review required` });
+    violations.push({
+      criterion: 'renal_impairment',
+      message: `eGFR ${result.egfr.egfrNormalized} mL/min/1.73m² — ${result.egfr.ckdStage} (severe); dose adjustment and nephrology review required`,
+    });
   }
   if (result.news2 && result.news2.risk === 'high') {
-    violations.push({ criterion: 'news2_high', message: `NEWS2 score ${result.news2.totalScore} — HIGH risk; continuous monitoring and urgent review required` });
+    violations.push({
+      criterion: 'news2_high',
+      message: `NEWS2 score ${result.news2.totalScore} — HIGH risk; continuous monitoring and urgent review required`,
+    });
   } else if (result.news2 && result.news2.risk === 'medium') {
-    violations.push({ criterion: 'news2_medium', message: `NEWS2 score ${result.news2.totalScore} — MEDIUM risk; increased monitoring required` });
+    violations.push({
+      criterion: 'news2_medium',
+      message: `NEWS2 score ${result.news2.totalScore} — MEDIUM risk; increased monitoring required`,
+    });
   }
   if (result.framingham && result.framingham.riskCategory === 'high') {
-    violations.push({ criterion: 'cvd_high_risk', message: `10-year CVD risk ${result.framingham.tenYearRiskPct}% — HIGH; statin + lifestyle intervention indicated` });
+    violations.push({
+      criterion: 'cvd_high_risk',
+      message: `10-year CVD risk ${result.framingham.tenYearRiskPct}% — HIGH; statin + lifestyle intervention indicated`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -430,7 +501,11 @@ export function buildMedicalReceipt(
       news2Risk: result.news2?.risk ?? null,
       cvdRiskPct: result.framingham?.tenYearRiskPct ?? null,
     },
-    cael: { version: 'cael.v1', event: 'medical.clinical_analysis', solverType: 'medical.clinical' },
+    cael: {
+      version: 'cael.v1',
+      event: 'medical.clinical_analysis',
+      solverType: 'medical.clinical',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

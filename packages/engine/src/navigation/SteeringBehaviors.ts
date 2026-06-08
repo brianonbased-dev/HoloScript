@@ -106,7 +106,9 @@ export class SteeringBehaviors {
     this.wanderAngle += (Math.random() - 0.5) * 2 * this.config.wanderJitter;
 
     const vel =
-      this.mag(agent.velocity) > 0.001 ? this.normalize(agent.velocity) : ([1, 0, 0] as NavigationVector);
+      this.mag(agent.velocity) > 0.001
+        ? this.normalize(agent.velocity)
+        : ([1, 0, 0] as NavigationVector);
     const circleCenter = this.add(agent.position, this.scale(vel, this.config.wanderDistance));
 
     const wanderTarget: NavigationVector = [

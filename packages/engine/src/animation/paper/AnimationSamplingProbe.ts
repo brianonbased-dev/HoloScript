@@ -71,9 +71,7 @@ export interface AnimationSamplingProbeOptions {
  * spec-supplied order keeps the hash stable across any AnimClip
  * internal refactor.
  */
-export function runAnimationSamplingProbe(
-  options: AnimationSamplingProbeOptions
-): Uint8Array {
+export function runAnimationSamplingProbe(options: AnimationSamplingProbeOptions): Uint8Array {
   const { clipSpec, sampleTimes } = options;
 
   const clip = new AnimClip(clipSpec.id, clipSpec.name, clipSpec.duration);
@@ -127,65 +125,64 @@ export function runAnimationSamplingProbe(
  * linear interpolation. 400 f32 samples total → 1600 output bytes
  * hashed by the harness.
  */
-export const PAPER_P2_0_CANONICAL_SPEC: Readonly<AnimationSamplingProbeOptions> =
-  Object.freeze({
-    clipSpec: {
-      id: 'paper-p2-0-canonical',
-      name: 'paper-p2-0-canonical',
-      duration: 2.0,
-      interpolation: 'linear' as const,
-      tracks: [
-        {
-          id: 'track-pos-x',
-          targetPath: 'root',
-          property: 'position',
-          component: 'x',
-          keyframes: [
-            { time: 0.0, value: 0.0 },
-            { time: 0.5, value: 1.5 },
-            { time: 1.0, value: -0.5 },
-            { time: 1.5, value: 2.0 },
-            { time: 2.0, value: 0.0 },
-          ],
-        },
-        {
-          id: 'track-pos-y',
-          targetPath: 'root',
-          property: 'position',
-          component: 'y',
-          keyframes: [
-            { time: 0.0, value: 1.0 },
-            { time: 1.0, value: 2.5 },
-            { time: 2.0, value: 1.0 },
-          ],
-        },
-        {
-          id: 'track-rot-z',
-          targetPath: 'root',
-          property: 'rotation',
-          component: 'z',
-          keyframes: [
-            { time: 0.0, value: 0.0 },
-            { time: 0.5, value: Math.PI / 4 },
-            { time: 1.0, value: Math.PI / 2 },
-            { time: 1.5, value: Math.PI },
-            { time: 2.0, value: 2 * Math.PI },
-          ],
-        },
-        {
-          id: 'track-scale-y',
-          targetPath: 'root',
-          property: 'scale',
-          component: 'y',
-          keyframes: [
-            { time: 0.0, value: 1.0 },
-            { time: 1.0, value: 1.25 },
-            { time: 2.0, value: 1.0 },
-          ],
-        },
-      ],
-    },
-    sampleTimes: Object.freeze(
-      Array.from({ length: 100 }, (_, i) => (i / 99) * 2.0)
-    ) as readonly number[],
-  });
+export const PAPER_P2_0_CANONICAL_SPEC: Readonly<AnimationSamplingProbeOptions> = Object.freeze({
+  clipSpec: {
+    id: 'paper-p2-0-canonical',
+    name: 'paper-p2-0-canonical',
+    duration: 2.0,
+    interpolation: 'linear' as const,
+    tracks: [
+      {
+        id: 'track-pos-x',
+        targetPath: 'root',
+        property: 'position',
+        component: 'x',
+        keyframes: [
+          { time: 0.0, value: 0.0 },
+          { time: 0.5, value: 1.5 },
+          { time: 1.0, value: -0.5 },
+          { time: 1.5, value: 2.0 },
+          { time: 2.0, value: 0.0 },
+        ],
+      },
+      {
+        id: 'track-pos-y',
+        targetPath: 'root',
+        property: 'position',
+        component: 'y',
+        keyframes: [
+          { time: 0.0, value: 1.0 },
+          { time: 1.0, value: 2.5 },
+          { time: 2.0, value: 1.0 },
+        ],
+      },
+      {
+        id: 'track-rot-z',
+        targetPath: 'root',
+        property: 'rotation',
+        component: 'z',
+        keyframes: [
+          { time: 0.0, value: 0.0 },
+          { time: 0.5, value: Math.PI / 4 },
+          { time: 1.0, value: Math.PI / 2 },
+          { time: 1.5, value: Math.PI },
+          { time: 2.0, value: 2 * Math.PI },
+        ],
+      },
+      {
+        id: 'track-scale-y',
+        targetPath: 'root',
+        property: 'scale',
+        component: 'y',
+        keyframes: [
+          { time: 0.0, value: 1.0 },
+          { time: 1.0, value: 1.25 },
+          { time: 2.0, value: 1.0 },
+        ],
+      },
+    ],
+  },
+  sampleTimes: Object.freeze(
+    Array.from({ length: 100 }, (_, i) => (i / 99) * 2.0)
+  ) as readonly number[],
+});

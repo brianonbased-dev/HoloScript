@@ -95,7 +95,11 @@ function finiteDistance(value: number, samplePoint: SDFPoint): number {
   return value;
 }
 
-function param(params: Readonly<Record<string, number>> | undefined, name: string, fallback: number): number {
+function param(
+  params: Readonly<Record<string, number>> | undefined,
+  name: string,
+  fallback: number
+): number {
   return finite(params?.[name] ?? fallback, `params.${name}`);
 }
 
@@ -103,11 +107,7 @@ function point(point: SDFPoint): [number, number, number] {
   if (point.length !== 3) {
     throw new Error('sdf.evaluator: point must contain exactly three coordinates');
   }
-  return [
-    finite(point[0], 'point.x'),
-    finite(point[1], 'point.y'),
-    finite(point[2], 'point.z'),
-  ];
+  return [finite(point[0], 'point.x'), finite(point[1], 'point.y'), finite(point[2], 'point.z')];
 }
 
 function resolution(input: SDFSampleResolution): [number, number, number] {
@@ -123,7 +123,11 @@ function resolution(input: SDFSampleResolution): [number, number, number] {
   }) as [number, number, number];
 }
 
-function sampleSpacing(min: SDFPoint, max: SDFPoint, sampleResolution: SDFSampleResolution): SDFPoint {
+function sampleSpacing(
+  min: SDFPoint,
+  max: SDFPoint,
+  sampleResolution: SDFSampleResolution
+): SDFPoint {
   const lo = point(min);
   const hi = point(max);
   const res = resolution(sampleResolution);
@@ -254,12 +258,19 @@ function primitiveDistance(node: SDFNode, input: SDFPoint): number {
       d = length3(p[0], p[1], p[2]) - param(params, 'radius', 1);
       break;
     case 'box':
-      d = boxDistance(p, [param(params, 'width', 1), param(params, 'height', 1), param(params, 'depth', 1)]);
+      d = boxDistance(p, [
+        param(params, 'width', 1),
+        param(params, 'height', 1),
+        param(params, 'depth', 1),
+      ]);
       break;
     case 'rounded_box':
       d =
-        boxDistance(p, [param(params, 'width', 1), param(params, 'height', 1), param(params, 'depth', 1)]) -
-        param(params, 'radius', 0.1);
+        boxDistance(p, [
+          param(params, 'width', 1),
+          param(params, 'height', 1),
+          param(params, 'depth', 1),
+        ]) - param(params, 'radius', 0.1);
       break;
     case 'torus': {
       const qx = length2(p[0], p[2]) - param(params, 'majorRadius', 0.5);
@@ -291,7 +302,11 @@ function primitiveDistance(node: SDFNode, input: SDFPoint): number {
       break;
     }
     case 'plane': {
-      const normal = [param(params, 'nx', 0), param(params, 'ny', 1), param(params, 'nz', 0)] as const;
+      const normal = [
+        param(params, 'nx', 0),
+        param(params, 'ny', 1),
+        param(params, 'nz', 0),
+      ] as const;
       d = dot3(p, normal) + param(params, 'h', 0);
       break;
     }
@@ -308,7 +323,12 @@ function primitiveDistance(node: SDFNode, input: SDFPoint): number {
       d = pyramidDistance(p, param(params, 'height', 1));
       break;
     case 'link':
-      d = linkDistance(p, param(params, 'le', 0.25), param(params, 'r1', 0.4), param(params, 'r2', 0.1));
+      d = linkDistance(
+        p,
+        param(params, 'le', 0.25),
+        param(params, 'r1', 0.4),
+        param(params, 'r2', 0.1)
+      );
       break;
     case 'capped_torus':
       d = cappedTorusDistance(
@@ -319,7 +339,12 @@ function primitiveDistance(node: SDFNode, input: SDFPoint): number {
       );
       break;
     case 'round_cone':
-      d = roundConeDistance(p, param(params, 'r1', 0.4), param(params, 'r2', 0.2), param(params, 'height', 1));
+      d = roundConeDistance(
+        p,
+        param(params, 'r1', 0.4),
+        param(params, 'r2', 0.2),
+        param(params, 'height', 1)
+      );
       break;
     case 'vesica':
       d = vesicaDistance(p, param(params, 'a', 0.7), param(params, 'b', 0.3));
@@ -373,11 +398,7 @@ function octahedronDistance(input: SDFPoint, size: number): number {
   const m = p[0] + p[1] + p[2] - size;
   if (3 * p[0] >= m && 3 * p[1] >= m && 3 * p[2] >= m) return m * 0.57735027;
   const q =
-    3 * p[0] < m
-      ? p
-      : 3 * p[1] < m
-        ? ([p[1], p[2], p[0]] as const)
-        : ([p[2], p[0], p[1]] as const);
+    3 * p[0] < m ? p : 3 * p[1] < m ? ([p[1], p[2], p[0]] as const) : ([p[2], p[0], p[1]] as const);
   const k = clamp(0.5 * (q[2] - q[1] + size), 0, size);
   return length3(q[0], q[1] - size + k, q[2] - k);
 }
@@ -404,7 +425,12 @@ function linkDistance(p: SDFPoint, le: number, r1: number, r2: number): number {
   return length2(length2(p[0], qy) - r1, p[2]) - r2;
 }
 
-function cappedTorusDistance(input: SDFPoint, sc: readonly [number, number], ra: number, rb: number): number {
+function cappedTorusDistance(
+  input: SDFPoint,
+  sc: readonly [number, number],
+  ra: number,
+  rb: number
+): number {
   const p = [Math.abs(input[0]), input[1], input[2]] as const;
   const k = sc[1] * p[0] > sc[0] * p[1] ? dot2(p[0], p[1], sc[0], sc[1]) : length2(p[0], p[1]);
   return Math.sqrt(dot3(p, p) + ra * ra - 2 * ra * k) - rb;
@@ -427,7 +453,13 @@ function vesicaDistance(input: SDFPoint, a: number, b: number): number {
   return Math.max(q[1], length2(q[0], q[1]) - r);
 }
 
-function rhombusDistance(input: SDFPoint, la: number, lb: number, height: number, radius: number): number {
+function rhombusDistance(
+  input: SDFPoint,
+  la: number,
+  lb: number,
+  height: number,
+  radius: number
+): number {
   const p = absPoint(input);
   const f = clamp((la * (la - 2 * p[0]) + lb * (lb - 2 * p[2])) / (la * la + lb * lb), -1, 1);
   const qx =
@@ -442,14 +474,25 @@ function gyroidDistance(p: SDFPoint, scale: number, thickness: number): number {
   const x = p[0] * scale;
   const y = p[1] * scale;
   const z = p[2] * scale;
-  return Math.abs(Math.sin(x) * Math.cos(z) + Math.sin(y) * Math.cos(x) + Math.sin(z) * Math.cos(y)) / scale - thickness;
+  return (
+    Math.abs(Math.sin(x) * Math.cos(z) + Math.sin(y) * Math.cos(x) + Math.sin(z) * Math.cos(y)) /
+      scale -
+    thickness
+  );
 }
 
 function heartDistance(input: SDFPoint): number {
   const x = Math.abs(input[0]);
   const y = input[1];
   if (y + x > 1) return length2(x - 0.25, y - 0.75) - Math.SQRT2 / 4;
-  return Math.sqrt(Math.min(length2(0, y - 1) ** 2, length2(x - 0.5 * Math.max(x + y, 0), y - 0.5 * Math.max(x + y, 0)) ** 2)) * sign(x - y);
+  return (
+    Math.sqrt(
+      Math.min(
+        length2(0, y - 1) ** 2,
+        length2(x - 0.5 * Math.max(x + y, 0), y - 0.5 * Math.max(x + y, 0)) ** 2
+      )
+    ) * sign(x - y)
+  );
 }
 
 function mandelbulbDistance(input: SDFPoint): number {
@@ -471,7 +514,7 @@ function mandelbulbDistance(input: SDFPoint): number {
     m = dot3(w, w);
     if (m > 256) break;
   }
-  return 0.25 * Math.log(m) * Math.sqrt(m) / dz;
+  return (0.25 * Math.log(m) * Math.sqrt(m)) / dz;
 }
 
 function mengerDistance(input: SDFPoint, iterations: number): number {
@@ -485,7 +528,11 @@ function mengerDistance(input: SDFPoint, iterations: number): number {
       glslMod(p[2] * s, 2) - 1,
     ] as const;
     s *= 3;
-    const r = [Math.abs(1 - 3 * Math.abs(a[0])), Math.abs(1 - 3 * Math.abs(a[1])), Math.abs(1 - 3 * Math.abs(a[2]))] as const;
+    const r = [
+      Math.abs(1 - 3 * Math.abs(a[0])),
+      Math.abs(1 - 3 * Math.abs(a[1])),
+      Math.abs(1 - 3 * Math.abs(a[2])),
+    ] as const;
     const da = Math.max(r[0], r[1]);
     const db = Math.max(r[1], r[2]);
     const dc = Math.max(r[2], r[0]);

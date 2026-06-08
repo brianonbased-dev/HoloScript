@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createSecretStore, createInMemorySecretBackend, type SecretStore } from '../secret-store';
-import { createEnvKekProvider, generateKekBase64, KEK_CURRENT_ENV, kekEnvVar } from '../env-kek-provider';
+import {
+  createEnvKekProvider,
+  generateKekBase64,
+  KEK_CURRENT_ENV,
+  kekEnvVar,
+} from '../env-kek-provider';
 import {
   createSecretResolver,
   AuthRequiredError,
@@ -29,7 +34,9 @@ describe('secret-resolver (fail-closed + owner-bound + audited)', () => {
     }
     expect(getSpy).not.toHaveBeenCalled(); // never reached the store
     expect(audits).toHaveLength(3);
-    expect(audits.every((a) => a.outcome === 'denied' && a.reason === 'AuthRequiredError')).toBe(true);
+    expect(audits.every((a) => a.outcome === 'denied' && a.reason === 'AuthRequiredError')).toBe(
+      true
+    );
     expect(audits.every((a) => a.ownerId === '<none>')).toBe(true);
   });
 
@@ -46,7 +53,12 @@ describe('secret-resolver (fail-closed + owner-bound + audited)', () => {
     });
     expect(value).toBe('super-secret');
     expect(audits).toHaveLength(1);
-    expect(audits[0]).toMatchObject({ outcome: 'allowed', ownerId: 'user-A', ref: 'vault:KEY', purpose: 'brittney-llm-call' });
+    expect(audits[0]).toMatchObject({
+      outcome: 'allowed',
+      ownerId: 'user-A',
+      ref: 'vault:KEY',
+      purpose: 'brittney-llm-call',
+    });
     expect(JSON.stringify(audits[0])).not.toContain('super-secret'); // audit carries no value
   });
 
@@ -72,6 +84,10 @@ describe('secret-resolver (fail-closed + owner-bound + audited)', () => {
     await expect(
       resolver.resolve({ authenticatedOwnerId: 'user-A', ref: 'vault:NOPE' })
     ).rejects.toThrow();
-    expect(audits[0]).toMatchObject({ outcome: 'denied', ownerId: 'user-A', reason: 'SecretNotFoundError' });
+    expect(audits[0]).toMatchObject({
+      outcome: 'denied',
+      ownerId: 'user-A',
+      reason: 'SecretNotFoundError',
+    });
   });
 });

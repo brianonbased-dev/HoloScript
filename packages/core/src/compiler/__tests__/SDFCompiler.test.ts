@@ -353,9 +353,7 @@ describe('SDFCompiler', () => {
     const obj = makeObject({
       name: 'Heavy',
       traits: ['physics'],
-      properties: [
-        { type: 'ObjectProperty', key: 'physics', value: { mass: 50 } } as any,
-      ],
+      properties: [{ type: 'ObjectProperty', key: 'physics', value: { mass: 50 } } as any],
     });
     const comp = makeComposition({ objects: [obj] });
     const sdf = compiler.compile(comp, 'test-token');
@@ -382,9 +380,7 @@ describe('SDFCompiler', () => {
     const parent = makeObject({ name: 'Base' });
     const child = makeObject({
       name: 'Arm',
-      properties: [
-        { type: 'ObjectProperty', key: 'parent', value: 'Base' } as any,
-      ],
+      properties: [{ type: 'ObjectProperty', key: 'parent', value: 'Base' } as any],
     });
     const comp = makeComposition({ objects: [parent, child] });
     const sdf = compiler.compile(comp, 'test-token');

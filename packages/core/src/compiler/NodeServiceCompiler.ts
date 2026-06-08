@@ -339,7 +339,9 @@ export class NodeServiceCompiler extends CompilerBase {
     const path = this.resolveString(propMap.get('path')) || `/${this.toKebab(obj.name)}`;
     const handlerName =
       this.resolveString(propMap.get('handler')) ||
-      this.resolveString(this.readTraitConfig(handlerTrait, 'name', 'handler') as HoloValue | undefined) ||
+      this.resolveString(
+        this.readTraitConfig(handlerTrait, 'name', 'handler') as HoloValue | undefined
+      ) ||
       this.resolveString(this.readTraitConfig(handlerTrait, '_arg0') as HoloValue | undefined) ||
       this.toCamelCase(obj.name);
 

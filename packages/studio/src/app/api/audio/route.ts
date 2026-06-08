@@ -156,7 +156,6 @@ export async function GET(request: NextRequest) {
   return Response.json({ presets: results, total: results.length });
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

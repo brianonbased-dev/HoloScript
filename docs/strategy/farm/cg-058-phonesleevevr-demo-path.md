@@ -33,6 +33,7 @@ The compiler is real. The demo path is what has been missing.
 5. **QR code** the local URL or the hosted version for instant distribution.
 
 **Validation evidence** (from the sovereign revival work in this marathon):
+
 - The SNN 60Hz LIF loop + IMU fusion is wired and running in the emitted JS.
 - The Brittney hook (`window.generateExperience`) is present and functional for dynamic .holo injection.
 - The whole thing is a single HTML file + minimal assets — perfect for a phone sleeve.
@@ -59,4 +60,4 @@ This is the "Google Cardboard done right in 2026" story — but with real simula
 
 **This doc + the existing production PhoneSleeveVRCompiler + the sovereign SNN + Brittney hooks is the local farmable slice.**
 
-*Produced by grok1-x402 during the 17th marathon cycle (full-circle sovereign revival capstone).*
+_Produced by grok1-x402 during the 17th marathon cycle (full-circle sovereign revival capstone)._

@@ -54,30 +54,60 @@ interface NamedTarget {
 }
 
 const TARGETS: NamedTarget[] = [
-  { name: 'PillarSliceEmitter',       query: 'pillar slice emitter' },
-  { name: 'BrainCoordNodeMapper',     query: 'brain coord node mapper' },
-  { name: 'TraitCommunityDetector',   query: 'trait community detector' },
-  { name: 'EventEdgeBuilder',         query: 'event edge builder' },
-  { name: 'StructuralEmbedding',      query: 'structural embedding' },
-  { name: 'ProvenanceEdgeRegistry',   query: 'provenance edge registry' },
-  { name: 'SyntheticGraphFactory',    query: 'synthetic graph factory' },
+  { name: 'PillarSliceEmitter', query: 'pillar slice emitter' },
+  { name: 'BrainCoordNodeMapper', query: 'brain coord node mapper' },
+  { name: 'TraitCommunityDetector', query: 'trait community detector' },
+  { name: 'EventEdgeBuilder', query: 'event edge builder' },
+  { name: 'StructuralEmbedding', query: 'structural embedding' },
+  { name: 'ProvenanceEdgeRegistry', query: 'provenance edge registry' },
+  { name: 'SyntheticGraphFactory', query: 'synthetic graph factory' },
   { name: 'IncrementalUpdateHandler', query: 'incremental update handler' },
-  { name: 'HoloEmbedEncoder',         query: 'holo embed encoder' },
-  { name: 'LIFSpikeRateDecoder',      query: 'lif spike rate decoder' },
+  { name: 'HoloEmbedEncoder', query: 'holo embed encoder' },
+  { name: 'LIFSpikeRateDecoder', query: 'lif spike rate decoder' },
 ];
 
 /** Unrelated symbol names that should NOT match any target query. */
 const DISTRACTORS = [
-  'renderSceneGraph', 'createWebGLContext', 'parseShaderSource', 'uploadTextureBuffer',
-  'applyTransform', 'computeNormals', 'buildBVH', 'traverseSceneNodes',
-  'serializeAnimationClip', 'loadGLTFModel', 'dispatchRenderCommand', 'readDepthBuffer',
-  'createFramebuffer', 'compileVertexShader', 'linkShaderProgram', 'setUniformMatrix',
-  'blitTexture', 'resolveMultisampling', 'generateMipmaps', 'bindVertexArray',
-  'updateIndexBuffer', 'clearColorAttachment', 'beginRenderPass', 'endRenderPass',
-  'submitCommandQueue', 'waitForGPUIdle', 'queryTimestamp', 'releaseSwapchain',
-  'resizeViewport', 'setScissorRect', 'enableDepthTest', 'disableBlending',
-  'setStencilMask', 'configureSwapchain', 'acquireNextFrame', 'presentFrame',
-  'destroyDevice', 'enumerateAdapters', 'requestDeviceFeatures', 'checkFormatSupport',
+  'renderSceneGraph',
+  'createWebGLContext',
+  'parseShaderSource',
+  'uploadTextureBuffer',
+  'applyTransform',
+  'computeNormals',
+  'buildBVH',
+  'traverseSceneNodes',
+  'serializeAnimationClip',
+  'loadGLTFModel',
+  'dispatchRenderCommand',
+  'readDepthBuffer',
+  'createFramebuffer',
+  'compileVertexShader',
+  'linkShaderProgram',
+  'setUniformMatrix',
+  'blitTexture',
+  'resolveMultisampling',
+  'generateMipmaps',
+  'bindVertexArray',
+  'updateIndexBuffer',
+  'clearColorAttachment',
+  'beginRenderPass',
+  'endRenderPass',
+  'submitCommandQueue',
+  'waitForGPUIdle',
+  'queryTimestamp',
+  'releaseSwapchain',
+  'resizeViewport',
+  'setScissorRect',
+  'enableDepthTest',
+  'disableBlending',
+  'setStencilMask',
+  'configureSwapchain',
+  'acquireNextFrame',
+  'presentFrame',
+  'destroyDevice',
+  'enumerateAdapters',
+  'requestDeviceFeatures',
+  'checkFormatSupport',
 ];
 
 function makeSymbol(name: string, i: number): ExternalSymbolDefinition {
@@ -113,7 +143,7 @@ function buildCorpus(): ExternalSymbolDefinition[] {
 async function measureRecall(
   provider: StructuralEmbeddingProvider | HoloEmbedProvider,
   corpus: ExternalSymbolDefinition[],
-  k = 10,
+  k = 10
 ): Promise<number> {
   const index = new EmbeddingIndex({ provider, batchSize: corpus.length, useWorkers: false });
 
@@ -124,7 +154,7 @@ async function measureRecall(
   let hits = 0;
   for (const target of TARGETS) {
     const results = await index.search(target.query, k);
-    const resultNames = results.map(r => r.symbol.name);
+    const resultNames = results.map((r) => r.symbol.name);
     if (resultNames.includes(target.name)) hits++;
   }
 
@@ -141,7 +171,7 @@ describe('Paper 26 Table 2: NL→code recall comparison', () => {
 
   it('HoloEmbedProvider recall@10 > StructuralEmbeddingProvider recall@10 for NL queries', async () => {
     const structural = new StructuralEmbeddingProvider();
-    const holoembed  = new HoloEmbedProvider();
+    const holoembed = new HoloEmbedProvider();
 
     const [structRecall, holoRecall] = await Promise.all([
       measureRecall(structural, corpus),
@@ -157,8 +187,12 @@ describe('Paper 26 Table 2: NL→code recall comparison', () => {
     console.log('%');
     console.log('% Provider      | Recall@10 | Notes');
     console.log('% --------------|-----------|----------------------------------');
-    console.log(`%  structural   | ${(structRecall * 100).toFixed(1).padStart(8)}% | topology only, no name encoding`);
-    console.log(`%  holoembed    | ${(holoRecall  * 100).toFixed(1).padStart(8)}% | structural + char-trigram subwords`);
+    console.log(
+      `%  structural   | ${(structRecall * 100).toFixed(1).padStart(8)}% | topology only, no name encoding`
+    );
+    console.log(
+      `%  holoembed    | ${(holoRecall * 100).toFixed(1).padStart(8)}% | structural + char-trigram subwords`
+    );
     console.log('%');
     console.log('% Corpus: 10 target symbols + 40 distractors (50 total)');
     console.log(`% Queries: ${TARGETS.length} NL queries (camelSplit of target names)`);

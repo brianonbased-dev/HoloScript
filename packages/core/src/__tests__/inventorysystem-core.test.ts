@@ -560,7 +560,7 @@ describe('Feature 8: InputManager', () => {
 // FEATURE 9: navigation/NavMesh
 // =============================================================================
 describe('Feature 9: NavMesh', () => {
-  const v = (x: number, z: number) => ([x, 0, z]);
+  const v = (x: number, z: number) => [x, 0, z];
 
   it('getPolygonCount is 0 initially', () => {
     expect(new NavMesh().getPolygonCount()).toBe(0);

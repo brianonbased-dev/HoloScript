@@ -102,10 +102,7 @@ function getState(node: HSPlusNode): AvatarIntentState | undefined {
 // HELPERS
 // =============================================================================
 
-function evaluatePredicate(
-  sample: RawInputSample,
-  predicate: Record<string, boolean>
-): boolean {
+function evaluatePredicate(sample: RawInputSample, predicate: Record<string, boolean>): boolean {
   for (const [key, required] of Object.entries(predicate)) {
     const [device, button] = key.split(':');
     if (sample.device === device) {
@@ -189,8 +186,12 @@ export const avatarIntentHandler: TraitHandler<AvatarIntentConfig> = {
       axis_vocabulary: ['intent_clarity', 'multi_modal_fusion'] as const,
       generate(ctx: PillarContext): PillarSlice {
         const state = (node as any).__avatarIntentState as AvatarIntentState | undefined;
-        const clarity = state?.lastResolved ? state.lastResolved.confidence : ((ctx.metadata as Record<string, number> | undefined)?.intent_clarity ?? 0.5);
-        const fusion = state ? Math.min(1, Math.max(0.2, (state.activeDevices?.size || 1) / 3)) : ((ctx.metadata as Record<string, number> | undefined)?.multi_modal_fusion ?? 0.5);
+        const clarity = state?.lastResolved
+          ? state.lastResolved.confidence
+          : ((ctx.metadata as Record<string, number> | undefined)?.intent_clarity ?? 0.5);
+        const fusion = state
+          ? Math.min(1, Math.max(0.2, (state.activeDevices?.size || 1) / 3))
+          : ((ctx.metadata as Record<string, number> | undefined)?.multi_modal_fusion ?? 0.5);
         return {
           axis_1_id: 'intent_clarity',
           axis_2_id: 'multi_modal_fusion',
@@ -228,12 +229,10 @@ export const avatarIntentHandler: TraitHandler<AvatarIntentConfig> = {
       const present = rule.devices.every((d) => state.activeDevices.has(d));
       if (!present) continue;
 
-      const matchingSamples = state.samples.filter((s) =>
-        rule.devices.includes(s.device)
-      );
-      const allMatch = matchingSamples.length > 0 && matchingSamples.every((s) =>
-        evaluatePredicate(s, rule.predicate)
-      );
+      const matchingSamples = state.samples.filter((s) => rule.devices.includes(s.device));
+      const allMatch =
+        matchingSamples.length > 0 &&
+        matchingSamples.every((s) => evaluatePredicate(s, rule.predicate));
       if (!allMatch) continue;
 
       const params = smoothParams(matchingSamples);
@@ -311,9 +310,10 @@ export const avatarIntentHandler: TraitHandler<AvatarIntentConfig> = {
       const sample: RawInputSample = {
         device,
         timestamp: Date.now(),
-        axes: (payload.axes && typeof payload.axes === 'object'
-          ? payload.axes
-          : {}) as Record<string, number>,
+        axes: (payload.axes && typeof payload.axes === 'object' ? payload.axes : {}) as Record<
+          string,
+          number
+        >,
         buttons: (payload.buttons && typeof payload.buttons === 'object'
           ? payload.buttons
           : {}) as Record<string, boolean>,

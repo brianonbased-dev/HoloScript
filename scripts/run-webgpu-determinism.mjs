@@ -59,32 +59,55 @@ const productionEvidence =
 if (mockMode && productionEvidence) {
   console.error(
     '[webgpu-determinism] refusing mock mode for a production evidence run. ' +
-      'Clear WEBGPU_HARNESS_MOCK or pass --no-production-evidence for wiring-only smoke.',
+      'Clear WEBGPU_HARNESS_MOCK or pass --no-production-evidence for wiring-only smoke.'
   );
   process.exit(2);
 }
 
 if (mockMode) {
-  const runner = join(root, 'packages', 'engine', 'src', 'testing', 'run-webgpu-determinism-mock.ts');
+  const runner = join(
+    root,
+    'packages',
+    'engine',
+    'src',
+    'testing',
+    'run-webgpu-determinism-mock.ts'
+  );
   run('pnpm', ['exec', 'tsx', runner], { WEBGPU_HARNESS_MOCK: '1' });
   process.exit(0);
 }
 
 const outputPath = resolve(
   root,
-  argValue('--output', process.env.WEBGPU_DETERMINISM_OUTPUT_PATH ?? '.bench-logs/webgpu-determinism-harness.json'),
+  argValue(
+    '--output',
+    process.env.WEBGPU_DETERMINISM_OUTPUT_PATH ?? '.bench-logs/webgpu-determinism-harness.json'
+  )
 );
 const replications = argValue('--replications', process.env.WEBGPU_DETERMINISM_REPLICATIONS ?? '2');
 const nativeWebGpu = process.env.WEBGPU_DETERMINISM_NATIVE ?? '1';
 const defaultAdapterTag = nativeWebGpu === '1' ? 'nvidia-rtx3060' : 'swiftshader';
-const adapterTag = argValue('--adapter-tag', process.env.WEBGPU_DETERMINISM_ADAPTER_TAG ?? defaultAdapterTag);
+const adapterTag = argValue(
+  '--adapter-tag',
+  process.env.WEBGPU_DETERMINISM_ADAPTER_TAG ?? defaultAdapterTag
+);
 const host = argValue('--host', process.env.WEBGPU_DETERMINISM_HOST ?? 'codex-hardware');
-const protocolCommit = argValue('--protocol-commit', process.env.WEBGPU_DETERMINISM_PROTOCOL_COMMIT ?? 'local');
+const protocolCommit = argValue(
+  '--protocol-commit',
+  process.env.WEBGPU_DETERMINISM_PROTOCOL_COMMIT ?? 'local'
+);
 
 run('pnpm', ['--filter', '@holoscript/engine', 'run', 'build:webgpu-determinism-harness']);
 run(
   'pnpm',
-  ['--filter', '@holoscript/engine', 'exec', 'playwright', 'test', 'tests/webgpu-determinism.spec.ts'],
+  [
+    '--filter',
+    '@holoscript/engine',
+    'exec',
+    'playwright',
+    'test',
+    'tests/webgpu-determinism.spec.ts',
+  ],
   {
     WEBGPU_DETERMINISM_OUTPUT_PATH: outputPath,
     WEBGPU_DETERMINISM_REPLICATIONS: replications,
@@ -94,5 +117,5 @@ run(
     WEBGPU_DETERMINISM_PRODUCTION: productionEvidence ? '1' : '0',
     WEBGPU_DETERMINISM_NATIVE: nativeWebGpu,
     WEBGPU_DETERMINISM_CAPTURE_FIELDS: process.env.WEBGPU_DETERMINISM_CAPTURE_FIELDS ?? '1',
-  },
+  }
 );

@@ -61,24 +61,24 @@ model#factory @usd @gltf @scene_graph @portable {
 
 ## Implementation Status (refreshed 2026-05-05)
 
-| Roadmap Item                                   | Status         | Evidence                                                                                   |
-| ---------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------ |
-| **Robotics Traits** (213 total)                | ✅ Implemented | `core/src/traits/constants/robotics-industrial.ts` (462 lines)                             |
-| **URDF Import/Export**                         | ✅ Implemented | `core/src/compiler/URDFCompiler.ts` + 5 test files                                         |
-| **SDF Export**                                 | ✅ Implemented | SDF compiler target shipped in v3.3                                                        |
-| **DTDL Export**                                | ✅ Implemented | `industrialHelpers.ts` → `equipmentToDTDL()` function                                      |
-| **IoT Library** (MQTT, BLE, Digital Twin)      | ✅ Implemented | `studio/src/lib/iot.ts`, `iot-smart-farm.scenario.ts` (237 lines)                          |
-| **Healthcare Traits** (37 total)               | ✅ Implemented | `core/src/traits/constants/healthcare-medical.ts`                                          |
-| **Operating Room Simulation**                  | ✅ Implemented | `operating-room.scenario.ts` (VRRRuntime + IoT telemetry)                                  |
-| **Industrial Plant Helpers**                   | ✅ Implemented | `studio/src/lib/industrialHelpers.ts`, `industrial-plant-designer.scenario.ts` (597 lines) |
-| **Robot Engineer Workflow**                    | ✅ Implemented | `robot-engineer.scenario.ts` (586 lines), `@/lib/robotHelpers`                             |
-| `@wot_thing` (W3C Thing Description)           | ✅ Implemented | `packages/core/src/traits/WoTThingTrait.ts` + `WoTThingTrait.prod.test.ts`                 |
-| `@mqtt_source` / `@mqtt_sink` (protocol-level) | ✅ Implemented | `packages/core/src/traits/MQTTSourceTrait.ts`, `MQTTSinkTrait.ts`                          |
-| `@opc_ua` / `@modbus` (industrial protocols)   | ⚠️ Trait vocabulary exists | `packages/core/src/traits/constants/robotics-industrial.ts`; runtime bridge validation still needed |
-| `@twin_sync`, `@dtdl_interface`, `@telemetry`  | ✅ Trait vocabulary exists | `packages/core/src/traits/constants/iot-autonomous-agents.ts`, `DigitalTwinTrait.ts`       |
-| WasmEdge IoT compilation target                | ✅ Resolved   | Covered by generic `--target wasm`; WasmEdge is a runtime, not a separate compiler. See `docs/compilers/wasm.md` for edge-runtime usage. |
-| ROS 2 bridge proof of concept                  | ⚠️ Export path exists | URDF/SDF compiler targets exist; live ROS 2 bridge runner still needs proof artifact        |
-| Smart Building integration                     | ⚠️ Trait-level only | Device and climate-control traits exist; no dedicated smart-building scenario verified      |
+| Roadmap Item                                   | Status                     | Evidence                                                                                                                                 |
+| ---------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Robotics Traits** (213 total)                | ✅ Implemented             | `core/src/traits/constants/robotics-industrial.ts` (462 lines)                                                                           |
+| **URDF Import/Export**                         | ✅ Implemented             | `core/src/compiler/URDFCompiler.ts` + 5 test files                                                                                       |
+| **SDF Export**                                 | ✅ Implemented             | SDF compiler target shipped in v3.3                                                                                                      |
+| **DTDL Export**                                | ✅ Implemented             | `industrialHelpers.ts` → `equipmentToDTDL()` function                                                                                    |
+| **IoT Library** (MQTT, BLE, Digital Twin)      | ✅ Implemented             | `studio/src/lib/iot.ts`, `iot-smart-farm.scenario.ts` (237 lines)                                                                        |
+| **Healthcare Traits** (37 total)               | ✅ Implemented             | `core/src/traits/constants/healthcare-medical.ts`                                                                                        |
+| **Operating Room Simulation**                  | ✅ Implemented             | `operating-room.scenario.ts` (VRRRuntime + IoT telemetry)                                                                                |
+| **Industrial Plant Helpers**                   | ✅ Implemented             | `studio/src/lib/industrialHelpers.ts`, `industrial-plant-designer.scenario.ts` (597 lines)                                               |
+| **Robot Engineer Workflow**                    | ✅ Implemented             | `robot-engineer.scenario.ts` (586 lines), `@/lib/robotHelpers`                                                                           |
+| `@wot_thing` (W3C Thing Description)           | ✅ Implemented             | `packages/core/src/traits/WoTThingTrait.ts` + `WoTThingTrait.prod.test.ts`                                                               |
+| `@mqtt_source` / `@mqtt_sink` (protocol-level) | ✅ Implemented             | `packages/core/src/traits/MQTTSourceTrait.ts`, `MQTTSinkTrait.ts`                                                                        |
+| `@opc_ua` / `@modbus` (industrial protocols)   | ⚠️ Trait vocabulary exists | `packages/core/src/traits/constants/robotics-industrial.ts`; runtime bridge validation still needed                                      |
+| `@twin_sync`, `@dtdl_interface`, `@telemetry`  | ✅ Trait vocabulary exists | `packages/core/src/traits/constants/iot-autonomous-agents.ts`, `DigitalTwinTrait.ts`                                                     |
+| WasmEdge IoT compilation target                | ✅ Resolved                | Covered by generic `--target wasm`; WasmEdge is a runtime, not a separate compiler. See `docs/compilers/wasm.md` for edge-runtime usage. |
+| ROS 2 bridge proof of concept                  | ⚠️ Export path exists      | URDF/SDF compiler targets exist; live ROS 2 bridge runner still needs proof artifact                                                     |
+| Smart Building integration                     | ⚠️ Trait-level only        | Device and climate-control traits exist; no dedicated smart-building scenario verified                                                   |
 
 ---
 
@@ -88,11 +88,11 @@ model#factory @usd @gltf @scene_graph @portable {
 
 #### New Traits
 
-| Trait          | Purpose                             | Priority |
-| -------------- | ----------------------------------- | -------- |
-| `@wot_thing`   | Auto-generate W3C Thing Description | Shipped; keep TD compliance tests current |
-| `@mqtt_source` | MQTT subscribe binding              | Shipped; verify broker integration path |
-| `@mqtt_sink`   | MQTT publish binding                | Shipped; verify broker integration path |
+| Trait          | Purpose                             | Priority                                                        |
+| -------------- | ----------------------------------- | --------------------------------------------------------------- |
+| `@wot_thing`   | Auto-generate W3C Thing Description | Shipped; keep TD compliance tests current                       |
+| `@mqtt_source` | MQTT subscribe binding              | Shipped; verify broker integration path                         |
+| `@mqtt_sink`   | MQTT publish binding                | Shipped; verify broker integration path                         |
 | `@opc_ua`      | Industrial automation protocol      | Trait vocabulary shipped; runtime bridge still needs validation |
 | `@modbus`      | Legacy industrial devices           | Trait vocabulary shipped; runtime bridge still needs validation |
 

@@ -22,7 +22,7 @@ import { EventEmitter } from 'events';
 // We mock the entire module so the constructor captures a controlled instance
 
 vi.mock('@holoscript/engine/spatial', async (importOriginal) => {
-  const actual = await importOriginal() as Record<string, unknown>;
+  const actual = (await importOriginal()) as Record<string, unknown>;
   const { EventEmitter } = await import('events');
   class MockProvider extends EventEmitter {
     registerAgent = vi.fn();
@@ -68,7 +68,7 @@ function getProvider(trait: SpatialAwarenessTrait): any {
 
 describe('DEFAULT_TRAIT_CONFIG', () => {
   it('initialPosition = [0, 0, 0]', () => {
-    expect(DEFAULT_TRAIT_CONFIG.initialPosition).toEqual([0, 0, 0 ]);
+    expect(DEFAULT_TRAIT_CONFIG.initialPosition).toEqual([0, 0, 0]);
   });
 
   it('autoStart=true', () => {
@@ -93,8 +93,8 @@ describe('SpatialAwarenessTrait constructor', () => {
   });
 
   it('sets initial position from config', () => {
-    const t = makeTrait('x', { initialPosition: [1, 2, 3 ] });
-    expect(t.getPosition()).toEqual([1, 2, 3 ]);
+    const t = makeTrait('x', { initialPosition: [1, 2, 3] });
+    expect(t.getPosition()).toEqual([1, 2, 3]);
   });
 
   it('isActive=false initially (autoStart=false)', () => {
@@ -186,7 +186,7 @@ describe('SpatialAwarenessTrait dispose', () => {
 
 describe('SpatialAwarenessTrait position & velocity', () => {
   it('getPosition returns copy of position', () => {
-    const t = makeTrait('a', { initialPosition: [5, 10, 15 ] });
+    const t = makeTrait('a', { initialPosition: [5, 10, 15] });
     const pos = t.getPosition();
     (pos as number[])[0] = 999;
     expect(t.getPosition()[0]).toBe(5); // copy, not reference
@@ -194,24 +194,24 @@ describe('SpatialAwarenessTrait position & velocity', () => {
 
   it('setPosition updates internal position', () => {
     const t = makeTrait('a');
-    t.setPosition([3, 4, 5 ]);
-    expect(t.getPosition()).toEqual([3, 4, 5 ]);
+    t.setPosition([3, 4, 5]);
+    expect(t.getPosition()).toEqual([3, 4, 5]);
   });
 
   it('setPosition calls provider.updateAgentPosition when active', () => {
     const t = makeTrait('a');
     t.start();
-    t.setPosition([1, 2, 3 ]);
+    t.setPosition([1, 2, 3]);
     expect(getProvider(t).updateAgentPosition).toHaveBeenCalledWith(
       'a',
-      [1, 2, 3 ],
+      [1, 2, 3],
       expect.any(Object)
     );
   });
 
   it('setPosition silent when not active', () => {
     const t = makeTrait('a');
-    t.setPosition([1, 2, 3 ]);
+    t.setPosition([1, 2, 3]);
     expect(getProvider(t).updateAgentPosition).not.toHaveBeenCalled();
   });
 
@@ -224,14 +224,14 @@ describe('SpatialAwarenessTrait position & velocity', () => {
 
   it('setVelocity updates internal velocity', () => {
     const t = makeTrait('a');
-    t.setVelocity([0.5, 0, 1 ]);
-    expect(t.getVelocity()).toEqual([0.5, 0, 1 ]);
+    t.setVelocity([0.5, 0, 1]);
+    expect(t.getVelocity()).toEqual([0.5, 0, 1]);
   });
 
   it('move() adds delta to current position', () => {
-    const t = makeTrait('a', { initialPosition: [1, 2, 3 ] });
-    t.move([0.5, -1, 2 ]);
-    expect(t.getPosition()).toEqual([1.5, 1, 5 ]);
+    const t = makeTrait('a', { initialPosition: [1, 2, 3] });
+    t.move([0.5, -1, 2]);
+    expect(t.getPosition()).toEqual([1.5, 1, 5]);
   });
 });
 
@@ -290,7 +290,7 @@ describe('SpatialAwarenessTrait queries', () => {
 
   it('findVisible calls provider.findVisible', () => {
     const t = makeTrait('a');
-    const dir = [0, 0, 1 ];
+    const dir = [0, 0, 1];
     t.findVisible(dir, 60, 20);
     expect(getProvider(t).findVisible).toHaveBeenCalledWith(t.getPosition(), dir, 60, 20);
   });
@@ -307,7 +307,7 @@ describe('SpatialAwarenessTrait queries', () => {
   });
 
   it('getDistanceTo computes 3D euclidean distance', () => {
-    const t = makeTrait('a', { initialPosition: [0, 0, 0 ] });
+    const t = makeTrait('a', { initialPosition: [0, 0, 0] });
     (t as any).lastContext = {
       nearbyEntities: [{ id: 'e1', type: 'npc', position: [3, 4, 0] }],
       currentRegions: [],

@@ -36,8 +36,7 @@ const VEC3_SCHEMA = {
 
 const QUAT_SCHEMA = {
   type: 'object',
-  description:
-    "Unit quaternion {x,y,z,w}. Object form is required (avoids w-vs-xyzw packing rot).",
+  description: 'Unit quaternion {x,y,z,w}. Object form is required (avoids w-vs-xyzw packing rot).',
   properties: {
     x: { type: 'number' },
     y: { type: 'number' },
@@ -152,7 +151,8 @@ export const spatialMcpToolDefinitions: Tool[] = [
       properties: {
         code: {
           type: 'string',
-          description: '.holo composition source. Will be wrapped in a placement block at the chosen pose.',
+          description:
+            '.holo composition source. Will be wrapped in a placement block at the chosen pose.',
         },
         spatialContext: SPATIAL_CONTEXT_SCHEMA,
         spawnId: {
@@ -234,9 +234,7 @@ export async function handleSpatialMcpTool(
 
   const wrappedHolo = wrapHoloWithPlacement(code, placement.position, placement.source);
 
-  const scenePatch: ScenePatchOp[] = [
-    { op: 'spawn', id: spawnId, position: placement.position },
-  ];
+  const scenePatch: ScenePatchOp[] = [{ op: 'spawn', id: spawnId, position: placement.position }];
 
   const [px, py, pz] = placement.position;
   const text =

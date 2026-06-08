@@ -66,8 +66,7 @@ export function parseFITS(buffer: ArrayBuffer): FITSFile {
   const headers = new Map<string, string | number | boolean>();
   let headerEnd = 0;
 
-  outer:
-  for (let block = 0; block * BLOCK_SIZE < buffer.byteLength; block++) {
+  outer: for (let block = 0; block * BLOCK_SIZE < buffer.byteLength; block++) {
     for (let card = 0; card < CARDS_PER_BLOCK; card++) {
       const offset = block * BLOCK_SIZE + card * CARD_SIZE;
       if (offset + CARD_SIZE > buffer.byteLength) break outer;
@@ -111,7 +110,9 @@ export function parseFITS(buffer: ArrayBuffer): FITSFile {
   const dataOffset = headerEnd;
 
   if (dataOffset + totalPixels * bytesPerPixel > buffer.byteLength) {
-    throw new Error(`FITS: Data section extends beyond buffer (need ${dataOffset + totalPixels * bytesPerPixel}, have ${buffer.byteLength})`);
+    throw new Error(
+      `FITS: Data section extends beyond buffer (need ${dataOffset + totalPixels * bytesPerPixel}, have ${buffer.byteLength})`
+    );
   }
 
   const data = new Float32Array(totalPixels);
@@ -148,7 +149,11 @@ export function parseFITS(buffer: ArrayBuffer): FITSFile {
   let wcs: WCSInfo | null = null;
   if (headers.has('CRVAL1')) {
     wcs = {
-      crpix: [], crval: [], cdelt: [], ctype: [], cunit: [],
+      crpix: [],
+      crval: [],
+      cdelt: [],
+      ctype: [],
+      cunit: [],
     };
     for (let i = 1; i <= naxis; i++) {
       wcs.crpix.push(getNumOr(headers, `CRPIX${i}`, 1));
@@ -225,11 +230,21 @@ export function buildFITS(opts: {
   for (let i = 0; i < opts.data.length; i++) {
     const off = i * bytesPerPixel;
     switch (opts.bitpix) {
-      case 8: new Uint8Array(dataBytes)[off] = opts.data[i]; break;
-      case 16: dataView.setInt16(off, opts.data[i], false); break;
-      case 32: dataView.setInt32(off, opts.data[i], false); break;
-      case -32: dataView.setFloat32(off, opts.data[i], false); break;
-      case -64: dataView.setFloat64(off, opts.data[i], false); break;
+      case 8:
+        new Uint8Array(dataBytes)[off] = opts.data[i];
+        break;
+      case 16:
+        dataView.setInt16(off, opts.data[i], false);
+        break;
+      case 32:
+        dataView.setInt32(off, opts.data[i], false);
+        break;
+      case -32:
+        dataView.setFloat32(off, opts.data[i], false);
+        break;
+      case -64:
+        dataView.setFloat64(off, opts.data[i], false);
+        break;
     }
   }
 
@@ -264,12 +279,20 @@ function getNum(headers: Map<string, string | number | boolean>, key: string): n
   return v;
 }
 
-function getNumOr(headers: Map<string, string | number | boolean>, key: string, def: number): number {
+function getNumOr(
+  headers: Map<string, string | number | boolean>,
+  key: string,
+  def: number
+): number {
   const v = headers.get(key);
   return typeof v === 'number' ? v : def;
 }
 
-function getStrOr(headers: Map<string, string | number | boolean>, key: string, def: string): string {
+function getStrOr(
+  headers: Map<string, string | number | boolean>,
+  key: string,
+  def: string
+): string {
   const v = headers.get(key);
   return typeof v === 'string' ? v : def;
 }

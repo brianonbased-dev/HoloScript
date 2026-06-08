@@ -71,16 +71,11 @@ describe('VnV Data Transformation', () => {
 
     return {
       convergenceSeries: series,
-      globalObservedOrder: orders.length > 0
-        ? orders.reduce((s, v) => s + v, 0) / orders.length
-        : undefined,
+      globalObservedOrder:
+        orders.length > 0 ? orders.reduce((s, v) => s + v, 0) / orders.length : undefined,
       richardsonEstimate: bestRichardson,
-      averageGCI: gcis.length > 0
-        ? gcis.reduce((s, v) => s + v, 0) / gcis.length
-        : undefined,
-      passRate: report.summary.total > 0
-        ? report.summary.passed / report.summary.total
-        : 0,
+      averageGCI: gcis.length > 0 ? gcis.reduce((s, v) => s + v, 0) / gcis.length : undefined,
+      passRate: report.summary.total > 0 ? report.summary.passed / report.summary.total : 0,
     };
   }
 
@@ -255,7 +250,7 @@ describe('Element-to-Node Uncertainty Mapping', () => {
     tetrahedra: Uint32Array,
     nodesPerElement: number,
     nodeCount: number,
-    elementGCI: Float32Array,
+    elementGCI: Float32Array
   ): Float32Array {
     const nodeSums = new Float64Array(nodeCount);
     const nodeCounts = new Uint32Array(nodeCount);
@@ -282,8 +277,14 @@ describe('Element-to-Node Uncertainty Mapping', () => {
   it('averages element GCI to shared nodes', () => {
     // 2 tets sharing 2 nodes (nodes 1 and 2)
     const tetrahedra = new Uint32Array([
-      0, 1, 2, 3, // tet 0
-      1, 2, 4, 5, // tet 1
+      0,
+      1,
+      2,
+      3, // tet 0
+      1,
+      2,
+      4,
+      5, // tet 1
     ]);
     const elementGCI = new Float32Array([0.02, 0.04]);
 
@@ -314,9 +315,7 @@ describe('Element-to-Node Uncertainty Mapping', () => {
   });
 
   it('handles empty inputs', () => {
-    const result = elementToNodeUncertainty(
-      new Uint32Array(0), 4, 0, new Float32Array(0)
-    );
+    const result = elementToNodeUncertainty(new Uint32Array(0), 4, 0, new Float32Array(0));
     expect(result).toHaveLength(0);
   });
 });
@@ -325,7 +324,7 @@ describe('Element-to-Node Uncertainty Mapping', () => {
 
 describe('Log-Log Axis Mapping', () => {
   function computeLogRange(values: number[]) {
-    const logs = values.filter(v => v > 0).map(Math.log10);
+    const logs = values.filter((v) => v > 0).map(Math.log10);
     const min = Math.floor(Math.min(...logs));
     const max = Math.ceil(Math.max(...logs));
     return { min, max, span: max - min || 1 };

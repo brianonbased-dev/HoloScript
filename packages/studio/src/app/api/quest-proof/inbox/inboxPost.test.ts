@@ -10,13 +10,21 @@
  * These tests are pure — no network calls, no Next.js runtime.
  */
 import { describe, it, expect } from 'vitest';
-import { buildInboxPayload, parseFounderInboxEntries, extractFeedArray, FounderInboxItem } from './parse';
+import {
+  buildInboxPayload,
+  parseFounderInboxEntries,
+  extractFeedArray,
+  FounderInboxItem,
+} from './parse';
 
 // ── buildInboxPayload ────────────────────────────────────────────────────────
 
 describe('buildInboxPayload', () => {
   it('produces a valid feed payload with founderInbox marker', () => {
-    const p = buildInboxPayload({ url: 'https://holoscript.studio/quest-proof', label: 'world ready' });
+    const p = buildInboxPayload({
+      url: 'https://holoscript.studio/quest-proof',
+      label: 'world ready',
+    });
     expect(p.kind).toBe('intelligence');
     expect(p.scope).toBe('team');
     const c = JSON.parse(p.content) as Record<string, unknown>;
@@ -38,12 +46,14 @@ describe('buildInboxPayload', () => {
   });
 
   it('FAILING-IF-BROKEN: rejects empty label', () => {
-    expect(() => buildInboxPayload({ url: 'https://x.io', label: '   ' })).toThrow(/label is required/);
+    expect(() => buildInboxPayload({ url: 'https://x.io', label: '   ' })).toThrow(
+      /label is required/
+    );
   });
 
   it('defaults state to pending-vetting and dedupKey to taskId', () => {
     const c = JSON.parse(
-      buildInboxPayload({ url: 'https://x.io', label: 'l', taskId: 'task_9' }).content,
+      buildInboxPayload({ url: 'https://x.io', label: 'l', taskId: 'task_9' }).content
     );
     expect(c.state).toBe('pending-vetting');
     expect(c.dedupKey).toBe('task_9');
@@ -51,7 +61,7 @@ describe('buildInboxPayload', () => {
 
   it('threads an explicit state + dedupKey and falls back to kind:url for dedupKey', () => {
     const c = JSON.parse(
-      buildInboxPayload({ url: 'https://x.io', label: 'l', kind: 'proof', state: 'ready' }).content,
+      buildInboxPayload({ url: 'https://x.io', label: 'l', kind: 'proof', state: 'ready' }).content
     );
     expect(c.state).toBe('ready');
     expect(c.dedupKey).toBe('proof:https://x.io');
@@ -79,7 +89,7 @@ describe('buildInboxPayload', () => {
 describe('inbox push → parse round-trip (FAILING-IF-BROKEN)', () => {
   function simulateFeedEntry(
     payload: ReturnType<typeof buildInboxPayload>,
-    overrideId = 'feed_test_123',
+    overrideId = 'feed_test_123'
   ) {
     // Simulate what the team feed server wraps around our POST body.
     return { id: overrideId, content: payload.content, createdAt: new Date().toISOString() };

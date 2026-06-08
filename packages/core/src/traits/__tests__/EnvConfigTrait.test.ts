@@ -47,10 +47,20 @@ describe('EnvConfigTrait — onEvent', () => {
   it('envconfig:set stores key-value', () => {
     const node = makeNode();
     envConfigHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    envConfigHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'envconfig:set', key: 'DB_URL', value: 'postgres://localhost/db', layer: 'env',
-    } as never);
-    const state = node.__envConfigState as { values: Map<string, { value: unknown; layer: string }> };
+    envConfigHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'envconfig:set',
+        key: 'DB_URL',
+        value: 'postgres://localhost/db',
+        layer: 'env',
+      } as never
+    );
+    const state = node.__envConfigState as {
+      values: Map<string, { value: unknown; layer: string }>;
+    };
     expect(state.values.get('DB_URL')?.value).toBe('postgres://localhost/db');
     expect(state.values.get('DB_URL')?.layer).toBe('env');
   });
@@ -58,9 +68,16 @@ describe('EnvConfigTrait — onEvent', () => {
   it('envconfig:set defaults to override layer', () => {
     const node = makeNode();
     envConfigHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    envConfigHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'envconfig:set', key: 'KEY', value: 'val',
-    } as never);
+    envConfigHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'envconfig:set',
+        key: 'KEY',
+        value: 'val',
+      } as never
+    );
     const state = node.__envConfigState as { values: Map<string, { layer: string }> };
     expect(state.values.get('KEY')?.layer).toBe('override');
   });
@@ -68,38 +85,83 @@ describe('EnvConfigTrait — onEvent', () => {
   it('envconfig:get emits envconfig:result with value', () => {
     const node = makeNode();
     envConfigHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    envConfigHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'envconfig:set', key: 'APP_ENV', value: 'production',
-    } as never);
+    envConfigHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'envconfig:set',
+        key: 'APP_ENV',
+        value: 'production',
+      } as never
+    );
     node.emit.mockClear();
-    envConfigHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'envconfig:get', key: 'APP_ENV',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('envconfig:result', expect.objectContaining({
-      key: 'APP_ENV', value: 'production',
-    }));
+    envConfigHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'envconfig:get',
+        key: 'APP_ENV',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'envconfig:result',
+      expect.objectContaining({
+        key: 'APP_ENV',
+        value: 'production',
+      })
+    );
   });
 
   it('envconfig:get returns source="missing" for unknown key', () => {
     const node = makeNode();
     envConfigHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    envConfigHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'envconfig:get', key: 'NONEXISTENT',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('envconfig:result', expect.objectContaining({
-      value: null, source: 'missing',
-    }));
+    envConfigHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'envconfig:get',
+        key: 'NONEXISTENT',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'envconfig:result',
+      expect.objectContaining({
+        value: null,
+        source: 'missing',
+      })
+    );
   });
 
   it('envconfig:list emits all entries', () => {
     const node = makeNode();
     envConfigHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    envConfigHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'envconfig:set', key: 'K1', value: 'V1' } as never);
-    envConfigHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, { type: 'envconfig:set', key: 'K2', value: 'V2' } as never);
+    envConfigHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'envconfig:set', key: 'K1', value: 'V1' } as never
+    );
+    envConfigHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      { type: 'envconfig:set', key: 'K2', value: 'V2' } as never
+    );
     node.emit.mockClear();
-    envConfigHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'envconfig:list',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('envconfig:entries', expect.objectContaining({ count: 2 }));
+    envConfigHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'envconfig:list',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'envconfig:entries',
+      expect.objectContaining({ count: 2 })
+    );
   });
 });

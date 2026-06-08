@@ -7,12 +7,7 @@
  * @module editor
  */
 
-import {
-  NodeGraph,
-  LogicNode,
-  LogicConnection,
-  type EvaluationContext,
-} from '../logic/NodeGraph';
+import { NodeGraph, LogicNode, LogicConnection, type EvaluationContext } from '../logic/NodeGraph';
 
 // =============================================================================
 // TYPES
@@ -133,7 +128,7 @@ export class NodeGraphPanel {
       this.entities.push({
         id: `port_in_${node.id}_${port.name}`,
         type: 'port',
-        position: [worldX - this.config.nodeWidth * 0.45, worldY - (i + 1) * 0.02, worldZ + 0.002,],
+        position: [worldX - this.config.nodeWidth * 0.45, worldY - (i + 1) * 0.02, worldZ + 0.002],
         text: port.name,
         color: this.getPortColor(port.type),
         data: { role: 'input_port', nodeId: node.id, portName: port.name, portType: port.type },
@@ -145,7 +140,7 @@ export class NodeGraphPanel {
       this.entities.push({
         id: `port_out_${node.id}_${port.name}`,
         type: 'port',
-        position: [worldX + this.config.nodeWidth * 0.45, worldY - (i + 1) * 0.02, worldZ + 0.002,],
+        position: [worldX + this.config.nodeWidth * 0.45, worldY - (i + 1) * 0.02, worldZ + 0.002],
         text: port.name,
         color: this.getPortColor(port.type),
         data: { role: 'output_port', nodeId: node.id, portName: port.name, portType: port.type },
@@ -165,14 +160,10 @@ export class NodeGraphPanel {
     const { x: toNodeX, y: toNodeY } = this.getNodePositionXY(toNode);
 
     const fromX =
-      this.config.position[0] +
-      fromNodeX * this.config.gridSpacing +
-      this.config.nodeWidth * 0.45;
+      this.config.position[0] + fromNodeX * this.config.gridSpacing + this.config.nodeWidth * 0.45;
     const fromY = this.config.position[1] - fromNodeY * this.config.gridSpacing;
     const toX =
-      this.config.position[0] +
-      toNodeX * this.config.gridSpacing -
-      this.config.nodeWidth * 0.45;
+      this.config.position[0] + toNodeX * this.config.gridSpacing - this.config.nodeWidth * 0.45;
     const toY = this.config.position[1] - toNodeY * this.config.gridSpacing;
     const z = this.config.position[2] + 0.003;
 

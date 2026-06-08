@@ -44,12 +44,7 @@ export interface GenerativeJobEventSource {
 export type GenerativeJobKind = 'inpainting' | 'texture_gen' | 'controlnet' | 'diffusion_rt';
 
 /** Lifecycle status of a single job. */
-export type GenerativeJobStatus =
-  | 'queued'
-  | 'running'
-  | 'completed'
-  | 'cancelled'
-  | 'errored';
+export type GenerativeJobStatus = 'queued' | 'running' | 'completed' | 'cancelled' | 'errored';
 
 /** Single tracked generative job. */
 export interface GenerativeJobState {
@@ -193,7 +188,12 @@ export class GenerativeJobMonitor {
     } else if (phase === 'error') {
       status = 'errored';
       durationMs = observedAt - startedAt;
-      error = typeof p.error === 'string' ? p.error : typeof p.message === 'string' ? p.message : 'unknown error';
+      error =
+        typeof p.error === 'string'
+          ? p.error
+          : typeof p.message === 'string'
+            ? p.message
+            : 'unknown error';
     }
 
     if (status === null) return;
@@ -241,7 +241,8 @@ export class GenerativeJobMonitor {
     if (suffix === 'cancelled' || suffix === 'stopped') return 'cancelled';
     if (suffix === 'error') return 'error';
     // Config-shape events: mask_set / map_requested / prompt_updated
-    if (suffix === 'mask_set' || suffix === 'map_requested' || suffix === 'prompt_updated') return 'config';
+    if (suffix === 'mask_set' || suffix === 'map_requested' || suffix === 'prompt_updated')
+      return 'config';
     return 'unknown';
   }
 
@@ -250,7 +251,10 @@ export class GenerativeJobMonitor {
    * fields each trait happens to use. Mirrors the heuristic in
    * AssetLoadCoordinator.handleEvent.
    */
-  private jobIdFromPayload(p: Record<string, unknown>, kind: GenerativeJobKind): string | undefined {
+  private jobIdFromPayload(
+    p: Record<string, unknown>,
+    kind: GenerativeJobKind
+  ): string | undefined {
     // diffusion_rt with a frame number → synthesize per-frame ID FIRST so
     // each frame is its own job (otherwise sessionId would collapse all
     // frames into a single overwriting job).

@@ -23,9 +23,7 @@ import {
   GRPOPromptExtractor,
   type PromptExtractorFS,
 } from '../packages/absorb-service/src/self-improvement/GRPOPromptExtractor.js';
-import {
-  FocusedDPOSplitter,
-} from '../packages/absorb-service/src/self-improvement/FocusedDPOSplitter.js';
+import { FocusedDPOSplitter } from '../packages/absorb-service/src/self-improvement/FocusedDPOSplitter.js';
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -41,7 +39,9 @@ function argFlag(flag: string): boolean {
 }
 
 const ROOT_DIR = nodePath.resolve(argVal('--root', process.env.HOLOSCRIPT_ROOT ?? '.'));
-const OUT_DIR  = nodePath.resolve(argVal('--out', process.env.EXTRACT_OUT ?? nodePath.join(ROOT_DIR, 'datasets', 'exp-grpo')));
+const OUT_DIR = nodePath.resolve(
+  argVal('--out', process.env.EXTRACT_OUT ?? nodePath.join(ROOT_DIR, 'datasets', 'exp-grpo'))
+);
 const MAX_PROMPTS = parseInt(argVal('--max', process.env.EXTRACT_MAX_PROMPTS ?? '2000'), 10);
 const VERBOSE = argFlag('--verbose') || process.env.EXTRACT_VERBOSE === '1';
 
@@ -61,14 +61,17 @@ const realFS: PromptExtractorFS = {
     const results: string[] = [];
     async function walk(dir: string): Promise<void> {
       let entries;
-      try { entries = await fs.readdir(dir, { withFileTypes: true }); }
-      catch { return; }
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
       for (const e of entries) {
         if (e.isDirectory()) {
-          if (!excludeDirs.some(x => e.name === x || e.name.startsWith('.'))) {
+          if (!excludeDirs.some((x) => e.name === x || e.name.startsWith('.'))) {
             await walk(nodePath.join(dir, e.name));
           }
-        } else if (extensions.some(ext => e.name.endsWith(ext))) {
+        } else if (extensions.some((ext) => e.name.endsWith(ext))) {
           results.push(nodePath.join(dir, e.name));
         }
       }
@@ -77,7 +80,12 @@ const realFS: PromptExtractorFS = {
     return results;
   },
   async exists(filePath: string): Promise<boolean> {
-    try { await fs.access(filePath); return true; } catch { return false; }
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
   },
   resolve: (...s) => nodePath.resolve(...s),
   relative: (from, to) => nodePath.relative(from, to),
@@ -98,13 +106,13 @@ async function main() {
   console.error('[extract] running GRPOPromptExtractor...');
   const extractor = new GRPOPromptExtractor(
     { rootDir: ROOT_DIR, outputDir: OUT_DIR, maxPrompts: MAX_PROMPTS },
-    realFS,
+    realFS
   );
 
   const { records: grpoRecords, stats } = await extractor.extract();
   console.error(
     `[extract] GRPO: ${stats.totalAfterDedup} prompts ` +
-    `(from ${stats.totalExtracted}, dedup removed ${stats.removedByDedup})`,
+      `(from ${stats.totalExtracted}, dedup removed ${stats.removedByDedup})`
   );
   if (VERBOSE) console.error('[extract] by source:', stats.bySource);
 
@@ -114,9 +122,11 @@ async function main() {
 
   // ---- DPO pairs ----
   console.error('[extract] running FocusedDPOSplitter on .holo files...');
-  const holoFiles = await realFS.listFiles(ROOT_DIR, ['.holo', '.hs', '.hsplus'], [
-    'node_modules', 'dist', 'build', '.git', 'coverage',
-  ]);
+  const holoFiles = await realFS.listFiles(
+    ROOT_DIR,
+    ['.holo', '.hs', '.hsplus'],
+    ['node_modules', 'dist', 'build', '.git', 'coverage']
+  );
   const splitter = new FocusedDPOSplitter({ maxPairsPerSegment: 4 });
   const holoSources: Array<{ source: string; filename: string }> = [];
 
@@ -124,14 +134,16 @@ async function main() {
     try {
       const src = await fs.readFile(f, 'utf-8');
       holoSources.push({ source: src, filename: nodePath.relative(ROOT_DIR, f) });
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }
 
   const { pairs: dpoPairs, stats: dpoStats } = splitter.processMultiple(holoSources);
-  const validPairs = dpoPairs.filter(p => p.metadata.qualityScore >= 0.5);
+  const validPairs = dpoPairs.filter((p) => p.metadata.qualityScore >= 0.5);
   console.error(
     `[extract] DPO: ${validPairs.length} valid pairs ` +
-    `(${dpoStats.pairsGenerated} total, ${dpoStats.invalidPairs} invalid)`,
+      `(${dpoStats.pairsGenerated} total, ${dpoStats.invalidPairs} invalid)`
   );
 
   const dpoPath = nodePath.join(OUT_DIR, 'dpo-pairs.jsonl');
@@ -157,11 +169,11 @@ async function main() {
 }
 
 async function writeJsonl(filePath: string, records: unknown[]): Promise<void> {
-  const lines = records.map(r => JSON.stringify(r)).join('\n') + '\n';
+  const lines = records.map((r) => JSON.stringify(r)).join('\n') + '\n';
   await fs.writeFile(filePath, lines, 'utf-8');
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error('[extract] FATAL:', e.message);
   process.exit(1);
 });

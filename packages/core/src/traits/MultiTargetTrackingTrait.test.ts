@@ -105,12 +105,18 @@ describe('MultiTargetTrackingTrait.validate', () => {
   });
 
   it('rejects a non-positive update_rate_hz', () => {
-    expect(() => MultiTargetTrackingTrait.validate({ update_rate_hz: 0 })).toThrow(/positive number/);
+    expect(() => MultiTargetTrackingTrait.validate({ update_rate_hz: 0 })).toThrow(
+      /positive number/
+    );
   });
 
   it('rejects hungarian_cost_threshold outside [0, 1]', () => {
-    expect(() => MultiTargetTrackingTrait.validate({ hungarian_cost_threshold: 1.5 })).toThrow(/in \[0, 1\]/);
-    expect(() => MultiTargetTrackingTrait.validate({ hungarian_cost_threshold: -0.1 })).toThrow(/in \[0, 1\]/);
+    expect(() => MultiTargetTrackingTrait.validate({ hungarian_cost_threshold: 1.5 })).toThrow(
+      /in \[0, 1\]/
+    );
+    expect(() => MultiTargetTrackingTrait.validate({ hungarian_cost_threshold: -0.1 })).toThrow(
+      /in \[0, 1\]/
+    );
   });
 
   it('rejects an unknown reid_feature', () => {
@@ -124,15 +130,21 @@ describe('MultiTargetTrackingTrait.validate', () => {
   });
 
   it('rejects reid_similarity_threshold outside [-1, 1]', () => {
-    expect(() => MultiTargetTrackingTrait.validate({ reid_similarity_threshold: 2 })).toThrow(/in \[-1, 1\]/);
+    expect(() => MultiTargetTrackingTrait.validate({ reid_similarity_threshold: 2 })).toThrow(
+      /in \[-1, 1\]/
+    );
   });
 
   it('rejects negative max_occluded_frames', () => {
-    expect(() => MultiTargetTrackingTrait.validate({ max_occluded_frames: -1 })).toThrow(/non-negative integer/);
+    expect(() => MultiTargetTrackingTrait.validate({ max_occluded_frames: -1 })).toThrow(
+      /non-negative integer/
+    );
   });
 
   it('rejects position_vs_reid_weight outside [0, 1]', () => {
-    expect(() => MultiTargetTrackingTrait.validate({ position_vs_reid_weight: 1.1 })).toThrow(/in \[0, 1\]/);
+    expect(() => MultiTargetTrackingTrait.validate({ position_vs_reid_weight: 1.1 })).toThrow(
+      /in \[0, 1\]/
+    );
   });
 });
 
@@ -471,7 +483,9 @@ describe('Tracker integration', () => {
 // HELPER
 // =============================================================================
 
-function resolveConfig(c: typeof baseConfig): Required<import('./MultiTargetTrackingTrait').MultiTargetTrackingConfig> {
+function resolveConfig(
+  c: typeof baseConfig
+): Required<import('./MultiTargetTrackingTrait').MultiTargetTrackingConfig> {
   return {
     update_rate_hz: c.update_rate_hz,
     hungarian_cost_threshold: c.hungarian_cost_threshold,

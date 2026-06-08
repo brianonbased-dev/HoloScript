@@ -158,7 +158,12 @@ function validateTimestamp(label: string, value: string | undefined, errors: str
   if (!isIsoTimestamp(value)) errors.push(`${label} must be a valid ISO-8601 timestamp.`);
 }
 
-function validateHash(label: string, hash: string | undefined, algorithm: string | undefined, errors: string[]): void {
+function validateHash(
+  label: string,
+  hash: string | undefined,
+  algorithm: string | undefined,
+  errors: string[]
+): void {
   if (!isNonEmptyString(hash)) errors.push(`${label}.hash is required.`);
   if (algorithm !== 'sha256') errors.push(`${label}.hashAlgorithm must be sha256.`);
 }
@@ -177,15 +182,21 @@ function validateSchemaWorkflow(
   }
 }
 
-export function isSupportedPhysicalActuationAction(value: string): value is PhysicalActuationAction {
+export function isSupportedPhysicalActuationAction(
+  value: string
+): value is PhysicalActuationAction {
   return isOneOf(PHYSICAL_ACTUATION_ACTIONS, value);
 }
 
-export function isSupportedPhysicalActuationStatus(value: string): value is PhysicalActuationStatus {
+export function isSupportedPhysicalActuationStatus(
+  value: string
+): value is PhysicalActuationStatus {
   return isOneOf(PHYSICAL_ACTUATION_STATUSES, value);
 }
 
-export function isSupportedActuationSimulationStatus(value: string): value is ActuationSimulationStatus {
+export function isSupportedActuationSimulationStatus(
+  value: string
+): value is ActuationSimulationStatus {
   return isOneOf(ACTUATION_SIMULATION_STATUSES, value);
 }
 
@@ -202,12 +213,18 @@ export function validateActuationSimulationReceipt(
 ): string[] {
   const errors: string[] = [];
   if (!receipt) return ['ActuationSimulationReceipt is required.'];
-  validateSchemaWorkflow('ActuationSimulationReceipt', receipt.schemaVersion, receipt.workflow, errors);
+  validateSchemaWorkflow(
+    'ActuationSimulationReceipt',
+    receipt.schemaVersion,
+    receipt.workflow,
+    errors
+  );
   if (!isNonEmptyString(receipt.id)) errors.push('ActuationSimulationReceipt.id is required.');
   if (!isSupportedPhysicalActuationAction(String(receipt.action))) {
     errors.push(`ActuationSimulationReceipt.action is unsupported: ${String(receipt.action)}.`);
   }
-  if (!isNonEmptyString(receipt.actorId)) errors.push('ActuationSimulationReceipt.actorId is required.');
+  if (!isNonEmptyString(receipt.actorId))
+    errors.push('ActuationSimulationReceipt.actorId is required.');
   validateTimestamp('ActuationSimulationReceipt.simulatedAt', receipt.simulatedAt, errors);
   if (!isSupportedActuationSimulationStatus(String(receipt.status))) {
     errors.push(`ActuationSimulationReceipt.status is unsupported: ${String(receipt.status)}.`);
@@ -231,14 +248,18 @@ export function validateActuationSimulationReceipt(
   return errors;
 }
 
-export function validateSensorFreshnessReceipt(receipt: SensorFreshnessReceipt | undefined): string[] {
+export function validateSensorFreshnessReceipt(
+  receipt: SensorFreshnessReceipt | undefined
+): string[] {
   const errors: string[] = [];
   if (!receipt) return ['SensorFreshnessReceipt is required.'];
   validateSchemaWorkflow('SensorFreshnessReceipt', receipt.schemaVersion, receipt.workflow, errors);
   if (!isNonEmptyString(receipt.id)) errors.push('SensorFreshnessReceipt.id is required.');
-  if (!isNonEmptyString(receipt.actorId)) errors.push('SensorFreshnessReceipt.actorId is required.');
+  if (!isNonEmptyString(receipt.actorId))
+    errors.push('SensorFreshnessReceipt.actorId is required.');
   validateTimestamp('SensorFreshnessReceipt.checkedAt', receipt.checkedAt, errors);
-  if (typeof receipt.sensorFresh !== 'boolean') errors.push('SensorFreshnessReceipt.sensorFresh must be a boolean.');
+  if (typeof receipt.sensorFresh !== 'boolean')
+    errors.push('SensorFreshnessReceipt.sensorFresh must be a boolean.');
   if (typeof receipt.approvalFresh !== 'boolean') {
     errors.push('SensorFreshnessReceipt.approvalFresh must be a boolean.');
   }
@@ -254,14 +275,29 @@ export function validateSensorFreshnessReceipt(receipt: SensorFreshnessReceipt |
   if (!Number.isFinite(receipt.observedSensorAgeMs) || receipt.observedSensorAgeMs < 0) {
     errors.push('SensorFreshnessReceipt.observedSensorAgeMs must be a non-negative finite number.');
   }
-  if (receipt.approvalAgeMs !== undefined && (!Number.isFinite(receipt.approvalAgeMs) || receipt.approvalAgeMs < 0)) {
-    errors.push('SensorFreshnessReceipt.approvalAgeMs must be a non-negative finite number when present.');
+  if (
+    receipt.approvalAgeMs !== undefined &&
+    (!Number.isFinite(receipt.approvalAgeMs) || receipt.approvalAgeMs < 0)
+  ) {
+    errors.push(
+      'SensorFreshnessReceipt.approvalAgeMs must be a non-negative finite number when present.'
+    );
   }
   if (receipt.observedSensorAgeMs > receipt.maxSensorAgeMs && receipt.sensorFresh) {
-    errors.push('SensorFreshnessReceipt.sensorFresh cannot be true when observedSensorAgeMs exceeds maxSensorAgeMs.');
+    errors.push(
+      'SensorFreshnessReceipt.sensorFresh cannot be true when observedSensorAgeMs exceeds maxSensorAgeMs.'
+    );
   }
-  if ((!receipt.sensorFresh || !receipt.approvalFresh || !receipt.adapterHealthy || !receipt.ownerLaneFresh) && !receipt.staleReason) {
-    errors.push('SensorFreshnessReceipt.staleReason is required when freshness is not fully satisfied.');
+  if (
+    (!receipt.sensorFresh ||
+      !receipt.approvalFresh ||
+      !receipt.adapterHealthy ||
+      !receipt.ownerLaneFresh) &&
+    !receipt.staleReason
+  ) {
+    errors.push(
+      'SensorFreshnessReceipt.staleReason is required when freshness is not fully satisfied.'
+    );
   }
   validateHash('SensorFreshnessReceipt', receipt.hash, receipt.hashAlgorithm, errors);
   return errors;
@@ -277,18 +313,24 @@ export function validateSafeStopReceipt(receipt: SafeStopReceipt | undefined): s
     errors.push(`SafeStopReceipt.status is unsupported: ${String(receipt.status)}.`);
   }
   if (receipt.armedAt) validateTimestamp('SafeStopReceipt.armedAt', receipt.armedAt, errors);
-  if (receipt.triggeredAt) validateTimestamp('SafeStopReceipt.triggeredAt', receipt.triggeredAt, errors);
-  if (typeof receipt.stopAvailable !== 'boolean') errors.push('SafeStopReceipt.stopAvailable must be a boolean.');
+  if (receipt.triggeredAt)
+    validateTimestamp('SafeStopReceipt.triggeredAt', receipt.triggeredAt, errors);
+  if (typeof receipt.stopAvailable !== 'boolean')
+    errors.push('SafeStopReceipt.stopAvailable must be a boolean.');
   if (typeof receipt.ownerHandoffRequired !== 'boolean') {
     errors.push('SafeStopReceipt.ownerHandoffRequired must be a boolean.');
   }
-  if ((receipt.status === 'armed' || receipt.status === 'triggered') && receipt.stopAvailable !== true) {
+  if (
+    (receipt.status === 'armed' || receipt.status === 'triggered') &&
+    receipt.stopAvailable !== true
+  ) {
     errors.push('SafeStopReceipt.stopAvailable must be true when status is armed or triggered.');
   }
   if (receipt.status === 'triggered' && !receipt.triggeredAt) {
     errors.push('SafeStopReceipt.triggeredAt is required when status=triggered.');
   }
-  if (!isNonEmptyString(receipt.stopInstruction)) errors.push('SafeStopReceipt.stopInstruction is required.');
+  if (!isNonEmptyString(receipt.stopInstruction))
+    errors.push('SafeStopReceipt.stopInstruction is required.');
   validateHash('SafeStopReceipt', receipt.hash, receipt.hashAlgorithm, errors);
   return errors;
 }
@@ -298,11 +340,19 @@ export function validatePhysicalRollbackLimitReceipt(
 ): string[] {
   const errors: string[] = [];
   if (!receipt) return ['PhysicalRollbackLimitReceipt is required.'];
-  validateSchemaWorkflow('PhysicalRollbackLimitReceipt', receipt.schemaVersion, receipt.workflow, errors);
+  validateSchemaWorkflow(
+    'PhysicalRollbackLimitReceipt',
+    receipt.schemaVersion,
+    receipt.workflow,
+    errors
+  );
   if (!isNonEmptyString(receipt.id)) errors.push('PhysicalRollbackLimitReceipt.id is required.');
-  if (!isNonEmptyString(receipt.actorId)) errors.push('PhysicalRollbackLimitReceipt.actorId is required.');
+  if (!isNonEmptyString(receipt.actorId))
+    errors.push('PhysicalRollbackLimitReceipt.actorId is required.');
   if (!isSupportedPhysicalRollbackClass(String(receipt.rollbackClass))) {
-    errors.push(`PhysicalRollbackLimitReceipt.rollbackClass is unsupported: ${String(receipt.rollbackClass)}.`);
+    errors.push(
+      `PhysicalRollbackLimitReceipt.rollbackClass is unsupported: ${String(receipt.rollbackClass)}.`
+    );
   }
   if (typeof receipt.softwareReplayAvailable !== 'boolean') {
     errors.push('PhysicalRollbackLimitReceipt.softwareReplayAvailable must be a boolean.');
@@ -310,9 +360,15 @@ export function validatePhysicalRollbackLimitReceipt(
   if (receipt.physicalUndoGuaranteed !== false) {
     errors.push('PhysicalRollbackLimitReceipt.physicalUndoGuaranteed must be false.');
   }
-  if (!isNonEmptyString(receipt.rollbackNote)) errors.push('PhysicalRollbackLimitReceipt.rollbackNote is required.');
-  if (receipt.rollbackClass === 'irreversible_blocked' && !isNonEmptyString(receipt.irreversibleEffectWarning)) {
-    errors.push('PhysicalRollbackLimitReceipt.irreversibleEffectWarning is required for irreversible_blocked.');
+  if (!isNonEmptyString(receipt.rollbackNote))
+    errors.push('PhysicalRollbackLimitReceipt.rollbackNote is required.');
+  if (
+    receipt.rollbackClass === 'irreversible_blocked' &&
+    !isNonEmptyString(receipt.irreversibleEffectWarning)
+  ) {
+    errors.push(
+      'PhysicalRollbackLimitReceipt.irreversibleEffectWarning is required for irreversible_blocked.'
+    );
   }
   validateHash('PhysicalRollbackLimitReceipt', receipt.hash, receipt.hashAlgorithm, errors);
   return errors;
@@ -323,14 +379,25 @@ export function validateHoloShellPhysicalActuationReceiptPack(
 ): string[] {
   const errors: string[] = [];
   if (!pack) return ['HoloShellPhysicalActuationReceiptPack is required.'];
-  validateSchemaWorkflow('HoloShellPhysicalActuationReceiptPack', pack.schemaVersion, pack.workflow, errors);
-  if (!isNonEmptyString(pack.id)) errors.push('HoloShellPhysicalActuationReceiptPack.id is required.');
-  if (!isNonEmptyString(pack.actorId)) errors.push('HoloShellPhysicalActuationReceiptPack.actorId is required.');
+  validateSchemaWorkflow(
+    'HoloShellPhysicalActuationReceiptPack',
+    pack.schemaVersion,
+    pack.workflow,
+    errors
+  );
+  if (!isNonEmptyString(pack.id))
+    errors.push('HoloShellPhysicalActuationReceiptPack.id is required.');
+  if (!isNonEmptyString(pack.actorId))
+    errors.push('HoloShellPhysicalActuationReceiptPack.actorId is required.');
   if (!isSupportedPhysicalActuationAction(String(pack.action))) {
-    errors.push(`HoloShellPhysicalActuationReceiptPack.action is unsupported: ${String(pack.action)}.`);
+    errors.push(
+      `HoloShellPhysicalActuationReceiptPack.action is unsupported: ${String(pack.action)}.`
+    );
   }
   if (!isSupportedPhysicalActuationStatus(String(pack.status))) {
-    errors.push(`HoloShellPhysicalActuationReceiptPack.status is unsupported: ${String(pack.status)}.`);
+    errors.push(
+      `HoloShellPhysicalActuationReceiptPack.status is unsupported: ${String(pack.status)}.`
+    );
   }
   errors.push(...validateActuationSimulationReceipt(pack.simulation));
   errors.push(...validateSensorFreshnessReceipt(pack.freshness));
@@ -355,16 +422,24 @@ export function validateHoloShellPhysicalActuationReceiptPack(
     errors.push('HoloShellPhysicalActuationReceiptPack.ready states require satisfied freshness.');
   }
   if (readyLike && !(pack.safeStop?.status === 'armed' || pack.safeStop?.status === 'triggered')) {
-    errors.push('HoloShellPhysicalActuationReceiptPack.ready states require an armed or triggered safe stop.');
+    errors.push(
+      'HoloShellPhysicalActuationReceiptPack.ready states require an armed or triggered safe stop.'
+    );
   }
   if (pack.status === 'executed' && !pack.deviceAction) {
-    errors.push('HoloShellPhysicalActuationReceiptPack.deviceAction is required when status=executed.');
+    errors.push(
+      'HoloShellPhysicalActuationReceiptPack.deviceAction is required when status=executed.'
+    );
   }
   if (pack.rollbackLimit?.rollbackClass === 'irreversible_blocked' && pack.status !== 'blocked') {
-    errors.push('HoloShellPhysicalActuationReceiptPack.irreversible_blocked rollback requires blocked status.');
+    errors.push(
+      'HoloShellPhysicalActuationReceiptPack.irreversible_blocked rollback requires blocked status.'
+    );
   }
   if ((pack.status === 'blocked' || pack.status === 'failed') && !pack.replay && !pack.taskFiled) {
-    errors.push('HoloShellPhysicalActuationReceiptPack.blocked or failed status requires replay or taskFiled.');
+    errors.push(
+      'HoloShellPhysicalActuationReceiptPack.blocked or failed status requires replay or taskFiled.'
+    );
   }
   validateHash('HoloShellPhysicalActuationReceiptPack', pack.hash, pack.hashAlgorithm, errors);
   return errors;
@@ -376,7 +451,9 @@ export function cloneActuationSimulationReceipt(
   return { ...receipt, safeRangeNames: [...receipt.safeRangeNames] };
 }
 
-export function cloneSensorFreshnessReceipt(receipt: SensorFreshnessReceipt): SensorFreshnessReceipt {
+export function cloneSensorFreshnessReceipt(
+  receipt: SensorFreshnessReceipt
+): SensorFreshnessReceipt {
   return { ...receipt };
 }
 

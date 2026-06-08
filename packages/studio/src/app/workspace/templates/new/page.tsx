@@ -11,8 +11,16 @@ import { useSceneStore } from '@/lib/stores';
 import { AIGeneratorWizard } from '@/components/generative/AIGeneratorWizard';
 
 const HoloScriptEditor = dynamic(
-  () => import('@/components/editor/CodeMirrorEditor').then((m) => ({ default: m.CodeMirrorEditor })),
-  { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-zinc-500">Loading editor...</div> }
+  () =>
+    import('@/components/editor/CodeMirrorEditor').then((m) => ({ default: m.CodeMirrorEditor })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center text-xs text-zinc-500">
+        Loading editor...
+      </div>
+    ),
+  }
 );
 
 const TemplateManifestSchema = z.object({
@@ -32,7 +40,11 @@ function TemplateConfigurationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<TemplateManifestForm>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<TemplateManifestForm>({
     resolver: (zodResolver as any)(TemplateManifestSchema),
     defaultValues: {
       id: 'template-',
@@ -56,7 +68,9 @@ function TemplateConfigurationForm() {
       });
 
       if (!res.ok) {
-        console.warn('Endpoint /api/templates/provision may not exist yet, but structural validation passed.');
+        console.warn(
+          'Endpoint /api/templates/provision may not exist yet, but structural validation passed.'
+        );
       }
 
       router.push('/templates');
@@ -72,7 +86,8 @@ function TemplateConfigurationForm() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">Initialize New Template</h1>
         <p className="text-sm text-zinc-400">
-          Define a structural blueprint for reusability. Strict schema enforces topology before provisioning.
+          Define a structural blueprint for reusability. Strict schema enforces topology before
+          provisioning.
         </p>
       </div>
 
@@ -80,32 +95,74 @@ function TemplateConfigurationForm() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="p-5 bg-zinc-800 rounded border border-zinc-700 space-y-4">
-          <h2 className="text-lg font-semibold border-b border-zinc-700 pb-2">1. Template Metadata</h2>
+          <h2 className="text-lg font-semibold border-b border-zinc-700 pb-2">
+            1. Template Metadata
+          </h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="template-id" className="block text-xs font-medium text-zinc-400 mb-1">Template ID</label>
-              <input id="template-id" {...register('id')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="template-core-ui" />
+              <label htmlFor="template-id" className="block text-xs font-medium text-zinc-400 mb-1">
+                Template ID
+              </label>
+              <input
+                id="template-id"
+                {...register('id')}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white"
+                placeholder="template-core-ui"
+              />
               {errors.id && <p className="text-red-400 text-[10px] mt-1">{errors.id.message}</p>}
             </div>
 
             <div>
-              <label htmlFor="template-name" className="block text-xs font-medium text-zinc-400 mb-1">Display Name</label>
-              <input id="template-name" {...register('name')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="Core UI Scaffold" />
-              {errors.name && <p className="text-red-400 text-[10px] mt-1">{errors.name.message}</p>}
+              <label
+                htmlFor="template-name"
+                className="block text-xs font-medium text-zinc-400 mb-1"
+              >
+                Display Name
+              </label>
+              <input
+                id="template-name"
+                {...register('name')}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white"
+                placeholder="Core UI Scaffold"
+              />
+              {errors.name && (
+                <p className="text-red-400 text-[10px] mt-1">{errors.name.message}</p>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="template-version" className="block text-xs font-medium text-zinc-400 mb-1">Version (SemVer)</label>
-              <input id="template-version" {...register('version')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="1.0.0" />
-              {errors.version && <p className="text-red-400 text-[10px] mt-1">{errors.version.message}</p>}
+              <label
+                htmlFor="template-version"
+                className="block text-xs font-medium text-zinc-400 mb-1"
+              >
+                Version (SemVer)
+              </label>
+              <input
+                id="template-version"
+                {...register('version')}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white"
+                placeholder="1.0.0"
+              />
+              {errors.version && (
+                <p className="text-red-400 text-[10px] mt-1">{errors.version.message}</p>
+              )}
             </div>
 
             <div>
-              <label htmlFor="template-type" className="block text-xs font-medium text-zinc-400 mb-1">Template Type</label>
-              <select id="template-type" {...register('type')} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white outline-none">
+              <label
+                htmlFor="template-type"
+                className="block text-xs font-medium text-zinc-400 mb-1"
+              >
+                Template Type
+              </label>
+              <select
+                id="template-type"
+                {...register('type')}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white outline-none"
+              >
                 <option value="scene">3D Scene</option>
                 <option value="agent_swarm">Agent Swarm</option>
                 <option value="ui">User Interface</option>
@@ -116,12 +173,28 @@ function TemplateConfigurationForm() {
           </div>
 
           <div>
-            <label htmlFor="template-description" className="block text-xs font-medium text-zinc-400 mb-1">Description</label>
-            <textarea id="template-description" {...register('description')} rows={3} className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white" placeholder="What makes this template useful?" />
+            <label
+              htmlFor="template-description"
+              className="block text-xs font-medium text-zinc-400 mb-1"
+            >
+              Description
+            </label>
+            <textarea
+              id="template-description"
+              {...register('description')}
+              rows={3}
+              className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1.5 text-sm text-white"
+              placeholder="What makes this template useful?"
+            />
           </div>
 
           <div className="flex items-center gap-2 mt-4 text-sm">
-            <input type="checkbox" {...register('isPublic')} className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-emerald-500" id="isPublic" />
+            <input
+              type="checkbox"
+              {...register('isPublic')}
+              className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-emerald-500"
+              id="isPublic"
+            />
             <label htmlFor="isPublic" className="font-medium text-zinc-400 cursor-pointer">
               Publish to global template registry
             </label>
@@ -131,8 +204,18 @@ function TemplateConfigurationForm() {
         <div className="flex items-center justify-between pt-2">
           {submitError && <p className="text-red-400 text-[10px]">{submitError}</p>}
           <div className="ml-auto flex gap-3">
-            <button type="button" onClick={() => router.back()} className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded transition text-sm font-medium">Cancel</button>
-            <button type="submit" disabled={isSubmitting} className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded transition text-sm font-medium shadow-md">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded transition text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded transition text-sm font-medium shadow-md"
+            >
               {isSubmitting ? 'Provisioning...' : 'Provision Template'}
             </button>
           </div>

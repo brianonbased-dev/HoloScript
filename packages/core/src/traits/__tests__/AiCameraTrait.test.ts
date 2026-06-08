@@ -50,7 +50,9 @@ describe('aiCameraHandler — onUpdate', () => {
   it('is a no-op', () => {
     const node = makeNode();
     aiCameraHandler.onAttach!(node as never);
-    expect(() => aiCameraHandler.onUpdate!(node as never, makeConfig(), makeContext() as never)).not.toThrow();
+    expect(() =>
+      aiCameraHandler.onUpdate!(node as never, makeConfig(), makeContext() as never)
+    ).not.toThrow();
   });
 });
 
@@ -59,10 +61,15 @@ describe('aiCameraHandler — cam:track', () => {
     const node = makeNode();
     aiCameraHandler.onAttach!(node as never);
     const ctx = makeContext();
-    aiCameraHandler.onEvent!(node as never, makeConfig({ tracking_speed: 2.5 }), ctx as never, {
-      type: 'cam:track',
-      targetId: 'player1',
-    } as never);
+    aiCameraHandler.onEvent!(
+      node as never,
+      makeConfig({ tracking_speed: 2.5 }),
+      ctx as never,
+      {
+        type: 'cam:track',
+        targetId: 'player1',
+      } as never
+    );
     const state = node.__camState as { mode: string; target: string };
     expect(state.mode).toBe('tracking');
     expect(state.target).toBe('player1');
@@ -73,10 +80,15 @@ describe('aiCameraHandler — cam:track', () => {
     const node = makeNode();
     aiCameraHandler.onAttach!(node as never);
     const ctx = makeContext();
-    aiCameraHandler.onEvent!(node as never, makeConfig({ tracking_speed: 5 }), ctx as never, {
-      type: 'cam:track',
-      targetId: 'enemy',
-    } as never);
+    aiCameraHandler.onEvent!(
+      node as never,
+      makeConfig({ tracking_speed: 5 }),
+      ctx as never,
+      {
+        type: 'cam:track',
+        targetId: 'enemy',
+      } as never
+    );
     expect(ctx.emit).toHaveBeenCalledWith('cam:tracking', { target: 'enemy', speed: 5 });
   });
 });
@@ -86,13 +98,21 @@ describe('aiCameraHandler — cam:frame', () => {
     const node = makeNode();
     aiCameraHandler.onAttach!(node as never);
     const ctx = makeContext();
-    aiCameraHandler.onEvent!(node as never, makeConfig(), ctx as never, {
-      type: 'cam:frame',
-      composition: 'rule-of-thirds',
-    } as never);
+    aiCameraHandler.onEvent!(
+      node as never,
+      makeConfig(),
+      ctx as never,
+      {
+        type: 'cam:frame',
+        composition: 'rule-of-thirds',
+      } as never
+    );
     const state = node.__camState as { shots: number };
     expect(state.shots).toBe(1);
-    expect(ctx.emit).toHaveBeenCalledWith('cam:framed', { composition: 'rule-of-thirds', shotCount: 1 });
+    expect(ctx.emit).toHaveBeenCalledWith('cam:framed', {
+      composition: 'rule-of-thirds',
+      shotCount: 1,
+    });
   });
 
   it('accumulates shot count across multiple frames', () => {
@@ -100,9 +120,15 @@ describe('aiCameraHandler — cam:frame', () => {
     aiCameraHandler.onAttach!(node as never);
     const ctx = makeContext();
     for (let i = 0; i < 5; i++) {
-      aiCameraHandler.onEvent!(node as never, makeConfig(), ctx as never, {
-        type: 'cam:frame', composition: 'centered',
-      } as never);
+      aiCameraHandler.onEvent!(
+        node as never,
+        makeConfig(),
+        ctx as never,
+        {
+          type: 'cam:frame',
+          composition: 'centered',
+        } as never
+      );
     }
     const state = node.__camState as { shots: number };
     expect(state.shots).toBe(5);
@@ -114,7 +140,12 @@ describe('aiCameraHandler — cam:auto', () => {
     const node = makeNode();
     aiCameraHandler.onAttach!(node as never);
     const ctx = makeContext();
-    aiCameraHandler.onEvent!(node as never, makeConfig(), ctx as never, { type: 'cam:auto' } as never);
+    aiCameraHandler.onEvent!(
+      node as never,
+      makeConfig(),
+      ctx as never,
+      { type: 'cam:auto' } as never
+    );
     const state = node.__camState as { mode: string };
     expect(state.mode).toBe('auto');
     expect(ctx.emit).toHaveBeenCalledWith('cam:auto_mode', { mode: 'auto' });
@@ -127,7 +158,12 @@ describe('aiCameraHandler — edge cases', () => {
     aiCameraHandler.onAttach!(node as never);
     const ctx = makeContext();
     expect(() =>
-      aiCameraHandler.onEvent!(node as never, makeConfig(), ctx as never, { type: 'cam:zoom' } as never)
+      aiCameraHandler.onEvent!(
+        node as never,
+        makeConfig(),
+        ctx as never,
+        { type: 'cam:zoom' } as never
+      )
     ).not.toThrow();
     expect(ctx.emit).not.toHaveBeenCalled();
   });
@@ -136,9 +172,15 @@ describe('aiCameraHandler — edge cases', () => {
     const node = makeNode();
     const ctx = makeContext();
     expect(() =>
-      aiCameraHandler.onEvent!(node as never, makeConfig(), ctx as never, {
-        type: 'cam:track', targetId: 'x',
-      } as never)
+      aiCameraHandler.onEvent!(
+        node as never,
+        makeConfig(),
+        ctx as never,
+        {
+          type: 'cam:track',
+          targetId: 'x',
+        } as never
+      )
     ).not.toThrow();
     expect(ctx.emit).not.toHaveBeenCalled();
   });

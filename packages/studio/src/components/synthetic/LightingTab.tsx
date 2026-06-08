@@ -49,9 +49,7 @@ export function LightingTab({ lighting, setLighting }: LightingTabProps) {
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-studio-muted">Shadows</span>
         <button
-          onClick={() =>
-            setLighting((prev) => ({ ...prev, shadowsEnabled: !prev.shadowsEnabled }))
-          }
+          onClick={() => setLighting((prev) => ({ ...prev, shadowsEnabled: !prev.shadowsEnabled }))}
           className={`px-2 py-0.5 rounded text-[10px] transition ${
             lighting.shadowsEnabled
               ? 'bg-emerald-500/20 text-emerald-400'

@@ -314,13 +314,7 @@ export function AnisotropyPanel({ config, update, active, onToggle }: BasePanelP
 
 export function DisplayOptionsPanel({ config, update, active, onToggle }: BasePanelProps) {
   return (
-    <Section
-      id="options"
-      label="Display Options"
-      icon={Eye}
-      active={active}
-      onToggle={onToggle}
-    >
+    <Section id="options" label="Display Options" icon={Eye} active={active} onToggle={onToggle}>
       {[
         { label: 'Wireframe', key: 'wireframe' as const },
         { label: 'Flat Shading', key: 'flatShading' as const },

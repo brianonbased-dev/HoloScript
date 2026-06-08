@@ -6,12 +6,12 @@
 
 ## 1. Trait Inventory
 
-| File | LOC | Tests | Role |
-|------|-----|-------|------|
-| `ServiceObservabilityTrait.ts` | 401 | 9 cases | Schema validation, health probes, alert rules, scheduled cleanup, operation metrics |
-| `ServiceObservabilityTrait.test.ts` | 140 | 9 cases | Schema ready/failed, alert false-case/trigger, api_quota, metrics cleanup, CI floor |
+| File                                  | LOC | Tests   | Role                                                                                        |
+| ------------------------------------- | --- | ------- | ------------------------------------------------------------------------------------------- |
+| `ServiceObservabilityTrait.ts`        | 401 | 9 cases | Schema validation, health probes, alert rules, scheduled cleanup, operation metrics         |
+| `ServiceObservabilityTrait.test.ts`   | 140 | 9 cases | Schema ready/failed, alert false-case/trigger, api_quota, metrics cleanup, CI floor         |
 | `observability-tools.ts` (MCP server) | 594 | 2 cases | `holo_service_scaffold` MCP tool â€” SQL + StartupHealthCheck + @serviceObservability snippet |
-| `observability-tools.test.ts` | 61 | 2 cases | Tool registration and scaffold end-to-end |
+| `observability-tools.test.ts`         | 61  | 2 cases | Tool registration and scaffold end-to-end                                                   |
 
 ## 2. Gem 3 Spec Coverage
 
@@ -33,13 +33,13 @@ The MCP tool `holo_service_scaffold` generates production-ready SQL (CREATE TABL
 
 "SLF v1 blockers" could not be located in the repository (searched: `SLF v1`, `SLF blocker`, `blocker SLF` across HoloScript and uaa2-service). The term does not appear in any tracked file. Based on the Spatial Logic Framework (`packages/framework/src/board/spatial-logic.ts`) implementation, the following alert rules are recommended for monitoring SLF health:
 
-| Alert Rule | Type | Severity | Threshold | Rationale |
-|------------|------|----------|-----------|-----------|
-| `slf_schema_validation_failure_rate` | `error_rate` | `critical` | > 0.01 (1%) | `validateShard` failures indicate broken world manifests |
-| `slf_cross_reference_integrity_violations` | `custom` | `warning` | > 0 | Zone/encounter/loot-table/quest cross-ref errors are data-quality blockers |
-| `slf_unsupported_predicate_kind` | `custom` | `warning` | > 0 | `predicate-other` without `kindLabel` = schema drift |
-| `slf_unsupported_action_kind` | `custom` | `warning` | > 0 | `action-other` without `kindLabel` = schema drift |
-| `slf_spatial_rule_validation_errors` | `error_rate` | `critical` | > 0.05 (5%) | `validateSpatialRule` failures break game logic |
+| Alert Rule                                 | Type         | Severity   | Threshold   | Rationale                                                                  |
+| ------------------------------------------ | ------------ | ---------- | ----------- | -------------------------------------------------------------------------- |
+| `slf_schema_validation_failure_rate`       | `error_rate` | `critical` | > 0.01 (1%) | `validateShard` failures indicate broken world manifests                   |
+| `slf_cross_reference_integrity_violations` | `custom`     | `warning`  | > 0         | Zone/encounter/loot-table/quest cross-ref errors are data-quality blockers |
+| `slf_unsupported_predicate_kind`           | `custom`     | `warning`  | > 0         | `predicate-other` without `kindLabel` = schema drift                       |
+| `slf_unsupported_action_kind`              | `custom`     | `warning`  | > 0         | `action-other` without `kindLabel` = schema drift                          |
+| `slf_spatial_rule_validation_errors`       | `error_rate` | `critical` | > 0.05 (5%) | `validateSpatialRule` failures break game logic                            |
 
 **Wiring:** These rules should be seeded into the `alerts` table via `holo_service_scaffold` with `rule_type: 'custom'` and asserted by the SLF runtime when validation errors are encountered. The `ServiceObservabilityTrait` handler already supports `alert_assert` events for custom rules.
 
@@ -54,6 +54,7 @@ The task description mentions "Adjacent DataStorageObservability.test.ts found â
 ## 5. Holo_service_scaffold MCP Tool
 
 **Confirmed present** in `packages/mcp-server/src/observability-tools.ts` (lines 80-126 tool definition, lines 313-356 handler). Generates:
+
 - SQL schema for required tables
 - Alert seed INSERTs
 - StartupHealthCheck TypeScript class

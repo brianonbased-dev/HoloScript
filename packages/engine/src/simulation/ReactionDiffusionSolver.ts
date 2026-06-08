@@ -96,10 +96,7 @@ const DP_A = [
 const DP_B5 = [35 / 384, 0, 500 / 1113, 125 / 192, -2187 / 6784, 11 / 84, 0];
 
 /** 4th-order weights (for error estimation) */
-const DP_B4 = [
-  5179 / 57600, 0, 7571 / 16695, 393 / 640,
-  -92097 / 339200, 187 / 2100, 1 / 40,
-];
+const DP_B4 = [5179 / 57600, 0, 7571 / 16695, 393 / 640, -92097 / 339200, 187 / 2100, 1 / 40];
 
 const DP_C = [0, 1 / 5, 3 / 10, 4 / 5, 8 / 9, 1, 1];
 
@@ -314,9 +311,7 @@ export class ReactionDiffusionSolver {
 
   /** Point query: concentration at world position via trilinear interpolation */
   getConcentrationAt(speciesIndex: number, x: number, y: number, z: number): number {
-    const result = this.concentrations[speciesIndex].sampleAtPositions(
-      new Float32Array([x, y, z])
-    );
+    const result = this.concentrations[speciesIndex].sampleAtPositions(new Float32Array([x, y, z]));
     return result[0];
   }
 
@@ -337,7 +332,8 @@ export class ReactionDiffusionSolver {
 
     for (let s = 0; s < nSpecies; s++) {
       const d = this.concentrations[s].data;
-      let min = Infinity, max = -Infinity;
+      let min = Infinity,
+        max = -Infinity;
       for (let i = 0; i < d.length; i++) {
         if (d[i] < min) min = d[i];
         if (d[i] > max) max = d[i];
@@ -472,13 +468,31 @@ export class ReactionDiffusionSolver {
             // reflect stencil + the core Schnakenberg solver).
             let diag = 0;
             let off = 0;
-            if (i > 0) { diag += invdx2; off += conc.get(i - 1, j, k) * invdx2; }
-            if (i < nx - 1) { diag += invdx2; off += conc.get(i + 1, j, k) * invdx2; }
-            if (j > 0) { diag += invdy2; off += conc.get(i, j - 1, k) * invdy2; }
-            if (j < ny - 1) { diag += invdy2; off += conc.get(i, j + 1, k) * invdy2; }
+            if (i > 0) {
+              diag += invdx2;
+              off += conc.get(i - 1, j, k) * invdx2;
+            }
+            if (i < nx - 1) {
+              diag += invdx2;
+              off += conc.get(i + 1, j, k) * invdx2;
+            }
+            if (j > 0) {
+              diag += invdy2;
+              off += conc.get(i, j - 1, k) * invdy2;
+            }
+            if (j < ny - 1) {
+              diag += invdy2;
+              off += conc.get(i, j + 1, k) * invdy2;
+            }
             if (nz > 1) {
-              if (k > 0) { diag += invdz2; off += conc.get(i, j, k - 1) * invdz2; }
-              if (k < nz - 1) { diag += invdz2; off += conc.get(i, j, k + 1) * invdz2; }
+              if (k > 0) {
+                diag += invdz2;
+                off += conc.get(i, j, k - 1) * invdz2;
+              }
+              if (k < nz - 1) {
+                diag += invdz2;
+                off += conc.get(i, j, k + 1) * invdz2;
+              }
             }
             const cOld = prev.get(i, j, k);
             const newVal = (cOld + dt * D * off) / (1 + dt * D * diag);
@@ -557,7 +571,8 @@ export class ReactionDiffusionSolver {
             // 5th-order solution and error estimate
             let errNorm = 0;
             for (let s = 0; s < nSpecies; s++) {
-              let sum5 = 0, sum4 = 0;
+              let sum5 = 0,
+                sum4 = 0;
               for (let q = 0; q < 7; q++) {
                 sum5 += DP_B5[q] * k[q][s];
                 sum4 += DP_B4[q] * k[q][s];
@@ -586,10 +601,7 @@ export class ReactionDiffusionSolver {
 
               // Grow step
               if (errNorm > 0) {
-                h *= Math.min(
-                  this.maxGrowth,
-                  this.safety * Math.pow(errNorm, -0.2)
-                );
+                h *= Math.min(this.maxGrowth, this.safety * Math.pow(errNorm, -0.2));
               } else {
                 h *= this.maxGrowth;
               }

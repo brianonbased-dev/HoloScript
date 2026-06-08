@@ -79,7 +79,7 @@ describe('createQmSolver', () => {
 
   it('throws for unknown backend', () => {
     expect(() =>
-      createQmSolver({ backend: 'unknown' as QmBackend, method: 'hf', basis: 'sto-3g' }),
+      createQmSolver({ backend: 'unknown' as QmBackend, method: 'hf', basis: 'sto-3g' })
     ).toThrow(/Unknown backend/);
   });
 });
@@ -92,7 +92,9 @@ describe('selectQmBackend', () => {
   });
 
   it('routes crystal/material queries to Quantum ESPRESSO', () => {
-    expect(selectQmBackend('Calculate the material properties of silicon')).toBe('quantum-espresso');
+    expect(selectQmBackend('Calculate the material properties of silicon')).toBe(
+      'quantum-espresso'
+    );
     expect(selectQmBackend('What is the band structure of this crystal?')).toBe('quantum-espresso');
   });
 
@@ -179,15 +181,11 @@ describe('requireCapability', () => {
   });
 
   it('throws when backend lacks the capability', () => {
-    expect(() => requireCapability('psi4', 'periodic')).toThrow(
-      /does not support 'periodic'/,
-    );
+    expect(() => requireCapability('psi4', 'periodic')).toThrow(/does not support 'periodic'/);
     expect(() => requireCapability('quantum-espresso', 'nmrGiao')).toThrow(
-      /does not support 'nmrGiao'/,
+      /does not support 'nmrGiao'/
     );
-    expect(() => requireCapability('tblite', 'postHf')).toThrow(
-      /does not support 'postHf'/,
-    );
+    expect(() => requireCapability('tblite', 'postHf')).toThrow(/does not support 'postHf'/);
   });
 });
 
@@ -246,7 +244,7 @@ describe('qmResultToCaelSummary', () => {
           basis: '6-31g*',
         },
       },
-      3,
+      3
     );
 
     expect(summary.converged).toBe(true);
@@ -283,7 +281,7 @@ describe('verifyQmAcceptance', () => {
   it('passes when energy matches reference within tolerance', () => {
     const violations = verifyQmAcceptance(
       { converged: true, totalEnergy: -76.0, scfIterations: 10 },
-      { totalEnergy: -76.0 },
+      { totalEnergy: -76.0 }
     );
     expect(violations).toHaveLength(0);
   });
@@ -291,7 +289,7 @@ describe('verifyQmAcceptance', () => {
   it('flags energy difference exceeding tolerance', () => {
     const violations = verifyQmAcceptance(
       { converged: true, totalEnergy: -76.0, scfIterations: 10 },
-      { totalEnergy: -75.9 },
+      { totalEnergy: -75.9 }
     );
     expect(violations.some((v) => v.criterion === 'energy_tolerance')).toBe(true);
   });
@@ -315,7 +313,7 @@ describe('Psi4Backend (mock)', () => {
     const result = await solver.computeEnergy(waterMolecule);
 
     expect(result.converged).toBe(true);
-    expect(result.totalEnergy).toBeLessThan(0);  // Bound state is negative
+    expect(result.totalEnergy).toBeLessThan(0); // Bound state is negative
     expect(result.solverConfig.backend).toBe('psi4');
     expect(result.wallTimeSeconds).toBeGreaterThanOrEqual(0);
     solver.dispose();
@@ -344,10 +342,16 @@ describe('Psi4Backend (mock)', () => {
 
   it('throws for band structure on Psi4', async () => {
     const solver = createQmSolver(psi4Config);
-    await expect(solver.computeBandStructure({
-      atoms: [{ symbol: 'Si', fx: 0, fy: 0, fz: 0 }],
-      latticeVectors: [[5.43, 0, 0], [0, 5.43, 0], [0, 0, 5.43]],
-    })).rejects.toThrow(/does not support periodic/);
+    await expect(
+      solver.computeBandStructure({
+        atoms: [{ symbol: 'Si', fx: 0, fy: 0, fz: 0 }],
+        latticeVectors: [
+          [5.43, 0, 0],
+          [0, 5.43, 0],
+          [0, 0, 5.43],
+        ],
+      })
+    ).rejects.toThrow(/does not support periodic/);
     solver.dispose();
   });
 
@@ -373,7 +377,11 @@ describe('QuantumEspressoBackend (mock)', () => {
       { symbol: 'O', fx: 0.5, fy: 0, fz: 0.5 },
       { symbol: 'O', fx: 0, fy: 0.5, fz: 0.5 },
     ],
-    latticeVectors: [[3.905, 0, 0], [0, 3.905, 0], [0, 0, 3.905]] as Array<[number, number, number]>,
+    latticeVectors: [
+      [3.905, 0, 0],
+      [0, 3.905, 0],
+      [0, 0, 3.905],
+    ] as Array<[number, number, number]>,
   };
 
   it('computes band structure for SrTiO3', async () => {
@@ -425,10 +433,16 @@ describe('TBLiteBackend (mock)', () => {
 
   it('throws for band structure', async () => {
     const solver = createQmSolver(tbliteConfig);
-    await expect(solver.computeBandStructure({
-      atoms: [{ symbol: 'C', fx: 0, fy: 0, fz: 0 }],
-      latticeVectors: [[2.46, 0, 0], [0, 2.46, 0], [0, 0, 10]] as Array<[number, number, number]>,
-    })).rejects.toThrow(/band structure/);
+    await expect(
+      solver.computeBandStructure({
+        atoms: [{ symbol: 'C', fx: 0, fy: 0, fz: 0 }],
+        latticeVectors: [
+          [2.46, 0, 0],
+          [0, 2.46, 0],
+          [0, 0, 10],
+        ] as Array<[number, number, number]>,
+      })
+    ).rejects.toThrow(/band structure/);
     solver.dispose();
   });
 });
@@ -506,7 +520,11 @@ const srtio3Crystal = {
     { symbol: 'O', fx: 0.5, fy: 0, fz: 0.5 },
     { symbol: 'O', fx: 0, fy: 0.5, fz: 0.5 },
   ],
-  latticeVectors: [[3.905, 0, 0], [0, 3.905, 0], [0, 0, 3.905]] as Array<[number, number, number]>,
+  latticeVectors: [
+    [3.905, 0, 0],
+    [0, 3.905, 0],
+    [0, 0, 3.905],
+  ] as Array<[number, number, number]>,
 };
 
 const siliconCrystal = {
@@ -514,7 +532,11 @@ const siliconCrystal = {
     { symbol: 'Si', fx: 0, fy: 0, fz: 0 },
     { symbol: 'Si', fx: 0.25, fy: 0.25, fz: 0.25 },
   ],
-  latticeVectors: [[5.43, 0, 0], [0, 5.43, 0], [0, 0, 5.43]] as Array<[number, number, number]>,
+  latticeVectors: [
+    [5.43, 0, 0],
+    [0, 5.43, 0],
+    [0, 0, 5.43],
+  ] as Array<[number, number, number]>,
 };
 
 describe('PySCFBackend', () => {
@@ -692,7 +714,7 @@ describe('PySCF CAEL mapping', () => {
           basis: 'sto-3g',
         },
       },
-      5, // SrTiO3 = 5 atoms
+      5 // SrTiO3 = 5 atoms
     );
     expect(summary.backend).toBe('pyscf');
     expect(summary.total_energy_hartree).toBe(-340.5);

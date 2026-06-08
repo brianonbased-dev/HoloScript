@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  deriveApprovalReversibility,
-  inferApprovalActionType,
-} from '../founder-approval-policy';
+import { deriveApprovalReversibility, inferApprovalActionType } from '../founder-approval-policy';
 
 describe('founder-approval-policy — deriveApprovalReversibility', () => {
   it('admits plain code intents as reversible one-tap', () => {

@@ -44,9 +44,7 @@ import {
   stableArchiveHash,
 } from './AccountExportArchiveReceipt';
 
-import {
-  SensitivityPattern,
-} from './AccountExportArchiveReceipt';
+import { SensitivityPattern } from './AccountExportArchiveReceipt';
 
 import {
   AccountExportReplayPayload,
@@ -59,9 +57,7 @@ import {
   stableReplayHash,
 } from './AccountExportReplayReceipt';
 
-import {
-  TrustReceiptInput,
-} from './TrustReceipt';
+import { TrustReceiptInput } from './TrustReceipt';
 import { TrustLedger } from './TrustLedger';
 
 // ─── Archive Part Input ───────────────────────────────────────────────────────
@@ -182,7 +178,8 @@ export interface ArchiveVerifierResult {
  */
 export class AccountExportArchiveVerifier {
   private readonly config: Required<
-    Pick<ArchiveVerifierConfig,
+    Pick<
+      ArchiveVerifierConfig,
       | 'workflow'
       | 'provider'
       | 'providerLabel'
@@ -192,10 +189,16 @@ export class AccountExportArchiveVerifier {
       | 'blockOnRestricted'
       | 'passportDid'
     >
-  > & Pick<ArchiveVerifierConfig,
-      'taskId' | 'parentReceiptIds' | 'commit' | 'ledger'
-      | 'sensitivityPatterns' | 'additionalExecutableExtensions'
-  >;
+  > &
+    Pick<
+      ArchiveVerifierConfig,
+      | 'taskId'
+      | 'parentReceiptIds'
+      | 'commit'
+      | 'ledger'
+      | 'sensitivityPatterns'
+      | 'additionalExecutableExtensions'
+    >;
 
   private readonly sensitivityPatterns: SensitivityPattern[];
   private readonly executableExtensions: Set<string>;
@@ -235,9 +238,8 @@ export class AccountExportArchiveVerifier {
     // ─── Step 1: Hash and verify parts ──────────────────────────────────────
 
     const verifiedParts: ArchivePart[] = parts.map((part) => {
-      const contentBuf = typeof part.content === 'string'
-        ? Buffer.from(part.content, 'utf-8')
-        : part.content;
+      const contentBuf =
+        typeof part.content === 'string' ? Buffer.from(part.content, 'utf-8') : part.content;
 
       const partHash = 'sha256:' + createHash('sha256').update(contentBuf).digest('hex');
       const partSizeBytes = contentBuf.length;
@@ -261,15 +263,16 @@ export class AccountExportArchiveVerifier {
     });
 
     const totalParts = parts.length > 0 ? parts[0].totalParts : 1;
-    const partsComplete = verifiedParts.every((p) => p.status === 'present_intact' || p.status === 'present_size_mismatch');
+    const partsComplete = verifiedParts.every(
+      (p) => p.status === 'present_intact' || p.status === 'present_size_mismatch'
+    );
     const totalSizeBytes = verifiedParts.reduce((sum, p) => sum + p.partSizeBytes, 0);
 
     // ─── Step 2: Build file manifest ────────────────────────────────────────
 
     const fileManifest: ArchiveFileManifestEntry[] = files.map((file) => {
-      const contentBuf = typeof file.content === 'string'
-        ? Buffer.from(file.content, 'utf-8')
-        : file.content;
+      const contentBuf =
+        typeof file.content === 'string' ? Buffer.from(file.content, 'utf-8') : file.content;
 
       const contentHash = 'sha256:' + createHash('sha256').update(contentBuf).digest('hex');
       const sizeBytes = contentBuf.length;
@@ -289,7 +292,11 @@ export class AccountExportArchiveVerifier {
         }
       }
       const isExe = exeResult.executable || isCustomExe;
-      const exeExt = exeResult.executable ? exeResult.extension : (isCustomExe ? customExt : undefined);
+      const exeExt = exeResult.executable
+        ? exeResult.extension
+        : isCustomExe
+          ? customExt
+          : undefined;
 
       // Sensitivity classification
       const sensitivity = classifyFileSensitivity(file.path, this.sensitivityPatterns);
@@ -325,7 +332,13 @@ export class AccountExportArchiveVerifier {
 
     const allCategories = new Set<SensitivityCategory>();
     let aggregateSensitivity: SensitivityLevel = 'public';
-    const sensitivityOrder: SensitivityLevel[] = ['public', 'internal', 'personal', 'sensitive', 'restricted'];
+    const sensitivityOrder: SensitivityLevel[] = [
+      'public',
+      'internal',
+      'personal',
+      'sensitive',
+      'restricted',
+    ];
     const sensitivityIndex = (l: SensitivityLevel) => sensitivityOrder.indexOf(l);
 
     for (const entry of fileManifest) {
@@ -424,10 +437,17 @@ export class AccountExportArchiveVerifier {
       sensitivityCategories: [...allCategories],
       restrictedFiles,
       sensitiveFiles,
-      sensitivityBlockShare: (restrictedFiles.length > 0 || sensitiveFiles.length > 0)
-        && this.config.blockOnSensitivity,
+      sensitivityBlockShare:
+        (restrictedFiles.length > 0 || sensitiveFiles.length > 0) && this.config.blockOnSensitivity,
       verificationResult,
-      verificationSummary: this.buildVerificationSummary(verificationResult, executableFiles, restrictedFiles, sensitiveFiles, errors, warnings),
+      verificationSummary: this.buildVerificationSummary(
+        verificationResult,
+        executableFiles,
+        restrictedFiles,
+        sensitiveFiles,
+        errors,
+        warnings
+      ),
       warnings,
       errors,
       credentialAdjacent: false,
@@ -478,15 +498,13 @@ export class AccountExportArchiveVerifier {
     currentFiles: ArchiveFileInput[],
     trigger: ReplayTrigger = 'integrity_check',
     originalReceiptId: string = '',
-    originalTimestamp: string = '',
+    originalTimestamp: string = ''
   ): {
     payload: AccountExportReplayPayload;
     receiptInput: TrustReceiptInput;
     validation: { valid: boolean; errors: string[]; warnings: string[] };
   } {
-    const originalManifest = new Map(
-      originalPayload.fileManifest.map((e) => [e.path, e]),
-    );
+    const originalManifest = new Map(originalPayload.fileManifest.map((e) => [e.path, e]));
 
     const currentHashes = new Map<string, string>();
     const diffEntries: ReplayDiffEntry[] = [];
@@ -500,9 +518,8 @@ export class AccountExportArchiveVerifier {
 
     // Compare current files against original manifest
     for (const file of currentFiles) {
-      const contentBuf = typeof file.content === 'string'
-        ? Buffer.from(file.content, 'utf-8')
-        : file.content;
+      const contentBuf =
+        typeof file.content === 'string' ? Buffer.from(file.content, 'utf-8') : file.content;
       const currentHash = 'sha256:' + createHash('sha256').update(contentBuf).digest('hex');
       currentHashes.set(file.path, currentHash);
 
@@ -574,7 +591,8 @@ export class AccountExportArchiveVerifier {
       .sort()
       .map((p) => `${p}:${currentHashes.get(p)}`)
       .join('\n');
-    const currentArchiveHash = 'sha256:' + createHash('sha256').update(currentArchiveInput).digest('hex');
+    const currentArchiveHash =
+      'sha256:' + createHash('sha256').update(currentArchiveInput).digest('hex');
 
     const archiveHashMatch = currentArchiveHash === originalPayload.archiveHash;
     const fileContentMatch = filesDiffered === 0 && filesMissing === 0 && filesExtra === 0;
@@ -586,7 +604,11 @@ export class AccountExportArchiveVerifier {
 
     if (fileContentMatch && sensitivityMatch && executableMatch) {
       replayOutcome = 'match';
-    } else if (fileContentMatch && (sensitivityMatch || !this.config.blockOnSensitivity) && (executableMatch || !this.config.blockOnExecutables)) {
+    } else if (
+      fileContentMatch &&
+      (sensitivityMatch || !this.config.blockOnSensitivity) &&
+      (executableMatch || !this.config.blockOnExecutables)
+    ) {
       replayOutcome = 'match_with_warnings';
       if (!sensitivityMatch) warnings.push('Sensitivity classification drifted');
       if (!executableMatch) warnings.push('Executable classification drifted');
@@ -629,7 +651,15 @@ export class AccountExportArchiveVerifier {
       sensitivityMatch,
       executableMatch,
       replayOutcome,
-      replaySummary: this.buildReplaySummary(replayOutcome, filesMatched, filesDiffered, filesMissing, filesExtra, sensitivityMatch, executableMatch),
+      replaySummary: this.buildReplaySummary(
+        replayOutcome,
+        filesMatched,
+        filesDiffered,
+        filesMissing,
+        filesExtra,
+        sensitivityMatch,
+        executableMatch
+      ),
       diffEntries,
       warnings,
       errors,
@@ -667,7 +697,7 @@ export class AccountExportArchiveVerifier {
     restricted: string[],
     sensitive: string[],
     errors: string[],
-    warnings: string[],
+    warnings: string[]
   ): string {
     const parts: string[] = [];
 
@@ -705,7 +735,7 @@ export class AccountExportArchiveVerifier {
     missing: number,
     extra: number,
     sensitivityMatch: boolean,
-    executableMatch: boolean,
+    executableMatch: boolean
   ): string {
     const parts: string[] = [];
 

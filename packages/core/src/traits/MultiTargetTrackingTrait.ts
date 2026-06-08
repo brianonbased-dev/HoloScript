@@ -140,7 +140,9 @@ export const MultiTargetTrackingTrait: TraitHandler<MultiTargetTrackingConfig> =
     }
     if (config.max_occluded_frames !== undefined) {
       if (!Number.isInteger(config.max_occluded_frames) || config.max_occluded_frames < 0) {
-        throw new Error('MultiTargetTrackingTrait: max_occluded_frames must be a non-negative integer');
+        throw new Error(
+          'MultiTargetTrackingTrait: max_occluded_frames must be a non-negative integer'
+        );
       }
     }
     if (config.reid_embedding_dim !== undefined) {
@@ -154,12 +156,16 @@ export const MultiTargetTrackingTrait: TraitHandler<MultiTargetTrackingConfig> =
         config.reid_similarity_threshold < -1 ||
         config.reid_similarity_threshold > 1
       ) {
-        throw new Error('MultiTargetTrackingTrait: reid_similarity_threshold must be in [-1, 1] (cosine)');
+        throw new Error(
+          'MultiTargetTrackingTrait: reid_similarity_threshold must be in [-1, 1] (cosine)'
+        );
       }
     }
     if (config.reid_features !== undefined) {
       if (!Array.isArray(config.reid_features) || config.reid_features.length === 0) {
-        throw new Error('MultiTargetTrackingTrait: reid_features must be a non-empty array if provided');
+        throw new Error(
+          'MultiTargetTrackingTrait: reid_features must be a non-empty array if provided'
+        );
       }
       for (const feature of config.reid_features) {
         if (!ALLOWED_REID_FEATURES.includes(feature)) {

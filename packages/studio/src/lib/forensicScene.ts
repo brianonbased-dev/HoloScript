@@ -18,9 +18,15 @@ export interface Vector3 {
 
 type Vector3Like = Vector3 | [number, number, number] | { x: number; y: number; z: number };
 
-function vx(v: Vector3Like): number { return (v as Vector3).x ?? (v as [number, number, number])[0] ?? 0; }
-function vy(v: Vector3Like): number { return (v as Vector3).y ?? (v as [number, number, number])[1] ?? 0; }
-function vz(v: Vector3Like): number { return (v as Vector3).z ?? (v as [number, number, number])[2] ?? 0; }
+function vx(v: Vector3Like): number {
+  return (v as Vector3).x ?? (v as [number, number, number])[0] ?? 0;
+}
+function vy(v: Vector3Like): number {
+  return (v as Vector3).y ?? (v as [number, number, number])[1] ?? 0;
+}
+function vz(v: Vector3Like): number {
+  return (v as Vector3).z ?? (v as [number, number, number])[2] ?? 0;
+}
 function vec3(x: number, y: number, z: number): Vector3 {
   const v = { x, y, z } as Vector3;
   Object.defineProperty(v, '0', { value: x, enumerable: false });
@@ -311,8 +317,7 @@ export function photogrammetryPointCloud(captures: PhotoCapture[]): {
   estimatedPoints: number;
   coverageScore: number;
 } {
-  if (captures.length < 2)
-    return { centroid: vec3(0, 0, 0), estimatedPoints: 0, coverageScore: 0 };
+  if (captures.length < 2) return { centroid: vec3(0, 0, 0), estimatedPoints: 0, coverageScore: 0 };
 
   // Centroid of all capture look-at positions
   const centroid: Vector3 = vec3(
@@ -328,7 +333,9 @@ export function photogrammetryPointCloud(captures: PhotoCapture[]): {
   const angles = new Set<number>();
   for (const c of captures) {
     const angle = Math.round(
-      (Math.atan2(vz(c.position) - vz(centroid), vx(c.position) - vx(centroid)) * 180) / Math.PI / 45
+      (Math.atan2(vz(c.position) - vz(centroid), vx(c.position) - vx(centroid)) * 180) /
+        Math.PI /
+        45
     );
     angles.add(angle);
   }

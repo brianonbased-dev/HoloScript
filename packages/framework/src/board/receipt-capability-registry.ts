@@ -286,7 +286,16 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     validateFn: 'validatePhotoBackupCustodyReceipt',
     cloneFn: 'clonePhotoBackupCustodyReceipt',
     isSupportedFn: 'isSupportedPhotoBackupMediaKind',
-    subjects: ['photos', 'backup', 'restore', 'duplicate', 'privacy', 'encryption', 'cloud', 'delete-blocker'],
+    subjects: [
+      'photos',
+      'backup',
+      'restore',
+      'duplicate',
+      'privacy',
+      'encryption',
+      'cloud',
+      'delete-blocker',
+    ],
     tags: ['holoshell', 'photos', 'backup', 'privacy', 'safety'],
   },
   {
@@ -494,7 +503,13 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     validateFn: 'validateHoloShellWorldBuildReadyToken',
     cloneFn: 'cloneHoloShellWorldBuildReadyToken',
     isSupportedFn: undefined,
-    subjects: ['local-source', 'hardware-reality', 'build-custody', 'visual-witness', 'codebase-graph-trust'],
+    subjects: [
+      'local-source',
+      'hardware-reality',
+      'build-custody',
+      'visual-witness',
+      'codebase-graph-trust',
+    ],
     tags: ['holoshell', 'build', 'ready', 'hololand', 'gates'],
   },
 
@@ -616,7 +631,14 @@ export const RECEIPT_CAPABILITY_REGISTRY: ReceiptCapabilityEntry[] = [
     validateFn: 'validateHoloShellLegacyAppReconstruction',
     cloneFn: 'cloneHoloShellLegacyAppReconstruction',
     isSupportedFn: 'isSupportedHoloShellReconstructionAction',
-    subjects: ['geometry-node', 'control-group', 'witness', 'confidence', 'low-confidence-block', 'reconstruction'],
+    subjects: [
+      'geometry-node',
+      'control-group',
+      'witness',
+      'confidence',
+      'low-confidence-block',
+      'reconstruction',
+    ],
     tags: ['holoshell', 'legacy', 'reconstruction', 'geometry'],
   },
   {

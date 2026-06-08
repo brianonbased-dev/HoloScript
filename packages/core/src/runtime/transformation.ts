@@ -57,7 +57,7 @@ export interface TransformationContext {
 export async function applyTransformation(
   data: unknown,
   transform: TransformationNode,
-  ctx: TransformationContext,
+  ctx: TransformationContext
 ): Promise<HoloScriptValue> {
   const params = transform.parameters || {};
 
@@ -83,7 +83,10 @@ export async function applyTransformation(
           return ctx.evaluateExpression(mapper);
         }) as unknown as HoloScriptValue;
       }
-      return data.map((item) => ({ value: item, processed: true })) as unknown[] as unknown as HoloScriptValue;
+      return data.map((item) => ({
+        value: item,
+        processed: true,
+      })) as unknown[] as unknown as HoloScriptValue;
     }
 
     case 'reduce': {

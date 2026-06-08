@@ -73,7 +73,7 @@ describe('HapticCueTrait', () => {
   it('spatial_direction includes direction vector', () => {
     const spatialCfg = { ...cfg, spatial_direction: true };
     const n2 = createMockNode('spat');
-    (n2 as any).position = [3, 4, 0 ];
+    (n2 as any).position = [3, 4, 0];
     const c2 = createMockContext();
     attachTrait(hapticCueHandler, n2, spatialCfg, c2);
     sendEvent(hapticCueHandler, n2, spatialCfg, c2, { type: 'interact' });

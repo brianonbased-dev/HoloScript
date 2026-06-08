@@ -173,7 +173,11 @@ describe('gpuPhysicsHandler.onAttach — rigid_body', () => {
 
   it('calls engine.addBody with type=dynamic for !isStatic', async () => {
     const node = makeNode();
-    await gpuPhysicsHandler.onAttach!(node as any, makeConfig({ isStatic: false }), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(
+      node as any,
+      makeConfig({ isStatic: false }),
+      makeCtx() as any
+    );
     expect(_mockEngine.addBody).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ type: 'dynamic' })
@@ -182,7 +186,11 @@ describe('gpuPhysicsHandler.onAttach — rigid_body', () => {
 
   it('calls engine.addBody with type=static for isStatic=true', async () => {
     const node = makeNode();
-    await gpuPhysicsHandler.onAttach!(node as any, makeConfig({ isStatic: true }), makeCtx() as any);
+    await gpuPhysicsHandler.onAttach!(
+      node as any,
+      makeConfig({ isStatic: true }),
+      makeCtx() as any
+    );
     expect(_mockEngine.addBody).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ type: 'static' })

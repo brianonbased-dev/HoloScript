@@ -107,11 +107,10 @@ function scriptCommitUrl(hash) {
     <header class="papers-header">
       <h1>Papers — Live Status</h1>
       <p class="papers-sub">
-        Disk-grounded status of every paper in the HoloScript research program.
-        Each cell is a structural grep of the underlying <code>.tex</code> file
-        on the ai-ecosystem repository — present headings, citations, anchor
-        sidecars, hardware references. Cells reflect what the file contains,
-        not what reviewers will think of it.
+        Disk-grounded status of every paper in the HoloScript research program. Each cell is a
+        structural grep of the underlying <code>.tex</code> file on the ai-ecosystem repository —
+        present headings, citations, anchor sidecars, hardware references. Cells reflect what the
+        file contains, not what reviewers will think of it.
       </p>
       <p class="papers-sub">
         The data feed is regenerated from disk by
@@ -127,9 +126,8 @@ function scriptCommitUrl(hash) {
           target="_blank"
           rel="noopener"
           ><code>research/paper-audit-matrix.md</code></a
-        >. Refreshing the page does not refresh the data; the manifest is
-        committed to git and a banner appears below if it is older than 24
-        hours.
+        >. Refreshing the page does not refresh the data; the manifest is committed to git and a
+        banner appears below if it is older than 24 hours.
       </p>
     </header>
 
@@ -143,7 +141,9 @@ function scriptCommitUrl(hash) {
         <div class="papers-meta">
           <span>Manifest generated {{ generatedAtUtc }}</span>
           <span class="papers-sep">•</span>
-          <span>Schema <code>{{ data.schema }}</code></span>
+          <span
+            >Schema <code>{{ data.schema }}</code></span
+          >
           <template v-if="data.scriptCommit">
             <span class="papers-sep">•</span>
             <span>
@@ -156,9 +156,8 @@ function scriptCommitUrl(hash) {
         </div>
 
         <div v-if="isStale" class="papers-stale-banner">
-          This data feed is {{ Math.round(ageHours) }} hours old. Disk truth
-          may have drifted since the last refresh. Re-run
-          <code>node scripts/build-papers-status-manifest.mjs</code> in
+          This data feed is {{ Math.round(ageHours) }} hours old. Disk truth may have drifted since
+          the last refresh. Re-run <code>node scripts/build-papers-status-manifest.mjs</code> in
           HoloScript to refresh.
         </div>
 
@@ -193,11 +192,7 @@ function scriptCommitUrl(hash) {
               <tr>
                 <th class="paper-col">Paper</th>
                 <th class="target-col">Target</th>
-                <th
-                  v-for="k in data.pillars"
-                  :key="k"
-                  class="pillar-col"
-                >
+                <th v-for="k in data.pillars" :key="k" class="pillar-col">
                   {{ PILLAR_LABELS[k] || k }}
                 </th>
               </tr>
@@ -217,16 +212,13 @@ function scriptCommitUrl(hash) {
                   </div>
                 </td>
                 <td class="target-col">{{ p.target }}</td>
-                <td
-                  v-for="k in data.pillars"
-                  :key="k"
-                  class="pillar-cell"
-                >
+                <td v-for="k in data.pillars" :key="k" class="pillar-cell">
                   <span
                     :class="['cell', TOKEN_CLASS[(p.pillars[k] && p.pillars[k].token) || '➖']]"
                     :title="(p.pillars[k] && p.pillars[k].evidence) || ''"
                     :aria-label="`${PILLAR_LABELS[k] || k}: ${TOKEN_NAME[(p.pillars[k] && p.pillars[k].token) || '➖']} — ${(p.pillars[k] && p.pillars[k].evidence) || ''}`"
-                  >{{ (p.pillars[k] && p.pillars[k].token) || '➖' }}</span>
+                    >{{ (p.pillars[k] && p.pillars[k].token) || '➖' }}</span
+                  >
                 </td>
               </tr>
             </tbody>
@@ -244,9 +236,9 @@ function scriptCommitUrl(hash) {
         </div>
         <p class="legend-note">
           Cell values are derived from a structural grep of each
-          <code>.tex</code> file (present headings, anchor sidecars, citation
-          directives). They reflect file structure, not content quality.
-          Click a row for evidence per pillar and recent commit history.
+          <code>.tex</code> file (present headings, anchor sidecars, citation directives). They
+          reflect file structure, not content quality. Click a row for evidence per pillar and
+          recent commit history.
         </p>
       </section>
     </template>
@@ -254,7 +246,9 @@ function scriptCommitUrl(hash) {
     <!-- Detail panel -->
     <div v-if="selected" class="paper-detail-overlay" @click="close">
       <div class="paper-detail" @click.stop>
-        <button type="button" class="detail-close" @click="close" aria-label="Close detail panel">×</button>
+        <button type="button" class="detail-close" @click="close" aria-label="Close detail panel">
+          ×
+        </button>
         <div class="detail-row-id">
           Paper {{ selected.rowId }}
           <span v-if="selected.retired" class="retired-tag">retired (folded)</span>
@@ -269,15 +263,21 @@ function scriptCommitUrl(hash) {
           </div>
           <div class="detail-stat">
             <div class="detail-stat-lbl">sha256</div>
-            <div class="detail-stat-num"><code>{{ selected.sha256Prefix }}</code></div>
+            <div class="detail-stat-num">
+              <code>{{ selected.sha256Prefix }}</code>
+            </div>
           </div>
           <div class="detail-stat">
             <div class="detail-stat-lbl">OTS</div>
-            <div class="detail-stat-num">{{ (selected.pillars.anchorOts && selected.pillars.anchorOts.token) || '—' }}</div>
+            <div class="detail-stat-num">
+              {{ (selected.pillars.anchorOts && selected.pillars.anchorOts.token) || '—' }}
+            </div>
           </div>
           <div class="detail-stat">
             <div class="detail-stat-lbl">Base</div>
-            <div class="detail-stat-num">{{ (selected.pillars.anchorBase && selected.pillars.anchorBase.token) || '—' }}</div>
+            <div class="detail-stat-num">
+              {{ (selected.pillars.anchorBase && selected.pillars.anchorBase.token) || '—' }}
+            </div>
           </div>
         </div>
 
@@ -285,10 +285,18 @@ function scriptCommitUrl(hash) {
           <h3>Pillars</h3>
           <ul class="detail-pillars">
             <li v-for="k in data.pillars" :key="k">
-              <span :class="['cell', TOKEN_CLASS[(selected.pillars[k] && selected.pillars[k].token) || '➖']]">{{ (selected.pillars[k] && selected.pillars[k].token) || '➖' }}</span>
+              <span
+                :class="[
+                  'cell',
+                  TOKEN_CLASS[(selected.pillars[k] && selected.pillars[k].token) || '➖'],
+                ]"
+                >{{ (selected.pillars[k] && selected.pillars[k].token) || '➖' }}</span
+              >
               <div class="detail-pillar-body">
                 <div class="detail-pillar-name">{{ PILLAR_LABELS[k] || k }}</div>
-                <div class="detail-pillar-evidence">{{ (selected.pillars[k] && selected.pillars[k].evidence) || '' }}</div>
+                <div class="detail-pillar-evidence">
+                  {{ (selected.pillars[k] && selected.pillars[k].evidence) || '' }}
+                </div>
               </div>
             </li>
           </ul>
@@ -296,12 +304,17 @@ function scriptCommitUrl(hash) {
 
         <div class="detail-section">
           <h3>Recent commits</h3>
-          <div v-if="!selected.recentCommits || selected.recentCommits.length === 0" class="detail-empty">
+          <div
+            v-if="!selected.recentCommits || selected.recentCommits.length === 0"
+            class="detail-empty"
+          >
             No git history available for this file.
           </div>
           <ul v-else class="detail-commits">
             <li v-for="c in selected.recentCommits" :key="c.hash">
-              <a :href="commitUrl(c.hash)" target="_blank" rel="noopener"><code>{{ c.hash.slice(0, 8) }}</code></a>
+              <a :href="commitUrl(c.hash)" target="_blank" rel="noopener"
+                ><code>{{ c.hash.slice(0, 8) }}</code></a
+              >
               <span class="detail-commit-date">{{ shortDate(c.isoDate) }}</span>
               <span class="detail-commit-subject">{{ c.subject }}</span>
             </li>
@@ -415,10 +428,22 @@ function scriptCommitUrl(hash) {
   border-radius: 8px;
   padding: 0.75rem 1rem;
 }
-.papers-total-card.cell-green { background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.35); }
-.papers-total-card.cell-amber { background: rgba(251, 191, 36, 0.1); border-color: rgba(251, 191, 36, 0.35); }
-.papers-total-card.cell-red   { background: rgba(239, 68, 68, 0.1);  border-color: rgba(239, 68, 68, 0.35);  }
-.papers-total-card.cell-na    { background: rgba(120, 120, 120, 0.08); border-color: rgba(120, 120, 120, 0.3); }
+.papers-total-card.cell-green {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+.papers-total-card.cell-amber {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+.papers-total-card.cell-red {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.papers-total-card.cell-na {
+  background: rgba(120, 120, 120, 0.08);
+  border-color: rgba(120, 120, 120, 0.3);
+}
 .papers-total-num {
   font-size: 1.4rem;
   font-weight: 600;
@@ -464,9 +489,15 @@ function scriptCommitUrl(hash) {
   cursor: pointer;
   transition: background 120ms;
 }
-.papers-table tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
-.papers-table tbody tr.row-active { background: rgba(103, 232, 249, 0.08); }
-.papers-table tbody tr.row-retired .paper-title { color: #a1a1aa; }
+.papers-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.papers-table tbody tr.row-active {
+  background: rgba(103, 232, 249, 0.08);
+}
+.papers-table tbody tr.row-retired .paper-title {
+  color: #a1a1aa;
+}
 .papers-table tbody td {
   padding: 0.5rem 0.6rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -488,8 +519,13 @@ function scriptCommitUrl(hash) {
   font-family: var(--vp-font-family-mono, monospace);
   margin-top: 0.1rem;
 }
-.target-col { white-space: nowrap; color: #d4d4d8; }
-.pillar-cell { text-align: center; }
+.target-col {
+  white-space: nowrap;
+  color: #d4d4d8;
+}
+.pillar-cell {
+  text-align: center;
+}
 
 .cell {
   display: inline-flex;
@@ -502,10 +538,26 @@ function scriptCommitUrl(hash) {
   font-size: 0.95rem;
   border: 1px solid;
 }
-.cell-green { background: rgba(34, 197, 94, 0.18); border-color: rgba(34, 197, 94, 0.5); color: #86efac; }
-.cell-amber { background: rgba(251, 191, 36, 0.18); border-color: rgba(251, 191, 36, 0.5); color: #fcd34d; }
-.cell-red   { background: rgba(239, 68, 68, 0.18);  border-color: rgba(239, 68, 68, 0.5);  color: #fca5a5; }
-.cell-na    { background: rgba(120, 120, 120, 0.12); border-color: rgba(120, 120, 120, 0.4); color: #a1a1aa; }
+.cell-green {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #86efac;
+}
+.cell-amber {
+  background: rgba(251, 191, 36, 0.18);
+  border-color: rgba(251, 191, 36, 0.5);
+  color: #fcd34d;
+}
+.cell-red {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+}
+.cell-na {
+  background: rgba(120, 120, 120, 0.12);
+  border-color: rgba(120, 120, 120, 0.4);
+  color: #a1a1aa;
+}
 
 .retired-tag {
   display: inline-block;
@@ -587,7 +639,9 @@ function scriptCommitUrl(hash) {
   line-height: 1;
   padding: 0.2rem 0.5rem;
 }
-.detail-close:hover { color: #fff; }
+.detail-close:hover {
+  color: #fff;
+}
 .detail-row-id {
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -630,7 +684,9 @@ function scriptCommitUrl(hash) {
   font-family: var(--vp-font-family-mono, monospace);
   color: #67e8f9;
 }
-.detail-section { margin: 1.25rem 0; }
+.detail-section {
+  margin: 1.25rem 0;
+}
 .detail-section h3 {
   font-size: 0.8rem;
   text-transform: uppercase;
@@ -654,9 +710,18 @@ function scriptCommitUrl(hash) {
   align-items: flex-start;
   font-size: 0.9rem;
 }
-.detail-pillar-body { flex: 1; }
-.detail-pillar-name { color: #fff; font-weight: 500; }
-.detail-pillar-evidence { color: #a1a1aa; font-size: 0.8rem; margin-top: 0.1rem; }
+.detail-pillar-body {
+  flex: 1;
+}
+.detail-pillar-name {
+  color: #fff;
+  font-weight: 500;
+}
+.detail-pillar-evidence {
+  color: #a1a1aa;
+  font-size: 0.8rem;
+  margin-top: 0.1rem;
+}
 
 .detail-commits {
   list-style: none;
@@ -677,9 +742,19 @@ function scriptCommitUrl(hash) {
   color: #67e8f9;
   font-family: var(--vp-font-family-mono, monospace);
 }
-.detail-commit-date { color: #71717a; font-family: var(--vp-font-family-mono, monospace); font-size: 0.75rem; }
-.detail-commit-subject { color: #d4d4d8; font-size: 0.85rem; }
-.detail-empty { color: #71717a; font-size: 0.85rem; }
+.detail-commit-date {
+  color: #71717a;
+  font-family: var(--vp-font-family-mono, monospace);
+  font-size: 0.75rem;
+}
+.detail-commit-subject {
+  color: #d4d4d8;
+  font-size: 0.85rem;
+}
+.detail-empty {
+  color: #71717a;
+  font-size: 0.85rem;
+}
 
 .detail-actions {
   margin-top: 1rem;
@@ -697,11 +772,19 @@ function scriptCommitUrl(hash) {
   text-decoration: none;
   font-size: 0.85rem;
 }
-.detail-action-btn:hover { background: rgba(103, 232, 249, 0.1); }
+.detail-action-btn:hover {
+  background: rgba(103, 232, 249, 0.1);
+}
 
 @media (max-width: 640px) {
-  .papers-page { padding: 1rem 0.75rem 3rem; }
-  .papers-header h1 { font-size: 1.5rem; }
-  .papers-totals { grid-template-columns: repeat(2, 1fr); }
+  .papers-page {
+    padding: 1rem 0.75rem 3rem;
+  }
+  .papers-header h1 {
+    font-size: 1.5rem;
+  }
+  .papers-totals {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>

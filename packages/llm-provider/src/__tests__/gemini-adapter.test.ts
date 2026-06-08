@@ -199,9 +199,7 @@ describe('parseGeminiResponse — function calling', () => {
       candidates: [
         {
           content: {
-            parts: [
-              { functionCall: { name: 'search', args: { q: 'test' } } },
-            ],
+            parts: [{ functionCall: { name: 'search', args: { q: 'test' } } }],
             role: 'model',
           },
           finishReason: 'STOP', // should be overridden

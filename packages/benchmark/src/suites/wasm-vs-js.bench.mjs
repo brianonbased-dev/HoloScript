@@ -110,10 +110,7 @@ try {
 // ── Load WASM parser ──────────────────────────────────────────────
 let wasm = null;
 let wasmLoadError = null;
-const wasmPkgPath = resolve(
-  repoRoot,
-  'packages/compiler-wasm/pkg-node/holoscript_wasm.js'
-);
+const wasmPkgPath = resolve(repoRoot, 'packages/compiler-wasm/pkg-node/holoscript_wasm.js');
 if (existsSync(wasmPkgPath)) {
   try {
     wasm = require(wasmPkgPath);
@@ -224,8 +221,6 @@ if (jsResults.length === wasmResults.length && jsResults.length > 0) {
     const wasmR = wasmResults[i];
     const speedup = js.median_us / wasmR.median_us;
     const arrow = speedup > 1 ? '↑ wasm faster' : '↓ js faster';
-    process.stderr.write(
-      `    ${js.name.padEnd(32)} ${speedup.toFixed(2)}x  ${arrow}\n`
-    );
+    process.stderr.write(`    ${js.name.padEnd(32)} ${speedup.toFixed(2)}x  ${arrow}\n`);
   }
 }

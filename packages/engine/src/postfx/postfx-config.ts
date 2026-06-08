@@ -129,7 +129,10 @@ export function createPostFXPipeline(
 
   const effects = {
     bloom: mergeEffectConfig(DEFAULT_BLOOM_CONFIG, options.effects?.bloom ?? {}),
-    colorGrading: mergeEffectConfig(DEFAULT_COLOR_GRADING_CONFIG, options.effects?.colorGrading ?? {}),
+    colorGrading: mergeEffectConfig(
+      DEFAULT_COLOR_GRADING_CONFIG,
+      options.effects?.colorGrading ?? {}
+    ),
     vignette: mergeEffectConfig(DEFAULT_VIGNETTE_CONFIG, options.effects?.vignette ?? {}),
   } as PostFXEffects & Record<string, unknown>;
 
@@ -150,10 +153,7 @@ export function createPostFXPipeline(
 // mergeEffectConfig
 // ---------------------------------------------------------------------------
 
-export function mergeEffectConfig<T extends EffectConfigBase>(
-  base: T,
-  override: Partial<T>
-): T {
+export function mergeEffectConfig<T extends EffectConfigBase>(base: T, override: Partial<T>): T {
   const merged = { ...base, ...override } as T;
   if (override.params !== undefined) {
     merged.params = { ...base.params, ...override.params } as T['params'];

@@ -419,12 +419,7 @@ describe('BloomReactiveTrait — full lifecycle', () => {
 
     const observedStages: string[] = [];
 
-    const stages: LotusAggregateBloomState[] = [
-      'budding',
-      'blooming',
-      'full',
-      'wilted',
-    ];
+    const stages: LotusAggregateBloomState[] = ['budding', 'blooming', 'full', 'wilted'];
     for (const next of stages) {
       sendEvent(bloomReactiveHandler, node, {}, ctx, {
         type: 'lotus_bloom_state_changed',

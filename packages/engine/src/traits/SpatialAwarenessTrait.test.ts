@@ -49,7 +49,7 @@ describe('SpatialAwarenessTrait', () => {
     // Update trait position to move closer to entity-2
     // Entity-2 is at x=20. Radius 10.
     // Move agent to x=15. Dist = 5. Inside radius.
-    trait.setPosition([15, 0, 0 ]);
+    trait.setPosition([15, 0, 0]);
 
     // Force provider update since it's tick-based
     (trait as any).provider.update();
@@ -63,7 +63,7 @@ describe('SpatialAwarenessTrait', () => {
   it('should detect entity exiting range', () => {
     trait.start();
     // Start close
-    trait.setPosition([0, 0, 0 ]);
+    trait.setPosition([0, 0, 0]);
     const closeEntity = { ...otherEntity, position: [5, 0, 0] as [number, number, number] };
     trait['provider'].setEntity(closeEntity);
 
@@ -74,7 +74,7 @@ describe('SpatialAwarenessTrait', () => {
     trait.on('entity:exited', exitedSpy);
 
     // Move away
-    trait.setPosition([-20, 0, 0 ]); // Dist to x=5 is 25. Radius 10. Exited.
+    trait.setPosition([-20, 0, 0]); // Dist to x=5 is 25. Radius 10. Exited.
 
     // Update again to process exit
     (trait as any).provider.update();
@@ -88,7 +88,12 @@ describe('SpatialAwarenessTrait', () => {
     trait.setEntityTypeFilter(['player']);
     trait.start();
 
-    const npcEntity = { ...otherEntity, id: 'npc-1', type: 'npc', position: [5, 0, 0] as [number, number, number] };
+    const npcEntity = {
+      ...otherEntity,
+      id: 'npc-1',
+      type: 'npc',
+      position: [5, 0, 0] as [number, number, number],
+    };
     const playerEntity = {
       ...otherEntity,
       id: 'player-1',
@@ -103,7 +108,7 @@ describe('SpatialAwarenessTrait', () => {
     trait.on('entity:entered', enteredSpy);
 
     // Trigger check
-    trait.setPosition([0, 0, 0 ]);
+    trait.setPosition([0, 0, 0]);
     (trait as any).provider.update();
 
     expect(enteredSpy).toHaveBeenCalledTimes(1);
@@ -112,7 +117,7 @@ describe('SpatialAwarenessTrait', () => {
 
   it('should access context and nearby entities', () => {
     trait.start();
-    trait.setPosition([0, 0, 0 ]);
+    trait.setPosition([0, 0, 0]);
 
     // Set entity inside radius
     const nearby = { ...otherEntity, position: [5, 0, 0] as [number, number, number] };
@@ -134,7 +139,7 @@ describe('SpatialAwarenessTrait', () => {
 
   it('should perform queries via provider', () => {
     trait.start();
-    trait.setPosition([0, 0, 0 ]);
+    trait.setPosition([0, 0, 0]);
     const e1 = { ...otherEntity, id: 'e1', position: [5, 0, 0] as [number, number, number] }; // Dist 5
     const e2 = { ...otherEntity, id: 'e2', position: [8, 5, 0] as [number, number, number] }; // Dist sqrt(64+25) = sqrt(89) ~ 9.4
 
@@ -164,7 +169,10 @@ describe('SpatialAwarenessTrait', () => {
       id: 'zone-1',
       name: 'Safe Zone',
       type: 'box' as const,
-      bounds: { min: [-5, -5, -5] as [number, number, number], max: [5, 5, 5] as [number, number, number] },
+      bounds: {
+        min: [-5, -5, -5] as [number, number, number],
+        max: [5, 5, 5] as [number, number, number],
+      },
     };
     trait.registerRegion(region); // Should delegate to provider
 
@@ -172,7 +180,7 @@ describe('SpatialAwarenessTrait', () => {
     trait.on('region:entered', enterSpy);
 
     // Move inside
-    trait.setPosition([0, 0, 0 ]);
+    trait.setPosition([0, 0, 0]);
     (trait as any).provider.update();
 
     expect(enterSpy).toHaveBeenCalled();
@@ -183,7 +191,7 @@ describe('SpatialAwarenessTrait', () => {
     trait.on('region:exited', exitSpy);
 
     // Move outside
-    trait.setPosition([10, 0, 0 ]);
+    trait.setPosition([10, 0, 0]);
     (trait as any).provider.update();
 
     expect(exitSpy).toHaveBeenCalled();

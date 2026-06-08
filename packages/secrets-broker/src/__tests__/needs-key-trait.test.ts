@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { createSecretStore, createInMemorySecretBackend } from '../secret-store';
-import { createEnvKekProvider, generateKekBase64, KEK_CURRENT_ENV, kekEnvVar } from '../env-kek-provider';
+import {
+  createEnvKekProvider,
+  generateKekBase64,
+  KEK_CURRENT_ENV,
+  kekEnvVar,
+} from '../env-kek-provider';
 import { createSecretResolver } from '../secret-resolver';
 import { createNeedsKeyHandler, type NeedsKeyDispatchContext } from '../needs-key-trait';
 
@@ -47,7 +52,11 @@ describe('@needs_key trait (HoloKey custody axis of HoloGate)', () => {
     expect(ctx.provided).toEqual([{ ref: 'vault:OPENAI_API_KEY', value: 'sk-live-XYZ' }]);
     // ready signal carries ref + purpose, never the value
     const ready = ctx.events.find((e) => e.event === 'needs_key_ready');
-    expect(ready?.payload).toMatchObject({ nodeId: 'brittney', ref: 'vault:OPENAI_API_KEY', purpose: 'llm-call' });
+    expect(ready?.payload).toMatchObject({
+      nodeId: 'brittney',
+      ref: 'vault:OPENAI_API_KEY',
+      purpose: 'llm-call',
+    });
     // the plaintext appears in NO emitted event
     expect(JSON.stringify(ctx.events)).not.toContain('sk-live-XYZ');
   });
@@ -78,7 +87,9 @@ describe('@needs_key trait (HoloKey custody axis of HoloGate)', () => {
 
     await handler.onAttach({ id: 'n' }, { ref: 'vault:KEY' }, ctx);
 
-    expect(ctx.events.find((e) => e.event === 'needs_key_denied')?.payload).toMatchObject({ reason: 'not_found' });
+    expect(ctx.events.find((e) => e.event === 'needs_key_denied')?.payload).toMatchObject({
+      reason: 'not_found',
+    });
     expect(JSON.stringify(ctx.events)).not.toContain('a-only');
   });
 

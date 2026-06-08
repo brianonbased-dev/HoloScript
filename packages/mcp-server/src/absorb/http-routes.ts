@@ -54,7 +54,9 @@ async function proxyToAbsorb(
   });
   const data = await res.json().catch(async () => {
     const text = await res.text().catch(() => '<unreadable>');
-    return { error: `Absorb service at ${ABSORB_URL}${path} returned non-JSON (status ${res.status}): ${text.slice(0, 200)}` };
+    return {
+      error: `Absorb service at ${ABSORB_URL}${path} returned non-JSON (status ${res.status}): ${text.slice(0, 200)}`,
+    };
   });
   return { status: res.status, data };
 }

@@ -61,7 +61,9 @@ export class USDCodeGen {
     // Isaac Lab header comment
     this.emit(`# Generated for Isaac Lab ${this.config.isaacLabVersion}`);
     this.emit('# Units: meters, kilograms, seconds; HoloScript angular inputs are radians.');
-    this.emit('# USD angular joint limits and velocities are exported in degrees per OpenUSD/PhysX.');
+    this.emit(
+      '# USD angular joint limits and velocities are exported in degrees per OpenUSD/PhysX.'
+    );
 
     // Emit domain randomization config as USD comments (for Isaac Lab Python codegen)
     if (ast.domainRandomization) {
@@ -316,7 +318,9 @@ export class USDCodeGen {
     const schemas = this.getJointApiSchemas(joint, axisToken);
 
     this.emit('');
-    this.emit(`def ${joint.kind === 'prismatic' ? 'PhysicsPrismaticJoint' : 'PhysicsRevoluteJoint'} "${joint.name}"`);
+    this.emit(
+      `def ${joint.kind === 'prismatic' ? 'PhysicsPrismaticJoint' : 'PhysicsRevoluteJoint'} "${joint.name}"`
+    );
     if (schemas.length > 0) {
       this.emit('(');
       this.indentLevel++;
@@ -361,8 +365,12 @@ export class USDCodeGen {
     const limits = joint.props.joint_limits || joint.props.limits;
     if (limits) {
       const limitsVec = limits as number[];
-      this.emit(`float physics:lowerLimit = ${this.formatNumber(this.convertJointScalar(limitsVec[0], joint.kind))}`);
-      this.emit(`float physics:upperLimit = ${this.formatNumber(this.convertJointScalar(limitsVec[1], joint.kind))}`);
+      this.emit(
+        `float physics:lowerLimit = ${this.formatNumber(this.convertJointScalar(limitsVec[0], joint.kind))}`
+      );
+      this.emit(
+        `float physics:upperLimit = ${this.formatNumber(this.convertJointScalar(limitsVec[1], joint.kind))}`
+      );
     }
     this.emit('');
 
@@ -374,7 +382,9 @@ export class USDCodeGen {
 
     const velocity = this.numberProp(joint.props, 'max_velocity');
     if (velocity !== undefined) {
-      this.emit(`float physics:maxVelocity = ${this.formatNumber(this.convertJointScalar(velocity, joint.kind))}`);
+      this.emit(
+        `float physics:maxVelocity = ${this.formatNumber(this.convertJointScalar(velocity, joint.kind))}`
+      );
     }
 
     // OpenUSD PhysicsDriveAPI attributes for PD actuator control.
@@ -406,7 +416,9 @@ export class USDCodeGen {
     const latency = this.numberProp(joint.props, 'actuator_latency', 'latency');
     if (latency !== undefined) {
       this.emit('');
-      this.emit('# Isaac Lab delayed actuator hint; convert seconds to delay steps in task config.');
+      this.emit(
+        '# Isaac Lab delayed actuator hint; convert seconds to delay steps in task config.'
+      );
       this.emit(`custom float holoscript:isaacLab:actuatorLatencySeconds = ${latency}`);
     }
 
@@ -468,7 +480,10 @@ export class USDCodeGen {
   }
 
   private hasDriveProperties(props: Record<string, PropertyValue>): boolean {
-    return this.numberProp(props, 'kp', 'stiffness', 'kd', 'damping', 'joint_effort', 'max_effort') !== undefined;
+    return (
+      this.numberProp(props, 'kp', 'stiffness', 'kd', 'damping', 'joint_effort', 'max_effort') !==
+      undefined
+    );
   }
 
   private hasPhysxJointAxisProperties(props: Record<string, PropertyValue>): boolean {
@@ -505,13 +520,17 @@ export class USDCodeGen {
       this.emit(`float physxJointAxis:${axisToken}:dynamicFrictionEffort = ${dynamicFriction}`);
     }
     if (viscousFriction !== undefined) {
-      this.emit(`float physxJointAxis:${axisToken}:viscousFrictionCoefficient = ${viscousFriction}`);
+      this.emit(
+        `float physxJointAxis:${axisToken}:viscousFrictionCoefficient = ${viscousFriction}`
+      );
     }
     if (armature !== undefined) {
       this.emit(`float physxJointAxis:${axisToken}:armature = ${armature}`);
     }
     if (velocity !== undefined) {
-      this.emit(`float physxJointAxis:${axisToken}:maxJointVelocity = ${this.formatNumber(this.convertJointScalar(velocity, kind))}`);
+      this.emit(
+        `float physxJointAxis:${axisToken}:maxJointVelocity = ${this.formatNumber(this.convertJointScalar(velocity, kind))}`
+      );
     }
   }
 
@@ -570,13 +589,19 @@ export class USDCodeGen {
         this.emit(`#   massScale: [${dr.physics.massScale[0]}, ${dr.physics.massScale[1]}]`);
       }
       if (dr.physics.frictionRange) {
-        this.emit(`#   frictionRange: [${dr.physics.frictionRange[0]}, ${dr.physics.frictionRange[1]}]`);
+        this.emit(
+          `#   frictionRange: [${dr.physics.frictionRange[0]}, ${dr.physics.frictionRange[1]}]`
+        );
       }
       if (dr.physics.dampingRange) {
-        this.emit(`#   dampingRange: [${dr.physics.dampingRange[0]}, ${dr.physics.dampingRange[1]}]`);
+        this.emit(
+          `#   dampingRange: [${dr.physics.dampingRange[0]}, ${dr.physics.dampingRange[1]}]`
+        );
       }
       if (dr.physics.armatureRange) {
-        this.emit(`#   armatureRange: [${dr.physics.armatureRange[0]}, ${dr.physics.armatureRange[1]}]`);
+        this.emit(
+          `#   armatureRange: [${dr.physics.armatureRange[0]}, ${dr.physics.armatureRange[1]}]`
+        );
       }
     }
     if (dr.actuator) {
@@ -612,10 +637,14 @@ export class USDCodeGen {
     if (dr.disturbance) {
       this.emit('# disturbance:');
       if (dr.disturbance.forceRange) {
-        this.emit(`#   forceRange: [${dr.disturbance.forceRange[0]}, ${dr.disturbance.forceRange[1]}]`);
+        this.emit(
+          `#   forceRange: [${dr.disturbance.forceRange[0]}, ${dr.disturbance.forceRange[1]}]`
+        );
       }
       if (dr.disturbance.intervalRange) {
-        this.emit(`#   intervalRange: [${dr.disturbance.intervalRange[0]}, ${dr.disturbance.intervalRange[1]}]`);
+        this.emit(
+          `#   intervalRange: [${dr.disturbance.intervalRange[0]}, ${dr.disturbance.intervalRange[1]}]`
+        );
       }
     }
   }

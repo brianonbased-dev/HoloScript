@@ -44,7 +44,7 @@ export type FingerprintComparison = 'no-baseline' | 'match' | 'drift';
 
 export function compareFingerprints(
   baseline: string | undefined | null,
-  current: string,
+  current: string
 ): FingerprintComparison {
   if (!baseline || baseline.trim() === '') return 'no-baseline';
   return baseline.trim() === current.trim() ? 'match' : 'drift';
@@ -180,7 +180,8 @@ export function AcceptanceVideoInspector({
       <div className="mb-3" data-testid={`status-${status}`}>
         {status === 'no-baseline' && (
           <div className="rounded bg-studio-surface px-2 py-1 text-studio-muted">
-            No baseline pinned. Pin the current fingerprint to enable drift detection on future runs.
+            No baseline pinned. Pin the current fingerprint to enable drift detection on future
+            runs.
           </div>
         )}
         {status === 'match' && (
@@ -190,7 +191,8 @@ export function AcceptanceVideoInspector({
         )}
         {status === 'drift' && (
           <div className="inline-flex items-center gap-1.5 rounded bg-amber-500/10 px-2 py-1 text-amber-300">
-            <AlertTriangle className="h-3.5 w-3.5" /> DRIFT — current fingerprint differs from baseline
+            <AlertTriangle className="h-3.5 w-3.5" /> DRIFT — current fingerprint differs from
+            baseline
           </div>
         )}
       </div>

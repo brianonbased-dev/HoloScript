@@ -30,7 +30,7 @@ describe('ClothSim — Production', () => {
     const c = new ClothSim();
     c.createGrid(2, 2, 1.0);
     c.pin(0);
-    const before = [...c.getParticle(0)!.position ];
+    const before = [...c.getParticle(0)!.position];
     c.update(1 / 60);
     const after = c.getParticle(0)!;
     expect(after.position[1]).toBe(before[1]);

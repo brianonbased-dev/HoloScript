@@ -139,7 +139,10 @@ function generateMotionClip(req: InferenceRequest): MotionClip {
       const cosHalf = Math.cos(angle / 2);
       const rot: [number, number, number, number] = [sinHalf * 0.1, sinHalf * 0.995, 0, cosHalf];
       const mag = Math.sqrt(rot[0] ** 2 + rot[1] ** 2 + rot[2] ** 2 + rot[3] ** 2);
-      rot[0] /= mag; rot[1] /= mag; rot[2] /= mag; rot[3] /= mag;
+      rot[0] /= mag;
+      rot[1] /= mag;
+      rot[2] /= mag;
+      rot[3] /= mag;
 
       return {
         boneId,
@@ -176,10 +179,7 @@ export class MotionInferenceServer {
   /** Optional checkpoint hash for provenance. */
   checkpointHash?: string;
 
-  constructor(options?: {
-    corpus?: TrainingCorpus;
-    checkpointHash?: string;
-  }) {
+  constructor(options?: { corpus?: TrainingCorpus; checkpointHash?: string }) {
     this.corpus = options?.corpus;
     this.checkpointHash = options?.checkpointHash;
   }
@@ -236,7 +236,9 @@ export class MotionInferenceServer {
     const readBody = (): Promise<unknown> =>
       new Promise((resolve) => {
         let data = '';
-        req.on('data', (chunk) => { data += chunk; });
+        req.on('data', (chunk) => {
+          data += chunk;
+        });
         req.on('end', () => {
           try {
             resolve(data ? JSON.parse(data) : {});
@@ -397,7 +399,9 @@ export function createServerWithSyntheticCorpus(options?: {
     file: `src/animation/motion_${i}.hs`,
     startLine: i * 10 + 1,
     endLine: i * 10 + 8,
-    category: (['locomotion', 'gesture', 'interaction', 'acrobatics', 'micro-gesture'] as MotionCategory[])[i % 5],
+    category: (
+      ['locomotion', 'gesture', 'interaction', 'acrobatics', 'micro-gesture'] as MotionCategory[]
+    )[i % 5],
   }));
 
   const pairs = generateDPOPairsFromAST({

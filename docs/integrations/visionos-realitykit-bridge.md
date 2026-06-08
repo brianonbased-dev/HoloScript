@@ -27,6 +27,7 @@ hs import-usdz myScene.usdz --output myScene.holo --with-receipt \
 ```
 
 Produces:
+
 - Scene graph with entities, anchors, materials
 - Spatial anchors as first-class HoloScript objects
 - Receipt anchoring the import as a verifiable spatial model fragment
@@ -35,12 +36,12 @@ Produces:
 
 Map ARSession updates (camera pose, hand tracking, scene understanding) to HoloScript traits.
 
-| RealityKit / ARKit          | HoloScript Trait/Event          | Notes |
-|-----------------------------|---------------------------------|-------|
-| ARCamera transform          | `pose_update` + `camera_trait`  | For HoloLand / NPC context |
-| Hand / finger tracking      | `hand_tracking` + `poseable`    | Direct to character traits |
-| Scene anchors / planes      | `spatial_anchor` + `plane`      | For world model grounding |
-| Mesh reconstruction         | `geometry` + `sdf`              | For JEPA world models |
+| RealityKit / ARKit     | HoloScript Trait/Event         | Notes                      |
+| ---------------------- | ------------------------------ | -------------------------- |
+| ARCamera transform     | `pose_update` + `camera_trait` | For HoloLand / NPC context |
+| Hand / finger tracking | `hand_tracking` + `poseable`   | Direct to character traits |
+| Scene anchors / planes | `spatial_anchor` + `plane`     | For world model grounding  |
+| Mesh reconstruction    | `geometry` + `sdf`             | For JEPA world models      |
 
 A thin Swift bridge (or RealityKit + HoloScript MCP interop) can emit these events live.
 

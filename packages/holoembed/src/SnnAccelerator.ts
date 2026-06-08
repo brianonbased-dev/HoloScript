@@ -89,11 +89,11 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 // =============================================================================
 
 const DEFAULT_LIF: Required<LIFPopulationParams> = {
-  tau:          20.0,
-  vThreshold:  -55.0,
-  vReset:      -75.0,
-  vRest:       -65.0,
-  dt:            1.0,
+  tau: 20.0,
+  vThreshold: -55.0,
+  vReset: -75.0,
+  vRest: -65.0,
+  dt: 1.0,
   currentScale: 240.0,
 };
 
@@ -123,7 +123,7 @@ export interface LIFPopulationCpuOptions {
  */
 export function encodeLifPopulationCpu(
   histogram: Float32Array,
-  options: LIFPopulationCpuOptions = {},
+  options: LIFPopulationCpuOptions = {}
 ): Float32Array {
   const timeSteps = normalizeTimeSteps(options.timeSteps ?? 50);
   const lif = resolveLifPopulationParams(options.lifParams);
@@ -136,7 +136,7 @@ export function encodeLifPopulationCpu(
     let spikes = 0;
 
     for (let t = 0; t < timeSteps; t++) {
-      voltage += lif.dt * (lif.vRest - voltage + current) / lif.tau;
+      voltage += (lif.dt * (lif.vRest - voltage + current)) / lif.tau;
       if (voltage >= lif.vThreshold) {
         voltage = lif.vReset;
         spikes++;
@@ -149,7 +149,9 @@ export function encodeLifPopulationCpu(
   return rates;
 }
 
-function resolveLifPopulationParams(lifParams: LIFPopulationParams = {}): Required<LIFPopulationParams> {
+function resolveLifPopulationParams(
+  lifParams: LIFPopulationParams = {}
+): Required<LIFPopulationParams> {
   return { ...DEFAULT_LIF, ...lifParams };
 }
 
@@ -188,7 +190,9 @@ export class SnnAccelerator {
   // ── Public ─────────────────────────────────────────────────────────────
 
   /** Whether the GPU path is active. In Node, requires the `webgpu` binding (auto-activated via ensureNodeWebGpu). */
-  get available(): boolean { return this._available; }
+  get available(): boolean {
+    return this._available;
+  }
 
   /**
    * Initialize the accelerator.
@@ -208,8 +212,9 @@ export class SnnAccelerator {
     await ensureNodeWebGpu();
 
     // Feature-detect WebGPU (browser native, or Node via the `webgpu` binding)
-    const gpu = (globalThis as { navigator?: { gpu?: unknown } }).navigator?.gpu
-             ?? (globalThis as { GPU?: unknown }).GPU;
+    const gpu =
+      (globalThis as { navigator?: { gpu?: unknown } }).navigator?.gpu ??
+      (globalThis as { GPU?: unknown }).GPU;
     if (!gpu) return;
 
     try {
@@ -252,10 +257,10 @@ export class SnnAccelerator {
     // storage buffer and run a single dispatch + single readback, eliminating the
     // per-histogram buffer-create/map-read round-trip that dominated the old path.
     const n = histograms[0]!.length;
-    const uniform = histograms.every(h => h.length === n);
+    const uniform = histograms.every((h) => h.length === n);
     if (uniform) return this._gpuEncodeBatch(histograms, n);
     // Mixed lengths (rare) — fall back to per-item.
-    return Promise.all(histograms.map(h => this._gpuEncode(h)));
+    return Promise.all(histograms.map((h) => this._gpuEncode(h)));
   }
 
   /** Release GPU resources. */

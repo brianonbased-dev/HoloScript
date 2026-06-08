@@ -27,17 +27,11 @@ export async function POST(request: NextRequest) {
     const { sessionId, mappings } = body;
 
     if (!sessionId) {
-      return NextResponse.json(
-        { ok: false, error: 'sessionId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'sessionId is required' }, { status: 400 });
     }
 
     if (!Array.isArray(mappings)) {
-      return NextResponse.json(
-        { ok: false, error: 'mappings must be an array' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'mappings must be an array' }, { status: 400 });
     }
 
     // Validate mappings

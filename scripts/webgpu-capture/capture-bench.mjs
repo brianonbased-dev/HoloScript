@@ -99,13 +99,10 @@ const receipt = {
   anchor_chain: null,
 };
 
-const benchDir = path.join(
-  repoRoot,
-  '.bench-logs',
-  capturedAt.replace(/[:.]/g, '-')
-);
+const benchDir = path.join(repoRoot, '.bench-logs', capturedAt.replace(/[:.]/g, '-'));
 mkdirSync(benchDir, { recursive: true });
-const outPath = outPathArg ?? path.join(benchDir, `${config.paper}-${config.kernel.entry_point}.json`);
+const outPath =
+  outPathArg ?? path.join(benchDir, `${config.paper}-${config.kernel.entry_point}.json`);
 writeFileSync(outPath, JSON.stringify(receipt, null, 2) + '\n', 'utf8');
 console.log(`[capture-bench] receipt → ${outPath}`);
 console.log(JSON.stringify(receipt, null, 2));
@@ -120,7 +117,9 @@ function detectHardware() {
   const cpuModel = cpuInfo[0]?.model ?? 'unknown';
   const cpuCount = cpuInfo.length;
   const ramGb = Math.round((os.totalmem() / 1024 / 1024 / 1024) * 10) / 10;
-  let tier = 'H1', label, tierConfidence = 'fallback';
+  let tier = 'H1',
+    label,
+    tierConfidence = 'fallback';
   if (envTier === 'H1' || envTier === 'H2' || envTier === 'H3') {
     tier = envTier;
     label = envLabel ?? `${envTier} (HOLOSCRIPT_HW_TIER=${envTier})`;
@@ -133,9 +132,12 @@ function detectHardware() {
     label = 'H1 (fallback: CPU model unrecognized)';
   }
   return {
-    tier, label,
+    tier,
+    label,
     gpu: envGpu ?? 'unspecified (read from adapter_info)',
-    cpu: cpuModel, cpuCount, ramGb,
+    cpu: cpuModel,
+    cpuCount,
+    ramGb,
     platform: process.platform,
     release: os.release(),
     arch: process.arch,
@@ -169,7 +171,9 @@ async function runCapture({ wgsl, wgslSha256 }) {
   const executablePath =
     process.env.WEBGPU_PROBE_CHROME && existsSync(process.env.WEBGPU_PROBE_CHROME)
       ? process.env.WEBGPU_PROBE_CHROME
-      : existsSync(DEFAULT_CHROME_WIN) ? DEFAULT_CHROME_WIN : undefined;
+      : existsSync(DEFAULT_CHROME_WIN)
+        ? DEFAULT_CHROME_WIN
+        : undefined;
 
   const headless = process.env.WEBGPU_PROBE_HEADLESS !== '0';
   const baseArgs = [
@@ -206,7 +210,15 @@ async function runCapture({ wgsl, wgslSha256 }) {
       wgsl,
       wgslSha256,
       kernel: config.kernel,
-      buffers: config.buffers ?? [{ name: 'data', binding: 0, size_bytes: 16384, init: 'iota-f32', usage: ['storage', 'copy_dst', 'copy_src'] }],
+      buffers: config.buffers ?? [
+        {
+          name: 'data',
+          binding: 0,
+          size_bytes: 16384,
+          init: 'iota-f32',
+          usage: ['storage', 'copy_dst', 'copy_src'],
+        },
+      ],
       trials: config.trials ?? 100,
       warmup: config.warmup ?? 10,
       digest_buffer: config.digest_buffer ?? null,
@@ -275,7 +287,9 @@ async function runBenchInPage(input) {
     : await adapter.requestDevice();
   const notes = [];
   if (!hasTimestamp) {
-    notes.push('Adapter does not support timestamp-query feature; falling back to wall-clock-only timing.');
+    notes.push(
+      'Adapter does not support timestamp-query feature; falling back to wall-clock-only timing.'
+    );
   }
 
   // --- Init buffers (extracted so the per-trial reset path can replay the
@@ -324,7 +338,7 @@ async function runBenchInPage(input) {
         let cum = 0;
         arr[0] = 0;
         for (let i = 0; i < N; i++) {
-          cum += (i === 0 || i === N - 1) ? 2 : 3;
+          cum += i === 0 || i === N - 1 ? 2 : 3;
           arr[i + 1] = cum;
         }
         device.queue.writeBuffer(buf, 0, arr);
@@ -395,9 +409,9 @@ async function runBenchInPage(input) {
       for (let r = 0; r < rows; r++) {
         const base = r * 4;
         arr[base + 0] = r >>> 0;
-        arr[base + 1] = ((r * 7) + 3) >>> 0;
-        arr[base + 2] = ((r * 13) + 5) >>> 0;
-        arr[base + 3] = ((r * 17) + 11) >>> 0;
+        arr[base + 1] = (r * 7 + 3) >>> 0;
+        arr[base + 2] = (r * 13 + 5) >>> 0;
+        arr[base + 3] = (r * 17 + 11) >>> 0;
       }
       device.queue.writeBuffer(buf, 0, arr);
     } else if (b.init && typeof b.init === 'object' && b.init.kind === 'uniform-struct') {
@@ -415,7 +429,10 @@ async function runBenchInPage(input) {
       const fields = b.init.fields ?? [];
       for (let j = 0; j < Math.min(u32.length, fields.length); j++) {
         const f = fields[j];
-        if (!f || f.type === 'pad') { u32[j] = 0; continue; }
+        if (!f || f.type === 'pad') {
+          u32[j] = 0;
+          continue;
+        }
         if (f.type === 'u32') u32[j] = (f.value ?? 0) >>> 0;
         else if (f.type === 'i32') i32[j] = (f.value ?? 0) | 0;
         else if (f.type === 'f32') f32[j] = f.value ?? 0;
@@ -522,11 +539,16 @@ async function runBenchInPage(input) {
   // ε-identical replay claim without forcing the impossible bit-identical
   // claim that mixed-atomic kernels break (W.GOLD.554).
   const digestBuf = input.digest_buffer
-    ? buffers.find((b) => (b.group ?? 0) === input.digest_buffer.group && b.binding === input.digest_buffer.binding)
+    ? buffers.find(
+        (b) =>
+          (b.group ?? 0) === input.digest_buffer.group && b.binding === input.digest_buffer.binding
+      )
     : null;
-  const digestMode = input.digest_buffer?.dtype === 'f32' && typeof input.digest_buffer?.tolerance_epsilon === 'number'
-    ? 'epsilon-quantized-f32'
-    : 'bit-identical';
+  const digestMode =
+    input.digest_buffer?.dtype === 'f32' &&
+    typeof input.digest_buffer?.tolerance_epsilon === 'number'
+      ? 'epsilon-quantized-f32'
+      : 'bit-identical';
   const epsilon = input.digest_buffer?.tolerance_epsilon ?? null;
   let staging = null;
   if (digestBuf) {
@@ -558,7 +580,7 @@ async function runBenchInPage(input) {
       // ε-identical (deterministic failure); one that produces varying NaN
       // bit patterns will produce distinct digests (non-deterministic failure).
       const v = f32[j];
-      quant[j] = Number.isNaN(v) ? (rawU32[j] | 0) : Math.round(v / epsilon);
+      quant[j] = Number.isNaN(v) ? rawU32[j] | 0 : Math.round(v / epsilon);
     }
     return sha256Hex(new Uint8Array(quant.buffer));
   }
@@ -639,9 +661,10 @@ async function runBenchInPage(input) {
   const times = wallTimes; // backwards-compat alias for the wall-clock summary below
 
   const sorted = [...times].sort((a, b) => a - b);
-  const median = sorted.length % 2 === 0
-    ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
-    : sorted[Math.floor(sorted.length / 2)];
+  const median =
+    sorted.length % 2 === 0
+      ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+      : sorted[Math.floor(sorted.length / 2)];
   const p95Idx = Math.min(sorted.length - 1, Math.ceil(0.95 * sorted.length) - 1);
 
   // --- Digest summary (Paper 3 bit-identical OR Route 2b ε-identical) ---
@@ -655,9 +678,13 @@ async function runBenchInPage(input) {
         unique_digest_count: uniqueDigests.length,
         // For ε-mode, "epsilon_identical" reads more honestly than "bit_identical".
         digest_bit_identical: digestMode === 'bit-identical' && uniqueDigests.length === 1,
-        digest_epsilon_identical: digestMode === 'epsilon-quantized-f32' && uniqueDigests.length === 1,
+        digest_epsilon_identical:
+          digestMode === 'epsilon-quantized-f32' && uniqueDigests.length === 1,
         digest_first: digests[0],
-        digest_unique_list: uniqueDigests.length <= 8 ? uniqueDigests : [...uniqueDigests.slice(0, 8), `…(${uniqueDigests.length - 8} more)`],
+        digest_unique_list:
+          uniqueDigests.length <= 8
+            ? uniqueDigests
+            : [...uniqueDigests.slice(0, 8), `…(${uniqueDigests.length - 8} more)`],
       }
     : null;
 
@@ -671,42 +698,67 @@ async function runBenchInPage(input) {
           'and exclude submit/queue overhead.'
         : 'Timings include queue submit + onSubmittedWorkDone awaiter (wall-clock); ' +
           'adapter does not support timestamp-query so kernel-only timing is unavailable.',
-      ...(digestBuf ? [
-        `Digest readback enabled on group(${input.digest_buffer.group}).binding(${input.digest_buffer.binding}); mode=${digestMode}${epsilon != null ? ` (ε=${epsilon})` : ''}; ` +
-        `${digestMode === 'bit-identical'
-          ? (digestSummary.digest_bit_identical
-              ? 'all ' + digestSummary.digest_count + ' trials produced the same SHA-256 (bit-identical replay PASSES at same-adapter scope)'
-              : 'observed ' + digestSummary.unique_digest_count + ' distinct digests across ' + digestSummary.digest_count + ' trials (bit-identical replay FAILS — see digest_unique_list)')
-          : (digestSummary.digest_epsilon_identical
-              ? 'all ' + digestSummary.digest_count + ' trials collapsed to the same SHA-256 after ε-quantization (ε-identical replay PASSES at same-adapter scope, ε=' + epsilon + ')'
-              : 'observed ' + digestSummary.unique_digest_count + ' distinct digests after ε-quantization across ' + digestSummary.digest_count + ' trials (ε-identical replay FAILS at ε=' + epsilon + ' — see digest_unique_list)')}.`
-      ] : []),
+      ...(digestBuf
+        ? [
+            `Digest readback enabled on group(${input.digest_buffer.group}).binding(${input.digest_buffer.binding}); mode=${digestMode}${epsilon != null ? ` (ε=${epsilon})` : ''}; ` +
+              `${
+                digestMode === 'bit-identical'
+                  ? digestSummary.digest_bit_identical
+                    ? 'all ' +
+                      digestSummary.digest_count +
+                      ' trials produced the same SHA-256 (bit-identical replay PASSES at same-adapter scope)'
+                    : 'observed ' +
+                      digestSummary.unique_digest_count +
+                      ' distinct digests across ' +
+                      digestSummary.digest_count +
+                      ' trials (bit-identical replay FAILS — see digest_unique_list)'
+                  : digestSummary.digest_epsilon_identical
+                    ? 'all ' +
+                      digestSummary.digest_count +
+                      ' trials collapsed to the same SHA-256 after ε-quantization (ε-identical replay PASSES at same-adapter scope, ε=' +
+                      epsilon +
+                      ')'
+                    : 'observed ' +
+                      digestSummary.unique_digest_count +
+                      ' distinct digests after ε-quantization across ' +
+                      digestSummary.digest_count +
+                      ' trials (ε-identical replay FAILS at ε=' +
+                      epsilon +
+                      ' — see digest_unique_list)'
+              }.`,
+          ]
+        : []),
       ...notes,
     ],
-    results: [{
-      op: input.kernel.entry_point,
-      scale: `dispatch ${dx}x${dy}x${dz} workgroups @ ${(input.kernel.workgroup_size || []).join('x')}`,
-      n: input.trials,
-      trials: input.trials,
-      // wall-clock (includes queue submit + onSubmittedWorkDone awaiter)
-      median_us: median,
-      p95_us: sorted[p95Idx],
-      min_us: sorted[0],
-      max_us: sorted[sorted.length - 1],
-      // kernel-only GPU timing via timestamp-query, when supported
-      ...(gpuTimes.length > 0 ? (() => {
-        const gs = [...gpuTimes].sort((a, b) => a - b);
-        const gp95 = Math.min(gs.length - 1, Math.ceil(0.95 * gs.length) - 1);
-        return {
-          gpu_median_us: gs.length % 2 === 0
-            ? (gs[gs.length / 2 - 1] + gs[gs.length / 2]) / 2
-            : gs[Math.floor(gs.length / 2)],
-          gpu_p95_us: gs[gp95],
-          gpu_min_us: gs[0],
-          gpu_max_us: gs[gs.length - 1],
-        };
-      })() : {}),
-      ...(digestSummary ? { digest_summary: digestSummary } : {}),
-    }],
+    results: [
+      {
+        op: input.kernel.entry_point,
+        scale: `dispatch ${dx}x${dy}x${dz} workgroups @ ${(input.kernel.workgroup_size || []).join('x')}`,
+        n: input.trials,
+        trials: input.trials,
+        // wall-clock (includes queue submit + onSubmittedWorkDone awaiter)
+        median_us: median,
+        p95_us: sorted[p95Idx],
+        min_us: sorted[0],
+        max_us: sorted[sorted.length - 1],
+        // kernel-only GPU timing via timestamp-query, when supported
+        ...(gpuTimes.length > 0
+          ? (() => {
+              const gs = [...gpuTimes].sort((a, b) => a - b);
+              const gp95 = Math.min(gs.length - 1, Math.ceil(0.95 * gs.length) - 1);
+              return {
+                gpu_median_us:
+                  gs.length % 2 === 0
+                    ? (gs[gs.length / 2 - 1] + gs[gs.length / 2]) / 2
+                    : gs[Math.floor(gs.length / 2)],
+                gpu_p95_us: gs[gp95],
+                gpu_min_us: gs[0],
+                gpu_max_us: gs[gs.length - 1],
+              };
+            })()
+          : {}),
+        ...(digestSummary ? { digest_summary: digestSummary } : {}),
+      },
+    ],
   };
 }

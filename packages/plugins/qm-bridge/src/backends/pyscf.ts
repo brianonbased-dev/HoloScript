@@ -66,19 +66,75 @@ export interface PySCFConfig extends QmSolverConfig {
 
 /** Approximate atomic numbers for element symbols (for mock mode). */
 const ATOMIC_NUMBERS: Record<string, number> = {
-  H: 1, He: 2, Li: 3, Be: 4, B: 5, C: 6, N: 7, O: 8, F: 9, Ne: 10,
-  Na: 11, Mg: 12, Al: 13, Si: 14, P: 15, S: 16, Cl: 17, Ar: 18,
-  K: 19, Ca: 20, Sc: 21, Ti: 22, V: 23, Cr: 24, Mn: 25, Fe: 26,
-  Co: 27, Ni: 28, Cu: 29, Zn: 30, Ga: 31, Ge: 32, As: 33, Se: 34,
-  Br: 35, Kr: 36, Rb: 37, Sr: 38, Pd: 46, Ag: 47, Cd: 48, I: 53,
-  Pt: 78, Au: 79, Hg: 80, Pb: 82, Bi: 83,
+  H: 1,
+  He: 2,
+  Li: 3,
+  Be: 4,
+  B: 5,
+  C: 6,
+  N: 7,
+  O: 8,
+  F: 9,
+  Ne: 10,
+  Na: 11,
+  Mg: 12,
+  Al: 13,
+  Si: 14,
+  P: 15,
+  S: 16,
+  Cl: 17,
+  Ar: 18,
+  K: 19,
+  Ca: 20,
+  Sc: 21,
+  Ti: 22,
+  V: 23,
+  Cr: 24,
+  Mn: 25,
+  Fe: 26,
+  Co: 27,
+  Ni: 28,
+  Cu: 29,
+  Zn: 30,
+  Ga: 31,
+  Ge: 32,
+  As: 33,
+  Se: 34,
+  Br: 35,
+  Kr: 36,
+  Rb: 37,
+  Sr: 38,
+  Pd: 46,
+  Ag: 47,
+  Cd: 48,
+  I: 53,
+  Pt: 78,
+  Au: 79,
+  Hg: 80,
+  Pb: 82,
+  Bi: 83,
 };
 
 /** sto-3g orbital -> qubit count (Jordan-Wigner), for mock Hamiltonian export. */
 const ORBITAL_MAP: Record<string, number> = {
-  H: 1, He: 1, Li: 5, Be: 5, B: 5, C: 5, N: 5, O: 5,
-  F: 5, Ne: 5, Na: 9, Mg: 9, Al: 9, Si: 9, P: 9, S: 9,
-  Cl: 9, Ar: 9,
+  H: 1,
+  He: 1,
+  Li: 5,
+  Be: 5,
+  B: 5,
+  C: 5,
+  N: 5,
+  O: 5,
+  F: 5,
+  Ne: 5,
+  Na: 9,
+  Mg: 9,
+  Al: 9,
+  Si: 9,
+  P: 9,
+  S: 9,
+  Cl: 9,
+  Ar: 9,
 };
 
 interface RawPySCFResult {
@@ -197,7 +253,10 @@ export class PySCFBackend implements QmSolver {
       task: 'energy',
       molecule: {
         atoms: molecule.atoms.map((a) => ({
-          symbol: a.symbol, x: a.x, y: a.y, z: a.z,
+          symbol: a.symbol,
+          x: a.x,
+          y: a.y,
+          z: a.z,
         })),
         charge: molecule.charge ?? 0,
         multiplicity: molecule.multiplicity ?? 1,
@@ -234,7 +293,10 @@ export class PySCFBackend implements QmSolver {
       task: 'optimize',
       molecule: {
         atoms: molecule.atoms.map((a) => ({
-          symbol: a.symbol, x: a.x, y: a.y, z: a.z,
+          symbol: a.symbol,
+          x: a.x,
+          y: a.y,
+          z: a.z,
         })),
         charge: molecule.charge ?? 0,
         multiplicity: molecule.multiplicity ?? 1,
@@ -266,7 +328,10 @@ export class PySCFBackend implements QmSolver {
       task: 'frequency',
       molecule: {
         atoms: molecule.atoms.map((a) => ({
-          symbol: a.symbol, x: a.x, y: a.y, z: a.z,
+          symbol: a.symbol,
+          x: a.x,
+          y: a.y,
+          z: a.z,
         })),
         charge: molecule.charge ?? 0,
         multiplicity: molecule.multiplicity ?? 1,
@@ -306,7 +371,10 @@ export class PySCFBackend implements QmSolver {
       task: 'band_structure',
       crystal: {
         atoms: crystal.atoms.map((a) => ({
-          symbol: a.symbol, fx: a.fx, fy: a.fy, fz: a.fz,
+          symbol: a.symbol,
+          fx: a.fx,
+          fy: a.fy,
+          fz: a.fz,
         })),
         lattice_vectors: crystal.latticeVectors.map((v) => [v[0], v[1], v[2]]),
         space_group: crystal.spaceGroup,
@@ -353,7 +421,10 @@ export class PySCFBackend implements QmSolver {
       task: 'dft_materials',
       crystal: {
         atoms: crystal.atoms.map((a) => ({
-          symbol: a.symbol, fx: a.fx, fy: a.fy, fz: a.fz,
+          symbol: a.symbol,
+          fx: a.fx,
+          fy: a.fy,
+          fz: a.fz,
         })),
         lattice_vectors: crystal.latticeVectors.map((v) => [v[0], v[1], v[2]]),
         space_group: crystal.spaceGroup,
@@ -398,7 +469,9 @@ export class PySCFBackend implements QmSolver {
   }
 
   async computeNmrSpectrum(): Promise<never> {
-    throw new Error('[pyscf] NMR GIAO is not a primary target for PySCF backend. Use psi4 backend.');
+    throw new Error(
+      '[pyscf] NMR GIAO is not a primary target for PySCF backend. Use psi4 backend.'
+    );
   }
 
   async computeSemiEmpiricalEnergy(): Promise<never> {
@@ -408,7 +481,7 @@ export class PySCFBackend implements QmSolver {
   async computeTransitionState(
     reactant: MoleculeSpec,
     product: MoleculeSpec,
-    numImages = 7,
+    numImages = 7
   ): Promise<QmTransitionStateResult> {
     requireCapability('pyscf', 'transitionStates');
     const startTime = performance.now();
@@ -417,7 +490,9 @@ export class PySCFBackend implements QmSolver {
     const midpointAtoms = reactant.atoms.map((a, i) => {
       const productAtom = product.atoms[i];
       if (!productAtom) {
-        throw new Error('[pyscf] Reactant/product atom counts must match for transition state search.');
+        throw new Error(
+          '[pyscf] Reactant/product atom counts must match for transition state search.'
+        );
       }
       return {
         symbol: a.symbol,
@@ -468,7 +543,10 @@ export class PySCFBackend implements QmSolver {
       task: 'phonon',
       crystal: {
         atoms: crystal.atoms.map((a) => ({
-          symbol: a.symbol, fx: a.fx, fy: a.fy, fz: a.fz,
+          symbol: a.symbol,
+          fx: a.fx,
+          fy: a.fy,
+          fz: a.fz,
         })),
         lattice_vectors: crystal.latticeVectors.map((v) => [v[0], v[1], v[2]]),
         space_group: crystal.spaceGroup,
@@ -513,7 +591,10 @@ export class PySCFBackend implements QmSolver {
       task: 'dos',
       crystal: {
         atoms: crystal.atoms.map((a) => ({
-          symbol: a.symbol, fx: a.fx, fy: a.fy, fz: a.fz,
+          symbol: a.symbol,
+          fx: a.fx,
+          fy: a.fy,
+          fz: a.fz,
         })),
         lattice_vectors: crystal.latticeVectors.map((v) => [v[0], v[1], v[2]]),
         space_group: crystal.spaceGroup,
@@ -535,11 +616,8 @@ export class PySCFBackend implements QmSolver {
       totalDos: raw.dos_total ?? [],
       projectedDos: raw.dos_projected,
       fermiEnergy: raw.fermi_energy ?? 0,
-      energyRange: [
-        Math.min(...(raw.dos_energies ?? [0])),
-        Math.max(...(raw.dos_energies ?? [0])),
-      ],
-      numPoints: raw.dos_num_points ?? (raw.dos_energies?.length ?? 0),
+      energyRange: [Math.min(...(raw.dos_energies ?? [0])), Math.max(...(raw.dos_energies ?? [0]))],
+      numPoints: raw.dos_num_points ?? raw.dos_energies?.length ?? 0,
       solverConfig: this.qmConfig,
       wallTimeSeconds: wallTime,
     };
@@ -565,7 +643,10 @@ export class PySCFBackend implements QmSolver {
       task: 'hamiltonian',
       crystal: {
         atoms: crystal.atoms.map((a) => ({
-          symbol: a.symbol, fx: a.fx, fy: a.fy, fz: a.fz,
+          symbol: a.symbol,
+          fx: a.fx,
+          fy: a.fy,
+          fz: a.fz,
         })),
         lattice_vectors: crystal.latticeVectors.map((v) => [v[0], v[1], v[2]]),
         space_group: crystal.spaceGroup,
@@ -586,7 +667,9 @@ export class PySCFBackend implements QmSolver {
     return {
       numQubits: raw.hamiltonian_num_qubits ?? 0,
       numTerms: raw.hamiltonian_num_terms ?? 0,
-      numKpoints: this.config.kMesh ? this.config.kMesh[0] * this.config.kMesh[1] * this.config.kMesh[2] : 64,
+      numKpoints: this.config.kMesh
+        ? this.config.kMesh[0] * this.config.kMesh[1] * this.config.kMesh[2]
+        : 64,
       scfConverged: raw.converged ?? false,
       totalEnergy: raw.total_energy ?? 0,
       hamiltonianOperator: raw.hamiltonian_operator,
@@ -608,9 +691,7 @@ export class PySCFBackend implements QmSolver {
    * When scriptPath or pythonPath is '__mock__', returns deterministic mock
    * values for testing without a PySCF installation.
    */
-  private async _runPythonBridge(
-    input: Record<string, unknown>,
-  ): Promise<RawPySCFResult> {
+  private async _runPythonBridge(input: Record<string, unknown>): Promise<RawPySCFResult> {
     // Mock mode: return deterministic values without Python
     const scriptPath = this.config.scriptPath ?? '';
     const pythonExe =
@@ -633,7 +714,7 @@ export class PySCFBackend implements QmSolver {
     const { stdout, stderr } = await execFileAsync(
       pythonExe,
       [resolvedScript, JSON.stringify(input)],
-      { maxBuffer: 10 * 1024 * 1024 },
+      { maxBuffer: 10 * 1024 * 1024 }
     );
 
     // Filter PySCF/OpenFermion deprecation warnings from stderr
@@ -641,10 +722,7 @@ export class PySCFBackend implements QmSolver {
       const fatal = stderr
         .split('\n')
         .filter(
-          (l) =>
-            l.includes('Error:') ||
-            l.includes('Traceback') ||
-            l.includes('SyntaxError'),
+          (l) => l.includes('Error:') || l.includes('Traceback') || l.includes('SyntaxError')
         );
       if (fatal.length > 0) {
         throw new Error(`[pyscf] Python bridge error: ${fatal.join('\n')}`);
@@ -670,7 +748,7 @@ export class PySCFBackend implements QmSolver {
    * Matches the mock shapes from quantum_materials_execute.py fallbacks.
    */
   private _mockResult(input: Record<string, unknown>): RawPySCFResult {
-    const task = input['task'] as string ?? 'energy';
+    const task = (input['task'] as string) ?? 'energy';
     const molecule = input['molecule'] as { atoms: Array<{ symbol: string }> } | undefined;
     const crystal = input['crystal'] as { atoms: Array<{ symbol: string }> } | undefined;
     const atoms = molecule?.atoms ?? crystal?.atoms ?? [];
@@ -713,11 +791,12 @@ export class PySCFBackend implements QmSolver {
     // Phonon mock
     if (task === 'phonon') {
       const nModes = nAtoms * 3;
-      const avgMass = atoms.length > 0
-        ? atoms.reduce((sum, a) => sum + (ATOMIC_NUMBERS[a.symbol] ?? 12), 0) / nAtoms
-        : 12;
+      const avgMass =
+        atoms.length > 0
+          ? atoms.reduce((sum, a) => sum + (ATOMIC_NUMBERS[a.symbol] ?? 12), 0) / nAtoms
+          : 12;
       const debyeFreq = 300.0 / Math.sqrt(avgMass);
-      const frequencies = Array.from({ length: nModes }, (_, i) => debyeFreq * (i + 1) / nModes);
+      const frequencies = Array.from({ length: nModes }, (_, i) => (debyeFreq * (i + 1)) / nModes);
       const zpe = frequencies.reduce((s, f) => s + f, 0) * 0.5 * 2.998e-10;
       return {
         phonon_frequencies: frequencies,
@@ -736,7 +815,7 @@ export class PySCFBackend implements QmSolver {
       const energies: number[] = [];
       const dos: number[] = [];
       for (let i = 0; i < nPoints; i++) {
-        const e = -7.0 + i * 14.0 / nPoints;
+        const e = -7.0 + (i * 14.0) / nPoints;
         energies.push(parseFloat(e.toFixed(4)));
         // Two-peak structure (valence + conduction band)
         const vb = Math.exp(-0.5 * ((e + 2.0) / 1.0) ** 2);
@@ -755,15 +834,13 @@ export class PySCFBackend implements QmSolver {
 
     // Hamiltonian export mock
     if (task === 'hamiltonian') {
-      const numQubits = atoms.reduce(
-        (sum, a) => sum + (ORBITAL_MAP[a.symbol] ?? 9) * 2, 0,
-      ) || 10;
+      const numQubits = atoms.reduce((sum, a) => sum + (ORBITAL_MAP[a.symbol] ?? 9) * 2, 0) || 10;
       return {
         total_energy: -340.5,
         converged: true,
         scf_iterations: 12,
         hamiltonian_num_qubits: numQubits,
-        hamiltonian_num_terms: numQubits * (numQubits + 1) / 2 + numQubits,
+        hamiltonian_num_terms: (numQubits * (numQubits + 1)) / 2 + numQubits,
         hamiltonian_operator: undefined,
         computed_locally: false,
         wall_time_seconds: 0.01,

@@ -48,7 +48,9 @@ function parseArgs(argv = process.argv.slice(2)) {
     } else if (arg.startsWith('--target=')) {
       out.target = Number(arg.slice('--target='.length));
     } else if (arg === '--help' || arg === '-h') {
-      console.log(`Usage: node scripts/sesl-coverage-gap-analysis.mjs --input <jsonl> [--json|--markdown] [--out <path>] [--target <n>]`);
+      console.log(
+        `Usage: node scripts/sesl-coverage-gap-analysis.mjs --input <jsonl> [--json|--markdown] [--out <path>] [--target <n>]`
+      );
       process.exit(0);
     }
   }
@@ -123,8 +125,7 @@ export function analyzeCoverageGap(rows, options = {}) {
   // Pre-scan: count shapes for duplicate detection
   const shapeCounts = new Map();
   for (const row of rows) {
-    const shape =
-      row.provenance?.composition_shape_hash || row.composition_shape_hash || 'unknown';
+    const shape = row.provenance?.composition_shape_hash || row.composition_shape_hash || 'unknown';
     shapeCounts.set(shape, (shapeCounts.get(shape) || 0) + 1);
   }
 
@@ -144,7 +145,9 @@ export function analyzeCoverageGap(rows, options = {}) {
     totalRows += 1;
 
     // Exact duplicate detection
-    const digest = sha256(JSON.stringify({ holo: row.holo, hsplus: row.hsplus, prompt: row.prompt_text }));
+    const digest = sha256(
+      JSON.stringify({ holo: row.holo, hsplus: row.hsplus, prompt: row.prompt_text })
+    );
     if (rowDigests.has(digest)) {
       rewardHackExcluded += 1;
       continue;
@@ -224,13 +227,9 @@ export function analyzeCoverageGap(rows, options = {}) {
     staticOnlyRows,
     runtimeEligible,
     gap,
-    solverFailReasons: Object.fromEntries(
-      [...solverFailReasons].map(([k, v]) => [k, v]),
-    ),
+    solverFailReasons: Object.fromEntries([...solverFailReasons].map(([k, v]) => [k, v])),
     staticOnlyFamilies,
-    familyRuntimeCounts: Object.fromEntries(
-      [...familyRuntimeCounts].map(([k, v]) => [k, v]),
-    ),
+    familyRuntimeCounts: Object.fromEntries([...familyRuntimeCounts].map(([k, v]) => [k, v])),
     checks: {
       totalAddsUp:
         totalRows ===
@@ -269,9 +268,16 @@ generatedAt: ${r.generatedAt}
 
 ## Solver-fail reasons
 
-${Object.entries(r.solverFailReasons).length === 0 ? 'None.' : Object.entries(r.solverFailReasons)
-  .map(([solver, data]) => `- **${solver}**: ${data.count} failures, ${data.totalViolations} total violations`)
-  .join('\n')}
+${
+  Object.entries(r.solverFailReasons).length === 0
+    ? 'None.'
+    : Object.entries(r.solverFailReasons)
+        .map(
+          ([solver, data]) =>
+            `- **${solver}**: ${data.count} failures, ${data.totalViolations} total violations`
+        )
+        .join('\n')
+}
 
 ## Static-only families
 

@@ -80,7 +80,7 @@ describe('manufacturing-qc -> HoloScript runtime integration (spc)', () => {
         subgroups: HAND_SUBGROUPS,
         lsl: HAND_LSL,
         usl: HAND_USL,
-      }) as never,
+      }) as never
     );
     await flush();
 
@@ -107,7 +107,7 @@ describe('manufacturing-qc -> HoloScript runtime integration (spc)', () => {
         subgroups: HAND_SUBGROUPS,
         lsl: HAND_LSL,
         usl: HAND_USL,
-      }) as never,
+      }) as never
     );
     await flush();
 
@@ -124,7 +124,7 @@ describe('manufacturing-qc -> HoloScript runtime integration (spc)', () => {
         subgroups: HAND_SUBGROUPS,
         lsl: HAND_LSL,
         usl: HAND_USL,
-      }) as never,
+      }) as never
     );
     await flush();
 
@@ -155,7 +155,7 @@ describe('manufacturing-qc -> HoloScript runtime integration (spc)', () => {
         subgroups: HAND_SUBGROUPS,
         lsl: 10,
         usl: 4,
-      }) as never,
+      }) as never
     );
     await flush();
 

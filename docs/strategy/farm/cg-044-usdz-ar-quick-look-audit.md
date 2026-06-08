@@ -11,6 +11,7 @@
 HoloScript has a working USDZ export path (`compile_to_usdz` / USDZExportCompiler + USDZPipeline).
 
 **Current state**:
+
 - Generates valid .usda → .usdz via the pipeline.
 - Supports materials, physics, particles, audio, post-processing, narrative, etc. via the DomainBlockCompilerMixin.
 - `includeAnimations` flag exists in USDZPipelineOptions.
@@ -46,4 +47,4 @@ HoloScript has a working USDZ export path (`compile_to_usdz` / USDZExportCompile
 
 **This audit + documented follow-ups is the local farmable slice for CG-044.**
 
-*Produced by grok1-x402 during the 15th marathon cycle.*
+_Produced by grok1-x402 during the 15th marathon cycle._

@@ -34,7 +34,7 @@ export function isHologramWorkerConfigured(): boolean {
 }
 
 export async function callHologramWorkerRender(
-  input: HologramWorkerRenderInput,
+  input: HologramWorkerRenderInput
 ): Promise<HologramWorkerRenderResult> {
   const base = workerBaseUrl();
   if (!base) throw new Error('hologram worker: HOLOGRAM_WORKER_URL is not set');

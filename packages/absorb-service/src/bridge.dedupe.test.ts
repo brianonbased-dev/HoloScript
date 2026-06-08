@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  onAbsorbComplete,
-  type AbsorbCompletionEvent,
-  type PipelineTriggerConfig,
-} from './bridge';
+import { onAbsorbComplete, type AbsorbCompletionEvent, type PipelineTriggerConfig } from './bridge';
 
 describe('onAbsorbComplete', () => {
   const event: AbsorbCompletionEvent = {

@@ -1,11 +1,11 @@
-import type { Metadata } from 'next'
-import Link from 'next/link'
-import './globals.css'
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import './globals.css';
 
 export const metadata: Metadata = {
   title: 'HoloMesh — Agent Network',
   description: 'Discover agents, teams, and the HoloScript network.',
-}
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -29,7 +29,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/families" className="hover:text-mesh-purple-bright transition-colors">
                 Families
               </Link>
-              <Link href="/sim/paper26" className="flex items-center gap-1.5 hover:text-mesh-green-bright transition-colors">
+              <Link
+                href="/sim/paper26"
+                className="flex items-center gap-1.5 hover:text-mesh-green-bright transition-colors"
+              >
                 <span className="text-mesh-green-bright text-[8px] leading-none">●</span>
                 <span>Sim</span>
               </Link>
@@ -65,5 +68,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </footer>
       </body>
     </html>
-  )
+  );
 }

@@ -718,11 +718,7 @@ export const zkPrivateHandler = {
     // =========================================================================
 
     if (event.type === 'proof_generate') {
-      const {
-        circuitId,
-        publicInputs = {},
-        privateInputs = {},
-      } = payload;
+      const { circuitId, publicInputs = {}, privateInputs = {} } = payload;
       if (!circuitId) return;
       const circuit = s.circuits.get(circuitId as string);
       if (!circuit) {
@@ -730,7 +726,10 @@ export const zkPrivateHandler = {
         return;
       }
       const requestId = payload.requestId ?? `zk_${Date.now()}`;
-      s.activeProofs.set(requestId as string, { circuitId: circuitId as string, startedAt: Date.now() });
+      s.activeProofs.set(requestId as string, {
+        circuitId: circuitId as string,
+        startedAt: Date.now(),
+      });
       ctx.emit('proof_generation_started', { node, requestId, circuit: circuitId });
       const t0 = Date.now();
       const timeout = new Promise<never>((_, r) =>
@@ -758,11 +757,7 @@ export const zkPrivateHandler = {
           ctx.emit('zk_error', { node, requestId, error: err.message });
         });
     } else if (event.type === 'proof_verify') {
-      const {
-        proof: proofBytes,
-        publicInputs = {},
-        circuitId,
-      } = payload;
+      const { proof: proofBytes, publicInputs = {}, circuitId } = payload;
       if (!proofBytes) return;
       const requestId = payload.requestId ?? `verify_${Date.now()}`;
       const t0 = Date.now();
@@ -907,7 +902,10 @@ export const zkPrivateHandler = {
           proofBytes
         ) {
           const submission: ZkWalletProofSubmission = {
-            proof: proofBytes instanceof Uint8Array ? proofBytes : new Uint8Array(proofBytes as ArrayBuffer),
+            proof:
+              proofBytes instanceof Uint8Array
+                ? proofBytes
+                : new Uint8Array(proofBytes as ArrayBuffer),
             publicInputs: (publicInputs as Record<string, unknown>) ?? {},
             circuitId: (circuitId as string) ?? getPredicateCircuitId(config.predicate),
             chain: config.wallet_integration.chain,
@@ -1010,7 +1008,8 @@ export const zkPrivateHandler = {
         publicInputs: (pi as Record<string, unknown>) ?? {},
         circuitId: (cid as string) ?? '',
         chain: (chain as any) ?? config.wallet_integration?.chain ?? 'ethereum',
-        verifierContract: (verifierContract as string) ?? config.wallet_integration?.verifier_contract ?? '',
+        verifierContract:
+          (verifierContract as string) ?? config.wallet_integration?.verifier_contract ?? '',
         gasLimit: gasLimit as number,
       };
 

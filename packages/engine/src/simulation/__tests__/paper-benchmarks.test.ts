@@ -16,15 +16,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { StructuralSolver, type StructuralConfig } from '../StructuralSolver';
-import {
-  StructuralSolverTET10,
-  tet4ToTet10,
-  type TET10Config,
-} from '../StructuralSolverTET10';
-import {
-  hashGeometry,
-  ContractedSimulation,
-} from '../SimulationContract';
+import { StructuralSolverTET10, tet4ToTet10, type TET10Config } from '../StructuralSolverTET10';
+import { hashGeometry, ContractedSimulation } from '../SimulationContract';
 import { runConvergenceStudy } from '../verification/ConvergenceAnalysis';
 import {
   renderReportLatex,
@@ -34,8 +27,10 @@ import {
 
 // ── Mesh Generation (reused from NAFEMS-LE1.test.ts) ───────────────────────
 
-const INNER_AX = 2.0, INNER_AY = 1.0; // NAFEMS spec: wide inner, short outer
-const OUTER_BX = 3.25, OUTER_BY = 2.75;
+const INNER_AX = 2.0,
+  INNER_AY = 1.0; // NAFEMS spec: wide inner, short outer
+const OUTER_BX = 3.25,
+  OUTER_BY = 2.75;
 const THICKNESS = 0.1;
 const E_MODULUS = 210_000;
 const POISSON = 0.3;
@@ -90,13 +85,21 @@ function generateEllipticMembraneMesh(nr: number, nt: number) {
   return {
     vertices: new Float32Array(pts),
     tetrahedra: new Uint32Array(tets),
-    nr, nt, nz, idx,
+    nr,
+    nt,
+    nz,
+    idx,
     nodeCount: (nr + 1) * (nt + 1) * (nz + 1),
   };
 }
 
 function computeOuterPressureLoads(mesh: ReturnType<typeof generateEllipticMembraneMesh>) {
-  const loads: Array<{ id: string; type: 'point'; nodeIndex: number; force: [number, number, number] }> = [];
+  const loads: Array<{
+    id: string;
+    type: 'point';
+    nodeIndex: number;
+    force: [number, number, number];
+  }> = [];
   for (let iz = 0; iz <= mesh.nz; iz++) {
     for (let jt = 0; jt <= mesh.nt; jt++) {
       const nodeIdx = mesh.idx(mesh.nr, jt, iz);
@@ -106,8 +109,10 @@ function computeOuterPressureLoads(mesh: ReturnType<typeof generateEllipticMembr
       const nmag = Math.sqrt(nxU * nxU + nyU * nyU);
       const nx = nxU / nmag;
       const ny = nyU / nmag;
-      const dsdtheta = Math.sqrt((OUTER_BX * Math.sin(theta)) ** 2 + (OUTER_BY * Math.cos(theta)) ** 2);
-      const dtheta = (Math.PI / 2) / mesh.nt;
+      const dsdtheta = Math.sqrt(
+        (OUTER_BX * Math.sin(theta)) ** 2 + (OUTER_BY * Math.cos(theta)) ** 2
+      );
+      const dtheta = Math.PI / 2 / mesh.nt;
       const dz = THICKNESS / mesh.nz;
       let tw = dtheta;
       if (jt === 0 || jt === mesh.nt) tw *= 0.5;
@@ -115,7 +120,12 @@ function computeOuterPressureLoads(mesh: ReturnType<typeof generateEllipticMembr
       if (iz === 0 || iz === mesh.nz) zw *= 0.5;
       const area = dsdtheta * tw * zw;
       const fmag = PRESSURE * area;
-      loads.push({ id: `p_${iz}_${jt}`, type: 'point', nodeIndex: nodeIdx, force: [fmag * nx, fmag * ny, 0] });
+      loads.push({
+        id: `p_${iz}_${jt}`,
+        type: 'point',
+        nodeIndex: nodeIdx,
+        force: [fmag * nx, fmag * ny, 0],
+      });
     }
   }
   return loads;
@@ -132,7 +142,7 @@ function extractStressNearPoint(
   nodesPerTet: number,
   targetX: number,
   targetY: number,
-  searchRadius: number,
+  searchRadius: number
 ): number {
   const elemCount = tetrahedra.length / nodesPerTet;
   let bestDist = Infinity;
@@ -141,7 +151,8 @@ function extractStressNearPoint(
   let count = 0;
 
   for (let e = 0; e < elemCount; e++) {
-    let cx = 0, cy = 0;
+    let cx = 0,
+      cy = 0;
     for (let n = 0; n < 4; n++) {
       const ni = tetrahedra[e * nodesPerTet + n];
       cx += vertices[ni * 3] / 4;
@@ -164,14 +175,22 @@ function extractStressNearPoint(
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeTET4Config(nr: number, nt: number): { config: StructuralConfig; mesh: ReturnType<typeof generateEllipticMembraneMesh> } {
+function makeTET4Config(
+  nr: number,
+  nt: number
+): { config: StructuralConfig; mesh: ReturnType<typeof generateEllipticMembraneMesh> } {
   const mesh = generateEllipticMembraneMesh(nr, nt);
   const loads = computeOuterPressureLoads(mesh);
   const fixedNodes = [mesh.idx(0, 0, 0), mesh.idx(0, mesh.nt, 0), mesh.idx(0, 0, mesh.nz)];
   const config: StructuralConfig = {
     vertices: mesh.vertices,
     tetrahedra: mesh.tetrahedra,
-    material: { density: 7850, youngs_modulus: E_MODULUS, poisson_ratio: POISSON, yield_strength: 400 },
+    material: {
+      density: 7850,
+      youngs_modulus: E_MODULUS,
+      poisson_ratio: POISSON,
+      yield_strength: 400,
+    },
     constraints: [{ id: 'fix_rbm', type: 'fixed', nodes: fixedNodes }],
     loads,
     maxIterations: 5000,
@@ -180,7 +199,14 @@ function makeTET4Config(nr: number, nt: number): { config: StructuralConfig; mes
   return { config, mesh };
 }
 
-function makeTET10Config(nr: number, nt: number): { config: TET10Config; mesh: ReturnType<typeof generateEllipticMembraneMesh>; tet10Mesh: { vertices: Float64Array; tetrahedra: Uint32Array } } {
+function makeTET10Config(
+  nr: number,
+  nt: number
+): {
+  config: TET10Config;
+  mesh: ReturnType<typeof generateEllipticMembraneMesh>;
+  tet10Mesh: { vertices: Float64Array; tetrahedra: Uint32Array };
+} {
   const mesh = generateEllipticMembraneMesh(nr, nt);
   const loads = computeOuterPressureLoads(mesh);
   const tet10Mesh = tet4ToTet10(new Float64Array(mesh.vertices), mesh.tetrahedra);
@@ -188,7 +214,12 @@ function makeTET10Config(nr: number, nt: number): { config: TET10Config; mesh: R
   const config: TET10Config = {
     vertices: tet10Mesh.vertices,
     tetrahedra: tet10Mesh.tetrahedra,
-    material: { density: 7850, youngs_modulus: E_MODULUS, poisson_ratio: POISSON, yield_strength: 400 },
+    material: {
+      density: 7850,
+      youngs_modulus: E_MODULUS,
+      poisson_ratio: POISSON,
+      yield_strength: 400,
+    },
     constraints: [{ id: 'fix_rbm', type: 'fixed', nodes: fixedNodes }],
     loads,
     maxIterations: 5000,
@@ -198,10 +229,15 @@ function makeTET10Config(nr: number, nt: number): { config: TET10Config; mesh: R
   return { config, mesh, tet10Mesh };
 }
 
-function benchmark(fn: () => void, iterations: number): { medianMs: number; meanMs: number; stdMs: number; p99Ms: number; allMs: number[] } {
+function benchmark(
+  fn: () => void,
+  iterations: number
+): { medianMs: number; meanMs: number; stdMs: number; p99Ms: number; allMs: number[] } {
   const times: number[] = [];
   // Warmup (3 runs)
-  fn(); fn(); fn();
+  fn();
+  fn();
+  fn();
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
     fn();
@@ -209,8 +245,7 @@ function benchmark(fn: () => void, iterations: number): { medianMs: number; mean
   }
   times.sort((a, b) => a - b);
   const n = times.length;
-  const medianMs =
-    n % 2 === 0 ? (times[n / 2 - 1] + times[n / 2]) / 2 : times[Math.floor(n / 2)];
+  const medianMs = n % 2 === 0 ? (times[n / 2 - 1] + times[n / 2]) / 2 : times[Math.floor(n / 2)];
   const meanMs = times.reduce((a, b) => a + b, 0) / n;
   const variance = n > 1 ? times.reduce((s, t) => s + (t - meanMs) ** 2, 0) / (n - 1) : 0;
   const stdMs = Math.sqrt(variance);
@@ -224,77 +259,86 @@ function benchmark(fn: () => void, iterations: number): { medianMs: number; mean
 // ═══════════════════════════════════════════════════════════════════════
 
 describe('Paper Benchmark: Contract Overhead', () => {
+  it(
+    'measures overhead of ContractedSimulation wrapper on TET4 solve',
+    { timeout: 600_000 },
+    () => {
+      const meshConfigs = [
+        { nr: 4, nt: 8, label: 'Small' },
+        { nr: 6, nt: 12, label: 'Medium' },
+        { nr: 8, nt: 16, label: 'Large' },
+      ];
 
-  it('measures overhead of ContractedSimulation wrapper on TET4 solve', { timeout: 600_000 }, () => {
-    const meshConfigs = [
-      { nr: 4, nt: 8, label: 'Small' },
-      { nr: 6, nt: 12, label: 'Medium' },
-      { nr: 8, nt: 16, label: 'Large' },
-    ];
+      // N configurable for revision-grade measurement. Default 100 for routine runs;
+      // BENCH_N=500 for canonical revision numbers with stable p99.
+      const N_ITER = Number.parseInt(process.env.BENCH_N ?? '100', 10);
 
-    // N configurable for revision-grade measurement. Default 100 for routine runs;
-    // BENCH_N=500 for canonical revision numbers with stable p99.
-    const N_ITER = Number.parseInt(process.env.BENCH_N ?? '100', 10);
+      console.log('\n' + '='.repeat(90));
+      console.log(`CONTRACT OVERHEAD: TET4 Solver (${N_ITER} iterations, 3 warmup, median + p99)`);
+      console.log('='.repeat(90));
+      console.log('| Mesh     | Nodes | DOF   | Bare (ms)     | Contracted (ms) | Overhead   |');
+      console.log('|----------|-------|-------|---------------|-----------------|------------|');
 
-    console.log('\n' + '='.repeat(90));
-    console.log(`CONTRACT OVERHEAD: TET4 Solver (${N_ITER} iterations, 3 warmup, median + p99)`);
-    console.log('='.repeat(90));
-    console.log('| Mesh     | Nodes | DOF   | Bare (ms)     | Contracted (ms) | Overhead   |');
-    console.log('|----------|-------|-------|---------------|-----------------|------------|');
+      const rows: string[] = [];
 
-    const rows: string[] = [];
+      for (const mc of meshConfigs) {
+        const { config, mesh } = makeTET4Config(mc.nr, mc.nt);
+        const dof = mesh.nodeCount * 3;
 
-    for (const mc of meshConfigs) {
-      const { config, mesh } = makeTET4Config(mc.nr, mc.nt);
-      const dof = mesh.nodeCount * 3;
+        // Bare solver timing
+        const bareTiming = benchmark(() => {
+          const solver = new StructuralSolver(config);
+          solver.solve();
+        }, N_ITER);
 
-      // Bare solver timing
-      const bareTiming = benchmark(() => {
-        const solver = new StructuralSolver(config);
-        solver.solve();
-      }, N_ITER);
+        // Contracted solver timing
+        const contractedTiming = benchmark(() => {
+          const solver = new StructuralSolver(config);
+          const contracted = new ContractedSimulation(solver, config as Record<string, unknown>, {
+            solverType: 'structural-tet4',
+            enforceUnits: true,
+            logInteractions: true,
+          });
+          contracted.solve();
+          contracted.getProvenance();
+        }, N_ITER);
 
-      // Contracted solver timing
-      const contractedTiming = benchmark(() => {
-        const solver = new StructuralSolver(config);
-        const contracted = new ContractedSimulation(solver, config as Record<string, unknown>, {
-          solverType: 'structural-tet4',
-          enforceUnits: true,
-          logInteractions: true,
-        });
-        contracted.solve();
-        contracted.getProvenance();
-      }, N_ITER);
+        const overheadStr =
+          ((contractedTiming.medianMs / bareTiming.medianMs - 1) * 100).toFixed(1) + '%';
 
-      const overheadStr = (((contractedTiming.medianMs / bareTiming.medianMs) - 1) * 100).toFixed(1) + '%';
-      
-      console.log(`| ${mc.label.padEnd(8)} | ${String(mesh.nodeCount).padStart(5)} | ${String(dof).padStart(5)} | ${bareTiming.medianMs.toFixed(2)} (p99: ${bareTiming.p99Ms.toFixed(2)}) | ${contractedTiming.medianMs.toFixed(2)} (p99: ${contractedTiming.p99Ms.toFixed(2)}) | ${overheadStr.padStart(8)} |`);
-      
-      rows.push(`${mc.label} & ${mesh.nodeCount} & ${dof} & ${bareTiming.medianMs.toFixed(2)} (p99: ${bareTiming.p99Ms.toFixed(2)}) & ${contractedTiming.medianMs.toFixed(2)} (p99: ${contractedTiming.p99Ms.toFixed(2)}) & ${overheadStr} \\\\`);
-    }
+        console.log(
+          `| ${mc.label.padEnd(8)} | ${String(mesh.nodeCount).padStart(5)} | ${String(dof).padStart(5)} | ${bareTiming.medianMs.toFixed(2)} (p99: ${bareTiming.p99Ms.toFixed(2)}) | ${contractedTiming.medianMs.toFixed(2)} (p99: ${contractedTiming.p99Ms.toFixed(2)}) | ${overheadStr.padStart(8)} |`
+        );
 
-    console.log('='.repeat(75));
+        rows.push(
+          `${mc.label} & ${mesh.nodeCount} & ${dof} & ${bareTiming.medianMs.toFixed(2)} (p99: ${bareTiming.p99Ms.toFixed(2)}) & ${contractedTiming.medianMs.toFixed(2)} (p99: ${contractedTiming.p99Ms.toFixed(2)}) & ${overheadStr} \\\\`
+        );
+      }
 
-    // LaTeX table
-    console.log('\n% --- LaTeX Table: Contract Overhead ---');
-    console.log('\\begin{table}[h]');
-    console.log('  \\centering');
-    console.log('  \\caption{Contract enforcement overhead for TET4 structural solver.}');
-    console.log('  \\label{tab:overhead}');
-    console.log('  \\begin{tabular}{@{}lrrrrr@{}}');
-    console.log('    \\toprule');
-    console.log('    Mesh & Nodes & DOF & Bare (ms) & Contracted (ms) & Overhead \\\\');
-    console.log('    \\midrule');
-    for (const row of rows) {
-      console.log(`    ${row}`);
-    }
-    console.log('    \\bottomrule');
-    console.log('  \\end{tabular}');
-    console.log('\\end{table}');
+      console.log('='.repeat(75));
 
-    // Just verify the test ran
-    expect(rows.length).toBe(3);
-  }, 60000);
+      // LaTeX table
+      console.log('\n% --- LaTeX Table: Contract Overhead ---');
+      console.log('\\begin{table}[h]');
+      console.log('  \\centering');
+      console.log('  \\caption{Contract enforcement overhead for TET4 structural solver.}');
+      console.log('  \\label{tab:overhead}');
+      console.log('  \\begin{tabular}{@{}lrrrrr@{}}');
+      console.log('    \\toprule');
+      console.log('    Mesh & Nodes & DOF & Bare (ms) & Contracted (ms) & Overhead \\\\');
+      console.log('    \\midrule');
+      for (const row of rows) {
+        console.log(`    ${row}`);
+      }
+      console.log('    \\bottomrule');
+      console.log('  \\end{tabular}');
+      console.log('\\end{table}');
+
+      // Just verify the test ran
+      expect(rows.length).toBe(3);
+    },
+    60000
+  );
 
   it('measures geometry hashing cost at various mesh sizes', () => {
     const meshConfigs = [
@@ -318,7 +362,9 @@ describe('Paper Benchmark: Contract Overhead', () => {
         hashGeometry(mesh.vertices, mesh.tetrahedra);
       }, 10);
 
-      console.log(`| ${String(mesh.nodeCount).padStart(6)} | ${String(mesh.vertices.length).padStart(9)} | ${String(elemCount).padStart(9)} | ${timing.medianMs.toFixed(4).padStart(11)} |`);
+      console.log(
+        `| ${String(mesh.nodeCount).padStart(6)} | ${String(mesh.vertices.length).padStart(9)} | ${String(elemCount).padStart(9)} | ${timing.medianMs.toFixed(4).padStart(11)} |`
+      );
     }
 
     console.log('='.repeat(60));
@@ -331,7 +377,6 @@ describe('Paper Benchmark: Contract Overhead', () => {
 // ═══════════════════════════════════════════════════════════════════════
 
 describe('Paper Benchmark: Solver Wall-Clock Scaling', () => {
-
   it('TET4 solve time vs mesh size', () => {
     const meshConfigs = [
       { nr: 2, nt: 4 },
@@ -360,9 +405,15 @@ describe('Paper Benchmark: Solver Wall-Clock Scaling', () => {
       const solveMs = performance.now() - start;
 
       const label = `${mc.nr}×${mc.nt}`;
-      console.log(`| ${label.padEnd(7)} | ${String(mesh.nodeCount).padStart(5)} | ${String(elemCount).padStart(8)} | ${String(dof).padStart(6)} | ${solveMs.toFixed(2).padStart(11)} | ${result.converged ? 'yes' : 'NO'} |`.padEnd(7));
+      console.log(
+        `| ${label.padEnd(7)} | ${String(mesh.nodeCount).padStart(5)} | ${String(elemCount).padStart(8)} | ${String(dof).padStart(6)} | ${solveMs.toFixed(2).padStart(11)} | ${result.converged ? 'yes' : 'NO'} |`.padEnd(
+          7
+        )
+      );
 
-      rows.push(`${label} & ${mesh.nodeCount} & ${elemCount} & ${dof} & ${solveMs.toFixed(2)} & ${result.converged ? 'yes' : 'no'} \\\\`);
+      rows.push(
+        `${label} & ${mesh.nodeCount} & ${elemCount} & ${dof} & ${solveMs.toFixed(2)} & ${result.converged ? 'yes' : 'no'} \\\\`
+      );
     }
 
     console.log('='.repeat(65));
@@ -403,9 +454,15 @@ describe('Paper Benchmark: Solver Wall-Clock Scaling', () => {
       const solveMs = performance.now() - start;
 
       const label = `${mc.nr}×${mc.nt}`;
-      console.log(`| ${label.padEnd(7)} | ${String(nodeCount).padStart(5)} | ${String(elemCount).padStart(8)} | ${String(dof).padStart(6)} | ${solveMs.toFixed(2).padStart(11)} | ${result.converged ? 'yes' : 'NO'} |`.padEnd(7));
+      console.log(
+        `| ${label.padEnd(7)} | ${String(nodeCount).padStart(5)} | ${String(elemCount).padStart(8)} | ${String(dof).padStart(6)} | ${solveMs.toFixed(2).padStart(11)} | ${result.converged ? 'yes' : 'NO'} |`.padEnd(
+          7
+        )
+      );
 
-      rows.push(`${label} & ${nodeCount} & ${elemCount} & ${dof} & ${solveMs.toFixed(2)} & ${result.converged ? 'yes' : 'no'} \\\\`);
+      rows.push(
+        `${label} & ${nodeCount} & ${elemCount} & ${dof} & ${solveMs.toFixed(2)} & ${result.converged ? 'yes' : 'no'} \\\\`
+      );
     }
 
     console.log('='.repeat(70));
@@ -426,8 +483,8 @@ describe('Paper Benchmark: Solver Wall-Clock Scaling', () => {
 describe('Paper Benchmark: Convergence Data for Publication', () => {
   it('NAFEMS LE1 — TET4 + TET10 convergence with LaTeX tables', () => {
     const meshConfigs = [
-      { nr: 2, nt: 4, h: 0.500 },
-      { nr: 4, nt: 8, h: 0.250 },
+      { nr: 2, nt: 4, h: 0.5 },
+      { nr: 4, nt: 8, h: 0.25 },
       { nr: 6, nt: 12, h: 0.166 },
       { nr: 8, nt: 16, h: 0.125 },
     ];
@@ -435,39 +492,90 @@ describe('Paper Benchmark: Convergence Data for Publication', () => {
     const hSizes = meshConfigs.map((c) => c.h);
 
     // TET4 convergence
-    const tet4Data: Array<{ h: number; nodes: number; dof: number; stress: number; error: number; solveMs: number }> = [];
+    const tet4Data: Array<{
+      h: number;
+      nodes: number;
+      dof: number;
+      stress: number;
+      error: number;
+      solveMs: number;
+    }> = [];
 
-    const tet4Result = runConvergenceStudy((h: number) => {
-      const conf = meshConfigs.find((c) => c.h === h)!;
-      const { config, mesh } = makeTET4Config(conf.nr, conf.nt);
-      const start = performance.now();
-      const solver = new StructuralSolver(config);
-      solver.solve();
-      const solveMs = performance.now() - start;
-      const vms = solver.getVonMisesStress();
-      const stress = extractStressNearPoint(mesh.vertices, mesh.tetrahedra, vms, 4, INNER_AX, 0, 0.5);
-      const error = Math.abs(stress - NAFEMS_SIGMA_YY_D) / NAFEMS_SIGMA_YY_D;
-      tet4Data.push({ h, nodes: mesh.nodeCount, dof: mesh.nodeCount * 3, stress, error, solveMs });
-      return { numerical: new Float32Array([stress]), exact: new Float32Array([NAFEMS_SIGMA_YY_D]) };
-    }, hSizes, (n) => n[0]);
+    const tet4Result = runConvergenceStudy(
+      (h: number) => {
+        const conf = meshConfigs.find((c) => c.h === h)!;
+        const { config, mesh } = makeTET4Config(conf.nr, conf.nt);
+        const start = performance.now();
+        const solver = new StructuralSolver(config);
+        solver.solve();
+        const solveMs = performance.now() - start;
+        const vms = solver.getVonMisesStress();
+        const stress = extractStressNearPoint(
+          mesh.vertices,
+          mesh.tetrahedra,
+          vms,
+          4,
+          INNER_AX,
+          0,
+          0.5
+        );
+        const error = Math.abs(stress - NAFEMS_SIGMA_YY_D) / NAFEMS_SIGMA_YY_D;
+        tet4Data.push({
+          h,
+          nodes: mesh.nodeCount,
+          dof: mesh.nodeCount * 3,
+          stress,
+          error,
+          solveMs,
+        });
+        return {
+          numerical: new Float32Array([stress]),
+          exact: new Float32Array([NAFEMS_SIGMA_YY_D]),
+        };
+      },
+      hSizes,
+      (n) => n[0]
+    );
 
     // TET10 convergence
-    const tet10Data: Array<{ h: number; nodes: number; dof: number; stress: number; error: number; solveMs: number }> = [];
+    const tet10Data: Array<{
+      h: number;
+      nodes: number;
+      dof: number;
+      stress: number;
+      error: number;
+      solveMs: number;
+    }> = [];
 
-    const tet10Result = runConvergenceStudy((h: number) => {
-      const conf = meshConfigs.find((c) => c.h === h)!;
-      const { config, mesh, tet10Mesh } = makeTET10Config(conf.nr, conf.nt);
-      const nodeCount = tet10Mesh.vertices.length / 3;
-      const start = performance.now();
-      const solver = new StructuralSolverTET10(config);
-      solver.solveCPU();
-      const solveMs = performance.now() - start;
-      const vms = solver.getVonMisesStress();
-      const stress = extractStressNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, vms, 10, INNER_AX, 0, 0.5);
-      const error = Math.abs(stress - NAFEMS_SIGMA_YY_D) / NAFEMS_SIGMA_YY_D;
-      tet10Data.push({ h, nodes: nodeCount, dof: nodeCount * 3, stress, error, solveMs });
-      return { numerical: new Float32Array([stress]), exact: new Float32Array([NAFEMS_SIGMA_YY_D]) };
-    }, hSizes, (n) => n[0]);
+    const tet10Result = runConvergenceStudy(
+      (h: number) => {
+        const conf = meshConfigs.find((c) => c.h === h)!;
+        const { config, mesh, tet10Mesh } = makeTET10Config(conf.nr, conf.nt);
+        const nodeCount = tet10Mesh.vertices.length / 3;
+        const start = performance.now();
+        const solver = new StructuralSolverTET10(config);
+        solver.solveCPU();
+        const solveMs = performance.now() - start;
+        const vms = solver.getVonMisesStress();
+        const stress = extractStressNearPoint(
+          tet10Mesh.vertices,
+          tet10Mesh.tetrahedra,
+          vms,
+          10,
+          INNER_AX,
+          0,
+          0.5
+        );
+        const error = Math.abs(stress - NAFEMS_SIGMA_YY_D) / NAFEMS_SIGMA_YY_D;
+        tet10Data.push({ h, nodes: nodeCount, dof: nodeCount * 3, stress, error, solveMs });
+        return {
+          numerical: new Float32Array([stress]),
+          exact: new Float32Array([NAFEMS_SIGMA_YY_D]),
+        };
+      },
+      hSizes,
+      (n) => n[0]
+    );
 
     // === Console Output ===
     console.log('\n' + '='.repeat(80));
@@ -478,22 +586,28 @@ describe('Paper Benchmark: Convergence Data for Publication', () => {
     console.log('| h     | Nodes | DOF   | σ_D (MPa) | Rel Error | Solve (ms) |');
     console.log('|-------|-------|-------|-----------|-----------|------------|');
     for (const d of tet4Data) {
-      console.log(`| ${d.h.toFixed(3)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(5)} | ${d.stress.toFixed(2).padStart(9)} | ${(d.error * 100).toFixed(2).padStart(8)}% | ${d.solveMs.toFixed(1).padStart(10)} |`);
+      console.log(
+        `| ${d.h.toFixed(3)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(5)} | ${d.stress.toFixed(2).padStart(9)} | ${(d.error * 100).toFixed(2).padStart(8)}% | ${d.solveMs.toFixed(1).padStart(10)} |`
+      );
     }
     console.log(`Observed order (L2): ${tet4Result.observedOrderL2.toFixed(3)}`);
     console.log(`Observed order (Linf): ${tet4Result.observedOrderLinf.toFixed(3)}`);
-    if (tet4Result.richardsonEstimate) console.log(`Richardson estimate: ${tet4Result.richardsonEstimate.toFixed(2)} MPa`);
+    if (tet4Result.richardsonEstimate)
+      console.log(`Richardson estimate: ${tet4Result.richardsonEstimate.toFixed(2)} MPa`);
     if (tet4Result.gci) console.log(`GCI: ${(tet4Result.gci * 100).toFixed(2)}%`);
 
     console.log('\nTET10 (Quadratic, expected O(h²)):');
     console.log('| h     | Nodes | DOF   | σ_D (MPa) | Rel Error | Solve (ms) |');
     console.log('|-------|-------|-------|-----------|-----------|------------|');
     for (const d of tet10Data) {
-      console.log(`| ${d.h.toFixed(3)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(5)} | ${d.stress.toFixed(2).padStart(9)} | ${(d.error * 100).toFixed(2).padStart(8)}% | ${d.solveMs.toFixed(1).padStart(10)} |`);
+      console.log(
+        `| ${d.h.toFixed(3)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(5)} | ${d.stress.toFixed(2).padStart(9)} | ${(d.error * 100).toFixed(2).padStart(8)}% | ${d.solveMs.toFixed(1).padStart(10)} |`
+      );
     }
     console.log(`Observed order (L2): ${tet10Result.observedOrderL2.toFixed(3)}`);
     console.log(`Observed order (Linf): ${tet10Result.observedOrderLinf.toFixed(3)}`);
-    if (tet10Result.richardsonEstimate) console.log(`Richardson estimate: ${tet10Result.richardsonEstimate.toFixed(2)} MPa`);
+    if (tet10Result.richardsonEstimate)
+      console.log(`Richardson estimate: ${tet10Result.richardsonEstimate.toFixed(2)} MPa`);
     if (tet10Result.gci) console.log(`GCI: ${(tet10Result.gci * 100).toFixed(2)}%`);
 
     // === LaTeX Output ===
@@ -502,23 +616,35 @@ describe('Paper Benchmark: Convergence Data for Publication', () => {
     console.log('% ────────────────────────────────────────────────');
     console.log('\\begin{table*}[t]');
     console.log('  \\centering');
-    console.log('  \\caption{NAFEMS LE1 convergence study: stress at point~D ($\\sigma_{yy}^{\\text{ref}} = 92.7$~MPa).}');
+    console.log(
+      '  \\caption{NAFEMS LE1 convergence study: stress at point~D ($\\sigma_{yy}^{\\text{ref}} = 92.7$~MPa).}'
+    );
     console.log('  \\label{tab:convergence}');
     console.log('  \\begin{tabular}{@{}crrrrrrrr@{}}');
     console.log('    \\toprule');
-    console.log('    & \\multicolumn{4}{c}{TET4 (Linear)} & \\multicolumn{4}{c}{TET10 (Quadratic)} \\\\');
+    console.log(
+      '    & \\multicolumn{4}{c}{TET4 (Linear)} & \\multicolumn{4}{c}{TET10 (Quadratic)} \\\\'
+    );
     console.log('    \\cmidrule(lr){2-5} \\cmidrule(lr){6-9}');
-    console.log('    $h$ & Nodes & DOF & $\\sigma_D$ (MPa) & Error (\\%) & Nodes & DOF & $\\sigma_D$ (MPa) & Error (\\%) \\\\');
+    console.log(
+      '    $h$ & Nodes & DOF & $\\sigma_D$ (MPa) & Error (\\%) & Nodes & DOF & $\\sigma_D$ (MPa) & Error (\\%) \\\\'
+    );
     console.log('    \\midrule');
     for (let i = 0; i < hSizes.length; i++) {
       const t4 = tet4Data[i];
       const t10 = tet10Data[i];
-      console.log(`    ${t4.h.toFixed(3)} & ${t4.nodes} & ${t4.dof} & ${t4.stress.toFixed(2)} & ${(t4.error * 100).toFixed(2)} & ${t10.nodes} & ${t10.dof} & ${t10.stress.toFixed(2)} & ${(t10.error * 100).toFixed(2)} \\\\`);
+      console.log(
+        `    ${t4.h.toFixed(3)} & ${t4.nodes} & ${t4.dof} & ${t4.stress.toFixed(2)} & ${(t4.error * 100).toFixed(2)} & ${t10.nodes} & ${t10.dof} & ${t10.stress.toFixed(2)} & ${(t10.error * 100).toFixed(2)} \\\\`
+      );
     }
     console.log('    \\midrule');
-    console.log(`    \\multicolumn{5}{l}{TET4 observed order: $p = ${tet4Result.observedOrderLinf.toFixed(2)}$} & \\multicolumn{4}{l}{TET10 observed order: $p = ${tet10Result.observedOrderLinf.toFixed(2)}$} \\\\`);
+    console.log(
+      `    \\multicolumn{5}{l}{TET4 observed order: $p = ${tet4Result.observedOrderLinf.toFixed(2)}$} & \\multicolumn{4}{l}{TET10 observed order: $p = ${tet10Result.observedOrderLinf.toFixed(2)}$} \\\\`
+    );
     if (tet4Result.gci && tet10Result.gci) {
-      console.log(`    \\multicolumn{5}{l}{TET4 GCI: ${(tet4Result.gci * 100).toFixed(2)}\\%} & \\multicolumn{4}{l}{TET10 GCI: ${(tet10Result.gci * 100).toFixed(2)}\\%} \\\\`);
+      console.log(
+        `    \\multicolumn{5}{l}{TET4 GCI: ${(tet4Result.gci * 100).toFixed(2)}\\%} & \\multicolumn{4}{l}{TET10 GCI: ${(tet10Result.gci * 100).toFixed(2)}\\%} \\\\`
+      );
     }
     console.log('    \\bottomrule');
     console.log('  \\end{tabular}');
@@ -528,7 +654,9 @@ describe('Paper Benchmark: Convergence Data for Publication', () => {
     console.log('\n% CSV: log10(h), log10(errorL2_TET4), log10(errorL2_TET10)');
     console.log('% h,errorL2_TET4,errorL2_TET10,errorLinf_TET4,errorLinf_TET10');
     for (let i = 0; i < hSizes.length; i++) {
-      console.log(`% ${hSizes[i]},${tet4Result.errorsL2[i]},${tet10Result.errorsL2[i]},${tet4Result.errorsLinf[i]},${tet10Result.errorsLinf[i]}`);
+      console.log(
+        `% ${hSizes[i]},${tet4Result.errorsL2[i]},${tet10Result.errorsL2[i]},${tet4Result.errorsLinf[i]},${tet10Result.errorsLinf[i]}`
+      );
     }
 
     // Assertions
@@ -552,8 +680,24 @@ describe('Paper Benchmark: Convergence Data for Publication', () => {
     const tet10Vms = tet10Solver.getVonMisesStress();
 
     const mesh4 = generateEllipticMembraneMesh(6, 12);
-    const stress4 = extractStressNearPoint(mesh4.vertices, mesh4.tetrahedra, tet4Vms, 4, INNER_AX, 0, 0.5);
-    const stress10 = extractStressNearPoint(tet10Mesh.vertices, tet10Mesh.tetrahedra, tet10Vms, 10, INNER_AX, 0, 0.5);
+    const stress4 = extractStressNearPoint(
+      mesh4.vertices,
+      mesh4.tetrahedra,
+      tet4Vms,
+      4,
+      INNER_AX,
+      0,
+      0.5
+    );
+    const stress10 = extractStressNearPoint(
+      tet10Mesh.vertices,
+      tet10Mesh.tetrahedra,
+      tet10Vms,
+      10,
+      INNER_AX,
+      0,
+      0.5
+    );
 
     const benchmarks: BenchmarkResult[] = [
       {

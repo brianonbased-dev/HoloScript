@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { SteeringBehaviors, type SteeringAgent, type FlockConfig, type ObstacleCircle } from '../SteeringBehaviors';
+import {
+  SteeringBehaviors,
+  type SteeringAgent,
+  type FlockConfig,
+  type ObstacleCircle,
+} from '../SteeringBehaviors';
 
 type Vec3 = [number, number, number];
 
@@ -75,10 +80,7 @@ describe('SteeringBehaviors', () => {
 
   it('flock returns a combined steering force', () => {
     const a = agent([0, 0, 0]);
-    const neighbors = [
-      agent([2, 0, 0], [1, 0, 0]),
-      agent([-2, 0, 0], [1, 0, 0]),
-    ];
+    const neighbors = [agent([2, 0, 0], [1, 0, 0]), agent([-2, 0, 0], [1, 0, 0])];
     const config: FlockConfig = {
       separationWeight: 1,
       alignmentWeight: 1,

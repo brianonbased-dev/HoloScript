@@ -5,7 +5,7 @@ const KNOWLEDGE_ENDPOINT = 'https://mcp-orchestrator-production-45f9.up.railway.
 export async function POST(req: Request) {
   try {
     const apiKey = process.env.HOLOSCRIPT_API_KEY || process.env.NEXT_PUBLIC_MCP_API_KEY || '';
-    
+
     if (!apiKey) {
       return NextResponse.json({ error: 'Missing API key configuration' }, { status: 500 });
     }
@@ -23,12 +23,18 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const errorData = await response.text();
-      return NextResponse.json({ error: 'Orchestrator sync failed', details: errorData }, { status: response.status });
+      return NextResponse.json(
+        { error: 'Orchestrator sync failed', details: errorData },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error: any) {
-    return NextResponse.json({ error: 'Internal Server Error', details: error?.message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error', details: error?.message },
+      { status: 500 }
+    );
   }
 }

@@ -380,8 +380,7 @@ export function parseScale(scale: unknown): Vec3 {
   if (!scale) return { x: 1, y: 1, z: 1 };
   if (typeof scale === 'number') return { x: scale, y: scale, z: scale };
   if (Array.isArray(scale)) {
-    if (scale.length === 2)
-      return { x: Number(scale[0]) || 1, y: Number(scale[1]) || 1, z: 1 };
+    if (scale.length === 2) return { x: Number(scale[0]) || 1, y: Number(scale[1]) || 1, z: 1 };
     return { x: Number(scale[0]) || 1, y: Number(scale[1]) || 1, z: Number(scale[2]) || 1 };
   }
   if (typeof scale === 'object' && scale !== null) {

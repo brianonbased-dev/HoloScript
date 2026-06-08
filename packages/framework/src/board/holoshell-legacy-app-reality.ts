@@ -34,8 +34,7 @@ export const HOLOSHELL_LEGACY_PROCESS_ROLES = [
   'unknown',
 ] as const;
 
-export type HoloShellLegacyProcessRole =
-  (typeof HOLOSHELL_LEGACY_PROCESS_ROLES)[number];
+export type HoloShellLegacyProcessRole = (typeof HOLOSHELL_LEGACY_PROCESS_ROLES)[number];
 
 export const HOLOSHELL_LEGACY_NETWORK_POSTURES = [
   'none',
@@ -45,8 +44,7 @@ export const HOLOSHELL_LEGACY_NETWORK_POSTURES = [
   'unknown',
 ] as const;
 
-export type HoloShellLegacyNetworkPosture =
-  (typeof HOLOSHELL_LEGACY_NETWORK_POSTURES)[number];
+export type HoloShellLegacyNetworkPosture = (typeof HOLOSHELL_LEGACY_NETWORK_POSTURES)[number];
 
 export const HOLOSHELL_LEGACY_CUSTODY_STATUSES = [
   'owned',
@@ -57,8 +55,7 @@ export const HOLOSHELL_LEGACY_CUSTODY_STATUSES = [
   'unknown',
 ] as const;
 
-export type HoloShellLegacyCustodyStatus =
-  (typeof HOLOSHELL_LEGACY_CUSTODY_STATUSES)[number];
+export type HoloShellLegacyCustodyStatus = (typeof HOLOSHELL_LEGACY_CUSTODY_STATUSES)[number];
 
 export const HOLOSHELL_LEGACY_LANE_COLORS = [
   'cyan',
@@ -72,16 +69,14 @@ export const HOLOSHELL_LEGACY_LANE_COLORS = [
   'white',
 ] as const;
 
-export type HoloShellLegacyLaneColor =
-  (typeof HOLOSHELL_LEGACY_LANE_COLORS)[number];
+export type HoloShellLegacyLaneColor = (typeof HOLOSHELL_LEGACY_LANE_COLORS)[number];
 
 export const HOLOSHELL_LEGACY_RECEIPT_ACTIONS = [
   'legacy_app_reality_snapshot',
   'self_test_snapshot',
 ] as const;
 
-export type HoloShellLegacyReceiptAction =
-  (typeof HOLOSHELL_LEGACY_RECEIPT_ACTIONS)[number];
+export type HoloShellLegacyReceiptAction = (typeof HOLOSHELL_LEGACY_RECEIPT_ACTIONS)[number];
 
 export interface HoloShellLegacySourceAnchors {
   source: string;
@@ -231,7 +226,11 @@ function validateNumberField(path: string, value: unknown, errors: string[]): vo
 }
 
 function validateEvidence(path: string, value: unknown, errors: string[]): void {
-  if (!Array.isArray(value) || value.length < 1 || value.some((item) => typeof item !== 'string' || !item)) {
+  if (
+    !Array.isArray(value) ||
+    value.length < 1 ||
+    value.some((item) => typeof item !== 'string' || !item)
+  ) {
     errors.push(`${path}.evidence must contain at least one evidence string.`);
   }
 }
@@ -289,7 +288,11 @@ function validateLane(lane: HoloShellLegacyLane, index: number, errors: string[]
   validateNumberField(`${path}.processCount`, lane.processCount, errors);
   validateNumberField(`${path}.visibleWindowCount`, lane.visibleWindowCount, errors);
   validateNumberField(`${path}.networkConsumerCount`, lane.networkConsumerCount, errors);
-  if (lane.primaryPid !== undefined && lane.primaryPid !== null && !isPositiveInteger(lane.primaryPid)) {
+  if (
+    lane.primaryPid !== undefined &&
+    lane.primaryPid !== null &&
+    !isPositiveInteger(lane.primaryPid)
+  ) {
     errors.push(`${path}.primaryPid must be a positive integer when provided.`);
   }
   validateEvidence(path, lane.evidence, errors);
@@ -302,14 +305,22 @@ function validateProcess(process: HoloShellLegacyProcess, index: number, errors:
     return;
   }
   if (!isPositiveInteger(process.pid)) errors.push(`${path}.pid must be a positive integer.`);
-  if (process.parentPid !== undefined && process.parentPid !== null && !isPositiveInteger(process.parentPid)) {
+  if (
+    process.parentPid !== undefined &&
+    process.parentPid !== null &&
+    !isPositiveInteger(process.parentPid)
+  ) {
     errors.push(`${path}.parentPid must be a positive integer when provided.`);
   }
   validateStringField(`${path}.processName`, process.processName, errors);
   if (!isOneOf(HOLOSHELL_LEGACY_PROCESS_ROLES, process.role)) {
     errors.push(`${path}.role is unsupported: ${String(process.role)}.`);
   }
-  if (process.laneColor !== undefined && process.laneColor !== null && !isOneOf(HOLOSHELL_LEGACY_LANE_COLORS, process.laneColor)) {
+  if (
+    process.laneColor !== undefined &&
+    process.laneColor !== null &&
+    !isOneOf(HOLOSHELL_LEGACY_LANE_COLORS, process.laneColor)
+  ) {
     errors.push(`${path}.laneColor is unsupported: ${String(process.laneColor)}.`);
   }
   if (typeof process.hasVisibleWindow !== 'boolean') {
@@ -321,13 +332,25 @@ function validateProcess(process: HoloShellLegacyProcess, index: number, errors:
   if (!isOneOf(HOLOSHELL_LEGACY_CUSTODY_STATUSES, process.custodyStatus)) {
     errors.push(`${path}.custodyStatus is unsupported: ${String(process.custodyStatus)}.`);
   }
-  if (process.memoryBytes !== undefined && process.memoryBytes !== null && !isNonNegativeNumber(process.memoryBytes)) {
+  if (
+    process.memoryBytes !== undefined &&
+    process.memoryBytes !== null &&
+    !isNonNegativeNumber(process.memoryBytes)
+  ) {
     errors.push(`${path}.memoryBytes must be a non-negative number when provided.`);
   }
-  if (process.cpuSeconds !== undefined && process.cpuSeconds !== null && !isNonNegativeNumber(process.cpuSeconds)) {
+  if (
+    process.cpuSeconds !== undefined &&
+    process.cpuSeconds !== null &&
+    !isNonNegativeNumber(process.cpuSeconds)
+  ) {
     errors.push(`${path}.cpuSeconds must be a non-negative number when provided.`);
   }
-  if (process.startedAt !== undefined && process.startedAt !== null && !isIsoTimestamp(process.startedAt)) {
+  if (
+    process.startedAt !== undefined &&
+    process.startedAt !== null &&
+    !isIsoTimestamp(process.startedAt)
+  ) {
     errors.push(`${path}.startedAt must be an ISO timestamp when provided.`);
   }
   validateEvidence(path, process.evidence, errors);
@@ -341,12 +364,17 @@ function validateWindow(window: HoloShellLegacyWindow, index: number, errors: st
   }
   validateStringField(`${path}.id`, window.id, errors);
   validateStringField(`${path}.title`, window.title, errors);
-  if (!isPositiveInteger(window.processId)) errors.push(`${path}.processId must be a positive integer.`);
+  if (!isPositiveInteger(window.processId))
+    errors.push(`${path}.processId must be a positive integer.`);
   validateStringField(`${path}.processName`, window.processName, errors);
   if (!isOneOf(HOLOSHELL_LEGACY_PROCESS_ROLES, window.role)) {
     errors.push(`${path}.role is unsupported: ${String(window.role)}.`);
   }
-  if (window.laneColor !== undefined && window.laneColor !== null && !isOneOf(HOLOSHELL_LEGACY_LANE_COLORS, window.laneColor)) {
+  if (
+    window.laneColor !== undefined &&
+    window.laneColor !== null &&
+    !isOneOf(HOLOSHELL_LEGACY_LANE_COLORS, window.laneColor)
+  ) {
     errors.push(`${path}.laneColor is unsupported: ${String(window.laneColor)}.`);
   }
   if (typeof window.visible !== 'boolean') errors.push(`${path}.visible must be a boolean.`);
@@ -377,16 +405,23 @@ function validateNetworkConsumer(
   validateEvidence(path, consumer.evidence, errors);
 }
 
-function validateRedaction(redaction: HoloShellLegacyRedactionPolicy | undefined, errors: string[]): void {
+function validateRedaction(
+  redaction: HoloShellLegacyRedactionPolicy | undefined,
+  errors: string[]
+): void {
   if (!isRecord(redaction)) {
     errors.push('HoloShellLegacyAppRealitySnapshot.redaction is required.');
     return;
   }
   if (redaction.localOnly !== true) errors.push('redaction.localOnly must be true.');
-  if (typeof redaction.commandLinesIncluded !== 'boolean') errors.push('redaction.commandLinesIncluded must be a boolean.');
-  if (typeof redaction.commandLinesRedacted !== 'boolean') errors.push('redaction.commandLinesRedacted must be a boolean.');
-  if (typeof redaction.rawWindowTitlesIncluded !== 'boolean') errors.push('redaction.rawWindowTitlesIncluded must be a boolean.');
-  if (redaction.remoteEndpointsIncluded !== false) errors.push('redaction.remoteEndpointsIncluded must be false.');
+  if (typeof redaction.commandLinesIncluded !== 'boolean')
+    errors.push('redaction.commandLinesIncluded must be a boolean.');
+  if (typeof redaction.commandLinesRedacted !== 'boolean')
+    errors.push('redaction.commandLinesRedacted must be a boolean.');
+  if (typeof redaction.rawWindowTitlesIncluded !== 'boolean')
+    errors.push('redaction.rawWindowTitlesIncluded must be a boolean.');
+  if (redaction.remoteEndpointsIncluded !== false)
+    errors.push('redaction.remoteEndpointsIncluded must be false.');
   if (redaction.secretsRedacted !== true) errors.push('redaction.secretsRedacted must be true.');
 }
 
@@ -411,15 +446,21 @@ function validateReceipt(receipt: HoloShellLegacyReceipt | undefined, errors: st
   }
 }
 
-export function isSupportedHoloShellLegacyProcessRole(value: string): value is HoloShellLegacyProcessRole {
+export function isSupportedHoloShellLegacyProcessRole(
+  value: string
+): value is HoloShellLegacyProcessRole {
   return isOneOf(HOLOSHELL_LEGACY_PROCESS_ROLES, value);
 }
 
-export function isSupportedHoloShellLegacyLaneColor(value: string): value is HoloShellLegacyLaneColor {
+export function isSupportedHoloShellLegacyLaneColor(
+  value: string
+): value is HoloShellLegacyLaneColor {
   return isOneOf(HOLOSHELL_LEGACY_LANE_COLORS, value);
 }
 
-export function isSupportedHoloShellLegacyReceiptAction(value: string): value is HoloShellLegacyReceiptAction {
+export function isSupportedHoloShellLegacyReceiptAction(
+  value: string
+): value is HoloShellLegacyReceiptAction {
   return isOneOf(HOLOSHELL_LEGACY_RECEIPT_ACTIONS, value);
 }
 
@@ -453,22 +494,26 @@ export function validateHoloShellLegacyAppRealitySnapshot(
   else snapshot.windows.forEach((window, index) => validateWindow(window, index, errors));
 
   if (!Array.isArray(snapshot.networkConsumers)) errors.push('networkConsumers must be an array.');
-  else snapshot.networkConsumers.forEach((consumer, index) => validateNetworkConsumer(consumer, index, errors));
+  else
+    snapshot.networkConsumers.forEach((consumer, index) =>
+      validateNetworkConsumer(consumer, index, errors)
+    );
 
   validateRedaction(snapshot.redaction, errors);
   validateReceipt(snapshot.receipt, errors);
 
   if (
-    isRecord(snapshot.summary)
-    && Array.isArray(snapshot.processes)
-    && snapshot.summary.processCount !== snapshot.processes.length
+    isRecord(snapshot.summary) &&
+    Array.isArray(snapshot.processes) &&
+    snapshot.summary.processCount !== snapshot.processes.length
   ) {
     errors.push('summary.processCount must match processes.length.');
   }
   if (
-    isRecord(snapshot.summary)
-    && Array.isArray(snapshot.windows)
-    && snapshot.summary.visibleWindowCount !== snapshot.windows.filter((window) => window.visible).length
+    isRecord(snapshot.summary) &&
+    Array.isArray(snapshot.windows) &&
+    snapshot.summary.visibleWindowCount !==
+      snapshot.windows.filter((window) => window.visible).length
   ) {
     errors.push('summary.visibleWindowCount must match visible windows.');
   }

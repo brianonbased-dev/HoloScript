@@ -46,9 +46,16 @@ describe('EtlTrait — onEvent', () => {
   it('etl:extract creates pipeline and emits etl:extracted', () => {
     const node = makeNode();
     etlHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    etlHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'etl:extract', pipelineId: 'pipe-1', records: 500,
-    } as never);
+    etlHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'etl:extract',
+        pipelineId: 'pipe-1',
+        records: 500,
+      } as never
+    );
     const state = node.__etlState as { pipelines: Map<string, { phase: string; records: number }> };
     expect(state.pipelines.get('pipe-1')?.phase).toBe('extract');
     expect(state.pipelines.get('pipe-1')?.records).toBe(500);
@@ -58,13 +65,26 @@ describe('EtlTrait — onEvent', () => {
   it('etl:transform advances phase and emits etl:transformed', () => {
     const node = makeNode();
     etlHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    etlHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'etl:extract', pipelineId: 'pipe-2', records: 100,
-    } as never);
+    etlHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'etl:extract',
+        pipelineId: 'pipe-2',
+        records: 100,
+      } as never
+    );
     node.emit.mockClear();
-    etlHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'etl:transform', pipelineId: 'pipe-2',
-    } as never);
+    etlHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'etl:transform',
+        pipelineId: 'pipe-2',
+      } as never
+    );
     const state = node.__etlState as { pipelines: Map<string, { phase: string }> };
     expect(state.pipelines.get('pipe-2')?.phase).toBe('transform');
     expect(node.emit).toHaveBeenCalledWith('etl:transformed', { pipelineId: 'pipe-2' });
@@ -73,18 +93,41 @@ describe('EtlTrait — onEvent', () => {
   it('etl:load completes pipeline and emits etl:loaded with records', () => {
     const node = makeNode();
     etlHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    etlHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'etl:extract', pipelineId: 'pipe-3', records: 750,
-    } as never);
-    etlHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'etl:transform', pipelineId: 'pipe-3',
-    } as never);
+    etlHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'etl:extract',
+        pipelineId: 'pipe-3',
+        records: 750,
+      } as never
+    );
+    etlHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'etl:transform',
+        pipelineId: 'pipe-3',
+      } as never
+    );
     node.emit.mockClear();
-    etlHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'etl:load', pipelineId: 'pipe-3',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('etl:loaded', expect.objectContaining({
-      pipelineId: 'pipe-3', records: 750,
-    }));
+    etlHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'etl:load',
+        pipelineId: 'pipe-3',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'etl:loaded',
+      expect.objectContaining({
+        pipelineId: 'pipe-3',
+        records: 750,
+      })
+    );
   });
 });

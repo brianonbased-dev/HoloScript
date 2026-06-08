@@ -42,14 +42,22 @@ function parseJsonFromOutput(output) {
 }
 
 function runDependencyAudit() {
-  const result = run('Dependency audit', 'node', ['scripts/bounded-pnpm-audit.mjs', '--timeout-ms=25000', '--cache-ttl-ms=86400000']);
+  const result = run('Dependency audit', 'node', [
+    'scripts/bounded-pnpm-audit.mjs',
+    '--timeout-ms=25000',
+    '--cache-ttl-ms=86400000',
+  ]);
   const audit = parseJsonFromOutput(result.out);
   if (!audit) return result;
 
-  const state = audit.status === 'cached'
-    ? `CACHED/${String(audit.cached_status || 'unknown').toUpperCase()}`
-    : String(audit.status || 'unknown').toUpperCase();
-  const ok = audit.status === 'skip' || audit.status === 'pass' || (audit.status === 'cached' && audit.cached_status !== 'fail');
+  const state =
+    audit.status === 'cached'
+      ? `CACHED/${String(audit.cached_status || 'unknown').toUpperCase()}`
+      : String(audit.status || 'unknown').toUpperCase();
+  const ok =
+    audit.status === 'skip' ||
+    audit.status === 'pass' ||
+    (audit.status === 'cached' && audit.cached_status !== 'fail');
   const detail = audit.reason
     ? audit.reason
     : audit.summary?.vulnerabilities

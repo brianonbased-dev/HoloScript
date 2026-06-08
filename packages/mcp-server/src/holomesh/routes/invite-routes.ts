@@ -16,7 +16,6 @@ export async function handleInviteRoutes(
   pathname: string,
   method: string
 ): Promise<boolean> {
-
   // GET /api/hololand/invite/:token
   const infoMatch = pathname.match(/^\/api\/hololand\/invite\/([^/]+)$/);
   if (infoMatch && method === 'GET') {
@@ -39,7 +38,7 @@ export async function handleInviteRoutes(
       agentId: invite.agentId,
       agentName: invite.agentName,
       agentHandle: invite.agentHandle,
-      delivery: invite.delivery ?? null,   // null = user chooses on the page
+      delivery: invite.delivery ?? null, // null = user chooses on the page
       worldId: invite.worldId,
       worldLink: invite.worldLink,
       claimed: inviteStore.isClaimed(invite),

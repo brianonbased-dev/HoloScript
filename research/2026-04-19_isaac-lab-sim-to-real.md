@@ -73,14 +73,14 @@ This is sim-to-real-adjacent (it produces policies that then go through standard
 
 Per W.070a, I read the actual code, not memory:
 
-| Surface | Path | What's there |
-|---|---|---|
-| Plugin entrypoint | `packages/plugins/robotics-plugin/src/index.ts` | URDF extraction from `HoloCompositionTreeLike`, joint/link/transmission types, `extractURDFFromHoloComposition()` |
-| USD codegen | `packages/plugins/robotics-plugin/src/usd-codegen.ts` | Targets Isaac Sim with `PhysicsArticulationRootAPI`, `PhysicsRevoluteJoint`, `PhysicsRigidBodyAPI`. **Does not emit `PhysxArticulationAPI`, drive attributes, or PhysX joint-friction schema.** |
-| ROS2 runtime trait | `packages/plugins/robotics-plugin/src/traits/ROS2HardwareLoopTrait.ts` | Bidirectional pub/sub bridge, fires `ros2:publish` on `scene:transform_change`, receives `ros2:telemetry` to drive virtual twin. Tracks `hardwareSyncDriftMs`. |
-| Python ROS2 bridge | `packages/plugins/robotics-plugin/python/ros2_bridge.py` | `roslibpy` over rosbridge_server WebSocket, publishes `sensor_msgs/JointState` to `/joint_states`-style topics. |
-| Contracted-sim binding | `packages/core/src/reconstruction/simulationContractBinding.ts` | `assertHoloMapManifestContract()` — enforces `replayFingerprint` ≥ 8 chars, `kind === HOLOMAP_SIMULATION_CONTRACT_KIND`, version `1.0.0`. **This is the trust-by-construction anchor.** |
-| Examples | `packages/plugins/robotics-plugin/examples/robot-arm-complete.holo` | 2-DOF arm with `@ros_node`/`@gazebo_sim`/`@urdf_export` traits, twin-sync at 30 Hz, multi-format export (URDF/SDF/USD/MJCF). |
+| Surface                | Path                                                                   | What's there                                                                                                                                                                                    |
+| ---------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Plugin entrypoint      | `packages/plugins/robotics-plugin/src/index.ts`                        | URDF extraction from `HoloCompositionTreeLike`, joint/link/transmission types, `extractURDFFromHoloComposition()`                                                                               |
+| USD codegen            | `packages/plugins/robotics-plugin/src/usd-codegen.ts`                  | Targets Isaac Sim with `PhysicsArticulationRootAPI`, `PhysicsRevoluteJoint`, `PhysicsRigidBodyAPI`. **Does not emit `PhysxArticulationAPI`, drive attributes, or PhysX joint-friction schema.** |
+| ROS2 runtime trait     | `packages/plugins/robotics-plugin/src/traits/ROS2HardwareLoopTrait.ts` | Bidirectional pub/sub bridge, fires `ros2:publish` on `scene:transform_change`, receives `ros2:telemetry` to drive virtual twin. Tracks `hardwareSyncDriftMs`.                                  |
+| Python ROS2 bridge     | `packages/plugins/robotics-plugin/python/ros2_bridge.py`               | `roslibpy` over rosbridge_server WebSocket, publishes `sensor_msgs/JointState` to `/joint_states`-style topics.                                                                                 |
+| Contracted-sim binding | `packages/core/src/reconstruction/simulationContractBinding.ts`        | `assertHoloMapManifestContract()` — enforces `replayFingerprint` ≥ 8 chars, `kind === HOLOMAP_SIMULATION_CONTRACT_KIND`, version `1.0.0`. **This is the trust-by-construction anchor.**         |
+| Examples               | `packages/plugins/robotics-plugin/examples/robot-arm-complete.holo`    | 2-DOF arm with `@ros_node`/`@gazebo_sim`/`@urdf_export` traits, twin-sync at 30 Hz, multi-format export (URDF/SDF/USD/MJCF).                                                                    |
 
 **Verified gaps for sim-to-real specifically** (a tighter subset than the March memo's full Isaac Lab gap list):
 
@@ -97,6 +97,7 @@ Per W.070a, I read the actual code, not memory:
 I rank by **payoff per engineering week**. All effort estimates assume one full-surface engineer (no Isaac Sim license blocker, since BSD-3 + free Isaac Sim individual license).
 
 ### Path A — "Feed Isaac Lab" (HoloScript → Isaac Lab assets)
+
 **Payoff: High. Effort: 2-4 weeks. Risk: Low.**
 
 HoloScript becomes the **declarative scene/robot authoring tool** for Isaac Lab. Compile `.holo` → Isaac-Lab-compatible USD + a Python `@configclass` task file.
@@ -108,6 +109,7 @@ HoloScript becomes the **declarative scene/robot authoring tool** for Isaac Lab.
 **Why first**: zero new infra needed on the HoloScript side. Pure codegen extension. Differentiator: nothing else auto-generates Isaac Lab task configs from a declarative DSL. Validated by the March memo's existing 7-phase plan; the new piece is just the joint-friction schema and DR-vocabulary scope tightening to sim-to-real.
 
 ### Path B — "Consume Isaac Lab policies" (trained checkpoint → HoloScript runtime)
+
 **Payoff: Medium-high. Effort: 3-5 weeks. Risk: Medium.**
 
 After Isaac Lab trains a policy (e.g., RSL-RL PPO checkpoint), export to **ONNX** and run inside HoloScript's SNN/r3f runtime as a `@policy_runtime` trait. Two sub-options:
@@ -118,6 +120,7 @@ After Isaac Lab trains a policy (e.g., RSL-RL PPO checkpoint), export to **ONNX*
 **Why second**: B2 is the strategic moat (`W.061: CAE gave up on deterministic replay — HoloScript Trust-by-Construction breaks that.`). It turns the sim-to-real boundary into a **provenance boundary** — every action a trained policy takes on the physical robot is replayable in the digital twin from a content-addressed fingerprint. This is the angle that connects to the 8-paper program's contracted-simulation thesis.
 
 ### Path C — "Mimic/SkillGen interop" (HoloScript scenes as IL data augmentation targets)
+
 **Payoff: Medium. Effort: 4-6 weeks. Risk: Medium-high.**
 
 Add subtask-decomposition metadata to HoloScript robot compositions so SkillGen can transform/stitch object-centric segments. Workflow:
@@ -131,6 +134,7 @@ Add subtask-decomposition metadata to HoloScript robot compositions so SkillGen 
 **Why third**: depends on Path B for the return loop. The annotation pass is the riskiest piece — object-centric decomposition requires either heuristic segmentation or human labels per demo. Likely worth deferring until B is in place.
 
 ### Path D — "Full bidirectional digital twin" (live sim-to-real-to-sim loop)
+
 **Payoff: High strategic, low immediate. Effort: 8-12 weeks. Risk: High.**
 
 Extend `ROS2HardwareLoopTrait` so the same HoloScript scene drives **both** Isaac Lab simulation **and** the physical robot, with delta reconciliation pushed back through SimulationContract. This is the "spatial sovereignty" pillar (W.060) realized for robotics. Defer until Paths A and B prove integration mechanics.
@@ -139,15 +143,15 @@ Extend `ROS2HardwareLoopTrait` so the same HoloScript scene drives **both** Isaa
 
 ## 4. Concrete next-step ranking (do these in order)
 
-| Order | Action | Effort | Unlock |
-|---|---|---|---|
-| 1 | Patch `usd-codegen.ts` to emit `PhysxArticulationAPI` + `drive:angular:physics:*` attributes | 2 days | Existing HoloScript USDA loads cleanly into Isaac Sim |
-| 2 | Add new PhysX joint-friction schema attributes | 1 day | Sim-to-real friction modeling per 2025-26 schema |
-| 3 | Add `domain_randomization { ... }` parser block + `EventTermCfg` codegen | 3 days | Standard DR pipeline available from `.holo` |
-| 4 | Add actuator-group concept + `DelayedPDActuator` trait | 2 days | Latency-aware sim-to-real for networked actuators |
-| 5 | Build `IsaacLabCompiler.ts` (Python `@configclass` codegen) | 2 weeks | End-to-end `.holo` → Isaac Lab task |
-| 6 | ONNX policy runtime trait (Path B1) | 3 weeks | Isaac-trained policies deployable in HoloScript runtime |
-| 7 | SimulationContract-wrapped policy runtime (Path B2) | +2 weeks on top of step 6 | Trust-by-construction for trained policies — paper-grade differentiator |
+| Order | Action                                                                                       | Effort                    | Unlock                                                                  |
+| ----- | -------------------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------- |
+| 1     | Patch `usd-codegen.ts` to emit `PhysxArticulationAPI` + `drive:angular:physics:*` attributes | 2 days                    | Existing HoloScript USDA loads cleanly into Isaac Sim                   |
+| 2     | Add new PhysX joint-friction schema attributes                                               | 1 day                     | Sim-to-real friction modeling per 2025-26 schema                        |
+| 3     | Add `domain_randomization { ... }` parser block + `EventTermCfg` codegen                     | 3 days                    | Standard DR pipeline available from `.holo`                             |
+| 4     | Add actuator-group concept + `DelayedPDActuator` trait                                       | 2 days                    | Latency-aware sim-to-real for networked actuators                       |
+| 5     | Build `IsaacLabCompiler.ts` (Python `@configclass` codegen)                                  | 2 weeks                   | End-to-end `.holo` → Isaac Lab task                                     |
+| 6     | ONNX policy runtime trait (Path B1)                                                          | 3 weeks                   | Isaac-trained policies deployable in HoloScript runtime                 |
+| 7     | SimulationContract-wrapped policy runtime (Path B2)                                          | +2 weeks on top of step 6 | Trust-by-construction for trained policies — paper-grade differentiator |
 
 Steps 1-4 are **~8 days total** and unlock the bulk of practical sim-to-real value. Steps 5-7 build the strategic moat.
 

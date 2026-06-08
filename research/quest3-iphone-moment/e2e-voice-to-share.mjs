@@ -69,14 +69,20 @@ async function step(label, fn) {
 function validateHolo(source) {
   const issues = [];
   const cleaned = source.trim();
-  if (!/^composition\s+"[^"]+"\s*\{/.test(cleaned)) issues.push('no `composition "<name>" {` header');
+  if (!/^composition\s+"[^"]+"\s*\{/.test(cleaned))
+    issues.push('no `composition "<name>" {` header');
   if (!cleaned.endsWith('}')) issues.push('no trailing `}`');
   const objects = [...cleaned.matchAll(/\bobject\s+[a-z_][a-z0-9_]*\s*\{/gi)];
   if (objects.length === 0) issues.push('no object blocks');
   const traits = [...cleaned.matchAll(/@([a-z_][a-z0-9_]*)/gi)].map((m) => m[1].toLowerCase());
   const unknown = traits.filter((t) => !ALLOWED_TRAITS.has(t));
   if (unknown.length > 0) issues.push(`unknown traits: ${[...new Set(unknown)].join(', ')}`);
-  return { ok: issues.length === 0, issues, objectCount: objects.length, traitCount: traits.length };
+  return {
+    ok: issues.length === 0,
+    issues,
+    objectCount: objects.length,
+    traitCount: traits.length,
+  };
 }
 
 async function main() {
@@ -96,7 +102,9 @@ async function main() {
     });
     const body = await res.json();
     if (!res.ok || body.error) {
-      throw new Error(`HTTP ${res.status}: ${body.error?.message ?? JSON.stringify(body).slice(0, 200)}`);
+      throw new Error(
+        `HTTP ${res.status}: ${body.error?.message ?? JSON.stringify(body).slice(0, 200)}`
+      );
     }
     return body;
   });
@@ -159,6 +167,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  log('CRASH', err instanceof Error ? err.stack ?? err.message : String(err));
+  log('CRASH', err instanceof Error ? (err.stack ?? err.message) : String(err));
   process.exit(1);
 });

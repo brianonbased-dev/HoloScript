@@ -187,7 +187,7 @@ describe('FirstRunWizard identity display', () => {
     let provisionedIdentity: ProvisionedIdentity | null = null;
 
     // -- retry fires --
-    provisionError = '';   // cleared before fetch
+    provisionError = ''; // cleared before fetch
     isProvisioning = true;
 
     // -- fetch succeeds --

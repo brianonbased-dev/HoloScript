@@ -286,13 +286,7 @@ export class WebCodecsDepthPipeline {
 
       let imageData: ImageData | null = null;
 
-      if (
-        this.gpuDevice &&
-        dw === w &&
-        dh === h &&
-        w > 0 &&
-        h > 0
-      ) {
+      if (this.gpuDevice && dw === w && dh === h && w > 0 && h > 0) {
         try {
           imageData = await videoFrameToImageDataViaWebGPU(this.gpuDevice, frame, w, h);
         } catch {

@@ -62,7 +62,10 @@ export async function chatOnceFromOllama(opts: OllamaChatOptions): Promise<ChatR
       signal: opts.signal,
     });
   } catch (err) {
-    return { ok: false, error: `failed to reach ollama at ${opts.host}: ${(err as Error).message}` };
+    return {
+      ok: false,
+      error: `failed to reach ollama at ${opts.host}: ${(err as Error).message}`,
+    };
   }
   if (!res.ok) {
     return { ok: false, error: `ollama returned HTTP ${res.status} ${res.statusText}` };

@@ -101,7 +101,13 @@ function resolveInputPath(explicit, role) {
     role === 'generated'
       ? path.join(REPO_ROOT, 'research', 'paper-17-sesl-pairs', 'phase-1-corpus.jsonl')
       : null,
-    path.join(HOME, '.ai-ecosystem', 'research', 'paper-17-sesl-corpus', role === 'seed' ? 'phase-0-corpus.jsonl' : 'phase-1-corpus.jsonl'),
+    path.join(
+      HOME,
+      '.ai-ecosystem',
+      'research',
+      'paper-17-sesl-corpus',
+      role === 'seed' ? 'phase-0-corpus.jsonl' : 'phase-1-corpus.jsonl'
+    ),
   ].filter(Boolean);
 
   for (const candidate of candidates) {
@@ -110,7 +116,7 @@ function resolveInputPath(explicit, role) {
   }
 
   failCli(
-    `No ${role} corpus found. Pass --${role}=<jsonl> or ensure default paths exist. Checked: ${candidates.map((c) => path.resolve(String(c))).join('; ')}`,
+    `No ${role} corpus found. Pass --${role}=<jsonl> or ensure default paths exist. Checked: ${candidates.map((c) => path.resolve(String(c))).join('; ')}`
   );
 }
 
@@ -173,7 +179,9 @@ function measureCorpus(inputPath, options) {
     },
     distributions: {
       traitSets: Object.fromEntries([...traitSetCounts.entries()].map(([k, v]) => [k, v])),
-      compositionShapes: Object.fromEntries([...compositionShapeCounts.entries()].map(([k, v]) => [k, v])),
+      compositionShapes: Object.fromEntries(
+        [...compositionShapeCounts.entries()].map(([k, v]) => [k, v])
+      ),
     },
   };
 }
@@ -236,24 +244,36 @@ function shannonEntropy(countMap, total) {
 
 function compareMeasurements(seed, generated, options) {
   const infoGain = round(generated.entropy.traitSetEntropy - seed.entropy.traitSetEntropy, 6);
-  const normalizedInfoGain = round(generated.entropy.normalizedTraitEntropy - seed.entropy.normalizedTraitEntropy, 6);
-  const shapeInfoGain = round(generated.entropy.compositionShapeEntropy - seed.entropy.compositionShapeEntropy, 6);
+  const normalizedInfoGain = round(
+    generated.entropy.normalizedTraitEntropy - seed.entropy.normalizedTraitEntropy,
+    6
+  );
+  const shapeInfoGain = round(
+    generated.entropy.compositionShapeEntropy - seed.entropy.compositionShapeEntropy,
+    6
+  );
 
-  const relativeDrop = seed.entropy.normalizedTraitEntropy > 0
-    ? (seed.entropy.normalizedTraitEntropy - generated.entropy.normalizedTraitEntropy) / seed.entropy.normalizedTraitEntropy
-    : 0;
+  const relativeDrop =
+    seed.entropy.normalizedTraitEntropy > 0
+      ? (seed.entropy.normalizedTraitEntropy - generated.entropy.normalizedTraitEntropy) /
+        seed.entropy.normalizedTraitEntropy
+      : 0;
 
   const collapseFlag = Boolean(
     generated.entropy.normalizedTraitEntropy < options.collapseThreshold ||
-    relativeDrop > options.collapseDropRatio,
+    relativeDrop > options.collapseDropRatio
   );
 
   const collapseReasons = [];
   if (generated.entropy.normalizedTraitEntropy < options.collapseThreshold) {
-    collapseReasons.push(`normalized_trait_entropy=${generated.entropy.normalizedTraitEntropy} below threshold=${options.collapseThreshold}`);
+    collapseReasons.push(
+      `normalized_trait_entropy=${generated.entropy.normalizedTraitEntropy} below threshold=${options.collapseThreshold}`
+    );
   }
   if (relativeDrop > options.collapseDropRatio) {
-    collapseReasons.push(`relative_drop=${round(relativeDrop, 4)} exceeds ratio=${options.collapseDropRatio}`);
+    collapseReasons.push(
+      `relative_drop=${round(relativeDrop, 4)} exceeds ratio=${options.collapseDropRatio}`
+    );
   }
 
   return {

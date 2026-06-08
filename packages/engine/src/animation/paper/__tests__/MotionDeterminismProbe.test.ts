@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { DeterminismHarness } from '@holoscript/core';
-import { runMotionDeterminismProbe, PAPER_P2_MOTION_CANONICAL_SPEC } from '../MotionDeterminismProbe';
+import {
+  runMotionDeterminismProbe,
+  PAPER_P2_MOTION_CANONICAL_SPEC,
+} from '../MotionDeterminismProbe';
 
 describe('MotionDeterminismProbe (P2-9 substrate)', () => {
   it('produces a stable, well-formed hash for the canonical motion transition spec', async () => {
@@ -14,7 +17,7 @@ describe('MotionDeterminismProbe (P2-9 substrate)', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.outputHash).toMatch(/^(sha256|fnv1a-64):[0-9a-f]+$/);
-    
+
     // 10 steps × 2 bones × 7 floats × 4 bytes = 560 bytes
     expect(result.outputSize).toBe(560);
   });

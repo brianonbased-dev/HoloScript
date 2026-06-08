@@ -207,7 +207,10 @@ export const usePlayMode = create<PlayModeState>()(
           if (isNewItem && Object.keys(s.gameState.inventory).length >= MAX_INVENTORY_ITEMS) {
             return s; // Inventory full — enforce MAX_INVENTORY_ITEMS cap
           }
-          const newCount = Math.min(MAX_INVENTORY_STACK, (s.gameState.inventory[item] ?? 0) + count);
+          const newCount = Math.min(
+            MAX_INVENTORY_STACK,
+            (s.gameState.inventory[item] ?? 0) + count
+          );
           return {
             gameState: {
               ...s.gameState,

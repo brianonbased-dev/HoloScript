@@ -172,9 +172,11 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
         const result = await client.installAgent(agent.id);
         if (result.success && result.program) {
           setInstalledIds((prev) => new Set(prev).add(agent.id));
-          
+
           if (result.revenueSplit) {
-            setSuccessMessage(`x402 Settlement Complete: Paid ${result.revenueSplit.total} USDC via ${result.revenueSplit.x402?.network}`);
+            setSuccessMessage(
+              `x402 Settlement Complete: Paid ${result.revenueSplit.total} USDC via ${result.revenueSplit.x402?.network}`
+            );
             setTimeout(() => setSuccessMessage(null), 5000);
           }
 
@@ -335,7 +337,10 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
               <CheckCircle2 className="h-4 w-4" />
               {successMessage}
             </span>
-            <button onClick={() => setSuccessMessage(null)} className="opacity-70 hover:opacity-100">
+            <button
+              onClick={() => setSuccessMessage(null)}
+              className="opacity-70 hover:opacity-100"
+            >
               <X className="h-3 w-3" />
             </button>
           </div>
@@ -365,7 +370,9 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
               const isInstalled = installedIds.has(agent.id);
               const isInstalling = installingId === agent.id;
               const hasPrice = agent.priceCents && agent.priceCents > 0;
-              const formattedPrice = hasPrice ? `USDC ${(agent.priceCents! / 100).toFixed(2)}` : 'Install';
+              const formattedPrice = hasPrice
+                ? `USDC ${(agent.priceCents! / 100).toFixed(2)}`
+                : 'Install';
 
               return (
                 <div
@@ -459,7 +466,11 @@ export function AgentMarketplaceTab({ onAgentInstalled }: AgentMarketplaceTabPro
                         </>
                       ) : (
                         <>
-                          {hasPrice ? <Lock className="h-3 w-3" /> : <Download className="h-3 w-3" />}
+                          {hasPrice ? (
+                            <Lock className="h-3 w-3" />
+                          ) : (
+                            <Download className="h-3 w-3" />
+                          )}
                           {formattedPrice}
                         </>
                       )}

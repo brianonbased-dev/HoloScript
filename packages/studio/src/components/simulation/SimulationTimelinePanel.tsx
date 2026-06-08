@@ -9,8 +9,15 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  Circle, Play, Pause, SkipBack, SkipForward, Square,
-  Rewind, FastForward, X,
+  Circle,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Square,
+  Rewind,
+  FastForward,
+  X,
 } from 'lucide-react';
 
 type PlaybackState = 'idle' | 'recording' | 'paused' | 'playing';
@@ -55,17 +62,23 @@ export function SimulationTimelinePanel({
   const scrubberRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  const handleScrub = useCallback((clientX: number) => {
-    if (!scrubberRef.current || !onSeek) return;
-    const rect = scrubberRef.current.getBoundingClientRect();
-    const p = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    onSeek(p);
-  }, [onSeek]);
+  const handleScrub = useCallback(
+    (clientX: number) => {
+      if (!scrubberRef.current || !onSeek) return;
+      const rect = scrubberRef.current.getBoundingClientRect();
+      const p = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      onSeek(p);
+    },
+    [onSeek]
+  );
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    setDragging(true);
-    handleScrub(e.clientX);
-  }, [handleScrub]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      setDragging(true);
+      handleScrub(e.clientX);
+    },
+    [handleScrub]
+  );
 
   useEffect(() => {
     if (!dragging) return;
@@ -91,12 +104,8 @@ export function SimulationTimelinePanel({
         <span className="text-[10px] text-studio-muted ml-auto">
           Frame {currentFrame}/{totalFrames}
         </span>
-        <span className="text-[10px] text-studio-muted">
-          t = {currentTime.toFixed(4)}s
-        </span>
-        <span className="text-[10px] text-studio-muted">
-          {memoryMB.toFixed(1)}MB
-        </span>
+        <span className="text-[10px] text-studio-muted">t = {currentTime.toFixed(4)}s</span>
+        <span className="text-[10px] text-studio-muted">{memoryMB.toFixed(1)}MB</span>
         {state === 'recording' && (
           <span className="text-[10px] text-red-400 animate-pulse font-semibold">REC</span>
         )}
@@ -130,12 +139,10 @@ export function SimulationTimelinePanel({
       {/* Transport Controls */}
       <div className="flex items-center justify-center gap-1 px-3 pb-2">
         {/* Record */}
-        <TransportBtn
-          onClick={onRecord}
-          active={state === 'recording'}
-          title="Record"
-        >
-          <Circle className={`h-3.5 w-3.5 ${state === 'recording' ? 'fill-red-500 text-red-500' : ''}`} />
+        <TransportBtn onClick={onRecord} active={state === 'recording'} title="Record">
+          <Circle
+            className={`h-3.5 w-3.5 ${state === 'recording' ? 'fill-red-500 text-red-500' : ''}`}
+          />
         </TransportBtn>
 
         {/* Stop */}
@@ -156,10 +163,7 @@ export function SimulationTimelinePanel({
           title={state === 'playing' ? 'Pause' : 'Play'}
           primary
         >
-          {state === 'playing'
-            ? <Pause className="h-4 w-4" />
-            : <Play className="h-4 w-4" />
-          }
+          {state === 'playing' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
         </TransportBtn>
 
         {/* Step Forward */}
@@ -176,7 +180,9 @@ export function SimulationTimelinePanel({
             className="bg-studio-surface border border-studio-border rounded px-1 py-0.5 text-[10px] text-studio-text"
           >
             {SPEEDS.map((s) => (
-              <option key={s} value={s}>{s}x</option>
+              <option key={s} value={s}>
+                {s}x
+              </option>
             ))}
           </select>
           <FastForward className="h-3 w-3 text-studio-muted" />
@@ -187,7 +193,12 @@ export function SimulationTimelinePanel({
 }
 
 function TransportBtn({
-  children, onClick, disabled, active, title, primary,
+  children,
+  onClick,
+  disabled,
+  active,
+  title,
+  primary,
 }: {
   children: React.ReactNode;
   onClick?: () => void;

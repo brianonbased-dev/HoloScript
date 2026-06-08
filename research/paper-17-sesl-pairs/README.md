@@ -25,6 +25,7 @@ The committed tranche clears 10 CAEL-verified Phase 1 rows, not the full Paper 1
 `scripts/measure-sesl-information-gain.mjs` computes composition-shape entropy over trait-family sets across iterations and flags collapse when entropy drops. This directly closes SESL open-Q 8.2 (arXiv 2603.02218) by proving self-play adds learnable information beyond the seed corpus.
 
 Run:
+
 ```bash
 node scripts/measure-sesl-information-gain.mjs --seed=SEED.jsonl --generated=PHASE-N.jsonl --json
 ```

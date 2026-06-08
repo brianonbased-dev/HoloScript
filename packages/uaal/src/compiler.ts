@@ -32,7 +32,17 @@ import { UAALOpCode, UAALBytecode, UAALInstruction } from './opcodes';
 // TOKENIZER
 // =============================================================================
 
-type TokenType = 'KEYWORD' | 'STRING' | 'NUMBER' | 'LPAREN' | 'RPAREN' | 'LBRACE' | 'RBRACE' | 'COMMA' | 'NEWLINE' | 'EOF';
+type TokenType =
+  | 'KEYWORD'
+  | 'STRING'
+  | 'NUMBER'
+  | 'LPAREN'
+  | 'RPAREN'
+  | 'LBRACE'
+  | 'RBRACE'
+  | 'COMMA'
+  | 'NEWLINE'
+  | 'EOF';
 
 interface Token {
   type: TokenType;
@@ -49,7 +59,10 @@ function tokenize(source: string): Token[] {
     const ch = source[i];
 
     // Whitespace (not newline)
-    if (ch === ' ' || ch === '\t' || ch === '\r') { i++; continue; }
+    if (ch === ' ' || ch === '\t' || ch === '\r') {
+      i++;
+      continue;
+    }
 
     // Comments
     if (ch === '/' && source[i + 1] === '/') {
@@ -58,14 +71,22 @@ function tokenize(source: string): Token[] {
     }
 
     // Newline
-    if (ch === '\n') { tokens.push({ type: 'NEWLINE', value: '\n', line }); line++; i++; continue; }
+    if (ch === '\n') {
+      tokens.push({ type: 'NEWLINE', value: '\n', line });
+      line++;
+      i++;
+      continue;
+    }
 
     // Strings
     if (ch === '"' || ch === "'") {
       const quote = ch;
       let str = '';
       i++;
-      while (i < source.length && source[i] !== quote) { str += source[i]; i++; }
+      while (i < source.length && source[i] !== quote) {
+        str += source[i];
+        i++;
+      }
       i++; // skip closing quote
       tokens.push({ type: 'STRING', value: str, line });
       continue;
@@ -74,23 +95,53 @@ function tokenize(source: string): Token[] {
     // Numbers
     if (ch >= '0' && ch <= '9') {
       let num = '';
-      while (i < source.length && ((source[i] >= '0' && source[i] <= '9') || source[i] === '.')) { num += source[i]; i++; }
+      while (i < source.length && ((source[i] >= '0' && source[i] <= '9') || source[i] === '.')) {
+        num += source[i];
+        i++;
+      }
       tokens.push({ type: 'NUMBER', value: num, line });
       continue;
     }
 
     // Punctuation
-    if (ch === '(') { tokens.push({ type: 'LPAREN', value: '(', line }); i++; continue; }
-    if (ch === ')') { tokens.push({ type: 'RPAREN', value: ')', line }); i++; continue; }
-    if (ch === '{') { tokens.push({ type: 'LBRACE', value: '{', line }); i++; continue; }
-    if (ch === '}') { tokens.push({ type: 'RBRACE', value: '}', line }); i++; continue; }
-    if (ch === ',') { tokens.push({ type: 'COMMA', value: ',', line }); i++; continue; }
+    if (ch === '(') {
+      tokens.push({ type: 'LPAREN', value: '(', line });
+      i++;
+      continue;
+    }
+    if (ch === ')') {
+      tokens.push({ type: 'RPAREN', value: ')', line });
+      i++;
+      continue;
+    }
+    if (ch === '{') {
+      tokens.push({ type: 'LBRACE', value: '{', line });
+      i++;
+      continue;
+    }
+    if (ch === '}') {
+      tokens.push({ type: 'RBRACE', value: '}', line });
+      i++;
+      continue;
+    }
+    if (ch === ',') {
+      tokens.push({ type: 'COMMA', value: ',', line });
+      i++;
+      continue;
+    }
 
     // Keywords / identifiers
     if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch === '_') {
       let word = '';
-      while (i < source.length && ((source[i] >= 'A' && source[i] <= 'Z') || (source[i] >= 'a' && source[i] <= 'z') || (source[i] >= '0' && source[i] <= '9') || source[i] === '_')) {
-        word += source[i]; i++;
+      while (
+        i < source.length &&
+        ((source[i] >= 'A' && source[i] <= 'Z') ||
+          (source[i] >= 'a' && source[i] <= 'z') ||
+          (source[i] >= '0' && source[i] <= '9') ||
+          source[i] === '_')
+      ) {
+        word += source[i];
+        i++;
       }
       tokens.push({ type: 'KEYWORD', value: word.toUpperCase(), line });
       continue;
@@ -196,7 +247,10 @@ export class UAALCompiler {
     }
 
     // Always end with HALT if not already present
-    if (instructions.length === 0 || instructions[instructions.length - 1].opCode !== UAALOpCode.HALT) {
+    if (
+      instructions.length === 0 ||
+      instructions[instructions.length - 1].opCode !== UAALOpCode.HALT
+    ) {
       instructions.push({ opCode: UAALOpCode.HALT });
     }
 
@@ -223,7 +277,10 @@ export class UAALCompiler {
 
     for (const word of words) {
       const clean = word.replace(/[^A-Z_]/g, '');
-      if (KEYWORD_TO_OPCODE[clean] && !instructions.some(i => i.opCode === KEYWORD_TO_OPCODE[clean])) {
+      if (
+        KEYWORD_TO_OPCODE[clean] &&
+        !instructions.some((i) => i.opCode === KEYWORD_TO_OPCODE[clean])
+      ) {
         instructions.push({ opCode: KEYWORD_TO_OPCODE[clean] });
       }
     }
@@ -401,8 +458,16 @@ export class UAALCompiler {
 
   // ─── Token Helpers ──────────────────────────────────────────────────
 
-  private peek(): Token | undefined { return this.tokens[this.pos]; }
-  private advance(): Token { return this.tokens[this.pos++]; }
-  private isAtEnd(): boolean { return this.pos >= this.tokens.length || this.tokens[this.pos].type === 'EOF'; }
-  private skipNewlines(): void { while (this.peek()?.type === 'NEWLINE') this.advance(); }
+  private peek(): Token | undefined {
+    return this.tokens[this.pos];
+  }
+  private advance(): Token {
+    return this.tokens[this.pos++];
+  }
+  private isAtEnd(): boolean {
+    return this.pos >= this.tokens.length || this.tokens[this.pos].type === 'EOF';
+  }
+  private skipNewlines(): void {
+    while (this.peek()?.type === 'NEWLINE') this.advance();
+  }
 }

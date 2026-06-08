@@ -22,12 +22,7 @@
  */
 
 import { logger } from '../logger';
-import type {
-  DialogueNode,
-  ExecutionResult,
-  NarrativeNode,
-  QuestNode,
-} from '../types';
+import type { DialogueNode, ExecutionResult, NarrativeNode, QuestNode } from '../types';
 
 /** Minimal narrative-state accessor threaded in from HSR. */
 export interface NarrativeContext {
@@ -46,7 +41,7 @@ export interface NarrativeContext {
  */
 export async function executeNarrative(
   node: NarrativeNode,
-  ctx: NarrativeContext,
+  ctx: NarrativeContext
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
   logger.info(`[Narrative] Initializing narrative: ${node.id}`);
@@ -74,7 +69,7 @@ export async function executeNarrative(
  */
 export async function executeQuest(
   node: QuestNode,
-  ctx: NarrativeContext,
+  ctx: NarrativeContext
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
   logger.info(`[Narrative] Starting quest: ${node.title}`, { questId: node.id });
@@ -95,7 +90,7 @@ export async function executeQuest(
  */
 export async function executeDialogue(
   node: DialogueNode,
-  ctx: NarrativeContext,
+  ctx: NarrativeContext
 ): Promise<ExecutionResult> {
   const startTime = Date.now();
   logger.info(`[Narrative] Dialogue: ${node.speaker} says "${node.text}"`);

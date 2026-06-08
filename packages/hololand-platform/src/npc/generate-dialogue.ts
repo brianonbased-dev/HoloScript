@@ -17,8 +17,6 @@ export interface GenerateDialogueInput {
 export function generateDialogue(input: GenerateDialogueInput): string {
   const facts = input.memory.recall(input.playerId);
   const context =
-    facts.length > 0
-      ? `[Known facts about ${input.playerId}: ${facts.join('; ')}]`
-      : '';
+    facts.length > 0 ? `[Known facts about ${input.playerId}: ${facts.join('; ')}]` : '';
   return `${context} NPC ${input.npcId} responds to: ${input.prompt}`;
 }

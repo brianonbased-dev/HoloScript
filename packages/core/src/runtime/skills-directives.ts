@@ -89,7 +89,7 @@ const AGENT_TRAIT_NAMES = new Set(['llm_agent', 'agent', 'companion']);
  */
 export function isAgent(node: OrbNode): boolean {
   return !!node.directives?.some(
-    (d) => d.type === 'trait' && AGENT_TRAIT_NAMES.has((d as { name: string }).name),
+    (d) => d.type === 'trait' && AGENT_TRAIT_NAMES.has((d as { name: string }).name)
   );
 }
 
@@ -221,9 +221,7 @@ export function updateTraits(julianDate: number, ctx: UpdateTraitsContext): void
                 const posPayload = payload as Record<string, unknown> | undefined;
                 if (posPayload?.position) {
                   const p = posPayload.position as [number, number, number];
-                  const tuple: [number, number, number] = Array.isArray(p)
-                    ? p
-                    : [p[0], p[1], p[2]];
+                  const tuple: [number, number, number] = Array.isArray(p) ? p : [p[0], p[1], p[2]];
                   ctx.setOrbPosition(name, tuple);
                 }
               }
@@ -235,7 +233,7 @@ export function updateTraits(julianDate: number, ctx: UpdateTraitsContext): void
             getState: () => ctx.getState(),
             setState: (updates: Record<string, HoloScriptValue>) => ctx.setState(updates),
           } as unknown as TraitContext,
-          delta,
+          delta
         );
       }
     }

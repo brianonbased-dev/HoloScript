@@ -5,16 +5,19 @@
 **v1 Generator**: `generate-mni152-pial.mjs` (self-contained, run anytime to refresh).
 
 **Real source (when conversion env available)**:
+
 - Human Connectome Project (HCP) ds000031 on OpenNeuro (CC0)
 - FreeSurfer `lh.pial` / `rh.pial` in MNI152 space → glTF via freesurfer-to-gltf or Blender
 
 **Usage**:
+
 - GyriSulciPartitioner (barycentric classification → hot/cold storage for Pillar slices)
 - CorticalDepthRouter enrichment
 - HoloLand / Studio VR brain walk-through (PSF brain layer)
 - Absorb HoloGraph Phase 2 symbol → brain coord visualization
 
 **Validation**:
+
 - Valid glTF 2.0
 - Bounds match MNI152 brain envelope
 - Sufficient topology for prototype barycentric + VR

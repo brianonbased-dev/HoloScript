@@ -113,7 +113,11 @@ connection.onReferences(async (params): Promise<Location[]> => {
 });
 
 connection.onCodeAction(async (params: CodeActionParams): Promise<CodeAction[]> => {
-  return await server.getCodeActions(params.textDocument.uri, params.range, params.context.diagnostics);
+  return await server.getCodeActions(
+    params.textDocument.uri,
+    params.range,
+    params.context.diagnostics
+  );
 });
 
 connection.onPrepareRename(async (params: PrepareRenameParams) => {

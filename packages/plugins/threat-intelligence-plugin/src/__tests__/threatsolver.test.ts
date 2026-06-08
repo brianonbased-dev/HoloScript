@@ -25,9 +25,14 @@ describe('cvssScore', () => {
    */
   it('no impact → score=0, severity=None', () => {
     const r = cvssScore({
-      attackVector: 'N', attackComplexity: 'L', privilegesRequired: 'N',
-      userInteraction: 'N', scope: 'U',
-      confidentialityImpact: 'N', integrityImpact: 'N', availabilityImpact: 'N',
+      attackVector: 'N',
+      attackComplexity: 'L',
+      privilegesRequired: 'N',
+      userInteraction: 'N',
+      scope: 'U',
+      confidentialityImpact: 'N',
+      integrityImpact: 'N',
+      availabilityImpact: 'N',
     });
     expect(r.baseScore).toBe(0);
     expect(r.severity).toBe('None');
@@ -39,9 +44,14 @@ describe('cvssScore', () => {
    */
   it('AV:N AC:L PR:N UI:N S:U C:H I:H A:H → Critical', () => {
     const r = cvssScore({
-      attackVector: 'N', attackComplexity: 'L', privilegesRequired: 'N',
-      userInteraction: 'N', scope: 'U',
-      confidentialityImpact: 'H', integrityImpact: 'H', availabilityImpact: 'H',
+      attackVector: 'N',
+      attackComplexity: 'L',
+      privilegesRequired: 'N',
+      userInteraction: 'N',
+      scope: 'U',
+      confidentialityImpact: 'H',
+      integrityImpact: 'H',
+      availabilityImpact: 'H',
     });
     expect(r.baseScore).toBeGreaterThanOrEqual(9.0);
     expect(r.severity).toBe('Critical');
@@ -49,18 +59,28 @@ describe('cvssScore', () => {
 
   it('physical attack + high complexity + high priv + required UI → low score', () => {
     const r = cvssScore({
-      attackVector: 'P', attackComplexity: 'H', privilegesRequired: 'H',
-      userInteraction: 'R', scope: 'U',
-      confidentialityImpact: 'L', integrityImpact: 'N', availabilityImpact: 'N',
+      attackVector: 'P',
+      attackComplexity: 'H',
+      privilegesRequired: 'H',
+      userInteraction: 'R',
+      scope: 'U',
+      confidentialityImpact: 'L',
+      integrityImpact: 'N',
+      availabilityImpact: 'N',
     });
     expect(r.baseScore).toBeLessThan(4.0);
   });
 
   it('severity=High when 7.0 ≤ score < 9.0', () => {
     const r = cvssScore({
-      attackVector: 'N', attackComplexity: 'H', privilegesRequired: 'N',
-      userInteraction: 'N', scope: 'U',
-      confidentialityImpact: 'H', integrityImpact: 'H', availabilityImpact: 'H',
+      attackVector: 'N',
+      attackComplexity: 'H',
+      privilegesRequired: 'N',
+      userInteraction: 'N',
+      scope: 'U',
+      confidentialityImpact: 'H',
+      integrityImpact: 'H',
+      availabilityImpact: 'H',
     });
     // AC:H reduces score vs AC:L
     expect(['High', 'Critical']).toContain(r.severity);
@@ -68,9 +88,14 @@ describe('cvssScore', () => {
 
   it('exploitabilityScore and impactScore are non-negative', () => {
     const r = cvssScore({
-      attackVector: 'N', attackComplexity: 'L', privilegesRequired: 'L',
-      userInteraction: 'N', scope: 'U',
-      confidentialityImpact: 'H', integrityImpact: 'L', availabilityImpact: 'N',
+      attackVector: 'N',
+      attackComplexity: 'L',
+      privilegesRequired: 'L',
+      userInteraction: 'N',
+      scope: 'U',
+      confidentialityImpact: 'H',
+      integrityImpact: 'L',
+      availabilityImpact: 'N',
     });
     expect(r.exploitabilityScore).toBeGreaterThanOrEqual(0);
     expect(r.impactScore).toBeGreaterThanOrEqual(0);
@@ -78,14 +103,24 @@ describe('cvssScore', () => {
 
   it('Scope:Changed typically increases score vs Scope:Unchanged', () => {
     const unchanged = cvssScore({
-      attackVector: 'N', attackComplexity: 'L', privilegesRequired: 'N',
-      userInteraction: 'N', scope: 'U',
-      confidentialityImpact: 'H', integrityImpact: 'H', availabilityImpact: 'H',
+      attackVector: 'N',
+      attackComplexity: 'L',
+      privilegesRequired: 'N',
+      userInteraction: 'N',
+      scope: 'U',
+      confidentialityImpact: 'H',
+      integrityImpact: 'H',
+      availabilityImpact: 'H',
     });
     const changed = cvssScore({
-      attackVector: 'N', attackComplexity: 'L', privilegesRequired: 'N',
-      userInteraction: 'N', scope: 'C',
-      confidentialityImpact: 'H', integrityImpact: 'H', availabilityImpact: 'H',
+      attackVector: 'N',
+      attackComplexity: 'L',
+      privilegesRequired: 'N',
+      userInteraction: 'N',
+      scope: 'C',
+      confidentialityImpact: 'H',
+      integrityImpact: 'H',
+      availabilityImpact: 'H',
     });
     expect(changed.baseScore).toBeGreaterThanOrEqual(unchanged.baseScore);
   });
@@ -95,13 +130,13 @@ describe('cvssScore', () => {
 
 describe('killChainAnalysis', () => {
   const stages = [
-    { name: 'Reconnaissance',   successProbability: 0.9 },
-    { name: 'Weaponization',    successProbability: 0.7 },
-    { name: 'Delivery',         successProbability: 0.5 },
-    { name: 'Exploitation',     successProbability: 0.6 },
-    { name: 'Installation',     successProbability: 0.8 },
-    { name: 'C2',               successProbability: 0.9 },
-    { name: 'Action',           successProbability: 0.7 },
+    { name: 'Reconnaissance', successProbability: 0.9 },
+    { name: 'Weaponization', successProbability: 0.7 },
+    { name: 'Delivery', successProbability: 0.5 },
+    { name: 'Exploitation', successProbability: 0.6 },
+    { name: 'Installation', successProbability: 0.8 },
+    { name: 'C2', successProbability: 0.9 },
+    { name: 'Action', successProbability: 0.7 },
   ];
 
   it('overallProbability = product of all stage probabilities', () => {
@@ -116,7 +151,7 @@ describe('killChainAnalysis', () => {
   });
 
   it('all p=1 → overall=1', () => {
-    const perfect = stages.map(s => ({ ...s, successProbability: 1.0 }));
+    const perfect = stages.map((s) => ({ ...s, successProbability: 1.0 }));
     const r = killChainAnalysis(perfect);
     expect(r.overallProbability).toBeCloseTo(1.0, 6);
   });
@@ -178,9 +213,9 @@ describe('iocConfidence', () => {
 
 describe('vulnerabilityPrioritization', () => {
   const vulns = [
-    { assetId: 'server-A', cvssScore: 9.8, assetCriticality: 5, exposed: true  }, // priority 1
+    { assetId: 'server-A', cvssScore: 9.8, assetCriticality: 5, exposed: true }, // priority 1
     { assetId: 'server-B', cvssScore: 5.5, assetCriticality: 3, exposed: false }, // priority 3
-    { assetId: 'server-C', cvssScore: 7.2, assetCriticality: 4, exposed: true  }, // priority 2
+    { assetId: 'server-C', cvssScore: 7.2, assetCriticality: 4, exposed: true }, // priority 2
   ];
 
   it('highest risk vuln appears first (sorted descending)', () => {
@@ -190,13 +225,13 @@ describe('vulnerabilityPrioritization', () => {
 
   it('critical-priority: CVSS ≥ 9.0 and exposed → priority 1', () => {
     const r = vulnerabilityPrioritization(vulns);
-    const serverA = r.find(v => v.assetId === 'server-A')!;
+    const serverA = r.find((v) => v.assetId === 'server-A')!;
     expect(serverA.priority).toBe(1);
   });
 
   it('low CVSS, not exposed → priority 3', () => {
     const r = vulnerabilityPrioritization(vulns);
-    const serverB = r.find(v => v.assetId === 'server-B')!;
+    const serverB = r.find((v) => v.assetId === 'server-B')!;
     expect(serverB.priority).toBe(3);
   });
 
@@ -252,9 +287,14 @@ describe('buildThreatReceipt', () => {
 
   it('accepted=true when no Critical/High CVSS and low kill-chain probability', () => {
     const cvss = cvssScore({
-      attackVector: 'P', attackComplexity: 'H', privilegesRequired: 'H',
-      userInteraction: 'R', scope: 'U',
-      confidentialityImpact: 'L', integrityImpact: 'N', availabilityImpact: 'N',
+      attackVector: 'P',
+      attackComplexity: 'H',
+      privilegesRequired: 'H',
+      userInteraction: 'R',
+      scope: 'U',
+      confidentialityImpact: 'L',
+      integrityImpact: 'N',
+      availabilityImpact: 'N',
     });
     const receipt = buildThreatReceipt({ cvss, converged: true });
     expect(receipt.acceptance.accepted).toBe(true);
@@ -262,9 +302,14 @@ describe('buildThreatReceipt', () => {
 
   it('accepted=false for Critical CVSS (≥ 9.0)', () => {
     const cvss = cvssScore({
-      attackVector: 'N', attackComplexity: 'L', privilegesRequired: 'N',
-      userInteraction: 'N', scope: 'U',
-      confidentialityImpact: 'H', integrityImpact: 'H', availabilityImpact: 'H',
+      attackVector: 'N',
+      attackComplexity: 'L',
+      privilegesRequired: 'N',
+      userInteraction: 'N',
+      scope: 'U',
+      confidentialityImpact: 'H',
+      integrityImpact: 'H',
+      availabilityImpact: 'H',
     });
     expect(cvss.baseScore).toBeGreaterThanOrEqual(9.0);
     const receipt = buildThreatReceipt({ cvss, converged: true });
@@ -278,7 +323,7 @@ describe('buildThreatReceipt', () => {
       { name: 'Exploit', successProbability: 0.8 },
       { name: 'Action', successProbability: 0.9 },
     ]); // overall ≈ 0.648 > 0.20
-    expect(killChain.overallProbability).toBeGreaterThan(0.20);
+    expect(killChain.overallProbability).toBeGreaterThan(0.2);
     const receipt = buildThreatReceipt({ killChain, converged: true });
     expect(receipt.acceptance.accepted).toBe(false);
   });

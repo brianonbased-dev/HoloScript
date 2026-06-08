@@ -64,10 +64,12 @@ describe('CONTRACT: web-preview-plugin adapter', () => {
   });
 
   it('mic/camera allowance WITH origin_whitelist does not warn on that axis', () => {
-    const r = embedWebPreview(fixture({
-      allow_mic: true,
-      origin_whitelist: ['https://trusted.example.com'],
-    }));
+    const r = embedWebPreview(
+      fixture({
+        allow_mic: true,
+        origin_whitelist: ['https://trusted.example.com'],
+      })
+    );
     expect(r.security_warnings.some((w) => /accept-all/.test(w))).toBe(false);
   });
 

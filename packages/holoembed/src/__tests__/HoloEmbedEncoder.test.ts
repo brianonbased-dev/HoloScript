@@ -153,13 +153,18 @@ describe('HoloEmbedEncoder', () => {
   // ── Subword block coverage ────────────────────────────────────────────────
 
   it('name/sig block (dims 384–511) is non-zero for a named symbol', () => {
-    const v = enc.encode(sym({ name: 'PillarSliceEmitter', signature: 'class PillarSliceEmitter' }));
-    const blockSum = Array.from(v.slice(STRUCTURAL_DIM, STRUCTURAL_DIM + SUBWORD_BINS)).reduce((s, x) => s + x, 0);
+    const v = enc.encode(
+      sym({ name: 'PillarSliceEmitter', signature: 'class PillarSliceEmitter' })
+    );
+    const blockSum = Array.from(v.slice(STRUCTURAL_DIM, STRUCTURAL_DIM + SUBWORD_BINS)).reduce(
+      (s, x) => s + x,
+      0
+    );
     expect(blockSum).toBeGreaterThan(0);
   });
 
   it('docComment block (dims 512–639) differs when docComment is present', () => {
-    const vNo  = enc.encode(sym({ name: 'Foo' }));
+    const vNo = enc.encode(sym({ name: 'Foo' }));
     const vDoc = enc.encode(sym({ name: 'Foo', docComment: 'counts distinct contracts per file' }));
     let diff = 0;
     for (let i = STRUCTURAL_DIM + SUBWORD_BINS; i < STRUCTURAL_DIM + 2 * SUBWORD_BINS; i++) {
@@ -170,7 +175,10 @@ describe('HoloEmbedEncoder', () => {
 
   it('eventName block (dims 640–767) populated when eventNames provided', () => {
     const v = enc.encode(sym(), { eventNames: ['pillar:spike', 'snn:burst'] });
-    const blockSum = Array.from(v.slice(STRUCTURAL_DIM + 2 * SUBWORD_BINS)).reduce((s, x) => s + x, 0);
+    const blockSum = Array.from(v.slice(STRUCTURAL_DIM + 2 * SUBWORD_BINS)).reduce(
+      (s, x) => s + x,
+      0
+    );
     expect(blockSum).toBeGreaterThan(0);
   });
 
@@ -178,28 +186,34 @@ describe('HoloEmbedEncoder', () => {
 
   it('"pillar slice emitter" query scores higher vs PillarSliceEmitter than vs GraphEdgeRenderer', () => {
     const qVec = enc.encodeText('pillar slice emitter');
-    const targetVec = enc.encode(sym({
-      name: 'PillarSliceEmitter',
-      type: 'class',
-      filePath: 'packages/core/src/pillar/PillarSliceEmitter.ts',
-      signature: 'class PillarSliceEmitter',
-    }));
-    const unrelVec = enc.encode(sym({
-      name: 'GraphEdgeRenderer',
-      type: 'class',
-      filePath: 'packages/r3f-renderer/src/GraphEdgeRenderer.ts',
-      signature: 'class GraphEdgeRenderer',
-    }));
+    const targetVec = enc.encode(
+      sym({
+        name: 'PillarSliceEmitter',
+        type: 'class',
+        filePath: 'packages/core/src/pillar/PillarSliceEmitter.ts',
+        signature: 'class PillarSliceEmitter',
+      })
+    );
+    const unrelVec = enc.encode(
+      sym({
+        name: 'GraphEdgeRenderer',
+        type: 'class',
+        filePath: 'packages/r3f-renderer/src/GraphEdgeRenderer.ts',
+        signature: 'class GraphEdgeRenderer',
+      })
+    );
     expect(cosine(qVec, targetVec)).toBeGreaterThan(cosine(qVec, unrelVec));
   });
 
   it('"brain coord node mapper" query matches BrainCoordNodeMapper', () => {
     const qVec = enc.encodeText('brain coord node mapper');
-    const target = enc.encode(sym({
-      name: 'BrainCoordNodeMapper',
-      type: 'class',
-      filePath: 'packages/absorb-service/src/engine/BrainCoordNodeMapper.ts',
-    }));
+    const target = enc.encode(
+      sym({
+        name: 'BrainCoordNodeMapper',
+        type: 'class',
+        filePath: 'packages/absorb-service/src/engine/BrainCoordNodeMapper.ts',
+      })
+    );
     const unrel = enc.encode(sym({ name: 'LIFSimulator', type: 'class' }));
     expect(cosine(qVec, target)).toBeGreaterThan(cosine(qVec, unrel));
   });
@@ -208,7 +222,7 @@ describe('HoloEmbedEncoder', () => {
 
   it('encodeAsync() returns same result as encode() when SNN disabled', async () => {
     const s = sym({ name: 'TraitCommunityDetector' });
-    const sync  = enc.encode(s);
+    const sync = enc.encode(s);
     const async_ = await enc.encodeAsync(s);
     for (let i = 0; i < sync.length; i++) {
       expect(async_[i]).toBeCloseTo(sync[i]!, 5);
@@ -286,15 +300,12 @@ describe('SnnAccelerator', () => {
     expect(out1.length).toBe(hist.length);
     expect(Array.from(hist)).toEqual(Array.from(before));
     expect(Array.from(out1)).toEqual(Array.from(out2));
-    expect(out1.some(v => v > 0)).toBe(true);
+    expect(out1.some((v) => v > 0)).toBe(true);
   });
 
   it('WebGPU path matches the CPU LIF reference when a device is available', async () => {
     const accel = new SnnAccelerator();
-    await accel.initialize(
-      { enableSnn: true, snnTimesteps: 64 },
-      { currentScale: 80 },
-    );
+    await accel.initialize({ enableSnn: true, snnTimesteps: 64 }, { currentScale: 80 });
 
     if (!accel.available) {
       console.warn('[SnnAccelerator] WebGPU unavailable; shader parity test skipped.');
@@ -320,7 +331,7 @@ describe('SnnAccelerator', () => {
       maxAbsDiff = Math.max(maxAbsDiff, Math.abs((gpu[i] ?? 0) - (cpu[i] ?? 0)));
     }
 
-    expect(gpu.some(v => v > 0)).toBe(true);
+    expect(gpu.some((v) => v > 0)).toBe(true);
     expect(maxAbsDiff).toBeLessThanOrEqual(1e-6);
     accel.dispose();
   });

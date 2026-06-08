@@ -182,31 +182,61 @@ export interface EmergencyReceiptOptions {
  * Otherwise → DELAYED (YELLOW).
  */
 export function startTriage(patients: TriagePatient[]): TriageResult[] {
-  return patients.map(p => {
+  return patients.map((p) => {
     // Step 1: Walking wounded
     if (p.canWalk) {
-      return { id: p.id, category: 'MINOR', tag: 'GREEN', rationale: 'Ambulatory — walking wounded' };
+      return {
+        id: p.id,
+        category: 'MINOR',
+        tag: 'GREEN',
+        rationale: 'Ambulatory — walking wounded',
+      };
     }
 
     // Step 2: Respirations
     if (p.respirationsPerMin === 0) {
-      return { id: p.id, category: 'EXPECTANT', tag: 'BLACK', rationale: 'No respirations after repositioning — expectant' };
+      return {
+        id: p.id,
+        category: 'EXPECTANT',
+        tag: 'BLACK',
+        rationale: 'No respirations after repositioning — expectant',
+      };
     }
     if (p.respirationsPerMin > 30) {
-      return { id: p.id, category: 'IMMEDIATE', tag: 'RED', rationale: `Respirations ${p.respirationsPerMin}/min > 30 — immediate` };
+      return {
+        id: p.id,
+        category: 'IMMEDIATE',
+        tag: 'RED',
+        rationale: `Respirations ${p.respirationsPerMin}/min > 30 — immediate`,
+      };
     }
 
     // Step 3: Perfusion
     if (!p.radialPulse) {
-      return { id: p.id, category: 'IMMEDIATE', tag: 'RED', rationale: 'Absent radial pulse — immediate (hemorrhagic shock)' };
+      return {
+        id: p.id,
+        category: 'IMMEDIATE',
+        tag: 'RED',
+        rationale: 'Absent radial pulse — immediate (hemorrhagic shock)',
+      };
     }
 
     // Step 4: Mental status
     if (p.mentalStatus === 'fails') {
-      return { id: p.id, category: 'IMMEDIATE', tag: 'RED', rationale: 'Fails to obey commands — immediate (neurological)' };
+      return {
+        id: p.id,
+        category: 'IMMEDIATE',
+        tag: 'RED',
+        rationale: 'Fails to obey commands — immediate (neurological)',
+      };
     }
 
-    return { id: p.id, category: 'DELAYED', tag: 'YELLOW', rationale: 'Stable — delayed treatment acceptable' };
+    return {
+      id: p.id,
+      category: 'DELAYED',
+      tag: 'YELLOW',
+      rationale: 'Stable — delayed treatment acceptable',
+    };
   });
 }
 
@@ -222,30 +252,33 @@ function euclidean(ax: number, ay: number, bx: number, by: number): number {
  */
 export function resourceDispatch(
   units: EmergencyUnit[],
-  incidents: IncidentCall[],
+  incidents: IncidentCall[]
 ): DispatchResult {
   if (units.length === 0) throw new Error('No units available');
   if (incidents.length === 0) throw new Error('No incidents to dispatch');
 
   const unitTypeMap: Record<IncidentCall['type'], EmergencyUnit['type'][]> = {
     medical: ['ambulance'],
-    fire:    ['fire', 'ambulance'],
-    rescue:  ['rescue', 'fire'],
-    hazmat:  ['hazmat', 'fire'],
-    police:  ['police'],
+    fire: ['fire', 'ambulance'],
+    rescue: ['rescue', 'fire'],
+    hazmat: ['hazmat', 'fire'],
+    police: ['police'],
   };
 
-  const available = units.map(u => ({ ...u })); // mutable copy
+  const available = units.map((u) => ({ ...u })); // mutable copy
   const sorted = [...incidents].sort((a, b) => a.priority - b.priority);
 
   const assignments: DispatchResult['assignments'] = [];
   const unassigned: string[] = [];
 
   for (const incident of sorted) {
-    const compatible = available.filter(u => u.available && unitTypeMap[incident.type].includes(u.type));
-    compatible.sort((a, b) =>
-      euclidean(a.locationX, a.locationY, incident.locationX, incident.locationY) -
-      euclidean(b.locationX, b.locationY, incident.locationX, incident.locationY),
+    const compatible = available.filter(
+      (u) => u.available && unitTypeMap[incident.type].includes(u.type)
+    );
+    compatible.sort(
+      (a, b) =>
+        euclidean(a.locationX, a.locationY, incident.locationX, incident.locationY) -
+        euclidean(b.locationX, b.locationY, incident.locationX, incident.locationY)
     );
 
     const assigned: string[] = [];
@@ -262,8 +295,13 @@ export function resourceDispatch(
       continue;
     }
 
-    const firstUnit = available.find(u => u.id === assigned[0])!;
-    const dist = euclidean(firstUnit.locationX, firstUnit.locationY, incident.locationX, incident.locationY);
+    const firstUnit = available.find((u) => u.id === assigned[0])!;
+    const dist = euclidean(
+      firstUnit.locationX,
+      firstUnit.locationY,
+      incident.locationX,
+      incident.locationY
+    );
 
     assignments.push({
       incidentId: incident.id,
@@ -275,7 +313,7 @@ export function resourceDispatch(
   }
 
   const dispatchedCount = assignments.reduce((acc, a) => acc + a.assignedUnitIds.length, 0);
-  const utilizationRate = units.filter(u => !u.available).length / units.length;
+  const utilizationRate = units.filter((u) => !u.available).length / units.length;
 
   return { assignments, unassignedIncidents: unassigned, utilizationRate };
 }
@@ -295,13 +333,16 @@ export function incidentGrowthModel(
   carryingCapacity: number,
   growthRate: number,
   durationMinutes: number,
-  dtMinutes = 1,
+  dtMinutes = 1
 ): IncidentGrowthResult {
   if (initialAffected <= 0) throw new Error('initialAffected must be positive');
-  if (carryingCapacity <= initialAffected) throw new Error('carryingCapacity must exceed initialAffected');
+  if (carryingCapacity <= initialAffected)
+    throw new Error('carryingCapacity must exceed initialAffected');
   if (growthRate <= 0) throw new Error('growthRate must be positive');
 
-  const A0 = initialAffected, K = carryingCapacity, k = growthRate;
+  const A0 = initialAffected,
+    K = carryingCapacity,
+    k = growthRate;
   const N = Math.ceil(durationMinutes / dtMinutes);
 
   const timeMinutes: number[] = [];
@@ -315,12 +356,11 @@ export function incidentGrowthModel(
   }
 
   // Half-containment: time when A = K/2
-  const halfContainmentMin = A0 < K / 2
-    ? Math.log((K - A0) / A0) / k
-    : 0;
+  const halfContainmentMin = A0 < K / 2 ? Math.log((K - A0) / A0) / k : 0;
 
   return {
-    timeMinutes, affected,
+    timeMinutes,
+    affected,
     halfContainmentMin: Math.max(0, halfContainmentMin),
     peakAffected: K,
     growthRate: k,
@@ -332,17 +372,24 @@ export function incidentGrowthModel(
 /** ARC 3068A shelter capacity standards */
 export function shelterCapacity(
   floorAreaSqFt: number,
-  currentOccupancy: number,
+  currentOccupancy: number
 ): ShelterCapacityResult {
   if (floorAreaSqFt <= 0) throw new Error('floorAreaSqFt must be positive');
   if (currentOccupancy < 0) throw new Error('currentOccupancy must be non-negative');
 
   const emergencyCapacity = Math.floor(floorAreaSqFt / 6);
-  const extendedCapacity  = Math.floor(floorAreaSqFt / 20);
+  const extendedCapacity = Math.floor(floorAreaSqFt / 20);
   const overflow = currentOccupancy > emergencyCapacity;
   const occupancyRate = currentOccupancy / emergencyCapacity;
 
-  return { floorAreaSqFt, emergencyCapacity, extendedCapacity, currentOccupancy, overflow, occupancyRate };
+  return {
+    floorAreaSqFt,
+    emergencyCapacity,
+    extendedCapacity,
+    currentOccupancy,
+    overflow,
+    occupancyRate,
+  };
 }
 
 // ─── Evacuation route (Dijkstra) ──────────────────────────────────────────────
@@ -350,12 +397,12 @@ export function shelterCapacity(
 export function evacuationRoutes(
   nodes: EvacuationNode[],
   edges: EvacuationEdge[],
-  populationPerNode: Map<string, number>,
+  populationPerNode: Map<string, number>
 ): EvacuationResult {
   if (nodes.length === 0) throw new Error('No nodes');
-  if (!nodes.some(n => n.isExit)) throw new Error('No exit nodes defined');
+  if (!nodes.some((n) => n.isExit)) throw new Error('No exit nodes defined');
 
-  const exits = new Set(nodes.filter(n => n.isExit).map(n => n.id));
+  const exits = new Set(nodes.filter((n) => n.isExit).map((n) => n.id));
   const adj = new Map<string, Array<{ to: string; time: number; cap: number }>>();
   for (const node of nodes) adj.set(node.id, []);
   for (const edge of edges) {
@@ -368,7 +415,7 @@ export function evacuationRoutes(
   for (const node of nodes) {
     if (node.isExit) continue;
     // Dijkstra from this node to nearest exit
-    const dist = new Map<string, number>(nodes.map(n => [n.id, Infinity]));
+    const dist = new Map<string, number>(nodes.map((n) => [n.id, Infinity]));
     const prev = new Map<string, string | null>();
     const caps = new Map<string, number>();
     dist.set(node.id, 0);
@@ -379,7 +426,7 @@ export function evacuationRoutes(
       pq.sort((a, b) => a.d - b.d);
       const { id: cur, d } = pq.shift()!;
       if (d > (dist.get(cur) ?? Infinity)) continue;
-      for (const { to, time, cap } of (adj.get(cur) ?? [])) {
+      for (const { to, time, cap } of adj.get(cur) ?? []) {
         const nd = d + time;
         if (nd < (dist.get(to) ?? Infinity)) {
           dist.set(to, nd);
@@ -391,7 +438,8 @@ export function evacuationRoutes(
     }
 
     // Find nearest exit
-    let nearestExit = '', minDist = Infinity;
+    let nearestExit = '',
+      minDist = Infinity;
     for (const exitId of exits) {
       if ((dist.get(exitId) ?? Infinity) < minDist) {
         minDist = dist.get(exitId) ?? Infinity;
@@ -421,7 +469,8 @@ export function evacuationRoutes(
   let totalEvacuationTimeMin = 0;
   for (const route of routes) {
     const pop = populationPerNode.get(route.fromId) ?? 0;
-    const queueTimeMin = route.bottleneckCapacityPph > 0 ? (pop / route.bottleneckCapacityPph) * 60 : 0;
+    const queueTimeMin =
+      route.bottleneckCapacityPph > 0 ? (pop / route.bottleneckCapacityPph) * 60 : 0;
     totalEvacuationTimeMin = Math.max(totalEvacuationTimeMin, route.travelTimeMin + queueTimeMin);
   }
 
@@ -430,12 +479,9 @@ export function evacuationRoutes(
 
 // ─── Communication cascade (BFS) ─────────────────────────────────────────────
 
-export function communicationCascade(
-  nodes: NotificationNode[],
-  originId: string,
-): CascadeResult {
+export function communicationCascade(nodes: NotificationNode[], originId: string): CascadeResult {
   if (nodes.length === 0) throw new Error('No notification nodes');
-  const nodeMap = new Map(nodes.map(n => [n.id, n]));
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   if (!nodeMap.has(originId)) throw new Error(`Origin ${originId} not found`);
 
   const notificationTimes = new Map<string, number>();
@@ -464,7 +510,8 @@ export function communicationCascade(
   };
 
   // Half and 90% coverage times
-  let halfCoverageMin = Infinity, ninetyCoverageMin = Infinity;
+  let halfCoverageMin = Infinity,
+    ninetyCoverageMin = Infinity;
   const sortedTimes = [...notificationTimes.values()].sort((a, b) => a - b);
   for (const t of sortedTimes) {
     const cov = coverageAtTime(t);
@@ -481,38 +528,63 @@ export function afterActionReport(
   actualResponseTimeMin: number,
   targetResponseTimeMin: number,
   resourceUtilizationRate: number,
-  populationCoverageFraction: number,
+  populationCoverageFraction: number
 ): AfterActionResult {
   // Response time score: 100 if at or under target, 0 if 3× over target
   const rtRatio = actualResponseTimeMin / targetResponseTimeMin;
   const responseTimeScore = Math.max(0, Math.min(100, 100 * (1 - (rtRatio - 1) / 2)));
 
   // Utilization score: optimal around 70-85%
-  const utilizationScore = resourceUtilizationRate < 0.5
-    ? resourceUtilizationRate * 200            // under-utilized
-    : resourceUtilizationRate > 0.95
-    ? Math.max(0, (1 - resourceUtilizationRate) * 1000)  // over-stretched
-    : 100 - Math.abs(resourceUtilizationRate - 0.80) * 100;
+  const utilizationScore =
+    resourceUtilizationRate < 0.5
+      ? resourceUtilizationRate * 200 // under-utilized
+      : resourceUtilizationRate > 0.95
+        ? Math.max(0, (1 - resourceUtilizationRate) * 1000) // over-stretched
+        : 100 - Math.abs(resourceUtilizationRate - 0.8) * 100;
 
   // Coverage score
   const coverageScore = populationCoverageFraction * 100;
 
   // Weighted overall (40% response, 30% util, 30% coverage)
-  const overallScore = 0.40 * responseTimeScore + 0.30 * utilizationScore + 0.30 * coverageScore;
+  const overallScore = 0.4 * responseTimeScore + 0.3 * utilizationScore + 0.3 * coverageScore;
 
   const grade: AfterActionResult['grade'] =
-    overallScore >= 90 ? 'A' :
-    overallScore >= 80 ? 'B' :
-    overallScore >= 70 ? 'C' :
-    overallScore >= 60 ? 'D' : 'F';
+    overallScore >= 90
+      ? 'A'
+      : overallScore >= 80
+        ? 'B'
+        : overallScore >= 70
+          ? 'C'
+          : overallScore >= 60
+            ? 'D'
+            : 'F';
 
   const recommendations: string[] = [];
-  if (rtRatio > 1.2) recommendations.push(`Response time ${actualResponseTimeMin.toFixed(1)}min exceeds target ${targetResponseTimeMin}min — pre-position units closer to high-risk zones`);
-  if (resourceUtilizationRate > 0.90) recommendations.push('Resource utilization > 90% — insufficient reserve capacity; add mutual-aid agreements');
-  if (resourceUtilizationRate < 0.50) recommendations.push('Resource utilization < 50% — consider consolidating deployment to reduce idle cost');
-  if (populationCoverageFraction < 0.80) recommendations.push(`Only ${(populationCoverageFraction * 100).toFixed(0)}% population covered — expand response zones or add units`);
+  if (rtRatio > 1.2)
+    recommendations.push(
+      `Response time ${actualResponseTimeMin.toFixed(1)}min exceeds target ${targetResponseTimeMin}min — pre-position units closer to high-risk zones`
+    );
+  if (resourceUtilizationRate > 0.9)
+    recommendations.push(
+      'Resource utilization > 90% — insufficient reserve capacity; add mutual-aid agreements'
+    );
+  if (resourceUtilizationRate < 0.5)
+    recommendations.push(
+      'Resource utilization < 50% — consider consolidating deployment to reduce idle cost'
+    );
+  if (populationCoverageFraction < 0.8)
+    recommendations.push(
+      `Only ${(populationCoverageFraction * 100).toFixed(0)}% population covered — expand response zones or add units`
+    );
 
-  return { responseTimeScore, utilizationScore: Math.max(0, Math.min(100, utilizationScore)), coverageScore, overallScore, grade, recommendations };
+  return {
+    responseTimeScore,
+    utilizationScore: Math.max(0, Math.min(100, utilizationScore)),
+    coverageScore,
+    overallScore,
+    grade,
+    recommendations,
+  };
 }
 
 // ─── Receipt ──────────────────────────────────────────────────────────────────
@@ -530,18 +602,27 @@ export interface EmergencyAnalysisResult {
 
 export function buildEmergencyReceipt(
   result: EmergencyAnalysisResult,
-  options?: EmergencyReceiptOptions,
+  options?: EmergencyReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.shelter?.overflow) {
-    violations.push({ criterion: 'shelter_overflow', message: `Shelter at ${(result.shelter.occupancyRate * 100).toFixed(0)}% capacity — exceeds emergency limit` });
+    violations.push({
+      criterion: 'shelter_overflow',
+      message: `Shelter at ${(result.shelter.occupancyRate * 100).toFixed(0)}% capacity — exceeds emergency limit`,
+    });
   }
   if (result.dispatch && result.dispatch.unassignedIncidents.length > 0) {
-    violations.push({ criterion: 'unassigned', message: `${result.dispatch.unassignedIncidents.length} incident(s) have no available units` });
+    violations.push({
+      criterion: 'unassigned',
+      message: `${result.dispatch.unassignedIncidents.length} incident(s) have no available units`,
+    });
   }
   if (result.afterAction && result.afterAction.overallScore < 70) {
-    violations.push({ criterion: 'after_action', message: `Overall AAR score ${result.afterAction.overallScore.toFixed(0)}/100 is below acceptable threshold (70)` });
+    violations.push({
+      criterion: 'after_action',
+      message: `Overall AAR score ${result.afterAction.overallScore.toFixed(0)}/100 is below acceptable threshold (70)`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -550,12 +631,17 @@ export function buildEmergencyReceipt(
     runId: options?.runId ?? `emerg-${Date.now().toString(36)}`,
     solverConfig: { solverType: 'incident-management', scale: 'jurisdiction' },
     resultSummary: {
-      immediatePatients: result.triage?.filter(t => t.category === 'IMMEDIATE').length ?? null,
-      dispatchedUnits: result.dispatch?.assignments.reduce((a, d) => a + d.assignedUnitIds.length, 0) ?? null,
+      immediatePatients: result.triage?.filter((t) => t.category === 'IMMEDIATE').length ?? null,
+      dispatchedUnits:
+        result.dispatch?.assignments.reduce((a, d) => a + d.assignedUnitIds.length, 0) ?? null,
       shelterOccupancyRate: result.shelter?.occupancyRate ?? null,
       aarScore: result.afterAction?.overallScore ?? null,
     },
-    cael: { version: 'cael.v1', event: 'emergency_response.incident_analysis', solverType: 'emergency-response.start-triage' },
+    cael: {
+      version: 'cael.v1',
+      event: 'emergency_response.incident_analysis',
+      solverType: 'emergency-response.start-triage',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

@@ -7,10 +7,7 @@
  * are injected (mock in tests; brittney/provider.ts adapter at run time).
  */
 
-import {
-  verifySceneMutation,
-  type ContractResolver,
-} from '../../brittney/SimContractGate';
+import { verifySceneMutation, type ContractResolver } from '../../brittney/SimContractGate';
 import {
   ARMS,
   type Arm,
@@ -35,8 +32,7 @@ function renderPrompt(task: BenchTask, arm: Arm): string {
 
 /** Build a single-contract resolver from the task's declared contract (null → always unresolved). */
 function resolverFor(task: BenchTask): ContractResolver {
-  return (ref: string) =>
-    task.contract && ref === task.contract.id ? task.contract : null;
+  return (ref: string) => (task.contract && ref === task.contract.id ? task.contract : null);
 }
 
 export async function runBench(
@@ -55,7 +51,12 @@ export async function runBench(
 
       const oracle = result.mutation
         ? verifySceneMutation(task.sceneContext, result.mutation, resolver)
-        : { passed: false, contractId: 'no-mutation', mutation: { tool: '', input: {} }, reason: 'model emitted no mutation' };
+        : {
+            passed: false,
+            contractId: 'no-mutation',
+            mutation: { tool: '', input: {} },
+            reason: 'model emitted no mutation',
+          };
 
       // Anti-gaming: a contract-passing no-op does not count unless it accomplishes
       // the task. A task may supply a value-correctness gate (accept) that replaces

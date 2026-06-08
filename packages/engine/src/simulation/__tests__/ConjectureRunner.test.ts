@@ -29,8 +29,8 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
     expect(result.receipts.some((receipt) => receipt.status === 'survived')).toBe(true);
     expect(
       result.receipts.some(
-        (receipt) => receipt.status === 'falsified' && receipt.counterexamples.length > 0,
-      ),
+        (receipt) => receipt.status === 'falsified' && receipt.counterexamples.length > 0
+      )
     ).toBe(true);
     expect(result.replay.some((replay) => replay.counterexampleMatched)).toBe(true);
     expect(result.graduation).toContain('receipt-carrying.geometry');
@@ -59,8 +59,8 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
     ]);
     expect(
       executeStage?.predicates?.find(
-        (predicate) => predicate.id === 'geometry.hash_order_invariant',
-      )?.passCriteria,
+        (predicate) => predicate.id === 'geometry.hash_order_invariant'
+      )?.passCriteria
     ).toContain('hashGeometry');
   });
 
@@ -106,7 +106,7 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
     expect(rediscovered).toBeDefined();
     expect(rediscovered?.claim.id).toBe('C.GEOM.RUNNER.GENERATED_SURVIVOR');
     expect(
-      rediscovered?.evaluations.every((evaluation) => evaluation.status === 'rediscovered'),
+      rediscovered?.evaluations.every((evaluation) => evaluation.status === 'rediscovered')
     ).toBe(true);
     expect(rediscovered?.evaluations[0].novelty.provider).toBe('holoembed');
     expect(rediscovered?.evaluations[0].novelty.status).toBe('near-duplicate');
@@ -119,8 +119,8 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
       result.classifications.some(
         (classification) =>
           classification.scenarioId === 'generated-geometry.regular-polygon-sheet-family' &&
-          classification.status === 'rediscovered',
-      ),
+          classification.status === 'rediscovered'
+      )
     ).toBe(true);
   });
 
@@ -148,9 +148,7 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
       corpusSize: 0,
       receiptKeysPreserved: true,
     });
-    expect(
-      wrapped.semanticAdvisories.every((advisory) => advisory.receiptKeyPreserved)
-    ).toBe(true);
+    expect(wrapped.semanticAdvisories.every((advisory) => advisory.receiptKeyPreserved)).toBe(true);
     expect(
       wrapped.semanticAdvisories.some(
         (advisory) => advisory.advisorySkippedReason === 'empty-index'
@@ -162,7 +160,7 @@ describe('ConjectureRunner (conjecture.runner.v1)', () => {
     expect(() =>
       runConjectureRunner({
         suite: 'unknown-suite' as ConjectureRunnerInput['suite'],
-      }),
+      })
     ).toThrow(/unsupported suite/);
   });
 });

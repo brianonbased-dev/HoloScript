@@ -394,17 +394,15 @@ describe('ABTestTrait', () => {
 
     it('should be deterministic for the same participant', () => {
       assignParticipant(node, config, ctx, 'exp_1', 'user_abc');
-      const first = (ctx.emitsByType('abtest_variant_assigned')[0].payload as Record<
-        string,
-        unknown
-      >).variantId;
+      const first = (
+        ctx.emitsByType('abtest_variant_assigned')[0].payload as Record<string, unknown>
+      ).variantId;
 
       ctx.emitted.length = 0;
       assignParticipant(node, config, ctx, 'exp_1', 'user_abc');
-      const second = (ctx.emitsByType('abtest_variant_assigned')[0].payload as Record<
-        string,
-        unknown
-      >).variantId;
+      const second = (
+        ctx.emitsByType('abtest_variant_assigned')[0].payload as Record<string, unknown>
+      ).variantId;
 
       expect(first).toBe(second);
     });
@@ -531,8 +529,10 @@ describe('ABTestTrait', () => {
       const variantAssignments: Record<string, string> = {};
       for (let i = 0; i < 10; i++) {
         assignParticipant(node, config, ctx, 'exp_1', `p${i}`);
-        const payload = ctx.emitsByType('abtest_variant_assigned').slice(-1)[0]
-          .payload as Record<string, unknown>;
+        const payload = ctx.emitsByType('abtest_variant_assigned').slice(-1)[0].payload as Record<
+          string,
+          unknown
+        >;
         variantAssignments[`p${i}`] = payload.variantId as string;
       }
 
@@ -998,8 +998,10 @@ describe('ABTestTrait', () => {
 
       for (let i = 0; i < 200; i++) {
         assignParticipant(node2, config, ctx2, 'exp_weighted', `wp_${i}`);
-        const payload = ctx2.emitsByType('abtest_variant_assigned').slice(-1)[0]
-          .payload as Record<string, unknown>;
+        const payload = ctx2.emitsByType('abtest_variant_assigned').slice(-1)[0].payload as Record<
+          string,
+          unknown
+        >;
         if (payload.variantId === 'control') controlCount++;
         else treatmentCount++;
       }

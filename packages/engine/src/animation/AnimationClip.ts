@@ -132,7 +132,7 @@ export class AnimClip {
     for (const track of this.tracks) {
       const value = this.sampleTrack(track, wrapped);
       const key = track.component
-          ? `${track.targetPath}.${track.property}.${track.component}`
+        ? `${track.targetPath}.${track.property}.${track.component}`
         : `${track.targetPath}.${track.property}`;
       result.set(key, value);
     }
@@ -166,13 +166,13 @@ export class AnimClip {
       typeof k0.value === 'number'
         ? k0.value
         : Array.isArray(k0.value) && track.component
-          ? k0.value[this.componentIndex(track.component)] ?? 0
+          ? (k0.value[this.componentIndex(track.component)] ?? 0)
           : 0;
     const v1 =
       typeof k1.value === 'number'
         ? k1.value
         : Array.isArray(k1.value) && track.component
-          ? k1.value[this.componentIndex(track.component)] ?? 0
+          ? (k1.value[this.componentIndex(track.component)] ?? 0)
           : 0;
 
     switch (track.interpolation) {

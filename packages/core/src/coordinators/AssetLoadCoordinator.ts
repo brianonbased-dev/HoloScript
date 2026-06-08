@@ -147,7 +147,11 @@ export class AssetLoadCoordinator {
     } else if (phase === 'error') {
       next.status = 'error';
       next.error =
-        typeof p.error === 'string' ? p.error : typeof p.message === 'string' ? p.message : 'unknown error';
+        typeof p.error === 'string'
+          ? p.error
+          : typeof p.message === 'string'
+            ? p.message
+            : 'unknown error';
     }
 
     this.states.set(url, next);

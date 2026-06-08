@@ -50,14 +50,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import {
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-  readFileSync,
-  readdirSync,
-  existsSync,
-} from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename } from 'node:path';
 
@@ -95,7 +88,13 @@ const PROBES = [
   // regression on either is caught by the gate, not by an external install failure.
   // r3f-renderer is ESM-only (no require export) -> skipCjs. React/three are external
   // peers (INFO, consumer-provided), so the barrel-esm probe still validates load.
-  { name: '@holoscript/r3f-renderer', dir: 'r3f-renderer', barrelSym: null, runtime: false, skipCjs: true },
+  {
+    name: '@holoscript/r3f-renderer',
+    dir: 'r3f-renderer',
+    barrelSym: null,
+    runtime: false,
+    skipCjs: true,
+  },
   { name: '@holoscript/ui', dir: 'ui', barrelSym: null, runtime: false },
 ];
 
@@ -194,7 +193,12 @@ function resolveSpec(name, spec, versionMap) {
 }
 function rewriteWorkspace(manifest, versionMap) {
   let n = 0;
-  for (const field of ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies']) {
+  for (const field of [
+    'dependencies',
+    'optionalDependencies',
+    'peerDependencies',
+    'devDependencies',
+  ]) {
     const block = manifest[field];
     if (!block) continue;
     for (const [dep, spec] of Object.entries(block)) {
@@ -259,9 +263,7 @@ function makeTarball(pkgDir) {
 function barrelProbeBody(name, sym, isCjs) {
   // If a named symbol is given, assert it is a function/constructor reachable cold.
   // Otherwise assert the barrel loads and exposes at least one own enumerable key.
-  const imp = isCjs
-    ? `const mod = require('${name}');`
-    : `import * as mod from '${name}';`;
+  const imp = isCjs ? `const mod = require('${name}');` : `import * as mod from '${name}';`;
   const check = sym
     ? `if (typeof mod['${sym}'] === 'undefined') { console.error('PROBE_FAIL: ${sym} not exported'); process.exit(3); }`
     : `if (!mod || Object.keys(mod).length === 0) { console.error('PROBE_FAIL: empty barrel'); process.exit(3); }`;
@@ -305,7 +307,14 @@ function installAndProbe(row) {
     try {
       run(
         'npm',
-        ['install', installTarget, '--no-audit', '--no-fund', '--omit=optional', '--loglevel=error'],
+        [
+          'install',
+          installTarget,
+          '--no-audit',
+          '--no-fund',
+          '--omit=optional',
+          '--loglevel=error',
+        ],
         { cwd: work }
       );
     } catch (e) {
@@ -363,12 +372,14 @@ function installAndProbe(row) {
     }
 
     // Probe: ./runtime subpath where declared.
-    const declaresRuntime = row.runtime && manifest && manifest.exports && manifest.exports['./runtime'];
+    const declaresRuntime =
+      row.runtime && manifest && manifest.exports && manifest.exports['./runtime'];
     if (row.runtime && !declaresRuntime) {
       result.probes.push({
         probe: 'runtime-subpath',
         passed: false,
-        detail: "probe row expects exports['./runtime'] but the installed manifest does not declare it",
+        detail:
+          "probe row expects exports['./runtime'] but the installed manifest does not declare it",
       });
       result.ok = false;
     } else if (declaresRuntime) {
@@ -423,7 +434,12 @@ function runProbe(cwd, file, label, manifest) {
       detail: `requires external peer '${cls.missing}' to import (documented-peer, not a cold-consume defect)`,
     };
   }
-  return { probe: label, passed: false, detail: raw.slice(0, 800), missing: cls.missing || undefined };
+  return {
+    probe: label,
+    passed: false,
+    detail: raw.slice(0, 800),
+    missing: cls.missing || undefined,
+  };
 }
 
 function main() {
@@ -452,13 +468,17 @@ function main() {
   }
 
   if (JSON_OUT) {
-    console.log(JSON.stringify({ ok: allOk, mode: LOCAL ? 'local' : 'published', results }, null, 2));
+    console.log(
+      JSON.stringify({ ok: allOk, mode: LOCAL ? 'local' : 'published', results }, null, 2)
+    );
   } else if (allOk) {
     console.log(
       `\n[cold-consume] OK — all ${rows.length} package(s) install + import their barrel/runtime cold, with optional peers absent.`
     );
   } else {
-    console.error('\n[cold-consume] FAIL — a published package is non-installable or non-importable from a clean room.');
+    console.error(
+      '\n[cold-consume] FAIL — a published package is non-installable or non-importable from a clean room.'
+    );
   }
   process.exit(allOk ? 0 : 1);
 }

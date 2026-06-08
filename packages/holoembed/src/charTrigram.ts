@@ -41,15 +41,17 @@
  *   "pillar slice emitter" → "pillar slice emitter"  (NL query passthrough)
  */
 export function camelSplit(s: string): string {
-  return s
-    // Insert space before uppercase following lowercase: "aSite" → "a Site"
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    // Insert space before uppercase run followed by lowercase: "HTMLParser" → "HTML Parser"
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    // Replace non-alphanumeric separators (_, -, :, ., /) with space
-    .replace(/[^a-zA-Z0-9]+/g, ' ')
-    .trim()
-    .toLowerCase();
+  return (
+    s
+      // Insert space before uppercase following lowercase: "aSite" → "a Site"
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      // Insert space before uppercase run followed by lowercase: "HTMLParser" → "HTML Parser"
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+      // Replace non-alphanumeric separators (_, -, :, ., /) with space
+      .replace(/[^a-zA-Z0-9]+/g, ' ')
+      .trim()
+      .toLowerCase()
+  );
 }
 
 // =============================================================================
@@ -71,7 +73,7 @@ export function trigramHistogram(
   text: string,
   vec: Float32Array,
   offset: number,
-  bins: number,
+  bins: number
 ): void {
   const clean = camelSplit(text); // already lowercase
   if (clean.length < 3) return;
@@ -88,9 +90,12 @@ export function trigramHistogram(
 
     // FNV-1a hash of the 3 chars
     let h = 2166136261;
-    h ^= a.charCodeAt(0); h = (h * 16777619) >>> 0;
-    h ^= b.charCodeAt(0); h = (h * 16777619) >>> 0;
-    h ^= c.charCodeAt(0); h = (h * 16777619) >>> 0;
+    h ^= a.charCodeAt(0);
+    h = (h * 16777619) >>> 0;
+    h ^= b.charCodeAt(0);
+    h = (h * 16777619) >>> 0;
+    h ^= c.charCodeAt(0);
+    h = (h * 16777619) >>> 0;
 
     counts[h % bins]!++;
     total++;
@@ -127,7 +132,7 @@ export function hashString(s: string): number {
 export function spreadHash(hash: number, vec: Float32Array, offset: number, count: number): void {
   let state = hash;
   for (let i = 0; i < count; i++) {
-    state = ((state * 1664525 + 1013904223) >>> 0);
+    state = (state * 1664525 + 1013904223) >>> 0;
     vec[offset + i] = (state >>> 0) / 4294967295;
   }
 }

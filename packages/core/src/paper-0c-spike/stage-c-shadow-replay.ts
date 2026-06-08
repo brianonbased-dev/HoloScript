@@ -17,8 +17,21 @@
  * runtime by implementing `SNNReplayer` and feeding the result to runStageC.
  */
 
-import { canonicalSort, encodeStep, fnv1a, serializeSpikes, toHex, type Spike, type SpikeBatch } from './spike-encoder';
-import { decodeStep, verifyBoundedLoss, type DecodeOptions, type BoundedLossViolation } from './spike-decoder';
+import {
+  canonicalSort,
+  encodeStep,
+  fnv1a,
+  serializeSpikes,
+  toHex,
+  type Spike,
+  type SpikeBatch,
+} from './spike-encoder';
+import {
+  decodeStep,
+  verifyBoundedLoss,
+  type DecodeOptions,
+  type BoundedLossViolation,
+} from './spike-decoder';
 import { quantumForField } from './quantum-registry';
 
 /** Canonical JSONL-derived "truth" for one step. */
@@ -41,27 +54,27 @@ export interface SNNReplayer {
 
 export interface StageCPerStepLog {
   step: number;
-  runtime_spike_digest: string;   // hex of canonical-sorted spikes from runtime
+  runtime_spike_digest: string; // hex of canonical-sorted spikes from runtime
   canonical_spike_digest: string; // hex of what encodeStep would have produced
-  digest_match: boolean;          // lossless bit-identity check
+  digest_match: boolean; // lossless bit-identity check
   bounded_loss_violations: BoundedLossViolation[];
 }
 
 export interface StageCResult {
   total_steps: number;
-  digest_match_count: number;     // lossless spike-chain property (expected: all)
-  violation_step_count: number;   // steps with ≥ 1 bounded-loss violation
-  total_violation_count: number;  // total per-field violations across all steps
+  digest_match_count: number; // lossless spike-chain property (expected: all)
+  violation_step_count: number; // steps with ≥ 1 bounded-loss violation
+  total_violation_count: number; // total per-field violations across all steps
   worst_step: StageCPerStepLog | null;
-  pass_criterion_hit: boolean;    // ≥ 99.99% of steps violation-free
+  pass_criterion_hit: boolean; // ≥ 99.99% of steps violation-free
   duration_ms: number;
-  log: StageCPerStepLog[];        // per-step detail (truncated to first 100 if long)
+  log: StageCPerStepLog[]; // per-step detail (truncated to first 100 if long)
 }
 
 export interface StageCOptions {
   field_specs: DecodeOptions['fields']; // how to decode each field back
-  max_log_entries?: number;              // cap per-step detail in result.log (default 100)
-  fail_fast?: boolean;                   // stop at first violation (default false)
+  max_log_entries?: number; // cap per-step detail in result.log (default 100)
+  fail_fast?: boolean; // stop at first violation (default false)
 }
 
 /**

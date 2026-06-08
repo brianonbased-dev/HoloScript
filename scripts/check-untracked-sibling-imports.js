@@ -295,16 +295,24 @@ for (const rel of stagedCodeFiles) {
 // ---- Report ----
 if (violations.length === 0 && orphanTests.length === 0) {
   const count = stagedCodeFiles.length;
-  console.log(`${GREEN}UntrackedSiblings OK${NC} (${count} staged code file${count === 1 ? '' : 's'} scanned)`);
+  console.log(
+    `${GREEN}UntrackedSiblings OK${NC} (${count} staged code file${count === 1 ? '' : 's'} scanned)`
+  );
   process.exit(0);
 }
 
 // Orphan-only path: warn (default) or block (strict).
 if (violations.length === 0 && orphanTests.length > 0) {
   const label = STRICT_ORPHAN ? `${RED}FAIL${NC}` : `${YELLOW}WARN${NC}`;
-  console.log(`${YELLOW}UntrackedSiblings: ${orphanTests.length} orphan test(s) on disk but not tracked${NC} [${label}]`);
-  console.log('  A test file exists on disk for a staged source file, but has never been git-added.');
-  console.log('  It will be invisible to CI / Railway build farm — same failure class as SEC-T-Zero.');
+  console.log(
+    `${YELLOW}UntrackedSiblings: ${orphanTests.length} orphan test(s) on disk but not tracked${NC} [${label}]`
+  );
+  console.log(
+    '  A test file exists on disk for a staged source file, but has never been git-added.'
+  );
+  console.log(
+    '  It will be invisible to CI / Railway build farm — same failure class as SEC-T-Zero.'
+  );
   console.log('');
   for (const o of orphanTests) {
     console.log(`  ${YELLOW}${o.source}${NC}`);
@@ -316,15 +324,23 @@ if (violations.length === 0 && orphanTests.length > 0) {
     console.log(`  ${YELLOW}OR BYPASS:${NC} unset HOLOMESH_STRICT_ORPHAN_TESTS`);
     process.exit(1);
   } else {
-    console.log(`  ${YELLOW}STRICT MODE:${NC} HOLOMESH_STRICT_ORPHAN_TESTS=1 to block on this class.`);
+    console.log(
+      `  ${YELLOW}STRICT MODE:${NC} HOLOMESH_STRICT_ORPHAN_TESTS=1 to block on this class.`
+    );
     const count = stagedCodeFiles.length;
-    console.log(`${GREEN}UntrackedSiblings OK${NC} (${count} file${count === 1 ? '' : 's'} scanned; ${orphanTests.length} orphan warning${orphanTests.length === 1 ? '' : 's'})`);
+    console.log(
+      `${GREEN}UntrackedSiblings OK${NC} (${count} file${count === 1 ? '' : 's'} scanned; ${orphanTests.length} orphan warning${orphanTests.length === 1 ? '' : 's'})`
+    );
     process.exit(0);
   }
 }
 
-console.log(`${RED}UntrackedSiblings: ${violations.length} import(s) reference untracked sibling file(s)${NC}`);
-console.log('  These imports will fail MODULE_NOT_FOUND on any clean checkout (CI, Railway, teammate).');
+console.log(
+  `${RED}UntrackedSiblings: ${violations.length} import(s) reference untracked sibling file(s)${NC}`
+);
+console.log(
+  '  These imports will fail MODULE_NOT_FOUND on any clean checkout (CI, Railway, teammate).'
+);
 console.log('');
 for (const v of violations) {
   console.log(`  ${RED}${v.importer}${NC}`);
@@ -333,6 +349,8 @@ for (const v of violations) {
 }
 console.log('');
 console.log(`  ${YELLOW}FIX:${NC} git add <the untracked file(s) listed above>`);
-console.log(`  ${YELLOW}EMERGENCY BYPASS:${NC} HOLOMESH_SKIP_UNTRACKED_SIBLING_CHECK=1 git commit ...`);
+console.log(
+  `  ${YELLOW}EMERGENCY BYPASS:${NC} HOLOMESH_SKIP_UNTRACKED_SIBLING_CHECK=1 git commit ...`
+);
 console.log('  (or: git commit --no-verify — bypasses ALL hooks)');
 process.exit(1);

@@ -26,7 +26,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, '..', '..');
 const imp = (p) => import(pathToFileURL(p).href);
 const core = await imp(join(repo, 'packages', 'core', 'dist', 'index.js'));
-const { computeStateDigest } = await imp(join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts'));
+const { computeStateDigest } = await imp(
+  join(repo, 'packages', 'engine', 'src', 'simulation', 'hashes.ts')
+);
 const receiptPath = join(here, 'GATE-16-AUDIO-receipt.json');
 const HASH = 'sha256';
 
@@ -58,25 +60,30 @@ const TWOD = ['VaultAmbientBed', 'TierMusic_Bronze', 'TierMusic_Gold', 'TierMusi
 
 // Every spatial source → a real AudioStreamPlayer3D with stream + volume + position + max_distance
 const spatialEmitted = SPATIAL.every(
-  (n) => has3dNode(n) && hasStream(n) && hasVolume(n) && hasPosition(n) && hasMaxDistance(n),
+  (n) => has3dNode(n) && hasStream(n) && hasVolume(n) && hasPosition(n) && hasMaxDistance(n)
 );
 // Every 2D source → a real AudioStreamPlayer (NOT 3D) with stream + volume
-const twoDEmitted = TWOD.every((n) => has2dNode(n) && !has3dNode(n) && hasStream(n) && hasVolume(n));
+const twoDEmitted = TWOD.every(
+  (n) => has2dNode(n) && !has3dNode(n) && hasStream(n) && hasVolume(n)
+);
 // The signature SFX specifically — the graduation cue is spatial 3D
 const graduationCueSpatial = has3dNode('GraduationCue') && hasPosition('GraduationCue');
 
 // E-G16: acoustic traits emit REAL Godot AudioEffect nodes on a dedicated AudioBus,
 // NOT comments. Asserted structurally + a negative control (anti-tautology, F.076).
-const hasAcousticBus = /AudioServer\.add_bus\(\)/.test(gd) && /set_bus_name\([^,]+, "[^"]*_acoustic_bus"\)/.test(gd);
+const hasAcousticBus =
+  /AudioServer\.add_bus\(\)/.test(gd) && /set_bus_name\([^,]+, "[^"]*_acoustic_bus"\)/.test(gd);
 const materialReverb = /AudioEffectReverb\.new\(\)/.test(gd);
 // NEGATIVE CONTROL: metal and glass presets MUST produce different reverb params —
 // the material choice genuinely changes the emitted bus graph (not a constant/relabel).
 const metalRoom = /room_size = 0\.85/.test(gd);
 const glassRoom = /room_size = 0\.35/.test(gd);
 const materialPresetDiffers = metalRoom && glassRoom;
-const occlusionAttached = /AudioEffectLowPassFilter\.new\(\)/.test(gd) && /cutoff_hz = \d+/.test(gd);
+const occlusionAttached =
+  /AudioEffectLowPassFilter\.new\(\)/.test(gd) && /cutoff_hz = \d+/.test(gd);
 const portalAttached = /\.wet = /.test(gd);
-const acousticsModeled = hasAcousticBus && materialReverb && materialPresetDiffers && occlusionAttached && portalAttached;
+const acousticsModeled =
+  hasAcousticBus && materialReverb && materialPresetDiffers && occlusionAttached && portalAttached;
 
 // Node counts match the design (4 spatial + 4 2D)
 const player3dCount = (gd.match(/AudioStreamPlayer3D\.new\(\)/g) || []).length;
@@ -87,8 +94,12 @@ const nodeCountsCorrect = player3dCount === SPATIAL.length && player2dCount === 
 // Encode the audio graph as a numeric field: per source (in source order) the
 // node type (3D=1 / 2D=2), volume, position (or 0,0,0 for 2D), max_distance; then
 // per surface the acoustic-trait config numbers. A solver-shaped {fieldNames,getField}.
-function num(v) { return typeof v === 'number' ? v : 0; }
-function prop(props, key) { return props.find((p) => p.key === key)?.value; }
+function num(v) {
+  return typeof v === 'number' ? v : 0;
+}
+function prop(props, key) {
+  return props.find((p) => p.key === key)?.value;
+}
 function buildAudioGraphField() {
   const vals = [];
   for (const a of audioSources) {
@@ -96,7 +107,14 @@ function buildAudioGraphField() {
     const vol = num(prop(a.properties, 'volume'));
     const pos = prop(a.properties, 'position');
     const dist = num(prop(a.properties, 'distance'));
-    vals.push(spatial, vol, Array.isArray(pos) ? num(pos[0]) : 0, Array.isArray(pos) ? num(pos[1]) : 0, Array.isArray(pos) ? num(pos[2]) : 0, dist);
+    vals.push(
+      spatial,
+      vol,
+      Array.isArray(pos) ? num(pos[0]) : 0,
+      Array.isArray(pos) ? num(pos[1]) : 0,
+      Array.isArray(pos) ? num(pos[2]) : 0,
+      dist
+    );
   }
   // Acoustic-trait config from surfaces (deterministic ordering: object order, trait order, sorted keys)
   for (const obj of composition.objects || []) {
@@ -126,11 +144,18 @@ const audioSources2 = composition2.audio || [];
 function buildFromComp(comp, sources) {
   const vals = [];
   for (const a of sources) {
-    const spatial = (a.properties.find((p) => p.key === 'spatial')?.value) ? 1 : 2;
+    const spatial = a.properties.find((p) => p.key === 'spatial')?.value ? 1 : 2;
     const vol = num(a.properties.find((p) => p.key === 'volume')?.value);
     const pos = a.properties.find((p) => p.key === 'position')?.value;
     const dist = num(a.properties.find((p) => p.key === 'distance')?.value);
-    vals.push(spatial, vol, Array.isArray(pos) ? num(pos[0]) : 0, Array.isArray(pos) ? num(pos[1]) : 0, Array.isArray(pos) ? num(pos[2]) : 0, dist);
+    vals.push(
+      spatial,
+      vol,
+      Array.isArray(pos) ? num(pos[0]) : 0,
+      Array.isArray(pos) ? num(pos[1]) : 0,
+      Array.isArray(pos) ? num(pos[2]) : 0,
+      dist
+    );
   }
   for (const obj of comp.objects || []) {
     for (const t of obj.traits || []) {
@@ -146,7 +171,10 @@ function buildFromComp(comp, sources) {
   }
   return Float32Array.from(vals);
 }
-const audioGraphDigest2 = computeStateDigest({ fieldNames: ['audio_graph'], getField: () => buildFromComp(composition2, audioSources2) }, HASH);
+const audioGraphDigest2 = computeStateDigest(
+  { fieldNames: ['audio_graph'], getField: () => buildFromComp(composition2, audioSources2) },
+  HASH
+);
 const deterministic = audioGraphDigest === audioGraphDigest2 && audioGraphDigest.length > 0;
 
 const receipt = {
@@ -154,17 +182,43 @@ const receipt = {
   track: 'flagship',
   name: 'audio layer — the Vault soundscape via REAL GodotCompiler (spatial AudioStreamPlayer3D + acoustic traits)',
   verifier: 'examples/gold-game/gate-16-audio-verify.mjs',
-  source: { holo: 'examples/gold-game/gold-vault-audio.holo', format: 'top-level audio {} blocks + @audio_material/@audio_occlusion/@audio_portal on surfaces', parseClean },
-  compiler: { name: 'GodotCompiler', source: 'packages/core/src/compiler/GodotCompiler.ts (compileAudio + trait emission)', target: 'Godot 4.3', real: 'verified REAL in Gate 7 conformance sweep', tokenModel: 'no token (CompilerBase permits when none provided)' },
+  source: {
+    holo: 'examples/gold-game/gold-vault-audio.holo',
+    format:
+      'top-level audio {} blocks + @audio_material/@audio_occlusion/@audio_portal on surfaces',
+    parseClean,
+  },
+  compiler: {
+    name: 'GodotCompiler',
+    source: 'packages/core/src/compiler/GodotCompiler.ts (compileAudio + trait emission)',
+    target: 'Godot 4.3',
+    real: 'verified REAL in Gate 7 conformance sweep',
+    tokenModel: 'no token (CompilerBase permits when none provided)',
+  },
   emitted: {
-    spatialSources: SPATIAL, twoDSources: TWOD,
-    audioStreamPlayer3dCount: player3dCount, audioStreamPlayerCount: player2dCount,
+    spatialSources: SPATIAL,
+    twoDSources: TWOD,
+    audioStreamPlayer3dCount: player3dCount,
+    audioStreamPlayerCount: player2dCount,
     perSpatialSourceHasNodePositionMaxDistance: spatialEmitted,
     graduationCueIsSpatial3D: graduationCueSpatial,
-    acoustics: { hasAcousticBus, materialReverb, materialPresetDiffers, metalRoom, glassRoom, occlusionAttached, portalAttached },
+    acoustics: {
+      hasAcousticBus,
+      materialReverb,
+      materialPresetDiffers,
+      metalRoom,
+      glassRoom,
+      occlusionAttached,
+      portalAttached,
+    },
   },
-  contract: { spine: 'REAL computeStateDigest(solverShape, hashMode) — same fn the SimulationContract pushes', audioGraphDigest, reproducible: 'run the verifier to re-derive' },
-  honestScope: 'Compiles the vault soundscape through the GENUINE shipped GodotCompiler (REAL in Gate 7). PROVEN: each spatial source emits a real AudioStreamPlayer3D node with stream/volume(dB)/position/max_distance; each 2D source emits a real AudioStreamPlayer; the @audio_material (metal terraces / glass gems), @audio_occlusion, and @audio_portal acoustic traits now emit REAL Godot AudioEffect nodes on a dedicated AudioBus (E-G16) — AudioEffectReverb (metal room_size 0.85 vs glass 0.35 — a negative control proves the preset changes the bus graph), AudioEffectLowPassFilter (occlusion cutoff), AudioEffectReverb send (portal) — NOT comments; the audio-graph digest reproduces via the real computeStateDigest. WHAT IS REAL: the Godot audio nodes + the acoustic AudioEffect bus chain. BUILD TARGETS (flagged, NOT claimed present): (1) the web/R3F Drive build is SILENT — no audio compiler path exists for Unity/Babylon/R3F, so a small WebAudio layer is the build target; (2) no TTS / voiced lines — the Archivist source is a spatial PRESENCE bed, his lines are /narrative text + LLM, not synthesized speech; (3) no adaptive/layered @MusicLayer — the per-tier music is STATIC sources cross-faded by zone, not state-driven stems. NOT auto-verifiable: the MIX FEEL (relative loudness, whether the graduation cue punches through) is a human listen on a real Godot build — the audio analogue of Gate 1’s manual render.',
+  contract: {
+    spine: 'REAL computeStateDigest(solverShape, hashMode) — same fn the SimulationContract pushes',
+    audioGraphDigest,
+    reproducible: 'run the verifier to re-derive',
+  },
+  honestScope:
+    'Compiles the vault soundscape through the GENUINE shipped GodotCompiler (REAL in Gate 7). PROVEN: each spatial source emits a real AudioStreamPlayer3D node with stream/volume(dB)/position/max_distance; each 2D source emits a real AudioStreamPlayer; the @audio_material (metal terraces / glass gems), @audio_occlusion, and @audio_portal acoustic traits now emit REAL Godot AudioEffect nodes on a dedicated AudioBus (E-G16) — AudioEffectReverb (metal room_size 0.85 vs glass 0.35 — a negative control proves the preset changes the bus graph), AudioEffectLowPassFilter (occlusion cutoff), AudioEffectReverb send (portal) — NOT comments; the audio-graph digest reproduces via the real computeStateDigest. WHAT IS REAL: the Godot audio nodes + the acoustic AudioEffect bus chain. BUILD TARGETS (flagged, NOT claimed present): (1) the web/R3F Drive build is SILENT — no audio compiler path exists for Unity/Babylon/R3F, so a small WebAudio layer is the build target; (2) no TTS / voiced lines — the Archivist source is a spatial PRESENCE bed, his lines are /narrative text + LLM, not synthesized speech; (3) no adaptive/layered @MusicLayer — the per-tier music is STATIC sources cross-faded by zone, not state-driven stems. NOT auto-verifiable: the MIX FEEL (relative loudness, whether the graduation cue punches through) is a human listen on a real Godot build — the audio analogue of Gate 1’s manual render.',
   verifiedAt: new Date().toISOString(),
 };
 
@@ -172,25 +226,57 @@ const emit = process.argv.includes('--emit');
 if (emit) {
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n');
   console.log('GATE-16 RECEIPT EMITTED ->', receiptPath);
-  console.log('  parseClean=' + parseClean, '| 3D nodes=' + player3dCount, '2D nodes=' + player2dCount);
-  console.log('  spatialEmitted=' + spatialEmitted, 'graduationCueSpatial=' + graduationCueSpatial, 'acousticsModeled=' + acousticsModeled);
+  console.log(
+    '  parseClean=' + parseClean,
+    '| 3D nodes=' + player3dCount,
+    '2D nodes=' + player2dCount
+  );
+  console.log(
+    '  spatialEmitted=' + spatialEmitted,
+    'graduationCueSpatial=' + graduationCueSpatial,
+    'acousticsModeled=' + acousticsModeled
+  );
   console.log('  audioGraphDigest=' + audioGraphDigest);
   console.log('  deterministic=' + deterministic);
 } else {
-  let existing; try { existing = JSON.parse(readFileSync(receiptPath, 'utf8')); } catch { console.error('No Gate-16 receipt. Run --emit first.'); process.exit(2); }
+  let existing;
+  try {
+    existing = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  } catch {
+    console.error('No Gate-16 receipt. Run --emit first.');
+    process.exit(2);
+  }
   const checks = [
     ['vault soundscape .holo parses clean against @holoscript/core', parseClean === true],
-    ['REAL GodotCompiler emits one AudioStreamPlayer3D per spatial source (4) + one AudioStreamPlayer per 2D source (4)', nodeCountsCorrect === true],
-    ['every spatial source has node + stream + volume(dB) + position + max_distance', spatialEmitted === true],
-    ['the signature graduation cue is a spatial 3D source (positioned)', graduationCueSpatial === true],
+    [
+      'REAL GodotCompiler emits one AudioStreamPlayer3D per spatial source (4) + one AudioStreamPlayer per 2D source (4)',
+      nodeCountsCorrect === true,
+    ],
+    [
+      'every spatial source has node + stream + volume(dB) + position + max_distance',
+      spatialEmitted === true,
+    ],
+    [
+      'the signature graduation cue is a spatial 3D source (positioned)',
+      graduationCueSpatial === true,
+    ],
     ['every 2D source is AudioStreamPlayer (not 3D) with stream + volume', twoDEmitted === true],
-    ['acoustics modeled: real AudioEffect bus chain — material reverb (metal≠glass, neg. control), occlusion low-pass, portal send', acousticsModeled === true],
+    [
+      'acoustics modeled: real AudioEffect bus chain — material reverb (metal≠glass, neg. control), occlusion low-pass, portal send',
+      acousticsModeled === true,
+    ],
     ['audio-graph digest reproduces (real computeStateDigest, twice)', deterministic === true],
-    ['audio-graph digest matches receipt (real computeStateDigest)', audioGraphDigest === existing.contract.audioGraphDigest],
+    [
+      'audio-graph digest matches receipt (real computeStateDigest)',
+      audioGraphDigest === existing.contract.audioGraphDigest,
+    ],
   ];
   let ok = true;
   console.log('GATE-16 (AUDIO LAYER) VERIFICATION:');
-  for (const [label, pass] of checks) { console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label); ok = ok && pass; }
+  for (const [label, pass] of checks) {
+    console.log('  ' + (pass ? 'PASS' : 'FAIL') + '  ' + label);
+    ok = ok && pass;
+  }
   console.log('  => GATE 16', ok ? 'VERIFIED' : 'BROKEN');
   process.exit(ok ? 0 : 1);
 }

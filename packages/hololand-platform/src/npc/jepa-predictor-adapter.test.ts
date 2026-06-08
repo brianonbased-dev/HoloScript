@@ -14,11 +14,14 @@ describe('HoloLand JEPA NPC control loop wiring', () => {
       confidence: 0.87,
     });
 
-    const result = planAndAnchorNPCAction({
-      currentState: 'NPC at position (1,2,0) facing door, holding nothing',
-      candidateActions: ['move_forward', 'turn_left', 'interact_with_door'],
-      worldId: 'world_test_001',
-    }, mockPlan);
+    const result = planAndAnchorNPCAction(
+      {
+        currentState: 'NPC at position (1,2,0) facing door, holding nothing',
+        candidateActions: ['move_forward', 'turn_left', 'interact_with_door'],
+        worldId: 'world_test_001',
+      },
+      mockPlan
+    );
 
     expect(result.chosenAction).toBe('move_forward');
     expect(result.predictedEmbedding).toBeInstanceOf(Float32Array);

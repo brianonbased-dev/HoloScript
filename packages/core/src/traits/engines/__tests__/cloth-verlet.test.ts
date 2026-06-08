@@ -130,8 +130,20 @@ describe('stepClothVerlet — constraints', () => {
     const constraints = buildClothConstraints(3, buildFlatGrid(3));
     const pinned = new Set([0, 1, 2, 3, 5, 6, 7, 8]);
 
-    const stateLow: ClothVerletState = { positions: positions1, prevPositions: prev1, pinned, constraints, time: 0 };
-    const stateHigh: ClothVerletState = { positions: positions2, prevPositions: prev2, pinned, constraints, time: 0 };
+    const stateLow: ClothVerletState = {
+      positions: positions1,
+      prevPositions: prev1,
+      pinned,
+      constraints,
+      time: 0,
+    };
+    const stateHigh: ClothVerletState = {
+      positions: positions2,
+      prevPositions: prev2,
+      pinned,
+      constraints,
+      time: 0,
+    };
     const cfgLow = { ...baseConfig, gravityScale: 0, stiffness: 0.2 };
     const cfgHigh = { ...baseConfig, gravityScale: 0, stiffness: 1.0 };
 
@@ -148,7 +160,11 @@ describe('stepClothVerlet — damping', () => {
     const state = makeState(3);
     // Give center vertex some initial velocity (prev is offset)
     state.prevPositions[4 * 3] = state.positions[4 * 3] - 1;
-    stepClothVerlet(state, { ...baseConfig, damping: 1.0, gravityScale: 0, windResponse: 0 }, 0.016);
+    stepClothVerlet(
+      state,
+      { ...baseConfig, damping: 1.0, gravityScale: 0, windResponse: 0 },
+      0.016
+    );
     // With damping=1, dampingFactor=0, so no velocity carry-over
     // Vertex shouldn't move horizontally despite the prev offset
     expect(state.positions[4 * 3]).toBeCloseTo(0.5, 5); // unchanged
@@ -255,7 +271,11 @@ describe('stepClothVerlet — stiffness=0 edge', () => {
       constraints,
       time: 0,
     };
-    stepClothVerlet(state, { ...baseConfig, gravityScale: 0, stiffness: 0, windResponse: 0 }, 0.016);
+    stepClothVerlet(
+      state,
+      { ...baseConfig, gravityScale: 0, stiffness: 0, windResponse: 0 },
+      0.016
+    );
     // No constraint solve → vertex stays where it was (no spring force)
     expect(state.positions[4 * 3 + 1]).toBe(10);
   });
@@ -272,7 +292,11 @@ describe('stepClothVerlet — stiffness=0 edge', () => {
       constraints,
       time: 0,
     };
-    stepClothVerlet(state, { ...baseConfig, gravityScale: 0, stiffness: 0.001, windResponse: 0 }, 0.016);
+    stepClothVerlet(
+      state,
+      { ...baseConfig, gravityScale: 0, stiffness: 0.001, windResponse: 0 },
+      0.016
+    );
     // 1 iteration → some convergence happens, vertex pulls back toward rest
     expect(state.positions[4 * 3 + 1]).toBeLessThan(10);
   });

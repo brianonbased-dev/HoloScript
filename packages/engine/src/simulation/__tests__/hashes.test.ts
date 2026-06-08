@@ -20,8 +20,12 @@ function minimalSolver(over: Partial<SimSolver> = {}): SimSolver {
     fieldNames: [] as const,
     step() {},
     async solve() {},
-    getField() { return null; },
-    getStats() { return {}; },
+    getField() {
+      return null;
+    },
+    getStats() {
+      return {};
+    },
     dispose() {},
     ...over,
   } as SimSolver;
@@ -127,7 +131,9 @@ describe('hashes: computeStateDigest on solver with fields', () => {
         if (n === 's') return t;
         return null;
       },
-      getStats() { return {}; },
+      getStats() {
+        return {};
+      },
       dispose() {},
     };
     const a = computeStateDigest(solver, 'fnv1a');
@@ -143,8 +149,12 @@ describe('hashes: computeStateDigest on solver with fields', () => {
       fieldNames: ['strainX'],
       step() {},
       async solve() {},
-      getField() { return t; },
-      getStats() { return {}; },
+      getField() {
+        return t;
+      },
+      getStats() {
+        return {};
+      },
       dispose() {},
     };
     expect(() => computeStateDigest(solver, 'sha256')).toThrow(/Non-finite value in field/);

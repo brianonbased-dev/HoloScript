@@ -5,12 +5,12 @@
 
 ## Bindings (`@group(0)`)
 
-| Order | Binding | Resource | When |
-|-------|---------|---------|------|
-| 0 | `var<uniform> uniforms` | `Uniforms` | `TimeInput` **or** any node needing frame matrices (`ScreenSpaceAO`) |
-| 1…2N | `texture_2d<f32>` + `sampler` | Per-material names `uTexture_<nodeId>` | `Texture2D` nodes |
-| 2N+1 | `u_screen_depth` | `texture_2d<f32>` | `ScreenSpaceAO` |
-| 2N+2 | `u_screen_depth_sampler` | `sampler` | `ScreenSpaceAO` |
+| Order | Binding                       | Resource                               | When                                                                 |
+| ----- | ----------------------------- | -------------------------------------- | -------------------------------------------------------------------- |
+| 0     | `var<uniform> uniforms`       | `Uniforms`                             | `TimeInput` **or** any node needing frame matrices (`ScreenSpaceAO`) |
+| 1…2N  | `texture_2d<f32>` + `sampler` | Per-material names `uTexture_<nodeId>` | `Texture2D` nodes                                                    |
+| 2N+1  | `u_screen_depth`              | `texture_2d<f32>`                      | `ScreenSpaceAO`                                                      |
+| 2N+2  | `u_screen_depth_sampler`      | `sampler`                              | `ScreenSpaceAO`                                                      |
 
 ## `Uniforms` layouts
 

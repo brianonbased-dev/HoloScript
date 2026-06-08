@@ -144,16 +144,13 @@ function buildContentKey(payload: HologramBundleRef): string {
  * Resolve a {@link HologramMcpResponse} into a renderable shape. Pure - no
  * network IO; the returned `assetUrl` is constructed but not fetched.
  */
-export function resolveHologramMcpContent(
-  response: HologramMcpResponse
-): ResolvedHologramContent {
+export function resolveHologramMcpContent(response: HologramMcpResponse): ResolvedHologramContent {
   const route = pickRoute(response.content_type, response.payload, response.hints?.preferredViewer);
   const assetUrl =
     response.payload.kind === 'holo-code'
       ? undefined
       : buildAssetUrl(response.payload, response.content_type);
-  const holoCode =
-    response.payload.kind === 'holo-code' ? response.payload.holoCode : undefined;
+  const holoCode = response.payload.kind === 'holo-code' ? response.payload.holoCode : undefined;
 
   return {
     response,

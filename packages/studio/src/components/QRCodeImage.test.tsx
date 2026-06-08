@@ -33,7 +33,7 @@ describe('QRCodeImage', () => {
         width: 128,
         margin: 2,
         errorCorrectionLevel: 'M',
-      }),
+      })
     );
   });
 

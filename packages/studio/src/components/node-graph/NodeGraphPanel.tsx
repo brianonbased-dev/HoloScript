@@ -127,7 +127,9 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
   const [execError, setExecError] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [publishError, setPublishError] = useState<{ message: string; status?: number } | null>(null);
+  const [publishError, setPublishError] = useState<{ message: string; status?: number } | null>(
+    null
+  );
   const [showResults, setShowResults] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -184,7 +186,10 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
         setPublishError({ message: data.error || 'Failed to publish gist', status: res.status });
         return;
       }
-      setPublishError({ message: 'Success! Written to .holoscript/gist-publication.manifest.json', status: 200 });
+      setPublishError({
+        message: 'Success! Written to .holoscript/gist-publication.manifest.json',
+        status: 200,
+      });
     } catch (err) {
       setPublishError({ message: err instanceof Error ? err.message : String(err), status: 500 });
     } finally {
@@ -328,16 +333,24 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
         {publishError && (
           <div className="absolute top-4 right-4 z-50 p-3 rounded border border-studio-border bg-studio-surface/95 shadow-xl max-w-sm">
             <div className="flex justify-between items-start mb-1">
-              <span className={`text-[11px] font-bold ${publishError.status === 200 ? 'text-green-400' : 'text-red-400'}`}>
+              <span
+                className={`text-[11px] font-bold ${publishError.status === 200 ? 'text-green-400' : 'text-red-400'}`}
+              >
                 {publishError.status === 402 ? 'Economic Anchor Required' : 'Publication Status'}
               </span>
-              <button onClick={() => setPublishError(null)} className="text-white/40 hover:text-white">
+              <button
+                onClick={() => setPublishError(null)}
+                className="text-white/40 hover:text-white"
+              >
                 <X className="h-3 w-3" />
               </button>
             </div>
             <p className="text-[10px] text-white/70 mb-2">{publishError.message}</p>
             {publishError.status === 402 && (
-              <a href="/marketplace/x402" className="inline-block text-[10px] text-blue-400 hover:text-blue-300 underline">
+              <a
+                href="/marketplace/x402"
+                className="inline-block text-[10px] text-blue-400 hover:text-blue-300 underline"
+              >
                 Procure an x402 Receipt to satisfy GIST_MANIFEST_REQUIRE_X402 →
               </a>
             )}
@@ -405,7 +418,9 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
 
               {execResult.emittedEvents.length > 0 && (
                 <div>
-                  <span className="text-studio-accent">Events ({execResult.emittedEvents.length}):</span>
+                  <span className="text-studio-accent">
+                    Events ({execResult.emittedEvents.length}):
+                  </span>
                   <div className="ml-2 space-y-0.5">
                     {execResult.emittedEvents.slice(0, 8).map((evt, i) => (
                       <div key={`${evt.nodeId}-${evt.event}-${i}`} className="text-studio-text/60">

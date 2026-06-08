@@ -68,8 +68,7 @@ export async function handleAdminRoutes(
     }
 
     const walletAddress =
-      (body.wallet_address as string | undefined) ||
-      `0x${crypto.randomBytes(20).toString('hex')}`;
+      (body.wallet_address as string | undefined) || `0x${crypto.randomBytes(20).toString('hex')}`;
     const scopes: string[] = Array.isArray(body.scopes)
       ? (body.scopes as string[])
       : ['holomesh', 'mcp'];

@@ -16,7 +16,8 @@ import { exec } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { hostname } from 'node:os';
 
-const ORCH = process.env.ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
+const ORCH =
+  process.env.ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const AGENT_KEY = process.env.HOLOSCRIPT_API_KEY || '';
 // Admin key for seat registration (ci-public is server-side privileged like ci).
 const ADMIN_KEY = process.env.MCP_API_KEY || process.env.HOLOSCRIPT_ADMIN_API_KEY || AGENT_KEY;
@@ -85,7 +86,9 @@ function startHeartbeat(jobId: string): ReturnType<typeof setInterval> {
         body: '{}',
         signal: AbortSignal.timeout(8_000),
       });
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }, HB_INTERVAL_MS);
 }
 
@@ -93,7 +96,9 @@ async function runJob(job: { id: string; command: string }): Promise<string | nu
   return new Promise((resolve) => {
     const proc = exec(job.command, { timeout: JOB_TIMEOUT_MS, maxBuffer: 2 * 1024 * 1024 });
     let stderr = '';
-    proc.stderr?.on('data', (d: Buffer | string) => { stderr += String(d).slice(0, 400); });
+    proc.stderr?.on('data', (d: Buffer | string) => {
+      stderr += String(d).slice(0, 400);
+    });
     proc.on('close', (code) => {
       if (code === 0) {
         resolve(null); // success
@@ -113,7 +118,9 @@ async function reportDone(jobId: string, error: string | null): Promise<void> {
       body: JSON.stringify({ error }),
       signal: AbortSignal.timeout(10_000),
     });
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 }
 
 let stopped = false;
@@ -124,9 +131,13 @@ export async function startCiPublicWorker(): Promise<void> {
 
   const seatId = deriveSeatId();
   const registered = await registerSeat(seatId);
-  console.info(`[ci-public] seat ${seatId} ${registered ? 'registered' : 'registration failed (will retry claims anyway)'}`);
+  console.info(
+    `[ci-public] seat ${seatId} ${registered ? 'registered' : 'registration failed (will retry claims anyway)'}`
+  );
 
-  process.on('SIGTERM', () => { stopped = true; });
+  process.on('SIGTERM', () => {
+    stopped = true;
+  });
 
   // Fire-and-forget poll loop. Runs for the lifetime of the process.
   (async () => {
@@ -144,5 +155,7 @@ export async function startCiPublicWorker(): Promise<void> {
       await reportDone(job.id, error);
       console.info(`[ci-public] done ${job.id} (${error ? 'error' : 'ok'})`);
     }
-  })().catch(() => { /* loop exited — non-fatal */ });
+  })().catch(() => {
+    /* loop exited — non-fatal */
+  });
 }

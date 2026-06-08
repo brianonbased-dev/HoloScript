@@ -36,7 +36,9 @@ function repoRoot(): string {
 }
 
 function receiptDir(): string {
-  return process.env.HOLOSCRIPT_CONJECTURE_RECEIPT_DIR || path.join(repoRoot(), '.scratch', 'conjecture');
+  return (
+    process.env.HOLOSCRIPT_CONJECTURE_RECEIPT_DIR || path.join(repoRoot(), '.scratch', 'conjecture')
+  );
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -226,7 +228,11 @@ function liveFallbackRun(): StudioConjectureRun {
     suite: GENERATED_GEOMETRY_FAMILY_SUITE,
     proposedBy: DEFAULT_PROPOSED_BY,
   });
-  return normalizeRunnerResult(result, 'live:generated-geometry-family', 'live-generated-geometry-family')!;
+  return normalizeRunnerResult(
+    result,
+    'live:generated-geometry-family',
+    'live-generated-geometry-family'
+  )!;
 }
 
 export async function listConjectureReceipts(): Promise<StudioConjectureReceiptsResponse> {

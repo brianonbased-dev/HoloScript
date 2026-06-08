@@ -152,10 +152,7 @@ function cleanNumber(value: number | null | undefined): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function metadataString(
-  metadata: Record<string, unknown> | undefined,
-  key: string
-): string | null {
+function metadataString(metadata: Record<string, unknown> | undefined, key: string): string | null {
   const value = metadata?.[key];
   return typeof value === 'string' && value.trim() ? value : null;
 }
@@ -362,9 +359,7 @@ function buildDaemonSection(jobs: BrittneyDaemonJobContext[] | undefined): strin
     }
     if (job.absorb) {
       lines.push(
-        `    absorb: ${job.absorb.totalFiles ?? 0} files, ${
-          job.absorb.totalSymbols ?? 0
-        } symbols`
+        `    absorb: ${job.absorb.totalFiles ?? 0} files, ${job.absorb.totalSymbols ?? 0} symbols`
       );
     }
   }
@@ -403,9 +398,7 @@ function buildAbsorbStatusSection(
   for (const p of absorb.projects.slice(0, 6)) {
     const repo = cleanText(p.repoUrl) ?? p.id;
     const stats =
-      p.totalFiles != null
-        ? ` — ${p.totalFiles} files, ${p.totalSymbols ?? 0} symbols`
-        : '';
+      p.totalFiles != null ? ` — ${p.totalFiles} files, ${p.totalSymbols ?? 0} symbols` : '';
     lines.push(`  - ${p.name ?? p.id} [${p.status ?? 'unknown'}] ${repo}${stats}`);
   }
   return lines.join('\n');
@@ -427,9 +420,7 @@ function buildToolRunSection(toolCalls: BrittneyToolRunContext[] | undefined): s
   return lines.join('\n');
 }
 
-export function buildWorkspaceAssistantContext(
-  input: BuildWorkspaceAssistantContextInput
-): string {
+export function buildWorkspaceAssistantContext(input: BuildWorkspaceAssistantContextInput): string {
   const sections = [
     buildWorkspaceSection(input),
     buildGitSection(input.git),

@@ -18,7 +18,10 @@ import {
  * Builds a core NodeGraph from Studio nodes when every node type maps
  * to a built-in logic evaluator. Returns null if any node is unmapped (e.g. output_surface).
  */
-export function tryBuildCoreGraphFromStudio(nodes: GraphNode[], edges: GraphEdge[]): NodeGraph | null {
+export function tryBuildCoreGraphFromStudio(
+  nodes: GraphNode[],
+  edges: GraphEdge[]
+): NodeGraph | null {
   const typeMap: Record<string, string> = {
     add: 'MathAdd',
     multiply: 'MathMultiply',
@@ -162,7 +165,7 @@ export function validateGraph(nodes: GraphNode[], edges: GraphEdge[]): string[] 
 export async function executeStudioGraph(
   nodes: GraphNode[],
   edges: GraphEdge[],
-  initialState?: Record<string, unknown>,
+  initialState?: Record<string, unknown>
 ): Promise<StudioGraphExecutionResult> {
   const startTime = performance.now();
 
@@ -234,11 +237,16 @@ export async function executeStudioGraph(
         outputs[`${nodeId}.${outPort.id}`] = {
           nodeType: node.type,
           from: incoming.map((i) => `${i.fromNodeId}.${i.fromPortId}`),
-          value: incoming.length ? incoming[0].value ?? `${node.type}:${outPort.id}` : `${node.type}:${outPort.id}`,
+          value: incoming.length
+            ? (incoming[0].value ?? `${node.type}:${outPort.id}`)
+            : `${node.type}:${outPort.id}`,
         };
       }
 
-      if (node.type.toLowerCase().includes('event') || node.type.toLowerCase().includes('trigger')) {
+      if (
+        node.type.toLowerCase().includes('event') ||
+        node.type.toLowerCase().includes('trigger')
+      ) {
         emittedEvents.push({
           nodeId,
           event: `${node.type}:executed`,
@@ -252,7 +260,9 @@ export async function executeStudioGraph(
     );
     for (const outNode of outputNodes) {
       const incoming = edges.filter((e) => e.toNodeId === outNode.id);
-      state[`output:${outNode.id}`] = incoming.map((e) => outputs[`${e.fromNodeId}.${e.fromPortId}`]);
+      state[`output:${outNode.id}`] = incoming.map(
+        (e) => outputs[`${e.fromNodeId}.${e.fromPortId}`]
+      );
     }
 
     // Map core result back to Studio shape

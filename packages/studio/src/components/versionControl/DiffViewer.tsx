@@ -84,24 +84,26 @@ export function DiffViewer({ diffs, commitA, commitB }: DiffViewerProps) {
                 </div>
 
                 {/* Show old value (removed or modified) */}
-                {(diff.type === 'removed' || diff.type === 'modified') && diff.oldValue !== undefined && (
-                  <div className="mt-2">
-                    <p className="text-[10px] font-medium mb-1">Before:</p>
-                    <pre className="text-[10px] bg-black/20 rounded p-2 overflow-x-auto">
-                      {formatValue(diff.oldValue)}
-                    </pre>
-                  </div>
-                )}
+                {(diff.type === 'removed' || diff.type === 'modified') &&
+                  diff.oldValue !== undefined && (
+                    <div className="mt-2">
+                      <p className="text-[10px] font-medium mb-1">Before:</p>
+                      <pre className="text-[10px] bg-black/20 rounded p-2 overflow-x-auto">
+                        {formatValue(diff.oldValue)}
+                      </pre>
+                    </div>
+                  )}
 
                 {/* Show new value (added or modified) */}
-                {(diff.type === 'added' || diff.type === 'modified') && diff.newValue !== undefined && (
-                  <div className="mt-2">
-                    <p className="text-[10px] font-medium mb-1">After:</p>
-                    <pre className="text-[10px] bg-black/20 rounded p-2 overflow-x-auto">
-                      {formatValue(diff.newValue)}
-                    </pre>
-                  </div>
-                )}
+                {(diff.type === 'added' || diff.type === 'modified') &&
+                  diff.newValue !== undefined && (
+                    <div className="mt-2">
+                      <p className="text-[10px] font-medium mb-1">After:</p>
+                      <pre className="text-[10px] bg-black/20 rounded p-2 overflow-x-auto">
+                        {formatValue(diff.newValue)}
+                      </pre>
+                    </div>
+                  )}
               </div>
             </div>
           </div>

@@ -192,7 +192,7 @@ describe('AnthropicAdapter — compaction + task-budget beta header + body injec
         messages: [userMsg],
         provider: { anthropic: { compaction: compactionExt } },
       },
-      'claude-opus-4-7',
+      'claude-opus-4-7'
     );
     expect(streamCalls).toHaveLength(1);
     const call = streamCalls[0];
@@ -209,7 +209,7 @@ describe('AnthropicAdapter — compaction + task-budget beta header + body injec
         messages: [userMsg],
         provider: { anthropic: { taskBudget: taskBudgetExt } },
       },
-      'claude-opus-4-7',
+      'claude-opus-4-7'
     );
     const call = streamCalls[0];
     const headers = (call.options as { headers?: Record<string, string> }).headers;
@@ -227,12 +227,12 @@ describe('AnthropicAdapter — compaction + task-budget beta header + body injec
           anthropic: { compaction: compactionExt, taskBudget: taskBudgetExt },
         },
       },
-      'claude-opus-4-7',
+      'claude-opus-4-7'
     );
     const call = streamCalls[0];
     const headers = (call.options as { headers?: Record<string, string> }).headers;
     expect(headers!['anthropic-beta']).toBe(
-      `${ANTHROPIC_COMPACT_BETA},${ANTHROPIC_TASK_BUDGETS_BETA}`,
+      `${ANTHROPIC_COMPACT_BETA},${ANTHROPIC_TASK_BUDGETS_BETA}`
     );
     expect(call.body.compaction).toEqual({ type: 'compact_20260112' });
     expect(call.body.task_budget).toEqual({ type: 'tokens', total: 50_000 });
@@ -255,7 +255,7 @@ describe('AnthropicAdapter — compaction + task-budget beta header + body injec
         messages: [userMsg],
         provider: { anthropic: { compaction: compactionExt } },
       },
-      'claude-opus-4-7',
+      'claude-opus-4-7'
     )) {
       chunks.push(c);
     }
@@ -275,7 +275,7 @@ describe('AnthropicAdapter — compaction + task-budget beta header + body injec
         messages: [userMsg],
         provider: { anthropic: { taskBudget: taskBudgetExt } },
       },
-      'claude-opus-4-7',
+      'claude-opus-4-7'
     )) {
       chunks.push(_c);
     }
@@ -288,10 +288,7 @@ describe('AnthropicAdapter — compaction + task-budget beta header + body injec
   it('streamCompletion(): does NOT inject anything when neither extension is set (false case — G.GOLD.013)', async () => {
     const adapter = new AnthropicAdapter({ apiKey: 'k' });
     const chunks: unknown[] = [];
-    for await (const _c of adapter.streamCompletion(
-      { messages: [userMsg] },
-      'claude-opus-4-7',
-    )) {
+    for await (const _c of adapter.streamCompletion({ messages: [userMsg] }, 'claude-opus-4-7')) {
       chunks.push(_c);
     }
     const call = streamCalls[0];

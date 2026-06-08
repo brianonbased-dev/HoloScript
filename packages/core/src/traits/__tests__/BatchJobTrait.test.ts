@@ -48,9 +48,15 @@ describe('BatchJobTrait — onEvent', () => {
   it('batch:submit queues a job and emits batch:queued', () => {
     const node = makeNode();
     batchJobHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    batchJobHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'batch:submit', jobId: 'job-1',
-    } as never);
+    batchJobHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'batch:submit',
+        jobId: 'job-1',
+      } as never
+    );
     const state = node.__batchState as { jobs: Map<string, { status: string; progress: number }> };
     expect(state.jobs.get('job-1')?.status).toBe('queued');
     expect(state.jobs.get('job-1')?.progress).toBe(0);
@@ -60,13 +66,26 @@ describe('BatchJobTrait — onEvent', () => {
   it('batch:progress updates job to running', () => {
     const node = makeNode();
     batchJobHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    batchJobHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'batch:submit', jobId: 'job-2',
-    } as never);
+    batchJobHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'batch:submit',
+        jobId: 'job-2',
+      } as never
+    );
     node.emit.mockClear();
-    batchJobHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'batch:progress', jobId: 'job-2', progress: 0.5,
-    } as never);
+    batchJobHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'batch:progress',
+        jobId: 'job-2',
+        progress: 0.5,
+      } as never
+    );
     const state = node.__batchState as { jobs: Map<string, { status: string; progress: number }> };
     expect(state.jobs.get('job-2')?.status).toBe('running');
     expect(state.jobs.get('job-2')?.progress).toBe(0.5);
@@ -76,13 +95,25 @@ describe('BatchJobTrait — onEvent', () => {
   it('batch:complete marks job as completed', () => {
     const node = makeNode();
     batchJobHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    batchJobHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'batch:submit', jobId: 'job-3',
-    } as never);
+    batchJobHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'batch:submit',
+        jobId: 'job-3',
+      } as never
+    );
     node.emit.mockClear();
-    batchJobHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'batch:complete', jobId: 'job-3',
-    } as never);
+    batchJobHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'batch:complete',
+        jobId: 'job-3',
+      } as never
+    );
     const state = node.__batchState as { jobs: Map<string, { status: string }> };
     expect(state.jobs.get('job-3')?.status).toBe('completed');
     expect(node.emit).toHaveBeenCalledWith('batch:completed', { jobId: 'job-3' });
@@ -91,15 +122,33 @@ describe('BatchJobTrait — onEvent', () => {
   it('multiple jobs tracked independently', () => {
     const node = makeNode();
     batchJobHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    batchJobHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'batch:submit', jobId: 'j-a',
-    } as never);
-    batchJobHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'batch:submit', jobId: 'j-b',
-    } as never);
-    batchJobHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'batch:complete', jobId: 'j-a',
-    } as never);
+    batchJobHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'batch:submit',
+        jobId: 'j-a',
+      } as never
+    );
+    batchJobHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'batch:submit',
+        jobId: 'j-b',
+      } as never
+    );
+    batchJobHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'batch:complete',
+        jobId: 'j-a',
+      } as never
+    );
     const state = node.__batchState as { jobs: Map<string, { status: string }> };
     expect(state.jobs.get('j-a')?.status).toBe('completed');
     expect(state.jobs.get('j-b')?.status).toBe('queued');

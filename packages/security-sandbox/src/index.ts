@@ -249,8 +249,7 @@ export class HoloScriptSandbox {
     // deployments leak no enforcement even if a caller passes the option.
     const requested = options.__TEST_ABLATION;
     const ablationGuard =
-      typeof process !== 'undefined' &&
-      process.env?.HOLOSCRIPT_TEST_ABLATION === '1';
+      typeof process !== 'undefined' && process.env?.HOLOSCRIPT_TEST_ABLATION === '1';
     if (requested && !ablationGuard) {
       // Audit-trail signal: prod caller passed a test-only flag. Refuse silently
       // (fail-closed); the audit log captures the attempt for forensics.
@@ -299,7 +298,10 @@ export class HoloScriptSandbox {
       for (const blocked of HoloScriptSandbox.GLOBALS_BLOCKLIST) {
         const regex = new RegExp(`\\b${blocked}\\b`);
         if (regex.test(code)) {
-          return { valid: false, error: `${blocked} is blocked in the HoloScript security sandbox (SEC-01)` };
+          return {
+            valid: false,
+            error: `${blocked} is blocked in the HoloScript security sandbox (SEC-01)`,
+          };
         }
       }
     }
@@ -544,9 +546,7 @@ export class HoloScriptSandbox {
     // 22-scenario suite contains DoS vectors (D5 infinite loop) that hang
     // forever without it; the harness wraps an external watchdog around the
     // whole call so the bench process can still terminate.
-    const runOpts = this.ablation.disableResourceLimit
-      ? {}
-      : { timeout: this.options.timeout };
+    const runOpts = this.ablation.disableResourceLimit ? {} : { timeout: this.options.timeout };
     try {
       const script = new nodeVm.Script(code);
       const result = script.runInContext(context, runOpts) as T;
@@ -571,12 +571,12 @@ export class HoloScriptSandbox {
       // node:vm throws proper JS errors from the same realm — instanceof works.
       const isTimeout =
         (error as { code?: string })?.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT' ||
-        (error instanceof Error && (
-          error.message.toLowerCase().includes('timed out') ||
-          error.message.toLowerCase().includes('timeout')
-        ));
+        (error instanceof Error &&
+          (error.message.toLowerCase().includes('timed out') ||
+            error.message.toLowerCase().includes('timeout')));
       const isSyntaxError = error instanceof SyntaxError;
-      const errorMessage: string = error instanceof Error ? error.message : 'Unknown execution error';
+      const errorMessage: string =
+        error instanceof Error ? error.message : 'Unknown execution error';
       const errorStack: string | undefined = error instanceof Error ? error.stack : undefined;
 
       if (isTimeout) {
@@ -876,7 +876,11 @@ function canonicalize(value: unknown): unknown {
   if (value === null || value === undefined) return value;
   if (typeof value !== 'object') return value;
   if (ArrayBuffer.isView(value) && !(value instanceof DataView)) {
-    const arr = value as unknown as { constructor: { name: string }; length: number; [idx: number]: number };
+    const arr = value as unknown as {
+      constructor: { name: string };
+      length: number;
+      [idx: number]: number;
+    };
     return {
       __typed: arr.constructor.name,
       data: Array.from({ length: arr.length }, (_, i) => arr[i]),
@@ -910,7 +914,11 @@ function parseLocalTrace(jsonl: string): LocalTraceEntry[] {
     .map((l) => JSON.parse(l) as LocalTraceEntry);
 }
 
-function verifyLocalHashChain(trace: LocalTraceEntry[]): { valid: boolean; brokenAt?: number; reason?: string } {
+function verifyLocalHashChain(trace: LocalTraceEntry[]): {
+  valid: boolean;
+  brokenAt?: number;
+  reason?: string;
+} {
   let prev = 'cael.genesis';
   for (let i = 0; i < trace.length; i++) {
     const e = trace[i];
@@ -962,7 +970,11 @@ class LocalCAELRecorder {
     this.append('interaction', { type, data: canonicalize(data) });
   }
 
-  finalize(): { totalSteps: number; totalSimTime: number; interactions: Array<Record<string, unknown>> } {
+  finalize(): {
+    totalSteps: number;
+    totalSimTime: number;
+    interactions: Array<Record<string, unknown>>;
+  } {
     this.append('final', {
       finalStats: canonicalize(this.solver.getStats()),
       totalSteps: this.steps,

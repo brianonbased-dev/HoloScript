@@ -12,12 +12,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import {
-  buildKioskCard,
-  paginateKioskCards,
-  kioskSearch,
-  kioskFeatured,
-} from './kiosk';
+import { buildKioskCard, paginateKioskCards, kioskSearch, kioskFeatured } from './kiosk';
 import type { PlayableChallenge, ValidationReceipt } from '@holoscript/framework';
 import { buildFrontierShardZero } from '../world/frontier-shard-zero';
 
@@ -69,16 +64,24 @@ describe('buildKioskCard', () => {
   });
 
   it('maps difficulty labels correctly', () => {
-    expect(buildKioskCard(makeValidChallenge({ playabilityScore: 0.95 })).difficultyLabel).toBe('Casual');
-    expect(buildKioskCard(makeValidChallenge({ playabilityScore: 0.8 })).difficultyLabel).toBe('Moderate');
-    expect(buildKioskCard(makeValidChallenge({ playabilityScore: 0.6 })).difficultyLabel).toBe('Intense');
-    expect(buildKioskCard(makeValidChallenge({ playabilityScore: 0.3 })).difficultyLabel).toBe('Extreme');
+    expect(buildKioskCard(makeValidChallenge({ playabilityScore: 0.95 })).difficultyLabel).toBe(
+      'Casual'
+    );
+    expect(buildKioskCard(makeValidChallenge({ playabilityScore: 0.8 })).difficultyLabel).toBe(
+      'Moderate'
+    );
+    expect(buildKioskCard(makeValidChallenge({ playabilityScore: 0.6 })).difficultyLabel).toBe(
+      'Intense'
+    );
+    expect(buildKioskCard(makeValidChallenge({ playabilityScore: 0.3 })).difficultyLabel).toBe(
+      'Extreme'
+    );
   });
 });
 
 describe('paginateKioskCards', () => {
   const cards = Array.from({ length: 10 }, (_, i) =>
-    buildKioskCard(makeValidChallenge({ id: `chal_${i}`, name: `Challenge ${i}` })),
+    buildKioskCard(makeValidChallenge({ id: `chal_${i}`, name: `Challenge ${i}` }))
   );
 
   it('returns the first page', () => {
@@ -119,9 +122,19 @@ describe('paginateKioskCards', () => {
 
 describe('kioskSearch', () => {
   const cards = [
-    buildKioskCard(makeValidChallenge({ id: 'chal_a', name: 'Desert Raid', description: 'Hot and sandy' })),
-    buildKioskCard(makeValidChallenge({ id: 'chal_b', name: 'Forest Ambush', description: 'Cool and green' })),
-    buildKioskCard(makeValidChallenge({ id: 'chal_c', name: 'Sky Fortress', description: 'High above the clouds' })),
+    buildKioskCard(
+      makeValidChallenge({ id: 'chal_a', name: 'Desert Raid', description: 'Hot and sandy' })
+    ),
+    buildKioskCard(
+      makeValidChallenge({ id: 'chal_b', name: 'Forest Ambush', description: 'Cool and green' })
+    ),
+    buildKioskCard(
+      makeValidChallenge({
+        id: 'chal_c',
+        name: 'Sky Fortress',
+        description: 'High above the clouds',
+      })
+    ),
   ];
 
   it('finds matches by name', () => {

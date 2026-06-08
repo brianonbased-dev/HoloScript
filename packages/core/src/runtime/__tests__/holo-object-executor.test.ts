@@ -160,7 +160,9 @@ describe('executeHoloObject — directives and traits', () => {
     });
     await executeHoloObject(node as never, ctx);
     const orbNode = vi.mocked(executeOrb).mock.calls[0][0];
-    const traitDir = orbNode.directives.find((d: { type: string; name: string }) => d.type === 'trait' && d.name === 'grabbable');
+    const traitDir = orbNode.directives.find(
+      (d: { type: string; name: string }) => d.type === 'trait' && d.name === 'grabbable'
+    );
     expect(traitDir).toBeDefined();
     expect(traitDir?.force).toBe(10);
   });

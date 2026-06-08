@@ -103,9 +103,7 @@ describe('applyOrbUpdate', () => {
     const existing = new Map<string, OrbData>();
     existing.set('old', makeOrb('old', 'Old'));
 
-    const initMsg = parseMessage(
-      JSON.stringify({ type: 'init', orbs: [makeOrb('new', 'New')] }),
-    )!;
+    const initMsg = parseMessage(JSON.stringify({ type: 'init', orbs: [makeOrb('new', 'New')] }))!;
     const result = applyOrbUpdate(existing, initMsg);
 
     expect(result).not.toBeNull();
@@ -124,8 +122,10 @@ describe('applyOrbUpdate', () => {
         // Use the {x,y,z} form consistently with makeOrb() + the file's other
         // tests. parseMessage passes payload.orb through unchanged, so the
         // inline payload shape must match the shape the assertions expect.
-        payload: { orb: { id: 'earth', name: 'Earth', position: { x: 1, y: 0, z: 0 }, properties: {} } },
-      }),
+        payload: {
+          orb: { id: 'earth', name: 'Earth', position: { x: 1, y: 0, z: 0 }, properties: {} },
+        },
+      })
     )!;
     const result = applyOrbUpdate(existing, updateMsg);
 
@@ -139,7 +139,7 @@ describe('applyOrbUpdate', () => {
       JSON.stringify({
         type: 'orb_created',
         payload: { orb: makeOrb('jupiter', 'Jupiter', 5, 0, 0) },
-      }),
+      })
     )!;
     const result = applyOrbUpdate(existing, updateMsg);
     expect(result!.get('jupiter')?.name).toBe('Jupiter');
@@ -151,7 +151,7 @@ describe('applyOrbUpdate', () => {
       JSON.stringify({
         type: 'time_update',
         payload: { julianDate: 0, date: '', timeScale: 1, isPaused: false },
-      }),
+      })
     )!;
     const result = applyOrbUpdate(existing, timeMsg);
     expect(result).toBeNull();
@@ -165,7 +165,7 @@ describe('applyOrbUpdate', () => {
       JSON.stringify({
         type: 'orb_update',
         payload: { orb: makeOrb('a', 'A-updated', 99, 0, 0) },
-      }),
+      })
     )!;
     const result = applyOrbUpdate(existing, updateMsg);
 

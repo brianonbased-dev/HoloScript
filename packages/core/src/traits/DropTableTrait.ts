@@ -88,9 +88,10 @@ export function effectiveWeight(
 ): number {
   if (!Number.isFinite(entry.weight) || entry.weight <= 0) return 0;
   if (!respectLuck) return entry.weight;
-  const rm = typeof entry.rareModifier === 'number' && Number.isFinite(entry.rareModifier)
-    ? entry.rareModifier
-    : 0;
+  const rm =
+    typeof entry.rareModifier === 'number' && Number.isFinite(entry.rareModifier)
+      ? entry.rareModifier
+      : 0;
   if (rm === 0) return entry.weight;
   const scaled = entry.weight * (1 + luckBonus * rm);
   return scaled > 0 ? scaled : 0;
@@ -198,9 +199,10 @@ export const dropTableHandler: TraitHandler<DropTableConfig> = {
         state.rngState = payload.seed | 0;
       }
 
-      const luckBonus = typeof payload.luckBonus === 'number' && !Number.isNaN(payload.luckBonus)
-        ? payload.luckBonus
-        : 0;
+      const luckBonus =
+        typeof payload.luckBonus === 'number' && !Number.isNaN(payload.luckBonus)
+          ? payload.luckBonus
+          : 0;
       const respectLuck = config.respectLuck === true;
 
       state.rollCount += 1;

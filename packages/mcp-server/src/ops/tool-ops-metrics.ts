@@ -65,32 +65,34 @@ export function buildOpsMetricsPrometheusText(): string {
   const replica = getReplicaCountForOps();
   const active = activeAnomaliesGauge();
 
-  return [
-    '# HELP request_total Total secured MCP tool executions',
-    '# TYPE request_total counter',
-    `request_total ${requestTotal}`,
-    '',
-    '# HELP error_total Total secured MCP tool executions that ended in error',
-    '# TYPE error_total counter',
-    `error_total ${errorTotal}`,
-    '',
-    '# HELP p50_latency_ms Recent p50 tool latency in ms (rolling sample)',
-    '# TYPE p50_latency_ms gauge',
-    `p50_latency_ms ${p50}`,
-    '',
-    '# HELP p95_latency_ms Recent p95 tool latency in ms (rolling sample)',
-    '# TYPE p95_latency_ms gauge',
-    `p95_latency_ms ${p95}`,
-    '',
-    '# HELP replica_count Replica count from REPLICA_COUNT or RAILWAY_REPLICA_COUNT',
-    '# TYPE replica_count gauge',
-    `replica_count ${replica}`,
-    '',
-    '# HELP active_anomalies 1 if a tool error-rate anomaly alert fired within MCP_OPS_ANOMALY_ACTIVE_MS',
-    '# TYPE active_anomalies gauge',
-    `active_anomalies ${active}`,
-    '',
-  ].join('\n') + getPerToolPrometheusText();
+  return (
+    [
+      '# HELP request_total Total secured MCP tool executions',
+      '# TYPE request_total counter',
+      `request_total ${requestTotal}`,
+      '',
+      '# HELP error_total Total secured MCP tool executions that ended in error',
+      '# TYPE error_total counter',
+      `error_total ${errorTotal}`,
+      '',
+      '# HELP p50_latency_ms Recent p50 tool latency in ms (rolling sample)',
+      '# TYPE p50_latency_ms gauge',
+      `p50_latency_ms ${p50}`,
+      '',
+      '# HELP p95_latency_ms Recent p95 tool latency in ms (rolling sample)',
+      '# TYPE p95_latency_ms gauge',
+      `p95_latency_ms ${p95}`,
+      '',
+      '# HELP replica_count Replica count from REPLICA_COUNT or RAILWAY_REPLICA_COUNT',
+      '# TYPE replica_count gauge',
+      `replica_count ${replica}`,
+      '',
+      '# HELP active_anomalies 1 if a tool error-rate anomaly alert fired within MCP_OPS_ANOMALY_ACTIVE_MS',
+      '# TYPE active_anomalies gauge',
+      `active_anomalies ${active}`,
+      '',
+    ].join('\n') + getPerToolPrometheusText()
+  );
 }
 
 export function handleOpsMetricsRequest(_req: IncomingMessage, res: ServerResponse): void {

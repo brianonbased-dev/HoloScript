@@ -533,7 +533,10 @@ describe('AIDriverTrait', () => {
 
       aIDriverHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
 
-      expect(mockContext.emit).toHaveBeenCalledWith('a_i_driver_attached', expect.objectContaining({ node: mockNode }));
+      expect(mockContext.emit).toHaveBeenCalledWith(
+        'a_i_driver_attached',
+        expect.objectContaining({ node: mockNode })
+      );
     });
 
     it('should handle missing behaviorTree gracefully', () => {
@@ -583,7 +586,10 @@ describe('AIDriverTrait', () => {
     it('should emit a_i_driver_detached event', () => {
       aIDriverHandler.onDetach?.(mockNode as HSPlusNode, {}, mockContext as TraitContext);
 
-      expect(mockContext.emit).toHaveBeenCalledWith('a_i_driver_detached', expect.objectContaining({ node: mockNode }));
+      expect(mockContext.emit).toHaveBeenCalledWith(
+        'a_i_driver_detached',
+        expect.objectContaining({ node: mockNode })
+      );
     });
 
     it('should clean up instance reference', () => {
@@ -631,7 +637,12 @@ describe('AIDriverTrait', () => {
     it('should support repeated updates', () => {
       for (let i = 0; i < 10; i++) {
         expect(() => {
-          aIDriverHandler.onUpdate?.(mockNode as HSPlusNode, {}, mockContext as TraitContext, 0.016);
+          aIDriverHandler.onUpdate?.(
+            mockNode as HSPlusNode,
+            {},
+            mockContext as TraitContext,
+            0.016
+          );
         }).not.toThrow();
       }
     });
@@ -652,7 +663,10 @@ describe('AIDriverTrait', () => {
 
       aIDriverHandler.onEvent?.(mockNode as HSPlusNode, {}, mockContext as TraitContext, event);
 
-      expect(mockContext.emit).toHaveBeenCalledWith('a_i_driver_configured', expect.objectContaining({ node: mockNode }));
+      expect(mockContext.emit).toHaveBeenCalledWith(
+        'a_i_driver_configured',
+        expect.objectContaining({ node: mockNode })
+      );
     });
 
     it('should handle unknown events without crashing', () => {
@@ -673,7 +687,12 @@ describe('AIDriverTrait', () => {
 
     it('should handle null event', () => {
       expect(() => {
-        aIDriverHandler.onEvent?.(mockNode as HSPlusNode, {}, mockContext as TraitContext, {} as TraitEvent);
+        aIDriverHandler.onEvent?.(
+          mockNode as HSPlusNode,
+          {},
+          mockContext as TraitContext,
+          {} as TraitEvent
+        );
       }).not.toThrow();
     });
   });

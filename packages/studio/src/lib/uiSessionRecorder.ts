@@ -96,7 +96,11 @@ export class UISessionRecorder {
     return this.finalized;
   }
 
-  private append(event: CAELTraceEntry['event'], simTime: number, payload: Record<string, unknown>): void {
+  private append(
+    event: CAELTraceEntry['event'],
+    simTime: number,
+    payload: Record<string, unknown>
+  ): void {
     const entryWithoutHash = {
       version: 'cael.v1' as const,
       runId: this.runId,

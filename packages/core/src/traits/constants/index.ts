@@ -478,7 +478,6 @@ export const VR_TRAITS = [
   ...AFFINITY_TRAITS,
 ] as const;
 
-
 /**
  * String literal union type of all valid VR trait names.
  */
@@ -589,10 +588,7 @@ export {
 } from './scientific-computing';
 
 // Simulation Domains — Thermal, Structural, Hydraulic, Saturation
-export {
-  SIMULATION_DOMAIN_TRAITS,
-  type SimulationDomainTraitName,
-} from './simulation-domains';
+export { SIMULATION_DOMAIN_TRAITS, type SimulationDomainTraitName } from './simulation-domains';
 
 // V43 AI/XR Traits (Tier 1-3)
 export { V43_AI_XR_TRAITS } from './v43-ai-xr';

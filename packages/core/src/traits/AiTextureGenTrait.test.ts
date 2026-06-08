@@ -9,7 +9,13 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
-import { aiTextureGenHandler, type AiTextureGenConfig, type TextureStyle, type TextureResolution, type MaterialType } from './AiTextureGenTrait';
+import {
+  aiTextureGenHandler,
+  type AiTextureGenConfig,
+  type TextureStyle,
+  type TextureResolution,
+  type MaterialType,
+} from './AiTextureGenTrait';
 
 describe('AiTextureGenTrait', () => {
   let mockNode: Partial<HSPlusNode>;
@@ -622,11 +628,13 @@ describe('AiTextureGenTrait', () => {
     it('should ignore unknown event types', () => {
       const stateArg = mockContext.getState();
       const config = aiTextureGenHandler.defaultConfig;
-      const stateSnapshot = JSON.parse(JSON.stringify({
-        isGenerating: stateArg.aiTextureGen.isGenerating,
-        queue: stateArg.aiTextureGen.queue,
-        totalGenerated: stateArg.aiTextureGen.totalGenerated,
-      }));
+      const stateSnapshot = JSON.parse(
+        JSON.stringify({
+          isGenerating: stateArg.aiTextureGen.isGenerating,
+          queue: stateArg.aiTextureGen.queue,
+          totalGenerated: stateArg.aiTextureGen.totalGenerated,
+        })
+      );
 
       aiTextureGenHandler.onEvent(mockNode as HSPlusNode, config, mockContext, {
         type: 'unknown:event',
@@ -652,7 +660,14 @@ describe('AiTextureGenTrait', () => {
 
   describe('configuration variations', () => {
     it('should support all texture styles', () => {
-      const styles: TextureStyle[] = ['photorealistic', 'stylized', 'cartoon', 'sci-fi', 'fantasy', 'abstract'];
+      const styles: TextureStyle[] = [
+        'photorealistic',
+        'stylized',
+        'cartoon',
+        'sci-fi',
+        'fantasy',
+        'abstract',
+      ];
 
       for (const style of styles) {
         mockContext.emit.mockClear();

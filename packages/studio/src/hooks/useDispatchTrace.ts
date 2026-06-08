@@ -83,8 +83,10 @@ function simulateSpikeTrain(
 
   const min = tier === 'tier-1-neuromorphic' ? 0.2 : 0;
   const span = tier === 'tier-1-neuromorphic' ? 0.8 : 1;
-  return Array.from({ length: 16 }, (_, idx) =>
-    min + stableUnitInterval(['dispatch-spike-train', mode, frameIndex, trait, tier, idx]) * span
+  return Array.from(
+    { length: 16 },
+    (_, idx) =>
+      min + stableUnitInterval(['dispatch-spike-train', mode, frameIndex, trait, tier, idx]) * span
   );
 }
 
@@ -197,7 +199,12 @@ export function simulateDecision(
 }
 
 export function useDispatchTrace(opts: UseDispatchTraceOptions = {}): UseDispatchTraceReturn {
-  const { historySize = 120, initialMode = 'all-three', autoStart = true, simulatedIntervalMs } = opts;
+  const {
+    historySize = 120,
+    initialMode = 'all-three',
+    autoStart = true,
+    simulatedIntervalMs,
+  } = opts;
 
   const collectorRef = useRef(new DispatchTraceCollector(historySize));
   const [mode, setModeState] = useState<DispatchMode>(initialMode);
@@ -280,7 +287,10 @@ export function useDispatchTrace(opts: UseDispatchTraceOptions = {}): UseDispatc
   const alphaHistory = trace.entries.map((e) => e.decision.metrics.alpha);
   const tierHistory = trace.entries.map((e) => e.decision.tier);
   const tierCounts = collectorRef.current.getTierCounts();
-  const avgLatency = latencyHistory.length > 0 ? latencyHistory.reduce((a, b) => a + b, 0) / latencyHistory.length : 0;
+  const avgLatency =
+    latencyHistory.length > 0
+      ? latencyHistory.reduce((a, b) => a + b, 0) / latencyHistory.length
+      : 0;
   const wasPromoted = latest !== null && latest.tier !== 'tier-3-cpu-direct';
 
   return {

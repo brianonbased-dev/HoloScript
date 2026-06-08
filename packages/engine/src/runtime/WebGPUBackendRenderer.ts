@@ -49,9 +49,9 @@ import { primitiveToMesh } from '../native-render/primitive-mesh';
 // GPU usage flag literals (avoids globalThis.GPUBufferUsage not defined in CI)
 // Mirror scene-render.ts which uses the same pattern.
 // ---------------------------------------------------------------------------
-const BUF_VERTEX   = 0x0020;
-const BUF_INDEX    = 0x0010;
-const BUF_UNIFORM  = 0x0040;
+const BUF_VERTEX = 0x0020;
+const BUF_INDEX = 0x0010;
+const BUF_UNIFORM = 0x0040;
 const BUF_COPY_DST = 0x0008;
 
 // ---------------------------------------------------------------------------
@@ -180,8 +180,9 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     const width = this.config.width ?? 1920;
     const height = this.config.height ?? 1080;
     const aspect = width / height;
-    const fov = ((75 * Math.PI) / 180); // 75° default
-    const near = 0.1, far = 1000;
+    const fov = (75 * Math.PI) / 180; // 75° default
+    const near = 0.1,
+      far = 1000;
 
     // Perspective projection matrix (column-major)
     const proj = perspectiveMatrix(fov, aspect, near, far);
@@ -313,7 +314,12 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     });
     device.queue.writeBuffer(ibuf, 0, prim.indices);
 
-    const entry: CachedMesh = { vbuf, ibuf, vertexCount: prim.vertexCount, indexCount: prim.indices.length };
+    const entry: CachedMesh = {
+      vbuf,
+      ibuf,
+      vertexCount: prim.vertexCount,
+      indexCount: prim.indices.length,
+    };
     this.meshCache.set(key, entry);
     return entry;
   }
@@ -354,9 +360,9 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     const data = new Float32Array(16);
     const { color, metalness, roughness, opacity } = spec.material;
     data[0] = ((color >> 16) & 0xff) / 255; // r
-    data[1] = ((color >> 8) & 0xff) / 255;  // g
-    data[2] = (color & 0xff) / 255;          // b
-    data[3] = opacity;                        // a
+    data[1] = ((color >> 8) & 0xff) / 255; // g
+    data[2] = (color & 0xff) / 255; // b
+    data[3] = opacity; // a
     data[4] = metalness;
     data[5] = roughness;
     device.queue.writeBuffer(ubuf, 0, data);
@@ -368,7 +374,9 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     // NOTE: The pipeline uses group(0) binding(0) for uniforms (MVP in unlit shader).
     // Our unlit pipeline's BGL is auto-derived from the shader — it expects a uniform at group 0, binding 0.
     // We retrieve it from the compiled pipeline.
-    const pipeline = (this.webgpu as unknown as { pipelines: Map<string, GPURenderPipeline> }).pipelines?.get(this.PIPELINE_ID);
+    const pipeline = (
+      this.webgpu as unknown as { pipelines: Map<string, GPURenderPipeline> }
+    ).pipelines?.get(this.PIPELINE_ID);
     let bindGroup: GPUBindGroup;
     if (pipeline) {
       bindGroup = device.createBindGroup({
@@ -406,7 +414,11 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
 
   updateObjectTransform(
     objectId: string,
-    transform: { position?: [number, number, number]; rotation?: [number, number, number]; scale?: [number, number, number] }
+    transform: {
+      position?: [number, number, number];
+      rotation?: [number, number, number];
+      scale?: [number, number, number];
+    }
   ): void {
     const obj = this.objects.get(objectId);
     if (!obj) return;
@@ -415,9 +427,15 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     if (transform.scale) obj.scale = transform.scale;
   }
 
-  addParticleSystem(_system: ParticleSystem): void { /* TODO */ }
-  updateParticleSystem(_id: string, _positions: Float32Array, _colors?: Float32Array): void { /* TODO */ }
-  removeParticleSystem(id: string): void { this.particleSystems.delete(id); }
+  addParticleSystem(_system: ParticleSystem): void {
+    /* TODO */
+  }
+  updateParticleSystem(_id: string, _positions: Float32Array, _colors?: Float32Array): void {
+    /* TODO */
+  }
+  removeParticleSystem(id: string): void {
+    this.particleSystems.delete(id);
+  }
 
   addLight(light: RenderableLight): void {
     this.lights.set(light.id, light);
@@ -429,7 +447,9 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     this.cameraTarget = camera.target;
   }
 
-  enablePostProcessing(_effect: PostProcessingEffect): void { /* TODO */ }
+  enablePostProcessing(_effect: PostProcessingEffect): void {
+    /* TODO */
+  }
 
   getStatistics(): RendererStatistics {
     const stats = this.webgpu.getStats();
@@ -514,22 +534,39 @@ function lookAtMatrix(
   center: [number, number, number],
   up: [number, number, number]
 ): Float32Array {
-  let fx = center[0] - eye[0], fy = center[1] - eye[1], fz = center[2] - eye[2];
-  const fl = Math.hypot(fx, fy, fz) || 1; fx /= fl; fy /= fl; fz /= fl;
+  let fx = center[0] - eye[0],
+    fy = center[1] - eye[1],
+    fz = center[2] - eye[2];
+  const fl = Math.hypot(fx, fy, fz) || 1;
+  fx /= fl;
+  fy /= fl;
+  fz /= fl;
 
   let sx = fy * up[2] - fz * up[1];
   let sy = fz * up[0] - fx * up[2];
   let sz = fx * up[1] - fy * up[0];
-  const sl = Math.hypot(sx, sy, sz) || 1; sx /= sl; sy /= sl; sz /= sl;
+  const sl = Math.hypot(sx, sy, sz) || 1;
+  sx /= sl;
+  sy /= sl;
+  sz /= sl;
 
   const ux = sy * fz - sz * fy;
   const uy = sz * fx - sx * fz;
   const uz = sx * fy - sy * fx;
 
   const m = new Float32Array(16);
-  m[0] = sx; m[1] = ux; m[2] = -fx; m[3] = 0;
-  m[4] = sy; m[5] = uy; m[6] = -fy; m[7] = 0;
-  m[8] = sz; m[9] = uz; m[10] = -fz; m[11] = 0;
+  m[0] = sx;
+  m[1] = ux;
+  m[2] = -fx;
+  m[3] = 0;
+  m[4] = sy;
+  m[5] = uy;
+  m[6] = -fy;
+  m[7] = 0;
+  m[8] = sz;
+  m[9] = uz;
+  m[10] = -fz;
+  m[11] = 0;
   m[12] = -(sx * eye[0] + sy * eye[1] + sz * eye[2]);
   m[13] = -(ux * eye[0] + uy * eye[1] + uz * eye[2]);
   m[14] = fx * eye[0] + fy * eye[1] + fz * eye[2];
@@ -543,7 +580,10 @@ function mul4x4(a: Float32Array, b: Float32Array): Float32Array {
   for (let c = 0; c < 4; c++) {
     for (let r = 0; r < 4; r++) {
       o[c * 4 + r] =
-        a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+        a[r] * b[c * 4] +
+        a[4 + r] * b[c * 4 + 1] +
+        a[8 + r] * b[c * 4 + 2] +
+        a[12 + r] * b[c * 4 + 3];
     }
   }
   return o;

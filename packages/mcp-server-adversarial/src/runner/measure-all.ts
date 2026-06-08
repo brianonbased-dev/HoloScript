@@ -36,12 +36,23 @@ const SPECS: RunnableAttack[] = [
   { id: 'sybil', config: { K: 5, compoundRounds: 10, baselineTrust: 0.5 } },
   {
     id: 'score-manipulator',
-    config: { targetTrust: 0.95, trustMaxOutputRef: 'v1-analytic-derivation', outputUtilityRatio: 0.2, baselineUtility: 0.8 },
+    config: {
+      targetTrust: 0.95,
+      trustMaxOutputRef: 'v1-analytic-derivation',
+      outputUtilityRatio: 0.2,
+      baselineUtility: 0.8,
+    },
   },
   { id: 'slow-poisoner', config: { biasPerCall: 0.01, aggregateBiasThreshold: 10 } },
   {
     id: 'eclipse',
-    config: { K: 5, targetSandboxServerId: 'victim-01', eclipseRounds: 10, preEclipseTargetTrust: 0.8, trustReductionThreshold: 0.3 },
+    config: {
+      K: 5,
+      targetSandboxServerId: 'victim-01',
+      eclipseRounds: 10,
+      preEclipseTargetTrust: 0.8,
+      trustReductionThreshold: 0.3,
+    },
   },
 ];
 
@@ -62,18 +73,35 @@ const rows: Array<{
 }> = [];
 
 for (const spec of SPECS) {
-  const base = runBaseline(spec, { sandboxId: 'baseline-v10', trials: TRIALS, testbedVersion: TESTBED_VERSION, formula: 'v10' });
-  const def = runBaseline(spec, { sandboxId: 'defended-v11', trials: TRIALS, testbedVersion: TESTBED_VERSION, formula: 'v11' });
+  const base = runBaseline(spec, {
+    sandboxId: 'baseline-v10',
+    trials: TRIALS,
+    testbedVersion: TESTBED_VERSION,
+    formula: 'v10',
+  });
+  const def = runBaseline(spec, {
+    sandboxId: 'defended-v11',
+    trials: TRIALS,
+    testbedVersion: TESTBED_VERSION,
+    formula: 'v11',
+  });
 
   const baseline: BaselineSummary = base.summary;
   const defended: DefendedSummary = { ...def.summary, defense: DEFENSE };
 
-  writeFileSync(join(OUT_DIR, `baseline-${spec.id}.json`), JSON.stringify(baseline, null, 2) + '\n');
-  writeFileSync(join(OUT_DIR, `defended-${spec.id}.json`), JSON.stringify(defended, null, 2) + '\n');
+  writeFileSync(
+    join(OUT_DIR, `baseline-${spec.id}.json`),
+    JSON.stringify(baseline, null, 2) + '\n'
+  );
+  writeFileSync(
+    join(OUT_DIR, `defended-${spec.id}.json`),
+    JSON.stringify(defended, null, 2) + '\n'
+  );
 
   const detB = base.trials.every((t) => t.success === base.trials[0].success);
   const detD = def.trials.every((t) => t.success === def.trials[0].success);
-  const efficacy = baseline.success_rate > 0 ? 1 - defended.success_rate / baseline.success_rate : 0;
+  const efficacy =
+    baseline.success_rate > 0 ? 1 - defended.success_rate / baseline.success_rate : 0;
   rows.push({
     attack: spec.id,
     baseline_success_rate: baseline.success_rate,

@@ -34,7 +34,7 @@ function makePose(boneIds: string[], y: number): BonePose[] {
   return boneIds.map((id) => ({
     boneId: id,
     position: [0, y, 0],
-    rotation: [0, 0, 0, 1 ],
+    rotation: [0, 0, 0, 1],
   }));
 }
 

@@ -50,7 +50,10 @@ describe('LotusRootTrait — deriveLotusRootEmissive (pure)', () => {
 
   it('full state at provenance substrate is brighter than at parser substrate', () => {
     const parserFull = deriveLotusRootEmissive('full', baseCfg);
-    const provFull = deriveLotusRootEmissive('full', { ...baseCfg, substrate: 'provenance_semiring' });
+    const provFull = deriveLotusRootEmissive('full', {
+      ...baseCfg,
+      substrate: 'provenance_semiring',
+    });
     expect(provFull.intensity).toBeGreaterThan(parserFull.intensity);
   });
 
@@ -121,7 +124,9 @@ describe('LotusRootTrait — handler lifecycle', () => {
       bloomState: 'full',
     });
 
-    const evt = getLastEvent(ctx, 'lotus_root_emissive_changed') as Record<string, unknown> | undefined;
+    const evt = getLastEvent(ctx, 'lotus_root_emissive_changed') as
+      | Record<string, unknown>
+      | undefined;
     expect(evt).toBeDefined();
     expect(evt?.bloomState).toBe('full');
     expect(evt?.pulseSpeed).toBe(0);
@@ -150,7 +155,11 @@ describe('LotusRootTrait — handler lifecycle', () => {
     const node = createMockNode('root-test');
     attachTrait(lotusRootHandler, node, { substrate: 'parser' }, ctx);
     ctx.clearEvents();
-    lotusRootHandler.onDetach?.(node as never, lotusRootHandler.defaultConfig as never, ctx as never);
+    lotusRootHandler.onDetach?.(
+      node as never,
+      lotusRootHandler.defaultConfig as never,
+      ctx as never
+    );
     expect(getEventCount(ctx, 'lotus_root_detached')).toBe(1);
   });
 
@@ -160,7 +169,12 @@ describe('LotusRootTrait — handler lifecycle', () => {
     attachTrait(lotusRootHandler, node, { substrate: 'parser' }, ctx);
     ctx.clearEvents();
     for (let i = 0; i < 100; i++) {
-      lotusRootHandler.onUpdate?.(node as never, lotusRootHandler.defaultConfig as never, ctx as never, 0.016);
+      lotusRootHandler.onUpdate?.(
+        node as never,
+        lotusRootHandler.defaultConfig as never,
+        ctx as never,
+        0.016
+      );
     }
     expect(ctx.emittedEvents.length).toBe(0);
   });

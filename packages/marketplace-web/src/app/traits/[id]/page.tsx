@@ -7,7 +7,11 @@ import { useQuery } from '@tanstack/react-query';
 import { marketplaceApi } from '@/lib/api';
 import { useInstallStore } from '@/lib/store';
 import { CATEGORY_LABELS, PLATFORM_LABELS } from '@/types';
-import type { TraitPackage as _TraitPackage, VersionInfo as _VersionInfo, DownloadStats as _DownloadStats } from '@/types';
+import type {
+  TraitPackage as _TraitPackage,
+  VersionInfo as _VersionInfo,
+  DownloadStats as _DownloadStats,
+} from '@/types';
 import {
   ArrowLeft,
   Download,

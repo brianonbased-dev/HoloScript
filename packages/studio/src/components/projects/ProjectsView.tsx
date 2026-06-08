@@ -30,7 +30,8 @@ import { useGitHubRepos } from '@/hooks/useGitHubRepos';
 
 // Lazy-load the wizard (large) — only when the user starts an import.
 const ImportRepoWizard = dynamic(
-  () => import('@/components/wizard/ImportRepoWizard').then((m) => ({ default: m.ImportRepoWizard })),
+  () =>
+    import('@/components/wizard/ImportRepoWizard').then((m) => ({ default: m.ImportRepoWizard })),
   { ssr: false }
 );
 
@@ -48,19 +49,11 @@ export function ProjectsView() {
         repos,
         isLoading,
         isConnected,
-        connectionError: connectionError ?? (error ?? ''),
+        connectionError: connectionError ?? error ?? '',
         search,
       });
     }
-  }, [
-    repos,
-    isLoading,
-    isConnected,
-    connectionError,
-    error,
-    search,
-    composition.loading,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [repos, isLoading, isConnected, connectionError, error, search, composition.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Emit handler ────────────────────────────────────────────────────────────
   const handleEmit = (event: string) => {

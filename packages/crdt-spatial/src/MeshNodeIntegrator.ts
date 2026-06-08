@@ -52,13 +52,13 @@ export class MeshNodeIntegrator {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ide_type: 'gemini',
           status: 'active',
-          capabilities: ['webrtc_crdt_sync', 'text_to_universe']
-        })
+          capabilities: ['webrtc_crdt_sync', 'text_to_universe'],
+        }),
       }).catch((err) => console.error('Failed to heartbeat HoloMesh presence', err));
     };
 

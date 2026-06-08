@@ -13,7 +13,7 @@ function imagePatchEmbedCpu(
   patchH: number,
   patchW: number,
   numChannels: number,
-  embedDim: number,
+  embedDim: number
 ): Float32Array {
   const patchLen = patchH * patchW * numChannels;
   const numPatchesY = imgH / patchH;
@@ -68,7 +68,7 @@ function mulberry32(seed: number): () => number {
 // ---------------------------------------------------------------------------
 describe('ImagePatchEmbed — CPU reference', () => {
   it('1 patch (4x4 image, 4x4 patch, 1 channel): just a dot product', () => {
-    const image = new Float32Array([1,2,3,4, 5,6,7,8, 9,10,11,12, 13,14,15,16]);
+    const image = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     const proj = new Float32Array(16).fill(1); // single output dim = sum of all pixels
     const out = imagePatchEmbedCpu(image, proj, 4, 4, 4, 4, 1, 1);
     expect(out.length).toBe(1);
@@ -78,12 +78,7 @@ describe('ImagePatchEmbed — CPU reference', () => {
 
   it('4 patches (4x4 image, 2x2 patch, 1 channel), identity proj', () => {
     // Image: each 2x2 block has unique values
-    const image = new Float32Array([
-      1,2, 3,4,
-      5,6, 7,8,
-      9,10, 11,12,
-      13,14, 15,16,
-    ]);
+    const image = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     // patchLen = 4, embedDim = 4 → projection = identity 4x4
     const proj = new Float32Array(16);
     for (let i = 0; i < 4; i++) proj[i * 4 + i] = 1; // identity
@@ -100,7 +95,12 @@ describe('ImagePatchEmbed — CPU reference', () => {
 
   it('random 6x8 image, 2x4 patch, 3 channels, 8 embedDim', () => {
     const rng = mulberry32(31);
-    const imgH = 6, imgW = 8, patchH = 2, patchW = 4, numChannels = 3, embedDim = 8;
+    const imgH = 6,
+      imgW = 8,
+      patchH = 2,
+      patchW = 4,
+      numChannels = 3,
+      embedDim = 8;
     const patchLen = patchH * patchW * numChannels;
     const image = new Float32Array(imgH * imgW * numChannels).map(() => rng() - 0.5);
     const proj = new Float32Array(embedDim * patchLen).map(() => rng() - 0.5);
@@ -125,15 +125,27 @@ describe('ImagePatchEmbed — WebGPU', () => {
     if (!adapter) return;
     const device = await adapter.requestDevice();
 
-    const imgH = 4, imgW = 4, patchH = 2, patchW = 2, numChannels = 1, embedDim = 4;
-    const image = new Float32Array([1,2,3,4, 5,6,7,8, 9,10,11,12, 13,14,15,16]);
+    const imgH = 4,
+      imgW = 4,
+      patchH = 2,
+      patchW = 2,
+      numChannels = 1,
+      embedDim = 4;
+    const image = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     // Identity projection
     const proj = new Float32Array(embedDim * 4);
     for (let i = 0; i < 4; i++) proj[i * 4 + i] = 1;
 
     const cpu = imagePatchEmbedCpu(image, proj, imgH, imgW, patchH, patchW, numChannels, embedDim);
     const kernel = createImagePatchEmbedKernel(device);
-    const gpu = await kernel.run(image, proj, { imgH, imgW, patchH, patchW, numChannels, embedDim });
+    const gpu = await kernel.run(image, proj, {
+      imgH,
+      imgW,
+      patchH,
+      patchW,
+      numChannels,
+      embedDim,
+    });
 
     expect(allClose(gpu, cpu, 1e-4)).toBe(true);
     device.destroy();
@@ -146,14 +158,26 @@ describe('ImagePatchEmbed — WebGPU', () => {
     const device = await adapter.requestDevice();
 
     const rng = mulberry32(77);
-    const imgH = 8, imgW = 8, patchH = 2, patchW = 2, numChannels = 3, embedDim = 16;
+    const imgH = 8,
+      imgW = 8,
+      patchH = 2,
+      patchW = 2,
+      numChannels = 3,
+      embedDim = 16;
     const patchLen = patchH * patchW * numChannels;
     const image = new Float32Array(imgH * imgW * numChannels).map(() => rng() - 0.5);
     const proj = new Float32Array(embedDim * patchLen).map(() => rng() - 0.5);
 
     const cpu = imagePatchEmbedCpu(image, proj, imgH, imgW, patchH, patchW, numChannels, embedDim);
     const kernel = createImagePatchEmbedKernel(device);
-    const gpu = await kernel.run(image, proj, { imgH, imgW, patchH, patchW, numChannels, embedDim });
+    const gpu = await kernel.run(image, proj, {
+      imgH,
+      imgW,
+      patchH,
+      patchW,
+      numChannels,
+      embedDim,
+    });
 
     expect(allClose(gpu, cpu, 1e-3)).toBe(true);
     device.destroy();
@@ -167,11 +191,14 @@ describe('ImagePatchEmbed — WebGPU', () => {
 
     const kernel = createImagePatchEmbedKernel(device);
     await expect(
-      kernel.run(
-        new Float32Array(15),
-        new Float32Array(4),
-        { imgH: 5, imgW: 3, patchH: 2, patchW: 3, numChannels: 1, embedDim: 1 },
-      ),
+      kernel.run(new Float32Array(15), new Float32Array(4), {
+        imgH: 5,
+        imgW: 3,
+        patchH: 2,
+        patchW: 3,
+        numChannels: 1,
+        embedDim: 1,
+      })
     ).rejects.toThrow('imgH');
     device.destroy();
   });

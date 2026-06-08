@@ -84,28 +84,28 @@ export type SecretRef = string;
 
 /** Reason a lease was rejected. Stable strings for client-side branching. */
 export type LeaseRejectReason =
-  | 'wallet_unleasable'        // scope contained a wallet credential (G.GOLD.016)
-  | 'expiry_too_far'            // expiry > MAX_LEASE_DURATION_MS from now
-  | 'expiry_in_past'            // expiry already passed at issuance
-  | 'scope_empty'               // empty scope array (always reject)
-  | 'task_not_claimed'          // task has no claimedBy at issuance time
-  | 'task_id_missing'           // taskId not provided
-  | 'agent_id_missing'          // agentId not provided
-  | 'duplicate_lease'           // lease already exists for (taskId, agentId)
-  | 'lease_not_found'           // redeem/revoke against unknown lease id
-  | 'lease_expired'             // redeem against past-expiry lease
-  | 'lease_revoked'             // redeem against revoked lease
-  | 'lease_agent_mismatch'      // redeem with wrong agent id
-  | 'lease_scope_violation';    // resolveSecret for ref not in lease scope
+  | 'wallet_unleasable' // scope contained a wallet credential (G.GOLD.016)
+  | 'expiry_too_far' // expiry > MAX_LEASE_DURATION_MS from now
+  | 'expiry_in_past' // expiry already passed at issuance
+  | 'scope_empty' // empty scope array (always reject)
+  | 'task_not_claimed' // task has no claimedBy at issuance time
+  | 'task_id_missing' // taskId not provided
+  | 'agent_id_missing' // agentId not provided
+  | 'duplicate_lease' // lease already exists for (taskId, agentId)
+  | 'lease_not_found' // redeem/revoke against unknown lease id
+  | 'lease_expired' // redeem against past-expiry lease
+  | 'lease_revoked' // redeem against revoked lease
+  | 'lease_agent_mismatch' // redeem with wrong agent id
+  | 'lease_scope_violation'; // resolveSecret for ref not in lease scope
 
 /** Reason a lease was revoked. Recorded in audit trail for compliance. */
 export type RevokeReason =
-  | 'task_completed'   // happy-path: task moved to done, lease no longer needed
-  | 'task_released'    // task unclaimed and returned to open pool
+  | 'task_completed' // happy-path: task moved to done, lease no longer needed
+  | 'task_released' // task unclaimed and returned to open pool
   | 'agent_compromise' // operator-initiated emergency revocation
-  | 'expired_sweep'    // expired by background sweeper (audit even though redundant)
-  | 'rotation'         // upstream secret rotated; downstream leases invalidated
-  | 'manual';          // operator without specific reason
+  | 'expired_sweep' // expired by background sweeper (audit even though redundant)
+  | 'rotation' // upstream secret rotated; downstream leases invalidated
+  | 'manual'; // operator without specific reason
 
 /** A persisted lease record. Returned by `issueLease`, `getLease`. */
 export interface VaultLease {
@@ -397,11 +397,21 @@ export function resolveSecret(params: {
   }
   if (lease.agentId !== params.agentId) {
     auditLeaseDenied(lease, params.secretRef, 'lease_agent_mismatch', params.agentId);
-    return { ok: false, reason: 'lease_agent_mismatch', secretRef: params.secretRef, resolved: false };
+    return {
+      ok: false,
+      reason: 'lease_agent_mismatch',
+      secretRef: params.secretRef,
+      resolved: false,
+    };
   }
   if (!lease.scope.includes(params.secretRef)) {
     auditLeaseDenied(lease, params.secretRef, 'lease_scope_violation');
-    return { ok: false, reason: 'lease_scope_violation', secretRef: params.secretRef, resolved: false };
+    return {
+      ok: false,
+      reason: 'lease_scope_violation',
+      secretRef: params.secretRef,
+      resolved: false,
+    };
   }
   // Belt-and-suspenders: refuse to resolve a wallet ref even if (somehow)
   // it ended up in scope. Defense in depth - the issuance-time check is
@@ -475,7 +485,11 @@ export function revokeLease(params: {
 
 /** Bulk-revoke all active leases for a task. Used when a task is marked
  *  done or released. Returns the list of revoked leases. */
-export function revokeLeasesForTask(taskId: string, reason: RevokeReason, by: string): VaultLease[] {
+export function revokeLeasesForTask(
+  taskId: string,
+  reason: RevokeReason,
+  by: string
+): VaultLease[] {
   const revoked: VaultLease[] = [];
   for (const lease of leasesById.values()) {
     if (lease.taskId === taskId && lease.status === 'active') {
@@ -489,7 +503,11 @@ export function revokeLeasesForTask(taskId: string, reason: RevokeReason, by: st
 /** Bulk-revoke all active leases for an agent. Used when an agent's API key
  *  is rotated (security response) or when the agent is off-boarded.
  *  Returns the list of revoked leases. */
-export function revokeLeasesForAgent(agentId: string, reason: RevokeReason, by: string): VaultLease[] {
+export function revokeLeasesForAgent(
+  agentId: string,
+  reason: RevokeReason,
+  by: string
+): VaultLease[] {
   const revoked: VaultLease[] = [];
   for (const lease of leasesById.values()) {
     if (lease.agentId === agentId && lease.status === 'active') {
@@ -561,12 +579,14 @@ function auditLeaseDenied(
 
 /** List leases matching a filter. Returns a snapshot copy - callers cannot
  *  mutate the registry through this view. */
-export function queryLeases(filter: {
-  taskId?: string;
-  agentId?: string;
-  status?: VaultLease['status'];
-  includeExpired?: boolean;
-} = {}): VaultLease[] {
+export function queryLeases(
+  filter: {
+    taskId?: string;
+    agentId?: string;
+    status?: VaultLease['status'];
+    includeExpired?: boolean;
+  } = {}
+): VaultLease[] {
   const out: VaultLease[] = [];
   const now = Date.now();
   for (const lease of leasesById.values()) {
@@ -646,11 +666,7 @@ export class VaultLeaseError extends Error {
     | 'unleasable_pattern'
     | 'env_value_missing';
   public readonly secretRef: SecretRef;
-  constructor(
-    reason: VaultLeaseError['reason'],
-    secretRef: SecretRef,
-    message?: string
-  ) {
+  constructor(reason: VaultLeaseError['reason'], secretRef: SecretRef, message?: string) {
     super(message ?? `vault lease ${reason} for ${secretRef}`);
     this.name = 'VaultLeaseError';
     this.reason = reason;

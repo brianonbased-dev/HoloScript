@@ -61,9 +61,7 @@ export interface SketchfabSearchParams {
  */
 export function assertRelativeSameOriginPath(baseUrl: string, label: string): void {
   if (!baseUrl.startsWith('/') || baseUrl.startsWith('//')) {
-    throw new Error(
-      `${label} baseUrl must be a relative same-origin path, got: ${baseUrl}`
-    );
+    throw new Error(`${label} baseUrl must be a relative same-origin path, got: ${baseUrl}`);
   }
 }
 
@@ -144,33 +142,52 @@ export async function searchSketchfab(
     const data = await response.json();
 
     // Transform results
-    const models: SketchfabModel[] = data.results.map((result: Record<string, unknown> & { uid: string; name: string; description: string; thumbnails?: { images?: Array<{ url: string }> }; user?: { username?: string; displayName?: string; profileUrl?: string }; license?: { uid?: string; label?: string; requirements?: string; url?: string }; faceCount?: number; vertexCount?: number; animationCount?: number; viewCount?: number; likeCount?: number; downloadCount?: number; isDownloadable?: boolean; tags?: Array<{ name: string }> }) => ({
-      uid: result.uid,
-      name: result.name,
-      description: result.description,
-      thumbnail: result.thumbnails?.images?.[0]?.url || '',
-      author: {
-        username: result.user?.username || '',
-        displayName: result.user?.displayName || result.user?.username || 'Unknown',
-        profileUrl: result.user?.profileUrl || '',
-      },
-      license: {
-        uid: result.license?.uid || '',
-        label: result.license?.label || 'Unknown',
-        requirements: result.license?.requirements || '',
-        url: result.license?.url || '',
-      },
-      faceCount: result.faceCount || 0,
-      vertexCount: result.vertexCount || 0,
-      animationCount: result.animationCount || 0,
-      viewCount: result.viewCount || 0,
-      likeCount: result.likeCount || 0,
-      downloadCount: result.downloadCount,
-      isDownloadable: result.isDownloadable || false,
-      viewerUrl: `https://sketchfab.com/models/${result.uid}`,
-      embedUrl: `https://sketchfab.com/models/${result.uid}/embed`,
-      tags: result.tags?.map((t: { name: string }) => t.name) || [],
-    }));
+    const models: SketchfabModel[] = data.results.map(
+      (
+        result: Record<string, unknown> & {
+          uid: string;
+          name: string;
+          description: string;
+          thumbnails?: { images?: Array<{ url: string }> };
+          user?: { username?: string; displayName?: string; profileUrl?: string };
+          license?: { uid?: string; label?: string; requirements?: string; url?: string };
+          faceCount?: number;
+          vertexCount?: number;
+          animationCount?: number;
+          viewCount?: number;
+          likeCount?: number;
+          downloadCount?: number;
+          isDownloadable?: boolean;
+          tags?: Array<{ name: string }>;
+        }
+      ) => ({
+        uid: result.uid,
+        name: result.name,
+        description: result.description,
+        thumbnail: result.thumbnails?.images?.[0]?.url || '',
+        author: {
+          username: result.user?.username || '',
+          displayName: result.user?.displayName || result.user?.username || 'Unknown',
+          profileUrl: result.user?.profileUrl || '',
+        },
+        license: {
+          uid: result.license?.uid || '',
+          label: result.license?.label || 'Unknown',
+          requirements: result.license?.requirements || '',
+          url: result.license?.url || '',
+        },
+        faceCount: result.faceCount || 0,
+        vertexCount: result.vertexCount || 0,
+        animationCount: result.animationCount || 0,
+        viewCount: result.viewCount || 0,
+        likeCount: result.likeCount || 0,
+        downloadCount: result.downloadCount,
+        isDownloadable: result.isDownloadable || false,
+        viewerUrl: `https://sketchfab.com/models/${result.uid}`,
+        embedUrl: `https://sketchfab.com/models/${result.uid}/embed`,
+        tags: result.tags?.map((t: { name: string }) => t.name) || [],
+      })
+    );
 
     return {
       models,
@@ -290,7 +307,12 @@ export async function downloadModel(uid: string): Promise<Blob> {
 
   // Validate URL is from trusted Sketchfab domains before fetching
   const parsedDownloadUrl = new URL(downloadUrl);
-  const allowedHosts = ['sketchfab.com', 'media.sketchfab.com', 'download.sketchfab.com', 'cdn.sketchfab.com'];
+  const allowedHosts = [
+    'sketchfab.com',
+    'media.sketchfab.com',
+    'download.sketchfab.com',
+    'cdn.sketchfab.com',
+  ];
   const hostAllowed = allowedHosts.some(
     (host) => parsedDownloadUrl.hostname === host || parsedDownloadUrl.hostname.endsWith(`.${host}`)
   );

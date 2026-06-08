@@ -30,7 +30,14 @@ function task(overrides: Partial<BoardTask> = {}): BoardTask {
 }
 
 function agent(overrides: Partial<FleetAgent> = {}): FleetAgent {
-  return { id: 'a1', handle: 'claude1', skills: [], status: 'online', currentTask: null, ...overrides };
+  return {
+    id: 'a1',
+    handle: 'claude1',
+    skills: [],
+    status: 'online',
+    currentTask: null,
+    ...overrides,
+  };
 }
 
 // ─── normalizePriority ───────────────────────────────────────────────────────
@@ -58,7 +65,7 @@ describe('normalizePriority', () => {
 describe('deriveTaskSkills', () => {
   it('pulls skills from tags, role hints, and title keywords', () => {
     const skills = deriveTaskSkills(
-      task({ title: 'Fix security vuln in auth', role: 'coder', tags: ['studio'] }),
+      task({ title: 'Fix security vuln in auth', role: 'coder', tags: ['studio'] })
     );
     expect(skills.has('studio')).toBe(true); // tag
     expect(skills.has('holoscript-dev')).toBe(true); // role hint + keyword
@@ -176,7 +183,12 @@ describe('SpendGovernor', () => {
     // (the cloud-authored core was never run on a real seat; this is that failure).
     const sameDay = new Date('2026-06-07T12:00:00Z');
     const g = new SpendGovernor({ capUsd: 10, dayKey: '2026-06-07', spentUsd: 3 });
-    expect(g.snapshot(sameDay)).toMatchObject({ dayKey: '2026-06-07', spentUsd: 3, capUsd: 10, remainingUsd: 7 });
+    expect(g.snapshot(sameDay)).toMatchObject({
+      dayKey: '2026-06-07',
+      spentUsd: 3,
+      capUsd: 10,
+      remainingUsd: 7,
+    });
   });
 });
 
@@ -191,7 +203,7 @@ describe('utcDayKey', () => {
 describe('estimateTaskSpendUsd', () => {
   it('scales estimate with urgency', () => {
     expect(estimateTaskSpendUsd(task({ priority: 'P0' }))).toBeGreaterThan(
-      estimateTaskSpendUsd(task({ priority: 'low' })),
+      estimateTaskSpendUsd(task({ priority: 'low' }))
     );
   });
 });
@@ -215,10 +227,7 @@ describe('planFleetDispatch', () => {
   });
 
   it('does not double-assign an agent across one plan', () => {
-    const tasks = [
-      task({ id: 't1', priority: 'P0' }),
-      task({ id: 't2', priority: 'P1' }),
-    ];
+    const tasks = [task({ id: 't1', priority: 'P0' }), task({ id: 't2', priority: 'P1' })];
     const agents = [agent({ id: 'only' })];
     const plan = planFleetDispatch(tasks, agents, new SpendGovernor(), { maxDispatches: 2 });
     expect(plan.decisions).toHaveLength(1);
@@ -242,7 +251,7 @@ describe('planFleetDispatch', () => {
     const plan = planFleetDispatch(
       [task({ id: 'orphan', priority: 'P0' })],
       [agent({ status: 'offline' })],
-      new SpendGovernor(),
+      new SpendGovernor()
     );
     expect(plan.decisions).toHaveLength(0);
     expect(plan.unassigned.map((t) => t.id)).toEqual(['orphan']);

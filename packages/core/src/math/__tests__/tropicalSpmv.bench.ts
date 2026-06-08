@@ -12,11 +12,7 @@ import {
   tropicalMinPlusSpmv,
 } from '../tropicalSpmv';
 
-function benchSpmv(
-  name: string,
-  n: number,
-  build: () => ReturnType<typeof erdosRenyiCsr>
-): void {
+function benchSpmv(name: string, n: number, build: () => ReturnType<typeof erdosRenyiCsr>): void {
   const csr = build();
   const x = new Float32Array(n);
   const y = new Float32Array(n);

@@ -31,10 +31,7 @@ function rgbBytes(seed: number): Uint8Array {
   return buf;
 }
 
-function frame(
-  extra: Partial<ReconstructionFrame> = {},
-  index = 0
-): ReconstructionFrame {
+function frame(extra: Partial<ReconstructionFrame> = {}, index = 0): ReconstructionFrame {
   return {
     index,
     timestampMs: index,
@@ -96,7 +93,11 @@ describe('HoloMap mobile-sensor depth/pose ingest', () => {
   });
 
   it('uses MEASURED device pose over the scan-derived centroid pose', async () => {
-    const devicePose: CameraPose = { position: [7, 8, 9], rotation: [0, 0, 0, 1], confidence: 0.95 };
+    const devicePose: CameraPose = {
+      position: [7, 8, 9],
+      rotation: [0, 0, 0, 1],
+      confidence: 0.95,
+    };
     const rt = await newRuntime();
     const step = await rt.step(frame({ devicePose }));
     expect(step!.pose.position).toEqual([7, 8, 9]);

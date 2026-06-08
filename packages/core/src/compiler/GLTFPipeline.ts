@@ -2467,14 +2467,14 @@ export class GLTFPipeline extends CompilerBase {
     // Per Metaverse Standards Forum 3D Asset Interoperability WG guidance,
     // behavioral metadata is placed in the glTF `extras` field to enable
     // round-trip semantic preservation across tools and engines.
-    const objectNames = (composition.objects || []).map(o => o.name);
+    const objectNames = (composition.objects || []).map((o) => o.name);
     const allTraits = new Set<string>();
     for (const obj of composition.objects || []) {
       for (const trait of obj.traits || []) {
         allTraits.add(typeof trait === 'string' ? trait : trait.name);
       }
     }
-    const groupNames = (composition.spatialGroups || []).map(g => g.name);
+    const groupNames = (composition.spatialGroups || []).map((g) => g.name);
 
     (gltf.asset as Record<string, unknown>).extras = {
       holoscript: {
@@ -2483,9 +2483,7 @@ export class GLTFPipeline extends CompilerBase {
         objects: objectNames,
         traits: [...allTraits],
         spatialGroups: groupNames,
-        ...(this.options.provenanceHash
-          ? { provenanceHash: this.options.provenanceHash }
-          : {}),
+        ...(this.options.provenanceHash ? { provenanceHash: this.options.provenanceHash } : {}),
       },
     };
 

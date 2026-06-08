@@ -143,7 +143,7 @@ class MyAgent extends BaseAgent {
 
 `Phase.Implement` is where **reasoning becomes shipped reality**: merged code (or authored asset), passing tests/CI, and—when the task requires it—a deployment or publish step. Research-only passes may record a **decision log** instead of a PR. This phase is intentionally separate from `Evaluate` / `Adapt` so teams do not confuse “we analyzed it” with “users can run it.”
 
-**Note:** `@holoscript/agent-protocol` also exposes `ProtocolPhase` (INTAKE → … → AUTONOMIZE) for **meta** compounding workflows. The 8-step **agent lifecycle** above is orthogonal—use both when an agent both *thinks* in the seven cognitive phases and *ships* in IMPLEMENT.
+**Note:** `@holoscript/agent-protocol` also exposes `ProtocolPhase` (INTAKE → … → AUTONOMIZE) for **meta** compounding workflows. The 8-step **agent lifecycle** above is orthogonal—use both when an agent both _thinks_ in the seven cognitive phases and _ships_ in IMPLEMENT.
 
 ---
 

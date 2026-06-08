@@ -11,7 +11,10 @@ const { createHash } = require('node:crypto');
 
 // Honor the real vault: farm.py promote goes Bronze -> GOLD (Silver is fallow).
 function nextTier(t) {
-  return { bronze: 'gold', silver: 'gold', gold: 'platinum', platinum: 'diamond', diamond: null }[t] ?? null;
+  return (
+    { bronze: 'gold', silver: 'gold', gold: 'platinum', platinum: 'diamond', diamond: null }[t] ??
+    null
+  );
 }
 const ALL_TIERS = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
 
@@ -31,7 +34,10 @@ function stateDigest(dir) {
   for (const tier of ALL_TIERS) {
     const d = path.join(dir, tier);
     if (!fs.existsSync(d)) continue;
-    for (const f of fs.readdirSync(d).filter((x) => x.endsWith('.json')).sort()) {
+    for (const f of fs
+      .readdirSync(d)
+      .filter((x) => x.endsWith('.json'))
+      .sort()) {
       const e = JSON.parse(fs.readFileSync(path.join(d, f), 'utf8'));
       rows.push(e.id + ':' + e.tier);
     }
@@ -44,7 +50,8 @@ function buildSandbox(dir) {
   fs.rmSync(dir, { recursive: true, force: true });
   for (const tier of ALL_TIERS) fs.mkdirSync(path.join(dir, tier), { recursive: true });
   fs.mkdirSync(path.join(dir, 'receipts'), { recursive: true });
-  for (const e of SEED) fs.writeFileSync(path.join(dir, e.tier, e.id + '.json'), JSON.stringify(e, null, 2));
+  for (const e of SEED)
+    fs.writeFileSync(path.join(dir, e.tier, e.id + '.json'), JSON.stringify(e, null, 2));
   return stateDigest(dir);
 }
 
@@ -63,7 +70,8 @@ function graduate(dir, id, by) {
   const to = nextTier(found.tier);
   if (!to) return { ok: false, error: id + ' is already at the top tier (' + found.tier + ')' };
   // honest gate: an entry needs lineage to ascend (mirrors farm.py lineage-detection promotion)
-  if ((found.entry.lineage_links || 0) < 1) return { ok: false, error: id + ' has no lineage links — cannot graduate' };
+  if ((found.entry.lineage_links || 0) < 1)
+    return { ok: false, error: id + ' has no lineage links — cannot graduate' };
 
   const fromTier = found.tier;
   const updated = { ...found.entry, tier: to };
@@ -71,13 +79,23 @@ function graduate(dir, id, by) {
   fs.rmSync(found.path);
 
   const receipt = {
-    schema: 'cael-graduation-v1', entry: id, title: updated.title,
-    fromTier, toTier: to, lineage_links: updated.lineage_links,
-    by: by || 'curator', timestamp: new Date().toISOString(),
+    schema: 'cael-graduation-v1',
+    entry: id,
+    title: updated.title,
+    fromTier,
+    toTier: to,
+    lineage_links: updated.lineage_links,
+    by: by || 'curator',
+    timestamp: new Date().toISOString(),
     stateDigest: stateDigest(dir), // deterministic post-state hash (the proof)
   };
-  receipt.payloadHash = sha256(JSON.stringify({ entry: id, fromTier, toTier: to, stateDigest: receipt.stateDigest }));
-  fs.writeFileSync(path.join(dir, 'receipts', 'graduation_' + id + '_' + Date.now() + '.json'), JSON.stringify(receipt, null, 2));
+  receipt.payloadHash = sha256(
+    JSON.stringify({ entry: id, fromTier, toTier: to, stateDigest: receipt.stateDigest })
+  );
+  fs.writeFileSync(
+    path.join(dir, 'receipts', 'graduation_' + id + '_' + Date.now() + '.json'),
+    JSON.stringify(receipt, null, 2)
+  );
   return { ok: true, receipt, vaultWrite: 'sandbox only — promotion to D:/GOLD is founder-gated' };
 }
 
@@ -85,7 +103,12 @@ function readState(dir) {
   const out = {};
   for (const tier of ALL_TIERS) {
     const d = path.join(dir, tier);
-    out[tier] = fs.existsSync(d) ? fs.readdirSync(d).filter((x) => x.endsWith('.json')).map((f) => f.replace('.json', '')) : [];
+    out[tier] = fs.existsSync(d)
+      ? fs
+          .readdirSync(d)
+          .filter((x) => x.endsWith('.json'))
+          .map((f) => f.replace('.json', ''))
+      : [];
   }
   return { tiers: out, stateDigest: stateDigest(dir) };
 }
@@ -115,7 +138,9 @@ function readState(dir) {
 
 const PROPOSALS = path.join.bind(path);
 
-function proposalsDir(dir) { return path.join(dir, 'proposals'); }
+function proposalsDir(dir) {
+  return path.join(dir, 'proposals');
+}
 
 // Snapshot every entry json (id -> {tier, body}) — the rollback anchor.
 function snapshotVault(dir) {
@@ -123,7 +148,10 @@ function snapshotVault(dir) {
   for (const tier of ALL_TIERS) {
     const d = path.join(dir, tier);
     if (!fs.existsSync(d)) continue;
-    for (const f of fs.readdirSync(d).filter((x) => x.endsWith('.json')).sort()) {
+    for (const f of fs
+      .readdirSync(d)
+      .filter((x) => x.endsWith('.json'))
+      .sort()) {
       const e = JSON.parse(fs.readFileSync(path.join(d, f), 'utf8'));
       snap[e.id] = { tier, entry: e };
     }
@@ -152,7 +180,8 @@ function proposeMutation(dir, { verb, id, by }) {
   if (verb !== 'graduate') return { ok: false, error: 'unsupported verb: ' + verb };
   const to = nextTier(found.tier);
   if (!to) return { ok: false, error: id + ' is already at the top tier (' + found.tier + ')' };
-  if ((found.entry.lineage_links || 0) < 1) return { ok: false, error: id + ' has no lineage links — cannot graduate' };
+  if ((found.entry.lineage_links || 0) < 1)
+    return { ok: false, error: id + ' has no lineage links — cannot graduate' };
 
   const preDigest = stateDigest(dir); // unchanged — proposing must not mutate
   // Deterministic proposal id from the (verb,id,fromTier,toTier,preDigest) tuple,
@@ -160,19 +189,31 @@ function proposeMutation(dir, { verb, id, by }) {
   const proposalId = 'prop_' + sha256([verb, id, found.tier, to, preDigest].join('|')).slice(0, 16);
   const approvalToken = sha256(['APPROVE', proposalId, preDigest].join('|')); // founder must present this exact token
   const proposal = {
-    schema: 'cael-vault-proposal-v1', proposalId,
-    verb, entry: id, title: found.entry.title,
+    schema: 'cael-vault-proposal-v1',
+    proposalId,
+    verb,
+    entry: id,
+    title: found.entry.title,
     diff: { fromTier: found.tier, toTier: to, lineage_links: found.entry.lineage_links || 0 },
     preDigest,
-    proposedBy: by || 'ai-curator', status: 'PENDING_FOUNDER_APPROVAL',
+    proposedBy: by || 'ai-curator',
+    status: 'PENDING_FOUNDER_APPROVAL',
     note: 'founder-gated — call applyMutation with the matching approvalToken to apply; vault is UNTOUCHED until then',
     timestamp: new Date().toISOString(),
   };
   fs.mkdirSync(proposalsDir(dir), { recursive: true });
-  fs.writeFileSync(path.join(proposalsDir(dir), proposalId + '.json'), JSON.stringify(proposal, null, 2));
+  fs.writeFileSync(
+    path.join(proposalsDir(dir), proposalId + '.json'),
+    JSON.stringify(proposal, null, 2)
+  );
   // The approvalToken is returned to the FOUNDER channel, never persisted in the
   // queued proposal — possessing the token IS the approval.
-  return { ok: true, proposal, approvalToken, vaultWrite: 'NONE — proposal queued, vault untouched' };
+  return {
+    ok: true,
+    proposal,
+    approvalToken,
+    vaultWrite: 'NONE — proposal queued, vault untouched',
+  };
 }
 
 // APPLY — founder-gated. Refuses without the matching approval token.
@@ -184,35 +225,53 @@ function applyMutation(dir, proposalId, approvalToken, by) {
   // The vault may have moved since the proposal — refuse stale applies (digest fence).
   const curDigest = stateDigest(dir);
   if (curDigest !== proposal.preDigest) {
-    return { ok: false, error: 'vault changed since proposal (stale) — re-propose', expected: proposal.preDigest, actual: curDigest };
+    return {
+      ok: false,
+      error: 'vault changed since proposal (stale) — re-propose',
+      expected: proposal.preDigest,
+      actual: curDigest,
+    };
   }
   // FOUNDER GATE: the apply token must match. No token, no write.
   const expectedToken = sha256(['APPROVE', proposalId, proposal.preDigest].join('|'));
   if (approvalToken !== expectedToken) {
-    return { ok: false, error: 'REFUSED — invalid or missing founder approval token; vault untouched', vaultWrite: 'NONE' };
+    return {
+      ok: false,
+      error: 'REFUSED — invalid or missing founder approval token; vault untouched',
+      vaultWrite: 'NONE',
+    };
   }
 
-  const preSnapshot = snapshotVault(dir);          // rollback anchor
+  const preSnapshot = snapshotVault(dir); // rollback anchor
   const preDigest = proposal.preDigest;
-  const res = graduate(dir, proposal.entry, by || ('founder-approved:' + proposal.proposedBy));
+  const res = graduate(dir, proposal.entry, by || 'founder-approved:' + proposal.proposedBy);
   if (!res.ok) return res;
   const postDigest = stateDigest(dir);
 
   const receipt = {
-    schema: 'cael-vault-mutation-v1', proposalId,
-    verb: proposal.verb, entry: proposal.entry, title: proposal.title,
+    schema: 'cael-vault-mutation-v1',
+    proposalId,
+    verb: proposal.verb,
+    entry: proposal.entry,
+    title: proposal.title,
     diff: proposal.diff,
-    preDigest, postDigest,
-    preSnapshot,                                    // exact pre-state for rollback
+    preDigest,
+    postDigest,
+    preSnapshot, // exact pre-state for rollback
     proposedBy: proposal.proposedBy,
     approvedBy: by || 'founder',
     graduationReceipt: res.receipt,
     vaultWrite: 'sandbox only — promotion to D:/GOLD is a separate founder gate',
     timestamp: new Date().toISOString(),
   };
-  receipt.payloadHash = sha256(JSON.stringify({ proposalId, entry: proposal.entry, preDigest, postDigest }));
+  receipt.payloadHash = sha256(
+    JSON.stringify({ proposalId, entry: proposal.entry, preDigest, postDigest })
+  );
   fs.mkdirSync(path.join(dir, 'receipts'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'receipts', 'mutation_' + proposalId + '_' + Date.now() + '.json'), JSON.stringify(receipt, null, 2));
+  fs.writeFileSync(
+    path.join(dir, 'receipts', 'mutation_' + proposalId + '_' + Date.now() + '.json'),
+    JSON.stringify(receipt, null, 2)
+  );
   // proposal consumed
   proposal.status = 'APPLIED';
   fs.writeFileSync(pPath, JSON.stringify(proposal, null, 2));
@@ -227,20 +286,33 @@ function rollbackMutation(dir, receipt, by) {
   const restoredDigest = restoreSnapshot(dir, receipt.preSnapshot);
   const ok = restoredDigest === receipt.preDigest; // PROVEN, not asserted
   const rollbackReceipt = {
-    schema: 'cael-vault-rollback-v1', ofProposal: receipt.proposalId,
-    entry: receipt.entry, restoredDigest, expectedPreDigest: receipt.preDigest,
-    restoredExactly: ok, by: by || 'founder', timestamp: new Date().toISOString(),
+    schema: 'cael-vault-rollback-v1',
+    ofProposal: receipt.proposalId,
+    entry: receipt.entry,
+    restoredDigest,
+    expectedPreDigest: receipt.preDigest,
+    restoredExactly: ok,
+    by: by || 'founder',
+    timestamp: new Date().toISOString(),
   };
-  rollbackReceipt.payloadHash = sha256(JSON.stringify({ ofProposal: receipt.proposalId, restoredDigest, restoredExactly: ok }));
+  rollbackReceipt.payloadHash = sha256(
+    JSON.stringify({ ofProposal: receipt.proposalId, restoredDigest, restoredExactly: ok })
+  );
   fs.mkdirSync(path.join(dir, 'receipts'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'receipts', 'rollback_' + receipt.proposalId + '_' + Date.now() + '.json'), JSON.stringify(rollbackReceipt, null, 2));
+  fs.writeFileSync(
+    path.join(dir, 'receipts', 'rollback_' + receipt.proposalId + '_' + Date.now() + '.json'),
+    JSON.stringify(rollbackReceipt, null, 2)
+  );
   return { ok, rollbackReceipt };
 }
 
 function listProposals(dir) {
   const d = proposalsDir(dir);
   if (!fs.existsSync(d)) return [];
-  return fs.readdirSync(d).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8')));
+  return fs
+    .readdirSync(d)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => JSON.parse(fs.readFileSync(path.join(d, f), 'utf8')));
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -259,8 +331,17 @@ function listProposals(dir) {
 // ───────────────────────────────────────────────────────────────────────────
 
 const CATALOG_ROOTS = [
-  'wisdom', 'patterns', 'gotchas', 'architectures', 'protocols',
-  'bronze', 'silver', 'gold', 'platinum', 'diamond', 'graduated',
+  'wisdom',
+  'patterns',
+  'gotchas',
+  'architectures',
+  'protocols',
+  'bronze',
+  'silver',
+  'gold',
+  'platinum',
+  'diamond',
+  'graduated',
 ];
 
 // Minimal frontmatter parser (vault entries use a YAML-ish `key: value` block).
@@ -290,7 +371,11 @@ function lineageOf(meta) {
   if (meta.references) out.push(...extractRefs(meta.references));
   if (meta.source_ids) {
     // source_ids holds GOLD IDs too (e.g. W.GOLD.x), keep only entry-shaped ones.
-    out.push(...extractRefs(meta.source_ids).filter((id) => /\.(GOLD|TEAM)\./i.test(id) || /^[WPFBG]\.[A-Z]+\./.test(id)));
+    out.push(
+      ...extractRefs(meta.source_ids).filter(
+        (id) => /\.(GOLD|TEAM)\./i.test(id) || /^[WPFBG]\.[A-Z]+\./.test(id)
+      )
+    );
   }
   return Array.from(new Set(out));
 }
@@ -305,7 +390,13 @@ function provenanceOf(meta) {
     type: meta.type || null,
     domain: meta.domain || null,
     parent: meta.parent ? extractRefs(meta.parent) : [],
-    sourceIds: meta.source_ids ? String(meta.source_ids).replace(/^\[|\]$/g, '').split(',').map((s) => s.trim()).filter(Boolean) : [],
+    sourceIds: meta.source_ids
+      ? String(meta.source_ids)
+          .replace(/^\[|\]$/g, '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [],
   };
 }
 
@@ -317,14 +408,25 @@ function readVaultCatalog(vaultRoot) {
   const seenIds = new Set();
   const walk = (dir) => {
     let items = [];
-    try { items = fs.readdirSync(dir, { withFileTypes: true }); } catch (_) { return; }
+    try {
+      items = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (_) {
+      return;
+    }
     for (const item of items) {
       if (item.name === '.git') continue;
       const p = path.join(dir, item.name);
-      if (item.isDirectory()) { walk(p); continue; }
+      if (item.isDirectory()) {
+        walk(p);
+        continue;
+      }
       if (!item.name.toLowerCase().endsWith('.md')) continue;
       let content = '';
-      try { content = fs.readFileSync(p, 'utf8'); } catch (_) { continue; }
+      try {
+        content = fs.readFileSync(p, 'utf8');
+      } catch (_) {
+        continue;
+      }
       const meta = parseFrontmatterBlock(content);
       const id = meta.id;
       if (!id || !/^[A-Z]+(\.[A-Z0-9]+)+$/.test(id)) continue; // only real, ID-bearing entries
@@ -355,7 +457,9 @@ function readVaultCatalog(vaultRoot) {
   }
   entries.sort((a, b) => a.id.localeCompare(b.id));
   // facet counts for filter UI
-  const tiers = {}, types = {}, domains = {};
+  const tiers = {},
+    types = {},
+    domains = {};
   for (const e of entries) {
     if (e.tier) tiers[e.tier] = (tiers[e.tier] || 0) + 1;
     if (e.type) types[e.type] = (types[e.type] || 0) + 1;
@@ -373,7 +477,9 @@ function inferTierFromDir(vaultRoot, filePath) {
 // Pure search/filter over a catalog (shared by server + offline build + verifier,
 // so the offline embedded catalog behaves identically to the live endpoint).
 function filterCatalog(catalog, { q, tier, type, domain } = {}) {
-  const needle = String(q || '').trim().toLowerCase();
+  const needle = String(q || '')
+    .trim()
+    .toLowerCase();
   return (catalog.entries || []).filter((e) => {
     if (tier && e.tier !== tier) return false;
     if (type && e.type !== type) return false;
@@ -387,7 +493,24 @@ function filterCatalog(catalog, { q, tier, type, domain } = {}) {
 }
 
 module.exports = {
-  nextTier, ALL_TIERS, SEED, stateDigest, buildSandbox, findEntry, graduate, readState,
-  snapshotVault, restoreSnapshot, proposeMutation, applyMutation, rollbackMutation, listProposals,
-  readVaultCatalog, filterCatalog, lineageOf, provenanceOf, extractRefs, parseFrontmatterBlock,
+  nextTier,
+  ALL_TIERS,
+  SEED,
+  stateDigest,
+  buildSandbox,
+  findEntry,
+  graduate,
+  readState,
+  snapshotVault,
+  restoreSnapshot,
+  proposeMutation,
+  applyMutation,
+  rollbackMutation,
+  listProposals,
+  readVaultCatalog,
+  filterCatalog,
+  lineageOf,
+  provenanceOf,
+  extractRefs,
+  parseFrontmatterBlock,
 };

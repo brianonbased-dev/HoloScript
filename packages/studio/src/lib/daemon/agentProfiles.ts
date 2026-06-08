@@ -35,10 +35,7 @@ export const HOLO_DAEMON_MISSIONS: HoloDaemonMissionDefinition[] = [
       'Per-soul daimōn face: converse, extract intent, propose actions, and route context deltas to the Brittney field. The companion the user names and shapes.',
     defaultMode: 'balanced',
     defaultSkills: ['codebase', 'room', 'documenter'],
-    authorityRefs: [
-      'cap://daemon/converse/owner-scoped',
-      'cap://daemon/propose/requires-consent',
-    ],
+    authorityRefs: ['cap://daemon/converse/owner-scoped', 'cap://daemon/propose/requires-consent'],
     schedules: ['on_demand'],
     rawSecretAccess: false,
   },
@@ -117,13 +114,19 @@ export function buildHoloDaemonAgentConfig(input: {
 }): HoloDaemonAgentConfig {
   const mission = getHoloDaemonMission(input.missionProfile);
   const skills = Array.isArray(input.skills)
-    ? input.skills.filter((skill): skill is string => typeof skill === 'string' && skill.trim() !== '')
+    ? input.skills.filter(
+        (skill): skill is string => typeof skill === 'string' && skill.trim() !== ''
+      )
     : mission.defaultSkills;
   const authorityRefs = Array.isArray(input.authorityRefs)
-    ? input.authorityRefs.filter((ref): ref is string => typeof ref === 'string' && ref.trim() !== '')
+    ? input.authorityRefs.filter(
+        (ref): ref is string => typeof ref === 'string' && ref.trim() !== ''
+      )
     : mission.authorityRefs;
   const schedules = Array.isArray(input.schedules)
-    ? input.schedules.filter((schedule): schedule is string => typeof schedule === 'string' && schedule.trim() !== '')
+    ? input.schedules.filter(
+        (schedule): schedule is string => typeof schedule === 'string' && schedule.trim() !== ''
+      )
     : mission.schedules;
 
   return {

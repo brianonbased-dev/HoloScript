@@ -5,12 +5,12 @@
 
 ## Summary
 
-| Stash | Date | Base ancestor of HEAD? | Files | Verdict |
-|-------|------|------------------------|-------|---------|
-| `stash@{0}` | 2026-05-03 | **No** | 67 | Orphaned pre-merge — save diff, drop |
-| `stash@{1}` | 2026-05-01 | **No** | 64 | Orphaned WIP — save diff, drop |
-| `stash@{2}` | 2026-04-29 | **Yes** | 59 | Vec2 refactor already in HEAD — **DROP** |
-| `stash@{3}` | 2026-04-24 | **No** | 469 | On `deploy/w087-vertex-c` — **branch needs merge review** |
+| Stash       | Date       | Base ancestor of HEAD? | Files | Verdict                                                   |
+| ----------- | ---------- | ---------------------- | ----- | --------------------------------------------------------- |
+| `stash@{0}` | 2026-05-03 | **No**                 | 67    | Orphaned pre-merge — save diff, drop                      |
+| `stash@{1}` | 2026-05-01 | **No**                 | 64    | Orphaned WIP — save diff, drop                            |
+| `stash@{2}` | 2026-04-29 | **Yes**                | 59    | Vec2 refactor already in HEAD — **DROP**                  |
+| `stash@{3}` | 2026-04-24 | **No**                 | 469   | On `deploy/w087-vertex-c` — **branch needs merge review** |
 
 ---
 

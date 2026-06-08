@@ -338,7 +338,10 @@ export default function HomePage() {
         </div>
         <p className="text-white/30 text-sm mt-1">
           Free tier included. No credit card required.{' '}
-          <Link href="/playground" className="text-white/50 hover:text-white/80 underline-offset-2 hover:underline">
+          <Link
+            href="/playground"
+            className="text-white/50 hover:text-white/80 underline-offset-2 hover:underline"
+          >
             Try the playground without signing in
           </Link>
           .

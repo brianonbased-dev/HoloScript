@@ -83,9 +83,12 @@ export function serializeNodeId(id: HoloGraphNodeId): string {
 /**
  * SourceRange (AST `loc`) to line/column mapping for provenance.
  */
-export function extractSourceLocation(
-  loc: SourceRange | SourceLocation | undefined
-): { line: number; column: number; endLine?: number; endColumn?: number } {
+export function extractSourceLocation(loc: SourceRange | SourceLocation | undefined): {
+  line: number;
+  column: number;
+  endLine?: number;
+  endColumn?: number;
+} {
   if (!loc) {
     return { line: 0, column: 0 };
   }
@@ -203,7 +206,12 @@ export class HoloASTMapper {
    */
   private mapTemplate(tmpl: HoloTemplate): void {
     const srcLoc = extractSourceLocation(tmpl.loc);
-    const nodeId = { kind: 'template' as const, filePath: this.filePath, name: tmpl.name, line: srcLoc.line };
+    const nodeId = {
+      kind: 'template' as const,
+      filePath: this.filePath,
+      name: tmpl.name,
+      line: srcLoc.line,
+    };
 
     this.addNode({
       id: nodeId,

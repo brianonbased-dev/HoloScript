@@ -62,18 +62,24 @@ const testFilesToMove = [
 
 function updateImports(filePath) {
   let content = fs.readFileSync(filePath, 'utf8');
-  
+
   // General trait types to core
-  content = content.replace(/from\s+['"](?:\.\.\/)+traits\/TraitTypes['"]/g, "from '@holoscript/core'");
-  content = content.replace(/from\s+['"](?:\.\.\/)+types(?:\/HoloScriptPlus)?['"]/g, "from '@holoscript/core'");
+  content = content.replace(
+    /from\s+['"](?:\.\.\/)+traits\/TraitTypes['"]/g,
+    "from '@holoscript/core'"
+  );
+  content = content.replace(
+    /from\s+['"](?:\.\.\/)+types(?:\/HoloScriptPlus)?['"]/g,
+    "from '@holoscript/core'"
+  );
   content = content.replace(/from\s+['"]\.\/TraitTypes['"]/g, "from '@holoscript/core'");
   content = content.replace(/from\s+['"]\.\.\/types['"]/g, "from '@holoscript/core'");
-  
+
   // Specific traits that we might import
   content = content.replace(/from\s+['"]\.\/([a-zA-Z0-9]+Trait)['"]/g, (match, p1) => {
     // If it's importing a trait that we moved, it should be a relative import in engine.
     // If it's importing a trait that stayed in core, it should be from @holoscript/core.
-    const moved = filesToMove.some(f => f.includes(p1 + '.ts'));
+    const moved = filesToMove.some((f) => f.includes(p1 + '.ts'));
     if (moved) return match; // Keep relative
     return `from '@holoscript/core'`;
   });
@@ -84,9 +90,9 @@ function updateImports(filePath) {
 for (const file of [...filesToMove, ...testFilesToMove]) {
   const src = path.join(coreDir, file);
   const dest = path.join(engineDir, file);
-  
+
   fs.mkdirSync(path.dirname(dest), { recursive: true });
-  
+
   if (fs.existsSync(src)) {
     fs.renameSync(src, dest);
     updateImports(dest);
@@ -101,36 +107,62 @@ if (fs.existsSync(systemPath)) {
   for (const file of filesToMove) {
     const baseName = path.basename(file, '.ts');
     // Regex to remove the import line
-    const importRegex = new RegExp(`import\\s+\\{[^}]+\\}\\s+from\\s+['"]\\.\\/${baseName}['"];?\\n`, 'g');
+    const importRegex = new RegExp(
+      `import\\s+\\{[^}]+\\}\\s+from\\s+['"]\\.\\/${baseName}['"];?\\n`,
+      'g'
+    );
     content = content.replace(importRegex, '');
-    
+
     // Convert baseName (e.g. GPUPhysicsTrait) to handler name (e.g. gpuPhysicsHandler)
     let handlerName = baseName.replace('Trait', 'Handler');
     handlerName = handlerName.charAt(0).toLowerCase() + handlerName.slice(1);
-    
+
     // Sometimes there are multiple handlers from one file, like structuralFEMHandler
     // This script might miss some if they have different names.
   }
-  
+
   // Let's just remove the exact lines we know about
   const handlersToRemove = [
-    'choreographyHandler', 'deformableTerrainHandler', 'emotionalVoiceHandler',
-    'flowFieldHandler', 'fluidHandler', 'gpuPhysicsHandler', 'godRaysHandler',
-    'handMenuHandler', 'mqttSinkHandler', 'mqttSourceHandler', 'networkedAvatarHandler',
-    'orbitalHandler', 'scriptTestHandler', 'scrollableHandler', 'softBodyHandler',
-    'spatialAwarenessHandler', 'userMonitorHandler', 'volumetricCloudsHandler',
-    'weatherHubHandler', 'thermalSimulationHandler', 'structuralFEMHandler', 
-    'hydraulicPipeHandler', 'saturationThermalHandler', 'saturationMoistureHandler', 
-    'saturationPressureHandler', 'saturationElectricalHandler', 'saturationChemicalHandler', 
-    'saturationStructuralHandler', 'phaseTransitionHandler', 'thresholdWarningHandler', 
-    'thresholdCriticalHandler', 'thresholdRecoveryHandler', 'scalarFieldOverlayHandler'
+    'choreographyHandler',
+    'deformableTerrainHandler',
+    'emotionalVoiceHandler',
+    'flowFieldHandler',
+    'fluidHandler',
+    'gpuPhysicsHandler',
+    'godRaysHandler',
+    'handMenuHandler',
+    'mqttSinkHandler',
+    'mqttSourceHandler',
+    'networkedAvatarHandler',
+    'orbitalHandler',
+    'scriptTestHandler',
+    'scrollableHandler',
+    'softBodyHandler',
+    'spatialAwarenessHandler',
+    'userMonitorHandler',
+    'volumetricCloudsHandler',
+    'weatherHubHandler',
+    'thermalSimulationHandler',
+    'structuralFEMHandler',
+    'hydraulicPipeHandler',
+    'saturationThermalHandler',
+    'saturationMoistureHandler',
+    'saturationPressureHandler',
+    'saturationElectricalHandler',
+    'saturationChemicalHandler',
+    'saturationStructuralHandler',
+    'phaseTransitionHandler',
+    'thresholdWarningHandler',
+    'thresholdCriticalHandler',
+    'thresholdRecoveryHandler',
+    'scalarFieldOverlayHandler',
   ];
-  
+
   for (const handler of handlersToRemove) {
     const reg = new RegExp(`^.*${handler}.*\\n`, 'gm');
     content = content.replace(reg, '');
   }
-  
+
   fs.writeFileSync(systemPath, content);
   console.log('Updated VRTraitSystem.ts');
 }
@@ -143,8 +175,11 @@ if (fs.existsSync(indexPath)) {
     const baseName = path.basename(file, '.ts');
     const importRegex = new RegExp(`export\\s+\\*\\s+from\\s+['"]\\.\\/${baseName}['"];?\\n`, 'g');
     content = content.replace(importRegex, '');
-    
-    const namedExportRegex = new RegExp(`export\\s+\\{[^}]+\\}\\s+from\\s+['"]\\.\\/${baseName}['"];?\\n`, 'g');
+
+    const namedExportRegex = new RegExp(
+      `export\\s+\\{[^}]+\\}\\s+from\\s+['"]\\.\\/${baseName}['"];?\\n`,
+      'g'
+    );
     content = content.replace(namedExportRegex, '');
   }
   fs.writeFileSync(indexPath, content);

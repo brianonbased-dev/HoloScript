@@ -17,8 +17,8 @@ export function StoreGrid({ items, loading, onSelectItem, onInstall }: StoreGrid
 
   const filteredItems = useMemo(() => {
     if (activeFilter === 'all') return items;
-    if (activeFilter === 'marketplace') return items.filter(i => i.verified);
-    if (activeFilter === 'registry') return items.filter(i => !i.verified);
+    if (activeFilter === 'marketplace') return items.filter((i) => i.verified);
+    if (activeFilter === 'registry') return items.filter((i) => !i.verified);
     return items;
   }, [items, activeFilter]);
 

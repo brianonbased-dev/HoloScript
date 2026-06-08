@@ -26,9 +26,9 @@ describe('analyzeBond', () => {
    * When coupon rate = yield, price = par: $1000.
    */
   const parBond: BondSpec = {
-    faceValue:     1_000,
-    couponRate:    0.05,
-    periods:       20,   // 10 years × 2
+    faceValue: 1_000,
+    couponRate: 0.05,
+    periods: 20, // 10 years × 2
     periodsPerYear: 2,
   };
 
@@ -62,8 +62,8 @@ describe('analyzeBond', () => {
 
   it('price is inverse function of yield (higher yield → lower price)', () => {
     const bond: BondSpec = { faceValue: 1000, couponRate: 0.05, periods: 20, periodsPerYear: 2 };
-    const r4  = analyzeBond(bond, 0.04);
-    const r6  = analyzeBond(bond, 0.06);
+    const r4 = analyzeBond(bond, 0.04);
+    const r6 = analyzeBond(bond, 0.06);
     expect(r4.price).toBeGreaterThan(r6.price);
   });
 
@@ -105,7 +105,11 @@ describe('analyzeBond', () => {
 
   it('YTM > coupon rate for discount bond', () => {
     const bond: BondSpec = {
-      faceValue: 1000, couponRate: 0.04, periods: 20, periodsPerYear: 2, marketPrice: 922.78,
+      faceValue: 1000,
+      couponRate: 0.04,
+      periods: 20,
+      periodsPerYear: 2,
+      marketPrice: 922.78,
     };
     const r = analyzeBond(bond, 0.05);
     expect(r.ytm).not.toBeNull();
@@ -193,15 +197,13 @@ describe('analyzePortfolio', () => {
   it('throws for mismatched return series lengths', () => {
     const bad: PortfolioHolding[] = [
       { id: 'A', returns: [0.01, 0.02, 0.03], weight: 0.5 },
-      { id: 'B', returns: [0.01, 0.02],       weight: 0.5 },
+      { id: 'B', returns: [0.01, 0.02], weight: 0.5 },
     ];
     expect(() => analyzePortfolio(bad)).toThrow();
   });
 
   it('throws for fewer than 2 observations', () => {
-    expect(() =>
-      analyzePortfolio([{ id: 'A', returns: [0.01], weight: 1.0 }]),
-    ).toThrow();
+    expect(() => analyzePortfolio([{ id: 'A', returns: [0.01], weight: 1.0 }])).toThrow();
   });
 });
 
@@ -213,7 +215,7 @@ describe('blackScholes', () => {
    *  S=40, K=40 (ATM), T=0.5yr, r=0.10, σ=0.40
    *  call ≈ $4.76, put ≈ $2.82 (from original paper, approximate)
    */
-  const atm = () => blackScholes(40, 40, 0.5, 0.10, 0.40);
+  const atm = () => blackScholes(40, 40, 0.5, 0.1, 0.4);
 
   it('ATM call price is positive and reasonable (0–10 for S=40)', () => {
     const r = atm();
@@ -229,8 +231,11 @@ describe('blackScholes', () => {
    * Put-call parity: C − P = S − K × e^(−rT)
    */
   it('put-call parity holds', () => {
-    const r  = atm();
-    const S  = 40, K = 40, T = 0.5, rr = 0.10;
+    const r = atm();
+    const S = 40,
+      K = 40,
+      T = 0.5,
+      rr = 0.1;
     const parity = S - K * Math.exp(-rr * T);
     expect(r.callPrice - r.putPrice).toBeCloseTo(parity, 3);
   });
@@ -259,25 +264,25 @@ describe('blackScholes', () => {
   });
 
   it('deep ITM call price approaches intrinsic value (S - K × e^{-rT})', () => {
-    const r    = blackScholes(100, 50, 0.5, 0.05, 0.10); // deep ITM
+    const r = blackScholes(100, 50, 0.5, 0.05, 0.1); // deep ITM
     const intrinsic = 100 - 50 * Math.exp(-0.05 * 0.5);
     expect(r.callPrice).toBeCloseTo(intrinsic, 0);
   });
 
   it('deep OTM call price approaches 0', () => {
-    const r = blackScholes(40, 200, 0.5, 0.05, 0.20); // deep OTM
+    const r = blackScholes(40, 200, 0.5, 0.05, 0.2); // deep OTM
     expect(r.callPrice).toBeCloseTo(0, 3);
   });
 
   it('higher volatility increases both call and put price', () => {
-    const lo = blackScholes(40, 40, 0.5, 0.05, 0.20);
-    const hi = blackScholes(40, 40, 0.5, 0.05, 0.40);
+    const lo = blackScholes(40, 40, 0.5, 0.05, 0.2);
+    const hi = blackScholes(40, 40, 0.5, 0.05, 0.4);
     expect(hi.callPrice).toBeGreaterThan(lo.callPrice);
     expect(hi.putPrice).toBeGreaterThan(lo.putPrice);
   });
 
   it('throws for zero spot price', () => {
-    expect(() => blackScholes(0, 40, 0.5, 0.05, 0.20)).toThrow();
+    expect(() => blackScholes(0, 40, 0.5, 0.05, 0.2)).toThrow();
   });
 
   it('throws for zero volatility', () => {
@@ -290,13 +295,24 @@ describe('blackScholes', () => {
 describe('analyzeFinance', () => {
   it('computes all three analyses when all inputs provided', () => {
     const holdings: PortfolioHolding[] = [
-      { id: 'A', returns: Array.from({length:24},(_,i)=>0.005+0.01*Math.cos(i)), weight: 0.6 },
-      { id: 'B', returns: Array.from({length:24},(_,i)=>0.006+0.01*Math.sin(i)), weight: 0.4 },
+      {
+        id: 'A',
+        returns: Array.from({ length: 24 }, (_, i) => 0.005 + 0.01 * Math.cos(i)),
+        weight: 0.6,
+      },
+      {
+        id: 'B',
+        returns: Array.from({ length: 24 }, (_, i) => 0.006 + 0.01 * Math.sin(i)),
+        weight: 0.4,
+      },
     ];
     const r = analyzeFinance({
-      bond:      { spec: { faceValue: 1000, couponRate: 0.05, periods: 20, periodsPerYear: 2 }, annualYield: 0.05 },
+      bond: {
+        spec: { faceValue: 1000, couponRate: 0.05, periods: 20, periodsPerYear: 2 },
+        annualYield: 0.05,
+      },
       portfolio: { holdings },
-      options:   { S: 40, K: 40, T: 0.5, r: 0.05, sigma: 0.30 },
+      options: { S: 40, K: 40, T: 0.5, r: 0.05, sigma: 0.3 },
     });
     expect(r.bond).toBeDefined();
     expect(r.portfolio).toBeDefined();
@@ -309,7 +325,10 @@ describe('analyzeFinance', () => {
 
 describe('buildFinanceReceipt', () => {
   const bondResult = analyzeFinance({
-    bond: { spec: { faceValue: 1000, couponRate: 0.05, periods: 20, periodsPerYear: 2 }, annualYield: 0.05 },
+    bond: {
+      spec: { faceValue: 1000, couponRate: 0.05, periods: 20, periodsPerYear: 2 },
+      annualYield: 0.05,
+    },
   });
 
   it('produces receipt with plugin=banking-finance and CAEL event', () => {

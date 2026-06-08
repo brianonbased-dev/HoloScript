@@ -10,24 +10,31 @@
  */
 
 const RINGS = [
-  { ring: 0, count: 12, radius: 4,  accent: '#22d3ee', accentName: 'cyan'   },
-  { ring: 1, count: 24, radius: 8,  accent: '#a855f7', accentName: 'purple' },
+  { ring: 0, count: 12, radius: 4, accent: '#22d3ee', accentName: 'cyan' },
+  { ring: 1, count: 24, radius: 8, accent: '#a855f7', accentName: 'purple' },
   { ring: 2, count: 36, radius: 12, accent: '#6366f1', accentName: 'indigo' },
-  { ring: 3, count: 28, radius: 16, accent: '#818cf8', accentName: 'slate'  },
+  { ring: 3, count: 28, radius: 16, accent: '#818cf8', accentName: 'slate' },
 ];
 
 function agentPositions() {
   const out = [];
   let idx = 0;
   for (const spec of RINGS) {
-    const step   = (2 * Math.PI) / spec.count;
+    const step = (2 * Math.PI) / spec.count;
     const offset = spec.ring * (Math.PI / (spec.count * 2));
     for (let i = 0; i < spec.count; i++) {
       const angle = i * step + offset;
       const x = parseFloat((spec.radius * Math.cos(angle)).toFixed(3));
       const z = parseFloat((spec.radius * Math.sin(angle)).toFixed(3));
-      out.push({ idx, ring: spec.ring, accent: spec.accent, x, y: 0, z,
-                 id: `sim_agent_${String(idx).padStart(3,'0')}` });
+      out.push({
+        idx,
+        ring: spec.ring,
+        accent: spec.accent,
+        x,
+        y: 0,
+        z,
+        id: `sim_agent_${String(idx).padStart(3, '0')}`,
+      });
       idx++;
     }
   }
@@ -45,12 +52,14 @@ function objectBlock(agent) {
 
 function generateComposition() {
   const agents = agentPositions();
-  const byRing = [0,1,2,3].map(r => agents.filter(a => a.ring === r));
+  const byRing = [0, 1, 2, 3].map((r) => agents.filter((a) => a.ring === r));
 
-  const objectBlocks = byRing.map((ring, r) => {
-    const name = ['Inner Council','Primary Ring','Secondary Ring','Outer Ring'][r];
-    return `  spatial_group "${name}" {\n${ring.map(objectBlock).join('\n')}\n  }`;
-  }).join('\n\n');
+  const objectBlocks = byRing
+    .map((ring, r) => {
+      const name = ['Inner Council', 'Primary Ring', 'Secondary Ring', 'Outer Ring'][r];
+      return `  spatial_group "${name}" {\n${ring.map(objectBlock).join('\n')}\n  }`;
+    })
+    .join('\n\n');
 
   return `composition "uAAL Collective" {
 

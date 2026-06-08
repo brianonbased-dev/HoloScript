@@ -35,12 +35,11 @@ const argMap = Object.fromEntries(
   process.argv.slice(2).map((a) => {
     const [k, v] = a.replace(/^--/, '').split('=');
     return [k, v ?? true];
-  }),
+  })
 );
 
 const HOLOSCRIPT_ROOT = path.resolve(__dirname, '..');
-const AI_ECO_ROOT =
-  argMap['ai-eco'] || process.env.AI_ECO_ROOT || 'C:/Users/josep/.ai-ecosystem';
+const AI_ECO_ROOT = argMap['ai-eco'] || process.env.AI_ECO_ROOT || 'C:/Users/josep/.ai-ecosystem';
 const OUT_PATH = path.resolve(HOLOSCRIPT_ROOT, 'docs', 'public', 'live-evidence.json');
 
 const NOW_MS = Date.now();
@@ -97,13 +96,15 @@ function buildFleetTile() {
 
   if (fs.existsSync(ledgerPath)) {
     const lines = fs.readFileSync(ledgerPath, 'utf8').split('\n').filter(Boolean);
-    const events = lines.map((l) => {
-      try {
-        return JSON.parse(l);
-      } catch {
-        return null;
-      }
-    }).filter(Boolean);
+    const events = lines
+      .map((l) => {
+        try {
+          return JSON.parse(l);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
 
     // Pair rented→closed by instance_id; if still open, treat close as NOW
     const open = new Map();
@@ -148,8 +149,13 @@ function buildFleetTile() {
     [AI_ECO_ROOT, 'aiEcosystem'],
     [HOLOSCRIPT_ROOT, 'holoScript'],
   ]) {
-    const out = git(repo, 'log', '--since=24 hours ago', '--no-merges',
-      '--pretty=format:%H%x09%an');
+    const out = git(
+      repo,
+      'log',
+      '--since=24 hours ago',
+      '--no-merges',
+      '--pretty=format:%H%x09%an'
+    );
     if (out !== null && out.length > 0) {
       const lines = out.split('\n').filter(Boolean);
       commitCounts[key] = lines.filter((l) => {
@@ -216,8 +222,7 @@ function buildCommitTile() {
     [HOLOSCRIPT_ROOT, 'HoloScript'],
   ]) {
     // Pull last 20 candidates and filter bots in JS (git log can't exclude authors directly).
-    const out = git(repo, 'log', '-20', '--no-merges',
-      '--pretty=format:%H%x09%cI%x09%s%x09%an');
+    const out = git(repo, 'log', '-20', '--no-merges', '--pretty=format:%H%x09%cI%x09%s%x09%an');
     if (!out) continue;
     for (const line of out.split('\n').filter(Boolean)) {
       const [hash, iso, subject, author] = line.split('\t');
@@ -251,7 +256,8 @@ function main() {
   const manifest = {
     schemaVersion: 1,
     generatedAt: new Date(NOW_MS).toISOString(),
-    notes: 'Refresh via scripts/build-live-evidence-manifest.mjs. Auto-refreshes via GHA cron (task_1777316737268_nxgx) every 6h + repository_dispatch on research changes.',
+    notes:
+      'Refresh via scripts/build-live-evidence-manifest.mjs. Auto-refreshes via GHA cron (task_1777316737268_nxgx) every 6h + repository_dispatch on research changes.',
     sourceRepos: {
       aiEcosystem: AI_ECO_ROOT,
       holoScript: HOLOSCRIPT_ROOT,
@@ -267,9 +273,15 @@ function main() {
   fs.writeFileSync(OUT_PATH, JSON.stringify(manifest, null, 2) + '\n');
 
   console.error(`[live-evidence] wrote ${path.relative(process.cwd(), OUT_PATH)}`);
-  console.error(`[live-evidence] fleet: ${fleet.agentsLast24h} agents / $${fleet.spendUsd24h.toFixed(3)} / ${fleet.commitsLast24h} commits 24h`);
-  console.error(`[live-evidence] anchor: ${anchor.fileName || '(none)'} ${anchor.relativeTime ? `(${anchor.relativeTime})` : ''}`);
-  console.error(`[live-evidence] commit: ${commit.repo || '?'} ${commit.hashShort || ''} ${commit.relativeTime ? `(${commit.relativeTime})` : ''}`);
+  console.error(
+    `[live-evidence] fleet: ${fleet.agentsLast24h} agents / $${fleet.spendUsd24h.toFixed(3)} / ${fleet.commitsLast24h} commits 24h`
+  );
+  console.error(
+    `[live-evidence] anchor: ${anchor.fileName || '(none)'} ${anchor.relativeTime ? `(${anchor.relativeTime})` : ''}`
+  );
+  console.error(
+    `[live-evidence] commit: ${commit.repo || '?'} ${commit.hashShort || ''} ${commit.relativeTime ? `(${commit.relativeTime})` : ''}`
+  );
 }
 
 main();

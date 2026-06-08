@@ -54,9 +54,9 @@ export function Step3Package({ pkg, expiresAt, onContinue, onBack }: Step3Props)
     <div>
       <h2 style={{ fontSize: 18, marginBottom: 12 }}>Step 3 — Download recovery package</h2>
       <p style={{ color: '#aaa', fontSize: 13, marginBottom: 12 }}>
-        Your recovery package has been encrypted with your password. Save it
-        somewhere safe — you&apos;ll need both the file AND your password to
-        recover. This package can only be issued once.
+        Your recovery package has been encrypted with your password. Save it somewhere safe —
+        you&apos;ll need both the file AND your password to recover. This package can only be issued
+        once.
       </p>
 
       <div
@@ -71,7 +71,8 @@ export function Step3Package({ pkg, expiresAt, onContinue, onBack }: Step3Props)
         aria-label="package-summary"
       >
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Version</span><strong style={{ color: '#eee' }}>{pkg.version}</strong>
+          <span>Version</span>
+          <strong style={{ color: '#eee' }}>{pkg.version}</strong>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>KDF / Cipher</span>
@@ -81,9 +82,7 @@ export function Step3Package({ pkg, expiresAt, onContinue, onBack }: Step3Props)
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>Manifest hash</span>
-          <code style={{ fontSize: 10, color: '#8cf' }}>
-            {pkg.manifest_hash.slice(0, 32)}...
-          </code>
+          <code style={{ fontSize: 10, color: '#8cf' }}>{pkg.manifest_hash.slice(0, 32)}...</code>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>Session expires in</span>
@@ -130,9 +129,9 @@ export function Step3Package({ pkg, expiresAt, onContinue, onBack }: Step3Props)
           How to import this into wallet software
         </summary>
         <p style={{ marginTop: 8 }}>
-          The package contains your recovery secret encrypted with your
-          password. Wallet software that supports HoloScript v3.0 recovery
-          packages can decrypt and import the secret directly. See{' '}
+          The package contains your recovery secret encrypted with your password. Wallet software
+          that supports HoloScript v3.0 recovery packages can decrypt and import the secret
+          directly. See{' '}
           <a
             href="https://docs.holoscript.net/self-custody/wallet-import"
             style={{ color: '#4af' }}

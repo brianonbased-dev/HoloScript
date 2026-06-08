@@ -30,14 +30,22 @@ function makeCtx(): {
   };
   const ctx: NarrativeContext = {
     quests,
-    setActiveQuestId: (id) => { state.activeQuestId = id; },
-    setDialogueState: (s) => { state.dialogueState = s; },
+    setActiveQuestId: (id) => {
+      state.activeQuestId = id;
+    },
+    setDialogueState: (s) => {
+      state.dialogueState = s;
+    },
   };
   return {
     ctx,
     quests,
-    get activeQuestId() { return state.activeQuestId; },
-    get dialogueState() { return state.dialogueState; },
+    get activeQuestId() {
+      return state.activeQuestId;
+    },
+    get dialogueState() {
+      return state.dialogueState;
+    },
   } as never;
 }
 
@@ -46,7 +54,11 @@ describe('executeNarrative', () => {
     const { ctx, quests } = makeCtx();
     const q1 = { id: 'q1', title: 'First' } as QuestNode;
     const q2 = { id: 'q2', title: 'Second' } as QuestNode;
-    const node: NarrativeNode = { type: 'narrative', id: 'tale-1', quests: [q1, q2] } as NarrativeNode;
+    const node: NarrativeNode = {
+      type: 'narrative',
+      id: 'tale-1',
+      quests: [q1, q2],
+    } as NarrativeNode;
 
     const result = await executeNarrative(node, ctx);
 
@@ -58,7 +70,11 @@ describe('executeNarrative', () => {
 
   it('output includes narrative id and quest count', async () => {
     const { ctx } = makeCtx();
-    const node: NarrativeNode = { type: 'narrative', id: 'tale', quests: [{ id: 'q' } as QuestNode] } as NarrativeNode;
+    const node: NarrativeNode = {
+      type: 'narrative',
+      id: 'tale',
+      quests: [{ id: 'q' } as QuestNode],
+    } as NarrativeNode;
     const result = await executeNarrative(node, ctx);
     expect(result.output).toBe('Narrative tale initialized with 1 quests');
   });
@@ -80,8 +96,16 @@ describe('executeNarrative', () => {
   });
 
   it('does NOT touch activeQuestId or dialogueState', async () => {
-    const wrap = makeCtx() as never as { ctx: NarrativeContext; activeQuestId: unknown; dialogueState: unknown };
-    const node: NarrativeNode = { type: 'narrative', id: 't', quests: [{ id: 'q' } as QuestNode] } as NarrativeNode;
+    const wrap = makeCtx() as never as {
+      ctx: NarrativeContext;
+      activeQuestId: unknown;
+      dialogueState: unknown;
+    };
+    const node: NarrativeNode = {
+      type: 'narrative',
+      id: 't',
+      quests: [{ id: 'q' } as QuestNode],
+    } as NarrativeNode;
     await executeNarrative(node, wrap.ctx);
     expect(wrap.activeQuestId).toBeUndefined();
     expect(wrap.dialogueState).toBeUndefined();

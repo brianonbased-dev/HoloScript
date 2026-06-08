@@ -232,8 +232,7 @@ export class KVFlowCacheManager {
     }
 
     // Sort each category by STE descending (highest STE = evict first)
-    const sortBySte = (a: KVCacheEntry, b: KVCacheEntry) =>
-      b.stepsToExecution - a.stepsToExecution;
+    const sortBySte = (a: KVCacheEntry, b: KVCacheEntry) => b.stepsToExecution - a.stepsToExecution;
     sceneTurnEntries.sort(sortBySte);
     roleOverlayEntries.sort(sortBySte);
     sharedPrefixEntries.sort(sortBySte);
@@ -259,12 +258,10 @@ export class KVFlowCacheManager {
       // Check if all dependent overlays of this entry's shared prefix
       // are already evicted or demoted (only then can we demote/evict it)
       if (entry.isSharedPrefix) {
-        const allDependentsGone = entry.dependentOverlayIds.every(
-          (depId) => {
-            const dep = this.entries.get(depId);
-            return !dep || dep.residency === 'evicted' || dep.residency === 'host';
-          }
-        );
+        const allDependentsGone = entry.dependentOverlayIds.every((depId) => {
+          const dep = this.entries.get(depId);
+          return !dep || dep.residency === 'evicted' || dep.residency === 'host';
+        });
         if (!allDependentsGone) {
           retained.push(entry);
           continue;
@@ -313,11 +310,7 @@ export class KVFlowCacheManager {
 
     // Collect remaining entries as retained
     for (const entry of this.entries.values()) {
-      if (
-        !evicted.includes(entry) &&
-        !demoted.includes(entry) &&
-        !retained.includes(entry)
-      ) {
+      if (!evicted.includes(entry) && !demoted.includes(entry) && !retained.includes(entry)) {
         retained.push(entry);
       }
     }
@@ -367,10 +360,7 @@ export class KVFlowCacheManager {
     const now = new Date().toISOString();
 
     // Find the next scheduled agents from the current step
-    const nextSteps = this.graph.nextScheduled(
-      currentStepId,
-      this.config.prefetchLookahead
-    );
+    const nextSteps = this.graph.nextScheduled(currentStepId, this.config.prefetchLookahead);
 
     const prefetched: KVCacheEntry[] = [];
     const failed: KVCacheEntry[] = [];
@@ -387,8 +377,7 @@ export class KVFlowCacheManager {
       }
 
       // Check if there's enough GPU memory
-      const availableBytes =
-        this.config.maxGpuMemoryBytes - this.currentGpuUsage();
+      const availableBytes = this.config.maxGpuMemoryBytes - this.currentGpuUsage();
       if (entry.estimatedBytes > availableBytes) {
         // Not enough GPU memory — try evicting first
         const evictionResult = this.evict(entry.estimatedBytes - availableBytes);

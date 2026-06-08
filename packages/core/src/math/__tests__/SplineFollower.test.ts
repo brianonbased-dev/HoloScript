@@ -5,8 +5,8 @@ import { SplineFollower } from '../SplineFollower';
 function mockSpline(length = 100) {
   return {
     getLength: () => length,
-    evaluate: (t: number) => ([t * length, 0, 0]),
-    getTangent: (t: number) => ([1, 0, 0]),
+    evaluate: (t: number) => [t * length, 0, 0],
+    getTangent: (t: number) => [1, 0, 0],
   } as any;
 }
 

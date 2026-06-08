@@ -111,9 +111,7 @@ export function validateHoloOutput(code: string): ValidationResult {
 
   // ─── Markdown fence check ─────────────────────────────────────────
   if (MARKDOWN_FENCE_RE.test(trimmed)) {
-    errors.push(
-      'Output contains markdown code fences (``` blocks). Return raw HoloScript only.',
-    );
+    errors.push('Output contains markdown code fences (``` blocks). Return raw HoloScript only.');
   }
 
   // ─── Balanced braces ──────────────────────────────────────────────
@@ -124,7 +122,7 @@ export function validateHoloOutput(code: string): ValidationResult {
   const hasTopLevelBlock = detectTopLevelBlocks(trimmed);
   if (!hasTopLevelBlock) {
     errors.push(
-      'No recognized top-level block found. Expected one of: composition, scene, object, service, pipeline, agent.',
+      'No recognized top-level block found. Expected one of: composition, scene, object, service, pipeline, agent.'
     );
   }
 
@@ -243,21 +241,21 @@ function checkBalancedBraces(code: string): string[] {
     errors.push(
       curlyDepth > 0
         ? `${curlyDepth} unclosed curly brace(s) "{"`
-        : `${Math.abs(curlyDepth)} extra closing curly brace(s) "}"`,
+        : `${Math.abs(curlyDepth)} extra closing curly brace(s) "}"`
     );
   }
   if (squareDepth !== 0) {
     errors.push(
       squareDepth > 0
         ? `${squareDepth} unclosed square bracket(s) "["`
-        : `${Math.abs(squareDepth)} extra closing square bracket(s) "]"`,
+        : `${Math.abs(squareDepth)} extra closing square bracket(s) "]"`
     );
   }
   if (parenDepth !== 0) {
     errors.push(
       parenDepth > 0
         ? `${parenDepth} unclosed parenthesis(es) "("`
-        : `${Math.abs(parenDepth)} extra closing parenthesis(es) ")"`,
+        : `${Math.abs(parenDepth)} extra closing parenthesis(es) ")"`
     );
   }
 
@@ -295,7 +293,7 @@ function checkTraitSyntax(code: string): string[] {
       /^\s+(physics|collidable|grabbable|throwable|hoverable|clickable|glowing|animated|pointable|scalable|rotatable|ai_npc|pathfinding|behavior_tree|inventory_sync|x402_paywall|multiplayer|state_sync|weather_sync|geo_anchor|quest_hub|crdt|wallet|model|tool_use|memory)(?:\(|\s*\{|\s*$)/;
     if (knownTraitPattern.test(line) && !TRAIT_INLINE_RE.test(line)) {
       warnings.push(
-        `Line ${i + 1}: Trait-like keyword without "@" prefix. Did you mean "@${stripped.split(/[(\s{]/)[0]}"?`,
+        `Line ${i + 1}: Trait-like keyword without "@" prefix. Did you mean "@${stripped.split(/[(\s{]/)[0]}"?`
       );
     }
   }
@@ -319,7 +317,7 @@ function checkPropertyFormat(code: string): string[] {
     // Inside blocks, lines that look like assignments but use = instead of :
     if (insideBlock && /^\s+[\w]+\s*=\s*.+/.test(line) && !line.includes('=>')) {
       warnings.push(
-        `Line ${i + 1}: Property uses "=" instead of ":". HoloScript uses "key: value" syntax.`,
+        `Line ${i + 1}: Property uses "=" instead of ":". HoloScript uses "key: value" syntax.`
       );
     }
   }

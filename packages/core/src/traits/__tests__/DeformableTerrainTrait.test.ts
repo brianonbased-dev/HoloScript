@@ -50,15 +50,24 @@ describe('DeformableTerrainTrait — onAttach / onDetach', () => {
   it('onAttach emits deformable_terrain_create with config fields', async () => {
     const node = makeNode();
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    expect(node.emit).toHaveBeenCalledWith('deformable_terrain_create', expect.objectContaining({
-      resolution: 256, scale: 100, useGPU: true,
-    }));
+    expect(node.emit).toHaveBeenCalledWith(
+      'deformable_terrain_create',
+      expect.objectContaining({
+        resolution: 256,
+        scale: 100,
+        useGPU: true,
+      })
+    );
   });
 
   it('onAttach initializes terrain state with active=true', async () => {
     const node = makeNode();
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    const state = node.__terrainState as { active: boolean; totalErosion: number; erosionSteps: number };
+    const state = node.__terrainState as {
+      active: boolean;
+      totalErosion: number;
+      erosionSteps: number;
+    };
     expect(state.active).toBe(true);
     expect(state.totalErosion).toBe(0);
     expect(state.erosionSteps).toBe(0);
@@ -69,7 +78,9 @@ describe('DeformableTerrainTrait — onAttach / onDetach', () => {
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
     deformableTerrainHandler.onDetach!(node as never, defaultConfig, makeCtx(node) as never);
-    expect(node.emit).toHaveBeenCalledWith('deformable_terrain_destroy', { nodeId: 'node-terrain' });
+    expect(node.emit).toHaveBeenCalledWith('deformable_terrain_destroy', {
+      nodeId: 'node-terrain',
+    });
     expect(node.__terrainState).toBeUndefined();
   });
 });
@@ -80,7 +91,12 @@ describe('DeformableTerrainTrait — onUpdate', () => {
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
     (weatherBlackboard as { precipitation: number }).precipitation = 0;
-    await deformableTerrainHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
+    await deformableTerrainHandler.onUpdate!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      0.016
+    );
     expect(node.emit).not.toHaveBeenCalled();
   });
 
@@ -89,10 +105,18 @@ describe('DeformableTerrainTrait — onUpdate', () => {
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
     (weatherBlackboard as { precipitation: number }).precipitation = 0.5;
-    await deformableTerrainHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
-    expect(node.emit).toHaveBeenCalledWith('deformable_terrain_erode', expect.objectContaining({
-      deltaTime: 0.016,
-    }));
+    await deformableTerrainHandler.onUpdate!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      0.016
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'deformable_terrain_erode',
+      expect.objectContaining({
+        deltaTime: 0.016,
+      })
+    );
     const state = node.__terrainState as { erosionSteps: number };
     expect(state.erosionSteps).toBe(1);
     // Reset for other tests
@@ -105,25 +129,48 @@ describe('DeformableTerrainTrait — onEvent', () => {
     const node = makeNode();
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     node.emit.mockClear();
-    deformableTerrainHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'terrain_deform', position: [10, 0, 5], radius: 3.0, strength: 2.0, mode: 'raise',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('deformable_terrain_deform', expect.objectContaining({
-      position: [10, 0, 5], mode: 'raise',
-    }));
+    deformableTerrainHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'terrain_deform',
+        position: [10, 0, 5],
+        radius: 3.0,
+        strength: 2.0,
+        mode: 'raise',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'deformable_terrain_deform',
+      expect.objectContaining({
+        position: [10, 0, 5],
+        mode: 'raise',
+      })
+    );
   });
 
   it('terrain_reset resets erosion counters', async () => {
     const node = makeNode();
     (weatherBlackboard as { precipitation: number }).precipitation = 1.0;
     deformableTerrainHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    await deformableTerrainHandler.onUpdate!(node as never, defaultConfig, makeCtx(node) as never, 0.016);
+    await deformableTerrainHandler.onUpdate!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      0.016
+    );
     const state = node.__terrainState as { erosionSteps: number; totalErosion: number };
     expect(state.erosionSteps).toBe(1);
     node.emit.mockClear();
-    deformableTerrainHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'terrain_reset',
-    } as never);
+    deformableTerrainHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'terrain_reset',
+      } as never
+    );
     expect(state.totalErosion).toBe(0);
     expect(state.erosionSteps).toBe(0);
     expect(node.emit).toHaveBeenCalledWith('deformable_terrain_reset', {});

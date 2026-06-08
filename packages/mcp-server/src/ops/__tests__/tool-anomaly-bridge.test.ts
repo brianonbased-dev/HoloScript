@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { recordMcpToolCallMetric, __testOnly_resetToolAnomalyBridge } from '../tool-anomaly-bridge.js';
+import {
+  recordMcpToolCallMetric,
+  __testOnly_resetToolAnomalyBridge,
+} from '../tool-anomaly-bridge.js';
 
 describe('tool-anomaly-bridge', () => {
   afterEach(() => {
@@ -8,9 +11,7 @@ describe('tool-anomaly-bridge', () => {
   });
 
   it('recordMcpToolCallMetric does not throw', () => {
-    expect(() =>
-      recordMcpToolCallMetric('parse_hs', 12, false)
-    ).not.toThrow();
+    expect(() => recordMcpToolCallMetric('parse_hs', 12, false)).not.toThrow();
   });
 
   it('respects MCP_ANOMALY_MIN_SAMPLES via env when set', async () => {

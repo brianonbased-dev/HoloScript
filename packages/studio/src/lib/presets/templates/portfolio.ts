@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-portfolio",
-  name: "3D Portfolio",
-  description: "Interactive 3D portfolio with floating project cards and navigation",
-  thumbnail: "💼",
-  tags: ["web","portfolio","gallery","interactive"],
-  category: "web",
+  id: 'wizard-portfolio',
+  name: '3D Portfolio',
+  description: 'Interactive 3D portfolio with floating project cards and navigation',
+  thumbnail: '💼',
+  tags: ['web', 'portfolio', 'gallery', 'interactive'],
+  category: 'web',
   code: `composition "3D Portfolio" {
   environment {
     skybox: "studio"
@@ -71,7 +71,7 @@ export const template: SceneTemplate = {
     intensity: 2.0
     angle: 0.6
   }
-}`
+}`,
 };
 
 export default template;

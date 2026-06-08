@@ -84,9 +84,7 @@ export function hasAnthropicFileContent(request: LLMCompletionRequest): boolean 
  * fast, header-free request shape for the common case (`request.tools`
  * absent OR all generic function tools, no `betaHeaders`).
  */
-export function collectAnthropicBetaHeaders(
-  request: LLMCompletionRequest,
-): string[] | undefined {
+export function collectAnthropicBetaHeaders(request: LLMCompletionRequest): string[] | undefined {
   const tokens: string[] = [];
   const tools = request.tools as ToolSpecUnion[] | undefined;
   if (tools && tools.length > 0) {
@@ -146,9 +144,10 @@ export function collectAnthropicBetaHeaders(
  * format. The matching `anthropic-beta` tokens are emitted separately by
  * `collectAnthropicBetaHeaders`.
  */
-export function buildAnthropicExtensionBody(
-  request: LLMCompletionRequest,
-): { compaction?: { type: string }; task_budget?: { type: string; total: number } } {
+export function buildAnthropicExtensionBody(request: LLMCompletionRequest): {
+  compaction?: { type: string };
+  task_budget?: { type: string; total: number };
+} {
   const out: { compaction?: { type: string }; task_budget?: { type: string; total: number } } = {};
   const compaction = request.provider?.anthropic?.compaction;
   if (compaction) {
@@ -162,10 +161,9 @@ export function buildAnthropicExtensionBody(
 }
 
 function collectAnthropicUploadBetas(request: LLMFileUploadRequest): string[] {
-  return [
-    ANTHROPIC_FILES_BETA,
-    ...(request.provider?.anthropic?.betaHeaders ?? []),
-  ].filter((token, index, all) => token.length > 0 && all.indexOf(token) === index);
+  return [ANTHROPIC_FILES_BETA, ...(request.provider?.anthropic?.betaHeaders ?? [])].filter(
+    (token, index, all) => token.length > 0 && all.indexOf(token) === index
+  );
 }
 
 function mapAnthropicFileMetadata(value: unknown): LLMFileMetadata {
@@ -188,10 +186,10 @@ function mapAnthropicFileMetadata(value: unknown): LLMFileMetadata {
 // verifying status at https://platform.claude.com/docs/en/about-claude/models/overview.
 export const ANTHROPIC_MODELS = [
   // Current — recommended defaults
-  'claude-opus-4-8',     // Most capable. $10/$50 per MTok (3× cheaper than 4.7). Adaptive thinking only; no temperature/top_p. Context 1M / maxOut 128K.
-  'claude-opus-4-7',     // Adaptive thinking only; no temperature/top_p.
-  'claude-sonnet-4-6',   // Best speed/intelligence. Adaptive thinking.
-  'claude-haiku-4-5',    // Fast, cost-effective for simple tasks.
+  'claude-opus-4-8', // Most capable. $10/$50 per MTok (3× cheaper than 4.7). Adaptive thinking only; no temperature/top_p. Context 1M / maxOut 128K.
+  'claude-opus-4-7', // Adaptive thinking only; no temperature/top_p.
+  'claude-sonnet-4-6', // Best speed/intelligence. Adaptive thinking.
+  'claude-haiku-4-5', // Fast, cost-effective for simple tasks.
   // Legacy — still active, use only on explicit request
   'claude-opus-4-6',
   'claude-opus-4-5',
@@ -235,7 +233,7 @@ function isOpusFamilyModel(model: string): boolean {
  */
 export function buildThinkingAndOutputForAnthropic(
   model: string,
-  request: LLMCompletionRequest,
+  request: LLMCompletionRequest
 ): { thinking?: Record<string, unknown>; output_config?: { effort: AnthropicEffortLevel } } {
   if (request.thinking?.type === 'disabled') {
     return { thinking: { type: 'disabled' } };
@@ -277,7 +275,10 @@ export function buildThinkingAndOutputForAnthropic(
   }
 
   const output_config = effort !== undefined ? { effort } : undefined;
-  const out: { thinking?: Record<string, unknown>; output_config?: { effort: AnthropicEffortLevel } } = {};
+  const out: {
+    thinking?: Record<string, unknown>;
+    output_config?: { effort: AnthropicEffortLevel };
+  } = {};
   if (thinking) out.thinking = thinking;
   if (output_config) out.output_config = output_config;
   return out;
@@ -320,19 +321,19 @@ export const ANTHROPIC_CAPABILITIES: Capabilities = {
   tools: true,
 
   vision: true,
-  highResVision: true,           // Opus 4.8/4.7 — 2576px long edge
-  visibleReasoning: true,        // adaptive thinking
-  adjustableEffort: true,        // low / medium / high / xhigh / max
+  highResVision: true, // Opus 4.8/4.7 — 2576px long edge
+  visibleReasoning: true, // adaptive thinking
+  adjustableEffort: true, // low / medium / high / xhigh / max
 
-  liveWebSearch: true,           // server-side web_search tool (proxy, not real-time)
-  codeExecutionSandbox: true,    // server-side code_execution
-  promptCaching: true,           // cache_control breakpoints, 5min/1hr TTL
-  perLoopBudget: true,           // Task Budgets — beta task-budgets-2026-03-13 (Opus 4.8/4.7)
-  serverSideCompaction: true,    // beta compact-2026-01-12 (4.6+)
-  hostedAgenticLoop: true,       // Managed Agents — beta managed-agents-2026-04-01 (1P only)
-  persistentMemoryStore: true,   // Memory Stores (under managed-agents)
-  structuredOutputs: true,       // strict JSON schema
-  batchApi: true,                // 50% off, 24h SLA
+  liveWebSearch: true, // server-side web_search tool (proxy, not real-time)
+  codeExecutionSandbox: true, // server-side code_execution
+  promptCaching: true, // cache_control breakpoints, 5min/1hr TTL
+  perLoopBudget: true, // Task Budgets — beta task-budgets-2026-03-13 (Opus 4.8/4.7)
+  serverSideCompaction: true, // beta compact-2026-01-12 (4.6+)
+  hostedAgenticLoop: true, // Managed Agents — beta managed-agents-2026-04-01 (1P only)
+  persistentMemoryStore: true, // Memory Stores (under managed-agents)
+  structuredOutputs: true, // strict JSON schema
+  batchApi: true, // 50% off, 24h SLA
 
   bedrockAvailable: true,
   vertexAvailable: true,
@@ -442,147 +443,168 @@ export class AnthropicAdapter extends BaseLLMAdapter {
     }
 
     return await this.withRetry(async () => {
-    try {
-      // Use streaming + finalMessage() to avoid undici's 30s headersTimeout.
-      // Without streaming, Anthropic returns response headers only AFTER the
-      // full body finishes generating — for max_tokens=4096 on Opus 4.8/4.7 that
-      // routinely takes 60-120s, but undici aborts after 30s waiting for
-      // headers and surfaces "Request timed out" via APIConnectionTimeoutError.
-      // Streaming starts emitting bytes within ~1s, so headersTimeout never
-      // fires. .finalMessage() awaits the full stream and returns the same
-      // shape as the non-streaming response. Observed 2026-04-25 on W01 H200
-      // mesh-worker: claim → 30s → tick-error, repeated. Direct curl + direct
-      // SDK call (claude-opus-4-7, max_tokens=4096) returned in 3.5s when
-      // size of output was small; bug only surfaces when generation > 30s.
-      // Restored pre-tool-use literal-object call shape — the dynamic
-      // streamArgs Record<string,unknown> variant tripped a 30s wall in the
-      // production code path that the same logic with literal-object-syntax
-      // returns from in 2.8s. SDK overload resolution / inferred shape
-      // matters; keep the call literal. Tools added conditionally below.
-      // Prompt caching opt-in: when enabled AND we have a system prompt,
-      // send `system` as an array with cache_control on the last (only)
-      // block. Render order is `tools → system → messages`, so this single
-      // breakpoint caches BOTH tools AND system together — the exact prefix
-      // an agent runner reuses across ticks. The first request pays ~1.25×
-      // input on the cached prefix; subsequent ticks within TTL pay ~0.1×.
-      // Below the model's minimum cacheable prefix (~2-4K tokens) the
-      // request is processed unchanged — no error, no benefit.
-      const systemField = this.enablePromptCaching && system
-        ? [{ type: 'text' as const, text: system, cache_control: { type: 'ephemeral' as const } }]
-        : (system || undefined);
+      try {
+        // Use streaming + finalMessage() to avoid undici's 30s headersTimeout.
+        // Without streaming, Anthropic returns response headers only AFTER the
+        // full body finishes generating — for max_tokens=4096 on Opus 4.8/4.7 that
+        // routinely takes 60-120s, but undici aborts after 30s waiting for
+        // headers and surfaces "Request timed out" via APIConnectionTimeoutError.
+        // Streaming starts emitting bytes within ~1s, so headersTimeout never
+        // fires. .finalMessage() awaits the full stream and returns the same
+        // shape as the non-streaming response. Observed 2026-04-25 on W01 H200
+        // mesh-worker: claim → 30s → tick-error, repeated. Direct curl + direct
+        // SDK call (claude-opus-4-7, max_tokens=4096) returned in 3.5s when
+        // size of output was small; bug only surfaces when generation > 30s.
+        // Restored pre-tool-use literal-object call shape — the dynamic
+        // streamArgs Record<string,unknown> variant tripped a 30s wall in the
+        // production code path that the same logic with literal-object-syntax
+        // returns from in 2.8s. SDK overload resolution / inferred shape
+        // matters; keep the call literal. Tools added conditionally below.
+        // Prompt caching opt-in: when enabled AND we have a system prompt,
+        // send `system` as an array with cache_control on the last (only)
+        // block. Render order is `tools → system → messages`, so this single
+        // breakpoint caches BOTH tools AND system together — the exact prefix
+        // an agent runner reuses across ticks. The first request pays ~1.25×
+        // input on the cached prefix; subsequent ticks within TTL pay ~0.1×.
+        // Below the model's minimum cacheable prefix (~2-4K tokens) the
+        // request is processed unchanged — no error, no benefit.
+        const systemField =
+          this.enablePromptCaching && system
+            ? [
+                {
+                  type: 'text' as const,
+                  text: system,
+                  cache_control: { type: 'ephemeral' as const },
+                },
+              ]
+            : system || undefined;
 
-      const thinkingOut = buildThinkingAndOutputForAnthropic(model, request);
+        const thinkingOut = buildThinkingAndOutputForAnthropic(model, request);
 
-      // Extended prompt caching: place breakpoints on recent assistant turns
-      // so that agent tool-loops get cache hits beyond the system+tools prefix.
-      const cachedMessages = this.buildMessagesWithCacheBreakpoints(
-        messages.map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content as never,
-        })),
-        !!(this.enablePromptCaching && system),
-      );
+        // Extended prompt caching: place breakpoints on recent assistant turns
+        // so that agent tool-loops get cache hits beyond the system+tools prefix.
+        const cachedMessages = this.buildMessagesWithCacheBreakpoints(
+          messages.map((m) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content as never,
+          })),
+          !!(this.enablePromptCaching && system)
+        );
 
-      // Beta header for the advisor tool / explicit caller-supplied betas.
-      // When undefined the adapter calls stream() with one arg (no options
-      // object) so the request shape is unchanged for the common path —
-      // this preserves the literal-object call shape that the W.production
-      // 30s-wall comment above depends on.
-      const betas = collectAnthropicBetaHeaders(request);
-      const streamOptions = betas
-        ? { headers: { 'anthropic-beta': betas.join(',') } }
-        : undefined;
+        // Beta header for the advisor tool / explicit caller-supplied betas.
+        // When undefined the adapter calls stream() with one arg (no options
+        // object) so the request shape is unchanged for the common path —
+        // this preserves the literal-object call shape that the W.production
+        // 30s-wall comment above depends on.
+        const betas = collectAnthropicBetaHeaders(request);
+        const streamOptions = betas
+          ? { headers: { 'anthropic-beta': betas.join(',') } }
+          : undefined;
 
-      const streamBody = {
-        model,
-        // Default to 16000 per current API skill guidance (was 2048 — too low,
-        // truncates commonly on modern models).
-        max_tokens: request.maxTokens ?? 16000,
-        ...samplingParams,
-        stop_sequences: request.stop,
-        system: systemField as never,
-        messages: cachedMessages.map((m) => ({
-          role: m.role,
-          content: m.content as never,
-        })),
-        // Only set tools when the caller passed any — keeps the request
-        // shape identical to the working pre-tool-use path when tools=[].
-        ...(request.tools && request.tools.length > 0 ? { tools: request.tools as never } : {}),
-        // Adaptive thinking + output_config.effort (see buildThinkingAndOutputForAnthropic).
-        ...(thinkingOut.thinking ? { thinking: thinkingOut.thinking as never } : {}),
-        ...(thinkingOut.output_config
-          ? { output_config: thinkingOut.output_config as never }
-          : {}),
-        // Server-side compaction + per-loop task budgets (see
-        // buildAnthropicExtensionBody). Empty object spread when neither
-        // extension is set, preserving the literal-object call shape.
-        ...buildAnthropicExtensionBody(request),
-      };
-      const stream = streamOptions
-        ? client.messages.stream(streamBody, streamOptions)
-        : client.messages.stream(streamBody);
-      const response = await stream.finalMessage();
+        const streamBody = {
+          model,
+          // Default to 16000 per current API skill guidance (was 2048 — too low,
+          // truncates commonly on modern models).
+          max_tokens: request.maxTokens ?? 16000,
+          ...samplingParams,
+          stop_sequences: request.stop,
+          system: systemField as never,
+          messages: cachedMessages.map((m) => ({
+            role: m.role,
+            content: m.content as never,
+          })),
+          // Only set tools when the caller passed any — keeps the request
+          // shape identical to the working pre-tool-use path when tools=[].
+          ...(request.tools && request.tools.length > 0 ? { tools: request.tools as never } : {}),
+          // Adaptive thinking + output_config.effort (see buildThinkingAndOutputForAnthropic).
+          ...(thinkingOut.thinking ? { thinking: thinkingOut.thinking as never } : {}),
+          ...(thinkingOut.output_config
+            ? { output_config: thinkingOut.output_config as never }
+            : {}),
+          // Server-side compaction + per-loop task budgets (see
+          // buildAnthropicExtensionBody). Empty object spread when neither
+          // extension is set, preserving the literal-object call shape.
+          ...buildAnthropicExtensionBody(request),
+        };
+        const stream = streamOptions
+          ? client.messages.stream(streamBody, streamOptions)
+          : client.messages.stream(streamBody);
+        const response = await stream.finalMessage();
 
-      // Capture request-id and response headers for observability.
-      // stream.request_id is the `request-id` HTTP header that Anthropic
-      // assigns to every request — critical for debugging and support
-      // escalations. stream.response exposes the raw Response with all
-      // headers (rate-limit, retry-after, etc).
-      const requestId: string | undefined = stream.request_id ?? undefined;
-      let responseHeaders: Record<string, string> | undefined;
-      const rawResponse = stream.response;
-      if (rawResponse) {
-        const headers: Record<string, string> = {};
-        rawResponse.headers.forEach((value, key) => {
-          headers[key] = value;
-        });
-        if (Object.keys(headers).length > 0) {
-          responseHeaders = headers;
+        // Capture request-id and response headers for observability.
+        // stream.request_id is the `request-id` HTTP header that Anthropic
+        // assigns to every request — critical for debugging and support
+        // escalations. stream.response exposes the raw Response with all
+        // headers (rate-limit, retry-after, etc).
+        const requestId: string | undefined = stream.request_id ?? undefined;
+        let responseHeaders: Record<string, string> | undefined;
+        const rawResponse = stream.response;
+        if (rawResponse) {
+          const headers: Record<string, string> = {};
+          rawResponse.headers.forEach((value, key) => {
+            headers[key] = value;
+          });
+          if (Object.keys(headers).length > 0) {
+            responseHeaders = headers;
+          }
         }
-      }
 
-      // Split response.content into text + tool_use blocks. Some Opus paths
-      // emit ONLY tool_use (no text) — content stays empty in that case;
-      // toolUses carries the work. Caller's tool-loop must check toolUses
-      // length and re-feed results before treating content as final.
-      const textParts: string[] = [];
-      const toolUses: Array<{ type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }> = [];
-      const assistantBlocks: Array<{ type: string;[k: string]: unknown }> = [];
-      for (const block of response.content) {
-        if (block.type === 'text') {
-          textParts.push((block as { type: 'text'; text: string }).text);
-          assistantBlocks.push({ type: 'text', text: (block as { type: 'text'; text: string }).text });
-        } else if (block.type === 'tool_use') {
-          const tu = block as { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
-          toolUses.push({ type: 'tool_use', id: tu.id, name: tu.name, input: tu.input });
-          assistantBlocks.push({ type: 'tool_use', id: tu.id, name: tu.name, input: tu.input });
+        // Split response.content into text + tool_use blocks. Some Opus paths
+        // emit ONLY tool_use (no text) — content stays empty in that case;
+        // toolUses carries the work. Caller's tool-loop must check toolUses
+        // length and re-feed results before treating content as final.
+        const textParts: string[] = [];
+        const toolUses: Array<{
+          type: 'tool_use';
+          id: string;
+          name: string;
+          input: Record<string, unknown>;
+        }> = [];
+        const assistantBlocks: Array<{ type: string; [k: string]: unknown }> = [];
+        for (const block of response.content) {
+          if (block.type === 'text') {
+            textParts.push((block as { type: 'text'; text: string }).text);
+            assistantBlocks.push({
+              type: 'text',
+              text: (block as { type: 'text'; text: string }).text,
+            });
+          } else if (block.type === 'tool_use') {
+            const tu = block as {
+              type: 'tool_use';
+              id: string;
+              name: string;
+              input: Record<string, unknown>;
+            };
+            toolUses.push({ type: 'tool_use', id: tu.id, name: tu.name, input: tu.input });
+            assistantBlocks.push({ type: 'tool_use', id: tu.id, name: tu.name, input: tu.input });
+          }
         }
+        const content = textParts.join('');
+
+        const usage = response.usage;
+
+        return {
+          content,
+          usage: {
+            promptTokens: usage.input_tokens,
+            completionTokens: usage.output_tokens,
+            totalTokens: usage.input_tokens + usage.output_tokens,
+          },
+          model: response.model,
+          provider: 'anthropic',
+          finishReason:
+            response.stop_reason === 'tool_use'
+              ? 'tool_use'
+              : this.mapStopReason(response.stop_reason),
+          toolUses: toolUses.length > 0 ? toolUses : undefined,
+          assistantBlocks: assistantBlocks as never,
+          requestId,
+          responseHeaders,
+          raw: response,
+        };
+      } catch (err: unknown) {
+        throw this.mapAnthropicError(err);
       }
-      const content = textParts.join('');
-
-      const usage = response.usage;
-
-      return {
-        content,
-        usage: {
-          promptTokens: usage.input_tokens,
-          completionTokens: usage.output_tokens,
-          totalTokens: usage.input_tokens + usage.output_tokens,
-        },
-        model: response.model,
-        provider: 'anthropic',
-        finishReason: response.stop_reason === 'tool_use'
-          ? 'tool_use'
-          : this.mapStopReason(response.stop_reason),
-        toolUses: toolUses.length > 0 ? toolUses : undefined,
-        assistantBlocks: assistantBlocks as never,
-        requestId,
-        responseHeaders,
-        raw: response,
-      };
-    } catch (err: unknown) {
-      throw this.mapAnthropicError(err);
-    }
     });
   }
 
@@ -649,16 +671,14 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         role: m.role as 'user' | 'assistant',
         content: m.content as never,
       })),
-      !!(this.enablePromptCaching && system),
+      !!(this.enablePromptCaching && system)
     );
 
     // Beta header for the advisor tool / explicit caller-supplied betas.
     // See collectAnthropicBetaHeaders() — undefined ⇒ skip the options arg
     // entirely so the common-path request shape is unchanged.
     const betas = collectAnthropicBetaHeaders(request);
-    const streamOptions = betas
-      ? { headers: { 'anthropic-beta': betas.join(',') } }
-      : undefined;
+    const streamOptions = betas ? { headers: { 'anthropic-beta': betas.join(',') } } : undefined;
 
     let stream;
     try {
@@ -674,9 +694,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         })),
         ...(request.tools && request.tools.length > 0 ? { tools: request.tools as never } : {}),
         ...(thinkingOut.thinking ? { thinking: thinkingOut.thinking as never } : {}),
-        ...(thinkingOut.output_config
-          ? { output_config: thinkingOut.output_config as never }
-          : {}),
+        ...(thinkingOut.output_config ? { output_config: thinkingOut.output_config as never } : {}),
         // Server-side compaction + per-loop task budgets. Same plumbing as
         // complete() — see buildAnthropicExtensionBody.
         ...buildAnthropicExtensionBody(request),
@@ -823,17 +841,13 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         };
         finalModel = final.model;
         finishReason =
-          final.stop_reason === 'tool_use'
-            ? 'tool_use'
-            : this.mapStopReason(final.stop_reason);
+          final.stop_reason === 'tool_use' ? 'tool_use' : this.mapStopReason(final.stop_reason);
       } catch {
         // finalMessage() can throw if the stream ended without a clean
         // message_stop event. Fall back to capturedStopReason from the
         // mid-stream message_delta.
         finishReason =
-          capturedStopReason === 'tool_use'
-            ? 'tool_use'
-            : this.mapStopReason(capturedStopReason);
+          capturedStopReason === 'tool_use' ? 'tool_use' : this.mapStopReason(capturedStopReason);
       }
     } else {
       finishReason = 'error';
@@ -873,7 +887,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
    */
   private buildMessagesWithCacheBreakpoints(
     messages: Array<{ role: 'user' | 'assistant'; content: unknown }>,
-    systemBreakpointUsed: boolean,
+    systemBreakpointUsed: boolean
   ): Array<{ role: 'user' | 'assistant'; content: unknown }> {
     if (!this.enablePromptCaching) {
       return messages.map((m) => ({ role: m.role, content: m.content }));
@@ -909,7 +923,11 @@ export class AnthropicAdapter extends BaseLLMAdapter {
         return {
           role: m.role,
           content: [
-            { type: 'text' as const, text: m.content, cache_control: { type: 'ephemeral' as const } },
+            {
+              type: 'text' as const,
+              text: m.content,
+              cache_control: { type: 'ephemeral' as const },
+            },
           ],
         };
       }
@@ -989,14 +1007,10 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       if (status === 400 && message.includes('context')) {
         return new LLMContextLengthError('anthropic', 0);
       }
-      if (
-        status === 400 &&
-        message.includes('credit balance is too low')
-      ) {
+      if (status === 400 && message.includes('credit balance is too low')) {
         return new LLMCreditExhaustedError('anthropic');
       }
-      const isRetryableStatus =
-        typeof status === 'number' && status >= 500 && status < 600;
+      const isRetryableStatus = typeof status === 'number' && status >= 500 && status < 600;
       return new LLMProviderError(err.message, 'anthropic', status, isRetryableStatus);
     }
     return new LLMProviderError(String(err), 'anthropic');

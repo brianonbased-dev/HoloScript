@@ -2,10 +2,10 @@
 
 Experiment 1 already compares conditions on **embodiment** (e.g. embodied vs observer). This addendum adds a **second factorial axis** for **scene provenance**:
 
-| Axis value (plain language) | Technical |
-|-----------------------------|-----------|
-| Native HoloMap scene | HoloMap reconstruction manifest (`simulationContract.kind = holomap.reconstruction.v1`) |
-| Compatibility Marble scene | Marble / manifest compatibility ingest (WorldModelBootstrap path; unchanged) |
+| Axis value (plain language) | Technical                                                                               |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| Native HoloMap scene        | HoloMap reconstruction manifest (`simulationContract.kind = holomap.reconstruction.v1`) |
+| Compatibility Marble scene  | Marble / manifest compatibility ingest (WorldModelBootstrap path; unchanged)            |
 
 ## Pre-registration language
 

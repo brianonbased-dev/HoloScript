@@ -758,16 +758,16 @@ node docs/demos/aaif-summit-demo.mjs --act 5
 
 ## Technical Requirements
 
-| Resource       | Details                                                                       |
-| -------------- | ----------------------------------------------------------------------------- |
-| **Endpoint**   | `https://mcp.holoscript.net`                                                  |
-| **Protocols**  | MCP (JSON-RPC), A2A (JSON-RPC 2.0), x402 (HTTP 402), OAuth 2.1                |
-| **Auth**       | API key, Bearer, OAuth 2.1 PKCE, OpenID Connect                               |
-| **Payment**    | USDC on Base L2 (chain ID: 8453)                                              |
-| **Tools**      | MCP tools mapped to A2A skills (verify via `curl mcp.holoscript.net/health`)  |
-| **Targets**    | Compiler export targets (verify via `find *Compiler.ts`)                      |
-| **Traits**     | Semantic traits (see [NUMBERS.md](../NUMBERS.md))                             |
-| **Local Demo** | `node docs/demos/aaif-summit-demo.mjs` (port 4200)                            |
+| Resource       | Details                                                                      |
+| -------------- | ---------------------------------------------------------------------------- |
+| **Endpoint**   | `https://mcp.holoscript.net`                                                 |
+| **Protocols**  | MCP (JSON-RPC), A2A (JSON-RPC 2.0), x402 (HTTP 402), OAuth 2.1               |
+| **Auth**       | API key, Bearer, OAuth 2.1 PKCE, OpenID Connect                              |
+| **Payment**    | USDC on Base L2 (chain ID: 8453)                                             |
+| **Tools**      | MCP tools mapped to A2A skills (verify via `curl mcp.holoscript.net/health`) |
+| **Targets**    | Compiler export targets (verify via `find *Compiler.ts`)                     |
+| **Traits**     | Semantic traits (see [NUMBERS.md](../NUMBERS.md))                            |
+| **Local Demo** | `node docs/demos/aaif-summit-demo.mjs` (port 4200)                           |
 
 ---
 

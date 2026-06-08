@@ -119,7 +119,9 @@ function makeStopPlan(overrides?: Partial<GuardedStopPlan>): GuardedStopPlan {
   };
 }
 
-function makeReplayReceipt(overrides?: Partial<SlowComputerClinicReplayReceipt>): SlowComputerClinicReplayReceipt {
+function makeReplayReceipt(
+  overrides?: Partial<SlowComputerClinicReplayReceipt>
+): SlowComputerClinicReplayReceipt {
   return {
     id: 'replay-001',
     schemaVersion: HOLOSHELL_SLOW_COMPUTER_CLINIC_RECEIPT_VERSION,
@@ -319,16 +321,12 @@ describe('validateHardwareAuditReceipt', () => {
   });
 
   it('rejects CPU utilization over 100', () => {
-    const errors = validateHardwareAuditReceipt(
-      makeHardwareAudit({ cpuUtilizationPercent: 150 })
-    );
+    const errors = validateHardwareAuditReceipt(makeHardwareAudit({ cpuUtilizationPercent: 150 }));
     expect(errors.some((e) => e.includes('cpuUtilizationPercent'))).toBe(true);
   });
 
   it('rejects negative memory total', () => {
-    const errors = validateHardwareAuditReceipt(
-      makeHardwareAudit({ memoryTotalGb: -1 })
-    );
+    const errors = validateHardwareAuditReceipt(makeHardwareAudit({ memoryTotalGb: -1 }));
     expect(errors.some((e) => e.includes('memoryTotalGb'))).toBe(true);
   });
 });
@@ -606,9 +604,7 @@ describe('validateHoloShellSlowComputerClinicReceiptPack', () => {
   it('rejects ownership plan with invalid category', () => {
     const errors = validateHoloShellSlowComputerClinicReceiptPack(
       makeReceiptPack({
-        ownershipPlans: [
-          makeOwnershipPlan({ category: 'invalid_category' }),
-        ],
+        ownershipPlans: [makeOwnershipPlan({ category: 'invalid_category' })],
       })
     );
     expect(errors.some((e) => e.includes('category is unsupported'))).toBe(true);
@@ -617,9 +613,7 @@ describe('validateHoloShellSlowComputerClinicReceiptPack', () => {
   it('rejects stop plan with safeToExecuteAutomatically true', () => {
     const errors = validateHoloShellSlowComputerClinicReceiptPack(
       makeReceiptPack({
-        stopPlans: [
-          makeStopPlan({ safeToExecuteAutomatically: true as any }),
-        ],
+        stopPlans: [makeStopPlan({ safeToExecuteAutomatically: true as any })],
       })
     );
     expect(errors.some((e) => e.includes('safeToExecuteAutomatically must be false'))).toBe(true);

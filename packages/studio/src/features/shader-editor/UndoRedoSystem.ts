@@ -121,7 +121,7 @@ export class DeleteNodeCommand implements ICommand {
 
       // Restore connections
       for (const conn of this.deletedConnections) {
-          graph.connect(conn.fromNodeId, conn.fromPort, conn.toNodeId, conn.toPort);
+        graph.connect(conn.fromNodeId, conn.fromPort, conn.toNodeId, conn.toPort);
       }
     }
   }

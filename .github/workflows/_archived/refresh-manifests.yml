@@ -27,7 +27,7 @@ name: Refresh manifests (provenance + papers-status + live-evidence)
 on:
   workflow_dispatch:
 permissions:
-  contents: write   # publish refreshed manifests to an automation branch
+  contents: write # publish refreshed manifests to an automation branch
   pull-requests: write
 
 concurrency:

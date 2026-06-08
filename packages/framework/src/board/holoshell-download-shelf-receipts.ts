@@ -50,12 +50,8 @@ export const DOWNLOAD_QUARANTINE_MODES = [
 ] as const;
 export type DownloadQuarantineMode = (typeof DOWNLOAD_QUARANTINE_MODES)[number];
 
-export const DOWNLOAD_SHELF_PERMISSION_ENVELOPES = [
-  'guarded_download',
-  'read_only',
-] as const;
-export type DownloadShelfPermissionEnvelope =
-  (typeof DOWNLOAD_SHELF_PERMISSION_ENVELOPES)[number];
+export const DOWNLOAD_SHELF_PERMISSION_ENVELOPES = ['guarded_download', 'read_only'] as const;
+export type DownloadShelfPermissionEnvelope = (typeof DOWNLOAD_SHELF_PERMISSION_ENVELOPES)[number];
 
 export const DOWNLOAD_SHELF_QUARANTINE_RECEIPT_VERSION =
   'holoscript-download-shelf-quarantine-receipt/v1';
@@ -198,12 +194,7 @@ export interface DownloadShelfReplayLessonReceipt {
 
 // ── Privacy (reused pattern) ──
 
-export const PRIVACY_REDACTION_LEVELS = [
-  'full',
-  'hash_only',
-  'label_only',
-  'none',
-] as const;
+export const PRIVACY_REDACTION_LEVELS = ['full', 'hash_only', 'label_only', 'none'] as const;
 export type PrivacyRedactionLevel = (typeof PRIVACY_REDACTION_LEVELS)[number];
 
 export interface PrivacyRedactionEntry {
@@ -248,8 +239,7 @@ function isNonNegativeInteger(value: number): boolean {
 
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
-    typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
+    typeof value === 'string' && /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
   );
 }
 
@@ -293,9 +283,7 @@ function validateDownloadShelfIdentityEntry(
     errors.push(`${label}.source is unsupported: ${String(entry.source)}.`);
   }
   if (entry.osPathPolicy !== 'absolute_path_kept_in_private_receipt_only') {
-    errors.push(
-      `${label}.osPathPolicy must be 'absolute_path_kept_in_private_receipt_only'.`
-    );
+    errors.push(`${label}.osPathPolicy must be 'absolute_path_kept_in_private_receipt_only'.`);
   }
   if (typeof entry.probedByHardwareAudit !== 'boolean') {
     errors.push(`${label}.probedByHardwareAudit must be a boolean.`);
@@ -401,13 +389,12 @@ export function validateDownloadShelfQuarantineReceipt(
       `DownloadShelfQuarantineReceipt.permissionEnvelope is unsupported: ${String(receipt.permissionEnvelope)}.`
     );
   }
-  validateHashFields(
+  validateHashFields('DownloadShelfQuarantineReceipt', receipt.hash, receipt.hashAlgorithm, errors);
+  validateVerificationCommands(
+    receipt.verificationCommands,
     'DownloadShelfQuarantineReceipt',
-    receipt.hash,
-    receipt.hashAlgorithm,
     errors
   );
-  validateVerificationCommands(receipt.verificationCommands, 'DownloadShelfQuarantineReceipt', errors);
   return errors;
 }
 
@@ -426,13 +413,17 @@ export function validateDownloadShelfConsentReceipt(
     errors.push('DownloadShelfConsentReceipt.consentedScopes must include at least one scope.');
   }
   if (!isOneOf(['low', 'medium', 'high'] as const, String(receipt.riskLevel))) {
-    errors.push(`DownloadShelfConsentReceipt.riskLevel is unsupported: ${String(receipt.riskLevel)}.`);
+    errors.push(
+      `DownloadShelfConsentReceipt.riskLevel is unsupported: ${String(receipt.riskLevel)}.`
+    );
   }
   if (!isIsoTimestamp(receipt.consentedAt)) {
     errors.push('DownloadShelfConsentReceipt.consentedAt must be a valid ISO-8601 timestamp.');
   }
   if (receipt.expiresAt !== undefined && !isIsoTimestamp(receipt.expiresAt)) {
-    errors.push('DownloadShelfConsentReceipt.expiresAt must be a valid ISO-8601 timestamp when present.');
+    errors.push(
+      'DownloadShelfConsentReceipt.expiresAt must be a valid ISO-8601 timestamp when present.'
+    );
   }
   if (receipt.freshUserGesture !== true) {
     errors.push('DownloadShelfConsentReceipt.freshUserGesture must be true.');
@@ -465,9 +456,15 @@ export function validateDownloadShelfImportResultReceipt(
   if (!receipt.consentReceiptId) {
     errors.push('DownloadShelfImportResultReceipt.consentReceiptId is required.');
   }
-  validateDownloadShelfIdentityEntry(receipt.shelf, 'DownloadShelfImportResultReceipt.shelf', errors);
+  validateDownloadShelfIdentityEntry(
+    receipt.shelf,
+    'DownloadShelfImportResultReceipt.shelf',
+    errors
+  );
   if (!isSupportedDownloadImportOutcome(String(receipt.outcome))) {
-    errors.push(`DownloadShelfImportResultReceipt.outcome is unsupported: ${String(receipt.outcome)}.`);
+    errors.push(
+      `DownloadShelfImportResultReceipt.outcome is unsupported: ${String(receipt.outcome)}.`
+    );
   }
   if (!isIsoTimestamp(receipt.startedAt)) {
     errors.push('DownloadShelfImportResultReceipt.startedAt must be a valid ISO-8601 timestamp.');
@@ -475,8 +472,14 @@ export function validateDownloadShelfImportResultReceipt(
   if (!isIsoTimestamp(receipt.completedAt)) {
     errors.push('DownloadShelfImportResultReceipt.completedAt must be a valid ISO-8601 timestamp.');
   }
-  if (typeof receipt.durationMs !== 'number' || !Number.isFinite(receipt.durationMs) || receipt.durationMs < 0) {
-    errors.push('DownloadShelfImportResultReceipt.durationMs must be a non-negative finite number.');
+  if (
+    typeof receipt.durationMs !== 'number' ||
+    !Number.isFinite(receipt.durationMs) ||
+    receipt.durationMs < 0
+  ) {
+    errors.push(
+      'DownloadShelfImportResultReceipt.durationMs must be a non-negative finite number.'
+    );
   }
   if (!Array.isArray(receipt.importedRelativePaths)) {
     errors.push('DownloadShelfImportResultReceipt.importedRelativePaths must be an array.');
@@ -498,8 +501,17 @@ export function validateDownloadShelfImportResultReceipt(
     // allow empty string for non-reversible
     errors.push('DownloadShelfImportResultReceipt.rollbackNote is required (may be empty).');
   }
-  validateHashFields('DownloadShelfImportResultReceipt', receipt.hash, receipt.hashAlgorithm, errors);
-  validateVerificationCommands(receipt.verificationCommands, 'DownloadShelfImportResultReceipt', errors);
+  validateHashFields(
+    'DownloadShelfImportResultReceipt',
+    receipt.hash,
+    receipt.hashAlgorithm,
+    errors
+  );
+  validateVerificationCommands(
+    receipt.verificationCommands,
+    'DownloadShelfImportResultReceipt',
+    errors
+  );
   return errors;
 }
 
@@ -516,7 +528,11 @@ export function validateDownloadShelfReplayLessonReceipt(
   if (!receipt.sourceImportReceiptId) {
     errors.push('DownloadShelfReplayLessonReceipt.sourceImportReceiptId is required.');
   }
-  validateDownloadShelfIdentityEntry(receipt.shelf, 'DownloadShelfReplayLessonReceipt.shelf', errors);
+  validateDownloadShelfIdentityEntry(
+    receipt.shelf,
+    'DownloadShelfReplayLessonReceipt.shelf',
+    errors
+  );
   if (!Array.isArray(receipt.lessons) || receipt.lessons.length === 0) {
     errors.push('DownloadShelfReplayLessonReceipt.lessons must include at least one lesson.');
   } else {
@@ -526,7 +542,9 @@ export function validateDownloadShelfReplayLessonReceipt(
         errors.push(`ReplayLessonEntry.kind is unsupported: ${String(lesson.kind)}.`);
       }
       if (!isSupportedDownloadImportOutcome(String(lesson.sourceOutcome))) {
-        errors.push(`ReplayLessonEntry.sourceOutcome is unsupported: ${String(lesson.sourceOutcome)}.`);
+        errors.push(
+          `ReplayLessonEntry.sourceOutcome is unsupported: ${String(lesson.sourceOutcome)}.`
+        );
       }
       if (typeof lesson.autoDerived !== 'boolean') {
         errors.push('ReplayLessonEntry.autoDerived must be a boolean.');
@@ -535,7 +553,8 @@ export function validateDownloadShelfReplayLessonReceipt(
         errors.push('ReplayLessonEntry.showToNonDevelopers must be a boolean.');
       }
       if (!lesson.insight) errors.push('ReplayLessonEntry.insight is required.');
-      if (!lesson.recommendedAction) errors.push('ReplayLessonEntry.recommendedAction is required.');
+      if (!lesson.recommendedAction)
+        errors.push('ReplayLessonEntry.recommendedAction is required.');
     }
   }
   if (!isIsoTimestamp(receipt.generatedAt)) {
@@ -550,7 +569,12 @@ export function validateDownloadShelfReplayLessonReceipt(
   if (typeof receipt.originalRollbackNote !== 'string') {
     errors.push('DownloadShelfReplayLessonReceipt.originalRollbackNote is required.');
   }
-  validateHashFields('DownloadShelfReplayLessonReceipt', receipt.hash, receipt.hashAlgorithm, errors);
+  validateHashFields(
+    'DownloadShelfReplayLessonReceipt',
+    receipt.hash,
+    receipt.hashAlgorithm,
+    errors
+  );
   return errors;
 }
 
@@ -562,7 +586,11 @@ export function validateHoloShellDownloadShelfReceiptPack(
   if (!pack.shelfIdentity) {
     errors.push('HoloShellDownloadShelfReceiptPack.shelfIdentity is required.');
   } else {
-    validateDownloadShelfIdentityEntry(pack.shelfIdentity, 'HoloShellDownloadShelfReceiptPack.shelfIdentity', errors);
+    validateDownloadShelfIdentityEntry(
+      pack.shelfIdentity,
+      'HoloShellDownloadShelfReceiptPack.shelfIdentity',
+      errors
+    );
   }
   if (pack.quarantine) {
     errors.push(...validateDownloadShelfQuarantineReceipt(pack.quarantine));
@@ -576,21 +604,32 @@ export function validateHoloShellDownloadShelfReceiptPack(
   if (pack.replay) {
     errors.push(...validateDownloadShelfReplayLessonReceipt(pack.replay));
   }
-  const validStatuses = ['planned', 'quarantined', 'consented', 'imported', 'blocked', 'failed'] as const;
+  const validStatuses = [
+    'planned',
+    'quarantined',
+    'consented',
+    'imported',
+    'blocked',
+    'failed',
+  ] as const;
   if (!isOneOf(validStatuses, String(pack.status))) {
     errors.push(`HoloShellDownloadShelfReceiptPack.status is unsupported: ${String(pack.status)}.`);
   }
   // Status machine basic enforcement (per acceptance)
   if (pack.status === 'imported' || pack.status === 'failed' || pack.status === 'blocked') {
     if (!pack.result) {
-      errors.push(`HoloShellDownloadShelfReceiptPack.result is required when status=${pack.status}.`);
+      errors.push(
+        `HoloShellDownloadShelfReceiptPack.result is required when status=${pack.status}.`
+      );
     }
   }
   if (pack.status === 'consented' && !pack.consent) {
     errors.push('HoloShellDownloadShelfReceiptPack.consent is required when status=consented.');
   }
   if (pack.status === 'quarantined' && !pack.quarantine) {
-    errors.push('HoloShellDownloadShelfReceiptPack.quarantine is required when status=quarantined.');
+    errors.push(
+      'HoloShellDownloadShelfReceiptPack.quarantine is required when status=quarantined.'
+    );
   }
   validateHashFields('HoloShellDownloadShelfReceiptPack', pack.hash, pack.hashAlgorithm, errors);
   return errors;
@@ -601,7 +640,10 @@ export function dryRunValidateDownloadShelfPreview(
   preview: Partial<DownloadShelfQuarantineReceipt>
 ): string[] {
   const errors: string[] = [];
-  if (preview.schemaVersion && preview.schemaVersion !== DOWNLOAD_SHELF_QUARANTINE_RECEIPT_VERSION) {
+  if (
+    preview.schemaVersion &&
+    preview.schemaVersion !== DOWNLOAD_SHELF_QUARANTINE_RECEIPT_VERSION
+  ) {
     errors.push(
       `preview.schemaVersion must be ${DOWNLOAD_SHELF_QUARANTINE_RECEIPT_VERSION} when provided.`
     );
@@ -620,14 +662,25 @@ export function dryRunValidateDownloadShelfPreview(
       validatePublicPath('preview.publicRelativePaths[]', p, errors);
     }
   }
-  if (preview.downloadedFilesExecutable !== undefined && preview.downloadedFilesExecutable !== false) {
+  if (
+    preview.downloadedFilesExecutable !== undefined &&
+    preview.downloadedFilesExecutable !== false
+  ) {
     errors.push('preview.downloadedFilesExecutable must be false when provided.');
   }
-  if (preview.sourceFileMutationPerformed !== undefined && preview.sourceFileMutationPerformed !== false) {
+  if (
+    preview.sourceFileMutationPerformed !== undefined &&
+    preview.sourceFileMutationPerformed !== false
+  ) {
     errors.push('preview.sourceFileMutationPerformed must be false when provided.');
   }
-  if (preview.permissionEnvelope && !isSupportedDownloadShelfPermissionEnvelope(String(preview.permissionEnvelope))) {
-    errors.push(`preview.permissionEnvelope is unsupported: ${String(preview.permissionEnvelope)}.`);
+  if (
+    preview.permissionEnvelope &&
+    !isSupportedDownloadShelfPermissionEnvelope(String(preview.permissionEnvelope))
+  ) {
+    errors.push(
+      `preview.permissionEnvelope is unsupported: ${String(preview.permissionEnvelope)}.`
+    );
   }
   return errors;
 }
@@ -754,7 +807,9 @@ export function cloneHoloShellDownloadShelfReceiptPack(
   return {
     ...pack,
     shelfIdentity: cloneDownloadShelfIdentityEntry(pack.shelfIdentity),
-    ...(pack.quarantine ? { quarantine: cloneDownloadShelfQuarantineReceipt(pack.quarantine) } : {}),
+    ...(pack.quarantine
+      ? { quarantine: cloneDownloadShelfQuarantineReceipt(pack.quarantine) }
+      : {}),
     ...(pack.consent ? { consent: cloneDownloadShelfConsentReceipt(pack.consent) } : {}),
     ...(pack.result ? { result: cloneDownloadShelfImportResultReceipt(pack.result) } : {}),
     ...(pack.replay ? { replay: cloneDownloadShelfReplayLessonReceipt(pack.replay) } : {}),

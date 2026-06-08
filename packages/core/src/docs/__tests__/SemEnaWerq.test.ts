@@ -43,7 +43,10 @@ function makeEnaWerq(overrides: Partial<EnaWerqDoc> = {}): EnaWerqDoc {
   };
 }
 
-function makeEntry(semOverrides: Partial<SemAnnotation> = {}, docOverrides: Partial<EnaWerqDoc> = {}): SemEnaWerqEntry {
+function makeEntry(
+  semOverrides: Partial<SemAnnotation> = {},
+  docOverrides: Partial<EnaWerqDoc> = {}
+): SemEnaWerqEntry {
   return {
     sem: makeSem(semOverrides),
     enaWerq: makeEnaWerq(docOverrides),
@@ -132,9 +135,27 @@ describe('SemEnaWerqRegistry', () => {
 
   describe('search()', () => {
     beforeEach(() => {
-      registry.register(makeEntry({ name: 'Grabbable', category: 'interaction', description: 'Allows picking up objects' }));
-      registry.register(makeEntry({ name: 'Spinning', category: 'animation', description: 'Rotates objects continuously' }));
-      registry.register(makeEntry({ name: 'Physics', category: 'physics', description: 'Applies rigid body simulation' }));
+      registry.register(
+        makeEntry({
+          name: 'Grabbable',
+          category: 'interaction',
+          description: 'Allows picking up objects',
+        })
+      );
+      registry.register(
+        makeEntry({
+          name: 'Spinning',
+          category: 'animation',
+          description: 'Rotates objects continuously',
+        })
+      );
+      registry.register(
+        makeEntry({
+          name: 'Physics',
+          category: 'physics',
+          description: 'Applies rigid body simulation',
+        })
+      );
     });
 
     it('finds entries matching name', () => {
@@ -248,9 +269,7 @@ describe('SemEnaWerqRegistry', () => {
         category: 'interaction',
         version: '2.0.0',
         description: 'Grab things',
-        params: [
-          { name: 'force', type: 'number', description: 'Grab force', required: true },
-        ],
+        params: [{ name: 'force', type: 'number', description: 'Grab force', required: true }],
       });
       registry.register({ sem, enaWerq: makeEnaWerq() });
 
@@ -281,8 +300,21 @@ describe('SemEnaWerqRegistry', () => {
         name: 'Physics',
         category: 'physics',
         params: [
-          { name: 'mass', type: 'number', description: 'Mass in kg', required: true, range: { min: 0.001, max: 1000 }, units: 'kg' },
-          { name: 'restitution', type: 'number', description: 'Bounciness', default: 0.5, required: false },
+          {
+            name: 'mass',
+            type: 'number',
+            description: 'Mass in kg',
+            required: true,
+            range: { min: 0.001, max: 1000 },
+            units: 'kg',
+          },
+          {
+            name: 'restitution',
+            type: 'number',
+            description: 'Bounciness',
+            default: 0.5,
+            required: false,
+          },
         ],
       });
       registry.register({ sem, enaWerq: makeEnaWerq() });
@@ -315,11 +347,19 @@ describe('SemEnaWerqRegistry', () => {
         name: 'Ranged',
         category: 'test',
         params: [
-          { name: 'speed', type: 'number', description: 'Speed', range: { min: 0, max: 100 }, required: false },
+          {
+            name: 'speed',
+            type: 'number',
+            description: 'Speed',
+            range: { min: 0, max: 100 },
+            required: false,
+          },
         ],
       });
       registry.register({ sem, enaWerq: makeEnaWerq() });
-      const schema = registry.exportSemAsJSONSchema('test/Ranged') as { properties: Record<string, { minimum: number; maximum: number }> };
+      const schema = registry.exportSemAsJSONSchema('test/Ranged') as {
+        properties: Record<string, { minimum: number; maximum: number }>;
+      };
       expect(schema?.properties?.speed?.minimum).toBe(0);
       expect(schema?.properties?.speed?.maximum).toBe(100);
     });
@@ -329,11 +369,19 @@ describe('SemEnaWerqRegistry', () => {
         name: 'Unitted',
         category: 'test',
         params: [
-          { name: 'velocity', type: 'number', description: 'Velocity', units: 'm/s', required: false },
+          {
+            name: 'velocity',
+            type: 'number',
+            description: 'Velocity',
+            units: 'm/s',
+            required: false,
+          },
         ],
       });
       registry.register({ sem, enaWerq: makeEnaWerq() });
-      const schema = registry.exportSemAsJSONSchema('test/Unitted') as { properties: Record<string, { 'x-units': string }> };
+      const schema = registry.exportSemAsJSONSchema('test/Unitted') as {
+        properties: Record<string, { 'x-units': string }>;
+      };
       expect(schema?.properties?.velocity?.['x-units']).toBe('m/s');
     });
 
@@ -511,7 +559,13 @@ describe('SemConstraint interface', () => {
 
 describe('DocExample interface', () => {
   it('supports all valid language values', () => {
-    const languages: DocExample['language'][] = ['holoscript', 'typescript', 'wgsl', 'json', 'rust'];
+    const languages: DocExample['language'][] = [
+      'holoscript',
+      'typescript',
+      'wgsl',
+      'json',
+      'rust',
+    ];
     for (const lang of languages) {
       const ex: DocExample = { title: 'Test', language: lang, code: '// test' };
       expect(ex.language).toBe(lang);

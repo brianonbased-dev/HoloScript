@@ -23,7 +23,9 @@ function assertEq(actual, expected, name) {
     console.log(`  PASS ${name}`);
   } else {
     testsFailed += 1;
-    console.error(`  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    console.error(
+      `  FAIL ${name}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
   }
 }
 
@@ -48,7 +50,7 @@ try {
       export function buildGridReceipt() {
         return { schema: RECEIPT_SCHEMA, cael: { version: 'cael.v1' }, acceptance: { accepted: true, violations: [] } };
       }
-    `,
+    `
   );
   writePlugin(
     pluginRoot,
@@ -58,7 +60,7 @@ try {
       export class FabricSimulationTrait {
         solve() { return 'cloth-state'; }
       }
-    `,
+    `
   );
   writePlugin(
     pluginRoot,
@@ -66,7 +68,7 @@ try {
     '@fixture/shallow-domain',
     `
       export const pluginMeta = { traits: ['catalog'] };
-    `,
+    `
   );
 
   const audit = auditDomainPluginReceipts({
@@ -83,7 +85,11 @@ try {
   assertOk(withReceipt?.receiptBacked, 'detects receipt surface');
   assertOk(missing?.solverBacked, 'detects solver-backed missing plugin');
   assertEq(missing?.receiptBacked, false, 'missing plugin has no receipt');
-  assertEq(missing?.recommendation, 'add-simulationcontract-receipt', 'missing plugin is actionable');
+  assertEq(
+    missing?.recommendation,
+    'add-simulationcontract-receipt',
+    'missing plugin is actionable'
+  );
   assertEq(shallow?.solverBacked, false, 'shallow plugin is not treated as solver-backed');
   assertEq(audit.missingReceiptRows.length, 1, 'only one fixture gap is reported');
 } finally {

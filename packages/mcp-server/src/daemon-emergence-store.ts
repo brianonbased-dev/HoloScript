@@ -54,10 +54,7 @@ import * as os from 'os';
 
 const DATA_ROOT =
   process.env.HOLOMESH_DATA_DIR ||
-  path.join(
-    process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript'),
-    'holomesh',
-  );
+  path.join(process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript'), 'holomesh');
 
 const EMERGENCE_DIR = path.join(DATA_ROOT, 'emergence');
 const CORPUS_PATH = path.join(EMERGENCE_DIR, 'soul-observations.jsonl');
@@ -161,8 +158,8 @@ function pgAppend(record: EmergenceRecord): void {
     .then(() =>
       pgPool!.query(
         `INSERT INTO daemon_emergence_corpus (owner_id, kind, data) VALUES ($1, $2, $3)`,
-        [record.ownerId, record.kind, JSON.stringify(record)],
-      ),
+        [record.ownerId, record.kind, JSON.stringify(record)]
+      )
     )
     .catch((e: unknown) => {
       console.warn('[DaemonEmergenceStore] pg append failed:', e);
@@ -201,9 +198,7 @@ export function appendEmergenceRecord(record: EmergenceRecord): void {
     ensureDir();
     fs.appendFileSync(CORPUS_PATH, `${JSON.stringify(record)}\n`, 'utf8');
   } catch (err) {
-    console.warn(
-      `[DaemonEmergenceStore] JSONL append failed: ${(err as Error).message}`,
-    );
+    console.warn(`[DaemonEmergenceStore] JSONL append failed: ${(err as Error).message}`);
   }
   pgAppend(record);
 }
@@ -275,7 +270,7 @@ const SYSTEM_EMERGENCE =
  * testable. `records` defaults to the on-disk corpus.
  */
 export function buildNormalizedRows(
-  records: EmergenceRecord[] = readEmergenceRecords(),
+  records: EmergenceRecord[] = readEmergenceRecords()
 ): NormalizedCorpusRow[] {
   const rows: NormalizedCorpusRow[] = [];
   const seqByOwner = new Map<string, number>();
@@ -367,7 +362,9 @@ export function emergenceCorpusStats(): {
   const records = readEmergenceRecords();
   const souls = new Set(records.map((r) => r.ownerId));
   const emerged = new Set(
-    records.filter((r): r is Extract<EmergenceRecord, { kind: 'emergence' }> => r.kind === 'emergence').map((r) => r.ownerId),
+    records
+      .filter((r): r is Extract<EmergenceRecord, { kind: 'emergence' }> => r.kind === 'emergence')
+      .map((r) => r.ownerId)
   );
   return {
     corpusPath: CORPUS_PATH,

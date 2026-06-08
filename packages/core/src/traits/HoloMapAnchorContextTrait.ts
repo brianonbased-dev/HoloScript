@@ -56,7 +56,8 @@ export const holomapAnchorContextHandler: TraitHandler<HoloMapAnchorContextTrait
 
     if (event.type === 'holomap:drift_update' && config.autoReanchor) {
       const drift =
-        typeof payload.estimatedDriftMeters === 'number' && Number.isFinite(payload.estimatedDriftMeters)
+        typeof payload.estimatedDriftMeters === 'number' &&
+        Number.isFinite(payload.estimatedDriftMeters)
           ? payload.estimatedDriftMeters
           : 0;
       const threshold =
@@ -74,9 +75,14 @@ export const holomapAnchorContextHandler: TraitHandler<HoloMapAnchorContextTrait
 
     // Surface placement: a scanned surface is ready to receive anchored objects
     if (event.type === 'holomap:surface_detected') {
-      const surfaceAnchorId = typeof payload.surfaceAnchorId === 'string' ? payload.surfaceAnchorId : undefined;
-      const surfaceNormal = Array.isArray(payload.surfaceNormal) ? payload.surfaceNormal : undefined;
-      const worldPosition = Array.isArray(payload.worldPosition) ? payload.worldPosition : undefined;
+      const surfaceAnchorId =
+        typeof payload.surfaceAnchorId === 'string' ? payload.surfaceAnchorId : undefined;
+      const surfaceNormal = Array.isArray(payload.surfaceNormal)
+        ? payload.surfaceNormal
+        : undefined;
+      const worldPosition = Array.isArray(payload.worldPosition)
+        ? payload.worldPosition
+        : undefined;
       if (surfaceAnchorId) {
         context.emit?.('holomap:surface_anchor_placed', {
           surfaceAnchorId,
@@ -90,9 +96,17 @@ export const holomapAnchorContextHandler: TraitHandler<HoloMapAnchorContextTrait
     // Lighting update: broadcast lighting conditions to anchored objects
     if (event.type === 'holomap:lighting_detected') {
       const referenceId = typeof payload.referenceId === 'string' ? payload.referenceId : undefined;
-      const estimatedLux = typeof payload.estimatedLux === 'number' && Number.isFinite(payload.estimatedLux) ? payload.estimatedLux : undefined;
-      const colorTemperatureK = typeof payload.colorTemperatureK === 'number' && Number.isFinite(payload.colorTemperatureK) ? payload.colorTemperatureK : undefined;
-      const dominantDirection = Array.isArray(payload.dominantDirection) ? payload.dominantDirection : undefined;
+      const estimatedLux =
+        typeof payload.estimatedLux === 'number' && Number.isFinite(payload.estimatedLux)
+          ? payload.estimatedLux
+          : undefined;
+      const colorTemperatureK =
+        typeof payload.colorTemperatureK === 'number' && Number.isFinite(payload.colorTemperatureK)
+          ? payload.colorTemperatureK
+          : undefined;
+      const dominantDirection = Array.isArray(payload.dominantDirection)
+        ? payload.dominantDirection
+        : undefined;
       if (referenceId) {
         context.emit?.('holomap:lighting_update', {
           referenceId,

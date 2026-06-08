@@ -44,7 +44,7 @@ describe('Paper 0c — CAEL Overhead Benchmark (Scenario 1)', () => {
     const caelMs: number[] = [];
     const traceSizesMB: number[] = [];
     const verifyTimesMs: number[] = [];
-    
+
     let sampleTraceStr = '';
 
     for (let r = 0; r < runs; r++) {
@@ -104,10 +104,10 @@ describe('Paper 0c — CAEL Overhead Benchmark (Scenario 1)', () => {
       const t0_v = performance.now();
       const verifyResult = verifyCAELHashChain(trace);
       const t1_v = performance.now();
-      
+
       expect(verifyResult.valid).toBe(true);
       expect(trace.length).toBe(ticks * 5 + 2); // Genesis, 5 per tick, Final
-      
+
       verifyTimesMs.push(t1_v - t0_v);
       recorder.dispose();
     }
@@ -118,11 +118,11 @@ describe('Paper 0c — CAEL Overhead Benchmark (Scenario 1)', () => {
     const mbStats = calcStats(traceSizesMB);
 
     const overheadTotalMs = caelStats.median - unStats.median;
-    
+
     // Per tick medians:
     const unTickMedianMs = unStats.median / ticks;
     const caelTickMedianMs = caelStats.median / ticks;
-    
+
     const tickOverheadMs = caelTickMedianMs - unTickMedianMs;
     const frameBudgetMs = 16.67; // 60Hz
     const overheadPercent = (tickOverheadMs / frameBudgetMs) * 100;
@@ -132,11 +132,17 @@ describe('Paper 0c — CAEL Overhead Benchmark (Scenario 1)', () => {
     console.log(`Uninstrumented Median Tick: ${unTickMedianMs.toFixed(4)} ms`);
     console.log(`CAEL Median Tick:           ${caelTickMedianMs.toFixed(4)} ms`);
     console.log(`Overhead per tick:        ${(tickOverheadMs * 1000).toFixed(2)} µs`);
-    console.log(`Total Time Uninstrumented: ${unStats.median.toFixed(2)} ms (median) / ${unStats.p99.toFixed(2)} ms (p99)`);
-    console.log(`Total Time CAEL:          ${caelStats.median.toFixed(2)} ms (median) / ${caelStats.p99.toFixed(2)} ms (p99)`);
+    console.log(
+      `Total Time Uninstrumented: ${unStats.median.toFixed(2)} ms (median) / ${unStats.p99.toFixed(2)} ms (p99)`
+    );
+    console.log(
+      `Total Time CAEL:          ${caelStats.median.toFixed(2)} ms (median) / ${caelStats.p99.toFixed(2)} ms (p99)`
+    );
     console.log(`Relative Overhead (vs 60Hz frame budget): ${overheadPercent.toFixed(2)}%`);
     console.log(`JSONL Size:               ${mbStats.median.toFixed(2)} MB`);
-    console.log(`Verify Time:              ${verifyStats.median.toFixed(2)} ms (median) / ${verifyStats.p99.toFixed(2)} ms (p99)\n`);
+    console.log(
+      `Verify Time:              ${verifyStats.median.toFixed(2)} ms (median) / ${verifyStats.p99.toFixed(2)} ms (p99)\n`
+    );
 
     // The relative overhead against the 16.67ms frame budget should be < 1.5%
     expect(overheadPercent).toBeLessThan(1.5);

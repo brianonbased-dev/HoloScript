@@ -67,11 +67,7 @@ beforeAll(async () => {
   const ParserClass = Parser.default ?? Parser;
   await ParserClass.init();
 
-  const wasmPath = path.resolve(
-    __dirname,
-    '..',
-    'tree-sitter-holoscript.wasm',
-  );
+  const wasmPath = path.resolve(__dirname, '..', 'tree-sitter-holoscript.wasm');
   language = await ParserClass.Language.load(wasmPath);
 
   parser = new ParserClass() as unknown as TreeSitterParser;
@@ -387,9 +383,7 @@ describe('Query Patterns', () => {
         name: "Sword"
       }
     `);
-    const query = language.query(
-      '(property key: (identifier) @prop.key value: (_) @prop.value)',
-    );
+    const query = language.query('(property key: (identifier) @prop.key value: (_) @prop.value)');
     const captures = query.captures(root);
     const keys = captures
       .filter((c: QueryCapture) => c.name === 'prop.key')
@@ -407,9 +401,7 @@ describe('Query Patterns', () => {
         return a + b
       }
     `);
-    const query = language.query(
-      '(function_declaration name: (identifier) @fn.name)',
-    );
+    const query = language.query('(function_declaration name: (identifier) @fn.name)');
     const captures = query.captures(root);
     const fnNames = captures
       .filter((c: QueryCapture) => c.name === 'fn.name')
@@ -458,11 +450,9 @@ describe('Syntax Highlighting', () => {
     `);
     const captures = query.captures(root);
     const boolCaptures = captures.filter(
-      (c: QueryCapture) => c.name === 'constant.builtin.boolean',
+      (c: QueryCapture) => c.name === 'constant.builtin.boolean'
     );
-    const nullCaptures = captures.filter(
-      (c: QueryCapture) => c.name === 'constant.builtin',
-    );
+    const nullCaptures = captures.filter((c: QueryCapture) => c.name === 'constant.builtin');
     expect(boolCaptures.length).toBe(2);
     expect(nullCaptures.length).toBe(1);
   });

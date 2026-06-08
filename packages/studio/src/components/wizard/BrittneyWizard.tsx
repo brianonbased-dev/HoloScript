@@ -107,9 +107,7 @@ interface ProvisionResponseBody {
 }
 
 export function buildWizardProvisionBody(state: WizardState): ProvisionRequestBody {
-  const approvedRepos = new Set(
-    state.consent.repos.map((repo) => repo.trim()).filter(Boolean)
-  );
+  const approvedRepos = new Set(state.consent.repos.map((repo) => repo.trim()).filter(Boolean));
   if (state.repoUrl) {
     approvedRepos.add(state.repoUrl);
   }
@@ -204,9 +202,7 @@ function StageIndicator({
   currentStage: WizardStage;
   onStageClick: (stage: WizardStage) => void;
 }) {
-  const visibleStages = WIZARD_STAGES.filter(
-    (s) => STAGE_META[s].showInProgress
-  );
+  const visibleStages = WIZARD_STAGES.filter((s) => STAGE_META[s].showInProgress);
   const currentIdx = visibleStages.indexOf(currentStage);
 
   return (
@@ -239,11 +235,7 @@ function StageIndicator({
               }`}
               title={meta.description}
             >
-              {isComplete ? (
-                <Check className="h-3.5 w-3.5" />
-              ) : (
-                <Icon className="h-3.5 w-3.5" />
-              )}
+              {isComplete ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
               <span className="hidden sm:inline">{meta.label}</span>
             </button>
           </React.Fragment>
@@ -256,9 +248,7 @@ function StageIndicator({
 function ChatMessage({ message }: { message: BrittneyMessage }) {
   const isUser = message.role === 'user';
   return (
-    <div
-      className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}
-    >
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
       <div
         className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
           isUser
@@ -272,23 +262,16 @@ function ChatMessage({ message }: { message: BrittneyMessage }) {
   );
 }
 
-function GreetingView({
-  onSuggestionClick,
-}: {
-  onSuggestionClick: (text: string) => void;
-}) {
+function GreetingView({ onSuggestionClick }: { onSuggestionClick: (text: string) => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
       <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-500/20 ring-1 ring-purple-500/30">
         <Wand2 className="h-8 w-8 text-purple-400" />
       </div>
-      <h2 className="text-2xl font-semibold text-white mb-2">
-        Hi, I&apos;m Brittney
-      </h2>
+      <h2 className="text-2xl font-semibold text-white mb-2">Hi, I&apos;m Brittney</h2>
       <p className="text-studio-muted max-w-md mb-8">
-        Tell me what you want to build. I&apos;ll scan your code, pick the
-        right templates, and generate a live preview — all through our
-        conversation.
+        Tell me what you want to build. I&apos;ll scan your code, pick the right templates, and
+        generate a live preview — all through our conversation.
       </p>
       <div className="flex flex-wrap justify-center gap-2 max-w-lg">
         {GREETING_SUGGESTIONS.map((text) => (
@@ -333,7 +316,9 @@ function AbsorbProgressView({
         />
       </div>
       <div className="flex justify-between text-xs text-studio-muted">
-        <span>{filesScanned} / {totalFiles} files</span>
+        <span>
+          {filesScanned} / {totalFiles} files
+        </span>
         <span className="truncate max-w-[60%] text-right">{currentFile}</span>
       </div>
     </div>
@@ -375,13 +360,9 @@ function ScenarioCardGrid({
           >
             <div className="flex items-center gap-2 mb-1">
               <span className="text-lg">{match.scenario.emoji}</span>
-              <span className="text-sm font-medium text-white">
-                {match.scenario.name}
-              </span>
+              <span className="text-sm font-medium text-white">{match.scenario.name}</span>
             </div>
-            <p className="text-xs text-studio-muted line-clamp-2">
-              {match.scenario.description}
-            </p>
+            <p className="text-xs text-studio-muted line-clamp-2">{match.scenario.description}</p>
             <div className="flex items-center gap-1 mt-2">
               <span className="text-[10px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">
                 {Math.round(match.score * 10)}% match
@@ -403,7 +384,10 @@ function ScaffoldFileTree({ files }: { files: string[] }) {
       </div>
       <div className="space-y-1">
         {files.map((file) => (
-          <div key={file} className="text-xs text-studio-muted font-mono pl-2 border-l border-emerald-500/20">
+          <div
+            key={file}
+            className="text-xs text-studio-muted font-mono pl-2 border-l border-emerald-500/20"
+          >
             {file}
           </div>
         ))}
@@ -414,11 +398,7 @@ function ScaffoldFileTree({ files }: { files: string[] }) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function BrittneyWizard({
-  onClose,
-  onCodeGenerated,
-  onScenarioMount,
-}: BrittneyWizardProps) {
+export function BrittneyWizard({ onClose, onCodeGenerated, onScenarioMount }: BrittneyWizardProps) {
   const wizard = useWizardFlow();
   const { state, scenarioMatch } = wizard;
   const [inputValue, setInputValue] = useState('');
@@ -614,7 +594,8 @@ export function BrittneyWizard({
 
       wizard.addMessage({
         role: 'assistant',
-        content: 'Template loaded! You can see the live preview on the right. Feel free to ask me to modify anything.',
+        content:
+          'Template loaded! You can see the live preview on the right. Feel free to ask me to modify anything.',
       });
       wizard.setStage('preview');
     },
@@ -750,9 +731,18 @@ export function BrittneyWizard({
                     </p>
                   ) : (
                     <div className="flex gap-1">
-                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <span
+                        className="w-2 h-2 rounded-full bg-purple-400 animate-bounce"
+                        style={{ animationDelay: '0ms' }}
+                      />
+                      <span
+                        className="w-2 h-2 rounded-full bg-purple-400 animate-bounce"
+                        style={{ animationDelay: '150ms' }}
+                      />
+                      <span
+                        className="w-2 h-2 rounded-full bg-purple-400 animate-bounce"
+                        style={{ animationDelay: '300ms' }}
+                      />
                     </div>
                   )}
                 </div>
@@ -793,7 +783,8 @@ export function BrittneyWizard({
               onClick={wizard.advanceStage}
               className="mt-2 w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600/20 border border-emerald-500/30 px-3 py-2 text-sm text-emerald-400 hover:bg-emerald-600/30 transition"
             >
-              Continue to {STAGE_META[WIZARD_STAGES[WIZARD_STAGES.indexOf(state.stage) + 1] ?? 'deploy'].label}
+              Continue to{' '}
+              {STAGE_META[WIZARD_STAGES[WIZARD_STAGES.indexOf(state.stage) + 1] ?? 'deploy'].label}
               <ChevronRight className="h-4 w-4" />
             </button>
           )}
@@ -806,9 +797,7 @@ export function BrittneyWizard({
           <div className="text-center text-studio-muted">
             <Eye className="h-12 w-12 mx-auto mb-4 opacity-30" />
             <p className="text-sm">Live preview renders here</p>
-            <p className="text-xs mt-1 opacity-60">
-              Connect your editor to see the scene
-            </p>
+            <p className="text-xs mt-1 opacity-60">Connect your editor to see the scene</p>
           </div>
         </div>
       )}

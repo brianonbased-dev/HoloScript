@@ -45,18 +45,34 @@ describe('DiscordTrait — lifecycle', () => {
 describe('DiscordTrait — onEvent', () => {
   it('discord:send calls fetch and emits discord:sent on success', async () => {
     const node = makeNode();
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, status: 204 } as Response);
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue({ ok: true, status: 204 } as Response);
     discordHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    discordHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'discord:send', channel: '#general', content: 'Hello!',
-    } as never);
+    discordHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'discord:send',
+        channel: '#general',
+        content: 'Hello!',
+      } as never
+    );
 
-    await vi.waitFor(() => expect(node.emit).toHaveBeenCalledWith('discord:sent', expect.objectContaining({
-      channel: '#general', bot: 'TestBot', status: 204,
-    })));
+    await vi.waitFor(() =>
+      expect(node.emit).toHaveBeenCalledWith(
+        'discord:sent',
+        expect.objectContaining({
+          channel: '#general',
+          bot: 'TestBot',
+          status: 204,
+        })
+      )
+    );
     expect(fetchSpy).toHaveBeenCalledWith(
       defaultConfig.webhook_url,
-      expect.objectContaining({ method: 'POST', body: expect.stringContaining('Hello!') }),
+      expect.objectContaining({ method: 'POST', body: expect.stringContaining('Hello!') })
     );
     fetchSpy.mockRestore();
   });
@@ -65,20 +81,43 @@ describe('DiscordTrait — onEvent', () => {
     const node = makeNode();
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, status: 204 } as Response);
     discordHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    discordHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'discord:send', channel: '#test', content: 'msg',
-    } as never);
-    await vi.waitFor(() => expect(node.emit).toHaveBeenCalledWith('discord:sent', expect.anything()));
+    discordHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'discord:send',
+        channel: '#test',
+        content: 'msg',
+      } as never
+    );
+    await vi.waitFor(() =>
+      expect(node.emit).toHaveBeenCalledWith('discord:sent', expect.anything())
+    );
     const state = node.__discordState as { sent: number };
     expect(state.sent).toBe(1);
   });
 
   it('discord:send emits discord:error when webhook_url is empty', () => {
     const node = makeNode();
-    discordHandler.onAttach!(node as never, { webhook_url: '', bot_name: 'TestBot' }, makeCtx(node) as never);
-    discordHandler.onEvent!(node as never, { webhook_url: '', bot_name: 'TestBot' }, makeCtx(node) as never, {
-      type: 'discord:send', channel: '#alerts', content: 'Alert!',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('discord:error', expect.objectContaining({ error: 'No webhook_url configured' }));
+    discordHandler.onAttach!(
+      node as never,
+      { webhook_url: '', bot_name: 'TestBot' },
+      makeCtx(node) as never
+    );
+    discordHandler.onEvent!(
+      node as never,
+      { webhook_url: '', bot_name: 'TestBot' },
+      makeCtx(node) as never,
+      {
+        type: 'discord:send',
+        channel: '#alerts',
+        content: 'Alert!',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'discord:error',
+      expect.objectContaining({ error: 'No webhook_url configured' })
+    );
   });
 });

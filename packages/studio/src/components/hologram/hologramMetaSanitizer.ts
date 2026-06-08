@@ -91,14 +91,10 @@ export function sanitizeMetaForRender(meta: unknown): SafeHologramMeta {
       : 'unknown';
 
   const modelId =
-    typeof m.modelId === 'string' && MODEL_ID_PATTERN.test(m.modelId)
-      ? m.modelId
-      : 'unknown';
+    typeof m.modelId === 'string' && MODEL_ID_PATTERN.test(m.modelId) ? m.modelId : 'unknown';
 
   const createdAt =
-    typeof m.createdAt === 'string' && ISO_PATTERN.test(m.createdAt)
-      ? m.createdAt
-      : 'unknown';
+    typeof m.createdAt === 'string' && ISO_PATTERN.test(m.createdAt) ? m.createdAt : 'unknown';
 
   return {
     sourceKind,

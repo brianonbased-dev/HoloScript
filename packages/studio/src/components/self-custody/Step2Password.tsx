@@ -21,11 +21,9 @@ export function Step2Password({ onContinue, onBack }: Step2Props) {
 
   const strength = useMemo(() => scorePassword(password), [password]);
   const mismatch = confirm.length > 0 && confirm !== password;
-  const canAdvance =
-    password.length > 0 && password === confirm && strength.score >= 2;
+  const canAdvance = password.length > 0 && password === confirm && strength.score >= 2;
 
-  const strengthColor =
-    strength.score < 2 ? '#f44' : strength.score < 3 ? '#fa0' : '#4f4';
+  const strengthColor = strength.score < 2 ? '#f44' : strength.score < 3 ? '#fa0' : '#4f4';
   const strengthLabel =
     strength.score === 0
       ? 'Too weak'
@@ -41,8 +39,8 @@ export function Step2Password({ onContinue, onBack }: Step2Props) {
     <div>
       <h2 style={{ fontSize: 18, marginBottom: 12 }}>Step 2 — Recovery password</h2>
       <p style={{ color: '#aaa', fontSize: 13, marginBottom: 8 }}>
-        This password encrypts your recovery package. Losing it means losing
-        access to your account — we cannot reset it. Use a password manager.
+        This password encrypts your recovery package. Losing it means losing access to your account
+        — we cannot reset it. Use a password manager.
       </p>
       <p style={{ color: '#f80', fontSize: 12, marginBottom: 16 }}>
         Anyone with this password AND your package file can impersonate you.
@@ -91,9 +89,7 @@ export function Step2Password({ onContinue, onBack }: Step2Props) {
               />
             ))}
           </div>
-          <div style={{ fontSize: 12, color: strengthColor }}>
-            Strength: {strengthLabel}
-          </div>
+          <div style={{ fontSize: 12, color: strengthColor }}>Strength: {strengthLabel}</div>
           {strength.feedback.length > 0 && (
             <ul
               style={{
@@ -131,9 +127,7 @@ export function Step2Password({ onContinue, onBack }: Step2Props) {
             fontSize: 14,
           }}
         />
-        {mismatch && (
-          <span style={{ color: '#f44', fontSize: 12 }}>Passwords do not match.</span>
-        )}
+        {mismatch && <span style={{ color: '#f44', fontSize: 12 }}>Passwords do not match.</span>}
       </label>
 
       <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>

@@ -54,7 +54,9 @@ export class LocalRegistry {
   }
 
   private checksum(content: string | undefined): string {
-    return createHash('sha256').update(content ?? '').digest('hex');
+    return createHash('sha256')
+      .update(content ?? '')
+      .digest('hex');
   }
 
   /**
@@ -209,8 +211,8 @@ export class PackageResolver {
     if (range.startsWith('^')) {
       const r = parseSemver(range.slice(1));
       if (!r) return false;
-      if (v[0] !== r[0]) return false;          // major must match
-      if (v[1] < r[1]) return false;             // minor >= required
+      if (v[0] !== r[0]) return false; // major must match
+      if (v[1] < r[1]) return false; // minor >= required
       if (v[1] === r[1] && v[2] < r[2]) return false; // patch >= if same minor
       return true;
     }

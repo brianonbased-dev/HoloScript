@@ -18,8 +18,8 @@ describe('RigidbodyTrait', () => {
 
   it('initial state is zeroed', () => {
     const s = rb.getState();
-    expect(s.position).toEqual([0, 0, 0 ]);
-    expect(s.velocity).toEqual([0, 0, 0 ]);
+    expect(s.position).toEqual([0, 0, 0]);
+    expect(s.velocity).toEqual([0, 0, 0]);
     expect(s.isSleeping).toBe(false);
   });
 
@@ -41,31 +41,31 @@ describe('RigidbodyTrait', () => {
   });
 
   it('addForce accumulates force', () => {
-    rb.addForce([10, 0, 0 ], 'force');
+    rb.addForce([10, 0, 0], 'force');
     const s = rb.getState();
     expect(s.force[0]).toBe(10);
   });
 
   it('addForce impulse changes velocity', () => {
-    rb.addForce([4, 0, 0 ], 'impulse');
+    rb.addForce([4, 0, 0], 'impulse');
     // v = F/m = 4/2 = 2
     expect(rb.getState().velocity[0]).toBe(2);
   });
 
   it('addForce velocity-change ignores mass', () => {
-    rb.addForce([3, 0, 0 ], 'velocity-change');
+    rb.addForce([3, 0, 0], 'velocity-change');
     expect(rb.getState().velocity[0]).toBe(3);
   });
 
   it('addForce acceleration multiplies by mass', () => {
-    rb.addForce([5, 0, 0 ], 'acceleration');
+    rb.addForce([5, 0, 0], 'acceleration');
     // force = accel * mass = 5 * 2 = 10
     expect(rb.getState().force[0]).toBe(10);
   });
 
   it('kinematic body ignores addForce', () => {
     rb.setKinematic(true);
-    rb.addForce([100, 0, 0 ]);
+    rb.addForce([100, 0, 0]);
     expect(rb.getState().force[0]).toBe(0);
   });
 
@@ -78,11 +78,11 @@ describe('RigidbodyTrait', () => {
   });
 
   it('clearForces zeroes force and torque', () => {
-    rb.addForce([10, 5, 0 ]);
+    rb.addForce([10, 5, 0]);
     rb.clearForces();
     const s = rb.getState();
-    expect(s.force).toEqual([0, 0, 0 ]);
-    expect(s.torque).toEqual([0, 0, 0 ]);
+    expect(s.force).toEqual([0, 0, 0]);
+    expect(s.torque).toEqual([0, 0, 0]);
   });
 
   it('serialize returns config snapshot', () => {

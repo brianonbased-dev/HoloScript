@@ -311,7 +311,9 @@ export async function renderPreview(options: RenderOptions): Promise<RenderResul
 
   // Trigger async thumbnail generation (non-blocking)
   generateThumbnail(scene.id).catch((e) =>
-    console.warn(`[renderer] Thumbnail generation failed for scene ${scene.id}: ${(e as Error)?.message ?? e}. Preview will use fallback.`)
+    console.warn(
+      `[renderer] Thumbnail generation failed for scene ${scene.id}: ${(e as Error)?.message ?? e}. Preview will use fallback.`
+    )
   );
 
   return {
@@ -380,7 +382,9 @@ export async function createShareLink(options: ShareOptions): Promise<ShareResul
 
   // Trigger async thumbnail generation
   generateThumbnail(scene.id).catch((e) =>
-    console.warn(`[renderer] Thumbnail generation failed for scene ${scene.id}: ${(e as Error)?.message ?? e}. Preview will use fallback.`)
+    console.warn(
+      `[renderer] Thumbnail generation failed for scene ${scene.id}: ${(e as Error)?.message ?? e}. Preview will use fallback.`
+    )
   );
 
   return {
@@ -588,7 +592,10 @@ export function generateWebGPUBrowserTemplate(compiledCode: string, title: strin
     // Remove `as <Type>` casts
     .replace(/\s+as\s+[A-Za-z0-9_<>\[\]|,\s]+(?=[;,)\s])/g, '')
     // Remove `: <Type>` parameter / variable annotations (simplified)
-    .replace(/:\s*(?:GPU[A-Za-z0-9]+|HTMLCanvasElement|GPUColor|Float32Array|number|string|boolean)\b/g, '');
+    .replace(
+      /:\s*(?:GPU[A-Za-z0-9]+|HTMLCanvasElement|GPUColor|Float32Array|number|string|boolean)\b/g,
+      ''
+    );
 
   const safeTitle = escapeHtml(title);
 
@@ -648,7 +655,10 @@ export function generateWebGPUBrowserTemplate(compiledCode: string, title: strin
       (async () => {
         try {
           // ── Compiled HoloScript (sovereign output) ──────────────────────
-${runnableCode.split('\n').map(l => '          ' + l).join('\n')}
+${runnableCode
+  .split('\n')
+  .map((l) => '          ' + l)
+  .join('\n')}
           // ────────────────────────────────────────────────────────────────
         } catch (err) {
           showError(String(err && err.stack ? err.stack : err));

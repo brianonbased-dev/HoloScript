@@ -10,10 +10,7 @@ export const maxDuration = 60;
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
-import {
-  SecretGrantPolicyError,
-  createPolicyGatedSecretGrant,
-} from '@/lib/workspace/secretBroker';
+import { SecretGrantPolicyError, createPolicyGatedSecretGrant } from '@/lib/workspace/secretBroker';
 
 import { corsHeaders } from '../../../_lib/cors';
 

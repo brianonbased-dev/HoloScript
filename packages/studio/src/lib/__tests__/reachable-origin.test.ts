@@ -45,7 +45,7 @@ describe('resolveReachableStudioOrigin', () => {
       resolveReachableStudioOrigin(request('http://localhost:3112/api/reconstruction/session'), {
         env: {},
         interfaces,
-      }),
+      })
     ).toBe('http://192.168.0.23:3112');
   });
 
@@ -54,7 +54,7 @@ describe('resolveReachableStudioOrigin', () => {
       resolveReachableStudioOrigin(request('http://192.168.0.23:3112/api/reconstruction/session'), {
         env: {},
         interfaces,
-      }),
+      })
     ).toBe('http://192.168.0.23:3112');
   });
 
@@ -63,7 +63,7 @@ describe('resolveReachableStudioOrigin', () => {
       resolveReachableStudioOrigin(request('http://localhost:3112/api/reconstruction/session'), {
         env: { STUDIO_MOBILE_ORIGIN: 'http://studio-phone.test:4111' },
         interfaces,
-      }),
+      })
     ).toBe('http://studio-phone.test:4111');
   });
 
@@ -73,7 +73,7 @@ describe('resolveReachableStudioOrigin', () => {
     req.headers.set('x-forwarded-proto', 'https');
 
     expect(resolveReachableStudioOrigin(req, { env: {}, interfaces })).toBe(
-      'https://studio.example.test',
+      'https://studio.example.test'
     );
   });
 });

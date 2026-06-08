@@ -220,7 +220,10 @@ export class OpenAIAdapter implements AIAdapter {
       ...(this.config.organization && { organization: this.config.organization }),
     });
     const result = await adapter.complete({
-      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      messages: messages.map((m) => ({
+        role: m.role as 'system' | 'user' | 'assistant',
+        content: m.content,
+      })),
       maxTokens: 4096,
       temperature: 0.7,
     });
@@ -375,10 +378,7 @@ export class AnthropicAdapter implements AIAdapter {
       defaultModel: this.model,
     });
     const result = await adapter.complete({
-      messages: [
-        { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
-        ...messages,
-      ],
+      messages: [{ role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT }, ...messages],
       maxTokens: 4096,
     });
     return result.content;
@@ -930,7 +930,10 @@ export class XAIAdapter implements AIAdapter {
       defaultModel: this.model,
     });
     const result = await adapter.complete({
-      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      messages: messages.map((m) => ({
+        role: m.role as 'system' | 'user' | 'assistant',
+        content: m.content,
+      })),
       maxTokens: 4096,
       temperature: 0.7,
     });
@@ -1093,7 +1096,10 @@ export class TogetherAdapter implements AIAdapter {
       baseURL: 'https://api.together.xyz/v1',
     });
     const result = await adapter.complete({
-      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      messages: messages.map((m) => ({
+        role: m.role as 'system' | 'user' | 'assistant',
+        content: m.content,
+      })),
       maxTokens: 4096,
       temperature: 0.7,
     });
@@ -1228,7 +1234,10 @@ export class FireworksAdapter implements AIAdapter {
       baseURL: 'https://api.fireworks.ai/inference/v1',
     });
     const result = await adapter.complete({
-      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      messages: messages.map((m) => ({
+        role: m.role as 'system' | 'user' | 'assistant',
+        content: m.content,
+      })),
       maxTokens: 4096,
       temperature: 0.7,
     });
@@ -1394,7 +1403,10 @@ export class NVIDIAAdapter implements AIAdapter {
       baseURL: this.baseUrl,
     });
     const result = await adapter.complete({
-      messages: messages.map((m) => ({ role: m.role as 'system' | 'user' | 'assistant', content: m.content })),
+      messages: messages.map((m) => ({
+        role: m.role as 'system' | 'user' | 'assistant',
+        content: m.content,
+      })),
       maxTokens: 4096,
       temperature: 0.7,
     });

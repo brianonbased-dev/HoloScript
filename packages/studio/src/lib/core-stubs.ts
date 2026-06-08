@@ -13,9 +13,9 @@ function createNoopClass(): any {
             },
             apply() {
               return {}; // Return dummy object for chained calls
-            }
+            },
           });
-        }
+        },
       });
     }
   };

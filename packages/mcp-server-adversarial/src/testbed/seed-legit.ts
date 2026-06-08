@@ -3,7 +3,12 @@
 // container. In local/dev mode, it validates the topology and emits a
 // manifest that runner.ts uses to wire the mesh.
 
-import { DEFAULT_TOPOLOGY, validateTopology, type TestbedTopology, type ServerProfile } from './testbed-config.js';
+import {
+  DEFAULT_TOPOLOGY,
+  validateTopology,
+  type TestbedTopology,
+  type ServerProfile,
+} from './testbed-config.js';
 
 export type ServerManifest = {
   servers: ServerProfile[];

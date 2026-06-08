@@ -112,10 +112,7 @@ const LABEL: Record<Health, string> = {
 
 function StatusDot({ health }: { health: Health }) {
   return (
-    <span
-      className={clsx('inline-block h-2.5 w-2.5 rounded-full', DOT[health])}
-      aria-hidden
-    />
+    <span className={clsx('inline-block h-2.5 w-2.5 rounded-full', DOT[health])} aria-hidden />
   );
 }
 
@@ -173,7 +170,8 @@ export function ConnectorStatusOverview() {
             {infra.length > 0 ? `${infraUp}/${infra.length}` : '—'} infra healthy
             {infraIssues > 0 && (
               <>
-                {' '}· {infraIssues} issue{infraIssues > 1 ? 's' : ''}
+                {' '}
+                · {infraIssues} issue{infraIssues > 1 ? 's' : ''}
               </>
             )}
           </p>

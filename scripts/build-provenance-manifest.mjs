@@ -34,33 +34,53 @@ const argMap = Object.fromEntries(
   process.argv.slice(2).map((a) => {
     const [k, v] = a.replace(/^--/, '').split('=');
     return [k, v ?? true];
-  }),
+  })
 );
 
-const AI_ECO_ROOT =
-  argMap['ai-eco'] ||
-  process.env.AI_ECO_ROOT ||
-  'C:/Users/josep/.ai-ecosystem';
+const AI_ECO_ROOT = argMap['ai-eco'] || process.env.AI_ECO_ROOT || 'C:/Users/josep/.ai-ecosystem';
 
 const RESEARCH_ROOT = path.join(AI_ECO_ROOT, 'research');
-const OUT_PATH = path.resolve(
-  __dirname,
-  '..',
-  'docs',
-  'public',
-  'provenance-manifest.json',
-);
+const OUT_PATH = path.resolve(__dirname, '..', 'docs', 'public', 'provenance-manifest.json');
 
 // Mirror of scripts/verify_provenance.py TEXT_EXTS — must stay in sync.
 const TEXT_EXTS = new Set([
-  '.md', '.markdown', '.txt', '.rst',
-  '.json', '.yml', '.yaml', '.toml', '.xml',
-  '.py', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
-  '.sh', '.ps1', '.bash', '.zsh',
-  '.rs', '.go', '.c', '.cc', '.cpp', '.h', '.hpp',
-  '.css', '.html', '.svg',
-  '.hs', '.hsplus', '.holo',
-  '.tex', '.bib', '.cls', '.sty',
+  '.md',
+  '.markdown',
+  '.txt',
+  '.rst',
+  '.json',
+  '.yml',
+  '.yaml',
+  '.toml',
+  '.xml',
+  '.py',
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.sh',
+  '.ps1',
+  '.bash',
+  '.zsh',
+  '.rs',
+  '.go',
+  '.c',
+  '.cc',
+  '.cpp',
+  '.h',
+  '.hpp',
+  '.css',
+  '.html',
+  '.svg',
+  '.hs',
+  '.hsplus',
+  '.holo',
+  '.tex',
+  '.bib',
+  '.cls',
+  '.sty',
 ]);
 
 function sha256OfFile(absPath) {
@@ -69,10 +89,7 @@ function sha256OfFile(absPath) {
   const h = crypto.createHash('sha256');
   if (TEXT_EXTS.has(ext)) {
     // LF-normalize: \r\n -> \n, then \r -> \n
-    const normalized = buf
-      .toString('binary')
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n');
+    const normalized = buf.toString('binary').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     h.update(Buffer.from(normalized, 'binary'));
   } else {
     h.update(buf);
@@ -158,9 +175,7 @@ function main() {
 
     // sourcePath = abs minus '.base.json'
     const sourceAbs = abs.slice(0, -'.base.json'.length);
-    const sourceRel = path
-      .relative(RESEARCH_ROOT, sourceAbs)
-      .replace(/\\/g, '/');
+    const sourceRel = path.relative(RESEARCH_ROOT, sourceAbs).replace(/\\/g, '/');
 
     let receipt;
     try {
@@ -177,8 +192,7 @@ function main() {
       try {
         currentSha256 = sha256OfFile(sourceAbs);
         drift =
-          receipt.file_sha256 &&
-          currentSha256.toLowerCase() !== receipt.file_sha256.toLowerCase();
+          receipt.file_sha256 && currentSha256.toLowerCase() !== receipt.file_sha256.toLowerCase();
       } catch (err) {
         console.error(`[provenance] hash failed ${sourceAbs}: ${err.message}`);
       }
@@ -266,8 +280,7 @@ function main() {
         'OTS status is inferred from receipt age (anchored_at). Receipts older than 48h are assumed Bitcoin-confirmed; receipts younger than 48h are assumed PENDING (Bitcoin calendars witness within ~24h). The ground truth is scripts/verify_provenance.py in the ai-ecosystem repo — re-run that on any individual file to confirm.',
       driftDetection:
         'A receipt is bucket=drifted when the current LF-normalized sha256 of the source file does not match the file_sha256 committed in the .base.json. Drifted receipts remain valid evidence of the prior file state but indicate the file has been amended since anchoring.',
-      verifyCommand:
-        'python scripts/verify_provenance.py <path>',
+      verifyCommand: 'python scripts/verify_provenance.py <path>',
     },
     entries,
   };
@@ -276,10 +289,10 @@ function main() {
   fs.writeFileSync(OUT_PATH, JSON.stringify(manifest, null, 2) + '\n');
 
   console.error(
-    `[provenance] wrote ${entries.length} entries to ${path.relative(process.cwd(), OUT_PATH)}`,
+    `[provenance] wrote ${entries.length} entries to ${path.relative(process.cwd(), OUT_PATH)}`
   );
   console.error(
-    `[provenance] buckets: ${JSON.stringify(buckets)}; groups: ${JSON.stringify(groups)}`,
+    `[provenance] buckets: ${JSON.stringify(buckets)}; groups: ${JSON.stringify(groups)}`
   );
 }
 

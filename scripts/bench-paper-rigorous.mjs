@@ -34,9 +34,9 @@ const REPO_ROOT = resolve(__dirname, '..');
 // Canonical env-var set for paper-grade runs. Higher N = more stable p99.
 // ────────────────────────────────────────────────────────────────────────────
 const DEFAULTS = {
-  BENCH_N: '500',           // paper-benchmarks.test.ts contract overhead
-  BENCH_N_LARGE: '30',      // tropical-shortest-paths.benchmark.test.ts large N
-  BENCH_SNAPSHOT_N: '30',   // tropical-shortest-paths.benchmark.test.ts snapshot
+  BENCH_N: '500', // paper-benchmarks.test.ts contract overhead
+  BENCH_N_LARGE: '30', // tropical-shortest-paths.benchmark.test.ts large N
+  BENCH_SNAPSHOT_N: '30', // tropical-shortest-paths.benchmark.test.ts snapshot
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -129,9 +129,7 @@ const args = process.argv.slice(2);
 const onlyArg = args.find((a) => a.startsWith('--only='));
 const onlyIds = onlyArg ? onlyArg.slice('--only='.length).split(',') : null;
 
-const harnesses = onlyIds
-  ? HARNESSES.filter((h) => onlyIds.includes(h.id))
-  : HARNESSES;
+const harnesses = onlyIds ? HARNESSES.filter((h) => onlyIds.includes(h.id)) : HARNESSES;
 
 if (onlyIds && harnesses.length === 0) {
   console.error(`No harnesses matched --only=${onlyArg.slice(7)}.`);
@@ -180,10 +178,15 @@ for (const h of harnesses) {
   const startMs = Date.now();
 
   const vitestArgs = [
-    '--filter', h.package, 'exec', 'vitest', 'run',
+    '--filter',
+    h.package,
+    'exec',
+    'vitest',
+    'run',
     h.file,
     '--reporter=verbose',
-    '--testTimeout', String(h.timeoutMs),
+    '--testTimeout',
+    String(h.timeoutMs),
   ];
   if (h.nameFilter) {
     vitestArgs.push('-t', h.nameFilter);

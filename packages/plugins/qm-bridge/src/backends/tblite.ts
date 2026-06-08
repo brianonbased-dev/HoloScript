@@ -115,7 +115,7 @@ export class TBLiteBackend implements QmSolver {
     const wallTime = (performance.now() - startTime) / 1000;
 
     return {
-      molecule,  // In real impl: parse optimized geometry from xtb output
+      molecule, // In real impl: parse optimized geometry from xtb output
       totalEnergy: raw.total_energy ?? 0,
       converged: raw.converged ?? false,
       optimizationSteps: raw.opt_steps ?? 0,
@@ -126,7 +126,9 @@ export class TBLiteBackend implements QmSolver {
   }
 
   async computeVibrations(): Promise<never> {
-    throw new Error('[qm-bridge] TBLite vibrational analysis not yet implemented (stage 2). Use psi4 for accurate frequencies.');
+    throw new Error(
+      '[qm-bridge] TBLite vibrational analysis not yet implemented (stage 2). Use psi4 for accurate frequencies.'
+    );
   }
 
   async computeChargeDensity(): Promise<never> {
@@ -134,7 +136,9 @@ export class TBLiteBackend implements QmSolver {
   }
 
   async computeBandStructure(): Promise<never> {
-    throw new Error('[qm-bridge] TBLite does not support band structure calculations. Use quantum-espresso backend.');
+    throw new Error(
+      '[qm-bridge] TBLite does not support band structure calculations. Use quantum-espresso backend.'
+    );
   }
 
   async computeDipoleMoment(molecule: MoleculeSpec): Promise<[number, number, number]> {
@@ -143,7 +147,9 @@ export class TBLiteBackend implements QmSolver {
   }
 
   async computeDftMaterials(): Promise<never> {
-    throw new Error('[qm-bridge] TBLite does not support periodic/materials DFT. Use quantum-espresso backend.');
+    throw new Error(
+      '[qm-bridge] TBLite does not support periodic/materials DFT. Use quantum-espresso backend.'
+    );
   }
 
   async computeNmrSpectrum(): Promise<never> {
@@ -181,10 +187,7 @@ export class TBLiteBackend implements QmSolver {
 
   // ── Subprocess bridge ──────────────────────────────────────────────────
 
-  private async runXtb(
-    molecule: MoleculeSpec,
-    task: string,
-  ): Promise<TBLiteRawResult> {
+  private async runXtb(molecule: MoleculeSpec, task: string): Promise<TBLiteRawResult> {
     // Generate xtb-compatible XYZ input
     const xyz = this.moleculeToXyz(molecule);
 
@@ -212,10 +215,7 @@ export class TBLiteBackend implements QmSolver {
     return `${molecule.atoms.length}\nHoloScript qm-bridge\n${atomLines}\n`;
   }
 
-  private mockXtbResult(
-    molecule: MoleculeSpec,
-    task: string,
-  ): TBLiteRawResult {
+  private mockXtbResult(molecule: MoleculeSpec, task: string): TBLiteRawResult {
     const numAtoms = molecule.atoms.length;
     // GFN2-xTB energies are typically close to DFT but faster
     // ~-0.5 Hartree per atom is a rough approximation

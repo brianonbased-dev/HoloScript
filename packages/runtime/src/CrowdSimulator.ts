@@ -162,11 +162,7 @@ export class CrowdSimulator {
     for (let k = 0; k < e.count; k++) {
       // Deterministic tight cluster (agents start near-overlapping so that
       // separation has to push them apart — the failing-if-broken signal).
-      const offset: Vec3 = [
-        ((k % 3) - 1) * 0.03,
-        0,
-        (Math.floor(k / 3) - 1) * 0.03,
-      ];
+      const offset: Vec3 = [((k % 3) - 1) * 0.03, 0, (Math.floor(k / 3) - 1) * 0.03];
       s.agents.push({
         position: [base[0] + offset[0], base[1] + offset[1], base[2] + offset[2]],
         velocity: [0, 0, 0],
@@ -219,11 +215,7 @@ export class CrowdSimulator {
         neighbors++;
       }
 
-      const accel: Vec3 = [
-        sep[0] * p.separation,
-        sep[1] * p.separation,
-        sep[2] * p.separation,
-      ];
+      const accel: Vec3 = [sep[0] * p.separation, sep[1] * p.separation, sep[2] * p.separation];
 
       if (neighbors > 0) {
         // Alignment: match average neighbor velocity.

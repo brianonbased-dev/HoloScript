@@ -548,7 +548,9 @@ export class WebRTCTransport {
   }
 
   private async handleOffer(peerId: string, offer: RTCSessionDescriptionInit): Promise<void> {
-    const peer = this.peers.has(peerId) ? this.peers.get(peerId)! : this.createAndRegisterPeer(peerId);
+    const peer = this.peers.has(peerId)
+      ? this.peers.get(peerId)!
+      : this.createAndRegisterPeer(peerId);
     try {
       await peer.connection.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await peer.connection.createAnswer();

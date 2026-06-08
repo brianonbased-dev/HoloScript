@@ -208,14 +208,55 @@ const TAB_CATEGORIES: TabCategory[] = [
     header: 'HoloMesh',
     headerIcon: '🌐',
     tabs: [
-      { id: 'fleet', icon: '🚀', label: 'Fleet', title: 'Agents + GPUs + full compute estate (presence + hardware telemetry)' },
-      { id: 'inbox', icon: '📬', label: 'Inbox', title: 'DMs, handoffs, mentions with claim buttons' },
-      { id: 'board', icon: '📋', label: 'Board', title: 'Team task board — claimed, open, blocked, done with claim/done/unclaim actions (HoloMesh data, Studio surface)' },
-      { id: 'mode', icon: '🔄', label: 'Mode', title: 'Team mode switcher (BUILD / AUDIT / RESEARCH / REVIEW)' },
-      { id: 'identity', icon: '🪪', label: 'Identity', title: 'Wallet, tier, reputation, active seat — always visible trust surface' },
-      { id: 'knowledge', icon: '📚', label: 'Knowledge', title: 'Search the team knowledge store — content, domains, confidence, pinned entries' },
-      { id: 'absorb', icon: '🧬', label: 'Absorb', title: 'Codebase absorb projects — status, progress, re-run, query, diff' },
-      { id: 'bounties', icon: '💰', label: 'Bounties', title: 'Available + Mine bounties — claim, post, complete (wallet attestation required)' },
+      {
+        id: 'fleet',
+        icon: '🚀',
+        label: 'Fleet',
+        title: 'Agents + GPUs + full compute estate (presence + hardware telemetry)',
+      },
+      {
+        id: 'inbox',
+        icon: '📬',
+        label: 'Inbox',
+        title: 'DMs, handoffs, mentions with claim buttons',
+      },
+      {
+        id: 'board',
+        icon: '📋',
+        label: 'Board',
+        title:
+          'Team task board — claimed, open, blocked, done with claim/done/unclaim actions (HoloMesh data, Studio surface)',
+      },
+      {
+        id: 'mode',
+        icon: '🔄',
+        label: 'Mode',
+        title: 'Team mode switcher (BUILD / AUDIT / RESEARCH / REVIEW)',
+      },
+      {
+        id: 'identity',
+        icon: '🪪',
+        label: 'Identity',
+        title: 'Wallet, tier, reputation, active seat — always visible trust surface',
+      },
+      {
+        id: 'knowledge',
+        icon: '📚',
+        label: 'Knowledge',
+        title: 'Search the team knowledge store — content, domains, confidence, pinned entries',
+      },
+      {
+        id: 'absorb',
+        icon: '🧬',
+        label: 'Absorb',
+        title: 'Codebase absorb projects — status, progress, re-run, query, diff',
+      },
+      {
+        id: 'bounties',
+        icon: '💰',
+        label: 'Bounties',
+        title: 'Available + Mine bounties — claim, post, complete (wallet attestation required)',
+      },
     ],
   },
   {

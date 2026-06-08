@@ -498,7 +498,8 @@ export const SIMPLE_MODIFIERS_SOLVER_PROFILE: SolverProfile = {
       label: 'Target',
       type: 'string',
       required: true,
-      description: 'The specific modifier trait being exercised (animated, billboard, rotating, collidable, clickable, glowing, interactive, lod)',
+      description:
+        'The specific modifier trait being exercised (animated, billboard, rotating, collidable, clickable, glowing, interactive, lod)',
       example: 'animated',
     },
     {
@@ -575,7 +576,8 @@ export const CORE_VR_INTERACTION_SOLVER_PROFILE: SolverProfile = {
       label: 'Target',
       type: 'string',
       required: true,
-      description: 'The interaction trait exercised (grabbable, throwable, pointable, hoverable, scalable, rotatable, stackable, snappable, breakable, stretchable, moldable, timeline, choreography)',
+      description:
+        'The interaction trait exercised (grabbable, throwable, pointable, hoverable, scalable, rotatable, stackable, snappable, breakable, stretchable, moldable, timeline, choreography)',
       example: 'grabbable',
     },
     {
@@ -583,7 +585,8 @@ export const CORE_VR_INTERACTION_SOLVER_PROFILE: SolverProfile = {
       label: 'Action',
       type: 'string',
       required: true,
-      description: 'The interaction operation (grab, throw, point, hover, scale, rotate, stack, snap, break, stretch, mold, play, scrub)',
+      description:
+        'The interaction operation (grab, throw, point, hover, scale, rotate, stack, snap, break, stretch, mold, play, scrub)',
       example: 'grab',
     },
     {
@@ -599,7 +602,8 @@ export const CORE_VR_INTERACTION_SOLVER_PROFILE: SolverProfile = {
       label: 'Context',
       type: 'string',
       required: true,
-      description: 'The VR object or controller the interaction was performed on (not a bare trait)',
+      description:
+        'The VR object or controller the interaction was performed on (not a bare trait)',
       example: 'cube_prop_03',
     },
     {
@@ -607,7 +611,8 @@ export const CORE_VR_INTERACTION_SOLVER_PROFILE: SolverProfile = {
       label: 'Gesture',
       type: 'string',
       required: false,
-      description: 'The input gesture that triggered the interaction (pinch, palm, trigger, thumbstick, ray)',
+      description:
+        'The input gesture that triggered the interaction (pinch, palm, trigger, thumbstick, ray)',
       example: 'pinch',
     },
     {
@@ -652,7 +657,8 @@ export const PARSER_CORE_UI_SOLVER_PROFILE: SolverProfile = {
       label: 'Target',
       type: 'string',
       required: true,
-      description: 'The UI or parser trait exercised (physics, draggable, static, kinematic, local_only, visible, invisible, audio, portal, vr_only, ar_only, desktop_only, ui_floating, ui_anchored, ui_hand_menu, ui_billboard, ui_curved, ui_docked)',
+      description:
+        'The UI or parser trait exercised (physics, draggable, static, kinematic, local_only, visible, invisible, audio, portal, vr_only, ar_only, desktop_only, ui_floating, ui_anchored, ui_hand_menu, ui_billboard, ui_curved, ui_docked)',
       example: 'ui_anchored',
     },
     {
@@ -660,7 +666,8 @@ export const PARSER_CORE_UI_SOLVER_PROFILE: SolverProfile = {
       label: 'Action',
       type: 'string',
       required: true,
-      description: 'The UI operation (render, layout, show, hide, position, bind, unbind, parse, validate)',
+      description:
+        'The UI operation (render, layout, show, hide, position, bind, unbind, parse, validate)',
       example: 'render',
     },
     {
@@ -721,7 +728,8 @@ export const VISUAL_EFFECTS_SOLVER_PROFILE: SolverProfile = {
       label: 'Target',
       type: 'string',
       required: true,
-      description: 'The visual effect trait exercised (transparent, reflective, emissive, spinning, floating, pulsing, blinking, fading, color_shifting, holographic, etc.)',
+      description:
+        'The visual effect trait exercised (transparent, reflective, emissive, spinning, floating, pulsing, blinking, fading, color_shifting, holographic, etc.)',
       example: 'holographic',
     },
     {
@@ -729,7 +737,8 @@ export const VISUAL_EFFECTS_SOLVER_PROFILE: SolverProfile = {
       label: 'Action',
       type: 'string',
       required: true,
-      description: 'The visual effect operation (render, animate, transition, apply, remove, composite)',
+      description:
+        'The visual effect operation (render, animate, transition, apply, remove, composite)',
       example: 'render',
     },
     {
@@ -798,7 +807,8 @@ export const LIGHTING_SOLVER_PROFILE: SolverProfile = {
       label: 'Target',
       type: 'string',
       required: true,
-      description: 'The lighting trait exercised (global_illumination, shadow_caster, light_source, spotlight, point_light, area_light, etc.)',
+      description:
+        'The lighting trait exercised (global_illumination, shadow_caster, light_source, spotlight, point_light, area_light, etc.)',
       example: 'spotlight',
     },
     {
@@ -806,7 +816,8 @@ export const LIGHTING_SOLVER_PROFILE: SolverProfile = {
       label: 'Action',
       type: 'string',
       required: true,
-      description: 'The lighting operation (cast, illuminate, shadow, glow, flicker, dim, toggle, configure)',
+      description:
+        'The lighting operation (cast, illuminate, shadow, glow, flicker, dim, toggle, configure)',
       example: 'illuminate',
     },
     {
@@ -875,7 +886,9 @@ const solverProfileRegistry = new Map<string, SolverProfile>([
 export function getSolverProfile(id: string): SolverProfile {
   const profile = solverProfileRegistry.get(id);
   if (!profile) {
-    throw new Error(`Unknown solver profile: ${id}. Available: ${[...solverProfileRegistry.keys()].join(', ')}`);
+    throw new Error(
+      `Unknown solver profile: ${id}. Available: ${[...solverProfileRegistry.keys()].join(', ')}`
+    );
   }
   return profile;
 }
@@ -901,9 +914,7 @@ export function getAllSolverProfiles(): SolverProfile[] {
 export function getRequiredEvidenceFields(id: string): string[] {
   const profile = solverProfileRegistry.get(id);
   if (!profile) return [];
-  return profile.evidenceFields
-    .filter((f) => f.required)
-    .map((f) => f.name);
+  return profile.evidenceFields.filter((f) => f.required).map((f) => f.name);
 }
 
 /**
@@ -912,15 +923,13 @@ export function getRequiredEvidenceFields(id: string): string[] {
  */
 export function validateReceiptEvidence(
   profileId: string,
-  evidence: Record<string, unknown>,
+  evidence: Record<string, unknown>
 ): { accepted: boolean; violations: Array<{ criterion: string; message: string }> } {
   const profile = solverProfileRegistry.get(profileId);
   if (!profile) {
     return {
       accepted: false,
-      violations: [
-        { criterion: 'profile', message: `Unknown solver profile: ${profileId}` },
-      ],
+      violations: [{ criterion: 'profile', message: `Unknown solver profile: ${profileId}` }],
     };
   }
 

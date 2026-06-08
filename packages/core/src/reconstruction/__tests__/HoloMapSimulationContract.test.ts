@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createHoloMapRuntime, HOLOMAP_DEFAULTS, type ReconstructionFrame } from '../HoloMapRuntime';
+import {
+  createHoloMapRuntime,
+  HOLOMAP_DEFAULTS,
+  type ReconstructionFrame,
+} from '../HoloMapRuntime';
 import { computeHoloMapReplayFingerprint } from '../replayFingerprint';
 import { assertHoloMapManifestContract } from '../simulationContractBinding';
 

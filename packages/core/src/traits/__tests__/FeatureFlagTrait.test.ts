@@ -47,10 +47,19 @@ describe('FeatureFlagTrait — onEvent', () => {
   it('flag:define registers a flag', () => {
     const node = makeNode();
     featureFlagHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    featureFlagHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'flag:define', flagId: 'new-ui', defaultValue: true,
-    } as never);
-    const state = node.__featureFlagState as { flags: Map<string, { enabled: boolean; defaultValue: unknown }> };
+    featureFlagHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'flag:define',
+        flagId: 'new-ui',
+        defaultValue: true,
+      } as never
+    );
+    const state = node.__featureFlagState as {
+      flags: Map<string, { enabled: boolean; defaultValue: unknown }>;
+    };
     expect(state.flags.get('new-ui')?.defaultValue).toBe(true);
     expect(state.flags.get('new-ui')?.enabled).toBe(true);
   });
@@ -58,38 +67,80 @@ describe('FeatureFlagTrait — onEvent', () => {
   it('flag:evaluate returns value when flag enabled', () => {
     const node = makeNode();
     featureFlagHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    featureFlagHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'flag:define', flagId: 'beta-feature', defaultValue: 'variant_B',
-    } as never);
+    featureFlagHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'flag:define',
+        flagId: 'beta-feature',
+        defaultValue: 'variant_B',
+      } as never
+    );
     node.emit.mockClear();
-    featureFlagHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'flag:evaluate', flagId: 'beta-feature',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('flag:result', expect.objectContaining({
-      flagId: 'beta-feature', value: 'variant_B', enabled: true,
-    }));
+    featureFlagHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'flag:evaluate',
+        flagId: 'beta-feature',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'flag:result',
+      expect.objectContaining({
+        flagId: 'beta-feature',
+        value: 'variant_B',
+        enabled: true,
+      })
+    );
   });
 
   it('flag:evaluate returns false for undefined flag', () => {
     const node = makeNode();
     featureFlagHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    featureFlagHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'flag:evaluate', flagId: 'nonexistent',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('flag:result', expect.objectContaining({
-      value: false, enabled: false,
-    }));
+    featureFlagHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'flag:evaluate',
+        flagId: 'nonexistent',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'flag:result',
+      expect.objectContaining({
+        value: false,
+        enabled: false,
+      })
+    );
   });
 
   it('flag:toggle disables an enabled flag', () => {
     const node = makeNode();
     featureFlagHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    featureFlagHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'flag:define', flagId: 'dark-mode', defaultValue: true,
-    } as never);
-    featureFlagHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'flag:toggle', flagId: 'dark-mode', enabled: false,
-    } as never);
+    featureFlagHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'flag:define',
+        flagId: 'dark-mode',
+        defaultValue: true,
+      } as never
+    );
+    featureFlagHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'flag:toggle',
+        flagId: 'dark-mode',
+        enabled: false,
+      } as never
+    );
     const state = node.__featureFlagState as { flags: Map<string, { enabled: boolean }> };
     expect(state.flags.get('dark-mode')?.enabled).toBe(false);
   });
@@ -97,18 +148,42 @@ describe('FeatureFlagTrait — onEvent', () => {
   it('flag:evaluate returns false when flag is disabled', () => {
     const node = makeNode();
     featureFlagHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    featureFlagHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'flag:define', flagId: 'exp', defaultValue: 'x',
-    } as never);
-    featureFlagHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'flag:toggle', flagId: 'exp', enabled: false,
-    } as never);
+    featureFlagHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'flag:define',
+        flagId: 'exp',
+        defaultValue: 'x',
+      } as never
+    );
+    featureFlagHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'flag:toggle',
+        flagId: 'exp',
+        enabled: false,
+      } as never
+    );
     node.emit.mockClear();
-    featureFlagHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'flag:evaluate', flagId: 'exp',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('flag:result', expect.objectContaining({
-      value: false, enabled: false,
-    }));
+    featureFlagHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'flag:evaluate',
+        flagId: 'exp',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'flag:result',
+      expect.objectContaining({
+        value: false,
+        enabled: false,
+      })
+    );
   });
 });

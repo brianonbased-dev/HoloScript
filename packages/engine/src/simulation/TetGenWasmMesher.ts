@@ -5,7 +5,12 @@
  * of arbitrary piecewise linear complexes (PLC).
  */
 
-import { type TetMesh, type SurfaceMesh, type SurfaceMeshOptions, type WasmMesher } from './AutoMesher';
+import {
+  type TetMesh,
+  type SurfaceMesh,
+  type SurfaceMeshOptions,
+  type WasmMesher,
+} from './AutoMesher';
 
 export class TetGenWasmMesher implements WasmMesher {
   private wasmModule: any = null;
@@ -21,11 +26,16 @@ export class TetGenWasmMesher implements WasmMesher {
     // Real implementation would use fetch() and WebAssembly.instantiateStreaming()
   }
 
-  public async tetrahedralize(surface: SurfaceMesh, options?: SurfaceMeshOptions): Promise<TetMesh> {
+  public async tetrahedralize(
+    surface: SurfaceMesh,
+    options?: SurfaceMeshOptions
+  ): Promise<TetMesh> {
     await this.initialize();
 
-    console.log(`TetGenWasmMesher: Tetrahedralizing surface with ${surface.triangles.length / 3} faces...`);
-    
+    console.log(
+      `TetGenWasmMesher: Tetrahedralizing surface with ${surface.triangles.length / 3} faces...`
+    );
+
     // Placeholder: delegate to WASM memory buffers
     // TetGen flags typically: -pq1.2/10a (quality, volume constraints)
     const flags = options?.quality ? `-pq${options.quality}` : '-pq';
@@ -36,7 +46,7 @@ export class TetGenWasmMesher implements WasmMesher {
     const { meshBox } = await import('./AutoMesher');
     return meshBox({
       size: [1, 1, 1], // Placeholder
-      divisions: [10, 10, 10]
+      divisions: [10, 10, 10],
     });
   }
 }

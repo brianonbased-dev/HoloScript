@@ -1,9 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  executeNarrative,
-  executeQuest,
-  executeDialogue,
-} from '../narrative-executors.js';
+import { executeNarrative, executeQuest, executeDialogue } from '../narrative-executors.js';
 import type { NarrativeContext } from '../narrative-executors.js';
 import type { NarrativeNode, QuestNode, DialogueNode } from '../../types.js';
 
@@ -71,7 +67,11 @@ describe('executeNarrative', () => {
 
   it('includes executionTime', async () => {
     const ctx = makeCtx();
-    const node: NarrativeNode = { type: 'narrative', id: 'x', quests: [] } as unknown as NarrativeNode;
+    const node: NarrativeNode = {
+      type: 'narrative',
+      id: 'x',
+      quests: [],
+    } as unknown as NarrativeNode;
     const result = await executeNarrative(node, ctx);
     expect(typeof result.executionTime).toBe('number');
   });
@@ -136,7 +136,12 @@ describe('executeDialogue', () => {
 
   it('includes executionTime', async () => {
     const ctx = makeCtx();
-    const node: DialogueNode = { type: 'dialogue', id: 'd', speaker: 'S', text: 'T' } as unknown as DialogueNode;
+    const node: DialogueNode = {
+      type: 'dialogue',
+      id: 'd',
+      speaker: 'S',
+      text: 'T',
+    } as unknown as DialogueNode;
     const result = await executeDialogue(node, ctx);
     expect(typeof result.executionTime).toBe('number');
   });

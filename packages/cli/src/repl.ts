@@ -432,12 +432,12 @@ ${COLORS.dim}Example: .k search spread operator${COLORS.reset}
 
     results.forEach((r, i) => {
       const categoryColorMap: Record<string, string> = {
-          pattern: COLORS.cyan,
-          gotcha: COLORS.yellow,
-          wisdom: COLORS.magenta,
-          research: COLORS.blue,
-          session: COLORS.dim,
-        };
+        pattern: COLORS.cyan,
+        gotcha: COLORS.yellow,
+        wisdom: COLORS.magenta,
+        research: COLORS.blue,
+        session: COLORS.dim,
+      };
       const categoryColor = categoryColorMap[r.metadata.category as string] || COLORS.reset;
 
       console.log(

@@ -1,6 +1,6 @@
 # Identity statements (major components)
 
-**Audience:** GTM, partnerships, onboarding — *what problem we remove*, not which libraries we use.  
+**Audience:** GTM, partnerships, onboarding — _what problem we remove_, not which libraries we use.  
 **Rule:** Lead with the outcome and who it is for; technology is supporting detail only.  
 **Source task:** blackberry-trap platform strategy — “problem solved, not technology used.”
 
@@ -48,6 +48,6 @@
 
 ## How to use this doc
 
-- Prefer lifting **one sentence** from each block for decks; keep the **problem line** first.  
-- When copy hardcodes stack names (React, Three.js, WASM), move them to a footnote unless the reader is technical.  
+- Prefer lifting **one sentence** from each block for decks; keep the **problem line** first.
+- When copy hardcodes stack names (React, Three.js, WASM), move them to a footnote unless the reader is technical.
 - Revisit after major releases — identities track **buyer problems**, not feature lists.

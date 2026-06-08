@@ -135,9 +135,7 @@ export class MovementPredictor {
       likelihood: 1.0,
     });
 
-    const speed = Math.sqrt(
-      this.velocity[0] ** 2 + this.velocity[1] ** 2 + this.velocity[2] ** 2
-    );
+    const speed = Math.sqrt(this.velocity[0] ** 2 + this.velocity[1] ** 2 + this.velocity[2] ** 2);
 
     if (speed > 0.5) {
       // 2. Linear prediction (High confidence, short term)

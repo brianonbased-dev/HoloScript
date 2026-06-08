@@ -330,9 +330,7 @@ export function isSupportedItemCategory(category: string): category is ItemCateg
   return (ITEM_CATEGORIES as readonly string[]).includes(category);
 }
 
-export function isSupportedEncounterTrigger(
-  trigger: string,
-): trigger is EncounterTriggerKind {
+export function isSupportedEncounterTrigger(trigger: string): trigger is EncounterTriggerKind {
   return (ENCOUNTER_TRIGGER_KINDS as readonly string[]).includes(trigger);
 }
 
@@ -340,16 +338,9 @@ export function isSupportedZoneBiome(biome: string): biome is ZoneBiome {
   return (ZONE_BIOMES as readonly string[]).includes(biome);
 }
 
-const SHARD_RECEIPT_STATUSES = [
-  'authored',
-  'validated',
-  'rejected',
-  'inconclusive',
-] as const;
+const SHARD_RECEIPT_STATUSES = ['authored', 'validated', 'rejected', 'inconclusive'] as const;
 
-export function isSupportedShardReceiptStatus(
-  status: string,
-): status is ShardReceipt['status'] {
+export function isSupportedShardReceiptStatus(status: string): status is ShardReceipt['status'] {
   return (SHARD_RECEIPT_STATUSES as readonly string[]).includes(status);
 }
 
@@ -394,13 +385,11 @@ export function validateLootTableEntry(entry: LootTableEntry): string[] {
   const hasSkill = Boolean(entry.skillId);
   if (hasItem && hasSkill) {
     errors.push(
-      `LootTableEntry ${entry.id} cannot reference both itemId and skillId (mutually exclusive).`,
+      `LootTableEntry ${entry.id} cannot reference both itemId and skillId (mutually exclusive).`
     );
   }
   if (!hasItem && !hasSkill) {
-    errors.push(
-      `LootTableEntry ${entry.id} must reference either itemId or skillId.`,
-    );
+    errors.push(`LootTableEntry ${entry.id} must reference either itemId or skillId.`);
   }
   if (!Number.isFinite(entry.weight) || entry.weight < 0) {
     errors.push(`LootTableEntry ${entry.id}.weight must be a non-negative finite number.`);
@@ -443,9 +432,7 @@ export function validateEncounter(encounter: Encounter): string[] {
     errors.push(`Encounter.trigger is unsupported: ${String(encounter.trigger)}.`);
   }
   if (encounter.trigger === 'encounter-other' && !encounter.triggerLabel) {
-    errors.push(
-      `Encounter ${encounter.id} trigger=encounter-other requires triggerLabel.`,
-    );
+    errors.push(`Encounter ${encounter.id} trigger=encounter-other requires triggerLabel.`);
   }
   if (!encounter.zoneId) errors.push(`Encounter ${encounter.id}.zoneId is required.`);
   return errors;
@@ -505,11 +492,13 @@ export function validateShard(shard: Shard): string[] {
   if (!shard.hash) errors.push(`Shard ${shard.id}.hash is required.`);
   if (!shard.hashAlgorithm) errors.push(`Shard ${shard.id}.hashAlgorithm is required.`);
   if (!Array.isArray(shard.zones)) errors.push(`Shard ${shard.id}.zones must be an array.`);
-  if (!Array.isArray(shard.encounters)) errors.push(`Shard ${shard.id}.encounters must be an array.`);
+  if (!Array.isArray(shard.encounters))
+    errors.push(`Shard ${shard.id}.encounters must be an array.`);
   if (!Array.isArray(shard.quests)) errors.push(`Shard ${shard.id}.quests must be an array.`);
   if (!Array.isArray(shard.items)) errors.push(`Shard ${shard.id}.items must be an array.`);
   if (!Array.isArray(shard.skills)) errors.push(`Shard ${shard.id}.skills must be an array.`);
-  if (!Array.isArray(shard.lootTables)) errors.push(`Shard ${shard.id}.lootTables must be an array.`);
+  if (!Array.isArray(shard.lootTables))
+    errors.push(`Shard ${shard.id}.lootTables must be an array.`);
 
   // Per-primitive validation
   for (const zone of shard.zones ?? []) {
@@ -560,7 +549,7 @@ export function validateShard(shard: Shard): string[] {
     for (const encounter of shard.encounters) {
       if (encounter.zoneId && !zoneIds.has(encounter.zoneId)) {
         errors.push(
-          `Shard ${shard.id}.encounters[${encounter.id}].zoneId references unknown Zone: ${encounter.zoneId}.`,
+          `Shard ${shard.id}.encounters[${encounter.id}].zoneId references unknown Zone: ${encounter.zoneId}.`
         );
       }
     }
@@ -570,24 +559,28 @@ export function validateShard(shard: Shard): string[] {
     for (const encounter of shard.encounters) {
       if (encounter.lootTableId && !tableIds.has(encounter.lootTableId)) {
         errors.push(
-          `Shard ${shard.id}.encounters[${encounter.id}].lootTableId references unknown LootTable: ${encounter.lootTableId}.`,
+          `Shard ${shard.id}.encounters[${encounter.id}].lootTableId references unknown LootTable: ${encounter.lootTableId}.`
         );
       }
     }
   }
-  if (Array.isArray(shard.lootTables) && Array.isArray(shard.items) && Array.isArray(shard.skills)) {
+  if (
+    Array.isArray(shard.lootTables) &&
+    Array.isArray(shard.items) &&
+    Array.isArray(shard.skills)
+  ) {
     const itemIds = new Set(shard.items.map((i) => i.id));
     const skillIds = new Set(shard.skills.map((s) => s.id));
     for (const table of shard.lootTables) {
       for (const entry of table.entries ?? []) {
         if (entry.itemId && !itemIds.has(entry.itemId)) {
           errors.push(
-            `Shard ${shard.id}.lootTables[${table.id}].entries[${entry.id}].itemId references unknown Item: ${entry.itemId}.`,
+            `Shard ${shard.id}.lootTables[${table.id}].entries[${entry.id}].itemId references unknown Item: ${entry.itemId}.`
           );
         }
         if (entry.skillId && !skillIds.has(entry.skillId)) {
           errors.push(
-            `Shard ${shard.id}.lootTables[${table.id}].entries[${entry.id}].skillId references unknown Skill: ${entry.skillId}.`,
+            `Shard ${shard.id}.lootTables[${table.id}].entries[${entry.id}].skillId references unknown Skill: ${entry.skillId}.`
           );
         }
       }
@@ -600,13 +593,13 @@ export function validateShard(shard: Shard): string[] {
       for (const step of quest.steps ?? []) {
         if (step.requiresSkillId && !skillIds.has(step.requiresSkillId)) {
           errors.push(
-            `Shard ${shard.id}.quests[${quest.id}].steps[${step.id}].requiresSkillId references unknown Skill: ${step.requiresSkillId}.`,
+            `Shard ${shard.id}.quests[${quest.id}].steps[${step.id}].requiresSkillId references unknown Skill: ${step.requiresSkillId}.`
           );
         }
         for (const rewardId of step.rewardItemIds ?? []) {
           if (!itemIds.has(rewardId)) {
             errors.push(
-              `Shard ${shard.id}.quests[${quest.id}].steps[${step.id}].rewardItemIds references unknown Item: ${rewardId}.`,
+              `Shard ${shard.id}.quests[${quest.id}].steps[${step.id}].rewardItemIds references unknown Item: ${rewardId}.`
             );
           }
         }
@@ -620,7 +613,7 @@ export function validateShard(shard: Shard): string[] {
     for (const rule of shard.spatialRules) {
       if (rule.zoneId && !zoneIds.has(rule.zoneId)) {
         errors.push(
-          `Shard ${shard.id}.spatialRules[${rule.id}].zoneId references unknown Zone: ${rule.zoneId}.`,
+          `Shard ${shard.id}.spatialRules[${rule.id}].zoneId references unknown Zone: ${rule.zoneId}.`
         );
       }
     }
@@ -635,7 +628,7 @@ export function validateShard(shard: Shard): string[] {
  */
 export function validateShardReceipt(
   receipt: ShardReceipt,
-  validateValidation: (v: ValidationReceipt) => string[],
+  validateValidation: (v: ValidationReceipt) => string[]
 ): string[] {
   const errors: string[] = [];
   if (!receipt.id) errors.push('ShardReceipt.id is required.');
@@ -645,11 +638,7 @@ export function validateShardReceipt(
   }
   if (!receipt.hash) errors.push('ShardReceipt.hash is required.');
   if (!receipt.hashAlgorithm) errors.push('ShardReceipt.hashAlgorithm is required.');
-  if (
-    receipt.sealedAt === undefined ||
-    receipt.sealedAt === null ||
-    receipt.sealedAt === ''
-  ) {
+  if (receipt.sealedAt === undefined || receipt.sealedAt === null || receipt.sealedAt === '') {
     errors.push('ShardReceipt.sealedAt is required.');
   }
   for (const validation of receipt.validationReceipts ?? []) {
@@ -659,9 +648,7 @@ export function validateShardReceipt(
   }
   for (const command of receipt.verificationCommands ?? []) {
     if (!command.command) {
-      errors.push(
-        `ShardReceipt ${receipt.id} has a verification command without command text.`,
-      );
+      errors.push(`ShardReceipt ${receipt.id} has a verification command without command text.`);
     }
   }
   return errors;
@@ -670,7 +657,7 @@ export function validateShardReceipt(
 // ── Cloning ──
 
 function cloneVerificationCommands(
-  commands: ArtifactVerificationCommand[] | undefined,
+  commands: ArtifactVerificationCommand[] | undefined
 ): ArtifactVerificationCommand[] | undefined {
   if (!commands) return undefined;
   return commands.map((command) => ({
@@ -680,7 +667,7 @@ function cloneVerificationCommands(
 }
 
 function cloneProvenance(
-  provenance: ArtifactProvenanceLink | undefined,
+  provenance: ArtifactProvenanceLink | undefined
 ): ArtifactProvenanceLink | undefined {
   if (!provenance) return undefined;
   return {
@@ -776,7 +763,7 @@ export function cloneShard(shard: Shard): Shard {
 
 export function cloneShardReceipt(
   receipt: ShardReceipt,
-  cloneValidation: (v: ValidationReceipt) => ValidationReceipt,
+  cloneValidation: (v: ValidationReceipt) => ValidationReceipt
 ): ShardReceipt {
   return {
     ...receipt,

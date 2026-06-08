@@ -422,8 +422,12 @@ function validateBabylonOutput(output: string): ValidationResult {
 
 function printResult(result: BenchmarkResult): void {
   if (result.success) {
-    console.log(`✅ SUCCESS  ${result.compilationTimeMs.toFixed(2)}ms  ${formatBytes(result.outputSizeBytes)}`);
-    console.log(`   Validation: ${result.validation.passed ? '✓ PASS' : '⚠ PARTIAL'} (${result.validation.errors.length} errors, ${result.validation.warnings.length} warnings)`);
+    console.log(
+      `✅ SUCCESS  ${result.compilationTimeMs.toFixed(2)}ms  ${formatBytes(result.outputSizeBytes)}`
+    );
+    console.log(
+      `   Validation: ${result.validation.passed ? '✓ PASS' : '⚠ PARTIAL'} (${result.validation.errors.length} errors, ${result.validation.warnings.length} warnings)`
+    );
   } else {
     console.log(`❌ FAILED   ${result.error}`);
   }
@@ -437,8 +441,12 @@ function printSummary(results: BenchmarkResult[]): void {
   console.log('📊 BENCHMARK SUMMARY');
   console.log('━'.repeat(80));
   console.log(`Total Scenarios:  ${results.length}`);
-  console.log(`Successful:       ${successful.length} (${((successful.length / results.length) * 100).toFixed(1)}%)`);
-  console.log(`Failed:           ${failed.length} (${((failed.length / results.length) * 100).toFixed(1)}%)`);
+  console.log(
+    `Successful:       ${successful.length} (${((successful.length / results.length) * 100).toFixed(1)}%)`
+  );
+  console.log(
+    `Failed:           ${failed.length} (${((failed.length / results.length) * 100).toFixed(1)}%)`
+  );
 
   if (successful.length > 0) {
     const avgTime = successful.reduce((s, r) => s + r.compilationTimeMs, 0) / successful.length;
@@ -461,7 +469,9 @@ async function generateReport(results: BenchmarkResult[]): Promise<void> {
   lines.push(`**Generated:** ${new Date().toISOString()}\n`);
   lines.push(`**HoloScript Version:** v7.0.0\n`);
   lines.push(`**Scenarios:** ${SCENARIOS.length}\n`);
-  lines.push(`**Success Rate:** ${((results.filter((r) => r.success).length / results.length) * 100).toFixed(1)}%\n`);
+  lines.push(
+    `**Success Rate:** ${((results.filter((r) => r.success).length / results.length) * 100).toFixed(1)}%\n`
+  );
   lines.push('---\n');
 
   // Engine breakdown

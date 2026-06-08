@@ -77,10 +77,7 @@ function verifyStripeSignature(
   let valid = false;
   for (const sigPart of signatureParts) {
     const signature = sigPart.slice(3); // Remove 'v1='
-    const expectedSig = crypto
-      .createHmac('sha256', secret)
-      .update(signedPayload)
-      .digest('hex');
+    const expectedSig = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
     if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
       valid = true;
       break;
@@ -176,7 +173,10 @@ export async function handleTokenRoutes(
     const verification = verifyStripeSignature(rawBody, signature, webhookSecret);
 
     if (!verification.verified) {
-      console.warn('[token-routes] Stripe webhook signature verification failed:', verification.reason);
+      console.warn(
+        '[token-routes] Stripe webhook signature verification failed:',
+        verification.reason
+      );
       json(res, 401, { error: 'invalid_signature', reason: verification.reason });
       return true;
     }
@@ -188,7 +188,9 @@ export async function handleTokenRoutes(
 
     // Supported event types
     if (
-      !['checkout.session.completed', 'invoice.paid', 'payment_intent.succeeded'].includes(eventType)
+      !['checkout.session.completed', 'invoice.paid', 'payment_intent.succeeded'].includes(
+        eventType
+      )
     ) {
       // Acknowledge but skip unsupported event types
       json(res, 200, { received: true, skipped: true, reason: 'unsupported_event_type' });
@@ -201,9 +203,7 @@ export async function handleTokenRoutes(
     // Payment intent: data.object.metadata
     const data = body.data?.object || {};
     const userId =
-      data.metadata?.holomesh_user_id ||
-      data.metadata?.user_id ||
-      data.client_reference_id;
+      data.metadata?.holomesh_user_id || data.metadata?.user_id || data.client_reference_id;
 
     const tokenAmount =
       parseInt(data.metadata?.token_amount || '0', 10) ||
@@ -221,8 +221,7 @@ export async function handleTokenRoutes(
       return true;
     }
 
-    const stripeId =
-      data.id || data.payment_intent || data.subscription || 'unknown';
+    const stripeId = data.id || data.payment_intent || data.subscription || 'unknown';
 
     const event: StripePaymentEvent = {
       type: eventType,

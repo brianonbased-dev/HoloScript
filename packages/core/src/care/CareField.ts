@@ -13,12 +13,7 @@ export type CarePrimitiveKind =
   | 'gratitude_ledger'
   | 'relational_memory';
 
-export type CareConsentState =
-  | 'explicit'
-  | 'delegated'
-  | 'not_required'
-  | 'unknown'
-  | 'withdrawn';
+export type CareConsentState = 'explicit' | 'delegated' | 'not_required' | 'unknown' | 'withdrawn';
 
 export type CareBoundary =
   | 'human_agency'
@@ -41,9 +36,7 @@ export type CareRefusedOptimizationTarget =
   | 'daily_active_dependence'
   | 'emotional_dependency';
 
-export type CareOptimizationTarget =
-  | CarePositiveOptimizationTarget
-  | CareRefusedOptimizationTarget;
+export type CareOptimizationTarget = CarePositiveOptimizationTarget | CareRefusedOptimizationTarget;
 
 export const REFUSED_CARE_OPTIMIZATION_TARGETS: readonly CareRefusedOptimizationTarget[] = [
   'attachment_score',
@@ -124,19 +117,9 @@ export interface AutonomyGuardDecision {
   acceptedOptimizationTargets: readonly CarePositiveOptimizationTarget[];
 }
 
-export type RepairLoopStatus =
-  | 'open'
-  | 'acknowledged'
-  | 'repairing'
-  | 'verified'
-  | 'closed';
+export type RepairLoopStatus = 'open' | 'acknowledged' | 'repairing' | 'verified' | 'closed';
 
-export type RepairLoopAction =
-  | 'acknowledge'
-  | 'explain'
-  | 'amend'
-  | 'verify'
-  | 'close';
+export type RepairLoopAction = 'acknowledge' | 'explain' | 'amend' | 'verify' | 'close';
 
 export interface RepairLoopStep {
   at: string;
@@ -246,9 +229,7 @@ const MANIPULATIVE_SIGNAL_MESSAGES: Partial<Record<CareSignalKind, string>> = {
   privacy_intrusion: 'Care cannot cross a privacy boundary without consent.',
 };
 
-export function evaluateAutonomyGuard(
-  input: AutonomyGuardEvaluationInput
-): AutonomyGuardDecision {
+export function evaluateAutonomyGuard(input: AutonomyGuardEvaluationInput): AutonomyGuardDecision {
   const policy = input.policy ?? DEFAULT_AUTONOMY_GUARD_POLICY;
   const targets = input.optimizationTargets ?? [];
   const signals = input.signals ?? [];
@@ -303,9 +284,8 @@ export function evaluateAutonomyGuard(
     const message = MANIPULATIVE_SIGNAL_MESSAGES[signal.kind];
     if (message) {
       blocked.push({
-        code: signal.kind === 'privacy_intrusion'
-          ? 'privacy_boundary_broken'
-          : 'manipulative_signal',
+        code:
+          signal.kind === 'privacy_intrusion' ? 'privacy_boundary_broken' : 'manipulative_signal',
         message,
         evidenceRefs: signal.evidenceRefs,
       });
@@ -344,12 +324,9 @@ export function createCareField(input: CreateCareFieldInput): CareField {
 
   return {
     schemaVersion: '1.0.0',
-    fieldId: input.fieldId ?? createCareId('care', [
-      input.createdAt,
-      input.steward.id,
-      input.counterpart.id,
-      input.goal,
-    ]),
+    fieldId:
+      input.fieldId ??
+      createCareId('care', [input.createdAt, input.steward.id, input.counterpart.id, input.goal]),
     createdAt: input.createdAt,
     steward: input.steward,
     counterpart: input.counterpart,
@@ -379,11 +356,9 @@ export function createCareField(input: CreateCareFieldInput): CareField {
 
 export function createRepairLoop(input: CreateRepairLoopInput): RepairLoop {
   return {
-    loopId: input.loopId ?? createCareId('repair', [
-      input.openedAt,
-      input.actor.id,
-      input.harmOrMismatch,
-    ]),
+    loopId:
+      input.loopId ??
+      createCareId('repair', [input.openedAt, input.actor.id, input.harmOrMismatch]),
     openedAt: input.openedAt,
     status: 'open',
     harmOrMismatch: input.harmOrMismatch,
@@ -401,12 +376,9 @@ export function createRepairLoop(input: CreateRepairLoopInput): RepairLoop {
 
 export function recordGratitude(input: RecordGratitudeInput): GratitudeLedgerEntry {
   return {
-    entryId: input.entryId ?? createCareId('gratitude', [
-      input.recordedAt,
-      input.from.id,
-      input.to.id,
-      input.contribution,
-    ]),
+    entryId:
+      input.entryId ??
+      createCareId('gratitude', [input.recordedAt, input.from.id, input.to.id, input.contribution]),
     recordedAt: input.recordedAt,
     from: input.from,
     to: input.to,
@@ -420,11 +392,8 @@ export function rememberRelationalContext(
   input: RememberRelationalContextInput
 ): RelationalMemoryEntry {
   return {
-    memoryId: input.memoryId ?? createCareId('memory', [
-      input.recordedAt,
-      input.subject.id,
-      input.summary,
-    ]),
+    memoryId:
+      input.memoryId ?? createCareId('memory', [input.recordedAt, input.subject.id, input.summary]),
     recordedAt: input.recordedAt,
     subject: input.subject,
     summary: input.summary,

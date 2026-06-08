@@ -9,7 +9,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const pnpm = resolvePnpm();
 
 const workspacePackages = listWorkspacePackages();
-const testPackages = workspacePackages.filter(pkg => {
+const testPackages = workspacePackages.filter((pkg) => {
   if (path.resolve(pkg.path) === repoRoot || pkg.name === 'holoscript') {
     return false;
   }

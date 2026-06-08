@@ -33,17 +33,17 @@ import os from 'node:os';
 import https from 'node:https';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
-const REPO_ROOT  = join(__dirname, '..');
+const __dirname = dirname(__filename);
+const REPO_ROOT = join(__dirname, '..');
 
-const args         = process.argv.slice(2);
+const args = process.argv.slice(2);
 const FLAG_NO_SOLVER = args.includes('--no-solver');
-const FLAG_NO_EMBED  = args.includes('--no-embed');
-const FLAG_DRY_RUN   = args.includes('--dry-run');
+const FLAG_NO_EMBED = args.includes('--no-embed');
+const FLAG_DRY_RUN = args.includes('--dry-run');
 
-const today    = new Date().toISOString().slice(0, 10);
+const today = new Date().toISOString().slice(0, 10);
 const hostname = os.hostname().replace(/[^a-z0-9]/gi, '');
-const benchId  = `hs-feat-${Date.now().toString(36)}`;
+const benchId = `hs-feat-${Date.now().toString(36)}`;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -52,9 +52,9 @@ function banner(title) {
   console.log(`  ${title}`);
   console.log('─'.repeat(60));
 }
-const ok   = (l, v) => console.log(`  \x1b[32m✓\x1b[0m ${l.padEnd(30)} ${v}`);
+const ok = (l, v) => console.log(`  \x1b[32m✓\x1b[0m ${l.padEnd(30)} ${v}`);
 const warn = (l, v) => console.log(`  \x1b[33m⚠\x1b[0m ${l.padEnd(30)} ${String(v).slice(0, 80)}`);
-const skip = (l, r)  => console.log(`  \x1b[2m○\x1b[0m ${l.padEnd(30)} skipped (${r})`);
+const skip = (l, r) => console.log(`  \x1b[2m○\x1b[0m ${l.padEnd(30)} skipped (${r})`);
 
 /** Run fn N times, return { avgMs, minMs, maxMs, opsPerSec } */
 function timeit(fn, iters = 10) {
@@ -110,14 +110,14 @@ function buildTET10Mesh(n) {
     for (let j = 0; j < n; j++) {
       for (let k = 0; k < n; k++) {
         const c = [
-          nodeIdx(i,   j,   k),   // 0
-          nodeIdx(i+1, j,   k),   // 1
-          nodeIdx(i+1, j+1, k),   // 2
-          nodeIdx(i,   j+1, k),   // 3
-          nodeIdx(i,   j,   k+1), // 4
-          nodeIdx(i+1, j,   k+1), // 5
-          nodeIdx(i+1, j+1, k+1), // 6
-          nodeIdx(i,   j+1, k+1), // 7
+          nodeIdx(i, j, k), // 0
+          nodeIdx(i + 1, j, k), // 1
+          nodeIdx(i + 1, j + 1, k), // 2
+          nodeIdx(i, j + 1, k), // 3
+          nodeIdx(i, j, k + 1), // 4
+          nodeIdx(i + 1, j, k + 1), // 5
+          nodeIdx(i + 1, j + 1, k + 1), // 6
+          nodeIdx(i, j + 1, k + 1), // 7
         ];
         for (const tet of KUHN) tet4.push(c[tet[0]], c[tet[1]], c[tet[2]], c[tet[3]]);
       }
@@ -138,24 +138,27 @@ function buildTET10Mesh(n) {
       const idx = nCorner + midCoords.length / 3;
       edgeMap.set(key, idx);
       midCoords.push(
-        (cornerVerts[a*3]   + cornerVerts[b*3])   / 2,
-        (cornerVerts[a*3+1] + cornerVerts[b*3+1]) / 2,
-        (cornerVerts[a*3+2] + cornerVerts[b*3+2]) / 2,
+        (cornerVerts[a * 3] + cornerVerts[b * 3]) / 2,
+        (cornerVerts[a * 3 + 1] + cornerVerts[b * 3 + 1]) / 2,
+        (cornerVerts[a * 3 + 2] + cornerVerts[b * 3 + 2]) / 2
       );
     }
     return edgeMap.get(key);
   }
 
   for (let e = 0; e < nTet4; e++) {
-    const [a, b, c, d] = [tet4[e*4], tet4[e*4+1], tet4[e*4+2], tet4[e*4+3]];
+    const [a, b, c, d] = [tet4[e * 4], tet4[e * 4 + 1], tet4[e * 4 + 2], tet4[e * 4 + 3]];
     // TET10 node order: corners 0-3, then mid-edge 4=AB 5=BC 6=AC 7=AD 8=BD 9=CD
-    tet10[e*10+0] = a; tet10[e*10+1] = b; tet10[e*10+2] = c; tet10[e*10+3] = d;
-    tet10[e*10+4] = midIdx(a, b);
-    tet10[e*10+5] = midIdx(b, c);
-    tet10[e*10+6] = midIdx(a, c);
-    tet10[e*10+7] = midIdx(a, d);
-    tet10[e*10+8] = midIdx(b, d);
-    tet10[e*10+9] = midIdx(c, d);
+    tet10[e * 10 + 0] = a;
+    tet10[e * 10 + 1] = b;
+    tet10[e * 10 + 2] = c;
+    tet10[e * 10 + 3] = d;
+    tet10[e * 10 + 4] = midIdx(a, b);
+    tet10[e * 10 + 5] = midIdx(b, c);
+    tet10[e * 10 + 6] = midIdx(a, c);
+    tet10[e * 10 + 7] = midIdx(a, d);
+    tet10[e * 10 + 8] = midIdx(b, d);
+    tet10[e * 10 + 9] = midIdx(c, d);
   }
 
   const allVerts = new Float64Array(nCorner * 3 + midCoords.length);
@@ -172,13 +175,12 @@ function buildTET10Mesh(n) {
 function fixedXZeroNodes(n) {
   const ids = [];
   for (let j = 0; j <= n; j++)
-    for (let k = 0; k <= n; k++)
-      ids.push(j * (n+1) * (n+1) + k * (n+1)); // i=0
+    for (let k = 0; k <= n; k++) ids.push(j * (n + 1) * (n + 1) + k * (n + 1)); // i=0
   // Simplified: fix first (n+1)^2 nodes (face i=0 in the nodeIdx ordering)
   // Since nodeIdx scans i from 0..n, j from 0..n, k from 0..n the first (n+1)^2 nodes
   // correspond to i=0 (all j, k) in the inner loop ordering — exact for small n.
   // For robustness, just fix nodes 0..(n+1)^2-1
-  return Array.from({ length: (n+1) * (n+1) }, (_, idx) => idx);
+  return Array.from({ length: (n + 1) * (n + 1) }, (_, idx) => idx);
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -191,10 +193,13 @@ const CORE_DIST = join(REPO_ROOT, 'packages', 'core', 'dist', 'index.js');
 const SCENARIOS_DIR = join(REPO_ROOT, 'benchmarks', 'scenarios');
 
 const scenarioFiles = [
-  { name: 'basic-scene',     file: join(SCENARIOS_DIR, '01-basic-scene', 'basic-scene.holo') },
-  { name: 'high-complexity', file: join(SCENARIOS_DIR, '02-high-complexity', 'high-complexity.holo') },
-  { name: 'robotics-sim',    file: join(SCENARIOS_DIR, '03-robotics-sim', 'robotics-sim.holo') },
-  { name: 'multiplayer-vr',  file: join(SCENARIOS_DIR, '04-multiplayer-vr', 'multiplayer-vr.holo') },
+  { name: 'basic-scene', file: join(SCENARIOS_DIR, '01-basic-scene', 'basic-scene.holo') },
+  {
+    name: 'high-complexity',
+    file: join(SCENARIOS_DIR, '02-high-complexity', 'high-complexity.holo'),
+  },
+  { name: 'robotics-sim', file: join(SCENARIOS_DIR, '03-robotics-sim', 'robotics-sim.holo') },
+  { name: 'multiplayer-vr', file: join(SCENARIOS_DIR, '04-multiplayer-vr', 'multiplayer-vr.holo') },
 ];
 
 let parserBench = { available: false };
@@ -220,7 +225,10 @@ if (!existsSync(CORE_DIST)) {
       if (core.HoloScriptParser) {
         // HoloScriptParser uses parseComposition (not .parse); fall back to module-level parse
         const parseFn = core.HoloScriptParser.prototype.parseComposition
-          ? (src) => { const p = new core.HoloScriptParser(); return p.parseComposition(src); }
+          ? (src) => {
+              const p = new core.HoloScriptParser();
+              return p.parseComposition(src);
+            }
           : (core.parse ?? core.parseComposition);
         result = timeit(() => parseFn(source), ITERS);
       } else {
@@ -228,7 +236,10 @@ if (!existsSync(CORE_DIST)) {
         result = timeit(() => core.parse(source), ITERS);
       }
       parserResults.push({ scenario: s.name, sizeKB, ...result });
-      ok(`  ${s.name}`, `${result.opsPerSec.toLocaleString()} parses/sec  (avg ${result.avgMs}ms, ${sizeKB}KB)`);
+      ok(
+        `  ${s.name}`,
+        `${result.opsPerSec.toLocaleString()} parses/sec  (avg ${result.avgMs}ms, ${sizeKB}KB)`
+      );
     }
 
     if (parserResults.length > 0) {
@@ -243,7 +254,9 @@ if (!existsSync(CORE_DIST)) {
 
     // Use the basic-scene as the compile target (manageable size)
     const basicSrc = scenarioFiles[0].file;
-    const compositionSrc = existsSync(basicSrc) ? readFileSync(basicSrc, 'utf-8') : `
+    const compositionSrc = existsSync(basicSrc)
+      ? readFileSync(basicSrc, 'utf-8')
+      : `
 composition "BenchScene" {
   object "Cube" @mesh @physics @rigid_body {
     position: [0, 0, 0]
@@ -273,12 +286,12 @@ composition "BenchScene" {
     }
 
     const targets = [
-      { name: 'R3F',      Compiler: core.R3FCompiler,      opts: {} },
-      { name: 'Unity',    Compiler: core.UnityCompiler,     opts: {} },
-      { name: 'URDF',     Compiler: core.URDFCompiler,      opts: {} },
-      { name: 'VisionOS', Compiler: core.VisionOSCompiler,  opts: {} },
-      { name: 'Babylon',  Compiler: core.BabylonCompiler,   opts: {} },
-    ].filter(t => t.Compiler);
+      { name: 'R3F', Compiler: core.R3FCompiler, opts: {} },
+      { name: 'Unity', Compiler: core.UnityCompiler, opts: {} },
+      { name: 'URDF', Compiler: core.URDFCompiler, opts: {} },
+      { name: 'VisionOS', Compiler: core.VisionOSCompiler, opts: {} },
+      { name: 'Babylon', Compiler: core.BabylonCompiler, opts: {} },
+    ].filter((t) => t.Compiler);
 
     const compilerResults = [];
     for (const t of targets) {
@@ -292,10 +305,14 @@ composition "BenchScene" {
           const compiler = new t.Compiler(t.opts);
           const out = compiler.compile(ast, TOKEN);
           if (typeof out === 'string') outputSizeBytes = Buffer.byteLength(out);
-          else if (out && typeof out === 'object') outputSizeBytes = Buffer.byteLength(JSON.stringify(out));
+          else if (out && typeof out === 'object')
+            outputSizeBytes = Buffer.byteLength(JSON.stringify(out));
         } catch (_) {}
         compilerResults.push({ target: t.name, ...r, outputSizeBytes });
-        ok(`  ${t.name}`, `${r.opsPerSec.toLocaleString()} compiles/sec  (avg ${r.avgMs}ms, out ${(outputSizeBytes/1024).toFixed(1)}KB)`);
+        ok(
+          `  ${t.name}`,
+          `${r.opsPerSec.toLocaleString()} compiles/sec  (avg ${r.avgMs}ms, out ${(outputSizeBytes / 1024).toFixed(1)}KB)`
+        );
       } catch (e) {
         warn(`  ${t.name}`, e.message.slice(0, 70));
       }
@@ -326,9 +343,9 @@ if (FLAG_NO_SOLVER) {
 
       // Grid sizes: target ~1k, ~9k, ~29k DOF (maps to W.638b crossover data)
       const meshSizes = [
-        { label: 'small  (~1.4k DOF)',  n: 3 },
-        { label: 'medium (~9k DOF)',    n: 6 },
-        { label: 'large  (~29k DOF)',   n: 10 },
+        { label: 'small  (~1.4k DOF)', n: 3 },
+        { label: 'medium (~9k DOF)', n: 6 },
+        { label: 'large  (~29k DOF)', n: 10 },
       ];
 
       for (const sz of meshSizes) {
@@ -373,7 +390,10 @@ if (FLAG_NO_SOLVER) {
             maxVonMises: stats.maxVonMises,
           });
 
-          ok(`  ${sz.label}`, `${solveMs}ms  DOF=${actualDOF}  iters=${iters}  converged=${converged}`);
+          ok(
+            `  ${sz.label}`,
+            `${solveMs}ms  DOF=${actualDOF}  iters=${iters}  converged=${converged}`
+          );
           solver.dispose();
         } catch (e) {
           warn(`  ${sz.label}`, e.message.slice(0, 70));
@@ -384,7 +404,10 @@ if (FLAG_NO_SOLVER) {
 
       // Crossover annotation based on W.638b
       if (tet10Bench.results.length > 0) {
-        ok('  GPU crossover note', 'RTX 3060: GPU faster at ≥~29k DOF (W.638b). CPU times above are baseline.');
+        ok(
+          '  GPU crossover note',
+          'RTX 3060: GPU faster at ≥~29k DOF (W.638b). CPU times above are baseline.'
+        );
       }
     } catch (e) {
       warn('TET10 import error', e.message.slice(0, 80));
@@ -437,7 +460,7 @@ if (FLAG_NO_SOLVER) {
           const solver = new ThermalSolver(config);
           // CFL stable dt for concrete: α ≈ 7e-7 m²/s, 3D explicit condition dt ≤ dx²/(6α)
           const dx = 1.0 / g.nx;
-          const dt = 0.4 * dx * dx / (6 * 7e-7); // safety factor 0.4, 3D CFL
+          const dt = (0.4 * dx * dx) / (6 * 7e-7); // safety factor 0.4, 3D CFL
 
           // warmup 5 steps
           for (let i = 0; i < 5; i++) solver.step(dt);
@@ -449,7 +472,8 @@ if (FLAG_NO_SOLVER) {
 
           const field = solver.getTemperatureField();
           // Avoid spread-overflow on large arrays (64³ = 262,144 elements)
-          let minT = Infinity, maxT = -Infinity;
+          let minT = Infinity,
+            maxT = -Infinity;
           for (let fi = 0; fi < field.length; fi++) {
             if (field[fi] < minT) minT = field[fi];
             if (field[fi] > maxT) maxT = field[fi];
@@ -463,12 +487,15 @@ if (FLAG_NO_SOLVER) {
             steps: STEPS,
             totalMs,
             perStepMs,
-            Mcells_per_sec: +((cells * STEPS / totalMs / 1000).toFixed(1)),
+            Mcells_per_sec: +((cells * STEPS) / totalMs / 1000).toFixed(1),
             minT: +minT.toFixed(1),
             maxT: +maxT.toFixed(1),
           });
 
-          ok(`  ${g.label}`, `${perStepMs}ms/step  ${+(cells * STEPS / totalMs / 1000).toFixed(1)}M cells/sec  T=[${minT.toFixed(0)}, ${maxT.toFixed(0)}]K`);
+          ok(
+            `  ${g.label}`,
+            `${perStepMs}ms/step  ${+((cells * STEPS) / totalMs / 1000).toFixed(1)}M cells/sec  T=[${minT.toFixed(0)}, ${maxT.toFixed(0)}]K`
+          );
         } catch (e) {
           warn(`  ${g.label}`, e.message.slice(0, 70));
         }
@@ -500,18 +527,57 @@ if (FLAG_NO_EMBED) {
 
       // Synthetic corpus of 50 representative HoloScript symbols
       const SYMS = [
-        { name: 'parseComposition', type: 'function', signature: '(src: string): HoloComposition', filePath: 'core/src/parser.ts', language: 'typescript', docComment: 'Parse HoloScript source into AST' },
-        { name: 'StructuralSolverTET10', type: 'class', signature: 'class StructuralSolverTET10', filePath: 'engine/src/simulation/StructuralSolverTET10.ts', language: 'typescript', docComment: 'GPU-accelerated quadratic tetrahedral FEM solver' },
-        { name: 'compile', type: 'method', signature: '(ast: HoloComposition, token: string): string', filePath: 'core/src/compiler/R3FCompiler.ts', language: 'typescript', docComment: 'Compile composition to React Three Fiber JSX' },
-        { name: 'buildDomainSimulationReceipt', type: 'function', signature: '(opts: ReceiptOptions): DomainSimulationReceipt', filePath: 'core/src/receipts.ts', language: 'typescript', docComment: 'Build CAEL receipt for domain simulation' },
-        { name: 'HoloEmbedEncoder', type: 'class', signature: 'class HoloEmbedEncoder', filePath: 'holoembed/src/HoloEmbedEncoder.ts', language: 'typescript', docComment: '768-dim structural + char-trigram embedding for symbols' },
+        {
+          name: 'parseComposition',
+          type: 'function',
+          signature: '(src: string): HoloComposition',
+          filePath: 'core/src/parser.ts',
+          language: 'typescript',
+          docComment: 'Parse HoloScript source into AST',
+        },
+        {
+          name: 'StructuralSolverTET10',
+          type: 'class',
+          signature: 'class StructuralSolverTET10',
+          filePath: 'engine/src/simulation/StructuralSolverTET10.ts',
+          language: 'typescript',
+          docComment: 'GPU-accelerated quadratic tetrahedral FEM solver',
+        },
+        {
+          name: 'compile',
+          type: 'method',
+          signature: '(ast: HoloComposition, token: string): string',
+          filePath: 'core/src/compiler/R3FCompiler.ts',
+          language: 'typescript',
+          docComment: 'Compile composition to React Three Fiber JSX',
+        },
+        {
+          name: 'buildDomainSimulationReceipt',
+          type: 'function',
+          signature: '(opts: ReceiptOptions): DomainSimulationReceipt',
+          filePath: 'core/src/receipts.ts',
+          language: 'typescript',
+          docComment: 'Build CAEL receipt for domain simulation',
+        },
+        {
+          name: 'HoloEmbedEncoder',
+          type: 'class',
+          signature: 'class HoloEmbedEncoder',
+          filePath: 'holoembed/src/HoloEmbedEncoder.ts',
+          language: 'typescript',
+          docComment: '768-dim structural + char-trigram embedding for symbols',
+        },
       ];
 
       // Generate 50 symbols by varying the base set
       const FULL_CORPUS = [];
       for (let i = 0; i < 50; i++) {
         const base = SYMS[i % SYMS.length];
-        FULL_CORPUS.push({ ...base, name: `${base.name}_${i}`, filePath: `${base.filePath}?v=${i}` });
+        FULL_CORPUS.push({
+          ...base,
+          name: `${base.name}_${i}`,
+          filePath: `${base.filePath}?v=${i}`,
+        });
       }
 
       // Warmup
@@ -524,16 +590,22 @@ if (FLAG_NO_EMBED) {
         totalDims += vec.length;
       }
       const totalMs = performance.now() - t0;
-      const symbolsPerSec = Math.round(FULL_CORPUS.length / totalMs * 1000);
+      const symbolsPerSec = Math.round((FULL_CORPUS.length / totalMs) * 1000);
       const avgDims = Math.round(totalDims / FULL_CORPUS.length);
 
       // Also bench encodeText
       let textMs = 0;
       if (enc.encodeText) {
-        const texts = ['parse a HoloScript scene into an AST', 'GPU-accelerated structural solver', 'compile to WebGPU shaders', 'embed symbol for semantic search', 'thermal diffusion simulation'];
+        const texts = [
+          'parse a HoloScript scene into an AST',
+          'GPU-accelerated structural solver',
+          'compile to WebGPU shaders',
+          'embed symbol for semantic search',
+          'thermal diffusion simulation',
+        ];
         const tt0 = performance.now();
         for (let i = 0; i < 50; i++) enc.encodeText(texts[i % texts.length]);
-        textMs = +(( performance.now() - tt0) / 50).toFixed(2);
+        textMs = +((performance.now() - tt0) / 50).toFixed(2);
       }
 
       embedBench = {
@@ -565,8 +637,15 @@ let domainBench = { available: false, results: [] };
 // medical: tsc emits individual files; import direct solver file (not index which has bare re-export).
 // threat-intel: tsup bundle works — full index.js.
 const pluginPaths = {
-  medical:     join(REPO_ROOT, 'packages', 'plugins', 'medical-plugin',             'dist', 'medicalsolver.js'),
-  threatIntel: join(REPO_ROOT, 'packages', 'plugins', 'threat-intelligence-plugin', 'dist', 'index.js'),
+  medical: join(REPO_ROOT, 'packages', 'plugins', 'medical-plugin', 'dist', 'medicalsolver.js'),
+  threatIntel: join(
+    REPO_ROOT,
+    'packages',
+    'plugins',
+    'threat-intelligence-plugin',
+    'dist',
+    'index.js'
+  ),
 };
 
 for (const [domain, distPath] of Object.entries(pluginPaths)) {
@@ -585,8 +664,15 @@ for (const [domain, distPath] of Object.entries(pluginPaths)) {
           keplerOrbit({ semiMajorAxisM: 6.778e6, eccentricity: 0, inclinationDeg: 28.5 });
           aerodynamicDrag({ cd: 0.5, referenceAreaM2: 10, airDensityKgM3: 1.225, velocityMs: 340 });
         }, 2000);
-        ok('aerospace', `${r.opsPerSec.toLocaleString()} solver calls/sec  (avg ${r.avgMs}ms × 3 solvers)`);
-        domainBench.results.push({ domain: 'aerospace', ...r, solvers: ['tsiolkovsky', 'kepler', 'drag'] });
+        ok(
+          'aerospace',
+          `${r.opsPerSec.toLocaleString()} solver calls/sec  (avg ${r.avgMs}ms × 3 solvers)`
+        );
+        domainBench.results.push({
+          domain: 'aerospace',
+          ...r,
+          solvers: ['tsiolkovsky', 'kepler', 'drag'],
+        });
       }
     }
 
@@ -596,9 +682,19 @@ for (const [domain, distPath] of Object.entries(pluginPaths)) {
         const r = timeit(() => {
           bmiCalculation(70, 175, 'male');
           egfrCockcroftGault(45, 70, 1.2, 'male');
-          news2Score({ respirationRate: 20, oxygenSaturation: 93, systolicBP: 100, pulse: 110, consciousness: 'alert', temperature: 38.5 });
+          news2Score({
+            respirationRate: 20,
+            oxygenSaturation: 93,
+            systolicBP: 100,
+            pulse: 110,
+            consciousness: 'alert',
+            temperature: 38.5,
+          });
         }, 2000);
-        ok('medical', `${r.opsPerSec.toLocaleString()} solver calls/sec  (avg ${r.avgMs}ms × 3 solvers)`);
+        ok(
+          'medical',
+          `${r.opsPerSec.toLocaleString()} solver calls/sec  (avg ${r.avgMs}ms × 3 solvers)`
+        );
         domainBench.results.push({ domain: 'medical', ...r, solvers: ['bmi', 'egfr', 'news2'] });
       }
     }
@@ -607,12 +703,32 @@ for (const [domain, distPath] of Object.entries(pluginPaths)) {
       const { cvssScore, killChainAnalysis, iocConfidence } = mod;
       if (cvssScore && killChainAnalysis && iocConfidence) {
         const r = timeit(() => {
-          cvssScore({ attackVector: 'N', attackComplexity: 'L', privilegesRequired: 'N', userInteraction: 'N', scope: 'C', confidentialityImpact: 'H', integrityImpact: 'H', availabilityImpact: 'H' });
-          killChainAnalysis([{ name: 'recon', successProbability: 0.9 }, { name: 'exploit', successProbability: 0.4 }, { name: 'c2', successProbability: 0.7 }]);
+          cvssScore({
+            attackVector: 'N',
+            attackComplexity: 'L',
+            privilegesRequired: 'N',
+            userInteraction: 'N',
+            scope: 'C',
+            confidentialityImpact: 'H',
+            integrityImpact: 'H',
+            availabilityImpact: 'H',
+          });
+          killChainAnalysis([
+            { name: 'recon', successProbability: 0.9 },
+            { name: 'exploit', successProbability: 0.4 },
+            { name: 'c2', successProbability: 0.7 },
+          ]);
           iocConfidence({ type: 'ip', sourceQuality: 0.9, ageDays: 14, corroboration: 3 });
         }, 2000);
-        ok('threat-intel', `${r.opsPerSec.toLocaleString()} solver calls/sec  (avg ${r.avgMs}ms × 3 solvers)`);
-        domainBench.results.push({ domain: 'threat-intel', ...r, solvers: ['cvss', 'kill-chain', 'ioc'] });
+        ok(
+          'threat-intel',
+          `${r.opsPerSec.toLocaleString()} solver calls/sec  (avg ${r.avgMs}ms × 3 solvers)`
+        );
+        domainBench.results.push({
+          domain: 'threat-intel',
+          ...r,
+          solvers: ['cvss', 'kill-chain', 'ioc'],
+        });
       }
     }
   } catch (e) {
@@ -631,10 +747,18 @@ for (const [domain, distPath] of Object.entries(pluginPaths)) {
   function kepler(a, e) {
     const mu = 3.986004418e14;
     const T = 2 * Math.PI * Math.sqrt(Math.pow(a, 3) / mu);
-    const rA = a * (1 + e), rP = a * (1 - e);
-    return { periodS: T, apoapsisAltM: rA - 6.371e6, periapsisAltM: rP - 6.371e6, meanVelocityMs: Math.sqrt(mu / a) };
+    const rA = a * (1 + e),
+      rP = a * (1 - e);
+    return {
+      periodS: T,
+      apoapsisAltM: rA - 6.371e6,
+      periapsisAltM: rP - 6.371e6,
+      meanVelocityMs: Math.sqrt(mu / a),
+    };
   }
-  function drag(cd, area, rho, v) { return 0.5 * rho * v * v * cd * area; }
+  function drag(cd, area, rho, v) {
+    return 0.5 * rho * v * v * cd * area;
+  }
 
   try {
     const r = timeit(() => {
@@ -642,8 +766,16 @@ for (const [domain, distPath] of Object.entries(pluginPaths)) {
       kepler(6.778e6, 0.001);
       drag(0.5, 10, 1.225, 340);
     }, 5000);
-    ok('aerospace (inline)', `${r.opsPerSec.toLocaleString()} solver-sets/sec  (avg ${r.avgMs}ms × 3 solvers)`);
-    domainBench.results.push({ domain: 'aerospace', ...r, solvers: ['tsiolkovsky', 'kepler', 'drag'], note: 'inline-math' });
+    ok(
+      'aerospace (inline)',
+      `${r.opsPerSec.toLocaleString()} solver-sets/sec  (avg ${r.avgMs}ms × 3 solvers)`
+    );
+    domainBench.results.push({
+      domain: 'aerospace',
+      ...r,
+      solvers: ['tsiolkovsky', 'kepler', 'drag'],
+      note: 'inline-math',
+    });
   } catch (e) {
     warn('aerospace', e.message.slice(0, 70));
   }
@@ -669,12 +801,12 @@ const results = {
     cpuCores: os.cpus().length,
   },
   lanes: {
-    parser:   parserBench,
+    parser: parserBench,
     compiler: compilerBench,
-    tet10:    tet10Bench,
-    thermal:  thermalBench,
-    embed:    embedBench,
-    domain:   domainBench,
+    tet10: tet10Bench,
+    thermal: thermalBench,
+    embed: embedBench,
+    domain: domainBench,
   },
 };
 
@@ -682,12 +814,18 @@ const results = {
 const printRow = (label, val) => ok(label, val);
 
 if (parserBench.available) {
-  const fastest = parserBench.results.reduce((a, b) => a.opsPerSec > b.opsPerSec ? a : b);
-  printRow('parser (best)', `${fastest.opsPerSec.toLocaleString()} parses/sec — ${fastest.scenario}`);
+  const fastest = parserBench.results.reduce((a, b) => (a.opsPerSec > b.opsPerSec ? a : b));
+  printRow(
+    'parser (best)',
+    `${fastest.opsPerSec.toLocaleString()} parses/sec — ${fastest.scenario}`
+  );
 }
 if (compilerBench.available) {
-  const fastest = compilerBench.results.reduce((a, b) => a.opsPerSec > b.opsPerSec ? a : b);
-  printRow('compiler (best)', `${fastest.opsPerSec.toLocaleString()} compiles/sec — ${fastest.target}`);
+  const fastest = compilerBench.results.reduce((a, b) => (a.opsPerSec > b.opsPerSec ? a : b));
+  printRow(
+    'compiler (best)',
+    `${fastest.opsPerSec.toLocaleString()} compiles/sec — ${fastest.target}`
+  );
 }
 if (tet10Bench.available && tet10Bench.results.length > 0) {
   for (const r of tet10Bench.results) {
@@ -733,8 +871,13 @@ if (!FLAG_DRY_RUN) {
     const envPaths = [join(REPO_ROOT, '.env'), join(os.homedir(), '.ai-ecosystem', '.env')];
     for (const p of envPaths) {
       if (existsSync(p)) {
-        const line = readFileSync(p, 'utf8').split('\n').find(l => l.startsWith('HOLOSCRIPT_API_KEY'));
-        if (line) { apiKey = line.split('=')[1]?.trim(); break; }
+        const line = readFileSync(p, 'utf8')
+          .split('\n')
+          .find((l) => l.startsWith('HOLOSCRIPT_API_KEY'));
+        if (line) {
+          apiKey = line.split('=')[1]?.trim();
+          break;
+        }
       }
     }
   }
@@ -742,13 +885,27 @@ if (!FLAG_DRY_RUN) {
   if (apiKey) {
     const summaryLines = [
       `HoloScript feature bench ${benchId} — ${today}.`,
-      parserBench.available ? `Parser: ${parserBench.results[0].opsPerSec.toLocaleString()} parses/sec (basic-scene).` : '',
-      compilerBench.available ? `Compiler: ${compilerBench.results.map(r => `${r.target}=${r.avgMs}ms`).join(', ')}.` : '',
-      tet10Bench.available ? `TET10 CPU: ${tet10Bench.results.map(r => `${r.dofCount}DOF=${r.solveMs}ms`).join(', ')}.` : '',
-      thermalBench.available ? `Thermal: ${thermalBench.results.map(r => `${r.grid.join('x')}=${r.perStepMs}ms/step`).join(', ')}.` : '',
-      embedBench.available ? `HoloEmbed: ${embedBench.symbolsPerSec.toLocaleString()} symbols/sec 768-dim.` : '',
-      domainBench.available ? `Domain solvers: ${domainBench.results.map(r => `${r.domain}=${r.opsPerSec.toLocaleString()}/sec`).join(', ')}.` : '',
-    ].filter(Boolean).join(' ');
+      parserBench.available
+        ? `Parser: ${parserBench.results[0].opsPerSec.toLocaleString()} parses/sec (basic-scene).`
+        : '',
+      compilerBench.available
+        ? `Compiler: ${compilerBench.results.map((r) => `${r.target}=${r.avgMs}ms`).join(', ')}.`
+        : '',
+      tet10Bench.available
+        ? `TET10 CPU: ${tet10Bench.results.map((r) => `${r.dofCount}DOF=${r.solveMs}ms`).join(', ')}.`
+        : '',
+      thermalBench.available
+        ? `Thermal: ${thermalBench.results.map((r) => `${r.grid.join('x')}=${r.perStepMs}ms/step`).join(', ')}.`
+        : '',
+      embedBench.available
+        ? `HoloEmbed: ${embedBench.symbolsPerSec.toLocaleString()} symbols/sec 768-dim.`
+        : '',
+      domainBench.available
+        ? `Domain solvers: ${domainBench.results.map((r) => `${r.domain}=${r.opsPerSec.toLocaleString()}/sec`).join(', ')}.`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     const entry = {
       id: `W.HSF.${hostname}-${today}`,
@@ -760,9 +917,13 @@ if (!FLAG_DRY_RUN) {
       metadata: {
         benchId,
         host: results.host,
-        parserBest: parserBench.available ? Math.max(...parserBench.results.map(r => r.opsPerSec)) : null,
-        compilerTargets: compilerBench.available ? compilerBench.results.map(r => r.target) : [],
-        tet10SolveMs: tet10Bench.available ? tet10Bench.results.map(r => ({ dof: r.dofCount, ms: r.solveMs })) : [],
+        parserBest: parserBench.available
+          ? Math.max(...parserBench.results.map((r) => r.opsPerSec))
+          : null,
+        compilerTargets: compilerBench.available ? compilerBench.results.map((r) => r.target) : [],
+        tet10SolveMs: tet10Bench.available
+          ? tet10Bench.results.map((r) => ({ dof: r.dofCount, ms: r.solveMs }))
+          : [],
         embedSymbolsPerSec: embedBench.available ? embedBench.symbolsPerSec : null,
         captureTime,
       },
@@ -773,12 +934,19 @@ if (!FLAG_DRY_RUN) {
       const syncResult = await new Promise((resolve, reject) => {
         const req = https.request(
           'https://mcp-orchestrator-production-45f9.up.railway.app/knowledge/sync',
-          { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-mcp-api-key': apiKey, 'Content-Length': Buffer.byteLength(body) } },
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-mcp-api-key': apiKey,
+              'Content-Length': Buffer.byteLength(body),
+            },
+          },
           (res) => {
             let data = '';
-            res.on('data', c => data += c);
+            res.on('data', (c) => (data += c));
             res.on('end', () => resolve({ status: res.statusCode, body: data.slice(0, 200) }));
-          },
+          }
         );
         req.on('error', reject);
         req.write(body);

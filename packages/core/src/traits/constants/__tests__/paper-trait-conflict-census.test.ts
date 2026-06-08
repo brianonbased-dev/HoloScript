@@ -138,8 +138,7 @@ describe('Paper 11 Benchmark: trait conflict census', () => {
 
     const payload = {
       generatedAt: new Date().toISOString(),
-      source:
-        'packages/core/src/traits/constants/__tests__/paper-trait-conflict-census.test.ts',
+      source: 'packages/core/src/traits/constants/__tests__/paper-trait-conflict-census.test.ts',
       traitUniverseCount: n,
       knownSchemaTraitCount: uniqueTraits.filter((t) => knownTraits.has(t)).length,
       unknownSchemaTraitCount: uniqueTraits.filter((t) => !knownTraits.has(t)).length,

@@ -82,14 +82,7 @@ function makeRecorder(nodeCount = 8): CAELRecorder {
   return new CAELRecorder(mockSolver(nodeCount), {
     solverType: 'mock-crdt-experiment',
     vertices: new Float64Array([
-      0, 0, 0,
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 1,
-      1, 1, 0,
-      1, 0, 1,
-      0, 1, 1,
-      1, 1, 1,
+      0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1,
     ]),
     tetrahedra: new Uint32Array([0, 1, 2, 3]),
   });
@@ -280,8 +273,14 @@ describe('Paper #3 — Experiment 1: Agent scaling', () => {
       const opsPerSec = (totalEdits / elapsedMs) * 1000;
       const conflicts = countConflicts(localBridge, perAgentOps);
       const sortedResolutions = [...resolutionTimes].sort((a, b) => a - b);
-      const medianResolutionMs = sortedResolutions.length === 0 ? 0 : sortedResolutions[Math.floor(sortedResolutions.length / 2)];
-      const p99ResolutionMs = sortedResolutions.length === 0 ? 0 : sortedResolutions[Math.floor(sortedResolutions.length * 0.99)];
+      const medianResolutionMs =
+        sortedResolutions.length === 0
+          ? 0
+          : sortedResolutions[Math.floor(sortedResolutions.length / 2)];
+      const p99ResolutionMs =
+        sortedResolutions.length === 0
+          ? 0
+          : sortedResolutions[Math.floor(sortedResolutions.length * 0.99)];
       const jsonl = localRecorder.toJSONL();
       const traceSizeBytes = Buffer.byteLength(jsonl, 'utf8');
 
@@ -322,9 +321,7 @@ describe('Paper #3 — Experiment 1: Agent scaling', () => {
     console.log('  \\label{tab:paper3-scaling}');
     console.log('  \\begin{tabular}{@{}rrrrrr@{}}');
     console.log('    \\toprule');
-    console.log(
-      '    Agents & Objects & Ops/sec & Conflicts & Resolution (ms) & Trace (KB) \\\\'
-    );
+    console.log('    Agents & Objects & Ops/sec & Conflicts & Resolution (ms) & Trace (KB) \\\\');
     console.log('    \\midrule');
     for (const r of scalingRows) {
       console.log(
@@ -350,10 +347,7 @@ describe('Paper #3 — Experiment 2: Conflict density', () => {
   for (const overlap of OVERLAP_PCTS) {
     it(`4 agents at ${overlap}% overlap`, () => {
       const sharedCount = Math.floor((overlap / 100) * TOTAL_OBJECTS);
-      const privatePerAgent = Math.max(
-        1,
-        Math.floor((TOTAL_OBJECTS - sharedCount) / AGENT_COUNT)
-      );
+      const privatePerAgent = Math.max(1, Math.floor((TOTAL_OBJECTS - sharedCount) / AGENT_COUNT));
 
       const localRecorder = makeRecorder(TOTAL_OBJECTS);
       const localBridge = new SpatialCRDTBridge({ peerId: 'authority' });
@@ -418,8 +412,14 @@ describe('Paper #3 — Experiment 2: Conflict density', () => {
       const conflicts = countConflicts(localBridge, perAgentOps);
       const conflictRate = conflicts / totalOps;
       const sortedResolutions = [...resolutionTimes].sort((a, b) => a - b);
-      const medianResolutionMs = sortedResolutions.length === 0 ? 0 : sortedResolutions[Math.floor(sortedResolutions.length / 2)];
-      const p99ResolutionMs = sortedResolutions.length === 0 ? 0 : sortedResolutions[Math.floor(sortedResolutions.length * 0.99)];
+      const medianResolutionMs =
+        sortedResolutions.length === 0
+          ? 0
+          : sortedResolutions[Math.floor(sortedResolutions.length / 2)];
+      const p99ResolutionMs =
+        sortedResolutions.length === 0
+          ? 0
+          : sortedResolutions[Math.floor(sortedResolutions.length * 0.99)];
 
       expect(conflicts).toBeGreaterThanOrEqual(0);
 
@@ -485,8 +485,7 @@ describe('Paper #3 — Experiment 3: Dispute resolution via CAEL replay', () => 
         scenario,
       });
       const updateB = bridgeB.exportUpdate();
-      const divergenceDetected =
-        fingerprint(bridgeA.exportUpdate()) !== fingerprint(updateB);
+      const divergenceDetected = fingerprint(bridgeA.exportUpdate()) !== fingerprint(updateB);
       expect(divergenceDetected).toBe(true);
       const divergenceDetectMs = deltaMs(detectStartNs, nowNs());
 
@@ -543,9 +542,7 @@ describe('Paper #3 — Experiment 3: Dispute resolution via CAEL replay', () => 
     console.log('  \\label{tab:paper3-disputes}');
     console.log('  \\begin{tabular}{@{}lrrrl@{}}');
     console.log('    \\toprule');
-    console.log(
-      '    Scenario & Detect (ms) & Replay (ms) & Verify (ms) & Resolved hash \\\\'
-    );
+    console.log('    Scenario & Detect (ms) & Replay (ms) & Verify (ms) & Resolved hash \\\\');
     console.log('    \\midrule');
     for (const r of disputeRows) {
       console.log(
@@ -593,9 +590,24 @@ describe('Paper #3 — Experiment 4: Strategy comparison', () => {
     property: string;
     shouldThrow: boolean;
   }> = [
-    { label: 'tropical-min-plus', strategy: 'tropical-min-plus', property: 'friction', shouldThrow: false },
-    { label: 'tropical-max-plus', strategy: 'tropical-max-plus', property: 'friction', shouldThrow: false },
-    { label: 'authority-weighted', strategy: 'authority-weighted', property: 'mass', shouldThrow: false },
+    {
+      label: 'tropical-min-plus',
+      strategy: 'tropical-min-plus',
+      property: 'friction',
+      shouldThrow: false,
+    },
+    {
+      label: 'tropical-max-plus',
+      strategy: 'tropical-max-plus',
+      property: 'friction',
+      shouldThrow: false,
+    },
+    {
+      label: 'authority-weighted',
+      strategy: 'authority-weighted',
+      property: 'mass',
+      shouldThrow: false,
+    },
     {
       label: 'domain-override',
       strategy: 'domain-override',
@@ -722,9 +734,7 @@ describe('Paper #3 — Experiment 4: Strategy comparison', () => {
   });
 
   it('verifies CRDT-01 equal-score provenance ties on 1 000 merge orders', () => {
-    const semiring = new ProvenanceSemiring([
-      { property: 'mass', strategy: 'authority-weighted' },
-    ]);
+    const semiring = new ProvenanceSemiring([{ property: 'mass', strategy: 'authority-weighted' }]);
 
     const N = 1000;
     let failures = 0;
@@ -751,12 +761,14 @@ describe('Paper #3 — Experiment 4: Strategy comparison', () => {
       };
       const expectedSource = lowerAuthority.name;
 
-      const leftFirst = i % 2 === 0
-        ? semiring.add([highAuthority, lowerAuthority])
-        : semiring.add([lowerAuthority, highAuthority]);
-      const rightFirst = i % 2 === 0
-        ? semiring.add([lowerAuthority, highAuthority])
-        : semiring.add([highAuthority, lowerAuthority]);
+      const leftFirst =
+        i % 2 === 0
+          ? semiring.add([highAuthority, lowerAuthority])
+          : semiring.add([lowerAuthority, highAuthority]);
+      const rightFirst =
+        i % 2 === 0
+          ? semiring.add([lowerAuthority, highAuthority])
+          : semiring.add([highAuthority, lowerAuthority]);
 
       if (
         leftFirst.errors.length > 0 ||
@@ -861,8 +873,7 @@ describe('Paper #3 — Experiment 4: Strategy comparison', () => {
     console.log('    Strategy & Property & Hash & Resolve (ms) & Laws hold \\\\');
     console.log('    \\midrule');
     for (const r of strategyRows) {
-      const laws =
-        r.commutative && r.idempotent ? '\\checkmark' : 'partial';
+      const laws = r.commutative && r.idempotent ? '\\checkmark' : 'partial';
       console.log(
         `    ${r.strategy} & ${r.appliedTo} & \\texttt{${r.resultStateHash}} & ${r.resolutionMs.toFixed(4)} & ${laws} \\\\`
       );
@@ -884,12 +895,8 @@ describe('Paper #3 — Section 7 master evaluation table', () => {
     console.log('\n' + '='.repeat(90));
     console.log('PAPER #3 — SECTION 7 MASTER TABLE (Agent scaling)');
     console.log('='.repeat(90));
-    console.log(
-      '| Agents | Objects | Ops/sec  | Conflicts | Resolution (ms) | Trace Size |'
-    );
-    console.log(
-      '|--------|---------|----------|-----------|-----------------|------------|'
-    );
+    console.log('| Agents | Objects | Ops/sec  | Conflicts | Resolution (ms) | Trace Size |');
+    console.log('|--------|---------|----------|-----------|-----------------|------------|');
     for (const r of scalingRows) {
       console.log(
         `| ${r.agents.toString().padStart(6)} ` +
@@ -912,9 +919,7 @@ describe('Paper #3 — Section 7 master evaluation table', () => {
     console.log('  \\label{tab:paper3-section7}');
     console.log('  \\begin{tabular}{@{}rrrrrr@{}}');
     console.log('    \\toprule');
-    console.log(
-      '    Agents & Objects & Ops/sec & Conflicts & Resolution (ms) & Trace (KB) \\\\'
-    );
+    console.log('    Agents & Objects & Ops/sec & Conflicts & Resolution (ms) & Trace (KB) \\\\');
     console.log('    \\midrule');
     for (const r of scalingRows) {
       console.log(

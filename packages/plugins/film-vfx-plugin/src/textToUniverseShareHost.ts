@@ -40,9 +40,7 @@ export async function postTtuSnippetToRenderShare(
       code: holoSnippet,
       title: options.title ?? options.defaultTitle ?? 'TextToUniverse scene',
       description:
-        options.description ??
-        options.defaultDescription ??
-        'Scene emitted from @text_to_universe',
+        options.description ?? options.defaultDescription ?? 'Scene emitted from @text_to_universe',
     }),
   });
   if (!res.ok) {
@@ -103,7 +101,10 @@ export function wireTextToUniverseShareToCtx(
         prev?.('ttu:shared', { share, ...meta });
       },
       onError: (err, meta) => {
-        prev?.('ttu:share_error', { error: err instanceof Error ? err.message : String(err), ...meta });
+        prev?.('ttu:share_error', {
+          error: err instanceof Error ? err.message : String(err),
+          ...meta,
+        });
       },
     }).catch(() => {
       /* onError already emitted */

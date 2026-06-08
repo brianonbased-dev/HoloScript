@@ -22,21 +22,31 @@
 import type http from 'http';
 import { createHmac } from 'node:crypto';
 import { json } from '../utils';
-import { buildWorkload, postGithubStatuses, submitWorkload, pollWorkloadAndReport } from '../../holo-ci-tools';
+import {
+  buildWorkload,
+  postGithubStatuses,
+  submitWorkload,
+  pollWorkloadAndReport,
+} from '../../holo-ci-tools';
 import { teamMessageStore } from '../state';
 import { broadcastToRoom } from '../team-room';
 import type { TeamMessage } from '../types';
 
 const TEAM_ID = process.env.HOLOMESH_TEAM_ID || '';
 
-function verifyGithubSignature(body: string, signature: string | undefined, repoSecret?: string): boolean {
+function verifyGithubSignature(
+  body: string,
+  signature: string | undefined,
+  repoSecret?: string
+): boolean {
   const secret = repoSecret || process.env.GITHUB_WEBHOOK_SECRET || '';
   if (!secret) return true; // dev: skip verification when secret not configured
   if (!signature) return false;
   const expected = 'sha256=' + createHmac('sha256', secret).update(body).digest('hex');
   if (expected.length !== signature.length) return false;
   let diff = 0;
-  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
+  for (let i = 0; i < expected.length; i++)
+    diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
   return diff === 0;
 }
 
@@ -81,7 +91,7 @@ export async function handleGithubWebhookRoutes(
   req: http.IncomingMessage,
   res: http.ServerResponse,
   pathname: string,
-  method: string,
+  method: string
 ): Promise<boolean> {
   if (pathname !== '/webhook/github' || method !== 'POST') return false;
 
@@ -90,7 +100,10 @@ export async function handleGithubWebhookRoutes(
     rawBody = await new Promise<string>((resolve, reject) => {
       const chunks: Buffer[] = [];
       let size = 0;
-      req.on('data', (c: Buffer) => { size += c.length; if (size < 256_000) chunks.push(c); });
+      req.on('data', (c: Buffer) => {
+        size += c.length;
+        if (size < 256_000) chunks.push(c);
+      });
       req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
       req.on('error', reject);
     });
@@ -107,7 +120,9 @@ export async function handleGithubWebhookRoutes(
   try {
     const peek = JSON.parse(rawBody) as { repository?: { full_name?: string } };
     earlyRepo = String(peek?.repository?.full_name || '');
-  } catch { /* use global secret */ }
+  } catch {
+    /* use global secret */
+  }
   if (!verifyGithubSignature(rawBody, sig, getWebhookSecret(earlyRepo))) {
     json(res, 401, { error: 'invalid_signature' });
     return true;
@@ -182,7 +197,9 @@ export async function handleGithubWebhookRoutes(
           workloadId: result.workloadId!,
           jobIdToGate: result.jobIdToGate ?? {},
           timeoutMs: 10 * 60 * 1000,
-        }).catch(() => { /* non-fatal */ });
+        }).catch(() => {
+          /* non-fatal */
+        });
       } else {
         postToRoom(`❌ HoloCI dispatch failed — ${repoFull}@${shortSha}: ${result.error}`);
         await postGithubStatuses(repoFull, sha, built.contexts, 'error', 'HoloCI dispatch failed');

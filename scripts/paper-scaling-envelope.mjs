@@ -39,7 +39,10 @@ export function buildPaper12ScalingEnvelope(options = {}) {
       annotationCount,
       projectedRuntimeMs,
       projectedMemoryMB,
-      bottleneck: objects >= 5000 ? 'export batch scheduling and plugin serialization' : 'linear export serialization',
+      bottleneck:
+        objects >= 5000
+          ? 'export batch scheduling and plugin serialization'
+          : 'linear export serialization',
     };
   });
 
@@ -178,9 +181,21 @@ function parsePaper12SceneSuite(markdown) {
   const sceneRows = [];
   for (const line of markdown.split(/\r?\n/)) {
     if (!line.startsWith('|')) continue;
-    const cells = line.split('|').map((cell) => cell.trim()).filter(Boolean);
+    const cells = line
+      .split('|')
+      .map((cell) => cell.trim())
+      .filter(Boolean);
     if (cells.length < 8 || cells[0] === 'Scene' || cells[0].startsWith('---')) continue;
-    const [scene, objects, traitsPerObject, holoLoc, coldParseMeanMs, warmParseMeanMs, warmColdRatio, usdExportMeanMs] = cells;
+    const [
+      scene,
+      objects,
+      traitsPerObject,
+      holoLoc,
+      coldParseMeanMs,
+      warmParseMeanMs,
+      warmColdRatio,
+      usdExportMeanMs,
+    ] = cells;
     const numeric = {
       scene,
       objects: Number(objects),
@@ -206,7 +221,10 @@ function parsePaper12SceneSuite(markdown) {
 function parseAggregateValue(markdown, label) {
   const line = markdown.split(/\r?\n/).find((candidate) => candidate.includes(`| ${label} |`));
   if (!line) return undefined;
-  const cells = line.split('|').map((cell) => cell.trim()).filter(Boolean);
+  const cells = line
+    .split('|')
+    .map((cell) => cell.trim())
+    .filter(Boolean);
   const value = Number(cells[1]);
   return Number.isFinite(value) ? value : undefined;
 }
@@ -223,7 +241,9 @@ function hashFileIfPresent(path) {
 }
 
 function sha256Canonical(value) {
-  return createHash('sha256').update(JSON.stringify(sortForJson(value))).digest('hex');
+  return createHash('sha256')
+    .update(JSON.stringify(sortForJson(value)))
+    .digest('hex');
 }
 
 function sortForJson(value) {
@@ -252,7 +272,8 @@ function parseArgs(argv) {
     else if (arg === '--memo-out') args.memoOut = argv[++i];
     else if (arg.startsWith('--memo-out=')) args.memoOut = arg.slice('--memo-out='.length);
     else if (arg === '--generated-at') args.generatedAt = argv[++i];
-    else if (arg.startsWith('--generated-at=')) args.generatedAt = arg.slice('--generated-at='.length);
+    else if (arg.startsWith('--generated-at='))
+      args.generatedAt = arg.slice('--generated-at='.length);
     else throw new Error(`Unknown argument: ${arg}`);
   }
   return args;
@@ -261,7 +282,9 @@ function parseArgs(argv) {
 if (process.argv[1] && import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    console.log('Usage: node scripts/paper-scaling-envelope.mjs --json-out docs/public/evidence/paper-12-hololand-scaling-envelope.json --memo-out research/paper-12-hololand-scaling.md');
+    console.log(
+      'Usage: node scripts/paper-scaling-envelope.mjs --json-out docs/public/evidence/paper-12-hololand-scaling-envelope.json --memo-out research/paper-12-hololand-scaling.md'
+    );
     process.exit(0);
   }
   const envelope = buildPaper12ScalingEnvelope({ generatedAt: args.generatedAt });

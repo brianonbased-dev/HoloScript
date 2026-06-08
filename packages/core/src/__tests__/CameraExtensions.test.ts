@@ -82,10 +82,7 @@ describe('Cycle 165: Camera Extensions', () => {
 
   it('should stop at end or loop', () => {
     const path = new CameraPath();
-    path.setPoints([
-      { position: [0, 0, 0] },
-      { position: [100, 0, 0] },
-    ]);
+    path.setPoints([{ position: [0, 0, 0] }, { position: [100, 0, 0] }]);
     path.setSpeed(10);
     path.play();
 

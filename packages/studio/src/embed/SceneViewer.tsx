@@ -10,7 +10,11 @@ import {
   MATERIAL_PRESETS,
 } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
-import { HolomapPointCloudViewer, WebSurfaceRenderer, resolveWebSurfaceConfig } from '@holoscript/r3f-renderer';
+import {
+  HolomapPointCloudViewer,
+  WebSurfaceRenderer,
+  resolveWebSurfaceConfig,
+} from '@holoscript/r3f-renderer';
 
 // VR edit session — lazy loaded to avoid SSR issues
 const VREditSession = lazy(() =>

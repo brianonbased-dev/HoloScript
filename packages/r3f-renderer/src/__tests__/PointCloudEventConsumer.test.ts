@@ -81,7 +81,9 @@ describe('PointCloudEventConsumer', () => {
     expect(loaded?.octree.pointCount).toBe(3);
     expect(loaded?.octree.root.children.length).toBeGreaterThan(0);
     expect(consumer.getHandle({ id: 'cloud-node' })?.pointSize).toBe(0.5);
-    expect(bus.lastPayload<{ visibleCount: number }>('point_cloud_visibility_update')?.visibleCount).toBe(3);
+    expect(
+      bus.lastPayload<{ visibleCount: number }>('point_cloud_visibility_update')?.visibleCount
+    ).toBe(3);
   });
 
   it('updates loaded cloud state from size, color, filter, pick, and destroy events', async () => {
@@ -112,8 +114,12 @@ describe('PointCloudEventConsumer', () => {
     expect(handle?.pointSize).toBe(2);
     expect(handle?.colorMode).toBe('height');
     expect(handle?.visiblePoints).toBe(1);
-    expect(bus.lastPayload<{ visibleCount: number }>('point_cloud_visibility_update')?.visibleCount).toBe(1);
-    expect(bus.lastPayload<{ point: { index: number } }>('point_cloud_pick_result')?.point.index).toBe(0);
+    expect(
+      bus.lastPayload<{ visibleCount: number }>('point_cloud_visibility_update')?.visibleCount
+    ).toBe(1);
+    expect(
+      bus.lastPayload<{ point: { index: number } }>('point_cloud_pick_result')?.point.index
+    ).toBe(0);
 
     bus.emit('point_cloud_reset_filter', { node });
     expect(consumer.getHandle(node)?.visiblePoints).toBe(3);

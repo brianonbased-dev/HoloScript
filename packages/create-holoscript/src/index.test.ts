@@ -239,14 +239,7 @@ describe('create-holoscript-app', () => {
     });
 
     it('should respect explicit --template override in --go mode', () => {
-      const result = parseArgs([
-        'node',
-        'script.js',
-        'app',
-        '--go',
-        '--template',
-        'hello-world',
-      ]);
+      const result = parseArgs(['node', 'script.js', 'app', '--go', '--template', 'hello-world']);
       expect(result.goMode).toBe(true);
       expect(result.templateFlag).toBe('hello-world');
     });
@@ -307,7 +300,12 @@ describe('create-holoscript-app', () => {
     // Defect #2: the generated README documents `npm run validate`, so the
     // generated package.json must actually define it (was a dead reference).
     it('should define a validate script for vite (non-instant) templates', () => {
-      for (const name of ['hello-world', 'physics-playground', 'interactive-gallery', '2d-revolution']) {
+      for (const name of [
+        'hello-world',
+        'physics-playground',
+        'interactive-gallery',
+        '2d-revolution',
+      ]) {
         const pkg = buildPackageJson({ projectName: 'x', templateName: name });
         const scripts = pkg.scripts as Record<string, string>;
         expect(scripts.validate).toBe('node scripts/validate-scene.mjs');
@@ -324,7 +322,12 @@ describe('create-holoscript-app', () => {
     // dependency of every vite template, since both the dev-time Vite plugin
     // and the validate script import it. The instant template stays zero-dep.
     it('should add @holoscript/core dependency to every vite template', () => {
-      for (const name of ['hello-world', 'physics-playground', 'interactive-gallery', '2d-revolution']) {
+      for (const name of [
+        'hello-world',
+        'physics-playground',
+        'interactive-gallery',
+        '2d-revolution',
+      ]) {
         const pkg = buildPackageJson({ projectName: 'x', templateName: name });
         const deps = pkg.dependencies as Record<string, string>;
         expect(deps['@holoscript/core']).toBe('^6.1.0');

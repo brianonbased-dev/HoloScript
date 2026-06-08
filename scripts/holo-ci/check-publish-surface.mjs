@@ -65,49 +65,80 @@ for (const d of readdirSync(PKGS_DIR)) {
   const p = join(PKGS_DIR, d, 'package.json');
   if (!existsSync(p)) continue;
   let j;
-  try { j = JSON.parse(readFileSync(p, 'utf8')); } catch { continue; }
+  try {
+    j = JSON.parse(readFileSync(p, 'utf8'));
+  } catch {
+    continue;
+  }
   if (j.private === true || !j.name) continue;
 
   publicNames.push(j.name);
 
   if (typeof j.description === 'string' && MOJIBAKE.test(j.description)) {
-    errors.push(`MOJIBAKE  ${j.name}  (packages/${d}/package.json description) — double-encoded UTF-8; re-author the dash/quote as a proper character`);
+    errors.push(
+      `MOJIBAKE  ${j.name}  (packages/${d}/package.json description) — double-encoded UTF-8; re-author the dash/quote as a proper character`
+    );
   }
 }
 
 publicNames.sort();
 
 if (UPDATE) {
-  writeFileSync(ALLOWLIST, JSON.stringify({
-    _comment: 'Explicit allowlist of PUBLISHED (private:false) @holoscript packages. A package may only become public by being added here on purpose. Regenerate with: node scripts/holo-ci/check-publish-surface.mjs --update',
-    packages: publicNames,
-  }, null, 2) + '\n');
-  console.log(`[publish-surface] allowlist updated: ${publicNames.length} public packages -> ${ALLOWLIST}`);
+  writeFileSync(
+    ALLOWLIST,
+    JSON.stringify(
+      {
+        _comment:
+          'Explicit allowlist of PUBLISHED (private:false) @holoscript packages. A package may only become public by being added here on purpose. Regenerate with: node scripts/holo-ci/check-publish-surface.mjs --update',
+        packages: publicNames,
+      },
+      null,
+      2
+    ) + '\n'
+  );
+  console.log(
+    `[publish-surface] allowlist updated: ${publicNames.length} public packages -> ${ALLOWLIST}`
+  );
   // still report mojibake even on --update so it can't be papered over
-  if (errors.length) { for (const e of errors) console.error('  ' + e); process.exit(1); }
+  if (errors.length) {
+    for (const e of errors) console.error('  ' + e);
+    process.exit(1);
+  }
   process.exit(0);
 }
 
 let allow = { packages: [] };
 if (existsSync(ALLOWLIST)) {
-  try { allow = JSON.parse(readFileSync(ALLOWLIST, 'utf8')); } catch { errors.push(`ALLOWLIST unparseable: ${ALLOWLIST}`); }
+  try {
+    allow = JSON.parse(readFileSync(ALLOWLIST, 'utf8'));
+  } catch {
+    errors.push(`ALLOWLIST unparseable: ${ALLOWLIST}`);
+  }
 } else {
   errors.push(`ALLOWLIST missing: ${ALLOWLIST} — run --update to create it`);
 }
 const allowSet = new Set(allow.packages || []);
 const publicSet = new Set(publicNames);
 
-for (const n of publicNames) if (!allowSet.has(n)) {
-  errors.push(`SURFACE-GREW  ${n} is private:false but not in the allowlist — add it via --update (intentional) or set private:true`);
-}
-for (const n of (allow.packages || [])) if (!publicSet.has(n)) {
-  errors.push(`SURFACE-SHRANK  ${n} is in the allowlist but no longer published — reconcile via --update`);
-}
+for (const n of publicNames)
+  if (!allowSet.has(n)) {
+    errors.push(
+      `SURFACE-GREW  ${n} is private:false but not in the allowlist — add it via --update (intentional) or set private:true`
+    );
+  }
+for (const n of allow.packages || [])
+  if (!publicSet.has(n)) {
+    errors.push(
+      `SURFACE-SHRANK  ${n} is in the allowlist but no longer published — reconcile via --update`
+    );
+  }
 
 if (errors.length) {
   console.error(`[publish-surface] ${errors.length} issue(s):`);
   for (const e of errors) console.error('  ' + e);
   process.exit(1);
 }
-console.log(`[publish-surface] OK — ${publicNames.length} public packages, all allowlisted, no mojibake.`);
+console.log(
+  `[publish-surface] OK — ${publicNames.length} public packages, all allowlisted, no mojibake.`
+);
 process.exit(0);

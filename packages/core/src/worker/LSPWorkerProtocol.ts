@@ -1,12 +1,12 @@
 /**
  * WebWorker Protocol Definition for HoloScript LSP and Compiler
- * 
+ *
  * Defines message shapes to preserve type safety across the worker thread boundary.
  */
 
 import { Diagnostic, CompletionItem, Location } from 'vscode-languageserver/node';
 
-export type WorkerCommand = 
+export type WorkerCommand =
   | 'INIT'
   | 'UPDATE_DOCUMENT'
   | 'GET_DIAGNOSTICS'

@@ -6,8 +6,10 @@
  * originals remain untouched until a separate restore proof passes.
  */
 
-export const PHOTO_BACKUP_CUSTODY_RECEIPT_VERSION = 'hololand.holoshell.photo-backup-custody.v0.1.0';
-export const PHOTO_BACKUP_VERIFICATION_RECEIPT_VERSION = 'hololand.holoshell.photo-backup-verification.v0.1.0';
+export const PHOTO_BACKUP_CUSTODY_RECEIPT_VERSION =
+  'hololand.holoshell.photo-backup-custody.v0.1.0';
+export const PHOTO_BACKUP_VERIFICATION_RECEIPT_VERSION =
+  'hololand.holoshell.photo-backup-verification.v0.1.0';
 
 export const PHOTO_BACKUP_DELETE_BLOCKER_RECEIPT_VERSION =
   'hololand.holoshell.photo-backup-delete-blocker.v0.1.0';
@@ -162,8 +164,7 @@ function isOneOf<T extends readonly string[]>(values: T, value: string): value i
 
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
-    typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
+    typeof value === 'string' && /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
   );
 }
 
@@ -193,8 +194,10 @@ export function validatePhotoBackupCustodyReceipt(receipt: PhotoBackupCustodyRec
   if (!isIsoTimestamp(receipt.generatedAt)) {
     errors.push('PhotoBackupCustodyReceipt.generatedAt must be a valid ISO-8601 timestamp.');
   }
-  if (!receipt.source?.albumLabel) errors.push('PhotoBackupCustodyReceipt.source.albumLabel is required.');
-  if (!receipt.source?.albumFingerprint) errors.push('PhotoBackupCustodyReceipt.source.albumFingerprint is required.');
+  if (!receipt.source?.albumLabel)
+    errors.push('PhotoBackupCustodyReceipt.source.albumLabel is required.');
+  if (!receipt.source?.albumFingerprint)
+    errors.push('PhotoBackupCustodyReceipt.source.albumFingerprint is required.');
   if (receipt.source?.pathPolicy !== 'absolute_path_kept_in_private_receipt_only') {
     errors.push('PhotoBackupCustodyReceipt.source.pathPolicy must keep absolute paths private.');
   }
@@ -203,7 +206,9 @@ export function validatePhotoBackupCustodyReceipt(receipt: PhotoBackupCustodyRec
   }
 
   if (!isSupportedPhotoBackupStatus(String(receipt.summary?.status))) {
-    errors.push(`PhotoBackupCustodyReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`);
+    errors.push(
+      `PhotoBackupCustodyReceipt.summary.status is unsupported: ${String(receipt.summary?.status)}.`
+    );
   }
   for (const [field, value] of [
     ['albumCount', receipt.summary?.albumCount],
@@ -220,14 +225,20 @@ export function validatePhotoBackupCustodyReceipt(receipt: PhotoBackupCustodyRec
     errors.push('PhotoBackupCustodyReceipt.summary.originalsDeleted must be false.');
   }
   if (receipt.summary?.deleteBlocked !== true) {
-    errors.push('PhotoBackupCustodyReceipt.summary.deleteBlocked must be true until restore proof passes.');
+    errors.push(
+      'PhotoBackupCustodyReceipt.summary.deleteBlocked must be true until restore proof passes.'
+    );
   }
   if (receipt.summary?.status === 'verified' && receipt.summary.restoreVerified !== true) {
-    errors.push('PhotoBackupCustodyReceipt.summary.restoreVerified must be true when status is verified.');
+    errors.push(
+      'PhotoBackupCustodyReceipt.summary.restoreVerified must be true when status is verified.'
+    );
   }
 
   if (receipt.privacyEnvelope?.rawPixelsInPublicReceipt !== false) {
-    errors.push('PhotoBackupCustodyReceipt.privacyEnvelope.rawPixelsInPublicReceipt must be false.');
+    errors.push(
+      'PhotoBackupCustodyReceipt.privacyEnvelope.rawPixelsInPublicReceipt must be false.'
+    );
   }
   if (receipt.privacyEnvelope?.gpsRedacted !== true) {
     errors.push('PhotoBackupCustodyReceipt.privacyEnvelope.gpsRedacted must be true.');
@@ -236,22 +247,35 @@ export function validatePhotoBackupCustodyReceipt(receipt: PhotoBackupCustodyRec
     errors.push('PhotoBackupCustodyReceipt.privacyEnvelope.faceLabelsRedacted must be true.');
   }
   if (!isOneOf(PHOTO_BACKUP_METADATA_POLICIES, String(receipt.privacyEnvelope?.metadataPolicy))) {
-    errors.push(`PhotoBackupCustodyReceipt.privacyEnvelope.metadataPolicy is unsupported: ${String(receipt.privacyEnvelope?.metadataPolicy)}.`);
+    errors.push(
+      `PhotoBackupCustodyReceipt.privacyEnvelope.metadataPolicy is unsupported: ${String(receipt.privacyEnvelope?.metadataPolicy)}.`
+    );
   }
 
   if (!isOneOf(PHOTO_BACKUP_TARGET_KINDS, String(receipt.targetPlan?.targetKind))) {
-    errors.push(`PhotoBackupCustodyReceipt.targetPlan.targetKind is unsupported: ${String(receipt.targetPlan?.targetKind)}.`);
+    errors.push(
+      `PhotoBackupCustodyReceipt.targetPlan.targetKind is unsupported: ${String(receipt.targetPlan?.targetKind)}.`
+    );
   }
   if (receipt.targetPlan?.targetKind !== 'not_chosen') {
     if (receipt.targetPlan?.quotaChecked !== true) {
-      errors.push('PhotoBackupCustodyReceipt.targetPlan.quotaChecked must be true when a target is chosen.');
+      errors.push(
+        'PhotoBackupCustodyReceipt.targetPlan.quotaChecked must be true when a target is chosen.'
+      );
     }
     if (receipt.targetPlan?.deleteSemanticsVisible !== true) {
-      errors.push('PhotoBackupCustodyReceipt.targetPlan.deleteSemanticsVisible must be true when a target is chosen.');
+      errors.push(
+        'PhotoBackupCustodyReceipt.targetPlan.deleteSemanticsVisible must be true when a target is chosen.'
+      );
     }
   }
-  if (receipt.targetPlan?.targetKind === 'cloud_provider' && receipt.targetPlan.providerAccountResolved !== true) {
-    errors.push('PhotoBackupCustodyReceipt.targetPlan.providerAccountResolved must be true for cloud providers.');
+  if (
+    receipt.targetPlan?.targetKind === 'cloud_provider' &&
+    receipt.targetPlan.providerAccountResolved !== true
+  ) {
+    errors.push(
+      'PhotoBackupCustodyReceipt.targetPlan.providerAccountResolved must be true for cloud providers.'
+    );
   }
 
   if (!receipt.files || receipt.files.length === 0) {
@@ -266,14 +290,21 @@ export function validatePhotoBackupCustodyReceipt(receipt: PhotoBackupCustodyRec
       .filter((duplicateGroupId): duplicateGroupId is string => Boolean(duplicateGroupId))
   );
   if (receipt.summary?.duplicateGroupCount !== fileDuplicateGroups.size) {
-    errors.push('PhotoBackupCustodyReceipt.summary.duplicateGroupCount must match duplicate groups in files.');
+    errors.push(
+      'PhotoBackupCustodyReceipt.summary.duplicateGroupCount must match duplicate groups in files.'
+    );
   }
-  if (receipt.summary?.unreadableCount !== (receipt.files ?? []).filter((file) => file.unreadable).length) {
+  if (
+    receipt.summary?.unreadableCount !==
+    (receipt.files ?? []).filter((file) => file.unreadable).length
+  ) {
     errors.push('PhotoBackupCustodyReceipt.summary.unreadableCount must match unreadable files.');
   }
 
   if (!receipt.replay?.replayInputs || receipt.replay.replayInputs.length === 0) {
-    errors.push('PhotoBackupCustodyReceipt.replay.replayInputs must contain deterministic replay inputs.');
+    errors.push(
+      'PhotoBackupCustodyReceipt.replay.replayInputs must contain deterministic replay inputs.'
+    );
   }
   for (const input of receipt.replay?.replayInputs ?? []) {
     if (hasAbsolutePath(input)) {
@@ -284,9 +315,17 @@ export function validatePhotoBackupCustodyReceipt(receipt: PhotoBackupCustodyRec
   if (!receipt.replay?.rollbackPlan) {
     errors.push('PhotoBackupCustodyReceipt.replay.rollbackPlan is required.');
   }
-  pushRelativePathError('PhotoBackupCustodyReceipt.output.privateReceiptPath', receipt.output?.privateReceiptPath, errors);
+  pushRelativePathError(
+    'PhotoBackupCustodyReceipt.output.privateReceiptPath',
+    receipt.output?.privateReceiptPath,
+    errors
+  );
   if (receipt.output?.latestPath) {
-    pushRelativePathError('PhotoBackupCustodyReceipt.output.latestPath', receipt.output.latestPath, errors);
+    pushRelativePathError(
+      'PhotoBackupCustodyReceipt.output.latestPath',
+      receipt.output.latestPath,
+      errors
+    );
   }
 
   return errors;
@@ -295,47 +334,71 @@ export function validatePhotoBackupCustodyReceipt(receipt: PhotoBackupCustodyRec
 function validatePhotoBackupFileProxy(file: PhotoBackupFileProxy, errors: string[]): void {
   if (!file.id) errors.push('PhotoBackupFileProxy.id is required.');
   if (!file.name) errors.push('PhotoBackupFileProxy.name is required.');
-  pushRelativePathError(`PhotoBackupFileProxy(${file.id || 'unknown'}).relativePath`, file.relativePath, errors);
+  pushRelativePathError(
+    `PhotoBackupFileProxy(${file.id || 'unknown'}).relativePath`,
+    file.relativePath,
+    errors
+  );
   if (!isSupportedPhotoBackupMediaKind(String(file.mediaKind))) {
     errors.push(`PhotoBackupFileProxy.mediaKind is unsupported: ${String(file.mediaKind)}.`);
   }
   if (!isNonNegativeInteger(file.sizeBytes)) {
-    errors.push(`PhotoBackupFileProxy(${file.id || 'unknown'}).sizeBytes must be a non-negative integer.`);
+    errors.push(
+      `PhotoBackupFileProxy(${file.id || 'unknown'}).sizeBytes must be a non-negative integer.`
+    );
   }
   if (!file.unreadable && !file.hashSha256) {
-    errors.push(`PhotoBackupFileProxy(${file.id || 'unknown'}).hashSha256 is required for readable media.`);
+    errors.push(
+      `PhotoBackupFileProxy(${file.id || 'unknown'}).hashSha256 is required for readable media.`
+    );
   }
-  if (!file.hashStatus) errors.push(`PhotoBackupFileProxy(${file.id || 'unknown'}).hashStatus is required.`);
+  if (!file.hashStatus)
+    errors.push(`PhotoBackupFileProxy(${file.id || 'unknown'}).hashStatus is required.`);
   if (!Array.isArray(file.privacyMetadataClasses)) {
-    errors.push(`PhotoBackupFileProxy(${file.id || 'unknown'}).privacyMetadataClasses must be an array.`);
+    errors.push(
+      `PhotoBackupFileProxy(${file.id || 'unknown'}).privacyMetadataClasses must be an array.`
+    );
   }
 }
 
-export function validatePhotoBackupVerificationReceipt(receipt: PhotoBackupVerificationReceipt): string[] {
+export function validatePhotoBackupVerificationReceipt(
+  receipt: PhotoBackupVerificationReceipt
+): string[] {
   const errors: string[] = [];
   if (receipt.schemaVersion !== PHOTO_BACKUP_VERIFICATION_RECEIPT_VERSION) {
     errors.push('PhotoBackupVerificationReceipt.schemaVersion is unsupported.');
   }
-  if (!receipt.verificationId) errors.push('PhotoBackupVerificationReceipt.verificationId is required.');
+  if (!receipt.verificationId)
+    errors.push('PhotoBackupVerificationReceipt.verificationId is required.');
   if (!isIsoTimestamp(receipt.generatedAt)) {
     errors.push('PhotoBackupVerificationReceipt.generatedAt must be a valid ISO-8601 timestamp.');
   }
-  pushRelativePathError('PhotoBackupVerificationReceipt.sourceReceipt', receipt.sourceReceipt, errors);
-  if (!receipt.copyManifestHash) errors.push('PhotoBackupVerificationReceipt.copyManifestHash is required.');
+  pushRelativePathError(
+    'PhotoBackupVerificationReceipt.sourceReceipt',
+    receipt.sourceReceipt,
+    errors
+  );
+  if (!receipt.copyManifestHash)
+    errors.push('PhotoBackupVerificationReceipt.copyManifestHash is required.');
   if (receipt.summary?.originalsDeleted !== false) {
     errors.push('PhotoBackupVerificationReceipt.summary.originalsDeleted must be false.');
   }
   if (receipt.rollback?.originalsDeletionAllowed !== false) {
     errors.push('PhotoBackupVerificationReceipt.rollback.originalsDeletionAllowed must be false.');
   }
-  if (!receipt.rollback?.plan) errors.push('PhotoBackupVerificationReceipt.rollback.plan is required.');
+  if (!receipt.rollback?.plan)
+    errors.push('PhotoBackupVerificationReceipt.rollback.plan is required.');
 
   if (receipt.summary?.status === 'verified') {
     if (receipt.summary.copyExecuted !== true) {
-      errors.push('PhotoBackupVerificationReceipt.summary.copyExecuted must be true when verified.');
+      errors.push(
+        'PhotoBackupVerificationReceipt.summary.copyExecuted must be true when verified.'
+      );
     }
     if (receipt.summary.sampleRestorePassed !== true) {
-      errors.push('PhotoBackupVerificationReceipt.summary.sampleRestorePassed must be true when verified.');
+      errors.push(
+        'PhotoBackupVerificationReceipt.summary.sampleRestorePassed must be true when verified.'
+      );
     }
     if (
       receipt.sampleRestore?.performed !== true ||
@@ -343,7 +406,9 @@ export function validatePhotoBackupVerificationReceipt(receipt: PhotoBackupVerif
       receipt.sampleRestore.countMatch !== true ||
       receipt.sampleRestore.privacyModeMatch !== true
     ) {
-      errors.push('PhotoBackupVerificationReceipt.sampleRestore must fully pass when status is verified.');
+      errors.push(
+        'PhotoBackupVerificationReceipt.sampleRestore must fully pass when status is verified.'
+      );
     }
   }
 
@@ -371,10 +436,14 @@ export function validatePhotoBackupDeleteBlockerReceipt(
   // When deletion is not approved, the blocker must remain active (blocked=true).
   // When deletion is approved, the blocker is released (blocked=false).
   if (!receipt.deletionApproval?.approved && receipt.deleteBlocker?.blocked !== true) {
-    errors.push('PhotoBackupDeleteBlockerReceipt.deleteBlocker.blocked must be true when deletion is not approved.');
+    errors.push(
+      'PhotoBackupDeleteBlockerReceipt.deleteBlocker.blocked must be true when deletion is not approved.'
+    );
   }
   if (receipt.deletionApproval?.approved && receipt.deleteBlocker?.blocked !== false) {
-    errors.push('PhotoBackupDeleteBlockerReceipt.deleteBlocker.blocked must be false when deletion is approved.');
+    errors.push(
+      'PhotoBackupDeleteBlockerReceipt.deleteBlocker.blocked must be false when deletion is approved.'
+    );
   }
   if (
     !isOneOf(
@@ -446,7 +515,9 @@ export function validatePhotoBackupDeleteBlockerReceipt(
   return errors;
 }
 
-export function clonePhotoBackupCustodyReceipt(receipt: PhotoBackupCustodyReceipt): PhotoBackupCustodyReceipt {
+export function clonePhotoBackupCustodyReceipt(
+  receipt: PhotoBackupCustodyReceipt
+): PhotoBackupCustodyReceipt {
   return JSON.parse(JSON.stringify(receipt)) as PhotoBackupCustodyReceipt;
 }
 

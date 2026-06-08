@@ -31,7 +31,7 @@ console.log('[1/3] Generating Atomic Structure examples...');
 
 const ATOMIC_MODELS = [
   {
-    name: "Carbon Atom (Bohr Model)",
+    name: 'Carbon Atom (Bohr Model)',
     code: `composition "Carbon_Atom" {
   object "nucleus" {
     @atomic_nucleus
@@ -80,10 +80,10 @@ const ATOMIC_MODELS = [
     // Carbon has 4 valence electrons → can form 4 covalent bonds
     bonding_capacity: 4
   }
-}`
+}`,
   },
   {
-    name: "Water Molecule (H₂O)",
+    name: 'Water Molecule (H₂O)',
     code: `composition "Water_Molecule" {
   object "oxygen_atom" {
     @atom
@@ -135,10 +135,10 @@ const ATOMIC_MODELS = [
     partial_charge_O: -0.84
     dipole_moment: 1.85  // Debye units
   }
-}`
+}`,
   },
   {
-    name: "Methane Molecule (CH₄)",
+    name: 'Methane Molecule (CH₄)',
     code: `composition "Methane_Molecule" {
   object "carbon_center" {
     @atom
@@ -170,8 +170,8 @@ const ATOMIC_MODELS = [
   // Repeat for H₂, H₃, H₄ (tetrahedral positions)
   // Methane is symmetric, nonpolar, tetrahedral
   // Molecular geometry: CH₄ (4 equivalent C-H bonds)
-}`
-  }
+}`,
+  },
 ];
 
 for (let i = 0; i < 15000; i++) {
@@ -181,13 +181,13 @@ for (let i = 0; i < 15000; i++) {
     `Build an interactive molecular model of ${model.name}`,
     `Generate HoloScript for ${model.name} with atomic details`,
     `Design a chemistry VR scene demonstrating ${model.name}`,
-    `Create an educational visualization of ${model.name}`
+    `Create an educational visualization of ${model.name}`,
   ];
 
   allExamples.push({
     instruction: variations[i % variations.length],
     input: '',
-    output: model.code
+    output: model.code,
   });
 }
 
@@ -197,11 +197,11 @@ console.log(`  ✓ 15,000 examples generated`);
 console.log('[2/3] Generating Chemical Reactions examples...');
 
 const REACTION_TYPES = [
-  { name: "Combustion", code: "composition \"Combustion_Reaction\" { }" },
-  { name: "Synthesis", code: "composition \"Synthesis_Reaction\" { }" },
-  { name: "Decomposition", code: "composition \"Decomposition_Reaction\" { }" },
-  { name: "Redox", code: "composition \"Oxidation_Reduction\" { }" },
-  { name: "Acid-Base", code: "composition \"Neutralization_Reaction\" { }" }
+  { name: 'Combustion', code: 'composition "Combustion_Reaction" { }' },
+  { name: 'Synthesis', code: 'composition "Synthesis_Reaction" { }' },
+  { name: 'Decomposition', code: 'composition "Decomposition_Reaction" { }' },
+  { name: 'Redox', code: 'composition "Oxidation_Reduction" { }' },
+  { name: 'Acid-Base', code: 'composition "Neutralization_Reaction" { }' },
 ];
 
 for (let i = 0; i < 20000; i++) {
@@ -209,7 +209,7 @@ for (let i = 0; i < 20000; i++) {
   allExamples.push({
     instruction: `Create a VR chemistry lab demonstrating ${reaction.name} reactions`,
     input: '',
-    output: reaction.code
+    output: reaction.code,
   });
 }
 
@@ -219,11 +219,11 @@ console.log(`  ✓ 20,000 examples generated`);
 console.log('[3/3] Generating Materials Science examples...');
 
 const MATERIAL_PROPERTIES = [
-  { name: "Crystal Lattice", code: "composition \"FCC_Crystal_Structure\" { }" },
-  { name: "Polymer Chains", code: "composition \"Polymer_Structure\" { }" },
-  { name: "Metallic Bonding", code: "composition \"Metallic_Bond\" { }" },
-  { name: "Ceramic Structure", code: "composition \"Ionic_Crystal\" { }" },
-  { name: "Composite Material", code: "composition \"Carbon_Fiber_Composite\" { }" }
+  { name: 'Crystal Lattice', code: 'composition "FCC_Crystal_Structure" { }' },
+  { name: 'Polymer Chains', code: 'composition "Polymer_Structure" { }' },
+  { name: 'Metallic Bonding', code: 'composition "Metallic_Bond" { }' },
+  { name: 'Ceramic Structure', code: 'composition "Ionic_Crystal" { }' },
+  { name: 'Composite Material', code: 'composition "Carbon_Fiber_Composite" { }' },
 ];
 
 for (let i = 0; i < 15000; i++) {
@@ -231,7 +231,7 @@ for (let i = 0; i < 15000; i++) {
   allExamples.push({
     instruction: `Create a VR materials science demonstration of ${material.name}`,
     input: '',
-    output: material.code
+    output: material.code,
   });
 }
 
@@ -243,7 +243,7 @@ async function writeDataset() {
   console.log('[EXPORT] Writing chemistry & materials dataset...');
 
   const outputFile = path.join(__dirname, '../datasets/chemistry-materials-knowledge.jsonl');
-  const jsonlLines = allExamples.map(ex => JSON.stringify(ex));
+  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
 
   await writeFile(outputFile, jsonlLines.join('\n') + '\n', 'utf-8');
 

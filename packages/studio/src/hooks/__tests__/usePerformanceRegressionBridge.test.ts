@@ -5,7 +5,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ── Mocks (vi.hoisted for hoisted factory references) ────────────────────────
 
-const { mockUsePerformanceRegression, mockUpdateNode, mockSetGeometricViewMode, mockSetGeometricPipelineTransitioning, mockEmit, mockNodes } = vi.hoisted(() => {
+const {
+  mockUsePerformanceRegression,
+  mockUpdateNode,
+  mockSetGeometricViewMode,
+  mockSetGeometricPipelineTransitioning,
+  mockEmit,
+  mockNodes,
+} = vi.hoisted(() => {
   const mockUsePerformanceRegression = vi.fn();
   const mockUpdateNode = vi.fn();
   const mockSetGeometricViewMode = vi.fn();
@@ -154,9 +161,7 @@ describe('usePerformanceRegressionBridge', () => {
 
       mockUsePerformanceRegression.mockReturnValue(defaultPerfResult());
 
-      renderHook(() =>
-        usePerformanceRegressionBridge({ syncViewMode: true })
-      );
+      renderHook(() => usePerformanceRegressionBridge({ syncViewMode: true }));
 
       const callArgs = mockUsePerformanceRegression.mock.calls[0][0];
 
@@ -172,9 +177,7 @@ describe('usePerformanceRegressionBridge', () => {
 
       mockUsePerformanceRegression.mockReturnValue(defaultPerfResult());
 
-      renderHook(() =>
-        usePerformanceRegressionBridge({ syncViewMode: false })
-      );
+      renderHook(() => usePerformanceRegressionBridge({ syncViewMode: false }));
 
       const callArgs = mockUsePerformanceRegression.mock.calls[0][0];
 
@@ -248,9 +251,7 @@ describe('usePerformanceRegressionBridge', () => {
       mockUsePerformanceRegression.mockReturnValue(defaultPerfResult());
 
       // debounceMs=0 allows immediate recovery after regression in tests
-      renderHook(() =>
-        usePerformanceRegressionBridge({ syncViewMode: true, debounceMs: 0 })
-      );
+      renderHook(() => usePerformanceRegressionBridge({ syncViewMode: true, debounceMs: 0 }));
 
       const callArgs = mockUsePerformanceRegression.mock.calls[0][0];
 
@@ -304,9 +305,7 @@ describe('usePerformanceRegressionBridge', () => {
 
       mockUsePerformanceRegression.mockReturnValue(defaultPerfResult());
 
-      renderHook(() =>
-        usePerformanceRegressionBridge({ debounceMs: 500 })
-      );
+      renderHook(() => usePerformanceRegressionBridge({ debounceMs: 500 }));
 
       const callArgs = mockUsePerformanceRegression.mock.calls[0][0];
 

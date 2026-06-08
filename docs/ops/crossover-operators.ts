@@ -36,7 +36,7 @@ export interface CrossoverOperator {
   crossover(
     p1: ConcreteGenome,
     p2: ConcreteGenome,
-    schemas?: Schema[],
+    schemas?: Schema[]
   ): [ConcreteGenome, ConcreteGenome];
 }
 
@@ -111,7 +111,7 @@ export class UniformCrossover implements CrossoverOperator {
   crossover(
     p1: ConcreteGenome,
     p2: ConcreteGenome,
-    schemas: Schema[] = [],
+    schemas: Schema[] = []
   ): [ConcreteGenome, ConcreteGenome] {
     const len = p1.length;
     const c1: ConcreteGenome = new Array<number>(len);
@@ -210,10 +210,7 @@ export class SimulatedBinaryCrossover implements CrossoverOperator {
     for (let i = 0; i < p1.length; i++) {
       if (Math.random() <= 0.5 && Math.abs(p1[i] - p2[i]) > 1e-14) {
         const u = Math.random();
-        const beta =
-          u <= 0.5
-            ? Math.pow(2.0 * u, exp)
-            : Math.pow(1.0 / (2.0 * (1.0 - u)), exp);
+        const beta = u <= 0.5 ? Math.pow(2.0 * u, exp) : Math.pow(1.0 / (2.0 * (1.0 - u)), exp);
         const mid = 0.5 * (p1[i] + p2[i]);
         const half = 0.5 * beta * Math.abs(p1[i] - p2[i]);
         c1[i] = mid - half;
@@ -229,12 +226,7 @@ export class SimulatedBinaryCrossover implements CrossoverOperator {
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
-export type CrossoverMethod =
-  | 'single-point'
-  | 'two-point'
-  | 'uniform'
-  | 'arithmetic'
-  | 'sbx';
+export type CrossoverMethod = 'single-point' | 'two-point' | 'uniform' | 'arithmetic' | 'sbx';
 
 export interface CrossoverOptions {
   /** For ArithmeticCrossover: blend coefficient α ∈ [0, 1]. */
@@ -252,7 +244,7 @@ export interface CrossoverOptions {
  */
 export function createCrossoverOperator(
   method: CrossoverMethod,
-  opts: CrossoverOptions = {},
+  opts: CrossoverOptions = {}
 ): CrossoverOperator {
   switch (method) {
     case 'single-point':

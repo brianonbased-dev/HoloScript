@@ -1,12 +1,10 @@
-import type { Vector3 } from '../types';
-﻿/**
+import type { Vector3 } from '../types'; /**
  * HandTracking Trait
  *
  * Articulated hand skeleton tracking with gesture recognition.
  *
  * @version 2.0.0
  */
-
 import type { TraitHandler } from './TraitTypes';
 
 // =============================================================================
@@ -132,7 +130,7 @@ function createEmptyHandData(): HandData {
     joints: new Map(),
     pinchStrength: 0,
     gripStrength: 0,
-    velocity: [0, 0, 0 ],
+    velocity: [0, 0, 0],
   };
 }
 

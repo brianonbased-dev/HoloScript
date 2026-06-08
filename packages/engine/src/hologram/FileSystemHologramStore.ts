@@ -107,8 +107,7 @@ export class FileSystemHologramStore implements HologramStore {
       (bundle.quiltPng?.byteLength ?? 0) +
       (bundle.mvhevcMp4?.byteLength ?? 0) +
       (bundle.parallaxWebm?.byteLength ?? 0);
-    const totalBytes =
-      bundle.depthBin.byteLength + bundle.normalBin.byteLength + renderedBytes;
+    const totalBytes = bundle.depthBin.byteLength + bundle.normalBin.byteLength + renderedBytes;
     if (totalBytes > this.maxBundleBytes) {
       throw new HologramStoreError(
         'size_limit_exceeded',
@@ -196,9 +195,7 @@ export class FileSystemHologramStore implements HologramStore {
       if (isEnoent(err)) return null;
       throw new HologramStoreError(
         'io_error',
-        `failed to read ${asset} for ${hash}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `failed to read ${asset} for ${hash}: ${err instanceof Error ? err.message : String(err)}`,
         err
       );
     }
@@ -220,10 +217,7 @@ export class FileSystemHologramStore implements HologramStore {
     // Light shape check — full schema validation belongs to callers that
     // know the expected schemaVersion.
     if (!parsed || typeof parsed !== 'object' || !('schemaVersion' in parsed)) {
-      throw new HologramStoreError(
-        'io_error',
-        `meta.json for ${hash} is missing schemaVersion`
-      );
+      throw new HologramStoreError('io_error', `meta.json for ${hash} is missing schemaVersion`);
     }
     return parsed as HologramMeta;
   }

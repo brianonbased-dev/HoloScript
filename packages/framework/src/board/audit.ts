@@ -135,10 +135,7 @@ export function auditDoneLog(doneLog: DoneLogEntry[]): AuditResult {
     (e) => !isCommitProof(e.commitHash) && !e.followUpCommits?.some((c) => isCommitProof(c.hash))
   );
   const artifactReceipts = doneLog.reduce((sum, e) => sum + (e.artifacts?.length ?? 0), 0);
-  const environmentReceipts = doneLog.reduce(
-    (sum, e) => sum + (e.environmentReceipt ? 1 : 0),
-    0
-  );
+  const environmentReceipts = doneLog.reduce((sum, e) => sum + (e.environmentReceipt ? 1 : 0), 0);
   const policyEvents = doneLog.reduce((sum, e) => sum + (e.policyEvents?.length ?? 0), 0);
   const decompositionPlans = doneLog.reduce((sum, e) => sum + (e.decomposition ? 1 : 0), 0);
   const subagentEvents = doneLog.reduce((sum, e) => sum + (e.subagentEvents?.length ?? 0), 0);
@@ -230,7 +227,8 @@ export class DoneLogAuditor {
         });
       }
 
-      const hasCommitProof = isCommitProof(entry.commitHash) ||
+      const hasCommitProof =
+        isCommitProof(entry.commitHash) ||
         entry.followUpCommits?.some((c) => isCommitProof(c.hash));
       if (!hasCommitProof) {
         violations.push({
@@ -273,7 +271,10 @@ export class DoneLogAuditor {
       const agent = entry.completedBy || 'unknown';
       const existing = agentMap.get(agent) ?? { completed: 0, verified: 0, unverified: 0 };
       existing.completed++;
-      if (isCommitProof(entry.commitHash) || entry.followUpCommits?.some((c) => isCommitProof(c.hash))) {
+      if (
+        isCommitProof(entry.commitHash) ||
+        entry.followUpCommits?.some((c) => isCommitProof(c.hash))
+      ) {
         existing.verified++;
       } else {
         existing.unverified++;
@@ -301,13 +302,19 @@ export class DoneLogAuditor {
 
     return {
       total: this.entries.length,
-      artifactReceipts: this.entries.reduce((sum, entry) => sum + (entry.artifacts?.length ?? 0), 0),
+      artifactReceipts: this.entries.reduce(
+        (sum, entry) => sum + (entry.artifacts?.length ?? 0),
+        0
+      ),
       environmentReceipts: this.entries.reduce(
         (sum, entry) => sum + (entry.environmentReceipt ? 1 : 0),
         0
       ),
       policyEvents: this.entries.reduce((sum, entry) => sum + (entry.policyEvents?.length ?? 0), 0),
-      decompositionPlans: this.entries.reduce((sum, entry) => sum + (entry.decomposition ? 1 : 0), 0),
+      decompositionPlans: this.entries.reduce(
+        (sum, entry) => sum + (entry.decomposition ? 1 : 0),
+        0
+      ),
       subagentEvents: this.entries.reduce(
         (sum, entry) => sum + (entry.subagentEvents?.length ?? 0),
         0

@@ -30,15 +30,15 @@ vm.registerHandler(UAALOpCode.OP_INVOKE_LLM, async (proxy, operands) => {
 
 ## 7-Phase Protocol
 
-| Phase       | OpCode | Purpose                               |
-| ----------- | ------ | ------------------------------------- |
-| 0. INTAKE   | `0x10` | Gather data and context               |
-| 1. REFLECT  | `0x11` | Analyze and understand                |
-| 2. EXECUTE  | `0x14` | Take action                           |
-| 3. COMPRESS | `0x12` | Store knowledge efficiently           |
+| Phase       | OpCode | Purpose                                                           |
+| ----------- | ------ | ----------------------------------------------------------------- |
+| 0. INTAKE   | `0x10` | Gather data and context                                           |
+| 1. REFLECT  | `0x11` | Analyze and understand                                            |
+| 2. EXECUTE  | `0x14` | Take action                                                       |
+| 3. COMPRESS | `0x12` | Store knowledge efficiently                                       |
 | 4. DREAMING | `0x15` | Validate and re-evaluate compressed knowledge (`REINTAKE` opcode) |
-| 5. GROW     | `0x16` | Learn patterns, wisdom, gotchas       |
-| 6. EVOLVE   | `0x17` | Adapt and optimize                    |
+| 5. GROW     | `0x16` | Learn patterns, wisdom, gotchas                                   |
+| 6. EVOLVE   | `0x17` | Adapt and optimize                                                |
 
 ## Scripts
 

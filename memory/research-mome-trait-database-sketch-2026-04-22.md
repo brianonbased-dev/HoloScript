@@ -9,26 +9,26 @@ Route **trait documentation / examples / WPG entries** through **multiple specia
 
 ## Existing anchors (where memory already lives)
 
-| Layer | Path | Use in MoME |
-|-------|------|-------------|
-| Trait skill / dispatch | `packages/core/src/traits/SkillRegistryTrait.ts` | Per-agent **skills** bucket — analogy to “expert output heads” |
-| Shared agent memory | `packages/core/src/traits/BlackboardTrait.ts` | Runtime facts; **not** a substitute for static trait docs |
-| Knowledge consolidation | `packages/framework/src/knowledge/brain.ts` (exported via `@holoscript/framework`) | Half-life, domains — temporal memory policy |
-| GraphRAG over code/docs | `packages/absorb-service/src/engine/GraphRAGEngine.ts` | **Retrieve** + graph fan-out — backbone for “experts” as **tagged subgraphs** |
-| LSP / trait docs | `packages/core/src/traits/constants/*.ts`, trait handlers | Authoritative **symbol** ground truth |
+| Layer                   | Path                                                                               | Use in MoME                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Trait skill / dispatch  | `packages/core/src/traits/SkillRegistryTrait.ts`                                   | Per-agent **skills** bucket — analogy to “expert output heads”                |
+| Shared agent memory     | `packages/core/src/traits/BlackboardTrait.ts`                                      | Runtime facts; **not** a substitute for static trait docs                     |
+| Knowledge consolidation | `packages/framework/src/knowledge/brain.ts` (exported via `@holoscript/framework`) | Half-life, domains — temporal memory policy                                   |
+| GraphRAG over code/docs | `packages/absorb-service/src/engine/GraphRAGEngine.ts`                             | **Retrieve** + graph fan-out — backbone for “experts” as **tagged subgraphs** |
+| LSP / trait docs        | `packages/core/src/traits/constants/*.ts`, trait handlers                          | Authoritative **symbol** ground truth                                         |
 
 ## Proposed MoME layout (conceptual)
 
-1. **Partition** the absorb graph by `domain` / folder prefix / manual tag → **expert id** ∈ {physics, render, net, ai, studio, …}.  
-2. **Query:** embed once → **top-k per expert** (small k) → **merge** with fixed weights or learned router (future).  
+1. **Partition** the absorb graph by `domain` / folder prefix / manual tag → **expert id** ∈ {physics, render, net, ai, studio, …}.
+2. **Query:** embed once → **top-k per expert** (small k) → **merge** with fixed weights or learned router (future).
 3. **Guardrail:** if top experts disagree above threshold, return **abstain** + request human tag (confabulation control).
 
 ## Minimal prototype (engineering path)
 
-- Extend `absorb_query` / GraphRAG filter params to accept **`expert`** or **`file:` prefix sets** (already similar to `GraphRAGOptions.file`).  
+- Extend `absorb_query` / GraphRAG filter params to accept **`expert`** or **`file:` prefix sets** (already similar to `GraphRAGOptions.file`).
 - Add Vitest: same query restricted to two disjoint prefixes → disjoint top symbol sets.
 
 ## Out of scope (for this memo)
 
-- Training neural **routers** — needs dataset + labels.  
+- Training neural **routers** — needs dataset + labels.
 - Replacing `TraitTypes` or compiler registration — **retrieval only**.

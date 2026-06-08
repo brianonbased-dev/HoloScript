@@ -20,19 +20,19 @@ import type { SimulationScale } from '@holoscript/engine/simulation/SimulationCo
 
 /** Supported QM calculation methods. */
 export type QmMethod =
-  | 'hf'           // Hartree-Fock
-  | 'dft'          // Density Functional Theory
-  | 'mp2'          // Moller-Plesset 2nd order
-  | 'ccsd'         // Coupled Cluster Singles and Doubles
-  | 'ccsd(t)'      // CCSD with perturbative triples
-  | 'gfN-xTB'      // GFN extended tight-binding (TBLite)
-  | 'pbe'          // PBE generalized gradient approximation
-  | 'b3lyp'        // B3LYP hybrid functional
-  | 'hse06'        // HSE06 screened hybrid functional
-  | 'pbe0'         // PBE0 hybrid functional
-  | 'vqe'          // Variational Quantum Eigensolver
-  | 'qaoa'         // Quantum Approximate Optimization Algorithm
-  | 'vqe-adapt';   // Adaptive VQE (ADAPT-VQE)
+  | 'hf' // Hartree-Fock
+  | 'dft' // Density Functional Theory
+  | 'mp2' // Moller-Plesset 2nd order
+  | 'ccsd' // Coupled Cluster Singles and Doubles
+  | 'ccsd(t)' // CCSD with perturbative triples
+  | 'gfN-xTB' // GFN extended tight-binding (TBLite)
+  | 'pbe' // PBE generalized gradient approximation
+  | 'b3lyp' // B3LYP hybrid functional
+  | 'hse06' // HSE06 screened hybrid functional
+  | 'pbe0' // PBE0 hybrid functional
+  | 'vqe' // Variational Quantum Eigensolver
+  | 'qaoa' // Quantum Approximate Optimization Algorithm
+  | 'vqe-adapt'; // Adaptive VQE (ADAPT-VQE)
 
 /** Supported basis sets. */
 export type QmBasis =
@@ -51,7 +51,7 @@ export type QmBasis =
   | 'def2-svp'
   | 'def2-tzvp'
   | 'def2-qzvp'
-  | 'minimal';      // For semi-empirical (TBLite)
+  | 'minimal'; // For semi-empirical (TBLite)
 
 /** QM backend identifiers. */
 export type QmBackend = 'psi4' | 'quantum-espresso' | 'tblite' | 'ibm-quantum' | 'pyscf';
@@ -154,9 +154,9 @@ export interface QmVibrationalResult {
   zeroPointEnergy: number;
   /** Thermodynamic quantities at 298.15 K. */
   thermochemistry: {
-    enthalpy: number;        // Hartree
+    enthalpy: number; // Hartree
     gibbsFreeEnergy: number; // Hartree
-    entropy: number;         // cal/(mol*K)
+    entropy: number; // cal/(mol*K)
   };
   /** Solver config that produced this result. */
   solverConfig: QmSolverConfig;
@@ -349,7 +349,7 @@ export interface QmSolver extends SimSolver {
    */
   computeChargeDensity(
     molecule: MoleculeSpec,
-    gridDimensions?: [number, number, number],
+    gridDimensions?: [number, number, number]
   ): Promise<QmChargeDensityResult>;
 
   /**
@@ -397,7 +397,7 @@ export interface QmSolver extends SimSolver {
   computeTransitionState(
     reactant: MoleculeSpec,
     product: MoleculeSpec,
-    numImages?: number,
+    numImages?: number
   ): Promise<QmTransitionStateResult>;
 
   /**
@@ -408,7 +408,7 @@ export interface QmSolver extends SimSolver {
   computeQmMm(
     qmRegion: MoleculeSpec,
     mmRegion: MoleculeSpec,
-    mmForceField?: string,
+    mmForceField?: string
   ): Promise<QmEnergyResult>;
 
   /**
@@ -542,7 +542,7 @@ export const QM_BACKEND_CAPABILITIES: Record<QmBackend, QmBackendCapabilities> =
     postHf: false,
     transitionStates: false,
     qmMm: false,
-    maxAtoms: 500,  // periodic systems handle more atoms
+    maxAtoms: 500, // periodic systems handle more atoms
   },
   tblite: {
     molecular: true,
@@ -556,7 +556,7 @@ export const QM_BACKEND_CAPABILITIES: Record<QmBackend, QmBackendCapabilities> =
     maxAtoms: 1000,
   },
   'ibm-quantum': {
-    molecular: true,           // VQE for small molecules (≤50 qubits)
+    molecular: true, // VQE for small molecules (≤50 qubits)
     periodic: false,
     semiEmpirical: false,
     nmrGiao: false,
@@ -564,17 +564,17 @@ export const QM_BACKEND_CAPABILITIES: Record<QmBackend, QmBackendCapabilities> =
     postHf: false,
     transitionStates: false,
     qmMm: false,
-    maxAtoms: 12,              // ~4 qubits/atom with sto-3g; 50-qubit horizon
+    maxAtoms: 12, // ~4 qubits/atom with sto-3g; 50-qubit horizon
   },
   pyscf: {
-    molecular: true,           // PySCF molecular SCF/post-HF
-    periodic: true,            // PySCF PBC module for crystals
+    molecular: true, // PySCF molecular SCF/post-HF
+    periodic: true, // PySCF PBC module for crystals
     semiEmpirical: false,
-    nmrGiao: false,            // Not a primary target
-    tdDft: true,               // PySCF TD-DFT
-    postHf: true,              // CCSD, MP2 via PySCF
-    transitionStates: true,    // TS optimisation via PySCF
-    qmMm: false,               // Stage 3
+    nmrGiao: false, // Not a primary target
+    tdDft: true, // PySCF TD-DFT
+    postHf: true, // CCSD, MP2 via PySCF
+    transitionStates: true, // TS optimisation via PySCF
+    qmMm: false, // Stage 3
     maxAtoms: 200,
   },
 };
@@ -586,16 +586,18 @@ export const QM_BACKEND_CAPABILITIES: Record<QmBackend, QmBackendCapabilities> =
  */
 export function requireCapability(
   backend: QmBackend,
-  capability: keyof QmBackendCapabilities,
+  capability: keyof QmBackendCapabilities
 ): void {
   const caps = QM_BACKEND_CAPABILITIES[backend];
   if (!caps[capability]) {
     throw new Error(
       `[qm-bridge] Backend '${backend}' does not support '${capability}'. ` +
-      `Available backends: ${Object.entries(QM_BACKEND_CAPABILITIES)
-        .filter(([, c]) => c[capability])
-        .map(([b]) => b)
-        .join(', ') || 'none'}`,
+        `Available backends: ${
+          Object.entries(QM_BACKEND_CAPABILITIES)
+            .filter(([, c]) => c[capability])
+            .map(([b]) => b)
+            .join(', ') || 'none'
+        }`
     );
   }
 }

@@ -46,7 +46,7 @@ Confirm **`claimableOpenCount`** and that your team **objective** still matches 
 
 ### 4. Knowledge leg (pattern)
 
-Using your normal MCP or HTTP client (same API key), contribute **one** short knowledge line: a *gotcha* or *pattern* you observed in step 2–3. If you only have curl, use the team’s documented HoloMesh **contribute** route or MCP tool per [MCP examples](../api/MCP_EXAMPLES.md#share-knowledge).
+Using your normal MCP or HTTP client (same API key), contribute **one** short knowledge line: a _gotcha_ or _pattern_ you observed in step 2–3. If you only have curl, use the team’s documented HoloMesh **contribute** route or MCP tool per [MCP examples](../api/MCP_EXAMPLES.md#share-knowledge).
 
 Record the **response id** or timestamp in your run log.
 

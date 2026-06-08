@@ -8,9 +8,7 @@ import { HSPlusRuntime } from '@holoscript/core';
 
 /** Extended runtime interface for keyboard-specific methods */
 interface KeyboardRuntime extends HSPlusRuntime {
-  findInstanceById(
-    id: string
-  ): {
+  findInstanceById(id: string): {
     node: { id: string; type: string; properties: Record<string, unknown> };
     children?: Array<{ node: { id: string; type: string; properties: Record<string, unknown> } }>;
   } | null;
@@ -150,7 +148,9 @@ export class KeyboardSystem {
       const newX = KeyboardSystem.START_X + this.cursorIndex * KeyboardSystem.CHAR_WIDTH;
 
       // We need to keep Y and Z same, just update X
-      const currentPos = (cursorChild.node.properties.position as [number, number, number]) || [0, 0, 0];
+      const currentPos = (cursorChild.node.properties.position as [number, number, number]) || [
+        0, 0, 0,
+      ];
       const newPos = [newX, currentPos[1], currentPos[2]];
 
       this.runtime.updateNodeProperty(cursorChild.node.id, 'position', newPos);

@@ -333,7 +333,7 @@ describe('SceneGraph', () => {
   describe('Transform', () => {
     it('should support custom position', () => {
       const node = createEmptyNode('id', 'name');
-      node.transform.position = [10, 20, 30 ];
+      node.transform.position = [10, 20, 30];
 
       expect(node.transform.position[0]).toBe(10);
       expect(node.transform.position[1]).toBe(20);
@@ -345,14 +345,14 @@ describe('SceneGraph', () => {
       // 90 degree rotation around Y
       const sin45 = Math.sin(Math.PI / 4);
       const cos45 = Math.cos(Math.PI / 4);
-      node.transform.rotation = [0, sin45, 0, cos45 ];
+      node.transform.rotation = [0, sin45, 0, cos45];
 
       expect(node.transform.rotation[3]).toBeCloseTo(cos45);
     });
 
     it('should support non-uniform scale', () => {
       const node = createEmptyNode('id', 'name');
-      node.transform.scale = [2, 0.5, 1.5 ];
+      node.transform.scale = [2, 0.5, 1.5];
 
       expect(node.transform.scale[0]).toBe(2);
       expect(node.transform.scale[1]).toBe(0.5);

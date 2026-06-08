@@ -113,11 +113,7 @@ export class SplinePath {
   private evalLinear(seg: number, t: number): SplinePoint {
     const p0 = this.getWrapped(seg);
     const p1 = this.getWrapped(seg + 1);
-    return P(
-      p0[0] + (p1[0] - p0[0]) * t,
-      p0[1] + (p1[1] - p0[1]) * t,
-      p0[2] + (p1[2] - p0[2]) * t
-    );
+    return P(p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t, p0[2] + (p1[2] - p0[2]) * t);
   }
 
   private evalCatmullRom(seg: number, t: number): SplinePoint {

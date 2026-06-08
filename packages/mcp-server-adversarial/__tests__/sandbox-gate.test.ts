@@ -21,10 +21,9 @@ describe('sandbox-gate', () => {
       const cases = ['0', 'true', 'yes', '', 'TRUE', '1 ', ' 1'];
       for (const value of cases) {
         const env = { [SANDBOX_ENV_VAR]: value } as NodeJS.ProcessEnv;
-        expect(
-          () => assertSandbox(env),
-          `should refuse env=${JSON.stringify(value)}`
-        ).toThrow(AdversarialSandboxViolation);
+        expect(() => assertSandbox(env), `should refuse env=${JSON.stringify(value)}`).toThrow(
+          AdversarialSandboxViolation
+        );
       }
     });
 
@@ -42,9 +41,7 @@ describe('sandbox-gate', () => {
         throw new Error('assertSandbox should have thrown');
       } catch (e) {
         expect(e).toBeInstanceOf(AdversarialSandboxViolation);
-        expect((e as AdversarialSandboxViolation).code).toBe(
-          'ADVERSARIAL_SANDBOX_VIOLATION'
-        );
+        expect((e as AdversarialSandboxViolation).code).toBe('ADVERSARIAL_SANDBOX_VIOLATION');
       }
     });
 

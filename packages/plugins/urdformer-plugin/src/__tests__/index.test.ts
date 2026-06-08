@@ -27,8 +27,18 @@ describe('urdformer-plugin stub', () => {
 
   it('extracts joint kinematics with parent + child', () => {
     const r = importUrdf({ urdf_xml: SAMPLE_URDF });
-    expect(r.joint_kinematics[0]).toMatchObject({ name: 'j0', type: 'revolute', parent: 'base', child: 'link1' });
-    expect(r.joint_kinematics[1]).toMatchObject({ name: 'j1', type: 'revolute', parent: 'link1', child: 'link2' });
+    expect(r.joint_kinematics[0]).toMatchObject({
+      name: 'j0',
+      type: 'revolute',
+      parent: 'base',
+      child: 'link1',
+    });
+    expect(r.joint_kinematics[1]).toMatchObject({
+      name: 'j1',
+      type: 'revolute',
+      parent: 'link1',
+      child: 'link2',
+    });
   });
 
   it('handles empty URDF gracefully', () => {

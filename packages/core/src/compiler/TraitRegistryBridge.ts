@@ -169,16 +169,20 @@ export function generateTraitForTarget(
   config: Record<string, unknown> = {}
 ): string[] {
   if (target === 'android-xr' || target === 'android') {
-    return getAndroidXRTrait(name)?.generate?.(name, config) ?? [
-      `// @${name} not yet mapped for android-xr (see AndroidXRTraitMap)`,
-    ];
+    return (
+      getAndroidXRTrait(name)?.generate?.(name, config) ?? [
+        `// @${name} not yet mapped for android-xr (see AndroidXRTraitMap)`,
+      ]
+    );
   }
 
   if (target === 'visionos') {
     // real implementation wired (closes scout TODO 8zl5)
-    return generateVisionOSCode(name, name, config) ?? [
-      `// @${name} not yet mapped for visionos (see VisionOSTraitMap)`,
-    ];
+    return (
+      generateVisionOSCode(name, name, config) ?? [
+        `// @${name} not yet mapped for visionos (see VisionOSTraitMap)`,
+      ]
+    );
   }
 
   // Core target: no platform-specific codegen, but we can return a

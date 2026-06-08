@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-control-panel",
-  name: "Device Control Panel",
-  description: "Smart home / IoT control interface with switches and status displays",
-  thumbnail: "🎛️",
-  tags: ["iot","control","smart-home","devices"],
-  category: "iot",
+  id: 'wizard-control-panel',
+  name: 'Device Control Panel',
+  description: 'Smart home / IoT control interface with switches and status displays',
+  thumbnail: '🎛️',
+  tags: ['iot', 'control', 'smart-home', 'devices'],
+  category: 'iot',
   code: `composition "Control Panel" {
   environment {
     skybox: "night"
@@ -79,7 +79,7 @@ export const template: SceneTemplate = {
     emissiveIntensity: 0.3
     label: "Camera: Front Yard"
   }
-}`
+}`,
 };
 
 export default template;

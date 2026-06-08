@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-warehouse-robotics",
-  name: "Warehouse Robotics",
-  description: "Autonomous pick-and-place robots navigating warehouse shelves",
-  thumbnail: "📦",
-  tags: ["robotics","warehouse","agv","pick-place"],
-  category: "robotics",
+  id: 'wizard-warehouse-robotics',
+  name: 'Warehouse Robotics',
+  description: 'Autonomous pick-and-place robots navigating warehouse shelves',
+  thumbnail: '📦',
+  tags: ['robotics', 'warehouse', 'agv', 'pick-place'],
+  category: 'robotics',
   code: `composition "Warehouse Robotics" {
   environment {
     skybox: "studio"
@@ -108,7 +108,7 @@ export const template: SceneTemplate = {
     color: "#ffcc00"
     label: "Loading Dock"
   }
-}`
+}`,
 };
 
 export default template;

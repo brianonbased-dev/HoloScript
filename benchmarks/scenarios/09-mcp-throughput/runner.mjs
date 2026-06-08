@@ -37,25 +37,26 @@
  *   HOLO_PERF_REGRESSION_REPO_ROOT — override repo root (used in tests)
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
-import { join, resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(
-  process.env.HOLO_PERF_REGRESSION_REPO_ROOT || resolve(__dirname, "..", "..", ".."),
+  process.env.HOLO_PERF_REGRESSION_REPO_ROOT || resolve(__dirname, '..', '..', '..')
 );
 
-const SCENARIO_ID = "09-mcp-throughput";
-const PLATFORM = "mcp-prod";
+const SCENARIO_ID = '09-mcp-throughput';
+const PLATFORM = 'mcp-prod';
 const PARALLEL_REQUESTS = 50;
 const SEQUENTIAL_REQUESTS = 200;
 const REQUEST_TIMEOUT_MS = 10_000;
 
-const BASE_URL = (
-  process.env.HOLO_MCP_THROUGHPUT_TARGET || "https://mcp.holoscript.net"
-).replace(/\/$/, "");
-const API_KEY = process.env.HOLOSCRIPT_API_KEY || "";
+const BASE_URL = (process.env.HOLO_MCP_THROUGHPUT_TARGET || 'https://mcp.holoscript.net').replace(
+  /\/$/,
+  ''
+);
+const API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -92,9 +93,11 @@ async function probeOnce(url, headers) {
 async function main() {
   const probeUrl = `${BASE_URL}/health`;
   const headers = {};
-  if (API_KEY) headers["Authorization"] = `Bearer ${API_KEY}`;
+  if (API_KEY) headers['Authorization'] = `Bearer ${API_KEY}`;
 
-  console.log(`[09-mcp-throughput] target=${probeUrl} parallel=${PARALLEL_REQUESTS} sequential=${SEQUENTIAL_REQUESTS}`);
+  console.log(
+    `[09-mcp-throughput] target=${probeUrl} parallel=${PARALLEL_REQUESTS} sequential=${SEQUENTIAL_REQUESTS}`
+  );
 
   const allLatencies = [];
   let failed = 0;
@@ -104,13 +107,15 @@ async function main() {
     // Phase 1: warm-up single request
     const warm = await probeOnce(probeUrl, headers);
     if (!warm.ok) {
-      console.warn(`[09-mcp-throughput] target unreachable (${probeUrl}) — skipping benchmark, recording success:false`);
+      console.warn(
+        `[09-mcp-throughput] target unreachable (${probeUrl}) — skipping benchmark, recording success:false`
+      );
     } else {
       // Phase 2: 50 parallel fan-out
       console.log(`[09-mcp-throughput] phase-1: ${PARALLEL_REQUESTS} parallel requests`);
       const parallelT0 = performance.now();
       const parallelResults = await Promise.all(
-        Array.from({ length: PARALLEL_REQUESTS }, () => probeOnce(probeUrl, headers)),
+        Array.from({ length: PARALLEL_REQUESTS }, () => probeOnce(probeUrl, headers))
       );
       const parallelDurationMs = performance.now() - parallelT0;
       console.log(`[09-mcp-throughput] parallel done in ${parallelDurationMs.toFixed(1)}ms`);
@@ -153,7 +158,7 @@ async function main() {
       };
 
       console.log(
-        `[09-mcp-throughput] rps=${rps} p50=${p50}ms p95=${p95}ms p99=${p99}ms failed=${failed}/${totalRequests}`,
+        `[09-mcp-throughput] rps=${rps} p50=${p50}ms p95=${p95}ms p99=${p99}ms failed=${failed}/${totalRequests}`
       );
 
       const output = {
@@ -163,10 +168,10 @@ async function main() {
       };
 
       const date = todayIso();
-      const outDir = join(REPO_ROOT, "benchmarks", "results", date);
+      const outDir = join(REPO_ROOT, 'benchmarks', 'results', date);
       mkdirSync(outDir, { recursive: true });
       const outPath = join(outDir, `${SCENARIO_ID}.json`);
-      writeFileSync(outPath, JSON.stringify(output, null, 2) + "\n", "utf-8");
+      writeFileSync(outPath, JSON.stringify(output, null, 2) + '\n', 'utf-8');
       console.log(`[09-mcp-throughput] wrote results → ${outPath}`);
       return;
     }
@@ -183,7 +188,9 @@ async function main() {
     p99LatencyMs: 0,
     success: false,
   };
-  console.warn("[09-mcp-throughput] recording success:false — set HOLO_MCP_THROUGHPUT_TARGET to an accessible MCP server.");
+  console.warn(
+    '[09-mcp-throughput] recording success:false — set HOLO_MCP_THROUGHPUT_TARGET to an accessible MCP server.'
+  );
 
   const output = {
     scenario: SCENARIO_ID,
@@ -192,14 +199,14 @@ async function main() {
   };
 
   const date = todayIso();
-  const outDir = join(REPO_ROOT, "benchmarks", "results", date);
+  const outDir = join(REPO_ROOT, 'benchmarks', 'results', date);
   mkdirSync(outDir, { recursive: true });
   const outPath = join(outDir, `${SCENARIO_ID}.json`);
-  writeFileSync(outPath, JSON.stringify(output, null, 2) + "\n", "utf-8");
+  writeFileSync(outPath, JSON.stringify(output, null, 2) + '\n', 'utf-8');
   console.log(`[09-mcp-throughput] wrote results → ${outPath}`);
 }
 
 main().catch((err) => {
-  console.error("[09-mcp-throughput] fatal:", err);
+  console.error('[09-mcp-throughput] fatal:', err);
   process.exit(2);
 });

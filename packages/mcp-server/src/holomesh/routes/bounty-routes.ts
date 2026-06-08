@@ -8,26 +8,31 @@ import {
   persistSocialStore,
   reloadTeam,
 } from '../state';
-import { 
-  json, 
-  parseQuery, 
-  parseJsonBody, 
-  extractParam, 
-  getTeamMember, 
-  hasTeamPermission 
+import {
+  json,
+  parseQuery,
+  parseJsonBody,
+  extractParam,
+  getTeamMember,
+  hasTeamPermission,
 } from '../utils';
 import { requireAuth } from '../auth-utils';
 import { broadcastToRoom, handleTeamRoomConnection } from '../team-room';
 import { extractAndVerifySigning } from '../identity/signing-middleware';
-import { 
-  BountyManager, 
+import {
+  BountyManager,
   generateTaskId,
-  type Bounty, 
-  type BountyCurrency, 
+  type Bounty,
+  type BountyCurrency,
   type CompletionProof,
-  type TeamTask
+  type TeamTask,
 } from '@holoscript/framework';
-import type { Team, StoredBountySubmission, StoredBountyMiniGame, StoredBountyGovernanceProposal } from '../types';
+import type {
+  Team,
+  StoredBountySubmission,
+  StoredBountyMiniGame,
+  StoredBountyGovernanceProposal,
+} from '../types';
 
 /**
  * Handle all bounty-related routes for HoloMesh.
@@ -39,16 +44,21 @@ export async function handleBountyRoutes(
   method: string,
   url: string
 ): Promise<boolean> {
-  const ADOPT_TARGET_LIBRARY: Record<string, { title: string; description: string; tags: string[]; defaultReward: number }> = {
+  const ADOPT_TARGET_LIBRARY: Record<
+    string,
+    { title: string; description: string; tags: string[]; defaultReward: number }
+  > = {
     blender: {
       title: 'Blender target adoption',
-      description: 'Build/maintain Blender pipeline compatibility and export validation for HoloScript scenes.',
+      description:
+        'Build/maintain Blender pipeline compatibility and export validation for HoloScript scenes.',
       tags: ['blender', 'interop', 'export'],
       defaultReward: 300,
     },
     horizon: {
       title: 'Meta Horizon target adoption',
-      description: 'Prototype target support for Horizon-compatible world packaging and interaction constraints.',
+      description:
+        'Prototype target support for Horizon-compatible world packaging and interaction constraints.',
       tags: ['horizon', 'vr', 'target-adoption'],
       defaultReward: 400,
     },
@@ -62,7 +72,10 @@ export async function handleBountyRoutes(
 
   // GET /api/holomesh/bounties/adopt-targets — list available adoption templates
   if (pathname === '/api/holomesh/bounties/adopt-targets' && method === 'GET') {
-    const templates = Object.entries(ADOPT_TARGET_LIBRARY).map(([key, t]) => ({ target: key, ...t }));
+    const templates = Object.entries(ADOPT_TARGET_LIBRARY).map(([key, t]) => ({
+      target: key,
+      ...t,
+    }));
     json(res, 200, { success: true, templates, count: templates.length });
     return true;
   }
@@ -73,7 +86,9 @@ export async function handleBountyRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -130,7 +145,7 @@ export async function handleBountyRoutes(
         task.id,
         { amount: Number(body.defaultReward ?? tpl.defaultReward), currency },
         caller.name,
-        body.deadline ? Number(body.deadline) : undefined,
+        body.deadline ? Number(body.deadline) : undefined
       );
 
       created.push({ target, task, bounty });
@@ -262,7 +277,9 @@ export async function handleBountyRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -304,7 +321,7 @@ export async function handleBountyRoutes(
         description: (body.description as string | undefined) || '',
         status: 'open',
         source: 'manual',
-        priority: ((body.priority as TeamTask['priority']) || 3 as any),
+        priority: (body.priority as TeamTask['priority']) || (3 as any),
         createdAt: new Date().toISOString(),
       };
       team.taskBoard.push(createdTask!);
@@ -327,7 +344,7 @@ export async function handleBountyRoutes(
       task.id,
       { amount, currency },
       caller.name,
-      body.deadline ? Number(body.deadline) : undefined,
+      body.deadline ? Number(body.deadline) : undefined
     );
 
     persistTeamStore();
@@ -348,7 +365,7 @@ export async function handleBountyRoutes(
     if (!caller) return true;
 
     const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/claim', '');
-    
+
     // Locate bounty across teams
     let team: Team | undefined;
     for (const t of teamStore.values()) {
@@ -386,7 +403,9 @@ export async function handleBountyRoutes(
 
     const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/submit', '');
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -439,7 +458,7 @@ export async function handleBountyRoutes(
       proof,
       status: 'submitted',
     };
-    
+
     const list = bountySubmissionStore.get(bountyId) || [];
     list.push(submission);
     bountySubmissionStore.set(bountyId, list);
@@ -462,7 +481,9 @@ export async function handleBountyRoutes(
 
     const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/payout', '');
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -498,7 +519,8 @@ export async function handleBountyRoutes(
       }
     }
 
-    const canApprove = bounty.createdBy === caller.name || hasTeamPermission(team, caller.id, 'board:write');
+    const canApprove =
+      bounty.createdBy === caller.name || hasTeamPermission(team, caller.id, 'board:write');
     if (!canApprove) {
       json(res, 403, { error: 'Only bounty creator or team admins can approve payout' });
       return true;
@@ -532,7 +554,7 @@ export async function handleBountyRoutes(
       currency: payout.currency,
       settlement: payout.settlement,
     };
-    
+
     // Auto-reject others
     for (const s of submissions) {
       if (s.id !== selected.id && s.status === 'submitted') {
@@ -540,13 +562,18 @@ export async function handleBountyRoutes(
         s.resolvedAt = new Date().toISOString();
       }
     }
-    
+
     persistTeamStore();
 
     broadcastToRoom(team.id, {
       type: 'bounty:completed',
       agent: caller.name,
-      data: { bountyId, amount: payout.amount, currency: payout.currency, settlement: payout.settlement },
+      data: {
+        bountyId,
+        amount: payout.amount,
+        currency: payout.currency,
+        settlement: payout.settlement,
+      },
     });
 
     json(res, 200, { success: true, payout, submissionId: selected.id });
@@ -554,13 +581,21 @@ export async function handleBountyRoutes(
   }
 
   // POST /api/holomesh/bounties/:id/governance/propose — Create token-holder governance proposal
-  if (pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/governance\/propose$/) && method === 'POST') {
+  if (
+    pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/governance\/propose$/) &&
+    method === 'POST'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/governance/propose', '');
+    const bountyId = extractParam(url, '/api/holomesh/bounties/').replace(
+      '/governance/propose',
+      ''
+    );
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -677,7 +712,9 @@ export async function handleBountyRoutes(
     }
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -708,11 +745,17 @@ export async function handleBountyRoutes(
   }
 
   // POST /api/holomesh/bounties/:id/governance/resolve — Finalize governance decision
-  if (pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/governance\/resolve$/) && method === 'POST') {
+  if (
+    pathname.match(/^\/api\/holomesh\/bounties\/[^/]+\/governance\/resolve$/) &&
+    method === 'POST'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
-    const bountyId = extractParam(url, '/api/holomesh/bounties/').replace('/governance/resolve', '');
+    const bountyId = extractParam(url, '/api/holomesh/bounties/').replace(
+      '/governance/resolve',
+      ''
+    );
     const proposal = bountyGovernanceStore.get(bountyId);
     if (!proposal) {
       json(res, 404, { error: 'No governance proposal found for this bounty' });
@@ -725,7 +768,8 @@ export async function handleBountyRoutes(
       json(res, 404, { error: 'Team not found for proposal' });
       return true;
     }
-    const canResolve = proposal.createdBy === caller.name || hasTeamPermission(team, caller.id, 'board:write');
+    const canResolve =
+      proposal.createdBy === caller.name || hasTeamPermission(team, caller.id, 'board:write');
     if (!canResolve) {
       json(res, 403, { error: 'Only proposer or team task managers can resolve governance' });
       return true;
@@ -767,7 +811,9 @@ export async function handleBountyRoutes(
   if (pathname === '/api/holomesh/bounties/minigames' && method === 'GET') {
     const q = parseQuery(url);
     const teamId = q.get('teamId') || undefined;
-    const games = teamId ? (bountyMiniGameStore.get(teamId) || []) : Array.from(bountyMiniGameStore.values()).flat();
+    const games = teamId
+      ? bountyMiniGameStore.get(teamId) || []
+      : Array.from(bountyMiniGameStore.values()).flat();
     json(res, 200, { success: true, games, count: games.length });
     return true;
   }
@@ -778,7 +824,9 @@ export async function handleBountyRoutes(
     if (!caller) return true;
 
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -821,18 +869,21 @@ export async function handleBountyRoutes(
       agent: caller.name,
       data: { gameId: game.id, roomId: game.roomId, title: game.title },
     });
-    
+
     json(res, 201, { success: true, game });
     return true;
   }
 
   // GET /api/holomesh/bounties/minigames/:id/room/live — Join mini-game room
-  if (pathname.match(/^\/api\/holomesh\/bounties\/minigames\/[^/]+\/room\/live$/) && method === 'GET') {
+  if (
+    pathname.match(/^\/api\/holomesh\/bounties\/minigames\/[^/]+\/room\/live$/) &&
+    method === 'GET'
+  ) {
     const gameId = extractParam(url, '/api/holomesh/bounties/minigames/').replace('/room/live', '');
-    
+
     let game: StoredBountyMiniGame | undefined;
     for (const teamGames of bountyMiniGameStore.values()) {
-      const found = teamGames.find(g => g.id === gameId);
+      const found = teamGames.find((g) => g.id === gameId);
       if (found) {
         game = found;
         break;
@@ -850,13 +901,18 @@ export async function handleBountyRoutes(
   }
 
   // PATCH /api/holomesh/bounties/minigames/:id/state — Update mini-game state
-  if (pathname.match(/^\/api\/holomesh\/bounties\/minigames\/[^/]+\/state$/) && method === 'PATCH') {
+  if (
+    pathname.match(/^\/api\/holomesh\/bounties\/minigames\/[^/]+\/state$/) &&
+    method === 'PATCH'
+  ) {
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
     const gameId = extractParam(url, '/api/holomesh/bounties/minigames/').replace('/state', '');
     const rawBody = await parseJsonBody(req);
-    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, { bypassSigning: caller?.isFounder ?? false });
+    const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
+      bypassSigning: caller?.isFounder ?? false,
+    });
     if (!signingCtx.signingValid) {
       json(res, 401, { error: 'signing-rejected', reason: signingCtx.signingReason });
       return true;
@@ -866,7 +922,7 @@ export async function handleBountyRoutes(
     let game: StoredBountyMiniGame | undefined;
     let teamId: string | undefined;
     for (const [tid, teamGames] of bountyMiniGameStore.entries()) {
-      const found = teamGames.find(g => g.id === gameId);
+      const found = teamGames.find((g) => g.id === gameId);
       if (found) {
         game = found;
         teamId = tid;
@@ -880,7 +936,7 @@ export async function handleBountyRoutes(
     }
 
     // Update state
-    game.state = { ...(game.state as object || {}), ...(body.state as object || {}) };
+    game.state = { ...((game.state as object) || {}), ...((body.state as object) || {}) };
     if (body.status) game.status = body.status;
 
     persistTeamStore();

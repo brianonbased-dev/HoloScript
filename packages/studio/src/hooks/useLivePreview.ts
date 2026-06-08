@@ -29,7 +29,7 @@ export function useLivePreview(options?: LivePreviewOptions) {
   const [status, setStatus] = useState<PreviewStatus>('disconnected');
   const [lastSync, setLastSync] = useState<number | null>(null);
   const esRef = useRef<EventSource | null>(null);
-  
+
   const onRemoteCodeRef = useRef(onRemoteCode);
   useEffect(() => {
     onRemoteCodeRef.current = onRemoteCode;

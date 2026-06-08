@@ -19,22 +19,22 @@
  * in the same file roll up to the same family (the file basename).
  */
 
-import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from "node:fs";
-import { dirname, basename, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { execSync } from "node:child_process";
+import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
+import { dirname, basename, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, "..", "..");
-const CONSTANTS_DIR = join(REPO_ROOT, "packages", "core", "src", "traits", "constants");
-const PLUGINS_DIR = join(REPO_ROOT, "packages", "plugins");
-const OUT_PATH = join(REPO_ROOT, "research", "paper-19", "datasets", "trait-family-map-v1.json");
+const REPO_ROOT = resolve(__dirname, '..', '..');
+const CONSTANTS_DIR = join(REPO_ROOT, 'packages', 'core', 'src', 'traits', 'constants');
+const PLUGINS_DIR = join(REPO_ROOT, 'packages', 'plugins');
+const OUT_PATH = join(REPO_ROOT, 'research', 'paper-19', 'datasets', 'trait-family-map-v1.json');
 
 function gitHead() {
   try {
-    return execSync("git rev-parse HEAD", { cwd: REPO_ROOT }).toString().trim();
+    return execSync('git rev-parse HEAD', { cwd: REPO_ROOT }).toString().trim();
   } catch {
-    return "unknown";
+    return 'unknown';
   }
 }
 
@@ -55,14 +55,14 @@ function extractTraitArrays(src) {
     let i = start;
     while (i < src.length && depth > 0) {
       const ch = src[i];
-      if (ch === "[") depth++;
-      else if (ch === "]") depth--;
-      else if (ch === "'" || ch === '"' || ch === "`") {
+      if (ch === '[') depth++;
+      else if (ch === ']') depth--;
+      else if (ch === "'" || ch === '"' || ch === '`') {
         // Skip past string literal
         const quote = ch;
         i++;
         while (i < src.length && src[i] !== quote) {
-          if (src[i] === "\\") i++;
+          if (src[i] === '\\') i++;
           i++;
         }
       }
@@ -81,7 +81,7 @@ function extractTraitArrays(src) {
 }
 
 function familyFromFile(file) {
-  return basename(file, ".ts");
+  return basename(file, '.ts');
 }
 
 /**
@@ -108,13 +108,13 @@ function extractPluginTraits(src) {
     let i = start;
     while (i < src.length && depth > 0) {
       const ch = src[i];
-      if (ch === "{") depth++;
-      else if (ch === "}") depth--;
-      else if (ch === "'" || ch === '"' || ch === "`") {
+      if (ch === '{') depth++;
+      else if (ch === '}') depth--;
+      else if (ch === "'" || ch === '"' || ch === '`') {
         const quote = ch;
         i++;
         while (i < src.length && src[i] !== quote) {
-          if (src[i] === "\\") i++;
+          if (src[i] === '\\') i++;
           i++;
         }
       }
@@ -130,13 +130,13 @@ function extractPluginTraits(src) {
       let j = arrStart;
       while (j < body.length && arrDepth > 0) {
         const ch = body[j];
-        if (ch === "[") arrDepth++;
-        else if (ch === "]") arrDepth--;
-        else if (ch === "'" || ch === '"' || ch === "`") {
+        if (ch === '[') arrDepth++;
+        else if (ch === ']') arrDepth--;
+        else if (ch === "'" || ch === '"' || ch === '`') {
           const quote = ch;
           j++;
           while (j < body.length && body[j] !== quote) {
-            if (body[j] === "\\") j++;
+            if (body[j] === '\\') j++;
             j++;
           }
         }
@@ -185,7 +185,14 @@ function listFilesRec(dir, exts) {
       continue;
     }
     if (st.isDirectory()) {
-      if (name === "node_modules" || name === "dist" || name === ".git" || name === "test" || name === "tests") continue;
+      if (
+        name === 'node_modules' ||
+        name === 'dist' ||
+        name === '.git' ||
+        name === 'test' ||
+        name === 'tests'
+      )
+        continue;
       out.push(...listFilesRec(p, exts));
     } else if (st.isFile() && exts.some((e) => name.endsWith(e))) {
       out.push(p);
@@ -196,7 +203,7 @@ function listFilesRec(dir, exts) {
 
 function main() {
   const files = readdirSync(CONSTANTS_DIR)
-    .filter((f) => f.endsWith(".ts") && !f.endsWith(".d.ts"))
+    .filter((f) => f.endsWith('.ts') && !f.endsWith('.d.ts'))
     .sort();
 
   const traitToFamilies = new Map(); // trait name -> set of families
@@ -208,7 +215,7 @@ function main() {
     const family = familyFromFile(fname);
     let traits;
     try {
-      const src = readFileSync(fpath, "utf-8");
+      const src = readFileSync(fpath, 'utf-8');
       traits = extractTraitArrays(src);
     } catch (e) {
       unparseable.push({ file: fname, error: String(e) });
@@ -230,10 +237,10 @@ function main() {
     const traitsForPlugin = new Set();
 
     // (a) pluginMeta in src/index.ts (canonical)
-    const indexPath = join(pluginPath, "src", "index.ts");
+    const indexPath = join(pluginPath, 'src', 'index.ts');
     if (existsSync(indexPath)) {
       try {
-        const src = readFileSync(indexPath, "utf-8");
+        const src = readFileSync(indexPath, 'utf-8');
         for (const t of extractPluginTraits(src)) traitsForPlugin.add(t);
         // Also catch legacy *_TRAITS arrays inside the index.
         for (const t of extractTraitArrays(src)) traitsForPlugin.add(t);
@@ -243,12 +250,12 @@ function main() {
     }
 
     // (b) src/constants/*.ts arrays (some plugins keep them separate, e.g. radio-astronomy)
-    const pluginConstantsDir = join(pluginPath, "src", "constants");
+    const pluginConstantsDir = join(pluginPath, 'src', 'constants');
     if (existsSync(pluginConstantsDir)) {
       for (const cf of readdirSync(pluginConstantsDir)) {
-        if (!cf.endsWith(".ts") || cf.endsWith(".d.ts")) continue;
+        if (!cf.endsWith('.ts') || cf.endsWith('.d.ts')) continue;
         try {
-          const src = readFileSync(join(pluginConstantsDir, cf), "utf-8");
+          const src = readFileSync(join(pluginConstantsDir, cf), 'utf-8');
           for (const t of extractTraitArrays(src)) traitsForPlugin.add(t);
         } catch (e) {
           unparseable.push({ file: join(pluginConstantsDir, cf), error: String(e) });
@@ -257,13 +264,13 @@ function main() {
     }
 
     // (c) src/**/*Trait.ts files — single-trait `name: '<bare>'` declarations
-    const srcRoot = join(pluginPath, "src");
+    const srcRoot = join(pluginPath, 'src');
     if (existsSync(srcRoot)) {
-      const traitFiles = listFilesRec(srcRoot, [".ts"]).filter((p) => /Trait\.ts$/i.test(p));
+      const traitFiles = listFilesRec(srcRoot, ['.ts']).filter((p) => /Trait\.ts$/i.test(p));
       const nameRe = /\bname\s*:\s*'([a-z_][a-z0-9_]*)'\s*,/g;
       for (const tf of traitFiles) {
         try {
-          const src = readFileSync(tf, "utf-8");
+          const src = readFileSync(tf, 'utf-8');
           let m;
           while ((m = nameRe.exec(src)) !== null) {
             traitsForPlugin.add(m[1]);
@@ -291,10 +298,10 @@ function main() {
   }
 
   const out = {
-    version: "v1",
+    version: 'v1',
     generated_at: new Date().toISOString(),
     git_head: gitHead(),
-    constants_dir: "packages/core/src/traits/constants",
+    constants_dir: 'packages/core/src/traits/constants',
     family_count: familyToTraits.size,
     distinct_trait_count: traitToFamilies.size,
     parsed_files: files.length,
@@ -303,14 +310,14 @@ function main() {
     trait_to_families: traitMap,
     // family -> trait-list mapping (for cross-checking and ablation slicing)
     family_to_traits: Object.fromEntries(
-      [...familyToTraits.entries()].sort().map(([k, v]) => [k, [...v].sort()]),
+      [...familyToTraits.entries()].sort().map(([k, v]) => [k, [...v].sort()])
     ),
   };
 
   mkdirSync(dirname(OUT_PATH), { recursive: true });
-  writeFileSync(OUT_PATH, JSON.stringify(out, null, 2) + "\n", "utf-8");
+  writeFileSync(OUT_PATH, JSON.stringify(out, null, 2) + '\n', 'utf-8');
 
-  console.log(`OK: wrote trait-family-map to ${OUT_PATH.replace(REPO_ROOT, ".")}`);
+  console.log(`OK: wrote trait-family-map to ${OUT_PATH.replace(REPO_ROOT, '.')}`);
   console.log(`  parsed_files: ${files.length}`);
   console.log(`  family_count: ${familyToTraits.size}`);
   console.log(`  distinct_trait_count: ${traitToFamilies.size}`);

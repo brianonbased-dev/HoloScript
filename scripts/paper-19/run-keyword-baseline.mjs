@@ -30,28 +30,25 @@
  *     filter (NOT a hardcoded N=306 — the live count is the truth).
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { createHash } from "node:crypto";
-import { execSync } from "node:child_process";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { execSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = join(__dirname, "..", "..");
+const REPO_ROOT = join(__dirname, '..', '..');
 const DATASET_PATH = join(
   REPO_ROOT,
-  "research/paper-19/datasets/phase-3-trait-inference-2000row-v2.jsonl",
+  'research/paper-19/datasets/phase-3-trait-inference-2000row-v2.jsonl'
 );
-const FAMILY_MAP_PATH = join(
-  REPO_ROOT,
-  "research/paper-19/datasets/trait-family-map-v1.json",
-);
-const OUT_DIR = join(REPO_ROOT, "research/paper-19/measurements");
-const OUT_JSON = join(OUT_DIR, "keyword-baseline-v2.json");
-const OUT_README = join(OUT_DIR, "keyword-baseline-v2.README.md");
+const FAMILY_MAP_PATH = join(REPO_ROOT, 'research/paper-19/datasets/trait-family-map-v1.json');
+const OUT_DIR = join(REPO_ROOT, 'research/paper-19/measurements');
+const OUT_JSON = join(OUT_DIR, 'keyword-baseline-v2.json');
+const OUT_README = join(OUT_DIR, 'keyword-baseline-v2.README.md');
 
-const DATASET_VERSION = "phase-3-trait-inference-2000row-v2";
-const EVAL_SPLIT_ROLE = "novel-combination-test";
+const DATASET_VERSION = 'phase-3-trait-inference-2000row-v2';
+const EVAL_SPLIT_ROLE = 'novel-combination-test';
 
 // ---------------------------------------------------------------------------
 // IO helpers
@@ -63,20 +60,19 @@ function fail(msg) {
 
 function sha256OfFile(p) {
   const buf = readFileSync(p);
-  return createHash("sha256").update(buf).digest("hex");
+  return createHash('sha256').update(buf).digest('hex');
 }
 
 function gitHead() {
   try {
-    return execSync("git rev-parse HEAD", { cwd: REPO_ROOT, encoding: "utf8" })
-      .trim();
+    return execSync('git rev-parse HEAD', { cwd: REPO_ROOT, encoding: 'utf8' }).trim();
   } catch {
-    return "unknown";
+    return 'unknown';
   }
 }
 
 function readJsonl(path) {
-  const raw = readFileSync(path, "utf8");
+  const raw = readFileSync(path, 'utf8');
   const rows = [];
   for (const line of raw.split(/\r?\n/)) {
     if (!line.trim()) continue;
@@ -133,22 +129,18 @@ function rowMetrics(predicted, gold) {
   for (const g of goldSet) if (predSet.has(g)) tp += 1;
   const fp = predSet.size - tp;
   const fn = goldSet.size - tp;
-  const precision = predSet.size === 0
-    ? (goldSet.size === 0 ? 1 : 0)
-    : tp / predSet.size;
-  const recall = goldSet.size === 0
-    ? (predSet.size === 0 ? 1 : 0)
-    : tp / goldSet.size;
-  const f1 = (precision + recall) === 0
-    ? 0
-    : (2 * precision * recall) / (precision + recall);
+  const precision = predSet.size === 0 ? (goldSet.size === 0 ? 1 : 0) : tp / predSet.size;
+  const recall = goldSet.size === 0 ? (predSet.size === 0 ? 1 : 0) : tp / goldSet.size;
+  const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
   return { tp, fp, fn, precision, recall, f1 };
 }
 
 /** Macro-average across rows. */
 function macroAverage(perRow) {
   if (perRow.length === 0) return { precision: 0, recall: 0, f1: 0 };
-  let p = 0, r = 0, f = 0;
+  let p = 0,
+    r = 0,
+    f = 0;
   for (const m of perRow) {
     p += m.precision;
     r += m.recall;
@@ -163,17 +155,17 @@ function macroAverage(perRow) {
 
 /** Micro-F1 across all rows: pool tp/fp/fn then compute one P/R/F. */
 function microF1(perRow) {
-  let tp = 0, fp = 0, fn = 0;
+  let tp = 0,
+    fp = 0,
+    fn = 0;
   for (const m of perRow) {
     tp += m.tp;
     fp += m.fp;
     fn += m.fn;
   }
-  const precision = (tp + fp) === 0 ? 0 : tp / (tp + fp);
-  const recall = (tp + fn) === 0 ? 0 : tp / (tp + fn);
-  const f1 = (precision + recall) === 0
-    ? 0
-    : (2 * precision * recall) / (precision + recall);
+  const precision = tp + fp === 0 ? 0 : tp / (tp + fp);
+  const recall = tp + fn === 0 ? 0 : tp / (tp + fn);
+  const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
   return { tp, fp, fn, precision, recall, f1 };
 }
 
@@ -197,7 +189,9 @@ function macroF1OverLabels(rowsPredictedGold) {
   }
   const perLabel = {};
   for (const label of labels) {
-    let tp = 0, fp = 0, fn = 0;
+    let tp = 0,
+      fp = 0,
+      fn = 0;
     for (const { predicted, gold } of rowsPredictedGold) {
       const inPred = predicted.includes(label);
       const inGold = gold.includes(label);
@@ -205,17 +199,17 @@ function macroF1OverLabels(rowsPredictedGold) {
       else if (inPred && !inGold) fp += 1;
       else if (!inPred && inGold) fn += 1;
     }
-    const precision = (tp + fp) === 0 ? 0 : tp / (tp + fp);
-    const recall = (tp + fn) === 0 ? 0 : tp / (tp + fn);
-    const f1 = (precision + recall) === 0
-      ? 0
-      : (2 * precision * recall) / (precision + recall);
+    const precision = tp + fp === 0 ? 0 : tp / (tp + fp);
+    const recall = tp + fn === 0 ? 0 : tp / (tp + fn);
+    const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
     perLabel[label] = { tp, fp, fn, precision, recall, f1 };
   }
   if (labels.size === 0) {
     return { f1: 0, precision: 0, recall: 0, perLabel: {} };
   }
-  let pSum = 0, rSum = 0, fSum = 0;
+  let pSum = 0,
+    rSum = 0,
+    fSum = 0;
   for (const label of labels) {
     pSum += perLabel[label].precision;
     rSum += perLabel[label].recall;
@@ -233,9 +227,9 @@ function macroF1OverLabels(rowsPredictedGold) {
 // ---------------------------------------------------------------------------
 // Top-K helpers
 
-function topKByF1(perLabelMap, k, mode = "hit") {
+function topKByF1(perLabelMap, k, mode = 'hit') {
   const entries = Object.entries(perLabelMap);
-  if (mode === "hit") {
+  if (mode === 'hit') {
     // hits = labels with tp > 0, ranked by F1 desc, tp desc
     return entries
       .filter(([, m]) => m.tp > 0)
@@ -253,8 +247,8 @@ function topKByF1(perLabelMap, k, mode = "hit") {
   }
   // miss = labels with gold support (tp+fn > 0) and zero recall, ranked by support desc
   return entries
-    .filter(([, m]) => (m.tp + m.fn) > 0 && m.recall === 0)
-    .sort((a, b) => (b[1].tp + b[1].fn) - (a[1].tp + a[1].fn))
+    .filter(([, m]) => m.tp + m.fn > 0 && m.recall === 0)
+    .sort((a, b) => b[1].tp + b[1].fn - (a[1].tp + a[1].fn))
     .slice(0, k)
     .map(([label, m]) => ({
       label,
@@ -268,7 +262,7 @@ function topKByF1(perLabelMap, k, mode = "hit") {
 }
 
 function round(x, d = 6) {
-  if (typeof x !== "number" || !isFinite(x)) return x;
+  if (typeof x !== 'number' || !isFinite(x)) return x;
   const f = Math.pow(10, d);
   return Math.round(x * f) / f;
 }
@@ -287,16 +281,14 @@ function main() {
   const familyMapSha = sha256OfFile(FAMILY_MAP_PATH);
   const generatorCommit = gitHead();
 
-  const familyMap = JSON.parse(readFileSync(FAMILY_MAP_PATH, "utf8"));
+  const familyMap = JSON.parse(readFileSync(FAMILY_MAP_PATH, 'utf8'));
   const familyTraitSet = new Set(Object.keys(familyMap.trait_to_families ?? {}));
   if (familyTraitSet.size === 0) {
     fail(`family map has zero trait_to_families entries`);
   }
 
   const allRows = readJsonl(DATASET_PATH);
-  const evalRows = allRows.filter(
-    (r) => r?.metadata?.split_role === EVAL_SPLIT_ROLE,
-  );
+  const evalRows = allRows.filter((r) => r?.metadata?.split_role === EVAL_SPLIT_ROLE);
   if (evalRows.length === 0) {
     fail(`no rows with metadata.split_role == "${EVAL_SPLIT_ROLE}"`);
   }
@@ -307,7 +299,7 @@ function main() {
   const rowsPredictedGold = [];
   for (const r of evalRows) {
     const gold = Array.isArray(r.gold_traits) ? [...r.gold_traits].sort() : [];
-    const predicted = predictForRow(r.snippet ?? "", familyTraitSet);
+    const predicted = predictForRow(r.snippet ?? '', familyTraitSet);
     const m = rowMetrics(predicted, gold);
     predictionsPerRow.push({
       id: r.id,
@@ -336,8 +328,8 @@ function main() {
     for (const p of r.predicted) distinctTraitPredictions.add(p);
   }
 
-  const hitTop10 = topKByF1(labelMacro.perLabel, 10, "hit");
-  const missTop10 = topKByF1(labelMacro.perLabel, 10, "miss");
+  const hitTop10 = topKByF1(labelMacro.perLabel, 10, 'hit');
+  const missTop10 = topKByF1(labelMacro.perLabel, 10, 'miss');
 
   // Out-of-family-map gold count: traits in gold that aren't in the family
   // map's trait_to_families (these are the "uncategorized" registry-drift
@@ -349,7 +341,7 @@ function main() {
   for (const r of predictionsPerRow) {
     let rowOut = 0;
     for (const g of r.gold) {
-      const bare = g.startsWith("@") ? g.slice(1) : g;
+      const bare = g.startsWith('@') ? g.slice(1) : g;
       if (!familyTraitSet.has(bare)) rowOut += 1;
     }
     if (rowOut > 0) outOfFamilyGoldRows += 1;
@@ -382,49 +374,48 @@ function main() {
     classifier_must_clear: {
       target_macro_f1_row: round(macroRow.f1 + 0.15),
       margin_pp: 15,
-      pre_registration_floor: 0.80,
-      effective_floor: round(Math.max(0.80, macroRow.f1 + 0.15)),
+      pre_registration_floor: 0.8,
+      effective_floor: round(Math.max(0.8, macroRow.f1 + 0.15)),
     },
     hit_per_label_top10: hitTop10,
     miss_per_label_top10: missTop10,
     locked_at: lockedAt,
-    generator_script:
-      "scripts/paper-19/run-keyword-baseline.mjs",
+    generator_script: 'scripts/paper-19/run-keyword-baseline.mjs',
     predictions_per_row: predictionsPerRow,
   };
 
-  writeFileSync(OUT_JSON, JSON.stringify(out, null, 2) + "\n", "utf8");
+  writeFileSync(OUT_JSON, JSON.stringify(out, null, 2) + '\n', 'utf8');
 
   // Also write a README that documents the locked numbers and the +15pp gate.
   const readme = renderReadme(out);
-  writeFileSync(OUT_README, readme, "utf8");
+  writeFileSync(OUT_README, readme, 'utf8');
 
   // Console summary.
   console.log(
     `[keyword-baseline] eval_rows=${out.eval_rows} ` +
       `macro_f1_row=${out.macro_f1_row} macro_f1_label=${out.macro_f1_label} ` +
-      `micro_f1=${out.micro_f1}`,
+      `micro_f1=${out.micro_f1}`
   );
   console.log(
     `[keyword-baseline] precision_macro=${out.precision_macro} ` +
-      `recall_macro=${out.recall_macro}`,
+      `recall_macro=${out.recall_macro}`
   );
   console.log(
     `[keyword-baseline] distinct_labels=${out.distinct_trait_labels} ` +
       `distinct_predictions=${out.distinct_trait_predictions} ` +
-      `out_of_family_gold_rows=${out.out_of_family_gold_rows}`,
+      `out_of_family_gold_rows=${out.out_of_family_gold_rows}`
   );
   console.log(
     `[keyword-baseline] classifier must clear macro_f1_row >= ` +
       `${out.classifier_must_clear.target_macro_f1_row} ` +
-      `(floor=${out.classifier_must_clear.effective_floor})`,
+      `(floor=${out.classifier_must_clear.effective_floor})`
   );
   console.log(`[keyword-baseline] wrote ${OUT_JSON}`);
   console.log(`[keyword-baseline] wrote ${OUT_README}`);
 }
 
 function renderReadme(out) {
-  const fmt = (x) => (typeof x === "number" ? x.toFixed(4) : String(x));
+  const fmt = (x) => (typeof x === 'number' ? x.toFixed(4) : String(x));
   return `# Paper-19 Keyword-Match Baseline (v2 — LOCKED)
 
 **Locked at**: ${out.locked_at}
@@ -480,29 +471,25 @@ The classifier must beat **${fmt(out.classifier_must_clear.target_macro_f1_row)}
 
 | Label | Precision | Recall | F1 | TP / FP / FN |
 |---|---|---|---|---|
-${
-    out.hit_per_label_top10
-      .map((h) =>
-        `| \`${h.label}\` | ${h.precision.toFixed(4)} | ${
-          h.recall.toFixed(4)
-        } | ${h.f1.toFixed(4)} | ${h.tp} / ${h.fp} / ${h.fn} |`
-      )
-      .join("\n")
-  }
+${out.hit_per_label_top10
+  .map(
+    (h) =>
+      `| \`${h.label}\` | ${h.precision.toFixed(4)} | ${h.recall.toFixed(
+        4
+      )} | ${h.f1.toFixed(4)} | ${h.tp} / ${h.fp} / ${h.fn} |`
+  )
+  .join('\n')}
 
 ## Top-10 misses (where keyword match has zero recall)
 
 | Label | Gold support | TP / FN | Notes |
 |---|---|---|---|
-${
-    out.miss_per_label_top10
-      .map((m) =>
-        `| \`${m.label}\` | ${m.gold_support} | ${m.tp} / ${m.fn} | recall=${
-          m.recall.toFixed(4)
-        } |`
-      )
-      .join("\n")
-  }
+${out.miss_per_label_top10
+  .map(
+    (m) =>
+      `| \`${m.label}\` | ${m.gold_support} | ${m.tp} / ${m.fn} | recall=${m.recall.toFixed(4)} |`
+  )
+  .join('\n')}
 
 These are the labels with the most gold support that the baseline never recovers — typically registry-drift traits not declared in any \`*_TRAITS\` constant array (see dataset README §"Known limitations"). The classifier must close these gaps.
 

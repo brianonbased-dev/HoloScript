@@ -8,12 +8,7 @@
 // Spec: research/paper-21-ati/threat-model.md §4.3.
 // Board task: ATI-3-slow-poisoner.
 
-import type {
-  AdversarialAttack,
-  AttackContext,
-  AttackResult,
-  AttackId,
-} from './types.js';
+import type { AdversarialAttack, AttackContext, AttackResult, AttackId } from './types.js';
 
 // §4.3 spec measures "aggregate_bias_after_1000_rounds". The 1000 is a
 // reasonable PoC-measurement default; testbed can override.
@@ -45,9 +40,7 @@ export class SlowPoisonerAttack implements AdversarialAttack {
       throw new RangeError('SlowPoisonerConfig.biasPerCall must be a finite > 0');
     }
     if (!Number.isFinite(config.aggregateBiasThreshold) || config.aggregateBiasThreshold <= 0) {
-      throw new RangeError(
-        'SlowPoisonerConfig.aggregateBiasThreshold must be a finite > 0'
-      );
+      throw new RangeError('SlowPoisonerConfig.aggregateBiasThreshold must be a finite > 0');
     }
     if (
       config.evaluationRounds !== undefined &&
@@ -65,9 +58,7 @@ export class SlowPoisonerAttack implements AdversarialAttack {
 
   step(context: AttackContext, round: number): AttackResult {
     if (!Number.isInteger(round) || round < 1) {
-      throw new RangeError(
-        'SlowPoisonerAttack.step: round must be a positive integer'
-      );
+      throw new RangeError('SlowPoisonerAttack.step: round must be a positive integer');
     }
 
     const ownTrust = context.observeOwnTrust();

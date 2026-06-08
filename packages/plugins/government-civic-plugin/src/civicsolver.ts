@@ -23,8 +23,8 @@ import { buildDomainSimulationReceipt, type DomainSimulationReceipt } from '@hol
 
 export interface PermitCriteria {
   name: string;
-  weight: number;  // sum of all weights should be 1.0
-  score: number;   // 0–100
+  weight: number; // sum of all weights should be 1.0
+  score: number; // 0–100
 }
 
 export interface PermitScoringResult {
@@ -46,7 +46,7 @@ export interface MCDACandidate {
 
 export interface MCDACriterion {
   name: string;
-  weight: number;  // 0–1
+  weight: number; // 0–1
   /** true = higher is better (benefit), false = lower is better (cost) */
   isBenefit: boolean;
 }
@@ -87,7 +87,13 @@ export interface CohesionResult {
   /** Overall chamber Rice index (0=perfect split, 1=unanimous) */
   chamberCohesion: number;
   /** Per-party Rice cohesion */
-  partyCohesion: Array<{ partyId: string; cohesion: number; yesCount: number; noCount: number; size: number }>;
+  partyCohesion: Array<{
+    partyId: string;
+    cohesion: number;
+    yesCount: number;
+    noCount: number;
+    size: number;
+  }>;
   /** Winning coalition */
   majority: 'yes' | 'no' | 'tie';
 }
@@ -122,7 +128,7 @@ export interface BudgetVarianceResult {
   totalActual: number;
   totalVariancePct: number;
   overallStatus: 'favorable' | 'unfavorable' | 'on-target';
-  flaggedLines: string[];  // categories with variance > 10%
+  flaggedLines: string[]; // categories with variance > 10%
 }
 
 export interface GovtReceiptOptions {
@@ -131,15 +137,13 @@ export interface GovtReceiptOptions {
 
 // ─── Permit Scoring ───────────────────────────────────────────────────────────
 
-export function permitScoring(
-  criteria: PermitCriteria[],
-  threshold = 70,
-): PermitScoringResult {
+export function permitScoring(criteria: PermitCriteria[], threshold = 70): PermitScoringResult {
   if (criteria.length === 0) throw new Error('No permit criteria provided');
   const totalWeight = criteria.reduce((s, c) => s + c.weight, 0);
-  if (Math.abs(totalWeight - 1.0) > 0.01) throw new Error(`Weights must sum to 1.0 (got ${totalWeight.toFixed(3)})`);
+  if (Math.abs(totalWeight - 1.0) > 0.01)
+    throw new Error(`Weights must sum to 1.0 (got ${totalWeight.toFixed(3)})`);
 
-  const breakdown = criteria.map(c => ({
+  const breakdown = criteria.map((c) => ({
     name: c.name,
     score: c.score,
     weight: c.weight,
@@ -155,30 +159,33 @@ export function permitScoring(
 
 /** Normalize a column to [0,1] range */
 function normalizeColumn(values: number[]): number[] {
-  const min = Math.min(...values), max = Math.max(...values);
+  const min = Math.min(...values),
+    max = Math.max(...values);
   if (max === min) return values.map(() => 0.5);
-  return values.map(v => (v - min) / (max - min));
+  return values.map((v) => (v - min) / (max - min));
 }
 
-export function mcdaAnalysis(
-  candidates: MCDACandidate[],
-  criteria: MCDACriterion[],
-): MCDAResult {
+export function mcdaAnalysis(candidates: MCDACandidate[], criteria: MCDACriterion[]): MCDAResult {
   if (candidates.length === 0) throw new Error('No MCDA candidates');
   if (criteria.length === 0) throw new Error('No MCDA criteria');
-  if (candidates.some(c => c.scores.length !== criteria.length)) throw new Error('scores.length must match criteria.length');
+  if (candidates.some((c) => c.scores.length !== criteria.length))
+    throw new Error('scores.length must match criteria.length');
 
-  const n = candidates.length, m = criteria.length;
+  const n = candidates.length,
+    m = criteria.length;
 
   // Weighted sum score
-  const weightedScores = candidates.map(c =>
-    c.scores.reduce((acc, s, j) => acc + s * criteria[j].weight * (criteria[j].isBenefit ? 1 : -1), 0),
+  const weightedScores = candidates.map((c) =>
+    c.scores.reduce(
+      (acc, s, j) => acc + s * criteria[j].weight * (criteria[j].isBenefit ? 1 : -1),
+      0
+    )
   );
 
   // TOPSIS: normalize → weight → ideal/anti-ideal → distance
   const normalizedMatrix: number[][] = Array.from({ length: n }, () => Array(m).fill(0));
   for (let j = 0; j < m; j++) {
-    const col = candidates.map(c => c.scores[j]);
+    const col = candidates.map((c) => c.scores[j]);
     const norm = normalizeColumn(col);
     for (let i = 0; i < n; i++) {
       normalizedMatrix[i][j] = norm[i] * criteria[j].weight;
@@ -186,10 +193,18 @@ export function mcdaAnalysis(
   }
 
   // Ideal best/worst per criterion
-  const ideal     = criteria.map((cr, j) => cr.isBenefit ? Math.max(...normalizedMatrix.map(r => r[j])) : Math.min(...normalizedMatrix.map(r => r[j])));
-  const antiIdeal = criteria.map((cr, j) => cr.isBenefit ? Math.min(...normalizedMatrix.map(r => r[j])) : Math.max(...normalizedMatrix.map(r => r[j])));
+  const ideal = criteria.map((cr, j) =>
+    cr.isBenefit
+      ? Math.max(...normalizedMatrix.map((r) => r[j]))
+      : Math.min(...normalizedMatrix.map((r) => r[j]))
+  );
+  const antiIdeal = criteria.map((cr, j) =>
+    cr.isBenefit
+      ? Math.min(...normalizedMatrix.map((r) => r[j]))
+      : Math.max(...normalizedMatrix.map((r) => r[j]))
+  );
 
-  const topsisScores = normalizedMatrix.map(row => {
+  const topsisScores = normalizedMatrix.map((row) => {
     const dPos = Math.sqrt(row.reduce((acc, v, j) => acc + (v - ideal[j]) ** 2, 0));
     const dNeg = Math.sqrt(row.reduce((acc, v, j) => acc + (v - antiIdeal[j]) ** 2, 0));
     return dNeg / (dPos + dNeg + 1e-15);
@@ -211,27 +226,40 @@ export function quorumCalculator(
   yesVotes: number,
   noVotes: number,
   abstentions: number,
-  quorumType: QuorumType = 'simple',
+  quorumType: QuorumType = 'simple'
 ): QuorumResult {
   if (totalMembers < 1) throw new Error('totalMembers must be ≥ 1');
   if (presentMembers > totalMembers) throw new Error('presentMembers cannot exceed totalMembers');
-  if (yesVotes + noVotes + abstentions > presentMembers) throw new Error('Votes exceed present members');
+  if (yesVotes + noVotes + abstentions > presentMembers)
+    throw new Error('Votes exceed present members');
 
   const quorumRequired = Math.floor(totalMembers / 2) + 1; // strict majority
   const quorumMet = presentMembers >= quorumRequired;
 
   const passThreshold =
-    quorumType === 'supermajority' ? (2 / 3) :
-    quorumType === 'absolute'      ? (totalMembers / 2 + 1) / totalMembers :
-    0.5; // simple majority of votes cast
+    quorumType === 'supermajority'
+      ? 2 / 3
+      : quorumType === 'absolute'
+        ? (totalMembers / 2 + 1) / totalMembers
+        : 0.5; // simple majority of votes cast
 
   const votingBase = quorumType === 'absolute' ? totalMembers : yesVotes + noVotes;
-  const motionPassed = quorumMet && votingBase > 0 && (yesVotes / votingBase) > passThreshold;
+  const motionPassed = quorumMet && votingBase > 0 && yesVotes / votingBase > passThreshold;
   const marginVotes = motionPassed
     ? yesVotes - Math.ceil((yesVotes + noVotes) * passThreshold)
     : Math.ceil((yesVotes + noVotes) * passThreshold) - yesVotes;
 
-  return { totalMembers, presentMembers, yesVotes, noVotes, abstentions, quorumMet, passThreshold, motionPassed, marginVotes };
+  return {
+    totalMembers,
+    presentMembers,
+    yesVotes,
+    noVotes,
+    abstentions,
+    quorumMet,
+    passThreshold,
+    motionPassed,
+    marginVotes,
+  };
 }
 
 // ─── Voting Cohesion (Rice Index) ────────────────────────────────────────────
@@ -252,17 +280,22 @@ export function votingCohesion(votes: VotingRecord[]): CohesionResult {
   const partyCohesion = [...partyMap.entries()].map(([partyId, counts]) => {
     const total = counts.yes + counts.no;
     const cohesion = total > 0 ? Math.abs((counts.yes - counts.no) / total) : 0;
-    return { partyId, cohesion, yesCount: counts.yes, noCount: counts.no, size: counts.yes + counts.no + counts.abstain };
+    return {
+      partyId,
+      cohesion,
+      yesCount: counts.yes,
+      noCount: counts.no,
+      size: counts.yes + counts.no + counts.abstain,
+    };
   });
 
-  const totalYes = votes.filter(v => v.vote === 'yes').length;
-  const totalNo  = votes.filter(v => v.vote === 'no').length;
+  const totalYes = votes.filter((v) => v.vote === 'yes').length;
+  const totalNo = votes.filter((v) => v.vote === 'no').length;
   const totalVoting = totalYes + totalNo;
   const chamberCohesion = totalVoting > 0 ? Math.abs((totalYes - totalNo) / totalVoting) : 0;
 
   const majority: CohesionResult['majority'] =
-    totalYes > totalNo ? 'yes' :
-    totalNo > totalYes ? 'no' : 'tie';
+    totalYes > totalNo ? 'yes' : totalNo > totalYes ? 'no' : 'tie';
 
   return { chamberCohesion, partyCohesion, majority };
 }
@@ -277,42 +310,56 @@ export function polsbyPopper(areaSqKm: number, perimeterKm: number): PolsbyPoppe
   if (areaSqKm <= 0) throw new Error('Area must be positive');
   if (perimeterKm <= 0) throw new Error('Perimeter must be positive');
 
-  const compactnessScore = (4 * Math.PI * areaSqKm) / (perimeterKm ** 2);
+  const compactnessScore = (4 * Math.PI * areaSqKm) / perimeterKm ** 2;
 
   const classification: PolsbyPopperResult['classification'] =
-    compactnessScore >= 0.50 ? 'compact' :
-    compactnessScore >= 0.20 ? 'moderate' : 'gerrymandered';
+    compactnessScore >= 0.5 ? 'compact' : compactnessScore >= 0.2 ? 'moderate' : 'gerrymandered';
 
   return { areaSqKm, perimeterKm, compactnessScore, classification };
 }
 
 // ─── Budget Variance ──────────────────────────────────────────────────────────
 
-export function budgetVariance(
-  lines: BudgetLine[],
-  flagThreshold = 0.10,
-): BudgetVarianceResult {
+export function budgetVariance(lines: BudgetLine[], flagThreshold = 0.1): BudgetVarianceResult {
   if (lines.length === 0) throw new Error('No budget lines');
 
-  const analyzed = lines.map(l => {
+  const analyzed = lines.map((l) => {
     const variance = l.actual - l.budgeted;
     const variancePct = l.budgeted !== 0 ? variance / l.budgeted : 0;
     const status: 'favorable' | 'unfavorable' | 'on-target' =
-      Math.abs(variancePct) < 0.02 ? 'on-target' :
-      variance < 0 ? 'favorable' : 'unfavorable';  // under-budget = favorable
-    return { category: l.category, budgeted: l.budgeted, actual: l.actual, variance, variancePct, status };
+      Math.abs(variancePct) < 0.02 ? 'on-target' : variance < 0 ? 'favorable' : 'unfavorable'; // under-budget = favorable
+    return {
+      category: l.category,
+      budgeted: l.budgeted,
+      actual: l.actual,
+      variance,
+      variancePct,
+      status,
+    };
   });
 
   const totalBudgeted = analyzed.reduce((s, l) => s + l.budgeted, 0);
-  const totalActual   = analyzed.reduce((s, l) => s + l.actual,   0);
+  const totalActual = analyzed.reduce((s, l) => s + l.actual, 0);
   const totalVariancePct = totalBudgeted !== 0 ? (totalActual - totalBudgeted) / totalBudgeted : 0;
   const overallStatus: BudgetVarianceResult['overallStatus'] =
-    Math.abs(totalVariancePct) < 0.02 ? 'on-target' :
-    totalVariancePct < 0 ? 'favorable' : 'unfavorable';
+    Math.abs(totalVariancePct) < 0.02
+      ? 'on-target'
+      : totalVariancePct < 0
+        ? 'favorable'
+        : 'unfavorable';
 
-  const flaggedLines = analyzed.filter(l => Math.abs(l.variancePct) > flagThreshold).map(l => l.category);
+  const flaggedLines = analyzed
+    .filter((l) => Math.abs(l.variancePct) > flagThreshold)
+    .map((l) => l.category);
 
-  return { lines: analyzed, totalBudgeted, totalActual, totalVariancePct, overallStatus, flaggedLines };
+  return {
+    lines: analyzed,
+    totalBudgeted,
+    totalActual,
+    totalVariancePct,
+    overallStatus,
+    flaggedLines,
+  };
 }
 
 // ─── Receipt ──────────────────────────────────────────────────────────────────
@@ -329,21 +376,37 @@ export interface GovtAnalysisResult {
 
 export function buildGovtReceipt(
   result: GovtAnalysisResult,
-  options?: GovtReceiptOptions,
+  options?: GovtReceiptOptions
 ): DomainSimulationReceipt {
   const violations: Array<{ criterion: string; message: string }> = [];
 
   if (result.permit && !result.permit.approved) {
-    violations.push({ criterion: 'permit_denied', message: `Permit score ${result.permit.compositeScore.toFixed(1)} < ${result.permit.threshold} threshold — application denied` });
+    violations.push({
+      criterion: 'permit_denied',
+      message: `Permit score ${result.permit.compositeScore.toFixed(1)} < ${result.permit.threshold} threshold — application denied`,
+    });
   }
   if (result.quorum && !result.quorum.quorumMet) {
-    violations.push({ criterion: 'no_quorum', message: `Only ${result.quorum.presentMembers}/${result.quorum.totalMembers} members present — quorum not met` });
+    violations.push({
+      criterion: 'no_quorum',
+      message: `Only ${result.quorum.presentMembers}/${result.quorum.totalMembers} members present — quorum not met`,
+    });
   }
   if (result.compactness && result.compactness.classification === 'gerrymandered') {
-    violations.push({ criterion: 'gerrymandering', message: `District compactness ${result.compactness.compactnessScore.toFixed(3)} < 0.20 — potential gerrymandering` });
+    violations.push({
+      criterion: 'gerrymandering',
+      message: `District compactness ${result.compactness.compactnessScore.toFixed(3)} < 0.20 — potential gerrymandering`,
+    });
   }
-  if (result.budgetVar && result.budgetVar.overallStatus === 'unfavorable' && Math.abs(result.budgetVar.totalVariancePct) > 0.05) {
-    violations.push({ criterion: 'budget_overrun', message: `Budget overrun ${(result.budgetVar.totalVariancePct * 100).toFixed(1)}% exceeds 5% threshold` });
+  if (
+    result.budgetVar &&
+    result.budgetVar.overallStatus === 'unfavorable' &&
+    Math.abs(result.budgetVar.totalVariancePct) > 0.05
+  ) {
+    violations.push({
+      criterion: 'budget_overrun',
+      message: `Budget overrun ${(result.budgetVar.totalVariancePct * 100).toFixed(1)}% exceeds 5% threshold`,
+    });
   }
 
   return buildDomainSimulationReceipt({
@@ -359,7 +422,11 @@ export function buildGovtReceipt(
       districtCompactness: result.compactness?.compactnessScore ?? null,
       budgetVariancePct: result.budgetVar?.totalVariancePct ?? null,
     },
-    cael: { version: 'cael.v1', event: 'government_civic.civic_analysis', solverType: 'government-civic.permit-scoring' },
+    cael: {
+      version: 'cael.v1',
+      event: 'government_civic.civic_analysis',
+      solverType: 'government-civic.permit-scoring',
+    },
     acceptance: { accepted: violations.length === 0, violations },
   });
 }

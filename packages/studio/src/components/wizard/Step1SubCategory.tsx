@@ -8,13 +8,18 @@ interface Step1SubCategoryProps {
   setSubCategory: (c: string) => void;
 }
 
-export function Step1SubCategory({ category, subCategory, subCategories, setSubCategory }: Step1SubCategoryProps) {
+export function Step1SubCategory({
+  category,
+  subCategory,
+  subCategories,
+  setSubCategory,
+}: Step1SubCategoryProps) {
   return (
     <>
       <p className="mb-4 text-sm text-studio-muted">
         Pick the type of{' '}
-        {CATEGORIES.find((c) => c.id === category)?.label.toLowerCase() ?? 'project'} you want
-        to build
+        {CATEGORIES.find((c) => c.id === category)?.label.toLowerCase() ?? 'project'} you want to
+        build
       </p>
       <div className="grid grid-cols-2 gap-3">
         {subCategories.map((sc) => (

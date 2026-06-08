@@ -113,7 +113,9 @@ describe('runHololandForkAdmissionGate', () => {
     expect(report.passed).toBe(false);
     expect(report.forkSignals).toContain('HS010-blocked-keyword:eval');
     expect(report.forkSignals).toContain('HS010-blocked-keyword:process');
-    expect(report.findings.some((f) => f.ruleId === 'FORK-001' && f.severity === 'critical')).toBe(true);
+    expect(report.findings.some((f) => f.ruleId === 'FORK-001' && f.severity === 'critical')).toBe(
+      true
+    );
   });
 
   it('blocks NPC with fs in dialogueTree', () => {

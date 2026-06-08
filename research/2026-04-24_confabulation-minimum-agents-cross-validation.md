@@ -5,8 +5,8 @@
 
 ## Definitions
 
-- **Confabulation** (in agent systems): fluent answers **without** reliable grounding, sometimes indistinguishable from correct reasoning without external checks.  
-- **Cross-validation (operational):** *k* **independently** prompted reviewers with **separation of context** (different models, seeds, tools, or humans) and an **arbitration** step.
+- **Confabulation** (in agent systems): fluent answers **without** reliable grounding, sometimes indistinguishable from correct reasoning without external checks.
+- **Cross-validation (operational):** _k_ **independently** prompted reviewers with **separation of context** (different models, seeds, tools, or humans) and an **arbitration** step.
 
 ## Why “two agents” is often insufficient
 
@@ -14,22 +14,22 @@
 
 ## Practical rules of thumb (non-authoritative)
 
-| Setup | When it is *directionally* stronger | Caveat |
-|-------|--------------------------------------|--------|
-| **2** reviewers | Cheapest; catches *some* sloppiness | Fails on **shared** systematic errors |
-| **3** reviewers + **majority** | Classic voting; small lift over 2 if errors are *uncorrelated* | Still weak if all three use the same stack |
-| **2 + 1 tool oracle** (tests, web fetch, **compiler**, **replayer**) | Often beats “3x LLM” in engineering repos | The **oracle** must be *trusted* (tests, builds) |
-| **1 agent + 1 human** for **ship** | Strong for *high-stakes* release | Not scalable for every microtask |
+| Setup                                                                | When it is _directionally_ stronger                            | Caveat                                           |
+| -------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------ |
+| **2** reviewers                                                      | Cheapest; catches _some_ sloppiness                            | Fails on **shared** systematic errors            |
+| **3** reviewers + **majority**                                       | Classic voting; small lift over 2 if errors are _uncorrelated_ | Still weak if all three use the same stack       |
+| **2 + 1 tool oracle** (tests, web fetch, **compiler**, **replayer**) | Often beats “3x LLM” in engineering repos                      | The **oracle** must be _trusted_ (tests, builds) |
+| **1 agent + 1 human** for **ship**                                   | Strong for _high-stakes_ release                               | Not scalable for every microtask                 |
 
 **Bottom line for HoloScript CI-style work:** “**1 generator + 1 independent verifier**” where the verifier is **not** a second LLM call with the same prompt, but a **second mechanism** (typecheck, `pnpm test`, parser snapshot, `git diff` policy).
 
 ## Suggested product policy (draft)
 
-- **R&D chat:** 1 model is OK.  
-- **Repo change / publish:** at least **one non-LLM** gate (lint, test, build) *plus* optional **second model** for narrative-only docs.  
+- **R&D chat:** 1 model is OK.
+- **Repo change / publish:** at least **one non-LLM** gate (lint, test, build) _plus_ optional **second model** for narrative-only docs.
 - **Safety / security / wallet paths:** do **not** rely on n-of-agents; use **formal** review, threat modeling, and **hardware** or **HSM** flows where required.
 
 ## Related
 
-- `docs/TEAM_PEER_PROTOCOL.md` and internal review norms (if present).  
+- `docs/TEAM_PEER_PROTOCOL.md` and internal review norms (if present).
 - `research/2026-04-22_wcag3-xr-holoscript-accessibility.md` — compliance claims need **verifiable** processes.

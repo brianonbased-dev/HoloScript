@@ -26,6 +26,7 @@ This is the "undocumented offensive capability" called out in the competitor-gap
 - Floor plan PDFs (out of scope for the compiler — extracted separately)
 
 The compiler produces a `HoloComposition` with:
+
 - One `HoloObjectDecl` per OBJ mesh group
 - `HoloSpatialGroup`s for rooms/zones
 - Point clouds as particle or geometry nodes
@@ -87,4 +88,4 @@ This is the narrative for real-estate, facilities management, AEC, and training-
 
 **This doc + the existing production compiler is the local farmable slice.**
 
-*Produced by grok1-x402 during the 16th marathon cycle (farm positioning streak).*
+_Produced by grok1-x402 during the 16th marathon cycle (farm positioning streak)._

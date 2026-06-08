@@ -17,11 +17,11 @@ controllers, launch, drivers, and hardware safety.
 
 ## When To Use Each Target
 
-| Target | Use it for | HoloScript output |
-|--------|------------|-------------------|
-| URDF | `robot_description`, RViz2, `robot_state_publisher`, MoveIt 2, `ros2_control`, Isaac Sim URDF import | `compile --target urdf` |
-| SDF | Gazebo worlds, physics scenes, lights, sensors, world plugins | `compile --target sdf` |
-| USD | Native Isaac Sim / Omniverse physics scenes, factory twins, Isaac Lab workflows | `compile --target usd --usd-context isaac_sim` |
+| Target | Use it for                                                                                           | HoloScript output                              |
+| ------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| URDF   | `robot_description`, RViz2, `robot_state_publisher`, MoveIt 2, `ros2_control`, Isaac Sim URDF import | `compile --target urdf`                        |
+| SDF    | Gazebo worlds, physics scenes, lights, sensors, world plugins                                        | `compile --target sdf`                         |
+| USD    | Native Isaac Sim / Omniverse physics scenes, factory twins, Isaac Lab workflows                      | `compile --target usd --usd-context isaac_sim` |
 
 URDF is the ROS 2 description path. SDF is the Gazebo world path. USD is the
 native NVIDIA simulation path. For a robot team, the normal first proof is URDF
@@ -150,11 +150,11 @@ When the composition declares actuated joints, compile URDF with the ROS 2
 control path enabled:
 
 ```typescript
-import { compileForROS2 } from "@holoscript/core/compiler";
+import { compileForROS2 } from '@holoscript/core/compiler';
 
 const urdf = compileForROS2(composition, {
-  robotName: "HoloScriptRobot",
-  packageName: "holoscript_robot_description",
+  robotName: 'HoloScriptRobot',
+  packageName: 'holoscript_robot_description',
 });
 ```
 

@@ -6,10 +6,10 @@ HoloScript implements a 3-layer communication stack that covers real-time scene 
 
 ## Layer Overview
 
-| Layer            | Purpose                                 | Transport                           | Latency  | Source Package                                                   |
-| ---------------- | --------------------------------------- | ----------------------------------- | -------- | ---------------------------------------------------------------- |
-| **L1: RealTime** | In-scene state sync, CRDT collaboration | WebSocket, WebRTC, BroadcastChannel | <16ms    | `core/src/network/`, `collab-server/`, `core/src/collaboration/` |
-| **L2: A2A**      | Agent-to-agent task delegation          | HTTP JSON-RPC, Agent Cards          | 50–500ms | `agent-protocol/`, `core/src/compiler/A2AAgentCardCompiler.ts`   |
+| Layer            | Purpose                                 | Transport                           | Latency  | Source Package                                                         |
+| ---------------- | --------------------------------------- | ----------------------------------- | -------- | ---------------------------------------------------------------------- |
+| **L1: RealTime** | In-scene state sync, CRDT collaboration | WebSocket, WebRTC, BroadcastChannel | <16ms    | `core/src/network/`, `collab-server/`, `core/src/collaboration/`       |
+| **L2: A2A**      | Agent-to-agent task delegation          | HTTP JSON-RPC, Agent Cards          | 50–500ms | `agent-protocol/`, `core/src/compiler/A2AAgentCardCompiler.ts`         |
 | **L3: MCP**      | Tool discovery and invocation           | Streamable HTTP, JSON-RPC           | 100ms–5s | `mcp-server/` (verify tool count via `curl mcp.holoscript.net/health`) |
 
 ## Architecture Diagram
@@ -164,16 +164,16 @@ Cross-agent task delegation using a structured lifecycle protocol. Agents advert
 
 Defined in `packages/agent-protocol/src/index.ts`:
 
-| #   | Phase          | Purpose                                            |
-| --- | -------------- | -------------------------------------------------- |
-| 0   | **INTAKE**     | Load context, discover tools, authenticate         |
-| 1   | **REFLECT**    | Analyze task, identify patterns from PWG knowledge |
-| 2   | **EXECUTE**    | Perform work, call tools                           |
-| 3   | **COMPRESS**   | Extract patterns, wisdom, gotchas from results     |
+| #   | Phase          | Purpose                                                     |
+| --- | -------------- | ----------------------------------------------------------- |
+| 0   | **INTAKE**     | Load context, discover tools, authenticate                  |
+| 1   | **REFLECT**    | Analyze task, identify patterns from PWG knowledge          |
+| 2   | **EXECUTE**    | Perform work, call tools                                    |
+| 3   | **COMPRESS**   | Extract patterns, wisdom, gotchas from results              |
 | 4   | **DREAMING**   | Validate and re-evaluate new knowledge (`REINTAKE` API key) |
-| 5   | **GROW**       | Update capabilities, expand tool repertoire        |
-| 6   | **EVOLVE**     | Architectural improvements, protocol upgrades      |
-| 7   | **AUTONOMIZE** | Self-directed task generation (max 3/cycle)        |
+| 5   | **GROW**       | Update capabilities, expand tool repertoire                 |
+| 6   | **EVOLVE**     | Architectural improvements, protocol upgrades               |
+| 7   | **AUTONOMIZE** | Self-directed task generation (max 3/cycle)                 |
 
 **BaseAgent contract** (lines 65-143): Every agent implements `intake()`, `reflect()`, `execute()`, `compress()`, `reintake()`, `grow()`, `evolve()`. Phase 4 is now Dreaming; the method stays `reintake()` for API compatibility. `runCycle(task, context)` orchestrates all phases sequentially.
 

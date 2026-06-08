@@ -76,7 +76,10 @@ export function InboxPanel() {
 
     load();
     const id = setInterval(load, 20000);
-    return () => { cancelled = true; clearInterval(id); };
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [teamId]);
 
   const markRead = async (id: string) => {
@@ -86,7 +89,7 @@ export function InboxPanel() {
       if (data) {
         setData({
           ...data,
-          items: data.items.map(i => i.id === id ? { ...i, read: true } : i),
+          items: data.items.map((i) => (i.id === id ? { ...i, read: true } : i)),
           unreadCount: Math.max(0, data.unreadCount - 1),
         });
       }
@@ -150,9 +153,15 @@ export function InboxPanel() {
     <div className="p-2 text-[11px] text-studio-text space-y-2 overflow-y-auto h-full">
       <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-studio-muted">
         <span>INBOX</span>
-        <span className="bg-studio-accent/20 text-studio-accent px-1 rounded">{data.unreadCount} unread</span>
+        <span className="bg-studio-accent/20 text-studio-accent px-1 rounded">
+          {data.unreadCount} unread
+        </span>
       </div>
-      {notice && <div className="rounded border border-studio-border/40 px-1.5 py-1 text-[9px] text-studio-muted">{notice}</div>}
+      {notice && (
+        <div className="rounded border border-studio-border/40 px-1.5 py-1 text-[9px] text-studio-muted">
+          {notice}
+        </div>
+      )}
 
       {data.items.length === 0 && <div className="text-studio-muted italic">Inbox empty</div>}
 
@@ -163,7 +172,9 @@ export function InboxPanel() {
         >
           <div className="flex justify-between text-[9px]">
             <span className="font-mono">@{item.from}</span>
-            <span className="text-studio-muted">{new Date(item.timestamp).toLocaleTimeString()}</span>
+            <span className="text-studio-muted">
+              {new Date(item.timestamp).toLocaleTimeString()}
+            </span>
           </div>
 
           <div className="text-[10px] mt-0.5 line-clamp-2">{item.content}</div>
@@ -184,7 +195,10 @@ export function InboxPanel() {
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
               />
-              <button onClick={() => sendReply(item)} className="text-[8px] underline hover:text-studio-accent">
+              <button
+                onClick={() => sendReply(item)}
+                className="text-[8px] underline hover:text-studio-accent"
+              >
                 Send
               </button>
             </div>
@@ -192,14 +206,23 @@ export function InboxPanel() {
 
           <div className="flex gap-2 mt-1 text-[8px]">
             {!item.read && (
-              <button onClick={() => markRead(item.id)} className="underline hover:text-studio-accent">
+              <button
+                onClick={() => markRead(item.id)}
+                className="underline hover:text-studio-accent"
+              >
                 Mark read
               </button>
             )}
-            <button onClick={() => setReplyingTo(replyingTo === item.id ? null : item.id)} className="underline hover:text-studio-accent">
+            <button
+              onClick={() => setReplyingTo(replyingTo === item.id ? null : item.id)}
+              className="underline hover:text-studio-accent"
+            >
               Reply
             </button>
-            <button onClick={() => archiveItem(item)} className="underline hover:text-studio-accent">
+            <button
+              onClick={() => archiveItem(item)}
+              className="underline hover:text-studio-accent"
+            >
               Archive
             </button>
           </div>

@@ -33,7 +33,7 @@ function createMockContext(stateOverrides: Record<string, any> = {}) {
   return {
     vr: {
       hands: { left: null, right: null },
-      headset: { position: [0, 0, 0], rotation: [0, 0, 0 ] },
+      headset: { position: [0, 0, 0], rotation: [0, 0, 0] },
       getPointerRay: () => null,
       getDominantHand: () => null,
     },

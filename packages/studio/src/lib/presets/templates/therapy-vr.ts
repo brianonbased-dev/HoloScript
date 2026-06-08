@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-therapy-vr",
-  name: "Therapeutic VR Environment",
-  description: "Calming virtual space for exposure therapy and relaxation",
-  thumbnail: "🧘",
-  tags: ["healthcare","therapy","vr","wellness"],
-  category: "healthcare",
+  id: 'wizard-therapy-vr',
+  name: 'Therapeutic VR Environment',
+  description: 'Calming virtual space for exposure therapy and relaxation',
+  thumbnail: '🧘',
+  tags: ['healthcare', 'therapy', 'vr', 'wellness'],
+  category: 'healthcare',
   code: `composition "Therapy VR" {
   environment {
     skybox: "sunset"
@@ -59,7 +59,7 @@ export const template: SceneTemplate = {
     color: "#1a1a2e"
     label: "Breathe with the orb..."
   }
-}`
+}`,
 };
 
 export default template;

@@ -36,14 +36,16 @@ export async function GET(req: NextRequest) {
   const headers = new Headers(req.headers);
   headers.set(AUTHENTICATED_USER_HEADER, auth.user.id);
   // Remove any client-set value of the trusted header before re-setting it.
-  const forwardReq = new NextRequest(`${req.nextUrl.origin}${req.nextUrl.pathname}${sanitizedSearch}`, {
-    method: 'GET',
-    headers,
-  });
+  const forwardReq = new NextRequest(
+    `${req.nextUrl.origin}${req.nextUrl.pathname}${sanitizedSearch}`,
+    {
+      method: 'GET',
+      headers,
+    }
+  );
 
   return proxyHoloMesh('/api/holomesh/dashboard/earnings', forwardReq);
 }
-
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

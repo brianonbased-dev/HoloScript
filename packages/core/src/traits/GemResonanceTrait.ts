@@ -125,11 +125,15 @@ function resolveBaseFrequency(element: string, config: GemResonanceConfig): numb
 }
 
 function neighborId(neighbor: GemResonanceNeighbor): string {
-  return String(neighbor.nodeId ?? neighbor.id ?? neighbor.name ?? neighbor.element ?? 'nearby_gem');
+  return String(
+    neighbor.nodeId ?? neighbor.id ?? neighbor.name ?? neighbor.element ?? 'nearby_gem'
+  );
 }
 
 function neighborElement(neighbor: GemResonanceNeighbor): string {
-  const configElement = isRecord(neighbor.config) ? normalizeElement(neighbor.config.element) : null;
+  const configElement = isRecord(neighbor.config)
+    ? normalizeElement(neighbor.config.element)
+    : null;
   return normalizeElement(neighbor.element) ?? configElement ?? 'none';
 }
 
@@ -150,7 +154,9 @@ function resolveNeighborFrequency(
   neighbor: GemResonanceNeighbor,
   config: GemResonanceConfig
 ): number {
-  return asFiniteNumber(neighbor.frequency) ?? resolveBaseFrequency(neighborElement(neighbor), config);
+  return (
+    asFiniteNumber(neighbor.frequency) ?? resolveBaseFrequency(neighborElement(neighbor), config)
+  );
 }
 
 function rounded(value: number): number {

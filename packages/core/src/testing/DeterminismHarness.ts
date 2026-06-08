@@ -394,7 +394,8 @@ export function describeEnvironment(env: EnvironmentInfo): string {
   if (env.browser?.browser) parts.push(env.browser.browser);
   if (env.browser?.os) parts.push(env.browser.os);
   if (env.node) parts.push(`node ${env.node.version} ${env.node.platform}/${env.node.arch}`);
-  if (env.gpu?.vendor) parts.push(`gpu:${env.gpu.vendor}${env.gpu.architecture ? '/' + env.gpu.architecture : ''}`);
+  if (env.gpu?.vendor)
+    parts.push(`gpu:${env.gpu.vendor}${env.gpu.architecture ? '/' + env.gpu.architecture : ''}`);
   if (env.annotations) {
     for (const [k, v] of Object.entries(env.annotations)) {
       parts.push(`${k}=${v}`);

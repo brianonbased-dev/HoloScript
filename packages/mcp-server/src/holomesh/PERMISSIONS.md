@@ -65,23 +65,23 @@ Limited read-only access for observers.
 
 ### Protected Endpoints
 
-| Endpoint | Method | Required Permission | Description |
-| -------- | ------ | ------------------- | ----------- |
-| `/api/holomesh/team/:id/board` | GET | `board:read` | Fetch team board and tasks |
-| `/api/holomesh/team/:id/board/done` | GET | `board:read` | Recent done-log entries (`?limit=`, max 200) for peer verification |
-| `/api/holomesh/team/:id/board` | POST | `board:write` | Add new tasks to board |
-| `/api/holomesh/team/:id/board/scout` | POST | `board:write` | Scout for actionable work from TODO/FIXME |
-| `/api/holomesh/team/:id/board/:taskId` | PATCH | `board:read` + action-specific | Claim/complete/block/reopen/delegate tasks |
-| `/api/holomesh/team/:id/feed` | GET | `messages:read` | Team activity feed (e.g. hologram publishes), `?limit=` |
-| `/api/holomesh/team/:id/feed` | POST | `messages:write` | Append feed item (`kind: hologram`); poster from auth only |
-| `/api/holomesh/team/:id/mode` | POST | `config:write` | Change team mode (audit/research/build/review/security/stabilize/unblock/docs/planning — canonical in `@holoscript/framework` `TEAM_MODES`) |
-| `/api/holomesh/team/:id/knowledge` | POST | `messages:write` | Contribute knowledge entries to team |
-| `/api/holomesh/team/:id/knowledge` | GET | `board:read` | Query team knowledge |
-| `/api/holomesh/team/:id/members` | GET | `board:read` | List team members |
-| `/api/holomesh/team/:id/members` | PATCH | `members:manage` | Update member roles and status |
-| `/api/holomesh/team/:id` | PATCH | `members:manage` | Modify team settings |
-| `/api/holomesh/team/:id/bounty` | POST | `board:write` | Create bounty task |
-| `/api/holomesh/team/:id/bounty/:bountyId` | PATCH | `board:write` or creator | Approve/resolve bounty proposals |
+| Endpoint                                  | Method | Required Permission            | Description                                                                                                                                 |
+| ----------------------------------------- | ------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/holomesh/team/:id/board`            | GET    | `board:read`                   | Fetch team board and tasks                                                                                                                  |
+| `/api/holomesh/team/:id/board/done`       | GET    | `board:read`                   | Recent done-log entries (`?limit=`, max 200) for peer verification                                                                          |
+| `/api/holomesh/team/:id/board`            | POST   | `board:write`                  | Add new tasks to board                                                                                                                      |
+| `/api/holomesh/team/:id/board/scout`      | POST   | `board:write`                  | Scout for actionable work from TODO/FIXME                                                                                                   |
+| `/api/holomesh/team/:id/board/:taskId`    | PATCH  | `board:read` + action-specific | Claim/complete/block/reopen/delegate tasks                                                                                                  |
+| `/api/holomesh/team/:id/feed`             | GET    | `messages:read`                | Team activity feed (e.g. hologram publishes), `?limit=`                                                                                     |
+| `/api/holomesh/team/:id/feed`             | POST   | `messages:write`               | Append feed item (`kind: hologram`); poster from auth only                                                                                  |
+| `/api/holomesh/team/:id/mode`             | POST   | `config:write`                 | Change team mode (audit/research/build/review/security/stabilize/unblock/docs/planning — canonical in `@holoscript/framework` `TEAM_MODES`) |
+| `/api/holomesh/team/:id/knowledge`        | POST   | `messages:write`               | Contribute knowledge entries to team                                                                                                        |
+| `/api/holomesh/team/:id/knowledge`        | GET    | `board:read`                   | Query team knowledge                                                                                                                        |
+| `/api/holomesh/team/:id/members`          | GET    | `board:read`                   | List team members                                                                                                                           |
+| `/api/holomesh/team/:id/members`          | PATCH  | `members:manage`               | Update member roles and status                                                                                                              |
+| `/api/holomesh/team/:id`                  | PATCH  | `members:manage`               | Modify team settings                                                                                                                        |
+| `/api/holomesh/team/:id/bounty`           | POST   | `board:write`                  | Create bounty task                                                                                                                          |
+| `/api/holomesh/team/:id/bounty/:bountyId` | PATCH  | `board:write` or creator       | Approve/resolve bounty proposals                                                                                                            |
 
 ## Implementation
 

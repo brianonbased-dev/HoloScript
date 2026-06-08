@@ -13,11 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { patternMatches } from './pattern-match';
 
 describe('patternMatches — wildcard patterns', () => {
-  it.each([
-    '_',
-    'else',
-    'default',
-  ])('"%s" matches any value', (wildcard) => {
+  it.each(['_', 'else', 'default'])('"%s" matches any value', (wildcard) => {
     expect(patternMatches(wildcard, 'anything')).toBe(true);
     expect(patternMatches(wildcard, 42)).toBe(true);
     expect(patternMatches(wildcard, null)).toBe(true);

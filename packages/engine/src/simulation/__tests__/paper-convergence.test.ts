@@ -17,11 +17,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { StructuralSolver, type StructuralConfig } from '../StructuralSolver';
-import {
-  StructuralSolverTET10,
-  tet4ToTet10,
-  type TET10Config,
-} from '../StructuralSolverTET10';
+import { StructuralSolverTET10, tet4ToTet10, type TET10Config } from '../StructuralSolverTET10';
 import { runConvergenceStudy } from '../verification/ConvergenceAnalysis';
 
 // ── Problem Definition ──────────────────────────────────────────────────────
@@ -86,7 +82,15 @@ function buildCubeGrid(nx: number, ny: number, nz: number) {
   }
 
   const nodeCount = (nx + 1) * (ny + 1) * (nz + 1);
-  return { vertices: new Float32Array(pts), tetrahedra: new Uint32Array(tets), nx, ny, nz, idx, nodeCount };
+  return {
+    vertices: new Float32Array(pts),
+    tetrahedra: new Uint32Array(tets),
+    nx,
+    ny,
+    nz,
+    idx,
+    nodeCount,
+  };
 }
 
 // ── Solver Runners ──────────────────────────────────────────────────────────
@@ -148,7 +152,16 @@ function runAxialTET4(nx: number, ny: number, nz: number) {
   const elemCount = mesh.tetrahedra.length / 4;
   const dof = mesh.nodeCount * 3;
 
-  return { avgUz, avgSigma, converged: result.converged, solveMs, nodeCount: mesh.nodeCount, elemCount, dof, mesh };
+  return {
+    avgUz,
+    avgSigma,
+    converged: result.converged,
+    solveMs,
+    nodeCount: mesh.nodeCount,
+    elemCount,
+    dof,
+    mesh,
+  };
 }
 
 function runAxialTET10(nx: number, ny: number, nz: number) {
@@ -181,8 +194,13 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
   // Find element faces on the z=L boundary for distributed pressure loading.
   // A tet face is on z=L if all 3 corner nodes of that face have z ≈ L.
   // TET4 local face definitions: face 0=[0,1,2], face 1=[0,1,3], face 2=[0,2,3], face 3=[1,2,3]
-  const TET4_FACES = [[0,1,2],[0,1,3],[0,2,3],[1,2,3]];
-  const surfaceFaces: Array<{ elementIndex: number; localFace: 0|1|2|3 }> = [];
+  const TET4_FACES = [
+    [0, 1, 2],
+    [0, 1, 3],
+    [0, 2, 3],
+    [1, 2, 3],
+  ];
+  const surfaceFaces: Array<{ elementIndex: number; localFace: 0 | 1 | 2 | 3 }> = [];
   const tet4Tets = mesh.tetrahedra;
   const tet4Verts = mesh.vertices;
   const elemCount = tet4Tets.length / 4;
@@ -194,10 +212,13 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
       for (const lc of faceCorners) {
         const globalNode = tet4Tets[e * 4 + lc];
         const z = tet4Verts[globalNode * 3 + 2];
-        if (Math.abs(z - L) > zTol) { allOnZL = false; break; }
+        if (Math.abs(z - L) > zTol) {
+          allOnZL = false;
+          break;
+        }
       }
       if (allOnZL) {
-        surfaceFaces.push({ elementIndex: e, localFace: f as 0|1|2|3 });
+        surfaceFaces.push({ elementIndex: e, localFace: f as 0 | 1 | 2 | 3 });
       }
     }
   }
@@ -219,12 +240,14 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
     tetrahedra: tet10Mesh.tetrahedra,
     material: { density: 1000, youngs_modulus: E, poisson_ratio: NU, yield_strength: 1e8 },
     constraints: [{ id: 'fix_z0', type: 'fixed', nodes: fixedNodesAll }],
-    loads: [{
-      id: 'pressure_zL',
-      type: 'distributed' as const,
-      pressure,
-      surfaceFaces,
-    }],
+    loads: [
+      {
+        id: 'pressure_zL',
+        type: 'distributed' as const,
+        pressure,
+        surfaceFaces,
+      },
+    ],
     maxIterations: 5000,
     tolerance: 1e-12,
     useGPU: false,
@@ -251,7 +274,15 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
   const tet10ElemCount = tet10Mesh.tetrahedra.length / 10;
   const dof = tet10NodeCount * 3;
 
-  return { avgUz, avgSigma, converged: result.converged, solveMs, nodeCount: tet10NodeCount, elemCount: tet10ElemCount, dof };
+  return {
+    avgUz,
+    avgSigma,
+    converged: result.converged,
+    solveMs,
+    nodeCount: tet10NodeCount,
+    elemCount: tet10ElemCount,
+    dof,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -259,47 +290,82 @@ function runAxialTET10(nx: number, ny: number, nz: number) {
 // ═══════════════════════════════════════════════════════════════════════
 
 describe('Paper Convergence: Axial Bar (u = FL/AE)', () => {
-
   it('TET4 + TET10 displacement convergence with LaTeX output', () => {
     // Isotropic refinement: all dimensions scale together so elements stay cubic.
     // nx = n, ny = n, nz = 10*n → element size h = W/n = 1/n.
     // This avoids point-load artifacts from elongated elements.
     const meshConfigs = [
-      { nx: 1, ny: 1, nz: 10, h: 1.000 },
-      { nx: 2, ny: 2, nz: 20, h: 0.500 },
+      { nx: 1, ny: 1, nz: 10, h: 1.0 },
+      { nx: 2, ny: 2, nz: 20, h: 0.5 },
       { nx: 3, ny: 3, nz: 30, h: 0.333 },
-      { nx: 4, ny: 4, nz: 40, h: 0.250 },
+      { nx: 4, ny: 4, nz: 40, h: 0.25 },
     ];
 
     const hSizes = meshConfigs.map((c) => c.h);
 
     // ── TET4 convergence ──
-    const tet4Data: Array<{ h: number; nodes: number; dof: number; uz: number; relError: number; solveMs: number }> = [];
+    const tet4Data: Array<{
+      h: number;
+      nodes: number;
+      dof: number;
+      uz: number;
+      relError: number;
+      solveMs: number;
+    }> = [];
 
-    const tet4Result = runConvergenceStudy((h: number) => {
-      const conf = meshConfigs.find((c) => c.h === h)!;
-      const run = runAxialTET4(conf.nx, conf.ny, conf.nz);
-      const relError = Math.abs(run.avgUz - EXACT_UZ) / EXACT_UZ;
-      tet4Data.push({ h, nodes: run.nodeCount, dof: run.dof, uz: run.avgUz, relError, solveMs: run.solveMs });
-      return {
-        numerical: new Float32Array([run.avgUz]),
-        exact: new Float32Array([EXACT_UZ]),
-      };
-    }, hSizes, (n) => n[0]);
+    const tet4Result = runConvergenceStudy(
+      (h: number) => {
+        const conf = meshConfigs.find((c) => c.h === h)!;
+        const run = runAxialTET4(conf.nx, conf.ny, conf.nz);
+        const relError = Math.abs(run.avgUz - EXACT_UZ) / EXACT_UZ;
+        tet4Data.push({
+          h,
+          nodes: run.nodeCount,
+          dof: run.dof,
+          uz: run.avgUz,
+          relError,
+          solveMs: run.solveMs,
+        });
+        return {
+          numerical: new Float32Array([run.avgUz]),
+          exact: new Float32Array([EXACT_UZ]),
+        };
+      },
+      hSizes,
+      (n) => n[0]
+    );
 
     // ── TET10 convergence ──
-    const tet10Data: Array<{ h: number; nodes: number; dof: number; uz: number; relError: number; solveMs: number }> = [];
+    const tet10Data: Array<{
+      h: number;
+      nodes: number;
+      dof: number;
+      uz: number;
+      relError: number;
+      solveMs: number;
+    }> = [];
 
-    const tet10Result = runConvergenceStudy((h: number) => {
-      const conf = meshConfigs.find((c) => c.h === h)!;
-      const run = runAxialTET10(conf.nx, conf.ny, conf.nz);
-      const relError = Math.abs(run.avgUz - EXACT_UZ) / EXACT_UZ;
-      tet10Data.push({ h, nodes: run.nodeCount, dof: run.dof, uz: run.avgUz, relError, solveMs: run.solveMs });
-      return {
-        numerical: new Float32Array([run.avgUz]),
-        exact: new Float32Array([EXACT_UZ]),
-      };
-    }, hSizes, (n) => n[0]);
+    const tet10Result = runConvergenceStudy(
+      (h: number) => {
+        const conf = meshConfigs.find((c) => c.h === h)!;
+        const run = runAxialTET10(conf.nx, conf.ny, conf.nz);
+        const relError = Math.abs(run.avgUz - EXACT_UZ) / EXACT_UZ;
+        tet10Data.push({
+          h,
+          nodes: run.nodeCount,
+          dof: run.dof,
+          uz: run.avgUz,
+          relError,
+          solveMs: run.solveMs,
+        });
+        return {
+          numerical: new Float32Array([run.avgUz]),
+          exact: new Float32Array([EXACT_UZ]),
+        };
+      },
+      hSizes,
+      (n) => n[0]
+    );
 
     // ═══ Console Output ═══
     console.log('\n' + '='.repeat(85));
@@ -310,7 +376,9 @@ describe('Paper Convergence: Axial Bar (u = FL/AE)', () => {
     console.log('| h       | Nodes | DOF   | u_z (m)      | Rel Error  | Solve (ms) |');
     console.log('|---------|-------|-------|--------------|------------|------------|');
     for (const d of tet4Data) {
-      console.log(`| ${d.h.toFixed(4).padStart(7)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(5)} | ${d.uz.toExponential(6).padStart(12)} | ${(d.relError * 100).toFixed(4).padStart(9)}% | ${d.solveMs.toFixed(1).padStart(10)} |`);
+      console.log(
+        `| ${d.h.toFixed(4).padStart(7)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(5)} | ${d.uz.toExponential(6).padStart(12)} | ${(d.relError * 100).toFixed(4).padStart(9)}% | ${d.solveMs.toFixed(1).padStart(10)} |`
+      );
     }
     console.log(`\nObserved order (L2):   ${tet4Result.observedOrderL2.toFixed(4)}`);
     console.log(`Observed order (Linf): ${tet4Result.observedOrderLinf.toFixed(4)}`);
@@ -323,7 +391,9 @@ describe('Paper Convergence: Axial Bar (u = FL/AE)', () => {
     console.log('| h       | Nodes | DOF   | u_z (m)      | Rel Error  | Solve (ms) |');
     console.log('|---------|-------|-------|--------------|------------|------------|');
     for (const d of tet10Data) {
-      console.log(`| ${d.h.toFixed(4).padStart(7)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(5)} | ${d.uz.toExponential(6).padStart(12)} | ${(d.relError * 100).toFixed(4).padStart(9)}% | ${d.solveMs.toFixed(1).padStart(10)} |`);
+      console.log(
+        `| ${d.h.toFixed(4).padStart(7)} | ${String(d.nodes).padStart(5)} | ${String(d.dof).padStart(5)} | ${d.uz.toExponential(6).padStart(12)} | ${(d.relError * 100).toFixed(4).padStart(9)}% | ${d.solveMs.toFixed(1).padStart(10)} |`
+      );
     }
     console.log(`\nObserved order (L2):   ${tet10Result.observedOrderL2.toFixed(4)}`);
     console.log(`Observed order (Linf): ${tet10Result.observedOrderLinf.toFixed(4)}`);
@@ -339,23 +409,33 @@ describe('Paper Convergence: Axial Bar (u = FL/AE)', () => {
     console.log('% ────────────────────────────────────────────────────────────────');
     console.log('\\begin{table*}[t]');
     console.log('  \\centering');
-    console.log('  \\caption{Convergence study: uniform bar under axial tension ($u_z^{\\text{exact}} = FL/AE = 10^{-3}$~m).}');
+    console.log(
+      '  \\caption{Convergence study: uniform bar under axial tension ($u_z^{\\text{exact}} = FL/AE = 10^{-3}$~m).}'
+    );
     console.log('  \\label{tab:axial-convergence}');
     console.log('  \\begin{tabular}{@{}crrrcrrrr@{}}');
     console.log('    \\toprule');
-    console.log('    & \\multicolumn{3}{c}{TET4 (Linear)} & & \\multicolumn{3}{c}{TET10 (Quadratic)} \\\\');
+    console.log(
+      '    & \\multicolumn{3}{c}{TET4 (Linear)} & & \\multicolumn{3}{c}{TET10 (Quadratic)} \\\\'
+    );
     console.log('    \\cmidrule(lr){2-4} \\cmidrule(lr){6-8}');
     console.log('    $h$ & DOF & $u_z$ (m) & Error (\\%) & & DOF & $u_z$ (m) & Error (\\%) \\\\');
     console.log('    \\midrule');
     for (let i = 0; i < hSizes.length; i++) {
       const t4 = tet4Data[i];
       const t10 = tet10Data[i];
-      console.log(`    ${t4.h.toFixed(4)} & ${t4.dof} & ${t4.uz.toExponential(4)} & ${(t4.relError * 100).toFixed(2)} & & ${t10.dof} & ${t10.uz.toExponential(4)} & ${(t10.relError * 100).toFixed(2)} \\\\`);
+      console.log(
+        `    ${t4.h.toFixed(4)} & ${t4.dof} & ${t4.uz.toExponential(4)} & ${(t4.relError * 100).toFixed(2)} & & ${t10.dof} & ${t10.uz.toExponential(4)} & ${(t10.relError * 100).toFixed(2)} \\\\`
+      );
     }
     console.log('    \\midrule');
-    console.log(`    \\multicolumn{4}{l}{Observed order: $p = ${tet4Result.observedOrderL2.toFixed(2)}$} & & \\multicolumn{3}{l}{Observed order: $p = ${tet10Result.observedOrderL2.toFixed(2)}$} \\\\`);
+    console.log(
+      `    \\multicolumn{4}{l}{Observed order: $p = ${tet4Result.observedOrderL2.toFixed(2)}$} & & \\multicolumn{3}{l}{Observed order: $p = ${tet10Result.observedOrderL2.toFixed(2)}$} \\\\`
+    );
     if (tet4Result.gci !== undefined && tet10Result.gci !== undefined) {
-      console.log(`    \\multicolumn{4}{l}{GCI: ${(tet4Result.gci * 100).toFixed(2)}\\%} & & \\multicolumn{3}{l}{GCI: ${(tet10Result.gci * 100).toFixed(2)}\\%} \\\\`);
+      console.log(
+        `    \\multicolumn{4}{l}{GCI: ${(tet4Result.gci * 100).toFixed(2)}\\%} & & \\multicolumn{3}{l}{GCI: ${(tet10Result.gci * 100).toFixed(2)}\\%} \\\\`
+      );
     }
     console.log('    \\bottomrule');
     console.log('  \\end{tabular}');
@@ -386,7 +466,9 @@ describe('Paper Convergence: Axial Bar (u = FL/AE)', () => {
     expect(tet4Result.observedOrderL2).toBeGreaterThan(0.5);
     // TET10 must produce finite results on at least one mesh; 100% NaN means a
     // regression (e.g. broken traction assembly), not a "non-convergence branch".
-    const anyTet10Finite = tet10Data.some((d) => Number.isFinite(d.uz) && Number.isFinite(d.relError));
+    const anyTet10Finite = tet10Data.some(
+      (d) => Number.isFinite(d.uz) && Number.isFinite(d.relError)
+    );
     expect(anyTet10Finite).toBe(true);
     const finestTet10 = tet10Data[tet10Data.length - 1];
     expect(Number.isFinite(finestTet10.relError)).toBe(true);
@@ -414,7 +496,9 @@ describe('Paper Convergence: Axial Bar (u = FL/AE)', () => {
       const t10 = runAxialTET10(mc.nx, mc.ny, mc.nz);
       const t4err = Math.abs(t4.avgSigma - EXACT_SIGMA) / EXACT_SIGMA;
       const t10err = Math.abs(t10.avgSigma - EXACT_SIGMA) / EXACT_SIGMA;
-      console.log(`| ${String(mc.nz).padStart(3)} | ${t4.avgSigma.toFixed(2).padStart(15)} | ${(t4err * 100).toFixed(2).padStart(7)}% | ${t10.avgSigma.toFixed(2).padStart(16)} | ${(t10err * 100).toFixed(2).padStart(8)}% |`);
+      console.log(
+        `| ${String(mc.nz).padStart(3)} | ${t4.avgSigma.toFixed(2).padStart(15)} | ${(t4err * 100).toFixed(2).padStart(7)}% | ${t10.avgSigma.toFixed(2).padStart(16)} | ${(t10err * 100).toFixed(2).padStart(8)}% |`
+      );
     }
     console.log('='.repeat(70));
 

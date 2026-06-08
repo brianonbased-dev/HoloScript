@@ -93,7 +93,9 @@ describe('[Paper-6] 6×6 divergence matrix (ordering sensitivity)', () => {
         }
         row.push(maxDiv);
         if (ri === 0 && ci === 0) {
-          console.log(`[paper-6][sample] layers=${layersN} col=${colSeed} maxL1=${maxDiv.toFixed(4)}`);
+          console.log(
+            `[paper-6][sample] layers=${layersN} col=${colSeed} maxL1=${maxDiv.toFixed(4)}`
+          );
         }
         ci++;
       }

@@ -23,10 +23,7 @@ export class AttentionEngine {
    * Calculates the attention weight of a target entity relative to an observer.
    * Incorporates 4 factors: Proximity, Movement, Base Saliency, and Recency (mocked).
    */
-  static calculateWeight(
-    observerPos: Vector3,
-    target: AttendedEntity
-  ): number {
+  static calculateWeight(observerPos: Vector3, target: AttendedEntity): number {
     // 1. Proximity (Inverse squared distance approximation)
     const dx = target.position[0] - observerPos[0];
     const dy = target.position[1] - observerPos[1];
@@ -60,11 +57,7 @@ export class AttentionEngine {
    * Filters a massive array of entities down to strictly the top K most attended
    * objects around the observer to save inference/rendering payload.
    */
-  static getTopKEntities(
-    observerPos: Vector3,
-    entities: AttendedEntity[],
-    k: number
-  ): string[] {
+  static getTopKEntities(observerPos: Vector3, entities: AttendedEntity[], k: number): string[] {
     if (entities.length <= k) return entities.map((e) => e.id);
 
     const scores: AttentionScore[] = entities.map((e) => ({

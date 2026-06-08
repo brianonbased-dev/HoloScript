@@ -1,4 +1,10 @@
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, EvidenceClassification } from './types';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  EvidenceClassification,
+} from './types';
 
 export interface EvidenceChainConfig {
   evidenceId: string;
@@ -27,19 +33,32 @@ export const evidenceChainHandler: TraitHandler<EvidenceChainConfig> = {
     const id = node.id ?? config.evidenceId ?? 'unknown';
     ctx.emit?.('evidence_chain:detached', { nodeId: id, evidenceId: config.evidenceId });
   },
-  onEvent(node: HSPlusNode, config: EvidenceChainConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: EvidenceChainConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     const id = node.id ?? config.evidenceId ?? 'unknown';
     const logs = evidenceLedger.get(id) ?? [];
 
     if (event.type === 'evidence_chain:seal') {
       config.sealed = true;
-      logs.push({ ts: Date.now(), action: 'sealed', actor: event.payload?.actor as string | undefined });
+      logs.push({
+        ts: Date.now(),
+        action: 'sealed',
+        actor: event.payload?.actor as string | undefined,
+      });
       evidenceLedger.set(id, logs);
       ctx.emit?.('evidence_chain:sealed', { nodeId: id, evidenceId: config.evidenceId });
     }
 
     if (event.type === 'evidence_chain:transfer') {
-      logs.push({ ts: Date.now(), action: 'transfer', actor: event.payload?.actor as string | undefined });
+      logs.push({
+        ts: Date.now(),
+        action: 'transfer',
+        actor: event.payload?.actor as string | undefined,
+      });
       evidenceLedger.set(id, logs);
       ctx.emit?.('evidence_chain:transferred', {
         nodeId: id,
@@ -49,7 +68,11 @@ export const evidenceChainHandler: TraitHandler<EvidenceChainConfig> = {
     }
 
     if (event.type === 'evidence_chain:get_log') {
-      ctx.emit?.('evidence_chain:log', { nodeId: id, evidenceId: config.evidenceId, entries: logs });
+      ctx.emit?.('evidence_chain:log', {
+        nodeId: id,
+        evidenceId: config.evidenceId,
+        entries: logs,
+      });
     }
   },
 };

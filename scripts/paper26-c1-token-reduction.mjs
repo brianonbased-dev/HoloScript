@@ -37,7 +37,16 @@ import { fileURLToPath } from 'node:url';
 
 const tok = (s) => encode(s).length;
 
-const DOMAINS = ['physics', 'rendering', 'agent', 'language', 'economics', 'solver', 'coordination', 'storage'];
+const DOMAINS = [
+  'physics',
+  'rendering',
+  'agent',
+  'language',
+  'economics',
+  'solver',
+  'coordination',
+  'storage',
+];
 const AXES = {
   physics: ['energy_density', 'entropy', 'momentum', 'symmetry_group'],
   rendering: ['lod', 'material', 'lighting', 'occlusion'],
@@ -51,7 +60,12 @@ const AXES = {
 
 // Deterministic PRNG for reproducibility
 let _seed = 0x9e3779b9;
-function rng() { _seed ^= _seed << 13; _seed ^= _seed >>> 17; _seed ^= _seed << 5; return ((_seed >>> 0) / 0xffffffff); }
+function rng() {
+  _seed ^= _seed << 13;
+  _seed ^= _seed >>> 17;
+  _seed ^= _seed << 5;
+  return (_seed >>> 0) / 0xffffffff;
+}
 const pick = (a) => a[Math.floor(rng() * a.length)];
 
 /** One agent's coordination decision for a round. */
@@ -77,12 +91,15 @@ function sliceMessage(d) {
     version: '1.0',
     message_id: `m-${d.agent_id}-${d.round}`,
     from: d.agent_id,
-    to: 'board',                       // delta to shared registry, not per-peer fan-out
+    to: 'board', // delta to shared registry, not per-peer fan-out
     created_at_ms: 1764000000000 + d.round * 1000,
     pillar_slice: {
-      axis_1_id: d.axis_1_id, axis_2_id: d.axis_2_id,
-      pos_1: d.pos_1, pos_2: d.pos_2,
-      pillar_id: d.pillar_id, pillar_domain: d.pillar_domain,
+      axis_1_id: d.axis_1_id,
+      axis_2_id: d.axis_2_id,
+      pos_1: d.pos_1,
+      pos_2: d.pos_2,
+      pillar_id: d.pillar_id,
+      pillar_domain: d.pillar_domain,
     },
     brain_coord: { mni_x: 0, mni_y: 0, mni_z: 0, cortical_depth: 3 },
     confidence: d.confidence,
@@ -92,10 +109,12 @@ function sliceMessage(d) {
 
 /** BASELINE: natural-language utterance conveying the SAME decision (no strawman padding). */
 function nlUtterance(d) {
-  return `Agent ${d.agent_id} (round ${d.round}): operating in the ${d.pillar_domain} domain, ` +
+  return (
+    `Agent ${d.agent_id} (round ${d.round}): operating in the ${d.pillar_domain} domain, ` +
     `I set my coordination decision on the ${d.axis_1_id.replace(/_/g, ' ')} axis to ${d.pos_1} ` +
     `and the ${d.axis_2_id.replace(/_/g, ' ')} axis to ${d.pos_2}, via pillar ${d.pillar_id}, ` +
-    `with confidence ${d.confidence}. Please update your shared model of my state accordingly.`;
+    `with confidence ${d.confidence}. Please update your shared model of my state accordingly.`
+  );
 }
 
 /**
@@ -123,7 +142,8 @@ function measureEpisode(N, H) {
     broadcastTokens += transcriptTokens * (N - 1);
   }
   return {
-    N, H,
+    N,
+    H,
     slice_tokens: sliceTokens,
     broadcast_tokens: broadcastTokens,
     reduction: 1 - sliceTokens / broadcastTokens,
@@ -160,7 +180,9 @@ function measurePerEventContent(N, H) {
     }
   }
   return {
-    N, H, events,
+    N,
+    H,
+    events,
     slice_delta_tokens: sliceDeltaTok,
     full_context_tokens: fullContextTok,
     reduction: 1 - sliceDeltaTok / fullContextTok,
@@ -184,7 +206,9 @@ const encSlice = tok(sliceMessage(sampleD));
 const encNL = tok(nlUtterance(sampleD));
 // Compact-latent wire form: the 6-field tuple as a minimal CSV-ish encoding (the
 // paper's "pass directly instead of converting to text tokens" intent).
-const encCompact = tok(`${sampleD.axis_1_id},${sampleD.axis_2_id},${sampleD.pos_1},${sampleD.pos_2},${sampleD.pillar_id},${sampleD.pillar_domain}`);
+const encCompact = tok(
+  `${sampleD.axis_1_id},${sampleD.axis_2_id},${sampleD.pos_1},${sampleD.pos_2},${sampleD.pillar_id},${sampleD.pillar_domain}`
+);
 
 const artifact = {
   schema: 'paper26-c1-token-reduction-v2',
@@ -193,8 +217,10 @@ const artifact = {
   headline_claim: {
     type: 'asymptotic_scaling',
     pillar_slice_complexity: 'O(N*H)  — one delta to a shared board per agent per round, read once',
-    naive_broadcast_complexity: 'O(N^2*H) — full accumulated transcript rebroadcast to all N-1 peers each round',
-    statement: 'Pillar-slice delta-routing achieves O(N*H) coordination-token complexity vs O(N^2*H) for naive full-transcript broadcast.',
+    naive_broadcast_complexity:
+      'O(N^2*H) — full accumulated transcript rebroadcast to all N-1 peers each round',
+    statement:
+      'Pillar-slice delta-routing achieves O(N*H) coordination-token complexity vs O(N^2*H) for naive full-transcript broadcast.',
   },
   canonical_operating_point: {
     ...canonical,
@@ -202,29 +228,47 @@ const artifact = {
   },
   honest_decomposition: {
     note: 'The reduction is a PROTOCOL/ROUTING effect (fan-out avoidance + no history resend), NOT encoding compression.',
-    per_message_encoding_tokens: { slice_json_envelope: encSlice, natural_language: encNL, compact_latent_tuple: encCompact },
-    encoding_reduction_json_vs_nl: +(1 - encSlice / encNL).toFixed(3),         // negative: JSON slice is bigger than NL
-    encoding_reduction_compact_vs_nl: +(1 - encCompact / encNL).toFixed(3),     // positive: compact tuple beats NL
-    interpretation: 'As verbose JSON the slice is LARGER than NL (negative). As the compact latent tuple the paper intends, it is smaller. The episode-level reduction is dominated by routing (board-delta vs broadcast), not encoding.',
+    per_message_encoding_tokens: {
+      slice_json_envelope: encSlice,
+      natural_language: encNL,
+      compact_latent_tuple: encCompact,
+    },
+    encoding_reduction_json_vs_nl: +(1 - encSlice / encNL).toFixed(3), // negative: JSON slice is bigger than NL
+    encoding_reduction_compact_vs_nl: +(1 - encCompact / encNL).toFixed(3), // positive: compact tuple beats NL
+    interpretation:
+      'As verbose JSON the slice is LARGER than NL (negative). As the compact latent tuple the paper intends, it is smaller. The episode-level reduction is dominated by routing (board-delta vs broadcast), not encoding.',
   },
   baselines_definition: {
-    naive_broadcast: 'each round every agent appends an NL utterance to the shared transcript; the full accumulated transcript is rebroadcast to all N-1 peers (O(N^2 H))',
-    pillar_slice: 'each round every agent emits ONE SemanticCollaborationMessage (real 6-field PillarSlice + BrainCoord + provenance) as a delta to a shared board read once (O(N H))',
-    fairness: 'NL utterance conveys the SAME decision info as the slice — not an inflated strawman; reduction reported with the baseline named so it is reproducible',
+    naive_broadcast:
+      'each round every agent appends an NL utterance to the shared transcript; the full accumulated transcript is rebroadcast to all N-1 peers (O(N^2 H))',
+    pillar_slice:
+      'each round every agent emits ONE SemanticCollaborationMessage (real 6-field PillarSlice + BrainCoord + provenance) as a delta to a shared board read once (O(N H))',
+    fairness:
+      'NL utterance conveys the SAME decision info as the slice — not an inflated strawman; reduction reported with the baseline named so it is reproducible',
   },
   sweep,
 };
 
 const date = '2026-05-24';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const outJson = resolve(repoRoot, 'research', 'paper-26-artifacts', `c1-token-reduction-${date}.json`);
+const outJson = resolve(
+  repoRoot,
+  'research',
+  'paper-26-artifacts',
+  `c1-token-reduction-${date}.json`
+);
 mkdirSync(dirname(outJson), { recursive: true });
 writeFileSync(outJson, JSON.stringify(artifact, null, 2));
 
 console.log('=== C1 TOKEN-REDUCTION RESULT ===');
 console.log(`tokenizer: cl100k_base (local)`);
-console.log(`canonical (N=100, H=50): slice=${canonical.slice_tokens} tok, broadcast=${canonical.broadcast_tokens} tok`);
+console.log(
+  `canonical (N=100, H=50): slice=${canonical.slice_tokens} tok, broadcast=${canonical.broadcast_tokens} tok`
+);
 console.log(`  REDUCTION = ${(canonical.reduction * 100).toFixed(1)}%`);
 console.log('--- sweep (reduction %) ---');
-for (const r of sweep) console.log(`  N=${String(r.N).padStart(3)} H=${String(r.H).padStart(2)} -> ${(r.reduction * 100).toFixed(1)}%  (slice ${r.slice_tokens} / bcast ${r.broadcast_tokens})`);
+for (const r of sweep)
+  console.log(
+    `  N=${String(r.N).padStart(3)} H=${String(r.H).padStart(2)} -> ${(r.reduction * 100).toFixed(1)}%  (slice ${r.slice_tokens} / bcast ${r.broadcast_tokens})`
+  );
 console.log(`artifact: ${outJson}`);

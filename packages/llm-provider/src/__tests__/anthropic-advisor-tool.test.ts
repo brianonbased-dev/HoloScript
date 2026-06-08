@@ -75,11 +75,7 @@ import {
   ANTHROPIC_ADVISOR_BETA,
   collectAnthropicBetaHeaders,
 } from '../adapters/anthropic';
-import type {
-  AnthropicAdvisorToolSpec,
-  LLMCompletionRequest,
-  ToolSpec,
-} from '../types';
+import type { AnthropicAdvisorToolSpec, LLMCompletionRequest, ToolSpec } from '../types';
 import { isAnthropicAdvisorTool } from '../types';
 
 const userMsg = { role: 'user' as const, content: 'Hi' };
@@ -183,10 +179,7 @@ describe('AnthropicAdapter — advisor tool beta header injection', () => {
 
   it('complete(): injects anthropic-beta header when advisor tool is present', async () => {
     const adapter = new AnthropicAdapter({ apiKey: 'k' });
-    await adapter.complete(
-      { messages: [userMsg], tools: [advisorTool] },
-      'claude-opus-4-7',
-    );
+    await adapter.complete({ messages: [userMsg], tools: [advisorTool] }, 'claude-opus-4-7');
     expect(streamCalls).toHaveLength(1);
     const call = streamCalls[0];
     expect(call.options).toBeDefined();
@@ -211,10 +204,7 @@ describe('AnthropicAdapter — advisor tool beta header injection', () => {
 
   it('complete(): does NOT inject anthropic-beta header for generic tools only (false case)', async () => {
     const adapter = new AnthropicAdapter({ apiKey: 'k' });
-    await adapter.complete(
-      { messages: [userMsg], tools: [echoTool] },
-      'claude-opus-4-7',
-    );
+    await adapter.complete({ messages: [userMsg], tools: [echoTool] }, 'claude-opus-4-7');
     expect(streamCalls).toHaveLength(1);
     expect(streamCalls[0].options).toBeUndefined();
   });
@@ -229,13 +219,10 @@ describe('AnthropicAdapter — advisor tool beta header injection', () => {
           anthropic: { betaHeaders: ['task-budgets-2026-03-13'] },
         },
       },
-      'claude-opus-4-7',
+      'claude-opus-4-7'
     );
-    const headers = (streamCalls[0].options as { headers?: Record<string, string> })
-      .headers;
-    expect(headers!['anthropic-beta']).toBe(
-      `${ANTHROPIC_ADVISOR_BETA},task-budgets-2026-03-13`,
-    );
+    const headers = (streamCalls[0].options as { headers?: Record<string, string> }).headers;
+    expect(headers!['anthropic-beta']).toBe(`${ANTHROPIC_ADVISOR_BETA},task-budgets-2026-03-13`);
   });
 
   it('complete(): explicit betaHeaders alone (no advisor) still injects the header', async () => {
@@ -247,10 +234,9 @@ describe('AnthropicAdapter — advisor tool beta header injection', () => {
           anthropic: { betaHeaders: ['task-budgets-2026-03-13'] },
         },
       },
-      'claude-opus-4-7',
+      'claude-opus-4-7'
     );
-    const headers = (streamCalls[0].options as { headers?: Record<string, string> })
-      .headers;
+    const headers = (streamCalls[0].options as { headers?: Record<string, string> }).headers;
     expect(headers!['anthropic-beta']).toBe('task-budgets-2026-03-13');
   });
 
@@ -259,13 +245,12 @@ describe('AnthropicAdapter — advisor tool beta header injection', () => {
     const chunks: unknown[] = [];
     for await (const c of adapter.streamCompletion(
       { messages: [userMsg], tools: [advisorTool] },
-      'claude-opus-4-7',
+      'claude-opus-4-7'
     )) {
       chunks.push(c);
     }
     expect(streamCalls).toHaveLength(1);
-    const headers = (streamCalls[0].options as { headers?: Record<string, string> })
-      .headers;
+    const headers = (streamCalls[0].options as { headers?: Record<string, string> }).headers;
     expect(headers!['anthropic-beta']).toBe(ANTHROPIC_ADVISOR_BETA);
     // Stream must still terminate with message_stop (no behavior regression).
     const last = chunks[chunks.length - 1] as { type: string };
@@ -275,10 +260,7 @@ describe('AnthropicAdapter — advisor tool beta header injection', () => {
   it('streamCompletion(): does NOT inject anthropic-beta header when advisor tool is absent (false case — G.GOLD.013)', async () => {
     const adapter = new AnthropicAdapter({ apiKey: 'k' });
     const chunks: unknown[] = [];
-    for await (const c of adapter.streamCompletion(
-      { messages: [userMsg] },
-      'claude-opus-4-7',
-    )) {
+    for await (const c of adapter.streamCompletion({ messages: [userMsg] }, 'claude-opus-4-7')) {
       chunks.push(c);
     }
     expect(streamCalls).toHaveLength(1);

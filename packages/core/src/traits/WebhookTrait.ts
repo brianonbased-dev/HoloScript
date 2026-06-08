@@ -161,7 +161,12 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
             state.totalErrors++;
             context.emit?.('webhook:error', {
               url,
-              error: err instanceof Error ? (err.name === 'AbortError' ? 'Timeout' : err.message) : String(err),
+              error:
+                err instanceof Error
+                  ? err.name === 'AbortError'
+                    ? 'Timeout'
+                    : err.message
+                  : String(err),
             });
           });
 

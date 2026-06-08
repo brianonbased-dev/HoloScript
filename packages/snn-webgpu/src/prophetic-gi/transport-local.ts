@@ -23,7 +23,7 @@ import type {
  */
 export type SpikeRateProvider = (
   scene: ProphecySceneContext,
-  probeCount: number,
+  probeCount: number
 ) => Float32Array | Promise<Float32Array>;
 
 export interface LocalProphecyTransportOptions {
@@ -57,7 +57,7 @@ export class LocalProphecyTransport implements ProphecyTransport {
         // recover that from the orchestrator's last upload, or we
         // honour what the provider returns.  We choose the latter for
         // simplicity and validate length in primeSpikeRatesShadow.
-        0,
+        0
     );
     this.orchestrator.primeSpikeRatesShadow(rates);
     this.orchestrator.uploadSpikeRates(rates);

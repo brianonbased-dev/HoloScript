@@ -39,19 +39,77 @@ interface RenderTarget {
 }
 
 const WORLD_RENDER_TARGETS: Record<string, RenderTarget> = {
-  '3dgs': { mode: 'compile', compileTarget: '3dgs', artifactExt: 'gltf', requiresGpu: true, engine: 'available', defaultEstimateSeconds: 600, label: '3D Gaussian Splatting bake (KHR_gaussian_splatting glTF)' },
-  gltf: { mode: 'compile', compileTarget: 'gltf', artifactExt: 'gltf', requiresGpu: false, engine: 'available', defaultEstimateSeconds: 120, label: 'glTF scene export' },
-  webgpu: { mode: 'compile', compileTarget: 'webgpu', artifactExt: 'wgsl', requiresGpu: true, engine: 'available', defaultEstimateSeconds: 300, label: 'WebGPU / WGSL render bundle' },
-  usd: { mode: 'compile', compileTarget: 'usd', artifactExt: 'usd', requiresGpu: false, engine: 'available', defaultEstimateSeconds: 180, label: 'OpenUSD stage export' },
-  video: { mode: 'rasterize', compileTarget: null, artifactExt: 'mp4', requiresGpu: true, engine: 'pending', defaultEstimateSeconds: 900, label: 'Cinematic video render' },
-  quilt: { mode: 'rasterize', compileTarget: null, artifactExt: 'png', requiresGpu: true, engine: 'pending', defaultEstimateSeconds: 600, label: 'Light-field quilt (Looking Glass)' },
-  stills: { mode: 'rasterize', compileTarget: null, artifactExt: 'png', requiresGpu: true, engine: 'pending', defaultEstimateSeconds: 600, label: 'Path-traced high-resolution stills' },
+  '3dgs': {
+    mode: 'compile',
+    compileTarget: '3dgs',
+    artifactExt: 'gltf',
+    requiresGpu: true,
+    engine: 'available',
+    defaultEstimateSeconds: 600,
+    label: '3D Gaussian Splatting bake (KHR_gaussian_splatting glTF)',
+  },
+  gltf: {
+    mode: 'compile',
+    compileTarget: 'gltf',
+    artifactExt: 'gltf',
+    requiresGpu: false,
+    engine: 'available',
+    defaultEstimateSeconds: 120,
+    label: 'glTF scene export',
+  },
+  webgpu: {
+    mode: 'compile',
+    compileTarget: 'webgpu',
+    artifactExt: 'wgsl',
+    requiresGpu: true,
+    engine: 'available',
+    defaultEstimateSeconds: 300,
+    label: 'WebGPU / WGSL render bundle',
+  },
+  usd: {
+    mode: 'compile',
+    compileTarget: 'usd',
+    artifactExt: 'usd',
+    requiresGpu: false,
+    engine: 'available',
+    defaultEstimateSeconds: 180,
+    label: 'OpenUSD stage export',
+  },
+  video: {
+    mode: 'rasterize',
+    compileTarget: null,
+    artifactExt: 'mp4',
+    requiresGpu: true,
+    engine: 'pending',
+    defaultEstimateSeconds: 900,
+    label: 'Cinematic video render',
+  },
+  quilt: {
+    mode: 'rasterize',
+    compileTarget: null,
+    artifactExt: 'png',
+    requiresGpu: true,
+    engine: 'pending',
+    defaultEstimateSeconds: 600,
+    label: 'Light-field quilt (Looking Glass)',
+  },
+  stills: {
+    mode: 'rasterize',
+    compileTarget: null,
+    artifactExt: 'png',
+    requiresGpu: true,
+    engine: 'pending',
+    defaultEstimateSeconds: 600,
+    label: 'Path-traced high-resolution stills',
+  },
 };
 
 const QUALITY_MULTIPLIER: Record<string, number> = { draft: 0.5, standard: 1, high: 2, ultra: 4 };
 
 function availableTargets(): string[] {
-  return Object.entries(WORLD_RENDER_TARGETS).filter(([, t]) => t.engine === 'available').map(([k]) => k);
+  return Object.entries(WORLD_RENDER_TARGETS)
+    .filter(([, t]) => t.engine === 'available')
+    .map(([k]) => k);
 }
 
 /** POSIX single-quote escape so paths/base64/URLs survive `bash -lc "$cmd"`. */
@@ -81,7 +139,9 @@ interface BuiltWorldRender {
 function buildWorldRenderWorkload(spec: WorldRenderSpec): BuiltWorldRender {
   const t = WORLD_RENDER_TARGETS[spec.target];
   if (!t) {
-    throw new Error(`unknown target "${spec.target}" — known: ${Object.keys(WORLD_RENDER_TARGETS).join(', ')}`);
+    throw new Error(
+      `unknown target "${spec.target}" — known: ${Object.keys(WORLD_RENDER_TARGETS).join(', ')}`
+    );
   }
   if (!spec.world && !spec.worldUrl && !spec.worldPath) {
     throw new Error('one of world (inline source), worldUrl, or worldPath is required');
@@ -118,8 +178,20 @@ function buildWorldRenderWorkload(spec: WorldRenderSpec): BuiltWorldRender {
     id,
     name: `World render: ${t.label}`,
     description: `Render world ${worldId} to ${spec.target} (${t.label}) on the GPU fleet.`,
-    billing: { rate_usd_per_sec: 0.0003, credits_per_usd: 100.0, buffer: 0.15, margin: 0.3, customer: spec.customer || 'studio-world-render' },
-    render: { target: spec.target, mode: t.mode, engine: t.engine, requiresGpu: t.requiresGpu, artifactExt: t.artifactExt },
+    billing: {
+      rate_usd_per_sec: 0.0003,
+      credits_per_usd: 100.0,
+      buffer: 0.15,
+      margin: 0.3,
+      customer: spec.customer || 'studio-world-render',
+    },
+    render: {
+      target: spec.target,
+      mode: t.mode,
+      engine: t.engine,
+      requiresGpu: t.requiresGpu,
+      artifactExt: t.artifactExt,
+    },
     jobs: [
       {
         id: `${id}-render`,
@@ -141,7 +213,9 @@ function readOrchestratorKey(): string {
   return process.env.HOLOSCRIPT_API_KEY || process.env.HOLOMESH_API_KEY || '';
 }
 function orchestratorUrl(): string {
-  return (process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app').replace(/\/$/, '');
+  return (
+    process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app'
+  ).replace(/\/$/, '');
 }
 
 // ─── Tool definition ─────────────────────────────────────────────────────────
@@ -153,13 +227,37 @@ export const worldRenderTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        world: { type: 'string', description: 'The HoloScript world source text (inline). Preferred for Studio/in-memory worlds — it is base64-shipped to the worker.' },
-        worldUrl: { type: 'string', description: 'Alternative to `world`: a fetchable URL to the world source.' },
-        worldPath: { type: 'string', description: 'Alternative: a repo-relative path to the world on the worker (e.g. workloads/samples/demo-cube.hs).' },
-        target: { type: 'string', enum: Object.keys(WORLD_RENDER_TARGETS), description: 'Render target. Available now: 3dgs, gltf, webgpu, usd. Pending (GPU image): video, quilt, stills.' },
-        quality: { type: 'string', enum: Object.keys(QUALITY_MULTIPLIER), description: 'Render quality (scales the billing estimate). Default standard.' },
+        world: {
+          type: 'string',
+          description:
+            'The HoloScript world source text (inline). Preferred for Studio/in-memory worlds — it is base64-shipped to the worker.',
+        },
+        worldUrl: {
+          type: 'string',
+          description: 'Alternative to `world`: a fetchable URL to the world source.',
+        },
+        worldPath: {
+          type: 'string',
+          description:
+            'Alternative: a repo-relative path to the world on the worker (e.g. workloads/samples/demo-cube.hs).',
+        },
+        target: {
+          type: 'string',
+          enum: Object.keys(WORLD_RENDER_TARGETS),
+          description:
+            'Render target. Available now: 3dgs, gltf, webgpu, usd. Pending (GPU image): video, quilt, stills.',
+        },
+        quality: {
+          type: 'string',
+          enum: Object.keys(QUALITY_MULTIPLIER),
+          description: 'Render quality (scales the billing estimate). Default standard.',
+        },
         worldId: { type: 'string', description: 'Identifier for receipt provenance.' },
-        dryRun: { type: 'boolean', description: 'Default TRUE (safe): build + return the workload WITHOUT submitting (no key, no spend). Pass false to ACTUALLY submit to the fleet and incur real spend.' },
+        dryRun: {
+          type: 'boolean',
+          description:
+            'Default TRUE (safe): build + return the workload WITHOUT submitting (no key, no spend). Pass false to ACTUALLY submit to the fleet and incur real spend.',
+        },
       },
       required: ['target'],
     },
@@ -226,7 +324,8 @@ export async function handleWorldRenderTool(
   if (!apiKey) {
     return {
       ok: false,
-      error: 'Orchestrator key not provisioned on this server (HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY unset). Re-run with dryRun:true to preview, or provision the key.',
+      error:
+        'Orchestrator key not provisioned on this server (HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY unset). Re-run with dryRun:true to preview, or provision the key.',
       workload: built.workload,
     };
   }
@@ -246,7 +345,11 @@ export async function handleWorldRenderTool(
       /* leave as text */
     }
     if (!res.ok) {
-      return { ok: false, error: `orchestrator /gpu/workload → ${res.status}`, detail: typeof parsed === 'string' ? parsed.slice(0, 400) : parsed };
+      return {
+        ok: false,
+        error: `orchestrator /gpu/workload → ${res.status}`,
+        detail: typeof parsed === 'string' ? parsed.slice(0, 400) : parsed,
+      };
     }
     const wlId =
       (parsed as { id?: string; workload_id?: string })?.id ??
@@ -263,6 +366,9 @@ export async function handleWorldRenderTool(
       note: 'Worker claims via GET /gpu/next; artifact + SHA-256 receipt return via POST /gpu/job/:id/done. Poll GET /gpu/job/:id.',
     };
   } catch (err) {
-    return { ok: false, error: `orchestrator submit failed: ${err instanceof Error ? err.message : String(err)}` };
+    return {
+      ok: false,
+      error: `orchestrator submit failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
   }
 }

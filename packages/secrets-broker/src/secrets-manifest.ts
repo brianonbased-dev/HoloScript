@@ -54,7 +54,9 @@ function validate(manifest: SecretsManifest): void {
   const seen = new Set<string>();
   for (const s of manifest.secrets) {
     if (!NAME_RE.test(s.name)) {
-      throw new SecretsManifestError(`secret name "${s.name}" must be UPPER_SNAKE (^[A-Z][A-Z0-9_]*$)`);
+      throw new SecretsManifestError(
+        `secret name "${s.name}" must be UPPER_SNAKE (^[A-Z][A-Z0-9_]*$)`
+      );
     }
     if (seen.has(s.name)) throw new SecretsManifestError(`duplicate secret name "${s.name}"`);
     seen.add(s.name);
@@ -66,7 +68,10 @@ function isRequired(s: SecretDecl): boolean {
 }
 
 function emitEnvTemplate(m: SecretsManifest): string {
-  const lines = [`# ${m.app} — required secrets (.env). Fill values locally; never commit this file.`, ''];
+  const lines = [
+    `# ${m.app} — required secrets (.env). Fill values locally; never commit this file.`,
+    '',
+  ];
   for (const s of m.secrets) {
     const tag = isRequired(s) ? 'required' : 'optional';
     if (s.description) lines.push(`# ${s.description}`);
@@ -78,7 +83,9 @@ function emitEnvTemplate(m: SecretsManifest): string {
 }
 
 function emitGithubActions(m: SecretsManifest): string {
-  const setCmds = [`# Set ${m.app} secrets as GitHub Actions secrets (run once; values are prompted, never echoed):`];
+  const setCmds = [
+    `# Set ${m.app} secrets as GitHub Actions secrets (run once; values are prompted, never echoed):`,
+  ];
   for (const s of m.secrets) {
     if (s.description) setCmds.push(`# ${s.description}`);
     setCmds.push(`gh secret set ${s.name}`);
@@ -111,7 +118,10 @@ function emitHoloKeyVault(m: SecretsManifest): string {
  * Compile a {@link SecretsManifest} to a backend artifact. Pure; emits text only and never
  * includes secret values (the manifest has none).
  */
-export function compileSecretsManifest(manifest: SecretsManifest, target: SecretsCompileTarget): string {
+export function compileSecretsManifest(
+  manifest: SecretsManifest,
+  target: SecretsCompileTarget
+): string {
   validate(manifest);
   switch (target) {
     case 'env-template':

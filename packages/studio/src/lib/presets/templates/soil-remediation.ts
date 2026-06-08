@@ -1,12 +1,13 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-soil-remediation",
-  name: "Soil Remediation Twin",
-  description: "HoloRemediate verifiable bioremediation twin — hot-compost pathogen kill, nitrate leaching to the water table, and a food-chain edible-safety verdict, each backed by a tamper-evident receipt",
-  thumbnail: "🌍",
-  tags: ["agriculture", "soil", "bioremediation", "environment", "digital-twin", "verifiable"],
-  category: "agriculture",
+  id: 'wizard-soil-remediation',
+  name: 'Soil Remediation Twin',
+  description:
+    'HoloRemediate verifiable bioremediation twin — hot-compost pathogen kill, nitrate leaching to the water table, and a food-chain edible-safety verdict, each backed by a tamper-evident receipt',
+  thumbnail: '🌍',
+  tags: ['agriculture', 'soil', 'bioremediation', 'environment', 'digital-twin', 'verifiable'],
+  category: 'agriculture',
   code: `composition "Soil Remediation Twin" {
   environment {
     skybox: "day"
@@ -77,7 +78,7 @@ export const template: SceneTemplate = {
     color: "#0a1a14"
     label: "HoloRemediate receipts — Pathogen: PASS | Groundwater: PASS | Edible-safe: after compost"
   }
-}`
+}`,
 };
 
 export default template;

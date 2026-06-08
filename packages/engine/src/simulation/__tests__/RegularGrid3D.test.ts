@@ -63,8 +63,7 @@ describe('RegularGrid3D', () => {
     // Linear function f(x) = x has ∇²f = 0
     const g = new RegularGrid3D([10, 3, 3], [9, 2, 2]);
     for (let i = 0; i < 10; i++)
-      for (let j = 0; j < 3; j++)
-        for (let k = 0; k < 3; k++) g.set(i, j, k, i * g.dx);
+      for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) g.set(i, j, k, i * g.dx);
 
     // Interior point should have zero laplacian
     expect(g.laplacian(5, 1, 1)).toBeCloseTo(0, 8);
@@ -74,8 +73,7 @@ describe('RegularGrid3D', () => {
     // f(x,y,z) = 3x → ∇f = [3, 0, 0]
     const g = new RegularGrid3D([10, 3, 3], [9, 2, 2]);
     for (let i = 0; i < 10; i++)
-      for (let j = 0; j < 3; j++)
-        for (let k = 0; k < 3; k++) g.set(i, j, k, 3 * i * g.dx);
+      for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) g.set(i, j, k, 3 * i * g.dx);
 
     const [gx, gy, gz] = g.gradient(5, 1, 1);
     expect(gx).toBeCloseTo(3, 5);
@@ -87,8 +85,7 @@ describe('RegularGrid3D', () => {
     // Linear field: f(x,y,z) = 50*x on a [0,2] domain with 3 cells
     const g = new RegularGrid3D([3, 3, 3], [2, 2, 2]);
     for (let i = 0; i < 3; i++)
-      for (let j = 0; j < 3; j++)
-        for (let k = 0; k < 3; k++) g.set(i, j, k, 50 * i); // 0, 50, 100
+      for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) g.set(i, j, k, 50 * i); // 0, 50, 100
 
     // Sample at x=1 (midpoint) should be ~50
     const result = g.sampleAtPositions(new Float32Array([1, 1, 1]));

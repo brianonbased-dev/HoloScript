@@ -38,8 +38,8 @@ const TILE_H = 112;
 const GRID_COLS = 8;
 const GRID_ROWS = 6;
 const VIEWS = GRID_COLS * GRID_ROWS; // 48
-const SPLAT_R = 2;                   // splat disc radius (px)
-const FOCAL = 1.6;                   // pinhole focal (tile-normalized)
+const SPLAT_R = 2; // splat disc radius (px)
+const FOCAL = 1.6; // pinhole focal (tile-normalized)
 
 const BG = [10, 9, 16]; // near-black backdrop
 
@@ -61,8 +61,8 @@ function project(world, eyeX) {
   const zc = -Z; // camera looks down -Z; samples have negative Z → zc > 0
   if (zc <= 0.001) return null;
   // Parallax: near points (small zc) shift more with eyeX than far points.
-  const u = FOCAL * (X - eyeX) / zc;       // [-~1, ~1]
-  const vv = FOCAL * (Y - 0) / zc;
+  const u = (FOCAL * (X - eyeX)) / zc; // [-~1, ~1]
+  const vv = (FOCAL * (Y - 0)) / zc;
   // World X spans [-12,12], Y [6,22]; map u,v (centered) to tile.
   const px = Math.round((0.5 + u * 0.5) * (TILE_W - 1));
   const py = Math.round((1 - (Y - 6) / 16) * (TILE_H - 1)); // Y up → top
@@ -75,7 +75,11 @@ function renderQuilt(exp, { noParallax = false } = {}) {
   const W = GRID_COLS * TILE_W;
   const H = GRID_ROWS * TILE_H;
   const buf = Buffer.alloc(W * H * 3);
-  for (let i = 0; i < buf.length; i += 3) { buf[i] = BG[0]; buf[i + 1] = BG[1]; buf[i + 2] = BG[2]; }
+  for (let i = 0; i < buf.length; i += 3) {
+    buf[i] = BG[0];
+    buf[i + 1] = BG[1];
+    buf[i + 2] = BG[2];
+  }
 
   const samples = exp.samples.map((s) => ({ world: s.world, rgb: hexToRgb(s.color) }));
   const perView = [];
@@ -95,10 +99,13 @@ function renderQuilt(exp, { noParallax = false } = {}) {
       for (let dy = -SPLAT_R; dy <= SPLAT_R; dy++) {
         for (let dx = -SPLAT_R; dx <= SPLAT_R; dx++) {
           if (dx * dx + dy * dy > SPLAT_R * SPLAT_R) continue;
-          const x = tileX0 + p.px + dx, y = tileY0 + p.py + dy;
+          const x = tileX0 + p.px + dx,
+            y = tileY0 + p.py + dy;
           if (x < tileX0 || x >= tileX0 + TILE_W || y < tileY0 || y >= tileY0 + TILE_H) continue;
           const off = (y * W + x) * 3;
-          buf[off] = r; buf[off + 1] = g; buf[off + 2] = b;
+          buf[off] = r;
+          buf[off + 1] = g;
+          buf[off + 2] = b;
         }
       }
     }
@@ -123,30 +130,55 @@ function crc32(buf) {
   return (c ^ 0xffffffff) >>> 0;
 }
 function chunk(type, data) {
-  const len = Buffer.alloc(4); len.writeUInt32BE(data.length, 0);
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(data.length, 0);
   const typeBuf = Buffer.from(type, 'ascii');
   const body = Buffer.concat([typeBuf, data]);
-  const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(body), 0);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(body), 0);
   return Buffer.concat([len, body, crc]);
 }
 function encodePng(rgb, W, H) {
   const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
   const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(H, 4);
-  ihdr[8] = 8; ihdr[9] = 2; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
+  ihdr.writeUInt32BE(W, 0);
+  ihdr.writeUInt32BE(H, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 2;
+  ihdr[10] = 0;
+  ihdr[11] = 0;
+  ihdr[12] = 0;
   const raw = Buffer.alloc(H * (1 + W * 3));
   for (let y = 0; y < H; y++) {
     raw[y * (1 + W * 3)] = 0; // filter: none
     rgb.copy(raw, y * (1 + W * 3) + 1, y * W * 3, (y + 1) * W * 3);
   }
   const idat = zlib.deflateSync(raw, { level: 9 });
-  return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', Buffer.alloc(0))]);
+  return Buffer.concat([
+    sig,
+    chunk('IHDR', ihdr),
+    chunk('IDAT', idat),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
 }
 
-function sha(buf) { return createHash('sha256').update(buf).digest('hex'); }
+function sha(buf) {
+  return createHash('sha256').update(buf).digest('hex');
+}
 
-export { renderQuilt, encodePng, sha, TILE_W, TILE_H, GRID_COLS, GRID_ROWS, VIEWS,
-         EXPORT_PATH, PNG_PATH, SIDECAR_PATH };
+export {
+  renderQuilt,
+  encodePng,
+  sha,
+  TILE_W,
+  TILE_H,
+  GRID_COLS,
+  GRID_ROWS,
+  VIEWS,
+  EXPORT_PATH,
+  PNG_PATH,
+  SIDECAR_PATH,
+};
 
 async function main() {
   const noParallax = process.argv.includes('--no-parallax');
@@ -179,10 +211,17 @@ async function main() {
 
   await fs.writeFile(PNG_PATH, png);
   await fs.writeFile(SIDECAR_PATH, JSON.stringify(sidecar, null, 2) + '\n');
-  console.log(`wrote ${path.basename(PNG_PATH)} (${W}x${H}, ${png.length} B, sha ${sidecar.pngSha256.slice(0, 12)}) + sidecar`);
-  console.log(`  views=${VIEWS} parallaxApplied=${!noParallax} rasterDigest=${sidecar.rasterDigest.slice(0, 12)}`);
+  console.log(
+    `wrote ${path.basename(PNG_PATH)} (${W}x${H}, ${png.length} B, sha ${sidecar.pngSha256.slice(0, 12)}) + sidecar`
+  );
+  console.log(
+    `  views=${VIEWS} parallaxApplied=${!noParallax} rasterDigest=${sidecar.rasterDigest.slice(0, 12)}`
+  );
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((e) => { console.error(e); process.exit(1); });
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
 }

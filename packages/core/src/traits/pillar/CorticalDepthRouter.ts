@@ -70,11 +70,11 @@ export type CorticalDepth = 1 | 2 | 3 | 4 | 5 | 6;
  * Derived from the laminar processing hierarchy (Paper 33 Table 1).
  */
 const STAGE_DEPTH_MAP: Record<SliceStage, CorticalDepth> = {
-  raw:         4,  // thalamo-cortical relay — primary input
-  association: 3,  // cortico-cortical — lateral integration (PillarJEPA)
-  output:      5,  // cortico-subcortical — GRPO output projection
-  monitoring:  1,  // diffuse neuromodulation — integrity / diversity watch
-  shutdown:    6,  // cortico-thalamic — gain control / shutdown
+  raw: 4, // thalamo-cortical relay — primary input
+  association: 3, // cortico-cortical — lateral integration (PillarJEPA)
+  output: 5, // cortico-subcortical — GRPO output projection
+  monitoring: 1, // diffuse neuromodulation — integrity / diversity watch
+  shutdown: 6, // cortico-thalamic — gain control / shutdown
 };
 
 // ─── Pure routing function ────────────────────────────────────────────────────
@@ -145,12 +145,7 @@ export const corticalDepthRouterHandler: TraitHandler = {
     return { emit_events: true };
   },
 
-  onEvent(
-    _node: HSPlusNode,
-    config: unknown,
-    context: TraitContext,
-    event: TraitEvent,
-  ): void {
+  onEvent(_node: HSPlusNode, config: unknown, context: TraitContext, event: TraitEvent): void {
     if (event.type !== 'cortical:route') return;
 
     const payload = event as unknown as {

@@ -43,11 +43,12 @@ const SHA256_K = new Uint32Array([
   0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
   0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ]);
-function rotr32(x, n) { return ((x >>> n) | (x << (32 - n))) >>> 0; }
+function rotr32(x, n) {
+  return ((x >>> n) | (x << (32 - n))) >>> 0;
+}
 function sha256Bytes(bytes) {
   const H = new Uint32Array([
-    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
   ]);
   const bitLenLo = (bytes.length * 8) >>> 0;
   const bitLenHi = Math.floor((bytes.length * 8) / 0x100000000) >>> 0;
@@ -67,30 +68,46 @@ function sha256Bytes(bytes) {
   for (let off = 0; off < paddedLen; off += 64) {
     for (let t = 0; t < 16; t++) {
       const b = off + t * 4;
-      W[t] = ((padded[b] << 24) | (padded[b + 1] << 16) | (padded[b + 2] << 8) | padded[b + 3]) >>> 0;
+      W[t] =
+        ((padded[b] << 24) | (padded[b + 1] << 16) | (padded[b + 2] << 8) | padded[b + 3]) >>> 0;
     }
     for (let t = 16; t < 64; t++) {
       const s0 = rotr32(W[t - 15], 7) ^ rotr32(W[t - 15], 18) ^ (W[t - 15] >>> 3);
       const s1 = rotr32(W[t - 2], 17) ^ rotr32(W[t - 2], 19) ^ (W[t - 2] >>> 10);
       W[t] = (W[t - 16] + s0 + W[t - 7] + s1) >>> 0;
     }
-    let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+    let a = H[0],
+      b = H[1],
+      c = H[2],
+      d = H[3],
+      e = H[4],
+      f = H[5],
+      g = H[6],
+      h = H[7];
     for (let t = 0; t < 64; t++) {
       const S1 = rotr32(e, 6) ^ rotr32(e, 11) ^ rotr32(e, 25);
-      const ch = (e & f) ^ ((~e) & g);
+      const ch = (e & f) ^ (~e & g);
       const T1 = (h + S1 + ch + SHA256_K[t] + W[t]) >>> 0;
       const S0 = rotr32(a, 2) ^ rotr32(a, 13) ^ rotr32(a, 22);
       const mj = (a & b) ^ (a & c) ^ (b & c);
       const T2 = (S0 + mj) >>> 0;
-      h = g; g = f; f = e;
+      h = g;
+      g = f;
+      f = e;
       e = (d + T1) >>> 0;
-      d = c; c = b; b = a;
+      d = c;
+      c = b;
+      b = a;
       a = (T1 + T2) >>> 0;
     }
-    H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0;
-    H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
-    H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0;
-    H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+    H[0] = (H[0] + a) >>> 0;
+    H[1] = (H[1] + b) >>> 0;
+    H[2] = (H[2] + c) >>> 0;
+    H[3] = (H[3] + d) >>> 0;
+    H[4] = (H[4] + e) >>> 0;
+    H[5] = (H[5] + f) >>> 0;
+    H[6] = (H[6] + g) >>> 0;
+    H[7] = (H[7] + h) >>> 0;
   }
   let hex = '';
   for (let i = 0; i < 8; i++) hex += H[i].toString(16).padStart(8, '0');
@@ -110,7 +127,9 @@ function percentile(xs, p) {
 }
 function summarize(op, scale, n, timingsMicros) {
   return {
-    op, scale, n,
+    op,
+    scale,
+    n,
     median_us: median(timingsMicros),
     p95_us: percentile(timingsMicros, 95),
     min_us: Math.min(...timingsMicros),
@@ -172,7 +191,9 @@ function detectHardware() {
   const cpuModel = cpuInfo[0]?.model ?? 'unknown';
   const cpuCount = cpuInfo.length;
   const ramGb = Math.round((os.totalmem() / 1024 / 1024 / 1024) * 10) / 10;
-  let tier = 'H1', label, tierConfidence = 'fallback';
+  let tier = 'H1',
+    label,
+    tierConfidence = 'fallback';
   if (envTier === 'H1' || envTier === 'H2' || envTier === 'H3') {
     tier = envTier;
     label = envLabel ?? `${envTier} (HOLOSCRIPT_HW_TIER=${envTier})`;
@@ -185,9 +206,12 @@ function detectHardware() {
     label = 'H1 (fallback: CPU model unrecognized, assuming integrated graphics)';
   }
   return {
-    tier, label,
+    tier,
+    label,
     gpu: envGpu ?? 'unspecified (no Node-side GPU enumeration)',
-    cpu: cpuModel, cpuCount, ramGb,
+    cpu: cpuModel,
+    cpuCount,
+    ramGb,
     platform: process.platform,
     release: os.release(),
     arch: process.arch,
@@ -250,9 +274,9 @@ console.log(`[paper-4-rtx-bench] hardware: ${JSON.stringify(hardware)}\n`);
 {
   notes.push(
     'WebGPU determinism replay row measured via the deterministic CPU ' +
-    'substitute (sha256-chain over 500 synthetic CAEL rows). Real WebGPU ' +
-    'capture requires a browser driver that calls runDeterminismHarness; ' +
-    'the in-Node CPU number bounds the GPU number from above.'
+      'substitute (sha256-chain over 500 synthetic CAEL rows). Real WebGPU ' +
+      'capture requires a browser driver that calls runDeterminismHarness; ' +
+      'the in-Node CPU number bounds the GPU number from above.'
   );
   const N = 500;
   const TRIALS = 20;
@@ -284,8 +308,8 @@ console.log(`[paper-4-rtx-bench] hardware: ${JSON.stringify(hardware)}\n`);
 if (hardware.tier !== 'H3') {
   notes.push(
     `H3 (RTX 6000 Ada) capture deferred — requires HOLOSCRIPT_HW_TIER=H3 ` +
-    `with a verified datacenter-class host. Current run captured at tier ` +
-    `${hardware.tier} (${hardware.label}).`
+      `with a verified datacenter-class host. Current run captured at tier ` +
+      `${hardware.tier} (${hardware.label}).`
   );
 }
 
@@ -308,7 +332,8 @@ const artifact = {
   kernel: {
     name: 'paper-4-rtx-bench-cpu-substitute',
     wgsl_path: null,
-    wgsl_sha256: 'n/a (cpu path; inlines fnv1aBytes + sha256Bytes byte-for-byte from packages/engine/src/simulation/sha256.ts)',
+    wgsl_sha256:
+      'n/a (cpu path; inlines fnv1aBytes + sha256Bytes byte-for-byte from packages/engine/src/simulation/sha256.ts)',
     workgroup_size: null,
     dispatch_size: null,
   },

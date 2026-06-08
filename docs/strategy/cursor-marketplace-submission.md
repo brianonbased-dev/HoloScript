@@ -30,6 +30,7 @@ If HoloScript lists first with a crisp description, we own "spatial / simulation
 ### Submission mechanism (as of April 2026)
 
 Cursor submissions typically go through:
+
 1. **GitHub PR to `cursor-ai/cursor-mcp` or equivalent marketplace repo** (verify current URL)
 2. **In-app submission** via Cursor's Settings → MCP → Submit
 3. **Direct outreach** to Cursor team if it's a strategic partnership tier
@@ -150,14 +151,14 @@ HoloScript is a universal semantic platform. One `.holo` file compiles to 30+ ta
 
 ## Example workflows
 
-| Ask Cursor... | HoloScript MCP does |
-|---|---|
-| "Compile scene.holo to Unity" | `compile_to_unity` → Scene.cs |
-| "Find EGFR inhibitors and simulate binding" | `mcp__plugin_bio-research_*` + `compile_holo` → verifiable scene |
-| "Run FEA on this bracket" | `simulate_fea` → results + provenance |
-| "Find everything that uses the Trait decorator" | `holo_query_codebase` → callers + impact |
-| "Publish this composition to HoloMesh" | `mesh_publish_composition` → signed artifact |
-| "Benchmark this solver" | `holo_benchmark_solver` → latency + accuracy metrics |
+| Ask Cursor...                                   | HoloScript MCP does                                              |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| "Compile scene.holo to Unity"                   | `compile_to_unity` → Scene.cs                                    |
+| "Find EGFR inhibitors and simulate binding"     | `mcp__plugin_bio-research_*` + `compile_holo` → verifiable scene |
+| "Run FEA on this bracket"                       | `simulate_fea` → results + provenance                            |
+| "Find everything that uses the Trait decorator" | `holo_query_codebase` → callers + impact                         |
+| "Publish this composition to HoloMesh"          | `mesh_publish_composition` → signed artifact                     |
+| "Benchmark this solver"                         | `holo_benchmark_solver` → latency + accuracy metrics             |
 
 ## Setup
 

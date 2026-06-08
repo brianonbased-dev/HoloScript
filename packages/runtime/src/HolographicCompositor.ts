@@ -65,9 +65,7 @@ export class HolographicCompositor {
     if (this._started) return;
     this._started = true;
     this.unsubscribers.push(
-      this.bus.on<HolographicFrameUpdateEvent>('holographic:frame-update', (e) =>
-        this.onFrame(e)
-      )
+      this.bus.on<HolographicFrameUpdateEvent>('holographic:frame-update', (e) => this.onFrame(e))
     );
   }
 
@@ -81,7 +79,7 @@ export class HolographicCompositor {
     const nodeId = e.nodeId ?? 'default';
     const prev = this.frames.get(nodeId);
     const period = this.parallaxPeriodMs > 0 ? this.parallaxPeriodMs : 1;
-    const phase = ((e.time % period) + period) % period / period;
+    const phase = (((e.time % period) + period) % period) / period;
     const frame: CompositeFrame = {
       nodeId,
       frameIndex: (prev?.frameIndex ?? 0) + 1,

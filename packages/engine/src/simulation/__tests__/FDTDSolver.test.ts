@@ -15,15 +15,17 @@ describe('FDTDSolver', () => {
       const config: FDTDConfig = {
         cellCount: [nx, 3, 3],
         cellSize: [dx, dx, dx],
-        sources: [{
-          id: 'pulse',
-          type: 'sinusoidal',
-          position: [10, 1, 1],
-          polarization: 'z',
-          amplitude: 1.0,
-          frequency: 1e9, // 1 GHz
-          pulseWidth: 0.5e-9, // Gaussian envelope
-        }],
+        sources: [
+          {
+            id: 'pulse',
+            type: 'sinusoidal',
+            position: [10, 1, 1],
+            polarization: 'z',
+            amplitude: 1.0,
+            frequency: 1e9, // 1 GHz
+            pulseWidth: 0.5e-9, // Gaussian envelope
+          },
+        ],
         pmlThickness: 8,
       };
 
@@ -31,7 +33,7 @@ describe('FDTDSolver', () => {
       const dt = solver.getStats().timeStep;
 
       // Step for enough time that the pulse travels ~1m (100 cells)
-      const targetTime = 100 * dx / 3e8; // time for light to cross 100 cells
+      const targetTime = (100 * dx) / 3e8; // time for light to cross 100 cells
       const steps = Math.round(targetTime / dt);
 
       for (let i = 0; i < steps; i++) solver.step();
@@ -51,14 +53,16 @@ describe('FDTDSolver', () => {
       const config: FDTDConfig = {
         cellCount: [50, 3, 3],
         cellSize: [dx, dx, dx],
-        sources: [{
-          id: 'src',
-          type: 'sinusoidal',
-          position: [25, 1, 1],
-          polarization: 'z',
-          amplitude: 1.0,
-          frequency: 3e9,
-        }],
+        sources: [
+          {
+            id: 'src',
+            type: 'sinusoidal',
+            position: [25, 1, 1],
+            polarization: 'z',
+            amplitude: 1.0,
+            frequency: 3e9,
+          },
+        ],
         // No PML → PEC at all boundaries (default)
       };
 
@@ -67,7 +71,7 @@ describe('FDTDSolver', () => {
 
       // Run for several wave periods
       const period = 1 / 3e9;
-      const steps = Math.round(5 * period / dt);
+      const steps = Math.round((5 * period) / dt);
       for (let i = 0; i < steps; i++) solver.step();
 
       // Ez at the x=0 boundary should be zero (PEC)
@@ -84,15 +88,17 @@ describe('FDTDSolver', () => {
         cellSize: [dx, dx, dx],
         permittivity: 1,
         conductivity: 0, // lossless
-        sources: [{
-          id: 'init',
-          type: 'sinusoidal',
-          position: [10, 10, 1],
-          polarization: 'z',
-          amplitude: 1.0,
-          frequency: 5e9,
-          pulseWidth: 0.2e-9,
-        }],
+        sources: [
+          {
+            id: 'init',
+            type: 'sinusoidal',
+            position: [10, 10, 1],
+            polarization: 'z',
+            amplitude: 1.0,
+            frequency: 5e9,
+            pulseWidth: 0.2e-9,
+          },
+        ],
         // No PML → PEC cavity
       };
 
@@ -130,15 +136,17 @@ describe('FDTDSolver', () => {
         cellSize: [dx, dx, dx],
         permittivity: 1,
         conductivity: 0.1, // lossy
-        sources: [{
-          id: 'src',
-          type: 'sinusoidal',
-          position: [10, 1, 1],
-          polarization: 'z',
-          amplitude: 1.0,
-          frequency: 1e9,
-          pulseWidth: 0.5e-9,
-        }],
+        sources: [
+          {
+            id: 'src',
+            type: 'sinusoidal',
+            position: [10, 1, 1],
+            polarization: 'z',
+            amplitude: 1.0,
+            frequency: 1e9,
+            pulseWidth: 0.5e-9,
+          },
+        ],
         pmlThickness: 8,
       };
 

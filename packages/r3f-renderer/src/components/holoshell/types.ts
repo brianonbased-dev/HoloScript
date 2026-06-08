@@ -115,7 +115,13 @@ export interface GlowFieldProps extends PhenomenaBaseProps {
 /** SceneDoor — wooden/natural door in surface, opens to trigger navigation */
 export interface SceneDoorProps extends PhenomenaBaseProps {
   /** Visual style of the surrounding surface */
-  materialType?: 'underwater_rock' | 'wood_cliff' | 'stone_arch' | 'bookshelf' | 'campfire_ring' | 'zen_rock';
+  materialType?:
+    | 'underwater_rock'
+    | 'wood_cliff'
+    | 'stone_arch'
+    | 'bookshelf'
+    | 'campfire_ring'
+    | 'zen_rock';
   /** Target scene to navigate to on open */
   destinationScene: SceneId;
   /** Called when door open animation completes */

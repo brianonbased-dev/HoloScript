@@ -98,14 +98,14 @@ describe('onAttach', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     feedbackLoopHandler.onAttach(node, BASE_CONFIG, context);
-    expect(emitted.some(e => e.type === 'feedback:ready')).toBe(true);
+    expect(emitted.some((e) => e.type === 'feedback:ready')).toBe(true);
   });
 
   it('feedback:ready includes metric names', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     feedbackLoopHandler.onAttach(node, BASE_CONFIG, context);
-    const ev = emitted.find(e => e.type === 'feedback:ready');
+    const ev = emitted.find((e) => e.type === 'feedback:ready');
     expect(Array.isArray((ev!.payload as any).metrics)).toBe(true);
   });
 
@@ -135,15 +135,15 @@ describe('onDetach', () => {
     const { node, config } = setup();
     const { context, emitted } = makeContext();
     feedbackLoopHandler.onDetach(node, config, context);
-    expect(emitted.some(e => e.type === 'feedback:shutdown')).toBe(true);
+    expect(emitted.some((e) => e.type === 'feedback:shutdown')).toBe(true);
   });
 
   it('feedback:shutdown should include totalFeedback', () => {
     const { node, config } = setup();
     const { context, emitted } = makeContext();
     feedbackLoopHandler.onDetach(node, config, context);
-    const ev = emitted.find(e => e.type === 'feedback:shutdown');
-    expect((ev!.payload as any)).toHaveProperty('totalFeedback');
+    const ev = emitted.find((e) => e.type === 'feedback:shutdown');
+    expect(ev!.payload as any).toHaveProperty('totalFeedback');
   });
 
   it('should handle detach with no state gracefully', () => {
@@ -156,7 +156,7 @@ describe('onDetach', () => {
     const { node, config } = setup();
     const { context, emitted } = makeContext();
     feedbackLoopHandler.onDetach(node, config, context);
-    const ev = emitted.find(e => e.type === 'feedback:shutdown');
+    const ev = emitted.find((e) => e.type === 'feedback:shutdown');
     expect((ev!.payload as any).averageRating).toBe(0);
   });
 });
@@ -209,13 +209,13 @@ describe('feedback:update_metric', () => {
   it('should emit feedback:metric_updated', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'feedback:update_metric', { name: 'fps', value: 45 });
-    expect(emitted.some(e => e.type === 'feedback:metric_updated')).toBe(true);
+    expect(emitted.some((e) => e.type === 'feedback:metric_updated')).toBe(true);
   });
 
   it('metric_updated payload should include name, value, target, trend', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'feedback:update_metric', { name: 'fps', value: 45 });
-    const ev = emitted.find(e => e.type === 'feedback:metric_updated');
+    const ev = emitted.find((e) => e.type === 'feedback:metric_updated');
     const p = ev!.payload as any;
     expect(p.name).toBe('fps');
     expect(p.value).toBe(45);
@@ -264,8 +264,8 @@ describe('feedback:update_metric', () => {
     });
     // fps target 60; 30% drift → warning (20-50% range)
     fire(node, config, context, 'feedback:update_metric', { name: 'fps', value: 42 });
-    const alerts = emitted.filter(e => e.type === 'feedback:metric_alert');
-    const warning = alerts.find(e => (e.payload as any).severity === 'warning');
+    const alerts = emitted.filter((e) => e.type === 'feedback:metric_alert');
+    const warning = alerts.find((e) => (e.payload as any).severity === 'warning');
     expect(warning).toBeDefined();
   });
 
@@ -277,8 +277,8 @@ describe('feedback:update_metric', () => {
     });
     // fps target 60; 60% drop → critical
     fire(node, config, context, 'feedback:update_metric', { name: 'fps', value: 24 });
-    const alerts = emitted.filter(e => e.type === 'feedback:metric_alert');
-    const crit = alerts.find(e => (e.payload as any).severity === 'critical');
+    const alerts = emitted.filter((e) => e.type === 'feedback:metric_alert');
+    const crit = alerts.find((e) => (e.payload as any).severity === 'critical');
     expect(crit).toBeDefined();
   });
 
@@ -288,19 +288,19 @@ describe('feedback:update_metric', () => {
       auto_signal: true,
     });
     fire(node, config, context, 'feedback:update_metric', { name: 'fps', value: 1 });
-    expect(emitted.some(e => e.type === 'feedback:optimization_signal')).toBe(true);
+    expect(emitted.some((e) => e.type === 'feedback:optimization_signal')).toBe(true);
   });
 
   it('should not emit signal when auto_signal=false', () => {
     const { node, config, context, emitted } = setup({ auto_signal: false });
     fire(node, config, context, 'feedback:update_metric', { name: 'fps', value: 1 });
-    expect(emitted.some(e => e.type === 'feedback:optimization_signal')).toBe(false);
+    expect(emitted.some((e) => e.type === 'feedback:optimization_signal')).toBe(false);
   });
 
   it('signal should have correct direction when value below target', () => {
     const { node, config, context, emitted } = setup({ critical_threshold: 10 });
     fire(node, config, context, 'feedback:update_metric', { name: 'fps', value: 1 });
-    const sig = emitted.find(e => e.type === 'feedback:optimization_signal');
+    const sig = emitted.find((e) => e.type === 'feedback:optimization_signal');
     expect((sig!.payload as any).direction).toBe('increase');
   });
 
@@ -308,7 +308,7 @@ describe('feedback:update_metric', () => {
     const { node, config, context, emitted } = setup({ critical_threshold: 10 });
     // error_rate target=0; any value above is "decrease" direction
     fire(node, config, context, 'feedback:update_metric', { name: 'error_rate', value: 50 });
-    const sig = emitted.find(e => e.type === 'feedback:optimization_signal');
+    const sig = emitted.find((e) => e.type === 'feedback:optimization_signal');
     expect((sig!.payload as any).direction).toBe('decrease');
   });
 
@@ -335,7 +335,7 @@ describe('feedback:submit', () => {
   it('should emit feedback:user_submitted', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'feedback:submit', { userId: 'u1', rating: 5 });
-    expect(emitted.some(e => e.type === 'feedback:user_submitted')).toBe(true);
+    expect(emitted.some((e) => e.type === 'feedback:user_submitted')).toBe(true);
   });
 
   it('user_submitted payload includes userId, rating, text', () => {
@@ -345,7 +345,7 @@ describe('feedback:submit', () => {
       rating: 3,
       message: 'okay',
     });
-    const ev = emitted.find(e => e.type === 'feedback:user_submitted');
+    const ev = emitted.find((e) => e.type === 'feedback:user_submitted');
     const p = ev!.payload as any;
     expect(p.userId).toBe('alice');
     expect(p.rating).toBe(3);
@@ -424,13 +424,13 @@ describe('feedback:get_report', () => {
   it('should emit feedback:report', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'feedback:get_report');
-    expect(emitted.some(e => e.type === 'feedback:report')).toBe(true);
+    expect(emitted.some((e) => e.type === 'feedback:report')).toBe(true);
   });
 
   it('report should include averageRating', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'feedback:get_report');
-    expect((emitted.find(e => e.type === 'feedback:report')!.payload as any)).toHaveProperty(
+    expect(emitted.find((e) => e.type === 'feedback:report')!.payload as any).toHaveProperty(
       'averageRating'
     );
   });
@@ -438,7 +438,7 @@ describe('feedback:get_report', () => {
   it('averageRating should be 0 with no submissions', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'feedback:get_report');
-    const p = emitted.find(e => e.type === 'feedback:report')!.payload as any;
+    const p = emitted.find((e) => e.type === 'feedback:report')!.payload as any;
     expect(p.averageRating).toBe(0);
   });
 
@@ -448,14 +448,14 @@ describe('feedback:get_report', () => {
     fire(node, config, context, 'feedback:submit', { rating: 2 });
     emitted.length = 0;
     fire(node, config, context, 'feedback:get_report');
-    const p = emitted.find(e => e.type === 'feedback:report')!.payload as any;
+    const p = emitted.find((e) => e.type === 'feedback:report')!.payload as any;
     expect(p.averageRating).toBe(3);
   });
 
   it('report should include metrics record', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'feedback:get_report');
-    const p = emitted.find(e => e.type === 'feedback:report')!.payload as any;
+    const p = emitted.find((e) => e.type === 'feedback:report')!.payload as any;
     expect(p.metrics).toBeDefined();
     expect(p.metrics.fps).toBeDefined();
   });
@@ -463,7 +463,7 @@ describe('feedback:get_report', () => {
   it('report metrics should include value, target, trend', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'feedback:get_report');
-    const m = (emitted.find(e => e.type === 'feedback:report')!.payload as any).metrics.fps;
+    const m = (emitted.find((e) => e.type === 'feedback:report')!.payload as any).metrics.fps;
     expect(m).toHaveProperty('value');
     expect(m).toHaveProperty('target');
     expect(m).toHaveProperty('trend');
@@ -474,7 +474,7 @@ describe('feedback:get_report', () => {
     fire(node, config, context, 'feedback:submit', { rating: 5 });
     emitted.length = 0;
     fire(node, config, context, 'feedback:get_report');
-    const p = emitted.find(e => e.type === 'feedback:report')!.payload as any;
+    const p = emitted.find((e) => e.type === 'feedback:report')!.payload as any;
     expect(p.totalFeedback).toBe(1);
   });
 
@@ -483,7 +483,7 @@ describe('feedback:get_report', () => {
     fire(node, config, context, 'feedback:update_metric', { name: 'fps', value: 1 });
     emitted.length = 0;
     fire(node, config, context, 'feedback:get_report');
-    const p = emitted.find(e => e.type === 'feedback:report')!.payload as any;
+    const p = emitted.find((e) => e.type === 'feedback:report')!.payload as any;
     expect(p.pendingSignals).toBeGreaterThan(0);
   });
 
@@ -494,14 +494,14 @@ describe('feedback:get_report', () => {
     fire(node, config, context, 'feedback:acknowledge_signal', { signalId: sigId });
     emitted.length = 0;
     fire(node, config, context, 'feedback:get_report');
-    const p = emitted.find(e => e.type === 'feedback:report')!.payload as any;
+    const p = emitted.find((e) => e.type === 'feedback:report')!.payload as any;
     expect(p.pendingSignals).toBe(0);
   });
 
   it('report should include trendSummary', () => {
     const { node, config, context, emitted } = setup();
     fire(node, config, context, 'feedback:get_report');
-    const p = emitted.find(e => e.type === 'feedback:report')!.payload as any;
+    const p = emitted.find((e) => e.type === 'feedback:report')!.payload as any;
     expect(p.trendSummary).toBeDefined();
   });
 });
@@ -582,6 +582,6 @@ describe('custom metrics config', () => {
       type: 'feedback:update_metric',
       payload: { name: 'hp', value: 1 },
     });
-    expect(emitted.some(e => e.type === 'feedback:optimization_signal')).toBe(false);
+    expect(emitted.some((e) => e.type === 'feedback:optimization_signal')).toBe(false);
   });
 });

@@ -25,11 +25,10 @@ export function createUIPanel(
       position: config.position || [0, 0, 0],
       rotation: config.rotation || [0, 0, 0],
       geometry: 'box',
-      scale: [width, height, 0.01 ],
+      scale: [width, height, 0.01],
       color: config.color || '#222222',
       physics: { type: 'kinematic' }, // Rigid panel
     },
     children: children,
   };
 }
-

@@ -8,7 +8,7 @@ function makeNode(overrides: any = {}) {
   return {
     id: 'dest_node',
     position: [0, 0, 0],
-    scale: [1, 1, 1 ],
+    scale: [1, 1, 1],
     ...overrides,
   };
 }

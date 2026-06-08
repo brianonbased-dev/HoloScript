@@ -74,7 +74,10 @@ export function buildProposedActions(tasks: unknown, limit = 4): ProposedAction[
     const id = typeof t.id === 'string' ? t.id : '';
     if (!title || !id) continue;
     const actionType = inferActionType(title);
-    const reversible = !IRREVERSIBLE_RE.test(title) && actionType !== 'service_rental' && actionType !== 'mobility_coordination';
+    const reversible =
+      !IRREVERSIBLE_RE.test(title) &&
+      actionType !== 'service_rental' &&
+      actionType !== 'mobility_coordination';
     out.push({
       id: `proposed:${id}`,
       label: chipLabel(title),

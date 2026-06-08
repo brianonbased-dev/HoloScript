@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Security Audit: File I/O and Network Input Validation
- * 
+ *
  * Scans HoloScript packages for security gaps in:
  * 1. File I/O operations (path traversal, missing validation)
  * 2. Network operations (unsanitized URLs, missing host validation)
@@ -38,10 +38,7 @@ const SECURITY_PATTERNS = [
     category: 'file_io',
     name: 'Path traversal risk (..)',
     severity: 'high',
-    patterns: [
-      /path\.join\s*\([^)]*\.\.\s*[,)]/,
-      /\/\.\.\//,
-    ],
+    patterns: [/path\.join\s*\([^)]*\.\.\s*[,)]/, /\/\.\.\//],
     description: 'Path traversal sequence (..) allowed without sanitization',
   },
   {
@@ -69,9 +66,7 @@ const SECURITY_PATTERNS = [
     category: 'network',
     name: 'Missing host whitelist in network call',
     severity: 'medium',
-    patterns: [
-      /fetch\s*\([`"']https?:\/\/[^\/]/,
-    ],
+    patterns: [/fetch\s*\([`"']https?:\/\/[^\/]/],
     description: 'Hardcoded external URL without allowedHosts policy check',
     note: 'Review for allowedHosts enforcement',
   },
@@ -79,9 +74,7 @@ const SECURITY_PATTERNS = [
     category: 'network',
     name: 'WebSocket without origin validation',
     severity: 'medium',
-    patterns: [
-      /new\s+WebSocket\s*\([`'"']wss?:\/\//,
-    ],
+    patterns: [/new\s+WebSocket\s*\([`'"']wss?:\/\//],
     description: 'WebSocket connection without origin/host validation',
   },
 
@@ -90,27 +83,21 @@ const SECURITY_PATTERNS = [
     category: 'input_validation',
     name: 'Unsafe string interpolation in shell',
     severity: 'high',
-    patterns: [
-      /execSync\s*\(\s*`[^`]*\$\{|spawnSync.*\$\{user|child_process.*\$\{/i,
-    ],
+    patterns: [/execSync\s*\(\s*`[^`]*\$\{|spawnSync.*\$\{user|child_process.*\$\{/i],
     description: 'Shell command with unescaped variable interpolation',
   },
   {
     category: 'input_validation',
     name: 'eval or Function constructor',
     severity: 'critical',
-    patterns: [
-      /\beval\s*\(|new\s+Function\s*\(|vm\.runInContext/i,
-    ],
+    patterns: [/\beval\s*\(|new\s+Function\s*\(|vm\.runInContext/i],
     description: 'Dynamic code execution with user input',
   },
   {
     category: 'input_validation',
     name: 'JSON.parse without try-catch',
     severity: 'medium',
-    patterns: [
-      /(?<!try\s*{[\s\S]{0,100})JSON\.parse\s*\(/,
-    ],
+    patterns: [/(?<!try\s*{[\s\S]{0,100})JSON\.parse\s*\(/],
     description: 'JSON parsing without error handling for invalid input',
     note: 'May have false positives',
   },
@@ -128,17 +115,13 @@ const GOOD_PATTERNS = [
   {
     category: 'network',
     name: 'Host whitelist validation',
-    patterns: [
-      /allowedHosts|allowNetwork|policy\.allows|validateImports|SecurityPolicy/i,
-    ],
+    patterns: [/allowedHosts|allowNetwork|policy\.allows|validateImports|SecurityPolicy/i],
     description: 'Code includes network host validation',
   },
   {
     category: 'input_validation',
     name: 'Input sanitization',
-    patterns: [
-      /sanitize|validate.*input|escape|Shell.*escape|escapeArg/i,
-    ],
+    patterns: [/sanitize|validate.*input|escape|Shell.*escape|escapeArg/i],
     description: 'Code includes input sanitization',
   },
 ];

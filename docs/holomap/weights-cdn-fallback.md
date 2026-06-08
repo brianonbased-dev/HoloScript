@@ -11,10 +11,10 @@
 
 ## Production pattern (recommended)
 
-| Layer | Responsibility |
-|-------|----------------|
-| **Primary CDN** | Versioned URL per release; immutable object names (hash in path). |
-| **Geo / second origin** | Optional second CDN or bucket; same content hashes. |
+| Layer                        | Responsibility                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| **Primary CDN**              | Versioned URL per release; immutable object names (hash in path).                          |
+| **Geo / second origin**      | Optional second CDN or bucket; same content hashes.                                        |
 | **Offline / air-gap bundle** | Tarball or OCI layer shipped with the HoloMap build; path recorded in deployment manifest. |
 
 ## Fallback order (example)

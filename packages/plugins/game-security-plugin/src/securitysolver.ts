@@ -287,7 +287,10 @@ export function createMovementEnvelopeRule(options: {
         options.maxAccelerationMetersPerSecondSquared !== undefined &&
         previous.velocity !== undefined
       ) {
-        const nextVelocity = scaleVector(subtractVector(nextPosition, previous.position), 1 / elapsedSeconds);
+        const nextVelocity = scaleVector(
+          subtractVector(nextPosition, previous.position),
+          1 / elapsedSeconds
+        );
         const acceleration =
           distance3(previous.velocity, nextVelocity) / Math.max(elapsedSeconds, Number.EPSILON);
         if (acceleration > options.maxAccelerationMetersPerSecondSquared) {
@@ -297,8 +300,7 @@ export function createMovementEnvelopeRule(options: {
             message: `Movement acceleration ${round(acceleration)}m/s^2 exceeds ${options.maxAccelerationMetersPerSecondSquared}m/s^2`,
             evidence: {
               accelerationMetersPerSecondSquared: round(acceleration),
-              maxAccelerationMetersPerSecondSquared:
-                options.maxAccelerationMetersPerSecondSquared,
+              maxAccelerationMetersPerSecondSquared: options.maxAccelerationMetersPerSecondSquared,
             },
           });
         }
@@ -309,7 +311,9 @@ export function createMovementEnvelopeRule(options: {
   };
 }
 
-export function createCooldownRule(cooldownTicksByAction: Record<string, number>): AuthoritativeRule {
+export function createCooldownRule(
+  cooldownTicksByAction: Record<string, number>
+): AuthoritativeRule {
   return {
     id: 'action.cooldown',
     description: 'Rejects actions attempted before their authoritative cooldown expires.',

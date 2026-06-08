@@ -4,13 +4,13 @@
 
 ## What to capture every time
 
-| Field | How to record |
-|--------|----------------|
-| **Git revision** | `git rev-parse HEAD` (HoloScript + any sibling repos touched) |
-| **Runtime** | `node -v`, `pnpm -v` (or `npm -v` if that’s the documented path) |
-| **OS / GPU** | One line: OS version, discrete vs integrated GPU if relevant to timing |
-| **Seeds** | If the harness uses RNG, print or export `SEED=` in the log header |
-| **One-command rerun** | Exact shell command from repo root (copy-paste safe) |
+| Field                 | How to record                                                          |
+| --------------------- | ---------------------------------------------------------------------- |
+| **Git revision**      | `git rev-parse HEAD` (HoloScript + any sibling repos touched)          |
+| **Runtime**           | `node -v`, `pnpm -v` (or `npm -v` if that’s the documented path)       |
+| **OS / GPU**          | One line: OS version, discrete vs integrated GPU if relevant to timing |
+| **Seeds**             | If the harness uses RNG, print or export `SEED=` in the log header     |
+| **One-command rerun** | Exact shell command from repo root (copy-paste safe)                   |
 
 ## Artifact layout
 

@@ -12,16 +12,16 @@ import type { ProjectDNA as ScaffoldProjectDNA, ScaffoldResult } from '@/lib/wor
 // ─── Stage definitions ──────────────────────────────────────────────────────
 
 export type WizardStage =
-  | 'greeting'   // "What are you building?"
-  | 'intake'     // Understanding the user's intent
-  | 'absorb'     // Scanning their GitHub repo (if they have one)
-  | 'classify'   // ProjectDNA classification
-  | 'consent'    // User approves what Brittney can do
-  | 'scaffold'   // Generating Claude structure
-  | 'scenario'   // Loading matching scenario template
-  | 'preview'    // Live preview of their project
-  | 'iterate'    // User refining with Brittney
-  | 'deploy';    // Ready to deploy
+  | 'greeting' // "What are you building?"
+  | 'intake' // Understanding the user's intent
+  | 'absorb' // Scanning their GitHub repo (if they have one)
+  | 'classify' // ProjectDNA classification
+  | 'consent' // User approves what Brittney can do
+  | 'scaffold' // Generating Claude structure
+  | 'scenario' // Loading matching scenario template
+  | 'preview' // Live preview of their project
+  | 'iterate' // User refining with Brittney
+  | 'deploy'; // Ready to deploy
 
 /** Ordered stage list for progress tracking */
 export const WIZARD_STAGES: readonly WizardStage[] = [

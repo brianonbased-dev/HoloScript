@@ -14,7 +14,9 @@ import type { SpatialPartitionResultLike } from '../SpatialSceneBridge';
 // Fixture: minimal SpatialPartitionResult with 3 anchors at different LOD levels
 // ---------------------------------------------------------------------------
 
-function makeResult(overrides: Partial<SpatialPartitionResultLike> = {}): SpatialPartitionResultLike {
+function makeResult(
+  overrides: Partial<SpatialPartitionResultLike> = {}
+): SpatialPartitionResultLike {
   return {
     schema: 'spatial-partition/v1',
     compositionName: 'test-scene',

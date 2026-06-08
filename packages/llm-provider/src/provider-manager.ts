@@ -171,7 +171,15 @@ export class LLMProviderManager {
     // Brittney Cloud is first-party but sits after commercial APIs because it
     // is a routing layer (may delegate to the same backends) and should not
     // preempt direct provider keys when those are configured.
-    const priority: LLMProviderName[] = ['anthropic', 'openai', 'openrouter', 'gemini', 'xai', 'brittney-cloud', 'mock'];
+    const priority: LLMProviderName[] = [
+      'anthropic',
+      'openai',
+      'openrouter',
+      'gemini',
+      'xai',
+      'brittney-cloud',
+      'mock',
+    ];
     const primary = priority.find((p) => registered.includes(p)) ?? registered[0];
     const fallback = priority.find((p) => registered.includes(p) && p !== primary);
 

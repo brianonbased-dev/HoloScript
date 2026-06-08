@@ -135,14 +135,7 @@ export interface PillarRegistryConfig {
 export const PHYSICS_CONSERVATION_PILLAR: Pillar = {
   id: 'physics_conservation',
   domain: 'physics',
-  axis_vocabulary: [
-    'energy',
-    'momentum',
-    'angular_momentum',
-    'entropy',
-    'charge',
-    'mass',
-  ] as const,
+  axis_vocabulary: ['energy', 'momentum', 'angular_momentum', 'entropy', 'charge', 'mass'] as const,
   generate(context: PillarContext): PillarSlice {
     // Default slice: energy-momentum coupling, fully conserved, no violation.
     // Production implementations replace this with solver telemetry.
@@ -615,7 +608,7 @@ export const D040_THREE_POPULATION_PILLAR: Pillar = {
     return {
       axis_1_id: 'population_type',
       axis_2_id: 'trait_fidelity',
-      pos_1: pop === 'agent' ? 0.95 : pop === 'npc' ? 0.88 : 0.90,
+      pos_1: pop === 'agent' ? 0.95 : pop === 'npc' ? 0.88 : 0.9,
       pos_2: fidelity,
       pillar_id: this.id,
       pillar_domain: this.domain,

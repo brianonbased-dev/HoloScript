@@ -11,10 +11,22 @@ const goldLike: CG2DComposition = {
   name: 'GOLD — The Vault',
   environment: { gravity: [0, -9.81, 0] },
   templates: [
-    { name: 'HumanCurator', traits: [{ name: 'controllable' }, { name: 'physics' }, { name: 'collidable' }] },
-    { name: 'AgentCurator', traits: [{ name: 'ai_agent' }, { name: 'physics' }, { name: 'collidable' }] },
-    { name: 'KnowledgeEntry', traits: [{ name: 'grabbable' }, { name: 'interactive' }, { name: 'physics' }] },
-    { name: 'Archivist', traits: [{ name: 'ai_agent' }, { name: 'dialogue' }, { name: 'collidable' }] },
+    {
+      name: 'HumanCurator',
+      traits: [{ name: 'controllable' }, { name: 'physics' }, { name: 'collidable' }],
+    },
+    {
+      name: 'AgentCurator',
+      traits: [{ name: 'ai_agent' }, { name: 'physics' }, { name: 'collidable' }],
+    },
+    {
+      name: 'KnowledgeEntry',
+      traits: [{ name: 'grabbable' }, { name: 'interactive' }, { name: 'physics' }],
+    },
+    {
+      name: 'Archivist',
+      traits: [{ name: 'ai_agent' }, { name: 'dialogue' }, { name: 'collidable' }],
+    },
     { name: 'VaultCollision', traits: [{ name: 'interactive' }, { name: 'collidable' }] },
   ],
   spatialGroups: [
@@ -31,12 +43,16 @@ const goldLike: CG2DComposition = {
     {
       name: 'GoldTerrace',
       origin: [0, 4, -8],
-      objects: [{ name: 'Entry2', template: 'KnowledgeEntry', position: [-1, 0.5, 0], color: '#d4af37' }],
+      objects: [
+        { name: 'Entry2', template: 'KnowledgeEntry', position: [-1, 0.5, 0], color: '#d4af37' },
+      ],
     },
     {
       name: 'DiamondPeak',
       origin: [0, 9, -16],
-      objects: [{ name: 'Archivist', template: 'Archivist', position: [-2, 0, 1], color: '#7a5a8a' }],
+      objects: [
+        { name: 'Archivist', template: 'Archivist', position: [-2, 0, 1], color: '#7a5a8a' },
+      ],
     },
   ],
 };

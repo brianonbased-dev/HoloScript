@@ -11,9 +11,18 @@
 
 import { z } from 'zod';
 
-import type { HoloComposition, HoloObjectDecl, HoloObjectTrait, HoloValue } from '../parser/HoloCompositionTypes';
+import type {
+  HoloComposition,
+  HoloObjectDecl,
+  HoloObjectTrait,
+  HoloValue,
+} from '../parser/HoloCompositionTypes';
 
-import type { MCPToolCallRequest, MCPToolCallResponse, MCPToolDefinition } from './GLTFPipelineMCPTool';
+import type {
+  MCPToolCallRequest,
+  MCPToolCallResponse,
+  MCPToolDefinition,
+} from './GLTFPipelineMCPTool';
 
 // =============================================================================
 // ZOD — runtime draft schema (strict JSON from agents / studio forms)

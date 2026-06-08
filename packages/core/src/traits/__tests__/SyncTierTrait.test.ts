@@ -405,7 +405,7 @@ describe('detectStarvation', () => {
     const state = (t as any).lastSyncTimestamps as Map<string, number>;
     state.delete('position');
     const alerts = t.detectStarvation(Date.now() / 1000 + 10);
-    expect(alerts.some(a => a.fieldName === 'position' && a.elapsedS === Infinity)).toBe(true);
+    expect(alerts.some((a) => a.fieldName === 'position' && a.elapsedS === Infinity)).toBe(true);
   });
 
   it('setStarvationThreshold should update the threshold', () => {
@@ -492,7 +492,7 @@ describe('packBatch', () => {
     ]);
     const packets = t.packBatch(payloads, 150);
     // first packet should contain position (higher priority)
-    const firstNames = packets[0].updates.map(u => u.name);
+    const firstNames = packets[0].updates.map((u) => u.name);
     expect(firstNames).toContain('position');
   });
 
@@ -617,7 +617,7 @@ describe('syncTierHandler', () => {
     const node = makeNode();
     const { context, emitted } = makeContext();
     syncTierHandler.onAttach(node, {}, context);
-    expect(emitted.some(e => e.type === 'sync_tier_attached')).toBe(true);
+    expect(emitted.some((e) => e.type === 'sync_tier_attached')).toBe(true);
   });
 
   it('should remove instance on detach', () => {
@@ -634,7 +634,7 @@ describe('syncTierHandler', () => {
     syncTierHandler.onAttach(node, {}, context);
     emitted.length = 0;
     syncTierHandler.onDetach(node, {}, context);
-    expect(emitted.some(e => e.type === 'sync_tier_detached')).toBe(true);
+    expect(emitted.some((e) => e.type === 'sync_tier_detached')).toBe(true);
   });
 
   it('should handle detach with no instance gracefully', () => {
@@ -682,6 +682,6 @@ describe('syncTierHandler', () => {
       type: 'sync_tier_configure',
       payload: { bandwidthBudget: 100000 },
     });
-    expect(emitted.some(e => e.type === 'sync_tier_configured')).toBe(true);
+    expect(emitted.some((e) => e.type === 'sync_tier_configured')).toBe(true);
   });
 });

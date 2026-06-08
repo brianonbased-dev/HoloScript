@@ -251,12 +251,7 @@ export function classifyMode(nx: number, ny: number, nz: number): RoomModeKind {
  * Returns Infinity when total absorption is zero (perfectly reflective
  * room, no decay). Returns 0 when volume is zero (degenerate room).
  */
-export function sabineT60(
-  Lx: number,
-  Ly: number,
-  Lz: number,
-  abs: MaterialsAbsorption
-): number {
+export function sabineT60(Lx: number, Ly: number, Lz: number, abs: MaterialsAbsorption): number {
   if (Lx <= 0 || Ly <= 0 || Lz <= 0) return 0;
   const V = Lx * Ly * Lz;
   // Surface areas: 2 walls of (Lx·Lz), 2 walls of (Ly·Lz), 1 floor (Lx·Ly),
@@ -265,8 +260,7 @@ export function sabineT60(
   const wallsArea = 2 * (Lx * Lz + Ly * Lz);
   const floorArea = Lx * Ly;
   const ceilingArea = Lx * Ly;
-  const A =
-    wallsArea * abs.walls + floorArea * abs.floor + ceilingArea * abs.ceiling;
+  const A = wallsArea * abs.walls + floorArea * abs.floor + ceilingArea * abs.ceiling;
   if (A <= 0) return Number.POSITIVE_INFINITY;
   return (SABINE_CONSTANT_METRIC * V) / A;
 }
@@ -374,24 +368,12 @@ export function analyzeRoomModes(
 ): RoomModeAnalysis {
   const [Lx, Ly, Lz] = config.room_dimensions;
   const t60 = sabineT60(Lx, Ly, Lz, config.materials_absorption);
-  const modes = enumerateRoomModes(
-    Lx,
-    Ly,
-    Lz,
-    config.mode_order,
-    config.max_frequency_hz,
-    t60
-  );
+  const modes = enumerateRoomModes(Lx, Ly, Lz, config.mode_order, config.max_frequency_hz, t60);
   return {
     modes,
     t60_seconds: t60,
     volume_m3: Lx > 0 && Ly > 0 && Lz > 0 ? Lx * Ly * Lz : 0,
-    total_absorption_sabin: totalAbsorptionSabin(
-      Lx,
-      Ly,
-      Lz,
-      config.materials_absorption
-    ),
+    total_absorption_sabin: totalAbsorptionSabin(Lx, Ly, Lz, config.materials_absorption),
   };
 }
 
@@ -454,9 +436,7 @@ export function generateRoomModeHeatmap(
         const position: [number, number, number] = [x, y, z];
         let value = 0;
         for (const mode of analysis.modes) {
-          const qWeight = Number.isFinite(mode.q_factor)
-            ? Math.min(1, mode.q_factor / 200)
-            : 1;
+          const qWeight = Number.isFinite(mode.q_factor) ? Math.min(1, mode.q_factor / 200) : 1;
           value +=
             modalPressureMagnitude(mode, position, roomDimensions) *
             modeKindWeight(mode.kind) *

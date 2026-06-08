@@ -13,7 +13,7 @@ function createMockWorld() {
     createBody: vi.fn((config: any) => {
       bodies.set(config.id, {
         ...config,
-        velocity: [0, 0, 0 ],
+        velocity: [0, 0, 0],
         position: config.transform?.position,
       });
       return config.id;
@@ -21,10 +21,10 @@ function createMockWorld() {
     getBody: vi.fn((id: string) => bodies.get(id) || null),
     getContacts: vi.fn(() => contacts),
     setPosition: vi.fn((id: string, position: any) => {
-      if (bodies.has(id)) bodies.get(id).position = [...position  ];
+      if (bodies.has(id)) bodies.get(id).position = [...position];
     }),
     setLinearVelocity: vi.fn((id: string, velocity: any) => {
-      if (bodies.has(id)) bodies.get(id).velocity = [...velocity  ];
+      if (bodies.has(id)) bodies.get(id).velocity = [...velocity];
     }),
     _bodies: bodies,
     _contacts: contacts,
@@ -33,8 +33,8 @@ function createMockWorld() {
 
 function mockHand(pos: Vector3): any {
   return {
-    position: [...pos  ],
-    rotation: [0, 0, 0 ],
+    position: [...pos],
+    rotation: [0, 0, 0],
   };
 }
 
@@ -57,8 +57,8 @@ describe('VRPhysicsBridge', () => {
     bridge.update(
       {
         hands: {
-          left: mockHand([0, 1, 0 ]),
-          right: mockHand([0.5, 1, 0 ]),
+          left: mockHand([0, 1, 0]),
+          right: mockHand([0.5, 1, 0]),
         },
       },
       0.016
@@ -76,8 +76,8 @@ describe('VRPhysicsBridge', () => {
   it('does not recreate bodies on subsequent updates', () => {
     const ctx = {
       hands: {
-        left: mockHand([0, 1, 0 ]),
-        right: mockHand([0.5, 1, 0 ]),
+        left: mockHand([0, 1, 0]),
+        right: mockHand([0.5, 1, 0]),
       },
     };
     bridge.update(ctx, 0.016);
@@ -90,7 +90,7 @@ describe('VRPhysicsBridge', () => {
     bridge.update(
       {
         hands: {
-          left: mockHand([0, 1, 0 ]),
+          left: mockHand([0, 1, 0]),
           right: null,
         },
       },
@@ -105,7 +105,7 @@ describe('VRPhysicsBridge', () => {
     bridge.update(
       {
         hands: {
-          left: mockHand([1, 2, 3 ]),
+          left: mockHand([1, 2, 3]),
           right: null,
         },
       },
@@ -121,7 +121,7 @@ describe('VRPhysicsBridge', () => {
     bridge.update(
       {
         hands: {
-          left: mockHand([0, 0, 0 ]),
+          left: mockHand([0, 0, 0]),
           right: null,
         },
       },
@@ -131,7 +131,7 @@ describe('VRPhysicsBridge', () => {
     bridge.update(
       {
         hands: {
-          left: mockHand([1, 0, 0 ]),
+          left: mockHand([1, 0, 0]),
           right: null,
         },
       },
@@ -161,7 +161,7 @@ describe('VRPhysicsBridge', () => {
     bridge.update(
       {
         hands: {
-          left: mockHand([0, 0, 0 ]),
+          left: mockHand([0, 0, 0]),
           right: null,
         },
       },
@@ -178,7 +178,7 @@ describe('VRPhysicsBridge', () => {
       {
         hands: {
           left: null,
-          right: mockHand([0, 0, 0 ]),
+          right: mockHand([0, 0, 0]),
         },
       },
       0.016
@@ -193,7 +193,7 @@ describe('VRPhysicsBridge', () => {
     bridge.update(
       {
         hands: {
-          left: mockHand([0, 0, 0 ]),
+          left: mockHand([0, 0, 0]),
           right: null,
         },
       },
@@ -212,7 +212,7 @@ describe('VRPhysicsBridge', () => {
     bridge.update(
       {
         hands: {
-          left: mockHand([0, 0, 0 ]),
+          left: mockHand([0, 0, 0]),
           right: null,
         },
       },

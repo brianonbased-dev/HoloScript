@@ -1,12 +1,12 @@
 import type { SceneTemplate } from '../scene/sceneTemplates';
 
 export const template: SceneTemplate = {
-  id: "wizard-precision-agriculture",
-  name: "Precision Agriculture",
-  description: "Drone-based crop analysis with NDVI overlays",
-  thumbnail: "🛰️",
-  tags: ["agriculture","precision","drone","analysis"],
-  category: "agriculture",
+  id: 'wizard-precision-agriculture',
+  name: 'Precision Agriculture',
+  description: 'Drone-based crop analysis with NDVI overlays',
+  thumbnail: '🛰️',
+  tags: ['agriculture', 'precision', 'drone', 'analysis'],
+  category: 'agriculture',
   code: `composition "Precision Agriculture" {
   environment {
     skybox: "day"
@@ -62,7 +62,7 @@ export const template: SceneTemplate = {
     metalness: 0.8
     label: "Survey Drone"
   }
-}`
+}`,
 };
 
 export default template;

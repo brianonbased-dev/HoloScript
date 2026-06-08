@@ -266,7 +266,9 @@ export function hashStableJson(value: unknown): string {
   return hashText(JSON.stringify(stabilizeForHash(value)));
 }
 
-export function createClaudeManagedAgentsSdkClient(sdk: ClaudeManagedAgentsSdk): ClaudeManagedAgentClient {
+export function createClaudeManagedAgentsSdkClient(
+  sdk: ClaudeManagedAgentsSdk
+): ClaudeManagedAgentClient {
   return {
     async createSession(input) {
       return toManagedAgentSession(
@@ -355,7 +357,9 @@ export function applyExternalAgentValidation(
     };
   }
 
-  const requiredFailure = copiedValidation.find((result) => result.required !== false && !result.passed);
+  const requiredFailure = copiedValidation.find(
+    (result) => result.required !== false && !result.passed
+  );
   return {
     ...receipt,
     validation: copiedValidation,
@@ -375,7 +379,9 @@ export function promoteExternalAgentReceipt(
   memoryReceipt: MemoryReceiptReference
 ): ExternalAgentReceipt {
   if (receipt.quarantine.state !== 'validated') {
-    throw new Error('ExternalAgentReceipt must be locally validated before MemoryReceipt promotion.');
+    throw new Error(
+      'ExternalAgentReceipt must be locally validated before MemoryReceipt promotion.'
+    );
   }
   if (memoryReceipt.sourceReceiptHash !== receipt.captureHash) {
     throw new Error('MemoryReceipt source hash must match the external agent capture hash.');
@@ -384,7 +390,8 @@ export function promoteExternalAgentReceipt(
     ...receipt,
     quarantine: {
       state: 'promoted',
-      reason: 'Promoted by MemoryReceipt reference; adapter still has no direct memory-write capability.',
+      reason:
+        'Promoted by MemoryReceipt reference; adapter still has no direct memory-write capability.',
       localValidationRequired: false,
       memoryPromotion: { ...memoryReceipt },
     },
@@ -467,7 +474,8 @@ export class ClaudeManagedAgentAdapter implements ExternalAgentBenchmarkBackend 
 
   async runBenchmarkCase(input: ExternalAgentBenchmarkCase): Promise<ExternalAgentBenchmarkResult> {
     const receipt = await this.launchAndRead(input);
-    const firstOutcomeScore = receipt.outcomes.find((outcome) => typeof outcome.score === 'number')?.score ?? 0;
+    const firstOutcomeScore =
+      receipt.outcomes.find((outcome) => typeof outcome.score === 'number')?.score ?? 0;
     const score = input.scorer ? input.scorer(receipt) : firstOutcomeScore;
     return {
       backendId: this.backendId,
@@ -492,14 +500,17 @@ function toEventReceipt(event: ExternalAgentEventInput): ExternalAgentEventRecei
 function toArtifactReceipt(artifact: ExternalAgentArtifactInput): ExternalAgentArtifactReceipt {
   const hasContentHash = Boolean(artifact.contentHash);
   const hasContent = artifact.content !== undefined;
-  const hash = artifact.contentHash
-    ?? (hasContent ? hashText(artifact.content ?? '') : hashStableJson({
-      id: artifact.id,
-      path: artifact.path,
-      uri: artifact.uri,
-      type: artifact.type,
-      producer: artifact.producer,
-    }));
+  const hash =
+    artifact.contentHash ??
+    (hasContent
+      ? hashText(artifact.content ?? '')
+      : hashStableJson({
+          id: artifact.id,
+          path: artifact.path,
+          uri: artifact.uri,
+          type: artifact.type,
+          producer: artifact.producer,
+        }));
   return {
     ...(artifact.id ? { id: artifact.id } : {}),
     ...(artifact.path ? { path: artifact.path } : {}),
@@ -532,7 +543,9 @@ function toManagedAgentSession(value: unknown): ClaudeManagedAgentSession {
   return {
     id,
     ...(stringField(record, ['status']) ? { status: stringField(record, ['status']) } : {}),
-    ...(stringField(record, ['agentId', 'agent_id']) ? { agentId: stringField(record, ['agentId', 'agent_id']) } : {}),
+    ...(stringField(record, ['agentId', 'agent_id'])
+      ? { agentId: stringField(record, ['agentId', 'agent_id']) }
+      : {}),
     ...(stringField(record, ['environmentId', 'environment_id'])
       ? { environmentId: stringField(record, ['environmentId', 'environment_id']) }
       : {}),
@@ -544,7 +557,7 @@ function toEventList(value: unknown): ExternalAgentEventInput[] {
   const list = Array.isArray(value)
     ? value
     : Array.isArray(asRecord(value).data)
-      ? asRecord(value).data as unknown[]
+      ? (asRecord(value).data as unknown[])
       : [];
   return list.map((event) => {
     const record = asRecord(event);
@@ -560,7 +573,9 @@ function toEventList(value: unknown): ExternalAgentEventInput[] {
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function stringField(record: Record<string, unknown>, keys: string[]): string | undefined {
@@ -578,7 +593,8 @@ function clamp01(value: number): number {
 
 function stabilizeForHash(value: unknown): unknown {
   if (value === null) return null;
-  if (Array.isArray(value)) return value.map((item) => item === undefined ? null : stabilizeForHash(item));
+  if (Array.isArray(value))
+    return value.map((item) => (item === undefined ? null : stabilizeForHash(item)));
   if (value instanceof Date) return value.toISOString();
   if (typeof value !== 'object') return value;
 

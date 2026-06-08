@@ -50,8 +50,8 @@ export class SpatialAudioSource {
 
   constructor(config?: Partial<SpatialAudioConfig>) {
     this.config = {
-      position: [0, 0, 0 ],
-      velocity: [0, 0, 0 ],
+      position: [0, 0, 0],
+      velocity: [0, 0, 0],
       rolloff: 'inverse',
       minDistance: 3, // Tuned for voice: audible within 3m
       maxDistance: 100,
@@ -96,13 +96,13 @@ export class SpatialAudioSource {
   // ---------------------------------------------------------------------------
 
   setPosition(x: number, y: number, z: number): void {
-    this.config.position = [x, y, z ];
+    this.config.position = [x, y, z];
   }
   getPosition(): Vec3 {
-    return [...this.config.position ];
+    return [...this.config.position];
   }
   setVelocity(x: number, y: number, z: number): void {
-    this.config.velocity = [x, y, z ];
+    this.config.velocity = [x, y, z];
   }
   setVolume(v: number): void {
     this.config.volume = Math.max(0, Math.min(1, v));
@@ -228,8 +228,8 @@ export class SpatialAudioSource {
   getConfig(): SpatialAudioConfig {
     return {
       ...this.config,
-      position: [...this.config.position ],
-      velocity: [...this.config.velocity ],
+      position: [...this.config.position],
+      velocity: [...this.config.velocity],
     };
   }
 }

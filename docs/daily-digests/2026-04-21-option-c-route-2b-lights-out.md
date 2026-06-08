@@ -1,7 +1,7 @@
 ﻿# Milestone digest — 2026-04-21
 
-* **Program / theme:** SECURITY-mode Option C hardening + Route 2b/2d cross-adapter ε-tolerance + lights-out recipe infrastructure (Wave-1 → Wave-1.5 → Wave-2 → SECURITY arc, spanning 2026-04-19 → 2026-04-21)
-* **PR / commit:** 325 commits across HoloScript + ai-ecosystem over the 2.5-day window; cumulative release captured in `.changeset/2026-04-21-option-c-route-2b-lights-out.md` and `CHANGELOG.md` [Unreleased] — 2026-04-21. Representative HEAD commits: HoloScript `8d415f0ad` (recipe consolidated doc), HoloScript `76f533b38` (Option C integration tests, 103/103 green), ai-ecosystem `e3a708e` (paper-level Option C inheritance across 6 papers).
+- **Program / theme:** SECURITY-mode Option C hardening + Route 2b/2d cross-adapter ε-tolerance + lights-out recipe infrastructure (Wave-1 → Wave-1.5 → Wave-2 → SECURITY arc, spanning 2026-04-19 → 2026-04-21)
+- **PR / commit:** 325 commits across HoloScript + ai-ecosystem over the 2.5-day window; cumulative release captured in `.changeset/2026-04-21-option-c-route-2b-lights-out.md` and `CHANGELOG.md` [Unreleased] — 2026-04-21. Representative HEAD commits: HoloScript `8d415f0ad` (recipe consolidated doc), HoloScript `76f533b38` (Option C integration tests, 103/103 green), ai-ecosystem `e3a708e` (paper-level Option C inheritance across 6 papers).
 
 ## Three bullets
 

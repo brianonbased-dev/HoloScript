@@ -11,10 +11,22 @@ import {
 } from './ContractTraits';
 
 // Data traits
-import { dbHandler, modelHandler, queryHandler, migrationHandler, cacheHandler } from './DataTraits';
+import {
+  dbHandler,
+  modelHandler,
+  queryHandler,
+  migrationHandler,
+  cacheHandler,
+} from './DataTraits';
 
 // Pipeline traits
-import { pipelineHandler, streamHandler, queueHandler, workerHandler, schedulerHandler } from './PipelineTraits';
+import {
+  pipelineHandler,
+  streamHandler,
+  queueHandler,
+  workerHandler,
+  schedulerHandler,
+} from './PipelineTraits';
 
 // Metric traits
 import { metricHandler, traceHandler, logHandler, healthCheckHandler } from './MetricTraits';
@@ -29,7 +41,12 @@ import {
 } from './ResilienceTraits';
 
 // Container traits
-import { containerHandler, deploymentHandler, scalingHandler, secretHandler } from './ContainerTraits';
+import {
+  containerHandler,
+  deploymentHandler,
+  scalingHandler,
+  secretHandler,
+} from './ContainerTraits';
 
 function makeNode(): HSPlusNode {
   return { id: 'test-node', type: 'object', name: 'TestNode' } as HSPlusNode;
@@ -81,7 +98,10 @@ describe('v6 Resilience Trait Adapters', () => {
     const ctx = makeContext();
     circuitBreakerHandler.onAttach!(node, circuitBreakerHandler.defaultConfig as any, ctx);
     circuitBreakerHandler.onDetach!(node, circuitBreakerHandler.defaultConfig as any, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('circuit_breaker_detached', expect.objectContaining({ metrics: expect.any(Object) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'circuit_breaker_detached',
+      expect.objectContaining({ metrics: expect.any(Object) })
+    );
     expect(node.__circuitBreakerState).toBeUndefined();
   });
 
@@ -153,7 +173,10 @@ describe('v6 Resilience Trait Adapters', () => {
     const ctx = makeContext();
     bulkheadHandler.onAttach!(node, bulkheadHandler.defaultConfig as any, ctx);
     bulkheadHandler.onDetach!(node, bulkheadHandler.defaultConfig as any, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('bulkhead_detached', expect.objectContaining({ metrics: expect.any(Object) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'bulkhead_detached',
+      expect.objectContaining({ metrics: expect.any(Object) })
+    );
     expect(node.__bulkheadState).toBeUndefined();
   });
 });
@@ -187,7 +210,10 @@ describe('v6 Metric Trait Adapters', () => {
     const ctx = makeContext();
     metricHandler.onAttach!(node, metricHandler.defaultConfig as any, ctx);
     metricHandler.onDetach!(node, metricHandler.defaultConfig as any, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('metric_detached', expect.objectContaining({ snapshot: expect.any(Object) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'metric_detached',
+      expect.objectContaining({ snapshot: expect.any(Object) })
+    );
     expect(node.__metricState).toBeUndefined();
   });
 
@@ -222,7 +248,10 @@ describe('v6 Metric Trait Adapters', () => {
     const ctx = makeContext();
     logHandler.onAttach!(node, logHandler.defaultConfig as any, ctx);
     node.__logState.log('info', 'hello', { extra: 1 });
-    expect(ctx.emit).toHaveBeenCalledWith('log_entry', expect.objectContaining({ level: 'info', message: 'hello' }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'log_entry',
+      expect.objectContaining({ level: 'info', message: 'hello' })
+    );
   });
 
   it('logHandler detaches cleanly', () => {

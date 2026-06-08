@@ -25,7 +25,9 @@ describe('exposureValue', () => {
    * N=5.6, t=1/125, ISO=100 → EV = log₂(5.6² × 125) = log₂(3920) ≈ 11.9
    */
   it('EV100 matches formula', () => {
-    const N = 5.6, t = 1 / 125, ISO = 100;
+    const N = 5.6,
+      t = 1 / 125,
+      ISO = 100;
     const r = exposureValue({ aperture: N, shutterSpeedS: t, iso: ISO });
     const expected = Math.log2((N ** 2 * 100) / (t * ISO));
     expect(r.ev100).toBeCloseTo(expected, 4);
@@ -39,7 +41,7 @@ describe('exposureValue', () => {
 
   it('wider aperture (lower f-number) → lower EV100', () => {
     const narrow = exposureValue({ aperture: 11, shutterSpeedS: 1 / 125, iso: 100 });
-    const wide   = exposureValue({ aperture: 1.4, shutterSpeedS: 1 / 125, iso: 100 });
+    const wide = exposureValue({ aperture: 1.4, shutterSpeedS: 1 / 125, iso: 100 });
     expect(wide.ev100).toBeLessThan(narrow.ev100);
   });
 
@@ -63,14 +65,34 @@ describe('depthOfField', () => {
   const fullFrame = { sensorDiagonalMm: 43.27 };
 
   it('longer focal length → narrower DoF', () => {
-    const short = depthOfField({ focalLengthMm: 24, aperture: 2.8, subjectDistanceM: 5, ...fullFrame });
-    const long  = depthOfField({ focalLengthMm: 200, aperture: 2.8, subjectDistanceM: 5, ...fullFrame });
+    const short = depthOfField({
+      focalLengthMm: 24,
+      aperture: 2.8,
+      subjectDistanceM: 5,
+      ...fullFrame,
+    });
+    const long = depthOfField({
+      focalLengthMm: 200,
+      aperture: 2.8,
+      subjectDistanceM: 5,
+      ...fullFrame,
+    });
     expect(long.dofM).toBeLessThan(short.dofM);
   });
 
   it('smaller f-number (wider aperture) → narrower DoF', () => {
-    const narrow = depthOfField({ focalLengthMm: 50, aperture: 16, subjectDistanceM: 3, ...fullFrame });
-    const wide   = depthOfField({ focalLengthMm: 50, aperture: 1.4, subjectDistanceM: 3, ...fullFrame });
+    const narrow = depthOfField({
+      focalLengthMm: 50,
+      aperture: 16,
+      subjectDistanceM: 3,
+      ...fullFrame,
+    });
+    const wide = depthOfField({
+      focalLengthMm: 50,
+      aperture: 1.4,
+      subjectDistanceM: 3,
+      ...fullFrame,
+    });
     expect(wide.dofM).toBeLessThan(narrow.dofM);
   });
 
@@ -81,20 +103,34 @@ describe('depthOfField', () => {
   });
 
   it('hyperfocal distance = f² / (N × CoC)', () => {
-    const fmm = 50, N = 8, diag = 43.27;
+    const fmm = 50,
+      N = 8,
+      diag = 43.27;
     const coc = diag / 1500 / 1000; // in m
-    const r = depthOfField({ focalLengthMm: fmm, aperture: N, subjectDistanceM: 2, sensorDiagonalMm: diag });
+    const r = depthOfField({
+      focalLengthMm: fmm,
+      aperture: N,
+      subjectDistanceM: 2,
+      sensorDiagonalMm: diag,
+    });
     const expected = (fmm / 1000) ** 2 / (N * coc);
     expect(r.hyperfocalDistanceM).toBeCloseTo(expected, 0);
   });
 
   it('CoC = sensorDiagonal / 1500 (mm)', () => {
-    const r = depthOfField({ focalLengthMm: 50, aperture: 5.6, subjectDistanceM: 3, sensorDiagonalMm: 43.27 });
+    const r = depthOfField({
+      focalLengthMm: 50,
+      aperture: 5.6,
+      subjectDistanceM: 3,
+      sensorDiagonalMm: 43.27,
+    });
     expect(r.cocMm).toBeCloseTo(43.27 / 1500, 4);
   });
 
   it('throws for non-positive focal length', () => {
-    expect(() => depthOfField({ focalLengthMm: 0, aperture: 5.6, subjectDistanceM: 3, ...fullFrame })).toThrow();
+    expect(() =>
+      depthOfField({ focalLengthMm: 0, aperture: 5.6, subjectDistanceM: 3, ...fullFrame })
+    ).toThrow();
   });
 });
 
@@ -158,19 +194,51 @@ describe('renderBudget', () => {
   });
 
   it('distributed time = single-node time / nodes', () => {
-    const single = renderBudget({ resolutionPx: [1280, 720], samplesPerPixel: 256, maxBounces: 4, renderNodes: 1, raysPerSecondMPerNode: 200 });
-    const multi  = renderBudget({ resolutionPx: [1280, 720], samplesPerPixel: 256, maxBounces: 4, renderNodes: 4, raysPerSecondMPerNode: 200 });
+    const single = renderBudget({
+      resolutionPx: [1280, 720],
+      samplesPerPixel: 256,
+      maxBounces: 4,
+      renderNodes: 1,
+      raysPerSecondMPerNode: 200,
+    });
+    const multi = renderBudget({
+      resolutionPx: [1280, 720],
+      samplesPerPixel: 256,
+      maxBounces: 4,
+      renderNodes: 4,
+      raysPerSecondMPerNode: 200,
+    });
     expect(multi.secondsPerFrameDistributed).toBeCloseTo(single.secondsPerFrameDistributed / 4, 4);
   });
 
   it('more render nodes → less time per frame', () => {
-    const one  = renderBudget({ resolutionPx: [1920, 1080], samplesPerPixel: 128, maxBounces: 6, renderNodes: 1, raysPerSecondMPerNode: 100 });
-    const ten  = renderBudget({ resolutionPx: [1920, 1080], samplesPerPixel: 128, maxBounces: 6, renderNodes: 10, raysPerSecondMPerNode: 100 });
+    const one = renderBudget({
+      resolutionPx: [1920, 1080],
+      samplesPerPixel: 128,
+      maxBounces: 6,
+      renderNodes: 1,
+      raysPerSecondMPerNode: 100,
+    });
+    const ten = renderBudget({
+      resolutionPx: [1920, 1080],
+      samplesPerPixel: 128,
+      maxBounces: 6,
+      renderNodes: 10,
+      raysPerSecondMPerNode: 100,
+    });
     expect(ten.secondsPerFrameDistributed).toBeLessThan(one.secondsPerFrameDistributed);
   });
 
   it('throws for non-positive resolution', () => {
-    expect(() => renderBudget({ resolutionPx: [0, 1080], samplesPerPixel: 64, maxBounces: 4, renderNodes: 1, raysPerSecondMPerNode: 100 })).toThrow();
+    expect(() =>
+      renderBudget({
+        resolutionPx: [0, 1080],
+        samplesPerPixel: 64,
+        maxBounces: 4,
+        renderNodes: 1,
+        raysPerSecondMPerNode: 100,
+      })
+    ).toThrow();
   });
 });
 

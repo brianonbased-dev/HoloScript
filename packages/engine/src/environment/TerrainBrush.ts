@@ -153,7 +153,9 @@ export class TerrainBrush {
 
         if (newHeight !== oldHeight) {
           heightmap[idx] = newHeight;
-          affectedCells.push(Object.assign({ x: cx, z: cz, oldHeight, newHeight }, { 0: cx, 2: cz }));
+          affectedCells.push(
+            Object.assign({ x: cx, z: cz, oldHeight, newHeight }, { 0: cx, 2: cz })
+          );
         }
       }
     }

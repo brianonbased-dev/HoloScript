@@ -1,12 +1,10 @@
-import type { Vector3 } from '../types';
-﻿/**
+import type { Vector3 } from '../types'; /**
  * ControllerInput Trait
  *
  * 6DOF controller input mapping with button states, triggers, and thumbsticks.
  *
  * @version 2.0.0
  */
-
 import type { TraitHandler } from './TraitTypes';
 
 // =============================================================================
@@ -260,7 +258,12 @@ export const controllerInputHandler: TraitHandler<ControllerInputConfig> = {
       state.prevGrip[hand] = gripPressed;
 
       // Thumbstick movement
-      const thumb = controller.thumbstick as unknown as { x?: number; y?: number; 0?: number; 1?: number };
+      const thumb = controller.thumbstick as unknown as {
+        x?: number;
+        y?: number;
+        0?: number;
+        1?: number;
+      };
       const stickX =
         applyDeadzone((thumb.x ?? thumb[0] ?? 0) as number, config.deadzone) *
         config.thumbstick_sensitivity;

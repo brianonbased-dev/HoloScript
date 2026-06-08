@@ -192,7 +192,7 @@ describe('[Paper-10 §3.2] IncrementalCompiler provenance-keyed cross-session ca
     // V2: Ball traits changed, Light unchanged
     const astV2 = makeComposition('Scene', [
       makeObject('Ball', ['collidable', 'physics']), // changed
-      makeObject('Light', ['emissive']),              // unchanged
+      makeObject('Light', ['emissive']), // unchanged
     ]);
 
     // Session B: Ball content hash differs → recompile Ball; Light hash same → cache hit

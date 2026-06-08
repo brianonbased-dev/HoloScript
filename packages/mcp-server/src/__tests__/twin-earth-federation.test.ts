@@ -107,9 +107,9 @@ describe('twin-earth-federation', () => {
     expect(
       (result.missingPrimitives as string[]).some((p) => p.includes('crossMcpReceiptEnvelope'))
     ).toBe(true);
-    expect(
-      (result.missingPrimitives as string[]).some((p) => p.includes('rollbackMetadata'))
-    ).toBe(true);
+    expect((result.missingPrimitives as string[]).some((p) => p.includes('rollbackMetadata'))).toBe(
+      true
+    );
     expect(
       (result.missingPrimitives as string[]).some((p) => p.includes('sourceArtifactHash'))
     ).toBe(true);
@@ -139,7 +139,11 @@ describe('twin-earth-federation', () => {
       },
       { agentId: 'test', name: 'test' }
     );
-    const result = await invokePublishedMeshTool(manifest, {}, { allowHighRisk: true, signingCtx: mockSigningCtx });
+    const result = await invokePublishedMeshTool(
+      manifest,
+      {},
+      { allowHighRisk: true, signingCtx: mockSigningCtx }
+    );
     expect(result).toMatchObject({
       success: false,
       error: expect.stringContaining('transitive invocation'),

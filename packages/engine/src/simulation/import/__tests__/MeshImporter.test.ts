@@ -6,12 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  importMesh,
-  importMeshSync,
-  detectFormat,
-  MeshImportError,
-} from '../MeshImporter';
+import { importMesh, importMeshSync, detectFormat, MeshImportError } from '../MeshImporter';
 import { buildSTL } from '../STLParser';
 import { StructuralSolver } from '../../StructuralSolver';
 import type { TetMesh } from '../../AutoMesher';
@@ -47,12 +42,7 @@ function makeGmshText(): string {
 }
 
 function makeOBJText(): string {
-  return [
-    'v 0 0 0',
-    'v 1 0 0',
-    'v 0 1 0',
-    'f 1 2 3',
-  ].join('\n');
+  return ['v 0 0 0', 'v 1 0 0', 'v 0 1 0', 'f 1 2 3'].join('\n');
 }
 
 function solverFromTetMesh(tetMesh: TetMesh): StructuralSolver {
@@ -88,7 +78,13 @@ describe('detectFormat', () => {
   });
 
   it('detects STL from ArrayBuffer header', () => {
-    const buf = buildSTL([[[0, 0, 0], [1, 0, 0], [0, 1, 0]]]);
+    const buf = buildSTL([
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
+    ]);
     expect(detectFormat(buf)).toBe('stl');
   });
 
@@ -115,8 +111,16 @@ describe('importMeshSync', () => {
 
   it('parses STL into a SurfaceMesh (no tetrahedralization sync)', () => {
     const buf = buildSTL([
-      [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
-      [[1, 0, 0], [1, 1, 0], [0, 1, 0]],
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
+      [
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0],
+      ],
     ]);
     const result = importMeshSync(buf);
     expect(result.format).toBe('stl');
@@ -149,8 +153,16 @@ describe('importMesh', () => {
 
   it('STL → surfaceMesh → fallback bounding-box TetMesh', async () => {
     const buf = buildSTL([
-      [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
-      [[1, 0, 0], [1, 1, 0], [0, 1, 0]],
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
+      [
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0],
+      ],
     ]);
     const result = await importMesh(buf, { tetrahedralize: true });
     expect(result.format).toBe('stl');
@@ -163,7 +175,13 @@ describe('importMesh', () => {
   });
 
   it('STL with tetrahedralize=false returns only surfaceMesh', async () => {
-    const buf = buildSTL([[[0, 0, 0], [1, 0, 0], [0, 1, 0]]]);
+    const buf = buildSTL([
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
+    ]);
     const result = await importMesh(buf, { tetrahedralize: false });
     expect(result.tetMesh).toBeUndefined();
     expect(result.surfaceMesh).toBeDefined();
@@ -190,8 +208,16 @@ describe('MeshImporter → StructuralSolverTET10 pipeline', () => {
 
   it('STL → importMesh → TetMesh feeds into the solver', async () => {
     const buf = buildSTL([
-      [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
-      [[1, 0, 0], [1, 1, 0], [0, 1, 0]],
+      [
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 1, 0],
+      ],
+      [
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0],
+      ],
     ]);
     const imported = await importMesh(buf, { tetrahedralize: true });
     expect(imported.tetMesh).toBeDefined();

@@ -74,7 +74,7 @@ export const DEBUG_HOLOGRAM: HologramProperties = {
  */
 export async function executeDebug(
   node: ASTNode & { target?: string },
-  ctx: DebugExecutorContext,
+  ctx: DebugExecutorContext
 ): Promise<ExecutionResult> {
   const debugInfo = {
     variables: Object.fromEntries(ctx.scopeVariables),

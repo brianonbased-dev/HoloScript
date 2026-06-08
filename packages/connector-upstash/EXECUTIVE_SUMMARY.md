@@ -39,11 +39,13 @@ A unified MCP connector package that integrates three Upstash services into Holo
 **Total:** 25 tools across 3 subsystems
 
 ### Redis (7 tools)
+
 - `upstash_redis_cache_get/set/delete` - Scene caching with TTL
 - `upstash_redis_session_get/set` - Session state persistence
 - `upstash_redis_prefs_get/set` - User preferences storage
 
 ### Vector (6 tools)
+
 - `upstash_vector_upsert` - Add composition embeddings
 - `upstash_vector_search` - Vector similarity search
 - `upstash_vector_search_text` - Natural language search (auto-embeds)
@@ -52,6 +54,7 @@ A unified MCP connector package that integrates three Upstash services into Holo
 - `upstash_vector_info` - Index statistics
 
 ### QStash (12 tools)
+
 - `upstash_qstash_schedule` - Create cron job
 - `upstash_qstash_publish` - One-time message with delay
 - `upstash_qstash_list/get/delete` - Schedule management
@@ -112,7 +115,7 @@ const cacheKey = `scene:${hash(code)}:${target}`;
 await connector.executeTool('upstash_redis_cache_set', {
   key: cacheKey,
   value: compiledOutput,
-  ttl: 86400 // 24 hours
+  ttl: 86400, // 24 hours
 });
 ```
 
@@ -122,7 +125,7 @@ await connector.executeTool('upstash_redis_cache_set', {
 // "Find me similar physics simulations"
 const similar = await connector.executeTool('upstash_vector_search_text', {
   query: 'physics simulation with rigidbody',
-  topK: 10
+  topK: 10,
 });
 ```
 
@@ -134,13 +137,13 @@ await connector.executeTool('upstash_schedule_nightly_compilation', {
   url: 'https://ci.holoscript.net/build',
   target: 'unity',
   scene: 'production/main.holo',
-  hour: 2 // 2 AM UTC
+  hour: 2, // 2 AM UTC
 });
 
 // Trigger deployment after 5-minute delay
 await connector.executeTool('upstash_trigger_deployment', {
   deploymentUrl: 'https://deploy.holoscript.net',
-  delaySeconds: 300
+  delaySeconds: 300,
 });
 ```
 
@@ -151,7 +154,7 @@ await connector.executeTool('upstash_trigger_deployment', {
 await connector.executeTool('upstash_qstash_schedule', {
   cron: '0 */6 * * *',
   url: 'https://holoclaw.holoscript.net/skills/optimize-scene/execute',
-  body: { skillId: 'optimize-scene', budget: 0.50 }
+  body: { skillId: 'optimize-scene', budget: 0.5 },
 });
 ```
 
@@ -165,6 +168,7 @@ await connector.executeTool('upstash_qstash_schedule', {
 - `UpstashConnector.test.ts` - 32 tests (integration, all 25 tools, error handling)
 
 **Test patterns:**
+
 - Mocked Upstash SDKs for deterministic testing
 - Connection lifecycle (connect/disconnect/health)
 - Tool execution with various argument combinations
@@ -173,6 +177,7 @@ await connector.executeTool('upstash_qstash_schedule', {
 ## Dependencies
 
 ### Production
+
 - `@holoscript/connector-core` - ServiceConnector base class, McpRegistrar
 - `@modelcontextprotocol/sdk` - MCP tool types
 - `@upstash/redis` - HTTP-based Redis client
@@ -180,6 +185,7 @@ await connector.executeTool('upstash_qstash_schedule', {
 - `@upstash/qstash` - Serverless scheduling + webhooks
 
 ### Development
+
 - `typescript` - Type safety
 - `vitest` - Testing framework
 - `@types/node` - Node.js types
@@ -263,6 +269,7 @@ const results = await connector.executeTool('upstash_vector_search', { vector: e
 ## Future Enhancements
 
 ### Potential Additions
+
 1. **Upstash Kafka** - Event streaming for real-time collaboration
 2. **Rate limiting** - Per-user quota enforcement via Redis
 3. **Caching layers** - Multi-tier cache (memory → Redis → origin)
@@ -270,6 +277,7 @@ const results = await connector.executeTool('upstash_vector_search', { vector: e
 5. **Analytics** - Query performance tracking via QStash
 
 ### Known Limitations
+
 - HTTP latency overhead (~50ms vs raw TCP for Redis)
 - Vector search limited to cosine/euclidean similarity (no custom metrics)
 - QStash delivery SLA is eventually-consistent (1-2s typical)
@@ -309,6 +317,7 @@ const results = await connector.executeTool('upstash_vector_search', { vector: e
 ## Metrics for Success
 
 **KPIs to track:**
+
 1. Cache hit rate (target: 90%+)
 2. Vector search latency (target: <100ms p95)
 3. QStash delivery success rate (target: 99.9%)

@@ -22,7 +22,7 @@ function walk(dir: string): string[] {
 async function validateExamples() {
   const rootDir = process.cwd();
   const packagesDir = path.join(rootDir, 'packages');
-  const filesToValidate = walk(packagesDir).filter(file => !file.includes('node_modules'));
+  const filesToValidate = walk(packagesDir).filter((file) => !file.includes('node_modules'));
 
   console.log(`Found ${filesToValidate.length} HoloScript files to validate.`);
 
@@ -31,7 +31,7 @@ async function validateExamples() {
 
   for (const file of filesToValidate) {
     const source = fs.readFileSync(file, 'utf8');
-    
+
     // Attempt parse
     try {
       const result = parser.parse(source, { tolerant: true });

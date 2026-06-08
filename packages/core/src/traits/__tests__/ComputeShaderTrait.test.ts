@@ -48,9 +48,16 @@ describe('ComputeShaderTrait — onEvent', () => {
   it('cs:compile stores shader and emits cs:compiled', () => {
     const node = makeNode();
     computeShaderHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    computeShaderHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'cs:compile', shaderId: 'blur', workgroups: [64, 1, 1],
-    } as never);
+    computeShaderHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'cs:compile',
+        shaderId: 'blur',
+        workgroups: [64, 1, 1],
+      } as never
+    );
     const state = node.__csState as { shaders: Map<string, { workgroups: number[] }> };
     expect(state.shaders.get('blur')?.workgroups).toEqual([64, 1, 1]);
     expect(node.emit).toHaveBeenCalledWith('cs:compiled', { shaderId: 'blur' });
@@ -59,9 +66,15 @@ describe('ComputeShaderTrait — onEvent', () => {
   it('cs:compile uses default workgroups when not provided', () => {
     const node = makeNode();
     computeShaderHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    computeShaderHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'cs:compile', shaderId: 'default-wg',
-    } as never);
+    computeShaderHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'cs:compile',
+        shaderId: 'default-wg',
+      } as never
+    );
     const state = node.__csState as { shaders: Map<string, { workgroups: number[] }> };
     expect(state.shaders.get('default-wg')?.workgroups).toEqual([64, 1, 1]);
   });
@@ -69,9 +82,15 @@ describe('ComputeShaderTrait — onEvent', () => {
   it('cs:dispatch increments count and emits cs:dispatched', () => {
     const node = makeNode();
     computeShaderHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    computeShaderHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'cs:dispatch', shaderId: 'blur',
-    } as never);
+    computeShaderHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'cs:dispatch',
+        shaderId: 'blur',
+      } as never
+    );
     const state = node.__csState as { dispatches: number };
     expect(state.dispatches).toBe(1);
     expect(node.emit).toHaveBeenCalledWith('cs:dispatched', { shaderId: 'blur', dispatches: 1 });
@@ -81,9 +100,15 @@ describe('ComputeShaderTrait — onEvent', () => {
     const node = makeNode();
     computeShaderHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
     for (let i = 0; i < 5; i++) {
-      computeShaderHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-        type: 'cs:dispatch', shaderId: 's',
-      } as never);
+      computeShaderHandler.onEvent!(
+        node as never,
+        defaultConfig,
+        makeCtx(node) as never,
+        {
+          type: 'cs:dispatch',
+          shaderId: 's',
+        } as never
+      );
     }
     const state = node.__csState as { dispatches: number };
     expect(state.dispatches).toBe(5);

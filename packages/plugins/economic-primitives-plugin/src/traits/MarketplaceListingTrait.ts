@@ -27,19 +27,65 @@ export interface MarketplaceListingState {
   reviewCount: number;
 }
 
-const defaultConfig: MarketplaceListingConfig = { listingId: '', title: '', description: '', sellerAgentId: '', assetType: 'trait', price: 0, currency: 'USDC', pricingModel: 'fixed', royaltyPercent: 10, tags: [], licenseType: 'MIT' };
+const defaultConfig: MarketplaceListingConfig = {
+  listingId: '',
+  title: '',
+  description: '',
+  sellerAgentId: '',
+  assetType: 'trait',
+  price: 0,
+  currency: 'USDC',
+  pricingModel: 'fixed',
+  royaltyPercent: 10,
+  tags: [],
+  licenseType: 'MIT',
+};
 
 export function createMarketplaceListingHandler(): TraitHandler<MarketplaceListingConfig> {
-  return { name: 'marketplace_listing', defaultConfig,
-    onAttach(n: HSPlusNode, c: MarketplaceListingConfig, ctx: TraitContext) { n.__listingState = { status: 'draft' as ListingStatus, views: 0, purchases: 0, revenue: 0, rating: 0, reviewCount: 0 }; ctx.emit?.('listing:created', { title: c.title, price: c.price }); },
-    onDetach(n: HSPlusNode, _c: MarketplaceListingConfig, ctx: TraitContext) { delete n.__listingState; ctx.emit?.('listing:removed'); },
+  return {
+    name: 'marketplace_listing',
+    defaultConfig,
+    onAttach(n: HSPlusNode, c: MarketplaceListingConfig, ctx: TraitContext) {
+      n.__listingState = {
+        status: 'draft' as ListingStatus,
+        views: 0,
+        purchases: 0,
+        revenue: 0,
+        rating: 0,
+        reviewCount: 0,
+      };
+      ctx.emit?.('listing:created', { title: c.title, price: c.price });
+    },
+    onDetach(n: HSPlusNode, _c: MarketplaceListingConfig, ctx: TraitContext) {
+      delete n.__listingState;
+      ctx.emit?.('listing:removed');
+    },
     onUpdate() {},
     onEvent(n: HSPlusNode, c: MarketplaceListingConfig, ctx: TraitContext, e: TraitEvent) {
-      const s = n.__listingState as MarketplaceListingState | undefined; if (!s) return;
-      if (e.type === 'listing:publish') { s.status = 'active'; ctx.emit?.('listing:published', { listingId: c.listingId }); }
-      if (e.type === 'listing:purchase') { s.purchases++; s.revenue += c.price; ctx.emit?.('listing:sold', { buyer: e.payload?.buyerAgentId, revenue: s.revenue, royalty: c.price * c.royaltyPercent / 100 }); }
-      if (e.type === 'listing:view') { s.views++; }
-      if (e.type === 'listing:review') { const rating = (e.payload?.rating as number) ?? 5; s.rating = (s.rating * s.reviewCount + rating) / (s.reviewCount + 1); s.reviewCount++; ctx.emit?.('listing:reviewed', { avgRating: s.rating }); }
+      const s = n.__listingState as MarketplaceListingState | undefined;
+      if (!s) return;
+      if (e.type === 'listing:publish') {
+        s.status = 'active';
+        ctx.emit?.('listing:published', { listingId: c.listingId });
+      }
+      if (e.type === 'listing:purchase') {
+        s.purchases++;
+        s.revenue += c.price;
+        ctx.emit?.('listing:sold', {
+          buyer: e.payload?.buyerAgentId,
+          revenue: s.revenue,
+          royalty: (c.price * c.royaltyPercent) / 100,
+        });
+      }
+      if (e.type === 'listing:view') {
+        s.views++;
+      }
+      if (e.type === 'listing:review') {
+        const rating = (e.payload?.rating as number) ?? 5;
+        s.rating = (s.rating * s.reviewCount + rating) / (s.reviewCount + 1);
+        s.reviewCount++;
+        ctx.emit?.('listing:reviewed', { avgRating: s.rating });
+      }
     },
   };
 }

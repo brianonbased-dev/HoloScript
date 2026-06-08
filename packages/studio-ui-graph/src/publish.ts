@@ -95,12 +95,22 @@ export async function publishHolo(opts: PublishOptions): Promise<PublishResult> 
       contentBytes: content.length,
       contentSha256: sha,
       endpoint,
-      responseBody: JSON.stringify({ dryRun: true, would_post_to: endpoint, payload_size_bytes: JSON.stringify(payload).length }, null, 2),
+      responseBody: JSON.stringify(
+        {
+          dryRun: true,
+          would_post_to: endpoint,
+          payload_size_bytes: JSON.stringify(payload).length,
+        },
+        null,
+        2
+      ),
     };
   }
 
   if (!apiKey) {
-    throw new Error('publishHolo: missing HOLOSCRIPT_API_KEY (or MCP_API_KEY) — set the env var or pass --api-key');
+    throw new Error(
+      'publishHolo: missing HOLOSCRIPT_API_KEY (or MCP_API_KEY) — set the env var or pass --api-key'
+    );
   }
 
   const response = await fetch(endpoint, {

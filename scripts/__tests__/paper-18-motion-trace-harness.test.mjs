@@ -26,8 +26,18 @@ import {
 describe('Paper 18 Motion Trace Harness', () => {
   describe('generateMotionClip', () => {
     it('produces deterministic clips from the same seed', () => {
-      const clip1 = generateMotionClip({ category: 'locomotion', seed: 42, numFrames: 20, dt: 0.05 });
-      const clip2 = generateMotionClip({ category: 'locomotion', seed: 42, numFrames: 20, dt: 0.05 });
+      const clip1 = generateMotionClip({
+        category: 'locomotion',
+        seed: 42,
+        numFrames: 20,
+        dt: 0.05,
+      });
+      const clip2 = generateMotionClip({
+        category: 'locomotion',
+        seed: 42,
+        numFrames: 20,
+        dt: 0.05,
+      });
       expect(clip1.id).toBe(clip2.id);
       expect(clip1.frames).toHaveLength(clip2.frames.length);
       // Deep-compare first and last frame bone positions
@@ -39,8 +49,18 @@ describe('Paper 18 Motion Trace Harness', () => {
     });
 
     it('produces different clips from different seeds', () => {
-      const clip1 = generateMotionClip({ category: 'locomotion', seed: 1, numFrames: 20, dt: 0.05 });
-      const clip2 = generateMotionClip({ category: 'locomotion', seed: 2, numFrames: 20, dt: 0.05 });
+      const clip1 = generateMotionClip({
+        category: 'locomotion',
+        seed: 1,
+        numFrames: 20,
+        dt: 0.05,
+      });
+      const clip2 = generateMotionClip({
+        category: 'locomotion',
+        seed: 2,
+        numFrames: 20,
+        dt: 0.05,
+      });
       expect(clip1.id).not.toBe(clip2.id);
     });
 
@@ -115,7 +135,7 @@ describe('Paper 18 Motion Trace Harness', () => {
       });
 
       // Tamper: modify a payload field in a step event
-      const stepEvent = trace.find(e => e.event === 'step');
+      const stepEvent = trace.find((e) => e.event === 'step');
       expect(stepEvent).toBeDefined();
       stepEvent.payload.bones[0].position[0] = 999;
 
@@ -151,14 +171,20 @@ describe('Paper 18 Motion Trace Harness', () => {
         dt: 0.05,
       });
 
-      const interactionEvent = trace.find(e => e.event === 'interaction');
+      const interactionEvent = trace.find((e) => e.event === 'interaction');
       expect(interactionEvent).toBeDefined();
       expect(interactionEvent.payload.type).toBe('plausibility_check');
       expect(typeof interactionEvent.payload.plausibility).toBe('string');
     });
 
     it('produces deterministic traces from the same scenario', () => {
-      const scenario = { traceIndex: 10, category: 'locomotion', seed: 555, numFrames: 20, dt: 0.05 };
+      const scenario = {
+        traceIndex: 10,
+        category: 'locomotion',
+        seed: 555,
+        numFrames: 20,
+        dt: 0.05,
+      };
       const result1 = buildMotionTrace(scenario);
       const result2 = buildMotionTrace(scenario);
 
@@ -179,7 +205,7 @@ describe('Paper 18 Motion Trace Harness', () => {
 
     it('covers all 5 categories', () => {
       const scenarios = generateScenarios(50);
-      const categories = new Set(scenarios.map(s => s.category));
+      const categories = new Set(scenarios.map((s) => s.category));
       expect(categories.size).toBe(5);
     });
 

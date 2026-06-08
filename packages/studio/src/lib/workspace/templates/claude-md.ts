@@ -51,7 +51,7 @@ function reactConventions(dna: ScaffoldDNA): string {
 ## React Conventions
 - Functional components only. No class components.
 - Co-locate tests with components: \`Component.test.tsx\` next to \`Component.tsx\`.
-- Use named exports for components, default exports only for pages.${dna.frameworks.includes('next.js') ? '\n- Next.js: App Router. Server components by default, add `\'use client\'` only when needed.' : ''}
+- Use named exports for components, default exports only for pages.${dna.frameworks.includes('next.js') ? "\n- Next.js: App Router. Server components by default, add `'use client'` only when needed." : ''}
 `;
 }
 
@@ -133,7 +133,9 @@ function keyDirectories(dna: ScaffoldDNA): string {
 
   dirs.push('- `tests/` or `__tests__/` — Test files');
 
-  return dirs.length > 0 ? dirs.join('\n') : '- Project structure not auto-detected. Explore with `ls`.';
+  return dirs.length > 0
+    ? dirs.join('\n')
+    : '- Project structure not auto-detected. Explore with `ls`.';
 }
 
 // ─── Main template ──────────────────────────────────────────────────────────

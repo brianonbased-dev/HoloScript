@@ -74,17 +74,21 @@ describe('computeMeasurementBasis', () => {
   });
 
   it('returns X at positions where any term has X', () => {
-    expect(computeMeasurementBasis([
-      { pauli: 'XZ', coefficient: 1 },
-      { pauli: 'ZX', coefficient: 1 },
-    ])).toBe('XX');
+    expect(
+      computeMeasurementBasis([
+        { pauli: 'XZ', coefficient: 1 },
+        { pauli: 'ZX', coefficient: 1 },
+      ])
+    ).toBe('XX');
   });
 
   it('Y takes priority over X at same position', () => {
-    expect(computeMeasurementBasis([
-      { pauli: 'YI', coefficient: 1 },
-      { pauli: 'XI', coefficient: 0.5 },
-    ])).toBe('YI');
+    expect(
+      computeMeasurementBasis([
+        { pauli: 'YI', coefficient: 1 },
+        { pauli: 'XI', coefficient: 0.5 },
+      ])
+    ).toBe('YI');
   });
 
   it('returns empty string for empty terms', () => {
@@ -98,10 +102,10 @@ describe('groupPauliTerms', () => {
   it('groups a simple H2 Hamiltonian into commuting sets', () => {
     const h2: PauliTerm[] = parsePauliList([
       ['II', -1.0523732],
-      ['IZ',  0.3979374],
+      ['IZ', 0.3979374],
       ['ZI', -0.3979374],
       ['ZZ', -0.0112801],
-      ['XX',  0.1809312],
+      ['XX', 0.1809312],
     ]);
 
     const result = groupPauliTerms(h2);
@@ -156,25 +160,25 @@ describe('groupPauliTerms', () => {
     // - Cross-type (X/Z) anticommute on overlapping qubits
     const terms: PauliTerm[] = parsePauliList([
       ['IIII', -1.0],
-      ['IIZI',  0.15],
-      ['IZII',  0.20],
-      ['ZIII',  0.15],
-      ['IIZZ',  0.08],
-      ['IZIZ',  0.04],
-      ['ZIIZ',  0.08],
-      ['IZZI',  0.02],
-      ['ZIZI',  0.02],
-      ['ZZII',  0.03],
-      ['IIXX',  0.05],
-      ['IXIX',  0.03],
-      ['XXII',  0.05],
-      ['XIXI',  0.03],
-      ['IIYY',  0.05],
-      ['IYIY',  0.03],
-      ['YYII',  0.05],
-      ['YIYI',  0.03],
-      ['XXYY',  0.01],
-      ['YYXX',  0.01],
+      ['IIZI', 0.15],
+      ['IZII', 0.2],
+      ['ZIII', 0.15],
+      ['IIZZ', 0.08],
+      ['IZIZ', 0.04],
+      ['ZIIZ', 0.08],
+      ['IZZI', 0.02],
+      ['ZIZI', 0.02],
+      ['ZZII', 0.03],
+      ['IIXX', 0.05],
+      ['IXIX', 0.03],
+      ['XXII', 0.05],
+      ['XIXI', 0.03],
+      ['IIYY', 0.05],
+      ['IYIY', 0.03],
+      ['YYII', 0.05],
+      ['YIYI', 0.03],
+      ['XXYY', 0.01],
+      ['YYXX', 0.01],
     ]);
 
     const result = groupPauliTerms(terms);
@@ -188,9 +192,7 @@ describe('groupPauliTerms', () => {
     for (const group of result.groups) {
       for (let i = 0; i < group.terms.length; i++) {
         for (let j = i + 1; j < group.terms.length; j++) {
-          expect(
-            paulisCommute(group.terms[i]!.pauli, group.terms[j]!.pauli),
-          ).toBe(true);
+          expect(paulisCommute(group.terms[i]!.pauli, group.terms[j]!.pauli)).toBe(true);
         }
       }
     }
@@ -221,9 +223,13 @@ describe('groupPauliTerms', () => {
 
 describe('estimateMeasurementCost', () => {
   it('estimates cost for a known grouping', () => {
-    const grouping = groupPauliTerms(parsePauliList([
-      ['ZZ', 1], ['XX', 1], ['II', -1],
-    ]));
+    const grouping = groupPauliTerms(
+      parsePauliList([
+        ['ZZ', 1],
+        ['XX', 1],
+        ['II', -1],
+      ])
+    );
     const cost = estimateMeasurementCost(grouping, 8192);
 
     expect(cost.numCircuits).toBe(grouping.numGroups);

@@ -238,7 +238,7 @@ export const patrolHandler: TraitHandler<PatrolConfig> = {
       const angle = Math.atan2(dx, dz);
       context.emit?.('set_rotation', {
         node,
-        rotation: [0, angle, 0 ],
+        rotation: [0, angle, 0],
       });
     }
 

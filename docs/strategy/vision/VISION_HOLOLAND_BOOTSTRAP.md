@@ -32,19 +32,19 @@ You (in VR) → Voice/Gesture → Brittney (spatial AI agent)
 
 ### What Works Today
 
-| Component           | Status          | Details                                                                  |
-| ------------------- | --------------- | ------------------------------------------------------------------------ |
-| HoloScript Parser   | ✅ v3.4.0       | Lexer, parser, AST — handles `composition`, `template`, `object`, traits |
-| 18 Compiler Targets | ✅              | R3F, Three.js, Unity, Unreal, WebGPU, USD, URDF, etc.                    |
-| 2,000+ Traits       | ✅              | 73+ module files, scientific computing, robotics, VR interaction         |
-| Runtime Engine      | ✅              | 50+ subsystems: physics, navigation, WebXR, voice, hot-reload            |
+| Component           | Status                            | Details                                                                  |
+| ------------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| HoloScript Parser   | ✅ v3.4.0                         | Lexer, parser, AST — handles `composition`, `template`, `object`, traits |
+| 18 Compiler Targets | ✅                                | R3F, Three.js, Unity, Unreal, WebGPU, USD, URDF, etc.                    |
+| 2,000+ Traits       | ✅                                | 73+ module files, scientific computing, robotics, VR interaction         |
+| Runtime Engine      | ✅                                | 50+ subsystems: physics, navigation, WebXR, voice, hot-reload            |
 | MCP Server          | ✅ 122 tools (at time of writing) | Parse, validate, generate, graph, IDE features, browser control          |
-| Studio              | ✅ v0.1.0       | Next.js scene builder with 5 templates, AI generation                    |
-| Plugin System       | ✅              | PluginAPI (sandboxed), PluginLoader, ModRegistry                         |
-| Brittney Model      | ✅ v4           | Fine-tuned on ~50K HoloScript examples, Ollama inference                 |
-| Brittney MCP (IDE)  | ✅              | Code generation, diagnostics, autocomplete, explain, fix                 |
-| Hololand Platform   | ✅ 43+ packages | Three.js/Babylon/PlayCanvas adapters, physics, networking, AR            |
-| TrainingMonkey      | ✅ v1.0         | 8 MCP coordination tools, knowledge base, multi-agent protocol           |
+| Studio              | ✅ v0.1.0                         | Next.js scene builder with 5 templates, AI generation                    |
+| Plugin System       | ✅                                | PluginAPI (sandboxed), PluginLoader, ModRegistry                         |
+| Brittney Model      | ✅ v4                             | Fine-tuned on ~50K HoloScript examples, Ollama inference                 |
+| Brittney MCP (IDE)  | ✅                                | Code generation, diagnostics, autocomplete, explain, fix                 |
+| Hololand Platform   | ✅ 43+ packages                   | Three.js/Babylon/PlayCanvas adapters, physics, networking, AR            |
+| TrainingMonkey      | ✅ v1.0                           | 8 MCP coordination tools, knowledge base, multi-agent protocol           |
 
 ### What Hololand Is Today (The Legacy Problem)
 
@@ -169,13 +169,13 @@ Hololand Central is **~50 TypeScript/React files** that should be **~50 HoloScri
 
 **Owner**: All repos
 
-| Task                                               | Details                                                                                   |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Brittney writes to `.hsplus` files on disk from VR | Voice command → generate code → write file → hot-reload picks it up                       |
-| Version control integration                        | Each Brittney edit creates a git commit with descriptive message                          |
-| Rollback mechanism                                 | "Brittney, undo that last change" → git revert → hot-reload                               |
-| Collaborative editing                              | Multiple users in VR, each with their own AI agent (Brittney is one option), non-conflicting edits via CRDT                  |
-| Self-improvement loop                              | Brittney logs failed generations → TrainingMonkey harvests them → next fine-tune improves |
+| Task                                               | Details                                                                                                     |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Brittney writes to `.hsplus` files on disk from VR | Voice command → generate code → write file → hot-reload picks it up                                         |
+| Version control integration                        | Each Brittney edit creates a git commit with descriptive message                                            |
+| Rollback mechanism                                 | "Brittney, undo that last change" → git revert → hot-reload                                                 |
+| Collaborative editing                              | Multiple users in VR, each with their own AI agent (Brittney is one option), non-conflicting edits via CRDT |
+| Self-improvement loop                              | Brittney logs failed generations → TrainingMonkey harvests them → next fine-tune improves                   |
 
 **Validation**: In VR, tell Brittney to add a new zone. She generates the files, the zone appears, you walk into it. Tell her to change the skybox — it changes. Tell her to undo — it reverts. All without leaving VR.
 
@@ -201,13 +201,13 @@ Phase 0 (Language)
 
 ## Success Criteria
 
-| Milestone        | Metric                                                              |
-| ---------------- | ------------------------------------------------------------------- |
-| **"It Parses"**  | `app.hsplus` from migration spec parses without errors (Phase 0)    |
-| **"It Runs"**    | Multi-file `.hsplus` app renders in browser with WebXR (Phase 1)    |
-| **"She Knows"**  | Brittney generates valid Hololand-specific code (Phase 2)           |
-| **"She's Here"** | Brittney exists as a spatial agent in VR (Phase 3)                  |
-| **"Dogfooding"** | Hololand Central runs from HoloScript root composition (Phase 4)    |
+| Milestone        | Metric                                                                                                                 |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **"It Parses"**  | `app.hsplus` from migration spec parses without errors (Phase 0)                                                       |
+| **"It Runs"**    | Multi-file `.hsplus` app renders in browser with WebXR (Phase 1)                                                       |
+| **"She Knows"**  | Brittney generates valid Hololand-specific code (Phase 2)                                                              |
+| **"She's Here"** | Brittney exists as a spatial agent in VR (Phase 3)                                                                     |
+| **"Dogfooding"** | Hololand Central runs from HoloScript root composition (Phase 4)                                                       |
 | **"The Dream"**  | Build HoloLand from inside HoloLand on the Twin Earth substrate; Brittney participates as one AI agent in VR (Phase 5) |
 
 ---

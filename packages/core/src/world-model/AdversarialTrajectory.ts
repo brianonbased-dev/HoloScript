@@ -334,8 +334,7 @@ export function hasReplayEvidence(trajectory: AdversarialTrajectory): boolean {
     contract.contractId.trim().length > 0 &&
     handle.simulationContractId === contract.contractId &&
     handle.replayCommand.trim().length > 0 &&
-    (contract.replayDigestMode === 'unsigned-observed' ||
-      contract.fieldQuantization.length > 0)
+    (contract.replayDigestMode === 'unsigned-observed' || contract.fieldQuantization.length > 0)
   );
 }
 

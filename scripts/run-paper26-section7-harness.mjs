@@ -40,9 +40,10 @@ if (args.help) {
 }
 
 const outPath = path.resolve(String(args.out ?? DEFAULT_OUT));
-const markdownOutPath = args['markdown-out'] === false
-  ? null
-  : path.resolve(String(args['markdown-out'] ?? DEFAULT_MARKDOWN_OUT));
+const markdownOutPath =
+  args['markdown-out'] === false
+    ? null
+    : path.resolve(String(args['markdown-out'] ?? DEFAULT_MARKDOWN_OUT));
 const selfTest = Boolean(args['self-test']);
 const skipTests = Boolean(args['skip-tests']);
 const iterations = positiveInt(args.iterations, selfTest ? 3 : 8, 'iterations');
@@ -55,7 +56,11 @@ const gitHead = git(['rev-parse', 'HEAD']).trim() || null;
 const codeBench = selfTest
   ? runCodeBenchSelfTest()
   : skipTests
-    ? { skipped: true, reason: '--skip-tests', tables: { holographLookup: [], holoembedRecall: [] } }
+    ? {
+        skipped: true,
+        reason: '--skip-tests',
+        tables: { holographLookup: [], holoembedRecall: [] },
+      }
     : runCodeBenchVitest();
 
 const coordination = await runCoordinationBench({ selfTest, iterations, concurrency, timeoutMs });
@@ -234,9 +239,22 @@ function parseCodeBenchTables(text) {
 async function runCoordinationBench({ selfTest, iterations, concurrency, timeoutMs }) {
   if (selfTest) return runOfflineCoordinationBench({ iterations, concurrency });
 
-  const apiBase = String(args['api-base'] ?? process.env.HOLOMESH_API_BASE ?? process.env.HOLOMESH_API_URL ?? DEFAULT_HOLOMESH_BASE).replace(/\/$/, '');
-  const teamId = String(args['team-id'] ?? process.env.HOLOMESH_TEAM_ID ?? process.env.TEAM_ID ?? '');
-  const apiKey = String(args['api-key'] ?? process.env.HOLOMESH_API_KEY ?? process.env.HOLOSCRIPT_API_KEY ?? process.env.MCP_API_KEY ?? '');
+  const apiBase = String(
+    args['api-base'] ??
+      process.env.HOLOMESH_API_BASE ??
+      process.env.HOLOMESH_API_URL ??
+      DEFAULT_HOLOMESH_BASE
+  ).replace(/\/$/, '');
+  const teamId = String(
+    args['team-id'] ?? process.env.HOLOMESH_TEAM_ID ?? process.env.TEAM_ID ?? ''
+  );
+  const apiKey = String(
+    args['api-key'] ??
+      process.env.HOLOMESH_API_KEY ??
+      process.env.HOLOSCRIPT_API_KEY ??
+      process.env.MCP_API_KEY ??
+      ''
+  );
 
   if (!teamId || !apiKey) {
     return {
@@ -286,11 +304,20 @@ async function runCoordinationBench({ selfTest, iterations, concurrency, timeout
       ok: burstOk.length,
       wallMs: round(burstWallMs, 3),
       throughputRps: round(burstOk.length / Math.max(burstWallMs / 1000, 0.001), 3),
-      p50Ms: percentile(burstOk.map((m) => m.latencyMs), 0.5),
-      p95Ms: percentile(burstOk.map((m) => m.latencyMs), 0.95),
+      p50Ms: percentile(
+        burstOk.map((m) => m.latencyMs),
+        0.5
+      ),
+      p95Ms: percentile(
+        burstOk.map((m) => m.latencyMs),
+        0.95
+      ),
     },
     sample: summarizeBoardPayload(lastPayload),
-    errors: [...sequential, ...burst].filter((m) => !m.ok).slice(0, 5).map((m) => m.error),
+    errors: [...sequential, ...burst]
+      .filter((m) => !m.ok)
+      .slice(0, 5)
+      .map((m) => m.error),
     gate: {
       pass: successRate >= 0.95 && burstSuccessRate >= 0.95 && Number.isFinite(p95),
       successRate,
@@ -385,8 +412,14 @@ function summarizeLatencies(latencies, requested) {
     p50Ms: percentile(latencies, 0.5),
     p95Ms: percentile(latencies, 0.95),
     maxMs: percentile(latencies, 1),
-    meanMs: round(latencies.reduce((sum, value) => sum + value, 0) / Math.max(latencies.length, 1), 3),
-    throughputRps: round(latencies.length / Math.max(latencies.reduce((sum, value) => sum + value, 0) / 1000, 0.001), 3),
+    meanMs: round(
+      latencies.reduce((sum, value) => sum + value, 0) / Math.max(latencies.length, 1),
+      3
+    ),
+    throughputRps: round(
+      latencies.length / Math.max(latencies.reduce((sum, value) => sum + value, 0) / 1000, 0.001),
+      3
+    ),
   };
 }
 
@@ -426,7 +459,10 @@ function renderMarkdown(summary, jsonPath) {
     ? [
         '| Provider | Files | Symbols | Events | HoloGraph us | Embedding us | HG recall | Emb recall@10 | Speedup |',
         '|---|---:|---:|---:|---:|---:|---:|---:|---:|',
-        ...hgRows.map((r) => `| ${r.provider} | ${r.files} | ${r.symbols} | ${r.events} | ${r.holoGraphQueryUs} | ${r.embeddingQueryUs} | ${r.holoGraphRecall} | ${r.embeddingRecallAt10} | ${r.speedupRatio}x |`),
+        ...hgRows.map(
+          (r) =>
+            `| ${r.provider} | ${r.files} | ${r.symbols} | ${r.events} | ${r.holoGraphQueryUs} | ${r.embeddingQueryUs} | ${r.holoGraphRecall} | ${r.embeddingRecallAt10} | ${r.speedupRatio}x |`
+        ),
       ].join('\n')
     : '_Skipped or unavailable._';
 
@@ -434,7 +470,9 @@ function renderMarkdown(summary, jsonPath) {
     ? [
         '| Provider | Recall@10 | Notes |',
         '|---|---:|---|',
-        ...heRows.map((r) => `| ${r.provider} | ${(r.recallAt10 * 100).toFixed(1)}% | ${r.notes} |`),
+        ...heRows.map(
+          (r) => `| ${r.provider} | ${(r.recallAt10 * 100).toFixed(1)}% | ${r.notes} |`
+        ),
       ].join('\n')
     : '_Skipped or unavailable._';
 

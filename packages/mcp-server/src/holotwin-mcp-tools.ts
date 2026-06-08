@@ -218,8 +218,7 @@ export const holotwinToolDefinitions: Tool[] = [
   },
   {
     name: 'holo_holotwin_status',
-    description:
-      'Get HoloTwin session status: sync state, sensor data, quilt hash, errors.',
+    description: 'Get HoloTwin session status: sync state, sensor data, quilt hash, errors.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -233,8 +232,7 @@ export const holotwinToolDefinitions: Tool[] = [
   },
   {
     name: 'holo_holotwin_disconnect',
-    description:
-      'Disconnect from IoT sensor and stop HoloTwin session.',
+    description: 'Disconnect from IoT sensor and stop HoloTwin session.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -287,8 +285,7 @@ export async function handleHoloTwinTool(
       const protocol = (args.protocol as 'mqtt' | 'http' | 'websocket') || 'mqtt';
       const connectionString =
         typeof args.connectionString === 'string' ? args.connectionString.trim() : '';
-      const displayDevice =
-        (args.displayDevice as LookingGlassDevice) || '16inch';
+      const displayDevice = (args.displayDevice as LookingGlassDevice) || '16inch';
 
       if (!physicalId || !connectionString) {
         throw new Error('holotwin: physicalId and connectionString are required');
@@ -387,7 +384,7 @@ export async function handleHoloTwinTool(
         quilt: result,
         hash: quiltHash,
         url: quiltUrl,
-        stub: true,    // quilt is simulated, not uploaded to Looking Glass
+        stub: true, // quilt is simulated, not uploaded to Looking Glass
       };
     }
 
@@ -395,8 +392,7 @@ export async function handleHoloTwinTool(
       const sessionId = typeof args.sessionId === 'string' ? args.sessionId.trim() : '';
       const recompileIntervalMs =
         typeof args.recompileIntervalMs === 'number' ? args.recompileIntervalMs : 1000;
-      const autoStop =
-        typeof args.autoStop === 'boolean' ? args.autoStop : false;
+      const autoStop = typeof args.autoStop === 'boolean' ? args.autoStop : false;
 
       const session = sessions.get(sessionId);
       if (!session) {
@@ -457,7 +453,8 @@ export async function handleHoloTwinTool(
 
     case 'holo_holotwin_example': {
       const device = (args.device as LookingGlassDevice) || '16inch';
-      const includeSimulation = typeof args.includeSimulation === 'boolean' ? args.includeSimulation : true;
+      const includeSimulation =
+        typeof args.includeSimulation === 'boolean' ? args.includeSimulation : true;
 
       // Generate complete example
       const example = generateHoloTwinExample(device, includeSimulation);

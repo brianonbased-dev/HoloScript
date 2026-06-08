@@ -38,7 +38,7 @@ describe('registerTrait collision guard (task_1780881034070_wnlv)', () => {
       onAttach: (
         _node: unknown,
         _config: unknown,
-        ctx: { emit: (event: string, payload?: unknown) => void },
+        ctx: { emit: (event: string, payload?: unknown) => void }
       ) => ctx.emit('dup_fired', { marker }),
     });
 
@@ -64,7 +64,7 @@ describe('registerTrait collision guard (task_1780881034070_wnlv)', () => {
       onAttach: (
         _node: unknown,
         _config: unknown,
-        ctx: { emit: (event: string, payload?: unknown) => void },
+        ctx: { emit: (event: string, payload?: unknown) => void }
       ) => ctx.emit('shared_dup_fired', { marker }),
     });
 

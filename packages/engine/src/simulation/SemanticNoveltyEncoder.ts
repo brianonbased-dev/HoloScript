@@ -96,14 +96,48 @@ export interface LabeledNoveltyPair {
  * Durable artifact: reused by the determinism gate (P1) and corpus work (P3).
  */
 export const LABELED_NOVELTY_EVAL_SET: ReadonlyArray<LabeledNoveltyPair> = [
-  { query: 'Any convex solid: corners minus edges plus faces is two.', reference: 'For every convex polyhedron, vertices minus edges plus faces equals two.', isMatch: true },
-  { query: 'The long side squared equals the sum of the squares of the two legs.', reference: 'In a right triangle the hypotenuse squared equals the sum of the squares of the other two sides.', isMatch: true },
-  { query: '4/n splits into three unit fractions for all n at least 2.', reference: 'For every integer n>=2, 4/n equals 1/x + 1/y + 1/z.', isMatch: true },
-  { query: 'Two curves of degree d and e cross in d times e points.', reference: 'Two generic plane curves of degrees d1 and d2 intersect in d1*d2 points.', isMatch: true },
-  { query: 'Every even number above two is a sum of two primes.', reference: 'For every integer n>=2, 4/n equals 1/x + 1/y + 1/z.', isMatch: false },
-  { query: 'A graph is planar iff it has no K5 or K3,3 minor.', reference: 'Two generic plane curves of degrees d1 and d2 intersect in d1*d2 points.', isMatch: false },
-  { query: 'In a right triangle the hypotenuse squared equals the sum of the squares of the other two sides.', reference: 'For every convex polyhedron, vertices minus edges plus faces equals two.', isMatch: false },
-  { query: 'The cat sat on the warm windowsill in the afternoon sun.', reference: 'For every convex polyhedron, vertices minus edges plus faces equals two.', isMatch: false },
+  {
+    query: 'Any convex solid: corners minus edges plus faces is two.',
+    reference: 'For every convex polyhedron, vertices minus edges plus faces equals two.',
+    isMatch: true,
+  },
+  {
+    query: 'The long side squared equals the sum of the squares of the two legs.',
+    reference:
+      'In a right triangle the hypotenuse squared equals the sum of the squares of the other two sides.',
+    isMatch: true,
+  },
+  {
+    query: '4/n splits into three unit fractions for all n at least 2.',
+    reference: 'For every integer n>=2, 4/n equals 1/x + 1/y + 1/z.',
+    isMatch: true,
+  },
+  {
+    query: 'Two curves of degree d and e cross in d times e points.',
+    reference: 'Two generic plane curves of degrees d1 and d2 intersect in d1*d2 points.',
+    isMatch: true,
+  },
+  {
+    query: 'Every even number above two is a sum of two primes.',
+    reference: 'For every integer n>=2, 4/n equals 1/x + 1/y + 1/z.',
+    isMatch: false,
+  },
+  {
+    query: 'A graph is planar iff it has no K5 or K3,3 minor.',
+    reference: 'Two generic plane curves of degrees d1 and d2 intersect in d1*d2 points.',
+    isMatch: false,
+  },
+  {
+    query:
+      'In a right triangle the hypotenuse squared equals the sum of the squares of the other two sides.',
+    reference: 'For every convex polyhedron, vertices minus edges plus faces equals two.',
+    isMatch: false,
+  },
+  {
+    query: 'The cat sat on the warm windowsill in the afternoon sun.',
+    reference: 'For every convex polyhedron, vertices minus edges plus faces equals two.',
+    isMatch: false,
+  },
 ];
 
 export interface ThresholdCalibration {
@@ -120,7 +154,7 @@ export interface ThresholdCalibration {
  * are separable and the margin. Deterministic; no model required.
  */
 export function calibrateNoveltyThreshold(
-  scored: ReadonlyArray<{ similarity: number; isMatch: boolean }>,
+  scored: ReadonlyArray<{ similarity: number; isMatch: boolean }>
 ): ThresholdCalibration {
   const match = scored.filter((s) => s.isMatch).map((s) => s.similarity);
   const noMatch = scored.filter((s) => !s.isMatch).map((s) => s.similarity);
@@ -156,7 +190,7 @@ export function cosineSimilarity(a: ReadonlyArray<number>, b: ReadonlyArray<numb
 export async function assessSemanticNovelty(
   query: string,
   corpus: ReadonlyArray<ConjecturePriorArtEntry>,
-  threshold: number = SEMANTIC_NOVELTY_THRESHOLD,
+  threshold: number = SEMANTIC_NOVELTY_THRESHOLD
 ): Promise<SemanticNoveltyAssessment> {
   if (typeof query !== 'string' || query.length === 0) {
     throw new Error('semantic-novelty: query must be a non-empty string');

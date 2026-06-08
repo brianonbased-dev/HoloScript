@@ -93,7 +93,9 @@ function validateAgent(entry: unknown, idx: number, seen: Set<string>): AgentSpe
 
   const budgetUsdPerDay = optionalNumber(entry, 'budgetUsdPerDay');
   if (budgetUsdPerDay != null && budgetUsdPerDay < 0) {
-    throw new Error(`agents[${idx}].budgetUsdPerDay must be >= 0 (0 = unlimited), got ${budgetUsdPerDay}`);
+    throw new Error(
+      `agents[${idx}].budgetUsdPerDay must be >= 0 (0 = unlimited), got ${budgetUsdPerDay}`
+    );
   }
   const tickIntervalMs = optionalNumber(entry, 'tickIntervalMs');
   if (tickIntervalMs != null && tickIntervalMs < 5000) {

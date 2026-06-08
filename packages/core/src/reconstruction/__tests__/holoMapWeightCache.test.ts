@@ -4,8 +4,13 @@ import { getCachedWeightBlob, putCachedWeightBlob } from '../holoMapWeightCache'
 describe('holoMapWeightCache', () => {
   it('round-trips a blob through IndexedDB in browser', async () => {
     const blob = new TextEncoder().encode('indexed-db-blob').buffer;
-    await putCachedWeightBlob('aabbccdd00112233aabbccdd00112233aabbccdd00112233aabbccdd00112233', blob);
-    const cached = await getCachedWeightBlob('aabbccdd00112233aabbccdd00112233aabbccdd00112233aabbccdd00112233');
+    await putCachedWeightBlob(
+      'aabbccdd00112233aabbccdd00112233aabbccdd00112233aabbccdd00112233',
+      blob
+    );
+    const cached = await getCachedWeightBlob(
+      'aabbccdd00112233aabbccdd00112233aabbccdd00112233aabbccdd00112233'
+    );
     expect(cached).toBeDefined();
     expect(new Uint8Array(cached!)).toEqual(new Uint8Array(blob));
   });

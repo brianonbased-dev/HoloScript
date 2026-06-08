@@ -26,7 +26,7 @@ describe('executeForLoop', () => {
     });
     const result = await executeForLoop(
       { variable: '_item', iterable: 'items', body: [{ type: 'noop' } as any] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(ctx.variables.has('_item')).toBe(false); // deleted after loop
@@ -40,7 +40,7 @@ describe('executeForLoop', () => {
     });
     const result = await executeForLoop(
       { variable: '_entry', iterable: 'obj', body: [{ type: 'noop' } as any] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(ctx.executeNode).toHaveBeenCalledTimes(2);
@@ -55,10 +55,7 @@ describe('executeForLoop', () => {
         return { success: true, output: null };
       }),
     });
-    await executeForLoop(
-      { variable: '_x', iterable: 'arr', body: [{ type: 'body' } as any] },
-      ctx,
-    );
+    await executeForLoop({ variable: '_x', iterable: 'arr', body: [{ type: 'body' } as any] }, ctx);
     expect(captured).toEqual(['a', 'b']);
   });
 
@@ -66,10 +63,7 @@ describe('executeForLoop', () => {
     const ctx = makeCtx({
       evaluateExpression: vi.fn().mockReturnValue([1]),
     });
-    await executeForLoop(
-      { variable: '_v', iterable: 'arr', body: [] },
-      ctx,
-    );
+    await executeForLoop({ variable: '_v', iterable: 'arr', body: [] }, ctx);
     expect(ctx.variables.has('_v')).toBe(false);
   });
 
@@ -77,10 +71,7 @@ describe('executeForLoop', () => {
     const ctx = makeCtx({
       evaluateExpression: vi.fn().mockReturnValue(42),
     });
-    const result = await executeForLoop(
-      { variable: '_x', iterable: 'num', body: [] },
-      ctx,
-    );
+    const result = await executeForLoop({ variable: '_x', iterable: 'num', body: [] }, ctx);
     expect(result.success).toBe(false);
     expect(result.error).toContain('non-iterable');
   });
@@ -92,7 +83,7 @@ describe('executeForLoop', () => {
     });
     const result = await executeForLoop(
       { variable: '_i', iterable: 'arr', body: [{ type: 'fail' } as any] },
-      ctx,
+      ctx
     );
     // Loop breaks on first failure but still returns success: true
     expect(result.success).toBe(true);
@@ -103,10 +94,7 @@ describe('executeForLoop', () => {
     const ctx = makeCtx({
       evaluateExpression: vi.fn().mockReturnValue([]),
     });
-    const result = await executeForLoop(
-      { variable: '_x', iterable: 'arr', body: [] },
-      ctx,
-    );
+    const result = await executeForLoop({ variable: '_x', iterable: 'arr', body: [] }, ctx);
     expect(result.success).toBe(true);
   });
 });
@@ -119,7 +107,7 @@ describe('executeForEachLoop', () => {
     });
     const result = await executeForEachLoop(
       { variable: '_e', collection: 'list', body: [{ type: 'noop' } as any] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(ctx.executeNode).toHaveBeenCalledTimes(2);
@@ -138,7 +126,7 @@ describe('executeWhileLoop', () => {
     });
     const result = await executeWhileLoop(
       { condition: 'count < 3', body: [{ type: 'inc' } as any] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(count).toBe(3);
@@ -150,7 +138,7 @@ describe('executeWhileLoop', () => {
     });
     const result = await executeWhileLoop(
       { condition: 'false', body: [{ type: 'noop' } as any] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(ctx.executeNode).not.toHaveBeenCalled();
@@ -163,7 +151,7 @@ describe('executeWhileLoop', () => {
     });
     const result = await executeWhileLoop(
       { condition: 'true', body: [{ type: 'noop' } as any] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(false);
     expect(result.error).toContain('10000');
@@ -180,7 +168,7 @@ describe('executeWhileLoop', () => {
     });
     const result = await executeWhileLoop(
       { condition: 'true', body: [{ type: 'fail' } as any] },
-      ctx,
+      ctx
     );
     // While loop breaks on body failure but still returns success: true
     expect(result.success).toBe(true);
@@ -195,7 +183,7 @@ describe('executeIfStatement', () => {
     });
     const result = await executeIfStatement(
       { condition: 'true', body: [{ type: 'then' } as any] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(ctx.executeNode).toHaveBeenCalled();
@@ -216,7 +204,7 @@ describe('executeIfStatement', () => {
         body: [{ type: 'then' } as any],
         elseBody: [{ type: 'else' } as any],
       },
-      ctx,
+      ctx
     );
     expect(executedNodes).toEqual(['else']);
   });
@@ -227,7 +215,7 @@ describe('executeIfStatement', () => {
     });
     const result = await executeIfStatement(
       { condition: 'false', body: [{ type: 'then' } as any] },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(ctx.executeNode).not.toHaveBeenCalled();
@@ -237,7 +225,8 @@ describe('executeIfStatement', () => {
 describe('executeMatch', () => {
   it('matches and executes body when pattern matches', async () => {
     const ctx = makeCtx({
-      evaluateExpression: vi.fn()
+      evaluateExpression: vi
+        .fn()
         .mockReturnValueOnce('foo') // subject
         .mockReturnValueOnce('foo') // pattern
         .mockReturnValueOnce('result-value'), // body expression
@@ -247,7 +236,7 @@ describe('executeMatch', () => {
         subject: 'myVal',
         cases: [{ pattern: 'foo', body: 'result-value' }],
       },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(result.output).toBe('result-value');
@@ -255,7 +244,8 @@ describe('executeMatch', () => {
 
   it('executes array body nodes when matched', async () => {
     const ctx = makeCtx({
-      evaluateExpression: vi.fn()
+      evaluateExpression: vi
+        .fn()
         .mockReturnValueOnce(42) // subject
         .mockReturnValueOnce(42), // pattern
     });
@@ -264,7 +254,7 @@ describe('executeMatch', () => {
         subject: 'n',
         cases: [{ pattern: '42', body: [{ type: 'exec' } as any] }],
       },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
     expect(ctx.executeNode).toHaveBeenCalled();
@@ -272,7 +262,8 @@ describe('executeMatch', () => {
 
   it('skips non-matching patterns', async () => {
     const ctx = makeCtx({
-      evaluateExpression: vi.fn()
+      evaluateExpression: vi
+        .fn()
         .mockReturnValueOnce('bar') // subject
         .mockReturnValueOnce('foo'), // pattern (no match)
     });
@@ -281,7 +272,7 @@ describe('executeMatch', () => {
         subject: 'val',
         cases: [{ pattern: 'foo', body: 'x' }],
       },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(false);
     expect(result.error).toContain('No pattern matched');
@@ -289,7 +280,8 @@ describe('executeMatch', () => {
 
   it('uses wildcard _ to match anything', async () => {
     const ctx = makeCtx({
-      evaluateExpression: vi.fn()
+      evaluateExpression: vi
+        .fn()
         .mockReturnValueOnce('anything') // subject
         .mockReturnValueOnce('_') // pattern (wildcard)
         .mockReturnValueOnce('caught'), // body expression
@@ -299,14 +291,15 @@ describe('executeMatch', () => {
         subject: 'x',
         cases: [{ pattern: '_', body: 'caught' }],
       },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(true);
   });
 
   it('skips case when guard fails', async () => {
     const ctx = makeCtx({
-      evaluateExpression: vi.fn()
+      evaluateExpression: vi
+        .fn()
         .mockReturnValueOnce('foo') // subject
         .mockReturnValueOnce('foo'), // pattern
       evaluateCondition: vi.fn().mockReturnValue(false), // guard fails
@@ -316,7 +309,7 @@ describe('executeMatch', () => {
         subject: 'v',
         cases: [{ pattern: 'foo', guard: 'false', body: 'hit' }],
       },
-      ctx,
+      ctx
     );
     expect(result.success).toBe(false);
     expect(result.error).toContain('No pattern matched');
@@ -326,10 +319,7 @@ describe('executeMatch', () => {
     const ctx = makeCtx({
       evaluateExpression: vi.fn().mockReturnValue('x'),
     });
-    const result = await executeMatch(
-      { subject: 'val', cases: [] },
-      ctx,
-    );
+    const result = await executeMatch({ subject: 'val', cases: [] }, ctx);
     expect(result.success).toBe(false);
   });
 });

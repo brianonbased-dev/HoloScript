@@ -57,7 +57,11 @@ describe('tooling discovery and batch dispatch', () => {
       { includeInputSchema: false, includeOutputSchema: false }
     );
 
-    const result = suggestToolsForGoal('parse validate and compile this HoloScript scene', manifest, 10);
+    const result = suggestToolsForGoal(
+      'parse validate and compile this HoloScript scene',
+      manifest,
+      10
+    );
 
     expect(result.suggestions.length).toBeGreaterThan(0);
     expect(result.suggestedBundles.some((b) => b.name === 'parse-validate-compile')).toBe(true);
@@ -103,8 +107,12 @@ describe('tooling discovery and batch dispatch', () => {
     expect(names).not.toContain('browser_screenshot');
 
     // Must include the control-plane-and-surface-audit bundle
-    expect(result.suggestedBundles.some((b) => b.name === 'control-plane-and-surface-audit')).toBe(true);
-    const bundle = result.suggestedBundles.find((b) => b.name === 'control-plane-and-surface-audit');
+    expect(result.suggestedBundles.some((b) => b.name === 'control-plane-and-surface-audit')).toBe(
+      true
+    );
+    const bundle = result.suggestedBundles.find(
+      (b) => b.name === 'control-plane-and-surface-audit'
+    );
     expect(bundle?.tools).toContain('get_tool_manifest');
     expect(bundle?.tools).toContain('get_api_reference');
     expect(bundle?.tools).toContain('get_circuit_breaker_status');
@@ -118,10 +126,10 @@ describe('tooling discovery and batch dispatch', () => {
   });
 
   it('returns noToolExplanation when no tools match', () => {
-    const manifest = buildToolManifest(
-      [tool('parse_hs', 'Parse HoloScript into AST')],
-      { includeInputSchema: false, includeOutputSchema: false }
-    );
+    const manifest = buildToolManifest([tool('parse_hs', 'Parse HoloScript into AST')], {
+      includeInputSchema: false,
+      includeOutputSchema: false,
+    });
 
     const result = suggestToolsForGoal('foobar xyzqwerty nonexistent domain', manifest, 10);
     expect(result.suggestions.length).toBe(0);
@@ -138,7 +146,12 @@ describe('tooling discovery and batch dispatch', () => {
     const allRegistered = ['parse_hs', 'compile_holoscript'];
     const dispatch = makeDispatch((name) => ({ name, success: true }));
 
-    const report = await buildToolHealthReport(['parse_hs', 'compile_holoscript'], allRegistered, dispatch, true);
+    const report = await buildToolHealthReport(
+      ['parse_hs', 'compile_holoscript'],
+      allRegistered,
+      dispatch,
+      true
+    );
 
     expect(report.total).toBe(2);
     expect(report.live).toBe(2);
@@ -190,7 +203,9 @@ describe('tooling discovery and batch dispatch', () => {
 
   it('classifies as scaffold when dispatch throws with a non-stub error message', async () => {
     const allRegistered = ['bad_tool'];
-    const dispatch: DispatchFn = async () => { throw new Error('timeout connecting to upstream service'); };
+    const dispatch: DispatchFn = async () => {
+      throw new Error('timeout connecting to upstream service');
+    };
 
     const report = await buildToolHealthReport(['bad_tool'], allRegistered, dispatch, true);
 
@@ -201,7 +216,9 @@ describe('tooling discovery and batch dispatch', () => {
 
   it('classifies as stub when dispatch throws with "not implemented"', async () => {
     const allRegistered = ['stub_tool'];
-    const dispatch: DispatchFn = async () => { throw new Error('not implemented'); };
+    const dispatch: DispatchFn = async () => {
+      throw new Error('not implemented');
+    };
 
     const report = await buildToolHealthReport(['stub_tool'], allRegistered, dispatch, true);
 
@@ -226,7 +243,10 @@ describe('tooling discovery and batch dispatch', () => {
   it('surfaces get_tool_health in canary/gap/scaffold/wired goal suggestions', () => {
     const manifest = buildToolManifest(
       [
-        tool('get_tool_health', 'Probe each MCP tool category and return wiring status: live, scaffold, or stub'),
+        tool(
+          'get_tool_health',
+          'Probe each MCP tool category and return wiring status: live, scaffold, or stub'
+        ),
         tool('get_tool_manifest', 'Return a machine-readable manifest of all available tools'),
         tool('holo_self_diagnose', 'Diagnose improvement opportunities'),
         tool('parse_hs', 'Parse HoloScript'),
@@ -261,7 +281,9 @@ describe('tooling discovery and batch dispatch', () => {
     );
 
     const result = suggestToolsForGoal('audit MCP health and canary surfaces', manifest, 8);
-    const bundle = result.suggestedBundles.find((b) => b.name === 'control-plane-and-surface-audit');
+    const bundle = result.suggestedBundles.find(
+      (b) => b.name === 'control-plane-and-surface-audit'
+    );
     expect(bundle).toBeDefined();
     expect(bundle?.tools).toContain('get_tool_health');
   });

@@ -261,10 +261,7 @@ describe('createPostgresLeaseAdapter', () => {
 
     const row = rows.get(leaseId);
     expect(row?.task_id).toBe('task_42');
-    expect(JSON.parse(row?.scope ?? '[]')).toEqual([
-      REF,
-      'secret://namespace/ns_test/two',
-    ]);
+    expect(JSON.parse(row?.scope ?? '[]')).toEqual([REF, 'secret://namespace/ns_test/two']);
     expect(row?.revoked_reason).toBe('rotation');
     expect(row?.revoked_by).toBe('ops');
   });

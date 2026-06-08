@@ -76,7 +76,9 @@ describe('/api/connectors/oauth/github/poll route', () => {
     expect(body.capability_token.token_id).toMatch(/^captok_[a-f0-9]{24}$/);
     expect(body.capability_token.receipt_hash).toMatch(/^sha256:[a-f0-9]{64}$/);
     expect(body.capability_token.capabilities).toContain('mesh:read');
-    expect(JSON.stringify(body)).not.toContain(body.capability_token.token_secret ?? '___no_secret');
+    expect(JSON.stringify(body)).not.toContain(
+      body.capability_token.token_secret ?? '___no_secret'
+    );
   });
 
   it('keeps polling pending device codes without setting a cookie', async () => {

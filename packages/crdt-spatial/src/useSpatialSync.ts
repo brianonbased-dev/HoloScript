@@ -153,7 +153,17 @@ export function useSpatialSync(options: UseSpatialSyncOptions): UseSpatialSyncRe
       bridgeRef.current = null;
       providerRef.current = null;
     };
-  }, [serverUrl, roomId, peerId, syncIntervalMs, checkpointIntervalMs, autoConnect, useWebRTC, teamId, apiKey]);
+  }, [
+    serverUrl,
+    roomId,
+    peerId,
+    syncIntervalMs,
+    checkpointIntervalMs,
+    autoConnect,
+    useWebRTC,
+    teamId,
+    apiKey,
+  ]);
 
   // Stable callbacks
   const setPosition = useCallback((nodeId: string, position: Vec3) => {

@@ -4,8 +4,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { pipelineHandler } from '../PipelineTrait';
 
-const makeNode = () => ({ id: 'n1', traits: new Set<string>(), emit: vi.fn(), __pipelineState: undefined as unknown });
-const makeCtx = (node: ReturnType<typeof makeNode>) => ({ emit: (type: string, data: unknown) => node.emit(type, data) });
+const makeNode = () => ({
+  id: 'n1',
+  traits: new Set<string>(),
+  emit: vi.fn(),
+  __pipelineState: undefined as unknown,
+});
+const makeCtx = (node: ReturnType<typeof makeNode>) => ({
+  emit: (type: string, data: unknown) => node.emit(type, data),
+});
 const defaultConfig = {
   pipeline_id: 'p1',
   steps: [],
@@ -33,11 +40,19 @@ describe('PipelineTrait', () => {
   it('pipeline:run emits pipeline:start', () => {
     const node = makeNode();
     pipelineHandler.onAttach!(node as never, defaultConfig, makeCtx(node) as never);
-    pipelineHandler.onEvent!(node as never, defaultConfig, makeCtx(node) as never, {
-      type: 'pipeline:run',
-    } as never);
-    expect(node.emit).toHaveBeenCalledWith('pipeline:start', expect.objectContaining({
-      pipelineId: 'p1',
-    }));
+    pipelineHandler.onEvent!(
+      node as never,
+      defaultConfig,
+      makeCtx(node) as never,
+      {
+        type: 'pipeline:run',
+      } as never
+    );
+    expect(node.emit).toHaveBeenCalledWith(
+      'pipeline:start',
+      expect.objectContaining({
+        pipelineId: 'p1',
+      })
+    );
   });
 });

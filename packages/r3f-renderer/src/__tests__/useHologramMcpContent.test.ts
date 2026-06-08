@@ -117,9 +117,7 @@ describe('resolveHologramMcpContent - pure resolver', () => {
       producedBy: 'unit-test',
       createdAt: '2026-05-07T00:00:00.000Z',
     });
-    expect(resolveHologramMcpContent(r1).contentKey).toBe(
-      resolveHologramMcpContent(r2).contentKey,
-    );
+    expect(resolveHologramMcpContent(r1).contentKey).toBe(resolveHologramMcpContent(r2).contentKey);
   });
 
   it('content keys differ across different payloads', () => {
@@ -138,7 +136,7 @@ describe('resolveHologramMcpContent - pure resolver', () => {
       createdAt: '2026-05-07T00:00:00.000Z',
     });
     expect(resolveHologramMcpContent(r1).contentKey).not.toBe(
-      resolveHologramMcpContent(r2).contentKey,
+      resolveHologramMcpContent(r2).contentKey
     );
   });
 

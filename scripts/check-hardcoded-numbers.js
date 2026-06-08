@@ -13,7 +13,7 @@ const IGNORE_PATTERNS = [
   /^docs\/_archive\//,
   /^docs\/marketing\//,
   /^docs\/strategy\//,
-  /^docs\/NUMBERS\.md$/
+  /^docs\/NUMBERS\.md$/,
 ];
 
 // Patterns to search for
@@ -45,7 +45,7 @@ function checkHardcodedNumbers() {
 
   for (const file of files) {
     if (!ACTIVE_DOCS_PATTERN.test(file)) continue;
-    if (IGNORE_PATTERNS.some(p => p.test(file))) continue;
+    if (IGNORE_PATTERNS.some((p) => p.test(file))) continue;
 
     // Defensive: if a file is tracked but missing from disk (deletion-without-
     // git-rm drift), skip it with a warning instead of crashing. The
@@ -62,7 +62,9 @@ function checkHardcodedNumbers() {
     scannedCount += 1;
     for (const pattern of HARDCODED_PATTERNS) {
       if (pattern.test(content)) {
-        console.error(`[check-hardcoded-numbers] FAIL: Found hardcoded ecosystem count matching ${pattern} in ${file}`);
+        console.error(
+          `[check-hardcoded-numbers] FAIL: Found hardcoded ecosystem count matching ${pattern} in ${file}`
+        );
         failed = true;
       }
     }
@@ -74,7 +76,9 @@ function checkHardcodedNumbers() {
     process.exit(1);
   } else {
     const tail = missingCount > 0 ? ` (${missingCount} tracked-but-missing skipped)` : '';
-    console.log(`[check-hardcoded-numbers] PASS: ${scannedCount} active doc(s) scanned, no hardcoded ecosystem counts found${tail}.`);
+    console.log(
+      `[check-hardcoded-numbers] PASS: ${scannedCount} active doc(s) scanned, no hardcoded ecosystem counts found${tail}.`
+    );
   }
 }
 

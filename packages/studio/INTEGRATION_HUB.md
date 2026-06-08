@@ -148,7 +148,7 @@ The Studio Integration Hub connects external developer services (GitHub, Railway
 **Implementation:** `packages/studio/src/components/integrations/ServiceConnectorPanel.tsx`  
 **Entry:** `IntegrationsView` → full-height panel; route `/integrations`.
 
-This section is the **design record** for board work *Studio Integration Hub — ServiceConnectorPanel* (tabbed hub, status, forms, activity).
+This section is the **design record** for board work _Studio Integration Hub — ServiceConnectorPanel_ (tabbed hub, status, forms, activity).
 
 #### Layout
 
@@ -158,13 +158,13 @@ This section is the **design record** for board work *Studio Integration Hub —
 
 #### Tabs (fixed order)
 
-| Tab        | Purpose (user-facing) |
-|------------|------------------------|
-| GitHub     | PAT / default repo; device-code OAuth modal for safer auth. |
-| Railway    | API token + default project. |
-| VS Code    | MCP server URL + extension auth token. |
-| App Store  | Apple key + Google service account JSON. |
-| Upstash    | Redis REST URL + token. |
+| Tab       | Purpose (user-facing)                                       |
+| --------- | ----------------------------------------------------------- |
+| GitHub    | PAT / default repo; device-code OAuth modal for safer auth. |
+| Railway   | API token + default project.                                |
+| VS Code   | MCP server URL + extension auth token.                      |
+| App Store | Apple key + Google service account JSON.                    |
+| Upstash   | Redis REST URL + token.                                     |
 
 (`pipeline` exists in types for store/layout symmetry but is **filtered out** of this panel — not a user-facing connector tab.)
 

@@ -94,7 +94,7 @@ export const defaultStateInvalidationRegistry = new StateInvalidationRegistry();
  * testing without standing up the full event-system dispatch chain.
  */
 export function makeStateInvalidationHandler(
-  registry: StateInvalidationRegistry,
+  registry: StateInvalidationRegistry
 ): (data?: HoloScriptValue) => void {
   return (data?: HoloScriptValue) => {
     const payload = (data ?? {}) as { key?: unknown; node?: { id?: unknown } };
@@ -116,7 +116,7 @@ export function makeStateInvalidationHandler(
  */
 export function attachStateInvalidationConsumer(
   ctx: EventSystemContext,
-  registry: StateInvalidationRegistry = defaultStateInvalidationRegistry,
+  registry: StateInvalidationRegistry = defaultStateInvalidationRegistry
 ): StateInvalidationRegistry {
   onEvent('persistent_expired', makeStateInvalidationHandler(registry), ctx);
   return registry;

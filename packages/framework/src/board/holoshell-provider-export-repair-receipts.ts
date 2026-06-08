@@ -66,8 +66,7 @@ export const PARTIAL_ARCHIVE_EVIDENCE_RECEIPT_VERSION =
   'holoscript-partial-archive-evidence-receipt/v1';
 export const PROVIDER_EXPORT_REPAIR_PLAN_RECEIPT_VERSION =
   'holoscript-provider-export-repair-plan-receipt/v1';
-export const EXPORT_REPAIR_REPLAY_RECEIPT_VERSION =
-  'holoscript-export-repair-replay-receipt/v1';
+export const EXPORT_REPAIR_REPLAY_RECEIPT_VERSION = 'holoscript-export-repair-replay-receipt/v1';
 export const PROVIDER_EXPORT_REPAIR_RECEIPT_PACK_VERSION =
   'holoscript-provider-export-repair-receipt-pack/v1';
 
@@ -208,8 +207,7 @@ function isOneOf<T extends readonly string[]>(values: T, value: string): value i
 
 function hasAbsolutePath(value: string | undefined): boolean {
   return (
-    typeof value === 'string' &&
-    /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
+    typeof value === 'string' && /(^|[\s"'`=])(?:[A-Za-z]:[\\/]|\/(?!\/)[^\s"'`]+)/.test(value)
   );
 }
 
@@ -265,30 +263,49 @@ export function validateProviderExportFailureReceipt(
   const errors: string[] = [];
   if (!receipt.id) errors.push('ProviderExportFailureReceipt.id is required.');
   if (receipt.schemaVersion !== PROVIDER_EXPORT_FAILURE_RECEIPT_VERSION) {
-    errors.push(`ProviderExportFailureReceipt.schemaVersion must be ${PROVIDER_EXPORT_FAILURE_RECEIPT_VERSION}.`);
+    errors.push(
+      `ProviderExportFailureReceipt.schemaVersion must be ${PROVIDER_EXPORT_FAILURE_RECEIPT_VERSION}.`
+    );
   }
   if (!isSupportedAccountExportProvider(String(receipt.provider))) {
-    errors.push(`ProviderExportFailureReceipt.provider is unsupported: ${String(receipt.provider)}.`);
+    errors.push(
+      `ProviderExportFailureReceipt.provider is unsupported: ${String(receipt.provider)}.`
+    );
   }
-  validatePublicLabel('ProviderExportFailureReceipt.redactedAccountLabel', receipt.redactedAccountLabel, errors);
-  if (!receipt.accountLabelHash) errors.push('ProviderExportFailureReceipt.accountLabelHash is required.');
+  validatePublicLabel(
+    'ProviderExportFailureReceipt.redactedAccountLabel',
+    receipt.redactedAccountLabel,
+    errors
+  );
+  if (!receipt.accountLabelHash)
+    errors.push('ProviderExportFailureReceipt.accountLabelHash is required.');
   if (!isSupportedProviderExportFailureKind(String(receipt.failureKind))) {
-    errors.push(`ProviderExportFailureReceipt.failureKind is unsupported: ${String(receipt.failureKind)}.`);
+    errors.push(
+      `ProviderExportFailureReceipt.failureKind is unsupported: ${String(receipt.failureKind)}.`
+    );
   }
   if (!isSupportedProviderExportWaitState(String(receipt.providerWaitState))) {
-    errors.push(`ProviderExportFailureReceipt.providerWaitState is unsupported: ${String(receipt.providerWaitState)}.`);
+    errors.push(
+      `ProviderExportFailureReceipt.providerWaitState is unsupported: ${String(receipt.providerWaitState)}.`
+    );
   }
   if (!isSupportedAccountExportDeliveryMethod(String(receipt.deliveryMethod))) {
-    errors.push(`ProviderExportFailureReceipt.deliveryMethod is unsupported: ${String(receipt.deliveryMethod)}.`);
+    errors.push(
+      `ProviderExportFailureReceipt.deliveryMethod is unsupported: ${String(receipt.deliveryMethod)}.`
+    );
   }
   if (!isSupportedAccountExportArchiveFormat(String(receipt.archiveFormat))) {
-    errors.push(`ProviderExportFailureReceipt.archiveFormat is unsupported: ${String(receipt.archiveFormat)}.`);
+    errors.push(
+      `ProviderExportFailureReceipt.archiveFormat is unsupported: ${String(receipt.archiveFormat)}.`
+    );
   }
   if (!isIsoTimestamp(receipt.observedAt)) {
     errors.push('ProviderExportFailureReceipt.observedAt must be a valid ISO-8601 timestamp.');
   }
   if (receipt.linkExpiresAt !== undefined && !isIsoTimestamp(receipt.linkExpiresAt)) {
-    errors.push('ProviderExportFailureReceipt.linkExpiresAt must be a valid ISO-8601 timestamp when present.');
+    errors.push(
+      'ProviderExportFailureReceipt.linkExpiresAt must be a valid ISO-8601 timestamp when present.'
+    );
   }
   if (typeof receipt.adminOrManagedAccountBlock !== 'boolean') {
     errors.push('ProviderExportFailureReceipt.adminOrManagedAccountBlock must be a boolean.');
@@ -306,7 +323,11 @@ export function validateProviderExportFailureReceipt(
     errors.push('ProviderExportFailureReceipt.privatePathLeakedToPublicReceipt must be false.');
   }
   validateHashFields('ProviderExportFailureReceipt', receipt.hash, receipt.hashAlgorithm, errors);
-  validateVerificationCommands(receipt.verificationCommands, 'ProviderExportFailureReceipt', errors);
+  validateVerificationCommands(
+    receipt.verificationCommands,
+    'ProviderExportFailureReceipt',
+    errors
+  );
   return errors;
 }
 
@@ -316,11 +337,19 @@ export function validatePartialArchiveEvidenceReceipt(
   const errors: string[] = [];
   if (!receipt.id) errors.push('PartialArchiveEvidenceReceipt.id is required.');
   if (receipt.schemaVersion !== PARTIAL_ARCHIVE_EVIDENCE_RECEIPT_VERSION) {
-    errors.push(`PartialArchiveEvidenceReceipt.schemaVersion must be ${PARTIAL_ARCHIVE_EVIDENCE_RECEIPT_VERSION}.`);
+    errors.push(
+      `PartialArchiveEvidenceReceipt.schemaVersion must be ${PARTIAL_ARCHIVE_EVIDENCE_RECEIPT_VERSION}.`
+    );
   }
-  if (!receipt.failureReceiptId) errors.push('PartialArchiveEvidenceReceipt.failureReceiptId is required.');
-  validatePublicLabel('PartialArchiveEvidenceReceipt.destinationFolderLabel', receipt.destinationFolderLabel, errors);
-  if (!receipt.destinationFolderHash) errors.push('PartialArchiveEvidenceReceipt.destinationFolderHash is required.');
+  if (!receipt.failureReceiptId)
+    errors.push('PartialArchiveEvidenceReceipt.failureReceiptId is required.');
+  validatePublicLabel(
+    'PartialArchiveEvidenceReceipt.destinationFolderLabel',
+    receipt.destinationFolderLabel,
+    errors
+  );
+  if (!receipt.destinationFolderHash)
+    errors.push('PartialArchiveEvidenceReceipt.destinationFolderHash is required.');
   if (!Array.isArray(receipt.observedParts) || receipt.observedParts.length === 0) {
     errors.push('PartialArchiveEvidenceReceipt.observedParts must include at least one part.');
   } else {
@@ -335,12 +364,16 @@ export function validatePartialArchiveEvidenceReceipt(
         errors.push('PartialArchivePartEvidence.complete must be a boolean.');
       }
       if (!isOneOf(['pass', 'fail', 'not_tested'] as const, String(part.openTest))) {
-        errors.push(`PartialArchivePartEvidence.openTest is unsupported: ${String(part.openTest)}.`);
+        errors.push(
+          `PartialArchivePartEvidence.openTest is unsupported: ${String(part.openTest)}.`
+        );
       }
     }
   }
   if (receipt.expectedPartCount !== undefined && !isNonNegativeInteger(receipt.expectedPartCount)) {
-    errors.push('PartialArchiveEvidenceReceipt.expectedPartCount must be a non-negative integer when present.');
+    errors.push(
+      'PartialArchiveEvidenceReceipt.expectedPartCount must be a non-negative integer when present.'
+    );
   }
   if (!isNonNegativeInteger(receipt.missingPartCount)) {
     errors.push('PartialArchiveEvidenceReceipt.missingPartCount must be a non-negative integer.');
@@ -349,22 +382,35 @@ export function validatePartialArchiveEvidenceReceipt(
     errors.push('PartialArchiveEvidenceReceipt.verifiedPartCount must be a non-negative integer.');
   }
   if (receipt.verifiedPartCount > receipt.observedParts.length) {
-    errors.push('PartialArchiveEvidenceReceipt.verifiedPartCount cannot exceed observedParts length.');
+    errors.push(
+      'PartialArchiveEvidenceReceipt.verifiedPartCount cannot exceed observedParts length.'
+    );
   }
   if (!isNonNegativeInteger(receipt.unexpectedExecutableCount)) {
-    errors.push('PartialArchiveEvidenceReceipt.unexpectedExecutableCount must be a non-negative integer.');
+    errors.push(
+      'PartialArchiveEvidenceReceipt.unexpectedExecutableCount must be a non-negative integer.'
+    );
   }
-  if (!isOneOf(['pass', 'warn', 'blocked', 'not_run'] as const, String(receipt.sensitivityScanStatus))) {
-    errors.push(`PartialArchiveEvidenceReceipt.sensitivityScanStatus is unsupported: ${String(receipt.sensitivityScanStatus)}.`);
+  if (
+    !isOneOf(['pass', 'warn', 'blocked', 'not_run'] as const, String(receipt.sensitivityScanStatus))
+  ) {
+    errors.push(
+      `PartialArchiveEvidenceReceipt.sensitivityScanStatus is unsupported: ${String(receipt.sensitivityScanStatus)}.`
+    );
   }
   if (!Array.isArray(receipt.missingEvidence)) {
     errors.push('PartialArchiveEvidenceReceipt.missingEvidence must be an array.');
   } else if (receipt.missingPartCount > 0 && receipt.missingEvidence.length === 0) {
-    errors.push('PartialArchiveEvidenceReceipt.missingEvidence must list missing parts when missingPartCount > 0.');
+    errors.push(
+      'PartialArchiveEvidenceReceipt.missingEvidence must list missing parts when missingPartCount > 0.'
+    );
   }
-  if (receipt.importAllowed !== false) errors.push('PartialArchiveEvidenceReceipt.importAllowed must be false.');
-  if (receipt.deleteAllowed !== false) errors.push('PartialArchiveEvidenceReceipt.deleteAllowed must be false.');
-  if (receipt.shareAllowed !== false) errors.push('PartialArchiveEvidenceReceipt.shareAllowed must be false.');
+  if (receipt.importAllowed !== false)
+    errors.push('PartialArchiveEvidenceReceipt.importAllowed must be false.');
+  if (receipt.deleteAllowed !== false)
+    errors.push('PartialArchiveEvidenceReceipt.deleteAllowed must be false.');
+  if (receipt.shareAllowed !== false)
+    errors.push('PartialArchiveEvidenceReceipt.shareAllowed must be false.');
   if (receipt.rawPrivateDataPublished !== false) {
     errors.push('PartialArchiveEvidenceReceipt.rawPrivateDataPublished must be false.');
   }
@@ -372,7 +418,11 @@ export function validatePartialArchiveEvidenceReceipt(
     errors.push('PartialArchiveEvidenceReceipt.privateAbsolutePathReceipt is required.');
   }
   validateHashFields('PartialArchiveEvidenceReceipt', receipt.hash, receipt.hashAlgorithm, errors);
-  validateVerificationCommands(receipt.verificationCommands, 'PartialArchiveEvidenceReceipt', errors);
+  validateVerificationCommands(
+    receipt.verificationCommands,
+    'PartialArchiveEvidenceReceipt',
+    errors
+  );
   return errors;
 }
 
@@ -382,18 +432,25 @@ export function validateProviderExportRepairPlanReceipt(
   const errors: string[] = [];
   if (!receipt.id) errors.push('ProviderExportRepairPlanReceipt.id is required.');
   if (receipt.schemaVersion !== PROVIDER_EXPORT_REPAIR_PLAN_RECEIPT_VERSION) {
-    errors.push(`ProviderExportRepairPlanReceipt.schemaVersion must be ${PROVIDER_EXPORT_REPAIR_PLAN_RECEIPT_VERSION}.`);
+    errors.push(
+      `ProviderExportRepairPlanReceipt.schemaVersion must be ${PROVIDER_EXPORT_REPAIR_PLAN_RECEIPT_VERSION}.`
+    );
   }
-  if (!receipt.failureReceiptId) errors.push('ProviderExportRepairPlanReceipt.failureReceiptId is required.');
+  if (!receipt.failureReceiptId)
+    errors.push('ProviderExportRepairPlanReceipt.failureReceiptId is required.');
   if (!receipt.partialArchiveEvidenceReceiptId) {
     errors.push('ProviderExportRepairPlanReceipt.partialArchiveEvidenceReceiptId is required.');
   }
   if (!isSupportedProviderExportRepairAction(String(receipt.repairAction))) {
-    errors.push(`ProviderExportRepairPlanReceipt.repairAction is unsupported: ${String(receipt.repairAction)}.`);
+    errors.push(
+      `ProviderExportRepairPlanReceipt.repairAction is unsupported: ${String(receipt.repairAction)}.`
+    );
   }
   if (!receipt.safeReason) errors.push('ProviderExportRepairPlanReceipt.safeReason is required.');
-  if (!receipt.selectedProductsHash) errors.push('ProviderExportRepairPlanReceipt.selectedProductsHash is required.');
-  if (!receipt.userApprovalNonce) errors.push('ProviderExportRepairPlanReceipt.userApprovalNonce is required.');
+  if (!receipt.selectedProductsHash)
+    errors.push('ProviderExportRepairPlanReceipt.selectedProductsHash is required.');
+  if (!receipt.userApprovalNonce)
+    errors.push('ProviderExportRepairPlanReceipt.userApprovalNonce is required.');
   if (receipt.requiresFreshUserGesture !== true) {
     errors.push('ProviderExportRepairPlanReceipt.requiresFreshUserGesture must be true.');
   }
@@ -412,12 +469,22 @@ export function validateProviderExportRepairPlanReceipt(
   if (receipt.rawPrivateDataPublished !== false) {
     errors.push('ProviderExportRepairPlanReceipt.rawPrivateDataPublished must be false.');
   }
-  if (!receipt.rollbackNote) errors.push('ProviderExportRepairPlanReceipt.rollbackNote is required.');
+  if (!receipt.rollbackNote)
+    errors.push('ProviderExportRepairPlanReceipt.rollbackNote is required.');
   if (!isIsoTimestamp(receipt.plannedAt)) {
     errors.push('ProviderExportRepairPlanReceipt.plannedAt must be a valid ISO-8601 timestamp.');
   }
-  validateHashFields('ProviderExportRepairPlanReceipt', receipt.hash, receipt.hashAlgorithm, errors);
-  validateVerificationCommands(receipt.verificationCommands, 'ProviderExportRepairPlanReceipt', errors);
+  validateHashFields(
+    'ProviderExportRepairPlanReceipt',
+    receipt.hash,
+    receipt.hashAlgorithm,
+    errors
+  );
+  validateVerificationCommands(
+    receipt.verificationCommands,
+    'ProviderExportRepairPlanReceipt',
+    errors
+  );
   return errors;
 }
 
@@ -425,19 +492,30 @@ export function validateExportRepairReplayReceipt(receipt: ExportRepairReplayRec
   const errors: string[] = [];
   if (!receipt.id) errors.push('ExportRepairReplayReceipt.id is required.');
   if (receipt.schemaVersion !== EXPORT_REPAIR_REPLAY_RECEIPT_VERSION) {
-    errors.push(`ExportRepairReplayReceipt.schemaVersion must be ${EXPORT_REPAIR_REPLAY_RECEIPT_VERSION}.`);
+    errors.push(
+      `ExportRepairReplayReceipt.schemaVersion must be ${EXPORT_REPAIR_REPLAY_RECEIPT_VERSION}.`
+    );
   }
-  if (!receipt.failureReceiptId) errors.push('ExportRepairReplayReceipt.failureReceiptId is required.');
-  if (!receipt.repairPlanReceiptId) errors.push('ExportRepairReplayReceipt.repairPlanReceiptId is required.');
+  if (!receipt.failureReceiptId)
+    errors.push('ExportRepairReplayReceipt.failureReceiptId is required.');
+  if (!receipt.repairPlanReceiptId)
+    errors.push('ExportRepairReplayReceipt.repairPlanReceiptId is required.');
   if (!receipt.replayKey) errors.push('ExportRepairReplayReceipt.replayKey is required.');
   if (!isSupportedProviderExportFailureKind(String(receipt.originalFailureKind))) {
-    errors.push(`ExportRepairReplayReceipt.originalFailureKind is unsupported: ${String(receipt.originalFailureKind)}.`);
+    errors.push(
+      `ExportRepairReplayReceipt.originalFailureKind is unsupported: ${String(receipt.originalFailureKind)}.`
+    );
   }
   if (
     receipt.repairedOutcome !== undefined &&
-    !isOneOf(['verified', 'still_blocked', 'waiting', 'failed'] as const, String(receipt.repairedOutcome))
+    !isOneOf(
+      ['verified', 'still_blocked', 'waiting', 'failed'] as const,
+      String(receipt.repairedOutcome)
+    )
   ) {
-    errors.push(`ExportRepairReplayReceipt.repairedOutcome is unsupported: ${String(receipt.repairedOutcome)}.`);
+    errors.push(
+      `ExportRepairReplayReceipt.repairedOutcome is unsupported: ${String(receipt.repairedOutcome)}.`
+    );
   }
   if (receipt.missingEvidenceListed !== true) {
     errors.push('ExportRepairReplayReceipt.missingEvidenceListed must be true.');
@@ -463,10 +541,14 @@ export function validateHoloShellProviderExportRepairReceiptPack(
   const errors: string[] = [];
   if (!pack.id) errors.push('HoloShellProviderExportRepairReceiptPack.id is required.');
   if (pack.schemaVersion !== PROVIDER_EXPORT_REPAIR_RECEIPT_PACK_VERSION) {
-    errors.push(`HoloShellProviderExportRepairReceiptPack.schemaVersion must be ${PROVIDER_EXPORT_REPAIR_RECEIPT_PACK_VERSION}.`);
+    errors.push(
+      `HoloShellProviderExportRepairReceiptPack.schemaVersion must be ${PROVIDER_EXPORT_REPAIR_RECEIPT_PACK_VERSION}.`
+    );
   }
   if (!isSupportedProviderExportRepairStatus(String(pack.status))) {
-    errors.push(`HoloShellProviderExportRepairReceiptPack.status is unsupported: ${String(pack.status)}.`);
+    errors.push(
+      `HoloShellProviderExportRepairReceiptPack.status is unsupported: ${String(pack.status)}.`
+    );
   }
   if (!pack.failure) {
     errors.push('HoloShellProviderExportRepairReceiptPack.failure is required.');
@@ -483,18 +565,32 @@ export function validateHoloShellProviderExportRepairReceiptPack(
     errors.push(...validateExportRepairReplayReceipt(pack.replay));
   }
   if (pack.status === 'parts_preserved' && !pack.archiveEvidence) {
-    errors.push('HoloShellProviderExportRepairReceiptPack.archiveEvidence is required when status=parts_preserved.');
+    errors.push(
+      'HoloShellProviderExportRepairReceiptPack.archiveEvidence is required when status=parts_preserved.'
+    );
   }
   if (pack.status === 'repair_planned' && !pack.repairPlan) {
-    errors.push('HoloShellProviderExportRepairReceiptPack.repairPlan is required when status=repair_planned.');
+    errors.push(
+      'HoloShellProviderExportRepairReceiptPack.repairPlan is required when status=repair_planned.'
+    );
   }
   if (pack.status === 'verified' && !pack.replay) {
-    errors.push('HoloShellProviderExportRepairReceiptPack.replay is required when status=verified.');
+    errors.push(
+      'HoloShellProviderExportRepairReceiptPack.replay is required when status=verified.'
+    );
   }
-  if (pack.importAllowed !== false) errors.push('HoloShellProviderExportRepairReceiptPack.importAllowed must be false.');
-  if (pack.deleteAllowed !== false) errors.push('HoloShellProviderExportRepairReceiptPack.deleteAllowed must be false.');
-  if (pack.shareAllowed !== false) errors.push('HoloShellProviderExportRepairReceiptPack.shareAllowed must be false.');
-  validateHashFields('HoloShellProviderExportRepairReceiptPack', pack.hash, pack.hashAlgorithm, errors);
+  if (pack.importAllowed !== false)
+    errors.push('HoloShellProviderExportRepairReceiptPack.importAllowed must be false.');
+  if (pack.deleteAllowed !== false)
+    errors.push('HoloShellProviderExportRepairReceiptPack.deleteAllowed must be false.');
+  if (pack.shareAllowed !== false)
+    errors.push('HoloShellProviderExportRepairReceiptPack.shareAllowed must be false.');
+  validateHashFields(
+    'HoloShellProviderExportRepairReceiptPack',
+    pack.hash,
+    pack.hashAlgorithm,
+    errors
+  );
   return errors;
 }
 
@@ -519,7 +615,8 @@ export function buildProviderExportRepairPlanReceipt(
     importBlockedUntilVerified: true,
     deleteBlockedUntilApproved: true,
     rawPrivateDataPublished: false,
-    rollbackNote: 'Prior failed export evidence remains quarantined; provider mutations require a new approval receipt.',
+    rollbackNote:
+      'Prior failed export evidence remains quarantined; provider mutations require a new approval receipt.',
     plannedAt: options.plannedAt,
     hash: options.hash,
     hashAlgorithm: options.hashAlgorithm,
@@ -530,10 +627,17 @@ function chooseRepairAction(
   failure: ProviderExportFailureReceipt,
   archiveEvidence: PartialArchiveEvidenceReceipt
 ): ProviderExportRepairAction {
-  if (failure.adminOrManagedAccountBlock || failure.failureKind === 'admin_blocked' || failure.failureKind === 'managed_account_block') {
+  if (
+    failure.adminOrManagedAccountBlock ||
+    failure.failureKind === 'admin_blocked' ||
+    failure.failureKind === 'managed_account_block'
+  ) {
     return 'manual_provider_ticket';
   }
-  if (failure.failureKind === 'provider_delay' || failure.providerWaitState === 'provider_waiting') {
+  if (
+    failure.failureKind === 'provider_delay' ||
+    failure.providerWaitState === 'provider_waiting'
+  ) {
     return 'wait';
   }
   if (failure.failureKind === 'link_expired') {
@@ -629,8 +733,12 @@ export function cloneHoloShellProviderExportRepairReceiptPack(
   return {
     ...pack,
     failure: cloneProviderExportFailureReceipt(pack.failure),
-    ...(pack.archiveEvidence ? { archiveEvidence: clonePartialArchiveEvidenceReceipt(pack.archiveEvidence) } : {}),
-    ...(pack.repairPlan ? { repairPlan: cloneProviderExportRepairPlanReceipt(pack.repairPlan) } : {}),
+    ...(pack.archiveEvidence
+      ? { archiveEvidence: clonePartialArchiveEvidenceReceipt(pack.archiveEvidence) }
+      : {}),
+    ...(pack.repairPlan
+      ? { repairPlan: cloneProviderExportRepairPlanReceipt(pack.repairPlan) }
+      : {}),
     ...(pack.replay ? { replay: cloneExportRepairReplayReceipt(pack.replay) } : {}),
   };
 }

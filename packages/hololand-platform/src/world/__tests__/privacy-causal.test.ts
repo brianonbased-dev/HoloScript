@@ -17,7 +17,7 @@ import {
 
 function makeCorrelations(
   vars: string[],
-  values: Record<string, number>,
+  values: Record<string, number>
 ): Map<string, Map<string, number>> {
   const m = new Map<string, Map<string, number>>();
   for (const v of vars) {
@@ -51,7 +51,8 @@ describe('addDPNoise', () => {
 
   it('noise magnitude scales with sensitivity', () => {
     const N = 500;
-    let sumLow = 0, sumHigh = 0;
+    let sumLow = 0,
+      sumHigh = 0;
     for (let i = 0; i < N; i++) {
       sumLow += Math.abs(addDPNoise(0, 0.1, 1));
       sumHigh += Math.abs(addDPNoise(0, 10, 1));
@@ -194,12 +195,15 @@ describe('aggregateCausalSkeletons', () => {
     minSiloAgreement: 0.6,
   };
 
-  function makeSilo(id: string, edges: Array<{ from: string; to: string }>): import('../privacy-causal').FederatedSiloData {
+  function makeSilo(
+    id: string,
+    edges: Array<{ from: string; to: string }>
+  ): import('../privacy-causal').FederatedSiloData {
     return {
       siloId: id,
       skeleton: {
         variables: vars,
-        edges: edges.map(e => ({ ...e, orientation: 'undirected' as const, confidence: 1.0 })),
+        edges: edges.map((e) => ({ ...e, orientation: 'undirected' as const, confidence: 1.0 })),
         privacyBudgetSpent: 0.5,
       },
       sampleSize: 100,
@@ -213,8 +217,8 @@ describe('aggregateCausalSkeletons', () => {
       makeSilo('s3', [{ from: 'X', to: 'Y' }]),
     ];
     const graph = aggregateCausalSkeletons(silos, config);
-    const edge = graph.edges.find(e =>
-      (e.from === 'X' && e.to === 'Y') || (e.from === 'Y' && e.to === 'X'),
+    const edge = graph.edges.find(
+      (e) => (e.from === 'X' && e.to === 'Y') || (e.from === 'Y' && e.to === 'X')
     );
     expect(edge).toBeDefined();
     expect(edge!.confidence).toBeCloseTo(1.0);
@@ -229,17 +233,14 @@ describe('aggregateCausalSkeletons', () => {
       makeSilo('s5', []),
     ];
     const graph = aggregateCausalSkeletons(silos, config);
-    const edge = graph.edges.find(e =>
-      (e.from === 'X' && e.to === 'Z') || (e.from === 'Z' && e.to === 'X'),
+    const edge = graph.edges.find(
+      (e) => (e.from === 'X' && e.to === 'Z') || (e.from === 'Z' && e.to === 'X')
     );
     expect(edge).toBeUndefined();
   });
 
   it('accumulates totalSamples and totalSilos', () => {
-    const silos = [
-      makeSilo('s1', []),
-      makeSilo('s2', []),
-    ];
+    const silos = [makeSilo('s1', []), makeSilo('s2', [])];
     const graph = aggregateCausalSkeletons(silos, config);
     expect(graph.totalSilos).toBe(2);
     expect(graph.totalSamples).toBe(200);
@@ -319,8 +320,7 @@ describe('SecureCausalDiscovery', () => {
     // All pairs with moderate correlation
     const vals: Record<string, number> = {};
     for (let i = 0; i < vars.length; i++)
-      for (let j = i + 1; j < vars.length; j++)
-        vals[[vars[i], vars[j]].sort().join('||')] = 0.5;
+      for (let j = i + 1; j < vars.length; j++) vals[[vars[i], vars[j]].sort().join('||')] = 0.5;
     return makeCorrelations(vars, vals);
   }
 
@@ -396,7 +396,7 @@ describe('PrivacyAuditLog', () => {
   it('each entry has a unique sessionId', () => {
     const log = new PrivacyAuditLog();
     for (let i = 0; i < 5; i++) log.record('s', 0.1, 2);
-    const ids = log.all().map(e => e.sessionId);
+    const ids = log.all().map((e) => e.sessionId);
     expect(new Set(ids).size).toBe(5);
   });
 

@@ -23,9 +23,16 @@ export function ensureFilm3dVolumetricsRoot(doc: LoroDoc) {
   return doc.getMap(FILM3D_VOLUMETRICS_ROOT);
 }
 
-export function registerVolumetricNode(doc: LoroDoc, nodeId: string, meta: { format: string }): void {
+export function registerVolumetricNode(
+  doc: LoroDoc,
+  nodeId: string,
+  meta: { format: string }
+): void {
   const root = ensureFilm3dVolumetricsRoot(doc);
-  root.set(`${nodeId}::meta`, JSON.stringify({ trait: 'volumetric', ...meta, updatedAt: Date.now() }));
+  root.set(
+    `${nodeId}::meta`,
+    JSON.stringify({ trait: 'volumetric', ...meta, updatedAt: Date.now() })
+  );
   doc.commit();
 }
 
@@ -37,7 +44,12 @@ export function setVolumetricVoxelPayload(doc: LoroDoc, nodeId: string, data: Ui
 }
 
 /** Ordered chunking for payloads larger than a single CRDT op (caller merges in order). */
-export function setVolumetricChunk(doc: LoroDoc, nodeId: string, chunkIndex: number, data: Uint8Array): void {
+export function setVolumetricChunk(
+  doc: LoroDoc,
+  nodeId: string,
+  chunkIndex: number,
+  data: Uint8Array
+): void {
   const root = ensureFilm3dVolumetricsRoot(doc);
   root.set(`${nodeId}::chunk::${chunkIndex}`, data);
   doc.commit();

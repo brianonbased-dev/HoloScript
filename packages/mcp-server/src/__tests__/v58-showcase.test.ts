@@ -14,10 +14,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import {
-  PaymentWebhookService,
-  CreatorRevenueAggregator,
-} from '@holoscript/framework';
+import { PaymentWebhookService, CreatorRevenueAggregator } from '@holoscript/framework';
 import {
   UsageMeter,
   AgentBudgetEnforcer,

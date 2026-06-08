@@ -62,11 +62,7 @@ export function EditorToolbar({
 
       {/* Right: Voice + Deploy */}
       <div className="flex items-center gap-2">
-        <VoiceAuthoringButton
-          compact
-          currentComposition={code}
-          onApply={onCodeChange}
-        />
+        <VoiceAuthoringButton compact currentComposition={code} onApply={onCodeChange} />
         <DeployButton code={code} worldId={worldId} packageName="my-scene" />
       </div>
     </div>

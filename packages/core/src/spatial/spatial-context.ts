@@ -374,11 +374,7 @@ export function pickPlacement(ctx: SpatialMCPContext): PlacementChoice {
     }
     // Fallback: 1m along the gaze ray.
     return {
-      position: [
-        origin[0] + direction[0],
-        origin[1] + direction[1],
-        origin[2] + direction[2],
-      ],
+      position: [origin[0] + direction[0], origin[1] + direction[1], origin[2] + direction[2]],
       source: 'gaze-ray',
     };
   }

@@ -8,18 +8,18 @@
 ## Problems addressed
 
 1. **Reward hacking ambiguity:** Flat “reward” fields mix long-term outcomes with short-term tactics; auditors and trainers cannot see what must never be traded away.
-2. **Explainability:** Downstream systems (VR dashboards, governance, eval harnesses) need a stable vocabulary for *terminal* vs *instrumental* motivation.
+2. **Explainability:** Downstream systems (VR dashboards, governance, eval harnesses) need a stable vocabulary for _terminal_ vs _instrumental_ motivation.
 3. **Composition:** Multiple traits may imply conflicting objectives; `@motivation` provides a single place to declare precedence and overrides.
 
 ---
 
 ## Definitions
 
-| Term | Meaning |
-|------|--------|
-| **Terminal goal** | An outcome valued **for its own sake** in this composition. If all instrumental sub-goals fail, the agent should still optimize toward the terminal goal where physically possible. |
+| Term                      | Meaning                                                                                                                                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Terminal goal**         | An outcome valued **for its own sake** in this composition. If all instrumental sub-goals fail, the agent should still optimize toward the terminal goal where physically possible.                |
 | **Instrumental sub-goal** | A **means** toward the terminal goal. It may be dropped, reordered, or substituted by planners; it must not be optimized at the expense of the terminal goal unless explicitly marked `relaxable`. |
-| **Constraint** | Hard bounds (safety, policy) that apply regardless of goals — expressed elsewhere (`@policy`, physics, etc.); `@motivation` may **reference** them but does not replace them. |
+| **Constraint**            | Hard bounds (safety, policy) that apply regardless of goals — expressed elsewhere (`@policy`, physics, etc.); `@motivation` may **reference** them but does not replace them.                      |
 
 ---
 
@@ -44,11 +44,11 @@ object "GuideBot" {
 
 ### Fields
 
-| Field | Type | Required | Notes |
-|-------|------|----------|------|
-| `terminal` | string or identifier | yes | Human-readable; compiler may hash to stable ID for telemetry. |
+| Field          | Type                                        | Required          | Notes                                                                                                             |
+| -------------- | ------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `terminal`     | string or identifier                        | yes               | Human-readable; compiler may hash to stable ID for telemetry.                                                     |
 | `instrumental` | list of `{ goal: string, relaxable: bool }` | no (default `[]`) | Order is **documentation order**, not execution order unless `order: "sequential"` is added in a future revision. |
-| `priority` | enum | no | `terminal-wins` (default) \| `instrumental-balanced` (future; requires planner hooks). |
+| `priority`     | enum                                        | no                | `terminal-wins` (default) \| `instrumental-balanced` (future; requires planner hooks).                            |
 
 **Reserved:** Future keys (`weights`, `discount`, `horizon`, `sdtslot` for Self-Determination Theory tags) must be ignored by compilers that do not implement them — forward compatibility.
 
@@ -100,5 +100,5 @@ object "CuratorAI" {
 
 ## References
 
-- Source research track: *what-motivates-ai* (board harvest).
+- Source research track: _what-motivates-ai_ (board harvest).
 - Related docs: `docs/strategy/identity-statements.md` (positioning); trait catalogs in `@holoscript/core` (implementation when scheduled).

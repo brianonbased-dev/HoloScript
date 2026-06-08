@@ -25,10 +25,10 @@ import {
 const SCOPES: SpatialScope[] = ['read-only', 'mutate-zone', 'drive-avatar'];
 
 const INTENTS: Record<string, PortalIntent> = {
-  move:  { kind: 'move',  entityId: 'zone:lobby:box',   position: { x: 1, y: 0, z: 0 } },
-  look:  { kind: 'look',  entityId: 'avatar:agent-1',   rotation: { x: 0, y: 0, z: 0, w: 1 } },
-  grab:  { kind: 'grab',  entityId: 'avatar:agent-1',   targetId: 'zone:lobby:crate' },
-  say:   { kind: 'say',   entityId: 'avatar:agent-1',   utterance: 'hello' },
+  move: { kind: 'move', entityId: 'zone:lobby:box', position: { x: 1, y: 0, z: 0 } },
+  look: { kind: 'look', entityId: 'avatar:agent-1', rotation: { x: 0, y: 0, z: 0, w: 1 } },
+  grab: { kind: 'grab', entityId: 'avatar:agent-1', targetId: 'zone:lobby:crate' },
+  say: { kind: 'say', entityId: 'avatar:agent-1', utterance: 'hello' },
 };
 
 const ZONE_POLICY: SpatialPolicy = {
@@ -49,9 +49,9 @@ describe('scope × intent kind exhaustive matrix (zone policy)', () => {
   type Outcome = 'allow' | 'reject';
 
   const EXPECTED: Record<SpatialScope, Record<keyof typeof INTENTS, Outcome>> = {
-    'read-only':    { move: 'reject', look: 'reject', grab: 'reject', say: 'reject' },
-    'mutate-zone':  { move: 'allow',  look: 'reject', grab: 'allow',  say: 'reject' },
-    'drive-avatar': { move: 'allow',  look: 'allow',  grab: 'allow',  say: 'allow'  },
+    'read-only': { move: 'reject', look: 'reject', grab: 'reject', say: 'reject' },
+    'mutate-zone': { move: 'allow', look: 'reject', grab: 'allow', say: 'reject' },
+    'drive-avatar': { move: 'allow', look: 'allow', grab: 'allow', say: 'allow' },
   };
 
   for (const scope of SCOPES) {
@@ -111,11 +111,11 @@ describe('mutableZoneGlob specificity (mutate-zone)', () => {
   const p: SpatialPolicy = { defaultScope: 'mutate-zone', mutableZoneGlobs: ['zone:lobby:*'] };
 
   const cases: Array<{ id: string; expected: boolean }> = [
-    { id: 'zone:lobby:chair-1',   expected: true  },
-    { id: 'zone:lobby:',          expected: true  },  // trailing-wildcard edge
-    { id: 'zone:vault:safe',      expected: false },
-    { id: 'lobby:chair-1',        expected: false },  // prefix-anchor
-    { id: 'zone:lobby:deep:item', expected: true  },  // * matches path separators
+    { id: 'zone:lobby:chair-1', expected: true },
+    { id: 'zone:lobby:', expected: true }, // trailing-wildcard edge
+    { id: 'zone:vault:safe', expected: false },
+    { id: 'lobby:chair-1', expected: false }, // prefix-anchor
+    { id: 'zone:lobby:deep:item', expected: true }, // * matches path separators
   ];
 
   for (const { id, expected } of cases) {
@@ -126,8 +126,16 @@ describe('mutableZoneGlob specificity (mutate-zone)', () => {
   }
 
   it('grab uses targetId for glob matching, not entityId', () => {
-    const grabInZone: PortalIntent = { kind: 'grab', entityId: 'avatar:bot', targetId: 'zone:lobby:crate' };
-    const grabOutOfZone: PortalIntent = { kind: 'grab', entityId: 'avatar:bot', targetId: 'zone:vault:safe' };
+    const grabInZone: PortalIntent = {
+      kind: 'grab',
+      entityId: 'avatar:bot',
+      targetId: 'zone:lobby:crate',
+    };
+    const grabOutOfZone: PortalIntent = {
+      kind: 'grab',
+      entityId: 'avatar:bot',
+      targetId: 'zone:vault:safe',
+    };
     expect(validatePortalIntent(grabInZone, p).allowed).toBe(true);
     expect(validatePortalIntent(grabOutOfZone, p).allowed).toBe(false);
   });
@@ -140,23 +148,32 @@ describe('mutableZoneGlob specificity (mutate-zone)', () => {
 describe('driveAvatar policy variants', () => {
   it('denies say/look when driveAvatar.allow=false', () => {
     const p: SpatialPolicy = { defaultScope: 'drive-avatar', driveAvatar: { allow: false } };
-    expect(validatePortalIntent(INTENTS.say,  p).allowed).toBe(false);
+    expect(validatePortalIntent(INTENTS.say, p).allowed).toBe(false);
     expect(validatePortalIntent(INTENTS.look, p).allowed).toBe(false);
   });
 
   it('denies say/look when maxEntities limit reached', () => {
-    const p: SpatialPolicy = { defaultScope: 'drive-avatar', driveAvatar: { allow: true, maxEntities: 1 } };
+    const p: SpatialPolicy = {
+      defaultScope: 'drive-avatar',
+      driveAvatar: { allow: true, maxEntities: 1 },
+    };
     // activeCount = 1 (at limit)
     expect(validatePortalIntent(INTENTS.say, p, 'drive-avatar', 1).allowed).toBe(false);
   });
 
   it('allows say/look when activeCount is below maxEntities', () => {
-    const p: SpatialPolicy = { defaultScope: 'drive-avatar', driveAvatar: { allow: true, maxEntities: 3 } };
+    const p: SpatialPolicy = {
+      defaultScope: 'drive-avatar',
+      driveAvatar: { allow: true, maxEntities: 3 },
+    };
     expect(validatePortalIntent(INTENTS.say, p, 'drive-avatar', 2).allowed).toBe(true);
   });
 
   it('allows say/look when maxEntities=0 (unlimited)', () => {
-    const p: SpatialPolicy = { defaultScope: 'drive-avatar', driveAvatar: { allow: true, maxEntities: 0 } };
+    const p: SpatialPolicy = {
+      defaultScope: 'drive-avatar',
+      driveAvatar: { allow: true, maxEntities: 0 },
+    };
     expect(validatePortalIntent(INTENTS.say, p, 'drive-avatar', 999).allowed).toBe(true);
   });
 });
@@ -206,7 +223,7 @@ describe('enforcement=warn mode', () => {
 describe('undefined / minimal policy defaults', () => {
   it('undefined policy → read-only default → all mutations rejected', () => {
     expect(validatePortalIntent(INTENTS.move, undefined).allowed).toBe(false);
-    expect(validatePortalIntent(INTENTS.say,  undefined).allowed).toBe(false);
+    expect(validatePortalIntent(INTENTS.say, undefined).allowed).toBe(false);
   });
 
   it('empty policy object → read-only default → all mutations rejected', () => {

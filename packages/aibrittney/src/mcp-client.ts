@@ -32,10 +32,7 @@ export const DEFAULT_ENDPOINT = 'https://mcp-orchestrator-production-45f9.up.rai
 export function defaultMcpConfig(overrides: Partial<McpClientConfig> = {}): McpClientConfig {
   const endpoint = overrides.endpoint ?? process.env.MCP_ORCHESTRATOR_URL ?? DEFAULT_ENDPOINT;
   const apiKey =
-    overrides.apiKey ??
-    process.env.HOLOSCRIPT_API_KEY ??
-    process.env.MCP_API_KEY ??
-    '';
+    overrides.apiKey ?? process.env.HOLOSCRIPT_API_KEY ?? process.env.MCP_API_KEY ?? '';
   return {
     endpoint,
     apiKey,
@@ -92,7 +89,10 @@ export class McpClient {
         ok: false,
         status: 0,
         data: null,
-        error: e.name === 'AbortError' ? `tool call timed out after ${this.config.timeoutMs}ms` : e.message,
+        error:
+          e.name === 'AbortError'
+            ? `tool call timed out after ${this.config.timeoutMs}ms`
+            : e.message,
       };
     } finally {
       clearTimeout(timer);

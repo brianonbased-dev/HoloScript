@@ -10,7 +10,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { validateCitations, filterAnswerCitations, type Citation } from '../ProvenanceIntegrityGuard';
+import {
+  validateCitations,
+  filterAnswerCitations,
+  type Citation,
+} from '../ProvenanceIntegrityGuard';
 import type { CodebaseGraph } from '../CodebaseGraph';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -20,7 +24,7 @@ import type { CodebaseGraph } from '../CodebaseGraph';
  * We only need the query interface; no graph construction needed.
  */
 function makeGraphStub(
-  fileSymbols: Record<string, Array<{ name: string; line: number; endLine?: number }>>,
+  fileSymbols: Record<string, Array<{ name: string; line: number; endLine?: number }>>
 ): CodebaseGraph {
   const symbolsByFile = new Map<string, Array<{ name: string; line: number; endLine?: number }>>();
   for (const [file, syms] of Object.entries(fileSymbols)) {
@@ -49,14 +53,12 @@ function makeGraphStub(
 describe('ProvenanceIntegrityGuard', () => {
   it('flags a fabricated citation whose file does not exist in the graph', () => {
     const graph = makeGraphStub({
-      'packages/core/src/index.ts': [
-        { name: 'main', line: 1, endLine: 10 },
-      ],
+      'packages/core/src/index.ts': [{ name: 'main', line: 1, endLine: 10 }],
     });
 
     const result = validateCitations(
       [{ name: 'fakeFn', file: 'nonexistent/file.ts', line: 42 }],
-      graph,
+      graph
     );
 
     expect(result.passed).toBe(false);
@@ -77,7 +79,7 @@ describe('ProvenanceIntegrityGuard', () => {
     // Line 99 is not within any symbol span
     const result = validateCitations(
       [{ name: 'parseExpression', file: 'packages/core/src/parser.ts', line: 99 }],
-      graph,
+      graph
     );
 
     expect(result.passed).toBe(false);
@@ -95,15 +97,13 @@ describe('ProvenanceIntegrityGuard', () => {
 
   it('resolves a citation whose line falls within a known symbol span', () => {
     const graph = makeGraphStub({
-      'packages/core/src/compiler.ts': [
-        { name: 'compileToTarget', line: 15, endLine: 40 },
-      ],
+      'packages/core/src/compiler.ts': [{ name: 'compileToTarget', line: 15, endLine: 40 }],
     });
 
     // Line 20 is within [15, 40]
     const result = validateCitations(
       [{ name: 'compileToTarget', file: 'packages/core/src/compiler.ts', line: 20 }],
-      graph,
+      graph
     );
 
     expect(result.passed).toBe(true);
@@ -121,7 +121,7 @@ describe('ProvenanceIntegrityGuard', () => {
     // Exact match works
     const exact = validateCitations(
       [{ name: 'helper', file: 'packages/core/src/utils.ts', line: 5 }],
-      graph,
+      graph
     );
     expect(exact.passed).toBe(true);
     expect(exact.resolvedCount).toBe(1);
@@ -129,7 +129,7 @@ describe('ProvenanceIntegrityGuard', () => {
     // Off-by-one fails when there's no span
     const offByOne = validateCitations(
       [{ name: 'helper', file: 'packages/core/src/utils.ts', line: 6 }],
-      graph,
+      graph
     );
     expect(offByOne.resolvedCount).toBe(0);
     expect(offByOne.unresolvedCount).toBe(1);
@@ -137,9 +137,7 @@ describe('ProvenanceIntegrityGuard', () => {
 
   it('accepts an answer with mixed resolved and unresolved citations', () => {
     const graph = makeGraphStub({
-      'packages/core/src/real.ts': [
-        { name: 'realFn', line: 10, endLine: 20 },
-      ],
+      'packages/core/src/real.ts': [{ name: 'realFn', line: 10, endLine: 20 }],
     });
 
     const result = validateCitations(
@@ -147,7 +145,7 @@ describe('ProvenanceIntegrityGuard', () => {
         { name: 'realFn', file: 'packages/core/src/real.ts', line: 15 }, // resolves
         { name: 'fakeFn', file: 'packages/core/src/fake.ts', line: 1 }, // file not in graph
       ],
-      graph,
+      graph
     );
 
     expect(result.passed).toBe(true);
@@ -159,9 +157,7 @@ describe('ProvenanceIntegrityGuard', () => {
 
   it('rejects when all citations fail resolution despite a non-empty graph', () => {
     const graph = makeGraphStub({
-      'packages/core/src/exists.ts': [
-        { name: 'someFn', line: 5, endLine: 10 },
-      ],
+      'packages/core/src/exists.ts': [{ name: 'someFn', line: 5, endLine: 10 }],
     });
 
     // All citations point to wrong lines in an existing file
@@ -170,7 +166,7 @@ describe('ProvenanceIntegrityGuard', () => {
         { name: 'someFn', file: 'packages/core/src/exists.ts', line: 999 },
         { name: 'otherFn', file: 'packages/core/src/exists.ts', line: 888 },
       ],
-      graph,
+      graph
     );
 
     expect(result.passed).toBe(false);
@@ -180,14 +176,12 @@ describe('ProvenanceIntegrityGuard', () => {
 
   it('resolves citation at the exact start line of a span', () => {
     const graph = makeGraphStub({
-      'packages/engine/src/sim.ts': [
-        { name: 'simulate', line: 100, endLine: 150 },
-      ],
+      'packages/engine/src/sim.ts': [{ name: 'simulate', line: 100, endLine: 150 }],
     });
 
     const result = validateCitations(
       [{ name: 'simulate', file: 'packages/engine/src/sim.ts', line: 100 }],
-      graph,
+      graph
     );
 
     expect(result.passed).toBe(true);
@@ -196,14 +190,12 @@ describe('ProvenanceIntegrityGuard', () => {
 
   it('resolves citation at the exact end line of a span', () => {
     const graph = makeGraphStub({
-      'packages/engine/src/sim.ts': [
-        { name: 'simulate', line: 100, endLine: 150 },
-      ],
+      'packages/engine/src/sim.ts': [{ name: 'simulate', line: 100, endLine: 150 }],
     });
 
     const result = validateCitations(
       [{ name: 'simulate', file: 'packages/engine/src/sim.ts', line: 150 }],
-      graph,
+      graph
     );
 
     expect(result.passed).toBe(true);
@@ -214,19 +206,14 @@ describe('ProvenanceIntegrityGuard', () => {
 
   it('filterAnswerCitations returns null when all citations are unresolvable', () => {
     const graph = makeGraphStub({});
-    const result = filterAnswerCitations(
-      [{ name: 'x', file: 'nope.ts', line: 1 }],
-      graph,
-    );
+    const result = filterAnswerCitations([{ name: 'x', file: 'nope.ts', line: 1 }], graph);
 
     expect(result).toBeNull();
   });
 
   it('filterAnswerCitations returns only resolved citations when some pass', () => {
     const graph = makeGraphStub({
-      'packages/core/src/real.ts': [
-        { name: 'realFn', line: 10, endLine: 20 },
-      ],
+      'packages/core/src/real.ts': [{ name: 'realFn', line: 10, endLine: 20 }],
     });
 
     const result = filterAnswerCitations(
@@ -234,7 +221,7 @@ describe('ProvenanceIntegrityGuard', () => {
         { name: 'realFn', file: 'packages/core/src/real.ts', line: 15 },
         { name: 'fakeFn', file: 'nope.ts', line: 1 },
       ],
-      graph,
+      graph
     );
 
     expect(result).not.toBeNull();
@@ -256,11 +243,19 @@ describe('ProvenanceIntegrityGuard', () => {
 
     // Real citation + fabricated citation injected
     const citations: Citation[] = [
-      { name: 'queryWithLLM', file: 'packages/absorb-service/src/engine/GraphRAGEngine.ts', line: 260 },
+      {
+        name: 'queryWithLLM',
+        file: 'packages/absorb-service/src/engine/GraphRAGEngine.ts',
+        line: 260,
+      },
       // FABRICATED: this file doesn't exist in the graph
       { name: 'neverExisted', file: 'packages/absorb-service/src/engine/FakeFile.ts', line: 1 },
       // FABRICATED: right file, but line 9999 is outside any symbol span
-      { name: 'queryWithLLM', file: 'packages/absorb-service/src/engine/GraphRAGEngine.ts', line: 9999 },
+      {
+        name: 'queryWithLLM',
+        file: 'packages/absorb-service/src/engine/GraphRAGEngine.ts',
+        line: 9999,
+      },
     ];
 
     const result = validateCitations(citations, graph);

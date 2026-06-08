@@ -81,7 +81,7 @@ interface AxisRange {
 }
 
 function computeLogRange(values: number[]): AxisRange {
-  const logs = values.filter(v => v > 0).map(Math.log10);
+  const logs = values.filter((v) => v > 0).map(Math.log10);
   const min = Math.floor(Math.min(...logs));
   const max = Math.ceil(Math.max(...logs));
   return { min, max, span: max - min || 1 };
@@ -149,10 +149,7 @@ function AxisLine({
 }) {
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute(
-      'position',
-      new THREE.Float32BufferAttribute([...start, ...end], 3)
-    );
+    geo.setAttribute('position', new THREE.Float32BufferAttribute([...start, ...end], 3));
     return geo;
   }, [start, end]);
 
@@ -260,10 +257,7 @@ function DataPointSphere({
   useFrame(() => {
     if (meshRef.current) {
       const targetScale = hovered ? 1.5 : 1.0;
-      meshRef.current.scale.lerp(
-        new THREE.Vector3(targetScale, targetScale, targetScale),
-        0.15
-      );
+      meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
     }
   });
 
@@ -309,13 +303,10 @@ export function ConvergencePlot3D({
 
   // Collect all mesh sizes and errors for axis ranges
   const allMeshSizes = useMemo(
-    () => series.flatMap(s => s.points.map(p => p.meshSize)),
+    () => series.flatMap((s) => s.points.map((p) => p.meshSize)),
     [series]
   );
-  const allErrors = useMemo(
-    () => series.flatMap(s => s.points.map(p => p.errorL2)),
-    [series]
-  );
+  const allErrors = useMemo(() => series.flatMap((s) => s.points.map((p) => p.errorL2)), [series]);
 
   const hRange = useMemo(() => computeLogRange(allMeshSizes), [allMeshSizes]);
   const eRange = useMemo(() => computeLogRange(allErrors), [allErrors]);
@@ -388,9 +379,7 @@ export function ConvergencePlot3D({
       {/* Axes */}
       <AxisLine start={[0, 0, 0]} end={[W, 0, 0]} color={0xcccccc} />
       <AxisLine start={[0, 0, 0]} end={[0, H, 0]} color={0xcccccc} />
-      {series.length > 1 && (
-        <AxisLine start={[0, 0, 0]} end={[0, 0, D]} color={0xcccccc} />
-      )}
+      {series.length > 1 && <AxisLine start={[0, 0, 0]} end={[0, 0, D]} color={0xcccccc} />}
 
       {/* Grid planes */}
       {showGrid && (
@@ -441,11 +430,7 @@ export function ConvergencePlot3D({
 
       {/* Global observed order regression line */}
       {regressionPoints.length >= 2 && (
-        <RegressionTube
-          points={regressionPoints}
-          color={0xffaa00}
-          radius={0.01}
-        />
+        <RegressionTube points={regressionPoints} color={0xffaa00} radius={0.01} />
       )}
 
       {/* Theoretical order reference plane */}

@@ -272,7 +272,10 @@ describe('Native2DCompiler static-HTML styling', () => {
         properties: [{ key: 'theme', value: 'light' }],
       },
     };
-    const html = new Native2DCompiler().compile(lightComposition as Parameters<Native2DCompiler['compile']>[0], '');
+    const html = new Native2DCompiler().compile(
+      lightComposition as Parameters<Native2DCompiler['compile']>[0],
+      ''
+    );
     expect(html).toContain('#ffffff');
     expect(html).not.toContain('#050510');
   });

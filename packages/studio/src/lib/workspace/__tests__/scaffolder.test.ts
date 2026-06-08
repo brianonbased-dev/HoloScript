@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  scaffoldProjectWorkspace,
-  ScaffoldValidationError,
-} from '../scaffolder';
+import { scaffoldProjectWorkspace, ScaffoldValidationError } from '../scaffolder';
 import type { ProjectDNA, ScaffoldResult } from '../scaffolder';
 
 // ─── Test fixtures ──────────────────────────────────────────────────────────
@@ -106,7 +103,7 @@ describe('scaffoldProjectWorkspace', () => {
 
     it('should generate 4 skills', () => {
       expect(result.skills).toHaveLength(4);
-      const names = result.skills.map(s => s.name);
+      const names = result.skills.map((s) => s.name);
       expect(names).toContain('scan');
       expect(names).toContain('dev');
       expect(names).toContain('documenter');
@@ -127,31 +124,31 @@ describe('scaffoldProjectWorkspace', () => {
 
     it('should generate 3 hooks', () => {
       expect(result.hooks).toHaveLength(3);
-      const names = result.hooks.map(h => h.name);
+      const names = result.hooks.map((h) => h.name);
       expect(names).toContain('validate-edit');
       expect(names).toContain('operation-counter');
       expect(names).toContain('session-report');
     });
 
     it('should set correct hook types', () => {
-      const validateEdit = result.hooks.find(h => h.name === 'validate-edit');
+      const validateEdit = result.hooks.find((h) => h.name === 'validate-edit');
       expect(validateEdit?.type).toBe('PostToolUse');
 
-      const opCounter = result.hooks.find(h => h.name === 'operation-counter');
+      const opCounter = result.hooks.find((h) => h.name === 'operation-counter');
       expect(opCounter?.type).toBe('PostToolUse');
 
-      const sessionReport = result.hooks.find(h => h.name === 'session-report');
+      const sessionReport = result.hooks.find((h) => h.name === 'session-report');
       expect(sessionReport?.type).toBe('Stop');
     });
 
     it('should include eslint in validate-edit hook', () => {
-      const hook = result.hooks.find(h => h.name === 'validate-edit');
+      const hook = result.hooks.find((h) => h.name === 'validate-edit');
       expect(hook?.content).toContain('eslint');
     });
 
     it('should generate daemon config with providers', () => {
       expect(result.daemonConfig.providers).toHaveLength(3);
-      const names = result.daemonConfig.providers.map(p => p.name);
+      const names = result.daemonConfig.providers.map((p) => p.name);
       expect(names).toContain('claude');
       expect(names).toContain('openai');
       expect(names).toContain('grok');
@@ -168,7 +165,7 @@ describe('scaffoldProjectWorkspace', () => {
 
     it('should have 4 agent slots in team room', () => {
       expect(result.teamRoomConfig.agents).toHaveLength(4);
-      const roles = result.teamRoomConfig.agents.map(a => a.role);
+      const roles = result.teamRoomConfig.agents.map((a) => a.role);
       expect(roles).toContain('orchestrator');
       expect(roles).toContain('daemon');
       expect(roles).toContain('knowledge');
@@ -178,8 +175,8 @@ describe('scaffoldProjectWorkspace', () => {
     it('should seed board with initial items', () => {
       expect(result.teamRoomConfig.board.length).toBeGreaterThan(0);
       // Should always have initial scan task
-      const scanTask = result.teamRoomConfig.board.find(
-        item => item.title.includes('initial Absorb scan'),
+      const scanTask = result.teamRoomConfig.board.find((item) =>
+        item.title.includes('initial Absorb scan')
       );
       expect(scanTask).toBeDefined();
     });
@@ -221,22 +218,20 @@ describe('scaffoldProjectWorkspace', () => {
     });
 
     it('should have test-coverage as high-priority daemon focus', () => {
-      const testFocus = result.daemonConfig.focusAreas.find(
-        f => f.area === 'test-coverage',
-      );
+      const testFocus = result.daemonConfig.focusAreas.find((f) => f.area === 'test-coverage');
       expect(testFocus).toBeDefined();
       expect(testFocus?.priority).toBe(1);
     });
 
     it('should include ruff in validate-edit hook for Python', () => {
-      const hook = result.hooks.find(h => h.name === 'validate-edit');
+      const hook = result.hooks.find((h) => h.name === 'validate-edit');
       expect(hook?.content).toContain('ruff');
       expect(hook?.content).toContain('.py');
     });
 
     it('should seed board with coverage task for low coverage', () => {
-      const coverageTask = result.teamRoomConfig.board.find(
-        item => item.title.includes('coverage'),
+      const coverageTask = result.teamRoomConfig.board.find((item) =>
+        item.title.includes('coverage')
       );
       expect(coverageTask).toBeDefined();
       // 22% is below 50 but above 20 — priority is medium
@@ -282,7 +277,7 @@ describe('scaffoldProjectWorkspace', () => {
     });
 
     it('should include Go conventions in review skill', () => {
-      const reviewSkill = result.skills.find(s => s.name === 'review');
+      const reviewSkill = result.skills.find((s) => s.name === 'review');
       expect(reviewSkill?.content).toContain('errors must be checked');
     });
 
@@ -292,23 +287,19 @@ describe('scaffoldProjectWorkspace', () => {
     });
 
     it('should include traits on the board', () => {
-      const traitTask = result.teamRoomConfig.board.find(
-        item => item.title.includes('traits'),
-      );
+      const traitTask = result.teamRoomConfig.board.find((item) => item.title.includes('traits'));
       expect(traitTask).toBeDefined();
     });
 
     it('should use gofmt in validate-edit hook', () => {
-      const hook = result.hooks.find(h => h.name === 'validate-edit');
+      const hook = result.hooks.find((h) => h.name === 'validate-edit');
       expect(hook?.content).toContain('gofmt');
       expect(hook?.content).toContain('.go');
     });
 
     it('should have good coverage reflected in daemon config', () => {
       // 72% coverage — should not be priority 1
-      const testFocus = result.daemonConfig.focusAreas.find(
-        f => f.area === 'test-coverage',
-      );
+      const testFocus = result.daemonConfig.focusAreas.find((f) => f.area === 'test-coverage');
       // Either not present (good) or low priority
       if (testFocus) {
         expect(testFocus.priority).toBeGreaterThan(1);

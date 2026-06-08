@@ -40,7 +40,7 @@ const metadata = {
   platform: platformInfo,
   lockfile_sha256: lockfileHash,
   runs: N_RUNS,
-  seed_mode: 'random' // Can be configured in CI if necessary
+  seed_mode: 'random', // Can be configured in CI if necessary
 };
 
 fs.writeFileSync(path.join(runDir, 'metadata.json'), JSON.stringify(metadata, null, 2));
@@ -54,18 +54,24 @@ const summaryData = [];
 for (let i = 1; i <= N_RUNS; i++) {
   console.log(`\n--- Run ${i} of ${N_RUNS} ---`);
   try {
-    const rawOutput = execSync('pnpm --filter @holoscript/benchmark run bench:ci', { encoding: 'utf-8', stdio: 'pipe' });
+    const rawOutput = execSync('pnpm --filter @holoscript/benchmark run bench:ci', {
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    });
     const runArtifactPath = path.join(runDir, `run-${i}.json`);
-    
+
     // We assume the CI output is a valid JSON block somewhere or the last line.
     // To be safe we just save the raw stdout.
     fs.writeFileSync(runArtifactPath, rawOutput);
     console.log(`[D.011] Run ${i} completed.`);
-    
+
     summaryData.push({ run: i, status: 'success', outputFile: `run-${i}.json` });
   } catch (error) {
     console.error(`[D.011] Run ${i} failed. Skipping.`);
-    fs.writeFileSync(path.join(runDir, `run-${i}-error.log`), String(error.stdout || error.message));
+    fs.writeFileSync(
+      path.join(runDir, `run-${i}-error.log`),
+      String(error.stdout || error.message)
+    );
     summaryData.push({ run: i, status: 'failed', errorFile: `run-${i}-error.log` });
   }
 }

@@ -75,7 +75,9 @@ describe('A. commitGeometry', () => {
   });
 
   it('throws on empty geometryHash', () => {
-    expect(() => commitGeometry('', 'salt')).toThrow('commitGeometry: geometryHash must be non-empty');
+    expect(() => commitGeometry('', 'salt')).toThrow(
+      'commitGeometry: geometryHash must be non-empty'
+    );
   });
 
   it('generates a salt when not provided (non-empty)', () => {
@@ -189,9 +191,7 @@ describe('D. verifyZKCompliance — V3 stepCount > 0', () => {
 
 describe('D. verifyZKCompliance — V4 digests non-empty', () => {
   it('empty string in digests fails V4', () => {
-    const result = verifyZKCompliance(
-      makeProof({ stateDigests: ['ok', '', 'ok'], stepCount: 3 }),
-    );
+    const result = verifyZKCompliance(makeProof({ stateDigests: ['ok', '', 'ok'], stepCount: 3 }));
     expect(result.violations.some((v) => v.startsWith('V4'))).toBe(true);
     expect(result.valid).toBe(false);
   });
@@ -200,7 +200,7 @@ describe('D. verifyZKCompliance — V4 digests non-empty', () => {
 describe('D. verifyZKCompliance — V5 no frozen consecutive steps', () => {
   it('repeated consecutive digest fails V5', () => {
     const result = verifyZKCompliance(
-      makeProof({ stateDigests: ['digest_a', 'digest_a', 'digest_b'], stepCount: 3 }),
+      makeProof({ stateDigests: ['digest_a', 'digest_a', 'digest_b'], stepCount: 3 })
     );
     expect(result.violations.some((v) => v.startsWith('V5'))).toBe(true);
     expect(result.valid).toBe(false);
@@ -208,7 +208,7 @@ describe('D. verifyZKCompliance — V5 no frozen consecutive steps', () => {
 
   it('same digest non-consecutively is fine', () => {
     const result = verifyZKCompliance(
-      makeProof({ stateDigests: ['digest_a', 'digest_b', 'digest_a'], stepCount: 3 }),
+      makeProof({ stateDigests: ['digest_a', 'digest_b', 'digest_a'], stepCount: 3 })
     );
     expect(result.violations.some((v) => v.startsWith('V5'))).toBe(false);
   });
@@ -229,10 +229,9 @@ describe('D. verifyZKCompliance — V6 fixedDt valid', () => {
 
 describe('D. verifyZKCompliance — V7 timestamp not in future', () => {
   it('future timestamp fails V7', () => {
-    const result = verifyZKCompliance(
-      makeProof({ timestamp: Date.now() + 120_000 }),
-      { clockToleranceMs: 1_000 },
-    );
+    const result = verifyZKCompliance(makeProof({ timestamp: Date.now() + 120_000 }), {
+      clockToleranceMs: 1_000,
+    });
     expect(result.violations.some((v) => v.startsWith('V7'))).toBe(true);
     expect(result.valid).toBe(false);
   });
@@ -246,7 +245,7 @@ describe('D. verifyZKCompliance — V7 timestamp not in future', () => {
 describe('D. verifyZKCompliance — V8 GPU digests count', () => {
   it('GPU digest count mismatch fails V8', () => {
     const result = verifyZKCompliance(
-      makeProof({ gpuOutputDigests: ['gpu_a', 'gpu_b'], stepCount: 3, stateDigests: FAKE_DIGESTS }),
+      makeProof({ gpuOutputDigests: ['gpu_a', 'gpu_b'], stepCount: 3, stateDigests: FAKE_DIGESTS })
     );
     expect(result.violations.some((v) => v.startsWith('V8'))).toBe(true);
     expect(result.valid).toBe(false);
@@ -259,7 +258,7 @@ describe('D. verifyZKCompliance — V8 GPU digests count', () => {
         gpuOutputDigests: gpuDigests,
         stepCount: 3,
         stateDigests: FAKE_DIGESTS,
-      }),
+      })
     );
     expect(result.violations.some((v) => v.startsWith('V8'))).toBe(false);
   });

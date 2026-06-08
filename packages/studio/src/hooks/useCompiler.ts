@@ -3,12 +3,7 @@
  * useCompiler — Hook for multi-target HoloScript compilation
  */
 import { useState, useCallback } from 'react';
-import {
-  UnityCompiler,
-  GodotCompiler,
-  R3FCompiler,
-  VRChatCompiler,
-} from '@holoscript/core';
+import { UnityCompiler, GodotCompiler, R3FCompiler, VRChatCompiler } from '@holoscript/core';
 
 const ALL_TARGETS = [
   { id: 'unity', name: 'Unity', icon: '🎮', ext: '.cs' },

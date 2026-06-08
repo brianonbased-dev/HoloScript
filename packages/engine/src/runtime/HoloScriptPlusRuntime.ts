@@ -260,11 +260,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Initialize WebXR Manager if enabled
     // We defer full initialization until enterVR() or if renderer provides context now
-    if (
-      options.renderer &&
-        (options.renderer as any).context &&
-      options.vrEnabled
-    ) {
+    if (options.renderer && (options.renderer as any).context && options.vrEnabled) {
       // We could pre-warm here, but for now we wait for explicit enterVR
     }
 
@@ -273,9 +269,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     const rootAst = this.ast as unknown as HSPlusAST & { root: HSPlusNode };
     const isNetworked =
       rootAst.root.traits?.has('networked') ||
-      rootAst.root.directives?.some(
-        (d: any) => d.type === 'sync' || d.type === 'networked'
-      );
+      rootAst.root.directives?.some((d: any) => d.type === 'sync' || d.type === 'networked');
     const _syncId = isNetworked ? (rootAst.root as any).id || 'global_session' : undefined;
 
     this.state = createState({} as any) as any;
@@ -1381,9 +1375,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     // Apply Networking Sync
     if (instance.node.traits?.has('networked')) {
-      const interpolated = this.networkSync.getInterpolatedState(
-        instance.node.id || ''
-      ) as any;
+      const interpolated = this.networkSync.getInterpolatedState(instance.node.id || '') as any;
       const body = this.physicsWorld.getBody(instance.node.id || '');
 
       if (interpolated && instance.node.properties) {
@@ -1641,11 +1633,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
           // this.emit('apply_velocity', { node, velocity });
           const body = this.physicsWorld.getBody(node.id || '');
           if (body) {
-            body.velocity = [
-              velocity[0] as number,
-              velocity[1] as number,
-              velocity[2] as number,
-            ];
+            body.velocity = [velocity[0] as number, velocity[1] as number, velocity[2] as number];
           }
         },
         applyAngularVelocity: (node, angularVelocity) => {
@@ -1669,11 +1657,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         raycast: (origin, direction, maxDistance) => {
           const hit = this.physicsWorld.raycastClosest({
             origin: [origin[0] as number, origin[1] as number, origin[2] as number],
-            direction: [
-              direction[0] as number,
-              direction[1] as number,
-              direction[2] as number,
-            ],
+            direction: [direction[0] as number, direction[1] as number, direction[2] as number],
             maxDistance,
           });
 
@@ -1694,12 +1678,14 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         },
         getBodyPosition: (nodeId) => {
           const body = this.physicsWorld.getBody(nodeId);
-          if (body && body.position) return [body.position[0] || 0, body.position[1] || 0, body.position[2] || 0];
+          if (body && body.position)
+            return [body.position[0] || 0, body.position[1] || 0, body.position[2] || 0];
           return null;
         },
         getBodyVelocity: (nodeId) => {
           const body = this.physicsWorld.getBody(nodeId);
-          if (body && body.velocity) return [body.velocity[0] || 0, body.velocity[1] || 0, body.velocity[2] || 0];
+          if (body && body.velocity)
+            return [body.velocity[0] || 0, body.velocity[1] || 0, body.velocity[2] || 0];
           return null;
         },
       },
@@ -1835,10 +1821,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
     const traverse = (instance: NodeInstance) => {
       if (instance.node.id && instance.node.properties) {
-        spatialMemory.set(
-          instance.node.id,
-          instance.node.properties.position || [0, 0, 0]
-        );
+        spatialMemory.set(instance.node.id, instance.node.properties.position || [0, 0, 0]);
         hologramState.set(instance.node.id, {
           shape: instance.node.properties.shape || instance.node.type,
           color: instance.node.properties.color,
@@ -2052,10 +2035,7 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   /**
    * Executes a block of HoloScript+ statements
    */
-  public async executeStatementBlock(
-    instance: NodeInstance,
-    body: HoloStatement[]
-  ): Promise<void> {
+  public async executeStatementBlock(instance: NodeInstance, body: HoloStatement[]): Promise<void> {
     for (const stmt of body) {
       await this.executeStatement(instance, stmt);
     }

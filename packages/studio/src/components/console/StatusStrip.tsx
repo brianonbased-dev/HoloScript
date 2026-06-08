@@ -45,7 +45,9 @@ export function StatusStrip({ cells, testId }: StatusStripProps) {
             <span style={{ color, fontSize: tokens.font.title, fontWeight: tokens.weight.heavy }}>
               {c.value}
             </span>
-            <span style={{ color: tokens.color.textDim, fontSize: tokens.font.label }}>{c.label}</span>
+            <span style={{ color: tokens.color.textDim, fontSize: tokens.font.label }}>
+              {c.label}
+            </span>
           </>
         );
         const cellStyle = {

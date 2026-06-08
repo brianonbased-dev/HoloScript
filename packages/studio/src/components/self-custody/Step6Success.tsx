@@ -34,13 +34,10 @@ export function Step6Success({
 
   return (
     <div>
-      <h2 style={{ fontSize: 18, marginBottom: 12, color: '#4f4' }}>
-        Migration complete
-      </h2>
+      <h2 style={{ fontSize: 18, marginBottom: 12, color: '#4f4' }}>Migration complete</h2>
       <p style={{ color: '#aaa', fontSize: 13, marginBottom: 20 }}>
-        Your account is now in self-custody mode. The custodial signer has
-        been retired and can no longer sign on your behalf. Your new wallet
-        is the only authority.
+        Your account is now in self-custody mode. The custodial signer has been retired and can no
+        longer sign on your behalf. Your new wallet is the only authority.
       </p>
 
       <div
@@ -72,8 +69,8 @@ export function Step6Success({
               opacity: 0.9,
             }}
           >
-            (server reported this as a replay — the migration had already
-            completed; you&apos;re looking at the cached result.)
+            (server reported this as a replay — the migration had already completed; you&apos;re
+            looking at the cached result.)
           </div>
         )}
       </div>

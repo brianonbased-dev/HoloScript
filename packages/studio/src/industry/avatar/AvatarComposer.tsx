@@ -30,9 +30,24 @@ const PART_CATEGORIES: Array<{ id: AvatarPartType; label: string; emoji: string 
 ];
 
 const PRESET_COLORS = [
-  '#e8beac', '#8d5524', '#c68642', '#e0ac69', '#f1c27d', '#ffdbac',
-  '#3d2314', '#5c3a1e', '#8b6914', '#c0c0c0', '#ffd700', '#ffffff',
-  '#d32f2f', '#1976d2', '#388e3c', '#f57c00', '#7b1fa2', '#333333',
+  '#e8beac',
+  '#8d5524',
+  '#c68642',
+  '#e0ac69',
+  '#f1c27d',
+  '#ffdbac',
+  '#3d2314',
+  '#5c3a1e',
+  '#8b6914',
+  '#c0c0c0',
+  '#ffd700',
+  '#ffffff',
+  '#d32f2f',
+  '#1976d2',
+  '#388e3c',
+  '#f57c00',
+  '#7b1fa2',
+  '#333333',
 ];
 
 export function AvatarComposer() {
@@ -87,7 +102,10 @@ export function AvatarComposer() {
       {/* Left: Category tabs + part grid */}
       <div className="flex w-80 flex-col border-r border-studio-border bg-studio-panel">
         {/* Category tabs */}
-        <div data-testid="composer-categories" className="flex overflow-x-auto border-b border-studio-border px-2 py-2">
+        <div
+          data-testid="composer-categories"
+          className="flex overflow-x-auto border-b border-studio-border px-2 py-2"
+        >
           {PART_CATEGORIES.map((cat) => (
             <button
               key={cat.id}
@@ -181,7 +199,8 @@ export function AvatarComposer() {
           {/* Scale */}
           <div>
             <label className="flex items-center gap-2 text-xs font-semibold text-white">
-              <Minus className="h-3.5 w-3.5" /> Scale<Plus className="h-3.5 w-3.5" />
+              <Minus className="h-3.5 w-3.5" /> Scale
+              <Plus className="h-3.5 w-3.5" />
             </label>
             <input
               type="range"
@@ -192,7 +211,9 @@ export function AvatarComposer() {
               onChange={(e) => setScale(parseFloat(e.target.value))}
               className="mt-2 w-full accent-purple-500"
             />
-            <div className="mt-1 text-right text-xs text-studio-muted">{config.scale.toFixed(1)}x</div>
+            <div className="mt-1 text-right text-xs text-studio-muted">
+              {config.scale.toFixed(1)}x
+            </div>
           </div>
 
           {/* Traits */}
@@ -236,7 +257,9 @@ export function AvatarComposer() {
                       <div
                         className="h-3 w-3 rounded-full border border-studio-border"
                         style={{
-                          backgroundColor: part?.colorizable ? config.colors[id as string] || part.defaultColor : 'transparent',
+                          backgroundColor: part?.colorizable
+                            ? config.colors[id as string] || part.defaultColor
+                            : 'transparent',
                         }}
                       />
                     </div>
@@ -253,21 +276,45 @@ export function AvatarComposer() {
           <div className="text-8xl mb-4">🧑‍🎨</div>
           <p className="text-lg font-semibold text-white">Avatar Composer</p>
           <p className="mt-2 text-sm text-studio-muted max-w-md">
-            Select parts from the left panel to assemble your avatar.
-            Use the Preview tab for a 3D view.
+            Select parts from the left panel to assemble your avatar. Use the Preview tab for a 3D
+            view.
           </p>
 
           <div className="mt-6 inline-flex flex-wrap justify-center gap-2">
-            {config.head && <span className="text-2xl" title="Head">{getPartById(config.head)?.thumbnail}</span>}
-            {config.body && <span className="text-2xl" title="Body">{getPartById(config.body)?.thumbnail}</span>}
-            {config.hair && <span className="text-2xl" title="Hair">{getPartById(config.hair)?.thumbnail}</span>}
-            {config.eyes && <span className="text-2xl" title="Eyes">{getPartById(config.eyes)?.thumbnail}</span>}
-            {config.mouth && <span className="text-2xl" title="Mouth">{getPartById(config.mouth)?.thumbnail}</span>}
+            {config.head && (
+              <span className="text-2xl" title="Head">
+                {getPartById(config.head)?.thumbnail}
+              </span>
+            )}
+            {config.body && (
+              <span className="text-2xl" title="Body">
+                {getPartById(config.body)?.thumbnail}
+              </span>
+            )}
+            {config.hair && (
+              <span className="text-2xl" title="Hair">
+                {getPartById(config.hair)?.thumbnail}
+              </span>
+            )}
+            {config.eyes && (
+              <span className="text-2xl" title="Eyes">
+                {getPartById(config.eyes)?.thumbnail}
+              </span>
+            )}
+            {config.mouth && (
+              <span className="text-2xl" title="Mouth">
+                {getPartById(config.mouth)?.thumbnail}
+              </span>
+            )}
             {config.clothing.map((id) => (
-              <span key={id} className="text-2xl" title={getPartById(id)?.name}>{getPartById(id)?.thumbnail}</span>
+              <span key={id} className="text-2xl" title={getPartById(id)?.name}>
+                {getPartById(id)?.thumbnail}
+              </span>
             ))}
             {config.accessories.map((id) => (
-              <span key={id} className="text-2xl" title={getPartById(id)?.name}>{getPartById(id)?.thumbnail}</span>
+              <span key={id} className="text-2xl" title={getPartById(id)?.name}>
+                {getPartById(id)?.thumbnail}
+              </span>
             ))}
           </div>
         </div>

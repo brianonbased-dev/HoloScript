@@ -38,7 +38,7 @@ import { applyEasing } from './easing';
 export function updateAnimations(
   animations: Map<string, Animation>,
   setVariable: (name: string, value: unknown) => void,
-  now: number,
+  now: number
 ): void {
   for (const [key, anim] of animations) {
     const elapsed = now - anim.startTime;

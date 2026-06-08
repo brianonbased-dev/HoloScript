@@ -267,10 +267,7 @@ export class StaticMeshBatcher {
 
     for (const entry of entries) {
       const vertCount = entry.geometry.attributes.position?.count ?? 0;
-      if (
-        currentVertices + vertCount > this.maxVerticesPerBatch &&
-        currentChunk.length > 0
-      ) {
+      if (currentVertices + vertCount > this.maxVerticesPerBatch && currentChunk.length > 0) {
         chunks.push(currentChunk);
         currentChunk = [];
         currentVertices = 0;
@@ -354,21 +351,13 @@ export class StaticMeshBatcher {
           const dstIdx = (vertexOffset + i) * itemSize;
 
           if (isPosition && itemSize >= 3) {
-            scratchVec3.set(
-              srcArray[srcIdx],
-              srcArray[srcIdx + 1],
-              srcArray[srcIdx + 2]
-            );
+            scratchVec3.set(srcArray[srcIdx], srcArray[srcIdx + 1], srcArray[srcIdx + 2]);
             scratchVec3.applyMatrix4(entry._matrix);
             dstArray[dstIdx] = scratchVec3.x;
             dstArray[dstIdx + 1] = scratchVec3.y;
             dstArray[dstIdx + 2] = scratchVec3.z;
           } else if (isNormal && itemSize >= 3) {
-            scratchVec3.set(
-              srcArray[srcIdx],
-              srcArray[srcIdx + 1],
-              srcArray[srcIdx + 2]
-            );
+            scratchVec3.set(srcArray[srcIdx], srcArray[srcIdx + 1], srcArray[srcIdx + 2]);
             scratchVec3.applyMatrix3(entry._normalMatrix);
             scratchVec3.normalize();
             dstArray[dstIdx] = scratchVec3.x;
@@ -402,10 +391,7 @@ export class StaticMeshBatcher {
     // Attach merged attributes
     for (const name of attrNames) {
       const itemSize = mergedAttributes[name].length / totalVertices;
-      merged.setAttribute(
-        name,
-        new THREE.BufferAttribute(mergedAttributes[name], itemSize)
-      );
+      merged.setAttribute(name, new THREE.BufferAttribute(mergedAttributes[name], itemSize));
     }
 
     if (totalIndices > 0) {
@@ -420,9 +406,7 @@ export class StaticMeshBatcher {
 
   private inferItemSize(entries: PendingEntry[], name: string): number {
     for (const entry of entries) {
-      const attr = entry.geometry.attributes[name] as
-        | THREE.BufferAttribute
-        | undefined;
+      const attr = entry.geometry.attributes[name] as THREE.BufferAttribute | undefined;
       if (attr) return attr.itemSize;
     }
     return 3; // safe fallback

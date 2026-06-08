@@ -502,7 +502,8 @@ export class AgentRBAC {
 
     // Extract agent identity for registry lookup.
     const verification = this.tokenIssuer.verifyToken(request.token);
-    const agentId = verification.valid && verification.payload ? verification.payload.sub : undefined;
+    const agentId =
+      verification.valid && verification.payload ? verification.payload.sub : undefined;
 
     if (!agentId) {
       // Token verified by checkAccess() but sub missing — fail safe.

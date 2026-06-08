@@ -16,13 +16,12 @@ items below are unbounded / touch shared tunnel behavior and need a decision.
 > flag (`QuestProbe.tsx`). Tests: tunnelRoutes proof/preview shim cases (17/17).
 > DEPLOY REQUIRED: orchestrator change is live only after Railway deploy.
 
-
 **CONTEXT.** The HoloTunnel relay injects a shim
 (`mcp-orchestrator/src/routes/tunnelRoutes.ts:279-283`) that forces
 `navigator.xr.isSessionSupported('immersive-vr') => Promise.resolve(true)` for any
 `/Quest/i` user-agent viewing through the tunnel. The QuestProbe capability check
 reads that value (`QuestProbe.tsx` `checkWebXR`, the `WebXR immersive-vr` receipt).
-Result: every "WebXR immersive-vr OK" receipt captured *through the tunnel* is a
+Result: every "WebXR immersive-vr OK" receipt captured _through the tunnel_ is a
 tautology — it proves the injected stub resolved `true`, not that the device
 supports VR. Confirmed against the 2026-05-24 run: all four receipts carry
 `url=https://mcp-orchestrator-…railway.app` (tunneled), so the immersive-vr OK is
@@ -36,9 +35,10 @@ lie but does not give back a genuine capability signal through the tunnel.
 **INTENT.** A proof run captured through the relay should carry the same evidentiary
 weight as one captured on the device's local origin — or be clearly marked as
 preview-only. The shim exists to let the diagnostic "Enter VR" button appear through
-the tunnel (a *preview* affordance); it must not contaminate *proof capture*.
+the tunnel (a _preview_ affordance); it must not contaminate _proof capture_.
 
 **PATH.**
+
 1. Gate the shim on intent: do not override `isSessionSupported` when the request
    carries a proof runId (e.g. `?runId=` present, or a `x-quest-proof` header the
    relay can read), so capability checks read the real device value during proof.
@@ -71,8 +71,9 @@ green/amber badges that read like proof, while the live receipt panel beside the
 honestly show 0. Not conflated, but the badge implies more confidence than a frozen
 constant warrants.
 
-**INTENT.** The badge should reflect the most recent *captured* receipt for that page
-+ run, not a frozen editorial guess that silently goes stale.
+**INTENT.** The badge should reflect the most recent _captured_ receipt for that page
+
+- run, not a frozen editorial guess that silently goes stale.
 
 **PATH.** Derive `visualStatus` from `latestByPage[page.id]` (already computed in the
 panel) — OK→Ready, WARN→Caution, FAIL→Skip, none→Unverified — falling back to the
@@ -84,7 +85,7 @@ gate. Deferred per the peer-work note above.
 
 **CONTEXT.** For a guarded page, the primary launch button reads "Open Fallback" and
 is aria-labelled "Open guarded fallback for X", but its `href` points at the **real**
-guarded page (`target`), not the fallback. The actual fallback is a *separate* "Open
+guarded page (`target`), not the fallback. The actual fallback is a _separate_ "Open
 explicit fallback" link. The design intent is "open anyway (advisory guard)", so the
 href is correct — the label is the bug (the panel test at line ~96 codifies the real
 href, confirming intent).
@@ -100,25 +101,27 @@ Bounded, no founder gate. Deferred per the peer-work note above.
 
 > RESOLVED per founder decision 2026-05-24. Implemented in
 > `packages/core/src/reconstruction/HoloMapRuntime.ts`:
+>
 > - **Anchor pose** = centroid of EVERY observed point (eviction-adjusted global
->   accumulator), so a single tampered point moves the anchor (a bounds *center*
+>   accumulator), so a single tampered point moves the anchor (a bounds _center_
 >   would not). Anchor rotation = yaw aligned to the camera trajectory heading.
 > - **Anchor descriptor** = observed-volume extent + global mean confidence
 >   (a coarse re-localization feature equal to the manifest bounds extent).
 > - **Drift** (`estimatedDriftMeters`) = registration residual: per-frame camera
 >   pose deviation from a constant-velocity prediction, accumulated over the
 >   capture. **Loop closure** fires on a keyframe-position revisit.
-> Drift exposed via `mcpReconstructStep` return (holo-reconstruct-sessions.ts).
-> gate-33 now asserts (falsifiable negative controls): a one-byte capture tamper
-> changes the anchor pose AND the drift; drift accumulates > 0; descriptor equals
-> the observed bounds extent (not the old [1,0,0,1] stub). 16/16 gate checks pass,
-> digest reproduces. Determinism preserved (61/61 HoloMap core tests).
-> NOT yet derived (honest scope): a real physical-room video scan (gate-33 still
-> uses a deterministic fixture) and full bundle-adjustment loop-closure correction
-> (revisit detection only). Acceptance bar (anchor from scan, drift from residual,
-> tamper-sensitive receipts) — MET.
+>   Drift exposed via `mcpReconstructStep` return (holo-reconstruct-sessions.ts).
+>   gate-33 now asserts (falsifiable negative controls): a one-byte capture tamper
+>   changes the anchor pose AND the drift; drift accumulates > 0; descriptor equals
+>   the observed bounds extent (not the old [1,0,0,1] stub). 16/16 gate checks pass,
+>   digest reproduces. Determinism preserved (61/61 HoloMap core tests).
+>   NOT yet derived (honest scope): a real physical-room video scan (gate-33 still
+>   uses a deterministic fixture) and full bundle-adjustment loop-closure correction
+>   (revisit detection only). Acceptance bar (anchor from scan, drift from residual,
+>   tamper-sensitive receipts) — MET.
 
 ### Original finding (for history)
+
 ## E4 (orig) — HoloMap anchor + drift were constants, not scan-derived (OVERCLAIM)
 
 **CONTEXT.** Deep-ratchet 2026-05-24 of the HoloMap product line (gold-game gate-33

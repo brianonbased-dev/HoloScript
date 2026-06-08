@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { createKmsKekProvider, KmsKekError, type KmsKeyring } from '../kms-kek-provider';
 import { createSecretStore, createInMemorySecretBackend, InsecureKekError } from '../secret-store';
-import { createEnvKekProvider, generateKekBase64, KEK_CURRENT_ENV, kekEnvVar } from '../env-kek-provider';
+import {
+  createEnvKekProvider,
+  generateKekBase64,
+  KEK_CURRENT_ENV,
+  kekEnvVar,
+} from '../env-kek-provider';
 
 function fakeKeyring(kekBytes: Buffer, kekId = 'kms-v1'): KmsKeyring {
   return {
@@ -13,7 +18,9 @@ function fakeKeyring(kekBytes: Buffer, kekId = 'kms-v1'): KmsKeyring {
 }
 
 function envProvider() {
-  return createEnvKekProvider({ env: { [KEK_CURRENT_ENV]: 'v1', [kekEnvVar('v1')]: generateKekBase64() } });
+  return createEnvKekProvider({
+    env: { [KEK_CURRENT_ENV]: 'v1', [kekEnvVar('v1')]: generateKekBase64() },
+  });
 }
 
 describe('kms-kek-provider + Phase-3 production gate', () => {
@@ -66,6 +73,8 @@ describe('kms-kek-provider + Phase-3 production gate', () => {
       requireProductionGradeKek: true,
     });
     await store.put({ ownerId: 'user-A', name: 'STRIPE_KEY', value: 'sk-prod-123' });
-    expect((await store.get({ ownerId: 'user-A', ref: 'vault:STRIPE_KEY' })).value).toBe('sk-prod-123');
+    expect((await store.get({ ownerId: 'user-A', ref: 'vault:STRIPE_KEY' })).value).toBe(
+      'sk-prod-123'
+    );
   });
 });

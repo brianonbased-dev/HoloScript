@@ -84,7 +84,8 @@ export function buildAdaptivePlatformLayerReceipt(
   const tier = inferAdaptivePlatformTier(caps, userAgent);
   const engineDelivery = engineDeliveryFor(caps);
   const renderer = rendererFor(caps);
-  const shareableViewerReady = renderer !== 'headless' && caps.recommendedWorld !== 'holoscript-spatial';
+  const shareableViewerReady =
+    renderer !== 'headless' && caps.recommendedWorld !== 'holoscript-spatial';
   const evidence = [
     `tier=${tier}`,
     `shell=${shellForTier(tier)}`,

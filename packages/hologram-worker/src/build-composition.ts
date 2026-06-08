@@ -39,7 +39,11 @@ function getMediaTraits(mediaType: HoloMediaType, source: string): HoloTrait[] {
   ];
 }
 
-export function buildComposition(mediaType: HoloMediaType, source: string, name?: string): HoloComposition {
+export function buildComposition(
+  mediaType: HoloMediaType,
+  source: string,
+  name?: string
+): HoloComposition {
   const objectName = (name && name.trim()) || 'HologramMedia';
   const traits = getMediaTraits(mediaType, source);
   return {

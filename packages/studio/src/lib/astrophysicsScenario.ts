@@ -1,9 +1,9 @@
 export interface RadioSpectrumEvent {
   eventId: string;
   rightAscension: number; // Degrees
-  declination: number;    // Degrees
+  declination: number; // Degrees
   frequencyMHz: number;
-  fluxDensityJy: number;  // Janskys
+  fluxDensityJy: number; // Janskys
 }
 
 export interface VolumetricMapping {
@@ -23,11 +23,13 @@ export function mapRadioToVolumetric(event: RadioSpectrumEvent): VolumetricMappi
   // Neutral hydrogen line is ~1420 MHz
   const H_LINE = 1420.4;
   const dopplerShift = H_LINE - event.frequencyMHz;
-  
+
   // Redshift (>0) goes red, Blueshift (<0) goes blue
   let colorHex = '#ffffff';
-  if (dopplerShift > 0.5) colorHex = '#ef4444'; // Redshift
-  else if (dopplerShift < -0.5) colorHex = '#3b82f6'; // Blueshift
+  if (dopplerShift > 0.5)
+    colorHex = '#ef4444'; // Redshift
+  else if (dopplerShift < -0.5)
+    colorHex = '#3b82f6'; // Blueshift
   else colorHex = '#10b981'; // Rest frequency (Green/Neutral)
 
   // Flux Density determines the bloom / luminous intensity in spatial rendering
@@ -45,8 +47,8 @@ export function mapRadioToVolumetric(event: RadioSpectrumEvent): VolumetricMappi
 
 /**
  * Simulates a pulsar timing interval based on rotation frequency
- * @param periodSeconds 
- * @param totalTimeSeconds 
+ * @param periodSeconds
+ * @param totalTimeSeconds
  * @returns Array of timestamp hits when the pulsar's beam hits Earth
  */
 export function calculatePulsarBeats(periodSeconds: number, totalTimeSeconds: number): number[] {
@@ -65,5 +67,5 @@ export function calculatePulsarBeats(periodSeconds: number, totalTimeSeconds: nu
  */
 export function filterRFI(events: RadioSpectrumEvent[], thresholdJy: number): RadioSpectrumEvent[] {
   // Discard any event with a flux density obnoxiously high (e.g. artificial satellites)
-  return events.filter(e => e.fluxDensityJy < thresholdJy);
+  return events.filter((e) => e.fluxDensityJy < thresholdJy);
 }

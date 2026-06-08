@@ -28,8 +28,8 @@ describe('irtAbilityEstimate', () => {
   it('all correct → high positive ability estimate', () => {
     const items = [
       { id: 'i1', b: -1 },
-      { id: 'i2', b:  0 },
-      { id: 'i3', b:  1 },
+      { id: 'i2', b: 0 },
+      { id: 'i3', b: 1 },
     ];
     const responses = [
       { itemId: 'i1', correct: true },
@@ -43,8 +43,8 @@ describe('irtAbilityEstimate', () => {
   it('all incorrect → low negative ability estimate', () => {
     const items = [
       { id: 'i1', b: -1 },
-      { id: 'i2', b:  0 },
-      { id: 'i3', b:  1 },
+      { id: 'i2', b: 0 },
+      { id: 'i3', b: 1 },
     ];
     const responses = [
       { itemId: 'i1', correct: false },
@@ -57,8 +57,14 @@ describe('irtAbilityEstimate', () => {
 
   it('ability near item difficulty for 50/50 pattern', () => {
     // Items with difficulties -1, +1; student gets easy correct, hard wrong
-    const items = [{ id: 'easy', b: -2 }, { id: 'hard', b: 2 }];
-    const responses = [{ itemId: 'easy', correct: true }, { itemId: 'hard', correct: false }];
+    const items = [
+      { id: 'easy', b: -2 },
+      { id: 'hard', b: 2 },
+    ];
+    const responses = [
+      { itemId: 'easy', correct: true },
+      { itemId: 'hard', correct: false },
+    ];
     const r = irtAbilityEstimate(items, responses);
     // Ability should be in middle range
     expect(r.abilityTheta).toBeGreaterThan(-2);
@@ -66,23 +72,39 @@ describe('irtAbilityEstimate', () => {
   });
 
   it('testInformation = sum of itemInformation', () => {
-    const items = [{ id: 'i1', b: 0 }, { id: 'i2', b: 1 }];
-    const responses = [{ itemId: 'i1', correct: true }, { itemId: 'i2', correct: false }];
+    const items = [
+      { id: 'i1', b: 0 },
+      { id: 'i2', b: 1 },
+    ];
+    const responses = [
+      { itemId: 'i1', correct: true },
+      { itemId: 'i2', correct: false },
+    ];
     const r = irtAbilityEstimate(items, responses);
     const manualSum = r.itemInformation.reduce((s, x) => s + x.information, 0);
     expect(r.testInformation).toBeCloseTo(manualSum, 6);
   });
 
   it('standardError = 1/sqrt(testInformation)', () => {
-    const items = [{ id: 'i1', b: 0 }, { id: 'i2', b: 0.5 }];
-    const responses = [{ itemId: 'i1', correct: true }, { itemId: 'i2', correct: true }];
+    const items = [
+      { id: 'i1', b: 0 },
+      { id: 'i2', b: 0.5 },
+    ];
+    const responses = [
+      { itemId: 'i1', correct: true },
+      { itemId: 'i2', correct: true },
+    ];
     const r = irtAbilityEstimate(items, responses);
     expect(r.standardError).toBeCloseTo(1 / Math.sqrt(r.testInformation), 4);
   });
 
   it('itemFit length matches items length', () => {
-    const items = [{ id: 'i1', b: 0 }, { id: 'i2', b: 1 }, { id: 'i3', b: -1 }];
-    const responses = items.map(it => ({ itemId: it.id, correct: true }));
+    const items = [
+      { id: 'i1', b: 0 },
+      { id: 'i2', b: 1 },
+      { id: 'i3', b: -1 },
+    ];
+    const responses = items.map((it) => ({ itemId: it.id, correct: true }));
     const r = irtAbilityEstimate(items, responses);
     expect(r.itemFit).toHaveLength(3);
   });
@@ -90,11 +112,23 @@ describe('irtAbilityEstimate', () => {
   it('higher discrimination a → more information near item difficulty', () => {
     // Use mixed responses: easy item correct, hard item wrong → theta stays near 0
     // where discrimination parameter a is most influential
-    const itemsLow  = [{ id: 'easy', a: 0.5, b: -2 }, { id: 'hard', a: 0.5, b: 2 }];
-    const itemsHigh = [{ id: 'easy', a: 2.0, b: -2 }, { id: 'hard', a: 2.0, b: 2 }];
-    const responsesLow  = [{ itemId: 'easy', correct: true }, { itemId: 'hard', correct: false }];
-    const responsesHigh = [{ itemId: 'easy', correct: true }, { itemId: 'hard', correct: false }];
-    const rLow  = irtAbilityEstimate(itemsLow,  responsesLow);
+    const itemsLow = [
+      { id: 'easy', a: 0.5, b: -2 },
+      { id: 'hard', a: 0.5, b: 2 },
+    ];
+    const itemsHigh = [
+      { id: 'easy', a: 2.0, b: -2 },
+      { id: 'hard', a: 2.0, b: 2 },
+    ];
+    const responsesLow = [
+      { itemId: 'easy', correct: true },
+      { itemId: 'hard', correct: false },
+    ];
+    const responsesHigh = [
+      { itemId: 'easy', correct: true },
+      { itemId: 'hard', correct: false },
+    ];
+    const rLow = irtAbilityEstimate(itemsLow, responsesLow);
     const rHigh = irtAbilityEstimate(itemsHigh, responsesHigh);
     // Higher discrimination → higher test information at estimated theta
     expect(rHigh.testInformation).toBeGreaterThan(rLow.testInformation);
@@ -176,10 +210,10 @@ describe('sm2Review', () => {
 
 describe('learningPathOptimizer', () => {
   const nodes = [
-    { id: 'A', label: 'Algebra',      prerequisites: [],      estimatedMinutes: 60 },
-    { id: 'B', label: 'Calculus',     prerequisites: ['A'],   estimatedMinutes: 90 },
-    { id: 'C', label: 'Statistics',   prerequisites: ['A'],   estimatedMinutes: 45 },
-    { id: 'D', label: 'ML Basics',    prerequisites: ['B','C'], estimatedMinutes: 120 },
+    { id: 'A', label: 'Algebra', prerequisites: [], estimatedMinutes: 60 },
+    { id: 'B', label: 'Calculus', prerequisites: ['A'], estimatedMinutes: 90 },
+    { id: 'C', label: 'Statistics', prerequisites: ['A'], estimatedMinutes: 45 },
+    { id: 'D', label: 'ML Basics', prerequisites: ['B', 'C'], estimatedMinutes: 120 },
   ];
 
   it('path is in topological order (prerequisites before dependents)', () => {
@@ -201,7 +235,7 @@ describe('learningPathOptimizer', () => {
     const mastery: { nodeId: string; masteryScore: number }[] = [];
     const r = learningPathOptimizer(nodes, mastery);
     const expected = r.path.reduce((acc, id) => {
-      const n = nodes.find(x => x.id === id);
+      const n = nodes.find((x) => x.id === id);
       return acc + (n?.estimatedMinutes ?? 30);
     }, 0);
     expect(r.totalMinutes).toBe(expected);
@@ -213,9 +247,7 @@ describe('learningPathOptimizer', () => {
   });
 
   it('throws if prerequisite node not found', () => {
-    const badNodes = [
-      { id: 'X', label: 'X', prerequisites: ['MISSING'], estimatedMinutes: 30 },
-    ];
+    const badNodes = [{ id: 'X', label: 'X', prerequisites: ['MISSING'], estimatedMinutes: 30 }];
     expect(() => learningPathOptimizer(badNodes, [])).toThrow();
   });
 
@@ -239,12 +271,12 @@ describe('gradePredictor', () => {
 
   it('recent grades weighted more heavily with decay < 1', () => {
     const grades = [
-      { weight: 1, score: 0.50, recencyIndex: 1 }, // old, low
+      { weight: 1, score: 0.5, recencyIndex: 1 }, // old, low
       { weight: 1, score: 0.95, recencyIndex: 5 }, // recent, high
     ];
     const r = gradePredictor(grades, 0.5);
     // Should be closer to 0.95 than to plain average
-    expect(r.predictedGrade).toBeGreaterThan(0.70);
+    expect(r.predictedGrade).toBeGreaterThan(0.7);
   });
 
   it('predictedGrade 0.93+ → letter A, gpa=4.0', () => {
@@ -255,7 +287,7 @@ describe('gradePredictor', () => {
   });
 
   it('predictedGrade below 0.60 → letter F, gpa=0.0', () => {
-    const grades = [{ weight: 1, score: 0.50, recencyIndex: 1 }];
+    const grades = [{ weight: 1, score: 0.5, recencyIndex: 1 }];
     const r = gradePredictor(grades);
     expect(r.letterGrade).toBe('F');
     expect(r.gpa).toBe(0.0);
@@ -406,8 +438,8 @@ describe('buildEducationReceipt', () => {
       itemCount: 3,
       n: 10,
       pValues: [0.5, 0.5, 0.5],
-      discriminationIndices: [0.05, 0.05, 0.05],  // all poor → > 50% poor items
-      cronbachAlpha: 0.30,  // below 0.70 threshold
+      discriminationIndices: [0.05, 0.05, 0.05], // all poor → > 50% poor items
+      cronbachAlpha: 0.3, // below 0.70 threshold
       meanScore: 1.5,
       stdDevScore: 0.5,
       poorItems: ['i1', 'i2', 'i3'],

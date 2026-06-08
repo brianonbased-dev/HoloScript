@@ -7,12 +7,12 @@
 
 ## 1. System map (typical production)
 
-| Surface | Role | Health |
-|--------|------|--------|
-| `mcp.holoscript.net` | MCP HTTP + tool mesh | `GET /health` |
-| Orchestrator (example) | Registry, federation | Team-specific `/health` URL |
-| Absorb | Codebase intelligence | `GET /health` on absorb host |
-| Studio | Next.js app | App `/` + API routes under `/api/*` |
+| Surface                | Role                  | Health                              |
+| ---------------------- | --------------------- | ----------------------------------- |
+| `mcp.holoscript.net`   | MCP HTTP + tool mesh  | `GET /health`                       |
+| Orchestrator (example) | Registry, federation  | Team-specific `/health` URL         |
+| Absorb                 | Codebase intelligence | `GET /health` on absorb host        |
+| Studio                 | Next.js app           | App `/` + API routes under `/api/*` |
 
 Exact hostnames change by environment — store **canonical URLs** in the team vault or internal wiki; this file stays pattern-based.
 
@@ -31,11 +31,11 @@ Exact hostnames change by environment — store **canonical URLs** in the team v
 
 ## 3. Health checks
 
-| Check | Pass criteria |
-|-------|----------------|
-| MCP `/health` | HTTP 200; JSON includes service identity and `tools` or equivalent |
-| Latency | p95 within SLO (define per team; e.g. &lt; 3s for health) |
-| WASM / heavy paths | Sample compile or parse route returns within timeout budget |
+| Check              | Pass criteria                                                      |
+| ------------------ | ------------------------------------------------------------------ |
+| MCP `/health`      | HTTP 200; JSON includes service identity and `tools` or equivalent |
+| Latency            | p95 within SLO (define per team; e.g. &lt; 3s for health)          |
+| WASM / heavy paths | Sample compile or parse route returns within timeout budget        |
 
 Automate these in uptime monitoring; page when **two regions** or **two consecutive** checks fail.
 
@@ -43,13 +43,13 @@ Automate these in uptime monitoring; page when **two regions** or **two consecut
 
 ## 4. Common failures
 
-| Symptom | Likely cause | First actions |
-|---------|--------------|----------------|
-| 502 / upstream errors | Process crash, OOM, bad deploy | Check logs; roll back to last image; scale memory if OOM |
-| Tool timeouts | Cold start, deadlock, downstream API | Increase timeout temporarily; isolate tool; disable noisy tool via feature flag |
-| WASM init errors | Missing asset, wrong `Content-Type`, version skew | Verify static asset deploy; match CLI/runtime versions |
-| Auth / 401 from MCP | Rotated key, clock skew | Rotate keys in vault; sync NTP; verify `Authorization` header path |
-| Stale graph / cache | CDN or edge cache | Purge cache for affected paths; bump cache-bust query if used |
+| Symptom               | Likely cause                                      | First actions                                                                   |
+| --------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 502 / upstream errors | Process crash, OOM, bad deploy                    | Check logs; roll back to last image; scale memory if OOM                        |
+| Tool timeouts         | Cold start, deadlock, downstream API              | Increase timeout temporarily; isolate tool; disable noisy tool via feature flag |
+| WASM init errors      | Missing asset, wrong `Content-Type`, version skew | Verify static asset deploy; match CLI/runtime versions                          |
+| Auth / 401 from MCP   | Rotated key, clock skew                           | Rotate keys in vault; sync NTP; verify `Authorization` header path              |
+| Stale graph / cache   | CDN or edge cache                                 | Purge cache for affected paths; bump cache-bust query if used                   |
 
 ---
 
@@ -126,14 +126,14 @@ If mode and objective disagree, fix them in the **same** change so the next boar
 
 ### Services managed via `deploy-railway.yml`
 
-| Service | Path filter | Railway service name |
-| ------- | ----------- | -------------------- |
-| MCP Server | `packages/mcp-server/**` | `mcp-server` |
-| Studio | `packages/studio/**` | `studio` |
-| Marketplace API | `packages/marketplace-api/**` | `marketplace-api` |
-| Export API | `services/export-api/**` | `export-api` |
-| LLM Service | `services/llm-service/**` | `llm-service` |
-| Absorb Service | `packages/absorb-service/**` | `absorb-service` |
+| Service         | Path filter                   | Railway service name |
+| --------------- | ----------------------------- | -------------------- |
+| MCP Server      | `packages/mcp-server/**`      | `mcp-server`         |
+| Studio          | `packages/studio/**`          | `studio`             |
+| Marketplace API | `packages/marketplace-api/**` | `marketplace-api`    |
+| Export API      | `services/export-api/**`      | `export-api`         |
+| LLM Service     | `services/llm-service/**`     | `llm-service`        |
+| Absorb Service  | `packages/absorb-service/**`  | `absorb-service`     |
 
 ### Manual deploy via GitHub Actions
 
@@ -144,10 +144,10 @@ Actions → **Deploy to Railway** → Run workflow
 
 ### MCP Server boot modes
 
-| Mode | Command | Use case |
-| ---- | ------- | -------- |
-| stdio | `pnpm start` in `packages/mcp-server` | Local IDE/Cursor MCP clients |
-| HTTP | `node dist/http-server.js` | Railway prod, remote agents, `/health` |
+| Mode  | Command                               | Use case                               |
+| ----- | ------------------------------------- | -------------------------------------- |
+| stdio | `pnpm start` in `packages/mcp-server` | Local IDE/Cursor MCP clients           |
+| HTTP  | `node dist/http-server.js`            | Railway prod, remote agents, `/health` |
 
 ### `/health` response schema
 

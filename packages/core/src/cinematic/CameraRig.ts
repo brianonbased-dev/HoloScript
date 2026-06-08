@@ -169,7 +169,7 @@ export class CameraRig {
         this.state.shakeOffset = [
           Math.sin(t * 6.28) * preset.intensity * decay,
           Math.cos(t * 4.17) * preset.intensity * decay * 0.7,
-          Math.sin(t * 3.14) * preset.intensity * decay * 0.3
+          Math.sin(t * 3.14) * preset.intensity * decay * 0.3,
         ];
       } else {
         this.state.shakeOffset = [0, 0, 0];
@@ -203,12 +203,12 @@ export class CameraRig {
     this.state.position = [
       this.config.position[0],
       this.config.position[1] + this.craneHeight,
-      this.config.position[2]
+      this.config.position[2],
     ];
     this.state.target = [
       this.config.target[0] + Math.sin(rad) * this.craneHeight,
       0,
-      this.config.target[2] + Math.cos(rad) * this.craneHeight
+      this.config.target[2] + Math.cos(rad) * this.craneHeight,
     ];
   }
 

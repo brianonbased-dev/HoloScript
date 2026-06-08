@@ -31,10 +31,7 @@ import {
   type DepthBackend,
   type DepthEstimationConfig,
 } from '../DepthEstimationService';
-import type {
-  DepthInferenceResult,
-  DepthProvider,
-} from '../createHologram';
+import type { DepthInferenceResult, DepthProvider } from '../createHologram';
 import type { HologramSourceKind } from '../HologramBundle';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -90,10 +87,7 @@ export interface BrowserDepthProviderConfig {
  * orchestrator's `depth_failed` wrapper carries a useful message instead
  * of a cryptic `is not a function`. Tests must inject `imageDecoder`.
  */
-export const defaultBrowserImageDecoder: ImageDecoder = async (
-  media,
-  sourceKind
-) => {
+export const defaultBrowserImageDecoder: ImageDecoder = async (media, sourceKind) => {
   if (typeof createImageBitmap !== 'function') {
     throw new Error(
       `BrowserDepthProvider: createImageBitmap is unavailable in this runtime ` +
@@ -160,10 +154,7 @@ export class BrowserDepthProvider implements DepthProvider {
     this.skipInitialize = config.skipInitialize ?? false;
   }
 
-  async infer(
-    media: Uint8Array,
-    sourceKind: HologramSourceKind
-  ): Promise<DepthInferenceResult> {
+  async infer(media: Uint8Array, sourceKind: HologramSourceKind): Promise<DepthInferenceResult> {
     if (!media || media.byteLength === 0) {
       throw new Error('BrowserDepthProvider: media must be non-empty bytes');
     }
@@ -233,9 +224,7 @@ export class BrowserDepthProvider implements DepthProvider {
     // works whether the field is renamed to a getter later).
     const cfg = (this.service as unknown as { config?: { modelId?: string } }).config;
     return (
-      cfg?.modelId ??
-      this.estimationConfig?.modelId ??
-      'depth-anything/Depth-Anything-V2-Small-hf'
+      cfg?.modelId ?? this.estimationConfig?.modelId ?? 'depth-anything/Depth-Anything-V2-Small-hf'
     );
   }
 

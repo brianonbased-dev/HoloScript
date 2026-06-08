@@ -37,14 +37,24 @@ function makeTask(id: string): Task {
 }
 
 const goldenIds = [
-  'T01', 'T02', 'T03', 'T04', 'T05',
-  'T06', 'T07', 'T08', 'T10',
-  'M02', 'M06', 'M09',
-  'A01', 'A04', 'A10',
+  'T01',
+  'T02',
+  'T03',
+  'T04',
+  'T05',
+  'T06',
+  'T07',
+  'T08',
+  'T10',
+  'M02',
+  'M06',
+  'M09',
+  'A01',
+  'A04',
+  'A10',
 ];
 
 describe('deterministic verifier golden cases', () => {
-
   for (const id of goldenIds) {
     it(`should pass all criteria for ${id} golden case`, () => {
       const mutations = goldenToMutations(id);
@@ -54,7 +64,10 @@ describe('deterministic verifier golden cases', () => {
       expect(failures).toHaveLength(0);
 
       if (failures.length > 0) {
-        console.log(`${id} failures:`, failures.map((f) => `${f.criterion_id}: ${f.rationale}`));
+        console.log(
+          `${id} failures:`,
+          failures.map((f) => `${f.criterion_id}: ${f.rationale}`)
+        );
       }
     });
   }
@@ -65,7 +78,13 @@ describe('deterministic verifier known failures', () => {
     const mutations: SceneMutation[] = [
       {
         tool_name: 'create_object',
-        input: { name: 'Cube', type: 'mesh', primitive: 'cube', position: [0, 0.5, 0], color: 'red' },
+        input: {
+          name: 'Cube',
+          type: 'mesh',
+          primitive: 'cube',
+          position: [0, 0.5, 0],
+          color: 'red',
+        },
         sim_contract_passed: true,
       },
     ];
@@ -79,7 +98,13 @@ describe('deterministic verifier known failures', () => {
     const mutations: SceneMutation[] = [
       {
         tool_name: 'create_object',
-        input: { name: 'Tile', type: 'mesh', primitive: 'plane', position: [0, 0, 0], color: 'white' },
+        input: {
+          name: 'Tile',
+          type: 'mesh',
+          primitive: 'plane',
+          position: [0, 0, 0],
+          color: 'white',
+        },
         sim_contract_passed: true,
       },
     ];
@@ -93,12 +118,26 @@ describe('deterministic verifier known failures', () => {
     const mutations: SceneMutation[] = [
       {
         tool_name: 'create_object',
-        input: { name: 'Base', type: 'mesh', primitive: 'sphere', position: [0, 1, 0], radius: 1, color: 'white' },
+        input: {
+          name: 'Base',
+          type: 'mesh',
+          primitive: 'sphere',
+          position: [0, 1, 0],
+          radius: 1,
+          color: 'white',
+        },
         sim_contract_passed: true,
       },
       {
         tool_name: 'create_object',
-        input: { name: 'Middle', type: 'mesh', primitive: 'sphere', position: [0, 5, 0], radius: 0.7, color: 'white' },
+        input: {
+          name: 'Middle',
+          type: 'mesh',
+          primitive: 'sphere',
+          position: [0, 5, 0],
+          radius: 0.7,
+          color: 'white',
+        },
         sim_contract_passed: true,
       },
     ];

@@ -184,7 +184,7 @@ describe('Frontier Skill', () => {
   it('rejects skill-other without rarityLabel (kind/discriminator coupling)', () => {
     const skill = makeSkill({ rarity: 'skill-other' });
     expect(validateSkill(skill)).toContain(
-      `Skill ${skill.id} rarity=skill-other requires rarityLabel.`,
+      `Skill ${skill.id} rarity=skill-other requires rarityLabel.`
     );
   });
 
@@ -230,26 +230,26 @@ describe('Frontier Item', () => {
   it('rejects item-other without categoryLabel (kind/discriminator coupling)', () => {
     const item = makeItem({ category: 'item-other' });
     expect(validateItem(item)).toContain(
-      `Item ${item.id} category=item-other requires categoryLabel.`,
+      `Item ${item.id} category=item-other requires categoryLabel.`
     );
   });
 
   it('rejects hash without hashAlgorithm (paired-field rule)', () => {
     const item = makeItem({ hash: 'c'.repeat(64) });
     expect(validateItem(item)).toContain(
-      `Item ${item.id}.hashAlgorithm is required when hash is set.`,
+      `Item ${item.id}.hashAlgorithm is required when hash is set.`
     );
   });
 
   it('rejects bogus stackSize values (G.GOLD.015 paired bad-input check)', () => {
     expect(validateItem(makeItem({ stackSize: 0 }))).toContain(
-      `Item item_compass_brass_001.stackSize must be a finite number >= 1.`,
+      `Item item_compass_brass_001.stackSize must be a finite number >= 1.`
     );
     expect(validateItem(makeItem({ stackSize: Number.NaN }))).toContain(
-      `Item item_compass_brass_001.stackSize must be a finite number >= 1.`,
+      `Item item_compass_brass_001.stackSize must be a finite number >= 1.`
     );
     expect(validateItem(makeItem({ stackSize: -3 }))).toContain(
-      `Item item_compass_brass_001.stackSize must be a finite number >= 1.`,
+      `Item item_compass_brass_001.stackSize must be a finite number >= 1.`
     );
   });
 
@@ -270,15 +270,13 @@ describe('Frontier LootTable', () => {
 
   it('rejects empty entries (G.GOLD.015 missing-required-field)', () => {
     expect(validateLootTable(makeLootTable({ entries: [] }))).toContain(
-      'LootTable loot_chest_common_001.entries must be a non-empty array.',
+      'LootTable loot_chest_common_001.entries must be a non-empty array.'
     );
   });
 
   it('rejects entry that references both itemId and skillId (mutual exclusion)', () => {
     const table = makeLootTable({
-      entries: [
-        { id: 'lte_bad', itemId: 'item_x', skillId: 'skill_x', weight: 1 },
-      ],
+      entries: [{ id: 'lte_bad', itemId: 'item_x', skillId: 'skill_x', weight: 1 }],
     });
     const errors = validateLootTable(table);
     expect(errors.some((e) => e.includes('mutually exclusive'))).toBe(true);
@@ -296,19 +294,25 @@ describe('Frontier LootTable', () => {
     const negative = makeLootTable({
       entries: [{ id: 'lte_neg', itemId: 'i', weight: -1 }],
     });
-    expect(validateLootTable(negative).some((e) => e.includes('weight must be a non-negative finite number'))).toBe(true);
+    expect(
+      validateLootTable(negative).some((e) =>
+        e.includes('weight must be a non-negative finite number')
+      )
+    ).toBe(true);
 
     const nan = makeLootTable({
       entries: [{ id: 'lte_nan', itemId: 'i', weight: Number.NaN }],
     });
-    expect(validateLootTable(nan).some((e) => e.includes('weight must be a non-negative finite number'))).toBe(true);
+    expect(
+      validateLootTable(nan).some((e) => e.includes('weight must be a non-negative finite number'))
+    ).toBe(true);
   });
 
   it('rejects rollsPerInvocation < 1', () => {
     expect(
       validateLootTable(makeLootTable({ rollsPerInvocation: 0 })).some((e) =>
-        e.includes('rollsPerInvocation must be a finite number >= 1'),
-      ),
+        e.includes('rollsPerInvocation must be a finite number >= 1')
+      )
     ).toBe(true);
   });
 
@@ -337,15 +341,13 @@ describe('Frontier Encounter', () => {
 
   it('rejects unsupported trigger', () => {
     const encounter = makeEncounter({ trigger: 'on-vibe' as Encounter['trigger'] });
-    expect(validateEncounter(encounter)).toContain(
-      'Encounter.trigger is unsupported: on-vibe.',
-    );
+    expect(validateEncounter(encounter)).toContain('Encounter.trigger is unsupported: on-vibe.');
   });
 
   it('rejects encounter-other without triggerLabel (kind/discriminator coupling)', () => {
     const encounter = makeEncounter({ trigger: 'encounter-other' });
     expect(validateEncounter(encounter)).toContain(
-      `Encounter ${encounter.id} trigger=encounter-other requires triggerLabel.`,
+      `Encounter ${encounter.id} trigger=encounter-other requires triggerLabel.`
     );
   });
 
@@ -379,7 +381,7 @@ describe('Frontier Quest', () => {
 
   it('rejects empty steps', () => {
     expect(validateQuest(makeQuest({ steps: [] }))).toContain(
-      'Quest quest_oasis_first_breath.steps must be a non-empty array.',
+      'Quest quest_oasis_first_breath.steps must be a non-empty array.'
     );
   });
 
@@ -413,9 +415,7 @@ describe('Frontier Zone', () => {
   it('accepts every supported biome', () => {
     for (const biome of ZONE_BIOMES) {
       const zone =
-        biome === 'biome-other'
-          ? makeZone({ biome, biomeLabel: 'glacier' })
-          : makeZone({ biome });
+        biome === 'biome-other' ? makeZone({ biome, biomeLabel: 'glacier' }) : makeZone({ biome });
       expect(validateZone(zone)).toEqual([]);
     }
   });
@@ -427,9 +427,7 @@ describe('Frontier Zone', () => {
 
   it('rejects biome-other without biomeLabel (kind/discriminator coupling)', () => {
     const zone = makeZone({ biome: 'biome-other' });
-    expect(validateZone(zone)).toContain(
-      `Zone ${zone.id} biome=biome-other requires biomeLabel.`,
-    );
+    expect(validateZone(zone)).toContain(`Zone ${zone.id} biome=biome-other requires biomeLabel.`);
   });
 
   it('rejects when required fields are missing', () => {
@@ -481,7 +479,7 @@ describe('Frontier Shard envelope', () => {
       encounters: [makeEncounter({ zoneId: 'zone_does_not_exist' })],
     });
     expect(
-      validateShard(shard).some((e) => e.includes('references unknown Zone: zone_does_not_exist')),
+      validateShard(shard).some((e) => e.includes('references unknown Zone: zone_does_not_exist'))
     ).toBe(true);
   });
 
@@ -490,7 +488,9 @@ describe('Frontier Shard envelope', () => {
       encounters: [makeEncounter({ lootTableId: 'loot_does_not_exist' })],
     });
     expect(
-      validateShard(shard).some((e) => e.includes('references unknown LootTable: loot_does_not_exist')),
+      validateShard(shard).some((e) =>
+        e.includes('references unknown LootTable: loot_does_not_exist')
+      )
     ).toBe(true);
   });
 
@@ -503,7 +503,7 @@ describe('Frontier Shard envelope', () => {
       ],
     });
     expect(
-      validateShard(shard).some((e) => e.includes('references unknown Item: item_does_not_exist')),
+      validateShard(shard).some((e) => e.includes('references unknown Item: item_does_not_exist'))
     ).toBe(true);
   });
 
@@ -516,7 +516,7 @@ describe('Frontier Shard envelope', () => {
       ],
     });
     expect(
-      validateShard(shard).some((e) => e.includes('references unknown Skill: skill_does_not_exist')),
+      validateShard(shard).some((e) => e.includes('references unknown Skill: skill_does_not_exist'))
     ).toBe(true);
   });
 
@@ -529,7 +529,7 @@ describe('Frontier Shard envelope', () => {
       ],
     });
     expect(
-      validateShard(shard).some((e) => e.includes('references unknown Skill: skill_ghost')),
+      validateShard(shard).some((e) => e.includes('references unknown Skill: skill_ghost'))
     ).toBe(true);
   });
 
@@ -542,7 +542,7 @@ describe('Frontier Shard envelope', () => {
       ],
     });
     expect(
-      validateShard(shard).some((e) => e.includes('references unknown Item: item_ghost')),
+      validateShard(shard).some((e) => e.includes('references unknown Item: item_ghost'))
     ).toBe(true);
   });
 
@@ -595,9 +595,9 @@ describe('Frontier ShardReceipt envelope', () => {
 
   it('rejects unsupported status', () => {
     const receipt = makeShardReceipt({ status: 'speculative' as ShardReceipt['status'] });
-    expect(
-      validateShardReceipt(receipt, validateValidationReceipt),
-    ).toContain('ShardReceipt.status is unsupported: speculative.');
+    expect(validateShardReceipt(receipt, validateValidationReceipt)).toContain(
+      'ShardReceipt.status is unsupported: speculative.'
+    );
   });
 
   it('rejects when required fields are missing', () => {
@@ -637,8 +637,8 @@ describe('Frontier ShardReceipt envelope', () => {
     });
     expect(
       validateShardReceipt(receipt, validateValidationReceipt).some((e) =>
-        e.includes('verification command without command text'),
-      ),
+        e.includes('verification command without command text')
+      )
     ).toBe(true);
   });
 

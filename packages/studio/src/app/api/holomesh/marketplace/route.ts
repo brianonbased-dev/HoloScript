@@ -8,7 +8,6 @@ export async function GET(req: NextRequest) {
   return proxyHoloMesh('/api/holomesh/marketplace', req);
 }
 
-
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,

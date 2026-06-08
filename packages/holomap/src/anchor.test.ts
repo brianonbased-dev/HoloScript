@@ -61,9 +61,9 @@ describe('anchorReconstruction', () => {
     const m: ReconstructionManifest = {
       bounds: { min: [0, 0, 0], max: [NaN, NaN, NaN] },
     };
-    expect(() =>
-      anchorReconstruction(m, { referenceDimension: 1.0, axis: 'y' }),
-    ).toThrow('Invalid measured dimension');
+    expect(() => anchorReconstruction(m, { referenceDimension: 1.0, axis: 'y' })).toThrow(
+      'Invalid measured dimension'
+    );
   });
 });
 
@@ -86,7 +86,7 @@ describe('assertAnchoredDimension', () => {
         referenceDimension: 1.0,
         axis: 'y',
         tolerance: 0.05,
-      }),
+      })
     ).toThrow('Anchor assertion failed');
   });
 

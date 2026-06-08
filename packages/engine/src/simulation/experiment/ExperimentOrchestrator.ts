@@ -8,7 +8,12 @@
  * @see ResultsAnalyzer — post-processes sweep results
  */
 
-import { ParameterSpace, applyOverrides, type ParameterRange, type ParameterSample } from './ParameterSpace';
+import {
+  ParameterSpace,
+  applyOverrides,
+  type ParameterRange,
+  type ParameterSample,
+} from './ParameterSpace';
 import { ProvenanceTracker, type SimulationRun } from '../provenance/index';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -72,7 +77,7 @@ export class ExperimentOrchestrator {
    */
   constructor(
     solverFactory: (type: string, config: Record<string, unknown>) => SolverHandle,
-    tracker?: ProvenanceTracker,
+    tracker?: ProvenanceTracker
   ) {
     this.solverFactory = solverFactory;
     this.tracker = tracker ?? new ProvenanceTracker('1.0.0');
@@ -86,9 +91,10 @@ export class ExperimentOrchestrator {
 
     // Generate samples
     const space = new ParameterSpace(config.parameters);
-    const samples = config.sampling === 'grid'
-      ? space.gridSearch()
-      : space.latinHypercube(config.sampleCount ?? 10);
+    const samples =
+      config.sampling === 'grid'
+        ? space.gridSearch()
+        : space.latinHypercube(config.sampleCount ?? 10);
 
     const runs: ExperimentRunResult[] = [];
     const concurrency = config.concurrency ?? 1;
@@ -96,9 +102,7 @@ export class ExperimentOrchestrator {
     // Run samples (sequential or batched)
     for (let i = 0; i < samples.length; i += concurrency) {
       const batch = samples.slice(i, i + concurrency);
-      const batchResults = await Promise.all(
-        batch.map((sample) => this.runSingle(config, sample)),
-      );
+      const batchResults = await Promise.all(batch.map((sample) => this.runSingle(config, sample)));
       runs.push(...batchResults);
       config.onProgress?.(runs.length, samples.length);
     }
@@ -113,7 +117,7 @@ export class ExperimentOrchestrator {
 
   private async runSingle(
     config: ExperimentConfig,
-    sample: ParameterSample,
+    sample: ParameterSample
   ): Promise<ExperimentRunResult> {
     const mergedConfig = applyOverrides(config.baseConfig, sample.overrides);
     const t0 = performance.now();
@@ -123,7 +127,10 @@ export class ExperimentOrchestrator {
     try {
       await solver.solve();
       const stats = solver.getStats();
-      const converged = (stats.converged as boolean) ?? (stats.solveResult as Record<string, unknown>)?.converged ?? true;
+      const converged =
+        (stats.converged as boolean) ??
+        (stats.solveResult as Record<string, unknown>)?.converged ??
+        true;
 
       let objectiveValue: number | undefined;
       if (config.objectiveField && typeof stats[config.objectiveField] === 'number') {

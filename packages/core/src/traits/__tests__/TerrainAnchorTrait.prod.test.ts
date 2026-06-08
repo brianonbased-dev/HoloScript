@@ -84,9 +84,9 @@ describe('TerrainAnchorTrait — Production', () => {
     expect(s.terrainHeight).toBe(0);
     expect(s.confidence).toBe(0);
     expect(s.anchorHandle).toBeNull();
-    expect(s.surfaceNormal).toEqual([0, 1, 0 ]);
-    expect(s.localPosition).toEqual([0, 0, 0 ]);
-    expect(s.localRotation).toEqual([0, 0, 0, 1 ]);
+    expect(s.surfaceNormal).toEqual([0, 1, 0]);
+    expect(s.localPosition).toEqual([0, 0, 0]);
+    expect(s.localRotation).toEqual([0, 0, 0, 1]);
   });
 
   it('auto_resolve=true emits terrain_anchor_request', () => {
@@ -188,7 +188,7 @@ describe('TerrainAnchorTrait — Production', () => {
 
   it('resolved with surfaceNormal computes localRotation when normal is not up', () => {
     const { node, ctx, cfg } = attach({ surface_normal_alignment: true });
-    const angled = [0.2, 0.9, 0.1 ];
+    const angled = [0.2, 0.9, 0.1];
     fire(node, cfg, ctx, {
       type: 'terrain_anchor_resolved',
       handle: 'TH4',
@@ -209,7 +209,7 @@ describe('TerrainAnchorTrait — Production', () => {
       handle: 'TH5',
       terrainHeight: 10,
       position: [0, 10, 0],
-      surfaceNormal: [0, 1, 0 ], // perfect up
+      surfaceNormal: [0, 1, 0], // perfect up
     });
     // When normal is straight up, len < 0.001 → rotation unchanged (identity)
     const s = st(node);
@@ -227,13 +227,13 @@ describe('TerrainAnchorTrait — Production', () => {
     });
     const s = st(node);
     expect(s.state).toBe('tracking');
-    expect(s.localPosition).toEqual([5, 100, 3 ]);
+    expect(s.localPosition).toEqual([5, 100, 3]);
     expect(s.terrainHeight).toBe(100);
   });
 
   it('terrain_pose_update also updates surfaceNormal when provided', () => {
     const { node, ctx, cfg } = attach();
-    const norm = [0.1, 0.99, 0.05 ];
+    const norm = [0.1, 0.99, 0.05];
     fire(node, cfg, ctx, {
       type: 'terrain_pose_update',
       position: [0, 50, 0],
@@ -288,7 +288,7 @@ describe('TerrainAnchorTrait — Production', () => {
 
   it('onUpdate applies smoothed position when resolved', () => {
     const { node, ctx, cfg } = attach({ smoothing: 0, elevation_offset: 5 });
-    node.position = [0, 0, 0 ];
+    node.position = [0, 0, 0];
     fire(node, cfg, ctx, {
       type: 'terrain_anchor_resolved',
       handle: 'TH6',
@@ -315,9 +315,9 @@ describe('TerrainAnchorTrait — Production', () => {
 
   it('onUpdate applies smoothed rotation when surface_normal_alignment=true and rotation exists', () => {
     const { node, ctx, cfg } = attach({ smoothing: 0, surface_normal_alignment: true });
-    node.rotation = [0, 0, 0, 1 ];
-    node.position = [0, 0, 0 ];
-    const angled = [0.3, 0.9, 0.1 ];
+    node.rotation = [0, 0, 0, 1];
+    node.position = [0, 0, 0];
+    const angled = [0.3, 0.9, 0.1];
     fire(node, cfg, ctx, {
       type: 'terrain_anchor_resolved',
       handle: 'TH7',

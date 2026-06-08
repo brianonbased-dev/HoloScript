@@ -87,7 +87,7 @@ export class WebXRSystem implements EngineSystem {
   // Locomotion
   private locomotionSpeed = 3.0; // m/s
   private teleportTarget: Vec3 | null = null;
-  private playerPosition: Vec3 = [0, 0, 0 ];
+  private playerPosition: Vec3 = [0, 0, 0];
   private playerRotation = 0; // Y-axis radians
 
   // ---------------------------------------------------------------------------
@@ -138,7 +138,7 @@ export class WebXRSystem implements EngineSystem {
 
     // Teleport execution
     if (this.teleportTarget) {
-      this.playerPosition = [...this.teleportTarget  ];
+      this.playerPosition = [...this.teleportTarget];
       this.teleportTarget = null;
     }
   }
@@ -218,11 +218,11 @@ export class WebXRSystem implements EngineSystem {
   }
 
   getHeadPosition(): Vec3 {
-    return this.frameData?.headPosition ?? [0, 0, 0 ];
+    return this.frameData?.headPosition ?? [0, 0, 0];
   }
 
   getHeadRotation(): Vec3 {
-    return this.frameData?.headRotation ?? [0, 0, 0 ];
+    return this.frameData?.headRotation ?? [0, 0, 0];
   }
 
   // ---------------------------------------------------------------------------
@@ -247,7 +247,7 @@ export class WebXRSystem implements EngineSystem {
   // ---------------------------------------------------------------------------
 
   getPlayerPosition(): Vec3 {
-    return [...this.playerPosition  ];
+    return [...this.playerPosition];
   }
   getPlayerRotation(): number {
     return this.playerRotation;
@@ -259,7 +259,7 @@ export class WebXRSystem implements EngineSystem {
 
   /** Queue a teleport to a world position. Executes next frame. */
   teleportTo(target: Vec3): void {
-    this.teleportTarget = [...target  ];
+    this.teleportTarget = [...target];
   }
 
   // ---------------------------------------------------------------------------

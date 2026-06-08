@@ -26,9 +26,7 @@ export function createX402HttpVerifierFromEnv(
 ): X402HttpVerifier {
   const enabled = String(env.X402_VERIFIER_ENABLED || 'false').toLowerCase() === 'true';
   const facilitatorUrl =
-    env.X402_FACILITATOR_VERIFY_URL ||
-    env.X402_FACILITATOR_URL ||
-    'https://cdp.coinbase.com/x402';
+    env.X402_FACILITATOR_VERIFY_URL || env.X402_FACILITATOR_URL || 'https://cdp.coinbase.com/x402';
   const apiKey = env.X402_FACILITATOR_API_KEY;
   const timeoutMs = Number(env.X402_VERIFIER_TIMEOUT_MS || 5000);
 
@@ -95,14 +93,18 @@ export class X402HttpVerifier {
         };
       }
 
-      const payload = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
+      const payload =
+        typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
       const verified =
         payload.verified === true || payload.status === 'paid' || payload.status === 'confirmed';
 
       return {
         verified,
-        reason: verified ? undefined : String(payload.reason || payload.error || 'Facilitator rejected payment'),
-        facilitatorTxHash: typeof payload.transaction_hash === 'string' ? payload.transaction_hash : undefined,
+        reason: verified
+          ? undefined
+          : String(payload.reason || payload.error || 'Facilitator rejected payment'),
+        facilitatorTxHash:
+          typeof payload.transaction_hash === 'string' ? payload.transaction_hash : undefined,
         raw: body,
       };
     } catch (error) {

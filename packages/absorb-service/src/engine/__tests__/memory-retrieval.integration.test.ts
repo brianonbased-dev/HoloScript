@@ -42,8 +42,18 @@ const memoryAst = {
       name: 'developers-won-by-value',
       children: [],
       traits: [
-        { type: 'ObjectTrait', name: 'label', config: { text: 'human developers are won by verifiable value not anti-dev voice; their skepticism is temporary' } },
-        { type: 'ObjectTrait', name: 'note', config: { body: 'never write documentation that dismisses or talks down to programmers' } },
+        {
+          type: 'ObjectTrait',
+          name: 'label',
+          config: {
+            text: 'human developers are won by verifiable value not anti-dev voice; their skepticism is temporary',
+          },
+        },
+        {
+          type: 'ObjectTrait',
+          name: 'note',
+          config: { body: 'never write documentation that dismisses or talks down to programmers' },
+        },
       ],
     },
     {
@@ -51,8 +61,18 @@ const memoryAst = {
       name: 'key-handling',
       children: [],
       traits: [
-        { type: 'ObjectTrait', name: 'label', config: { text: 'never hardcode API keys or credentials or secrets in source code' } },
-        { type: 'ObjectTrait', name: 'note', config: { body: 'keys leaked twice; use a dotenv file and a pre-commit guard to prevent leaking secrets' } },
+        {
+          type: 'ObjectTrait',
+          name: 'label',
+          config: { text: 'never hardcode API keys or credentials or secrets in source code' },
+        },
+        {
+          type: 'ObjectTrait',
+          name: 'note',
+          config: {
+            body: 'keys leaked twice; use a dotenv file and a pre-commit guard to prevent leaking secrets',
+          },
+        },
       ],
     },
     {
@@ -60,8 +80,20 @@ const memoryAst = {
       name: 'locked-out-creator',
       children: [],
       traits: [
-        { type: 'ObjectTrait', name: 'label', config: { text: 'the focused target user cannot code cannot fund a team and will not accept platforms taking the upside' } },
-        { type: 'ObjectTrait', name: 'note', config: { body: 'the creator describes what they want, the system builds it, the creator owns it' } },
+        {
+          type: 'ObjectTrait',
+          name: 'label',
+          config: {
+            text: 'the focused target user cannot code cannot fund a team and will not accept platforms taking the upside',
+          },
+        },
+        {
+          type: 'ObjectTrait',
+          name: 'note',
+          config: {
+            body: 'the creator describes what they want, the system builds it, the creator owns it',
+          },
+        },
       ],
     },
   ],
@@ -86,7 +118,10 @@ describe('HoloEmbed memory retrieval (end-to-end, post-fix)', () => {
 
   it('ranks the dev-voice memory #1 for a dev-voice query', async () => {
     const index = await buildIndex();
-    const results = await index.search('should I write developer docs that dismiss or talk down to programmers', 5);
+    const results = await index.search(
+      'should I write developer docs that dismiss or talk down to programmers',
+      5
+    );
     expect(results[0]?.symbol.name).toBe('developers-won-by-value');
   });
 
@@ -95,7 +130,10 @@ describe('HoloEmbed memory retrieval (end-to-end, post-fix)', () => {
   // in HoloEmbedProvider (measured to hold Paper 26 Table 2 recall).
   it('ranks the key-handling memory #1 for a credentials query', async () => {
     const index = await buildIndex();
-    const results = await index.search('how do I store API keys and secret credentials safely without leaking them', 5);
+    const results = await index.search(
+      'how do I store API keys and secret credentials safely without leaking them',
+      5
+    );
     expect(results[0]?.symbol.name).toBe('key-handling');
   });
 

@@ -93,7 +93,13 @@ export const affinityHandler: TraitHandler<AffinityTraitConfig> = {
             maxEffort: 1.0,
             adaptationRate: 0.1,
           }
-        : { enabled: false, wellBeingWeight: 0.5, relationalWeight: 0.5, maxEffort: 1, adaptationRate: 0.1 },
+        : {
+            enabled: false,
+            wellBeingWeight: 0.5,
+            relationalWeight: 0.5,
+            maxEffort: 1,
+            adaptationRate: 0.1,
+          },
       timeStep: cfg.timeStep ?? 0.1,
       maxTime: cfg.maxTime,
       // Forward any extra fields the caller added

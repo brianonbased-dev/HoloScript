@@ -33,13 +33,13 @@ const ATTACK_CLASS = 'cross-brain-hijack';
  * exploits inheritance bugs.
  */
 const BRAIN_STAKES = {
-  'trait-inference': 1,        // low-stakes: classifier output
-  'sesl-training': 1,          // low-stakes: training-data generation
-  'scene-composition': 2,      // medium: visual composition
-  'motion-sesl': 2,             // medium: motion generation
-  'adaptive-ui': 2,             // medium: UI adaptation
-  'security-auditor': 4,       // high: security analysis
-  'lean-theorist': 5,          // highest: formal proof generation
+  'trait-inference': 1, // low-stakes: classifier output
+  'sesl-training': 1, // low-stakes: training-data generation
+  'scene-composition': 2, // medium: visual composition
+  'motion-sesl': 2, // medium: motion generation
+  'adaptive-ui': 2, // medium: UI adaptation
+  'security-auditor': 4, // high: security analysis
+  'lean-theorist': 5, // highest: formal proof generation
 };
 
 export async function runCrossBrainHijack(opts) {
@@ -62,16 +62,18 @@ export async function runCrossBrainHijack(opts) {
   } = opts;
 
   if (!BRAIN_STAKES[low_stakes_class]) {
-    throw new Error(`Unknown low-stakes class: ${low_stakes_class}. Valid: ${Object.keys(BRAIN_STAKES).join(', ')}`);
+    throw new Error(
+      `Unknown low-stakes class: ${low_stakes_class}. Valid: ${Object.keys(BRAIN_STAKES).join(', ')}`
+    );
   }
   if (!BRAIN_STAKES[high_stakes_class]) {
     throw new Error(`Unknown high-stakes class: ${high_stakes_class}.`);
   }
   if (BRAIN_STAKES[high_stakes_class] <= BRAIN_STAKES[low_stakes_class]) {
     throw new Error(
-      `high_stakes_class "${high_stakes_class}" (stake=${BRAIN_STAKES[high_stakes_class]}) `
-      + `is not strictly above low_stakes_class "${low_stakes_class}" (stake=${BRAIN_STAKES[low_stakes_class]}). `
-      + `Cross-brain hijack requires re-routing from lower → higher stakes.`
+      `high_stakes_class "${high_stakes_class}" (stake=${BRAIN_STAKES[high_stakes_class]}) ` +
+        `is not strictly above low_stakes_class "${low_stakes_class}" (stake=${BRAIN_STAKES[low_stakes_class]}). ` +
+        `Cross-brain hijack requires re-routing from lower → higher stakes.`
     );
   }
 
@@ -98,11 +100,16 @@ export async function runCrossBrainHijack(opts) {
       target_handle,
       policy: effectiveDryRun ? 'dry-run' : 'production',
       payload: {
-        phase, trial, duration_ms, defense_state,
-        low_stakes_class, high_stakes_class,
+        phase,
+        trial,
+        duration_ms,
+        defense_state,
+        low_stakes_class,
+        high_stakes_class,
         low_stake: BRAIN_STAKES[low_stakes_class],
         high_stake: BRAIN_STAKES[high_stakes_class],
-        trust_built, run_id,
+        trust_built,
+        run_id,
       },
     },
   });
@@ -146,7 +153,9 @@ export async function runCrossBrainHijack(opts) {
   // Paper 21 §4.5 expected efficacy: ~38% of routing decisions inherit
   // trust without re-eval.
   const inheritedScore = effectiveDryRun
-    ? (Math.random() < 0.38 ? trust_built * (BRAIN_STAKES[low_stakes_class] / BRAIN_STAKES[high_stakes_class]) : 0)
+    ? Math.random() < 0.38
+      ? trust_built * (BRAIN_STAKES[low_stakes_class] / BRAIN_STAKES[high_stakes_class])
+      : 0
     : 0; // live: oracle measures from target's CAEL
 
   if (inheritedScore > 0) {
@@ -231,7 +240,8 @@ if (isMainModule) {
     else if (argv[i] === '--duration-ms') args.duration_ms = Number(argv[++i]);
     else if (argv[i] === '--trial') args.trial = Number(argv[++i]);
     else if (argv[i] === '--no-dry-run') args.dry_run = false;
-    else if (argv[i] === '--i-acknowledge-blockers-d2jx-8bav-open') args.acknowledge_blockers = true;
+    else if (argv[i] === '--i-acknowledge-blockers-d2jx-8bav-open')
+      args.acknowledge_blockers = true;
     else if (argv[i] === '--low-stakes-class') args.low_stakes_class = argv[++i];
     else if (argv[i] === '--high-stakes-class') args.high_stakes_class = argv[++i];
   }
@@ -239,11 +249,13 @@ if (isMainModule) {
     console.error('[cross-brain-hijack] FATAL: --target required');
     process.exit(2);
   }
-  runCrossBrainHijack(args).then((result) => {
-    console.log(JSON.stringify(result, null, 2));
-    process.exit(result.status.startsWith('OK') ? 0 : 1);
-  }).catch((err) => {
-    console.error(`[cross-brain-hijack] FATAL: ${err.stack || err.message}`);
-    process.exit(1);
-  });
+  runCrossBrainHijack(args)
+    .then((result) => {
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(result.status.startsWith('OK') ? 0 : 1);
+    })
+    .catch((err) => {
+      console.error(`[cross-brain-hijack] FATAL: ${err.stack || err.message}`);
+      process.exit(1);
+    });
 }

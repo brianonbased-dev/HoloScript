@@ -30,7 +30,7 @@ export const SPATIAL_TRAIT_NAMES = new Set([
   'volumetric',
   'gaussian_splat',
   'nerf',
-  'cinematic_camera'
+  'cinematic_camera',
 ]);
 
 function cloneSerializable(value: unknown): unknown {
@@ -63,7 +63,7 @@ function spatialTraitsFingerprint(nodes: SceneNode[]): string {
       id: n.id,
       spatial: n.traits
         .filter((t) => SPATIAL_TRAIT_NAMES.has(t.name))
-        .map((t) => ({ name: t.name, properties: t.properties }))
+        .map((t) => ({ name: t.name, properties: t.properties })),
     }))
   );
 }

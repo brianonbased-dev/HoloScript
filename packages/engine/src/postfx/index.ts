@@ -10,4 +10,3 @@ export { PostProcessStack as LegacyPostProcessStack } from '../rendering/PostPro
 export { BloomEffect as LegacyBloomEffect } from '../rendering/BloomEffect';
 
 export * from './postfx-config';
-

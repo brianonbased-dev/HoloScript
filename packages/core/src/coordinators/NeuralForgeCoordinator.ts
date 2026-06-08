@@ -148,7 +148,9 @@ export class NeuralForgeCoordinator {
           lastSynthesisAt: existing?.lastSynthesisAt ?? null,
           pendingExternalSynthesis: mode === 'external',
           pendingSince: mode === 'external' ? observedAt : null,
-          experienceLogLength: Array.isArray(experiences) ? experiences.length : (existing?.experienceLogLength ?? 0),
+          experienceLogLength: Array.isArray(experiences)
+            ? experiences.length
+            : (existing?.experienceLogLength ?? 0),
           updatedAt: observedAt,
         };
         this.nodes.set(nodeId, next);
@@ -168,7 +170,7 @@ export class NeuralForgeCoordinator {
           lastSynthesisAt: existing?.lastSynthesisAt ?? null,
           pendingExternalSynthesis: false,
           pendingSince: null,
-          experienceLogLength: experienceCount ?? (existing?.experienceLogLength ?? 0),
+          experienceLogLength: experienceCount ?? existing?.experienceLogLength ?? 0,
           updatedAt: observedAt,
         };
         this.nodes.set(nodeId, next);
@@ -182,7 +184,9 @@ export class NeuralForgeCoordinator {
 
         const next: NeuralNodeState = {
           nodeId,
-          status: existing?.pendingExternalSynthesis ? 'synthesizing' : (existing?.status ?? 'idle'),
+          status: existing?.pendingExternalSynthesis
+            ? 'synthesizing'
+            : (existing?.status ?? 'idle'),
           shardCount: (existing?.shardCount ?? 0) + 1,
           weights: existing?.weights ?? {},
           lastSynthesisAt: observedAt,

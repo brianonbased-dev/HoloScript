@@ -17,10 +17,7 @@
  * Used by: AINPCBrainTrait, HoloLand NPC runtime, creator NPCs, etc.
  */
 
-import {
-  agentMemoryHandler,
-  type JEPAPredictor,
-} from '@holoscript/core/traits';
+import { agentMemoryHandler, type JEPAPredictor } from '@holoscript/core/traits';
 import {
   planAndAnchorNPCAction,
   type NPCControlInput,
@@ -35,7 +32,10 @@ export interface JEPANPCStepResult extends NPCControlOutput {
   receipt: WorldModelReceipt;
 }
 
-export type ReceiptEmitter = (receipt: WorldModelReceipt, meta: { worldId: string; npcId?: string }) => void;
+export type ReceiptEmitter = (
+  receipt: WorldModelReceipt,
+  meta: { worldId: string; npcId?: string }
+) => void;
 
 export interface JEPANPCControllerOptions {
   /** Optional callback when a receipt is produced (for cockpit + public profile) */
@@ -46,7 +46,7 @@ export interface JEPANPCControllerOptions {
   predictor: JEPAPredictor;
 
   /** Enable durable state across restarts using the persistence layer */
-  persistKey?: string;           // e.g. "npc:guard-01"
+  persistKey?: string; // e.g. "npc:guard-01"
   persistBackend?: 'memory' | 'file';
 }
 
@@ -131,18 +131,16 @@ export class JEPANPCController {
   /**
    * One control step of an action-conditioned JEPA-powered NPC.
    */
-  step(
-    currentState: string,
-    candidateActions: string[],
-    worldId: string
-  ): JEPANPCStepResult {
+  step(currentState: string, candidateActions: string[], worldId: string): JEPANPCStepResult {
     const input: NPCControlInput = {
       currentState,
       candidateActions,
       worldId,
     };
 
-    const output = planAndAnchorNPCAction(input, (state, actions) => this.predictor.plan(state, actions));
+    const output = planAndAnchorNPCAction(input, (state, actions) =>
+      this.predictor.plan(state, actions)
+    );
 
     // Emit receipt for the cockpit trust gate and public profile
     if (this.onReceipt) {

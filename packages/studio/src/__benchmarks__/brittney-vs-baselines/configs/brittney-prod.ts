@@ -25,10 +25,7 @@ function parseSseLine(line: string): SseEvent | null {
   }
 }
 
-async function readSseStream(
-  response: Response,
-  onEvent: (e: SseEvent) => void
-): Promise<void> {
+async function readSseStream(response: Response, onEvent: (e: SseEvent) => void): Promise<void> {
   const body = response.body;
   if (!body) return;
   const reader = body.getReader();
@@ -89,13 +86,11 @@ export function makeBrittneyProd(opts: BrittneyProdOptions): ConfigRunner {
       let lastWasToolUse = false;
       let assistantOutputChars = 0;
       const inputChars = task.prompt.length;
-      let pendingCheck:
-        | {
-            passed: boolean;
-            mutation?: { tool?: string; input?: Record<string, unknown> };
-            tool?: string;
-          }
-        | null = null;
+      let pendingCheck: {
+        passed: boolean;
+        mutation?: { tool?: string; input?: Record<string, unknown> };
+        tool?: string;
+      } | null = null;
       let caelChainFnv1a: string | undefined;
 
       const response = await fetchImpl(opts.endpoint, {

@@ -74,11 +74,11 @@ validateCapabilityToken({
 
 ## Trust tiers
 
-| Trust tier | Surfaces (default) | Capabilities |
-|-----------|---------------------|--------------|
-| `full` | `claude`, `cursor`, `copilot`, `gemini`, `codex` | All — including `mesh:claim`, `mesh:done`, `mesh:sign`, `protocol:publish`, `protocol:collect`, `github:pr.comment` |
-| `reduced` | `mobile`, `headless` | Read + message + knowledge.write + suggestion.vote + protocol.lookup + github.read |
-| `read-only` | (opt-in via `trust: 'read-only'`) | Read + protocol.lookup + github.read |
+| Trust tier  | Surfaces (default)                               | Capabilities                                                                                                        |
+| ----------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `full`      | `claude`, `cursor`, `copilot`, `gemini`, `codex` | All — including `mesh:claim`, `mesh:done`, `mesh:sign`, `protocol:publish`, `protocol:collect`, `github:pr.comment` |
+| `reduced`   | `mobile`, `headless`                             | Read + message + knowledge.write + suggestion.vote + protocol.lookup + github.read                                  |
+| `read-only` | (opt-in via `trust: 'read-only'`)                | Read + protocol.lookup + github.read                                                                                |
 
 A surface can step **down** its trust tier (mobile → read-only) but cannot escalate above its default (mobile cannot ask for `full`). This matches the mobile-as-seat memo's S-3 + SEC-2 + SEC-3 constraints.
 

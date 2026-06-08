@@ -27,7 +27,10 @@ function encodeBase64Url(bytes: Uint8Array): string {
 
 function decodeBase64Url(value: string): ArrayBuffer {
   const buffer = Buffer.from(value, 'base64url');
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+  return buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength
+  ) as ArrayBuffer;
 }
 
 async function getEncryptionKey(): Promise<CryptoKey | null> {

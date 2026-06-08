@@ -8,12 +8,7 @@
 // Spec: research/paper-21-ati/threat-model.md §4.2.
 // Board task: ATI-3-sybil.
 
-import type {
-  AdversarialAttack,
-  AttackContext,
-  AttackResult,
-  AttackId,
-} from './types.js';
+import type { AdversarialAttack, AttackContext, AttackResult, AttackId } from './types.js';
 
 // Default success-metric inflation factor per §4.2:
 //   success := T(s_i) > 1.5 * T(s_legitimate_baseline)
@@ -53,13 +48,8 @@ export class SybilAttack implements AdversarialAttack {
     if (config.baselineTrust <= 0) {
       throw new RangeError('SybilConfig.baselineTrust must be > 0');
     }
-    if (
-      config.successInflationFactor !== undefined &&
-      config.successInflationFactor <= 0
-    ) {
-      throw new RangeError(
-        'SybilConfig.successInflationFactor must be > 0 when provided'
-      );
+    if (config.successInflationFactor !== undefined && config.successInflationFactor <= 0) {
+      throw new RangeError('SybilConfig.successInflationFactor must be > 0 when provided');
     }
   }
 

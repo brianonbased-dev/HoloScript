@@ -25,8 +25,6 @@ const QUARANTINED_TESTS: string[] = [
   // Physics — PBD solver + cloth + constraint integration fail real assertions
   // (not tuple-access test bugs). Fixes belong in source, not tests.
 
-
-
   // Simulation — StressRecovery is long-running (>17s), fails under coverage.
   // (CSVImporter p.x/p.y/p.z bug fixed; DataImport.test.ts now runs clean — 14/14 pass.)
   'src/simulation/__tests__/StressRecovery.test.ts', // long-running (>15s), fails under coverage
@@ -89,34 +87,78 @@ const BENCH_TESTS: string[] = [
 // When true, BENCH_TESTS are added to the test exclude so coverage instrumentation
 // doesn't time them out. When false (default `vitest run`), they execute normally.
 const IS_COVERAGE_RUN =
-  process.argv.includes('--coverage') ||
-  process.env.HOLOSCRIPT_ENGINE_COVERAGE === '1';
+  process.argv.includes('--coverage') || process.env.HOLOSCRIPT_ENGINE_COVERAGE === '1';
 
 export default defineConfig({
   resolve: {
     alias: [
-      { find: '@holoscript/core/reconstruction', replacement: resolve(__dirname, '../core/src/reconstruction/index.ts') },
-      { find: '@holoscript/core/paper-0c-spike', replacement: resolve(__dirname, '../core/src/paper-0c-spike/index.ts') },
-      { find: '@holoscript/core/coordinators', replacement: resolve(__dirname, '../core/src/coordinators/index.ts') },
+      {
+        find: '@holoscript/core/reconstruction',
+        replacement: resolve(__dirname, '../core/src/reconstruction/index.ts'),
+      },
+      {
+        find: '@holoscript/core/paper-0c-spike',
+        replacement: resolve(__dirname, '../core/src/paper-0c-spike/index.ts'),
+      },
+      {
+        find: '@holoscript/core/coordinators',
+        replacement: resolve(__dirname, '../core/src/coordinators/index.ts'),
+      },
       // Subpath for test-only access to the multiview trait — needed by the
       // splat-shared-sort.parity test which asserts WGSL ↔ JS-twin ↔ CPU-ref
       // equivalence and must import the CPU ref directly (not via the main
       // `@holoscript/core` barrel, which would pull all 250+ trait exports).
-      { find: '@holoscript/core/traits/multiview-gaussian-renderer', replacement: resolve(__dirname, '../core/src/traits/MultiviewGaussianRendererTrait.ts') },
-      { find: /^@holoscript\/core\/runtime$/, replacement: resolve(__dirname, '../core/src/runtime.ts') },
+      {
+        find: '@holoscript/core/traits/multiview-gaussian-renderer',
+        replacement: resolve(__dirname, '../core/src/traits/MultiviewGaussianRendererTrait.ts'),
+      },
+      {
+        find: /^@holoscript\/core\/runtime$/,
+        replacement: resolve(__dirname, '../core/src/runtime.ts'),
+      },
       // Use exact-match regex to prevent prefix-matching subpath imports
       { find: /^@holoscript\/core$/, replacement: resolve(__dirname, '../core/src/index.ts') },
       { find: '@holoscript/holomap', replacement: resolve(__dirname, '../holomap/src/index.ts') },
-      { find: '@holoscript/framework/agents', replacement: resolve(__dirname, '../framework/src/agents/index.ts') },
-      { find: '@holoscript/framework/behavior', replacement: resolve(__dirname, '../framework/src/behavior.ts') },
-      { find: '@holoscript/framework/economy', replacement: resolve(__dirname, '../framework/src/economy/index.ts') },
-      { find: '@holoscript/framework/learning', replacement: resolve(__dirname, '../framework/src/learning/index.ts') },
-      { find: '@holoscript/framework/negotiation', replacement: resolve(__dirname, '../framework/src/negotiation/index.ts') },
-      { find: '@holoscript/framework/training', replacement: resolve(__dirname, '../framework/src/training/index.ts') },
-      { find: '@holoscript/framework/ai', replacement: resolve(__dirname, '../framework/src/ai/index.ts') },
-      { find: '@holoscript/framework/skills', replacement: resolve(__dirname, '../framework/src/skills/index.ts') },
-      { find: '@holoscript/framework/swarm', replacement: resolve(__dirname, '../framework/src/swarm/index.ts') },
-      { find: '@holoscript/framework', replacement: resolve(__dirname, '../framework/src/index.ts') },
+      {
+        find: '@holoscript/framework/agents',
+        replacement: resolve(__dirname, '../framework/src/agents/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/behavior',
+        replacement: resolve(__dirname, '../framework/src/behavior.ts'),
+      },
+      {
+        find: '@holoscript/framework/economy',
+        replacement: resolve(__dirname, '../framework/src/economy/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/learning',
+        replacement: resolve(__dirname, '../framework/src/learning/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/negotiation',
+        replacement: resolve(__dirname, '../framework/src/negotiation/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/training',
+        replacement: resolve(__dirname, '../framework/src/training/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/ai',
+        replacement: resolve(__dirname, '../framework/src/ai/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/skills',
+        replacement: resolve(__dirname, '../framework/src/skills/index.ts'),
+      },
+      {
+        find: '@holoscript/framework/swarm',
+        replacement: resolve(__dirname, '../framework/src/swarm/index.ts'),
+      },
+      {
+        find: '@holoscript/framework',
+        replacement: resolve(__dirname, '../framework/src/index.ts'),
+      },
     ],
   },
   test: {

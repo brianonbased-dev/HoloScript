@@ -1,4 +1,11 @@
-import { Project, SourceFile, SyntaxKind, Node, type JsxOpeningElement, type JsxSelfClosingElement } from 'ts-morph';
+import {
+  Project,
+  SourceFile,
+  SyntaxKind,
+  Node,
+  type JsxOpeningElement,
+  type JsxSelfClosingElement,
+} from 'ts-morph';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { existsSync } from 'node:fs';
 
@@ -50,7 +57,12 @@ export class TreeBuilder {
     return this.nodeForFile(pageAbs, 'Page', 0, new Set());
   }
 
-  private nodeForFile(abs: string, displayName: string, depth: number, seen: Set<string>): ComponentNode {
+  private nodeForFile(
+    abs: string,
+    displayName: string,
+    depth: number,
+    seen: Set<string>
+  ): ComponentNode {
     const cacheKey = `${abs}::${displayName}`;
     const cached = this.cache.get(cacheKey);
     if (cached) return { ...cached, children: cached.children.slice() };
@@ -120,7 +132,8 @@ export class TreeBuilder {
     // Without this, pages like /coordinator and /holomesh/dashboard look empty
     // because their main panels are code-split and never appear in import decls.
     const text = sf.getFullText();
-    const dynamicRegex = /(?:const|let|var)\s+([A-Z][A-Za-z0-9_]*)\s*=\s*(?:React\.)?(?:dynamic|lazy)\s*\(\s*(?:\(\)\s*=>\s*)?import\s*\(\s*['"`]([^'"`]+)['"`]/g;
+    const dynamicRegex =
+      /(?:const|let|var)\s+([A-Z][A-Za-z0-9_]*)\s*=\s*(?:React\.)?(?:dynamic|lazy)\s*\(\s*(?:\(\)\s*=>\s*)?import\s*\(\s*['"`]([^'"`]+)['"`]/g;
     let m: RegExpExecArray | null;
     while ((m = dynamicRegex.exec(text)) !== null) {
       const [, local, spec] = m;
@@ -133,13 +146,14 @@ export class TreeBuilder {
     const set = new Set<string>();
     sf.forEachDescendant((node) => {
       const kind = node.getKind();
-      if (kind !== SyntaxKind.JsxOpeningElement && kind !== SyntaxKind.JsxSelfClosingElement) return;
+      if (kind !== SyntaxKind.JsxOpeningElement && kind !== SyntaxKind.JsxSelfClosingElement)
+        return;
       const el = node as JsxOpeningElement | JsxSelfClosingElement;
       // ts-morph: tag name node is Identifier (e.g. `Foo`) or PropertyAccessExpression (`Mod.Foo`).
       const tagNode = el.getTagNameNode();
       const tagText = Node.isIdentifier(tagNode)
         ? tagNode.getText()
-        : tagNode.getText().split('.')[0] ?? tagNode.getText();
+        : (tagNode.getText().split('.')[0] ?? tagNode.getText());
       // Only PascalCase identifiers are React components; lowercase = HTML
       if (tagText && /^[A-Z]/.test(tagText)) set.add(tagText);
     });
@@ -206,9 +220,7 @@ export class TreeBuilder {
   private normalizeUrl(url: string): string {
     // Replace `${expr}` interpolations with `[expr]`-style param markers so URLs
     // that vary only by interpolation collapse to a single canonical form.
-    return url
-      .replace(/\$\{[^}]+\}/g, '[id]')
-      .replace(/\?.*$/, ''); // strip query strings — not part of route identity
+    return url.replace(/\$\{[^}]+\}/g, '[id]').replace(/\?.*$/, ''); // strip query strings — not part of route identity
   }
 
   private resolveImport(spec: string, fromAbs: string): string | undefined {
@@ -243,7 +255,9 @@ export class TreeBuilder {
   }
 
   private matchesAlias(spec: string): boolean {
-    return Object.keys(this.aliases).some((prefix) => spec === prefix.replace(/\/$/, '') || spec.startsWith(prefix));
+    return Object.keys(this.aliases).some(
+      (prefix) => spec === prefix.replace(/\/$/, '') || spec.startsWith(prefix)
+    );
   }
 
   private applyAlias(spec: string): string {

@@ -63,10 +63,12 @@ export function SceneIngestHarnessSection() {
 
   return (
     <div className="rounded-xl border border-studio-border bg-studio-surface/80 p-2.5">
-      <p className="mb-1 text-[10px] font-semibold text-studio-text">Paper harness — scene source</p>
+      <p className="mb-1 text-[10px] font-semibold text-studio-text">
+        Paper harness — scene source
+      </p>
       <p className="mb-2 text-[9px] leading-snug text-studio-muted">
-        Pick a reconstruction profile, then copy a PowerShell command to run Paper #2 or Paper #4 with
-        the same ingest mode as CI. Full runbook: repo{' '}
+        Pick a reconstruction profile, then copy a PowerShell command to run Paper #2 or Paper #4
+        with the same ingest mode as CI. Full runbook: repo{' '}
         <code className="rounded bg-black/30 px-1">docs/holomap/RUNBOOK_PAPER_HARNESSES.md</code>
       </p>
 

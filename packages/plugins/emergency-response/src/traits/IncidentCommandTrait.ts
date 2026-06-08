@@ -22,7 +22,14 @@
  * @version 1.0.0
  */
 
-import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent, GeoCoordinate, IncidentSeverity } from './types';
+import type {
+  TraitHandler,
+  HSPlusNode,
+  TraitContext,
+  TraitEvent,
+  GeoCoordinate,
+  IncidentSeverity,
+} from './types';
 
 // =============================================================================
 // TYPES
@@ -96,7 +103,10 @@ export interface IncidentCommandConfig {
 
 const incidentSectors = new Map<string, ICSSector[]>();
 const incidentStagingAreas = new Map<string, ICSStagingArea[]>();
-const incidentTimeline = new Map<string, Array<{ timestamp: number; action: string; actor?: string }>>();
+const incidentTimeline = new Map<
+  string,
+  Array<{ timestamp: number; action: string; actor?: string }>
+>();
 
 // =============================================================================
 // TRAIT HANDLER
@@ -139,11 +149,13 @@ export const incidentCommandHandler: TraitHandler<IncidentCommandConfig> = {
     incidentStagingAreas.set(id, staging);
 
     // Initialize timeline
-    incidentTimeline.set(id, [{
-      timestamp: Date.now(),
-      action: 'Incident command established',
-      actor: config.commanderName,
-    }]);
+    incidentTimeline.set(id, [
+      {
+        timestamp: Date.now(),
+        action: 'Incident command established',
+        actor: config.commanderName,
+      },
+    ]);
 
     if (!config.startTime) {
       config.startTime = new Date().toISOString();
@@ -167,12 +179,22 @@ export const incidentCommandHandler: TraitHandler<IncidentCommandConfig> = {
     ctx.emit?.('incident_command:detached', { nodeId: id });
   },
 
-  onUpdate(_node: HSPlusNode, _config: IncidentCommandConfig, _ctx: TraitContext, _delta: number): void {
+  onUpdate(
+    _node: HSPlusNode,
+    _config: IncidentCommandConfig,
+    _ctx: TraitContext,
+    _delta: number
+  ): void {
     // ICS is event-driven; no per-frame updates needed.
     // Could be extended for periodic situation reports.
   },
 
-  onEvent(node: HSPlusNode, config: IncidentCommandConfig, ctx: TraitContext, event: TraitEvent): void {
+  onEvent(
+    node: HSPlusNode,
+    config: IncidentCommandConfig,
+    ctx: TraitContext,
+    event: TraitEvent
+  ): void {
     const id = node.id ?? 'unknown';
     const eventType = typeof event === 'string' ? event : event.type;
 
@@ -209,7 +231,7 @@ export const incidentCommandHandler: TraitHandler<IncidentCommandConfig> = {
           const sectors = incidentSectors.get(id) ?? [];
           sectors.push({
             id: sectorId,
-            name: event.payload?.name as string ?? sectorId,
+            name: (event.payload?.name as string) ?? sectorId,
             leader,
             status: 'active',
             assignedUnits: [],
@@ -331,8 +353,16 @@ export const incidentCommandHandler: TraitHandler<IncidentCommandConfig> = {
           commander: config.commanderName,
           severity: config.severity,
           operationalPeriod: config.operationalPeriod,
-          sectors: sectors.map((s) => ({ id: s.id, status: s.status, units: s.assignedUnits.length })),
-          stagingAreas: staging.map((a) => ({ id: a.id, units: a.currentUnits, capacity: a.capacity })),
+          sectors: sectors.map((s) => ({
+            id: s.id,
+            status: s.status,
+            units: s.assignedUnits.length,
+          })),
+          stagingAreas: staging.map((a) => ({
+            id: a.id,
+            units: a.currentUnits,
+            capacity: a.capacity,
+          })),
           timelineEntries: timeline.length,
           unifiedCommand: config.unifiedCommand,
           channels: config.channels,
@@ -350,15 +380,74 @@ export const INCIDENT_COMMAND_TRAIT = {
   compileTargets: ['node', 'python', 'headless', 'r3f'],
   requiresRenderer: false,
   parameters: [
-    { name: 'incidentName', type: 'string', required: true, description: 'Incident name/identifier' },
-    { name: 'commanderName', type: 'string', required: true, description: 'Incident Commander name' },
-    { name: 'commanderRole', type: 'enum', required: false, enumValues: ['incident_commander', 'operations_chief', 'planning_chief', 'logistics_chief', 'finance_chief', 'safety_officer', 'public_info_officer', 'liaison_officer', 'sector_leader', 'staging_manager'], default: 'incident_commander', description: 'IC role' },
-    { name: 'sectors', type: 'array', required: false, default: [], description: 'Operational sector IDs' },
-    { name: 'stagingAreas', type: 'array', required: false, default: [], description: 'Staging area IDs' },
+    {
+      name: 'incidentName',
+      type: 'string',
+      required: true,
+      description: 'Incident name/identifier',
+    },
+    {
+      name: 'commanderName',
+      type: 'string',
+      required: true,
+      description: 'Incident Commander name',
+    },
+    {
+      name: 'commanderRole',
+      type: 'enum',
+      required: false,
+      enumValues: [
+        'incident_commander',
+        'operations_chief',
+        'planning_chief',
+        'logistics_chief',
+        'finance_chief',
+        'safety_officer',
+        'public_info_officer',
+        'liaison_officer',
+        'sector_leader',
+        'staging_manager',
+      ],
+      default: 'incident_commander',
+      description: 'IC role',
+    },
+    {
+      name: 'sectors',
+      type: 'array',
+      required: false,
+      default: [],
+      description: 'Operational sector IDs',
+    },
+    {
+      name: 'stagingAreas',
+      type: 'array',
+      required: false,
+      default: [],
+      description: 'Staging area IDs',
+    },
     { name: 'channels', type: 'object', required: false, description: 'Communication channel map' },
-    { name: 'severity', type: 'enum', required: false, enumValues: ['minor', 'moderate', 'major', 'catastrophic'], default: 'moderate', description: 'Incident severity' },
-    { name: 'unifiedCommand', type: 'boolean', required: false, default: false, description: 'Whether unified command (multi-agency) is active' },
-    { name: 'operationalPeriod', type: 'number', required: false, default: 1, description: 'Current operational period number' },
+    {
+      name: 'severity',
+      type: 'enum',
+      required: false,
+      enumValues: ['minor', 'moderate', 'major', 'catastrophic'],
+      default: 'moderate',
+      description: 'Incident severity',
+    },
+    {
+      name: 'unifiedCommand',
+      type: 'boolean',
+      required: false,
+      default: false,
+      description: 'Whether unified command (multi-agency) is active',
+    },
+    {
+      name: 'operationalPeriod',
+      type: 'number',
+      required: false,
+      default: 1,
+      description: 'Current operational period number',
+    },
   ],
 };
 

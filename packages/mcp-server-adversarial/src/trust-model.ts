@@ -171,7 +171,12 @@ export class ServerTrustState {
   }
 
   get reputation(): number {
-    return computeReputationFor(this.formula, this.contributions, this.queriesAnswered, this.reuseRate);
+    return computeReputationFor(
+      this.formula,
+      this.contributions,
+      this.queriesAnswered,
+      this.reuseRate
+    );
   }
 
   get tier(): ReputationTier {

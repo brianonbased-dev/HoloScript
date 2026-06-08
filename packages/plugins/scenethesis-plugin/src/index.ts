@@ -64,11 +64,17 @@ export function mapToHoloTraits(input: ScenethesisInput): HoloTraitEmission {
   for (const rel of input.relations ?? []) {
     // Map Scenethesis predicates to HoloScript constraint verbs (coarse stub).
     const verb =
-      rel.predicate === 'on' ? 'rests_on' :
-      rel.predicate === 'inside' ? 'contained_by' :
-      rel.predicate === 'against' ? 'adjacent_to' :
-      rel.predicate === 'near' ? 'proximal_to' :
-      rel.predicate === 'facing' ? 'oriented_toward' : 'related_to';
+      rel.predicate === 'on'
+        ? 'rests_on'
+        : rel.predicate === 'inside'
+          ? 'contained_by'
+          : rel.predicate === 'against'
+            ? 'adjacent_to'
+            : rel.predicate === 'near'
+              ? 'proximal_to'
+              : rel.predicate === 'facing'
+                ? 'oriented_toward'
+                : 'related_to';
     traits.push({
       kind: '@constraint',
       target_id: rel.subject,

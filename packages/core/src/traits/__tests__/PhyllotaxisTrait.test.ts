@@ -233,13 +233,10 @@ describe('PhyllotaxisTrait — handler lifecycle', () => {
   it('phyllotaxis_reseed re-runs placement with the new seed (jitter only)', () => {
     const before = [...(node as any).position];
     ctx.clearEvents();
-    sendEvent(
-      phyllotaxisHandler,
-      node,
-      { ...cfg, jitter: 0.3 },
-      ctx,
-      { type: 'phyllotaxis_reseed', seed: '0xDEADBEEF' }
-    );
+    sendEvent(phyllotaxisHandler, node, { ...cfg, jitter: 0.3 }, ctx, {
+      type: 'phyllotaxis_reseed',
+      seed: '0xDEADBEEF',
+    });
     const after = [...(node as any).position];
     // Jitter active and seed changed → at least one axis must move
     const diverged = before[0] !== after[0] || before[1] !== after[1] || before[2] !== after[2];

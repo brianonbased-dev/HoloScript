@@ -38,7 +38,7 @@ import { executeLotusTool } from '@/lib/brittney/lotus/LotusTools';
  */
 function buildLotusGardenEventPayload(
   toolName: string,
-  result: ReturnType<typeof executeLotusTool>,
+  result: ReturnType<typeof executeLotusTool>
 ): {
   tool: string;
   paperId: string | undefined;
@@ -159,11 +159,12 @@ describe('lotusGardenEvent SSE payload — invariants', () => {
       'bloom_petal',
       'wilt_petal',
     ] as const) {
-      const args = toolName === 'propose_evidence' || toolName === 'wilt_petal'
-        ? { paper_id: 'cael', reason: 'test' }
-        : toolName === 'bloom_petal'
-          ? { paper_id: 'cael', target_state: 'budding' }
-          : {};
+      const args =
+        toolName === 'propose_evidence' || toolName === 'wilt_petal'
+          ? { paper_id: 'cael', reason: 'test' }
+          : toolName === 'bloom_petal'
+            ? { paper_id: 'cael', target_state: 'budding' }
+            : {};
       const result = executeLotusTool(toolName, args);
       const event = buildLotusGardenEventPayload(toolName, result);
       expect(typeof event.gateRejected).toBe('boolean');
@@ -189,7 +190,7 @@ describe('lotusGardenEvent SSE payload — invariants', () => {
     const event = buildLotusGardenEventPayload('bloom_petal', result);
     const keys = new Set(Object.keys(event));
     expect(keys).toEqual(
-      new Set(['tool', 'paperId', 'newState', 'accepted', 'gateRejected', 'reason']),
+      new Set(['tool', 'paperId', 'newState', 'accepted', 'gateRejected', 'reason'])
     );
   });
 });

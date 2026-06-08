@@ -34,8 +34,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick(); // wait for reactive effect to fire
@@ -48,8 +48,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick();
@@ -62,8 +62,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick();
@@ -77,8 +77,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick();
@@ -91,8 +91,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick();
@@ -112,8 +112,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [5, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick();
@@ -128,8 +128,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick(); // create gizmos
@@ -146,8 +146,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [3, 4, 5],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick();
@@ -169,8 +169,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick();
@@ -184,8 +184,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick();
@@ -199,8 +199,8 @@ describe('GizmoSystem — Production Tests', () => {
       const entity = world.createEntity();
       world.addComponent(entity, 'Transform', {
         position: [0, 0, 0],
-        rotation: [0, 0, 0, 1 ],
-        scale: [1, 1, 1 ],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
       });
       selection.select(entity);
       await tick();
